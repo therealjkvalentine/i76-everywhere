@@ -121,8 +121,12 @@ def main():
         d[off+28:off+60] = disp.encode().ljust(32, b"\0")
         count += 1
     struct.pack_into("<I", d, 0, count)
+    # the game DROPS the last entry when the file ends exactly at it (its
+    # reader over-reads; its own writer truncates) - always leave 56B slack
+    need = 0x28 + 60*count + 56
+    if len(d) < need: d += b"\0" * (need - len(d))
     backup(dirp); open(dirp, "wb").write(d)
-    print(f"savegame.dir now lists {count} slots (006=COLOR CAL, 007=WEIGHT CAL, scene {base_scene})")
+    print(f"savegame.dir now lists {count} slots (006=COLOR CAL, 007=WEIGHT CAL, scene {base_scene}), padded to {len(d)}B")
 
 if __name__ == "__main__":
     main()

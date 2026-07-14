@@ -119,7 +119,24 @@ func reap(_ A: String) {
     try? s.run(); s.waitUntilExit()
 }
 
+// Heal savegame.dir before the game reads it: the game's LOAD board DROPS the
+// final dir entry when the file ends exactly at it (its reader over-reads; its
+// own writer truncates the newest entry - the engine's lifelong lost-bookmark
+// bug, field-diagnosed 2026-07-14). Pad with 56 zero bytes of slack past the
+// last entry on every boot; the game's next write re-truncates, we re-pad.
+func padSaveDir(_ A: String) {
+    let p = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/savegame.dir"
+    guard var d = FileManager.default.contents(atPath: p), d.count >= 4 else { return }
+    let count = d.withUnsafeBytes { $0.load(fromByteOffset: 0, as: UInt32.self) }
+    let need = 0x28 + 60 * Int(count) + 56
+    if d.count < need {
+        d.append(Data(count: need - d.count))
+        try? d.write(to: URL(fileURLWithPath: p))
+    }
+}
+
 setupEnv(A)
+padSaveDir(A)
 
 // Reap on app-quit too (cmd-Q / Dock quit / LaunchServices logout sends SIGTERM;
 // SIGINT for good measure). Without this, quitting the .app while the game runs
