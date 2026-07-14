@@ -2,13 +2,17 @@
 """Generate the two CALIBRATION saves that let the game itself answer the open
 save-format questions (docs/SAVE-FORMAT-GAPS.md, 2026-07-14):
 
-  save005 "COLOR CAL"  - salvage-pool guns become identical 50cal MGs with a
+  save006 "COLOR CAL"  - salvage-pool guns become identical 50cal MGs with a
                          condition gradient 10..100% (+ two wheels at 120%/200%,
-                         + distinct conditions on the four salvage-pool
-                         suspensions to crack the V-vs-S rule).
-  save006 "WEIGHT CAL" - byte-identical to the base save except FRONT armor
+                         + distinct conditions on the salvage-pool suspensions
+                         to crack the V-vs-S rule).
+  save007 "WEIGHT CAL" - byte-identical to the base save except FRONT armor
                          +10.0 points -> the form's total-weight delta yields
-                         the armor lbs/point coefficient.
+                         the armor lbs/point coefficient (read BOTH totals:
+                         the base save's and this one's).
+  (save005 is the user's recovered in-game save - not touched.)
+  Dir entries are written WITH display names ("COLOR CAL"/"WEIGHT CAL",
+  savegame.dir entry +28) so they're identifiable on the game's LOAD board.
 
 Base = save004.cmp (the field-verified reference save). Writes save005/006 +
 savegame.dir entries (scene 7), with timestamped backups of anything replaced.
@@ -90,8 +94,8 @@ def main():
     front = struct.unpack_from("<I", s6, 2044)[0]
     struct.pack_into("<I", s6, 2044, front + 100)      # +10.0 armor points
 
-    # ---------- write saves + dir entries ----------
-    for name, data in (("save005.cmp", s5), ("save006.cmp", s6)):
+    # ---------- write saves + NAMED dir entries ----------
+    for name, data in (("save006.cmp", s5), ("save007.cmp", s6)):
         p = os.path.join(g, name)
         bk = backup(p)
         open(p, "wb").write(data)
@@ -100,17 +104,25 @@ def main():
     d = bytearray(open(dirp, "rb").read())
     count = struct.unpack_from("<I", d, 0)[0]
     have = {cstr(d, 0x28+60*k, 16) for k in range(count)}
-    for slot in ("save005", "save006"):
+    # scene: mirror the base save's entry so the cal saves load the same mission
+    base_scene = 6
+    for k in range(count):
+        if cstr(d, 0x28+60*k, 16) == "save004":
+            off = 0x28+60*k+24
+            if off+4 <= len(d): base_scene = struct.unpack_from("<I", d, off)[0]
+    for slot, disp in (("save006", "COLOR CAL"), ("save007", "WEIGHT CAL")):
         if slot in have: continue
         off = 0x28 + 60*count
         if len(d) < off + 60: d += b"\0" * (off + 60 - len(d))
+        d[off:off+60] = b"\0" * 60
         d[off:off+16] = slot.encode().ljust(16, b"\0")
         struct.pack_into("<I", d, off+16, 1)
-        struct.pack_into("<I", d, off+24, 7)           # scene 7 done, like save004
+        struct.pack_into("<I", d, off+24, base_scene)
+        d[off+28:off+60] = disp.encode().ljust(32, b"\0")
         count += 1
     struct.pack_into("<I", d, 0, count)
     backup(dirp); open(dirp, "wb").write(d)
-    print(f"savegame.dir now lists {count} slots (005/006 = scene 7)")
+    print(f"savegame.dir now lists {count} slots (006=COLOR CAL, 007=WEIGHT CAL, scene {base_scene})")
 
 if __name__ == "__main__":
     main()

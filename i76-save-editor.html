@@ -506,19 +506,27 @@ function eqOptions(slot,curName){
   }}));
   return [];
 }
+/* savegame.dir entry = 60 bytes @0x28+60k: file[16], u32 (+16: game writes 1
+   or 8, meaning unknown), u32, u32 SCENE (+24), char[32] NAME (+28) - the
+   bookmark name typed in-game ("Reconfig"). BLANK NAME IS LEGAL: the game's
+   own entries are unnamed and the LOAD board shows a default "SCENE N." label
+   for them (decoded 2026-07-14). The game truncates the newest entry. */
 function parseDir(buf){
   const dv=new DataView(buf), u8=new Uint8Array(buf), out={};
   if(u8.length<8) return out;
   const count=u32(dv,0);
   for(let k=0;k<count;k++){
-    const e=8+60*k;
-    if(e+0x20+20>u8.length) break;
-    const nm=cstr(u8,e+0x20,20);
+    const e=0x28+60*k;
+    if(e+16>u8.length) break;
+    const nm=cstr(u8,e,16);
     if(!nm.startsWith("save")) continue;
-    out[nm]=(e+0x38+4<=u8.length)?u32(dv,e+0x38):"?";
+    out[nm]={scene:(e+28<=u8.length)?u32(dv,e+24):null,
+             name:(e+60<=u8.length)?cstr(u8,e+28,32):""};
   }
   return out;
 }
+const sceneOf=b=>{const d=dirMissions[b]; return d&&typeof d.scene==="number"?d.scene:null;};
+const nameOf =b=>{const d=dirMissions[b]; return d?d.name:"";};
 /* set an existing slot's scene dword (name+24), extending the file when the
    game left the final entry truncated - THE GAME LOADS THIS NUMBER: a 0 here
    starts the bookmark at Scene 1 with the scripted starter car. */
@@ -536,19 +544,37 @@ function dirSetScene(dirBuf, slotBase, scene){
   }
   return dirBuf;
 }
-function dirWithSlot(dirBuf, slotBase, scene){
+function dirWithSlot(dirBuf, slotBase, scene, dispName){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
   const count=dv0.getUint32(0,true);
-  const nameOff=0x28+60*count;
-  const len=Math.max(old.length, nameOff+28);
+  const entOff=0x28+60*count;
+  const len=Math.max(old.length, entOff+60);   // full entry incl. the name field
   const out=new Uint8Array(len); out.set(old);
   const dv=new DataView(out.buffer);
   dv.setUint32(0,count+1,true);
-  out.fill(0,nameOff,nameOff+28);
-  out.set(new TextEncoder().encode(slotBase).subarray(0,16),nameOff);
-  dv.setUint32(nameOff+16,1,true);
-  dv.setUint32(nameOff+24,typeof scene==="number"?scene:0,true);
+  out.fill(0,entOff,entOff+60);
+  out.set(new TextEncoder().encode(slotBase).subarray(0,16),entOff);
+  dv.setUint32(entOff+16,1,true);
+  dv.setUint32(entOff+24,typeof scene==="number"?scene:0,true);
+  if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),entOff+28);
   return out.buffer;
+}
+/* set/clear the 32-byte display name of an existing entry (extends a
+   game-truncated file so the field exists) */
+function dirSetName(dirBuf, slotBase, dispName){
+  const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
+  const count=dv0.getUint32(0,true);
+  for(let k=0;k<count;k++){
+    const e=0x28+60*k;
+    if(e+16>old.length) break;
+    if(cstr(old,e,16)===slotBase){
+      const out=new Uint8Array(Math.max(old.length,e+60)); out.set(old);
+      out.fill(0,e+28,e+60);
+      if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),e+28);
+      return out.buffer;
+    }
+  }
+  return dirBuf;
 }
 const isLate=w=>/late-Trip|boss/.test(w[11]||"");
 const WEAPONS_ORDERED=[...WEAPONS].sort((a,b)=>isLate(a)-isLate(b));
@@ -605,8 +631,8 @@ async function slotSceneFromDirHistory(slotBase){
     try{
       const r=await fetch("/files/"+b,{cache:"no-store"});
       if(!r.ok) continue;
-      const sc=parseDir(await r.arrayBuffer())[slotBase];
-      if(typeof sc==="number"&&sc>=1&&sc<=17) return sc;
+      const ent=parseDir(await r.arrayBuffer())[slotBase];
+      if(ent&&typeof ent.scene==="number"&&ent.scene>=1&&ent.scene<=17) return ent;
     }catch(e){ break; }   // server down - caller reports it
   }
   return null;
@@ -727,11 +753,14 @@ function render(){
   padbox.hidden=!saves.length;
   pad.innerHTML="";
   saves.forEach((s,i)=>{
-    const m=dirMissions[s.base];
+    const m=sceneOf(s.base), nm=nameOf(s.base);
     const row=document.createElement("div");
     row.className="padrow"; row.setAttribute("role","tab"); row.tabIndex=0;
     row.setAttribute("aria-selected",String(i===current));
-    const sceneTxt=(typeof m==="number"&&m>=1&&m<=16)?`Plays Scene ${m+1} · ${SCENES[m]}`:(m===17?"Campaign finished":`Scene ${m!==undefined&&m!=="?"?m:"?"}.`);
+    const playsTxt=(typeof m==="number"&&m>=1&&m<=16)?`plays Scene ${m+1} · ${SCENES[m]}`:(m===17?"campaign finished":"scene ?");
+    /* named bookmarks show their in-game name (the game's LOAD board does the
+       same); unnamed ones get the plays-next line like the game's default */
+    const sceneTxt=nm?`“${nm}” — ${playsTxt}`:playsTxt.charAt(0).toUpperCase()+playsTxt.slice(1);
     row.innerHTML=`<span class="hand">${sceneTxt}${isDirty(s)?" ✏":""}</span><span class="slot"></span>`;
     row.querySelector(".slot").textContent=s.base;
     const open=()=>{current=i; editingOff=null; render();};
@@ -758,9 +787,9 @@ function render(){
             const recs=scan(buf);
             if(!recs.length) throw new Error("backup isn't a readable save");
             await putFile(n,buf);
-            const sc=await slotSceneFromDirHistory(base);
+            const ent=await slotSceneFromDirHistory(base);
             if(dirBuf&&!(base in dirMissions)){
-              const nd=dirWithSlot(dirBuf,base,sc==null?0:sc);
+              const nd=dirWithSlot(dirBuf,base,ent?ent.scene:0,ent?ent.name:"");
               await putFile("savegame.dir",nd);
               dirBuf=nd; dirMissions=parseDir(nd);
             }
@@ -768,9 +797,9 @@ function render(){
             const ex=saves.findIndex(x=>x.name===n);
             if(ex>=0){saves[ex]=entry; current=ex;} else {saves.push(entry); current=saves.length-1;}
             await refreshBackups();
-            toast(sc==null
+            toast(ent==null
               ?`Restored ${base}, but its scene wasn't in the dir history — SET THE SCENE BOX and Save Bookmark, or the game loads it at Scene 1`
-              :`Restored ${base} onto the game's LOAD list (${sc} done → plays ${sc+1})`);
+              :`Restored ${base} onto the game's LOAD list (${ent.name?`“${ent.name}” · `:""}${ent.scene} done → plays ${ent.scene+1})`);
           }catch(e){
             toast(e instanceof TypeError
               ?"The editor server isn't running — relaunch i76-save-editor.command and retry"
@@ -796,14 +825,22 @@ function render(){
   sceneSel.setAttribute("aria-label","scene number for this bookmark");
   sceneSel.title="Written to savegame.dir on Save Bookmark — the game loads the bookmark at this scene";
   {
-    const dm=dirMissions[s.base];
+    const dm=sceneOf(s.base);
     const knownScene=(typeof dm==="number"&&dm>=1&&dm<=17)?dm:null;
     sceneSel.innerHTML=(knownScene===null?`<option value="" selected>?</option>`:"")+
       Array.from({length:17},(_,i)=>`<option value="${i+1}" ${knownScene===i+1?"selected":""}>${sceneLabel(i+1)}</option>`).join("");
   }
-  const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent=s.base+" · Scene №";
-  const scOf=document.createElement("span"); scOf.className="lbl2"; scOf.textContent="of 17";
-  sceneCheck.append(scLab,sceneSel,scOf);
+  /* bookmark NAME (savegame.dir +28, 32 bytes) - what the game's LOAD board
+     prints on the order-pad line; blank = the game's own "SCENE N." default */
+  const nameIn=document.createElement("input");
+  nameIn.type="text"; nameIn.maxLength=31; nameIn.value=nameOf(s.base)||"";
+  nameIn.placeholder="unnamed (game shows its default)";
+  nameIn.setAttribute("aria-label","bookmark name shown on the game's LOAD board");
+  nameIn.title="Bookmark name on the game's LOAD board — written to savegame.dir on Save Bookmark";
+  nameIn.style.cssText="font-family:'Bradley Hand','Segoe Print','Comic Sans MS',cursive;font-weight:700;font-size:16px;color:#26221A;background:#FFFFFF;border:none;border-bottom:1.5px dotted #B8B09B;padding:1px 4px;flex:1;min-width:110px";
+  const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent=s.base+" · Name";
+  const scOf=document.createElement("span"); scOf.className="lbl2"; scOf.textContent="Scene № of 17";
+  sceneCheck.append(scLab,nameIn,scOf,sceneSel);
   const secs=sections(s.recs);
 
   const grid=document.createElement("div"); grid.className="grid";
@@ -1090,9 +1127,9 @@ function render(){
 
   /* action bar */
   const act=document.createElement("div"); act.className="actionbar";
-  const m=dirMissions[s.base];
+  const m=sceneOf(s.base);
   const scene=document.createElement("span"); scene.className="note";
-  scene.textContent=(m!==undefined&&m!=="?")?`Scene ${m} of 17 · ${s.recs.length} parts tracked`:`${s.recs.length} parts tracked`;
+  scene.textContent=(m!==null)?`Scene ${m} of 17 · ${s.recs.length} parts tracked`:`${s.recs.length} parts tracked`;
   const repair=document.createElement("button"); repair.className="obtn quiet"; repair.textContent="Repair All";
   repair.addEventListener("click",()=>{
     snapUndo(s);
@@ -1150,14 +1187,19 @@ function render(){
     if(!dirBuf) return null;
     const v=parseInt(sceneSel.value,10);
     const haveScene=Number.isInteger(v)&&v>0;
+    const nm=(nameIn.value||"").trim().slice(0,31);
     if(!(target in dirMissions)){
-      const fallback=(typeof dirMissions[s.base]==="number"&&dirMissions[s.base]>0)?dirMissions[s.base]:0;
-      const scene=haveScene?v:fallback;
-      return {buf:dirWithSlot(dirBuf,target,scene), scene, warn:scene<1};
+      const fb=sceneOf(s.base);
+      const scene=haveScene?v:(fb||0);
+      return {buf:dirWithSlot(dirBuf,target,scene,nm), scene, warn:scene<1};
     }
-    if(haveScene&&dirMissions[target]!==v)
-      return {buf:dirSetScene(dirBuf,target,v), scene:v, warn:false};
-    return null;
+    const sceneChanged=haveScene&&sceneOf(target)!==v;
+    const nameChanged=nm!==(nameOf(target)||"");
+    if(!sceneChanged&&!nameChanged) return null;
+    let b=dirBuf;
+    if(sceneChanged) b=dirSetScene(b,target,v);
+    if(nameChanged)  b=dirSetName(b,target,nm);
+    return {buf:b, scene:sceneChanged?v:sceneOf(target), warn:false};
   }
   const dl=document.createElement("button"); dl.className="obtn"; dl.textContent="Save Bookmark";
   dl.addEventListener("click",async()=>{

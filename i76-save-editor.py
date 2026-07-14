@@ -59,7 +59,16 @@ game's own garage screens, 2026-07):
       "13 jobs" is NOT a hard cap; treat >=14 as unknown-cap territory.
     - chassis weight candidate: vppirnha.vdf @76 = 1320.0 f32 (the only
       plausible weight in the vdf; UNVERIFIED against in-game GROSS WT).
-  savegame.dir: u32 count, entries at 0x28+60k: name[16] + u32 + u32 + u32 SCENE.
+  savegame.dir: u32 count, entries at 0x28+60k, 60 BYTES EACH - fully decoded
+  2026-07-14: file[16] + u32(+16: game writes 1 or 8, unknown) + u32 +
+  u32 SCENE(+24) + char[32] DISPLAY NAME(+28). The name is what the game's
+  LOAD board prints ("Reconfig"); BLANK IS LEGAL - the game's own bookmarks
+  are unnamed and get a default "SCENE N." label (default's N does not always
+  equal the scene dword - semantics unchased, names supersede it).
+  KNOWN GAME BUG (observed live): saving to a fresh slot can write the dir
+  entry as saveNNN but the FILE as save-01.cmp (sprintf("save%03d",-1) -
+  slot allocator returned not-found) -> orphaned save that never lists.
+  Repair = rename the file to match the entry + complete the truncated tail.
     - the +16 u32: the GAME writes 1 on most entries but 8 on some (seen on
       save003/save005 of the same campaign) - meaning unknown; the editor
       writes 1 and the game accepts it.
