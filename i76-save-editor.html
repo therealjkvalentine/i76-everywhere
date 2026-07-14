@@ -527,6 +527,19 @@ function parseDir(buf){
 }
 const sceneOf=b=>{const d=dirMissions[b]; return d&&typeof d.scene==="number"?d.scene:null;};
 const nameOf =b=>{const d=dirMissions[b]; return d?d.name:"";};
+/* THE GAME DROPS THE LAST DIR ENTRY when the file ends exactly at it (field-
+   observed 2026-07-14: an 8-entry, exactly-sized dir listed only 7; the
+   game's own writer always truncates its final entry, so its reader over-
+   reads). Every dir buffer we write gets 56 bytes of zero slack after the
+   last entry - more than the reader peeks, less than a phantom 9th entry. */
+function padDir(buf){
+  const u8=new Uint8Array(buf);
+  if(u8.length<4) return buf;
+  const need=0x28+60*new DataView(buf).getUint32(0,true)+56;
+  if(u8.length>=need) return buf;
+  const out=new Uint8Array(need); out.set(u8);
+  return out.buffer;
+}
 /* set an existing slot's scene dword (name+24), extending the file when the
    game left the final entry truncated - THE GAME LOADS THIS NUMBER: a 0 here
    starts the bookmark at Scene 1 with the scripted starter car. */
@@ -539,7 +552,7 @@ function dirSetScene(dirBuf, slotBase, scene){
     if(cstr(old,nameOff,16)===slotBase){
       const out=new Uint8Array(Math.max(old.length,nameOff+28)); out.set(old);
       new DataView(out.buffer).setUint32(nameOff+24,scene,true);
-      return out.buffer;
+      return padDir(out.buffer);
     }
   }
   return dirBuf;
@@ -557,7 +570,7 @@ function dirWithSlot(dirBuf, slotBase, scene, dispName){
   dv.setUint32(entOff+16,1,true);
   dv.setUint32(entOff+24,typeof scene==="number"?scene:0,true);
   if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),entOff+28);
-  return out.buffer;
+  return padDir(out.buffer);
 }
 /* set/clear the 32-byte display name of an existing entry (extends a
    game-truncated file so the field exists) */
@@ -571,7 +584,7 @@ function dirSetName(dirBuf, slotBase, dispName){
       const out=new Uint8Array(Math.max(old.length,e+60)); out.set(old);
       out.fill(0,e+28,e+60);
       if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),e+28);
-      return out.buffer;
+      return padDir(out.buffer);
     }
   }
   return dirBuf;
@@ -655,7 +668,7 @@ function dirRemoveSlot(dirBuf, slotBase){
     out.set(chunk,0x28+60*k);
   });
   new DataView(out.buffer).setUint32(0,kept.length,true);
-  return out.buffer;
+  return padDir(out.buffer);
 }
 const $=id=>document.getElementById(id);
 const tray=$("tray"), filein=$("filein"), pad=$("pad"), padbox=$("padbox"),
