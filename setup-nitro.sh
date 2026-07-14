@@ -23,10 +23,9 @@
 #    5. cutscene-music proxy (SMACKW32 -> smackorg)
 #    6. Mac arrow-keys fix (KEYBOARD.MAP)
 #    7. our known-good input.map (WASD/mouse/number-keys/specials)
-#    8. 8 MB stack patch (nitro.exe PE)
-#    9. CPU-SPEED CRASH patch - NOP the privileged 8253-PIT calibration
-#       (CLI + port I/O at ~0x49ACB7). This is the documented WineHQ crash the
-#       AiO-patched base i76.exe avoids; GOG's 2011 nitro.exe still has it.
+#    8. AiO patch (UCyborg) - THE crash fix: patched nitro.exe removes the
+#       privileged 8253-PIT CPU-speed code that crashes on mission load + adds a
+#       20 FPS limiter. GOG ships i76.exe AiO-patched already; nitro.exe not.
 #   10. build + install "Interstate 76 Nitro (DxWnd).app"
 #
 #  Usage:  ./setup-nitro.sh [path/to/setup_interstate76_nitro_pack_X.exe]
@@ -162,33 +161,42 @@ if [ -f "$SRC_IM" ]; then
     cp "$SRC_IM" "$NITRO/input.map"
 fi
 
-# ---- 8 + 9. binary patches on nitro.exe (stack + CPU-speed crash) ----------
-echo "[8+9] Patching nitro.exe (8MB stack + CPU-speed crash)"
-[ -f "$NITRO/nitro.exe.pre-patch" ] || cp "$NITRO/nitro.exe" "$NITRO/nitro.exe.pre-patch"
-python3 - "$NITRO/nitro.exe" <<'PY'
-import sys,struct
-p=sys.argv[1]; d=bytearray(open(p,'rb').read())
-# --- 8. SizeOfStackReserve 1MB -> 8MB (PE32 OptionalHeader+0x48) ---
-e=struct.unpack_from('<I',d,0x3C)[0]
-assert d[e:e+4]==b'PE\x00\x00' and struct.unpack_from('<H',d,e+0x18)[0]==0x10B, "not PE32"
-so=e+0x18+0x48; old=struct.unpack_from('<I',d,so)[0]
-if old!=0x800000:
-    struct.pack_into('<I',d,so,0x800000); print(f"     stack: {old:#x} -> 0x800000")
-else: print("     stack: already 8MB")
-# --- 9. NOP the JAE guarding the privileged 8253-PIT CPU-speed block ---
-# signature: JAE(+0x0a) | MOV EAX,-666;POP ESI;MOV ESP,EBP;POP EBP;RET | CLI;MOV AL,B8;OUT 43
-sig=bytes.fromhex('730ab866fdffff5e8be55dc3fab0b8e643')
-done=bytes.fromhex('9090b866fdffff5e8be55dc3fab0b8e643')
-i=d.find(sig)
-if i>=0:
-    d[i]=0x90; d[i+1]=0x90; print(f"     cpu-speed: JAE->NOP NOP at {i:#x} (PIT block now unreachable)")
-elif d.find(done)>=0:
-    print("     cpu-speed: already patched")
-else:
-    print("     cpu-speed: WARNING pattern not found (different build?) - if nitro.exe")
-    print("                crashes on a 'privileged instruction', it needs manual patching.")
-open(p,'wb').write(d)
-PY
+# ---- 8. THE crash fix: UCyborg's AiO patch (patched nitro.exe) -------------
+# GOG's raw 2011 nitro.exe runs the menu but CRASHES on mission load: it does
+# an 8253-PIT CPU-speed calibration with privileged CLI/port-I/O, and the engine
+# chokes on the result under Wine. The community fix is the AiO patch, which ships
+# a nitro.exe with that CPU code removed + a 20 FPS limiter + memory-mgmt fixes.
+# (GOG already ships i76.exe AiO-patched, which is why the base game is fine.)
+# We install the patched I76Nitro/* files over the GOG originals. Drop the patch
+# zip in game-data/downloads or ~/Downloads. HANDLEEXCEPTIONS is NOT needed with
+# the patched exe (and the readme notes it conflicts).
+if [ -f "$NITRO/nitpatch.dll" ] && [ -d "$NITRO/.pre-aio" ]; then
+    echo "[8] AiO patch already applied (skipping)"
+else
+    AIO=$(ls "$DIR"/game-data/downloads/Interstate76*Nitro*AiO*Patch*.zip \
+             "$HOME"/Downloads/Interstate76*Nitro*AiO*Patch*.zip 2>/dev/null | head -1 || true)
+    if [ -n "$AIO" ] && [ -f "$AIO" ]; then
+        echo "[8] Applying UCyborg AiO patch: $(basename "$AIO")"
+        AT=$(mktemp -d); unzip -o -q "$AIO" -d "$AT"
+        mkdir -p "$NITRO/.pre-aio"
+        for rel in nitro.exe anet2.dll nitshell.dll nitpatch.dll miniupnpc.dll dll/WINETS2.DLL splash/SPLASH.EXE; do
+            src="$AT/I76Nitro/$rel"; dst="$NITRO/$rel"
+            [ -f "$src" ] || continue
+            if [ -f "$dst" ]; then mkdir -p "$NITRO/.pre-aio/$(dirname "$rel")"; cp "$dst" "$NITRO/.pre-aio/$rel"; fi
+            mkdir -p "$(dirname "$dst")"; cp "$src" "$dst"
+        done
+        rm -rf "$AT"
+        echo "     installed patched nitro.exe + FPS-limiter (nitpatch.dll) + net DLLs"
+    else
+        echo "[8] !! AiO patch NOT found - Nitro WILL CRASH on mission load."
+        echo "     Get 'Interstate '76 + Nitro Pack AiO Patch' (PCGamingWiki file #1349,"
+        echo "     or VOGONS t=68384), drop the .zip in game-data/downloads/ (or ~/Downloads),"
+        echo "     and re-run. This step is REQUIRED for Nitro gameplay."
+    fi
+fi
+# Optional (positional audio): the AiO readme also ships an A3D-Live! wrapper +
+# a3d.dll to fix Nitro's "all sounds at 100% at the player" bug. Not installed
+# here (Nitro runs fine without it); add manually from the patch's A3D/ if wanted.
 
 # ---- 10. build + install the Nitro launcher app ---------------------------
 echo "[10] Building the Nitro launcher app"
