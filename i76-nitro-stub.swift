@@ -59,6 +59,21 @@ func largeWineWindows() -> Int {
     return n
 }
 
+// Heal Nitro's savegame.dir before the game reads it - same lost-bookmark bug as the
+// base game (the engine's LOAD reader over-reads the final entry; its writer truncates
+// the newest one). Pad 56 zero bytes of slack past the last entry each boot; the game's
+// next write re-truncates and we re-pad. No-op until the user has saved (file absent).
+func padSaveDir(_ A: String) {
+    let p = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76 Nitro Pack/savegame.dir"
+    guard var d = FileManager.default.contents(atPath: p), d.count >= 4 else { return }
+    let count = d.withUnsafeBytes { $0.load(fromByteOffset: 0, as: UInt32.self) }
+    let need = 0x28 + 60 * Int(count) + 56
+    if d.count < need {
+        d.append(Data(count: need - d.count))
+        try? d.write(to: URL(fileURLWithPath: p))
+    }
+}
+
 var reaped = false
 let reapLock = NSLock()
 func reap(_ A: String) {
@@ -89,6 +104,7 @@ func reap(_ A: String) {
 }
 
 setupEnv(A)
+padSaveDir(A)
 
 var signalSources: [DispatchSourceSignal] = []
 for sig in [SIGTERM, SIGINT] {
