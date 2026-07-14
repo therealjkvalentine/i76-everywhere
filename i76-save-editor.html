@@ -238,7 +238,11 @@ details .paths li{margin:6px 0}
     (community measurements by Greg Schwartz / Zaphod-AVA, in "points of armor" — the same tenths the
     DEFENSE panel uses); where no measurement exists we show "~N dps spec" computed from the game's own
     weapon files (damage × salvo × shots/sec ÷ 10, all shots hitting — real DPS runs lower with misses).
-    Flamethrowers are rated the community way: time to destroy a bus.</p>
+    Flamethrowers are rated the community way: time to destroy a bus.
+    <b>Paint Shop</b> rewrites the save's own texture-set reference (the same <code>piranhaN.vtf</code>
+    field the game's car configs use) — the LOAD list's "Stock (Orange)" label is display-only text
+    and stays as-is. <b>Weight</b> is computed (the save stores none): real per-part weights plus the
+    chassis figure found in the vehicle def — flagged until it's calibrated against the in-game GROSS WT.</p>
   </details>
 
   <details>
@@ -432,6 +436,25 @@ function writeEqName(buf,slot,name){
   u8.fill(0,1024+slot*30,1024+slot*30+30);
   u8.set(new TextEncoder().encode(name).subarray(0,30),1024+slot*30);
 }
+/* car def refs @2080 mirror the .vcf layout exactly (discovered 2026-07-14):
+   vdf[13] @2080 ("vppirnha.vdf"), vtf[13] @2093 ("piranha1.vtf" = THE PAINT),
+   wheels wdf x3 @2106/@2119(null)/@2132 (front/mid/rear). Swapping the vtf to
+   piranha2/3/4.vtf = repaint (schemes read from the game's own vtf files);
+   the header variant text ("Stock (Orange)") is LOAD-list display metadata
+   and is deliberately left alone. In-game verification pending. */
+const VDF_OFF=2080, VTF_OFF=2093;
+const PAINTS=[["piranha1.vtf","Orange / Black (stock)"],["piranha2.vtf","Blue / White"],
+ ["piranha3.vtf","Black / Checker"],["piranha4.vtf","Lime Green / Black"]];
+function readRef(buf,off){return cstr(new Uint8Array(buf),off,13)}
+function writeVtf(buf,name){
+  const u8=new Uint8Array(buf);
+  u8.fill(0,VTF_OFF,VTF_OFF+13);
+  u8.set(new TextEncoder().encode(name).subarray(0,13),VTF_OFF);
+}
+/* chassis base weight: the single plausible weight float in vppirnha.vdf
+   (offset 76 = 1320.0). UNVERIFIED against the in-game GROSS WT - the weight
+   box labels it as a candidate until the field calibration comes back. */
+const CHASSIS_LBS=1320;
 const WHEELDEF_OFFS=[2106,2132];
 function writeWheelDefs(buf,letter){
   const u8=new Uint8Array(buf);
@@ -660,7 +683,10 @@ function condMarker(r){
   return "m-red";
 }
 function snapUndo(sv){(sv.undo=sv.undo||[]).push(sv.buf.slice(0)); if(sv.undo.length>80)sv.undo.shift();}
-const REPAIR_CAP=13;   // the bench holds what the game's repair list shows
+/* bench cap: "13" was a single observation, but repo save000 legitimately
+   carries 14 (R) jobs - so the true cap is >=14 (or soft). WARN, don't
+   block, until the field test pins it. */
+const REPAIR_CAP=14;   // highest (R) count seen in a real save so far
 /* best-effort mirror of the game's own bookkeeping when equipping by name */
 function reconcileFlags(buf,oldName,newName){
   const dv=new DataView(buf);
@@ -757,6 +783,10 @@ function render(){
   const repRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)===3);
   const carVanRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)!==3);
   const vanInfos=carVanRecs.filter(off=>![1,2].includes(loc(off))).map(o=>recInfo(s.buf,o));
+  /* names sitting in the van right now - the equipped dropdowns list these
+     FIRST ("mount your spare", like the in-game form); the full catalog stays
+     available but demoted to a clearly-labeled conjure section */
+  const vanNames=new Set(vanInfos.map(r=>r.name));
   const nEng=vanInfos.filter(r=>r.type===2).length, nSus=vanInfos.filter(r=>r.type===3).length;
   const capNote=(nEng>3||nSus>4)?` ⚠ over the van cap (3 engines / 4 susp) — extras may vanish in-game`:"";
   /* shared compact condition controls (colored preset + points) for one record */
@@ -813,15 +843,17 @@ function render(){
         sel.setAttribute("aria-label",`${label}: swap part`);
         const curIdx=opts.findIndex(o=>o.name===n);
         const opt=(o,i)=>`<option value="${i}" ${i===curIdx?"selected":""}>${o.label}</option>`;
-        const hasOff=opts.some(o=>o.fits===false);
-        let html=curIdx<0?`<option value="" selected>${n||"Empty"}</option>`:"";
-        if(hasOff){
-          html+=`<optgroup label="Fits like stock">`+
-            opts.map((o,i)=>o.fits!==false?opt(o,i):"").join("")+`</optgroup>`+
-            `<optgroup label="Off-spec — experiment (backups have you covered)">`+
-            opts.map((o,i)=>o.fits===false?opt(o,i):"").join("")+`</optgroup>`;
-        }else html+=opts.map(opt).join("");
-        sel.innerHTML=html;
+        /* in-game-form order: your own van spares first, then the catalog
+           (conjures a part from thin air), then off-spec experiments */
+        const own=opts.filter(o=>vanNames.has(o.name)),
+              cat=opts.filter(o=>!vanNames.has(o.name)&&o.fits!==false),
+              offs=opts.filter(o=>!vanNames.has(o.name)&&o.fits===false);
+        const og=(lbl,list)=>list.length?`<optgroup label="${lbl}">`+
+          list.map(o=>opt(o,opts.indexOf(o))).join("")+`</optgroup>`:"";
+        sel.innerHTML=(curIdx<0?`<option value="" selected>${n||"Empty"}</option>`:"")+
+          og("In the van — mount your spare",own)+
+          og("Catalog — conjure a new part",cat)+
+          og("Off-spec — conjured experiment (backups have you covered)",offs);
         sel.addEventListener("change",()=>{
           if(sel.value==="") return;
           const o=opts[+sel.value];
@@ -837,6 +869,61 @@ function render(){
     });
   });
   partsBox.appendChild(pt); left.appendChild(partsBox);
+
+  /* WEIGHT - like the form's GROSS WT, computed (the save stores no weight):
+     per-part f32 weights from the matched records (catalog fallback) + the
+     vdf's chassis candidate. Armor's lbs-per-point is still unknown, so the
+     gross figure is labeled an estimate until the field calibration. */
+  function weightOfName(nm){
+    if(!nm) return 0;
+    const e=ENGINES.find(x=>x[0]===nm)||SUSP.find(x=>x[0]===nm)||BRAKES.find(x=>x[0]===nm);
+    if(e) return e[4];
+    const w=WEAPONS.find(x=>x[0]===nm); if(w) return w[4];
+    if(WHEELS.some(([,x])=>x===nm)) return 20;
+    return 0;   // specials: negligible / unknown
+  }
+  function mountedWeight(buf){
+    const dv=new DataView(buf), u8=new Uint8Array(buf);
+    const pool2=scan(buf).filter(o=>dv.getUint32(o+100,true)===1);
+    let t=0;
+    parseCar(buf).eq.forEach(nm=>{
+      if(!nm) return;
+      const i=pool2.findIndex(o=>cstr(u8,o,30)===nm);
+      if(i>=0){ t+=dv.getFloat32(pool2[i]+80,true); pool2.splice(i,1); }
+      else t+=weightOfName(nm);
+    });
+    return t;
+  }
+  {
+    const now=mountedWeight(s.buf), was=mountedWeight(s.orig), d=now-was;
+    const wtBox=document.createElement("div"); wtBox.className="box";
+    wtBox.innerHTML=`<div class="boxhead">Weight <span class="hint">chassis ${CHASSIS_LBS} lbs = vdf candidate · armor weight not counted — calibration pending</span></div>
+      <div style="padding:8px 12px" class="hand">Mounted parts ${now.toFixed(0)} lbs → est. gross ${(CHASSIS_LBS+now).toFixed(0)} lbs${
+        d?` · ${d>0?"+":""}${d.toFixed(0)} lbs vs the loaded build`:" · matches the loaded build ✓"}</div>`;
+    left.appendChild(wtBox);
+  }
+
+  /* PAINT SHOP - swaps the save's own vcf-style vtf ref @2093 (Piranha only;
+     schemes read from the game's piranha1-4.vtf). Header variant text is
+     LOAD-list display metadata and is left untouched. */
+  if(readRef(s.buf,VDF_OFF)==="vppirnha.vdf"){
+    const curVtf=readRef(s.buf,VTF_OFF);
+    const paintBox=document.createElement("div"); paintBox.className="box";
+    paintBox.innerHTML=`<div class="boxhead">Paint Shop <span class="hint">rewrites the texture-set ref — first in-game check pending</span></div>`;
+    const prow=document.createElement("div"); prow.style.padding="8px 12px";
+    const psel=document.createElement("select"); psel.className="eqsel";
+    psel.setAttribute("aria-label","paint scheme");
+    psel.innerHTML=(PAINTS.some(p=>p[0]===curVtf)?"":`<option value="" selected>${curVtf||"(unknown)"}</option>`)+
+      PAINTS.map(([v,l])=>`<option value="${v}" ${v===curVtf?"selected":""}>${l}</option>`).join("");
+    psel.addEventListener("change",()=>{
+      if(!psel.value||psel.value===curVtf) return;
+      snapUndo(s); writeVtf(s.buf,psel.value);
+      toast(`Paint → ${psel.value.replace(".vtf","")} (the LOAD list keeps saying "${parseHeader(s.buf).variant}" — that label is display-only)`);
+      render();
+    });
+    prow.appendChild(psel); paintBox.appendChild(prow);
+    left.appendChild(paintBox);
+  }
 
   /* DEFENSE (armor, editable, displayed in the game's tenths) */
   const defBox=document.createElement("div"); defBox.className="box";
@@ -933,7 +1020,8 @@ function render(){
             });
           } else { mv.textContent="→ repair"; mv.title="put it on Skeeter's bench";
             mv.addEventListener("click",()=>{
-              if(repCount()>=REPAIR_CAP){toast(`The bench only holds ${REPAIR_CAP} jobs — finish one first`);return;}
+              if(repCount()>=REPAIR_CAP)
+                toast(`Heads-up: ${repCount()+1} bench jobs — beyond anything we've seen a real save carry (${REPAIR_CAP}); if the game drops one, we've found the cap`);
               snapUndo(s); new DataView(s.buf).setUint32(r.off+100,3,true); render();
             });
           }
@@ -948,7 +1036,7 @@ function render(){
     box.appendChild(list);
     return box;
   }
-  right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length}/${REPAIR_CAP} jobs`,repRecs,""));
+  right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length} jobs · cap unverified (≥14 seen in a real save)`,repRecs,""));
   right.appendChild(invBox("Car / Van Inventory",`spares — (C) riding in the car, (V) in the van${capNote}`,carVanRecs,""));
   const legend=document.createElement("div"); legend.className="legend";
   legend.textContent="Mounted parts show their condition on the car sheet. Spares: (C) rides in the car, (V) in the van — the → buttons move them. Colors = wear: green scuffed, yellow beat-up, red wrecked.";

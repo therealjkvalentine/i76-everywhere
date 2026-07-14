@@ -34,6 +34,22 @@ game's own garage screens, 2026-07):
                      Writing 1 everywhere piles every part into the car and the
                      game unmounts hardpoints - don't.
         +104 12 zero bytes
+    - car def refs @2080 (discovered 2026-07-14, mirrors the .vcf layout):
+      vdf[13] @2080 ("vppirnha.vdf"), vtf[13] @2093 = THE PAINT ("piranha1.vtf";
+      schemes from the game's own files: 1=orange/black 2=blue/white
+      3=black/checker 4=lime green/black - swap the vtf to repaint, in-game
+      check pending), wheel wdf x3 @2106/@2119(null)/@2132 (front/mid/rear).
+    - header variant[20] @20 ("Stock (Orange)") is LOAD-list DISPLAY text: the
+      string exists nowhere in the game data or exe, so it is written-not-read;
+      leave it alone when repainting.
+    - @1956: u32 x3, constant 2,3,1 in every observed campaign save
+      (unidentified - likely Piranha model constants; needs a melee/other-car
+      save to disambiguate).
+    - @2148: 13 small u32s, undecoded (candidates: hardpoint mount classes).
+    - repair bench: a REAL save carries 14 (R) records, so the once-observed
+      "13 jobs" is NOT a hard cap; treat >=14 as unknown-cap territory.
+    - chassis weight candidate: vppirnha.vdf @76 = 1320.0 f32 (the only
+      plausible weight in the vdf; UNVERIFIED against in-game GROSS WT).
   savegame.dir: u32 count, entries at 0x28+60k: name[16] + u32 + u32 + u32 SCENE.
   The scene dword = last COMPLETED scene; loading plays the NEXT one (dword 7
   -> you play Scene 8). 0 -> Scene 1 with the scripted starter car. The game
