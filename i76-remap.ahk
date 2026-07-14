@@ -31,7 +31,18 @@
 #SingleInstance Force
 #Persistent
 #InstallMouseHook
-#MaxHotkeysPerInterval 500  ; fast wheel scrolling must never pop the warning dialog
+; NO MODAL DIALOGS, EVER. AHK's rate-limit warning is a modal MsgBox: inside
+; the Wine session it steals foreground focus from the game -- and under
+; DxWnd's HideDesktop backdrop it's INVISIBLE, so the game just goes
+; keyboard-dead (measured 2026-07-14: a 700-notch injected scroll flood
+; tripped the old limit of 500 at exactly ~500 activations/2s and hard-blocked
+; everything; a real trackpad momentum scroll can burst the same way). With
+; only discrete button hotkeys bound, a runaway is impossible -- so set the
+; threshold unreachably high instead of "high enough".
+#MaxHotkeysPerInterval 200000
+; Load-time errors print to stdout (remapper silently absent) instead of
+; popping the same kind of focus-stealing dialog.
+#ErrorStdOut
 
 ; ---- mouse button 4 ("back") --> 6 = special 1 (the default nitrous slot)
 XButton1::6
