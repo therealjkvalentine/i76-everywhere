@@ -2,7 +2,14 @@
 
 *The Deck build uses Steam Input keyboard-emulation. On PC and Mac you can do better: the game has
 native joystick support, so an Xbox pad drives it directly through the game's own axes — no
-emulation. This is the SAME `joystick1` block our `input.map` already carries.*
+emulation. This is the **BASELINE** tier — see [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) for how it
+relates to the Deck's convenience layer.*
+
+> **Status (2026-07-14):** the baseline `joystick1` block was **re-added** to
+> [input.map.reference](input.map.reference) on 2026-07-14 (the 2026-07-13 in-game-menu rewrite had
+> dropped analog steer/throttle in favor of WASD keyboard, leaving a bare pad with only glance +
+> weapon-cycle). It is **proposed, not yet field-verified** — run the decode sheet at the bottom of
+> this doc with your actual Xbox pad to confirm the device token and button numbers, then we lock it.
 
 ## Why it just works (the Deck research, applied)
 
@@ -61,3 +68,42 @@ axes/buttons. If the game grabs a wrong/duplicate stick, set `Enable SDL=0` unde
 **Do NOT rebind via the in-game Control Configuration menu** — it's buggy (appends/wrong-stick/
 crashes). Edit `input.map` and relaunch. See [I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)
 for the chord/alternatives rules.
+
+---
+
+## Decode sheet — confirm the baseline pad mapping (≈2 min, do this once)
+
+The `joystick1` block is in `input.map` but **two values are assumed** and only your hardware can
+confirm them. Deploy the updated `input.map` to your game folder, **plug the Xbox pad in BEFORE
+launching**, start a mission, and fill in what each control actually does. Report back and we lock it.
+
+**1. Device token — does the pad drive the sim at all?**
+
+| Test | Expected if `joystick1` is correct | If it does nothing |
+|---|---|---|
+| Push **left stick** left/right | car steers | device token is likely bare `Joystick`, not `joystick1` — tell me and I'll swap it |
+| Push **left stick** up/down | accelerate / brake | (same) |
+
+The D-pad glance and X=cycle already use bare `Joystick` and (should) still work regardless — so if
+**glance works but stick-steer doesn't**, that's the tell: the parser wants bare `Joystick`.
+
+**2. Button numbering — which face button did each action?**
+
+Press each and note what happens in-sim:
+
+| Press | Assumed action | What it actually did |
+|---|---|---|
+| **A** | fire | ______________ |
+| **B** | nitrous / special 1 | ______________ |
+| **X** | cycle weapon | ______________ |
+| **Y** | handbrake | ______________ |
+
+If they're shuffled (e.g. A cycles instead of fires), just tell me the mapping you observed and I'll
+renumber the `Button1..4` to match your pad — winmm button order varies by pad/driver.
+
+**3. Axis feel (optional):** does up-on-the-stick accelerate, or is throttle inverted? If inverted,
+the fix is a one-token polarity flip. Prefer triggers for gas/brake? Say so — there's a commented
+`throttle { + joystick1 Throttle }` swap ready in `input.map`.
+
+*Fastest ground truth:* the `deck/probe/` instrument logs raw `joyGetPosEx` axis/button numbers, so
+if the in-sim test is ambiguous we can read the exact numbers your pad reports rather than guessing.
