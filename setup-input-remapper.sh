@@ -74,6 +74,29 @@ if [ "$1" = "--decode" ]; then
     exit 0
 fi
 
+if [ "$1" = "--axes" ]; then
+    # Analog-axis diagnostic: reads the sticks via AHK GetKeyState AND raw
+    # joyGetPosEx (the game's own API) to prove which works under Wine.
+    if pgrep -f "i76\.exe" >/dev/null 2>&1; then
+        echo "--axes refused: quit the game first (its DxWnd backdrop hides the window)."
+        exit 1
+    fi
+    g=$(echo "$GAMES" | head -1)
+    APP="$(app_of "$g")"; D="$(drive_c_of "$g")/AutoHotkey"
+    mkdir -p "$D"
+    [ -f "$D/AutoHotkeyU32.exe" ] || { echo "run without --axes first to install AutoHotkey"; exit 1; }
+    cp -f "$HERE/i76-gamepad-axistest.ahk" "$D/i76-gamepad-axistest.ahk"
+    rm -f "$D/axistest.txt"
+    export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
+    export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/SharedSupport/wine/lib"
+    echo "Connect the Xbox pad NOW. Swirl BOTH sticks + squeeze BOTH triggers when the window opens."
+    "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\AutoHotkey\AutoHotkeyU32.exe' 'C:\AutoHotkey\i76-gamepad-axistest.ahk' >/dev/null 2>&1 || true
+    "$APP/Contents/SharedSupport/wine/bin/wineserver" -k 2>/dev/null || true
+    echo "=================== axistest.txt ==================="
+    cat "$D/axistest.txt" 2>/dev/null || echo "(no axistest.txt written)"
+    exit 0
+fi
+
 # Lint: bare wheel REMAPS (WheelUp::key) are forbidden - AHK v1 does not
 # support the remap syntax for the wheel (no release event), so the
 # destination key goes down and NEVER comes up. Field regression 2026-07-14:
