@@ -10,7 +10,16 @@ game's own garage screens, 2026-07):
     - Mr. Damage component registry @64 (32B records: u32 idx, char[16] name,
       3 dwords - structural constants, grows as specials are installed)
     - EQUIPPED loadout @1024: 14 x char[30] names (engine, susp, brakes,
-      wheels x4, weapons x4, specials x3) - what's ON the car
+      wheels x4, weapons x4, specials x3) - what's ON the car. An empty
+      hardpoint stores the LITERAL string "Empty". The garage's (C) rows are
+      THESE names (not loc-1 records). Special 1/2/3 display order = the
+      Mr. Damage REGISTRY order, not the @1024 slot order.
+      *** 2026-07-14 field reconciliation: docs/SAVE-FORMAT-GAPS.md is the
+      current source of truth on loc-flag semantics (4 = FIELD SALVAGE,
+      2 = van-ish, repair = the count-prefixed TRAILING section whose last
+      record the game truncates at EOF; the last main-pool record's tail is
+      systematically shifted 4 bytes by that count dword). Open: exact V-vs-S
+      rule, condition-color thresholds, weight formula. ***
     - ARMOR @2044: 8 x u32 in TENTHS of the in-game DEFENSE panel numbers:
       armor F/R/L/Rear then chassis F/R/L/Rear (verified against the game UI)
     - inventory: 116-byte records, found by signature scan; they run in
