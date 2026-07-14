@@ -117,6 +117,17 @@ func reap(_ A: String) {
     s.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
     s.arguments = ["-9", "-f", rx(A + "/Contents/SharedSupport")]
     try? s.run(); s.waitUntilExit()
+    // Wine REWRITES its processes' argv to the WINDOWS command line
+    // ("C:\dxwnd\dxwnd.exe /R:1"), so the bundle-path sweep above can never
+    // match them - they normally die via wineserver -k, but when that wedges
+    // (observed 2026-07-14: orphaned dxwnd + AutoHotkey held the prefix and
+    // blocked relaunch) nothing killed them. Final belt: kill this game's
+    // wine processes by their distinctive Windows paths.
+    let w = Process()
+    w.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+    w.arguments = ["-9", "-f",
+        "C:\\\\dxwnd\\\\dxwnd\\.exe|C:\\\\GOG Games\\\\Interstate 76\\\\i76\\.exe|C:\\\\AutoHotkey\\\\AutoHotkeyU32\\.exe"]
+    try? w.run(); w.waitUntilExit()
 }
 
 // Heal savegame.dir before the game reads it: the game's LOAD board DROPS the
