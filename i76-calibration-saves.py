@@ -74,14 +74,25 @@ def main():
     typ  = lambda b, o: struct.unpack_from("<I", b, o+30)[0]
     MAIN_END = 9588   # corrupt slot + repair section start beyond here - untouched
 
-    # ---------- save005: COLOR CAL ----------
+    # ---------- save006: COLOR CAL v2 ----------
+    # Seven DISTINCT weapon types, each absent from the rest of the pool, so
+    # every garage row self-identifies its condition step - no display-order
+    # assumptions needed (v1 used identical 50cals; ambiguous, retired).
+    CAL_GUNS = [  # (name, type, cls, dfl, dur, wt, pct)
+        ("7.62mm MG",   7, "slg03", "gmheavy.gdf",  600,  91.0,  10),
+        ("30mm Cannon",  7, "slg06", "gcheavy.gdf",  600, 150.0,  25),
+        ("HADES Cannon", 7, "slg07", "gchades.gdf",  600, 150.0,  40),
+        ("WP Mortar",    7, "mor02", "gwhiteph.gdf", 400,  89.0,  55),
+        ("Cluster-Bomb", 7, "mor03", "gcluster.gdf", 600, 109.0,  70),
+        ("EZK Mortar",   7, "mor04", "gezkill.gdf",  650, 123.0,  85),
+        ("Landmines",    8, "drp05", "glandmin.gdf", 200,  60.0, 100),
+    ]
     s5 = bytearray(base)
     guns = [o for o in recs if o < MAIN_END and typ(s5, o) in (7, 8) and loc(s5, o) == 4]
-    grads = [10, 25, 40, 55, 70, 85, 100]
-    assert len(guns) >= len(grads), f"need 7 salvage guns, found {len(guns)}"
-    for o, pct in zip(guns, grads):
-        write_identity(s5, o, "50cal MG", 7, "slg02", "gmmedium.gdf", 400, 47.0)
-        struct.pack_into("<I", s5, o+96, 400*pct//100)
+    assert len(guns) >= len(CAL_GUNS), f"need 7 salvage guns, found {len(guns)}"
+    for o, (nm, t, cls, dfl, dur, wt, pct) in zip(guns, CAL_GUNS):
+        write_identity(s5, o, nm, t, cls, dfl, dur, wt)
+        struct.pack_into("<I", s5, o+96, dur*pct//100)
     wheels = [o for o in recs if o < MAIN_END and typ(s5, o) == 5 and loc(s5, o) == 4]
     for o, cond in zip(wheels[:2], (120, 200)):        # dur=100 -> 120% and 200%
         struct.pack_into("<I", s5, o+96, cond)
