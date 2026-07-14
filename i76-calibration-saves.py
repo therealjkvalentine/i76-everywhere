@@ -74,22 +74,30 @@ def main():
     typ  = lambda b, o: struct.unpack_from("<I", b, o+30)[0]
     MAIN_END = 9588   # corrupt slot + repair section start beyond here - untouched
 
-    # ---------- save006: COLOR CAL v2 ----------
-    # Seven DISTINCT weapon types, each absent from the rest of the pool, so
-    # every garage row self-identifies its condition step - no display-order
-    # assumptions needed (v1 used identical 50cals; ambiguous, retired).
+    # ---------- save006: COLOR CAL v3 ----------
+    # v1 (identical 50cals): display-order ambiguity. v2 (unique guns in
+    # SALVAGE): the salvage pane RE-ROLLS its colors at load - not stored
+    # state (proven: same bytes, different colors across two loads) - and the
+    # game AUTO-MOUNTED the mountable probes into the car. v3: seven unique
+    # TURRET-class weapons (unmountable on the Piranha - the game ejects
+    # turrets to Empty, field-proven) placed in the VAN (loc2, whose colors
+    # ARE stable across loads), overwriting only records whose names are NOT
+    # in the equipped block (no auto-mount consumption, no cap breach).
+    # All durs = gdf maxHP @ offset 76, extracted from the game's own files.
     CAL_GUNS = [  # (name, type, cls, dfl, dur, wt, pct)
-        ("7.62mm MG",   7, "slg03", "gmheavy.gdf",  600,  91.0,  10),
-        ("30mm Cannon",  7, "slg06", "gcheavy.gdf",  600, 150.0,  25),
-        ("HADES Cannon", 7, "slg07", "gchades.gdf",  600, 150.0,  40),
-        ("WP Mortar",    7, "mor02", "gwhiteph.gdf", 400,  89.0,  55),
-        ("Cluster-Bomb", 7, "mor03", "gcluster.gdf", 600, 109.0,  70),
-        ("EZK Mortar",   7, "mor04", "gezkill.gdf",  650, 123.0,  85),
-        ("Landmines",    8, "drp05", "glandmin.gdf", 200,  60.0, 100),
+        ("30cal Turret", 7, "slg01", "tmlight.gdf",  200,  32.0,  10),
+        ("50cal Turret", 7, "slg02", "tmmedium.gdf", 400,  47.0,  25),
+        ("7.62 Turret",  7, "slg03", "tmheavy.gdf",  600,  91.0,  40),
+        ("25mm Turret",  7, "slg05", "tcmedium.gdf", 400,  89.0,  55),
+        ("30mm Turret",  7, "slg06", "tcheavy.gdf",  600, 150.0,  70),
+        ("HADES Turret", 7, "slg07", "tchades.gdf",  600, 150.0,  85),
+        ("Howitzer",     7, "slg06", "tthowitz.gdf", 900, 170.0, 100),
     ]
     s5 = bytearray(base)
-    guns = [o for o in recs if o < MAIN_END and typ(s5, o) in (7, 8) and loc(s5, o) == 4]
-    assert len(guns) >= len(CAL_GUNS), f"need 7 salvage guns, found {len(guns)}"
+    equipped = {cstr(bytes(s5), 1024+k*30, 30) for k in range(14)}
+    guns = [o for o in recs if o < MAIN_END and typ(s5, o) in (7, 8)
+            and loc(s5, o) == 2 and cstr(bytes(s5), o, 30) not in equipped]
+    assert len(guns) >= len(CAL_GUNS), f"need 7 free van guns, found {len(guns)}"
     for o, (nm, t, cls, dfl, dur, wt, pct) in zip(guns, CAL_GUNS):
         write_identity(s5, o, nm, t, cls, dfl, dur, wt)
         struct.pack_into("<I", s5, o+96, dur*pct//100)

@@ -83,9 +83,21 @@ its scene dword on disk either way — the editor completes those on save).
 the equipped block is a request, not a guarantee. The stripped-car case also shows (C)
 rows for records the equipped block doesn't name, so the C/V/S bucket rule is still open.
 
-**Condition colors:** the user's read is likely right — plain percentage bands, and the
-earlier "disproof" was row↔record mispairing (all four ≤17% wheels red; a 66.7% brake
-green; a 37% suspension yellow). Exact cutoffs come from the COLOR CAL gradient readback.
+**Condition colors — the panes are NOT equal (v2 readback, 2026-07-14):**
+- **Field Salvage colors are RE-ROLLED at load, not stored state.** Proven: identical
+  save006 bytes produced all-red 13in Stocks in one session and green/green/red/red in the
+  next. No formula against the record fields can ever fit that pane — stop trying.
+- **Car/Van inventory colors ARE stable across loads** (same (R)/(V) colors in every
+  session) → stored-state-derived; Repair Order colors likely encode the panel's own
+  REPAIR TIME semantics rather than raw condition.
+- The game **auto-mounts** mountable pool weapons into empty validated hardpoints on load
+  (v2's 7.62/WP/Cluster showed up (C) uninvited) — bucket rule: (C) = post-validation,
+  post-auto-fill mounted set.
+- gdf fact: **offset 76 of every weapon .gdf = max HP** (same +76 position as in save
+  records — the record embeds the def's field). All catalog durabilities verified correct.
+- **COLOR CAL v3** targets the stable pane: seven unique TURRET-class weapons (unmountable
+  on the Piranha, so they stay (V)) in the van at 10/25/40/55/70/85/100%. Readback maps
+  van colors → thresholds directly.
 
 ## The calibration saves (game-as-oracle protocol)
 
