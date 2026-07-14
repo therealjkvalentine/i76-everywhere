@@ -82,3 +82,6 @@ print("pad joystick1 (left stick drive, B1 fire, B3 cycle, B4 e-brake, hat glanc
 EOF
 echo "Backup: input.map.pre-mouse-pad. Connect the pad BEFORE launching (the game"
 echo "enumerates joysticks only at startup). Weapon 4 stays on keyboard 'Four'."
+
+# NOTE: right-click fires ALL weapons - the input.map gains extra RightBtn blocks
+# for weapon_fire + hardpoint1/3/4_fire (hardpoint2 already has it). Applied live 2026-07-13.
