@@ -586,6 +586,31 @@ function backupLabel(b){
   const m=b.match(/\.bak-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
   return m?`${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]}`:b;
 }
+/* the server lists backups ALPHABETICALLY (.bak-... before .pre-edit), so
+   [length-1] is NOT the newest - sort by timestamp, .pre-edit = oldest */
+function newestBackup(list){
+  return list.slice().sort((a,b)=>{
+    const k=x=>{const m=x.match(/\.bak-(\d{8}-\d{6})$/); return m?m[1]:"0";};
+    return k(a).localeCompare(k(b));
+  })[list.length-1];
+}
+/* a deleted slot's scene isn't in the current savegame.dir - recover it from
+   the dir's own backup history (newest first, skip the game's truncated 0s) */
+async function slotSceneFromDirHistory(slotBase){
+  const baks=(backupsMap["savegame.dir"]||[]).slice().sort((a,b)=>{
+    const k=x=>{const m=x.match(/\.bak-(\d{8}-\d{6})$/); return m?m[1]:"0";};
+    return k(b).localeCompare(k(a));
+  });
+  for(const b of baks){
+    try{
+      const r=await fetch("/files/"+b,{cache:"no-store"});
+      if(!r.ok) continue;
+      const sc=parseDir(await r.arrayBuffer())[slotBase];
+      if(typeof sc==="number"&&sc>=1&&sc<=17) return sc;
+    }catch(e){ break; }   // server down - caller reports it
+  }
+  return null;
+}
 /* drop a slot's entry from savegame.dir (rebuild header + remaining entries) */
 function dirRemoveSlot(dirBuf, slotBase){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
@@ -722,16 +747,35 @@ function render(){
         const row=document.createElement("div"); row.className="padrow"; row.tabIndex=0;
         row.innerHTML=`<span class="hand" style="color:var(--rust)">↩ restore ${base}</span><span class="slot">deleted · ${backupsMap[n].length} backup${backupsMap[n].length>1?"s":""}</span>`;
         const restore=async()=>{
-          const b=backupsMap[n][backupsMap[n].length-1];   // newest
+          /* ONE-CLICK full restore: write the save back AND its savegame.dir
+             entry (scene recovered from the dir's backup history) - without
+             the dir entry the game's LOAD list never shows the slot. */
+          const b=newestBackup(backupsMap[n]);
           try{
             const r=await fetch("/files/"+b,{cache:"no-store"});
-            if(!r.ok) throw new Error("fetch failed");
+            if(!r.ok) throw new Error("HTTP "+r.status);
             const buf=await r.arrayBuffer();
-            const entry={name:n, base, buf, orig:buf.slice(0), recs:scan(buf)};
+            const recs=scan(buf);
+            if(!recs.length) throw new Error("backup isn't a readable save");
+            await putFile(n,buf);
+            const sc=await slotSceneFromDirHistory(base);
+            if(dirBuf&&!(base in dirMissions)){
+              const nd=dirWithSlot(dirBuf,base,sc==null?0:sc);
+              await putFile("savegame.dir",nd);
+              dirBuf=nd; dirMissions=parseDir(nd);
+            }
+            const entry={name:n, base, buf, orig:buf.slice(0), recs};
             const ex=saves.findIndex(x=>x.name===n);
             if(ex>=0){saves[ex]=entry; current=ex;} else {saves.push(entry); current=saves.length-1;}
-            toast(`Loaded ${base} from its newest backup — pick the scene, then Save Bookmark to bring it back`);
-          }catch(e){ toast("Couldn't load the backup"); }
+            await refreshBackups();
+            toast(sc==null
+              ?`Restored ${base}, but its scene wasn't in the dir history — SET THE SCENE BOX and Save Bookmark, or the game loads it at Scene 1`
+              :`Restored ${base} onto the game's LOAD list (${sc} done → plays ${sc+1})`);
+          }catch(e){
+            toast(e instanceof TypeError
+              ?"The editor server isn't running — relaunch i76-save-editor.command and retry"
+              :`Couldn't restore ${base} (${e.message})`);
+          }
           render();
         };
         row.addEventListener("click",restore);
@@ -1151,7 +1195,10 @@ function render(){
   /* live-folder extras: restore from a timestamped backup, delete the bookmark */
   let hist=null, delBtn=null;
   if(liveDir){
-    const baks=(backupsMap[s.name]||[]).slice().reverse();   // newest first
+    const baks=(backupsMap[s.name]||[]).slice().sort((a,b)=>{   // newest first (by timestamp; .pre-edit = oldest)
+      const k=x=>{const m=x.match(/\.bak-(\d{8}-\d{6})$/); return m?m[1]:"0";};
+      return k(b).localeCompare(k(a));
+    });
     hist=document.createElement("select"); hist.className="slotsel";
     hist.setAttribute("aria-label","restore a backup of this save");
     hist.innerHTML=`<option value="" selected>History (${baks.length})…</option>`+
