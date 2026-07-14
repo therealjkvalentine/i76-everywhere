@@ -451,10 +451,11 @@ function writeVtf(buf,name){
   u8.fill(0,VTF_OFF,VTF_OFF+13);
   u8.set(new TextEncoder().encode(name).subarray(0,13),VTF_OFF);
 }
-/* chassis base weight: the single plausible weight float in vppirnha.vdf
-   (offset 76 = 1320.0). UNVERIFIED against the in-game GROSS WT - the weight
-   box labels it as a candidate until the field calibration comes back. */
-const CHASSIS_LBS=1320;
+/* WEIGHT FORMULA - FIELD-SOLVED 2026-07-14 with two calibration builds
+   (3986 lbs @ 480 armor pts / 596 lbs parts vs 3727 lbs @ 490 pts / 327 lbs):
+   total = 2910 (Piranha chassis+driver+hand gun) + mounted part weights
+         + 1.0 lb per armor point. Exact on both measurements. */
+const CHASSIS_LBS=2910, ARMOR_LBS_PER_POINT=1.0;
 const WHEELDEF_OFFS=[2106,2132];
 function writeWheelDefs(buf,letter){
   const u8=new Uint8Array(buf);
@@ -994,10 +995,12 @@ function render(){
     return t;
   }
   {
-    const now=mountedWeight(s.buf), was=mountedWeight(s.orig), d=now-was;
+    const armorPts=b=>{const dv=new DataView(b);let t=0;for(let k=0;k<8;k++)t+=dv.getUint32(ARMOR_OFF+4*k,true);return t/10;};
+    const tot=b=>CHASSIS_LBS+mountedWeight(b)+ARMOR_LBS_PER_POINT*armorPts(b);
+    const now=tot(s.buf), was=tot(s.orig), d=now-was;
     const wtBox=document.createElement("div"); wtBox.className="box";
-    wtBox.innerHTML=`<div class="boxhead">Weight <span class="hint">chassis ${CHASSIS_LBS} lbs = vdf candidate · armor weight not counted — calibration pending</span></div>
-      <div style="padding:8px 12px" class="hand">Mounted parts ${now.toFixed(0)} lbs → est. gross ${(CHASSIS_LBS+now).toFixed(0)} lbs${
+    wtBox.innerHTML=`<div class="boxhead">Weight <span class="hint">total = 2910 chassis + parts + 1 lb/armor pt — field-verified formula (matches the game's form exactly)</span></div>
+      <div style="padding:8px 12px" class="hand">total weight: ${now.toFixed(0)} lbs${
         d?` · ${d>0?"+":""}${d.toFixed(0)} lbs vs the loaded build`:" · matches the loaded build ✓"}</div>`;
     left.appendChild(wtBox);
   }

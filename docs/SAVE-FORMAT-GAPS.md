@@ -39,9 +39,13 @@ and scrolls. Same-axle wheels must match (fits the save's front/rear `wauto` pai
    dur: 200/100, 300/200, 400/300...).
 2. **V vs S rule for normal parts.** loc2↔(V) fits weapons/wheels/engines counts, but one
    (V) "Stock" suspension has no loc2 record — some rule beyond loc is in play.
-3. **Weight formula.** Form says **total 4100 lbs**. Equipped parts (record weights) = 710.
-   Chassis candidate (vdf@76) = 1320 → armor coefficient would be (4100−1320−710)/480 =
-   **4.3125 lbs/armor-point** — suspicious number; needs the armor-delta probe.
+3. ~~Weight formula~~ **SOLVED (field-calibrated 2026-07-14 with two builds):**
+   `total = 2910 (Piranha chassis + driver + hand gun) + Σ mounted part weights +
+   1.0 lb × armor points`. Derived from Reconfig (3986 lbs / 480 pts / 596 lbs parts) vs
+   WEIGHT CAL (3727 lbs / 490 pts / 327 lbs parts); exact on both, and the editor's Weight
+   box reproduces the game's 3986 on save005 byte-for-byte. The vdf@76 value (1320) is NOT
+   the chassis weight. Note: the game weighs AFTER load-time mount validation — saves with
+   non-fitting equipped names weigh less in-game than their stored loadout implies.
 4. **@1956 triple (2,3,1), dir +16 (1 vs 8), spc cond values, the corrupt-looking
    NitrousOxide record @9588** (its tail is shifted 4 bytes — likely the same write bug
    family as the EOF truncation).
