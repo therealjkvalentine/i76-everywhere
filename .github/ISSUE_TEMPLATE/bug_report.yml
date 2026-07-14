@@ -1,0 +1,63 @@
+name: "Something didn't work"
+description: A setup step, script, or in-game behavior that went wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! This is a game port, so **in-game observations are the best data.**
+        A screenshot of what you saw beats a description. Please don't attach game files or saves
+        that aren't your own throwaway test data.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Apple Silicon Mac
+        - Intel Mac
+        - Steam Deck
+        - Windows
+        - Android / Winlator
+        - Save editor (browser)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware / OS version
+      placeholder: "e.g. M4 MacBook Air, macOS 26.1 · or Steam Deck OLED, SteamOS 3.x"
+  - type: input
+    id: game-source
+    attributes:
+      label: Game source
+      placeholder: "e.g. GOG Interstate 76 Arsenal, offline installer"
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened vs. what you expected
+      placeholder: "I ran X. I expected Y. Instead I got Z."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output / screenshot
+      description: Paste terminal output in a code block, or drag in a screenshot.
+  - type: checkboxes
+    id: checked-docs
+    attributes:
+      label: Before filing
+      options:
+        - label: I checked docs/VERIFIED-FIXES.md and the docs/README.md doc map for a known answer.
+          required: true
+        - label: This report contains no copyrighted game content.
+          required: true

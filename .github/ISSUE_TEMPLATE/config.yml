@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Buy the game (required to play)
+    url: https://www.gog.com/game/interstate_76
+    about: This project ships no game content. You need a legitimate GOG copy.
+  - name: Read the doc map first
+    url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/README.md
+    about: What works, what's a settled dead end — check before filing.
+  - name: Every verified fix, one table
+    url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/VERIFIED-FIXES.md
+    about: Your answer may already be here.

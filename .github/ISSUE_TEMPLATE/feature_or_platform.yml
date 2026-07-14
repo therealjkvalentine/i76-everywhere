@@ -1,0 +1,40 @@
+name: "Idea, request, or new-platform recipe"
+description: A feature, a fix to port to another platform, or a "it works on my X" data point.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For untested claims (the phone-port playbook, the BETA Mac installer), a confirmed
+        "worked / didn't work on my hardware" is a great contribution — please say what you ran.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this?
+      options:
+        - Feature / improvement idea
+        - Port an existing fix to another platform
+        - Test result for an untested/BETA claim
+        - Format / reverse-engineering finding
+        - Docs improvement
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Details
+      placeholder: "What you'd like, or what you tested and observed."
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform / hardware (if relevant)
+      placeholder: "e.g. Snapdragon 8 Gen 3, Winlator 11.1 Glibc"
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Before filing
+      options:
+        - label: I read the docs/README.md doc map so I'm not re-opening a settled dead end.
+          required: true

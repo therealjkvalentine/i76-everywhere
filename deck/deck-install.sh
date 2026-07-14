@@ -12,7 +12,7 @@
 # THE USER downloaded with their own account. dgVoodoo is fetched from the
 # public archive.org mirror at install time (not redistributed by this repo).
 set -u
-REPO_RAW="https://raw.githubusercontent.com/therealjkvalentine/mac-gaming-ports/main/games/interstate-76"
+REPO_RAW="https://raw.githubusercontent.com/therealjkvalentine/i76-everywhere/main"
 WORK="$HOME/.cache/i76-deck-install"
 INSTALL="$HOME/Games/Interstate76"
 GAME="$INSTALL/game"

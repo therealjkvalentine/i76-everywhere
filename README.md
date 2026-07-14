@@ -14,14 +14,16 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Play on a Mac** (Apple Silicon) | [docs/MAC-BUILD.md](docs/MAC-BUILD.md) — the shipping build: software renderer via DxWnd in a self-contained Wine wrapper. Instant start, music, clean quit, 20 FPS physics-safe |
 | **Play on a Steam Deck** | [docs/STEAMDECK.md](docs/STEAMDECK.md) — the pretty Glide path (dgVoodoo→Vulkan) + force feedback |
 | **Play on Windows** | [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) — max graphics, FFB, frame-gen |
-| **Edit your saves** | [Save editor](#the-save-editor) — browser UI styled as the game's own Build and Repair Form |
+| **Edit your saves** (no install) | **[Open the save editor in your browser →](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)** — drag a save in, download it back out. Details: [the save editor](#the-save-editor) |
 | **Understand the file formats** | [i76-save-editor.py](i76-save-editor.py) docstring (save format) + [docs/HD-TEXTURES-RESEARCH.md](docs/HD-TEXTURES-RESEARCH.md) (ZFS/VQM/M16) |
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
 
 ## The save editor
 
-A single self-contained web page styled after the game's garage paperwork:
+A single self-contained web page styled after the game's garage paperwork.
+**Zero-install:** [use it right now in any browser](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)
+— drag a save file in, edit, download it back out (nothing is uploaded; it all runs locally in the page).
 
 - `./i76-save-editor.command` (Mac) — opens the editor with your saves auto-loaded and
   **writes edits straight back** (timestamped backups on every write; deletes are recoverable)
