@@ -83,7 +83,21 @@ its scene dword on disk either way — the editor completes those on save).
 the equipped block is a request, not a guarantee. The stripped-car case also shows (C)
 rows for records the equipped block doesn't name, so the C/V/S bucket rule is still open.
 
-**Condition colors — the panes are NOT equal (v2 readback, 2026-07-14):**
+**CONDITION COLORS: CLOSED (the TRUTH experiment, 2026-07-14).** The controlled test:
+feed the game a save with EVERY durable record at exactly 100% ("ALL PERFECT"), watch the
+garage paint highlights anyway, have the game save that exact state ("TRUTH"), diff. Result:
+**all 65 records still exactly 100% — the highlights never touch the file.** Garage colors
+are generated at render time (a per-load roll/transient state) and are NOT a readout of the
+cond field. `cond/dur` remains the real stored part health (edits to it changed gameplay
+state and cleared long-stable colors), but the paint itself is not data. Stop modeling it.
+Bonus findings from the same diff: the game DISSOLVES the repair queue on save when nothing
+is damaged (the four queue records vanished); it re-triages van overflow to salvage; and it
+ingested our fully synthetic save cleanly — the editor's writer is game-proven. Also
+reproduced 2/2: EVERY in-game save to a fresh slot writes the file as `save-01.cmp` with a
+dir entry for saveNNN (the sprintf(-1) allocator bug) — repair recipe: rename the file to
+match the entry, complete the truncated scene, pad.
+
+**Historical notes below (superseded by the verdict above):**
 - **Field Salvage colors are RE-ROLLED at load, not stored state.** Proven: identical
   save006 bytes produced all-red 13in Stocks in one session and green/green/red/red in the
   next. No formula against the record fields can ever fit that pane — stop trying.

@@ -1141,7 +1141,7 @@ function render(){
   right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length} jobs · cap unverified (≥14 seen in a real save)`,repRecs,""));
   right.appendChild(invBox("Car / Van Inventory",`spares — (C) riding in the car, (V) in the van${capNote}`,carVanRecs,""));
   const legend=document.createElement("div"); legend.className="legend";
-  legend.textContent="Mounted parts show their condition on the car sheet. Spares: (C) rides in the car, (V) in the van — the → buttons move them. Colors = wear: green scuffed, yellow beat-up, red wrecked.";
+  legend.textContent="Mounted parts show their condition on the car sheet. Spares: (C) rides in the car, (V) in the van — the → buttons move them. Colors here = STORED condition (green scuffed, yellow beat-up, red wrecked). Note: the game's own garage highlights are painted at render time and won't match — proven by the ALL-PERFECT/TRUTH experiment.";
   right.appendChild(legend);
 
   grid.append(left,right); editor.appendChild(grid);
