@@ -59,6 +59,12 @@ func setupEnv(_ A: String) {
     setenv("GST_REGISTRY_1_0", A + "/Contents/SharedSupport/prefix/gst-registry.bin", 1)
 }
 
+// pgrep/pkill -f patterns are EXTENDED REGEX - the app path's "(DxWnd)" parens
+// are metacharacters, so raw paths silently match NOTHING (the sweep and the
+// relaunch check were no-ops until 2026-07-14; wineserver -k happened to cover
+// cleanup). Escape any literal string before using it as a pattern.
+func rx(_ s: String) -> String { NSRegularExpression.escapedPattern(for: s) }
+
 func pids(_ pattern: String) -> [Int32] {
     let t = Process()
     t.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
@@ -92,11 +98,11 @@ func reap(_ A: String) {
     // NOT a relaunch. Sweep otherwise so nothing (dxwnd host, hider backdrop,
     // winedevice, explorer) is ever left on screen.
     let myPid = ProcessInfo.processInfo.processIdentifier
-    let otherStubs = pids(A + "/Contents/MacOS/Sikarugir").filter { $0 != myPid }
+    let otherStubs = pids(rx(A + "/Contents/MacOS/Sikarugir")).filter { $0 != myPid }
     if !otherStubs.isEmpty { return }
     let s = Process()
     s.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-    s.arguments = ["-9", "-f", A + "/Contents/SharedSupport"]
+    s.arguments = ["-9", "-f", rx(A + "/Contents/SharedSupport")]
     try? s.run(); s.waitUntilExit()
 }
 
@@ -121,6 +127,23 @@ p.executableURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/wine/bin/win
 p.arguments = ["C:\\dxwnd\\dxwnd.exe", "/R:1"]
 p.currentDirectoryURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/prefix/drive_c/dxwnd")
 try! p.run()
+
+// Input remapper: AutoHotkey inside the prefix turns mouse buttons 4/5 + wheel
+// into keys the engine can bind (it only knows three buttons). Optional -
+// skipped silently unless setup-input-remapper.sh installed it. #SingleInstance
+// Force in the script dedupes on relaunch; reap() kills it with the session
+// (wineserver -k + the SharedSupport pkill sweep both cover it).
+let ahkDir = A + "/Contents/SharedSupport/prefix/drive_c/AutoHotkey"
+var ahkProc: Process? = nil
+if FileManager.default.fileExists(atPath: ahkDir + "/AutoHotkeyU32.exe"),
+   FileManager.default.fileExists(atPath: ahkDir + "/i76-remap.ahk") {
+    let ahk = Process()
+    ahk.executableURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/wine/bin/wine")
+    ahk.arguments = ["C:\\AutoHotkey\\AutoHotkeyU32.exe", "C:\\AutoHotkey\\i76-remap.ahk"]
+    try? ahk.run()
+    ahkProc = ahk
+}
+_ = ahkProc  // keep a reference for the process lifetime
 
 // Boot phase: give wine + DxWnd + the game up to 2 min to get i76.exe running.
 var booted = false
