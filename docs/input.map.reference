@@ -218,3 +218,56 @@ weapon_link {
    + mouse      LeftBtn
    + keyboard   Shift
 }
+
+
+# =====================================================================
+#  BASELINE gamepad tier — native winmm joystick1 (added 2026-07-14)
+#  See docs/CONTROL-DOCTRINE.md. These are ALTERNATIVES (separate blocks),
+#  layered ON TOP of the keyboard/mouse bindings above — nothing is removed.
+#  On the Deck (Steam Input ON) these are INERT: Steam captures the pad and
+#  emits keyboard/mouse, so the game sees no winmm joystick. On PC/Mac with a
+#  bare Xbox pad (Steam Input OFF), THESE drive the game.
+#
+#  ⚠ TWO THINGS ARE ASSUMED, NOT YET FIELD-VERIFIED (see decode sheet in
+#     docs/GAMEPAD-PC-MAC.md):
+#     1. device token: `joystick1` (anti-phantom fix) vs bare `Joystick`
+#        (what the glance/cycle blocks above use). If the joystick1 blocks
+#        below do nothing but the old bare-`Joystick` ones work, swap the
+#        token to `Joystick` here too.
+#     2. button numbering A=1 / B=2 / X=3 / Y=4 (X=3 is anchored by the
+#        existing weapon_cycle bare-Joystick Button3 above).
+#  Connect the pad BEFORE launch (winmm enumerates once at startup).
+#  Rollback = delete this whole block.
+# ---------------------------------------------------------------------
+
+# --- analog driving (re-added; the 2026-07-13 rewrite dropped these for WASD) ---
+steer {
+   + joystick1  Left/Right
+}
+throttle {
+   + joystick1  Up/Down
+}
+# Optional swap: comment the throttle block above and use the triggers instead
+# (RT accel / LT brake share one winmm axis):
+# throttle {
+#    + joystick1  Throttle
+# }
+
+# --- combat + handbrake on the face buttons ---
+weapon_fire {
+   + joystick1  Button1
+}
+special1 {
+   + joystick1  Button2
+}
+weapon_cycle {
+   + joystick1  Button3
+}
+e_brake {
+   + joystick1  Button4
+}
+
+# Glance stays on the D-pad via the pilot_glance_* Hat blocks above (bare
+# `Joystick Hat*`). If the joystick1 token proves correct in the field-test,
+# those can be migrated to joystick1 too for consistency.
+# =====================================================================
