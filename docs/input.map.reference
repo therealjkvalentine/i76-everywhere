@@ -228,27 +228,32 @@ weapon_link {
 #  emits keyboard/mouse, so the game sees no winmm joystick. On PC/Mac with a
 #  bare Xbox pad (Steam Input OFF), THESE drive the game.
 #
-#  ⚠ TWO THINGS ARE ASSUMED, NOT YET FIELD-VERIFIED (see decode sheet in
-#     docs/GAMEPAD-PC-MAC.md):
-#     1. device token: `joystick1` (anti-phantom fix) vs bare `Joystick`
-#        (what the glance/cycle blocks above use). If the joystick1 blocks
-#        below do nothing but the old bare-`Joystick` ones work, swap the
-#        token to `Joystick` here too.
-#     2. button numbering A=1 / B=2 / X=3 / Y=4 (X=3 is anchored by the
-#        existing weapon_cycle bare-Joystick Button3 above).
+#  FIELD-VERIFIED 2026-07-14 (Xbox pad, Mac): device token `joystick1` is
+#  correct (steering responded); button numbering A=1 / X=3 confirmed (A fired,
+#  X cycled). Analog axis tokens CORRECTED to the stock JOYSTICK.MAP values
+#  after throttle failed — see the analog block below.
+#     - button numbering still assumed for B=2 / Y=4 and buttons 5-10.
 #  Connect the pad BEFORE launch (winmm enumerates once at startup).
 #  Rollback = delete this whole block.
 # ---------------------------------------------------------------------
 
-# --- analog driving (re-added; the 2026-07-13 rewrite dropped these for WASD) ---
+# --- analog driving — CANONICAL stock tokens (verbatim from JOYSTICK.MAP, the
+#     game's own "2 button joystick defaults"). The 2026-07-14 re-add had TWO
+#     bugs vs stock, both field-confirmed:
+#       * throttle used `Up/Down` — NOT a real axis token (Y axis = `Down/Up`);
+#         binding ignored -> throttle did nothing at all.
+#       * steer used `+` — the prefix is axis POLARITY here; stock is `-`, so
+#         `+` inverted the steering.
+#     Match stock exactly = stock-correct analog steer + throttle. ---
 steer {
-   + joystick1  Left/Right
+   - joystick1  Left/Right
 }
 throttle {
-   + joystick1  Up/Down
+   - joystick1  Down/Up
 }
-# Optional swap: comment the throttle block above and use the triggers instead
-# (RT accel / LT brake share one winmm axis):
+# If a value ends up inverted on your pad, flip its prefix (`-` <-> `+`).
+# Optional swap: use the triggers for gas/brake instead (they share one winmm
+# axis, `Throttle`/Z): replace the throttle block with `- joystick1 Throttle`.
 # throttle {
 #    + joystick1  Throttle
 # }
