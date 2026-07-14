@@ -65,9 +65,35 @@ def backup(p):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir"); a = ap.parse_args()
+    ap.add_argument("--dir")
+    ap.add_argument("--perfect", action="store_true",
+                    help="write save006 'ALL PERFECT': every non-special record "
+                         "cond = its max (dur). Expect ZERO colors in the stable "
+                         "panes (Car/Van + Repair); salvage may still color (re-rolled).")
+    a = ap.parse_args()
     g = os.path.abspath(a.dir) if a.dir else find_game_dir()
     assert g and os.path.isdir(g), "game dir not found"
+    if a.perfect:
+        base = bytearray(open(os.path.join(g, "save004.cmp"), "rb").read())
+        n = 0
+        for o in scan(bytes(base)):
+            t = struct.unpack_from("<I", base, o+30)[0]
+            dur = struct.unpack_from("<I", base, o+76)[0]
+            if t == 13 or not dur: continue        # specials: cond means something else
+            if o + 100 > len(base): continue       # truncated tail record
+            struct.pack_into("<I", base, o+96, dur); n += 1
+        p = os.path.join(g, "save006.cmp")
+        bk = backup(p); open(p, "wb").write(base)
+        print(f"wrote save006.cmp ALL PERFECT ({n} records set to 100%)" + (f" (old kept as {bk})" if bk else ""))
+        dirp = os.path.join(g, "savegame.dir")
+        d = bytearray(open(dirp, "rb").read())
+        count = struct.unpack_from("<I", d, 0)[0]
+        for k in range(count):
+            if cstr(d, 0x28+60*k, 16) == "save006":
+                d[0x08+60*k:0x08+60*k+32] = b"ALL PERFECT".ljust(32, b"\0")
+        backup(dirp); open(dirp, "wb").write(d)
+        print("dir entry renamed: save006 = 'ALL PERFECT'")
+        return
     base = bytearray(open(os.path.join(g, "save004.cmp"), "rb").read())
     recs = scan(bytes(base))
     loc  = lambda b, o: struct.unpack_from("<I", b, o+100)[0]
