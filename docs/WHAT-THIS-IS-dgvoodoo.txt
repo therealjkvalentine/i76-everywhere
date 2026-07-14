@@ -1,0 +1,61 @@
+WHAT THIS FOLDER IS
+===================
+A COPY of your GOG Interstate '76 install (I76-stable), reconfigured to fix the
+framerate-tied physics bug via dgVoodoo2 with a hard 20 FPS cap — and now LIVE-TESTED:
+boots, menus, and the 3D sim all verified working (2026-07-03), including over RDP
+(dgVoodoo renders through D3D11, which RDP accepts — the stock game crashes over RDP).
+
+Your original install at  C:\Users\james\Downloads\I76-stable  is UNTOUCHED.
+
+CURRENT TESTED CONFIGURATION (dgVoodoo.conf)
+--------------------------------------------
+  FPSLimit                = 20          <- THE physics fix (verified: game speed normal,
+                                           no flips/launches in melee drive tests)
+  FullScreenMode          = false       <- windowed; REQUIRED for RDP play; also what
+                                           Lossless Scaling frame-gen would capture
+  VideoCard               = voodoo_graphics
+  OnboardRAM              = 2
+  MemorySizeOfTMU         = 2048        <- prevents post-explosion texture corruption
+  NumberOfTMUs            = 1
+  TMUFiltering            = bilinear
+  Resolution              = 1280x960    <- Glide 3D renders at 4x the pixels of 640x480
+  Antialiasing            = 8x          <- MSAA on the 3D scene (1080 Ti laughs at this)
+  EnableInactiveAppState  = true        <- game keeps running when window loses focus
+  3DfxWatermark           = false
+  dgVoodooWatermark       = false
+  ForceVerticalSync       = true
+
+HOW TO PLAY
+-----------
+Run PLAY-i76-dgvoodoo.bat (works from RDP or console). The game starts windowed.
+Boot is slow (~60-75s of "PLEASE STAND BY" + intro) — be patient, ESC skips the intro.
+
+QUIRKS FOUND IN TESTING (all harmless)
+--------------------------------------
+- The 2D shell (menus) hit-tests mouse clicks in its INTERNAL 640x480 coordinates
+  offset from the window corner, while the image is stretched — so if the window is
+  scaled, click targets can feel slightly "off" from the artwork. At 1:1 window size
+  it's exact. In-sim pause menu: mouse is dead there — use Arrow keys + Enter.
+- The game's own Graphic Detail settings are already maxed by default (verified:
+  Visibility FAR, all textures ON, Terrain/Object/Shadow HIGH).
+- histogram.txt (the game's FPS log) exists but writes all zeros — don't rely on it.
+- Clicking the window X ends the current mission (STANDINGS screen) instead of
+  quitting — click DONE, then EXIT from the main menu.
+
+SMOOTHNESS UPGRADE (optional, ~$7)
+----------------------------------
+"Lossless Scaling" on Steam adds GPU frame generation that works on the GTX 1080 Ti:
+run the game windowed (as configured), cap 20 FPS (as configured), then LSFG 3.x
+Fixed X3 on a 60 Hz display = 60 output-fps smoothness while the SIM stays at 20 fps
+(physics untouched — interpolation only). Expect some artifacts around the cockpit HUD
+(20 fps is below LS's recommended 30 base). Nobody has published I'76 results; treat
+as an experiment. NVIDIA Smooth Motion (RTX 40/50 only) and AMD AFMF2 (Radeon only)
+are NOT options on this GPU. Running the game at 40/50 fps directly DOES break physics
+(verified by the reverse-engineering community: sim advances per rendered frame, no
+tick separation) — never raise FPSLimit above ~25.
+
+VERDICT ON THE FPS VALUE
+------------------------
+20 = community consensus (reverse-engineering team settled on it; flamethrower, jumps,
+AI, MG-audio all correct). 24-25 = acceptable (i76fix uses 25). 30 = loose ceiling with
+known residual jank. This build ships at 20.

@@ -1,0 +1,9 @@
+# copyrighted / downloaded game assets - NEVER committed (symlink to local store)
+game-data
+# built binaries (repo ships source only - see smack-music-fix/build.sh)
+smack-music-fix/SMACKW32.DLL
+# backups the editors create
+*.pre-edit
+*.pre-*
+*.bak-*
+.DS_Store
