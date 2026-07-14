@@ -7,3 +7,7 @@ smack-music-fix/SMACKW32.DLL
 *.pre-*
 *.bak-*
 .DS_Store
+
+# local secrets (Steam Deck SSH) - NEVER commit
+.env
+**/.env
