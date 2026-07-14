@@ -17,7 +17,7 @@
 #InstallKeybdHook
 
 OUT := "C:\AutoHotkey\joymap.txt"
-THRESH := 30            ; axis counts as "deflected" at >30 from its own rest (0-100 scale)
+THRESH := 25            ; axis counts as "deflected" at >25 from its own rest (0-100 scale)
 CENTER := 12            ; and "re-centered" within 12 of rest
 
 ; --- find the joystick (first index that reports a name) ---
@@ -35,6 +35,14 @@ if (!joy) {
 jName := GetKeyState(joy . "JoyName")
 jBtns := GetKeyState(joy . "JoyButtons")
 jAxes := GetKeyState(joy . "JoyAxes")
+
+; documented AHK+Wine quirk: joystick axes read a STALE ~50 until the device is
+; queried once to kick off polling. Without this the decode harness (2026-07-14)
+; saw every axis frozen at center - the "analog didn't register" bug. Warm it up,
+; settle, then baseline. Axes ARE readable via GetKeyState (proven by the axis
+; test: X/Y span the full 0-100 when the stick moves).
+GetKeyState(joy . "JoyX")
+Sleep, 300
 
 ; --- capture the resting baseline of every axis (sticks ~50, triggers ~50, V~0) ---
 global AX := ["X","Y","Z","R","U","V"]
@@ -94,6 +102,13 @@ ShowStep() {
         return
     }
     st := steps[idx]
+    ; re-baseline the axes at the moment an analog step begins (the prior step's
+    ; "center" phase guarantees the sticks are back at rest), so detection is
+    ; immune to warmup/drift.
+    if (st.t = "axis" || st.t = "trig") {
+        for i, a in AX
+            rest[a] := GetKeyState(joy . "Joy" . a)
+    }
     GuiControl,, Prompt, % "Press:  " . st.l
     GuiControl,, Status, % "step " . idx . " / " . steps.MaxIndex() . "   (phase: " . phase . ")"
 }
