@@ -4,10 +4,10 @@
 natively (Windows) — so instead of a per-OS tool (Karabiner on Mac, Steam Input on Deck,
 X-Mouse on Windows), we run a single **Windows-native** remapper INSIDE the same prefix
 everywhere: **AutoHotkey v1.1.37.02**, config checked into this repo as
-[`../i76-remap.ahk`](../i76-remap.ahk). Status 2026-07-14: installed + verified headlessly on
-the Mac wrapper (boot, hooks, cleanup); wheel remap shipped briefly and was **removed after a
-field regression** (stuck gear key killed WASD — see the wheel warning below); **buttons 4/5
-in-game test still pending user field run.***
+[`../i76-remap.ahk`](../i76-remap.ahk). Status 2026-07-14: installed, verified headlessly, and
+**confirmed in-game by the user — mouse button 5 (forward) fires nitrous** (button N>3 → special
+slot works end-to-end). A wheel remap shipped briefly and was **removed after a field regression**
+(it killed WASD two ways — see the wheel warning below).
 
 ## Why this exists
 
