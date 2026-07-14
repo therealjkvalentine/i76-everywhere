@@ -50,6 +50,16 @@ The setup script now hard-fails on bare wheel remaps; if a wheel binding is ever
 an explicit full-press hotkey (`WheelUp::SendEvent {F6}`) on a harmless action and field-test
 with momentum scrolling first.
 
+**Second mechanism (the one that killed steering, not just throttle): modal-dialog focus
+theft.** A momentum-scroll burst exceeding `#MaxHotkeysPerInterval` (then 500; lab-measured
+trip at exactly ~500 activations/2 s) pops AHK's modal warning dialog *inside the Wine
+session*. It steals foreground focus from the game and hides behind DxWnd's HideDesktop
+backdrop — the game silently stops receiving **all** keyboard input (A/D included). Rule now
+baked into the config: **no construct that can ever raise a modal dialog** —
+`#MaxHotkeysPerInterval 200000` + `#ErrorStdOut`, and only discrete-button hotkeys (which
+can't burst). The `--test` harness also refuses to run while i76.exe is live, so probe
+injections never reach a real game.
+
 ## Verified facts (don't re-derive)
 
 - **AHK 1.1.37.02 U32 runs clean under the wrapper's Wine 10 wow64** (`A_PtrSize=4`).

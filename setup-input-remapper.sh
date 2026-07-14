@@ -78,6 +78,13 @@ done
 # (2) hook smoke test: SendLevel-1 SendEvent must trigger level-0 hotkeys,
 # proving keyboard AND mouse hooks install and see injected events in the
 # prefix. Skips the wineserver shutdown if the game is running.
+#
+# NEVER inject while the game is live: the smoke test's {Click X2} would hit
+# the running remapper and fire special2 IN-GAME. Refuse and say so.
+if pgrep -f "i76\.exe" >/dev/null 2>&1; then
+    echo "--test refused: i76.exe is running (injected probe events would reach the live game). Quit the game and re-run."
+    exit 1
+fi
 echo "$GAMES" | while read -r g; do
     APP="$(app_of "$g")"
     D="$(drive_c_of "$g")/AutoHotkey"
