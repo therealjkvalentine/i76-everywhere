@@ -125,29 +125,6 @@ FirstButton() {
 AnyButton() {
     return FirstButton() > 0
 }
-; largest-deviation axis vs rest -> returns "AXIS+"/"AXIS-" and magnitude via ByRef
-BiggestAxis(ByRef mag) {
-    global joy, AX, rest
-    best := "", mag := 0
-    for i, a in AX {
-        v := GetKeyState(joy . "Joy" . a)
-        d := v - rest[a]
-        ad := abs(d)
-        if (ad > mag) {
-            mag := ad
-            best := a . (d >= 0 ? "+" : "-")
-        }
-    }
-    return best
-}
-AxesCentered() {
-    global joy, AX, rest, CENTER
-    for i, a in AX {
-        if (abs(GetKeyState(joy . "Joy" . a) - rest[a]) > CENTER)
-            return false
-    }
-    return true
-}
 Record(key, val) {
     global results, logLines, OUT
     results[key] := val
@@ -182,10 +159,22 @@ Poll:
                 phase := "release"
             }
         } else if (st.t = "axis" || st.t = "trig") {
-            mag := 0
-            ax := BiggestAxis(mag)
-            if (mag > THRESH) {
-                Record(st.k, "Joy" . ax . "  (rest " . Round(rest[SubStr(ax,1,1)]) . " -> " . Round(GetKeyState(joy . "Joy" . SubStr(ax,1,1))) . ")")
+            ; INLINE detection (mirrors the working raw panel). The old BiggestAxis()
+            ; function path never advanced the step even though the raw axes moved -
+            ; a function-scope / ByRef failure under this AHK+Wine build (2026-07-14).
+            bestAx := "", bestMag := 0, bestBase := 0, bestCur := 0
+            for i, a in AX {
+                cur := GetKeyState(joy . "Joy" . a)
+                d := cur - rest[a]
+                ad := (d < 0) ? -d : d
+                if (ad > bestMag) {
+                    bestMag := ad
+                    bestAx := a . ((d >= 0) ? "+" : "-")
+                    bestBase := rest[a], bestCur := cur
+                }
+            }
+            if (bestMag > THRESH) {
+                Record(st.k, "Joy" . bestAx . "  (rest " . Round(bestBase) . " -> " . Round(bestCur) . ")")
                 phase := "center"
             }
         } else if (st.t = "pov") {
@@ -200,7 +189,17 @@ Poll:
             ShowStep()
         }
     } else if (phase = "center") {
-        centered := (st.t = "pov") ? (GetKeyState(joy . "JoyPOV") < 0) : AxesCentered()
+        ; INLINE re-center check (same reason as detection - no function/ByRef).
+        centered := true
+        if (st.t = "pov") {
+            centered := (GetKeyState(joy . "JoyPOV") < 0)
+        } else {
+            for i, a in AX {
+                dd := GetKeyState(joy . "Joy" . a) - rest[a]
+                if (((dd < 0) ? -dd : dd) > CENTER)
+                    centered := false
+            }
+        }
         if (centered) {
             idx += 1, phase := "await"
             ShowStep()
