@@ -83,10 +83,23 @@ var reaped = false
 let reapLock = NSLock()
 func reap(_ A: String) {
     reapLock.lock(); if reaped { reapLock.unlock(); return }; reaped = true; reapLock.unlock()
+    // WATCHDOG: no wait below may hang the stub indefinitely. A wedged
+    // `wineserver -k` did exactly that on 2026-07-14 - a 5h15m orphaned stub
+    // that kept LaunchServices thinking the app was open, so the game wouldn't
+    // relaunch ("not responding"). Guarantee this process dies within 30s no
+    // matter which call blocks. asyncAfter runs on a background queue, so it
+    // fires even if the main thread is stuck in a Process wait below.
+    DispatchQueue.global().asyncAfter(deadline: .now() + 30) { Foundation.exit(0) }
     let k = Process()
     k.executableURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/wine/bin/wineserver")
     k.arguments = ["-k"]
-    try? k.run(); k.waitUntilExit()
+    try? k.run()
+    // Bound the -k wait: it can wedge on a wine proc stuck unkillable. Poll for
+    // exit up to 12s, then terminate it and fall through to the pkill sweep,
+    // which force-kills whatever -k couldn't. (Was: k.waitUntilExit() = ∞ block.)
+    let kDeadline = Date().addingTimeInterval(12)
+    while k.isRunning && Date() < kDeadline { Thread.sleep(forTimeInterval: 0.2) }
+    if k.isRunning { k.terminate() }
     // wineserver -k can take a few seconds; POLL for the session to actually die
     // rather than bail early (the old bug: dxwnd mid-death read as "still up").
     for _ in 0..<8 {
