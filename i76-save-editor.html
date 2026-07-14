@@ -115,7 +115,7 @@ table.sheet{border-collapse:collapse;width:100%}
   font-size:15.5px;color:var(--ink);background:var(--paper3);
   border:1.5px solid var(--line);border-radius:2px;padding:2px 6px;max-width:100%;
 }
-.invrow .eqsel{font-size:14.5px;max-width:270px}
+.invrow .eqsel{font-size:14.5px;max-width:230px}
 /* condition-tier dropdown, tinted with the game's own salvage colors */
 .tiersel{
   font:12px -apple-system,"Segoe UI",sans-serif;font-weight:700;color:var(--ink);
@@ -124,8 +124,13 @@ table.sheet{border-collapse:collapse;width:100%}
 .tiersel.t2{background:var(--mark-g)}
 .tiersel.t3{background:var(--mark-y)}
 .tiersel.t4{background:var(--mark-r)}
+.movebtn{
+  font:11px -apple-system,"Segoe UI",sans-serif;font-weight:800;color:var(--btn-ink);
+  background:var(--boxbg);border:1.5px solid var(--line);border-radius:2px;padding:2px 6px;cursor:pointer;
+}
+.movebtn:hover{background:var(--btn)}
 .ptsin{
-  width:58px;text-align:right;font-variant-numeric:tabular-nums;
+  width:48px;text-align:right;font-variant-numeric:tabular-nums;
   font:12.5px -apple-system,"Segoe UI",sans-serif;color:var(--ink);
   background:var(--paper3);border:1.5px solid var(--line);border-radius:2px;padding:2px 4px;
 }
@@ -189,7 +194,6 @@ details .paths li{margin:6px 0}
     <div class="formhead">
       <h1>Build and Repair Form</h1>
       <div class="vehline"><span class="lbl">Vehicle:</span><span class="vehname hand" id="vehname">&nbsp;</span></div>
-      <div class="check" id="scenecheck" hidden></div>
     </div>
     <p class="subnote">Interstate '76 save editor, styled after Skeeter's own paperwork. Everything runs in this page — files are read locally, edits download as new files, originals stay untouched.</p>
   </header>
@@ -204,6 +208,7 @@ details .paths li{margin:6px 0}
     <div class="boxhead">Load Bookmark <span class="hint">Skeeter's order pad — pick a save</span></div>
     <div id="pad" role="tablist"></div>
   </div>
+  <div class="check" id="scenecheck" hidden style="max-width:460px;margin:-12px 0 20px"></div>
 
   <div id="editor"></div>
 
@@ -654,6 +659,8 @@ function condMarker(r){
   if(pct>=34) return "m-yel";
   return "m-red";
 }
+function snapUndo(sv){(sv.undo=sv.undo||[]).push(sv.buf.slice(0)); if(sv.undo.length>80)sv.undo.shift();}
+const REPAIR_CAP=13;   // the bench holds what the game's repair list shows
 /* best-effort mirror of the game's own bookkeeping when equipping by name */
 function reconcileFlags(buf,oldName,newName){
   const dv=new DataView(buf);
@@ -724,7 +731,7 @@ function render(){
     sceneSel.innerHTML=(knownScene===null?`<option value="" selected>?</option>`:"")+
       Array.from({length:17},(_,i)=>`<option value="${i+1}" ${knownScene===i+1?"selected":""}>${sceneLabel(i+1)}</option>`).join("");
   }
-  const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent="Scene №";
+  const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent=s.base+" · Scene №";
   const scOf=document.createElement("span"); scOf.className="lbl2"; scOf.textContent="of 17";
   sceneCheck.append(scLab,sceneSel,scOf);
   const secs=sections(s.recs);
@@ -735,16 +742,50 @@ function render(){
 
   /* PARTS / WEAPONS / SPCL (equipped - stored in the car block, read-only here) */
   const VAN_CAP={2:3,3:4}; // engines, suspensions - the game's van holds no more
-  const vanCount=type=>s.recs.filter(off=>{
-    const dv=new DataView(s.buf); const l=dv.getUint32(off+100,true);
-    return l!==1&&l!==2&&l!==3&&dv.getUint32(off+30,true)===type;}).length;
-  const byLoc=g=>s.recs.filter(off=>{const l=new DataView(s.buf).getUint32(off+100,true);
-    return g==="C"?(l===1||l===2):(g==="R"?l===3:(l!==1&&l!==2&&l!==3));});
-  const carRecs=byLoc("C"), repRecs=byLoc("R"), vanRecs=byLoc("V");
-  // soft capacity note, matching what the game's own lists appear to hold
-  const vanInfos=vanRecs.map(o=>recInfo(s.buf,o));
+  const loc=off=>new DataView(s.buf).getUint32(off+100,true);
+  const vanCount=type=>s.recs.filter(off=>![1,2,3].includes(loc(off))&&new DataView(s.buf).getUint32(off+30,true)===type).length;
+  const repCount=()=>s.recs.filter(off=>loc(off)===3).length;
+  // ONE part per equipped slot: match each slot name to a flag-1 record (consumed
+  // records show their condition inline on the car sheet, not in the lists)
+  const pool=s.recs.filter(off=>loc(off)===1);
+  const eqMatch={};
+  car.eq.forEach((nm,slot)=>{ if(!nm) return;
+    const i=pool.findIndex(off=>cstr(new Uint8Array(s.buf),off,30)===nm);
+    if(i>=0){ eqMatch[slot]=pool[i]; pool.splice(i,1); }
+  });
+  const consumed=new Set(Object.values(eqMatch));
+  const repRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)===3);
+  const carVanRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)!==3);
+  const vanInfos=carVanRecs.filter(off=>![1,2].includes(loc(off))).map(o=>recInfo(s.buf,o));
   const nEng=vanInfos.filter(r=>r.type===2).length, nSus=vanInfos.filter(r=>r.type===3).length;
-  const capNote=(nEng>3||nSus>4)?` ⚠ over the game's van cap (3 engines / 4 suspensions) — you have ${nEng}/${nSus}; extras may vanish in-game`:"";
+  const capNote=(nEng>3||nSus>4)?` ⚠ over the van cap (3 engines / 4 susp) — extras may vanish in-game`:"";
+  /* shared compact condition controls (colored preset + points) for one record */
+  function condControls(rOff){
+    const r=recInfo(s.buf,rOff);
+    const frag=document.createDocumentFragment();
+    if(r.type===13||!r.dur) return frag;
+    const pct=r.cond>=r.dur?100:Math.round(100*r.cond/r.dur);
+    const cls=pct>=100?"":(pct>=67?"t2":(pct>=34?"t3":"t4"));
+    const cur=pct>=100?"perfect":(pct>=67?"scuffed":(pct>=34?"beatup":"wrecked"));
+    const csel=document.createElement("select");
+    csel.className="tiersel "+cls;
+    csel.setAttribute("aria-label","condition");
+    csel.innerHTML=[["perfect","perfect"],["scuffed","scuffed"],["beatup","beat-up"],["wrecked","wrecked"]]
+      .map(([v,l])=>`<option value="${v}" ${v===cur?"selected":""}>${l}</option>`).join("");
+    csel.addEventListener("change",()=>{
+      snapUndo(s);
+      const f={perfect:1,scuffed:.75,beatup:.5,wrecked:.2}[csel.value];
+      new DataView(s.buf).setUint32(rOff+96,Math.max(1,Math.round(r.dur*f)),true); render();
+    });
+    const pts=document.createElement("input");
+    pts.type="number"; pts.min="0"; pts.max="9999"; pts.value=r.cond; pts.className="ptsin";
+    pts.title=`condition points (durability ${r.dur})`;
+    pts.setAttribute("aria-label","condition points");
+    pts.addEventListener("change",()=>{snapUndo(s);
+      new DataView(s.buf).setUint32(rOff+96,Math.max(0,+pts.value|0),true); render();});
+    frag.append(csel,pts);
+    return frag;
+  }
 
   const partsBox=document.createElement("div"); partsBox.className="box";
   partsBox.innerHTML=`<div class="boxhead">Parts · Weapons · Spcl. <span class="hint">what's on the car — pick from a dropdown to swap (weight rebalances next garage visit)</span></div>`;
@@ -785,10 +826,12 @@ function render(){
           if(sel.value==="") return;
           const o=opts[+sel.value];
           if(+sel.value===curIdx) return;
+          snapUndo(s);
           o.apply(s.buf);
           toast(`${label}: ${n||"—"} → ${o.label.split(" — ")[0]}`); render();
         });
         cell.appendChild(sel);
+        if(eqMatch[slot]!==undefined) cell.appendChild(condControls(eqMatch[slot]));
       }
       pt.appendChild(tr);
     });
@@ -797,7 +840,16 @@ function render(){
 
   /* DEFENSE (armor, editable, displayed in the game's tenths) */
   const defBox=document.createElement("div"); defBox.className="box";
-  defBox.innerHTML=`<div class="boxhead">Defense <span class="hint">editable — same numbers as the game's DEFENSE panel</span></div>`;
+  {
+    const curTotal=car.armor.reduce((a,b)=>a+b,0);
+    let origTotal=0;{const dv=new DataView(s.orig);for(let k=0;k<8;k++)origTotal+=dv.getUint32(2044+4*k,true);}
+    const balNote=curTotal===origTotal
+      ?`total ${(curTotal/10).toFixed(1)} — matches the game's balanced total ✓`
+      :(curTotal>origTotal
+        ?`⚠ total ${(curTotal/10).toFixed(1)} is OVER the balanced ${(origTotal/10).toFixed(1)} — the game honors the extra`
+        :`⚠ total ${(curTotal/10).toFixed(1)} is UNDER the balanced ${(origTotal/10).toFixed(1)} — you're leaving armor behind`);
+    defBox.innerHTML=`<div class="boxhead">Defense <span class="hint">${balNote}</span></div>`;
+  }
   const dt=document.createElement("table"); dt.className="sheet def";
   [["Front",0,4],["Right",1,5],["Left",2,6],["Rear",3,7]].forEach(([lbl,ai,ci])=>{
     const tr=document.createElement("tr");
@@ -813,6 +865,7 @@ function render(){
   defBox.appendChild(dt);
   defBox.addEventListener("click",e=>{
     const b=e.target.closest(".stepbtn"); if(!b) return;
+    snapUndo(s);
     const i=+b.dataset.i, dv=new DataView(s.buf);
     const cur=u32(dv,ARMOR_OFF+4*i);
     dv.setUint32(ARMOR_OFF+4*i,Math.max(0,cur+ +b.dataset.d),true);
@@ -820,12 +873,12 @@ function render(){
   });
   defBox.addEventListener("change",e=>{
     const inp=e.target.closest("input[data-i]"); if(!inp) return;
+    snapUndo(s);
     const v=Math.max(0,Math.round(parseFloat(inp.value||"0")*10));
     new DataView(s.buf).setUint32(ARMOR_OFF+4*(+inp.dataset.i),v,true);
     render();
   });
   left.appendChild(defBox);
-  if(carRecs.length) left.appendChild(invBox("Parts on the Car (C)","the mounted parts' own records — condition lives here",carRecs,""));
 
   /* CAR/VAN INVENTORY (van stash, categorized like the game) + REPAIR ORDER */
   function invBox(title,hint,offs,flag){
@@ -855,54 +908,36 @@ function render(){
         psel.addEventListener("change",()=>{
           if(psel.value===""||+psel.value===curIdx) return;
           const o=opts[+psel.value];
+          snapUndo(s);
           writeIdentity(s.buf,r.off,o.args);
           if(r.type!==13){new DataView(s.buf).setUint32(r.off+96,o.args[4],true);}
-          toast(`${r.name} → ${o.args[0]} (full condition, same location)`); render();
+          toast(`${r.name} → ${o.args[0]} (full condition)`); render();
         });
         row.appendChild(psel);
-        // condition preset, tinted by wear (points vs durability)
-        if(r.type!==13&&r.dur){
-          const pct=r.cond>=r.dur?100:Math.round(100*r.cond/r.dur);
-          const cls=pct>=100?"":(pct>=67?"t2":(pct>=34?"t3":"t4"));
-          const csel=document.createElement("select");
-          csel.className="tiersel "+cls;
-          csel.setAttribute("aria-label","condition preset");
-          const cur=pct>=100?"perfect":(pct>=67?"scuffed":(pct>=34?"beatup":"wrecked"));
-          csel.innerHTML=[["perfect","perfect (100%)"],["scuffed","scuffed (~75%)"],
-            ["beatup","beat-up (~50%)"],["wrecked","wrecked (~20%)"]]
-            .map(([v,l])=>`<option value="${v}" ${v===cur?"selected":""}>${l}</option>`).join("");
-          csel.addEventListener("change",()=>{
-            const f={perfect:1,scuffed:.75,beatup:.5,wrecked:.2}[csel.value];
-            new DataView(s.buf).setUint32(r.off+96,Math.max(1,Math.round(r.dur*f)),true); render();
-          });
-          row.appendChild(csel);
-        }
-        // location: (C) car / (R) repair / (V) van - this is what the +100 flag really is
+        row.appendChild(condControls(r.off));
+        // one small move button per row - parts live in exactly one list
         {
-          const lsel=document.createElement("select");
-          lsel.className="tiersel";
-          lsel.setAttribute("aria-label","where this part is");
-          const locs=r.grade===2?[1,2,3,4]:[1,3,4];
-          lsel.innerHTML=locs.map(g=>`<option value="${g}" ${g===r.grade?"selected":""}>${LOC_LABEL[g]}</option>`).join("");
-          lsel.addEventListener("change",()=>{
-            const cap=VAN_CAP[r.type];
-            if(+lsel.value===4&&cap&&vanCount(r.type)>=cap){
-              toast(`The van only holds ${cap} ${KIND[r.type]}s — sell or install one first`);
-              render(); return;
-            }
-            new DataView(s.buf).setUint32(r.off+100,+lsel.value,true); render();
-          });
-          row.appendChild(lsel);
-        }
-        if(r.type!==13){
-          const pts=document.createElement("input");
-          pts.type="number"; pts.min="0"; pts.max="9999"; pts.value=r.cond; pts.className="ptsin";
-          pts.title=`condition points (durability ${r.dur||"?"})`;
-          pts.setAttribute("aria-label","condition points");
-          pts.addEventListener("change",()=>{
-            new DataView(s.buf).setUint32(r.off+96,Math.max(0,+pts.value|0),true); render();
-          });
-          row.appendChild(pts);
+          const here=loc(r.off);
+          const mv=document.createElement("button"); mv.className="movebtn";
+          if(here===3){ mv.textContent="→ van"; mv.title="send back to the van";
+            mv.addEventListener("click",()=>{
+              const cap=VAN_CAP[r.type];
+              if(cap&&vanCount(r.type)>=cap){toast(`The van only holds ${cap} ${KIND[r.type]}s`);return;}
+              snapUndo(s); new DataView(s.buf).setUint32(r.off+100,4,true); render();
+            });
+          } else if(here===1||here===2){ mv.textContent="→ van"; mv.title="stow this spare in the van";
+            mv.addEventListener("click",()=>{
+              const cap=VAN_CAP[r.type];
+              if(cap&&vanCount(r.type)>=cap){toast(`The van only holds ${cap} ${KIND[r.type]}s`);return;}
+              snapUndo(s); new DataView(s.buf).setUint32(r.off+100,4,true); render();
+            });
+          } else { mv.textContent="→ repair"; mv.title="put it on Skeeter's bench";
+            mv.addEventListener("click",()=>{
+              if(repCount()>=REPAIR_CAP){toast(`The bench only holds ${REPAIR_CAP} jobs — finish one first`);return;}
+              snapUndo(s); new DataView(s.buf).setUint32(r.off+100,3,true); render();
+            });
+          }
+          row.appendChild(mv);
         }
         const fill=document.createElement("span"); fill.className="fill";
         const metaEl=document.createElement("span"); metaEl.className="meta"; metaEl.textContent=meta;
@@ -913,10 +948,10 @@ function render(){
     box.appendChild(list);
     return box;
   }
-  right.appendChild(invBox("Van Inventory (V)",`spares in Rosie the van${capNote}`,vanRecs,""));
-  if(repRecs.length) right.appendChild(invBox("Repair Order (R)","parts on Skeeter's bench",repRecs,""));
+  right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length}/${REPAIR_CAP} jobs`,repRecs,""));
+  right.appendChild(invBox("Car / Van Inventory",`spares — (C) riding in the car, (V) in the van${capNote}`,carVanRecs,""));
   const legend=document.createElement("div"); legend.className="legend";
-  legend.textContent="(C) in/on the car · (V) in the van · (R) in repair — move parts with the location dropdown. Highlight = wear: green scuffed, yellow beat-up, red wrecked.";
+  legend.textContent="Mounted parts show their condition on the car sheet. Spares: (C) rides in the car, (V) in the van — the → buttons move them. Colors = wear: green scuffed, yellow beat-up, red wrecked.";
   right.appendChild(legend);
 
   grid.append(left,right); editor.appendChild(grid);
@@ -928,6 +963,7 @@ function render(){
   scene.textContent=(m!==undefined&&m!=="?")?`Scene ${m} of 17 · ${s.recs.length} parts tracked`:`${s.recs.length} parts tracked`;
   const repair=document.createElement("button"); repair.className="obtn quiet"; repair.textContent="Repair All";
   repair.addEventListener("click",()=>{
+    snapUndo(s);
     let n=0; const dv=new DataView(s.buf);
     s.recs.forEach(off=>{const r=recInfo(s.buf,off);
       if(r.type!==13&&r.dur){dv.setUint32(off+96,r.dur,true);n++;}});
@@ -936,6 +972,7 @@ function render(){
   const stow=document.createElement("button"); stow.className="obtn quiet"; stow.textContent="Stow spares in van";
   stow.title="Marks every part (V) except one match per equipped slot (C) — fixes saves where everything piled into the car";
   stow.addEventListener("click",()=>{
+    snapUndo(s);
     const dv=new DataView(s.buf);
     const need=[...parseCar(s.buf).eq.filter(Boolean)];
     let kept=0,stowed=0;
@@ -950,8 +987,13 @@ function render(){
     });
     toast(`${kept} equipped kept (C), ${stowed} stowed (V)${cargo?`, ${cargo} over the van cap left as car cargo — sell them in the garage`:""}`); render();
   });
+  const undo=document.createElement("button"); undo.className="obtn quiet"; undo.textContent="Undo";
+  undo.disabled=!(s.undo&&s.undo.length);
+  undo.addEventListener("click",()=>{
+    if(s.undo&&s.undo.length){ s.buf=s.undo.pop(); s.recs=scan(s.buf); toast(`Undid last change (${s.undo.length} left)`); render(); }
+  });
   const revert=document.createElement("button"); revert.className="obtn quiet"; revert.textContent="Revert";
-  revert.addEventListener("click",()=>{s.buf=s.orig.slice(0); editingOff=null; toast("Reverted to the loaded file"); render();});
+  revert.addEventListener("click",()=>{snapUndo(s); s.buf=s.orig.slice(0); s.recs=scan(s.buf); editingOff=null; toast("Reverted to the loaded file"); render();});
   const slotSel=document.createElement("select"); slotSel.className="slotsel"; slotSel.setAttribute("aria-label","save as slot");
   const known=Object.keys(dirMissions);
   const slots=new Set([s.base,...known,...saves.map(x=>x.base)]);
@@ -1032,6 +1074,7 @@ function render(){
       try{
         const r=await fetch("/files/"+b,{cache:"no-store"});
         if(!r.ok) throw new Error("fetch failed");
+        snapUndo(s);
         s.buf=await r.arrayBuffer(); s.recs=scan(s.buf);
         toast(`Loaded backup ${backupLabel(b)} — press Save Bookmark to write it back`);
       }catch(e){ toast("Couldn't load that backup"); }
@@ -1056,7 +1099,7 @@ function render(){
       render();
     });
   }
-  act.append(scene,repair,stow,revert,sp);
+  act.append(scene,repair,stow,undo,revert,sp);
   if(hist) act.append(hist);
   if(delBtn) act.append(delBtn);
   act.append(asLbl,slotSel,dl);

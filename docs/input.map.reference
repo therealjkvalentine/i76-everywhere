@@ -1,10 +1,4 @@
 # Interstate '76 Input mapping file
-throttle {
-   - mouse      Down/Up
-}
-steer {
-   - mouse      Left/Right
-}
 shift_down {
    + keyboard   Minus
 	- Keyboard	Shift
