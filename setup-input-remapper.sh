@@ -40,6 +40,17 @@ if [ "$1" = "--revert" ]; then
     exit 0
 fi
 
+# Lint: bare wheel REMAPS (WheelUp::key) are forbidden - AHK v1 does not
+# support the remap syntax for the wheel (no release event), so the
+# destination key goes down and NEVER comes up. Field regression 2026-07-14:
+# one trackpad scroll notch left '=' (shift_up) stuck -> WASD dead. Explicit
+# hotkeys with a full press+release (WheelUp::SendEvent {F6}) are allowed.
+if grep -qE '^[[:space:]]*[*~$]*Wheel(Up|Down|Left|Right)::[^[:space:]]+[[:space:]]*$' "$HERE/i76-remap.ahk"; then
+    echo "FATAL: i76-remap.ahk contains a bare wheel remap (WheelUp::key)."
+    echo "AHK cannot remap the wheel (no release event) - the key sticks down."
+    exit 1
+fi
+
 ZIP=""
 fetch_ahk() {  # download once, verify pinned sha256
     [ -n "$ZIP" ] && return 0

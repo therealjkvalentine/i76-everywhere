@@ -39,8 +39,16 @@ XButton1::6
 ; ---- mouse button 5 ("forward") --> 7 = special 2
 XButton2::7
 
-; ---- mouse wheel --> gear shift ('=' = shift_up, '-' = shift_down)
-; Note: on a text screen (pilot-name entry) a wheel notch types '='/'-' like
-; any keypress would. Comment these two lines out if that ever bothers you.
-WheelUp::=
-WheelDown::-
+; ---- mouse wheel: DO NOT REMAP. Removed 2026-07-14 after a field regression
+; ("mouse activity kills WASD"). Two reasons, the first fatal:
+;  1. Wheel "keys" have NO release event, and an AHK remap (WheelUp::=) holds
+;     its destination key until the source releases -- which never comes. One
+;     notch (incl. trackpad two-finger scroll / momentum scrolling) can leave
+;     '=' logically STUCK DOWN, i.e. shift_up held forever -> transmission
+;     pegged, throttle feels dead, "WASD broken" until the session restarts.
+;  2. Even clean per-notch keystrokes spam the gear-shift actions, dropping
+;     the transmission out of automatic mid-drive.
+; If a wheel binding is ever wanted, use explicit hotkeys that send a full
+; press+release of a HARMLESS key (never gears/steering/throttle):
+;     WheelUp::SendEvent {F6}
+; and field-test with trackpad momentum scrolling before shipping.

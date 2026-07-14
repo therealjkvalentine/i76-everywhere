@@ -5,7 +5,9 @@ natively (Windows) — so instead of a per-OS tool (Karabiner on Mac, Steam Inpu
 X-Mouse on Windows), we run a single **Windows-native** remapper INSIDE the same prefix
 everywhere: **AutoHotkey v1.1.37.02**, config checked into this repo as
 [`../i76-remap.ahk`](../i76-remap.ahk). Status 2026-07-14: installed + verified headlessly on
-the Mac wrapper (boot, hooks, cleanup); **in-game button test pending user field run.***
+the Mac wrapper (boot, hooks, cleanup); wheel remap shipped briefly and was **removed after a
+field regression** (stuck gear key killed WASD — see the wheel warning below); **buttons 4/5
+in-game test still pending user field run.***
 
 ## Why this exists
 
@@ -33,10 +35,20 @@ suppression ever failed, nothing double-triggers.
 |---|---|---|
 | Mouse button 4 ("back") | `6` | `special1` — the default nitrous slot |
 | Mouse button 5 ("forward") | `7` | `special2` |
-| Wheel up / down | `=` / `-` | `shift_up` / `shift_down` (gear shift) |
 
 Edit the `.ahk`, re-run `./setup-input-remapper.sh`, relaunch the game. Keys on the right are
 engine key names already bound in [`input.map.reference`](input.map.reference).
+
+**The wheel is deliberately unbound — never remap it.** AHK v1 officially does *not* support
+the remap syntax for the wheel ("The following keys are not supported by the built-in
+remapping method: The mouse wheel") because wheel notches have **no release event**: the
+destination key goes down and never comes up. Field regression 2026-07-14: `WheelUp::=`
+shipped briefly; one trackpad scroll (two-finger/momentum scrolling counts) left `=` — the
+`shift_up` gear key — logically stuck, pegging the transmission and killing WASD until the
+session restarted. It passed the load-time syntax check (the flaw is semantic, input-driven).
+The setup script now hard-fails on bare wheel remaps; if a wheel binding is ever wanted, use
+an explicit full-press hotkey (`WheelUp::SendEvent {F6}`) on a harmless action and field-test
+with momentum scrolling first.
 
 ## Verified facts (don't re-derive)
 
