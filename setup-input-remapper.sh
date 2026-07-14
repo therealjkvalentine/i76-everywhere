@@ -9,6 +9,8 @@
 #
 #   setup-input-remapper.sh            install/refresh into every Mac wrapper
 #   setup-input-remapper.sh --test     syntax-check + hook smoke test under Wine
+#   setup-input-remapper.sh --decode   launch the gamepad decode harness (GUI;
+#                                       game MUST be quit; writes joymap.txt)
 #   setup-input-remapper.sh --revert   remove (the launcher then skips it)
 #
 # The Mac launcher stub (i76-launch-stub.swift) auto-starts
@@ -37,6 +39,38 @@ if [ "$1" = "--revert" ]; then
         D="$(drive_c_of "$g")/AutoHotkey"
         [ -d "$D" ] && { rm -rf "$D"; echo "removed: $D"; } || echo "not installed: $D"
     done
+    exit 0
+fi
+
+if [ "$1" = "--decode" ]; then
+    # Guided gamepad decode harness (GUI). Game MUST be quit (DxWnd's HideDesktop
+    # backdrop would hide the window). Deploys AHK if missing, launches the
+    # harness foreground, waits for you to close it, then reads back joymap.txt.
+    if pgrep -f "i76\.exe" >/dev/null 2>&1; then
+        echo "--decode refused: quit the game first (its DxWnd backdrop hides the harness window)."
+        exit 1
+    fi
+    g=$(echo "$GAMES" | head -1)
+    APP="$(app_of "$g")"; D="$(drive_c_of "$g")/AutoHotkey"
+    mkdir -p "$D"
+    if [ ! -f "$D/AutoHotkeyU32.exe" ]; then
+        ZIP="$(mktemp -d)/ahk.zip"
+        echo "downloading AutoHotkey v1.1.37.02..."
+        curl -sL -o "$ZIP" "$AHK_URL"
+        got=$(shasum -a 256 "$ZIP" | cut -d' ' -f1)
+        [ "$got" = "$AHK_SHA256" ] || { echo "sha256 mismatch ($got) - aborting"; exit 1; }
+        unzip -o -q -j "$ZIP" AutoHotkeyU32.exe license.txt -d "$D"
+    fi
+    cp -f "$HERE/i76-gamepad-decode.ahk" "$D/i76-gamepad-decode.ahk"
+    rm -f "$D/joymap.txt"
+    export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
+    export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/SharedSupport/wine/lib"
+    echo "Connect the Xbox pad NOW (before the harness starts). Launching..."
+    echo "Follow the on-screen prompts; close the window when done."
+    "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\AutoHotkey\AutoHotkeyU32.exe' 'C:\AutoHotkey\i76-gamepad-decode.ahk' >/dev/null 2>&1 || true
+    "$APP/Contents/SharedSupport/wine/bin/wineserver" -k 2>/dev/null || true
+    echo "=================== joymap.txt ==================="
+    cat "$D/joymap.txt" 2>/dev/null || echo "(no joymap.txt written)"
     exit 0
 fi
 
