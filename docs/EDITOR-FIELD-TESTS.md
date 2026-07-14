@@ -16,6 +16,7 @@ to a spare slot first and poke THAT).
 | 4 | **Suspension van cap (3 or 4?)** | Editor: make sure 4 suspensions sit in the van (V), save, load, garage | Does the game still show all 4 in the van? |
 | 5 | **Condition colors (67/34 are guesses)** | Editor: set three spare parts to 70% / 50% / 25% condition, save, load, garage | What highlight color does the game give each (none/green/yellow/red)? |
 | 6 | **spc01 = "Radar Jammer"?** | Editor: put Radar Jammer in a special slot (6/7/8 keys), start the mission, press its key | Does the HUD name it? Any observable effect (enemy radar lock behavior)? |
+| 7 | **LOAD-pad label semantics** | The in-game pad row labels don't match the dir's scene dwords (game data says [2,3,5,6], pad showed [2,3,4,5]). Load the LAST row ("SCENE 5.") | Which mission actually starts — Chase Cloaker (scene 7, = save003's dword) or something else? This pins what the pad label means |
 
 Findings get locked into `i76-save-editor.html`, the `i76-save-editor.py` docstring, and this
 table gets updated with ✅/❌ per row.

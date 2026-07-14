@@ -51,6 +51,15 @@ game's own garage screens, 2026-07):
     - chassis weight candidate: vppirnha.vdf @76 = 1320.0 f32 (the only
       plausible weight in the vdf; UNVERIFIED against in-game GROSS WT).
   savegame.dir: u32 count, entries at 0x28+60k: name[16] + u32 + u32 + u32 SCENE.
+    - the +16 u32: the GAME writes 1 on most entries but 8 on some (seen on
+      save003/save005 of the same campaign) - meaning unknown; the editor
+      writes 1 and the game accepts it.
+    - 2026-07-14 field anomaly (unresolved): with game-authored scene dwords
+      [2,3,5,6] the in-game LOAD pad displayed "SCENE 2/3/4/5" - the pad's
+      label does NOT equal the stored dword (label semantics unknown: own
+      renumbering? mission-vs-scene numbering?). The +24 dword is still what
+      the game LOADS (proven). Field test: load the mislabeled row, see which
+      mission starts.
   The scene dword = last COMPLETED scene; loading plays the NEXT one (dword 7
   -> you play Scene 8). 0 -> Scene 1 with the scripted starter car. The game
   writes the newest entry's scene truncated.
