@@ -506,11 +506,12 @@ function eqOptions(slot,curName){
   }}));
   return [];
 }
-/* savegame.dir entry = 60 bytes @0x28+60k: file[16], u32 (+16: game writes 1
-   or 8, meaning unknown), u32, u32 SCENE (+24), char[32] NAME (+28) - the
-   bookmark name typed in-game ("Reconfig"). BLANK NAME IS LEGAL: the game's
-   own entries are unnamed and the LOAD board shows a default "SCENE N." label
-   for them (decoded 2026-07-14). The game truncates the newest entry. */
+/* savegame.dir entry layout (CORRECTED 2026-07-14 after a board screenshot
+   proved every row wore the PREVIOUS entry's name): the 32-byte display NAME
+   of entry k PRECEDES its file field - name(save_k) @ 0x08+60k, then
+   file[16] @ 0x28+60k, u32 (+16: 1 or 8, unknown), u32, u32 SCENE (+24).
+   Blank names are legal (the board shows a default "SCENE N." label). The
+   game truncates the newest entry when it writes the file itself. */
 function parseDir(buf){
   const dv=new DataView(buf), u8=new Uint8Array(buf), out={};
   if(u8.length<8) return out;
@@ -521,7 +522,7 @@ function parseDir(buf){
     const nm=cstr(u8,e,16);
     if(!nm.startsWith("save")) continue;
     out[nm]={scene:(e+28<=u8.length)?u32(dv,e+24):null,
-             name:(e+60<=u8.length)?cstr(u8,e+28,32):""};
+             name:cstr(u8,e-32,32)};
   }
   return out;
 }
@@ -569,11 +570,15 @@ function dirWithSlot(dirBuf, slotBase, scene, dispName){
   out.set(new TextEncoder().encode(slotBase).subarray(0,16),entOff);
   dv.setUint32(entOff+16,1,true);
   dv.setUint32(entOff+24,typeof scene==="number"?scene:0,true);
-  if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),entOff+28);
+  /* the display name PRECEDES the entry (name(save_k) @ entryOff-32) */
+  if(dispName){
+    out.fill(0,entOff-32,entOff);
+    out.set(new TextEncoder().encode(dispName).subarray(0,31),entOff-32);
+  }
   return padDir(out.buffer);
 }
-/* set/clear the 32-byte display name of an existing entry (extends a
-   game-truncated file so the field exists) */
+/* set/clear the 32-byte display name of an existing entry - the name sits
+   BEFORE the entry's file field (name(save_k) @ 0x08+60k) */
 function dirSetName(dirBuf, slotBase, dispName){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
   const count=dv0.getUint32(0,true);
@@ -581,9 +586,9 @@ function dirSetName(dirBuf, slotBase, dispName){
     const e=0x28+60*k;
     if(e+16>old.length) break;
     if(cstr(old,e,16)===slotBase){
-      const out=new Uint8Array(Math.max(old.length,e+60)); out.set(old);
-      out.fill(0,e+28,e+60);
-      if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),e+28);
+      const out=new Uint8Array(Math.max(old.length,e+28)); out.set(old);
+      out.fill(0,e-32,e);
+      if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),e-32);
       return padDir(out.buffer);
     }
   }
