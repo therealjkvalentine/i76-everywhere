@@ -22,7 +22,7 @@ transfers — minus the one layer that caused us the most pain.*
 2. In Desktop Mode, download and double-click
    [`Install-I76.desktop`](../deck/Install-I76.desktop) — or run the one-liner:
    ```
-   curl -Ls https://raw.githubusercontent.com/therealjkvalentine/mac-gaming-ports/main/games/interstate-76/deck/deck-install.sh | bash
+   curl -Ls https://raw.githubusercontent.com/therealjkvalentine/i76-everywhere/main/deck/deck-install.sh | bash
    ```
    The zenity-guided installer ([source](../deck/deck-install.sh)) extracts YOUR installer
    (static innoextract, fetched at run time), fetches dgVoodoo 2.78.2 from the public mirror,

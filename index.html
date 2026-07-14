@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interstate '76, everywhere</title>
+<meta name="description" content="Run Interstate '76 (1997) on Apple Silicon Macs, Steam Deck, and modern Windows, with a browser save editor and reverse-engineered file formats.">
+<style>
+  :root{
+    --bg:#f4ede0; --panel:#fffaf0; --ink:#241a12; --muted:#6b5c48;
+    --rust:#c0431f; --rust-ink:#fff; --line:#e0d3bd;
+    --shadow:0 1px 0 rgba(0,0,0,.04),0 8px 24px rgba(60,40,20,.10);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#171310; --panel:#211a15; --ink:#f2e7d6; --muted:#a9967d;
+      --rust:#e2531f; --line:#33281f; --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.5); }
+  }
+  :root[data-theme="dark"]{ --bg:#171310; --panel:#211a15; --ink:#f2e7d6; --muted:#a9967d;
+      --rust:#e2531f; --line:#33281f; --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.5); }
+  :root[data-theme="light"]{ --bg:#f4ede0; --panel:#fffaf0; --ink:#241a12; --muted:#6b5c48;
+      --rust:#c0431f; --line:#e0d3bd; --shadow:0 1px 0 rgba(0,0,0,.04),0 8px 24px rgba(60,40,20,.10); }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:clamp(24px,5vw,56px) 20px 64px}
+  header{border-bottom:3px solid var(--rust);padding-bottom:20px;margin-bottom:8px}
+  h1{font-size:clamp(34px,7vw,56px);line-height:1.02;margin:0 0 .1em;letter-spacing:-.01em}
+  h1 .yr{color:var(--muted);font-weight:400}
+  .tag{color:var(--muted);font-size:clamp(15px,2.4vw,18px);max-width:62ch;margin:.2em 0 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:22px 0 8px}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);
+    transition:transform .12s ease,border-color .12s ease}
+  a.card:hover{transform:translateY(-2px);border-color:var(--rust)}
+  a.card .over{font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--rust)}
+  a.card h3{margin:.55em 0 .2em;font-size:18px}
+  a.card p{margin:0;color:var(--muted);font-size:14px}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    margin:36px 0 4px;font-weight:700}
+  .editor{grid-column:1/-1;background:var(--rust);color:var(--rust-ink);border-color:transparent}
+  .editor .over{color:rgba(255,255,255,.75)}
+  .editor p{color:rgba(255,255,255,.9)}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+  footer a{color:var(--rust)}
+  code{font:13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);
+    padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Interstate&nbsp;'76 <span class="yr">everywhere</span></h1>
+    <p class="tag">The 1997 classic, running well on today's machines: Apple Silicon Macs, the Steam
+      Deck, and modern Windows. Plus a save editor and the reverse-engineered file formats.</p>
+  </header>
+
+  <h2>Play it</h2>
+  <div class="grid">
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/MAC-BUILD.md">
+      <div class="over">Apple Silicon</div><h3>Mac</h3>
+      <p>Software renderer via DxWnd in a self-contained Wine wrapper. Instant start, in-mission
+         music, clean quit, physics-safe 20 FPS.</p>
+    </a>
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/STEAMDECK.md">
+      <div class="over">SteamOS / Proton</div><h3>Steam Deck</h3>
+      <p>The Glide path (dgVoodoo to Vulkan) with force feedback and a full controller layout.
+         One-liner installer.</p>
+    </a>
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/WINDOWS-PLAYBOOK.md">
+      <div class="over">Windows 10 / 11</div><h3>Windows</h3>
+      <p>Max graphics, force feedback, HD textures. One command: <code>install.ps1</code>.</p>
+    </a>
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/PHONE-PORTS.md">
+      <div class="over">Research</div><h3>Phone</h3>
+      <p>Android via Winlator (the Deck recipe again); iPhone via game-streaming. An untested
+         playbook, for now.</p>
+    </a>
+  </div>
+
+  <h2>Under the hood</h2>
+  <div class="grid">
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/VERIFIED-FIXES.md">
+      <div class="over">Reference</div><h3>Every verified fix</h3>
+      <p>Symptom, root cause, fix. One table. The source of truth for what actually works.</p>
+    </a>
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/README.md">
+      <div class="over">Map</div><h3>The doc index</h3>
+      <p>What's shipping versus what's a settled dead end. Read before re-chasing anything.</p>
+    </a>
+    <a class="card" href="https://github.com/therealjkvalentine/i76-everywhere">
+      <div class="over">Source</div><h3>The repository</h3>
+      <p>Scripts, reverse-engineered formats, and the full write-up. Issues and PRs welcome.</p>
+    </a>
+    <a class="card" href="i76-save-editor.html">
+      <div class="over">No install</div><h3>Save editor</h3>
+      <p>Edit your garage in the browser: weapons, armor, condition, parts, scene select, with
+         measured weapon DPS and range. Drag a save in, download it back out; nothing is uploaded.</p>
+    </a>
+  </div>
+
+  <footer>
+    MIT-licensed. Built by <a href="https://github.com/therealjkvalentine">therealjkvalentine</a>.
+    The game is &copy; 1997 Activision and not included here; buy it on
+    <a href="https://www.gog.com/game/interstate_76">GOG</a>. Credits: UCyborg (AiO patch),
+    Dege (dgVoodoo), gho (DxWnd), Local Ditch Gaming (weapon data), That Tony (formats), and the
+    Open76 and Roanish reimplementation projects.
+  </footer>
+</div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Install Interstate '76
 Comment=Installs the Interstate '76 GOG port into Steam (game files not included - uses YOUR GOG installer)
-Exec=bash -c "curl -Ls https://raw.githubusercontent.com/therealjkvalentine/mac-gaming-ports/main/games/interstate-76/deck/deck-install.sh -o /tmp/i76-install.sh && bash /tmp/i76-install.sh"
+Exec=bash -c "curl -Ls https://raw.githubusercontent.com/therealjkvalentine/i76-everywhere/main/deck/deck-install.sh -o /tmp/i76-install.sh && bash /tmp/i76-install.sh"
 Icon=applications-games
 Terminal=true
 Type=Application
