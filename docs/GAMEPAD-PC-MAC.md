@@ -5,11 +5,22 @@ native joystick support, so an Xbox pad drives it directly through the game's ow
 emulation. This is the **BASELINE** tier — see [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) for how it
 relates to the Deck's convenience layer.*
 
-> **Status (2026-07-14):** the baseline `joystick1` block was **re-added** to
-> [input.map.reference](input.map.reference) on 2026-07-14 (the 2026-07-13 in-game-menu rewrite had
-> dropped analog steer/throttle in favor of WASD keyboard, leaving a bare pad with only glance +
-> weapon-cycle). It is **proposed, not yet field-verified** — run the decode sheet at the bottom of
-> this doc with your actual Xbox pad to confirm the device token and button numbers, then we lock it.
+> **Status (2026-07-14, field-tested):** the `joystick1` device token is **confirmed** (Xbox pad on
+> Mac — steering responded) and button numbering A=1 / X=3 is confirmed (A fired, X cycled). But the
+> re-added analog blocks had **two token bugs**, now fixed against the game's own template (see next
+> note). Still to confirm: buttons B=2 / Y=4 and 5-10, plus the full Option-1 layout.
+
+> **The analog-axis tokens must come from `JOYSTICK.MAP`, not be guessed.** The game ships a
+> canonical template — `JOYSTICK.MAP`, headed "2 button joystick defaults" — whose analog block is:
+> ```
+> throttle { - joystick1 Down/Up }
+> steer    { - joystick1 Left/Right }
+> ```
+> The 2026-07-14 re-add used `+ joystick1 Left/Right` and `+ joystick1 Up/Down`. Both were wrong:
+> **(1)** the Y axis is named **`Down/Up`** — `Up/Down` is not a real token, so throttle was silently
+> ignored (field symptom: "throttle did nothing at all," *not* inverted). **(2)** for these analog
+> blocks the leading **`+`/`-` is the axis polarity**, and stock is `-`; `+` inverted the steering
+> (field symptom: "left stick was inverted steer"). Fixed to the stock lines verbatim.
 
 ## Why it just works (the Deck research, applied)
 
@@ -28,14 +39,20 @@ exe). That path is served natively on both platforms:
 
 ## The bindings (already in `input.map`)
 
-| Pad control | Axis/button | Action |
-|---|---|---|
-| **Left stick** X / Y | `joystick1 Left/Right` / `Down/Up` | **steer** / **throttle** |
-| **A** | `joystick1 Button1` | fire (`weapon_fire`) |
-| **B** | `joystick1 Button2` | special 1 (nitrous slot) |
-| **X** | `joystick1 Button3` | cycle weapon |
-| **Y** | `joystick1 Button4` | handbrake (`e_brake`) |
-| **D-pad** | `joystick1 HatUp/Down/Left/Right` | glance (look around) |
+| Pad control | Axis/button | Action | Status |
+|---|---|---|---|
+| **Left stick** X | `- joystick1 Left/Right` | **steer** | ✅ works (inversion fixed) |
+| **Left stick** Y | `- joystick1 Down/Up` | **throttle** | ⏳ token fixed, retest |
+| **A** | `joystick1 Button1` | fire (`weapon_fire`) | ✅ confirmed |
+| **B** | `joystick1 Button2` | special 1 (nitrous slot) | ❓ assumed |
+| **X** | `joystick1 Button3` | cycle weapon | ✅ confirmed |
+| **Y** | `joystick1 Button4` | handbrake (`e_brake`) | ❓ assumed |
+| **D-pad** | `joystick1 HatUp/Down/Left/Right` | glance (look around) | ❓ assumed |
+
+*AHK probe (2026-07-14) confirms the pad presents to Wine as `joy1: 10 buttons, 5 axes` (X, Y,
+Z=triggers, R/U=right stick), POV hat. The right stick and independent triggers are **not usable
+via `input.map`** natively — those are reserved for the AutoHotkey layer (see
+[INPUT-REMAPPER.md](INPUT-REMAPPER.md)) in the full Option-1 layout.*
 
 Keyboard/mouse stay live at the same time — all input methods coexist.
 
