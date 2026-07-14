@@ -1,0 +1,226 @@
+# Interstate '76 Input mapping file
+throttle {
+   - mouse      Down/Up
+}
+steer {
+   - mouse      Left/Right
+}
+shift_down {
+   + keyboard   Minus
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+shift_up {
+   + keyboard   Equal
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+frontal_target {
+   + keyboard   Q
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+NEXT_TARGET {
+   + keyboard   Y
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+TARGET_NEAREST_ENEMY {
+   + keyboard   T
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+RESET_TARGET {
+   + keyboard   U
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+RADAR_RANGE_TOGGLE {
+   + keyboard   R
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+RADAR_CAMERA_TOGGLE {
+   + keyboard   K
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+start_engine {
+   + keyboard   I
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+SHOW_MAP {
+   + keyboard   M
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+SHOW_NOTEPAD {
+   + keyboard   N
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+TOGGLE_BINOCULARS {
+   + keyboard   B
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+HONK_HORN {
+   + keyboard   G
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+e_brake {
+   + keyboard   Space
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+toggle_lights {
+   + keyboard   H
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+pilot_glance_down {
+   + Joystick         HatDown
+}
+track_pitch_minus {
+   + Joystick         HatDown
+}
+overview_z_minus {
+   + Joystick         HatDown
+}
+pilot_glance_left {
+   + Joystick         HatLeft
+}
+track_yaw_minus {
+   + Joystick         HatLeft
+}
+overview_x_minus {
+   + Joystick         HatLeft
+}
+pilot_glance_right {
+   + Joystick         HatRight
+}
+track_yaw_plus {
+   + Joystick         HatRight
+}
+overview_x_plus {
+   + Joystick         HatRight
+}
+pilot_glance_up {
+   + Joystick         HatUp
+}
+track_pitch_plus {
+   + Joystick         HatUp
+}
+overview_z_plus {
+   + Joystick         HatUp
+}
+pilot_glance_target {
+   + keyboard   E
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+weapon_fire {
+   + mouse      RightBtn
+}
+weapon_cycle {
+   + Joystick         Button3
+}
+
+hardpoint1_fire {
+   + mouse      RightBtn
+}
+hardpoint2_fire {
+   + mouse      RightBtn
+}
+hardpoint3_fire {
+   + mouse      RightBtn
+}
+hardpoint4_fire {
+   + mouse      MiddleBtn
+}
+hardpoint5_fire {
+   + keyboard   Five
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+special1 {
+   + keyboard   Six
+}
+special2 {
+   + keyboard   Seven
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+special3 {
+   + keyboard   Eight
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+POETRY {
+   + keyboard   P
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+toggle_cmbt_view {
+   + keyboard   V
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+reverse_direction {
+   + keyboard   X
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+track_distance_plus {
+	+ keyboard   GreyPageDown
+}
+track_distance_minus {
+	+ keyboard   GreyPageUp
+}
+overview_zoom_plus {
+	+ keyboard	GreyPageDown
+}
+overview_zoom_minus {
+	+ keyboard	GreyPageUp
+}
+zoom_factor_plus {
+	+ keyboard	GreyPageDown
+}
+zoom_factor_minus {
+	+ keyboard	GreyPageUp
+}
+zoom_factor_reset {
+	+ keyboard	GreyEnd
+}
+show_player_scores {
+	+ keyboard	Quote
+}
+show_team_scores {
+	+ keyboard	SemiColon
+}
+
+
+# --- restored after the in-game menu rewrite (2026-07-13):
+#     keyboard driving, left-click fire, shift-click link, dropper on middle ---
+throttle_up {
+   + keyboard   W
+}
+throttle_down {
+   + keyboard   S
+}
+steer_left {
+   + keyboard   A
+}
+steer_right {
+   + keyboard   D
+}
+weapon_fire {
+   + mouse      LeftBtn
+   - keyboard   Shift
+}
+weapon_link {
+   + mouse      LeftBtn
+   + keyboard   Shift
+}

@@ -734,6 +734,18 @@ function render(){
   const right=document.createElement("div"); right.className="stack";
 
   /* PARTS / WEAPONS / SPCL (equipped - stored in the car block, read-only here) */
+  const VAN_CAP={2:3,3:4}; // engines, suspensions - the game's van holds no more
+  const vanCount=type=>s.recs.filter(off=>{
+    const dv=new DataView(s.buf); const l=dv.getUint32(off+100,true);
+    return l!==1&&l!==2&&l!==3&&dv.getUint32(off+30,true)===type;}).length;
+  const byLoc=g=>s.recs.filter(off=>{const l=new DataView(s.buf).getUint32(off+100,true);
+    return g==="C"?(l===1||l===2):(g==="R"?l===3:(l!==1&&l!==2&&l!==3));});
+  const carRecs=byLoc("C"), repRecs=byLoc("R"), vanRecs=byLoc("V");
+  // soft capacity note, matching what the game's own lists appear to hold
+  const vanInfos=vanRecs.map(o=>recInfo(s.buf,o));
+  const nEng=vanInfos.filter(r=>r.type===2).length, nSus=vanInfos.filter(r=>r.type===3).length;
+  const capNote=(nEng>3||nSus>4)?` ⚠ over the game's van cap (3 engines / 4 suspensions) — you have ${nEng}/${nSus}; extras may vanish in-game`:"";
+
   const partsBox=document.createElement("div"); partsBox.className="box";
   partsBox.innerHTML=`<div class="boxhead">Parts · Weapons · Spcl. <span class="hint">what's on the car — pick from a dropdown to swap (weight rebalances next garage visit)</span></div>`;
   const pt=document.createElement("table"); pt.className="sheet";
@@ -813,6 +825,7 @@ function render(){
     render();
   });
   left.appendChild(defBox);
+  if(carRecs.length) left.appendChild(invBox("Parts on the Car (C)","the mounted parts' own records — condition lives here",carRecs,""));
 
   /* CAR/VAN INVENTORY (van stash, categorized like the game) + REPAIR ORDER */
   function invBox(title,hint,offs,flag){
@@ -872,6 +885,11 @@ function render(){
           const locs=r.grade===2?[1,2,3,4]:[1,3,4];
           lsel.innerHTML=locs.map(g=>`<option value="${g}" ${g===r.grade?"selected":""}>${LOC_LABEL[g]}</option>`).join("");
           lsel.addEventListener("change",()=>{
+            const cap=VAN_CAP[r.type];
+            if(+lsel.value===4&&cap&&vanCount(r.type)>=cap){
+              toast(`The van only holds ${cap} ${KIND[r.type]}s — sell or install one first`);
+              render(); return;
+            }
             new DataView(s.buf).setUint32(r.off+100,+lsel.value,true); render();
           });
           row.appendChild(lsel);
@@ -895,14 +913,6 @@ function render(){
     box.appendChild(list);
     return box;
   }
-  const byLoc=g=>s.recs.filter(off=>{const l=new DataView(s.buf).getUint32(off+100,true);
-    return g==="C"?(l===1||l===2):(g==="R"?l===3:(l!==1&&l!==2&&l!==3));});
-  const carRecs=byLoc("C"), repRecs=byLoc("R"), vanRecs=byLoc("V");
-  // soft capacity note, matching what the game's own lists appear to hold
-  const vanInfos=vanRecs.map(o=>recInfo(s.buf,o));
-  const nEng=vanInfos.filter(r=>r.type===2).length, nSus=vanInfos.filter(r=>r.type===3).length;
-  const capNote=(nEng>3||nSus>4)?` ⚠ the game's van lists look capped (~3 engines / ~4 suspensions) — you have ${nEng} engines, ${nSus} suspensions`:"";
-  if(carRecs.length) right.appendChild(invBox("In / On the Car (C)","parts riding in the car — mounted or cargo",carRecs,""));
   right.appendChild(invBox("Van Inventory (V)",`spares in Rosie the van${capNote}`,vanRecs,""));
   if(repRecs.length) right.appendChild(invBox("Repair Order (R)","parts on Skeeter's bench",repRecs,""));
   const legend=document.createElement("div"); legend.className="legend";
@@ -929,13 +939,16 @@ function render(){
     const dv=new DataView(s.buf);
     const need=[...parseCar(s.buf).eq.filter(Boolean)];
     let kept=0,stowed=0;
+    const VAN_CAP2={2:3,3:4}; const vanNow={2:0,3:0}; let cargo=0;
     s.recs.forEach(off=>{
       const nm=cstr(new Uint8Array(s.buf),off,30);
+      const typ=dv.getUint32(off+30,true);
       const i=need.indexOf(nm);
       if(i>=0){ need.splice(i,1); dv.setUint32(off+100,1,true); kept++; }
-      else { dv.setUint32(off+100,4,true); stowed++; }
+      else if(VAN_CAP2[typ]&&vanNow[typ]>=VAN_CAP2[typ]){ dv.setUint32(off+100,2,true); cargo++; }
+      else { if(typ in vanNow) vanNow[typ]++; dv.setUint32(off+100,4,true); stowed++; }
     });
-    toast(`${kept} equipped parts kept (C), ${stowed} spares stowed in the van (V)`); render();
+    toast(`${kept} equipped kept (C), ${stowed} stowed (V)${cargo?`, ${cargo} over the van cap left as car cargo — sell them in the garage`:""}`); render();
   });
   const revert=document.createElement("button"); revert.className="obtn quiet"; revert.textContent="Revert";
   revert.addEventListener("click",()=>{s.buf=s.orig.slice(0); editingOff=null; toast("Reverted to the loaded file"); render();});
