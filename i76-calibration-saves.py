@@ -118,7 +118,8 @@ def main():
         d[off:off+16] = slot.encode().ljust(16, b"\0")
         struct.pack_into("<I", d, off+16, 1)
         struct.pack_into("<I", d, off+24, base_scene)
-        d[off+28:off+60] = disp.encode().ljust(32, b"\0")
+        # display name PRECEDES the entry: name(save_k) @ 0x08+60k = off-32
+        d[off-32:off] = disp.encode().ljust(32, b"\0")
         count += 1
     struct.pack_into("<I", d, 0, count)
     # the game DROPS the last entry when the file ends exactly at it (its

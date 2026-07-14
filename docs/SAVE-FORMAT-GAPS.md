@@ -65,19 +65,23 @@ The editor now reads/writes the name field everywhere (pad labels, a Name box on
 check, restore recovers names from dir history), and the calibration saves land as slots
 006 "COLOR CAL" / 007 "WEIGHT CAL" (save005 = the user's recovered in-game save).
 
-**The lost-bookmark engine bug (fixed 2026-07-14, second board screenshot):** the game
-DROPS the final dir entry whenever the file ends exactly at it — its own writer always
-truncates the newest entry, so its reader over-reads past each entry's end. This is why
-the game's own freshest bookmark historically vanished (the original truncated `save005`),
-and why WEIGHT CAL (our 8th, exactly-sized entry) didn't list. Fix: 56 zero bytes of slack
-after the last entry, applied by every writer we own **and by the launcher stub on every
-boot** (`padSaveDir()` — self-healing, since the game re-truncates on every in-game save).
+**RETRACTION + the real bug (third board screenshot, 2026-07-14):** the "game drops the
+last dir entry" theory was WRONG — no row was ever dropped. The 32-byte display name
+**precedes** its entry (`name(save_k) @ 0x08+60k`, before `file[16] @ 0x28+60k`); writing
+names at entry+28 made every board row wear the *previous* entry's name, which looked like
+a missing final row (and made "COLOR CAL" load save007's bytes — confirmed by the 101.0
+front-armor fingerprint). All writers corrected; the launcher-stub boot padding stays as
+harmless insurance against the game's own truncating writes (a truncated final entry loses
+its scene dword on disk either way — the editor completes those on save).
 
-**LOAD-board label formulas (from the same screenshot):** named entries render as
-`SCENE {dword+1}. {NAME}` (the scene they'll PLAY). Unnamed entries use a *different*
-formula (2,3,4,5 shown for dwords 2,3,5,6 — consistent with mission-numbering that skips
-a non-mission scene, unverified). A 5-way scan proved no scene scalar is stored in the
-.cmp itself. Cosmetic; open.
+**Load-time mount validation:** loading a save whose equipped names don't fit the chassis
+(e.g. turret-class guns on the Piranha) makes the game silently UNMOUNT them to Empty —
+the equipped block is a request, not a guarantee. The stripped-car case also shows (C)
+rows for records the equipped block doesn't name, so the C/V/S bucket rule is still open.
+
+**Condition colors:** the user's read is likely right — plain percentage bands, and the
+earlier "disproof" was row↔record mispairing (all four ≤17% wheels red; a 66.7% brake
+green; a 37% suspension yellow). Exact cutoffs come from the COLOR CAL gradient readback.
 
 ## The calibration saves (game-as-oracle protocol)
 
