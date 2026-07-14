@@ -1,0 +1,359 @@
+diff --git a/src/dxvk/dxvk_pipecache.cpp b/src/dxvk/dxvk_pipecache.cpp
+index 3085e8b8..45f53b56 100644
+--- a/src/dxvk/dxvk_pipecache.cpp
++++ b/src/dxvk/dxvk_pipecache.cpp
+@@ -1,5 +1,241 @@
++#include <cstring>
++
++#include <windows.h>
++
+ #include "dxvk_pipecache.h"
+ 
+ namespace dxvk {
+-  
++
++  DxvkPipelineCache::DxvkPipelineCache(
++    const Rc<vk::DeviceFn>&           vkd,
++    const VkPhysicalDeviceProperties& props)
++  : m_vkd(vkd), m_props(props) {
++    auto initialData = this->loadPipelineCacheFile();
++
++    VkPipelineCacheCreateInfo info;
++    info.sType            = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
++    info.pNext            = nullptr;
++    info.flags            = 0;
++    info.initialDataSize  = initialData.size();
++    info.pInitialData     = initialData.empty() ? nullptr : initialData.data();
++
++    VkResult vr = m_vkd->vkCreatePipelineCache(
++      m_vkd->device(), &info, nullptr, &m_handle);
++
++    if (vr != VK_SUCCESS && !initialData.empty()) {
++      // Corrupt or incompatible initial data; retry with an empty cache
++      Logger::warn("DXVK: vkCreatePipelineCache failed with initial data, retrying without");
++      info.initialDataSize = 0;
++      info.pInitialData    = nullptr;
++      vr = m_vkd->vkCreatePipelineCache(
++        m_vkd->device(), &info, nullptr, &m_handle);
++      initialData.clear();
++    }
++
++    if (vr != VK_SUCCESS) {
++      Logger::err("DXVK: Failed to create VkPipelineCache, pipelines will not be cached");
++      m_handle = VK_NULL_HANDLE;
++      return;
++    }
++
++    Logger::info(str::format("DXVK: Loaded VkPipelineCache initial data: ",
++      initialData.size(), " bytes"));
++
++    // Persist the cache periodically so that its contents survive
++    // even if the process is terminated without cleanup (e.g. via
++    // TerminateProcess) and the destructor never runs.
++    m_saveThread = dxvk::thread([this] () { this->saveThreadFunc(); });
++  }
++
++
++  DxvkPipelineCache::~DxvkPipelineCache() {
++    // If the process is being torn down our worker thread has
++    // already been killed and the Vulkan device may be gone.
++    // Rely on the last periodic save in that case.
++    if (this_thread::isInModuleDetachment())
++      return;
++
++    if (m_saveThread.joinable()) {
++      {
++        std::unique_lock<dxvk::mutex> lock(m_threadMutex);
++        m_stopThread.store(true);
++      }
++      m_threadCond.notify_all();
++      m_saveThread.join();
++    }
++
++    if (m_handle != VK_NULL_HANDLE) {
++      this->savePipelineCache();
++      m_vkd->vkDestroyPipelineCache(m_vkd->device(), m_handle, nullptr);
++    }
++  }
++
++
++  void DxvkPipelineCache::saveThreadFunc() {
++    env::setThreadName("dxvk-pipecache");
++
++    // Save shortly after startup so that pipelines compiled during
++    // the initial warmup get persisted early, then settle into a
++    // slower cadence.
++    auto interval = std::chrono::seconds(20);
++
++    while (!m_stopThread.load()) {
++      {
++        std::unique_lock<dxvk::mutex> lock(m_threadMutex);
++        m_threadCond.wait_for(lock, interval);
++      }
++
++      if (m_stopThread.load())
++        return; // Final save is done by the destructor
++
++      this->savePipelineCache();
++      interval = std::chrono::seconds(60);
++    }
++  }
++
++
++  void DxvkPipelineCache::savePipelineCache() {
++    if (m_handle == VK_NULL_HANDLE)
++      return;
++
++    size_t size = 0;
++    if (m_vkd->vkGetPipelineCacheData(m_vkd->device(),
++          m_handle, &size, nullptr) != VK_SUCCESS || size == 0)
++      return;
++
++    // Cache contents can only grow, so an unchanged
++    // size means there is nothing new to write.
++    if (size == m_lastSavedSize)
++      return;
++
++    std::vector<char> data(size);
++    VkResult vr = m_vkd->vkGetPipelineCacheData(m_vkd->device(),
++      m_handle, &size, data.data());
++
++    if (vr != VK_SUCCESS)
++      return;
++
++    data.resize(size);
++
++    auto tmpName = getTempFileName();
++    std::ofstream file(tmpName.c_str(),
++      std::ios_base::binary | std::ios_base::trunc);
++
++    if (!file && env::createDirectory(getCachePath())) {
++      file = std::ofstream(tmpName.c_str(),
++        std::ios_base::binary | std::ios_base::trunc);
++    }
++
++    if (!file) {
++      Logger::warn("DXVK: Failed to open VkPipelineCache file for writing");
++      return;
++    }
++
++    file.write(data.data(), data.size());
++    file.flush();
++
++    if (!file) {
++      Logger::warn("DXVK: Failed to write VkPipelineCache file");
++      return;
++    }
++
++    file.close();
++
++    // Atomically replace the previous cache file so that
++    // a partially written file can never be picked up.
++    if (!::MoveFileExW(tmpName.c_str(), getCacheFileName().c_str(),
++          MOVEFILE_REPLACE_EXISTING)) {
++      Logger::warn("DXVK: Failed to replace VkPipelineCache file");
++      return;
++    }
++
++    m_lastSavedSize = size;
++
++    Logger::info(str::format("DXVK: Saved VkPipelineCache: ",
++      size, " bytes"));
++  }
++
++
++  std::vector<char> DxvkPipelineCache::loadPipelineCacheFile() const {
++    std::ifstream file(getCacheFileName().c_str(),
++      std::ios_base::binary | std::ios_base::ate);
++
++    if (!file)
++      return std::vector<char>();
++
++    std::streamsize size = file.tellg();
++    file.seekg(0, std::ios_base::beg);
++
++    if (size <= 0)
++      return std::vector<char>();
++
++    std::vector<char> data(static_cast<size_t>(size));
++
++    if (!file.read(data.data(), size))
++      return std::vector<char>();
++
++    if (!this->validateCacheHeader(data)) {
++      Logger::warn("DXVK: VkPipelineCache file does not match device, ignoring");
++      return std::vector<char>();
++    }
++
++    return data;
++  }
++
++
++  bool DxvkPipelineCache::validateCacheHeader(
++    const std::vector<char>& data) const {
++    // Layout of VK_PIPELINE_CACHE_HEADER_VERSION_ONE
++    struct CacheHeader {
++      uint32_t headerLength;
++      uint32_t headerVersion;
++      uint32_t vendorID;
++      uint32_t deviceID;
++      uint8_t  cacheUUID[VK_UUID_SIZE];
++    };
++
++    CacheHeader header;
++
++    if (data.size() < sizeof(header))
++      return false;
++
++    std::memcpy(&header, data.data(), sizeof(header));
++
++    return header.headerLength  >= sizeof(header)
++        && header.headerVersion == VK_PIPELINE_CACHE_HEADER_VERSION_ONE
++        && header.vendorID      == m_props.vendorID
++        && header.deviceID      == m_props.deviceID
++        && !std::memcmp(header.cacheUUID, m_props.pipelineCacheUUID, VK_UUID_SIZE);
++  }
++
++
++  std::wstring DxvkPipelineCache::getCacheFileName() {
++    std::string path = getCachePath();
++
++    if (!path.empty() && *path.rbegin() != '/')
++      path += '/';
++
++    path += env::getExeBaseName() + ".vkpipeline-cache";
++    return str::tows(path.c_str());
++  }
++
++
++  std::wstring DxvkPipelineCache::getTempFileName() {
++    // Unique per process and per write so that concurrent writers
++    // (e.g. multiple D3D11 devices) can never interleave within one
++    // temp file. The final MoveFileExW replace is atomic, so
++    // last-writer-wins is safe.
++    static std::atomic<uint32_t> s_counter = { 0u };
++
++    return getCacheFileName()
++      + L"." + std::to_wstring(::GetCurrentProcessId())
++      + L"." + std::to_wstring(s_counter++)
++      + L".tmp";
++  }
++
++
++  std::string DxvkPipelineCache::getCachePath() {
++    return env::getEnvVar("DXVK_VK_PIPELINE_CACHE_PATH");
++  }
++
+ }
+diff --git a/src/dxvk/dxvk_pipecache.h b/src/dxvk/dxvk_pipecache.h
+index 03619e53..9c5fc26c 100644
+--- a/src/dxvk/dxvk_pipecache.h
++++ b/src/dxvk/dxvk_pipecache.h
+@@ -3,35 +3,76 @@
+ #include <atomic>
+ #include <condition_variable>
+ #include <fstream>
++#include <vector>
+ 
+ #include "dxvk_include.h"
+ 
+ #include "../util/sha1/sha1_util.h"
++#include "../util/thread.h"
+ #include "../util/util_env.h"
+ #include "../util/util_time.h"
+ 
+ namespace dxvk {
+-  
++
+   /**
+    * \brief Pipeline cache
+-   * 
++   *
+    * Allows the Vulkan implementation to
+    * re-use previously compiled pipelines.
++   *
++   * The cache contents are persisted to disk so that
++   * implementations which do expensive work on pipeline
++   * creation (e.g. MoltenVK's SPIR-V to MSL translation)
++   * only pay that cost the first time a pipeline is seen.
++   * The cache file is loaded as \c pInitialData on startup
++   * and written back periodically and on device shutdown.
+    */
+   class DxvkPipelineCache : public RcObject {
+-    
++
+   public:
+-    
+-    DxvkPipelineCache(const Rc<vk::DeviceFn>& vkd) { }
+-    
++
++    DxvkPipelineCache(
++      const Rc<vk::DeviceFn>&           vkd,
++      const VkPhysicalDeviceProperties& props);
++
++    ~DxvkPipelineCache();
++
+     /**
+      * \brief Pipeline cache handle
+      * \returns Pipeline cache handle
+      */
+     VkPipelineCache handle() const {
+-      return VK_NULL_HANDLE;
++      return m_handle;
+     }
+-    
++
++  private:
++
++    Rc<vk::DeviceFn>            m_vkd;
++    VkPhysicalDeviceProperties  m_props;
++    VkPipelineCache             m_handle = VK_NULL_HANDLE;
++
++    size_t                      m_lastSavedSize = 0;
++
++    std::atomic<bool>           m_stopThread = { false };
++    dxvk::mutex                 m_threadMutex;
++    dxvk::condition_variable    m_threadCond;
++    dxvk::thread                m_saveThread;
++
++    void saveThreadFunc();
++
++    void savePipelineCache();
++
++    std::vector<char> loadPipelineCacheFile() const;
++
++    bool validateCacheHeader(
++      const std::vector<char>&  data) const;
++
++    static std::wstring getCacheFileName();
++
++    static std::wstring getTempFileName();
++
++    static std::string getCachePath();
++
+   };
+-  
++
+ }
+diff --git a/src/dxvk/dxvk_pipemanager.cpp b/src/dxvk/dxvk_pipemanager.cpp
+index 950efc28..1acb0a22 100644
+--- a/src/dxvk/dxvk_pipemanager.cpp
++++ b/src/dxvk/dxvk_pipemanager.cpp
+@@ -8,7 +8,7 @@ namespace dxvk {
+           DxvkDevice*         device,
+           DxvkRenderPassPool* passManager)
+   : m_device    (device),
+-    m_cache     (new DxvkPipelineCache(device->vkd())) {
++    m_cache     (new DxvkPipelineCache(device->vkd(), device->adapter()->deviceProperties())) {
+     std::string useAsync      = env::getEnvVar("DXVK_ASYNC");
+     std::string useStateCache = env::getEnvVar("DXVK_STATE_CACHE");
+ 
+diff --git a/version.h.in b/version.h.in
+index 3a6c9039..2cf44641 100644
+--- a/version.h.in
++++ b/version.h.in
+@@ -1,3 +1,3 @@
+ #pragma once
+ 
+-#define DXVK_VERSION "v1.10.3-20230507-async (macOS)"
++#define DXVK_VERSION "v1.10.3-20230507-async (macOS) vkpc"

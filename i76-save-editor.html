@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interstate '76 Save Editor — Build and Repair Form</title>
+</head>
+<body>
+<style>
+/* ============ Skeeter's clipboard: the in-game BUILD AND REPAIR FORM ============
+   Single visual world by design - this page mimics Interstate '76's own garage
+   paperwork (yellow work-order form, stencil headers, handwritten entries,
+   marker highlights). Colors sampled from the game's garage screens.        */
+:root{
+  --paper:#E9AF49; --paper2:#E2A63E; --paper3:#EFBB5C;
+  --ink:#2A2118; --ink2:#6B4E23; --rust:#9E3B1B;
+  --boxbg:#D9A143; --headbg:#C89238;
+  --btn:#E88E2E; --btn-ink:#2A1A08;
+  --mark-y:#F2D22E; --mark-r:#E05237; --mark-g:#96B83D;
+  --line:#4A3517;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  color:var(--ink);
+  font:15px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .22 0 0 0 0 .05 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(1100px 500px at 80% -10%, rgba(255,240,190,.45), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(140,80,20,.25), transparent 55%),
+    radial-gradient(120px 90px at 72% 34%, rgba(120,60,10,.10), transparent 70%),
+    radial-gradient(90px 70px at 18% 76%, rgba(120,60,10,.08), transparent 70%),
+    repeating-linear-gradient(2deg, transparent 0 90px, rgba(120,70,10,.05) 90px 92px),
+    var(--paper);
+  min-height:100vh;
+}
+.box{position:relative}
+.box::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='1'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .05 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 90px}
+/* ---------- form chrome ---------- */
+.formhead{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:4px}
+.formhead h1{
+  margin:0;font-family:"Arial Black","Avenir Next Condensed",Arial,sans-serif;
+  font-weight:900;font-size:clamp(22px,3.6vw,34px);letter-spacing:.02em;text-transform:uppercase;
+}
+.vehline{flex:1;min-width:260px;display:flex;gap:10px;align-items:baseline}
+.vehline .lbl{font-weight:800;text-transform:uppercase;font-size:14px;letter-spacing:.04em}
+.hand{font-family:"Bradley Hand","Segoe Print","Comic Sans MS",cursive;font-weight:600}
+.vehname{border-bottom:2px solid var(--ink);flex:1;padding:0 6px;font-size:18px}
+.subnote{color:var(--ink2);font-size:13px;margin:2px 0 18px}
+.box{background:var(--boxbg);border:2px solid var(--ink);border-radius:3px;overflow:hidden}
+.boxhead{
+  background:var(--headbg);border-bottom:2px solid var(--ink);padding:5px 10px;
+  font-family:"Arial Black",Arial,sans-serif;font-weight:900;text-transform:uppercase;
+  font-size:13px;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:baseline;
+}
+.boxhead .hint{font-family:-apple-system,"Segoe UI",sans-serif;font-weight:400;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--ink2)}
+/* ---------- bookmark pad (save list) ---------- */
+.pad{max-width:460px;margin:0 0 20px;background:#FCFBF2;border-color:#6E6650;
+  box-shadow:0 2px 5px rgba(40,25,5,.3)}
+.pad .boxhead{background:#E4E9D4;color:#3A3A2C;border-bottom:1.5px solid #8A8168}
+.pad .boxhead .hint{color:#7C7660}
+.padrow{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  border-bottom:1px solid #C9C2AA;padding:7px 12px;cursor:pointer;font-size:17px;
+  color:#26221A;
+}
+.padrow:hover{background:#F3F0E0}
+.padrow[aria-selected="true"]{background:var(--mark-y)}
+.padrow .slot{font-size:12px;color:#8A8168;font-family:-apple-system,"Segoe UI",sans-serif}
+.tray{
+  border:2px dashed var(--line);border-radius:4px;background:var(--paper3);
+  padding:18px 16px;text-align:center;cursor:pointer;margin-bottom:20px;
+}
+.tray.drag{background:var(--mark-y)}
+.tray .hint{color:var(--ink2);font-size:13px;margin-top:4px}
+.tray input{display:none}
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:minmax(340px,5fr) minmax(300px,4fr);gap:16px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:16px}
+/* ---------- parts sheets ---------- */
+table.sheet{border-collapse:collapse;width:100%}
+.sheet td,.sheet th{border-bottom:1px solid var(--line);padding:4px 10px;text-align:left;font-size:15px}
+.sheet tr:last-child td{border-bottom:none}
+.sheet .cat{
+  width:110px;font-family:"Arial Black",Arial,sans-serif;font-size:11px;font-weight:900;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--ink);background:var(--headbg);
+  border-right:2px solid var(--ink);
+}
+.sheet .val{font-size:16.5px}
+.marker{padding:0 6px;border-radius:2px}
+.m-red{background:var(--mark-r)}
+.m-yel{background:var(--mark-y)}
+.m-grn{background:var(--mark-g)}
+.locflag{font-weight:800;color:var(--rust);font-family:-apple-system,"Segoe UI",sans-serif;font-size:12px}
+/* defense steppers */
+.def td{padding:3px 8px}
+.def .lbl2{font-family:"Arial Black",Arial,sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;color:var(--ink2)}
+.def input{
+  width:70px;text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"Bradley Hand","Segoe Print","Comic Sans MS",cursive;font-weight:700;font-size:16px;
+  background:transparent;border:none;border-bottom:1.5px solid var(--line);color:var(--ink);
+}
+.stepbtn{
+  background:var(--btn);border:1.5px solid var(--ink);color:var(--btn-ink);
+  width:22px;height:22px;line-height:1;font-weight:900;cursor:pointer;border-radius:2px;padding:0;
+}
+/* part dropdowns: obviously selects, handwritten, in the paper's own tones */
+.eqsel{
+  font-family:"Bradley Hand","Segoe Print","Comic Sans MS",cursive;font-weight:600;
+  font-size:15.5px;color:var(--ink);background:var(--paper3);
+  border:1.5px solid var(--line);border-radius:2px;padding:2px 6px;max-width:100%;
+}
+.invrow .eqsel{font-size:14.5px;max-width:270px}
+/* condition-tier dropdown, tinted with the game's own salvage colors */
+.tiersel{
+  font:12px -apple-system,"Segoe UI",sans-serif;font-weight:700;color:var(--ink);
+  border:1.5px solid var(--line);border-radius:2px;padding:2px 4px;background:var(--paper3);
+}
+.tiersel.t2{background:var(--mark-g)}
+.tiersel.t3{background:var(--mark-y)}
+.tiersel.t4{background:var(--mark-r)}
+.ptsin{
+  width:58px;text-align:right;font-variant-numeric:tabular-nums;
+  font:12.5px -apple-system,"Segoe UI",sans-serif;color:var(--ink);
+  background:var(--paper3);border:1.5px solid var(--line);border-radius:2px;padding:2px 4px;
+}
+/* the scene control: a white diner-check strip, like the game's Load Bookmark bill */
+.check{
+  background:#FCFBF2;border:1px solid #B8B09B;border-radius:3px;
+  box-shadow:0 1.5px 3px rgba(40,25,5,.25), inset 0 0 0 3px #FCFBF2, inset 0 0 0 4px #D9D2BC;
+  padding:7px 14px;display:flex;gap:10px;align-items:center;
+}
+.check .lbl2{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A8168;font-weight:700}
+.check select{
+  font-family:"Bradley Hand","Segoe Print","Comic Sans MS",cursive;font-weight:700;font-size:17px;
+  color:#26221A;background:#FFFFFF;border:none;border-bottom:1.5px dotted #B8B09B;padding:1px 4px;
+}
+.check select:focus-visible{outline:2.5px solid var(--rust);outline-offset:2px}
+/* inventory ledger rows */
+.inv{width:100%}
+.invrow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:4px 10px;flex-wrap:wrap}
+.invrow:hover{background:var(--paper3)}
+.invrow .nm{font-size:16.5px;cursor:pointer}
+.invrow .fill{flex:1;min-width:10px}
+.invrow .meta{font-size:11.5px;color:var(--ink2);font-family:-apple-system,"Segoe UI",sans-serif}
+.invrow.editing{background:var(--paper3);box-shadow:inset 3px 0 0 var(--rust)}
+.editbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 10px 10px 26px;border-bottom:1px solid var(--line);background:var(--paper3)}
+.editbar select,.editbar input{
+  font:13px -apple-system,"Segoe UI",sans-serif;background:#F6E7C0;border:1.5px solid var(--ink);
+  border-radius:2px;color:var(--ink);padding:3px 6px;max-width:330px;
+}
+.editbar input{width:72px;text-align:right}
+.editbar .lbl2{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--ink2)}
+/* buttons */
+.actionbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px;position:sticky;bottom:0;background:var(--paper);padding:10px 4px;border-top:2px solid var(--ink)}
+.obtn{
+  background:var(--btn);border:2px solid var(--ink);color:var(--btn-ink);
+  font-family:"Arial Black",Arial,sans-serif;font-weight:900;text-transform:uppercase;
+  font-size:13px;letter-spacing:.05em;padding:7px 16px;border-radius:2px;cursor:pointer;
+}
+.obtn:hover{filter:brightness(1.08)}
+.obtn.quiet{background:var(--boxbg)}
+select.slotsel{font:14px -apple-system,"Segoe UI",sans-serif;background:var(--paper3);border:2px solid var(--line);border-radius:2px;padding:6px;color:var(--ink)}
+.spacer{flex:1}
+.note{color:var(--ink2);font-size:13px}
+button:focus-visible,select:focus-visible,input:focus-visible,.padrow:focus-visible,.tray:focus-visible,.invrow .nm:focus-visible{outline:2.5px solid var(--rust);outline-offset:2px}
+.legend{font-size:12.5px;color:var(--rust);font-weight:700;padding:8px 2px}
+details{margin-top:24px;color:var(--ink2);font-size:14px}
+details summary{cursor:pointer;color:var(--ink);font-weight:700}
+details code{background:var(--paper3);border:1px solid var(--line);border-radius:2px;padding:1px 5px;font-size:12.5px}
+details .paths{margin:10px 0 0;padding-left:18px}
+details .paths li{margin:6px 0}
+.toast{
+  position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(90px);
+  background:var(--ink);color:#F3E3BC;padding:10px 18px;border-radius:3px;
+  transition:transform .25s;font-size:14px;max-width:92vw;z-index:9;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="formhead">
+      <h1>Build and Repair Form</h1>
+      <div class="vehline"><span class="lbl">Vehicle:</span><span class="vehname hand" id="vehname">&nbsp;</span></div>
+      <div class="check" id="scenecheck" hidden></div>
+    </div>
+    <p class="subnote">Interstate '76 save editor, styled after Skeeter's own paperwork. Everything runs in this page — files are read locally, edits download as new files, originals stay untouched.</p>
+  </header>
+
+  <div class="tray" id="tray" tabindex="0" role="button" aria-label="Load save files">
+    <b>Drop your saves on the clipboard</b> — or click to pick files
+    <div class="hint">Load <code>save###.cmp</code> files (add <code>savegame.dir</code> for scene numbers &amp; new-slot support).</div>
+    <input type="file" id="filein" multiple>
+  </div>
+
+  <div class="box pad" id="padbox" hidden>
+    <div class="boxhead">Load Bookmark <span class="hint">Skeeter's order pad — pick a save</span></div>
+    <div id="pad" role="tablist"></div>
+  </div>
+
+  <div id="editor"></div>
+
+  <details>
+    <summary>Where do the save files live? What do the fields mean?</summary>
+    <p><b>Easiest:</b> run <code>i76-save-editor.command</code> (or <code>python3 i76-save-editor-server.py
+    [--dir DIR]</code>) from the repo — it opens this page with your saves already on the order pad and
+    lets Save Bookmark write straight back to the game folder (one-time <code>.pre-edit</code> backups).
+    Without it, drag the files in from:</p>
+    <ul class="paths">
+      <li><b>Mac (this repo's wrapper):</b> <code>~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/</code></li>
+      <li><b>Windows (GOG):</b> next to <code>i76.exe</code> (e.g. <code>C:\GOG Games\Interstate 76\</code>)</li>
+      <li><b>Steam Deck (Heroic):</b> the game folder inside the install path</li>
+    </ul>
+    <p>In drag-and-drop mode, downloads replace the originals by hand. "Save as" a new slot also
+    downloads an updated <code>savegame.dir</code> — copy both in, or the LOAD screen won't list the new slot.</p>
+    <p>Format notes (reverse-engineered, see the repo docs): the save holds the car (equipped parts, armor
+    in tenths, exactly as the DEFENSE panel shows), the <b>van inventory</b> (spare parts — the game marks
+    these (V)), and a trailing section we read as the <b>repair order</b> (R). Ammo is never stored — bookmarks
+    happen at the shack, weapons refill from their spec. Each part carries a <b>location flag</b> — (C) in/on the car, (R) in repair, (V) in the van — and
+    <b>condition points vs durability</b> drive the game's highlight colors (green scuffed → red wrecked;
+    full points = no highlight). Don't mark everything (C): the game piles it into the car and unmounts
+    hardpoints — "Stow spares in van" fixes that. <b>The scene number in <code>savegame.dir</code> is the last
+    COMPLETED scene; loading plays the next one</b> (the game writes the newest entry's scene truncated, so
+    check the Scene box before saving — a 0 loads at Scene 1 with the scripted starter loadout). Weapon <b>range and DPS</b> come from
+    <a href="https://www.localditch.com/interstate-76/weapons.html">Local Ditch's weapons page</a>
+    (community measurements by Greg Schwartz / Zaphod-AVA, in "points of armor" — the same tenths the
+    DEFENSE panel uses); where no measurement exists we show "~N dps spec" computed from the game's own
+    weapon files (damage × salvo × shots/sec ÷ 10, all shots hitting — real DPS runs lower with misses).
+    Flamethrowers are rated the community way: time to destroy a bus.</p>
+  </details>
+
+  <details>
+    <summary>Glovebox: the classic cheat codes</summary>
+    <p>All work in I'76 and Nitro Riders (source:
+    <a href="https://interstate76.fandom.com/wiki/Interstate_%2776">the I'76 fandom wiki</a>).
+    Hold <b>Ctrl+Shift</b> and type, during play:</p>
+    <ul class="paths">
+      <li><code>getdown</code> — level skip (Groove says "get down"; everyone attacks you; die and you restart on the next scene)</li>
+      <li><code>thirdnostril</code> — bigger radar &nbsp;·&nbsp; <code>wiggleburger</code> — blurry vision</li>
+      <li>with the map up: <code>frflat</code> / <code>flflat</code> / <code>brflat</code> / <code>blflat</code> — deflate that tire</li>
+      <li><b>Ctrl+Alt+X</b> — self-destruct &nbsp;·&nbsp; <b>F12</b> on landing — survive a huge fall</li>
+    </ul>
+    <p>Melee-variant names: save a Rattler variant as <code>retpocileh</code> (helicopter),
+    <code>knat</code> (tank); a Phaedra Rattler as <code>hotair</code> (balloon) or
+    <code>thetruthishere</code> (UFO — you saw it crash outside Roswell, after all).</p>
+  </details>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+/* ---------- catalog (from I76.ZFS defs; combat stats from the gdf files) ---------- */
+const ENGINES=[["261ci  6 cyl","eng01","eng01",300,200],["305ci  V-8","eng02","eng02",300,230],
+ ["432ci  SHO V8","eng03","eng03",300,275],["595ci  V-10","eng04","eng04",300,340]];
+const SUSP=[["Stock","sus01","sus01",200,35],["Sway Bars","sus02","sus02",200,37],
+ ["Coil Overs","sus03","sus03",200,41],["EtherX Rally","sus04","sus04",200,46]];
+const BRAKES=[["4-Wheel Drum","bra01","bra01",150,12],["Disc & Drum","bra02","bra02",150,15],
+ ["4-Wheel Disc","bra03","bra03",150,17],["Aircraft Brk","bra04","bra04",150,20]];
+const WHEELS=[["a","13in Stock"],["b","14in Rally"],["c","15in Kragers"],["d","16in Billets"]];
+// name, mount, def, dur, wt, dmg, shots/s, salvo, ammo, range(m), measuredDPS, note
+// dmg is in raw armor units (display = tenths, same scale as the DEFENSE panel).
+// range + measured DPS ("points of armor"/s) from Local Ditch's weapons page
+// (community measurements by Greg Schwartz / Zaphod-AVA); null = not measured.
+const WEAPONS=[
+ ["30cal MG","slg01","gmlight.gdf",200,32,15,10,1,2000,150,8.9,""],
+ ["50cal MG","slg02","gmmedium.gdf",400,47,25,10,1,2000,300,14.2,""],
+ ["7.62mm MG","slg03","gmheavy.gdf",600,91,24,20,1,4000,500,12.3,""],
+ ["20mm Cannon","slg04","gclight.gdf",200,69,45,4,1,350,150,19.1,""],
+ ["25mm Cannon","slg05","gcmedium.gdf",400,89,60,3,1,300,300,16.8,""],
+ ["30mm Cannon","slg06","gcheavy.gdf",600,150,150,2,1,250,500,25.9,""],
+ ["Tank Cannon","slg06","gtktank.gdf",900,170,260,1,1,50,null,null,"boss gun"],
+ ["Police Tank Cann","slg06","gtptank.gdf",900,170,260,1,1,50,null,null,"boss gun"],
+ ["HADES Cannon","slg07","gchades.gdf",600,150,165,2,1,200,600,null,"late-Trip"],
+ ["FireRite Rkt","spp01","gdumb.gdf",200,94,120,1,3,60,1000,23.8,"dumb-fire x3"],
+ ["Aim-Nein Msl","spp02","gsheat.gdf",400,169,220,0.5,1,15,2000,10.7,"heat lock"],
+ ["DrRadar Msl","spp03","gsradar.gdf",600,208,410,0.2,1,10,3000,8.2,"radar lock"],
+ ["Cherub Msl","spp04","gscherub.gdf",650,217,3200,0.2,1,3,4000,null,"320/shot!"],
+ ["FlameThrower","flm01","gflight.gdf",200,40,15,20,1,800,40,null,"bus in 3.8s"],
+ ["Gas Launcher","flm02","gfmedium.gdf",400,64,30,20,1,700,35,null,"bus in 3.3s"],
+ ["Napalm Hose","flm03","gfheavy.gdf",600,102,45,20,1,600,30,null,"bus in 2.6s"],
+ ["Pyro-Tomic","flm04","gfpyro.gdf",600,120,60,20,1,500,30,null,"late-Trip"],
+ ["HE Mortar","mor01","ggrenade.gdf",200,70,45,3,1,80,100,null,""],
+ ["WP Mortar","mor02","gwhiteph.gdf",400,89,45,3,1,70,100,null,""],
+ ["Cluster-Bomb","mor03","gcluster.gdf",600,109,45,2,1,30,100,null,"wide spread"],
+ ["EZK Mortar","mor04","gezkill.gdf",650,123,25,3,1,40,100,null,"late-Trip"],
+ ["Oil Slick","drp01","goilslck.gdf",200,46,0,50,1,2000,null,null,"spinout, no dmg"],
+ ["Fire-Dropper","drp04","gfirdrop.gdf",200,70,15,50,1,2000,null,null,"burns chassis"],
+ ["Landmines","drp05","glandmin.gdf",200,60,240,1,1,25,null,null,""],
+ ["Car-E-Racer","drp05","gceracer.gdf",20,169,1200,1,1,5,null,null,"late-Trip"],
+ ["BloxDropper","drp06","gblox.gdf",200,139,95,0.5,1,10,null,null,"chassis dmg"],
+ ["30cal Turret","slg01","tmlight.gdf",200,32,15,10,1,2000,150,8.9,""],
+ ["50cal Turret","slg02","tmmedium.gdf",400,47,25,10,1,2000,300,14.2,""],
+ ["7.62 Turret","slg03","tmheavy.gdf",600,91,24,20,1,4000,500,12.3,""],
+ ["20mm Turret","slg04","tclight.gdf",200,69,45,4,1,350,150,19.1,""],
+ ["25mm Turret","slg05","tcmedium.gdf",400,89,60,3,1,300,300,16.8,""],
+ ["30mm Turret","slg06","tcheavy.gdf",600,150,150,2,1,250,500,25.9,""],
+ ["Howitzer","slg06","tthowitz.gdf",900,170,120,1,1,300,null,null,"boss gun"],
+ ["HADES Turret","slg07","tchades.gdf",600,150,165,2,1,200,600,null,"late-Trip"],
+ ["FireRite Trt","spp01","tdumb.gdf",200,94,120,1,3,60,1000,23.8,"dumb-fire x3"],
+ ["Aim-Nein Trt","spp02","tsheat.gdf",400,169,220,0.5,1,15,2000,10.7,"heat lock"],
+ ["DrRadar Trt","spp03","tsradar.gdf",600,208,410,0.2,1,10,3000,8.2,"radar lock"],
+ ["Cherub Trt","spp04","tscherub.gdf",650,217,3200,0.2,1,3,4000,null,"320/shot!"],
+ ["Flame Turret","flm01","tflight.gdf",200,40,15,20,1,800,40,null,"bus in 3.8s"],
+ ["Gas Lnch Trt","flm02","tfmedium.gdf",400,64,30,20,1,700,35,null,"bus in 3.3s"],
+ ["Napalm Trt","flm03","tfheavy.gdf",600,102,45,20,1,600,30,null,"bus in 2.6s"],
+ ["Pyro-Turret","flm04","tfpyro.gdf",600,120,60,20,1,500,30,null,"late-Trip"]];
+const SPECIALS=[["Radar Jammer","spc01","(inferred)"],["NitrousOxide","spc02","verified"],
+ ["Blower","spc03","(inferred)"],["X-Aust Brake","spc04","verified"],["Structo Bmpr","spc05","verified"],
+ ["Curb Feelers","spc06","(inferred)"],["Mud Flaps","spc07","(inferred)"],["Heated Seats","spc08","(inferred)"],
+ ["Cup Holders","spc09","(inferred)"]];
+/* T.R.I.P. scene labels, grounded in Local Ditch's walkthrough */
+const SCENES=["Seagraves fireworks","Race Taurus · save the school","Destroy the Bar-D",
+ "Race Patriot","Rescue Taurus","Brownfield gas run","Chase Cloaker",
+ "Fletcher & Sons warehouse","Catch the spy Calisto","Road to Roswell",
+ "Cross the Pecos River","Find V&N Pneumatics","Chase the tanker",
+ "Spanner's Truck Stop","Mesa maze to Ft. Davis","Into Fort Davis","Malochio showdown"];
+/* the dir dword = last COMPLETED scene; loading the bookmark plays the NEXT one */
+const sceneLabel=n=>(n>=1&&n<=16)?`${n} done → plays ${n+1}: ${SCENES[n]}`:(n===17?"17 done — campaign finished":String(n));
+const KIND={2:"engine",3:"suspension",4:"brakes",5:"wheel",7:"weapon",8:"weapon",13:"special"};
+const CAT_ORDER=[["Engines",[2]],["Weapons",[7,8]],["Wheels",[5]],["Brakes",[4]],["Suspensions",[3]],["Specials",[13]]];
+const REC=116;
+/* DPS in the armor panel's units (tenths of raw): prefer Local Ditch's MEASURED
+   figures; fall back to spec (gdf damage x salvo x rate / 10, all shots hitting). */
+const specDps=w=>w[5]*w[7]*w[6]/10;
+function dpsText(w){
+  if(w[10]!=null) return `${w[10]} dps`;
+  if(w[11]&&w[11].startsWith("bus")) return w[11];
+  const s=specDps(w); return s?`~${Math.round(s)} dps spec`:"no direct dmg";
+}
+
+/* ---------- parsing (same byte-level logic as i76-save-editor.py) ---------- */
+const td=new TextDecoder("latin1");
+function cstr(u8,a,n){const s=u8.subarray(a,a+n);const z=s.indexOf(0);return td.decode(z<0?s:s.subarray(0,z));}
+function u32(dv,o){return dv.getUint32(o,true)}
+function plausibleName(u8,off){
+  let n=0; while(n<30 && u8[off+n]!==0) n++;
+  if(n<3||n>29) return false;
+  for(let i=0;i<n;i++){const c=u8[off+i]; if(c<32||c>=127) return false;}
+  return true;
+}
+function scan(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(buf), recs=[];
+  let i=0;
+  while(i+REC<=u8.length){
+    const typ=u32(dv,i+30);
+    if(KIND[typ] && plausibleName(u8,i)){
+      let z=true; for(let k=34;k<46;k++) if(u8[i+k]!==0){z=false;break;}
+      if(z){
+        const cls=cstr(u8,i+46,13), dfl=cstr(u8,i+59,13);
+        const ok=(cls==="" && dfl.startsWith("spc")) ||
+                 (cls!=="" && /^[a-z0-9_.]+$/i.test(cls+dfl));
+        if(ok && dfl){ recs.push(i); i+=REC; continue; }
+      }
+    }
+    i+=2;
+  }
+  return recs;
+}
+/* van vs repair: records run in 116-byte trains; a break in the train = the
+   section boundary. First train = van inventory (V); later trains = repair (R). */
+function sections(recs){
+  const out=[];
+  recs.forEach((off,k)=>{
+    if(k===0 || off-recs[k-1]!==REC) out.push([]);
+    out[out.length-1].push(off);
+  });
+  return {van:out[0]||[], repair:out.slice(1).flat()};
+}
+function recInfo(buf,off){
+  const u8=new Uint8Array(buf), dv=new DataView(buf);
+  return {off, name:cstr(u8,off,30), type:u32(dv,off+30), cls:cstr(u8,off+46,13),
+    dfl:cstr(u8,off+59,13), dur:u32(dv,off+76), wt:dv.getFloat32(off+80,true),
+    cond:u32(dv,off+96), grade:u32(dv,off+100)};
+}
+function writeIdentity(buf,off,[name,typ,cls,dfl,dur,wt]){
+  const u8=new Uint8Array(buf), dv=new DataView(buf), te=new TextEncoder();
+  u8.fill(0,off,off+30); u8.set(te.encode(name).subarray(0,30),off);
+  dv.setUint32(off+30,typ,true);
+  u8.fill(0,off+46,off+59); u8.set(te.encode(cls).subarray(0,13),off+46);
+  u8.fill(0,off+59,off+72); u8.set(te.encode(dfl).subarray(0,13),off+59);
+  dv.setUint32(off+76,dur,true); dv.setFloat32(off+80,wt,true);
+}
+function parseHeader(buf){
+  const u8=new Uint8Array(buf);
+  return {car:cstr(u8,0,20), variant:cstr(u8,20,20)};
+}
+/* car block: equipped names 14 x 30B @1024; armor 8 x u32 (tenths) @2044 in the
+   game's own order: armor F/R/L/Rear then chassis F/R/L/Rear (verified against
+   the in-game DEFENSE panel). */
+const EQ_SLOTS=["Engine","Suspension","Brakes","Tire FR","Tire FL","Tire RR","Tire RL",
+                "Weapon #1","Weapon #2","Weapon #3","Weapon #4","Special 1","Special 2","Special 3"];
+/* The save stores weapons in hardpoint-registry order [Dropper, Top1, Top2, Rear]
+   (PP1_GDB1/GIB1/GPF1/GPF2); the game's Build form shows Top1, Top2, Rear, Dropper.
+   Campaign saves are always the Piranha, so present the game's order when slot 7
+   really is a dropper-family weapon (else fall back to raw order). */
+function weaponSlotOrder(eq){
+  const w7=WEAPONS.find(w=>w[0]===eq[7]);
+  if(w7&&w7[1].startsWith("drp"))
+    return [[8,"#1 Top"],[9,"#2 Top"],[7,"#1 Dropper"],[10,"#1 Rear"]];
+  return [[7,"Weapon #1"],[8,"Weapon #2"],[9,"Weapon #3"],[10,"Weapon #4"]];
+}
+const ARMOR_OFF=2044;
+const ARMOR_LABELS=["Front armor","Right armor","Left armor","Rear armor",
+                    "Front chassis","Right chassis","Left chassis","Rear chassis"];
+function parseCar(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(buf);
+  const eq=[]; for(let k=0;k<14;k++) eq.push(cstr(u8,1024+k*30,30));
+  const armor=[]; for(let k=0;k<8;k++) armor.push(u32(dv,ARMOR_OFF+4*k));
+  return {eq, armor};
+}
+/* ---- equipped swaps: the game stores what's bolted on BY NAME ----
+   Verified by diffing two real saves around an in-game engine + weapon swap:
+   the only identity bytes that changed were the 30-byte name slots @1024 (the
+   game resolves names to parts at load). Wheels additionally carry two 13-byte
+   wauto wdf refs @2106/@2132 (front/rear pair); specials also appear by name in
+   the Mr. Damage registry (records @64, count @60, name[16] at +4). Weight and
+   balance are recomputed when you visit the in-game garage. */
+function writeEqName(buf,slot,name){
+  const u8=new Uint8Array(buf);
+  u8.fill(0,1024+slot*30,1024+slot*30+30);
+  u8.set(new TextEncoder().encode(name).subarray(0,30),1024+slot*30);
+}
+const WHEELDEF_OFFS=[2106,2132];
+function writeWheelDefs(buf,letter){
+  const u8=new Uint8Array(buf);
+  for(const off of WHEELDEF_OFFS){
+    const cur=cstr(u8,off,13);
+    const fam=(cur.startsWith("wauto_")&&cur.length>6)?cur[6]:"1";
+    u8.fill(0,off,off+13);
+    u8.set(new TextEncoder().encode(`wauto_${fam}${letter}.wdf`).subarray(0,13),off);
+  }
+}
+function renameRegistry(buf,oldName,newName){
+  const u8=new Uint8Array(buf), dv=new DataView(buf);
+  const count=u32(dv,60);
+  for(let i=0;i<count;i++){
+    const b=64+i*32;
+    if(cstr(u8,b+4,16)===oldName){
+      u8.fill(0,b+4,b+20);
+      u8.set(new TextEncoder().encode(newName).subarray(0,16),b+4);
+      return true;
+    }
+  }
+  return false;
+}
+/* options for an equipped slot; weapons constrained to the same mount family */
+function eqOptions(slot,curName){
+  if(slot===0) return ENGINES.map(e=>({name:e[0],label:e[0],apply:b=>{writeEqName(b,0,e[0]);reconcileFlags(b,curName,e[0]);}}));
+  if(slot===1) return SUSP.map(e=>({name:e[0],label:e[0],apply:b=>{writeEqName(b,1,e[0]);reconcileFlags(b,curName,e[0]);}}));
+  if(slot===2) return BRAKES.map(e=>({name:e[0],label:e[0],apply:b=>{writeEqName(b,2,e[0]);reconcileFlags(b,curName,e[0]);}}));
+  if(slot>=3&&slot<=6) return WHEELS.map(([l,n])=>({name:n,label:`${n} (all four)`,apply:b=>{
+    for(let k=3;k<=6;k++) writeEqName(b,k,n);
+    writeWheelDefs(b,l);
+  }}));
+  if(slot>=7&&slot<=10){
+    /* the vdf's HLOC hardpoints don't carry a verifiable allowed-class table,
+       so don't hard-restrict: same family as the current weapon = "fits like
+       stock", everything else = off-spec experiments (backups make it safe) */
+    const cur=WEAPONS.find(w=>w[0]===curName);
+    const fam=cur?cur[1].slice(0,3):null;
+    return WEAPONS_ORDERED.map(w=>({
+      name:w[0],
+      fits:fam===null||w[1].slice(0,3)===fam,
+      label:`${w[0]} — ${dpsText(w)}${w[9]?` · rng ${w[9]}m`:""} [${w[1]}]`,
+      apply:b=>{writeEqName(b,slot,w[0]); reconcileFlags(b,curName,w[0]);}}));
+  }
+  if(slot>=11&&slot<=13) return SPECIALS.map(([n,d,tag])=>({name:n,label:`${n} ${tag}`,apply:b=>{
+    renameRegistry(b,curName,n);
+    writeEqName(b,slot,n);
+    reconcileFlags(b,curName,n);
+  }}));
+  return [];
+}
+function parseDir(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf), out={};
+  if(u8.length<8) return out;
+  const count=u32(dv,0);
+  for(let k=0;k<count;k++){
+    const e=8+60*k;
+    if(e+0x20+20>u8.length) break;
+    const nm=cstr(u8,e+0x20,20);
+    if(!nm.startsWith("save")) continue;
+    out[nm]=(e+0x38+4<=u8.length)?u32(dv,e+0x38):"?";
+  }
+  return out;
+}
+/* set an existing slot's scene dword (name+24), extending the file when the
+   game left the final entry truncated - THE GAME LOADS THIS NUMBER: a 0 here
+   starts the bookmark at Scene 1 with the scripted starter car. */
+function dirSetScene(dirBuf, slotBase, scene){
+  const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
+  const count=dv0.getUint32(0,true);
+  for(let k=0;k<count;k++){
+    const nameOff=0x28+60*k;
+    if(nameOff+16>old.length) break;
+    if(cstr(old,nameOff,16)===slotBase){
+      const out=new Uint8Array(Math.max(old.length,nameOff+28)); out.set(old);
+      new DataView(out.buffer).setUint32(nameOff+24,scene,true);
+      return out.buffer;
+    }
+  }
+  return dirBuf;
+}
+function dirWithSlot(dirBuf, slotBase, scene){
+  const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
+  const count=dv0.getUint32(0,true);
+  const nameOff=0x28+60*count;
+  const len=Math.max(old.length, nameOff+28);
+  const out=new Uint8Array(len); out.set(old);
+  const dv=new DataView(out.buffer);
+  dv.setUint32(0,count+1,true);
+  out.fill(0,nameOff,nameOff+28);
+  out.set(new TextEncoder().encode(slotBase).subarray(0,16),nameOff);
+  dv.setUint32(nameOff+16,1,true);
+  dv.setUint32(nameOff+24,typeof scene==="number"?scene:0,true);
+  return out.buffer;
+}
+const isLate=w=>/late-Trip|boss/.test(w[11]||"");
+const WEAPONS_ORDERED=[...WEAPONS].sort((a,b)=>isLate(a)-isLate(b));
+function optionsFor(r){
+  const t=r.type;
+  const mk=(label,args)=>({label,args});
+  if(t===2) return ENGINES.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)`,[e[0],2,e[1],e[2],e[3],e[4]]));
+  if(t===3) return SUSP.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)`,[e[0],3,e[1],e[2],e[3],e[4]]));
+  if(t===4) return BRAKES.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)`,[e[0],4,e[1],e[2],e[3],e[4]]));
+  if(t===5){
+    const fam=(r.dfl.startsWith("wauto_")&&r.dfl.length>6)?r.dfl[6]:"1";
+    return WHEELS.map(([l,n])=>mk(n,[n,5,"whe01",`wauto_${fam}${l}.wdf`,100,20]));
+  }
+  if(t===7||t===8) return WEAPONS_ORDERED.map(w=>mk(
+    `${w[0]}  — ${dpsText(w)}${w[9]?` · rng ${w[9]}m`:""} · ammo ${w[8]}`+
+    `${w[11]&&!w[11].startsWith("bus")?` · ${w[11]}`:""} [${w[1]}]`,
+    [w[0],w[1].startsWith("drp")?8:7,w[1],w[2],w[3],w[4]]));
+  if(t===13) return SPECIALS.map(([n,d,tag])=>mk(`${n}  ${tag}`,[n,13,"",d,0,0]));
+  return [];
+}
+
+/* ---------- app state ---------- */
+const saves=[]; let current=-1, dirMissions={}, dirBuf=null, editingOff=null, eqEditing=null;
+let liveDir=null;   // set when served by i76-save-editor-server.py (write-back enabled)
+let backupsMap={};  // filename -> [backup filenames], from /api/saves (live mode)
+let liveSaves=[];   // filenames currently on disk (live mode)
+async function refreshBackups(){
+  try{
+    const r=await fetch("/api/saves",{cache:"no-store"});
+    if(r.ok){const j=await r.json(); backupsMap=j.backups||{}; liveSaves=j.saves||[];}
+  }catch(e){}
+}
+function backupLabel(b){
+  if(b.endsWith(".pre-edit")) return "original (first backup)";
+  const m=b.match(/\.bak-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
+  return m?`${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]}`:b;
+}
+/* drop a slot's entry from savegame.dir (rebuild header + remaining entries) */
+function dirRemoveSlot(dirBuf, slotBase){
+  const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
+  const count=dv0.getUint32(0,true);
+  const kept=[];
+  for(let k=0;k<count;k++){
+    const nameOff=0x28+60*k;
+    if(nameOff+16>old.length) break;
+    const nm=cstr(old,nameOff,16);
+    if(nm && nm!==slotBase) kept.push(nameOff);
+  }
+  const out=new Uint8Array(0x28+60*kept.length);
+  out.set(old.subarray(0,0x28));
+  kept.forEach((src,k)=>{
+    const chunk=old.subarray(src,Math.min(src+60,old.length));
+    out.set(chunk,0x28+60*k);
+  });
+  new DataView(out.buffer).setUint32(0,kept.length,true);
+  return out.buffer;
+}
+const $=id=>document.getElementById(id);
+const tray=$("tray"), filein=$("filein"), pad=$("pad"), padbox=$("padbox"),
+      editor=$("editor"), toastEl=$("toast"), vehname=$("vehname");
+let toastT;
+function toast(msg){toastEl.textContent=msg; toastEl.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove("show"),3200);}
+
+tray.addEventListener("click",()=>filein.click());
+tray.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();filein.click();}});
+["dragover","dragenter"].forEach(ev=>tray.addEventListener(ev,e=>{e.preventDefault();tray.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>tray.addEventListener(ev,e=>{e.preventDefault();tray.classList.remove("drag");}));
+tray.addEventListener("drop",e=>loadFiles(e.dataTransfer.files));
+filein.addEventListener("change",()=>loadFiles(filein.files));
+
+/* auto-load: when served by i76-save-editor-server.py, fetch the whole save set
+   straight off the game folder - the order pad fills itself, no drag-and-drop. */
+(async function autoload(){
+  let info;
+  try{
+    const r=await fetch("/api/saves",{cache:"no-store"});
+    if(!r.ok) return;
+    info=await r.json();
+  }catch(e){ return; }   // plain file / artifact: drag-and-drop mode
+  liveDir=info.dir;
+  backupsMap=info.backups||{};
+  liveSaves=info.saves||[];
+  const files=[];
+  for(const n of info.saves.concat(info.hasDir?["savegame.dir"]:[])){
+    try{
+      const r=await fetch("/files/"+n,{cache:"no-store"});
+      if(r.ok) files.push(new File([await r.arrayBuffer()],n));
+    }catch(e){}
+  }
+  if(files.length){
+    await loadFiles(files);
+    tray.querySelector("b").textContent="Connected to your game folder";
+    tray.querySelector(".hint").innerHTML=
+      `<code>${liveDir}</code> — Save Bookmark writes straight back (with a one-time .pre-edit backup). Drop files here to load a different set.`;
+    toast(`Loaded ${info.saves.length} bookmarks from the game folder`);
+  }
+})();
+
+async function loadFiles(list){
+  for(const f of list){
+    const buf=await f.arrayBuffer();
+    if(f.name.toLowerCase().endsWith(".dir")){ dirBuf=buf; dirMissions=parseDir(buf); continue; }
+    if(!f.name.toLowerCase().endsWith(".cmp")) continue;
+    const recs=scan(buf);
+    if(!recs.length){ toast(`${f.name}: no parts found — is this an I'76 bookmark?`); continue; }
+    const base=f.name.replace(/\.cmp$/i,"");
+    const entry={name:f.name, base, buf, orig:buf.slice(0), recs};
+    const ex=saves.findIndex(s=>s.name===f.name);
+    if(ex>=0) saves[ex]=entry; else saves.push(entry);
+  }
+  if(saves.length){ current=Math.max(current,0); editingOff=null; render(); }
+}
+function isDirty(s){
+  const a=new Uint8Array(s.buf), b=new Uint8Array(s.orig);
+  for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return true;
+  return false;
+}
+
+/* ---------- render ---------- */
+/* +100 is the LOCATION flag - proven in-game: writing 1 everywhere moved every
+   part into the car as (C). 1 = on the car, 2 = in the car (rare), 3 = in
+   repair, 4 = in the van. Condition COLOR is points vs durability. */
+const LOC_BADGE={1:"C",2:"C",3:"R",4:"V"};
+const LOC_LABEL={1:"(C) on the car",2:"(C) in the car",3:"(R) in repair",4:"(V) in the van"};
+function condMarker(r){
+  if(r.type===13||!r.dur) return "";
+  const pct=100*r.cond/r.dur;
+  if(pct>=100) return "";
+  if(pct>=67) return "m-grn";
+  if(pct>=34) return "m-yel";
+  return "m-red";
+}
+/* best-effort mirror of the game's own bookkeeping when equipping by name */
+function reconcileFlags(buf,oldName,newName){
+  const dv=new DataView(buf);
+  const recs=scan(buf);
+  const find=(nm,loc)=>recs.find(o=>cstr(new Uint8Array(buf),o,30)===nm&&dv.getUint32(o+100,true)===loc);
+  const oldRec=oldName?find(oldName,1):null;
+  if(oldRec!==null&&oldRec!==undefined) dv.setUint32(oldRec+100,4,true);
+  const newRec=newName?find(newName,4):null;
+  if(newRec!==null&&newRec!==undefined) dv.setUint32(newRec+100,1,true);
+}
+function render(){
+  // bookmark pad
+  padbox.hidden=!saves.length;
+  pad.innerHTML="";
+  saves.forEach((s,i)=>{
+    const m=dirMissions[s.base];
+    const row=document.createElement("div");
+    row.className="padrow"; row.setAttribute("role","tab"); row.tabIndex=0;
+    row.setAttribute("aria-selected",String(i===current));
+    const sceneTxt=(typeof m==="number"&&m>=1&&m<=16)?`Plays Scene ${m+1} · ${SCENES[m]}`:(m===17?"Campaign finished":`Scene ${m!==undefined&&m!=="?"?m:"?"}.`);
+    row.innerHTML=`<span class="hand">${sceneTxt}${isDirty(s)?" ✏":""}</span><span class="slot"></span>`;
+    row.querySelector(".slot").textContent=s.base;
+    const open=()=>{current=i; editingOff=null; render();};
+    row.addEventListener("click",open);
+    row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});
+    pad.appendChild(row);
+  });
+  /* deleted-but-backed-up slots: offer a way back onto the pad */
+  if(liveDir){
+    Object.keys(backupsMap).filter(n=>/^save\d{3}\.cmp$/.test(n)&&!liveSaves.includes(n))
+      .forEach(n=>{
+        const base=n.replace(/\.cmp$/,"");
+        const row=document.createElement("div"); row.className="padrow"; row.tabIndex=0;
+        row.innerHTML=`<span class="hand" style="color:var(--rust)">↩ restore ${base}</span><span class="slot">deleted · ${backupsMap[n].length} backup${backupsMap[n].length>1?"s":""}</span>`;
+        const restore=async()=>{
+          const b=backupsMap[n][backupsMap[n].length-1];   // newest
+          try{
+            const r=await fetch("/files/"+b,{cache:"no-store"});
+            if(!r.ok) throw new Error("fetch failed");
+            const buf=await r.arrayBuffer();
+            const entry={name:n, base, buf, orig:buf.slice(0), recs:scan(buf)};
+            const ex=saves.findIndex(x=>x.name===n);
+            if(ex>=0){saves[ex]=entry; current=ex;} else {saves.push(entry); current=saves.length-1;}
+            toast(`Loaded ${base} from its newest backup — pick the scene, then Save Bookmark to bring it back`);
+          }catch(e){ toast("Couldn't load the backup"); }
+          render();
+        };
+        row.addEventListener("click",restore);
+        row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();restore();}});
+        pad.appendChild(row);
+      });
+  }
+  editor.innerHTML="";
+  if(current<0||!saves[current]){ vehname.innerHTML="&nbsp;"; $("scenecheck").hidden=true; return; }
+  const s=saves[current], hdr=parseHeader(s.buf), car=parseCar(s.buf);
+  vehname.textContent=`${hdr.car} — ${hdr.variant}`;
+
+  /* Scene check (top of the form, white like the diner bill): the number
+     savegame.dir carries for this slot - the game LOADS the bookmark here. */
+  const sceneCheck=$("scenecheck");
+  sceneCheck.hidden=false; sceneCheck.innerHTML="";
+  const sceneSel=document.createElement("select");
+  sceneSel.setAttribute("aria-label","scene number for this bookmark");
+  sceneSel.title="Written to savegame.dir on Save Bookmark — the game loads the bookmark at this scene";
+  {
+    const dm=dirMissions[s.base];
+    const knownScene=(typeof dm==="number"&&dm>=1&&dm<=17)?dm:null;
+    sceneSel.innerHTML=(knownScene===null?`<option value="" selected>?</option>`:"")+
+      Array.from({length:17},(_,i)=>`<option value="${i+1}" ${knownScene===i+1?"selected":""}>${sceneLabel(i+1)}</option>`).join("");
+  }
+  const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent="Scene №";
+  const scOf=document.createElement("span"); scOf.className="lbl2"; scOf.textContent="of 17";
+  sceneCheck.append(scLab,sceneSel,scOf);
+  const secs=sections(s.recs);
+
+  const grid=document.createElement("div"); grid.className="grid";
+  const left=document.createElement("div"); left.className="stack";
+  const right=document.createElement("div"); right.className="stack";
+
+  /* PARTS / WEAPONS / SPCL (equipped - stored in the car block, read-only here) */
+  const partsBox=document.createElement("div"); partsBox.className="box";
+  partsBox.innerHTML=`<div class="boxhead">Parts · Weapons · Spcl. <span class="hint">what's on the car — pick from a dropdown to swap (weight rebalances next garage visit)</span></div>`;
+  const pt=document.createElement("table"); pt.className="sheet";
+  const wOrder=weaponSlotOrder(car.eq);
+  const groups=[
+    ["Parts",  [[0,EQ_SLOTS[0]],[1,EQ_SLOTS[1]],[2,EQ_SLOTS[2]],[3,EQ_SLOTS[3]],[4,EQ_SLOTS[4]],[5,EQ_SLOTS[5]],[6,EQ_SLOTS[6]]]],
+    ["Weapons", wOrder],
+    ["Spcl.",  [[11,EQ_SLOTS[11]],[12,EQ_SLOTS[12]],[13,EQ_SLOTS[13]]]],
+  ];
+  groups.forEach(([g,slots])=>{
+    slots.forEach(([slot,label],k)=>{
+      const n=car.eq[slot];
+      const tr=document.createElement("tr");
+      tr.innerHTML=`${k===0?`<td class="cat" rowspan="${slots.length}">${g}</td>`:""}
+        <td style="width:110px"><span class="lbl2 meta">${label}</span></td>
+        <td class="val"></td>`;
+      const cell=tr.querySelector(".val");
+      const opts=eqOptions(slot,n);
+      if(!opts.length){
+        const v=document.createElement("span"); v.className="hand"; v.textContent=n||"Empty";
+        cell.appendChild(v);
+      }else{
+        const sel=document.createElement("select"); sel.className="eqsel";
+        sel.setAttribute("aria-label",`${label}: swap part`);
+        const curIdx=opts.findIndex(o=>o.name===n);
+        const opt=(o,i)=>`<option value="${i}" ${i===curIdx?"selected":""}>${o.label}</option>`;
+        const hasOff=opts.some(o=>o.fits===false);
+        let html=curIdx<0?`<option value="" selected>${n||"Empty"}</option>`:"";
+        if(hasOff){
+          html+=`<optgroup label="Fits like stock">`+
+            opts.map((o,i)=>o.fits!==false?opt(o,i):"").join("")+`</optgroup>`+
+            `<optgroup label="Off-spec — experiment (backups have you covered)">`+
+            opts.map((o,i)=>o.fits===false?opt(o,i):"").join("")+`</optgroup>`;
+        }else html+=opts.map(opt).join("");
+        sel.innerHTML=html;
+        sel.addEventListener("change",()=>{
+          if(sel.value==="") return;
+          const o=opts[+sel.value];
+          if(+sel.value===curIdx) return;
+          o.apply(s.buf);
+          toast(`${label}: ${n||"—"} → ${o.label.split(" — ")[0]}`); render();
+        });
+        cell.appendChild(sel);
+      }
+      pt.appendChild(tr);
+    });
+  });
+  partsBox.appendChild(pt); left.appendChild(partsBox);
+
+  /* DEFENSE (armor, editable, displayed in the game's tenths) */
+  const defBox=document.createElement("div"); defBox.className="box";
+  defBox.innerHTML=`<div class="boxhead">Defense <span class="hint">editable — same numbers as the game's DEFENSE panel</span></div>`;
+  const dt=document.createElement("table"); dt.className="sheet def";
+  [["Front",0,4],["Right",1,5],["Left",2,6],["Rear",3,7]].forEach(([lbl,ai,ci])=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="lbl2">${lbl}</td>
+      <td>armor <button class="stepbtn" data-i="${ai}" data-d="-10">−</button>
+        <input data-i="${ai}" value="${(car.armor[ai]/10).toFixed(1)}" inputmode="decimal" aria-label="${ARMOR_LABELS[ai]}">
+        <button class="stepbtn" data-i="${ai}" data-d="10">+</button></td>
+      <td>chassis <button class="stepbtn" data-i="${ci}" data-d="-10">−</button>
+        <input data-i="${ci}" value="${(car.armor[ci]/10).toFixed(1)}" inputmode="decimal" aria-label="${ARMOR_LABELS[ci]}">
+        <button class="stepbtn" data-i="${ci}" data-d="10">+</button></td>`;
+    dt.appendChild(tr);
+  });
+  defBox.appendChild(dt);
+  defBox.addEventListener("click",e=>{
+    const b=e.target.closest(".stepbtn"); if(!b) return;
+    const i=+b.dataset.i, dv=new DataView(s.buf);
+    const cur=u32(dv,ARMOR_OFF+4*i);
+    dv.setUint32(ARMOR_OFF+4*i,Math.max(0,cur+ +b.dataset.d),true);
+    render();
+  });
+  defBox.addEventListener("change",e=>{
+    const inp=e.target.closest("input[data-i]"); if(!inp) return;
+    const v=Math.max(0,Math.round(parseFloat(inp.value||"0")*10));
+    new DataView(s.buf).setUint32(ARMOR_OFF+4*(+inp.dataset.i),v,true);
+    render();
+  });
+  left.appendChild(defBox);
+
+  /* CAR/VAN INVENTORY (van stash, categorized like the game) + REPAIR ORDER */
+  function invBox(title,hint,offs,flag){
+    const box=document.createElement("div"); box.className="box";
+    box.innerHTML=`<div class="boxhead">${title} <span class="hint">${hint}</span></div>`;
+    const list=document.createElement("div"); list.className="inv";
+    const infos=offs.map(o=>recInfo(s.buf,o));
+    CAT_ORDER.forEach(([cat,types])=>{
+      const items=infos.filter(r=>types.includes(r.type));
+      if(!items.length) return;
+      const h=document.createElement("div"); h.className="boxhead"; h.style.borderTop="2px solid var(--ink)";
+      h.textContent=cat; list.appendChild(h);
+      items.forEach(r=>{
+        const row=document.createElement("div"); row.className="invrow";
+        const chOrig=new Uint8Array(s.orig,r.off,REC), chNow=new Uint8Array(s.buf,r.off,REC);
+        let ch=false; for(let i=0;i<REC;i++) if(chOrig[i]!==chNow[i]){ch=true;break;}
+        const w=WEAPONS.find(x=>x[2]===r.dfl);
+        const meta=`${w?`${dpsText(w)}${w[9]?` · ${w[9]}m`:""}`:(r.type===13?"special":"")}${ch?" · edited":""}`;
+        row.innerHTML=`<span class="locflag">(${LOC_BADGE[r.grade]||"?"})</span>`;
+        // the part itself: an obvious dropdown, like the equipped panel
+        const opts=optionsFor(r);
+        const curIdx=opts.findIndex(o=>o.args[0]===r.name&&o.args[3]===r.dfl);
+        const psel=document.createElement("select"); psel.className="eqsel marker "+condMarker(r);
+        psel.setAttribute("aria-label",`swap this ${KIND[r.type]||"part"}`);
+        psel.innerHTML=(curIdx<0?`<option value="" selected>${r.name}</option>`:"")+
+          opts.map((o,k)=>`<option value="${k}" ${k===curIdx?"selected":""}>${o.label}</option>`).join("");
+        psel.addEventListener("change",()=>{
+          if(psel.value===""||+psel.value===curIdx) return;
+          const o=opts[+psel.value];
+          writeIdentity(s.buf,r.off,o.args);
+          if(r.type!==13){new DataView(s.buf).setUint32(r.off+96,o.args[4],true);}
+          toast(`${r.name} → ${o.args[0]} (full condition, same location)`); render();
+        });
+        row.appendChild(psel);
+        // condition preset, tinted by wear (points vs durability)
+        if(r.type!==13&&r.dur){
+          const pct=r.cond>=r.dur?100:Math.round(100*r.cond/r.dur);
+          const cls=pct>=100?"":(pct>=67?"t2":(pct>=34?"t3":"t4"));
+          const csel=document.createElement("select");
+          csel.className="tiersel "+cls;
+          csel.setAttribute("aria-label","condition preset");
+          const cur=pct>=100?"perfect":(pct>=67?"scuffed":(pct>=34?"beatup":"wrecked"));
+          csel.innerHTML=[["perfect","perfect (100%)"],["scuffed","scuffed (~75%)"],
+            ["beatup","beat-up (~50%)"],["wrecked","wrecked (~20%)"]]
+            .map(([v,l])=>`<option value="${v}" ${v===cur?"selected":""}>${l}</option>`).join("");
+          csel.addEventListener("change",()=>{
+            const f={perfect:1,scuffed:.75,beatup:.5,wrecked:.2}[csel.value];
+            new DataView(s.buf).setUint32(r.off+96,Math.max(1,Math.round(r.dur*f)),true); render();
+          });
+          row.appendChild(csel);
+        }
+        // location: (C) car / (R) repair / (V) van - this is what the +100 flag really is
+        {
+          const lsel=document.createElement("select");
+          lsel.className="tiersel";
+          lsel.setAttribute("aria-label","where this part is");
+          const locs=r.grade===2?[1,2,3,4]:[1,3,4];
+          lsel.innerHTML=locs.map(g=>`<option value="${g}" ${g===r.grade?"selected":""}>${LOC_LABEL[g]}</option>`).join("");
+          lsel.addEventListener("change",()=>{
+            new DataView(s.buf).setUint32(r.off+100,+lsel.value,true); render();
+          });
+          row.appendChild(lsel);
+        }
+        if(r.type!==13){
+          const pts=document.createElement("input");
+          pts.type="number"; pts.min="0"; pts.max="9999"; pts.value=r.cond; pts.className="ptsin";
+          pts.title=`condition points (durability ${r.dur||"?"})`;
+          pts.setAttribute("aria-label","condition points");
+          pts.addEventListener("change",()=>{
+            new DataView(s.buf).setUint32(r.off+96,Math.max(0,+pts.value|0),true); render();
+          });
+          row.appendChild(pts);
+        }
+        const fill=document.createElement("span"); fill.className="fill";
+        const metaEl=document.createElement("span"); metaEl.className="meta"; metaEl.textContent=meta;
+        row.append(fill,metaEl);
+        list.appendChild(row);
+      });
+    });
+    box.appendChild(list);
+    return box;
+  }
+  const byLoc=g=>s.recs.filter(off=>{const l=new DataView(s.buf).getUint32(off+100,true);
+    return g==="C"?(l===1||l===2):(g==="R"?l===3:(l!==1&&l!==2&&l!==3));});
+  const carRecs=byLoc("C"), repRecs=byLoc("R"), vanRecs=byLoc("V");
+  // soft capacity note, matching what the game's own lists appear to hold
+  const vanInfos=vanRecs.map(o=>recInfo(s.buf,o));
+  const nEng=vanInfos.filter(r=>r.type===2).length, nSus=vanInfos.filter(r=>r.type===3).length;
+  const capNote=(nEng>3||nSus>4)?` ⚠ the game's van lists look capped (~3 engines / ~4 suspensions) — you have ${nEng} engines, ${nSus} suspensions`:"";
+  if(carRecs.length) right.appendChild(invBox("In / On the Car (C)","parts riding in the car — mounted or cargo",carRecs,""));
+  right.appendChild(invBox("Van Inventory (V)",`spares in Rosie the van${capNote}`,vanRecs,""));
+  if(repRecs.length) right.appendChild(invBox("Repair Order (R)","parts on Skeeter's bench",repRecs,""));
+  const legend=document.createElement("div"); legend.className="legend";
+  legend.textContent="(C) in/on the car · (V) in the van · (R) in repair — move parts with the location dropdown. Highlight = wear: green scuffed, yellow beat-up, red wrecked.";
+  right.appendChild(legend);
+
+  grid.append(left,right); editor.appendChild(grid);
+
+  /* action bar */
+  const act=document.createElement("div"); act.className="actionbar";
+  const m=dirMissions[s.base];
+  const scene=document.createElement("span"); scene.className="note";
+  scene.textContent=(m!==undefined&&m!=="?")?`Scene ${m} of 17 · ${s.recs.length} parts tracked`:`${s.recs.length} parts tracked`;
+  const repair=document.createElement("button"); repair.className="obtn quiet"; repair.textContent="Repair All";
+  repair.addEventListener("click",()=>{
+    let n=0; const dv=new DataView(s.buf);
+    s.recs.forEach(off=>{const r=recInfo(s.buf,off);
+      if(r.type!==13&&r.dur){dv.setUint32(off+96,r.dur,true);n++;}});
+    toast(`Repaired ${n} parts to full condition (locations untouched)`); render();
+  });
+  const stow=document.createElement("button"); stow.className="obtn quiet"; stow.textContent="Stow spares in van";
+  stow.title="Marks every part (V) except one match per equipped slot (C) — fixes saves where everything piled into the car";
+  stow.addEventListener("click",()=>{
+    const dv=new DataView(s.buf);
+    const need=[...parseCar(s.buf).eq.filter(Boolean)];
+    let kept=0,stowed=0;
+    s.recs.forEach(off=>{
+      const nm=cstr(new Uint8Array(s.buf),off,30);
+      const i=need.indexOf(nm);
+      if(i>=0){ need.splice(i,1); dv.setUint32(off+100,1,true); kept++; }
+      else { dv.setUint32(off+100,4,true); stowed++; }
+    });
+    toast(`${kept} equipped parts kept (C), ${stowed} spares stowed in the van (V)`); render();
+  });
+  const revert=document.createElement("button"); revert.className="obtn quiet"; revert.textContent="Revert";
+  revert.addEventListener("click",()=>{s.buf=s.orig.slice(0); editingOff=null; toast("Reverted to the loaded file"); render();});
+  const slotSel=document.createElement("select"); slotSel.className="slotsel"; slotSel.setAttribute("aria-label","save as slot");
+  const known=Object.keys(dirMissions);
+  const slots=new Set([s.base,...known,...saves.map(x=>x.base)]);
+  for(let k=0;k<8;k++) slots.add("save00"+k);
+  [...slots].sort().forEach(b=>{
+    const o=document.createElement("option"); o.value=b;
+    o.textContent=b+(b===s.base?" (this save)":known.includes(b)?" (existing slot)":" (new slot)");
+    if(b===s.base) o.selected=true;
+    slotSel.appendChild(o);
+  });
+  function download(part,fname){
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([part],{type:"application/octet-stream"}));
+    a.download=fname; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }
+  async function putFile(name,buf){
+    const r=await fetch("/files/"+name,{method:"PUT",body:buf});
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+  function updatedDir(target){
+    if(!dirBuf) return null;
+    const v=parseInt(sceneSel.value,10);
+    const haveScene=Number.isInteger(v)&&v>0;
+    if(!(target in dirMissions)){
+      const fallback=(typeof dirMissions[s.base]==="number"&&dirMissions[s.base]>0)?dirMissions[s.base]:0;
+      const scene=haveScene?v:fallback;
+      return {buf:dirWithSlot(dirBuf,target,scene), scene, warn:scene<1};
+    }
+    if(haveScene&&dirMissions[target]!==v)
+      return {buf:dirSetScene(dirBuf,target,v), scene:v, warn:false};
+    return null;
+  }
+  const dl=document.createElement("button"); dl.className="obtn"; dl.textContent="Save Bookmark";
+  dl.addEventListener("click",async()=>{
+    const target=slotSel.value, fname=target+".cmp";
+    const du=updatedDir(target);
+    const warn=du&&du.warn?" ⚠ scene unknown — fill the Scene box or the game will load it at Scene 1!":"";
+    if(liveDir){
+      try{
+        const res=await putFile(fname,s.buf);
+        let msg=`Wrote ${fname}${res.backup?" (original kept as .pre-edit)":""}`;
+        if(du){
+          await putFile("savegame.dir",du.buf);
+          dirBuf=du.buf; dirMissions=parseDir(du.buf);
+          msg+=` + savegame.dir (slot ${target} = scene ${du.scene})`;
+        }
+        if(target===s.base){ s.orig=s.buf.slice(0); }
+        await refreshBackups();
+        toast(msg+warn); render();
+      }catch(e){
+        toast(`Write failed (${e.message}) — downloading instead`); download(s.buf,fname);
+      }
+      return;
+    }
+    download(s.buf,fname);
+    if(du){
+      download(du.buf,"savegame.dir");
+      toast(`Downloaded ${fname} + savegame.dir (slot ${target} = scene ${du.scene}) — copy BOTH into the game folder${warn}`);
+    } else if(target===s.base) toast(`Downloaded ${fname} — copy it over the original (keep a backup)`);
+    else if(target in dirMissions) toast(`Downloaded as ${fname} — replaces slot ${target} when copied in`);
+    else toast(`Downloaded ${fname} — a brand-new slot also needs savegame.dir (load yours here, then re-download)${warn}`);
+  });
+  const asLbl=document.createElement("span"); asLbl.className="note"; asLbl.textContent="as";
+  const sp=document.createElement("span"); sp.className="spacer";
+
+  /* live-folder extras: restore from a timestamped backup, delete the bookmark */
+  let hist=null, delBtn=null;
+  if(liveDir){
+    const baks=(backupsMap[s.name]||[]).slice().reverse();   // newest first
+    hist=document.createElement("select"); hist.className="slotsel";
+    hist.setAttribute("aria-label","restore a backup of this save");
+    hist.innerHTML=`<option value="" selected>History (${baks.length})…</option>`+
+      baks.map(b=>`<option value="${b}">${backupLabel(b)}</option>`).join("");
+    hist.disabled=!baks.length;
+    hist.addEventListener("change",async()=>{
+      const b=hist.value; if(!b) return;
+      try{
+        const r=await fetch("/files/"+b,{cache:"no-store"});
+        if(!r.ok) throw new Error("fetch failed");
+        s.buf=await r.arrayBuffer(); s.recs=scan(s.buf);
+        toast(`Loaded backup ${backupLabel(b)} — press Save Bookmark to write it back`);
+      }catch(e){ toast("Couldn't load that backup"); }
+      render();
+    });
+    delBtn=document.createElement("button"); delBtn.className="obtn quiet"; delBtn.textContent="Delete";
+    delBtn.title="Removes this bookmark from the game (kept as a backup — restorable via History)";
+    delBtn.addEventListener("click",async()=>{
+      if(!confirm(`Delete ${s.name}? It stays recoverable as a backup, and it's removed from the game's LOAD list.`)) return;
+      try{
+        const r=await fetch("/files/"+s.name,{method:"DELETE"});
+        if(!r.ok) throw new Error(await r.text());
+        if(dirBuf && (s.base in dirMissions)){
+          const nd=dirRemoveSlot(dirBuf,s.base);
+          await putFile("savegame.dir",nd);
+          dirBuf=nd; dirMissions=parseDir(nd);
+        }
+        saves.splice(current,1); current=saves.length?0:-1;
+        await refreshBackups();
+        toast(`${s.name} deleted (kept as a backup — see History on any save… or restore by saving it to a slot)`);
+      }catch(e){ toast(`Delete failed (${e.message})`); }
+      render();
+    });
+  }
+  act.append(scene,repair,stow,revert,sp);
+  if(hist) act.append(hist);
+  if(delBtn) act.append(delBtn);
+  act.append(asLbl,slotSel,dl);
+  editor.appendChild(act);
+}
+</script>
+</body>
+</html>
