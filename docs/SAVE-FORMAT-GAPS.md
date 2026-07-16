@@ -97,7 +97,17 @@ reproduced 2/2: EVERY in-game save to a fresh slot writes the file as `save-01.c
 dir entry for saveNNN (the sprintf(-1) allocator bug) — repair recipe: rename the file to
 match the entry, complete the truncated scene, pad.
 
-**Historical notes below (superseded by the verdict above):**
+**Session 2026-07-15 observations:** the render-roll verdict was RETRACTED by the turret
+experiment (a byte-verified 600/600 "30mm Turret" renders red, stably, across loads and when
+carried) - persistent per-part color state exists that is NOT the +96 cond field and NOT
+(yet) located; prime suspects are the inherited +84 dwords or slot-keyed state (the same
+record slot also renders in salvage regardless of its loc flag). Also observed: the slot
+allocator bug is intermittent (save010/011 got real filenames, the session's last save
+became save-01.cmp again), and the game bumped save009's dir scene 6->7 without rewriting
+the cmp. The decisive experiment remains: save the red turret via SAVE BOOKMARK without
+playing a mission, then diff.
+
+**Historical notes below (superseded or refined by the above):**
 - **Field Salvage colors are RE-ROLLED at load, not stored state.** Proven: identical
   save006 bytes produced all-red 13in Stocks in one session and green/green/red/red in the
   next. No formula against the record fields can ever fit that pane — stop trying.
