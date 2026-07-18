@@ -96,7 +96,9 @@ def main():
         if len(analog) > 1:
             findings.append(f"line {lineno}: '{action}' has two analog sources — axis will pin dead-center (VERIFIED-FIXES)")
         for sign, dev, tok in lines:
-            if not DEVICES.match(dev):
+            if re.fullmatch(r"joystick", dev, re.I):
+                findings.append(f"line {lineno}: '{action}': DEAD device token '{dev}' — bare Joystick parses but binds NOTHING (field-settled 2026-07-18, twice). Use joystick1")
+            elif not DEVICES.match(dev):
                 findings.append(f"line {lineno}: '{action}': unknown device '{dev}'")
             if not tok_known(tok):
                 hint = " (Y axis token is 'Down/Up')" if tok.lower() == "up/down" else ""
