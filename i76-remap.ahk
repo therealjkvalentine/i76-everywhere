@@ -72,21 +72,28 @@ OnExit, RSGExit
 ;   them in sync with the XIPoll code they describe.
 ; @pad RT: fire - current weapon / cockpit handgun (hold)
 ; @pad LT: hardpoint 2 (hold)
-; @pad A(tap): OK in menus / single shot (click on release)
+; @pad A(tap): OK/select in menus - click+Enter; in-sim a single shot
 ; @pad A(hold 400ms): NITROUS while held
 ; @pad B(tap): cycle weapon (C)
+; @pad X: cycle targets (Y)
+; @pad Y: dash/combat view (V)
 ; @pad LB(tap): front target (Q)
-; @pad LB+RT: hardpoint 1
-; @pad LB+LT: hardpoint 5
-; @pad LB+A: hardpoint 3 - rear gun only
-; @pad LB+B: hardpoint 4 - dropper
-; @pad LB+Select: untarget (U)
 ; @pad Select: pause menu / skip cutscene (Esc)
+; @pad Start: map (M)
 ; @pad Dpad-Up: headlights (H)
 ; @pad Dpad-Down: ignition (I)
 ; @pad Dpad-Left: notepad (N)
 ; @pad Dpad-Right: map (M)
 ; @pad RStick: look / glance - cockpit, external cam, menus (arrow keys)
+; @pad LB+RT: hardpoint 1
+; @pad LB+LT: hardpoint 5
+; @pad LB+A: hardpoint 3 - rear gun only
+; @pad LB+B: hardpoint 4 - dropper
+; @pad LB+X: untarget (U)
+; @pad LB+Y: cycle camera views (F1-F5)
+; @pad LB+Dpad-Down: reverse (X)
+; @pad LB+Dpad-Left: gear down (-)
+; @pad LB+Dpad-Right: gear up (=)
 gXIDll := ""
 Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 {
@@ -98,6 +105,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
+gYPrev := false, gCamIdx := 0
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -165,6 +173,7 @@ RSGExit:
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
 RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
 RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
+RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -199,13 +208,21 @@ else if (lt < 25)
     gLTHeld := false
 aHeld := (btns & 0x1000) != 0
 bHeld := (btns & 0x2000) != 0
+xHeld := (btns & 0x4000) != 0
+yHeld := (btns & 0x8000) != 0
 lbHeld := (btns & 0x0100) != 0
 selHeld := (btns & 0x0020) != 0
+stHeld := (btns & 0x0010) != 0
+dU := (btns & 0x0001) != 0
+dD := (btns & 0x0002) != 0
+dL := (btns & 0x0004) != 0
+dR := (btns & 0x0008) != 0
 
 if (lbHeld && !gLBPrev)
     gLBUsed := false, gLBt0 := A_TickCount
 
-; A: shifted = rear gun only. Base: tap = click on release; >=400ms = nitrous.
+; A: shifted = rear gun only. Base: tap = click+Enter on release (menu
+; OK/select; in-sim just a single shot); held >=400ms = nitrous.
 if (lbHeld) {
     RSGSet("6", false)
     gANitro := false, gAt0 := 0
@@ -221,8 +238,10 @@ if (lbHeld) {
     if (!aHeld && gAPrev) {
         if (gANitro)
             RSGSet("6", false)
-        else if (gAt0)
+        else if (gAt0) {
             Click
+            SendEvent, {Enter}
+        }
         gANitro := false, gAt0 := 0
     }
 }
@@ -240,26 +259,38 @@ if (!lbHeld && bHeld && !gBPrev)
     SendEvent, c
 gBPrev := bHeld
 
-; D-pad -> utility keys, held-mirrored like a physical keyboard (toggles
-; fire once on key-down; works inside the map/notepad screens too)
-RSGSet("h", (btns & 0x0001) != 0)
-RSGSet("i", (btns & 0x0002) != 0)
-RSGSet("n", (btns & 0x0004) != 0)
-RSGSet("m", (btns & 0x0008) != 0)
+; X: base = cycle targets (Y key); shifted = untarget (U)
+RSGSet("y", !lbHeld && xHeld)
+RSGSet("u", lbHeld && xHeld)
 
-if (lbHeld && (aHeld || bHeld || gRTHeld || gLTHeld || selHeld))
+; Y: base = dash/combat view (V); shifted = cycle camera views F1-F5
+RSGSet("v", !lbHeld && yHeld)
+if (lbHeld && yHeld && !gYPrev) {
+    gCamIdx := Mod(gCamIdx + 1, 5)
+    camKey := "F" . (gCamIdx + 1)
+    SendEvent, {%camKey%}
+}
+gYPrev := yHeld
+
+; D-pad: base = utilities (held-mirrored keys, work inside map/notepad
+; screens too); shifted = driving (reverse / gear down / gear up)
+RSGSet("h", !lbHeld && dU)
+RSGSet("i", !lbHeld && dD)
+RSGSet("n", !lbHeld && dL)
+RSGSet("m", stHeld || (!lbHeld && dR))   ; Start also = map
+RSGSet("x", lbHeld && dD)
+RSGSet("-", lbHeld && dL)
+RSGSet("=", lbHeld && dR)
+
+if (lbHeld && (aHeld || bHeld || xHeld || yHeld || gRTHeld || gLTHeld || dU || dD || dL || dR))
     gLBUsed := true
 if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300))
     SendEvent, q
 gLBPrev := lbHeld
 
-; Select: base = Esc (pause/skip); shifted = untarget (U)
-if (selHeld && !gSelPrev) {
-    if (lbHeld)
-        SendEvent, u
-    else
-        SendEvent, {Esc}
-}
+; Select: Esc (pause / skip cutscene)
+if (selHeld && !gSelPrev)
+    SendEvent, {Esc}
 gSelPrev := selHeld
 gXIPrevBtns := btns
 return
