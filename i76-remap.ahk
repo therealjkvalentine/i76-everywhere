@@ -53,14 +53,17 @@
 ; other half (winmm U) simply has no engine token - that gap does NOT get
 ; papered over with injection.
 
-; ---- mouse button 4 ("back") --> 3 = hardpoint 3 (input.map binds Three ->
-; hardpoint3_fire). Was 6/special1; changed 2026-07-18 - the user's nitrous
-; lives on the OTHER side button (5/special2, field-confirmed 2026-07-14),
-; so this one becomes the third weapon trigger.
-XButton1::3
+; ---- mouse button 4 ("back") --> 6 = special 1: the user's NITROUS.
+; Field-corrected 2026-07-18 (second pass): nitrous is in special slot 1,
+; i.e. THIS button - the old "button 5 = nitrous" note (f04d668) was wrong
+; for this loadout (special2 is empty; the forward button did nothing).
+XButton1::6
 
-; ---- mouse button 5 ("forward") --> 7 = special 2 (nitrous on the user's car)
-XButton2::7
+; ---- mouse button 5 ("forward") --> 3 = weapon key 3 (input.map: Three ->
+; hardpoint3_fire). NOTE 2026-07-18: on the user's car the hardpoint3_fire
+; ACTION fires what the HUD numbers as weapon 4 - mount-slot vs HUD numbering
+; differ. If the wrong gun fires, shift this key (2/3/4), one-line change.
+XButton2::3
 
 ; ---- mouse wheel: DO NOT REMAP. Removed 2026-07-14 after a field regression
 ; ("mouse activity kills WASD"). Two reasons, the first fatal:
