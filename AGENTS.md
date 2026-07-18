@@ -27,6 +27,11 @@ docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
 
 ## Other hard-won invariants
 
+- The joystick device token is **`joystick1`** — bare `Joystick` is DEAD
+  (field-settled 2026-07-18: all bare-token bindings did nothing, all
+  joystick1 bindings worked; the old "Button3 confirmed on bare Joystick"
+  note was wrong). The lint tool cannot catch this — both spellings parse.
+
 - The game prefix lives inside the Mac wrappers under
   `~/Applications/Sikarugir/…/Contents/SharedSupport/prefix/…`. All live game
   files (input.map, savegame.dir, saves) are THERE, not in this repo.

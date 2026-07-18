@@ -45,7 +45,7 @@ exe). That path is served natively on both platforms:
 | **Left stick** Y | `- joystick1 Down/Up` | **throttle** | ⏳ token fixed, retest |
 | **A** | `joystick1 Button1` | fire (`weapon_fire`) | ✅ confirmed |
 | **B** | `joystick1 Button2` | special 1 (nitrous slot) | ❓ assumed |
-| **X** | `joystick1 Button3` | cycle weapon | ✅ confirmed |
+| **X** | `joystick1 Button3` | ~~cycle weapon~~ target cycle since v2 | ⚠ RETRACTED 2026-07-18: the 'confirmation' was on the bare `Joystick` token, which field-testing proved DEAD. joystick1 is the live token for ALL buttons/hats. |
 | **Y** | `joystick1 Button4` | handbrake (`e_brake`) | ❓ assumed |
 | **D-pad** | `joystick1 HatUp/Down/Left/Right` | glance (look around) | ❓ assumed |
 
