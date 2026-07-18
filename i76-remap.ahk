@@ -67,21 +67,26 @@ OnExit, RSGExit
 ; XInput exposes LT/RT as independent 0-255 values - and Wine/Proton implement
 ; xinput*.dll, so this works identically on Mac (Wine), Deck (Proton, Steam
 ; Input off) and native Windows. Polled here:
-;   RT -> hold LEFT CLICK = the generic "fire" action (weapon_fire). Must be
-;         fire-through, not a hardpoint: the cockpit HANDGUN only fires via
-;         weapon_fire (field 2026-07-18). LT -> hold "2" (hardpoint 2).
-;   A  -> hold LEFT CLICK + "3": OK/click in menus, and in-game fires the
-;         rear gun (hardpoint3) plus the front guns via the click - accepted.
-;         A's native Button1 weapon_fire block is removed; AHK owns A now.
-;         LButton is shared by A and RT: combined with OR, single held-state.
-;   Back/Select -> Esc (pause menu AND the cutscene skipper - field 2026-07-18).
-;   Start stays native (joystick1 Button8 = map).
-;   LB -> SHIFT LAYER (2026-07-18): tap (<300ms, unused) = front target (Q);
-;         while HELD, the AHK-owned cluster is remapped so all five hardpoints
-;         have pad homes:  LB+RT = hp1, LB+LT = hp4, LB+A = hp5
-;         (base:              RT = fire,    LT = hp2,    A = fire+hp3).
-;         LB had to leave input.map for this - native bindings can't be muted
-;         while a shift is held, only AHK-owned ones can.
+;   v3 layout (2026-07-18). Machine-readable: tools/pad-diagram.py renders
+;   the @pad lines below plus input.map into docs/pad-diagram.html - keep
+;   them in sync with the XIPoll code they describe.
+; @pad RT: fire - current weapon / cockpit handgun (hold)
+; @pad LT: hardpoint 2 (hold)
+; @pad A(tap): OK in menus / single shot (click on release)
+; @pad A(hold 400ms): NITROUS while held
+; @pad B(tap): cycle weapon (C)
+; @pad LB(tap): front target (Q)
+; @pad LB+RT: hardpoint 1
+; @pad LB+LT: hardpoint 5
+; @pad LB+A: hardpoint 3 - rear gun only
+; @pad LB+B: hardpoint 4 - dropper
+; @pad LB+Select: untarget (U)
+; @pad Select: pause menu / skip cutscene (Esc)
+; @pad Dpad-Up: headlights (H)
+; @pad Dpad-Down: ignition (I)
+; @pad Dpad-Left: notepad (N)
+; @pad Dpad-Right: map (M)
+; @pad RStick: look / glance - cockpit, external cam, menus (arrow keys)
 gXIDll := ""
 Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 {
@@ -92,6 +97,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 }
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
+gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -157,7 +163,8 @@ RSGSet(key, want) {
 
 RSGExit:
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
-RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("LButton", false)
+RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
+RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -191,22 +198,68 @@ if (lt > 40)
 else if (lt < 25)
     gLTHeld := false
 aHeld := (btns & 0x1000) != 0
+bHeld := (btns & 0x2000) != 0
 lbHeld := (btns & 0x0100) != 0
+selHeld := (btns & 0x0020) != 0
+
 if (lbHeld && !gLBPrev)
     gLBUsed := false, gLBt0 := A_TickCount
-; base cluster (LB up)                     ; shifted cluster (LB held)
-RSGSet("LButton", !lbHeld && (aHeld || gRTHeld))
-RSGSet("3", !lbHeld && aHeld)
-RSGSet("2", !lbHeld && gLTHeld)
+
+; A: shifted = rear gun only. Base: tap = click on release; >=400ms = nitrous.
+if (lbHeld) {
+    RSGSet("6", false)
+    gANitro := false, gAt0 := 0
+    RSGSet("3", aHeld)
+} else {
+    RSGSet("3", false)
+    if (aHeld && !gAPrev)
+        gAt0 := A_TickCount, gANitro := false
+    if (aHeld && !gANitro && gAt0 && A_TickCount - gAt0 >= 400) {
+        gANitro := true
+        RSGSet("6", true)
+    }
+    if (!aHeld && gAPrev) {
+        if (gANitro)
+            RSGSet("6", false)
+        else if (gAt0)
+            Click
+        gANitro := false, gAt0 := 0
+    }
+}
+gAPrev := aHeld
+
+; fire + triggers, base vs layer
+RSGSet("LButton", !lbHeld && gRTHeld)
 RSGSet("1", lbHeld && gRTHeld)
-RSGSet("4", lbHeld && gLTHeld)
-RSGSet("5", lbHeld && aHeld)
-if (lbHeld && (aHeld || gRTHeld || gLTHeld))
+RSGSet("2", !lbHeld && gLTHeld)
+RSGSet("5", lbHeld && gLTHeld)
+
+; B: base tap = cycle weapon (C); shifted = dropper (hardpoint 4)
+RSGSet("4", lbHeld && bHeld)
+if (!lbHeld && bHeld && !gBPrev)
+    SendEvent, c
+gBPrev := bHeld
+
+; D-pad -> utility keys, held-mirrored like a physical keyboard (toggles
+; fire once on key-down; works inside the map/notepad screens too)
+RSGSet("h", (btns & 0x0001) != 0)
+RSGSet("i", (btns & 0x0002) != 0)
+RSGSet("n", (btns & 0x0004) != 0)
+RSGSet("m", (btns & 0x0008) != 0)
+
+if (lbHeld && (aHeld || bHeld || gRTHeld || gLTHeld || selHeld))
     gLBUsed := true
 if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300))
-    SendEvent, q   ; tap = front target (input.map: Q -> frontal_target)
+    SendEvent, q
 gLBPrev := lbHeld
-if (btns & 0x0020) && !(gXIPrevBtns & 0x0020)
-    SendEvent, {Esc}
+
+; Select: base = Esc (pause/skip); shifted = untarget (U)
+if (selHeld && !gSelPrev) {
+    if (lbHeld)
+        SendEvent, u
+    else
+        SendEvent, {Esc}
+}
+gSelPrev := selHeld
 gXIPrevBtns := btns
 return
