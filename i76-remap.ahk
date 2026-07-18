@@ -67,9 +67,13 @@ OnExit, RSGExit
 ; XInput exposes LT/RT as independent 0-255 values - and Wine/Proton implement
 ; xinput*.dll, so this works identically on Mac (Wine), Deck (Proton, Steam
 ; Input off) and native Windows. Polled here:
-;   RT -> hold "1" (hardpoint 1)      LT -> hold "2" (hardpoint 2)
-;   A  -> ALSO tap a click on press (menu confirm; in-game harmless -
-;         click = fire = what A already does natively)
+;   RT -> hold LEFT CLICK = the generic "fire" action (weapon_fire). Must be
+;         fire-through, not a hardpoint: the cockpit HANDGUN only fires via
+;         weapon_fire (field 2026-07-18). LT -> hold "2" (hardpoint 2).
+;   A  -> hold LEFT CLICK + "3": OK/click in menus, and in-game fires the
+;         rear gun (hardpoint3) plus the front guns via the click - accepted.
+;         A's native Button1 weapon_fire block is removed; AHK owns A now.
+;         LButton is shared by A and RT: combined with OR, single held-state.
 ;   Back/Select -> Esc (pause menu AND the cutscene skipper - field 2026-07-18).
 ;   Start stays native (joystick1 Button8 = map).
 gXIDll := ""
@@ -80,7 +84,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
         break
     }
 }
-gXIPad := 0, gXIPrevBtns := 0
+gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -146,7 +150,7 @@ RSGSet(key, want) {
 
 RSGExit:
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
-RSGSet("1", false), RSGSet("2", false)
+RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("LButton", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -170,19 +174,18 @@ if (DllCall(gXIDll . "\XInputGetState", "UInt", gXIPad, "Ptr", &xiState, "UInt")
 }
 rt := NumGet(xiState, 7, "UChar")
 lt := NumGet(xiState, 6, "UChar")
+btns := NumGet(xiState, 4, "UShort")
 if (rt > 40)
-    RSGSet("1", true)
+    gRTHeld := true
 else if (rt < 25)
-    RSGSet("1", false)
+    gRTHeld := false
+aHeld := (btns & 0x1000) != 0
+RSGSet("LButton", aHeld || gRTHeld)   ; fire: A or RT, one shared held-state
+RSGSet("3", aHeld)                    ; A also holds the rear gun (hardpoint 3)
 if (lt > 40)
     RSGSet("2", true)
 else if (lt < 25)
     RSGSet("2", false)
-btns := NumGet(xiState, 4, "UShort")
-if (btns & 0x1000) && !(gXIPrevBtns & 0x1000)
-    Click   ; menu-OK only. Enter removed 2026-07-18: caused an odd full-screen
-            ; flash and skipped nothing. Cutscene skip is Esc = the Select button
-            ; (can't live on A: Esc mid-game = pause menu on every shot).
 if (btns & 0x0020) && !(gXIPrevBtns & 0x0020)
     SendEvent, {Esc}
 gXIPrevBtns := btns
