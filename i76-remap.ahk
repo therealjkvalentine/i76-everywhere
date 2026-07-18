@@ -44,16 +44,14 @@
 ; popping the same kind of focus-stealing dialog.
 #ErrorStdOut
 
-; ---- right stick horizontal --> mouse X (analog camera yaw bridge, 2026-07-18)
-; The engine's analog vocabulary reaches only ONE right-stick axis natively:
-; winmm R ("Rudder" token) = the stick's VERTICAL half (field-decoded
-; 2026-07-18), now bound to track_pitch_delta in input.map. The HORIZONTAL
-; half is winmm U - no engine token exists - so this timer bridges it to
-; relative mouse X, which input.map binds to track_yaw_delta (mouse Left/Right).
-; Safety per the wheel-disaster rules: pure per-tick relative injection (no
-; held keys, nothing to stick), generous deadzone so a centered stick injects
-; NOTHING, and gated to the game window so menus/desktop never see it.
-SetTimer, RStickYawBridge, 15
+; ---- NO mouse-motion injection. A right-stick->mouse-X camera bridge lived
+; here for a few hours on 2026-07-18 and was removed the same day: field
+; verdict "unusable", and the user's standing policy is native-first - if the
+; controller has a joystick, the game should see a joystick (input.map
+; joystick1 bindings), not synthesized mouse motion. The engine's analog
+; vocabulary reaches only one right-stick axis (winmm R = "Rudder"); the
+; other half (winmm U) simply has no engine token - that gap does NOT get
+; papered over with injection.
 
 ; ---- mouse button 4 ("back") --> 3 = hardpoint 3 (input.map binds Three ->
 ; hardpoint3_fire). Was 6/special1; changed 2026-07-18 - the user's nitrous
@@ -77,20 +75,3 @@ XButton2::7
 ; press+release of a HARMLESS key (never gears/steering/throttle):
 ;     WheelUp::SendEvent {F6}
 ; and field-test with trackpad momentum scrolling before shipping.
-
-; ---- the yaw bridge timer (see SetTimer above). AHK v1 joystick axes read
-; 0-100 with 50 = center; JoyU is the 5th axis = right stick horizontal here.
-RStickYawBridge:
-u := GetKeyState("JoyU")
-if (u = "")                          ; no pad connected
-    return
-if !WinActive("ahk_exe i76.exe") && !WinActive("ahk_exe nitro.exe")
-    return
-d := u - 50
-if (d < 10 && d > -10)               ; deadzone: centered stick injects nothing
-    return
-dx := Round((d > 0 ? d - 10 : d + 10) / 5)   ; rescale past deadzone; tune /5 for feel
-if (dx = 0)
-    return
-DllCall("mouse_event", "UInt", 1, "Int", dx, "Int", 0, "UInt", 0, "UPtr", 0)
-return
