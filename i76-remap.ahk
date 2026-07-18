@@ -44,14 +44,22 @@
 ; popping the same kind of focus-stealing dialog.
 #ErrorStdOut
 
-; ---- NO mouse-motion injection. A right-stick->mouse-X camera bridge lived
-; here for a few hours on 2026-07-18 and was removed the same day: field
-; verdict "unusable", and the user's standing policy is native-first - if the
-; controller has a joystick, the game should see a joystick (input.map
-; joystick1 bindings), not synthesized mouse motion. The engine's analog
-; vocabulary reaches only one right-stick axis (winmm R = "Rudder"); the
-; other half (winmm U) simply has no engine token - that gap does NOT get
-; papered over with injection.
+; ---- NO mouse-MOTION injection (a right-stick->mouse-X bridge lived here for
+; a few hours on 2026-07-18: field verdict "unusable"). Discrete KEY emission
+; is fine - it's this whole script's job, and it's exactly how Steam Input
+; drives the same features on the Deck.
+
+; ---- right stick --> arrow keys (glance/track camera/menus), 2026-07-18.
+; The engine's analog vocabulary can't name the stick's horizontal axis
+; (winmm U) and analog camera deltas felt bad anyway; the arrow keys are
+; field-proven great in and out of the car. So: deflect right stick =
+; hold the matching arrow key, exactly like the Deck config's right stick.
+; Stuck-key safety (the wheel-disaster rules): held-state table so every
+; down has a matching up, release-on-center every 15ms tick, release-all
+; when the pad vanishes and on script exit.
+gRSGHeld := {}
+SetTimer, RStickGlance, 15
+OnExit, RSGExit
 
 ; ---- mouse button 4 ("back") --> 6 = special 1: the user's NITROUS.
 ; Field-corrected 2026-07-18 (second pass): nitrous is in special slot 1,
@@ -78,3 +86,41 @@ XButton2::3
 ; press+release of a HARMLESS key (never gears/steering/throttle):
 ;     WheelUp::SendEvent {F6}
 ; and field-test with trackpad momentum scrolling before shipping.
+
+; ---- right-stick glance machinery (see SetTimer near the top).
+; AHK v1 axes read 0-100, 50 = center. JoyR = right stick VERTICAL (up ~0),
+; JoyU = right stick HORIZONTAL (right ~100) - decoded 2026-07-18. If a
+; direction is backwards in the field, flip the +1/-1 in the RStickGlance
+; calls. Hysteresis: press past 25-from-center, release inside 15-from-center.
+RStickGlance:
+u := GetKeyState("JoyU")
+v := GetKeyState("JoyR")
+if (u = "" || v = "") {
+    RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
+    return
+}
+RSGHys("Right", u, 1), RSGHys("Left", u, -1), RSGHys("Down", v, 1), RSGHys("Up", v, -1)
+return
+
+RSGHys(key, val, dir) {
+    d := (val - 50) * dir
+    if (d > 25)
+        RSGSet(key, true)
+    else if (d < 15)
+        RSGSet(key, false)
+}
+
+RSGSet(key, want) {
+    global gRSGHeld
+    if (want && !gRSGHeld[key]) {
+        gRSGHeld[key] := true
+        SendEvent, {%key% down}
+    } else if (!want && gRSGHeld[key]) {
+        gRSGHeld[key] := false
+        SendEvent, {%key% up}
+    }
+}
+
+RSGExit:
+RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
+ExitApp
