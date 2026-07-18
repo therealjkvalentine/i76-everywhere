@@ -61,6 +61,29 @@ gRSGHeld := {}
 SetTimer, RStickGlance, 15
 OnExit, RSGExit
 
+; ---- XInput layer (2026-07-18): things winmm can NOT deliver.
+; winmm merges both triggers into ONE shared axis (they cancel when pressed
+; together), so trigger-as-two-buttons is impossible at the joystick layer.
+; XInput exposes LT/RT as independent 0-255 values - and Wine/Proton implement
+; xinput*.dll, so this works identically on Mac (Wine), Deck (Proton, Steam
+; Input off) and native Windows. Polled here:
+;   RT -> hold "1" (hardpoint 1)      LT -> hold "2" (hardpoint 2)
+;   A  -> ALSO tap Enter+click on press (menus confirm / cutscene skip;
+;         in-game it's harmless: Enter is unbound, click = fire = what A
+;         already does natively)
+;   Back/Select -> Esc (pause menu). Start stays native (Button8 = map).
+gXIDll := ""
+Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
+{
+    if DllCall("LoadLibrary", "Str", A_LoopField, "Ptr") {
+        gXIDll := A_LoopField
+        break
+    }
+}
+gXIPad := 0, gXIPrevBtns := 0
+if (gXIDll != "")
+    SetTimer, XIPoll, 15
+
 ; ---- mouse button 4 ("back") --> 6 = special 1: the user's NITROUS.
 ; Field-corrected 2026-07-18 (second pass): nitrous is in special slot 1,
 ; i.e. THIS button - the old "button 5 = nitrous" note (f04d668) was wrong
@@ -123,4 +146,44 @@ RSGSet(key, want) {
 
 RSGExit:
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
+RSGSet("1", false), RSGSet("2", false)
 ExitApp
+
+; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
+; LT BYTE @6, RT BYTE @7. A=0x1000, Back=0x0020. Trigger hysteresis 40/25.
+XIPoll:
+VarSetCapacity(xiState, 16, 0)
+if (DllCall(gXIDll . "\XInputGetState", "UInt", gXIPad, "Ptr", &xiState, "UInt") != 0) {
+    found := false
+    Loop, 4 {
+        idx := A_Index - 1
+        if (DllCall(gXIDll . "\XInputGetState", "UInt", idx, "Ptr", &xiState, "UInt") = 0) {
+            gXIPad := idx, found := true
+            break
+        }
+    }
+    if (!found) {
+        RSGSet("1", false), RSGSet("2", false)
+        gXIPrevBtns := 0
+        return
+    }
+}
+rt := NumGet(xiState, 7, "UChar")
+lt := NumGet(xiState, 6, "UChar")
+if (rt > 40)
+    RSGSet("1", true)
+else if (rt < 25)
+    RSGSet("1", false)
+if (lt > 40)
+    RSGSet("2", true)
+else if (lt < 25)
+    RSGSet("2", false)
+btns := NumGet(xiState, 4, "UShort")
+if (btns & 0x1000) && !(gXIPrevBtns & 0x1000) {
+    SendEvent, {Enter}
+    Click
+}
+if (btns & 0x0020) && !(gXIPrevBtns & 0x0020)
+    SendEvent, {Esc}
+gXIPrevBtns := btns
+return
