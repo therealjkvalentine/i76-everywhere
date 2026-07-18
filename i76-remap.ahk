@@ -76,6 +76,12 @@ OnExit, RSGExit
 ;         LButton is shared by A and RT: combined with OR, single held-state.
 ;   Back/Select -> Esc (pause menu AND the cutscene skipper - field 2026-07-18).
 ;   Start stays native (joystick1 Button8 = map).
+;   LB -> SHIFT LAYER (2026-07-18): tap (<300ms, unused) = front target (Q);
+;         while HELD, the AHK-owned cluster is remapped so all five hardpoints
+;         have pad homes:  LB+RT = hp1, LB+LT = hp4, LB+A = hp5
+;         (base:              RT = fire,    LT = hp2,    A = fire+hp3).
+;         LB had to leave input.map for this - native bindings can't be muted
+;         while a shift is held, only AHK-owned ones can.
 gXIDll := ""
 Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 {
@@ -84,7 +90,8 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
         break
     }
 }
-gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false
+gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
+gLBPrev := false, gLBUsed := false, gLBt0 := 0
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -150,7 +157,7 @@ RSGSet(key, want) {
 
 RSGExit:
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
-RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("LButton", false)
+RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("LButton", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -179,13 +186,26 @@ if (rt > 40)
     gRTHeld := true
 else if (rt < 25)
     gRTHeld := false
-aHeld := (btns & 0x1000) != 0
-RSGSet("LButton", aHeld || gRTHeld)   ; fire: A or RT, one shared held-state
-RSGSet("3", aHeld)                    ; A also holds the rear gun (hardpoint 3)
 if (lt > 40)
-    RSGSet("2", true)
+    gLTHeld := true
 else if (lt < 25)
-    RSGSet("2", false)
+    gLTHeld := false
+aHeld := (btns & 0x1000) != 0
+lbHeld := (btns & 0x0100) != 0
+if (lbHeld && !gLBPrev)
+    gLBUsed := false, gLBt0 := A_TickCount
+; base cluster (LB up)                     ; shifted cluster (LB held)
+RSGSet("LButton", !lbHeld && (aHeld || gRTHeld))
+RSGSet("3", !lbHeld && aHeld)
+RSGSet("2", !lbHeld && gLTHeld)
+RSGSet("1", lbHeld && gRTHeld)
+RSGSet("4", lbHeld && gLTHeld)
+RSGSet("5", lbHeld && aHeld)
+if (lbHeld && (aHeld || gRTHeld || gLTHeld))
+    gLBUsed := true
+if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300))
+    SendEvent, q   ; tap = front target (input.map: Q -> frontal_target)
+gLBPrev := lbHeld
 if (btns & 0x0020) && !(gXIPrevBtns & 0x0020)
     SendEvent, {Esc}
 gXIPrevBtns := btns
