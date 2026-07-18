@@ -44,10 +44,13 @@
 ; popping the same kind of focus-stealing dialog.
 #ErrorStdOut
 
-; ---- mouse button 4 ("back") --> 6 = special 1 (the default nitrous slot)
-XButton1::6
+; ---- mouse button 4 ("back") --> 3 = hardpoint 3 (input.map binds Three ->
+; hardpoint3_fire). Was 6/special1; changed 2026-07-18 - the user's nitrous
+; lives on the OTHER side button (5/special2, field-confirmed 2026-07-14),
+; so this one becomes the third weapon trigger.
+XButton1::3
 
-; ---- mouse button 5 ("forward") --> 7 = special 2
+; ---- mouse button 5 ("forward") --> 7 = special 2 (nitrous on the user's car)
 XButton2::7
 
 ; ---- mouse wheel: DO NOT REMAP. Removed 2026-07-14 after a field regression
