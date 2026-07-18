@@ -68,10 +68,10 @@ OnExit, RSGExit
 ; xinput*.dll, so this works identically on Mac (Wine), Deck (Proton, Steam
 ; Input off) and native Windows. Polled here:
 ;   RT -> hold "1" (hardpoint 1)      LT -> hold "2" (hardpoint 2)
-;   A  -> ALSO tap Enter+click on press (menus confirm / cutscene skip;
-;         in-game it's harmless: Enter is unbound, click = fire = what A
-;         already does natively)
-;   Back/Select -> Esc (pause menu). Start stays native (Button8 = map).
+;   A  -> ALSO tap a click on press (menu confirm; in-game harmless -
+;         click = fire = what A already does natively)
+;   Back/Select -> Esc (pause menu AND the cutscene skipper - field 2026-07-18).
+;   Start stays native (joystick1 Button8 = map).
 gXIDll := ""
 Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 {
@@ -179,10 +179,10 @@ if (lt > 40)
 else if (lt < 25)
     RSGSet("2", false)
 btns := NumGet(xiState, 4, "UShort")
-if (btns & 0x1000) && !(gXIPrevBtns & 0x1000) {
-    SendEvent, {Enter}
-    Click
-}
+if (btns & 0x1000) && !(gXIPrevBtns & 0x1000)
+    Click   ; menu-OK only. Enter removed 2026-07-18: caused an odd full-screen
+            ; flash and skipped nothing. Cutscene skip is Esc = the Select button
+            ; (can't live on A: Esc mid-game = pause menu on every shot).
 if (btns & 0x0020) && !(gXIPrevBtns & 0x0020)
     SendEvent, {Esc}
 gXIPrevBtns := btns
