@@ -103,6 +103,18 @@ func reap(_ A: String) {
     try? s.run(); s.waitUntilExit()
 }
 
+// In-session heal: the game re-truncates the dir on every save and re-reads it
+// when the save/load board opens, so pad-on-boot alone leaves the newest bookmark
+// invisible until next launch (parity with the base-game stub, 2026-07-18).
+// Only pad when the file has been quiet >3s - never race the game's own write.
+func padSaveDirIfQuiescent(_ A: String) {
+    let p = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76 Nitro Pack/savegame.dir"
+    guard let attrs = try? FileManager.default.attributesOfItem(atPath: p),
+          let m = attrs[.modificationDate] as? Date,
+          Date().timeIntervalSince(m) > 3 else { return }
+    padSaveDir(A)
+}
+
 setupEnv(A)
 padSaveDir(A)
 
@@ -147,6 +159,7 @@ var lowStreak = 0
 while booted {
     Thread.sleep(forTimeInterval: 2)
     if !running("nitro\\.exe") { break }
+    padSaveDirIfQuiescent(A)                           // keep the newest bookmark loadable mid-session
     let n = largeWineWindows()
     if n >= 2 { sawTwo = true; lowStreak = 0 }
     else if sawTwo { lowStreak += 1; if lowStreak >= 3 { break } }
