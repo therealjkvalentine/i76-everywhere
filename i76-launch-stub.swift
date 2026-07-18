@@ -146,6 +146,20 @@ func padSaveDir(_ A: String) {
     }
 }
 
+// In-session heal: pad-on-boot still left the newest bookmark invisible for the
+// REST of the session that wrote it (the game re-truncates the dir on every save
+// and re-reads it each time the save/load board opens - field-observed 2026-07-18,
+// "Easy Groove!" missing from the board minutes after a successful save). Re-pad
+// from the play loop too, but only after the file has been quiet for >3s so we
+// never interleave with the game's own in-progress write.
+func padSaveDirIfQuiescent(_ A: String) {
+    let p = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/savegame.dir"
+    guard let attrs = try? FileManager.default.attributesOfItem(atPath: p),
+          let m = attrs[.modificationDate] as? Date,
+          Date().timeIntervalSince(m) > 3 else { return }
+    padSaveDir(A)
+}
+
 setupEnv(A)
 padSaveDir(A)
 
@@ -204,6 +218,7 @@ var lowStreak = 0
 while booted {
     Thread.sleep(forTimeInterval: 2)
     if !running("i76\\.exe") { break }                 // (a) process gone
+    padSaveDirIfQuiescent(A)                           // keep the newest bookmark loadable mid-session
     let n = largeWineWindows()
     if n >= 2 { sawTwo = true; lowStreak = 0 }
     else if sawTwo {                                    // (b) render window closed
