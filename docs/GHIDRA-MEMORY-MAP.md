@@ -797,3 +797,40 @@ A debug instance in the SHARED prefix coexists with the user's game (different
 wineserver pids) but competes for the display; run the live watch either when the
 user's session is paused or from a cloned prefix. The CAPABILITY is proven; the
 live watch is a coordinated step, not a blocker.
+
+---
+
+# PART 10 — Player table + pointer-chain progress (fable session, 2026-07-18)
+
+Static disassembly of `player_vehicle_lookup` (0x4547c0) revealed a **static
+player-record table** and its shape:
+```
+mov  eax, 0x541070          ; table base
+cmp  word ptr [eax], dx     ; entry+0x00 = player id (WORD), matched vs arg
+add  eax, 0x48              ; stride 0x48, 16 entries (ends 0x5414f0)
+...
+mov  eax, [ecx*0x48 + 0x541098]  ; vehicle POINTER = table + slot*0x48 + 0x28
+```
+**Table: base 0x541070, 16 records x 0x48 bytes; per record: player id WORD @+0,
+vehicle pointer @+0x28** (i.e. the pointer array starts at 0x541098). So in
+theory the local car pointer is `[0x541070 + slot*0x48 + 0x28]`.
+
+**BUT live read shows this table is entirely ZERO in single-player** — it is the
+**DirectPlay / multiplayer** player table (cf. dpGetPlayerData / dpEnumPlayers /
+"No vehicle sent for player %d" at 0x4511a0, which calls this lookup). In SP the
+local car is reached by a different root, still to be found. This is a genuine
+find (the MP record shape) and a documented dead-end for the SP pointer chain.
+
+**Live-ammo lead (reconfirmed dynamic):** `0x25b0760` read 4000 earlier and
+**3976 now** — it CHANGES, so it is not static capacity; it is a live-decreasing
+value (candidate live ammo / a per-weapon counter). `0x25b0728` held 2000 across
+both reads. These two are NOT both capacity; at least one tracks live state.
+Correlating them to the exact HUD numbers (needs the current on-screen values)
+will confirm which weapon each is — the cleanest remaining single-player hook.
+
+**Next step (highest yield):** find the SP local-car global. Two routes:
+(a) pointer-scan a fresh dump for a static (.data, 0x4xxxxx/0x5xxxxx) dword that
+points into the car/ammo heap region (~0x25b0xxx) — that dword is the root; or
+(b) the conclusive one — CE/x64dbg **inside the wineprefix**, set "find what
+accesses 0x25b0760", and the accessing instruction's base register + the call
+stack give the car struct and its static root in one shot.
