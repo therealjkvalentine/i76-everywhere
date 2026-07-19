@@ -121,3 +121,45 @@ a Windows process in the same prefix → "find what writes this address" on a
 found ammo/armor byte reads the offset + base register straight off the
 disassembly, giving the permanent pointer path (`[[static]+o1]+o2`) that
 survives relaunch. Pure AHK RPM can't set watchpoints; CE-in-prefix can.
+
+## 6. KEYSTONE — the static player-car pointer chain (survives relaunch)
+
+The input-apply function (0x44f1c6, reads throttle 0x5367cc / steer 0x5367d4 and
+writes them into the player car) reaches the player car like this:
+```
+mov eax, [0x54a264]     ; 0x457530(): world/context root  (STATIC .data global)
+mov esi, eax
+mov eax, [esi]          ; -> sub-object A = [[0x54a264]]
+mov edi, [eax + 0x70]   ; player_car = [[[0x54a264]] + 0x70]
+```
+**`player_car = [[[0x54a264]] + 0x70]`** — a 3-hop pointer chain rooted at the
+STATIC global **0x54a264** (loads at a fixed address, no ASLR). This is the
+permanent root the whole vehicle map hangs off; unlike raw heap addresses it
+survives every relaunch. `0x457530` is the world-context accessor (`return
+[0x54a264]`), called all over (camera init 0x405ac1, input apply, etc.).
+
+### Player-car field offsets confirmed so far (from disasm)
+| offset | field | source |
+|---|---|---|
+| car + 0xe0  | steer input applied (float) | 0x44f2a2 |
+| car + 0xe4  | throttle input applied (float) | 0x44f290 |
+| car + 0x3c  | component COUNT (int) | component-finder 0x4b6900 |
+| car + 0x40  | component ARRAY (stride 0x20, type-tag @+0) — armor/engine/tire/brake, int TENTHS | 0x4b6900 |
+| car + 0xa718 | weapon COUNT (int) | ammoLesser 0x40be a5 |
+| car + 0xa71c | weapon-pointer ARRAY (stride 4) -> weapon obj -> +ammo (int32 countdown) | ammoLesser |
+
+### The permanent reader (for the trainer / any tool)
+```
+world   = read_u32(0x54a264)
+subobj  = read_u32(world)
+car     = read_u32(subobj + 0x70)
+throttle_out = read_f32(car + 0xe4)      # applied control
+wcount  = read_u32(car + 0xa718)
+warray  = read_u32(car + 0xa71c)         # then warray[i] -> weapon -> +ammo
+ccount  = read_u32(car + 0x3c)
+carray  = car + 0x40                     # component[i] = carray + i*0x20
+```
+This turns every heap-relocating value (ammo, armor, speed, gear) into a stable
+`base+offset` read. The remaining unknowns (exact ammo offset in the weapon obj,
+health offset in the 0x20 component record) are a few bytes to pin with the
+component/weapon record dumped via this chain — or a CE watchpoint.
