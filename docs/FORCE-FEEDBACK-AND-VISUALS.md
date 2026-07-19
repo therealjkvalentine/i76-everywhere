@@ -8,18 +8,19 @@
 > collision-rumble-via-memory-reads project. The 1024×768 software ceiling
 > here is correct. See [README.md](README.md).
 >
-> **Memory-RE update (2026-07-18/19, see
-> [MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md)):** the
-> "collision-rumble-via-memory-reads" project now has its addresses. The game
-> computes a real force stream into a 364-byte FFB param block at `0x4f2328`
-> (only filled when a DirectInput-FFB device is present — so on **Windows/Deck**
-> the play is to MIRROR that block into XInput rumble: the game's own physics
-> forces on a pad with no DI-FFB). On **Mac** the block stays empty (flag
-> `0x52bbd0` = 0), so synthetic rumble stays — but it can now be driven by real
-> game state read through the verified player chain: speed candidate
-> entity+0x94, transform deltas per frame, camera-float jumps (impact shake),
-> and inventory-record condition drops (= you got hit). Both plans are
-> address-in-hand, not yet built.
+> **Memory-RE update 2 (2026-07-19) — the Mac verdict below is OVERTURNED.**
+> Full disassembly of the FFB subsystem ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md))
+> found it is a **plugin architecture**: the exe computes a fully-mapped
+> 364-byte force-state block (engine, speed, terrain, skids, weapon fire,
+> steering-kick vector, impact events with direction+damage) EVERY sim tick
+> and hands it to `i7_SFRCE.DLL` — three stdcall functions, and the only
+> DirectInput code in the whole game lives inside that DLL. So Wine's missing
+> Mac FFB backend stops mattering: [`../ffb-shim/`](../ffb-shim/) is a fake
+> i7_SFRCE.DLL that accepts the stream with no device and drives XInput pad
+> rumble from the game's own physics. (Also: there is **no FRC registry gate**
+> in the Gold exe — activation only ever needed the DLL + a device.) Real
+> DirectInput *wheel* FFB on Mac remains dead (that part below stands); the
+> shim is pad rumble. Status: builds clean, not yet field-run.
 
 # Interstate '76: force feedback & pushing visual quality
 

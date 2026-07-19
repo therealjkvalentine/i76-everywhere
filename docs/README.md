@@ -37,7 +37,7 @@ it.*
 | **[VOODOO-PARKED.md](VOODOO-PARKED.md)** | The dgVoodoo Glide→Metal mode. **Parked** — MoltenVK can't persist compiled Metal pipelines (MoltenVK#1765, absent in 1.4.1). Has the exact trigger + un-park playbook. Don't try to "fix the warmup" — it's a platform floor. |
 | [VISUAL-QUALITY-MAC.md](VISUAL-QUALITY-MAC.md) | The Voodoo graphics wins (gamma/MSAA/32-bit) + the warmup-ceiling proof. Wins were real; the mode is parked (see above). |
 | [DXGI-DGVOODOO-RESEARCH.md](DXGI-DGVOODOO-RESEARCH.md) | The full dgVoodoo-under-Wine saga. Useful root-causes, but its "future fix: persist the pipeline cache" is now known to be a **floor, not a fix** — superseded by VOODOO-PARKED. |
-| [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) | FFB on the Mac is a **dead end** (Wine's only FFB backend is Linux evdev). Works on the Deck/Windows. Also the 1024×768 software ceiling. |
+| [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) | Mac **wheel** FFB via DirectInput stays dead (Wine's only FFB backend is Linux evdev) — but the 2026-07-19 disassembly **overturned the general Mac verdict**: the FFB plugin DLL can be faked ([`../ffb-shim/`](../ffb-shim/)) to get the game's own force stream as pad rumble. Also the 1024×768 software ceiling (still true). |
 | [HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md) | HD-texture **pipeline** works (format cracked, tools in `../texture-lab/`), but true-HD on the Mac needs an OpenGLide-HD **renderer switch** away from the software path — **parked**. A full pack exists on the Windows box. |
 
 ## 🌐 Other platforms — working there, not applicable to the Mac build
@@ -68,6 +68,7 @@ including what did NOT work — is reconciled in one place.*
 | [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md) | Save-bytes ↔ in-game-screen reconciliation for the save editor. |
 | `../tools/i76-debugmenu.ahk` · `i76-rearm.ahk` · `i76-worldscan.ahk` · `i76-trainer.ahk` · `i76-chaindiff.ahk` | The working tools built on the map: **debug menu** (live-edit + freeze every inventory value, change-flagging + auto-log; launch via `tools/debugmenu.sh`, field test: [DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md)), repair+rearm (field-tested), all-vehicle enumeration (field-tested), live overlay/scanner, relocation-proof offset differ. Machine-readable map: `../tools/i76-addresses.json`. |
 | `../tools/gpw-envelopes.py` | Sound→rumble pipeline: decodes the game's .gpw effects, emits per-sound amplitude envelopes for the AHK rumble layer (generated table stays local/gitignored). |
+| [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) · [`../ffb-shim/`](../ffb-shim/) | **The force-feedback crack (2026-07-19):** FFB is a plugin DLL with 3 functions; the exe streams a fully-mapped force-state block every tick. The shim replaces the DLL — game FFB activates with no DirectInput device (incl. Mac), stream drives pad rumble + telemetry. Not yet field-run. |
 
 ## 📚 Reference / historical — context, not instructions
 

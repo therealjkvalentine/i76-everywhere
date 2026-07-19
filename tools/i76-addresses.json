@@ -74,19 +74,26 @@
         "va": "0x52bbd0",
         "type": "int",
         "conf": "confirmed",
-        "note": "1 when DI-FFB device+SWForce present"
+        "note": "1 only if i7_SFRCE.DLL loaded + 3 exports + InitSystem>=0 at boot (one shot, no retry). NO registry gate in Gold. See docs/FFB-DEEP-DIVE.md"
       },
-      "ffb_object_ptr": {
+      "ffb_event_heap": {
         "va": "0x52bbcc",
-        "type": "ptr",
-        "conf": "confirmed"
+        "type": "handle",
+        "conf": "confirmed",
+        "note": "CORRECTED 2026-07-19: HeapCreate(0,0,0) handle for impact-event nodes, NOT an FFB object ptr"
       },
-      "ffb_effect_params": {
+      "ffb_dll_fnptrs": {
+        "va": "0x52bbdc",
+        "type": "ptr[3]",
+        "conf": "confirmed",
+        "note": "0x52bbdc=I7FF_InitSystem, 0x52bbe0=I7FF_ExitSystem, 0x52bbe4=I7FF_SIM_Effect (prior docs had the mapping crossed)"
+      },
+      "ffb_force_block": {
         "va": "0x4f2328",
         "type": "blob",
         "size": 364,
         "conf": "confirmed",
-        "note": "live force-effect param block; mirror -> rumble on Win/Deck"
+        "note": "force-state block filled EVERY sim tick by ffb_tick 0x445ba0 when flag=1; full field map in docs/FFB-DEEP-DIVE.md; ffb-shim/ consumes it for pad rumble"
       },
       "music_active_flag": {
         "va": "0x524674",
@@ -137,7 +144,14 @@
       "component_finder_engine": "0x4b6900",
       "component_finder_generic": "0x4ada72",
       "weapon_info_in_car": "0x409e40",
-      "ffb_effect_setup": "0x446040",
+      "ffb_init": "0x445a60",
+      "ffb_module_loader": "0x446020",
+      "ffb_tick": "0x445ba0",
+      "ffb_send_sim_effect": "0x446110",
+      "frame_dt_seconds": "0x49c8b0",
+      "engine_speed_mph": "0x46a7b0",
+      "engine_pitch_value": "0x46a790",
+      "tire_status": "0x46de10",
       "player_vehicle_lookup": "0x4547c0",
       "radar_set": "0x411da0",
       "weapon_def_ref": "0x46ea35"
