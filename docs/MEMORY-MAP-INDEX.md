@@ -75,10 +75,30 @@ object" by different threads. +0x108 is the one the engine's own accessors use
 `i76-chaindiff.ahk` walks. They may be two views of one graph or two adjacent
 sub-objects — nobody has diffed the two pointers' targets yet.
 
-## Tier 3 — ammo & part condition: **SOLVED** (the inventory table)
+## Tier 3 — the inventory table: CAPACITY, not live ammo (**claim retracted**)
 
-The single most useful result of the whole effort. Live-verified twice,
-including across a relocation (mission reload):
+> **RETRACTION (field run 2026-07-19).** This tier was previously headed "ammo
+> SOLVED". It is not. With the HUD showing 50cal=**1995** and 7.62T=**3986**,
+> the table records read **2000/2000** and **4000/4000** — and *freezing* them
+> changed nothing on the HUD. These records are **static capacity / durability**,
+> not the live round count. The earlier "live-verified" reading (PART 12 catching
+> 2000→1856) most likely compared a capacity value against a HUD glance rather
+> than tracking it. **The live per-weapon ammo count is still UNLOCATED.**
+>
+> An exact-value scan of 158 MB for 1995/3986 returned 22 hits — three mirrored
+> regions plus two in the known `0x04b1xxxx` resource-cache area — and a peek at
+> the best candidate showed no capacity neighbour and no record structure, i.e.
+> cache indices the value merely passes through (PART 8's coincidence trap).
+> Headless scanning has now failed on this target repeatedly; the next move is a
+> live debugger's **find-what-writes** (see the Cheat-Engine plan in
+> [RE-METHODOLOGY.md](RE-METHODOLOGY.md) §6).
+>
+> What *does* still hold: the table is real, chain-addressable, and writing
+> cur=max across it **does** refill ammo in the garage/repair sense
+> (`i76-rearm.ahk` was field-tested) — it is the capacity/condition store.
+
+The structure below is accurate; only the "this is the live count" reading was
+wrong. Live-verified twice for *location*, including across a relocation:
 
 ```
 entity   = [ [ [0x54a264] ] + 0x70 ]
