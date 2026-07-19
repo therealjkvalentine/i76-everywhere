@@ -92,7 +92,8 @@ OnExit, RSGExit
 ; @pad LB+B: hardpoint 4 - dropper
 ; @pad LB+Y: cycle camera views (F1 F2 F3 F7 F8 F9 F10)
 ; @pad L3: nitrous / special 1 (hold); with LEFT stick pulled back = toggle reverse
-; @pad LB+Dpad-Down: reverse (X)
+; @pad LB+Dpad-Up: binoculars (B)
+; @pad LB+Dpad-Down: horn (G)
 ; @pad LB+Dpad-Left: gear down (-)
 ; @pad LB+Dpad-Right: gear up (=)
 gXIDll := ""
@@ -174,7 +175,7 @@ RSGExit:
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
 RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
 RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
-RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false)
+RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false), RSGSet("b", false), RSGSet("g", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -296,7 +297,8 @@ RSGSet("h", !lbHeld && dU)
 RSGSet("i", !lbHeld && dD)
 RSGSet("n", !lbHeld && dL)
 RSGSet("m", stHeld || (!lbHeld && dR))   ; Start also = map
-RSGSet("x", lbHeld && dD)
+RSGSet("b", lbHeld && dU)     ; binoculars
+RSGSet("g", lbHeld && dD)     ; horn (hold to honk)
 RSGSet("-", lbHeld && dL)
 RSGSet("=", lbHeld && dR)
 
