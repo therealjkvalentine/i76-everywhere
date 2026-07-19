@@ -160,6 +160,11 @@
           "+0xe4": "throttle applied (float)"
         },
         "note": "weapons/components hang off the vehicle-LOGIC object (different root); offsets are base+N*0x144+field - pin via winedbg watchpoint"
+      },
+      "vehicle_logic": {
+        "path": "[[player_entity]+0x108]",
+        "conf": "live-verified (both threads)",
+        "note": "vehicle-LOGIC object: 16 component records @ stride 0x90 (armor/engine/tire, int tenths) + weapon container (weapon ptr array -> weapon -> +ammo int32 countdown). Full chain: [0x54a264]->world->+0x70=entity->+0x108=logic."
       }
     }
   },
