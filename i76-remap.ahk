@@ -110,7 +110,9 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
-gYPrev := false, gCamIdx := 0, gYExt := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
+gYPrev := false, gCamIdx := 0, gYExt := false
+gTL := 0, gTR := 0, gTTicks := 0, gGrowl := 0
+gNitroPrev := false, gRBPrev := false, gGearUPrev := false, gGearDPrev := false, gMinePrev := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -255,9 +257,10 @@ gAPrev := aHeld
 l3Held := (btns & 0x0040) != 0
 if (l3Held && !gL3Prev) {
     ly := NumGet(xiState, 10, "Short")
-    if (ly < -16384)
+    if (ly < -16384) {
         SendEvent, x
-    else
+        RumblePulse(25000, 0, 2)  ; tactile confirm: reverse toggled
+    } else
         gL3Nitro := true
 }
 if (!l3Held)
@@ -321,8 +324,10 @@ RSGSet("=", lbHeld && dR)
 
 if (lbHeld && (aHeld || bHeld || xHeld || yHeld || gRTHeld || gLTHeld || dU || dD || dL || dR))
     gLBUsed := true
-if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300))
+if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300)) {
     SendEvent, q
+    RumblePulse(0, 20000, 1)     ; tactile confirm: front-target snap
+}
 gLBPrev := lbHeld
 
 ; Select: Esc (pause / skip cutscene)
@@ -330,14 +335,56 @@ if (selHeld && !gSelPrev)
     SendEvent, {Esc}
 gSelPrev := selHeld
 
-; synthetic rumble from our own control state (experiment: works only if
-; Wine's xinput exposes a rumble path on this platform; harmless no-op else)
-nv := (gANitro || gL3Nitro) ? 45000 : (gRTHeld ? 20000 : 0)
-if (nv != gXIVibLast) {
+; ---- rumble mixer (2026-07-18, field-proven path). Design per the game-feel
+; canon: hierarchy + restraint (continuous states LOW so transients read on
+; top), distinct signature per event, left motor = heavy/low-freq, right =
+; light/high-freq buzz. Two layers: continuous (nitrous/weapons/engine growl)
+; + transient pulses (RumblePulse, last-event-wins). SetState only on change.
+lyR := NumGet(xiState, 10, "Short")
+nact := (gANitro || gL3Nitro)
+if (nact && !gNitroPrev)
+    RumblePulse(65000, 30000, 2)          ; nitrous ENGAGE kick
+gNitroPrev := nact
+rbHeld := (btns & 0x0200) != 0
+if (rbHeld && !gRBPrev)
+    RumblePulse(30000, 0, 2)              ; handbrake thud
+gRBPrev := rbHeld
+gearU := lbHeld && dR, gearD := lbHeld && dL
+if ((gearU && !gGearUPrev) || (gearD && !gGearDPrev))
+    RumblePulse(0, 32000, 1)              ; gear-shift click
+gGearUPrev := gearU, gGearDPrev := gearD
+mn := (lbHeld && bHeld) || (r3Held && gLookBack)
+if (mn && !gMinePrev)
+    RumblePulse(40000, 0, 3)              ; mine/dropper thud
+gMinePrev := mn
+cl := 0, cr := 0
+if (nact)
+    cl := 45000, cr := 20000
+if (gRSGHeld["LButton"] || gRSGHeld["1"] || gRSGHeld["2"] || gRSGHeld["3"] || gRSGHeld["5"])
+    cr := cr > 18000 ? cr : 18000         ; weapons-fire buzz (light motor)
+if (!nact && lyR > 28000) {
+    gGrowl := Mod(gGrowl + 1, 12)
+    gv := 9000 + (gGrowl >= 6 ? 4000 : 0) ; full-throttle engine growl (textured)
+    cl := cl > gv ? cl : gv
+}
+if (gTTicks > 0) {
+    gTTicks -= 1
+    cl := cl > gTL ? cl : gTL
+    cr := cr > gTR ? cr : gTR
+}
+cl := cl > 65535 ? 65535 : cl
+cr := cr > 65535 ? 65535 : cr
+vibPair := (cl << 16) | cr
+if (vibPair != gXIVibLast) {
     VarSetCapacity(xiVib, 4, 0)
-    NumPut(nv, xiVib, 0, "UShort"), NumPut(nv, xiVib, 2, "UShort")
+    NumPut(cl, xiVib, 0, "UShort"), NumPut(cr, xiVib, 2, "UShort")
     DllCall(gXIDll . "\XInputSetState", "UInt", gXIPad, "Ptr", &xiVib)
-    gXIVibLast := nv
+    gXIVibLast := vibPair
 }
 gXIPrevBtns := btns
 return
+
+RumblePulse(l, r, ticks) {
+    global gTL, gTR, gTTicks
+    gTL := l, gTR := r, gTTicks := ticks
+}

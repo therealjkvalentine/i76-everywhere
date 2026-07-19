@@ -18,8 +18,10 @@ rem   2. Create Interstate '76 with EXE=i76.exe (what the GOG installer writes)
 rem Reversible either way: delete the "Interstate '76" key to revert.
 rem
 rem RUN AS ADMINISTRATOR (HKLM). Works on 64-bit Windows (WOW6432Node) and 32-bit.
-rem NOTE: no effect on the Mac port - Wine has no macOS force-feedback backend
-rem (see docs/FORCE-FEEDBACK-AND-VISUALS.md).
+rem NOTE: no effect on the Mac port - Wine has no macOS backend for DirectInput
+rem FFB *effects* (docs/FORCE-FEEDBACK-AND-VISUALS.md). Gamepad RUMBLE is a
+rem different channel and DOES work on Mac via XInputSetState (synthetic,
+rem driven by i76-remap.ahk - field-confirmed 2026-07-18).
 
 reg copy "HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate'76FRC" "HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76" /s /f 2>nul && (
     echo Force feedback enabled: FRC key copied ^(WOW6432Node^).

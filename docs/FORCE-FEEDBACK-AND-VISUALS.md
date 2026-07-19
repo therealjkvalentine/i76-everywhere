@@ -1,4 +1,12 @@
-> **STATUS: FFB is a Mac DEAD END** (Wine FFB = Linux evdev only); works on Deck/Windows. The 1024×768 software ceiling here is correct. See [README.md](README.md).
+> **STATUS, corrected 2026-07-18: two different channels.** The game's own
+> DirectInput FFB (wheel effects) remains a Mac DEAD END (Wine FFB = Linux
+> evdev only); works on Deck/Windows. **BUT gamepad RUMBLE via `XInputSetState`
+> WORKS through Wine on macOS — field-confirmed on an Xbox pad** (commit
+> 4178a75: the AHK layer buzzes the pad for nitrous/fire). Rumble is synthetic
+> (our input layer decides when, the game knows nothing), but it's real,
+> cross-platform (Wine/Proton/Windows), and the delivery path for the future
+> collision-rumble-via-memory-reads project. The 1024×768 software ceiling
+> here is correct. See [README.md](README.md).
 
 # Interstate '76: force feedback & pushing visual quality
 
