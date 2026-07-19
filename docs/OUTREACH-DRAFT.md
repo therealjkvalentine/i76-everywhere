@@ -102,3 +102,30 @@ Open a friendly issue on **[Open76](https://github.com/rob518183/Open76)** and
   Mac wrapper faster; the Deck/Windows installers are one command.
 - *"Widescreen / higher res on Mac?"* — Camera is hardcoded 4:3; software renderer maxes at 1024×768.
   Higher internal res needs Glide (great on the Deck; parked on Mac). It's documented, not a bug.
+
+---
+
+## Background: if this ever seeks an official blessing (research, 2026-07)
+
+Rights facts + precedents gathered in the Deck-track session, kept here so the outreach
+strategy has its footing (this is context, not a post):
+
+- **Rights chain is clean:** I'76 is Activision, now **Microsoft-owned** (2023), and Activision
+  actively licenses it to GOG today — no NOLF-style rights hell.
+- **Precedents for "fan port → official":** Night Dive (cold-emailed a small rights holder),
+  Sonic Mania (Whitehead pitched Sega a *working prototype*), **Forgotten Empires** (fan
+  expansion → official Age of Empires DE studio — the closest match: Microsoft-owned classic +
+  community engineer), MechWarrior 4/MekTek (Microsoft blessed free distribution).
+- **Ranked doors:** (1) **GOG Preservation Program / Dreamlist** — GOG already holds the license
+  and runs a community modernization program; lowest friction, rally the I'76 community
+  (glenrio.interstate76.com) to vote. (2) Retro-remaster intermediaries (Night Dive, Digital
+  Eclipse, Limited Run's Carbon Engine) — they bring the lawyers and publisher relationships.
+  (3) Microsoft biz-dev directly (LinkedIn/GDC — never the legal dept; mega-publishers have
+  no-unsolicited-submissions policies). (4) Keep building visibility.
+- **HARD RULE:** nothing containing their code/assets is ever sold or licensed by us without
+  paper signed — the repo stays asset-free (it already is). A clean-room reimplementation
+  (Open76 fork / Roanish, see [MODERN-PORTS-AND-VR.md](MODERN-PORTS-AND-VR.md)) is the legally
+  cleanest vehicle a licensor could bless.
+- **Deliverables sketched for that phase:** a 2-minute sizzle video (Deck + Mac side by side,
+  enhanced textures, the controller wheel), a one-page pitch aimed at GOG Preservation first,
+  and a README that reads like a portfolio piece.

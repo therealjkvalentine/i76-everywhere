@@ -45,6 +45,7 @@ it.*
 | Doc | What it is |
 |---|---|
 | [STEAMDECK.md](STEAMDECK.md) | **Installed & working on the Deck.** Heroic+Proton+dgVoodoo; the Glide path runs great (native Vulkan). |
+| [PHONE-PORTS.md](PHONE-PORTS.md) | **Research/untested.** Android = the Deck recipe again (Winlator: Wine→DXVK→Turnip) — I76 is an ideal candidate. iPhone = stream (Sunshine/Moonlight) or a QEMU VM (UTM). The save editor already works in a mobile browser. |
 | [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md) | Xbox gamepad on **PC & Mac** via the native winmm-joystick path (axes/buttons already in input.map). |
 | [DECK-CONTROLS.md](DECK-CONTROLS.md) / [DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md) | Deck controller layout + the input pipeline. |
 | [WINDOWS-PLAYBOOK.md](WINDOWS-PLAYBOOK.md) | Windows-box max graphics / FFB / frame-gen playbook. |
