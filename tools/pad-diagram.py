@@ -23,22 +23,22 @@ BTN_NAMES = {1: "A", 2: "B", 3: "X", 4: "Y", 5: "LB", 6: "RB", 7: "Select",
              13: "Paddle 3", 14: "Paddle 4"}
 PRETTY = {"steer": "steer", "throttle": "throttle", "weapon_fire": "fire",
           "weapon_cycle": "cycle weapon", "e_brake": "handbrake",
-          "special1": "special 1 (nitrous)", "special2": "special 2",
+          "special1": "special 1", "special2": "special 2",
           "special3": "special 3", "NEXT_TARGET": "cycle targets",
+          "shift_up": "gear up", "shift_down": "gear down", "reverse_direction": "reverse",
           "frontal_target": "front target", "TARGET_NEAREST_ENEMY": "nearest enemy",
           "RESET_TARGET": "untarget", "pilot_glance_target": "look at target",
           "toggle_cmbt_view": "dash/combat view", "SHOW_MAP": "map",
           "SHOW_NOTEPAD": "notepad", "start_engine": "ignition",
           "toggle_lights": "headlights", "hardpoint1_fire": "hardpoint 1",
-          "hardpoint2_fire": "hardpoint 2", "hardpoint3_fire": "hardpoint 3 (rear)",
-          "hardpoint4_fire": "hardpoint 4 (dropper)", "hardpoint5_fire": "hardpoint 5"}
+          "hardpoint2_fire": "hardpoint 2", "hardpoint3_fire": "hardpoint 3", "hardpoint4_fire": "hardpoint 4", "hardpoint5_fire": "hardpoint 5"}
 
 # inputs the AHK/XInput layer owns (shiftable with LB); keep in sync with XIPoll
 AHK_OWNED = ["RT", "LT", "A", "B", "X", "Y", "Dpad-Up", "Dpad-Down",
-             "Dpad-Left", "Dpad-Right", "Select", "Start", "RStick"]
+             "Dpad-Left", "Dpad-Right", "Select", "Start", "RStick", "L3"]
 
 def parse_input_map(path):
-    native, mouse = {}, {}
+    native, mouse, kb = {}, {}, {}
     blocks = re.findall(r"^(\S+)\s*{\n(.*?)^}", open(path).read(), re.M | re.S)
     for action, body in blocks:
         pa = PRETTY.get(action, action.lower().replace("_", " "))
@@ -57,7 +57,9 @@ def parse_input_map(path):
                     native.setdefault(tok, []).append(pa)
             elif dev.lower() == "mouse" and sign == "+":
                 mouse.setdefault(tok, []).append(pa)
-    return native, mouse
+            elif dev.lower() == "keyboard" and sign == "+":
+                kb.setdefault(action, []).append(tok)
+    return native, mouse, kb
 
 def parse_ahk(path):
     layer, extras = {}, []
@@ -72,7 +74,7 @@ def parse_ahk(path):
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/.cache/i76-pad-diagram.html")
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    native, mouse = parse_input_map(IMAP)
+    native, mouse, kb = parse_input_map(IMAP)
     ahk, mextras = parse_ahk(AHK)
 
     def nat(key):
@@ -92,7 +94,7 @@ def main():
         ("Left Shoulder 1 (LB)",  base_of("LB", "LB(tap)"), 330, 92, "L"),
         ("Left Stick X",          nat("LStickX"), 322, 178, "L"),
         ("Left Stick Y",          nat("LStickY"), 322, 192, "L"),
-        ("Left Stick Button (L3)", nat("L3"), 330, 206, "L"),
+        ("Left Stick Button (L3)", base_of("L3", "L3"), 330, 206, "L"),
         ("D-Pad Up",              base_of("Dpad-Up", "Dpad-Up"), 395, 238, "L"),
         ("D-Pad Down",            base_of("Dpad-Down", "Dpad-Down"), 395, 282, "L"),
         ("D-Pad Left",            base_of("Dpad-Left", "Dpad-Left"), 373, 260, "L"),
@@ -173,6 +175,24 @@ def main():
     paddle_rows = "".join(f"<tr><td class='k'>{html.escape(k)}</td><td>{html.escape(' + '.join(sorted(set(v))))}</td></tr>"
                           for k, v in sorted(native.items()) if k.startswith("Paddle"))
 
+    # in-game actions with NO pad coverage (native joystick1 or @pad label match)
+    pad_text = " ".join(ahk.values()).lower()
+    covered = {a for acts in native.values() for a in acts}
+    # digital keyboard synonyms of things the sticks already do analogically
+    SKIP_NOPAD = {"pilot_glance_up", "pilot_glance_down", "pilot_glance_left",
+                  "pilot_glance_right", "steer_left", "steer_right",
+                  "throttle_up", "throttle_down",
+                  "track_pitch_plus", "track_pitch_minus", "track_yaw_plus", "track_yaw_minus"}
+    nopad_rows = ""
+    for action, keys in sorted(kb.items()):
+        if action in SKIP_NOPAD:
+            continue
+        pa = PRETTY.get(action, action.lower().replace("_", " "))
+        if pa in covered or pa.lower() in pad_text:
+            continue
+        nopad_rows += (f"<tr><td class='k'>{html.escape(pa)}</td>"
+                       f"<td>{html.escape(' / '.join(sorted(set(keys))))}</td></tr>")
+
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     page = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>I'76 controller layout</title><style>
@@ -197,7 +217,8 @@ any time — never edit this file.</p>
 <div class="cols">
 <div><h2>Hold LB — shift layer</h2><table>{shift_rows}</table>
 <h2>Back buttons / paddles (pads that have them)</h2><table>{paddle_rows}</table></div>
-<div><h2>Mouse</h2><table>{mouse_rows}</table></div>
+<div><h2>Mouse</h2><table>{mouse_rows}</table>
+<h2>In-game controls NOT on the pad (keyboard only)</h2><table>{nopad_rows}</table></div>
 </div></body></html>"""
     open(out, "w").write(page)
     print(out)
