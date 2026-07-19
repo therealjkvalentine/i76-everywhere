@@ -197,3 +197,22 @@ the weapon-container pointer, and the component-list accessor likewise. Then the
 whole map is a permanent chain. The ENTITY root + transform + controls are
 proven and usable now (e.g. live position/heading for a minimap or motion-based
 rumble).
+
+## 8. Weapon sub-chain — NEGATIVE result (record so nobody re-chases it)
+
+Tried `weapon_container = [[entity+0x70]+0x108]` (from ammoLesser's accessors
+0x467440 = `[arg+0x70]`, 0x466e20 = `[arg+0x108]`). Live: it resolves to a
+pointer, but `wc+0xa718` (expected weapon count) reads 0, and `[entity+0x70]`
+CHANGED between two reads (0xE6E0B8 -> 0xE6E438). Conclusion: the "vehicle"
+object ammoLesser operates on is NOT the same object as the transform-entity my
+input chain reaches — the engine has distinct entity vs vehicle-logic
+representations, and 0x467440/0x466e20 take the logic object, not the transform
+entity. So the weapon/component containers are reached from a DIFFERENT root than
+`[[[0x54a264]]+0x70]`.
+
+**What's still solid:** the transform-entity chain (root 0x54a264 -> +0x70 ->
+transform +0x08, controls +0xe0/+0xe4) is live-verified. **What's open:** the
+vehicle-LOGIC object's own static root (the one ammoLesser's arg comes from) — find
+it by disassembling ammoLesser's caller (what supplies esp+0x68), or set a CE
+watchpoint on a known-live ammo byte and read the base register. That single step
+connects weapons/components/armor to a permanent root; the entity side is done.
