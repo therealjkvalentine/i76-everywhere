@@ -749,3 +749,51 @@ Two paths actually finish it, both standard practice:
 Everything STATIC is done and live-validated (camera, input block, view mode,
 FFB, all struct offsets). The remaining live scalars are, by the nature of the
 problem, a human-in-the-loop differential — exactly what the wikis describe.
+
+---
+
+# PART 11 — DEBUGGER SOLVED: launch-under-winedbg works (attach doesn't)
+
+The find-what-writes blocker is cracked. The distinction is attach vs launch:
+
+## Attach to a running process = DENIED (macOS)
+`wine winedbg <pid>` or `winedbg 0xNNN` on the already-running game returns
+**"Can't attach process: error 5"** (ACCESS_DENIED) — macOS blocks debugger
+attach (task_for_pid / ptrace) to a process the debugger didn't create, without
+special entitlements. Memory *reads* via attach also page-fault under wow64.
+(Our AHK ReadProcessMemory works because it uses wineserver-mediated reads, not
+debug control — no ptrace needed.)
+
+## Launch the game UNDER winedbg = FULL DEBUG CONTROL ✓ (verified 2026-07-18)
+```
+wine winedbg "C:\GOG Games\Interstate 76\i76.exe"
+```
+The debugger CREATES the process, so it has debug rights from the start. Verified:
+- stops at the ntdll entry stub before the game runs
+- `break *0x406b7c` -> "Breakpoint 1 at 0x00000000406b7c i76+0x6b7c"  ← accepted
+- `info reg` -> clean 32-bit registers (EIP/ESP/EBP/EAX...), NO wow64 fault
+- use `cont` (not `run` — launch already attached)
+So breakpoints + 32-bit registers + memory all work in launch mode. This is the
+find-what-writes / watch-the-write capability, working on macOS Wine.
+
+## The find-what-writes workflow (to get the vehicle base + offsets)
+1. Launch i76.exe under winedbg (ideally in a throwaway prefix copy, or coordinate
+   so it doesn't fight the user's DxWnd display — a 2nd raw instance tries its own
+   DirectDraw; it won't crash the user's game but won't render cleanly either).
+2. Get into a mission (vehicle exists).
+3. Find a live vehicle field once (differential in THIS instance), then:
+   `watch *0x<ammoaddr>`  -> `cont`  -> on write, `info reg` + `bt`.
+   The writing instruction's base register = the vehicle base; the displacement
+   = the field's offset within the vehicle struct. That OFFSET is identical in
+   every instance (same code), so it maps the user's live instance too.
+4. Or break at weapon-access fn 0x414ef0 (vehicle in [esp+0x68]) / cockpit-look
+   0x406b00, read the vehicle base live, then dissect base+offsets.
+5. Trace the base register back up the call chain (or `watch` the global that
+   holds it) to a STATIC global -> relaunch-proof static->offset map into
+   tools/i76-addresses.json.
+
+## Safe-execution note
+A debug instance in the SHARED prefix coexists with the user's game (different
+wineserver pids) but competes for the display; run the live watch either when the
+user's session is paused or from a cloned prefix. The CAPABILITY is proven; the
+live watch is a coordinated step, not a blocker.
