@@ -1,3 +1,9 @@
+> **RAW SESSION LOG.** Working record of the static-disassembly thread, kept
+> for provenance; several sections were corrected by later ones (§6's flat car
+> offsets → §7's correction; §9's 0x144 stride → live dissection's 0x90). For
+> current truth read [MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md) first; where
+> the two disagree, the index wins.
+
 # Static RE findings (fable-static-re branch, 2026-07-18)
 
 Complementary to the live-scanning main thread: these come from DISASSEMBLING

@@ -8,6 +8,12 @@ smack-music-fix/SMACKW32.DLL
 *.bak-*
 .DS_Store
 
+# downloaded third-party reference source (Open76 C#, Roanish REVERSING.md) -
+# consulted during the 2026-07 memory-RE push, never committed (repo ships no
+# third-party code; the distilled findings live in docs/MW2-I76-STRUCTS.md and
+# docs/GHIDRA-MEMORY-MAP.md)
+scratchpad-fable/open76/
+
 # local secrets (Steam Deck SSH) - NEVER commit
 .env
 **/.env
