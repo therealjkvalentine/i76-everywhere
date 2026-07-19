@@ -499,3 +499,49 @@ file-binding parser (they're internal/script-driven). So head-look is a
 MEMORY-WRITE feature (write 0x536770/78 or the angle floats), which is exactly
 what the trainer does. The staged input.map experiment is left as documentation
 but is inert; real path = trainer.
+
+---
+
+# PART 6 — Nitro Pack (nitro.exe) parallel map + machine-readable table
+
+Same engine, shifted addresses. Verified structurally identical (the cockpit-
+look function at Nitro 0x435c93 is byte-for-byte the Gold 0x406b00 logic):
+
+| meaning | Gold i76.exe | Nitro nitro.exe |
+|---|---|---|
+| input-state block base | 0x536770 | 0x5348a0 |
+| pilot_yaw / pitch / roll | 0x536770/78/80 | 0x5348a0/a8/b0 |
+| throttle / steer input | 0x5367cc / 0x5367d4 | 0x5348fc / 0x534904 |
+| cam_yaw (float) | 0x4c2964 | 0x4f38fc |
+| cam pitch (float) | 0x4c2970 | 0x4f3908 |
+| cockpit-look apply fn | 0x406b00 | 0x435c93 |
+| action table | 0x4f2840 | 0x4f3d10 |
+
+Full machine-readable map: **tools/i76-addresses.json** (both exes, globals /
+functions / struct offsets, each tagged confirmed/struct/runtime). The trainer
+(tools/i76-trainer.ahk) auto-selects the set by which exe is running.
+
+## What is CONFIRMED vs what needs the runtime scanner
+
+**Confirmed (static, ready to use):** the entire input-state block, all camera
+angle floats + view mode, the FFB flag/object/param-block, and the vehicle
+component-list + weapon-array *offsets*. These are usable the moment the game
+runs.
+
+**Needs the trainer scanner (runtime — a dynamic struct with no fixed global):**
+the live player-vehicle base pointer (reached via lookup fn 0x4547c0), and thus
+the absolute addresses of armor-per-facet, chassis integrity, gear, RPM, speed,
+current-target, jammer state, and per-hardpoint contents. The offsets *within*
+the vehicle/component structs are partly known (component array +0x40 stride
+0x20; weapons +0xa71c/+0xa738); the scanner pins the base, then base+offset
+gives the rest. Recipe: F9 first-scan the on-screen value (armor 100) →
+take a hit → F10 next-scan (80) → repeat to 1-3 candidates.
+
+## Head-tracking: the definitive path
+
+The mouse-in-cockpit input.map binding is inert (analog pilot_* actions aren't
+wired to the file parser). The working path is a memory feeder writing either
+the int inputs (0x536770/78) or the camera angle floats (0x4c2964/0x4c2970).
+The trainer's F7 test sweeps cam_yaw to demonstrate it live; production
+head-tracking = opentrack/webcam → UDP → a writer poking those addresses at
+frame rate. All addresses are in hand; only live validation + the feeder remain.
