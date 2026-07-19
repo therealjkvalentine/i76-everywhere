@@ -25,6 +25,7 @@
  * Rumble mapping constants are first-guess — tune from the telemetry.
  */
 
+#include <winsock2.h>
 #include <windows.h>
 
 /* ---- the force block (offsets from ffb-deep-dive.md §3) ---- */
@@ -94,6 +95,14 @@ typedef struct {
 typedef struct { WORD wLeftMotorSpeed, wRightMotorSpeed; } XVIB;
 typedef DWORD (WINAPI *XSetStateFn)(DWORD, XVIB *);
 static XSetStateFn xset;
+
+/* ---- UDP telemetry to a motion-sim receiver (SimTools/SimHub plugin, or
+ * tools/ffb-udp-listen.py). 127.0.0.1:? by default; a receiver on another host
+ * needs the port forwarded or the addr changed + rebuild. The payload is the
+ * same key=value line as the telemetry file, one datagram per emitted tick. */
+static SOCKET g_udp = INVALID_SOCKET;
+static struct sockaddr_in g_dst;
+#define FFB_UDP_PORT 17676
 
 /* ---- state ---- */
 static float g_env_low;                 /* decaying impact/one-shot energy  */
@@ -170,6 +179,15 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
         HMODULE m = LoadLibraryA(xdlls[i]);
         if (m) xset = (XSetStateFn)GetProcAddress(m, "XInputSetState");
     }
+    {   /* open the UDP telemetry socket (best-effort; files still work if it fails) */
+        WSADATA wsa;
+        if (WSAStartup(0x0202, &wsa) == 0) {
+            g_udp = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            g_dst.sin_family = AF_INET;
+            g_dst.sin_port = htons(FFB_UDP_PORT);
+            g_dst.sin_addr.s_addr = htonl(0x7f000001);   /* 127.0.0.1 */
+        }
+    }
     write_file(TELEMETRY, "i7ffshim: init ok\r\n", 19, 0);
     return 0;
 }
@@ -233,28 +251,34 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     high = clamp01(g_env_high + weapon);
     rumble(low, high);
 
-    /* telemetry: one overwritten status line, ints only (wsprintfA has no %f) */
-    if (!(g_tick & 1)) {
-        n = wsprintfA(buf,
-            "tick=%lu on=%lu spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
-            "slide=%lu oil=%lu fx1000=%d fy1000=%d tires=%d,%d,%d,%d "
-            "fire=%d%d%d%d%d%d gain=%d low100=%d high100=%d\r\n",
-            g_tick, b->forces_on, (int)(b->speed * 10), b->surface,
-            b->engine_running, b->engine_pitch, b->airborne, b->skidding,
-            b->sliding, b->oilslick, (int)(b->force_x * 1000),
-            (int)(b->force_y1 * 1000), b->tire[0], b->tire[1], b->tire[2],
-            b->tire[3], b->hp[0].firing != 0, b->hp[1].firing != 0,
-            b->hp[2].firing != 0, b->hp[3].firing != 0, b->hp[4].firing != 0,
-            b->hp[5].firing != 0, firing_gain,
-            (int)(low * 100), (int)(high * 100));
+    /* telemetry: one key=value line, ints only (wsprintfA has no %f). Values
+     * *1000 keep the force vector's sign+precision. This same line is the file
+     * status AND the UDP payload — a motion-sim receiver reads surge≈fx,
+     * sway≈fy, plus speed/engine/terrain/impacts. */
+    n = wsprintfA(buf,
+        "tick=%lu on=%lu spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
+        "slide=%lu oil=%lu steer=%d fx1000=%d fy1000=%d fy2_1000=%d "
+        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d gain=%d low100=%d high100=%d\r\n",
+        g_tick, b->forces_on, (int)(b->speed * 10), b->surface,
+        b->engine_running, b->engine_pitch, b->airborne, b->skidding,
+        b->sliding, b->oilslick, b->steer_right ? 1 : (b->steer_left ? -1 : 0),
+        (int)(b->force_x * 1000), (int)(b->force_y1 * 1000),
+        (int)(b->force_y2 * 1000), b->tire[0], b->tire[1], b->tire[2],
+        b->tire[3], b->hp[0].firing != 0, b->hp[1].firing != 0,
+        b->hp[2].firing != 0, b->hp[3].firing != 0, b->hp[4].firing != 0,
+        b->hp[5].firing != 0, firing_gain,
+        (int)(low * 100), (int)(high * 100));
+    if (g_udp != INVALID_SOCKET)                      /* every tick for the rig */
+        sendto(g_udp, buf, n, 0, (struct sockaddr *)&g_dst, sizeof(g_dst));
+    if (!(g_tick & 1))                                /* every other for disk */
         write_file(TELEMETRY, buf, n, 0);
-    }
     return 0;
 }
 
 HRESULT __stdcall shim_ExitSystem(void)
 {
     rumble(0, 0);
+    if (g_udp != INVALID_SOCKET) { closesocket(g_udp); g_udp = INVALID_SOCKET; WSACleanup(); }
     write_file(TELEMETRY, "i7ffshim: exit\r\n", 16, 0);
     return 0;
 }

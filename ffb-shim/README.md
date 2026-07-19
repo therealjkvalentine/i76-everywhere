@@ -23,9 +23,18 @@ and the shim:
   magnitude formulas where known;
 - writes a live telemetry line to `C:\AutoHotkey\ffb-state.txt` (speed,
   surface, flags, forces, motor levels) and appends every impact event to
-  `C:\AutoHotkey\ffb-events.txt` — **this is the viewer**: watch the stream,
-  tune the mapping, and answer the remaining unknowns (surface-id order,
-  gain scales) from real play.
+  `C:\AutoHotkey\ffb-events.txt`;
+- **sends the same telemetry as UDP** to `127.0.0.1:17676` every tick — the
+  bridge to home motion-sim receivers (SimTools/SimHub) and their built-in
+  axis visualizers. See [docs/MOTION-SIM.md](../docs/MOTION-SIM.md).
+
+Ways to view the stream (all no-rig):
+
+- `tools/i76-ffb-monitor.ahk` — in-prefix overlay (motor bars, force channels,
+  flags, last impact). The "watch it while you drive" tool and the instant
+  "is the shim even receiving?" check.
+- `tools/ffb-udp-listen.py` — UDP dashboard / `--raw` dump / `--csv` recorder.
+  Proves the wire and stands in for SimHub until a plugin exists.
 
 **STATUS: builds clean, spec-complete against the disassembly, NOT yet run
 against the live game.** Rumble constants are first-guess; the telemetry
@@ -50,6 +59,9 @@ play. `--revert` undoes it.
 
 ## Files
 
-- `i7ffshim.c` — the shim (block struct, rumble mapping, telemetry)
+- `i7ffshim.c` — the shim (block struct, rumble mapping, file + UDP telemetry)
 - `i7_sfrce.def` — the three exports, ordinal-exact vs the original
 - `build.sh` / `install.sh`
+
+UDP port is `17676` (`FFB_UDP_PORT` in `i7ffshim.c`); a receiver on another host
+needs the port forwarded or the destination addr changed + a rebuild.

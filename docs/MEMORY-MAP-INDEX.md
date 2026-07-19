@@ -202,6 +202,11 @@ offset — need drive-correlation ("which 3 floats move together").
   rumble from the stream, and logs telemetry for tuning. Builds clean; NOT
   yet field-run. Fallback signals (if ever needed): speed candidate
   entity+0x94, camera-float jumps, inventory condition drops.
+- **Motion sim / wheel FFB (6DOF)** — the shim also emits the stream as UDP for
+  the standard home-rig receivers (SimTools/SimHub), whose axis-testers are the
+  visualizer. The force vector gives surge+sway today; true heave/roll/pitch/yaw
+  want a memory reader for the entity transform (Tier 2). Full plan, honest
+  gaps, and the wheel-torque reality (Windows-only): [MOTION-SIM.md](MOTION-SIM.md).
 - **Smarter music** — read 0x524674 to know exactly when the engine thinks
   music plays (replaces launcher inference). Volume: the engine feeds
   `auxSetVolume` (0x424ba2) from the Music Level setting to device
@@ -273,7 +278,9 @@ offset — need drive-correlation ("which 3 floats move together").
 | tool | purpose | status |
 |---|---|---|
 | `tools/i76-debugmenu.ahk` + `debugmenu.sh` | **the debug menu**: live table of every inventory record (cur/max) + the armor-candidate grids; double-click = edit, checkbox = FREEZE (entity-relative, relocation-proof); `*` marks rows that just changed and every change auto-logs in the prefix (`debugmenu.sh --fetch`); F6 rearm-all. Field-test sheet: [DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md) | built 2026-07-19, NOT yet field-run |
-| `../ffb-shim/` | fake i7_SFRCE.DLL: activates the game's FFB path with no DI device, receives the per-tick force stream, drives XInput rumble + telemetry files ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md)) | builds clean, NOT yet field-run |
+| `../ffb-shim/` | fake i7_SFRCE.DLL: activates the game's FFB path with no DI device, receives the per-tick force stream, drives XInput rumble + telemetry files + UDP ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md)) | builds clean, NOT yet field-run |
+| `tools/i76-ffb-monitor.ahk` | in-prefix overlay of the FFB stream (motor bars, force channels, flags, impacts) — the "watch it while driving" viewer | built 2026-07-19, NOT yet field-run |
+| `tools/ffb-udp-listen.py` | UDP telemetry listener: live dashboard / `--raw` / `--csv`; proves the wire, stands in for SimHub ([MOTION-SIM.md](MOTION-SIM.md)) | wire-verified loopback |
 | `tools/gpw-envelopes.py` | sound→rumble table generator: decodes every .gpw effect (GAS0+WAVE), emits windowed-RMS envelopes (0-100) for the AHK rumble layer; output gitignored | run end-to-end (123 envelopes), integration pending |
 | `tools/i76-rearm.ahk` | repair+rearm via the Tier 3 chain (F5 view / F6 write) | field-tested |
 | `tools/i76-worldscan.ahk` | enumerate all vehicles via the Tier 4 table | field-tested |
