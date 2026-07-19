@@ -2,6 +2,8 @@
 game-data
 # built binaries (repo ships source only - see smack-music-fix/build.sh)
 smack-music-fix/SMACKW32.DLL
+# generated locally from the user's own game audio (tools/gpw-envelopes.py)
+rumble-envelopes.ini
 # backups the editors create
 *.pre-edit
 *.pre-*
@@ -17,3 +19,4 @@ scratchpad-fable/open76/
 # local secrets (Steam Deck SSH) - NEVER commit
 .env
 **/.env
+__pycache__/
