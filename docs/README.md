@@ -66,7 +66,8 @@ including what did NOT work — is reconciled in one place.*
 | [RE-METHODOLOGY.md](RE-METHODOLOGY.md) · [RE-FIELD-GUIDE.md](RE-FIELD-GUIDE.md) · [RE-RESOURCES.md](RE-RESOURCES.md) | Method references (cited): scan discipline, watchpoints, why single value-matches lie, CE-in-prefix. |
 | [MW2-I76-STRUCTS.md](MW2-I76-STRUCTS.md) | Struct/encoding shapes from the file formats + Open76/Roanish (ammo = int32 countdown; armor = int tenths). |
 | [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md) | Save-bytes ↔ in-game-screen reconciliation for the save editor. |
-| `../tools/i76-rearm.ahk` · `i76-worldscan.ahk` · `i76-trainer.ahk` · `i76-chaindiff.ahk` | The working tools built on the map: repair+rearm (field-tested), all-vehicle enumeration (field-tested), live overlay/scanner, relocation-proof offset differ. Machine-readable map: `../tools/i76-addresses.json`. |
+| `../tools/i76-debugmenu.ahk` · `i76-rearm.ahk` · `i76-worldscan.ahk` · `i76-trainer.ahk` · `i76-chaindiff.ahk` | The working tools built on the map: **debug menu** (live-edit + freeze every inventory value; untested), repair+rearm (field-tested), all-vehicle enumeration (field-tested), live overlay/scanner, relocation-proof offset differ. Machine-readable map: `../tools/i76-addresses.json`. |
+| `../tools/gpw-envelopes.py` | Sound→rumble pipeline: decodes the game's .gpw effects, emits per-sound amplitude envelopes for the AHK rumble layer (generated table stays local/gitignored). |
 
 ## 📚 Reference / historical — context, not instructions
 
