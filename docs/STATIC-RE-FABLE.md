@@ -276,3 +276,46 @@ best SPEED/velocity candidates to confirm live (drive, watch which moves).
 
 This maps the ENTITY side thoroughly; the weapon/component/armor values are the
 LOGIC-object side the live thread is pinning. Together = the full vehicle.
+
+## 11. THE ENTITY TABLE — enumerate every vehicle (radar/targeting/AI)
+
+From `setAllAggresion` (0x40a280), which iterates ALL entities:
+```
+entity groups: 8 FACTION/TEAM groups
+  counts       @ 0x51f5d0  (8 ints, one per group)
+  ptr arrays   @ 0x507da0  (stride 0x100 = 64 slots per group)
+  group g's entities: [0x507da0 + g*0x100 + slot*4]  for slot in 0..count[g]-1
+```
+Live-verified (this mission): group0=3, group1=2, group2=9, groups3-7=0 =>
+**14 total entities** (player + allies + police + enemies — matches the mission).
+Groups are teams/factions; iterate all 8 to see every car in the world.
+
+**AI aggression** is written to `logic_object + 0xa818` (int; setAllAggresion
+clamps its arg to 1-5 then stores arg-1 = 0..4). The write path
+`entity -> [entity] -> +0x70 -> +0x108 = logic -> +0xa818` re-confirms the
+entity+0x108 = logic-object link (both threads).
+
+### What this unlocks
+- **Radar / minimap of ALL cars** — walk the 8 groups, read each entity's
+  transform (position at the transform block) -> plot blips by faction colour.
+- **Targeting / threat** — enumerate hostile groups, compute range from the
+  player position, find nearest enemy (what `nearestEnemy`/`target_nearest_enemy`
+  do internally).
+- **Mission awareness** — count alive per group (`allEnemyDead` reads these
+  counts hitting 0); detect when objectives clear.
+- **AI tweaks** — write aggression per entity at `logic+0xa818`, or globally via
+  the same loop.
+
+### Enumeration recipe
+```
+for g in 0..7:
+  n = read_u32(0x51f5d0 + g*4)
+  for s in 0..n-1:
+    slot = read_u32(0x507da0 + g*0x100 + s*4)   # table entry
+    entity = read_u32(slot)                      # actual entity (deref)
+    # entity+transform = world pos/heading; entity->+0x108 = logic (health/weapons)
+```
+Related: `0x457530` = get world/user-entity context (`[0x54a264]`); `0x457570
+(ctx, idx)` = indexed context accessor. Spawn system at 0x456ade
+("Cannot find a valid spawn location"). AI is an FSM + A* pathfinder (strings
+`FSM: behave`, `astar`).
