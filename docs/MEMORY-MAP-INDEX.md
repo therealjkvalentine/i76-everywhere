@@ -45,20 +45,27 @@ entity = [sub + 0x70]          ; = [[[0x54a264]] + 0x70]   the player vehicle en
 ```
 This is the durable base for position/heading/controls — survives relaunch.
 
-## Tier 3 — the OPEN gap (weapons / components / armor / ammo)
+## Tier 3 — CLOSED (weapons / components / armor / ammo)
 
-The weapon container and component list hang off the **vehicle-LOGIC object**,
-NOT the transform-entity (proven: `[entity+0x70]` is transient, `+0xa718`
-reads 0). Known SHAPES once the logic-object base is found:
-- components live in an INDEXED 0x144-stride sub-struct: `base + N*0x144 + 0x3c`
-  = count, `+0x40` = array (stride 0x20) — armor/engine/tire, **integer TENTHS**
-  (91.0 = 910). Offsets are NOT flat car offsets (corrected; see STATIC-RE §9).
-- weapons: pointer-array pattern -> weapon object -> **+ammo = int32 countdown**.
-- Neither the player's logic-object `base` nor index N is static-derivable; the
-  winedbg 'find what accesses' watchpoint on a live ammo/armor byte yields both.
-**Remaining step:** find the logic-object's static root (disasm ammoLesser's
-caller for what supplies its `vehicle` arg, OR a winedbg/CE watchpoint on a live
-ammo byte reads the base register). The main (live) thread is executing this.
+**The link (live thread PART 11, corroborated by the static entity map §10):**
+```
+logic = [player_entity + 0x108]      ; vehicle-LOGIC object (weapons/components)
+  logic -> 16 COMPONENT records @ stride 0x90   (engine/susp/brakes/4 tires/armor...)
+  logic -> weapon container -> weapon-pointer array -> weapon -> +ammo (int32 countdown)
+```
+- `+0x108` is exactly the accessor `0x466e20` (`return [arg+0x108]`) that
+  ammoLesser used; the static entity dump independently flagged `+0x10c` as a
+  live pointer into the same graph. Both threads converged on the same link.
+- Components: **16 records at stride 0x90** (supersedes the earlier 0x20/0x144
+  guesses — those were intermediate mis-reads). Armor/chassis are **integer
+  TENTHS** (91.0 = 910) per the save editor + Open76.
+- Ammo: plain **int32 current-rounds countdown** inside each weapon object.
+
+So the FULL permanent chain from the static root:
+`[0x54a264] -> world -> [.+0x70] = entity -> [.+0x108] = logic -> components/weapons`.
+Every relocating gameplay value is now a fixed base+offset walk. Exact per-field
+offsets inside the 0x90 component record and the weapon object (health, ammo)
+are the last few bytes the live thread is confirming with a winedbg watchpoint.
 
 ## How each finding powers a real feature
 
