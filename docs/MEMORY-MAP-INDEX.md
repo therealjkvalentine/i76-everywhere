@@ -67,6 +67,25 @@ Every relocating gameplay value is now a fixed base+offset walk. Exact per-field
 offsets inside the 0x90 component record and the weapon object (health, ammo)
 are the last few bytes the live thread is confirming with a winedbg watchpoint.
 
+## Tier 4 — the WORLD (entity table, all vehicles)
+
+From `setAllAggresion` (0x40a280), live-verified (14 entities this mission):
+```
+8 faction/team groups:
+  counts     @ 0x51f5d0  (8 ints)
+  ptr arrays @ 0x507da0  (stride 0x100 = 64 slots/group)
+  entity(g,s) = [0x507da0 + g*0x100 + s*4]     # a WRAPPER handle
+  wrapper -> [.] -> +0x70 -> +0x108 = logic object (health/weapons/aggression)
+  AI aggression = logic + 0xa818 (int 0..4)
+```
+Enumerate all 8 groups to see every car (player, allies, police, enemies) —
+the basis for a radar/minimap, targeting, threat display, and mission-clear
+detection (`allEnemyDead` watches group counts -> 0). OPEN: the world-position
+float offset inside the entity (transform translation reads origin-small;
+needs drive-correlation or a render watchpoint) and the speed offset (best
+candidate entity+0x94 ~51.5). AI/radar/targeting logic is script-VM-dispatched
+(0x410xxx region) — traced live, not statically.
+
 ## How each finding powers a real feature
 
 - **Head tracking / analog look** — write `0x4c2964`/`0x4c2970` (camera yaw/pitch)

@@ -166,6 +166,17 @@
         "conf": "live-verified (both threads)",
         "note": "vehicle-LOGIC object: 16 component records @ stride 0x90 (armor/engine/tire, int tenths) + weapon container (weapon ptr array -> weapon -> +ammo int32 countdown). Full chain: [0x54a264]->world->+0x70=entity->+0x108=logic."
       }
+    },
+    "entity_table": {
+      "group_counts": "0x51f5d0 (8 ints)",
+      "group_ptr_arrays": "0x507da0 (stride 0x100, 64 slots/group)",
+      "conf": "live-verified (14 entities, 3 active groups)",
+      "note": "entity(g,s)=[0x507da0+g*0x100+s*4] = wrapper; wrapper->[.]->+0x70->+0x108=logic; AI aggression=logic+0xa818. Enumerate all 8 groups for radar/targeting.",
+      "accessors": {
+        "world_ctx": "0x457530 = [0x54a264]",
+        "indexed_ctx": "0x457570(ctx,idx)",
+        "spawn": "0x456ade"
+      }
     }
   },
   "nitro.exe": {
