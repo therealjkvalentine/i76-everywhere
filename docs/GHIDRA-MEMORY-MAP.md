@@ -834,3 +834,40 @@ points into the car/ammo heap region (~0x25b0xxx) — that dword is the root; or
 (b) the conclusive one — CE/x64dbg **inside the wineprefix**, set "find what
 accesses 0x25b0760", and the accessing instruction's base register + the call
 stack give the car struct and its static root in one shot.
+
+---
+
+# PART 11 — THE LINK: entity → vehicle-logic object (cross-thread handoff)
+
+Connects the live-verified player-entity chain (`player_entity =
+[[[0x54a264]]+0x70]`, with +0xe0 steer / +0xe4 throttle) to the weapon/component
+data by reading `ammoLesser`'s accessor calls (static, i76.exe):
+
+- `0x467440(obj)` returns **`[obj+0x70]`** — the entity (same +0x70 as the
+  entity chain; confirms it).
+- `0x466e30(entity)` does `fld [entity+0xe0]` — reads the **steer** float,
+  confirming the entity's +0xe0 = steer label.
+- `0x466e20(entity)` returns **`[entity+0x108]`** — **the vehicle-LOGIC object.**
+
+ammoLesser then reads, off that logic object:
+`[logic+0xa718]` = weapon count, `[logic+0xa71c + i*4]` = weapon[i] pointer.
+
+### Full chain to ammo / armor / components (single-player)
+```
+world_ctx   = [[0x54a264]]                 (0x457530 returns [0x54a264]; also used by camera-init 0x405a3f)
+player_ent  = [world_ctx + 0x70]           (main-thread live-verified; +0xe0 steer, +0xe4 throttle, +0x08 transform)
+logic_obj   = [player_ent + 0x108]         (THIS PART — the "car" with weapons+components)
+  weapon_count   = [logic_obj + 0xa718]
+  weapon[i] ptr  = [logic_obj + 0xa71c + i*4]      -> ammo is a field INSIDE weapon[i]
+  component_cnt  = [logic_obj + 0x3c]
+  component[k]   =  logic_obj + 0x40 + k*0x20       (type-tag @+0; armor/chassis/engine/tire health here)
+```
+Remaining unknowns (one watchpoint each, or a scan now that the base is a fixed
+pointer walk): the **ammo offset inside weapon[i]** (plain int32 countdown per
+Open76) and the **health offset inside a component record** (int tenths per the
+save editor). With `logic_obj` reachable by pointer walk, these are stable
+base+offset reads — no more wandering-address scans.
+
+**For the live thread:** verify `[[[0x54a264]]+0x70]+0x108` points to a struct
+whose +0xa718 is a small int (weapon count ~4-6) and +0xa71c is a heap pointer;
+then dump weapon[0] and diff a one-shot fire for the −1 to fix the ammo offset.
