@@ -245,3 +245,34 @@ this address" watchpoint** on a live ammo or armor byte: it reads the exact
 `base register + displacement` off the CPU at the moment the game touches the
 value, giving both the base and the true offset in one shot. That's the live
 thread's job and it closes Tier 3. Static + live meet exactly here.
+
+## 10. Player-entity field map (live-read + gauge-code labels)
+
+Read the verified entity (`[[[0x54a264]]+0x70]`, base 0x25b1948 this session) and
+cross-referenced with the gauge code. Field layout of the transform-entity:
+
+| offset | content | confidence |
+|---|---|---|
+| +0x04..0x30 | **world transform** — 3x4 float matrix (rotation cols in [-1,1]; +0x0c/+0x18/+0x24/+0x30 are the translation/position column) | high (matches Roanish 48-byte transform) |
+| +0x34 | float ~1.358 (scale? bounding?) | low |
+| +0x50 | float 1.000 | low |
+| +0x70..0x90 | second float block (0.17, -0.14, -2.05, 0.84, 1.02...) — likely velocity/orientation deltas | med |
+| +0x94 | float ~51.5 — candidate SPEED (mph-range) | med |
+| +0xa4 | float 2000.0 | low (matches a weapon max-ammo constant; may be coincidence) |
+| +0xc0..0xc8 | floats (-0.59, -29.5, 0.17) — candidate position or angular vel | low |
+| +0xe0 | **steer applied** (float) | high (disasm 0x44f2a2) |
+| +0xe4 | **throttle applied** (float) | high (disasm 0x44f290) |
+| +0x104 | int 1 — a flag/count | low |
+| +0x10c | **pointer** to an entity-graph sub-object (its +0x5c points back to the `sub` = [[0x54a264]]) | high (ptr), role med |
+| +0x1a0..0x1d4 | **14-entry int array + -1 terminator**: `8 7 7 7 6 9 6 0 1 7 8 9 11 12 -1` — a component/mount/part-slot list (car has ~14 parts per the save editor) | med |
+
+Notes: (1) armor tenths (910/570/700) are NOT in the entity — confirms armor lives
+in the vehicle-LOGIC object (the live thread's target, already walked to
+weapon_count=4). (2) The gauge code reads the player via the SAME root
+(speedometer at 0x45a102 calls 0x457530 = `[0x54a264]`), so speed/RPM/gear are
+reached from this entity graph — the speed float feeds a float->int (ftol
+0x4ba090) then a 0-9 needle level. (3) `+0x94` (~51.5) and `+0x70` block are the
+best SPEED/velocity candidates to confirm live (drive, watch which moves).
+
+This maps the ENTITY side thoroughly; the weapon/component/armor values are the
+LOGIC-object side the live thread is pinning. Together = the full vehicle.
