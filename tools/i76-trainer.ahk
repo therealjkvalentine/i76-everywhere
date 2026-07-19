@@ -22,18 +22,17 @@
 SetBatchLines, -1
 
 ; ---- confirmed addresses (docs/GHIDRA-MEMORY-MAP.md PART 2/4/5) --------------
-global ADDR := { "cam_yaw":   0x4c2964
-               , "cam_b":     0x4c2968
-               , "cam_pitch": 0x4c296c
-               , "cam_roll":  0x4c2970
-               , "cam_d":     0x4c2974
-               , "view_mode": 0x4c2728
-               , "in_throttle": 0x5367cc
-               , "in_steer":    0x5367d4
-               , "in_pilot_yaw":   0x536770
-               , "in_pilot_pitch": 0x536778
-               , "ffb_flag":   0x52bbd0
-               , "ffb_params": 0x4f2328 }
+; two address sets (docs/GHIDRA-MEMORY-MAP.md / tools/i76-addresses.json);
+; AttachGame picks by which exe is running.
+global ADDR_I76 := { "cam_yaw":0x4c2964, "cam_pitch":0x4c296c, "cam_roll":0x4c2970
+               , "view_mode":0x4c2728, "in_throttle":0x5367cc, "in_steer":0x5367d4
+               , "in_pilot_yaw":0x536770, "in_pilot_pitch":0x536778
+               , "ffb_flag":0x52bbd0, "ffb_params":0x4f2328 }
+global ADDR_NITRO := { "cam_yaw":0x4f38fc, "cam_pitch":0x4f3908, "cam_roll":0x4f38fc
+               , "view_mode":0x4f38c0, "in_throttle":0x5348fc, "in_steer":0x534904
+               , "in_pilot_yaw":0x5348a0, "in_pilot_pitch":0x5348a8
+               , "ffb_flag":0x52bbd0, "ffb_params":0x4f2328 }
+global ADDR := ADDR_I76
 
 global PROC_VM_READ := 0x10, PROC_VM_WRITE := 0x20, PROC_VM_OP := 0x8
 global hProc := 0, gPid := 0, gShow := true
@@ -48,6 +47,7 @@ AttachGame() {
         pid := ErrorLevel
         if (pid) {
             gPid := pid
+            ADDR := (exe = "nitro.exe") ? ADDR_NITRO : ADDR_I76
             hProc := DllCall("OpenProcess", "UInt", PROC_VM_READ|PROC_VM_WRITE|PROC_VM_OP
                            , "Int", 0, "UInt", pid, "Ptr")
             return hProc != 0
