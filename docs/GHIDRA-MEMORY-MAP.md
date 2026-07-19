@@ -962,3 +962,18 @@ live-verified entity, to a fixed-offset table that survives relaunch — no
 value-scanning, no watchpoint required. (Armor/component health is the analogous
 next target: component array off the vehicle-logic object; scan for the tenths
 run once current on-screen DEFENSE values are known.)
+
+## PART 13b — full inventory table walked (17 records)
+Walking records while the (7, 0x00750000) header holds, from the current entity:
+**table start = entity - 0x14C8, 17 records x 0x38 bytes**, each (current@+0x08,
+max@+0x0c). Live snapshot (post-reload, mostly full):
+```
+#00 400/400   #01 5/5     #02 5/5      #03 10000/10000  #04 400/400
+#05 500/500   #06 1500/1500  #07 650/650  #08 1500/1500  #09 650/650
+#10 4976/5000 *used*   #11 2955/3000 *used*   #12 2000/2000 (50cal)
+#13 4000/4000 (7.62T)  #14 500/500  #15 500/500  #16 500/500
+```
+These are every weapon's ammo AND every part's condition/durability (matches the
+save editor's per-part dur/cond), all chain-addressable from the static root.
+**Repair + rearm everything:** for the 17 records, write `[+0x08] = [+0x0c]`.
+The header (7 / 0x00750000) both validates the table and bounds the walk.
