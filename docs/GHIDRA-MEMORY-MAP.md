@@ -545,3 +545,63 @@ the int inputs (0x536770/78) or the camera angle floats (0x4c2964/0x4c2970).
 The trainer's F7 test sweeps cam_yaw to demonstrate it live; production
 head-tracking = opentrack/webcam → UDP → a writer poking those addresses at
 frame rate. All addresses are in hand; only live validation + the feeder remain.
+
+---
+
+# PART 7 — LIVE validation + autonomous testing (2026-07-18)
+
+Read/write against the running game (pid 316) via ReadProcessMemory across the
+Wine boundary. All CONFIRMED live.
+
+## Read validated
+| field | addr | live value | note |
+|---|---|---|---|
+| PE header | 0x400000 | 0x5a4d 'MZ' | RPM works across Wine |
+| view mode | 0x4c2728 | 7 | chase/track view |
+| camera yaw | 0x4c2964 | −0.227 | real angle; head-track target |
+| 50cal ammo | 0x25b0728 | 2000 | **matches HUD** |
+| 7.62 turret | 0x25b0760 | 4000 | **matches HUD** |
+| nitrous | 0x25b0bc0 | 3 | **matches HUD** |
+| FFB flag | 0x52bbd0 | 0 | no DI device on Mac (expected) |
+
+## Write validated (EDITABILITY)
+Wrote 9999 to the 50cal ammo (0x25b0728) → read back 9999 → restored to 2000.
+Memory writes hold. **Trainer editability confirmed.** Caveat: writing the
+input-state weapon_fire (0x5367db) is overwritten by the game's per-frame input
+poll, so you can't inject fire that way — direct value writes are the path.
+NOTE: heap addresses (0x25bxxxx) are stable within a game run but re-allocate
+on relaunch — scan (i76-mem-scan) each session or build a pointer chain.
+
+## Save editor cross-validation → the armor encoding
+`i76-save-editor.py --dump` on save015 reads armor exactly matching the DEFENSE
+screenshot: front 91.0 / right 57.0 / left 57.0 / rear 70.0, chassis
+70/40/40/55. Crucially it notes **"game shows tenths"** — armor is stored as an
+integer scaled ×10 (91.0 = 910 internally in the SAVE). But scanning live memory
+for 910/570/700 (int or float) found nothing, so the LIVE in-mission armor is
+either a different encoding or the struct wasn't populated at dump time.
+**Armor needs a damage differential** (below) — the one thing that needs the
+player: dump, take a hit, dump, diff → the address that dropped is live armor.
+
+## Music timing (lead, not yet pinned)
+Music is **MCI-driven** (`mciSendCommandA`) triggered by the mission SCRIPT's
+`playScene`/`playMovie` opcodes (script-VM handlers at 0x410ee6 / 0x4116c5).
+`Music Level` (0x497fbe menu code) is the volume setting. To know live "is
+music playing / which track", trace the `mciSendCommandA` IAT call sites for a
+"current track" global — next dig. (This would replace inferring music state
+with reading it, and let the trainer set music volume directly instead of
+re-encoding the mp3s.)
+
+## The differential recipe (to finish armor/live-ammo/speed)
+```
+1. i76-mem-dump.ahk            -> A.bin/A.idx   (dump now)
+2. change the value in-game    (take a hit / fire / accelerate)
+3. i76-mem-dump.ahk            -> B.bin/B.idx
+4. i76-mem-scan.py A B <int|float>  -> the addresses that changed by the delta
+```
+Reliable, encoding-agnostic. The only step needing the player is #2.
+
+## Efficiency note
+dump(AHK, ~113MB in ~90s) + scan(Python, instant) is the right split — AHK's
+interpreted per-offset scan was 50× too slow; the raw memcpy + Python pattern
+match is fast. A compiled Win32 scanner would be marginally faster but the
+bottleneck is now the differential (needs gameplay), not scan speed.
