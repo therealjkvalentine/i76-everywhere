@@ -920,3 +920,45 @@ live ammo for weapon w right now.
 
 **Trainer use:** write `record+0x08` (current) high, or freeze it = infinite
 ammo; the structure is a clean base + w*0x38 + 0x08 int32.
+
+---
+
+# PART 13 — COMPLETE RELAUNCH-PROOF CHAIN (ammo + part condition)
+
+Validated across a mission reload (entity moved 0x25b1948 -> 0x02401948, yet the
+chain resolved correctly both times and the table sat at the SAME entity-relative
+offset both times):
+
+```
+entity = [ [ [0x54a264] ] + 0x70 ]        ; static root -> live player entity
+table  = entity - 0x1228                   ; inventory/ammo table base
+record[w] = table + w*0x38                 ; 0x38-byte records
+  +0x00  int  7            ; header/class tag (constant) - use to VERIFY the table
+  +0x04  ptr  0x00750000   ; shared class/def pointer (constant)
+  +0x08  int  CURRENT      ; live ammo (weapons) OR condition (parts)
+  +0x0c  int  MAX          ; capacity / full condition
+```
+
+This is the **full vehicle inventory**, not just weapons: the header-signature
+sweep (int 7 followed by 0x00750000) found a contiguous run of records including
+partially-consumed ones (e.g. 4976/5000, 2955/3000 = fired ammo / worn parts),
+matching the save editor's per-part dur/cond. Weapons observed: rec@table+0x00
+= 50cal (2000 max), +0x38 = 7.62 turret (4000 max), then 500/500 slots.
+
+Confidence: the entity chain is live-verified twice (incl. across relocation);
+the `-0x1228` table offset held across both loads (two independent allocations at
+the same relative offset ⇒ same parent block). Robust trainer procedure: compute
+`entity-0x1228`, CHECK `[+0x00]==7 && [+0x04]==0x00750000`, and if so trust it;
+else sweep entity-0x1500..entity-0x1000 for that 8-byte header signature (also
+proven here). Independent cross-check: HUD ammo-gauge structs (0x25921c8 stride
+0xC0 in the prior session) each hold a pointer to a record's +0x08.
+
+**Trainer effects, all clean base+offset writes:**
+- infinite ammo / no part wear: for each record with header==7, write `[+0x08] = [+0x0c]`.
+- set a specific weapon's ammo: `table + w*0x38 + 0x08`.
+
+This closes the ammo objective end-to-end: from a static root, through the
+live-verified entity, to a fixed-offset table that survives relaunch — no
+value-scanning, no watchpoint required. (Armor/component health is the analogous
+next target: component array off the vehicle-logic object; scan for the tenths
+run once current on-screen DEFENSE values are known.)
