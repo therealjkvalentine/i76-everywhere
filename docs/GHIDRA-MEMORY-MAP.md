@@ -702,3 +702,50 @@ want CE's live successive-scan + find-what-writes. Recommended workflow:
 
 (We do NOT auto-download/run CE here — that's the user's call; the workflow and
 the static anchor map to tie results back to are in this repo.)
+
+---
+
+# PART 10 — winedbg attaches on Mac Wine; live vehicle base resists static methods
+
+## winedbg IS available and attaches (2026-07-18)
+`winedbg.exe` ships in the prefix (and fuller copies in the other Sikarugir
+game bundles). `printf 'info process\nquit\n' | wine winedbg` cleanly lists
+i76.exe (pid 0x13c, 8 threads) — the debugger connects to the game's wineserver
+and the game survives attach/detach. BUT: memory reads fault under this Wine's
+**wow64** mode (`x/4xw 0x4c2964` -> "page fault ... in wow64 32-bit code") —
+winedbg attaches in the 64-bit host context and doesn't cleanly resolve the
+32-bit game VAs. So its one unique value over our AHK reader (breakpoints /
+find-what-writes) is blocked here without a non-wow64 (pure 32-bit) Wine build.
+Our AHK ReadProcessMemory already reads 32-bit game memory perfectly, so reads
+are covered; the debugger unlock would need a wow64-capable winedbg invocation
+(`--32` / a 32-bit wine) — an open lead, not a dead end.
+
+## Refined vehicle offsets (static, confirmed)
+- weapon COUNT: `vehicle+0xa718` (was noted 0xa71c; +0xa718 is the count,
+  +0xa71c the ptr array, +0xa738 the 32-byte records)
+- component list: count `+0x3c`, array `+0x40` (stride 0x20)
+
+## The live vehicle base pointer: honest status
+Tried, autonomously, all of: value scan (coincidental resource-cache IDs),
+cross-dump differential at every encoding int/float/double/scaled/counter
+(RELOCATION — no stable VA carries the transition), static pointer chain (the
+0x541070 table is DirectPlay/multiplayer, empty in single-player; weapon fns
+receive the vehicle as a parameter, not from a global), structural signature
+(false positives — matched a float/transform struct), and winedbg (wow64
+read fault). **The single-player local-vehicle base is not reachable by these
+static/headless means without more work.**
+
+Two paths actually finish it, both standard practice:
+1. **Live differential with one human action** (the CE method): while playing,
+   fire a KNOWN burst / take a hit between two scans; the value that moves by
+   the exact delta is real. Our tools/i76-trainer.ahk F9/F10 (in-process, so no
+   relocation between scans) is built for this — it just needs the player to
+   make the change. This is not a tooling gap; the CE health tutorial itself
+   requires the player to change the value.
+2. **A pure-32-bit winedbg or Cheat Engine session** for find-what-writes /
+   pointer-scan, tied back to the static function map (weapon_info 0x409e40,
+   component finder 0x4b6900, player-table +0x28).
+
+Everything STATIC is done and live-validated (camera, input block, view mode,
+FFB, all struct offsets). The remaining live scalars are, by the nature of the
+problem, a human-in-the-loop differential — exactly what the wikis describe.
