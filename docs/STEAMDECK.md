@@ -183,6 +183,10 @@ The Deck has no built-in FFB, but **dock a USB force-feedback wheel** and it wor
    `HKLM\SOFTWARE\ACTIVISION\Interstate'76FRC` → copy to `Interstate '76` (with the space). Do it
    via Heroic → Winetricks → `regedit`, or `protontricks`, or our
    [`enable-force-feedback.bat`](../enable-force-feedback.bat) run in the prefix.
+   *(2026-07-19 disassembly note: the Gold `i76.exe` FFB init is unconditional — no registry gate
+   was found in the binary ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) §2). The community rename step is
+   likely harmless cargo cult on Gold; keep doing it until a Deck run confirms, since it costs
+   nothing. Actual requirements: `i7_sfrce.dll` beside the exe + an FFB device present at launch.)*
 2. Plug the wheel in **before launching** (winmm enumerates at startup).
 3. The wheel's evdev FFB device must be readable (usually is on SteamOS; may need the wheel's
    udev rules on other distros).

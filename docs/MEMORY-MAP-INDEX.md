@@ -43,8 +43,10 @@ combat ints mutate on tick boundaries, so correlate actions to deltas by ticks.
 | 0x507da0 | ptr[8][64] | entity-table group arrays (stride 0x100) | ✓ live |
 | 0x524674 | int | **music-active flag** (nonzero = playing) | disasm |
 | 0x4ed890 / 894 | handle | MCI device / aux-volume device | disasm |
-| 0x52bbd0 / cc | int/ptr | FFB present flag / object ptr | ✓ live (0 on Mac, expected) |
-| 0x4f2328 | 364 B | FFB effect param block (filled on Win/Deck only) | disasm |
+| 0x52bbd0 | int | FFB present flag (1 only if i7_SFRCE.DLL init succeeded at boot) | ✓ live (0 on Mac without the shim) |
+| 0x52bbcc | handle | private Win32 heap for FFB impact-event nodes (HeapCreate(0,0,0) — the old "FFB object ptr" label was wrong) | disasm |
+| 0x52bbdc / e0 / e4 | ptr | I7FF_InitSystem / ExitSystem / SIM_Effect fn ptrs from the DLL | disasm |
+| 0x4f2328 | 364 B | FFB force-state block, filled EVERY sim tick by ffb_tick 0x445ba0 whenever the flag is 1 — full field map in [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) | disasm (deep-dived 2026-07-19) |
 | 0x541070 | table | DirectPlay MP player table (16×0x48, veh ptr @+0x28) | ✓ live-zero in SP — MP only |
 
 ## Tier 2 — the PLAYER entity chain (permanent root)
@@ -142,11 +144,15 @@ offset — need drive-correlation ("which 3 floats move together").
   inputs 0x536770/78 or the camera floats 0x4c2964/70. The input.map route is
   dead (dead end #8). Production plan: opentrack/webcam → UDP → writer at
   frame rate; the trainer's F7 sweep is the proof-of-life.
-- **Rumble that reads the game** — Mac (synthetic XInput rumble, already
-  shipped): drive it from real state instead of input guesses — speed
-  candidate entity+0x94, transform deltas, camera-float jumps (impact shake),
-  and inventory-record condition drops (= got hit). Win/Deck: mirror the
-  game's own force stream from the FFB param block 0x4f2328.
+- **Rumble that reads the game** — SOLVED at the architecture level
+  (2026-07-19, [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md)): the FFB plugin DLL
+  `i7_SFRCE.DLL` receives a fully-mapped 364-byte force-state block every sim
+  tick (engine/speed/terrain/skid/weapon-fire/steering-kick/impact events
+  with direction+damage). `../ffb-shim/` is a drop-in replacement that
+  activates FFB with NO DirectInput device (works on Mac/Wine), drives XInput
+  rumble from the stream, and logs telemetry for tuning. Builds clean; NOT
+  yet field-run. Fallback signals (if ever needed): speed candidate
+  entity+0x94, camera-float jumps, inventory condition drops.
 - **Smarter music** — read 0x524674 to know exactly when the engine thinks
   music plays (replaces launcher inference). Volume: the engine feeds
   `auxSetVolume` (0x424ba2) from the Music Level setting to device
@@ -191,9 +197,13 @@ offset — need drive-correlation ("which 3 floats move together").
 11. **Control files** (different subsystem, same spirit — see CLAUDE.md):
     KEYBOARD.MAP/JOYSTICK.MAP are inert; bare `Joystick` device token is dead
     (`joystick1` works); in-game Control Config menu corrupts input.map.
-12. **Mac-native game FFB** — the game only emits DirectInput FFB when a
-    DI-FFB device+SWForce module is present; Wine-on-Mac has no FFB backend.
-    Synthetic rumble is the path (see FORCE-FEEDBACK-AND-VISUALS.md).
+12. **Mac-native game FFB via DirectInput** — Wine-on-Mac has no FFB backend,
+    so the REAL i7_SFRCE.DLL can never open a device here. OVERTURNED as a
+    dead end 2026-07-19: the plugin architecture means a fake i7_SFRCE.DLL
+    (`../ffb-shim/`) gets the game's own force stream with no DirectInput at
+    all. Also corrected: there is NO "FRC registry key" gate in the Gold exe
+    (the old 0x446025 "FRC" xref was a string-copy artifact of
+    "I7_SFRCE.DLL"), and 0x52bbcc is a heap handle, not an FFB object.
 
 ## Open items (ranked by payoff)
 
@@ -204,12 +214,17 @@ offset — need drive-correlation ("which 3 floats move together").
 4. **+0x108 vs +0x10c reconciliation** — cheap: read both, diff the targets.
 5. **Music Level global** — unlocks live volume set.
 6. **Gauge-table static root** — a second, independent chain to ammo.
+7. **FFB leftovers** ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) §6): surface-id →
+   I7_* terrain-name order; hardpoint gain/freq scales; what [veh+0xe4]
+   really is (steer input vs lateral slip) — all answerable from the shim's
+   telemetry in one field run.
 
 ## Tooling (repo)
 
 | tool | purpose | status |
 |---|---|---|
 | `tools/i76-debugmenu.ahk` + `debugmenu.sh` | **the debug menu**: live table of every inventory record (cur/max) + the armor-candidate grids; double-click = edit, checkbox = FREEZE (entity-relative, relocation-proof); `*` marks rows that just changed and every change auto-logs in the prefix (`debugmenu.sh --fetch`); F6 rearm-all. Field-test sheet: [DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md) | built 2026-07-19, NOT yet field-run |
+| `../ffb-shim/` | fake i7_SFRCE.DLL: activates the game's FFB path with no DI device, receives the per-tick force stream, drives XInput rumble + telemetry files ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md)) | builds clean, NOT yet field-run |
 | `tools/gpw-envelopes.py` | sound→rumble table generator: decodes every .gpw effect (GAS0+WAVE), emits windowed-RMS envelopes (0-100) for the AHK rumble layer; output gitignored | run end-to-end (123 envelopes), integration pending |
 | `tools/i76-rearm.ahk` | repair+rearm via the Tier 3 chain (F5 view / F6 write) | field-tested |
 | `tools/i76-worldscan.ahk` | enumerate all vehicles via the Tier 4 table | field-tested |
