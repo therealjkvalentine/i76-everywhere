@@ -1,0 +1,86 @@
+# Interstate '76 memory map — consolidated index & architecture
+
+*One readable place for everything the GHIDRA-MEMORY-MAP PART 1-10 sections and
+the static-RE work established. Read this first; drop into the PART docs for the
+raw disassembly. All addresses are GOG Gold `i76.exe`, loaded at 0x400000 (no
+ASLR under Wine, so static VAs are live process addresses). Nitro deltas in
+tools/i76-addresses.json.*
+
+## The engine in one paragraph (why some things were hard)
+
+I'76 is a **modified MechWarrior 2 engine**. Three architectural facts shaped
+this whole effort: (1) it runs a **mission SCRIPT VM** — many "functions"
+(`ammoLesser`, `isCBEmpty`, `playScene`, `setUserRadar`) are bytecode opcode
+names matched in strcmp tables, so string-anchored disassembly often lands in a
+dispatch table, not real code. (2) It keeps a **2029-bucket hash of
+heap-allocated entity structs** (Roanish) — gameplay objects relocate per
+mission/load, which is why flat value-scans for ammo/armor kept missing. (3) It
+splits a vehicle into a **transform-entity** (position/rotation/controls) and a
+separate **vehicle-LOGIC object** (weapons/components) reached by accessors —
+they are different objects with different roots.
+
+## Tier 1 — STATIC globals (permanent, no pointer chain)
+
+| VA | type | meaning | verified |
+|---|---|---|---|
+| 0x536770 / 78 / 80 | int | pilot yaw / pitch / roll look input | ✓ live |
+| 0x5367cc / d4 / db | int | throttle / steer / weapon_fire input | ✓ live |
+| 0x4c2964 / 6c / 70 / 74 | float | live camera Euler angles | ✓ live (head-track target) |
+| 0x4c2728 | int | camera view mode (F1..F11) | ✓ |
+| 0x54a264 | ptr | **world-context root** (0x457530 returns it) | ✓ live |
+| 0x524674 | int | **music-active flag** (nonzero = playing) | disasm |
+| 0x4ed890 / 894 | handle | MCI device / aux-volume device | disasm |
+| 0x52bbd0 / cc | int/ptr | FFB present flag / object ptr | ✓ (0 on Mac) |
+| 0x4f2328 | 364 B | FFB effect param block (rumble-mirror src on Win) | disasm |
+
+## Tier 2 — the PLAYER pointer chain (permanent root, live-verified)
+
+```
+world  = [0x54a264]
+sub    = [world]
+entity = [sub + 0x70]          ; = [[[0x54a264]] + 0x70]   the player vehicle entity
+  entity+0x08 : world transform (rotation matrix; position adjacent)   ✓ verified
+  entity+0xe0 : steer applied (float)                                   disasm
+  entity+0xe4 : throttle applied (float)                                disasm
+```
+This is the durable base for position/heading/controls — survives relaunch.
+
+## Tier 3 — the OPEN gap (weapons / components / armor / ammo)
+
+The weapon container and component list hang off the **vehicle-LOGIC object**,
+NOT the transform-entity (proven: `[entity+0x70]` is transient, `+0xa718`
+reads 0). Known SHAPES once the logic-object base is found:
+- logic + 0x3c = component count; +0x40 = component array (stride 0x20, type-tag
+  @+0) — armor / engine / tire / brake, stored as **integer TENTHS** (91.0 = 910).
+- logic + 0xa718 = weapon count; +0xa71c = weapon-pointer array (stride 4) ->
+  weapon object -> **+ammo = int32 current-rounds COUNTDOWN**.
+**Remaining step:** find the logic-object's static root (disasm ammoLesser's
+caller for what supplies its `vehicle` arg, OR a winedbg/CE watchpoint on a live
+ammo byte reads the base register). The main (live) thread is executing this.
+
+## How each finding powers a real feature
+
+- **Head tracking / analog look** — write `0x4c2964`/`0x4c2970` (camera yaw/pitch)
+  or the int look inputs `0x536770/78`. opentrack/webcam -> UDP -> a writer at
+  frame rate = the original goal, now address-in-hand. (input.map analog binding
+  is inert; it's a memory-write feature.)
+- **Rumble that reads the game** — the FFB param block `0x4f2328` on Win/Deck is
+  the real physics force to mirror into XInput rumble; on Mac the entity
+  transform (`+0x08`, delta per frame) + control inputs drive synthetic rumble.
+- **Minimap / "where am I"** — entity position/heading from the transform block.
+- **Smarter music** — read `0x524674` to know exactly when music should play
+  (no more inferring in the launcher); set volume via the aux device instead of
+  re-encoding the mp3s.
+- **Trainer / accessibility** — armor/ammo edits once the logic-object base is
+  pinned (encodings already known: int tenths, int32 countdown).
+- **Save integrity** — the save system lives in i76shell.dll (PART 2), which is
+  also where the savegame.dir truncation bug is, for a future source-level fix.
+
+## Tooling (repo)
+- `tools/exe-xref.py` — string-VA -> pointer xref + table detection
+- `tools/exe-disasm.py` — capstone x86 disasm with .data/.rdata string annotation
+- `tools/i76-addresses.json` — machine-readable map (both exes)
+- `tools/i76-trainer.ahk` — live overlay + scanner + write (in-prefix ReadProcessMemory)
+- `tools/i76-mem-dump.ahk` + `i76-mem-scan.py` — heap dump + differential scanner
+- Method: `docs/RE-METHODOLOGY.md` (run Cheat Engine INSIDE the wineprefix for
+  watchpoints); shapes: `docs/MW2-I76-STRUCTS.md`; legitimacy: `docs/SCOPE-AND-LEGITIMACY.md`.
