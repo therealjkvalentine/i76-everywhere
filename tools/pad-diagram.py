@@ -88,6 +88,13 @@ def main():
         return n if n else None
 
     UNBOUND = "— unbound —"
+    SHIFT_MAP = {"Left Shoulder 2 (LT)": "LB+LT", "Right Shoulder 2 (RT)": "LB+RT",
+                 "Action Bottom Row 1 (A)": "LB+A", "Action Bottom Row 2 (B)": "LB+B",
+                 "Action Top Row 1 (X)": "LB+X", "Action Top Row 2 (Y)": "LB+Y",
+                 "D-Pad Up": "LB+Dpad-Up", "D-Pad Down": "LB+Dpad-Down",
+                 "D-Pad Left": "LB+Dpad-Left", "D-Pad Right": "LB+Dpad-Right",
+                 "Center 1 (Select)": "LB+Select", "Center 2 (Start)": "LB+Start",
+                 "Right Stick X/Y": "LB+RStick", "Left Stick Button (L3)": "LB+L3"}
     # (template element name, binding, x,y of the element on the figure, side)
     elements = [
         ("Left Shoulder 2 (LT)",  base_of("LT", "LT"), 320, 62, "L"),
@@ -120,8 +127,15 @@ def main():
     def label(x_text, y, name, binding, anchor):
         b = html.escape(binding) if binding else UNBOUND
         cls = "bound" if binding else "unbound"
+        if name == "Left Shoulder 1 (LB)":
+            sb, scls = "SHIFT (held)", "bound"
+        else:
+            shifted = ahk.get(SHIFT_MAP.get(name, ""), None)
+            sb = html.escape(shifted) if shifted else UNBOUND
+            scls = "bound" if shifted else "unbound"
         return (f'<text x="{x_text}" y="{y}" text-anchor="{anchor}" class="lname">{html.escape(name)}'
-                f'<tspan x="{x_text}" dy="13" class="{cls}">{b}</tspan></text>')
+                f'<tspan x="{x_text}" dy="13" class="basev {cls}">{b}</tspan>'
+                f'<tspan x="{x_text}" dy="0" class="shiftv {scls}">{sb}</tspan></text>')
 
     svg = []
     # body
@@ -208,11 +222,19 @@ table{{border-collapse:collapse;width:100%}} td{{padding:.25rem .6rem;border-bot
 td.k{{width:12rem;font-weight:600;color:#f3e9d2;white-space:nowrap}} td.unbound{{color:#6f6350;font-style:italic}}
 .cols{{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem}} @media(max-width:700px){{.cols{{grid-template-columns:1fr}}}}
 .note{{color:#a89878;font-size:.85rem}}
-</style></head><body>
+.shiftv{{display:none}} body.shift .shiftv{{display:inline}} body.shift .basev{{display:none}}
+#shiftbtn{{background:#3a3226;color:#e8ddc8;border:1px solid #6a5a40;border-radius:6px;
+padding:.35rem .9rem;font:600 13px -apple-system,sans-serif;cursor:pointer;margin:.4rem 0}}
+body.shift #shiftbtn{{background:#e8a33d;color:#1b1712}}
+</style><script>function tg(){{document.body.classList.toggle('shift');
+document.getElementById('shiftbtn').textContent=document.body.classList.contains('shift')?
+'Showing: LB HELD (shift layer) — click for base':'Showing: BASE — click to hold LB';}}</script>
+</head><body>
 <h1>Interstate '76 — controller layout</h1>
 <p class="note">Generated {stamp} from the live input.map + i76-remap.ahk annotations.
 Element names per the generic gamepad template. Rerun <code>open-pad-diagram.command</code>
 any time — never edit this file.</p>
+<button id="shiftbtn" onclick="tg()">Showing: BASE — click to hold LB</button>
 <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">{''.join(svg)}</svg>
 <div class="cols">
 <div><h2>Hold LB — shift layer</h2><table>{shift_rows}</table>
