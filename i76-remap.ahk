@@ -73,11 +73,12 @@ OnExit, RSGExit
 ; @pad RT: fire - current weapon / cockpit handgun (hold)
 ; @pad RT(looking back): fires the REAR gun (hp3) while right stick is held back
 ; @pad LT: hardpoint 2 (hold)
+; @pad LB+X: radar zoom toggle (R)
 ; @pad A(tap): OK/select in menus - click+Enter; in-sim a single shot
 ; @pad A(hold 400ms): NITROUS while held
 ; @pad B(tap): cycle weapon (C)
 ; @pad X: cycle targets (Y)
-; @pad Y: dash/combat view (V)
+; @pad Y: toggle chase cam <-> cockpit (F3/F1)
 ; @pad LB(tap): front target (Q)
 ; @pad Select: pause menu / skip cutscene (Esc)
 ; @pad Start: map (M)
@@ -89,7 +90,7 @@ OnExit, RSGExit
 ; @pad R3: look at target (E)
 ; @pad R3(looking back): drop mines (hardpoint 4)
 ; @pad LB+RT: hardpoint 1
-; @pad LB+LT: hardpoint 5
+; @pad LB+LT: hardpoint 5 + hardpoint 2 (backup - few cars have a 5th)
 ; @pad LB+A: hardpoint 3 - rear gun only
 ; @pad LB+B: hardpoint 4 - dropper
 ; @pad LB+Y: cycle camera views (F1 F2 F3 F7 F8 F9 F10 F1 - both dash modes)
@@ -109,7 +110,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
-gYPrev := false, gCamIdx := 0, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
+gYPrev := false, gCamIdx := 0, gYExt := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -180,7 +181,7 @@ if (gXIDll != "")
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
 RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
 RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
-RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false), RSGSet("b", false), RSGSet("g", false), RSGSet("e", false)
+RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false), RSGSet("b", false), RSGSet("g", false), RSGSet("e", false), RSGSet("r", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -275,7 +276,7 @@ else if (ry > -13000)
 ; fire + triggers, base vs layer vs look-back
 RSGSet("LButton", !lbHeld && !gLookBack && gRTHeld)
 RSGSet("1", lbHeld && gRTHeld)
-RSGSet("2", !lbHeld && gLTHeld)
+RSGSet("2", gLTHeld)              ; hp2 always - shifted too (hp5 backup rule)
 RSGSet("5", lbHeld && gLTHeld)
 
 ; R3: look at target; while looking back, drop mines (hardpoint 4).
@@ -289,11 +290,17 @@ if (!lbHeld && bHeld && !gBPrev)
     SendEvent, c
 gBPrev := bHeld
 
-; X: cycle targets (Y key); LB+X unbound (untarget dropped 2026-07-18)
+; X: cycle targets (Y key); shifted = radar zoom toggle (R)
 RSGSet("y", !lbHeld && xHeld)
+RSGSet("r", lbHeld && xHeld)
 
-; Y: base = dash/combat view (V); shifted = cycle camera views F1-F5
-RSGSet("v", !lbHeld && yHeld)
+; Y: base = chase <-> cockpit toggle (F3/F1); shifted = cycle camera views
+if (!lbHeld && yHeld && !gYPrev) {
+    gYExt := !gYExt
+    yKey := gYExt ? "F3" : "F1"
+    SendEvent, {%yKey%}
+    gCamIdx := gYExt ? 2 : 0     ; keep the LB+Y cycle in step
+}
 if (lbHeld && yHeld && !gYPrev) {
     gCamIdx := Mod(gCamIdx + 1, 8)
     camKey := StrSplit("F1,F2,F3,F7,F8,F9,F10,F1", ",")[gCamIdx + 1]
