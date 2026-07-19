@@ -3,58 +3,217 @@
   "i76.exe": {
     "md5_note": "GOG Gold i76.exe",
     "globals": {
-      "input_state_block": {"va": "0x536770", "conf": "confirmed", "note": "base of the live per-action input value block (0x536770..0x536818)"},
-      "in_pilot_yaw":   {"va": "0x536770", "type": "int",   "conf": "confirmed"},
-      "in_pilot_pitch": {"va": "0x536778", "type": "int",   "conf": "confirmed"},
-      "in_pilot_roll":  {"va": "0x536780", "type": "int",   "conf": "confirmed"},
-      "in_throttle":    {"va": "0x5367cc", "type": "int",   "conf": "confirmed"},
-      "in_steer":       {"va": "0x5367d4", "type": "int",   "conf": "confirmed"},
-      "in_weapon_fire": {"va": "0x5367db", "type": "int",   "conf": "confirmed"},
-      "cam_yaw":        {"va": "0x4c2964", "type": "float", "conf": "confirmed", "note": "live camera Euler; head-tracking write target"},
-      "cam_angle_b":    {"va": "0x4c296c", "type": "float", "conf": "confirmed"},
-      "cam_pitch":      {"va": "0x4c2970", "type": "float", "conf": "confirmed"},
-      "cam_angle_d":    {"va": "0x4c2974", "type": "float", "conf": "confirmed"},
-      "cam_view_mode":  {"va": "0x4c2728", "type": "int",   "conf": "confirmed", "note": "FSM view mode (F1..F11)"},
-      "cam_active_flag":{"va": "0x4c2724", "type": "int",   "conf": "confirmed"},
-      "ffb_present_flag":{"va": "0x52bbd0","type": "int",   "conf": "confirmed", "note": "1 when DI-FFB device+SWForce present"},
-      "ffb_object_ptr": {"va": "0x52bbcc", "type": "ptr",   "conf": "confirmed"},
-      "ffb_effect_params":{"va": "0x4f2328","type": "blob", "size": 364, "conf": "confirmed", "note": "live force-effect param block; mirror -> rumble on Win/Deck"}
+      "input_state_block": {
+        "va": "0x536770",
+        "conf": "confirmed",
+        "note": "base of the live per-action input value block (0x536770..0x536818)"
+      },
+      "in_pilot_yaw": {
+        "va": "0x536770",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_pilot_pitch": {
+        "va": "0x536778",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_pilot_roll": {
+        "va": "0x536780",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_throttle": {
+        "va": "0x5367cc",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_steer": {
+        "va": "0x5367d4",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_weapon_fire": {
+        "va": "0x5367db",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "cam_yaw": {
+        "va": "0x4c2964",
+        "type": "float",
+        "conf": "confirmed",
+        "note": "live camera Euler; head-tracking write target"
+      },
+      "cam_angle_b": {
+        "va": "0x4c296c",
+        "type": "float",
+        "conf": "confirmed"
+      },
+      "cam_pitch": {
+        "va": "0x4c2970",
+        "type": "float",
+        "conf": "confirmed"
+      },
+      "cam_angle_d": {
+        "va": "0x4c2974",
+        "type": "float",
+        "conf": "confirmed"
+      },
+      "cam_view_mode": {
+        "va": "0x4c2728",
+        "type": "int",
+        "conf": "confirmed",
+        "note": "FSM view mode (F1..F11)"
+      },
+      "cam_active_flag": {
+        "va": "0x4c2724",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "ffb_present_flag": {
+        "va": "0x52bbd0",
+        "type": "int",
+        "conf": "confirmed",
+        "note": "1 when DI-FFB device+SWForce present"
+      },
+      "ffb_object_ptr": {
+        "va": "0x52bbcc",
+        "type": "ptr",
+        "conf": "confirmed"
+      },
+      "ffb_effect_params": {
+        "va": "0x4f2328",
+        "type": "blob",
+        "size": 364,
+        "conf": "confirmed",
+        "note": "live force-effect param block; mirror -> rumble on Win/Deck"
+      },
+      "music_active_flag": {
+        "va": "0x524674",
+        "type": "int",
+        "conf": "confirmed",
+        "note": "nonzero = music playing (read to know when music should play)"
+      },
+      "mci_device": {
+        "va": "0x4ed890",
+        "type": "handle",
+        "conf": "confirmed"
+      },
+      "aux_volume_device": {
+        "va": "0x4ed894",
+        "type": "handle",
+        "conf": "confirmed"
+      },
+      "world_context_root": {
+        "va": "0x54a264",
+        "type": "ptr",
+        "conf": "confirmed",
+        "note": "0x457530 returns it; player_entity = [[[0x54a264]]+0x70]"
+      }
     },
     "functions": {
       "cockpit_look_apply": "0x406b00",
-      "camera_init":        "0x405a3f",
-      "input_map_loader":   "0x44c2e6",
+      "camera_init": "0x405a3f",
+      "input_map_loader": "0x44c2e6",
       "device_axis_parser": "0x45019e",
       "component_finder_engine": "0x4b6900",
-      "component_finder_generic":"0x4ada72",
+      "component_finder_generic": "0x4ada72",
       "weapon_info_in_car": "0x409e40",
-      "ffb_effect_setup":   "0x446040",
-      "player_vehicle_lookup":"0x4547c0",
-      "radar_set":          "0x411da0",
-      "weapon_def_ref":     "0x46ea35"
+      "ffb_effect_setup": "0x446040",
+      "player_vehicle_lookup": "0x4547c0",
+      "radar_set": "0x411da0",
+      "weapon_def_ref": "0x46ea35"
     },
     "structs": {
       "vehicle": {
-        "component_count": {"off": "0x3c", "type": "int", "conf": "confirmed"},
-        "component_array": {"off": "0x40", "stride": "0x20", "conf": "confirmed", "note": "each: type-tag at +0; health/condition offset = runtime-scan"},
-        "weapon_ptr_array":{"off": "0xa71c", "stride": 4, "conf": "confirmed"},
-        "weapon_records":  {"off": "0xa738", "stride": "0x20", "conf": "confirmed"}
+        "component_count": {
+          "off": "0x3c",
+          "type": "int",
+          "conf": "confirmed"
+        },
+        "component_array": {
+          "off": "0x40",
+          "stride": "0x20",
+          "conf": "confirmed",
+          "note": "each: type-tag at +0; health/condition offset = runtime-scan"
+        },
+        "weapon_ptr_array": {
+          "off": "0xa71c",
+          "stride": 4,
+          "conf": "confirmed"
+        },
+        "weapon_records": {
+          "off": "0xa738",
+          "stride": "0x20",
+          "conf": "confirmed"
+        }
+      }
+    },
+    "pointer_chains": {
+      "player_entity": {
+        "path": "[[[0x54a264]]+0x70]",
+        "conf": "live-verified",
+        "fields": {
+          "+0x08": "world transform (rotation matrix)",
+          "+0xe0": "steer applied (float)",
+          "+0xe4": "throttle applied (float)"
+        },
+        "note": "weapons/components hang off the vehicle-LOGIC object (different root); offsets are base+N*0x144+field - pin via winedbg watchpoint"
       }
     }
   },
   "nitro.exe": {
     "md5_note": "GOG Nitro Pack nitro.exe (same engine, shifted addresses)",
     "globals": {
-      "input_state_block": {"va": "0x5348a0", "conf": "confirmed"},
-      "in_pilot_yaw":   {"va": "0x5348a0", "type": "int",   "conf": "confirmed"},
-      "in_pilot_pitch": {"va": "0x5348a8", "type": "int",   "conf": "confirmed"},
-      "in_pilot_roll":  {"va": "0x5348b0", "type": "int",   "conf": "confirmed"},
-      "in_throttle":    {"va": "0x5348fc", "type": "int",   "conf": "confirmed"},
-      "in_steer":       {"va": "0x534904", "type": "int",   "conf": "confirmed"},
-      "in_weapon_fire": {"va": "0x53490b", "type": "int",   "conf": "confirmed"},
-      "cam_yaw":        {"va": "0x4f38fc", "type": "float", "conf": "confirmed"},
-      "cam_angle_b":    {"va": "0x4f3904", "type": "float", "conf": "confirmed"},
-      "cam_pitch":      {"va": "0x4f3908", "type": "float", "conf": "confirmed"}
+      "input_state_block": {
+        "va": "0x5348a0",
+        "conf": "confirmed"
+      },
+      "in_pilot_yaw": {
+        "va": "0x5348a0",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_pilot_pitch": {
+        "va": "0x5348a8",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_pilot_roll": {
+        "va": "0x5348b0",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_throttle": {
+        "va": "0x5348fc",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_steer": {
+        "va": "0x534904",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "in_weapon_fire": {
+        "va": "0x53490b",
+        "type": "int",
+        "conf": "confirmed"
+      },
+      "cam_yaw": {
+        "va": "0x4f38fc",
+        "type": "float",
+        "conf": "confirmed"
+      },
+      "cam_angle_b": {
+        "va": "0x4f3904",
+        "type": "float",
+        "conf": "confirmed"
+      },
+      "cam_pitch": {
+        "va": "0x4f3908",
+        "type": "float",
+        "conf": "confirmed"
+      }
     },
     "functions": {
       "cockpit_look_apply": "0x435c93"
