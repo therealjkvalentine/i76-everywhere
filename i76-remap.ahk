@@ -112,7 +112,7 @@ gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
 gYPrev := false, gCamIdx := 0, gYExt := false
 gTL := 0, gTR := 0, gTTicks := 0, gGrowl := 0
-gNitroPrev := false, gRBPrev := false, gGearUPrev := false, gGearDPrev := false, gMinePrev := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
+gNitroPrev := false, gRBPrev := false, gGearUPrev := false, gGearDPrev := false, gMinePrev := false, gIgnPrev := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -357,6 +357,10 @@ mn := (lbHeld && bHeld) || (r3Held && gLookBack)
 if (mn && !gMinePrev)
     RumblePulse(40000, 0, 3)              ; mine/dropper thud
 gMinePrev := mn
+ign := !lbHeld && dD
+if (ign && !gIgnPrev)
+    RumblePulse(16000, 0, 20)             ; ignition: ~300ms starter crank
+gIgnPrev := ign
 cl := 0, cr := 0
 if (nact)
     cl := 45000, cr := 20000

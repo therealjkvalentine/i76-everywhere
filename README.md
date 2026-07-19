@@ -19,6 +19,21 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
 
+## The gamepad layout
+
+The full controller scheme — native `input.map` bindings plus the AutoHotkey/XInput
+layer (shift layer, look-back fire, rumble). These render from the **live configs**
+via [tools/pad-diagram.py](tools/pad-diagram.py); regenerate after any binding change
+(`open-pad-diagram.command` also gives an interactive HTML with the mouse/keyboard
+tables) — never hand-edit them.
+
+![Controller layout — base layer](docs/pad-layout.svg)
+
+![Controller layout — LB held, shift layer](docs/pad-layout-shift.svg)
+
+Design doctrine: [docs/CONTROL-DOCTRINE.md](docs/CONTROL-DOCTRINE.md) ·
+Gamepad reference: [docs/GAMEPAD-PC-MAC.md](docs/GAMEPAD-PC-MAC.md)
+
 ## The save editor
 
 A single self-contained web page styled after the game's garage paperwork.

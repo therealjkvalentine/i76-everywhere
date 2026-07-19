@@ -235,7 +235,7 @@ document.getElementById('shiftbtn').textContent=document.body.classList.contains
 Element names per the generic gamepad template. Rerun <code>open-pad-diagram.command</code>
 any time — never edit this file.</p>
 <button id="shiftbtn" onclick="tg()">Showing: BASE — click to hold LB</button>
-<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">{''.join(svg)}</svg>
+<svg viewBox="-180 0 1280 420" xmlns="http://www.w3.org/2000/svg">{''.join(svg)}</svg>
 <div class="cols">
 <div><h2>Hold LB — shift layer</h2><table>{shift_rows}</table>
 <h2>Back buttons / paddles (pads that have them)</h2><table>{paddle_rows}</table></div>
@@ -244,6 +244,28 @@ any time — never edit this file.</p>
 </div></body></html>"""
     open(out, "w").write(page)
     print(out)
+
+    # --- standalone SVGs for the repo README (GitHub renders these natively)
+    SVG_CSS = (".body{fill:#2a241b;stroke:#5a4d38;stroke-width:2}"
+               ".part{fill:#3a3226;stroke:#5a4d38}.stick{fill:#241f17;stroke:#6a5a40}"
+               ".lead{fill:none;stroke:#6a5a40;stroke-width:1}"
+               ".lname{font:600 11px sans-serif;fill:#f3e9d2}"
+               ".lname tspan{font-weight:400;font-size:10.5px}"
+               ".bound{fill:#c9b895}.unbound{fill:#6f6350;font-style:italic}"
+               ".bl{font:700 10px sans-serif;fill:#1b1712}"
+               ".cap{font:700 13px sans-serif;fill:#e8a33d}")
+    body = "".join(svg)
+    for fname, shift, cap in [("pad-layout.svg", False, "BASE LAYER"),
+                              ("pad-layout-shift.svg", True, "LB HELD — SHIFT LAYER")]:
+        vis = ".basev{display:none}.shiftv{display:inline}" if shift else ".shiftv{display:none}"
+        doc = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-180 0 1280 420">'
+               f'<style>{SVG_CSS}{vis}</style>'
+               f'<rect x="-180" width="1280" height="420" fill="#1b1712"/>'
+               f'<text x="450" y="20" text-anchor="middle" class="cap">{cap}</text>'
+               f'{body}</svg>')
+        sp = os.path.join(REPO, "docs", fname)
+        open(sp, "w").write(doc)
+        print(sp)
 
 if __name__ == "__main__":
     main()
