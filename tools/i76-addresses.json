@@ -146,7 +146,8 @@
           "off": "0xa738",
           "stride": "0x20",
           "conf": "confirmed"
-        }
+        },
+        "_correction": "Offsets below are relative to an INDEXED 0x144-stride sub-struct (base+N*0x144+field), NOT flat car offsets - see docs/STATIC-RE-FABLE.md section 9. Component health offset within the 0x20 record + the player's base/index need a winedbg 'find what accesses' watchpoint."
       }
     },
     "pointer_chains": {
