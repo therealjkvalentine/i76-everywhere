@@ -409,3 +409,93 @@ scripting language — noted for completeness, not a memory target.
 - `tools/exe-xref.py`  — string-VA → embedded-pointer xref + table detection
 - `tools/exe-disasm.py` — capstone x86-32 disasm with .data/.rdata operand
   string-annotation. Both work on i76.exe, nitro.exe, i76shell.dll.
+
+---
+
+# PART 5 — Deep static map of Gold i76.exe (2026-07-18, autonomous session)
+
+Systematic anchor→xref→disasm across gameplay systems. Confidence tags as before.
+
+## VEHICLE component list — the spine (DIRECT, from component-finder ~0x4b6900)
+
+The generic "find component of type N in vehicle" fn (shared by the
+`Engine/Brake/Suspension %d not found in %s` errors) walks a per-vehicle
+component array:
+- `vehicle + 0x3c` = component COUNT (int)
+- `vehicle + 0x40` = component ARRAY, **stride 0x20 (32 bytes)**, each record's
+  **type-tag at +0x00** (engine/brake/tire/suspension/armor... are type codes)
+Component records carry condition/health — the dashboard gauge color states
+(`3engine_grn/ylw/red`, `3tire_grn/ylw/red`, `3brakes_*`) are driven by reading
+a component's health and thresholding. So armor/engine/tire/brake STATE all
+live in these 32-byte records; the exact health offset within a record is the
+next runtime-scan target (trainer §scanner).
+
+Component-access function cluster (callable / breakpointable):
+`0x4b6900` engine, `0x4b6c98` rear tires, `0x4ada72`+`0x4b108b` generic-by-index.
+
+## FORCE FEEDBACK — full chain (DIRECT, ~0x446040)
+
+- The game loads FFB effect entry points BY NAME from an external effect module
+  ("SWForce"): globals `0x52bbdc / 0x52bbe0 / 0x52bbe4` = cached effect fn
+  pointers (I7FF_* names at 0x4f24d0/e0/f0).
+- `0x52bbd0` = FFB-present flag (1 when device+module present), `0x52bbcc` =
+  FFB object ptr (PART 4).
+- **`0x4f2328` = the live effect PARAMETER block (0x16c = 364 bytes)** the game
+  fills each update and passes to `I7FF_SIM_Effect`. Its first dword is set to
+  0x16c (struct size). **Reading this block live = the game's own computed
+  force stream (magnitude/direction/spring) — the ideal source to MIRROR into
+  our synthetic XInput rumble** (real physics-driven FFB feel on a pad that has
+  no DirectInput FFB). This supersedes guessing rumble from inputs.
+- On Mac/Wine the SWForce module/device is absent so the flag stays 0 and this
+  block isn't filled — but on Windows/Deck it is, and the mirror idea is live
+  there; on Mac we keep the input-driven synthetic map.
+
+## PLAYER → VEHICLE (DIRECT, ~0x4511a0)
+
+Player→vehicle is a LOOKUP FN `0x4547c0(playerIndex)`, not a bare global; the
+local-player index is the pointer-chain root to find at runtime. `0x455e60`,
+`0x454750` are sibling player/vehicle helpers. dpDestroyPlayer / DirectPlay
+confirm the player table is multiplayer-style indexed.
+
+## RADAR / JAMMER / TARGET (function locations, DIRECT)
+
+- `setUserRadar` fn @ `0x411da0` — radar range/mode state.
+- `termJam` (ECM/jammer teardown) reached via table (no direct xref) — jammer
+  state is table-driven.
+- Target actions: `next_target/prev_target/frontal_target/target_nearest_enemy/
+  reset_target/KILL_TARGET` all in the action table (PART 2 neighborhood); the
+  current-target pointer is a per-vehicle field (runtime-scan target).
+
+## WEAPON DEFINITIONS (DIRECT anchor)
+
+`.45 Handgun` @ 0x4f8a30, referenced from `0x46ea35` — the weapon-definition
+table (name → class/type/damage). `hardpointN_fire` actions map to the car's
+weapon-instance arrays at `car+0xa71c` (ptrs) / `car+0xa738` (32B records,
+PART 4). Hardpoint CONTENTS = walking those arrays once the car ptr is known.
+
+## Mission SCRIPT VM
+
+`ammoLesser`, `termJam`, `setUserRadar`, `SET_SPEED_*`, `KILL_TARGET`,
+`DAMAGE_DEBUG_*` are mission-script opcodes (string→bytecode table ~0x4c316c).
+The engine runs a scripting VM for mission logic — a whole subsystem, not a
+memory target, but documents the full verb set.
+
+## CONFIRMED external read/write targets (static, no code patch, ASLR-free 1997 PE)
+
+| VA | type | meaning | use |
+|---|---|---|---|
+| 0x536770 | int | pilot_yaw_delta input | head-look (write) |
+| 0x536778 | int | pilot_pitch input | head-look (write) |
+| 0x536780 | int | pilot_roll input | head-look (write) |
+| 0x4c2964/6c/70/74 | float | live camera Euler angles | head-look / read view |
+| 0x4c2728 | int | camera view-mode (F1..F11) | read/set view |
+| 0x52bbd0 | int | FFB present flag | read |
+| 0x4f2328 | 364B | live FFB effect params | mirror→rumble (Win/Deck) |
+| 0x536770..818 | block | full live INPUT state (every action's value) | read all controls |
+
+NOTE (field 2026-07-18): binding `pilot_yaw_delta` to the mouse in input.map did
+NOT visibly turn the head — the analog pilot_* actions appear NOT wired to the
+file-binding parser (they're internal/script-driven). So head-look is a
+MEMORY-WRITE feature (write 0x536770/78 or the angle floats), which is exactly
+what the trainer does. The staged input.map experiment is left as documentation
+but is inert; real path = trainer.
