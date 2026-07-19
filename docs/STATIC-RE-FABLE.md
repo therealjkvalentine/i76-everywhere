@@ -319,3 +319,32 @@ Related: `0x457530` = get world/user-entity context (`[0x54a264]`); `0x457570
 (ctx, idx)` = indexed context accessor. Spawn system at 0x456ade
 ("Cannot find a valid spawn location"). AI is an FSM + A* pathfinder (strings
 `FSM: behave`, `astar`).
+
+## 12. Entity-table refinements + honest limits (position/faction)
+
+Live follow-up on §11:
+- **The table entries are WRAPPER objects, not transform-entities.** From
+  setAllAggresion the chain is `slot -> esi(wrapper) -> [esi] -> +0x70 -> +0x108
+  = logic`. Read live, the 14 table entities sit at 0x0054xxxx (a compact
+  region) and do NOT equal the player's transform-entity from
+  `[[[0x54a264]]+0x70]` (0x2401948 this session) — so there's a wrapper layer
+  between the table and the transform-entity. Both are valid handles to the same
+  car; the table is the enumeration index, the chain is the player fast-path.
+- **Position offset NOT yet pinned.** The transform translation columns
+  (+0x0c/0x18/0x24/0x30) read as small constants (0.0, 30.0) across all cars —
+  so world position is stored elsewhere in the entity, OR the mission coords are
+  origin-centered. Pinning it needs correlation (drive, watch which 3 floats
+  move together) or a winedbg watchpoint on the render/transform code — the
+  live thread's tools. The 0x94 (~51.5) field remains the best speed candidate.
+- **Faction/team = the group index itself** (0..7 in the table); "enemy" is
+  determined by group relationship, computed in the targeting code (the
+  nearestEnemy/isWithinEnemy logic, which lives in the script-VM region 0x410xxx
+  and is opcode-dispatched — hard to trace statically).
+
+### Net for the entity system
+CONFIRMED & usable now: the 8-group entity TABLE (counts 0x51f5d0, ptr arrays
+0x507da0/0x100), live 14-entity enumeration, aggression at logic+0xa818, the
+wrapper->entity->logic graph. OPEN (needs live correlation): the exact
+world-position and speed offsets inside the entity — the last pieces for a live
+radar/minimap, and exactly the kind of "watch it change" pin the live thread
+does best. Static mapped the STRUCTURE of the world; live pins the moving floats.
