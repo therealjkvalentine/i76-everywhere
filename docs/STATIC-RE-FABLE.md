@@ -216,3 +216,32 @@ vehicle-LOGIC object's own static root (the one ammoLesser's arg comes from) —
 it by disassembling ammoLesser's caller (what supplies esp+0x68), or set a CE
 watchpoint on a known-live ammo byte and read the base register. That single step
 connects weapons/components/armor to a permanent root; the entity side is done.
+
+## 9. Component/weapon offset CORRECTION — indexed 0x144-stride sub-structs
+
+Re-read the component-finder prologue (0x4b6860): the offsets I quoted as
+`car+0x3c`/`+0x40`/`+0xa718` are NOT relative to the object base. The function
+computes `ebp = N * 0x144` (324 bytes/entry: `N*5<<4 + N, <<2`) and addresses
+`[ebx + ebp + 0x3c]`, `[ebx + ebp + 0x40]`, `[ebx + ebp + 0x820]`. So the
+vehicle-logic object contains an **indexed array of 0x144-byte sub-structures**,
+and:
+- component count is at `base + N*0x144 + 0x3c`
+- component array at `base + N*0x144 + 0x40` (stride 0x20 within)
+- (the 0xa718 weapon offset similarly sits at some base+index, not a flat car
+  offset)
+
+**This is why both the value-scan AND the entity-pointer structural search
+found nothing at those flat offsets** — the true address is
+`base + index*0x144 + field`, and neither `base` nor `index` for the player is
+known from static analysis alone (they arrive as function args / this-pointers).
+
+### Honest division of labor (static has hit its floor here)
+Static disassembly has fully mapped the SHAPES: entity chain
+`[[[0x54a264]]+0x70]` (verified), the 0x144-stride component sub-struct, the
+weapon-pointer-array pattern, int-tenths armor, int32-countdown ammo. What it
+CANNOT cheaply yield is the absolute base of the vehicle-logic object for the
+player. The conclusive tool is the **winedbg / Cheat-Engine "find what accesses
+this address" watchpoint** on a live ammo or armor byte: it reads the exact
+`base register + displacement` off the CPU at the moment the game touches the
+value, giving both the base and the true offset in one shot. That's the live
+thread's job and it closes Tier 3. Static + live meet exactly here.
