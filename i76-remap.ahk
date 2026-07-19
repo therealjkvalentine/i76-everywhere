@@ -71,6 +71,7 @@ OnExit, RSGExit
 ;   the @pad lines below plus input.map into docs/pad-diagram.html - keep
 ;   them in sync with the XIPoll code they describe.
 ; @pad RT: fire - current weapon / cockpit handgun (hold)
+; @pad RT(looking back): fires the REAR gun (hp3) while right stick is held back
 ; @pad LT: hardpoint 2 (hold)
 ; @pad A(tap): OK/select in menus - click+Enter; in-sim a single shot
 ; @pad A(hold 400ms): NITROUS while held
@@ -89,8 +90,8 @@ OnExit, RSGExit
 ; @pad LB+LT: hardpoint 5
 ; @pad LB+A: hardpoint 3 - rear gun only
 ; @pad LB+B: hardpoint 4 - dropper
-; @pad LB+X: untarget (U)
-; @pad LB+Y: cycle camera views (F1-F5)
+; @pad LB+Y: cycle camera views (F1 F2 F3 F7 F8 F9 F10)
+; @pad L3: nitrous / special 1 (hold); with LEFT stick pulled back = toggle reverse
 ; @pad LB+Dpad-Down: reverse (X)
 ; @pad LB+Dpad-Left: gear down (-)
 ; @pad LB+Dpad-Right: gear up (=)
@@ -105,7 +106,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
-gYPrev := false, gCamIdx := 0
+gYPrev := false, gCamIdx := 0, gLookBack := false, gL3Nitro := false, gL3Prev := false
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -152,9 +153,9 @@ return
 
 RSGHys(key, val, dir) {
     d := (val - 50) * dir
-    if (d > 25)
+    if (d > 12)
         RSGSet(key, true)
-    else if (d < 15)
+    else if (d < 8)
         RSGSet(key, false)
 }
 
@@ -224,21 +225,16 @@ if (lbHeld && !gLBPrev)
 ; A: shifted = rear gun only. Base: tap = click+Enter on release (menu
 ; OK/select; in-sim just a single shot); held >=400ms = nitrous.
 if (lbHeld) {
-    RSGSet("6", false)
     gANitro := false, gAt0 := 0
-    RSGSet("3", aHeld)
+    RSGSet("3", (lbHeld && aHeld) || (gLookBack && gRTHeld))
 } else {
-    RSGSet("3", false)
+    RSGSet("3", gLookBack && gRTHeld)
     if (aHeld && !gAPrev)
         gAt0 := A_TickCount, gANitro := false
-    if (aHeld && !gANitro && gAt0 && A_TickCount - gAt0 >= 400) {
+    if (aHeld && !gANitro && gAt0 && A_TickCount - gAt0 >= 400)
         gANitro := true
-        RSGSet("6", true)
-    }
     if (!aHeld && gAPrev) {
-        if (gANitro)
-            RSGSet("6", false)
-        else if (gAt0) {
+        if (!gANitro && gAt0) {
             Click
             SendEvent, {Enter}
         }
@@ -247,8 +243,31 @@ if (lbHeld) {
 }
 gAPrev := aHeld
 
-; fire + triggers, base vs layer
-RSGSet("LButton", !lbHeld && gRTHeld)
+; L3: nitrous while held - unless the LEFT stick is pulled back at the
+; press, then it's a reverse toggle instead (low-speed 3-point-turn helper)
+l3Held := (btns & 0x0040) != 0
+if (l3Held && !gL3Prev) {
+    ly := NumGet(xiState, 10, "Short")
+    if (ly < -16384)
+        SendEvent, x
+    else
+        gL3Nitro := true
+}
+if (!l3Held)
+    gL3Nitro := false
+gL3Prev := l3Held
+RSGSet("6", gANitro || gL3Nitro)
+
+; look-back fire: while the right stick is held back (rear view), RT
+; routes to the rear gun instead of the front guns
+ry := NumGet(xiState, 14, "Short")
+if (ry < -16384)
+    gLookBack := true
+else if (ry > -13000)
+    gLookBack := false
+
+; fire + triggers, base vs layer vs look-back
+RSGSet("LButton", !lbHeld && !gLookBack && gRTHeld)
 RSGSet("1", lbHeld && gRTHeld)
 RSGSet("2", !lbHeld && gLTHeld)
 RSGSet("5", lbHeld && gLTHeld)
@@ -259,15 +278,14 @@ if (!lbHeld && bHeld && !gBPrev)
     SendEvent, c
 gBPrev := bHeld
 
-; X: base = cycle targets (Y key); shifted = untarget (U)
+; X: cycle targets (Y key); LB+X unbound (untarget dropped 2026-07-18)
 RSGSet("y", !lbHeld && xHeld)
-RSGSet("u", lbHeld && xHeld)
 
 ; Y: base = dash/combat view (V); shifted = cycle camera views F1-F5
 RSGSet("v", !lbHeld && yHeld)
 if (lbHeld && yHeld && !gYPrev) {
-    gCamIdx := Mod(gCamIdx + 1, 5)
-    camKey := "F" . (gCamIdx + 1)
+    gCamIdx := Mod(gCamIdx + 1, 7)
+    camKey := StrSplit("F1,F2,F3,F7,F8,F9,F10", ",")[gCamIdx + 1]
     SendEvent, {%camKey%}
 }
 gYPrev := yHeld
