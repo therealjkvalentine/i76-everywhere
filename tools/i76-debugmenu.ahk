@@ -15,8 +15,14 @@
 ;
 ; Hotkeys: F5 refresh view   F6 rearm+repair all (cur=max)   F7 switch view
 ;          F8 hide/show      F9 unfreeze all
-; Launch:  wine AutoHotkeyU32.exe i76-debugmenu.ahk   (game in a mission)
-; Only touches i76.exe process memory; writes no files.
+; A "*" in the first column = that row's value CHANGED in the last ~3s (the
+; field instrument: fire a weapon to label its record; take a hit to see
+; which armor-grid rows move). Every unfrozen change is also appended to
+; C:\AutoHotkey\debugmenu.log, and a full snapshot lands in
+; C:\AutoHotkey\debugmenu.out every ~2s — so a field run leaves a record
+; that can be analyzed afterwards (tools/debugmenu.sh --fetch).
+; Launch:  tools/debugmenu.sh   (game in a mission)
+; Only touches i76.exe process memory + its own log files under C:\AutoHotkey.
 ; STATUS: NOT yet field-run (2026-07-19) — built from the verified map;
 ; the chain + rearm write path itself is field-tested via i76-rearm.ahk.
 
@@ -27,6 +33,7 @@ SetBatchLines, -1
 
 global hProc := 0, gPid := 0, gView := "inv", gShow := true
 global gRows := [], gFrozen := {}, gEnt := 0, gTick := 0
+global gPrev := {}, gMark := {}, gLogN := 0
 
 Process, Exist, i76.exe
 gPid := ErrorLevel
@@ -36,7 +43,7 @@ Gui, +AlwaysOnTop +ToolWindow
 Gui, Color, 0d0d0d
 Gui, Font, s9 cB8E6B8, Consolas
 Gui, Add, Text, x8 y4 w430 vST, i76 debug menu — attaching...
-Gui, Add, ListView, x8 y22 w430 r18 Checked Grid vLV gLVevt AltSubmit, frz#|row|cur|max
+Gui, Add, ListView, x8 y22 w430 r18 Checked Grid vLV gLVevt AltSubmit, frz *|row|cur|max
 LV_ModifyCol(1, 50), LV_ModifyCol(2, 170), LV_ModifyCol(3, 90), LV_ModifyCol(4, 90)
 Gui, Add, Text, x8 y+2 w430 cGray, F5 refresh  F6 rearm all  F7 view  F8 hide  F9 unfreeze | dbl-click=edit  checkbox=freeze
 Gui, Show, x8 y8 NoActivate, i76debugmenu
@@ -101,10 +108,12 @@ Rebuild() {
         Loop, 16
             gRows.Push({"rel": 0x135c + (A_Index-1)*4, "name": Format("chassis? +0x135c+{:02x}", (A_Index-1)*4), "hasmax": false})
     }
+    gPrev := {}, gMark := {}
     for i, row in gRows {
         cur := RI(gEnt + row.rel)
         mx := row.hasmax ? RI(gEnt + row.rel + 4) : ""
         LV_Add(gFrozen.HasKey(row.rel) ? "Check" : "", "", row.name, cur, mx)
+        gPrev[row.rel] := cur
     }
 }
 
@@ -135,15 +144,35 @@ Tick:
         } else if (gFrozen.HasKey(row.rel))
             gFrozen.Delete(row.rel)
     }
-    if (gShow && gEnt) {
+    if (gEnt) {
         nf := 0
         for rel, val in gFrozen
             nf++
+        snap := ""
         for i, row in gRows {
             cur := gFrozen.HasKey(row.rel) ? gFrozen[row.rel] : RI(gEnt + row.rel)
-            LV_Modify(i, "Col3", cur)
+            ; delta detection: mark + log any UNfrozen change (this is the field
+            ; instrument - "take a hit, see which rows moved" / label records by firing)
+            if (!gFrozen.HasKey(row.rel) && gPrev.HasKey(row.rel) && cur != "ERR" && gPrev[row.rel] != "ERR" && cur != gPrev[row.rel]) {
+                gMark[row.rel] := gTick
+                if (gLogN < 5000) {
+                    FileAppend, % A_Hour ":" A_Min ":" A_Sec " " row.name " " gPrev[row.rel] " -> " cur "`n", C:\AutoHotkey\debugmenu.log
+                    gLogN++
+                }
+            }
+            gPrev[row.rel] := cur
+            mark := (gMark.HasKey(row.rel) && gTick - gMark[row.rel] < 60) ? "*" : ""
+            if (gShow)
+                LV_Modify(i, "Col1", mark), LV_Modify(i, "Col3", cur)
+            snap .= row.name "=" cur (row.hasmax ? "/" RI(gEnt + row.rel + 4) : "") "`n"
         }
-        GuiControl,, ST, % "pid " gPid "  entity=0x" Format("{:08x}", gEnt) "  view=" (gView="inv" ? "INVENTORY" : "GRIDS (candidates!)") "  frozen=" nf "  music=" RI(0x524674)
+        if (gShow)
+            GuiControl,, ST, % "pid " gPid "  entity=0x" Format("{:08x}", gEnt) "  view=" (gView="inv" ? "INVENTORY" : "GRIDS (candidates!)") "  frozen=" nf "  music=" RI(0x524674)
+        ; headless snapshot every ~2s (post-run analysis without screenshots)
+        if (!Mod(gTick, 40)) {
+            FileDelete, C:\AutoHotkey\debugmenu.out
+            FileAppend, % "entity=0x" Format("{:08x}", gEnt) " view=" gView " frozen=" nf "`n" snap, C:\AutoHotkey\debugmenu.out
+        }
     } else if (gShow)
         GuiControl,, ST, % "pid " gPid "  NO ENTITY (in a mission?)"
 return
