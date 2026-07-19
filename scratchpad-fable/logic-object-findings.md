@@ -47,3 +47,17 @@ heap, re-resolve each run). This is the "different root" the addresses.json note
 snap -> fire EXACTLY N rounds of ONE weapon -> diff. The offset that moved by
 -N (or a counter +N) is that weapon's ammo. Repeat for armor (take a hit) and
 speed (accelerate). tools/chaindiff.sh drives it.
+
+## Ammo table VERIFIED live + ARMOR candidates (2026-07-18)
+Confirmed the parallel session's table live: entity=0x023f1948, table=entity-0x14C8,
+[+0]=7 [+4]=0x750000, records 50cal 2000/2000, 7.62T 4000/4000, #10 4640/5000 (worn). Solid.
+
+ARMOR/CHASSIS candidates (int TENTHS; floats found nothing, ints do):
+- **entity+0x135c block**: run of 400 (=40.0 = save chassis R/L) with damaged 376/352
+  (=37.6/35.2). Strong CHASSIS grid candidate.
+- **entity-0x800 block**: run of 575/800/1000 (=57.5/80/100); 575 ~= save armor 57.0.
+  Armor grid candidate.
+- These are LARGE contiguous blocks (damage GRID, not the 4-facet summary) -> I76
+  likely models armor as a per-panel mesh; the DEFENSE 4-facet numbers are a rollup.
+- TO LOCK: need current on-screen DEFENSE values (garage), then find the 4/8 summary
+  ints or confirm the grid. Trainer "full armor" = write the grid block to max (1000?).
