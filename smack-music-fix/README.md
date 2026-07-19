@@ -20,6 +20,15 @@ This proxy recreates the hardware behavior at the exact same trigger point:
 Mission music is untouched: the game itself issues a fresh `MCI_PLAY` for menus and
 missions after movies, exactly as it did on CD hardware.
 
+**Related (memory RE, 2026-07-18):** the engine keeps a **music-active flag at
+`0x524674`** (nonzero = a track should be playing; cleared by the MCI_CLOSE path)
+and the aux-volume device handle at `0x4ed894` fed by `auxSetVolume`. Any future
+launcher/trainer logic can *read* whether music should be playing instead of
+inferring it, and could set music volume live instead of re-encoding tracks.
+That's for intent/volume work only — the cutscene STOP belongs here in the
+SMACKW32 proxy, which is the correct trigger point. Details:
+[docs/MEMORY-MAP-INDEX.md](../docs/MEMORY-MAP-INDEX.md).
+
 ## Build (the DLL is not committed — repo ships no binaries)
 
     brew install mingw-w64     # once

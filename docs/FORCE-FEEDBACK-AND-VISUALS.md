@@ -7,6 +7,19 @@
 > cross-platform (Wine/Proton/Windows), and the delivery path for the future
 > collision-rumble-via-memory-reads project. The 1024×768 software ceiling
 > here is correct. See [README.md](README.md).
+>
+> **Memory-RE update (2026-07-18/19, see
+> [MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md)):** the
+> "collision-rumble-via-memory-reads" project now has its addresses. The game
+> computes a real force stream into a 364-byte FFB param block at `0x4f2328`
+> (only filled when a DirectInput-FFB device is present — so on **Windows/Deck**
+> the play is to MIRROR that block into XInput rumble: the game's own physics
+> forces on a pad with no DI-FFB). On **Mac** the block stays empty (flag
+> `0x52bbd0` = 0), so synthetic rumble stays — but it can now be driven by real
+> game state read through the verified player chain: speed candidate
+> entity+0x94, transform deltas per frame, camera-float jumps (impact shake),
+> and inventory-record condition drops (= you got hit). Both plans are
+> address-in-hand, not yet built.
 
 # Interstate '76: force feedback & pushing visual quality
 
