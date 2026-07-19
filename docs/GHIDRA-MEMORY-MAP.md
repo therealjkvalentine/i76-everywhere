@@ -650,3 +650,55 @@ making the known change between two scans. Everything else (scan, intersect,
 delta-check, write-test) is automatable. The trainer's F9/F10 does this
 interactively; `i76-mem-scan.py diff` does it from two dumps taken CLOSE together
 (one small change between) — not the hours-apart dumps that produced noise here.
+
+---
+
+# PART 9 — Cheat Engine method + why static dumps hit their limit (2026-07-18)
+
+Read the CE wikis (unknown-value scan; find-what-writes). Two things I'd skipped:
+
+## The canonical method (encoding-agnostic)
+1. **First scan = "Unknown initial value", type "All" (4-byte + Float + Double)** —
+   never assume the encoding. (I had only tried 4-byte int + float; the CE
+   tutorial stresses Double, and "display floats of value 1 are just the meter",
+   confirming the display-vs-internal split.)
+2. **Successive scans = decreased / increased / unchanged / changed** — purely
+   relational, no value needed. Fire -> "decreased"; refill -> "increased"; idle
+   -> "unchanged". Each pass intersects; converges in 4-6 rounds.
+3. **Multiple survivors -> freeze one at a time**; the one whose change actually
+   affects the game (not just the HUD) is the authoritative value.
+4. **"Find out what writes this address"** (debugger data breakpoint) -> the
+   writing instruction names the field and gives the pointer base. THIS is the
+   definitive display-vs-internal disambiguator.
+
+## Why our headless dump-diff stalled on live ammo
+Tested B->C (7.62T fired 18, HUD 3739->3721) at every stable VA: NO 4-byte int,
+float, integral-float, x10-scaled, OR double carries a 3739->3721 (or +18
+counter) transition. Ruled-out cleanly. Two structural reasons static dumps
+can't finish this target:
+- **Relocation**: dumps B and C are separate processes minutes apart with heavy
+  gameplay between; the weapon/vehicle struct re-allocates, so cross-dump VA
+  matching breaks (the cache-index coincidences at 0x04b1xxxx were the only
+  "stable" 3739s, and they're not ammo). CE avoids this by doing rapid
+  successive scans in ONE attached session before anything relocates.
+- **No debugger**: static dumps CANNOT do "find what writes this address" — the
+  single most reliable technique, and the only airtight way to separate the
+  authoritative ammo from its display copy. That needs a live debugger.
+
+## Verdict: the right tool for the LIVE dynamic values is Cheat Engine under Wine
+Our static/dump toolkit already NAILED everything that IS static (camera,
+input block, view mode, FFB flag, struct offsets — all live-validated). The
+remaining targets (live ammo/armor/gear/speed) are dynamic heap values that
+want CE's live successive-scan + find-what-writes. Recommended workflow:
+1. Install Cheat Engine into the prefix (`drive_c`), launch under the same Wine.
+2. Attach to i76.exe. First scan: Unknown initial value, type All.
+3. Fire a known burst -> Next scan: Decreased value. Idle -> Unchanged.
+   Repeat 4-6x until <10 addresses.
+4. Freeze each; the one that changes GAMEPLAY (not just the dial) is real.
+5. Right-click -> "Find out what writes this address" -> the instruction +
+   register/base gives the pointer chain; cross-ref to our static function map
+   (weapon_info_in_car 0x409e40, component finder 0x4b6900) to name the field
+   and anchor it to a static global for a relaunch-proof map.
+
+(We do NOT auto-download/run CE here — that's the user's call; the workflow and
+the static anchor map to tie results back to are in this repo.)
