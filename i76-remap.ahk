@@ -362,6 +362,7 @@ if (ign && !gIgnPrev)
     RumblePulse(16000, 0, 20)             ; ignition: ~300ms starter crank
 gIgnPrev := ign
 cl := 0, cr := 0
+gGrowl := Mod(gGrowl + 1, 60000)          ; free-running texture clock
 if (nact)
     cl := 45000, cr := 20000
 if (gRSGHeld["LButton"] || gRSGHeld["1"] || gRSGHeld["3"])
@@ -375,9 +376,8 @@ if (!nact && lyR > 12000) {
     ; texture (field-tuned 2026-07-18: was 30% too strong, half the frequency)
     fthr := (lyR - 12000) / 20767.0          ; 0.0 .. 1.0 deflection past start
     per := 5 - Round(fthr * 3)               ; texture half-period 5 -> 2 ticks
-    gGrowl := Mod(gGrowl + 1, per * 2)
     amp := 3500 + Round(fthr * 5000)         ; 3.5k idle-edge -> 8.5k pinned
-    gv := gGrowl >= per ? amp : amp // 2
+    gv := Mod(gGrowl, per * 2) >= per ? amp : amp // 2
     cl := cl > gv ? cl : gv
 }
 if (gTTicks > 0) {
