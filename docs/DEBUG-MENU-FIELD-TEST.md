@@ -5,6 +5,27 @@
 auto-logged in the prefix, so afterwards the assistant reads the evidence
 directly — you mostly just play.*
 
+## Run 2 result (2026-07-19) — the base was wrong; now fixed
+
+The log revealed the real problem behind "wrong values / twice the value":
+
+- The menu was reading `entity − 0x14C8`, which is **12 records too early** — a
+  preceding "van" table. Your actual car ammo was buried at rec 12 (50cal) and
+  rec 13 (7.62T). The menu now bases on the **verified** ammo table
+  (`entity − 0x1228`, PART 12 live-matched to the HUD), so **row 0 = 50cal,
+  row 1 = 7.62 turret**, with a **name column** and the absolute address.
+- Ammo is **not** 2× the display — that was two counters moving (the real ammo
+  record + a van record dropping together). They're now in separate views
+  (AMMO vs VAN, cycle with F7), so it reads clean.
+- The facet scan's "scanned 0 bytes" was a Wine quirk: an over-wide memory read
+  fails wholesale if it touches an unmapped page. F4 now clamps to the entity's
+  committed region and tries both tenths and raw encodings.
+- Window is bigger (no scroll for the ammo table); F3 renames a row.
+
+If a record still doesn't match a HUD weapon, use the **fire differential**:
+fire ONE weapon a few times, and the row whose CURRENT ticks down is that
+weapon (the `*` and the log both catch it). That's ground truth for naming.
+
 ## Run 1 result (2026-07-19) — what we learned, what changed
 
 The menu WORKS: chain resolved (`entity=0x024c1948`), 17 records, live values
@@ -37,27 +58,36 @@ logic:
    (F8 hides/shows it. If it steals focus from the game, click the game window.)
 3. Optional fresh logs: `tools/debugmenu.sh --clear` before launching.
 
-## Test A — smoke test (2 min)
+## Test A — smoke test + label the table (3 min)
+
+Default view is **AMMO** (`view=ammo` in the status line). Row 0's name column
+should read **"50cal MG"** and row 1 **"7.62 Turret"** (auto-named by capacity).
 
 | check | result (fill in) |
 |---|---|
-| Window renders with a 4-column table (not blank/garbled)? | |
-| Status line shows `entity=0x…` and `view=INVENTORY`? | |
-| How many `rec NN` rows? (expect ~17) | |
-| `music=` value while mission music plays / after it stops? | |
-| Fire your primary weapon: a row gets a `*` and its cur drops? WHICH rec #? | |
+| Window renders, 6 columns (frz*/#/name/cur/max/addr), no scroll for ammo? | |
+| Row 0 name = "50cal MG", cur ≈ your HUD 50cal (not 2× it)? | |
+| Row 1 name = "7.62 Turret", cur ≈ your HUD 7.62T? | |
+| addr column on row 0 ≈ 0x…0720 (the verified base)? | |
+| `music=` value with music playing / after it stops? | |
 
-While you're at it — fire each weapon you carry once and note `rec # ↔ weapon`
-(the `*` marker makes this instant). This labels the table for good:
+**Fire-differential labelling** — the important part. Fire each weapon *alone*,
+a few rounds, and watch which row gets a `*` / whose cur drops (the log records
+it too). Note `row # ↔ weapon`, and whether cur drops **1:1** with the HUD or
+faster (the "twice?" question — this settles it):
 
-| rec # | weapon/part |
-|---|---|
-| | |
-| | |
+| row # | weapon | cur drop per shot vs HUD |
+|---|---|---|
+| 0 | 50cal MG | |
+| 1 | 7.62 Turret | |
+| | | |
+
+Press **F7** to peek the **VAN** view (the preceding owned/repair table) and
+**GRIDS** (armor candidates), then F7 back to AMMO. Use **F3** to rename any row.
 
 ## Test B — live edit (1 min)
 
-Double-click your primary weapon's row, enter `9999`.
+Double-click the 50cal row (row 0), enter `9999`.
 - HUD ammo shows 9999? ______
 - Fires normally and counts down from there? ______
 

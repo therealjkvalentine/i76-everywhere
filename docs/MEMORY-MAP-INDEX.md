@@ -82,7 +82,7 @@ including across a relocation (mission reload):
 
 ```
 entity   = [ [ [0x54a264] ] + 0x70 ]
-table    = entity - 0x14C8          ; 17 records × 0x38 bytes
+table    = entity - 0x1228          ; the CAR-WEAPON ammo table; record 0 = 50cal
 record w = table + w*0x38
   +0x00  int 7           ; header tag  — VALIDATE before trusting the table
   +0x04  ptr 0x00750000  ; shared class ptr — second half of the signature
@@ -90,16 +90,33 @@ record w = table + w*0x38
   +0x0c  int MAX         ; capacity / full condition
 ```
 
-- The 17 records = every weapon's ammo AND every part's durability/condition
-  (matches the save editor's per-part dur/cond columns).
-- Robust resolve: compute `entity-0x14C8`, check the (7, 0x00750000) signature;
-  on miss, sweep `entity-0x1500..entity-0x1000` for it. Implemented and
-  field-tested in `tools/i76-rearm.ahk` (F5 view, F6 cur=max repair+rearm).
+- **Base correction (field run 2026-07-19).** The ammo table is at **`entity −
+  0x1228`** — this is the base PART 12 live-verified against the HUD (record 0 =
+  50cal @ 2000, record 1 = 7.62 turret @ 4000; in that run the absolute base
+  landed at `0x25b0720`, matching `entity − 0x1228` exactly). The earlier
+  `entity − 0x14C8` (PART 13b) is **12 records too early** — it starts a
+  contiguous PRECEDING table (owned-but-unmounted / repair-queue weapons: the
+  "van"), so the car weapons show up at its records 12–16. Both bases carry the
+  (7, 0x00750000) header, which is why the sweep locked onto the wrong one.
+  `−0x14C8` is a valid *superset* base (rearming across it refills car + van
+  harmlessly, which is why `i76-rearm.ahk` worked), but for a HUD-aligned view
+  use `−0x1228`. The debug menu now tries `−0x1228` first, `−0x14C8` second.
+- Records = each owned weapon's ammo (and parts' durability/condition, matching
+  the save editor's dur/cond columns). NOTE: the small-count HUD items
+  (cluster-bomb 30, landmines 25, nitrous 3, specials) do NOT appear as records
+  with those values — droppers/specials are a separate subsystem; only the
+  gun-ammo weapons are in this table. Identify each record by the fire
+  differential (fire one weapon, see which record's CURRENT drops).
+- Robust resolve: `entity-0x1228` → check (7, 0x00750000); else `entity-0x14C8`;
+  else sweep `entity-0x1500..entity-0x1000`.
 - Secondary confirmation: HUD ammo-gauge structs (stride 0xC0, session-heap)
   each hold a pointer to a record's +0x08.
-- Encoding facts (per Open76 + save editor + MW2 ancestry, confirmed live):
-  ammo is a plain int32 countdown; part/armor values are integer TENTHS
-  (91.0 shown = 910 stored). No floats, no fixed-point, in any combat scalar.
+- Encoding: ammo is a plain int32 countdown (**1:1 with the HUD** — PART 12
+  caught 50cal at 2000 then 1856 after a burst, not doubled); part/armor values
+  are integer TENTHS (91.0 shown = 910 stored). No floats/fixed-point.
+- **OPEN — the "linked counter":** firing the 7.62T dropped its ammo record AND
+  a van-table record by the *exact same amount*. Whether that second record is a
+  backing pool, a mirror, or coincidence is unresolved (low priority).
 
 ## Tier 3b — armor/chassis: candidates RETIRED, active hunt via F4
 
