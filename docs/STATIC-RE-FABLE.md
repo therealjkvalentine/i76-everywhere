@@ -163,3 +163,37 @@ This turns every heap-relocating value (ammo, armor, speed, gear) into a stable
 `base+offset` read. The remaining unknowns (exact ammo offset in the weapon obj,
 health offset in the 0x20 component record) are a few bytes to pin with the
 component/weapon record dumped via this chain — or a CE watchpoint.
+
+## 7. KEYSTONE — LIVE-VERIFIED (2026-07-18) + honest correction
+
+Walked the chain live: `[0x54a264]=0x542c68 -> [.]=0x2597378 -> [.+0x70]=
+0x25b1948`. All three hops resolve to valid pointers, and the final object at
+0x25b1948 has a **normalized rotation matrix at +0x08** (floats 0.654, 0.986,
+-0.990, ...), i.e. the entity's world transform — **confirming the chain reaches
+the real player-vehicle entity.** It sits in the same heap region as the ammo
+capacity table (0x25b0728), consistent with a vehicle allocation.
+
+**CONFIRMED**
+- Static root `0x54a264` -> player entity `[[[0x54a264]]+0x70]` (permanent, no ASLR).
+- Player entity `+0x08..0x2c` = 3x3/3x4 world transform (rotation; position nearby).
+- Control inputs applied at entity `+0xe0` (steer) / `+0xe4` (throttle) — from the
+  input-apply disasm (0x44f290/0x44f2a2); read 0 at idle, consistent.
+
+**CORRECTION (was over-claimed):** the weapon container (+0xa718 count / +0xa71c
+ptr array) and the component list (+0x3c/+0x40) are NOT flat offsets on this
+entity base — reading them here returns garbage. They are SUB-OBJECTS reached
+via accessor calls (ammoLesser used `call 0x466e20(vehicle)` to get the weapon
+container; the component-finder took a different base). So the real map is:
+```
+entity = [[[0x54a264]]+0x70]
+  +0x08 : world transform (rotation matrix; position adjacent)
+  +0xe0 : steer applied   +0xe4 : throttle applied
+  +????  : pointer to weapon-container sub-object  (find the offset that
+           0x466e20 returns; then +0xa718 count / +0xa71c ptr array hold)
+  +????  : pointer to component-list sub-object     (armor/engine/tire tenths)
+```
+Remaining work (small): disassemble `0x466e20` to learn which entity offset holds
+the weapon-container pointer, and the component-list accessor likewise. Then the
+whole map is a permanent chain. The ENTITY root + transform + controls are
+proven and usable now (e.g. live position/heading for a minimap or motion-based
+rumble).
