@@ -1,0 +1,89 @@
+# Static RE findings (fable-static-re branch, 2026-07-18)
+
+Complementary to the live-scanning main thread: these come from DISASSEMBLING
+i76.exe on disk (tools/exe-xref.py + exe-disasm.py), not from value scanning.
+They explain WHY the live scan for ammo kept failing and answer the music
+question by reading the code instead of inferring.
+
+## 1. Ammo lives in per-weapon SUB-OBJECTS, not the flat car struct
+
+The real `ammoLesser` C function (0x40be60) walks the vehicle's weapon list:
+```
+mov  eax, [ebx + 0xa718]      ; weapon COUNT
+lea  edi, [ebx + 0xa71c]      ; weapon-pointer ARRAY (dword ptrs, stride 4)
+mov  ecx, [edi]               ; ecx = pointer to weapon OBJECT i
+... iterate esi=0..count ...
+```
+So `car+0xa718` = weapon count, `car+0xa71c` = an array of POINTERS to
+heap-allocated weapon objects. **The ammo count is a field INSIDE each pointed-to
+weapon object** — it is NOT contiguous in the car struct.
+
+**This is exactly why the main thread's value-scan for ammo failed at stable
+addresses**: the HUD number (3721) is read through car -> ptr[i] -> weapon.ammo,
+and the weapon objects are separate allocations. A flat scan can still find the
+weapon-object field, but the robust path is a POINTER walk (car base ->
++0xa71c -> [i] -> +ammo_off) or a "find what accesses this address" watchpoint.
+The weapon-object ammo-field offset is the one value left to pin (main thread /
+the struct agent's Open76 cross-check will give it).
+
+The engine is heavily SCRIPT-DRIVEN: `ammoLesser`, `isCBEmpty`, `playScene`,
+`setUserRadar`, `SET_SPEED_*` are mission-script VM opcodes (matched in strcmp
+tables, dispatched by bytecode). Many "functions" are opcode names, not C
+symbols — a trap when xref-ing by string.
+
+## 2. MUSIC state — answers "know exactly when music plays" (no inferring)
+
+Music is MCI (`mciSendCommandA`, 2 call sites: 0x423f8d play/open, 0x424aea).
+The stop path (0x423f8d) does:
+```
+call mciSendCommandA          ; MCI_CLOSE (0x804)
+mov  [0x4ed890], 0xffffffff   ; MCI device handle = none
+mov  [0x524674], 0            ; <-- MUSIC-ACTIVE FLAG cleared
+```
+and the play/update path (0x423fb0) gates on it:
+```
+mov  eax, [0x524674]          ; if zero, skip -> no music playing
+test eax, eax
+je   ...
+mov  ecx, [0x4ed890]          ; MCI device handle
+... mciSendCommandA MCI_STATUS/MCI_PLAY (0x814) ...
+```
+**Read `0x524674` live: nonzero = music is playing, 0 = stopped.** That is the
+exact "is music supposed to be playing" signal, straight from the engine — no
+more inferring from the launcher. Companion globals: `0x4ed890` = MCI device
+handle (0xffffffff when closed), `0x4ed894` = aux/volume device id.
+
+### Music VOLUME can be set from memory (instead of re-encoding the mp3s)
+`auxSetVolume` (0x424ba2) is fed a 0-0xffff level computed from the in-game
+"Music Level" setting, sent to device `[0x4ed894]`. So the earlier "turn music
+down 10%" could be done live by writing the music-level global + re-invoking the
+volume set, rather than re-encoding every track. (The exact level global is the
+Audio-Control menu's backing var — a follow-up trace; the mechanism is proven.)
+
+## 3. FFB param block (rumble-mirror groundwork, Win/Deck)
+The FFB init (0x445a60) zeroes the 0x16c-byte effect param block at 0x4f2328
+and sets flags (0x52bbd4=1 init-done, 0x52bbd0=0 present). The per-frame force
+fill (physics -> magnitude) is a separate tick writer (0x4460e2/0x446120 region,
+inside the I7FF_SIM_Effect send path) — the value to mirror into XInput rumble
+on Windows/Deck. Not filled on Mac (no DI-FFB device), consistent with our
+synthetic-rumble decision.
+
+## 4. Methodology to crack the ammo encoding (see docs/RE-METHODOLOGY.md)
+The winning approach, ranked (RE-methodology research):
+1. **Unknown-value scan driven by firing** — no encoding assumptions; catches an
+   up-counter / down-counter / fixed-point alike. Scriptable in AHK RPM today
+   (snapshot all -> fire -> keep addresses that changed -> repeat).
+2. **"Find what writes this address" watchpoint** — reads the encoding straight
+   off the disassembly AND yields the base-register+offset for the pointer path.
+   Needs a debugger — and the key enabler below.
+3. Multi-width exact scans: test 3721 as int16 and float32, and 3721*65536 as
+   int32 (1997 titles love int16 and 16.16 fixed-point).
+4. Struct dissection once a base pointer is known.
+
+### THE practical unlock for this setup
+Native Cheat-Engine-to-Wine attach is flaky, BUT running **cheatengine.exe (or
+x32dbg) INSIDE the same wineprefix** as the game (our Sikarugir wrapper) works —
+both are then Windows processes in one prefix, so attach + watchpoints + pointer
+scanner all function. That gives us technique #2 (the conclusive one), which
+pure AHK RPM cannot do. Install CE into drive_c of the prefix and launch it via
+wine, same as our AHK tools.
