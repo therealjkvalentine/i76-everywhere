@@ -101,21 +101,33 @@ record w = table + w*0x38
   ammo is a plain int32 countdown; part/armor values are integer TENTHS
   (91.0 shown = 910 stored). No floats, no fixed-point, in any combat scalar.
 
-## Tier 3b — armor/chassis: candidates, not locked
+## Tier 3b — armor/chassis: candidates RETIRED, active hunt via F4
 
 The DEFENSE-panel facets are NOT in the inventory table and NOT at flat entity
-offsets. Live int-scans (tenths) found two large contiguous grids:
+offsets. The earlier candidate grids are now **retired** — a field run
+(2026-07-19, Picard Piranha, garage armor 100/57/57/76 chassis 70/35/35/50)
+read them live and they did NOT match:
 
-| where | seen | reading |
+| where | read live this run | verdict |
 |---|---|---|
-| entity + 0x135c | runs of 400 with damaged 376/352 (= 40.0/37.6/35.2) | **chassis grid** candidate |
-| entity − 0x800 | runs of 575/800/1000 (= 57.5/80.0/100.0) | **armor grid** candidate |
+| entity − 0x800 | 80.0/100.0 runs (800, 1000), no 570 anywhere | ✗ not this car's armor |
+| entity + 0x135c | uniform 40.0 grid (all 400) | ✗ not this car's chassis |
 
-These are big per-panel damage GRIDS — the 4-facet DEFENSE numbers are likely a
-rollup. **To lock:** note the on-screen DEFENSE values (garage), take one hit,
-re-read the grids; "full armor" trainer write = grid to max. Also unpinned: the
-component-record field meanings inside the 16 × 0x90 records off entity+0x10c
-(+0x40 int dur 100, +0xac float 100.0, +0xc4 = 50 observed).
+So armor is either elsewhere, or not a simple ×10 tuple near the entity. **Active
+approach:** `i76-debugmenu.ahk` **F4 facet-scan** sweeps a 128 KB window around
+the entity for a contiguous `(front, 57, 57, 76)` armor run and `(front, 35, 35,
+50)` chassis run (front wildcarded — may be damaged; R=L on this car so facet
+order is moot). Awaiting that scan. Fallback if it whiffs: armor is the
+per-panel damage GRID (not a 4-facet rollup) and needs a take-a-hit differential.
+
+Also unpinned: the component-record field meanings inside the 16 × 0x90 records
+off entity+0x10c (+0x40 int dur 100, +0xac float 100.0, +0xc4 = 50 observed).
+
+### Inventory record identities (field run 2026-07-19)
+Confirmed live: **rec 12 = 50cal MG** (2000), **rec 13 = 7.62 turret** (4000,
+drained on fire, matched HUD). **rec 10** (5000) drains by the *exact same
+amount* as rec 13 when firing — an unidentified linked counter (backing pool /
+mirror?), flagged for a later look. Records 00–09 are the other weapons/parts.
 
 ## Tier 4 — the WORLD entity table (all vehicles)
 
