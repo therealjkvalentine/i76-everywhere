@@ -20,3 +20,30 @@ heap, re-resolve each run). This is the "different root" the addresses.json note
 2. winedbg watch (tools/i76-findwrites.sh) on e.g. logic+0x588 while firing -> the writing
    instruction names the field and gives the base register/offset. Needs a mission-loaded debug
    instance (display contention with the live game) -> coordinate a paused moment or a cloned prefix.
+
+## Update: relocation confirmed + chain differential working (2026-07-18)
+- **The structs RELOCATE**: player_entity moved 0x025b1948 -> 0x02401948, logic
+  0x020e24d0 -> 0x020e1348 between reads. The chain [[[0x54a264]]+0x70]+0x10c
+  re-resolves correctly every time. THIS is why all cross-dump/absolute-address
+  differentials failed and why the chain approach wins. Diff OFFSETS, not addrs.
+- **tools/i76-chaindiff.ahk / chaindiff.sh**: snap (640 logic offsets) then diff,
+  both through the chain -> relocation-proof field finder. VERIFIED it catches
+  live changes.
+- Uncontrolled 2-min diff showed real movement: +0x108 98->32 (-66, ammo/damage
+  candidate); per-record field at record+0x48 (786450->18, looks 16-bit); plus
+  many physics floats (noise). Precise attribution needs a CONTROLLED action.
+- **Component record layout (stride 0x90 from logic+0x40)**: +0x40 int dur(100),
+  +0xac float dur(100.0), +0x48 a counter/id, +0xc4 =50 (cond?). 16 records.
+
+## Debugger status (final)
+- attach-to-running = macOS error 5 (denied).
+- launch-under-winedbg = sets breakpoints + reads 32-bit regs, but the game
+  CRASHES on cont (c0000005) when run outside its DxWnd launch context. Full
+  find-what-writes would need winedbg to follow the dxwnd->i76 child chain, or a
+  cloned prefix launched debugger-first. Deferred; the chain differential makes
+  it unnecessary for field-mapping.
+
+## THE FINISH (one controlled action)
+snap -> fire EXACTLY N rounds of ONE weapon -> diff. The offset that moved by
+-N (or a counter +N) is that weapon's ammo. Repeat for armor (take a hit) and
+speed (accelerate). tools/chaindiff.sh drives it.
