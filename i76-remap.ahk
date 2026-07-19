@@ -351,11 +351,11 @@ if (rbHeld && !gRBPrev)
 gRBPrev := rbHeld
 gearU := lbHeld && dR, gearD := lbHeld && dL
 if ((gearU && !gGearUPrev) || (gearD && !gGearDPrev))
-    RumblePulse(0, 32000, 1)              ; gear-shift click
+    RumblePulse(18000, 52000, 2)          ; gear-shift click (was under spin-up time)
 gGearUPrev := gearU, gGearDPrev := gearD
 mn := (lbHeld && bHeld) || (r3Held && gLookBack)
 if (mn && !gMinePrev)
-    RumblePulse(40000, 0, 3)              ; mine/dropper thud
+    RumblePulse(55000, 15000, 4)          ; mine/dropper thud (beefed up)
 gMinePrev := mn
 ign := !lbHeld && dD
 if (ign && !gIgnPrev)
@@ -364,11 +364,20 @@ gIgnPrev := ign
 cl := 0, cr := 0
 if (nact)
     cl := 45000, cr := 20000
-if (gRSGHeld["LButton"] || gRSGHeld["1"] || gRSGHeld["2"] || gRSGHeld["3"] || gRSGHeld["5"])
-    cr := cr > 18000 ? cr : 18000         ; weapons-fire buzz (light motor)
-if (!nact && lyR > 28000) {
-    gGrowl := Mod(gGrowl + 1, 12)
-    gv := 9000 + (gGrowl >= 6 ? 4000 : 0) ; full-throttle engine growl (textured)
+if (gRSGHeld["LButton"] || gRSGHeld["1"] || gRSGHeld["3"])
+    cr := cr > 15000 ? cr : 15000         ; RT/A fire buzz (was 18k; -~15%)
+if (gRSGHeld["2"] || gRSGHeld["5"]) {
+    bz := Mod(gGrowl, 2) ? 14000 : 9000   ; LT fire: lighter, faster flutter
+    cr := cr > bz ? cr : bz
+}
+if (!nact && lyR > 12000) {
+    ; engine growl scales with stick: further forward = stronger AND faster
+    ; texture (field-tuned 2026-07-18: was 30% too strong, half the frequency)
+    fthr := (lyR - 12000) / 20767.0          ; 0.0 .. 1.0 deflection past start
+    per := 5 - Round(fthr * 3)               ; texture half-period 5 -> 2 ticks
+    gGrowl := Mod(gGrowl + 1, per * 2)
+    amp := 3500 + Round(fthr * 5000)         ; 3.5k idle-edge -> 8.5k pinned
+    gv := gGrowl >= per ? amp : amp // 2
     cl := cl > gv ? cl : gv
 }
 if (gTTicks > 0) {
