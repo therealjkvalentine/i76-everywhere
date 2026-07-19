@@ -50,10 +50,12 @@ This is the durable base for position/heading/controls — survives relaunch.
 The weapon container and component list hang off the **vehicle-LOGIC object**,
 NOT the transform-entity (proven: `[entity+0x70]` is transient, `+0xa718`
 reads 0). Known SHAPES once the logic-object base is found:
-- logic + 0x3c = component count; +0x40 = component array (stride 0x20, type-tag
-  @+0) — armor / engine / tire / brake, stored as **integer TENTHS** (91.0 = 910).
-- logic + 0xa718 = weapon count; +0xa71c = weapon-pointer array (stride 4) ->
-  weapon object -> **+ammo = int32 current-rounds COUNTDOWN**.
+- components live in an INDEXED 0x144-stride sub-struct: `base + N*0x144 + 0x3c`
+  = count, `+0x40` = array (stride 0x20) — armor/engine/tire, **integer TENTHS**
+  (91.0 = 910). Offsets are NOT flat car offsets (corrected; see STATIC-RE §9).
+- weapons: pointer-array pattern -> weapon object -> **+ammo = int32 countdown**.
+- Neither the player's logic-object `base` nor index N is static-derivable; the
+  winedbg 'find what accesses' watchpoint on a live ammo/armor byte yields both.
 **Remaining step:** find the logic-object's static root (disasm ammoLesser's
 caller for what supplies its `vehicle` arg, OR a winedbg/CE watchpoint on a live
 ammo byte reads the base register). The main (live) thread is executing this.
