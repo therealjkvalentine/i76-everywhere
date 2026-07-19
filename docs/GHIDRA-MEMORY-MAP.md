@@ -883,3 +883,40 @@ the **entity 0x025b1948 sits in the same heap page as the ammo table
 0x25b0760 (the confirmed live-dynamic value) → its accessor names the exact
 struct base+offset, or scan ±0x2000 around the entity for the weapon-ptr array
 (4 consecutive heap pointers).
+
+---
+
+# PART 12 — AMMO FULLY DECODED (live-verified, fable session 2026-07-18)
+
+The weapon-ammo table is a flat array of fixed records, decoded from a raw dump
+of three consecutive entries:
+
+**Ammo table: base `0x25b0720` (heap), per-weapon record STRIDE `0x38`.**
+Per record:
+- `+0x00`  int  `7`            — record header/class tag (identical across weapons)
+- `+0x04`  ptr  `0x00750000`   — shared class/def pointer (identical across weapons)
+- **`+0x08` int — CURRENT ammo (live, decrements on fire)**
+- **`+0x0c` int — MAX ammo (capacity)**
+- `+0x10..0x37` — flags/name/floats (mostly 0; a `2` at +0x30, name dwords)
+
+Live values captured (monotonic-decrease confirmed the current field):
+| record | weapon | current +0x08 | max +0x0c |
+|---|---|---|---|
+| 0x25b0720 | 50cal MG | 1856 (was 2000) | 2000 |
+| 0x25b0758 | 7.62 turret | 3880 (4000→3976→3880) | 4000 |
+| 0x25b0790 | (wpn 2) | 500 | 500 |
+
+This resolves PART 5/7's confusion: `0x25b0728` (=record0+0x08) was never
+"capacity" — it was 50cal CURRENT, caught at full (2000), now 1856 after firing.
+`0x25b0760`(=record1+0x08) is live 7.62T; `0x25b0764`(+0x0c) its max 4000.
+
+**HUD → ammo linkage (found by pointer scan):** `0x025921c8 -> 0x25b0728`
+(50cal current) and `0x02592288 -> 0x25b0760` (7.62T current) — HUD ammo-gauge
+structs, stride 0xC0, each holding a pointer to its weapon's current-ammo field.
+So a stable chain exists: gauge_table -> [+idx*0xC0] -> current-ammo. Walking
+from a static/entity root to the gauge table (0x25921c8) is the last hop for a
+relaunch-proof trainer; within a session, `0x25b0720 + w*0x38 + 0x08` is the
+live ammo for weapon w right now.
+
+**Trainer use:** write `record+0x08` (current) high, or freeze it = infinite
+ammo; the structure is a clean base + w*0x38 + 0x08 int32.
