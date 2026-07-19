@@ -41,7 +41,7 @@ global gHeadTest := false, gHeadT := 0
 ; ---- attach to i76.exe (or nitro.exe) ---------------------------------------
 AttachGame() {
     global
-    for exe in ["i76.exe", "nitro.exe"] {
+    for idx, exe in ["i76.exe", "nitro.exe"] {   ; v1: single-var for gets the KEY - must use idx,exe
         pid := 0
         Process, Exist, %exe%
         pid := ErrorLevel
