@@ -329,3 +329,83 @@ keeps appearing in field tests.)
 `python3 tools/exe-xref.py <exe> [anchors...]` reproduces all of this and
 detects string-pointer tables at constant stride. Works on any of the era's
 PE binaries (i76.exe, nitro.exe, i76shell.dll).
+
+---
+
+# PART 4 — First-party DISASSEMBLY of Gold i76.exe (2026-07-18, tools/exe-disasm.py)
+
+Hands-on with capstone against our actual Gold binary. Anchor strings (PART 2)
+→ xref to code → disassemble → read the memory operands. All DIRECT from our
+exe. New tool: `tools/exe-disasm.py <exe> <VA> [count]`.
+
+## CAMERA — full subsystem map, and the head-tracking write path CONFIRMED
+
+**Cockpit look apply** (fn at ~0x406b00, reads the input-state block, writes camera):
+```
+fild [0x536770]   ; pilot_yaw_delta  (int input)
+fild [0x536778]   ; pilot_pitch      (int input)
+fild [0x536780]   ; pilot_roll       (int input)
+... scale by consts at 0x4bc50c/0x4bc52c, clamp against 0x4bc548/50/80 ...
+fstp [0x4c2964]   ; -> camera angle floats (the LIVE view orientation)
+fstp [0x4c296c]
+fstp [0x4c2970]
+fstp [0x4c2974]
+```
+**Two head-tracking write targets, both external-writable, NO code patch:**
+1. the integer inputs `0x536770` (yaw) / `0x536778` (pitch) / `0x536780` (roll)
+   — exactly what an `input.map` analog binding feeds (experiments staged);
+2. the computed float angles `0x4c2964 / 0x4c296c / 0x4c2970 / 0x4c2974`.
+A feeder (opentrack→UDP→poke, or our AHK layer) writing these = head look.
+
+**Camera state block** (from the init fn at 0x405a3f, which zeroes/defaults it):
+| VA | meaning (inferred) |
+|---|---|
+| 0x4c2724 | camera active flag (set 1) |
+| 0x4c2728 | **camera FSM mode** (int; switch values 2/5/9/0x1a) — which of F1..F11 view |
+| 0x4c2908.. | camera struct region base |
+| 0x4c2918 / 0x4c2928 | 0x3f060a92 ≈ 0.5236 (30° — default FOV/angle) |
+| 0x4c2924 / 0x4c2934 | 0x40b00000 = 5.5 (default distance?) |
+| 0x4c2964/68/6c/70/74/80 | **live camera angles/offsets** (yaw/pitch/roll + extras) |
+| 0x4c2990..0x4c2a10 | camera-mode jump table, 8-byte entries [tag][fnptr], `call [edx*8+0x4c2994]` |
+
+**Screen shake (target: vehicle impact shakes the view):** not yet pinned to a
+writer, but the TARGET is now known — a damage/impact handler perturbing
+0x4c2964..0x4c2974. A memory watcher can DETECT shake (and thus "I got hit")
+by watching those floats jump, which directly drives impact rumble even before
+we find the writer. The `pilot_glance_target` ("watch your target") path shares
+this block — it's what proves continuous orientation exists.
+
+## PLAYER CAR STRUCT — partial layout (from weapon-info fn ~0x409e40)
+
+The car struct is large (>0xa738 bytes). Weapon layout within it:
+- `car + 0xa71c` — array of weapon-instance POINTERS, stride 4
+- `car + 0xa738` — array of 32-byte (0x20) weapon-instance RECORDS
+The loop reads count from the struct, iterates both arrays in lockstep. Finding
+the global **player-car pointer** is the remaining pointer-chain root (the
+Roanish region agent is hunting the entity table; failing that, the .cmp save
+layout ≈ in-memory layout gives a signature-scan path per PART 1 §4).
+
+## FORCE FEEDBACK — state globals (from Forcefeed fn ~0x445ad3)
+
+| VA | meaning |
+|---|---|
+| 0x52bbd0 | **FFB-present flag** — set to 1 when the SideWinder ("SWForce") object opens |
+| 0x52bbcc | FFB object pointer (result of the create call via import [0x4bc110]) |
+| 0x4f2314 | effect handle sentinel (init -1) |
+
+Confirms the game only emits DirectInput FFB when it detects an FFB device — so
+on Mac/Wine (no such device) the game-native FFB path stays dormant, which is
+exactly why our SYNTHETIC XInput rumble (AHK, device-agnostic) was the right
+call. A dinput-proxy shim could set 0x52bbd0 and harvest effects, but the
+synthetic path already works.
+
+## Scripting VM
+
+`ammoLesser` etc. are I76 mission-SCRIPT opcodes (string→bytecode table near
+0x4c316c; opcodes 0x21/0x22...), not C functions. The engine has a mission
+scripting language — noted for completeness, not a memory target.
+
+## Tools added
+- `tools/exe-xref.py`  — string-VA → embedded-pointer xref + table detection
+- `tools/exe-disasm.py` — capstone x86-32 disasm with .data/.rdata operand
+  string-annotation. Both work on i76.exe, nitro.exe, i76shell.dll.
