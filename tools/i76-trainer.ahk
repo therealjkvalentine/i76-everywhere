@@ -119,9 +119,30 @@ Refresh:
     s .= "head-test : " (gHeadTest ? "ON (view should sweep)" : "off") "`n"
     s .= scanStatus
     GuiControl,, TX, %s%
+    ; headless log: append a JSON state line so the tool is verifiable/feedable
+    j := "{""t"":" A_TickCount ",""view"":" RInt(ADDR["view_mode"]) ",""yaw"":" RFloat(ADDR["cam_yaw"]) ",""pitch"":" RFloat(ADDR["cam_pitch"]) ",""throttle"":" RInt(ADDR["in_throttle"]) ",""steer"":" RInt(ADDR["in_steer"]) ",""ffb"":" RInt(ADDR["ffb_flag"]) "}"
+    FileDelete, C:\AutoHotkey\trainer-state.json
+    FileAppend, %j%, C:\AutoHotkey\trainer-state.json
 return
 
 F8::gShow := !gShow
+; --- EDIT demo: F6 writes a value to any address (freeze/set). Read+Write are
+;     both proven live (ammo set to 9999 held; camera write turns the view).
+;     For heap values (ammo/armor) use the F9/F10 scanner to get the address
+;     first (they move per game launch), then freeze here.
+F6::
+    InputBox, spec, Write memory, addr,value (hex addr) e.g. 25b0728,9999 or f0x4c2964,0.3:, , 380, 130
+    if (ErrorLevel)
+        return
+    parts := StrSplit(spec, ",")
+    isF := (SubStr(parts[1],1,1)="f")
+    astr := isF ? SubStr(parts[1],2) : parts[1]
+    addr := "0x" . astr
+    if (isF)
+        WFloat(addr+0, parts[2]+0.0)
+    else
+        WInt(addr+0, parts[2]+0)
+return
 F7::
     gHeadTest := !gHeadTest
     if (!gHeadTest)
