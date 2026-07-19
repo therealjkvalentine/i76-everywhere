@@ -33,6 +33,38 @@ What CE would still have given us is its polished successive-scan UI — and the
 debug menu's **F10 scan** now covers that workflow natively (see
 [DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md)).
 
+## Status — installed and RUNNING (2026-07-19)
+
+Verified on the Mac build this session:
+
+- ✅ x32dbg installs into the prefix and **launches** (`C:\x64dbg\x32\x32dbg.exe`
+  runs as a Windows process; the game kept running alongside it).
+- ✅ **The debug API is available on both sides**: x32dbg imports
+  `DebugActiveProcess` / `DebugActiveProcessStop` / `WaitForDebugEvent` /
+  `ContinueDebugEvent` / `DebugSetProcessKillOnExit`, and this Wine's
+  `kernel32` exports them. So **attach is mediated by wineserver, not by macOS
+  `task_for_pid`** — which is precisely the barrier that returned `error 5` for
+  winedbg. This is the reason to expect it to work here.
+- ⬜ **Not yet exercised:** the attach itself, and whether Wine honours the
+  x86 debug registers (DR0–DR3) that back a hardware breakpoint. Those are the
+  two remaining unknowns, and they need a human at the GUI.
+
+⚠️ Attaching **suspends the game**. Do it at a safe point — not mid-mission with
+unsaved progress — and expect a 1997 title under DxWnd to be capable of dying
+when resumed.
+
+## A caution about obtaining Cheat Engine (2026-07-19)
+
+A file named `CheatEngine77.exe` obtained via the site's download-manager link
+was inspected here and is **not Cheat Engine**: 6.6 MB (the real installer is
+~40–60 MB), **zero** occurrences of "Cheat Engine"/"Heijnen"/"Dark Byte" in the
+binary, publisher fields reading **"Pluto Inc."** spelled with **Unicode
+homoglyphs** (`𝖯loo𝗍o` — mathematical sans-serif letters substituted for ASCII,
+a string-detection evasion), NSIS+Inno markers wrapping one opaque 5.9 MB blob.
+It is the bundler/downloader stub, code-signed by the bundler rather than by
+CE's author. It was not installed. If CE is ever wanted, get it somewhere that
+serves a direct installer, and verify the publisher before running it.
+
 ## Install
 
 ```
@@ -44,30 +76,55 @@ tools/setup-debugger.sh --remove   # undo
 The download is sha256-pinned (same convention as `setup-input-remapper.sh`);
 the binary is never committed to this repo.
 
-## The workflow (what we're actually after)
+## The workflow — step by step
 
-1. **Get an address for a value you can see.** Use the debug menu's F10
-   successive scan (type the HUD ammo → fire → F10 → type the new value →
-   repeat) until a handful of candidates survive. Note one address.
-2. **Launch x32dbg** and attach to `i76.exe` (File → Attach). If attach is
-   refused — the same macOS restriction that blocked winedbg may apply here —
-   fall back to launching the game *from* x32dbg so the debugger creates the
-   process and inherits debug rights. Caveat from the RE log: launching
-   `i76.exe` outside its DxWnd context crashed with `c0000005`, so this may
-   need the DxWnd launcher as the debuggee instead.
-3. **Set a memory-write breakpoint** on the address (right-click in the dump →
-   Breakpoint → Hardware, Write, 4 bytes).
-4. **Fire the weapon.** The debugger breaks on the writing instruction.
-5. **Read the instruction.** Something like `mov [esi+0x18], eax` tells you:
-   - `esi` = the struct base → its live value is the real record base
-   - `0x18` = the field's offset inside that struct
-6. **Walk the base up to a static root** (or express it relative to the player
-   entity, which our chain already resolves) so it survives relocation, then
-   add it to `tools/i76-addresses.json` and the debug menu.
+**Order matters: get the address FIRST, then breakpoint it.**
 
-Step 5 is the payoff: it also *names* the encoding by showing the arithmetic
-around the write (e.g. `sub eax, [fired]` would prove a derived display), which
-is exactly what settled nothing in three rounds of blind scanning.
+### 1. Find a candidate address (debug menu, no debugger)
+In a mission with `tools/debugmenu.sh` running: press **F10**, type your current
+HUD ammo (e.g. `1995`) → fire a few rounds → **F10** again, type the new number
+→ repeat. 2–4 passes usually leaves a handful. Note one address (the SCAN view
+and `debugmenu.log` both list them).
+
+### 2. Attach x32dbg
+`tools/setup-debugger.sh --launch`, then in x32dbg: **File → Attach** (Alt+A),
+pick **i76.exe** from the list. The game freezes — that's expected, the
+debugger owns it now.
+
+*If attach is refused:* fall back to launching the game *from* x32dbg so the
+debugger creates the process and inherits rights. Caveat from the RE log:
+`i76.exe` launched outside its DxWnd context crashed with `c0000005`, so point
+the debugger at the DxWnd launcher instead of the bare exe.
+
+### 3. Breakpoint the address
+In the **Dump** pane, Ctrl+G → type the address from step 1 → Enter. Select the
+4 bytes, right-click → **Breakpoint → Hardware, Write → Dword (4 bytes)**.
+(Hardware = a DR register, which is what catches a *write* without patching
+code. If Wine refuses the hardware breakpoint, that's our remaining unknown —
+note it and fall back to the scan ladder below.)
+
+### 4. Resume and fire
+Press **F9** (Run) to let the game continue, switch to the game, and **fire the
+weapon once**. x32dbg breaks the instant something writes that address.
+
+### 5. Read the answer
+The instruction at EIP is the prize. Something like `mov [esi+0x18], eax` gives:
+- `esi` (see the Registers pane) = **the struct base** — the real record's base
+- `0x18` = **the field's offset** inside that struct
+
+Also read the few instructions *above* the write: they reveal the **encoding**
+(e.g. a `sub eax, [fired]` would prove the HUD value is derived rather than
+stored), which is exactly what three rounds of blind scanning could never settle.
+
+### 6. Make it permanent
+Convert the base into something relocation-proof: either walk it up to a static
+global, or express it relative to the player entity (our chain already resolves
+`[[[0x54a264]]+0x70]`). `tools/findval.sh peek 0xADDR` prints any address as an
+entity-relative offset. Then it goes into `tools/i76-addresses.json` and becomes
+a named row in the debug menu.
+
+**Bring back:** the instruction text, the register values at the break, and the
+entity-relative offset. That trio is enough to wire it into every tool we have.
 
 ## Honest expectations
 
