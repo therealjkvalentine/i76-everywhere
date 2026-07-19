@@ -605,3 +605,48 @@ dump(AHK, ~113MB in ~90s) + scan(Python, instant) is the right split — AHK's
 interpreted per-offset scan was 50× too slow; the raw memcpy + Python pattern
 match is fast. A compiled Win32 scanner would be marginally faster but the
 bottleneck is now the differential (needs gameplay), not scan speed.
+
+---
+
+# PART 8 — Methodology: how to CONFIRM the map (and why single matches lie)
+
+## The trap (demonstrated live 2026-07-18)
+The HUD showed 7.62T ammo = 3739, 50cal = 1970 (distinctive numbers). A value
+scan found each at exactly ONE address — looks definitive. It is NOT: both sit
+inside a resource cache, bracketed by filenames (`sh82e_1m.pix`, `gtktank.gdf`)
+and SEQUENTIAL ids (3737,3738,3739,3740,3741 at 40-byte stride). They are cache
+entry indices that merely PASS THROUGH the ammo value. A single value match is
+a coincidence generator, not proof. The earlier "capacity" table (0x25b0728 =
+2000) matched max ammo but never depletes — also not the live count.
+
+## The confirmation protocol (each hit must pass ALL)
+1. **Progressive differential** — the core. Scan value N -> make a KNOWN change
+   (fire exactly K rounds) -> re-scan the SAME candidate set for N-K (intersect,
+   don't re-dump) -> repeat 3+ times. Only an address that tracks EVERY change
+   survives. Re-reading candidates (not re-dumping) kills the heap-shift noise
+   that ruined the two-far-apart-dumps attempt.
+2. **Delta check** — the survivor moves by EXACTLY the action magnitude (fire 30
+   -> −30; take a hit -> armor −(damage)). A coincidental id won't.
+3. **Context filter** — reject candidates adjacent to ASCII/filenames/pointers
+   (resource caches). Real gameplay scalars sit among other gameplay scalars.
+4. **Write-back proof** — writing it changes the HUD (we proved writes hold).
+5. **Pointer chain** — find a dword equal to the struct base, walk up to a
+   STATIC global (0x4xxxxx/.data). static base + offset = a map that survives
+   relaunch (heap addresses don't).
+6. **Watchpoint (what-writes-this)** — winedbg/Cheat Engine hardware bp on the
+   address; the writing function names the field and ties it to the static map.
+
+## Completing the map = systematic coverage
+Enumerate every KNOWN value (each weapon's ammo, the 8 armor/chassis facets,
+speed, gear, RPM, current target, nitrous) as a differential target. Pin each
+via 1-4, record its offset from the shared vehicle base (found via 5). When
+every known lands in one struct at stable offsets, the vehicle map is complete;
+repeat for camera (already static) and the entity table (for world objects).
+
+## Why the tight loop needs one action from the player
+Ammo/armor only change on fire/damage, and writing the input-state to
+self-fire is overwritten by the game's per-frame poll. So the ONE human step is
+making the known change between two scans. Everything else (scan, intersect,
+delta-check, write-test) is automatable. The trainer's F9/F10 does this
+interactively; `i76-mem-scan.py diff` does it from two dumps taken CLOSE together
+(one small change between) — not the hours-apart dumps that produced noise here.
