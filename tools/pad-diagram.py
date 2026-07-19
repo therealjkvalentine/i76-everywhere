@@ -134,8 +134,8 @@ def main():
             sb = html.escape(shifted) if shifted else UNBOUND
             scls = "bound" if shifted else "unbound"
         return (f'<text x="{x_text}" y="{y}" text-anchor="{anchor}" class="lname">{html.escape(name)}'
-                f'<tspan x="{x_text}" dy="13" class="basev {cls}">{b}</tspan>'
-                f'<tspan x="{x_text}" dy="0" class="shiftv {scls}">{sb}</tspan></text>')
+                f'<tspan x="{x_text}" y="{y+13}" class="basev {cls}">{b}</tspan>'
+                f'<tspan x="{x_text}" y="{y+13}" class="shiftv {scls}">{sb}</tspan></text>')
 
     svg = []
     # body
