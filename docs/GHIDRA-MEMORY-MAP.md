@@ -871,3 +871,15 @@ base+offset reads — no more wandering-address scans.
 **For the live thread:** verify `[[[0x54a264]]+0x70]+0x108` points to a struct
 whose +0xa718 is a small int (weapon count ~4-6) and +0xa71c is a heap pointer;
 then dump weapon[0] and diff a one-shot fire for the −1 to fix the ammo offset.
+
+## PART 11b — LIVE walk result (partial verify)
+Walked the chain live: `[0x54a264]=0x542c68 -> [.]=0x02597378 -> +0x70 =
+entity 0x025b1948 -> +0x108 = logic 0x002f7738`. `[logic+0xa718] = 4`
+(plausible weapon count!). BUT `[logic+0xa71c] = 6, 5` (small ints, not heap
+pointers) — so the weapon-ptr-array offset needs a small adjustment on this
+build, OR the weapons hang off the ENTITY not the logic object. Strong signal:
+the **entity 0x025b1948 sits in the same heap page as the ammo table
+(0x25b0728)** — the weapon/ammo data is right there. Finish with a watchpoint on
+0x25b0760 (the confirmed live-dynamic value) → its accessor names the exact
+struct base+offset, or scan ±0x2000 around the entity for the weapon-ptr array
+(4 consecutive heap pointers).
