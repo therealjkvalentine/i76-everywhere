@@ -87,3 +87,37 @@ both are then Windows processes in one prefix, so attach + watchpoints + pointer
 scanner all function. That gives us technique #2 (the conclusive one), which
 pure AHK RPM cannot do. Install CE into drive_c of the prefix and launch it via
 wine, same as our AHK tools.
+
+## 5. CONCLUSION — the ammo/armor encoding, cracked (disasm + Open76 source)
+
+Combining this branch's disassembly with the Open76/renscreations reimplementation
+source (docs/MW2-I76-STRUCTS.md) resolves the main thread's stuck scan:
+
+**Ammo = plain signed int32, a CURRENT-ROUNDS COUNTDOWN**, one per weapon
+instance (`--weapon.Ammo` per shot in Open76's WeaponsController; GDF `AmmoCount`
+int32 at offset 94). NOT fixed-point, NOT a fired-up-counter. It lives inside the
+per-weapon heap sub-object that this branch located via `car+0xa71c[i]`
+(disasm §1). Why the main thread's scan missed it: (a) the far-apart dumps
+diffed a Δ18 across too much noise; (b) the weapon sub-object is a separate
+heap allocation. **Fix: fire exactly ONE shot and diff for a −1 int delta**
+between two CLOSE snapshots (the countdown is unambiguous), or pointer-walk
+`car -> +0xa71c -> [weapon_idx] -> +ammo_off`.
+
+**Armor = 8 contiguous per-facet INTEGERS (4 armor + 4 chassis), in TENTHS.**
+This matches BOTH the save editor's "game shows tenths" note AND Open76's
+integer-subtraction damage model: stored = HUD ×10 (front 91.0 -> 910). The
+earlier live scan for 910/570/700 found nothing not because the encoding is
+wrong but because of dump timing / struct-not-yet-populated. **Fix: take a hit,
+then tight-loop scan for 910 → new value; the 8 facets are contiguous so one
+hit locates the whole block.**
+
+**Sim runs at a fixed ~20 fps tick** (Peelar + Roanish `world_tick`): combat
+ints mutate on tick boundaries — step by ticks when correlating a shot to a
+delta, don't sample mid-frame.
+
+**The conclusive tool (from RE-METHODOLOGY.md):** install `cheatengine.exe`
+into the prefix's drive_c and launch it via wine (same as our AHK tools) so it's
+a Windows process in the same prefix → "find what writes this address" on a
+found ammo/armor byte reads the offset + base register straight off the
+disassembly, giving the permanent pointer path (`[[static]+o1]+o2`) that
+survives relaunch. Pure AHK RPM can't set watchpoints; CE-in-prefix can.
