@@ -86,11 +86,13 @@ OnExit, RSGExit
 ; @pad Dpad-Left: notepad (N)
 ; @pad Dpad-Right: map (M)
 ; @pad RStick: look / glance - cockpit, external cam, menus (arrow keys)
+; @pad R3: look at target (E)
+; @pad R3(looking back): drop mines (hardpoint 4)
 ; @pad LB+RT: hardpoint 1
 ; @pad LB+LT: hardpoint 5
 ; @pad LB+A: hardpoint 3 - rear gun only
 ; @pad LB+B: hardpoint 4 - dropper
-; @pad LB+Y: cycle camera views (F1 F2 F3 F7 F8 F9 F10)
+; @pad LB+Y: cycle camera views (F1 F2 F3 F7 F8 F9 F10 F1 - both dash modes)
 ; @pad L3: nitrous / special 1 (hold); with LEFT stick pulled back = toggle reverse
 ; @pad LB+Dpad-Up: binoculars (B)
 ; @pad LB+Dpad-Down: horn (G)
@@ -107,7 +109,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
-gYPrev := false, gCamIdx := 0, gLookBack := false, gL3Nitro := false, gL3Prev := false
+gYPrev := false, gCamIdx := 0, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
 if (gXIDll != "")
     SetTimer, XIPoll, 15
 
@@ -172,10 +174,13 @@ RSGSet(key, want) {
 }
 
 RSGExit:
+VarSetCapacity(xiVib0, 4, 0)
+if (gXIDll != "")
+    DllCall(gXIDll . "\XInputSetState", "UInt", gXIPad, "Ptr", &xiVib0)
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
 RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
 RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
-RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false), RSGSet("b", false), RSGSet("g", false)
+RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false), RSGSet("b", false), RSGSet("g", false), RSGSet("e", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -273,8 +278,13 @@ RSGSet("1", lbHeld && gRTHeld)
 RSGSet("2", !lbHeld && gLTHeld)
 RSGSet("5", lbHeld && gLTHeld)
 
+; R3: look at target; while looking back, drop mines (hardpoint 4).
+; "4" has ONE writer: OR of LB+B (dropper) and lookback-R3 (mines).
+r3Held := (btns & 0x0080) != 0
+RSGSet("e", r3Held && !gLookBack)
+
 ; B: base tap = cycle weapon (C); shifted = dropper (hardpoint 4)
-RSGSet("4", lbHeld && bHeld)
+RSGSet("4", (lbHeld && bHeld) || (r3Held && gLookBack))
 if (!lbHeld && bHeld && !gBPrev)
     SendEvent, c
 gBPrev := bHeld
@@ -285,8 +295,8 @@ RSGSet("y", !lbHeld && xHeld)
 ; Y: base = dash/combat view (V); shifted = cycle camera views F1-F5
 RSGSet("v", !lbHeld && yHeld)
 if (lbHeld && yHeld && !gYPrev) {
-    gCamIdx := Mod(gCamIdx + 1, 7)
-    camKey := StrSplit("F1,F2,F3,F7,F8,F9,F10", ",")[gCamIdx + 1]
+    gCamIdx := Mod(gCamIdx + 1, 8)
+    camKey := StrSplit("F1,F2,F3,F7,F8,F9,F10,F1", ",")[gCamIdx + 1]
     SendEvent, {%camKey%}
 }
 gYPrev := yHeld
@@ -312,5 +322,15 @@ gLBPrev := lbHeld
 if (selHeld && !gSelPrev)
     SendEvent, {Esc}
 gSelPrev := selHeld
+
+; synthetic rumble from our own control state (experiment: works only if
+; Wine's xinput exposes a rumble path on this platform; harmless no-op else)
+nv := (gANitro || gL3Nitro) ? 45000 : (gRTHeld ? 20000 : 0)
+if (nv != gXIVibLast) {
+    VarSetCapacity(xiVib, 4, 0)
+    NumPut(nv, xiVib, 0, "UShort"), NumPut(nv, xiVib, 2, "UShort")
+    DllCall(gXIDll . "\XInputSetState", "UInt", gXIPad, "Ptr", &xiVib)
+    gXIVibLast := nv
+}
 gXIPrevBtns := btns
 return

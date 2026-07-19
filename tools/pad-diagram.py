@@ -113,7 +113,7 @@ def main():
         ("Action Bottom Row 2 (B)", base_of("B", "B(tap)"), 593, 180, "R"),
         ("Action Bottom Row 1 (A)", base_of("A", "A(tap)", "A(hold 400ms)"), 565, 208, "R"),
         ("Right Stick X/Y",       base_of("RStick", "RStick"), 505, 260, "R"),
-        ("Right Stick Button (R3)", nat("R3"), 505, 275, "R"),
+        ("Right Stick Button (R3)", base_of("R3", "R3", "R3(looking back)"), 505, 275, "R"),
         ("Center 1 (Select)",     base_of("Select", "Select"), 425, 155, "C1"),
         ("Center 2 (Start)",      base_of("Start", "Start"), 475, 155, "C2"),
         ("Center 3 (Guide)",      None, 450, 190, "C3"),
