@@ -313,8 +313,8 @@ list head. Node layout:
 
 | off | writer | meaning |
 |---|---|---|
-| +0x00 | exe 0x4a7fc4: `fstp` of `0x4ba370(&{0,0,1.0f}, &impact_vec3)` | **direction angle (deg)** of impact relative to car nose |
-| +0x04 | exe 0x4a7fdd: `fild qword` of category damage int | **magnitude** (damage points) |
+| +0x00 | exe 0x4a7fc4: `fstp` of `0x4ba370(&{0,0,1.0f}, &impact_vec3)` | **direction angle (deg)**, stored as a **float** (`fstp`) — LIVE-CONFIRMED 2026-07-20: field held 0x431C0000-ish, an IEEE float, not an int |
+| +0x04 | exe 0x4a7fdd | **magnitude** (damage), stored as a **float** — LIVE-CONFIRMED: 0x424C0000 = 50.0f. Read both as float, NOT int (a shim that read them as int turned a 50-damage hit into ~1e9 and pinned the motor) |
 | +0x08 | DLL | DI direction = `(int)(dir*100)` (DirectInput hundredths of degrees) |
 | +0x0c | DLL | DI magnitude, then per-tick decay |
 | +0x10 | DLL | started flag |
