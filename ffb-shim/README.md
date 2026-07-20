@@ -18,9 +18,12 @@ This shim **replaces** that DLL. The game then:
 
 and the shim:
 
-- drives **XInput gamepad rumble** directly (impacts/engine/terrain → left
-  motor; weapon fire/one-shots → right motor), using the real DLL's own
-  magnitude formulas where known;
+- drives **XInput gamepad rumble** directly, led by **wheel slip** — computed
+  from the real physics the game already gives us (skid/slide/oil bits, all four
+  tire statuses, lateral-force loading, speed), never from a button (wheel slip
+  *has* no button), and **textured by the actual skid/surface sound** via the
+  `.gpw` envelope table (`tools/gpw-envelopes.py`). Impacts/engine/weapons layer
+  on top using the real DLL's own magnitude formulas where known;
 - writes a live telemetry line to `C:\AutoHotkey\ffb-state.txt` (speed,
   surface, flags, forces, motor levels) and appends every impact event to
   `C:\AutoHotkey\ffb-events.txt`;
@@ -57,9 +60,24 @@ setup, docs/STEAMDECK.md). Installing this shim REPLACES that with pad rumble �
 only do it on a platform (Mac) or setup (pad-only) where real FFB isn't in
 play. `--revert` undoes it.
 
+## Sound-textured rumble
+
+`install.sh` generates `rumble-envelopes.ini` beside the DLL (via
+`tools/gpw-envelopes.py`, decoding the game's own `.gpw` effects). The shim
+loads it at init and uses the skid/surface envelope as the wheel-slip grit
+texture — so the rumble follows what the game is actually doing, and *feels*
+like the sound it would play. No table → the shim still runs, physics-only.
+The telemetry adds `slip100=` (0–100) so both viewers show wheel slip directly.
+
+Verified natively (parser + slip math on the real 123-envelope file): idle /
+airborne / crawling → 0; cruise → a light grit floor; hard skid → slip pegs and
+dominates the left motor with a high-freq chirp on the right. Not yet run in the
+live game.
+
 ## Files
 
-- `i7ffshim.c` — the shim (block struct, rumble mapping, file + UDP telemetry)
+- `i7ffshim.c` — the shim (block struct, envelope loader, wheel-slip model,
+  rumble mapping, file + UDP telemetry)
 - `i7_sfrce.def` — the three exports, ordinal-exact vs the original
 - `build.sh` / `install.sh`
 

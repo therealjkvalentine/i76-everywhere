@@ -104,6 +104,19 @@ static SOCKET g_udp = INVALID_SOCKET;
 static struct sockaddr_in g_dst;
 #define FFB_UDP_PORT 17676
 
+/* ---- sound-derived rumble envelopes (tools/gpw-envelopes.py output) ----
+ * Loaded at init from rumble-envelopes.ini (game dir, or C:\AutoHotkey\). Each
+ * line "name=v0,v1,..." is one .gpw effect's amplitude envelope (0-100). We
+ * play these to give each real EVENT the FEEL of its actual sound — the rumble
+ * follows what the game is doing (skid, fire, impact), never the button. */
+#define MAXENV 160
+#define MAXLEN 96
+typedef struct { char name[16]; unsigned char v[MAXLEN]; int len; } ENVELOPE;
+static ENVELOPE g_env[MAXENV];
+static int g_nenv;
+static int g_tex_idx = -1;   /* the wheel-slip grit texture envelope */
+static int g_tex_pos;        /* looping cursor into it */
+
 /* ---- state ---- */
 static float g_env_low;                 /* decaying impact/one-shot energy  */
 static float g_env_high;
@@ -129,6 +142,79 @@ static void write_file(const char *path, const char *s, int n, int append)
     }
     WriteFile(h, s, n, &w, 0);
     CloseHandle(h);
+}
+
+/* parse rumble-envelopes.ini into g_env[] (freestanding, no CRT) */
+static void load_envelopes(void)
+{
+    static char buf[131072];
+    static const char *paths[] = { "rumble-envelopes.ini",
+                                    "C:\\AutoHotkey\\rumble-envelopes.ini", 0 };
+    HANDLE h = INVALID_HANDLE_VALUE;
+    DWORD got = 0;
+    char *p;
+    int i;
+    for (i = 0; paths[i] && h == INVALID_HANDLE_VALUE; i++)
+        h = CreateFileA(paths[i], GENERIC_READ, FILE_SHARE_READ, 0,
+                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (h == INVALID_HANDLE_VALUE) return;             /* no table: physics-only rumble */
+    ReadFile(h, buf, sizeof(buf) - 1, &got, 0);
+    CloseHandle(h);
+    buf[got] = 0;
+    p = buf;
+    while (*p && g_nenv < MAXENV) {
+        char *nl = p, *eq;
+        while (*nl && *nl != '\n') nl++;
+        if (*nl) *nl = 0;
+        if (*p && *p != ';' && *p != '\r' && *p != '#') {
+            eq = p;
+            while (*eq && *eq != '=') eq++;
+            if (*eq == '=') {
+                ENVELOPE *e = &g_env[g_nenv];
+                char *q = eq + 1;
+                int n = 0, val = 0, have = 0;
+                *eq = 0;
+                lstrcpynA(e->name, p, 16);
+                while (*q && n < MAXLEN) {
+                    if (*q >= '0' && *q <= '9') { val = val * 10 + (*q - '0'); have = 1; }
+                    else if (*q == ',') { e->v[n++] = (unsigned char)val; val = 0; have = 0; }
+                    q++;
+                }
+                if (have && n < MAXLEN) e->v[n++] = (unsigned char)val;
+                e->len = n;
+                if (n > 0) g_nenv++;
+            }
+        }
+        p = nl + 1;
+    }
+}
+
+static int find_env(const char *name)
+{
+    int i;
+    for (i = 0; i < g_nenv; i++)
+        if (lstrcmpiA(g_env[i].name, name) == 0) return i;
+    return -1;
+}
+
+/* pick the wheel-slip grit texture: prefer a skid, then a loose-surface loop */
+static void pick_texture(void)
+{
+    static const char *cands[] = { "tskid1", "tskid2", "vcdgrav", "vcddirt",
+                                   "vcdsand", "tturn1", 0 };
+    int i;
+    for (i = 0; cands[i]; i++)
+        if ((g_tex_idx = find_env(cands[i])) >= 0) return;
+}
+
+/* one looping sample of the grit texture, 0..1 (falls back to a plain
+ * oscillator if no envelope table loaded) */
+static float texture_tick(void)
+{
+    if (g_tex_idx < 0 || g_env[g_tex_idx].len <= 0)
+        return (g_tick & 1) ? 1.0f : 0.4f;
+    g_tex_pos = (g_tex_pos + 1) % g_env[g_tex_idx].len;
+    return g_env[g_tex_idx].v[g_tex_pos] / 100.0f;
 }
 
 static int seen_node(void *n)
@@ -188,13 +274,19 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
             g_dst.sin_addr.s_addr = htonl(0x7f000001);   /* 127.0.0.1 */
         }
     }
-    write_file(TELEMETRY, "i7ffshim: init ok\r\n", 19, 0);
+    load_envelopes();
+    pick_texture();
+    {   /* record how many envelopes loaded — first thing to check in telemetry */
+        char m[64];
+        int n = wsprintfA(m, "i7ffshim: init ok, %d envelopes\r\n", g_nenv);
+        write_file(TELEMETRY, m, n, 0);
+    }
     return 0;
 }
 
 HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 {
-    float low, high, dt, engine, terrain, weapon;
+    float low, high, dt, engine, weapon, slip, rough, tex, slip_low, slip_high;
     int i, firing_gain;
     char buf[512];
     int n;
@@ -227,10 +319,37 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         if (g < 0) g = 0;
         engine = (g / 20.0f) * 0.22f;
     }
-    terrain = 0;
-    if (!b->airborne && b->surface && b->speed > 1.0f)
-        terrain = (b->speed / 165.0f) * 0.18f          /* surface-id order TBD */
-                + (b->skidding ? 0.10f : 0) + (b->sliding ? 0.08f : 0);
+    /* ---- WHEEL SLIP — the priority. Real physics, never a button: the game
+     * sets skid/slide/tire/lateral-force from the tire<->ground state, the same
+     * event that plays the skid sound. Intensity from that physics; TEXTURE from
+     * the actual skid/surface .gpw envelope. Left motor = heavy grind, right =
+     * high-freq skid chirp. Every constant is field-tunable from the telemetry. */
+    slip = 0;
+    if (b->skidding) slip += 0.45f;
+    if (b->sliding)  slip += 0.45f;
+    if (b->oilslick) slip += 0.30f;
+    {   /* lateral force (fy) = cornering grip loading -> sustained low grind */
+        float fy = b->force_y1 < 0 ? -b->force_y1 : b->force_y1;
+        if (fy > 2000.0f) fy = 2000.0f;
+        slip += (fy / 2000.0f) * 0.35f;
+    }
+    for (i = 0; i < 4; i++)             /* a flat/blown tire drags (DLL thresh 3000) */
+        if (b->tire[i] > 3000) slip += 0.12f;
+    if (b->airborne || b->speed < 3.0f) /* airborne wheels aren't slipping; none at crawl */
+        slip = 0;
+    else {
+        float sc = b->speed / 40.0f; if (sc > 1.0f) sc = 1.0f;
+        slip *= 0.4f + 0.6f * sc;        /* fades in with speed; floor keeps low-speed skids felt */
+    }
+    if (slip > 1.0f) slip = 1.0f;
+    rough = 0;                           /* loose-surface grit floor (no skid needed) */
+    if (!b->airborne && b->surface > 0 && b->speed > 3.0f) {
+        float sc = b->speed / 120.0f; if (sc > 1.0f) sc = 1.0f;
+        rough = sc * 0.14f;              /* per-surface-id tuning TBD from telemetry */
+    }
+    tex = texture_tick();                /* one looped sample of the skid/surface envelope */
+    slip_low  = rough * 0.5f + slip * (0.55f + 0.45f * tex);
+    slip_high = slip * 0.45f * tex;
     weapon = 0;
     firing_gain = 0;
     for (i = 0; i < 6; i++) {
@@ -244,11 +363,11 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         }
     }
 
-    /* decay + mix */
+    /* decay + mix (wheel slip is a first-class continuous layer) */
     g_env_low  -= dt * 2.2f; if (g_env_low  < 0) g_env_low  = 0;
     g_env_high -= dt * 3.0f; if (g_env_high < 0) g_env_high = 0;
-    low  = clamp01(g_env_low + engine + terrain);
-    high = clamp01(g_env_high + weapon);
+    low  = clamp01(g_env_low + engine + slip_low);
+    high = clamp01(g_env_high + weapon + slip_high);
     rumble(low, high);
 
     /* telemetry: one key=value line, ints only (wsprintfA has no %f). Values
@@ -258,7 +377,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     n = wsprintfA(buf,
         "tick=%lu on=%lu spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
         "slide=%lu oil=%lu steer=%d fx1000=%d fy1000=%d fy2_1000=%d "
-        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d gain=%d low100=%d high100=%d\r\n",
+        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d gain=%d slip100=%d low100=%d high100=%d\r\n",
         g_tick, b->forces_on, (int)(b->speed * 10), b->surface,
         b->engine_running, b->engine_pitch, b->airborne, b->skidding,
         b->sliding, b->oilslick, b->steer_right ? 1 : (b->steer_left ? -1 : 0),
@@ -266,7 +385,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         (int)(b->force_y2 * 1000), b->tire[0], b->tire[1], b->tire[2],
         b->tire[3], b->hp[0].firing != 0, b->hp[1].firing != 0,
         b->hp[2].firing != 0, b->hp[3].firing != 0, b->hp[4].firing != 0,
-        b->hp[5].firing != 0, firing_gain,
+        b->hp[5].firing != 0, firing_gain, (int)(slip * 100),
         (int)(low * 100), (int)(high * 100));
     if (g_udp != INVALID_SOCKET)                      /* every tick for the rig */
         sendto(g_udp, buf, n, 0, (struct sockaddr *)&g_dst, sizeof(g_dst));
