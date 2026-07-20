@@ -140,9 +140,9 @@ static int g_tex_pos;        /* looping cursor into it */
  * layers quiet so TRANSIENTS read on top — hierarchy + restraint. Wheel slip is
  * the loud one (driving feel priority); engine/road/weight are a subtle floor;
  * impacts/landings are sharp peaks. Tune these by feel from the telemetry. */
-#define R_ENGINE_IDLE  0.05f  /* engine lope amplitude when idling (LEFT) — very subtle */
-#define R_ENGINE_REV   0.02f  /* engine hum amplitude at speed (barely-there floor) */
-#define R_ROAD_MAX     0.16f  /* road-grit ceiling at high speed (LEFT) */
+#define R_ENGINE_IDLE  0.035f /* engine lope amplitude when idling (LEFT) — barely there */
+#define R_ENGINE_REV   0.012f /* engine hum amplitude at speed (almost nothing) */
+#define R_ROAD_MAX     0.30f  /* road-grit ceiling on rough ground (scaled by surface below) */
 #define R_WEIGHT_MAX   0.12f  /* cornering/brake load cue ceiling (LEFT) */
 #define R_SLIP_LAT     0.35f  /* how much lateral force feeds wheel slip */
 #define R_WEAPON       0.34f  /* per-firing-weapon buzz ceiling (RIGHT) */
@@ -170,7 +170,7 @@ static int   g_prev_air;                /* airborne edge -> landing thump */
 static int   g_tireflat_prev;           /* which tires were flat -> blowout edge */
 static unsigned g_engphase;             /* engine idle-lope oscillator */
 static int   g_road_pos;                /* road-texture envelope cursor */
-static DWORD g_fire_prev[6];            /* per-hardpoint firing count last frame */
+static int   g_road_idx = -1;           /* road-surface texture envelope */
 static const char *TELEMETRY = "C:\\AutoHotkey\\ffb-state.txt";
 static const char *EVENTLOG  = "C:\\AutoHotkey\\ffb-events.txt";
 
@@ -265,15 +265,34 @@ static float texture_tick(void)
     return g_env[g_tex_idx].v[g_tex_pos] / 100.0f;
 }
 
-/* road-surface grit texture, on its OWN cursor so it doesn't lock-step with
- * the slip chirp — gives the continuous tyre-on-ground floor its own life */
+/* pick the ROAD texture from the ground/surface loops (sand/gravel/dirt) — a
+ * different sound than the skid chirp, so the road floor feels like ground */
+static void pick_road_texture(void)
+{
+    static const char *cands[] = { "vcdsand", "vcdgrav", "vcddirt", "vcdoil",
+                                   "tskid1", 0 };
+    int i;
+    for (i = 0; cands[i]; i++)
+        if ((g_road_idx = find_env(cands[i])) >= 0) return;
+}
+
+/* road-surface grit texture, on its OWN cursor + sound so it doesn't lock-step
+ * with the slip chirp — gives the tyre-on-ground floor its own life */
 static float road_tick(void)
 {
-    if (g_tex_idx < 0 || g_env[g_tex_idx].len <= 0)
+    if (g_road_idx < 0 || g_env[g_road_idx].len <= 0)
         return (g_tick % 3) ? 0.5f : 1.0f;
-    g_road_pos = (g_road_pos + 2) % g_env[g_tex_idx].len;   /* step 2 = a touch coarser */
-    return g_env[g_tex_idx].v[g_road_pos] / 100.0f;
+    g_road_pos = (g_road_pos + 2) % g_env[g_road_idx].len;   /* step 2 = a touch coarser */
+    return g_env[g_road_idx].v[g_road_pos] / 100.0f;
 }
+
+/* per-surface road roughness, indexed by the surf id (0=stopped..9=in-air).
+ * GUESS from the terrain-name order — TUNE from telemetry: drive on sand, note
+ * the surf= value, and bump that index. Desert game: most ground rough, paved
+ * roads smooth. */
+static const float R_SURF_ROUGH[10] = {
+    0.0f, 0.80f, 0.40f, 1.00f, 0.90f, 0.75f, 0.35f, 0.70f, 0.70f, 0.0f
+};
 
 static int seen_node(void *n)
 {
@@ -361,6 +380,7 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
     }
     load_envelopes();
     pick_texture();
+    pick_road_texture();
     {   /* record how many envelopes loaded — first thing to check in telemetry */
         char m[64];
         int n = wsprintfA(m, "i7ffshim: init ok, %d envelopes\r\n", g_nenv);
@@ -371,8 +391,9 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
 
 HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 {
-    float low, high, dt, engine, road, weight, slip, tex, slip_low, slip_high, weapon;
-    int i, firing_gain, mask;
+    float low, high, dt, engine, road, road_rough, weight, slip, tex, slip_low, slip_high, weapon;
+    int i, firing_gain, mask, fb[6];
+    DWORD f0_raw;
     char buf[600];
     int n;
 
@@ -437,10 +458,11 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 
     /* ROAD: tyre-on-ground grit, scales with speed, textured by the surface
      * envelope. This is the "road connection" — key for driving feel. */
-    road = 0;
+    road = 0; road_rough = 0;
     if (!b->airborne && b->surface > 0 && b->speed > 3.0f) {
-        float sc = b->speed / 110.0f; if (sc > 1.0f) sc = 1.0f;
-        road = R_ROAD_MAX * sc * (0.5f + 0.5f * road_tick());   /* per-surface tuning TBD */
+        float sc = b->speed / 90.0f; if (sc > 1.0f) sc = 1.0f;
+        road_rough = (b->surface < 10) ? R_SURF_ROUGH[b->surface] : 0.6f;
+        road = R_ROAD_MAX * sc * road_rough * (0.5f + 0.5f * road_tick());
     }
 
     /* WEIGHT: subtle cornering/brake/accel load cue from the force vector's
@@ -479,28 +501,33 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     slip_low  = slip * (0.55f + 0.45f * tex);
     slip_high = slip * 0.45f * tex;
 
-    /* WEAPONS: per-hardpoint firing buzz on the small motor, strongest-wins,
-     * scaled by the game's own gain, with a flutter for the MG rattle. */
+    /* WEAPONS: the firing field latches nonzero (verified: f0 stuck at 1), so we
+     * CONSUME it like the other one-shots — buzz when set, then clear. The game
+     * re-asserts it each frame while actually firing, so topping up a DECAYING
+     * envelope gives a sustained rattle during fire that fades ~0.1s after you
+     * stop (and can never stick, because it decays). f0_raw is captured for
+     * telemetry before we clear. */
+    f0_raw = b->hp[0].firing;
+    for (i = 0; i < 6; i++) fb[i] = (b->hp[i].firing != 0);   /* capture before consume */
     weapon = 0;
     firing_gain = 0;
     for (i = 0; i < 6; i++) {
         if (b->hp[i].misfire1 || b->hp[i].misfire2) {
-            g_env_high += 0.30f;
+            g_env_high = MAXF(g_env_high, 0.30f);
             b->hp[i].misfire1 = b->hp[i].misfire2 = 0;
         }
-        /* buzz only while the firing count is CHANGING (actively firing). The
-         * flag stays nonzero after you stop, so keying off !=0 sticks the buzz
-         * on ("felt at the start but didn't go away"). Cue the change. */
-        if (b->hp[i].firing != g_fire_prev[i]) {
+        if (b->hp[i].firing) {
             float g = b->hp[i].gain > 0 ? (float)b->hp[i].gain / 100.0f : 1.0f;
             float w;
             if (g > 1.0f) g = 1.0f;
-            w = R_WEAPON * (0.6f + 0.4f * g) * ((g_tick & 1) ? 1.0f : 0.7f);
+            w = R_WEAPON * (0.6f + 0.4f * g);
             if (w > weapon) weapon = w;
             if ((int)b->hp[i].gain > firing_gain) firing_gain = (int)b->hp[i].gain;
+            b->hp[i].firing = 0;               /* consume — else it sticks the buzz on */
         }
-        g_fire_prev[i] = b->hp[i].firing;
     }
+    if (weapon > 0)
+        g_env_high = MAXF(g_env_high, weapon); /* top up the decaying buzz */
 
     /* ================= DECAY + MIX ========================================= */
     g_env_low  -= dt * 2.2f; if (g_env_low  < 0) g_env_low  = 0;
@@ -517,10 +544,11 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     low  = MAXF(low, shape(slip_low,   R_TH_EVENT, R_DEADZONE));
     low  = MAXF(low, shape(g_env_low,  R_TH_EVENT, R_DEADZONE));
     low  = MAXF(low, shape(g_env_land, R_TH_EVENT, R_DEADZONE));
-    high = shape(road,      R_TH_AMBIENT, R_ROAD_FLOOR);
+    /* road floor scales with surface roughness (squared): paved stays a whisper,
+     * sand/dirt/rocky get lifted toward "felt". */
+    high = shape(road, R_TH_AMBIENT, road_rough * road_rough * 0.32f);
     high = MAXF(high, shape(slip_high,  R_TH_EVENT, R_DEADZONE));
-    high = MAXF(high, shape(weapon,     R_TH_EVENT, R_DEADZONE));
-    high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));
+    high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));   /* weapons feed g_env_high */
     rumble(clamp01(low), clamp01(high));
 
     /* telemetry: one key=value line, ints only (wsprintfA has no %f). Values
@@ -537,9 +565,8 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         b->sliding, b->oilslick, b->steer_right ? 1 : (b->steer_left ? -1 : 0),
         (int)(b->force_x * 1000), (int)(b->force_y1 * 1000),
         (int)(b->force_y2 * 1000), b->tire[0], b->tire[1], b->tire[2],
-        b->tire[3], b->hp[0].firing != 0, b->hp[1].firing != 0,
-        b->hp[2].firing != 0, b->hp[3].firing != 0, b->hp[4].firing != 0,
-        b->hp[5].firing != 0, (unsigned long)b->hp[0].firing, firing_gain,
+        b->tire[3], fb[0], fb[1], fb[2], fb[3], fb[4], fb[5],
+        (unsigned long)f0_raw, firing_gain,
         (int)(engine * 100), (int)(road * 100), (int)(weight * 100),
         (int)(slip * 100), (int)(weapon * 100),
         (int)((g_env_low + g_env_land) * 100), (int)(low * 100), (int)(high * 100));
