@@ -1,13 +1,71 @@
 # Interstate '76 music: the per-mission track map
 
-*The game does NOT shuffle. Each mission names the CD track it wants, and the
-engine plays that track. This doc has the extracted per-mission table, how it
-was obtained, and the one field test that locks the numbering.*
+*The game does NOT shuffle. Each mission names a CD track, and the engine plays
+a continuous RUN starting there (looping the run) — so songs changing mid-mission
+is by design. This doc has the extracted per-mission table, how it was obtained,
+and the one field test that locks the numbering.*
 
 *Status 2026-07-19: table extracted from the game's own mission files
 (authoritative); the CD-track↔song-title mapping is a **hypothesis pending one
 listen** (see "The experiment"). As far as we can find, this table does not
 exist anywhere online.*
+
+## IMPORTANT: a mission does not play ONE song — it plays a RUN of tracks
+
+**Corrected 2026-07-19** (this doc previously said "the engine plays that track",
+which was wrong — the `MCI_PLAY` from/to computation was on screen and not read).
+
+The mission's number is a **starting cue**, not a single selection. The play
+function computes an END track too:
+
+```
+0x424684  mov edi,[esp+0x34]     ; edi = the mission's track (M01 -> 9)
+0x424688  cmp edi, 0xf           ; >= 15 ?
+0x42468b  lea esi,[edi+1]        ; "to" = track+1
+0x42468e  jae skip
+0x424690  mov esi, 0xf           ; else "to" = 15          <- the tell
+...
+0x424835  mov eax,[edi*4+0x524590]   ; dwFrom = position of the mission's track
+0x42482e  mov esi,[esi*4+0x524590]   ; dwTo   = position of the end track
+0x424844  mov ecx, 0xc               ; MCI_FROM | MCI_TO
+0x424858  push 0x806                 ; MCI_PLAY
+```
+
+So a mission starting at track 9 plays **9 → 15 continuously**: tracks 9, 10,
+11, 12, 13, 14 back to back (~13 minutes) before hitting the stop point.
+Tracks **15 and up are the exception** — `from N to N+1`, i.e. that one track
+alone (fitting, since track 17 is 59 s).
+
+**Songs changing mid-mission is intended CD-era behaviour**, not a port bug: the
+soundtrack plays on like an album from wherever the mission drops the needle,
+rather than looping a 2-minute cue until you're sick of it.
+
+This also reinterprets the shared numbers below: M05 / M12 / M14 all listing 5
+are not three missions sharing one song — they share a *starting point in the
+same run*.
+
+### It DOES loop — the whole run, not one song
+
+A watchdog re-issues playback when the run finishes (`0x423445` region):
+
+```
+0x423457  call 0x424550          ; probe: MCI_STATUS mode -> has playback ended?
+0x42345e  je   ret
+0x423460  mov  eax,[0x4ed800]    ; current track
+0x423468  je   ret               ; -1 = none -> stay silent
+0x42346a  mov  ecx,[0x524574]    ; state-derived flag (set from [0x4c2164] == 6)
+0x423472  je   0x423477
+0x423474  push eax               ; flag set -> REPLAY the mission's run from its track
+0x423477  push 2                 ; flag clear -> fall back to track 2
+0x423479  call 0x424670          ; MCI play
+```
+
+So: in the mission state the run **loops from the mission's own track**; outside
+it, playback falls back to **track 2** (almost certainly the theme — consistent
+with the front end having no track of its own). `0x4c2164` is the game-state
+global (`0x402610` is just `return [0x4c2164]`); the ==6 comparison is what
+selects looping vs fallback. GUESS: 6 = in-mission/shell-active; not yet
+confirmed live.
 
 ## How the engine picks a track (static RE, i76.exe GOG Gold)
 
@@ -26,7 +84,8 @@ mission file (miss8/M01.MSN)  ->  'WRLD' chunk, first payload dword  = track
 Key consequences:
 
 - The WRLD value is a **literal CD track number**, validated against the disc's
-  own table of contents — not an index into a playlist, not a random pick.
+  own table of contents — not an index into a playlist, not a random pick. It is
+  the START of a run (see the section above), not the whole selection.
 - There is **no `rand()`, no LCG, no incrementing counter** anywhere in the music
   module (0x423320–0x424b6b). The "it just shuffled" assumption is wrong.
 - The **front end has no track of its own**: `SetMusicTrack`'s only caller is the
@@ -39,9 +98,10 @@ first/last track, `0x524590[]` = per-track seek positions.
 
 ## The per-mission table (extracted from miss8/*.MSN)
 
-Field = the raw WRLD dword. "Predicted" applies the hypothesis below.
+Field = the raw WRLD dword = the track the mission's music RUN starts at (it then
+plays on through track 15, looping). "Predicted" applies the title hypothesis below.
 
-| Mission | field | predicted file | predicted title |
+| Mission | field (run START) | predicted first file | predicted first title |
 |---|---|---|---|
 | A01 | 7 | music/7.mp3 | The T'aint |
 | M01 | 9 | music/9.mp3 | Vigilante Shuffle |
@@ -129,3 +189,55 @@ Full disassembly notes: `scratchpad-fable/music-track-selection.md`.
 Track titles: [Local Ditch](https://www.localditch.com/interstate-76/music/) ·
 [Fandom](https://interstate76.fandom.com/wiki/Soundtrack) — neither documents
 mission assignment.
+
+## Sources: what's checkable vs what is confabulated
+
+Asked repeatedly (2026-07-19) whether the mission↔song mapping is published.
+**It is not.** What exists online is the *album*, which is a different product
+from the game disc. Grading the available material:
+
+| Claim | Verdict |
+|---|---|
+| The 32-track Bullmark album listing (titles, durations, personnel) | **Real** — [Fandom](https://interstate76.fandom.com/wiki/Soundtrack), [Discogs](https://www.discogs.com/release/992774-Bullmark-Interstate-76-Original-Game-Soundtrack), Soundtrack Central agree |
+| Local Ditch's shorter "game track listing" | **Real**, and the closest thing to a game-disc listing — the basis of the title hypothesis above |
+| Any prose "X plays during patrol missions / boss fights" mapping | **Unsupported.** No source documents it |
+| "Tracks 2 through 32 were Redbook audio tracks [on the game disc]" | **False.** The disc has 16 audio tracks (2–17), total 32:56 — see below |
+| "Tracks play sequentially or loop depending on mission length/pacing" | **Wrong mechanism.** It's a fixed per-mission start track and a fixed end track (15), looping |
+
+**Album ≠ game disc** — the Fandom page itself says the album "contained most
+tracks from the game as well as a few other tracks... that weren't featured in
+the game". Measured locally:
+
+```
+game disc: 16 tracks, 1976 s = 32:56   (music/2.mp3 .. music/17.mp3)
+album:     32 tracks, 3045 s = 50:45
+```
+
+Duration-matching the two is **suggestive but not conclusive** — several album
+titles collide on length and two game tracks match nothing:
+
+```
+game  9 (121s) -> Vigilante Shuffle (119s)      <- mild support for the hypothesis
+game  8 (121s) -> Vigilante Shuffle (119s)      <- identical length, collision
+game  4 (169s) -> ** NO ALBUM MATCH **
+game 12 (135s) -> ** NO ALBUM MATCH **
+```
+
+And these album tracks are **longer than the longest game track (2:49)**, so they
+cannot be on the disc as released — yet confident-sounding write-ups assign them
+to missions: They Call Me Swinger (3:18), Spineless Funk (3:06), Tulip Waltz
+(3:35), Never Get Outta The Car Ext. (3:28), Macadamia Medley (5:39).
+
+**Rule of thumb for this topic:** trust (1) the mission files, (2) the
+disassembly, (3) your own ears against `music/N.mp3`. Treat any prose
+mission→song mapping as invented until it cites one of those three.
+
+### Verified-by-ear log (fill in as you identify tracks)
+
+| CD track | file | predicted title | heard | confirmed? |
+|---|---|---|---|---|
+| 5 | music/5.mp3 | Revenge Rocco Style | | |
+| 7 | music/7.mp3 | The T'aint | | |
+| 8 | music/8.mp3 | Pimp Like Me | | |
+| 9 | music/9.mp3 | Vigilante Shuffle | | |
+| 11 | music/11.mp3 | Desert Sky Groove | | |
