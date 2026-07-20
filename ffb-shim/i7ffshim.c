@@ -31,8 +31,9 @@
 /* ---- the force block (offsets from ffb-deep-dive.md §3) ---- */
 #pragma pack(push, 1)
 typedef struct {
-    DWORD dir_deg;     /* +0x00 impact direction, degrees from car nose */
-    DWORD magnitude;   /* +0x04 damage points */
+    float dir_deg;     /* +0x00 impact direction, degrees (FLOAT — verified live:
+                        *   field held 0x424C0000 = 50.0f, not an int) */
+    float magnitude;   /* +0x04 damage points (FLOAT, same) */
     DWORD di_dir;      /* +0x08 DLL scratch */
     DWORD di_mag;      /* +0x0c DLL scratch */
     DWORD started;     /* +0x10 we NEVER set -> exe frees the node */
@@ -139,8 +140,8 @@ static int g_tex_pos;        /* looping cursor into it */
  * layers quiet so TRANSIENTS read on top — hierarchy + restraint. Wheel slip is
  * the loud one (driving feel priority); engine/road/weight are a subtle floor;
  * impacts/landings are sharp peaks. Tune these by feel from the telemetry. */
-#define R_ENGINE_IDLE  0.13f  /* engine lope amplitude when idling (LEFT) */
-#define R_ENGINE_REV   0.05f  /* engine hum amplitude at speed (quiet floor) */
+#define R_ENGINE_IDLE  0.07f  /* engine lope amplitude when idling (LEFT) — very subtle */
+#define R_ENGINE_REV   0.03f  /* engine hum amplitude at speed (barely-there floor) */
 #define R_ROAD_MAX     0.16f  /* road-grit ceiling at high speed (LEFT) */
 #define R_WEIGHT_MAX   0.12f  /* cornering/brake load cue ceiling (LEFT) */
 #define R_SLIP_LAT     0.35f  /* how much lateral force feeds wheel slip */
@@ -153,7 +154,7 @@ static int g_tex_pos;        /* looping cursor into it */
  * (Min Force); gentle inputs are gamma-2 curved so cruising stays calm and real
  * events pop; motors take the MAX of their effects each frame, never the SUM. */
 #define R_DEADZONE     0.28f  /* min-force floor for active EVENT effects */
-#define R_ROAD_FLOOR   0.14f  /* road connection you still want to feel */
+#define R_ROAD_FLOOR   0.06f  /* road connection: very subtle, "notice it in absence" */
 #define R_TH_EVENT     0.05f  /* dead-band below which an event is silent */
 #define R_TH_AMBIENT   0.02f  /* dead-band for ambient floors */
 #define MAXF(a,b)      ((a) > (b) ? (a) : (b))
@@ -292,10 +293,14 @@ static float impacts(IMPACT_NODE *n, float base, float k, const char *tag)
     while (n && guard--) {
         if (IsBadReadPtr(n, sizeof(*n))) break;
         if (!n->started && !n->effect && !seen_node(n)) {
-            float mag = base + k * (float)(int)n->magnitude;   /* ~35..300+ */
+            float dmg = n->magnitude;
+            float mag;
+            if (dmg < 0) dmg = -dmg;
+            if (dmg > 500.0f) dmg = 500.0f;            /* clamp: guard vs any stray value */
+            mag = base + k * dmg;                       /* ~35..300 */
             add += mag / R_IMPACT_NORM;
-            wsprintfA(buf, "%lu %s dir=%ld dmg=%ld\r\n",
-                      g_tick, tag, (long)n->dir_deg, (long)n->magnitude);
+            wsprintfA(buf, "%lu %s dir=%d dmg=%d\r\n",
+                      g_tick, tag, (int)n->dir_deg, (int)dmg);
             write_file(EVENTLOG, buf, lstrlenA(buf), 1);
         }
         n = (IMPACT_NODE *)n->next;
@@ -381,8 +386,9 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     }
 
     /* ================= TRANSIENTS (one-shots -> decaying envelopes) ========= */
-    /* engine start: a ~short starter crank on the heavy motor */
-    if (b->engine_starting) { g_env_low += 0.45f; b->engine_starting = 0; }
+    /* engine start: a ~short starter crank on the heavy motor (was 0.45, -33%:
+     * ignition felt ~30% too intense) */
+    if (b->engine_starting) { g_env_low += 0.30f; b->engine_starting = 0; }
     /* weapon UI events: crisp clicks on the buzz motor */
     if (b->wpn_cycle)  { g_env_high += 0.30f; b->wpn_cycle = 0; }
     if (b->wpn_link)   { g_env_high += 0.25f; b->wpn_link = 0; }
