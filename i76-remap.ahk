@@ -112,6 +112,15 @@ gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
 gYPrev := false, gCamIdx := 0, gYExt := false
 gTL := 0, gTR := 0, gTTicks := 0, gGrowl := 0
+; ---- RUMBLE OWNERSHIP (2026-07-19) ----
+; The ffb-shim (i7_SFRCE.DLL) now drives the pad from the game's REAL force
+; stream (wheel slip, impacts, engine, weapons) — richer than this layer's
+; key-based rumble, and it would FIGHT us on the same motor. So this layer's
+; rumble output is OFF by default; the shim owns the motor. Input mapping
+; (steering, glance, gears, nitro keys) is unaffected — only the XInput
+; vibration WRITE is gated. Set gShimOwnsRumble := false to hand rumble back
+; to this layer (e.g. on a platform where the shim isn't installed).
+gShimOwnsRumble := true
 gNitroPrev := false, gRBPrev := false, gGearUPrev := false, gGearDPrev := false, gMinePrev := false, gIgnPrev := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
 if (gXIDll != "")
     SetTimer, XIPoll, 15
@@ -340,6 +349,12 @@ gSelPrev := selHeld
 ; top), distinct signature per event, left motor = heavy/low-freq, right =
 ; light/high-freq buzz. Two layers: continuous (nitrous/weapons/engine growl)
 ; + transient pulses (RumblePulse, last-event-wins). SetState only on change.
+; Gated 2026-07-19: the ffb-shim owns the pad motor now (see gShimOwnsRumble
+; up top). Skip the whole mixer so we never write XInput and never fight it.
+if (gShimOwnsRumble) {
+    gXIPrevBtns := btns
+    return
+}
 lyR := NumGet(xiState, 10, "Short")
 nact := (gANitro || gL3Nitro)
 if (nact && !gNitroPrev)
