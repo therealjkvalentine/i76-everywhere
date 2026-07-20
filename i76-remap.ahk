@@ -373,10 +373,13 @@ if (gRSGHeld["2"] || gRSGHeld["5"]) {
 }
 if (!nact && lyR > 12000) {
     ; engine growl scales with stick: further forward = stronger AND faster
-    ; texture (field-tuned 2026-07-18: was 30% too strong, half the frequency)
+    ; texture. Chilled 2026-07-19 (user "chill out the motor rumble"): ~35%
+    ; lower amplitude + slower texture than the 2026-07-18 tune. Knobs: base/
+    ; range on `amp` (idle-edge -> pinned) and the `per` half-period (higher =
+    ; calmer). Raise lyR>12000 to gate it in later.
     fthr := (lyR - 12000) / 20767.0          ; 0.0 .. 1.0 deflection past start
-    per := 5 - Round(fthr * 3)               ; texture half-period 5 -> 2 ticks
-    amp := 3500 + Round(fthr * 5000)         ; 3.5k idle-edge -> 8.5k pinned
+    per := 6 - Round(fthr * 2)               ; texture half-period 6 -> 4 ticks (calmer)
+    amp := 2200 + Round(fthr * 3300)         ; 2.2k idle-edge -> 5.5k pinned (was 3.5k -> 8.5k)
     gv := Mod(gGrowl, per * 2) >= per ? amp : amp // 2
     cl := cl > gv ? cl : gv
 }
