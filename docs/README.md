@@ -70,6 +70,8 @@ including what did NOT work — is reconciled in one place.*
 | `../tools/gpw-envelopes.py` | Sound→rumble pipeline: decodes the game's .gpw effects, emits per-sound amplitude envelopes for the AHK rumble layer (generated table stays local/gitignored). |
 | [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) · [`../ffb-shim/`](../ffb-shim/) | **The force-feedback crack (2026-07-19):** FFB is a plugin DLL with 3 functions; the exe streams a fully-mapped force-state block every tick. The shim replaces the DLL — game FFB activates with no DirectInput device (incl. Mac), stream drives pad rumble + telemetry + UDP. Not yet field-run. |
 | [MOTION-SIM.md](MOTION-SIM.md) · `../tools/i76-ffb-monitor.ahk` · `ffb-udp-listen.py` | **Home 6DOF motion sim + wheel FFB path.** Maps the shim's force stream onto SimTools/SimHub (the standard receivers); the AHK overlay + UDP listener are the "watch/tune the stream" viewers. Full DOF set needs a memory reader; wheel torque is Windows-only. Not yet rig-verified. |
+| [SIM-RUMBLE-RESEARCH.md](SIM-RUMBLE-RESEARCH.md) | Cited research: SimHub ShakeIt effect design, gamepad two-motor allocation, the Threshold→Gamma→Min-Force chain, driving-feel hierarchy. The design spec behind the rumble mixer. |
+| [FFB-MORNING-TEST.md](FFB-MORNING-TEST.md) · [`../sound-rumble/`](../sound-rumble/) | **The rumble field-test + tuning sheet** (what to feel, every knob), and the experimental **sound-based backup** (dsound proxy — rumble from actual audio, not installed by default). |
 
 ## 📚 Reference / historical — context, not instructions
 

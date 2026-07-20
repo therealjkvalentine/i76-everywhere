@@ -293,7 +293,7 @@ static float impacts(IMPACT_NODE *n, float base, float k, const char *tag)
         if (IsBadReadPtr(n, sizeof(*n))) break;
         if (!n->started && !n->effect && !seen_node(n)) {
             float mag = base + k * (float)(int)n->magnitude;   /* ~35..300+ */
-            add += mag / 220.0f;
+            add += mag / R_IMPACT_NORM;
             wsprintfA(buf, "%lu %s dir=%ld dmg=%ld\r\n",
                       g_tick, tag, (long)n->dir_deg, (long)n->magnitude);
             write_file(EVENTLOG, buf, lstrlenA(buf), 1);
