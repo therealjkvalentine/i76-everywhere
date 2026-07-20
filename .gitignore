@@ -21,3 +21,5 @@ scratchpad-fable/open76/
 .env
 **/.env
 __pycache__/
+sound-rumble/dsound.dll
+rumble-fingerprints.ini
