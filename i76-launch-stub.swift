@@ -146,6 +146,42 @@ func padSaveDir(_ A: String) {
     }
 }
 
+// Heal the ORPHANED save file: when the engine's save writer can't get a slot from
+// its allocator it formats the filename with slot -1 -> "save-01.cmp", while the
+// savegame.dir entry it wrote alongside names the REAL slot (saveNNN). The bookmark
+// then points at a file that doesn't exist and the save looks lost, even though the
+// data is intact on disk. Engine bug in i76shell.dll, not ours - it predates this
+// port (orphans observed 2026-07-14/15) and fires on fresh-slot saves.
+// Field-diagnosed 2026-07-19: a 15:22 save landed in save-01.cmp while dir entry 12
+// said save017; copying it across recovered it byte-identical.
+// Heal: copy the orphan onto the newest dir entry that has no .cmp, then park the
+// orphan as a .bak so a later boot can't re-copy a stale one into a different slot.
+func rescueOrphanSave(_ A: String) {
+    let dir = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
+    let orphan = dir + "/save-01.cmp"
+    let fm = FileManager.default
+    guard fm.fileExists(atPath: orphan),
+          let d = fm.contents(atPath: dir + "/savegame.dir"), d.count >= 4 else { return }
+    let count = Int(d.withUnsafeBytes { $0.load(fromByteOffset: 0, as: UInt32.self) })
+    guard count > 0, count < 4096 else { return }
+    // walk newest-first: the orphan always belongs to the most recent save
+    for i in stride(from: count - 1, through: 0, by: -1) {
+        let off = 0x28 + 60 * i
+        guard off + 28 <= d.count else { continue }
+        let name = String(bytes: d.subdata(in: off..<(off + 28)).prefix(while: { $0 != 0 }),
+                          encoding: .ascii) ?? ""
+        guard name.hasPrefix("save"), !name.contains("/") else { continue }
+        let target = dir + "/" + name + ".cmp"
+        if !fm.fileExists(atPath: target) {
+            guard (try? fm.copyItem(atPath: orphan, toPath: target)) != nil else { return }
+            let f = DateFormatter(); f.dateFormat = "yyyyMMdd-HHmmss"
+            try? fm.moveItem(atPath: orphan,
+                             toPath: orphan + ".bak-" + f.string(from: Date()))
+            return
+        }
+    }
+}
+
 // In-session heal: pad-on-boot still left the newest bookmark invisible for the
 // REST of the session that wrote it (the game re-truncates the dir on every save
 // and re-reads it each time the save/load board opens - field-observed 2026-07-18,
@@ -162,6 +198,7 @@ func padSaveDirIfQuiescent(_ A: String) {
 
 setupEnv(A)
 padSaveDir(A)
+rescueOrphanSave(A)   // recover any save the engine orphaned as save-01.cmp last session
 
 // Reap on app-quit too (cmd-Q / Dock quit / LaunchServices logout sends SIGTERM;
 // SIGINT for good measure). Without this, quitting the .app while the game runs
@@ -219,6 +256,13 @@ while booted {
     Thread.sleep(forTimeInterval: 2)
     if !running("i76\\.exe") { break }                 // (a) process gone
     padSaveDirIfQuiescent(A)                           // keep the newest bookmark loadable mid-session
+    // same quiescence guard: only heal when the dir has been quiet >3s, so we never
+    // interleave with the engine's own in-progress save write
+    if let at = try? FileManager.default.attributesOfItem(atPath:
+            A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/savegame.dir"),
+       let m = at[.modificationDate] as? Date, Date().timeIntervalSince(m) > 3 {
+        rescueOrphanSave(A)                            // recover an orphan mid-session too
+    }
     let n = largeWineWindows()
     if n >= 2 { sawTwo = true; lowStreak = 0 }
     else if sawTwo {                                    // (b) render window closed
