@@ -140,9 +140,10 @@ static int g_tex_pos;        /* looping cursor into it */
  * layers quiet so TRANSIENTS read on top — hierarchy + restraint. Wheel slip is
  * the loud one (driving feel priority); engine/road/weight are a subtle floor;
  * impacts/landings are sharp peaks. Tune these by feel from the telemetry. */
-#define R_ENGINE_IDLE  0.035f /* engine lope amplitude when idling (LEFT) — barely there */
-#define R_ENGINE_REV   0.012f /* engine hum amplitude at speed (almost nothing) */
-#define R_ROAD_MAX     0.30f  /* road-grit ceiling on rough ground (scaled by surface below) */
+#define R_ENGINE_IDLE  0.30f  /* idle THROB amplitude (LEFT) — felt when stopped+running,
+                               * fades to nothing as you roll (road takes over) */
+#define R_ROAD_MAX     0.26f  /* road-grit ceiling on rough ground (scaled by surface below) */
+#define R_ROAD_FLOORK  0.22f  /* how hard road roughness lifts the floor (lower = subtler) */
 #define R_WEIGHT_MAX   0.12f  /* cornering/brake load cue ceiling (LEFT) */
 #define R_SLIP_LAT     0.35f  /* how much lateral force feeds wheel slip */
 #define R_WEAPON       0.34f  /* per-firing-weapon buzz ceiling (RIGHT) */
@@ -161,7 +162,8 @@ static int g_tex_pos;        /* looping cursor into it */
 
 /* ---- state ---- */
 static float g_env_low;                 /* decaying impact/one-shot energy  */
-static float g_env_high;
+static float g_env_high;                /* misfire / transient crack (RIGHT) */
+static float g_env_wpn;                 /* weapon-fire buzz, slow decay (RIGHT) */
 static float g_env_land;                /* landing / blowout transient (LEFT) */
 static void *g_seen[16];                /* recently processed impact nodes  */
 static int   g_seen_i;
@@ -172,6 +174,7 @@ static unsigned g_engphase;             /* engine idle-lope oscillator */
 static int   g_road_pos;                /* road-texture envelope cursor */
 static int   g_road_idx = -1;           /* road-surface texture envelope */
 static const char *TELEMETRY = "C:\\AutoHotkey\\ffb-state.txt";
+static const char *DRIVELOG  = "C:\\AutoHotkey\\ffb-drive.log";   /* time-series for tuning */
 static const char *EVENTLOG  = "C:\\AutoHotkey\\ffb-events.txt";
 
 static float clamp01(float v) { return v < 0 ? 0 : (v > 1 ? 1.0f : v); }
@@ -402,7 +405,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     dt = (b->dt > 0 && b->dt <= 0.95f) ? b->dt : 0.05f;
 
     if (!b->forces_on) {              /* master off: stop everything */
-        g_env_low = g_env_high = g_env_land = 0;
+        g_env_low = g_env_high = g_env_wpn = g_env_land = 0;
         rumble(0, 0);
         return 0;
     }
@@ -442,18 +445,19 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     g_tireflat_prev = mask;
 
     /* ================= CONTINUOUS LAYERS (kept quiet, floor) =============== */
-    /* ENGINE: a low lope on the heavy motor — louder/slower at idle, quieter/
-     * faster with speed. Triangle oscillator (no libm); rate scales with speed. */
+    /* ENGINE: a felt idle THROB on the heavy motor when stopped+running, that
+     * FADES OUT as you roll (the road takes over). Triangle lope (no libm). This
+     * is what makes a parked-but-running car feel alive without droning while
+     * driving. Direct motor level (not gamma-shaped — it IS the idle feel). */
     engine = 0;
     if (b->engine_running) {
-        float sc = b->speed / 60.0f; if (sc > 1.0f) sc = 1.0f;
-        float amp = R_ENGINE_IDLE * (1.0f - sc) + R_ENGINE_REV * sc;
-        unsigned period = (unsigned)(9.0f - sc * 6.0f); if (period < 3) period = 3;
+        float sc = b->speed / 45.0f; if (sc > 1.0f) sc = 1.0f;
+        unsigned period = 8;                                 /* idle lope period */
         float ph, tri;
         g_engphase++;
-        ph = (float)(g_engphase % period) / (float)period;   /* 0..1 */
+        ph = (float)(g_engphase % period) / (float)period;
         tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;      /* 0..1..0 */
-        engine = amp * (0.55f + 0.45f * tri);
+        engine = R_ENGINE_IDLE * (1.0f - sc) * (0.5f + 0.5f * tri);  /* throb, gone at speed */
     }
 
     /* ROAD: tyre-on-ground grit, scales with speed, textured by the surface
@@ -526,29 +530,29 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
             b->hp[i].firing = 0;               /* consume — else it sticks the buzz on */
         }
     }
+    /* feed the SLOW-decay weapon envelope: one assertion gives a felt ~0.3s buzz,
+     * re-assertions (auto-fire) sustain it, and it can never stick (decays). */
     if (weapon > 0)
-        g_env_high = MAXF(g_env_high, weapon); /* top up the decaying buzz */
+        g_env_wpn = MAXF(g_env_wpn, weapon);
 
     /* ================= DECAY + MIX ========================================= */
     g_env_low  -= dt * 2.2f; if (g_env_low  < 0) g_env_low  = 0;
     g_env_high -= dt * 3.0f; if (g_env_high < 0) g_env_high = 0;
+    g_env_wpn  -= dt * 1.2f; if (g_env_wpn  < 0) g_env_wpn  = 0;   /* slow -> ~0.3s felt buzz */
     g_env_land -= dt * 2.5f; if (g_env_land < 0) g_env_land = 0;
-    /* Shape + MAX per motor (never SUM — that's the mush trap). Ambient floors
-     * (engine, road) get no/low min-force so they stay a whisper; EVENTS (slip,
-     * impacts, weapon, landing) are lifted above the dead-zone so they're felt
-     * on the frame they fire. LEFT = heavy/slow (engine, weight, slip grind,
-     * impact body, landing); RIGHT = texture/fast (road, slip chirp, weapon,
-     * transient crack). Per docs/SIM-RUMBLE-RESEARCH.md. */
-    low  = shape(engine,    R_TH_AMBIENT, 0.0f);
+    /* Shape + MAX per motor (never SUM — the mush trap). Reworked from field feel:
+     * LEFT = heavy/low-freq BODY — idle throb, road/ground rumble (moved here: on
+     * the high motor it read 'buzzy'), weight, slip grind, impacts, landing.
+     * RIGHT = high-freq EDGE — skid chirp, weapon buzz, transient crack. */
+    low  = engine;                                          /* idle throb, direct */
+    low  = MAXF(low, shape(road, R_TH_AMBIENT, road_rough * road_rough * R_ROAD_FLOORK));
     low  = MAXF(low, shape(weight,     R_TH_AMBIENT, 0.0f));
     low  = MAXF(low, shape(slip_low,   R_TH_EVENT, R_DEADZONE));
     low  = MAXF(low, shape(g_env_low,  R_TH_EVENT, R_DEADZONE));
     low  = MAXF(low, shape(g_env_land, R_TH_EVENT, R_DEADZONE));
-    /* road floor scales with surface roughness (squared): paved stays a whisper,
-     * sand/dirt/rocky get lifted toward "felt". */
-    high = shape(road, R_TH_AMBIENT, road_rough * road_rough * 0.32f);
-    high = MAXF(high, shape(slip_high,  R_TH_EVENT, R_DEADZONE));
-    high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));   /* weapons feed g_env_high */
+    high = shape(slip_high,  R_TH_EVENT, R_DEADZONE);
+    high = MAXF(high, shape(g_env_wpn,  R_TH_EVENT, R_DEADZONE));   /* weapon fire */
+    high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));   /* misfire/crack */
     rumble(clamp01(low), clamp01(high));
 
     /* telemetry: one key=value line, ints only (wsprintfA has no %f). Values
@@ -574,6 +578,9 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         sendto(g_udp, buf, n, 0, (struct sockaddr *)&g_dst, sizeof(g_dst));
     if (!(g_tick & 1))                                /* every other for disk */
         write_file(TELEMETRY, buf, n, 0);
+    if ((g_tick % 10) == 0)                           /* ~2/sec APPENDED time-series
+                                                       * so a drive can be reviewed after */
+        write_file(DRIVELOG, buf, n, 1);
     return 0;
 }
 
