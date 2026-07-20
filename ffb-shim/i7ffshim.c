@@ -140,8 +140,8 @@ static int g_tex_pos;        /* looping cursor into it */
  * layers quiet so TRANSIENTS read on top — hierarchy + restraint. Wheel slip is
  * the loud one (driving feel priority); engine/road/weight are a subtle floor;
  * impacts/landings are sharp peaks. Tune these by feel from the telemetry. */
-#define R_ENGINE_IDLE  0.07f  /* engine lope amplitude when idling (LEFT) — very subtle */
-#define R_ENGINE_REV   0.03f  /* engine hum amplitude at speed (barely-there floor) */
+#define R_ENGINE_IDLE  0.05f  /* engine lope amplitude when idling (LEFT) — very subtle */
+#define R_ENGINE_REV   0.02f  /* engine hum amplitude at speed (barely-there floor) */
 #define R_ROAD_MAX     0.16f  /* road-grit ceiling at high speed (LEFT) */
 #define R_WEIGHT_MAX   0.12f  /* cornering/brake load cue ceiling (LEFT) */
 #define R_SLIP_LAT     0.35f  /* how much lateral force feeds wheel slip */
@@ -170,6 +170,7 @@ static int   g_prev_air;                /* airborne edge -> landing thump */
 static int   g_tireflat_prev;           /* which tires were flat -> blowout edge */
 static unsigned g_engphase;             /* engine idle-lope oscillator */
 static int   g_road_pos;                /* road-texture envelope cursor */
+static DWORD g_fire_prev[6];            /* per-hardpoint firing count last frame */
 static const char *TELEMETRY = "C:\\AutoHotkey\\ffb-state.txt";
 static const char *EVENTLOG  = "C:\\AutoHotkey\\ffb-events.txt";
 
@@ -487,7 +488,10 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
             g_env_high += 0.30f;
             b->hp[i].misfire1 = b->hp[i].misfire2 = 0;
         }
-        if (b->hp[i].firing) {
+        /* buzz only while the firing count is CHANGING (actively firing). The
+         * flag stays nonzero after you stop, so keying off !=0 sticks the buzz
+         * on ("felt at the start but didn't go away"). Cue the change. */
+        if (b->hp[i].firing != g_fire_prev[i]) {
             float g = b->hp[i].gain > 0 ? (float)b->hp[i].gain / 100.0f : 1.0f;
             float w;
             if (g > 1.0f) g = 1.0f;
@@ -495,6 +499,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
             if (w > weapon) weapon = w;
             if ((int)b->hp[i].gain > firing_gain) firing_gain = (int)b->hp[i].gain;
         }
+        g_fire_prev[i] = b->hp[i].firing;
     }
 
     /* ================= DECAY + MIX ========================================= */
@@ -525,7 +530,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     n = wsprintfA(buf,
         "tick=%lu on=%lu pad=%d spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
         "slide=%lu oil=%lu steer=%d fx1000=%d fy1000=%d fy2_1000=%d "
-        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d gain=%d "
+        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d f0=%lu gain=%d "
         "eng=%d road=%d weight=%d slip=%d wpn=%d jolt=%d low100=%d high100=%d\r\n",
         g_tick, b->forces_on, g_pad, (int)(b->speed * 10), b->surface,
         b->engine_running, b->engine_pitch, b->airborne, b->skidding,
@@ -534,7 +539,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         (int)(b->force_y2 * 1000), b->tire[0], b->tire[1], b->tire[2],
         b->tire[3], b->hp[0].firing != 0, b->hp[1].firing != 0,
         b->hp[2].firing != 0, b->hp[3].firing != 0, b->hp[4].firing != 0,
-        b->hp[5].firing != 0, firing_gain,
+        b->hp[5].firing != 0, (unsigned long)b->hp[0].firing, firing_gain,
         (int)(engine * 100), (int)(road * 100), (int)(weight * 100),
         (int)(slip * 100), (int)(weapon * 100),
         (int)((g_env_low + g_env_land) * 100), (int)(low * 100), (int)(high * 100));
