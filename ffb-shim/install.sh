@@ -23,7 +23,7 @@ cp -f I7_SFRCE.DLL "$GAME/i7_sfrce.dll"
 # generate the sound-derived rumble envelope table beside the DLL (game dir is
 # the shim's cwd, so it reads rumble-envelopes.ini from here). Without it the
 # shim still runs (physics-only rumble) but wheel slip loses its grit texture.
-REPO=$(cd "$(dirname "$0")/.." && pwd)
+REPO=$(cd .. && pwd)   # we already cd'd to the script dir (ffb-shim/) at the top
 if python3 "$REPO/tools/gpw-envelopes.py" "$GAME" --out "$GAME/rumble-envelopes.ini" 2>/dev/null; then
     echo "rumble envelopes generated in the game dir"
 else
