@@ -94,7 +94,22 @@ typedef struct {
 /* ---- XInput, loaded dynamically ---- */
 typedef struct { WORD wLeftMotorSpeed, wRightMotorSpeed; } XVIB;
 typedef DWORD (WINAPI *XSetStateFn)(DWORD, XVIB *);
+typedef DWORD (WINAPI *XGetStateFn)(DWORD, void *);   /* buf big enough for XINPUT_STATE */
 static XSetStateFn xset;
+static XGetStateFn xget;
+static int g_pad = -1;         /* the connected controller slot (0-3), -1 = none yet */
+
+/* scan XInput slots 0-3 for a connected pad; returns the slot or -1 */
+static int find_pad(void)
+{
+    unsigned char st[16];      /* XINPUT_STATE = dwPacketNumber + 14-byte gamepad */
+    int i;
+    if (!xget) return 0;       /* no getstate: fall back to slot 0 (old behavior) */
+    for (i = 0; i < 4; i++)
+        if (xget(i, st) == 0)  /* ERROR_SUCCESS = connected */
+            return i;
+    return -1;
+}
 
 /* ---- UDP telemetry to a motion-sim receiver (SimTools/SimHub plugin, or
  * tools/ffb-udp-listen.py). 127.0.0.1:? by default; a receiver on another host
@@ -117,12 +132,43 @@ static int g_nenv;
 static int g_tex_idx = -1;   /* the wheel-slip grit texture envelope */
 static int g_tex_pos;        /* looping cursor into it */
 
+/* ===== RUMBLE TUNING — every driving-feel constant in one place =====
+ * Two motors: LEFT = low-freq/heavy (engine, road, slip grind, weight,
+ * impacts, landings); RIGHT = high-freq/buzz (skid chirp, weapon fire, gear
+ * clicks). Design canon (informed by sim-tactile practice): keep the CONTINUOUS
+ * layers quiet so TRANSIENTS read on top — hierarchy + restraint. Wheel slip is
+ * the loud one (driving feel priority); engine/road/weight are a subtle floor;
+ * impacts/landings are sharp peaks. Tune these by feel from the telemetry. */
+#define R_ENGINE_IDLE  0.13f  /* engine lope amplitude when idling (LEFT) */
+#define R_ENGINE_REV   0.05f  /* engine hum amplitude at speed (quiet floor) */
+#define R_ROAD_MAX     0.16f  /* road-grit ceiling at high speed (LEFT) */
+#define R_WEIGHT_MAX   0.12f  /* cornering/brake load cue ceiling (LEFT) */
+#define R_SLIP_LAT     0.35f  /* how much lateral force feeds wheel slip */
+#define R_WEAPON       0.34f  /* per-firing-weapon buzz ceiling (RIGHT) */
+#define R_LAND_MAX     0.85f  /* landing thump ceiling, scaled by speed (LEFT) */
+#define R_BLOWOUT      0.70f  /* tire-blowout jolt (LEFT) */
+#define R_IMPACT_NORM  220.0f /* impact magnitude -> 0..1 divisor */
+/* ERM-motor shaping (docs/SIM-RUMBLE-RESEARCH.md): the bottom ~30% of a rumble
+ * motor's range isn't felt, so an ACTIVE event is lifted above this dead-zone
+ * (Min Force); gentle inputs are gamma-2 curved so cruising stays calm and real
+ * events pop; motors take the MAX of their effects each frame, never the SUM. */
+#define R_DEADZONE     0.28f  /* min-force floor for active EVENT effects */
+#define R_ROAD_FLOOR   0.14f  /* road connection you still want to feel */
+#define R_TH_EVENT     0.05f  /* dead-band below which an event is silent */
+#define R_TH_AMBIENT   0.02f  /* dead-band for ambient floors */
+#define MAXF(a,b)      ((a) > (b) ? (a) : (b))
+
 /* ---- state ---- */
 static float g_env_low;                 /* decaying impact/one-shot energy  */
 static float g_env_high;
+static float g_env_land;                /* landing / blowout transient (LEFT) */
 static void *g_seen[16];                /* recently processed impact nodes  */
 static int   g_seen_i;
 static DWORD g_tick;
+static int   g_prev_air;                /* airborne edge -> landing thump */
+static int   g_tireflat_prev;           /* which tires were flat -> blowout edge */
+static unsigned g_engphase;             /* engine idle-lope oscillator */
+static int   g_road_pos;                /* road-texture envelope cursor */
 static const char *TELEMETRY = "C:\\AutoHotkey\\ffb-state.txt";
 static const char *EVENTLOG  = "C:\\AutoHotkey\\ffb-events.txt";
 
@@ -217,6 +263,16 @@ static float texture_tick(void)
     return g_env[g_tex_idx].v[g_tex_pos] / 100.0f;
 }
 
+/* road-surface grit texture, on its OWN cursor so it doesn't lock-step with
+ * the slip chirp — gives the continuous tyre-on-ground floor its own life */
+static float road_tick(void)
+{
+    if (g_tex_idx < 0 || g_env[g_tex_idx].len <= 0)
+        return (g_tick % 3) ? 0.5f : 1.0f;
+    g_road_pos = (g_road_pos + 2) % g_env[g_tex_idx].len;   /* step 2 = a touch coarser */
+    return g_env[g_tex_idx].v[g_road_pos] / 100.0f;
+}
+
 static int seen_node(void *n)
 {
     int i;
@@ -247,13 +303,32 @@ static float impacts(IMPACT_NODE *n, float base, float k, const char *tag)
     return add;
 }
 
+/* shape one effect through the sim-tactile chain (docs/SIM-RUMBLE-RESEARCH.md):
+ *   Threshold (dead-band: silent until it matters — stops the floor firing on
+ *   noise) -> rescale -> Gamma-2 (gentle stays gentle, events pop) -> Min-Force
+ *   (lift above the ERM dead-zone so an active event is FELT the frame it fires).
+ * floor=0 for ambient layers that should stay a whisper; floor≈dead-zone for
+ * events that must land. */
+static float shape(float raw, float threshold, float floor)
+{
+    if (raw <= threshold) return 0;
+    raw = (raw - threshold) / (1.0f - threshold);
+    if (raw > 1.0f) raw = 1.0f;
+    return floor + (1.0f - floor) * raw * raw;
+}
+
 static void rumble(float low, float high)
 {
     XVIB v;
     if (!xset) return;
+    /* re-find the pad every ~1s if we don't have one (hot-plug / late connect) */
+    if (g_pad < 0 && (g_tick % 20) == 0)
+        g_pad = find_pad();
+    if (g_pad < 0) return;
     v.wLeftMotorSpeed  = (WORD)(clamp01(low)  * 65535.0f);
     v.wRightMotorSpeed = (WORD)(clamp01(high) * 65535.0f);
-    xset(0, &v);
+    if (xset(g_pad, &v) != 0)   /* slot went away (unplugged) -> re-scan next time */
+        g_pad = -1;
 }
 
 HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
@@ -263,8 +338,12 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
     if (!b || b->size != 0x16c) return 0x80070057;   /* invalid struct size */
     for (i = 0; !xset && xdlls[i]; i++) {
         HMODULE m = LoadLibraryA(xdlls[i]);
-        if (m) xset = (XSetStateFn)GetProcAddress(m, "XInputSetState");
+        if (m) {
+            xset = (XSetStateFn)GetProcAddress(m, "XInputSetState");
+            xget = (XGetStateFn)GetProcAddress(m, "XInputGetState");
+        }
     }
+    g_pad = find_pad();        /* find the controller now (re-scanned later if absent) */
     {   /* open the UDP telemetry socket (best-effort; files still work if it fails) */
         WSADATA wsa;
         if (WSAStartup(0x0202, &wsa) == 0) {
@@ -286,9 +365,9 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
 
 HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 {
-    float low, high, dt, engine, weapon, slip, rough, tex, slip_low, slip_high;
-    int i, firing_gain;
-    char buf[512];
+    float low, high, dt, engine, road, weight, slip, tex, slip_low, slip_high, weapon;
+    int i, firing_gain, mask;
+    char buf[600];
     int n;
 
     if (!b || b->size != 0x16c) return 0x80070057;
@@ -296,97 +375,163 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     dt = (b->dt > 0 && b->dt <= 0.95f) ? b->dt : 0.05f;
 
     if (!b->forces_on) {              /* master off: stop everything */
-        g_env_low = g_env_high = 0;
+        g_env_low = g_env_high = g_env_land = 0;
         rumble(0, 0);
         return 0;
     }
 
-    /* one-shots (cleared like the real DLL does) */
-    if (b->engine_starting) { g_env_low += 0.5f; b->engine_starting = 0; }
+    /* ================= TRANSIENTS (one-shots -> decaying envelopes) ========= */
+    /* engine start: a ~short starter crank on the heavy motor */
+    if (b->engine_starting) { g_env_low += 0.45f; b->engine_starting = 0; }
+    /* weapon UI events: crisp clicks on the buzz motor */
     if (b->wpn_cycle)  { g_env_high += 0.30f; b->wpn_cycle = 0; }
     if (b->wpn_link)   { g_env_high += 0.25f; b->wpn_link = 0; }
     if (b->wpn_unlink) { g_env_high += 0.25f; b->wpn_unlink = 0; }
 
-    /* impacts: real-DLL formulas, normalized into the low-motor envelope */
-    g_env_low += impacts(b->ordnance,   40.0f, 0.6667f, "ordnance");
-    g_env_low += impacts(b->concussion, 35.0f, 0.6667f, "concussion");
-    g_env_low += impacts(b->collision,  55.0f, 0.5625f, "collision");
-
-    /* continuous layers */
-    engine = 0;
-    if (b->engine_running) {          /* loudest at idle, like the real DLL */
-        float g = 20.0f - b->speed * 0.5f;
-        if (g < 0) g = 0;
-        engine = (g / 20.0f) * 0.22f;
+    /* impacts (ordnance / collision / concussion): sharp directional peaks on
+     * the heavy motor, with a bit of crack on the buzz motor. Real-DLL formulas. */
+    {
+        float im = 0;
+        im += impacts(b->ordnance,   40.0f, 0.6667f, "ordnance");
+        im += impacts(b->concussion, 35.0f, 0.6667f, "concussion");
+        im += impacts(b->collision,  55.0f, 0.5625f, "collision");
+        g_env_low  += im;
+        g_env_high += im * 0.35f;     /* transient crack reads on the small motor too */
     }
-    /* ---- WHEEL SLIP — the priority. Real physics, never a button: the game
-     * sets skid/slide/tire/lateral-force from the tire<->ground state, the same
-     * event that plays the skid sound. Intensity from that physics; TEXTURE from
-     * the actual skid/surface .gpw envelope. Left motor = heavy grind, right =
-     * high-freq skid chirp. Every constant is field-tunable from the telemetry. */
+
+    /* landing thump (airborne -> ground edge), scaled by speed */
+    if (g_prev_air && !b->airborne) {
+        float sc = b->speed / 50.0f; if (sc > 1.0f) sc = 1.0f;
+        float t = R_LAND_MAX * (0.35f + 0.65f * sc);
+        if (t > g_env_land) g_env_land = t;
+    }
+    g_prev_air = (int)b->airborne;
+    /* tire blowout (a tire newly crosses into "flat") */
+    mask = 0;
+    for (i = 0; i < 4; i++) if (b->tire[i] > 3000) mask |= (1 << i);
+    if (mask & ~g_tireflat_prev)
+        if (R_BLOWOUT > g_env_land) g_env_land = R_BLOWOUT;
+    g_tireflat_prev = mask;
+
+    /* ================= CONTINUOUS LAYERS (kept quiet, floor) =============== */
+    /* ENGINE: a low lope on the heavy motor — louder/slower at idle, quieter/
+     * faster with speed. Triangle oscillator (no libm); rate scales with speed. */
+    engine = 0;
+    if (b->engine_running) {
+        float sc = b->speed / 60.0f; if (sc > 1.0f) sc = 1.0f;
+        float amp = R_ENGINE_IDLE * (1.0f - sc) + R_ENGINE_REV * sc;
+        unsigned period = (unsigned)(9.0f - sc * 6.0f); if (period < 3) period = 3;
+        float ph, tri;
+        g_engphase++;
+        ph = (float)(g_engphase % period) / (float)period;   /* 0..1 */
+        tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;      /* 0..1..0 */
+        engine = amp * (0.55f + 0.45f * tri);
+    }
+
+    /* ROAD: tyre-on-ground grit, scales with speed, textured by the surface
+     * envelope. This is the "road connection" — key for driving feel. */
+    road = 0;
+    if (!b->airborne && b->surface > 0 && b->speed > 3.0f) {
+        float sc = b->speed / 110.0f; if (sc > 1.0f) sc = 1.0f;
+        road = R_ROAD_MAX * sc * (0.5f + 0.5f * road_tick());   /* per-surface tuning TBD */
+    }
+
+    /* WEIGHT: subtle cornering/brake/accel load cue from the force vector's
+     * GRIP portion (the low, sustained feel; slip handles the loud part). */
+    weight = 0;
+    if (!b->airborne) {
+        float fy = b->force_y1 < 0 ? -b->force_y1 : b->force_y1;
+        float fx = b->force_x  < 0 ? -b->force_x  : b->force_x;
+        float lat = fy / 1500.0f; if (lat > 1.0f) lat = 1.0f;
+        float lon = fx / 1500.0f; if (lon > 1.0f) lon = 1.0f;
+        weight = R_WEIGHT_MAX * (0.6f * lat + 0.5f * lon);
+    }
+
+    /* WHEEL SLIP — THE PRIORITY. Real physics, never a button: skid/slide/tire/
+     * lateral-force come from the tyre<->ground state, the same event that plays
+     * the skid sound. Loud, textured by the real skid/surface .gpw. LEFT grind +
+     * RIGHT chirp. */
     slip = 0;
-    if (b->skidding) slip += 0.45f;
-    if (b->sliding)  slip += 0.45f;
-    if (b->oilslick) slip += 0.30f;
-    {   /* lateral force (fy) = cornering grip loading -> sustained low grind */
+    if (b->skidding) slip += 0.50f;
+    if (b->sliding)  slip += 0.50f;
+    if (b->oilslick) slip += 0.35f;
+    if (b->skidding || b->sliding) {   /* only WHEN slipping: harder corner = stronger
+                                        * (grip cornering load lives in WEIGHT, not here) */
         float fy = b->force_y1 < 0 ? -b->force_y1 : b->force_y1;
         if (fy > 2000.0f) fy = 2000.0f;
-        slip += (fy / 2000.0f) * 0.35f;
+        slip += (fy / 2000.0f) * R_SLIP_LAT;
     }
-    for (i = 0; i < 4; i++)             /* a flat/blown tire drags (DLL thresh 3000) */
-        if (b->tire[i] > 3000) slip += 0.12f;
-    if (b->airborne || b->speed < 3.0f) /* airborne wheels aren't slipping; none at crawl */
-        slip = 0;
+    for (i = 0; i < 4; i++) if (b->tire[i] > 3000) slip += 0.12f;   /* flat tyre drags */
+    if (b->airborne || b->speed < 3.0f) slip = 0;
     else {
         float sc = b->speed / 40.0f; if (sc > 1.0f) sc = 1.0f;
-        slip *= 0.4f + 0.6f * sc;        /* fades in with speed; floor keeps low-speed skids felt */
+        slip *= 0.4f + 0.6f * sc;
     }
     if (slip > 1.0f) slip = 1.0f;
-    rough = 0;                           /* loose-surface grit floor (no skid needed) */
-    if (!b->airborne && b->surface > 0 && b->speed > 3.0f) {
-        float sc = b->speed / 120.0f; if (sc > 1.0f) sc = 1.0f;
-        rough = sc * 0.14f;              /* per-surface-id tuning TBD from telemetry */
-    }
-    tex = texture_tick();                /* one looped sample of the skid/surface envelope */
-    slip_low  = rough * 0.5f + slip * (0.55f + 0.45f * tex);
+    tex = texture_tick();
+    slip_low  = slip * (0.55f + 0.45f * tex);
     slip_high = slip * 0.45f * tex;
+
+    /* WEAPONS: per-hardpoint firing buzz on the small motor, strongest-wins,
+     * scaled by the game's own gain, with a flutter for the MG rattle. */
     weapon = 0;
     firing_gain = 0;
     for (i = 0; i < 6; i++) {
         if (b->hp[i].misfire1 || b->hp[i].misfire2) {
-            g_env_high += 0.3f;
+            g_env_high += 0.30f;
             b->hp[i].misfire1 = b->hp[i].misfire2 = 0;
         }
         if (b->hp[i].firing) {
-            weapon += 0.35f;
-            firing_gain = (int)b->hp[i].gain;
+            float g = b->hp[i].gain > 0 ? (float)b->hp[i].gain / 100.0f : 1.0f;
+            float w;
+            if (g > 1.0f) g = 1.0f;
+            w = R_WEAPON * (0.6f + 0.4f * g) * ((g_tick & 1) ? 1.0f : 0.7f);
+            if (w > weapon) weapon = w;
+            if ((int)b->hp[i].gain > firing_gain) firing_gain = (int)b->hp[i].gain;
         }
     }
 
-    /* decay + mix (wheel slip is a first-class continuous layer) */
+    /* ================= DECAY + MIX ========================================= */
     g_env_low  -= dt * 2.2f; if (g_env_low  < 0) g_env_low  = 0;
     g_env_high -= dt * 3.0f; if (g_env_high < 0) g_env_high = 0;
-    low  = clamp01(g_env_low + engine + slip_low);
-    high = clamp01(g_env_high + weapon + slip_high);
-    rumble(low, high);
+    g_env_land -= dt * 2.5f; if (g_env_land < 0) g_env_land = 0;
+    /* Shape + MAX per motor (never SUM — that's the mush trap). Ambient floors
+     * (engine, road) get no/low min-force so they stay a whisper; EVENTS (slip,
+     * impacts, weapon, landing) are lifted above the dead-zone so they're felt
+     * on the frame they fire. LEFT = heavy/slow (engine, weight, slip grind,
+     * impact body, landing); RIGHT = texture/fast (road, slip chirp, weapon,
+     * transient crack). Per docs/SIM-RUMBLE-RESEARCH.md. */
+    low  = shape(engine,    R_TH_AMBIENT, 0.0f);
+    low  = MAXF(low, shape(weight,     R_TH_AMBIENT, 0.0f));
+    low  = MAXF(low, shape(slip_low,   R_TH_EVENT, R_DEADZONE));
+    low  = MAXF(low, shape(g_env_low,  R_TH_EVENT, R_DEADZONE));
+    low  = MAXF(low, shape(g_env_land, R_TH_EVENT, R_DEADZONE));
+    high = shape(road,      R_TH_AMBIENT, R_ROAD_FLOOR);
+    high = MAXF(high, shape(slip_high,  R_TH_EVENT, R_DEADZONE));
+    high = MAXF(high, shape(weapon,     R_TH_EVENT, R_DEADZONE));
+    high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));
+    rumble(clamp01(low), clamp01(high));
 
     /* telemetry: one key=value line, ints only (wsprintfA has no %f). Values
      * *1000 keep the force vector's sign+precision. This same line is the file
      * status AND the UDP payload — a motion-sim receiver reads surge≈fx,
      * sway≈fy, plus speed/engine/terrain/impacts. */
     n = wsprintfA(buf,
-        "tick=%lu on=%lu spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
+        "tick=%lu on=%lu pad=%d spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
         "slide=%lu oil=%lu steer=%d fx1000=%d fy1000=%d fy2_1000=%d "
-        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d gain=%d slip100=%d low100=%d high100=%d\r\n",
-        g_tick, b->forces_on, (int)(b->speed * 10), b->surface,
+        "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d gain=%d "
+        "eng=%d road=%d weight=%d slip=%d wpn=%d jolt=%d low100=%d high100=%d\r\n",
+        g_tick, b->forces_on, g_pad, (int)(b->speed * 10), b->surface,
         b->engine_running, b->engine_pitch, b->airborne, b->skidding,
         b->sliding, b->oilslick, b->steer_right ? 1 : (b->steer_left ? -1 : 0),
         (int)(b->force_x * 1000), (int)(b->force_y1 * 1000),
         (int)(b->force_y2 * 1000), b->tire[0], b->tire[1], b->tire[2],
         b->tire[3], b->hp[0].firing != 0, b->hp[1].firing != 0,
         b->hp[2].firing != 0, b->hp[3].firing != 0, b->hp[4].firing != 0,
-        b->hp[5].firing != 0, firing_gain, (int)(slip * 100),
-        (int)(low * 100), (int)(high * 100));
+        b->hp[5].firing != 0, firing_gain,
+        (int)(engine * 100), (int)(road * 100), (int)(weight * 100),
+        (int)(slip * 100), (int)(weapon * 100),
+        (int)((g_env_low + g_env_land) * 100), (int)(low * 100), (int)(high * 100));
     if (g_udp != INVALID_SOCKET)                      /* every tick for the rig */
         sendto(g_udp, buf, n, 0, (struct sockaddr *)&g_dst, sizeof(g_dst));
     if (!(g_tick & 1))                                /* every other for disk */
