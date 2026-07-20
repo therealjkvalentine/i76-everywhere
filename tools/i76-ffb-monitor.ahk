@@ -71,7 +71,7 @@ Tick:
         gStale := 0, gLastTick := tick
 
     spd := Val(s, "spd10") / 10.0
-    low := Val(s, "low100"), high := Val(s, "high100")
+    low := Val(s, "low100"), high := Val(s, "high100"), slip := Val(s, "slip100")
     fx := Val(s, "fx1000") / 1000.0, fy := Val(s, "fy1000") / 1000.0
     surf := Surface(Val(s, "surf"))
     flags := ""
@@ -98,8 +98,9 @@ Tick:
 
     t := "I'76 FFB MONITOR   tick=" tick "   forces=" (on ? "ON" : "off")
     t .= (gStale > 8 ? "  [STALLED]" : "") "`n`n"
+    t .= "WHEEL SLIP      [" Bar(slip/100) "] " slip "`n"
     t .= "L impact/engine [" Bar(low/100) "] " low "`n"
-    t .= "R weapons       [" Bar(high/100) "] " high "`n`n"
+    t .= "R weapons/skid  [" Bar(high/100) "] " high "`n`n"
     t .= "speed  " Format("{:5.1f}", spd) " mph [" Bar(spd/165 > 1 ? 1 : spd/165, 16) "]`n"
     t .= "surge fx " Format("{:+.2f}", fx) "   sway fy " Format("{:+.2f}", fy) "   steer " Val(s,"steer") "`n"
     t .= "engine " (Val(s,"run") ? "run" : "off") " pitch " Val(s,"pitch") "   surface " surf "`n"

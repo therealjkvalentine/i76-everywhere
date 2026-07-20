@@ -27,7 +27,7 @@ import argparse, re, socket, sys, time
 
 FIELDS = ("tick", "on", "spd10", "surf", "run", "pitch", "air", "skid",
           "slide", "oil", "steer", "fx1000", "fy1000", "fy2_1000",
-          "gain", "low100", "high100")
+          "gain", "slip100", "low100", "high100")
 # surface id -> name; ORDER IS A GUESS (docs/FFB-DEEP-DIVE.md open item) — the
 # telemetry is exactly how you confirm it: drive on pavement vs dirt and watch.
 SURFACES = {0: "stopped", 1: "dirt-x?", 2: "parking?", 3: "rocky?", 4: "wash?",
@@ -95,8 +95,9 @@ def main():
                           ("OIL", "oil")) if gi(k)) or "-"
         sys.stdout.write("\x1b[2J\x1b[H")   # clear + home
         print(f"tick {d.get('tick','?')}   forces {'ON' if gi('on') else 'off'}\n")
+        print(f"  WHEEL SLIP            [{bar(gi('slip100')/100)}] {gi('slip100'):3d}")
         print(f"  left  (impact/engine) [{bar(gi('low100')/100)}] {gi('low100'):3d}")
-        print(f"  right (weapons)       [{bar(gi('high100')/100)}] {gi('high100'):3d}\n")
+        print(f"  right (weapons/skid)  [{bar(gi('high100')/100)}] {gi('high100'):3d}\n")
         print(f"  speed   {spd:6.1f} mph  [{bar(min(spd/165,1))}]")
         print(f"  surge fx {fx:+.2f}   sway fy {fy:+.2f}   steer {gi('steer'):+d}")
         print(f"  engine  {'run' if gi('run') else 'off':>3}  pitch {gi('pitch')}   surface {surf}")
