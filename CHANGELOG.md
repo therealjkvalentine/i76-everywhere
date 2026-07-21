@@ -3,6 +3,17 @@
 All notable milestones for **i76-everywhere**. Dates are ISO. This project follows
 ["bring your own game"](THIRD-PARTY.md) — it ships no copyrighted content.
 
+## Unreleased
+
+- **Windows: Nitro Pack fully scripted.** `install.ps1` now auto-detects a GOG Nitro
+  Pack install and applies the identical recipe (`setup-windows.ps1 -Exe nitro.exe`):
+  dgVoodoo deploy + conf, input.map controls parity, `PLAY-Nitro.bat` + shortcut.
+  The HD texture pack is installed into Nitro's `ADDON\` too (its texture tiles are
+  100% byte-identical to the base game's — one build covers both).
+- **OpenGLide-HD fork vendored** as a patch series + rebuild instructions in
+  [`tools/openglide-hd/`](tools/openglide-hd/) — the true-HD (arbitrary-resolution)
+  texture route previously living only on one machine.
+
 ## v1.0.0 — "Vacation Build" (2026-07-14)
 
 First public milestone: Interstate '76 (GOG Gold, 1997) running well on three platforms
