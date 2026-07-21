@@ -397,8 +397,82 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
     return 0;
 }
 
+/* ===================================================================== *
+ *  WHAT THE GAME TELLS US EACH TICK.
+ *  Everything the engine computes about the car's physical state, read out
+ *  of the raw force block ONCE into named fields in real units. The effects
+ *  below read only this — never the raw block — so this struct is the whole
+ *  answer to "what signal is coming from the game". Ranges are what we've seen
+ *  live. read_game_state() also CONSUMES the latched/one-shot fields (clears
+ *  them on the block) so they fire once, not forever.
+ * ===================================================================== */
+typedef struct {
+    /* --- motion --- */
+    float speed;          /* mph. 0..~90 */
+    int   rpm;            /* engine pitch, an RPM proxy. idle ~1000, redline ~4700 */
+    int   running;       /* engine on? */
+    /* --- tyre <-> ground (the loud, important stuff) --- */
+    int   skidding;      /* rear stepping out */
+    int   sliding;       /* front washing / general slide */
+    int   oil;           /* on an oil slick */
+    int   airborne;      /* all wheels off the ground */
+    int   surface;       /* terrain id 1..9 (0 = stopped); indexes R_SURF_ROUGH */
+    int   tire[4];       /* per-wheel status; >3000 = flat/blown */
+    /* --- forces (body frame) --- */
+    float lateral;       /* cornering load (fy), signed. ~±2000 */
+    float longitudinal;  /* accel/brake load (fx), signed */
+    float fy2;           /* second lateral component (telemetry only) */
+    int   steer;         /* -1 left / 0 / +1 right (past a dead-zone) */
+    /* --- weapons --- */
+    int   firing[6];     /* per-hardpoint: is this gun firing (latched flag) */
+    int   gain[6];       /* per-hardpoint strength, ~5..10 */
+    int   misfire[6];    /* per-hardpoint dry/jam one-shot */
+    int   wpn_cycle, wpn_link, wpn_unlink;   /* UI one-shots */
+    int   engine_start;  /* ignition one-shot */
+    /* --- impact events (linked lists of {direction°, damage}) --- */
+    IMPACT_NODE *ordnance;    /* you were shot */
+    IMPACT_NODE *concussion;  /* nearby explosion */
+    IMPACT_NODE *collision;   /* you rammed something */
+    /* --- timing --- */
+    float dt;            /* seconds since last tick (~0.05) */
+} GameState;
+
+static void read_game_state(I7FF_BLOCK *b, GameState *g)
+{
+    int i;
+    g->speed    = b->speed;
+    g->rpm      = b->engine_pitch;
+    g->running  = (int)b->engine_running;
+    g->skidding = (int)b->skidding;
+    g->sliding  = (int)b->sliding;
+    g->oil      = (int)b->oilslick;
+    g->airborne = (int)b->airborne;
+    g->surface  = (int)b->surface;
+    for (i = 0; i < 4; i++) g->tire[i] = b->tire[i];
+    g->lateral      = b->force_y1;
+    g->longitudinal = b->force_x;
+    g->fy2          = b->force_y2;
+    g->steer        = b->steer_right ? 1 : (b->steer_left ? -1 : 0);
+    for (i = 0; i < 6; i++) {
+        g->firing[i]  = (int)b->hp[i].firing;
+        g->gain[i]    = (int)b->hp[i].gain;
+        g->misfire[i] = (b->hp[i].misfire1 || b->hp[i].misfire2);
+        b->hp[i].firing = 0;                       /* consume: the flag latches otherwise */
+        b->hp[i].misfire1 = b->hp[i].misfire2 = 0;
+    }
+    g->wpn_cycle   = (int)b->wpn_cycle;   b->wpn_cycle   = 0;
+    g->wpn_link    = (int)b->wpn_link;    b->wpn_link    = 0;
+    g->wpn_unlink  = (int)b->wpn_unlink;  b->wpn_unlink  = 0;
+    g->engine_start = (int)b->engine_starting; b->engine_starting = 0;
+    g->ordnance   = b->ordnance;
+    g->concussion = b->concussion;
+    g->collision  = b->collision;
+    g->dt = (b->dt > 0 && b->dt <= 0.95f) ? b->dt : 0.05f;
+}
+
 HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 {
+    GameState g;
     float low, high, dt, engine, road, road_rough, road_out, weight, slip, tex, slip_low, slip_high, weapon;
     int i, firing_gain, mask, fb[6];
     DWORD f0_raw;
@@ -407,152 +481,157 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 
     if (!b || b->size != 0x16c) return 0x80070057;
     g_tick++;
-    dt = (b->dt > 0 && b->dt <= 0.95f) ? b->dt : 0.05f;
 
     if (!b->forces_on) {              /* master off: stop everything */
         g_env_low = g_env_high = g_env_wpn = g_env_land = 0;
         rumble(0, 0);
         return 0;
     }
+    read_game_state(b, &g);           /* pull the game's state into named fields */
+    dt = g.dt;
+    for (i = 0; i < 6; i++) fb[i] = g.firing[i] != 0;    /* (telemetry) */
+    f0_raw = (DWORD)g.firing[0];
 
-    /* ================= TRANSIENTS (one-shots -> decaying envelopes) ========= */
-    /* engine start: a ~short starter crank on the heavy motor (was 0.45, -33%:
-     * ignition felt ~30% too intense) */
-    if (b->engine_starting) { g_env_low += 0.30f; b->engine_starting = 0; }
-    /* weapon UI events: crisp clicks on the buzz motor */
-    if (b->wpn_cycle)  { g_env_high += 0.30f; b->wpn_cycle = 0; }
-    if (b->wpn_link)   { g_env_high += 0.25f; b->wpn_link = 0; }
-    if (b->wpn_unlink) { g_env_high += 0.25f; b->wpn_unlink = 0; }
+    /* Each effect below picks: which GAME SIGNAL drives it, HOW we turn that into
+     * a 0..1 level, and WHY it feels that way. Transients feed decaying envelopes
+     * (globals); continuous effects compute a level for this frame. The MIX at
+     * the end takes the MAX per motor. HEAVY motor = body/low-freq, BUZZ = edge. */
 
-    /* impacts (ordnance / collision / concussion): sharp directional peaks on
-     * the heavy motor, with a bit of crack on the buzz motor. Real-DLL formulas. */
+    /* -- IGNITION -------------------------------------------------------------
+     * SIGNAL  g.engine_start (one-shot when the starter cranks)
+     * PROCESS add a short pulse to the heavy transient envelope
+     * WHY     a felt "thunk" as the engine catches. */
+    if (g.engine_start) g_env_low += 0.30f;
+
+    /* -- WEAPON UI CLICKS -----------------------------------------------------
+     * SIGNAL  g.wpn_cycle/link/unlink (one-shots)
+     * PROCESS short crisp pulses on the buzz transient envelope
+     * WHY     tactile confirm of a menu/loadout action. */
+    if (g.wpn_cycle)  g_env_high += 0.30f;
+    if (g.wpn_link)   g_env_high += 0.25f;
+    if (g.wpn_unlink) g_env_high += 0.25f;
+
+    /* -- IMPACTS --------------------------------------------------------------
+     * SIGNAL  g.ordnance/concussion/collision (event lists w/ direction+damage)
+     * PROCESS the real DLL's magnitude formulas -> heavy envelope (+ a little
+     *         crack on the buzz motor)
+     * WHY     getting shot / rammed / blasted should be the sharpest thing you
+     *         feel, cued on the hit and decaying fast. */
     {
         float im = 0;
-        im += impacts(b->ordnance,   40.0f, 0.6667f, "ordnance");
-        im += impacts(b->concussion, 35.0f, 0.6667f, "concussion");
-        im += impacts(b->collision,  55.0f, 0.5625f, "collision");
+        im += impacts(g.ordnance,   40.0f, 0.6667f, "ordnance");
+        im += impacts(g.concussion, 35.0f, 0.6667f, "concussion");
+        im += impacts(g.collision,  55.0f, 0.5625f, "collision");
         g_env_low  += im;
-        g_env_high += im * 0.35f;     /* transient crack reads on the small motor too */
+        g_env_high += im * 0.35f;
     }
 
-    /* landing thump (airborne -> ground edge), scaled by speed */
-    if (g_prev_air && !b->airborne) {
-        float sc = b->speed / 50.0f; if (sc > 1.0f) sc = 1.0f;
+    /* -- LANDING + BLOWOUT ----------------------------------------------------
+     * SIGNAL  airborne->ground edge (g.airborne) ; a tyre newly going flat (g.tire)
+     * PROCESS one thump into the landing envelope, scaled by speed / fixed jolt
+     * WHY     touchdown and a blowout are discrete "events" you should feel land. */
+    if (g_prev_air && !g.airborne) {
+        float sc = g.speed / 50.0f; if (sc > 1.0f) sc = 1.0f;
         float t = R_LAND_MAX * (0.35f + 0.65f * sc);
         if (t > g_env_land) g_env_land = t;
     }
-    g_prev_air = (int)b->airborne;
-    /* tire blowout (a tire newly crosses into "flat") */
+    g_prev_air = g.airborne;
     mask = 0;
-    for (i = 0; i < 4; i++) if (b->tire[i] > 3000) mask |= (1 << i);
-    if (mask & ~g_tireflat_prev)
-        if (R_BLOWOUT > g_env_land) g_env_land = R_BLOWOUT;
+    for (i = 0; i < 4; i++) if (g.tire[i] > 3000) mask |= (1 << i);
+    if ((mask & ~g_tireflat_prev) && R_BLOWOUT > g_env_land) g_env_land = R_BLOWOUT;
     g_tireflat_prev = mask;
 
-    /* ================= CONTINUOUS LAYERS (kept quiet, floor) =============== */
-    /* ENGINE: a low RUMBLE on the heavy motor that FOLLOWS RPM (engine_pitch) —
-     * slow/soft throb at idle, faster (higher-freq) and louder toward high RPM.
-     * Direct motor level (it IS the feel). Present whenever the engine runs;
-     * gone when off (so coasting has no engine, only road). */
+    /* -- ENGINE (heavy motor, continuous) ------------------------------------
+     * SIGNAL  g.rpm (engine pitch, ~1000..4700) ; g.running
+     * PROCESS a triangle throb whose RATE and LEVEL both rise with RPM; idle end
+     *         kept almost silent
+     * WHY     a low rumble that tracks the engine — barely there at idle, growls
+     *         higher/louder toward redline. Off when the engine's off. */
     engine = 0;
-    if (b->engine_running) {
-        float rpm = (b->engine_pitch - 800.0f) / 3200.0f;    /* pitch ~1000..4700 -> 0..1 */
+    if (g.running) {
+        float rpm = (g.rpm - 800.0f) / 3200.0f;
         unsigned period; float ph, tri;
         if (rpm < 0) rpm = 0; if (rpm > 1.0f) rpm = 1.0f;
-        period = (unsigned)(10.0f - rpm * 7.0f); if (period < 3) period = 3;  /* faster at RPM */
+        period = (unsigned)(10.0f - rpm * 7.0f); if (period < 3) period = 3;
         g_engphase++;
         ph = (float)(g_engphase % period) / (float)period;
         tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;
-        engine = R_ENGINE_IDLE * (0.18f + 0.70f * rpm) * (0.5f + 0.5f * tri);  /* idle almost
-                                              * nothing (was 0.62), ramps up with RPM */
+        engine = R_ENGINE_IDLE * (0.18f + 0.70f * rpm) * (0.5f + 0.5f * tri);
     }
 
-    /* ROAD: tyre-on-ground grit, scales with speed, textured by the surface
-     * envelope. This is the "road connection" — key for driving feel. */
-    /* ROAD/SAND: high-freq sandy grit on the BUZZ motor, scaling strongly with
-     * SPEED (not engine — present when coasting), textured by the ground .gpw.
-     * The min-force floor grows with speed so it's clearly felt at pace and
-     * near-silent at a crawl. road_out is the final RIGHT-motor contribution. */
+    /* -- ROAD / SAND (buzz motor, continuous) --------------------------------
+     * SIGNAL  g.speed ; g.surface (roughness) — NOT the engine
+     * PROCESS speed-scaled grit textured by the ground .gpw, with a min-force
+     *         floor that grows with speed
+     * WHY     a high-freq "sandy" texture that tells you how fast you're rolling
+     *         over what — present even coasting with the engine off. */
     road = 0; road_rough = 0; road_out = 0;
-    if (!b->airborne && b->speed > 4.0f) {
-        float sc = b->speed / 65.0f; if (sc > 1.0f) sc = 1.0f;
-        float sig, floor;
-        road_rough = (b->surface > 0 && b->surface < 10) ? R_SURF_ROUGH[b->surface] : 0.6f;
-        sig   = R_ROAD_MAX * sc * road_rough * (0.5f + 0.5f * road_tick());
-        floor = sc * 0.24f;                     /* felt at speed, subtle at a crawl */
-        road_out = shape(sig, R_TH_AMBIENT, floor);
-        road = sig;                             /* (telemetry) */
+    if (!g.airborne && g.speed > 4.0f) {
+        float sc = g.speed / 65.0f; if (sc > 1.0f) sc = 1.0f;
+        road_rough = (g.surface > 0 && g.surface < 10) ? R_SURF_ROUGH[g.surface] : 0.6f;
+        road = R_ROAD_MAX * sc * road_rough * (0.5f + 0.5f * road_tick());
+        road_out = shape(road, R_TH_AMBIENT, sc * 0.24f);
     }
 
-    /* WEIGHT: subtle cornering/brake/accel load cue from the force vector's
-     * GRIP portion (the low, sustained feel; slip handles the loud part). */
+    /* -- WEIGHT (heavy motor, continuous) ------------------------------------
+     * SIGNAL  g.lateral / g.longitudinal (body-frame force = cornering/accel load)
+     * PROCESS a quiet sustained level from the GRIP portion of the force
+     * WHY     a subtle sense of the car's mass leaning under you; the loud part
+     *         of losing grip lives in SLIP, not here. */
     weight = 0;
-    if (!b->airborne) {
-        float fy = b->force_y1 < 0 ? -b->force_y1 : b->force_y1;
-        float fx = b->force_x  < 0 ? -b->force_x  : b->force_x;
+    if (!g.airborne) {
+        float fy = g.lateral < 0 ? -g.lateral : g.lateral;
+        float fx = g.longitudinal < 0 ? -g.longitudinal : g.longitudinal;
         float lat = fy / 1500.0f; if (lat > 1.0f) lat = 1.0f;
         float lon = fx / 1500.0f; if (lon > 1.0f) lon = 1.0f;
         weight = R_WEIGHT_MAX * (0.6f * lat + 0.5f * lon);
     }
 
-    /* WHEEL SLIP — THE PRIORITY. Real physics, never a button: skid/slide/tire/
-     * lateral-force come from the tyre<->ground state, the same event that plays
-     * the skid sound. Loud, textured by the real skid/surface .gpw. LEFT grind +
-     * RIGHT chirp. */
+    /* -- WHEEL SLIP (both motors, continuous) — THE PRIORITY ------------------
+     * SIGNAL  g.skidding/sliding/oil (real traction-loss flags) ; g.lateral ; g.tire
+     * PROCESS sum the flags, amplify by cornering force WHILE slipping, gate by
+     *         speed; textured by the real skid .gpw -> grind (heavy) + chirp (buzz)
+     * WHY     breaking the tyres loose is the signature feel; it comes from the
+     *         same physics that plays the skid sound, never from a button. */
     slip = 0;
-    if (b->skidding) slip += 0.50f;
-    if (b->sliding)  slip += 0.50f;
-    if (b->oilslick) slip += 0.35f;
-    if (b->skidding || b->sliding) {   /* only WHEN slipping: harder corner = stronger
-                                        * (grip cornering load lives in WEIGHT, not here) */
-        float fy = b->force_y1 < 0 ? -b->force_y1 : b->force_y1;
+    if (g.skidding) slip += 0.50f;
+    if (g.sliding)  slip += 0.50f;
+    if (g.oil)      slip += 0.35f;
+    if (g.skidding || g.sliding) {
+        float fy = g.lateral < 0 ? -g.lateral : g.lateral;
         if (fy > 2000.0f) fy = 2000.0f;
         slip += (fy / 2000.0f) * R_SLIP_LAT;
     }
-    for (i = 0; i < 4; i++) if (b->tire[i] > 3000) slip += 0.12f;   /* flat tyre drags */
-    if (b->airborne || b->speed < 3.0f) slip = 0;
-    else {
-        float sc = b->speed / 40.0f; if (sc > 1.0f) sc = 1.0f;
-        slip *= 0.4f + 0.6f * sc;
-    }
+    for (i = 0; i < 4; i++) if (g.tire[i] > 3000) slip += 0.12f;
+    if (g.airborne || g.speed < 3.0f) slip = 0;
+    else { float sc = g.speed / 40.0f; if (sc > 1.0f) sc = 1.0f; slip *= 0.4f + 0.6f * sc; }
     if (slip > 1.0f) slip = 1.0f;
     tex = texture_tick();
     slip_low  = slip * (0.55f + 0.45f * tex);
     slip_high = slip * 0.45f * tex;
 
-    /* WEAPONS: the firing field latches nonzero (verified: f0 stuck at 1), so we
-     * CONSUME it like the other one-shots — buzz when set, then clear. The game
-     * re-asserts it each frame while actually firing, so topping up a DECAYING
-     * envelope gives a sustained rattle during fire that fades ~0.1s after you
-     * stop (and can never stick, because it decays). f0_raw is captured for
-     * telemetry before we clear. */
-    f0_raw = b->hp[0].firing;
-    for (i = 0; i < 6; i++) fb[i] = (b->hp[i].firing != 0);   /* capture before consume */
+    /* -- WEAPONS (buzz motor) ------------------------------------------------
+     * SIGNAL  g.firing[] (latched per-hardpoint) ; g.gain[] (~5..10) ; g.misfire[]
+     * PROCESS strongest firing gun -> a slow-decay envelope with an OVERDRIVE
+     *         KICK on the first frame (full power to beat the motor's ~50-100ms
+     *         spin-up), settling to the sustained level; misfire = a crack
+     * WHY     combat should hit hard and instantly; decaying means it can't stick
+     *         even though the firing flag never clears itself. */
     weapon = 0;
     firing_gain = 0;
     for (i = 0; i < 6; i++) {
-        if (b->hp[i].misfire1 || b->hp[i].misfire2) {
-            g_env_high = MAXF(g_env_high, 0.30f);
-            b->hp[i].misfire1 = b->hp[i].misfire2 = 0;
-        }
-        if (b->hp[i].firing) {
-            /* gain is only ~5-10 here, so normalise by 10 and keep weapons STRONG */
-            float g = b->hp[i].gain > 0 ? (float)b->hp[i].gain / 10.0f : 1.0f;
+        if (g.misfire[i]) g_env_high = MAXF(g_env_high, 0.30f);
+        if (g.firing[i]) {
+            float gn = g.gain[i] > 0 ? (float)g.gain[i] / 10.0f : 1.0f;   /* gain ~5-10 */
             float w;
-            if (g > 1.0f) g = 1.0f;
-            w = R_WEAPON * (0.75f + 0.25f * g);
+            if (gn > 1.0f) gn = 1.0f;
+            w = R_WEAPON * (0.75f + 0.25f * gn);
             if (w > weapon) weapon = w;
-            if ((int)b->hp[i].gain > firing_gain) firing_gain = (int)b->hp[i].gain;
-            b->hp[i].firing = 0;               /* consume — else it sticks the buzz on */
+            if (g.gain[i] > firing_gain) firing_gain = g.gain[i];
         }
     }
-    /* feed the SLOW-decay weapon envelope: one assertion gives a felt ~0.3s buzz,
-     * re-assertions (auto-fire) sustain it, and it can never stick (decays).
-     * OVERDRIVE KICK: on the first frame of a burst, slam the motor to full for a
-     * couple ticks so it spins up FAST (ERM motors take ~50-100ms from rest —
-     * that was the machine-gun 'spin-up delay'); then it settles to `weapon`. */
     if (weapon > 0) {
-        if (!g_wpn_was) g_env_wpn = 1.0f;               /* kick-start */
+        if (!g_wpn_was) g_env_wpn = 1.0f;               /* kick-start (spin the motor up fast) */
         else            g_env_wpn = MAXF(g_env_wpn, weapon);
     }
     g_wpn_was = (weapon > 0);
@@ -586,12 +665,12 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         "slide=%lu oil=%lu steer=%d fx1000=%d fy1000=%d fy2_1000=%d "
         "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d f0=%lu gain=%d "
         "eng=%d road=%d weight=%d slip=%d wpn=%d jolt=%d low100=%d high100=%d\r\n",
-        g_tick, b->forces_on, g_pad, (int)(b->speed * 10), b->surface,
-        b->engine_running, b->engine_pitch, b->airborne, b->skidding,
-        b->sliding, b->oilslick, b->steer_right ? 1 : (b->steer_left ? -1 : 0),
-        (int)(b->force_x * 1000), (int)(b->force_y1 * 1000),
-        (int)(b->force_y2 * 1000), b->tire[0], b->tire[1], b->tire[2],
-        b->tire[3], fb[0], fb[1], fb[2], fb[3], fb[4], fb[5],
+        g_tick, b->forces_on, g_pad, (int)(g.speed * 10), (DWORD)g.surface,
+        (DWORD)g.running, g.rpm, (DWORD)g.airborne, (DWORD)g.skidding,
+        (DWORD)g.sliding, (DWORD)g.oil, g.steer,
+        (int)(g.longitudinal * 1000), (int)(g.lateral * 1000),
+        (int)(g.fy2 * 1000), g.tire[0], g.tire[1], g.tire[2],
+        g.tire[3], fb[0], fb[1], fb[2], fb[3], fb[4], fb[5],
         (unsigned long)f0_raw, firing_gain,
         (int)(engine * 100), (int)(road * 100), (int)(weight * 100),
         (int)(slip * 100), (int)(weapon * 100),
