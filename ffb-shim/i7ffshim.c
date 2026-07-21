@@ -156,8 +156,9 @@ static int g_tex_pos;        /* looping cursor into it */
  * events pop; motors take the MAX of their effects each frame, never the SUM. */
 #define R_DEADZONE     0.28f  /* min-force floor for active EVENT effects */
 #define R_ROAD_FLOOR   0.06f  /* road connection: very subtle, "notice it in absence" */
-#define R_TH_EVENT     0.05f  /* dead-band below which an event is silent */
-#define R_TH_AMBIENT   0.02f  /* dead-band for ambient floors */
+#define R_TH_EVENT     0.01f  /* dead-band below which an event is silent (was 0.05:
+                               * things cut out too early, dropped to 20%) */
+#define R_TH_AMBIENT   0.004f /* dead-band for ambient floors (was 0.02, -80%) */
 #define MAXF(a,b)      ((a) > (b) ? (a) : (b))
 
 /* ---- state ---- */
@@ -173,6 +174,7 @@ static int   g_tireflat_prev;           /* which tires were flat -> blowout edge
 static unsigned g_engphase;             /* engine idle-lope oscillator */
 static int   g_road_pos;                /* road-texture envelope cursor */
 static int   g_road_idx = -1;           /* road-surface texture envelope */
+static int   g_wpn_was;                 /* was a weapon firing last frame (kick-start edge) */
 static const char *TELEMETRY = "C:\\AutoHotkey\\ffb-state.txt";
 static const char *DRIVELOG  = "C:\\AutoHotkey\\ffb-drive.log";   /* time-series for tuning */
 static const char *EVENTLOG  = "C:\\AutoHotkey\\ffb-events.txt";
@@ -461,7 +463,8 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         g_engphase++;
         ph = (float)(g_engphase % period) / (float)period;
         tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;
-        engine = R_ENGINE_IDLE * (0.62f + 0.60f * rpm) * (0.5f + 0.5f * tri);  /* louder at RPM */
+        engine = R_ENGINE_IDLE * (0.18f + 0.70f * rpm) * (0.5f + 0.5f * tri);  /* idle almost
+                                              * nothing (was 0.62), ramps up with RPM */
     }
 
     /* ROAD: tyre-on-ground grit, scales with speed, textured by the surface
@@ -544,9 +547,15 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         }
     }
     /* feed the SLOW-decay weapon envelope: one assertion gives a felt ~0.3s buzz,
-     * re-assertions (auto-fire) sustain it, and it can never stick (decays). */
-    if (weapon > 0)
-        g_env_wpn = MAXF(g_env_wpn, weapon);
+     * re-assertions (auto-fire) sustain it, and it can never stick (decays).
+     * OVERDRIVE KICK: on the first frame of a burst, slam the motor to full for a
+     * couple ticks so it spins up FAST (ERM motors take ~50-100ms from rest —
+     * that was the machine-gun 'spin-up delay'); then it settles to `weapon`. */
+    if (weapon > 0) {
+        if (!g_wpn_was) g_env_wpn = 1.0f;               /* kick-start */
+        else            g_env_wpn = MAXF(g_env_wpn, weapon);
+    }
+    g_wpn_was = (weapon > 0);
 
     /* ================= DECAY + MIX ========================================= */
     g_env_low  -= dt * 2.2f; if (g_env_low  < 0) g_env_low  = 0;
