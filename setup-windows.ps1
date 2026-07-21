@@ -204,7 +204,13 @@ try {
         $lnk = $ws.CreateShortcut((Join-Path $desktop $lnkName))
         $lnk.TargetPath = $bat
         $lnk.WorkingDirectory = $GameDir
-        $lnk.IconLocation = "$exePath,0"
+        # GOG ships proper multi-res icons (goggame-*.ico on Galaxy installs,
+        # gfw_high.ico on offline ones) - much nicer than the 1997 exe's own
+        # icon resource, which renders tiny/blank at modern desktop sizes.
+        $ico = Get-ChildItem $GameDir -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '^(goggame-\d+|gfw_high)\.ico$' } |
+            Sort-Object { $_.Name -notmatch '^goggame' } | Select-Object -First 1
+        $lnk.IconLocation = if ($ico) { "$($ico.FullName),0" } else { "$exePath,0" }
         $lnk.Save()
         Write-Host "$batName + desktop shortcut created."
     } else {
