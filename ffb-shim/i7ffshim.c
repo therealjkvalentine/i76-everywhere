@@ -140,13 +140,13 @@ static int g_tex_pos;        /* looping cursor into it */
  * layers quiet so TRANSIENTS read on top — hierarchy + restraint. Wheel slip is
  * the loud one (driving feel priority); engine/road/weight are a subtle floor;
  * impacts/landings are sharp peaks. Tune these by feel from the telemetry. */
-#define R_ENGINE_IDLE  0.30f  /* idle THROB amplitude (LEFT) — felt when stopped+running,
-                               * fades to nothing as you roll (road takes over) */
-#define R_ROAD_MAX     0.26f  /* road-grit ceiling on rough ground (scaled by surface below) */
-#define R_ROAD_FLOORK  0.22f  /* how hard road roughness lifts the floor (lower = subtler) */
+#define R_ENGINE_IDLE  0.32f  /* engine RUMBLE base (LEFT) — low/soft at idle, higher-freq
+                               * and louder toward high RPM (follows engine_pitch) */
+#define R_ROAD_MAX     0.42f  /* road/sand ceiling at speed (RIGHT, high-freq, sandy) */
 #define R_WEIGHT_MAX   0.12f  /* cornering/brake load cue ceiling (LEFT) */
 #define R_SLIP_LAT     0.35f  /* how much lateral force feeds wheel slip */
-#define R_WEAPON       0.34f  /* per-firing-weapon buzz ceiling (RIGHT) */
+#define R_WEAPON       0.95f  /* weapon-fire buzz — STRONG (combat is the point); gain is
+                               * only ~5-10 in this game so we don't scale down by it much */
 #define R_LAND_MAX     0.85f  /* landing thump ceiling, scaled by speed (LEFT) */
 #define R_BLOWOUT      0.70f  /* tire-blowout jolt (LEFT) */
 #define R_IMPACT_NORM  220.0f /* impact magnitude -> 0..1 divisor */
@@ -294,7 +294,10 @@ static float road_tick(void)
  * the surf= value, and bump that index. Desert game: most ground rough, paved
  * roads smooth. */
 static const float R_SURF_ROUGH[10] = {
-    0.0f, 0.80f, 0.40f, 1.00f, 0.90f, 0.75f, 0.35f, 0.70f, 0.70f, 0.0f
+    /* flattened from field data: the user's ROADS logged as surf 1 & 3, so those
+     * are moderate now (were too intense at 0.8/1.0). Still guesses for the rest;
+     * tune from ffb-drive.log once we align a surf id to "that was sand". */
+    0.0f, 0.55f, 0.55f, 0.60f, 0.80f, 0.70f, 0.45f, 0.75f, 0.75f, 0.0f
 };
 
 static int seen_node(void *n)
@@ -394,7 +397,7 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
 
 HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
 {
-    float low, high, dt, engine, road, road_rough, weight, slip, tex, slip_low, slip_high, weapon;
+    float low, high, dt, engine, road, road_rough, road_out, weight, slip, tex, slip_low, slip_high, weapon;
     int i, firing_gain, mask, fb[6];
     DWORD f0_raw;
     char buf[600];
@@ -445,28 +448,37 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
     g_tireflat_prev = mask;
 
     /* ================= CONTINUOUS LAYERS (kept quiet, floor) =============== */
-    /* ENGINE: a felt idle THROB on the heavy motor when stopped+running, that
-     * FADES OUT as you roll (the road takes over). Triangle lope (no libm). This
-     * is what makes a parked-but-running car feel alive without droning while
-     * driving. Direct motor level (not gamma-shaped — it IS the idle feel). */
+    /* ENGINE: a low RUMBLE on the heavy motor that FOLLOWS RPM (engine_pitch) —
+     * slow/soft throb at idle, faster (higher-freq) and louder toward high RPM.
+     * Direct motor level (it IS the feel). Present whenever the engine runs;
+     * gone when off (so coasting has no engine, only road). */
     engine = 0;
     if (b->engine_running) {
-        float sc = b->speed / 45.0f; if (sc > 1.0f) sc = 1.0f;
-        unsigned period = 8;                                 /* idle lope period */
-        float ph, tri;
+        float rpm = (b->engine_pitch - 800.0f) / 3200.0f;    /* pitch ~1000..4700 -> 0..1 */
+        unsigned period; float ph, tri;
+        if (rpm < 0) rpm = 0; if (rpm > 1.0f) rpm = 1.0f;
+        period = (unsigned)(10.0f - rpm * 7.0f); if (period < 3) period = 3;  /* faster at RPM */
         g_engphase++;
         ph = (float)(g_engphase % period) / (float)period;
-        tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;      /* 0..1..0 */
-        engine = R_ENGINE_IDLE * (1.0f - sc) * (0.5f + 0.5f * tri);  /* throb, gone at speed */
+        tri = ph < 0.5f ? ph * 2.0f : 2.0f - ph * 2.0f;
+        engine = R_ENGINE_IDLE * (0.62f + 0.60f * rpm) * (0.5f + 0.5f * tri);  /* louder at RPM */
     }
 
     /* ROAD: tyre-on-ground grit, scales with speed, textured by the surface
      * envelope. This is the "road connection" — key for driving feel. */
-    road = 0; road_rough = 0;
-    if (!b->airborne && b->surface > 0 && b->speed > 3.0f) {
-        float sc = b->speed / 90.0f; if (sc > 1.0f) sc = 1.0f;
-        road_rough = (b->surface < 10) ? R_SURF_ROUGH[b->surface] : 0.6f;
-        road = R_ROAD_MAX * sc * road_rough * (0.5f + 0.5f * road_tick());
+    /* ROAD/SAND: high-freq sandy grit on the BUZZ motor, scaling strongly with
+     * SPEED (not engine — present when coasting), textured by the ground .gpw.
+     * The min-force floor grows with speed so it's clearly felt at pace and
+     * near-silent at a crawl. road_out is the final RIGHT-motor contribution. */
+    road = 0; road_rough = 0; road_out = 0;
+    if (!b->airborne && b->speed > 4.0f) {
+        float sc = b->speed / 65.0f; if (sc > 1.0f) sc = 1.0f;
+        float sig, floor;
+        road_rough = (b->surface > 0 && b->surface < 10) ? R_SURF_ROUGH[b->surface] : 0.6f;
+        sig   = R_ROAD_MAX * sc * road_rough * (0.5f + 0.5f * road_tick());
+        floor = sc * 0.24f;                     /* felt at speed, subtle at a crawl */
+        road_out = shape(sig, R_TH_AMBIENT, floor);
+        road = sig;                             /* (telemetry) */
     }
 
     /* WEIGHT: subtle cornering/brake/accel load cue from the force vector's
@@ -521,10 +533,11 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
             b->hp[i].misfire1 = b->hp[i].misfire2 = 0;
         }
         if (b->hp[i].firing) {
-            float g = b->hp[i].gain > 0 ? (float)b->hp[i].gain / 100.0f : 1.0f;
+            /* gain is only ~5-10 here, so normalise by 10 and keep weapons STRONG */
+            float g = b->hp[i].gain > 0 ? (float)b->hp[i].gain / 10.0f : 1.0f;
             float w;
             if (g > 1.0f) g = 1.0f;
-            w = R_WEAPON * (0.6f + 0.4f * g);
+            w = R_WEAPON * (0.75f + 0.25f * g);
             if (w > weapon) weapon = w;
             if ((int)b->hp[i].gain > firing_gain) firing_gain = (int)b->hp[i].gain;
             b->hp[i].firing = 0;               /* consume — else it sticks the buzz on */
@@ -544,14 +557,14 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
      * LEFT = heavy/low-freq BODY — idle throb, road/ground rumble (moved here: on
      * the high motor it read 'buzzy'), weight, slip grind, impacts, landing.
      * RIGHT = high-freq EDGE — skid chirp, weapon buzz, transient crack. */
-    low  = engine;                                          /* idle throb, direct */
-    low  = MAXF(low, shape(road, R_TH_AMBIENT, road_rough * road_rough * R_ROAD_FLOORK));
+    low  = engine;                                          /* RPM rumble, direct */
     low  = MAXF(low, shape(weight,     R_TH_AMBIENT, 0.0f));
     low  = MAXF(low, shape(slip_low,   R_TH_EVENT, R_DEADZONE));
     low  = MAXF(low, shape(g_env_low,  R_TH_EVENT, R_DEADZONE));
     low  = MAXF(low, shape(g_env_land, R_TH_EVENT, R_DEADZONE));
-    high = shape(slip_high,  R_TH_EVENT, R_DEADZONE);
-    high = MAXF(high, shape(g_env_wpn,  R_TH_EVENT, R_DEADZONE));   /* weapon fire */
+    high = road_out;                                        /* sandy road, speed-scaled */
+    high = MAXF(high, shape(slip_high,  R_TH_EVENT, R_DEADZONE));
+    high = MAXF(high, shape(g_env_wpn,  R_TH_EVENT, R_DEADZONE));   /* weapon fire (strong) */
     high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));   /* misfire/crack */
     rumble(clamp01(low), clamp01(high));
 
