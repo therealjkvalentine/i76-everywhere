@@ -38,8 +38,13 @@ $repoGameDir = $PSScriptRoot
 $isNitro = ($Exe -ieq 'nitro.exe')
 
 # --- 1. sanity ---------------------------------------------------------------
-$exe = Join-Path $GameDir $Exe
-if (-not (Test-Path $exe)) {
+# NOTE: local var deliberately NOT named $exe - PowerShell variables are
+# case-insensitive, so $exe and the -Exe parameter would be the SAME variable
+# and this assignment would silently clobber it with a full path (breaking the
+# PLAY-*.bat written near the end, which needs the bare exe name). Bit us live
+# 2026-07-21: shortcuts opened a cmd window and died instantly.
+$exePath = Join-Path $GameDir $Exe
+if (-not (Test-Path $exePath)) {
     Write-Host "$Exe not found in `"$GameDir`"." -ForegroundColor Red
     Write-Host "Install the GOG offline installer there (or unzip game-data/i76-stable-gog.zip), then rerun."
     exit 1
@@ -47,7 +52,7 @@ if (-not (Test-Path $exe)) {
 if ($isNitro) {
     Write-Host "Nitro Pack ($Exe): same engine, same recipe - no built-in FPS limiter, so the conf cap is load-bearing here."
 } else {
-    $md5 = (Get-FileHash $exe -Algorithm MD5).Hash.ToLower()
+    $md5 = (Get-FileHash $exePath -Algorithm MD5).Hash.ToLower()
     if ($md5 -eq '60abf7bc699da72476128ddce991a3d1') {
         Write-Host "i76.exe is the known-good GOG 2019 / AiO build (20 FPS limiter built in)." -ForegroundColor Green
     } else {
@@ -199,7 +204,7 @@ try {
         $lnk = $ws.CreateShortcut((Join-Path $desktop $lnkName))
         $lnk.TargetPath = $bat
         $lnk.WorkingDirectory = $GameDir
-        $lnk.IconLocation = "$exe,0"
+        $lnk.IconLocation = "$exePath,0"
         $lnk.Save()
         Write-Host "$batName + desktop shortcut created."
     } else {
