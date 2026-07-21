@@ -139,14 +139,29 @@ if (-not $WithHDTextures) {
     if (-not (Test-Path $zfs)) { Say "I76.ZFS not found in game dir - can't build the pack." 'Red'; exit 1 }
     if (-not $Yes) { if (-not (Ask "Build the full HD pack now? (~40 min, uses your GPU)")) { Say "Config done; skipped pack."; exit 0 } }
 
-    Say "`n[1/4] Extracting game textures ..."
-    python (Join-Path $tools 'zfs_extract.py') $zfs $assets
-    Say "[2/4] Decoding + de-duplicating ..."
-    python (Join-Path $tl 'decode_all.py') $assets $staging $manifest
-    Say "[3/4] AI-upscaling (this is the ~30-40 min part) ..."
-    & $esr -i $staging -o $enhanced -n realesrgan-x4plus-anime | Out-Null
-    Say "[4/4] Blending (47/31/22) + re-encoding ..."
-    python (Join-Path $tl 'reencode_all.py') $manifest $enhanced $assets $build $staging
+    # The Python/ESRGAN steps print progress and occasional benign warnings to
+    # stderr - e.g. decode_all.py SKIPping a slightly-short loose file from the
+    # Nitro Pack (a non-texture .map; harmless). Under -EA Stop, PowerShell 5.1
+    # escalates ANY native stderr line into a terminating error and would abort
+    # the whole build. So run these steps with -EA Continue and gate on the real
+    # failure signal instead: each tool's exit code.
+    $prevEA = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    try {
+        Say "`n[1/4] Extracting game textures ..."
+        python (Join-Path $tools 'zfs_extract.py') $zfs $assets
+        if ($LASTEXITCODE) { throw "zfs_extract.py failed (exit $LASTEXITCODE)" }
+        Say "[2/4] Decoding + de-duplicating ..."
+        python (Join-Path $tl 'decode_all.py') $assets $staging $manifest
+        if ($LASTEXITCODE) { throw "decode_all.py failed (exit $LASTEXITCODE)" }
+        Say "[3/4] AI-upscaling (this is the ~30-40 min part) ..."
+        & $esr -i $staging -o $enhanced -n realesrgan-x4plus-anime | Out-Null
+        if ($LASTEXITCODE) { throw "Real-ESRGAN failed (exit $LASTEXITCODE)" }
+        Say "[4/4] Blending (47/31/22) + re-encoding ..."
+        python (Join-Path $tl 'reencode_all.py') $manifest $enhanced $assets $build $staging
+        if ($LASTEXITCODE) { throw "reencode_all.py failed (exit $LASTEXITCODE)" }
+    } finally {
+        $ErrorActionPreference = $prevEA
+    }
 
     $addon = Join-Path $GameDir 'ADDON'; New-Item -ItemType Directory -Force $addon | Out-Null
     Copy-Item (Join-Path $build '*') $addon -Force
