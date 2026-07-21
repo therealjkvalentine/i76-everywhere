@@ -336,18 +336,19 @@ static float impacts(IMPACT_NODE *n, float base, float k, const char *tag)
     return add;
 }
 
-/* shape one effect through the sim-tactile chain (docs/SIM-RUMBLE-RESEARCH.md):
+/* Turn a raw 0..1 effect STRENGTH into the motor level you'll actually FEEL,
+ * through the sim-tactile chain (docs/SIM-RUMBLE-RESEARCH.md):
  *   Threshold (dead-band: silent until it matters — stops the floor firing on
  *   noise) -> rescale -> Gamma-2 (gentle stays gentle, events pop) -> Min-Force
  *   (lift above the ERM dead-zone so an active event is FELT the frame it fires).
  * floor=0 for ambient layers that should stay a whisper; floor≈dead-zone for
  * events that must land. */
-static float shape(float raw, float threshold, float floor)
+static float felt_level(float strength, float threshold, float floor)
 {
-    if (raw <= threshold) return 0;
-    raw = (raw - threshold) / (1.0f - threshold);
-    if (raw > 1.0f) raw = 1.0f;
-    return floor + (1.0f - floor) * raw * raw;
+    if (strength <= threshold) return 0;
+    strength = (strength - threshold) / (1.0f - threshold);
+    if (strength > 1.0f) strength = 1.0f;
+    return floor + (1.0f - floor) * strength * strength;
 }
 
 static void rumble(float low, float high)
@@ -570,7 +571,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         float sc = g.speed / 65.0f; if (sc > 1.0f) sc = 1.0f;
         road_rough = (g.surface > 0 && g.surface < 10) ? R_SURF_ROUGH[g.surface] : 0.6f;
         road = R_ROAD_MAX * sc * road_rough * (0.5f + 0.5f * road_tick());
-        road_out = shape(road, R_TH_AMBIENT, sc * 0.24f);
+        road_out = felt_level(road, R_TH_AMBIENT, sc * 0.24f);
     }
 
     /* -- WEIGHT (heavy motor, continuous) ------------------------------------
@@ -646,14 +647,14 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
      * the high motor it read 'buzzy'), weight, slip grind, impacts, landing.
      * RIGHT = high-freq EDGE — skid chirp, weapon buzz, transient crack. */
     low  = engine;                                          /* RPM rumble, direct */
-    low  = MAXF(low, shape(weight,     R_TH_AMBIENT, 0.0f));
-    low  = MAXF(low, shape(slip_low,   R_TH_EVENT, R_DEADZONE));
-    low  = MAXF(low, shape(g_env_low,  R_TH_EVENT, R_DEADZONE));
-    low  = MAXF(low, shape(g_env_land, R_TH_EVENT, R_DEADZONE));
+    low  = MAXF(low, felt_level(weight,     R_TH_AMBIENT, 0.0f));
+    low  = MAXF(low, felt_level(slip_low,   R_TH_EVENT, R_DEADZONE));
+    low  = MAXF(low, felt_level(g_env_low,  R_TH_EVENT, R_DEADZONE));
+    low  = MAXF(low, felt_level(g_env_land, R_TH_EVENT, R_DEADZONE));
     high = road_out;                                        /* sandy road, speed-scaled */
-    high = MAXF(high, shape(slip_high,  R_TH_EVENT, R_DEADZONE));
-    high = MAXF(high, shape(g_env_wpn,  R_TH_EVENT, R_DEADZONE));   /* weapon fire (strong) */
-    high = MAXF(high, shape(g_env_high, R_TH_EVENT, R_DEADZONE));   /* misfire/crack */
+    high = MAXF(high, felt_level(slip_high,  R_TH_EVENT, R_DEADZONE));
+    high = MAXF(high, felt_level(g_env_wpn,  R_TH_EVENT, R_DEADZONE));   /* weapon fire (strong) */
+    high = MAXF(high, felt_level(g_env_high, R_TH_EVENT, R_DEADZONE));   /* misfire/crack */
     rumble(clamp01(low), clamp01(high));
 
     /* telemetry: one key=value line, ints only (wsprintfA has no %f). Values
