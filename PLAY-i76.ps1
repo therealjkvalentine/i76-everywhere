@@ -21,7 +21,20 @@ if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
     $wheel = Start-Process -FilePath (Join-Path $GameDir 'i76wheel.exe') -PassThru
 }
 
+# The XInput/shift-layer controller scheme (i76-remap.ahk): AutoHotkey inside the
+# game folder emits the engine's stock keys for triggers, the LB shift layer,
+# look-back fire, camera cycle and rumble. Started with the game and killed on
+# exit (same lifetime model the Mac launcher and i76-with-remap.bat use), so its
+# global hotkeys only live during a play session. Connect the pad BEFORE launch.
+$ahk = $null
+$ahkExe = Join-Path $GameDir '_ahk\AutoHotkeyU32.exe'
+$ahkCfg = Join-Path $GameDir '_ahk\i76-remap.ahk'
+if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg)) {
+    $ahk = Start-Process -FilePath $ahkExe -ArgumentList "`"$ahkCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
+}
+
 $proc = Start-Process -FilePath (Join-Path $GameDir $Exe) -ArgumentList '-glide' -WorkingDirectory $GameDir -PassThru
 $proc.WaitForExit()
 
 if ($wheel -and -not $wheel.HasExited) { Stop-Process -Id $wheel.Id -Force }
+if ($ahk   -and -not $ahk.HasExited)   { Stop-Process -Id $ahk.Id   -Force }

@@ -6,7 +6,7 @@
 #   2. Moves GOG's bundled OpenGLide DLLs aside (so dgVoodoo's Glide2x.dll wins).
 #   3. Copies dgVoodoo2's x86 Glide DLLs + control panel into the game folder.
 #   4. Installs dgVoodoo.windows.conf as the game folder's dgVoodoo.conf
-#      (20 FPS physics cap, Voodoo1 2MB TMU, 3x res, 8x MSAA; starts
+#      (19.2 FPS physics cap - matches Mac; Voodoo1 2MB TMU, 3x res, 8x MSAA; starts
 #      FULLSCREEN aspect-correct, Alt+Enter toggles windowed, mouse correct
 #      in both via dgVoodoo cursor emulation).
 #   5. Patches input.map: GOG's phantom joystick5 -> joystick1, adds native
@@ -25,7 +25,8 @@
 
 param(
     [string]$GameDir = "C:\Games\Interstate 76",
-    [string]$DgVoodooDir = "C:\Games\_tools\dgVoodoo2_87_3"
+    [string]$DgVoodooDir = "C:\Games\_tools\dgVoodoo2_87_3",
+    [string]$AhkDir = ""   # folder holding AutoHotkeyU32.exe; enables the pad/XInput layer
 )
 
 $ErrorActionPreference = 'Stop'
@@ -80,7 +81,7 @@ Write-Host "dgVoodoo Glide + DirectDraw DLLs + control panel deployed."
 
 # --- 4. config ---------------------------------------------------------------
 Copy-Item (Join-Path $repoGameDir 'dgVoodoo.windows.conf') (Join-Path $GameDir 'dgVoodoo.conf') -Force
-Write-Host "dgVoodoo.conf installed (FPSLimit=20, Voodoo1 2MB/1TMU, 3x res, 8x MSAA, windowed)."
+Write-Host "dgVoodoo.conf installed (FPSLimit=19.2 - matches Mac; Voodoo1 2MB/1TMU, 3x res, 8x MSAA, windowed)."
 
 # --- 5. input.map: joystick5 -> joystick1, mouse driving, pad bindings --------
 $mapPath = Join-Path $GameDir 'input.map'
@@ -121,6 +122,30 @@ if (Test-Path $mapPath) {
     Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
 }
 
+# --- 5b. controller layer: AutoHotkey + i76-remap.ahk into <game>\_ahk\ --------
+# The full pad scheme (right stick -> glance arrows, independent triggers, LB
+# shift layer with all five hardpoints, look-back fire, camera cycle, rumble)
+# lives in i76-remap.ahk and runs identically on Wine (Mac), Proton (Deck) and
+# native Windows. It emits the engine's STOCK keys, which input.map already
+# binds, so it's purely additive. We keep it in the GAME FOLDER (not C:\AutoHotkey)
+# so the portable zip carries it; PLAY-i76.ps1 starts/stops it with the game.
+$ahkOut = Join-Path $GameDir '_ahk'
+$remapSrc = Join-Path $repoGameDir 'i76-remap.ahk'
+if ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')) -and (Test-Path $remapSrc)) {
+    New-Item -ItemType Directory -Force $ahkOut | Out-Null
+    Copy-Item (Join-Path $AhkDir 'AutoHotkeyU32.exe') $ahkOut -Force
+    foreach ($extra in 'license.txt','AutoHotkey.chm') {
+        $p = Join-Path $AhkDir $extra; if (Test-Path $p) { Copy-Item $p $ahkOut -Force -ErrorAction SilentlyContinue }
+    }
+    Copy-Item $remapSrc $ahkOut -Force
+    Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk; starts with the game)."
+    Write-Host "  Pad scheme: LB shift layer, triggers=fire/hp2, look-back rear gun, camera cycle, rumble."
+    Write-Host "  Connect the controller BEFORE launching (the engine + XInput enumerate at startup)."
+} else {
+    Write-Host "Controller (AHK/XInput) layer NOT deployed - native pad + mouse only." -ForegroundColor Yellow
+    if (-not $AhkDir) { Write-Host "  (run via install.ps1, which fetches AutoHotkey and passes -AhkDir.)" -ForegroundColor DarkGray }
+}
+
 # --- 6. launcher + shortcut ---------------------------------------------------
 # dgVoodoo (the conf above) owns presentation: fullscreen by default,
 # Alt+Enter toggles windowed, emulated cursor keeps the mouse correct in both.
@@ -137,14 +162,25 @@ if (Test-Path $wheelExe) {
 }
 $bat = Join-Path $GameDir 'PLAY-i76.bat'
 Set-Content $bat "@echo off`r`nstart `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe i76.exe`r`n" -Encoding ascii
-$ws = New-Object -ComObject WScript.Shell
-$desktop = [Environment]::GetFolderPath('Desktop')
-$lnk = $ws.CreateShortcut((Join-Path $desktop "Interstate '76.lnk"))
-$lnk.TargetPath = $bat
-$lnk.WorkingDirectory = $GameDir
-$lnk.IconLocation = "$exe,0"
-$lnk.Save()
-Write-Host "PLAY-i76.bat + desktop shortcut created."
+# Desktop shortcut is a convenience, NOT load-bearing - never let it abort setup
+# (e.g. a redirected/OneDrive Desktop, or a detached session where the shell folder
+# can't be written). PLAY-i76.bat in the game folder is always the real entry point.
+try {
+    $ws = New-Object -ComObject WScript.Shell
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    if ($desktop -and (Test-Path $desktop)) {
+        $lnk = $ws.CreateShortcut((Join-Path $desktop "Interstate '76.lnk"))
+        $lnk.TargetPath = $bat
+        $lnk.WorkingDirectory = $GameDir
+        $lnk.IconLocation = "$exe,0"
+        $lnk.Save()
+        Write-Host "PLAY-i76.bat + desktop shortcut created."
+    } else {
+        Write-Host "PLAY-i76.bat created (Desktop not writable here - skipped the shortcut)." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "PLAY-i76.bat created (couldn't write the desktop shortcut: $($_.Exception.Message))." -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "DONE. Boot takes 60-75s of 'PLEASE STAND BY' - ESC skips the intro." -ForegroundColor Green

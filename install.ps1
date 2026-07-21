@@ -1,5 +1,5 @@
 <#
-  Interstate '76 — ONE-COMMAND setup for a fresh Windows PC.
+  Interstate '76 - ONE-COMMAND setup for a fresh Windows PC.
   Bring your own GOG game files; this does everything else, idiot-proof.
 
   What it does:
@@ -65,9 +65,31 @@ if (-not (Test-Path (Join-Path $dgv '3Dfx\x86\Glide2x.dll'))) {
 }
 Say "dgVoodoo2 ready." 'Green'
 
+# AutoHotkey 1.1.37.02 (portable) for the controller layer - pinned + sha256-checked
+# (same build the Mac/Deck remapper uses). Optional: a failure here just skips the
+# pad/XInput layer, it never aborts the install.
+$ahk = Join-Path $ToolsDir 'AutoHotkey_1.1.37.02'
+if (-not (Test-Path (Join-Path $ahk 'AutoHotkeyU32.exe'))) {
+    try {
+        Say "Downloading AutoHotkey 1.1.37.02 (controller layer) ..."
+        $z = Join-Path $ToolsDir 'ahk.zip'
+        Invoke-WebRequest 'https://github.com/AutoHotkey/AutoHotkey/releases/download/v1.1.37.02/AutoHotkey_1.1.37.02.zip' -OutFile $z
+        $sha = (Get-FileHash $z -Algorithm SHA256).Hash.ToLower()
+        if ($sha -ne '6f3663f7cdd25063c8c8728f5d9b07813ced8780522fd1f124ba539e2854215f') {
+            Say "  AutoHotkey sha256 mismatch ($sha) - skipping controller layer." 'Yellow'; $ahk = ''
+        } else {
+            Expand-Archive $z $ahk -Force
+        }
+        Remove-Item $z -ErrorAction SilentlyContinue
+    } catch {
+        Say "  AutoHotkey download failed ($($_.Exception.Message)) - skipping controller layer." 'Yellow'; $ahk = ''
+    }
+}
+if ($ahk) { Say "AutoHotkey ready." 'Green' }
+
 # --- 3. configure (the load-bearing part) ------------------------------------
 Say "`nConfiguring dgVoodoo + input.map + launcher ..."
-& (Join-Path $repo 'setup-windows.ps1') -GameDir $GameDir -DgVoodooDir $dgv
+& (Join-Path $repo 'setup-windows.ps1') -GameDir $GameDir -DgVoodooDir $dgv -AhkDir $ahk
 
 # --- 4. optional HD texture pack ---------------------------------------------
 if (-not $WithHDTextures) {
@@ -76,8 +98,11 @@ if (-not $WithHDTextures) {
     # prerequisites: python + deps + ESRGAN + lzo2.dll
     $py = (Get-Command python -ErrorAction SilentlyContinue)
     if (-not $py) { Say "Python not found - install Python 3 (python.org) and re-run with -WithHDTextures." 'Red'; exit 1 }
-    Say "Installing Python deps (Pillow, numpy, python-lzo) ..."
-    python -m pip install --quiet --user Pillow numpy python-lzo 2>&1 | Out-Null
+    # NOTE: only Pillow + numpy are needed. LZO is done via ctypes against lzo2.dll
+    # (LZO2_DLL, set below) - the same path Open76 uses - so we do NOT install the
+    # python-lzo module (it has no wheel on modern Python and fails to build).
+    Say "Installing Python deps (Pillow, numpy) ..."
+    python -m pip install --quiet --user Pillow numpy 2>&1 | Out-Null
 
     $esr = Join-Path $ToolsDir 'realesrgan\realesrgan-ncnn-vulkan.exe'
     if (-not (Test-Path $esr)) {
@@ -86,17 +111,18 @@ if (-not $WithHDTextures) {
         Invoke-WebRequest 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip' -OutFile $z
         Expand-Archive $z (Join-Path $ToolsDir 'realesrgan') -Force; Remove-Item $z
     }
-    # liblzo2 for the ZFS extractor (conda-forge package, no full conda needed)
+    # liblzo2 for the ZFS extractor (conda-forge package, no full conda needed).
+    # Use the .tar.bz2 build, NOT the newer .conda: the .conda's inner tarball is
+    # zstd-compressed, and Windows' bundled tar.exe (bsdtar) can't decode zstd
+    # without a separate zstd.exe. bzip2 IS built into bsdtar, so .tar.bz2 extracts
+    # offline with no extra tooling. Inside: Library\bin\lzo2.dll.
     $lzo = Join-Path $ToolsDir 'lzo2.dll'
     if (-not (Test-Path $lzo)) {
         Say "Fetching liblzo2 ..."
-        $c = Join-Path $ToolsDir 'lzo.conda'
-        Invoke-WebRequest 'https://api.anaconda.org/download/conda-forge/lzo/2.10/win-64/lzo-2.10-h6a83c73_1002.conda' -OutFile $c -UseBasicParsing
+        $c = Join-Path $ToolsDir 'lzo.tar.bz2'
+        Invoke-WebRequest 'https://conda.anaconda.org/conda-forge/win-64/lzo-2.10-he774522_1000.tar.bz2' -OutFile $c -UseBasicParsing
         $x = Join-Path $ToolsDir 'lzox'; New-Item -ItemType Directory -Force $x | Out-Null
-        # .conda is a zip containing a zstd tarball; use tar (bsdtar ships with Win10+)
         tar -xf $c -C $x
-        $pkg = Get-ChildItem $x -Filter 'pkg-*.tar.zst' | Select-Object -First 1
-        tar -xf $pkg.FullName -C $x
         Copy-Item (Join-Path $x 'Library\bin\lzo2.dll') $lzo -Force
         Remove-Item $c,$x -Recurse -Force
     }
