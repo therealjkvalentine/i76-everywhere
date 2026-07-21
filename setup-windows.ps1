@@ -22,29 +22,38 @@
 #
 # Usage:  powershell -ExecutionPolicy Bypass -File setup-windows.ps1 `
 #             -GameDir "C:\Games\Interstate 76" [-DgVoodooDir "C:\Games\_tools\dgVoodoo2_87_3"]
+#         Nitro Pack (identical recipe, verified 2026-07-10):
+#             -GameDir "C:\Games\Interstate 76 Nitro Pack" -Exe nitro.exe
 
 param(
     [string]$GameDir = "C:\Games\Interstate 76",
     [string]$DgVoodooDir = "C:\Games\_tools\dgVoodoo2_87_3",
-    [string]$AhkDir = ""   # folder holding AutoHotkeyU32.exe; enables the pad/XInput layer
+    [string]$AhkDir = "",  # folder holding AutoHotkeyU32.exe; enables the pad/XInput layer
+    [string]$Exe = "i76.exe"   # "nitro.exe" for the GOG Nitro Pack - identical recipe
+                               # (verified 2026-07-10, FINDINGS doc sec 1.1)
 )
 
 $ErrorActionPreference = 'Stop'
 $repoGameDir = $PSScriptRoot
+$isNitro = ($Exe -ieq 'nitro.exe')
 
 # --- 1. sanity ---------------------------------------------------------------
-$exe = Join-Path $GameDir 'i76.exe'
+$exe = Join-Path $GameDir $Exe
 if (-not (Test-Path $exe)) {
-    Write-Host "i76.exe not found in `"$GameDir`"." -ForegroundColor Red
+    Write-Host "$Exe not found in `"$GameDir`"." -ForegroundColor Red
     Write-Host "Install the GOG offline installer there (or unzip game-data/i76-stable-gog.zip), then rerun."
     exit 1
 }
-$md5 = (Get-FileHash $exe -Algorithm MD5).Hash.ToLower()
-if ($md5 -eq '60abf7bc699da72476128ddce991a3d1') {
-    Write-Host "i76.exe is the known-good GOG 2019 / AiO build (20 FPS limiter built in)." -ForegroundColor Green
+if ($isNitro) {
+    Write-Host "Nitro Pack ($Exe): same engine, same recipe - no built-in FPS limiter, so the conf cap is load-bearing here."
 } else {
-    Write-Host "i76.exe MD5 = $md5 - NOT the verified GOG 2019 build (60abf7bc...)." -ForegroundColor Yellow
-    Write-Host "Setup continues, but VERIFY THE CAP after launch (see checklist in the repo README)."
+    $md5 = (Get-FileHash $exe -Algorithm MD5).Hash.ToLower()
+    if ($md5 -eq '60abf7bc699da72476128ddce991a3d1') {
+        Write-Host "i76.exe is the known-good GOG 2019 / AiO build (20 FPS limiter built in)." -ForegroundColor Green
+    } else {
+        Write-Host "i76.exe MD5 = $md5 - NOT the verified GOG 2019 build (60abf7bc...)." -ForegroundColor Yellow
+        Write-Host "Setup continues, but VERIFY THE CAP after launch (see checklist in the repo README)."
+    }
 }
 
 $glideSrc = Join-Path $DgVoodooDir '3Dfx\x86'
@@ -57,7 +66,9 @@ if (-not (Test-Path (Join-Path $glideSrc 'Glide2x.dll'))) {
 # --- 2. retire GOG's bundled OpenGLide so dgVoodoo's Glide2x.dll wins ---------
 $backup = Join-Path $GameDir '_openglide-backup'
 $bundled = Get-ChildItem $GameDir -File | Where-Object {
-    $_.Name -match '^glide.*\.dll$' -and -not (Select-String -Path $_.FullName -Pattern 'dgVoodoo' -Quiet -ErrorAction SilentlyContinue)
+    # glide*.dll / glide2x.ovl only - NEVER z*.dll (zglide etc. are the engine's
+    # own renderer modules, not wrappers; FINDINGS doc sec 1.1)
+    $_.Name -match '^glide.*\.(dll|ovl)$' -and -not (Select-String -Path $_.FullName -Pattern 'dgVoodoo' -Quiet -ErrorAction SilentlyContinue)
 }
 if ($bundled) {
     New-Item -ItemType Directory -Force $backup | Out-Null
@@ -160,8 +171,9 @@ if (Test-Path $wheelExe) {
 } else {
     Write-Host "tools\i76wheel.exe not built - wheel targeting disabled (see tools\i76wheel.c)." -ForegroundColor Yellow
 }
-$bat = Join-Path $GameDir 'PLAY-i76.bat'
-Set-Content $bat "@echo off`r`nstart `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe i76.exe`r`n" -Encoding ascii
+$batName = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY-i76.bat' }
+$bat = Join-Path $GameDir $batName
+Set-Content $bat "@echo off`r`nstart `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe $Exe`r`n" -Encoding ascii
 # Desktop shortcut is a convenience, NOT load-bearing - never let it abort setup
 # (e.g. a redirected/OneDrive Desktop, or a detached session where the shell folder
 # can't be written). PLAY-i76.bat in the game folder is always the real entry point.
@@ -169,17 +181,18 @@ try {
     $ws = New-Object -ComObject WScript.Shell
     $desktop = [Environment]::GetFolderPath('Desktop')
     if ($desktop -and (Test-Path $desktop)) {
-        $lnk = $ws.CreateShortcut((Join-Path $desktop "Interstate '76.lnk"))
+        $lnkName = if ($isNitro) { "Interstate '76 Nitro Pack.lnk" } else { "Interstate '76.lnk" }
+        $lnk = $ws.CreateShortcut((Join-Path $desktop $lnkName))
         $lnk.TargetPath = $bat
         $lnk.WorkingDirectory = $GameDir
         $lnk.IconLocation = "$exe,0"
         $lnk.Save()
-        Write-Host "PLAY-i76.bat + desktop shortcut created."
+        Write-Host "$batName + desktop shortcut created."
     } else {
-        Write-Host "PLAY-i76.bat created (Desktop not writable here - skipped the shortcut)." -ForegroundColor Yellow
+        Write-Host "$batName created (Desktop not writable here - skipped the shortcut)." -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "PLAY-i76.bat created (couldn't write the desktop shortcut: $($_.Exception.Message))." -ForegroundColor Yellow
+    Write-Host "$batName created (couldn't write the desktop shortcut: $($_.Exception.Message))." -ForegroundColor Yellow
 }
 
 Write-Host ""

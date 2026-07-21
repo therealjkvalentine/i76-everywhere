@@ -7,7 +7,9 @@
     2. Installs the free tools it needs (dgVoodoo2, Real-ESRGAN, liblzo2) into C:\Games\_tools.
     3. Configures dgVoodoo (20fps cap, Voodoo1 look, 3x res, 8x MSAA, windowed) + input.map,
        and makes a desktop launcher   -> via setup-windows.ps1
-    4. (Optional) Builds the full-game HD texture pack FROM YOUR OWN FILES and installs it.
+       (and does the same for the Nitro Pack if it's installed - identical recipe)
+    4. (Optional) Builds the full-game HD texture pack FROM YOUR OWN FILES and installs it
+       (into the Nitro Pack too - its texture tiles are byte-identical to the base game's).
 
   Usage (from this folder, in PowerShell):
     ./install.ps1                       # auto-detect game, config only
@@ -91,6 +93,25 @@ if ($ahk) { Say "AutoHotkey ready." 'Green' }
 Say "`nConfiguring dgVoodoo + input.map + launcher ..."
 & (Join-Path $repo 'setup-windows.ps1') -GameDir $GameDir -DgVoodooDir $dgv -AhkDir $ahk
 
+# --- 3b. Nitro Pack, if present (identical recipe - FINDINGS doc sec 1.1) -----
+# GOG ships it as a standalone game (own nitro.exe, no built-in FPS limiter, so
+# the conf cap is load-bearing there). Auto-detected; skipped silently if absent.
+# Sibling of the chosen base install first - the registry may point at a
+# different (e.g. GOG Galaxy) copy than the one we just configured.
+$ncands = @((Join-Path (Split-Path $GameDir -Parent) 'Interstate 76 Nitro Pack'))
+foreach ($k in 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games','HKLM:\SOFTWARE\GOG.com\Games') {
+    if (Test-Path $k) { Get-ChildItem $k | ForEach-Object {
+        $g = Get-ItemProperty $_.PSPath
+        if ($g.gameName -match 'Nitro') { $ncands += $g.path }
+    } }
+}
+$ncands += 'C:\Games\Interstate 76 Nitro Pack','C:\GOG Games\Interstate 76 Nitro Pack'
+$NitroDir = $ncands | Where-Object { $_ -and (Test-Path (Join-Path $_ 'nitro.exe')) } | Select-Object -First 1
+if ($NitroDir) {
+    Say "`nNitro Pack found: $NitroDir - applying the same recipe ..."
+    & (Join-Path $repo 'setup-windows.ps1') -GameDir $NitroDir -DgVoodooDir $dgv -AhkDir $ahk -Exe nitro.exe
+}
+
 # --- 4. optional HD texture pack ---------------------------------------------
 if (-not $WithHDTextures) {
     Say "`nSkipping HD texture pack (add -WithHDTextures to build it from your files)." 'Yellow'
@@ -166,6 +187,13 @@ if (-not $WithHDTextures) {
     $addon = Join-Path $GameDir 'ADDON'; New-Item -ItemType Directory -Force $addon | Out-Null
     Copy-Item (Join-Path $build '*') $addon -Force
     Say "HD pack installed to $addon" 'Green'
+    # Nitro's texture tiles are 100% byte-identical to the base game's (verified
+    # by content hash, 2026-07-12) - one build covers both installs.
+    if ($NitroDir) {
+        $naddon = Join-Path $NitroDir 'ADDON'; New-Item -ItemType Directory -Force $naddon | Out-Null
+        Copy-Item (Join-Path $build '*') $naddon -Force
+        Say "HD pack installed to $naddon (Nitro tiles are byte-identical to base)" 'Green'
+    }
 }
 
 Say "`n=== DONE ===" 'Green'

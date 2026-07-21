@@ -50,7 +50,7 @@ if ($Renderer -eq 'dgvoodoo') {
 } else {
     $dll = "$env:USERPROFILE\openglide-hd\glide2x.dll"
     if (-not (Test-Path $dll)) {
-        Write-Host "OpenGLide-HD build not found at $dll - build it first (see repo)." -ForegroundColor Red; exit 1
+        Write-Host "OpenGLide-HD build not found at $dll - build it first (tools\openglide-hd\README.md)." -ForegroundColor Red; exit 1
     }
     if ((Test-Path "$GameDir\Glide2x.dll") -and -not (Test-Path "$GameDir\Glide2x.dll.dgvoodoo")) {
         Copy-Item "$GameDir\Glide2x.dll" "$GameDir\Glide2x.dll.dgvoodoo" -Force

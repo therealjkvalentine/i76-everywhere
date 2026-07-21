@@ -1,0 +1,233 @@
+From 432d9e2a7a14ab722ee4ea1d56426606af03604f Mon Sep 17 00:00:00 2001
+From: James Valentine <james.k.valentine@gmail.com>
+Date: Fri, 10 Jul 2026 08:10:58 -0500
+Subject: [PATCH 2/2] Passthrough output window + WinOpenDelayMS race guard
+
+GL now renders into an input-transparent child window (WM_NCHITTEST=HTTRANSPARENT, MA_NOACTIVATE) shown on first buffer swap or grSstControl(ACTIVATE) - a software Voodoo VGA passthrough. The game window is never touched, so its DirectDraw 2D shell keeps working. Also: optional [Options] WinOpenDelayMS ini knob. Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+---
+ grguSstGlide.cpp            | 36 ++++++++++++--
+ platform/window.h           |  4 ++
+ platform/windows/window.cpp | 97 ++++++++++++++++++++++++++-----------
+ 3 files changed, 106 insertions(+), 31 deletions(-)
+
+diff --git a/grguSstGlide.cpp b/grguSstGlide.cpp
+index 329f87d..a431e51 100644
+--- a/grguSstGlide.cpp
++++ b/grguSstGlide.cpp
+@@ -4,6 +4,7 @@
+ #include "GLRender.h"
+ #include "PGTexture.h"
+ #include "OGLTables.h"
++#include "platform/window.h"
+ 
+ static bool InterpretScreenResolution(GrScreenResolution_t eResolution, FxU32 &width, FxU32 &height)
+ {
+@@ -401,6 +402,26 @@ grSstWinOpen(   FxU hwnd,
+ 
+     OpenGL.WinOpen = true;
+ 
++#ifdef WIN32
++    // OpenGLide-HD: some 1997 games (Interstate '76) race their own async
++    // audio-thread init against the main thread's winmm/MCI setup and only
++    // survive because period hardware/wrappers took seconds in grSstWinOpen
++    // (dgVoodoo's D3D11 device creation still does). Our GL init is near-
++    // instant, so the game's main thread reaches winmm before its DirectSound
++    // workers finish and crashes in WINMMBASE!GetDriverModuleHandle (NULL
++    // GlobalLock'd driver list). Give the workers the head start the game
++    // always had. Configurable: [Options] WinOpenDelayMS in OpenGLid.ini.
++    {
++        int delay_ms = GetPrivateProfileIntA( "Options", "WinOpenDelayMS",
++                                              2500, ".\\OpenGLid.ini" );
++        if ( delay_ms > 0 )
++        {
++            GlideMsg( "grSstWinOpen: WinOpenDelayMS=%d (1997 audio-init race guard)\n", delay_ms );
++            Sleep( delay_ms );
++        }
++    }
++#endif
++
+ #ifdef OPENGL_DEBUG
+     GLErro( "grSstWinOpen" );
+ #endif
+@@ -641,12 +662,19 @@ grSstIsBusy( void )
+ //*************************************************
+ FX_ENTRY FxBool FX_CALL
+ grSstControl( FxU32 code )
+-{ 
+-#ifdef OGL_NOTDONE
+-    GlideMsg( "grSstControl( %lu )\n", code ); 
++{
++    GlideMsg( "grSstControl( %lu )\n", code );
++
++#ifdef WIN32
++    // OpenGLide-HD: games toggled the Voodoo's VGA passthrough with this -
++    // mirror it on the passthrough output window (see platform/windows/window.cpp)
++    if ( code == GR_CONTROL_ACTIVATE )
++        ShowGlideOutput( true );
++    else if ( code == GR_CONTROL_DEACTIVATE )
++        ShowGlideOutput( false );
+ #endif
+ 
+-    return GR_CONTROL_ACTIVATE; 
++    return GR_CONTROL_ACTIVATE;
+ }
+ 
+ //*************************************************
+diff --git a/platform/window.h b/platform/window.h
+index 82b445b..be7d6de 100644
+--- a/platform/window.h
++++ b/platform/window.h
+@@ -33,6 +33,10 @@
+ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height);
+ void FinaliseOpenGLWindow( void);
+ 
++// OpenGLide-HD (Windows): show/hide the passthrough output window - the
++// software equivalent of the Voodoo's VGA passthrough relay. No-op elsewhere.
++void ShowGlideOutput( bool show );
++
+ void SetGamma(float value);
+ void RestoreGamma();
+ 
+diff --git a/platform/windows/window.cpp b/platform/windows/window.cpp
+index 0bbb36d..39c2338 100644
+--- a/platform/windows/window.cpp
++++ b/platform/windows/window.cpp
+@@ -26,6 +26,7 @@
+ static HDC   hDC;
+ static HGLRC hRC;
+ static HWND  hWND;
++static HWND  hParentWND;
+ static struct
+ {
+     FxU16 red[ 256 ];
+@@ -36,6 +37,33 @@ static struct
+ static BOOL ramp_stored  = false;
+ static BOOL mode_changed = false;
+ 
++// OpenGLide-HD: the GL output lives in its OWN input-transparent child window
++// layered over the game's window - a software reimplementation of the Voodoo
++// VGA passthrough. The game window stays untouched (its DirectDraw 2D shell,
++// palettes and input keep working); our child shows only while the game is
++// actually presenting 3D (first buffer swap / grSstControl activate).
++static LRESULT CALLBACK GlideOutputWndProc( HWND h, UINT msg, WPARAM wp, LPARAM lp )
++{
++    switch ( msg )
++    {
++    case WM_NCHITTEST:
++        return HTTRANSPARENT;      // mouse events fall through to the game window
++    case WM_MOUSEACTIVATE:
++        return MA_NOACTIVATE;      // never steal keyboard focus from the game
++    case WM_ERASEBKGND:
++        return 1;
++    }
++    return DefWindowProc( h, msg, wp, lp );
++}
++
++void ShowGlideOutput( bool show )
++{
++    if ( hWND && hWND != hParentWND )
++    {
++        ShowWindow( hWND, show ? SW_SHOWNA : SW_HIDE );
++    }
++}
++
+ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+ {
+     PIXELFORMATDESCRIPTOR   pfd;
+@@ -55,37 +83,38 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+     }
+ 
+     mode_changed = false;
+-
+-    if ( UserConfig.InitFullScreen )
+-    {
+-        SetWindowLong( hwnd, 
+-                       GWL_STYLE, 
+-                       WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS );
+-        MoveWindow( hwnd, 0, 0, width, height, false );
+-        mode_changed = SetScreenMode( width, height );
+-    }
+-    else
++    hParentWND = hwnd;
++
++    // create the passthrough child, sized to the Glide resolution and
++    // centered in the parent's client area, hidden until 3D output starts
++    WNDCLASSA wc;
++    ZeroMemory( &wc, sizeof( wc ) );
++    wc.lpfnWndProc   = GlideOutputWndProc;
++    wc.hInstance     = GetModuleHandle( NULL );
++    wc.lpszClassName = "OpenGLideHDOutput";
++    wc.hCursor       = LoadCursor( NULL, IDC_ARROW );
++    RegisterClassA( &wc );
++
++    RECT crect;
++    GetClientRect( hwnd, &crect );
++    int cw = crect.right - crect.left;
++    int ch = crect.bottom - crect.top;
++    int cx = cw > width  ? ( cw - width ) / 2  : 0;
++    int cy = ch > height ? ( ch - height ) / 2 : 0;
++
++    HWND child = CreateWindowExA( 0, "OpenGLideHDOutput", "",
++                                  WS_CHILD | WS_CLIPSIBLINGS,
++                                  cx, cy, width, height,
++                                  hwnd, NULL, wc.hInstance, NULL );
++    if ( child == NULL )
+     {
+-       RECT rect;
+-       rect.left = 0;
+-       rect.right = width;
+-       rect.top = 0;
+-       rect.bottom = height;
+-
+-       AdjustWindowRectEx( &rect, 
+-                           GetWindowLong( hwnd, GWL_STYLE ),
+-                           GetMenu( hwnd ) != NULL,
+-                           GetWindowLong( hwnd, GWL_EXSTYLE ) );
+-       MoveWindow( hwnd, 
+-                   x, y, 
+-                   x + ( rect.right - rect.left ),
+-                   y + ( rect.bottom - rect.top ),
+-                   true );
++        MessageBox( NULL, "Could not create GL output window", "Error", MB_OK );
++        exit( 1 );
+     }
+ 
+-    hWND = hwnd;
++    hWND = child;
+ 
+-    hDC = GetDC( hwnd );
++    hDC = GetDC( hWND );
+     BitsPerPixel = GetDeviceCaps( hDC, BITSPIXEL );
+ 
+     ZeroMemory( &pfd, sizeof( pfd ) );
+@@ -147,6 +176,13 @@ void FinaliseOpenGLWindow( void)
+     wglDeleteContext( hRC );
+     ReleaseDC( hWND, hDC );
+ 
++    if ( hWND && hWND != hParentWND )
++    {
++        DestroyWindow( hWND );          // the passthrough child
++        UnregisterClassA( "OpenGLideHDOutput", GetModuleHandle( NULL ) );
++    }
++    hWND = NULL;
++
+     if( mode_changed )
+     {
+         ResetScreenMode( );
+@@ -216,6 +252,13 @@ void ResetScreenMode()
+ 
+ void SwapBuffers()
+ {
++    // first real 3D present = the moment the Voodoo passthrough would kick in
++    static bool shown = false;
++    if ( !shown && hWND && hWND != hParentWND && !IsWindowVisible( hWND ) )
++    {
++        ShowGlideOutput( true );
++        shown = true;
++    }
+     SwapBuffers(hDC);
+ }
+ 
+-- 
+2.45.1.windows.1
+
