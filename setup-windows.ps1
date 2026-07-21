@@ -65,16 +65,30 @@ if (-not (Test-Path (Join-Path $glideSrc 'Glide2x.dll'))) {
 
 # --- 2. retire GOG's bundled OpenGLide so dgVoodoo's Glide2x.dll wins ---------
 $backup = Join-Path $GameDir '_openglide-backup'
+# dgVoodoo's own DLLs are recognized by hash against the dist we deploy from -
+# a text probe (Select-String 'dgVoodoo') misses their UTF-16 strings and on a
+# re-run would move OUR deploy into the backup, clobbering the real originals.
+$dgvHashes = Get-ChildItem (Join-Path $DgVoodooDir '3Dfx\x86') -Filter 'Glide*.dll' |
+    ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash }
 $bundled = Get-ChildItem $GameDir -File | Where-Object {
     # glide*.dll / glide2x.ovl only - NEVER z*.dll (zglide etc. are the engine's
     # own renderer modules, not wrappers; FINDINGS doc sec 1.1)
-    $_.Name -match '^glide.*\.(dll|ovl)$' -and -not (Select-String -Path $_.FullName -Pattern 'dgVoodoo' -Quiet -ErrorAction SilentlyContinue)
+    $_.Name -match '^glide.*\.(dll|ovl)$' -and
+    ((Get-FileHash $_.FullName -Algorithm SHA256).Hash -notin $dgvHashes)
 }
 if ($bundled) {
     New-Item -ItemType Directory -Force $backup | Out-Null
     $bundled | ForEach-Object {
-        Move-Item $_.FullName (Join-Path $backup $_.Name) -Force
-        Write-Host "Moved bundled $($_.Name) -> _openglide-backup\"
+        $dest = Join-Path $backup $_.Name
+        if (Test-Path $dest) {
+            # a backup of this name already exists - assume it's the true original
+            # and never overwrite it; just clear the game-dir copy out of the way
+            Remove-Item $_.FullName -Force
+            Write-Host "Removed bundled $($_.Name) (an original is already in _openglide-backup\)"
+        } else {
+            Move-Item $_.FullName $dest
+            Write-Host "Moved bundled $($_.Name) -> _openglide-backup\"
+        }
     }
 }
 
