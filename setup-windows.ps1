@@ -126,6 +126,14 @@ if (Test-Path $mapPath) {
         $steerRx = New-Object regex 'steer \{[^}]*\}'
         $map = $steerRx.Replace($map, "steer {`r`n   - joystick1  Left/Right`r`n   - mouse      Left/Right`r`n}", 1)
         $map = $map -replace '\+ joystick5  Button2', '+ joystick1  Button2'
+        # Handbrake on Space, matching the Mac map (docs/input.map.reference) and
+        # the verified rebind in docs/VERIFIED-FIXES.md: e_brake moves off C onto
+        # Space, and keyboard fire moves off Space onto Enter so the two don't
+        # collide (mouse LeftBtn + pad still fire; Space is the natural handbrake).
+        $ebRx = New-Object regex 'e_brake \{\s*\+ keyboard\s+C\b'
+        $map = $ebRx.Replace($map, "e_brake {`r`n   + keyboard   Space", 1)
+        $wfRx = New-Object regex 'weapon_fire \{\s*\+ keyboard\s+Space\b'
+        $map = $wfRx.Replace($map, "weapon_fire {`r`n   + keyboard   Enter", 1)
         # separate blocks = alternative bindings (not chords); engine has exactly
         # three mouse-button tokens, so weapon 4 stays on keyboard 'Four'
         $add = @(
@@ -150,6 +158,23 @@ if (Test-Path $mapPath) {
     }
 } else {
     Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
+}
+
+# --- 5a. saves: bring the repo's campaign saves across (base game only) --------
+# The engine reads save###.cmp + savegame.dir from the game root (same place the
+# save editor writes). The repo carries a set in saves/; deploy them ONLY if the
+# install has none, so we never clobber real in-progress saves on a re-run.
+# (Nitro has its own campaign/saves - the base-game saves don't apply there.)
+if (-not $isNitro) {
+    $repoSaves = Join-Path $repoGameDir 'saves'
+    $haveSaves = Get-ChildItem $GameDir -Filter 'save*.cmp' -ErrorAction SilentlyContinue
+    if ((Test-Path $repoSaves) -and -not $haveSaves) {
+        Copy-Item (Join-Path $repoSaves 'save*.cmp') $GameDir -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repoSaves 'savegame.dir') $GameDir -Force -ErrorAction SilentlyContinue
+        Write-Host "Campaign saves deployed from repo (save*.cmp + savegame.dir)."
+    } elseif ($haveSaves) {
+        Write-Host "Existing saves found in game folder - left untouched."
+    }
 }
 
 # --- 5b. controller layer: AutoHotkey + i76-remap.ahk into <game>\_ahk\ --------
