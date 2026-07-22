@@ -85,6 +85,20 @@ Verified findings:
   `FPSLimit = 20` conf line carries the cap, verified live by the LS `20/40`
   counter.) The Galaxy install's genuinely useful extras: `Manual.pdf` and
   GOG's official multi-res `goggame-*.ico`.
+- **BREAKING (2026-07-21): Windows 11 update KB5101650 (26200.8875) kills the
+  2019 AiO exe at boot** — access violation in `winmmbase.dll+0x5b13` a few
+  seconds into PLEASE STAND BY, every launch. Bisect-verified NOT caused by
+  dgVoodoo (any DLL), the ADDON pack, `i7_sfrce.dll`, `input.map`, the
+  `goggame.dll` MCI shim, or compat flags — the same folder boots fine on the
+  **2017 Galaxy exe** (`9a232dcc`), and `nitro.exe` (AiO lineage, no built-in
+  limiter) also still boots, so the suspect is the 2019 exe's merged-in winmm
+  timer FPS limiter meeting the updated `winmmbase`. Workaround until
+  Microsoft or UCyborg reacts: run the 2017 exe and let dgVoodoo's
+  `FPSLimit = 19.2` carry the physics cap (it always did the capping under
+  this recipe anyway — but re-verify the canonical Mission 5 jump). Keep the
+  2019 exe beside it (`i76.exe.aio-2019`) to restore later; multiplayer/AiO
+  netcode fixes are what you lose meanwhile. Worth reporting on the
+  [VOGONS AiO thread](https://www.vogons.org/viewtopic.php?t=68384).
 
 ### 1.1 The Nitro Pack runs with the identical recipe (verified 2026-07-10)
 
