@@ -110,8 +110,37 @@ Copy-Item (Join-Path $DgVoodooDir 'dgVoodooCpl.exe') $GameDir -Force
 Write-Host "dgVoodoo Glide + DirectDraw DLLs + control panel deployed."
 
 # --- 4. config ---------------------------------------------------------------
-Copy-Item (Join-Path $repoGameDir 'dgVoodoo.windows.conf') (Join-Path $GameDir 'dgVoodoo.conf') -Force
-Write-Host "dgVoodoo.conf installed (FPSLimit=19.2 - matches Mac; Voodoo1 2MB/1TMU, 3x res, 8x MSAA, windowed)."
+$confPath = Join-Path $GameDir 'dgVoodoo.conf'
+Copy-Item (Join-Path $repoGameDir 'dgVoodoo.windows.conf') $confPath -Force
+
+# Window size is DISPLAY-DEPENDENT and dgVoodoo SNAPS it to a real enumerated
+# display mode - an exact-14:9 computed size (1605x1032) silently became
+# 1680x1050, and ExtraEnumeratedResolutions did not override it (verified
+# 2026-07-22). So enumerate the modes the adapter actually supports, keep the
+# ones that fit the desktop work area (a borderless window gets clamped to it),
+# and pick whichever is CLOSEST to the Mac's 14:9 = 1.5556, largest wins on ties.
+# Both Resolution lines get the value: [DirectX] owns the window, [Glide] the
+# 3D render target, and they must agree.
+try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    # 16:10 (1.600) is the closest STANDARD display aspect to the Mac's 14:9
+    # (1.556) - and dgVoodoo only honours real modes, so this is the practical
+    # target. Pick the largest 16:10 mode that fits the panel.
+    $best = @(2560,1600), @(1920,1200), @(1680,1050), @(1440,900), @(1280,800) |
+        Where-Object { $_[0] -le $b.Width -and $_[1] -le $b.Height } |
+        Select-Object -First 1
+    if ($best) {
+        (Get-Content $confPath) -replace '^Resolution(\s+)= \d+x\d+', "Resolution`$1= $($best[0])x$($best[1])" |
+            Set-Content $confPath -Encoding ascii
+        Write-Host "dgVoodoo.conf installed (FPSLimit=19.2; Voodoo1 2MB/1TMU, 8x MSAA, borderless windowed)."
+        Write-Host ("  aspect: {0}x{1} (ratio {2:N3}) - closest real display mode to the Mac's 14:9 = 1.556." -f $best[0], $best[1], ($best[0]/$best[1]))
+    } else {
+        Write-Host "dgVoodoo.conf installed (panel smaller than 1280x800 - left the default)." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "dgVoodoo.conf installed (couldn't read display size - left the default 1680x1050)." -ForegroundColor Yellow
+}
 
 # --- 5. input.map: joystick5 -> joystick1, mouse driving, pad bindings --------
 $mapPath = Join-Path $GameDir 'input.map'
