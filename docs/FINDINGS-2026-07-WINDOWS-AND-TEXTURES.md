@@ -493,7 +493,21 @@ Ordered by leverage; contributions welcome.
    Alternatives still open: Dege's dgVoodoo plugin sketch
    ([VOGONS t=66553](https://www.vogons.org/viewtopic.php?t=66553)), Special K
    injection over dgVoodoo's D3D11 output.
-2. **M16 `flags` byte (0x80)** — meaning unknown (mip presence? transparency
+2. **Palette-indexed tiles can't be enhanced game-wide — SOLVED/CLOSED
+   (2026-07-22).** The first full-game pack re-quantized every `.vqm` and `.map`
+   tile against a single level palette (`t01.act`, a *day* level). But I76 does
+   day/night by keeping the **same texture indices** and swapping the **level
+   palette** (`n17.act`, `p0*.act`, `m*.act`, plus `_16` variants). So on a night
+   mission the engine applied a different palette to those baked indices and the
+   art rendered with wildly wrong colours — reported in-game and reproduced by
+   inspection. There is **no palette-agnostic re-indexing**: nearest-RGB
+   quantization does not preserve an index's *semantic role* across palettes.
+   **M16 is immune** (self-contained per-tile RGB565 palette) — and M16 is
+   exactly what `-glide` loads. Fix: `reencode_all.py` now defaults to
+   `M16_ONLY=1` and skips palette-indexed sets (804 M16 sets kept, 764 VQM/MAP
+   sets dropped of 1,568). Lesson for any future pack: **only formats carrying
+   their own palette are safe to enhance.**
+3. **M16 `flags` byte (0x80)** — meaning unknown (mip presence? transparency
    hint?). Vehicle tiles observed single-level; CahootsMalone reports terrain
    PAKs carry mip chains — reconcile the two.
 3. **Terrain/world M16s** — apply the cracked spec to `tp*6.pak` sets and confirm

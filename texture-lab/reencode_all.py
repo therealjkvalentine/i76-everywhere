@@ -17,9 +17,26 @@ VQM re-encode: quantizes to t01.act + a fresh PRIVATE codebook per pak.
 M16 re-encode: fresh per-tile RGB565 palette (no quantization loss).
 MAP re-encode: quantizes to t01.act, output is a plain .map.
 
+*** PALETTE WARNING - why M16_ONLY defaults to on (2026-07-22) ***
+I76 does day/night by keeping the SAME texture indices and swapping the LEVEL
+PALETTE (t01.act, n17.act, p0*.act, m*.act, and the _16 variants). VQM and MAP
+are palette-INDEXED, so re-quantizing them against one palette (t01 = a day
+level) bakes in indices that only look right under t01: on a night mission the
+engine applies a different palette to those indices and the art renders with
+wildly wrong colours (reported in-game 2026-07-22). There is no palette-agnostic
+way to re-index an enhanced image - nearest-RGB quantization does not preserve
+each index's semantic role across palettes. M16 tiles are IMMUNE: they carry a
+self-contained per-tile RGB565 palette and ignore the level palette entirely.
+So by default we now emit ONLY the M16 sets, which is also exactly what the
+hardware (-glide) renderer loads. Set M16_ONLY=0 to restore the old behaviour
+(software-renderer/VQM art, correct ONLY on t01-palette levels).
+
 Usage: python reencode_all.py MANIFEST.json ENHANCED_DIR ASSETS_DIR OUT_DIR [STAGING_DIR]
+       M16_ONLY=0 python reencode_all.py ...   # include palette-indexed tiles
 """
 import os, sys, json, struct, time
+
+M16_ONLY = os.environ.get("M16_ONLY", "1") not in ("0", "false", "False")
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools"))
 import i76img
@@ -90,9 +107,19 @@ def enhanced_rgba(staged_name, w, h):
     _cache[key] = out
     return out
 
-n_done = n_err = 0
+def _is_palette_indexed(rec):
+    """True if this record's tiles are palette-INDEXED (.vqm/.map) and would
+    therefore be re-quantized against the single t01 palette - see the module
+    docstring: those break on night/non-t01 levels."""
+    exts = {e.get("ext", "").lower() for e in rec.get("entries", [])}
+    return not (exts & {".m16"}) and bool(exts & {".vqm", ".map"})
+
+n_done = n_err = n_skip = 0
 for rec in manifest:
     try:
+        if M16_ONLY and _is_palette_indexed(rec):
+            n_skip += 1
+            continue
         if rec["kind"] == "pak":
             codebook = ({}, [])
             parts, pix_lines, off = [], [], 0
@@ -137,3 +164,6 @@ for rec in manifest:
         print(f"  ...{n_done}/{len(manifest)} rebuilt ({time.time()-t0:.0f}s)", flush=True)
 
 print(f"DONE: {n_done} rebuilt, {n_err} errors, -> {outdir}  ({time.time()-t0:.0f}s)")
+if n_skip:
+    print(f"  SKIPPED {n_skip} palette-indexed (.vqm/.map) sets - they would render "
+          f"wrong on night/non-t01 levels. Set M16_ONLY=0 to include them.")
