@@ -85,20 +85,39 @@ Verified findings:
   `FPSLimit = 20` conf line carries the cap, verified live by the LS `20/40`
   counter.) The Galaxy install's genuinely useful extras: `Manual.pdf` and
   GOG's official multi-res `goggame-*.ico`.
-- **BREAKING (2026-07-21): Windows 11 update KB5101650 (26200.8875) kills the
-  2019 AiO exe at boot** — access violation in `winmmbase.dll+0x5b13` a few
-  seconds into PLEASE STAND BY, every launch. Bisect-verified NOT caused by
-  dgVoodoo (any DLL), the ADDON pack, `i7_sfrce.dll`, `input.map`, the
-  `goggame.dll` MCI shim, or compat flags — the same folder boots fine on the
-  **2017 Galaxy exe** (`9a232dcc`), and `nitro.exe` (AiO lineage, no built-in
-  limiter) also still boots, so the suspect is the 2019 exe's merged-in winmm
-  timer FPS limiter meeting the updated `winmmbase`. Workaround until
-  Microsoft or UCyborg reacts: run the 2017 exe and let dgVoodoo's
-  `FPSLimit = 19.2` carry the physics cap (it always did the capping under
-  this recipe anyway — but re-verify the canonical Mission 5 jump). Keep the
-  2019 exe beside it (`i76.exe.aio-2019`) to restore later; multiplayer/AiO
-  netcode fixes are what you lose meanwhile. Worth reporting on the
-  [VOGONS AiO thread](https://www.vogons.org/viewtopic.php?t=68384).
+- **BREAKING (2026-07-21), SOLVED (2026-07-22): Windows 11 update KB5101650
+  ships a broken 32-bit `winmmbase.dll` that kills the 2019 AiO exe at boot.**
+  Access violation in `winmmbase.dll+0x5b13` 5–20 s into PLEASE STAND BY, every
+  launch. **The fix is to uninstall KB5101650** (Settings → Windows Update →
+  Update history → Uninstall updates, or `wusa /uninstall /kb:5101650`), then
+  reboot. Verified end-to-end: the DLL rolls back **26100.8875 → 26100.8521**
+  and the 2019 exe then runs clean (90 s+, zero WER entries) with music, saves
+  and no CD prompt. Pause updates afterwards so it doesn't silently reinstall.
+
+  The diagnosis, because the obvious theories are all wrong:
+  - NOT dgVoodoo (crashes with every wrapper DLL removed), NOT the ADDON pack,
+    NOT `i7_sfrce.dll`, NOT `input.map`, NOT the `goggame.dll` MCI shim, and NOT
+    fixable with compat flags (the Galaxy install's full flag set was tried).
+  - NOT the AiO frame limiter: parking `I76PATCH.DLL` made it crash *sooner*.
+  - The real discriminator is **winmm**: the 2019 exe statically imports
+    `timeGetTime`, `joyGet*`, `mciSendCommandA` and `aux*`; the 2017 Galaxy exe
+    (`9a232dcc`) imports **no winmm at all**, which is the only reason it
+    survives. `i76.exe` is 32-bit, so it loads `winmmbase.dll` from **SysWOW64** —
+    check that one, not System32 (they carry different versions).
+  - The new DLL is *not* broken for everything: a 32-bit probe calling every
+    winmm entry point the game uses returns cleanly. The fault needs the game's
+    specific usage (`joySetCapture` / an MCI notify callback are the prime
+    suspects), so don't expect a trivial standalone repro.
+  - Don't be fooled by the 2017 exe as a "workaround": it boots, but it expects
+    GOG Galaxy's CD-audio emulation rather than the offline `goggame.dll` mp3
+    shim, so in-mission music prompts **"Please insert CD 2"**.
+  Worth reporting on the [VOGONS AiO thread](https://www.vogons.org/viewtopic.php?t=68384).
+- **Engine dialogs deadlock under EXCLUSIVE fullscreen.** The 1997 shell throws
+  modal Win32 dialogs mid-game ("you need brakes in your inventory", the CD
+  prompt). With a real fullscreen mode switch they are trapped behind the
+  fullscreen surface: black screen, dead input, **Alt+Tab doesn't even work**.
+  `FullscreenAttributes = fake` (screen-size borderless window) keeps the
+  fullscreen look and lets the dialogs show on top — now the shipped default.
 
 ### 1.1 The Nitro Pack runs with the identical recipe (verified 2026-07-10)
 
