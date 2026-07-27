@@ -206,6 +206,30 @@ if (-not $isNitro) {
     }
 }
 
+# --- 5a2. in-mission music fix (base game only) -------------------------------
+# The base game plays its soundtrack as CD audio via MCI cdaudio, which won't
+# open on a PC with no optical drive - so no music + "Please insert CD 2". We
+# proxy Strlkup.dll (a 5-export DLL i76.exe imports statically) to IAT-hook the
+# game's mciSendCommandA and play GOG's music\N.mp3 through the mpegvideo device
+# instead. See music-fix/README.md. Nitro uses audiere.dll and needs none of this.
+$musicProxy = Join-Path $repoGameDir 'music-fix\Strlkup.dll'
+$strlk = Join-Path $GameDir 'Strlkup.dll'
+if (-not $isNitro -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {
+    $orig = Join-Path $GameDir 'strlkup_orig.dll'
+    # Only back up the GENUINE original once - never overwrite the backup with our
+    # proxy on a re-run (same trap as the dgVoodoo DLL backup). Recognise our proxy
+    # by hash so a re-run is a no-op.
+    $proxyHash = (Get-FileHash $musicProxy -Algorithm SHA256).Hash
+    $liveHash  = (Get-FileHash $strlk -Algorithm SHA256).Hash
+    if ($liveHash -ne $proxyHash) {
+        if (-not (Test-Path $orig)) { Copy-Item $strlk $orig -Force }
+        Copy-Item $musicProxy $strlk -Force
+        Write-Host "In-mission music fix installed (Strlkup.dll proxy; original -> strlkup_orig.dll)."
+    } else {
+        Write-Host "In-mission music fix already installed - skipping."
+    }
+}
+
 # --- 5b. controller layer: AutoHotkey + i76-remap.ahk into <game>\_ahk\ --------
 # The full pad scheme (right stick -> glance arrows, independent triggers, LB
 # shift layer with all five hardpoints, look-back fire, camera cycle, rumble)
