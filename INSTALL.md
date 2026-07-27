@@ -39,7 +39,6 @@ Useful switches:
 | `./Setup-From-GOG.ps1 -GameDir "D:\Games\I76"` | Install somewhere else |
 | `./Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe"` | Point at a specific installer |
 | `./Setup-From-GOG.ps1 -SkipNitro` | Base game only |
-| `./Setup-From-GOG.ps1 -WithHDTextures -Yes` | Also build the HD texture pack from your own files (~40 min, needs Python + a GPU) |
 | `./Setup-From-GOG.ps1 -Force` | Reinstall even if a game is already there |
 
 ### What it does
@@ -99,11 +98,7 @@ On the working PC, double-click **`MAKE-PORTABLE.bat`** (or run
 Switches: `-IncludeSaves` to bring your savegames along; `-OutDir "D:\"` to write
 the zip elsewhere; `-GameDir "…"` if it can't auto-find the install.
 
-**`-WithHDTextures`** builds the HD texture pack **once** into the install before
-zipping, so every PC you copy the zip to gets HD textures with **no** Python, GPU,
-or 40-minute build — the cost is paid once here. (Needs Python 3 + a capable GPU on
-*this* machine; the pack is generated from your own `I76.ZFS`.) The controller
-layer (`_ahk\`) is always carried along automatically.
+The controller layer (`_ahk\`) is always carried along automatically.
 
 ### On the other PC
 1. Copy the zip over (USB, network share, cloud drive — whatever).

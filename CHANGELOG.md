@@ -8,11 +8,19 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 - **Windows: Nitro Pack fully scripted.** `install.ps1` now auto-detects a GOG Nitro
   Pack install and applies the identical recipe (`setup-windows.ps1 -Exe nitro.exe`):
   dgVoodoo deploy + conf, input.map controls parity, `PLAY-Nitro.bat` + shortcut.
-  The HD texture pack is installed into Nitro's `ADDON\` too (its texture tiles are
-  100% byte-identical to the base game's — one build covers both).
-- **OpenGLide-HD fork vendored** as a patch series + rebuild instructions in
-  [`tools/openglide-hd/`](tools/openglide-hd/) — the true-HD (arbitrary-resolution)
-  texture route previously living only on one machine.
+- **Windows fixes shipped from live play:** physics-safe FPS cap; handbrake on Space;
+  campaign-save deployment; borderless-windowed 14:9 aspect (matches the Mac look);
+  `FullscreenAttributes=fake`/windowed so the engine's modal dialogs no longer
+  deadlock behind an exclusive surface; `[GlideExt] pure32bit` restored (16-bit
+  fallback was causing purple night terrain); and the KB5101650 `winmmbase` boot
+  crash diagnosed (uninstall the update — see docs/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md).
+- **HD texture pack RETIRED.** The full-game enhanced-texture pack was built and then
+  pulled: the in-game improvement didn't justify shipping it, and palette-indexed
+  tiles rendered wrong on night missions (no palette-agnostic fix exists). The
+  `-WithHDTextures` build step is gone; the research — including the cracked `.M16`
+  format spec — is preserved in [docs/HD-TEXTURES-RESEARCH.md](docs/HD-TEXTURES-RESEARCH.md)
+  for future work. The OpenGLide-HD fork ([tools/openglide-hd/](tools/openglide-hd/))
+  remains as the unfinished true-HD route.
 
 ## v1.0.0 — "Vacation Build" (2026-07-14)
 
