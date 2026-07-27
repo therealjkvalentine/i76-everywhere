@@ -1,0 +1,7 @@
+LIBRARY strlkup
+EXPORTS
+    StrLookupCreate = strlkup_orig.StrLookupCreate
+    StrLookupDestroy = strlkup_orig.StrLookupDestroy
+    StrLookupFind = strlkup_orig.StrLookupFind
+    StrLookupFormat = strlkup_orig.StrLookupFormat
+    StrLookup_Global_Object = strlkup_orig.StrLookup_Global_Object DATA
