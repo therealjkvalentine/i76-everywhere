@@ -1,9 +1,53 @@
-> **STATUS: PARKED on the Mac.** The pipeline/tools work, but true-HD needs an OpenGLide-HD renderer switch away from the software path. A full pack exists on the Windows box. See [README.md](README.md).
+# Interstate '76 HD texture pack - research writeup (RETIRED)
 
-# Interstate '76 HD texture pack - research & working pipeline (2026-07-04)
+> **STATUS: RETIRED (2026-07-27).** A full-game enhanced-texture pack was built,
+> shipped, and then **pulled**. This document is the detailed record of what we
+> tried and learned, kept for future work. The pack is no longer installed by
+> `install.ps1`, and the tooling (`../texture-lab/`, `../tools/i76img.py`,
+> `../tools/zfs_extract.py`) is retained as archived experiment code that only
+> this writeup references.
 
-Verdict: **an asset-swap texture pack is fully feasible today, no engine hacks needed.** The
-formats are cracked, round-trip tooling exists in [`../tools/`](../tools/), and the game's own
+## Why it was retired (the honest verdict)
+
+1. **The in-game gain didn't justify it.** Side-by-side with the pack ON vs OFF,
+   the enhanced art looked *about the same* - the improvement (de-dithered
+   gradients, slightly crisper panel lines) is real but marginal at the engine's
+   fixed texture dimensions and the game's speed/scale. Measured, the enhanced
+   M16 tiles are within RGB565 noise of the originals (median |dRGB| 3.68/channel
+   vs the 7.75 quantization floor) - i.e. faithful, but that's the ceiling.
+2. **Palette-indexed tiles break on night missions - unfixably, game-wide.**
+   I76 renders day/night by keeping the SAME texture indices and swapping the
+   LEVEL PALETTE (`t01`, `n17`, `p0*`, `m*` `.act`, plus `_16` variants). The
+   pipeline re-quantized every `.vqm`/`.map` tile against ONE palette (`t01`, a
+   day level), so those indices only looked right in daylight and rendered with
+   wrong colours at night. There is **no palette-agnostic re-indexing** -
+   nearest-RGB quantization does not preserve an index's *semantic role* across
+   palettes. Only M16 (self-contained per-tile RGB565 palette) is immune, and
+   M16 is exactly what the `-glide` hardware renderer loads - so the "safe"
+   subset is also the only one the hardware path uses, which shrinks the payoff
+   further.
+3. **Confounder worth recording:** the purple/magenta night terrain first blamed
+   on the pack was actually dgVoodoo falling back to **16-bit rendering** when
+   the `[GlideExt] DitheringEffect=pure32bit` line was missing - I76's classic
+   16-bit road-colour bug, nothing to do with the textures. (Fixed in the conf.)
+
+## What is still worth keeping / future work
+
+- **The M16 format crack is the real prize** (see below) - a public spec for the
+  previously-undocumented hardware-texture format, with a lossless round-trip
+  encoder. Offer it to Roanish/i76 and the Open76 fork.
+- **True HD (arbitrary resolution)** would need a renderer that replaces textures
+  by hash, not same-size asset swaps - the OpenGLide-HD fork in
+  [`../tools/openglide-hd/`](../tools/openglide-hd/) is that route, still
+  unverified end-to-end. That is the only way past "enhanced, not HD".
+- If anyone rebuilds a pack: **M16-only** (`reencode_all.py` now defaults to
+  `M16_ONLY=1`), and per-level palettes for anything palette-indexed.
+
+---
+
+## Original research notes (2026-07-04)
+
+The formats are cracked, round-trip tooling exists in [`../tools/`](../tools/), and the game's own
 loose-file override mechanism (`ADDON/`) injects replacements without touching `I76.ZFS` -
 proven in-game (magenta-striped dashboard test, screenshot-confirmed in the running sim).
 True *higher-resolution* textures (beyond the originals' dimensions) need renderer-level work -

@@ -59,8 +59,10 @@ reverse-engineered in this repo — details in the `.py` docstring.
   the community called unfixable. Ordinal-exact export forwarding; works on Mac and Windows.
 - **Exactly-20 FPS physics** everywhere (the engine ties physics to framerate; scene 5's
   canyon jump is impossible above it): DxWnd delay on Mac, dgVoodoo `FPSLimit` on Deck/Windows.
-- **HD texture pipeline** ([texture-lab/](texture-lab/)): the VQM/M16 texture formats cracked,
-  with round-trip encoders.
+- **The `.M16` hardware-texture format cracked** (round-trip encoder in
+  [tools/i76img.py](tools/i76img.py)) — the RE prize from an enhanced-texture-pack
+  experiment that was ultimately **retired** (marginal in-game gain; palette-indexed
+  tiles break on night missions). Full writeup: [docs/HD-TEXTURES-RESEARCH.md](docs/HD-TEXTURES-RESEARCH.md).
 - **The Voodoo path** (Glide→dgVoodoo→DXVK→MoltenVK→Metal) works but is **parked on Mac** —
   MoltenVK can't persist compiled pipelines. [docs/VOODOO-PARKED.md](docs/VOODOO-PARKED.md)
   has the exact announcement that would revive it.

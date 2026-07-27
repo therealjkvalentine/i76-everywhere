@@ -16,7 +16,6 @@
     ./Setup-From-GOG.ps1 -GameDir "D:\Games\Interstate 76"
     ./Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe" -NitroExe "C:\path\setup_interstate76_nitro_pack_2.1.0.17.exe"
     ./Setup-From-GOG.ps1 -SkipNitro          # base game only
-    ./Setup-From-GOG.ps1 -WithHDTextures -Yes # also build the HD pack from your files, no prompts
 
   Or just double-click INSTALL.bat.
 #>
@@ -26,7 +25,6 @@ param(
     [string]$GameDir  = "C:\GOG Games\Interstate 76",  # GOG's own default: user-writable, so the installer stays headless (no UAC)
     [string]$ToolsDir = "C:\Games\_tools",
     [switch]$SkipNitro,
-    [switch]$WithHDTextures,
     [switch]$Force,      # re-run the GOG installer even if i76.exe already exists
     [switch]$Yes
 )
@@ -98,11 +96,10 @@ Say "  $GameDir  (i76.exe MD5 $((Get-FileHash $exePath -Algorithm MD5).Hash.ToLo
 
 # --- 2. apply every repo improvement (delegates to install.ps1) --------------
 # install.ps1 fetches dgVoodoo2 into $ToolsDir and runs setup-windows.ps1:
-#   dgVoodoo config (20fps cap / Voodoo1 look / MSAA), input.map (mouse + pad),
-#   PLAY-i76.bat + desktop shortcut.  -WithHDTextures builds the HD pack too.
+#   dgVoodoo config (FPS cap / Voodoo1 look / MSAA / 14:9), input.map (mouse + pad),
+#   saves, PLAY-i76.bat + desktop shortcut.
 Say "`nApplying i76-everywhere improvements ..." 'Cyan'
 $installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir }
-if ($WithHDTextures) { $installArgs['WithHDTextures'] = $true }
 if ($Yes)            { $installArgs['Yes'] = $true }
 & (Join-Path $repo 'install.ps1') @installArgs
 

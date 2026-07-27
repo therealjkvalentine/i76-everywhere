@@ -1,8 +1,17 @@
-# texture-lab - experiment with I76 texture enhancement
+# texture-lab - I76 texture-enhancement pipeline (ARCHIVED / experimental)
+
+> **ARCHIVED (2026-07-27).** The full-game enhanced-texture pack this pipeline
+> produced was built, shipped, and then **retired** - marginal in-game gain, and
+> palette-indexed tiles broke on night missions. `install.ps1` no longer builds
+> or installs it. These scripts are kept only as the reference implementation
+> behind the writeup; nothing else in the repo points here.
+> **Read the verdict and the lessons first:**
+> [../docs/HD-TEXTURES-RESEARCH.md](../docs/HD-TEXTURES-RESEARCH.md).
+> If you resurrect this: build **M16-only** (`reencode_all.py` defaults to
+> `M16_ONLY=1`) and handle per-level palettes for anything palette-indexed.
 
 Workspace for editing Interstate '76 art and seeing it in-game. Everything here except this
 README is gitignored (decoded game art is copyrighted - same rule as `game-data/`).
-Pipeline background: [../docs/HD-TEXTURES-RESEARCH.md](../docs/HD-TEXTURES-RESEARCH.md).
 
 ## Layout
 

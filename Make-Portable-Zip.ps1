@@ -18,7 +18,6 @@ param(
     [string]$GameDir = "",
     [string]$OutDir  = "",
     [switch]$IncludeSaves,   # include your savegames in the portable zip
-    [switch]$WithHDTextures, # build the HD pack once now, so the zip is HD on every target PC
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
@@ -49,23 +48,6 @@ if (-not (Test-Path (Join-Path $GameDir 'dgVoodoo.conf'))) {
 }
 if (-not $OutDir) { $OutDir = [Environment]::GetFolderPath('Desktop') }
 Say "Source install : $GameDir" 'Green'
-
-# --- optional: bake the HD texture pack in (build ONCE here, ships to every PC) ---
-# The pack lands in <game>\ADDON and robocopy carries it into the zip, so target
-# machines get HD textures with no Python/GPU/40-min build. Run in a child process
-# so install.ps1's prereq checks can't abort this packager.
-if ($WithHDTextures) {
-    Say "`nBuilding the HD texture pack into the source install (once, ~40 min, uses your GPU) ..." 'Cyan'
-    $p = Start-Process powershell -Wait -PassThru -NoNewWindow -ArgumentList @(
-        '-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $repo 'install.ps1'),
-        '-GameDir',"`"$GameDir`"",'-WithHDTextures','-Yes')
-    if ($p.ExitCode -ne 0) {
-        Say "HD build didn't complete (exit $($p.ExitCode)) - see messages above. Zipping WITHOUT HD." 'Yellow'
-        Say "(Needs Python 3 + a GPU on THIS machine; the pack is built from your own I76.ZFS.)" 'Yellow'
-    } else {
-        Say "HD pack built into $GameDir\ADDON - baking it into the zip." 'Green'
-    }
-}
 
 # --- stage a clean copy ------------------------------------------------------
 $stamp = Get-Date -Format 'yyyyMMdd'
