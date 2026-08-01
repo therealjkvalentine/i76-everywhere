@@ -114,6 +114,13 @@ motion is frame interpolation on top:
   `reg copy`s `HKLM\SOFTWARE\ACTIVISION\Interstate'76FRC` → `Interstate '76` (WOW6432Node-aware,
   reversible). The Gold Edition ships the Nitro-Pack FFB code but reads the un-suffixed key
   ([PCGW](https://www.pcgamingwiki.com/wiki/Interstate_'76)).
+- **A real wheel, measured: [WHEEL-T300.md](WHEEL-T300.md).** A Thrustmaster T300RS was
+  characterised end-to-end on 2026-08-01 through winmm (the API the engine reads). Two
+  non-obvious blockers: a T-series wheel enumerates in a crippled pre-init mode until its
+  driver is installed (pedals frozen, no FFB), and its default **Separate** pedal mode
+  CANNOT drive I76 - the pedals rest at an extreme and pin `throttle` at full deflection.
+  Switch to **Combined** and the stock binding is correct. The FFB registry gate turned out
+  to be already satisfied on a GOG install.
 - **Confirmed working hardware** on the GOG build: Logitech **Driving Force GT** (2024 report,
   [VOGONS t=61199](https://www.vogons.org/viewtopic.php?t=61199)); Logitech **WingMan Force 3D**
   ([GOG forum](https://www.gog.com/forum/interstate_series/gog_interstate_76_and_force_feedback_joystick_no_force_feedback_working)).
