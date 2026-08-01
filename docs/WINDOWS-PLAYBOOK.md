@@ -100,6 +100,10 @@ motion is frame interpolation on top:
 - **Wired into the launcher.** [`PLAY-i76.ps1`](../PLAY-i76.ps1) starts Lossless Scaling with the
   game and stops it on exit — but only if it wasn't already running, so it won't kill a session you
   had open for something else. Pass `-LosslessScaling ""` to skip it.
+- **Scripted:** [`Setup-FrameGen.ps1`](../Setup-FrameGen.ps1) finds the exe across your Steam
+  libraries, writes the profile (idempotent, backs up first), and with `-FixShortcut` swaps the
+  `steam://` desktop shortcut for a direct one. `-Revert` undoes the profile. Refuses to run while
+  Lossless Scaling is open, because it rewrites `Settings.xml` on exit.
 - **Skip:** AMD AFMF2 (needs 60fps+ base to behave, disengages on fast motion — unverified on
   wrapped-1997 games), NVIDIA Smooth Motion (needs a per-game NVIDIA App profile i76.exe will
   never have), SVP (video players only).
