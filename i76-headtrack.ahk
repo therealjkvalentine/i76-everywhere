@@ -46,12 +46,15 @@ global PITCH_ON    := 0.12
 global PITCH_OFF   := 0.08
 ; Analog feel. Gain 2.5 because a comfortable head turn only reaches ~0.43 rad -
 ; at the old 1.6 the view ran out of travel well before you ran out of neck.
-global ANALOG_GAIN   := 2.5  ; head radians -> camera radians
+global ANALOG_GAIN   := 4.0  ; head radians -> camera radians (field-tuned)
 global ANALOG_MAX    := 1.2  ; clamp, rad (~69deg) so you can't spin the view
-; The engine rewrites these floats every frame, so analog is a race we win by
-; writing more often. SMOOTH also damps the residual chatter (0 = none, 0.9 =
-; heavy); the visible "bounce" is our write and the engine's alternating.
-global SMOOTH        := 0.55
+; The "bounce" is NOT a race with the engine after all: a live dump showed the
+; whole camera angle block sits perfectly static unless WE write it, and feeding
+; the int look inputs (0x536770/78) changes nothing - the engine does not
+; recompute. So the only writer is us, and the shake is our own input jitter,
+; amplified by the gain. That makes SMOOTH the real fix, not write frequency.
+; 0 = none, 0.9 = heavy.
+global SMOOTH        := 0.85
 ; Both axes needed inverting on this rig (field-confirmed 2026-08-01): opentrack's
 ; freetrack yaw/pitch signs run opposite to the engine's glance direction.
 global INVERT       := 1     ; yaw:   looking left glances left
@@ -63,9 +66,19 @@ global GAME_EXE    := "i76.exe"
 ; "cam_yaw" and 0x4c2970 "cam_pitch", but in play, writing 0x4c2970 swings the
 ; view HORIZONTALLY and 0x4c2964 vertically (field-confirmed 2026-08-01 - head
 ; up/down was moving the view left/right). So they are bound the other way here.
-global ADDR_CAM_YAW   := 0x4c2970   ; map calls this cam_pitch
-global ADDR_CAM_PITCH := 0x4c2964   ; map calls this cam_yaw
+global ADDR_CAM_YAW   := 0x4c2970   ; map calls this cam_pitch - FIELD-CONFIRMED horizontal
 global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
+; The vertical axis is NOT 0x4c2964 (the map's "cam_yaw") - writing it moves
+; nothing. The apply fn stores to 0x4c2964/6c/70/74, and 70 is horizontal, so the
+; vertical is one of the others. Ctrl+Alt+P cycles these live (beeps the slot
+; number) so it can be found in play instead of guessed.
+; Ordered by evidence, not by the map: a live dump of the whole block showed
+; 0x4c2968 = -0.2269 and 0x4c2964 = -0.0344 (angle-shaped values), while
+; 0x4c296c / 74 / 80 all sat at exactly 0 - so the zeros are almost certainly
+; unused here and 0x4c2968 is the best candidate for the vertical axis.
+global PITCH_CANDIDATES := [0x4c2968, 0x4c2964, 0x4c296c, 0x4c2974, 0x4c2980]
+global gPitchSlot := 1
+global ADDR_CAM_PITCH := 0x4c2968
 
 global gMode := "DIGITAL"
 global gHeld := {}
@@ -216,6 +229,21 @@ Clamp(v) {
         return -ANALOG_MAX
     return v
 }
+
+; Ctrl+Alt+P - cycle which address the vertical axis writes to. Beeps the slot
+; number. Nod up and down after each press; when the view finally moves
+; vertically, that slot is the real pitch and it goes in as the default.
+^!p::
+    gPitchSlot := Mod(gPitchSlot, PITCH_CANDIDATES.MaxIndex()) + 1
+    ADDR_CAM_PITCH := PITCH_CANDIDATES[gPitchSlot]
+    Loop, % gPitchSlot
+    {
+        SoundBeep, 1100, 80
+        Sleep, 60
+    }
+    ToolTip, % "pitch slot " . gPitchSlot . " -> 0x" . Format("{:X}", ADDR_CAM_PITCH)
+    SetTimer, ClearTip, -1500
+return
 
 ; Ctrl+Alt+H - swap modes (release everything first so nothing sticks)
 ^!h::
