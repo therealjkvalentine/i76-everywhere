@@ -46,7 +46,15 @@ global PITCH_ON    := 0.12
 global PITCH_OFF   := 0.08
 ; Analog feel. Gain 2.5 because a comfortable head turn only reaches ~0.43 rad -
 ; at the old 1.6 the view ran out of travel well before you ran out of neck.
-global ANALOG_GAIN   := 6.0  ; head radians -> camera radians (field-tuned)
+; Separate gains: side-to-side wants far more travel than up/down, and a big
+; pitch gain is also what makes a sideways glance drift vertically.
+global ANALOG_GAIN   := 9.0  ; yaw:   head radians -> camera radians
+global ANALOG_GAIN_P := 3.5  ; pitch: deliberately lower
+; Deadzone, applied BEFORE the gain and subtracted (not zeroed) so there is no
+; step as you leave it. Kills rest jitter and stops a sideways look from
+; dragging the view up/down. Pitch gets a wider one for that reason.
+global ANALOG_DZ     := 0.05
+global ANALOG_DZ_P   := 0.09
 ; The clamp was the real reason side-to-side kept feeling short: at gain 4.0 a
 ; 0.43 rad head turn asks for 1.72 rad, and a 1.2 clamp threw away a third of it.
 ; Raised so the gain is what limits travel, not this.
@@ -92,6 +100,7 @@ global gMode := "DIGITAL"
 global gHeld := {}
 global gView := 0
 global gSmY := 0, gSmP := 0
+global gFreeze := 0
 global hMap := 0, pView := 0, hProc := 0, gPid := 0
 
 ; ---- freetrack shared memory ------------------------------------------------
@@ -221,13 +230,28 @@ Tick:
     gView := ReadInt(ADDR_VIEW_MODE)
     ; low-pass, then write twice per tick: the engine is writing these same
     ; floats every frame and the last writer before the render wins.
-    gSmY := gSmY * SMOOTH + Clamp(yaw   * ANALOG_GAIN) * (1 - SMOOTH)
-    gSmP := gSmP * SMOOTH + Clamp(pitch * ANALOG_GAIN * ANALOG_PITCH_SIGN) * (1 - SMOOTH)
-    WriteFloat(ADDR_CAM_YAW,   gSmY)
-    WriteFloat(ADDR_CAM_PITCH, gSmP)
+    ; FREEZE TEST (Ctrl+Alt+F): hold a fixed angle, ignoring the head entirely.
+    ; If the view still shakes with a constant value going in, the shake is the
+    ; engine/renderer, not our signal - that tells us where to look next.
+    if (gFreeze) {
+        WriteFloat(ADDR_CAM_YAW,   0.6)
+        WriteFloat(ADDR_CAM_PITCH, 0)
+        return
+    }
+    gSmY := gSmY * SMOOTH + Clamp(Dead(yaw,   ANALOG_DZ)   * ANALOG_GAIN)   * (1 - SMOOTH)
+    gSmP := gSmP * SMOOTH + Clamp(Dead(pitch, ANALOG_DZ_P) * ANALOG_GAIN_P * ANALOG_PITCH_SIGN) * (1 - SMOOTH)
     WriteFloat(ADDR_CAM_YAW,   gSmY)
     WriteFloat(ADDR_CAM_PITCH, gSmP)
 return
+
+; subtract the deadzone rather than zeroing inside it - no step on the way out
+Dead(v, dz) {
+    if (v > dz)
+        return v - dz
+    if (v < -dz)
+        return v + dz
+    return 0
+}
 
 Clamp(v) {
     global ANALOG_MAX
@@ -237,6 +261,14 @@ Clamp(v) {
         return -ANALOG_MAX
     return v
 }
+
+; Ctrl+Alt+F - freeze the output at a fixed angle (diagnostic, see the Tick code)
+^!f::
+    gFreeze := !gFreeze
+    SoundBeep, % (gFreeze ? 1400 : 500), 150
+    ToolTip, % gFreeze ? "FROZEN at yaw 0.6 - if the view still shakes, it is NOT our signal" : "freeze off"
+    SetTimer, ClearTip, -2000
+return
 
 ; Ctrl+Alt+P - cycle which address the vertical axis writes to. Beeps the slot
 ; number. Nod up and down after each press; when the view finally moves
