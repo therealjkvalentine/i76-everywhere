@@ -61,6 +61,32 @@ gRSGHeld := {}
 SetTimer, RStickGlance, 15
 OnExit, RSGExit
 
+; ---- WHEEL layer (2026-08-01, Thrustmaster T300RS). A DirectInput wheel is
+; INVISIBLE to XInput, so XIPoll below never sees it - but it IS a winmm
+; joystick, which is how both the engine and AHK reach it. Hence this second
+; polled layer.
+;
+; Detected by capability, not by name: a wheel has NO U axis (JoyInfo "ZRPD")
+; where an Xbox pad does (right stick), and reports 11+ buttons. Both must hold,
+; so a pad never falls in here and the Mac/Deck path is untouched.
+;
+; input.map keeps ONLY the analog sinks + the POV hat for a wheel; every button
+; is emitted here as the engine's stock keys. That avoids the double-fire you
+; get when a button is bound natively AND remapped.
+;   @wheel 1  Left paddle  : hardpoint 2
+;   @wheel 2  Right paddle : hardpoint 1 (LButton - the engine's hp1 binding)
+;   @wheel 3  cycle weapon (Tab)        4  handbrake (Space)
+;   @wheel 5  nitrous / special1 (6)    6  fire selected weapon (Enter)
+;   @wheel 7  front target (Q)          8  target nearest (T)
+;   @wheel 9  next target (Y)          10  map (M)
+;   @wheel 11 L3 headlights (H)        12  R3 ignition (I)      13 PS horn (G)
+; HOLD keys stay down while held (firing); TAP keys fire once per press, so a
+; held button can't re-toggle the map or the lights.
+gWheelHold := {1: "2", 2: "LButton", 5: "6", 6: "Enter"}
+gWheelTap  := {3: "Tab", 4: "Space", 7: "q", 8: "t", 9: "y", 10: "m", 11: "h", 12: "i", 13: "g"}
+gWheelPrev := {}
+SetTimer, WheelPoll, 15
+
 ; ---- XInput layer (2026-07-18): things winmm can NOT deliver.
 ; winmm merges both triggers into ONE shared axis (they cancel when pressed
 ; together), so trigger-as-two-buttons is impossible at the joystick layer.
@@ -148,6 +174,16 @@ XButton2::3
 ; direction is backwards in the field, flip the +1/-1 in the RStickGlance
 ; calls. Hysteresis: press past 25-from-center, release inside 15-from-center.
 RStickGlance:
+; A device with NO U axis (any wheel; many sticks) returns 0.0 here, NOT "" -
+; and 0.0 sails past the old `u = ""` guard straight into the hysteresis below,
+; where (0-50)*-1 = +50 > 12 = LEFT ARROW HELD DOWN FOREVER. Field-diagnosed
+; 2026-08-01 on a Thrustmaster T300: the game hung at "PLEASE STAND BY" with a
+; jammed glance-left. Gate on the capability string instead of the value:
+; JoyInfo lists the axes that EXIST (wheel = "ZRPD", Xbox pad includes "U").
+if (!InStr(GetKeyState("JoyInfo"), "U")) {
+    RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
+    return
+}
 u := GetKeyState("JoyU")
 v := GetKeyState("JoyR")
 if (u = "" || v = "") {
@@ -175,6 +211,28 @@ RSGSet(key, want) {
         SendEvent, {%key% up}
     }
 }
+
+; ---- wheel button poll (see the @wheel map near the top).
+WheelPoll:
+wInfo := GetKeyState("JoyInfo")
+wBtns := GetKeyState("JoyButtons")
+; No device, or it's a gamepad (has a U axis = right stick), or too few buttons
+; to be a wheel -> make sure nothing is left held, and stay out of the way.
+if (wInfo = "" || InStr(wInfo, "U") || wBtns < 11) {
+    for k, key in gWheelHold
+        RSGSet(key, false)
+    gWheelPrev := {}
+    return
+}
+for i, key in gWheelHold
+    RSGSet(key, GetKeyState("Joy" . i))
+for i, key in gWheelTap {
+    st := GetKeyState("Joy" . i)
+    if (st && !gWheelPrev[i])
+        SendEvent, {%key%}
+    gWheelPrev[i] := st
+}
+return
 
 RSGExit:
 VarSetCapacity(xiVib0, 4, 0)

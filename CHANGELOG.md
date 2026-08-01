@@ -5,6 +5,24 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+- **FORCE FEEDBACK WORKS.** Confirmed in-sim on a Thrustmaster T300RS, with analog
+  steering, analog accelerator/brake and all 13 buttons. This closes the repo's oldest
+  open question: [FORCE-FEEDBACK-AND-VISUALS.md](docs/FORCE-FEEDBACK-AND-VISUALS.md)
+  had FFB as a Mac dead end and a Windows "should work" resting on two community
+  reports. It also resolves that doc's standing contradiction with
+  [GAMEPAD-PC-MAC.md](docs/GAMEPAD-PC-MAC.md)'s "no DirectInput — confirmed in the
+  exe": **input is winmm, FFB output is DirectInput.** Both were true. The registry
+  gate was already satisfied on this GOG install — no admin step needed.
+- **Fixed: a latent AHK bug that hangs the game with ANY wheel or stick, on every
+  platform.** `RStickGlance` in [i76-remap.ahk](i76-remap.ahk) guarded on `u = ""`, but a
+  device with no U axis returns **`0.0`, not empty** — which reached the hysteresis,
+  computed `+50`, and **held the Left arrow key down from the moment AHK started**. The
+  game booted into a jammed glance-left and never reached the menu, looking exactly like
+  a hang at "PLEASE STAND BY". Now gated on the `JoyInfo` capability string. It never
+  fired before because the only device ever tested had a U axis. Compounding it,
+  `PLAY-i76.ps1` force-kills AHK — skipping its `OnExit` handler — so the synthetic
+  key-down never got a matching key-up and stayed **latched system-wide across
+  relaunches**; the launcher now releases every key the layer can hold.
 - **A force-feedback wheel, measured end to end (Thrustmaster T300RS).** The oldest
   open question in the repo — can a real wheel drive I76 — answered on Windows with
   hardware instead of community reports. Two non-obvious blockers, both found by
@@ -20,7 +38,13 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
   [docs/WHEEL-T300.md](docs/WHEEL-T300.md); new instrument
   [`tools/i76-joyprobe.py`](tools/i76-joyprobe.py) (waits for input rather than racing a
   timer, and warms up before baselining — a naive trigger fires on the device settling,
-  not the user). Configured and measured; **not yet driven in a mission**.
+  not the user). Two more traps found in play: the `mouse` source sitting alongside
+  `joystick1` on an analog sink **pins the axis** — steering was dead until it was removed,
+  the same trap [DECK-INPUT-SCIENCE.md](docs/DECK-INPUT-SCIENCE.md) documented on the Deck;
+  and the in-game Control Configuration menu **rewrites `input.map` destructively** (strips
+  comments, deletes the keyboard driving bindings, moves `hardpoint2_fire` to the mouse).
+  Native `joystick1 Button5`–`Button13` all work — they were briefly and wrongly blamed for
+  the hang that was really the stuck arrow key above.
 - **Frame generation without Steam.** Lossless Scaling turns out to have no Steam
   dependency at all — no `steam_api64.dll`, no Steamworks imports, and when launched
   directly it loads zero Steam client modules and keeps running with Steam fully shut

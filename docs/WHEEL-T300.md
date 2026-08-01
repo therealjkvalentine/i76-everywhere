@@ -1,149 +1,160 @@
 # A force-feedback wheel on Interstate '76 — Thrustmaster T300RS (Windows)
 
-> **STATUS 2026-08-01: CONFIGURED AND MEASURED, NOT YET DRIVEN IN-SIM.** Every axis
-> and button number below was measured through **winmm `joyGetPosEx`** — the API the
-> 1997 engine itself reads — not guessed from a diagram or a control panel. What has
-> *not* happened yet is a mission: throttle polarity and whether force feedback
-> actually reaches the wheel are unconfirmed until someone drives it.
+> **STATUS 2026-08-01: WORKING AND PLAYED.** Analog steering, analog accelerator and
+> brake, all 13 buttons, and **real force feedback** — confirmed in-sim on a Thrustmaster
+> T300RS. Every value below was measured through **winmm `joyGetPosEx`**, the API the 1997
+> engine itself reads.
 
-This is the first wheel this project has characterised. It's also the answer to the
-oldest open question in the repo: [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md)
-concluded FFB was a dead end on Mac and "should work" on Windows on community reports
-alone. This is the Windows side, on real hardware.
+**This closes the repo's oldest open question.**
+[FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) concluded FFB was a dead end
+on Mac and "should work" on Windows on the strength of two community reports. It works —
+first-hand, on hardware. It also resolves the contradiction that doc flagged against
+[GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md)'s "no DirectInput — confirmed in the exe":
+**input is winmm, FFB output is DirectInput.** Both were true.
 
-## The two discoveries that make it work
+## The five things that had to be right
 
-### 1. A T-series wheel lies to you until its driver is installed
+Each was a hard blocker. None was guessable; all five were found by measuring.
 
-Plugged into Windows 11 with only the built-in HID driver, the T300 enumerates as:
+### 1. Install the driver — the wheel lies about itself until you do
+
+On the built-in Windows HID driver the T300 enumerates as:
 
 ```
 VID_044F&PID_B65D    "Thrustmaster FFB Wheel"    (Standard system devices, 2006)
 ```
 
-That generic string is a **pre-initialisation mode**. In it you get steering, 13
-buttons and the POV hat — and *nothing else*. Measured over 2929 samples, the pedal
-axes were frozen at **exactly one value (32767) each**. That's the tell: a live analog
-axis jitters by a few units even untouched; one single value for 60 seconds is a dead
-channel, not a light foot.
+That generic string is a **pre-initialisation mode**: steering and buttons work, pedals are
+dead, no FFB. Measured over 2929 samples the pedal axes held **exactly one value (32767)
+each** — a live analog axis jitters; one value for 60 seconds is a dead channel, not a light
+foot. Thrustmaster's package (`2026_TTRS_1.exe`, Guillemot-signed) re-enumerates it as
+`PID_B66E "T300RS Racing Wheel"`.
 
-Installing Thrustmaster's driver (`2026_TTRS_1.exe`, signed by Guillemot R&D) makes
-the wheel re-enumerate as its real self:
+**Don't debug pedals in software before checking this.** The generic descriptor reads exactly
+like an old unsupported wheel — it was misread that way here first, costing a detour through
+legacy drivers that don't exist for Windows 11.
 
-```
-VID_044F&PID_B66E    "Thrustmaster T300RS Racing Wheel (USB)"   driver 2.11.57.0
-```
+### 2. Switch the pedals to COMBINED — SEPARATE cannot work, ever
 
-**Do not chase pedal problems in software before checking this.** The generic-descriptor
-signature is easy to misread as an old, unsupported wheel — it was misread here first.
-
-### 2. SEPARATE pedals cannot drive I76. You must switch to COMBINED
-
-This is the crux, and it is not obvious.
-
-The T300 defaults to **Separate (3-axis)** pedals. Measured in that mode:
+The T300 defaults to **Separate (3-axis)**. Measured:
 
 | Axis | Pedal | Rest | Pressed |
 |---|---|---|---|
 | R | accelerator | 65535 | → 0 |
 | Y | brake | 65535 | → 0 |
-| Z | clutch | 65535 | (absent/unused) |
 
-Each pedal rests at an **extreme**. But I76's `throttle` is a **single bidirectional
-sink** that expects rest = **centre** (one direction accelerates, the other brakes) —
-the 1997 analog-stick convention. Bind a separate-mode pedal axis to it and the engine
-reads full deflection at rest: **runaway throttle, or permanent reverse**, before you
-touch anything.
+Both rest at an **extreme**. I76's `throttle` is a **single bidirectional sink** expecting
+rest = **centre**. Bind either and the engine reads full deflection at rest — runaway
+throttle or permanent reverse before you touch anything.
 
-Switch the wheel to **Combined (2-axis)** — in the T300RS control panel's *Test Input*
-tab, or Thrustmapper's *Axes* tab, untick "Separate". Measured after the switch
-(1960 samples):
+**Combined (2-axis)** (control panel *Test Input*, or Thrustmapper *Axes* → untick Separate):
 
 | Axis | Rest | Travel | Direction |
 |---|---|---|---|
 | **Y** | **32767 (dead centre)** | −32767 / +32768, symmetric | accelerator → **0**, brake → **65535** |
 
-One centred bidirectional axis. Exactly what the engine wants, and the stock
-`throttle { - joystick1 Down/Up }` binding is then correct as written.
+The stock `throttle { - joystick1 Down/Up }` binding is then correct as written — polarity
+confirmed in-sim, no flip needed. Survives the V34 firmware flash.
 
-*Combined mode also means accelerating and braking together cancel out, where separate
-mode lets them stack. For a 1997 car-combat game that's a non-issue.*
+### 3. Remove the `mouse` source from the analog sinks, or steering is dead
 
-## The measured layout
+Pedals worked; **steering did nothing**. Cause was already documented in
+[DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md) §1 and hit the Deck the same way:
 
-Device sits at **winmm index 0 = `joystick1`**, and was the only winmm joystick present
-(no contention with an Xbox pad).
+> *input.map sinks can list several analog sources (`joystick1` + `mouse`). The game's
+> arbitration between them is undocumented — with the OS cursor parked, the mouse source
+> can pin an axis.*
+
+Fix: list **`joystick1` only** on `steer` and `throttle`.
+
+```
+throttle { - joystick1  Down/Up   }
+steer    { - joystick1  Left/Right }
+```
+
+### 4. Fix the AHK layer's stuck arrow key — it hangs the game
+
+**A latent bug in [i76-remap.ahk](../i76-remap.ahk) that predates the wheel and affects every
+platform.** `RStickGlance` guarded with `if (u = "")`, but a device with **no U axis returns
+`0.0`, not empty**. The wheel reports `JoyInfo = "ZRPD"` — no U. So 0 reached the hysteresis,
+computed `(0-50)*-1 = +50 > 12`, and **held the Left arrow down from the moment AHK started**.
+
+The game booted into a jammed glance-left and never reached the menu — it looked exactly like
+a hang at "PLEASE STAND BY". Now gated on the capability string:
+
+```ahk
+if (!InStr(GetKeyState("JoyInfo"), "U")) {   ; no right-stick axis: not a pad
+```
+
+This would hit **any wheel or flight stick on Mac, Deck or Windows**. It never fired before
+because the only device ever tested was an Xbox pad, which has a U axis.
+
+Worse, it *persisted across relaunches*: `PLAY-i76.ps1` force-kills AHK, which skips its
+`OnExit` handler, so the synthetic `{Left down}` never got a matching key-up and stayed
+latched system-wide. The launcher now sends key-ups for everything the layer can hold.
+
+### 5. Frame generation blanks the screen — use WGC, not DXGI
+
+With Lossless Scaling running the engine rendered nothing. Its profile had drifted to
+`CaptureApi = DXGI`; [WINDOWS-PLAYBOOK.md](WINDOWS-PLAYBOOK.md) §2 specifies **WGC** for this
+windowed game. Launch with `-LosslessScaling ""` to rule it out. Two `dwm.exe` crashes
+(`dwmcore.dll`) were logged in the same window, so the DXGI capture path may be destabilising
+the compositor rather than merely failing.
+
+## The layout
+
+Device sits at **winmm index 0 = `joystick1`**, the only winmm joystick present.
 
 ```
 steer    { - joystick1  Left/Right }   # X, rests centred ~33100, full lock 0..65535
 throttle { - joystick1  Down/Up    }   # Y, COMBINED pedals, rests 32767
 ```
 
-Buttons, measured by press order — **not** read off the control-panel diagram, because
-the diagram's callout lines don't reliably distinguish 11 from 12, and those are the
-two you most need to tell apart:
+**Buttons bind natively, and `Button5`–`Button13` all work.** Earlier in the day these were
+wrongly blamed for the hang (see §4 for the real cause); the engine's parser accepts them
+fine. Numbers measured by press order, not read off the control-panel diagram — its callout
+lines don't reliably separate 11 from 12, and those are exactly the L3/R3 pair.
 
 | # | Physical | Action |
 |---|---|---|
-| 1 | **Left paddle** | `hardpoint2_fire` |
-| 2 | **Right paddle** | `hardpoint1_fire` |
-| 3 | cluster | `weapon_cycle` |
-| 4 | cluster | `e_brake` |
-| 5 | cluster | `special1` (nitrous) |
-| 6 | cluster | `weapon_fire` |
-| 7 / 8 / 9 | cluster / lower | `frontal_target` / `TARGET_NEAREST_ENEMY` / `NEXT_TARGET` |
-| 10 | lower | `SHOW_MAP` |
-| **11** | **L3** | `toggle_lights` |
-| **12** | **R3** | `start_engine` |
-| **13** | **PS** | `HONK_HORN` |
+| 1 | Left paddle | `hardpoint2_fire` |
+| **2** | **Right paddle** | **`weapon_fire`** — fires the *selected* weapon, incl. the cockpit handgun out the side window |
+| 3 / 4 / 5 | cluster | `weapon_cycle` / `e_brake` / `special1` (nitrous) |
+| 6 | cluster | `hardpoint1_fire` |
+| 7 / 8 / 9 | cluster | `frontal_target` / `TARGET_NEAREST_ENEMY` / `NEXT_TARGET` |
+| **10** | rim | **deliberately unbound** — see below |
+| 11 / 12 / 13 | L3 / R3 / PS | `toggle_lights` / `start_engine` / `HONK_HORN` |
 | Hat ×4 | POV | `pilot_glance_*` |
 
-Each is its own block — an **alternative** to the keyboard binding, never a chord
-(see [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md)).
+**Nothing modal on a rim button.** `SHOW_MAP` lived on 10 and got hit by accident mid-corner —
+and the map opens but won't close from the same button, stranding you mid-fight. Map stays on
+the keyboard (`M`).
 
-## Force feedback
+## Traps
 
-The registry gate ([enable-force-feedback.bat](../enable-force-feedback.bat)) was
-**already satisfied** on this GOG install — `HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76`
-exists with `EXE = i76.exe`, exactly as that script's own 2026-07-10 note predicted for
-Galaxy installs. No Administrator step was required.
+- **NEVER open the in-game Control Configuration menu.** It rewrote `input.map` here: stripped
+  every comment, deleted the keyboard driving bindings (`W`/`S`/`A`/`D`) and the `Grey*Arrow`
+  glance set, and moved `hardpoint2_fire` from `keyboard Two` to `mouse RightBtn`. It "added"
+  joystick axes that were already there. Back up first; edit the file directly.
+- **Rotation: drop 900° to ~240°.** The T300 default is 2.5 turns lock-to-lock — right for a
+  sim, wrong for a game whose steering was designed around the `A` and `D` keys.
+- **Connect the wheel before launching.** The engine enumerates joysticks once, at startup.
+- One `i76.exe` crash was logged in **`winmmbase.dll`** (0xc0000005). KB5101650 — the known
+  winmm-breaking update — was *not* installed, so this is unexplained; noted because I76's
+  entire input path is winmm and a wheel polls it hard.
 
-The wheel side is confirmed working: the T300RS control panel's *Test Forces* tab drives
-12 named effects (Engine, Blown Tire, Explosion, Bumpy Road, Car Crash…), which means a
-live DirectInput FFB stack. Set **Auto-Center → "by the game"**.
+## Open
 
-**Whether I76 actually emits effects to it is still unverified.** Note the standing
-tension in [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md): the exe is winmm-only for *input*
-("no DirectInput — confirmed in the exe"), while the FFB story requires DirectInput
-*output*. Both can be true if the Nitro Pack FFB module only initialises behind that
-registry key — but that is a hypothesis, not a measurement.
-
-## Settings worth changing
-
-- **Rotation: drop 900° to ~240°.** The T300 defaults to 900° (2.5 turns lock-to-lock),
-  which is right for a sim and wrong for a 1997 arcade car-combat game whose steering was
-  designed around a keyboard. You will not survive a firefight winding 900°.
-- **Firmware.** Shipped 28.00 here; the driver package carries `T300RS_LM4F_v34_00.tmf`.
-  Updating to V34 was verified **not** to disturb the combined-pedal setting or the axis
-  layout (re-measured after the flash: Y still rests 32767).
+- **AHK cannot see this wheel's buttons.** `GetKeyState("JoyInfo"/"JoyButtons"/"JoyX")` all
+  read correctly, but `GetKeyState("Joy1".."Joy13")` never registered a single press, while a
+  Python winmm probe on the same device read them fine. Unexplained. Native bindings made it
+  moot, so the wheel layer in `i76-remap.ahk` is present but **disabled**.
+- Whether FFB effects are distinguishable per event, and how they feel at a 20 FPS base.
 
 ## The instrument
 
-[`tools/i76-joyprobe.py`](../tools/i76-joyprobe.py) — reads the wheel through winmm, the
-same API the engine uses. `--capture` waits for input rather than racing a timer, and
-warms up before taking its baseline (a naive trigger fires on the *device settling*, not
-on the user — that mistake cost two capture runs here).
-
-Its `centre-resting test` output answers the one question that decides whether any given
-axis can drive `throttle` at all.
-
-## Open items
-
-- **Throttle polarity.** Stock `-` should be correct (accelerator drives Y toward 0,
-  matching a stick pushed forward = accelerate), but if accelerate/brake come out
-  reversed in-sim, flip `-` ↔ `+`.
-- **Does FFB actually fire in-mission**, and does it feel like anything at 20 FPS.
-- **Button ergonomics** for 3–10 were assigned by position, not by play. Expect to swap.
-- The AHK layer ([i76-remap.ahk](../i76-remap.ahk)) is **irrelevant to the wheel** — it
-  reads XInput, and the T300 is DirectInput. No shift layer, no synthetic rumble. If real
-  FFB works you get something better instead.
+[`tools/i76-joyprobe.py`](../tools/i76-joyprobe.py) reads the wheel through winmm — same API as
+the engine. `--capture` waits for input instead of racing a timer, and warms up before taking
+its baseline: a naive trigger fires on the *device settling*, not on the user, which cost two
+capture runs before it was built this way. Its `centre-resting test` directly answers whether a
+given axis can drive `throttle`.
