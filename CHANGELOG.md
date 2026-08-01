@@ -5,6 +5,29 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+- **Frame generation without Steam.** Lossless Scaling turns out to have no Steam
+  dependency at all — no `steam_api64.dll`, no Steamworks imports, and when launched
+  directly it loads zero Steam client modules and keeps running with Steam fully shut
+  down (verified 2026-08-01). Only the Steam-installed desktop shortcut
+  (`steam://rungameid/...`) was pulling Steam in. Added an `Interstate '76 Gold Edition`
+  profile with `AutoScale=true` + fixed 2× so frame-gen engages by itself — no Ctrl+Alt+S —
+  and [`PLAY-i76.ps1`](PLAY-i76.ps1) now starts/stops it with the game (only if it wasn't
+  already running). Physics stay at the 20 FPS base; these are interpolated *display*
+  frames only. Details in [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) sec 2.
+- **Steam Deck: baseline control tier — rumble parity with Mac/Windows (untested on
+  device).** The Deck ran Steam Input keyboard emulation and so never got the pad layer
+  the other two platforms grew: the rumble mixer, LB shift layer, independent triggers,
+  look-back rear gun. New [`deck/setup-deck-baseline.sh`](deck/setup-deck-baseline.sh)
+  stages the *same* `i76-remap.ahk` plus AutoHotkey, and
+  [`deck/i76-deck-launch.sh`](deck/i76-deck-launch.sh) — a `%command%` wrapper — injects it
+  into the live Proton prefix (read from `$STEAM_COMPAT_DATA_PATH`, since Steam runs
+  non-Steam shortcuts out of `compatdata/<appid>`, not the install-time prefix).
+  [`deck/deck-push.sh`](deck/deck-push.sh) deploys it over ssh. The correct Steam setting
+  is the **"Gamepad" template**, *not* "disable Steam Input" — the latter drops a Deck into
+  lizard-mode keyboard/mouse. Recipe, decode sheet and rollback:
+  [docs/DECK-BASELINE.md](docs/DECK-BASELINE.md). **Deployable but unverified** — the Deck
+  was offline when this landed; button numbering and the XInput→haptics rumble path are
+  ASSUMED until the decode sheet comes back.
 - **Windows: Nitro Pack fully scripted.** `install.ps1` now auto-detects a GOG Nitro
   Pack install and applies the identical recipe (`setup-windows.ps1 -Exe nitro.exe`):
   dgVoodoo deploy + conf, input.map controls parity, `PLAY-Nitro.bat` + shortcut.
