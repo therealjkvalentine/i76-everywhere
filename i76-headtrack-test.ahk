@@ -26,7 +26,7 @@ global YAW_OFF := 0.12
 global PITCH_ON  := 0.12
 global PITCH_OFF := 0.08
 global INVERT       := 1    ; keep in step with i76-headtrack.ahk
-global INVERT_PITCH := 0
+global INVERT_PITCH := 1
 global GAME_EXE := "i76.exe"
 global hMap := 0, pView := 0, gHeld := {}, gSend := 0
 global gMinY := 0, gMaxY := 0, gMinP := 0, gMaxP := 0
