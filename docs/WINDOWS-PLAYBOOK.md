@@ -86,6 +86,20 @@ motion is frame interpolation on top:
   `CaptureApi = WGC` (right for a windowed game), `DrawFps = true` (proves the 20/40 split
   on-screen). Set dgVoodoo `ForceVerticalSync = false` first. Activate: focus the game,
   Ctrl+Alt+S (toggle off the same way).
+- **Steam is NOT required to run it — VERIFIED 2026-08-01.** The install carries no
+  `steam_api64.dll` and no Steamworks imports (the only "Steam" strings in the managed assembly
+  are UI: a community link and a refund note). Launched directly, `LosslessScaling.exe` loads
+  **zero** `steam_api*`/`steamclient*`/`gameoverlayrenderer*` modules and nothing from outside its
+  own folder — and it keeps running after Steam is fully shut down. The desktop shortcut Steam
+  installs is a `steam://rungameid/993090` link, which is the only reason Steam ever starts; a
+  plain shortcut straight to the exe skips it entirely.
+- **No hotkey needed.** `Settings.xml` matches profiles by `<Title>` against the window title —
+  I76's is `Interstate '76 Gold Edition`. A profile with that title plus `<AutoScale>true</AutoScale>`
+  engages frame-gen on its own when the game window appears. Added 2026-08-01 alongside the stock
+  `Default` profile (leave the app closed while editing — it rewrites the file on exit).
+- **Wired into the launcher.** [`PLAY-i76.ps1`](../PLAY-i76.ps1) starts Lossless Scaling with the
+  game and stops it on exit — but only if it wasn't already running, so it won't kill a session you
+  had open for something else. Pass `-LosslessScaling ""` to skip it.
 - **Skip:** AMD AFMF2 (needs 60fps+ base to behave, disengages on fast motion — unverified on
   wrapped-1997 games), NVIDIA Smooth Motion (needs a per-game NVIDIA App profile i76.exe will
   never have), SVP (video players only).
