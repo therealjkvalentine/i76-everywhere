@@ -53,8 +53,18 @@ global ANALOG_GAIN_P := 3.5  ; pitch: deliberately lower
 ; Deadzone, applied BEFORE the gain and subtracted (not zeroed) so there is no
 ; step as you leave it. Kills rest jitter and stops a sideways look from
 ; dragging the view up/down. Pitch gets a wider one for that reason.
-global ANALOG_DZ     := 0.05
-global ANALOG_DZ_P   := 0.012  ; up/down wants a SMALL deadzone (field request x2)
+global ANALOG_DZ     := 0.03
+global ANALOG_DZ_P   := 0.012  ; up/down wants a SMALL deadzone (field request x3)
+; EXPO is the better answer than a fat deadzone for a sketchy centre: it squashes
+; small movements (where the tracker is noisiest, relative to the signal) while
+; keeping FULL travel at a big turn. 1.0 = linear, 2.0 = very soft centre.
+; Pitch gets more of it because webcam pitch is the noisier estimate - nodding is
+; harder to track than turning.
+global EXPO          := 1.7
+global EXPO_P        := 2.2
+global EXPO_REF      := 0.45   ; rad: a full comfortable head turn, keeps expo unity-gain at the top
+; Pitch also gets its own, heavier filter for the same reason.
+global SMOOTH_P      := 0.8
 ; The clamp was the real reason side-to-side kept feeling short: at gain 4.0 a
 ; 0.43 rad head turn asks for 1.72 rad, and a 1.2 clamp threw away a third of it.
 ; Raised so the gain is what limits travel, not this.
@@ -350,13 +360,27 @@ Tick:
         WriteFloat(ADDR_CAM_PITCH, 0)
         return
     }
-    tY := Clamp(Dead(yaw,   ANALOG_DZ)   * ANALOG_GAIN)
-    tP := Clamp(Dead(pitch, ANALOG_DZ_P) * ANALOG_GAIN_P * ANALOG_PITCH_SIGN)
-    gSmY := (Abs(tY - gSmY) < SNAP) ? tY : gSmY * SMOOTH + tY * (1 - SMOOTH)
-    gSmP := (Abs(tP - gSmP) < SNAP) ? tP : gSmP * SMOOTH + tP * (1 - SMOOTH)
+    tY := Clamp(Expo(Dead(yaw,   ANALOG_DZ),   EXPO)   * ANALOG_GAIN)
+    tP := Clamp(Expo(Dead(pitch, ANALOG_DZ_P), EXPO_P) * ANALOG_GAIN_P * ANALOG_PITCH_SIGN)
+    gSmY := (Abs(tY - gSmY) < SNAP) ? tY : gSmY * SMOOTH   + tY * (1 - SMOOTH)
+    gSmP := (Abs(tP - gSmP) < SNAP) ? tP : gSmP * SMOOTH_P + tP * (1 - SMOOTH_P)
     WriteFloat(ADDR_CAM_YAW,   gSmY)
     WriteFloat(ADDR_CAM_PITCH, gSmP)
 return
+
+; Power curve about centre, normalised so a full turn still reaches full travel:
+; only the small stuff gets attenuated, the ends are untouched.
+Expo(v, k) {
+    global EXPO_REF
+    n := v / EXPO_REF
+    s := (n < 0) ? -1 : 1
+    a := Abs(n)
+    if (a > 1)
+        a := 1 + (a - 1)        ; past the reference, stay linear - don't blow up
+    else
+        a := a ** k
+    return s * a * EXPO_REF
+}
 
 ; subtract the deadzone rather than zeroing inside it - no step on the way out
 Dead(v, dz) {
