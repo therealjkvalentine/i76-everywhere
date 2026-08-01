@@ -100,6 +100,27 @@ global GAME_EXE    := "i76.exe"
 ; up/down was moving the view left/right). So they are bound the other way here.
 global ADDR_CAM_YAW   := 0x4c2970   ; map calls this cam_pitch - FIELD-CONFIRMED horizontal
 global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
+
+; ---- THE INPUT PATH (what analog actually drives) ----------------------------
+; The engine's own glance input. All three camera handlers read these with
+; `fild` (0x406B14 / 0x40728C / 0x4076AA for yaw), then build the ENTIRE camera
+; state from them - which is why driving these looks right and poking the output
+; floats did not: the transform stays self-consistent, so no missing terrain.
+;
+; They are a RATE, not an angle. The engine integrates while a value is held and
+; springs back to centre when it is zero. Measured on the Gold exe:
+;   yaw   saturates at +/-133.3, pitch at +/-104.7
+;   release decay: 54 -> 15 -> 0.6 in 300ms (fast, proportional)
+; So holding a fixed angle needs a closed loop: push a delta proportional to the
+; error and the camera settles where the push balances the spring. KP is that
+; gain; the residual steady-state offset is why it is deliberately large.
+global ADDR_IN_YAW    := 0x536770
+global ADDR_IN_PITCH  := 0x536778
+global YAW_RANGE      := 115.0   ; engine units to use at full head turn (max 133)
+global PITCH_RANGE    := 80.0    ; (max 104)
+global KP             := 90.0    ; error -> delta
+global KP_P           := 90.0
+global DELTA_MAX      := 12000   ; clamp the injected delta
 ; The vertical axis is NOT 0x4c2964 (the map's "cam_yaw") - writing it moves
 ; nothing. The apply fn stores to 0x4c2964/6c/70/74, and 70 is horizontal, so the
 ; vertical is one of the others. Ctrl+Alt+P cycles these live (beeps the slot
@@ -229,6 +250,18 @@ WriteFloat(addr, val) {
     NumPut(val, b, 0, "Float")
     return DllCall("WriteProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &b, "UPtr", 4, "Ptr", 0)
 }
+ReadFloat(addr) {
+    global hProc
+    VarSetCapacity(b, 4, 0)
+    return DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &b, "UPtr", 4, "Ptr", 0)
+         ? NumGet(b, 0, "Float") : 0
+}
+WriteInt(addr, val) {
+    global hProc
+    VarSetCapacity(b, 4, 0)
+    NumPut(val, b, 0, "Int")
+    return DllCall("WriteProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &b, "UPtr", 4, "Ptr", 0)
+}
 
 ; Code pages are read+execute, so flip to RWX for the write and put the old
 ; protection straight back.
@@ -347,34 +380,44 @@ Tick:
         return
     }
 
-    ; ---- ANALOG: poke the camera yaw float straight into the engine ----------
+    ; ---- ANALOG: drive the engine's OWN glance input, closed loop -------------
+    ; Do NOT write the camera floats. Those are outputs the engine rebuilds each
+    ; frame along with the rest of the view transform; poking them fought the
+    ; auto-centring spring (shake) and left the transform inconsistent (terrain
+    ; drawn as sky). Feeding the input instead means the engine derives every
+    ; camera value itself, so it always agrees with itself.
     ReleaseAll()
     if (!OpenGame())
         return
-    if (PATCH_ENABLED)
-        SetPatch(true)
-    ; NO view-mode gate. The first cut only wrote when cam_view_mode was 2 or 5
-    ; (the FSM switch values the disassembly showed), and that silently blocked
-    ; analog entirely: read live in cockpit view on the Gold exe it is 0. Read it
-    ; for the on-screen readout, but never let it stop the write.
     gView := ReadInt(ADDR_VIEW_MODE)
-    ; low-pass, then write twice per tick: the engine is writing these same
-    ; floats every frame and the last writer before the render wins.
     ; FREEZE TEST (Ctrl+Alt+F): hold a fixed angle, ignoring the head entirely.
-    ; If the view still shakes with a constant value going in, the shake is the
-    ; engine/renderer, not our signal - that tells us where to look next.
     if (gFreeze) {
-        WriteFloat(ADDR_CAM_YAW,   0.6)
-        WriteFloat(ADDR_CAM_PITCH, 0)
+        WriteInt(ADDR_IN_YAW, Round(ClampD(KP * (60.0 - ReadFloat(ADDR_CAM_YAW)))))
         return
     }
-    tY := Clamp(Expo(Dead(yaw,   ANALOG_DZ),   EXPO)   * ANALOG_GAIN)
-    tP := Clamp(Expo(Dead(pitch, ANALOG_DZ_P), EXPO_P) * ANALOG_GAIN_P * ANALOG_PITCH_SIGN)
-    gSmY := (Abs(tY - gSmY) < SNAP) ? tY : gSmY * SMOOTH   + tY * (1 - SMOOTH)
-    gSmP := (Abs(tP - gSmP) < SNAP) ? tP : gSmP * SMOOTH_P + tP * (1 - SMOOTH_P)
-    WriteFloat(ADDR_CAM_YAW,   gSmY)
-    WriteFloat(ADDR_CAM_PITCH, gSmP)
-return
+    ; head angle -> a fraction of full deflection (-1..1), expo'd about centre
+    nY := Expo(Dead(yaw,   ANALOG_DZ),   EXPO)   / EXPO_REF
+    nP := Expo(Dead(pitch, ANALOG_DZ_P), EXPO_P) / EXPO_REF
+    nY := (nY > 1) ? 1 : (nY < -1) ? -1 : nY
+    nP := (nP > 1) ? 1 : (nP < -1) ? -1 : nP
+    gSmY := gSmY * SMOOTH   + nY * (1 - SMOOTH)
+    gSmP := gSmP * SMOOTH_P + nP * (1 - SMOOTH_P)
+
+    ; closed loop: push the engine's own delta toward the angle we want
+    tgtY := gSmY * YAW_RANGE
+    tgtP := gSmP * PITCH_RANGE * ANALOG_PITCH_SIGN
+    dY := KP   * (tgtY - ReadFloat(ADDR_CAM_YAW))
+    dP := KP_P * (tgtP - ReadFloat(ADDR_CAM_PITCH))
+    WriteInt(ADDR_IN_YAW,   Round(ClampD(dY)))
+    WriteInt(ADDR_IN_PITCH, Round(ClampD(dP)))
+    return
+}
+
+ClampD(v) {
+    global DELTA_MAX
+    return (v > DELTA_MAX) ? DELTA_MAX : (v < -DELTA_MAX) ? -DELTA_MAX : v
+}
+
 
 ; Power curve about centre, normalised so a full turn still reaches full travel:
 ; only the small stuff gets attenuated, the ends are untouched.
