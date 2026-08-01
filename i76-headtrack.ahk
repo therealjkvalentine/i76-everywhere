@@ -1,0 +1,189 @@
+; Interstate '76 - head tracking (opentrack -> in-game look), AutoHotkey v1.1.
+;
+; TRANSPORT: opentrack's "freetrack 2.0 Enhanced" output -> the FT_SharedMem
+; shared-memory block. Chosen over opentrack's vjoy output on purpose: this
+; machine enumerates NO winmm device at index 0 (the devices sit at ids 4 and 8,
+; which is why input.map here binds joystick5), so adding another virtual stick
+; risks shifting what the engine binds. Shared memory touches no joystick at all.
+; Verified live 2026-08-01: yaw arrives in RADIANS, ~+/-0.65 (about +/-37 deg).
+;
+; TWO MODES (Ctrl+Alt+H toggles; starts in DIGITAL):
+;
+;  1. DIGITAL - head yaw past a threshold holds the glance arrow key, exactly the
+;     mechanism the right stick already uses in i76-remap.ahk. Works in every
+;     view, needs nothing but the game running.
+;
+;  2. ANALOG - writes the live camera yaw float directly into the game
+;     (cam_yaw @ 0x4c2964, confirmed in docs/GHIDRA-MEMORY-MAP.md "CAMERA").
+;     The engine's cockpit_look_apply (0x406b00) recomputes those floats every
+;     frame from the int inputs at 0x536770/78, so this deliberately re-writes
+;     at ~66 Hz against a 20 FPS sim to win the race. Cockpit view only.
+;
+; SAFETY (the wheel-disaster rules from docs/INPUT-REMAPPER.md):
+;  - every key-down has a matching key-up; a held-state table, release-on-center,
+;    release-all when tracking drops out, on mode switch, and on exit.
+;  - only acts while the game window is active, so head movement can never type
+;    into the desktop.
+;  - NO modal dialogs (they hide behind the game and kill input).
+;
+; Run it alongside i76-remap.ahk (they don't overlap: that one owns the pad,
+; this one owns the head). Docs: docs/GHIDRA-MEMORY-MAP.md, docs/HEAD-TRACKING.md
+
+#NoEnv
+#NoTrayIcon
+#SingleInstance Force
+#Persistent
+#MaxHotkeysPerInterval 200000
+#ErrorStdOut
+
+; ---- tunables ---------------------------------------------------------------
+global YAW_ON      := 0.18   ; rad, ~10deg: past this the glance key goes down
+global YAW_OFF     := 0.12   ; rad, ~7deg:  inside this it comes back up
+global ANALOG_GAIN := 1.6    ; head radians -> camera radians
+global ANALOG_MAX  := 1.2    ; clamp, rad (~69deg) so you can't spin the view
+global INVERT      := 0      ; set 1 if looking left turns the view right
+global GAME_EXE    := "i76.exe"
+
+; cam_yaw / cam_pitch, i76.exe Gold (tools/i76-addresses.json, "confirmed")
+global ADDR_CAM_YAW   := 0x4c2964
+global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
+
+global gMode := "DIGITAL"
+global gHeld := {}
+global gView := 0
+global hMap := 0, pView := 0, hProc := 0, gPid := 0
+
+; ---- freetrack shared memory ------------------------------------------------
+OpenFT() {
+    global hMap, pView
+    if (pView)
+        return true
+    hMap := DllCall("OpenFileMapping", "UInt", 0x0004, "Int", 0, "Str", "FT_SharedMem", "Ptr")
+    if (!hMap)
+        return false
+    pView := DllCall("MapViewOfFile", "Ptr", hMap, "UInt", 0x0004, "UInt", 0, "UInt", 0, "UPtr", 0, "Ptr")
+    return (pView != 0)
+}
+
+; FreeTrackData: DataID@0, CamWidth@4, CamHeight@8, then Yaw@12 Pitch@16 Roll@20 (float, radians)
+FTYaw() {
+    global pView
+    return pView ? NumGet(pView+0, 12, "Float") : 0
+}
+
+; ---- held-key table: every down gets an up ----------------------------------
+KeySet(key, want) {
+    global gHeld
+    if (want && !gHeld[key]) {
+        gHeld[key] := true
+        SendEvent, {%key% down}
+    } else if (!want && gHeld[key]) {
+        gHeld[key] := false
+        SendEvent, {%key% up}
+    }
+}
+ReleaseAll() {
+    KeySet("Left", false), KeySet("Right", false)
+}
+
+; ---- game process (analog mode only) ----------------------------------------
+OpenGame() {
+    global hProc, gPid, GAME_EXE
+    Process, Exist, %GAME_EXE%
+    pid := ErrorLevel
+    if (!pid) {
+        if (hProc)
+            DllCall("CloseHandle", "Ptr", hProc)
+        hProc := 0, gPid := 0
+        return false
+    }
+    if (pid != gPid) {
+        if (hProc)
+            DllCall("CloseHandle", "Ptr", hProc)
+        ; PROCESS_VM_OPERATION|VM_READ|VM_WRITE = 0x38 (same as tools/i76-trainer.ahk)
+        hProc := DllCall("OpenProcess", "UInt", 0x38, "Int", 0, "UInt", pid, "Ptr")
+        gPid := pid
+    }
+    return (hProc != 0)
+}
+ReadInt(addr) {
+    global hProc
+    VarSetCapacity(b, 4, 0)
+    return DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &b, "UPtr", 4, "Ptr", 0)
+         ? NumGet(b, 0, "Int") : 0
+}
+WriteFloat(addr, val) {
+    global hProc
+    VarSetCapacity(b, 4, 0)
+    NumPut(val, b, 0, "Float")
+    return DllCall("WriteProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &b, "UPtr", 4, "Ptr", 0)
+}
+
+; ---- main loop --------------------------------------------------------------
+SetTimer, Tick, 15
+OnExit, Bail
+return
+
+Tick:
+    if (!OpenFT()) {
+        ReleaseAll()
+        return
+    }
+    ; only ever act on the live game window - never type at the desktop
+    if (!WinActive("ahk_exe " . GAME_EXE)) {
+        ReleaseAll()
+        return
+    }
+    yaw := FTYaw()
+    if (INVERT)
+        yaw := -yaw
+
+    if (gMode = "DIGITAL") {
+        ; hysteresis: press past YAW_ON, release inside YAW_OFF
+        if (yaw > YAW_ON)
+            KeySet("Right", true)
+        else if (yaw < YAW_OFF)
+            KeySet("Right", false)
+        if (yaw < -YAW_ON)
+            KeySet("Left", true)
+        else if (yaw > -YAW_OFF)
+            KeySet("Left", false)
+        return
+    }
+
+    ; ---- ANALOG: poke the camera yaw float straight into the engine ----------
+    ReleaseAll()
+    if (!OpenGame())
+        return
+    ; cockpit views only - in chase/track the same floats mean something else
+    gView := ReadInt(ADDR_VIEW_MODE)
+    if (gView != 2 && gView != 5)
+        return
+    v := yaw * ANALOG_GAIN
+    if (v > ANALOG_MAX)
+        v := ANALOG_MAX
+    else if (v < -ANALOG_MAX)
+        v := -ANALOG_MAX
+    WriteFloat(ADDR_CAM_YAW, v)
+return
+
+; Ctrl+Alt+H - swap modes (release everything first so nothing sticks)
+^!h::
+    ReleaseAll()
+    gMode := (gMode = "DIGITAL") ? "ANALOG" : "DIGITAL"
+    ToolTip, % "I76 head tracking: " . gMode
+    SetTimer, ClearTip, -1200
+return
+ClearTip:
+    ToolTip
+return
+
+Bail:
+    ReleaseAll()
+    if (pView)
+        DllCall("UnmapViewOfFile", "Ptr", pView)
+    if (hMap)
+        DllCall("CloseHandle", "Ptr", hMap)
+    if (hProc)
+        DllCall("CloseHandle", "Ptr", hProc)
+ExitApp
