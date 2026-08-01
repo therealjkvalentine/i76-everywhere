@@ -101,6 +101,21 @@ global gHeld := {}
 global gView := 0
 global gSmY := 0, gSmP := 0
 global gFreeze := 0
+
+; ---- THE FIX FOR THE SHAKE ---------------------------------------------------
+; The engine stamps its own value over both camera angles every frame, from the
+; cockpit-look apply fn (0x406b00). Found by disassembly, bytes verified:
+;   0x406c4b  89 15 70 29 4C 00   mov [0x4c2970], edx   <- our YAW
+;   0x406cb9  89 15 68 29 4C 00   mov [0x4c2968], edx   <- our PITCH
+; Writing the same floats from outside is therefore a race we only sometimes
+; win, and the visible shake is the two values alternating - which is exactly
+; why it got worse the further you looked (bigger gap between the two).
+; While ANALOG is on we NOP both instructions (6 x 0x90) so nothing but us
+; writes the camera. Restored on mode switch, on exit, and it is memory-only:
+; relaunching the game undoes it regardless.
+global PATCH_SITES := [0x406c4b, 0x406cb9]
+global gPatched := 0
+global gOrig := {}
 global hMap := 0, pView := 0, hProc := 0, gPid := 0
 
 ; ---- freetrack shared memory ------------------------------------------------
@@ -174,6 +189,54 @@ WriteFloat(addr, val) {
     return DllCall("WriteProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &b, "UPtr", 4, "Ptr", 0)
 }
 
+; Code pages are read+execute, so flip to RWX for the write and put the old
+; protection straight back.
+WriteCode(addr, ByRef buf, len) {
+    global hProc
+    old := 0
+    if (!DllCall("VirtualProtectEx", "Ptr", hProc, "Ptr", addr, "UPtr", len, "UInt", 0x40, "UInt*", old))
+        return false
+    ok := DllCall("WriteProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &buf, "UPtr", len, "Ptr", 0)
+    DllCall("VirtualProtectEx", "Ptr", hProc, "Ptr", addr, "UPtr", len, "UInt", old, "UInt*", old)
+    return ok
+}
+
+; on=true  -> replace both engine writes with NOPs (we become the only writer)
+; on=false -> put the original instructions back
+SetPatch(on) {
+    global PATCH_SITES, gPatched, gOrig, hProc
+    if (!hProc || gPatched = on)
+        return
+    for i, addr in PATCH_SITES {
+        if (on) {
+            ; stash the real bytes the first time we ever touch this site
+            if (!gOrig.HasKey(addr)) {
+                VarSetCapacity(cur, 6, 0)
+                if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", 6, "Ptr", 0))
+                    return
+                s := ""
+                Loop, 6
+                    s .= Format("{:02X}", NumGet(cur, A_Index - 1, "UChar"))
+                ; refuse to patch anything that isn't the expected mov [disp32],edx
+                if (SubStr(s, 1, 4) != "8915")
+                    return
+                gOrig[addr] := s
+            }
+            VarSetCapacity(nop, 6, 0x90)
+            WriteCode(addr, nop, 6)
+        } else {
+            if (!gOrig.HasKey(addr))
+                continue
+            s := gOrig[addr]
+            VarSetCapacity(orig, 6, 0)
+            Loop, 6
+                NumPut("0x" . SubStr(s, A_Index * 2 - 1, 2), orig, A_Index - 1, "UChar")
+            WriteCode(addr, orig, 6)
+        }
+    }
+    gPatched := on
+}
+
 ; ---- main loop --------------------------------------------------------------
 SetTimer, Tick, 8
 OnExit, Bail
@@ -223,6 +286,7 @@ Tick:
     ReleaseAll()
     if (!OpenGame())
         return
+    SetPatch(true)   ; stop the engine overwriting us (see PATCH_SITES)
     ; NO view-mode gate. The first cut only wrote when cam_view_mode was 2 or 5
     ; (the FSM switch values the disassembly showed), and that silently blocked
     ; analog entirely: read live in cockpit view on the Gold exe it is 0. Read it
@@ -289,6 +353,8 @@ return
 ^!h::
     ReleaseAll()
     gMode := (gMode = "DIGITAL") ? "ANALOG" : "DIGITAL"
+    if (gMode = "DIGITAL")
+        SetPatch(false)   ; hand the camera back to the engine
     ToolTip, % "I76 head tracking: " . gMode
     SetTimer, ClearTip, -1200
 return
@@ -298,6 +364,7 @@ return
 
 Bail:
     ReleaseAll()
+    SetPatch(false)   ; NEVER leave the engine's camera writes NOPed
     if (pView)
         DllCall("UnmapViewOfFile", "Ptr", pView)
     if (hMap)
