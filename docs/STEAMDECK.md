@@ -34,6 +34,14 @@ transfers — minus the one layer that caused us the most pain.*
 *Advanced controller techniques used here (mode shifts, touch menus, activators, portability) are
 documented for reuse across ports in [docs/STEAMDECK-INPUT-MODES.md](../../../docs/STEAMDECK-INPUT-MODES.md).*
 
+> **NEW 2026-08-01 — a second control mode.** Everything below describes the Steam Input
+> keyboard-emulation layout (the *convenience* tier). There is now also a **baseline tier** that
+> runs the same AutoHotkey pad layer as the Mac and Windows builds inside the Proton prefix —
+> which is what brings **rumble**, the LB shift layer, independent triggers and the look-back rear
+> gun to the Deck. It trades away the trackpad radial menu and the grip buttons. Deploy with
+> `./deck/deck-push.sh`; recipe, decode sheet and rollback in **[DECK-BASELINE.md](DECK-BASELINE.md)**.
+> Not yet field-tested on Deck hardware.
+
 ## Controller layout (installed as a template — apply once)
 
 Every I76 control is mapped to a Deck input in the conventional driving/vehicular-combat idiom.

@@ -1,0 +1,24 @@
+# Line endings for scripts that must run on Linux/macOS.
+#
+# Git already stores LF correctly. The problem this file solves is the CHECKOUT
+# side: on a Windows clone (core.autocrlf=true) every shell script lands in the
+# working tree as CRLF. Push one of those to the Deck and bash dies with an
+# unreadable "$'\r': command not found". Pinning eol=lf keeps them LF even in a
+# Windows working copy. (deck/deck-push.sh also strips CRs on the far side, but
+# belt and braces.)
+#
+# Deliberately NOT setting eol=crlf on *.bat / *.ps1: they already behave, and
+# declaring it only churns their stored blobs for no gain.
+
+*.sh        text eol=lf
+*.command   text eol=lf
+*.desktop   text eol=lf
+
+# Never apply text conversion to these - a stray CRLF pass corrupts them.
+*.png       binary
+*.exe       binary
+*.dll       binary
+*.pyc       binary
+*.pix       binary
+*.vdf       binary
+*.svg       -text
