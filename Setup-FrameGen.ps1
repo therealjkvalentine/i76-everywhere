@@ -50,6 +50,16 @@ if (-not (Test-Path $cfg)) {
 
 # --- locate the exe across all Steam libraries -------------------------------
 function Find-LSExe {
+    # 1. A COPY BUNDLED BESIDE THIS SCRIPT (the portable zip ships one, and LS has
+    #    no Steam dependency - see the header). Checked first: in a portable copy
+    #    there may be no Steam install at all, and this is the exe PLAY-with-
+    #    FrameGen.bat actually launches, so the profile must match that one.
+    foreach ($rel in 'Lossless Scaling\LosslessScaling.exe',
+                     '..\Lossless Scaling\LosslessScaling.exe') {
+        $p = Join-Path $PSScriptRoot $rel
+        if (Test-Path $p) { return (Resolve-Path $p).Path }
+    }
+    # 2. Otherwise the Steam libraries.
     $roots = @("${env:ProgramFiles(x86)}\Steam")
     $vdf = "${env:ProgramFiles(x86)}\Steam\steamapps\libraryfolders.vdf"
     if (Test-Path $vdf) {
