@@ -14,6 +14,8 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
   and [`PLAY-i76.ps1`](PLAY-i76.ps1) now starts/stops it with the game (only if it wasn't
   already running). Physics stay at the 20 FPS base; these are interpolated *display*
   frames only. Details in [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) sec 2.
+  [`Setup-FrameGen.ps1`](Setup-FrameGen.ps1) scripts the whole thing (profile +
+  `-FixShortcut` + `-Revert`) so a second PC is one command.
 - **Steam Deck: baseline control tier — rumble parity with Mac/Windows (untested on
   device).** The Deck ran Steam Input keyboard emulation and so never got the pad layer
   the other two platforms grew: the rumble mixer, LB shift layer, independent triggers,
