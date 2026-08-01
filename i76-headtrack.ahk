@@ -126,7 +126,18 @@ global gFreeze := 0
 ;   mode A  0x406c4b yaw 6   0x406cb9 pitch 6
 ;   mode B  0x4073a3 yaw 5   0x40741c pitch 6
 ;   mode C  0x4077e1 yaw 6   0x40784f pitch 6
-global PATCH_SITES := [[0x406c4b,6], [0x406cb9,6], [0x4073a3,5], [0x40741c,6], [0x4077e1,6], [0x40784f,6]]
+; ALL FIFTEEN per-frame writers: three camera-mode handlers x five angle floats.
+; Patching only the two we write was not enough - with them pinned, the engine
+; kept decaying the OTHER three each frame and the renderer mixed the two states.
+; Each entry is [address, length, original bytes], generated from the binary, so
+; the patcher can verify a site before touching it and restore it byte-exactly.
+; (The four one-time init writes at 0x405Axx are deliberately NOT here - those
+; run once at camera setup, not per frame.)
+global PATCH_SITES := [[0x406b7c,6,"D91D64294C00"], [0x4072bc,6,"D91D64294C00"], [0x407712,6,"D91D64294C00"]
+    , [0x406cb9,6,"891568294C00"], [0x40741c,6,"891568294C00"], [0x40784f,6,"891568294C00"]
+    , [0x406b3a,6,"D9156C294C00"], [0x4072aa,6,"D91D6C294C00"], [0x4076d0,6,"D9156C294C00"]
+    , [0x406c4b,6,"891570294C00"], [0x4073a3,5,"A370294C00"],   [0x4077e1,6,"891570294C00"]
+    , [0x406b88,6,"D91D74294C00"], [0x4072d5,6,"D91D74294C00"], [0x40771e,6,"D91D74294C00"]]
 global gPatched := 0
 global gOrig := {}
 global hMap := 0, pView := 0, hProc := 0, gPid := 0
@@ -214,46 +225,67 @@ WriteCode(addr, ByRef buf, len) {
     return ok
 }
 
-; on=true  -> replace both engine writes with NOPs (we become the only writer)
+; write a hex string ("891568294C00") back over an instruction
+WriteBytes(addr, hex, len) {
+    VarSetCapacity(b, len, 0)
+    Loop, % len
+        NumPut("0x" . SubStr(hex, A_Index * 2 - 1, 2), b, A_Index - 1, "UChar")
+    return WriteCode(addr, b, len)
+}
+
+; Self-heal: if a previous run was force-killed its OnExit never ran, leaving the
+; game's camera code NOPed and the view frozen. Anything sitting as all-0x90 at a
+; known site gets its real instruction back at startup. (Hit this for real - a
+; Stop-Process left all six patched.)
+RestoreLeftovers() {
+    global PATCH_SITES, hProc
+    if (!hProc)
+        return
+    for i, site in PATCH_SITES {
+        addr := site[1], len := site[2], want := site[3]
+        VarSetCapacity(cur, len, 0)
+        if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
+            continue
+        allNop := true
+        Loop, % len
+            if (NumGet(cur, A_Index - 1, "UChar") != 0x90)
+                allNop := false
+        if (allNop)
+            WriteBytes(addr, want, len)
+    }
+}
+
+; on=true  -> replace ALL the engine's camera writes with NOPs (we become the
+;             only writer, and nothing decays behind our back)
 ; on=false -> put the original instructions back
 SetPatch(on) {
     global PATCH_SITES, gPatched, gOrig, hProc
     if (!hProc || gPatched = on)
         return
     for i, site in PATCH_SITES {
-        addr := site[1], len := site[2]
+        addr := site[1], len := site[2], want := site[3]
         if (on) {
-            ; stash the real bytes the first time we ever touch this site
-            if (!gOrig.HasKey(addr)) {
-                VarSetCapacity(cur, len, 0)
-                if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
-                    continue
-                s := ""
-                Loop, % len
-                    s .= Format("{:02X}", NumGet(cur, A_Index - 1, "UChar"))
-                ; only ever patch the two store encodings we verified:
-                ; 6-byte 8915 (mov [disp32],edx) and 5-byte A3 (mov [disp32],eax)
-                ok := (len = 6 && SubStr(s,1,4) = "8915") || (len = 5 && SubStr(s,1,2) = "A3")
-                if (!ok)
-                    continue
-                gOrig[addr] := s
-            }
+            ; only patch a site that still holds the exact expected instruction
+            VarSetCapacity(cur, len, 0)
+            if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
+                continue
+            s := ""
+            Loop, % len
+                s .= Format("{:02X}", NumGet(cur, A_Index - 1, "UChar"))
+            if (s != want)
+                continue
             VarSetCapacity(nop, len, 0x90)
             WriteCode(addr, nop, len)
         } else {
-            if (!gOrig.HasKey(addr))
-                continue
-            s := gOrig[addr]
-            VarSetCapacity(orig, len, 0)
-            Loop, % len
-                NumPut("0x" . SubStr(s, A_Index * 2 - 1, 2), orig, A_Index - 1, "UChar")
-            WriteCode(addr, orig, len)
+            WriteBytes(addr, want, len)
         }
     }
     gPatched := on
 }
 
 ; ---- main loop --------------------------------------------------------------
+if (OpenGame())
+    RestoreLeftovers()
 SetTimer, Tick, 8
 OnExit, Bail
 return
