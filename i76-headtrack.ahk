@@ -46,15 +46,24 @@ global PITCH_ON    := 0.12
 global PITCH_OFF   := 0.08
 ; Analog feel. Gain 2.5 because a comfortable head turn only reaches ~0.43 rad -
 ; at the old 1.6 the view ran out of travel well before you ran out of neck.
-global ANALOG_GAIN   := 4.0  ; head radians -> camera radians (field-tuned)
-global ANALOG_MAX    := 1.2  ; clamp, rad (~69deg) so you can't spin the view
+global ANALOG_GAIN   := 6.0  ; head radians -> camera radians (field-tuned)
+; The clamp was the real reason side-to-side kept feeling short: at gain 4.0 a
+; 0.43 rad head turn asks for 1.72 rad, and a 1.2 clamp threw away a third of it.
+; Raised so the gain is what limits travel, not this.
+global ANALOG_MAX    := 2.4  ; rad (~137deg)
+; Analog needs the OPPOSITE vertical sign to digital: digital's arrow-key glance
+; is field-correct with INVERT_PITCH=1, but writing the camera float that way
+; came out upside down. Separate sign so tuning one never breaks the other.
+global ANALOG_PITCH_SIGN := -1
 ; The "bounce" is NOT a race with the engine after all: a live dump showed the
 ; whole camera angle block sits perfectly static unless WE write it, and feeding
 ; the int look inputs (0x536770/78) changes nothing - the engine does not
 ; recompute. So the only writer is us, and the shake is our own input jitter,
 ; amplified by the gain. That makes SMOOTH the real fix, not write frequency.
-; 0 = none, 0.9 = heavy.
-global SMOOTH        := 0.85
+; 0 = none, 0.9 = heavy. Note the sim only renders ~19 FPS, so a continuously
+; varying angle is sampled 19 times a second no matter how often we write it -
+; some of the "jitter" is that, and heavy smoothing is the only lever we have.
+global SMOOTH        := 0.93
 ; Both axes needed inverting on this rig (field-confirmed 2026-08-01): opentrack's
 ; freetrack yaw/pitch signs run opposite to the engine's glance direction.
 global INVERT       := 1     ; yaw:   looking left glances left
@@ -72,10 +81,9 @@ global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
 ; nothing. The apply fn stores to 0x4c2964/6c/70/74, and 70 is horizontal, so the
 ; vertical is one of the others. Ctrl+Alt+P cycles these live (beeps the slot
 ; number) so it can be found in play instead of guessed.
-; Ordered by evidence, not by the map: a live dump of the whole block showed
-; 0x4c2968 = -0.2269 and 0x4c2964 = -0.0344 (angle-shaped values), while
-; 0x4c296c / 74 / 80 all sat at exactly 0 - so the zeros are almost certainly
-; unused here and 0x4c2968 is the best candidate for the vertical axis.
+; FIELD-CONFIRMED 2026-08-01: 0x4c2968 IS the vertical axis (it moved the view,
+; just inverted). The memory map documents neither this nor 0x4c2970-as-yaw, so
+; the real layout of this block is: 0x4c2968 = pitch, 0x4c2970 = yaw.
 global PITCH_CANDIDATES := [0x4c2968, 0x4c2964, 0x4c296c, 0x4c2974, 0x4c2980]
 global gPitchSlot := 1
 global ADDR_CAM_PITCH := 0x4c2968
@@ -214,7 +222,7 @@ Tick:
     ; low-pass, then write twice per tick: the engine is writing these same
     ; floats every frame and the last writer before the render wins.
     gSmY := gSmY * SMOOTH + Clamp(yaw   * ANALOG_GAIN) * (1 - SMOOTH)
-    gSmP := gSmP * SMOOTH + Clamp(pitch * ANALOG_GAIN) * (1 - SMOOTH)
+    gSmP := gSmP * SMOOTH + Clamp(pitch * ANALOG_GAIN * ANALOG_PITCH_SIGN) * (1 - SMOOTH)
     WriteFloat(ADDR_CAM_YAW,   gSmY)
     WriteFloat(ADDR_CAM_PITCH, gSmP)
     WriteFloat(ADDR_CAM_YAW,   gSmY)
