@@ -46,8 +46,10 @@ global PITCH_ON    := 0.12
 global PITCH_OFF   := 0.08
 global ANALOG_GAIN := 1.6    ; head radians -> camera radians
 global ANALOG_MAX  := 1.2    ; clamp, rad (~69deg) so you can't spin the view
-global INVERT       := 1     ; yaw:   1 = looking left glances left (field-confirmed)
-global INVERT_PITCH := 0     ; pitch: flip to 1 if looking up glances down
+; Both axes needed inverting on this rig (field-confirmed 2026-08-01): opentrack's
+; freetrack yaw/pitch signs run opposite to the engine's glance direction.
+global INVERT       := 1     ; yaw:   looking left glances left
+global INVERT_PITCH := 1     ; pitch: looking up glances up
 global GAME_EXE    := "i76.exe"
 
 ; cam_yaw / cam_pitch, i76.exe Gold (tools/i76-addresses.json, "confirmed")
