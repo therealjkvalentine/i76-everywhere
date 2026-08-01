@@ -410,8 +410,7 @@ Tick:
     dP := KP_P * (tgtP - ReadFloat(ADDR_CAM_PITCH))
     WriteInt(ADDR_IN_YAW,   Round(ClampD(dY)))
     WriteInt(ADDR_IN_PITCH, Round(ClampD(dP)))
-    return
-}
+return
 
 ClampD(v) {
     global DELTA_MAX
