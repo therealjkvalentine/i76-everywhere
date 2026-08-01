@@ -44,22 +44,33 @@ global YAW_OFF     := 0.12   ; rad, ~7deg:  inside this it comes back up
 ; narrower arc than they turn (measured: yaw reached ~0.43 rad, pitch ~0.17).
 global PITCH_ON    := 0.12
 global PITCH_OFF   := 0.08
-global ANALOG_GAIN := 1.6    ; head radians -> camera radians
-global ANALOG_MAX  := 1.2    ; clamp, rad (~69deg) so you can't spin the view
+; Analog feel. Gain 2.5 because a comfortable head turn only reaches ~0.43 rad -
+; at the old 1.6 the view ran out of travel well before you ran out of neck.
+global ANALOG_GAIN   := 2.5  ; head radians -> camera radians
+global ANALOG_MAX    := 1.2  ; clamp, rad (~69deg) so you can't spin the view
+; The engine rewrites these floats every frame, so analog is a race we win by
+; writing more often. SMOOTH also damps the residual chatter (0 = none, 0.9 =
+; heavy); the visible "bounce" is our write and the engine's alternating.
+global SMOOTH        := 0.55
 ; Both axes needed inverting on this rig (field-confirmed 2026-08-01): opentrack's
 ; freetrack yaw/pitch signs run opposite to the engine's glance direction.
 global INVERT       := 1     ; yaw:   looking left glances left
 global INVERT_PITCH := 1     ; pitch: looking up glances up
 global GAME_EXE    := "i76.exe"
 
-; cam_yaw / cam_pitch, i76.exe Gold (tools/i76-addresses.json, "confirmed")
-global ADDR_CAM_YAW   := 0x4c2964
-global ADDR_CAM_PITCH := 0x4c2970
+; Camera angle block, i76.exe Gold. NOTE the map's labels are SWAPPED against
+; what the engine actually does: docs/GHIDRA-MEMORY-MAP.md calls 0x4c2964
+; "cam_yaw" and 0x4c2970 "cam_pitch", but in play, writing 0x4c2970 swings the
+; view HORIZONTALLY and 0x4c2964 vertically (field-confirmed 2026-08-01 - head
+; up/down was moving the view left/right). So they are bound the other way here.
+global ADDR_CAM_YAW   := 0x4c2970   ; map calls this cam_pitch
+global ADDR_CAM_PITCH := 0x4c2964   ; map calls this cam_yaw
 global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
 
 global gMode := "DIGITAL"
 global gHeld := {}
 global gView := 0
+global gSmY := 0, gSmP := 0
 global hMap := 0, pView := 0, hProc := 0, gPid := 0
 
 ; ---- freetrack shared memory ------------------------------------------------
@@ -134,7 +145,7 @@ WriteFloat(addr, val) {
 }
 
 ; ---- main loop --------------------------------------------------------------
-SetTimer, Tick, 15
+SetTimer, Tick, 8
 OnExit, Bail
 return
 
@@ -187,8 +198,14 @@ Tick:
     ; analog entirely: read live in cockpit view on the Gold exe it is 0. Read it
     ; for the on-screen readout, but never let it stop the write.
     gView := ReadInt(ADDR_VIEW_MODE)
-    WriteFloat(ADDR_CAM_YAW,   Clamp(yaw   * ANALOG_GAIN))
-    WriteFloat(ADDR_CAM_PITCH, Clamp(pitch * ANALOG_GAIN))
+    ; low-pass, then write twice per tick: the engine is writing these same
+    ; floats every frame and the last writer before the render wins.
+    gSmY := gSmY * SMOOTH + Clamp(yaw   * ANALOG_GAIN) * (1 - SMOOTH)
+    gSmP := gSmP * SMOOTH + Clamp(pitch * ANALOG_GAIN) * (1 - SMOOTH)
+    WriteFloat(ADDR_CAM_YAW,   gSmY)
+    WriteFloat(ADDR_CAM_PITCH, gSmP)
+    WriteFloat(ADDR_CAM_YAW,   gSmY)
+    WriteFloat(ADDR_CAM_PITCH, gSmP)
 return
 
 Clamp(v) {
