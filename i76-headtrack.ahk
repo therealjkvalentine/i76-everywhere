@@ -54,7 +54,7 @@ global ANALOG_GAIN_P := 3.5  ; pitch: deliberately lower
 ; step as you leave it. Kills rest jitter and stops a sideways look from
 ; dragging the view up/down. Pitch gets a wider one for that reason.
 global ANALOG_DZ     := 0.05
-global ANALOG_DZ_P   := 0.09
+global ANALOG_DZ_P   := 0.03   ; up/down wants a SMALL deadzone (field request)
 ; The clamp was the real reason side-to-side kept feeling short: at gain 4.0 a
 ; 0.43 rad head turn asks for 1.72 rad, and a 1.2 clamp threw away a third of it.
 ; Raised so the gain is what limits travel, not this.
@@ -113,7 +113,15 @@ global gFreeze := 0
 ; While ANALOG is on we NOP both instructions (6 x 0x90) so nothing but us
 ; writes the camera. Restored on mode switch, on exit, and it is memory-only:
 ; relaunching the game undoes it regardless.
-global PATCH_SITES := [0x406c4b, 0x406cb9]
+; There are THREE of these handlers, not one - the camera-mode jump table at
+; 0x4c2990 dispatches a different one per view, and each stamps BOTH angles.
+; Patching only mode A left the other two stamping, which is why the shake
+; survived the first attempt. Byte-verified, and note mode B's yaw store is a
+; 5-byte A3 (mov [disp32],eax) while the rest are 6-byte 89 15 (…,edx):
+;   mode A  0x406c4b yaw 6   0x406cb9 pitch 6
+;   mode B  0x4073a3 yaw 5   0x40741c pitch 6
+;   mode C  0x4077e1 yaw 6   0x40784f pitch 6
+global PATCH_SITES := [[0x406c4b,6], [0x406cb9,6], [0x4073a3,5], [0x40741c,6], [0x4077e1,6], [0x40784f,6]]
 global gPatched := 0
 global gOrig := {}
 global hMap := 0, pView := 0, hProc := 0, gPid := 0
@@ -207,31 +215,34 @@ SetPatch(on) {
     global PATCH_SITES, gPatched, gOrig, hProc
     if (!hProc || gPatched = on)
         return
-    for i, addr in PATCH_SITES {
+    for i, site in PATCH_SITES {
+        addr := site[1], len := site[2]
         if (on) {
             ; stash the real bytes the first time we ever touch this site
             if (!gOrig.HasKey(addr)) {
-                VarSetCapacity(cur, 6, 0)
-                if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", 6, "Ptr", 0))
-                    return
+                VarSetCapacity(cur, len, 0)
+                if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
+                    continue
                 s := ""
-                Loop, 6
+                Loop, % len
                     s .= Format("{:02X}", NumGet(cur, A_Index - 1, "UChar"))
-                ; refuse to patch anything that isn't the expected mov [disp32],edx
-                if (SubStr(s, 1, 4) != "8915")
-                    return
+                ; only ever patch the two store encodings we verified:
+                ; 6-byte 8915 (mov [disp32],edx) and 5-byte A3 (mov [disp32],eax)
+                ok := (len = 6 && SubStr(s,1,4) = "8915") || (len = 5 && SubStr(s,1,2) = "A3")
+                if (!ok)
+                    continue
                 gOrig[addr] := s
             }
-            VarSetCapacity(nop, 6, 0x90)
-            WriteCode(addr, nop, 6)
+            VarSetCapacity(nop, len, 0x90)
+            WriteCode(addr, nop, len)
         } else {
             if (!gOrig.HasKey(addr))
                 continue
             s := gOrig[addr]
-            VarSetCapacity(orig, 6, 0)
-            Loop, 6
+            VarSetCapacity(orig, len, 0)
+            Loop, % len
                 NumPut("0x" . SubStr(s, A_Index * 2 - 1, 2), orig, A_Index - 1, "UChar")
-            WriteCode(addr, orig, 6)
+            WriteCode(addr, orig, len)
         }
     }
     gPatched := on
