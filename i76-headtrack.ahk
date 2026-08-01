@@ -182,10 +182,11 @@ Tick:
     ReleaseAll()
     if (!OpenGame())
         return
-    ; cockpit views only - in chase/track the same floats mean something else
+    ; NO view-mode gate. The first cut only wrote when cam_view_mode was 2 or 5
+    ; (the FSM switch values the disassembly showed), and that silently blocked
+    ; analog entirely: read live in cockpit view on the Gold exe it is 0. Read it
+    ; for the on-screen readout, but never let it stop the write.
     gView := ReadInt(ADDR_VIEW_MODE)
-    if (gView != 2 && gView != 5)
-        return
     WriteFloat(ADDR_CAM_YAW,   Clamp(yaw   * ANALOG_GAIN))
     WriteFloat(ADDR_CAM_PITCH, Clamp(pitch * ANALOG_GAIN))
 return
