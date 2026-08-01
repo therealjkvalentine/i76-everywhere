@@ -18,6 +18,7 @@ param(
     [string]$GameDir = "",
     [string]$OutDir  = "",
     [switch]$IncludeSaves,   # include your savegames in the portable zip
+    [switch]$IncludeFrameGen,# bundle Lossless Scaling too (your licence, your PCs only)
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
@@ -108,6 +109,52 @@ Write-Host "`nDone. Double-click PLAY.bat (or the desktop shortcut) to play." -F
 # carry the FFB enabler + the standalone browser save editor along for convenience
 Copy-Item (Join-Path $repo 'enable-force-feedback.bat') $gameOut -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $repo 'i76-save-editor.html') $staging -Force -ErrorAction SilentlyContinue
+
+# Refresh the launcher from the repo. The installed copy in the game folder can
+# predate repo changes (it did on 2026-08-01 - the bundle shipped a PLAY-i76.ps1
+# with no -LosslessScaling support), and the bundle should carry the current one.
+Copy-Item (Join-Path $repo 'PLAY-i76.ps1') $gameOut -Force -ErrorAction SilentlyContinue
+
+# --- optional: bundle Lossless Scaling (frame generation) --------------------
+# It has NO Steam dependency (docs/WINDOWS-PLAYBOOK.md sec 2), so it runs from
+# the unzipped folder on any of your PCs. It is a PAID app - your licence, your
+# machines only. Installing it from Steam on the target is the cleaner route
+# (you get updates); this switch exists for offline/one-carry moves.
+if ($IncludeFrameGen) {
+    $lsExe = $null
+    $roots = @("${env:ProgramFiles(x86)}\Steam")
+    $vdf = "${env:ProgramFiles(x86)}\Steam\steamapps\libraryfolders.vdf"
+    if (Test-Path $vdf) {
+        foreach ($m in [regex]::Matches((Get-Content $vdf -Raw), '"path"\s+"([^"]+)"')) {
+            $roots += $m.Groups[1].Value -replace '\\\\', '\'
+        }
+    }
+    foreach ($r in ($roots | Select-Object -Unique)) {
+        $p = Join-Path $r 'steamapps\common\Lossless Scaling'
+        if (Test-Path (Join-Path $p 'LosslessScaling.exe')) { $lsExe = $p; break }
+    }
+    if (-not $lsExe) {
+        Say "-IncludeFrameGen: Lossless Scaling not found in any Steam library - skipping." 'Yellow'
+    } else {
+        Say "Staging Lossless Scaling from $lsExe ..."
+        robocopy $lsExe (Join-Path $staging 'Lossless Scaling') /E /NFL /NDL /NJH /NJS /NP | Out-Null
+        if ($LASTEXITCODE -ge 8) { Say "robocopy of Lossless Scaling failed ($LASTEXITCODE)." 'Red'; exit 1 }
+        Copy-Item (Join-Path $repo 'Setup-FrameGen.ps1') $staging -Force -ErrorAction SilentlyContinue
+        Set-Content (Join-Path $staging 'PLAY-with-FrameGen.bat') @'
+@echo off
+REM Portable Interstate '76 + frame generation. Steam is NOT required - Lossless
+REM Scaling is bundled beside this file and has no Steam dependency.
+REM ONE-TIME PER PC: right-click Setup-FrameGen.ps1 -> Run with PowerShell, to add
+REM the auto-scale profile. Without it, focus the game and press Ctrl+Alt+S.
+REM The 20 FPS physics base is NEVER raised - these are interpolated DISPLAY
+REM frames only. Raising FPSLimit breaks the Mission 5 canyon jump.
+start "" "%~dp0Lossless Scaling\LosslessScaling.exe"
+timeout /t 3 /nobreak >nul
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe
+'@ -Encoding ascii
+        Say "Frame generation bundled (Lossless Scaling + Setup-FrameGen.ps1 + launcher)." 'Green'
+    }
+}
 
 Set-Content (Join-Path $staging 'READ-ME-FIRST.txt') @"
 Interstate '76 - portable (i76-everywhere)
