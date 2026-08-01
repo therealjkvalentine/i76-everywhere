@@ -5,6 +5,22 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+- **A force-feedback wheel, measured end to end (Thrustmaster T300RS).** The oldest
+  open question in the repo — can a real wheel drive I76 — answered on Windows with
+  hardware instead of community reports. Two non-obvious blockers, both found by
+  measuring through winmm (`joyGetPosEx`, the API the engine itself reads): a T-series
+  wheel enumerates in a crippled **pre-initialisation mode** until its driver is
+  installed (`PID_B65D` "Thrustmaster FFB Wheel", pedals frozen at a single value, no
+  FFB) — installing it re-enumerates as `PID_B66E` "T300RS"; and the wheel's default
+  **Separate (3-axis) pedal mode cannot drive I76 at all**, because both pedals rest at
+  an *extreme* while I76's `throttle` is a single bidirectional sink expecting rest =
+  *centre*, so it pins at full deflection (runaway throttle). **Combined (2-axis)** mode
+  gives one centre-resting axis and the stock binding is then correct. Full axis/button
+  map, FFB status and the settings that matter in
+  [docs/WHEEL-T300.md](docs/WHEEL-T300.md); new instrument
+  [`tools/i76-joyprobe.py`](tools/i76-joyprobe.py) (waits for input rather than racing a
+  timer, and warms up before baselining — a naive trigger fires on the device settling,
+  not the user). Configured and measured; **not yet driven in a mission**.
 - **Frame generation without Steam.** Lossless Scaling turns out to have no Steam
   dependency at all — no `steam_api64.dll`, no Steamworks imports, and when launched
   directly it loads zero Steam client modules and keeps running with Steam fully shut
