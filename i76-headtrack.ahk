@@ -143,6 +143,13 @@ global gFreeze := 0
 ; the patcher can verify a site before touching it and restore it byte-exactly.
 ; (The four one-time init writes at 0x405Axx are deliberately NOT here - those
 ; run once at camera setup, not per frame.)
+; OFF BY DEFAULT - it BREAKS RENDERING. Field result: with all 15 NOPed the
+; ground textures vanish and the terrain draws as sky, returning the moment you
+; switch back to digital. So these five floats are NOT five independent Euler
+; angles; they are components of the view transform, and freezing three while
+; injecting into two leaves an inconsistent basis, so terrain gets culled.
+; It also did not help the shake. Set to 1 only to experiment further.
+global PATCH_ENABLED := 0
 global PATCH_SITES := [[0x406b7c,6,"D91D64294C00"], [0x4072bc,6,"D91D64294C00"], [0x407712,6,"D91D64294C00"]
     , [0x406cb9,6,"891568294C00"], [0x40741c,6,"891568294C00"], [0x40784f,6,"891568294C00"]
     , [0x406b3a,6,"D9156C294C00"], [0x4072aa,6,"D91D6C294C00"], [0x4076d0,6,"D9156C294C00"]
@@ -344,7 +351,8 @@ Tick:
     ReleaseAll()
     if (!OpenGame())
         return
-    SetPatch(true)   ; stop the engine overwriting us (see PATCH_SITES)
+    if (PATCH_ENABLED)
+        SetPatch(true)
     ; NO view-mode gate. The first cut only wrote when cam_view_mode was 2 or 5
     ; (the FSM switch values the disassembly showed), and that silently blocked
     ; analog entirely: read live in cockpit view on the Gold exe it is 0. Read it
