@@ -54,7 +54,7 @@ global ANALOG_GAIN_P := 3.5  ; pitch: deliberately lower
 ; step as you leave it. Kills rest jitter and stops a sideways look from
 ; dragging the view up/down. Pitch gets a wider one for that reason.
 global ANALOG_DZ     := 0.05
-global ANALOG_DZ_P   := 0.03   ; up/down wants a SMALL deadzone (field request)
+global ANALOG_DZ_P   := 0.012  ; up/down wants a SMALL deadzone (field request x2)
 ; The clamp was the real reason side-to-side kept feeling short: at gain 4.0 a
 ; 0.43 rad head turn asks for 1.72 rad, and a 1.2 clamp threw away a third of it.
 ; Raised so the gain is what limits travel, not this.
@@ -71,7 +71,12 @@ global ANALOG_PITCH_SIGN := -1
 ; 0 = none, 0.9 = heavy. Note the sim only renders ~19 FPS, so a continuously
 ; varying angle is sampled 19 times a second no matter how often we write it -
 ; some of the "jitter" is that, and heavy smoothing is the only lever we have.
-global SMOOTH        := 0.93
+; With the engine's writes NOPed the value we write is now provably stable, so
+; heavy smoothing is no longer buying anything - it only adds lag. Dropped back.
+; SNAP kills the last of the exponential tail: below it we jump exactly onto the
+; target instead of creeping toward it forever in the low decimals.
+global SMOOTH        := 0.6
+global SNAP          := 0.002
 ; Both axes needed inverting on this rig (field-confirmed 2026-08-01): opentrack's
 ; freetrack yaw/pitch signs run opposite to the engine's glance direction.
 global INVERT       := 1     ; yaw:   looking left glances left
@@ -313,8 +318,10 @@ Tick:
         WriteFloat(ADDR_CAM_PITCH, 0)
         return
     }
-    gSmY := gSmY * SMOOTH + Clamp(Dead(yaw,   ANALOG_DZ)   * ANALOG_GAIN)   * (1 - SMOOTH)
-    gSmP := gSmP * SMOOTH + Clamp(Dead(pitch, ANALOG_DZ_P) * ANALOG_GAIN_P * ANALOG_PITCH_SIGN) * (1 - SMOOTH)
+    tY := Clamp(Dead(yaw,   ANALOG_DZ)   * ANALOG_GAIN)
+    tP := Clamp(Dead(pitch, ANALOG_DZ_P) * ANALOG_GAIN_P * ANALOG_PITCH_SIGN)
+    gSmY := (Abs(tY - gSmY) < SNAP) ? tY : gSmY * SMOOTH + tY * (1 - SMOOTH)
+    gSmP := (Abs(tP - gSmP) < SNAP) ? tP : gSmP * SMOOTH + tP * (1 - SMOOTH)
     WriteFloat(ADDR_CAM_YAW,   gSmY)
     WriteFloat(ADDR_CAM_PITCH, gSmP)
 return
