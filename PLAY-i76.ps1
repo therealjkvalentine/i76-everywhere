@@ -60,3 +60,24 @@ $proc.WaitForExit()
 if ($wheel -and -not $wheel.HasExited) { Stop-Process -Id $wheel.Id -Force }
 if ($ahk   -and -not $ahk.HasExited)   { Stop-Process -Id $ahk.Id   -Force }
 if ($ls    -and -not $ls.HasExited)    { Stop-Process -Id $ls.Id    -Force }
+
+# Release any key the AHK layer might have been HOLDING when we killed it.
+# Stop-Process -Force skips AHK's OnExit handler (RSGExit), which is what would
+# normally send the matching key-ups - so a key held at that moment stays LATCHED
+# DOWN system-wide, surviving into the next launch. Field-diagnosed 2026-08-01:
+# a stuck glance-left persisted across a relaunch and looked like a game hang.
+# These are the keys i76-remap.ahk can hold (RSGExit's list + the @wheel holds).
+try {
+    Add-Type -Name KbRelease -Namespace I76 -MemberDefinition @'
+[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);
+'@ -ErrorAction SilentlyContinue
+    $KEYUP = 0x2; $EXT = 0x1
+    # arrows (extended keys), digits 1-8, Enter, and the letters the layer emits
+    $vks = @(0x25,0x26,0x27,0x28) + (0x31..0x38) + @(0x0D) +
+           @(0x48,0x49,0x4E,0x4D,0x59,0x55,0x56,0x58,0x42,0x47,0x45,0x52,0x51,0x54,0x09,0x20)
+    foreach ($vk in $vks) {
+        $flags = $KEYUP
+        if ($vk -ge 0x25 -and $vk -le 0x28) { $flags = $KEYUP -bor $EXT }
+        [I76.KbRelease]::keybd_event([byte]$vk, 0, $flags, [System.UIntPtr]::Zero)
+    }
+} catch { }
