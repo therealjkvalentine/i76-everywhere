@@ -23,8 +23,13 @@
 
 global YAW_ON  := 0.18
 global YAW_OFF := 0.12
+global PITCH_ON  := 0.12
+global PITCH_OFF := 0.08
+global INVERT       := 1    ; keep in step with i76-headtrack.ahk
+global INVERT_PITCH := 0
 global GAME_EXE := "i76.exe"
-global hMap := 0, pView := 0, gHeld := {}, gSend := 0, gMinY := 0, gMaxY := 0
+global hMap := 0, pView := 0, gHeld := {}, gSend := 0
+global gMinY := 0, gMaxY := 0, gMinP := 0, gMaxP := 0
 
 Gui, Font, s10, Consolas
 Gui, Add, Text, w560 vS1, 1. FT_SharedMem      : (checking...)
@@ -50,7 +55,7 @@ ToggleSend:
 return
 
 ResetRange:
-    gMinY := 0, gMaxY := 0
+    gMinY := 0, gMaxY := 0, gMinP := 0, gMaxP := 0
 return
 
 OpenFT() {
@@ -78,6 +83,7 @@ KeySet(key, want) {
 }
 ReleaseAll() {
     KeySet("Left", false), KeySet("Right", false)
+    KeySet("Up", false), KeySet("Down", false)
 }
 
 Tick:
@@ -92,13 +98,24 @@ Tick:
     y := NumGet(pView+0, 12, "Float")
     p := NumGet(pView+0, 16, "Float")
     r := NumGet(pView+0, 20, "Float")
+    ; apply the SAME inversion the real script does, so what you read here is
+    ; what it will actually do in game
+    if (INVERT)
+        y := -y
+    if (INVERT_PITCH)
+        p := -p
     if (y < gMinY)
         gMinY := y
     if (y > gMaxY)
         gMaxY := y
+    if (p < gMinP)
+        gMinP := p
+    if (p > gMaxP)
+        gMaxP := p
     GuiControl,, S2, % "2. yaw / pitch / roll: " . Round(y,3) . "  /  " . Round(p,3) . "  /  " . Round(r,3)
-    GuiControl,, S3, % "3. yaw range seen    : " . Round(gMinY,3) . " .. " . Round(gMaxY,3)
-                     . (Abs(gMaxY - gMinY) < 0.05 ? "   <-- not moving! is tracking STARTED in opentrack?" : "")
+    GuiControl,, S3, % "3. range  yaw " . Round(gMinY,2) . ".." . Round(gMaxY,2)
+                     . "   pitch " . Round(gMinP,2) . ".." . Round(gMaxP,2)
+                     . (Abs(gMaxY - gMinY) < 0.05 ? "   <-- not moving! tracking STARTED?" : "")
 
     ; thresholds (hysteresis, same as the real script)
     if (y > YAW_ON)
@@ -109,9 +126,18 @@ Tick:
         KeySet("Left", true)
     else if (y > -YAW_OFF)
         KeySet("Left", false)
+    if (p > PITCH_ON)
+        KeySet("Up", true)
+    else if (p < PITCH_OFF)
+        KeySet("Up", false)
+    if (p < -PITCH_ON)
+        KeySet("Down", true)
+    else if (p > -PITCH_OFF)
+        KeySet("Down", false)
 
-    st := (y > YAW_ON) ? "PAST +on (look right)" : (y < -YAW_ON) ? "PAST -on (look left)" : "inside deadzone"
-    GuiControl,, S4, % "4. threshold         : " . st
+    sy := (y > YAW_ON) ? "RIGHT" : (y < -YAW_ON) ? "LEFT" : "-"
+    sp := (p > PITCH_ON) ? "UP" : (p < -PITCH_ON) ? "DOWN" : "-"
+    GuiControl,, S4, % "4. threshold         : yaw " . sy . "   pitch " . sp
 
     act := WinActive("ahk_exe " . GAME_EXE) ? "YES - the real script would be driving the game"
          : "NO  - the real script does nothing unless " . GAME_EXE . " is focused"

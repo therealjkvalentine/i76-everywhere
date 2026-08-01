@@ -37,15 +37,22 @@
 #ErrorStdOut
 
 ; ---- tunables ---------------------------------------------------------------
+; Field-tuned 2026-08-01: yaw thresholds confirmed good; yaw needed inverting.
 global YAW_ON      := 0.18   ; rad, ~10deg: past this the glance key goes down
 global YAW_OFF     := 0.12   ; rad, ~7deg:  inside this it comes back up
+; Pitch gets a smaller gate than yaw on purpose - people nod through a much
+; narrower arc than they turn (measured: yaw reached ~0.43 rad, pitch ~0.17).
+global PITCH_ON    := 0.12
+global PITCH_OFF   := 0.08
 global ANALOG_GAIN := 1.6    ; head radians -> camera radians
 global ANALOG_MAX  := 1.2    ; clamp, rad (~69deg) so you can't spin the view
-global INVERT      := 0      ; set 1 if looking left turns the view right
+global INVERT       := 1     ; yaw:   1 = looking left glances left (field-confirmed)
+global INVERT_PITCH := 0     ; pitch: flip to 1 if looking up glances down
 global GAME_EXE    := "i76.exe"
 
 ; cam_yaw / cam_pitch, i76.exe Gold (tools/i76-addresses.json, "confirmed")
 global ADDR_CAM_YAW   := 0x4c2964
+global ADDR_CAM_PITCH := 0x4c2970
 global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
 
 global gMode := "DIGITAL"
@@ -70,6 +77,10 @@ FTYaw() {
     global pView
     return pView ? NumGet(pView+0, 12, "Float") : 0
 }
+FTPitch() {
+    global pView
+    return pView ? NumGet(pView+0, 16, "Float") : 0
+}
 
 ; ---- held-key table: every down gets an up ----------------------------------
 KeySet(key, want) {
@@ -84,6 +95,7 @@ KeySet(key, want) {
 }
 ReleaseAll() {
     KeySet("Left", false), KeySet("Right", false)
+    KeySet("Up", false), KeySet("Down", false)
 }
 
 ; ---- game process (analog mode only) ----------------------------------------
@@ -137,9 +149,13 @@ Tick:
     yaw := FTYaw()
     if (INVERT)
         yaw := -yaw
+    pitch := FTPitch()
+    if (INVERT_PITCH)
+        pitch := -pitch
 
     if (gMode = "DIGITAL") {
-        ; hysteresis: press past YAW_ON, release inside YAW_OFF
+        ; hysteresis: press past *_ON, release inside *_OFF, so a head hovering
+        ; on the boundary can't chatter the key down/up every tick.
         if (yaw > YAW_ON)
             KeySet("Right", true)
         else if (yaw < YAW_OFF)
@@ -148,6 +164,15 @@ Tick:
             KeySet("Left", true)
         else if (yaw > -YAW_OFF)
             KeySet("Left", false)
+
+        if (pitch > PITCH_ON)
+            KeySet("Up", true)
+        else if (pitch < PITCH_OFF)
+            KeySet("Up", false)
+        if (pitch < -PITCH_ON)
+            KeySet("Down", true)
+        else if (pitch > -PITCH_OFF)
+            KeySet("Down", false)
         return
     }
 
@@ -159,13 +184,18 @@ Tick:
     gView := ReadInt(ADDR_VIEW_MODE)
     if (gView != 2 && gView != 5)
         return
-    v := yaw * ANALOG_GAIN
-    if (v > ANALOG_MAX)
-        v := ANALOG_MAX
-    else if (v < -ANALOG_MAX)
-        v := -ANALOG_MAX
-    WriteFloat(ADDR_CAM_YAW, v)
+    WriteFloat(ADDR_CAM_YAW,   Clamp(yaw   * ANALOG_GAIN))
+    WriteFloat(ADDR_CAM_PITCH, Clamp(pitch * ANALOG_GAIN))
 return
+
+Clamp(v) {
+    global ANALOG_MAX
+    if (v > ANALOG_MAX)
+        return ANALOG_MAX
+    if (v < -ANALOG_MAX)
+        return -ANALOG_MAX
+    return v
+}
 
 ; Ctrl+Alt+H - swap modes (release everything first so nothing sticks)
 ^!h::
