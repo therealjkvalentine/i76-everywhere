@@ -116,22 +116,41 @@ stock keys. Native `joystick1 Button1`–`Button13` *do* all work (an earlier dr
 `Button5+` for a hang that was really the stuck-arrow bug in §4) — but native tops out at one
 action per button, where AHK gives a **shift layer** and roughly 27 actions from 13 buttons.
 
-Numbers measured by press order, not read off the control-panel diagram — its callout lines
-don't reliably separate 11 from 12, and those are exactly the L3/R3 pair.
+**Button numbers, from Thrustmaster's manual ("MAPPING FOR PC" page).** It publishes the PC
+numbering beside the PlayStation labels, and it confirms every number we had measured by press
+order — the two we'd only *inferred* (L2=10, SE=7) both check out:
+
+| PS label | PC # | | PS label | PC # |
+|---|---|---|---|---|
+| **L1** (left paddle) | **1** | | **SHARE / CREATE** ("SE") | **7** |
+| **R1** (right paddle) | **2** | | **OPTIONS** | **8** |
+| **L2** | **10** | | **L3** | **11** |
+| **R2** | **9** | | **R3** | **12** |
+| △ □ ○ ✕ cluster | 3 / 4 / 5 / 6 | | **PS** | **13** |
+| Directional buttons | the POV hat | | | |
+
+Note L2/R2 are **10/9** — not sequential, and not the order you'd guess from L3/R3 being 11/12.
+Worth reading off the manual rather than assuming. (Measuring still beats the *control-panel
+diagram*, whose callout lines don't reliably separate 11 from 12 — exactly the L3/R3 pair.)
 
 | # | Physical | Base | Hold **6** = shift |
 |---|---|---|---|
-| 1 | Left paddle | hardpoint 2 | hardpoint 1 |
-| 2 | Right paddle | **fire selected weapon** (incl. cockpit handgun) | `weapon_link` |
+| 1 | L1 left paddle | hardpoint 2 | hardpoint 1 |
+| 2 | R1 right paddle | **fire selected weapon** (incl. cockpit handgun) | front target |
 | 3 / 4 / 5 | cluster | cycle weapon / handbrake / nitrous | combat view / reverse / special 2 |
 | **6** | cluster | **SHIFT** | — |
 | 7 | SE | rear gun (hp3) | dropper (hp4) |
-| 8 / 9 | cluster | target nearest / front target | untarget / look at target |
+| 8 | OPTIONS | target nearest | untarget |
+| **9** | **R2** | **LINK FIRE** (`weapon_link`) | look at target |
 | 10 | L2 | next target | radar range |
 | 11 | L3 | ignition | radar camera |
 | 12 | R3 | handbrake | binoculars |
 | 13 | PS | horn | poetry |
 | Hat | D-pad | lights / map / ignition / notepad | gear up/down (Period/Comma) |
+
+**R2 = link fire is the engine-native way to fire several weapons at once** — one event, one FFB
+effect. That matters here: firing multiple hardpoints from a single button is what crashed
+`I7_SFRCE.DLL` (below). `weapon_link` is also on keyboard `F`.
 
 Direct hardpoint keys are **one shot per press** by design; sustained fire is what the right
 paddle's `weapon_fire` hold is for. A repeat-tap mode was tried and removed — see the FFB section.

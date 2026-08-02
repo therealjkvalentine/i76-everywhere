@@ -75,24 +75,36 @@ OnExit, RSGExit
 ; natively as well would double-fire.
 ;
 ;   BASE                                  HOLD Button6 = SHIFT LAYER
-;   1  L-paddle  hardpoints 1+2           1  hardpoint 5
-;   2  R-paddle  fire selected weapon     2  link weapons
+;   1  L1 L-paddle  hardpoint 2           1  hardpoint 1
+;   2  R1 R-paddle  fire selected weapon  2  front target
 ;   3  cycle weapon                       3  combat view
 ;   4  handbrake                          4  reverse
 ;   5  nitrous (special1)                 5  special 2
-;   6  >>> SHIFT <<<                      7  special 3
-;   7  SE  rear gun + dropper (hp3+hp4)   8  untarget
-;   8  target nearest                     9  look at target
-;   9  front target                      10  radar range
-;  10  L2  next target                   11  radar camera
-;  11  L3  ignition                      12  binoculars
-;  12  R3  handbrake                     13  poetry
-;  13  PS  horn
-;   hat U/D/L/R  lights/ignition/notepad/map      hat U/D = gear up/down
+;   6  >>> SHIFT <<<                      6  --
+;   7  SE  rear gun (hp3)                 7  dropper (hp4)
+;   8  target nearest                     8  untarget
+;   9  R2  LINK FIRE (weapon_link)        9  look at target
+;  10  L2  next target                   10  radar range
+;  11  L3  ignition                      11  radar camera
+;  12  R3  handbrake                     12  binoculars
+;  13  PS  horn                          13  poetry
+;   hat U/R/D/L  lights/map/ignition/notepad     hat U/D = gear up/down
+; KEEP THIS TABLE IN SYNC WITH gWheelBase/gWheelAlt BELOW. A stale comment in
+; this file (gears as =/- when input.map binds Period/Comma) already cost a
+; silent no-op once.
+;
+; BUTTON NUMBERS ARE FROM THRUSTMASTER'S MANUAL ("MAPPING FOR PC" page), which
+; confirms every number we measured by press-order. PC <- PlayStation label:
+;   1=L1 (left paddle)   2=R1 (right paddle)   9=R2    10=L2
+;   3,4,5,6 = the face cluster (triangle/square/circle/cross)
+;   7=SHARE/CREATE ("SE")  8=OPTIONS  11=L3  12=R3  13=PS
+; R2 (9) is weapon_link - fire linked groups as ONE event, which is also the
+; engine-native way to fire several hardpoints without the FFB crash (see
+; docs/WHEEL-T300.md).
 gWheelShiftBtn := 6
 gWheelBase := {1: "2", 2: "Enter", 3: "Tab", 4: "Space", 5: "6"
-             , 7: "3", 8: "t", 9: "q", 10: "y", 11: "i", 12: "Space", 13: "g"}
-gWheelAlt  := {1: "LButton", 2: "f", 3: "v", 4: "x", 5: "7"
+             , 7: "3", 8: "t", 9: "f", 10: "y", 11: "i", 12: "Space", 13: "g"}
+gWheelAlt  := {1: "LButton", 2: "q", 3: "v", 4: "x", 5: "7"
              , 7: "4", 8: "u", 9: "e", 10: "r", 11: "k", 12: "b", 13: "p"}
 ; NEVER fire two hardpoints from one button. Doing so (left paddle = "LButton|2",
 ; SE = "3|4") CRASHED the game 2026-08-01 inside I7_SFRCE.DLL - the Nitro Pack
