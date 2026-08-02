@@ -246,3 +246,67 @@ the engine. `--capture` waits for input instead of racing a timer, and warms up 
 its baseline: a naive trigger fires on the *device settling*, not on the user, which cost two
 capture runs before it was built this way. Its `centre-resting test` directly answers whether a
 given axis can drive `throttle`.
+
+---
+
+## When the wheel works in the control panel but NOT in game
+
+Field case, 2026-08-01, second Windows box: the wheel was **perfect in Thrustmaster's
+control panel** — all buttons, full rotation, pedals COMBINED — yet in game there was
+no steering, no buttons, and no FFB. It had been working on another Windows laptop
+minutes earlier.
+
+**Thrustmaster's panel talks DirectInput. The 1997 engine reads winmm.** The two see
+the device through different layers, so "fine in the control panel" says nothing about
+what the game gets. Always confirm through winmm (`tools/i76-joyprobe.py`).
+
+### Cause 1 — a stale winmm calibration (CONFIRMED, fixed)
+
+`HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings`
+holds a `JoystickNConfiguration` blob per slot. On this machine the wheel's said:
+
+| axis | driver declares (`joyGetDevCaps`) | stored config claimed |
+|---|---|---|
+| X | 0–65535 | 0–65535 |
+| **Y / Z / R** | **0–65535** | **0–1023** |
+
+A 64x scaling error on three axes. Every reading through winmm came out incoherent —
+axes bleeding into one another, half-scale jumps, values moving during "press buttons
+only". After correcting it, X read a proper centred, jittering 31681–32767.
+
+The blob is `JOYREGHWCONFIG`; `jrvHardware` (a `JOYRANGE`) sits at **offset 12**, laid
+out as `min[6], max[6], center[6]` DWORDs in X,Y,Z,R,U,V order — so max is at offset
+36 and center at 60. Fix by writing 65535/32768 into the offending axes, or by
+`joy.cpl` → Properties → Settings → **Reset to default** + Calibrate.
+
+**Export the key before touching it**
+(`reg export "HKCU\System\...\Joystick" backup.reg`); restoring is a double-click.
+
+### Cause 2 — FFB needs a registry key this portable copy never had
+
+`enable-force-feedback.bat` (**as Administrator**) creates
+`HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76` with `EXE=i76.exe`. Verified
+absent on this box and present after running it.
+
+This is the answer to "why did FFB work on the laptop?" — the laptop was a GOG
+*installed* copy, and GOG's installer writes that key. A **portable/zip copy carries
+the game files but not the registry**, so FFB is silently dormain until the batch file
+is run. Nothing about the wheel or its driver is involved.
+
+### Still open on that box
+
+Buttons were not reported through winmm even with the calibration corrected. Not
+resolved. Notes for whoever picks it up:
+
+- The device is healthy: `ConfigManagerErrorCode=0`, and OS-level FFB is registered
+  (`OEMForceFeedback` CLSID plus Thrustmaster's effect table).
+- Its OEM registry entry registers **10 buttons for a 13-button wheel** and **3 axes
+  for a 4-axis device** — a real mismatch, though those subkeys are believed to be
+  control-panel presentation rather than functional gating.
+- This box has **two virtual joysticks the working laptop does not**: vJoy
+  (`joystick4`) and a 3Dconnexion KMJ Emulator (`joystick8`). vJoy is no longer needed
+  since head tracking moved to freetrack shared memory, so removing both is the
+  obvious next experiment.
+- **Do not conclude "no buttons" from a probe run while nobody is pressing any.** Two
+  readings here were taken with the user away and are worthless as evidence — the same
+  trap as the AHK probe above.
