@@ -4,6 +4,9 @@
 > brake, all 13 buttons, and **real force feedback** — confirmed in-sim on a Thrustmaster
 > T300RS. Every value below was measured through **winmm `joyGetPosEx`**, the API the 1997
 > engine itself reads.
+>
+> **One operational rule:** close the Thrustmaster control panel before launching, or FFB
+> silently fails to initialise and the first shot crashes the game. See the FFB section.
 
 **This closes the repo's oldest open question.**
 [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) concluded FFB was a dead end
@@ -159,40 +162,44 @@ paddle's `weapon_fire` hold is for. A repeat-tap mode was tried and removed — 
 and the map opens but won't close from the same button, stranding you mid-fight. Map stays on
 the keyboard (`M`).
 
-## FFB is real — and it crashes the game under sustained fire
+## FFB works — but CLOSE THE THRUSTMASTER CONTROL PANEL FIRST
 
-**`i76.exe` faults in `I7_SFRCE.DLL`** (the Nitro Pack force-feedback module), access violation,
-**fault offset `0x2505`**. Reproduced twice on 2026-08-01, both times while firing.
+**This is the single most important operational rule on this page.** Thrustmaster's own control
+panel says it at the bottom of every tab:
 
-The module's own strings show the path:
+> *"Always close this CONTROL PANEL window (by clicking OK) before starting your game."*
+
+The control panel **holds the DirectInput device**. Leave it open and the game's FFB init fails —
+the module's string is `I7FF_InitSystem Failed to open FF Joystick` — so its effect objects are
+never created. Then **the first shot dereferences a null effect handle**:
 
 ```
-Weapon: Hardpoint:%d WpnId:%d Freq:%d Gain:%d Direction:%d
-force\cannon1.frc
-I7FF_SIM_Effect: Error! Invalid Structure Size
+i76.exe  faulted in  I7_SFRCE.DLL   0xc0000005   fault offset 0x2505
 ```
 
-Every shot makes it load a per-weapon effect file from `force\` (14 of them) and play it through
-`DINPUT.dll`. Both crashes involved **many weapon effects in quick succession** — first from a
-binding that fired two hardpoints from one button, then from a repeat-fire mode tapping a
-hardpoint every ~120 ms. Removing each in turn did not stop it recurring, so **effect churn is a
-correlation, not a proven cause.**
+Reproduced three times on 2026-08-01, always the same offset, and the giveaway is that the last
+one had **no force feedback at all** — "FFB stopped working" and "crashes on fire" are not two
+problems, they are the same one. No FFB *because* init failed; crash *because* init failed.
 
-What is established: FFB works, and the module is unstable in combat with a modern wheel. This is
-1997 code doing exactly what it was written to do, meeting a device thirty years newer than its
-assumptions. No community report mentions it, because the reports that exist only establish that
-FFB *engages*.
+**Two earlier hypotheses in this document were wrong** and are retracted:
 
-**Options, in increasing order of effort:**
-1. **Play without FFB** — delete `HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76`. Steering,
-   pedals and buttons are unaffected; the setup is otherwise complete and stable.
-2. **Lower the wheel's Overall Strength** (75% here). Untested — worth trying if the fault is
-   effect magnitude rather than count.
-3. **Reverse-engineer it.** Well-bounded by this project's standards: 82 KB, plain `DINPUT.dll`
-   imports, a fixed fault offset, and strings naming the exact function.
+- that firing two hardpoints from one button caused it
+- that a repeat-fire mode tapping every ~120 ms caused it
 
-**Don't fire two hardpoints from one button.** Nothing in the stock game does it, and it was the
-first thing to crash. Use the engine's own `weapon_link` (`F`) to fire groups as one event.
+Both were plausible — the module does load a per-weapon effect from `force\*.frc` on every shot
+(`Weapon: Hardpoint:%d WpnId:%d Freq:%d Gain:%d Direction:%d`) — and both were removed in turn
+without stopping the crash, which should have been the clue. The control panel was open across
+all three. **Effect churn was never demonstrated to be the cause**, and the repeat-fire mode
+removed on its account may be perfectly safe to restore.
+
+The rule this yields is more general than the wheel:
+
+> When a device's own vendor UI warns you to close it before gaming, that warning is about
+> **exclusive device acquisition**, and it will present as the *game* being broken.
+
+**If FFB has already failed once**, a relaunch may not be enough — the crashed process can leave
+the device unreleased. Power-cycle the wheel (unplug USB and mains, ten seconds, back in) before
+launching again.
 
 ## Traps
 
