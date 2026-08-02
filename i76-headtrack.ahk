@@ -121,6 +121,22 @@ global PITCH_RANGE    := 80.0    ; (max 104)
 global KP             := 90.0    ; error -> delta
 global KP_P           := 90.0
 global DELTA_MAX      := 12000   ; clamp the injected delta
+
+; The engine's input poll rewrites these ints every frame (from the keyboard /
+; joystick glance), so a write every 8ms only sometimes survives to be read -
+; which is exactly "left/right does nothing, up/down glitches at the extremes".
+; The original calibration only worked because it wrote in a tight loop thousands
+; of times a second and won the race by brute force.
+; So while ANALOG is on we NOP the poll's writes to these two ints. This is far
+; safer than the earlier camera-float patch: these are INPUTS, not part of the
+; view transform, so nothing can end up mutually inconsistent (no missing
+; terrain). The only side effect is that keyboard/joystick glance is inert while
+; analog is on - which is the point, head tracking replaces it. Restored on mode
+; switch and exit. All seven are 5-byte `mov [disp32],eax`, byte-verified.
+global INPUT_SITES := [[0x44efbc,5,"A370675300"], [0x44f0c1,5,"A370675300"], [0x44fc5d,5,"A370675300"]
+    , [0x44fd7d,5,"A370675300"], [0x44fd98,5,"A370675300"]
+    , [0x44f053,5,"A378675300"], [0x44fd0b,5,"A378675300"]]
+global gInPatched := 0
 ; The vertical axis is NOT 0x4c2964 (the map's "cam_yaw") - writing it moves
 ; nothing. The apply fn stores to 0x4c2964/6c/70/74, and 70 is horizontal, so the
 ; vertical is one of the others. Ctrl+Alt+P cycles these live (beeps the slot
@@ -288,10 +304,15 @@ WriteBytes(addr, hex, len) {
 ; known site gets its real instruction back at startup. (Hit this for real - a
 ; Stop-Process left all six patched.)
 RestoreLeftovers() {
-    global PATCH_SITES, hProc
+    global PATCH_SITES, INPUT_SITES, hProc
     if (!hProc)
         return
-    for i, site in PATCH_SITES {
+    all := []
+    for i, s in PATCH_SITES
+        all.Push(s)
+    for i, s in INPUT_SITES
+        all.Push(s)
+    for i, site in all {
         addr := site[1], len := site[2], want := site[3]
         VarSetCapacity(cur, len, 0)
         if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
@@ -389,6 +410,7 @@ Tick:
     ReleaseAll()
     if (!OpenGame())
         return
+    SetInputPatch(true)   ; stop the poll clobbering the delta we push
     gView := ReadInt(ADDR_VIEW_MODE)
     ; FREEZE TEST (Ctrl+Alt+F): hold a fixed angle, ignoring the head entirely.
     if (gFreeze) {
@@ -415,6 +437,32 @@ return
 ClampD(v) {
     global DELTA_MAX
     return (v > DELTA_MAX) ? DELTA_MAX : (v < -DELTA_MAX) ? -DELTA_MAX : v
+}
+
+; NOP (or restore) the input poll's writes to the two look inputs, so the value
+; we push actually survives until the camera code reads it.
+SetInputPatch(on) {
+    global INPUT_SITES, gInPatched, hProc
+    if (!hProc || gInPatched = on)
+        return
+    for i, site in INPUT_SITES {
+        addr := site[1], len := site[2], want := site[3]
+        if (on) {
+            VarSetCapacity(cur, len, 0)
+            if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
+                continue
+            s := ""
+            Loop, % len
+                s .= Format("{:02X}", NumGet(cur, A_Index - 1, "UChar"))
+            if (s != want)          ; only ever patch the exact expected instruction
+                continue
+            VarSetCapacity(nop, len, 0x90)
+            WriteCode(addr, nop, len)
+        } else {
+            WriteBytes(addr, want, len)
+        }
+    }
+    gInPatched := on
 }
 
 
@@ -477,8 +525,10 @@ return
 ^!h::
     ReleaseAll()
     gMode := (gMode = "DIGITAL") ? "ANALOG" : "DIGITAL"
-    if (gMode = "DIGITAL")
-        SetPatch(false)   ; hand the camera back to the engine
+    if (gMode = "DIGITAL") {
+        SetPatch(false)        ; hand the camera back to the engine
+        SetInputPatch(false)   ; and give keyboard/joystick glance back
+    }
     ToolTip, % "I76 head tracking: " . gMode
     SetTimer, ClearTip, -1200
 return
@@ -488,7 +538,8 @@ return
 
 Bail:
     ReleaseAll()
-    SetPatch(false)   ; NEVER leave the engine's camera writes NOPed
+    SetPatch(false)        ; NEVER leave the engine's camera writes NOPed
+    SetInputPatch(false)   ; nor the input poll's - that would kill glance entirely
     if (pView)
         DllCall("UnmapViewOfFile", "Ptr", pView)
     if (hMap)
