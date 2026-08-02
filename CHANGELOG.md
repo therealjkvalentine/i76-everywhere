@@ -14,14 +14,20 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
   wrote to a stray file called `f` while their intended logs stayed empty, and the empty logs
   were read as evidence. *A probe that reports nothing is not evidence until the probe is
   proven to report something.*
-- **FFB crashes the game under sustained fire — `I7_SFRCE.DLL`, fault offset `0x2505`.**
-  Reproduced twice while firing. That module loads a per-weapon effect from `force\*.frc` on
-  every shot and plays it through DirectInput; both crashes involved many weapon effects in
-  quick succession, but removing each suspected trigger did not stop it recurring, so effect
-  churn is a **correlation, not a proven cause**. FFB works and is unstable in combat — 1997
-  code meeting a device thirty years newer. Options and a disassembly-ready writeup in
-  [docs/WHEEL-T300.md](docs/WHEEL-T300.md). Also settled there: **300°** is the right wheel
-  rotation for this game (an earlier draft guessed ~240°, too twitchy).
+- **The FFB "crash on fire" was the Thrustmaster control panel being open.** It holds the
+  DirectInput device, so the game's FFB init fails (`I7FF_InitSystem Failed to open FF
+  Joystick`), the effect objects are never created, and the first shot dereferences a null
+  handle — `i76.exe` faults in `I7_SFRCE.DLL` at offset `0x2505`, three times, always the same
+  offset. The tell was that the last one had **no force feedback at all**: "FFB stopped
+  working" and "crashes on fire" were one problem, not two. Thrustmaster's own control panel
+  warns about this on every tab (*"Always close this CONTROL PANEL window before starting your
+  game"*). **Two earlier hypotheses are retracted** — that firing two hardpoints from one
+  button caused it, and that a repeat-fire mode caused it. Both were removed in turn without
+  stopping the crash, which should have been the clue; the repeat-fire mode may be safe to
+  restore. Generalises past this wheel: *when a vendor UI warns you to close it before gaming,
+  that is about exclusive device acquisition, and it presents as the game being broken.*
+  Details in [docs/WHEEL-T300.md](docs/WHEEL-T300.md). Also settled there: **300°** is the
+  right wheel rotation (an earlier draft guessed ~240°, too twitchy).
 - **FORCE FEEDBACK WORKS.** Confirmed in-sim on a Thrustmaster T300RS, with analog
   steering, analog accelerator/brake and all 13 buttons. This closes the repo's oldest
   open question: [FORCE-FEEDBACK-AND-VISUALS.md](docs/FORCE-FEEDBACK-AND-VISUALS.md)
