@@ -62,7 +62,12 @@ global ANALOG_DZ_P   := 0.012  ; up/down wants a SMALL deadzone (field request x
 ; harder to track than turning.
 global EXPO          := 1.7
 global EXPO_P        := 2.2
-global EXPO_REF      := 0.45   ; rad: a full comfortable head turn, keeps expo unity-gain at the top
+; Per-axis reference: the head's OWN full deflection on each axis. These are not
+; the same and using one value for both was the bug that made up/down look dead -
+; measured at 100Hz, yaw reaches ~0.43 rad but pitch only ~0.17, so normalising
+; pitch against 0.45 asked for (0.17/0.45)^2.2 = 12% of its range and no more.
+global EXPO_REF      := 0.45   ; rad, yaw:   full comfortable head turn
+global EXPO_REF_P    := 0.17   ; rad, pitch: people nod through a much smaller arc
 ; Pitch also gets its own, heavier filter for the same reason.
 global SMOOTH_P      := 0.8
 ; The clamp was the real reason side-to-side kept feeling short: at gain 4.0 a
@@ -116,8 +121,8 @@ global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
 ; gain; the residual steady-state offset is why it is deliberately large.
 global ADDR_IN_YAW    := 0x536770
 global ADDR_IN_PITCH  := 0x536778
-global YAW_RANGE      := 115.0   ; engine units to use at full head turn (max 133)
-global PITCH_RANGE    := 80.0    ; (max 104)
+global YAW_RANGE      := 70.0    ; engine units at full head turn (max 133; 115 was too twitchy)
+global PITCH_RANGE    := 70.0    ; (max 104)
 global KP             := 90.0    ; error -> delta
 global KP_P           := 90.0
 global DELTA_MAX      := 12000   ; clamp the injected delta
@@ -418,8 +423,9 @@ Tick:
         return
     }
     ; head angle -> a fraction of full deflection (-1..1), expo'd about centre
-    nY := Expo(Dead(yaw,   ANALOG_DZ),   EXPO)   / EXPO_REF
-    nP := Expo(Dead(pitch, ANALOG_DZ_P), EXPO_P) / EXPO_REF
+    ; Expo now returns a normalised -1..1 fraction of that axis's own full travel
+    nY := Expo(Dead(yaw,   ANALOG_DZ),   EXPO,   EXPO_REF)
+    nP := Expo(Dead(pitch, ANALOG_DZ_P), EXPO_P, EXPO_REF_P)
     nY := (nY > 1) ? 1 : (nY < -1) ? -1 : nY
     nP := (nP > 1) ? 1 : (nP < -1) ? -1 : nP
     gSmY := gSmY * SMOOTH   + nY * (1 - SMOOTH)
@@ -468,16 +474,15 @@ SetInputPatch(on) {
 
 ; Power curve about centre, normalised so a full turn still reaches full travel:
 ; only the small stuff gets attenuated, the ends are untouched.
-Expo(v, k) {
-    global EXPO_REF
-    n := v / EXPO_REF
+Expo(v, k, ref) {
+    n := v / ref
     s := (n < 0) ? -1 : 1
     a := Abs(n)
     if (a > 1)
         a := 1 + (a - 1)        ; past the reference, stay linear - don't blow up
     else
         a := a ** k
-    return s * a * EXPO_REF
+    return s * a
 }
 
 ; subtract the deadzone rather than zeroing inside it - no step on the way out
