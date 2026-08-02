@@ -110,25 +110,70 @@ steer    { - joystick1  Left/Right }   # X, rests centred ~33100, full lock 0..6
 throttle { - joystick1  Down/Up    }   # Y, COMBINED pedals, rests 32767
 ```
 
-**Buttons bind natively, and `Button5`–`Button13` all work.** Earlier in the day these were
-wrongly blamed for the hang (see §4 for the real cause); the engine's parser accepts them
-fine. Numbers measured by press order, not read off the control-panel diagram — its callout
-lines don't reliably separate 11 from 12, and those are exactly the L3/R3 pair.
+**Buttons run through the AHK layer, not `input.map`.** `input.map` keeps only the two analog
+sinks; every button and the hat are emitted by [i76-remap.ahk](../i76-remap.ahk) as the engine's
+stock keys. Native `joystick1 Button1`–`Button13` *do* all work (an earlier draft wrongly blamed
+`Button5+` for a hang that was really the stuck-arrow bug in §4) — but native tops out at one
+action per button, where AHK gives a **shift layer** and roughly 27 actions from 13 buttons.
 
-| # | Physical | Action |
-|---|---|---|
-| 1 | Left paddle | `hardpoint2_fire` |
-| **2** | **Right paddle** | **`weapon_fire`** — fires the *selected* weapon, incl. the cockpit handgun out the side window |
-| 3 / 4 / 5 | cluster | `weapon_cycle` / `e_brake` / `special1` (nitrous) |
-| 6 | cluster | `hardpoint1_fire` |
-| 7 / 8 / 9 | cluster | `frontal_target` / `TARGET_NEAREST_ENEMY` / `NEXT_TARGET` |
-| **10** | rim | **deliberately unbound** — see below |
-| 11 / 12 / 13 | L3 / R3 / PS | `toggle_lights` / `start_engine` / `HONK_HORN` |
-| Hat ×4 | POV | `pilot_glance_*` |
+Numbers measured by press order, not read off the control-panel diagram — its callout lines
+don't reliably separate 11 from 12, and those are exactly the L3/R3 pair.
+
+| # | Physical | Base | Hold **6** = shift |
+|---|---|---|---|
+| 1 | Left paddle | hardpoint 2 | hardpoint 1 |
+| 2 | Right paddle | **fire selected weapon** (incl. cockpit handgun) | `weapon_link` |
+| 3 / 4 / 5 | cluster | cycle weapon / handbrake / nitrous | combat view / reverse / special 2 |
+| **6** | cluster | **SHIFT** | — |
+| 7 | SE | rear gun (hp3) | dropper (hp4) |
+| 8 / 9 | cluster | target nearest / front target | untarget / look at target |
+| 10 | L2 | next target | radar range |
+| 11 | L3 | ignition | radar camera |
+| 12 | R3 | handbrake | binoculars |
+| 13 | PS | horn | poetry |
+| Hat | D-pad | lights / map / ignition / notepad | gear up/down (Period/Comma) |
+
+Direct hardpoint keys are **one shot per press** by design; sustained fire is what the right
+paddle's `weapon_fire` hold is for. A repeat-tap mode was tried and removed — see the FFB section.
 
 **Nothing modal on a rim button.** `SHOW_MAP` lived on 10 and got hit by accident mid-corner —
 and the map opens but won't close from the same button, stranding you mid-fight. Map stays on
 the keyboard (`M`).
+
+## FFB is real — and it crashes the game under sustained fire
+
+**`i76.exe` faults in `I7_SFRCE.DLL`** (the Nitro Pack force-feedback module), access violation,
+**fault offset `0x2505`**. Reproduced twice on 2026-08-01, both times while firing.
+
+The module's own strings show the path:
+
+```
+Weapon: Hardpoint:%d WpnId:%d Freq:%d Gain:%d Direction:%d
+force\cannon1.frc
+I7FF_SIM_Effect: Error! Invalid Structure Size
+```
+
+Every shot makes it load a per-weapon effect file from `force\` (14 of them) and play it through
+`DINPUT.dll`. Both crashes involved **many weapon effects in quick succession** — first from a
+binding that fired two hardpoints from one button, then from a repeat-fire mode tapping a
+hardpoint every ~120 ms. Removing each in turn did not stop it recurring, so **effect churn is a
+correlation, not a proven cause.**
+
+What is established: FFB works, and the module is unstable in combat with a modern wheel. This is
+1997 code doing exactly what it was written to do, meeting a device thirty years newer than its
+assumptions. No community report mentions it, because the reports that exist only establish that
+FFB *engages*.
+
+**Options, in increasing order of effort:**
+1. **Play without FFB** — delete `HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76`. Steering,
+   pedals and buttons are unaffected; the setup is otherwise complete and stable.
+2. **Lower the wheel's Overall Strength** (75% here). Untested — worth trying if the fault is
+   effect magnitude rather than count.
+3. **Reverse-engineer it.** Well-bounded by this project's standards: 82 KB, plain `DINPUT.dll`
+   imports, a fixed fault offset, and strings naming the exact function.
+
+**Don't fire two hardpoints from one button.** Nothing in the stock game does it, and it was the
+first thing to crash. Use the engine's own `weapon_link` (`F`) to fire groups as one event.
 
 ## Traps
 
@@ -136,19 +181,36 @@ the keyboard (`M`).
   every comment, deleted the keyboard driving bindings (`W`/`S`/`A`/`D`) and the `Grey*Arrow`
   glance set, and moved `hardpoint2_fire` from `keyboard Two` to `mouse RightBtn`. It "added"
   joystick axes that were already there. Back up first; edit the file directly.
-- **Rotation: drop 900° to ~240°.** The T300 default is 2.5 turns lock-to-lock — right for a
-  sim, wrong for a game whose steering was designed around the `A` and `D` keys.
+- **Rotation: 300°.** Field-settled 2026-08-01. The T300 defaults to 900° (2.5 turns
+  lock-to-lock) — right for a sim, wrong for a game whose steering was designed around the `A`
+  and `D` keys. 300° is the value that actually plays well; an earlier draft of this doc guessed
+  ~240°, which is too twitchy. Set it on the control panel's *Test Input* tab.
 - **Connect the wheel before launching.** The engine enumerates joysticks once, at startup.
 - One `i76.exe` crash was logged in **`winmmbase.dll`** (0xc0000005). KB5101650 — the known
   winmm-breaking update — was *not* installed, so this is unexplained; noted because I76's
   entire input path is winmm and a wheel polls it hard.
 
+## RETRACTED: "AHK can't read this wheel"
+
+An earlier version of this document stated that AHK could not see the wheel's buttons. **That
+was wrong.** AHK reads all 13 buttons fine, headless (no GUI window needed), with both the
+plain `GetKeyState("Joy1")` and prefixed `GetKeyState("1Joy1")` forms, including simultaneous
+presses.
+
+The finding came from a bug in the probe scripts, not the hardware: `FileAppend, % text, f`
+treats `f` as a **literal filename**, not the variable — AHK needs `%f%`. Three probes wrote
+their output to a stray file called `f` while their intended logs stayed empty, and the empty
+logs were read as "AHK sees nothing".
+
+**The lesson, since this cost hours:** a probe that reports *nothing* is not evidence until the
+probe itself is proven to report *something*. Give every diagnostic a positive control — the
+Python winmm probe that "disproved" AHK was the control that should have been run against a
+known-good AHK log first.
+
 ## Open
 
-- **AHK cannot see this wheel's buttons.** `GetKeyState("JoyInfo"/"JoyButtons"/"JoyX")` all
-  read correctly, but `GetKeyState("Joy1".."Joy13")` never registered a single press, while a
-  Python winmm probe on the same device read them fine. Unexplained. Native bindings made it
-  moot, so the wheel layer in `i76-remap.ahk` is present but **disabled**.
+- Whether one button firing two hardpoints (`hardpoint1_fire` + `hardpoint2_fire` both
+  naming `Button1`) actually drives both, or only the first block the parser sees.
 - Whether FFB effects are distinguishable per event, and how they feel at a 20 FPS base.
 
 ## The instrument
