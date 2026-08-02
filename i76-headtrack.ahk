@@ -42,8 +42,14 @@ global YAW_ON      := 0.18   ; rad, ~10deg: past this the glance key goes down
 global YAW_OFF     := 0.12   ; rad, ~7deg:  inside this it comes back up
 ; Pitch gets a smaller gate than yaw on purpose - people nod through a much
 ; narrower arc than they turn (measured: yaw reached ~0.43 rad, pitch ~0.17).
-global PITCH_ON    := 0.12
-global PITCH_OFF   := 0.08
+; Nodding through a small arc, so these are deliberately tight (field: "I have to
+; nod too far" at 0.12/0.08).
+global PITCH_ON    := 0.05
+global PITCH_OFF   := 0.03
+; The Up arrow is NOT glance-up in this engine - it is LOOK BACK, so nodding up
+; was throwing the view to the rear. Disabled. Set to 1 only if a future binding
+; makes Up mean glance-up.
+global PITCH_UP_KEY := 0
 ; Analog feel. Gain 2.5 because a comfortable head turn only reaches ~0.43 rad -
 ; at the old 1.6 the view ran out of travel well before you ran out of neck.
 ; Separate gains: side-to-side wants far more travel than up/down, and a big
@@ -424,10 +430,12 @@ Tick:
         else if (yaw > -YAW_OFF)
             KeySet("Left", false)
 
-        if (pitch > PITCH_ON)
-            KeySet("Up", true)
-        else if (pitch < PITCH_OFF)
-            KeySet("Up", false)
+        if (PITCH_UP_KEY) {
+            if (pitch > PITCH_ON)
+                KeySet("Up", true)
+            else if (pitch < PITCH_OFF)
+                KeySet("Up", false)
+        }
         if (pitch < -PITCH_ON)
             KeySet("Down", true)
         else if (pitch > -PITCH_OFF)
@@ -471,10 +479,12 @@ Tick:
     if (PITCH_VIA_KEYS) {
         ; same hysteresis the digital glance uses - press past *_ON, release
         ; inside *_OFF, so a head hovering on the edge cannot chatter the key
-        if (pitch > PITCH_ON)
-            KeySet("Up", true)
-        else if (pitch < PITCH_OFF)
-            KeySet("Up", false)
+        if (PITCH_UP_KEY) {
+            if (pitch > PITCH_ON)
+                KeySet("Up", true)
+            else if (pitch < PITCH_OFF)
+                KeySet("Up", false)
+        }
         if (pitch < -PITCH_ON)
             KeySet("Down", true)
         else if (pitch > -PITCH_OFF)
