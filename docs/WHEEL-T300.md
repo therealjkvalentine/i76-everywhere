@@ -276,8 +276,21 @@ only". After correcting it, X read a proper centred, jittering 31681–32767.
 
 The blob is `JOYREGHWCONFIG`; `jrvHardware` (a `JOYRANGE`) sits at **offset 12**, laid
 out as `min[6], max[6], center[6]` DWORDs in X,Y,Z,R,U,V order — so max is at offset
-36 and center at 60. Fix by writing 65535/32768 into the offending axes, or by
-`joy.cpl` → Properties → Settings → **Reset to default** + Calibrate.
+36 and center at 60. `dwNumButtons` is at offset 4. Fix by writing 65535/32768 into
+the offending axes, or by `joy.cpl` → Properties → Settings → **Reset to default** +
+Calibrate.
+
+**THERE ARE TWO COPIES AND YOU MUST FIX BOTH.** Under the same `DINPUT.DLL` key:
+
+```
+CurrentJoystickSettings\Joystick1Configuration          <- the live one
+JoystickSettings\VID_044F&PID_B66E\Joystick1Configuration  <- the per-device MASTER
+```
+
+Patching only `CurrentJoystickSettings` looks like it works and then silently reverts:
+the per-device copy is authoritative and is reloaded on the next enumeration. Both were
+wrong here, and fixing only the first is why the first repair attempt appeared to have
+no effect. After fixing both, all four axes read a clean centred 32767 at rest.
 
 **Export the key before touching it**
 (`reg export "HKCU\System\...\Joystick" backup.reg`); restoring is a double-click.
