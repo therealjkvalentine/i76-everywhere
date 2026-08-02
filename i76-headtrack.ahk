@@ -125,11 +125,21 @@ global ADDR_IN_PITCH  := 0x536778
 ; 104). Tune these LIVE with Ctrl+Alt+[ and Ctrl+Alt+] rather than by editing -
 ; 115 and 70 both came back "way too sensitive", so the useful value is clearly
 ; well below half the available range.
-global YAW_RANGE      := 40.0
-global PITCH_RANGE    := 40.0
+; Field result: yaw feels right at 4 - only 3% of the 133 ceiling - so the engine
+; units are far finer than the saturation figure suggests, and the useful tuning
+; band is down near 1..10, not 40..115. Steps are 1.15x and the floor is 0.2.
+; RADIANS. Measured off the engine's OWN arrow-key glance: the camera floats only
+; travel about +/-0.2 rad and the int delta only ranges -13..+6. Earlier values
+; here (115, 70, 40, even 4) were all in the wrong unit by 1-2 orders of
+; magnitude - "4" meant 4 RADIANS, i.e. 229 degrees - which is why yaw was
+; oversensitive at the minimum and pitch, clamped, did nothing at all.
+; The "saturation at 133" I calibrated against came from injecting values far
+; outside the engine's design range; it is not a usable scale.
+global YAW_RANGE      := 0.30
+global PITCH_RANGE    := 0.20
 global KP             := 90.0    ; error -> delta
 global KP_P           := 90.0
-global DELTA_MAX      := 12000   ; clamp the injected delta
+global DELTA_MAX      := 60      ; clamp: the engine's own glance only uses -13..+6
 
 ; The engine's input poll rewrites these ints every frame (from the keyboard /
 ; joystick glance), so a write every 8ms only sometimes survives to be read -
@@ -162,6 +172,7 @@ global gHeld := {}
 global gView := 0
 global gSmY := 0, gSmP := 0
 global gFreeze := 0
+global gLog := 0
 
 ; ---- THE FIX FOR THE SHAKE ---------------------------------------------------
 ; The engine stamps its own value over both camera angles every frame, from the
@@ -442,6 +453,20 @@ Tick:
     dP := KP_P * (tgtP - ReadFloat(ADDR_CAM_PITCH))
     WriteInt(ADDR_IN_YAW,   Round(ClampD(dY)))
     WriteInt(ADDR_IN_PITCH, Round(ClampD(dP)))
+
+    ; diagnostic sample (Ctrl+Alt+L): does the pitch delta we push survive the
+    ; frame, and does the camera actually respond to it?
+    if (gLog && A_TickCount < gLog) {
+        FileAppend, % "hP=" . Round(pitch,3)
+            . "  nP=" . Round(nP,3)
+            . "  tgtP=" . Round(tgtP,2)
+            . "  dP=" . Round(dP,0)
+            . "  inP(readback)=" . ReadInt(ADDR_IN_PITCH)
+            . "  camP=" . Round(ReadFloat(ADDR_CAM_PITCH),2)
+            . "  cam2964=" . Round(ReadFloat(0x4c2964),2)
+            . "  camY=" . Round(ReadFloat(ADDR_CAM_YAW),2) . "`n"
+            , % A_ScriptDir . "\headtrack-log.txt"
+    }
 return
 
 ClampD(v) {
@@ -509,28 +534,51 @@ Clamp(v) {
 
 ; Ctrl+Alt+[ / Ctrl+Alt+] - sensitivity DOWN / UP, live, while you play.
 ; Both axes scale together so the feel stays consistent. Low beep = less.
+; [ / ] = YAW finer/coarser.  - / = = PITCH finer/coarser.  Separate, because they
+; do not want the same number: yaw settled at 4 while pitch showed nothing there.
 ^![::
-    Sens(0.75)
+    Sens(0.87, 1)
 return
 ^!]::
-    Sens(1.333)
+    Sens(1.15, 1)
 return
-Sens(mul) {
+^!-::
+    Sens(0.87, 0)
+return
+^!=::
+    Sens(1.15, 0)
+return
+Sens(mul, isYaw) {
     global YAW_RANGE, PITCH_RANGE
-    YAW_RANGE   := Round(YAW_RANGE   * mul, 1)
-    PITCH_RANGE := Round(PITCH_RANGE * mul, 1)
-    if (YAW_RANGE < 4)
-        YAW_RANGE := 4
-    if (PITCH_RANGE < 4)
-        PITCH_RANGE := 4
-    if (YAW_RANGE > 133)
-        YAW_RANGE := 133
-    if (PITCH_RANGE > 104)
-        PITCH_RANGE := 104
-    SoundBeep, % (mul < 1 ? 500 : 1200), 70
-    ToolTip, % "sensitivity  yaw " . YAW_RANGE . "   pitch " . PITCH_RANGE
+    ; radians now - the engine's own glance lives around 0.2, so the useful band
+    ; is roughly 0.05 .. 0.8 and the old 133/104 ceilings are meaningless here.
+    if (isYaw) {
+        YAW_RANGE := Round(YAW_RANGE * mul, 3)
+        if (YAW_RANGE < 0.02)
+            YAW_RANGE := 0.02
+        if (YAW_RANGE > 1.5)
+            YAW_RANGE := 1.5
+    } else {
+        PITCH_RANGE := Round(PITCH_RANGE * mul, 3)
+        if (PITCH_RANGE < 0.02)
+            PITCH_RANGE := 0.02
+        if (PITCH_RANGE > 1.5)
+            PITCH_RANGE := 1.5
+    }
+    SoundBeep, % (mul < 1 ? 500 : 1200), 60
+    ToolTip, % "yaw " . YAW_RANGE . "    pitch " . PITCH_RANGE
     SetTimer, ClearTip, -1400
 }
+
+; Ctrl+Alt+L - log 6s of the pitch chain to headtrack-log.txt beside the script.
+; Telemetry read from outside always looks frozen because the script only drives
+; the game while the game has FOCUS - so it has to be logged from in here.
+^!l::
+    gLog := A_TickCount + 6000
+    SoundBeep, 1500, 120
+    ToolTip, logging 6s - nod up and down NOW
+    SetTimer, ClearTip, -2500
+return
 
 ; Ctrl+Alt+F - freeze the output at a fixed angle (diagnostic, see the Tick code)
 ^!f::
