@@ -19,6 +19,7 @@ param(
     [string]$OutDir  = "",
     [switch]$IncludeSaves,   # include your savegames in the portable zip
     [switch]$IncludeFrameGen,# bundle Lossless Scaling too (your licence, your PCs only)
+    [switch]$IncludeHeadTrack,# bundle opentrack + the head-tracking scripts (opentrack is GPL)
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
@@ -153,6 +154,65 @@ timeout /t 3 /nobreak >nul
 start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe
 '@ -Encoding ascii
         Say "Frame generation bundled (Lossless Scaling + Setup-FrameGen.ps1 + launcher)." 'Green'
+    }
+}
+
+# --- optional: bundle opentrack (head tracking) ------------------------------
+# opentrack is GPL and freely redistributable, so unlike Lossless Scaling this
+# carries no licence caveat. What matters is the CONFIG: the script reads
+# opentrack's freetrack shared memory, so the bundled profile must have
+# protocol-dll=freetrack, not the vjoy default. We ship a profile that is already
+# set that way, so a target PC needs only "Start".
+if ($IncludeHeadTrack) {
+    $otSrc = $null
+    foreach ($p in "${env:ProgramFiles(x86)}\opentrack", "$env:ProgramFiles\opentrack") {
+        if (Test-Path (Join-Path $p 'opentrack.exe')) { $otSrc = $p; break }
+    }
+    if (-not $otSrc) {
+        Say "-IncludeHeadTrack: opentrack not installed - skipping." 'Yellow'
+    } else {
+        Say "Staging opentrack from $otSrc ..."
+        robocopy $otSrc (Join-Path $staging 'opentrack') /E /NFL /NDL /NJH /NJS /NP | Out-Null
+        if ($LASTEXITCODE -ge 8) { Say "robocopy of opentrack failed ($LASTEXITCODE)." 'Red'; exit 1 }
+
+        # carry the live profile, forced to the freetrack output the script needs
+        $cfgDir = Join-Path $staging 'opentrack-profile'
+        New-Item -ItemType Directory -Force $cfgDir | Out-Null
+        $ini = Get-ChildItem "$env:USERPROFILE\Documents\opentrack-2.3" -Filter '*.ini' -ErrorAction SilentlyContinue |
+               Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($ini) {
+            (Get-Content $ini.FullName) -replace '^protocol-dll=.*', 'protocol-dll=freetrack' |
+                Set-Content (Join-Path $cfgDir $ini.Name) -Encoding utf8
+            Say "  profile $($ini.Name) staged (output forced to freetrack)."
+        } else {
+            Say "  no opentrack profile found - set Output = freetrack 2.0 Enhanced by hand on the target PC." 'Yellow'
+        }
+
+        Copy-Item (Join-Path $repo 'i76-headtrack.ahk')      (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repo 'i76-headtrack-test.ahk') (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+
+        Set-Content (Join-Path $staging 'HEADTRACK.bat') @'
+@echo off
+REM Interstate '76 head tracking (opentrack -> freetrack shared memory).
+REM ONE-TIME PER PC: copy opentrack-profile\*.ini into
+REM   %USERPROFILE%\Documents\opentrack-2.3\
+REM so the Output is already "freetrack 2.0 Enhanced" - the script reads that,
+REM NOT the vjoy output opentrack ships with by default.
+REM Then: start opentrack, press Start, run this, focus the game.
+REM   Ctrl+Alt+H  digital <-> analog       Ctrl+Alt+[ ]  yaw sensitivity
+REM   Ctrl+Alt+- =  pitch sensitivity      Ctrl+Alt+L    log telemetry
+start "" "%~dp0opentrack\opentrack.exe"
+start "" "%~dp0Interstate 76\_ahk\AutoHotkeyU32.exe" "%~dp0Interstate 76\_ahk\i76-headtrack.ahk"
+'@ -Encoding ascii
+        Set-Content (Join-Path $staging 'HEADTRACK-TEST.bat') @'
+@echo off
+REM Live diagnostic window for the head-tracking chain - shows whether
+REM FT_SharedMem is present, whether yaw is moving, whether the thresholds trip,
+REM and whether the GAME WINDOW IS ACTIVE (the usual reason "nothing happens").
+REM Sends no keys unless you tick the box.
+start "" "%~dp0Interstate 76\_ahk\AutoHotkeyU32.exe" "%~dp0Interstate 76\_ahk\i76-headtrack-test.ahk"
+'@ -Encoding ascii
+        Say "Head tracking bundled (opentrack + profile + scripts + launchers)." 'Green'
     }
 }
 
