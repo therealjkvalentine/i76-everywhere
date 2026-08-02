@@ -62,29 +62,65 @@ SetTimer, RStickGlance, 15
 OnExit, RSGExit
 
 ; ---- WHEEL layer (2026-08-01, Thrustmaster T300RS). A DirectInput wheel is
-; INVISIBLE to XInput, so XIPoll below never sees it - but it IS a winmm
-; joystick, which is how both the engine and AHK reach it. Hence this second
-; polled layer.
+; INVISIBLE to XInput, so XIPoll below never sees it - but AHK reads it fine
+; through winmm, headless, no GUI needed (verified with a positive control after
+; an earlier probe bug wrongly said otherwise - see docs/WHEEL-T300.md).
 ;
-; Detected by capability, not by name: a wheel has NO U axis (JoyInfo "ZRPD")
-; where an Xbox pad does (right stick), and reports 11+ buttons. Both must hold,
-; so a pad never falls in here and the Mac/Deck path is untouched.
+; Detected by capability, not name: a wheel has NO U axis (JoyInfo "ZRPD") where
+; an Xbox pad does, and reports 11+ buttons. Both must hold, so a pad never lands
+; here and the Mac/Deck path is untouched.
 ;
-; input.map keeps ONLY the analog sinks + the POV hat for a wheel; every button
-; is emitted here as the engine's stock keys. That avoids the double-fire you
-; get when a button is bound natively AND remapped.
-;   @wheel 1  Left paddle  : hardpoint 2
-;   @wheel 2  Right paddle : hardpoint 1 (LButton - the engine's hp1 binding)
-;   @wheel 3  cycle weapon (Tab)        4  handbrake (Space)
-;   @wheel 5  nitrous / special1 (6)    6  fire selected weapon (Enter)
-;   @wheel 7  front target (Q)          8  target nearest (T)
-;   @wheel 9  next target (Y)          10  map (M)
-;   @wheel 11 L3 headlights (H)        12  R3 ignition (I)      13 PS horn (G)
-; HOLD keys stay down while held (firing); TAP keys fire once per press, so a
-; held button can't re-toggle the map or the lights.
-gWheelHold := {1: "2", 2: "LButton", 5: "6", 6: "Enter"}
-gWheelTap  := {3: "Tab", 4: "Space", 7: "q", 8: "t", 9: "y", 10: "m", 11: "h", 12: "i", 13: "g"}
+; input.map keeps ONLY the analog sinks (steer/throttle) for a wheel. EVERY
+; button and the hat are emitted here as the engine's stock keys - binding them
+; natively as well would double-fire.
+;
+;   BASE                                  HOLD Button6 = SHIFT LAYER
+;   1  L-paddle  hardpoints 1+2           1  hardpoint 5
+;   2  R-paddle  fire selected weapon     2  link weapons
+;   3  cycle weapon                       3  combat view
+;   4  handbrake                          4  reverse
+;   5  nitrous (special1)                 5  special 2
+;   6  >>> SHIFT <<<                      7  special 3
+;   7  SE  rear gun + dropper (hp3+hp4)   8  untarget
+;   8  target nearest                     9  look at target
+;   9  front target                      10  radar range
+;  10  L2  next target                   11  radar camera
+;  11  L3  ignition                      12  binoculars
+;  12  R3  handbrake                     13  poetry
+;  13  PS  horn
+;   hat U/D/L/R  lights/ignition/notepad/map      hat U/D = gear up/down
+gWheelShiftBtn := 6
+gWheelBase := {1: "2", 2: "Enter", 3: "Tab", 4: "Space", 5: "6"
+             , 7: "3", 8: "t", 9: "q", 10: "y", 11: "i", 12: "Space", 13: "g"}
+gWheelAlt  := {1: "LButton", 2: "f", 3: "v", 4: "x", 5: "7"
+             , 7: "4", 8: "u", 9: "e", 10: "r", 11: "k", 12: "b", 13: "p"}
+; NEVER fire two hardpoints from one button. Doing so (left paddle = "LButton|2",
+; SE = "3|4") CRASHED the game 2026-08-01 inside I7_SFRCE.DLL - the Nitro Pack
+; force-feedback module - at the weapon-effect path (it loads force\*.frc per
+; Hardpoint/WpnId and plays it through DirectInput). Two simultaneous weapon
+; effects is a case that 1997 code never sees. Use the engine's own weapon_link
+; (F, on shift+2) to fire groups together instead.
+; held while the button is held (fire, handbrake); everything else taps once.
+gWheelHoldSet := {2: 1, 4: 1, 12: 1}
+; REPEAT-tap while held: a held hardpoint digit only fires ONCE in-engine, so
+; re-tap it every gWheelRepeatTicks polls (~15ms each) for sustained fire.
+; REPEAT-FIRE DISABLED 2026-08-01. Tapping a hardpoint every ~120ms made
+; I7_SFRCE.DLL (the FFB module) load+play a force\*.frc that fast, and it
+; FAULTED AGAIN at 20:00 with this enabled - after the dual-fire binding was
+; already removed. Both crashes share one factor: many weapon FFB effects in
+; quick succession. Direct hardpoint keys are ONE SHOT PER PRESS by design;
+; sustained fire is what weapon_fire (right paddle, a true hold) is for.
+; Set gWheelRepeatTicks and re-add entries here only if FFB proves robust.
+gWheelRepeat := {}
+gWheelRepeatTicks := 20
+gWheelRepCount := {}
+gWheelHat  := {0: "h", 9000: "m", 18000: "i", 27000: "n"}      ; U R D L
+gWheelHatAlt := {0: ".", 18000: ","}   ; shift: gear up/down. THIS input.map binds
+; shift_up/shift_down to Period/Comma, NOT the =/- in the header note above -
+; verified against the live file 2026-08-01. Check before trusting that comment.
 gWheelPrev := {}
+gWheelHeld := {}
+gWheelPovPrev := -1
 SetTimer, WheelPoll, 15
 
 ; ---- XInput layer (2026-07-18): things winmm can NOT deliver.
@@ -212,27 +248,80 @@ RSGSet(key, want) {
     }
 }
 
-; ---- wheel button poll (see the @wheel map near the top).
+; ---- wheel poll (see the map near the top).
 WheelPoll:
 wInfo := GetKeyState("JoyInfo")
 wBtns := GetKeyState("JoyButtons")
-; No device, or it's a gamepad (has a U axis = right stick), or too few buttons
-; to be a wheel -> make sure nothing is left held, and stay out of the way.
+; No device, a gamepad (has U = right stick), or too few buttons -> release and bail.
 if (wInfo = "" || InStr(wInfo, "U") || wBtns < 11) {
-    for k, key in gWheelHold
-        RSGSet(key, false)
-    gWheelPrev := {}
+    WheelReleaseAll()
     return
 }
-for i, key in gWheelHold
-    RSGSet(key, GetKeyState("Joy" . i))
-for i, key in gWheelTap {
-    st := GetKeyState("Joy" . i)
-    if (st && !gWheelPrev[i])
-        SendEvent, {%key%}
+shift := GetKeyState("Joy" . gWheelShiftBtn)
+map := shift ? gWheelAlt : gWheelBase
+; Layer changed -> drop anything held on the old layer, so a key can't stick.
+if (shift != gWheelShiftPrev) {
+    WheelReleaseAll()
+    gWheelShiftPrev := shift
+}
+Loop 13 {
+    i := A_Index
+    if (i = gWheelShiftBtn)
+        continue
+    st  := GetKeyState("Joy" . i)
+    keys := map[i]
+    if (keys = "") {
+        gWheelPrev[i] := st
+        continue
+    }
+    if (gWheelHoldSet[i]) {
+        if (st != gWheelHeld[i]) {
+            Loop, Parse, keys, |
+                RSGSet(A_LoopField, st)
+            gWheelHeld[i] := st
+        }
+    } else if (gWheelRepeat[i]) {
+        if (st) {
+            if (!gWheelPrev[i] || gWheelRepCount[i] >= gWheelRepeatTicks) {
+                Loop, Parse, keys, |
+                    SendEvent, {%A_LoopField%}
+                gWheelRepCount[i] := 0
+            } else
+                gWheelRepCount[i] += 1
+        } else
+            gWheelRepCount[i] := 0
+    } else if (st && !gWheelPrev[i]) {
+        Loop, Parse, keys, |
+            SendEvent, {%A_LoopField%}
+    }
     gWheelPrev[i] := st
 }
+; hat: tap on entering a direction
+pov := GetKeyState("JoyPOV")
+if (pov != gWheelPovPrev) {
+    hmap := shift ? gWheelHatAlt : gWheelHat
+    k := hmap[pov]
+    if (k != "")
+        SendEvent, {%k%}
+    gWheelPovPrev := pov
+}
 return
+
+WheelReleaseAll() {
+    global gWheelHeld
+    for i, st in gWheelHeld
+        if (st)
+            RSGSet2(i)
+    gWheelHeld := {}
+}
+; release every key any hold-slot could have pressed
+RSGSet2(i) {
+    global gWheelBase, gWheelAlt
+    for , src in [gWheelBase[i], gWheelAlt[i]]
+        if (src != "")
+            Loop, Parse, src, |
+                RSGSet(A_LoopField, false)
+}
 
 RSGExit:
 VarSetCapacity(xiVib0, 4, 0)

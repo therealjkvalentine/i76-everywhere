@@ -5,6 +5,23 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+- **Wheel buttons moved to the AHK layer, with a shift layer (~27 actions from 13
+  buttons).** `input.map` now carries only the analog sinks; every button and the hat are
+  emitted as stock keys by [i76-remap.ahk](i76-remap.ahk). **Retraction:** an earlier commit
+  claimed AHK could not read this wheel's buttons. It reads all 13 fine, headless, both
+  `GetKeyState("Joy1")` and `1Joy1` forms — the finding came from a bug in the probe scripts
+  (`FileAppend, % text, f` treats `f` as a literal filename; AHK needs `%f%`), so three probes
+  wrote to a stray file called `f` while their intended logs stayed empty, and the empty logs
+  were read as evidence. *A probe that reports nothing is not evidence until the probe is
+  proven to report something.*
+- **FFB crashes the game under sustained fire — `I7_SFRCE.DLL`, fault offset `0x2505`.**
+  Reproduced twice while firing. That module loads a per-weapon effect from `force\*.frc` on
+  every shot and plays it through DirectInput; both crashes involved many weapon effects in
+  quick succession, but removing each suspected trigger did not stop it recurring, so effect
+  churn is a **correlation, not a proven cause**. FFB works and is unstable in combat — 1997
+  code meeting a device thirty years newer. Options and a disassembly-ready writeup in
+  [docs/WHEEL-T300.md](docs/WHEEL-T300.md). Also settled there: **300°** is the right wheel
+  rotation for this game (an earlier draft guessed ~240°, too twitchy).
 - **FORCE FEEDBACK WORKS.** Confirmed in-sim on a Thrustmaster T300RS, with analog
   steering, analog accelerator/brake and all 13 buttons. This closes the repo's oldest
   open question: [FORCE-FEEDBACK-AND-VISUALS.md](docs/FORCE-FEEDBACK-AND-VISUALS.md)
