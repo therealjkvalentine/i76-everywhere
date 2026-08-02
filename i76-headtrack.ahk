@@ -135,11 +135,25 @@ global ADDR_IN_PITCH  := 0x536778
 ; oversensitive at the minimum and pitch, clamped, did nothing at all.
 ; The "saturation at 133" I calibrated against came from injecting values far
 ; outside the engine's design range; it is not a usable scale.
-global YAW_RANGE      := 0.30
-global PITCH_RANGE    := 0.20
+; YAW: 4.0 is FIELD-CONFIRMED good. I briefly "corrected" this to 0.30 on the
+; theory that these were radians (the engine's own glance moves the camera floats
+; only ~0.2 and its int delta only -13..+6) - and that made yaw barely move. The
+; measured engine scale simply does not transfer to injected writes, so the
+; field value wins over my inference.
+global YAW_RANGE      := 4.0
+; PITCH is NOT used for the int path any more - see PITCH_VIA_KEYS below.
+global PITCH_RANGE    := 4.0
 global KP             := 90.0    ; error -> delta
 global KP_P           := 90.0
-global DELTA_MAX      := 60      ; clamp: the engine's own glance only uses -13..+6
+global DELTA_MAX      := 12000   ; back to the value that worked with YAW_RANGE 4.0
+; PITCH VIA KEYS. Writing 0x536778 is a dead end on this build: the delta is
+; computed correctly and reads back EXACTLY as written (so nothing clobbers it),
+; yet the camera never responds - at any magnitude, tiny or enormous. The engine
+; evidently gates pitch on something its input poll sets alongside the value.
+; But the arrow-key glance pitches perfectly, so analog now drives yaw through
+; the int delta and pitch through the SAME held Up/Down keys digital uses. Yaw
+; stays smooth and continuous; pitch is stepped but actually works.
+global PITCH_VIA_KEYS := 1
 
 ; The engine's input poll rewrites these ints every frame (from the keyboard /
 ; joystick glance), so a write every 8ms only sometimes survives to be read -
@@ -427,7 +441,9 @@ Tick:
     ; auto-centring spring (shake) and left the transform inconsistent (terrain
     ; drawn as sky). Feeding the input instead means the engine derives every
     ; camera value itself, so it always agrees with itself.
-    ReleaseAll()
+    ; Yaw is analog (int delta); pitch rides the working arrow-key path, so we
+    ; only release the two horizontal keys here - Up/Down are driven below.
+    KeySet("Left", false), KeySet("Right", false)
     if (!OpenGame())
         return
     SetInputPatch(true)   ; stop the poll clobbering the delta we push
@@ -451,8 +467,21 @@ Tick:
     tgtP := gSmP * PITCH_RANGE * ANALOG_PITCH_SIGN
     dY := KP   * (tgtY - ReadFloat(ADDR_CAM_YAW))
     dP := KP_P * (tgtP - ReadFloat(ADDR_CAM_PITCH))
-    WriteInt(ADDR_IN_YAW,   Round(ClampD(dY)))
-    WriteInt(ADDR_IN_PITCH, Round(ClampD(dP)))
+    WriteInt(ADDR_IN_YAW, Round(ClampD(dY)))
+    if (PITCH_VIA_KEYS) {
+        ; same hysteresis the digital glance uses - press past *_ON, release
+        ; inside *_OFF, so a head hovering on the edge cannot chatter the key
+        if (pitch > PITCH_ON)
+            KeySet("Up", true)
+        else if (pitch < PITCH_OFF)
+            KeySet("Up", false)
+        if (pitch < -PITCH_ON)
+            KeySet("Down", true)
+        else if (pitch > -PITCH_OFF)
+            KeySet("Down", false)
+    } else {
+        WriteInt(ADDR_IN_PITCH, Round(ClampD(dP)))
+    }
 
     ; diagnostic sample (Ctrl+Alt+L): does the pitch delta we push survive the
     ; frame, and does the camera actually respond to it?
