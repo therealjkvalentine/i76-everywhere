@@ -121,8 +121,12 @@ global ADDR_VIEW_MODE := 0x4c2728   ; camera FSM: which F1..F11 view is live
 ; gain; the residual steady-state offset is why it is deliberately large.
 global ADDR_IN_YAW    := 0x536770
 global ADDR_IN_PITCH  := 0x536778
-global YAW_RANGE      := 70.0    ; engine units at full head turn (max 133; 115 was too twitchy)
-global PITCH_RANGE    := 70.0    ; (max 104)
+; How far the view travels at a full head turn, in engine units (ceilings 133 /
+; 104). Tune these LIVE with Ctrl+Alt+[ and Ctrl+Alt+] rather than by editing -
+; 115 and 70 both came back "way too sensitive", so the useful value is clearly
+; well below half the available range.
+global YAW_RANGE      := 40.0
+global PITCH_RANGE    := 40.0
 global KP             := 90.0    ; error -> delta
 global KP_P           := 90.0
 global DELTA_MAX      := 12000   ; clamp the injected delta
@@ -501,6 +505,31 @@ Clamp(v) {
     if (v < -ANALOG_MAX)
         return -ANALOG_MAX
     return v
+}
+
+; Ctrl+Alt+[ / Ctrl+Alt+] - sensitivity DOWN / UP, live, while you play.
+; Both axes scale together so the feel stays consistent. Low beep = less.
+^![::
+    Sens(0.75)
+return
+^!]::
+    Sens(1.333)
+return
+Sens(mul) {
+    global YAW_RANGE, PITCH_RANGE
+    YAW_RANGE   := Round(YAW_RANGE   * mul, 1)
+    PITCH_RANGE := Round(PITCH_RANGE * mul, 1)
+    if (YAW_RANGE < 4)
+        YAW_RANGE := 4
+    if (PITCH_RANGE < 4)
+        PITCH_RANGE := 4
+    if (YAW_RANGE > 133)
+        YAW_RANGE := 133
+    if (PITCH_RANGE > 104)
+        PITCH_RANGE := 104
+    SoundBeep, % (mul < 1 ? 500 : 1200), 70
+    ToolTip, % "sensitivity  yaw " . YAW_RANGE . "   pitch " . PITCH_RANGE
+    SetTimer, ClearTip, -1400
 }
 
 ; Ctrl+Alt+F - freeze the output at a fixed angle (diagnostic, see the Tick code)
