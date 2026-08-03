@@ -39,11 +39,45 @@ they are different objects with different roots.
 world  = [0x54a264]
 sub    = [world]
 entity = [sub + 0x70]          ; = [[[0x54a264]] + 0x70]   the player vehicle entity
-  entity+0x08 : world transform (rotation matrix; position adjacent)   ✓ verified
-  entity+0xe0 : steer applied (float)                                   disasm
-  entity+0xe4 : throttle applied (float)                                disasm
+  entity+0x04..0x30 : FOUR float3 = wheel contact points, LOCAL space  ✓ verified
+  entity+0xac : speed = |velocity|  (float)                            ✓ verified
+  entity+0xbc : velocity x,y,z      (float3, world space)              ✓ verified
+  entity+0xc8 : angular velocity x,y,z — YAW RATE at +0xcc (float3)    strong
+  entity+0xd4 : acceleration / accumulated force (float3)              likely
+  entity+0xe0 : steer applied (float, -1..1)                            disasm + live
+  entity+0xe4 : throttle applied (float, -1..1, negative = brake)       disasm + live
+  entity+0x80..0x8c : LOOP TEMPORARY — looks like telemetry, is not
 ```
-This is the durable base for position/heading/controls — survives relaunch.
+This is the durable base for heading/controls/dynamics — survives relaunch.
+
+**CORRECTION 2026-08-02 — `+0x08` is not a transform.** This table previously read
+`entity+0x08 : world transform (rotation matrix; position adjacent) ✓ verified`.
+It is not a rotation matrix. `+0x04..0x30` is **four float3 wheel contact points
+in local space** — parked they read `(-0.99, 0.654, -2.37) (0.99, 0.654, -2.37)
+(0.99, 0.654, 2.29) (-0.99, 0.654, 2.29)`: x and z flip sign, y is constant. That
+is a rectangle in the xz plane at one ride height. An orthonormality scan over the
+whole first `0x200` bytes finds **no** rotation matrix anywhere in this struct.
+
+The likely origin of the error is that `0.654` sits in a 0..1 range and reads like
+a matrix element, when it is a y coordinate. It mattered: the "position adjacent"
+note sent the position hunt looking next to a matrix that does not exist, which is
+why position stayed unfound while velocity was sitting 0xA0 bytes further on.
+
+**Units are metres.** The wheel corners give a wheelbase of 4.662 m and a track of
+1.976 m — a large American car, which is what I'76 drives — so speed is m/s and
+the observed 21.2 m/s top speed is 47 mph.
+
+**`+0xac`/`+0xbc` supersede the "velocity: nothing anywhere" note** in
+GHIDRA-MEMORY-MAP.md §149. Confirmed by an exact identity rather than by
+plausible values: on a car left barely rolling, `velocity = (0.5676, 0, 1.3592)`
+has magnitude `1.47296` and `+0xac` reads `1.473`. Note the method — a *stationary*
+car cannot show this (0 == 0) and a fast one is hard to sample coherently across
+two reads; a slowly-rolling one proves it in a single frame. The y term at `+0xc0`
+stays ~0 on flat ground, which is why a range-based probe sees velocity as two
+moving floats with a dead one between them rather than as a vector.
+
+Consumed by `tools/ffb/Telemetry.ps1`; the two values that remain assumptions
+(yaw sign, steering lock) are measured by `tools/ffb/ffb-calibrate.ps1`.
 
 ## Tier 3 — CLOSED (weapons / components / armor / ammo)
 

@@ -9,83 +9,223 @@ synthesised from game state, outside the engine.
 
 | piece | state |
 |---|---|
-| **FFB output** (`FfbCore.ps1`) | **WORKING** — acquires the T300 and drives arbitrary force |
-| Telemetry read | player-entity chain resolves; steer/throttle live. Position/velocity offsets **not yet identified** |
-| Force mixer | not built |
-| Observability panel | not built |
+| **FFB output** (`FfbCore.ps1`) | **working** — acquires the T300, drives arbitrary force, recovers a lost device |
+| **Telemetry** (`Telemetry.ps1`) | **working** — speed, velocity, yaw rate, steer, throttle, derived slip/impact |
+| **Force model** (`FfbMixer.ps1`) | **working** — 8 channels, 28 assertions passing |
+| **Interposer + panel** (`ffb-interposer.ps1`) | **working** — live panel, channel solo/mute, CSV logging |
+| **Calibration** (`ffb-calibrate.ps1`) | **working** — measures yaw sign and steering lock from one drive |
+| Feel tuning | **not started** — needs a drive; nothing here has been judged by hand yet |
+| Weapon/engine effects | not started — see "the .frc files" below |
 
-## FfbCore.ps1 — the output layer
-
-Drives DirectInput by hand through its COM vtables, compiled at runtime by
-`Add-Type`. There is no managed DirectInput available offline (SharpDX is a NuGet
-package) and no C compiler on this machine, so this needs nothing installed.
+## Quick start
 
 ```powershell
-. tools\ffb\FfbCore.ps1
-$d = Ffb-Open                  # find + acquire the first FFB device
-Ffb-Constant $d 6000           # steady force, -10000..10000, sign = direction
-Ffb-Texture  $d 3000 $tick     # modulated force for road/buzz
-Ffb-Stop $d ; Ffb-Close $d
+# 1. watch it think, without touching the wheel. Safe any time.
+tools\ffb\ffb-interposer.ps1 -DryRun
+
+# 2. stop the model guessing: drive 30 s, both directions, sustained turns
+tools\ffb\ffb-calibrate.ps1
+
+# 3. for real
+tools\ffb\ffb-interposer.ps1
+
+# judge one channel at a time - the only way to actually tune feel
+tools\ffb\ffb-interposer.ps1 -Only corner
+tools\ffb\ffb-interposer.ps1 -Mute texture,scrub -Master 0.7
 ```
 
-### Five things that each cost a debugging round
+Live keys: `[space]` mute · `[+/-]` master gain · `[s]` save tune · `[q]` quit.
+
+## The one idea that matters: slip makes the wheel go LIGHT
+
+The obvious way to signal slip is to add force — buzz the wheel when grip goes.
+That is backwards, and it is why a lot of custom FFB feels like a rumble pack
+bolted to a wheel.
+
+The weight you feel in a real car **is** the front tyres' self-aligning torque,
+and that torque is a product of slip angle. As a tyre passes its limit the torque
+peaks and then **collapses** — the contact patch is sliding, not gripping, so it
+stops pushing back. Every driver knows the sensation: the wheel goes dead and
+light just before the nose runs wide.
+
+So understeer here does not add a signal, it **attenuates** the steady channels.
+You feel grip leave. It needs no new effect primitive and it is free.
+
+Oversteer is the opposite case and *does* add force — toward the counter-steer,
+because that is the direction caster would drag the wheel and the correction you
+want to make anyway.
+
+## Channels
+
+| channel | driven by | feel |
+|---|---|---|
+| `center` | steer × speed | self-aligning torque; the baseline weight |
+| `corner` | lateral g (yaw × speed) | a bend has weight |
+| `oversteer` | measured vs geometric yaw | push toward the catch |
+| `brake` | negative longitudinal g | front axle loading up |
+| `texture` | speed × suspension motion | road surface |
+| `scrub` | understeer | the sound of rubber, on top of the lightness |
+| `judder` | hard braking | lockup shimmy (no ABS in 1997) |
+| `impact` | velocity-vector discontinuity | collisions |
+
+Continuous channels are deliberately held **low** so transients read on top —
+the discipline that makes the pad rumble mixer (`i76-remap.ahk`) work. Raising
+the steady gains to feel "more" buries every transient and leaves the wheel
+merely heavy.
+
+## Design constraints that shaped this
+
+**One output primitive.** This wheel refuses periodic effects —
+`CreateEffect(GUID_Sine)` returns `REGDB_E_CLASSNOTREG` while constant force is
+fine. So everything sums into a single constant force rewritten each loop:
+`force = steady + texture*osc(phase) + transients`. Vibration alternates *part*
+of the sum, never the whole thing — flipping everything would cancel the steady
+feel and turn cornering load into a rattle.
+
+**The sim is a fixed 20 Hz step** (Peelar; Roanish's `world_tick`). Poll at 60 Hz
+and differentiate naively and you get `0, 0, spike, 0, 0, spike` — not noise you
+can filter, an artefact of sampling faster than the simulation. `Telemetry.ps1`
+recomputes derivatives only when a value actually changed, dividing by the time
+since the previous change, and holds them in between.
+
+**The loop tops out near 62 Hz.** `Start-Sleep`'s granularity is one scheduler
+tick (~15.6 ms), so requesting 100 Hz yields 62. Telemetry is not the limit — it
+polls at 3400 Hz. Every oscillator therefore stays at or under ~15 Hz to keep 4+
+samples per cycle; a 22 Hz scrub does not give a 22 Hz buzz, it gives an aliased
+beat that feels like a fault in the wheel.
+
+**Units are metres.** The wheel contact points give a 4.66 m wheelbase, so the
+model works in real g rather than magic constants.
+
+## Coexistence with the game: no patch needed
+
+FFB needs an **exclusive** DirectInput acquisition and the game takes one at
+startup, which looked like a hard either/or: the engine's authored weapon effects
+*or* our synthesised feel, with the second requiring a NOP over the FFB init call
+at `0x402F93`.
+
+Measured instead of assumed (`ffb-coexist-test.ps1`): **we hold the wheel with the
+game genuinely focused** — foreground confirmed via `GetForegroundWindow`, not
+inferred — for the whole test window, every write returning `S_OK`. So **no game
+memory is patched and none needs to be.**
+
+Honest caveat: the engine's `0x52bbd0` flag and `0x52bbcc` effect pointer did not
+change, but those are written once at init and never cleared, so they cannot prove
+the engine *still* owns the device. Whether its weapon effects still fire needs a
+trigger-pull to confirm. The likely story is that the engine lost its acquisition
+the first time the window lost focus and never retried — it acquires once and
+"try again next time" is a give-up, not a retry (`docs/FFB-LAPTOP-RECON.md`).
+
+Losing the device mid-session is treated as a state to recover from, not an error:
+`Ffb-Reacquire` takes it back and the panel logs it.
+
+## Calibration
+
+Two values in `Telemetry.ps1` are assumptions rather than measurements, and both
+matter:
+
+- **`TEL_YAW_SIGN`** — does positive steer produce positive yaw at `+0xcc`?
+  Nothing in the struct says. Wrong, and the cornering channel helps you turn
+  *into* the corner.
+- **`TEL_STEER_LOCK`** — radians at full lock. Sets how readily slip triggers.
+
+`ffb-calibrate.ps1` measures both from one drive and writes `ffb-calib.json`,
+which `Telemetry.ps1` loads automatically. Sign comes from correlating steer
+against observed yaw — model-free, only needs that turning one way rotates the car
+one way. Lock comes from rearranging the bicycle model and taking the **median**,
+not the mean: sliding samples fit a smaller lock and would drag an average down,
+but cannot move a median while most of the drive had grip.
+
+Validated against synthetic drives with known ground truth — recovers both signs
+and a 0.400 rad lock exactly.
+
+## Testing
+
+```powershell
+tools\ffb\ffb-mixer-test.ps1          # 28 assertions, no game or wheel needed
+tools\ffb\ffb-coexist-test.ps1        # can we and the game share the device?
+tools\ffb\ffb-telemetry-probe.ps1     # rediscover struct offsets by behaviour
+```
+
+Judging a force model by driving is slow, unrepeatable and needs a human holding
+the wheel — but most of what can be *wrong* with one isn't about feel at all:
+sign errors, clipping, channels that never fire, transients that never decay,
+NaN. `ffb-mixer-test.ps1` checks those from a desk. It cannot tell you whether
+the result feels good; it tells you the model does what it claims, which is the
+precondition for tuning feel rather than a substitute for it.
+
+Two bugs it caught, both invisible in play:
+
+1. **`$T` and `$t` are the same variable.** PowerShell names are
+   case-insensitive, so `$T = $Mix.Tune` followed by `$t = $Sample.T` replaced
+   the entire tune table with a number. Every gain read back as `$null` and
+   `0/$null` produced **NaN forces**.
+2. **The NaN test passed vacuously.** `Mix-Update` threw before returning, `$o`
+   was `$null`, and `$null.Force` read as `0`. A test that cannot fail is worse
+   than no test. It now counts throws as failures.
+
+## Five things that each cost a debugging round in `FfbCore.ps1`
 
 Recorded because none produced a useful error message:
 
 1. **`DirectInput8Create` needs a non-NULL `hinst`.** `GetModuleHandle($null)`
-   returns NULL from PowerShell → `E_INVALIDARG` (0x80070057). Use
-   `LoadLibraryA("dinput8.dll")`; DirectInput only wants *some* live module.
+   returns NULL from PowerShell → `E_INVALIDARG`. Use `LoadLibraryA("dinput8.dll")`.
 2. **`DIDFT_ANYINSTANCE` is `0x00FFFF00`**, not `0x0000FF00`. Wrong mask →
    `SetDataFormat` fails `E_INVALIDARG` with no other clue.
 3. **Exclusive mode needs a real window owned by this process.** NULL hwnd →
-   `E_HANDLE`; `GetConsoleWindow()` is *not* sufficient either (a child
-   PowerShell may share or lack a console) and `Acquire` then fails
-   `ERROR_INVALID_WINDOW_HANDLE` (0x80070578) even after `SetCooperativeLevel`
-   returned OK. A hidden WinForms window works — and must stay referenced, or the
-   GC destroys it and takes the acquisition with it.
+   `E_HANDLE`; `GetConsoleWindow()` is *not* sufficient and `Acquire` then fails
+   `ERROR_INVALID_WINDOW_HANDLE` **after** `SetCooperativeLevel` returned OK. A
+   hidden WinForms window works — and must stay referenced, or the GC destroys it
+   and takes the acquisition with it.
 4. **PowerShell parses `0xFFFFFFFF` as Int32 `-1`**, which will not coerce to the
-   `UInt32` that `dwDuration` / `dwTriggerButton` want. Use `4294967295`.
-5. **Periodic effects do not work on this wheel.** `CreateEffect(GUID_Sine)`
-   returns `REGDB_E_CLASSNOTREG` (0x80040154) although constant force is fine.
-   So texture is synthesised by modulating constant force — which is the better
-   design anyway: one primitive, one place magnitude is decided, and the mixer
-   stays additive.
+   `UInt32` that `dwDuration`/`dwTriggerButton` want. Use `4294967295`.
+5. **Periodic effects do not work on this wheel** (see "one output primitive").
 
-## The constraint that shapes everything
+## Telemetry map
 
-**FFB requires DirectInput EXCLUSIVE acquisition.** The game takes it at startup,
-so while the game holds the wheel we cannot. This is why the interposer is
-flag-optional: you get the engine's weapon effects **or** our synthesised feel,
-not both.
+Player entity resolves via `[[[0x54a264]]+0x70]`. Full table and the corrections
+it forced live in `docs/MEMORY-MAP-INDEX.md` Tier 2. Summary:
 
-Freeing the device means stopping the game acquiring it. That is a one-instruction
-patch — FFB init is called unconditionally from `0x402F93` (see
-`docs/WHEEL-T300.md`), so NOPing that call skips it entirely and leaves the wheel
-free. Reversible, memory-only. Not yet implemented.
+| offset | field | confidence |
+|---|---|---|
+| `+0x04..0x30` | four float3 wheel contact points, local space | confirmed |
+| `+0xac` | speed = \|velocity\| | confirmed by identity |
+| `+0xbc` | velocity float3, world | confirmed by identity |
+| `+0xc8` | angular velocity float3 — yaw rate at `+0xcc` | strong |
+| `+0xd4` | acceleration / accumulated force float3 | likely, unused |
+| `+0xe0` / `+0xe4` | steer / throttle, −1..1 | confirmed |
+| `+0x80..0x8c` | **loop temporary** — looks like telemetry, is not | confirmed |
 
-## Telemetry — what is known
+Two corrections worth carrying forward: `+0x08` is **not** a rotation matrix
+(that error is why position was never found — the hunt was for something adjacent
+to a matrix that does not exist), and velocity was listed as unfound in
+`GHIDRA-MEMORY-MAP.md`.
 
-Player entity resolves via `[[[0x54a264]]+0x70]` (live-verified):
+Position is still unidentified, and **the force model does not need it** — every
+channel derives from velocity, angular velocity and the control inputs.
 
-| offset | field |
+## The .frc files — not yet used
+
+14 files in `force\`, RIFF `FORC` containers holding an Immersion-style effect
+table: a DirectInput target GUID, a type name (`SawtoothDown1`, `SquareLow1`,
+`UserDefined1`), and `(time, magnitude)` keyframe pairs — `CANNON1` has six
+`185..190, 126` pairs, `ENGSTART` runs `173,-24 / 174,-24 / …`. Magnitudes look
+like percent (`0x64` = 100 recurs throughout).
+
+Worth parsing as a **design reference** — it is the vocabulary the original
+authors chose for this exact car and wheel, which is better guidance for
+synthesised weapon and engine effects than taste. Not needed for correctness, and
+now that coexistence works it is not needed to keep weapon feel either.
+
+## Files
+
+| file | role |
 |---|---|
-| `+0x08` | world transform (rotation matrix) |
-| `+0xe0` | steer applied (float) |
-| `+0xe4` | throttle applied (float) |
-
-**Position/velocity are not yet pinned.** Identifying them needs the car
-*moving* — a stationary dump cannot distinguish a position field from any other
-world-scale float. `ffb-telemetry-probe.ps1` samples the struct while you drive
-and reports which offsets vary like position, which is the intended next step.
-
-Once position is known, everything else derives from it without further RE:
-speed and acceleration from position deltas, lateral acceleration (a slip proxy)
-against heading from the transform, braking from negative longitudinal
-acceleration, and collisions from acceleration spikes.
-
-## Design language
-
-Reuse the rumble mixer's, which is already field-proven (`i76-remap.ahk`):
-hierarchy and restraint — continuous states held **low** so transients read on
-top; a distinct signature per event; and set-on-change rather than spamming the
-device.
+| `FfbCore.ps1` | DirectInput output. Hand-walked COM vtables, compiled at runtime — no managed DirectInput offline, no C compiler here, so this needs nothing installed. |
+| `Telemetry.ps1` | vehicle dynamics reader, tick-aware |
+| `FfbMixer.ps1` | the force model |
+| `ffb-interposer.ps1` | main loop, observability panel, logging |
+| `ffb-calibrate.ps1` | measures yaw sign + steering lock |
+| `ffb-mixer-test.ps1` | 28 assertions over synthetic drives |
+| `ffb-coexist-test.ps1` | device-sharing measurement |
+| `ffb-telemetry-probe.ps1` | offset discovery by behaviour |

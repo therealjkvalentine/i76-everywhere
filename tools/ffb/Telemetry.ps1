@@ -101,6 +101,23 @@ $script:TEL_STEER_LOCK = 0.52
 # shows Yaw and Expect consistently opposite in sign, flip this.
 $script:TEL_YAW_SIGN = 1
 
+# Both values above are ASSUMPTIONS. ffb-calibrate.ps1 measures them from a short
+# drive and writes ffb-calib.json; if that file exists it wins, because a
+# measurement beats a plausible default. Delete the file to go back to these.
+$script:TEL_CALIB_SOURCE = 'defaults (not calibrated - run ffb-calibrate.ps1)'
+$script:__calib = Join-Path $PSScriptRoot 'ffb-calib.json'
+if (Test-Path $script:__calib) {
+    try {
+        $c = Get-Content $script:__calib -Raw | ConvertFrom-Json
+        if ($null -ne $c.TEL_YAW_SIGN)   { $script:TEL_YAW_SIGN   = [int]$c.TEL_YAW_SIGN }
+        if ($null -ne $c.TEL_STEER_LOCK) { $script:TEL_STEER_LOCK = [double]$c.TEL_STEER_LOCK }
+        $script:TEL_CALIB_SOURCE = ("calibrated from {0} ({1} samples, sign confidence {2:0}%)" -f `
+            $c.Source, $c.Samples, ([double]$c.SignConfidence * 100))
+    } catch {
+        Write-Host "ffb-calib.json is unreadable, using defaults: $_" -ForegroundColor Yellow
+    }
+}
+
 $script:TEL_OFF = @{
     Wheels   = 0x004   # 4 x float3, local space, CONSTANT per vehicle
     Speed    = 0x0AC
