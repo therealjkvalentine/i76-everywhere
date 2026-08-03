@@ -78,6 +78,26 @@ if ($LosslessScaling -and (Test-Path $LosslessScaling)) {
     }
 }
 
+# ---- ORDER MATTERS -----------------------------------------------------------
+# The game is started LAST, on purpose:
+#   * the 1997 engine enumerates joysticks ONLY at startup, so the wheel must be
+#     present and settled first;
+#   * FFB is acquired once at startup too, so nothing else may be grabbing the
+#     device at that moment;
+#   * i76-remap.ahk detects the wheel by capability once when it starts, and
+#     i76-headtrack.ahk wants opentrack already publishing.
+# So: wait (briefly, bounded) for opentrack to actually publish before launching.
+if ($OpenTrack -and (Test-Path $OpenTrack)) {
+    $deadline = (Get-Date).AddSeconds(20)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $m = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting('FT_SharedMem')
+            $m.Dispose(); break
+        } catch { Start-Sleep -Milliseconds 400 }
+    }
+}
+Start-Sleep -Milliseconds 800     # let the AHK layers finish their device probe
+
 $proc = Start-Process -FilePath (Join-Path $GameDir $Exe) -ArgumentList '-glide' -WorkingDirectory $GameDir -PassThru
 $proc.WaitForExit()
 
