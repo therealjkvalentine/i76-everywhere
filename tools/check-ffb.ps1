@@ -43,13 +43,23 @@ Write-Host ("Thrustmaster panel open : {0}" -f $(if($tm){"YES - CLOSE IT (it tak
     -ForegroundColor $(if($tm){'Red'}else{'Green'})
 
 # 3. has the module been pulled in?
-$mod = $proc.Modules | Where-Object { $_.ModuleName -match 'sfrce' }
-Write-Host ("I7_SFRCE.DLL loaded     : {0}" -f $(if($mod){"yes"}else{"no  (normal at the MENU - only meaningful in a mission)"})) `
-    -ForegroundColor $(if($mod){'Green'}else{'Yellow'})
-
-# 4. the engine's own verdict
+#
+# DO NOT use $proc.Modules or `tasklist /m` for this. i76.exe is 32-bit; from
+# 64-bit tooling both enumerate only the WOW64 stubs and report the FFB module as
+# absent even when it is loaded and working. That false negative cost a long
+# detour here (it sent me hunting a LoadLibrary failure that never happened).
+#
+# The reliable signal is the exe's own GetProcAddress result: 0x52bbdc holds the
+# I7FF_InitSystem pointer, written only after LoadLibrary AND GetProcAddress both
+# succeed. Nonzero = the module is loaded and resolved.
 $h = [FFBChk]::OpenProcess(0x38,$false,$proc.Id)
 function RInt($a){ $b=New-Object byte[] 4; $r=0; [void][FFBChk]::ReadProcessMemory($h,[IntPtr]$a,$b,4,[ref]$r); [BitConverter]::ToInt32($b,0) }
+$initProc = RInt 0x52bbdc
+$mod = ($initProc -ne 0)
+Write-Host ("I7_SFRCE.DLL loaded     : {0}" -f $(if($mod){"yes (I7FF_InitSystem @ 0x{0:X8})" -f $initProc}else{"no - LoadLibrary/GetProcAddress failed"})) `
+    -ForegroundColor $(if($mod){'Green'}else{'Red'})
+
+# 4. the engine's own verdict
 $present = RInt $ADDR_PRESENT
 $obj     = RInt $ADDR_OBJECT
 [void][FFBChk]::CloseHandle($h)
@@ -61,11 +71,19 @@ Write-Host ""
 if ($present -and $obj) {
     Write-Host "FFB IS LIVE. If you feel nothing, it is effect strength/tuning, not plumbing." -ForegroundColor Green
 } elseif ($mod) {
-    Write-Host "Module loaded but no device: I7FF_InitSystem 'Failed to open FF Joystick'." -ForegroundColor Red
-    Write-Host "Something else holds the wheel (control panel, another game, a crashed i76 that" -ForegroundColor Red
-    Write-Host "never released it). Close them, POWER-CYCLE THE WHEEL, relaunch." -ForegroundColor Red
+    Write-Host "MODULE LOADED BUT NO DEVICE - this is I7FF_InitSystem failing:" -ForegroundColor Red
+    Write-Host "  'I7FF_InitSystem Failed to open FF Joystick.  Try again next time.'" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "The DLL, its exports and the registry are all fine - the wheel is not being" -ForegroundColor Yellow
+    Write-Host "OPENED for force feedback. FFB needs DirectInput EXCLUSIVE acquisition, and it" -ForegroundColor Yellow
+    Write-Host "is attempted ONCE during startup ('try again next time'). Likely causes:" -ForegroundColor Yellow
+    Write-Host "  * something else held the device at that moment - Thrustmaster control panel," -ForegroundColor Yellow
+    Write-Host "    or a previous i76 that crashed without releasing it (POWER-CYCLE the wheel)" -ForegroundColor Yellow
+    Write-Host "  * the game window was not foreground when it tried (exclusive acquire wants it)." -ForegroundColor Yellow
+    Write-Host "    Launching Lossless Scaling first can take focus - test once with PLAY.bat." -ForegroundColor Yellow
+    Write-Host "  * the wheel was connected AFTER the game started." -ForegroundColor Yellow
 } else {
-    Write-Host "No FFB yet. If you are at the menu this is expected - get into a mission and re-run." -ForegroundColor Yellow
-    Write-Host "If you ARE in a mission, the module never loaded: check the registry key above," -ForegroundColor Yellow
-    Write-Host "and that the wheel was connected BEFORE the game started (it enumerates at startup)." -ForegroundColor Yellow
+    Write-Host "The FFB module never loaded (LoadLibrary or GetProcAddress failed)." -ForegroundColor Red
+    Write-Host "Check i7_sfrce.dll is present in the game folder and its deps resolve" -ForegroundColor Yellow
+    Write-Host "(KERNEL32/USER32/ADVAPI32/ole32/WINMM/DINPUT - all ship with Windows)." -ForegroundColor Yellow
 }
