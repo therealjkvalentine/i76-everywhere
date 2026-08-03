@@ -162,25 +162,12 @@ paddle's `weapon_fire` hold is for. A repeat-tap mode was tried and removed — 
 and the map opens but won't close from the same button, stranding you mid-fight. Map stays on
 the keyboard (`M`).
 
-## FFB dies if other joysticks are installed — SOLVED
+## FFB not engaging at all? Other joysticks are the cause — SOLVED
 
-If force feedback simply never engages on a machine, the most likely cause is
-**other joystick devices present**, especially virtual ones (vJoy, x360ce, 3Dconnexion KMJ
-emulators, instantiated ViGEm pads). `I7FF_InitSystem` acquires a DirectInput device
-**exclusively, once, at startup** — a crowded device list makes that one shot land on the
-wrong device, and it gives up. Remove them and **reboot**.
-
-Diagnosed by running the same recon on a working and a broken machine and diffing:
-[FFB-LAPTOP-RECON.md](FFB-LAPTOP-RECON.md) has the full writeup, the disassembly detail, and
-the list of things **ruled out** (the ACTIVISION registry key gates nothing in this exe; the
-module loads fine; same exe MD5; not frame generation; not Windows 10 vs 11).
-
-The tell, from `tools\check-ffb.ps1` **run while in a mission**:
-
-```
-I7_SFRCE.DLL loaded     : yes
-FF device detected flag : 0        <- module fine, device never opened
-```
+**Short version: remove other joystick devices (especially virtual ones) and reboot.**
+Full diagnosis, including the winmm-vs-DirectInput signature that identifies it, is in
+[**FFB: SOLVED — a 3Dconnexion emulator was stealing the DirectInput device**](#ffb-solved--a-3dconnexion-emulator-was-stealing-the-directinput-device)
+below, and in [FFB-LAPTOP-RECON.md](FFB-LAPTOP-RECON.md) with the ruled-out list.
 
 ## FFB works — but CLOSE THE THRUSTMASTER CONTROL PANEL FIRST
 
@@ -315,16 +302,22 @@ no effect. After fixing both, all four axes read a clean centred 32767 at rest.
 **Export the key before touching it**
 (`reg export "HKCU\System\...\Joystick" backup.reg`); restoring is a double-click.
 
-### Cause 2 — FFB needs a registry key this portable copy never had
+### Cause 2 — ~~FFB needs a registry key this portable copy never had~~ **WRONG, RETRACTED**
 
-`enable-force-feedback.bat` (**as Administrator**) creates
-`HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76` with `EXE=i76.exe`. Verified
-absent on this box and present after running it.
+> **This was not the answer.** Left here because it is a plausible-sounding theory that
+> should not be re-derived. Disassembly settled it: **FFB init at `0x445A60` is called
+> unconditionally from `0x402F93`** — there is **no registry gate** on the Gold exe. The
+> only `SOFTWARE\Activision` access sits beside `Minimum`/`miss8`/`miss16` (mission
+> texture resolution). `enable-force-feedback.bat` is a CD-era fix that does not gate
+> this build, and the GOG-installed-vs-portable difference is a coincidence.
+>
+> The real cause was **other joysticks in the DirectInput enumeration** — see the SOLVED
+> section below.
 
-This is the answer to "why did FFB work on the laptop?" — the laptop was a GOG
-*installed* copy, and GOG's installer writes that key. A **portable/zip copy carries
-the game files but not the registry**, so FFB is silently dormain until the batch file
-is run. Nothing about the wheel or its driver is involved.
+The original (incorrect) claim: `enable-force-feedback.bat` as Administrator creates
+`HKLM\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76` with `EXE=i76.exe`; it was
+verified absent on that box and present after running it. Both observations were true —
+the **inference** that it gated FFB was not.
 
 ### Still open on that box
 
