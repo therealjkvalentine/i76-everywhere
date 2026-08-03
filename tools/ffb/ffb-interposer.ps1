@@ -59,6 +59,8 @@ param(
     [string[]]$Only = @(),
     [string[]]$Mute = @(),
     [switch]$NoPanel,
+    # Render one panel frame from synthetic data and exit. No game, no wheel.
+    [switch]$PanelDemo,
     [string]$Log = "",
     [string]$Tune = "",
     [int]$Seconds = 0        # 0 = until [q] or Ctrl+C
@@ -89,6 +91,100 @@ function CenterBar {
     if ($V -lt 0) { $l = (' ' * ($Half - $n)) + ('<' * $n) }
     elseif ($V -gt 0) { $r = ('>' * $n) + (' ' * ($Half - $n)) }
     return "$l|$r"
+}
+
+# Extracted from the loop rather than inlined so it can be rendered WITHOUT the
+# game running (-PanelDemo). An observability panel you cannot look at until you
+# are mid-mission with a wheel in your hands is one whose column alignment you
+# find out about at the worst possible moment.
+#
+# Parameters are TYPED deliberately. Untyped, PowerShell's command-argument mode
+# hands them over as strings - and a numeric format spec applied to a string is
+# silently IGNORED rather than an error. That produced "entity 0x0x048C1388"
+# (hex literals in argument mode stay strings, so "0x{0:X8}" -f "0x048C1388"
+# just pasted it in) and "master 1.0" where "{0:0.00}" was asked for. Typing the
+# parameters forces the coercion at the boundary.
+function Build-Panel {
+    param([string]$Mode, [int64]$Ent, [double]$Wheelbase, $S, $Out,
+          [int]$Force, [double]$Peak, [double]$Rate, [double]$Master,
+          [bool]$Enabled, $Active, $Notes, [string]$Calib)
+    $L = New-Object System.Collections.ArrayList
+    $rule = "  " + ("-" * 74)
+    $null = $L.Add(("  I76 FFB INTERPOSER   {0}" -f $Mode))
+    $null = $L.Add(("  entity 0x{0:X8}   wheelbase {1:0.00} m   sim ticks {2}" -f `
+        $Ent, $Wheelbase, $(if ($S) { $S.Ticks } else { 0 })))
+    $null = $L.Add(("  " + $Calib))
+    $null = $L.Add($rule)
+    if ($S) {
+        $null = $L.Add(("   speed {0,6:0.0} mph ({1,5:0.0} m/s)    throttle {2,6:0.00}    steer {3,6:0.00}" -f `
+            $S.SpeedMph, $S.Speed, $S.Throttle, $S.Steer))
+        $null = $L.Add(("   long g {0,6:0.00}   lat g {1,6:0.00}   jolt {2,6:0.0}   {3}{4}" -f `
+            $S.LongG, $S.LatG, $S.Jolt,
+            $(if ($S.Braking) { "BRAKING " } else { "" }),
+            $(if ($S.Airborne) { "AIRBORNE" } else { "" })))
+        $null = $L.Add(("   yaw {0,7:0.000} rad/s   expected {1,7:0.000}   grip {2,3:0}%   U {3,4:0.00}  O {4,4:0.00}" -f `
+            $S.YawRate, $S.ExpectedYaw, $(if ($Out) { $Out.Channels['grip%'] } else { 100 }),
+            $S.Understeer, $S.Oversteer))
+        # Yaw and the bicycle-model prediction should agree in SIGN whenever the
+        # car is actually turning. Persistent disagreement means TEL_YAW_SIGN is
+        # inverted, which is worth saying out loud rather than leaving to be felt.
+        if ($S.Speed -gt 5 -and [math]::Abs($S.ExpectedYaw) -gt 0.05 -and
+            [math]::Sign($S.YawRate) -ne [math]::Sign($S.ExpectedYaw)) {
+            $null = $L.Add("   ^ yaw and prediction DISAGREE in sign - run ffb-calibrate.ps1")
+        } else { $null = $L.Add("") }
+    } else {
+        $null = $L.Add("   (no telemetry - paused, at a menu, or between missions)")
+        $null = $L.Add(""); $null = $L.Add(""); $null = $L.Add("")
+    }
+    $null = $L.Add($rule)
+    if ($Out) {
+        foreach ($c in $ALL_CH) {
+            $v = [double]$Out.Channels[$c]
+            $tag = if ($Active[$c]) { " " } else { "x" }
+            $null = $L.Add(("  {0}{1,-10}{2,7}  |{3}|" -f $tag, $c, [int]$v, (Bar $v 5000)))
+        }
+        $null = $L.Add($rule)
+        $null = $L.Add(("   FORCE {0,7}  {1}   peak {2,5:0}" -f `
+            $Force, (CenterBar $Force 9500), $Peak))
+    }
+    $null = $L.Add($rule)
+    $null = $L.Add(("   loop {0,5:0.0} Hz   master {1:0.00}   {2}" -f `
+        $Rate, $Master, $(if ($Enabled) { "ARMED " } else { "MUTED " })))
+    $null = $L.Add("   [space] mute  [+/-] master  [s] save tune  [q] quit")
+    $null = $L.Add($rule)
+    $null = $L.Add("   events:")
+    $n = 0
+    if ($Notes) { foreach ($x in $Notes) { $null = $L.Add("     $x"); $n++ } }
+    for ($i = $n; $i -lt 6; $i++) { $null = $L.Add("") }
+    return $L
+}
+
+# Render one frame with synthetic state and exit. Lets the layout be checked with
+# no game, no mission and no wheel.
+if ($PanelDemo) {
+    . (Join-Path $here 'FfbMixer.ps1')
+    $m = Mix-New
+    # a plausible mid-corner-on-the-limit frame
+    $fake = [pscustomobject]@{
+        T = 3.0; Speed = 17.4; SpeedMph = 38.9; Steer = -0.42; Throttle = 0.65
+        YawRate = -0.51; ExpectedYaw = -0.72; LongG = -0.18; LatG = -0.90
+        Understeer = 0.41; Oversteer = 0.0; Jolt = 2.3
+        RollRate = 0.35; PitchRate = 0.22; Vy = 0.4
+        Braking = $false; Airborne = $false; Ticks = 412; Polls = 1240; Wheelbase = 4.662
+    }
+    for ($t = 0.0; $t -lt 1.2; $t += 1.0/60) { $fake.T = $t; $o = Mix-Update $m $fake }
+    $act = @{}; foreach ($c in $ALL_CH) { $act[$c] = $true }
+    $act['judder'] = $false
+    $notes = @("    2.9s  UNDERSTEER", "    1.4s  IMPACT 62%")
+    Write-Host ""
+    foreach ($ln in (Build-Panel -Mode "PANEL DEMO (synthetic data)" -Ent ([int64]0x048C1388) `
+                -Wheelbase 4.662 -S $fake -Out $o -Force $o.Force -Peak $m.PeakForce `
+                -Rate 61.8 -Master 1.0 -Enabled $true -Active $act -Notes $notes `
+                -Calib $script:TEL_CALIB_SOURCE)) {
+        Write-Host $ln
+    }
+    Write-Host ""
+    exit 0
 }
 
 $telCtx = $null
@@ -245,46 +341,12 @@ try {
             $nextDraw = $frameStart + 0.07     # ~14 Hz; the force loop runs far faster
             [Console]::SetCursorPosition(0, 0)
             $mode = if ($DryRun) { "DRY RUN (wheel untouched)" } else { "LIVE -> $($dev.Name)" }
-            $lines = New-Object System.Collections.ArrayList
-            $null = $lines.Add(("  I76 FFB INTERPOSER   {0}" -f $mode))
-            $null = $lines.Add(("  entity 0x{0:X8}   wheelbase {1:0.00} m   sim ticks {2}" -f `
-                $telCtx.Ent, $telCtx.Wheelbase, $(if ($lastS) { $lastS.Ticks } else { 0 })))
-            $null = $lines.Add(("  " + ("-" * 74)))
-            if ($lastS) {
-                $null = $lines.Add(("   speed {0,6:0.0} mph ({1,5:0.0} m/s)    throttle {2,6:0.00}    steer {3,6:0.00}" -f `
-                    $lastS.SpeedMph, $lastS.Speed, $lastS.Throttle, $lastS.Steer))
-                $null = $lines.Add(("   long g {0,6:0.00}   lat g {1,6:0.00}   jolt {2,6:0.0}   {3}{4}" -f `
-                    $lastS.LongG, $lastS.LatG, $lastS.Jolt,
-                    $(if ($lastS.Braking) { "BRAKING " } else { "" }),
-                    $(if ($lastS.Airborne) { "AIRBORNE" } else { "" })))
-                $null = $lines.Add(("   yaw {0,7:0.000} rad/s   expected {1,7:0.000}   grip {2,3:0}%   U {3,4:0.00} O {4,4:0.00}" -f `
-                    $lastS.YawRate, $lastS.ExpectedYaw, $lastOut.Channels['grip%'],
-                    $lastS.Understeer, $lastS.Oversteer))
-            } else {
-                $null = $lines.Add("   (no telemetry - paused, at a menu, or between missions)")
-                $null = $lines.Add(""); $null = $lines.Add("")
+            foreach ($ln in (Build-Panel -Mode $mode -Ent $telCtx.Ent -Wheelbase $telCtx.Wheelbase `
+                        -S $lastS -Out $lastOut -Force $lastForce -Peak $mix.PeakForce `
+                        -Rate $rateNow -Master $tuneTable['Master'] -Enabled $mix.Enabled `
+                        -Active $active -Notes $noteHist -Calib $script:TEL_CALIB_SOURCE)) {
+                Write-Host $ln.PadRight(78)
             }
-            $null = $lines.Add(("  " + ("-" * 74)))
-            if ($lastOut) {
-                foreach ($c in $ALL_CH) {
-                    $v = [double]$lastOut.Channels[$c]
-                    $tag = if ($active[$c]) { " " } else { "x" }
-                    $null = $lines.Add(("  {0}{1,-10}{2,7}  |{3}|" -f $tag, $c, [int]$v, (Bar $v 5000)))
-                }
-                $null = $lines.Add(("  " + ("-" * 74)))
-                $null = $lines.Add(("   FORCE {0,7}  {1}   peak {2,5:0}" -f `
-                    $lastForce, (CenterBar $lastForce 9500), $mix.PeakForce))
-            }
-            $null = $lines.Add(("  " + ("-" * 74)))
-            $null = $lines.Add(("   loop {0,5:0.0} Hz   master {1:0.00}   {2}" -f `
-                $rateNow, $tuneTable['Master'],
-                $(if ($mix.Enabled) { "ARMED " } else { "MUTED " })))
-            $null = $lines.Add("   [space] mute  [+/-] master  [s] save tune  [q] quit")
-            $null = $lines.Add(("  " + ("-" * 74)))
-            $null = $lines.Add("   events:")
-            foreach ($n in $noteHist) { $null = $lines.Add("     $n") }
-            for ($i = $noteHist.Count; $i -lt 6; $i++) { $null = $lines.Add("") }
-            foreach ($ln in $lines) { Write-Host $ln.PadRight(78) }
         }
 
         # ---- live keys -----------------------------------------------------
