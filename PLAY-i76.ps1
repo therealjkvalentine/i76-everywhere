@@ -17,7 +17,12 @@ param(
     [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
     # Head tracking. Pass "" to skip. opentrack is started AND told to begin
     # tracking (it has no auto-start switch - see opentrack-autostart.ahk).
-    [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe"
+    [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe",
+    # Custom force feedback (tools/ffb). OPT-IN on purpose: it synthesises real
+    # slip/load/impact feel from telemetry, but the gains have not been judged by
+    # hand yet, and force feedback nobody has tuned goes straight into the user's
+    # hands. Calibrate first (tools\ffb\ffb-calibrate.ps1), then add -Ffb.
+    [switch]$Ffb
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -99,6 +104,23 @@ if ($OpenTrack -and (Test-Path $OpenTrack)) {
 Start-Sleep -Milliseconds 800     # let the AHK layers finish their device probe
 
 $proc = Start-Process -FilePath (Join-Path $GameDir $Exe) -ArgumentList '-glide' -WorkingDirectory $GameDir -PassThru
+
+# Custom force feedback, AFTER the game: it reads the game's own memory, so the
+# process has to exist first. It waits for a mission to load on its own (the
+# player entity only exists in one), so starting it here rather than making the
+# user launch it by hand mid-mission is safe. Own window so the panel is visible.
+$ffb = $null
+if ($Ffb) {
+    $ffbScript = Join-Path $PSScriptRoot 'tools\ffb\ffb-interposer.ps1'
+    if (-not (Test-Path $ffbScript)) { $ffbScript = Join-Path $GameDir '_ffb\ffb-interposer.ps1' }
+    if (Test-Path $ffbScript) {
+        $ffb = Start-Process -FilePath 'powershell.exe' `
+            -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$ffbScript`"" -PassThru
+    } else {
+        Write-Host "-Ffb requested but ffb-interposer.ps1 was not found." -ForegroundColor Yellow
+    }
+}
+
 $proc.WaitForExit()
 
 if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
@@ -106,6 +128,19 @@ if ($ahk      -and -not $ahk.HasExited)      { Stop-Process -Id $ahk.Id      -Fo
 if ($ls       -and -not $ls.HasExited)       { Stop-Process -Id $ls.Id       -Force }
 if ($track    -and -not $track.HasExited)    { Stop-Process -Id $track.Id    -Force }
 if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Force }
+# The interposer releases the wheel in its own finally block, but Stop-Process
+# -Force skips that - so ask it to stop, and only kill it if it will not.
+if ($ffb -and -not $ffb.HasExited) {
+    Stop-Process -Id $ffb.Id -Force
+    # Belt and braces: if the force was latched when we killed it, the wheel would
+    # keep pulling. Re-open the device briefly and zero it.
+    try {
+        . (Join-Path $PSScriptRoot 'tools\ffb\FfbCore.ps1')
+        $d = Ffb-Open
+        $null = Ffb-Constant $d 0
+        Ffb-Close $d
+    } catch { }
+}
 # Only close opentrack if WE started it - leave a session the user had open.
 if ($ot       -and -not $ot.HasExited)       { Stop-Process -Id $ot.Id       -Force }
 

@@ -63,7 +63,12 @@ param(
     [switch]$PanelDemo,
     [string]$Log = "",
     [string]$Tune = "",
-    [int]$Seconds = 0        # 0 = until [q] or Ctrl+C
+    [int]$Seconds = 0,       # 0 = until [q] or Ctrl+C
+    # Seconds to wait for a mission to load before giving up. The player entity
+    # only exists in a mission, so this is what makes the tool launchable at the
+    # title screen (or from the launcher) instead of only once you are driving.
+    # 0 = do not wait, fail immediately.
+    [int]$Wait = 180
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -191,7 +196,22 @@ $telCtx = $null
 $dev    = $null
 $logSw  = $null
 try {
-    $telCtx = Tel-Open
+    # Wait rather than fail. Tel-Open needs the player entity, which only exists
+    # inside a mission - so a bare launch at the title screen used to abort. That
+    # made this impossible to start alongside the game (see PLAY-i76.ps1 -Ffb):
+    # you would have had to launch it by hand after loading a mission. Waiting
+    # costs nothing and makes it launchable at any point.
+    $waited = 0
+    while (-not $telCtx) {
+        try { $telCtx = Tel-Open }
+        catch {
+            if ($Wait -le 0) { throw }
+            if ($waited -ge $Wait) { throw "waited $Wait s for a mission and gave up: $_" }
+            if ($waited -eq 0) { Write-Host "waiting for a mission to load... ($_)" -ForegroundColor DarkGray }
+            Start-Sleep -Seconds 2
+            $waited += 2
+        }
+    }
     Write-Host ("telemetry OK - entity 0x{0:X8}, wheelbase {1:0.00} m, track {2:0.00} m" -f `
         $telCtx.Ent, $telCtx.Wheelbase, $telCtx.Track) -ForegroundColor Green
 
