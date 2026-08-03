@@ -357,3 +357,61 @@ carrying the documented mouse-pinning trap.
 Recovery: restore a known-good `input.map` (the portable zip carries one), drop
 the `mouse` source from `steer`/`throttle` per §3 above, re-lint, and **restart
 the game** — it reads `input.map` and enumerates joysticks only at startup.
+
+
+## FFB: SOLVED — a 3Dconnexion emulator was stealing the DirectInput device
+
+Force feedback worked on a laptop and refused on a desktop for an entire session.
+The answer was not the game, the wheel, the driver or the registry: the desktop
+had **two virtual joysticks the laptop did not** — vJoy and a *3Dconnexion KMJ
+Emulator*. **Removing the 3Dconnexion emulator and rebooting made FFB work
+immediately.**
+
+```
+FF device detected flag : 1
+FF effect object ptr    : 0x0B900000        <- first success ever recorded here
+```
+
+Afterwards `joystick1` was the **only** winmm device present; before, the wheel
+shared the list with vJoy at id 3 and the emulator at id 7.
+
+**Why it breaks FFB and not ordinary input.** The engine reads *input* through
+winmm, where the wheel was always found correctly at `joystick1` — steering,
+pedals and buttons all worked. But *force feedback* is opened through
+**DirectInput**, which enumerates separately and needs **exclusive** acquisition.
+A virtual device in that enumeration is enough to make `I7FF_InitSystem` fail,
+and it tries exactly once at startup — its own words: *"Failed to open FF
+Joystick. Try again next time."*
+
+That asymmetry is the diagnostic signature worth remembering: **input works but
+FFB does not** points at DirectInput enumeration, not at the wheel.
+
+### What this rules out, permanently
+
+Chased and eliminated before finding it — don't repeat these:
+
+| suspect | verdict |
+|---|---|
+| `enable-force-feedback.bat` registry key | **irrelevant on the Gold exe.** FFB init at `0x445A60` is called *unconditionally* from `0x402F93`; there is no registry gate. The only `SOFTWARE\Activision` access sits beside `Minimum`/`miss8`/`miss16` (texture resolution). The PCGW key is a CD-era fix. |
+| Lossless Scaling / frame generation | field-tested without it; failed identically |
+| Thrustmaster control panel open | closed throughout |
+| stale winmm axis calibration | real bug, fixed, but not this |
+| `LoadLibrary` failing | never happened — see below |
+
+### The false negative that cost the most time
+
+`i76.exe` is 32-bit. From 64-bit tooling **both `$proc.Modules` and
+`tasklist /m` enumerate only the WOW64 stubs** and report `I7_SFRCE.DLL` as not
+loaded while it is loaded and working. A `LoadLibrary` test run from 64-bit
+PowerShell compounded it, returning error 126 (which is meaningless across the
+architecture boundary). Repeated from a 32-bit process it loads fine.
+
+**Read `0x52bbdc` instead** — the exe's own `GetProcAddress` result for
+`I7FF_InitSystem`, written only after `LoadLibrary` *and* `GetProcAddress` both
+succeed. `tools/check-ffb.ps1` now uses that.
+
+### Still open
+
+The wheel ignores the 300-degree limit and resists turning once the Thrustmaster
+control panel is closed — the panel appears to apply rotation only while running.
+That is a driver/profile matter, not the game.
