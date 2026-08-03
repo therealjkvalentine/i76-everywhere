@@ -44,8 +44,8 @@ global YAW_OFF     := 0.12   ; rad, ~7deg:  inside this it comes back up
 ; narrower arc than they turn (measured: yaw reached ~0.43 rad, pitch ~0.17).
 ; Nodding through a small arc, so these are deliberately tight (field: "I have to
 ; nod too far" at 0.12/0.08).
-global PITCH_ON    := 0.05
-global PITCH_OFF   := 0.03
+global PITCH_ON    := 0.075   ; field: 0.05 tripped "a hair too early"
+global PITCH_OFF   := 0.045
 ; The Up arrow is NOT glance-up in this engine - it is LOOK BACK, so nodding up
 ; was throwing the view to the rear. Disabled. Set to 1 only if a future binding
 ; makes Up mean glance-up.
