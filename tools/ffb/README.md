@@ -204,18 +204,50 @@ to a matrix that does not exist), and velocity was listed as unfound in
 Position is still unidentified, and **the force model does not need it** — every
 channel derives from velocity, angular velocity and the control inputs.
 
-## The .frc files — not yet used
+## The .frc files — parsed, and they corroborate the mixer's shape
 
-14 files in `force\`, RIFF `FORC` containers holding an Immersion-style effect
-table: a DirectInput target GUID, a type name (`SawtoothDown1`, `SquareLow1`,
-`UserDefined1`), and `(time, magnitude)` keyframe pairs — `CANNON1` has six
-`185..190, 126` pairs, `ENGSTART` runs `173,-24 / 174,-24 / …`. Magnitudes look
-like percent (`0x64` = 100 recurs throughout).
+`parse-frc.py` reads the 14 effects in `force\`. They are RIFF `FORC` containers
+(Immersion's Force Resource layout): a DirectInput target GUID, then one or more
+nested `efct` chunks each holding a type name and a parameter block.
 
-Worth parsing as a **design reference** — it is the vocabulary the original
-authors chose for this exact car and wheel, which is better guidance for
-synthesised weapon and engine effects than taste. Not needed for correctness, and
-now that coexistence works it is not needed to keep weapon feel either.
+**The finding, and it is certain because it is only the type names:** these
+effects are **composed, not single primitives.**
+
+| file | composition |
+|---|---|
+| `TIREBLWL` / `TIREBLWR` | `Sine1` + `ConstantForce1` + `Superimpose` |
+| `MISSILE2` / `MISSILE5` | `Cosine1` + `ConstantForce1` + `Sequence` |
+| `ENGSTART` | `SquareLow1` + `SquareHigh2` + `Sequence4` |
+| `CANNON1..4` | `UserDefined1` (hand-drawn) |
+| `EXPLOSN` | `SawtoothDown1` |
+| `WPNCYCLE` / `WPNLINK` / `WPNUNLNK` | `RampDown1` / `SquareHigh1` |
+
+A tyre blowout is a steady force with a sine **superimposed**. The 1997 authors
+built feel by layering a constant force with an oscillation — which is exactly
+`FfbMixer.ps1`'s model (`steady + texture*osc + transients`). That is independent
+corroboration of the mixer's shape from the people who tuned this game for this
+class of wheel.
+
+**What is NOT decoded: the parameter block.** Peak magnitude and duration are
+presumably in it (`100` = `0x64` and `±126` recur, suggesting percent) but the
+fields are not pinned, so the tool prints them raw and claims no numbers.
+
+Two mistakes in the first version of that parser, both recorded because they are
+the same species as the `+0x08` matrix error:
+
+1. **It invented an envelope.** It read six `(time, magnitude)` int32 pairs at
+   `payload+20`. But the type name is *variable* length (`Cosine1` is 7 chars,
+   `SawtoothDown1` is 13), so nothing after it sits at a fixed offset — and much
+   of that region is `0xCD` fill, the MSVC debug heap's uninitialised pattern
+   written straight to disk. It is not data. The tell was a reported magnitude of
+   `842150451` = `0x32323233` = the ASCII text `"3222"`, in a field whose
+   neighbours were all ≤ 126.
+2. **Every file was listed twice.** `glob("*.FRC") + glob("*.frc")` doubles the
+   list on Windows, where **glob is case-insensitive** — each pattern matches all
+   14 files.
+
+Not a runtime dependency: nothing in the interposer needs this, and since our
+layer coexists with the game the engine still plays these itself.
 
 ## Files
 
