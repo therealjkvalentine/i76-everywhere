@@ -45,8 +45,21 @@ A 1997 title enumerating DirectInput devices does not go looking for *your* whee
 Add other joysticks — especially **virtual** ones that are always present — and
 the one-shot acquire lands on the wrong device and gives up.
 
-**On the machine that failed:** two virtual joysticks, **vJoy** and a
-**3Dconnexion KMJ Emulator**. Removing them and rebooting fixed FFB.
+**On the machine that failed:** two virtual joysticks — **vJoy** (winmm id 3) and a
+**3Dconnexion KMJ Emulator** (id 7) — sharing the list with the wheel. Removing the
+**3Dconnexion KMJ Emulator** and rebooting fixed FFB immediately, and afterwards
+`joystick1` was the only winmm device. First success ever recorded on that box:
+
+```
+FF device detected flag : 1
+FF effect object ptr    : 0x0B900000
+```
+
+**The signature worth remembering: input worked the whole time, FFB did not.** Input comes
+through **winmm**, where the wheel was always correctly at `joystick1` — steering, pedals and
+buttons all fine. Force feedback is opened through **DirectInput**, which enumerates
+*separately* and needs exclusive acquisition. So *"input works but FFB doesn't"* points at
+DirectInput enumeration, never at the wheel.
 
 **On the machine that worked:** zero enumerable joysticks besides the wheel. Note
 it *does* have a **Nefarius Virtual Gamepad Emulation Bus** (ViGEm) installed —
@@ -115,3 +128,14 @@ crashed process can leave the device unreleased. **Power-cycle the wheel.**
   mechanically rather than compared by eye. That is how this was found.
 
 Both read only. Neither opens the Thrustmaster control panel, deliberately.
+
+## The false negative that cost the most time
+
+`i76.exe` is **32-bit**. From 64-bit tooling, `$proc.Modules` and `tasklist /m` both report
+`I7_SFRCE.DLL` as **absent** while it is loaded and working, and a `LoadLibrary` test from
+64-bit PowerShell returns a meaningless error 126. That sends you hunting a load failure that
+never happened.
+
+**Read `0x52bbdc` instead** — the exe's own `GetProcAddress` result, written only after
+`LoadLibrary` *and* `GetProcAddress` both succeed. Nonzero means loaded and resolved.
+`tools/check-ffb.ps1` does this.
