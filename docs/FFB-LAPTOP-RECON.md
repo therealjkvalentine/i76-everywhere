@@ -1,91 +1,117 @@
-# FFB recon: what differs between the machine where it works and the one where it doesn't
+# SOLVED: I76 force feedback dies if other joysticks are installed
 
-Force feedback works on one Windows machine (a laptop) and not on another
-(desktop). Everything on the desktop side has been traced already; what is left
-is a **diff**. Run the prompt below on the WORKING machine and bring the output
-back.
+> **ANSWER (2026-08-02): remove the extra/virtual joysticks and reboot.** Force
+> feedback worked on one Windows box and not another. The difference was not
+> Windows version, not the exe, not the registry, not frame generation — it was
+> **other joystick devices present on the machine**. Uninstalling them and
+> restarting made FFB work immediately.
 
-## What is already established on the BROKEN machine
+## The symptom
 
-Do not re-derive these — they are settled by disassembly of the Gold exe
-(`i76.exe`, MD5 `60abf7bc699da72476128ddce991a3d1`):
+The game runs fine. The wheel steers, the pedals work, every button works. There
+is simply **no force feedback**, and — if you have wired firing to something that
+produces effects — the first shot can crash the game in `I7_SFRCE.DLL` at fault
+offset `0x2505`, because the effect object was never created and gets
+dereferenced anyway.
+
+`tools\check-ffb.ps1`, run **while in a mission**, reports the tell exactly:
+
+```
+I7_SFRCE.DLL loaded     : yes
+FF device detected flag : 0
+FF effect object ptr    : 0x00000000
+  -> MODULE LOADED BUT NO DEVICE
+```
+
+That combination — module resolved, device not — is the whole diagnosis. It means
+`I7FF_InitSystem` ran and failed to open a force-feedback device:
+*"Failed to open FF Joystick. Try again next time."*
+
+## Why other joysticks break it
+
+Settled by disassembly of the Gold exe (`i76.exe`, MD5
+`60abf7bc699da72476128ddce991a3d1`):
 
 - FFB init at `0x445A60` is called **unconditionally** from `0x402F93` at startup.
 - It calls `0x446020`, which builds `"I7_SFRCE.DLL"`, `LoadLibrary`s it, resolves
   three exports, then calls `I7FF_InitSystem`.
-- **There is no registry gate.** The only `SOFTWARE\Activision` access sits beside
-  `Minimum` / `miss8` / `miss16` (mission texture resolution).
-  `enable-force-feedback.bat` is a CD-era fix that does **not** gate this exe.
-- On the broken machine the DLL **is** loaded and resolved: `0x52bbdc`
-  (I7FF_InitSystem ptr) reads nonzero. So `LoadLibrary` is not the problem.
-- The failure is `I7FF_InitSystem` → *"Failed to open FF Joystick. Try again next
-  time."* FFB wants DirectInput **exclusive** acquisition and tries **once** at
-  startup. `0x52bbd0` (FF-detected flag) stays 0 and `0x52bbcc` (effect object)
-  stays null.
+- The DLL loads fine — `0x52bbdc` (the `I7FF_InitSystem` pointer) reads nonzero
+  even on the broken machine. **`LoadLibrary` was never the problem.**
+- `I7FF_InitSystem` wants DirectInput **exclusive** acquisition and tries
+  **once**, at startup ("try again next time" is not a retry — it is a give-up).
+- `0x52bbd0` (FF-detected flag) stays `0`; `0x52bbcc` (effect object) stays null.
 
-Already ruled out on the broken machine: Lossless Scaling / frame generation
-(fails identically without it), the Thrustmaster control panel being open, the
-registry key, and a stale winmm axis calibration.
+A 1997 title enumerating DirectInput devices does not go looking for *your* wheel.
+Add other joysticks — especially **virtual** ones that are always present — and
+the one-shot acquire lands on the wrong device and gives up.
 
-Known differences to confirm or eliminate: **Windows 11 (working) vs Windows 10
-(broken)**; the broken box has **two virtual joysticks** the laptop does not
-(vJoy and a 3Dconnexion KMJ Emulator); and the working copy may be a **GOG
-installed** copy vs a **portable/zip** copy.
+**On the machine that failed:** two virtual joysticks, **vJoy** and a
+**3Dconnexion KMJ Emulator**. Removing them and rebooting fixed FFB.
 
-## Prompt to run on the WORKING laptop
+**On the machine that worked:** zero enumerable joysticks besides the wheel. Note
+it *does* have a **Nefarius Virtual Gamepad Emulation Bus** (ViGEm) installed —
+but `DEVPKEY_Device_Children` is empty, so the bus instantiates no pads and
+contributes nothing to enumeration. **A dormant bus is harmless; what matters is
+whether a joystick DEVICE is enumerated.** Check children, not just presence.
 
-> I need to work out why Interstate '76 force feedback works on this machine but
-> not on another Windows box. Please gather the following and give me the raw
-> output — do not fix anything, this is recon only.
->
-> 1. **Confirm FFB actually works here.** Start the game, get **into a mission**
->    (not the menu — the FF device is opened at startup but only meaningful once
->    playing), and run `tools\check-ffb.ps1` from the i76-everywhere repo. I want
->    the FF-detected flag at `0x52bbd0` and the effect object at `0x52bbcc`.
->    If you don't have the repo, read those two DWORDs out of `i76.exe` yourself.
->
-> 2. **Windows + driver versions.** `[Environment]::OSVersion`, the build number,
->    and the Thrustmaster driver version. Which PID does the wheel enumerate as —
->    `VID_044F&PID_B66E` (properly driven) or `PID_B65D` (generic pre-init)?
->
-> 3. **Every joystick this machine exposes**, in enumeration order. For winmm:
->    `joyGetDevCaps` for ids 0-15, with name, axis count, button count. For
->    DirectInput/HID: `Get-PnpDevice -Class HIDClass`. **I specifically need to
->    know whether any VIRTUAL joysticks exist here (vJoy, 3Dconnexion KMJ
->    emulator, x360ce, ViGEm)** — the broken machine has two and this one may
->    have none, which would change DirectInput enumeration order.
->
-> 4. **Which winmm slot is the wheel**, and the matching registry:
->    `HKCU\System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL`
->    — both `CurrentJoystickSettings` and `JoystickSettings\<VID&PID>`.
->
-> 5. **Install type and files.** Is this a GOG-installed copy or a portable/zip
->    copy? MD5 of `i76.exe` and `i7_sfrce.dll`, and whether `force\*.frc` (14
->    files) are present.
->
-> 6. **Registry:** everything under `HKLM\SOFTWARE\WOW6432Node\ACTIVISION` and
->    `HKLM\SOFTWARE\ACTIVISION`, values included.
->
-> 7. **Config:** the `steer` and `throttle` blocks from `input.map`, and the
->    `FPSLimit` / `Resolution` / `FullScreenMode` / `ScalingMode` lines from
->    `dgVoodoo.conf`.
->
-> 8. **How the game is launched here** — which .bat/shortcut, whether Lossless
->    Scaling is used, and whether the wheel is always connected before launch.
->
-> 9. **Thrustmaster control panel settings**: rotation angle (is 300 degrees
->    actually applied and does it persist when the panel is closed?), and whether
->    pedals are set to COMBINED or SEPARATE.
-
-## The one local test worth doing first on the broken machine
-
-Disable the two virtual joysticks and relaunch — if DirectInput enumeration order
-is the cause, this fixes it without needing the laptop at all:
+## Fix
 
 ```powershell
-# Administrator PowerShell
-Get-PnpDevice | Where-Object { $_.FriendlyName -match '^vJoy Device$|3Dconnexion KMJ Emulator' } | Disable-PnpDevice -Confirm:$false
+# Administrator PowerShell - list what is actually there first
+Get-PnpDevice | Where-Object { $_.FriendlyName -match '(?i)vJoy|3Dconnexion|KMJ|x360ce|ViGEm' }
+
+# then disable (or uninstall) the virtual ones, and REBOOT
+Get-PnpDevice | Where-Object { $_.FriendlyName -match '^vJoy Device$|3Dconnexion KMJ Emulator' } |
+    Disable-PnpDevice -Confirm:$false
 ```
 
-vJoy is safe to disable — head tracking moved to freetrack shared memory and no
-longer uses it. Re-enable with `Enable-PnpDevice` the same way.
+Reboot matters — a disable alone may not re-order enumeration for an already
+running session.
+
+Re-enable later with `Enable-PnpDevice` the same way. (vJoy in particular is safe
+to remove here — head tracking moved to freetrack shared memory and no longer
+uses it.)
+
+## Ruled OUT — do not spend time on these
+
+Each of these was checked and is **not** the cause:
+
+| Suspected | Verdict |
+|---|---|
+| `enable-force-feedback.bat` / the ACTIVISION registry key | **There is no registry gate in this exe.** The only `SOFTWARE\Activision` access sits beside `Minimum`/`miss8`/`miss16` (mission texture resolution). That .bat is a CD-era fix that does not gate the Gold build. |
+| The FFB module failing to load | It loads. `0x52bbdc` is nonzero on the broken machine. |
+| Missing `force\*.frc` effect files | 14 present on both. |
+| A different `i76.exe` build | Same MD5 `60abf7bc699da72476128ddce991a3d1` on both machines. |
+| Lossless Scaling / frame generation | Fails identically with it disabled. |
+| Windows 10 vs 11 | Different on the two boxes, but not the cause. |
+| Stale winmm axis calibration | Checked and irrelevant to FFB. |
+| GOG-installed vs portable copy | Not the cause. |
+
+**One thing that IS a real, separate cause:** the **Thrustmaster control panel
+being open** takes the DirectInput device exclusively, producing the identical
+"module loaded, no device" state. Close it before launching — its own UI says so
+on every tab. See [WHEEL-T300.md](WHEEL-T300.md).
+
+Likewise, if FFB has already failed once, relaunching may not recover it: a
+crashed process can leave the device unreleased. **Power-cycle the wheel.**
+
+## The general lesson
+
+> A 1997 game that acquires a DirectInput device **once at startup** has no
+> tolerance for a crowded device list. Anything that adds a permanent phantom
+> joystick — vJoy, x360ce, KMJ emulators, instantiated ViGEm pads — can silently
+> take the slot. The symptom is never "your joystick software is wrong", it is
+> "the game's force feedback is broken".
+
+## Tools
+
+- [`tools/check-ffb.ps1`](../tools/check-ffb.ps1) — reads the engine's own FFB
+  state out of the live process. **Run it while in a mission**: the FF device is
+  opened at startup but only meaningful in play, and checking at the title screen
+  reports "not loaded" on a perfectly healthy setup.
+- [`tools/ffb-recon.ps1`](../tools/ffb-recon.ps1) — dumps the machine-side facts
+  (virtual joysticks and their children, winmm enumeration, the joystick
+  registry, file hashes) in a fixed order, so two machines can be diffed
+  mechanically rather than compared by eye. That is how this was found.
+
+Both read only. Neither opens the Thrustmaster control panel, deliberately.

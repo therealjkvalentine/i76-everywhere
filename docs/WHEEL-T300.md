@@ -162,6 +162,26 @@ paddle's `weapon_fire` hold is for. A repeat-tap mode was tried and removed — 
 and the map opens but won't close from the same button, stranding you mid-fight. Map stays on
 the keyboard (`M`).
 
+## FFB dies if other joysticks are installed — SOLVED
+
+If force feedback simply never engages on a machine, the most likely cause is
+**other joystick devices present**, especially virtual ones (vJoy, x360ce, 3Dconnexion KMJ
+emulators, instantiated ViGEm pads). `I7FF_InitSystem` acquires a DirectInput device
+**exclusively, once, at startup** — a crowded device list makes that one shot land on the
+wrong device, and it gives up. Remove them and **reboot**.
+
+Diagnosed by running the same recon on a working and a broken machine and diffing:
+[FFB-LAPTOP-RECON.md](FFB-LAPTOP-RECON.md) has the full writeup, the disassembly detail, and
+the list of things **ruled out** (the ACTIVISION registry key gates nothing in this exe; the
+module loads fine; same exe MD5; not frame generation; not Windows 10 vs 11).
+
+The tell, from `tools\check-ffb.ps1` **run while in a mission**:
+
+```
+I7_SFRCE.DLL loaded     : yes
+FF device detected flag : 0        <- module fine, device never opened
+```
+
 ## FFB works — but CLOSE THE THRUSTMASTER CONTROL PANEL FIRST
 
 **This is the single most important operational rule on this page.** Thrustmaster's own control

@@ -14,6 +14,21 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
   wrote to a stray file called `f` while their intended logs stayed empty, and the empty logs
   were read as evidence. *A probe that reports nothing is not evidence until the probe is
   proven to report something.*
+- **SOLVED: I76 force feedback dies if other joysticks are installed.** FFB worked on one
+  Windows box and not another; the difference was neither Windows version, nor the exe, nor
+  the registry, nor frame generation — it was **two virtual joysticks** on the failing machine
+  (vJoy and a 3Dconnexion KMJ Emulator). Uninstalling them and rebooting fixed it immediately.
+  `I7FF_InitSystem` acquires a DirectInput device **exclusively, once, at startup** ("try again
+  next time" is a give-up, not a retry), so a crowded device list makes that one shot land on
+  the wrong device. The tell is `check-ffb.ps1` reporting **module loaded but no device** —
+  `0x52bbdc` nonzero while `0x52bbd0` stays 0. A dormant **bus** is harmless (the working
+  machine has ViGEm installed with no children); what matters is whether a joystick *device*
+  enumerates. Full writeup, disassembly detail and the ruled-out list in
+  [docs/FFB-LAPTOP-RECON.md](docs/FFB-LAPTOP-RECON.md); new
+  [`tools/ffb-recon.ps1`](tools/ffb-recon.ps1) dumps machine-side facts in a fixed order so two
+  machines diff mechanically — which is how this was found. Generalises: *a 1997 game that
+  acquires a DirectInput device once at startup has no tolerance for a crowded device list, and
+  the symptom presents as the game being broken rather than the joystick software.*
 - **The FFB "crash on fire" was the Thrustmaster control panel being open.** It holds the
   DirectInput device, so the game's FFB init fails (`I7FF_InitSystem Failed to open FF
   Joystick`), the effect objects are never created, and the first shot dereferences a null
