@@ -14,7 +14,10 @@ param(
     [string]$GameDir = "C:\Games\Interstate 76",
     [string]$Exe = "i76.exe",
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
-    [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe"
+    [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
+    # Head tracking. Pass "" to skip. opentrack is started AND told to begin
+    # tracking (it has no auto-start switch - see opentrack-autostart.ahk).
+    [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe"
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -33,6 +36,27 @@ $ahkExe = Join-Path $GameDir '_ahk\AutoHotkeyU32.exe'
 $ahkCfg = Join-Path $GameDir '_ahk\i76-remap.ahk'
 if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg)) {
     $ahk = Start-Process -FilePath $ahkExe -ArgumentList "`"$ahkCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
+}
+
+# Head tracking: opentrack + the freetrack->game layer. opentrack has NO
+# command-line switch to begin tracking, so opentrack-autostart.ahk presses Start
+# for it (idempotent - it exits immediately if FT_SharedMem already exists, so a
+# session you started by hand is left alone).
+$ot = $null
+$otHelper = $null
+$track = $null
+if ($OpenTrack -and (Test-Path $OpenTrack)) {
+    if (-not (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue)) {
+        $ot = Start-Process -FilePath $OpenTrack -PassThru
+    }
+    $autoStart = Join-Path $GameDir '_ahk\opentrack-autostart.ahk'
+    if ((Test-Path $ahkExe) -and (Test-Path $autoStart)) {
+        $otHelper = Start-Process -FilePath $ahkExe -ArgumentList "`"$autoStart`"" -PassThru
+    }
+}
+$trackCfg = Join-Path $GameDir '_ahk\i76-headtrack.ahk'
+if ((Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
+    $track = Start-Process -FilePath $ahkExe -ArgumentList "`"$trackCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
 # Frame generation (Lossless Scaling), optional. The engine's physics are locked
@@ -57,9 +81,13 @@ if ($LosslessScaling -and (Test-Path $LosslessScaling)) {
 $proc = Start-Process -FilePath (Join-Path $GameDir $Exe) -ArgumentList '-glide' -WorkingDirectory $GameDir -PassThru
 $proc.WaitForExit()
 
-if ($wheel -and -not $wheel.HasExited) { Stop-Process -Id $wheel.Id -Force }
-if ($ahk   -and -not $ahk.HasExited)   { Stop-Process -Id $ahk.Id   -Force }
-if ($ls    -and -not $ls.HasExited)    { Stop-Process -Id $ls.Id    -Force }
+if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
+if ($ahk      -and -not $ahk.HasExited)      { Stop-Process -Id $ahk.Id      -Force }
+if ($ls       -and -not $ls.HasExited)       { Stop-Process -Id $ls.Id       -Force }
+if ($track    -and -not $track.HasExited)    { Stop-Process -Id $track.Id    -Force }
+if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Force }
+# Only close opentrack if WE started it - leave a session the user had open.
+if ($ot       -and -not $ot.HasExited)       { Stop-Process -Id $ot.Id       -Force }
 
 # Release any key the AHK layer might have been HOLDING when we killed it.
 # Stop-Process -Force skips AHK's OnExit handler (RSGExit), which is what would
