@@ -85,16 +85,31 @@ def main():
         m = re.match(r"^([a-z/]+?)([0-9]+)$", tl)      # NumpadN-style -> base
         return bool(m and m.group(1) in known)
 
+    seen_actions = {}
+    joy_devices = {}          # joystickN -> first line it appears on
+    analog_joy_devices = set()
+
     for lineno, action, lines in parse_blocks(imap):
+        seen_actions[action.lower()] = lineno
         if action.lower() not in known:
             findings.append(f"line {lineno}: action '{action}' not in exe strings — the engine will ignore this block")
         plus = [l for l in lines if l[0] == "+"]
-        analog = [l for l in plus if l[2].lower() in ANALOG]
+        # Analog sinks are '-' lines (the sign is axis POLARITY, not a chord), so
+        # this must look at every line - checking only '+' silently skipped the
+        # real steer/throttle blocks and let a documented trap through (2026-08-02).
+        analog = [l for l in lines if l[2].lower() in ANALOG]
+        for _s, d, _t in analog:
+            if re.match(r"^joystick[0-9]+$", d, re.I):
+                analog_joy_devices.add(d.lower())
+        for _s, d, _t in lines:
+            if re.match(r"^joystick[0-9]+$", d, re.I):
+                joy_devices.setdefault(d.lower(), lineno)
         nonmod = [l for l in plus if l[2].lower() not in ("shift", "control")]
         if len(plus) > 1 and len(nonmod) > 1 and not analog:  # modifier chords (Shift-click) are intended
             findings.append(f"line {lineno}: '{action}' has {len(plus)} '+' lines = CHORD (all keys at once). Alternatives need separate blocks")
         if len(analog) > 1:
-            findings.append(f"line {lineno}: '{action}' has two analog sources — axis will pin dead-center (VERIFIED-FIXES)")
+            srcs = ", ".join(f"{d} {t}" for _s, d, t in analog)
+            findings.append(f"line {lineno}: '{action}' has two analog sources ({srcs}) — axis pins dead-center (VERIFIED-FIXES; docs/WHEEL-T300.md: list joystick1 ONLY on steer/throttle)")
         for sign, dev, tok in lines:
             if re.fullmatch(r"joystick", dev, re.I):
                 findings.append(f"line {lineno}: '{action}': DEAD device token '{dev}' — bare Joystick parses but binds NOTHING (field-settled 2026-07-18, twice). Use joystick1")
@@ -103,6 +118,38 @@ def main():
             if not tok_known(tok):
                 hint = " (Y axis token is 'Down/Up')" if tok.lower() == "up/down" else ""
                 findings.append(f"line {lineno}: '{action}': token '{tok}' not in exe strings — silently dead{hint}")
+
+    # --- THE ANALOG SINKS MUST EXIST -----------------------------------------
+    # Field case 2026-08-02: a wheel that steered and braked fine stopped doing
+    # anything at all. Cause was not drivers, calibration or the registry - the
+    # in-game Control Configuration menu had REWRITTEN input.map and dropped the
+    # steer and throttle blocks entirely, leaving no analog sinks. With no sink
+    # there is no wheel and no pedals, however healthy the device is.
+    for need in ("steer", "throttle"):
+        if need not in seen_actions:
+            findings.append(
+                f"NO '{need}' BLOCK — that axis cannot work at all. If both are missing this is the "
+                f"signature of input.map having been rewritten by the IN-GAME Control Configuration "
+                f"menu, which corrupts it (docs/VERIFIED-FIXES.md). Restore a known-good input.map; "
+                f"never rebind in-game.")
+
+    # The menu-corrupted file also re-pointed every button at whatever joystick
+    # slot it felt like (a 3Dconnexion emulator on joystick8, with ZERO joystick1
+    # references). If the buttons name a different stick than the analog sinks,
+    # half the wheel will be inert.
+    if analog_joy_devices:
+        stray = {d: ln for d, ln in joy_devices.items() if d not in analog_joy_devices}
+        if stray:
+            a = ", ".join(sorted(analog_joy_devices))
+            s = ", ".join(f"{d} (line {ln})" for d, ln in sorted(stray.items()))
+            findings.append(
+                f"MIXED JOYSTICK DEVICES: analog sinks use {a} but other bindings use {s}. "
+                f"They must be the same physical stick - check which slot the wheel actually is "
+                f"(joyGetDevCaps / tools/i76-joyprobe.py) before trusting any of these numbers.")
+    elif joy_devices:
+        findings.append(
+            f"joystick bindings exist ({', '.join(sorted(joy_devices))}) but NO analog sink uses a "
+            f"joystick — steering/pedals are unbound. Same corruption signature as above.")
 
     imap_mtime = os.path.getmtime(imap)
     for dead in ("KEYBOARD.MAP", "keyboard.map", "JOYSTICK.MAP", "joystick.map"):

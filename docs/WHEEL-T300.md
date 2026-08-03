@@ -323,3 +323,37 @@ resolved. Notes for whoever picks it up:
 - **Do not conclude "no buttons" from a probe run while nobody is pressing any.** Two
   readings here were taken with the user away and are worthless as evidence — the same
   trap as the AHK probe above.
+
+### Cause 3 — input.map rewritten by the in-game menu (THE ACTUAL ONE, 2026-08-02)
+
+After all of the above, the wheel was still dead — no steering, no pedals, no
+buttons. None of it was the device. `input.map` had been **rewritten by the
+in-game Control Configuration menu**, which corrupts it:
+
+| | corrupted | good |
+|---|---|---|
+| size | 3234 B | 5219 B |
+| `steer` block | **absent** | present |
+| `throttle` block | **absent** | present |
+| `joystick1` references | **0** | 10 |
+| other joystick refs | **16 x `joystick8`** (a 3Dconnexion emulator!) | 0 |
+
+No analog sink means no wheel and no pedals, however healthy the hardware is —
+and the buttons had been re-pointed at an entirely different device.
+
+**Check this before touching drivers, calibration or the registry.** The order
+that wasted the most time here was: driver → control panel → winmm calibration →
+registry → *only then* the game's own config. Reverse it. The vendor's control
+panel talks DirectInput and will look perfect while the engine, which reads winmm
+and this file, gets nothing.
+
+`tools/lint-input-map.py` now fails on this signature — missing analog sinks, and
+button bindings naming a different stick than the analog sinks do. It also gained
+a genuine bug fix found here: the two-analog-sources check only inspected `+`
+lines, but analog sinks are `-` lines (the sign is axis polarity, not a chord),
+so it had never once examined a real `steer`/`throttle` block and passed a file
+carrying the documented mouse-pinning trap.
+
+Recovery: restore a known-good `input.map` (the portable zip carries one), drop
+the `mouse` source from `steer`/`throttle` per §3 above, re-lint, and **restart
+the game** — it reads `input.map` and enumerates joysticks only at startup.
