@@ -19,6 +19,28 @@ Rules for ANY control change:
    chords-by-accident; two analog sources in one block).
 4. Never rebind via the in-game Control Configuration menu (it corrupts —
    docs/VERIFIED-FIXES.md).
+
+   **How to recognise a menu-corrupted input.map — check this FIRST when a
+   controller "stops working".** Field case 2026-08-02: a wheel that steered and
+   braked fine went completely dead. Hours went into drivers, winmm calibration
+   and the registry; the actual cause was that the in-game menu had rewritten
+   input.map. The signature, all three at once:
+
+   - the **`steer` and `throttle` blocks are GONE** (no analog sink = no wheel,
+     no pedals, no matter how healthy the device is)
+   - **zero `joystick1` references**, and
+   - every button re-pointed at some other slot (here `joystick8`, which was a
+     3Dconnexion emulator, not the wheel)
+   - the file is markedly **smaller** than a good one (3234 B vs 5219 B)
+
+   `python3 tools/lint-input-map.py <game dir>` now fails on all of that, so
+   **lint before you debug hardware**. Recover by restoring a known-good
+   input.map — the portable zip carries one — then re-lint.
+
+   Symptom-to-cause, so the next agent skips the detour: *device is perfect in
+   the vendor's control panel but dead in game* means the game's own config, not
+   the device. The vendor panel talks DirectInput; the 1997 engine reads winmm
+   and this file.
 5. Field-test on real hardware before marking anything verified; this repo's
    history is full of retractions for skipping that.
 
