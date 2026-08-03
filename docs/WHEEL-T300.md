@@ -428,3 +428,45 @@ succeed. `tools/check-ffb.ps1` now uses that.
 The wheel ignores the 300-degree limit and resists turning once the Thrustmaster
 control panel is closed — the panel appears to apply rotation only while running.
 That is a driver/profile matter, not the game.
+
+
+## Buttons: strip the NATIVE joystick1 bindings, or half the wheel double-fires
+
+With the wheel working, "most buttons work but not exactly right" turned out to be
+`input.map` still carrying the **native** `joystick1` button/hat bindings that
+`setup-windows.ps1` appends for a gamepad. The AHK wheel layer already emits a key
+for every button, so each of these fired **twice**:
+
+| block | native binding | what the layer sends for that button | result |
+|---|---|---|---|
+| `weapon_fire` | `Button1` | `2` = hardpoint2 | left paddle fired **two weapons** |
+| `special1` | `Button2` | `Enter` = weapon_fire | right paddle fired weapon **+ nitrous** |
+| `weapon_cycle` | `Button3` | `Tab` | doubled |
+| `e_brake` | `Button4` | `Space` | doubled |
+| `pilot_glance_*` | `HatUp/Down/Left/Right` | `h`/`m`/`i`/`n` | hat glanced **and** toggled lights/map/ignition/notepad |
+
+The left-paddle one matters most: two hardpoints from one press is precisely the
+case documented above as crashing `I7_SFRCE.DLL`, and it is live again now that
+FFB works.
+
+`special1` was the visible symptom — it was bound *only* to `joystick1 Button2`,
+so the layer's nitrous key (`6`) went nowhere. `Six` appeared nowhere in the file.
+
+**The fix**, verified by cross-referencing every key the layer emits against the
+map (0 dead, lint clean):
+
+- `special1` → `+ keyboard Six`
+- delete all seven remaining `+ joystick1 ButtonN` / `HatX` blocks
+
+Safe because the keyboard bindings live in *separate earlier blocks* —
+`GreyUpArrow` etc. for glance, `Enter`/`Tab`/`Space` for the rest — so head
+tracking's arrow keys and the layer's keys all survive. Afterwards `joystick1`
+appears **only** on `steer` and `throttle`, which is the wheel doctrine.
+
+**Re-running `setup-windows.ps1` will put them back** — it appends the gamepad
+baseline unconditionally. After any re-run on a wheel machine, strip them again
+and re-lint. To find them:
+
+```
+grep -n "joystick1" input.map     # should show ONLY steer + throttle
+```
