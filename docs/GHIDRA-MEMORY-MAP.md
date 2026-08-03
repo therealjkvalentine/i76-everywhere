@@ -147,6 +147,11 @@ What IS there (all Nitro addresses):
   while in-game. Confidence: INFERRED, but grounded in the runtime-pointer
   evidence (the writer is a memcpy-style dump, so layouts match).
 - RPM/gear/velocity: nothing anywhere; Gold-exe RE or value-scan required.
+  **UPDATE 2026-08-02 — VELOCITY IS FOUND** (live value-scan, not decompile):
+  `entity+0xac` = speed, `entity+0xbc` = velocity float3, plus angular velocity
+  at `+0xc8` and the four wheel contact points at `+0x04..0x30`. See
+  MEMORY-MAP-INDEX.md Tier 2 for the confirming identity and for the correction
+  that `+0x08` is **not** a rotation matrix. RPM and gear are still unfound.
 
 ## 3. DAMAGE / COLLISION — **ABSENT**
 
