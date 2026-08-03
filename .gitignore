@@ -14,3 +14,5 @@ smack-music-fix/SMACKW32.DLL
 
 # FFB probe output - regenerated on every run, not a source artifact
 tools/ffb/telemetry-probe-last.csv
+tools/ffb/ffb-calib-samples.csv
+tools/ffb/ffb-calib.json
