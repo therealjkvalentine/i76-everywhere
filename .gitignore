@@ -11,3 +11,6 @@ smack-music-fix/SMACKW32.DLL
 # local secrets (Steam Deck SSH) - NEVER commit
 .env
 **/.env
+
+# FFB probe output - regenerated on every run, not a source artifact
+tools/ffb/telemetry-probe-last.csv
