@@ -287,6 +287,14 @@ function New-Effect {
     return [pscustomobject]@{ Ptr = $pe; Eff = $eff; Axes = $axes; Dir = $dir; Type = $TypeParams }
 }
 
+# Returns the HRESULT from the device. 0 = applied.
+#
+# WHY THE RETURN VALUE MATTERS: an exclusive DirectInput acquisition can be taken
+# away from us (DIERR_INPUTLOST 0x8007001E when another app grabs the device, or
+# DIERR_NOTACQUIRED 0x8007000C after a focus change). This used to discard the
+# HRESULT, so a lost device looked exactly like a working one - the loop kept
+# happily "sending" force to nothing and the panel kept reporting numbers. Any
+# negative HRESULT here means the caller should Ffb-Reacquire.
 function Ffb-Constant {
     param($D, [int]$Magnitude)   # -10000 .. 10000 ; sign = direction
     if (-not $D.Effects.ContainsKey('constant')) {
@@ -300,8 +308,35 @@ function Ffb-Constant {
         $e = $D.Effects['constant']
         [Runtime.InteropServices.Marshal]::WriteInt32($e.Type, $Magnitude)
         $sp = Get-Fn $e.Ptr ([DI]::EFF_SetParameters) ([DI+D_SetParameters])
+        return $sp.Invoke($e.Ptr, [ref]$e.Eff, ([DI]::DIEP_TYPESPECIFICPARAMS -bor [DI]::DIEP_START))
+    }
+    return 0
+}
+
+function Ffb-Reacquire {
+    <#
+      Try to take the device back after losing it. Returns $true on success.
+
+      Losing an exclusive acquisition is normal, not exceptional: alt-tabbing,
+      another app opening the wheel, the Thrustmaster control panel being
+      launched, or the game reacquiring on focus will all do it. So the loop
+      treats loss as a state to recover from rather than an error to die on -
+      dying would leave the last force latched on the device.
+
+      Effects have to be re-primed after a reacquire: the device may have dropped
+      the downloaded effect, so we push the full parameter set again with START
+      rather than assuming the handle survived.
+    #>
+    param($D)
+    $acq = Get-Fn $D.Dev ([DI]::DEV_Acquire) ([DI+D_Acquire])
+    $hr = $acq.Invoke($D.Dev)
+    if ($hr -lt 0) { return $false }
+    foreach ($k in @($D.Effects.Keys)) {
+        $e = $D.Effects[$k]
+        $sp = Get-Fn $e.Ptr ([DI]::EFF_SetParameters) ([DI+D_SetParameters])
         $null = $sp.Invoke($e.Ptr, [ref]$e.Eff, ([DI]::DIEP_TYPESPECIFICPARAMS -bor [DI]::DIEP_START))
     }
+    return $true
 }
 
 # Periodic (GUID_Sine) effects are NOT usable on this wheel - CreateEffect
