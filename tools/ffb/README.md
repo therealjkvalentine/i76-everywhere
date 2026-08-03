@@ -131,13 +131,41 @@ matter:
 
 `ffb-calibrate.ps1` measures both from one drive and writes `ffb-calib.json`,
 which `Telemetry.ps1` loads automatically. Sign comes from correlating steer
-against observed yaw — model-free, only needs that turning one way rotates the car
-one way. Lock comes from rearranging the bicycle model and taking the **median**,
-not the mean: sliding samples fit a smaller lock and would drag an average down,
-but cannot move a median while most of the drive had grip.
+against observed yaw — model-free, needing only that turning one way rotates the
+car one way. It is robust and has never been the problem.
 
-Validated against synthetic drives with known ground truth — recovers both signs
-and a 0.400 rad lock exactly.
+**The lock fit was wrong once, badly, and the fix is worth knowing.** The obvious
+estimator rearranges the bicycle model per sample —
+`lock = atan(yaw·wheelbase/speed) / steer` — and takes the median. On a real drive
+that reported **5.8°** with no sign of distress. The truth is ~20–30°. Two causes:
+
+1. **Dividing by `steer` amplifies noise where steer is small.** A near-straight
+   sample (`steer 0.2, yaw 0.03`) fits a tiny lock, and near-straight samples
+   vastly outnumber hard-cornering ones — so the median sits in the noise rather
+   than in the cornering data.
+2. **Yaw lags steer** by a few tenths of a second. Mid-transition steer is already
+   large while yaw is still building, fitting a lock that is too small. Sinusoidal
+   steering is mostly transition.
+
+Now: **regression through the origin** on `θ = atan(yaw·wheelbase/speed)` against
+steer, `lock = Σ(steer·θ)/Σ(steer²)`. It never divides by a small steer and it
+weights by `steer²`, so the hard-cornering samples that carry the information
+dominate. Plus a steadiness filter, a plausibility range (10–45°), and a
+**falsification check**: whatever the lock is, the model built from it must be able
+to produce the yaw rates the car demonstrably reached. A 0.101 rad lock predicts
+0.22 rad/s at 10 m/s where 1.6 rad/s was observed — a contradiction detectable
+*without* knowing the right answer. A fit that fails any of these is not written;
+the sign is kept, since that is what matters most.
+
+Every run now also dumps `ffb-calib-samples.csv`. The first version kept nothing,
+so when its fit came out wrong the only way to investigate was another 30-second
+drive. Refit offline with `-FromLog ffb-calib-samples.csv`.
+
+`ffb-calib-test.ps1` (11 assertions) synthesises drives from a **known** lock,
+including the first-order yaw lag that caused the original error, and asserts
+recovery — sustained and sinusoidal steering, a wider 0.60 rad lock to prove it
+isn't just echoing a default, an inverted sign, and a no-information drive that
+must be *rejected* rather than fitted.
 
 ## Testing
 
