@@ -83,8 +83,8 @@ function Build-Samples {
         $null = $out.Add([pscustomobject]@{
             T = $t; Speed = $sp; SpeedMph = $sp * 2.23694; Steer = $st; Throttle = $(if ($Full) { [double]$r.throttle } else { 0.0 })
             YawRate = $yw
-            RollRate  = $(if ($Full -and ($Raw[0].PSObject.Properties.Name -contains 'rollRate')) { [double]$r.rollRate } else { 0.0 })
-            PitchRate = $(if ($Full -and ($Raw[0].PSObject.Properties.Name -contains 'pitchRate')) { [double]$r.pitchRate } else { 0.0 })
+            AngVelX = $(if ($Full -and ($Raw[0].PSObject.Properties.Name -contains 'angVelX')) { [double]$r.angVelX } else { 0.0 })
+            AngVelZ = $(if ($Full -and ($Raw[0].PSObject.Properties.Name -contains 'angVelZ')) { [double]$r.angVelZ } else { 0.0 })
             Vy        = $(if ($Full -and ($Raw[0].PSObject.Properties.Name -contains 'vy')) { [double]$r.vy } else { 0.0 })
             LongG = $(if ($Full) { [double]$r.longG } else { $longG })
             LatG  = ($yw * $sp) / 9.81
@@ -98,7 +98,7 @@ function Build-Samples {
 }
 $samples = Build-Samples $raw $hasFull
 
-$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact')
+$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon')
 $UNAVAILABLE = if ($hasFull) { @() } else { @('texture','judder','impact') }
 
 function Run-Replay {

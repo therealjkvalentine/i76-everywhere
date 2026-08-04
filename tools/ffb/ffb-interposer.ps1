@@ -55,7 +55,7 @@ param(
     # Nyquist limit this implies.
     [int]$Hz = 60,
     [double]$Master = 1.0,
-    # Channel names: center corner oversteer brake texture scrub judder impact
+    # Channels: center corner oversteer brake texture scrub judder impact weapon
     [string[]]$Only = @(),
     [string[]]$Mute = @(),
     [switch]$NoPanel,
@@ -76,7 +76,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'FfbMixer.ps1')
 if (-not $DryRun) { . (Join-Path $here 'FfbCore.ps1') }
 
-$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact')
+$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon')
 
 # ---------------------------------------------------------------------------
 # Panel
@@ -174,7 +174,7 @@ if ($PanelDemo) {
         T = 3.0; Speed = 17.4; SpeedMph = 38.9; Steer = -0.42; Throttle = 0.65
         YawRate = -0.51; ExpectedYaw = -0.72; LongG = -0.18; LatG = -0.90
         Understeer = 0.41; Oversteer = 0.0; Jolt = 2.3
-        RollRate = 0.35; PitchRate = 0.22; Vy = 0.4
+        AngVelX = 0.35; AngVelZ = 0.22; Tumble = 0.57; Vy = 0.4
         Braking = $false; Airborne = $false; Ticks = 412; Polls = 1240; Wheelbase = 4.662
     }
     for ($t = 0.0; $t -lt 1.2; $t += 1.0/60) { $fake.T = $t; $o = Mix-Update $m $fake }
@@ -250,13 +250,13 @@ try {
 
     if ($Log) {
         $logSw = [System.IO.StreamWriter]::new($Log, $false)
-        # rollRate/pitchRate/vy are logged because the texture, judder and impact
+        # angVelX/angVelZ/vy are logged because the texture, judder and impact
         # channels depend on them, and a capture without them cannot judge those
         # three at all - ffb-replay.ps1 has to report "no data" instead of a
         # number. A calibration capture (t,speed,steer,yaw) is enough for the
         # steady and loss-of-control channels only.
         $logSw.WriteLine("t,speed,mph,steer,throttle,longG,latG,yaw,expectYaw,understeer,oversteer,jolt," +
-                         "rollRate,pitchRate,vy," +
+                         "angVelX,angVelZ,vy," +
                          "center,corner,oversteer_f,brake,texture,scrub,judder,impact,force")
     }
 
@@ -340,7 +340,7 @@ try {
                     ('{0:0.000}' -f $s.YawRate),  ('{0:0.000}' -f $s.ExpectedYaw),
                     ('{0:0.000}' -f $s.Understeer), ('{0:0.000}' -f $s.Oversteer),
                     ('{0:0.000}' -f $s.Jolt),
-                    ('{0:0.000}' -f $s.RollRate), ('{0:0.000}' -f $s.PitchRate), ('{0:0.000}' -f $s.Vy)
+                    ('{0:0.000}' -f $s.AngVelX), ('{0:0.000}' -f $s.AngVelZ), ('{0:0.000}' -f $s.Vy)
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force

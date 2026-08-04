@@ -22,40 +22,49 @@
   each turn for a second or more.
 
   ---------------------------------------------------------------------------
-  HOW THE LOCK IS FITTED, AND WHY NOT THE OBVIOUS WAY
+  THE MODEL, AND THREE WRONG ANSWERS ON THE WAY TO IT
   ---------------------------------------------------------------------------
-  The bicycle model says  yawRate = (speed / wheelbase) * tan(steer * lock).
-  Rearranged per sample that gives  lock = atan(yaw * wheelbase / speed) / steer,
-  and the obvious move is to take the median of those.
+  Measured over 1072 cornering samples from two real drives, the yaw rate is
+  whichever of two limits binds:
 
-  THAT DOES NOT WORK, and it produced a confidently-reported 5.8 deg on a real
-  drive - roughly a seventh of the truth. Two reasons:
+      yaw = sign(steer) * min( (v/L) * tan(|steer| * lock),    <- steering geometry
+                               a * |steer| / v )               <- lateral-g ceiling
 
-    1. Dividing by `steer` amplifies noise wherever steer is small. A nearly
-       straight sample (steer 0.2, yaw 0.03) fits a tiny lock, and nearly
-       straight samples vastly outnumber hard-cornering ones, so the MEDIAN sits
-       in the noise rather than in the cornering data.
-    2. Yaw LAGS steer by a few tenths of a second. Mid-transition, steer is
-       already large while yaw is still building, which fits a lock that is too
-       small. Sinusoidal steering is mostly transition.
+      lock = 0.76 rad (43.5 deg)   a = 31.0 m/s^2 (3.16 g)
+      crossover at v = sqrt(a*L) = 12.0 m/s = 27 mph
 
-  So instead:
-    * REGRESSION THROUGH THE ORIGIN on  theta = atan(yaw*wheelbase/speed)
-      against steer:  lock = sum(steer*theta) / sum(steer^2).
-      This never divides by a small steer, and it weights each sample by
-      steer^2 - so the hard-cornering samples that actually carry the
-      information dominate, which is what you want.
-    * a STEADINESS filter, keeping only samples where steer and yaw are both
-      roughly constant, which removes the lag bias.
-    * a FALSIFICATION check: does the fitted lock reproduce the largest yaw rates
-      actually observed? A lock of 0.101 rad cannot produce 1.6 rad/s at 10 m/s
-      (it predicts 0.22), and that contradiction is checkable without knowing the
-      right answer. If the fit fails it, nothing is written.
-    * a PLAUSIBILITY range. Road cars run 10-45 deg of lock; outside that the fit
-      is reporting something other than a steering lock.
+  Getting here took three wrong answers, each of which looked fine at the time:
 
-  The sign is fitted separately and is robust - it needs no model at all, only
-  that turning one way rotates the car one way.
+    1. MEDIAN OF PER-SAMPLE RATIOS for a single fixed lock. Reported 5.8 deg.
+       lock = atan(yaw*L/v)/steer divides by steer, which amplifies noise wherever
+       steer is small - and nearly-straight samples outnumber hard-cornering ones,
+       so the median sat in the noise. Yaw also LAGS steer by a few tenths of a
+       second, so mid-transition samples fit a lock that is too small.
+
+    2. REGRESSION THROUGH THE ORIGIN for a single fixed lock. Reported 6.2 deg.
+       Better estimator, same wrong model - and the estimator was blamed twice
+       before anyone plotted the implied lock against speed and saw it FALL
+       monotonically (30 deg at 16 m/s, 4.7 at 40). A constant-lock model cannot
+       describe the lateral-g branch, so the fit lands wherever the drive spent
+       its time.
+
+    3. LATERAL-G BRANCH ALONE. Reported R^2 = 0.9997 and looked like the answer -
+       but that drive was 80-93 mph almost throughout, entirely above the
+       crossover. On the next drive, which included low speed, it produced 158
+       FALSE understeer samples. A model validated on data covering one regime
+       looks perfect and is half a model.
+
+  So the fit now grid-searches BOTH parameters against the min() of both branches.
+  Grid search rather than least squares because min() is not differentiable and the
+  branches trade off against each other. Judged on residuals PER SPEED BAND, since
+  a good overall R^2 is exactly what hid mistake 3.
+
+  DRIVE FOR IT: cover both regimes. Corner hard below 27 mph AND above it, with
+  sustained turns in both directions. A drive that never slows down cannot see the
+  lock; a drive that never speeds up cannot see the lateral-g ceiling.
+
+  The sign is fitted separately, needs no model at all - only that turning one way
+  rotates the car one way - and has never been the problem.
 
   ---------------------------------------------------------------------------
   RAW SAMPLES
@@ -74,7 +83,12 @@ param(
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$MIN_SPEED    = 8.0     # m/s; below this yaw is dominated by scrub, not geometry
+# 3.0, not 8.0. The model has a low-speed (geometry-limited) branch and a
+# high-speed (lateral-g-limited) branch that cross at ~12 m/s, so the fit NEEDS
+# samples from below the crossover or the lock parameter is unconstrained. An
+# 8 m/s floor left only 8-12 m/s of the lower regime, which is how a single-branch
+# fit came to look perfect on an all-high-speed drive.
+$MIN_SPEED    = 3.0
 $MIN_STEER    = 0.15    # near centre the relation is all noise
 $MIN_YAW      = 0.02
 $STEADY_STEER = 0.8     # max |d steer/dt| (per second) to count as steady
@@ -189,33 +203,55 @@ if ($conf -lt 0.8) {
 # One parameter. No steering lock, no wheelbase, no understeer gradient - the
 # engine commands lateral acceleration and does not model tyres.
 function Fit-LatGain {
-    param($Set, [int]$Sign)
-    $sxy = 0.0; $sxx = 0.0; $used = 0
+    <#
+      Fits BOTH parameters of the two-regime model by grid search:
+
+          yaw = sign(steer) * min( (v/L)*tan(|steer|*lock), a*|steer|/v )
+
+      Grid search rather than least squares because min() is not differentiable
+      and the two branches trade off against each other - a closed-form fit to
+      either branch alone silently reports whichever regime the drive happened to
+      cover. That is exactly how the previous single-branch fit scored R^2 = 0.9997
+      on an all-high-speed drive and then produced 158 false understeer samples on
+      a drive that included low speed.
+    #>
+    param($Set, [int]$Sign, [double]$WB)
     $pts = New-Object System.Collections.ArrayList
     foreach ($r in $Set) {
         $y = $r.Yaw * $Sign
         # Spins and impacts are not cornering - exclude them from the FIT, then
-        # measure how far they deviate from it (that is the whole loss-of-control
+        # measure how far they deviate from it (that is the loss-of-control
         # signal). Rotating against the steering is the clearest marker.
         if ([math]::Sign($y) -ne [math]::Sign($r.Steer)) { continue }
-        $x = $r.Steer / $r.Speed
-        $sxy += $x * $y
-        $sxx += $x * $x
-        $used++
-        $null = $pts.Add(@($x, $y))
+        $null = $pts.Add(@($r.Speed, [math]::Abs($r.Steer), [math]::Abs($y)))
     }
-    if ($sxx -le 0 -or $used -lt 15) { return $null }
-    $a = $sxy / $sxx
-    # R^2 and residual sd, so the fit can be judged rather than trusted.
-    $mean = 0.0; foreach ($p in $pts) { $mean += $p[1] }; $mean /= $pts.Count
-    $ssRes = 0.0; $ssTot = 0.0
-    foreach ($p in $pts) {
-        $ssRes += [math]::Pow($p[1] - $a * $p[0], 2)
-        $ssTot += [math]::Pow($p[1] - $mean, 2)
+    if ($pts.Count -lt 20) { return $null }
+
+    $mean = 0.0; foreach ($p in $pts) { $mean += $p[2] }; $mean /= $pts.Count
+    $ssTot = 0.0; foreach ($p in $pts) { $ssTot += [math]::Pow($p[2] - $mean, 2) }
+
+    $best = $null
+    for ($lock = 0.30; $lock -le 1.05; $lock += 0.02) {
+        $tanCache = @{}
+        for ($a = 20.0; $a -le 45.0; $a += 0.5) {
+            $ssRes = 0.0
+            foreach ($p in $pts) {
+                $kin = ($p[0] / $WB) * [math]::Tan($p[1] * $lock)
+                $lat = $a * $p[1] / $p[0]
+                $pred = [math]::Min($kin, $lat)
+                $ssRes += [math]::Pow($p[2] - $pred, 2)
+            }
+            if ($null -eq $best -or $ssRes -lt $best.Ss) {
+                $best = [pscustomobject]@{ Lock = $lock; A = $a; Ss = $ssRes }
+            }
+        }
     }
-    $r2 = if ($ssTot -gt 0) { 1.0 - ($ssRes / $ssTot) } else { 0.0 }
-    $sd = [math]::Sqrt($ssRes / $pts.Count)
-    return [pscustomobject]@{ A = $a; Used = $used; R2 = $r2; Sd = $sd }
+    $r2 = if ($ssTot -gt 0) { 1.0 - ($best.Ss / $ssTot) } else { 0.0 }
+    $sd = [math]::Sqrt($best.Ss / $pts.Count)
+    return [pscustomobject]@{
+        A = $best.A; Lock = $best.Lock; Used = $pts.Count; R2 = $r2; Sd = $sd
+        Crossover = [math]::Sqrt($best.A * $WB)
+    }
 }
 
 # Steadiness is judged RELATIVE to the yaw magnitude, not against a fixed rad/s^2
@@ -230,21 +266,24 @@ $steady = @($usable | Where-Object {
     [math]::Abs($_.dSteer) -lt $STEADY_STEER -and
     [math]::Abs($_.dYaw)   -lt [math]::Max(0.15, 1.0 * [math]::Abs($_.Yaw)) })
 
-$fitAll    = Fit-LatGain $usable $sign
-$fitSteady = Fit-LatGain $steady $sign
+$fitAll    = Fit-LatGain $usable $sign $wheelbase
+$fitSteady = Fit-LatGain $steady $sign $wheelbase
 
 Write-Host ""
-Write-Host "--- lateral gain (a in: lateral accel = a * steer) ---" -ForegroundColor Green
+Write-Host "--- handling model: yaw = min( (v/L)tan(steer*lock), a*steer/v ) ---" -ForegroundColor Green
 if ($fitAll) {
-    Write-Host ("  all usable   ({0,4} samples): a = {1,6:0.0} m/s^2 = {2:0.00} g   R^2 {3:0.000}  sd {4:0.000}" -f `
-        $fitAll.Used, $fitAll.A, ($fitAll.A / 9.81), $fitAll.R2, $fitAll.Sd)
+    Write-Host ("  all usable   ({0,4}): a = {1,5:0.0} m/s^2 ({2:0.00} g)   lock {3:0.000} rad ({4,4:0.0} deg)   R^2 {5:0.000}  sd {6:0.000}" -f `
+        $fitAll.Used, $fitAll.A, ($fitAll.A / 9.81), $fitAll.Lock, ($fitAll.Lock * 180 / [math]::PI), $fitAll.R2, $fitAll.Sd)
 }
 if ($fitSteady) {
-    Write-Host ("  steady only  ({0,4} samples): a = {1,6:0.0} m/s^2 = {2:0.00} g   R^2 {3:0.000}  sd {4:0.000}  <-- preferred" -f `
-        $fitSteady.Used, $fitSteady.A, ($fitSteady.A / 9.81), $fitSteady.R2, $fitSteady.Sd)
+    Write-Host ("  steady only  ({0,4}): a = {1,5:0.0} m/s^2 ({2:0.00} g)   lock {3:0.000} rad ({4,4:0.0} deg)   R^2 {5:0.000}  sd {6:0.000}  <-- preferred" -f `
+        $fitSteady.Used, $fitSteady.A, ($fitSteady.A / 9.81), $fitSteady.Lock, ($fitSteady.Lock * 180 / [math]::PI), $fitSteady.R2, $fitSteady.Sd)
+    Write-Host ("  regime crossover at {0:0.0} m/s ({1:0} mph) - geometry below, lateral-g above" -f `
+        $fitSteady.Crossover, ($fitSteady.Crossover * 2.23694))
 }
 $fit = if ($fitSteady) { $fitSteady } else { $fitAll }
 $latGain = if ($fit) { $fit.A } else { $null }
+$lock    = if ($fit) { $fit.Lock } else { $null }
 
 # Yaw ceiling: a*steer/speed diverges as speed falls but the engine clamps, so
 # record what this car actually reached.
@@ -260,6 +299,25 @@ if ($obsMax -gt 0.5) { $yawMax = [math]::Round($obsMax, 2) }
 # fit on its own residuals instead, over the cornering samples it was fitted to.
 $verdict = "ok"
 if ($fit) {
+    # REGIME COVERAGE. This is the guard against mistake 3 in the header: a drive
+    # that stays on one side of the crossover constrains only one branch, and the
+    # unconstrained parameter is then whatever the grid search likes - while the
+    # overall R^2 looks excellent, because it fits the half of the model the data
+    # covers. That is precisely how the single-branch fit reported R^2 = 0.9997 and
+    # then produced 158 false understeer samples.
+    $xo = $fit.Crossover
+    $below = @($usable | Where-Object { $_.Speed -lt $xo }).Count
+    $above = @($usable | Where-Object { $_.Speed -ge $xo }).Count
+    Write-Host ""
+    Write-Host ("  regime coverage: {0} samples below the crossover, {1} above" -f $below, $above)
+    if ($below -lt 30 -or $above -lt 30) {
+        $thin = if ($below -lt 30) { "BELOW" } else { "ABOVE" }
+        Write-Host ("  INSUFFICIENT COVERAGE - only {0} usable samples {1} the crossover." -f `
+            $(if ($below -lt 30) { $below } else { $above }), $thin) -ForegroundColor Red
+        Write-Host  "  One branch is unconstrained, so its parameter is a guess no matter how" -ForegroundColor Red
+        Write-Host ("  good R^2 looks. Drive hard both below and above {0:0} mph." -f ($xo * 2.23694)) -ForegroundColor Red
+        $verdict = "one-regime-only"
+    }
     Write-Host ""
     if ($fit.R2 -lt 0.90) {
         Write-Host ("  POOR FIT - R^2 {0:0.000}. Steering and yaw are not following" -f $fit.R2) -ForegroundColor Red
@@ -278,8 +336,10 @@ if ($fit) {
     $devBig = 0
     foreach ($r in $rows) {
         if ($r.Speed -lt 6) { continue }
-        $pred = $latGain * $r.Steer / $r.Speed
-        if ([math]::Abs($pred) -gt $yawMax) { $pred = $yawMax * [math]::Sign($pred) }
+        $aS = [math]::Abs($r.Steer)
+        $pred = [math]::Min((($r.Speed / $wheelbase) * [math]::Tan($aS * $lock)), ($latGain * $aS / $r.Speed))
+        if ($pred -gt $yawMax) { $pred = $yawMax }
+        if ($r.Steer -lt 0) { $pred = -$pred }
         if ([math]::Abs(($r.Yaw * $sign) - $pred) -gt 0.5) { $devBig++ }
     }
     Write-Host ("  loss-of-control samples (deviation > 0.5 rad/s): {0}" -f $devBig)
@@ -291,8 +351,11 @@ $writeGain = ($null -ne $latGain -and $verdict -eq "ok")
 if (-not $NoWrite) {
     $out = @{
         TEL_YAW_SIGN   = $sign
-        TEL_LAT_GAIN   = $(if ($writeGain) { [math]::Round($latGain, 3) } else { 29.3 })
-        TEL_YAW_MAX    = $yawMax
+        TEL_MODEL      = 2
+        TEL_LAT_GAIN   = $(if ($writeGain) { [math]::Round($latGain, 3) } else { 31.0 })
+        TEL_STEER_LOCK = $(if ($writeGain) { [math]::Round($lock, 4) } else { 0.76 })
+        TEL_YAW_MAX    = 3.2
+        Crossover      = $(if ($fit) { [math]::Round($fit.Crossover, 2) } else { 12.0 })
         GainFitted     = $writeGain
         GainVerdict    = $verdict
         GainR2         = $(if ($fit) { [math]::Round($fit.R2, 4) } else { 0 })
@@ -307,13 +370,13 @@ if (-not $NoWrite) {
     Write-Host ""
     if ($writeGain) {
         Write-Host "written -> $p" -ForegroundColor Green
-        Write-Host ("Both values measured: sign {0}, lateral gain {1:0.0} m/s^2 ({2:0.00} g)." -f `
-            $sign, $latGain, ($latGain / 9.81)) -ForegroundColor Green
+        Write-Host ("Measured: sign {0}, a {1:0.0} m/s^2 ({2:0.00} g), lock {3:0.0} deg." -f `
+            $sign, $latGain, ($latGain / 9.81), ($lock * 180 / [math]::PI)) -ForegroundColor Green
         Write-Host "Telemetry.ps1 loads this on the next run." -ForegroundColor Green
     } else {
         Write-Host "written -> $p  (SIGN ONLY)" -ForegroundColor Yellow
-        Write-Host "The gain fit did not survive checking, so the measured default of" -ForegroundColor Yellow
-        Write-Host "29.3 m/s^2 is kept. The sign is solid and matters most - a wrong sign" -ForegroundColor Yellow
+        Write-Host "The fit did not survive checking, so the measured defaults of" -ForegroundColor Yellow
+        Write-Host "a=31.0 m/s^2 and lock=43.5 deg are kept. The sign is solid and matters most - a wrong sign" -ForegroundColor Yellow
         Write-Host "inverts the wheel." -ForegroundColor Yellow
         Write-Host ""
         Write-Host "Refit offline without driving again:" -ForegroundColor Yellow

@@ -36,13 +36,15 @@ function Fake {
         [double]$T, [double]$Speed = 0, [double]$Steer = 0, [double]$Throttle = 0,
         [double]$YawRate = 0, [double]$ExpectedYaw = 0, [double]$LongG = 0, [double]$LatG = 0,
         [double]$Understeer = 0, [double]$Oversteer = 0, [double]$Jolt = 0,
-        [double]$RollRate = 0, [double]$PitchRate = 0, [double]$Vy = 0
+        [double]$AngVelX = 0, [double]$AngVelZ = 0, [double]$Vy = 0, [double]$Tumble = 0,
+        [bool]$Firing = $false
     )
     [pscustomobject]@{
         T = $T; Speed = $Speed; SpeedMph = $Speed * 2.23694; Steer = $Steer; Throttle = $Throttle
         YawRate = $YawRate; ExpectedYaw = $ExpectedYaw; LongG = $LongG; LatG = $LatG
         Understeer = $Understeer; Oversteer = $Oversteer; Jolt = $Jolt
-        RollRate = $RollRate; PitchRate = $PitchRate; Vy = $Vy
+        AngVelX = $AngVelX; AngVelZ = $AngVelZ; Vy = $Vy; Tumble = ($Tumble + [math]::Abs($AngVelX) + [math]::Abs($AngVelZ))
+        Firing = $Firing; FireRaw = $(if ($Firing) { 1 } else { 0 })
         Braking = ($Throttle -lt -0.05); Airborne = ([math]::Abs($Vy) -gt 2.0)
         Ticks = 0; Polls = 0; Wheelbase = 4.66
     }
@@ -163,11 +165,13 @@ Check "no judder under light braking" ([math]::Abs($noJudder.Out.Channels['judde
 Write-Host "`n=== 7. texture scales with speed AND roughness ===" -ForegroundColor Cyan
 # "Faster and bumpier feels more intense" has to mean both terms matter -
 # speed alone would just be a constant hum at motorway pace.
+# Roughness is driven by JOLT now, not by roll/pitch rate - those turned out to
+# be impact rotation, not suspension. RoughRef is 16, so scale into that band.
 function PeakTexture {
     param([double]$Speed, [double]$Rough)
     $m = Mix-New; $peak = 0
     for ($t = 0.0; $t -lt 1.5; $t += 1.0/60) {
-        $o = Mix-Update $m (Fake -T $t -Speed $Speed -RollRate $Rough -PitchRate $Rough)
+        $o = Mix-Update $m (Fake -T $t -Speed $Speed -Jolt ($Rough * 16.0))
         $v = [math]::Abs($o.Channels['texture'])
         if ($v -gt $peak) { $peak = $v }
     }
@@ -200,6 +204,35 @@ Check "impact triggered ONCE, not per frame" ($triggers -le 2) "triggers=$trigge
 Check "impact kick is substantial" ($peak -gt 2000) "peak=$peak"
 Check "impact decays to silence" ($tail -lt 50) "tail=$tail"
 
+Write-Host "`n=== 8b. weapon fire: rising edge only ===" -ForegroundColor Cyan
+# The fire flag stays SET while the trigger is held, so keying on its level would
+# queue one transient per frame - a continuous roar instead of a shot.
+$m = Mix-New
+$peak = 0; $fires = 0
+for ($t = 0.0; $t -lt 2.5; $t += 1.0/60) {
+    # trigger held down for a full second
+    $f = ($t -ge 1.0 -and $t -lt 2.0)
+    $o = Mix-Update $m (Fake -T $t -Speed 14 -Firing $f)
+    if ($o.Notes -match 'FIRE') { $fires++ }
+    $v = [math]::Abs($o.Channels['weapon'])
+    if ($v -gt $peak) { $peak = $v }
+    if ($t -gt 2.3) { $tail = $v }
+}
+Check "weapon channel fires" ($fires -ge 1) "fires=$fires"
+Check "held trigger fires ONCE, not per frame" ($fires -eq 1) "fires=$fires"
+Check "weapon kick is substantial" ($peak -gt 800) "peak=$peak"
+Check "weapon decays to silence" ($tail -lt 50) "tail=$tail"
+
+# Fails safe: an unverified fire address means the flag never changes, and that
+# must produce silence rather than anything spurious.
+$m2 = Mix-New
+$quiet = 0
+for ($t = 0.0; $t -lt 1.5; $t += 1.0/60) {
+    $o = Mix-Update $m2 (Fake -T $t -Speed 14 -Firing $false)
+    $quiet = [math]::Max($quiet, [math]::Abs($o.Channels['weapon']))
+}
+Check "a flag that never changes stays silent" ($quiet -eq 0) "got $quiet"
+
 Write-Host "`n=== 9. safety: clamped, ramped, mutable ===" -ForegroundColor Cyan
 # Everything at once, at absurd magnitudes, must still respect the clamp. This
 # is the assertion that protects the user's hands.
@@ -208,7 +241,7 @@ $maxSeen = 0
 for ($t = 0.0; $t -lt 3.0; $t += 1.0/60) {
     $o = Mix-Update $m (Fake -T $t -Speed 40 -Steer 1.0 -Throttle -1.0 -YawRate 2.0 -LatG 3.0 `
         -ExpectedYaw 0.2 -LongG -3.0 -Understeer 1.0 -Oversteer 1.0 -Jolt 200 `
-        -RollRate 3 -PitchRate 3 -Vy 6)
+        -AngVelX 3 -AngVelZ 3 -Vy 6)
     if ([math]::Abs($o.Force) -gt $maxSeen) { $maxSeen = [math]::Abs($o.Force) }
 }
 $clamp = (Mix-DefaultTune)['Clamp']

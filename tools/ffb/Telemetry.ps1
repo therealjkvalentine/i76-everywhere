@@ -41,11 +41,31 @@
         discovery probe saw velocity as "two moving floats with a dead one in
         the middle" instead of as a vector.
 
-  +0x0C8  float3 angular velocity; YAW RATE is the middle term at +0x0CC  STRONG
-        All three read ~0 parked and stay inside +/-2 while driving, and +0x0CC
-        is the smoothest of the three (mean step 0.021 vs 0.082/0.031) - the
-        signature of a car's yaw rate. Sign convention not yet pinned; see
-        TEL_YAW_SIGN.
+  +0x0C8  float3 angular velocity; YAW RATE is the middle term at +0x0CC  CONFIRMED
+        +0x0CC is the yaw rate, settled beyond doubt: the steering model below fits
+        it at R^2 = 0.9997. The middle index is the vertical axis, consistent with
+        velocity, whose middle term (+0x0C0) is the one that stays ~0 on flat
+        ground.
+
+        THE OTHER TWO ARE NOT ROLL AND PITCH RATE. They were labelled that way
+        until they were checked against a 3407-sample drive:
+
+            +0x0C8 vs d(longG)/dt  [pitch test]  correlation -0.03
+            +0x0C8 vs d(latG)/dt   [roll test]   correlation +0.02
+            +0x0D0 vs d(longG)/dt  [pitch test]  correlation +0.02
+            +0x0D0 vs d(latG)/dt   [roll test]   correlation +0.08
+
+        i.e. nothing. A car pitches under braking and rolls as cornering load
+        changes, so a real roll or pitch rate would track those derivatives. These
+        do not. Both sit at p50 = 0.000, p90 = 0.10 (against yaw's p90 of 1.25),
+        and where they DO move, 77% of the time it coincides with a jolt > 5.
+
+        So I'76 HAS NO SUSPENSION MODEL - no body roll, no pitch, and vertical
+        velocity peaked at 0.77 m/s over 77 s of driving. These two fields are
+        rotation imparted by impacts and by leaving the ground. Exposed as AngVelX
+        / AngVelZ and summed into `Tumble`, and deliberately NOT used as a
+        road-roughness signal: a texture channel driven off them is silent except
+        when you crash, which is the opposite of what road texture means.
 
   +0x0D4  float3 acceleration / accumulated force                        LIKELY
         Same shape as velocity, noisier steps (0.33 vs 0.21), small but nonzero
@@ -93,26 +113,37 @@
 # ---------------------------------------------------------------------------
 # THE HANDLING MODEL: I'76 COMMANDS LATERAL ACCELERATION, NOT STEERING ANGLE
 # ---------------------------------------------------------------------------
-# Measured from a real drive (959 samples, tools/ffb/ffb-calib-samples.csv), the
-# relationship between steering input and yaw rate is:
+# Measured over 1072 cornering samples from two real drives, the yaw rate the
+# engine produces is whichever of TWO LIMITS binds:
 #
-#     yaw = a * steer / speed          R^2 = 0.9995, residual sd 0.013 rad/s
+#     yaw = sign(steer) * min( (speed / L) * tan(|steer| * lock),     <- geometry
+#                              a * |steer| / speed )                  <- lateral g
 #
-# and NOT the kinematic bicycle model (R^2 = 0.835) that this file used to
-# assume. Multiply both sides by speed and the meaning is plain:
+#     lock = 0.76 rad (43.5 deg)     a = 31.0 m/s^2 (3.16 g)     L = 4.662 m
+#     crossover at v = sqrt(a*L) = 12.0 m/s = 27 mph
 #
-#     lateral acceleration = yaw * speed = a * steer
+# Below 27 mph the car is limited by steering geometry, exactly like a real car at
+# parking speeds. Above it, by a lateral-acceleration ceiling: multiply the second
+# branch by speed and it says lateral g is proportional to steering input and
+# INDEPENDENT of speed. That upper branch is a 1997 arcade simplification - the
+# engine treats the wheel as a lateral-acceleration command - and it is why the
+# cars feel go-kart-like at speed.
 #
-# Lateral g is directly proportional to steering input and INDEPENDENT OF SPEED.
-# That is a 1997 arcade handling model - the engine treats the wheel as a lateral
-# acceleration command - not a tyre model. It is why the cars feel go-kart-like.
+# Fit quality: median |residual| between 0.01 and 0.07 rad/s in EVERY speed band
+# from 0 to 45 m/s. Either branch alone scores a NEGATIVE R^2 over the same data.
 #
-# HOW THE OLD ASSUMPTION FAILED, because the failure was instructive: fitting a
-# fixed steering lock to this data gives an answer that falls with speed (30 deg
-# at 16 m/s, 4.7 deg at 40 m/s) because a constant-lock model cannot describe a
-# constant-lateral-g car. The fit then lands wherever the drive spent its time.
-# Two separate estimators both returned ~6 deg and both were blamed on the
-# estimator before the data was plotted against speed.
+# HOW THE EARLIER ASSUMPTIONS FAILED, because the sequence is instructive:
+#   1. A fixed steering lock alone gives an answer that falls with speed - 30 deg
+#      at 16 m/s, 4.7 at 40 - because a constant-lock model cannot describe the
+#      lateral-g branch. The fit lands wherever the drive spent its time, and two
+#      different estimators both returned ~6 deg. Both times the ESTIMATOR was
+#      blamed, before anyone plotted the implied lock against speed.
+#   2. The lateral-g branch alone then fitted beautifully (R^2 = 0.9997) - but only
+#      because that drive was 80-93 mph almost throughout, entirely above the
+#      crossover. It reported 158 false understeer samples on the next drive, which
+#      included the low-speed regime it could not describe.
+# A model validated on data that only covers one regime looks perfect and is half
+# a model. Both drives together were needed to see the elbow.
 #
 # CONSEQUENCE FOR SLIP: the engine has no tyre slip model, so understeer and
 # oversteer in the sim-racing sense do not occur in normal driving - the car does
@@ -122,14 +153,35 @@
 # Understeer/Oversteer fields below are a loss-of-control signal, and that is
 # more useful here than a tyre model would be.
 
-# Lateral acceleration per unit steering input, m/s^2. 29.3 = 2.99 g at full
-# lock, measured. This is the single parameter of the handling model.
-$script:TEL_LAT_GAIN = 29.3
+# Lateral acceleration per unit steering input, m/s^2. 31.0 = 3.16 g at full lock.
+$script:TEL_LAT_GAIN = 31.0
 
-# Yaw rate ceiling, rad/s. a*steer/speed diverges as speed falls, but the engine
-# clamps: the largest yaw rate ever observed is 2.95, and a/2.95 = 9.9 m/s, so
-# below ~10 m/s the relation saturates rather than continuing to rise.
-$script:TEL_YAW_MAX = 2.95
+# Steering lock at full input, radians. 0.76 rad = 43.5 deg. This governs the
+# LOW-SPEED branch only (see the two-regime note above).
+$script:TEL_STEER_LOCK = 0.76
+
+# Hard safety cap on the reference, rad/s. The min() of the two branches already
+# bounds it; this only guards against a nonsense calibration file.
+$script:TEL_YAW_MAX = 3.2
+
+# Bumped when the shape of the handling model changes, so a stale ffb-calib.json
+# cannot feed parameters from a superseded model into this one. Model 1 fitted a
+# single fixed steering lock and its numbers are meaningless here.
+$script:TEL_MODEL = 2
+
+# Weapon-fire flag, a STATIC global (not in the entity struct).
+#
+# 0x5367db is what docs/MEMORY-MAP-INDEX.md lists, and it is the best evidence
+# available - but it has never been observed to MOVE, because the whole input block
+# reads zero on a parked car and a zero cannot distinguish "right address, nothing
+# happening" from "wrong address". So the weapon channel is built to fail safe: if
+# this address never changes, the channel is simply silent and nothing spurious is
+# sent to the wheel.
+#
+# Settle it in one trigger pull with tools\ffb\ffb-find-fire.ps1, then set
+# TEL_FIRE_ADDR in ffb-calib.json if it turns out to be somewhere else. Set it to 0
+# to disable the channel outright.
+$script:TEL_FIRE_ADDR = 0x5367db
 
 # +1 if a positive steer input produces a positive +0x0CC yaw rate. If the panel
 # shows Yaw and Expect consistently opposite in sign, flip this.
@@ -143,18 +195,20 @@ $script:__calib = Join-Path $PSScriptRoot 'ffb-calib.json'
 if (Test-Path $script:__calib) {
     try {
         $c = Get-Content $script:__calib -Raw | ConvertFrom-Json
+        # The sign never depends on the model's shape, so it is always honoured.
         if ($null -ne $c.TEL_YAW_SIGN) { $script:TEL_YAW_SIGN = [int]$c.TEL_YAW_SIGN }
-        if ($null -ne $c.TEL_LAT_GAIN) { $script:TEL_LAT_GAIN = [double]$c.TEL_LAT_GAIN }
-        if ($null -ne $c.TEL_YAW_MAX)  { $script:TEL_YAW_MAX  = [double]$c.TEL_YAW_MAX }
-        # TEL_STEER_LOCK is deliberately NOT read. Calibration files written before
-        # the handling model was measured carry one, and it described a kinematic
-        # bicycle model this code no longer uses - honouring it would silently
-        # reintroduce the assumption that was wrong.
-        if ($null -ne $c.TEL_STEER_LOCK -and $null -eq $c.TEL_LAT_GAIN) {
-            Write-Host "ffb-calib.json predates the handling-model fix - re-run ffb-calibrate.ps1" -ForegroundColor Yellow
+        # The fitted PARAMETERS are only meaningful for the model they were fitted
+        # to. A model-1 file carries a single fixed steering lock (~0.10 rad from a
+        # broken fit), which would be silently accepted as this model's low-speed
+        # lock and make the reference nonsense. So gate on the version.
+        if ([int]$c.TEL_MODEL -ge 2) {
+            if ($null -ne $c.TEL_LAT_GAIN)   { $script:TEL_LAT_GAIN   = [double]$c.TEL_LAT_GAIN }
+            if ($null -ne $c.TEL_STEER_LOCK) { $script:TEL_STEER_LOCK = [double]$c.TEL_STEER_LOCK }
+            $script:TEL_CALIB_SOURCE = ("calibrated from {0} ({1} samples, sign confidence {2:0}%)" -f `
+                $c.Source, $c.Samples, ([double]$c.SignConfidence * 100))
+        } else {
+            $script:TEL_CALIB_SOURCE = "sign only - ffb-calib.json predates the two-regime model, re-run ffb-calibrate.ps1"
         }
-        $script:TEL_CALIB_SOURCE = ("calibrated from {0} ({1} samples, sign confidence {2:0}%)" -f `
-            $c.Source, $c.Samples, ([double]$c.SignConfidence * 100))
     } catch {
         Write-Host "ffb-calib.json is unreadable, using defaults: $_" -ForegroundColor Yellow
     }
@@ -222,6 +276,7 @@ function Tel-Open {
         # Reused read buffer. Allocating a fresh byte[] per poll cost enough to
         # hold the loop to 38 Hz when 60 was requested.
         Buf       = (New-Object byte[] $script:TEL_BLOCK)
+        FireBuf   = (New-Object byte[] 1)
     }
     if (-not (Tel-Resolve $ctx)) { throw "Player entity is NULL - load a mission first." }
     Tel-Geometry $ctx
@@ -310,11 +365,19 @@ function Tel-Slip {
     $DEV_DEAD = 0.15    # rad/s: below this it is measurement noise
     $DEV_REF  = 1.10    # rad/s: deviation treated as fully out of shape
 
+    # TWO REGIMES, and the yaw rate is whichever LIMIT binds:
+    #   low speed  - steering geometry:  (v/L) * tan(steer * lock)
+    #   high speed - lateral g ceiling:  a * steer / v
+    # They cross at v = sqrt(a*L) = 12.0 m/s (27 mph).
     $expectedYaw = 0.0
     if ($Speed -gt 0.5) {
-        $expectedYaw = $script:TEL_LAT_GAIN * $Steer / $Speed
-        if ($expectedYaw -gt $script:TEL_YAW_MAX) { $expectedYaw = $script:TEL_YAW_MAX }
-        elseif ($expectedYaw -lt -$script:TEL_YAW_MAX) { $expectedYaw = -$script:TEL_YAW_MAX }
+        $aSteer = [math]::Abs($Steer)
+        $kin = ($Speed / 4.662) * [math]::Tan($aSteer * $script:TEL_STEER_LOCK)
+        $lat = $script:TEL_LAT_GAIN * $aSteer / $Speed
+        $mag = [math]::Min($kin, $lat)
+        if ($mag -gt $script:TEL_YAW_MAX) { $mag = $script:TEL_YAW_MAX }
+        if ($Steer -lt 0) { $mag = -$mag }
+        $expectedYaw = $mag
     }
 
     $understeer = 0.0
@@ -367,9 +430,13 @@ function Tel-Sample {
     $vx       = [double][BitConverter]::ToSingle($b, 0xBC)
     $vy       = [double][BitConverter]::ToSingle($b, 0xC0)
     $vz       = [double][BitConverter]::ToSingle($b, 0xC4)
-    $rollRate = [double][BitConverter]::ToSingle($b, 0xC8)
+    # NOT RollRate/PitchRate, which is what these were called until they were
+    # checked against a real drive. See the ANGULAR VELOCITY note in the header:
+    # the engine has no suspension model, so neither of these tracks body roll or
+    # pitch - they register rotation from impacts and from leaving the ground.
+    $angVelX  = [double][BitConverter]::ToSingle($b, 0xC8)
     $yawRate  = [double][BitConverter]::ToSingle($b, 0xCC) * $script:TEL_YAW_SIGN
-    $pitchRt  = [double][BitConverter]::ToSingle($b, 0xD0)
+    $angVelZ  = [double][BitConverter]::ToSingle($b, 0xD0)
     $steer    = [double][BitConverter]::ToSingle($b, 0xE0)
     $throttle = [double][BitConverter]::ToSingle($b, 0xE4)
 
@@ -423,6 +490,19 @@ function Tel-Sample {
     $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate
     $expectedYaw = $slip.ExpectedYaw
 
+    # Weapon-fire flag. A separate 1-byte read because it is a static global, not
+    # part of the entity struct. Costs nothing measurable - the poll loop runs at
+    # 3400 Hz - and if the address is wrong this just stays 0 forever, which leaves
+    # the weapon channel silent rather than firing at random.
+    $fire = 0
+    if ($script:TEL_FIRE_ADDR -ne 0) {
+        $fb = $Ctx.FireBuf
+        $fn = 0
+        if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$script:TEL_FIRE_ADDR, $fb, 1, [ref]$fn)) {
+            $fire = [int]$fb[0]
+        }
+    }
+
     $understeer = $slip.Understeer
     $oversteer  = $slip.Oversteer
 
@@ -433,8 +513,14 @@ function Tel-Sample {
         SpeedMph    = $speed * 2.23694
         Vx          = $vx; Vy = $vy; Vz = $vz
         YawRate     = $yawRate
-        RollRate    = $rollRate
-        PitchRate   = $pitchRt
+        AngVelX     = $angVelX
+        AngVelZ     = $angVelZ
+        # Rotation about the two non-vertical axes, combined. In this engine that
+        # means "the car is being knocked about" - hits and airtime - not
+        # suspension travel. Used as a secondary impact/airtime cue.
+        Tumble      = ([math]::Abs($angVelX) + [math]::Abs($angVelZ))
+        FireRaw     = $fire
+        Firing      = ($fire -ne 0)
         Steer       = $steer
         Throttle    = $throttle
         # derived

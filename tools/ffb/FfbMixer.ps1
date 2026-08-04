@@ -13,10 +13,15 @@
   ---------------------------------------------------------------------------
   WHAT THIS ENGINE ACTUALLY SIMULATES (measured, and it changes the design)
   ---------------------------------------------------------------------------
-  I'76 has NO TYRE MODEL. Measured over a real drive, lateral acceleration is
-  exactly proportional to steering input and independent of speed
-  (latAccel = 29.3 * steer, R^2 = 0.9995 - see Telemetry.ps1's header). The
-  engine treats the wheel as a lateral-acceleration command.
+  I'76 has NO TYRE MODEL. Measured over two real drives, the yaw rate is whichever
+  of two limits binds - steering geometry below 27 mph, a lateral-acceleration
+  ceiling above it (see docs/HANDLING-MODEL.md and Telemetry.ps1's header):
+
+      yaw = sign(steer) * min( (v/L)*tan(|steer|*0.76), 31.0*|steer|/v )
+
+  Above the crossover that upper branch means latAccel = 31.0 * steer: lateral g is
+  proportional to steering input and INDEPENDENT of speed. The engine treats the
+  wheel as a lateral-acceleration command.
 
   So understeer and oversteer in the sim-racing sense DO NOT OCCUR in normal
   driving: the car does precisely what it is asked, every frame. Two consequences
@@ -129,7 +134,9 @@ function Mix-DefaultTune {
         TextureGain   = 1100   # amplitude at TexRef speed over rough ground
         TexRef        = 16.0   # m/s at which texture is at full amplitude
         TextureHz     = 11.0
-        BumpGain      = 2000   # suspension-motion component (roll/pitch/heave)
+        RoughRef      = 16.0   # jolt treated as fully rough. Measured: away from
+                               # collisions jolt runs p50 2.6 / p75 9.3 / p90 15.9.
+        BumpGain      = 1400   # vertical-motion component (Vy)
 
         # --- braking --------------------------------------------------------
         BrakeGain     = 1500   # weight added under deceleration
@@ -139,9 +146,26 @@ function Mix-DefaultTune {
 
         # --- transients -----------------------------------------------------
         ImpactGain    = 9000   # peak force of a full-scale collision
-        ImpactRef     = 55.0   # jolt (m/s^2) treated as a full-scale impact
+        # ImpactRef was 55, which put the trigger (ImpactRef*0.25) at 13.75 - right
+        # on jolt's p90. On a real drive that fired 71 times in 77 seconds, roughly
+        # once a second: a constant hammering, not collisions. The measured jolt
+        # distribution has an empty gap between 40 and 60, so a trigger at 50 is a
+        # natural break; it yields 6 events on the same drive, matching five
+        # distinct collisions at t = 14.1, 17.0, 23.3, 28.6 and 34.6 s.
+        # Full scale at 200 leaves the biggest observed hit (579) saturating.
+        ImpactRef     = 200.0  # jolt treated as a full-scale impact; trigger at 25% of this
         ImpactMs      = 260    # decay time of an impact
         KerbGain      = 2500
+
+        # --- weapon fire ----------------------------------------------------
+        # Shaped from the engine's OWN authored effects (tools/ffb/parse-frc.py):
+        # CANNON1..4 are UserDefined envelopes, EXPLOSN is a SawtoothDown, and the
+        # weapon UI clicks are SquareHigh - i.e. short, sharp, percussive. So a
+        # brief decaying buzz rather than a directional shove: a centrally-mounted
+        # gun has no side to kick towards, and guessing one reads as a fault.
+        WeaponGain    = 3400
+        WeaponMs      = 140
+        WeaponHz      = 13.0
 
         # --- safety ---------------------------------------------------------
         Clamp         = 9500   # never exceed this; leaves headroom under 10000
@@ -166,6 +190,7 @@ function Mix-New {
         Enabled    = $true
         PeakForce  = 0.0
         LastJolt   = 0.0
+        LastFiring = $false
     }
 }
 
@@ -175,9 +200,9 @@ function Mix-Trigger {
       'buzz' (decaying oscillation). Amp is signed for 'jolt' so an impact can
       have a direction.
     #>
-    param($Mix, [string]$Shape, [double]$Amp, [int]$Ms, [double]$Hz = 30.0)
+    param($Mix, [string]$Shape, [double]$Amp, [int]$Ms, [double]$Hz = 30.0, [string]$Kind = 'impact')
     $null = $Mix.Transients.Add([pscustomobject]@{
-        Shape = $Shape; Amp = $Amp; Ms = $Ms; Hz = $Hz; Start = $Mix.LastT
+        Shape = $Shape; Amp = $Amp; Ms = $Ms; Hz = $Hz; Start = $Mix.LastT; Kind = $Kind
     })
 }
 
@@ -203,7 +228,7 @@ function Mix-Update {
     # $Channels still reports the true computed value of a muted channel, so the
     # panel can show what it would have contributed.
     $gate = @{}
-    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact')) {
+    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon')) {
         $gate[$k] = if ($null -eq $Active) { $true } else { [bool]$Active[$k] }
     }
 
@@ -293,8 +318,20 @@ function Mix-Update {
     # working, so smooth tarmac at speed stays calm while broken ground at the
     # same speed comes alive. That is what "faster and bumpier feels more
     # intense" has to mean - speed alone would just be a constant hum.
-    $rough = [math]::Min(1.0, ([math]::Abs($Sample.RollRate) + [math]::Abs($Sample.PitchRate)) / 1.2)
-    $heave = [math]::Min(1.0, [math]::Abs($Sample.Vy) / 3.0)
+    # Roughness comes from JOLT - the frame-to-frame change in the velocity vector -
+    # and NOT from roll/pitch rate, which is what this used to read. Measured over a
+    # real drive, the engine has no suspension model: those fields sit at p50 0.000
+    # / p90 0.10 and only move when you hit something, so a texture channel driven
+    # off them was silent exactly when texture is supposed to be present.
+    #
+    # Jolt away from collisions has a genuine working range - p50 2.6, p75 9.3,
+    # p90 15.9 - so RoughRef maps that band onto 0..1. Large jolts are handled
+    # separately by the impact transient, so this is deliberately clamped well
+    # below collision magnitudes.
+    $rough = [math]::Min(1.0, $Sample.Jolt / $Tune.RoughRef)
+    # Vy peaked at 0.77 m/s across 77 s of driving, so the old /3.0 divisor made
+    # this term all but unreachable.
+    $heave = [math]::Min(1.0, [math]::Abs($Sample.Vy) / 0.8)
     $texN  = [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)
     $texAmp = ($Tune.TextureGain * $texN * (0.25 + 0.75 * $rough)) + ($Tune.BumpGain * $heave * $texN)
     $Mix.Phase += 2 * [math]::PI * $Tune.TextureHz * $dt
@@ -344,29 +381,51 @@ function Mix-Update {
     }
     $Mix.LastJolt = $Sample.Jolt
 
+    # ---- 9. weapon fire ----------------------------------------------------
+    # RISING EDGE only. The flag stays set for as long as the trigger is held, so
+    # keying on its level would produce one transient per frame - a continuous
+    # roar instead of a shot. Held fire therefore gives one kick, which is the
+    # honest behaviour until a per-shot counter is found.
+    #
+    # Fails safe: if TEL_FIRE_ADDR is wrong the flag never changes, this never
+    # fires, and the channel is silent. It is not possible for a wrong address to
+    # produce spurious kicks.
+    $firing = [bool]$Sample.Firing
+    if ($firing -and -not $Mix.LastFiring) {
+        Mix-Trigger $Mix 'buzz' $Tune.WeaponGain ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
+        $notes += "FIRE"
+    }
+    $Mix.LastFiring = $firing
+
     # ---- transient summation ----------------------------------------------
-    $trans = 0.0
+    $transImpact = 0.0
+    $transWeapon = 0.0
     $dead = @()
     foreach ($tr in $Mix.Transients) {
         $age = ($t - $tr.Start) * 1000.0
         if ($age -ge $tr.Ms) { $dead += $tr; continue }
         $u = $age / $tr.Ms
+        $v = 0.0
         if ($tr.Shape -eq 'buzz') {
-            $trans += $tr.Amp * [math]::Exp(-3.0 * $u) * [math]::Sin(2 * [math]::PI * $tr.Hz * ($age / 1000.0))
+            $v = $tr.Amp * [math]::Exp(-3.0 * $u) * [math]::Sin(2 * [math]::PI * $tr.Hz * ($age / 1000.0))
         } else {
             # sharp attack (first 12%), exponential decay after
             $env = if ($u -lt 0.12) { $u / 0.12 } else { [math]::Exp(-3.5 * ($u - 0.12)) }
-            $trans += $tr.Amp * $env
+            $v = $tr.Amp * $env
         }
+        if ($tr.Kind -eq 'weapon') { $transWeapon += $v } else { $transImpact += $v }
     }
     foreach ($d in $dead) { $Mix.Transients.Remove($d) }
-    $ch['impact'] = [int]$trans
+    $ch['impact'] = [int]$transImpact
+    $ch['weapon'] = [int]$transWeapon
 
     # ---- combine -----------------------------------------------------------
     if (-not $gate['texture']) { $texture = 0.0 }
     if (-not $gate['scrub'])   { $scrub = 0.0 }
     if (-not $gate['judder'])  { $judder = 0.0 }
-    if (-not $gate['impact'])  { $trans = 0.0 }
+    if (-not $gate['impact'])  { $transImpact = 0.0 }
+    if (-not $gate['weapon'])  { $transWeapon = 0.0 }
+    $trans = $transImpact + $transWeapon
     $osc = $texture + $scrub + $judder
 
     # Slew-limit the STEADY part only. Steady forces should never step, but a
