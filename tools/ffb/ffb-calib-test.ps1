@@ -1,26 +1,26 @@
 <#
-  ffb-calib-test.ps1 - does the calibrator recover a gain it is GIVEN?
+  ffb-calib-test.ps1 - does the calibrator recover a model it is GIVEN?
 
-  WHY THIS EXISTS, and the history is the point:
+  WHY THIS EXISTS, and the history is the whole point. Three wrong answers shipped
+  before this file could catch them:
 
-  Version 1 fitted a steering lock by taking the MEDIAN of per-sample ratios and
-  reported 5.8 deg from a real drive, confidently, with a 100%-confidence sign
-  beside it. Version 2 replaced the estimator with a regression through the origin,
-  validated it against synthetic drives, and returned 6.2 deg from the next real
-  drive. The estimator was never the problem.
+    1. MEDIAN OF PER-SAMPLE RATIOS for a single fixed lock -> 5.8 deg, reported
+       confidently with a 100%-confidence sign beside it.
+    2. REGRESSION THROUGH THE ORIGIN for a single fixed lock -> 6.2 deg. A better
+       estimator behind the same wrong model. The estimator was blamed twice.
+    3. LATERAL-G BRANCH ALONE -> R^2 = 0.9997, which looked like the answer. But
+       that drive was 80-93 mph throughout, entirely above the regime crossover.
+       On the next drive it produced 158 FALSE understeer samples.
 
-  The problem was the MODEL. I'76 has no tyre model - lateral acceleration is
-  exactly proportional to steering input and independent of speed
-  (latAccel = a * steer, R^2 = 0.9995). Fitting a fixed steering lock to a
-  constant-lateral-g car yields an answer that falls with speed and settles
-  wherever the drive spent its time. Both "bad fits" were the arithmetic faithfully
-  reporting that a wrong model does not fit.
+  Mistake 3 is the one worth guarding hardest, because it PASSED every test that
+  existed. Two lessons, both encoded below:
 
-  The lesson worth encoding: synthetic tests built from the SAME assumption as the
-  code cannot catch a wrong assumption. Version 2's tests passed while the model
-  was wrong, because the test generator used the kinematic model too. So this file
-  now generates from the MEASURED relation, and test 5 deliberately feeds
-  kinematic-model data to confirm the fit REJECTS it rather than silently fitting.
+    * Synthetic tests built from the same assumption as the code cannot catch a
+      wrong assumption. The previous generator used the model being tested, so its
+      tests were green while the model was half wrong.
+    * A high R^2 proves nothing if the data only covers part of the model's domain.
+      Tests 3 and 4 feed single-regime drives and require the calibrator to REFUSE
+      them, R^2 notwithstanding.
 
       tools\ffb\ffb-calib-test.ps1
 #>
@@ -36,26 +36,28 @@ function Check {
     else { $script:fail++; Write-Host ("  FAIL  " + $Name + $(if ($Detail) { "  ($Detail)" } else { "" })) -ForegroundColor Red }
 }
 
-# Synthesise a drive from the MEASURED handling model: yaw = a*steer/speed,
-# clamped, with a first-order lag so the transient bias that broke the original
-# per-sample estimator is present in the data.
+# Synthesise a drive from the MEASURED two-regime model, with a first-order lag so
+# the transient bias that broke estimator 1 is present in the data.
 function New-Drive {
     param([string]$Path, [double]$A, [scriptblock]$SteerFn, [scriptblock]$SpeedFn,
-          [double]$Tau = 0.35, [double]$Dur = 30.0, [double]$YawMax = 2.95,
-          [switch]$Kinematic)
+          [double]$Lock = 0.76, [double]$Tau = 0.35, [double]$Dur = 40.0,
+          [double]$YawMax = 3.2)
     $lines = New-Object System.Collections.ArrayList
     $null = $lines.Add("t,speed,steer,yaw")
     $yaw = 0.0; $dt = 0.02
     for ($t = $dt; $t -lt $Dur; $t += $dt) {
         $steer = & $SteerFn $t
         $sp = & $SpeedFn $t
-        if ($Kinematic) {
-            # the WRONG model, on purpose (see test 5): yaw rises with speed
-            $target = ($sp / 4.662) * [math]::Tan($steer * 0.52)
-        } else {
-            $target = if ($sp -gt 0.5) { $A * $steer / $sp } else { 0.0 }
-            if ($target -gt $YawMax) { $target = $YawMax }
-            elseif ($target -lt -$YawMax) { $target = -$YawMax }
+        $target = 0.0
+        if ($sp -gt 0.5) {
+            $aS  = [math]::Abs($steer)
+            $kin = ($sp / 4.662) * [math]::Tan($aS * [math]::Abs($Lock))
+            $lat = [math]::Abs($A) * $aS / $sp
+            $mag = [math]::Min($kin, $lat)
+            if ($mag -gt $YawMax) { $mag = $YawMax }
+            # a negative A encodes an inverted-yaw car
+            $sgn = if (($steer -lt 0) -ne ($A -lt 0)) { -1 } else { 1 }
+            $target = $sgn * $mag
         }
         $yaw += ($target - $yaw) * ($dt / $Tau)
         $null = $lines.Add(("{0:0.000},{1:0.000},{2:0.000},{3:0.0000}" -f $t, $sp, $steer, $yaw))
@@ -67,78 +69,87 @@ function Get-Fit {
     param([string]$Csv)
     $out = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here 'ffb-calibrate.ps1') `
         -FromLog $Csv -NoWrite 2>&1 | Out-String
-    $a = $null; $sign = $null; $r2 = $null; $rejected = $false
+    $a = $null; $lock = $null; $sign = $null; $r2 = $null
+    $rejected = $false; $thinCoverage = $false
     foreach ($ln in ($out -split "`r?`n")) {
-        if ($ln -match 'steady only\s+\(\s*\d+ samples\): a =\s*([\d.]+)') { $a = [double]$Matches[1] }
-        elseif ($ln -match 'all usable\s+\(\s*\d+ samples\): a =\s*([\d.]+)' -and $null -eq $a) { $a = [double]$Matches[1] }
+        if ($ln -match 'steady only\s+\(\s*\d+\): a =\s*([\d.]+).*lock ([\d.]+) rad') {
+            $a = [double]$Matches[1]; $lock = [double]$Matches[2]
+        } elseif ($ln -match 'all usable\s+\(\s*\d+\): a =\s*([\d.]+).*lock ([\d.]+) rad' -and $null -eq $a) {
+            $a = [double]$Matches[1]; $lock = [double]$Matches[2]
+        }
         if ($ln -match 'TEL_YAW_SIGN = (-?\d+)') { $sign = [int]$Matches[1] }
         if ($ln -match 'R\^2\s+([\d.]+), residual') { $r2 = [double]$Matches[1] }
+        if ($ln -match 'INSUFFICIENT COVERAGE') { $thinCoverage = $true; $rejected = $true }
         if ($ln -match 'POOR FIT|IMPLAUSIBLE|NOT ENOUGH') { $rejected = $true }
+        if ($ln -match '\(SIGN ONLY\)') { $rejected = $true }
     }
-    return [pscustomobject]@{ A = $a; Sign = $sign; R2 = $r2; Rejected = $rejected; Raw = $out }
+    return [pscustomobject]@{
+        A = $a; Lock = $lock; Sign = $sign; R2 = $r2
+        Rejected = $rejected; ThinCoverage = $thinCoverage; Raw = $out
+    }
 }
 
-$sustained = { param($t) @(0.0, 0.55, 0.0, -0.55)[[int]($t / 3.0) % 4] }
-$sinus     = { param($t) 0.55 * [math]::Sin($t * 0.9) }
-$midSpeed  = { param($t) 16.0 + 3.0 * [math]::Sin($t * 0.25) }
-# The real drive was 80-93 mph almost throughout, which is what made a
-# speed-dependent model unidentifiable. Keep a case like it.
-$fastSpeed = { param($t) 39.0 + 2.0 * [math]::Sin($t * 0.3) }
-$wideSpeed = { param($t) 8.0 + 16.0 * (0.5 + 0.5 * [math]::Sin($t * 0.2)) }
+$sustained = { param($t) @(0.0, 0.6, 0.0, -0.6)[[int]($t / 2.5) % 4] }
+$sinus     = { param($t) 0.6 * [math]::Sin($t * 0.9) }
+# Sweeps 5..30 m/s, so it crosses the 12 m/s regime boundary in both directions.
+$bothRegimes = { param($t) 5.0 + 25.0 * (0.5 + 0.5 * [math]::Sin($t * 0.22)) }
+$fastOnly    = { param($t) 38.0 + 3.0 * [math]::Sin($t * 0.3) }
+$slowOnly    = { param($t) 6.0 + 2.0 * [math]::Sin($t * 0.3) }
 
-Write-Host "`n=== 1. sustained turns, a = 29.3 (2.99 g) ===" -ForegroundColor Cyan
-$p = Join-Path $tmp 'sustained.csv'
-New-Drive -Path $p -A 29.3 -SteerFn $sustained -SpeedFn $midSpeed
+Write-Host "`n=== 1. both regimes covered: a = 31.0, lock = 0.76 (43.5 deg) ===" -ForegroundColor Cyan
+$p = Join-Path $tmp 'both.csv'
+New-Drive -Path $p -A 31.0 -Lock 0.76 -SteerFn $sustained -SpeedFn $bothRegimes
 $f = Get-Fit $p
-Check "recovers a gain" ($null -ne $f.A) "got '$($f.A)'"
-if ($f.A) { Check "within 10% of 29.3" ([math]::Abs($f.A - 29.3) -lt 2.9) ("got {0:0.0}" -f $f.A) }
+Check "recovers a gain and a lock" ($null -ne $f.A -and $null -ne $f.Lock) "a=$($f.A) lock=$($f.Lock)"
+if ($f.A)    { Check "a within 10% of 31.0"    ([math]::Abs($f.A - 31.0) -lt 3.1)      ("got {0:0.0}" -f $f.A) }
+if ($f.Lock) { Check "lock within 15% of 0.76" ([math]::Abs($f.Lock - 0.76) -lt 0.115) ("got {0:0.000}" -f $f.Lock) }
+if ($f.Lock) { Check "lock is NOT the old broken ~0.10" ($f.Lock -gt 0.25) ("got {0:0.000}" -f $f.Lock) }
 Check "sign is +1" ($f.Sign -eq 1) "got $($f.Sign)"
-Check "reports a good R^2" ($f.R2 -ge 0.90) "R2 $($f.R2)"
-Check "not rejected" (-not $f.Rejected) ""
+Check "accepted" (-not $f.Rejected) ""
 
 Write-Host "`n=== 2. sinusoidal steering - all transition ===" -ForegroundColor Cyan
 $p = Join-Path $tmp 'sinus.csv'
-New-Drive -Path $p -A 29.3 -SteerFn $sinus -SpeedFn $midSpeed
+New-Drive -Path $p -A 31.0 -Lock 0.76 -SteerFn $sinus -SpeedFn $bothRegimes
 $f = Get-Fit $p
-Check "still within 10%" ($f.A -and [math]::Abs($f.A - 29.3) -lt 2.9) ("got {0:0.0}" -f $f.A)
+Check "a still within 15%"    ($f.A -and [math]::Abs($f.A - 31.0) -lt 4.7)       ("got {0:0.0}" -f $f.A)
+Check "lock still within 20%" ($f.Lock -and [math]::Abs($f.Lock - 0.76) -lt 0.16) ("got {0:0.000}" -f $f.Lock)
 
-Write-Host "`n=== 3. HIGH speed only - the case that defeated the old model ===" -ForegroundColor Cyan
-# A single-lock model fitted to this returned ~6 deg. A lateral-gain model has no
-# speed-dependent parameter to lose, so it must recover the same answer here.
+Write-Host "`n=== 3. HIGH-SPEED-ONLY drive must be REFUSED ===" -ForegroundColor Cyan
+# THE test. This is mistake 3 exactly: only the lateral-g branch is constrained,
+# so the lock is a guess - and R^2 will look excellent regardless. A calibrator
+# that accepts this is the one that produced 158 false understeer samples.
 $p = Join-Path $tmp 'fast.csv'
-New-Drive -Path $p -A 29.3 -SteerFn $sustained -SpeedFn $fastSpeed
+New-Drive -Path $p -A 31.0 -Lock 0.76 -SteerFn $sustained -SpeedFn $fastOnly
 $f = Get-Fit $p
-Check "recovers the SAME gain at 87 mph" ($f.A -and [math]::Abs($f.A - 29.3) -lt 2.9) ("got {0:0.0}" -f $f.A)
+Check "flagged as insufficient regime coverage" $f.ThinCoverage "R2=$($f.R2) a=$($f.A) lock=$($f.Lock)"
+Check "high R^2 did NOT buy acceptance" ($f.Rejected) "R2=$($f.R2) rejected=$($f.Rejected)"
 
-Write-Host "`n=== 4. a different gain is tracked, not echoed ===" -ForegroundColor Cyan
-$p = Join-Path $tmp 'soft.csv'
-New-Drive -Path $p -A 15.0 -SteerFn $sustained -SpeedFn $wideSpeed
+Write-Host "`n=== 4. LOW-SPEED-ONLY drive must also be REFUSED ===" -ForegroundColor Cyan
+# The mirror image: only the geometry branch is constrained, so `a` is a guess.
+$p = Join-Path $tmp 'slow.csv'
+New-Drive -Path $p -A 31.0 -Lock 0.76 -SteerFn $sustained -SpeedFn $slowOnly
 $f = Get-Fit $p
-Check "tracks a = 15.0" ($f.A -and [math]::Abs($f.A - 15.0) -lt 1.5) ("got {0:0.0}" -f $f.A)
+Check "flagged as insufficient regime coverage" $f.ThinCoverage "R2=$($f.R2) a=$($f.A) lock=$($f.Lock)"
 
-Write-Host "`n=== 5. KINEMATIC data is REJECTED, not fitted ===" -ForegroundColor Cyan
-# The guard against the mistake that actually happened. If the engine did follow a
-# fixed steering lock, yaw would RISE with speed and the lateral-gain model would
-# not describe it - the fit must say so rather than return a confident number.
-# Version 2's tests generated kinematic data and asserted a kinematic fit, which
-# is why they passed while the model was wrong.
-$p = Join-Path $tmp 'kinematic.csv'
-New-Drive -Path $p -A 29.3 -SteerFn $sustained -SpeedFn $wideSpeed -Kinematic
+Write-Host "`n=== 5. different parameters are tracked, not echoed ===" -ForegroundColor Cyan
+# Guards against a fit that always returns something near the defaults.
+$p = Join-Path $tmp 'other.csv'
+New-Drive -Path $p -A 22.0 -Lock 0.50 -SteerFn $sustained -SpeedFn $bothRegimes
 $f = Get-Fit $p
-Check "rejects data from a different handling model" ($f.Rejected -or ($f.R2 -lt 0.90)) `
-    ("R2 $($f.R2), a $($f.A), rejected $($f.Rejected)")
+Check "tracks a = 22.0"   ($f.A -and [math]::Abs($f.A - 22.0) -lt 3.0)        ("got {0:0.0}" -f $f.A)
+Check "tracks lock = 0.50" ($f.Lock -and [math]::Abs($f.Lock - 0.50) -lt 0.12) ("got {0:0.000}" -f $f.Lock)
 
 Write-Host "`n=== 6. inverted yaw is detected ===" -ForegroundColor Cyan
 $p = Join-Path $tmp 'inv.csv'
-New-Drive -Path $p -A -29.3 -SteerFn $sustained -SpeedFn $midSpeed
+New-Drive -Path $p -A -31.0 -Lock 0.76 -SteerFn $sustained -SpeedFn $bothRegimes
 $f = Get-Fit $p
 Check "sign is -1" ($f.Sign -eq -1) "got $($f.Sign)"
 
-Write-Host "`n=== 7. a no-information drive is REJECTED ===" -ForegroundColor Cyan
+Write-Host "`n=== 7. a no-information drive is REFUSED ===" -ForegroundColor Cyan
 $p = Join-Path $tmp 'useless.csv'
-New-Drive -Path $p -A 29.3 -SteerFn { param($t) 0.02 * [math]::Sin($t) } -SpeedFn { param($t) 2.0 }
+New-Drive -Path $p -A 31.0 -SteerFn { param($t) 0.02 * [math]::Sin($t) } -SpeedFn { param($t) 2.0 }
 $f = Get-Fit $p
-Check "refuses to fit a crawl with the wheel centred" $f.Rejected "a=$($f.A)"
+Check "refuses a crawl with the wheel centred" $f.Rejected "a=$($f.A)"
 
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 Write-Host ""

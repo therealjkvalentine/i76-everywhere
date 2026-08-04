@@ -16,3 +16,5 @@ smack-music-fix/SMACKW32.DLL
 tools/ffb/telemetry-probe-last.csv
 tools/ffb/ffb-calib-samples.csv
 tools/ffb/ffb-calib.json
+tools/ffb/*.csv
+tools/ffb/ffb-fire-candidates.txt
