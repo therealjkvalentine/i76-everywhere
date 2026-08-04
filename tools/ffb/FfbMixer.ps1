@@ -188,7 +188,24 @@ function Mix-Update {
         .Channels  ordered hashtable of each channel's contribution
         .Notes     short strings describing anything notable this frame
     #>
-    param($Mix, $Sample)
+    param($Mix, $Sample, $Active = $null)
+
+    # Channel gating (-Only / -Mute) belongs HERE, not in the caller.
+    #
+    # ffb-interposer.ps1 used to honour those flags by re-summing $out.Channels
+    # itself. That silently bypassed the slew limiter: $Channels holds the values
+    # as computed, but the rate limit further down is applied to THIS function's
+    # own running sum. So every live run was driving the wheel with unrate-limited
+    # steady force, and only the returned .Force - which nothing used - was
+    # correct. Gating inside keeps one code path for the force that reaches the
+    # device.
+    #
+    # $Channels still reports the true computed value of a muted channel, so the
+    # panel can show what it would have contributed.
+    $gate = @{}
+    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact')) {
+        $gate[$k] = if ($null -eq $Active) { $true } else { [bool]$Active[$k] }
+    }
 
     # NOT named $T. PowerShell variable names are CASE-INSENSITIVE, so $T and the
     # timestamp $t below are the same variable - naming this $T silently replaced
@@ -206,9 +223,22 @@ function Mix-Update {
     $notes = @()
 
     # ---- grip scale: the collapse of self-aligning torque -----------------
-    # See the header. Understeer bleeds the steady channels toward silence
+    # See the header. Losing the car bleeds the steady channels toward silence
     # instead of adding a signal of its own.
-    $gripScale = 1.0 - ($Sample.Understeer * $Tune.UndersteerDrop)
+    #
+    # Driven by EITHER understeer or oversteer, because in this engine understeer
+    # effectively never happens. Replaying a real 959-sample drive
+    # (ffb-replay.ps1) showed Understeer never once exceeded 0.3, so a gripScale
+    # keyed on understeer alone sat at exactly 1.0 for the entire drive and the
+    # whole "the wheel goes light" idea was inert. Oversteer - spins, impacts,
+    # blown tyres - fired on 4.9% of samples and is what actually occurs.
+    #
+    # Physically this is the same event: in a spin the front tyres stop generating
+    # alignment torque, so the wheel goes light. The oversteer channel then loads
+    # up in the counter-steer direction on top of that, which is exactly how
+    # catching a slide feels - dead, then a push toward the correction.
+    $outOfShape = [math]::Max($Sample.Understeer, $Sample.Oversteer)
+    $gripScale = 1.0 - ($outOfShape * $Tune.UndersteerDrop)
     $ch['grip%'] = [math]::Round($gripScale * 100)
 
     # ---- 1. centering / self-aligning torque ------------------------------
@@ -252,6 +282,10 @@ function Mix-Update {
     }
     $ch['brake'] = [int]$brake
 
+    if (-not $gate['center'])    { $sat = 0.0 }
+    if (-not $gate['corner'])    { $corner = 0.0 }
+    if (-not $gate['oversteer']) { $over = 0.0 }
+    if (-not $gate['brake'])     { $brake = 0.0 }
     $steady = ($sat + $corner + $over + $brake)
 
     # ---- 5. road texture (oscillating) ------------------------------------
@@ -272,12 +306,17 @@ function Mix-Update {
     # A small, fast buzz on top of the LIGHTNESS. The lightness is the primary
     # cue; this just adds the sound-of-rubber quality so it reads as sliding
     # rather than as a broken FFB cable.
+    # Keyed on $outOfShape, not on Understeer. Same reason as gripScale above: on a
+    # real drive this channel NEVER FIRED ONCE, because understeer does not exist
+    # in this engine. Tyres scrubbing sideways is exactly what happens in a spin,
+    # so the buzz belongs on the signal that actually occurs.
     $scrub = 0.0
-    if ($Sample.Understeer -gt 0.15) {
+    if ($outOfShape -gt 0.15) {
         $Mix.ScrubPhase += 2 * [math]::PI * $Tune.ScrubHz * $dt
         if ($Mix.ScrubPhase -gt (2 * [math]::PI)) { $Mix.ScrubPhase -= 2 * [math]::PI }
-        $scrub = $Tune.ScrubGain * $Sample.Understeer * [math]::Sin($Mix.ScrubPhase)
-        if ($Sample.Understeer -gt 0.4) { $notes += "UNDERSTEER" }
+        $scrub = $Tune.ScrubGain * $outOfShape * [math]::Sin($Mix.ScrubPhase)
+        if ($Sample.Oversteer -gt 0.4) { $notes += "SPIN" }
+        elseif ($Sample.Understeer -gt 0.4) { $notes += "PLOUGHING" }
     }
     $ch['scrub'] = [int]$scrub
 
@@ -324,6 +363,10 @@ function Mix-Update {
     $ch['impact'] = [int]$trans
 
     # ---- combine -----------------------------------------------------------
+    if (-not $gate['texture']) { $texture = 0.0 }
+    if (-not $gate['scrub'])   { $scrub = 0.0 }
+    if (-not $gate['judder'])  { $judder = 0.0 }
+    if (-not $gate['impact'])  { $trans = 0.0 }
     $osc = $texture + $scrub + $judder
 
     # Slew-limit the STEADY part only. Steady forces should never step, but a

@@ -250,7 +250,13 @@ try {
 
     if ($Log) {
         $logSw = [System.IO.StreamWriter]::new($Log, $false)
+        # rollRate/pitchRate/vy are logged because the texture, judder and impact
+        # channels depend on them, and a capture without them cannot judge those
+        # three at all - ffb-replay.ps1 has to report "no data" instead of a
+        # number. A calibration capture (t,speed,steer,yaw) is enough for the
+        # steady and loss-of-control channels only.
         $logSw.WriteLine("t,speed,mph,steer,throttle,longG,latG,yaw,expectYaw,understeer,oversteer,jolt," +
+                         "rollRate,pitchRate,vy," +
                          "center,corner,oversteer_f,brake,texture,scrub,judder,impact,force")
     }
 
@@ -291,19 +297,12 @@ try {
         $s = Tel-Sample $telCtx
         if ($s) {
             $lastS = $s
-            $out = Mix-Update $mix $s
+            $out = Mix-Update $mix $s $active
 
-            # Apply channel gating by rebuilding the sum from the breakdown, so
-            # -Only / -Mute are exact rather than approximate.
-            $f = 0.0
-            foreach ($c in $ALL_CH) {
-                if ($active[$c] -and $out.Channels.Contains($c)) { $f += [double]$out.Channels[$c] }
-            }
-            $f = $f * $tuneTable['Master'] * $out.Ramp
-            if (-not $mix.Enabled) { $f = 0 }
-            $lim = $tuneTable['Clamp']
-            if ($f -gt $lim) { $f = $lim } elseif ($f -lt -$lim) { $f = -$lim }
-            $force = [int]$f
+            # Gating is applied INSIDE Mix-Update (it takes $active), so .Force is
+            # already masked, slew-limited, ramped, master-scaled and clamped.
+            # Re-summing the breakdown here is what bypassed the slew limiter.
+            $force = $out.Force
 
             if (-not $DryRun) {
                 $hr = Ffb-Constant $dev $force
@@ -340,7 +339,8 @@ try {
                     ('{0:0.000}' -f $s.LongG),    ('{0:0.000}' -f $s.LatG),
                     ('{0:0.000}' -f $s.YawRate),  ('{0:0.000}' -f $s.ExpectedYaw),
                     ('{0:0.000}' -f $s.Understeer), ('{0:0.000}' -f $s.Oversteer),
-                    ('{0:0.000}' -f $s.Jolt)
+                    ('{0:0.000}' -f $s.Jolt),
+                    ('{0:0.000}' -f $s.RollRate), ('{0:0.000}' -f $s.PitchRate), ('{0:0.000}' -f $s.Vy)
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force

@@ -281,6 +281,66 @@ function Tel-Geometry {
     if ($Ctx.Wheelbase -lt 0.5) { $Ctx.Wheelbase = 4.66 }   # fall back to the measured stock value
 }
 
+function Tel-Slip {
+    <#
+      The reference model and the deviation from it, given nothing but speed,
+      steer and yaw rate.
+
+      Extracted from Tel-Sample so that ffb-replay.ps1 exercises THIS logic when
+      it re-runs a captured drive, rather than a reimplementation of it that can
+      quietly drift out of step with the live path.
+
+      REFERENCE: yaw = a * steer / speed, measured at R^2 = 0.9997 on a real
+      drive. Clamped, because the quotient diverges as speed falls while the
+      engine does not.
+
+      DEVIATION = loss of control. This engine has no tyre model, so ordinary
+      cornering never deviates; spins, impacts and blown tyres do.
+
+      Normalised against an ABSOLUTE rad/s scale, NOT against |expectedYaw|.
+      Dividing by the expectation looks natural and is wrong here: the reference
+      is accurate to a residual sd of 0.011 rad/s, so wherever expectedYaw is
+      small a trivial absolute error becomes a huge ratio, and the wheel would
+      report a spin every time you nudged it at speed. The deadband sits above
+      the measured noise floor (worst residual on gripped samples: 0.053); real
+      events deviate by more than 0.5.
+    #>
+    param([double]$Speed, [double]$Steer, [double]$YawRate)
+
+    $DEV_DEAD = 0.15    # rad/s: below this it is measurement noise
+    $DEV_REF  = 1.10    # rad/s: deviation treated as fully out of shape
+
+    $expectedYaw = 0.0
+    if ($Speed -gt 0.5) {
+        $expectedYaw = $script:TEL_LAT_GAIN * $Steer / $Speed
+        if ($expectedYaw -gt $script:TEL_YAW_MAX) { $expectedYaw = $script:TEL_YAW_MAX }
+        elseif ($expectedYaw -lt -$script:TEL_YAW_MAX) { $expectedYaw = -$script:TEL_YAW_MAX }
+    }
+
+    $understeer = 0.0
+    $oversteer  = 0.0
+    if ($Speed -gt 3.0) {
+        $aY = [math]::Abs($YawRate)
+        $aE = [math]::Abs($expectedYaw)
+        # Rotating AGAINST the steering is unambiguous - no magnitude comparison
+        # can express it, and it is the signature of a genuine spin.
+        if ($aY -gt 0.15 -and $aE -gt 0.15 -and
+            [math]::Sign($YawRate) -ne [math]::Sign($expectedYaw)) {
+            $oversteer = 1.0
+        }
+        else {
+            $span = $DEV_REF - $DEV_DEAD
+            $short  = $aE - $aY     # turning LESS than commanded (damage, blown tyre)
+            $excess = $aY - $aE     # rotating MORE than commanded (spun, hit)
+            if ($short -gt $DEV_DEAD) { $understeer = [math]::Min(1.0, ($short - $DEV_DEAD) / $span) }
+            elseif ($excess -gt $DEV_DEAD) { $oversteer = [math]::Min(1.0, ($excess - $DEV_DEAD) / $span) }
+        }
+    }
+    return [pscustomobject]@{
+        ExpectedYaw = $expectedYaw; Understeer = $understeer; Oversteer = $oversteer
+    }
+}
+
 function Tel-Sample {
     <#
       One poll. Returns a state object with raw and derived fields, or $null if
@@ -360,48 +420,11 @@ function Tel-Sample {
     # should make the wheel feel heavy in a bend.
     $latAccel = $yawRate * $speed
 
-    # The reference: what this engine WILL do for this steer at this speed.
-    # yaw = a * steer / speed, measured at R^2 = 0.9995 (see the header). Clamped,
-    # because the quotient diverges as speed falls while the engine does not.
-    $expectedYaw = 0.0
-    if ($speed -gt 0.5) {
-        $expectedYaw = $script:TEL_LAT_GAIN * $steer / $speed
-        if ($expectedYaw -gt $script:TEL_YAW_MAX) { $expectedYaw = $script:TEL_YAW_MAX }
-        elseif ($expectedYaw -lt -$script:TEL_YAW_MAX) { $expectedYaw = -$script:TEL_YAW_MAX }
-    }
+    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate
+    $expectedYaw = $slip.ExpectedYaw
 
-    # Deviation from the reference = LOSS OF CONTROL (see the header: this engine
-    # has no tyre slip model, so ordinary cornering never deviates).
-    #
-    # Normalised against an ABSOLUTE rad/s scale, not against |expectedYaw|.
-    # Dividing by the expectation looks natural and is wrong here: the reference
-    # is accurate to a residual sd of 0.013 rad/s, so wherever expectedYaw is
-    # small a trivial absolute error becomes a large ratio and the wheel would
-    # report a spin every time you nudged the wheel at speed. The deadband below
-    # sits above the measured noise floor (max residual on gripped samples was
-    # 0.053 rad/s); real events deviate by more than 0.5.
-    $DEV_DEAD = 0.15    # rad/s: below this it is measurement noise
-    $DEV_REF  = 1.10    # rad/s: deviation treated as fully out of shape
-
-    $understeer = 0.0
-    $oversteer  = 0.0
-    if ($speed -gt 3.0) {
-        $aY = [math]::Abs($yawRate)
-        $aE = [math]::Abs($expectedYaw)
-        # Rotating AGAINST the steering is unambiguous - no magnitude comparison
-        # can express it, and it is the signature of a genuine spin.
-        if ($aY -gt 0.15 -and $aE -gt 0.15 -and
-            [math]::Sign($yawRate) -ne [math]::Sign($expectedYaw)) {
-            $oversteer = 1.0
-        }
-        else {
-            $span = $DEV_REF - $DEV_DEAD
-            $short = $aE - $aY      # turning LESS than commanded (damage, blown tyre)
-            $excess = $aY - $aE     # rotating MORE than commanded (spun, hit)
-            if ($short -gt $DEV_DEAD) { $understeer = [math]::Min(1.0, ($short - $DEV_DEAD) / $span) }
-            elseif ($excess -gt $DEV_DEAD) { $oversteer = [math]::Min(1.0, ($excess - $DEV_DEAD) / $span) }
-        }
-    }
+    $understeer = $slip.Understeer
+    $oversteer  = $slip.Oversteer
 
     return [pscustomobject]@{
         T           = $t

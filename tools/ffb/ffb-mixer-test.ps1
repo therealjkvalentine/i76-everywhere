@@ -110,6 +110,43 @@ $rOver = RunScenario { param($t) Fake -T $t -Speed 18 -Steer 0.2 -YawRate 0.8 -E
 Check "oversteer channel fires" ($rOver.Out.Channels['oversteer'] -ne 0) "over=$($rOver.Out.Channels['oversteer'])"
 Check "oversteer pushes with the rotation" ($rOver.Out.Channels['oversteer'] -gt 0) "over=$($rOver.Out.Channels['oversteer'])"
 
+Write-Host "`n=== 5b. losing the car works via OVERSTEER, not just understeer ===" -ForegroundColor Cyan
+# I'76 has no tyre model, so understeer effectively never occurs - replaying a
+# real 959-sample drive showed Understeer never once passed 0.3 while Oversteer
+# fired on 4.9%. Keying gripScale and scrub on understeer alone left the central
+# "the wheel goes light" idea INERT in the only game it has to work in. These
+# assert it responds to the signal that actually happens.
+$gripped2 = RunScenario { param($t) Fake -T $t -Speed 18 -Steer 0.5 -YawRate 0.5 -LatG 1.5 -ExpectedYaw 0.5 }
+$spun     = RunScenario { param($t) Fake -T $t -Speed 18 -Steer 0.5 -YawRate 1.6 -LatG 2.6 -ExpectedYaw 0.5 -Oversteer 0.9 }
+Check "oversteer bleeds grip%" ($spun.Out.Channels['grip%'] -lt 100) "grip=$($spun.Out.Channels['grip%'])%"
+$wGrip2 = [math]::Abs($gripped2.Out.Channels['center']) + [math]::Abs($gripped2.Out.Channels['corner'])
+$wSpun  = [math]::Abs($spun.Out.Channels['center'])     + [math]::Abs($spun.Out.Channels['corner'])
+Check "steady weight drops when the car is spun" ($wSpun -lt $wGrip2) "gripped=$wGrip2 spun=$wSpun"
+$scrubSeen = $false
+$m = Mix-New
+for ($t = 0.0; $t -lt 1.5; $t += 1.0/60) {
+    $o = Mix-Update $m (Fake -T $t -Speed 18 -Steer 0.5 -YawRate 1.6 -LatG 2.6 -ExpectedYaw 0.5 -Oversteer 0.9)
+    if ([math]::Abs($o.Channels['scrub']) -gt 50) { $scrubSeen = $true }
+}
+Check "scrub buzz fires on a spin" $scrubSeen ""
+
+Write-Host "`n=== 5c. channel gating is applied INSIDE the mixer ===" -ForegroundColor Cyan
+# The interposer used to re-sum the breakdown to honour -Only/-Mute, which
+# bypassed the slew limiter below. Gating now lives in Mix-Update, so .Force is
+# the single authority for what reaches the device.
+$mA = Mix-New
+$onlyCenter = @{}
+foreach ($c in @('center','corner','oversteer','brake','texture','scrub','judder','impact')) { $onlyCenter[$c] = $false }
+$onlyCenter['center'] = $true
+$gated = $null
+for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) {
+    $gated = Mix-Update $mA (Fake -T $t -Speed 18 -Steer 0.6 -YawRate 0.5 -LatG 2.0 -ExpectedYaw 0.5) $onlyCenter
+}
+Check "muted channels are excluded from Force" `
+    ([math]::Abs($gated.Force - $gated.Channels['center']) -lt 250) `
+    "force=$($gated.Force) center=$($gated.Channels['center']) corner=$($gated.Channels['corner'])"
+Check "muted channel still REPORTED for the panel" ($gated.Channels['corner'] -ne 0) "corner=$($gated.Channels['corner'])"
+
 Write-Host "`n=== 6. braking adds weight, hard braking judders ===" -ForegroundColor Cyan
 $rBrake = RunScenario { param($t) Fake -T $t -Speed 16 -Steer 0.3 -Throttle -0.9 -LongG -0.8 }
 Check "brake channel fires under deceleration" ($rBrake.Out.Channels['brake'] -ne 0) "brake=$($rBrake.Out.Channels['brake'])"
