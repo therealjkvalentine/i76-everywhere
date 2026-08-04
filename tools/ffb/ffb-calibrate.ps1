@@ -183,80 +183,119 @@ if ($conf -lt 0.8) {
     Write-Host "  LOW CONFIDENCE - re-run with smoother, more sustained turns." -ForegroundColor Yellow
 }
 
-# ---- lock: regression through the origin --------------------------------
-function Fit-Lock {
-    param($Set, [int]$Sign, [double]$WB)
+# ---- lateral gain: regression through the origin on steer/speed ----------
+# The handling model (measured, R^2 = 0.9995 - see Telemetry.ps1's header):
+#     yaw = a * steer / speed      i.e.  lateral accel = a * steer
+# One parameter. No steering lock, no wheelbase, no understeer gradient - the
+# engine commands lateral acceleration and does not model tyres.
+function Fit-LatGain {
+    param($Set, [int]$Sign)
     $sxy = 0.0; $sxx = 0.0; $used = 0
+    $pts = New-Object System.Collections.ArrayList
     foreach ($r in $Set) {
         $y = $r.Yaw * $Sign
-        if ([math]::Sign($y) -ne [math]::Sign($r.Steer)) { continue }   # sliding; model silent
-        $arg = $y * $WB / $r.Speed
-        if ([math]::Abs($arg) -ge 1.5) { continue }
-        $theta = [math]::Atan($arg)
-        $sxy += $r.Steer * $theta
-        $sxx += $r.Steer * $r.Steer
+        # Spins and impacts are not cornering - exclude them from the FIT, then
+        # measure how far they deviate from it (that is the whole loss-of-control
+        # signal). Rotating against the steering is the clearest marker.
+        if ([math]::Sign($y) -ne [math]::Sign($r.Steer)) { continue }
+        $x = $r.Steer / $r.Speed
+        $sxy += $x * $y
+        $sxx += $x * $x
         $used++
+        $null = $pts.Add(@($x, $y))
     }
-    if ($sxx -le 0 -or $used -lt 10) { return $null }
-    return [pscustomobject]@{ Lock = ($sxy / $sxx); Used = $used }
+    if ($sxx -le 0 -or $used -lt 15) { return $null }
+    $a = $sxy / $sxx
+    # R^2 and residual sd, so the fit can be judged rather than trusted.
+    $mean = 0.0; foreach ($p in $pts) { $mean += $p[1] }; $mean /= $pts.Count
+    $ssRes = 0.0; $ssTot = 0.0
+    foreach ($p in $pts) {
+        $ssRes += [math]::Pow($p[1] - $a * $p[0], 2)
+        $ssTot += [math]::Pow($p[1] - $mean, 2)
+    }
+    $r2 = if ($ssTot -gt 0) { 1.0 - ($ssRes / $ssTot) } else { 0.0 }
+    $sd = [math]::Sqrt($ssRes / $pts.Count)
+    return [pscustomobject]@{ A = $a; Used = $used; R2 = $r2; Sd = $sd }
 }
 
+# Steadiness is judged RELATIVE to the yaw magnitude, not against a fixed rad/s^2
+# threshold. Because yaw = a*steer/speed, the yaw rates at 90 mph are a quarter of
+# those at 22 mph, and so are their transients - an absolute threshold therefore
+# filters transients out at low speed and lets them straight through at high speed,
+# exactly where most driving happens. Caught by ffb-calib-test.ps1 test 3, which
+# fitted 26.2 instead of 29.3 on a high-speed-only drive.
+# $STEADY_YAW is retained as an absolute floor so a near-zero yaw is not held to an
+# impossibly tight relative bound.
 $steady = @($usable | Where-Object {
-    [math]::Abs($_.dSteer) -lt $STEADY_STEER -and [math]::Abs($_.dYaw) -lt $STEADY_YAW })
+    [math]::Abs($_.dSteer) -lt $STEADY_STEER -and
+    [math]::Abs($_.dYaw)   -lt [math]::Max(0.15, 1.0 * [math]::Abs($_.Yaw)) })
 
-$fitAll    = Fit-Lock $usable $sign $wheelbase
-$fitSteady = Fit-Lock $steady $sign $wheelbase
+$fitAll    = Fit-LatGain $usable $sign
+$fitSteady = Fit-LatGain $steady $sign
 
 Write-Host ""
-Write-Host "--- steering lock ---" -ForegroundColor Green
+Write-Host "--- lateral gain (a in: lateral accel = a * steer) ---" -ForegroundColor Green
 if ($fitAll) {
-    Write-Host ("  all usable   ({0,4} samples): {1:0.000} rad = {2,5:0.0} deg" -f `
-        $fitAll.Used, $fitAll.Lock, ($fitAll.Lock * 180 / [math]::PI))
+    Write-Host ("  all usable   ({0,4} samples): a = {1,6:0.0} m/s^2 = {2:0.00} g   R^2 {3:0.000}  sd {4:0.000}" -f `
+        $fitAll.Used, $fitAll.A, ($fitAll.A / 9.81), $fitAll.R2, $fitAll.Sd)
 }
 if ($fitSteady) {
-    Write-Host ("  steady only  ({0,4} samples): {1:0.000} rad = {2,5:0.0} deg   <-- preferred" -f `
-        $fitSteady.Used, $fitSteady.Lock, ($fitSteady.Lock * 180 / [math]::PI))
-} else {
-    Write-Host ("  steady only: too few samples ({0}) - the drive was all transitions." -f $steady.Count) -ForegroundColor Yellow
+    Write-Host ("  steady only  ({0,4} samples): a = {1,6:0.0} m/s^2 = {2:0.00} g   R^2 {3:0.000}  sd {4:0.000}  <-- preferred" -f `
+        $fitSteady.Used, $fitSteady.A, ($fitSteady.A / 9.81), $fitSteady.R2, $fitSteady.Sd)
 }
-
 $fit = if ($fitSteady) { $fitSteady } else { $fitAll }
-$lock = if ($fit) { $fit.Lock } else { $null }
+$latGain = if ($fit) { $fit.A } else { $null }
 
-# ---- falsification: reproduce the biggest observed yaw rates ------------
-# Independent of knowing the right answer: whatever the lock is, the model built
-# from it has to be able to produce the yaw rates the car demonstrably reached.
+# Yaw ceiling: a*steer/speed diverges as speed falls but the engine clamps, so
+# record what this car actually reached.
+$yawMax = 2.95
+$obsMax = ($rows | ForEach-Object { [math]::Abs($_.Yaw) } | Measure-Object -Maximum).Maximum
+if ($obsMax -gt 0.5) { $yawMax = [math]::Round($obsMax, 2) }
+
+# ---- checks --------------------------------------------------------------
+# The old falsification check compared the fit against the ten HIGHEST-YAW
+# samples. That was invalid: the highest-yaw samples are spins and impacts
+# (steer 0.00 with yaw -2.95, steer -1.00 with yaw +1.64), so it asked a
+# cornering model to reproduce a crash and of course reported failure. Judge the
+# fit on its own residuals instead, over the cornering samples it was fitted to.
 $verdict = "ok"
-if ($lock) {
-    $top = @($usable | Sort-Object { -[math]::Abs($_.Yaw) } | Select-Object -First 10)
-    $obs = 0.0; $pred = 0.0
-    foreach ($r in $top) {
-        $obs  += [math]::Abs($r.Yaw)
-        $pred += [math]::Abs(($r.Speed / $wheelbase) * [math]::Tan($r.Steer * $lock))
-    }
-    $ratio = if ($obs -gt 0) { $pred / $obs } else { 0 }
+if ($fit) {
     Write-Host ""
-    Write-Host ("  check: at the 10 highest-yaw samples the fitted model predicts {0:0}% of" -f ($ratio * 100))
-    Write-Host  "         the yaw actually observed."
-    if ($ratio -lt 0.45) {
-        Write-Host "  FAILS - a lock this small cannot produce the yaw rates this car reached." -ForegroundColor Red
-        $verdict = "failed-falsification"
+    if ($fit.R2 -lt 0.90) {
+        Write-Host ("  POOR FIT - R^2 {0:0.000}. Steering and yaw are not following" -f $fit.R2) -ForegroundColor Red
+        Write-Host  "  yaw = a*steer/speed here, so something else is going on." -ForegroundColor Red
+        $verdict = "poor-fit"
+    } else {
+        Write-Host ("  fit quality: R^2 {0:0.000}, residual sd {1:0.000} rad/s - good." -f $fit.R2, $fit.Sd)
     }
-}
-if ($lock -and ($lock -lt $LOCK_MIN -or $lock -gt $LOCK_MAX)) {
-    Write-Host ("  IMPLAUSIBLE - {0:0.0} deg is outside the 10-45 deg range road cars use." -f `
-        ($lock * 180 / [math]::PI)) -ForegroundColor Red
-    $verdict = "implausible"
+    if ($latGain -lt 5 -or $latGain -gt 80) {
+        Write-Host ("  IMPLAUSIBLE - a = {0:0.0} m/s^2 ({1:0.0} g at full lock)." -f `
+            $latGain, ($latGain / 9.81)) -ForegroundColor Red
+        $verdict = "implausible"
+    }
+    # How many samples deviate enough to read as loss of control? Reported so the
+    # spin/impact channel can be sanity-checked against a real drive.
+    $devBig = 0
+    foreach ($r in $rows) {
+        if ($r.Speed -lt 6) { continue }
+        $pred = $latGain * $r.Steer / $r.Speed
+        if ([math]::Abs($pred) -gt $yawMax) { $pred = $yawMax * [math]::Sign($pred) }
+        if ([math]::Abs(($r.Yaw * $sign) - $pred) -gt 0.5) { $devBig++ }
+    }
+    Write-Host ("  loss-of-control samples (deviation > 0.5 rad/s): {0}" -f $devBig)
+    Write-Host ("  peak yaw observed: {0:0.00} rad/s  -> yaw ceiling {1:0.00}" -f $obsMax, $yawMax)
 }
 
 # ---- write ---------------------------------------------------------------
-$writeLock = ($lock -ne $null -and $verdict -eq "ok")
+$writeGain = ($null -ne $latGain -and $verdict -eq "ok")
 if (-not $NoWrite) {
     $out = @{
         TEL_YAW_SIGN   = $sign
-        TEL_STEER_LOCK = $(if ($writeLock) { [math]::Round($lock, 4) } else { 0.52 })
-        LockFitted     = $writeLock
-        LockVerdict    = $verdict
+        TEL_LAT_GAIN   = $(if ($writeGain) { [math]::Round($latGain, 3) } else { 29.3 })
+        TEL_YAW_MAX    = $yawMax
+        GainFitted     = $writeGain
+        GainVerdict    = $verdict
+        GainR2         = $(if ($fit) { [math]::Round($fit.R2, 4) } else { 0 })
         Wheelbase      = [math]::Round($wheelbase, 3)
         Samples        = $usable.Count
         SteadySamples  = $steady.Count
@@ -266,17 +305,18 @@ if (-not $NoWrite) {
     $p = Join-Path $here 'ffb-calib.json'
     ($out | ConvertTo-Json) | Set-Content -Path $p -Encoding ASCII
     Write-Host ""
-    if ($writeLock) {
+    if ($writeGain) {
         Write-Host "written -> $p" -ForegroundColor Green
-        Write-Host "Both values measured. Telemetry.ps1 loads this on the next run." -ForegroundColor Green
+        Write-Host ("Both values measured: sign {0}, lateral gain {1:0.0} m/s^2 ({2:0.00} g)." -f `
+            $sign, $latGain, ($latGain / 9.81)) -ForegroundColor Green
+        Write-Host "Telemetry.ps1 loads this on the next run." -ForegroundColor Green
     } else {
         Write-Host "written -> $p  (SIGN ONLY)" -ForegroundColor Yellow
-        Write-Host "The lock fit did not survive checking, so the default 0.52 rad (30 deg)" -ForegroundColor Yellow
-        Write-Host "is kept rather than a number that is demonstrably wrong. The sign is" -ForegroundColor Yellow
-        Write-Host "solid and is what matters most - a wrong sign inverts the wheel." -ForegroundColor Yellow
+        Write-Host "The gain fit did not survive checking, so the measured default of" -ForegroundColor Yellow
+        Write-Host "29.3 m/s^2 is kept. The sign is solid and matters most - a wrong sign" -ForegroundColor Yellow
+        Write-Host "inverts the wheel." -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "To improve the lock fit: hold each turn for a second or more at a" -ForegroundColor Yellow
-        Write-Host "steady angle. Then refit without driving again:" -ForegroundColor Yellow
+        Write-Host "Refit offline without driving again:" -ForegroundColor Yellow
         Write-Host "  ffb-calibrate.ps1 -FromLog ffb-calib-samples.csv" -ForegroundColor Yellow
     }
 }

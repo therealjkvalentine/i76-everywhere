@@ -90,12 +90,46 @@
 # Tunables that encode an assumption rather than a measurement.
 # ---------------------------------------------------------------------------
 
-# Steering lock at full input, radians. The engine stores steer as -1..1 and
-# nothing in the struct says what angle that maps to. 30 deg is a reasonable
-# road-car lock and only scales the understeer/oversteer split, not whether it
-# triggers. Calibrate with ffb-interposer.ps1 -Panel: drive a steady circle and
-# adjust until Expect and Yaw agree.
-$script:TEL_STEER_LOCK = 0.52
+# ---------------------------------------------------------------------------
+# THE HANDLING MODEL: I'76 COMMANDS LATERAL ACCELERATION, NOT STEERING ANGLE
+# ---------------------------------------------------------------------------
+# Measured from a real drive (959 samples, tools/ffb/ffb-calib-samples.csv), the
+# relationship between steering input and yaw rate is:
+#
+#     yaw = a * steer / speed          R^2 = 0.9995, residual sd 0.013 rad/s
+#
+# and NOT the kinematic bicycle model (R^2 = 0.835) that this file used to
+# assume. Multiply both sides by speed and the meaning is plain:
+#
+#     lateral acceleration = yaw * speed = a * steer
+#
+# Lateral g is directly proportional to steering input and INDEPENDENT OF SPEED.
+# That is a 1997 arcade handling model - the engine treats the wheel as a lateral
+# acceleration command - not a tyre model. It is why the cars feel go-kart-like.
+#
+# HOW THE OLD ASSUMPTION FAILED, because the failure was instructive: fitting a
+# fixed steering lock to this data gives an answer that falls with speed (30 deg
+# at 16 m/s, 4.7 deg at 40 m/s) because a constant-lock model cannot describe a
+# constant-lateral-g car. The fit then lands wherever the drive spent its time.
+# Two separate estimators both returned ~6 deg and both were blamed on the
+# estimator before the data was plotted against speed.
+#
+# CONSEQUENCE FOR SLIP: the engine has no tyre slip model, so understeer and
+# oversteer in the sim-racing sense do not occur in normal driving - the car does
+# exactly what it is asked. What DOES happen is loss of control: spins, impacts
+# and blown tyres, which show up as large DEVIATIONS from the relation above
+# (40 of 783 samples deviated by >0.5 rad/s, all of them spins or hits). So the
+# Understeer/Oversteer fields below are a loss-of-control signal, and that is
+# more useful here than a tyre model would be.
+
+# Lateral acceleration per unit steering input, m/s^2. 29.3 = 2.99 g at full
+# lock, measured. This is the single parameter of the handling model.
+$script:TEL_LAT_GAIN = 29.3
+
+# Yaw rate ceiling, rad/s. a*steer/speed diverges as speed falls, but the engine
+# clamps: the largest yaw rate ever observed is 2.95, and a/2.95 = 9.9 m/s, so
+# below ~10 m/s the relation saturates rather than continuing to rise.
+$script:TEL_YAW_MAX = 2.95
 
 # +1 if a positive steer input produces a positive +0x0CC yaw rate. If the panel
 # shows Yaw and Expect consistently opposite in sign, flip this.
@@ -109,8 +143,16 @@ $script:__calib = Join-Path $PSScriptRoot 'ffb-calib.json'
 if (Test-Path $script:__calib) {
     try {
         $c = Get-Content $script:__calib -Raw | ConvertFrom-Json
-        if ($null -ne $c.TEL_YAW_SIGN)   { $script:TEL_YAW_SIGN   = [int]$c.TEL_YAW_SIGN }
-        if ($null -ne $c.TEL_STEER_LOCK) { $script:TEL_STEER_LOCK = [double]$c.TEL_STEER_LOCK }
+        if ($null -ne $c.TEL_YAW_SIGN) { $script:TEL_YAW_SIGN = [int]$c.TEL_YAW_SIGN }
+        if ($null -ne $c.TEL_LAT_GAIN) { $script:TEL_LAT_GAIN = [double]$c.TEL_LAT_GAIN }
+        if ($null -ne $c.TEL_YAW_MAX)  { $script:TEL_YAW_MAX  = [double]$c.TEL_YAW_MAX }
+        # TEL_STEER_LOCK is deliberately NOT read. Calibration files written before
+        # the handling model was measured carry one, and it described a kinematic
+        # bicycle model this code no longer uses - honouring it would silently
+        # reintroduce the assumption that was wrong.
+        if ($null -ne $c.TEL_STEER_LOCK -and $null -eq $c.TEL_LAT_GAIN) {
+            Write-Host "ffb-calib.json predates the handling-model fix - re-run ffb-calibrate.ps1" -ForegroundColor Yellow
+        }
         $script:TEL_CALIB_SOURCE = ("calibrated from {0} ({1} samples, sign confidence {2:0}%)" -f `
             $c.Source, $c.Samples, ([double]$c.SignConfidence * 100))
     } catch {
@@ -318,28 +360,46 @@ function Tel-Sample {
     # should make the wheel feel heavy in a bend.
     $latAccel = $yawRate * $speed
 
-    # Bicycle model: the yaw rate the geometry SHOULD produce for this steering
-    # angle at this speed. Comparing intent against outcome is how a sim derives
-    # slip without tyre-load telemetry, and it is all we can do here because the
-    # 1997 engine has no concept of a slip angle to read.
+    # The reference: what this engine WILL do for this steer at this speed.
+    # yaw = a * steer / speed, measured at R^2 = 0.9995 (see the header). Clamped,
+    # because the quotient diverges as speed falls while the engine does not.
     $expectedYaw = 0.0
-    if ($Ctx.Wheelbase -gt 0.1) {
-        $expectedYaw = ($speed / $Ctx.Wheelbase) * [math]::Tan($steer * $script:TEL_STEER_LOCK)
+    if ($speed -gt 0.5) {
+        $expectedYaw = $script:TEL_LAT_GAIN * $steer / $speed
+        if ($expectedYaw -gt $script:TEL_YAW_MAX) { $expectedYaw = $script:TEL_YAW_MAX }
+        elseif ($expectedYaw -lt -$script:TEL_YAW_MAX) { $expectedYaw = -$script:TEL_YAW_MAX }
     }
 
-    # Only meaningful once actually moving; at a crawl both terms are ~0 and the
-    # ratio is numerical noise that would buzz the wheel in the pits.
+    # Deviation from the reference = LOSS OF CONTROL (see the header: this engine
+    # has no tyre slip model, so ordinary cornering never deviates).
+    #
+    # Normalised against an ABSOLUTE rad/s scale, not against |expectedYaw|.
+    # Dividing by the expectation looks natural and is wrong here: the reference
+    # is accurate to a residual sd of 0.013 rad/s, so wherever expectedYaw is
+    # small a trivial absolute error becomes a large ratio and the wheel would
+    # report a spin every time you nudged the wheel at speed. The deadband below
+    # sits above the measured noise floor (max residual on gripped samples was
+    # 0.053 rad/s); real events deviate by more than 0.5.
+    $DEV_DEAD = 0.15    # rad/s: below this it is measurement noise
+    $DEV_REF  = 1.10    # rad/s: deviation treated as fully out of shape
+
     $understeer = 0.0
     $oversteer  = 0.0
     if ($speed -gt 3.0) {
-        $d = [math]::Abs($expectedYaw) - [math]::Abs($yawRate)
-        if ($d -gt 0) {
-            # Asked for more rotation than the car delivered: front tyres are
-            # washing out. Normalise by the demand so it reads 0..1.
-            if ([math]::Abs($expectedYaw) -gt 0.01) { $understeer = [math]::Min(1.0, $d / [math]::Abs($expectedYaw)) }
-        } else {
-            # Rotating more than geometry commands: the rear is stepping out.
-            $oversteer = [math]::Min(1.0, (-$d) / [math]::Max(0.15, [math]::Abs($expectedYaw)))
+        $aY = [math]::Abs($yawRate)
+        $aE = [math]::Abs($expectedYaw)
+        # Rotating AGAINST the steering is unambiguous - no magnitude comparison
+        # can express it, and it is the signature of a genuine spin.
+        if ($aY -gt 0.15 -and $aE -gt 0.15 -and
+            [math]::Sign($yawRate) -ne [math]::Sign($expectedYaw)) {
+            $oversteer = 1.0
+        }
+        else {
+            $span = $DEV_REF - $DEV_DEAD
+            $short = $aE - $aY      # turning LESS than commanded (damage, blown tyre)
+            $excess = $aY - $aE     # rotating MORE than commanded (spun, hit)
+            if ($short -gt $DEV_DEAD) { $understeer = [math]::Min(1.0, ($short - $DEV_DEAD) / $span) }
+            elseif ($excess -gt $DEV_DEAD) { $oversteer = [math]::Min(1.0, ($excess - $DEV_DEAD) / $span) }
         }
     }
 

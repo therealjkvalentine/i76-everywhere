@@ -11,7 +11,32 @@
       $out.Channels                        # per-channel breakdown, for the panel
 
   ---------------------------------------------------------------------------
-  THE ONE IDEA THAT MATTERS: SLIP MAKES THE WHEEL GO *LIGHT*
+  WHAT THIS ENGINE ACTUALLY SIMULATES (measured, and it changes the design)
+  ---------------------------------------------------------------------------
+  I'76 has NO TYRE MODEL. Measured over a real drive, lateral acceleration is
+  exactly proportional to steering input and independent of speed
+  (latAccel = 29.3 * steer, R^2 = 0.9995 - see Telemetry.ps1's header). The
+  engine treats the wheel as a lateral-acceleration command.
+
+  So understeer and oversteer in the sim-racing sense DO NOT OCCUR in normal
+  driving: the car does precisely what it is asked, every frame. Two consequences
+  the force model has to respect rather than pretend away:
+
+   1. The `corner` channel is COLLINEAR with `center` - both are proportional to
+      steering input. It reshapes the weight curve; it carries no independent
+      information about grip, because there is no grip to have information about.
+
+   2. The slip channels are really a LOSS-OF-CONTROL detector. What does happen in
+      this game is spins, impacts and blown tyres, and those show as large
+      deviations from the lateral-g relation (40 of 783 samples on a real drive,
+      every one a spin or a hit). That is a genuinely useful signal here - you get
+      spun by mines and rammed constantly - it just is not tyre slip.
+
+  The note below on self-aligning torque still governs how those are EXPRESSED:
+  when the car stops obeying the wheel, the wheel goes light.
+
+  ---------------------------------------------------------------------------
+  THE ONE IDEA THAT MATTERS: LOSING THE CAR MAKES THE WHEEL GO *LIGHT*
   ---------------------------------------------------------------------------
   The obvious way to signal slip is to add force - buzz the wheel when the car
   loses grip. That is backwards, and it is why a lot of custom FFB feels like a
@@ -73,8 +98,20 @@ function Mix-DefaultTune {
                                # wheel is not completely dead in the pits
 
         # --- steady: cornering load ----------------------------------------
-        CornerGain    = 4200   # force at CornerRef lateral g
-        CornerRef     = 0.55   # lateral g treated as "fully loaded"
+        # CornerRef was 0.55 g, which is a road-car number and WRONG for this
+        # engine: measured lateral g runs to 2.99 at full lock (latAccel =
+        # 29.3 * steer, see Telemetry.ps1), so 0.55 saturated this channel at 97%
+        # of cornering samples - the wheel would have been one constant heavy
+        # weight with no variation whatsoever.
+        #
+        # CornerGain is also deliberately lower than it looks like it should be.
+        # Because lateral g is EXACTLY proportional to steering input in this
+        # engine, this channel is collinear with `center` - it is not an
+        # independent grip signal the way it would be in a game with a tyre model.
+        # The two together give steer * (constant + f(speed)), which is a useful
+        # reshaping, but gaining both up just doubles one force.
+        CornerGain    = 2600   # force at CornerRef lateral g
+        CornerRef     = 2.80   # lateral g treated as "fully loaded" (measured max 2.99)
 
         # --- slip ----------------------------------------------------------
         UndersteerDrop = 0.75  # how much grip loss bleeds the steady channels.
