@@ -101,6 +101,57 @@ not simply one track per mission. Worth doing, not done.
 In mitigation: the original played CD tracks in sequence, so sequential playback is
 closer to faithful than it sounds.
 
+## The winmm proxy: built, works standalone, BLOCKED for the game
+
+[`tools/winmm-cdaudio/`](../tools/winmm-cdaudio/) is a working 32-bit winmm proxy
+that emulates a CD-audio device over the MP3s (15 self-test assertions, all
+passing — it opens `cdaudio`, reports 16 tracks, plays a requested track, reports
+mode and position, stops and closes).
+
+**It cannot be loaded by i76.exe, and the reason is worth recording.**
+
+| observation | |
+|---|---|
+| a minimal static-import exe in the game folder | loads **our** winmm (`winmm resolved to: …\Interstate 76\WINMM.dll`, DllMain logged) |
+| i76.exe in the same folder, launched after install | loads `C:\WINDOWS\SYSTEM32\WINMM.dll` |
+| module list difference | the game loads `apphelp.dll` and `AcGenral.DLL` at index 5–6 — the **AppCompat shim engine** |
+| winmm's position in the game's load order | index **23**, before `DSOUND` (43) and `DDRAW` (44) — so no *game* dependency preloaded it |
+| do the shim DLLs reference winmm? | **both do** |
+
+The shim engine is injected before the executable's own imports are resolved, and
+it pulls in `SYSTEM32\winmm.dll`. Once a module is loaded **by base name**, the
+loader reuses it and never consults the application directory — so an app-local
+proxy loses a race it was never in.
+
+Things tried that do **not** help:
+
+- **`i76.exe.local`** (DotLocal redirection) — placed beside the exe, no effect.
+  DotLocal changes path *resolution*, and the already-loaded-by-name check happens
+  before any path resolution.
+- **Renaming the exe** to dodge `sysmain.sdb` matching — the copy still failed to
+  pick up the proxy (and exits within seconds, so the game appears to check its own
+  filename). The compatibility database matches on file attributes, not just name.
+- `winmm` is **not** a KnownDLL, and the application directory *is* searched first;
+  both were verified, and neither is the obstacle.
+
+### What would actually work
+
+1. **DLL injection + IAT patch.** Inject any-named DLL into the running game and
+   rewrite `i76.exe`'s import-address-table entry for `mciSendCommandA` to point at
+   our implementation. This sidesteps load order entirely, because it happens after
+   loading. The emulation code already exists and is tested; what is missing is the
+   injector and the IAT walk. This is the route with a real prospect of working.
+2. **A virtual CD drive with genuine audio tracks** (WinCDEmu and similar). Then
+   `open cdaudio` succeeds against a real device and the game needs no help at all —
+   the most faithful outcome. Requires installing a kernel-mode virtual SCSI driver
+   and building a CUE/BIN with the data track plus 16 audio tracks, so it is a
+   system change and a user decision, not something to do unasked.
+3. **Suppressing the shim engine for this exe** — no per-application "no shims"
+   switch exists, so this is not straightforwardly available.
+
+Until one of those, [`tools/i76-music.ps1`](../tools/i76-music.ps1) remains the
+working answer: unsynchronised, but audible, and it needs nothing installed.
+
 ## The proper fix, not done
 
 A **`winmm.dll` proxy** in the game folder, intercepting the game's MCI cdaudio
