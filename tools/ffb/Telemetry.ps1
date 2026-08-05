@@ -169,19 +169,33 @@ $script:TEL_YAW_MAX = 3.2
 # single fixed steering lock and its numbers are meaningless here.
 $script:TEL_MODEL = 2
 
-# Weapon-fire flag, a STATIC global (not in the entity struct).
+# Weapon-fire flags, STATIC globals (not in the entity struct).
 #
-# 0x5367db is what docs/MEMORY-MAP-INDEX.md lists, and it is the best evidence
-# available - but it has never been observed to MOVE, because the whole input block
-# reads zero on a parked car and a zero cannot distinguish "right address, nothing
-# happening" from "wrong address". So the weapon channel is built to fail safe: if
-# this address never changes, the channel is simply silent and nothing spurious is
-# sent to the wheel.
+# MEASURED with tools\ffb\ffb-find-fire.ps1: an idle baseline followed by firing
+# with the steering held still. Two bytes changed while firing and not while idle,
+# both taking exactly the values {0, 1}:
 #
-# Settle it in one trigger pull with tools\ffb\ffb-find-fire.ps1, then set
-# TEL_FIRE_ADDR in ffb-calib.json if it turns out to be somewhere else. Set it to 0
-# to disable the channel outright.
-$script:TEL_FIRE_ADDR = 0x5367db
+#     0x5367D0    0x5367DE
+#
+# docs/MEMORY-MAP-INDEX.md lists 0x5367db as weapon_fire. It DID NOT MOVE, so that
+# is wrong. Note that 0x5367D0 sits between the documented throttle (0x5367cc) and
+# steer (0x5367d4) in what is clearly a 4-byte-strided input array, so `db` looks
+# like a transcription slip for `d0`. 0x5367DE is unaligned and is more likely a
+# derived or per-weapon-group flag.
+#
+# Which is the INPUT and which is downstream is not yet established, and it does not
+# need to be: both are read and either rising edge fires the channel, with a
+# re-trigger blanking interval in the mixer so two flags rising on the same shot
+# produce one kick rather than two. Using both is strictly more robust than picking
+# the wrong one.
+#
+# Both are read in a SINGLE 16-byte block (0x5367D0..0x5367DF) rather than two
+# reads, so the cost is one ReadProcessMemory per poll either way.
+#
+# Set TEL_FIRE_ADDR to 0 to disable the channel outright. If neither address ever
+# changes, the channel is silent - it cannot produce spurious kicks.
+$script:TEL_FIRE_ADDR  = 0x5367d0
+$script:TEL_FIRE_ADDR2 = 0x5367de
 
 # +1 if a positive steer input produces a positive +0x0CC yaw rate. If the panel
 # shows Yaw and Expect consistently opposite in sign, flip this.
@@ -197,6 +211,10 @@ if (Test-Path $script:__calib) {
         $c = Get-Content $script:__calib -Raw | ConvertFrom-Json
         # The sign never depends on the model's shape, so it is always honoured.
         if ($null -ne $c.TEL_YAW_SIGN) { $script:TEL_YAW_SIGN = [int]$c.TEL_YAW_SIGN }
+        # Fire addresses are independent of the handling model, so they load
+        # regardless of TEL_MODEL.
+        if ($null -ne $c.TEL_FIRE_ADDR)  { $script:TEL_FIRE_ADDR  = [int]$c.TEL_FIRE_ADDR }
+        if ($null -ne $c.TEL_FIRE_ADDR2) { $script:TEL_FIRE_ADDR2 = [int]$c.TEL_FIRE_ADDR2 }
         # The fitted PARAMETERS are only meaningful for the model they were fitted
         # to. A model-1 file carries a single fixed steering lock (~0.10 rad from a
         # broken fit), which would be silently accepted as this model's low-speed
@@ -276,7 +294,7 @@ function Tel-Open {
         # Reused read buffer. Allocating a fresh byte[] per poll cost enough to
         # hold the loop to 38 Hz when 60 was requested.
         Buf       = (New-Object byte[] $script:TEL_BLOCK)
-        FireBuf   = (New-Object byte[] 1)
+        FireBuf   = (New-Object byte[] 16)
     }
     if (-not (Tel-Resolve $ctx)) { throw "Player entity is NULL - load a mission first." }
     Tel-Geometry $ctx
@@ -494,12 +512,18 @@ function Tel-Sample {
     # part of the entity struct. Costs nothing measurable - the poll loop runs at
     # 3400 Hz - and if the address is wrong this just stays 0 forever, which leaves
     # the weapon channel silent rather than firing at random.
+    # One 16-byte read covers both measured flags: 0x5367D0 at +0 and 0x5367DE at
+    # +14. Reading a block rather than two bytes keeps this at one syscall.
     $fire = 0
     if ($script:TEL_FIRE_ADDR -ne 0) {
         $fb = $Ctx.FireBuf
         $fn = 0
-        if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$script:TEL_FIRE_ADDR, $fb, 1, [ref]$fn)) {
+        if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$script:TEL_FIRE_ADDR, $fb, 16, [ref]$fn)) {
             $fire = [int]$fb[0]
+            $off2 = $script:TEL_FIRE_ADDR2 - $script:TEL_FIRE_ADDR
+            if ($script:TEL_FIRE_ADDR2 -ne 0 -and $off2 -ge 0 -and $off2 -lt 16) {
+                if ($fb[$off2] -ne 0) { $fire = $fire -bor 2 }
+            }
         }
     }
 
