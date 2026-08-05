@@ -44,6 +44,35 @@ typedef MCIERROR (WINAPI *mciCmdFn)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 static mciStrFn real_mciSendStringA;
 static mciCmdFn real_mciSendCommandA;
 
+/* --- aux (CD-audio volume) -------------------------------------------------
+ * WHY THESE ARE HOOKED (added 2026-08-04):
+ *
+ * With only mciSendCommandA hooked, mciproxy.log showed the IAT patch landing and
+ * then NOTHING - the game never called it once, in a mission or anywhere else. It
+ * was not failing at CD audio, it was declining to attempt it.
+ *
+ * The game imports auxGetNumDevs / auxGetDevCapsA / auxSetVolume, and on a machine
+ * with no optical drive the real auxGetNumDevs() returns 0 (measured). On 90s
+ * hardware CD audio was mixed in ANALOGUE and its level set through an `aux`
+ * device, so "no aux device" meant "no CD audio present" - and the engine gates on
+ * that before it ever opens the MCI device.
+ *
+ * So advertise exactly one aux device of type AUXCAPS_CDAUDIO when the system has
+ * none. That is the gate the engine is checking.
+ *
+ * It also fixes the volume limitation the README flagged: auxSetVolume was a no-op
+ * with no device, so the in-game music slider could not attenuate our mpegvideo
+ * playback. Now it is translated to `setaudio <alias> volume to N`.
+ */
+typedef UINT     (WINAPI *auxNumFn)(void);
+typedef MMRESULT (WINAPI *auxCapsFn)(UINT_PTR, LPAUXCAPSA, UINT);
+typedef MMRESULT (WINAPI *auxVolFn)(UINT, DWORD);
+static auxNumFn  real_auxGetNumDevs;
+static auxCapsFn real_auxGetDevCapsA;
+static auxVolFn  real_auxSetVolume;
+
+static DWORD g_volume = 1000;      /* MCI scale, 0..1000 */
+
 static void mlog(const char *fmt, ...) {
     if (!g_logging) return;
     char path[MAX_PATH]; _snprintf(path, sizeof(path), "%s\\mciproxy.log", g_dir);
@@ -60,7 +89,60 @@ static void ensure_real(void) {
     if (w) {
         real_mciSendStringA  = (mciStrFn)GetProcAddress(w, "mciSendStringA");
         real_mciSendCommandA = (mciCmdFn)GetProcAddress(w, "mciSendCommandA");
+        real_auxGetNumDevs   = (auxNumFn)GetProcAddress(w, "auxGetNumDevs");
+        real_auxGetDevCapsA  = (auxCapsFn)GetProcAddress(w, "auxGetDevCapsA");
+        real_auxSetVolume    = (auxVolFn)GetProcAddress(w, "auxSetVolume");
     }
+}
+
+/* --- aux hooks ------------------------------------------------------------ */
+/* mci_str is defined below; hook_auxSetVolume needs it to push the volume onto the
+ * playing alias. Forward-declared rather than moving these hooks further down, so
+ * the aux code stays beside the comment explaining why it exists. */
+static void mci_str(const char *cmd);
+
+/* Claim one CD-audio aux device only when the system genuinely has none, so a
+ * machine WITH real aux hardware keeps its own behaviour untouched. */
+static UINT WINAPI hook_auxGetNumDevs(void) {
+    UINT n;
+    ensure_real();
+    n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
+    if (n == 0) { mlog("auxGetNumDevs -> 1 (fake CD-audio device)"); return 1; }
+    return n;
+}
+
+static MMRESULT WINAPI hook_auxGetDevCapsA(UINT_PTR id, LPAUXCAPSA caps, UINT size) {
+    UINT n;
+    ensure_real();
+    n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
+    if (n == 0 && caps && size >= sizeof(AUXCAPSA)) {
+        memset(caps, 0, size);
+        caps->wMid = 1; caps->wPid = 1; caps->vDriverVersion = 0x0100;
+        lstrcpynA(caps->szPname, "I76 CD Audio", sizeof(caps->szPname));
+        caps->wTechnology = AUXCAPS_CDAUDIO;   /* the thing the engine looks for */
+        caps->dwSupport   = AUXCAPS_VOLUME;
+        mlog("auxGetDevCapsA(%u) -> fake CD-audio caps", (unsigned)id);
+        return MMSYSERR_NOERROR;
+    }
+    return real_auxGetDevCapsA ? real_auxGetDevCapsA(id, caps, size) : MMSYSERR_NODRIVER;
+}
+
+static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
+    /* aux volume is two 16-bit channels; MCI wants 0..1000. Take the louder. */
+    DWORD lo = LOWORD(vol), hi = HIWORD(vol);
+    DWORD peak = (hi > lo) ? hi : lo;
+    UINT n;
+    ensure_real();
+    g_volume = (peak * 1000UL) / 0xFFFFUL;
+    if (g_open) {
+        char cmd[96];
+        _snprintf(cmd, sizeof(cmd), "setaudio %s volume to %lu", g_alias, (unsigned long)g_volume);
+        mci_str(cmd);
+    }
+    mlog("auxSetVolume(0x%08lX) -> %lu/1000", (unsigned long)vol, (unsigned long)g_volume);
+    n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
+    if (n > 0 && real_auxSetVolume) return real_auxSetVolume(id, vol);
+    return MMSYSERR_NOERROR;
 }
 
 static void mci_str(const char *cmd) {
@@ -172,8 +254,16 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
         g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
-        void *old = patch_iat(GetModuleHandleA(NULL), "WINMM.dll", "mciSendCommandA", hook_mciSendCommandA);
+        HMODULE exe = GetModuleHandleA(NULL);
+        void *old = patch_iat(exe, "WINMM.dll", "mciSendCommandA", hook_mciSendCommandA);
         mlog("--- strlkproxy: IAT patch mciSendCommandA old=%p new=%p ---", old, (void *)hook_mciSendCommandA);
+        /* The aux trio is what actually gets the engine to TRY. Without these the
+         * mci hook above was installed and never called even once - see the note
+         * beside the aux typedefs. */
+        mlog("  aux patches: auxGetNumDevs=%p auxGetDevCapsA=%p auxSetVolume=%p",
+             patch_iat(exe, "WINMM.dll", "auxGetNumDevs",  hook_auxGetNumDevs),
+             patch_iat(exe, "WINMM.dll", "auxGetDevCapsA", hook_auxGetDevCapsA),
+             patch_iat(exe, "WINMM.dll", "auxSetVolume",   hook_auxSetVolume));
     } else if (reason == DLL_PROCESS_DETACH) {
         stop_track();
     }

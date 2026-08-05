@@ -122,7 +122,11 @@ if ($LosslessScaling -and (Test-Path $LosslessScaling)) {
 #   * i76-remap.ahk detects the wheel by capability once when it starts, and
 #     i76-headtrack.ahk wants opentrack already publishing.
 # So: wait (briefly, bounded) for opentrack to actually publish before launching.
-if ($OpenTrack -and (Test-Path $OpenTrack)) {
+# Only WAIT if WE started opentrack this run ($ot is set only then). On a relaunch it
+# is usually already up and publishing, and a flat 20 s deadline against a shared-mem
+# name that may never appear was a large part of the ~15 s the launcher took to reach
+# the game.
+if ($ot -and $OpenTrack -and (Test-Path $OpenTrack)) {
     $deadline = (Get-Date).AddSeconds(20)
     while ((Get-Date) -lt $deadline) {
         try {
@@ -167,8 +171,14 @@ if ($CdAudioLog) {
 # If the winmm CD-audio proxy is installed it handles music itself, correctly
 # synchronised, so the PowerShell fallback must not ALSO play - two soundtracks at
 # once out of step with each other is worse than none.
-if (-not $NoMusic -and (Test-Path (Join-Path $GameDir 'winmm.dll'))) {
-    Write-Host "winmm CD-audio proxy detected - leaving music to it (skipping i76-music.ps1)." -ForegroundColor DarkGray
+# music-fix/ (the deployed Strlkup.dll IAT hook) is the REAL soundtrack fix and it is
+# SYNCHRONISED - the game picks its own track. tools/i76-music.ps1 is only a stopgap
+# that plays the MP3s alongside the game in a fixed order. Running both gives two
+# soundtracks out of step with each other, which is exactly what "random music plays
+# when launched" was. If the hook is deployed, the stopgap stays off. strlkup_orig.dll
+# is the marker: it only exists because the proxy displaced the original.
+if (-not $NoMusic -and (Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))) {
+    Write-Host "music-fix (Strlkup hook) is deployed - not starting the i76-music stopgap." -ForegroundColor DarkGray
     $NoMusic = $true
 }
 
