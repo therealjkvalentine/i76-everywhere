@@ -114,6 +114,42 @@ hold the device, and those are different questions. The engine's `0x52bbd0` flag
 and `0x52bbcc` effect pointer are written once at init and never cleared, so they
 cannot answer it either. Confirming it needs a trigger-pull with both running.
 
+### Firing used to crash the game. Fixed.
+
+The engine's weapon-fire path dereferences its DirectInput effect object **without
+a null check**, so once we hold the wheel exclusively the first shot faulted:
+
+```
+Faulting module: I7_SFRCE.DLL   Exception: 0xc0000005   Fault offset: 0x2505
+```
+
+`docs/FFB-LAPTOP-RECON.md` predicted that signature exactly, before it happened.
+Disassembling `I7_SFRCE.DLL+0x2505` shows a plain COM virtual call —
+`mov eax,[edx]` then `call [eax+0x14]` — on a pointer nothing validated.
+
+The fix is **one 4-byte write, and no code patched at all.** `0x52bbd0` is the
+engine's own "FF device present" flag, and disassembly of **all six** read sites in
+`i76.exe` shows every one gates on it and bails cleanly when it is zero:
+
+| site | gate | on zero |
+|---|---|---|
+| `0x445B10` | `test eax,eax / je` | skips the effect call |
+| `0x445B40` | `test eax,eax / je` | `ret` |
+| `0x445B60` | `cmp ecx,eax / je` | `ret` |
+| `0x445B80` | `test eax,eax / je` | `ret` |
+| `0x445BA0` | `cmp eax,edi / je` | jumps to the epilogue |
+| `0x445F70` | `cmp eax,esi / jne` | `xor eax,eax; ret` — the play path |
+
+So zeroing it makes the whole subsystem a no-op: the effect object is never
+touched, so there is nothing to dereference. The interposer does this on startup
+and **restores the previous value on exit**. Strictly safer than NOPing the init
+call at `0x402F93`, which would leave the DLL unloaded and the surrounding state
+half-built, and far safer than patching the DLL.
+
+The engine's own weapon rumble is the price — but that was already lost the moment
+we took the device; this only stops it crashing over the loss. `-KeepEngineFfb`
+skips the write and restores the old warn-and-don't-fire behaviour.
+
 ### The ordering rule, which is not optional
 
 **Nothing may hold the wheel when the game starts.** The engine acquires FFB *once*

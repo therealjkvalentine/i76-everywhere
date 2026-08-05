@@ -252,6 +252,8 @@ public class I76Tel {
   public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
   [DllImport("kernel32.dll", SetLastError=true)]
   public static extern bool ReadProcessMemory(IntPtr h, IntPtr addr, byte[] buf, int size, out int read);
+  [DllImport("kernel32.dll", SetLastError=true)]
+  public static extern bool WriteProcessMemory(IntPtr h, IntPtr addr, byte[] buf, int size, out int written);
   [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);
 }
 "@
@@ -578,6 +580,43 @@ function Tel-Sample {
         Ticks       = $Ctx.Ticks
         Polls       = $Ctx.Polls
     }
+}
+
+function Tel-SetEngineFfb {
+    <#
+      Turn the ENGINE's own force feedback on or off, in memory, reversibly.
+
+      WHY THIS EXISTS: the engine's weapon-fire path dereferences its DirectInput
+      effect object without a null check, so once we hold the wheel exclusively the
+      first shot faults at I7_SFRCE.DLL+0x2505 and the game dies. Confirmed twice
+      in the field.
+
+      WHY A SINGLE FLAG IS ENOUGH, and why no code is patched: 0x52bbd0 is the
+      engine's "FF device present" flag, and DISASSEMBLY OF ALL SIX READ SITES
+      shows every one of them gates on it and bails cleanly when it is zero:
+
+          0x445B10  test eax,eax / je   -> skips the effect call
+          0x445B40  test eax,eax / je   -> ret
+          0x445B60  cmp  ecx,eax / je   -> ret
+          0x445B80  test eax,eax / je   -> ret
+          0x445BA0  cmp  eax,edi / je   -> jumps straight to the epilogue
+          0x445F70  cmp  eax,esi / jne  -> xor eax,eax; ret     (the play path)
+
+      So zeroing it makes the whole subsystem a no-op: the effect object is never
+      touched, so there is nothing to dereference. That is strictly safer than
+      NOPing the init call at 0x402F93, which would leave the DLL unloaded and the
+      surrounding state half-built, and far safer than patching the DLL itself.
+
+      Writes 4 bytes to .data. No file is modified and no code is changed.
+      Returns the PREVIOUS value so the caller can put it back.
+    #>
+    param($Ctx, [int]$Value)
+    $old = Tel-ReadInt $Ctx 0x52bbd0
+    $buf = [BitConverter]::GetBytes([int]$Value)
+    $n = 0
+    $ok = [I76Tel]::WriteProcessMemory($Ctx.H, [IntPtr]0x52bbd0, $buf, 4, [ref]$n)
+    if (-not $ok -or $n -ne 4) { throw "could not write 0x52bbd0 (engine FFB flag)" }
+    return $old
 }
 
 function Tel-Close {
