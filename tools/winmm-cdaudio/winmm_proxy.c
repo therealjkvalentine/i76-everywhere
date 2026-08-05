@@ -493,7 +493,14 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved)
         p = strrchr(g_dir, '\\');
         if (p) *p = 0;
         sprintf(g_logpath, "%s\\winmm-cdaudio.log", g_dir);
-        g_logging = (GetEnvironmentVariableA("I76_CDAUDIO_LOG", NULL, 0) > 0);
+        /* Logging is ON unless silenced with I76_CDAUDIO_QUIET. It was env-gated
+         * ON at first, which meant the user's real launch path (desktop shortcut
+         * -> .bat -> launcher, no env var anywhere) produced no log - and "proxy
+         * loaded but silent" was indistinguishable from "proxy never loaded",
+         * which was precisely the distinction being debugged. The logged events
+         * are rare (attach, open, play, stop, unhandled; a dozen lines a
+         * session). Handled STATUS polls - the only hot path - never log. */
+        g_logging = (GetEnvironmentVariableA("I76_CDAUDIO_QUIET", NULL, 0) == 0);
 
         if (!load_real()) {
             /* Without the real winmm the game cannot run at all - it needs
