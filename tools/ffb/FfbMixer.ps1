@@ -166,6 +166,11 @@ function Mix-DefaultTune {
         WeaponGain    = 3400
         WeaponMs      = 140
         WeaponHz      = 13.0
+        # Minimum gap between weapon kicks, ms. TWO fire flags are watched
+        # (0x5367D0 and 0x5367DE - see Telemetry.ps1) because which one is the
+        # input and which is downstream is not established. If they rise on the
+        # same shot, without this the wheel would kick twice per trigger pull.
+        WeaponBlankMs = 70
 
         # --- safety ---------------------------------------------------------
         Clamp         = 9500   # never exceed this; leaves headroom under 10000
@@ -191,6 +196,7 @@ function Mix-New {
         PeakForce  = 0.0
         LastJolt   = 0.0
         LastFiring = $false
+        LastFireT  = -10.0
     }
 }
 
@@ -392,8 +398,11 @@ function Mix-Update {
     # produce spurious kicks.
     $firing = [bool]$Sample.Firing
     if ($firing -and -not $Mix.LastFiring) {
-        Mix-Trigger $Mix 'buzz' $Tune.WeaponGain ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
-        $notes += "FIRE"
+        if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
+            Mix-Trigger $Mix 'buzz' $Tune.WeaponGain ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
+            $Mix.LastFireT = $t
+            $notes += "FIRE"
+        }
     }
     $Mix.LastFiring = $firing
 
