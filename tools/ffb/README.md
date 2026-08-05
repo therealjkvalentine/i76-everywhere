@@ -104,17 +104,33 @@ startup, which looked like a hard either/or: the engine's authored weapon effect
 *or* our synthesised feel, with the second requiring a NOP over the FFB init call
 at `0x402F93`.
 
-Measured instead of assumed (`ffb-coexist-test.ps1`): **we hold the wheel with the
-game genuinely focused** — foreground confirmed via `GetForegroundWindow`, not
-inferred — for the whole test window, every write returning `S_OK`. So **no game
-memory is patched and none needs to be.**
+`ffb-coexist-test.ps1` measures that **we** hold the wheel with the game genuinely
+focused — foreground confirmed via `GetForegroundWindow` — every write returning
+`S_OK`. So no game memory is patched and none needs to be.
 
-Honest caveat: the engine's `0x52bbd0` flag and `0x52bbcc` effect pointer did not
-change, but those are written once at init and never cleared, so they cannot prove
-the engine *still* owns the device. Whether its weapon effects still fire needs a
-trigger-pull to confirm. The likely story is that the engine lost its acquisition
-the first time the window lost focus and never retried — it acquires once and
-"try again next time" is a give-up, not a retry (`docs/FFB-LAPTOP-RECON.md`).
+**But read that claim narrowly.** It establishes that *our* acquisition survives.
+It does **not** establish that the *game* can still play *its* effects while we
+hold the device, and those are different questions. The engine's `0x52bbd0` flag
+and `0x52bbcc` effect pointer are written once at init and never cleared, so they
+cannot answer it either. Confirming it needs a trigger-pull with both running.
+
+### The ordering rule, which is not optional
+
+**Nothing may hold the wheel when the game starts.** The engine acquires FFB *once*
+at startup and never retries — "try again next time" is a give-up, not a retry
+(`docs/FFB-LAPTOP-RECON.md`). So an interposer left running from a previous session
+means the game gets **no force feedback at all, for the whole session**, with
+nothing on screen to say why.
+
+This is easy to hit, because the interposer runs in its own terminal and used to
+outlive the game. It was hit in the field on 2026-08-04. Two defences now:
+
+- the interposer **exits when the game does**, releasing the device;
+- `PLAY-i76.ps1` **stops any running interposer** before launching, as a backstop
+  for one started by hand or hung.
+
+The safe order is: wheel connected → game launched → interposer started, *in that
+order*, and the interposer restarted after any game restart.
 
 Losing the device mid-session is treated as a state to recover from, not an error:
 `Ffb-Reacquire` takes it back and the panel logs it.

@@ -287,12 +287,28 @@ try {
     $lastOut   = $null
     $lostCount = 0
     $lastReacq = -10.0
+    $lastAliveCheck = 0.0
 
     if ($canDraw) { Clear-Host }
 
     while ($true) {
         $frameStart = $sw.Elapsed.TotalSeconds
         if ($Seconds -gt 0 -and $frameStart -gt $Seconds) { break }
+
+        # EXIT WHEN THE GAME DOES. Checked once a second, not per frame.
+        #
+        # This loop holds an EXCLUSIVE DirectInput acquisition. Left running after
+        # the game closes it keeps holding the wheel, and because the 1997 engine
+        # acquires FFB once at startup and never retries, the NEXT launch of the
+        # game silently gets no force feedback at all - for the whole session, with
+        # nothing to indicate why. Field-hit 2026-08-04 exactly this way.
+        if (($frameStart - $lastAliveCheck) -ge 1.0) {
+            $lastAliveCheck = $frameStart
+            if ($telCtx.Proc.HasExited) {
+                Write-Host "`nthe game exited - releasing the wheel so the next launch can claim it." -ForegroundColor Cyan
+                break
+            }
+        }
 
         $s = Tel-Sample $telCtx
         if ($s) {

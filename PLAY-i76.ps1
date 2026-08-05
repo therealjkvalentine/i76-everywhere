@@ -131,6 +131,25 @@ if ($OpenTrack -and (Test-Path $OpenTrack)) {
         } catch { Start-Sleep -Milliseconds 400 }
     }
 }
+# NOTHING MAY BE HOLDING THE WHEEL WHEN THE GAME STARTS.
+#
+# tools/ffb/ffb-interposer.ps1 takes an EXCLUSIVE DirectInput acquisition. If one
+# is still running from a previous session - easy to do, since it lives in its own
+# terminal window and outlives the game - then the engine's one-shot FFB acquire
+# fails at startup and there is NO force feedback for the whole session, with
+# nothing on screen to say why. Field-hit 2026-08-04 exactly this way.
+#
+# So clear it here rather than relying on anyone remembering the order. The
+# interposer now also exits on its own when the game closes; this is the backstop
+# for one that was started by hand, or that hung.
+$stale = @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+           Where-Object { $_.CommandLine -match 'ffb-interposer\.ps1' })
+foreach ($sp in $stale) {
+    Write-Host "stopping a running FFB interposer (PID $($sp.ProcessId)) - it holds the wheel exclusively" -ForegroundColor Yellow
+    Stop-Process -Id $sp.ProcessId -Force -ErrorAction SilentlyContinue
+}
+if ($stale.Count) { Start-Sleep -Milliseconds 700 }   # let the device release
+
 Start-Sleep -Milliseconds 800     # let the AHK layers finish their device probe
 
 # music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs
