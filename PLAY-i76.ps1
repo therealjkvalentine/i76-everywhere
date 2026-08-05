@@ -22,7 +22,18 @@ param(
     # slip/load/impact feel from telemetry, but the gains have not been judged by
     # hand yet, and force feedback nobody has tuned goes straight into the user's
     # hands. Calibrate first (tools\ffb\ffb-calibrate.ps1), then add -Ffb.
-    [switch]$Ffb
+    [switch]$Ffb,
+    # Soundtrack. ON by default, because this restores STOCK behaviour rather than
+    # adding a feature: I'76 plays its music as Red Book CD audio through MCI, and
+    # on a machine with no optical drive there is no cdaudio device to open, so the
+    # engine gets silence. GOG ships the tracks as music\*.mp3 but never wires them
+    # into the game. See docs/MUSIC.md and tools/i76-music.ps1.
+    [switch]$NoMusic,
+    # Play only while a mission is loaded, leaving menus quiet as the original did.
+    # Off by default: it depends on the player-entity pointer resolving, and silence
+    # in a menu reads like a fault even when it is correct.
+    [switch]$MusicMissionOnly,
+    [int]$MusicVolume = 550
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -121,6 +132,20 @@ if ($Ffb) {
     }
 }
 
+# Soundtrack, AFTER the game: it finds the game by process and reads the music
+# folder next to the exe. It exits on its own when the game exits.
+$music = $null
+if (-not $NoMusic) {
+    $musicScript = Join-Path $PSScriptRoot 'tools\i76-music.ps1'
+    if (-not (Test-Path $musicScript)) { $musicScript = Join-Path $GameDir '_ffb\i76-music.ps1' }
+    if ((Test-Path $musicScript) -and (Test-Path (Join-Path $GameDir 'music'))) {
+        $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$musicScript`"",
+                  '-Volume',"$MusicVolume")
+        if ($MusicMissionOnly) { $args += '-MissionOnly' }
+        $music = Start-Process -FilePath 'powershell.exe' -ArgumentList $args -WindowStyle Hidden -PassThru
+    }
+}
+
 $proc.WaitForExit()
 
 if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
@@ -130,6 +155,9 @@ if ($track    -and -not $track.HasExited)    { Stop-Process -Id $track.Id    -Fo
 if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Force }
 # The interposer releases the wheel in its own finally block, but Stop-Process
 # -Force skips that - so ask it to stop, and only kill it if it will not.
+# The music helper exits on its own when the game does, but kill it if it lingers -
+# an MCI device left open holds the file and can wedge later playback.
+if ($music -and -not $music.HasExited) { Stop-Process -Id $music.Id -Force }
 if ($ffb -and -not $ffb.HasExited) {
     Stop-Process -Id $ffb.Id -Force
     # Belt and braces: if the force was latched when we killed it, the wheel would
