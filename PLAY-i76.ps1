@@ -39,13 +39,26 @@ param(
     # call the engine makes - including ones the proxy does not handle. Set here
     # rather than left to the user because the variable has to be present in the
     # environment of the process that LAUNCHES the game, which is easy to get wrong.
-    [switch]$CdAudioLog
+    [switch]$CdAudioLog,
+    # Mouse wheel bindings (i76wheel.exe). The engine's mouse device has three
+    # buttons and no wheel channels, so the wheel cannot be bound in input.map at
+    # all - it is translated to a keystroke instead.
+    #   up   = Tab  -> weapon_cycle     (toggle the front weapon)
+    #   down = 5    -> hardpoint5_fire  (normally the dropper)
+    # WhichKey the dropper needs depends on the CAR'S LOADOUT, not the game, so if
+    # the dropper sits on a different hardpoint use -WheelDown 4 (etc).
+    # Names must match input.map; verify with tools/lint-input-map.py.
+    [string]$WheelUp = "Tab",
+    [string]$WheelDown = "5"
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
 $wheel = $null
 if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
-    $wheel = Start-Process -FilePath (Join-Path $GameDir 'i76wheel.exe') -PassThru
+    # Mouse wheel -> keystroke. Which hardpoint holds the dropper depends on the
+    # car's loadout, not on the game, so it is a parameter rather than a constant.
+    $wheel = Start-Process -FilePath (Join-Path $GameDir 'i76wheel.exe') `
+        -ArgumentList "/up=$WheelUp","/down=$WheelDown" -PassThru
 }
 
 # The XInput/shift-layer controller scheme (i76-remap.ahk): AutoHotkey inside the
