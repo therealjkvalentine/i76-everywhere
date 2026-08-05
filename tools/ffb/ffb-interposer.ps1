@@ -68,7 +68,12 @@ param(
     # only exists in a mission, so this is what makes the tool launchable at the
     # title screen (or from the launcher) instead of only once you are driving.
     # 0 = do not wait, fail immediately.
-    [int]$Wait = 180
+    [int]$Wait = 180,
+    # Leave the engine's own force feedback enabled. NOT the default: while we hold
+    # the wheel, the engine's fire path faults at I7_SFRCE.DLL+0x2505 because it
+    # dereferences its effect object without a null check. Use only if you want the
+    # engine's weapon effects back and will not fire.
+    [switch]$KeepEngineFfb
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -123,9 +128,9 @@ function Build-Panel {
     # take the game down, and a warning that scrolled past ten minutes ago is not
     # a warning.
     if ($S -and $S.GameFfb -ne 0) {
-        $null = $L.Add("  *** DO NOT FIRE - engine FFB is live; a shot faults I7_SFRCE.DLL+0x2505 ***")
+        $null = $L.Add("  *** DO NOT FIRE - engine FFB still live; a shot faults I7_SFRCE.DLL+0x2505 ***")
     } else {
-        $null = $L.Add("  engine FFB not present - firing is safe")
+        $null = $L.Add("  engine FFB off (0x52bbd0 = 0) - firing is safe, restored on exit")
     }
     $null = $L.Add($rule)
     if ($S) {
@@ -268,24 +273,43 @@ try {
     # is impossible to miss, and the weapon channel is force-muted, because leaving
     # a channel called "weapon" armed implies firing is supported when it is the
     # one thing that will take the game down.
+    # ---- make firing safe --------------------------------------------------
+    # The engine's weapon-fire path dereferences its DirectInput effect object with
+    # NO null check, so once we hold the wheel exclusively the first shot faults at
+    # I7_SFRCE.DLL+0x2505 and the game dies. Confirmed twice in the field.
+    #
+    # Fixed by zeroing the engine's own "FF device present" flag at 0x52bbd0.
+    # Disassembly of all six read sites shows every one gates on it and bails
+    # cleanly when zero (see Tel-SetEngineFfb), so the whole subsystem becomes a
+    # no-op and there is nothing left to dereference. 4 bytes of .data, restored on
+    # exit, no code patched and no file touched.
+    #
+    # The engine's own weapon-rumble effects are the price, and they are already
+    # lost the moment we take the device - this only stops it crashing over it.
     $probe = Tel-Sample $telCtx
-    $engineFfbLive = ($probe -and $probe.GameFfb -ne 0)
-    if ($engineFfbLive -and -not $DryRun) {
-        $active['weapon'] = $false
-        Write-Host ""
-        Write-Host "  ###################################################################" -ForegroundColor Red
-        Write-Host "  #  DO NOT FIRE WEAPONS WHILE THIS IS RUNNING.                     #" -ForegroundColor Red
-        Write-Host "  #                                                                 #" -ForegroundColor Red
-        Write-Host "  #  The engine has its own FFB device open (0x52bbd0 = 1). Its      #" -ForegroundColor Red
-        Write-Host "  #  weapon-fire path dereferences an effect object without a null   #" -ForegroundColor Red
-        Write-Host "  #  check, and our exclusive grab on the wheel kills that handle.   #" -ForegroundColor Red
-        Write-Host "  #  The first shot faults at I7_SFRCE.DLL+0x2505 and the game dies. #" -ForegroundColor Red
-        Write-Host "  #                                                                 #" -ForegroundColor Red
-        Write-Host "  #  Driving, braking and crashing are all fine. Only firing is not. #" -ForegroundColor Red
-        Write-Host "  #  The weapon channel has been muted for the same reason.          #" -ForegroundColor Red
-        Write-Host "  ###################################################################" -ForegroundColor Red
-        Write-Host ""
-        Start-Sleep -Seconds 2
+    $engineFfbWas = $null
+    if (-not $DryRun -and $probe -and $probe.GameFfb -ne 0) {
+        if ($KeepEngineFfb) {
+            $active['weapon'] = $false
+            Write-Host ""
+            Write-Host "  ##################################################################" -ForegroundColor Red
+            Write-Host "  #  DO NOT FIRE WEAPONS. -KeepEngineFfb left the engine's FFB on,  #" -ForegroundColor Red
+            Write-Host "  #  and its fire path will fault at I7_SFRCE.DLL+0x2505 while we   #" -ForegroundColor Red
+            Write-Host "  #  hold the wheel. Driving is fine; firing crashes the game.      #" -ForegroundColor Red
+            Write-Host "  ##################################################################" -ForegroundColor Red
+            Write-Host ""
+            Start-Sleep -Seconds 2
+        } else {
+            try {
+                $engineFfbWas = Tel-SetEngineFfb $telCtx 0
+                Write-Host ("engine FFB disabled in memory (0x52bbd0: {0} -> 0) so firing cannot crash it." -f $engineFfbWas) -ForegroundColor Green
+                Write-Host "restored automatically on exit. -KeepEngineFfb to skip this." -ForegroundColor DarkGray
+            } catch {
+                $active['weapon'] = $false
+                Write-Host "COULD NOT disable engine FFB: $_" -ForegroundColor Red
+                Write-Host "DO NOT FIRE - a shot will crash the game." -ForegroundColor Red
+            }
+        }
     }
 
     if ($Log) {
@@ -457,6 +481,15 @@ catch [OperationCanceledException] {
 finally {
     # A crash or Ctrl+C with a force applied leaves the wheel PULLING against
     # whoever is holding it. Release unconditionally, before anything else.
+    # Put the engine's FFB flag back exactly as we found it. Best-effort: if the
+    # game has already exited there is nothing to restore, and a stale 0 only means
+    # no engine FFB until the next launch - not damage.
+    if ($null -ne $engineFfbWas -and $telCtx) {
+        try {
+            $null = Tel-SetEngineFfb $telCtx $engineFfbWas
+            Write-Host ("engine FFB restored (0x52bbd0 -> {0})" -f $engineFfbWas) -ForegroundColor Cyan
+        } catch { }
+    }
     if ($dev) {
         try { $null = Ffb-Constant $dev 0 } catch { }
         try { Ffb-Stop $dev } catch { }

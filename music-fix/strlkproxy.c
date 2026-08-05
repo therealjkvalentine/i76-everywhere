@@ -107,7 +107,8 @@ static UINT WINAPI hook_auxGetNumDevs(void) {
     UINT n;
     ensure_real();
     n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
-    if (n == 0) { mlog("auxGetNumDevs -> 1 (fake CD-audio device)"); return 1; }
+    mlog("auxGetNumDevs called (real=%u) -> %u", n, n ? n : 1);
+    if (n == 0) return 1;
     return n;
 }
 
@@ -121,9 +122,10 @@ static MMRESULT WINAPI hook_auxGetDevCapsA(UINT_PTR id, LPAUXCAPSA caps, UINT si
         lstrcpynA(caps->szPname, "I76 CD Audio", sizeof(caps->szPname));
         caps->wTechnology = AUXCAPS_CDAUDIO;   /* the thing the engine looks for */
         caps->dwSupport   = AUXCAPS_VOLUME;
-        mlog("auxGetDevCapsA(%u) -> fake CD-audio caps", (unsigned)id);
+        mlog("auxGetDevCapsA(%u) -> fake CD-audio caps (AUXCAPS_CDAUDIO)", (unsigned)id);
         return MMSYSERR_NOERROR;
     }
+    mlog("auxGetDevCapsA(%u) passed through (real n=%u)", (unsigned)id, n);
     return real_auxGetDevCapsA ? real_auxGetDevCapsA(id, caps, size) : MMSYSERR_NODRIVER;
 }
 
@@ -143,6 +145,75 @@ static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
     n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
     if (n > 0 && real_auxSetVolume) return real_auxSetVolume(id, vol);
     return MMSYSERR_NOERROR;
+}
+
+/* --- the fake disc -------------------------------------------------------- */
+/* Original layout: track 1 DATA, tracks 2..17 AUDIO. GOG's music\N.mp3 numbering
+ * follows the CD track numbers, so no translation is needed. */
+#define FIRST_TRACK 2
+#define LAST_TRACK  17
+
+static DWORD g_timeFormat = MCI_FORMAT_MSF;
+static int   g_curTrack = 0;
+static DWORD g_lenCache[LAST_TRACK + 1];   /* ms, 0 = not yet queried */
+
+static void mci_str(const char *cmd);
+
+/* Ask the real MCI how long a track is, once, and remember. The engine asks for
+ * every track's length before it will play anything, and a zero answer reads as an
+ * empty disc. */
+static DWORD track_len_ms(int trk) {
+    char mp3[MAX_PATH], cmd[MAX_PATH + 64], ret[64];
+    if (trk < FIRST_TRACK || trk > LAST_TRACK) return 0;
+    if (g_lenCache[trk]) return g_lenCache[trk];
+    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, trk);
+    if (GetFileAttributesA(mp3) == INVALID_FILE_ATTRIBUTES) return 0;
+    ensure_real();
+    if (!real_mciSendStringA) return 0;
+    _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias i76len", mp3);
+    if (real_mciSendStringA(cmd, NULL, 0, NULL) != 0) return 0;
+    ret[0] = 0;
+    if (real_mciSendStringA("status i76len length", ret, sizeof(ret), NULL) == 0)
+        g_lenCache[trk] = (DWORD)strtoul(ret, NULL, 10);
+    real_mciSendStringA("close i76len", NULL, 0, NULL);
+    return g_lenCache[trk];
+}
+
+static DWORD disc_len_ms(void) {
+    int i; DWORD t = 0;
+    for (i = FIRST_TRACK; i <= LAST_TRACK; i++) t += track_len_ms(i);
+    return t;
+}
+
+static DWORD position_ms(void) {
+    char cmd[64], ret[64];
+    if (!g_open) return 0;
+    ensure_real();
+    if (!real_mciSendStringA) return 0;
+    _snprintf(cmd, sizeof(cmd), "status %s position", g_alias);
+    ret[0] = 0;
+    if (real_mciSendStringA(cmd, ret, sizeof(ret), NULL) != 0) return 0;
+    return (DWORD)strtoul(ret, NULL, 10);
+}
+
+static int playing_now(void) {
+    char cmd[64], ret[64];
+    if (!g_open) return 0;
+    ensure_real();
+    if (!real_mciSendStringA) return 0;
+    _snprintf(cmd, sizeof(cmd), "status %s mode", g_alias);
+    ret[0] = 0;
+    if (real_mciSendStringA(cmd, ret, sizeof(ret), NULL) != 0) return 0;
+    return strstr(ret, "playing") != NULL;
+}
+
+/* Encode milliseconds in whatever time format the game selected via MCI_SET. */
+static DWORD fmt_time(DWORD ms, int trk) {
+    DWORD m = ms / 60000, s = (ms / 1000) % 60, f = (ms % 1000) * 75 / 1000;
+    if (g_timeFormat == MCI_FORMAT_MILLISECONDS) return ms;
+    if (g_timeFormat == MCI_FORMAT_TMSF)
+        return MCI_MAKE_TMSF(trk ? trk : FIRST_TRACK, m, s, f);
+    return MCI_MAKE_MSF(m, s, f);
 }
 
 static void mci_str(const char *cmd) {
@@ -172,13 +243,38 @@ static MCIERROR play_track(int track) {
     return 0;
 }
 
+/* Does this MCI_OPEN want the CD-audio device?
+ *
+ * THE BUG THAT MADE THIS WHOLE FIX INERT (found 2026-08-04): this used to return 0
+ * whenever MCI_OPEN_TYPE_ID was set - and that is the ONLY form i76.exe ever uses.
+ * Logging every call showed the game opening five times with
+ *
+ *     msg 0x803 (MCI_OPEN)  flags 0x3000 = MCI_OPEN_TYPE | MCI_OPEN_TYPE_ID
+ *
+ * so the hook refused the exact call it exists to catch, passed it to the real
+ * winmm, and got 266 back. The hook was installed, the IAT patch was correct, and
+ * it declined the request - which looked identical to "the game never asked".
+ *
+ * With MCI_OPEN_TYPE_ID, lpstrDeviceType is NOT a string: the field holds an
+ * integer device-type id (MCI_DEVTYPE_CD_AUDIO). String-comparing it can never
+ * match, and dereferencing it as a pointer would be a wild read - which is
+ * presumably why the original bailed rather than risk it. The correct handling is
+ * to compare the low word as a number.
+ */
 static int wants_cdaudio(DWORD_PTR flags, MCI_OPEN_PARMSA *p) {
-    if (!(flags & MCI_OPEN_TYPE) || !p || (flags & MCI_OPEN_TYPE_ID)) return 0;
+    if (!(flags & MCI_OPEN_TYPE) || !p) return 0;
+    if (flags & MCI_OPEN_TYPE_ID)
+        return LOWORD((DWORD_PTR)p->lpstrDeviceType) == MCI_DEVTYPE_CD_AUDIO;
     return p->lpstrDeviceType && lstrcmpiA(p->lpstrDeviceType, "cdaudio") == 0;
 }
 
 static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR flags, DWORD_PTR param) {
     ensure_real();
+    /* Log EVERY call, including ones we pass straight through. Two rounds were lost
+     * to logs that recorded only cdaudio traffic: "no lines" then means either "the
+     * game never called this" or "it called about something else", and those need
+     * different fixes. Now the absence of a line is real evidence. */
+    mlog("mciSendCommandA(id=%u msg=0x%X flags=0x%lX)", (unsigned)id, msg, (unsigned long)flags);
     if (msg == MCI_OPEN) {
         MCI_OPEN_PARMSA *p = (MCI_OPEN_PARMSA *)param;
         if (wants_cdaudio(flags, p)) { p->wDeviceID = FAKE_CD_ID; mlog("MCI_OPEN cdaudio -> virtual"); return 0; }
@@ -188,7 +284,17 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
         return real_mciSendCommandA ? real_mciSendCommandA(id, msg, flags, param) : MCIERR_INVALID_DEVICE_ID;
 
     switch (msg) {
-    case MCI_SET:   return 0;   /* accept any time format / door command */
+    case MCI_SET: {
+        /* Record the format instead of just accepting it: every LENGTH and POSITION
+         * answer has to be encoded in whatever the game selected, and MSF vs TMSF vs
+         * milliseconds are not interchangeable. */
+        MCI_SET_PARMS *sp = (MCI_SET_PARMS *)param;
+        if (sp && (flags & MCI_SET_TIME_FORMAT)) {
+            g_timeFormat = sp->dwTimeFormat;
+            mlog("  MCI_SET time format -> %lu", (unsigned long)g_timeFormat);
+        }
+        return 0;
+    }
     case MCI_PLAY: {
         MCI_PLAY_PARMS *p = (MCI_PLAY_PARMS *)param;
         int track = 1;
@@ -198,19 +304,48 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
         }
         mlog("MCI_PLAY flags=0x%lX from=%ld -> track %d",
              (unsigned long)flags, p ? (long)p->dwFrom : -1, track);
+        g_curTrack = track;
         return play_track(track);
     }
     case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE: stop_track(); return 0;
+    /* MCI_STATUS - and the per-track answers matter as much as the open.
+     *
+     * This used to answer `default: dwReturn = 0`, and the log showed the game
+     * asking EIGHTEEN per-track questions (flags 0x110 = MCI_STATUS_ITEM|MCI_TRACK)
+     * and then never issuing MCI_PLAY. Of course: told every track is type 0 (not
+     * audio) and length 0 (empty), a CD player has nothing to play. Answering
+     * MCI_OPEN is necessary but nowhere near sufficient - the engine validates the
+     * disc before it will touch it.
+     *
+     * Track 1 is reported as DATA and tracks 2..17 as AUDIO, which is the layout of
+     * the original mixed-mode disc and exactly why GOG's files start at 2.mp3.
+     */
     case MCI_STATUS: {
         MCI_STATUS_PARMS *p = (MCI_STATUS_PARMS *)param;
         if (p && (flags & MCI_STATUS_ITEM)) {
+            int trk = (flags & MCI_TRACK) ? (int)p->dwTrack : 0;
             switch (p->dwItem) {
-            case MCI_STATUS_MEDIA_PRESENT:    p->dwReturn = TRUE; break;   /* a disc IS present */
-            case MCI_STATUS_MODE:             p->dwReturn = g_open ? MCI_MODE_PLAY : MCI_MODE_STOP; break;
-            case MCI_STATUS_NUMBER_OF_TRACKS: p->dwReturn = 17; break;
+            case MCI_STATUS_MEDIA_PRESENT:    p->dwReturn = TRUE; break;
+            case MCI_STATUS_MODE:             p->dwReturn = playing_now() ? MCI_MODE_PLAY : MCI_MODE_STOP; break;
+            case MCI_STATUS_NUMBER_OF_TRACKS: p->dwReturn = LAST_TRACK; break;
             case MCI_STATUS_READY:            p->dwReturn = TRUE; break;
+            case MCI_STATUS_TIME_FORMAT:      p->dwReturn = g_timeFormat; break;
+            case MCI_STATUS_CURRENT_TRACK:    p->dwReturn = g_curTrack ? g_curTrack : FIRST_TRACK; break;
+            case MCI_STATUS_LENGTH:
+                p->dwReturn = fmt_time(trk ? track_len_ms(trk) : disc_len_ms(), trk);
+                break;
+            case MCI_STATUS_POSITION:
+                p->dwReturn = fmt_time(position_ms(), trk ? trk : g_curTrack);
+                break;
+            /* A CD player asks whether each track is audio or data. Answering 0 -
+             * which is neither - is what stopped playback. */
+            case MCI_CDA_STATUS_TYPE_TRACK:
+                p->dwReturn = (trk <= 1) ? MCI_CDA_TRACK_OTHER : MCI_CDA_TRACK_AUDIO;
+                break;
             default:                          p->dwReturn = 0; break;
             }
+            mlog("  status item=0x%lX track=%d -> %lu",
+                 (unsigned long)p->dwItem, trk, (unsigned long)p->dwReturn);
         }
         return 0;
     }
