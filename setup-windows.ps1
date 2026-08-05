@@ -165,10 +165,18 @@ if (Test-Path $mapPath) {
         $map = $wfRx.Replace($map, "weapon_fire {`r`n   + keyboard   Enter", 1)
         # separate blocks = alternative bindings (not chords); engine has exactly
         # three mouse-button tokens, so weapon 4 stays on keyboard 'Four'
+        #
+        # LeftBtn goes on weapon_fire, NOT hardpoint1_fire. weapon_fire is "fire
+        # the selected/linked weapons" - the same action Enter and pad Button1
+        # emit - and it is also what fires the HANDGUN on foot. hardpoint1_fire
+        # fires hardpoint 1 specifically: in-car it ignores selection/linking,
+        # and on foot it does nothing, which shipped as "mouse doesn't fire the
+        # handgun" and made the left button feel broken outside the car.
+        # (docs/input.map.reference:213 also puts LeftBtn on weapon_fire.)
         $add = @(
             '',
             '# --- Mouse + gamepad additions (setup-windows.ps1) ---',
-            'hardpoint1_fire {', '   + mouse      LeftBtn', '}',
+            'weapon_fire {', '   + mouse      LeftBtn', '}',
             'hardpoint2_fire {', '   + mouse      RightBtn', '}',
             'pilot_glance_left {', '   + mouse      MiddleBtn', '}',
             'weapon_fire {', '   + joystick1  Button1', '}',
