@@ -1,3 +1,26 @@
+# winmm-cdaudio — SUPERSEDED, see `music-fix/`
+
+> **This was built without noticing that [`music-fix/`](../../music-fix/) already
+> solves the same problem, by the same method, and is already deployed.** It reaches
+> the identical conclusion — the game's soundtrack is CD audio over MCI, and an
+> app-local `winmm.dll` cannot win because winmm is bound to `System32` before any
+> of our code runs — and `music-fix/README.md` documented that dead end, including
+> the DotLocal (`i76.exe.local`) failure, days earlier.
+>
+> `music-fix/` gets in via a **`Strlkup.dll` proxy**: a five-export helper the game
+> imports statically, so it loads at process init, and its `DllMain` rewrites
+> `i76.exe`'s IAT slot for `WINMM.dll!mciSendCommandA`. That sidesteps load order
+> entirely, which is exactly what an app-local winmm cannot do.
+>
+> Kept for the parts that are still worth something: the **MCI cdaudio emulation
+> details**, the **self-test** (`selftest.ps1`, 15 assertions — drives the emulation
+> with no game running), and the measurements of *why* winmm proxying fails on this
+> machine. Do not deploy it; it cannot work.
+>
+> **Lesson: grep the repo before building.** `grep -ril music` would have found it.
+
+---
+
 # winmm-cdaudio — pretend Interstate '76 has a CD drive
 
 A 32-bit `winmm.dll` that sits in the game folder, forwards everything to the real
