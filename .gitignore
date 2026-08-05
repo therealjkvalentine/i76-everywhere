@@ -18,3 +18,9 @@ tools/ffb/ffb-calib-samples.csv
 tools/ffb/ffb-calib.json
 tools/ffb/*.csv
 tools/ffb/ffb-fire-candidates.txt
+tools/winmm-cdaudio/*.obj
+tools/winmm-cdaudio/*.exp
+tools/winmm-cdaudio/*.lib
+tools/winmm-cdaudio/*.dll
+tools/winmm-cdaudio/build.log
+tools/winmm-cdaudio/*.log
