@@ -133,6 +133,13 @@ if ($OpenTrack -and (Test-Path $OpenTrack)) {
 }
 Start-Sleep -Milliseconds 800     # let the AHK layers finish their device probe
 
+# music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs
+# to mciproxy.log only when this is set. Set UNCONDITIONALLY: it was opt-in, which
+# meant the normal launch path - desktop shortcut -> .bat -> here, no env var
+# anywhere - produced no log, and "hook installed but silent" looked exactly like
+# "hook never ran". A handful of lines per session is worth never being blind again.
+$env:I76MUSIC_LOG = "1"
+
 if ($CdAudioLog) {
     $env:I76_CDAUDIO_LOG = "1"
     Write-Host "CD-audio proxy logging ON -> $GameDir\winmm-cdaudio.log" -ForegroundColor Cyan
