@@ -1,0 +1,32 @@
+; Exports for the I'76 winmm proxy.
+;
+; These are EXACTLY the nine functions i76.exe imports from WINMM.dll, parsed
+; from its import table. Nothing else is exported: any other winmm consumer in
+; the process resolves against the real system DLL as usual, because this one is
+; only found by things looking in the game folder.
+;
+; The names on the left must match the import names byte for byte. The names on
+; the right are our implementations - the linker maps the undecorated export to
+; the __stdcall-decorated internal symbol.
+;
+; NOTE: no LIBRARY statement. With one, the linker stamps an internal name that
+; can confuse tools comparing this against the real winmm; the output filename
+; from /OUT is what matters for loading.
+
+EXPORTS
+    ; --- music: the reason this exists ---
+    mciSendCommandA    = i76_mciSendCommandA
+    mciGetErrorStringA = i76_mciGetErrorStringA
+
+    ; --- CD-audio volume, so the in-game music slider works ---
+    auxGetDevCapsA     = i76_auxGetDevCapsA
+    auxGetNumDevs      = i76_auxGetNumDevs
+    auxSetVolume       = i76_auxSetVolume
+
+    ; --- STEERING WHEEL INPUT. Passed straight through, untouched. ---
+    joyGetDevCapsA     = i76_joyGetDevCapsA
+    joyGetNumDevs      = i76_joyGetNumDevs
+    joyGetPosEx        = i76_joyGetPosEx
+
+    ; --- timing, hot path ---
+    timeGetTime        = i76_timeGetTime
