@@ -185,6 +185,24 @@ static DWORD disc_len_ms(void) {
     return t;
 }
 
+/* Where track N STARTS on the disc, cumulatively.
+ *
+ * This is what MCI_STATUS_POSITION + MCI_TRACK asks, and getting it wrong is what
+ * stopped playback after the open already worked. The log showed the game querying
+ * position for track 2..17 in sequence - it is reading a table of contents, and it
+ * derives each track's length from the difference between consecutive starts. I was
+ * answering with the current PLAYBACK position (0 while stopped), so every track
+ * looked zero-length and there was nothing to play.
+ *
+ * Only the relative spacing matters, so audio is laid out from zero; the data track
+ * ahead of it is not modelled. */
+static DWORD track_start_ms(int trk) {
+    int i; DWORD t = 0;
+    if (trk <= FIRST_TRACK) return 0;
+    for (i = FIRST_TRACK; i < trk && i <= LAST_TRACK; i++) t += track_len_ms(i);
+    return t;
+}
+
 static DWORD position_ms(void) {
     char cmd[64], ret[64];
     if (!g_open) return 0;
@@ -335,7 +353,11 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
                 p->dwReturn = fmt_time(trk ? track_len_ms(trk) : disc_len_ms(), trk);
                 break;
             case MCI_STATUS_POSITION:
-                p->dwReturn = fmt_time(position_ms(), trk ? trk : g_curTrack);
+                /* WITH a track: where that track starts (a TOC query). WITHOUT:
+                 * where playback currently is. Two different questions sharing one
+                 * item code, and conflating them cost a round here. */
+                p->dwReturn = trk ? fmt_time(track_start_ms(trk), trk)
+                                  : fmt_time(position_ms(), g_curTrack);
                 break;
             /* A CD player asks whether each track is audio or data. Answering 0 -
              * which is neither - is what stopped playback. */
