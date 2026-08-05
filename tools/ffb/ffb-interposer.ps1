@@ -119,6 +119,14 @@ function Build-Panel {
     $null = $L.Add(("  entity 0x{0:X8}   wheelbase {1:0.00} m   sim ticks {2}" -f `
         $Ent, $Wheelbase, $(if ($S) { $S.Ticks } else { 0 })))
     $null = $L.Add(("  " + $Calib))
+    # Persistent, not a one-off startup message. This is the one action that will
+    # take the game down, and a warning that scrolled past ten minutes ago is not
+    # a warning.
+    if ($S -and $S.GameFfb -ne 0) {
+        $null = $L.Add("  *** DO NOT FIRE - engine FFB is live; a shot faults I7_SFRCE.DLL+0x2505 ***")
+    } else {
+        $null = $L.Add("  engine FFB not present - firing is safe")
+    }
     $null = $L.Add($rule)
     if ($S) {
         $null = $L.Add(("   speed {0,6:0.0} mph ({1,5:0.0} m/s)    throttle {2,6:0.00}    steer {3,6:0.00}" -f `
@@ -175,7 +183,7 @@ if ($PanelDemo) {
         YawRate = -0.51; ExpectedYaw = -0.72; LongG = -0.18; LatG = -0.90
         Understeer = 0.41; Oversteer = 0.0; Jolt = 2.3
         AngVelX = 0.35; AngVelZ = 0.22; Tumble = 0.57; Vy = 0.4
-        Braking = $false; Airborne = $false; Ticks = 412; Polls = 1240; Wheelbase = 4.662
+        Braking = $false; Airborne = $false; Ticks = 412; Polls = 1240; Wheelbase = 4.662; GameFfb = 0; Firing = $false
     }
     for ($t = 0.0; $t -lt 1.2; $t += 1.0/60) { $fake.T = $t; $o = Mix-Update $m $fake }
     $act = @{}; foreach ($c in $ALL_CH) { $act[$c] = $true }
@@ -246,6 +254,38 @@ try {
             Write-Host "or see docs/WHEEL-T300.md. Nothing was changed." -ForegroundColor Yellow
             exit 2
         }
+    }
+
+    # ---- THE CRASH WARNING -------------------------------------------------
+    # If the engine also has a live FFB device, FIRING A WEAPON CRASHES THE GAME
+    # while we hold the wheel. The engine's fire path calls into I7_SFRCE.DLL and
+    # dereferences its effect object WITHOUT null-checking it; our exclusive
+    # acquisition kills that handle underneath it, and the next shot faults with
+    # 0xC0000005 at I7_SFRCE.DLL+0x2505. Confirmed twice in the field 2026-08-04,
+    # and predicted in docs/FFB-LAPTOP-RECON.md before it ever happened.
+    #
+    # Not made fatal: driving is unaffected and is most of the value here. But it
+    # is impossible to miss, and the weapon channel is force-muted, because leaving
+    # a channel called "weapon" armed implies firing is supported when it is the
+    # one thing that will take the game down.
+    $probe = Tel-Sample $telCtx
+    $engineFfbLive = ($probe -and $probe.GameFfb -ne 0)
+    if ($engineFfbLive -and -not $DryRun) {
+        $active['weapon'] = $false
+        Write-Host ""
+        Write-Host "  ###################################################################" -ForegroundColor Red
+        Write-Host "  #  DO NOT FIRE WEAPONS WHILE THIS IS RUNNING.                     #" -ForegroundColor Red
+        Write-Host "  #                                                                 #" -ForegroundColor Red
+        Write-Host "  #  The engine has its own FFB device open (0x52bbd0 = 1). Its      #" -ForegroundColor Red
+        Write-Host "  #  weapon-fire path dereferences an effect object without a null   #" -ForegroundColor Red
+        Write-Host "  #  check, and our exclusive grab on the wheel kills that handle.   #" -ForegroundColor Red
+        Write-Host "  #  The first shot faults at I7_SFRCE.DLL+0x2505 and the game dies. #" -ForegroundColor Red
+        Write-Host "  #                                                                 #" -ForegroundColor Red
+        Write-Host "  #  Driving, braking and crashing are all fine. Only firing is not. #" -ForegroundColor Red
+        Write-Host "  #  The weapon channel has been muted for the same reason.          #" -ForegroundColor Red
+        Write-Host "  ###################################################################" -ForegroundColor Red
+        Write-Host ""
+        Start-Sleep -Seconds 2
     }
 
     if ($Log) {
