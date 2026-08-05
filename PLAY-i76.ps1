@@ -33,7 +33,13 @@ param(
     # Off by default: it depends on the player-entity pointer resolving, and silence
     # in a menu reads like a fault even when it is correct.
     [switch]$MusicMissionOnly,
-    [int]$MusicVolume = 550
+    [int]$MusicVolume = 550,
+    # Turn on logging in the winmm CD-audio proxy (tools/winmm-cdaudio), if it is
+    # installed. Writes winmm-cdaudio.log beside the game exe, recording every MCI
+    # call the engine makes - including ones the proxy does not handle. Set here
+    # rather than left to the user because the variable has to be present in the
+    # environment of the process that LAUNCHES the game, which is easy to get wrong.
+    [switch]$CdAudioLog
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -113,6 +119,19 @@ if ($OpenTrack -and (Test-Path $OpenTrack)) {
     }
 }
 Start-Sleep -Milliseconds 800     # let the AHK layers finish their device probe
+
+if ($CdAudioLog) {
+    $env:I76_CDAUDIO_LOG = "1"
+    Write-Host "CD-audio proxy logging ON -> $GameDir\winmm-cdaudio.log" -ForegroundColor Cyan
+}
+
+# If the winmm CD-audio proxy is installed it handles music itself, correctly
+# synchronised, so the PowerShell fallback must not ALSO play - two soundtracks at
+# once out of step with each other is worse than none.
+if (-not $NoMusic -and (Test-Path (Join-Path $GameDir 'winmm.dll'))) {
+    Write-Host "winmm CD-audio proxy detected - leaving music to it (skipping i76-music.ps1)." -ForegroundColor DarkGray
+    $NoMusic = $true
+}
 
 $proc = Start-Process -FilePath (Join-Path $GameDir $Exe) -ArgumentList '-glide' -WorkingDirectory $GameDir -PassThru
 
