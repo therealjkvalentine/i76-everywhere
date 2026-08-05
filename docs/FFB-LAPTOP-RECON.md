@@ -2,15 +2,15 @@
 
 > **ANSWER (2026-08-02): remove the extra/virtual joysticks and reboot.** Force
 > feedback worked on one Windows box and not another. The difference was not
-> Windows version, not the exe, not the registry, not frame generation ? it was
+> Windows version, not the exe, not the registry, not frame generation — it was
 > **other joystick devices present on the machine**. Uninstalling them and
 > restarting made FFB work immediately.
 
 ## The symptom
 
 The game runs fine. The wheel steers, the pedals work, every button works. There
-is simply **no force feedback**, and ? if you have wired firing to something that
-produces effects ? the first shot can crash the game in `I7_SFRCE.DLL` at fault
+is simply **no force feedback**, and — if you have wired firing to something that
+produces effects — the first shot can crash the game in `I7_SFRCE.DLL` at fault
 offset `0x2505`, because the effect object was never created and gets
 dereferenced anyway.
 
@@ -23,7 +23,7 @@ FF effect object ptr    : 0x00000000
   -> MODULE LOADED BUT NO DEVICE
 ```
 
-That combination ? module resolved, device not ? is the whole diagnosis. It means
+That combination — module resolved, device not — is the whole diagnosis. It means
 `I7FF_InitSystem` ran and failed to open a force-feedback device:
 *"Failed to open FF Joystick. Try again next time."*
 
@@ -35,18 +35,18 @@ Settled by disassembly of the Gold exe (`i76.exe`, MD5
 - FFB init at `0x445A60` is called **unconditionally** from `0x402F93` at startup.
 - It calls `0x446020`, which builds `"I7_SFRCE.DLL"`, `LoadLibrary`s it, resolves
   three exports, then calls `I7FF_InitSystem`.
-- The DLL loads fine ? `0x52bbdc` (the `I7FF_InitSystem` pointer) reads nonzero
+- The DLL loads fine — `0x52bbdc` (the `I7FF_InitSystem` pointer) reads nonzero
   even on the broken machine. **`LoadLibrary` was never the problem.**
 - `I7FF_InitSystem` wants DirectInput **exclusive** acquisition and tries
-  **once**, at startup ("try again next time" is not a retry ? it is a give-up).
+  **once**, at startup ("try again next time" is not a retry — it is a give-up).
 - `0x52bbd0` (FF-detected flag) stays `0`; `0x52bbcc` (effect object) stays null.
 
 A 1997 title enumerating DirectInput devices does not go looking for *your* wheel.
-Add other joysticks ? especially **virtual** ones that are always present ? and
+Add other joysticks — especially **virtual** ones that are always present — and
 the one-shot acquire lands on the wrong device and gives up.
 
-**On the machine that failed:** two virtual joysticks ? **vJoy** (winmm id 3) and a
-**3Dconnexion KMJ Emulator** (id 7) ? sharing the list with the wheel. Removing the
+**On the machine that failed:** two virtual joysticks — **vJoy** (winmm id 3) and a
+**3Dconnexion KMJ Emulator** (id 7) — sharing the list with the wheel. Removing the
 **3Dconnexion KMJ Emulator** and rebooting fixed FFB immediately, and afterwards
 `joystick1` was the only winmm device. First success ever recorded on that box:
 
@@ -56,13 +56,13 @@ FF effect object ptr    : 0x0B900000
 ```
 
 **The signature worth remembering: input worked the whole time, FFB did not.** Input comes
-through **winmm**, where the wheel was always correctly at `joystick1` ? steering, pedals and
+through **winmm**, where the wheel was always correctly at `joystick1` — steering, pedals and
 buttons all fine. Force feedback is opened through **DirectInput**, which enumerates
 *separately* and needs exclusive acquisition. So *"input works but FFB doesn't"* points at
 DirectInput enumeration, never at the wheel.
 
 **On the machine that worked:** zero enumerable joysticks besides the wheel. Note
-it *does* have a **Nefarius Virtual Gamepad Emulation Bus** (ViGEm) installed ?
+it *does* have a **Nefarius Virtual Gamepad Emulation Bus** (ViGEm) installed —
 but `DEVPKEY_Device_Children` is empty, so the bus instantiates no pads and
 contributes nothing to enumeration. **A dormant bus is harmless; what matters is
 whether a joystick DEVICE is enumerated.** Check children, not just presence.
@@ -78,14 +78,14 @@ Get-PnpDevice | Where-Object { $_.FriendlyName -match '^vJoy Device$|3Dconnexion
     Disable-PnpDevice -Confirm:$false
 ```
 
-Reboot matters ? a disable alone may not re-order enumeration for an already
+Reboot matters — a disable alone may not re-order enumeration for an already
 running session.
 
 Re-enable later with `Enable-PnpDevice` the same way. (vJoy in particular is safe
-to remove here ? head tracking moved to freetrack shared memory and no longer
+to remove here — head tracking moved to freetrack shared memory and no longer
 uses it.)
 
-## Ruled OUT ? do not spend time on these
+## Ruled OUT — do not spend time on these
 
 Each of these was checked and is **not** the cause:
 
@@ -102,7 +102,7 @@ Each of these was checked and is **not** the cause:
 
 **One thing that IS a real, separate cause:** the **Thrustmaster control panel
 being open** takes the DirectInput device exclusively, producing the identical
-"module loaded, no device" state. Close it before launching ? its own UI says so
+"module loaded, no device" state. Close it before launching — its own UI says so
 on every tab. See [WHEEL-T300.md](WHEEL-T300.md).
 
 Likewise, if FFB has already failed once, relaunching may not recover it: a
@@ -112,17 +112,17 @@ crashed process can leave the device unreleased. **Power-cycle the wheel.**
 
 > A 1997 game that acquires a DirectInput device **once at startup** has no
 > tolerance for a crowded device list. Anything that adds a permanent phantom
-> joystick ? vJoy, x360ce, KMJ emulators, instantiated ViGEm pads ? can silently
+> joystick — vJoy, x360ce, KMJ emulators, instantiated ViGEm pads — can silently
 > take the slot. The symptom is never "your joystick software is wrong", it is
 > "the game's force feedback is broken".
 
 ## Tools
 
-- [`tools/check-ffb.ps1`](../tools/check-ffb.ps1) ? reads the engine's own FFB
+- [`tools/check-ffb.ps1`](../tools/check-ffb.ps1) — reads the engine's own FFB
   state out of the live process. **Run it while in a mission**: the FF device is
   opened at startup but only meaningful in play, and checking at the title screen
   reports "not loaded" on a perfectly healthy setup.
-- [`tools/ffb-recon.ps1`](../tools/ffb-recon.ps1) ? dumps the machine-side facts
+- [`tools/ffb-recon.ps1`](../tools/ffb-recon.ps1) — dumps the machine-side facts
   (virtual joysticks and their children, winmm enumeration, the joystick
   registry, file hashes) in a fixed order, so two machines can be diffed
   mechanically rather than compared by eye. That is how this was found.
@@ -137,18 +137,18 @@ Both read only. Neither opens the Thrustmaster control panel, deliberately.
 never happened.
 
 **SIMPLER FIX FOUND 2026-08-04: run the check from 32-bit PowerShell.** A WOW64 host
-enumerates a 32-bit process's modules correctly, so `$proc.Modules` works as
+enumerates a 32-bit process's modules correctly, so `$proc.Modules` behaves as
 expected and no exe-internal workaround is needed:
 
-```powershell
-C:\Windows\SysWOW64\WindowsPowerShell1.0\powershell.exe -Command "(Get-Process i76).Modules"
+```
+C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -Command "(Get-Process i76).Modules"
 ```
 
-From 64-bit PowerShell that same call reports **0** modules; from `SysWOW64` it
-reports all 99. This was found while diagnosing missing music (see
-[MUSIC.md](MUSIC.md)), where the same false negative made GOG's `audiere.dll`
-music bridge look absent when it was merely never loaded.
+From 64-bit PowerShell that call reports **0** modules; from `SysWOW64` it reports
+all 99. Found while diagnosing missing music (see [MUSIC.md](MUSIC.md)), where the
+same false negative made GOG's `audiere.dll` music bridge look absent when it was
+merely never loaded.
 
-**Or read `0x52bbdc`** ? the exe's own `GetProcAddress` result, written only after
+**Or read `0x52bbdc`** — the exe's own `GetProcAddress` result, written only after
 `LoadLibrary` *and* `GetProcAddress` both succeed. Nonzero means loaded and resolved.
 `tools/check-ffb.ps1` does this.
