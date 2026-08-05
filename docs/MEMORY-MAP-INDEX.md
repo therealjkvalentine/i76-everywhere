@@ -24,7 +24,25 @@ they are different objects with different roots.
 | VA | type | meaning | verified |
 |---|---|---|---|
 | 0x536770 / 78 / 80 | int | pilot yaw / pitch / roll look input | ✓ live |
-| 0x5367cc / d4 / db | int | throttle / steer / weapon_fire input | ✓ live |
+| 0x5367cc / d4 / **d0** | int | throttle / steer / **weapon fire** input | ✓ live |
+| 0x5367de | byte | second fire flag (0/1) | ✓ live |
+
+**CORRECTION 2026-08-04 — weapon fire is `0x5367d0`, not `0x5367db`.** Measured
+with `tools/ffb/ffb-find-fire.ps1`, which diffs an idle baseline against a firing
+phase with the steering held still (holding still is what isolates fire from the
+throttle and steer entries sharing this block). Firing moved exactly two bytes,
+each taking only `{0, 1}`: **`0x5367d0`** and **`0x5367de`**. `0x5367db` did **not**
+move.
+
+`0x5367d0` also sits exactly between throttle (`0x5367cc`) and steer (`0x5367d4`)
+in what is plainly a 4-byte-strided input array, so `db` reads as a transcription
+slip for `d0`. `0x5367de` is unaligned and is more likely a derived or per-weapon
+flag — I'76 has two distinct fire actions (`weapon_fire` and `hardpoint1_fire`),
+which has caused trouble in this repo before when a binding landed on the wrong
+one. Which of the two is which is **not** established.
+
+Consumed by `tools/ffb/Telemetry.ps1`, which reads both and fires its weapon
+channel on either rising edge.
 | 0x4c2964 / 6c / 70 / 74 | float | live camera Euler angles | ✓ live (head-track target) |
 | 0x4c2728 | int | camera view mode (F1..F11) | ✓ |
 | 0x54a264 | ptr | **world-context root** (0x457530 returns it) | ✓ live |
