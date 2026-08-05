@@ -56,7 +56,63 @@ A prebuilt 32-bit `Strlkup.dll` is committed here (it's our own code — it forw
 to the GOG `strlkup_orig.dll` by name, so it works on any GOG install). To rebuild
 after editing `strlkproxy.c`, run `build.ps1` (needs w64devkit's 32-bit gcc).
 
-## Field finding 2026-08-04: the hook was installed and NEVER CALLED
+## 2026-08-04: THREE bugs, found by logging every call
+
+The hook had been installed and deployed for days while doing nothing. Making the
+log record **every** call — not just cdaudio ones — turned "no music" into three
+specific, sequential bugs. Each one was invisible behind the previous.
+
+**1. `MCI_OPEN_TYPE_ID` was explicitly rejected.** `wants_cdaudio()` began:
+
+```c
+if (!(flags & MCI_OPEN_TYPE) || !p || (flags & MCI_OPEN_TYPE_ID)) return 0;
+```
+
+and the log showed the game opening five times with `flags 0x3000` =
+`MCI_OPEN_TYPE | MCI_OPEN_TYPE_ID` — the *only* form it ever uses. The hook refused
+the exact call it exists to catch. With `TYPE_ID` set, `lpstrDeviceType` is not a
+string but an integer device id, so a string compare can never match and
+dereferencing it would be a wild read — presumably why the original bailed rather
+than risk it. Correct handling is to compare the low word against
+`MCI_DEVTYPE_CD_AUDIO`.
+
+**2. Per-track status answered `0`.** After the open worked, the log showed the game
+asking eighteen per-track questions (`flags 0x110` = `MCI_STATUS_ITEM | MCI_TRACK`)
+and then never playing. The handler's `default: dwReturn = 0` told it every track was
+type 0 and length 0 — an empty disc. **Answering `MCI_OPEN` is necessary but nowhere
+near sufficient: the engine validates the disc before touching it.**
+
+**3. `MCI_STATUS_POSITION` + `MCI_TRACK` is a TOC query, not "where is playback".**
+It asks *where track N starts on the disc*, and the engine derives each track's
+length from consecutive starts. Returning the playback position (0 while stopped)
+made all sixteen tracks zero-length. Now it returns cumulative start offsets, and
+the values check out against the format the game selects — `MCI_FORMAT_TMSF`, packed
+`track | m<<8 | s<<16 | f<<24`. Track 4 starts at 229896 ms → m3 s49 f67 →
+`1127285508`, exactly what the game is handed. (Worth noting because in decimal those
+TOC values look like garbage and are not.)
+
+### Confirmed working
+
+The engine's own state, before and after (addresses from
+[MEMORY-MAP-INDEX.md](../docs/MEMORY-MAP-INDEX.md) Tier 1):
+
+| | before | after |
+|---|---|---|
+| `0x524674` music-active flag | `0` | **`1`** |
+| `0x4ed890` MCI device handle | `0xFFFFFFFF` | **`0x0000C0DE`** |
+| `0x4ed894` aux-volume device | `0xFFFFFFFF` | `0x00000000` |
+
+`0xC0DE` is `FAKE_CD_ID` — the engine stored our virtual device's handle. It opens
+the device, sets `TMSF`, reads the full TOC for tracks 1..17, queries our fake
+`AUXCAPS_CDAUDIO` aux device, and sets volume (so the in-game music slider now
+works: `auxSetVolume(0xB337B337) -> 700/1000`).
+
+**Not yet observed: `MCI_PLAY`.** Every test above was at the title/menu, and the
+base game plays its soundtrack in missions. Load one with `I76MUSIC_LOG=1` (the
+launcher sets it) and the log will show either `MCI_PLAY … -> track N`, which is
+done, or another status query answered wrongly — in which case the log names it.
+
+## Earlier finding: the hook was installed and NEVER CALLED
 
 With `I76MUSIC_LOG=1`, `mciproxy.log` after a full session read exactly one line:
 
