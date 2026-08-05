@@ -24,3 +24,5 @@ tools/winmm-cdaudio/*.lib
 tools/winmm-cdaudio/*.dll
 tools/winmm-cdaudio/build.log
 tools/winmm-cdaudio/*.log
+tools/cdaudio-image/*.bin
+tools/cdaudio-image/*.iso
