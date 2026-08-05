@@ -57,7 +57,7 @@ if (Test-Path $Gcc) {
     # successful compile (vcvars emits a benign vswhere warning).
     $cmd = "call `"$vcvars`" && cd /d `"$here`" && " +
            "cl /nologo /LD /MT /O2 /W3 /D_CRT_SECURE_NO_WARNINGS strlkproxy.c " +
-           "/Fe:`"$tmp`" /link $($fwd -join ' ') user32.lib"
+           "/Fe:`"$tmp`" /link user32.lib"
     & cmd.exe /c "$cmd > `"$log`" 2>&1"
     if (-not (Test-Path $tmp)) {
         Write-Host "MSVC build FAILED - see $log" -ForegroundColor Red

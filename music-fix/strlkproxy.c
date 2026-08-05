@@ -246,6 +246,114 @@ static void *patch_iat(HMODULE mod, const char *dll, const char *func, void *new
     return NULL;
 }
 
+/* ===========================================================================
+ * FORWARDING THE FIVE Strlkup EXPORTS WITHOUT LINKER FORWARDERS
+ * ===========================================================================
+ * The original build used .def forwarders (`StrLookupCreate =
+ * strlkup_orig.StrLookupCreate`), which gcc/dlltool emits correctly. MSVC's
+ * link.exe does not: from either the .def or /EXPORT:name=strlkup_orig.name it
+ * reports all five as unresolved externals, wanting the symbols to exist locally
+ * instead of treating a dotted target as a forward. Since w64devkit is not
+ * installed here, forward by hand instead.
+ *
+ * THE FOUR FUNCTIONS: __declspec(naked) stubs that JMP to the real address. On
+ * x86 a plain jmp leaves the stack frame exactly as the caller built it - return
+ * address, arguments, everything - so the real function sees precisely what it
+ * would have seen, and returns straight to the game. That works for ANY calling
+ * convention and ANY argument list, which matters because these signatures are
+ * not documented anywhere we have.
+ *
+ * THE DATA EXPORT is different and cannot be jmp'd to. i76.exe imports
+ * StrLookup_Global_Object as DATA, so the loader binds its IAT slot to the ADDRESS
+ * of a variable, and thereafter reads through that address.
+ *
+ * Mirroring the value into our own exported variable does NOT work: measured, the
+ * original's StrLookup_Global_Object is NULL when strlkup_orig.dll loads (it is
+ * filled in later, presumably by StrLookupCreate), so a DllMain-time copy hands the
+ * game a permanent NULL. And the jmp stubs give no post-call hook to re-sync from.
+ *
+ * So instead we REPOINT THE GAME'S IAT SLOT at the original's variable - the same
+ * patch_iat used for the winmm hooks. Our exported variable exists only to satisfy
+ * the loader during binding; immediately afterwards the game is reading the real
+ * one, which is exactly what a linker forwarder would have achieved, with no copy
+ * and nothing to go stale.
+ */
+static HMODULE g_orig;
+static FARPROC p_Create, p_Destroy, p_Find, p_Format;
+static void  **p_GlobalObj;
+
+/* Exported DATA slot: must exist before the loader binds the game's import. */
+__declspec(dllexport) void *StrLookup_Global_Object = NULL;
+
+/* Repoint the game's DATA import at the original's variable. Returns the slot's
+ * previous value (our own variable's address) so it can be logged. */
+static void *redirect_global_import(HMODULE exe) {
+    BYTE *base = (BYTE *)exe;
+    IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)base;
+    IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(base + dos->e_lfanew);
+    IMAGE_DATA_DIRECTORY dd = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    IMAGE_IMPORT_DESCRIPTOR *d;
+    if (!p_GlobalObj || !dd.VirtualAddress) return NULL;
+    d = (IMAGE_IMPORT_DESCRIPTOR *)(base + dd.VirtualAddress);
+    for (; d->Name; d++) {
+        IMAGE_THUNK_DATA *oft, *ft;
+        if (lstrcmpiA((char *)(base + d->Name), "Strlkup.dll") != 0) continue;
+        oft = (IMAGE_THUNK_DATA *)(base + (d->OriginalFirstThunk ? d->OriginalFirstThunk : d->FirstThunk));
+        ft  = (IMAGE_THUNK_DATA *)(base + d->FirstThunk);
+        for (; oft->u1.AddressOfData; oft++, ft++) {
+            IMAGE_IMPORT_BY_NAME *ibn;
+            if (oft->u1.Ordinal & IMAGE_ORDINAL_FLAG) continue;
+            ibn = (IMAGE_IMPORT_BY_NAME *)(base + oft->u1.AddressOfData);
+            if (lstrcmpA((char *)ibn->Name, "StrLookup_Global_Object") != 0) continue;
+            {
+                DWORD old; void *prev = (void *)ft->u1.Function;
+                if (VirtualProtect(&ft->u1.Function, sizeof(void *), PAGE_READWRITE, &old)) {
+                    ft->u1.Function = (DWORD_PTR)p_GlobalObj;
+                    VirtualProtect(&ft->u1.Function, sizeof(void *), old, &old);
+                    return prev;
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
+static void load_orig(void) {
+    char path[MAX_PATH];
+    if (g_orig) return;
+    /* By FULL PATH beside this DLL. Loading "strlkup_orig.dll" by bare name would
+     * search the app directory first, which is fine here, but being explicit costs
+     * nothing and cannot be surprised by a working-directory change. */
+    _snprintf(path, sizeof(path), "%s\\strlkup_orig.dll", g_dir);
+    g_orig = LoadLibraryA(path);
+    if (!g_orig) {
+        char msg[MAX_PATH + 160];
+        _snprintf(msg, sizeof(msg),
+                  "Strlkup proxy could not load:\n%s\n\n"
+                  "Restore the original by copying strlkup_orig.dll over Strlkup.dll.", path);
+        MessageBoxA(NULL, msg, "I76 music fix", MB_OK | MB_ICONERROR);
+        return;
+    }
+    p_Create    = GetProcAddress(g_orig, "StrLookupCreate");
+    p_Destroy   = GetProcAddress(g_orig, "StrLookupDestroy");
+    p_Find      = GetProcAddress(g_orig, "StrLookupFind");
+    p_Format    = GetProcAddress(g_orig, "StrLookupFormat");
+    p_GlobalObj = (void **)GetProcAddress(g_orig, "StrLookup_Global_Object");
+    mlog("  strlkup_orig: Create=%p Destroy=%p Find=%p Format=%p GlobalObj=%p val=%p",
+         p_Create, p_Destroy, p_Find, p_Format, (void *)p_GlobalObj, StrLookup_Global_Object);
+}
+
+/* Bare jmp - no prologue, no epilogue, no stack touched. */
+#define FWD(name, slot)                                                  \
+    __declspec(dllexport) __declspec(naked) void name(void) {             \
+        __asm { jmp dword ptr [slot] }                                    \
+    }
+FWD(StrLookupCreate,  p_Create)
+FWD(StrLookupDestroy, p_Destroy)
+FWD(StrLookupFind,    p_Find)
+FWD(StrLookupFormat,  p_Format)
+#undef FWD
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -253,8 +361,14 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         GetModuleFileNameA(h, g_dir, sizeof(g_dir));
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
         g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
+        load_orig();   /* must happen before the game calls any forwarded export */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
+        /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
+         * see the note above redirect_global_import. Must run after load_orig. */
+        mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p",
+             redirect_global_import(exe), (void *)p_GlobalObj);
+        {
         void *old = patch_iat(exe, "WINMM.dll", "mciSendCommandA", hook_mciSendCommandA);
         mlog("--- strlkproxy: IAT patch mciSendCommandA old=%p new=%p ---", old, (void *)hook_mciSendCommandA);
         /* The aux trio is what actually gets the engine to TRY. Without these the
@@ -264,6 +378,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
              patch_iat(exe, "WINMM.dll", "auxGetNumDevs",  hook_auxGetNumDevs),
              patch_iat(exe, "WINMM.dll", "auxGetDevCapsA", hook_auxGetDevCapsA),
              patch_iat(exe, "WINMM.dll", "auxSetVolume",   hook_auxSetVolume));
+        }
     } else if (reason == DLL_PROCESS_DETACH) {
         stop_track();
     }
