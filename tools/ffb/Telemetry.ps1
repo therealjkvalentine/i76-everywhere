@@ -527,6 +527,19 @@ function Tel-Sample {
         }
     }
 
+    # The ENGINE's own FFB state. 0x52bbd0 is its "force feedback device present"
+    # flag, set once at startup. It matters here because the engine's weapon-fire
+    # path calls into I7_SFRCE.DLL WITHOUT null-checking its effect object: if we
+    # have taken the device exclusively, the effect handle underneath is dead and
+    # the next shot faults at I7_SFRCE.DLL+0x2505 (0xC0000005). Confirmed twice in
+    # the field, and predicted in docs/FFB-LAPTOP-RECON.md.
+    $gameFfb = 0
+    $gb = $Ctx.FireBuf
+    $gn = 0
+    if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]0x52bbd0, $gb, 4, [ref]$gn)) {
+        $gameFfb = [BitConverter]::ToInt32($gb, 0)
+    }
+
     $understeer = $slip.Understeer
     $oversteer  = $slip.Oversteer
 
@@ -545,6 +558,9 @@ function Tel-Sample {
         Tumble      = ([math]::Abs($angVelX) + [math]::Abs($angVelZ))
         FireRaw     = $fire
         Firing      = ($fire -ne 0)
+        # Nonzero = the engine also has a live FFB device, so FIRING WILL CRASH IT
+        # while we hold the wheel. See the note above.
+        GameFfb     = $gameFfb
         Steer       = $steer
         Throttle    = $throttle
         # derived
