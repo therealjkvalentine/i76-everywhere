@@ -329,6 +329,56 @@ the same species as the `+0x08` matrix error:
 Not a runtime dependency: nothing in the interposer needs this, and since our
 layer coexists with the game the engine still plays these itself.
 
+## The force bus - device processing is the last stage
+
+`Mix-Update` emits a **device-independent bus** alongside the wheel force, so every
+output device renders from one source of truth rather than each growing its own
+copy of the force model:
+
+```
+Steady      -1..1   signed kinesthetic force (what a wheel motor renders)
+Tactile     bank of oscillators {Name, Freq Hz, Amp 0..1}
+Transient   -1..1   impact / weapon envelopes, split
+Motion      raw SI: SurgeA/SwayA/HeaveA m/s2, YawRate rad/s, Pitch rad
+Lfe         parametric bass-shaker: engine, road, impulses (freq + amp)
+```
+
+| renderer | how |
+|---|---|
+| **wheel** | `(Steady + OscValue + Transient) * 10000` - exactly the existing output, asserted by test |
+| **pad** | `Mix-RenderPad` - left motor heavy/low, right motor buzz/high, per `i76-remap.ahk` |
+| **motion rig** | `Motion` verbatim over UDP; washout and tilt are the rig's job |
+| **bass shaker** | `Lfe` synthesised to audio by `ffb-lfe.ps1` |
+
+## Looking at it
+
+```powershell
+toolsfbfb-graph.ps1 -Csv drive.csv                      # interactive HTML report
+toolsfbfb-graph.ps1 -Csv drive.csv -Set SatGain=1800    # same drive, different tune
+toolsfbfb-lfe.ps1  -Csv drive.csv                      # the shaker channel as a WAV
+toolsfbfb-telemetry-udp.ps1 -Targets simhub            # feed motion/tactile software
+```
+
+`ffb-replay.ps1` gives distributions - medians, "this channel never fires".
+`ffb-graph.ps1` gives **shape**, which is what tuning actually turns on: whether an
+impact reads as a spike or is buried in the steady floor. Render the same drive
+under two tunes and the two files side by side *are* the tuning loop.
+
+## Talking to motion rigs and bass shakers
+
+`ffb-telemetry-udp.ps1` emits **LFS OutSim / OutGauge** UDP - the format SimTools,
+FlyPT Mover, SimHub, Sim Racing Studio, SIMRIG and Simucube all listen for
+passively. No plugin to author. BeamNG.drive ships an OutGauge emitter for exactly
+this reason.
+
+Honest about what it carries: velocity, world acceleration, yaw rate, speed and
+pedals are **real**; heading is a **proxy** (direction of travel - this engine has
+no orientation to read); pitch, roll, position and per-wheel data are **zero**,
+because the engine has no suspension model and inventing one would drive a rig with
+detail the simulation does not have.
+
+Background and the numbers behind all of this: **[docs/FFB-DESIGN-LIBRARY.md](../../docs/FFB-DESIGN-LIBRARY.md)**.
+
 ## Files
 
 | file | role |
@@ -341,3 +391,7 @@ layer coexists with the game the engine still plays these itself.
 | `ffb-mixer-test.ps1` | 28 assertions over synthetic drives |
 | `ffb-coexist-test.ps1` | device-sharing measurement |
 | `ffb-telemetry-probe.ps1` | offset discovery by behaviour |
+| `ffb-graph.ps1` + template | interactive HTML drive report |
+| `ffb-lfe.ps1` | renders the LFE bus to a WAV you can feel |
+| `ffb-telemetry-udp.ps1` | LFS OutSim/OutGauge broadcaster (21 layout assertions) |
+| `parse-frc.py` | decodes the engine's own authored effects |
