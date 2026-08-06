@@ -172,6 +172,19 @@ function Mix-DefaultTune {
         # same shot, without this the wheel would kick twice per trigger pull.
         WeaponBlankMs = 70
 
+        # --- LFE / bass-shaker channel (bus only - no wheel output) ---------
+        # Parametric low-frequency content for tactile transducers. Frequencies
+        # sit in the 20-60 Hz band a shaker reproduces; the engine fundamental
+        # tracks speed because that is what a 1997 arcade engine note does.
+        LfeEngineIdleHz = 24.0  # fundamental at standstill
+        LfeEngineMaxHz  = 52.0  # fundamental at LfeEngineRefSpd
+        LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out
+        LfeEngineAmp    = 0.45  # amplitude at full throttle
+        LfeRoadAmp      = 0.50  # road-rumble amplitude at RoughRef jolt
+        LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
+        LfeImpactHz     = 30.0
+        LfeWeaponHz     = 42.0
+
         # --- safety ---------------------------------------------------------
         Clamp         = 9500   # never exceed this; leaves headroom under 10000
         RampMs        = 700    # fade in over this long on start / after a pause
@@ -354,7 +367,9 @@ function Mix-Update {
     # in this engine. Tyres scrubbing sideways is exactly what happens in a spin,
     # so the buzz belongs on the signal that actually occurs.
     $scrub = 0.0
+    $scrubAmp = 0.0
     if ($outOfShape -gt 0.15) {
+        $scrubAmp = $Tune.ScrubGain * $outOfShape
         $Mix.ScrubPhase += 2 * [math]::PI * $Tune.ScrubHz * $dt
         if ($Mix.ScrubPhase -gt (2 * [math]::PI)) { $Mix.ScrubPhase -= 2 * [math]::PI }
         $scrub = $Tune.ScrubGain * $outOfShape * [math]::Sin($Mix.ScrubPhase)
@@ -367,11 +382,13 @@ function Mix-Update {
     # No ABS in 1997. Under heavy braking the wheels lock and release, and that
     # shimmy is a genuine cue that you are past the limit.
     $judder = 0.0
+    $judderAmp = 0.0
     if ($Sample.LongG -lt -0.45 -and $Sample.Speed -gt 4) {
         $Mix.JudderPhase += 2 * [math]::PI * $Tune.JudderHz * $dt
         if ($Mix.JudderPhase -gt (2 * [math]::PI)) { $Mix.JudderPhase -= 2 * [math]::PI }
         $jN = [math]::Min(1.0, ((-$Sample.LongG) - 0.45) / 0.5)
-        $judder = $Tune.JudderGain * $jN * [math]::Sin($Mix.JudderPhase)
+        $judderAmp = $Tune.JudderGain * $jN
+        $judder = $judderAmp * [math]::Sin($Mix.JudderPhase)
     }
     $ch['judder'] = [int]$judder
 
@@ -458,6 +475,57 @@ function Mix-Update {
     if ($force -lt -$Tune.Clamp) { $force = -$Tune.Clamp }
     if ([math]::Abs($force) -gt $Mix.PeakForce) { $Mix.PeakForce = [math]::Abs($force) }
 
+    # ---- THE FORCE BUS ------------------------------------------------------
+    # The device-independent output. Everything below is derived from the SAME
+    # values that produced $force, so a renderer that sums the bus reproduces the
+    # wheel force exactly - asserted by test. Units are normalized (forces -1..1,
+    # amplitudes 0..1, frequencies Hz, motion in SI) so device processing really
+    # is the last stage:
+    #
+    #   wheel      = (Steady + OscValue + Transient) * 10000   <- today's output
+    #   pad rumble = Mix-RenderPad (left=heavy/low, right=buzz/high)
+    #   motion rig = Motion block, raw SI; rig-side software does the cueing
+    #   bass shaker= Lfe block, parametric (freq+amp), synthesised downstream
+    $N = 10000.0
+    $mScale = $Tune.Master * $ramp
+    if (-not $Mix.Enabled) { $mScale = 0.0 }
+    $bus = [pscustomobject]@{
+        # kinesthetic: the signed low-frequency force a hand steers against
+        Steady    = [math]::Round(($steady * $mScale) / $N, 4)
+        # tactile: instantaneous summed oscillator value, and the bank behind it
+        OscValue  = [math]::Round(($osc * $mScale) / $N, 4)
+        Tactile   = @(
+            @{ Name='texture'; Freq=$Tune.TextureHz; Amp=[math]::Round([math]::Abs($texAmp*$mScale)/$N,4) }
+            @{ Name='scrub';   Freq=$Tune.ScrubHz;   Amp=[math]::Round(($scrubAmp*$mScale)/$N,4) }
+            @{ Name='judder';  Freq=$Tune.JudderHz;  Amp=[math]::Round(($judderAmp*$mScale)/$N,4) }
+        )
+        # transients: instantaneous envelope values, signed
+        Transient = [math]::Round((($transImpact + $transWeapon) * $mScale) / $N, 4)
+        TransientImpact = [math]::Round(($transImpact * $mScale) / $N, 4)
+        TransientWeapon = [math]::Round(($transWeapon * $mScale) / $N, 4)
+        # motion platform: raw SI quantities; washout/tilt is the RIG's job
+        Motion = [pscustomobject]@{
+            SurgeA  = [math]::Round($Sample.LongAccel, 3)                    # m/s^2, +fwd
+            SwayA   = [math]::Round($Sample.LatAccel, 3)                     # m/s^2, +left/right per sign
+            HeaveA  = [math]::Round($(if ($null -ne $Sample.HeaveAccel) { $Sample.HeaveAccel } else { 0.0 }), 3)  # m/s^2
+            YawRate = [math]::Round($Sample.YawRate, 4)                      # rad/s
+            Pitch   = [math]::Round($(if ($null -ne $Sample.TravelPitch) { $Sample.TravelPitch } else { 0.0 }), 4) # rad, terrain
+            Speed   = [math]::Round($Sample.Speed, 3)                        # m/s
+        }
+        # bass shaker: parametric. EngineFreq tracks speed like a '97 engine note.
+        Lfe = [pscustomobject]@{
+            EngineFreq = [math]::Round($Tune.LfeEngineIdleHz + ($Tune.LfeEngineMaxHz - $Tune.LfeEngineIdleHz) *
+                           [math]::Min(1.0, $Sample.Speed / $Tune.LfeEngineRefSpd), 1)
+            EngineAmp  = [math]::Round($Tune.LfeEngineAmp * [math]::Max(0.12, [math]::Abs($Sample.Throttle)) *
+                           $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
+            RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
+            ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
+            ImpulseFreq= $Tune.LfeImpactHz
+            WeaponAmp  = [math]::Round([math]::Min(1.0, [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
+            WeaponFreq = $Tune.LfeWeaponHz
+        }
+    }
+
     return [pscustomobject]@{
         Force    = [int]$force
         Steady   = [int]$steady
@@ -465,5 +533,38 @@ function Mix-Update {
         Ramp     = $ramp
         Channels = $ch
         Notes    = $notes
+        Bus      = $bus
     }
+}
+
+
+function Mix-RenderPad {
+    <#
+      Down-mix the bus for a two-motor XInput pad - the "device processing is the
+      last phase" degradation path. Returns Left / Right in 0..1.
+
+      The mapping follows the field-proven i76-remap.ahk rumble design:
+      LEFT motor carries the heavy/low-frequency world (engine, road, impacts,
+      the magnitude of steady load), RIGHT carries the light/high-frequency buzz
+      (scrub, judder, weapon fire). A pad cannot render a signed force, so the
+      kinesthetic channel degrades to unsigned weight on the heavy motor at a
+      fraction - enough to feel loaded, not enough to bury transients, which is
+      the same hierarchy rule as everywhere else in this system.
+    #>
+    param($Bus)
+    $left  = 0.0
+    $right = 0.0
+    # heavy: LFE content + impact transients + a fraction of the steady load
+    $left += $Bus.Lfe.EngineAmp * 0.5
+    $left += $Bus.Lfe.RoadAmp * 0.6
+    $left += [math]::Abs($Bus.TransientImpact)
+    $left += [math]::Abs($Bus.Steady) * 0.25
+    # buzz: the tactile bank + weapon fire
+    foreach ($t in $Bus.Tactile) {
+        if ($t.Name -eq 'texture') { $right += $t.Amp * 0.5 } else { $right += $t.Amp }
+    }
+    $right += [math]::Abs($Bus.TransientWeapon)
+    if ($left -gt 1.0) { $left = 1.0 }
+    if ($right -gt 1.0) { $right = 1.0 }
+    return [pscustomobject]@{ Left = [math]::Round($left,4); Right = [math]::Round($right,4) }
 }

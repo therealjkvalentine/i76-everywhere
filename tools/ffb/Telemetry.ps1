@@ -286,6 +286,7 @@ function Tel-Open {
         Polls     = 0
         # derived values, HELD between sim ticks
         LongAccel = 0.0
+        VyRate    = 0.0
         Jolt      = 0.0
         # First-change priming. Without this the first tick differentiates
         # against a zeroed baseline and emits a large bogus jolt - which the
@@ -488,6 +489,11 @@ function Tel-Sample {
             # Negative = slowing (braking, or hitting something).
             $Ctx.LongAccel = ($speed - $Ctx.LastTickSpeed) / $dt
 
+            # Heave: rate of change of VERTICAL velocity, m/s^2. This is the
+            # motion-platform "heave" axis - landings, crests, and the drop of a
+            # jump all live here. Same tick discipline as LongAccel.
+            $Ctx.VyRate = ($vy - $Ctx.LastVy) / $dt
+
             # Jolt = magnitude of the VECTOR velocity change per second. A crash
             # redirects velocity even when |v| barely moves (glancing a wall
             # spins you without much speed loss), so the vector delta catches
@@ -568,12 +574,23 @@ function Tel-Sample {
         # derived
         LongAccel   = $Ctx.LongAccel
         LongG       = $Ctx.LongAccel / 9.81
+        HeaveAccel  = $Ctx.VyRate
         LatAccel    = $latAccel
         LatG        = $latAccel / 9.81
         ExpectedYaw = $expectedYaw
         Understeer  = $understeer
         Oversteer   = $oversteer
         Jolt        = $Ctx.Jolt
+        # Climb angle of the VELOCITY vector, radians. There is no usable
+        # orientation in the entity (no rotation matrix - see the header), but the
+        # direction of travel carries the terrain: vy/|v| is the sine of the slope
+        # being driven. Motion rigs use this as the pitch cue. Zero when too slow
+        # for the ratio to mean anything.
+        TravelPitch = $(if ($speed -gt 2.0) {
+                          $r = $vy / $speed
+                          if ($r -gt 1.0) { $r = 1.0 } elseif ($r -lt -1.0) { $r = -1.0 }
+                          [math]::Asin($r)
+                        } else { 0.0 })
         Braking     = ($throttle -lt -0.05)
         Airborne    = ([math]::Abs($vy) -gt 2.0)
         Wheelbase   = $Ctx.Wheelbase
