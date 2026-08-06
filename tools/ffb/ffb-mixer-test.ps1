@@ -42,6 +42,7 @@ function Fake {
     [pscustomobject]@{
         T = $T; Speed = $Speed; SpeedMph = $Speed * 2.23694; Steer = $Steer; Throttle = $Throttle
         YawRate = $YawRate; ExpectedYaw = $ExpectedYaw; LongG = $LongG; LatG = $LatG
+        LongAccel = ($LongG * 9.81); LatAccel = ($LatG * 9.81); HeaveAccel = 0.0; TravelPitch = 0.0
         Understeer = $Understeer; Oversteer = $Oversteer; Jolt = $Jolt
         AngVelX = $AngVelX; AngVelZ = $AngVelZ; Vy = $Vy; Tumble = ($Tumble + [math]::Abs($AngVelX) + [math]::Abs($AngVelZ))
         Firing = $Firing; FireRaw = $(if ($Firing) { 1 } else { 0 })
@@ -258,6 +259,67 @@ $m3 = Mix-New
 $m3.Enabled = $false
 $muted = Mix-Update $m3 (Fake -T 1.0 -Speed 30 -Steer 1 -YawRate 2 -LatG 3 -Jolt 200)
 Check "mute forces exactly zero" ($muted.Force -eq 0) "got $($muted.Force)"
+
+Write-Host "`n=== 9b. the force BUS is consistent with the wheel output ===" -ForegroundColor Cyan
+# The bus is the device-independent output; the wheel is one renderer of it. If
+# summing the bus does not reproduce Force, the "device processing last" claim is
+# false and every other renderer inherits the drift.
+$m = Mix-New
+$o = $null
+for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) {
+    $o = Mix-Update $m (Fake -T $t -Speed 18 -Steer 0.5 -YawRate 0.6 -LatG 1.5 -ExpectedYaw 0.6 -Jolt 6)
+}
+$busSum = ($o.Bus.Steady + $o.Bus.OscValue + $o.Bus.Transient) * 10000.0
+Check "bus sum reproduces the wheel force" ([math]::Abs($busSum - $o.Force) -le 25) `
+    ("bus {0:0} vs force {1}" -f $busSum, $o.Force)
+Check "bus steady is normalized" ([math]::Abs($o.Bus.Steady) -le 1.0) "got $($o.Bus.Steady)"
+Check "tactile bank has 3 oscillators with Hz" ($o.Bus.Tactile.Count -eq 3 -and $o.Bus.Tactile[0].Freq -gt 0) ""
+
+# motion passthrough: raw SI values reach the bus untouched
+$m2 = Mix-New
+$o2 = Mix-Update $m2 (Fake -T 1.0 -Speed 20 -Steer 0.3 -YawRate 0.8 -LatG 2.0)
+Check "motion carries yaw rate" ([math]::Abs($o2.Bus.Motion.YawRate - 0.8) -lt 0.001) "got $($o2.Bus.Motion.YawRate)"
+Check "motion carries sway from latAccel" ([math]::Abs($o2.Bus.Motion.SwayA - (2.0*9.81)) -lt 0.5) "got $($o2.Bus.Motion.SwayA)"
+
+# LFE: silent when parked, engine tracks speed, impact makes an impulse
+$mQ = Mix-New
+$oQ = Mix-Update $mQ (Fake -T 1.0)
+Check "LFE engine silent parked with no throttle" ($oQ.Bus.Lfe.EngineAmp -eq 0) "got $($oQ.Bus.Lfe.EngineAmp)"
+$mS = Mix-New
+$oSlow = Mix-Update $mS (Fake -T 1.0 -Speed 8 -Throttle 0.8)
+$oFast = Mix-Update $mS (Fake -T 1.1 -Speed 35 -Throttle 0.8)
+Check "LFE engine frequency rises with speed" ($oFast.Bus.Lfe.EngineFreq -gt $oSlow.Bus.Lfe.EngineFreq) `
+    ("slow {0} fast {1}" -f $oSlow.Bus.Lfe.EngineFreq, $oFast.Bus.Lfe.EngineFreq)
+$mI = Mix-New
+$imp = 0.0
+for ($t = 0.0; $t -lt 1.6; $t += 1.0/60) {
+    $j = if ($t -ge 1.0 -and $t -lt 1.1) { 120 } else { 0 }
+    $oi = Mix-Update $mI (Fake -T $t -Speed 15 -Jolt $j -YawRate 0.2)
+    if ($oi.Bus.Lfe.ImpulseAmp -gt $imp) { $imp = $oi.Bus.Lfe.ImpulseAmp }
+}
+Check "LFE impulse fires on impact" ($imp -gt 0.1) "peak $imp"
+
+Write-Host "`n=== 9c. pad down-mix (the dumbed-down renderer) ===" -ForegroundColor Cyan
+$pQ = Mix-RenderPad $oQ.Bus
+Check "quiet bus -> silent pad" ($pQ.Left -eq 0 -and $pQ.Right -eq 0) "L=$($pQ.Left) R=$($pQ.Right)"
+$mImp = Mix-New
+$pImp = $null
+for ($t = 0.0; $t -lt 1.15; $t += 1.0/60) {
+    $j = if ($t -ge 1.0) { 150 } else { 0 }
+    $oi = Mix-Update $mImp (Fake -T $t -Speed 15 -Jolt $j -YawRate 0.2)
+    $pp = Mix-RenderPad $oi.Bus
+    if ($null -eq $pImp -or $pp.Left -gt $pImp.Left) { $pImp = $pp }
+}
+Check "impact lands on the HEAVY motor" ($pImp.Left -gt 0.3) "L=$($pImp.Left)"
+$mW = Mix-New
+$pW = $null
+for ($t = 0.0; $t -lt 1.1; $t += 1.0/60) {
+    $oi = Mix-Update $mW (Fake -T $t -Speed 15 -Firing ($t -ge 1.0))
+    $pp = Mix-RenderPad $oi.Bus
+    if ($null -eq $pW -or $pp.Right -gt $pW.Right) { $pW = $pp }
+}
+Check "weapon fire lands on the BUZZ motor" ($pW.Right -gt 0.2) "R=$($pW.Right)"
+Check "pad outputs bounded 0..1" ($pImp.Left -le 1.0 -and $pW.Right -le 1.0) ""
 
 Write-Host "`n=== 10. no NaN or infinity escapes ===" -ForegroundColor Cyan
 # Division by a near-zero speed or wheelbase is the classic way a force model
