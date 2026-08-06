@@ -511,6 +511,74 @@ FWD(StrLookupFind,    p_Find)
 FWD(StrLookupFormat,  p_Format)
 #undef FWD
 
+/* ===========================================================================
+ * LAUNCH STRAIGHT INTO A MISSION   (I76_MISSION=t01)
+ * ===========================================================================
+ * Set I76_MISSION to a mission basename and the game boots directly into it,
+ * skipping the menus entirely. Missions live in miss8\ and miss16\ as
+ * <letter><NN>.MSN - m01..m15 campaign, t01..t17, s01..s07, a01.
+ *
+ * HOW IT WORKS. i76.exe already HAS a "mission named on the command line" path:
+ * a global buffer at 0x5049f0 holds a mission basename, and at 0x4033fd
+ *
+ *     cmp dword ptr [esp+0x1c], ebx     ; was a name supplied?
+ *     jne 0x403476                      ; yes -> SKIP the menu's own name copy
+ *
+ * The flag is set at 0x402d6f purely from `[0x5049f0] != 0`. So filling that
+ * buffer is enough - no new code paths, we use the engine's own.
+ *
+ * WHAT DOES NOT WORK, tested rather than assumed: passing the name on the actual
+ * command line. The parser at 0x49d1d0 tokenises on " ," and dispatches only on
+ * '/' and '-'; a bare argument falls to the loop tail and is DISCARDED. Probing
+ * 0x5049f0 after launching with `-glide t01`, `-glide -mission t01` and
+ * `-glide /t01` gives an empty buffer every time. The plumbing exists; nothing
+ * fills it. So we fill it.
+ *
+ * TWO instructions would otherwise wipe what we write, both before the flag is
+ * read, so both are NOPed:
+ *     0x402d33  88 0D F0 49 50 00   mov byte ptr [0x5049f0], cl  (pre-parse)
+ *     0x49d1e0  C6 00 00            mov byte ptr [eax], 0        (in the parser)
+ *
+ * DllMain runs before the exe's entry point, so writing here lands before any of
+ * this executes.
+ *
+ * Every patch VERIFIES the existing bytes first and refuses if they differ - a
+ * different build of i76.exe would otherwise be silently corrupted at addresses
+ * that mean something else entirely.
+ */
+static int patch_bytes(DWORD_PTR va, const BYTE *expect, const BYTE *want, SIZE_T n, const char *what) {
+    DWORD old;
+    BYTE *p = (BYTE *)va;
+    if (memcmp(p, expect, n) != 0) {
+        mlog("  mission-launch: %s at 0x%08lX has UNEXPECTED bytes - not patching", what, (unsigned long)va);
+        return 0;
+    }
+    if (!VirtualProtect(p, n, PAGE_EXECUTE_READWRITE, &old)) return 0;
+    memcpy(p, want, n);
+    VirtualProtect(p, n, old, &old);
+    return 1;
+}
+
+static void apply_mission_launch(void) {
+    char mission[32];
+    DWORD n = GetEnvironmentVariableA("I76_MISSION", mission, sizeof(mission));
+    static const BYTE clr1_old[6] = { 0x88, 0x0D, 0xF0, 0x49, 0x50, 0x00 };
+    static const BYTE clr1_nop[6] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+    static const BYTE clr2_old[3] = { 0xC6, 0x00, 0x00 };
+    static const BYTE clr2_nop[3] = { 0x90, 0x90, 0x90 };
+    int ok1, ok2;
+    if (n == 0 || n >= sizeof(mission)) return;      /* not requested */
+
+    ok1 = patch_bytes(0x00402d33, clr1_old, clr1_nop, 6, "pre-parse clear");
+    ok2 = patch_bytes(0x0049d1e0, clr2_old, clr2_nop, 3, "parser clear");
+    if (!ok1 || !ok2) {
+        mlog("  mission-launch ABORTED (%d/%d patches applied) - booting to the menu", ok1 + ok2, 2);
+        return;
+    }
+    lstrcpynA((char *)0x005049f0, mission, 16);
+    mlog("  mission-launch: booting directly into '%s'", mission);
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -519,6 +587,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
         g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
         load_orig();   /* must happen before the game calls any forwarded export */
+        apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
