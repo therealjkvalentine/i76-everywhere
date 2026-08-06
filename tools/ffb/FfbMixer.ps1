@@ -173,17 +173,47 @@ function Mix-DefaultTune {
         WeaponBlankMs = 70
 
         # --- LFE / bass-shaker channel (bus only - no wheel output) ---------
-        # Parametric low-frequency content for tactile transducers. Frequencies
-        # sit in the 20-60 Hz band a shaker reproduces; the engine fundamental
-        # tracks speed because that is what a 1997 arcade engine note does.
-        LfeEngineIdleHz = 24.0  # fundamental at standstill
-        LfeEngineMaxHz  = 52.0  # fundamental at LfeEngineRefSpd
+        # Parametric low-frequency content for a tactile transducer.
+        #
+        # THE BAND. Puck-style shakers (Dayton BST-1, Aura AST-2B) are 20-80 Hz
+        # devices with a resonance hump at 30-40 Hz; ButtKickers reach lower but
+        # the practical design band is 20-100 Hz with the strongest output around
+        # 30-50 Hz. Below ~20 Hz is an excursion hazard, not a feature - ButtKicker
+        # warns infrasonic content can damage the driver - so nothing here is
+        # authored below 25 Hz and ffb-lfe.ps1 high-passes at 22 Hz regardless.
+        #
+        # SEPARATION IS THE DESIGN RULE. Concurrent effects must sit apart in
+        # frequency or they mask each other and the reader cannot tell them apart.
+        # The two CONTINUOUS channels get non-overlapping bands, and the two
+        # TRANSIENTS are further distinguished by envelope (a one-shot against a
+        # steady hum reads as separate even where bands are close):
+        #
+        #     engine   25 -> 45 Hz   continuous, low        (the background)
+        #     road     50 -> 70 Hz   continuous, noise bed  (above the engine)
+        #     impact   32 Hz         one-shot, heavy thump
+        #     weapon   85 Hz         one-shot, sharp crack
+        #
+        # An earlier version had the engine sweeping 24->52 Hz straight THROUGH
+        # both transient frequencies, which is exactly the collision this avoids.
+        #
+        # Engine pitch tracks SPEED, not RPM, because the engine exposes no RPM.
+        # The physically correct fundamental is the firing frequency
+        # (RPM * cylinders / 120), which leaves the shaker band by mid-revs anyway,
+        # so the standard practice is to compress idle->redline into ~25-55 Hz and
+        # let amplitude carry load. Speed is a serviceable stand-in for that curve.
+        LfeEngineIdleHz = 25.0  # fundamental at standstill
+        LfeEngineMaxHz  = 45.0  # fundamental at LfeEngineRefSpd
         LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out
         LfeEngineAmp    = 0.45  # amplitude at full throttle
+        LfeEngineJitter = 0.06  # +/- fraction of pitch wander. A perfectly steady
+                                # tone numbs the skin and masks transients; ShakeIt
+                                # ships noise randomisation for exactly this reason.
+        LfeRoadLoHz     = 50.0  # road noise bed, quiet end
+        LfeRoadHiHz     = 70.0  # road noise bed, rough end
         LfeRoadAmp      = 0.50  # road-rumble amplitude at RoughRef jolt
         LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
-        LfeImpactHz     = 30.0
-        LfeWeaponHz     = 42.0
+        LfeImpactHz     = 32.0
+        LfeWeaponHz     = 85.0
 
         # --- safety ---------------------------------------------------------
         Clamp         = 9500   # never exceed this; leaves headroom under 10000
@@ -519,6 +549,7 @@ function Mix-Update {
             EngineAmp  = [math]::Round($Tune.LfeEngineAmp * [math]::Max(0.12, [math]::Abs($Sample.Throttle)) *
                            $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
             RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
+            RoadFreq   = [math]::Round($Tune.LfeRoadLoHz + ($Tune.LfeRoadHiHz - $Tune.LfeRoadLoHz) * $rough, 1)
             ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
             ImpulseFreq= $Tune.LfeImpactHz
             WeaponAmp  = [math]::Round([math]::Min(1.0, [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)

@@ -31,3 +31,5 @@ tools/shot_*.png
 tools/screen.png
 tools/bisect_*.png
 tools/slow_*.png
+tools/ffb/*.wav
+tools/ffb/*.graph.html

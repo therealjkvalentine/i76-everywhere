@@ -56,6 +56,17 @@ public static class DI {
     public const uint DI8DEVCLASS_GAMECTRL = 4;
     public const uint DIEDFL_ATTACHEDONLY  = 0x00000001;
     public const uint DIEDFL_FORCEFEEDBACK = 0x00000100;
+    // DIPROP_AUTOCENTER is a MAKEDIPROP(5) "GUID" - an integer cast to a pointer,
+    // which is how DirectInput's predefined property GUIDs are passed.
+    public const int  DIPROP_AUTOCENTER = 5;
+    public const uint DIPH_DEVICE       = 0;
+    [StructLayout(LayoutKind.Sequential)] public struct DIPROPHEADER {
+      public uint dwSize, dwHeaderSize, dwObj, dwHow;
+    }
+    [StructLayout(LayoutKind.Sequential)] public struct DIPROPDWORD {
+      public uint diph_dwSize, diph_dwHeaderSize, diph_dwObj, diph_dwHow, dwData;
+    }
+    public delegate int D_SetProperty(IntPtr self, IntPtr guid, ref DIPROPDWORD p);
     public const uint DISCL_EXCLUSIVE      = 0x00000001;
     public const uint DISCL_BACKGROUND     = 0x00000008;
     public const uint DIEP_DIRECTION       = 0x00000040;
@@ -132,7 +143,8 @@ public static class DI {
     // IDirectInputDevice8: 7=Acquire 8=Unacquire 11=SetDataFormat
     // 13=SetCooperativeLevel 18=CreateEffect
     public const int DEV_Acquire = 7, DEV_Unacquire = 8, DEV_SetDataFormat = 11,
-                     DEV_SetCooperativeLevel = 13, DEV_CreateEffect = 18;
+                     DEV_SetCooperativeLevel = 13, DEV_CreateEffect = 18,
+                     DEV_SetProperty = 6;
     // IDirectInputEffect: 6=SetParameters 7=Start 8=Stop
     public const int EFF_SetParameters = 6, EFF_Start = 7, EFF_Stop = 8;
     public const int IUnk_Release = 2;
@@ -245,6 +257,26 @@ function Ffb-Open {
     $hr = $scl.Invoke($dev, $hwnd, ([DI]::DISCL_EXCLUSIVE -bor [DI]::DISCL_BACKGROUND))
     if ($hr -ne 0) { throw "SetCooperativeLevel failed 0x$('{0:X8}' -f $hr)" }
 
+    # Turn the device's own centring spring OFF, while still UNACQUIRED (the
+    # documented requirement for DIPROP_AUTOCENTER - it cannot be changed once
+    # acquired). Left on, the wheel's built-in spring fights our `center` channel:
+    # two centring forces summing in the same actuator, one of which we cannot see
+    # or scale. iRacing's own Thrustmaster recipe says the same thing - auto-centre
+    # off, because the game supplies centring.
+    #
+    # Best-effort: a device without the property is not an error worth aborting on.
+    try {
+        $prop = New-Object DI+DIPROPDWORD
+        $prop.diph_dwSize = [uint32][Runtime.InteropServices.Marshal]::SizeOf([type][DI+DIPROPDWORD])
+        $prop.diph_dwHeaderSize = [uint32][Runtime.InteropServices.Marshal]::SizeOf([type][DI+DIPROPHEADER])
+        $prop.diph_dwObj = 0
+        $prop.diph_dwHow = [DI]::DIPH_DEVICE
+        $prop.dwData = 0                                   # DIPROPAUTOCENTER_OFF
+        $sprop = Get-Fn $dev ([DI]::DEV_SetProperty) ([DI+D_SetProperty])
+        $g = [DI]::DIPROP_AUTOCENTER
+        $null = $sprop.Invoke($dev, [IntPtr]$g, [ref]$prop)
+    } catch { }
+
     $acq = Get-Fn $dev ([DI]::DEV_Acquire) ([DI+D_Acquire])
     $hr = $acq.Invoke($dev)
     if ($hr -lt 0) { throw "Acquire failed 0x$('{0:X8}' -f $hr) - something else holds the device (the GAME?)" }
@@ -307,8 +339,24 @@ function Ffb-Constant {
     } else {
         $e = $D.Effects['constant']
         [Runtime.InteropServices.Marshal]::WriteInt32($e.Type, $Magnitude)
+        # ONLY DIEP_TYPESPECIFICPARAMS. Not |DIEP_START, not the direction/duration/
+        # envelope/trigger flags it is tempting to re-send "to be safe".
+        #
+        # DirectInput's PID mapping emits one USB report per flag GROUP. With just
+        # the type-specific flag it sends only the magnitude report; add any other
+        # flag and it ALSO sends the "basic" report every single update - doubling
+        # bus traffic at 60 Hz and producing a documented loss of detail on some
+        # wheels under rapid updates (libsdl-org/SDL#12511, verified there with
+        # Wireshark; SDL was sending DIRECTION|DURATION|ENVELOPE|STARTDELAY|
+        # TRIGGERBUTTON|TRIGGERREPEATINTERVAL and fixed it by dropping them).
+        #
+        # The effect is already started and has INFINITE duration, so DIEP_START
+        # bought nothing. This is the canonical racing-title architecture: one
+        # always-running infinite constant force whose magnitude is rewritten in
+        # place. Parameters set this way take effect "as if they were the
+        # parameters when the effect started", so there is no phase discontinuity.
         $sp = Get-Fn $e.Ptr ([DI]::EFF_SetParameters) ([DI+D_SetParameters])
-        return $sp.Invoke($e.Ptr, [ref]$e.Eff, ([DI]::DIEP_TYPESPECIFICPARAMS -bor [DI]::DIEP_START))
+        return $sp.Invoke($e.Ptr, [ref]$e.Eff, [DI]::DIEP_TYPESPECIFICPARAMS)
     }
     return 0
 }
