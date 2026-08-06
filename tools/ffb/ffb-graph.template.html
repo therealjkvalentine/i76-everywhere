@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I76 force feedback - drive analysis</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fcfcfb; --plane: #f9f9f7;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19; --plane: #0d0d0d;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --plane: #0d0d0d;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--plane); }
+  .viz-root {
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary); background: var(--plane);
+    padding: 24px; max-width: 1180px; margin: 0 auto;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+  .sub { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; }
+  .sub code { background: var(--surface-1); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; }
+  .tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; min-width: 118px;
+  }
+  .tile .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .v { font-size: 22px; font-weight: 600; margin-top: 2px; }
+  .tile .n { font-size: 11px; color: var(--text-secondary); }
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px 6px; margin-bottom: 14px; position: relative;
+  }
+  .phead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .ptitle { font-size: 14px; font-weight: 600; }
+  .pnote { font-size: 12px; color: var(--text-secondary); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+  svg { display: block; width: 100%; overflow: visible; }
+  .tip {
+    position: fixed; pointer-events: none; z-index: 50; opacity: 0; transition: opacity .08s;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.16); min-width: 150px;
+  }
+  .tip .tt { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .tip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .tip .row .nm { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 5px; }
+  .tip .row .nm i { width: 12px; height: 2px; border-radius: 1px; }
+  .tip .row .vl { font-weight: 600; font-variant-numeric: tabular-nums; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--text-secondary); font-size: 13px; padding: 6px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--surface-1); }
+  .scroll { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+  .evlist { font-size: 12px; color: var(--text-secondary); }
+  .evlist b { color: var(--text-primary); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <h1>Interstate '76 &mdash; force feedback drive analysis</h1>
+  <div class="sub" id="sub"></div>
+  <div class="tiles" id="tiles"></div>
+  <div id="panels"></div>
+  <details>
+    <summary>Table view &mdash; every plotted sample</summary>
+    <div class="scroll"><table id="tbl"></table></div>
+  </details>
+  <div class="tip" id="tip"></div>
+</div>
+<script>
+const DATA = /*__DATA__*/;
+const R = DATA.rows, EV = DATA.events || [], S = DATA.stats;
+const cssv = n => getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(n).trim();
+
+document.getElementById('sub').innerHTML =
+  `<code>${esc(DATA.file)}</code> &middot; ${S.samples} samples over ${S.seconds}s &middot; ${esc(DATA.calib)}` +
+  (DATA.tune ? ` &middot; tune: <code>${esc(DATA.tune)}</code>` : '') +
+  (DATA.full ? '' : ' &middot; <b>calibration capture</b>: texture/judder/impact understated');
+
+function esc(s){ const d=document.createElement('span'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+
+// ---- stat tiles ----------------------------------------------------------
+const tiles = [
+  ['median force', S.medF, 'the resting weight'],
+  ['p90 force', S.p90F, 'typical peak'],
+  ['max force', S.maxF, 'of ' + S.clamp + ' clamp'],
+  ['clipped', S.clipPct + '%', 'force you cannot feel'],
+  ['near-silent', S.quietPct + '%', 'headroom for transients'],
+];
+document.getElementById('tiles').innerHTML = tiles.map(t =>
+  `<div class="tile"><div class="k">${esc(t[0])}</div><div class="v">${esc(t[1])}</div><div class="n">${esc(t[2])}</div></div>`).join('');
+
+// ---- panel definitions ---------------------------------------------------
+const PANELS = [
+  { title: 'Total force', note: 'what the wheel motor did. Zero-centred: above the line pushes one way, below the other.',
+    zero: true, series: [ {k:'force', label:'force', c:'--s1'} ] },
+  { title: 'Steady channels', note: 'the floor. Held low so transients read on top of it.',
+    zero: true, series: [ {k:'center',label:'center',c:'--s1'}, {k:'corner',label:'corner',c:'--s2'},
+                          {k:'brake',label:'brake',c:'--s3'}, {k:'oversteer',label:'oversteer',c:'--s4'} ] },
+  { title: 'Tactile + transients', note: 'texture rides continuously; impact and weapon are meant to spike clear of it.',
+    zero: true, series: [ {k:'texture',label:'texture',c:'--s4'}, {k:'scrub',label:'scrub',c:'--s3'},
+                          {k:'judder',label:'judder',c:'--s2'}, {k:'impact',label:'impact',c:'--s5'},
+                          {k:'weapon',label:'weapon',c:'--s6'} ] },
+  { title: 'Telemetry', note: 'speed in mph and steering input scaled x50 so both fit one axis.',
+    zero: true, series: [ {k:'mph',label:'speed (mph)',c:'--s1'}, {k:'steer',label:'steer x50',c:'--s2',mul:50} ] },
+  { title: 'Motion platform', note: 'raw SI for a 6-DOF rig. Surge/sway in m/s2, yaw rate x10 rad/s.',
+    zero: true, series: [ {k:'surge',label:'surge m/s2',c:'--s1'}, {k:'sway',label:'sway m/s2',c:'--s2'},
+                          {k:'yawr',label:'yaw rate x10',c:'--s3',mul:10} ] },
+  { title: 'Bass shaker (LFE)', note: 'amplitudes 0..1 for a tactile transducer. Engine tracks speed; road tracks jolt.',
+    zero: false, series: [ {k:'lfeEng',label:'engine',c:'--s1'}, {k:'lfeRoad',label:'road',c:'--s2'},
+                           {k:'lfeImp',label:'impulse',c:'--s5'} ] },
+  { title: 'Pad down-mix', note: 'the same bus rendered for a two-motor controller. Left = heavy, right = buzz.',
+    zero: false, series: [ {k:'padL',label:'left (heavy)',c:'--s1'}, {k:'padR',label:'right (buzz)',c:'--s2'} ] },
+];
+
+const T0 = R[0].t, T1 = R[R.length-1].t, TSPAN = Math.max(0.001, T1-T0);
+const M = {l:52, r:14, t:8, b:20}, H = 118;
+const charts = [];
+
+document.getElementById('panels').innerHTML = PANELS.map((p,i) => `
+  <div class="panel">
+    <div class="phead">
+      <span class="ptitle">${esc(p.title)}</span>
+      <span class="pnote">${esc(p.note)}</span>
+      ${p.series.length>1 ? `<span class="legend">${p.series.map(s=>
+        `<span><i style="background:var(${s.c})"></i>${esc(s.label)}</span>`).join('')}</span>` : ''}
+    </div>
+    <svg id="c${i}" viewBox="0 0 900 ${H+M.t+M.b}" preserveAspectRatio="xMidYMid meet" role="img"
+         aria-label="${esc(p.title)} over time"></svg>
+  </div>`).join('');
+
+function draw() {
+  PANELS.forEach((p,i) => {
+    const svg = document.getElementById('c'+i);
+    const W = 900, iw = W-M.l-M.r, ih = H;
+    let lo = Infinity, hi = -Infinity;
+    p.series.forEach(s => R.forEach(r => {
+      const v = (r[s.k]||0) * (s.mul||1);
+      if (v < lo) lo = v; if (v > hi) hi = v;
+    }));
+    if (!isFinite(lo)) { lo = 0; hi = 1; }
+    if (p.zero) { const m = Math.max(Math.abs(lo), Math.abs(hi)) || 1; lo = -m; hi = m; }
+    else { lo = Math.min(0, lo); hi = hi || 1; }
+    if (hi - lo < 1e-9) hi = lo + 1;
+    const X = t => M.l + ((t-T0)/TSPAN)*iw;
+    const Y = v => M.t + ih - ((v-lo)/(hi-lo))*ih;
+    let g = '';
+    // gridlines + y labels (3 steps)
+    for (let k=0;k<=2;k++) {
+      const v = lo + (hi-lo)*k/2, y = Y(v);
+      g += `<line x1="${M.l}" y1="${y}" x2="${W-M.r}" y2="${y}" stroke="${cssv('--grid')}" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
+      g += `<text x="${M.l-6}" y="${y+3.5}" text-anchor="end" font-size="10" fill="${cssv('--muted')}">${fmt(v)}</text>`;
+    }
+    if (p.zero) g += `<line x1="${M.l}" y1="${Y(0)}" x2="${W-M.r}" y2="${Y(0)}" stroke="${cssv('--axis')}" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
+    // x ticks
+    for (let k=0;k<=4;k++) {
+      const t = T0 + TSPAN*k/4;
+      g += `<text x="${X(t)}" y="${M.t+ih+14}" text-anchor="middle" font-size="10" fill="${cssv('--muted')}">${t.toFixed(0)}s</text>`;
+    }
+    // event markers, only on the headline panel
+    if (i===0) EV.forEach(e => {
+      if (e.t < T0 || e.t > T1) return;
+      g += `<line x1="${X(e.t)}" y1="${M.t}" x2="${X(e.t)}" y2="${M.t+ih}" stroke="${cssv('--s5')}" stroke-width="1" stroke-dasharray="2 3" opacity=".55" vector-effect="non-scaling-stroke"/>`;
+    });
+    // series
+    p.series.forEach(s => {
+      let d = '';
+      R.forEach((r,j) => { d += (j?'L':'M') + X(r.t).toFixed(1) + ' ' + Y((r[s.k]||0)*(s.mul||1)).toFixed(1); });
+      g += `<path d="${d}" fill="none" stroke="var(${s.c})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+    });
+    // crosshair + markers, hidden until hover
+    g += `<line class="xh" x1="0" y1="${M.t}" x2="0" y2="${M.t+ih}" stroke="${cssv('--text-secondary')}" stroke-width="1" opacity="0" vector-effect="non-scaling-stroke"/>`;
+    p.series.forEach(s => g += `<circle class="mk" data-k="${s.k}" r="4" fill="var(${s.c})" stroke="${cssv('--surface-1')}" stroke-width="2" opacity="0"/>`);
+    svg.innerHTML = g;
+    charts[i] = {svg, X, Y, p, W, ih};
+  });
+}
+function fmt(v){ const a=Math.abs(v); return a>=1000? (v/1000).toFixed(1)+'k' : (a>=10? v.toFixed(0) : v.toFixed(2)); }
+draw();
+new ResizeObserver(draw).observe(document.body);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+// ---- shared crosshair ----------------------------------------------------
+const tip = document.getElementById('tip');
+function nearest(t){ let lo=0, hi=R.length-1;
+  while (lo<hi){ const m=(lo+hi)>>1; if (R[m].t < t) lo=m+1; else hi=m; }
+  if (lo>0 && Math.abs(R[lo-1].t-t) < Math.abs(R[lo].t-t)) lo--;
+  return lo;
+}
+function showAt(idx, cx, cy, panelIdx) {
+  const r = R[idx];
+  charts.forEach(c => {
+    const x = c.X(r.t);
+    c.svg.querySelector('.xh').setAttribute('x1', x);
+    c.svg.querySelector('.xh').setAttribute('x2', x);
+    c.svg.querySelector('.xh').setAttribute('opacity', '.5');
+    c.svg.querySelectorAll('.mk').forEach(m => {
+      const s = c.p.series.find(z => z.k === m.dataset.k);
+      m.setAttribute('cx', x); m.setAttribute('cy', c.Y((r[s.k]||0)*(s.mul||1)));
+      m.setAttribute('opacity', '1');
+    });
+  });
+  const p = PANELS[panelIdx];
+  let html = `<div class="tt">t = ${r.t.toFixed(2)}s &middot; ${r.mph} mph &middot; grip ${r.grip}%</div>`;
+  p.series.forEach(s => {
+    const v = (r[s.k]||0)*(s.mul||1);
+    html += `<div class="row"><span class="nm"><i style="background:var(${s.c})"></i>${esc(s.label)}</span>`
+          + `<span class="vl">${fmt(v)}</span></div>`;
+  });
+  tip.innerHTML = html; tip.style.opacity = '1';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(window.innerWidth-w-8, cx+14) + 'px';
+  tip.style.top  = Math.max(8, Math.min(window.innerHeight-h-8, cy-h/2)) + 'px';
+}
+function hide(){ tip.style.opacity='0';
+  charts.forEach(c => { c.svg.querySelector('.xh').setAttribute('opacity','0');
+    c.svg.querySelectorAll('.mk').forEach(m=>m.setAttribute('opacity','0')); }); }
+charts.forEach((c,i) => {
+  const el = c.svg;
+  const move = ev => {
+    const b = el.getBoundingClientRect();
+    const px = (ev.clientX - b.left) / b.width * c.W;
+    const t = T0 + Math.max(0, Math.min(1, (px-M.l)/(c.W-M.l-M.r))) * TSPAN;
+    showAt(nearest(t), ev.clientX, ev.clientY, i);
+  };
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerleave', hide);
+});
+
+// ---- events + table ------------------------------------------------------
+if (EV.length) {
+  const seen = {}; EV.forEach(e => { const k = e.t.toFixed(1)+e.label; if(!seen[k]) seen[k]=e; });
+  const list = Object.values(seen).slice(0, 40);
+  const d = document.createElement('details');
+  d.innerHTML = `<summary>Events &mdash; ${Object.keys(seen).length} logged</summary>`
+    + `<div class="evlist">` + list.map(e => `<b>${e.t.toFixed(1)}s</b> ${esc(e.label)}`).join(' &middot; ') + `</div>`;
+  document.getElementById('panels').after(d);
+}
+const COLS = ['t','mph','steer','force','center','corner','texture','impact','weapon','surge','sway','lfeEng','lfeRoad','padL','padR'];
+document.getElementById('tbl').innerHTML =
+  '<thead><tr>' + COLS.map(c=>`<th>${esc(c)}</th>`).join('') + '</tr></thead><tbody>'
+  + R.map(r => '<tr>' + COLS.map(c=>`<td>${esc(r[c])}</td>`).join('') + '</tr>').join('')
+  + '</tbody>';
+</script>
+</body>
+</html>
