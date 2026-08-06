@@ -321,6 +321,18 @@ for ($t = 0.0; $t -lt 1.1; $t += 1.0/60) {
 Check "weapon fire lands on the BUZZ motor" ($pW.Right -gt 0.2) "R=$($pW.Right)"
 Check "pad outputs bounded 0..1" ($pImp.Left -le 1.0 -and $pW.Right -le 1.0) ""
 
+Write-Host "`n=== 9d. thermal idle guard ===" -ForegroundColor Cyan
+# Thrustmaster documents thermal cut-back under sustained load. An always-on
+# constant force against a wheel parked off-centre is exactly that, for no benefit.
+$m = Mix-New
+$out = $null
+for ($t = 0.0; $t -lt 19.0; $t += 1.0/10) { $out = Mix-Update $m (Fake -T $t -Speed 0 -Steer 0.8) }
+Check "still driving force while recently stationary" ([math]::Abs($out.Force) -gt 50) "force=$($out.Force)"
+for ($t = 19.0; $t -lt 24.0; $t += 1.0/10) { $out = Mix-Update $m (Fake -T $t -Speed 0 -Steer 0.8) }
+Check "faded out after the idle timeout" ($out.Force -eq 0) "force=$($out.Force)"
+$out = Mix-Update $m (Fake -T 24.1 -Speed 12 -Steer 0.8 -YawRate 0.5 -LatG 1.5)
+Check "movement restores it immediately" ([math]::Abs($out.Force) -gt 50) "force=$($out.Force)"
+
 Write-Host "`n=== 10. no NaN or infinity escapes ===" -ForegroundColor Cyan
 # Division by a near-zero speed or wheelbase is the classic way a force model
 # emits NaN, and NaN written to a wheel is undefined behaviour in someone's hands.

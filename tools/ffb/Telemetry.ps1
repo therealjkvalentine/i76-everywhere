@@ -287,6 +287,7 @@ function Tel-Open {
         # derived values, HELD between sim ticks
         LongAccel = 0.0
         VyRate    = 0.0
+        WAx = 0.0; WAy = 0.0; WAz = 0.0
         Jolt      = 0.0
         # First-change priming. Without this the first tick differentiates
         # against a zeroed baseline and emits a large bogus jolt - which the
@@ -494,6 +495,16 @@ function Tel-Sample {
             # jump all live here. Same tick discipline as LongAccel.
             $Ctx.VyRate = ($vy - $Ctx.LastVy) / $dt
 
+            # WORLD-frame acceleration, m/s^2, by differentiating the world
+            # velocity vector. Exact, and it needs no orientation - which matters
+            # because this entity has none to read (there is no rotation matrix
+            # anywhere in the struct). Motion-sim protocols want world-frame
+            # accelerations with gravity EXCLUDED, which is what this is: a parked
+            # car reads (0,0,0).
+            $Ctx.WAx = ($vx - $Ctx.LastVx) / $dt
+            $Ctx.WAy = ($vy - $Ctx.LastVy) / $dt
+            $Ctx.WAz = ($vz - $Ctx.LastVz) / $dt
+
             # Jolt = magnitude of the VECTOR velocity change per second. A crash
             # redirects velocity even when |v| barely moves (glancing a wall
             # spins you without much speed loss), so the vector delta catches
@@ -575,6 +586,14 @@ function Tel-Sample {
         LongAccel   = $Ctx.LongAccel
         LongG       = $Ctx.LongAccel / 9.81
         HeaveAccel  = $Ctx.VyRate
+        WorldAccelX = $Ctx.WAx
+        WorldAccelY = $Ctx.WAy
+        WorldAccelZ = $Ctx.WAz
+        # Direction of travel in the world XZ plane, radians. Used as the heading
+        # PROXY for motion-sim export: the engine exposes no orientation, and for a
+        # car the velocity direction and the facing direction differ only by the
+        # slip angle - which in this engine is near zero outside a spin.
+        HeadingApprox = $(if ($speed -gt 1.0) { [math]::Atan2($vx, $vz) } else { 0.0 })
         LatAccel    = $latAccel
         LatG        = $latAccel / 9.81
         ExpectedYaw = $expectedYaw

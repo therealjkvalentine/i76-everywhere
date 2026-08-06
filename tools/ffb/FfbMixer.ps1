@@ -217,6 +217,14 @@ function Mix-DefaultTune {
 
         # --- safety ---------------------------------------------------------
         Clamp         = 9500   # never exceed this; leaves headroom under 10000
+        # Thermal idle guard. Thrustmaster documents thermal cut-back (KB 1744):
+        # sustained load makes force feedback weaken and the base heat up. This
+        # layer holds an always-on constant force, so a wheel left parked off-centre
+        # - at a menu, mid-mission, walked away from - would push against its stop
+        # indefinitely for no benefit. After this many seconds stationary the output
+        # fades out, and comes straight back the moment the car moves.
+        IdleFadeAfter = 20.0   # seconds stationary before fading
+        IdleFadeOver  = 2.0    # seconds to fade out over
         RampMs        = 700    # fade in over this long on start / after a pause
         SlewMax       = 2600   # max force change per SECOND of steady output.
                                # Transients bypass this - see Mix-Update.
@@ -240,6 +248,7 @@ function Mix-New {
         LastJolt   = 0.0
         LastFiring = $false
         LastFireT  = -10.0
+        StillSince = -1.0
     }
 }
 
@@ -498,6 +507,20 @@ function Mix-Update {
     # Fade in from zero. A wheel that snaps to full cornering load the instant
     # the interposer attaches is startling and, with hands resting on it, rude.
     $ramp = [math]::Min(1.0, (($t - $Mix.StartT) * 1000.0) / [math]::Max(1, $Tune.RampMs))
+
+    # Thermal idle guard - see IdleFadeAfter. Track how long the car has been
+    # stationary and fade the output out, so a parked wheel is not held against
+    # its stop for minutes. Any movement resets it instantly.
+    if ($Sample.Speed -gt 0.5) { $Mix.StillSince = -1.0 }
+    elseif ($Mix.StillSince -lt 0) { $Mix.StillSince = $t }
+    if ($Mix.StillSince -ge 0) {
+        $still = $t - $Mix.StillSince
+        if ($still -gt $Tune.IdleFadeAfter) {
+            $fade = 1.0 - (($still - $Tune.IdleFadeAfter) / [math]::Max(0.1, $Tune.IdleFadeOver))
+            if ($fade -lt 0) { $fade = 0 }
+            if ($fade -lt $ramp) { $ramp = $fade }
+        }
+    }
     $force *= $ramp
     if (-not $Mix.Enabled) { $force = 0 }
 
