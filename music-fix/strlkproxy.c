@@ -576,6 +576,36 @@ static void apply_mission_launch(void) {
         return;
     }
     lstrcpynA((char *)0x005049f0, mission, 16);
+
+    /* OPTIONALLY SKIP THE INTRO MOVIES  (I76_SKIP_MOVIES=1).
+     *
+     * The intro (introf01.smk) and credits (credf01.smk) play before the mission
+     * parser is ever reached, so an automated test spends a minute or two watching
+     * them. Skipping is a convenience for testing, NOT part of booting into a
+     * mission - the game gets there on its own, just slowly.
+     *
+     * HOW, and the first attempt was wrong. The engine skips a movie whose open
+     * FAILS:
+     *     0x403056  test eax,eax
+     *     0x403058  je 0x4030e0      ; open failed -> skip to credits
+     * and I first made that jump unconditional (0F 84 -> 90 E9). That jumps away
+     * AFTER a SUCCESSFUL open, leaving the movie subsystem half-initialised and the
+     * handle never closed - the game then hung on the loading screen, reported from
+     * the field as "stuck on please stand by, no menu, no movie, no game".
+     *
+     * So instead make the OPEN fail, which is the path the engine already handles:
+     * corrupt the first character of each filename so the file cannot be found.
+     * Same effect, entirely inside behaviour the engine was written to expect.
+     */
+    if (GetEnvironmentVariableA("I76_SKIP_MOVIES", NULL, 0) > 0) {
+        static const BYTE intro_old[1] = { 'i' };   /* 'introf01.smk' @ 0x4c25b0 */
+        static const BYTE intro_new[1] = { 'X' };
+        static const BYTE cred_old[1]  = { 'c' };   /* 'credf01.smk'  @ 0x4c25a4 */
+        static const BYTE cred_new[1]  = { 'X' };
+        int m1 = patch_bytes(0x004c25b0, intro_old, intro_new, 1, "intro movie name");
+        int m2 = patch_bytes(0x004c25a4, cred_old,  cred_new,  1, "credits movie name");
+        mlog("  mission-launch: movie names invalidated %d/2 (open will fail -> engine skips)", m1 + m2);
+    }
     mlog("  mission-launch: booting directly into '%s'", mission);
 }
 
