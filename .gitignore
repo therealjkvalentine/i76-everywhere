@@ -29,3 +29,5 @@ tools/cdaudio-image/*.iso
 tools/ffb/drive2.csv
 tools/shot_*.png
 tools/screen.png
+tools/bisect_*.png
+tools/slow_*.png
