@@ -27,6 +27,14 @@ they are different objects with different roots.
 | 0x5367cc / d4 / **d0** | int | throttle / steer / **weapon fire** input | ✓ live |
 | 0x5367de | byte | second fire flag (0/1) | ✓ live |
 
+| 0x4c2964 / 6c / 70 / 74 | float | live camera Euler angles | ✓ live (head-track target) |
+| 0x4c2728 | int | camera view mode (F1..F11) | ✓ |
+| 0x54a264 | ptr | **world-context root** (0x457530 returns it) | ✓ live |
+| 0x524674 | int | **music-active flag** (nonzero = playing) | disasm |
+| 0x4ed890 / 894 | handle | MCI device / aux-volume device | disasm |
+| 0x52bbd0 / cc | int/ptr | FFB present flag / object ptr | ✓ (0 on Mac) |
+| 0x4f2328 | 364 B | FFB effect param block (rumble-mirror src on Win) | disasm |
+
 **CORRECTION 2026-08-04 — weapon fire is `0x5367d0`, not `0x5367db`.** Measured
 with `tools/ffb/ffb-find-fire.ps1`, which diffs an idle baseline against a firing
 phase with the steering held still (holding still is what isolates fire from the
@@ -41,15 +49,11 @@ flag — I'76 has two distinct fire actions (`weapon_fire` and `hardpoint1_fire`
 which has caused trouble in this repo before when a binding landed on the wrong
 one. Which of the two is which is **not** established.
 
-Consumed by `tools/ffb/Telemetry.ps1`, which reads both and fires its weapon
-channel on either rising edge.
-| 0x4c2964 / 6c / 70 / 74 | float | live camera Euler angles | ✓ live (head-track target) |
-| 0x4c2728 | int | camera view mode (F1..F11) | ✓ |
-| 0x54a264 | ptr | **world-context root** (0x457530 returns it) | ✓ live |
-| 0x524674 | int | **music-active flag** (nonzero = playing) | disasm |
-| 0x4ed890 / 894 | handle | MCI device / aux-volume device | disasm |
-| 0x52bbd0 / cc | int/ptr | FFB present flag / object ptr | ✓ (0 on Mac) |
-| 0x4f2328 | 364 B | FFB effect param block (rumble-mirror src on Win) | disasm |
+**SUPERSEDED for weapon detection.** These input bytes were used to drive the FFB
+weapon channel and produced no response across two field sessions — a button
+moving is not the same thing as a weapon firing. Use the engine's own effect table
+instead (see "The FFB effect block" at the end of this document); the input flag
+remains only as a fallback.
 
 ## Tier 2 — the PLAYER pointer chain (permanent root, live-verified)
 
