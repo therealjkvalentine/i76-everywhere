@@ -438,10 +438,15 @@ Check(what, got, want) {
 }
 
 ; ============================================================================
-; Everything from here on is an interactive mode - it watches the stick and keeps
-; running - so give it a window. -map and -selftest print and exit above, and are
-; fine on stdout alone.
-InitGui("I76 Fighterstick" . (mode = "learn" ? " - LEARN" : (WHATIF ? " - BENCH TEST (no keys sent)" : "")))
+; A window for the BENCH modes only (-learn, -whatif), never for the live run.
+;
+; The live run happens under a fullscreen game. An AlwaysOnTop window there would
+; sit on top of the picture for the whole session - and while WS_EX_NOACTIVATE stops
+; it stealing focus, "cannot take focus" is not "cannot be in the way". During real
+; play the tray icon is the indicator; the window is for testing, when the game is
+; not running and you need to see what each control reports.
+if (mode = "learn" || WHATIF)
+    InitGui("I76 Fighterstick" . (mode = "learn" ? " - LEARN" : " - BENCH TEST (no keys sent)"))
 
 ; Documented AHK quirk (i76-gamepad-axistest.ahk): query an axis once before the
 ; polling loop or axis reads do not initialise.
