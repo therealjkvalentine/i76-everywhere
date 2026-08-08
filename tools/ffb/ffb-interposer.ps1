@@ -147,11 +147,14 @@ function Build-Panel {
         # been invisible failure modes: a weapon channel that never fires looks
         # identical to a wrong address, and a frozen sim looks identical to a
         # quiet road.
-        $null = $L.Add(("   fire {0}   |yaw-expect| {1,6:0.000}  (deadband 0.15)   sim tick age {2,5:0.00}s{3}" -f `
-            $(if ($S.FireRaw -ne 0) { "YES ($($S.FireRaw))" } else { "no " }),
+        $null = $L.Add(("   engine fx: {0} active{1}   input fire {2}   |yaw-expect| {3,6:0.000}   tick {4,5:0.00}s{5}" -f `
+            $(if ($null -ne $S.FxActive) { $S.FxActive } else { 0 }),
+            $(if ($S.FxFired -and $S.FxFired.Count) { "  FIRED: " + (($S.FxFired | ForEach-Object { "id$($_.Id)" }) -join ' ') } else { "" }),
+            $(if ($S.FireRaw -ne 0) { "YES" } else { "no " }),
             [math]::Abs($S.YawRate - $S.ExpectedYaw),
             $(if ($null -ne $S.SinceTick) { $S.SinceTick } else { 0 }),
-            $(if ($null -ne $S.SinceTick -and $S.SinceTick -gt 0.5) { "  PAUSED - output muted" } else { "" })))
+            $(if ($null -ne $S.SinceTick -and $S.SinceTick -gt 0.5) { "  PAUSED" } else { "" })))
+
         # Yaw and the bicycle-model prediction should agree in SIGN whenever the
         # car is actually turning. Persistent disagreement means TEL_YAW_SIGN is
         # inverted, which is worth saying out loud rather than leaving to be felt.
@@ -337,7 +340,7 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy','fireRaw') + $ALL_CH + @('force')
+                     'angVelX','angVelZ','vy','fireRaw','fxActive','fxFired') + $ALL_CH + @('force')
         $logSw.WriteLine($logCols -join ',')
     }
 
@@ -441,7 +444,9 @@ try {
                     ('{0:0.000}' -f $s.Understeer), ('{0:0.000}' -f $s.Oversteer),
                     ('{0:0.000}' -f $s.Jolt),
                     ('{0:0.000}' -f $s.AngVelX), ('{0:0.000}' -f $s.AngVelZ), ('{0:0.000}' -f $s.Vy),
-                    ([string][int]$s.FireRaw)
+                    ([string][int]$s.FireRaw),
+                    ([string][int]$s.FxActive),
+                    $(if ($s.FxFired -and $s.FxFired.Count) { ('"' + (($s.FxFired | ForEach-Object { "id$($_.Id)m$($_.Mag)" }) -join ' ') + '"') } else { '0' })
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force
