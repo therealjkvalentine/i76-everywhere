@@ -7,12 +7,24 @@
   decompile has no vehicle struct at all. Velocity has since been found by scan;
   RPM and gear are what is left.
 
-  THE DISCRIMINATOR: park the car and blip the throttle.
+  THE DISCRIMINATOR: park the car IN NEUTRAL and blip the throttle.
+
+  NEUTRAL IS NOT OPTIONAL, and getting this wrong cost a whole run. The first
+  version of this script said "handbrake on, or nose against a wall" - which
+  leaves the car IN GEAR. In gear this sim ties engine speed to wheel speed, so
+  the revs sat pinned at idle and the scan correctly reported that nothing in
+  0x400 bytes tracked the throttle. The null was real; the procedure was wrong.
+
+  In neutral the engine is disconnected from the drivetrain and the throttle owns
+  it outright - confirmed by observation: the tachometer moves and the engine
+  note changes with the car stationary and out of gear. So RPM IS independent
+  state, not something derived from road speed, and it is findable.
 
     While stationary, speed is zero and STAYS zero. So does every field derived
-    from it - wheel contact points, velocity, yaw, lateral load, the lot. RPM is
-    one of the very few quantities in the whole struct that can swing across its
-    full range while the car does not move an inch.
+    from it - wheel contact points, velocity, yaw, lateral load, the lot. And in
+    NEUTRAL the drivetrain is out of the picture too, so torque and drive force
+    go quiet as well. RPM is then very nearly the only quantity in the struct
+    that can swing across its full range while the car does not move an inch.
 
     That makes the parked rev a far sharper instrument than the two-phase
     compare in ffb-find-slip.ps1, which had to separate sliding from cornering
@@ -40,7 +52,9 @@ param(
     [int]$DriveSeconds = 30,
     [int]$Range = 0x800,
     [int]$HZ = 30,
-    [int]$Top = 14
+    [int]$Top = 14,
+    # The rev phase alone settles RPM. Skip the 30s of driving when re-testing.
+    [switch]$SkipDrive
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -98,17 +112,25 @@ function SlotName { param([int]$i)
 }
 function SlotOffset { param([int]$i) if ($i -lt $NSLOT) { $i * 4 } else { ($i - $NSLOT) * 4 } }
 
-$idle  = Capture "PHASE 1: PARKED, IDLING" $IdleSeconds `
-    ("Sit STILL with your foot OFF the throttle. Do not move the car at all.`n" +
-     "This is the idle reference.")
-$rev   = Capture "PHASE 2: PARKED, REVVING" $RevSeconds `
-    ("Stay STILL - handbrake on, or nose against a wall - and BLIP THE THROTTLE.`n" +
-     "Hard on, all the way off, repeatedly. About one blip per second.`n" +
-     "The car must not move. If it creeps, that is fine, but keep it slow.")
-$drive = Capture "PHASE 3: FULL-THROTTLE RUNS" $DriveSeconds `
+$idle  = Capture "PHASE 1: PARKED IN NEUTRAL, IDLING" $IdleSeconds `
+    ("Put the car in NEUTRAL, sit still, foot OFF the throttle.`n" +
+     "This is the idle reference, and it has to be in the same state as phase 2`n" +
+     "or the comparison is between two different things.")
+$rev   = Capture "PHASE 2: PARKED IN NEUTRAL, REVVING" $RevSeconds `
+    ("PUT THE CAR IN NEUTRAL FIRST. This phase does not work in gear - in gear`n" +
+     "the engine is tied to the wheels and the revs will not budge.`n" +
+     "`n" +
+     "Then BLIP THE THROTTLE: hard on, all the way off, about once a second.`n" +
+     "Watch the tachometer - if the needle is not swinging, the car is still in`n" +
+     "gear and this phase will find nothing.")
+$drive = if ($SkipDrive) {
+    Write-Host ""
+    Write-Host "--- PHASE 3 SKIPPED (-SkipDrive) ---" -ForegroundColor DarkGray
+    @()
+} else { Capture "PHASE 3: FULL-THROTTLE RUNS" $DriveSeconds `
     ("Do TWO OR THREE full-throttle runs from a standstill to top speed.`n" +
      "Brake to a stop between them. Straight line, no turning.`n" +
-     "This is the phase that finds a tachometer - see the sawtooth scan below.")
+     "This is the phase that finds a tachometer - see the sawtooth scan below.") }
 
 # ---- score ---------------------------------------------------------------
 # Parked frames only. A field that moves because the car rolled is not evidence.
@@ -190,6 +212,17 @@ Write-Host "  and - the giveaway - a HIGH 'falls' percentage through the gears, 
 Write-Host "  a tachometer drops on every upshift while road speed only climbs." -ForegroundColor Gray
 Write-Host "  A field that correlates with throttle but NEVER falls in phase 3 is far" -ForegroundColor Gray
 Write-Host "  more likely to be drive force or acceleration than engine speed." -ForegroundColor Gray
+Write-Host ""
+$strong = @($results | Where-Object { $_.AbsR -gt 0.5 -and $_.Off -ne $OFF_THROTTLE })
+if ($strong.Count -eq 0) {
+    Write-Host "  NOTHING BUT THROTTLE CORRELATED. Before widening the scan, check the" -ForegroundColor Yellow
+    Write-Host "  most likely cause: WAS THE CAR IN NEUTRAL? In gear, engine speed is" -ForegroundColor Yellow
+    Write-Host "  tied to wheel speed and the revs cannot move at a standstill, so this" -ForegroundColor Yellow
+    Write-Host "  scan has nothing to see. That is what happened on the first run." -ForegroundColor Yellow
+    Write-Host "  If the tachometer WAS swinging, RPM lives outside these $Range bytes -" -ForegroundColor Yellow
+    Write-Host "  re-run with a larger -Range, or it sits in a sub-struct reached by" -ForegroundColor Yellow
+    Write-Host "  pointer, which needs a pointer-chasing scan." -ForegroundColor Yellow
+}
 Write-Host ""
 Write-Host "  GEAR, if present, is an int a few slots from RPM: a small integer (0-4)" -ForegroundColor Gray
 Write-Host "  that is CONSTANT while parked and steps up in phase 3. It will not appear" -ForegroundColor Gray
