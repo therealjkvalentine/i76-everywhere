@@ -44,8 +44,15 @@ global YAW_OFF     := 0.12   ; rad, ~7deg:  inside this it comes back up
 ; narrower arc than they turn (measured: yaw reached ~0.43 rad, pitch ~0.17).
 ; Nodding through a small arc, so these are deliberately tight (field: "I have to
 ; nod too far" at 0.12/0.08).
-global PITCH_ON    := 0.075   ; field: 0.05 tripped "a hair too early"
-global PITCH_OFF   := 0.045
+; Field-bracketed over three sessions, so the history is the argument:
+;   0.12 / 0.08  -> "I have to nod too far"
+;   0.05         -> "a hair too early"
+;   0.075        -> "looking down just a smidge too easily"  (2026-08-08)
+; The answer is between 0.075 and 0.12, nearer the bottom - a smidge, not a lot.
+; Only the DOWN direction is live (PITCH_UP_KEY = 0 below, because Up is LOOK BACK
+; in this engine, not glance-up), so this value IS the look-down threshold.
+global PITCH_ON    := 0.09
+global PITCH_OFF   := 0.06    ; same ~0.03 hysteresis band as before
 ; The Up arrow is NOT glance-up in this engine - it is LOOK BACK, so nodding up
 ; was throwing the view to the rear. Disabled. Set to 1 only if a future binding
 ; makes Up mean glance-up.

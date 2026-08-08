@@ -80,8 +80,19 @@ SetBatchLines, -1
 OnExit, OnExitHandler
 
 global DEV     := 2       ; AHK joystick index; the T300 wheel is 1
-global THRESH  := 0.35    ; deflection to trigger, 0..1 from centre
-global RELEASE := 0.20    ; deflection to release/re-arm - the gap is hysteresis
+; PER-AXIS engagement, widened 2026-08-08 to stop accidental shifts.
+;
+; One "click" is 0.10 of full deflection. The baseline was 0.35 on / 0.20 off for
+; everything; fore/aft went up one click and left/right up TWO, because the shifts
+; are the ones that were firing by accident - the wheel is spun with the left hand
+; and the stick gets knocked sideways far more easily than it gets pulled.
+; The 0.15 hysteresis gap is preserved on both, since that is what stops a stick
+; resting near the line from machine-gunning.
+global CLICK     := 0.10
+global THRESH    := 0.45  ; fore/aft  (handbrake, reverse) - baseline + 1 click
+global RELEASE   := 0.30
+global THRESH_X  := 0.55  ; left/right (the shifts)        - baseline + 2 clicks
+global RELEASE_X := 0.40
 global POLL    := 15      ; ms, ~66 Hz, matching i76-remap.ahk's timers
 global WHATIF  := false
 
@@ -110,17 +121,18 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ; F-16 grip convention on the left, what I'76 calls it on the right. The key is
 ; whatever input.map already binds that action to.
 ;
-;   trigger        gun                 -> weapon_fire      Enter
-;   pickle (thumb) weapon release      -> special1         6
-;   thumb          -                   -> weapon_cycle     Tab
-;   pinky/paddle   NWS / AR disconnect -> HONK_HORN        G
-;   castle hat     view / head-look    -> pilot_glance_*   grey arrows
-;   TMS  4-way     target management   -> target actions   T Y U Q
-;   DMS  4-way     display management  -> map/radar/optics M R V B
+;   trigger          gun                 -> weapon_fire       Enter
+;   top red (pickle) weapon release      -> hardpoint2_fire   2
+;   back-side red    -                   -> MODE SWITCH, unbound
+;   pinky            NWS / AR disconnect -> weapon_link       F
+;   convex serrated  -                   -> DIRECT FIRE, hardpoints 2-5
+;   castle           target management   -> target actions    T Y U Q
+;   trim             display management  -> map/radar/notepad M R N K
+;   cone (POV)       view / head-look    -> specials + weapon select (see below)
 ;
-; CH's DOCUMENTED default numbering - 1 trigger, 2-4 thumb, then the 4-way hats in
-; blocks of four - NOT measured on this unit, and the 3-position mode switch
-; renumbers everything. Run -learn and correct this table.
+; Button numbering MEASURED on this unit with -learn, 2026-08-08, including the
+; up/right/down/left order within every hat. The 3-position mode switch renumbers
+; everything, so re-run -learn if a control does the wrong thing.
 ; ---------------------------------------------------------------------------
 ; THE MAP. One entry per physical control, carrying three things:
 ;   ctl - what the control IS, by its official name (see the table below)
@@ -143,35 +155,53 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ; 9-12 TMS, 13-16 CMS.
 global BTN := {}
 BTN[1]  := {ctl: "trigger",              act: "weapon_fire",          key: "Enter"}
-BTN[2]  := {ctl: "top red (pickle)",     act: "special1",             key: "Six"}
+; Top red is DIRECT FIRE, not special1 - the pickle button on a real grip is
+; weapon release, and hardpoint 2 is the one you reach for most.
+BTN[2]  := {ctl: "top red (pickle)",     act: "hardpoint2_fire",      key: "Two"}
 ; Button 3 is the MODE SWITCH - it cycles the base LED through three positions,
 ; and on CH sticks the mode renumbers the buttons. Deliberately UNMAPPED: binding
 ; a game action to it means every mode change also fires that action.
 BTN[4]  := {ctl: "pinky red",            act: "weapon_link",          key: "F"}
-; --- convex serrated hat = DMS, display and sensor management ---
-BTN[5]  := {ctl: "serrated UP",          act: "SHOW_MAP",             key: "M"}
-BTN[6]  := {ctl: "serrated RIGHT",       act: "RADAR_RANGE_TOGGLE",   key: "R"}
-BTN[7]  := {ctl: "serrated DOWN",        act: "SHOW_NOTEPAD",         key: "N"}
-BTN[8]  := {ctl: "serrated LEFT",        act: "RADAR_CAMERA_TOGGLE",  key: "K"}
+; --- convex serrated hat = DIRECT FIRE, one hardpoint per direction ---
+; ONE hardpoint per direction, never two from one control: firing two weapon
+; effects from a single press is what crashed I7_SFRCE.DLL on 2026-08-01.
+; hardpoint1_fire has no keyboard binding in input.map at all, so the four
+; directions are hardpoints 2-5.
+BTN[5]  := {ctl: "serrated UP",          act: "hardpoint2_fire",      key: "Two"}
+BTN[6]  := {ctl: "serrated RIGHT",       act: "hardpoint3_fire",      key: "Three"}
+BTN[7]  := {ctl: "serrated DOWN",        act: "hardpoint4_fire",      key: "Four"}
+BTN[8]  := {ctl: "serrated LEFT",        act: "hardpoint5_fire",      key: "Five"}
 ; --- castle hat = TMS, target management ---
 BTN[9]  := {ctl: "castle UP",            act: "TARGET_NEAREST_ENEMY", key: "T"}
 BTN[10] := {ctl: "castle RIGHT",         act: "NEXT_TARGET",          key: "Y"}
 BTN[11] := {ctl: "castle DOWN",          act: "RESET_TARGET",         key: "U"}
 BTN[12] := {ctl: "castle LEFT",          act: "frontal_target",       key: "Q"}
-; --- trim hat = CMS, countermeasures and armament ---
-BTN[13] := {ctl: "trim UP",              act: "special2",             key: "Seven"}
-BTN[14] := {ctl: "trim RIGHT",           act: "special3",             key: "Eight"}
-BTN[15] := {ctl: "trim DOWN",            act: "weapon_cycle",         key: "Tab"}
-BTN[16] := {ctl: "trim LEFT",            act: "toggle_cmbt_view",     key: "V"}
+; --- trim hat = DMS, displays and sensors (map, notepad, radar) ---
+BTN[13] := {ctl: "trim UP",              act: "SHOW_MAP",             key: "M"}
+BTN[14] := {ctl: "trim RIGHT",           act: "RADAR_RANGE_TOGGLE",   key: "R"}
+BTN[15] := {ctl: "trim DOWN",            act: "SHOW_NOTEPAD",         key: "N"}
+BTN[16] := {ctl: "trim LEFT",            act: "RADAR_CAMERA_TOGGLE",  key: "K"}
 
-; The CONE hat (8-way POV) is head-look, exactly as on a real grip - the control
-; that transfers most directly of anything here. Index order is up/right/down/left
-; to match the sector maths below.
+; The CONE hat (8-way POV). It WAS head-look - the obvious mapping, since that is
+; what a castle hat does on a real grip - and it did nothing in the field.
+;
+; WHY, and it is not a bug in this script: i76-opentrack-headlook.ahk NOPs the
+; engine's own input-poll writes to the two glance ints (INPUT_SITES, seven
+; 5-byte `mov [disp32],eax` patches) for as long as analog head tracking is on.
+; Its own comment says so plainly: "the only side effect is that keyboard/joystick
+; glance is inert while analog is on - which is the point, head tracking replaces
+; it." So while opentrack runs, NOTHING can glance by key - not this hat, not the
+; arrow keys, not the wheel. Sending glance keys here is writing to a channel that
+; has been deliberately disconnected.
+;
+; So the cone hat carries the specials and weapon select instead - the things a
+; thumb wants mid-fight - and looking around stays with your head, where it is
+; better anyway. Index order is up/right/down/left to match the sector maths below.
 global POV := []
-POV.Push({ctl: "cone UP",    act: "pilot_glance_up",    key: "GreyUpArrow"})
-POV.Push({ctl: "cone RIGHT", act: "pilot_glance_right", key: "GreyRightArrow"})
-POV.Push({ctl: "cone DOWN",  act: "pilot_glance_down",  key: "GreyDownArrow"})
-POV.Push({ctl: "cone LEFT",  act: "pilot_glance_left",  key: "GreyLeftArrow"})
+POV.Push({ctl: "cone UP",    act: "special1",     key: "Six"})
+POV.Push({ctl: "cone RIGHT", act: "special2",     key: "Seven"})
+POV.Push({ctl: "cone DOWN",  act: "special3",     key: "Eight"})
+POV.Push({ctl: "cone LEFT",  act: "weapon_cycle", key: "Tab"})
 
 ; ---- the ADC ---------------------------------------------------------------
 ; EDGE vs LEVEL is the whole design:
@@ -338,9 +368,10 @@ UNMAPPED.Push(["toggle_lights",                  "H"])
 UNMAPPED.Push(["TOGGLE_BINOCULARS",              "B"])
 UNMAPPED.Push(["HONK_HORN",                      "G"])
 UNMAPPED.Push(["start_engine",                   "I"])
+UNMAPPED.Push(["toggle_cmbt_view",               "V"])
 UNMAPPED.Push(["pilot_glance_target",            "E"])
 UNMAPPED.Push(["POETRY",                         "P"])
-UNMAPPED.Push(["hardpoint2_fire .. hardpoint5_fire", "2 3 4 5"])
+UNMAPPED.Push(["pilot_glance_* (INERT under opentrack)", "grey arrows"])
 UNMAPPED.Push(["zoom_factor minus / plus / reset",   "PgUp PgDn End"])
 UNMAPPED.Push(["show_player_scores / show_team_scores", "quote / semicolon"])
 UNMAPPED.Push(["overview_ (map view pan and zoom)",  "arrows PgUp PgDn"])
@@ -354,7 +385,9 @@ if (mode = "map") {
     Out("  " Pad("", 60, "-"))
     for i, a in AXIS
         Out("  " Pad(a.ctl, 18) Pad(a.act, 26) Pad(a.key, 7) a.mode)
-    Out("`n  CONE HAT (8-way POV, upper right of the top face) - head-look")
+    Out("`n  CONE HAT (8-way POV, upper right of the top face) - taps, not held")
+    Out("  NB: this is NOT head-look. opentrack owns glance and disables the")
+    Out("      engine's key-glance entirely while it runs - see docs/FIGHTERSTICK.md")
     for i, p in POV
         Out("  " Pad(p.ctl, 18) Pad(p.act, 26) p.key)
     Out("`n  BUTTONS")
@@ -485,7 +518,7 @@ Menu, Tray, Default, Exit (releases held keys)
 Out("")
 Out("  pull back = HANDBRAKE (held)    push forward = REVERSE (while held)")
 Out("  left = shift down               right = shift up")
-Out("  threshold " Round(THRESH * 100) "% on, " Round(RELEASE * 100) "% off")
+Out("  fore/aft engage " Round(THRESH * 100) "%, left/right " Round(THRESH_X * 100) "%")
 if (WHATIF)
     Out("  -whatif: showing actions, sending NO keys")
 Out("  Ctrl+C to stop.`n")
@@ -524,11 +557,16 @@ Poll:
     povIx := -1
     if (pov >= 0)
         povIx := Mod(Round(pov / 9000), 4)
+    ; TAP on entering a direction, not hold-while-deflected.
+    ;
+    ; Holding was correct when this hat was glance - you look for as long as you
+    ; hold it. It is wrong for what the hat carries now: holding `Tab` would cycle
+    ; weapons repeatedly, and the specials are one-shot triggers. This matches how
+    ; i76-remap.ahk treats the wheel's hat ("tap on entering a direction"), and it
+    ; means the hat can never leave a key down - so ReleaseAll has nothing to undo.
     if (povIx != prevPovIx) {
-        if (prevPovIx >= 0)
-            SendKey(POV[prevPovIx + 1].key, 0)
         if (povIx >= 0) {
-            SendKey(POV[povIx + 1].key, 1)
+            SendKey(POV[povIx + 1].key)
             Out("  " POV[povIx + 1].ctl "`t-> " POV[povIx + 1].act)
         }
         prevPovIx := povIx
@@ -539,7 +577,9 @@ Poll:
     ny := Norm(GetKeyState(DEV . "JoyY"))
     for i, a in AXIS {
         v := (a.axis = "X") ? nx : ny
-        ev := StepAxis(v * a.dir, state[a.name], a.mode, THRESH, RELEASE)
+        on  := (a.axis = "X") ? THRESH_X  : THRESH
+        off := (a.axis = "X") ? RELEASE_X : RELEASE
+        ev := StepAxis(v * a.dir, state[a.name], a.mode, on, off)
         if (ev = "down") {
             SendKey(a.key, 1)
             heldKeys[a.key] := 1
@@ -599,8 +639,7 @@ ReleaseAll() {
                 SendKey(k, 0)
         }
     }
-    if (prevPovIx != "" && prevPovIx >= 0)
-        SendKey(POV[prevPovIx + 1].key, 0)
+    ; The cone hat taps rather than holds, so there is nothing of its to release.
 }
 
 LogGuiClose:
