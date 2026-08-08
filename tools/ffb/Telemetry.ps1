@@ -322,6 +322,7 @@ function Tel-Open {
         VyRate    = 0.0
         WAx = 0.0; WAy = 0.0; WAz = 0.0
         LastHeading = 0.0; HeadingRate = 0.0; Slide = 0.0
+        Rpm = 0
         Jolt      = 0.0
         # First-change priming. Without this the first tick differentiates
         # against a zeroed baseline and emits a large bogus jolt - which the
@@ -670,6 +671,23 @@ function Tel-Sample {
     $fb2 = $Ctx.FxBuf
     $fn2 = 0
     if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$script:TEL_FX_BLOCK, $fb2, $fb2.Length, [ref]$fn2)) {
+        # ENGINE RPM, at block +0x0C. Found by a whole-memory alternating scan
+        # (ffb-find-rpm-wide.ps1): idle -> full revs -> idle -> full, in neutral.
+        # It read 1050 -> 5998 -> 1050 -> 5999 against a dashboard tach showing
+        # roughly 1.4k -> 6.1k, and nothing else in 794 survivors read in rpm
+        # units at all.
+        #
+        # It is not in the vehicle entity - which is why every struct scan missed
+        # it - but in the FFB EFFECT PARAMETER BLOCK. That is the answer to "where
+        # does the native force feedback get its data": the game's own FFB is fed
+        # engine speed. Bypassing the CALL at 0x52bbe4 does not stop the block
+        # being filled, so this stays readable with the interposer running.
+        #
+        # Fixed address in the EXE's data section, so no pointer chase and no
+        # per-run offset.
+        $rpm = [BitConverter]::ToInt32($fb2, 0x0C)
+        if ($rpm -lt 0 -or $rpm -gt 20000) { $rpm = 0 }   # block not yet filled
+        $Ctx.Rpm = $rpm
         for ($si = 0; $si -lt $script:TEL_FX_SLOTS; $si++) {
             $bo = $script:TEL_FX_BASE + $si * $script:TEL_FX_STRIDE
             $act = [BitConverter]::ToInt32($fb2, $bo)
@@ -738,6 +756,7 @@ function Tel-Sample {
         # slip angle - which in this engine is near zero outside a spin.
         # Rate the VELOCITY vector rotates, and how far that is from the rate the
         # CAR rotates. Slide is the sideslip signal - see the note above.
+        Rpm         = $Ctx.Rpm
         HeadingRate = $Ctx.HeadingRate
         Slide       = $Ctx.Slide
         HeadingApprox = $(if ($speed -gt 1.0) { [math]::Atan2($vx, $vz) } else { 0.0 })
