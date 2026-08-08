@@ -23,6 +23,9 @@
   ---------------------------------------------------------------------------
   THE BAND, AND THE SAFETY FILTERS
   ---------------------------------------------------------------------------
+  DEVICE: tuned for Aura AST-2B (20-80 Hz, Fs 40 Hz). See Mix-DefaultTune for
+  why every band now centres on 40 Hz and how heave reaches below the floor.
+
   Shakers are 20-100 Hz devices (puck-style units like the Dayton BST-1 and Aura
   AST-2B are really 20-80 Hz with a resonance hump at 30-40 Hz; ButtKickers reach
   lower). Two filters are therefore not optional:
@@ -48,7 +51,11 @@ param(
     # eight times over, and the file stays small. Raise it if you want to inspect
     # the result in an editor that dislikes low rates.
     [int]$Rate = 8000,
-    [double]$Master = 0.9
+    [double]$Master = 0.9,
+    # Aura AST-2B: usable 20-80 Hz, Fs 40. The old 22/90 defaults spent
+    # effort above where these transducers deliver any force.
+    [double]$HpHz = 20.0,
+    [double]$LpHz = 80.0
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -72,6 +79,7 @@ $n = $raw.Count
 $tA=New-Object double[] $n; $efA=New-Object double[] $n; $eaA=New-Object double[] $n
 $rfA=New-Object double[] $n; $raA=New-Object double[] $n
 $iaA=New-Object double[] $n; $waA=New-Object double[] $n
+$haA=New-Object double[] $n
 $prevT=$null; $prevSpeed=0.0; $longG=0.0; $i=0
 foreach ($r in $raw) {
     $t=[double]$r.t; $sp=[double]$r.speed; $st=[double]$r.steer; $yw=[double]$r.yaw
@@ -97,6 +105,7 @@ foreach ($r in $raw) {
     $tA[$i]=$t; $efA[$i]=$L.EngineFreq; $eaA[$i]=$L.EngineAmp
     $rfA[$i]=$(if ($null -ne $L.RoadFreq) { $L.RoadFreq } else { 60.0 }); $raA[$i]=$L.RoadAmp
     $iaA[$i]=$L.ImpulseAmp; $waA[$i]=$L.WeaponAmp
+    $haA[$i]=$(if ($null -ne $L.HeaveAmp) { $L.HeaveAmp } else { 0.0 })
     $i++
 }
 
@@ -109,16 +118,17 @@ using System;
 public static class LfeSynth {
   // one-pole sections, cascaded in pairs for 12 dB/oct
   public static short[] Render(double[] t, double[] ef, double[] ea, double[] rf,
-                               double[] ra, double[] ia, double[] wa,
+                               double[] ra, double[] ia, double[] wa, double[] ha,
                                int rate, double master, double jitter,
-                               double impHz, double wpnHz, double hpHz, double lpHz)
+                               double impHz, double wpnHz, double carHz,
+                               double hpHz, double lpHz)
   {
     int n = t.Length;
     double dur = t[n-1] - t[0];
     if (dur <= 0) return new short[0];
     int total = (int)(dur * rate);
     short[] outp = new short[total];
-    double engPh = 0, roadPh = 0, impPh = 0, wpnPh = 0, jitPh = 0;
+    double engPh = 0, roadPh = 0, impPh = 0, wpnPh = 0, jitPh = 0, carPh = 0;
     // envelope followers for the two one-shot channels: the parameter track is
     // already an envelope, so these only smooth the 60 Hz -> audio-rate steps
     double lpA = 0, lpB = 0, hpA = 0, hpB = 0, hpPrevIn = 0, hpPrevIn2 = 0;
@@ -143,6 +153,7 @@ public static class LfeSynth {
       double roadA = ra[idx] + (ra[idx+1] - ra[idx]) * f;
       double impA  = ia[idx] + (ia[idx+1] - ia[idx]) * f;
       double wpnA  = wa[idx] + (wa[idx+1] - wa[idx]) * f;
+      double hvA   = ha[idx] + (ha[idx+1] - ha[idx]) * f;
 
       // engine: sine with slow pitch wander. A perfectly steady tone numbs the
       // skin and masks everything else; ShakeIt randomises frequency for this.
@@ -167,6 +178,12 @@ public static class LfeSynth {
       wpnPh += 2 * Math.PI * wpnHz / rate;
       sig += wpnA * Math.Sin(wpnPh);
 
+      // heave: carrier AT RESONANCE, amplitude-modulated by chassis heave. The
+      // energy sits at carHz where the shaker is strongest; the felt rhythm is
+      // the heave rate, which is mostly below the shaker's own floor.
+      carPh += 2 * Math.PI * carHz / rate;
+      sig += hvA * Math.Sin(carPh);
+
       // 2-pole high-pass at hpHz (excursion safety), then 2-pole low-pass at lpHz
       double h1 = aHp * (hpA + sig - hpPrevIn);       hpPrevIn = sig;  hpA = h1;
       double h2 = aHp * (hpB + h1 - hpPrevIn2);       hpPrevIn2 = h1;  hpB = h2;
@@ -186,9 +203,10 @@ public static class LfeSynth {
 
 $tune = Mix-DefaultTune
 Write-Host "synthesising..." -ForegroundColor Cyan
-$pcm = [LfeSynth]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$Rate,$Master,
+$pcm = [LfeSynth]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$Rate,$Master,
                           [double]$tune.LfeEngineJitter,[double]$tune.LfeImpactHz,
-                          [double]$tune.LfeWeaponHz, 22.0, 90.0)
+                          [double]$tune.LfeWeaponHz,[double]$tune.LfeCarrierHz,
+                          $HpHz, $LpHz)
 
 # ---- WAV ------------------------------------------------------------------
 $fs = [System.IO.File]::Create($Out)
@@ -208,5 +226,6 @@ Write-Host ("{0:0.0}s at {1} Hz mono   peak {2:0}% of full scale" -f `
 Write-Host ("band: {0}-{1} Hz engine, {2}-{3} Hz road, {4} Hz impact, {5} Hz weapon" -f `
     $tune.LfeEngineIdleHz, $tune.LfeEngineMaxHz, $tune.LfeRoadLoHz, $tune.LfeRoadHiHz,
     $tune.LfeImpactHz, $tune.LfeWeaponHz) -ForegroundColor DarkGray
-Write-Host ("filtered: 22 Hz high-pass (excursion safety), 90 Hz low-pass") -ForegroundColor DarkGray
+Write-Host ("heave: {0} Hz carrier, AM by chassis heave - carries sub-20 Hz motion" -f $tune.LfeCarrierHz) -ForegroundColor DarkGray
+Write-Host ("filtered: {0} Hz high-pass, {1} Hz low-pass (Aura AST-2B: 20-80 Hz, Fs 40)" -f $HpHz, $LpHz) -ForegroundColor DarkGray
 Write-Host ("-> {0}" -f (Resolve-Path $Out)) -ForegroundColor Cyan

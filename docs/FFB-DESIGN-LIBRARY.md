@@ -264,6 +264,28 @@ practitioner tunings vary — there are two schools, one packing everything into
 - Use threshold/gamma so idle telemetry produces silence.
 - **If everything feels equally strong, you're clipping.**
 
+### Resonance is the number that matters, not the range
+
+A tactile transducer is an inertial exciter: a moving mass on a spring. It puts out
+the most force per watt **at its resonance (Fs)**, and falls away on both sides.
+So the useful design target is not "somewhere in 20-100 Hz" but *centred on Fs*.
+
+| Unit | Usable range | Fs |
+|---|---|---|
+| Aura AST-2B-4 (Pro) | 20-80 Hz | 40 Hz |
+| Aura AST-1B-4 | 20-100 Hz | ~40 Hz |
+
+**Below Fs, output collapses.** The mass and the frame start travelling together,
+so relative motion - and therefore transmitted force - goes away. Driving 12 Hz
+into a 40 Hz shaker mostly heats the voice coil.
+
+**Reaching below the floor anyway.** Content genuinely below ~20 Hz (chassis heave,
+pitch, slow body motion) is carried by **amplitude-modulating a carrier at Fs**.
+Energy stays where the shaker is strong, the sidebands land at Fs +/- the
+modulation rate (still in band), and the body feels the *rhythm* at the low rate.
+This is standard tactile practice, not a compromise - the skin responds to the
+envelope, and the envelope is the information.
+
 **RPM → frequency:** the physically correct fundamental is firing frequency,
 `RPM × cylinders / 120` — but that leaves the shaker band by mid-revs (a V8 at
 4000 rpm is 267 Hz). Practice is to **compress idle→redline into ~25–55 Hz** and

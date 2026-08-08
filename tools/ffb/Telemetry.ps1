@@ -321,6 +321,7 @@ function Tel-Open {
         LongAccel = 0.0
         VyRate    = 0.0
         WAx = 0.0; WAy = 0.0; WAz = 0.0
+        LastHeading = 0.0; HeadingRate = 0.0; Slide = 0.0
         Jolt      = 0.0
         # First-change priming. Without this the first tick differentiates
         # against a zeroed baseline and emits a large bogus jolt - which the
@@ -419,7 +420,9 @@ function Tel-Slip {
       the measured noise floor (worst residual on gripped samples: 0.053); real
       events deviate by more than 0.5.
     #>
-    param([double]$Speed, [double]$Steer, [double]$YawRate)
+    param(
+        [double]$Speed, [double]$Steer, [double]$YawRate,
+        [double]$Slide = 0.0)
 
     # LOWERED from 0.15 so the wheel WARNS about the approach instead of only
     # REPORTING the departure. The evidence for how far it can safely come down:
@@ -467,6 +470,28 @@ function Tel-Slip {
             elseif ($excess -gt $DEV_DEAD) { $oversteer = [math]::Min(1.0, ($excess - $DEV_DEAD) / $span) }
         }
     }
+    # ---- SIDESLIP, folded in ------------------------------------------------
+    # Everything above compares yaw rate against the yaw the STEERING asked for.
+    # That catches the car disobeying the driver, which is why it fires on spins
+    # and handbrake turns but stayed quiet through ordinary skids: in a four-wheel
+    # drift the car can slide a long way while still rotating roughly as commanded.
+    #
+    # Slide is the other half - how far the car's DIRECTION OF TRAVEL has come
+    # adrift from where its nose is turning (see Tel-Sample). It is the measure
+    # that actually corresponds to the skid the player hears.
+    #
+    # Taken as a MAXIMUM rather than a sum. These are two views of one physical
+    # event, not two separate events, and adding them would double-count a spin,
+    # which trips both at once.
+    if ($Slide -gt 0) {
+        $sDead = 0.12   # rad/s. Above derivative noise on a gripped line.
+        $sRef  = 1.20   # rad/s. Fully sideways.
+        if ($Slide -gt $sDead) {
+            $slideN = [math]::Min(1.0, ($Slide - $sDead) / ($sRef - $sDead))
+            if ($slideN -gt $oversteer) { $oversteer = $slideN }
+        }
+    }
+
     return [pscustomobject]@{
         ExpectedYaw = $expectedYaw; Understeer = $understeer; Oversteer = $oversteer
     }
@@ -551,6 +576,37 @@ function Tel-Sample {
             $Ctx.WAy = ($vy - $Ctx.LastVy) / $dt
             $Ctx.WAz = ($vz - $Ctx.LastVz) / $dt
 
+            # ---- SIDESLIP, without needing any orientation ------------------
+            # A skid is the car TRAVELLING in a different direction than it is
+            # POINTING. We cannot read a facing vector - this engine has none -
+            # but we do not need one:
+            #
+            #   * the velocity vector's heading rotates at d(heading)/dt
+            #   * the car body rotates at the yaw rate
+            #   * GRIPPED, those are the same number: the car goes where it points
+            #   * SLIDING, they diverge, and the gap IS the sideslip rate
+            #
+            # This is a different quantity from the yaw-vs-commanded deviation
+            # already computed in Tel-Slip. That one catches the car disobeying
+            # the STEERING; this one catches the car disobeying its own NOSE, which
+            # is what a skid actually is and why the first measure kept missing it.
+            if ($speed -gt 2.0 -and $Ctx.LastHeading -ne 0.0) {
+                $hNow = [math]::Atan2($vx, $vz)
+                $dh = $hNow - $Ctx.LastHeading
+                # shortest way round the circle - without this, every pass through
+                # +/-pi reads as a violent slide
+                while ($dh -gt [math]::PI)  { $dh -= 2 * [math]::PI }
+                while ($dh -lt -[math]::PI) { $dh += 2 * [math]::PI }
+                $Ctx.HeadingRate = $dh / $dt
+                $Ctx.Slide = [math]::Abs($yawRate - $Ctx.HeadingRate)
+                $Ctx.LastHeading = $hNow
+            } elseif ($speed -gt 2.0) {
+                $Ctx.LastHeading = [math]::Atan2($vx, $vz)
+                $Ctx.HeadingRate = 0.0; $Ctx.Slide = 0.0
+            } else {
+                $Ctx.HeadingRate = 0.0; $Ctx.Slide = 0.0
+            }
+
             # Jolt = magnitude of the VECTOR velocity change per second. A crash
             # redirects velocity even when |v| barely moves (glancing a wall
             # spins you without much speed loss), so the vector delta catches
@@ -570,7 +626,7 @@ function Tel-Sample {
     # should make the wheel feel heavy in a bend.
     $latAccel = $yawRate * $speed
 
-    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate
+    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate -Slide $Ctx.Slide
     $expectedYaw = $slip.ExpectedYaw
 
     # Weapon-fire flag. A separate 1-byte read because it is a static global, not
@@ -680,6 +736,10 @@ function Tel-Sample {
         # PROXY for motion-sim export: the engine exposes no orientation, and for a
         # car the velocity direction and the facing direction differ only by the
         # slip angle - which in this engine is near zero outside a spin.
+        # Rate the VELOCITY vector rotates, and how far that is from the rate the
+        # CAR rotates. Slide is the sideslip signal - see the note above.
+        HeadingRate = $Ctx.HeadingRate
+        Slide       = $Ctx.Slide
         HeadingApprox = $(if ($speed -gt 1.0) { [math]::Atan2($vx, $vz) } else { 0.0 })
         LatAccel    = $latAccel
         LatG        = $latAccel / 9.81

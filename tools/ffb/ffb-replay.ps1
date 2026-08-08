@@ -79,7 +79,8 @@ function Build-Samples {
             if ($dt -gt 0.005 -and $dt -lt 1.0) { $longG = (($sp - $prevSpeed) / $dt) / 9.81 }
         }
         $prevT = $t; $prevSpeed = $sp
-        $slip = Tel-Slip -Speed $sp -Steer $st -YawRate $yw
+        $sl = 0.0; if ($r.PSObject.Properties['slide']) { [void][double]::TryParse($r.slide, [ref]$sl) }
+        $slip = Tel-Slip -Speed $sp -Steer $st -YawRate $yw -Slide $sl
         $null = $out.Add([pscustomobject]@{
             T = $t; Speed = $sp; SpeedMph = $sp * 2.23694; Steer = $st; Throttle = $(if ($Full) { [double]$r.throttle } else { 0.0 })
             YawRate = $yw

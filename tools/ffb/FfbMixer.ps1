@@ -239,12 +239,34 @@ function Mix-DefaultTune {
         LfeEngineJitter = 0.06  # +/- fraction of pitch wander. A perfectly steady
                                 # tone numbs the skin and masks transients; ShakeIt
                                 # ships noise randomisation for exactly this reason.
-        LfeRoadLoHz     = 50.0  # road noise bed, quiet end
-        LfeRoadHiHz     = 70.0  # road noise bed, rough end
+        # AURA AST-2B TUNING. Both Aura shakers are spec'd from 20 Hz, and the
+        # AST-2B-4 is 20-80 Hz with resonance (Fs) at 40 Hz. An inertial shaker
+        # is a mass on a spring: it delivers the most force AT Fs, and content
+        # placed well above it is progressively wasted. The road bed used to sit
+        # at 50-70 Hz and weapons at 85 Hz - the top of, or past, the usable
+        # range. Everything is now centred on 40 Hz instead.
+        LfeRoadLoHz     = 34.0  # road noise bed, quiet end
+        LfeRoadHiHz     = 56.0  # road noise bed, rough end
         LfeRoadAmp      = 0.50  # road-rumble amplitude at RoughRef jolt
         LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
-        LfeImpactHz     = 32.0
-        LfeWeaponHz     = 85.0
+        LfeImpactHz     = 38.0  # at Fs: an impact should be the hardest hit there is
+        LfeWeaponHz     = 58.0  # was 85 - outside the AST-2B-4's 20-80 Hz range
+
+        # ---- reaching BELOW the shaker's floor ------------------------------
+        # Chassis heave is real 0-15 Hz content and it is the low-frequency force
+        # the rig is missing. It cannot be reproduced directly: below Fs the
+        # shaker's moving mass and its frame travel together, so there is no
+        # relative motion and no force - output falls away steeply, and driving
+        # 12 Hz into it just heats the coil.
+        #
+        # So heave is rendered as AMPLITUDE MODULATION of a carrier at Fs. The
+        # acoustic energy stays at 40 Hz where the shaker is strongest, the
+        # sidebands land at 40 +/- the heave rate (25-55 Hz, still in band), and
+        # the body feels the RHYTHM at the heave rate. This is how sub-20 Hz
+        # information gets through tactile hardware; it is not a workaround.
+        LfeCarrierHz    = 40.0  # Aura AST-2B-4 Fs - peak force per watt
+        LfeHeaveAmp     = 0.55
+        LfeHeaveRef     = 12.0  # m/s^2 of heave for full modulation depth
 
         # --- safety ---------------------------------------------------------
         # MIN FORCE - the single most likely reason this read "barely
@@ -651,6 +673,10 @@ function Mix-Update {
             RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
             RoadFreq   = [math]::Round($Tune.LfeRoadLoHz + ($Tune.LfeRoadHiHz - $Tune.LfeRoadLoHz) * $rough, 1)
             ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
+            HeaveAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeHeaveAmp *
+                           [math]::Abs($(if ($null -ne $Sample.HeaveAccel) { $Sample.HeaveAccel } else { 0.0 })) /
+                           $Tune.LfeHeaveRef), 3)
+            CarrierFreq= $Tune.LfeCarrierHz
             ImpulseFreq= $Tune.LfeImpactHz
             WeaponAmp  = [math]::Round([math]::Min(1.0, [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
             WeaponFreq = $Tune.LfeWeaponHz
