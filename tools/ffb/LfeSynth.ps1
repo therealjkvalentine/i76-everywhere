@@ -23,7 +23,8 @@ using System.Threading;
 
 // ===================== DSP =====================
 public class LfeCore {
-  double engPh, roadPh, impPh, wpnPh, jitPh, carPh, noiseLp;
+  public static LfeCore LastRender;   // so callers can read the meters
+  double engPh, roadPh, impPh, wpnPh, jitPh, carPh, noiseLp, noiseLp2;
   double lpA, lpB, hpA, hpB, hpPrevIn, hpPrevIn2;
   double kLp, aHp;
   Random rnd = new Random(1976);
@@ -70,6 +71,24 @@ public class LfeCore {
     return g > compMax ? compMax : g;
   }
 
+  // Metering. Tactile content is judged by RMS - what you feel continuously -
+  // but headroom is spent on peaks, so the two must be tracked separately.
+  public double PeakAbs = 0; public long Limited = 0, Samples = 0;
+
+  // Soft knee instead of a hard ceiling. A hard clip turns a peak into a burst
+  // of harmonics - broadband, buzzy, and audible far outside the shaker's band.
+  // This is linear up to 0.6 and bends smoothly to an asymptote at 1.0, so only
+  // the rare peaks are touched and they are compressed rather than shattered.
+  // Continuous in value AND slope at the knee: 0.4 * tanh'(0) = 1 exactly.
+  public double Limit(double v) {
+    Samples++;
+    double a = Math.Abs(v);
+    if (a > PeakAbs) PeakAbs = a;
+    if (a <= 0.6) return v;
+    Limited++;
+    return (v < 0 ? -1.0 : 1.0) * (0.6 + 0.4 * Math.Tanh((a - 0.6) / 0.4));
+  }
+
   public double Step(double engF, double engA, double roadF, double roadA,
                      double impA, double wpnA, double hvA) {
     // engine: sine with slow pitch wander. A perfectly steady tone numbs the
@@ -85,9 +104,13 @@ public class LfeCore {
     // road: band-limited noise. A noise bed is what road texture is.
     double white = rnd.NextDouble() * 2.0 - 1.0;
     double kN = 1.0 - Math.Exp(-2.0 * Math.PI * roadF / rate);
+    // Two poles, not one. A single 6 dB/oct pole leaves white noise with
+    // substantial energy an octave above the corner - out of the shaker's useful
+    // band and into where it can only rattle.
     noiseLp += kN * (white - noiseLp);
+    noiseLp2 += kN * (noiseLp - noiseLp2);
     roadPh += 2 * Math.PI * roadF / rate;
-    sig += roadA * Comp(roadF) * (0.55 * noiseLp * 3.0 + 0.45 * Math.Sin(roadPh));
+    sig += roadA * Comp(roadF) * (0.55 * noiseLp2 * 5.0 + 0.45 * Math.Sin(roadPh));
 
     impPh += 2 * Math.PI * impHz / rate;
     sig += impA * Comp(impHz) * Math.Sin(impPh);
@@ -110,7 +133,7 @@ public class LfeCore {
   // Offline: interpolate a 60 Hz parameter track up to audio rate.
   public static short[] Render(double[] t, double[] ef, double[] ea, double[] rf,
                                double[] ra, double[] ia, double[] wa, double[] ha,
-                               int rate, double master, double jitter,
+                               int rate, double master, double drive, double jitter,
                                double impHz, double wpnHz, double carHz,
                                double hpHz, double lpHz,
                                double[] rHz, double[] rRel, double compMax) {
@@ -120,6 +143,7 @@ public class LfeCore {
     int total = (int)(dur * rate);
     short[] outp = new short[total];
     var core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
+    LastRender = core;
     int idx = 0;
     for (int i = 0; i < total; i++) {
       double tt = t[0] + (double)i / rate;
@@ -131,8 +155,8 @@ public class LfeCore {
         ef[idx] + (ef[idx+1] - ef[idx]) * f, ea[idx] + (ea[idx+1] - ea[idx]) * f,
         rf[idx] + (rf[idx+1] - rf[idx]) * f, ra[idx] + (ra[idx+1] - ra[idx]) * f,
         ia[idx] + (ia[idx+1] - ia[idx]) * f, wa[idx] + (wa[idx+1] - wa[idx]) * f,
-        ha[idx] + (ha[idx+1] - ha[idx]) * f) * master;
-      if (v > 1.0) v = 1.0; if (v < -1.0) v = -1.0;
+        ha[idx] + (ha[idx+1] - ha[idx]) * f) * drive;
+      v = core.Limit(v) * master;
       outp[i] = (short)(v * 32767);
     }
     return outp;
@@ -222,11 +246,20 @@ public class LfeLive {
   // buffer using a value 16 ms stale - inaudible for a rumble bed, and far
   // cheaper than locking the audio thread against a PowerShell caller.
   public double EngineFreq = 25, EngineAmp = 0, RoadFreq = 60, RoadAmp = 0;
-  public double ImpulseAmp = 0, WeaponAmp = 0, HeaveAmp = 0, Master = 0.9;
+  public double ImpulseAmp = 0, WeaponAmp = 0, HeaveAmp = 0, Master = 0.9, Drive = 1.0;
   public long Underruns = 0;
 
+  // Smoothed copies, advanced ONE SAMPLE AT A TIME toward the targets above.
+  // Without this the live path applies a 60 Hz staircase to every amplitude,
+  // while the offline renderer interpolates between frames - so the two sounded
+  // different, and the live one buzzed. Stepping a gain 60 times a second puts
+  // sidebands +/-60 Hz around every source: classic zipper noise, and squarely in
+  // the band this rig reproduces best.
+  double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA;
+
   IntPtr h = IntPtr.Zero;
-  LfeCore core;
+  double kAmp, kFrq;
+  public LfeCore core;
   Thread th;
   volatile bool running;
   int rate, bufSamples, nBuf;
@@ -238,6 +271,10 @@ public class LfeLive {
                       int bufSamples, int nBuf) {
     this.rate = rate; this.bufSamples = bufSamples; this.nBuf = nBuf;
     core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
+    // 6 ms on amplitudes, 25 ms on frequencies - fast enough that an impact still
+    // arrives as an impact, slow enough that the 16 ms parameter staircase is gone.
+    kAmp = 1.0 - Math.Exp(-1.0 / (0.006 * rate));
+    kFrq = 1.0 - Math.Exp(-1.0 / (0.025 * rate));
     LfeOut.WAVEFORMATEX f = LfeOut.Fmt(rate);
     uint r = LfeOut.waveOutOpen(out h, devId, ref f, IntPtr.Zero, IntPtr.Zero, 0);
     if (r != 0) { h = IntPtr.Zero; return "waveOutOpen failed, code " + r; }
@@ -269,9 +306,14 @@ public class LfeLive {
         // WHDR_INQUEUE (0x10) still playing; WHDR_DONE (0x01) free to refill
         if ((hdrs[i].dwFlags & 0x00000010) != 0) continue;
         for (int k = 0; k < bufSamples; k++) {
-          double v = core.Step(EngineFreq, EngineAmp, RoadFreq, RoadAmp,
-                               ImpulseAmp, WeaponAmp, HeaveAmp) * Master;
-          if (v > 1.0) v = 1.0; if (v < -1.0) v = -1.0;
+          // amplitudes track quickly (transients must stay sharp), frequencies
+          // slowly (a swept tone should glide, not stair-step)
+          sEngA += kAmp * (EngineAmp - sEngA);   sRoadA += kAmp * (RoadAmp - sRoadA);
+          sImpA += kAmp * (ImpulseAmp - sImpA);  sWpnA  += kAmp * (WeaponAmp - sWpnA);
+          sHvA  += kAmp * (HeaveAmp - sHvA);
+          sEngF += kFrq * (EngineFreq - sEngF);  sRoadF += kFrq * (RoadFreq - sRoadF);
+          double v = core.Step(sEngF, sEngA, sRoadF, sRoadA, sImpA, sWpnA, sHvA) * Drive;
+          v = core.Limit(v) * Master;
           short s = (short)(v * 32767);
           bufs[i][k*2] = (byte)(s & 0xFF); bufs[i][k*2+1] = (byte)((s >> 8) & 0xFF);
         }

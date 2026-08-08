@@ -52,6 +52,12 @@ param(
     # the result in an editor that dislikes low rates.
     [int]$Rate = 8000,
     [double]$Master = 0.9,
+    # PRE-LIMITER GAIN. The rendered signal has a crest factor of 21 dB - RMS
+    # only 8.8% of peak - so almost all the headroom is held for rare transients
+    # while the continuous content you actually feel sits far below it. Driving
+    # into a soft knee raises what is felt without shattering the peaks.
+    [double]$Drive = 2.0,
+
     # Aura AST-2B: usable 20-80 Hz, Fs 40. The old 22/90 defaults spent
     # effort above where these transducers deliver any force.
     # 13 Hz is audible-by-touch on this desk, well below the driver's rated 20.
@@ -135,7 +141,7 @@ foreach ($r in $raw) {
 
 $tune = Mix-DefaultTune
 Write-Host "synthesising..." -ForegroundColor Cyan
-$pcm = [LfeCore]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$Rate,$Master,
+$pcm = [LfeCore]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$Rate,$Master,$Drive,
                           [double]$tune.LfeEngineJitter,[double]$tune.LfeImpactHz,
                           [double]$tune.LfeWeaponHz,[double]$tune.LfeCarrierHz,
                           $HpHz, $LpHz,
@@ -167,6 +173,9 @@ if ($Play) {
 
 $peak = 0; foreach ($sm in $pcm) { $a=[math]::Abs([int]$sm); if ($a -gt $peak) { $peak=$a } }
 Write-Host ""
+$m = [LfeCore]::LastRender
+Write-Host ("drive {0:0.0}x   peak {1:0.00} before limiting   {2:0.00}% of samples limited" -f `
+    $Drive, $m.PeakAbs, (100.0 * $m.Limited / [math]::Max(1, $m.Samples))) -ForegroundColor DarkGray
 Write-Host ("{0:0.0}s at {1} Hz mono   peak {2:0}% of full scale" -f `
     ($pcm.Length / [double]$Rate), $Rate, ($peak * 100.0 / 32767)) -ForegroundColor Green
 Write-Host ("band: {0}-{1} Hz engine, {2}-{3} Hz road, {4} Hz impact, {5} Hz weapon" -f `
