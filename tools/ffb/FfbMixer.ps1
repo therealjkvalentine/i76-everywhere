@@ -495,7 +495,12 @@ function Mix-Update {
     # Fails safe: if TEL_FIRE_ADDR is wrong the flag never changes, this never
     # fires, and the channel is silent. It is not possible for a wrong address to
     # produce spurious kicks.
-    $firing = [bool]$Sample.Firing
+    # PREFER THE ENGINE'S OWN EVENT. FxEvent is true on the frame the engine
+    # STARTED an effect - after input handling, weapon logic, ammo and damage
+    # rules have all run. The input flag at 0x5367d0 is the fallback, and it is
+    # the one that produced no weapon response in the field: a button moving is
+    # not the same thing as a weapon firing.
+    $firing = if ($null -ne $Sample.FxEvent) { [bool]$Sample.FxEvent } else { [bool]$Sample.Firing }
     if ($firing -and -not $Mix.LastFiring) {
         if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
             Mix-Trigger $Mix 'buzz' $Tune.WeaponGain ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'

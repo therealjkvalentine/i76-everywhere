@@ -164,3 +164,63 @@ candidate entity+0x94 ~51.5). AI/radar/targeting logic is script-VM-dispatched
 - `tools/i76-mem-dump.ahk` + `i76-mem-scan.py` — heap dump + differential scanner
 - Method: `docs/RE-METHODOLOGY.md` (run Cheat Engine INSIDE the wineprefix for
   watchpoints); shapes: `docs/MW2-I76-STRUCTS.md`; legitimacy: `docs/SCOPE-AND-LEGITIMACY.md`.
+
+## The FFB effect block — the engine's own event feed
+
+`I7_SFRCE.DLL` exports exactly three symbols, and every force-feedback event the
+engine plays goes through one of them:
+
+| VA | meaning |
+|---|---|
+| `0x52bbdc` | resolved `I7FF_InitSystem` pointer |
+| `0x52bbe0` | resolved `I7FF_ExitSystem` pointer |
+| `0x52bbe4` | resolved **`I7FF_SIM_Effect`** pointer — the single event funnel |
+| `0x4f2328` | **364-byte effect parameter block** (`0x16c`), the function's only argument |
+
+Dispatcher at `0x446110`:
+
+```
+mov  eax, [0x52bbe4]
+test eax, eax
+je   0x446155                     ; the engine ALREADY tolerates a null pointer
+push 0x4f2328
+mov  dword ptr [0x4f2328], 0x16c  ; sizeof(struct)
+call eax
+```
+
+Reached from `0x445B58` / `0x445B76` / `0x445B98` (enable/disable toggles) and
+from `0x445E83`, a call out of the parameter builder — the function that reads the
+player entity at `+0x70`, so that is the per-event path.
+
+### The effect-slot array — measured live
+
+Inside the block, base `+0x030`, **stride `0x1C`**, at least 6 slots:
+
+| field | meaning | observed |
+|---|---|---|
+| `+0x00` | active flag | 0 / 1 |
+| `+0x0C` | effect / weapon id | 8, 13, 17 |
+| `+0x10` | float parameter, reads as a direction | 0.8104, 180.8 |
+| `+0x14` | magnitude or duration | 5, 10, 60 |
+| `+0x18` | flag | 0 / 1 |
+
+A slot going `0 → 1` **is** the event. Timing identifies the kind: one slot fired
+six times at even 0.75 s intervals (a weapon on a reload cycle) while others fired
+in 0.1 s bursts (rapid fire). The field shape matches the DLL's own logging format,
+`Hardpoint:%d WpnId:%d Freq:%d Gain:%d Direction:%d`.
+
+Slot 6 would begin at `+0x0D8`, but that region updates continuously at the sim
+tick rate with hundreds of distinct values — a different structure, not another
+on/off slot. `+0x160` is the sim delta-time (0.047–0.063 ≈ 1/20 s).
+
+**Why this beats the input flag at `0x5367d0`:** it is what the engine *decided*,
+after input handling, weapon logic, ammo and damage rules have run. An input byte
+says a button moved; this says a weapon actually fired. Watching the input flag
+produced no weapon response in the field; this does.
+
+**Consequence for patching:** zero `0x52bbe4` rather than `0x52bbd0` to stop the
+crash at `I7_SFRCE.DLL+0x2505`. Zeroing the *flag* makes the gated callers bail
+before the block is ever filled, so the engine's events become invisible; zeroing
+the *pointer* lets every effect be built and merely skips the call into the DLL.
+The null check is the engine's own. Read by `tools/ffb/Telemetry.ps1`; watch it
+live with `tools/ffb/ffb-watch-effects.ps1`.

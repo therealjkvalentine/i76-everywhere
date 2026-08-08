@@ -195,6 +195,39 @@ $script:TEL_MODEL = 2
 # Set TEL_FIRE_ADDR to 0 to disable the channel outright. If neither address ever
 # changes, the channel is silent - it cannot produce spurious kicks.
 $script:TEL_FIRE_ADDR  = 0x5367d0
+
+# ---------------------------------------------------------------------------
+# THE ENGINE'S OWN EFFECT TABLE - far better than the input flag above
+# ---------------------------------------------------------------------------
+# I7_SFRCE.DLL exports one effect entry point, I7FF_SIM_Effect, and the engine
+# calls it with a single 364-byte parameter block at 0x4f2328 (dispatcher at
+# 0x446110, which writes 0x16c as the struct size). Inside that block, starting
+# at +0x030 with a stride of 0x1C, is an ARRAY OF EFFECT SLOTS. Captured live
+# while firing:
+#
+#   slot  +0x00 active  +0x0C id  +0x10 param  +0x14 magnitude  +0x18 flag
+#     0        0/1            8      0.8104          10            1
+#     1        0/1           17      0.8104           5            1
+#     2        0/1            8    180.8              10            1
+#     3        0/1           13    180.8              60            1
+#
+# The timing settles what they are: slot 3 fired six times at 0.75 s intervals -
+# a weapon on a reload cycle - while slots 0-2 fired in 0.1 s bursts, i.e. rapid
+# fire. The field shape matches the engine's own logging format from
+# I7_SFRCE.DLL ("Hardpoint:%d WpnId:%d Freq:%d Gain:%d Direction:%d"), and +0x10
+# taking exactly two values (0.81 and 180.8) reads as a DIRECTION.
+#
+# This is strictly better than watching an input byte: it is what the engine
+# DECIDED after input handling, weapon logic, ammo and damage rules all ran. An
+# input flag says a button moved; this says a weapon actually fired.
+#
+# Only slots 0-5 are read. Slot 6 would start at +0x0D8, and that region updates
+# continuously at the sim tick rate with hundreds of distinct values, so it is a
+# different structure - not another on/off slot.
+$script:TEL_FX_BLOCK  = 0x4f2328
+$script:TEL_FX_BASE   = 0x030
+$script:TEL_FX_STRIDE = 0x1C
+$script:TEL_FX_SLOTS  = 6
 $script:TEL_FIRE_ADDR2 = 0x5367de
 
 # +1 if a positive steer input produces a positive +0x0CC yaw rate. If the panel
@@ -299,6 +332,8 @@ function Tel-Open {
         # hold the loop to 38 Hz when 60 was requested.
         Buf       = (New-Object byte[] $script:TEL_BLOCK)
         FireBuf   = (New-Object byte[] 16)
+        FxBuf     = (New-Object byte[] ($script:TEL_FX_BASE + $script:TEL_FX_SLOTS * $script:TEL_FX_STRIDE))
+        FxPrev    = (New-Object int[] $script:TEL_FX_SLOTS)
     }
     if (-not (Tel-Resolve $ctx)) { throw "Player entity is NULL - load a mission first." }
     Tel-Geometry $ctx
@@ -559,6 +594,31 @@ function Tel-Sample {
         $gameFfb = [BitConverter]::ToInt32($gb, 0)
     }
 
+    # ---- the engine's own effect slots -----------------------------------
+    # A slot going 0 -> 1 is an effect STARTING: that is the event. Reading the
+    # engine's decision rather than an input byte is what finally made weapon
+    # feedback work.
+    $fxFired = @()
+    $fxActive = 0
+    $fb2 = $Ctx.FxBuf
+    $fn2 = 0
+    if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$script:TEL_FX_BLOCK, $fb2, $fb2.Length, [ref]$fn2)) {
+        for ($si = 0; $si -lt $script:TEL_FX_SLOTS; $si++) {
+            $bo = $script:TEL_FX_BASE + $si * $script:TEL_FX_STRIDE
+            $act = [BitConverter]::ToInt32($fb2, $bo)
+            if ($act -ne 0) { $fxActive++ }
+            if ($act -ne 0 -and $Ctx.FxPrev[$si] -eq 0) {
+                $fxFired += [pscustomobject]@{
+                    Slot = $si
+                    Id   = [BitConverter]::ToInt32($fb2, $bo + 0x0C)
+                    Param= [BitConverter]::ToSingle($fb2, $bo + 0x10)
+                    Mag  = [BitConverter]::ToInt32($fb2, $bo + 0x14)
+                }
+            }
+            $Ctx.FxPrev[$si] = $act
+        }
+    }
+
     $understeer = $slip.Understeer
     $oversteer  = $slip.Oversteer
 
@@ -577,6 +637,12 @@ function Tel-Sample {
         Tumble      = ([math]::Abs($angVelX) + [math]::Abs($angVelZ))
         FireRaw     = $fire
         Firing      = ($fire -ne 0)
+        # Effects the ENGINE started this frame, and how many are running.
+        FxFired     = $fxFired
+        FxActive    = $fxActive
+        # True when the engine started any effect this frame - the reliable
+        # "something happened" signal that the input flag never delivered.
+        FxEvent     = ($fxFired.Count -gt 0)
         # Nonzero = the engine also has a live FFB device, so FIRING WILL CRASH IT
         # while we hold the wheel. See the note above.
         GameFfb     = $gameFfb
