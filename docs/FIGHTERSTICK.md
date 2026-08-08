@@ -68,29 +68,41 @@ focus, so the game just goes input-dead.
 This is the part the request was really about: turning an analog position into
 discrete actions.
 
+Layout chosen at the wheel (2026-08-08), not from first principles — the handbrake
+is the gesture you make hardest and most often, so it takes the strongest, most
+natural pull; reverse reads as a held state rather than a latch; and the shifts sit
+out of the way of both, on the lateral axis.
+
 | stick | action | key | semantics |
 |---|---|---|---|
-| push **forward** | `shift_up` | `Period` | **edge** |
-| pull **back** | `shift_down` | `Comma` | **edge** |
-| yank **left** | `e_brake` | `Space` | **level** |
-| push **right** | `reverse_direction` | `X` | **edge** |
+| pull **back** | `e_brake` | `Space` | **level** |
+| push **forward** | reverse while held | `X` | **momentary** |
+| **left** | `shift_down` | `Comma` | **edge** |
+| **right** | `shift_up` | `Period` | **edge** |
 
-**Edge versus level is the whole design**, and getting it wrong makes the stick
-unusable:
+**The three semantics are the whole design**, and getting any of them wrong makes
+the stick unusable:
 
 - **Edge** — one event per excursion. The stick must return through the release
-  threshold before it will fire again. That is exactly how a sequential gearbox
-  behaves: you cannot hold it forward and climb through the gears.
+  threshold before it fires again. Exactly how a sequential gearbox behaves: you
+  cannot hold it over and climb through the gears.
 - **Level** — the key is held down for as long as the stick is deflected, released
   when it recentres. A handbrake you had to tap would be useless.
+- **Momentary** — pulses on the way **in and again on the way out**. This exists
+  because `reverse_direction` is a **toggle**: one tap enters reverse, the next
+  returns to forward. Holding the key does *not* hold reverse, so `level` would
+  leave the car stuck in reverse with the stick centred. Two taps against a toggle
+  produce the momentary behaviour the toggle itself cannot.
 
-Two thresholds, not one: it triggers at **55%** deflection and releases at **35%**.
+Two thresholds, not one: it triggers at **35%** deflection and releases at **20%**.
 The gap is hysteresis. With a single threshold, a stick resting near it
 machine-guns the action.
 
-`-selftest` exercises this without the hardware — 18 assertions covering the gate
-behaviour, the hysteresis band, and axis normalisation including out-of-range
-clamping. The case worth naming: *"held forward does NOT shift again."*
+`-selftest` exercises this without the hardware — 25 assertions covering all three
+semantics, the hysteresis band, and axis normalisation including out-of-range
+clamping. The two cases worth naming: *"held over does NOT shift again"*, and
+*"releasing taps back OUT of reverse"* — without that second pulse the car stays
+in reverse with the stick sitting centred in your hand.
 
 The state machine is a **pure function of (deflection, state)** for exactly this
 reason; it is the part that is easy to get subtly wrong and impossible to debug
@@ -103,37 +115,67 @@ the trigger fires the gun, the "pickle" button releases weapons, the castle hat 
 head-look, and the 4-way switches are Target Management (TMS) and Display
 Management (DMS).
 
-| grip control | F-16 function | I'76 action | key |
-|---|---|---|---|
-| trigger | gun | `weapon_fire` | `Enter` |
-| pickle (thumb) | weapon release | `special1` | `6` |
-| thumb | — | `weapon_cycle` | `Tab` |
-| pinky / paddle | NWS, AR disconnect | `HONK_HORN` | `G` |
-| **castle hat** (8-way) | view / head-look | `pilot_glance_up/down/left/right` | grey arrows |
-| **hat 1 — TMS** | target management | nearest / next / reset / frontal | `T` `Y` `U` `Q` |
-| **hat 2 — DMS** | display management | map / radar range / combat view / binoculars | `M` `R` `V` `B` |
-| **hat 3 — CMS** | countermeasures | `special2` / `special3` / glance-target / start engine | `7` `8` `E` `I` |
+| # | grip control | jet function (A-10C) | I'76 action | key |
+|---|---|---|---|---|
+| 1 | index trigger | gun trigger (2-stage: PAC, then fire) | `weapon_fire` | `Enter` |
+| 2 | top red button | weapon release — the "pickle" | `special1` | `6` |
+| 3 | back-side red button | varies; also cycles base mode LEDs | `weapon_cycle` | `Tab` |
+| 4 | pinky red button | pinky switch — laser latch / nosewheel steering | `HONK_HORN` | `G` |
+| — | **castle hat** (8-way POV) | view control / head-look | `pilot_glance_up/down/left/right` | grey arrows |
+| 5–8 | **upper-left hat — DMS** | display management: MFCD nav, sensor select | map / radar range / combat view / binoculars | `M` `R` `V` `B` |
+| 9–12 | **side-right hat — CMS** | countermeasures: chaff, flares, programs | `special2` / `special3` / glance-target / start engine | `7` `8` `E` `I` |
+| 13–16 | **lower hat — TMS** | target management: lock, track, designate | nearest / next / reset / frontal | `T` `Y` `U` `Q` |
 
-The castle hat mapping is the one that transfers most directly — on the real
-aircraft it is head-look, and in I'76 `pilot_glance_*` is head-look.
+Direction order within every hat is **up → right → down → left** — measured, since
+CH's documentation gives the four numbers without saying which is which.
 
-The 8-way hat is folded into 4 sectors so the diagonals fall through to the nearer
-cardinal rather than doing nothing.
+The castle hat transfers most directly of anything here: on the real aircraft it is
+head-look, and in I'76 `pilot_glance_*` is head-look. It is a **true 8-way POV
+channel** on this unit, not buttons — CH's docs hedge on that ("maps to the
+remaining upper button IDs up to 24 depending on configuration"), so it was worth
+measuring. All eight positions report cleanly. The code folds it into 4 sectors so
+diagonals fall through to the nearer cardinal rather than doing nothing.
 
-## Two things NOT verified
+### The documentation is wrong about two of the three hats
+
+Measured on this unit with `-learn`, 2026-08-08:
+
+| hat | CH's sheet says | **this unit actually reports** |
+|---|---|---|
+| upper-left | 5–8 | 5–8 ✓ |
+| lower / centre | 9–12 | **13–16** |
+| side / right | 13–16 | **9–12** |
+
+The lower and right hats are **swapped** relative to the documentation. Trust the
+measurement. This is exactly why `-learn` exists, and why the button table is a
+plain list of `BTN[n] := "Key"` lines rather than something clever.
+
+**Still unidentified:** a stray **button 18** fires from somewhere, and buttons 17
+and 19 have never been seen (winmm reports 19). The 3-position mode switch is the
+obvious suspect — if it is, the mode can be *detected* rather than silently
+renumbering everything under us, which is the failure CH sticks are known for.
+
+## What is and is not verified
 
 Stated plainly, because this repo's history is full of retractions for skipping
 field tests.
 
-1. **The button numbers are CH's documented default layout, not measured on this
-   unit** — and the 3-position mode switch renumbers everything. If a control does
-   the wrong thing, run `-learn`, press it, and correct the `BTN` table near the
-   top of the script — it is a plain list of `BTN[n] := "Key"` lines.
+**Measured on the hardware** (2026-08-08): every button number 1–16, the up →
+right → down → left order within each hat, the lower/right hat swap above, and the
+castle hat being a true 8-way POV channel.
+
+**Not yet established:**
+
+1. **Buttons 17, 18 and 19.** Button 18 has fired once, unattributed; 17 and 19
+   never have. The 3-position mode switch is the likely answer, and it matters
+   because on CH sticks the mode silently renumbers everything.
 2. **Whether the 1997 engine accepts synthesised keys in a mission.** The injection
    path itself *is* verified — scancode `0x14` resolves to `VK_T` and the extended
    `0xE0,0x48` to `VK_UP`, confirmed by round-tripping through
-   `GetAsyncKeyState` — so the keys are genuinely delivered to Windows. Whether the
-   engine's own input read sees them needs one mission to confirm.
+   `GetAsyncKeyState` — so the keys genuinely reach Windows. Whether the engine's
+   own input read sees them needs one mission to confirm.
+3. **Whether the layout feels right at speed.** It was reasoned about at the wheel,
+   not driven. Thresholds are `THRESH`/`RELEASE` at the top of the script.
 
 ### Why scan codes
 

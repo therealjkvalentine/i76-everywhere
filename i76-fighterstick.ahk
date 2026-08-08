@@ -3,10 +3,14 @@
 ; The grip's buttons follow F-16 convention; the stick's own DEFLECTION becomes
 ; the gearbox and the handbrake:
 ;
-;     push forward -> shift up      (sequential gate: recentre between shifts)
-;     pull back    -> shift down
-;     yank left    -> handbrake     (held while deflected)
-;     push right   -> reverse
+;     pull back    -> HANDBRAKE     (held for as long as the stick is back)
+;     push forward -> REVERSE       (momentary: in reverse only while held)
+;     left / right -> shift down / shift up
+;
+; Chosen at the wheel rather than from first principles. The handbrake is the
+; gesture you make hardest and most often, so it takes the strongest, most natural
+; pull; reverse reads as a held state rather than a latch; and the shifts sit out
+; of the way of both on the lateral axis.
 ;
 ; WHY AHK AND NOT input.map: the engine's binding file maps an analog axis only to
 ; an ANALOG sink - `steer` and `throttle`. There is no syntax for "when this axis
@@ -52,8 +56,8 @@ SetBatchLines, -1
 OnExit, OnExitHandler
 
 global DEV     := 2       ; AHK joystick index; the T300 wheel is 1
-global THRESH  := 0.55    ; deflection to trigger, 0..1 from centre
-global RELEASE := 0.35    ; deflection to release/re-arm - the gap is hysteresis
+global THRESH  := 0.35    ; deflection to trigger, 0..1 from centre
+global RELEASE := 0.20    ; deflection to release/re-arm - the gap is hysteresis
 global POLL    := 15      ; ms, ~66 Hz, matching i76-remap.ahk's timers
 global WHATIF  := false
 
@@ -103,15 +107,19 @@ BTN[5]  := "M"        ; DMS up    -> SHOW_MAP
 BTN[6]  := "R"        ; DMS right -> RADAR_RANGE_TOGGLE
 BTN[7]  := "V"        ; DMS down  -> toggle_cmbt_view
 BTN[8]  := "B"        ; DMS left  -> TOGGLE_BINOCULARS
-; Lower/centre hat = TMS (target management). Closest I'76 analogue by far.
-BTN[9]  := "T"        ; TMS up    -> TARGET_NEAREST_ENEMY
-BTN[10] := "Y"        ; TMS right -> NEXT_TARGET
-BTN[11] := "U"        ; TMS down  -> RESET_TARGET
-BTN[12] := "Q"        ; TMS left  -> frontal_target
-BTN[13] := "Seven"    ; CMS up    -> special2
-BTN[14] := "Eight"    ; CMS right -> special3
-BTN[15] := "E"        ; CMS down  -> pilot_glance_target
-BTN[16] := "I"        ; CMS left  -> start_engine
+; SIDE/RIGHT hat = CMS (countermeasures). NOTE the numbering: CH's documentation
+; puts the lower hat on 9-12 and the right hat on 13-16. MEASURED on this unit
+; (2026-08-08, -learn) it is the OTHER WAY ROUND - the right hat reports 9-12 and
+; the lower hat reports 13-16. Trust the measurement, not the sheet.
+BTN[9]  := "Seven"    ; CMS up    -> special2
+BTN[10] := "Eight"    ; CMS right -> special3
+BTN[11] := "E"        ; CMS down  -> pilot_glance_target
+BTN[12] := "I"        ; CMS left  -> start_engine
+; LOWER/CENTRE hat = TMS (target management). Closest I'76 analogue by far.
+BTN[13] := "T"        ; TMS up    -> TARGET_NEAREST_ENEMY
+BTN[14] := "Y"        ; TMS right -> NEXT_TARGET
+BTN[15] := "U"        ; TMS down  -> RESET_TARGET
+BTN[16] := "Q"        ; TMS left  -> frontal_target
 
 ; The 8-way castle hat is head-look, exactly as on a real grip.
 global POVKEY := ["GreyUpArrow", "GreyRightArrow", "GreyDownArrow", "GreyLeftArrow"]
@@ -123,11 +131,15 @@ global POVKEY := ["GreyUpArrow", "GreyRightArrow", "GreyDownArrow", "GreyLeftArr
 ;   you cannot hold it forward and climb through the gears.
 ;   e_brake is LEVEL - held for as long as the stick is over. A handbrake you had
 ;   to tap would be useless.
+; Layout chosen at the wheel, 2026-08-08, and it is better than the first guess:
+; the handbrake is the gesture you make most violently, so it gets the strongest,
+; most natural pull; reverse is a held state rather than a latched one; and the
+; shifts move to left/right where they are out of the way of both.
 global AXIS := []
-AXIS.Push({axis: "Y", dir: -1, key: "Period", mode: "edge",  name: "shift_up"})
-AXIS.Push({axis: "Y", dir:  1, key: "Comma",  mode: "edge",  name: "shift_down"})
-AXIS.Push({axis: "X", dir: -1, key: "Space",  mode: "level", name: "e_brake"})
-AXIS.Push({axis: "X", dir:  1, key: "X",      mode: "edge",  name: "reverse_direction"})
+AXIS.Push({axis: "Y", dir:  1, key: "Space",  mode: "level",     name: "e_brake"})
+AXIS.Push({axis: "Y", dir: -1, key: "X",      mode: "momentary", name: "reverse_while_held"})
+AXIS.Push({axis: "X", dir: -1, key: "Comma",  mode: "edge",      name: "shift_down"})
+AXIS.Push({axis: "X", dir:  1, key: "Period", mode: "edge",      name: "shift_up"})
 
 ; ---- args ------------------------------------------------------------------
 mode := "run"
@@ -159,6 +171,24 @@ StepAxis(defl, state, mode, on, off) {
         if (isOff && state.held) {
             state.held := false
             return "up"
+        }
+        return ""
+    }
+    ; MOMENTARY: pulse on the way IN and again on the way OUT.
+    ;
+    ; This exists for reverse. I'76's reverse_direction is a TOGGLE - tapping X
+    ; flips between forward and reverse - so holding the key down does NOT hold
+    ; reverse, and "level" would leave the car stuck in reverse after the stick
+    ; recentred. Two taps against a toggle give the momentary behaviour the toggle
+    ; itself cannot: in reverse while deflected, back to forward on release.
+    if (mode = "momentary") {
+        if (isOn && !state.held) {
+            state.held := true
+            return "pulse"
+        }
+        if (isOff && state.held) {
+            state.held := false
+            return "pulse"
         }
         return ""
     }
@@ -222,6 +252,18 @@ if (mode = "selftest") {
     fails += Check("level: inside hysteresis stays held",     StepAxis(0.45, s, "level", 0.55, 0.35), "")
     fails += Check("level: recentring releases",              StepAxis(0.10, s, "level", 0.55, 0.35), "up")
     fails += Check("level: staying centred does nothing",     StepAxis(0.00, s, "level", 0.55, 0.35), "")
+    ; MOMENTARY - reverse. Pulses IN and OUT, because reverse_direction is a toggle:
+    ; one tap enters reverse, the second returns to forward. A missing exit pulse
+    ; leaves the car stuck in reverse with the stick centred, which is the exact
+    ; failure this mode exists to prevent.
+    s := {held: false, armed: true}
+    fails += Check("momentary: centred does nothing",         StepAxis(0.00, s, "momentary", 0.55, 0.35), "")
+    fails += Check("momentary: pushing in taps into reverse", StepAxis(0.60, s, "momentary", 0.55, 0.35), "pulse")
+    fails += Check("momentary: HELD does not re-tap",         StepAxis(0.90, s, "momentary", 0.55, 0.35), "")
+    fails += Check("momentary: hysteresis band holds it",     StepAxis(0.45, s, "momentary", 0.55, 0.35), "")
+    fails += Check("momentary: releasing taps back OUT",      StepAxis(0.10, s, "momentary", 0.55, 0.35), "pulse")
+    fails += Check("momentary: centred again does nothing",   StepAxis(0.00, s, "momentary", 0.55, 0.35), "")
+    fails += Check("momentary: second push re-enters",        StepAxis(0.60, s, "momentary", 0.55, 0.35), "pulse")
 
     Out("`nAxis normalisation (AHK reports 0-100, centre 50)")
     fails += Check("centre reads 0",       Round(Norm(50), 2),  0)
@@ -272,7 +314,8 @@ if (mode = "learn") {
 }
 
 Out("")
-Out("  stick forward/back = shift up/down    left = handbrake    right = reverse")
+Out("  pull back = HANDBRAKE (held)    push forward = REVERSE (while held)")
+Out("  left = shift down               right = shift up")
 Out("  threshold " Round(THRESH * 100) "% on, " Round(RELEASE * 100) "% off")
 if (WHATIF)
     Out("  -whatif: showing actions, sending NO keys")
