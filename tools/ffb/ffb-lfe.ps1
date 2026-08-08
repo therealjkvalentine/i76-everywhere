@@ -52,11 +52,23 @@ param(
     # the result in an editor that dislikes low rates.
     [int]$Rate = 8000,
     [double]$Master = 0.9,
-    # PRE-LIMITER GAIN. The rendered signal has a crest factor of 21 dB - RMS
-    # only 8.8% of peak - so almost all the headroom is held for rare transients
-    # while the continuous content you actually feel sits far below it. Driving
-    # into a soft knee raises what is felt without shattering the peaks.
-    [double]$Drive = 2.0,
+    # PRE-LIMITER GAIN, into a soft knee at 0.8. Below the knee nothing is
+    # touched at all, so the mix is only squashed to the extent it is driven
+    # past it.
+    # Measured on drive3.csv, RMS relative to the original build. This is the
+    # squash/level trade-off, and it is the whole decision:
+    #
+    #     drive   RMS gain   limited   crest
+    #      2.0      2.93x      1.1%    13.5 dB   fully natural
+    #      2.8      3.87x      1.7%    11.1 dB   <- default: 2x the last build
+    #      4.0      5.24x      2.4%     8.4 dB   noticeably compressed
+    #      6.0      7.50x      8.6%     5.3 dB   squashed
+    #
+    # Peak output is already 90% of digital full scale at ANY of these - the
+    # ceiling does not move, only how hard the mix is pressed against it. So
+    # more loudness past about 4.0 is not available in software at any price;
+    # it has to come from amplifier gain.
+    [double]$Drive = 2.8,
 
     # Aura AST-2B: usable 20-80 Hz, Fs 40. The old 22/90 defaults spent
     # effort above where these transducers deliver any force.
@@ -117,7 +129,10 @@ foreach ($r in $raw) {
         AngVelX=$(if (& $has 'angVelX'){[double]$r.angVelX}else{0.0})
         AngVelZ=$(if (& $has 'angVelZ'){[double]$r.angVelZ}else{0.0})
         Vy=$vy; LongG=$lg; LongAccel=($lg*9.81); LatG=(($yw*$sp)/9.81); LatAccel=($yw*$sp)
-        HeaveAccel=0.0; TravelPitch=0.0
+        # Heave is now logged, so a replay hears what the live path feels. It was
+        # hardcoded to zero, which made every offline spectrum measurement blind
+        # to the one source most likely to misbehave.
+        HeaveAccel=$(if (& $has 'heave'){[double]$r.heave}else{0.0}); TravelPitch=0.0
         ExpectedYaw=$slip.ExpectedYaw; Understeer=$slip.Understeer; Oversteer=$slip.Oversteer
         Jolt=$(if (& $has 'jolt'){[double]$r.jolt}else{0.0}); Firing=$false
         Braking=($lg -lt -0.05); Airborne=([math]::Abs($vy) -gt 2.0)

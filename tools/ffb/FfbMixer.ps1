@@ -244,7 +244,12 @@ function Mix-DefaultTune {
                                 # 35 Hz peak means the engine naturally gains
                                 # presence with speed - the rig doing the work.
         LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out
-        LfeEngineAmp    = 0.45  # amplitude at full throttle
+        # Source amplitudes raised together. Level has to come from the CONTINUOUS
+        # content, not from more drive: peaks were already near full scale while
+        # RMS sat 17 dB below, so pushing the limiter harder only squashed the
+        # transients without making the bed any stronger. Raising the sources
+        # lifts what is felt and leaves the ceiling where it is.
+        LfeEngineAmp    = 0.75  # amplitude at full throttle
         LfeEngineJitter = 0.06  # +/- fraction of pitch wander. A perfectly steady
                                 # tone numbs the skin and masks transients; ShakeIt
                                 # ships noise randomisation for exactly this reason.
@@ -257,7 +262,7 @@ function Mix-DefaultTune {
         LfeRoadLoHz     = 55.0  # road bed, smooth end - onto the 50-80 Hz shelf,
         LfeRoadHiHz     = 72.0  # rough end.  where a constant bed belongs: even
                                 # response, and clear of the engine below it.
-        LfeRoadAmp      = 0.50  # road-rumble amplitude at RoughRef jolt
+        LfeRoadAmp      = 0.85  # road-rumble amplitude at RoughRef jolt
         LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
         LfeImpactHz     = 45.0  # between engine and road, so a hit lands in a gap
                                 # rather than on top of whatever is already running
@@ -313,7 +318,7 @@ function Mix-DefaultTune {
                                 # the subtlest content here and needs the most help;
                                 # and being AM, its character is rhythm, not pitch,
                                 # so sharing a band costs it least.
-        LfeHeaveAmp     = 0.55
+        LfeHeaveAmp     = 0.75
         LfeHeaveRef     = 12.0  # m/s^2 of heave for full modulation depth
 
         # --- safety ---------------------------------------------------------
