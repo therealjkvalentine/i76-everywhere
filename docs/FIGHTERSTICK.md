@@ -1,15 +1,15 @@
 # Flying the '76: a CH Fighterstick on a driving game
 
-**Built 2026-08-08.** [`tools/fighterstick.ps1`](../tools/fighterstick.ps1) puts a
+**Built 2026-08-08.** [`i76-fighterstick.ahk`](../i76-fighterstick.ahk) puts a
 CH Products Fighterstick USB on Interstate '76 — the grip's buttons follow F-16
 HOTAS convention, and the stick's own deflection becomes the **gearbox and the
 handbrake**.
 
-```powershell
-tools\fighterstick.ps1              # run alongside the game
-tools\fighterstick.ps1 -Learn       # press each control, see its number
-tools\fighterstick.ps1 -WhatIf      # show actions, send no keys
-tools\fighterstick.ps1 -SelfTest    # test the ADC logic, no hardware needed
+```bash
+AutoHotkey.exe i76-fighterstick.ahk             # run alongside the game
+AutoHotkey.exe i76-fighterstick.ahk -learn      # press each control, see its number
+AutoHotkey.exe i76-fighterstick.ahk -whatif     # show actions, send no keys
+AutoHotkey.exe i76-fighterstick.ahk -selftest   # test the ADC logic, no hardware
 ```
 
 ## The device
@@ -43,6 +43,26 @@ wheel is `joystick1`; the game may never look at `joystick2`. Keystrokes are rea
 identically no matter which device produced them, so this works either way, and
 the wheel keeps `joystick1` to itself for steering, pedals and force feedback.
 
+### Why AutoHotkey and not PowerShell
+
+This started as a `.ps1` and was ported. Two reasons, and the second is the one
+that decides it:
+
+- **Uniformity.** Input remapping in this repo is already AHK's job —
+  [`i76-remap.ahk`](../i76-remap.ahk) is the established remapper, and there are a
+  dozen more AHK scripts including two that already read joystick axes.
+- **Portability, which PowerShell simply cannot do.** `i76-remap.ahk` runs *inside
+  the Wine/Proton prefix* on Mac and Steam Deck, unchanged from native Windows. A
+  PowerShell tool is Windows-only, which is a poor fit for a repo called
+  *i76-everywhere*.
+
+The port also inherits [the AHK doctrine](../AGENTS.md) this repo paid for rather
+than rediscovering it: keep `SendMode` at its default (**Event**, never `Input` —
+AHK uninstalls its own hooks during `SendInput` playback, and inside the Wine
+prefix only SendEvent-injected events reach the hooks), and **never** open a modal
+dialog, because under DxWnd's backdrop a `MsgBox` is invisible while stealing
+focus, so the game just goes input-dead.
+
 ## The stick as a gearbox — the ADC
 
 This is the part the request was really about: turning an analog position into
@@ -68,9 +88,13 @@ Two thresholds, not one: it triggers at **55%** deflection and releases at **35%
 The gap is hysteresis. With a single threshold, a stick resting near it
 machine-guns the action.
 
-`-SelfTest` exercises this without the hardware — 18 assertions covering the gate
-behaviour, the hysteresis band, and axis normalisation including a degenerate
-zero-width range. The case worth naming: *"held forward does NOT shift again."*
+`-selftest` exercises this without the hardware — 18 assertions covering the gate
+behaviour, the hysteresis band, and axis normalisation including out-of-range
+clamping. The case worth naming: *"held forward does NOT shift again."*
+
+The state machine is a **pure function of (deflection, state)** for exactly this
+reason; it is the part that is easy to get subtly wrong and impossible to debug
+halfway through a mission.
 
 ## The buttons, as a fighter pilot would expect
 
@@ -103,22 +127,40 @@ field tests.
 
 1. **The button numbers are CH's documented default layout, not measured on this
    unit** — and the 3-position mode switch renumbers everything. If a control does
-   the wrong thing, run `-Learn`, press it, and correct the `$BUTTON` table at the
-   top of the script. It is a plain hashtable.
+   the wrong thing, run `-learn`, press it, and correct the `BTN` table near the
+   top of the script — it is a plain list of `BTN[n] := "Key"` lines.
 2. **Whether the 1997 engine accepts synthesised keys in a mission.** The injection
    path itself *is* verified — scancode `0x14` resolves to `VK_T` and the extended
    `0xE0,0x48` to `VK_UP`, confirmed by round-tripping through
    `GetAsyncKeyState` — so the keys are genuinely delivered to Windows. Whether the
    engine's own input read sees them needs one mission to confirm.
 
-Scan codes are used rather than virtual keys deliberately: a DirectInput-era title
-reads scan codes, and VK injection is the thing that silently does nothing.
+### Why scan codes
+
+Scan codes rather than virtual keys — but **not** for the reason first written
+here. The original claim was "a DirectInput-era title reads scan codes", and this
+game is not a DirectInput title: it is **winmm-joystick only**
+(`joyGetNumDevs`/`joyGetPosEx`, no DirectInput, confirmed in the exe —
+[GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md)). That is about its *joystick* path; its
+*keyboard* path is not documented anywhere in this repo.
+
+The choice stands on a better footing: a scan code satisfies **either** kind of
+reader, because Windows resolves it to a virtual key on the way through. Verified
+by round-trip — scancode `0x14` reports as `VK_T`, and extended `0xE0,0x48` as
+`VK_UP`, both confirmed through `GetAsyncKeyState`. Sending a VK *only* would be
+the bet, and it is the bet that silently does nothing against a scan-code reader.
 
 ## If a key sticks
 
-The script releases every held key in a `finally` block, so Ctrl+C is safe. A held
-`Space` would otherwise be a handbrake the player cannot release, and it would
-survive the script exiting.
+The script releases every held key from an `OnExit` handler, so Ctrl+C is safe. A
+held `Space` would otherwise be a handbrake the player cannot release, and it
+would survive the script exiting.
+
+Worth noting because it was briefly wrong here: the handler was *defined* but
+never registered with `OnExit`, which makes it dead code that looks like a safety
+net. It also fires on **every** exit path including `-selftest`, which returns
+before the held-key table is ever created — so it guards against iterating an
+unset variable, because an exit handler that throws is a poor way to find that out.
 
 ## Sources
 
