@@ -232,8 +232,17 @@ function Mix-DefaultTune {
         # (RPM * cylinders / 120), which leaves the shaker band by mid-revs anyway,
         # so the standard practice is to compress idle->redline into ~25-55 Hz and
         # let amplitude carry load. Speed is a serviceable stand-in for that curve.
-        LfeEngineIdleHz = 25.0  # fundamental at standstill
-        LfeEngineMaxHz  = 45.0  # fundamental at LfeEngineRefSpd
+        # ---- WHERE EACH SOURCE SITS -----------------------------------------
+        # Previously road, impact and heave all sat within a few Hz of 35, which
+        # is the worst place to put them: vibrotactile frequency discrimination is
+        # coarse, so sources within roughly an octave mask each other, and every
+        # one of them was inside the same octave AND on the same resonance peak.
+        # The measured curve says the usable range is far wider than one hump, so
+        # the sources are now spread across it and each has its own territory.
+        LfeEngineIdleHz = 20.0  # fundamental at standstill
+        LfeEngineMaxHz  = 33.0  # fundamental at LfeEngineRefSpd. Rising toward the
+                                # 35 Hz peak means the engine naturally gains
+                                # presence with speed - the rig doing the work.
         LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out
         LfeEngineAmp    = 0.45  # amplitude at full throttle
         LfeEngineJitter = 0.06  # +/- fraction of pitch wander. A perfectly steady
@@ -245,12 +254,15 @@ function Mix-DefaultTune {
         # placed well above it is progressively wasted. The road bed used to sit
         # at 50-70 Hz and weapons at 85 Hz - the top of, or past, the usable
         # range. Everything is now centred on 40 Hz instead.
-        LfeRoadLoHz     = 28.0  # road noise bed, quiet end
-        LfeRoadHiHz     = 52.0  # road noise bed, rough end
+        LfeRoadLoHz     = 55.0  # road bed, smooth end - onto the 50-80 Hz shelf,
+        LfeRoadHiHz     = 72.0  # rough end.  where a constant bed belongs: even
+                                # response, and clear of the engine below it.
         LfeRoadAmp      = 0.50  # road-rumble amplitude at RoughRef jolt
         LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
-        LfeImpactHz     = 35.0  # at the system peak: the hardest hit available
-        LfeWeaponHz     = 55.0  # in band, and clear of the road bed
+        LfeImpactHz     = 45.0  # between engine and road, so a hit lands in a gap
+                                # rather than on top of whatever is already running
+        LfeWeaponHz     = 80.0  # top of the shelf. A gun should CRACK where an
+                                # impact THUDS - different band, different character
 
         # ---- reaching BELOW the shaker's floor ------------------------------
         # Chassis heave is real 0-15 Hz content and it is the low-frequency force
@@ -277,18 +289,30 @@ function Mix-DefaultTune {
         # curve already includes the body's own frequency weighting (ISO 2631
         # territory), which an acceleration curve would then double-count.
         #
-        # Anchors, in the operator's words: 13 Hz 'just barely, but good motor
-        # running'; 25 'a good one'; 35 'comparatively loud'; still felt at 80.
-        # Values between anchors are interpolated; REPLACE THESE with a stepped
-        # sweep (ffb-lfe-sweep.ps1) when there is time to measure properly.
-        LfeRespHz  = @(13.0, 20.0, 25.0, 30.0, 35.0, 45.0, 60.0, 80.0)
-        LfeRespRel = @( 0.15, 0.45, 0.70, 0.90, 1.00, 0.85, 0.60, 0.40)
+        # MEASURED with ffb-lfe-sweep.ps1, 21 steps at identical amplitude, out
+        # of an Audient EVO 4. Three facts drive every frequency choice below:
+        #
+        #   DEAD BELOW 11 Hz    8 and 10 Hz were felt as nothing at all. Content
+        #                       must never be placed there - it is not quiet, it
+        #                       is absent.
+        #   PEAK AT 35 Hz       a single broad mechanical resonance, which is what
+        #                       one driver on one desk should produce.
+        #   SHELF 50-80 Hz      flat at 0.67 - a wide, even, usable region, and
+        #                       the most valuable finding here. It is somewhere to
+        #                       put a continuous bed without fighting the peak.
+        LfeRespHz  = @(8.0, 10.0, 12.0, 13.0, 15.0, 18.0, 20.0, 22.0, 25.0, 28.0, 31.0,
+                       35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 70.0, 80.0, 90.0, 100.0)
+        LfeRespRel = @(0.00, 0.00, 0.11, 0.11, 0.22, 0.33, 0.44, 0.56, 0.67, 0.78, 0.89,
+                       1.00, 0.89, 0.78, 0.67, 0.67, 0.67, 0.67, 0.67, 0.56, 0.44)
         # Compensation is the INVERSE of the above, so the rig responds evenly.
         # Capped, because a true inverse asks for 6.7x at 13 Hz - which would
         # eat the whole headroom to serve the one band the ear cannot check, and
         # cook the voice coil doing it.
         LfeCompMax = 3.2
-        LfeCarrierHz    = 35.0  # system peak, from the sweep above - NOT driver Fs
+        LfeCarrierHz    = 35.0  # the measured peak. Heave gets it because heave is
+                                # the subtlest content here and needs the most help;
+                                # and being AM, its character is rhythm, not pitch,
+                                # so sharing a band costs it least.
         LfeHeaveAmp     = 0.55
         LfeHeaveRef     = 12.0  # m/s^2 of heave for full modulation depth
 

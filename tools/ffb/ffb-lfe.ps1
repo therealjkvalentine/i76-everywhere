@@ -147,7 +147,17 @@ public static class LfeSynth {
         double u = (Math.Log(hz) - lo) / (hi - lo);
         rel = rRel[k] + (rRel[k+1] - rRel[k]) * u;
       }
-      if (rel < 1e-3) rel = 1e-3;
+      // A band the body cannot reach must NOT be boosted. Inverting a near-zero
+      // response asks for enormous gain to chase output that will never arrive:
+      // full power into a frequency that is felt as nothing, which buys silence
+      // and pays for it in headroom and voice-coil heat. Below the floor the
+      // gain therefore FALLS AWAY rather than running to the cap.
+      const double floorRel = 0.08;
+      if (rel <= 0.0) return 0.0;
+      // Ramp toward the CAPPED gain, not the raw inverse. Scaling by 1/floorRel
+      // instead would peak at 12.5x just below the floor - four times the cap,
+      // and a step discontinuity at the boundary.
+      if (rel < floorRel) return (rel / floorRel) * Math.Min(1.0 / floorRel, compMax);
       double g = 1.0 / rel;
       return g > compMax ? compMax : g;
     };
