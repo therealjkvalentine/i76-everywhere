@@ -55,6 +55,25 @@
 #MaxHotkeysPerInterval 200000
 #ErrorStdOut
 SetBatchLines, -1
+
+; WHY THERE IS A WINDOW, AND WHY NOT A CONSOLE.
+;
+; AutoHotkey.exe is a GUI-subsystem binary: it gets no console of its own, so
+; `FileAppend ... , *` writes into nothing when the script is launched
+; interactively from a terminal. It DOES work when stdout is a pipe or a file -
+; which is exactly how every automated test of this script ran. The tests passed
+; while a human running the same command by hand saw dead silence.
+;
+; The obvious fix, DllCall("AttachConsole", -1), was tried and REVERTED. Attaching
+; unconditionally breaks the redirected case - writes land on the console instead
+; of the pipe, so `script -selftest > out.txt` yields an empty file. Gating it on
+; GetFileType(GetStdHandle(-11)) to attach only when stdout is unused did not
+; restore output either. Both were measured, not theorised.
+;
+; So stdout is left exactly as it was - correct whenever it is redirected or piped,
+; which is every scripted use - and the interactive modes get a real window
+; instead. A window is guaranteed visible regardless of how the script was
+; launched, which the console never was.
 ; Registered here, not merely defined below: an OnExitHandler label that is never
 ; handed to OnExit is dead code, and the thing it guards against - a held Space
 ; leaving the player with a handbrake they cannot release - outlives the script.
@@ -239,9 +258,47 @@ Norm(v) {
     return (n > 1) ? 1 : (n < -1) ? -1 : n
 }
 
+global LOGLINES := []
+global GUIREADY := false
+
 Out(s) {
+    global LOGLINES, GUIREADY
     FileAppend, %s%`n, *
+    if (!GUIREADY)
+        return
+    ; Mirror into the window. Console output cannot be relied on - see AttachConsole
+    ; above - and a bench tool you watch while pressing things needs somewhere to
+    ; look that is guaranteed to exist.
+    LOGLINES.Push(s)
+    while (LOGLINES.Length() > 24)
+        LOGLINES.RemoveAt(1)
+    txt := ""
+    for i, l in LOGLINES
+        txt .= l "`n"
+    GuiControl, Log:, LogBox, %txt%
 }
+
+; A plain window, NOT a MsgBox. The no-modal-dialogs rule inherited from
+; i76-remap.ahk is about MODAL dialogs stealing foreground focus and going
+; invisible behind DxWnd's backdrop; a normal window does neither. The precedent
+; is i76-gamepad-axistest.ahk, which shows live joystick state the same way.
+;
+; +E0x08000000 is WS_EX_NOACTIVATE: the window can never take focus, so it cannot
+; pull the game out of the foreground while you are watching it.
+InitGui(title) {
+    global GUIREADY
+    Gui, Log:New, +AlwaysOnTop +E0x08000000 +Resize +HwndhLogGui, %title%
+    Gui, Log:Color, 0x101010
+    Gui, Log:Font, s9 cC8C8C8, Consolas
+    Gui, Log:Add, Edit, vLogBox w660 h380 ReadOnly -WantReturn -E0x200 Background0x101010 cC8C8C8
+    Gui, Log:Show, NoActivate w680 h400, %title%
+    GUIREADY := true
+}
+
+LogGuiClose:
+LogGuiEscape:
+    ExitApp
+return
 
 SendKey(name, down := "") {
     global KEY, WHATIF
@@ -375,6 +432,11 @@ Check(what, got, want) {
 }
 
 ; ============================================================================
+; Everything from here on is an interactive mode - it watches the stick and keeps
+; running - so give it a window. -map and -selftest print and exit above, and are
+; fine on stdout alone.
+InitGui("I76 Fighterstick" . (mode = "learn" ? " - LEARN" : (WHATIF ? " - BENCH TEST (no keys sent)" : "")))
+
 ; Documented AHK quirk (i76-gamepad-axistest.ahk): query an axis once before the
 ; polling loop or axis reads do not initialise.
 GetKeyState(DEV . "JoyX")
