@@ -138,17 +138,31 @@ diagram*, whose callout lines don't reliably separate 11 from 12 — exactly the
 
 | # | Physical | Base | Hold **6** = shift |
 |---|---|---|---|
-| 1 | L1 left paddle | hardpoint 2 | hardpoint 1 |
+| 1 | L1 left paddle | **lights** | hardpoint 1 |
 | 2 | R1 right paddle | **fire selected weapon** (incl. cockpit handgun) | front target |
 | 3 / 4 / 5 | cluster | cycle weapon / handbrake / nitrous | combat view / reverse / special 2 |
 | **6** | cluster | **SHIFT** | — |
 | 7 | SE | rear gun (hp3) | dropper (hp4) |
 | 8 | OPTIONS | target nearest | untarget |
-| **9** | **R2** | **LINK FIRE** (`weapon_link`) | look at target |
-| 10 | L2 | next target | radar range |
-| 11 | L3 | ignition | radar camera |
-| 12 | R3 | handbrake | binoculars |
+| **9** | **R2** | **horn** | look at target |
+| 10 | L2 | **horn** | radar range |
+| 11 | L3 | **lights** | radar camera |
+| 12 | R3 | **ignition** | binoculars |
 | 13 | PS | horn | poetry |
+
+**Rebalanced 2026-08-08**, once the [Fighterstick](FIGHTERSTICK.md) took over
+weapons, targeting and the gearbox. The wheel is spun with the left hand, so its
+buttons became the things you reach for *without looking* — lights, horn,
+ignition — rather than combat controls needing precision. Everything displaced has
+a home: `weapon_link` moved to the stick's pinky, targeting to its castle hat, the
+handbrake to pulling the stick back. Three horn buttons is deliberate; it is
+Interstate '76.
+
+Button 12 was also removed from `gWheelHoldSet`. It was the handbrake, which must
+be *held*; it is now ignition, which must be *tapped*. Left in the hold set it
+would have held `i` down for as long as R3 was pressed — a starter motor you
+cannot release. **Changing what a button does means re-checking every table keyed
+on its number.**
 | Hat | D-pad | lights / map / ignition / notepad | gear up/down (Period/Comma) |
 
 **R2 = link fire is the engine-native way to fire several weapons at once** — one event, one FFB
