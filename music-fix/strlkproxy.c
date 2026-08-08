@@ -253,13 +253,48 @@ static void stop_track(void) {
     mci_str(cmd); g_open = 0;
 }
 
+/* Is track N actually on disk? */
+static int track_exists(int trk) {
+    char mp3[MAX_PATH];
+    if (trk < FIRST_TRACK || trk > LAST_TRACK) return 0;
+    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, trk);
+    return GetFileAttributesA(mp3) != INVALID_FILE_ATTRIBUTES;
+}
+
+/* The nearest track that IS on disk, searching outward from the one asked for.
+ *
+ * WHY substitute rather than return an error: the engine picks a specific track
+ * per mission, so on a partial music folder - a trimmed install, an interrupted
+ * copy, somebody's own rip that starts at a different number - that mission plays
+ * in silence with nothing on screen to explain it. Silence reads as "the music fix
+ * is broken" when fifteen of sixteen tracks are fine. A neighbouring track keeps
+ * the score running, and the log says plainly what was substituted and why.
+ *
+ * Returns 0 only when the music folder has nothing in it at all, which IS worth
+ * reporting as an error. */
+static int nearest_track(int want) {
+    int d;
+    if (track_exists(want)) return want;
+    for (d = 1; d <= LAST_TRACK - FIRST_TRACK; d++) {
+        if (track_exists(want - d)) return want - d;
+        if (track_exists(want + d)) return want + d;
+    }
+    return 0;
+}
+
 /* CD-audio track N -> music\N.mp3 (track 1 was the data track; there is no 1.mp3) */
 static MCIERROR play_track(int track) {
     char mp3[MAX_PATH], cmd[MAX_PATH + 64];
-    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, track);
-    if (GetFileAttributesA(mp3) == INVALID_FILE_ATTRIBUTES) {
-        mlog("  track %d MISSING: %s", track, mp3); return MCIERR_FILE_NOT_FOUND;
+    int actual = nearest_track(track);
+    if (!actual) {
+        mlog("  track %d and every other track MISSING under %s\\music - no music",
+             track, g_dir);
+        return MCIERR_FILE_NOT_FOUND;
     }
+    if (actual != track)
+        mlog("  track %d not on disk - substituting nearest available (%d)", track, actual);
+    track = actual;
+    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, track);
     stop_track();
     _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", mp3, g_alias); mci_str(cmd);
     g_open = 1;
