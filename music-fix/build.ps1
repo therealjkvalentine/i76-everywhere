@@ -7,7 +7,10 @@
 
   Usage:  ./build.ps1 [-Gcc "C:\Games\_tools\w64devkit\bin\gcc.exe"]
 #>
-param([string]$Gcc = "C:\Games\_tools\w64devkit\bin\gcc.exe", [switch]$Install)
+param([string]$Gcc = "C:\Games\_tools\w64devkit\bin\gcc.exe", [switch]$Install,
+      # Where to install. Falls back to the running game, then $env:I76_GAME_DIR,
+      # then the usual locations - so this script is not tied to one machine's paths.
+      [string]$GameDir)
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $out  = Join-Path $here 'Strlkup.dll'
@@ -82,19 +85,44 @@ Write-Host ("Built Strlkup.dll ({0} bytes, x86) -> {1}" -f $bytes.Length, $here)
 
 if ($Install) {
     $gd = ""
-    $p = Get-Process i76, nitro -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($p) { try { $gd = Split-Path $p.Path } catch { } }
-    foreach ($c in @($gd,
+    $proc = Get-Process i76, nitro -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($proc) { try { $gd = Split-Path $proc.Path } catch { } }
+    foreach ($c in @($GameDir, $gd, $env:I76_GAME_DIR,
         "C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76",
         "C:\Games\Interstate 76")) {
         if ($c -and (Test-Path (Join-Path $c 'i76.exe'))) { $gd = $c; break }
     }
-    if (-not $gd) { Write-Host "Could not find the game folder to install into." -ForegroundColor Yellow; exit 0 }
+    if (-not $gd) {
+        Write-Host "Could not find the game folder. Pass -GameDir or set I76_GAME_DIR." -ForegroundColor Yellow
+        exit 1
+    }
     if (-not (Test-Path (Join-Path $gd 'strlkup_orig.dll'))) {
         Write-Host "strlkup_orig.dll missing - the original was never backed up. Run setup-windows.ps1 first." -ForegroundColor Red
         exit 1
     }
-    Copy-Item $out (Join-Path $gd 'Strlkup.dll') -Force
-    Write-Host "installed -> $gd\Strlkup.dll" -ForegroundColor Green
+
+    # The game holds Strlkup.dll open while it runs, so the copy fails - and this
+    # used to print "installed" anyway, because Copy-Item's error was never checked.
+    # That is how you end up testing a STALE dll and concluding the source change did
+    # nothing. Refuse up front, and verify the bytes afterwards.
+    if ($proc) {
+        Write-Host "i76 is RUNNING - it holds Strlkup.dll open and the install would fail." -ForegroundColor Red
+        Write-Host "  close the game (or: Stop-Process -Name i76 -Force) and run this again." -ForegroundColor DarkGray
+        exit 1
+    }
+    $dest = Join-Path $gd 'Strlkup.dll'
+    try { Copy-Item $out $dest -Force -ErrorAction Stop }
+    catch { Write-Host "install FAILED: $($_.Exception.Message)" -ForegroundColor Red; exit 1 }
+
+    # Confirm what actually landed. A copy that silently did not happen is the
+    # failure mode this whole block exists to prevent.
+    $a = (Get-FileHash $out  -Algorithm MD5).Hash
+    $b = (Get-FileHash $dest -Algorithm MD5).Hash
+    if ($a -ne $b) {
+        Write-Host "install VERIFY FAILED - destination does not match the build." -ForegroundColor Red
+        Write-Host "  built $a`n  dest  $b" -ForegroundColor DarkRed
+        exit 1
+    }
+    Write-Host "installed -> $dest  (verified $($a.Substring(0,8)))" -ForegroundColor Green
     Write-Host "Revert: copy strlkup_orig.dll over Strlkup.dll. Restart the game." -ForegroundColor Cyan
 }
