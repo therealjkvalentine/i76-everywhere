@@ -24,7 +24,7 @@ using System.Threading;
 // ===================== DSP =====================
 public class LfeCore {
   public static LfeCore LastRender;   // so callers can read the meters
-  double engPh, roadPh, impPh, wpnPh, jitPh, carPh, noiseLp, noiseLp2;
+  double engPh, roadPh, impPh, wpnPh, jitPh, carPh, noiseLp, noiseLp2, noiseLp3;
   double lpA, lpB, hpA, hpB, hpPrevIn, hpPrevIn2;
   double kLp, aHp;
   Random rnd = new Random(1976);
@@ -114,8 +114,14 @@ public class LfeCore {
     // band and into where it can only rattle.
     noiseLp += kN * (white - noiseLp);
     noiseLp2 += kN * (noiseLp - noiseLp2);
+    // A third pole. Noise carries energy at every frequency, so its tail above
+    // the corner is set purely by filter slope - two poles left ~1.4% of total
+    // energy above 85 Hz on the rough-road probe, which is out of the shaker's
+    // band and can only rattle. Three gives 18 dB/oct, and with the output
+    // low-pass that is 30 dB/oct above 85 Hz.
+    noiseLp3 += kN * (noiseLp2 - noiseLp3);
     roadPh += 2 * Math.PI * roadF / rate;
-    sig += roadA * Comp(roadF) * (0.55 * noiseLp2 * 5.0 + 0.45 * Math.Sin(roadPh));
+    sig += roadA * Comp(roadF) * (0.55 * noiseLp3 * 8.0 + 0.45 * Math.Sin(roadPh));
 
     impPh += 2 * Math.PI * impHz / rate;
     sig += impA * Comp(impHz) * Math.Sin(impPh);
@@ -133,6 +139,34 @@ public class LfeCore {
     lpA += kLp * (h2 - lpA);
     lpB += kLp * (lpA - lpB);
     return lpB;
+  }
+
+  // THE LIVE PATH, RENDERED OFFLINE. Same smoother, same per-sample stepping,
+  // same limiter as LfeLive - only waveOut is missing. This is what a probe must
+  // measure; Render() below is a different signal path and measuring it is how
+  // three buzz causes stayed hidden.
+  public static short[] RenderLive(double[] ef, double[] ea, double[] rf, double[] ra,
+                                   double[] ia, double[] wa, double[] ha,
+                                   int rate, int frameHz, double master, double drive,
+                                   double jitter, double impHz, double wpnHz, double carHz,
+                                   double hpHz, double lpHz,
+                                   double[] rHz, double[] rRel, double compMax) {
+    var core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
+    LastRender = core;
+    var sm = new LfeSmoother(rate);
+    int perFrame = rate / frameHz;
+    short[] outp = new short[ef.Length * perFrame];
+    int o = 0;
+    for (int i = 0; i < ef.Length; i++) {
+      for (int k = 0; k < perFrame; k++) {
+        sm.Advance(ef[i], ea[i], rf[i], ra[i], ia[i], wa[i], ha[i]);
+        double v = core.Step(sm.sEngF, sm.sEngA, sm.sRoadF, sm.sRoadA,
+                             sm.sImpA, sm.sWpnA, sm.sHvA) * drive;
+        v = core.Limit(v) * master;
+        outp[o++] = (short)(v * 32767);
+      }
+    }
+    return outp;
   }
 
   // Offline: interpolate a 60 Hz parameter track up to audio rate.
@@ -165,6 +199,27 @@ public class LfeCore {
       outp[i] = (short)(v * 32767);
     }
     return outp;
+  }
+}
+
+
+// The live path's parameter smoothing, extracted so it can be driven offline.
+// Analysing the OFFLINE renderer is what let three separate buzz causes hide:
+// it interpolates differently, and it fed heave as zero. A probe must run THIS.
+public class LfeSmoother {
+  public double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA;
+  double kAmp, kFrq, kHv;
+  public LfeSmoother(int rate) {
+    kAmp = 1.0 - Math.Exp(-1.0 / (0.006 * rate));
+    kFrq = 1.0 - Math.Exp(-1.0 / (0.025 * rate));
+    kHv  = 1.0 - Math.Exp(-1.0 / (0.040 * rate));
+  }
+  public void Advance(double eF, double eA, double rF, double rA,
+                      double iA, double wA, double hA) {
+    sEngA += kAmp * (eA - sEngA);  sRoadA += kAmp * (rA - sRoadA);
+    sImpA += kAmp * (iA - sImpA);  sWpnA  += kAmp * (wA - sWpnA);
+    sHvA  += kHv  * (hA - sHvA);
+    sEngF += kFrq * (eF - sEngF);  sRoadF += kFrq * (rF - sRoadF);
   }
 }
 
@@ -260,10 +315,10 @@ public class LfeLive {
   // different, and the live one buzzed. Stepping a gain 60 times a second puts
   // sidebands +/-60 Hz around every source: classic zipper noise, and squarely in
   // the band this rig reproduces best.
-  double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA;
+
 
   IntPtr h = IntPtr.Zero;
-  double kAmp, kFrq, kHv;
+  LfeSmoother sm;
   public LfeCore core;
   Thread th;
   volatile bool running;
@@ -276,17 +331,7 @@ public class LfeLive {
                       int bufSamples, int nBuf) {
     this.rate = rate; this.bufSamples = bufSamples; this.nBuf = nBuf;
     core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
-    // 6 ms on amplitudes, 25 ms on frequencies - fast enough that an impact still
-    // arrives as an impact, slow enough that the 16 ms parameter staircase is gone.
-    kAmp = 1.0 - Math.Exp(-1.0 / (0.006 * rate));
-    kFrq = 1.0 - Math.Exp(-1.0 / (0.025 * rate));
-    // Heave gets 40 ms, not 6. It is a first difference of vertical velocity
-    // taken on the sim's 20 Hz tick, so it arrives as a jagged staircase, and
-    // 6 ms passes that through untouched. A jagged envelope on a 35 Hz carrier
-    // puts sidebands at 35 +/- 20 Hz and spreads from there - which is buzz, and
-    // it is invisible to the offline renderer because that feeds heave as zero.
-    // 40 ms (~4 Hz) keeps the felt rhythm of a landing and discards the jag.
-    kHv = 1.0 - Math.Exp(-1.0 / (0.040 * rate));
+    sm = new LfeSmoother(rate);
     LfeOut.WAVEFORMATEX f = LfeOut.Fmt(rate);
     uint r = LfeOut.waveOutOpen(out h, devId, ref f, IntPtr.Zero, IntPtr.Zero, 0);
     if (r != 0) { h = IntPtr.Zero; return "waveOutOpen failed, code " + r; }
@@ -319,12 +364,10 @@ public class LfeLive {
         if ((hdrs[i].dwFlags & 0x00000010) != 0) continue;
         for (int k = 0; k < bufSamples; k++) {
           // amplitudes track quickly (transients must stay sharp), frequencies
-          // slowly (a swept tone should glide, not stair-step)
-          sEngA += kAmp * (EngineAmp - sEngA);   sRoadA += kAmp * (RoadAmp - sRoadA);
-          sImpA += kAmp * (ImpulseAmp - sImpA);  sWpnA  += kAmp * (WeaponAmp - sWpnA);
-          sHvA  += kHv  * (HeaveAmp - sHvA);
-          sEngF += kFrq * (EngineFreq - sEngF);  sRoadF += kFrq * (RoadFreq - sRoadF);
-          double v = core.Step(sEngF, sEngA, sRoadF, sRoadA, sImpA, sWpnA, sHvA) * Drive;
+          // slowly (a swept tone should glide, not stair-step) - see LfeSmoother
+          sm.Advance(EngineFreq, EngineAmp, RoadFreq, RoadAmp, ImpulseAmp, WeaponAmp, HeaveAmp);
+          double v = core.Step(sm.sEngF, sm.sEngA, sm.sRoadF, sm.sRoadA,
+                               sm.sImpA, sm.sWpnA, sm.sHvA) * Drive;
           v = core.Limit(v) * Master;
           short s = (short)(v * 32767);
           bufs[i][k*2] = (byte)(s & 0xFF); bufs[i][k*2+1] = (byte)((s >> 8) & 0xFF);

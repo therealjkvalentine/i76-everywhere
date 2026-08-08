@@ -255,7 +255,22 @@ function Mix-DefaultTune {
         # RMS sat 17 dB below, so pushing the limiter harder only squashed the
         # transients without making the bed any stronger. Raising the sources
         # lifts what is felt and leaves the ceiling where it is.
-        LfeEngineAmp    = 0.75  # amplitude at full throttle
+        # ENGINE IS THE ONE ALWAYS-ON SOURCE, so it gets the smallest budget.
+        # At 0.75 it was 3.76x over the ceiling at full throttle - 80% of samples
+        # limited, which is not limiting, it is a near-square wave and its odd
+        # harmonics ARE the buzz. Measured on the accel probe:
+        #
+        #    amp   peak  limited     RMS   energy >85 Hz
+        #   0.75   3.76      80%   26909      1.210%
+        #   0.45   2.26      65%   24702      0.333%
+        #   0.30   1.51      38%   20702      0.047%
+        #   0.22   1.10      11%   16132      0.000%   <- here
+        #
+        # Note how little RMS the top of that table buys: 0.75 over 0.22 is +67%
+        # amplitude for +2.7 dB, because everything above the knee is being turned
+        # into harmonics rather than level. Distortion is not the price of loudness
+        # here, it is what replaces it.
+        LfeEngineAmp    = 0.22  # amplitude at full throttle
         LfeEngineJitter = 0.06  # +/- fraction of pitch wander. A perfectly steady
                                 # tone numbs the skin and masks transients; ShakeIt
                                 # ships noise randomisation for exactly this reason.
@@ -268,7 +283,19 @@ function Mix-DefaultTune {
         LfeRoadLoHz     = 55.0  # road bed, smooth end - onto the 50-80 Hz shelf,
         LfeRoadHiHz     = 72.0  # rough end.  where a constant bed belongs: even
                                 # response, and clear of the engine below it.
-        LfeRoadAmp      = 0.85  # road-rumble amplitude at RoughRef jolt
+        # Same over-budget problem the engine had: 0.85 * comp 1.49 * drive 2.8 is
+        # 3.5x over the knee, and limiting a 60 Hz noise bed puts its products at
+        # 110-220 Hz - out of the shaker's band, where they can only rattle.
+        # Measured on the rough-road probe:
+        #
+        #    amp     RMS   energy >85 Hz
+        #   0.85    7473      1.3296%
+        #   0.45    5891      0.6124%
+        #   0.30    5455      0.3245%   <- here
+        #   0.20    5248      0.1590%
+        #
+        # 0.30 keeps 73% of the level for a quarter of the distortion.
+        LfeRoadAmp      = 0.30  # road-rumble amplitude at RoughRef jolt
         LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
         LfeImpactHz     = 45.0  # between engine and road, so a hit lands in a gap
                                 # rather than on top of whatever is already running

@@ -340,7 +340,7 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy','heave','slide','headingRate','fireRaw','fxActive','fxFired') +
+                     'angVelX','angVelZ','vy','heave','slide','headingRate','rpm','fireRaw','fxActive','fxFired') +
                      # ch_ prefix, because 'oversteer' is BOTH a telemetry field
                      # (0..1 slip) and a force channel (scaled to OversteerGain).
                      # Emitting both under one name made every CSV reader silently
@@ -451,6 +451,13 @@ try {
                     ('{0:0.000}' -f $s.Understeer), ('{0:0.000}' -f $s.Oversteer),
                     ('{0:0.000}' -f $s.Jolt),
                     ('{0:0.000}' -f $s.AngVelX), ('{0:0.000}' -f $s.AngVelZ), ('{0:0.000}' -f $s.Vy),
+                    # These four MUST stay in the same order as $logCols. The header
+                    # gained heave/slide/headingRate without this row gaining the
+                    # values, which silently shifted every later column by three -
+                    # the same desync that once made 'force' read as 'impact'.
+                    ('{0:0.000}' -f $s.HeaveAccel),
+                    ('{0:0.000}' -f $s.Slide), ('{0:0.000}' -f $s.HeadingRate),
+                    ([string][int]$s.Rpm),
                     ([string][int]$s.FireRaw),
                     ([string][int]$s.FxActive),
                     # Semicolon-joined, NO quotes and NO spaces: a quoted field with
