@@ -51,7 +51,11 @@ param(
     # the dropper sits on a different hardpoint use -WheelDown 4 (etc).
     # Names must match input.map; verify with tools/lint-input-map.py.
     [string]$WheelUp = "Tab",
-    [string]$WheelDown = "5"
+    [string]$WheelDown = "5",
+    # Skip the CH Fighterstick HOTAS layer (docs/FIGHTERSTICK.md). It is otherwise
+    # started with the game and is harmless without the stick - it detects the
+    # device and exits on its own if it is not there.
+    [switch]$NoStick
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -73,6 +77,19 @@ $ahkExe = Join-Path $GameDir '_ahk\AutoHotkeyU32.exe'
 $ahkCfg = Join-Path $GameDir '_ahk\i76-remap.ahk'
 if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg)) {
     $ahk = Start-Process -FilePath $ahkExe -ArgumentList "`"$ahkCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
+}
+
+# CH Fighterstick HOTAS layer (docs/FIGHTERSTICK.md): the stick's deflection is the
+# gearbox and handbrake, its grip buttons are weapons and targeting. Started here
+# for the same reason as the remapper - so it lives exactly as long as the play
+# session does - and started UNCONDITIONALLY, because the script identifies the
+# device itself and exits immediately if no Fighterstick is plugged in. That keeps
+# the decision in one place rather than duplicating device detection here.
+# -NoStick skips it.
+$stick = $null
+$stickCfg = Join-Path $GameDir '_ahk\i76-fighterstick.ahk'
+if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg)) {
+    $stick = Start-Process -FilePath $ahkExe -ArgumentList "`"$stickCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
 # Head tracking: opentrack + the freetrack->game layer. opentrack has NO
@@ -278,6 +295,7 @@ $proc.WaitForExit()
 
 if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
 if ($ahk      -and -not $ahk.HasExited)      { Stop-Process -Id $ahk.Id      -Force }
+if ($stick    -and -not $stick.HasExited)    { Stop-Process -Id $stick.Id    -Force }
 if ($ls       -and -not $ls.HasExited)       { Stop-Process -Id $ls.Id       -Force }
 if ($track    -and -not $track.HasExited)    { Stop-Process -Id $track.Id    -Force }
 if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Force }
@@ -305,7 +323,16 @@ if ($ot       -and -not $ot.HasExited)       { Stop-Process -Id $ot.Id       -Fo
 # normally send the matching key-ups - so a key held at that moment stays LATCHED
 # DOWN system-wide, surviving into the next launch. Field-diagnosed 2026-08-01:
 # a stuck glance-left persisted across a relaunch and looked like a game hang.
-# These are the keys i76-remap.ahk can hold (RSGExit's list + the @wheel holds).
+# These are the keys i76-remap.ahk can hold (RSGExit's list + the @wheel holds),
+# PLUS the ones i76-fighterstick.ahk can hold. The stick matters more here, not
+# less: its handbrake is `Space` held for as long as the stick is pulled back, and
+# its cone hat holds an arrow key for as long as you are looking that way - so
+# quitting mid-corner while glancing left is an ordinary thing to do, and it is
+# exactly the moment a force-kill latches a key. Its OnExit/ReleaseAll cannot help
+# here, because Stop-Process -Force never lets it run.
+# F (0x46) = weapon_link on the pinky and K (0x4B) = radar camera on the serrated
+# hat were BOTH missing from this list until 2026-08-08 - the stick can hold them
+# and nothing was releasing them.
 try {
     Add-Type -Name KbRelease -Namespace I76 -MemberDefinition @'
 [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);
@@ -313,7 +340,8 @@ try {
     $KEYUP = 0x2; $EXT = 0x1
     # arrows (extended keys), digits 1-8, Enter, and the letters the layer emits
     $vks = @(0x25,0x26,0x27,0x28) + (0x31..0x38) + @(0x0D) +
-           @(0x48,0x49,0x4E,0x4D,0x59,0x55,0x56,0x58,0x42,0x47,0x45,0x52,0x51,0x54,0x09,0x20)
+           @(0x48,0x49,0x4E,0x4D,0x59,0x55,0x56,0x58,0x42,0x47,0x45,0x52,0x51,0x54,0x09,0x20) +
+           @(0x46,0x4B)   # F weapon_link, K radar camera - Fighterstick only
     foreach ($vk in $vks) {
         $flags = $KEYUP
         if ($vk -ge 0x25 -and $vk -le 0x28) { $flags = $KEYUP -bor $EXT }

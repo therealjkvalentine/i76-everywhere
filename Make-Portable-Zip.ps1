@@ -190,6 +190,11 @@ if ($IncludeHeadTrack) {
 
         Copy-Item (Join-Path $repo 'i76-headtrack.ahk')      (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
         Copy-Item (Join-Path $repo 'i76-headtrack-test.ahk') (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        # Every AHK layer is enumerated BY NAME here, so one added to the repo and
+        # not added to this list simply never ships. That is how _ahk\i76-remap.ahk
+        # stayed three weeks stale while the repo copy grew an entire wheel layer
+        # that consequently never ran. Add new layers here.
+        Copy-Item (Join-Path $repo 'i76-fighterstick.ahk')   (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
 
         Set-Content (Join-Path $staging 'HEADTRACK.bat') @'
 @echo off

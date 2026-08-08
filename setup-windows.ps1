@@ -254,6 +254,14 @@ if ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')) -and (Test-
         $p = Join-Path $AhkDir $extra; if (Test-Path $p) { Copy-Item $p $ahkOut -Force -ErrorAction SilentlyContinue }
     }
     Copy-Item $remapSrc $ahkOut -Force
+    # CH Fighterstick HOTAS layer, deployed alongside the remapper so a fresh
+    # install has it. Harmless without the stick: it identifies the device itself
+    # and exits if there is none. Enumerated here BY NAME because that is how this
+    # script works - and that is precisely how _ahk\i76-remap.ahk sat three weeks
+    # stale while the repo's copy grew a whole wheel layer nobody was running.
+    # Add new AHK layers here or they silently never ship.
+    $stickSrc = Join-Path $repoGameDir 'i76-fighterstick.ahk'
+    if (Test-Path $stickSrc) { Copy-Item $stickSrc $ahkOut -Force }
     Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk; starts with the game)."
     Write-Host "  Pad scheme: LB shift layer, triggers=fire/hp2, look-back rear gun, camera cycle, rumble."
     Write-Host "  Connect the controller BEFORE launching (the engine + XInput enumerate at startup)."
