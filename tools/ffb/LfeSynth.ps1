@@ -25,11 +25,13 @@ using System.Threading;
 public class LfeCore {
   public static LfeCore LastRender;   // so callers can read the meters
   double engPh, roadPh, impPh, wpnPh, jitPh, carPh, noiseLp, noiseLp2, noiseLp3;
+  double scrPh, scrRough;
   double lpA, lpB, hpA, hpB, hpPrevIn, hpPrevIn2;
   double kLp, aHp;
   Random rnd = new Random(1976);
   int rate;
   double jitter, impHz, wpnHz, carHz, compMax;
+  public double ScrubHz = 50.0;
   double[] rHz, rRel;
 
   public LfeCore(int rate, double jitter, double impHz, double wpnHz, double carHz,
@@ -95,7 +97,7 @@ public class LfeCore {
   }
 
   public double Step(double engF, double engA, double roadF, double roadA,
-                     double impA, double wpnA, double hvA) {
+                     double impA, double wpnA, double hvA, double scrA) {
     // engine: sine with slow pitch wander. A perfectly steady tone numbs the
     // skin and masks everything else.
     jitPh += 2 * Math.PI * 0.7 / rate;
@@ -134,6 +136,15 @@ public class LfeCore {
     carPh += 2 * Math.PI * carHz / rate;
     sig += hvA * Comp(carHz) * Math.Sin(carPh);
 
+    // scrub: a tone whose AMPLITUDE is rough. A steady tone reads as a machine;
+    // tyres letting go read as texture, and texture survives the coarse frequency
+    // discrimination of touch far better than a pitch change does.
+    if (scrA > 0.0) {
+      scrRough += 0.06 * ((rnd.NextDouble() * 2.0 - 1.0) - scrRough);
+      scrPh += 2 * Math.PI * ScrubHz / rate;
+      sig += scrA * Comp(ScrubHz) * Math.Sin(scrPh) * (0.65 + 0.35 * scrRough * 3.0);
+    }
+
     double h1 = aHp * (hpA + sig - hpPrevIn);   hpPrevIn = sig;  hpA = h1;
     double h2 = aHp * (hpB + h1 - hpPrevIn2);   hpPrevIn2 = h1;  hpB = h2;
     lpA += kLp * (h2 - lpA);
@@ -146,7 +157,7 @@ public class LfeCore {
   // measure; Render() below is a different signal path and measuring it is how
   // three buzz causes stayed hidden.
   public static short[] RenderLive(double[] ef, double[] ea, double[] rf, double[] ra,
-                                   double[] ia, double[] wa, double[] ha,
+                                   double[] ia, double[] wa, double[] ha, double[] sc,
                                    int rate, int frameHz, double master, double drive,
                                    double jitter, double impHz, double wpnHz, double carHz,
                                    double hpHz, double lpHz,
@@ -159,9 +170,9 @@ public class LfeCore {
     int o = 0;
     for (int i = 0; i < ef.Length; i++) {
       for (int k = 0; k < perFrame; k++) {
-        sm.Advance(ef[i], ea[i], rf[i], ra[i], ia[i], wa[i], ha[i]);
+        sm.Advance(ef[i], ea[i], rf[i], ra[i], ia[i], wa[i], ha[i], sc[i]);
         double v = core.Step(sm.sEngF, sm.sEngA, sm.sRoadF, sm.sRoadA,
-                             sm.sImpA, sm.sWpnA, sm.sHvA) * drive;
+                             sm.sImpA, sm.sWpnA, sm.sHvA, sm.sScrA) * drive;
         v = core.Limit(v) * master;
         outp[o++] = (short)(v * 32767);
       }
@@ -171,7 +182,7 @@ public class LfeCore {
 
   // Offline: interpolate a 60 Hz parameter track up to audio rate.
   public static short[] Render(double[] t, double[] ef, double[] ea, double[] rf,
-                               double[] ra, double[] ia, double[] wa, double[] ha,
+                               double[] ra, double[] ia, double[] wa, double[] ha, double[] sc,
                                int rate, double master, double drive, double jitter,
                                double impHz, double wpnHz, double carHz,
                                double hpHz, double lpHz,
@@ -194,7 +205,8 @@ public class LfeCore {
         ef[idx] + (ef[idx+1] - ef[idx]) * f, ea[idx] + (ea[idx+1] - ea[idx]) * f,
         rf[idx] + (rf[idx+1] - rf[idx]) * f, ra[idx] + (ra[idx+1] - ra[idx]) * f,
         ia[idx] + (ia[idx+1] - ia[idx]) * f, wa[idx] + (wa[idx+1] - wa[idx]) * f,
-        ha[idx] + (ha[idx+1] - ha[idx]) * f) * drive;
+        ha[idx] + (ha[idx+1] - ha[idx]) * f,
+        sc[idx] + (sc[idx+1] - sc[idx]) * f) * drive;
       v = core.Limit(v) * master;
       outp[i] = (short)(v * 32767);
     }
@@ -207,7 +219,7 @@ public class LfeCore {
 // Analysing the OFFLINE renderer is what let three separate buzz causes hide:
 // it interpolates differently, and it fed heave as zero. A probe must run THIS.
 public class LfeSmoother {
-  public double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA;
+  public double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA, sScrA;
   double kAmp, kFrq, kHv;
   public LfeSmoother(int rate) {
     kAmp = 1.0 - Math.Exp(-1.0 / (0.006 * rate));
@@ -215,10 +227,10 @@ public class LfeSmoother {
     kHv  = 1.0 - Math.Exp(-1.0 / (0.040 * rate));
   }
   public void Advance(double eF, double eA, double rF, double rA,
-                      double iA, double wA, double hA) {
+                      double iA, double wA, double hA, double scA) {
     sEngA += kAmp * (eA - sEngA);  sRoadA += kAmp * (rA - sRoadA);
     sImpA += kAmp * (iA - sImpA);  sWpnA  += kAmp * (wA - sWpnA);
-    sHvA  += kHv  * (hA - sHvA);
+    sHvA  += kHv  * (hA - sHvA);   sScrA += kAmp * (scA - sScrA);
     sEngF += kFrq * (eF - sEngF);  sRoadF += kFrq * (rF - sRoadF);
   }
 }
@@ -306,7 +318,7 @@ public class LfeLive {
   // buffer using a value 16 ms stale - inaudible for a rumble bed, and far
   // cheaper than locking the audio thread against a PowerShell caller.
   public double EngineFreq = 25, EngineAmp = 0, RoadFreq = 60, RoadAmp = 0;
-  public double ImpulseAmp = 0, WeaponAmp = 0, HeaveAmp = 0, Master = 0.9, Drive = 1.0;
+  public double ImpulseAmp = 0, WeaponAmp = 0, HeaveAmp = 0, ScrubAmp = 0, Master = 0.9, Drive = 1.0;
   public long Underruns = 0;
 
   // Smoothed copies, advanced ONE SAMPLE AT A TIME toward the targets above.
@@ -365,9 +377,10 @@ public class LfeLive {
         for (int k = 0; k < bufSamples; k++) {
           // amplitudes track quickly (transients must stay sharp), frequencies
           // slowly (a swept tone should glide, not stair-step) - see LfeSmoother
-          sm.Advance(EngineFreq, EngineAmp, RoadFreq, RoadAmp, ImpulseAmp, WeaponAmp, HeaveAmp);
+          sm.Advance(EngineFreq, EngineAmp, RoadFreq, RoadAmp, ImpulseAmp, WeaponAmp,
+                     HeaveAmp, ScrubAmp);
           double v = core.Step(sm.sEngF, sm.sEngA, sm.sRoadF, sm.sRoadA,
-                               sm.sImpA, sm.sWpnA, sm.sHvA) * Drive;
+                               sm.sImpA, sm.sWpnA, sm.sHvA, sm.sScrA) * Drive;
           v = core.Limit(v) * Master;
           short s = (short)(v * 32767);
           bufs[i][k*2] = (byte)(s & 0xFF); bufs[i][k*2+1] = (byte)((s >> 8) & 0xFF);
