@@ -96,14 +96,18 @@ BTN[1]  := "Enter"    ; trigger   -> weapon_fire
 BTN[2]  := "Six"      ; pickle    -> special1
 BTN[3]  := "Tab"      ; thumb     -> weapon_cycle
 BTN[4]  := "G"        ; pinky     -> HONK_HORN
-BTN[5]  := "T"        ; TMS up    -> TARGET_NEAREST_ENEMY
-BTN[6]  := "Y"        ; TMS right -> NEXT_TARGET
-BTN[7]  := "U"        ; TMS down  -> RESET_TARGET
-BTN[8]  := "Q"        ; TMS left  -> frontal_target
-BTN[9]  := "M"        ; DMS up    -> SHOW_MAP
-BTN[10] := "R"        ; DMS right -> RADAR_RANGE_TOGGLE
-BTN[11] := "V"        ; DMS down  -> toggle_cmbt_view
-BTN[12] := "B"        ; DMS left  -> TOGGLE_BINOCULARS
+; Upper-left hat = DMS on a real A-10C grip (display/sensor management), so it
+; gets I'76's display actions. Order within each hat is up/right/down/left and is
+; NOT yet measured - see docs/FIGHTERSTICK.md.
+BTN[5]  := "M"        ; DMS up    -> SHOW_MAP
+BTN[6]  := "R"        ; DMS right -> RADAR_RANGE_TOGGLE
+BTN[7]  := "V"        ; DMS down  -> toggle_cmbt_view
+BTN[8]  := "B"        ; DMS left  -> TOGGLE_BINOCULARS
+; Lower/centre hat = TMS (target management). Closest I'76 analogue by far.
+BTN[9]  := "T"        ; TMS up    -> TARGET_NEAREST_ENEMY
+BTN[10] := "Y"        ; TMS right -> NEXT_TARGET
+BTN[11] := "U"        ; TMS down  -> RESET_TARGET
+BTN[12] := "Q"        ; TMS left  -> frontal_target
 BTN[13] := "Seven"    ; CMS up    -> special2
 BTN[14] := "Eight"    ; CMS right -> special3
 BTN[15] := "E"        ; CMS down  -> pilot_glance_target
@@ -259,8 +263,10 @@ if (name = "") {
 Out("joystick" DEV ": " name " - " GetKeyState(DEV . "JoyButtons") " buttons, " GetKeyState(DEV . "JoyAxes") " axes")
 
 if (mode = "learn") {
-    Out("`nPress each control one at a time. Ctrl+C to stop.`n")
-    global prevMask := 0, prevPov := -1
+    Out("`nPress each control one at a time, in the checklist order. Ctrl+C to stop.`n")
+    ; prevBtn is created here as well as on the run path: LearnPoll calls
+    ; prevBtn.HasKey(), and -learn never reaches the run path's initialisation.
+    global prevPov := -1, seq := 0, prevBtn := {}
     SetTimer, LearnPoll, %POLL%
     return
 }
@@ -338,18 +344,30 @@ Poll:
 return
 
 LearnPoll:
+    ; Numbered, because the press order is what identifies each control. With 19
+    ; buttons and a fixed checklist, an unnumbered list of hits cannot be matched
+    ; back to what was actually pressed.
     Loop, 32 {
         b := A_Index
         down := GetKeyState(DEV . "Joy" . b)
         was  := prevBtn.HasKey(b) ? prevBtn[b] : 0
-        if (down && !was)
-            Out("  Button" b "  -> currently sends '" (BTN.HasKey(b) ? BTN[b] : "(unmapped)") "'")
+        if (down && !was) {
+            seq += 1
+            Out("  #" seq "`tButton " b "`t-> currently sends '" (BTN.HasKey(b) ? BTN[b] : "(UNMAPPED)") "'")
+        }
         prevBtn[b] := down
     }
+    ; The POV is reported on its own channel, NOT as buttons - worth showing
+    ; distinctly, because CH's own docs suggest it may appear as button IDs up to
+    ; 24 "depending on configuration", and which of those is true here decides
+    ; whether the castle hat needs button handling or POV handling.
     pov := GetKeyState(DEV . "JoyPOV")
     if (pov != prevPov) {
-        if (pov >= 0)
-            Out("  POV hat  " Round(pov / 100) " deg")
+        if (pov >= 0) {
+            seq += 1
+            dirs := ["UP", "up-right", "RIGHT", "down-right", "DOWN", "down-left", "LEFT", "up-left"]
+            Out("  #" seq "`tPOV hat`t-> " Round(pov / 100) " deg  (" dirs[Mod(Round(pov / 4500), 8) + 1] ")")
+        }
         prevPov := pov
     }
 return

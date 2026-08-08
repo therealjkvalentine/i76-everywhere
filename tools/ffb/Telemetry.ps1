@@ -334,6 +334,8 @@ function Tel-Open {
         FireBuf   = (New-Object byte[] 16)
         FxBuf     = (New-Object byte[] ($script:TEL_FX_BASE + $script:TEL_FX_SLOTS * $script:TEL_FX_STRIDE))
         FxPrev    = (New-Object int[] $script:TEL_FX_SLOTS)
+        FxPrevId  = (New-Object int[] $script:TEL_FX_SLOTS)
+        FxPrevMag = (New-Object int[] $script:TEL_FX_SLOTS)
     }
     if (-not (Tel-Resolve $ctx)) { throw "Player entity is NULL - load a mission first." }
     Tel-Geometry $ctx
@@ -606,16 +608,26 @@ function Tel-Sample {
         for ($si = 0; $si -lt $script:TEL_FX_SLOTS; $si++) {
             $bo = $script:TEL_FX_BASE + $si * $script:TEL_FX_STRIDE
             $act = [BitConverter]::ToInt32($fb2, $bo)
+            $id  = [BitConverter]::ToInt32($fb2, $bo + 0x0C)
+            $mag = [BitConverter]::ToInt32($fb2, $bo + 0x14)
             if ($act -ne 0) { $fxActive++ }
-            if ($act -ne 0 -and $Ctx.FxPrev[$si] -eq 0) {
+            # A slot STAYS active between shots - measured, slots were non-zero on
+            # 93% of samples across a 152 s drive - so a plain 0 -> 1 edge misses
+            # every repeat fire in the same slot. Treat a changed id or magnitude
+            # while active as a new event too.
+            if ($act -ne 0 -and ($Ctx.FxPrev[$si] -eq 0 -or
+                                 $Ctx.FxPrevId[$si] -ne $id -or
+                                 $Ctx.FxPrevMag[$si] -ne $mag)) {
                 $fxFired += [pscustomobject]@{
                     Slot = $si
-                    Id   = [BitConverter]::ToInt32($fb2, $bo + 0x0C)
+                    Id   = $id
                     Param= [BitConverter]::ToSingle($fb2, $bo + 0x10)
-                    Mag  = [BitConverter]::ToInt32($fb2, $bo + 0x14)
+                    Mag  = $mag
                 }
             }
             $Ctx.FxPrev[$si] = $act
+            $Ctx.FxPrevId[$si] = $id
+            $Ctx.FxPrevMag[$si] = $mag
         }
     }
 
