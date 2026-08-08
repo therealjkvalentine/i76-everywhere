@@ -97,10 +97,23 @@ function Mix-DefaultTune {
         Master        = 1.00   # global scale, 0..1. The kill switch is separate.
 
         # --- steady: centering / self-aligning torque -----------------------
-        SatGain       = 3200   # force at full lock, at or above SatRef speed
-        SatRef        = 12.0   # m/s at which centering reaches full authority
-        SatFloor      = 0.10   # fraction of SatGain kept at a standstill, so the
-                               # wheel is not completely dead in the pits
+        # RAISED 2026-08-08 after the first real drives read barely perceptible.
+        # Reference points that decide these numbers:
+        #   * the ENGINE'S OWN effects command +/-100 percent - full scale - for
+        #     cannon fire, explosions and tyre blowouts (tools/ffb/parse-frc.py).
+        #     We were peaking at 25% and typically running at 4.6%.
+        #   * sim-racing practice puts normal cornering at 40-70% of range, with
+        #     only kerbs and impacts near the ceiling.
+        # At full lock and full speed authority the steady pair now sums to about
+        # 8200 of a 9500 clamp; at half lock, roughly 4100 - which is the band.
+        SatGain       = 5200   # force at full lock, at or above SatRef speed
+        SatRef        = 9.0    # m/s at which centering reaches full authority.
+                               # Lowered from 12: I'76's crossover is 12 m/s and a
+                               # lot of driving happens below it, where the old
+                               # curve left the wheel nearly dead.
+        SatFloor      = 0.28   # fraction of SatGain kept at a standstill. 0.10 was
+                               # too little - parking-speed steering had no weight
+                               # at all, which reads as broken rather than light.
 
         # --- steady: cornering load ----------------------------------------
         # CornerRef was 0.55 g, which is a road-car number and WRONG for this
@@ -115,7 +128,7 @@ function Mix-DefaultTune {
         # independent grip signal the way it would be in a game with a tyre model.
         # The two together give steer * (constant + f(speed)), which is a useful
         # reshaping, but gaining both up just doubles one force.
-        CornerGain    = 2600   # force at CornerRef lateral g
+        CornerGain    = 3400   # force at CornerRef lateral g
         CornerRef     = 2.80   # lateral g treated as "fully loaded" (measured max 2.99)
 
         # --- slip ----------------------------------------------------------
@@ -123,7 +136,7 @@ function Mix-DefaultTune {
                                # 0.75 = at full understeer, 25% weight remains.
         ScrubGain     = 900    # tyre-scrub buzz amplitude at full understeer
         ScrubHz       = 14.0
-        OversteerGain = 2600   # counter-steer push at full oversteer
+        OversteerGain = 3600   # counter-steer push at full oversteer
 
         # --- road texture ---------------------------------------------------
         # NYQUIST NOTE: the force loop tops out near 62 Hz (Start-Sleep
@@ -131,7 +144,7 @@ function Mix-DefaultTune {
         # here stays at or under ~15 Hz to keep 4+ samples per cycle. Set one to
         # 22 Hz and you do not get a 22 Hz buzz, you get an aliased beat that
         # feels like a fault in the wheel.
-        TextureGain   = 1100   # amplitude at TexRef speed over rough ground
+        TextureGain   = 1500   # amplitude at TexRef speed over rough ground
         TexRef        = 16.0   # m/s at which texture is at full amplitude
         TextureHz     = 11.0
         RoughRef      = 16.0   # jolt treated as fully rough. Measured: away from
@@ -139,7 +152,7 @@ function Mix-DefaultTune {
         BumpGain      = 1400   # vertical-motion component (Vy)
 
         # --- braking --------------------------------------------------------
-        BrakeGain     = 1500   # weight added under deceleration
+        BrakeGain     = 2200   # weight added under deceleration
         BrakeRef      = 0.60   # longitudinal g treated as "hard braking"
         JudderGain    = 1300   # lockup shimmy under heavy braking
         JudderHz      = 12.0
@@ -216,6 +229,28 @@ function Mix-DefaultTune {
         LfeWeaponHz     = 85.0
 
         # --- safety ---------------------------------------------------------
+        # MIN FORCE - the single most likely reason this read "barely
+        # perceptible" before. The T300 is BELT-DRIVEN, and belt and gear drives
+        # have static friction that simply swallows low-amplitude signal: below
+        # some threshold the motor is commanded but the rim does not move. iRacing
+        # ships exactly this control and describes it as increasing "the feeling of
+        # smaller forces without affecting the steering weight or larger forces",
+        # and recommends its LINEAR mode for direct drive ONLY - a belt wheel wants
+        # the non-linear boost.
+        #
+        # So any non-zero output is lifted to at least MinForce and the rest of the
+        # range is compressed above it, which preserves ordering and the sign while
+        # moving the quiet end above stiction. Set to 0 for a direct-drive wheel.
+        # Measure your own floor with toolsfbfb-bench.ps1 rather than guessing.
+        MinForce      = 900    # ~9% of clamp
+        # ...but only for forces MEANT to be felt. Without this gate, MinForce
+        # lifts the always-on texture ripple (active ~99% of the time at ~110)
+        # straight to 900, and the wheel hums constantly: replaying a real drive
+        # showed near-silence collapse from 61% of samples to 0.2%. A permanent
+        # floor is precisely the "continuous states buried the transients" failure
+        # this design is built to avoid. Below the gate the force is meant to be
+        # imperceptible, so leave it there.
+        MinForceGate  = 150
         Clamp         = 9500   # never exceed this; leaves headroom under 10000
         # Thermal idle guard. Thrustmaster documents thermal cut-back (KB 1744):
         # sustained load makes force feedback weaken and the base heat up. This
@@ -621,4 +656,41 @@ function Mix-RenderPad {
     if ($left -gt 1.0) { $left = 1.0 }
     if ($right -gt 1.0) { $right = 1.0 }
     return [pscustomobject]@{ Left = [math]::Round($left,4); Right = [math]::Round($right,4) }
+}
+
+
+function Mix-RenderWheel {
+    <#
+      Render the model's output for a BELT-DRIVEN wheel.
+
+      MinForce lives HERE and not in Mix-Update, because it is a property of the
+      DEVICE, not of the car. The T300 is belt-driven and belt and gear drives have
+      static friction that swallows low-amplitude signal - below some threshold the
+      motor is commanded and the rim does not move, which is the single likeliest
+      reason this read "barely perceptible" in the field. A pad motor and a bass
+      shaker have no such floor, so applying it in the shared path would corrupt
+      every other renderer.
+
+      Putting it here keeps the promise the bus makes: $out.Force is the pure model
+      output, the bus sums to exactly that, and device compensation is the last
+      stage. Both facts are asserted by ffb-mixer-test.ps1 - and it was those two
+      assertions failing that caught MinForce being in the wrong place.
+
+      Set MinForce to 0 for a direct-drive wheel, which does not need it and reads
+      the boost as a dead zone in reverse. Measure your own floor with
+      toolsfbfb-bench.ps1.
+    #>
+    param($Out, $Tune)
+    $f = [double]$Out.Force
+    if ($Tune.MinForce -gt 0 -and [math]::Abs($f) -ge $Tune.MinForceGate) {
+        # Lift the quiet end above stiction and compress the rest above it, which
+        # preserves both ordering and sign. Silence stays silence: the point is to
+        # make small forces felt, not to put a floor under nothing.
+        $mag = [math]::Abs($f)
+        $lifted = $Tune.MinForce + $mag * (1.0 - ($Tune.MinForce / $Tune.Clamp))
+        if ($lifted -gt $mag) { $f = $lifted * [math]::Sign($f) }
+    }
+    if ($f -gt $Tune.Clamp) { $f = $Tune.Clamp }
+    if ($f -lt -$Tune.Clamp) { $f = -$Tune.Clamp }
+    return [int]$f
 }

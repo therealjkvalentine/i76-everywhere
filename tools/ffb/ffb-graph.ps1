@@ -97,13 +97,15 @@ foreach ($r in $raw) {
         Ticks = 0; Polls = 0; Wheelbase = 4.662
     }
     $o = Mix-Update $mix $s
-    if ([math]::Abs($o.Force) -ge ($tune['Clamp'] * 0.999)) { $clip++ }
+    # what the WHEEL gets, including the belt-drive MinForce lift
+    $wheelF = Mix-RenderWheel $o $tune
+    if ([math]::Abs($wheelF) -ge ($tune['Clamp'] * 0.999)) { $clip++ }
     foreach ($n in $o.Notes) { $null = $events.Add([pscustomobject]@{ t = [math]::Round($t,2); label = $n }) }
     $null = $rows.Add([pscustomobject]@{
         t = [math]::Round($t,3)
         mph = [math]::Round($s.SpeedMph,1)
         steer = [math]::Round($st,3)
-        force = $o.Force
+        force = $wheelF
         center = [int]$o.Channels['center']; corner = [int]$o.Channels['corner']
         oversteer = [int]$o.Channels['oversteer']; brake = [int]$o.Channels['brake']
         texture = [int]$o.Channels['texture']; scrub = [int]$o.Channels['scrub']

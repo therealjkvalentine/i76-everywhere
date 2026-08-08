@@ -110,7 +110,10 @@ function Run-Replay {
     foreach ($s in $Samples) {
         $o = Mix-Update $mix $s
         foreach ($c in $ALL_CH) { $null = $acc[$c].Add([math]::Abs([double]$o.Channels[$c])) }
-        $null = $forces.Add([double]$o.Force)
+        # Mix-RenderWheel, not $o.Force: the belt-drive MinForce compensation lives
+        # in the wheel renderer, so reading .Force here would report a quieter
+        # wheel than the one you actually hold.
+        $null = $forces.Add([double](Mix-RenderWheel $o $Tune))
         if ([math]::Abs($o.Force) -ge ($Tune['Clamp'] * 0.999)) { $clip++ }
         foreach ($n in $o.Notes) { if ($n -match 'IMPACT') { $impacts++ } }
     }

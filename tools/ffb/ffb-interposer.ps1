@@ -389,7 +389,10 @@ try {
             # Gating is applied INSIDE Mix-Update (it takes $active), so .Force is
             # already masked, slew-limited, ramped, master-scaled and clamped.
             # Re-summing the breakdown here is what bypassed the slew limiter.
-            $force = $out.Force
+            #
+            # Mix-RenderWheel then applies the BELT-DRIVE compensation (MinForce),
+            # which is device-specific and deliberately not in the shared path.
+            $force = Mix-RenderWheel $out $tuneTable
 
             if (-not $DryRun) {
                 $hr = Ffb-Constant $dev $force
