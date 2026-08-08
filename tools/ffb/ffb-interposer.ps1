@@ -128,9 +128,9 @@ function Build-Panel {
     # take the game down, and a warning that scrolled past ten minutes ago is not
     # a warning.
     if ($S -and $S.GameFfb -ne 0) {
-        $null = $L.Add("  *** DO NOT FIRE - engine FFB still live; a shot faults I7_SFRCE.DLL+0x2505 ***")
+        $null = $L.Add("  *** DO NOT FIRE - I7FF_SIM_Effect still live; a shot faults the DLL at +0x2505 ***")
     } else {
-        $null = $L.Add("  engine FFB off (0x52bbd0 = 0) - firing is safe, restored on exit")
+        $null = $L.Add("  engine FFB call bypassed (0x52bbe4 = 0) - firing safe; effects still readable")
     }
     $null = $L.Add($rule)
     if ($S) {
@@ -312,7 +312,7 @@ try {
         } else {
             try {
                 $engineFfbWas = Tel-SetEngineFfb $telCtx 0
-                Write-Host ("engine FFB disabled in memory (0x52bbd0: {0} -> 0) so firing cannot crash it." -f $engineFfbWas) -ForegroundColor Green
+                Write-Host ("engine FFB call disabled (0x52bbe4: 0x{0:X8} -> 0) so firing cannot crash it." -f $engineFfbWas) -ForegroundColor Green
                 Write-Host "restored automatically on exit. -KeepEngineFfb to skip this." -ForegroundColor DarkGray
             } catch {
                 $active['weapon'] = $false
