@@ -13,6 +13,21 @@ AutoHotkey.exe i76-fighterstick.ahk -learn      # press each control, see its nu
 AutoHotkey.exe i76-fighterstick.ahk -selftest   # test the ADC logic, no hardware
 ```
 
+**In PowerShell you need the call operator `&`**, because a quoted path at the
+start of a line parses as a string literal, not a command — it fails with
+`Unexpected token`, which reads exactly like "nothing happened":
+
+```powershell
+& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "C:\Users\james\i76-everywhere\i76-fighterstick.ahk" -map
+```
+
+The script also keeps its **tray icon** — unlike `i76-remap.ahk`, which sets
+`#NoTrayIcon` because it lives inside the Wine prefix for the length of a game
+session. This one is launched by hand next to a fullscreen game; without an icon
+it runs with no window, no tray entry, and no way to stop it short of Task
+Manager, possibly while holding a key down. Right-click the icon to exit, which
+releases any held key on the way out.
+
 **Testing without the game.** `-whatif` is the bench: it reads the stick live and
 prints the **game action** each control performs — `castle UP -> TARGET_NEAREST_ENEMY`,
 `stick BACK -> e_brake ON` — while sending no keystrokes at all. Every control can
