@@ -421,7 +421,16 @@ function Tel-Slip {
     #>
     param([double]$Speed, [double]$Steer, [double]$YawRate)
 
-    $DEV_DEAD = 0.15    # rad/s: below this it is measurement noise
+    # LOWERED from 0.15 so the wheel WARNS about the approach instead of only
+    # REPORTING the departure. The evidence for how far it can safely come down:
+    #   * the reference fits gripped driving to a residual sd of 0.011
+    #   * a whole gentle drive never exceeded 0.105, with p99 at 0.089
+    #   * a drive with donuts reached 2.539
+    # So 0.08 sits about 7 sigma above model noise while still firing on well
+    # under 1% of ordinary driving, and the response is progressive from there -
+    # which matters because the thing being communicated ("when does the skid
+    # start, and how much") is exactly what a driver cannot otherwise perceive.
+    $DEV_DEAD = 0.08
     $DEV_REF  = 1.10    # rad/s: deviation treated as fully out of shape
 
     # TWO REGIMES, and the yaw rate is whichever LIMIT binds:
