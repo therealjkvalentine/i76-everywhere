@@ -333,6 +333,56 @@ Check "faded out after the idle timeout" ($out.Force -eq 0) "force=$($out.Force)
 $out = Mix-Update $m (Fake -T 24.1 -Speed 12 -Steer 0.8 -YawRate 0.5 -LatG 1.5)
 Check "movement restores it immediately" ([math]::Abs($out.Force) -gt 50) "force=$($out.Force)"
 
+Write-Host "`n=== 9e. wheel renderer: belt-drive stiction compensation ===" -ForegroundColor Cyan
+# MinForce belongs to the DEVICE, not the car - a pad and a shaker have no belt.
+# It lives in Mix-RenderWheel so the bus stays pure; putting it in Mix-Update
+# broke both the bus-consistency and channel-gating assertions, which is how the
+# mistake was caught.
+$tn = Mix-DefaultTune
+# ABOVE the gate: a modest but meaningful force must be lifted clear of stiction.
+$m = Mix-New
+$o = $null
+for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) { $o = Mix-Update $m (Fake -T $t -Speed 14 -Steer 0.12) }
+$rawF = [math]::Abs($o.Force)
+$wheelF = [math]::Abs((Mix-RenderWheel $o $tn))
+Check "a real force above the gate is lifted clear of stiction" `
+    ($rawF -ge $tn.MinForceGate -and $wheelF -ge $tn.MinForce) `
+    ("raw $rawF -> wheel $wheelF, gate $($tn.MinForceGate), MinForce $($tn.MinForce)")
+Check "the lift does not change sign" ([math]::Sign((Mix-RenderWheel $o $tn)) -eq [math]::Sign($o.Force)) ""
+
+# BELOW the gate: left alone. Lifting the always-on texture ripple to MinForce
+# makes the wheel hum permanently and buries every transient - replaying a real
+# drive with the gate removed dropped near-silence from 61% of samples to 0.2%.
+$mTiny = Mix-New
+$oTiny = $null
+for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) { $oTiny = Mix-Update $mTiny (Fake -T $t -Speed 6 -Steer 0.004) }
+Check "a sub-gate ripple is NOT lifted (no permanent hum)" `
+    ([math]::Abs($oTiny.Force) -lt $tn.MinForceGate -and (Mix-RenderWheel $oTiny $tn) -eq $oTiny.Force) `
+    ("raw $($oTiny.Force) -> wheel $(Mix-RenderWheel $oTiny $tn)")
+
+# silence must stay silence - a floor under nothing would hum at a standstill
+$mQ = Mix-New
+$oQ = $null
+for ($t = 0.0; $t -lt 1.0; $t += 1.0/60) { $oQ = Mix-Update $mQ (Fake -T $t) }
+Check "silence stays silent through the renderer" ((Mix-RenderWheel $oQ $tn) -eq 0) `
+    ("got $(Mix-RenderWheel $oQ $tn)")
+
+# ordering is preserved: a bigger model force is still bigger at the wheel
+$mA = Mix-New; $mB = Mix-New
+$oA = $null; $oB = $null
+for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) {
+    $oA = Mix-Update $mA (Fake -T $t -Speed 14 -Steer 0.15)
+    $oB = Mix-Update $mB (Fake -T $t -Speed 14 -Steer 0.55 -YawRate 0.5 -LatG 1.6 -ExpectedYaw 0.5)
+}
+Check "ordering preserved (bigger stays bigger)" `
+    ([math]::Abs((Mix-RenderWheel $oB $tn)) -gt [math]::Abs((Mix-RenderWheel $oA $tn))) ""
+Check "still clamped" ([math]::Abs((Mix-RenderWheel $oB $tn)) -le $tn.Clamp) ""
+
+# a direct-drive wheel opts out
+$dd = Mix-DefaultTune; $dd.MinForce = 0
+Check "MinForce=0 passes the model force through untouched" `
+    ((Mix-RenderWheel $o $dd) -eq $o.Force) "got $(Mix-RenderWheel $o $dd) vs $($o.Force)"
+
 Write-Host "`n=== 10. no NaN or infinity escapes ===" -ForegroundColor Cyan
 # Division by a near-zero speed or wheelbase is the classic way a force model
 # emits NaN, and NaN written to a wheel is undefined behaviour in someone's hands.
