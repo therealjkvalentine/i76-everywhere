@@ -1,5 +1,9 @@
 <#
-  ffb-lfe-sweep.ps1 - measure the response of the WHOLE RIG, by ear and body.
+  ffb-lfe-sweep.ps1 - measure the response of the WHOLE RIG, by body, and write
+  the answer straight into a form the mixer can use.
+
+  It PLAYS each step and asks you to rate it. No file to find, no output device
+  to guess at, no table to transcribe.
 
   WHAT THIS MEASURES, AND WHY IT IS NOT THE DRIVER SPEC: an Aura AST-2B-4 is
   rated 20-80 Hz with resonance at 40. What you actually feel is that driver
@@ -16,81 +20,246 @@
   body into one curve, which is exactly the curve the compensation needs.
 
   METHOD: every step is synthesised at the SAME amplitude. So any difference in
-  what you feel is the system, not the signal. Rate each step 0-10, where 0 is
-  nothing at all and 10 is the strongest step in the run. Use the whole scale -
-  relative values are all that matter, absolute ones do not.
+  what you feel is the system, not the signal. Rate each 0-10, where 10 is the
+  strongest step in the run and 0 is nothing at all. Only the ratios matter.
 
-  Play the WAV through the shaker channel at your NORMAL driving volume, and do
-  not touch the volume control once it starts.
+  WHY winmm AND NOT System.Media.SoundPlayer: SoundPlayer can only reach the
+  DEFAULT output device. Shakers are almost never the default - they hang off a
+  second card or a spare output - so the one thing this script must be able to
+  do is choose where the sound goes. waveOut takes a device index. This is also
+  the interop the rest of the repo already uses (see ffb-buttons.ps1).
 
   RUN IT:
-      powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-lfe-sweep.ps1
-  then play the WAV, write down 0-10 per step, and paste the numbers back.
+      powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-lfe-sweep.ps1 -List
+      powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-lfe-sweep.ps1 -Device 2
 #>
 param(
-    [string]$Out = "lfe-sweep.wav",
+    [switch]$List,
+    [int]$Device = -1,          # -1 = WAVE_MAPPER, the system default
     [double[]]$Freqs = @(8,10,12,13,15,18,20,22,25,28,31,35,40,45,50,55,60,70,80,90,100),
-    [double]$StepSeconds = 3.0,
-    [double]$GapSeconds  = 1.0,
+    [double]$StepSeconds = 2.5,
     [int]$Rate = 8000,
-    [double]$Amp = 0.55
+    [double]$Amp = 0.55,
+    [switch]$NoPrompt,          # play straight through without asking for ratings
+    [string]$Out                # optionally also save the whole sweep as a WAV
 )
 $ErrorActionPreference = 'Stop'
 
-# Equal amplitude everywhere. A raised-cosine fade on each step keeps the switch
-# from clicking - a click is broadband, and a broadband transient is exactly what
-# would let you "feel" a step whose own frequency you cannot feel at all.
-$fadeS = 0.25
-$total = [int](($StepSeconds + $GapSeconds) * $Freqs.Count * $Rate)
-$pcm = New-Object int16[] $total   # 'short' is a C# alias, not a PowerShell one
-$i = 0
-$schedule = New-Object System.Collections.Generic.List[object]
+if (-not ("LfeOut" -as [type])) {
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
 
-foreach ($f in $Freqs) {
-    $start = $i / $Rate
-    $nStep = [int]($StepSeconds * $Rate)
-    $nFade = [int]($fadeS * $Rate)
-    for ($k = 0; $k -lt $nStep; $k++) {
+public class LfeOut {
+  // DWORD_PTR fields are IntPtr so the struct is correct in both 32- and 64-bit.
+  [StructLayout(LayoutKind.Sequential)]
+  public struct WAVEFORMATEX {
+    public ushort wFormatTag, nChannels;
+    public uint nSamplesPerSec, nAvgBytesPerSec;
+    public ushort nBlockAlign, wBitsPerSample, cbSize;
+  }
+  [StructLayout(LayoutKind.Sequential)]
+  public struct WAVEHDR {
+    public IntPtr lpData; public uint dwBufferLength, dwBytesRecorded;
+    public IntPtr dwUser; public uint dwFlags, dwLoops;
+    public IntPtr lpNext, reserved;
+  }
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct WAVEOUTCAPS {
+    public ushort wMid, wPid; public uint vDriverVersion;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string szPname;
+    public uint dwFormats; public ushort wChannels, wReserved1; public uint dwSupport;
+  }
+
+  [DllImport("winmm.dll")] public static extern uint waveOutGetNumDevs();
+  [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
+  public static extern uint waveOutGetDevCapsW(IntPtr id, ref WAVEOUTCAPS c, uint sz);
+  [DllImport("winmm.dll")] public static extern uint waveOutOpen(
+    out IntPtr h, int devId, ref WAVEFORMATEX fmt, IntPtr cb, IntPtr inst, uint flags);
+  [DllImport("winmm.dll")] public static extern uint waveOutPrepareHeader(IntPtr h, ref WAVEHDR hdr, uint sz);
+  [DllImport("winmm.dll")] public static extern uint waveOutWrite(IntPtr h, ref WAVEHDR hdr, uint sz);
+  [DllImport("winmm.dll")] public static extern uint waveOutUnprepareHeader(IntPtr h, ref WAVEHDR hdr, uint sz);
+  [DllImport("winmm.dll")] public static extern uint waveOutReset(IntPtr h);
+  [DllImport("winmm.dll")] public static extern uint waveOutClose(IntPtr h);
+
+  public static string[] Devices() {
+    uint n = waveOutGetNumDevs();
+    string[] outp = new string[n];
+    for (uint i = 0; i < n; i++) {
+      WAVEOUTCAPS c = new WAVEOUTCAPS();
+      waveOutGetDevCapsW((IntPtr)i, ref c, (uint)Marshal.SizeOf(typeof(WAVEOUTCAPS)));
+      outp[i] = c.szPname;
+    }
+    return outp;
+  }
+
+  // Blocking play. waveOutWrite is asynchronous, so we spin on WHDR_DONE (0x01)
+  // rather than returning while the buffer is still on its way to the speaker.
+  public static string Play(byte[] pcm, int rate, int devId) {
+    WAVEFORMATEX f = new WAVEFORMATEX();
+    f.wFormatTag = 1; f.nChannels = 1; f.nSamplesPerSec = (uint)rate;
+    f.wBitsPerSample = 16; f.nBlockAlign = 2;
+    f.nAvgBytesPerSec = (uint)(rate * 2); f.cbSize = 0;
+
+    IntPtr h;
+    uint r = waveOutOpen(out h, devId, ref f, IntPtr.Zero, IntPtr.Zero, 0);
+    if (r != 0) return "waveOutOpen failed, code " + r;
+
+    GCHandle pin = GCHandle.Alloc(pcm, GCHandleType.Pinned);
+    WAVEHDR hdr = new WAVEHDR();
+    hdr.lpData = pin.AddrOfPinnedObject();
+    hdr.dwBufferLength = (uint)pcm.Length;
+    int sz = Marshal.SizeOf(typeof(WAVEHDR));
+    try {
+      r = waveOutPrepareHeader(h, ref hdr, (uint)sz);
+      if (r != 0) return "prepareHeader failed, code " + r;
+      r = waveOutWrite(h, ref hdr, (uint)sz);
+      if (r != 0) return "waveOutWrite failed, code " + r;
+      while ((hdr.dwFlags & 0x00000001) == 0) System.Threading.Thread.Sleep(10);
+      waveOutUnprepareHeader(h, ref hdr, (uint)sz);
+    } finally {
+      pin.Free();
+      waveOutReset(h);
+      waveOutClose(h);
+    }
+    return null;
+  }
+}
+"@
+}
+
+# ---- device list ---------------------------------------------------------
+$devs = [LfeOut]::Devices()
+if ($List -or $devs.Count -eq 0) {
+    Write-Host ""
+    Write-Host "output devices (pass the number as -Device):" -ForegroundColor Cyan
+    Write-Host ("  {0,3}  {1}" -f '-1', 'system default (WAVE_MAPPER)')
+    for ($i = 0; $i -lt $devs.Count; $i++) { Write-Host ("  {0,3}  {1}" -f $i, $devs[$i]) }
+    Write-Host ""
+    Write-Host "Pick the one your SHAKERS are on, not your speakers." -ForegroundColor Yellow
+    if ($List) { exit 0 }
+}
+$devName = if ($Device -lt 0 -or $Device -ge $devs.Count) { 'system default' } else { $devs[$Device] }
+
+# ---- synth ---------------------------------------------------------------
+# A raised-cosine fade on each step keeps the switch from clicking - a click is
+# broadband, and a broadband transient is exactly what would let you "feel" a
+# step whose own frequency you cannot feel at all.
+function Step-Pcm {
+    param([double]$Hz)
+    $n = [int]($StepSeconds * $Rate)
+    $nFade = [int](0.25 * $Rate)
+    $b = New-Object byte[] ($n * 2)
+    for ($k = 0; $k -lt $n; $k++) {
         $env = 1.0
         if ($k -lt $nFade) { $env = 0.5 - 0.5 * [math]::Cos([math]::PI * $k / $nFade) }
-        elseif ($k -gt $nStep - $nFade) { $env = 0.5 - 0.5 * [math]::Cos([math]::PI * ($nStep - $k) / $nFade) }
-        $v = $Amp * $env * [math]::Sin(2 * [math]::PI * $f * $k / $Rate)
-        $pcm[$i] = [int16]([math]::Max(-1.0, [math]::Min(1.0, $v)) * 32767); $i++
+        elseif ($k -gt $n - $nFade) { $env = 0.5 - 0.5 * [math]::Cos([math]::PI * ($n - $k) / $nFade) }
+        $v = $Amp * $env * [math]::Sin(2 * [math]::PI * $Hz * $k / $Rate)
+        if ($v -gt 1.0) { $v = 1.0 } elseif ($v -lt -1.0) { $v = -1.0 }
+        $s = [int16]($v * 32767)
+        [BitConverter]::GetBytes($s).CopyTo($b, $k * 2)
     }
-    $i += [int]($GapSeconds * $Rate)   # silence: array is already zeroed
-    $schedule.Add([pscustomobject]@{ Hz = $f; StartS = [math]::Round($start,1) })
+    return $b
 }
 
-# Resolve relative to the caller's directory, but leave an absolute path alone.
-# Join-Path would mangle one, and Get-Location returns a PathInfo, not a string.
-$outPath = if ([System.IO.Path]::IsPathRooted($Out)) { $Out }
-           else { Join-Path (Get-Location).Path $Out }
-$fs = [System.IO.File]::Create($outPath)
-$bw = New-Object System.IO.BinaryWriter($fs)
-$bytes = $i * 2
-$bw.Write([char[]]'RIFF'); $bw.Write([uint32](36 + $bytes)); $bw.Write([char[]]'WAVE')
-$bw.Write([char[]]'fmt '); $bw.Write([uint32]16); $bw.Write([uint16]1); $bw.Write([uint16]1)
-$bw.Write([uint32]$Rate); $bw.Write([uint32]($Rate*2)); $bw.Write([uint16]2); $bw.Write([uint16]16)
-$bw.Write([char[]]'data'); $bw.Write([uint32]$bytes)
-for ($k = 0; $k -lt $i; $k++) { $bw.Write($pcm[$k]) }
-$bw.Close(); $fs.Close()
-
 Write-Host ""
-Write-Host ("wrote {0}  -  {1} steps, {2:0.0}s total, all at identical amplitude" -f `
-    $outPath, $Freqs.Count, ($i / $Rate)) -ForegroundColor Green
+Write-Host ("SWEEP: {0} steps, {1:0.0}s each, ALL AT THE SAME AMPLITUDE." -f $Freqs.Count, $StepSeconds) -ForegroundColor Green
+Write-Host ("output: {0}" -f $devName) -ForegroundColor Green
 Write-Host ""
-Write-Host "Play it through the SHAKER at your normal driving volume." -ForegroundColor Cyan
-Write-Host "Do not adjust the volume once it starts - that would rewrite the curve." -ForegroundColor Cyan
-Write-Host "Rate each step 0-10. 10 = the strongest step in the run, 0 = felt nothing." -ForegroundColor Cyan
-Write-Host ""
-Write-Host ("  {0,6}  {1,8}   your rating" -f 'Hz','starts at')
-Write-Host ("  " + ("-" * 40))
-foreach ($s in $schedule) {
-    Write-Host ("  {0,6:0.#}  {1,7:0.0}s   ____" -f $s.Hz, $s.StartS)
+Write-Host "Set the shaker to your normal driving volume NOW, and do not touch it" -ForegroundColor Yellow
+Write-Host "again until the sweep ends - a mid-run change rewrites the curve." -ForegroundColor Yellow
+if (-not $NoPrompt) {
+    Write-Host ""
+    Write-Host "After each step, type 0-10 and press Enter." -ForegroundColor Cyan
+    Write-Host "  10 = the strongest step in the whole run, 0 = felt nothing at all." -ForegroundColor Cyan
+    Write-Host "  Steps you feel NOTHING at are as valuable as strong ones - they set" -ForegroundColor DarkGray
+    Write-Host "  where content must never be placed. Rate them 0, do not skip them." -ForegroundColor DarkGray
+    Write-Host "  'r' replays the step. Enter alone repeats your previous rating." -ForegroundColor DarkGray
 }
 Write-Host ""
-Write-Host "Paste the ratings back and they become LfeRespHz/LfeRespRel in" -ForegroundColor Cyan
-Write-Host "Mix-DefaultTune, which the synth inverts to flatten the rig." -ForegroundColor Cyan
+Write-Host "Press Enter to begin." -ForegroundColor Yellow
+[void](Read-Host)
+
+$ratings = New-Object System.Collections.Generic.List[object]
+$prev = $null
+$all = New-Object System.Collections.Generic.List[byte]
+
+for ($i = 0; $i -lt $Freqs.Count; $i++) {
+    $hz = $Freqs[$i]
+    $pcm = Step-Pcm $hz
+    if ($Out) { $all.AddRange($pcm); $all.AddRange((New-Object byte[] ($Rate))) }
+
+    while ($true) {
+        Write-Host ("  [{0,2}/{1}]  {2,5:0.#} Hz  ... playing" -f ($i+1), $Freqs.Count, $hz) -NoNewline
+        $err = [LfeOut]::Play($pcm, $Rate, $Device)
+        if ($err) {
+            Write-Host ""
+            Write-Host "PLAYBACK FAILED: $err" -ForegroundColor Red
+            Write-Host "Run with -List and pick a device that exists." -ForegroundColor Red
+            exit 1
+        }
+        if ($NoPrompt) { Write-Host ""; break }
+        Write-Host "   rate 0-10: " -NoNewline
+        $ans = Read-Host
+        if ($ans -eq 'r') { continue }
+        if ([string]::IsNullOrWhiteSpace($ans)) {
+            if ($null -eq $prev) { Write-Host "    (no previous rating - please type a number)" -ForegroundColor DarkGray; continue }
+            $ans = $prev
+        }
+        $val = 0.0
+        if (-not [double]::TryParse($ans, [ref]$val)) { Write-Host "    (not a number)" -ForegroundColor DarkGray; continue }
+        if ($val -lt 0) { $val = 0 } elseif ($val -gt 10) { $val = 10 }
+        $prev = $val
+        $ratings.Add([pscustomobject]@{ Hz = $hz; R = $val })
+        break
+    }
+}
+
+if ($Out) {
+    $outPath = if ([System.IO.Path]::IsPathRooted($Out)) { $Out } else { Join-Path (Get-Location).Path $Out }
+    $fs = [System.IO.File]::Create($outPath); $bw = New-Object System.IO.BinaryWriter($fs)
+    $bytes = $all.Count
+    $bw.Write([char[]]'RIFF'); $bw.Write([uint32](36 + $bytes)); $bw.Write([char[]]'WAVE')
+    $bw.Write([char[]]'fmt '); $bw.Write([uint32]16); $bw.Write([uint16]1); $bw.Write([uint16]1)
+    $bw.Write([uint32]$Rate); $bw.Write([uint32]($Rate*2)); $bw.Write([uint16]2); $bw.Write([uint16]16)
+    $bw.Write([char[]]'data'); $bw.Write([uint32]$bytes)
+    $bw.Write($all.ToArray()); $bw.Close(); $fs.Close()
+    Write-Host ("saved sweep to {0}" -f $outPath) -ForegroundColor DarkGray
+}
+
+if ($NoPrompt -or $ratings.Count -lt 2) {
+    Write-Host ""; Write-Host "done." -ForegroundColor Green; exit 0
+}
+
+# ---- result --------------------------------------------------------------
+# Normalise to the strongest step. Only ratios matter: the compensation inverts
+# this curve, and an inverse is unchanged by an overall scale factor.
+$peak = ($ratings | Measure-Object -Property R -Maximum).Maximum
+if ($peak -le 0) {
+    Write-Host ""
+    Write-Host "Every step rated 0 - nothing reached the shaker. Check -Device and volume." -ForegroundColor Red
+    exit 1
+}
+
 Write-Host ""
-Write-Host "Steps you feel NOTHING at are as valuable as strong ones - they set" -ForegroundColor DarkGray
-Write-Host "where content should never be placed. Rate them 0, do not skip them." -ForegroundColor DarkGray
+Write-Host "=== measured rig response ===" -ForegroundColor Cyan
+Write-Host ""
+foreach ($r in $ratings) {
+    $rel = $r.R / $peak
+    $bar = '#' * [int]([math]::Round($rel * 40))
+    $comp = if ($rel -lt 0.001) { 'dead' } else { ("x{0:0.0}" -f [math]::Min(3.2, 1.0 / $rel)) }
+    Write-Host ("  {0,5:0.#} Hz  {1,-40}  {2,5:0.00}  comp {3}" -f $r.Hz, $bar, $rel, $comp)
+}
+
+$hzList  = ($ratings | ForEach-Object { ("{0:0.0}" -f $_.Hz) }) -join ', '
+$relList = ($ratings | ForEach-Object { ("{0:0.00}" -f ($_.R / $peak)) }) -join ', '
+
+Write-Host ""
+Write-Host "Paste these two lines into Mix-DefaultTune in FfbMixer.ps1:" -ForegroundColor Cyan
+Write-Host ""
+Write-Host ("        LfeRespHz  = @({0})" -f $hzList) -ForegroundColor Green
+Write-Host ("        LfeRespRel = @({0})" -f $relList) -ForegroundColor Green
+Write-Host ""
+Write-Host "The synth inverts that curve per source, so every band arrives at the" -ForegroundColor DarkGray
+Write-Host "same felt strength. Steps rated 0 get no boost - they are unreachable," -ForegroundColor DarkGray
+Write-Host "and pushing them would only burn headroom and heat the coil." -ForegroundColor DarkGray
