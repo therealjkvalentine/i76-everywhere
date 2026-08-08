@@ -42,7 +42,12 @@
 ; Docs: docs/FIGHTERSTICK.md.  Device: CH Fighterstick USB, VID 068E PID 00F3.
 
 #NoEnv
-#NoTrayIcon
+; TRAY ICON KEPT, deliberately differing from i76-remap.ahk which sets #NoTrayIcon.
+; That one runs inside the Wine prefix where there is no usable tray and its
+; lifetime is the game session's. This one is launched by hand alongside a
+; fullscreen game, and without an icon it runs with no window, no tray entry and
+; no way to stop it short of Task Manager - while holding a key down. The icon is
+; the visible proof it is running and the way to quit it.
 #SingleInstance Force
 #Persistent
 ; A runaway cannot happen here - this is a polled timer, not a hotkey - but the
@@ -394,6 +399,16 @@ if (mode = "learn") {
     return
 }
 
+; Name the tray entry so it is identifiable at a glance among other AHK scripts,
+; and give it an Exit that runs ReleaseAll via OnExit rather than killing blind.
+Menu, Tray, Tip, % "I76 Fighterstick" . (WHATIF ? " (-whatif, no keys)" : "")
+Menu, Tray, NoStandard
+Menu, Tray, Add, I76 Fighterstick - right-click to quit, TrayNoop
+Menu, Tray, Disable, I76 Fighterstick - right-click to quit
+Menu, Tray, Add
+Menu, Tray, Add, Exit (releases held keys), TrayExit
+Menu, Tray, Default, Exit (releases held keys)
+
 Out("")
 Out("  pull back = HANDBRAKE (held)    push forward = REVERSE (while held)")
 Out("  left = shift down               right = shift up")
@@ -514,6 +529,13 @@ ReleaseAll() {
     if (prevPovIx != "" && prevPovIx >= 0)
         SendKey(POV[prevPovIx + 1].key, 0)
 }
+
+TrayNoop:
+return
+
+TrayExit:
+    ExitApp          ; OnExit fires -> ReleaseAll(), so nothing is left held down
+return
 
 OnExitHandler:
     ReleaseAll()
