@@ -12,7 +12,7 @@
 ; Sends NOTHING by default. Tick "actually send keys" to arm it, so you can
 ; safely watch the numbers in any window (Notepad is a good target once armed).
 ;
-; Run:  _ahk\AutoHotkeyU32.exe i76-headtrack-test.ahk     (or HEADTRACK-TEST.bat)
+; Run:  _ahk\AutoHotkeyU32.exe i76-opentrack-headlook-test.ahk     (or HEADTRACK-TEST.bat)
 ; Docs: docs/HEAD-TRACKING.md
 
 #NoEnv
@@ -25,7 +25,7 @@ global YAW_ON  := 0.18
 global YAW_OFF := 0.12
 global PITCH_ON  := 0.12
 global PITCH_OFF := 0.08
-global INVERT       := 1    ; keep in step with i76-headtrack.ahk
+global INVERT       := 1    ; keep in step with i76-opentrack-headlook.ahk
 global INVERT_PITCH := 1
 global GAME_EXE := "i76.exe"
 global hMap := 0, pView := 0, gHeld := {}, gSend := 0

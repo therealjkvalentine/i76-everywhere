@@ -61,13 +61,13 @@ if [ "$1" = "--decode" ]; then
         [ "$got" = "$AHK_SHA256" ] || { echo "sha256 mismatch ($got) - aborting"; exit 1; }
         unzip -o -q -j "$ZIP" AutoHotkeyU32.exe license.txt -d "$D"
     fi
-    cp -f "$HERE/i76-gamepad-decode.ahk" "$D/i76-gamepad-decode.ahk"
+    cp -f "$HERE/i76-xinput-pad-decode.ahk" "$D/i76-xinput-pad-decode.ahk"
     rm -f "$D/joymap.txt"
     export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
     export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/SharedSupport/wine/lib"
     echo "Connect the Xbox pad NOW (before the harness starts). Launching..."
     echo "Follow the on-screen prompts; close the window when done."
-    "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\AutoHotkey\AutoHotkeyU32.exe' 'C:\AutoHotkey\i76-gamepad-decode.ahk' >/dev/null 2>&1 || true
+    "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\AutoHotkey\AutoHotkeyU32.exe' 'C:\AutoHotkey\i76-xinput-pad-decode.ahk' >/dev/null 2>&1 || true
     "$APP/Contents/SharedSupport/wine/bin/wineserver" -k 2>/dev/null || true
     echo "=================== joymap.txt ==================="
     cat "$D/joymap.txt" 2>/dev/null || echo "(no joymap.txt written)"
@@ -85,12 +85,12 @@ if [ "$1" = "--axes" ]; then
     APP="$(app_of "$g")"; D="$(drive_c_of "$g")/AutoHotkey"
     mkdir -p "$D"
     [ -f "$D/AutoHotkeyU32.exe" ] || { echo "run without --axes first to install AutoHotkey"; exit 1; }
-    cp -f "$HERE/i76-gamepad-axistest.ahk" "$D/i76-gamepad-axistest.ahk"
+    cp -f "$HERE/i76-xinput-pad-axistest.ahk" "$D/i76-xinput-pad-axistest.ahk"
     rm -f "$D/axistest.txt"
     export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
     export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/SharedSupport/wine/lib"
     echo "Connect the Xbox pad NOW. Swirl BOTH sticks + squeeze BOTH triggers when the window opens."
-    "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\AutoHotkey\AutoHotkeyU32.exe' 'C:\AutoHotkey\i76-gamepad-axistest.ahk' >/dev/null 2>&1 || true
+    "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\AutoHotkey\AutoHotkeyU32.exe' 'C:\AutoHotkey\i76-xinput-pad-axistest.ahk' >/dev/null 2>&1 || true
     "$APP/Contents/SharedSupport/wine/bin/wineserver" -k 2>/dev/null || true
     echo "=================== axistest.txt ==================="
     cat "$D/axistest.txt" 2>/dev/null || echo "(no axistest.txt written)"

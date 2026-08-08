@@ -33,11 +33,11 @@
 ;    focus, so the game just goes input-dead. Output goes to stdout.
 ;
 ; Usage:
-;     AutoHotkey.exe i76-fighterstick.ahk              run it
-;     AutoHotkey.exe i76-fighterstick.ahk -learn       press controls, see numbers
-;     AutoHotkey.exe i76-fighterstick.ahk -selftest    test the ADC, no hardware
-;     AutoHotkey.exe i76-fighterstick.ahk -whatif      show actions, send no keys
-;     AutoHotkey.exe i76-fighterstick.ahk -device 3    if the stick is not joystick2
+;     AutoHotkey.exe i76-ch-fighterstick.ahk              run it
+;     AutoHotkey.exe i76-ch-fighterstick.ahk -learn       press controls, see numbers
+;     AutoHotkey.exe i76-ch-fighterstick.ahk -selftest    test the ADC, no hardware
+;     AutoHotkey.exe i76-ch-fighterstick.ahk -whatif      show actions, send no keys
+;     AutoHotkey.exe i76-ch-fighterstick.ahk -device 3    if the stick is not joystick2
 ;
 ; Docs: docs/FIGHTERSTICK.md.  Device: CH Fighterstick USB, VID 068E PID 00F3.
 
@@ -281,7 +281,7 @@ Out(s) {
 ; A plain window, NOT a MsgBox. The no-modal-dialogs rule inherited from
 ; i76-remap.ahk is about MODAL dialogs stealing foreground focus and going
 ; invisible behind DxWnd's backdrop; a normal window does neither. The precedent
-; is i76-gamepad-axistest.ahk, which shows live joystick state the same way.
+; is i76-xinput-pad-axistest.ahk, which shows live joystick state the same way.
 ;
 ; +E0x08000000 is WS_EX_NOACTIVATE: the window can never take focus, so it cannot
 ; pull the game out of the foreground while you are watching it.
@@ -448,7 +448,7 @@ Check(what, got, want) {
 if (mode = "learn" || WHATIF)
     InitGui("I76 Fighterstick" . (mode = "learn" ? " - LEARN" : " - BENCH TEST (no keys sent)"))
 
-; Documented AHK quirk (i76-gamepad-axistest.ahk): query an axis once before the
+; Documented AHK quirk (i76-xinput-pad-axistest.ahk): query an axis once before the
 ; polling loop or axis reads do not initialise.
 GetKeyState(DEV . "JoyX")
 name := GetKeyState(DEV . "JoyName")

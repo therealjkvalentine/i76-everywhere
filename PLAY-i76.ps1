@@ -16,7 +16,7 @@ param(
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
     [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
     # Head tracking. Pass "" to skip. opentrack is started AND told to begin
-    # tracking (it has no auto-start switch - see opentrack-autostart.ahk).
+    # tracking (it has no auto-start switch - see i76-opentrack-autostart.ahk).
     [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe",
     # Custom force feedback (tools/ffb). OPT-IN on purpose: it synthesises real
     # slip/load/impact feel from telemetry, but the gains have not been judged by
@@ -87,13 +87,13 @@ if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg)) {
 # the decision in one place rather than duplicating device detection here.
 # -NoStick skips it.
 $stick = $null
-$stickCfg = Join-Path $GameDir '_ahk\i76-fighterstick.ahk'
+$stickCfg = Join-Path $GameDir '_ahk\i76-ch-fighterstick.ahk'
 if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg)) {
     $stick = Start-Process -FilePath $ahkExe -ArgumentList "`"$stickCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
 # Head tracking: opentrack + the freetrack->game layer. opentrack has NO
-# command-line switch to begin tracking, so opentrack-autostart.ahk presses Start
+# command-line switch to begin tracking, so i76-opentrack-autostart.ahk presses Start
 # for it (idempotent - it exits immediately if FT_SharedMem already exists, so a
 # session you started by hand is left alone).
 $ot = $null
@@ -103,12 +103,12 @@ if ($OpenTrack -and (Test-Path $OpenTrack)) {
     if (-not (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue)) {
         $ot = Start-Process -FilePath $OpenTrack -PassThru
     }
-    $autoStart = Join-Path $GameDir '_ahk\opentrack-autostart.ahk'
+    $autoStart = Join-Path $GameDir '_ahk\i76-opentrack-autostart.ahk'
     if ((Test-Path $ahkExe) -and (Test-Path $autoStart)) {
         $otHelper = Start-Process -FilePath $ahkExe -ArgumentList "`"$autoStart`"" -PassThru
     }
 }
-$trackCfg = Join-Path $GameDir '_ahk\i76-headtrack.ahk'
+$trackCfg = Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk'
 if ((Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
     $track = Start-Process -FilePath $ahkExe -ArgumentList "`"$trackCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
@@ -139,7 +139,7 @@ if ($LosslessScaling -and (Test-Path $LosslessScaling)) {
 #   * FFB is acquired once at startup too, so nothing else may be grabbing the
 #     device at that moment;
 #   * i76-remap.ahk detects the wheel by capability once when it starts, and
-#     i76-headtrack.ahk wants opentrack already publishing.
+#     i76-opentrack-headlook.ahk wants opentrack already publishing.
 # So: wait (briefly, bounded) for opentrack to actually publish before launching.
 # Only WAIT if WE started opentrack this run ($ot is set only then). On a relaunch it
 # is usually already up and publishing, and a flat 20 s deadline against a shared-mem
@@ -324,7 +324,7 @@ if ($ot       -and -not $ot.HasExited)       { Stop-Process -Id $ot.Id       -Fo
 # DOWN system-wide, surviving into the next launch. Field-diagnosed 2026-08-01:
 # a stuck glance-left persisted across a relaunch and looked like a game hang.
 # These are the keys i76-remap.ahk can hold (RSGExit's list + the @wheel holds),
-# PLUS the ones i76-fighterstick.ahk can hold. The stick matters more here, not
+# PLUS the ones i76-ch-fighterstick.ahk can hold. The stick matters more here, not
 # less: its handbrake is `Space` held for as long as the stick is pulled back, and
 # its cone hat holds an arrow key for as long as you are looking that way - so
 # quitting mid-corner while glancing left is an ordinary thing to do, and it is

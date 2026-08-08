@@ -260,7 +260,7 @@ if ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')) -and (Test-
     # script works - and that is precisely how _ahk\i76-remap.ahk sat three weeks
     # stale while the repo's copy grew a whole wheel layer nobody was running.
     # Add new AHK layers here or they silently never ship.
-    $stickSrc = Join-Path $repoGameDir 'i76-fighterstick.ahk'
+    $stickSrc = Join-Path $repoGameDir 'i76-ch-fighterstick.ahk'
     if (Test-Path $stickSrc) { Copy-Item $stickSrc $ahkOut -Force }
     Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk; starts with the game)."
     Write-Host "  Pad scheme: LB shift layer, triggers=fire/hp2, look-back rear gun, camera cycle, rumble."

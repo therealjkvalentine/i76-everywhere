@@ -188,13 +188,13 @@ if ($IncludeHeadTrack) {
             Say "  no opentrack profile found - set Output = freetrack 2.0 Enhanced by hand on the target PC." 'Yellow'
         }
 
-        Copy-Item (Join-Path $repo 'i76-headtrack.ahk')      (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
-        Copy-Item (Join-Path $repo 'i76-headtrack-test.ahk') (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repo 'i76-opentrack-headlook.ahk')      (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repo 'i76-opentrack-headlook-test.ahk') (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
         # Every AHK layer is enumerated BY NAME here, so one added to the repo and
         # not added to this list simply never ships. That is how _ahk\i76-remap.ahk
         # stayed three weeks stale while the repo copy grew an entire wheel layer
         # that consequently never ran. Add new layers here.
-        Copy-Item (Join-Path $repo 'i76-fighterstick.ahk')   (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repo 'i76-ch-fighterstick.ahk')   (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
 
         Set-Content (Join-Path $staging 'HEADTRACK.bat') @'
 @echo off
@@ -207,7 +207,7 @@ REM Then: start opentrack, press Start, run this, focus the game.
 REM   Ctrl+Alt+H  digital <-> analog       Ctrl+Alt+[ ]  yaw sensitivity
 REM   Ctrl+Alt+- =  pitch sensitivity      Ctrl+Alt+L    log telemetry
 start "" "%~dp0opentrack\opentrack.exe"
-start "" "%~dp0Interstate 76\_ahk\AutoHotkeyU32.exe" "%~dp0Interstate 76\_ahk\i76-headtrack.ahk"
+start "" "%~dp0Interstate 76\_ahk\AutoHotkeyU32.exe" "%~dp0Interstate 76\_ahk\i76-opentrack-headlook.ahk"
 '@ -Encoding ascii
         Set-Content (Join-Path $staging 'HEADTRACK-TEST.bat') @'
 @echo off
@@ -215,7 +215,7 @@ REM Live diagnostic window for the head-tracking chain - shows whether
 REM FT_SharedMem is present, whether yaw is moving, whether the thresholds trip,
 REM and whether the GAME WINDOW IS ACTIVE (the usual reason "nothing happens").
 REM Sends no keys unless you tick the box.
-start "" "%~dp0Interstate 76\_ahk\AutoHotkeyU32.exe" "%~dp0Interstate 76\_ahk\i76-headtrack-test.ahk"
+start "" "%~dp0Interstate 76\_ahk\AutoHotkeyU32.exe" "%~dp0Interstate 76\_ahk\i76-opentrack-headlook-test.ahk"
 '@ -Encoding ascii
         Say "Head tracking bundled (opentrack + profile + scripts + launchers)." 'Green'
     }

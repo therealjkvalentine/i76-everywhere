@@ -1,16 +1,16 @@
 # Flying the '76: a CH Fighterstick on a driving game
 
-**Built 2026-08-08.** [`i76-fighterstick.ahk`](../i76-fighterstick.ahk) puts a
+**Built 2026-08-08.** [`i76-ch-fighterstick.ahk`](../i76-ch-fighterstick.ahk) puts a
 CH Products Fighterstick USB on Interstate '76 — the grip's buttons follow F-16
 HOTAS convention, and the stick's own deflection becomes the **gearbox and the
 handbrake**.
 
 ```bash
-AutoHotkey.exe i76-fighterstick.ahk             # run alongside the game
-AutoHotkey.exe i76-fighterstick.ahk -map        # print the full reference card
-AutoHotkey.exe i76-fighterstick.ahk -whatif     # BENCH TEST: names each action, sends no keys
-AutoHotkey.exe i76-fighterstick.ahk -learn      # press each control, see its number
-AutoHotkey.exe i76-fighterstick.ahk -selftest   # test the ADC logic, no hardware
+AutoHotkey.exe i76-ch-fighterstick.ahk             # run alongside the game
+AutoHotkey.exe i76-ch-fighterstick.ahk -map        # print the full reference card
+AutoHotkey.exe i76-ch-fighterstick.ahk -whatif     # BENCH TEST: names each action, sends no keys
+AutoHotkey.exe i76-ch-fighterstick.ahk -learn      # press each control, see its number
+AutoHotkey.exe i76-ch-fighterstick.ahk -selftest   # test the ADC logic, no hardware
 ```
 
 **In PowerShell you need the call operator `&`**, because a quoted path at the
@@ -18,7 +18,7 @@ start of a line parses as a string literal, not a command — it fails with
 `Unexpected token`, which reads exactly like "nothing happened":
 
 ```powershell
-& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "C:\Users\james\i76-everywhere\i76-fighterstick.ahk" -map
+& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "C:\Users\james\i76-everywhere\i76-ch-fighterstick.ahk" -map
 ```
 
 The script also keeps its **tray icon** — unlike `i76-remap.ahk`, which sets
