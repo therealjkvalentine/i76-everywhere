@@ -80,13 +80,18 @@ public class LfeCore {
   // This is linear up to 0.6 and bends smoothly to an asymptote at 1.0, so only
   // the rare peaks are touched and they are compressed rather than shattered.
   // Continuous in value AND slope at the knee: 0.4 * tanh'(0) = 1 exactly.
+  // Knee raised from 0.6 to 0.8. Everything below passes with NO gain change at
+  // all, so the wider the linear region the less the mix is squashed. 0.6 was
+  // catching ordinary content, not just peaks.
+  public double Knee = 0.8;
   public double Limit(double v) {
     Samples++;
     double a = Math.Abs(v);
     if (a > PeakAbs) PeakAbs = a;
-    if (a <= 0.6) return v;
+    if (a <= Knee) return v;
     Limited++;
-    return (v < 0 ? -1.0 : 1.0) * (0.6 + 0.4 * Math.Tanh((a - 0.6) / 0.4));
+    double room = 1.0 - Knee;
+    return (v < 0 ? -1.0 : 1.0) * (Knee + room * Math.Tanh((a - Knee) / room));
   }
 
   public double Step(double engF, double engA, double roadF, double roadA,
@@ -258,7 +263,7 @@ public class LfeLive {
   double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA;
 
   IntPtr h = IntPtr.Zero;
-  double kAmp, kFrq;
+  double kAmp, kFrq, kHv;
   public LfeCore core;
   Thread th;
   volatile bool running;
@@ -275,6 +280,13 @@ public class LfeLive {
     // arrives as an impact, slow enough that the 16 ms parameter staircase is gone.
     kAmp = 1.0 - Math.Exp(-1.0 / (0.006 * rate));
     kFrq = 1.0 - Math.Exp(-1.0 / (0.025 * rate));
+    // Heave gets 40 ms, not 6. It is a first difference of vertical velocity
+    // taken on the sim's 20 Hz tick, so it arrives as a jagged staircase, and
+    // 6 ms passes that through untouched. A jagged envelope on a 35 Hz carrier
+    // puts sidebands at 35 +/- 20 Hz and spreads from there - which is buzz, and
+    // it is invisible to the offline renderer because that feeds heave as zero.
+    // 40 ms (~4 Hz) keeps the felt rhythm of a landing and discards the jag.
+    kHv = 1.0 - Math.Exp(-1.0 / (0.040 * rate));
     LfeOut.WAVEFORMATEX f = LfeOut.Fmt(rate);
     uint r = LfeOut.waveOutOpen(out h, devId, ref f, IntPtr.Zero, IntPtr.Zero, 0);
     if (r != 0) { h = IntPtr.Zero; return "waveOutOpen failed, code " + r; }
@@ -310,7 +322,7 @@ public class LfeLive {
           // slowly (a swept tone should glide, not stair-step)
           sEngA += kAmp * (EngineAmp - sEngA);   sRoadA += kAmp * (RoadAmp - sRoadA);
           sImpA += kAmp * (ImpulseAmp - sImpA);  sWpnA  += kAmp * (WeaponAmp - sWpnA);
-          sHvA  += kAmp * (HeaveAmp - sHvA);
+          sHvA  += kHv  * (HeaveAmp - sHvA);
           sEngF += kFrq * (EngineFreq - sEngF);  sRoadF += kFrq * (RoadFreq - sRoadF);
           double v = core.Step(sEngF, sEngA, sRoadF, sRoadA, sImpA, sWpnA, sHvA) * Drive;
           v = core.Limit(v) * Master;

@@ -340,7 +340,7 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy','slide','headingRate','fireRaw','fxActive','fxFired') +
+                     'angVelX','angVelZ','vy','heave','slide','headingRate','fireRaw','fxActive','fxFired') +
                      # ch_ prefix, because 'oversteer' is BOTH a telemetry field
                      # (0..1 slip) and a force channel (scaled to OversteerGain).
                      # Emitting both under one name made every CSV reader silently
