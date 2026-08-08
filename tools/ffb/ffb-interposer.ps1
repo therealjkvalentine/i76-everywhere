@@ -316,12 +316,19 @@ try {
         $logSw = [System.IO.StreamWriter]::new($Log, $false)
         # angVelX/angVelZ/vy are logged because the texture, judder and impact
         # channels depend on them, and a capture without them cannot judge those
-        # three at all - ffb-replay.ps1 has to report "no data" instead of a
-        # number. A calibration capture (t,speed,steer,yaw) is enough for the
-        # steady and loss-of-control channels only.
-        $logSw.WriteLine("t,speed,mph,steer,throttle,longG,latG,yaw,expectYaw,understeer,oversteer,jolt," +
-                         "angVelX,angVelZ,vy," +
-                         "center,corner,oversteer_f,brake,texture,scrub,judder,impact,force")
+        # three - ffb-replay.ps1 has to report "no data" instead of a number.
+        #
+        # The channel names are DERIVED FROM $ALL_CH rather than hand-written.
+        # They were hand-written, and when the `weapon` channel was added to
+        # $ALL_CH the row writer began emitting one more field than the header
+        # named. Every column after the channels was then SHIFTED BY ONE, so
+        # anything reading the file by column name got `impact` where it asked for
+        # `force` - which read as a wheel that did nothing at all. A header that
+        # cannot disagree with the writer is the only fix that stays fixed.
+        $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
+                     'expectYaw','understeer','oversteer','jolt',
+                     'angVelX','angVelZ','vy') + $ALL_CH + @('force')
+        $logSw.WriteLine($logCols -join ',')
     }
 
     # Console capability probes, done ONCE. Both of these throw when stdin/stdout
