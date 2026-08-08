@@ -33,3 +33,9 @@ tools/bisect_*.png
 tools/slow_*.png
 tools/ffb/*.wav
 tools/ffb/*.graph.html
+music-fix/*.obj
+music-fix/*.exp
+music-fix/*.lib
+music-fix/build.log
+music-fix/Strlkup.build.dll
+tools/ffb/ffb-tune.json

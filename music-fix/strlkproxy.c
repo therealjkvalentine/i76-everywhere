@@ -237,7 +237,14 @@ static DWORD fmt_time(DWORD ms, int trk) {
 static void mci_str(const char *cmd) {
     ensure_real();
     MCIERROR e = real_mciSendStringA ? real_mciSendStringA(cmd, NULL, 0, NULL) : 1;
-    mlog(e ? "  str FAIL(%lu): %s" : "  str ok: %s", (unsigned long)e, cmd);
+    /* Two calls, not one conditional format string. The single-format version
+     *     mlog(e ? "str FAIL(%lu): %s" : "str ok: %s", (unsigned long)e, cmd);
+     * passes `e` as the FIRST vararg, so on the success path - whose format has
+     * only %s - that %s consumed `e` (zero) and every successful command logged
+     * as "str ok: (null)". The commands that matter most were the ones we could
+     * not read. */
+    if (e) mlog("  str FAIL(%lu): %s", (unsigned long)e, cmd);
+    else   mlog("  str ok: %s", cmd);
 }
 
 static void stop_track(void) {
