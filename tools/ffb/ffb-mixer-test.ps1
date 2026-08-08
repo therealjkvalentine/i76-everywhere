@@ -37,7 +37,7 @@ function Fake {
         [double]$YawRate = 0, [double]$ExpectedYaw = 0, [double]$LongG = 0, [double]$LatG = 0,
         [double]$Understeer = 0, [double]$Oversteer = 0, [double]$Jolt = 0,
         [double]$AngVelX = 0, [double]$AngVelZ = 0, [double]$Vy = 0, [double]$Tumble = 0,
-        [bool]$Firing = $false
+        [bool]$Firing = $false, $FxFired = $null, $FxEvent = $null
     )
     [pscustomobject]@{
         T = $T; Speed = $Speed; SpeedMph = $Speed * 2.23694; Steer = $Steer; Throttle = $Throttle
@@ -46,6 +46,7 @@ function Fake {
         Understeer = $Understeer; Oversteer = $Oversteer; Jolt = $Jolt
         AngVelX = $AngVelX; AngVelZ = $AngVelZ; Vy = $Vy; Tumble = ($Tumble + [math]::Abs($AngVelX) + [math]::Abs($AngVelZ))
         Firing = $Firing; FireRaw = $(if ($Firing) { 1 } else { 0 })
+        FxFired = $FxFired; FxEvent = $FxEvent; FxActive = 0
         Braking = ($Throttle -lt -0.05); Airborne = ([math]::Abs($Vy) -gt 2.0)
         Ticks = 0; Polls = 0; Wheelbase = 4.66
     }
@@ -320,6 +321,38 @@ for ($t = 0.0; $t -lt 1.1; $t += 1.0/60) {
 }
 Check "weapon fire lands on the BUZZ motor" ($pW.Right -gt 0.2) "R=$($pW.Right)"
 Check "pad outputs bounded 0..1" ($pImp.Left -le 1.0 -and $pW.Right -le 1.0) ""
+
+Write-Host "`n=== 8c. weapon force scales with the ENGINE's magnitude ===" -ForegroundColor Cyan
+# The engine hands us its own authored magnitude per shot (5, 10, 60 observed).
+# Scaling by it means every weapon feels different in the proportion the 1997
+# authors chose - with no id-to-weapon mapping, which would cost several play
+# sessions because a car only carries a few weapons at a time.
+function FirePeak {
+    param([int]$Mag)
+    $m = Mix-New
+    $peak = 0
+    for ($t = 0.0; $t -lt 1.2; $t += 1.0/60) {
+        # Assign then conditionally REPLACE. `$x = if (..) { @(..) } else { @() }`
+        # collapses an empty array to $null in PowerShell's expression form, which
+        # made this helper report zero while the mixer was firing correctly.
+        $fx = @()
+        if ($t -ge 0.5 -and $t -lt 0.55) { $fx = @([pscustomobject]@{ Slot=0; Id=8; Param=0.81; Mag=$Mag }) }
+        $o = Mix-Update $m (Fake -T $t -Speed 14 -FxFired $fx -FxEvent ($fx.Count -gt 0))
+        $v = [math]::Abs($o.Channels['weapon'])
+        if ($v -gt $peak) { $peak = $v }
+    }
+    return $peak
+}
+$small = FirePeak 5
+$norm  = FirePeak 10
+$big   = FirePeak 60
+Check "a nominal shot fires" ($norm -gt 500) "got $norm"
+Check "a heavier shot hits harder" ($big -gt $norm) "mag60 $big vs mag10 $norm"
+Check "a lighter shot hits softer" ($small -lt $norm) "mag5 $small vs mag10 $norm"
+Check "the heaviest does not eat the whole clamp alone" ($big -lt 9500) "got $big"
+# sqrt scaling: 60 vs 10 is 6x magnitude but should be ~2.45x force, not 6x
+Check "scaling is compressed, not linear" (($big / [math]::Max(1,$norm)) -lt 4.0) `
+    ("ratio {0:0.00}" -f ($big / [math]::Max(1,$norm)))
 
 Write-Host "`n=== 9d. thermal idle guard ===" -ForegroundColor Cyan
 # Thrustmaster documents thermal cut-back under sustained load. An always-on

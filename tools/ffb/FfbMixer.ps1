@@ -184,9 +184,19 @@ function Mix-DefaultTune {
         # weapon UI clicks are SquareHigh - i.e. short, sharp, percussive. So a
         # brief decaying buzz rather than a directional shove: a centrally-mounted
         # gun has no side to kick towards, and guessing one reads as a fault.
-        WeaponGain    = 3400
+        WeaponGain    = 3400   # force at WeaponMagRef, i.e. a "normal" shot
         WeaponMs      = 140
         WeaponHz      = 13.0
+        # The engine hands us its OWN authored magnitude per shot (observed: 5, 10
+        # and 60 across three weapon ids). Scaling by it means every weapon
+        # automatically feels different, in the proportion the 1997 authors chose -
+        # WITHOUT anyone ever having to map an id to a weapon name. That mapping
+        # would cost several play sessions, because a car only carries a few
+        # weapons at a time, and it would have to be redone per loadout.
+        # A mag-60 shot lands about 3x a mag-10 one here, not 6x: the square root
+        # keeps the heaviest weapon from eating the whole clamp on its own.
+        WeaponMagRef  = 10.0   # the magnitude that means "nominal", from the data
+        WeaponMagMax  = 2.6    # ceiling on the scale factor
         # Minimum gap between weapon kicks, ms. TWO fire flags are watched
         # (0x5367D0 and 0x5367DE - see Telemetry.ps1) because which one is the
         # input and which is downstream is not established. If they rise on the
@@ -501,9 +511,20 @@ function Mix-Update {
     # the one that produced no weapon response in the field: a button moving is
     # not the same thing as a weapon firing.
     $firing = if ($null -ne $Sample.FxEvent) { [bool]$Sample.FxEvent } else { [bool]$Sample.Firing }
+    # Scale by the loudest magnitude the engine asked for this frame.
+    $wScale = 1.0
+    if ($Sample.FxFired -and $Sample.FxFired.Count) {
+        $mx = 0
+        foreach ($fx in $Sample.FxFired) { if ($fx.Mag -gt $mx) { $mx = $fx.Mag } }
+        if ($mx -gt 0) {
+            $wScale = [math]::Sqrt($mx / $Tune.WeaponMagRef)
+            if ($wScale -gt $Tune.WeaponMagMax) { $wScale = $Tune.WeaponMagMax }
+            if ($wScale -lt 0.35) { $wScale = 0.35 }
+        }
+    }
     if ($firing -and -not $Mix.LastFiring) {
         if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
-            Mix-Trigger $Mix 'buzz' $Tune.WeaponGain ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
+            Mix-Trigger $Mix 'buzz' ($Tune.WeaponGain * $wScale) ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
             $Mix.LastFireT = $t
             $notes += "FIRE"
         }

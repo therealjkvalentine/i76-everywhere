@@ -453,7 +453,11 @@ try {
                     ('{0:0.000}' -f $s.AngVelX), ('{0:0.000}' -f $s.AngVelZ), ('{0:0.000}' -f $s.Vy),
                     ([string][int]$s.FireRaw),
                     ([string][int]$s.FxActive),
-                    $(if ($s.FxFired -and $s.FxFired.Count) { ('"' + (($s.FxFired | ForEach-Object { "id$($_.Id)m$($_.Mag)" }) -join ' ') + '"') } else { '0' })
+                    # Semicolon-joined, NO quotes and NO spaces: a quoted field with
+                    # spaces made the CSV ambiguous enough that a strict reader
+                    # merged rows (2861 parsed from 7324 written). A log that
+                    # cannot be re-read is not a log.
+                    $(if ($s.FxFired -and $s.FxFired.Count) { (($s.FxFired | ForEach-Object { "id$($_.Id)m$($_.Mag)" }) -join ';') } else { '' })
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force
