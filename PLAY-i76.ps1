@@ -145,29 +145,49 @@ if ($ot -and $OpenTrack -and (Test-Path $OpenTrack)) {
 # buttons) and the linter clean (what survives IS valid, there is just nothing
 # bound).
 #
-# So check before launch rather than discovering it mid-mission: if input.map has
-# analog joystick lines but not a single joystick Button binding, the tier has been
-# eaten. Restore from the newest backup that still has one.
+# WHAT THIS TESTS CHANGED 2026-08-08, and the reason matters.
+#
+# It used to check "analog joystick lines but no joystick Button binding". That was
+# right while input.map carried a button tier. It no longer does: buttons are owned
+# by i76-remap.ahk (docs/WHEEL-T300.md), which gives a shift layer worth ~27 actions
+# from 13 buttons - something native binding cannot express, since it tops out at
+# one action per button. Under that design "axes but no buttons" is the CORRECT
+# state, and the old test would have fired on every launch and pasted a stale map
+# over a good one.
+#
+# The protection is still wanted, so it now watches what actually kills the wheel,
+# and what AGENTS.md names FIRST in the corruption signature: the ANALOG SINKS. A
+# menu rewrite drops the steer/throttle blocks, and with no analog sink there is no
+# steering and no pedals however healthy the device is. That test is independent of
+# where buttons live, so it holds under either design.
 $mapPath = Join-Path $GameDir 'input.map'
 if (Test-Path $mapPath) {
     $mapText = Get-Content $mapPath -Raw
-    $hasAxis   = $mapText -match '(?im)^\s*[-+]\s*joystick\d*\s+\S+/\S+'
-    $hasButton = $mapText -match '(?im)^\s*[-+]\s*joystick\d*\s+Button\d+'
-    if ($hasAxis -and -not $hasButton) {
-        Write-Host "input.map has joystick AXES but no BUTTON bindings -" -ForegroundColor Yellow
-        Write-Host "the in-game controls menu has stripped the button tier again." -ForegroundColor Yellow
-        $bak = Get-ChildItem (Join-Path $GameDir 'input.map.bak-*') -ErrorAction SilentlyContinue |
+    $hasAxis   = ($mapText -match '(?ims)^\s*steer\s*\{[^}]*joystick\d*\s+\S+/\S+') -and
+                 ($mapText -match '(?ims)^\s*throttle\s*\{[^}]*joystick\d*\s+\S+/\S+')
+    $hasButton = $true   # buttons live in i76-remap.ahk now, not here
+    if (-not $hasAxis) {
+        Write-Host "input.map has lost a joystick ANALOG SINK (steer / throttle) -" -ForegroundColor Yellow
+        Write-Host "the in-game controls menu has rewritten it. No analog sink = no wheel, no pedals." -ForegroundColor Yellow
+        # Pick a backup by the SAME test that just failed - intact analog sinks -
+        # not by the old button-tier test, or we would restore a map that is broken
+        # in precisely the way we are trying to repair.
+        $bak = Get-ChildItem (Join-Path $GameDir 'input.map.*') -ErrorAction SilentlyContinue |
+               Where-Object { $_.Name -notmatch '\.stripped-' } |
                Sort-Object LastWriteTime -Descending |
-               Where-Object { (Get-Content $_.FullName -Raw) -match '(?im)^\s*[-+]\s*joystick\d*\s+Button\d+' } |
-               Select-Object -First 1
+               Where-Object {
+                   $t = Get-Content $_.FullName -Raw
+                   ($t -match '(?ims)^\s*steer\s*\{[^}]*joystick\d*\s+\S+/\S+') -and
+                   ($t -match '(?ims)^\s*throttle\s*\{[^}]*joystick\d*\s+\S+/\S+')
+               } | Select-Object -First 1
         if ($bak) {
             Copy-Item $mapPath (Join-Path $GameDir ("input.map.stripped-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))) -Force
             Copy-Item $bak.FullName $mapPath -Force
-            Write-Host ("restored button bindings from {0}" -f $bak.Name) -ForegroundColor Green
+            Write-Host ("restored analog sinks from {0}" -f $bak.Name) -ForegroundColor Green
         } else {
-            Write-Host "no backup with button bindings found - wheel buttons will be dead." -ForegroundColor Red
-            Write-Host "See the WHEEL / JOYSTICK BUTTON TIER block at the end of input.map," -ForegroundColor Red
-            Write-Host "or run toolsfbfb-buttons.ps1 -Learn to generate one." -ForegroundColor Red
+            Write-Host "no backup with intact analog sinks found - the wheel will be dead." -ForegroundColor Red
+            Write-Host "Restore input.map from the portable zip, then re-lint with" -ForegroundColor Red
+            Write-Host "  python3 tools/lint-input-map.py '$GameDir'" -ForegroundColor Red
         }
     }
 }
