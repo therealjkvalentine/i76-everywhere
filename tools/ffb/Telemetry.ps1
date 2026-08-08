@@ -555,7 +555,7 @@ function Tel-Sample {
     $gameFfb = 0
     $gb = $Ctx.FireBuf
     $gn = 0
-    if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]0x52bbd0, $gb, 4, [ref]$gn)) {
+    if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]0x52bbe4, $gb, 4, [ref]$gn)) {
         $gameFfb = [BitConverter]::ToInt32($gb, 0)
     }
 
@@ -653,11 +653,31 @@ function Tel-SetEngineFfb {
       Returns the PREVIOUS value so the caller can put it back.
     #>
     param($Ctx, [int]$Value)
-    $old = Tel-ReadInt $Ctx 0x52bbd0
+    # Writes 0x52bbe4 - the I7FF_SIM_Effect FUNCTION POINTER - not 0x52bbd0.
+    #
+    # Both stop the crash, but only this one leaves the engine's own effect
+    # decisions readable. Disassembly of the dispatcher at 0x446110:
+    #
+    #     mov  eax, [0x52bbe4]              ; the DLL entry point
+    #     test eax, eax
+    #     je   0x446155                     ; <- the engine ALREADY tolerates null
+    #     push 0x4f2328                     ; one argument: the param block
+    #     mov  dword ptr [0x4f2328], 0x16c  ; 364 = sizeof(struct)
+    #     call eax
+    #
+    # Zeroing 0x52bbd0 made the gated callers bail long BEFORE this, so the param
+    # block was never filled and the engine's events were invisible. Zeroing the
+    # pointer instead lets every effect be built and merely skips the call into
+    # I7_SFRCE.DLL - which is where the fault at +0x2505 lives. So: no crash, and
+    # 0x4f2328 becomes a live feed of what the engine wanted the wheel to do.
+    # See tools/ffb/ffb-watch-effects.ps1.
+    #
+    # Value 0 disables; pass the saved pointer back to restore.
+    $old = Tel-ReadInt $Ctx 0x52bbe4
     $buf = [BitConverter]::GetBytes([int]$Value)
     $n = 0
-    $ok = [I76Tel]::WriteProcessMemory($Ctx.H, [IntPtr]0x52bbd0, $buf, 4, [ref]$n)
-    if (-not $ok -or $n -ne 4) { throw "could not write 0x52bbd0 (engine FFB flag)" }
+    $ok = [I76Tel]::WriteProcessMemory($Ctx.H, [IntPtr]0x52bbe4, $buf, 4, [ref]$n)
+    if (-not $ok -or $n -ne 4) { throw "could not write 0x52bbe4 (I7FF_SIM_Effect pointer)" }
     return $old
 }
 
