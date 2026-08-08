@@ -135,6 +135,41 @@ if ($ot -and $OpenTrack -and (Test-Path $OpenTrack)) {
         } catch { Start-Sleep -Milliseconds 400 }
     }
 }
+# ---- input.map guard --------------------------------------------------------
+# The in-game controls menu REWRITES input.map and silently drops joystick BUTTON
+# blocks while leaving the two analog lines intact. The result is the symptom that
+# has now cost two sessions: steering, pedals and force feedback all work, and no
+# button does anything - with the device innocent (winmm still enumerates all 13
+# buttons) and the linter clean (what survives IS valid, there is just nothing
+# bound).
+#
+# So check before launch rather than discovering it mid-mission: if input.map has
+# analog joystick lines but not a single joystick Button binding, the tier has been
+# eaten. Restore from the newest backup that still has one.
+$mapPath = Join-Path $GameDir 'input.map'
+if (Test-Path $mapPath) {
+    $mapText = Get-Content $mapPath -Raw
+    $hasAxis   = $mapText -match '(?im)^\s*[-+]\s*joystick\d*\s+\S+/\S+'
+    $hasButton = $mapText -match '(?im)^\s*[-+]\s*joystick\d*\s+Button\d+'
+    if ($hasAxis -and -not $hasButton) {
+        Write-Host "input.map has joystick AXES but no BUTTON bindings -" -ForegroundColor Yellow
+        Write-Host "the in-game controls menu has stripped the button tier again." -ForegroundColor Yellow
+        $bak = Get-ChildItem (Join-Path $GameDir 'input.map.bak-*') -ErrorAction SilentlyContinue |
+               Sort-Object LastWriteTime -Descending |
+               Where-Object { (Get-Content $_.FullName -Raw) -match '(?im)^\s*[-+]\s*joystick\d*\s+Button\d+' } |
+               Select-Object -First 1
+        if ($bak) {
+            Copy-Item $mapPath (Join-Path $GameDir ("input.map.stripped-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))) -Force
+            Copy-Item $bak.FullName $mapPath -Force
+            Write-Host ("restored button bindings from {0}" -f $bak.Name) -ForegroundColor Green
+        } else {
+            Write-Host "no backup with button bindings found - wheel buttons will be dead." -ForegroundColor Red
+            Write-Host "See the WHEEL / JOYSTICK BUTTON TIER block at the end of input.map," -ForegroundColor Red
+            Write-Host "or run toolsfbfb-buttons.ps1 -Learn to generate one." -ForegroundColor Red
+        }
+    }
+}
+
 # NOTHING MAY BE HOLDING THE WHEEL WHEN THE GAME STARTS.
 #
 # tools/ffb/ffb-interposer.ps1 takes an EXCLUSIVE DirectInput acquisition. If one
