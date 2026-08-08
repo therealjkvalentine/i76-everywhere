@@ -123,12 +123,12 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ;
 ;   trigger          gun                 -> weapon_fire       Enter
 ;   top red (pickle) weapon release      -> hardpoint2_fire   2
-;   back-side red    -                   -> MODE SWITCH, unbound
+;   back-side / MODE -                   -> special1 (nitrous) 6
 ;   pinky            NWS / AR disconnect -> weapon_link       F
 ;   convex serrated  -                   -> DIRECT FIRE, hardpoints 2-5
-;   castle           target management   -> target actions    T Y U Q
-;   trim             display management  -> map/radar/notepad M R N K
-;   cone (POV)       view / head-look    -> specials + weapon select (see below)
+;   castle           target management   -> front/next/nearest/radar range  Q Y T R
+;   trim             displays + nitrous  -> nitrous/notepad/view/map        6 N V M
+;   cone (POV)       view                -> GLANCE, held (see below)
 ;
 ; Button numbering MEASURED on this unit with -learn, 2026-08-08, including the
 ; up/right/down/left order within every hat. The 3-position mode switch renumbers
@@ -158,9 +158,12 @@ BTN[1]  := {ctl: "trigger",              act: "weapon_fire",          key: "Ente
 ; Top red is DIRECT FIRE, not special1 - the pickle button on a real grip is
 ; weapon release, and hardpoint 2 is the one you reach for most.
 BTN[2]  := {ctl: "top red (pickle)",     act: "hardpoint2_fire",      key: "Two"}
-; Button 3 is the MODE SWITCH - it cycles the base LED through three positions,
-; and on CH sticks the mode renumbers the buttons. Deliberately UNMAPPED: binding
-; a game action to it means every mode change also fires that action.
+; Button 3 is also the MODE SWITCH - it cycles the base LED through three
+; positions. Bound to nitrous anyway, by request 2026-08-08, having been warned:
+; every mode change now also fires special1. That is a fair trade for a button
+; under the thumb, but if the stick's numbering ever seems to shift, this is the
+; control that did it - re-run -learn.
+BTN[3]  := {ctl: "back-side (MODE)",   act: "special1",             key: "Six"}
 BTN[4]  := {ctl: "pinky red",            act: "weapon_link",          key: "F"}
 ; --- convex serrated hat = DIRECT FIRE, one hardpoint per direction ---
 ; ONE hardpoint per direction, never two from one control: firing two weapon
@@ -172,36 +175,41 @@ BTN[6]  := {ctl: "serrated RIGHT",       act: "hardpoint3_fire",      key: "Thre
 BTN[7]  := {ctl: "serrated DOWN",        act: "hardpoint4_fire",      key: "Four"}
 BTN[8]  := {ctl: "serrated LEFT",        act: "hardpoint5_fire",      key: "Five"}
 ; --- castle hat = TMS, target management ---
-BTN[9]  := {ctl: "castle UP",            act: "TARGET_NEAREST_ENEMY", key: "T"}
+BTN[9]  := {ctl: "castle UP",            act: "frontal_target",       key: "Q"}
 BTN[10] := {ctl: "castle RIGHT",         act: "NEXT_TARGET",          key: "Y"}
-BTN[11] := {ctl: "castle DOWN",          act: "RESET_TARGET",         key: "U"}
-BTN[12] := {ctl: "castle LEFT",          act: "frontal_target",       key: "Q"}
-; --- trim hat = DMS, displays and sensors (map, notepad, radar) ---
-BTN[13] := {ctl: "trim UP",              act: "SHOW_MAP",             key: "M"}
-BTN[14] := {ctl: "trim RIGHT",           act: "RADAR_RANGE_TOGGLE",   key: "R"}
-BTN[15] := {ctl: "trim DOWN",            act: "SHOW_NOTEPAD",         key: "N"}
-BTN[16] := {ctl: "trim LEFT",            act: "RADAR_CAMERA_TOGGLE",  key: "K"}
+BTN[11] := {ctl: "castle DOWN",          act: "TARGET_NEAREST_ENEMY", key: "T"}
+BTN[12] := {ctl: "castle LEFT",          act: "RADAR_RANGE_TOGGLE",   key: "R"}
+; --- trim hat = displays, plus nitrous on the thumb-up ---
+BTN[13] := {ctl: "trim UP",              act: "special1",             key: "Six"}
+BTN[14] := {ctl: "trim RIGHT",           act: "SHOW_NOTEPAD",         key: "N"}
+BTN[15] := {ctl: "trim DOWN",            act: "toggle_cmbt_view",     key: "V"}
+BTN[16] := {ctl: "trim LEFT",            act: "SHOW_MAP",             key: "M"}
 
-; The CONE hat (8-way POV). It WAS head-look - the obvious mapping, since that is
-; what a castle hat does on a real grip - and it did nothing in the field.
+; The CONE hat (8-way POV) is GLANCE - held for as long as you hold it, so you can
+; hold a look to the side and shoot down it.
 ;
-; WHY, and it is not a bug in this script: i76-opentrack-headlook.ahk NOPs the
-; engine's own input-poll writes to the two glance ints (INPUT_SITES, seven
-; 5-byte `mov [disp32],eax` patches) for as long as analog head tracking is on.
-; Its own comment says so plainly: "the only side effect is that keyboard/joystick
-; glance is inert while analog is on - which is the point, head tracking replaces
-; it." So while opentrack runs, NOTHING can glance by key - not this hat, not the
-; arrow keys, not the wheel. Sending glance keys here is writing to a channel that
-; has been deliberately disconnected.
+; IT ONLY WORKS IN DIGITAL HEAD-TRACKING MODE, and that is worth understanding
+; rather than rediscovering. i76-opentrack-headlook.ahk has two modes and toggles
+; with Ctrl+Alt+H:
 ;
-; So the cone hat carries the specials and weapon select instead - the things a
-; thumb wants mid-fight - and looking around stays with your head, where it is
-; better anyway. Index order is up/right/down/left to match the sector maths below.
+;   DIGITAL (the default it starts in) - head yaw past a threshold HOLDS the same
+;     glance arrow keys this hat sends. Both drive one channel, so the hat works,
+;     and whichever moved last wins. That is exactly the override wanted: park your
+;     head and hold the hat to keep a look pinned out of the side window.
+;
+;   ANALOG - writes the camera angles straight to memory and NOPs the engine's own
+;     input-poll writes to the two glance ints (seven 5-byte `mov [disp32],eax`
+;     patches). While that is on, NOTHING glances by key - not this hat, not the
+;     arrow keys, not the wheel. Its own comment: "keyboard/joystick glance is
+;     inert while analog is on - which is the point, head tracking replaces it."
+;
+; So if the hat ever stops looking, the first thing to check is Ctrl+Alt+H.
+; Index order is up/right/down/left to match the sector maths below.
 global POV := []
-POV.Push({ctl: "cone UP",    act: "special1",     key: "Six"})
-POV.Push({ctl: "cone RIGHT", act: "special2",     key: "Seven"})
-POV.Push({ctl: "cone DOWN",  act: "special3",     key: "Eight"})
-POV.Push({ctl: "cone LEFT",  act: "weapon_cycle", key: "Tab"})
+POV.Push({ctl: "cone UP",    act: "pilot_glance_up",    key: "GreyUpArrow"})
+POV.Push({ctl: "cone RIGHT", act: "pilot_glance_right", key: "GreyRightArrow"})
+POV.Push({ctl: "cone DOWN",  act: "pilot_glance_down",  key: "GreyDownArrow"})
+POV.Push({ctl: "cone LEFT",  act: "pilot_glance_left",  key: "GreyLeftArrow"})
 
 ; ---- the ADC ---------------------------------------------------------------
 ; EDGE vs LEVEL is the whole design:
@@ -385,9 +393,9 @@ if (mode = "map") {
     Out("  " Pad("", 60, "-"))
     for i, a in AXIS
         Out("  " Pad(a.ctl, 18) Pad(a.act, 26) Pad(a.key, 7) a.mode)
-    Out("`n  CONE HAT (8-way POV, upper right of the top face) - taps, not held")
-    Out("  NB: this is NOT head-look. opentrack owns glance and disables the")
-    Out("      engine's key-glance entirely while it runs - see docs/FIGHTERSTICK.md")
+    Out("`n  CONE HAT (8-way POV, upper right of the top face) - GLANCE, held")
+    Out("  Works in DIGITAL head-tracking mode (the default). In ANALOG mode")
+    Out("  opentrack disables key-glance entirely - Ctrl+Alt+H toggles.")
     for i, p in POV
         Out("  " Pad(p.ctl, 18) Pad(p.act, 26) p.key)
     Out("`n  BUTTONS")
@@ -557,16 +565,18 @@ Poll:
     povIx := -1
     if (pov >= 0)
         povIx := Mod(Round(pov / 9000), 4)
-    ; TAP on entering a direction, not hold-while-deflected.
-    ;
-    ; Holding was correct when this hat was glance - you look for as long as you
-    ; hold it. It is wrong for what the hat carries now: holding `Tab` would cycle
-    ; weapons repeatedly, and the specials are one-shot triggers. This matches how
-    ; i76-remap.ahk treats the wheel's hat ("tap on entering a direction"), and it
-    ; means the hat can never leave a key down - so ReleaseAll has nothing to undo.
+    ; HELD while deflected, because this is glance: you look for as long as you hold
+    ; the hat, which is the whole point of being able to shoot out of the side.
+    ; Releasing the previous direction first means a diagonal sweep can never leave
+    ; two arrows down at once.
     if (povIx != prevPovIx) {
+        if (prevPovIx >= 0) {
+            SendKey(POV[prevPovIx + 1].key, 0)
+            heldKeys[POV[prevPovIx + 1].key] := 0
+        }
         if (povIx >= 0) {
-            SendKey(POV[povIx + 1].key)
+            SendKey(POV[povIx + 1].key, 1)
+            heldKeys[POV[povIx + 1].key] := 1
             Out("  " POV[povIx + 1].ctl "`t-> " POV[povIx + 1].act)
         }
         prevPovIx := povIx
@@ -639,7 +649,9 @@ ReleaseAll() {
                 SendKey(k, 0)
         }
     }
-    ; The cone hat taps rather than holds, so there is nothing of its to release.
+    ; The cone hat HOLDS an arrow while deflected, and its key is tracked in
+    ; heldKeys above, so the loop over heldKeys already released it. A glance arrow
+    ; left down is the stuck key this repo has actually seen in the field.
 }
 
 LogGuiClose:

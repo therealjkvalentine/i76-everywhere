@@ -129,11 +129,22 @@ gWheelAlt  := {1: "LButton", 2: "q", 3: "v", 4: "x", 5: "7"
 ; effects is a case that 1997 code never sees. Use the engine's own weapon_link
 ; (F, on shift+2) to fire groups together instead.
 ; held while the button is held (fire, handbrake); everything else taps once.
-; Button 12 REMOVED from the hold set 2026-08-08. It was the handbrake, which must
-; be held; it is now ignition, which must be TAPPED. Left in place it would have
-; held `i` down for as long as R3 was pressed - a starter motor you cannot release.
-; Changing what a button does means re-checking every table that mentions its number.
-gWheelHoldSet := {2: 1, 4: 1}
+; WHICH BUTTONS HOLD THEIR KEY DOWN vs tap it once.
+;
+; Button 12 was REMOVED 2026-08-08: it was the handbrake, which must be held; it is
+; now ignition, which must be TAPPED. Left in place it would have held `i` down for
+; as long as R3 was pressed - a starter motor you cannot release.
+;
+; Buttons 9, 10 and 13 were ADDED 2026-08-08. They are the horn, and the horn only
+; beeped once however long you leaned on it - because a button absent from this
+; table taps its key on the press edge and never sends the key-up until the next
+; press. A horn is the most obviously hold-shaped control on the wheel and it was
+; the one control the table did not know about. Now it sounds for exactly as long
+; as the button is down.
+;
+; Rule of thumb: anything the player would EXPECT to hold - fire, handbrake, horn -
+; belongs here. Toggles (lights, ignition, weapon cycle) must NOT.
+gWheelHoldSet := {2: 1, 4: 1, 9: 1, 10: 1, 13: 1}
 ; REPEAT-tap while held: a held hardpoint digit only fires ONCE in-engine, so
 ; re-tap it every gWheelRepeatTicks polls (~15ms each) for sustained fire.
 ; REPEAT-FIRE DISABLED 2026-08-01. Tapping a hardpoint every ~120ms made
