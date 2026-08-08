@@ -152,6 +152,16 @@ $AXIS = @(
     @{ Axis='X'; Dir= 1; Key='X';      Mode='edge';  Name='reverse_direction' }
 )
 
+# Normalise an axis to -1..+1 using the range the DEVICE reports, not a guess.
+# Defined here rather than beside the other helpers because -SelfTest runs before
+# any hardware is touched and needs it.
+function Get-Norm([int]$raw, [uint32]$lo, [uint32]$hi) {
+    if ($hi -le $lo) { return 0.0 }
+    $mid  = ($hi + $lo) / 2.0
+    $half = ($hi - $lo) / 2.0
+    return [Math]::Max(-1.0, [Math]::Min(1.0, ($raw - $mid) / $half))
+}
+
 # The axis state machine, kept as a PURE function of (deflection, state) so it can
 # be exercised without the hardware - see -SelfTest. This is the part that is easy
 # to get subtly wrong and impossible to debug halfway through a mission.
@@ -249,14 +259,6 @@ function Read-Stick {
     return $j
 }
 
-# Normalise an axis to -1..+1 using the range the DEVICE reports, not a guess.
-function Get-Norm([int]$raw, [uint32]$lo, [uint32]$hi) {
-    if ($hi -le $lo) { return 0.0 }
-    $mid = ($hi + $lo) / 2.0
-    $half = ($hi - $lo) / 2.0
-    return [Math]::Max(-1.0, [Math]::Min(1.0, ($raw - $mid) / $half))
-}
-
 function Send-Key([string]$name, [bool]$down) {
     if (-not $SCAN.ContainsKey($name)) { Write-Host "  no scan code for '$name'" -ForegroundColor Yellow; return }
     if ($WhatIf) { return }
@@ -301,9 +303,9 @@ Write-Host ("  threshold {0:P0} on, {1:P0} off   {2} Hz" -f $Threshold, $RelFrac
 if ($WhatIf) { Write-Host "  -WhatIf: showing actions, sending NO keys" -ForegroundColor Yellow }
 Write-Host "  Ctrl+C to stop.`n" -ForegroundColor DarkGray
 
-$held      = @{}   # key name -> $true while we are holding it down
-$armed     = @{}   # axis action name -> ready to fire again (edge mode)
-foreach ($a in $AXIS) { $armed[$a.Name] = $true }
+$held  = @{}   # key name -> $true while we are holding it down
+$state = @{}   # axis action name -> the Step-Axis state for that action
+foreach ($a in $AXIS) { $state[$a.Name] = @{ Held = $false; Armed = $true } }
 $prevBtn   = 0
 $prevPovIx = -1
 $delay     = [int](1000 / $Hz)
@@ -350,28 +352,14 @@ try {
         $ny = Get-Norm $j.dwYpos $caps.wYmin $caps.wYmax
         foreach ($a in $AXIS) {
             $v = if ($a.Axis -eq 'X') { $nx } else { $ny }
-            $defl = $v * $a.Dir            # deflection in this action's direction
-            $on   = $defl -ge $Threshold
-            $off  = $defl -lt $RelFrac
-
-            if ($a.Mode -eq 'level') {
-                if ($on -and -not $held[$a.Key]) {
-                    Send-Key $a.Key $true;  $held[$a.Key] = $true
-                    Write-Host ("  {0} ON" -f $a.Name) -ForegroundColor Yellow
-                } elseif ($off -and $held[$a.Key]) {
-                    Send-Key $a.Key $false; $held[$a.Key] = $false
-                    Write-Host ("  {0} off" -f $a.Name) -ForegroundColor DarkGray
-                }
-            } else {
-                # edge: fire once, then refuse until the stick comes back through
-                # the release threshold. This is the sequential-gate behaviour.
-                if ($on -and $armed[$a.Name]) {
-                    Send-Key $a.Key $true; Start-Sleep -Milliseconds 30; Send-Key $a.Key $false
-                    $armed[$a.Name] = $false
-                    Write-Host ("  {0}" -f $a.Name) -ForegroundColor Green
-                } elseif ($off) {
-                    $armed[$a.Name] = $true
-                }
+            $ev = Step-Axis ($v * $a.Dir) $state[$a.Name] $a.Mode $Threshold $RelFrac
+            switch ($ev) {
+                'down'  { Send-Key $a.Key $true;  $held[$a.Key] = $true
+                          Write-Host ("  {0} ON" -f $a.Name) -ForegroundColor Yellow }
+                'up'    { Send-Key $a.Key $false; $held[$a.Key] = $false
+                          Write-Host ("  {0} off" -f $a.Name) -ForegroundColor DarkGray }
+                'pulse' { Send-Key $a.Key $true; Start-Sleep -Milliseconds 30; Send-Key $a.Key $false
+                          Write-Host ("  {0}" -f $a.Name) -ForegroundColor Green }
             }
         }
         Start-Sleep -Milliseconds $delay
