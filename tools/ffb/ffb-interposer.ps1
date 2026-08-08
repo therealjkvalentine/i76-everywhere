@@ -340,7 +340,14 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy','fireRaw','fxActive','fxFired') + $ALL_CH + @('force')
+                     'angVelX','angVelZ','vy','fireRaw','fxActive','fxFired') +
+                     # ch_ prefix, because 'oversteer' is BOTH a telemetry field
+                     # (0..1 slip) and a force channel (scaled to OversteerGain).
+                     # Emitting both under one name made every CSV reader silently
+                     # keep the last one, so analysis read "max oversteer 3600" for
+                     # a value that is bounded at 1. Deriving the header from
+                     # $ALL_CH fixed a length mismatch and reintroduced this.
+                     ($ALL_CH | ForEach-Object { "ch_$_" }) + @('force')
         $logSw.WriteLine($logCols -join ',')
     }
 
