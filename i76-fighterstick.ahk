@@ -73,9 +73,11 @@ global WHATIF  := false
 global KEY := {}
 KEY.Enter := "{SC01C}", KEY.Tab := "{SC00F}", KEY.Space := "{SC039}"
 KEY.Period := "{SC034}", KEY.Comma := "{SC033}"
-KEY.B := "{SC030}", KEY.E := "{SC012}", KEY.G := "{SC022}", KEY.I := "{SC017}"
-KEY.M := "{SC032}", KEY.Q := "{SC010}", KEY.R := "{SC013}", KEY.T := "{SC014}"
-KEY.U := "{SC016}", KEY.V := "{SC02F}", KEY.X := "{SC02D}", KEY.Y := "{SC015}"
+KEY.B := "{SC030}", KEY.E := "{SC012}", KEY.F := "{SC021}", KEY.G := "{SC022}"
+KEY.H := "{SC023}", KEY.I := "{SC017}", KEY.K := "{SC025}", KEY.M := "{SC032}"
+KEY.N := "{SC031}", KEY.P := "{SC019}", KEY.Q := "{SC010}", KEY.R := "{SC013}"
+KEY.T := "{SC014}", KEY.U := "{SC016}", KEY.V := "{SC02F}", KEY.X := "{SC02D}"
+KEY.Y := "{SC015}"
 KEY.Six := "{SC007}", KEY.Seven := "{SC008}", KEY.Eight := "{SC009}"
 KEY.GreyUpArrow := "{Up}", KEY.GreyDownArrow := "{Down}"
 KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
@@ -95,34 +97,57 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ; CH's DOCUMENTED default numbering - 1 trigger, 2-4 thumb, then the 4-way hats in
 ; blocks of four - NOT measured on this unit, and the 3-position mode switch
 ; renumbers everything. Run -learn and correct this table.
+; ---------------------------------------------------------------------------
+; THE MAP. One entry per physical control, carrying three things:
+;   ctl - what the control IS, by its official name (see the table below)
+;   act - the I'76 action it performs, spelled as input.map spells it
+;   key - the key input.map binds that action to
+; Keep all three. `-map` prints them as a reference card, and the live display
+; names the ACTION rather than the key, because "Button 9 -> T" tells you nothing
+; while "castle UP -> TARGET_NEAREST_ENEMY" tells you everything.
+;
+; OFFICIAL HAT NAMES for the CH Fighterstick, so there is no ambiguity ever again
+; (the earlier "upper-left / lower / side-right" wording caused exactly that):
+;
+;   cone hat             8-way POV, upper right of the top face  -> POV channel
+;   convex serrated hat  leftmost on the top face                -> buttons 5-8
+;   castle hat           lower right of the top face             -> buttons 9-12
+;   trim hat             concave, halfway up the stick shaft     -> buttons 13-16
+;
+; Every hat's direction order is UP, RIGHT, DOWN, LEFT - measured 2026-08-08.
+; Role assignment follows the A-10C convention by BUTTON NUMBER: 5-8 DMS,
+; 9-12 TMS, 13-16 CMS.
 global BTN := {}
-BTN[1]  := "Enter"    ; trigger   -> weapon_fire
-BTN[2]  := "Six"      ; pickle    -> special1
-BTN[3]  := "Tab"      ; thumb     -> weapon_cycle
-BTN[4]  := "G"        ; pinky     -> HONK_HORN
-; Upper-left hat = DMS on a real A-10C grip (display/sensor management), so it
-; gets I'76's display actions. Order within each hat is up/right/down/left and is
-; NOT yet measured - see docs/FIGHTERSTICK.md.
-BTN[5]  := "M"        ; DMS up    -> SHOW_MAP
-BTN[6]  := "R"        ; DMS right -> RADAR_RANGE_TOGGLE
-BTN[7]  := "V"        ; DMS down  -> toggle_cmbt_view
-BTN[8]  := "B"        ; DMS left  -> TOGGLE_BINOCULARS
-; SIDE/RIGHT hat = CMS (countermeasures). NOTE the numbering: CH's documentation
-; puts the lower hat on 9-12 and the right hat on 13-16. MEASURED on this unit
-; (2026-08-08, -learn) it is the OTHER WAY ROUND - the right hat reports 9-12 and
-; the lower hat reports 13-16. Trust the measurement, not the sheet.
-BTN[9]  := "Seven"    ; CMS up    -> special2
-BTN[10] := "Eight"    ; CMS right -> special3
-BTN[11] := "E"        ; CMS down  -> pilot_glance_target
-BTN[12] := "I"        ; CMS left  -> start_engine
-; LOWER/CENTRE hat = TMS (target management). Closest I'76 analogue by far.
-BTN[13] := "T"        ; TMS up    -> TARGET_NEAREST_ENEMY
-BTN[14] := "Y"        ; TMS right -> NEXT_TARGET
-BTN[15] := "U"        ; TMS down  -> RESET_TARGET
-BTN[16] := "Q"        ; TMS left  -> frontal_target
+BTN[1]  := {ctl: "trigger",              act: "weapon_fire",          key: "Enter"}
+BTN[2]  := {ctl: "top red (pickle)",     act: "special1",             key: "Six"}
+; Button 3 is the MODE SWITCH - it cycles the base LED through three positions,
+; and on CH sticks the mode renumbers the buttons. Deliberately UNMAPPED: binding
+; a game action to it means every mode change also fires that action.
+BTN[4]  := {ctl: "pinky red",            act: "weapon_link",          key: "F"}
+; --- convex serrated hat = DMS, display and sensor management ---
+BTN[5]  := {ctl: "serrated UP",          act: "SHOW_MAP",             key: "M"}
+BTN[6]  := {ctl: "serrated RIGHT",       act: "RADAR_RANGE_TOGGLE",   key: "R"}
+BTN[7]  := {ctl: "serrated DOWN",        act: "SHOW_NOTEPAD",         key: "N"}
+BTN[8]  := {ctl: "serrated LEFT",        act: "RADAR_CAMERA_TOGGLE",  key: "K"}
+; --- castle hat = TMS, target management ---
+BTN[9]  := {ctl: "castle UP",            act: "TARGET_NEAREST_ENEMY", key: "T"}
+BTN[10] := {ctl: "castle RIGHT",         act: "NEXT_TARGET",          key: "Y"}
+BTN[11] := {ctl: "castle DOWN",          act: "RESET_TARGET",         key: "U"}
+BTN[12] := {ctl: "castle LEFT",          act: "frontal_target",       key: "Q"}
+; --- trim hat = CMS, countermeasures and armament ---
+BTN[13] := {ctl: "trim UP",              act: "special2",             key: "Seven"}
+BTN[14] := {ctl: "trim RIGHT",           act: "special3",             key: "Eight"}
+BTN[15] := {ctl: "trim DOWN",            act: "weapon_cycle",         key: "Tab"}
+BTN[16] := {ctl: "trim LEFT",            act: "toggle_cmbt_view",     key: "V"}
 
-; The 8-way castle hat is head-look, exactly as on a real grip.
-global POVKEY := ["GreyUpArrow", "GreyRightArrow", "GreyDownArrow", "GreyLeftArrow"]
+; The CONE hat (8-way POV) is head-look, exactly as on a real grip - the control
+; that transfers most directly of anything here. Index order is up/right/down/left
+; to match the sector maths below.
+global POV := []
+POV.Push({ctl: "cone UP",    act: "pilot_glance_up",    key: "GreyUpArrow"})
+POV.Push({ctl: "cone RIGHT", act: "pilot_glance_right", key: "GreyRightArrow"})
+POV.Push({ctl: "cone DOWN",  act: "pilot_glance_down",  key: "GreyDownArrow"})
+POV.Push({ctl: "cone LEFT",  act: "pilot_glance_left",  key: "GreyLeftArrow"})
 
 ; ---- the ADC ---------------------------------------------------------------
 ; EDGE vs LEVEL is the whole design:
@@ -136,10 +161,10 @@ global POVKEY := ["GreyUpArrow", "GreyRightArrow", "GreyDownArrow", "GreyLeftArr
 ; most natural pull; reverse is a held state rather than a latched one; and the
 ; shifts move to left/right where they are out of the way of both.
 global AXIS := []
-AXIS.Push({axis: "Y", dir:  1, key: "Space",  mode: "level",     name: "e_brake"})
-AXIS.Push({axis: "Y", dir: -1, key: "X",      mode: "momentary", name: "reverse_while_held"})
-AXIS.Push({axis: "X", dir: -1, key: "Comma",  mode: "edge",      name: "shift_down"})
-AXIS.Push({axis: "X", dir:  1, key: "Period", mode: "edge",      name: "shift_up"})
+AXIS.Push({ctl: "stick BACK",    axis: "Y", dir:  1, key: "Space",  mode: "level",     act: "e_brake",           name: "e_brake"})
+AXIS.Push({ctl: "stick FORWARD", axis: "Y", dir: -1, key: "X",      mode: "momentary", act: "reverse_direction", name: "reverse_while_held"})
+AXIS.Push({ctl: "stick LEFT",    axis: "X", dir: -1, key: "Comma",  mode: "edge",      act: "shift_down",        name: "shift_down"})
+AXIS.Push({ctl: "stick RIGHT",   axis: "X", dir:  1, key: "Period", mode: "edge",      act: "shift_up",          name: "shift_up"})
 
 ; ---- args ------------------------------------------------------------------
 mode := "run"
@@ -148,6 +173,8 @@ for i, a in A_Args {
         mode := "learn"
     else if (a = "-selftest")
         mode := "selftest"
+    else if (a = "-map")
+        mode := "map"
     else if (a = "-whatif")
         WHATIF := true
     else if (a = "-device")
@@ -229,6 +256,60 @@ SendKey(name, down := "") {
         k := SubStr(k, 1, -1) . " up}"
         Send, %k%
     }
+}
+
+; Game actions that have a keyboard binding in input.map but are NOT on the stick.
+; Kept here so `-map` can show the whole picture: what a control does AND what is
+; still available to move onto one. Audited against the live input.map 2026-08-08 -
+; 54 actions carry a key, 24 of them are bound here.
+; Explicit Push calls rather than one multi-line array literal: AHK v1.1 treats a
+; leading comma as a line continuation and mis-parsed the literal, and a bare
+; semicolon inside a string is a comment waiting to happen. Verbose, but it parses.
+global UNMAPPED := []
+UNMAPPED.Push(["toggle_lights",                  "H"])
+UNMAPPED.Push(["TOGGLE_BINOCULARS",              "B"])
+UNMAPPED.Push(["HONK_HORN",                      "G"])
+UNMAPPED.Push(["start_engine",                   "I"])
+UNMAPPED.Push(["pilot_glance_target",            "E"])
+UNMAPPED.Push(["POETRY",                         "P"])
+UNMAPPED.Push(["hardpoint2_fire .. hardpoint5_fire", "2 3 4 5"])
+UNMAPPED.Push(["zoom_factor minus / plus / reset",   "PgUp PgDn End"])
+UNMAPPED.Push(["show_player_scores / show_team_scores", "quote / semicolon"])
+UNMAPPED.Push(["overview_ (map view pan and zoom)",  "arrows PgUp PgDn"])
+UNMAPPED.Push(["track_ (external camera)",           "arrows PgUp PgDn"])
+
+; ============================================================================
+if (mode = "map") {
+    Out("`nCH FIGHTERSTICK -> INTERSTATE '76")
+    Out("`n  STICK (the ADC - analog deflection becomes a discrete action)")
+    Out("  " Pad("control", 18) Pad("game action", 26) Pad("key", 7) "behaviour")
+    Out("  " Pad("", 60, "-"))
+    for i, a in AXIS
+        Out("  " Pad(a.ctl, 18) Pad(a.act, 26) Pad(a.key, 7) a.mode)
+    Out("`n  CONE HAT (8-way POV, upper right of the top face) - head-look")
+    for i, p in POV
+        Out("  " Pad(p.ctl, 18) Pad(p.act, 26) p.key)
+    Out("`n  BUTTONS")
+    Out("  " Pad("#", 5) Pad("control", 18) Pad("game action", 26) "key")
+    Out("  " Pad("", 60, "-"))
+    Loop, 32 {
+        if (BTN.HasKey(A_Index))
+            Out("  " Pad(A_Index, 5) Pad(BTN[A_Index].ctl, 18) Pad(BTN[A_Index].act, 26) BTN[A_Index].key)
+        else if (A_Index = 3)
+            Out("  " Pad(3, 5) Pad("back-side red", 18) "MODE SWITCH - deliberately unbound")
+    }
+    Out("`n  NOT ON THE STICK (bound to the keyboard, free to move here)")
+    for i, u in UNMAPPED
+        Out("  " Pad(u[1], 44) u[2])
+    Out("")
+    ExitApp, 0
+}
+
+Pad(s, n, ch := " ") {
+    out := s
+    while (StrLen(out) < n)
+        out .= ch
+    return out
 }
 
 ; ============================================================================
@@ -341,9 +422,9 @@ Poll:
         down := GetKeyState(DEV . "Joy" . b)
         was  := prevBtn.HasKey(b) ? prevBtn[b] : 0
         if (down != was) {
-            SendKey(BTN[b], down ? 1 : 0)
+            SendKey(BTN[b].key, down ? 1 : 0)
             if (down)
-                Out("  Button" b " -> " BTN[b])
+                Out("  " BTN[b].ctl "`t-> " BTN[b].act)
             prevBtn[b] := down
         }
     }
@@ -357,10 +438,10 @@ Poll:
         povIx := Mod(Round(pov / 9000), 4)
     if (povIx != prevPovIx) {
         if (prevPovIx >= 0)
-            SendKey(POVKEY[prevPovIx + 1], 0)
+            SendKey(POV[prevPovIx + 1].key, 0)
         if (povIx >= 0) {
-            SendKey(POVKEY[povIx + 1], 1)
-            Out("  hat " POVKEY[povIx + 1] " -> glance")
+            SendKey(POV[povIx + 1].key, 1)
+            Out("  " POV[povIx + 1].ctl "`t-> " POV[povIx + 1].act)
         }
         prevPovIx := povIx
     }
@@ -374,14 +455,14 @@ Poll:
         if (ev = "down") {
             SendKey(a.key, 1)
             heldKeys[a.key] := 1
-            Out("  " a.name " ON")
+            Out("  " a.ctl "`t-> " a.act " ON")
         } else if (ev = "up") {
             SendKey(a.key, 0)
             heldKeys[a.key] := 0
-            Out("  " a.name " off")
+            Out("  " a.ctl "`t-> " a.act " off")
         } else if (ev = "pulse") {
             SendKey(a.key)
-            Out("  " a.name)
+            Out("  " a.ctl "`t-> " a.act)
         }
     }
 return
@@ -396,7 +477,8 @@ LearnPoll:
         was  := prevBtn.HasKey(b) ? prevBtn[b] : 0
         if (down && !was) {
             seq += 1
-            Out("  #" seq "`tButton " b "`t-> currently sends '" (BTN.HasKey(b) ? BTN[b] : "(UNMAPPED)") "'")
+            lbl := BTN.HasKey(b) ? (BTN[b].ctl " = " BTN[b].act) : "(UNMAPPED)"
+            Out("  #" seq "`tButton " b "`t-> " lbl)
         }
         prevBtn[b] := down
     }
@@ -418,7 +500,7 @@ return
 ; Never leave a key stuck down: a held Space is a handbrake the player cannot
 ; release, and it would survive this script exiting.
 ReleaseAll() {
-    global heldKeys, prevPovIx, POVKEY
+    global heldKeys, prevPovIx, POV
     ; Guarded because OnExit fires on EVERY exit path, including -selftest, which
     ; returns before heldKeys/prevPovIx are ever created. Iterating an unset
     ; variable as an object throws, and an exit handler that throws is a bad way
@@ -430,7 +512,7 @@ ReleaseAll() {
         }
     }
     if (prevPovIx != "" && prevPovIx >= 0)
-        SendKey(POVKEY[prevPovIx + 1], 0)
+        SendKey(POV[prevPovIx + 1].key, 0)
 }
 
 OnExitHandler:

@@ -7,10 +7,18 @@ handbrake**.
 
 ```bash
 AutoHotkey.exe i76-fighterstick.ahk             # run alongside the game
+AutoHotkey.exe i76-fighterstick.ahk -map        # print the full reference card
+AutoHotkey.exe i76-fighterstick.ahk -whatif     # BENCH TEST: names each action, sends no keys
 AutoHotkey.exe i76-fighterstick.ahk -learn      # press each control, see its number
-AutoHotkey.exe i76-fighterstick.ahk -whatif     # show actions, send no keys
 AutoHotkey.exe i76-fighterstick.ahk -selftest   # test the ADC logic, no hardware
 ```
+
+**Testing without the game.** `-whatif` is the bench: it reads the stick live and
+prints the **game action** each control performs — `castle UP -> TARGET_NEAREST_ENEMY`,
+`stick BACK -> e_brake ON` — while sending no keystrokes at all. Every control can
+be checked in a minute without loading a mission. `-map` prints the same
+information as a static card, generated from the script's own tables so the two
+cannot drift apart.
 
 ## The device
 
@@ -115,45 +123,119 @@ the trigger fires the gun, the "pickle" button releases weapons, the castle hat 
 head-look, and the 4-way switches are Target Management (TMS) and Display
 Management (DMS).
 
-| # | grip control | jet function (A-10C) | I'76 action | key |
+### Anatomy — use these names, always
+
+Ambiguous naming already cost one round here (see below), so the four hats get
+their proper names and nothing else:
+
+| name | where it is | reports as |
+|---|---|---|
+| **cone hat** | 8-way, upper **right** of the top face | POV channel |
+| **convex serrated hat** | leftmost on the top face | buttons **5–8** |
+| **castle hat** | lower **right** of the top face | buttons **9–12** |
+| **trim hat** | concave, halfway up the stick **shaft** | buttons **13–16** |
+
+Plus four singles: **trigger** (1), **top red / pickle** (2), **back-side red** (3,
+the mode switch), **pinky red** (4).
+
+**Every hat's direction order is up → right → down → left.** Measured, since CH's
+documentation gives four numbers per hat without saying which is which.
+
+### The map
+
+Roles follow the A-10C convention by button number — DMS on 5–8, TMS on 9–12,
+CMS on 13–16.
+
+| # | control | jet function (A-10C) | I'76 action | key |
 |---|---|---|---|---|
-| 1 | index trigger | gun trigger (2-stage: PAC, then fire) | `weapon_fire` | `Enter` |
-| 2 | top red button | weapon release — the "pickle" | `special1` | `6` |
-| 3 | back-side red button | varies; also cycles base mode LEDs | `weapon_cycle` | `Tab` |
-| 4 | pinky red button | pinky switch — laser latch / nosewheel steering | `HONK_HORN` | `G` |
-| — | **castle hat** (8-way POV) | view control / head-look | `pilot_glance_up/down/left/right` | grey arrows |
-| 5–8 | **upper-left hat — DMS** | display management: MFCD nav, sensor select | map / radar range / combat view / binoculars | `M` `R` `V` `B` |
-| 9–12 | **side-right hat — CMS** | countermeasures: chaff, flares, programs | `special2` / `special3` / glance-target / start engine | `7` `8` `E` `I` |
-| 13–16 | **lower hat — TMS** | target management: lock, track, designate | nearest / next / reset / frontal | `T` `Y` `U` `Q` |
+| 1 | trigger | gun trigger (2-stage: PAC, then fire) | `weapon_fire` | `Enter` |
+| 2 | top red — **pickle** | weapon release | `special1` | `6` |
+| 3 | back-side red | — | **mode switch, deliberately unbound** | — |
+| 4 | pinky red | pinky switch — laser latch / NWS | `weapon_link` | `F` |
+| — | **cone hat** | view control / head-look | `pilot_glance_up/right/down/left` | grey arrows |
+| 5–8 | **convex serrated — DMS** | display management: MFCD nav, sensor select | `SHOW_MAP` / `RADAR_RANGE_TOGGLE` / `SHOW_NOTEPAD` / `RADAR_CAMERA_TOGGLE` | `M` `R` `N` `K` |
+| 9–12 | **castle — TMS** | target management: lock, track, designate | `TARGET_NEAREST_ENEMY` / `NEXT_TARGET` / `RESET_TARGET` / `frontal_target` | `T` `Y` `U` `Q` |
+| 13–16 | **trim — CMS** | countermeasures: chaff, flares, programs | `special2` / `special3` / `weapon_cycle` / `toggle_cmbt_view` | `7` `8` `Tab` `V` |
 
-Direction order within every hat is **up → right → down → left** — measured, since
-CH's documentation gives the four numbers without saying which is which.
+`-map` prints this from the script itself, so the card and the code cannot drift
+apart.
 
-The castle hat transfers most directly of anything here: on the real aircraft it is
+**Button 3 is left unbound on purpose.** It cycles the base LED through three
+positions — it is the mode switch, and on CH sticks the mode renumbers the
+buttons. Binding a game action to it would fire that action on every mode change.
+
+The cone hat transfers most directly of anything here: on the real aircraft it is
 head-look, and in I'76 `pilot_glance_*` is head-look. It is a **true 8-way POV
 channel** on this unit, not buttons — CH's docs hedge on that ("maps to the
 remaining upper button IDs up to 24 depending on configuration"), so it was worth
 measuring. All eight positions report cleanly. The code folds it into 4 sectors so
 diagonals fall through to the nearer cardinal rather than doing nothing.
 
-### The documentation is wrong about two of the three hats
+### A retraction: the documentation was right, my names were not
 
-Measured on this unit with `-learn`, 2026-08-08:
+This document briefly claimed CH's sheet had the lower and right hats swapped,
+on the strength of a `-learn` capture. **That was wrong, and the mistake is worth
+keeping.**
 
-| hat | CH's sheet says | **this unit actually reports** |
+The button numbers were never in doubt. What was ambiguous was the checklist I
+wrote to collect them: I asked for the *"lower/down"* hat and the *"side/right"*
+hat, which on this grip describe the same two controls about equally badly — the
+castle hat is low **on the top face**, the trim hat is low **on the shaft**. The
+presses came back in the order the physical descriptions implied, not the order
+my labels assumed, and I read the mismatch as the manufacturer being wrong rather
+than my own instructions being unclear.
+
+The lesson generalises past this stick: **when a measurement contradicts the
+documentation, suspect the measurement's instructions first.** A diagram with
+official part names settled it in one exchange.
+
+### Still unidentified
+
+Buttons **17, 18 and 19** (winmm reports 19 in total). Button 18 has fired once,
+unattributed; 17 and 19 never have. The mode switch is the likely explanation, and
+pinning it down matters — if the mode can be *detected*, it can stop silently
+renumbering everything.
+
+## What is still on the keyboard
+
+Audited against the live `input.map`, 2026-08-08: **54 game actions carry a key,
+24 of them are on the stick.** The rest, in rough order of how much you would miss
+them, and all free to move onto a control:
+
+| action | key | worth a control? |
 |---|---|---|
-| upper-left | 5–8 | 5–8 ✓ |
-| lower / centre | 9–12 | **13–16** |
-| side / right | 13–16 | **9–12** |
+| `toggle_lights` | `H` | yes — night missions |
+| `TOGGLE_BINOCULARS` | `B` | yes — spotting |
+| `HONK_HORN` | `G` | it *is* Interstate '76 |
+| `start_engine` | `I` | once per mission; keyboard is fine |
+| `pilot_glance_target` | `E` | snap-look at the current target |
+| `hardpoint2_fire` … `hardpoint5_fire` | `2`–`5` | only if you want per-hardpoint fire rather than `weapon_cycle` |
+| `zoom_factor` minus / plus / reset | `PgUp` `PgDn` `End` | a candidate for the Z wheel |
+| `POETRY` | `P` | Taurus does not need a dedicated button, but he has earned one |
+| `show_player_scores`, `show_team_scores` | `'` `;` | multiplayer only |
+| `overview_*` (map pan and zoom) | arrows, `PgUp`/`PgDn` | only live in the map view |
+| `track_*` (external camera) | arrows, `PgUp`/`PgDn` | replay and external cam only |
 
-The lower and right hats are **swapped** relative to the documentation. Trust the
-measurement. This is exactly why `-learn` exists, and why the button table is a
-plain list of `BTN[n] := "Key"` lines rather than something clever.
+`-map` prints this list too, so it stays accurate as bindings move.
 
-**Still unidentified:** a stray **button 18** fires from somewhere, and buttons 17
-and 19 have never been seen (winmm reports 19). The 3-position mode switch is the
-obvious suspect — if it is, the mode can be *detected* rather than silently
-renumbering everything under us, which is the failure CH sticks are known for.
+## Adding another controller
+
+The pattern here is meant to be copied, not reinvented for the next device:
+
+1. **Identify the device by USB VID/PID**, not by the name Windows shows — this
+   one reports only "HID-compliant game controller" and "Microsoft PC-joystick
+   driver", neither of which identifies the model.
+2. **Get a diagram with the manufacturer's own part names** and use those names
+   everywhere, in code comments and docs alike. Inventing your own physical
+   descriptions is what caused the retraction above.
+3. **Measure the button numbers with a learn mode**, in a fixed press order,
+   numbered so presses can be matched to output. Never trust the sheet alone —
+   and when they disagree, re-read your own instructions first.
+4. **Keep one table** carrying, per control: the physical name, the game action,
+   and the key. Generate the reference card *from that table* so documentation
+   cannot drift from behaviour.
+5. **Keep the analog-to-discrete state machine pure** and test it without the
+   hardware.
 
 ## What is and is not verified
 
