@@ -5,6 +5,18 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+- **Research: raising the REAL frame rate is plausible — but only by inverting the
+  question.** A 9-agent research pass (repo RE docs + web prior art) concluded the
+  engine has no frame limiter and no sim/render separation: physics, AI, script VM and
+  weapon audio advance once per rendered frame with per-frame constants, so scaling the
+  physics up inherits unbounded per-subsystem breakage. The viable route keeps the
+  20 Hz sim untouched and makes the renderer draw 2–3x per tick with interpolated
+  transforms — direct closed-binary precedent exists (D2DX for Diablo II, Kaze's
+  pre-decomp SM64 60fps). Blocked today by two unknowns: entity position/orientation
+  offsets and the Gold exe's main-loop seam. Full verdict, ordered go/no-go checklist,
+  prior-art catalog and the folklore-vs-measured corrections in
+  [docs/FRAMERATE-UNCAP-RESEARCH.md](docs/FRAMERATE-UNCAP-RESEARCH.md). Nothing
+  field-tested yet.
 - **Wheel buttons moved to the AHK layer, with a shift layer (~27 actions from 13
   buttons).** `input.map` now carries only the analog sinks; every button and the hat are
   emitted as stock keys by [i76-remap.ahk](i76-remap.ahk). **Retraction:** an earlier commit

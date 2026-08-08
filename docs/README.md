@@ -56,6 +56,7 @@ it.*
 | Doc | What it is |
 |---|---|
 | [MODERN-PORTS-AND-VR.md](MODERN-PORTS-AND-VR.md) | Is there a Direct3D port / VR port? (No.) The native renderers, why D3D is the *worst* mode, the VR verdict, and the live 2026 reimplementations (Open76 fork, Roanish/i76). |
+| **[FRAMERATE-UNCAP-RESEARCH.md](FRAMERATE-UNCAP-RESEARCH.md)** | Can the REAL frame rate go past 20? Verdict: don't scale the physics — keep the 20 Hz sim and interpolate the renderer (D2DX-style). The go/no-go RE checklist, prior art, and why every "raise the FPS cap" idea breaks. Research only, nothing field-tested. |
 | [RUNNING-I76-EVERYWHERE.md](RUNNING-I76-EVERYWHERE.md) | Cited compendium of every documented way to run I76 (broad research). |
 | [MAC-SETUP.md](MAC-SETUP.md) | The original Windows→Mac handoff brief. Historical; superseded by VERIFIED-FIXES. |
 | [i76-research-full.txt](i76-research-full.txt) | Raw deep-research dump (FPS/physics/renderers). Historical. |
