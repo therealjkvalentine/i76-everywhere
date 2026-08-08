@@ -35,6 +35,12 @@ param(
     [int]$Buffers = 4,         # ~64 ms of queue - enough to survive a GC pause,
                                # short enough that an impact still lands on time
     [double]$Master = 0.9,
+    # PRE-LIMITER GAIN. The rendered signal has a crest factor of 21 dB - RMS
+    # only 8.8% of peak - so almost all the headroom is held for rare transients
+    # while the continuous content you actually feel sits far below it. Driving
+    # into a soft knee raises what is felt without shattering the peaks.
+    [double]$Drive = 2.0,
+
     [int]$Hz = 60,
     [switch]$NoCompensate
 )
@@ -76,9 +82,11 @@ if ($err) {
     Tel-Close $ctx; exit 1
 }
 $live.Master = $Master
+$live.Drive  = $Drive
 
 Write-Host ("streaming to {0} at {1} Hz, {2} x {3}-sample buffers ({4:0} ms)" -f `
     $devName, $Rate, $Buffers, $BufSamples, (1000.0 * $Buffers * $BufSamples / $Rate)) -ForegroundColor Green
+Write-Host ("drive {0:0.0}x into a soft knee at 0.6 - peaks compress, they do not clip" -f $Drive) -ForegroundColor DarkGray
 Write-Host ("bands: engine {0}-{1}  heave {2}  impact {3}  road {4}-{5}  weapon {6} Hz" -f `
     $tune.LfeEngineIdleHz, $tune.LfeEngineMaxHz, $tune.LfeCarrierHz, $tune.LfeImpactHz,
     $tune.LfeRoadLoHz, $tune.LfeRoadHiHz, $tune.LfeWeaponHz) -ForegroundColor DarkGray
@@ -133,6 +141,11 @@ finally {
     # holds the interface until the process dies, and this process may well be
     # killed rather than exited.
     Write-Host ""
+    if ($live.core -and $live.core.Samples -gt 0) {
+        Write-Host ("peak {0:0.00} before limiting, {1:0.00}% of samples limited" -f `
+            $live.core.PeakAbs, (100.0 * $live.core.Limited / $live.core.Samples)) -ForegroundColor DarkGray
+        Write-Host "  a few % limited is the knee working. Tens of % means -Drive is too high." -ForegroundColor DarkGray
+    }
     $live.Stop()
     Tel-Close $ctx
     Write-Host "shaker released." -ForegroundColor Cyan
