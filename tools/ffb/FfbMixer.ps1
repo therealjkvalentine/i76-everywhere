@@ -147,8 +147,16 @@ function Mix-DefaultTune {
         TextureGain   = 1500   # amplitude at TexRef speed over rough ground
         TexRef        = 16.0   # m/s at which texture is at full amplitude
         TextureHz     = 11.0
-        RoughRef      = 16.0   # jolt treated as fully rough. Measured: away from
-                               # collisions jolt runs p50 2.6 / p75 9.3 / p90 15.9.
+        RoughRef      = 10.0   # jolt treated as fully rough. Measured away from
+                               # collisions: p50 2.6 / p75 9.3 / p90 15.9. 16 put
+                               # ordinary driving at the very bottom of the curve.
+        # Fraction of texture amplitude present regardless of roughness. WAS 0.25,
+        # and that was the whole problem: measured on a real drive, 93% of the
+        # texture amplitude was this constant term and only 7% was road. The
+        # channel was a speed-driven hum wearing a road-texture label - which is
+        # exactly what "noisy, bounces around, I can't tell surfaces apart" is.
+        # At 0.06 it is a whisper of presence and the road carries the rest.
+        TextureFloor  = 0.06
         BumpGain      = 1400   # vertical-motion component (Vy)
 
         # --- braking --------------------------------------------------------
@@ -426,7 +434,7 @@ function Mix-Update {
     # this term all but unreachable.
     $heave = [math]::Min(1.0, [math]::Abs($Sample.Vy) / 0.8)
     $texN  = [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)
-    $texAmp = ($Tune.TextureGain * $texN * (0.25 + 0.75 * $rough)) + ($Tune.BumpGain * $heave * $texN)
+    $texAmp = ($Tune.TextureGain * $texN * ($Tune.TextureFloor + (1.0 - $Tune.TextureFloor) * $rough)) + ($Tune.BumpGain * $heave * $texN)
     $Mix.Phase += 2 * [math]::PI * $Tune.TextureHz * $dt
     if ($Mix.Phase -gt (2 * [math]::PI)) { $Mix.Phase -= 2 * [math]::PI }
     $texture = $texAmp * [math]::Sin($Mix.Phase)
@@ -542,6 +550,14 @@ function Mix-Update {
     # Fade in from zero. A wheel that snaps to full cornering load the instant
     # the interposer attaches is startling and, with hands resting on it, rude.
     $ramp = [math]::Min(1.0, (($t - $Mix.StartT) * 1000.0) / [math]::Max(1, $Tune.RampMs))
+
+    # STALE SIM GATE. If the engine has not advanced a tick recently the game is
+    # paused or unfocused: telemetry is frozen, but this loop and its oscillators
+    # keep running on wall-clock time, so texture/scrub/judder would carry on
+    # buzzing against a car that is not moving. Field-reported as the wheel
+    # bouncing +/-130 with the game not even in focus. Frozen data is not new
+    # information, so emit nothing.
+    if ($null -ne $Sample.SinceTick -and $Sample.SinceTick -gt 0.5) { $ramp = 0.0 }
 
     # Thermal idle guard - see IdleFadeAfter. Track how long the car has been
     # stationary and fade the output out, so a parked wheel is not held against

@@ -143,6 +143,15 @@ function Build-Panel {
         $null = $L.Add(("   yaw {0,7:0.000} rad/s   expected {1,7:0.000}   grip {2,3:0}%   U {3,4:0.00}  O {4,4:0.00}" -f `
             $S.YawRate, $S.ExpectedYaw, $(if ($Out) { $Out.Channels['grip%'] } else { 100 }),
             $S.Understeer, $S.Oversteer))
+        # The raw fire flag and the sim-tick age, both shown because both have
+        # been invisible failure modes: a weapon channel that never fires looks
+        # identical to a wrong address, and a frozen sim looks identical to a
+        # quiet road.
+        $null = $L.Add(("   fire {0}   |yaw-expect| {1,6:0.000}  (deadband 0.15)   sim tick age {2,5:0.00}s{3}" -f `
+            $(if ($S.FireRaw -ne 0) { "YES ($($S.FireRaw))" } else { "no " }),
+            [math]::Abs($S.YawRate - $S.ExpectedYaw),
+            $(if ($null -ne $S.SinceTick) { $S.SinceTick } else { 0 }),
+            $(if ($null -ne $S.SinceTick -and $S.SinceTick -gt 0.5) { "  PAUSED - output muted" } else { "" })))
         # Yaw and the bicycle-model prediction should agree in SIGN whenever the
         # car is actually turning. Persistent disagreement means TEL_YAW_SIGN is
         # inverted, which is worth saying out loud rather than leaving to be felt.
@@ -188,7 +197,8 @@ if ($PanelDemo) {
         YawRate = -0.51; ExpectedYaw = -0.72; LongG = -0.18; LatG = -0.90
         Understeer = 0.41; Oversteer = 0.0; Jolt = 2.3
         AngVelX = 0.35; AngVelZ = 0.22; Tumble = 0.57; Vy = 0.4
-        Braking = $false; Airborne = $false; Ticks = 412; Polls = 1240; Wheelbase = 4.662; GameFfb = 0; Firing = $false
+        Braking = $false; Airborne = $false; Ticks = 412; Polls = 1240; Wheelbase = 4.662
+        GameFfb = 0; Firing = $false; FireRaw = 0; SinceTick = 0.02
     }
     for ($t = 0.0; $t -lt 1.2; $t += 1.0/60) { $fake.T = $t; $o = Mix-Update $m $fake }
     $act = @{}; foreach ($c in $ALL_CH) { $act[$c] = $true }
@@ -327,7 +337,7 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy') + $ALL_CH + @('force')
+                     'angVelX','angVelZ','vy','fireRaw') + $ALL_CH + @('force')
         $logSw.WriteLine($logCols -join ',')
     }
 
@@ -430,7 +440,8 @@ try {
                     ('{0:0.000}' -f $s.YawRate),  ('{0:0.000}' -f $s.ExpectedYaw),
                     ('{0:0.000}' -f $s.Understeer), ('{0:0.000}' -f $s.Oversteer),
                     ('{0:0.000}' -f $s.Jolt),
-                    ('{0:0.000}' -f $s.AngVelX), ('{0:0.000}' -f $s.AngVelZ), ('{0:0.000}' -f $s.Vy)
+                    ('{0:0.000}' -f $s.AngVelX), ('{0:0.000}' -f $s.AngVelZ), ('{0:0.000}' -f $s.Vy),
+                    ([string][int]$s.FireRaw)
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force
