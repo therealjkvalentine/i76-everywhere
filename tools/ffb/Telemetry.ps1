@@ -613,6 +613,12 @@ function Tel-Sample {
         Braking     = ($throttle -lt -0.05)
         Airborne    = ([math]::Abs($vy) -gt 2.0)
         Wheelbase   = $Ctx.Wheelbase
+        # Seconds since the sim last advanced. The engine STOPS TICKING when the
+        # window loses focus or the game is paused, but our force loop keeps
+        # running on wall-clock time - so without this the oscillators free-run on
+        # frozen telemetry and the wheel buzzes at a car that is not moving.
+        # Field-reported: "+/-130 even when the game is not even focused".
+        SinceTick   = $(if ($Ctx.LastTickT -gt 0) { $t - $Ctx.LastTickT } else { 0.0 })
         Ticks       = $Ctx.Ticks
         Polls       = $Ctx.Polls
     }
