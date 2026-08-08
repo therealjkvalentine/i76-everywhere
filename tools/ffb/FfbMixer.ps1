@@ -245,10 +245,12 @@ function Mix-DefaultTune {
         # one of them was inside the same octave AND on the same resonance peak.
         # The measured curve says the usable range is far wider than one hump, so
         # the sources are now spread across it and each has its own territory.
-        LfeEngineIdleHz = 20.0  # fundamental at standstill
-        LfeEngineMaxHz  = 33.0  # fundamental at LfeEngineRefSpd. Rising toward the
-                                # 35 Hz peak means the engine naturally gains
-                                # presence with speed - the rig doing the work.
+        # Idle moves 20 -> 26 Hz, off the weak end of the measured curve (0.44 at
+        # 20, 0.78 at 28) and out of the region that needed the most boost.
+        LfeEngineIdleHz = 26.0  # fundamental at standstill
+        LfeEngineMaxHz  = 38.0  # fundamental at LfeEngineRefSpd. Rising across the
+                                # 35 Hz peak means the engine gains presence with
+                                # speed by itself - the rig doing the work.
         LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out (RPM fallback only)
         # Measured on the dashboard tach via ffb-find-rpm-wide.ps1: the value at
         # 0x4f2334 settled at 1050 idle and 5998/5999 at full revs.
@@ -300,11 +302,28 @@ function Mix-DefaultTune {
         #
         # 0.30 keeps 73% of the level for a quarter of the distortion.
         LfeRoadAmp      = 0.30  # road-rumble amplitude at RoughRef jolt
-        LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
-        LfeImpactHz     = 45.0  # between engine and road, so a hit lands in a gap
-                                # rather than on top of whatever is already running
-        LfeWeaponHz     = 80.0  # top of the shelf. A gun should CRACK where an
-                                # impact THUDS - different band, different character
+        # Transients need budgeting too. At 1.00 a collision reached 1.89 and a
+        # weapon 1.95 - both over twice the knee, so the loudest events in the mix
+        # were also the most distorted. A collision may sit hardest against the
+        # ceiling of anything here, but it should arrive, not crunch.
+        LfeImpactAmp    = 0.50  # impact thump amplitude at full-scale jolt
+        LfeWeaponAmp    = 0.45  # weapon thump, scaled after the engine's own magnitude
+        LfeImpactHz     = 42.0  # a collision should be the DEEPEST thing here
+        # SCRUB - tyres sliding. It was computed for the wheel and never put on
+        # the shaker bus at all, which is why a slide could not be felt there.
+        # 50 Hz sits in the gap between impact (45) and the road bed (55-72).
+        # What makes it read as scrub rather than as a tone is the ROUGHNESS -
+        # its amplitude wobbles - because vibrotactile pitch discrimination is
+        # coarse and texture carries further than frequency.
+        LfeScrubHz      = 62.0
+        LfeScrubAmp     = 0.30
+        # WEAPON MOVES 80 -> 52 Hz. Choosing 80 to make a gun 'crack' where an
+        # impact 'thuds' picked a frequency that is buzz by definition: tactile
+        # perception crosses over near 60-70 Hz from body rumble to surface
+        # tingle, so anything up there is felt as buzzing however clean it is.
+        # Measured 44% of the weapon scenario's energy in 70-90 Hz. A gun should
+        # THUMP; separation from impact comes from the envelope, not the pitch.
+        LfeWeaponHz     = 52.0
 
         # ---- reaching BELOW the shaker's floor ------------------------------
         # Chassis heave is real 0-15 Hz content and it is the low-frequency force
@@ -350,7 +369,16 @@ function Mix-DefaultTune {
         # Capped, because a true inverse asks for 6.7x at 13 Hz - which would
         # eat the whole headroom to serve the one band the ear cannot check, and
         # cook the voice coil doing it.
-        LfeCompMax = 3.2
+        # LOWERED 3.2 -> 1.6. A band measures weak because the rig is BAD at it,
+        # and the rig is bad at it because the driver has to move further for the
+        # same force. Boosting 2.27x at 20 Hz therefore does not buy 20 Hz - it
+        # buys excursion, and excursion at the end of the travel is a mechanical
+        # rattle. That is a buzz no amount of clean signal can avoid, and it is
+        # why 'revving' buzzed while measuring as a 97%-pure 20 Hz tone.
+        #
+        # Compensation is now a nudge, not a fight. Content belongs where the rig
+        # is naturally strong; the curve trims what is left.
+        LfeCompMax = 1.6
         LfeCarrierHz    = 35.0  # the measured peak. Heave gets it because heave is
                                 # the subtlest content here and needs the most help;
                                 # and being AM, its character is rhythm, not pitch,
@@ -797,7 +825,8 @@ function Mix-Update {
                            $Tune.LfeHeaveRef), 3)
             CarrierFreq= $Tune.LfeCarrierHz
             ImpulseFreq= $Tune.LfeImpactHz
-            WeaponAmp  = [math]::Round([math]::Min(1.0, [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
+            WeaponAmp  = [math]::Round([math]::Min(1.0, $Tune.LfeWeaponAmp * [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
+            ScrubAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeScrubAmp * $scrubAmp / [math]::Max(1,$Tune.ScrubGain)), 3)
             WeaponFreq = $Tune.LfeWeaponHz
         }
     }
