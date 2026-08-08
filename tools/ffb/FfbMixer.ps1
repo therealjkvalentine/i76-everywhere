@@ -147,7 +147,13 @@ function Mix-DefaultTune {
         TextureGain   = 1500   # amplitude at TexRef speed over rough ground
         TexRef        = 16.0   # m/s at which texture is at full amplitude
         TextureHz     = 11.0
-        RoughRef      = 10.0   # jolt treated as fully rough. Measured away from
+        # Re-derived when roughness became the UNCOMMANDED residual rather than
+        # raw jolt. The two have completely different distributions - measured on
+        # drive3, jolt ran p50 2.6 / p90 15.9, while the residual runs p50 0.04 /
+        # p90 0.75 / p99 11.8 - so the old 10.0 left the bed inaudible until a
+        # genuine impact, at which point it slammed to full. 6.0 puts the working
+        # range across p90-p99, where the actual bumps live.
+        RoughRef      = 6.0   # jolt treated as fully rough. Measured away from
                                # collisions: p50 2.6 / p75 9.3 / p90 15.9. 16 put
                                # ordinary driving at the very bottom of the curve.
         # Fraction of texture amplitude present regardless of roughness. WAS 0.25,
@@ -514,7 +520,26 @@ function Mix-Update {
     # p90 15.9 - so RoughRef maps that band onto 0..1. Large jolts are handled
     # separately by the impact transient, so this is deliberately clamped well
     # below collision magnitudes.
-    $rough = [math]::Min(1.0, $Sample.Jolt / $Tune.RoughRef)
+    # ROUGHNESS IS THE ACCELERATION YOU DID NOT COMMAND.
+    #
+    # Jolt is |dv|/dt - the magnitude of the whole acceleration vector - so it is
+    # large whenever the car changes speed at all. Driving the road bed from it
+    # meant hard acceleration and hard braking both read as "rough road", and
+    # since the road bed is NOISE, that arrived as a buzz that appeared under
+    # throttle and under brakes and went quiet when stopped. Which is exactly
+    # what it was reported as.
+    #
+    # A road is what happens to the car that the driver did not ask for. So
+    # subtract the commanded components in quadrature and keep the remainder:
+    # longitudinal is throttle and brake, lateral is cornering, and what is left
+    # is bumps, kerbs and debris. On a smooth road under any input this is near
+    # zero, which is correct - a smooth road SHOULD be silent.
+    $jl = [double]$Sample.Jolt
+    $laC = [math]::Abs([double]$(if ($null -ne $Sample.LongAccel) { $Sample.LongAccel } else { 0.0 }))
+    $ltC = [math]::Abs([double]$(if ($null -ne $Sample.LatAccel)  { $Sample.LatAccel }  else { 0.0 }))
+    $resid2 = ($jl * $jl) - ($laC * $laC) - ($ltC * $ltC)
+    if ($resid2 -lt 0.0) { $resid2 = 0.0 }
+    $rough = [math]::Min(1.0, [math]::Sqrt($resid2) / $Tune.RoughRef)
     # Vy peaked at 0.77 m/s across 77 s of driving, so the old /3.0 divisor made
     # this term all but unreachable.
     $heave = [math]::Min(1.0, [math]::Abs($Sample.Vy) / 0.8)
