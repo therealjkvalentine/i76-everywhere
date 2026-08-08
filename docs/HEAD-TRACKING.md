@@ -3,15 +3,15 @@
 Turn your head, the view turns. **Working and field-confirmed** on the GOG Gold
 build (`i76.exe` MD5 `60abf7bc699da72476128ddce991a3d1`).
 
-Script: [`../i76-headtrack.ahk`](../i76-headtrack.ahk) ·
-Test harness: [`../i76-headtrack-test.ahk`](../i76-headtrack-test.ahk)
+Script: [`../i76-opentrack-headlook.ahk`](../i76-opentrack-headlook.ahk) ·
+Test harness: [`../i76-opentrack-headlook-test.ahk`](../i76-opentrack-headlook-test.ahk)
 
 ---
 
 ## Quick start
 
 1. **opentrack** → Output = **freetrack 2.0 Enhanced** → press **Start**.
-2. Run **`HEADTRACK.bat`** (portable copy) or `_ahk\i76-headtrack.ahk`.
+2. Run **`HEADTRACK.bat`** (portable copy) or `_ahk\i76-opentrack-headlook.ahk`.
 3. Focus the game. **Ctrl+Alt+H** toggles DIGITAL ⇄ ANALOG (it always starts in
    DIGITAL).
 

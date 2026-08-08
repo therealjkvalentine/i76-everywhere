@@ -8,7 +8,7 @@
 ; without clicking anything - so it is safe to run on every launch, and safe if
 ; you started opentrack by hand first.
 ;
-; Run:  AutoHotkeyU32.exe opentrack-autostart.ahk
+; Run:  AutoHotkeyU32.exe i76-opentrack-autostart.ahk
 ; Docs: docs/HEAD-TRACKING.md
 
 #NoEnv

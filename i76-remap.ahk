@@ -284,8 +284,24 @@ RSGSet(key, want) {
 WheelPoll:
 wInfo := GetKeyState("JoyInfo")
 wBtns := GetKeyState("JoyButtons")
-; No device, a gamepad (has U = right stick), or too few buttons -> release and bail.
-if (wInfo = "" || InStr(wInfo, "U") || wBtns < 11) {
+; No device, a gamepad (has U = right stick), NO R axis, or too few buttons ->
+; release and bail.
+;
+; THE R-AXIS TEST WAS ADDED 2026-08-08 AND IS NOT COSMETIC. The old test - "no U
+; and 11+ buttons" - also matches the CH Fighterstick, measured:
+;
+;     joystick1  T300RS wheel       info=ZRPD  13 buttons   <- intended
+;     joystick2  CH Fighterstick    info=ZPD   19 buttons   <- ALSO matched
+;
+; These reads are UNPREFIXED, so they take whichever joystick enumerates first.
+; That happens to be the wheel today, which is the only reason this has not bitten:
+; with the wheel switched off or enumerating second, this layer would have driven
+; WHEEL bindings from the Fighterstick while i76-ch-fighterstick.ahk was reading the
+; same device - two layers, one stick, every press doubled.
+;
+; The wheel reports an R axis and the Fighterstick does not, so requiring R
+; separates them on measured capability rather than on enumeration luck.
+if (wInfo = "" || InStr(wInfo, "U") || !InStr(wInfo, "R") || wBtns < 11) {
     WheelReleaseAll()
     return
 }
