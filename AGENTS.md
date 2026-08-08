@@ -63,6 +63,27 @@ docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
 - Parallel Claude sessions run on this repo: re-check git state before staging
   and stage only your own hunks.
 
+  **That is not sufficient on its own, field case 2026-08-08.** Staging only your
+  own files does not protect you, because the OTHER session may stage everything.
+  It happened twice in one afternoon: a wheel-buttons commit swallowed six files
+  of unrelated music work, and an FFB commit swallowed a half-finished draft of a
+  tool another session was still writing. Both commit messages then described only
+  a fraction of what they contained.
+
+  What actually helps:
+
+  * **Commit your own files as soon as they are coherent.** An uncommitted file is
+    what gets swept; time spent sitting in the working tree is exposure.
+  * **Check `git log` after committing**, not just before. "nothing to commit,
+    working tree clean" when you expected to commit means someone already took it.
+  * To split a mixed commit that has NOT been pushed: `git reset --soft HEAD~1`,
+    `git reset HEAD`, then re-commit in groups — and **verify the tree SHA is
+    unchanged afterwards** (`git rev-parse HEAD^{tree}`). Equal trees prove the
+    split moved nothing and lost nothing. Do not rewrite anything already pushed.
+  * Also check whether it was really the other session. Staging four files and then
+    writing a commit message for one of them produces exactly the same mess, from
+    your own hand.
+
 ## The game does not start over Remote Desktop. Check this FIRST.
 
 **Field case 2026-08-08, and it cost more time than any other single mistake in
