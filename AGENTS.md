@@ -62,3 +62,54 @@ docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
   down. Save prune/delete work only with the game closed.
 - Parallel Claude sessions run on this repo: re-check git state before staging
   and stage only your own hunks.
+
+## The game does not start over Remote Desktop. Check this FIRST.
+
+**Field case 2026-08-08, and it cost more time than any other single mistake in
+this repo's history.** The game hung on "PLEASE STAND BY" forever. An entire
+session went into bisecting it: three different `Strlkup.dll` builds tested to
+byte-identical hangs, then Lossless Scaling, opentrack, AutoHotkey, the wheel,
+dgVoodoo config, joystick enumeration and hidden modal dialogs all ruled out.
+The agent concluded it had broken the user's setup and said so.
+
+**The user was connected over RDP.** Nothing was broken. Reconnect at the
+physical monitor and the game starts normally.
+
+RDP gives the session a virtual display adapter with no 3D. A Glide/D3D11 present
+blocks forever instead of failing, so the symptom is a **hang, not an error**, and
+it looks exactly like a bad patch.
+
+The signature — all of these together:
+
+- blocked in a `UserRequest` wait with **~0.3s CPU over 140s** (it is not spinning,
+  it is waiting on the display)
+- all renderer modules loaded, nothing obviously missing
+- screenshot capture fails with **"handle is invalid"** (same root cause: there is
+  no real console display to grab)
+- **the hang does not change when you change the thing you suspect** — this is the
+  tell that should trigger the RDP check, and it fired repeatedly here, ignored
+
+`Interstate 76/PLAY-i76-dgvoodoo.bat` has carried the warning in its header the
+whole time: *"Run this ON THE PHYSICAL CONSOLE (not over RDP - 3D won't init on
+RDP)."* It was read aloud during the failed bisection and not acted on. **Reading
+a warning is not the same as checking it.**
+
+This applies to agents too: a PowerShell/Bash tool call runs inside the user's
+session, so **an agent testing the game over RDP is testing under RDP** and every
+measurement it takes is invalid in the same way. Before trusting any launch-time
+result, confirm the session type:
+
+```powershell
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SystemInformation]::TerminalServerSession   # True = RDP, do not trust any launch result
+query session                                                     # ">console" = at the monitor
+```
+
+Both verified. Two caveats found while verifying them, because the obvious check
+is the one that does not work:
+
+- **`$env:SESSIONNAME` is empty** in an agent's PowerShell process — not
+  `"Console"`, not `"RDP-Tcp#1"`, empty. It is the check most people reach for and
+  it silently reads as "not RDP" here.
+- `query session` exits **255 even on success**; read its output, not its exit
+  code.
