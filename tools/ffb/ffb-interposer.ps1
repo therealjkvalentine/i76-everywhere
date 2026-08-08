@@ -147,6 +147,12 @@ function Build-Panel {
         # been invisible failure modes: a weapon channel that never fires looks
         # identical to a wrong address, and a frozen sim looks identical to a
         # quiet road.
+        # RPM is shown so it can be checked against the dashboard tachometer -
+        # it was identified by a memory scan, not by a decompile, so the needle
+        # is the only thing that confirms it.
+        $null = $L.Add(("   rpm: {0,5}   slide: {1,6:0.000} rad/s" -f `
+            $(if ($null -ne $S.Rpm) { $S.Rpm } else { 0 }),
+            $(if ($null -ne $S.Slide) { $S.Slide } else { 0 })))
         $null = $L.Add(("   engine fx: {0} active{1}   input fire {2}   |yaw-expect| {3,6:0.000}   tick {4,5:0.00}s{5}" -f `
             $(if ($null -ne $S.FxActive) { $S.FxActive } else { 0 }),
             $(if ($S.FxFired -and $S.FxFired.Count) { "  FIRED: " + (($S.FxFired | ForEach-Object { "id$($_.Id)" }) -join ' ') } else { "" }),
@@ -468,6 +474,17 @@ try {
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force
+                # Header and row have drifted apart three times now, and every time
+                # it was silent: the CSV still parsed, the columns were just wrong,
+                # and 'force' was read as 'impact' for a whole analysis session.
+                # Checked once, on the first row, so it costs nothing per frame.
+                if (-not $script:logColsChecked) {
+                    $script:logColsChecked = $true
+                    if ($cols.Count -ne $logCols.Count) {
+                        Write-Host ("LOG COLUMN MISMATCH: header has {0}, row writes {1}. Fix before trusting this log." -f `
+                            $logCols.Count, $cols.Count) -ForegroundColor Red
+                    }
+                }
                 $logSw.WriteLine($cols -join ',')
             }
             $lastForce = $force
