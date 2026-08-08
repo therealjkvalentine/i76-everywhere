@@ -286,19 +286,25 @@ Out(s) {
 ; +E0x08000000 is WS_EX_NOACTIVATE: the window can never take focus, so it cannot
 ; pull the game out of the foreground while you are watching it.
 InitGui(title) {
-    global GUIREADY
-    Gui, Log:New, +AlwaysOnTop +E0x08000000 +Resize +HwndhLogGui, %title%
+    ; LogBox MUST be declared global. A GUI control's associated variable (vLogBox)
+    ; has to be a global in AHK v1; created inside a function without this it binds
+    ; to a local, and the window silently fails to appear at all - no error, no
+    ; window, script runs on regardless. Verified: the identical Gui commands at the
+    ; top level produce a window, and inside a function without this line they do not.
+    global GUIREADY, LogBox
+    Gui, Log:New, +AlwaysOnTop +E0x08000000 +Resize, %title%
     Gui, Log:Color, 0x101010
     Gui, Log:Font, s9 cC8C8C8, Consolas
-    Gui, Log:Add, Edit, vLogBox w660 h380 ReadOnly -WantReturn -E0x200 Background0x101010 cC8C8C8
+    Gui, Log:Add, Edit, vLogBox w660 h380 ReadOnly -WantReturn
     Gui, Log:Show, NoActivate w680 h400, %title%
     GUIREADY := true
 }
-
-LogGuiClose:
-LogGuiEscape:
-    ExitApp
-return
+; NB: the LogGuiClose/LogGuiEscape labels for this window live at the BOTTOM of the
+; script, with the other labels. They were briefly defined here, and that silently
+; broke everything: in AHK v1 the auto-execute section ENDS at the first label, so
+; execution stopped at this point in the file and never reached the mode dispatch
+; below. Every mode exited 0 having printed nothing - which looks exactly like a
+; broken redirect, and cost a round of chasing AttachConsole for a bug it never had.
 
 SendKey(name, down := "") {
     global KEY, WHATIF
@@ -591,6 +597,11 @@ ReleaseAll() {
     if (prevPovIx != "" && prevPovIx >= 0)
         SendKey(POV[prevPovIx + 1].key, 0)
 }
+
+LogGuiClose:
+LogGuiEscape:
+    ExitApp          ; OnExit fires -> ReleaseAll()
+return
 
 TrayNoop:
 return
