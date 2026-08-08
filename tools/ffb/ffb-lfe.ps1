@@ -54,8 +54,12 @@ param(
     [double]$Master = 0.9,
     # Aura AST-2B: usable 20-80 Hz, Fs 40. The old 22/90 defaults spent
     # effort above where these transducers deliver any force.
-    [double]$HpHz = 20.0,
-    [double]$LpHz = 80.0
+    # 13 Hz is audible-by-touch on this desk, well below the driver's rated 20.
+    # The high-pass exists to stop DC and sub-perceptual content, not to enforce
+    # a spec sheet - so it sits just under what the rig can actually deliver.
+    [double]$HpHz = 11.0,
+    [double]$LpHz = 85.0,
+    [switch]$NoCompensate
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -121,9 +125,32 @@ public static class LfeSynth {
                                double[] ra, double[] ia, double[] wa, double[] ha,
                                int rate, double master, double jitter,
                                double impHz, double wpnHz, double carHz,
-                               double hpHz, double lpHz)
+                               double hpHz, double lpHz,
+                               double[] rHz, double[] rRel, double compMax)
   {
     int n = t.Length;
+    // Per-source compensation. Because this synth is PARAMETRIC - every source
+    // has a known instantaneous frequency - each one can be corrected at its own
+    // frequency. That is strictly better than EQ-ing the summed output, which
+    // could only correct the mixture and would smear correction across sources
+    // that happen to overlap in the spectrum.
+    Func<double,double> comp = hz => {
+      if (rHz == null || rHz.Length < 2 || compMax <= 1.0) return 1.0;
+      double rel;
+      if (hz <= rHz[0]) rel = rRel[0];
+      else if (hz >= rHz[rHz.Length-1]) rel = rRel[rHz.Length-1];
+      else {
+        int k = 0; while (k < rHz.Length-2 && rHz[k+1] < hz) k++;
+        // interpolate in LOG frequency - hearing and touch are both ratio-based,
+        // so 20->25 Hz is a bigger step than 60->65 and linear would misplace it
+        double lo = Math.Log(rHz[k]), hi = Math.Log(rHz[k+1]);
+        double u = (Math.Log(hz) - lo) / (hi - lo);
+        rel = rRel[k] + (rRel[k+1] - rRel[k]) * u;
+      }
+      if (rel < 1e-3) rel = 1e-3;
+      double g = 1.0 / rel;
+      return g > compMax ? compMax : g;
+    };
     double dur = t[n-1] - t[0];
     if (dur <= 0) return new short[0];
     int total = (int)(dur * rate);
@@ -160,9 +187,10 @@ public static class LfeSynth {
       jitPh += 2 * Math.PI * 0.7 / rate;
       double engFj = engF * (1.0 + jitter * Math.Sin(jitPh));
       engPh += 2 * Math.PI * engFj / rate;
-      double sig = engA * Math.Sin(engPh);
-      // plus a quiet 2nd harmonic for body
-      sig += engA * 0.18 * Math.Sin(engPh * 2);
+      double sig = engA * comp(engFj) * Math.Sin(engPh);
+      // plus a quiet 2nd harmonic for body - compensated at ITS own frequency,
+      // which on this rig can be a very different gain from the fundamental
+      sig += engA * 0.18 * comp(engFj * 2) * Math.Sin(engPh * 2);
 
       // road: band-limited noise. White noise through a one-pole tracking the
       // road centre frequency - cheap, and a noise bed is what road texture is.
@@ -170,19 +198,19 @@ public static class LfeSynth {
       double kN = 1.0 - Math.Exp(-2.0 * Math.PI * roadF / rate);
       noiseLp += kN * (white - noiseLp);
       roadPh += 2 * Math.PI * roadF / rate;
-      sig += roadA * (0.55 * noiseLp * 3.0 + 0.45 * Math.Sin(roadPh));
+      sig += roadA * comp(roadF) * (0.55 * noiseLp * 3.0 + 0.45 * Math.Sin(roadPh));
 
       // impulses: fixed frequency, amplitude already enveloped by the mixer
       impPh += 2 * Math.PI * impHz / rate;
-      sig += impA * Math.Sin(impPh);
+      sig += impA * comp(impHz) * Math.Sin(impPh);
       wpnPh += 2 * Math.PI * wpnHz / rate;
-      sig += wpnA * Math.Sin(wpnPh);
+      sig += wpnA * comp(wpnHz) * Math.Sin(wpnPh);
 
       // heave: carrier AT RESONANCE, amplitude-modulated by chassis heave. The
       // energy sits at carHz where the shaker is strongest; the felt rhythm is
       // the heave rate, which is mostly below the shaker's own floor.
       carPh += 2 * Math.PI * carHz / rate;
-      sig += hvA * Math.Sin(carPh);
+      sig += hvA * comp(carHz) * Math.Sin(carPh);
 
       // 2-pole high-pass at hpHz (excursion safety), then 2-pole low-pass at lpHz
       double h1 = aHp * (hpA + sig - hpPrevIn);       hpPrevIn = sig;  hpA = h1;
@@ -206,7 +234,9 @@ Write-Host "synthesising..." -ForegroundColor Cyan
 $pcm = [LfeSynth]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$Rate,$Master,
                           [double]$tune.LfeEngineJitter,[double]$tune.LfeImpactHz,
                           [double]$tune.LfeWeaponHz,[double]$tune.LfeCarrierHz,
-                          $HpHz, $LpHz)
+                          $HpHz, $LpHz,
+                          $(if ($NoCompensate) { $null } else { [double[]]$tune.LfeRespHz }),
+                          [double[]]$tune.LfeRespRel, $(if ($NoCompensate) { 1.0 } else { [double]$tune.LfeCompMax }))
 
 # ---- WAV ------------------------------------------------------------------
 $fs = [System.IO.File]::Create($Out)
@@ -227,5 +257,11 @@ Write-Host ("band: {0}-{1} Hz engine, {2}-{3} Hz road, {4} Hz impact, {5} Hz wea
     $tune.LfeEngineIdleHz, $tune.LfeEngineMaxHz, $tune.LfeRoadLoHz, $tune.LfeRoadHiHz,
     $tune.LfeImpactHz, $tune.LfeWeaponHz) -ForegroundColor DarkGray
 Write-Host ("heave: {0} Hz carrier, AM by chassis heave - carries sub-20 Hz motion" -f $tune.LfeCarrierHz) -ForegroundColor DarkGray
-Write-Host ("filtered: {0} Hz high-pass, {1} Hz low-pass (Aura AST-2B: 20-80 Hz, Fs 40)" -f $HpHz, $LpHz) -ForegroundColor DarkGray
+Write-Host ("filtered: {0} Hz high-pass, {1} Hz low-pass" -f $HpHz, $LpHz) -ForegroundColor DarkGray
+if ($NoCompensate) {
+    Write-Host "response compensation: OFF (-NoCompensate) - raw, uncorrected" -ForegroundColor Yellow
+} else {
+    Write-Host ("response compensation: ON, inverse of the measured rig curve, max {0:0.0}x" -f $tune.LfeCompMax) -ForegroundColor DarkGray
+    Write-Host ("  measured peak {0} Hz; ends lifted, peak cut. Re-measure with ffb-lfe-sweep.ps1." -f $tune.LfeCarrierHz) -ForegroundColor DarkGray
+}
 Write-Host ("-> {0}" -f (Resolve-Path $Out)) -ForegroundColor Cyan

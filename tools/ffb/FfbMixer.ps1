@@ -245,12 +245,12 @@ function Mix-DefaultTune {
         # placed well above it is progressively wasted. The road bed used to sit
         # at 50-70 Hz and weapons at 85 Hz - the top of, or past, the usable
         # range. Everything is now centred on 40 Hz instead.
-        LfeRoadLoHz     = 34.0  # road noise bed, quiet end
-        LfeRoadHiHz     = 56.0  # road noise bed, rough end
+        LfeRoadLoHz     = 28.0  # road noise bed, quiet end
+        LfeRoadHiHz     = 52.0  # road noise bed, rough end
         LfeRoadAmp      = 0.50  # road-rumble amplitude at RoughRef jolt
         LfeImpactAmp    = 1.00  # impact thump amplitude at full-scale jolt
-        LfeImpactHz     = 38.0  # at Fs: an impact should be the hardest hit there is
-        LfeWeaponHz     = 58.0  # was 85 - outside the AST-2B-4's 20-80 Hz range
+        LfeImpactHz     = 35.0  # at the system peak: the hardest hit available
+        LfeWeaponHz     = 55.0  # in band, and clear of the road bed
 
         # ---- reaching BELOW the shaker's floor ------------------------------
         # Chassis heave is real 0-15 Hz content and it is the low-frequency force
@@ -264,7 +264,31 @@ function Mix-DefaultTune {
         # sidebands land at 40 +/- the heave rate (25-55 Hz, still in band), and
         # the body feels the RHYTHM at the heave rate. This is how sub-20 Hz
         # information gets through tactile hardware; it is not a workaround.
-        LfeCarrierHz    = 40.0  # Aura AST-2B-4 Fs - peak force per watt
+        # ---- MEASURED SYSTEM RESPONSE ---------------------------------------
+        # This is the response of the WHOLE RIG - shaker, desk, chair, body -
+        # not of the transducer. It is what matters, and it differs sharply from
+        # the driver spec: the AST-2B-4 is rated 20-80 Hz with Fs at 40, but the
+        # desk carries useful output down to 13 Hz and the system peak sits
+        # nearer 35 than 40.
+        #
+        # These are PERCEIVED intensities from a tone-generator pass, not
+        # accelerometer readings - and perceived is the right target here. We
+        # want equal FELT intensity per unit of game event, and a perceptual
+        # curve already includes the body's own frequency weighting (ISO 2631
+        # territory), which an acceleration curve would then double-count.
+        #
+        # Anchors, in the operator's words: 13 Hz 'just barely, but good motor
+        # running'; 25 'a good one'; 35 'comparatively loud'; still felt at 80.
+        # Values between anchors are interpolated; REPLACE THESE with a stepped
+        # sweep (ffb-lfe-sweep.ps1) when there is time to measure properly.
+        LfeRespHz  = @(13.0, 20.0, 25.0, 30.0, 35.0, 45.0, 60.0, 80.0)
+        LfeRespRel = @( 0.15, 0.45, 0.70, 0.90, 1.00, 0.85, 0.60, 0.40)
+        # Compensation is the INVERSE of the above, so the rig responds evenly.
+        # Capped, because a true inverse asks for 6.7x at 13 Hz - which would
+        # eat the whole headroom to serve the one band the ear cannot check, and
+        # cook the voice coil doing it.
+        LfeCompMax = 3.2
+        LfeCarrierHz    = 35.0  # system peak, from the sweep above - NOT driver Fs
         LfeHeaveAmp     = 0.55
         LfeHeaveRef     = 12.0  # m/s^2 of heave for full modulation depth
 

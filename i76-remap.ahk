@@ -98,12 +98,28 @@ OnExit, RSGExit
 ;   1=L1 (left paddle)   2=R1 (right paddle)   9=R2    10=L2
 ;   3,4,5,6 = the face cluster (triangle/square/circle/cross)
 ;   7=SHARE/CREATE ("SE")  8=OPTIONS  11=L3  12=R3  13=PS
-; R2 (9) is weapon_link - fire linked groups as ONE event, which is also the
-; engine-native way to fire several hardpoints without the FFB crash (see
-; docs/WHEEL-T300.md).
+; weapon_link - firing linked groups as ONE event, the engine-native way to fire
+; several hardpoints WITHOUT the I7_SFRCE.DLL crash (docs/WHEEL-T300.md) - used to
+; live on R2 (9). It moved to the Fighterstick's pinky button 2026-08-08, so the
+; rule it protects still holds; only its location changed. NEVER replace it with
+; two hardpoint keys on one button.
 gWheelShiftBtn := 6
-gWheelBase := {1: "2", 2: "Enter", 3: "Tab", 4: "Space", 5: "6"
-             , 7: "3", 8: "t", 9: "f", 10: "y", 11: "i", 12: "Space", 13: "g"}
+; REBALANCED 2026-08-08, once the CH Fighterstick took over weapons, targeting and
+; the gearbox (docs/FIGHTERSTICK.md). The wheel is spun with the left hand, so its
+; buttons become the things you reach for WITHOUT looking - lights, horn, ignition -
+; rather than combat controls needing precision:
+;
+;   1  L1 left paddle  hardpoint2  -> LIGHTS    old-school headlight stalk, left hand
+;   9  R2              weapon_link -> HORN      weapon_link moved to the stick's pinky
+;   10 L2              next target -> HORN      targeting is the stick's castle hat now
+;   11 L3              ignition    -> LIGHTS    second lights position, thumb reach
+;   12 R3              handbrake   -> IGNITION  handbrake is the stick pulled back now
+;   13 PS              horn (unchanged)
+;
+; Three horn buttons is deliberate: it is Interstate '76, and the horn wants to be
+; hittable without looking from anywhere on the rim.
+gWheelBase := {1: "h", 2: "Enter", 3: "Tab", 4: "Space", 5: "6"
+             , 7: "3", 8: "t", 9: "g", 10: "g", 11: "h", 12: "i", 13: "g"}
 gWheelAlt  := {1: "LButton", 2: "q", 3: "v", 4: "x", 5: "7"
              , 7: "4", 8: "u", 9: "e", 10: "r", 11: "k", 12: "b", 13: "p"}
 ; NEVER fire two hardpoints from one button. Doing so (left paddle = "LButton|2",
@@ -113,7 +129,11 @@ gWheelAlt  := {1: "LButton", 2: "q", 3: "v", 4: "x", 5: "7"
 ; effects is a case that 1997 code never sees. Use the engine's own weapon_link
 ; (F, on shift+2) to fire groups together instead.
 ; held while the button is held (fire, handbrake); everything else taps once.
-gWheelHoldSet := {2: 1, 4: 1, 12: 1}
+; Button 12 REMOVED from the hold set 2026-08-08. It was the handbrake, which must
+; be held; it is now ignition, which must be TAPPED. Left in place it would have
+; held `i` down for as long as R3 was pressed - a starter motor you cannot release.
+; Changing what a button does means re-checking every table that mentions its number.
+gWheelHoldSet := {2: 1, 4: 1}
 ; REPEAT-tap while held: a held hardpoint digit only fires ONCE in-engine, so
 ; re-tap it every gWheelRepeatTicks polls (~15ms each) for sustained fire.
 ; REPEAT-FIRE DISABLED 2026-08-01. Tapping a hardpoint every ~120ms made
