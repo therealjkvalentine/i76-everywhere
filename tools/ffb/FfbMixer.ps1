@@ -249,7 +249,11 @@ function Mix-DefaultTune {
         LfeEngineMaxHz  = 33.0  # fundamental at LfeEngineRefSpd. Rising toward the
                                 # 35 Hz peak means the engine naturally gains
                                 # presence with speed - the rig doing the work.
-        LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out
+        LfeEngineRefSpd = 40.0  # m/s at which the fundamental tops out (RPM fallback only)
+        # Measured on the dashboard tach via ffb-find-rpm-wide.ps1: the value at
+        # 0x4f2334 settled at 1050 idle and 5998/5999 at full revs.
+        LfeRpmIdle      = 1050.0
+        LfeRpmMax       = 6000.0
         # Source amplitudes raised together. Level has to come from the CONTINUOUS
         # content, not from more drive: peaks were already near full scale while
         # RMS sat 17 dB below, so pushing the limiter harder only squashed the
@@ -771,8 +775,18 @@ function Mix-Update {
         }
         # bass shaker: parametric. EngineFreq tracks speed like a '97 engine note.
         Lfe = [pscustomobject]@{
+            # Driven by REAL RPM now. Speed was only ever a stand-in for it, and a
+            # bad one: it could not fall on an upshift, could not rise against the
+            # brakes, and sat at idle pitch while the engine screamed in neutral.
+            # RPM comes from the FFB effect block at 0x4f2328+0xC - see Tel-Sample.
+            # Falls back to speed if the block has not been filled yet.
             EngineFreq = [math]::Round($Tune.LfeEngineIdleHz + ($Tune.LfeEngineMaxHz - $Tune.LfeEngineIdleHz) *
-                           [math]::Min(1.0, $Sample.Speed / $Tune.LfeEngineRefSpd), 1)
+                           $(if ($Sample.Rpm -gt 0) {
+                                 [math]::Max(0.0, [math]::Min(1.0,
+                                     ($Sample.Rpm - $Tune.LfeRpmIdle) / ($Tune.LfeRpmMax - $Tune.LfeRpmIdle)))
+                             } else {
+                                 [math]::Min(1.0, $Sample.Speed / $Tune.LfeEngineRefSpd)
+                             }), 1)
             EngineAmp  = [math]::Round($Tune.LfeEngineAmp * [math]::Max(0.12, [math]::Abs($Sample.Throttle)) *
                            $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
             RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
