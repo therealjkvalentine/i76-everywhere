@@ -416,8 +416,50 @@ if (mode = "map") {
     Out("`n  NOT ON THE STICK (bound to the keyboard, free to move here)")
     for i, u in UNMAPPED
         Out("  " Pad(u[1], 44) u[2])
-    Out("")
+    bad := ValidateMap()
+    if (bad.Length()) {
+        Out("`n  *** BROKEN - these controls send NOTHING (key name not in the KEY table):")
+        for i, b in bad
+            Out("      " b)
+        Out("")
+        ExitApp, 1
+    }
+    Out("`n  all " (ValidateCount()) " mapped controls resolve to a real key.")
     ExitApp, 0
+}
+
+ValidateCount() {
+    global BTN, POV, AXIS
+    n := POV.Length() + AXIS.Length()
+    Loop, 32
+        if (BTN.HasKey(A_Index))
+            n += 1
+    return n
+}
+
+; Every key name the mapping references MUST exist in KEY. A missing one is not a
+; crash and not a warning - the control simply does nothing, forever, and the only
+; trace is a line in a window nobody is looking at during a mission. Two, Three,
+; Four and Five were absent for a whole play session exactly this way, silently
+; disabling the convex hat and the top red button.
+;
+; Returns the list of offenders. Called at startup (loud, then keeps running,
+; because a partly-working stick beats a stick that refuses to start) and by -map,
+; where it is checked properly.
+ValidateMap() {
+    global BTN, POV, AXIS, KEY
+    bad := []
+    Loop, 32 {
+        if (BTN.HasKey(A_Index) && !KEY.HasKey(BTN[A_Index].key))
+            bad.Push(BTN[A_Index].ctl " -> '" BTN[A_Index].key "'")
+    }
+    for i, p in POV
+        if (!KEY.HasKey(p.key))
+            bad.Push(p.ctl " -> '" p.key "'")
+    for i, a in AXIS
+        if (!KEY.HasKey(a.key))
+            bad.Push(a.ctl " -> '" a.key "'")
+    return bad
 }
 
 Pad(s, n, ch := " ") {
@@ -528,6 +570,18 @@ Menu, Tray, Disable, I76 Fighterstick - right-click to quit
 Menu, Tray, Add
 Menu, Tray, Add, Exit (releases held keys), TrayExit
 Menu, Tray, Default, Exit (releases held keys)
+
+; Shout at startup if any control maps to a key that does not exist. It keeps
+; running - a partly-working stick beats one that refuses to start mid-session -
+; but the failure is now announced instead of being a control that quietly does
+; nothing for an entire play session.
+badMap := ValidateMap()
+if (badMap.Length()) {
+    Out("")
+    Out("  *** WARNING: " badMap.Length() " control(s) send NOTHING - key not in the KEY table:")
+    for i, b in badMap
+        Out("      " b)
+}
 
 Out("")
 Out("  pull back = HANDBRAKE (held)    push forward = REVERSE (while held)")
