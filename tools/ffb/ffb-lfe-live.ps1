@@ -121,7 +121,7 @@ try {
             # Game gone or between missions. Silence rather than a held tone -
             # a stuck drone is worse than nothing and sounds like a crash.
             $live.EngineAmp = 0; $live.RoadAmp = 0
-            $live.ImpulseAmp = 0; $live.WeaponAmp = 0; $live.HeaveAmp = 0
+            $live.ImpulseAmp = 0; $live.WeaponAmp = 0; $live.HeaveAmp = 0; $live.ScrubAmp = 0
             # Same exit test the interposer uses (ffb-interposer.ps1:398).
             if ($ctx.Proc.HasExited) { Write-Host "`nthe game exited." -ForegroundColor Cyan; break }
             Start-Sleep -Milliseconds 200
@@ -137,13 +137,16 @@ try {
         $live.ImpulseAmp = [double]$L.ImpulseAmp
         $live.WeaponAmp  = [double]$L.WeaponAmp
         $live.HeaveAmp   = [double]$(if ($null -ne $L.HeaveAmp) { $L.HeaveAmp } else { 0.0 })
+        # Scrub was computed by the mixer, carried by the bus and rendered by the
+        # DSP - and never assigned here, so sliding was silent no matter what.
+        $live.ScrubAmp   = [double]$(if ($null -ne $L.ScrubAmp) { $L.ScrubAmp } else { 0.0 })
 
         $now = $sw.Elapsed.TotalSeconds
         if ($now - $lastPrint -gt 0.25) {
             $lastPrint = $now
-            Write-Host ("`r  {0,5:0} mph   engine {1,4:0.0}Hz {2,4:0.00}   road {3,4:0.00}   impact {4,4:0.00}   weapon {5,4:0.00}   heave {6,4:0.00}   " -f `
+            Write-Host ("`r  {0,5:0} mph  eng {1,4:0.0}Hz {2,4:0.00}  road {3,4:0.00}  imp {4,4:0.00}  wpn {5,4:0.00}  hv {6,4:0.00}  scr {7,4:0.00}   " -f `
                 $s.SpeedMph, $live.EngineFreq, $live.EngineAmp, $live.RoadAmp,
-                $live.ImpulseAmp, $live.WeaponAmp, $live.HeaveAmp) -NoNewline
+                $live.ImpulseAmp, $live.WeaponAmp, $live.HeaveAmp, $live.ScrubAmp) -NoNewline
         }
         Start-Sleep -Milliseconds $sleepMs
     }

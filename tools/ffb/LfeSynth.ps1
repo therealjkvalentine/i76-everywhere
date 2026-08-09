@@ -266,16 +266,31 @@ public class LfeCore {
 // it interpolates differently, and it fed heave as zero. A probe must run THIS.
 public class LfeSmoother {
   public double sEngF = 25, sEngA, sRoadF = 60, sRoadA, sImpA, sWpnA, sHvA, sScrA;
+  double dImp, dWpn;   // per-sample decay for the peak-held transients
   double kAmp, kFrq, kHv;
   public LfeSmoother(int rate) {
     kAmp = 1.0 - Math.Exp(-1.0 / (0.006 * rate));
     kFrq = 1.0 - Math.Exp(-1.0 / (0.025 * rate));
     kHv  = 1.0 - Math.Exp(-1.0 / (0.040 * rate));
+    // Transients are PEAK-HELD, then decayed, rather than followed.
+    //
+    // The game loop pushes parameters from PowerShell, whose real rate depends on
+    // how long a memory read and a mixer update take - it is not a reliable 60 Hz.
+    // A collision or a gunshot is a ~100 ms envelope, so a slow poll can sample it
+    // once, at any point on its curve, or step over it entirely. Following that
+    // value gives a thump whose size depends on scheduling luck, which is why
+    // impacts and weapons could not be felt.
+    //
+    // Holding the peak and decaying at audio rate makes the thump depend on the
+    // EVENT rather than on when the loop happened to look.
+    dImp = Math.Exp(-1.0 / (0.130 * rate));   // collision: 130 ms tail
+    dWpn = Math.Exp(-1.0 / (0.070 * rate));   // gunshot: shorter, snappier
   }
   public void Advance(double eF, double eA, double rF, double rA,
                       double iA, double wA, double hA, double scA) {
     sEngA += kAmp * (eA - sEngA);  sRoadA += kAmp * (rA - sRoadA);
-    sImpA += kAmp * (iA - sImpA);  sWpnA  += kAmp * (wA - sWpnA);
+    if (iA > sImpA) { sImpA = iA; } else { sImpA *= dImp; }
+    if (wA > sWpnA) { sWpnA = wA; } else { sWpnA *= dWpn; }
     sHvA  += kHv  * (hA - sHvA);   sScrA += kAmp * (scA - sScrA);
     sEngF += kFrq * (eF - sEngF);  sRoadF += kFrq * (rF - sRoadF);
   }

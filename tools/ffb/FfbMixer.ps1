@@ -398,7 +398,12 @@ function Mix-DefaultTune {
         # model: measured vertical velocity peaked at 0.77 m/s across 77 s, so the
         # tick-rate derivative rarely passes 2-3 m/s^2 outside a landing. 12 put
         # full depth somewhere the game never goes.
-        LfeHeaveRef     = 2.5   # m/s^2 of heave for full modulation depth
+        # 2.5 pinned this at full depth constantly. The estimate behind it was
+        # wrong in the other direction: vertical velocity does reach ~0.8 m/s, and
+        # the derivative is taken across ONE 20 Hz tick, so 0.8/0.05 = 16 m/s^2 is
+        # an ordinary reading, not an extreme one. 10.0 leaves normal driving part
+        # way up the range and keeps full depth for genuine landings.
+        LfeHeaveRef     = 10.0  # m/s^2 of heave for full modulation depth
 
         # --- safety ---------------------------------------------------------
         # MIN FORCE - the single most likely reason this read "barely
