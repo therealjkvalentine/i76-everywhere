@@ -212,9 +212,12 @@ BTN[16] := {ctl: "trim LEFT",            act: "SHOW_MAP",             key: "M"}
 ; So if the hat ever stops looking, the first thing to check is Ctrl+Alt+H.
 ; Index order is up/right/down/left to match the sector maths below.
 global POV := []
-POV.Push({ctl: "cone UP",    act: "pilot_glance_up",    key: "GreyUpArrow"})
+; VERTICAL INVERTED 2026-08-08 by field request: pushing the hat up looks DOWN.
+; That is the flight-sim convention (stick forward = nose down) and it is what the
+; hand expects on a grip. Left/right are NOT inverted - only the vertical.
+POV.Push({ctl: "cone UP",    act: "pilot_glance_down",  key: "GreyDownArrow"})
 POV.Push({ctl: "cone RIGHT", act: "pilot_glance_right", key: "GreyRightArrow"})
-POV.Push({ctl: "cone DOWN",  act: "pilot_glance_down",  key: "GreyDownArrow"})
+POV.Push({ctl: "cone DOWN",  act: "pilot_glance_up",    key: "GreyUpArrow"})
 POV.Push({ctl: "cone LEFT",  act: "pilot_glance_left",  key: "GreyLeftArrow"})
 
 ; ---- the ADC ---------------------------------------------------------------
