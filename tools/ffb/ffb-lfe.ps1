@@ -114,6 +114,7 @@ $tA=New-Object double[] $n; $efA=New-Object double[] $n; $eaA=New-Object double[
 $rfA=New-Object double[] $n; $raA=New-Object double[] $n
 $iaA=New-Object double[] $n; $waA=New-Object double[] $n
 $haA=New-Object double[] $n
+$exA=New-Object double[] $n
 $prevT=$null; $prevSpeed=0.0; $longG=0.0; $i=0
 foreach ($r in $raw) {
     $t=[double]$r.t; $sp=[double]$r.speed; $st=[double]$r.steer; $yw=[double]$r.yaw
@@ -154,9 +155,11 @@ foreach ($r in $raw) {
 . (Join-Path $here 'LfeSynth.ps1')
 
 $tune = Mix-DefaultTune
-[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
+[LfeCore]::ScrubHzCfg   = [double]$tune.LfeScrubHz     # must be set BEFORE the core is built
+[LfeCore]::ExplodeHzCfg = [double]$tune.LfeExplodeHz
 Write-Host "synthesising..." -ForegroundColor Cyan
-$pcm = [LfeCore]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$Rate,$Master,$Drive,
+$scAo=New-Object double[] $n
+$pcm = [LfeCore]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$scAo,$exA,$Rate,$Master,$Drive,
                           [double]$tune.LfeEngineJitter,[double]$tune.LfeImpactHz,
                           [double]$tune.LfeWeaponHz,[double]$tune.LfeCarrierHz,
                           $HpHz, $LpHz,

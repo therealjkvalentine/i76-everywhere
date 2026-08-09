@@ -39,7 +39,8 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $OutDir) { $OutDir = Join-Path $here 'trace' }
 if (-not (Test-Path $OutDir)) { $null = New-Item -ItemType Directory -Path $OutDir }
 $tune = Mix-DefaultTune
-[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
+[LfeCore]::ScrubHzCfg   = [double]$tune.LfeScrubHz     # must be set BEFORE the core is built
+[LfeCore]::ExplodeHzCfg = [double]$tune.LfeExplodeHz
 
 
 # Each source at a representative working amplitude, alone.
@@ -51,6 +52,7 @@ $SRC = @(
   @{ N='weapon'; Amp=@{w=[double]$tune.LfeWeaponAmp};  Expect=@([double]$tune.LfeWeaponHz) }
   @{ N='heave';  Amp=@{h=[double]$tune.LfeHeaveAmp};   Expect=@([double]$tune.LfeCarrierHz) }
   @{ N='scrub';  Amp=@{s=[double]$tune.LfeScrubAmp};   Expect=@([double]$tune.LfeScrubHz) }
+  @{ N='blast';  Amp=@{x=[double]$tune.LfeExplodeAmp}; Expect=@([double]$tune.LfeExplodeHz) }
 )
 $TAPS = @(@{T=0;N='sum'}, @{T=1;N='post-HP'}, @{T=2;N='post-LP'})
 
@@ -80,6 +82,7 @@ foreach ($src in $SRC) {
         $wa = Track ([double]$(if ($src.Amp.w) { $src.Amp.w } else { 0.0 })) -Move:$Modulated
         $ha = Track ([double]$(if ($src.Amp.h) { $src.Amp.h } else { 0.0 })) -Move:$Modulated
         $sa = Track ([double]$(if ($src.Amp.s) { $src.Amp.s } else { 0.0 })) -Move:$Modulated
+        $xa = Track ([double]$(if ($src.Amp.x) { $src.Amp.x } else { 0.0 })) -Move:$Modulated
 
         foreach ($lim in @($true, $false)) {
             # $lim=$true means BYPASS: stop before drive/limit/master.
@@ -87,7 +90,7 @@ foreach ($src in $SRC) {
             if (-not $lim -and $tap.T -ne 2) { continue }
             [LfeCore]::RenderTap = $tap.T
             [LfeCore]::RenderBypassLimit = $lim
-            $pcm = [LfeCore]::RenderLive($ef,$ea,$rf,$ra,$ia,$wa,$ha,$sa,
+            $pcm = [LfeCore]::RenderLive($ef,$ea,$rf,$ra,$ia,$wa,$ha,$sa,$xa,
                 $Rate, $FrameHz, $Master, $Drive,
                 [double]$tune.LfeEngineJitter, [double]$tune.LfeImpactHz, [double]$tune.LfeWeaponHz,
                 [double]$tune.LfeCarrierHz, 11.0, 85.0,

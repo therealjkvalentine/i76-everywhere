@@ -45,7 +45,8 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $OutDir) { $OutDir = Join-Path $here 'probe' }
 if (-not (Test-Path $OutDir)) { $null = New-Item -ItemType Directory -Path $OutDir }
 $tune = Mix-DefaultTune
-[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
+[LfeCore]::ScrubHzCfg   = [double]$tune.LfeScrubHz     # must be set BEFORE the core is built
+[LfeCore]::ExplodeHzCfg = [double]$tune.LfeExplodeHz
 
 
 # ---- scenarios -----------------------------------------------------------
@@ -88,6 +89,7 @@ function Render-Scenario {
     $rf=New-Object double[] $n; $ra=New-Object double[] $n
     $ia=New-Object double[] $n; $wa=New-Object double[] $n; $ha=New-Object double[] $n
     $scA=New-Object double[] $n   # NOT $sc - collides with the $Sc parameter
+    $exA=New-Object double[] $n
     $mix = Mix-New
     $prevSpeed = $null
     $rnd = New-Object System.Random 1976
@@ -134,6 +136,7 @@ function Render-Scenario {
         $ia[$i]=[double]$L.ImpulseAmp; $wa[$i]=[double]$L.WeaponAmp
         $ha[$i]=[double]$(if ($null -ne $L.HeaveAmp) { $L.HeaveAmp } else { 0.0 })
         $scA[$i]=[double]$(if ($null -ne $L.ScrubAmp) { $L.ScrubAmp } else { 0.0 })
+        $exA[$i]=[double]$(if ($null -ne $L.ExplodeAmp) { $L.ExplodeAmp } else { 0.0 })
         $prevSpeed = $sp
     }
 
@@ -146,7 +149,7 @@ function Render-Scenario {
     } else { @(@{S='all';K=@()}) }
 
     foreach ($set in $sets) {
-        $e2=$ea.Clone(); $r2=$ra.Clone(); $i2=$ia.Clone(); $w2=$wa.Clone(); $h2=$ha.Clone(); $s2=$scA.Clone()
+        $e2=$ea.Clone(); $r2=$ra.Clone(); $i2=$ia.Clone(); $w2=$wa.Clone(); $h2=$ha.Clone(); $s2=$scA.Clone(); $x2=$exA.Clone()
         foreach ($k in $set.K) {
             switch ($k) {
                 'e' { for ($j=0;$j -lt $n;$j++){$e2[$j]=0.0} }
@@ -155,9 +158,10 @@ function Render-Scenario {
                 'w' { for ($j=0;$j -lt $n;$j++){$w2[$j]=0.0} }
                 'h' { for ($j=0;$j -lt $n;$j++){$h2[$j]=0.0} }
                 's' { for ($j=0;$j -lt $n;$j++){$s2[$j]=0.0} }
+                'x' { for ($j=0;$j -lt $n;$j++){$x2[$j]=0.0} }
             }
         }
-        $pcm = [LfeCore]::RenderLive($ef,$e2,$rf,$r2,$i2,$w2,$h2,$s2,
+        $pcm = [LfeCore]::RenderLive($ef,$e2,$rf,$r2,$i2,$w2,$h2,$s2,$x2,
             $Rate, $FrameHz, $Master, $Drive,
             [double]$tune.LfeEngineJitter, [double]$tune.LfeImpactHz, [double]$tune.LfeWeaponHz,
             [double]$tune.LfeCarrierHz, 11.0, 85.0,
