@@ -31,7 +31,10 @@ param(
     [int]$FrameHz = 60,
     [switch]$Play,
     [int]$Device = -1,
-    [switch]$Solo          # one source at a time, to attribute buzz to a source
+    [switch]$Solo,         # one source at a time, to attribute buzz to a source
+    # Must track the shipped default, or the probe measures a build nobody runs.
+    [double]$Drive = 1.5,
+    [double]$Master = 0.9
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -153,7 +156,7 @@ function Render-Scenario {
             }
         }
         $pcm = [LfeCore]::RenderLive($ef,$e2,$rf,$r2,$i2,$w2,$h2,$s2,
-            $Rate, $FrameHz, 0.9, 2.8,
+            $Rate, $FrameHz, $Master, $Drive,
             [double]$tune.LfeEngineJitter, [double]$tune.LfeImpactHz, [double]$tune.LfeWeaponHz,
             [double]$tune.LfeCarrierHz, 11.0, 85.0,
             [double[]]$tune.LfeRespHz, [double[]]$tune.LfeRespRel, [double]$tune.LfeCompMax)
