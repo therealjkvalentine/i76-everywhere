@@ -25,9 +25,10 @@ using System.Threading;
 public class LfeCore {
   public static LfeCore LastRender;   // so callers can read the meters
   double engPh, roadPh, impPh, wpnPh, jitPh, carPh, noiseLp, noiseLp2, noiseLp3;
+  double noiseLp4, noiseLp5, noiseLp6;
   double scrPh, scrRough;
-  double lpA, lpB, hpA, hpB, hpPrevIn, hpPrevIn2;
-  double kLp, aHp;
+  double lpA, lpB, lpC, hpA, hpB, hpPrevIn, hpPrevIn2;
+  double kLp, aHp, kN2;
   Random rnd = new Random(1976);
   int rate;
   double jitter, impHz, wpnHz, carHz, compMax;
@@ -39,7 +40,12 @@ public class LfeCore {
     this.rate = rate; this.jitter = jitter;
     this.impHz = impHz; this.wpnHz = wpnHz; this.carHz = carHz;
     this.rHz = rHz; this.rRel = rRel; this.compMax = compMax;
-    kLp = 1.0 - Math.Exp(-2.0 * Math.PI * lpHz / rate);
+    kLp = 1.0 - Math.Exp(-2.0 * Math.PI * (lpHz * 1.35) / rate);
+    // The noise bed is the ONLY broadband source in the mix - every other
+    // source is a sine. So it gets the steep filter and the mix does not:
+    // six cascaded one-poles on the output cost 5.2 dB at 52 Hz and 9.2 dB at
+    // 72 Hz, gutting real content to chase a leak from one source.
+    kN2 = 1.0 - Math.Exp(-2.0 * Math.PI * 70.0 / rate);
     double rcHp = 1.0 / (2.0 * Math.PI * hpHz);
     aHp = rcHp / (rcHp + 1.0 / rate);
   }
@@ -122,8 +128,11 @@ public class LfeCore {
     // band and can only rattle. Three gives 18 dB/oct, and with the output
     // low-pass that is 30 dB/oct above 85 Hz.
     noiseLp3 += kN * (noiseLp2 - noiseLp3);
+    noiseLp4 += kN2 * (noiseLp3 - noiseLp4);
+    noiseLp5 += kN2 * (noiseLp4 - noiseLp5);
+    noiseLp6 += kN2 * (noiseLp5 - noiseLp6);
     roadPh += 2 * Math.PI * roadF / rate;
-    sig += roadA * Comp(roadF) * (0.55 * noiseLp3 * 8.0 + 0.45 * Math.Sin(roadPh));
+    sig += roadA * Comp(roadF) * (0.55 * noiseLp6 * 26.0 + 0.45 * Math.Sin(roadPh));
 
     impPh += 2 * Math.PI * impHz / rate;
     sig += impA * Comp(impHz) * Math.Sin(impPh);
@@ -147,9 +156,23 @@ public class LfeCore {
 
     double h1 = aHp * (hpA + sig - hpPrevIn);   hpPrevIn = sig;  hpA = h1;
     double h2 = aHp * (hpB + h1 - hpPrevIn2);   hpPrevIn2 = h1;  hpB = h2;
-    lpA += kLp * (h2 - lpA);
+
+    // SIX POLES, not two. Energy share is the wrong measure of audibility: the
+    // ear is roughly 30 dB more sensitive at 120 Hz than at 40, so a fraction of
+    // a percent of energy up there is more AUDIBLE than everything below it is.
+    // That is why this buzzed while measuring clean, and why a tone sweep does
+    // not buzz - a pure tone has no high-frequency content to leak, whereas
+    // noise, envelopes and limiting all generate some.
+    //
+    // The transducer cannot use anything above ~85 Hz, so steepening from
+    // 12 dB/oct to 36 dB/oct removes what is only ever heard and never felt, and
+    // costs nothing that was doing any work.
+    lpA += kLp * (h2  - lpA);
     lpB += kLp * (lpA - lpB);
-    return lpB;
+    lpC += kLp * (lpB - lpC);
+    // Six cascaded one-poles pull the -3 dB point well below the nominal corner,
+    // so the corner is raised to compensate and the pass band is left alone.
+    return lpC;
   }
 
   // THE LIVE PATH, RENDERED OFFLINE. Same smoother, same per-sample stepping,

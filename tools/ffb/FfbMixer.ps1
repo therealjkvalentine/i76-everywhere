@@ -384,7 +384,12 @@ function Mix-DefaultTune {
                                 # and being AM, its character is rhythm, not pitch,
                                 # so sharing a band costs it least.
         LfeHeaveAmp     = 0.75
-        LfeHeaveRef     = 12.0  # m/s^2 of heave for full modulation depth
+        # WAS 12.0, and heave therefore read as zero all the time. That figure was
+        # guessed from car-physics intuition, but this engine has no suspension
+        # model: measured vertical velocity peaked at 0.77 m/s across 77 s, so the
+        # tick-rate derivative rarely passes 2-3 m/s^2 outside a landing. 12 put
+        # full depth somewhere the game never goes.
+        LfeHeaveRef     = 2.5   # m/s^2 of heave for full modulation depth
 
         # --- safety ---------------------------------------------------------
         # MIN FORCE - the single most likely reason this read "barely
@@ -647,7 +652,14 @@ function Mix-Update {
     # Fired from the velocity-vector discontinuity, which catches glancing hits
     # that barely change speed. Direction comes from which way the car was
     # rotated by the hit, so a hit on the left kicks the wheel left.
-    if ($Sample.Jolt -gt $Tune.ImpactRef * 0.25 -and $Mix.LastJolt -le $Tune.ImpactRef * 0.25) {
+    # Threshold was 0.25 * ImpactRef = 50 m/s^2, i.e. 5 g. Almost nothing in
+    # normal play reaches 5 g, so the impact channel read zero essentially always
+    # - including for the kerb strikes and glancing hits that a driver most wants
+    # confirmed. 0.08 * ImpactRef = 16 m/s^2 (1.6 g) still sits well above the
+    # residual roughness that feeds the road bed (p99 11.8), so the two do not
+    # trade places; it just stops reserving the channel for head-on crashes.
+    $impThresh = $Tune.ImpactRef * 0.08
+    if ($Sample.Jolt -gt $impThresh -and $Mix.LastJolt -le $impThresh) {
         $mag = [math]::Min(1.0, $Sample.Jolt / $Tune.ImpactRef)
         $dir = if ([math]::Abs($Sample.YawRate) -gt 0.05) { [math]::Sign($Sample.YawRate) } else { 1 }
         Mix-Trigger $Mix 'jolt' ($dir * $mag * $Tune.ImpactGain) $Tune.ImpactMs
