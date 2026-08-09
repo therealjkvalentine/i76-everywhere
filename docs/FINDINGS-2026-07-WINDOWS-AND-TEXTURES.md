@@ -119,6 +119,36 @@ Verified findings:
   `FullscreenAttributes = fake` (screen-size borderless window) keeps the
   fullscreen look and lets the dialogs show on top — now the shipped default.
 
+  **STILL BROKEN AS OF 2026-08-08, with that fix in place — OPEN.** Reported live:
+  "rename variant to save", "are you sure you want to exit without salvage" and
+  "overwrite an existing bookmark" still cannot be interacted with, or the game
+  appears to freeze — the reporter could not tell which. Verified on the live
+  config that both documented settings are already correct:
+
+  ```
+  FullScreenMode        = false
+  FullscreenAttributes  = fake
+  ```
+
+  So this is **not** the exclusive-fullscreen deadlock above. Leading hypothesis,
+  untested: the session is launched through `PLAY-with-FrameGen.bat`, which starts
+  **Lossless Scaling**, and LS presents through a *borderless overlay window*
+  (§2). An always-on-top overlay would sit over a modal dialog exactly like the
+  fullscreen surface used to — you would see LS's last interpolated frames, which
+  reads as a freeze, while the real dialog waits underneath for a click it never
+  gets.
+
+  **The decisive test costs one launch:** start with `PLAY.bat` instead of
+  `PLAY-with-FrameGen.bat` (no Lossless Scaling) and trigger any of those dialogs.
+  If they behave, the overlay is the cause and the fix belongs in LS's settings or
+  in suppressing the overlay while a dialog is up. If they still misbehave, the
+  next suspect is `CaptureMouse = true` in `dgVoodoo.conf` confining the pointer
+  away from a separate top-level dialog window — `FreeMouse = true` is the
+  conf-only escape hatch for exactly that kind of debugging.
+
+  Recorded rather than guessed at, because the last time this symptom appeared the
+  cause was two layers away from where it looked.
+
 ### 1.1 The Nitro Pack runs with the identical recipe (verified 2026-07-10)
 
 GOG ships the Nitro Pack as a **standalone game** (own `nitro.exe`, 68 MB

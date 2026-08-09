@@ -176,7 +176,7 @@ CMS on 13–16.
 | 1 | trigger | `weapon_fire` | `Enter` |
 | 2 | top red — **pickle** | `hardpoint2_fire` | `2` |
 | 3 | back-side red — **also the mode switch** | `special1` (nitrous) | `6` |
-| 4 | pinky red | `weapon_link` | `F` |
+| 4 | pinky red | `pilot_glance_target` — snap-look at the target | `E` |
 | **5–8** | **convex serrated — DIRECT FIRE** | `hardpoint2` / `3` / `4` / `5` `_fire` | `2` `3` `4` `5` |
 | **9–12** | **castle — targeting** | `frontal_target` / `NEXT_TARGET` / `TARGET_NEAREST_ENEMY` / `RADAR_RANGE_TOGGLE` | `Q` `Y` `T` `R` |
 | **13–16** | **trim — displays + nitrous** | `special1` / `SHOW_NOTEPAD` / `toggle_cmbt_view` / `SHOW_MAP` | `6` `N` `V` `M` |
@@ -331,29 +331,57 @@ The pattern here is meant to be copied, not reinvented for the next device:
 Stated plainly, because this repo's history is full of retractions for skipping
 field tests.
 
-**Confirmed in the game** (2026-08-08): the trigger, the castle hat, the trim hat,
-the convex serrated hat's direct fire, and the cone hat's glance all work in a
-mission. So the whole question of whether the 1997 engine accepts synthesised keys
-is settled — it does. The injection path was already verified separately (scancode
-`0x14` → `VK_T`, extended `0xE0,0x48` → `VK_UP`, round-tripped through
-`GetAsyncKeyState`); now the engine's acceptance of it is too.
+**Confirmed in the game**, 2026-08-08, control by control:
+
+| control | result |
+|---|---|
+| trigger — `weapon_fire` | ✅ fires |
+| convex serrated hat — hardpoints 2–5 | ✅ fires, after the key-table fix |
+| castle hat — targeting | ✅ all four directions |
+| trim hat — displays + nitrous | ✅ all four directions |
+| `special1` (button 3 and trim UP) | ✅ nitrous fires from both |
+| cone hat — glance | ✅ looks, after the `pov`/`POV` fix |
+| stick axes — handbrake / reverse / shifts | ✅ and no longer shifting by accident |
+| wheel horn — held | ✅ sounds for as long as it is held |
+| buttons 17–19 | ✖ do not exist physically — see below |
+| mode switch renumbering | ✖ does not happen — see below |
+
+So the last open question from when this was built — **whether the 1997 engine
+accepts synthesised keys at all** — is settled. It does. The injection path was
+verified separately (scancode `0x14` → `VK_T`, extended `0xE0,0x48` → `VK_UP`,
+round-tripped through `GetAsyncKeyState`); now the engine's acceptance of it is too.
 
 **Measured on the hardware**: every button number 1–16, the up → right → down →
 left order within each hat, and the cone hat being a true 8-way POV channel.
 
+### Buttons 17–19 do not exist, and the mode switch does not renumber
+
+Both settled in the field, and both retract things this document previously
+warned about.
+
+**winmm reports 19 buttons; the stick physically has 16.** There is no 17th, 18th
+or 19th control to press. The single unattributed "button 18" seen once during
+`-learn` was a phantom — a driver-reported capability with nothing behind it, not a
+control waiting to be identified. Chasing it further would be chasing nothing.
+
+**The 3-position mode switch does NOT renumber the buttons on this unit.** This
+document said repeatedly that it would, on the strength of CH sticks' general
+reputation, and warned that binding button 3 was therefore risky. Tested: cycling
+the mode changes the base LED and nothing else. The mapping is stable across all
+three positions, so binding button 3 to nitrous costs nothing beyond firing nitrous
+when you change mode.
+
+A reputation is not a measurement. This one cost three separate warnings in this
+file before anyone pressed the switch and looked.
+
 **Still not established:**
 
-1. **Buttons 17, 18 and 19.** Button 18 has fired once, unattributed; 17 and 19
-   never have (winmm reports 19 in total). The 3-position mode switch is the likely
-   answer, and it matters because on CH sticks the mode silently renumbers
-   everything. Button 3 being bound makes this more worth pinning down, not less.
-2. **Whether the two back reds do anything visible.** `special1` needs nitrous
-   actually fitted to the car, and `weapon_link` changes how firing groups rather
-   than producing an obvious effect — so "nothing happened" is not evidence they
-   are broken. Check them with `-whatif`, which names the action regardless.
-3. **Whether the widened thresholds are right.** 45/55 was a considered step up
+1. **Whether the widened thresholds are right.** 45/55 was a considered step up
    from 35, not a measured optimum. `THRESH`/`THRESH_X` at the top of the script;
    one "click" is 0.10.
+2. **Whether `weapon_link` was worth its slot.** It has moved off the pinky (now
+   `pilot_glance_target`) and is not on the stick at all — it is on the wheel's
+   shift layer and keyboard `F`.
 
 ### Why scan codes
 
