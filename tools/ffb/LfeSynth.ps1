@@ -309,6 +309,16 @@ public class LfeOut {
   [DllImport("winmm.dll")] public static extern uint waveOutOpen(
     out IntPtr h, int devId, ref WAVEFORMATEX fmt, IntPtr cb, IntPtr inst, uint flags);
   [DllImport("winmm.dll")] public static extern uint waveOutPrepareHeader(IntPtr h, ref WAVEHDR hdr, uint sz);
+  // IntPtr overloads. waveOutWrite is ASYNCHRONOUS - the driver keeps the WAVEHDR
+  // pointer and writes WHDR_DONE back into it when the buffer finishes. A managed
+  // struct cannot serve: the GC may move it, and the marshaller may hand the
+  // driver a temporary copy, so its status updates never reach the memory we read.
+  [DllImport("winmm.dll", EntryPoint="waveOutPrepareHeader")]
+  public static extern uint waveOutPrepareHeaderP(IntPtr h, IntPtr hdr, uint sz);
+  [DllImport("winmm.dll", EntryPoint="waveOutWrite")]
+  public static extern uint waveOutWriteP(IntPtr h, IntPtr hdr, uint sz);
+  [DllImport("winmm.dll", EntryPoint="waveOutUnprepareHeader")]
+  public static extern uint waveOutUnprepareHeaderP(IntPtr h, IntPtr hdr, uint sz);
   [DllImport("winmm.dll")] public static extern uint waveOutWrite(IntPtr h, ref WAVEHDR hdr, uint sz);
   [DllImport("winmm.dll")] public static extern uint waveOutUnprepareHeader(IntPtr h, ref WAVEHDR hdr, uint sz);
   [DllImport("winmm.dll")] public static extern uint waveOutReset(IntPtr h);
@@ -381,7 +391,8 @@ public class LfeLive {
   Thread th;
   volatile bool running;
   int rate, bufSamples, nBuf;
-  byte[][] bufs; GCHandle[] pins; LfeOut.WAVEHDR[] hdrs;
+  byte[][] bufs; GCHandle[] pins; IntPtr[] hdrPtr; int flagsOff, hdrSize;
+  public long WriteErrors = 0;
 
   public string Start(int devId, int rate, double jitter, double impHz, double wpnHz,
                       double carHz, double hpHz, double lpHz,
@@ -394,17 +405,23 @@ public class LfeLive {
     uint r = LfeOut.waveOutOpen(out h, devId, ref f, IntPtr.Zero, IntPtr.Zero, 0);
     if (r != 0) { h = IntPtr.Zero; return "waveOutOpen failed, code " + r; }
 
-    bufs = new byte[nBuf][]; pins = new GCHandle[nBuf]; hdrs = new LfeOut.WAVEHDR[nBuf];
-    int sz = Marshal.SizeOf(typeof(LfeOut.WAVEHDR));
+    bufs = new byte[nBuf][]; pins = new GCHandle[nBuf]; hdrPtr = new IntPtr[nBuf];
+    hdrSize = Marshal.SizeOf(typeof(LfeOut.WAVEHDR));
+    flagsOff = (int)Marshal.OffsetOf(typeof(LfeOut.WAVEHDR), "dwFlags");
     for (int i = 0; i < nBuf; i++) {
       bufs[i] = new byte[bufSamples * 2];
       pins[i] = GCHandle.Alloc(bufs[i], GCHandleType.Pinned);
-      hdrs[i] = new LfeOut.WAVEHDR();
-      hdrs[i].lpData = pins[i].AddrOfPinnedObject();
-      hdrs[i].dwBufferLength = (uint)(bufSamples * 2);
-      uint pr = LfeOut.waveOutPrepareHeader(h, ref hdrs[i], (uint)sz);
+      var hd = new LfeOut.WAVEHDR();
+      hd.lpData = pins[i].AddrOfPinnedObject();
+      hd.dwBufferLength = (uint)(bufSamples * 2);
+      // Unmanaged, and never freed until Stop: the driver and this thread must
+      // read and write the SAME bytes, or WHDR_DONE is invisible here.
+      hdrPtr[i] = Marshal.AllocHGlobal(hdrSize);
+      Marshal.StructureToPtr(hd, hdrPtr[i], false);
+      uint pr = LfeOut.waveOutPrepareHeaderP(h, hdrPtr[i], (uint)hdrSize);
       if (pr != 0) return "prepareHeader failed, code " + pr;
-      hdrs[i].dwFlags |= 0x00000001;   // WHDR_DONE: free, so the thread fills it
+      Marshal.WriteInt32(hdrPtr[i], flagsOff,
+        Marshal.ReadInt32(hdrPtr[i], flagsOff) | 0x00000001);   // WHDR_DONE = free
     }
     running = true;
     th = new Thread(Loop); th.IsBackground = true;
@@ -414,12 +431,14 @@ public class LfeLive {
   }
 
   void Loop() {
-    int sz = Marshal.SizeOf(typeof(LfeOut.WAVEHDR));
     while (running) {
       bool filled = false;
+      int inflight = 0;
       for (int i = 0; i < nBuf && running; i++) {
+        // Read the flags the DRIVER wrote, from the shared unmanaged header.
+        int fl = Marshal.ReadInt32(hdrPtr[i], flagsOff);
         // WHDR_INQUEUE (0x10) still playing; WHDR_DONE (0x01) free to refill
-        if ((hdrs[i].dwFlags & 0x00000010) != 0) continue;
+        if ((fl & 0x00000010) != 0) { inflight++; continue; }
         for (int k = 0; k < bufSamples; k++) {
           // amplitudes track quickly (transients must stay sharp), frequencies
           // slowly (a swept tone should glide, not stair-step) - see LfeSmoother
@@ -431,13 +450,18 @@ public class LfeLive {
           short s = (short)(v * 32767);
           bufs[i][k*2] = (byte)(s & 0xFF); bufs[i][k*2+1] = (byte)((s >> 8) & 0xFF);
         }
-        hdrs[i].dwFlags &= ~0x00000001u;   // clear DONE before re-queueing
-        LfeOut.waveOutWrite(h, ref hdrs[i], (uint)sz);
+        Marshal.WriteInt32(hdrPtr[i], flagsOff, fl & ~0x00000001);  // clear DONE
+        uint wr = LfeOut.waveOutWriteP(h, hdrPtr[i], (uint)hdrSize);
+        // Never ignore this again. WAVERR_STILLPLAYING (33) here means the queue
+        // state was misread, which is precisely the failure that made the stream
+        // glitch and then stop.
+        if (wr != 0) WriteErrors++;
         filled = true;
       }
-      // Every buffer still in flight: sleep briefly. If NOTHING was in flight we
-      // had already run dry, which is the underrun worth counting.
-      if (!filled) Thread.Sleep(1); else Thread.Sleep(0);
+      // Nothing in flight means the device has run dry - a real underrun, and an
+      // audible click every time it happens.
+      if (inflight == 0 && filled) Underruns++;
+      Thread.Sleep(filled ? 0 : 1);
     }
   }
 
@@ -446,9 +470,11 @@ public class LfeLive {
     if (th != null) th.Join(500);
     if (h != IntPtr.Zero) {
       LfeOut.waveOutReset(h);
-      int sz = Marshal.SizeOf(typeof(LfeOut.WAVEHDR));
       for (int i = 0; i < nBuf; i++) {
-        LfeOut.waveOutUnprepareHeader(h, ref hdrs[i], (uint)sz);
+        if (hdrPtr[i] != IntPtr.Zero) {
+          LfeOut.waveOutUnprepareHeaderP(h, hdrPtr[i], (uint)hdrSize);
+          Marshal.FreeHGlobal(hdrPtr[i]); hdrPtr[i] = IntPtr.Zero;
+        }
         if (pins[i].IsAllocated) pins[i].Free();
       }
       LfeOut.waveOutClose(h); h = IntPtr.Zero;

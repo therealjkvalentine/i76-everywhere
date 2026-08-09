@@ -39,6 +39,8 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $OutDir) { $OutDir = Join-Path $here 'trace' }
 if (-not (Test-Path $OutDir)) { $null = New-Item -ItemType Directory -Path $OutDir }
 $tune = Mix-DefaultTune
+[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
+
 
 # Each source at a representative working amplitude, alone.
 $SRC = @(
