@@ -47,6 +47,25 @@ Rules for ANY control change:
 Full control-design doctrine: docs/CONTROL-DOCTRINE.md. Binding reference:
 docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
 
+## Engine reference: what we know about I'76's internals
+
+**`../i76-uncap-lab/docs/ENGINE-REFERENCE.md`** is the consolidated map of the engine — read it
+before any new RE, trainer, mod, FFB or motion-sim work. It covers, with per-claim confidence
+tags and how each was established:
+
+- **Memory map** — the world position table for *every* vehicle (`0x54E11C`, stride 0x20, no
+  pointer chase), the player entity chain and its velocity/controls offsets, the camera and eye
+  transform, the FFB effect block (including a ready-made frame-time source at `+0x160`), and
+  the entity/group tables.
+- **Frame loop and render seam** — where the sim advances, where the scene is drawn, and the
+  present function pointer that can be hooked without patching code.
+- **Physics** — measured, not assumed: gravity is dt-correct (−9.89 at 20 Hz vs −9.74 m/s² at
+  60 Hz), acceleration curves are indistinguishable across frame rates, weapon cadence is
+  timer-driven. **The "high FPS breaks I'76" lore did not reproduce.** The gravity constant is
+  an immediate at `0x43A6A1`, which is why data watchpoints never catch it.
+- **Handling model** — the fitted yaw-rate equation and its constants.
+- **13 traps that produce wrong data rather than errors**, each of which cost real time.
+
 ## Automated testing: you can drive the game from a script
 
 **`../i76-uncap-lab/autotest/` — read its README before doing anything interactive with the
