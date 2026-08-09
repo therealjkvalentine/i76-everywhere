@@ -47,6 +47,18 @@ Rules for ANY control change:
 Full control-design doctrine: docs/CONTROL-DOCTRINE.md. Binding reference:
 docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
 
+## Community resources: check before reverse-engineering
+
+**[docs/COMMUNITY-RESOURCES.md](docs/COMMUNITY-RESOURCES.md)** indexes the published work on
+this game **by the problem it solves** — weapon and car stats, level heightmaps and the tools
+that render them, editing/modding downloads, and gameplay doctrine. People have been taking
+I'76 apart since 2000; a question that looks open is often already answered.
+
+**[docs/WEAPON-STATS.md](docs/WEAPON-STATS.md)** mirrors the full weapon table locally (rate of
+fire, range, projectile speed, weight, ammo, damage). Its ammo figures matched the values read
+out of the live game **eight for eight**, which is why it doubles as a **search oracle**: when
+hunting an unknown field, the published number tells you what to look for.
+
 ## Engine reference: what we know about I'76's internals
 
 **`../i76-uncap-lab/docs/ENGINE-REFERENCE.md`** is the consolidated map of the engine — read it
