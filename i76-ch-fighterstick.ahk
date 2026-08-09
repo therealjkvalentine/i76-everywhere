@@ -621,10 +621,23 @@ Poll:
     ; castle hat: head-look, held while deflected. AHK gives -1 when centred and
     ; 0..35900 centidegrees otherwise. Folded into 4 sectors so the 8-way diagonals
     ; fall through to the nearer cardinal rather than doing nothing.
-    pov := GetKeyState(DEV . "JoyPOV")
+    ; povRaw, NOT pov. AHK VARIABLE NAMES ARE CASE-INSENSITIVE, so a local `pov`
+    ; IS the global `POV` array - and `pov := GetKeyState(...)` overwrote the whole
+    ; cone-hat table with a number on the first poll tick. Every lookup after that
+    ; returned nothing, so the hat sent "" forever and the log filled with
+    ;     no key mapping for ''
+    ; The hat could never have worked, in any head-tracking mode; the mode was a
+    ; red herring I chased twice.
+    ;
+    ; This is the SAME BUG CLASS as tools/ffb's $T/$t collision, where a PowerShell
+    ; tune table was replaced by a number and every gain silently became null.
+    ; Both languages are case-insensitive; both hid it until something downstream
+    ; read an empty value. When a collection mysteriously empties, suspect a
+    ; case-variant assignment before suspecting the reader.
+    povRaw := GetKeyState(DEV . "JoyPOV")
     povIx := -1
-    if (pov >= 0)
-        povIx := Mod(Round(pov / 9000), 4)
+    if (povRaw >= 0)
+        povIx := Mod(Round(povRaw / 9000), 4)
     ; HELD while deflected, because this is glance: you look for as long as you hold
     ; the hat, which is the whole point of being able to shoot out of the side.
     ; Releasing the previous direction first means a diagonal sweep can never leave
@@ -684,14 +697,16 @@ LearnPoll:
     ; distinctly, because CH's own docs suggest it may appear as button IDs up to
     ; 24 "depending on configuration", and which of those is true here decides
     ; whether the castle hat needs button handling or POV handling.
-    pov := GetKeyState(DEV . "JoyPOV")
-    if (pov != prevPov) {
-        if (pov >= 0) {
+    ; povRaw, not pov - see the note in Poll. A local `pov` clobbers the global POV
+    ; array, and -learn got away with it only because it never reads that array.
+    povRaw := GetKeyState(DEV . "JoyPOV")
+    if (povRaw != prevPov) {
+        if (povRaw >= 0) {
             seq += 1
             dirs := ["UP", "up-right", "RIGHT", "down-right", "DOWN", "down-left", "LEFT", "up-left"]
-            Out("  #" seq "`tPOV hat`t-> " Round(pov / 100) " deg  (" dirs[Mod(Round(pov / 4500), 8) + 1] ")")
+            Out("  #" seq "`tPOV hat`t-> " Round(povRaw / 100) " deg  (" dirs[Mod(Round(povRaw / 4500), 8) + 1] ")")
         }
-        prevPov := pov
+        prevPov := povRaw
     }
 return
 
