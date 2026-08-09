@@ -82,20 +82,33 @@ What it gives you:
   **every vehicle's world position** (`0x54E11C`, stride 0x20). Memory reads are exact and
   ~1000× cheaper than screenshots; prefer them for all verification.
 - `autotest/lib/inputlib.ps1` / `maplib.ps1` / `focuslib.ps1` — key + mouse injection, the
-  screen→game cursor mapping, and window focusing.
+  cursor mapping and cropped screen capture, and window focusing.
 - `tools/physics-trace.ps1` + `tools/trace-diff.py` — deterministic scripted-input traces and a
   checkpoint diff, so physics claims are settled with numbers.
 
-Four traps that produce **wrong data rather than errors** (full list in the README):
+**Check the config before reverse-engineering:
+[`../i76-uncap-lab/docs/CONFIG-OPTIONS.md`](../i76-uncap-lab/docs/CONFIG-OPTIONS.md)** indexes
+every `dgVoodoo.conf` knob **by symptom**, and — critically — **which section each must live in**
+(dgVoodoo silently ignores a key in the wrong section). Two problems that cost hours of
+debugger work were one config line each. It also documents the DLL's runtime control file.
 
-1. **I'76 freezes its simulation when its window loses focus** while still rendering — every
-   sample taken then is stale. Focus first (`Force-Foreground`), and verify a value is changing.
-2. **Screenshots of an unfocused game return the last focused frame** (dgVoodoo/Glide), so
-   captures come back byte-identical and look like "nothing happened".
-3. **The menu cursor is not 1:1 with the screen** — it maps into the game's internal space
-   anchored at the screen's upper-left. Use `Click-Screen`; recalibrate if resolution changes.
-4. **NaN defeats range filters** in memory scans (`x < lo -or x > hi` never skips NaN) — use
+Clicking the menus is now **screenshot → read coordinate → click it**: the OS cursor position
+*is* the engine's 640x480 UI coordinate, 1:1. `Capture-UI` crops to the game and rescales so one
+image pixel is one cursor unit; `Click-UI` takes the number you read off it. Do **not** re-fit
+cursor calibration constants — two earlier fits were wrong, both because the *measurement*
+captured through a distorted aspect ratio.
+
+Traps that produce **wrong data rather than errors** (full list in the README):
+
+1. **NaN defeats range filters** in memory scans (`x < lo -or x > hi` never skips NaN) — use
    `abs(x - target) <= tol`.
+2. **`VirtualQueryEx` needs `PROCESS_QUERY_INFORMATION`** — with `VM_READ` alone it enumerates
+   *zero* regions and silently dumps empty files.
+3. **Discrete key taps aren't comparable across frame rates** — they faked a 48-vs-25 m/s
+   difference. Use continuous holds, or write the input block directly.
+4. *(Historical, both fixed — see CONFIG-OPTIONS.md)* the game freezing and screenshots going
+   stale while unfocused was `EnableInactiveAppState` being in the wrong section, **not** an
+   engine limitation.
 
 ## Other hard-won invariants
 
