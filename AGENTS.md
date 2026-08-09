@@ -47,6 +47,37 @@ Rules for ANY control change:
 Full control-design doctrine: docs/CONTROL-DOCTRINE.md. Binding reference:
 docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
 
+## Automated testing: you can drive the game from a script
+
+**`../i76-uncap-lab/autotest/` — read its README before doing anything interactive with the
+game.** It is a working harness for launching I'76, navigating its menus, sending control
+input, and reading game state out of memory, all unattended. Built during the 60 FPS work
+(`../i76-uncap-lab/`, a sandbox copy of the install — the playable install is never touched).
+
+What it gives you:
+
+- `autotest/enter-melee.ps1` — cold launch → intro skip → menus → a drivable mission, verified
+  by memory rather than by screenshot. Also documents the TRIP-campaign route when you need
+  other moving vehicles (mission 1 = "keep up with Taurus").
+- `autotest/lib/memlib.ps1` — read speed, velocity (**`VY` = fall speed**), yaw, controls, and
+  **every vehicle's world position** (`0x54E11C`, stride 0x20). Memory reads are exact and
+  ~1000× cheaper than screenshots; prefer them for all verification.
+- `autotest/lib/inputlib.ps1` / `maplib.ps1` / `focuslib.ps1` — key + mouse injection, the
+  screen→game cursor mapping, and window focusing.
+- `tools/physics-trace.ps1` + `tools/trace-diff.py` — deterministic scripted-input traces and a
+  checkpoint diff, so physics claims are settled with numbers.
+
+Four traps that produce **wrong data rather than errors** (full list in the README):
+
+1. **I'76 freezes its simulation when its window loses focus** while still rendering — every
+   sample taken then is stale. Focus first (`Force-Foreground`), and verify a value is changing.
+2. **Screenshots of an unfocused game return the last focused frame** (dgVoodoo/Glide), so
+   captures come back byte-identical and look like "nothing happened".
+3. **The menu cursor is not 1:1 with the screen** — it maps into the game's internal space
+   anchored at the screen's upper-left. Use `Click-Screen`; recalibrate if resolution changes.
+4. **NaN defeats range filters** in memory scans (`x < lo -or x > hi` never skips NaN) — use
+   `abs(x - target) <= tol`.
+
 ## Other hard-won invariants
 
 - The joystick device token is **`joystick1`** — bare `Joystick` is DEAD
