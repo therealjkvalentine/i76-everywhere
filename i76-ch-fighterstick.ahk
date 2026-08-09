@@ -170,7 +170,7 @@ BTN[2]  := {ctl: "top red (pickle)",     act: "hardpoint2_fire",      key: "Two"
 ; under the thumb, but if the stick's numbering ever seems to shift, this is the
 ; control that did it - re-run -learn.
 BTN[3]  := {ctl: "back-side (MODE)",   act: "special1",             key: "Six"}
-BTN[4]  := {ctl: "pinky red",            act: "weapon_link",          key: "F"}
+BTN[4]  := {ctl: "pinky red",            act: "pilot_glance_target",  key: "E"}
 ; --- convex serrated hat = DIRECT FIRE, one hardpoint per direction ---
 ; ONE hardpoint per direction, never two from one control: firing two weapon
 ; effects from a single press is what crashed I7_SFRCE.DLL on 2026-08-01.
