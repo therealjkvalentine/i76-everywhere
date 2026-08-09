@@ -40,12 +40,30 @@
                                         entity at +0x70, so this is the per-event
                                         path where weapon and impact effects live
 
-  Field semantics inside the block are NOT yet decoded - which is exactly what
-  this tool is for. Fire a weapon, blow a tyre, hit a wall, and see which dwords
-  move.
+  Field semantics inside the block are mostly NOT yet decoded - which is exactly
+  what this tool is for. Fire a weapon, blow a tyre, hit a wall, and see which
+  dwords move.
+
+  ONE FIELD IS NOW DECODED: +0x0C is ENGINE RPM (0x4f2334). Found by
+  ffb-find-rpm-wide.ps1, which alternated idle/full-revs/idle/full-revs in
+  neutral and watched the whole of memory: it read 1050 -> 5998 -> 1050 -> 5999
+  against a dashboard tach showing roughly 1.4k -> 6.1k, and nothing else among
+  794 survivors read in rpm units.
+
+  That it lives HERE is the interesting part. This block is the game's own force
+  feedback input, so the native FFB has been reading engine speed all along -
+  and every scan of the vehicle entity was bound to miss it, because RPM is not
+  in the entity.
+
+  -Tach prints just that number, big and repeatedly, so it can be checked against
+  the needle without the interposer taking over the wheel:
+
+      tools\ffb\ffb-watch-effects.ps1 -Tach
 #>
+
 param(
     [switch]$Dump,
+    [switch]$Tach,
     [string]$Log = "",
     [int]$HZ = 60,
     [int]$Seconds = 0
@@ -89,6 +107,34 @@ if ($Dump) {
         Write-Host $line
     }
     Tel-Close $ctx; return
+}
+
+# ---- -Tach: just the number, so the needle can confirm it ------------------
+# RPM was identified by a memory scan rather than a decompile, so the dashboard
+# tachometer is the only thing that can actually verify it. This reads the same
+# block as everything else here and never opens the wheel, so it can run
+# alongside a normal game session with no risk of holding the FFB device.
+if ($Tach) {
+    Write-Host "Live RPM from 0x4f2334 (block +0x0C). Compare with the dashboard tach." -ForegroundColor Yellow
+    Write-Host "Ctrl+C to stop." -ForegroundColor Yellow
+    Write-Host ""
+    $lo = [int]::MaxValue; $hi = [int]::MinValue
+    while ($true) {
+        $n2 = 0
+        if ([I76Tel]::ReadProcessMemory($ctx.H, [IntPtr]$BLOCK, $buf, $SIZE, [ref]$n2)) {
+            $rpm = [BitConverter]::ToInt32($buf, 0x0C)
+            if ($rpm -ge 0 -and $rpm -le 20000) {
+                if ($rpm -lt $lo) { $lo = $rpm }
+                if ($rpm -gt $hi) { $hi = $rpm }
+                # A bar as well as the number: a needle is easier to compare
+                # against something that also sweeps.
+                $bars = [int]([math]::Min(1.0, $rpm / 7000.0) * 50)
+                Write-Host ("`r  {0,5} rpm  [{1}{2}]  seen {3}..{4}   " -f `
+                    $rpm, ('#' * $bars), ('.' * (50 - $bars)), $lo, $hi) -NoNewline
+            }
+        }
+        Start-Sleep -Milliseconds ([int](1000 / $HZ))
+    }
 }
 
 $prev = $buf.Clone()
