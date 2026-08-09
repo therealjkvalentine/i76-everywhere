@@ -45,6 +45,8 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $OutDir) { $OutDir = Join-Path $here 'probe' }
 if (-not (Test-Path $OutDir)) { $null = New-Item -ItemType Directory -Path $OutDir }
 $tune = Mix-DefaultTune
+[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
+
 
 # ---- scenarios -----------------------------------------------------------
 # Each returns the driving state at time t. Speed and throttle are what a driver

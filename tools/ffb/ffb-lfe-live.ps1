@@ -79,6 +79,7 @@ Write-Host ("telemetry OK - entity 0x{0:X8}" -f $ctx.Ent) -ForegroundColor Green
 $devs = [LfeOut]::Devices()
 $devName = if ($Device -lt 0 -or $Device -ge $devs.Count) { 'system default' } else { $devs[$Device] }
 
+[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
 $live = New-Object LfeLive
 $err = $live.Start($Device, $Rate,
     [double]$tune.LfeEngineJitter, [double]$tune.LfeImpactHz, [double]$tune.LfeWeaponHz,

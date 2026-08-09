@@ -154,6 +154,7 @@ foreach ($r in $raw) {
 . (Join-Path $here 'LfeSynth.ps1')
 
 $tune = Mix-DefaultTune
+[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
 Write-Host "synthesising..." -ForegroundColor Cyan
 $pcm = [LfeCore]::Render($tA,$efA,$eaA,$rfA,$raA,$iaA,$waA,$haA,$Rate,$Master,$Drive,
                           [double]$tune.LfeEngineJitter,[double]$tune.LfeImpactHz,
