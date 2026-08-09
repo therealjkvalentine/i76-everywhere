@@ -180,7 +180,12 @@ function Mix-DefaultTune {
         # natural break; it yields 6 events on the same drive, matching five
         # distinct collisions at t = 14.1, 17.0, 23.3, 28.6 and 34.6 s.
         # Full scale at 200 leaves the biggest observed hit (579) saturating.
-        ImpactRef     = 200.0  # jolt treated as a full-scale impact; trigger at 25% of this
+        # 200 m/s^2 is 20 g - nothing in this game reaches it, so even a heavy
+        # crash only ever asked for a third of the channel. Measured jolt topped
+        # out at 127 across a drive with collisions. 70 lets an ordinary collision
+        # actually saturate, which is what "a crash should be the biggest thing
+        # that happens" requires.
+        ImpactRef     = 70.0  # jolt treated as a full-scale impact; trigger at 25% of this
         ImpactMs      = 260    # decay time of an impact
         KerbGain      = 2500
 
@@ -315,16 +320,24 @@ function Mix-DefaultTune {
         # weapon 1.95 - both over twice the knee, so the loudest events in the mix
         # were also the most distorted. A collision may sit hardest against the
         # ceiling of anything here, but it should arrive, not crunch.
-        LfeImpactAmp    = 0.82  # impact thump amplitude at full-scale jolt
-        LfeWeaponAmp    = 0.63  # weapon thump, scaled after the engine's own magnitude
-        LfeImpactHz     = 42.0  # a collision should be the DEEPEST thing here
+        # 1.00 put a heavy collision at 1.52 of full scale - it would have been
+        # the loudest thing AND the only distorted one. 0.62 puts it at ~0.95.
+        LfeImpactAmp    = 0.62  # impact thump amplitude at full-scale jolt
+        LfeWeaponAmp    = 0.75  # weapon thump, scaled after the engine's own magnitude
+        # EVENTS GO WHERE THE RIG IS STRONGEST, not into spectral gaps. Keeping
+        # impact and weapon clear of the beds was the right rule for continuous
+        # sources and the wrong one for transients: an event lasts 100 ms and
+        # should simply hit as hard as the hardware can hit, which on the measured
+        # curve is 30-38 Hz. Momentarily sharing the engine's band costs nothing -
+        # the transient dominates while it lasts, then it is gone.
+        LfeImpactHz     = 30.0  # deep thud - a collision is the heaviest event
         # SCRUB - tyres sliding. It was computed for the wheel and never put on
         # the shaker bus at all, which is why a slide could not be felt there.
         # 50 Hz sits in the gap between impact (45) and the road bed (55-72).
         # What makes it read as scrub rather than as a tone is the ROUGHNESS -
         # its amplitude wobbles - because vibrotactile pitch discrimination is
         # coarse and texture carries further than frequency.
-        LfeScrubHz      = 62.0
+        LfeScrubHz      = 70.0
         LfeScrubAmp     = 0.34
         # WEAPON MOVES 80 -> 52 Hz. Choosing 80 to make a gun 'crack' where an
         # impact 'thuds' picked a frequency that is buzz by definition: tactile
@@ -332,7 +345,7 @@ function Mix-DefaultTune {
         # tingle, so anything up there is felt as buzzing however clean it is.
         # Measured 44% of the weapon scenario's energy in 70-90 Hz. A gun should
         # THUMP; separation from impact comes from the envelope, not the pitch.
-        LfeWeaponHz     = 52.0
+        LfeWeaponHz     = 38.0  # at the measured peak: maximum force per shot
 
         # ---- reaching BELOW the shaker's floor ------------------------------
         # Chassis heave is real 0-15 Hz content and it is the low-frequency force
@@ -388,6 +401,21 @@ function Mix-DefaultTune {
         # Compensation is now a nudge, not a fight. Content belongs where the rig
         # is naturally strong; the curve trims what is left.
         LfeCompMax = 1.6
+        # ---- EXPLOSIONS ------------------------------------------------------
+        # The engine's effect table reports a magnitude per event, and the observed
+        # values cluster: 5 and 10 for gunfire, 60 for something six times heavier.
+        # That is the blast signal, already on the wire - no new reverse
+        # engineering needed, just a threshold and its own channel.
+        #
+        # Deeper and far longer than a gunshot, because that is what separates a
+        # detonation from a shot in the body: 22 Hz is at the bottom of what this
+        # rig can deliver, and the tail is what makes it read as a blast.
+        LfeExplodeHz    = 22.0
+        # Budgeted like everything else: at 22 Hz the measured curve asks for the
+        # full 1.6x compensation, so amp * 1.6 * drive 1.5 * master 0.9 must land
+        # near 0.95 - the biggest thing in the mix, without going through the knee.
+        LfeExplodeAmp   = 0.44
+        LfeExplodeMag   = 40.0  # effect-table magnitude at or above which it is a blast
         LfeCarrierHz    = 35.0  # the measured peak. Heave gets it because heave is
                                 # the subtlest content here and needs the most help;
                                 # and being AM, its character is rhythm, not pitch,
@@ -458,6 +486,7 @@ function Mix-New {
         Enabled    = $true
         PeakForce  = 0.0
         LastJolt   = 0.0
+        BlastEnv   = 0.0   # decaying 'a blast is happening' level, see below
         LastFiring = $false
         LastFireT  = -10.0
         StillSince = -1.0
@@ -698,7 +727,18 @@ function Mix-Update {
     $firing = if ($null -ne $Sample.FxEvent) { [bool]$Sample.FxEvent } else { [bool]$Sample.Firing }
     # Scale by the loudest magnitude the engine asked for this frame.
     $wScale = 1.0
+    # A blast level that PERSISTS. FxFired is populated only on the frame the
+    # effect starts, but the weapon transient it competes with decays over many
+    # frames - so a single-frame flag faded the gunshot for one frame out of
+    # twenty and did nothing useful. This decays alongside the transient instead.
+    $blast = 0.0
     if ($Sample.FxFired -and $Sample.FxFired.Count) {
+        foreach ($fx in $Sample.FxFired) {
+            if ($fx.Mag -ge $Tune.LfeExplodeMag) {
+                $b = [math]::Min(1.0, $fx.Mag / ($Tune.LfeExplodeMag * 1.5))
+                if ($b -gt $blast) { $blast = $b }
+            }
+        }
         $mx = 0
         foreach ($fx in $Sample.FxFired) { if ($fx.Mag -gt $mx) { $mx = $fx.Mag } }
         if ($mx -gt 0) {
@@ -709,6 +749,9 @@ function Mix-Update {
     }
     if ($firing -and -not $Mix.LastFiring) {
         if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
+    if ($blast -gt $Mix.BlastEnv) { $Mix.BlastEnv = $blast } else { $Mix.BlastEnv *= 0.90 }
+    if ($Mix.BlastEnv -lt 0.001) { $Mix.BlastEnv = 0.0 }
+
             Mix-Trigger $Mix 'buzz' ($Tune.WeaponGain * $wScale) ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
             $Mix.LastFireT = $t
             $notes += "FIRE"
@@ -854,8 +897,12 @@ function Mix-Update {
                            $Tune.LfeHeaveRef), 3)
             CarrierFreq= $Tune.LfeCarrierHz
             ImpulseFreq= $Tune.LfeImpactHz
-            WeaponAmp  = [math]::Round([math]::Min(1.0, $Tune.LfeWeaponAmp * [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
+            # Faded out by the blast: a mag-60 event is ONE event, and letting it
+            # fire the gunshot channel at full as well both doubled the headroom it
+            # asked for and blurred what should be a distinct character.
+            WeaponAmp  = [math]::Round([math]::Min(1.0, (1.0 - $Mix.BlastEnv) * $Tune.LfeWeaponAmp * [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
             ScrubAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeScrubAmp * $scrubAmp / [math]::Max(1,$Tune.ScrubGain)), 3)
+            ExplodeAmp = [math]::Round([math]::Min(1.0, $Tune.LfeExplodeAmp * $Mix.BlastEnv), 3)
             WeaponFreq = $Tune.LfeWeaponHz
         }
     }

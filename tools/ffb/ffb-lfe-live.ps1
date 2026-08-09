@@ -79,7 +79,8 @@ Write-Host ("telemetry OK - entity 0x{0:X8}" -f $ctx.Ent) -ForegroundColor Green
 $devs = [LfeOut]::Devices()
 $devName = if ($Device -lt 0 -or $Device -ge $devs.Count) { 'system default' } else { $devs[$Device] }
 
-[LfeCore]::ScrubHzCfg = [double]$tune.LfeScrubHz   # must be set BEFORE the core is built
+[LfeCore]::ScrubHzCfg   = [double]$tune.LfeScrubHz     # must be set BEFORE the core is built
+[LfeCore]::ExplodeHzCfg = [double]$tune.LfeExplodeHz
 $live = New-Object LfeLive
 $err = $live.Start($Device, $Rate,
     [double]$tune.LfeEngineJitter, [double]$tune.LfeImpactHz, [double]$tune.LfeWeaponHz,
@@ -121,7 +122,8 @@ try {
             # Game gone or between missions. Silence rather than a held tone -
             # a stuck drone is worse than nothing and sounds like a crash.
             $live.EngineAmp = 0; $live.RoadAmp = 0
-            $live.ImpulseAmp = 0; $live.WeaponAmp = 0; $live.HeaveAmp = 0; $live.ScrubAmp = 0
+            $live.ImpulseAmp = 0; $live.WeaponAmp = 0; $live.HeaveAmp = 0
+            $live.ScrubAmp = 0; $live.ExplodeAmp = 0
             # Same exit test the interposer uses (ffb-interposer.ps1:398).
             if ($ctx.Proc.HasExited) { Write-Host "`nthe game exited." -ForegroundColor Cyan; break }
             Start-Sleep -Milliseconds 200
@@ -140,13 +142,15 @@ try {
         # Scrub was computed by the mixer, carried by the bus and rendered by the
         # DSP - and never assigned here, so sliding was silent no matter what.
         $live.ScrubAmp   = [double]$(if ($null -ne $L.ScrubAmp) { $L.ScrubAmp } else { 0.0 })
+        $live.ExplodeAmp = [double]$(if ($null -ne $L.ExplodeAmp) { $L.ExplodeAmp } else { 0.0 })
 
         $now = $sw.Elapsed.TotalSeconds
         if ($now - $lastPrint -gt 0.25) {
             $lastPrint = $now
-            Write-Host ("`r  {0,5:0} mph  eng {1,4:0.0}Hz {2,4:0.00}  road {3,4:0.00}  imp {4,4:0.00}  wpn {5,4:0.00}  hv {6,4:0.00}  scr {7,4:0.00}   " -f `
+            Write-Host ("`r  {0,5:0} mph  eng {1,4:0.0}Hz {2,4:0.00}  road {3,4:0.00}  imp {4,4:0.00}  wpn {5,4:0.00}  hv {6,4:0.00}  scr {7,4:0.00}  BOOM {8,4:0.00}  " -f `
                 $s.SpeedMph, $live.EngineFreq, $live.EngineAmp, $live.RoadAmp,
-                $live.ImpulseAmp, $live.WeaponAmp, $live.HeaveAmp, $live.ScrubAmp) -NoNewline
+                $live.ImpulseAmp, $live.WeaponAmp, $live.HeaveAmp, $live.ScrubAmp,
+                $live.ExplodeAmp) -NoNewline
         }
         Start-Sleep -Milliseconds $sleepMs
     }
