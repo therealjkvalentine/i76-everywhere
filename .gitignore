@@ -39,3 +39,5 @@ music-fix/*.lib
 music-fix/build.log
 music-fix/Strlkup.build.dll
 tools/ffb/ffb-tune.json
+refs/
+docs/assets-raw/
