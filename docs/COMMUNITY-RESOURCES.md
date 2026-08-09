@@ -23,6 +23,59 @@ reading the right structure. Verified against a live game — see
 Weights are similarly useful: the CHASSIS CONFIGURATION FORM's "total weight" is a sum you can
 decompose against them.
 
+## 1a. I'76 Terrarium (route380) — **the richest single source found**
+
+<https://route380.stars.ne.jp/i76/resource_i76/> — maps, editing tools, patches and, crucially,
+the **Complete Asset Bible 4th edition**. Mirrored locally into `refs/route380/` (git-ignored)
+and converted to searchable markdown in **[asset-bible/INDEX.md](asset-bible/INDEX.md)**.
+
+| file | size | what it is |
+|---|---|---|
+| `i76cab4.zip` | 6.3 MB | **Asset Bible 4th ed.** — 1045 files: every object's class name, X/Z footprint, class ID, **with pictures**. Includes the `0E1–0E5.html` frameset that cannot be fetched from interstate76.com |
+| `i76mp_v015.zip` | 1.7 MB | **i76map printer** — converts mission files to bitmap images. `i76map_print.exe`, **not run** |
+| `i76storymaps.zip` | 2.8 MB | **the campaign levels as `.lvl` files** — A01, S01–S07, T01–T14+ |
+| `i76_hme_v20260321.zip` | 968 KB | HeightMap Editor for Excel |
+| `i76palette.zip` | 24 KB | per-mission palette files |
+| `I76edit.zip` / `NITRO.ZIP` | — | mission builders (classic / NitroPack Arsenal) — not downloaded |
+| ~40 community maps | — | not downloaded; see the site index |
+
+> **Executables were downloaded but NOT run.** `i76map_print.exe` and the Excel editor are
+> third-party binaries; running them is your call, not something to do automatically.
+
+### 🔑 `regen` — the repair mechanism, and it is placeable
+
+From the Bible's vehicle-code page (`76car.html`):
+
+```
+spawn = Spawn Point. you have to place at least 1 spawn on your map.
+regen = Regen/Repair spot for damaged car.
+check1..N = lap/checkpoint markers (NitroPack only; lower case or the game CRASHES)
+```
+
+**This is the "healing building".** It is not special level scripting — it is an object placed
+in a map like any vehicle, using the class code `regen`. That makes a repair event
+*constructible*: put a `regen` in a melee map, drive onto it, and armor goes **up** on demand.
+
+That matters because a controlled repair is the one stimulus that cracks live armor. Damage has
+been unreliable in every form tried (AI fire, wall grinding, own landmines), and nothing else in
+memory moves *upward* on cue. See the open item in
+[`i76-uncap-lab/docs/CAR-CONFIG.md`](../../i76-uncap-lab/docs/CAR-CONFIG.md).
+
+### Top-down level maps — **found**
+
+`i76cab4/data/level_map/` holds **46 overhead maps**, drawn as the in-game paper map:
+`ZMAP3A01`, `ZMAP3M00`, `ZMAP3S01–S07`, `ZMAP3T01–T17` (the '76 campaign) and `zmap6p01–p19`
+plus `zmap6b01` (Nitro). These are the images that were being looked for and are **not** on
+Local Ditch — `maps.html` there is a download catalogue with no pictures.
+
+### Vehicle class codes
+
+`76car.html` lists the code for every car, which complements the `.vdf` names in
+[`CAR-CONFIG.md`](../../i76-uncap-lab/docs/CAR-CONFIG.md):
+`valepre1-4` Leprechaun, `vppirna1-4` Piranha, `vcmanta1-4` Manta, `vgoon1-3/vgoonf` Bushmaster,
+`vjsovrn1-3` Sovereign, `vxbus1/2` Bus, `vstank1/2/f` tank, turrets (`c1turr`, `mg1turr`,
+`flm1turr`, `sp1turr`…), and the Trip-mode cars including **`t01js01` = Taurus**.
+
 ## 2. "What does this level look like / how are levels stored?"
 
 | resource | URL | what it gives |
