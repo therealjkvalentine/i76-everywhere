@@ -276,7 +276,16 @@ function Mix-DefaultTune {
         # amplitude for +2.7 dB, because everything above the knee is being turned
         # into harmonics rather than level. Distortion is not the price of loudness
         # here, it is what replaces it.
-        LfeEngineAmp    = 0.22  # amplitude at full throttle
+        # ---- BUDGETED AT DRIVE 1.0 -------------------------------------------
+        # Driving hard into a limiter to get level was backwards: it made the
+        # limiter part of the signal path rather than a safety net. A stage trace
+        # showed exactly that - impact, weapon and heave measured 0.000% spurious
+        # BEFORE the limiter and 0.9% / 1.3% / 3.1% after it.
+        #
+        # Each source is now sized so that alone, after compensation and master,
+        # it lands where it belongs: continuous beds near 0.45 of full scale,
+        # transients near 0.9.  amp = target / (comp * master)
+        LfeEngineAmp    = 0.45  # amplitude at full throttle
         LfeEngineJitter = 0.06  # +/- fraction of pitch wander. A perfectly steady
                                 # tone numbs the skin and masks transients; ShakeIt
                                 # ships noise randomisation for exactly this reason.
@@ -301,13 +310,13 @@ function Mix-DefaultTune {
         #   0.20    5248      0.1590%
         #
         # 0.30 keeps 73% of the level for a quarter of the distortion.
-        LfeRoadAmp      = 0.30  # road-rumble amplitude at RoughRef jolt
+        LfeRoadAmp      = 0.34  # road-rumble amplitude at RoughRef jolt
         # Transients need budgeting too. At 1.00 a collision reached 1.89 and a
         # weapon 1.95 - both over twice the knee, so the loudest events in the mix
         # were also the most distorted. A collision may sit hardest against the
         # ceiling of anything here, but it should arrive, not crunch.
-        LfeImpactAmp    = 0.50  # impact thump amplitude at full-scale jolt
-        LfeWeaponAmp    = 0.45  # weapon thump, scaled after the engine's own magnitude
+        LfeImpactAmp    = 0.82  # impact thump amplitude at full-scale jolt
+        LfeWeaponAmp    = 0.63  # weapon thump, scaled after the engine's own magnitude
         LfeImpactHz     = 42.0  # a collision should be the DEEPEST thing here
         # SCRUB - tyres sliding. It was computed for the wheel and never put on
         # the shaker bus at all, which is why a slide could not be felt there.
@@ -316,7 +325,7 @@ function Mix-DefaultTune {
         # its amplitude wobbles - because vibrotactile pitch discrimination is
         # coarse and texture carries further than frequency.
         LfeScrubHz      = 62.0
-        LfeScrubAmp     = 0.30
+        LfeScrubAmp     = 0.34
         # WEAPON MOVES 80 -> 52 Hz. Choosing 80 to make a gun 'crack' where an
         # impact 'thuds' picked a frequency that is buzz by definition: tactile
         # perception crosses over near 60-70 Hz from body rumble to surface
@@ -383,7 +392,7 @@ function Mix-DefaultTune {
                                 # the subtlest content here and needs the most help;
                                 # and being AM, its character is rhythm, not pitch,
                                 # so sharing a band costs it least.
-        LfeHeaveAmp     = 0.75
+        LfeHeaveAmp     = 0.44
         # WAS 12.0, and heave therefore read as zero all the time. That figure was
         # guessed from car-physics intuition, but this engine has no suspension
         # model: measured vertical velocity peaked at 0.77 m/s across 77 s, so the
@@ -827,7 +836,10 @@ function Mix-Update {
                              } else {
                                  [math]::Min(1.0, $Sample.Speed / $Tune.LfeEngineRefSpd)
                              }), 1)
-            EngineAmp  = [math]::Round($Tune.LfeEngineAmp * [math]::Max(0.12, [math]::Abs($Sample.Throttle)) *
+            # Throttle floor 0.12 -> a 0.35 + 0.65t curve. At 0.12 the engine bed
+            # all but vanished off-throttle and at part throttle - which is most
+            # of driving - so the rig felt weak except when being thrashed.
+            EngineAmp  = [math]::Round($Tune.LfeEngineAmp * (0.35 + 0.65 * [math]::Abs($Sample.Throttle)) *
                            $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
             RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
             RoadFreq   = [math]::Round($Tune.LfeRoadLoHz + ($Tune.LfeRoadHiHz - $Tune.LfeRoadLoHz) * $rough, 1)

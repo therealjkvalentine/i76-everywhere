@@ -32,11 +32,15 @@ public class LfeCore {
   Random rnd = new Random(1976);
   int rate;
   double jitter, impHz, wpnHz, carHz, compMax;
-  public double ScrubHz = 50.0;
+  // Was hardcoded 50 and never read from the tune, so LfeScrubHz did nothing.
+  // A stage trace found it: 99.9% of scrub energy was not where the tune said.
+  public double ScrubHz = 62.0;
   double[] rHz, rRel;
 
   public LfeCore(int rate, double jitter, double impHz, double wpnHz, double carHz,
-                 double hpHz, double lpHz, double[] rHz, double[] rRel, double compMax) {
+                 double hpHz, double lpHz, double[] rHz, double[] rRel, double compMax,
+                 double scrubHz) {
+    this.ScrubHz = scrubHz;
     this.rate = rate; this.jitter = jitter;
     this.impHz = impHz; this.wpnHz = wpnHz; this.carHz = carHz;
     this.rHz = rHz; this.rRel = rRel; this.compMax = compMax;
@@ -82,6 +86,7 @@ public class LfeCore {
   // Metering. Tactile content is judged by RMS - what you feel continuously -
   // but headroom is spent on peaks, so the two must be tracked separately.
   public double PeakAbs = 0; public long Limited = 0, Samples = 0;
+  public double RawSum;
 
   // Soft knee instead of a hard ceiling. A hard clip turns a peak into a burst
   // of harmonics - broadband, buzzy, and audible far outside the shaker's band.
@@ -92,6 +97,16 @@ public class LfeCore {
   // all, so the wider the linear region the less the mix is squashed. 0.6 was
   // catching ordinary content, not just peaks.
   public double Knee = 0.8;
+
+  // ---- STAGE TAPS ----------------------------------------------------------
+  // The chain is deterministic, so it can be inspected stage by stage instead of
+  // played to somebody repeatedly. Tap selects what Step returns, which lets a
+  // harness measure the spectrum entering and leaving every stage and find the
+  // one that ADDS content its input did not have.
+  //   0 sum of sources (pre-filter)   1 after high-pass   2 after low-pass
+  // Drive/Limit/Master are applied outside Step, so they are tapped by the
+  // harness directly rather than here.
+  public int Tap = 2;
   public double Limit(double v) {
     Samples++;
     double a = Math.Abs(v);
@@ -154,6 +169,7 @@ public class LfeCore {
       sig += scrA * Comp(ScrubHz) * Math.Sin(scrPh) * (0.65 + 0.35 * scrRough * 3.0);
     }
 
+    if (Tap == 0) { RawSum = sig; }
     double h1 = aHp * (hpA + sig - hpPrevIn);   hpPrevIn = sig;  hpA = h1;
     double h2 = aHp * (hpB + h1 - hpPrevIn2);   hpPrevIn2 = h1;  hpB = h2;
 
@@ -170,6 +186,8 @@ public class LfeCore {
     lpA += kLp * (h2  - lpA);
     lpB += kLp * (lpA - lpB);
     lpC += kLp * (lpB - lpC);
+    if (Tap == 0) return RawSum;
+    if (Tap == 1) return h2;
     // Six cascaded one-poles pull the -3 dB point well below the nominal corner,
     // so the corner is raised to compensate and the pass band is left alone.
     return lpC;
@@ -179,14 +197,18 @@ public class LfeCore {
   // same limiter as LfeLive - only waveOut is missing. This is what a probe must
   // measure; Render() below is a different signal path and measuring it is how
   // three buzz causes stayed hidden.
+  public static double ScrubHzCfg = 62.0;   // set by callers before constructing
+  public static int RenderTap = 2;      // stage tap for RenderLive
+  public static bool RenderBypassLimit = false;   // skip drive+limit+master
   public static short[] RenderLive(double[] ef, double[] ea, double[] rf, double[] ra,
                                    double[] ia, double[] wa, double[] ha, double[] sc,
                                    int rate, int frameHz, double master, double drive,
                                    double jitter, double impHz, double wpnHz, double carHz,
                                    double hpHz, double lpHz,
                                    double[] rHz, double[] rRel, double compMax) {
-    var core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
+    var core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax, ScrubHzCfg);
     LastRender = core;
+    core.Tap = RenderTap;
     var sm = new LfeSmoother(rate);
     int perFrame = rate / frameHz;
     short[] outp = new short[ef.Length * perFrame];
@@ -195,8 +217,9 @@ public class LfeCore {
       for (int k = 0; k < perFrame; k++) {
         sm.Advance(ef[i], ea[i], rf[i], ra[i], ia[i], wa[i], ha[i], sc[i]);
         double v = core.Step(sm.sEngF, sm.sEngA, sm.sRoadF, sm.sRoadA,
-                             sm.sImpA, sm.sWpnA, sm.sHvA, sm.sScrA) * drive;
-        v = core.Limit(v) * master;
+                             sm.sImpA, sm.sWpnA, sm.sHvA, sm.sScrA);
+        if (RenderBypassLimit) { core.Limit(v); }   // meter only, do not apply
+        else { v = core.Limit(v * drive) * master; }
         outp[o++] = (short)(v * 32767);
       }
     }
@@ -215,7 +238,7 @@ public class LfeCore {
     if (dur <= 0) return new short[0];
     int total = (int)(dur * rate);
     short[] outp = new short[total];
-    var core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
+    var core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax, ScrubHzCfg);
     LastRender = core;
     int idx = 0;
     for (int i = 0; i < total; i++) {
@@ -365,7 +388,7 @@ public class LfeLive {
                       double[] rHz, double[] rRel, double compMax,
                       int bufSamples, int nBuf) {
     this.rate = rate; this.bufSamples = bufSamples; this.nBuf = nBuf;
-    core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax);
+    core = new LfeCore(rate, jitter, impHz, wpnHz, carHz, hpHz, lpHz, rHz, rRel, compMax, LfeCore.ScrubHzCfg);
     sm = new LfeSmoother(rate);
     LfeOut.WAVEFORMATEX f = LfeOut.Fmt(rate);
     uint r = LfeOut.waveOutOpen(out h, devId, ref f, IntPtr.Zero, IntPtr.Zero, 0);

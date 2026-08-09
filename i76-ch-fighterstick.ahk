@@ -113,6 +113,12 @@ KEY.H := "{SC023}", KEY.I := "{SC017}", KEY.K := "{SC025}", KEY.M := "{SC032}"
 KEY.N := "{SC031}", KEY.P := "{SC019}", KEY.Q := "{SC010}", KEY.R := "{SC013}"
 KEY.T := "{SC014}", KEY.U := "{SC016}", KEY.V := "{SC02F}", KEY.X := "{SC02D}"
 KEY.Y := "{SC015}"
+; The digit row. One..Five were MISSING here while the mapping referenced Two..Five
+; for the hardpoints, so the whole convex serrated hat and the top red button sent
+; nothing at all and failed silently - SendKey logged "no key mapping" to a window
+; nobody watches mid-mission. ValidateMap() below now makes that impossible.
+KEY.One := "{SC002}", KEY.Two := "{SC003}", KEY.Three := "{SC004}"
+KEY.Four := "{SC005}", KEY.Five := "{SC006}"
 KEY.Six := "{SC007}", KEY.Seven := "{SC008}", KEY.Eight := "{SC009}"
 KEY.GreyUpArrow := "{Up}", KEY.GreyDownArrow := "{Down}"
 KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"

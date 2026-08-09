@@ -35,23 +35,22 @@ param(
     [int]$Buffers = 4,         # ~64 ms of queue - enough to survive a GC pause,
                                # short enough that an impact still lands on time
     [double]$Master = 0.9,
-    # PRE-LIMITER GAIN, into a soft knee at 0.8. Below the knee nothing is
-    # touched at all, so the mix is only squashed to the extent it is driven
-    # past it.
-    # Measured on drive3.csv, RMS relative to the original build. This is the
-    # squash/level trade-off, and it is the whole decision:
+    # PRE-LIMITER GAIN into a soft knee at 0.8. Nothing below the knee is
+    # touched, and after rebudgeting no single source reaches it alone.
+    # Re-measured after the chain was rebudgeted so no source needs the limiter.
+    # Audible content is now essentially FLAT across this range - the limiter is
+    # no longer what makes distortion, so level here is nearly free:
     #
-    #     drive   RMS gain   limited   crest
-    #      2.0      2.93x      1.1%    13.5 dB   fully natural
-    #      2.8      3.87x      1.7%    11.1 dB   <- default: 2x the last build
-    #      4.0      5.24x      2.4%     8.4 dB   noticeably compressed
-    #      6.0      7.50x      8.6%     5.3 dB   squashed
+    #    drive   mean RMS   worst peak   audible >85 Hz
+    #     1.0      19.3%       0.56         0.0826%
+    #     1.3      25.1%       0.73         0.0826%
+    #     1.6      30.9%       0.86         0.0820%
+    #     2.0      38.3%       0.90         0.0961%   <- default
     #
-    # Peak output is already 90% of digital full scale at ANY of these - the
-    # ceiling does not move, only how hard the mix is pressed against it. So
-    # more loudness past about 4.0 is not available in software at any price;
-    # it has to come from amplifier gain.
-    [double]$Drive = 2.8,
+    # Compare the old table, where going from 2.0 to 6.0 cost 8.6% of samples
+    # limited and 8 dB of crest. The difference is that the sources are now
+    # sized to sit under the knee on their own.
+    [double]$Drive = 1.5,
 
     [int]$Hz = 60,
     [switch]$NoCompensate
