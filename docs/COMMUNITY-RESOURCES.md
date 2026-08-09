@@ -116,6 +116,24 @@ Lag aiming/racing are worth reading before any physics or frame-rate work — th
 player-visible consequences of the engine's timing that our 20 Hz vs 60 Hz tests should not
 accidentally break.
 
+## 4a. "The address moves every time I restart" — memory RE / trainer tooling
+
+Not I'76-specific, but this is the problem class our armor hunt is stuck in, and the community
+solved it long ago. Full write-up:
+[`../../i76-uncap-lab/docs/RE-TECHNIQUES.md`](../../i76-uncap-lab/docs/RE-TECHNIQUES.md).
+
+| resource | URL | why |
+|---|---|---|
+| **Cheat Engine pointer scanning** | https://guidedhacking.com/threads/cheat-engine-pointer-scanning-tutorial-gh105.18280/ | **The answer to a reallocated address.** Find the value, save a pointer map, restart, find it again, diff the maps → a chain that resolves it every run |
+| Pointer scanning with pointermaps | https://guidedhacking.com/threads/cheat-engine-how-to-pointer-scan-with-pointermaps.9739/ | the two-session diff method specifically |
+| Cheat Engine tutorial guide | https://wiki.cheatengine.org/index.php?title=Tutorials%3ACheat_Engine_Tutorial_Guide_x64 | "find out what writes to this address" — the same Dr0-3 hardware watchpoints as our `src/find-reads.c`; plus the structure Dissector |
+| Game memory RE with P/Invoke | https://medium.com/@AVTUNEY/reverse-engineering-game-memory-how-to-hack-any-game-using-cheat-engine-p-invoke-in-net-be70e2924506 | ReadProcessMemory/WriteProcessMemory patterns matching our Python tools |
+| game-hacking-1 | https://github.com/ChaitanyaHaritash/game-hacking-1 | collected game-RE tutorials and tools |
+| OpenRakis/Spice86 | https://github.com/OpenRakis/Spice86 | real-mode DOS RE, structured memory viewer |
+| neuviemeporte/mzretools | https://github.com/neuviemeporte/mzretools | MZ executable inspection for DOS-era games |
+| RetroReversing — DOS | https://www.retroreversing.com/dos | curated index of DOS-era RE work |
+| DOS games with Ghidra | https://gist.github.com/alexbevi/07560b7e82dd73527f4fc59ce1ed9972 | static-analysis workflow |
+
 ## 5. Background / preservation
 
 | resource | URL |
