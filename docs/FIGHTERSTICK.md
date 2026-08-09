@@ -117,9 +117,17 @@ the stick unusable:
   leave the car stuck in reverse with the stick centred. Two taps against a toggle
   produce the momentary behaviour the toggle itself cannot.
 
-Two thresholds, not one: it triggers at **35%** deflection and releases at **20%**.
-The gap is hysteresis. With a single threshold, a stick resting near it
-machine-guns the action.
+Two thresholds, not one, and they differ **per axis** — the gap is hysteresis, and
+without it a stick resting near the line machine-guns the action:
+
+| axis | engages | releases |
+|---|---|---|
+| fore/aft — handbrake, reverse | **45%** | 30% |
+| left/right — the shifts | **55%** | 40% |
+
+Both were widened from a common 35/20 after field use. Left/right went up twice as
+far because the shifts were the ones firing by accident: the wheel is spun with the
+left hand, and the stick gets knocked sideways far more easily than it gets pulled.
 
 `-selftest` exercises this without the hardware — 25 assertions covering all three
 semantics, the hysteresis band, and axis normalisation including out-of-range
@@ -161,30 +169,96 @@ documentation gives four numbers per hat without saying which is which.
 Roles follow the A-10C convention by button number — DMS on 5–8, TMS on 9–12,
 CMS on 13–16.
 
-| # | control | jet function (A-10C) | I'76 action | key |
-|---|---|---|---|---|
-| 1 | trigger | gun trigger (2-stage: PAC, then fire) | `weapon_fire` | `Enter` |
-| 2 | top red — **pickle** | weapon release | `special1` | `6` |
-| 3 | back-side red | — | **mode switch, deliberately unbound** | — |
-| 4 | pinky red | pinky switch — laser latch / NWS | `weapon_link` | `F` |
-| — | **cone hat** | view control / head-look | `pilot_glance_up/right/down/left` | grey arrows |
-| 5–8 | **convex serrated — DMS** | display management: MFCD nav, sensor select | `SHOW_MAP` / `RADAR_RANGE_TOGGLE` / `SHOW_NOTEPAD` / `RADAR_CAMERA_TOGGLE` | `M` `R` `N` `K` |
-| 9–12 | **castle — TMS** | target management: lock, track, designate | `TARGET_NEAREST_ENEMY` / `NEXT_TARGET` / `RESET_TARGET` / `frontal_target` | `T` `Y` `U` `Q` |
-| 13–16 | **trim — CMS** | countermeasures: chaff, flares, programs | `special2` / `special3` / `weapon_cycle` / `toggle_cmbt_view` | `7` `8` `Tab` `V` |
+**Field-confirmed working 2026-08-08.**
 
-`-map` prints this from the script itself, so the card and the code cannot drift
-apart.
+| # | control | I'76 action | key |
+|---|---|---|---|
+| 1 | trigger | `weapon_fire` | `Enter` |
+| 2 | top red — **pickle** | `hardpoint2_fire` | `2` |
+| 3 | back-side red — **also the mode switch** | `special1` (nitrous) | `6` |
+| 4 | pinky red | `weapon_link` | `F` |
+| **5–8** | **convex serrated — DIRECT FIRE** | `hardpoint2` / `3` / `4` / `5` `_fire` | `2` `3` `4` `5` |
+| **9–12** | **castle — targeting** | `frontal_target` / `NEXT_TARGET` / `TARGET_NEAREST_ENEMY` / `RADAR_RANGE_TOGGLE` | `Q` `Y` `T` `R` |
+| **13–16** | **trim — displays + nitrous** | `special1` / `SHOW_NOTEPAD` / `toggle_cmbt_view` / `SHOW_MAP` | `6` `N` `V` `M` |
+| — | **cone hat** — glance, held | `pilot_glance_down` / `right` / `up` / `left` | grey arrows |
 
-**Button 3 is left unbound on purpose.** It cycles the base LED through three
-positions — it is the mode switch, and on CH sticks the mode renumbers the
-buttons. Binding a game action to it would fire that action on every mode change.
+Hat directions read **up → right → down → left**.
 
-The cone hat transfers most directly of anything here: on the real aircraft it is
-head-look, and in I'76 `pilot_glance_*` is head-look. It is a **true 8-way POV
-channel** on this unit, not buttons — CH's docs hedge on that ("maps to the
-remaining upper button IDs up to 24 depending on configuration"), so it was worth
-measuring. All eight positions report cleanly. The code folds it into 4 sectors so
-diagonals fall through to the nearer cardinal rather than doing nothing.
+**The cone hat's vertical is inverted** — pushing up looks *down*, the flight-sim
+convention. Left/right are not inverted.
+
+**One hardpoint per direction, never two from one control.** Firing two weapon
+effects from a single press is what crashed `I7_SFRCE.DLL` on 2026-08-01.
+`hardpoint1_fire` has no keyboard binding in `input.map` at all, which is why
+direct fire is hardpoints 2–5.
+
+**Button 3 is bound despite being the mode switch**, by request and knowingly: it
+cycles the base LED through three positions, and on CH sticks the mode renumbers
+the buttons — so every mode change also fires nitrous. If the numbering ever seems
+to shift, that is the control that did it.
+
+`-map` prints this table from the script's own data, and now **validates** it —
+see below.
+
+### The cone hat and head tracking
+
+The hat sends the engine's glance keys, which works in **DIGITAL** head-tracking
+mode — the mode `i76-opentrack-headlook.ahk` starts in. There, head yaw holds the
+same arrow keys, both drive one channel, and whichever moved last wins. That is the
+override: park your head, hold the hat, keep a look pinned out of the side window
+and shoot down it.
+
+In **ANALOG** mode it does nothing at all, because that mode NOPs the engine's own
+input-poll writes to the glance ints — its own comment says *"keyboard/joystick
+glance is inert while analog is on"*. `Ctrl+Alt+H` toggles. If the hat ever stops
+looking, check that first.
+
+The hat is a **true 8-way POV channel** on this unit, not buttons — CH's docs hedge
+("maps to the remaining upper button IDs up to 24 depending on configuration"), so
+it was worth measuring. All eight positions report cleanly; the code folds them
+into 4 sectors so diagonals fall through to the nearer cardinal.
+
+### Two bugs that made controls do nothing, silently
+
+Both cost a play session, and both were invisible rather than loud. Recorded
+because the shape recurs.
+
+**1. Key names that resolve to nothing.** The mapping referenced `Two`–`Five` for
+the hardpoints while the `KEY` table defined only `Six`–`Eight`. `SendKey` looks
+the name up, finds nothing, logs *"no key mapping for 'Two'"* and returns — so the
+convex hat and the top red button were not broken-looking, they were **silent**,
+and the log goes to a window nobody watches mid-mission.
+
+`-map` did not catch it, which is the instructive part: it printed
+`hardpoint2_fire  Two` and looked perfectly healthy, because it printed the key
+*name* without ever asking whether that name resolves. **A reference card generated
+from the same broken data is not a check.** `ValidateMap()` now walks every button,
+hat direction and axis; `-map` reports offenders and exits 1, and startup warns.
+The card now ends "all 24 mapped controls resolve to a real key" — checked, not
+assumed.
+
+**2. `pov` and `POV` are the same variable.** AHK names are case-insensitive, and
+code inside a label runs in *global* scope, so
+
+```ahk
+pov := GetKeyState(DEV . "JoyPOV")   ; inside Poll:
+```
+
+overwrote the global `POV` cone-hat table with a number on the first tick. Every
+lookup after returned `""`. The hat could never have worked, in any head-tracking
+mode — and the DIGITAL/ANALOG explanation above was a red herring chased twice
+before reading what the log actually said:
+
+```
+no key mapping for ''
+    ->
+```
+
+An empty key *and* empty labels meant the table itself was gone. This is the same
+bug class as `tools/ffb`'s `$T`/`$t` collision, where a PowerShell tune table
+became a number and every gain silently went null. **When a collection
+mysteriously empties, suspect a case-variant assignment before suspecting the
+reader.**
 
 ### A retraction: the documentation was right, my names were not
 
@@ -257,22 +331,29 @@ The pattern here is meant to be copied, not reinvented for the next device:
 Stated plainly, because this repo's history is full of retractions for skipping
 field tests.
 
-**Measured on the hardware** (2026-08-08): every button number 1–16, the up →
-right → down → left order within each hat, the lower/right hat swap above, and the
-castle hat being a true 8-way POV channel.
+**Confirmed in the game** (2026-08-08): the trigger, the castle hat, the trim hat,
+the convex serrated hat's direct fire, and the cone hat's glance all work in a
+mission. So the whole question of whether the 1997 engine accepts synthesised keys
+is settled — it does. The injection path was already verified separately (scancode
+`0x14` → `VK_T`, extended `0xE0,0x48` → `VK_UP`, round-tripped through
+`GetAsyncKeyState`); now the engine's acceptance of it is too.
 
-**Not yet established:**
+**Measured on the hardware**: every button number 1–16, the up → right → down →
+left order within each hat, and the cone hat being a true 8-way POV channel.
+
+**Still not established:**
 
 1. **Buttons 17, 18 and 19.** Button 18 has fired once, unattributed; 17 and 19
-   never have. The 3-position mode switch is the likely answer, and it matters
-   because on CH sticks the mode silently renumbers everything.
-2. **Whether the 1997 engine accepts synthesised keys in a mission.** The injection
-   path itself *is* verified — scancode `0x14` resolves to `VK_T` and the extended
-   `0xE0,0x48` to `VK_UP`, confirmed by round-tripping through
-   `GetAsyncKeyState` — so the keys genuinely reach Windows. Whether the engine's
-   own input read sees them needs one mission to confirm.
-3. **Whether the layout feels right at speed.** It was reasoned about at the wheel,
-   not driven. Thresholds are `THRESH`/`RELEASE` at the top of the script.
+   never have (winmm reports 19 in total). The 3-position mode switch is the likely
+   answer, and it matters because on CH sticks the mode silently renumbers
+   everything. Button 3 being bound makes this more worth pinning down, not less.
+2. **Whether the two back reds do anything visible.** `special1` needs nitrous
+   actually fitted to the car, and `weapon_link` changes how firing groups rather
+   than producing an obvious effect — so "nothing happened" is not evidence they
+   are broken. Check them with `-whatif`, which names the action regardless.
+3. **Whether the widened thresholds are right.** 45/55 was a considered step up
+   from 35, not a measured optimum. `THRESH`/`THRESH_X` at the top of the script;
+   one "click" is 0.10.
 
 ### Why scan codes
 
