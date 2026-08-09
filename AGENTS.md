@@ -59,6 +59,23 @@ fire, range, projectile speed, weight, ammo, damage). Its ammo figures matched t
 out of the live game **eight for eight**, which is why it doubles as a **search oracle**: when
 hunting an unknown field, the published number tells you what to look for.
 
+## Before any memory hunt: read the technique note
+
+**[`../i76-uncap-lab/docs/RE-TECHNIQUES.md`](../i76-uncap-lab/docs/RE-TECHNIQUES.md)** — how to
+find values in this game, the traps that each produced a *confidently wrong* answer here, and,
+most importantly, **when to stop hand-rolling and use Cheat Engine**.
+
+The short version: decide first whether the target is **static** (scan for it), **heap but
+stable** (pointer-chain from a static root), or **reallocated during play** (armor is — the
+regen respawn rebuilds the car). For the third case, value scanning *cannot* work, and
+**Cheat Engine's pointer scan** already solves it properly — find the value, save a pointer
+map, trigger the reallocation, find it again, diff the maps. Days were spent here
+re-deriving a weaker version of that.
+
+Two rules worth memorising: **verify by writing, never by watching** (confirm the game's own
+display follows), and **gate the stimulus** (a value must hold *exactly* still when nothing is
+happening, not merely move when something is).
+
 ## Engine reference: what we know about I'76's internals
 
 **`../i76-uncap-lab/docs/ENGINE-REFERENCE.md`** is the consolidated map of the engine — read it
