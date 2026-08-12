@@ -195,6 +195,16 @@ function Mix-DefaultTune {
         # weapon UI clicks are SquareHigh - i.e. short, sharp, percussive. So a
         # brief decaying buzz rather than a directional shove: a centrally-mounted
         # gun has no side to kick towards, and guessing one reads as a fault.
+        # --- gear change ----------------------------------------------------
+        # Detected from RPM falling while road speed does not (Tel-Sample), so
+        # no gear variable is needed and none was ever found.
+        # Deliberately below WeaponGain: a shift happens constantly and a weapon
+        # rarely, so a shift that hits as hard as a cannon would flatten the
+        # hierarchy the whole mixer depends on.
+        ShiftGain     = 2600
+        ShiftMs       = 90     # short. A gear change is the briefest event here.
+        ShiftDownScale = 0.55  # downshifts land under braking - stay out of the way
+
         WeaponGain    = 3400   # force at WeaponMagRef, i.e. a "normal" shot
         WeaponMs      = 140
         WeaponHz      = 13.0
@@ -527,7 +537,7 @@ function Mix-Update {
     # $Channels still reports the true computed value of a muted channel, so the
     # panel can show what it would have contributed.
     $gate = @{}
-    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon')) {
+    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon','shift')) {
         $gate[$k] = if ($null -eq $Active) { $true } else { [bool]$Active[$k] }
     }
 
@@ -757,10 +767,32 @@ function Mix-Update {
             $notes += "FIRE"
         }
     }
+
+    # ---- gear change ------------------------------------------------------
+    # ONE SHORT FIRM HIT, not a rumble. A shift is the shortest event this rig
+    # produces and the design library is unambiguous about the shape: a single
+    # firm thump reads as a gear change, anything longer reads as damage.
+    #
+    # 'jolt' rather than 'buzz' for exactly that reason - sharp attack and
+    # exponential decay, no oscillation to smear it out.
+    #
+    # An UPSHIFT is the driveline taking up load, so it is signed with the
+    # steering to push very slightly into the driver's hands. A DOWNSHIFT is
+    # softer: it happens under braking, when the wheel is already busy, and a
+    # hard hit there would compete with the information that matters.
+    # The null check is NOT redundant: in PowerShell `$null -ne 0` is TRUE, so a
+    # sample without a Shift property fires a gear change on every frame. That is
+    # exactly what it did - a parked car produced 2293 of force out of nowhere.
+    if ($null -ne $Sample.Shift -and $Sample.Shift -ne 0) {
+        $shiftAmp = if ($Sample.Shift -gt 0) { $Tune.ShiftGain } else { $Tune.ShiftGain * $Tune.ShiftDownScale }
+        Mix-Trigger $Mix 'jolt' $shiftAmp ([int]$Tune.ShiftMs) 30.0 'shift'
+        $notes += $(if ($Sample.Shift -gt 0) { "UPSHIFT" } else { "DOWNSHIFT" })
+    }
     $Mix.LastFiring = $firing
 
     # ---- transient summation ----------------------------------------------
     $transImpact = 0.0
+    $transShift  = 0.0
     $transWeapon = 0.0
     $dead = @()
     foreach ($tr in $Mix.Transients) {
@@ -775,19 +807,23 @@ function Mix-Update {
             $env = if ($u -lt 0.12) { $u / 0.12 } else { [math]::Exp(-3.5 * ($u - 0.12)) }
             $v = $tr.Amp * $env
         }
-        if ($tr.Kind -eq 'weapon') { $transWeapon += $v } else { $transImpact += $v }
+        if ($tr.Kind -eq 'weapon')     { $transWeapon += $v }
+        elseif ($tr.Kind -eq 'shift')  { $transShift  += $v }
+        else                           { $transImpact += $v }
     }
     foreach ($d in $dead) { $Mix.Transients.Remove($d) }
     $ch['impact'] = [int]$transImpact
     $ch['weapon'] = [int]$transWeapon
+    $ch['shift']  = [int]$transShift
 
     # ---- combine -----------------------------------------------------------
     if (-not $gate['texture']) { $texture = 0.0 }
     if (-not $gate['scrub'])   { $scrub = 0.0 }
     if (-not $gate['judder'])  { $judder = 0.0 }
     if (-not $gate['impact'])  { $transImpact = 0.0 }
+    if (-not $gate['shift'])   { $transShift  = 0.0 }
     if (-not $gate['weapon'])  { $transWeapon = 0.0 }
-    $trans = $transImpact + $transWeapon
+    $trans = $transImpact + $transWeapon + $transShift
     $osc = $texture + $scrub + $judder
 
     # Slew-limit the STEADY part only. Steady forces should never step, but a
@@ -891,7 +927,7 @@ function Mix-Update {
                            $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
             RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
             RoadFreq   = [math]::Round($Tune.LfeRoadLoHz + ($Tune.LfeRoadHiHz - $Tune.LfeRoadLoHz) * $rough, 1)
-            ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
+            ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact + $transShift) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
             HeaveAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeHeaveAmp *
                            [math]::Abs($(if ($null -ne $Sample.HeaveAccel) { $Sample.HeaveAccel } else { 0.0 })) /
                            $Tune.LfeHeaveRef), 3)

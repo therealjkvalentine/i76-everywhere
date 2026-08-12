@@ -440,6 +440,54 @@ foreach ($sp in @(0, 0.0001, 1e-9, 3, 200)) {
 Check "no NaN/Inf across degenerate inputs" ($bad -eq 0) "$bad bad frames"
 Check "no exceptions across degenerate inputs" ($threw -eq 0) "$threw throwing frames"
 
+# ---------------------------------------------------------------------------
+Write-Host ""
+Write-Host "=== 10. gear changes ===" -ForegroundColor Cyan
+
+# Shift is fed straight from Tel-Sample (+1 up, -1 down), so the mixer side is
+# what is tested here: that an event produces one hit of the right size, that a
+# downshift is softer, and - the one that actually bit - that NO shift produces
+# nothing at all.
+function ShiftPeak {
+    param([int]$Dir)
+    $m = Mix-New
+    $peak = 0.0
+    for ($t = 0.0; $t -lt 1.5; $t += 1.0/60) {
+        $d = 0
+        if ([math]::Abs($t - 0.8) -lt 0.009) { $d = $Dir }
+        $s = Fake -T $t -Speed 20
+        $s | Add-Member -NotePropertyName Shift -NotePropertyValue $d -Force
+        $o = Mix-Update $m $s
+        $v = [math]::Abs($o.Channels['shift'])
+        if ($v -gt $peak) { $peak = $v }
+    }
+    return $peak
+}
+$shUp = ShiftPeak 1
+$shDn = ShiftPeak -1
+$shNo = ShiftPeak 0
+$tn = Mix-DefaultTune
+
+Check "an upshift produces a hit"            ($shUp -gt 100) "got $shUp"
+Check "a downshift produces a hit"           ($shDn -gt 100) "got $shDn"
+Check "a downshift is softer than an upshift" ($shDn -lt $shUp) "$shDn vs $shUp"
+Check "a shift does not hit as hard as a weapon" ($shUp -lt $tn.WeaponGain) "$shUp vs $($tn.WeaponGain)"
+Check "no shift means no force"              ($shNo -eq 0) "got $shNo"
+
+# The regression that motivated the null guard: in PowerShell `$null -ne 0` is
+# TRUE, so a sample with NO Shift property at all fired a gear change every
+# single frame - a parked car produced 2293 of force from nowhere. Every other
+# test in this file uses a Fake without a Shift property, which is why five of
+# them failed at once and why this is worth pinning explicitly.
+$mNo = Mix-New
+$noShiftPeak = 0.0
+for ($t = 0.0; $t -lt 0.6; $t += 1.0/60) {
+    $o = Mix-Update $mNo (Fake -T $t -Speed 20)   # no Shift property whatsoever
+    $v = [math]::Abs($o.Channels['shift'])
+    if ($v -gt $noShiftPeak) { $noShiftPeak = $v }
+}
+Check "a sample with no Shift property is silent" ($noShiftPeak -eq 0) "got $noShiftPeak"
+
 Write-Host ""
 Write-Host ("=== {0} passed, {1} failed ===" -f $script:pass, $script:fail) `
     -ForegroundColor $(if ($script:fail -eq 0) { 'Green' } else { 'Red' })
