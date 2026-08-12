@@ -81,7 +81,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'FfbMixer.ps1')
 if (-not $DryRun) { . (Join-Path $here 'FfbCore.ps1') }
 
-$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon')
+$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon','shift')
 
 # ---------------------------------------------------------------------------
 # Panel
@@ -346,7 +346,7 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy','heave','slide','headingRate','rpm','fireRaw','fxActive','fxFired') +
+                     'angVelX','angVelZ','vy','heave','slide','headingRate','rpm','rpmRate','shift','fireRaw','fxActive','fxFired') +
                      # ch_ prefix, because 'oversteer' is BOTH a telemetry field
                      # (0..1 slip) and a force channel (scaled to OversteerGain).
                      # Emitting both under one name made every CSV reader silently
@@ -463,7 +463,7 @@ try {
                     # the same desync that once made 'force' read as 'impact'.
                     ('{0:0.000}' -f $s.HeaveAccel),
                     ('{0:0.000}' -f $s.Slide), ('{0:0.000}' -f $s.HeadingRate),
-                    ([string][int]$s.Rpm),
+                    ([string][int]$s.Rpm), ('{0:0}' -f $s.RpmRate), ([string][int]$s.Shift),
                     ([string][int]$s.FireRaw),
                     ([string][int]$s.FxActive),
                     # Semicolon-joined, NO quotes and NO spaces: a quoted field with

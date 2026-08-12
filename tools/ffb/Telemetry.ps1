@@ -322,7 +322,8 @@ function Tel-Open {
         VyRate    = 0.0
         WAx = 0.0; WAy = 0.0; WAz = 0.0
         LastHeading = 0.0; HeadingRate = 0.0; Slide = 0.0
-        Rpm = 0
+        Rpm = 0; LastRpm = 0; RpmRate = 0.0; Shift = 0; ShiftHold = 0.0
+        LastSpeedShift = 0.0
         Jolt      = 0.0
         # First-change priming. Without this the first tick differentiates
         # against a zeroed baseline and emits a large bogus jolt - which the
@@ -608,6 +609,13 @@ function Tel-Sample {
                 $Ctx.HeadingRate = 0.0; $Ctx.Slide = 0.0
             }
 
+            # RPM is read further down (it lives in the FFB block, not the entity),
+            # so gear-shift detection cannot run here. Carry the real tick interval
+            # forward instead - shift rates must be differentiated against a sim
+            # tick, never against a poll.
+            $tickAdvanced = $true
+            $tickDt = $dt
+
             # Jolt = magnitude of the VECTOR velocity change per second. A crash
             # redirects velocity even when |v| barely moves (glancing a wall
             # spins you without much speed loss), so the vector delta catches
@@ -688,6 +696,47 @@ function Tel-Sample {
         $rpm = [BitConverter]::ToInt32($fb2, 0x0C)
         if ($rpm -lt 0 -or $rpm -gt 20000) { $rpm = 0 }   # block not yet filled
         $Ctx.Rpm = $rpm
+
+        # ---- GEAR SHIFTS, without a gear variable ---------------------------
+        # No gear field was ever found, and none is needed. An upshift is the one
+        # thing in the whole car that makes ENGINE speed fall while ROAD speed
+        # does not - the same sawtooth a whole memory scan was built to hunt for,
+        # now just two numbers already in hand.
+        #
+        # The speed condition is what makes this honest. Revs also fall every time
+        # the driver lifts off, and that is not a shift: on a lift the car slows
+        # with the engine, on a shift it does not.
+        #
+        # A downshift is the mirror image - revs jump while road speed does not
+        # rise - and needs a higher threshold, because ordinary acceleration
+        # raises revs too and only a shift does it near-instantly.
+        #
+        # Differentiated against the SIM TICK, not the poll: at 20 Hz a poll-rate
+        # derivative would divide a real rev change by a fraction of the interval
+        # that produced it and read several times too fast.
+        #
+        # PROVISIONAL. These two thresholds are reasoned, not measured. rpmRate is
+        # logged so a real drive can replace them with numbers.
+        $SHIFT_DROP = 6000.0   # rpm/s. Lifting off decays at roughly 3000.
+        $SHIFT_RISE = 9000.0   # rpm/s. Accelerating climbs at roughly 5000.
+        $Ctx.Shift = 0
+        if ($tickAdvanced -and $tickDt -gt 0) {
+            $Ctx.RpmRate = if ($Ctx.LastRpm -gt 0) { ($rpm - $Ctx.LastRpm) / $tickDt } else { 0.0 }
+            if ($Ctx.ShiftHold -gt 0) {
+                # One shift is ONE event. Without this the whole ramp fires on
+                # every frame it is still falling, which is a buzz, not a shift.
+                $Ctx.ShiftHold -= $tickDt
+            } elseif ($speed -gt 3.0 -and $rpm -gt 0 -and $Ctx.LastRpm -gt 0) {
+                $spdRate = ($speed - $Ctx.LastSpeedShift) / $tickDt
+                if ($Ctx.RpmRate -lt -$SHIFT_DROP -and $spdRate -gt -1.5) {
+                    $Ctx.Shift = 1; $Ctx.ShiftHold = 0.35
+                } elseif ($Ctx.RpmRate -gt $SHIFT_RISE -and $spdRate -lt 1.5) {
+                    $Ctx.Shift = -1; $Ctx.ShiftHold = 0.35
+                }
+            }
+            $Ctx.LastRpm = $rpm
+            $Ctx.LastSpeedShift = $speed
+        }
         for ($si = 0; $si -lt $script:TEL_FX_SLOTS; $si++) {
             $bo = $script:TEL_FX_BASE + $si * $script:TEL_FX_STRIDE
             $act = [BitConverter]::ToInt32($fb2, $bo)
@@ -757,6 +806,8 @@ function Tel-Sample {
         # Rate the VELOCITY vector rotates, and how far that is from the rate the
         # CAR rotates. Slide is the sideslip signal - see the note above.
         Rpm         = $Ctx.Rpm
+        RpmRate     = $Ctx.RpmRate
+        Shift       = $Ctx.Shift      # +1 upshift, -1 downshift, 0 otherwise
         HeadingRate = $Ctx.HeadingRate
         Slide       = $Ctx.Slide
         HeadingApprox = $(if ($speed -gt 1.0) { [math]::Atan2($vx, $vz) } else { 0.0 })
