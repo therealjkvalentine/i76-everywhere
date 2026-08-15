@@ -398,6 +398,62 @@ function Tel-Geometry {
     if ($Ctx.Wheelbase -lt 0.5) { $Ctx.Wheelbase = 4.66 }   # fall back to the measured stock value
 }
 
+function Tel-DetectShift {
+    <#
+      Was that a gear change?
+
+      No gear field was ever found in this game and none is needed. An upshift is
+      the one thing in the whole car that makes ENGINE speed fall while ROAD speed
+      does not.
+
+      THE SPEED CONDITION IS THE WHOLE TRICK. Revs also fall every time the driver
+      lifts off, and that is not a gear change: on a lift the car slows WITH the
+      engine, on a shift it does not. Without that test this fires on every
+      corner entry in the game.
+
+      A downshift is the mirror image - revs jump while road speed does not rise -
+      and needs a higher threshold, because ordinary acceleration raises revs too
+      and only a shift does it near-instantly.
+
+      Dt MUST be a sim-tick interval, not a poll interval. At 20 Hz a poll-rate
+      derivative divides a real rev change by a fraction of the interval that
+      produced it and reads several times too fast.
+
+      Extracted from Tel-Sample so it can be tested against synthetic traces with
+      no game running - same reason as Tel-Slip. Returns the decision, the rate it
+      decided on, and the updated refractory timer.
+    #>
+    param(
+        [int]$Rpm, [int]$LastRpm,
+        [double]$Speed, [double]$LastSpeed,
+        [double]$Dt, [double]$Hold,
+        # PROVISIONAL: reasoned, not measured. rpmRate is logged on every drive
+        # so these can be replaced with numbers from a real capture.
+        [double]$DropRate = 6000.0,   # rpm/s. Lifting off decays at roughly 3000.
+        [double]$RiseRate = 9000.0    # rpm/s. Accelerating climbs at roughly 5000.
+    )
+    $shift = 0
+    $rpmRate = 0.0
+    if ($Dt -le 0) { return [pscustomobject]@{ Shift = 0; RpmRate = 0.0; Hold = $Hold } }
+    if ($LastRpm -gt 0) { $rpmRate = ($Rpm - $LastRpm) / $Dt }
+
+    if ($Hold -gt 0) {
+        # One shift is ONE event. Without this the whole ramp fires on every frame
+        # the revs are still falling, which is a buzz, not a gear change.
+        $Hold -= $Dt
+        if ($Hold -lt 0) { $Hold = 0.0 }
+    }
+    elseif ($Speed -gt 3.0 -and $Rpm -gt 0 -and $LastRpm -gt 0) {
+        $spdRate = ($Speed - $LastSpeed) / $Dt
+        if ($rpmRate -lt -$DropRate -and $spdRate -gt -1.5) {
+            $shift = 1;  $Hold = 0.35
+        } elseif ($rpmRate -gt $RiseRate -and $spdRate -lt 1.5) {
+            $shift = -1; $Hold = 0.35
+        }
+    }
+    return [pscustomobject]@{ Shift = $shift; RpmRate = $rpmRate; Hold = $Hold }
+}
+
 function Tel-Slip {
     <#
       The reference model and the deviation from it, given nothing but speed,
@@ -715,25 +771,18 @@ function Tel-Sample {
         # derivative would divide a real rev change by a fraction of the interval
         # that produced it and read several times too fast.
         #
-        # PROVISIONAL. These two thresholds are reasoned, not measured. rpmRate is
-        # logged so a real drive can replace them with numbers.
-        $SHIFT_DROP = 6000.0   # rpm/s. Lifting off decays at roughly 3000.
-        $SHIFT_RISE = 9000.0   # rpm/s. Accelerating climbs at roughly 5000.
+        # The decision itself is in Tel-DetectShift so it can be tested against
+        # synthetic traces without a running game - the same reason Tel-Slip was
+        # extracted. The risky part here is not the thresholds (rpmRate is logged,
+        # so a real drive can replace those with numbers) but the LOGIC: telling a
+        # shift from a lift-off, and firing once rather than every frame.
         $Ctx.Shift = 0
         if ($tickAdvanced -and $tickDt -gt 0) {
-            $Ctx.RpmRate = if ($Ctx.LastRpm -gt 0) { ($rpm - $Ctx.LastRpm) / $tickDt } else { 0.0 }
-            if ($Ctx.ShiftHold -gt 0) {
-                # One shift is ONE event. Without this the whole ramp fires on
-                # every frame it is still falling, which is a buzz, not a shift.
-                $Ctx.ShiftHold -= $tickDt
-            } elseif ($speed -gt 3.0 -and $rpm -gt 0 -and $Ctx.LastRpm -gt 0) {
-                $spdRate = ($speed - $Ctx.LastSpeedShift) / $tickDt
-                if ($Ctx.RpmRate -lt -$SHIFT_DROP -and $spdRate -gt -1.5) {
-                    $Ctx.Shift = 1; $Ctx.ShiftHold = 0.35
-                } elseif ($Ctx.RpmRate -gt $SHIFT_RISE -and $spdRate -lt 1.5) {
-                    $Ctx.Shift = -1; $Ctx.ShiftHold = 0.35
-                }
-            }
+            $sh = Tel-DetectShift -Rpm $rpm -LastRpm $Ctx.LastRpm -Speed $speed `
+                                  -LastSpeed $Ctx.LastSpeedShift -Dt $tickDt -Hold $Ctx.ShiftHold
+            $Ctx.Shift     = $sh.Shift
+            $Ctx.RpmRate   = $sh.RpmRate
+            $Ctx.ShiftHold = $sh.Hold
             $Ctx.LastRpm = $rpm
             $Ctx.LastSpeedShift = $speed
         }
