@@ -100,6 +100,7 @@ Local Ditch — `maps.html` there is a download catalogue with no pictures.
 | Local Ditch — Codes & Cheats | https://www.localditch.com/interstate-76/codes.html |
 | Local Ditch — Links (other sites) | https://www.localditch.com/interstate-76/links.html |
 | Local Ditch — Message boards | https://www.localditch.com/interstate-76/message-boards.html |
+| **CahootsMalone/interstate-76-stuff — cheat codes & easter eggs** | https://github.com/CahootsMalone/interstate-76-stuff/blob/master/cheat-codes-and-easter-eggs.md | Verified 2026-08-10. All codes held with CTRL+SHIFT during gameplay: `blflat`/`brflat`/`flflat`/`frflat` destroy one named tire, `getdown` succeeds the mission on vehicle destruction and turns every vehicle hostile, `wiggleburger` is a persistent visual effect. Separately, **CTRL+ALT+X detonates the player's vehicle** — a scriptable death on demand. `freelance` (poetry) and `thirdnostril` (radar range) are reported not to work. **Relevant to `i76-uncap-lab`:** the death-camera measurement in the frame-rate work was blocked because melee AI could not kill the player in 400s of ramming — this cheat solves that outright, no AI or terrain dependency. |
 
 ## 4. "How is the game meant to be played?"
 
@@ -162,8 +163,10 @@ walkthroughs, vehicles, weapons and codes.
   siblings rather than a single fetch.
 - **A top-down image per stock level.** The heightmap posts are the closest thing found; nobody
   appears to have published clean overhead shots of the *campaign* levels.
-- **Anything on the multiplayer healing building** — the repair mechanic is a live lead for
-  locating armor in memory and no published source has been found describing it.
+- ~~Anything on the multiplayer healing building~~ — answered by §1a (`regen` class code) and
+  now moot: live armor itself is located, see
+  [`i76-uncap-lab/docs/ARMOR-INVESTIGATION.md`](../../i76-uncap-lab/docs/ARMOR-INVESTIGATION.md)
+  (entity `+0x138`, found offline by cross-instance offset diff, 2026-08-10).
 
 ## House rules for this index
 
