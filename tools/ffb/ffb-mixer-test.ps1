@@ -488,6 +488,51 @@ for ($t = 0.0; $t -lt 0.6; $t += 1.0/60) {
 }
 Check "a sample with no Shift property is silent" ($noShiftPeak -eq 0) "got $noShiftPeak"
 
+# ---------------------------------------------------------------------------
+Write-Host ""
+Write-Host "=== 11. shift DETECTION (Tel-DetectShift) ===" -ForegroundColor Cyan
+
+# The thresholds here are provisional and a real drive will replace them. What
+# these pin is the LOGIC, which is what would waste a play session if wrong:
+# telling a gear change from a lift-off, and firing once instead of every frame.
+. (Join-Path $here 'Telemetry.ps1')
+
+$TICK = 0.05   # the sim runs at 20 Hz; shifts must differentiate against that
+
+# An upshift: revs collapse in one tick while the car keeps gaining speed.
+$r = Tel-DetectShift -Rpm 3800 -LastRpm 6000 -Speed 22.0 -LastSpeed 21.7 -Dt $TICK -Hold 0
+Check "an upshift is detected" ($r.Shift -eq 1) "shift=$($r.Shift) rate=$($r.RpmRate)"
+
+# A LIFT-OFF: revs fall, but so does road speed. This is the false positive that
+# would otherwise fire on every corner entry in the game.
+$r = Tel-DetectShift -Rpm 5850 -LastRpm 6000 -Speed 21.0 -LastSpeed 21.6 -Dt $TICK -Hold 0
+Check "lifting off is NOT a shift" ($r.Shift -eq 0) "shift=$($r.Shift) rate=$($r.RpmRate)"
+
+# A downshift: revs jump while the car is slowing.
+$r = Tel-DetectShift -Rpm 4200 -LastRpm 2500 -Speed 18.0 -LastSpeed 19.2 -Dt $TICK -Hold 0
+Check "a downshift is detected" ($r.Shift -eq -1) "shift=$($r.Shift) rate=$($r.RpmRate)"
+
+# Ordinary acceleration also raises revs - and must not read as a downshift.
+$r = Tel-DetectShift -Rpm 3250 -LastRpm 3000 -Speed 15.0 -LastSpeed 14.6 -Dt $TICK -Hold 0
+Check "accelerating is NOT a downshift" ($r.Shift -eq 0) "shift=$($r.Shift) rate=$($r.RpmRate)"
+
+# The refractory: while a shift is still ramping down, no second event.
+$r = Tel-DetectShift -Rpm 3600 -LastRpm 3800 -Speed 22.4 -LastSpeed 22.0 -Dt $TICK -Hold 0.30
+Check "one shift is one event" ($r.Shift -eq 0) "shift=$($r.Shift)"
+Check "the refractory counts down" ($r.Hold -lt 0.30 -and $r.Hold -ge 0) "hold=$($r.Hold)"
+
+# Standing still, nothing counts - revving in neutral is not a gear change.
+$r = Tel-DetectShift -Rpm 2000 -LastRpm 6000 -Speed 0.0 -LastSpeed 0.0 -Dt $TICK -Hold 0
+Check "a parked rev is not a shift" ($r.Shift -eq 0) "shift=$($r.Shift)"
+
+# First frame: no previous RPM to differentiate against.
+$r = Tel-DetectShift -Rpm 3800 -LastRpm 0 -Speed 22.0 -LastSpeed 21.7 -Dt $TICK -Hold 0
+Check "the first frame emits nothing" ($r.Shift -eq 0 -and $r.RpmRate -eq 0) "shift=$($r.Shift)"
+
+# A zero dt must not divide by zero.
+$r = Tel-DetectShift -Rpm 3800 -LastRpm 6000 -Speed 22.0 -LastSpeed 21.7 -Dt 0 -Hold 0
+Check "a zero tick interval is safe" ($r.Shift -eq 0 -and $r.RpmRate -eq 0) "shift=$($r.Shift)"
+
 Write-Host ""
 Write-Host ("=== {0} passed, {1} failed ===" -f $script:pass, $script:fail) `
     -ForegroundColor $(if ($script:fail -eq 0) { 'Green' } else { 'Red' })
