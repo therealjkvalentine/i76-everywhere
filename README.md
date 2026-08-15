@@ -19,6 +19,21 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
 
+## Open improvements
+
+Live backlog of things still worth fixing, **non-frame-rate** ones first because they affect
+normal play at any frame rate. (Frame-rate-specific bugs have their own tracked list in
+[`../i76-uncap-lab/docs/framerate/MEASUREMENTS.md`](../i76-uncap-lab/docs/framerate/MEASUREMENTS.md).)
+
+| # | Issue | Status / leads |
+|---|---|---|
+| 1 | **Saving freezes the game** — cannot save reliably | **Not yet investigated.** Strong lead already in-repo: the save **slot allocator is known buggy** — every in-game save to a fresh slot writes the file as `save-01.cmp` (an `sprintf("save%03d", -1)`, i.e. the allocator returned *not-found*) while the dir entry says `saveNNN`. An allocator that fails to find a slot is exactly the kind of thing that can spin. See [docs/SAVE-FORMAT-GAPS.md](docs/SAVE-FORMAT-GAPS.md). Also suspect `savegame.dir` growth/corruption, since the game truncates its final entry on every write |
+| 2 | **Popup/in-game menus freeze the game** | **Not yet investigated.** Precedent worth checking first: on Mac, *multi-second freezes in menus* were **audio**, not UI — MP3 decode failed, MCI open failed, and the game retried in a tight loop ([docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md)). The Windows analogue would be a failing MCI/CD-audio or music path. Check whether the freeze correlates with music tracks starting/stopping |
+| 3 | **Draw distance + texture LOD** — landscapes pop in late; high-res textures only appear close | Enhancement, not a bug. Likely levers: the engine's LOD distance thresholds (the `obj_model` variant/slot swap system), fog/far-plane constants, dgVoodoo texture settings |
+
+Both freezes are worth a shared first step: confirm whether they are the *same* hang (audio, file I/O,
+or the shell) before chasing them separately.
+
 ## The gamepad layout
 
 The full controller scheme — native `input.map` bindings plus the AutoHotkey/XInput
