@@ -27,12 +27,9 @@ normal play at any frame rate. (Frame-rate-specific bugs have their own tracked 
 
 | # | Issue | Status / leads |
 |---|---|---|
-| 1 | **Saving freezes the game** — cannot save reliably | **Not yet investigated.** Strong lead already in-repo: the save **slot allocator is known buggy** — every in-game save to a fresh slot writes the file as `save-01.cmp` (an `sprintf("save%03d", -1)`, i.e. the allocator returned *not-found*) while the dir entry says `saveNNN`. An allocator that fails to find a slot is exactly the kind of thing that can spin. See [docs/SAVE-FORMAT-GAPS.md](docs/SAVE-FORMAT-GAPS.md). Also suspect `savegame.dir` growth/corruption, since the game truncates its final entry on every write |
-| 2 | **Popup/in-game menus freeze the game** | **Not yet investigated.** Precedent worth checking first: on Mac, *multi-second freezes in menus* were **audio**, not UI — MP3 decode failed, MCI open failed, and the game retried in a tight loop ([docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md)). The Windows analogue would be a failing MCI/CD-audio or music path. Check whether the freeze correlates with music tracks starting/stopping |
+| 1 | **Saving freezes the game** + the save-name text box is hard to type into ("works sometimes") + it **always says overwriting** + the mouse lands in the wrong position | **DIAGNOSED (2026-08-10) — [docs/SHELL-MENU-AND-SAVE-FREEZE.md](docs/SHELL-MENU-AND-SAVE-FREEZE.md).** All one root: the 2D **shell** (`i76shell.dll`) assumes a 1997 fullscreen 640×480 window with exclusive focus, which the modern stack (dgVoodoo scale + Lossless Scaling + opentrack) breaks. Measured: the shell **spins at 100% CPU** (not a deadlock) → the "freeze" is it **stuck waiting for keyboard input that focus-stealing overlays prevent**; text entry needs `WM_CHAR` focus; the cursor is **`ClipCursor`'d to a 640×480 corner**; "always overwriting" is the known save-slot allocator bug (`sprintf("save%3.3d", -1)` → `save-01.cmp`). Next: reproduce with LS off / windowed; a focus fix likely solves most of it |
+| 2 | **Popup/in-game menus freeze the game** | Same shell system as #1 — see [docs/SHELL-MENU-AND-SAVE-FREEZE.md](docs/SHELL-MENU-AND-SAVE-FREEZE.md). (Earlier Mac precedent — menu freezes that turned out to be **audio** retry loops, [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — is worth ruling out too, but the shell focus/spin mechanism now looks primary) |
 | 3 | **Draw distance + texture LOD** — landscapes pop in late; high-res textures only appear close | Enhancement, not a bug. Likely levers: the engine's LOD distance thresholds (the `obj_model` variant/slot swap system), fog/far-plane constants, dgVoodoo texture settings |
-
-Both freezes are worth a shared first step: confirm whether they are the *same* hang (audio, file I/O,
-or the shell) before chasing them separately.
 
 ## The gamepad layout
 
