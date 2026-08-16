@@ -1,9 +1,61 @@
 # The save/popup freeze: root cause, proof, and the fix
 
-**SOLVED 2026-08-10, diagnosed on a live hung process and proven by unsticking it.
-FIX SHIPPED 2026-08-10 (the `u32x` USER32 proxy) — see "The shipped fix" below.**
+**Root cause SOLVED 2026-08-10** (diagnosed on a live hung process, proven by unsticking it).
+**The v1 fix shipped 2026-08-10 did NOT work — corrected in v2 on 2026-08-16.** Read the v2
+section first; the v1 write-up below it is kept because its *diagnosis* was right and only its
+*decision rule* was wrong.
 
-## The shipped fix (u32x proxy) — deployed and verified
+## v2 (2026-08-16) — why v1 failed in play, and the correction
+
+v1 was reported still-freezing by the user on the portable install: loading a bookmark, then
+opening Save Bookmark, left the mouse dead (and the in-mission Options/Abort menu mouse never
+worked either — same shell, same cause). Diagnosed live on that stuck process:
+
+- The process was **`Responding=True` at ~0% CPU** — *not* the v1 spin-hang. A different failure.
+- **`FindWindowA` returned NULL for all four variants**, while `EnumWindows` found the window with
+  a byte-exact `Interstate '76 Gold Edition` class *and* title. A proxy that cannot find the window
+  computes `m.valid = 0` and **silently disables itself** — v1 could ship "installed" and be inert.
+- Live geometry: client rect **3440x1440** → UI scale 3.0, so the 640x480 UI renders at screen
+  **x = 760..2680** with 760px black bars. The cursor sat at screen **(370,479)** — i.e. inside the
+  left black bar, real UI **(-130,160)** — but v1's guard saw "0<=370<=639, 0<=479<=479, must
+  already be UI space" and **passed it through untranslated**.
+- **The self-reinforcing deadlock:** the shell calls `ClipCursor(0,0,640,480)`. Until v1's
+  `g_translate` flag was set it passed that through *untranslated*, trapping the pointer in the
+  physical top-left 640x480 box — precisely the region where every coordinate looks "already
+  mapped". So `g_translate` could never become 1, translation never started, and the mouse could
+  never escape. That is the "can't see or move the mouse" the user reported.
+
+**Proof (same method as the original diagnosis):** on the live stuck game, a click at UI-space
+(420,429) — physically the top-left corner of the screen, nowhere near where CANCEL is drawn —
+dismissed the Save Bookmark screen and returned to the mission. Confirms the shell was hit-testing
+raw screen coordinates.
+
+**The v2 correction (`src/u32x.c`):**
+1. **Window discovery never uses a name.** `EnumWindows` filtered by `GetCurrentProcessId()` picks
+   our own visible top-level window (skipping the hidden ActiveMovie/FFB helper windows);
+   `FindWindowA`/`GetActiveWindow` remain only as last-ditch fallbacks.
+2. **Translation is unconditional and derived from live geometry**, never from the magnitude of
+   the coordinate. `g_translate` and the in-range guard are deleted. The one formula is *already
+   the identity* when the window genuinely is 640x480 at the origin (scale 1, org 0) — the
+   real-fullscreen / pre-mapped case — so a single rule is correct in every configuration with no
+   guessing and no bootstrap state.
+3. Results are still clamped into 0..639/0..479, so the shell always gets a resolvable coordinate
+   and the popup poll loop still can never spin forever.
+4. `ClipCursor` now always maps the UI rect onto the real on-screen content rect, so the pointer is
+   confined to the **rendered UI** instead of the physical corner.
+
+A `-DU32X_LOG` build (`u32x_log.dll`) writes every translation to
+`i76-uncap-lab/captures/save/u32x.log` — use it to *verify* translation is happening rather than
+assume it, which is the mistake v1 made.
+
+> **Lesson worth keeping:** v1 was declared "verified" on the strength of a synthetic repro
+> (releasing the clip and reading one translated coordinate) that never exercised the state the
+> real bug lives in. A fix is verified when the *user's actual workflow* works, not when a probe
+> returns the expected number.
+
+---
+
+## The v1 fix (u32x proxy) — SUPERSEDED, retained for its diagnosis
 
 A USER32 coordinate-translation proxy (`i76-uncap-lab/src/u32x.c`, same technique as the
 SMACKW32 music fix) is installed beside `i76shell.dll`, and the shell's import string
@@ -37,13 +89,26 @@ Deploy/rollback: `i76-uncap-lab/tools/instruments/deploy-shellfix.ps1 -GameDir <
   fixed, the honest path is: SAVE → YES overwrites your progress bookmark (works now), or type a
   new name for a new slot. A nicer fix would patch the shell to default the field to a fresh name
   — deferred (needs a shell patch).
-- **The name text-entry is finicky — a real, separate shell bug.** The field is auto-focused on
-  open, and characters are read through the shell's own key path; automated typing at 80 ms/key
-  dropped 4 of 5 characters and backspace did not clear the default. This is the user's "hard to
-  type, works sometimes" and is **not** addressed by the cursor proxy. Suspect the shell's
-  GetAsyncKeyState/ToAscii polling in its 100%-CPU spin loop dropping keys. Fixing it would need a
-  keyboard-path intercept or shell patch — deferred; human-speed typing may fare better than the
-  automated test.
+- **The name text-entry is finicky — a real, separate shell bug. Mechanism now traced (2026-08-16).**
+  The field is auto-focused on open, and characters are read through the shell's own key path. It is
+  **not** GetAsyncKeyState polling (an earlier guess); the key-read function is `i76shell.dll+0x1D630`:
+  1. It first drains a **64-entry ring buffer** (head at `0x100D215C`, tail at `0x100D2160`, buffer at
+     `0x100F6420`) — already-translated characters.
+  2. If the ring is empty it calls **`PeekMessageA(&msg, NULL, WM_KEYFIRST(0x100), WM_KEYLAST(0x108),
+     PM_REMOVE)`** and dispatches by message via a jump table, translating the VK to a character itself
+     (through `+0x1D440` → `ToAscii`, not via `WM_CHAR`/`TranslateMessage`). The name-entry wrapper at
+     `+0x1C110` calls `+0x1D630` then re-translates through `ToAscii` at `+0x1C11E`.
+
+  So this is a **message-queue** path, not a poll-rate path. For every keystroke to land, two things must
+  hold: (a) the game window has keyboard **focus** so `WM_KEYDOWN` reaches this thread's queue, and (b) no
+  other pump drains `0x100..0x108` before this `PeekMessage` runs. That explains "works sometimes": it
+  tracks focus, not luck. It is **not** touched by the cursor proxy — `My_PeekMessageA` only rewrites
+  mouse-message lParams (`WM_MOUSEFIRST..WM_MOUSELAST`); keyboard messages forward through untouched, so
+  the fix neither helps nor harms typing. The automated test dropped 4 of 5 chars because synthetic
+  `keybd_event` injection races focus/queue delivery; **human-speed typing into a focused window should
+  fare much better** — this is the first thing to confirm in the live test before any patch is designed.
+  A real fix, if still needed, would be a keyboard-path shell patch (e.g. pre-seed focus, or widen the
+  ring drain), not a cursor change — deferred.
 - **`savegame.dir` truncation is inherent and benign.** The engine writes the final dir entry
   truncated on every save (observed live: 304→364 after a save, last entry short) and reads its
   own truncated file fine. The canonical repo copy is likewise 304 bytes and loads correctly, so
