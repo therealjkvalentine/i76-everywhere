@@ -1,6 +1,59 @@
 # The save/popup freeze: root cause, proof, and the fix
 
-**SOLVED 2026-08-10, diagnosed on a live hung process and proven by unsticking it.**
+**SOLVED 2026-08-10, diagnosed on a live hung process and proven by unsticking it.
+FIX SHIPPED 2026-08-10 (the `u32x` USER32 proxy) — see "The shipped fix" below.**
+
+## The shipped fix (u32x proxy) — deployed and verified
+
+A USER32 coordinate-translation proxy (`i76-uncap-lab/src/u32x.c`, same technique as the
+SMACKW32 music fix) is installed beside `i76shell.dll`, and the shell's import string
+`USER32.dll` is retargeted to `u32x.dll`. 39 of the shell's 43 USER32 imports forward straight
+through; four are intercepted to translate between real screen coordinates and the shell's
+640×480 UI space (window client-rect + `stretched_ar` letterbox math). It **guarantees the shell
+always receives an in-range coordinate**, so the hit-test always resolves and the poll loop can
+never hang — and it is self-calibrating, so it is correct whether or not dgVoodoo pre-maps the
+cursor, windowed or fullscreen, at any resolution.
+
+Deploy/rollback: `i76-uncap-lab/tools/instruments/deploy-shellfix.ps1 -GameDir <dir>`
+(`-Restore` / `-Status`); keeps `i76shell.dll.orig`. **Deployed to the portable install
+2026-08-10.**
+
+**Verified end-to-end:**
+- Reproduced the freeze condition on the portable install (released the cursor clip, cursor at
+  screen (2900,1200) → `GetCursorPos` returned the raw out-of-range (2900,1200)); the proxy
+  translated it and the game stayed `Responding` at idle CPU. Same condition previously hung it.
+- The real **"Overwrite an existing bookmark?" popup** — the exact one that froze — now dismisses
+  from a click at its **visual** position (YES/NO), and a full save (SAVE → overwrite → YES →
+  back to the garage, `save005.cmp` written) completes without a hang.
+- Menus/garage/save-load all navigate by clicking where things visually are.
+- Non-regression: normal menu navigation still works where dgVoodoo already maps the cursor.
+
+## The other two save issues (found while fixing the freeze)
+
+- **"Always says overwriting on a new save" — mechanism found, not the cursor.** The Save Bookmark
+  screen pre-fills the name field with the **currently-loaded bookmark's name** (e.g. "Scene 2.").
+  Pressing SAVE with that default name matches an existing entry → the overwrite prompt. It is not
+  a slot bug; to make a genuinely new bookmark you must type a different name. With the freeze
+  fixed, the honest path is: SAVE → YES overwrites your progress bookmark (works now), or type a
+  new name for a new slot. A nicer fix would patch the shell to default the field to a fresh name
+  — deferred (needs a shell patch).
+- **The name text-entry is finicky — a real, separate shell bug.** The field is auto-focused on
+  open, and characters are read through the shell's own key path; automated typing at 80 ms/key
+  dropped 4 of 5 characters and backspace did not clear the default. This is the user's "hard to
+  type, works sometimes" and is **not** addressed by the cursor proxy. Suspect the shell's
+  GetAsyncKeyState/ToAscii polling in its 100%-CPU spin loop dropping keys. Fixing it would need a
+  keyboard-path intercept or shell patch — deferred; human-speed typing may fare better than the
+  automated test.
+- **`savegame.dir` truncation is inherent and benign.** The engine writes the final dir entry
+  truncated on every save (observed live: 304→364 after a save, last entry short) and reads its
+  own truncated file fine. The canonical repo copy is likewise 304 bytes and loads correctly, so
+  no repair is needed on Windows (the Mac launcher re-pads only as belt-and-suspenders).
+- **The `save-01.cmp` allocator orphan is intermittent.** The test save allocated correctly
+  (`save005`, highest+1); the −1 orphan did not reproduce this run.
+
+---
+
+*(Original diagnosis below, retained.)*
 
 ## The bug in one sentence
 
