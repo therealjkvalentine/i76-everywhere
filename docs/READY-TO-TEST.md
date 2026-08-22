@@ -118,6 +118,54 @@ Your call at the console, in the sandbox:
    word and I'll deploy `patch-farclip.ps1` to the portable (with `.farorig` backup, composes with
    the camera patch) — or `-Restore` puts the sandbox back to stock if you hate it.
 
+## A7 — Force feedback: RPM/shift + the bass shakers (NEW — two threads meeting)
+
+Two separate threads both landed in `tools/ffb/` and have **never been run together**. This is
+the session that tests that.
+
+### Where the RPM/gear work is
+
+| Thing | Where |
+|---|---|
+| **RPM itself** | `0x4F2334` — offset `+0x0C` inside the 364-byte FFB param block at `0x4f2328`. Read in `Telemetry.ps1:752`, clamped to 0–20000. It is **not** in the vehicle entity struct |
+| Why the first scan failed | `ffb-find-rpm.ps1` scanned the entity struct: across 555 parked frames only **four** slots in 0x400 bytes moved, and they were throttle and steer. A true null, not a threshold problem |
+| What found it | `ffb-find-rpm-wide.ps1` — whole-process scan including `MEM_IMAGE` (the exe's own data, which the standard dumper excludes), using an alternating idle→revs→idle→revs test rather than correlation |
+| Shift detection | `Tel-DetectShift` in `Telemetry.ps1`, extracted so it can be tested against synthetic traces with no game running — same reason `Tel-Slip` was extracted |
+| Shift force | `ShiftGain 2600`, `ShiftMs 90`, `ShiftDownScale 0.55` in `Mix-DefaultTune`; fires a 30 Hz `jolt` transient |
+
+**It still keeps filling with the crash-guard active.** Bypassing the engine's FFB call at
+`0x52bbe4` (which stops firing a weapon from crashing the game) does not stop the block being
+written, so RPM survives the workaround. Worth re-confirming live.
+
+### Where the shaker work is
+
+`ffb-lfe-live.ps1` streams to the transducers while you play; `LfeSynth.ps1` holds the DSP,
+the winmm device layer and the streaming class. `ffb-lfe-probe.ps1` renders scripted driving
+scenarios and `ffb-lfe-trace.ps1` inspects the chain stage by stage — **both run with no game
+and no operator**, so most faults should be found without a play session.
+
+### What to run
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File toolsfbfb-lfe-live.ps1 -Device 0
+powershell -NoProfile -ExecutionPolicy Bypass -File toolsfbfb-interposer.ps1
+```
+
+Device 0 is the Audient EVO 4. Run the interposer alongside — telemetry reads are read-only,
+so the two do not contend for game memory.
+
+### What to watch, in order of what is least proven
+
+1. **Shift detection has never seen a real drive.** The logic is unit-tested; the *thresholds*
+   are guesses. `rpmRate` is logged, so one normal drive replaces them with numbers. Watch for
+   shifts that fire twice, or fire on a lift-off.
+2. **BOOM stays 0.00 while things explode.** The explosion channel is keyed on effect-table
+   magnitude ≥40 (gunfire reads 5–10, something heavier reads 60). If a missile hits or a car
+   blows up nearby and BOOM never moves, that table only carries the *player's* own effects and
+   the blast signal has to be found elsewhere.
+3. Impact / weapon / scrub / heave all reading sensible numbers rather than pinned or dead.
+4. Whether the wheel and the shakers fight each other — untested in combination.
+
 ## D. Not blocking a test — research state
 
 - **Texture LOD at distance** (the other half of improvement #3): path known, deferred — the far
