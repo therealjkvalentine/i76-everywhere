@@ -104,8 +104,8 @@ tools\framerate\patch-camera-rate.ps1 -GameDir "<portable>\Interstate 76" -Resto
 ## A6 — Draw distance (NEW, 2026-08-16 — sandbox only, judge before deploying)
 
 **Cracked and verified unattended** — [DRAW-DISTANCE.md](DRAW-DISTANCE.md) has the full story. The
-**sandbox** (`i76-uncap-lab\game`) is currently patched to **5000 m** (stock is 600) with the render
-pools enlarged 16× (the fix for the crash that capped it). Screenshots in
+**sandbox** (`i76-uncap-lab\game`) is currently patched to **8000 m** (stock is 600; 12000 crashed
+even big pools) with the render pools enlarged 128× (the fix for the crash that capped it). Screenshots in
 `i76-uncap-lab\captures\farclip\` show the delta: fog-clipped mesa stubs → full mountain ranges.
 
 Your call at the console, in the sandbox:
