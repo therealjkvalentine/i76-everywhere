@@ -171,6 +171,14 @@ so the two do not contend for game memory.
 - **Texture LOD at distance** (the other half of improvement #3): path known, deferred — the far
   mips are hand-authored pak data; sharpening them is a content mod like the retired HD-textures
   experiment. See DRAW-DISTANCE.md's last section.
-- **Collision pass-through** bug: found **not cleanly auto-measurable** on the training level (it's a straight
-  accelerating road with no early obstacle on the car's auto-path). Needs a mission with a known early wall,
-  or a manual run.
+- **Collision pass-through** bug: now **fully automated and ready** — the earlier "not measurable"
+  verdict was wrong (the training level has 89 saguaros with exact ODEF coordinates; the car just
+  needed to be steered at them). When the machine is on the physical console, one command runs the
+  whole 20-vs-60 A/B and prints the hit rates:
+
+  ```
+  powershell -ExecutionPolicy Bypass -File ..\i76-uncap-lab	oolsramerate\cactus-ab.ps1
+  ```
+
+  ~15 cactus approaches per rate across 3 cold mission loads each, ~15 min unattended. I can run it
+  myself whenever the console session is active — it only needs the screen unlocked at the machine.
