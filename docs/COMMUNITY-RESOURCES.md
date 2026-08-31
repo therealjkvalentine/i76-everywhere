@@ -76,6 +76,12 @@ Local Ditch — `maps.html` there is a download catalogue with no pictures.
 `vjsovrn1-3` Sovereign, `vxbus1/2` Bus, `vstank1/2/f` tank, turrets (`c1turr`, `mg1turr`,
 `flm1turr`, `sp1turr`…), and the Trip-mode cars including **`t01js01` = Taurus**.
 
+## 1b. 3D model rips/recreations
+
+| resource | URL | what it gives |
+|---|---|---|
+| **Sketchfab: Interstate '76 collection (xetura)** | https://sketchfab.com/xetura/collections/interstate-76-a6fcf6e950154ac498bd17b8cdd2399b | Community collection of I'76 vehicle 3D models (user-supplied 2026-08-30). Useful as **geometry reference** for the .geo/OEG mesh format work, damage-state variants, and any future asset-upgrade experiment. Not verified for accuracy/completeness; check licences per model before reuse |
+
 ## 2. "What does this level look like / how are levels stored?"
 
 | resource | URL | what it gives |
