@@ -8,6 +8,8 @@ Shorthand: `<FP>` = `<SCR>\recon\fp-ghidra`, `<AH>` = `<SCR>\recon\agent-harness
 
 ---
 
+> **Field amendment 2026-09-04 (first console smoke test).** The pristine GOG 2017 bytes do not run on Windows 10: `FUN_00499950` measures CPU speed through 8254 PIT port I/O (`cli/out/in` at 0x499997-0x4999cb) and the process dies with STATUS_PRIVILEGED_INSTRUCTION 0.5 s after launch. Gate H0 therefore defines the reference *running* image as pristine plus exactly one allowlisted 5-byte patch (i76fix patch1: `call 0x499950` at 0x499b25 becomes `mov eax,200`; file md5 58d9dec00c18a5383820e77e51850b74), excludes the IAT (0x4bc000-0x4bc404) from the `.rdata` byte diff, and records runtime writes to initialised `.data` as data rather than tampering. Details and the live-verified renderer-slot predictions: `C:\Users\james\i76-map\status\tasks\console-smoke.md` and `captures\001-smoke\`.
+
 ## Changes from v1
 
 Every fatal and missing item raised by the two critics is listed with its disposition. "Accepted" means the rule or task below was changed; "rebutted" means kept with the evidence stated.
