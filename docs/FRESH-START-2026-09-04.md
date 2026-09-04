@@ -4,7 +4,9 @@
 
 **How it was produced.** 11 recon agents (4 on the binaries, 7 blind web sweeps), 36 skeptics (two lenses per claim: primary sources vs the bytes), 5 methodology proposals from different angles, 3 judges with different lenses, 1 synthesis, 2 adversarial critics, 1 revision. About 7.7 M subagent tokens, 1,560 tool calls. Everything they wrote is archived, with scripts and raw outputs, at `C:\Users\james\i76-map\recon-2026-09-04\` (685 MB). The full methodology is [FRESH-START-METHOD.md](FRESH-START-METHOD.md).
 
-**Reference binary.** `C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy`, md5 `9a232dcc2c164648cff20c414c1f9698`. The live `i76.exe` in both installs is a locally patched copy (md5 `4fabc303...`, imports `u32x.dll`/`WINMM.dll`, +132 bytes of `.text`) and is never ground truth.
+**Reference binary.** `C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy`, md5 `9a232dcc2c164648cff20c414c1f9698`. The live `i76.exe` in both installs is never ground truth: it is GOG's 2019 AiO-patched build (md5 `60abf7bc...`: about 2.5 KB of patches in ~45 code clusters inside `.text`, a 132-byte tail, and the WINMM import) plus, in the sandbox copy (`4fabc303...`), local patches (pools x128, far clip, camera rate, the u32x import). Correction 2026-09-04 from the fold-in comparison: the first version of this document described it as "+132 bytes of .text" only, which understated the difference; the per-build diff table in `C:\Users\james\i76-map\foldin\FOLDIN-REPORT.md` is authoritative.
+
+**Fold-in (2026-09-04, later the same day).** The repo's prior RE work was then compared against these findings; results in `C:\Users\james\i76-map\foldin\FOLDIN-REPORT.md` (108-row ledger, 20 corrections in each direction, revised roadmap and console-sitting script).
 
 ---
 
