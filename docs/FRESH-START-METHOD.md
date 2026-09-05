@@ -440,6 +440,8 @@ Comparables (prior-art sections 2-3): solo functional decompilation of a 1 MB C 
 
 This target's specific difficulty: 717 x87 functions holding 462,513 B (64% of function bytes); 1,762 functions (476,220 B) reference no string; 103 string-less functions >= 1 KB hold 170,326 B. Agents will compress the anchored, table-driven and leaf part; the x87 core is human-led with agents on the mechanical parts.
 
+> **Method amendment 2026-09-05 (pilot batch 1, G4 naming).** Pilot 1 accepted 1 of 20 keys; 18 misses were the string-equality name rule (9 spelling-only, 9 prefix/subsystem-only) at 1.77 M tokens per accepted function. G4 now compares names after lower-casing and dropping separators, accepts two names whose words after the prefix agree when both prefixes fold to one canonical prefix in `i76-map\subsystems\VOCABULARY.md` (or the reviewer names one of the two proposed spellings in `reconcile:`), and compares param claims by index and type only. Different words still requeue: the words are the independent half of the consensus. A review whose requeue verdict was only the G4 spelling/prefix disagreement is superseded once G4 agrees (its per-claim verdicts still apply). The orchestrator runs `merge.py --proposal <key> --dry-run` before spending a review, releases review tokens through `--review-tokens`, and `completeness.py` reads the G4 rate from the queue history. Record: `i76-map\status\PILOT-1.md` (what to change) and the pilot-1 re-merge in `status	asks\sitting-1-notes.md`.
+
 Projection, to be replaced by measurement at the end of Phase 3's first fortnight (M14):
 - Weeks 1-2: Phase 0; ~350 rows anchored/library/synthetic; first verified label.
 - Weeks 2-8: Phase 1; 30% of .text bytes at supported+ (provisional).
