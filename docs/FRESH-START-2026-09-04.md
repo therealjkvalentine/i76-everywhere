@@ -121,3 +121,21 @@ From Phase 2 on, one claim at a time, exactly as any external instance: each bec
 - **Archive (685 MB):** `C:\Users\james\i76-map\recon-2026-09-04\` — `recon\<agent>\REPORT.md` for all 11 recon agents and the skeptic reports (`*-refute`, `nitro-vs-i76`, `fsm-addr-check`...), each with its scripts and raw outputs; `recon\fp-ghidra\proj\i76fresh.gpr` (the fresh Ghidra project, two programs, pass-4 export); `recon\agent-harness\export\` (all 1,784 decompiled `.c` and `.pcode`); `recon\formats\zfs_out\` (all 6,116 ZFS entries extracted) and the parsers; `recon\strings-mining\raw_python\` (string dumps with VAs); `design\prop-*\REPORT.md` (five proposals), `design\panel\*.json` (judges, critics, verdicts), `design\synthesis\REPORT.md` and `REPORT-v2.md`.
 - **This repo:** this file and [FRESH-START-METHOD.md](FRESH-START-METHOD.md).
 - **Sandbox game folder (read-only during recon):** `C:\Users\james\i76-uncap-lab\game\`.
+
+## 11. Status after day 2 (2026-09-05)
+
+- **Phase 1 pilot**: batch 1 went 1/20 on the string-equality name rule; the G4 amendment (normalised names, the
+  `subsystems\VOCABULARY.md` prefix table, param types not identifiers, a dry-run gate before any review, real token
+  counts from the agent transcripts) brought it to **17/20**, and batch 2 (20 keys, damage / options / CD / loader
+  functions first via `status\hotlist.txt`) is running. Records: `i76-map\status\PILOT-1.md`, `PILOT-1-REMERGE.md`.
+- **Console sitting 1** (`status\tasks\sitting-1-notes.md`): every instrument worked live on the pristine+i76fix
+  build; weapon_fire / throttle / ammo slot 0 verified by capture; pause semantics (dt 0, game time frozen, frame
+  counter racing); the debug gamekeys are dead in Gold (they reach the u16 key queue 0x608e60, render nothing);
+  0x5fcdc0 is a DS3DLISTENER rewritten every loop.
+- **Static wins**: the entity armour block +0x138..+0x1a0 cited three ways (loader 0x4ad950 from the VCFC record,
+  damage 0x465620, HUD ratio 0x463a80), doubled offline by 0x463120; the Play Options cheat bits 0x654b98; the CD
+  machinery (shell_cb_17, cd_ProbeVolume / cd_PromptLoop created in the untagged gap, the VFS's insert-CD fallback).
+  The live armour numbers were the user's modded `ADDON\valepre4.vcf` x2, not stock: read the loaded file first.
+- **Open**: the insert-CD prompt's trigger (a GetVolumeInformation miss on the mounted ISO at startup is the last
+  candidate; probe in `tools\cdaudio_probe.py`); item 8f armour confirmation and the poke tool's new
+  `clobbered-per-loop` class need a quiet console (the game renders black while 16 agents load the machine).
