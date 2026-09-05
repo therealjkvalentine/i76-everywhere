@@ -155,6 +155,7 @@ static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
 
 static DWORD g_timeFormat = MCI_FORMAT_MSF;
 static int   g_curTrack = 0;
+static int   g_playingTrack = 0;   /* what is REALLY on the head right now */
 static DWORD g_lenCache[LAST_TRACK + 1];   /* ms, 0 = not yet queried */
 
 static void mci_str(const char *cmd);
@@ -251,6 +252,7 @@ static void stop_track(void) {
     if (!g_open) return;
     char cmd[64]; _snprintf(cmd, sizeof(cmd), "close %s", g_alias);
     mci_str(cmd); g_open = 0;
+    g_playingTrack = 0;   /* nothing on the head now - a later PLAY must restart */
 }
 
 /* Is track N actually on disk? */
@@ -283,9 +285,48 @@ static int nearest_track(int want) {
 }
 
 /* CD-audio track N -> music\N.mp3 (track 1 was the data track; there is no 1.mp3) */
+/* Is our mpegvideo device actually still playing? Asked rather than assumed:
+ * "we started it once" is not "it is still going", and a track that has run to
+ * its end must be allowed to start again. */
+static int still_playing(void) {
+    char ret[64];
+    if (!g_open || !real_mciSendStringA) return 0;
+    ret[0] = 0;
+    if (real_mciSendStringA("status i76cd mode", ret, sizeof(ret), NULL) != 0) return 0;
+    return strncmp(ret, "playing", 7) == 0;
+}
+
 static MCIERROR play_track(int track) {
     char mp3[MAX_PATH], cmd[MAX_PATH + 64];
-    int actual = nearest_track(track);
+    int actual;
+
+    /* TRACK 1 IS THE DATA TRACK. On the original mixed-mode disc it held the
+     * game, not audio, so playing it produced SILENCE. The engine really does ask
+     * for it - ten times in one session in the field log - and nearest_track() was
+     * helpfully substituting track 2, so music played in the places the original
+     * was quiet. That is a large part of "it plays the wrong song". Answer success
+     * and play nothing, which is what the disc did. */
+    if (track < FIRST_TRACK) {
+        mlog("  track %d is the DATA track - silence, as the original disc gave", track);
+        stop_track();
+        g_playingTrack = 0;
+        return 0;
+    }
+
+    /* ALREADY PLAYING THIS TRACK -> DO NOTHING.
+     *
+     * The engine re-issues MCI_PLAY for the SAME track constantly. Measured in the
+     * field log: track 7 asked for 116 times, track 2 105 times, track 13 80 -
+     * each one previously a fresh open+play that restarted the song from zero.
+     * That is why music restarted whenever the window lost and regained focus, and
+     * why a track could never play through to its end. A CD player asked for the
+     * track already under the head does not lift the needle. */
+    if (track == g_playingTrack && still_playing()) {
+        mlog("  track %d already playing - not restarting", track);
+        return 0;
+    }
+
+    actual = nearest_track(track);
     if (!actual) {
         mlog("  track %d and every other track MISSING under %s\\music - no music",
              track, g_dir);
@@ -299,6 +340,7 @@ static MCIERROR play_track(int track) {
     _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", mp3, g_alias); mci_str(cmd);
     g_open = 1;
     _snprintf(cmd, sizeof(cmd), "play %s", g_alias); mci_str(cmd);
+    g_playingTrack = track;
     mlog("  PLAY track %d", track);
     return 0;
 }
