@@ -37,7 +37,7 @@ it.*
 | **[VOODOO-PARKED.md](VOODOO-PARKED.md)** | The dgVoodoo Glide→Metal mode. **Parked** — MoltenVK can't persist compiled Metal pipelines (MoltenVK#1765, absent in 1.4.1). Has the exact trigger + un-park playbook. Don't try to "fix the warmup" — it's a platform floor. |
 | [VISUAL-QUALITY-MAC.md](VISUAL-QUALITY-MAC.md) | The Voodoo graphics wins (gamma/MSAA/32-bit) + the warmup-ceiling proof. Wins were real; the mode is parked (see above). |
 | [DXGI-DGVOODOO-RESEARCH.md](DXGI-DGVOODOO-RESEARCH.md) | The full dgVoodoo-under-Wine saga. Useful root-causes, but its "future fix: persist the pipeline cache" is now known to be a **floor, not a fix** — superseded by VOODOO-PARKED. |
-| [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) | FFB on the Mac is a **dead end** (Wine's only FFB backend is Linux evdev). Works on the Deck/Windows. Also the 1024×768 software ceiling. |
+| [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) | Mac **wheel** FFB via DirectInput stays dead (Wine's only FFB backend is Linux evdev) — but the 2026-07-19 disassembly **overturned the general Mac verdict**: the FFB plugin DLL can be faked ([`../ffb-shim/`](../ffb-shim/)) to get the game's own force stream as pad rumble. Also the 1024×768 software ceiling (still true). |
 | [HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md) | HD-texture **pipeline** works (format cracked, tools in `../texture-lab/`), but true-HD on the Mac needs an OpenGLide-HD **renderer switch** away from the software path — **parked**. A full pack exists on the Windows box. |
 
 ## 🌐 Other platforms — working there, not applicable to the Mac build
@@ -45,11 +45,34 @@ it.*
 | Doc | What it is |
 |---|---|
 | [STEAMDECK.md](STEAMDECK.md) | **Installed & working on the Deck.** Heroic+Proton+dgVoodoo; the Glide path runs great (native Vulkan). |
+| [PHONE-PORTS.md](PHONE-PORTS.md) | **Research/untested.** Android = the Deck recipe again (Winlator: Wine→DXVK→Turnip) — I76 is an ideal candidate. iPhone = stream (Sunshine/Moonlight) or a QEMU VM (UTM). The save editor already works in a mobile browser. |
 | [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md) | Xbox gamepad on **PC & Mac** via the native winmm-joystick path (axes/buttons already in input.map). |
 | [DECK-CONTROLS.md](DECK-CONTROLS.md) / [DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md) | Deck controller layout + the input pipeline. |
 | [WINDOWS-PLAYBOOK.md](WINDOWS-PLAYBOOK.md) | Windows-box max graphics / FFB / frame-gen playbook. |
 | [FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md) | Windows results + the M16 texture-format crack + texture-replacement pipeline. |
 | [MODERN-SETUP.md](MODERN-SETUP.md) | Windows-side setup notes. |
+
+## 🔬 Memory RE & trainers — the 2026-07-18 push, consolidated
+
+*Several parallel threads reverse-engineered the live game process (owned GOG
+copy, own process — see [SCOPE-AND-LEGITIMACY.md](SCOPE-AND-LEGITIMACY.md) /
+[LEGITIMACY-AND-SCOPE.md](LEGITIMACY-AND-SCOPE.md)). Everything they learned —
+including what did NOT work — is reconciled in one place.*
+
+| Doc | What it is |
+|---|---|
+| **[MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md)** | **START HERE — the current truth.** The verified pointer chains (player entity, the ammo/parts inventory table, the all-vehicles entity table), armor candidates, feature applications (trainer, head-look, rumble, music), and a named **dead-ends list** so nobody re-chases them. Supersedes the raw logs where they disagree. |
+| [GHIDRA-MEMORY-MAP.md](GHIDRA-MEMORY-MAP.md) / [STATIC-RE-FABLE.md](STATIC-RE-FABLE.md) | **Raw session logs** (PARTs 1–13b / §1–12), kept for provenance. Contain intermediate claims later corrected — read the index first. |
+| [RE-METHODOLOGY.md](RE-METHODOLOGY.md) · [RE-FIELD-GUIDE.md](RE-FIELD-GUIDE.md) · [RE-RESOURCES.md](RE-RESOURCES.md) | Method references (cited): scan discipline, watchpoints, why single value-matches lie, CE-in-prefix. |
+| [MW2-I76-STRUCTS.md](MW2-I76-STRUCTS.md) | Struct/encoding shapes from the file formats + Open76/Roanish (ammo = int32 countdown; armor = int tenths). |
+| [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md) | Save-bytes ↔ in-game-screen reconciliation for the save editor. |
+| `../tools/i76-debugmenu.ahk` · `i76-rearm.ahk` · `i76-worldscan.ahk` · `i76-trainer.ahk` · `i76-chaindiff.ahk` | The working tools built on the map: **debug menu** (live-edit + freeze every inventory value, change-flagging + auto-log; launch via `tools/debugmenu.sh`, field test: [DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md)), repair+rearm (field-tested), all-vehicle enumeration (field-tested), live overlay/scanner, relocation-proof offset differ. Machine-readable map: `../tools/i76-addresses.json`. |
+| `../tools/gpw-envelopes.py` | Sound→rumble pipeline: decodes the game's .gpw effects, emits per-sound amplitude envelopes for the AHK rumble layer (generated table stays local/gitignored). |
+| [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) · [`../ffb-shim/`](../ffb-shim/) | **The force-feedback crack (2026-07-19):** FFB is a plugin DLL with 3 functions; the exe streams a fully-mapped force-state block every tick. The shim replaces the DLL — game FFB activates with no DirectInput device (incl. Mac), stream drives pad rumble + telemetry + UDP. Field-run and tuned on the Mac 2026-07-19/20. |
+| **[FFB-STACKS.md](FFB-STACKS.md)** | **Read before running FFB anywhere.** The two stacks side by side — the Windows PowerShell wheel/shaker rig (`../tools/ffb/`) and the Mac in-process shim — what they independently confirmed about the engine's effect block, the one field they disagree on, and the three places they actively fight (the crash workaround silences the shim; `gShimOwnsRumble` turns pad rumble off on machines without one; wheel/shakers/pad have never run together). |
+| [MOTION-SIM.md](MOTION-SIM.md) · `../tools/i76-ffb-monitor.ahk` · `ffb-udp-listen.py` | **Home 6DOF motion sim + wheel FFB path.** Maps the shim's force stream onto SimTools/SimHub (the standard receivers); the AHK overlay + UDP listener are the "watch/tune the stream" viewers. Full DOF set needs a memory reader; wheel torque is Windows-only. Not yet rig-verified. |
+| [SIM-RUMBLE-RESEARCH.md](SIM-RUMBLE-RESEARCH.md) | Cited research: SimHub ShakeIt effect design, gamepad two-motor allocation, the Threshold→Gamma→Min-Force chain, driving-feel hierarchy. The design spec behind the rumble mixer. |
+| [FFB-MORNING-TEST.md](FFB-MORNING-TEST.md) · [`../sound-rumble/`](../sound-rumble/) | **The rumble field-test + tuning sheet** (what to feel, every knob), and the experimental **sound-based backup** (dsound proxy — rumble from actual audio, not installed by default). |
 
 ## 📚 Reference / historical — context, not instructions
 

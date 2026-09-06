@@ -1,0 +1,5 @@
+LIBRARY I7_SFRCE.DLL
+EXPORTS
+    "I7FF_ExitSystem" = shim_ExitSystem@0 @1
+    "I7FF_InitSystem" = shim_InitSystem@4 @2
+    "I7FF_SIM_Effect" = shim_SIM_Effect@4 @3

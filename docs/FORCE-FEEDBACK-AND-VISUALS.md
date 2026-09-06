@@ -7,6 +7,20 @@
 > cross-platform (Wine/Proton/Windows), and the delivery path for the future
 > collision-rumble-via-memory-reads project. The 1024×768 software ceiling
 > here is correct. See [README.md](README.md).
+>
+> **Memory-RE update 2 (2026-07-19) — the Mac verdict below is OVERTURNED.**
+> Full disassembly of the FFB subsystem ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md))
+> found it is a **plugin architecture**: the exe computes a fully-mapped
+> 364-byte force-state block (engine, speed, terrain, skids, weapon fire,
+> steering-kick vector, impact events with direction+damage) EVERY sim tick
+> and hands it to `i7_SFRCE.DLL` — three stdcall functions, and the only
+> DirectInput code in the whole game lives inside that DLL. So Wine's missing
+> Mac FFB backend stops mattering: [`../ffb-shim/`](../ffb-shim/) is a fake
+> i7_SFRCE.DLL that accepts the stream with no device and drives XInput pad
+> rumble from the game's own physics. (Also: there is **no FRC registry gate**
+> in the Gold exe — activation only ever needed the DLL + a device.) Real
+> DirectInput *wheel* FFB on Mac remains dead (that part below stands); the
+> shim is pad rumble. Status: builds clean, not yet field-run.
 
 # Interstate '76: force feedback & pushing visual quality
 

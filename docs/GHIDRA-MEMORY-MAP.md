@@ -1,3 +1,9 @@
+> **RAW SESSION LOG.** These PARTs are the working record of the 2026-07-18 RE
+> push, kept for provenance. Several early claims were corrected by later PARTs
+> (e.g. PART 7's "capacity table" → PART 12/13's inventory table). For current
+> truth read [MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md) first; where the two
+> disagree, the index wins.
+
 # GHIDRA-MEMORY-MAP — mining Roanish/i76 ("Vigalante '76") for i76-everywhere targets
 
 Date: 2026-07-18. Source repo cloned at
