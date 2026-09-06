@@ -300,3 +300,36 @@ land; the user reliably gets *one*, and can still click SAVE and complete a save
 already warned that synthetic `keybd_event` injection races focus/queue delivery - that warning
 applies to everything measured above. **Anything tuned against this harness may be tuned against
 an artifact.** The next person should confirm a candidate fix by hand before believing it.
+
+### 2026-09-06 (later): it is not a typing bug - it is ONE EVENT AND DEAD
+
+The sharpest characterisation yet, and it removes the keyboard from the picture entirely.
+
+**The Save Bookmark screen accepts exactly ONE input event, then stops accepting any.** Shown
+with the mouse alone, so no synthetic-keystroke caveat applies:
+
+1. Screen opens - responsive, caret blinking, `IsHungAppWindow` false.
+2. Click a list row -> **it works**: the name field updates to that row's text, caret shown.
+3. `IsHungAppWindow` immediately true.
+4. Click CANCEL. Nothing. Click again. Nothing. A third time. Nothing.
+
+So "only one character can be typed" is a special case of a more general fault: the screen
+services a single event and then wedges. The user's own workaround fits exactly - *"I had to
+click somewhere to get it to let me type the first character"* - each interaction buys one event.
+
+**`IsHungAppWindow` is a poor instrument here and misled this investigation.** It goes true as
+soon as the screen is touched, *while the screen is still working* - the row click that set the
+name was processed with the flag already true on the next sample. Hours went into "stop Windows
+declaring it hung" (pumping from `PeekMessageA`, `GetCursorPos`, `GetAsyncKeyState`,
+`SetDIBitsToDevice`) when the flag was never the fault. **Measure the symptom - did the name
+change, did the button respond - not the proxy.**
+
+**Also note the caret is a mode indicator.** Clicking the name field directly *clears* the caret
+and leaves edit mode; typing then does nothing and does **not** wedge the screen. Clicking a
+list row sets the name *and* shows the caret. Whatever holds the "one event" state is tied to
+that mode.
+
+**Still open**, and the next thing to establish: whether the count is exactly one event or one
+event *per unit time* - i.e. does it recover after N seconds. That distinguishes a consumed
+one-shot flag from something waiting on a tick that never arrives. It needs testing by hand,
+because synthetic keystrokes land zero characters where a human lands one.
