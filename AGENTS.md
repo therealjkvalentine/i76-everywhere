@@ -149,9 +149,26 @@ Traps that produce **wrong data rather than errors** (full list in the README):
 - The game prefix lives inside the Mac wrappers under
   `~/Applications/Sikarugir/…/Contents/SharedSupport/prefix/…`. All live game
   files (input.map, savegame.dir, saves) are THERE, not in this repo.
-- `savegame.dir` truncates its newest entry on every game save (engine bug);
-  the launcher stubs re-pad at boot and mid-session. Never "fix" the file size
-  down. Save prune/delete work only with the game closed.
+- `savegame.dir` truncates its newest entry on every game save (engine bug).
+  Never "fix" the file size DOWN - it is always too short, never too long. Save
+  prune/delete work only with the game closed.
+
+  **Layout, measured 2026-09-05:** a `0x28` header whose first dword is the record
+  count, then fixed **60-byte** records - name at `+0`, scene number at `+0x18`.
+  So a well-formed file is `0x28 + count * 60` bytes. Each save leaves it 36 short,
+  which cuts the tail off the record just written: the `.cmp` lands on disk fine
+  and the bookmark is then **invisible in the load list**.
+
+  **The re-pad now runs on Windows too.** This entry used to say "the launcher
+  stubs re-pad at boot and mid-session" - that is the **Mac** stubs. Nothing did
+  it on Windows, so every Windows save silently lost its index entry, and a real
+  save (`save004.cmp`, 8,980 bytes) went missing in the field before anyone
+  noticed. `PLAY-i76.ps1` now pads at boot, keeping a `.trunc-<timestamp>` copy.
+
+  The scene number in the truncated record is **not recoverable** - it is not in
+  the `.cmp` (checked: no offset holds it across all five saves) or anywhere else.
+  Padding restores the entry with scene 0; re-save the bookmark over itself to set
+  it. A doc that says a guard exists is not a guard.
 - Parallel Claude sessions run on this repo: re-check git state before staging
   and stage only your own hunks.
 
