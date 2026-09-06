@@ -190,6 +190,45 @@ if (Test-Path $dirPath) {
     }
 }
 
+# ---- shell text-entry guard --------------------------------------------------
+# YOU CAN ONLY TYPE ONE CHARACTER (USUALLY NONE) INTO A BOOKMARK NAME, and the
+# overwrite prompt cannot be answered. Not an engine bug - two bytes in the widely
+# circulated patched i76shell.dll:
+#
+#     stock    mov ecx, 0x41  /  lea edi, [esp+8]      zeroes esp+8 .. esp+0x10B
+#     patched  mov ecx, 0x40  /  lea edi, [esp+0xC]    zeroes esp+0xC .. esp+0x10B
+#
+# esp+8 is the WORD ToAscii writes the character into; esp+0xC is the 256-byte key
+# state (confirmed by +0x1C14C `mov byte [esp+0x1C],0x80` setting keystate[VK_SHIFT]).
+# The stock clear covers output + key state exactly - 4 + 256 = 0x104 - overrunning
+# nothing, so the "out-of-bounds write" the narrowing was meant to fix is not there.
+# What it does cause is the output word being read back uninitialised at +0x1C16F
+# (`mov eax,[esp+8]` / `and eax,0xffff`), so 'a' arrives as 0xB261 and the field
+# drops it. Intermittent only because stale stack is occasionally zero - that is
+# the one character that sometimes gets through.
+#
+# Measured 2026-09-06: before, ToAscii returned 0xB261/0xE90D; after, 0x0068/0x000D,
+# and "HELLO" typed, displayed and saved. Same repair as tools\fix-shell-textentry.ps1.
+$shellPath = Join-Path $GameDir 'i76shell.dll'
+if (Test-Path $shellPath) {
+    $sh = [IO.File]::ReadAllBytes($shellPath)
+    if ($sh.Length -gt 0x1B535 -and $sh[0x1B52C] -eq 0x40 -and $sh[0x1B535] -eq 0x0C) {
+        $bak = "$shellPath.pre-toascii-fix"
+        if (-not (Test-Path $bak)) { Copy-Item $shellPath $bak -Force }
+        $sh[0x1B52C] = 0x41
+        $sh[0x1B535] = 0x08
+        [IO.File]::WriteAllBytes($shellPath, $sh)
+        $chk = [IO.File]::ReadAllBytes($shellPath)          # never trust the write
+        if ($chk[0x1B52C] -eq 0x41 -and $chk[0x1B535] -eq 0x08) {
+            Write-Host "i76shell.dll could not accept typed text - repaired." -ForegroundColor Yellow
+            Write-Host "  Bookmark names and the overwrite prompt work now. Original kept as" -ForegroundColor DarkGray
+            Write-Host ("  {0}." -f (Split-Path $bak -Leaf)) -ForegroundColor DarkGray
+        } else {
+            Write-Host "i76shell.dll text-entry repair did NOT stick - is the file read-only?" -ForegroundColor Red
+        }
+    }
+}
+
 # ---- input.map guard --------------------------------------------------------
 # The in-game controls menu REWRITES input.map and silently drops joystick BUTTON
 # blocks while leaving the two analog lines intact. The result is the symptom that
