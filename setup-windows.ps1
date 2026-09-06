@@ -185,7 +185,15 @@ if (Test-Path $mapPath) {
             'pilot_glance_up {', '   + joystick1  HatUp', '}',
             'pilot_glance_down {', '   + joystick1  HatDown', '}',
             'pilot_glance_left {', '   + joystick1  HatLeft', '}',
-            'pilot_glance_right {', '   + joystick1  HatRight', '}'
+            'pilot_glance_right {', '   + joystick1  HatRight', '}',
+            '',
+            '# Home-row hardpoints 1-4. Additive: a second block for the same action is',
+            '# an ALTERNATIVE binding, not a chord, so the number keys and mouse buttons',
+            '# above keep working. Fires that ONE hardpoint, ignoring selection/linking.',
+            'hardpoint1_fire {', '   + keyboard   L', '}',
+            'hardpoint2_fire {', '   + keyboard   O', '}',
+            'hardpoint3_fire {', '   + keyboard   LeftBracket', '}',
+            'hardpoint4_fire {', '   + keyboard   RightBracket', '}'
         ) -join "`r`n"
         $map = $map.TrimEnd() + "`r`n" + $add + "`r`n"
         Set-Content $mapPath $map -Encoding ascii
