@@ -210,3 +210,63 @@ coordinates in the range the shell expects. The Windows path stretches a 640×48
 - Tools built for this, reusable on any hung process:
   `i76-uncap-lab/tools/instruments/where-spinning.ps1` (sample EIP of a spinning 32-bit process
   and attribute it to a module) and `spin-args.ps1` (read the syscall's stack arguments).
+
+---
+
+## 2026-09-05: the cursor was TRAPPED, and the typing hang is a separate bug
+
+Two findings from an automated session driving the game end to end. Both measured, not reasoned.
+
+### 1. FIXED - the pointer could never reach a button (`CaptureMouse`)
+
+`dgVoodoo.conf` had `CaptureMouse = true`. Measured live on the save screen:
+
+```
+cursor clip: 0,0-640,480          <- the OS cursor, clipped to the app's UI size
+SAVE button: real (1821,1285)     <- where it is actually drawn
+UI origin  : (760,0) scale 3.0    <- the rendered UI spans x=760..2680
+```
+
+The pointer was confined to the top-left 640x480 of a **3440x1440 desktop** - a corner of the
+left black bar, where nothing is drawn. It could not physically be moved onto a button. That is
+the whole of "I have to click once to get the cursor back", "can't click YES", and it is why the
+confirm poll spins forever: the click it waits for is **unreachable**, not mistimed. Every fix
+aimed at coordinate *translation* was treating a symptom - the coordinates were fine, the
+pointer simply could not get there.
+
+`CaptureMouse = false` fixes it. `u32x` is built for the FREE pointer and translates screen->UI
+itself. Verified by automation: TRIP highlights on hover, and TRIP -> LOAD BOOKMARK -> LOAD ->
+salvage -> SAVE BOOKMARK all click through.
+
+### 2. NOT FIXED - typing dies after one character, and it is not a cursor problem
+
+Reproduced automatically, deterministically: **first keystroke lands, the second hangs the game.**
+No mouse involved. `IsHungAppWindow` true, ~5% of a core, thread in `ExecutionDelay`.
+
+An instrumented `u32x` (logging every hooked call) shows the decisive fact:
+
+> **The log goes completely silent the moment the Save Bookmark screen opens.** Not one call to
+> `GetCursorPos`, `PeekMessageA`, `ClipCursor`, `GetAsyncKeyState` or `GetKeyState` afterwards -
+> yet clicks on that screen still work (picking a row changes the name field).
+
+So that screen's input does **not** pass through any USER32 import of `i76shell.dll` or
+`i76.exe`. Combined with the ring-buffer note above, the shape is: the **main** loop pumps
+messages and fills the 64-entry ring; the save screen's modal loop **drains the ring without
+pumping**. It consumes whatever was already buffered - one character - and then spins forever on
+an empty ring that nothing refills.
+
+That also predicts what was observed: Windows declares the window hung, DWM ghosts it, and the
+ghost takes the input, so nothing can recover it.
+
+**Things tried that did NOT fix it**, so nobody repeats them:
+
+- Pumping the queue from `My_PeekMessageA` when the keyboard-only filter is seen.
+- Pumping from `My_GetCursorPos` (rate-limited keepalive).
+- Hooking `GetAsyncKeyState` / `GetKeyState` and pumping there.
+
+None fire, because the screen calls none of them.
+
+**The next thing to try** is hooking something that screen *must* call every frame - it renders,
+so the Glide or DDraw swap/flip path - and pumping there. That reaches the modal loop from the
+only side still available. `I76PATCH.DLL` was checked and imports no USER32 at all, so it is not
+the owner.
