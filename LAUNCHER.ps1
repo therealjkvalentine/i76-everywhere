@@ -170,10 +170,14 @@ $cbCursor.DropDownStyle = 'DropDownList'
 $gGfx.Controls.Add($cbCursor)
 $lblCursor = New-Label $gGfx '' 260 28 560
 $lblCursor.ForeColor = [Drawing.Color]::DimGray
+# Each mode currently trades one problem for another; say so here rather than letting it be
+# rediscovered. "free" is the only mode in which saving over an existing bookmark is known to
+# work (verified end to end 2026-09-06); "emulated" confines the pointer to the 640x480 corner,
+# which is the old "cannot click YES on the overwrite prompt" fault. "raw" is UNTESTED.
 $cursorHelp = @{
-    'emulated' = 'dgVoodoo draws AND maps the cursor. Display and clicks agree, but in the 640x480 corner space.'
-    'free'     = 'Pointer roams the desktop; u32x maps clicks. Clicks land right, the drawn cursor does not follow.'
-    'raw'      = 'dgVoodoo does not touch the mouse at all.'
+    'emulated' = 'Cursor is drawn where you click - but confined to the 640x480 corner. Overwrite prompt reported broken.'
+    'free'     = 'Clicks land correctly everywhere (overwrite prompt verified working) - but the drawn cursor is misplaced.'
+    'raw'      = 'UNTESTED. dgVoodoo keeps its hands off the mouse entirely - may give correct clicks AND a correct cursor.'
     'custom'   = 'CaptureMouse/FreeMouse are set to a combination this launcher does not name.'
 }
 $cbCursor.Add_SelectedIndexChanged({ $lblCursor.Text = $cursorHelp[[string]$cbCursor.SelectedItem] })
