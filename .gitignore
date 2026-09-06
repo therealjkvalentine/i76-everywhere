@@ -2,11 +2,20 @@
 game-data
 # built binaries (repo ships source only - see smack-music-fix/build.sh)
 smack-music-fix/SMACKW32.DLL
+ffb-shim/I7_SFRCE.DLL
+# generated locally from the user's own game audio (tools/gpw-envelopes.py)
+rumble-envelopes.ini
 # backups the editors create
 *.pre-edit
 *.pre-*
 *.bak-*
 .DS_Store
+
+# downloaded third-party reference source (Open76 C#, Roanish REVERSING.md) -
+# consulted during the 2026-07 memory-RE push, never committed (repo ships no
+# third-party code; the distilled findings live in docs/MW2-I76-STRUCTS.md and
+# docs/GHIDRA-MEMORY-MAP.md)
+scratchpad-fable/open76/
 
 # local secrets (Steam Deck SSH) - NEVER commit
 .env
@@ -41,3 +50,6 @@ music-fix/Strlkup.build.dll
 tools/ffb/ffb-tune.json
 refs/
 docs/assets-raw/
+__pycache__/
+sound-rumble/dsound.dll
+rumble-fingerprints.ini

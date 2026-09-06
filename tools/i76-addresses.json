@@ -74,19 +74,26 @@
         "va": "0x52bbd0",
         "type": "int",
         "conf": "confirmed",
-        "note": "1 when DI-FFB device+SWForce present"
+        "note": "1 only if i7_SFRCE.DLL loaded + 3 exports + InitSystem>=0 at boot (one shot, no retry). NO registry gate in Gold. See docs/FFB-DEEP-DIVE.md"
       },
-      "ffb_object_ptr": {
+      "ffb_event_heap": {
         "va": "0x52bbcc",
-        "type": "ptr",
-        "conf": "confirmed"
+        "type": "handle",
+        "conf": "confirmed",
+        "note": "CORRECTED 2026-07-19: HeapCreate(0,0,0) handle for impact-event nodes, NOT an FFB object ptr"
       },
-      "ffb_effect_params": {
+      "ffb_dll_fnptrs": {
+        "va": "0x52bbdc",
+        "type": "ptr[3]",
+        "conf": "confirmed",
+        "note": "0x52bbdc=I7FF_InitSystem, 0x52bbe0=I7FF_ExitSystem, 0x52bbe4=I7FF_SIM_Effect (prior docs had the mapping crossed)"
+      },
+      "ffb_force_block": {
         "va": "0x4f2328",
         "type": "blob",
         "size": 364,
         "conf": "confirmed",
-        "note": "live force-effect param block; mirror -> rumble on Win/Deck"
+        "note": "force-state block filled EVERY sim tick by ffb_tick 0x445ba0 when flag=1; full field map in docs/FFB-DEEP-DIVE.md; ffb-shim/ consumes it for pad rumble"
       },
       "music_active_flag": {
         "va": "0x524674",
@@ -109,6 +116,24 @@
         "type": "ptr",
         "conf": "confirmed",
         "note": "0x457530 returns it; player_entity = [[[0x54a264]]+0x70]"
+      },
+      "entity_group_counts": {
+        "va": "0x51f5d0",
+        "type": "int[8]",
+        "conf": "live-verified",
+        "note": "Tier 4 entity table: alive count per faction/team group"
+      },
+      "entity_group_arrays": {
+        "va": "0x507da0",
+        "type": "ptr[8][64]",
+        "conf": "live-verified",
+        "note": "stride 0x100 per group; entry = wrapper handle (see entity_table)"
+      },
+      "mp_player_table": {
+        "va": "0x541070",
+        "type": "table",
+        "conf": "live-verified-zero-in-SP",
+        "note": "DirectPlay MULTIPLAYER player table: 16 records x 0x48, player id WORD @+0, vehicle ptr @+0x28. All zeros in single-player - a named dead end for the SP car, kept for future MP work."
       }
     },
     "functions": {
@@ -119,7 +144,14 @@
       "component_finder_engine": "0x4b6900",
       "component_finder_generic": "0x4ada72",
       "weapon_info_in_car": "0x409e40",
-      "ffb_effect_setup": "0x446040",
+      "ffb_init": "0x445a60",
+      "ffb_module_loader": "0x446020",
+      "ffb_tick": "0x445ba0",
+      "ffb_send_sim_effect": "0x446110",
+      "frame_dt_seconds": "0x49c8b0",
+      "engine_speed_mph": "0x46a7b0",
+      "engine_pitch_value": "0x46a790",
+      "tire_status": "0x46de10",
       "player_vehicle_lookup": "0x4547c0",
       "radar_set": "0x411da0",
       "weapon_def_ref": "0x46ea35"
@@ -147,24 +179,40 @@
           "stride": "0x20",
           "conf": "confirmed"
         },
-        "_correction": "Offsets below are relative to an INDEXED 0x144-stride sub-struct (base+N*0x144+field), NOT flat car offsets - see docs/STATIC-RE-FABLE.md section 9. Component health offset within the 0x20 record + the player's base/index need a winedbg 'find what accesses' watchpoint."
+        "_correction": "These offsets are NOT flat on the transform-entity (reading them there returns garbage) - they belong to the logic-object side reached via entity+0x108/+0x10c. The earlier '0x144-stride sub-struct' reading (STATIC-RE-FABLE section 9) was a hex/decimal mixup: live dissection shows component records at stride 0x90 (=144 DECIMAL). For ammo/part-condition use pointer_chains.inventory_table below - it supersedes the weapon-object route for the trainer. Current truth: docs/MEMORY-MAP-INDEX.md."
       }
     },
     "pointer_chains": {
       "player_entity": {
         "path": "[[[0x54a264]]+0x70]",
-        "conf": "live-verified",
+        "conf": "live-verified (incl. across mission-reload relocation)",
         "fields": {
-          "+0x08": "world transform (rotation matrix)",
+          "+0x08": "world transform (rotation matrix; position offset NOT yet pinned)",
+          "+0x94": "float ~51.5 - SPEED candidate (unconfirmed)",
           "+0xe0": "steer applied (float)",
-          "+0xe4": "throttle applied (float)"
+          "+0xe4": "throttle applied (float)",
+          "+0x108": "ptr -> vehicle-LOGIC object (engine accessor 0x466e20; aggression path)",
+          "+0x10c": "ptr -> logic/sub-object dissected for the 0x90-stride component records (chaindiff walks this)",
+          "+0x1a0": "14-entry int part-slot list, -1 terminated"
         },
-        "note": "weapons/components hang off the vehicle-LOGIC object (different root); offsets are base+N*0x144+field - pin via winedbg watchpoint"
+        "note": "+0x108 vs +0x10c: two threads each called theirs 'the logic object'; may be one graph or two adjacent sub-objects - unreconciled, see MEMORY-MAP-INDEX open item 4"
+      },
+      "inventory_table": {
+        "path": "player_entity - 0x14C8",
+        "conf": "live-verified twice (incl. across relocation); tools/i76-rearm.ahk field-tested",
+        "layout": "17 records x 0x38: +0x00 int 7 (header - validate!), +0x04 ptr 0x00750000, +0x08 int CURRENT (ammo/condition), +0x0c int MAX",
+        "note": "Every weapon's ammo AND every part's condition. Fallback: sweep entity-0x1500..entity-0x1000 for the (7, 0x00750000) signature. Values are plain int32; part/armor values are integer TENTHS."
       },
       "vehicle_logic": {
-        "path": "[[player_entity]+0x108]",
-        "conf": "live-verified (both threads)",
-        "note": "vehicle-LOGIC object: 16 component records @ stride 0x90 (armor/engine/tire, int tenths) + weapon container (weapon ptr array -> weapon -> +ammo int32 countdown). Full chain: [0x54a264]->world->+0x70=entity->+0x108=logic."
+        "path": "[player_entity+0x108]",
+        "conf": "live-walked (weapon count 4 at +0xa718; +0xa71c did NOT hold heap ptrs - offset or object mismatch)",
+        "note": "16 component records @ stride 0x90 from ~+0x40 were dissected on the +0x10c object (+0x40 int dur 100, +0xac float 100.0, +0xc4 = 50). AI aggression = logic+0xa818 (int 0..4). Field meanings unpinned."
+      },
+      "armor_candidates": {
+        "conf": "candidate (int TENTHS grids; unconfirmed)",
+        "chassis_grid": "player_entity + 0x135c (runs of 400 with damaged 376/352)",
+        "armor_grid": "player_entity - 0x800 (runs of 575/800/1000)",
+        "note": "Large per-panel damage grids; DEFENSE panel is likely a rollup. To lock: note on-screen DEFENSE values, take one hit, re-read. Float scans and literal 910 scans were dead ends."
       }
     },
     "entity_table": {

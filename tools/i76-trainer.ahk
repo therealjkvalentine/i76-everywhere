@@ -4,6 +4,9 @@
 ; (validated 2026-07-18: reads match the HUD, writes hold).
 ;
 ;   - live overlay of the CONFIRMED addresses (camera, input, view mode, FFB)
+;   - music-active flag (0x524674) + player-entity chain / inventory-table
+;     signature check on the overlay (added 2026-07-19 from the consolidated
+;     map, docs/MEMORY-MAP-INDEX.md - overlay additions NOT yet field-run)
 ;   - continuous headless log to C:\AutoHotkey\trainer-state.json (self-test/feed)
 ;   - F7 head-look WRITE test (sweeps cam yaw -> the view turns = proof)
 ;   - F6 write any addr,value; F9/F10/F11 value + next-scan scanner
@@ -19,7 +22,14 @@
 
 global hProc := 0, gPid := 0, gShow := true, gHeadTest := false, gHeadT := 0
 global gScanType := "int", gCands := [], scanStatus := "scan: F9 first / F10 next / F11 show"
-global A_I76 := {"cam_yaw":0x4c2964, "cam_pitch":0x4c2970, "view_mode":0x4c2728, "in_throttle":0x5367cc, "in_steer":0x5367d4, "ffb_flag":0x52bbd0}
+global A_I76 := {"cam_yaw":0x4c2964, "cam_pitch":0x4c2970, "view_mode":0x4c2728, "in_throttle":0x5367cc, "in_steer":0x5367d4, "ffb_flag":0x52bbd0, "music":0x524674, "track":0x4ed800, "world_root":0x54a264}
+; CD track -> song title. HYPOTHESIS UNDER TEST (docs/MUSIC-TRACK-MAP.md): the
+; mission's WRLD field is a literal CD track number, and CD track N is the file
+; music/N.mp3, whose title is Local Ditch's game-track listing entry N-1 (their
+; list is audio-ordinal, so their #1 "Theme" = CD track 2). 16 CD tracks (2..17)
+; matches GOG's 16 mp3s exactly, which is the main reason to believe this.
+; If the overlay's title does NOT match what you hear, the mapping is off by one.
+global TRK := {2:"Interstate '76 Theme", 3:"Never Get Outta The Car", 4:"Skeeter Gettin' Medieval", 5:"Revenge Rocco Style", 6:"Untitled #5", 7:"The T'aint", 8:"Pimp Like Me", 9:"Vigilante Shuffle", 10:"Just Call Me Daddy", 11:"Desert Sky Groove", 12:"Untitled #11", 13:"Henshin V3!", 14:"Untitled #13", 15:"Tulip Waltz", 16:"Ovum Bisquit", 17:"Spineless Funk"}
 global A_NIT := {"cam_yaw":0x4f38fc, "cam_pitch":0x4f3908, "view_mode":0x4f38c0, "in_throttle":0x5348fc, "in_steer":0x534904, "ffb_flag":0x52bbd0}
 global ADDR := A_I76
 
@@ -47,14 +57,36 @@ Tick:
     }
     vm := RInt(ADDR["view_mode"]), yaw := RFloat(ADDR["cam_yaw"]), pit := RFloat(ADDR["cam_pitch"])
     thr := RInt(ADDR["in_throttle"]), st := RInt(ADDR["in_steer"]), ffb := RInt(ADDR["ffb_flag"])
+    mus := ADDR.HasKey("music") ? RInt(ADDR["music"]) : "?"
+    ; live CD track the engine selected (set from the mission's WRLD chunk at load;
+    ; -1 = none). This is the readout that settles the per-mission music map.
+    trk := ADDR.HasKey("track") ? RInt(ADDR["track"]) : "?"
+    trkTxt := "-"
+    if (trk != "?" && trk != "" && trk != -1)
+        trkTxt := trk "  music/" trk ".mp3  """ (TRK.HasKey(trk) ? TRK[trk] : "?") """"
+    ; player chain (Gold only): entity = [[[0x54a264]]+0x70]; inventory table at
+    ; entity-0x14C8 validated by its (7, 0x00750000) header (docs/MEMORY-MAP-INDEX.md Tier 2/3)
+    ent := 0, inv := "-"
+    if (ADDR.HasKey("world_root")) {
+        w := RInt(ADDR["world_root"])
+        if (w+0 > 0x10000) {
+            ent := RInt(RInt(w) + 0x70)
+            if (ent+0 > 0x10000)
+                inv := (RInt(ent-0x14C8) = 7 && RInt(ent-0x14C4) = 0x750000) ? "OK" : "no-sig"
+            else
+                ent := 0
+        }
+    }
     if (gShow) {
         s := "I'76 TRAINER pid " gPid "  [F8]hide [F7]head [F6]write`n"
         s .= "view=" vm "  yaw=" yaw "  pitch=" pit "`n"
-        s .= "throttle=" thr "  steer=" st "  FFB=" ffb "`n"
+        s .= "throttle=" thr "  steer=" st "  FFB=" ffb "  music=" mus "`n"
+        s .= "TRACK " trkTxt "`n"
+        s .= "entity=" (ent ? Format("0x{:08x}", ent) : "-") "  inv:" inv "`n"
         s .= "head-test: " (gHeadTest ? "ON (view sweeps)" : "off") "`n" scanStatus
         GuiControl,, TX, %s%
     }
-    j := "{""pid"":" gPid ",""view"":" vm ",""yaw"":" yaw ",""pitch"":" pit ",""throttle"":" thr ",""steer"":" st ",""ffb"":" ffb ",""head"":" (gHeadTest?1:0) "}"
+    j := "{""pid"":" gPid ",""view"":" vm ",""yaw"":" yaw ",""pitch"":" pit ",""throttle"":" thr ",""steer"":" st ",""ffb"":" ffb ",""music"":""" mus """,""entity"":" (ent?ent:0) ",""track"":" (trk="?"?0:trk) ",""head"":" (gHeadTest?1:0) "}"
     FileDelete, C:\AutoHotkey\trainer-state.json
     FileAppend, %j%, C:\AutoHotkey\trainer-state.json
 return

@@ -32,7 +32,7 @@ transfers — minus the one layer that caused us the most pain.*
 3. Switch to **Game Mode**, set QAM → Framerate Limit = **20**, play.
 
 *Advanced controller techniques used here (mode shifts, touch menus, activators, portability) are
-documented for reuse across ports in [docs/STEAMDECK-INPUT-MODES.md](../../../docs/STEAMDECK-INPUT-MODES.md).*
+documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-MODES.md).*
 
 > **NEW 2026-08-01 — a second control mode.** Everything below describes the Steam Input
 > keyboard-emulation layout (the *convenience* tier). There is now also a **baseline tier** that
@@ -191,6 +191,10 @@ The Deck has no built-in FFB, but **dock a USB force-feedback wheel** and it wor
    `HKLM\SOFTWARE\ACTIVISION\Interstate'76FRC` → copy to `Interstate '76` (with the space). Do it
    via Heroic → Winetricks → `regedit`, or `protontricks`, or our
    [`enable-force-feedback.bat`](../enable-force-feedback.bat) run in the prefix.
+   *(2026-07-19 disassembly note: the Gold `i76.exe` FFB init is unconditional — no registry gate
+   was found in the binary ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) §2). The community rename step is
+   likely harmless cargo cult on Gold; keep doing it until a Deck run confirms, since it costs
+   nothing. Actual requirements: `i7_sfrce.dll` beside the exe + an FFB device present at launch.)*
 2. Plug the wheel in **before launching** (winmm enumerates at startup).
 3. The wheel's evdev FFB device must be readable (usually is on SteamOS; may need the wheel's
    udev rules on other distros).
@@ -210,6 +214,42 @@ This is the one feature that's *better* on the Deck than any Mac path.
 - **Steam Input joystick number** — confirm `joystick1` on device.
 - **Exact internal resolution / FPS headroom** — RDNA2 will crush this engine, but confirm the
   20 FPS cap holds and pillarbox looks right in Gamescope.
+
+## Controller-track open items (from the 2026-07-12 session handoff)
+
+Carried over from the live-Deck config sessions (template "Option 1 v8" confirmed working:
+analog drive, right-stick glance + R3 look-at-target, triggers, bumpers, d-pad utilities).
+The cross-platform two-tier directive from that handoff shipped as
+[CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md); these are what's still open:
+
+- **Wheel slices should show FUNCTIONS, not key glyphs.** The touch-menu slices render the
+  keyboard-key image Steam auto-picks; the user wants "Fire All"/"Map"/"Poetry". The binding
+  format ([STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-MODES.md) §4) is
+  `key_press KEY, Label, icon.png, #bg #fg` — check label-vs-glyph display priority, else ship
+  small function icons (`TouchMenuIcons/` relative to the shortcut's Start Dir — untested for
+  non-Steam shortcuts).
+- **v8 field-test follow-ups** (ask for results, then tune): is the 13-slot left wheel usable
+  or drop to ~8 (weapons 4/5 were cut for the 13-grid budget)? Does L3 = Special 1 (key 6) drop
+  the rear weapon (bound as a separate `special1 { + keyboard Six }` block, not a chord)? Is
+  F2 the right "chase" preset for Y (cameras are fixed F1..F11)? Do the enhanced textures look
+  cleaner in-cockpit (deployed to `game/ADDON/`, rollback `game/ADDON.pre-hd-pack`, not yet
+  visually confirmed)?
+- **Analog external camera experiment**: the exe has `track_yaw_delta`/`track_pitch_delta`
+  action tokens — try binding to pad axes (winmm R/U) + a mode-shifted right stick for chase-cam
+  panning. Probe the tokens with `deck/probe/` first (unknown action names can error the parser).
+  Note the memory-RE finding ([MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md)): the analog `pilot_*`
+  COCKPIT-look actions are NOT wired to the input.map parser — the external `track_*` channels
+  may or may not share that fate; that's what the probe answers.
+- **Menu mouse / touchscreen still unsolved**: both fail to select in-game menus — it's the
+  game's internal 640×480 cursor, not the input method. Candidates: gamescope scaling flags
+  (`-w/-h/-W/-H`, `--force-grab-cursor`), a dgVoodoo cursor option, or matching the in-game
+  resolution. Low priority (d-pad + A covers menus). Three-cursor analysis:
+  [DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md).
+- **Untested / beta**: the Option 2 "Racing" template (triggers = gas/brake) has never been
+  user-tried; `deck/deck-install.sh` has never run end-to-end on a fresh Deck (watch:
+  innoextract 1.9 may choke on GOG's Inno Setup 6.3 repacks — ship a static build from master
+  with a "run setup.exe via Proton" fallback); `add-to-steam.py`'s user-id/GE-Proton autodetect
+  is unverified on other machines.
 
 ## Deliverable in this repo
 
