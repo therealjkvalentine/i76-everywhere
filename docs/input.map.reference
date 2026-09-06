@@ -276,3 +276,31 @@ e_brake {
 # `Joystick Hat*`). If the joystick1 token proves correct in the field-test,
 # those can be migrated to joystick1 too for consistency.
 # =====================================================================
+
+# --- Home-row hardpoints 1-4 (added 2026-09-06) ------------------------
+# ADDITIVE, in the same idiom as the number-key block above: a second block
+# for the same action is an ALTERNATIVE binding, not a chord. Keys 1-4 (and
+# mouse right/middle) keep firing exactly as before; L O [ ] just add a
+# right-hand-on-the-home-row way to do it. All four were unbound.
+# Note this is hardpointN_fire, so it fires that ONE hardpoint regardless of
+# weapon selection or linking, and does nothing on foot.
+hardpoint1_fire {
+   + keyboard   L
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint2_fire {
+   + keyboard   O
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint3_fire {
+   + keyboard   LeftBracket
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint4_fire {
+   + keyboard   RightBracket
+	- Keyboard	Shift
+	- Keyboard	Control
+}
