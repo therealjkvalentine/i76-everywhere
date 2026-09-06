@@ -333,3 +333,110 @@ that mode.
 event *per unit time* - i.e. does it recover after N seconds. That distinguishes a consumed
 one-shot flag from something waiting on a tick that never arrives. It needs testing by hand,
 because synthetic keystrokes land zero characters where a human lands one.
+
+---
+
+## 2026-09-06: ROOT CAUSE FOUND - DWM window ghosting
+
+**Fixed in u32x by one call: `DisableProcessWindowsGhosting()`** (i76-uncap-lab `aff1c46`).
+
+### What it actually is
+
+Everything above this section chased the wrong direction, including the entry immediately
+before it. The order of events is the opposite of how it looks from outside. Measured with a
+per-call census built into u32x - every call site bumps a counter, and a background thread
+prints the deltas twice a second, so a counter that stops advancing names the loop that
+stopped:
+
+```
+t+0.0s   SAVE BOOKMARK clicked. The screen is FINE. The engine polls normally:
+         GetCursorPos 60/s, GetAsyncKeyState 180/s, PeekMessageA 60/s.
+
+t+5.9s   IsHungAppWindow goes true, and the window is deactivated by something
+         nobody clicked - the harness was asleep:
+             WNDPROC focus msg=0x0086 (WM_NCACTIVATE) wp=0
+             WNDPROC focus msg=0x0006 (WM_ACTIVATE)    wp=0    <- WA_INACTIVE
+             WNDPROC focus msg=0x001C (WM_ACTIVATEAPP) wp=0
+             WNDPROC focus msg=0x0008 (WM_KILLFOCUS)
+         That is DWM replacing the window with a Ghost.
+
+after    the engine collapses to ONE call, sixty times a second, forever:
+             PeekMessageA(&msg, NULL, WM_KEYFIRST, WM_KEYLAST, PM_REMOVE)
+         polling nothing at all - GetCursorPos 60/s -> 0, GetAsyncKeyState
+         180/s -> 0 - and never receiving a key, because the ghost owns the
+         input now.
+```
+
+So **the starving keyboard-only peek is the CONSEQUENCE of losing activation, not the cause.**
+That is why every keep-alive pump added before this did nothing: the engine was already
+pumping sixty times a second at the moment Windows ghosted it. Pumping harder cannot fix a
+problem that is not about pumping. What had to be prevented was the ghosting, and Windows has
+a documented per-process switch for exactly that.
+
+Measured with the fix, same scenario: **no deactivation at all**, and the engine never
+collapses - `GetCursorPos` holds 30 per 500 ms for the whole 19-second run, including ten
+seconds past the point where the old build was permanently dead, with the text caret still
+drawn on screen.
+
+### Why this explains the field report exactly
+
+*"Still only lets me type one character"* and *"I had to click somewhere to get it to let me
+type the first character"* are the same fact: the ghost owns the input, and **a click
+re-activates the real window for a moment**, which buys exactly one more event. Nothing about
+the text field is broken; it never gets the keystroke.
+
+### Independent corroboration: it does not happen on the Mac
+
+Reported the same day: the save screens work fine in the Mac (CrossOver/Wine) build. That is
+what this diagnosis predicts and is the cleanest control available - **same engine, same
+keyboard-only loop, no DWM, therefore no ghost window to steal activation.** A Wine prefix has
+no window-ghosting mechanism at all.
+
+### Instruments - and one that lied
+
+**`IsHungAppWindow` is not a usable signal here and cost hours.** It goes true while the screen
+is still working: in the run above it flipped at t+5.9s in the same sample where the engine was
+still polling at full rate, and in an earlier run it read true on a click that demonstrably
+succeeded (the list row it hit updated the name field). Several dead ends came from treating
+that flag as the symptom and trying to make Windows stop setting it. `.NET Process.Responding`
+is worse - it disagreed with `IsHungAppWindow` outright.
+
+Measure the calls themselves. The census that cracked this is in `u32x.c` under `#ifdef
+U32X_LOG` (ship builds are unaffected) and is worth keeping:
+
+- **window subclassing** via a `CreateWindowExA` hook - every message the window really
+  receives, which is how the deactivation was caught in the act;
+- **`PeekMessageA` filter and result tracing** - which showed the loop asking only for
+  `WM_KEYFIRST..WM_KEYLAST` and never once receiving a message;
+- **a `TextOutA` hook** (deduped against the last 16 strings) for what the shell draws;
+- **the sampling thread**, which is what makes "this counter stopped" visible at all.
+
+Build it with `build-u32x-log.ps1`; the log lands in `i76-uncap-lab\captures\save\u32x.log`.
+
+### Things ruled out along the way
+
+Each of these was hooked, confirmed to be patched, and confirmed not to be the fault:
+
+| hooked | called on the save screen | fixes it |
+|---|---|---|
+| USER32 `GetCursorPos` / `PeekMessageA` / `ClipCursor` | yes | no |
+| USER32 `GetAsyncKeyState` / `GetKeyState` | yes | no |
+| `i76shell` -> GDI32 `BitBlt` / `StretchBlt` | no (software/VESA path, cold in `-glide`) | no |
+| `ZGLIDE` -> glide2x `_grBufferSwap@4` | no | no |
+| `i76.exe` -> GDI32 `SetDIBitsToDevice` | no (glide presents instead) | no |
+| `i76.exe` -> GDI32 `TextOutA` | no (shell draws its own glyphs) | no |
+| keep-alive pump draining the mouse range too | n/a | no - and reverted, see below |
+
+The mouse-draining pump was written while the causality was still backwards and was **reverted
+rather than kept**: it fixes nothing, and it would change mouse handling on every screen that
+uses the keyboard-only filter. One change, backed by one measurement.
+
+### Still to verify by hand
+
+Synthetic `keybd_event` lands **zero** characters on this screen where a human lands one
+(`key=0` in the census - the keys never reach the window at all), so the harness cannot confirm
+the typing path. It can only prove the engine no longer dies. What needs a person:
+
+1. Save a bookmark and type **several** characters into the name - all of them should appear.
+2. Save over an existing name and click **YES** on the overwrite prompt.
+3. Confirm the pointer does not need a "wake-up" click first.
