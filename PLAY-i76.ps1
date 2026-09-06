@@ -55,7 +55,14 @@ param(
     # Skip the CH Fighterstick HOTAS layer (docs/FIGHTERSTICK.md). It is otherwise
     # started with the game and is harmless without the stick - it detects the
     # device and exits on its own if it is not there.
-    [switch]$NoStick
+    [switch]$NoStick,
+    # On-screen pointer (i76-cursor-overlay.ahk). The OS cursor is invisible over the game's
+    # client area - visible over every other window, gone over this one, even while the game
+    # is in the background - so a click-through overlay draws one that the game cannot hide.
+    # This is not cosmetic: the shell's modal prompts ("CAN'T GET VERY FAR WITHOUT AN ENGINE",
+    # "Overwrite an existing bookmark?") spin at 100% CPU until they are answered, so a
+    # pointer you cannot see reads exactly like a frozen game. -NoCursorOverlay skips it.
+    [switch]$NoCursorOverlay
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -87,6 +94,13 @@ if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg)) {
 # the decision in one place rather than duplicating device detection here.
 # -NoStick skips it.
 $stick = $null
+# The on-screen pointer. Started before the stick so it is up by the time the menus are, and
+# it hides itself whenever the game is not the active window (see the script).
+$cursorCfg = Join-Path $GameDir '_ahk\i76-cursor-overlay.ahk'
+if (-not $NoCursorOverlay -and (Test-Path $ahkExe) -and (Test-Path $cursorCfg)) {
+    $cursor = Start-Process -FilePath $ahkExe -ArgumentList "`"$cursorCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
+}
+
 $stickCfg = Join-Path $GameDir '_ahk\i76-ch-fighterstick.ahk'
 if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg)) {
     $stick = Start-Process -FilePath $ahkExe -ArgumentList "`"$stickCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
@@ -371,6 +385,7 @@ $proc.WaitForExit()
 if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
 if ($ahk      -and -not $ahk.HasExited)      { Stop-Process -Id $ahk.Id      -Force }
 if ($stick    -and -not $stick.HasExited)    { Stop-Process -Id $stick.Id    -Force }
+if ($cursor   -and -not $cursor.HasExited)   { Stop-Process -Id $cursor.Id   -Force }
 if ($ls       -and -not $ls.HasExited)       { Stop-Process -Id $ls.Id       -Force }
 if ($track    -and -not $track.HasExited)    { Stop-Process -Id $track.Id    -Force }
 if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Force }
