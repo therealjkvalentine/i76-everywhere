@@ -123,6 +123,11 @@ Your call at the console, in the sandbox:
 Two separate threads both landed in `tools/ffb/` and have **never been run together**. This is
 the session that tests that.
 
+There is now a **third** claimant on the same events — the Mac's in-process shim, merged
+2026-09-06. It does not run here, but it decoded the same effect block and disagrees about
+one field. Read [FFB-STACKS.md](FFB-STACKS.md) before this session: it maps both stacks,
+lists what they independently confirmed, and carries the pick-up notes for this box.
+
 ### Where the RPM/gear work is
 
 | Thing | Where |
@@ -147,8 +152,8 @@ and no operator**, so most faults should be found without a play session.
 ### What to run
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass -File toolsfbfb-lfe-live.ps1 -Device 0
-powershell -NoProfile -ExecutionPolicy Bypass -File toolsfbfb-interposer.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-lfe-live.ps1 -Device 0
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-interposer.ps1
 ```
 
 Device 0 is the Audient EVO 4. Run the interposer alongside — telemetry reads are read-only,
@@ -177,7 +182,7 @@ so the two do not contend for game memory.
   whole 20-vs-60 A/B and prints the hit rates:
 
   ```
-  powershell -ExecutionPolicy Bypass -File ..\i76-uncap-lab	oolsramerate\cactus-ab.ps1
+  powershell -ExecutionPolicy Bypass -File ..\i76-uncap-lab\tools\framerate\cactus-ab.ps1
   ```
 
   ~15 cactus approaches per rate across 3 cold mission loads each, ~15 min unattended. I can run it

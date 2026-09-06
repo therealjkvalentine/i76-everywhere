@@ -21,6 +21,47 @@ from the audio actually playing. It is a backup for platforms where the shim can
 and is **mutually exclusive with the shim** — its installer already refuses to sit
 quietly alongside one.
 
+## Watching vs. shimming — which is less invasive depends on the box
+
+The obvious question is why intercept at all: if the engine fills a block every tick, why
+not just read it? The answer differs per machine, and it is not a matter of taste.
+
+**On Windows with the wheel attached, watching is correct — and it is already what
+`tools/ffb/` does.** `I7FF_InitSystem` opens a DirectInput force-feedback device at
+startup; with the T300 enumerable that succeeds, the exe sets `0x52bbd0 = 1`, and
+`ffb_tick` (`0x445ba0`) fills `0x4f2328` every sim tick. Reading it costs one
+`ReadProcessMemory`. The shim buys nothing there.
+
+**On the Mac there is nothing to watch.** Wine has no DirectInput force-feedback backend,
+so `InitSystem` fails, `0x52bbd0` stays 0 — and the tick function is gated on that flag,
+so the block is never filled at all. The shim's first job is not interception, it is
+**activation**: replacing the DLL removes the DirectInput requirement entirely (the three
+exports only have to return `HRESULT >= 0`), and the engine then streams its real force
+state into code we control.
+
+**The tempting shortcut has a landmine.** You could skip the DLL swap and just write
+`0x52bbd0 = 1` from outside — one dword, no file replaced — and the tick function would
+indeed start filling the block. But mind the order inside `ffb_init` (`0x445a60`):
+
+```
+0x445ad1  je   0x445b08         ; InitSystem failed -> stay off forever
+0x445add  mov  [0x52bbd0], 1    ; FFB ACTIVE
+0x445af3  call HeapCreate(0,0,0)
+0x445af9  mov  [0x52bbcc], eax  ; private heap for impact-event nodes
+```
+
+The heap is created **after** the branch you failed. Flip the flag from outside and
+`0x52bbcc` is still NULL, so the first impact reaches `HeapAlloc(NULL, 0, 0x20)` in
+`0x445f70`. Continuous state — engine, speed, surface, slip flags, the hardpoint records —
+would read fine; getting hit is what breaks, in a game about getting hit. Untested, and
+worth one careful try before assuming it works.
+
+**"Invasive" also cuts both ways.** The shim is a file swap outside the process that
+`ffb-shim/install.sh --revert` undoes, and it never writes to a running game. The watcher
+opens the process for read *and write*, and `Telemetry.ps1` does write — zeroing
+`0x52bbe4` to dodge the crash in the stock DLL. Neither path is passive; they are invasive
+in different places.
+
 ## Where they independently agree
 
 Worth trusting more than either alone, because the two routes share no code and no
@@ -94,3 +135,26 @@ need the shim running on Windows, which has never been done.
   a real drive, and whether world explosions reach the effect table at all is unknown.
 - Whether the shim's `.gpw`-derived skid texture and the Windows mixer's synthesised
   road texture describe the same surface the same way.
+
+## Picking it up on the Windows box
+
+Nothing here needs installing on Windows — the wheel/shaker stack *is* the
+memory-watching path, and it already runs there. In rough order of value:
+
+1. **Settle `+0x10`.** `tools/ffb/ffb-watch-effects.ps1` already prints the record. Fire
+   the same weapon pointed different ways: if `+0x10` tracks where you are aimed it is a
+   direction, if it tracks the weapon it is the firing frequency. Both halves key weapon
+   effects off this record, so it is the cheapest disambiguation on the list.
+2. **Set `gShimOwnsRumble := false` in `i76-remap.ahk` before judging pad rumble.** It
+   ships `true`, which is Mac-correct — the shim owns the motor there. On a box with no
+   shim it simply turns the pad mixer off, and the symptom reads as "rumble stopped
+   working" rather than as an error.
+3. **Leave `0x52bbe4` alone if you ever run the shim on Windows** — that pointer is what
+   calls it. On a stock install keep zeroing it. The two crash fixes are alternatives, not
+   layers.
+4. **A7's two unknowns still stand**: shift-detection thresholds have never seen a real
+   drive, and whether world explosions reach the effect table at all. Both are answered by
+   driving, not by reading.
+5. **Does the shim even load on Windows?** It is an ordinary win32 DLL out of
+   `ffb-shim/build.sh`, so it should, but nobody has tried. Only worth the time if you
+   want the in-process feed to replace the memory scan.
