@@ -270,3 +270,33 @@ None fire, because the screen calls none of them.
 so the Glide or DDraw swap/flip path - and pumping there. That reaches the modal loop from the
 only side still available. `I76PATCH.DLL` was checked and imports no USER32 at all, so it is not
 the owner.
+
+### 2026-09-06: the render path, found - and a warning about the repro
+
+**The per-frame call is `i76.exe`'s `SetDIBitsToDevice`.** Found by elimination, each step
+measured with an instrumented `u32x`:
+
+| hooked | patched OK | called on the save screen |
+|---|---|---|
+| USER32 `GetCursorPos` / `PeekMessageA` / `ClipCursor` | yes | **no** |
+| USER32 `GetAsyncKeyState` / `GetKeyState` | yes | **no** |
+| `i76shell.dll` -> GDI32 `BitBlt` / `StretchBlt` | yes (`75C86DE0`) | **no** - the shell's GDI imports are the software/VESA fallback and stay cold in `-glide` |
+| `ZGLIDE.DLL` -> glide2x `_grBufferSwap@4` | yes (`6F5714C5`) | **no** |
+| **`i76.exe` -> GDI32 `SetDIBitsToDevice`** | **yes (`75C883E0`)** | **YES - 199 pumps during the save screen** |
+
+Two traps worth keeping: the shell imports `MCGA.DLL`, `DISPDIB.DLL` and `vesa480.dll`, none of
+which are even **present** in the game folder - dead legacy imports that look like the render
+path and are not. And ZGLIDE imports glide2x by its **decorated** name, `_grBufferSwap@4`; the
+undecorated string silently matches nothing and the patch reports success with a NULL original.
+
+**But pumping there does NOT fix the hang.** With 199 pumps running on that screen,
+`IsHungAppWindow` still goes true on the first keystroke and no character is accepted. So the
+theory this file has been building on - *"nothing pumps, so Windows declares it hung, ghosts the
+window, and the ghost eats the input"* - is **wrong, or at least incomplete**. Pumping is not
+sufficient.
+
+**And the automated repro is harsher than the real thing.** In the harness *zero* characters
+land; the user reliably gets *one*, and can still click SAVE and complete a save. This file
+already warned that synthetic `keybd_event` injection races focus/queue delivery - that warning
+applies to everything measured above. **Anything tuned against this harness may be tuned against
+an artifact.** The next person should confirm a candidate fix by hand before believing it.
