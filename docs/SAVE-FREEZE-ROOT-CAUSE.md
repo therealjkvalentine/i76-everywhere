@@ -440,3 +440,108 @@ the typing path. It can only prove the engine no longer dies. What needs a perso
 1. Save a bookmark and type **several** characters into the name - all of them should appear.
 2. Save over an existing name and click **YES** on the overwrite prompt.
 3. Confirm the pointer does not need a "wake-up" click first.
+
+---
+
+## 2026-09-06 (second cause): you could not TYPE either - and that one was ours
+
+The ghosting fix above stops the screen dying. It does not make text entry work, because
+there was a **second, unrelated bug**, and this one is not the engine's - it is two bytes in
+the patched `i76shell.dll` this project ships on top of.
+
+James asked the right question - *"I'm not sure this is broken on a vanilla install; might
+have something to do with our optimizations"* - and he was right. Diffing our shell against
+the pristine GOG one is what found it.
+
+### The two bytes
+
+`i76shell.dll`'s key-to-character routine, at `+0x1C12B`:
+
+```
+stock (GOG)      mov ecx, 0x41   /  lea edi, [esp+8]      rep stosd -> zeroes esp+8 .. esp+0x10B
+ours (patched)   mov ecx, 0x40   /  lea edi, [esp+0xC]    rep stosd -> zeroes esp+0xC .. esp+0x10B
+```
+
+`esp+0xC` is the 256-byte key-state array `ToAscii` reads - confirmed, not assumed, by the
+instruction at `+0x1C14C`, `mov byte [esp+0x1C], 0x80`, which sets `keystate[VK_SHIFT=0x10]`.
+`esp+8` is the WORD `ToAscii` **writes the character into**.
+
+So the stock clear covers the output word *and* the key state, exactly: 4 + 256 = 260 =
+`0x104` bytes, overrunning nothing. **The "out-of-bounds write" the narrowing was meant to fix
+does not appear to exist** - the stock bounds are exactly right, and the narrowing simply
+stops the output word being initialised. The routine then reads it back as a full 16 bits:
+
+```
++0x1C16F  mov eax, dword ptr [esp + 8]
++0x1C173  and eax, 0xffff
++0x1C178  mov dword ptr [esi], eax
+```
+
+so the character arrives with a garbage high byte and the name field rejects it. Measured live,
+before and after the repair:
+
+```
+before:   ToAscii vk=0x41 -> 1 char=0xB261      'a' + garbage
+          ToAscii vk=0x0D -> 1 char=0xE90D      CR  + garbage
+after:    ToAscii vk=0x48 -> 1 char=0x0068      'h'
+          ToAscii vk=0x0D -> 1 char=0x000D      CR
+```
+
+**This is why it was intermittent.** `[esp+8]` is stale stack, occasionally zero - and that is
+the one character that sometimes gets through, and why clicking around seemed to help. The
+report *"still only lets me type one character"* was two different faults stacked: ghosting
+killed the screen after ~6s, and this dropped almost every keystroke before that.
+
+### Repaired
+
+`tools\fix-shell-textentry.ps1` restores the stock bytes (verifies before and after, backs up
+to `i76shell.dll.pre-toascii-fix`, idempotent, and refuses a shell build it does not recognise
+rather than guessing). `PLAY-i76.ps1` now carries the same repair as a launch guard, next to
+the `savegame.dir` one.
+
+Verified end-to-end in the shipping configuration - ship `u32x`, no instrumentation:
+
+- sat **12 seconds** on the Save Bookmark screen (the old build was permanently dead at 5.9s),
+  window still foreground;
+- typed `HELLO`, then `SHIP` - every character appeared on screen, and both persisted into
+  `savegame.dir` as bookmark suffixes.
+
+### Where it came from, and who else has it
+
+Nothing in this repo patches those bytes - our `i76shell.dll` arrived pre-patched. `docs/
+FRESH-START-2026-09-04.md` records *"UCyborg's AiO fixes out-of-bounds writes"*, and this
+narrowing is exactly that shape of change, so that is the likely origin. It is worth saying
+plainly: **anyone running that widely recommended patch pack probably cannot type bookmark
+names either**, and would have no reason to suspect the patch rather than the game.
+
+Both installs on this machine had it (`i76-uncap-lab\game` as well as the portable build);
+both are repaired.
+
+### The vanilla control, and what it cost
+
+Running a pristine GOG install as a control was attempted and **did not complete**: the
+untouched build stops at a real Win32 `#32770` dialog, *"Please insert CD 'Interstate '76 CD
+2'"*, and only `I76_CD1.ISO` is on this machine. Satisfying that check means adding back part
+of our stack, so it would no longer be a clean control.
+
+The **static** comparison is what paid off, and it needed no CD: same `i76shell.dll` size
+(352,256 bytes), 9,819 differing bytes, and two of them inside the routine the live log had
+already implicated. The key-ring code itself (`+0x1D732`) is byte-identical between vanilla and
+ours - so the engine's key handling is stock and was never the problem.
+
+**Diff against the pristine original before concluding anything is stock behaviour.** Hours
+went into instrumenting the engine on the assumption that the shell was original.
+
+### The engine's key ring, for future work
+
+Found while chasing this, and worth recording (`I76SHELL.DLL`, RVAs):
+
+```
++0x1D732   producer: ring[write++] = key | modifier bits    0x100=Ctrl 0x200=Shift 0x400=Alt
++0x1CE20   consumer: if (read == write) { *out = 0; return; } *out = ring[read++]
+           ring 0x0F6420 (64 WORDs)   write index 0x0D2160   read index 0x0D215C
++0x1C12B   key -> character via ToAscii (the routine above)
+```
+
+The `u32x` log build watches all three live (`KEYRING wr= rd= pending=`), which is how "the
+keystroke does arrive and is consumed" was established before the cause was known.
