@@ -36,7 +36,7 @@ file in by hand.
 Vanilla fingerprints, so "is this stock?" is always answerable:
 
 ```
-i76.exe       9a232dcc      i76shell.dll  8960fa16
+i76.exe       9a232dcc      i76shell.dll  deb41008
 STRLKUP.DLL   e5951e0f      glide2x.dll   c319a4f3   (GOG's own Glide wrapper)
 ```
 
@@ -48,7 +48,7 @@ STRLKUP.DLL   e5951e0f      glide2x.dll   c319a4f3   (GOG's own Glide wrapper)
 | `02-dgvoodoo` | GOG's `glide2x` → dgVoodoo + ddraw/d3d8/d3d9 + `dgVoodoo.conf` | resolution, aspect, FPS limit. **Also owns the mouse cursor** — `CaptureMouse` decides whether the pointer is drawn where you click. |
 | `03-u32x` | retargets the exe's USER32 imports to `u32x.dll` | translates cursor coordinates between the game's 640×480 space and the screen. Menu clicks land correctly only when this matches the dgVoodoo mouse mode. |
 | `04-music` | `Strlkup.dll` proxy | plays `music\*.mp3` through the engine's CD-audio calls; makes the in-game AUDIO CONTROL slider work. |
-| `05-shell-textentry` | two bytes in `i76shell.dll` | **only meaningful on a PATCHED shell.** Stock GOG already has the correct bytes, so on vanilla this layer is a no-op — which is itself the proof that the typing bug was never the game's. |
+| `05-shell-textentry` | two bytes in `i76shell.dll` | **only meaningful on a PATCHED shell** (layer 09). Stock GOG already has the correct bytes, so on vanilla this is a no-op — which is itself the proof that the typing bug was never the game's. |
 | `06-u32x-ghosting` | `u32x.dll` → same source + `DisableProcessWindowsGhosting()` | stops the Save Bookmark screen dying ~5.9 s after it opens. Needs `03-u32x`. |
 | `07-ahk` | `_ahk\` scripts | controller remap, Fighterstick layer, cursor overlay, opentrack autostart. |
 | `08-extras` | `i76wheel.exe` | mouse wheel → keystrokes; the engine's mouse device has no wheel channel. |
