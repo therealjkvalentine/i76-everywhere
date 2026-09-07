@@ -13,7 +13,7 @@
   EVERY LAYER IS OFF BY DEFAULT. With nothing ticked, game\ is byte-for-byte the GOG release:
 
       i76.exe       9a232dcc   stock GOG
-      i76shell.dll  8960fa16   stock
+      i76shell.dll  deb41008   stock GOG (NOT the portable's "orig", which is patched)
       STRLKUP.DLL   e5951e0f   stock
       glide2x.dll   c319a4f3   GOG's own Glide wrapper (NOT dgVoodoo)
 
@@ -61,6 +61,9 @@ $LAYERS = @(
        Needs=@('03-u32x') }
     @{ Id='07-ahk';            Name='AutoHotkey layers'
        Desc='_ahk\ - controller remap, CH Fighterstick HOTAS layer, cursor overlay, opentrack autostart. Files only; the launcher decides which to run.'
+       Needs=@() }
+    @{ Id='09-patched-shell';  Name='Patched i76shell.dll (the third-party one)'
+       Desc='The shell the portable install ships - and which it misleadingly keeps as "i76shell.dll.orig". It is NOT pristine: bytes 0x1B52C/0x1B535 are 40/0c, which stops ToAscii''s output word being zeroed, so bookmark names drop every character but (occasionally) the first. Apply this to REPRODUCE that bug; then apply 05 to fix it.'
        Needs=@() }
     @{ Id='08-extras';         Name='Mouse wheel binder'
        Desc='i76wheel.exe - translates the mouse wheel to keystrokes, since the engine''s mouse device has no wheel channel.'
@@ -156,7 +159,7 @@ function Show-Status {
         Write-Host ("      {0,-14} {1}" -f $f, (Md5 (Join-Path $Game $f)))
     }
     Write-Host ""
-    Write-Host "      vanilla fingerprints: i76.exe 9a232dcc  i76shell.dll 8960fa16  STRLKUP.DLL e5951e0f  glide2x.dll c319a4f3"
+    Write-Host "      vanilla fingerprints: i76.exe 9a232dcc  i76shell.dll deb41008  STRLKUP.DLL e5951e0f  glide2x.dll c319a4f3"
     Write-Host ""
 }
 
@@ -223,7 +226,7 @@ function Refresh-UI {
         $lines += ("  {0,-14} {1}" -f $f, (Md5 (Join-Path $Game $f)))
     }
     $lines += ""
-    $lines += "  vanilla = i76.exe 9a232dcc | i76shell.dll 8960fa16 | STRLKUP.DLL e5951e0f | glide2x.dll c319a4f3"
+    $lines += "  vanilla = i76.exe 9a232dcc | i76shell.dll deb41008 | STRLKUP.DLL e5951e0f | glide2x.dll c319a4f3"
     $state.Text = ($lines -join "`r`n")
 }
 
