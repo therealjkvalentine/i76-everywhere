@@ -95,6 +95,51 @@ tags and how each was established:
 - **Handling model** — the fitted yaw-rate equation and its constants.
 - **13 traps that produce wrong data rather than errors**, each of which cost real time.
 
+## NEVER TEST ON THE PLAYABLE INSTALL (field-enforced 2026-09-07)
+
+**The portable install is the daily driver. It is where James plays. Experiments do not go
+there - not binaries, not dgVoodoo.conf, not saves - until they are finished and verified
+somewhere else.**
+
+| role | path | may an experiment touch it? |
+|---|---|---|
+| **daily driver — playable** | `~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76` | **NO.** Only finished, verified changes, announced. |
+| test copy | `../i76-uncap-lab/game` | yes - this is what automation drives |
+| pristine control | `../i76-map/sandbox-gog/main/app` | read-only reference for diffing |
+
+This was already the rule ("a sandbox copy of the install - the playable install is never
+touched") and it was ignored for two days straight. What that cost: a weekend of debugging a
+save-screen wedge, a text-entry bug and a cursor problem all on the install being played on,
+which meant every failed experiment landed on the player. It ended with the install
+unplayable and needing a full rollback, and with several hours spent chasing "regressions"
+that were only ever half-finished experiments sitting in the live folder.
+
+Practical rules that follow from it:
+
+- **Point the harness at the test copy by default.** `$GameDir` defaulting to the playable
+  install is how this goes wrong; make the safe path the lazy path.
+- **The game grabs the mouse, the keyboard and the screen.** Any automated run takes the
+  machine away from whoever is at it. Ask before driving the game, or run it on its own
+  desktop object (see below) - never assume the console is free.
+- **A test instance must be silent.** It shares the sound device with the user. `dsound.dll`
+  stub in the test folder = no SFX (`i76.exe` imports exactly one DirectSound function).
+- **Promote deliberately.** Copy into the playable install as its own step, say what changed
+  and why, and keep the previous state beside it (`weekend-state-<ts>/`, `*.ship`,
+  `*.pre-<fix>`), because that is what makes a rollback take a minute instead of an evening.
+
+### Running the game on its own desktop (isolation that works, with one limit)
+
+A Windows **desktop object** has its own input queue, so a game started there cannot touch
+the user's cursor or focus. `CreateDesktopA` + `CreateProcessA` with `STARTUPINFO.lpDesktop`
+launches it; the game runs normally (verified: it starts and burns CPU as usual).
+
+**The limit, measured:** a non-input desktop is never composed by DWM, so a `BitBlt` of that
+desktop's DC comes back **entirely black** - screenshot-based verification does not work
+there. A process born on that desktop (`deskexec.ps1`) confirmed `desktop=i76lab` and still
+captured nothing. So use desktop isolation for anything driven by memory reads, logs, process
+state or crash records - and note that memlib memory reads are the preferred verification
+anyway, being exact and ~1000x cheaper than screenshots.
+
 ## Automated testing: you can drive the game from a script
 
 **`../i76-uncap-lab/autotest/` — read its README before doing anything interactive with the
