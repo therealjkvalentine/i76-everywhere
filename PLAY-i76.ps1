@@ -33,7 +33,12 @@ param(
     # Off by default: it depends on the player-entity pointer resolving, and silence
     # in a menu reads like a fault even when it is correct.
     [switch]$MusicMissionOnly,
-    [int]$MusicVolume = 550,
+    # 385 = 30% below the old 550 default, by request - the soundtrack sat too loud against
+    # engine and gunfire. Note this only scales tools\i76-music.ps1, the external player the
+    # launcher starts. The OTHER path, the Strlkup MCI proxy, already honours the game's own
+    # AUDIO CONTROL slider: auxSetVolume (a no-op on a machine with no optical drive) is
+    # translated to "setaudio <alias> volume to N", so that one is adjustable in-game.
+    [int]$MusicVolume = 385,
     # Boot straight into a mission, skipping the title screen and the menus - about
     # 10 seconds from launch to driving. See docs/MISSION-LAUNCH.md. Needs the
     # music-fix proxy deployed, since that is what applies the patch.
