@@ -545,3 +545,58 @@ Found while chasing this, and worth recording (`I76SHELL.DLL`, RVAs):
 
 The `u32x` log build watches all three live (`KEYRING wr= rd= pending=`), which is how "the
 keystroke does arrive and is consumed" was established before the cause was known.
+
+---
+
+## 2026-09-07: the two bugs are INDEPENDENT - saving needs only the two-byte shell fix
+
+Field-confirmed by James, and it corrects the impression left above, where the two fixes were
+only ever verified together and so read as a pair.
+
+**The two-byte `i76shell.dll` repair alone restores saving.** Applied on its own - stock
+`u32x.dll` (no ghosting fix), `CaptureMouse=true`, nothing else changed - and the verdict was
+*"yep that's it"*. So the DWM-ghosting fix is **not** required to save a bookmark, and the
+two faults should be treated separately:
+
+| fault | cause | fix | needed for saving? |
+|---|---|---|---|
+| can type at most one character | two patched bytes in `i76shell.dll` | `tools\fix-shell-textentry.ps1` | **yes - this is the one** |
+| save screen dies ~5.9s after opening | DWM ghosting the window | `DisableProcessWindowsGhosting()` in u32x | no - not hit in normal play |
+
+The ghosting wedge is real and measured, but it takes ~5.9 seconds of the screen sitting
+open, which ordinary typing does not reach. It surfaced under automation because a script
+pauses where a person does not.
+
+### It was never a stock-game bug
+
+James called this before the evidence did - *"I think it works out of the box"* - and he was
+right. The two bytes are a modification, present in the portable build since it was made on
+2026-08-01, long before any of this work:
+
+```
+PRISTINE GOG        0x1B52C=41  0x1B535=08     types fine
+portable (before)   0x1B52C=40  0x1B535=0c     drops characters
+```
+
+That shell differs from pristine GOG in **9,819 bytes**, so it ships pre-patched;
+`docs/FRESH-START-2026-09-04.md` credits *"UCyborg's AiO fixes out-of-bounds writes"*, and
+this narrowing is exactly that shape of change. The irony is that the out-of-bounds write it
+was fixing does not appear to exist - the stock bounds cover the ToAscii output word plus the
+256-byte key state exactly (4 + 256 = 0x104) and overrun nothing.
+
+**So anyone running that patch pack cannot type bookmark names, and has no reason to suspect
+the pack rather than the game.** Worth saying out loud if any of this is ever written up.
+
+### State on this machine
+
+All real installs now hold the stock bytes:
+
+```
+daily driver (portable)   41 08
+lab copy (i76-uncap-lab)  41 08
+pristine GOG sandbox      41 08   (stock by nature - the control)
+CD 1997 sandbox           ff 0c   (a different binary; the tool refuses it by design)
+```
+
+`PLAY-i76.ps1` carries the same repair as a launch guard, so an install that regains the
+patched bytes is fixed on next launch rather than silently losing text entry again.
