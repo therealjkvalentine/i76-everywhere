@@ -29,7 +29,9 @@ param(
     [string[]]$Apply,
     [string[]]$Remove,
     [switch]$Play,
-    [switch]$Reset          # back to pure vanilla
+    [switch]$Reset,         # back to pure vanilla
+    [switch]$Fast,          # 640x480 window + no sound, for quick iteration
+    [switch]$Normal         # undo -Fast
 )
 $ErrorActionPreference = 'Stop'
 $Root = $PSScriptRoot
@@ -64,6 +66,9 @@ $LAYERS = @(
        Needs=@() }
     @{ Id='09-patched-shell';  Name='Patched i76shell.dll (the third-party one)'
        Desc='The shell the portable install ships - and which it misleadingly keeps as "i76shell.dll.orig". It is NOT pristine: bytes 0x1B52C/0x1B535 are 40/0c, which stops ToAscii''s output word being zeroed, so bookmark names drop every character but (occasionally) the first. Apply this to REPRODUCE that bug; then apply 05 to fix it.'
+       Needs=@() }
+    @{ Id='10-silent';         Name='Silence (DirectSound stub)'
+       Desc='A dsound.dll beside the exe that answers DirectSoundCreate with DSERR_NODRIVER, so the engine takes its own no-sound-card path. i76.exe imports exactly one DirectSound function, so this is the whole of it. Loader prefers the application directory, so nothing outside this folder is affected.'
        Needs=@() }
     @{ Id='08-extras';         Name='Mouse wheel binder'
        Desc='i76wheel.exe - translates the mouse wheel to keystrokes, since the engine''s mouse device has no wheel channel.'
@@ -144,6 +149,75 @@ function Reset-Vanilla {
     }
 }
 
+# ---------------------------------------------------------------------------------------
+# -Fast : a small windowed, silent instance for iterating quickly.
+#
+# 640x480 windowed matters for more than screen area: the engine hit-tests its UI in 640x480
+# coordinates, so at native size a screen pixel IS a UI pixel and menu coordinates need no
+# translation at all - which removes the single biggest source of wrong answers in this
+# project's automation (a 25 px error once cost most of a day). Silence matters because a
+# test instance shares the sound device with whoever is at the machine.
+#
+# This edits dgVoodoo.conf in place rather than shipping a second conf as a layer, so it
+# composes with 02-dgvoodoo instead of fighting it over the same file.
+# ---------------------------------------------------------------------------------------
+$FAST_KEYS = @{
+    FullScreenMode     = 'false'
+    WindowedAttributes = 'border'
+    # Without this the game stays full-screen no matter what FullScreenMode says: with
+    # AppControlledScreenMode=true the APP picks the screen mode, and I'76 asks for
+    # fullscreen. Measured 2026-09-08 - forcing the resolution and unforcing it both left
+    # a 3440x1440 window until this was turned off.
+    AppControlledScreenMode = 'false'      # a real title bar, so it can be moved and closed
+    ScalingMode        = 'unspecified' # no stretching: 1 screen px == 1 UI px
+    # 'unforced' - NOT '640x480'. dgVoodoo SNAPS a forced value to a real enumerated
+    # display mode, so 640x480 became the desktop mode and the window filled the screen.
+    # The conf's own note records the opposite behaviour: left unforced, the window comes
+    # up at the raw 640x480 the game actually asks for. Measured again 2026-09-08.
+    Resolution         = 'unforced'
+}
+
+function Write-ConfNoBom([string]$Path, [string[]]$Lines) {
+    # NEVER Set-Content -Encoding utf8: PowerShell 5.1 writes a UTF-8 BOM, dgVoodoo then
+    # cannot parse the file and SILENTLY falls back to its own defaults - watermark on,
+    # aspect uncorrected, every setting lost, with no error anywhere. Measured 2026-09-06.
+    $enc = New-Object System.Text.UTF8Encoding($false)
+    [IO.File]::WriteAllText($Path, (($Lines -join "`r`n") + "`r`n"), $enc)
+    $h = [IO.File]::ReadAllBytes($Path)[0..2]
+    if ($h[0] -eq 0xEF -and $h[1] -eq 0xBB -and $h[2] -eq 0xBF) { throw "wrote a BOM to $Path" }
+}
+
+function Set-Fast([bool]$on) {
+    $conf = Join-Path $Game 'dgVoodoo.conf'
+    if (-not (Test-Path $conf)) {
+        Write-Host "  dgVoodoo.conf not present - apply 02-dgvoodoo first (the window is dgVoodoo's)."
+        return
+    }
+    $bak = "$conf.pre-fast"
+    if ($on) {
+        if (-not (Test-Path $bak)) { Copy-Item $conf $bak }
+        $t = Get-Content $conf
+        foreach ($k in $FAST_KEYS.Keys) {
+            $t = $t -replace ('^(\s*{0}\s*=\s*).*' -f [regex]::Escape($k)), ('${1}' + $FAST_KEYS[$k])
+        }
+        Write-ConfNoBom $conf $t
+        $l = $LAYERS | Where-Object Id -eq '10-silent'
+        if ($l -and -not (Is-Applied $l)) { Apply-Layer $l }
+        Write-Host "  fast mode ON  - 640x480 window, silent."
+    } else {
+        if (Test-Path $bak) { Copy-Item $bak $conf -Force; Remove-Item $bak -Force }
+        $l = $LAYERS | Where-Object Id -eq '10-silent'
+        if ($l -and (Is-Applied $l)) { Remove-Layer $l }
+        Write-Host "  fast mode OFF - previous dgVoodoo.conf restored, sound back."
+    }
+}
+
+function Get-FastState {
+    $conf = Join-Path $Game 'dgVoodoo.conf'
+    if (-not (Test-Path $conf)) { return $false }
+    (Test-Path "$conf.pre-fast")
+}
+
 function Show-Status {
     Write-Host ""
     Write-Host "  Interstate '76 - bisect install: $Game"
@@ -159,17 +233,62 @@ function Show-Status {
         Write-Host ("      {0,-14} {1}" -f $f, (Md5 (Join-Path $Game $f)))
     }
     Write-Host ""
+    Write-Host ("      fast mode (640x480 window, silent): {0}" -f $(if (Get-FastState) { 'ON' } else { 'off' }))
+    Write-Host ""
     Write-Host "      vanilla fingerprints: i76.exe 9a232dcc  i76shell.dll deb41008  STRLKUP.DLL e5951e0f  glide2x.dll c319a4f3"
     Write-Host ""
+}
+
+Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Sequential)] public struct WRECT { public int L,T,R,B; }
+public class WinSz {
+  [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out WRECT r);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);
+  [DllImport("user32.dll")] public static extern int GetWindowLongA(IntPtr h, int i);
+  [DllImport("user32.dll")] public static extern int SetWindowLongA(IntPtr h, int i, int v);
+  [DllImport("user32.dll")] public static extern bool AdjustWindowRect(ref WRECT r, int style, bool menu);
+}
+'@ -ErrorAction SilentlyContinue
+
+function Resize-GameWindow([int]$Width, [int]$Height) {
+    # dgVoodoo's windowed settings do NOT size this game in Glide mode - forced resolution,
+    # unforced, AppControlledScreenMode off, centered scaling and FullscreenAttributes=real
+    # were all measured and all produced a 3440x1440 client. The window belongs to the game.
+    # Resizing it from outside does work, and the render follows (verified: the Options Menu
+    # draws correctly, letterboxed, at 640x480).
+    #
+    # NOTE the variable is $wnd, not $h - PowerShell variable names are CASE-INSENSITIVE, and
+    # a $h here silently overwrote the $Height parameter, asking for a 9898198-pixel window.
+    $proc = $null
+    for ($i = 0; $i -lt 40; $i++) {
+        $proc = Get-Process i76 -EA SilentlyContinue
+        if ($proc -and $proc.MainWindowHandle -ne 0) { break }
+        Start-Sleep -Milliseconds 500
+    }
+    if (-not $proc -or $proc.MainWindowHandle -eq 0) { Write-Host "  (no window to resize)"; return }
+    $wnd = $proc.MainWindowHandle
+    $GWL_STYLE = -16
+    $style = [WinSz]::GetWindowLongA($wnd, $GWL_STYLE)
+    [void][WinSz]::SetWindowLongA($wnd, $GWL_STYLE, ($style -bor 0x00C00000 -bor 0x00080000))
+    $want = New-Object WRECT; $want.L = 0; $want.T = 0; $want.R = $Width; $want.B = $Height
+    [void][WinSz]::AdjustWindowRect([ref]$want, [WinSz]::GetWindowLongA($wnd, $GWL_STYLE), $false)
+    [void][WinSz]::SetWindowPos($wnd, [IntPtr]::Zero, 60, 60,
+        ($want.R - $want.L), ($want.B - $want.T), 0x34)   # NOZORDER|FRAMECHANGED|NOACTIVATE
+    $c = New-Object WRECT; [void][WinSz]::GetClientRect($wnd, [ref]$c)
+    Write-Host ("  window resized to {0}x{1}" -f ($c.R - $c.L), ($c.B - $c.T))
 }
 
 function Start-Game {
     if (Get-Process i76 -EA SilentlyContinue) { Write-Host "  a copy of i76 is already running"; return }
     Start-Process -FilePath (Join-Path $Game 'i76.exe') -ArgumentList '-glide' -WorkingDirectory $Game
     Write-Host "  launched."
+    if (Get-FastState) { Start-Sleep -Seconds 12; Resize-GameWindow 640 480 }
 }
 
 # --------------------------------------------------------------------------- CLI paths ---
+if ($Fast)   { Set-Fast $true;  Show-Status; if ($Play) { Start-Game }; exit }
+if ($Normal) { Set-Fast $false; Show-Status; if ($Play) { Start-Game }; exit }
 if ($Reset)  { Reset-Vanilla; Write-Host "  reset to vanilla."; Show-Status; if ($Play) { Start-Game }; exit }
 if ($Remove) { foreach ($id in $Remove) { $l = $LAYERS | Where-Object Id -eq $id; if ($l) { Remove-Layer $l; Write-Host "  removed $id" } else { Write-Host "  unknown layer: $id" } } }
 if ($Apply)  { foreach ($id in $Apply)  { $l = $LAYERS | Where-Object Id -eq $id; if ($l) { Apply-Layer  $l; Write-Host "  applied $id" } else { Write-Host "  unknown layer: $id" } } }

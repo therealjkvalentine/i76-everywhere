@@ -153,3 +153,58 @@ any conclusion from a click, prove the click landed: hover the control and check
 highlights (a brightness delta over the control's box works well, ~50 -> ~130 for a menu
 item). A miss and a silent failure look identical, and one 25 px error already cost most of a
 day.
+
+---
+
+# Fast mode — small window, no sound
+
+```powershell
+powershell -ExecutionPolicy Bypass -File LAYERS.ps1 -Fast -Play    # on, and launch
+powershell -ExecutionPolicy Bypass -File LAYERS.ps1 -Normal        # off
+```
+
+Needs `02-dgvoodoo` applied (the config it edits is dgVoodoo's). Measured result: a
+**650×490 client window** at (60,60), silent, rendering correctly — Options Menu draws
+letterboxed and the pointer is visible.
+
+## Silence: a DirectSound stub
+
+`i76.exe` imports exactly **one** DirectSound function, `DirectSoundCreate`. Layer
+`10-silent` drops a `dsound.dll` beside the exe that answers it with `DSERR_NODRIVER`, so the
+engine takes its own no-sound-card path — a case it has handled since 1997. Verified loading
+from the game folder rather than the system:
+
+```
+dsound : C:\Users\james\i76-bisect\game\DSOUND.dll
+```
+
+Nothing outside this folder is affected, so the daily driver and the machine's audio are
+untouched. Music needs no stub: without layer `04-music` there is no MP3 playback, and with
+no optical drive there is no CD audio either.
+
+## The window: dgVoodoo can't do it, resizing can
+
+**dgVoodoo's windowed settings do not size this game in Glide mode.** All four of these were
+measured and every one produced a 3440×1440 client:
+
+| attempt | result |
+|---|---|
+| `Resolution=640x480` + `AppControlledScreenMode=false` | 3440×1440 |
+| `Resolution=unforced` + `ScalingMode=centered` | 3440×1440 |
+| `Resolution=800x600` | 3440×1440 |
+| `FullscreenAttributes=real` | 3440×1440 |
+
+The window belongs to the **game**, not to dgVoodoo, so `LAYERS.ps1` resizes it from outside
+after launch (`SetWindowLongA` to add a caption, `AdjustWindowRect`, `SetWindowPos`) — and the
+render follows correctly.
+
+Note the client comes out **650×490**, not exactly 640×480, so do not assume one screen pixel
+equals one UI pixel; measure before relying on any coordinate mapping.
+
+## A trap worth remembering
+
+The first resize asked for a `640x9898198` window. **PowerShell variable names are
+case-insensitive**, so `$h = $p.MainWindowHandle` silently overwrote the `$H` height
+parameter with the window handle. This project has hit the identical bug once already, in
+AutoHotkey, where a local `pov` clobbered the global `POV` array. Do not name a variable with
+a single letter that a parameter also uses.
