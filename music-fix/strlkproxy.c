@@ -753,6 +753,44 @@ static void apply_hires_clock(void) {
     mlog("  hires-clock: %d/2 simclock call sites repointed to QPC ms (ptr %p)", n1 + n2, (void *)&g_hires_clock_ptr);
 }
 
+/* ===========================================================================
+ * FRAME-RATE-INDEPENDENT ENGINE RESPONSE  (I76_ENGINE_DT_FIX=1; off by default)
+ * ===========================================================================
+ * Vehicle physics runs in substeps: entity_TickVehicle 0x463800 splits the frame's
+ * sim dt into count = min(floor(dt * 20) + 1, 20) equal steps (simclock_StepperBegin
+ * 0x49cc20, rate 1/0.05 from entity_InitVehicle). But the engine/gearbox update
+ * 0x46a320, called from the physics step 0x438fd0 once PER SUBSTEP, reads the WHOLE
+ * frame's dt (call simclock_GetDt at 0x46a333) and uses 2*dt as the smoothing factor
+ * for engine RPM (+0x1c) and its second smoothed value (+0x24), from which it writes
+ * the torque term (+0x10). So the smoothing is applied `count` times per frame with
+ * the full dt: at 20 fps (2 substeps) RPM/torque converge about twice as fast per
+ * second as at 60 fps (1 substep), and GetTickCount jitter flips count between 1 and 2
+ * even at a nominal 20 fps.
+ *
+ * Fix: repoint that one call at a function returning 2 * (sim_dt / count), computed
+ * exactly as the stepper computes it. The factor 2 keeps the familiar 20 fps response
+ * (2 substeps of 25 ms, each with factor 2*50 ms) at every frame rate: per 50 ms the
+ * retained fraction is (1-0.1)^2 = 0.81 at 20 fps and (1-0.0667)^3 = 0.81 at 60 fps.
+ * Static reading only - NOT yet measured in game.
+ */
+static float __cdecl engine_substep_dt(void) {
+    float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
+    float rate = 1.0f / 0.05f;                              /* stepper rate set by entity_InitVehicle */
+    int count = (int)(sim_dt * rate) + 1;                   /* truncation, as _ftol at 0x49cc2d */
+    if (count > 20) count = 20;
+    return 2.0f * (sim_dt / (float)count);
+}
+
+static void apply_engine_dt_fix(void) {
+    static const BYTE old_call[5] = { 0xE8, 0x78, 0x25, 0x03, 0x00 };   /* call 0x49c8b0 (simclock_GetDt) at 0x46a333 */
+    BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
+    LONG rel = (LONG)((DWORD_PTR)engine_substep_dt - (0x0046a333 + 5));
+    if (GetEnvironmentVariableA("I76_ENGINE_DT_FIX", NULL, 0) == 0) return;
+    memcpy(new_call + 1, &rel, 4);
+    mlog("  engine-dt-fix: %d/1 call site repointed (0x46a333 -> %p)",
+         patch_bytes(0x0046a333, old_call, new_call, 5, "engine update simclock_GetDt call"), (void *)engine_substep_dt);
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -763,6 +801,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
+        apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

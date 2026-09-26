@@ -196,3 +196,14 @@ AiO 0x49c85d/0x49c927. Each site's bytes are verified before writing, so any oth
 `hires-clock: 2/2`). It has **not** been played yet. Next console test: the same mission with and without the flag, at
 20 and at 40–60 fps. Compare how smooth it feels and the dt at 0x4fe428 (it should read about 50 ms steadily instead
 of 47/63).
+
+## Opt-in: frame-rate-independent engine response (`I76_ENGINE_DT_FIX=1`, 2026-09-26)
+
+The engine/gearbox update 0x46a320 (i76-map `physics_UpdateEngine`) runs once per physics substep but smooths RPM and
+torque with the **whole frame's** dt. At 20 fps a frame has two substeps, so the engine responds about twice as fast per
+second as at 60 fps, and GetTickCount jitter flips it between one and two substeps even at 20 fps. The flag repoints
+that one `call simclock_GetDt` (0x46a333, the same bytes in the Galaxy and AiO builds) at a function returning
+2 × sim_dt / substep count. That reproduces the two-substep (20 fps) response at any frame rate.
+
+**Status:** the write was verified in the sandbox together with `I76_HIRES_CLOCK` (`engine-dt-fix: 1/1`). It has not
+been played. Test at 60 fps with and without it: time the throttle from standstill to 100 km/h in the same car.
