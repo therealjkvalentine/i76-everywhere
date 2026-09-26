@@ -177,3 +177,22 @@ device that's a no-op, so it can't attenuate our mpegvideo playback — music pl
 at the mpegvideo device's volume. If it's too loud, a follow-up is to also hook
 `auxSetVolume` and translate it to `setaudio <alias> volume to …` on the mpegvideo
 alias. (Left out for now: get music playing first.)
+
+## Opt-in: high-resolution sim clock (`I76_HIRES_CLOCK=1`, 2026-09-26)
+
+Not music, but this DLL is the one hook point every install already loads. The whole simulation is dt-driven:
+`simclock_Update` (0x49c920) reads `GetTickCount` once per frame, and physics runs in substeps of at most 50 ms
+derived from that dt (i76-map batch `simclock-stepper`). `GetTickCount` steps in 15–16 ms no matter what
+`timeBeginPeriod` says (measured on this machine), so at 20 fps dt reads 47 or 63 ms, and at 60 fps most frames read
+0 (clamped to 1 ms) or 15.6 ms. The 2017 Galaxy exe also stores seconds-since-boot as a 32-bit float, so dt snaps to
+a 62.5 ms grid after 7 days of uptime. GOG's 2019 AiO build fixes that second problem by masking the tick; nothing
+fixes the first.
+
+With `I76_HIRES_CLOCK=1` set, DllMain repoints only simclock's two `call [GetTickCount]` sites at a
+QueryPerformanceCounter clock (ms since process start). It supports both layouts: Galaxy 0x49c85f/0x49c929 and
+AiO 0x49c85d/0x49c927. Each site's bytes are verified before writing, so any other build is left alone.
+
+**Status:** the write was verified in the sandbox (2/2 sites read back as `call [ptr] -> hires_clock_ms`, log line
+`hires-clock: 2/2`). It has **not** been played yet. Next console test: the same mission with and without the flag, at
+20 and at 40–60 fps. Compare how smooth it feels and the dt at 0x4fe428 (it should read about 50 ms steadily instead
+of 47/63).

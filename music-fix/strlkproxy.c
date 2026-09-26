@@ -634,7 +634,7 @@ static int patch_bytes(DWORD_PTR va, const BYTE *expect, const BYTE *want, SIZE_
     DWORD old;
     BYTE *p = (BYTE *)va;
     if (memcmp(p, expect, n) != 0) {
-        mlog("  mission-launch: %s at 0x%08lX has UNEXPECTED bytes - not patching", what, (unsigned long)va);
+        mlog("  patch: %s at 0x%08lX has UNEXPECTED bytes - not patching", what, (unsigned long)va);
         return 0;
     }
     if (!VirtualProtect(p, n, PAGE_EXECUTE_READWRITE, &old)) return 0;
@@ -693,6 +693,66 @@ static void apply_mission_launch(void) {
     mlog("  mission-launch: booting directly into '%s'", mission);
 }
 
+/* ===========================================================================
+ * HIGH-RESOLUTION SIM CLOCK  (I76_HIRES_CLOCK=1; off by default)
+ * ===========================================================================
+ * The whole sim is dt-driven: simclock_Update 0x49c920 runs once per frame and
+ * every physics substep, AI timer and camera rate derives from its dt (map:
+ * i76-map subsystems\damage.md neighbours, batch simclock-stepper). It computes
+ *
+ *     t = (float)(GetTickCount() * 0.001);   dt = t - last;   last = t;
+ *
+ * which has two defects, both measured/derived 2026-09-26:
+ *   1. GetTickCount steps in 15-16 ms on stock Windows, and timeBeginPeriod
+ *      does not change that (measured). At 20 fps dt reads 47 or 63 ms (the
+ *      jitter the FFB dt at 0x4f2488 always showed); at 60 fps most frames read
+ *      0 (clamped to 1 ms) or 15.6 ms.
+ *   2. t is stored as a 32-bit float of SECONDS SINCE BOOT (fstp dword at
+ *      0x49c94c), so its precision decays with uptime: dt snaps to a 7.8 ms grid
+ *      after 1 day, 62.5 ms after 7 days, 250 ms after 30 days - and Windows
+ *      Fast Startup does not reset uptime across "shutdowns". GOG's 2019 AiO build
+ *      already fixes this one by masking the tick to 23 bits (wraps every ~2.3 h);
+ *      the 2017 Galaxy exe does not. Neither fixes defect 1.
+ *
+ * Fix: repoint only simclock's two `call dword ptr [GetTickCount]` sites
+ * (simclock_Init 0x49c85f, simclock_Update 0x49c929; FF 15 00 C1 4B 00) at a
+ * pointer to a clock that returns QueryPerformanceCounter milliseconds since
+ * this process started: 1 ms resolution, and small enough that float32 keeps
+ * sub-ms precision for ~4.6 hours of play (still 7.8 ms only after 24 hours).
+ * No other GetTickCount user in the exe (CD audio, AI) is touched. Static
+ * reading only - NOT yet measured in game.
+ */
+static LARGE_INTEGER g_qpf, g_qp0;
+static DWORD WINAPI hires_clock_ms(void) {
+    LARGE_INTEGER n;
+    QueryPerformanceCounter(&n);
+    return (DWORD)(((n.QuadPart - g_qp0.QuadPart) * 1000) / g_qpf.QuadPart);
+}
+static void *g_hires_clock_ptr = (void *)hires_clock_ms;
+
+static void apply_hires_clock(void) {
+    static const BYTE old_call[6] = { 0xFF, 0x15, 0x00, 0xC1, 0x4B, 0x00 };  /* call [0x4bc100] GetTickCount */
+    BYTE new_call[6] = { 0xFF, 0x15, 0, 0, 0, 0 };
+    DWORD a = (DWORD)(DWORD_PTR)&g_hires_clock_ptr;
+    int n1, n2;
+    if (GetEnvironmentVariableA("I76_HIRES_CLOCK", NULL, 0) == 0) return;
+    if (!QueryPerformanceFrequency(&g_qpf) || g_qpf.QuadPart == 0) { mlog("  hires-clock: no QPC - not patching"); return; }
+    QueryPerformanceCounter(&g_qp0);
+    memcpy(new_call + 2, &a, 4);
+    /* Two layouts: the 2017 Galaxy exe (md5 9a232dcc) and GOG's 2019 AiO build (60abf7bc, and the patched
+     * sandbox 4fabc303 built on it), whose rewritten simclock masks the tick with `and eax, 0x7fffff` right
+     * after the call - AiO's own fix for defect 2, which moves both calls 2 bytes earlier. Only a site
+     * whose bytes match is written. */
+    if (memcmp((void *)0x0049c85f, old_call, 6) == 0) {
+        n1 = patch_bytes(0x0049c85f, old_call, new_call, 6, "simclock_Init GetTickCount call (Galaxy)");
+        n2 = patch_bytes(0x0049c929, old_call, new_call, 6, "simclock_Update GetTickCount call (Galaxy)");
+    } else {
+        n1 = patch_bytes(0x0049c85d, old_call, new_call, 6, "simclock_Init GetTickCount call (AiO)");
+        n2 = patch_bytes(0x0049c927, old_call, new_call, 6, "simclock_Update GetTickCount call (AiO)");
+    }
+    mlog("  hires-clock: %d/2 simclock call sites repointed to QPC ms (ptr %p)", n1 + n2, (void *)&g_hires_clock_ptr);
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -702,6 +762,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
+        apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
