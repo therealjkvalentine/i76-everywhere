@@ -976,6 +976,79 @@ static void radar_ping_flush(void) {                        /* from the frame ho
     }
 }
 
+/* Flamers (i76-map subsystems/weapons.md, renderer.md). Three per-render-call dependencies:
+ *  - weapon_AgeFlamerStreams 0x443e90 (top of each render) retracts a stream by 2 segments on every call unless the
+ *    weapon fired since the last call (+0x10 flag, cleared by the same call). Shots come on the weapon's own timer
+ *    (20/s for every flamer), so at 60 fps two calls in three see no shot and the stream never grows past a segment
+ *    or two; at 20 fps it grows one segment per shot up to 19.
+ *  - weapon_UpdateFlamerStreams 0x443fc0 rebuilds the flame's shape on every call from the frame dt (droop ~ dt^2,
+ *    bend toward the target ~ dt), and applies damage through weapon_FlameHitTest 0x4354c0 -> weapon_ApplyFlameDamage
+ *    0x4a8240 per hitting segment per call: max(1, int(damage x difficulty x dt)). Per second that is 20 calls at
+ *    20 fps and 60 at 60 fps; the rear-mirror pass (renderer_DrawRearMirror 0x445750) calls it once more per frame.
+ * Here: the stream ages on the 20 Hz grid (the fired flag collects over the grid window); the update sees the stock
+ * 20 fps dt (max(dt, 0.05)), so shape and per-hit damage are the stock-20 ones; damage is applied only from the main
+ * render pass on grid frames, i.e. 20 times a second, as at stock 20 fps with the mirror off. */
+static DWORD g_idbg_flame_hits, g_idbg_flame_dmg;           /* copied into the debug block by the render wrapper */
+static int g_flame_dmg_ok;
+static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > 0.05f ? dt : 0.05f; }
+static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))0x00443e90)(); }
+static void __cdecl flame_update_main(BYTE *cam) {
+    g_flame_dmg_ok = g_tick20;
+    ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
+    g_flame_dmg_ok = 0;
+}
+typedef struct { DWORD d[6]; } dmgrec_t;                    /* passed by value: owner, kind 4, ..., amount at d[4] */
+static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
+    g_idbg_flame_hits++;
+    if (!g_flame_dmg_ok) return;
+    g_idbg_flame_dmg++;
+    ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
+}
+
+/* Smoke puffs (renderer_UpdateSmoke 0x4414a0, once per render). Each call spawns every emitter's puffs, draws the
+ * live ones, moves them by dt and ages them one step; a puff lives 20 calls. At 60 fps that is 3x the puffs, each
+ * living a third as long: the same count on screen but columns a third as tall, with the drift table stepping 3x as
+ * fast. The update now runs on grid frames only, with dt max(dt, 0.05); between them the live puffs are drawn
+ * (renderer_QueueSmokePuff 0x441930) at their position extrapolated along their velocity, so motion stays smooth. */
+static void __cdecl smoke_update_wrap(BYTE *cam) {
+    BYTE *p; double save[3]; float t; int k;
+    if (g_tick20) { ((void (__cdecl *)(BYTE *))0x004414a0)(cam); return; }
+    if (!*(volatile int *)0x0052ba34) return;
+    t = g_acc20 - 0.05f;                                    /* the update draws before it moves: last tick drew P0 */
+    if (t > 0.0f) t = 0.0f; if (t < -0.05f) t = -0.05f;
+    for (p = *(BYTE **)0x0052ba30; p; p = *(BYTE **)(p + 0x40)) {
+        if (*(int *)(p + 4) >= 20) continue;                /* expired: freed on the next grid frame, not drawn */
+        memcpy(save, p + 0x28, sizeof(save));
+        for (k = 0; k < 3; k++) ((double *)(p + 0x28))[k] = save[k] + (double)(((float *)(p + 0x10))[k] * t);
+        ((void (__cdecl *)(BYTE *, BYTE *))0x00441930)(cam, p);
+        memcpy(p + 0x28, save, sizeof(save));
+    }
+}
+
+/* Missile smoke trails (renderer_QueueSmokeTrails 0x442ba0, once per render): in a trail's last 2 s each call drops up
+ * to 4 tail segments (0x442bd6), so at 60 fps trails vanish 3x as fast. Between grid frames a trail inside that window
+ * gets its expiry (+0xc) moved just past now + 2 for the duration of the call, then restored. */
+static void __cdecl trails_wrap(BYTE *cam) {
+    BYTE *head = *(BYTE **)0x0052bae8, *r;
+    float saved[256]; int n = 0;
+    if (!g_tick20 && head) {
+        float now = ((float (__cdecl *)(void))0x0049c8c0)(), lim = now + 2.0f;
+        lim += lim * 1e-6f;
+        r = head;
+        do {
+            float *e = (float *)(r + 0xc);
+            if (n < 256) { saved[n++] = *e; if (*e >= now && *e < lim) *e = lim; }
+            r = *(BYTE **)r;
+        } while (r && r != head);
+    }
+    ((void (__cdecl *)(BYTE *))0x00442ba0)(cam);
+    if (n) {
+        int i = 0;
+        r = head;
+        do { if (i < n) *(float *)(r + 0xc) = saved[i++]; r = *(BYTE **)r; } while (r && r != head && i < n);
+    }
+}
+
 static void apply_framerate_fixes(void) {
     static const BYTE cu_old[6] = { 0xD9, 0x05, 0xC4, 0xC4, 0x4B, 0x00 };   /* fld dword ptr [0x4bc4c4] */
     static const BYTE cv_old[6] = { 0xD9, 0x05, 0x00, 0xC5, 0x4B, 0x00 };   /* fld dword ptr [0x4bc500] */
@@ -1051,8 +1124,30 @@ static void apply_framerate_fixes(void) {
             n += patch_bytes(site[i], o, w, 5, "vehicle per-frame sound");
         }
     }
+    {   /* flamers, smoke puffs, missile trails: `call` sites repointed at the wrappers above */
+        static const struct { DWORD site, target; void *wrap; const char *what; } cs[] = {
+            { 0x00401cec, 0x00443e90, (void *)flame_age_wrap,    "flamer ageing (software)" },
+            { 0x00401fcc, 0x00443e90, (void *)flame_age_wrap,    "flamer ageing (hardware)" },
+            { 0x00401e23, 0x00443fc0, (void *)flame_update_main, "flamer update, main pass (software)" },
+            { 0x004020e8, 0x00443fc0, (void *)flame_update_main, "flamer update, main pass (hardware)" },
+            { 0x00443fca, 0x0049c8b0, (void *)step20_dt,         "flamer update dt" },
+            { 0x004357c3, 0x004a8240, (void *)flame_damage_wrap, "flamer damage" },
+            { 0x00401e50, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (software)" },
+            { 0x0040211a, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (hardware)" },
+            { 0x004414b9, 0x0049c8b0, (void *)step20_dt,         "smoke puff dt" },
+            { 0x00401e35, 0x00442ba0, (void *)trails_wrap,       "missile trails (software)" },
+            { 0x004020ff, 0x00442ba0, (void *)trails_wrap,       "missile trails (hardware)" },
+        };
+        for (i = 0; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
+            BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+            LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+            memcpy(o + 1, &rel, 4);
+            rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+            n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+        }
+    }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/20 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain)", n);
+    mlog("  framerate-fixes: %d/31 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails)", n);
 }
 
 /* ===========================================================================
@@ -1179,7 +1274,7 @@ static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 /* read by captures\014-framerate\fr_probe.py (address logged at start) */
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
                 struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; float roll_t, pitch_t, roll_d, pitch_d; } ring[16];
-                DWORD ping_req, ping_play, ping_frames; } g_idbg;   /* every frame, for samplers that miss some */
+                DWORD ping_req, ping_play, ping_frames, flame_hits, flame_dmg; } g_idbg;   /* every frame, for samplers that miss some */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 static void v3norm(float *a) {
@@ -1422,6 +1517,7 @@ static void __cdecl render_wrap(void *cam) {
             for (k = 0; k < 3; k++) { g_idbg.cam_true[k] = g_cam_last.p[k]; g_idbg.cam_drawn[k] = camx.p[k]; }
         }
         g_idbg.ping_req = g_idbg_ping_req; g_idbg.ping_play = g_idbg_ping_play; g_idbg.ping_frames = g_idbg_ping_frames;
+        g_idbg.flame_hits = g_idbg_flame_hits; g_idbg.flame_dmg = g_idbg_flame_dmg;
         g_idbg.frame = g_frame; g_idbg.nveh = n; g_idbg.cam_fixed = cam_fixed;
         g_idbg.cam_caller = g_cam_caller; g_idbg.cam_mode = *(DWORD *)0x004c2720;
         if (pl) {
