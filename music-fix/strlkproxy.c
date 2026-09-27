@@ -1005,6 +1005,14 @@ static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
     ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
 }
 
+/* The flame-hit explosion (entity_SpawnExplosion 0x49ead0 from 0x44471d: the ORDF car-impact xdf, xflht1 for stock
+ * flamers, blast damage 0) is spawned on every update call that has a contact, the mirror pass included: held to the
+ * same main-pass grid frames as the damage. 7 dword arguments, result unused. */
+static void __cdecl flame_expl_wrap(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {
+    if (g_flame_dmg_ok)
+        ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0049ead0)(a, b, c, d, e, f, g);
+}
+
 /* Smoke puffs (renderer_UpdateSmoke 0x4414a0, once per render). Each call spawns every emitter's puffs, draws the
  * live ones, moves them by dt and ages them one step; a puff lives 20 calls. At 60 fps that is 3x the puffs, each
  * living a third as long: the same count on screen but columns a third as tall, with the drift table stepping 3x as
@@ -1132,6 +1140,7 @@ static void apply_framerate_fixes(void) {
             { 0x004020e8, 0x00443fc0, (void *)flame_update_main, "flamer update, main pass (hardware)" },
             { 0x00443fca, 0x0049c8b0, (void *)step20_dt,         "flamer update dt" },
             { 0x004357c3, 0x004a8240, (void *)flame_damage_wrap, "flamer damage" },
+            { 0x0044471d, 0x0049ead0, (void *)flame_expl_wrap,   "flamer hit explosion" },
             { 0x00401e50, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (software)" },
             { 0x0040211a, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (hardware)" },
             { 0x004414b9, 0x0049c8b0, (void *)step20_dt,         "smoke puff dt" },
@@ -1147,7 +1156,7 @@ static void apply_framerate_fixes(void) {
         }
     }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/31 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails)", n);
+    mlog("  framerate-fixes: %d/32 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails)", n);
 }
 
 /* ===========================================================================
