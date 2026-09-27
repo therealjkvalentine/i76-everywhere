@@ -31,6 +31,7 @@
 #include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define FAKE_CD_ID 0xC0DE
 
@@ -773,7 +774,9 @@ static void apply_hires_clock(void) {
  * retained fraction is (1-0.1)^2 = 0.81 at 20 fps and (1-0.0667)^3 = 0.81 at 60 fps.
  * Static reading only - NOT yet measured in game.
  */
+static float g_fixed_step;
 static float __cdecl engine_substep_dt(void) {
+    if (g_fixed_step > 0.0f) return 2.0f * g_fixed_step;     /* I76_FIXED_STEP: every substep is exactly this long */
     float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
     float rate = 1.0f / 0.05f;                              /* stepper rate set by entity_InitVehicle */
     int count = (int)(sim_dt * rate) + 1;                   /* truncation, as _ftol at 0x49cc2d */
@@ -791,6 +794,126 @@ static void apply_engine_dt_fix(void) {
          patch_bytes(0x0046a333, old_call, new_call, 5, "engine update simclock_GetDt call"), (void *)engine_substep_dt);
 }
 
+/* ===========================================================================
+ * PRECISE FRAME CAP  (I76_FPS_CAP=<frames per second>; off by default)
+ * ===========================================================================
+ * The engine has no limiter: WinMain's loop renders as fast as it can, and every
+ * community fix caps it from outside (dgVoodoo FPSLimit, I76PATCH.DLL, i76fix's
+ * Sleep before the frame clock). This one sits exactly where i76fix does - the
+ * per-frame `call simclock_Update` at 0x4039b8 (E8 63 8F 09 00, the same in the
+ * Galaxy and AiO builds) - and waits on the QPC clock, so the cap holds to well
+ * under a millisecond instead of the 15.6 ms Sleep granularity. Added for the
+ * frame-rate measurements (i76-map captures\014-framerate), useful on its own.
+ */
+static LARGE_INTEGER g_cap_period, g_cap_next;
+static int g_cap_started;
+static void __cdecl frame_cap_then_clock(void) {
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    if (!g_cap_started) {
+        g_cap_started = 1; g_cap_next.QuadPart = now.QuadPart;
+    } else {
+        while (now.QuadPart < g_cap_next.QuadPart) {
+            LONGLONG left_ms = (g_cap_next.QuadPart - now.QuadPart) * 1000 / g_qpf.QuadPart;
+            Sleep(left_ms > 2 ? (DWORD)(left_ms - 2) : 0);    /* coarse sleep, then spin the last ~2 ms */
+            QueryPerformanceCounter(&now);
+        }
+    }
+    g_cap_next.QuadPart += g_cap_period.QuadPart;
+    if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
+    ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
+}
+
+static void apply_frame_cap(void) {
+    static const BYTE old_call[5] = { 0xE8, 0x63, 0x8F, 0x09, 0x00 };   /* call 0x49c920 at 0x4039b8 */
+    BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
+    char v[16]; int fps;
+    LONG rel = (LONG)((DWORD_PTR)frame_cap_then_clock - (0x004039b8 + 5));
+    DWORD n = GetEnvironmentVariableA("I76_FPS_CAP", v, sizeof(v));
+    if (n == 0 || n >= sizeof(v) || (fps = atoi(v)) < 5 || fps > 1000) return;
+    if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
+    g_cap_period.QuadPart = g_qpf.QuadPart / fps;
+    memcpy(new_call + 1, &rel, 4);
+    mlog("  fps-cap: %d fps, %d/1 call site wrapped (0x4039b8)", fps,
+         patch_bytes(0x004039b8, old_call, new_call, 5, "frame clock call"));
+}
+
+/* ===========================================================================
+ * PHYSICS SUBSTEP RATE  (I76_PHYS_RATE=<steps per second>; off by default; EXPERIMENT)
+ * ===========================================================================
+ * entity_InitVehicle seeds each vehicle's physics stepper with a 0.05 s maximum
+ * step (push 0x3d4ccccd at 0x46312b): the frame's dt is split into
+ * floor(dt * 20) + 1 equal substeps, i.e. two 25 ms steps at 20 fps but one
+ * 16.7 ms step at 60 fps. This replaces 0.05 with 1/rate so the substep size can
+ * be varied independently of the frame rate - the experiment that decides
+ * whether the 60 fps chassis/cockpit buzz comes from the step size.
+ */
+static void apply_phys_rate(void) {
+    static const BYTE old_push[5] = { 0x68, 0xCD, 0xCC, 0x4C, 0x3D };   /* push 0.05f at 0x46312b */
+    BYTE new_push[5] = { 0x68, 0, 0, 0, 0 };
+    char v[16]; int rate; float step;
+    DWORD n = GetEnvironmentVariableA("I76_PHYS_RATE", v, sizeof(v));
+    if (n == 0 || n >= sizeof(v) || (rate = atoi(v)) < 10 || rate > 2000) return;
+    step = 1.0f / (float)rate;
+    memcpy(new_push + 1, &step, 4);
+    /* three pushes of the 0.05 max step: entity_InitVehicle, entity_TickVehicle's re-seed branch (0x46385c,
+     * which re-initialises the stepper whenever that branch runs - the first experiment patched only 0x46312b
+     * and the live stepper still read rate 20), and the network path 0x455230 */
+    mlog("  phys-rate: max substep 1/%d s, %d/3 sites patched (0x46312b, 0x46385c, 0x45531b)", rate,
+         patch_bytes(0x0046312b, old_push, new_push, 5, "vehicle stepper max step (init)") +
+         patch_bytes(0x0046385c, old_push, new_push, 5, "vehicle stepper max step (tick re-seed)") +
+         patch_bytes(0x0045531b, old_push, new_push, 5, "vehicle stepper max step (network)"));
+}
+
+/* ===========================================================================
+ * FIXED PHYSICS STEP  (I76_FIXED_STEP=<steps per second>, e.g. 40; off by default)
+ * ===========================================================================
+ * Measured 2026-09-27 (i76-map captures\014-framerate): the chassis/cockpit
+ * buzz follows the physics SUBSTEP SIZE, not the frame rate as such. At 20 fps
+ * the body's roll rate reverses 3.6-6.0 times a second with the stock 25 ms steps,
+ * 8.7-11.5 with 12.5 ms steps; at 60 fps 8.9-15.5 with 16.7 ms steps, 15-21 with
+ * 5.7 ms steps. simclock_StepperBegin 0x49cc20 splits each frame's dt into
+ * floor(dt*20)+1 equal steps, so the step size - and the car's behaviour -
+ * changes with the frame rate.
+ *
+ * This replaces simclock_StepperBegin (jmp at its entry, stock bytes
+ * D9 05 20 E4 4F 00 = fld [simclock_sim_dt], the same in Galaxy and AiO) with a
+ * fixed-step accumulator per stepper: every frame adds sim_dt, runs as many whole
+ * steps of exactly 1/rate as have accumulated (at most 20), and carries the rest.
+ * 40 steps/s = 25 ms, the stock step at 20 fps. At 60 fps the physics then
+ * advances on two frames out of three - no render interpolation yet.
+ */
+static struct { void *s; float acc; } g_step_acc[64];
+
+static void __cdecl fixed_stepper_begin(float *stepper) {
+    float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
+    int i, slot = -1, n;
+    for (i = 0; i < 64; i++) {
+        if (g_step_acc[i].s == stepper) { slot = i; break; }
+        if (slot < 0 && g_step_acc[i].s == 0) slot = i;
+    }
+    if (slot < 0) slot = (int)(((DWORD_PTR)stepper >> 4) & 63);   /* table full: reuse a slot */
+    if (g_step_acc[slot].s != stepper) { g_step_acc[slot].s = stepper; g_step_acc[slot].acc = 0.0f; }
+    g_step_acc[slot].acc += sim_dt;
+    n = (int)(g_step_acc[slot].acc / g_fixed_step);
+    if (n > 20) { n = 20; g_step_acc[slot].acc = 0.0f; } else g_step_acc[slot].acc -= (float)n * g_fixed_step;
+    stepper[1] = g_fixed_step;                               /* +4 step */
+    ((int *)stepper)[2] = n;                                 /* +8 count */
+}
+
+static void apply_fixed_step(void) {
+    static const BYTE old_entry[6] = { 0xD9, 0x05, 0x20, 0xE4, 0x4F, 0x00 };   /* fld [0x4fe420] at 0x49cc20 */
+    BYTE jmp[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
+    char v[16]; int rate;
+    LONG rel = (LONG)((DWORD_PTR)fixed_stepper_begin - (0x0049cc20 + 5));
+    DWORD n = GetEnvironmentVariableA("I76_FIXED_STEP", v, sizeof(v));
+    if (n == 0 || n >= sizeof(v) || (rate = atoi(v)) < 10 || rate > 1000) return;
+    g_fixed_step = 1.0f / (float)rate;
+    memcpy(jmp + 1, &rel, 4);
+    if (!patch_bytes(0x0049cc20, old_entry, jmp, 6, "simclock_StepperBegin entry")) g_fixed_step = 0.0f;
+    mlog("  fixed-step: %d steps/s (%.2f ms) %s", rate, g_fixed_step * 1000.0f, g_fixed_step > 0 ? "on" : "NOT applied");
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -802,6 +925,9 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
+        apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
+        apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
+        apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
