@@ -1228,6 +1228,50 @@ static void apply_fix_health_pct(void) {
 }
 
 /* ===========================================================================
+ * STOCK BUG: LABEL TABLE GROWTH  (I76_FIX_LABEL_TABLE=1; I76_LABEL_TEST=1 shrinks the start capacity to test it)
+ * ===========================================================================
+ * entity_LabelMapInsert 0x4ad450 (entity_AddLabel 0x457610: the per-mission table of object instance labels, heap
+ * record 0x54a178 {heap, table, count, capacity}, start capacity 0x800 from heap_Create 0x4ad410) grows the table
+ * when count >= capacity, and every part of that path is wrong:
+ *   - the size comes from the CRT's _msize, but the table lives in a private HeapCreate heap;
+ *   - a successful HeapReAlloc returns 0 and throws the new pointer away (the block may have moved: the table
+ *     pointer now dangles);
+ *   - a failed one zeroes the table pointer and then writes the entry through it.
+ * Stock missions stay under 2048 labels; big custom ones would corrupt the heap. The fix replaces the grow block
+ * (0x4ad465..0x4ad48a) with a call to label_grow: HeapSize + HeapReAlloc, store the pointer, capacity += 0x100; on
+ * failure the entry is dropped (return 0) and the table is left intact. */
+static int __cdecl label_grow(DWORD *t) {
+    SIZE_T sz = HeapSize((HANDLE)(DWORD_PTR)t[0], 0, (void *)(DWORD_PTR)t[1]);
+    void *p;
+    if (sz == (SIZE_T)-1) return 0;
+    p = HeapReAlloc((HANDLE)(DWORD_PTR)t[0], HEAP_ZERO_MEMORY, (void *)(DWORD_PTR)t[1], sz + 0x1000);
+    if (!p) return 0;
+    t[1] = (DWORD)(DWORD_PTR)p; t[3] += 0x100;
+    return 1;
+}
+static void apply_fix_label_table(void) {
+    static const BYTE old_blk[38] = { 0x8B, 0x4E, 0x04, 0x51, 0xFF, 0x15, 0x60, 0xC1, 0x4B, 0x00, 0x8B, 0x56, 0x04, 0x83, 0xC4, 0x04,
+                                      0x05, 0x00, 0x10, 0x00, 0x00, 0x50, 0x8B, 0x06, 0x52, 0x6A, 0x08, 0x50, 0xFF, 0x15, 0xE4, 0xC0,
+                                      0x4B, 0x00, 0x85, 0xC0, 0x74, 0x0A };
+    BYTE blk[38]; LONG rel; int ok;
+    if (GetEnvironmentVariableA("I76_FIX_LABEL_TABLE", NULL, 0) == 0) return;
+    memset(blk, 0x90, sizeof(blk));
+    blk[0] = 0x56;                                          /* push esi (the table record) */
+    blk[1] = 0xE8; rel = (LONG)((DWORD_PTR)label_grow - (0x004ad466 + 5)); memcpy(blk + 2, &rel, 4);
+    blk[6] = 0x83; blk[7] = 0xC4; blk[8] = 0x04;            /* add esp, 4 */
+    blk[9] = 0x85; blk[10] = 0xC0;                          /* test eax, eax */
+    blk[11] = 0x74; blk[12] = 0x19;                         /* je 0x4ad48b (return 0) */
+    blk[13] = 0xEB; blk[14] = 0x33;                         /* jmp 0x4ad4a7 (insert) */
+    ok = patch_bytes(0x004ad465, old_blk, blk, sizeof(blk), "label table grow");
+    mlog("  fix-label-table: %s", ok ? "on" : "NOT applied");
+    if (ok && GetEnvironmentVariableA("I76_LABEL_TEST", NULL, 0)) {
+        static const BYTE cap_old[7] = { 0xC7, 0x46, 0x0C, 0x00, 0x08, 0x00, 0x00 };   /* mov [esi+0xc], 0x800 at 0x4ad43b */
+        static const BYTE cap_new[7] = { 0xC7, 0x46, 0x0C, 0x10, 0x00, 0x00, 0x00 };   /* ... 0x10 */
+        mlog("  label-test: start capacity 16 %s", patch_bytes(0x004ad43b, cap_old, cap_new, 7, "label table start capacity") ? "(grows on every mission load)" : "NOT applied");
+    }
+}
+
+/* ===========================================================================
  * PHYSICS SUBSTEP RATE  (I76_PHYS_RATE=<steps per second>; off by default; EXPERIMENT)
  * ===========================================================================
  * entity_InitVehicle seeds each vehicle's physics stepper with a 0.05 s maximum
@@ -1694,6 +1738,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
+        apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

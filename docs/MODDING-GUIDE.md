@@ -42,8 +42,9 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
 - **Vehicle health percent is broken in stock** (object_HealthFraction). Once any core component is scratched it
   reads under 1%, so AI flee, script `hpLesser` and damage smoke all trigger at the first scratch. The opt-in fix is
   `I76_FIX_HEALTH_PCT=1`. Balance scripts with it off, as players will, or ship it together with retuned scripts.
-- **Big custom missions:** the FSM label table's grow path drops the entry on a *successful* realloc (0x4ad450).
-  Keep label counts within what stock missions use until that is patched.
+- **Big custom missions:** the object-label table (2048 labels to start) has a broken grow path (0x4ad450): heap
+  corruption past 2048 labels. Stock T01 uses 88. `I76_FIX_LABEL_TABLE=1` repairs it (verified with the start
+  capacity forced to 16).
 - **Surface grip, rolling drag, bump and damage rate are per mission:** the WRLD chunk's 8 surface records, indexed by
   the terrain's top 3 bits.
 
