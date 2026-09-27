@@ -101,3 +101,10 @@ experiment, see [HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md)). Deferred.
   removed here.
 - **No published I'76 draw-distance mod exists** (PCGamingWiki, VOGONS, ModDB, GOG forums
   swept 2026-08-16). This appears to be a first.
+
+## 2026-09-27: a second ceiling at about 3.8 km (static)
+
+Found while mapping the renderer (i76-map `subsystems/renderer.md`): the software scene sorts every primitive into 1 m
+depth buckets that start at -300 m. A bucket index above 4096 is silently dropped (`cmp edi, 0x1000` at 0x48fe61), so
+nothing deeper than about 3796 m in view space is drawn, whatever the far clip says. A far-clip patch that aims past
+about 3.8 km also has to raise this limit (and the flush clamp that walks at most 4096 buckets). Not yet tested live.
