@@ -740,6 +740,8 @@ static DWORD WINAPI hires_clock_ms(void) {
 }
 static void *g_hires_clock_ptr = (void *)hires_clock_ms;
 
+static void install_frame_hook(void);                        /* below, with the frame hook */
+static int g_frame_hook, g_hires_on;
 static void apply_hires_clock(void) {
     static const BYTE old_call[6] = { 0xFF, 0x15, 0x00, 0xC1, 0x4B, 0x00 };  /* call [0x4bc100] GetTickCount */
     BYTE new_call[6] = { 0xFF, 0x15, 0, 0, 0, 0 };
@@ -761,6 +763,11 @@ static void apply_hires_clock(void) {
         n2 = patch_bytes(0x0049c927, old_call, new_call, 6, "simclock_Update GetTickCount call (AiO)");
     }
     mlog("  hires-clock: %d/2 simclock call sites repointed to QPC ms (ptr %p)", n1 + n2, (void *)&g_hires_clock_ptr);
+    if (n1 + n2 == 2) {                                      /* exact per-frame dt from the frame hook (frame_cap_then_clock) */
+        install_frame_hook();
+        g_hires_on = g_frame_hook;
+        mlog("  hires-clock: exact frame dt %s", g_hires_on ? "on" : "NOT applied (frame hook missing)");
+    }
 }
 
 /* ===========================================================================
@@ -820,6 +827,7 @@ static int g_cap_started;
 /* per-frame rescaled constants (I76_FRAMERATE_FIXES): start at the stock values */
 static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f, g_zoom_rate = -0.01f, g_thr_up = -0.4f, g_thr_dn = 0.5f;
 static int g_ratefix;
+static LARGE_INTEGER g_prev_q;
 static float g_acc20;                                        /* 20 Hz grid: g_tick20 is set on frames that cross it */
 static int g_tick20 = 1;
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
@@ -841,6 +849,22 @@ static void __cdecl frame_cap_then_clock(void) {
 clock:
     g_frame++;
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
+    if (g_hires_on) {
+        /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
+         * frame dt reads 16 or 17 ms while the display shows 16.67: everything drawn advances 1 ms too little or too
+         * much, alternately. Measured as 0.024 m/frame^2 of jitter on a car at 28 m/s under a static script camera
+         * (capture 014, scam24b). Offline (sim_dt == dt) replace both with the exact QPC interval. simclock_time keeps
+         * its own ms sum, which tracks real time either way. */
+        LARGE_INTEGER q;
+        QueryPerformanceCounter(&q);
+        if (g_prev_q.QuadPart) {
+            float dts = (float)((double)(q.QuadPart - g_prev_q.QuadPart) / (double)g_qpf.QuadPart);
+            volatile float *sim_dt = (volatile float *)0x004fe420, *sim_rate = (volatile float *)0x004fe424;
+            volatile float *dt = (volatile float *)0x004fe428, *rate = (volatile float *)0x004fe42c;
+            if (*sim_dt == *dt && dts >= 0.001f && dts <= 0.2f) { *dt = *sim_dt = dts; *rate = *sim_rate = 1.0f / dts; }
+        }
+        g_prev_q = q;
+    }
     if (g_ratefix) {
         /* constants the engine applies once per frame / per render pass, rescaled so their effect per SECOND is
          * what it was at 20 fps: value x (frame dt / 0.05). simclock_dt 0x4fe428 is this frame's clamped dt. */
@@ -853,7 +877,6 @@ clock:
     }
 }
 
-static int g_frame_hook;
 static void install_frame_hook(void) {
     static const BYTE old_call[5] = { 0xE8, 0x63, 0x8F, 0x09, 0x00 };   /* call 0x49c920 at 0x4039b8 */
     BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
@@ -1099,8 +1122,9 @@ static void apply_fixed_step(void) {
  * their pose is touched, so an object destroyed later in the frame is skipped.
  */
 typedef struct { float r[9]; float pad; double p[3]; } xform_t;     /* 0x40 bytes */
-typedef struct { BYTE *obj; xform_t prev, disp, save; float alpha; DWORD stamp; int player, live; } ient_t;
+typedef struct { BYTE *obj; xform_t prev2, prev, disp, save; float alpha; DWORD stamp; int player, live; } ient_t;
 static ient_t g_ie[64];
+static void ient_disp(ient_t *e, xform_t *out, const xform_t *cur);
 static int g_interp;
 static BYTE *g_cam_tramp;
 static xform_t g_cam_last;
@@ -1128,6 +1152,31 @@ static void xf_lerp(xform_t *o, const xform_t *a, const xform_t *b, float t) {
     d = v3dot(rt, up); for (i = 0; i < 3; i++) rt[i] -= d * up[i];
     v3norm(rt);
 }
+/* uniform quadratic B-spline through three poses (C1: no kink at the step boundaries); at t it sits between the
+ * midpoints (a+b)/2 and (b+c)/2, i.e. half a step behind the linear blend of b and c */
+static void xf_bspline(xform_t *o, const xform_t *a, const xform_t *b, const xform_t *c, float t) {
+    float w0 = 0.5f * (1.0f - t) * (1.0f - t), w1 = 0.5f + t - t * t, w2 = 0.5f * t * t, d;
+    float *rt = o->r, *up = o->r + 3, *fw = o->r + 6;
+    int i;
+    for (i = 0; i < 9; i++) o->r[i] = w0 * a->r[i] + w1 * b->r[i] + w2 * c->r[i];
+    for (i = 0; i < 3; i++) o->p[i] = w0 * a->p[i] + w1 * b->p[i] + w2 * c->p[i];
+    o->pad = c->pad;
+    v3norm(fw);
+    d = v3dot(up, fw); for (i = 0; i < 3; i++) up[i] -= d * fw[i];
+    v3norm(up);
+    d = v3dot(rt, fw); for (i = 0; i < 3; i++) rt[i] -= d * fw[i];
+    d = v3dot(rt, up); for (i = 0; i < 3; i++) rt[i] -= d * up[i];
+    v3norm(rt);
+}
+static int g_smooth = 1;                                     /* I76_INTERP_SMOOTH: 0 off, 1 world cameras only, 2 all */
+static int smooth_now(void) {
+    DWORD mode = *(DWORD *)0x004c2720;
+    if (g_smooth == 2) return 1;
+    if (g_smooth == 0) return 0;
+    /* the player-attached views keep the low-latency linear blend: cockpit, chase, free-look */
+    return !(mode == 0x00406ab0 || mode == 0x00407ad0 || mode == 0x00405b90 || mode == 0x004061b0);
+}
+
 static double xf_dist2(const xform_t *a, const xform_t *b) {
     double x = a->p[0] - b->p[0], y = a->p[1] - b->p[1], z = a->p[2] - b->p[2];
     return x * x + y * y + z * z;
@@ -1149,21 +1198,26 @@ static ient_t *ient_update(BYTE *obj, const xform_t *s) {
     }
     if (slot < 0) return 0;                                  /* more than 64 live vehicles: draw this one un-interpolated */
     e = &g_ie[slot];
+    if (e->obj == obj && e->stamp == g_frame) return e;      /* already updated this frame (camera path ran first) */
     e_now = (xform_t *)(obj + 0x18);
     veh = *(BYTE **)(obj + 0x70);
     st = veh ? step_slot(veh + 0x444, 0) : -1;
     if (e->obj != obj || st < 0 || g_step_acc[st].frame != g_frame) {
-        e->prev = *e_now;                                    /* new, or ticked without the fixed stepper: no blend */
+        e->prev2 = e->prev = *e_now;                         /* new, or ticked without the fixed stepper: no blend */
         e->alpha = 1.0f;
     } else {
         int n = g_step_acc[st].n;
-        if (n == 1) e->prev = *s;
-        else if (n > 1) xf_lerp(&e->prev, s, e_now, (float)(n - 1) / (float)n);    /* pose before the last step */
-        /* n == 0: no step this frame - keep the previous pair, alpha grows */
+        if (n == 1) { e->prev2 = e->prev; e->prev = *s; }
+        else if (n > 1) {                                    /* the poses before the last two steps, on the frame's straight line */
+            xf_lerp(&e->prev2, s, e_now, (float)(n - 2) / (float)n);
+            xf_lerp(&e->prev, s, e_now, (float)(n - 1) / (float)n);
+        }
+        /* n == 0: no step this frame - keep the history, alpha grows */
         e->alpha = g_step_acc[st].acc / g_fixed_step;
         if (e->alpha < 0.0f) e->alpha = 0.0f; else if (e->alpha > 1.0f) e->alpha = 1.0f;
     }
-    if (xf_dist2(&e->prev, e_now) > 64.0) e->prev = *e_now;  /* moved > 8 m in one step: a respawn or teleport */
+    if (xf_dist2(&e->prev, e_now) > 64.0 || xf_dist2(&e->prev2, e_now) > 256.0)
+        e->prev2 = e->prev = *e_now;                         /* a respawn or teleport */
     e->obj = obj;
     e->stamp = g_frame;
     e->player = ((int (__cdecl *)(BYTE *))0x00458bf0)(obj) != 0;   /* object_IsPlayer */
@@ -1201,25 +1255,77 @@ static void mark_live(void) {                                /* which of this fr
     }
 }
 
+/* Swap every vehicle ticked this frame (and still live) to its drawn pose, and back. Used around code that only
+ * places the camera, so a camera tracking any car sees the pose that will be rendered. Not re-entrant. */
+static int g_swapped;
+static DWORD g_fsmcam_calls;                                 /* diagnostics: script camera actions run */
+static int swap_all_in(void) {
+    int i, n = 0;
+    if (!g_interp || g_swapped) return 0;
+    mark_live();
+    for (i = 0; i < 64; i++) {
+        ient_t *e = &g_ie[i];
+        if (!e->live) continue;
+        e->save = *(xform_t *)(e->obj + 0x18);
+        ient_disp(e, &e->disp, &e->save);
+        *(xform_t *)(e->obj + 0x18) = e->disp;
+        n++;
+    }
+    g_swapped = 1;
+    return 1;
+}
+static void swap_all_out(void) {
+    int i;
+    for (i = 0; i < 64; i++) if (g_ie[i].live) *(xform_t *)(g_ie[i].obj + 0x18) = g_ie[i].save;
+    g_swapped = 0;
+}
+
+/* Script cameras (jump cam, cut-scenes): the FSM camera actions are called by fsm_ActionDispatch from the script VM
+ * on every frame the script holds them, and set the view (0x472990) from object poses. Run them on drawn poses. The
+ * actions are cdecl; forwarding eight dwords covers every one (extra ones are the caller's own stack, only read). */
+typedef int (__cdecl *fsm8_t)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
+static int fsmcam_call(DWORD addr, DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g, DWORD h) {
+    DWORD sets = g_cam_sets;
+    int r, sw = swap_all_in();
+    r = ((fsm8_t)addr)(a, b, c, d, e, f, g, h);
+    if (sw) { swap_all_out(); if (g_cam_sets != sets) g_cam_interp_frame = g_frame; }
+    g_fsmcam_calls++;
+    return r;
+}
+static int __cdecl fsm_cam_objobj_w(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g, DWORD h)   { return fsmcam_call(0x0049d5f0, a, b, c, d, e, f, g, h); }
+static int __cdecl fsm_cam_objdir_w(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g, DWORD h)   { return fsmcam_call(0x0049d4a0, a, b, c, d, e, f, g, h); }
+static int __cdecl fsm_cam_toobject_w(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g, DWORD h) { return fsmcam_call(0x0049d740, a, b, c, d, e, f, g, h); }
+static int __cdecl fsm_cam_transdir_w(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g, DWORD h) { return fsmcam_call(0x0049dac0, a, b, c, d, e, f, g, h); }
+static int __cdecl fsm_cam_f12_w(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g, DWORD h)      { return fsmcam_call(0x0049dda0, a, b, c, d, e, f, g, h); }
+
 static void __cdecl cam_update_wrap(void) {
     void (__cdecl *mode)(void) = *(void (__cdecl **)(void))0x004c2720;
     BYTE *obj = g_tick_obj;
     ient_t *e = 0;
     int i;
-    if (g_interp && obj) e = ient_update(obj, &g_tick_start);          /* from inside the player's tick (0x46391f) */
-    else if (g_interp) {                                                /* the frame loop's camera update (0x403e16) */
-        mark_live();
-        for (i = 0; i < 64; i++) if (g_ie[i].live && g_ie[i].player) { e = &g_ie[i]; obj = e->obj; break; }
+    (void)i;
+    if (g_interp && !obj) {                                             /* the frame loop's camera update (0x403e16) */
+        DWORD sets = g_cam_sets;
+        int sw = swap_all_in();                                         /* every car on its drawn pose */
+        if (mode) mode();
+        if (sw) { swap_all_out(); if (g_cam_sets != sets) g_cam_interp_frame = g_frame; }
+        return;
     }
+    if (g_interp && obj) e = ient_update(obj, &g_tick_start);          /* from inside the player's tick (0x46391f) */
     if (e) {
         xform_t save = *(xform_t *)(obj + 0x18), disp;
         DWORD sets = g_cam_sets;
-        xf_lerp(&disp, &e->prev, &save, e->alpha);
+        ient_disp(e, &disp, &save);
         *(xform_t *)(obj + 0x18) = disp;
         mode();
         *(xform_t *)(obj + 0x18) = save;
         if (g_cam_sets != sets) g_cam_interp_frame = g_frame;   /* the view was set from the drawn pose */
     } else if (mode) mode();
+}
+
+static void ient_disp(ient_t *e, xform_t *out, const xform_t *cur) {
+    if (smooth_now()) xf_bspline(out, &e->prev2, &e->prev, cur, e->alpha);
+    else xf_lerp(out, &e->prev, cur, e->alpha);
 }
 
 static int __cdecl cam_set_hook(BYTE *cam, xform_t *t) {
@@ -1244,7 +1350,7 @@ static void __cdecl render_wrap(void *cam) {
             ient_t *e = &g_ie[i];
             if (!e->live) continue;
             e->save = *(xform_t *)(e->obj + 0x18);
-            xf_lerp(&e->disp, &e->prev, &e->save, e->alpha);
+            ient_disp(e, &e->disp, &e->save);
             *(xform_t *)(e->obj + 0x18) = e->disp;
             if (e->player) pl = e;
             n++;
@@ -1275,6 +1381,7 @@ static void __cdecl render_wrap(void *cam) {
             for (i = 0; i < 3; i++) { g_idbg.true_p[i] = pl->save.p[i]; g_idbg.disp_p[i] = pl->disp.p[i]; }
             g_idbg.ring[r].frame = 0;                            /* frame number last, so a reader never pairs it with old data */
             g_idbg.ring[r].cam = cam_fixed ? 1 : (g_cam_interp_frame == g_frame ? 2 : 0);   /* 1 carried, 2 set from drawn pose */
+            g_idbg.ring[r].pad = (int)g_fsmcam_calls;                                      /* script camera actions so far */
             for (i = 0; i < 3; i++) {
                 g_idbg.ring[r].true_p[i] = pl->save.p[i]; g_idbg.ring[r].disp_p[i] = pl->disp.p[i];
                 g_idbg.ring[r].cam_p[i] = cam_fixed ? camx.p[i] : g_cam_last.p[i];
@@ -1298,6 +1405,11 @@ static void apply_render_interp(void) {
     BYTE tick_new[4], rend_new[5] = { 0xE8 }, cam_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
     DWORD a; LONG rel; int ok = 0;
     if (GetEnvironmentVariableA("I76_RENDER_INTERP", NULL, 0) == 0) return;
+    {
+        char sv[8];
+        DWORD k = GetEnvironmentVariableA("I76_INTERP_SMOOTH", sv, sizeof(sv));
+        if (k > 0 && k < sizeof(sv)) g_smooth = atoi(sv);
+    }
     if (g_fixed_step <= 0.0f) { mlog("  render-interp: needs I76_FIXED_STEP - not applied"); return; }
     install_frame_hook();
     if (!g_frame_hook) { mlog("  render-interp: frame hook missing - not applied"); return; }
@@ -1322,8 +1434,21 @@ static void apply_render_interp(void) {
         ok += patch_bytes(0x0046391f, camu_old, camu_new, 6, "player camera update call (in tick)");
         rel = (LONG)((DWORD_PTR)cam_update_wrap - (0x00403e16 + 5)); memcpy(camu_new + 1, &rel, 4);
         ok += patch_bytes(0x00403e16, camu_old, camu_new, 6, "camera update call (frame loop)");
+        {
+            static const struct { DWORD site, target; void *w; } fc[6] = {
+                { 0x00413118, 0x0049d5f0, (void *)fsm_cam_objobj_w },  { 0x0041319a, 0x0049d4a0, (void *)fsm_cam_objdir_w },
+                { 0x004131f1, 0x0049d740, (void *)fsm_cam_toobject_w }, { 0x00413266, 0x0049d740, (void *)fsm_cam_toobject_w },
+                { 0x004132ac, 0x0049dac0, (void *)fsm_cam_transdir_w }, { 0x00413327, 0x0049dda0, (void *)fsm_cam_f12_w } };
+            int j;
+            for (j = 0; j < 6; j++) {
+                BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+                LONG r0 = (LONG)(fc[j].target - (fc[j].site + 5)), r1 = (LONG)((DWORD_PTR)fc[j].w - (fc[j].site + 5));
+                memcpy(o + 1, &r0, 4); memcpy(w + 1, &r1, 4);
+                ok += patch_bytes(fc[j].site, o, w, 5, "script camera action call");
+            }
+        }
     }
-    mlog("  render-interp: %d/5 hooks, %s (debug block %p)", ok, g_interp ? "on" : "NOT applied", (void *)&g_idbg);
+    mlog("  render-interp: %d/11 hooks, %s, smoothing %d (debug block %p)", ok, g_interp ? "on" : "NOT applied", g_smooth, (void *)&g_idbg);
 }
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
