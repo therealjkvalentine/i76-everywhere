@@ -1168,7 +1168,7 @@ static xform_t g_cam_last;
 static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 /* read by captures\014-framerate\fr_probe.py (address logged at start) */
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
-                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; } ring[16];
+                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; float roll_t, pitch_t, roll_d, pitch_d; } ring[16];
                 DWORD ping_req, ping_play, ping_frames; } g_idbg;   /* every frame, for samplers that miss some */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
@@ -1425,6 +1425,9 @@ static void __cdecl render_wrap(void *cam) {
                 g_idbg.ring[r].true_p[i] = pl->save.p[i]; g_idbg.ring[r].disp_p[i] = pl->disp.p[i];
                 g_idbg.ring[r].cam_p[i] = cam_fixed ? camx.p[i] : g_cam_last.p[i];
             }
+            /* body attitude, true and drawn: roll = asin(right.y), pitch = asin(forward.y) (rows right/up/forward) */
+            g_idbg.ring[r].roll_t = pl->save.r[1]; g_idbg.ring[r].pitch_t = pl->save.r[7];
+            g_idbg.ring[r].roll_d = pl->disp.r[1]; g_idbg.ring[r].pitch_d = pl->disp.r[7];
             *(volatile DWORD *)&g_idbg.ring[r].frame = g_frame;
         }
     }

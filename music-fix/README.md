@@ -216,7 +216,7 @@ Measured in the sandbox (i76-map `captures/014-framerate`). All of these are off
 |---|---|---|
 | `I76_HIRES_CLOCK=1` | jittery dt: 15.6 ms GetTickCount steps and float32 uptime decay | dt exact (50.00 ms at 20 fps, 16/17 ms at 60 fps) |
 | `I76_FIXED_STEP=24` | chassis/cockpit buzz, jump behaviour: physics always steps in 41.7 ms slices, the mean step of stock play at 20 fps | stock 20 fps actually steps 46.9 ms (80%) / 31.2 ms (GetTickCount frame dts split by the stepper); 24 Hz body motion as calm as stock 20 (at rest 0.83-0.86 in 3 of 4 runs vs 0.45-0.84), acceleration unchanged. The first choice, 40 (25 ms), made jumps fall short and the body feel quick in play |
-| `I76_FRAMERATE_FIXES=1` | sky drift, free-look camera keys, zoom key, keyboard throttle ramp, missile-lock tone rate | clouds 0.0300 /s at 60 fps = 20 fps (stock 0.0899); sky, free-look confirmed in play |
+| `I76_FRAMERATE_FIXES=1` | sky drift, free-look camera keys, zoom key, keyboard throttle ramp, missile-lock tones, radar lock ping (locked on it pinged every frame: 60/s at 60 fps; coalesced to 20/s as at 20 fps), per-frame vehicle sounds | clouds 0.0300 /s at 60 fps = 20 fps (stock 0.0899); sky, free-look confirmed in play |
 | `I76_ENGINE_DT_FIX=1` | engine RPM/torque smoothing counted per substep | static; consistent with the fixed step |
 | `I76_RENDER_INTERP=1` | the 40 Hz judder the fixed step leaves at 60 fps: vehicles and the cockpit/chase camera are drawn between their last two physics poses | every frame: 31-33% of frames without motion -> 0%, roughness 1.00 -> 0.04-0.06 (n = 2 missions) |
 | `I76_FPS_CAP=n` | optional precise frame cap (dgVoodoo's FPSLimit did not cap this build) | held 20.0 fps exactly |
@@ -257,6 +257,18 @@ simulation never sees it.
 
 The log line `render-interp: 3/3 hooks, on (debug block XXXXXXXX)` gives the address of a debug block. It holds a
 16-frame ring of true and drawn positions, which `captures/014-framerate/fr_probe.py --interp` and `interp.py` read.
+
+**Script and world cameras** (second play test: the car jittered under the jump camera and in cut-scenes).
+- The FSM camera actions that `fsm_ActionDispatch` calls (0x413118..0x413327) run with every car on its drawn pose,
+  and so does the frame-loop camera update.
+- World cameras (anything but cockpit 0x406ab0, chase 0x407ad0 and free-look) draw cars on a quadratic B-spline
+  through the last three physics poses, not the linear blend. The physics path weaves by up to 16° per step, and
+  straight segments showed a kink every 41.7 ms. Per-frame direction change p95 went 23.5° -> 11.2°, for about half a
+  step more lag, only in those views.
+- `I76_INTERP_SMOOTH=0` turns the spline off; `=2` uses it everywhere.
+
+**Exact frame dt.** With `I76_HIRES_CLOCK` the frame hook replaces the whole-millisecond dt (16/17 ms at 60 fps) with
+the exact QPC interval, offline only.
 
 **Engine dt with the fixed step.** `I76_ENGINE_DT_FIX` hands the engine 0.05 s per substep when the fixed step is
 on, which is what stock at 20 fps does (every substep sees the whole ~50 ms frame).
