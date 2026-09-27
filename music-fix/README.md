@@ -207,3 +207,24 @@ that one `call simclock_GetDt` (0x46a333, the same bytes in the Galaxy and AiO b
 
 **Status:** the write was verified in the sandbox together with `I76_HIRES_CLOCK` (`engine-dt-fix: 1/1`). It has not
 been played. Test at 60 fps with and without it: time the throttle from standstill to 100 km/h in the same car.
+
+## Playing above 20 fps: the recommended switch set (2026-09-27)
+
+Measured in the sandbox (i76-map `captures/014-framerate`). All of these are off unless their variable is set.
+
+| variable | fixes | evidence |
+|---|---|---|
+| `I76_HIRES_CLOCK=1` | jittery dt: 15.6 ms GetTickCount steps and float32 uptime decay | dt exact (50.00 ms at 20 fps, 16/17 ms at 60 fps) |
+| `I76_FIXED_STEP=40` | chassis/cockpit buzz: physics always steps in 25 ms slices | buzz at 60 fps back to the 20 fps level (n = 4, ranges disjoint) |
+| `I76_FRAMERATE_FIXES=1` | sky drift, free-look camera keys, zoom key | clouds 0.0300 /s at 60 fps = 20 fps (stock 0.0899) |
+| `I76_ENGINE_DT_FIX=1` | engine RPM/torque smoothing counted per substep | static; consistent with the fixed step |
+| `I76_FPS_CAP=n` | optional precise frame cap (dgVoodoo's FPSLimit did not cap this build) | held 20.0 fps exactly |
+
+```powershell
+$env:I76_HIRES_CLOCK = "1"; $env:I76_FIXED_STEP = "40"; $env:I76_FRAMERATE_FIXES = "1"; $env:I76_ENGINE_DT_FIX = "1"
+```
+
+AI throttle chatter at 60 fps: 26.2 (stock) vs 1.56 at 20 fps. `I76_HIRES_CLOCK` alone brings it to 9.0, and adding
+the fixed step to 5.3 (n = 3 each, still above 20 fps). Known trade-off: with the fixed step at 60 fps the physics
+advances on two frames out of three (40 Hz), which may look like slight judder. Render interpolation would remove it.
+Nothing here is deployed to the playable install.
