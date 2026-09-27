@@ -177,24 +177,21 @@ $script:TEL_MODEL = 2
 #
 #     0x5367D0    0x5367DE
 #
-# docs/MEMORY-MAP-INDEX.md lists 0x5367db as weapon_fire. It DID NOT MOVE, so that
-# is wrong. Note that 0x5367D0 sits between the documented throttle (0x5367cc) and
-# steer (0x5367d4) in what is clearly a 4-byte-strided input array, so `db` looks
-# like a transcription slip for `d0`. 0x5367DE is unaligned and is more likely a
-# derived or per-weapon-group flag.
+# CORRECTED 2026-09-27 from the static map (i76-map symbols\globals.tsv, capstone over the pristine exe):
+#   0x5367D0  input_throttle_up  - read only by input_ApplyToEntity 0x44f1c0, beside the throttle
+#             (0x44f249 / 0x44f433). It moved in the measurement because the fire button was also
+#             bound to throttle-up (or throttle was touched); it is not a fire flag.
+#   0x5367DB  input_weapon_fire  - read by the weapon code 0x4a5870 (0x4a5945, 0x4a5acf, 0x4a5b22).
+#             It stayed still in the measurement because firing went through a HARDPOINT key.
+#   0x5367DE..0x5367E2  input_hardpoint1..5_fire - the five per-hardpoint fire bytes, registered
+#             by 0x4a2d30 into the table at 0x5da738 (0x4a2dc8..0x4a2df0).
+# So the channel reads one 16-byte block from 0x5367DB: +0 = weapon_fire, +3..+7 = hardpoints 1-5,
+# and any of the six going nonzero is "firing". The mixer still prefers the engine's own effect
+# slots (below), which is what actually fired.
 #
-# Which is the INPUT and which is downstream is not yet established, and it does not
-# need to be: both are read and either rising edge fires the channel, with a
-# re-trigger blanking interval in the mixer so two flags rising on the same shot
-# produce one kick rather than two. Using both is strictly more robust than picking
-# the wrong one.
-#
-# Both are read in a SINGLE 16-byte block (0x5367D0..0x5367DF) rather than two
-# reads, so the cost is one ReadProcessMemory per poll either way.
-#
-# Set TEL_FIRE_ADDR to 0 to disable the channel outright. If neither address ever
+# Set TEL_FIRE_ADDR to 0 to disable the channel outright. If no byte ever
 # changes, the channel is silent - it cannot produce spurious kicks.
-$script:TEL_FIRE_ADDR  = 0x5367d0
+$script:TEL_FIRE_ADDR  = 0x5367db
 
 # ---------------------------------------------------------------------------
 # THE ENGINE'S OWN EFFECT TABLE - far better than the input flag above
@@ -698,17 +695,18 @@ function Tel-Sample {
     # part of the entity struct. Costs nothing measurable - the poll loop runs at
     # 3400 Hz - and if the address is wrong this just stays 0 forever, which leaves
     # the weapon channel silent rather than firing at random.
-    # One 16-byte read covers both measured flags: 0x5367D0 at +0 and 0x5367DE at
-    # +14. Reading a block rather than two bytes keeps this at one syscall.
+    # One 16-byte read from 0x5367DB covers weapon_fire (+0) and hardpoints 1-5 (+3..+7).
+    # Reading a block rather than six bytes keeps this at one syscall.
     $fire = 0
     if ($script:TEL_FIRE_ADDR -ne 0) {
         $fb = $Ctx.FireBuf
         $fn = 0
         if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$script:TEL_FIRE_ADDR, $fb, 16, [ref]$fn)) {
-            $fire = [int]$fb[0]
+            $fire = [int]($fb[0] -ne 0)
+            # TEL_FIRE_ADDR2 is the first of the five hardpoint fire bytes (0x5367de..0x5367e2)
             $off2 = $script:TEL_FIRE_ADDR2 - $script:TEL_FIRE_ADDR
-            if ($script:TEL_FIRE_ADDR2 -ne 0 -and $off2 -ge 0 -and $off2 -lt 16) {
-                if ($fb[$off2] -ne 0) { $fire = $fire -bor 2 }
+            if ($script:TEL_FIRE_ADDR2 -ne 0 -and $off2 -ge 0 -and ($off2 + 4) -lt 16) {
+                for ($i = 0; $i -lt 5; $i++) { if ($fb[$off2 + $i] -ne 0) { $fire = $fire -bor 2 } }
             }
         }
     }
