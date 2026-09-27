@@ -914,6 +914,13 @@ static int __cdecl frame_sound_wrap(const char *name, BYTE *obj, int flag) {
     return ((int (__cdecl *)(const char *, BYTE *, int))0x00423230)(name, obj, flag);
 }
 
+/* AI throttle (ai_UpdateThrottle 0x40f9c0): throttle = f((target speed - speed) x simclock_GetSimRate), i.e. the
+ * acceleration that would close the gap in ONE FRAME. That is a gain proportional to the frame rate, not a
+ * derivative of a measured change, so at 60 fps it asks for 3x the correction, saturates and chatters (capture 014:
+ * total variation 26.2 /s at 60 fps vs 1.56 at 20; 5.33 even with the hires clock and fixed step). Both reads
+ * (0x40fa15 type-9 branch, 0x40fa8d vehicles) get the 20 fps rate. */
+static float __cdecl ai_rate20(void) { return 20.0f; }
+
 static void apply_framerate_fixes(void) {
     static const BYTE cu_old[6] = { 0xD9, 0x05, 0xC4, 0xC4, 0x4B, 0x00 };   /* fld dword ptr [0x4bc4c4] */
     static const BYTE cv_old[6] = { 0xD9, 0x05, 0x00, 0xC5, 0x4B, 0x00 };   /* fld dword ptr [0x4bc500] */
@@ -954,6 +961,15 @@ static void apply_framerate_fixes(void) {
         rel = (LONG)((DWORD_PTR)frame_sound_wrap - (0x004a40ad + 5)); memcpy(l_new + 1, &rel, 4);
         n += patch_bytes(0x004a40ad, l12_old, l_new, 5, "missile lock tones 1/2");
     }
+    {
+        static const BYTE a1_old[5] = { 0xE8, 0x96, 0xCD, 0x08, 0x00 };   /* call simclock_GetSimRate at 0x40fa15 */
+        static const BYTE a2_old[5] = { 0xE8, 0x1E, 0xCD, 0x08, 0x00 };   /* call simclock_GetSimRate at 0x40fa8d */
+        BYTE a_new[5] = { 0xE8 };
+        LONG rel = (LONG)((DWORD_PTR)ai_rate20 - (0x0040fa15 + 5)); memcpy(a_new + 1, &rel, 4);
+        n += patch_bytes(0x0040fa15, a1_old, a_new, 5, "AI throttle gain (type 9)");
+        rel = (LONG)((DWORD_PTR)ai_rate20 - (0x0040fa8d + 5)); memcpy(a_new + 1, &rel, 4);
+        n += patch_bytes(0x0040fa8d, a2_old, a_new, 5, "AI throttle gain (vehicles)");
+    }
     {   /* 0x43d500, once per frame per vehicle: skid/turn/surface (x2), flat tyre, damage - each `call 0x423230` */
         static const DWORD site[4] = { 0x0043d54d, 0x0043d590, 0x0043d5ec, 0x0043d62b };
         static const BYTE old_rel[4][4] = { { 0xDE, 0x5C, 0xFE, 0xFF }, { 0x9B, 0x5C, 0xFE, 0xFF },
@@ -966,7 +982,7 @@ static void apply_framerate_fixes(void) {
         }
     }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/15 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, vehicle sounds)", n);
+    mlog("  framerate-fixes: %d/17 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, vehicle sounds, AI throttle gain)", n);
 }
 
 /* ===========================================================================
