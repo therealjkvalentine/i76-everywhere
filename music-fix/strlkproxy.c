@@ -1045,6 +1045,14 @@ static int __cdecl ai_fire_wrap(DWORD a, DWORD b, float c, float d, DWORD e, DWO
     return r;
 }
 
+/* HUD ammo digits (weapon_HudRollAmmoDigits 0x4a4e40, from weapon_Update at 0x4a44ca with force = 0): each call rolls a
+ * digit strip one step toward the new count (0x4a4eda), so a full roll takes 0.45 s at 20 fps and 0.15 s at 60. The
+ * panel is persistent (a matching digit returns without drawing), so skipping the call between grid frames just
+ * steps the roll at 20 Hz. */
+static void __cdecl ammo_roll_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
+    if (g_tick20 || d) ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD))0x004a4e40)(a, b, c, d);
+}
+
 /* Smoke puffs (renderer_UpdateSmoke 0x4414a0, once per render). Each call spawns every emitter's puffs, draws the
  * live ones, moves them by dt and ages them one step; a puff lives 20 calls. At 60 fps that is 3x the puffs, each
  * living a third as long: the same count on screen but columns a third as tall, with the drift table stepping 3x as
@@ -1176,6 +1184,7 @@ static void apply_framerate_fixes(void) {
             { 0x00414f75, 0x00418200, (void *)ai_fire_wrap,      "AI fire decision (vehicles)" },
             { 0x00462bfb, 0x00418200, (void *)ai_fire_wrap,      "AI fire decision (turrets)" },
             { 0x00462c3e, 0x00418200, (void *)ai_fire_wrap,      "AI fire decision (turrets, 2)" },
+            { 0x004a44ca, 0x004a4e40, (void *)ammo_roll_wrap,    "HUD ammo digit roll" },
             { 0x00401e50, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (software)" },
             { 0x0040211a, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (hardware)" },
             { 0x004414b9, 0x0049c8b0, (void *)step20_dt,         "smoke puff dt" },
@@ -1192,7 +1201,7 @@ static void apply_framerate_fixes(void) {
     }
     { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_FIRE_CACHE", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_aifire_cache = 0; }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/35 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails, AI fire decisions)", n);
+    mlog("  framerate-fixes: %d/36 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails, AI fire decisions, ammo digits)", n);
 }
 
 /* ===========================================================================
