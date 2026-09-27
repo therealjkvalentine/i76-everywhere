@@ -661,6 +661,11 @@ static void apply_mission_launch(void) {
         return;
     }
     lstrcpynA((char *)0x005049f0, mission, 16);
+    /* 2026-09-27: the name alone no longer skips the menus (six boots across both exe builds, three shell DLLs and
+     * the Aug 8 proxy binary all sat in the shell with the buffer intact). WinMain runs the shell unless the dword
+     * at 0x504c10 is nonzero (cmp at 0x403197, jne 0x403201 past the shell_RunAndGetChoice call at 0x4031f5); the
+     * mission-name path at 0x402d82 leaves that dword alone, and nothing in the exe sets it, so set it here. */
+    *(volatile DWORD *)0x00504c10 = 1;
 
     /* OPTIONALLY SKIP THE INTRO MOVIES  (I76_SKIP_MOVIES=1).
      *
