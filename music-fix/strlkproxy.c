@@ -830,6 +830,7 @@ static int g_ratefix;
 static LARGE_INTEGER g_prev_q;
 static float g_acc20;                                        /* 20 Hz grid: g_tick20 is set on frames that cross it */
 static int g_tick20 = 1;
+static void radar_ping_flush(void);
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
@@ -872,8 +873,8 @@ clock:
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
         g_thr_up = -0.4f * k; g_thr_dn = 0.5f * k;
         g_acc20 += *(volatile float *)0x004fe428;
-        g_tick20 = g_acc20 >= 0.05f;
-        if (g_tick20) { g_acc20 -= 0.05f; if (g_acc20 > 0.05f) g_acc20 = 0.0f; }
+        g_tick20 = g_acc20 >= 0.049f;                        /* 1 ms tolerance: n x dt lands a hair under 0.05 */
+        if (g_tick20) { g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; radar_ping_flush(); }
     }
 }
 
@@ -944,6 +945,33 @@ static int __cdecl frame_sound_wrap(const char *name, BYTE *obj, int flag) {
  * (0x40fa15 type-9 branch, 0x40fa8d vehicles) get the 20 fps rate. */
 static float __cdecl ai_rate20(void) { return 20.0f; }
 
+/* Radar ping (CRADAR.WAV, radar blip routine 0x460310, played through 0x4250f0 at 0x4605ee / 0x4608f1). Unlocked,
+ * the sweep advances on game time (one of 30 positions per 0.2 s) and a blip pings when the window [previous,
+ * current position] passes it - frame-rate neutral. Locked on, the position is re-aimed at the target's bearing every
+ * frame while the previous position (+8) is only updated on the unlocked path, so every other blip inside the wedge
+ * pings on EVERY FRAME: 20 pings/s at 20 fps, 60/s at 60 fps (reported "lock beep too fast"). Pings are coalesced
+ * onto the 20 Hz grid: one asked for between grid frames is held and played on the next one, so sweep pings are
+ * never lost and the locked case pings at most 20 times a second, as at stock 20 fps. */
+static DWORD g_idbg_ping_req, g_idbg_ping_play, g_idbg_ping_frames, g_ping_req_last;           /* copied into the debug block by the render wrapper */
+static const char *g_ping_name;
+static BYTE *g_ping_obj;
+static int g_ping_flag, g_ping_pending;
+static DWORD g_ping_frame;
+static int __cdecl radar_ping_wrap(const char *name, BYTE *obj, int flag) {
+    g_idbg_ping_req++;
+    if (g_ping_req_last != g_frame) { g_ping_req_last = g_frame; g_idbg_ping_frames++; }
+    if (!g_tick20) { g_ping_name = name; g_ping_obj = obj; g_ping_flag = flag; g_ping_pending = 1; return 0; }
+    if (g_ping_frame == g_frame) return 0;                   /* one per grid frame */
+    g_ping_frame = g_frame; g_ping_pending = 0; g_idbg_ping_play++;
+    return ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(name, obj, flag);
+}
+static void radar_ping_flush(void) {                        /* from the frame hook, on grid frames */
+    if (g_ping_pending && g_ping_frame != g_frame) {
+        g_ping_pending = 0; g_ping_frame = g_frame; g_idbg_ping_play++;
+        ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(g_ping_name, g_ping_obj, g_ping_flag);
+    }
+}
+
 static void apply_framerate_fixes(void) {
     static const BYTE cu_old[6] = { 0xD9, 0x05, 0xC4, 0xC4, 0x4B, 0x00 };   /* fld dword ptr [0x4bc4c4] */
     static const BYTE cv_old[6] = { 0xD9, 0x05, 0x00, 0xC5, 0x4B, 0x00 };   /* fld dword ptr [0x4bc500] */
@@ -993,6 +1021,15 @@ static void apply_framerate_fixes(void) {
         rel = (LONG)((DWORD_PTR)ai_rate20 - (0x0040fa8d + 5)); memcpy(a_new + 1, &rel, 4);
         n += patch_bytes(0x0040fa8d, a2_old, a_new, 5, "AI throttle gain (vehicles)");
     }
+    {
+        static const BYTE p1_old[5] = { 0xE8, 0xFD, 0x4A, 0xFC, 0xFF };   /* call 0x4250f0 at 0x4605ee (CRADAR.WAV) */
+        static const BYTE p2_old[5] = { 0xE8, 0xFA, 0x47, 0xFC, 0xFF };   /* call 0x4250f0 at 0x4608f1 (CRADAR.WAV) */
+        BYTE p_new[5] = { 0xE8 };
+        LONG rel = (LONG)((DWORD_PTR)radar_ping_wrap - (0x004605ee + 5)); memcpy(p_new + 1, &rel, 4);
+        n += patch_bytes(0x004605ee, p1_old, p_new, 5, "radar ping");
+        rel = (LONG)((DWORD_PTR)radar_ping_wrap - (0x004608f1 + 5)); memcpy(p_new + 1, &rel, 4);
+        n += patch_bytes(0x004608f1, p2_old, p_new, 5, "radar ping (2)");
+    }
     {   /* 0x43d500, once per frame per vehicle: skid/turn/surface (x2), flat tyre, damage - each `call 0x423230` */
         static const DWORD site[4] = { 0x0043d54d, 0x0043d590, 0x0043d5ec, 0x0043d62b };
         static const BYTE old_rel[4][4] = { { 0xDE, 0x5C, 0xFE, 0xFF }, { 0x9B, 0x5C, 0xFE, 0xFF },
@@ -1005,7 +1042,7 @@ static void apply_framerate_fixes(void) {
         }
     }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/17 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, vehicle sounds, AI throttle gain)", n);
+    mlog("  framerate-fixes: %d/19 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle gain)", n);
 }
 
 /* ===========================================================================
@@ -1131,7 +1168,8 @@ static xform_t g_cam_last;
 static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 /* read by captures\014-framerate\fr_probe.py (address logged at start) */
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
-                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; } ring[16]; } g_idbg;   /* every frame, for samplers that miss some */
+                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; } ring[16];
+                DWORD ping_req, ping_play, ping_frames; } g_idbg;   /* every frame, for samplers that miss some */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 static void v3norm(float *a) {
@@ -1373,6 +1411,7 @@ static void __cdecl render_wrap(void *cam) {
             cam_fixed = 1;
             for (k = 0; k < 3; k++) { g_idbg.cam_true[k] = g_cam_last.p[k]; g_idbg.cam_drawn[k] = camx.p[k]; }
         }
+        g_idbg.ping_req = g_idbg_ping_req; g_idbg.ping_play = g_idbg_ping_play; g_idbg.ping_frames = g_idbg_ping_frames;
         g_idbg.frame = g_frame; g_idbg.nveh = n; g_idbg.cam_fixed = cam_fixed;
         g_idbg.cam_caller = g_cam_caller; g_idbg.cam_mode = *(DWORD *)0x004c2720;
         if (pl) {
