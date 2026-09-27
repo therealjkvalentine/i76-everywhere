@@ -15,6 +15,15 @@ This exists because testing anything that only happens in a mission — music,
 force feedback, telemetry offsets, handling — otherwise costs a minute of
 clicking through menus per iteration, done by hand, every time.
 
+> **Corrected 2026-09-27.** The buffer and the two NOPs are necessary but not sufficient: WinMain runs the shell
+> unless the dword at `0x504c10` is nonzero (`cmp` at `0x403197`, jumping past `shell_RunAndGetChoice` at
+> `0x4031f5`), and the mission-name path leaves that dword alone. Six boots across both exe builds, three shell DLLs
+> and the Aug 8 proxy binary all sat in the shell with the name in the buffer. The proxy now sets `0x504c10 = 1`
+> when `I76_MISSION` is set. The mission then loads with no shell at all (world and player entity present 1.5 s after
+> launch) and parks on its scripted opening (state `0x4fe534 = 0x20`, the intro camera pan); **Esc** skips it and the
+> gameplay loop starts (state 1, frame counter running). Enter and Space do nothing there. The August "10 seconds"
+> measurement was taken through a harness that sends Esc repeatedly, which is why it looked complete.
+
 ## The command line cannot do this
 
 Worth stating plainly, because it is the first thing anyone tries. `i76.exe`
@@ -35,6 +44,7 @@ finds a mission waiting for it.
 | `0x005049f0` | — | 16-byte mission-name buffer | write the name (`t01.msn`) |
 | `0x00402d33` | `88 0D F0 49 50 00` | `mov [0x5049f0], cl` — pre-parse clear | 6 × `NOP` |
 | `0x0049d1e0` | `C6 00 00` | `mov byte [eax], 0` — parser clear | 3 × `NOP` |
+| `0x00504c10` | — | skip-shell dword (read at `0x403197`) | write 1 |
 
 Implemented in [`music-fix/strlkproxy.c`](../music-fix/strlkproxy.c)
 (`apply_mission_launch`), which runs from `DllMain` — **before the exe's entry
