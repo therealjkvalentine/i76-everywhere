@@ -830,6 +830,7 @@ static int g_ratefix;
 static LARGE_INTEGER g_prev_q;
 static float g_acc20;                                        /* 20 Hz grid: g_tick20 is set on frames that cross it */
 static int g_tick20 = 1;
+static DWORD g_tick20_n;                                     /* grid frames so far */
 static void radar_ping_flush(void);
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
 static void __cdecl frame_cap_then_clock(void) {
@@ -874,7 +875,7 @@ clock:
         g_thr_up = -0.4f * k; g_thr_dn = 0.5f * k;
         g_acc20 += *(volatile float *)0x004fe428;
         g_tick20 = g_acc20 >= 0.049f;                        /* 1 ms tolerance: n x dt lands a hair under 0.05 */
-        if (g_tick20) { g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; radar_ping_flush(); }
+        if (g_tick20) { g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; g_tick20_n++; radar_ping_flush(); }
     }
 }
 
@@ -1013,6 +1014,37 @@ static void __cdecl flame_expl_wrap(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e,
         ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0049ead0)(a, b, c, d, e, f, g);
 }
 
+/* AI fire decisions (i76-map subsystems/ai.md, weapons.md). Every frame each AI car's behaviour calls ai_FireWeapons
+ * 0x414ef0, which asks ai_ShouldFireWeapon 0x418200 for each weapon and pulls its trigger for that frame when the
+ * answer is yes; turrets (entity_TickTurretFire 0x462a90) do the same. The answer includes a random gate per call:
+ * class 4 (rockets, missiles) passes with p = 0.2 x skill^2, mortars when rand%1000 + rand%1000 < 3500 x skill, guns
+ * when three such draws sum below 6000 x skill. So at 60 fps the gate is rolled 3x as often and a weapon that passes
+ * rarely fires up to 3x as often (bounded by its refire time). Decisions are now made on grid frames and held for the
+ * 20 Hz window, keyed by the weapon's AI record (arg 7), as a 50 ms stock frame holds them. I76_AI_FIRE_CACHE=0 keeps
+ * the counters but passes every call through (for measuring stock behaviour). */
+typedef struct { void *key; DWORD tick; int res; } aifire_t;
+static aifire_t g_aifire[1024];
+static int g_aifire_cache = 1;
+static DWORD g_idbg_aifire_calls, g_idbg_aifire_yes;
+static int __cdecl ai_fire_wrap(DWORD a, DWORD b, float c, float d, DWORD e, DWORD f, int *rec, DWORD h) {
+    unsigned i = (unsigned)(((DWORD)(DWORD_PTR)rec >> 2) & 1023), n;
+    int r;
+    if (g_aifire_cache && !g_tick20) {
+        for (n = 0; n < 1024; n++, i = (i + 1) & 1023) {
+            if (g_aifire[i].key == rec) return g_aifire[i].tick == g_tick20_n ? g_aifire[i].res : 0;
+            if (!g_aifire[i].key) break;
+        }
+        return 0;                                           /* not decided in this window */
+    }
+    r = ((int (__cdecl *)(DWORD, DWORD, float, float, DWORD, DWORD, int *, DWORD))0x00418200)(a, b, c, d, e, f, rec, h);
+    g_idbg_aifire_calls++; if (r) g_idbg_aifire_yes++;
+    if (g_aifire_cache) {
+        for (n = 0; n < 1024; n++, i = (i + 1) & 1023)
+            if (g_aifire[i].key == rec || !g_aifire[i].key) { g_aifire[i].key = rec; g_aifire[i].tick = g_tick20_n; g_aifire[i].res = r; break; }
+    }
+    return r;
+}
+
 /* Smoke puffs (renderer_UpdateSmoke 0x4414a0, once per render). Each call spawns every emitter's puffs, draws the
  * live ones, moves them by dt and ages them one step; a puff lives 20 calls. At 60 fps that is 3x the puffs, each
  * living a third as long: the same count on screen but columns a third as tall, with the drift table stepping 3x as
@@ -1141,6 +1173,9 @@ static void apply_framerate_fixes(void) {
             { 0x00443fca, 0x0049c8b0, (void *)step20_dt,         "flamer update dt" },
             { 0x004357c3, 0x004a8240, (void *)flame_damage_wrap, "flamer damage" },
             { 0x0044471d, 0x0049ead0, (void *)flame_expl_wrap,   "flamer hit explosion" },
+            { 0x00414f75, 0x00418200, (void *)ai_fire_wrap,      "AI fire decision (vehicles)" },
+            { 0x00462bfb, 0x00418200, (void *)ai_fire_wrap,      "AI fire decision (turrets)" },
+            { 0x00462c3e, 0x00418200, (void *)ai_fire_wrap,      "AI fire decision (turrets, 2)" },
             { 0x00401e50, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (software)" },
             { 0x0040211a, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (hardware)" },
             { 0x004414b9, 0x0049c8b0, (void *)step20_dt,         "smoke puff dt" },
@@ -1155,8 +1190,9 @@ static void apply_framerate_fixes(void) {
             n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
         }
     }
+    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_FIRE_CACHE", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_aifire_cache = 0; }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/32 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails)", n);
+    mlog("  framerate-fixes: %d/35 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails, AI fire decisions)", n);
 }
 
 /* ===========================================================================
@@ -1283,7 +1319,7 @@ static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 /* read by captures\014-framerate\fr_probe.py (address logged at start) */
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
                 struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; float roll_t, pitch_t, roll_d, pitch_d; } ring[16];
-                DWORD ping_req, ping_play, ping_frames, flame_hits, flame_dmg; } g_idbg;   /* every frame, for samplers that miss some */
+                DWORD ping_req, ping_play, ping_frames, flame_hits, flame_dmg, aifire_calls, aifire_yes, tick20_n; } g_idbg;   /* every frame, for samplers that miss some */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 static void v3norm(float *a) {
@@ -1527,6 +1563,7 @@ static void __cdecl render_wrap(void *cam) {
         }
         g_idbg.ping_req = g_idbg_ping_req; g_idbg.ping_play = g_idbg_ping_play; g_idbg.ping_frames = g_idbg_ping_frames;
         g_idbg.flame_hits = g_idbg_flame_hits; g_idbg.flame_dmg = g_idbg_flame_dmg;
+        g_idbg.aifire_calls = g_idbg_aifire_calls; g_idbg.aifire_yes = g_idbg_aifire_yes; g_idbg.tick20_n = g_tick20_n;
         g_idbg.frame = g_frame; g_idbg.nveh = n; g_idbg.cam_fixed = cam_fixed;
         g_idbg.cam_caller = g_cam_caller; g_idbg.cam_mode = *(DWORD *)0x004c2720;
         if (pl) {
