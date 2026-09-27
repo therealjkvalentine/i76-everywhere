@@ -32,6 +32,15 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
 - **Collision boxes come from the .vdf COLP chunk.** SCHK / VCHK only feed break-off debris.
 - **Weapons never jam offline.** The condition roll only runs in network games; offline a weapon only matters at 0 HP.
   Spread is one-sided and yaw-only.
+- **Missile guidance is exe code, not data.** The heat missile snaps to its target every step (no turn limit). The
+  radar missile's turn clamps (sin 3 / 15 / 20 deg per step by distance flown, 0x4bec2c..0x4bec38), the 70 m
+  shooter immunity and the 0.5 m terrain floor are exe constants. Only speed, damage, life and gravity scale come
+  from the ORDF (i76-map `weapons.md`, Projectile types).
+- **Flamer damage depends on the renderer.** It is applied per rendered frame per hitting segment (at least 1 each)
+  and again in the rear-mirror pass. Balance flamers with `I76_FRAMERATE_FIXES` on, which applies it 20 times a
+  second from the main pass (`weapons.md`, Flamers).
+- **Big custom missions:** the FSM label table's grow path drops the entry on a *successful* realloc (0x4ad450).
+  Keep label counts within what stock missions use until that is patched.
 - **Surface grip, rolling drag, bump and damage rate are per mission:** the WRLD chunk's 8 surface records, indexed by
   the terrain's top 3 bits.
 
@@ -42,8 +51,9 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
   reproduces stock play at 20 fps.
 - **Things that run once per rendered frame** (object collision, far vehicles, the AI, several effects) change with
   frame rate. The proxy's `I76_FRAMERATE_FIXES` covers the gameplay-relevant ones: clouds, free-look, zoom, throttle
-  ramp, lock and radar tones, vehicle sounds, AI throttle and steering. Smoke puff density and trail shrink are still
-  per frame.
+  ramp, lock and radar tones, vehicle sounds, AI throttle and steering, flamers, smoke puffs and missile-trail fade.
+- **The speedometer reads m/s while skidding or airborne** (it eases toward raw m/s instead of mph, 0x46a705).
+  It is display only; physics is not affected.
 - **Far vehicles** (beyond about 850 m) use a flat kinematic model with a frozen height. Physics changes to the full
   model do not apply to them until they come back into range.
 - **Steering feel** is a kinematic yaw rate (steer x speed / (2 x wheelbase)) capped by grip, not a tyre-force model.
