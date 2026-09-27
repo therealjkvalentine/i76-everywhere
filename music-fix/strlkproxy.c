@@ -32,6 +32,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 #define FAKE_CD_ID 0xC0DE
 
@@ -781,7 +785,8 @@ static void apply_hires_clock(void) {
  */
 static float g_fixed_step;
 static float __cdecl engine_substep_dt(void) {
-    if (g_fixed_step > 0.0f) return 2.0f * g_fixed_step;     /* I76_FIXED_STEP: every substep is exactly this long */
+    /* I76_FIXED_STEP: stock at 20 fps hands the engine the whole frame's dt (~50 ms) on every substep; keep that */
+    if (g_fixed_step > 0.0f) return 0.05f;
     float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
     float rate = 1.0f / 0.05f;                              /* stepper rate set by entity_InitVehicle */
     int count = (int)(sim_dt * rate) + 1;                   /* truncation, as _ftol at 0x49cc2d */
@@ -815,6 +820,9 @@ static int g_cap_started;
 /* per-frame rescaled constants (I76_FRAMERATE_FIXES): start at the stock values */
 static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f, g_zoom_rate = -0.01f, g_thr_up = -0.4f, g_thr_dn = 0.5f;
 static int g_ratefix;
+static float g_acc20;                                        /* 20 Hz grid: g_tick20 is set on frames that cross it */
+static int g_tick20 = 1;
+static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
     if (!g_cap_period.QuadPart) goto clock;
@@ -831,6 +839,7 @@ static void __cdecl frame_cap_then_clock(void) {
     g_cap_next.QuadPart += g_cap_period.QuadPart;
     if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
 clock:
+    g_frame++;
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
     if (g_ratefix) {
         /* constants the engine applies once per frame / per render pass, rescaled so their effect per SECOND is
@@ -838,6 +847,9 @@ clock:
         float k = *(volatile float *)0x004fe428 * 20.0f;
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
         g_thr_up = -0.4f * k; g_thr_dn = 0.5f * k;
+        g_acc20 += *(volatile float *)0x004fe428;
+        g_tick20 = g_acc20 >= 0.05f;
+        if (g_tick20) { g_acc20 -= 0.05f; if (g_acc20 > 0.05f) g_acc20 = 0.0f; }
     }
 }
 
@@ -882,6 +894,24 @@ static void apply_frame_cap(void) {
  * simclock_Update, which keeps the 20 fps look at any frame rate. Only the listed instructions change; the
  * constants themselves (shared with other code) are untouched.
  */
+/* Missile-lock tones (weapon update 0x4a3760): msllock1/2/3.wav are requested through 0x423230 on every frame the
+ * lock holds. The sound layer (0x421b40) only refreshes a LOOPING (state 2) instance of the same name on the same
+ * object and starts a new one otherwise, so after each beep ends the next one starts on the next frame: the gap
+ * between beeps is quantised to the frame time, and the tone beeps faster at 60 fps (reported in play). Starts are
+ * let through on a 20 Hz grid only; a request for a looping instance that is already playing still goes through on
+ * every frame, because the per-frame sound update stops loops whose keep-alive (+0x74) was not refreshed. */
+static int __cdecl lock_sound_wrap(const char *name, BYTE *obj, int flag) {
+    if (!g_tick20) {
+        BYTE *mgr = *(BYTE **)0x00524564, *e;
+        BYTE *o = obj;
+        if (!o) { BYTE **pp = ((BYTE **(__cdecl *)(void))0x00457530)(); o = pp ? *pp : 0; }   /* as 0x423230 does */
+        for (e = mgr ? *(BYTE **)(mgr + 0x1c) : 0; e; e = *(BYTE **)e)
+            if (*(BYTE **)(e + 0x5c) == o && lstrcmpiA((const char *)(e + 4), name) == 0 && *(int *)(e + 0x3c) == 2) break;
+        if (!e) return 0;                                    /* would start a new beep: wait for the 20 Hz grid */
+    }
+    return ((int (__cdecl *)(const char *, BYTE *, int))0x00423230)(name, obj, flag);
+}
+
 static void apply_framerate_fixes(void) {
     static const BYTE cu_old[6] = { 0xD9, 0x05, 0xC4, 0xC4, 0x4B, 0x00 };   /* fld dword ptr [0x4bc4c4] */
     static const BYTE cv_old[6] = { 0xD9, 0x05, 0x00, 0xC5, 0x4B, 0x00 };   /* fld dword ptr [0x4bc500] */
@@ -913,8 +943,17 @@ static void apply_framerate_fixes(void) {
         n += patch_bytes(0x0044f306, tu_old, tu_new, 6, "throttle-up ramp");
         n += patch_bytes(0x0044f366, td_old, td_new, 6, "throttle-down ramp");
     }
+    {
+        static const BYTE l3_old[5] = { 0xE8, 0xCD, 0xF1, 0xF7, 0xFF };   /* call 0x423230 at 0x4a405e (msllock3) */
+        static const BYTE l12_old[5] = { 0xE8, 0x7E, 0xF1, 0xF7, 0xFF };  /* call 0x423230 at 0x4a40ad (msllock1/2) */
+        BYTE l_new[5] = { 0xE8 };
+        LONG rel = (LONG)((DWORD_PTR)lock_sound_wrap - (0x004a405e + 5)); memcpy(l_new + 1, &rel, 4);
+        n += patch_bytes(0x004a405e, l3_old, l_new, 5, "missile lock tone 3");
+        rel = (LONG)((DWORD_PTR)lock_sound_wrap - (0x004a40ad + 5)); memcpy(l_new + 1, &rel, 4);
+        n += patch_bytes(0x004a40ad, l12_old, l_new, 5, "missile lock tones 1/2");
+    }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/9 sites repointed (clouds, free-look keys, zoom key, throttle keys)", n);
+    mlog("  framerate-fixes: %d/11 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones)", n);
 }
 
 /* ===========================================================================
@@ -959,23 +998,34 @@ static void apply_phys_rate(void) {
  * D9 05 20 E4 4F 00 = fld [simclock_sim_dt], the same in Galaxy and AiO) with a
  * fixed-step accumulator per stepper: every frame adds sim_dt, runs as many whole
  * steps of exactly 1/rate as have accumulated (at most 20), and carries the rest.
- * 40 steps/s = 25 ms, the stock step at 20 fps. At 60 fps the physics then
- * advances on two frames out of three - no render interpolation yet.
+ * Which rate matches stock: at a 20 fps cap the stock clock (GetTickCount, 15.6 ms
+ * quanta) gives frame dts of 46.9 / 62.5 ms, which the stepper splits into steps of
+ * 46.9 ms (80%) and 31.2 ms - mean 41.7 ms (capture 014, 2026-09-27). 24 steps/s
+ * (41.7 ms) reproduces that; 40 (25 ms, the first choice) made jumps fall short and
+ * the body motion quick in play, because the contact model is step-size dependent.
+ * I76_RENDER_INTERP hides the low physics cadence.
  */
-static struct { void *s; float acc; } g_step_acc[64];
+static struct { void *s; float acc; int n; DWORD frame; } g_step_acc[64];
+
+static int step_slot(void *stepper, int add) {
+    int i, slot = -1;
+    for (i = 0; i < 64; i++) {
+        if (g_step_acc[i].s == stepper) return i;
+        if (slot < 0 && g_step_acc[i].s == 0) slot = i;
+    }
+    if (!add) return -1;
+    if (slot < 0) slot = (int)(((DWORD_PTR)stepper >> 4) & 63);   /* table full: reuse a slot */
+    g_step_acc[slot].s = stepper; g_step_acc[slot].acc = 0.0f;
+    return slot;
+}
 
 static void __cdecl fixed_stepper_begin(float *stepper) {
     float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
-    int i, slot = -1, n;
-    for (i = 0; i < 64; i++) {
-        if (g_step_acc[i].s == stepper) { slot = i; break; }
-        if (slot < 0 && g_step_acc[i].s == 0) slot = i;
-    }
-    if (slot < 0) slot = (int)(((DWORD_PTR)stepper >> 4) & 63);   /* table full: reuse a slot */
-    if (g_step_acc[slot].s != stepper) { g_step_acc[slot].s = stepper; g_step_acc[slot].acc = 0.0f; }
+    int slot = step_slot(stepper, 1), n;
     g_step_acc[slot].acc += sim_dt;
     n = (int)(g_step_acc[slot].acc / g_fixed_step);
     if (n > 20) { n = 20; g_step_acc[slot].acc = 0.0f; } else g_step_acc[slot].acc -= (float)n * g_fixed_step;
+    g_step_acc[slot].n = n; g_step_acc[slot].frame = g_frame;   /* for render interpolation */
     stepper[1] = g_fixed_step;                               /* +4 step */
     ((int *)stepper)[2] = n;                                 /* +8 count */
 }
@@ -983,14 +1033,260 @@ static void __cdecl fixed_stepper_begin(float *stepper) {
 static void apply_fixed_step(void) {
     static const BYTE old_entry[6] = { 0xD9, 0x05, 0x20, 0xE4, 0x4F, 0x00 };   /* fld [0x4fe420] at 0x49cc20 */
     BYTE jmp[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
-    char v[16]; int rate;
+    char v[16]; double rate;
     LONG rel = (LONG)((DWORD_PTR)fixed_stepper_begin - (0x0049cc20 + 5));
     DWORD n = GetEnvironmentVariableA("I76_FIXED_STEP", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v) || (rate = atoi(v)) < 10 || rate > 1000) return;
-    g_fixed_step = 1.0f / (float)rate;
+    if (n == 0 || n >= sizeof(v) || (rate = atof(v)) < 10.0 || rate > 1000.0) return;   /* fractional rates allowed */
+    g_fixed_step = (float)(1.0 / rate);
     memcpy(jmp + 1, &rel, 4);
     if (!patch_bytes(0x0049cc20, old_entry, jmp, 6, "simclock_StepperBegin entry")) g_fixed_step = 0.0f;
-    mlog("  fixed-step: %d steps/s (%.2f ms) %s", rate, g_fixed_step * 1000.0f, g_fixed_step > 0 ? "on" : "NOT applied");
+    mlog("  fixed-step: %.2f steps/s (%.2f ms) %s", rate, g_fixed_step * 1000.0f, g_fixed_step > 0 ? "on" : "NOT applied");
+}
+
+/* ===========================================================================
+ * RENDER INTERPOLATION  (I76_RENDER_INTERP=1, needs I76_FIXED_STEP; off by default)
+ * ===========================================================================
+ * With a fixed 25 ms physics step at 60 fps, the cars advance on two frames out
+ * of three and stand still on the third: a 20 Hz judder. The fix is the standard
+ * one: draw each vehicle between its last two physics poses, at the fraction of
+ * a step that has accumulated since (alpha = leftover / step, one step of display
+ * latency).
+ *
+ * Every object's pose is a 0x40-byte transform at object+0x18 (3x3 float rotation,
+ * rows = right/up/forward, then three position doubles at +0x28), and the physics
+ * writes it directly (physics_ResolveGroundContact: ebx = obj+0x18, doubles at
+ * ebx+0x28). There is no separate render copy, so the interpolated pose is
+ * swapped in around the render call only and the physics value is restored
+ * right after; the simulation never sees it.
+ *   vehicle tick   class table slot 0x4f7788 (type 1, +0xc = entity_TickVehicle 0x463800) points at a wrapper
+ *                  that keeps the pose before the last substep
+ *   render         `call 0x401c90` (render(&camera 0x4c2730)) at 0x403e69
+ *   camera         the camera modes set the view with 0x472990 (SetTransform(cam, T)) from inside the player's
+ *                  tick, i.e. from the physics pose. The entry is detoured (first 6 bytes 55 8B EC 83 E4 F8 run
+ *                  in a trampoline) to record the last T; at render time a camera set by a camera mode function
+ *                  (0x405b90..0x409700, car-relative) is moved rigidly with the player's interpolation, and put
+ *                  back after the frame. Script cameras (fsm_Cam*, 0x49d4a0..) are world-fixed and left alone.
+ * Objects ticked this frame are re-validated through the live-object list (0x54b204, lookup 0x45f0f0) before
+ * their pose is touched, so an object destroyed later in the frame is skipped.
+ */
+typedef struct { float r[9]; float pad; double p[3]; } xform_t;     /* 0x40 bytes */
+typedef struct { BYTE *obj; xform_t prev, disp, save; float alpha; DWORD stamp; int player, live; } ient_t;
+static ient_t g_ie[64];
+static int g_interp;
+static BYTE *g_cam_tramp;
+static xform_t g_cam_last;
+static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
+/* read by captures\014-framerate\fr_probe.py (address logged at start) */
+static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
+                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; } ring[16]; } g_idbg;   /* every frame, for samplers that miss some */
+
+static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+static void v3norm(float *a) {
+    float l = sqrtf(v3dot(a, a));
+    if (l > 1e-12f) { a[0] /= l; a[1] /= l; a[2] /= l; }
+}
+/* o = a + (b - a) t, rotation re-orthonormalised (forward row kept, then up, then right: handedness of the lerp) */
+static void xf_lerp(xform_t *o, const xform_t *a, const xform_t *b, float t) {
+    int i;
+    float *rt = o->r, *up = o->r + 3, *fw = o->r + 6, d;
+    for (i = 0; i < 9; i++) o->r[i] = a->r[i] + (b->r[i] - a->r[i]) * t;
+    for (i = 0; i < 3; i++) o->p[i] = a->p[i] + (b->p[i] - a->p[i]) * (double)t;
+    o->pad = b->pad;
+    v3norm(fw);
+    d = v3dot(up, fw); for (i = 0; i < 3; i++) up[i] -= d * fw[i];
+    v3norm(up);
+    d = v3dot(rt, fw); for (i = 0; i < 3; i++) rt[i] -= d * fw[i];
+    d = v3dot(rt, up); for (i = 0; i < 3; i++) rt[i] -= d * up[i];
+    v3norm(rt);
+}
+static double xf_dist2(const xform_t *a, const xform_t *b) {
+    double x = a->p[0] - b->p[0], y = a->p[1] - b->p[1], z = a->p[2] - b->p[2];
+    return x * x + y * y + z * z;
+}
+
+static BYTE *g_tick_obj;                                     /* the vehicle whose tick is running, and its pose before it */
+static xform_t g_tick_start;
+static DWORD g_cam_interp_frame;                             /* frame whose camera update already saw the drawn pose */
+
+/* after a vehicle's substeps: keep its pose before the last step and the blend fraction (idempotent within a frame) */
+static ient_t *ient_update(BYTE *obj, const xform_t *s) {
+    xform_t *e_now;
+    BYTE *veh;
+    int i, slot = -1, st;
+    ient_t *e;
+    for (i = 0; i < 64; i++) {
+        if (g_ie[i].obj == obj) { slot = i; break; }
+        if (slot < 0 && (g_ie[i].obj == 0 || g_frame - g_ie[i].stamp > 60)) slot = i;
+    }
+    if (slot < 0) return 0;                                  /* more than 64 live vehicles: draw this one un-interpolated */
+    e = &g_ie[slot];
+    e_now = (xform_t *)(obj + 0x18);
+    veh = *(BYTE **)(obj + 0x70);
+    st = veh ? step_slot(veh + 0x444, 0) : -1;
+    if (e->obj != obj || st < 0 || g_step_acc[st].frame != g_frame) {
+        e->prev = *e_now;                                    /* new, or ticked without the fixed stepper: no blend */
+        e->alpha = 1.0f;
+    } else {
+        int n = g_step_acc[st].n;
+        if (n == 1) e->prev = *s;
+        else if (n > 1) xf_lerp(&e->prev, s, e_now, (float)(n - 1) / (float)n);    /* pose before the last step */
+        /* n == 0: no step this frame - keep the previous pair, alpha grows */
+        e->alpha = g_step_acc[st].acc / g_fixed_step;
+        if (e->alpha < 0.0f) e->alpha = 0.0f; else if (e->alpha > 1.0f) e->alpha = 1.0f;
+    }
+    if (xf_dist2(&e->prev, e_now) > 64.0) e->prev = *e_now;  /* moved > 8 m in one step: a respawn or teleport */
+    e->obj = obj;
+    e->stamp = g_frame;
+    e->player = ((int (__cdecl *)(BYTE *))0x00458bf0)(obj) != 0;   /* object_IsPlayer */
+    return e;
+}
+
+static void __cdecl tick_vehicle_wrap(BYTE *obj) {
+    xform_t s = *(xform_t *)(obj + 0x18);
+    g_tick_obj = obj; g_tick_start = s;
+    ((void (__cdecl *)(BYTE *))0x00463800)(obj);            /* entity_TickVehicle */
+    g_tick_obj = 0;
+    ient_update(obj, &s);
+}
+
+/* The camera mode runs once per frame from the frame loop (`call [0x4c2720]` at 0x403e16, after the object ticks and
+ * before the render), and on one path from inside the player's tick (0x46391f). Run it with the player drawn where it
+ * will be rendered, so a lagging chase camera follows the smooth pose instead of the 24/40 Hz physics one; the physics
+ * pose is put back as soon as the camera returns. */
+static void mark_live(void) {                                /* which of this frame's vehicles are still live objects */
+    BYTE *node = *(BYTE **)0x0054b204;
+    int i, guard = 0;
+    for (i = 0; i < 64; i++) g_ie[i].live = 0;
+    while (node && guard++ < 4096) {
+        BYTE *o = ((BYTE *(__cdecl *)(DWORD, const char *))0x0045f0f0)(*(DWORD *)(node + 8), (const char *)0x004f7c5c);
+        if (o) for (i = 0; i < 64; i++) if (g_ie[i].obj == o && g_ie[i].stamp == g_frame) g_ie[i].live = 1;
+        node = *(BYTE **)node;
+    }
+}
+
+static void __cdecl cam_update_wrap(void) {
+    void (__cdecl *mode)(void) = *(void (__cdecl **)(void))0x004c2720;
+    BYTE *obj = g_tick_obj;
+    ient_t *e = 0;
+    int i;
+    if (g_interp && obj) e = ient_update(obj, &g_tick_start);          /* from inside the player's tick (0x46391f) */
+    else if (g_interp) {                                                /* the frame loop's camera update (0x403e16) */
+        mark_live();
+        for (i = 0; i < 64; i++) if (g_ie[i].live && g_ie[i].player) { e = &g_ie[i]; obj = e->obj; break; }
+    }
+    if (e) {
+        xform_t save = *(xform_t *)(obj + 0x18), disp;
+        DWORD sets = g_cam_sets;
+        xf_lerp(&disp, &e->prev, &save, e->alpha);
+        *(xform_t *)(obj + 0x18) = disp;
+        mode();
+        *(xform_t *)(obj + 0x18) = save;
+        if (g_cam_sets != sets) g_cam_interp_frame = g_frame;   /* the view was set from the drawn pose */
+    } else if (mode) mode();
+}
+
+static int __cdecl cam_set_hook(BYTE *cam, xform_t *t) {
+    if (cam == (BYTE *)0x004c2730 && t) {
+#ifdef _MSC_VER
+        g_cam_caller = (DWORD)(DWORD_PTR)_ReturnAddress();
+#else
+        g_cam_caller = (DWORD)(DWORD_PTR)__builtin_return_address(0);
+#endif
+        g_cam_last = *t; g_cam_stamp = g_frame; g_cam_sets++;
+    }
+    return ((int (__cdecl *)(BYTE *, xform_t *))g_cam_tramp)(cam, t);
+}
+
+static void __cdecl render_wrap(void *cam) {
+    int i, n = 0, cam_fixed = 0;
+    ient_t *pl = 0;
+    xform_t camx;
+    if (g_interp) {
+        mark_live();
+        for (i = 0; i < 64; i++) {
+            ient_t *e = &g_ie[i];
+            if (!e->live) continue;
+            e->save = *(xform_t *)(e->obj + 0x18);
+            xf_lerp(&e->disp, &e->prev, &e->save, e->alpha);
+            *(xform_t *)(e->obj + 0x18) = e->disp;
+            if (e->player) pl = e;
+            n++;
+        }
+        if (pl && g_cam_stamp == g_frame && g_cam_interp_frame != g_frame &&
+            g_cam_caller >= 0x00405b90 && g_cam_caller < 0x00409700) {
+            /* carry the camera with the player: c' = (c - p) M + p', Rc' = Rc M, M = R^T R' (row vectors) */
+            const float *R = pl->save.r, *Q = pl->disp.r, *C = g_cam_last.r;
+            float M[9];
+            int j, k;
+            for (j = 0; j < 3; j++) for (k = 0; k < 3; k++)
+                M[j * 3 + k] = R[0 * 3 + j] * Q[0 * 3 + k] + R[1 * 3 + j] * Q[1 * 3 + k] + R[2 * 3 + j] * Q[2 * 3 + k];
+            camx = g_cam_last;
+            for (j = 0; j < 3; j++) for (k = 0; k < 3; k++)
+                camx.r[j * 3 + k] = C[j * 3 + 0] * M[0 * 3 + k] + C[j * 3 + 1] * M[1 * 3 + k] + C[j * 3 + 2] * M[2 * 3 + k];
+            for (k = 0; k < 3; k++)
+                camx.p[k] = (g_cam_last.p[0] - pl->save.p[0]) * M[0 * 3 + k] + (g_cam_last.p[1] - pl->save.p[1]) * M[1 * 3 + k]
+                          + (g_cam_last.p[2] - pl->save.p[2]) * M[2 * 3 + k] + pl->disp.p[k];
+            ((int (__cdecl *)(BYTE *, xform_t *))g_cam_tramp)((BYTE *)0x004c2730, &camx);
+            cam_fixed = 1;
+            for (k = 0; k < 3; k++) { g_idbg.cam_true[k] = g_cam_last.p[k]; g_idbg.cam_drawn[k] = camx.p[k]; }
+        }
+        g_idbg.frame = g_frame; g_idbg.nveh = n; g_idbg.cam_fixed = cam_fixed;
+        g_idbg.cam_caller = g_cam_caller; g_idbg.cam_mode = *(DWORD *)0x004c2720;
+        if (pl) {
+            int r = g_frame & 15;
+            g_idbg.alpha = pl->alpha;
+            for (i = 0; i < 3; i++) { g_idbg.true_p[i] = pl->save.p[i]; g_idbg.disp_p[i] = pl->disp.p[i]; }
+            g_idbg.ring[r].frame = 0;                            /* frame number last, so a reader never pairs it with old data */
+            g_idbg.ring[r].cam = cam_fixed ? 1 : (g_cam_interp_frame == g_frame ? 2 : 0);   /* 1 carried, 2 set from drawn pose */
+            for (i = 0; i < 3; i++) {
+                g_idbg.ring[r].true_p[i] = pl->save.p[i]; g_idbg.ring[r].disp_p[i] = pl->disp.p[i];
+                g_idbg.ring[r].cam_p[i] = cam_fixed ? camx.p[i] : g_cam_last.p[i];
+            }
+            *(volatile DWORD *)&g_idbg.ring[r].frame = g_frame;
+        }
+    }
+    ((void (__cdecl *)(void *))0x00401c90)(cam);
+    if (g_interp) {
+        for (i = 0; i < 64; i++) if (g_ie[i].live) *(xform_t *)(g_ie[i].obj + 0x18) = g_ie[i].save;
+        if (cam_fixed) ((int (__cdecl *)(BYTE *, xform_t *))g_cam_tramp)((BYTE *)0x004c2730, &g_cam_last);
+    }
+}
+
+static void apply_render_interp(void) {
+    static const BYTE tick_old[4] = { 0x00, 0x38, 0x46, 0x00 };                 /* 0x463800 in the class table */
+    static const BYTE rend_old[5] = { 0xE8, 0x22, 0xDE, 0xFF, 0xFF };           /* call 0x401c90 at 0x403e69 */
+    static const BYTE cam_old[6]  = { 0x55, 0x8B, 0xEC, 0x83, 0xE4, 0xF8 };     /* 0x472990 entry */
+    static const BYTE camu_old[6] = { 0xFF, 0x15, 0x20, 0x27, 0x4C, 0x00 };     /* call [0x4c2720] at 0x46391f */
+    BYTE camu_new[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
+    BYTE tick_new[4], rend_new[5] = { 0xE8 }, cam_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
+    DWORD a; LONG rel; int ok = 0;
+    if (GetEnvironmentVariableA("I76_RENDER_INTERP", NULL, 0) == 0) return;
+    if (g_fixed_step <= 0.0f) { mlog("  render-interp: needs I76_FIXED_STEP - not applied"); return; }
+    install_frame_hook();
+    if (!g_frame_hook) { mlog("  render-interp: frame hook missing - not applied"); return; }
+    if (memcmp((void *)0x00472990, cam_old, 6) != 0 || memcmp((void *)0x00403e69, rend_old, 5) != 0 ||
+        memcmp((void *)0x004f7788, tick_old, 4) != 0) {
+        mlog("  render-interp: unexpected bytes at a hook site - not applied"); return;
+    }
+    g_cam_tramp = (BYTE *)VirtualAlloc(NULL, 16, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!g_cam_tramp) return;
+    memcpy(g_cam_tramp, cam_old, 6);
+    g_cam_tramp[6] = 0xE9;
+    rel = (LONG)(0x00472996 - ((DWORD_PTR)g_cam_tramp + 11)); memcpy(g_cam_tramp + 7, &rel, 4);
+    rel = (LONG)((DWORD_PTR)cam_set_hook - (0x00472990 + 5)); memcpy(cam_new + 1, &rel, 4);
+    rel = (LONG)((DWORD_PTR)render_wrap - (0x00403e69 + 5)); memcpy(rend_new + 1, &rel, 4);
+    a = (DWORD)(DWORD_PTR)tick_vehicle_wrap; memcpy(tick_new, &a, 4);
+    ok += patch_bytes(0x00472990, cam_old, cam_new, 6, "camera SetTransform entry");
+    ok += patch_bytes(0x00403e69, rend_old, rend_new, 5, "render call");
+    ok += patch_bytes(0x004f7788, tick_old, tick_new, 4, "vehicle tick class slot");
+    g_interp = ok == 3;
+    if (g_interp) {                                          /* optional: camera update against the drawn pose */
+        rel = (LONG)((DWORD_PTR)cam_update_wrap - (0x0046391f + 5)); memcpy(camu_new + 1, &rel, 4);
+        ok += patch_bytes(0x0046391f, camu_old, camu_new, 6, "player camera update call (in tick)");
+        rel = (LONG)((DWORD_PTR)cam_update_wrap - (0x00403e16 + 5)); memcpy(camu_new + 1, &rel, 4);
+        ok += patch_bytes(0x00403e16, camu_old, camu_new, 6, "camera update call (frame loop)");
+    }
+    mlog("  render-interp: %d/5 hooks, %s (debug block %p)", ok, g_interp ? "on" : "NOT applied", (void *)&g_idbg);
 }
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
@@ -1008,6 +1304,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
+        apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

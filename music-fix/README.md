@@ -215,16 +215,56 @@ Measured in the sandbox (i76-map `captures/014-framerate`). All of these are off
 | variable | fixes | evidence |
 |---|---|---|
 | `I76_HIRES_CLOCK=1` | jittery dt: 15.6 ms GetTickCount steps and float32 uptime decay | dt exact (50.00 ms at 20 fps, 16/17 ms at 60 fps) |
-| `I76_FIXED_STEP=40` | chassis/cockpit buzz: physics always steps in 25 ms slices | buzz at 60 fps back to the 20 fps level (n = 4, ranges disjoint) |
-| `I76_FRAMERATE_FIXES=1` | sky drift, free-look camera keys, zoom key | clouds 0.0300 /s at 60 fps = 20 fps (stock 0.0899) |
+| `I76_FIXED_STEP=24` | chassis/cockpit buzz, jump behaviour: physics always steps in 41.7 ms slices, the mean step of stock play at 20 fps | stock 20 fps actually steps 46.9 ms (80%) / 31.2 ms (GetTickCount frame dts split by the stepper); 24 Hz body motion as calm as stock 20 (at rest 0.83-0.86 in 3 of 4 runs vs 0.45-0.84), acceleration unchanged. The first choice, 40 (25 ms), made jumps fall short and the body feel quick in play |
+| `I76_FRAMERATE_FIXES=1` | sky drift, free-look camera keys, zoom key, keyboard throttle ramp, missile-lock tone rate | clouds 0.0300 /s at 60 fps = 20 fps (stock 0.0899); sky, free-look confirmed in play |
 | `I76_ENGINE_DT_FIX=1` | engine RPM/torque smoothing counted per substep | static; consistent with the fixed step |
+| `I76_RENDER_INTERP=1` | the 40 Hz judder the fixed step leaves at 60 fps: vehicles and the cockpit/chase camera are drawn between their last two physics poses | every frame: 31-33% of frames without motion -> 0%, roughness 1.00 -> 0.04-0.06 (n = 2 missions) |
 | `I76_FPS_CAP=n` | optional precise frame cap (dgVoodoo's FPSLimit did not cap this build) | held 20.0 fps exactly |
 
 ```powershell
-$env:I76_HIRES_CLOCK = "1"; $env:I76_FIXED_STEP = "40"; $env:I76_FRAMERATE_FIXES = "1"; $env:I76_ENGINE_DT_FIX = "1"
+$env:I76_HIRES_CLOCK = "1"; $env:I76_FIXED_STEP = "24"; $env:I76_FRAMERATE_FIXES = "1"; $env:I76_ENGINE_DT_FIX = "1"; $env:I76_RENDER_INTERP = "1"
 ```
 
+In the sandbox, `i76-uncap-lab\TEST-FRAMERATE.bat` runs this set, the same set without interpolation, stock 60 fps and
+stock 20 fps, and restores the sandbox afterwards.
+
 AI throttle chatter at 60 fps: 26.2 (stock) vs 1.56 at 20 fps. `I76_HIRES_CLOCK` alone brings it to 9.0, and adding
-the fixed step to 5.3 (n = 3 each, still above 20 fps). Known trade-off: with the fixed step at 60 fps the physics
-advances on two frames out of three (40 Hz), which may look like slight judder. Render interpolation would remove it.
-Nothing here is deployed to the playable install.
+the fixed step to 5.3 (n = 3 each, still above 20 fps). With the fixed step alone, the physics advances on two
+frames out of three at 60 fps (40 Hz), which shows as judder; `I76_RENDER_INTERP` removes it. Nothing here is deployed
+to the playable install.
+
+## Opt-in: render interpolation (`I76_RENDER_INTERP=1`, needs `I76_FIXED_STEP`, 2026-09-27)
+
+Each object's pose is a 0x40-byte transform at object+0x18: a 3x3 float rotation (rows = right, up, forward) and
+three position doubles. The physics writes it directly, so there is no separate render copy to interpolate. The proxy
+therefore swaps an interpolated pose in around the render call and restores the physics pose right after; the
+simulation never sees it.
+
+- **Vehicle tick.** Class table slot 0x4f7788 (type 1, `entity_TickVehicle`) points at a wrapper that keeps each
+  vehicle's pose from before its last 25 ms step.
+- **Render.** The `call 0x401c90` at 0x403e69 (render(&camera)) is wrapped. Each vehicle ticked this frame, and still
+  in the live-object list, is drawn at `lerp(previous, current, leftover / step)`. The rotation is re-orthonormalised.
+  Display latency is one physics step (0.25-0.34 m at 17-30 m/s).
+- **Camera.** The camera mode runs once per frame from the frame loop (`call [0x4c2720]` at 0x403e16, and on one
+  path from inside the player's tick at 0x46391f). Both calls are wrapped so the mode runs with the player at its
+  drawn pose, which is what a lagging chase camera needs. The first version moved the finished camera rigidly with
+  the player instead; that was exact for the cockpit (1.317 m ± 0.0000 from the drawn car) but left the chase car
+  wobbling against the camera, reported in play. Measured on the chase camera: car-vs-camera jerk median
+  0.029 -> 0.002 m/frame^2, 95th percentile 0.34 -> 0.005. The rigid carry (via a detour of SetTransform 0x472990)
+  remains as a fallback for a frame whose camera was set some other way; script cameras (`fsm_Cam*`) are left alone.
+- **Guards.** A vehicle that moved more than 8 m in one step (respawn or teleport) is drawn without blending. So is one
+  ticked without the fixed stepper.
+
+The log line `render-interp: 3/3 hooks, on (debug block XXXXXXXX)` gives the address of a debug block. It holds a
+16-frame ring of true and drawn positions, which `captures/014-framerate/fr_probe.py --interp` and `interp.py` read.
+
+**Engine dt with the fixed step.** `I76_ENGINE_DT_FIX` hands the engine 0.05 s per substep when the fixed step is
+on, which is what stock at 20 fps does (every substep sees the whole ~50 ms frame).
+
+**Saving.** Play the sandbox through `i76.exe`, not `i76_pristine_fix.exe`: only `i76.exe` imports `u32x.dll`
+(save-screen mouse translation, ghosting fix), and saves failed in the first test session because the launcher
+used the other exe.
+
+**Not yet covered.** Things spawned at the true pose during the sim can sit up to one step ahead of the drawn car:
+muzzle flashes, projectiles, smoke. Wheel/suspension animation follows the body but is not interpolated itself. AI cars
+are interpolated, but only the player's poses have been measured. Multiplayer is untested.
