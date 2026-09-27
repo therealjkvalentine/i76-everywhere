@@ -807,8 +807,12 @@ static void apply_engine_dt_fix(void) {
  */
 static LARGE_INTEGER g_cap_period, g_cap_next;
 static int g_cap_started;
+/* per-frame rescaled constants (I76_FRAMERATE_FIXES): start at the stock values */
+static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f;
+static int g_ratefix;
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
+    if (!g_cap_period.QuadPart) goto clock;
     QueryPerformanceCounter(&now);
     if (!g_cap_started) {
         g_cap_started = 1; g_cap_next.QuadPart = now.QuadPart;
@@ -821,7 +825,25 @@ static void __cdecl frame_cap_then_clock(void) {
     }
     g_cap_next.QuadPart += g_cap_period.QuadPart;
     if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
+clock:
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
+    if (g_ratefix) {
+        /* constants the engine applies once per frame / per render pass, rescaled so their effect per SECOND is
+         * what it was at 20 fps: value x (frame dt / 0.05). simclock_dt 0x4fe428 is this frame's clamped dt. */
+        float k = *(volatile float *)0x004fe428 * 20.0f;
+        g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k;
+    }
+}
+
+static int g_frame_hook;
+static void install_frame_hook(void) {
+    static const BYTE old_call[5] = { 0xE8, 0x63, 0x8F, 0x09, 0x00 };   /* call 0x49c920 at 0x4039b8 */
+    BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
+    LONG rel = (LONG)((DWORD_PTR)frame_cap_then_clock - (0x004039b8 + 5));
+    if (g_frame_hook) return;
+    memcpy(new_call + 1, &rel, 4);
+    g_frame_hook = patch_bytes(0x004039b8, old_call, new_call, 5, "frame clock call");
+    mlog("  frame hook at 0x4039b8: %s", g_frame_hook ? "installed" : "NOT installed");
 }
 
 static void apply_frame_cap(void) {
@@ -833,9 +855,41 @@ static void apply_frame_cap(void) {
     if (n == 0 || n >= sizeof(v) || (fps = atoi(v)) < 5 || fps > 1000) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     g_cap_period.QuadPart = g_qpf.QuadPart / fps;
-    memcpy(new_call + 1, &rel, 4);
-    mlog("  fps-cap: %d fps, %d/1 call site wrapped (0x4039b8)", fps,
-         patch_bytes(0x004039b8, old_call, new_call, 5, "frame clock call"));
+    (void)old_call; (void)new_call; (void)rel;
+    install_frame_hook();
+    mlog("  fps-cap: %d fps%s", fps, g_frame_hook ? "" : " (hook failed: no cap)");
+}
+
+/* ===========================================================================
+ * FRAME-RATE FIXES  (I76_FRAMERATE_FIXES=1; off by default)
+ * ===========================================================================
+ * Sites that apply a constant once per frame (or per render pass) with no dt, so
+ * their effect per second scales with the frame rate (i76-map subsystemsramerate.md):
+ *   cloud scroll   renderer_DrawClouds: fld [0x4bc4c4] (+1.0) at 0x405461, fld [0x4bc500] (-1.0) at 0x405484 -
+ *                  u -= 1/(1001-s), v += 1/(1001-s) per call; measured 3.0x faster at 60 fps (capture 014)
+ *   free-look keys camera_FreeLookA/B: fmul [0x4bc528] (-1 deg) at 0x405bd0 0x405c1c 0x4061e7 0x406233
+ * Each operand is repointed at a proxy variable that the frame hook sets to constant x dt x 20 after every
+ * simclock_Update, which keeps the 20 fps look at any frame rate. Only the listed instructions change; the
+ * constants themselves (shared with other code) are untouched.
+ */
+static void apply_framerate_fixes(void) {
+    static const BYTE cu_old[6] = { 0xD9, 0x05, 0xC4, 0xC4, 0x4B, 0x00 };   /* fld dword ptr [0x4bc4c4] */
+    static const BYTE cv_old[6] = { 0xD9, 0x05, 0x00, 0xC5, 0x4B, 0x00 };   /* fld dword ptr [0x4bc500] */
+    static const BYTE fl_old[6] = { 0xD8, 0x0D, 0x28, 0xC5, 0x4B, 0x00 };   /* fmul dword ptr [0x4bc528] */
+    static const DWORD fl_sites[4] = { 0x00405bd0, 0x00405c1c, 0x004061e7, 0x00406233 };
+    BYTE cu_new[6] = { 0xD9, 0x05 }, cv_new[6] = { 0xD9, 0x05 }, fl_new[6] = { 0xD8, 0x0D };
+    DWORD a; int i, n = 0;
+    if (GetEnvironmentVariableA("I76_FRAMERATE_FIXES", NULL, 0) == 0) return;
+    install_frame_hook();
+    if (!g_frame_hook) { mlog("  framerate-fixes: frame hook missing - not applied"); return; }
+    a = (DWORD)(DWORD_PTR)&g_cloud_u; memcpy(cu_new + 2, &a, 4);
+    a = (DWORD)(DWORD_PTR)&g_cloud_v; memcpy(cv_new + 2, &a, 4);
+    a = (DWORD)(DWORD_PTR)&g_cam_rate; memcpy(fl_new + 2, &a, 4);
+    n += patch_bytes(0x00405461, cu_old, cu_new, 6, "cloud scroll u");
+    n += patch_bytes(0x00405484, cv_old, cv_new, 6, "cloud scroll v");
+    for (i = 0; i < 4; i++) n += patch_bytes(fl_sites[i], fl_old, fl_new, 6, "free-look rate");
+    g_ratefix = 1;
+    mlog("  framerate-fixes: %d/6 sites repointed (clouds, free-look keys)", n);
 }
 
 /* ===========================================================================
@@ -928,6 +982,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
+        apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
