@@ -1107,7 +1107,7 @@ static xform_t g_cam_last;
 static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 /* read by captures\014-framerate\fr_probe.py (address logged at start) */
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
-                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; } ring[16]; } g_idbg;   /* every frame, for samplers that miss some */
+                struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; } ring[16]; } g_idbg;   /* every frame, for samplers that miss some */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 static void v3norm(float *a) {
@@ -1172,10 +1172,18 @@ static ient_t *ient_update(BYTE *obj, const xform_t *s) {
 
 static void __cdecl tick_vehicle_wrap(BYTE *obj) {
     xform_t s = *(xform_t *)(obj + 0x18);
+    BYTE *veh = *(BYTE **)(obj + 0x70);
+    float v0 = veh ? *(float *)(veh + 0xac) : 0.0f;
+    ient_t *e;
     g_tick_obj = obj; g_tick_start = s;
     ((void (__cdecl *)(BYTE *))0x00463800)(obj);            /* entity_TickVehicle */
     g_tick_obj = 0;
-    ient_update(obj, &s);
+    e = ient_update(obj, &s);
+    if (e && e->player && veh) {                             /* diagnostics: speed across the player's tick, and its steps */
+        int r = g_frame & 15, st = step_slot(veh + 0x444, 0);
+        g_idbg.ring[r].v_tick0 = v0; g_idbg.ring[r].v_tick1 = *(float *)(veh + 0xac);
+        g_idbg.ring[r].steps = (st >= 0 && g_step_acc[st].frame == g_frame) ? g_step_acc[st].n : -1;
+    }
 }
 
 /* The camera mode runs once per frame from the frame loop (`call [0x4c2720]` at 0x403e16, after the object ticks and
