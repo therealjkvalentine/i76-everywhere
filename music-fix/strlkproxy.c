@@ -808,7 +808,7 @@ static void apply_engine_dt_fix(void) {
 static LARGE_INTEGER g_cap_period, g_cap_next;
 static int g_cap_started;
 /* per-frame rescaled constants (I76_FRAMERATE_FIXES): start at the stock values */
-static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f;
+static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f, g_zoom_rate = -0.01f;
 static int g_ratefix;
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
@@ -831,7 +831,7 @@ clock:
         /* constants the engine applies once per frame / per render pass, rescaled so their effect per SECOND is
          * what it was at 20 fps: value x (frame dt / 0.05). simclock_dt 0x4fe428 is this frame's clamped dt. */
         float k = *(volatile float *)0x004fe428 * 20.0f;
-        g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k;
+        g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
     }
 }
 
@@ -868,6 +868,7 @@ static void apply_frame_cap(void) {
  *   cloud scroll   renderer_DrawClouds: fld [0x4bc4c4] (+1.0) at 0x405461, fld [0x4bc500] (-1.0) at 0x405484 -
  *                  u -= 1/(1001-s), v += 1/(1001-s) per call; measured 3.0x faster at 60 fps (capture 014)
  *   free-look keys camera_FreeLookA/B: fmul [0x4bc528] (-1 deg) at 0x405bd0 0x405c1c 0x4061e7 0x406233
+ *   zoom key       camera mode 0x408a10: zoom *= 1 - input x 0.01 per frame (fmul [0x4bc5ac] at 0x408a3f)
  * Each operand is repointed at a proxy variable that the frame hook sets to constant x dt x 20 after every
  * simclock_Update, which keeps the 20 fps look at any frame rate. Only the listed instructions change; the
  * constants themselves (shared with other code) are untouched.
@@ -888,8 +889,14 @@ static void apply_framerate_fixes(void) {
     n += patch_bytes(0x00405461, cu_old, cu_new, 6, "cloud scroll u");
     n += patch_bytes(0x00405484, cv_old, cv_new, 6, "cloud scroll v");
     for (i = 0; i < 4; i++) n += patch_bytes(fl_sites[i], fl_old, fl_new, 6, "free-look rate");
+    {
+        static const BYTE zm_old[6] = { 0xD8, 0x0D, 0xAC, 0xC5, 0x4B, 0x00 };   /* fmul dword ptr [0x4bc5ac] (-0.01) */
+        BYTE zm_new[6] = { 0xD8, 0x0D };
+        a = (DWORD)(DWORD_PTR)&g_zoom_rate; memcpy(zm_new + 2, &a, 4);
+        n += patch_bytes(0x00408a3f, zm_old, zm_new, 6, "zoom rate");
+    }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/6 sites repointed (clouds, free-look keys)", n);
+    mlog("  framerate-fixes: %d/7 sites repointed (clouds, free-look keys, zoom key)", n);
 }
 
 /* ===========================================================================
