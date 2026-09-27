@@ -808,7 +808,7 @@ static void apply_engine_dt_fix(void) {
 static LARGE_INTEGER g_cap_period, g_cap_next;
 static int g_cap_started;
 /* per-frame rescaled constants (I76_FRAMERATE_FIXES): start at the stock values */
-static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f, g_zoom_rate = -0.01f;
+static float g_cloud_u = 1.0f, g_cloud_v = -1.0f, g_cam_rate = -0.017453292f, g_zoom_rate = -0.01f, g_thr_up = -0.4f, g_thr_dn = 0.5f;
 static int g_ratefix;
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
@@ -832,6 +832,7 @@ clock:
          * what it was at 20 fps: value x (frame dt / 0.05). simclock_dt 0x4fe428 is this frame's clamped dt. */
         float k = *(volatile float *)0x004fe428 * 20.0f;
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
+        g_thr_up = -0.4f * k; g_thr_dn = 0.5f * k;
     }
 }
 
@@ -869,6 +870,9 @@ static void apply_frame_cap(void) {
  *                  u -= 1/(1001-s), v += 1/(1001-s) per call; measured 3.0x faster at 60 fps (capture 014)
  *   free-look keys camera_FreeLookA/B: fmul [0x4bc528] (-1 deg) at 0x405bd0 0x405c1c 0x4061e7 0x406233
  *   zoom key       camera mode 0x408a10: zoom *= 1 - input x 0.01 per frame (fmul [0x4bc5ac] at 0x408a3f)
+ *   throttle keys  input_ApplyToEntity: throttle += 0.4 x (1 - hold/3) per frame for throttle-up (fmul [0x4bd8f4] at
+ *                  0x44f306) and -= 0.5 x (...) for throttle-down (fmul [0x4bd8f8] at 0x44f366); measured: full in
+ *                  2 frames at any rate, so 3x faster at 60 fps - matters when tests drive by held keys
  * Each operand is repointed at a proxy variable that the frame hook sets to constant x dt x 20 after every
  * simclock_Update, which keeps the 20 fps look at any frame rate. Only the listed instructions change; the
  * constants themselves (shared with other code) are untouched.
@@ -895,8 +899,17 @@ static void apply_framerate_fixes(void) {
         a = (DWORD)(DWORD_PTR)&g_zoom_rate; memcpy(zm_new + 2, &a, 4);
         n += patch_bytes(0x00408a3f, zm_old, zm_new, 6, "zoom rate");
     }
+    {
+        static const BYTE tu_old[6] = { 0xD8, 0x0D, 0xF4, 0xD8, 0x4B, 0x00 };   /* fmul dword ptr [0x4bd8f4] (-0.4) */
+        static const BYTE td_old[6] = { 0xD8, 0x0D, 0xF8, 0xD8, 0x4B, 0x00 };   /* fmul dword ptr [0x4bd8f8] (0.5) */
+        BYTE tu_new[6] = { 0xD8, 0x0D }, td_new[6] = { 0xD8, 0x0D };
+        a = (DWORD)(DWORD_PTR)&g_thr_up; memcpy(tu_new + 2, &a, 4);
+        a = (DWORD)(DWORD_PTR)&g_thr_dn; memcpy(td_new + 2, &a, 4);
+        n += patch_bytes(0x0044f306, tu_old, tu_new, 6, "throttle-up ramp");
+        n += patch_bytes(0x0044f366, td_old, td_new, 6, "throttle-down ramp");
+    }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/7 sites repointed (clouds, free-look keys, zoom key)", n);
+    mlog("  framerate-fixes: %d/9 sites repointed (clouds, free-look keys, zoom key, throttle keys)", n);
 }
 
 /* ===========================================================================
