@@ -39,6 +39,9 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
 - **Flamer damage depends on the renderer.** It is applied per rendered frame per hitting segment (at least 1 each)
   and again in the rear-mirror pass. Balance flamers with `I76_FRAMERATE_FIXES` on, which applies it 20 times a
   second from the main pass (`weapons.md`, Flamers).
+- **Vehicle health percent is broken in stock** (object_HealthFraction). Once any core component is scratched it
+  reads under 1%, so AI flee, script `hpLesser` and damage smoke all trigger at the first scratch. The opt-in fix is
+  `I76_FIX_HEALTH_PCT=1`. Balance scripts with it off, as players will, or ship it together with retuned scripts.
 - **Big custom missions:** the FSM label table's grow path drops the entry on a *successful* realloc (0x4ad450).
   Keep label counts within what stock missions use until that is patched.
 - **Surface grip, rolling drag, bump and damage rate are per mission:** the WRLD chunk's 8 surface records, indexed by

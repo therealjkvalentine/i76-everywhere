@@ -1196,6 +1196,38 @@ static void apply_framerate_fixes(void) {
 }
 
 /* ===========================================================================
+ * STOCK BUG: HEALTH PERCENT  (I76_FIX_HEALTH_PCT=1; off by default - changes stock play)
+ * ===========================================================================
+ * object_HealthFraction 0x40b450 returns a vehicle's health in percent: 28 + 72 x (worst armour/chassis side ratio)
+ * while engine, suspension and brakes are all >= 99.99%. As soon as one of them is below that, it returns the worst
+ * component ratio UNSCALED (0..1): the switch at 0x40b6e3 (table 0x40b7b8, all four entries 0x40b6f0) jumps
+ * straight to the clamp. A 99% engine therefore reads as 0.99 "percent". Confirmed live (i76-map damage.md: a 99%
+ * engine starts the heaviest damage smoke). Callers that see it: damage smoke, entity_DamageComponent's < 33 test
+ * (handgun hits go to component 6), fsm_HpLesser (script hpLesser), ai_ShouldFleeWhenHurt (AI flees below
+ * 30 + 17 x skill), the target-bracket readout and the network state packers.
+ * The fix repoints the four table entries at a stub that multiplies by 100 (the constant at 0x4bc620) and continues
+ * at 0x40b6f0. Missions may have been tuned around the stock behaviour, so this is opt-in. */
+static DWORD g_hf_cont = 0x0040b6f0;
+static __declspec(naked) void hf_scale_stub(void) {
+    __asm {
+        fmul dword ptr ds:[0x004bc620]
+        jmp dword ptr [g_hf_cont]
+    }
+}
+static void apply_fix_health_pct(void) {
+    static const BYTE old_tab[16] = { 0xF0, 0xB6, 0x40, 0x00, 0xF0, 0xB6, 0x40, 0x00, 0xF0, 0xB6, 0x40, 0x00, 0xF0, 0xB6, 0x40, 0x00 };
+    static const BYTE old_jmp[7] = { 0xFF, 0x24, 0x9D, 0xB8, 0xB7, 0x40, 0x00 };   /* jmp [ebx*4 + 0x40b7b8] at 0x40b6e3 */
+    static const BYTE k100[4] = { 0x00, 0x00, 0xC8, 0x42 };                          /* 100.0f at 0x4bc620 */
+    BYTE new_tab[16]; DWORD a = (DWORD)(DWORD_PTR)hf_scale_stub; int i;
+    if (GetEnvironmentVariableA("I76_FIX_HEALTH_PCT", NULL, 0) == 0) return;
+    if (memcmp((void *)0x0040b6e3, old_jmp, 7) != 0 || memcmp((void *)0x004bc620, k100, 4) != 0) {
+        mlog("  fix-health-pct: bytes differ at 0x40b6e3 / 0x4bc620 - not applied"); return;
+    }
+    for (i = 0; i < 4; i++) memcpy(new_tab + 4 * i, &a, 4);
+    mlog("  fix-health-pct: %s", patch_bytes(0x0040b7b8, old_tab, new_tab, 16, "health percent switch table") ? "on (component branch x100)" : "NOT applied");
+}
+
+/* ===========================================================================
  * PHYSICS SUBSTEP RATE  (I76_PHYS_RATE=<steps per second>; off by default; EXPERIMENT)
  * ===========================================================================
  * entity_InitVehicle seeds each vehicle's physics stepper with a 0.05 s maximum
@@ -1661,6 +1693,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
+        apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
