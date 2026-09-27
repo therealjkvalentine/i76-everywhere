@@ -894,13 +894,15 @@ static void apply_frame_cap(void) {
  * simclock_Update, which keeps the 20 fps look at any frame rate. Only the listed instructions change; the
  * constants themselves (shared with other code) are untouched.
  */
-/* Missile-lock tones (weapon update 0x4a3760): msllock1/2/3.wav are requested through 0x423230 on every frame the
- * lock holds. The sound layer (0x421b40) only refreshes a LOOPING (state 2) instance of the same name on the same
+/* Sounds requested on every frame while a state holds (repeat-until-false sites): the missile-lock tones (weapon
+ * update 0x4a3760, msllock1/2/3.wav, reported beeping fast at 60 fps) and the vehicle's per-frame sounds at the end of
+ * its tick (0x43d500: tskid/tturn/vcddirt/vcdsand from the 0x4bd0d0 table, tflat.wav, fdmg1.wav). Each is requested
+ * through 0x423230. The sound layer (0x421b40) only refreshes a LOOPING (state 2) instance of the same name on the same
  * object and starts a new one otherwise, so after each beep ends the next one starts on the next frame: the gap
  * between beeps is quantised to the frame time, and the tone beeps faster at 60 fps (reported in play). Starts are
  * let through on a 20 Hz grid only; a request for a looping instance that is already playing still goes through on
  * every frame, because the per-frame sound update stops loops whose keep-alive (+0x74) was not refreshed. */
-static int __cdecl lock_sound_wrap(const char *name, BYTE *obj, int flag) {
+static int __cdecl frame_sound_wrap(const char *name, BYTE *obj, int flag) {
     if (!g_tick20) {
         BYTE *mgr = *(BYTE **)0x00524564, *e;
         BYTE *o = obj;
@@ -947,13 +949,24 @@ static void apply_framerate_fixes(void) {
         static const BYTE l3_old[5] = { 0xE8, 0xCD, 0xF1, 0xF7, 0xFF };   /* call 0x423230 at 0x4a405e (msllock3) */
         static const BYTE l12_old[5] = { 0xE8, 0x7E, 0xF1, 0xF7, 0xFF };  /* call 0x423230 at 0x4a40ad (msllock1/2) */
         BYTE l_new[5] = { 0xE8 };
-        LONG rel = (LONG)((DWORD_PTR)lock_sound_wrap - (0x004a405e + 5)); memcpy(l_new + 1, &rel, 4);
+        LONG rel = (LONG)((DWORD_PTR)frame_sound_wrap - (0x004a405e + 5)); memcpy(l_new + 1, &rel, 4);
         n += patch_bytes(0x004a405e, l3_old, l_new, 5, "missile lock tone 3");
-        rel = (LONG)((DWORD_PTR)lock_sound_wrap - (0x004a40ad + 5)); memcpy(l_new + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)frame_sound_wrap - (0x004a40ad + 5)); memcpy(l_new + 1, &rel, 4);
         n += patch_bytes(0x004a40ad, l12_old, l_new, 5, "missile lock tones 1/2");
     }
+    {   /* 0x43d500, once per frame per vehicle: skid/turn/surface (x2), flat tyre, damage - each `call 0x423230` */
+        static const DWORD site[4] = { 0x0043d54d, 0x0043d590, 0x0043d5ec, 0x0043d62b };
+        static const BYTE old_rel[4][4] = { { 0xDE, 0x5C, 0xFE, 0xFF }, { 0x9B, 0x5C, 0xFE, 0xFF },
+                                            { 0x3F, 0x5C, 0xFE, 0xFF }, { 0x00, 0x5C, 0xFE, 0xFF } };
+        for (i = 0; i < 4; i++) {
+            BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+            LONG rel = (LONG)((DWORD_PTR)frame_sound_wrap - (site[i] + 5));
+            memcpy(o + 1, old_rel[i], 4); memcpy(w + 1, &rel, 4);
+            n += patch_bytes(site[i], o, w, 5, "vehicle per-frame sound");
+        }
+    }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/11 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones)", n);
+    mlog("  framerate-fixes: %d/15 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, vehicle sounds)", n);
 }
 
 /* ===========================================================================
