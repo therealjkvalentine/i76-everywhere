@@ -944,6 +944,10 @@ static int __cdecl frame_sound_wrap(const char *name, BYTE *obj, int flag) {
  * total variation 26.2 /s at 60 fps vs 1.56 at 20; 5.33 even with the hires clock and fixed step). Both reads
  * (0x40fa15 type-9 branch, 0x40fa8d vehicles) get the 20 fps rate. */
 static float __cdecl ai_rate20(void) { return 20.0f; }
+/* AI steering (ai_SteerToHeading 0x40fe80): steer = skill x heading error / (sim_dt x k x v), the yaw rate that closes the
+ * heading error in one frame (i76-map subsystems/ai.md). The sim_dt read at 0x40fed9 is used only as that divisor, so it
+ * gets the 20 fps value. */
+static float __cdecl ai_dt20(void) { return 0.05f; }
 
 /* Radar ping (CRADAR.WAV, radar blip routine 0x460310, played through 0x4250f0 at 0x4605ee / 0x4608f1). Unlocked,
  * the sweep advances on game time (one of 30 positions per 0.2 s) and a blip pings when the window [previous,
@@ -1020,6 +1024,12 @@ static void apply_framerate_fixes(void) {
         n += patch_bytes(0x0040fa15, a1_old, a_new, 5, "AI throttle gain (type 9)");
         rel = (LONG)((DWORD_PTR)ai_rate20 - (0x0040fa8d + 5)); memcpy(a_new + 1, &rel, 4);
         n += patch_bytes(0x0040fa8d, a2_old, a_new, 5, "AI throttle gain (vehicles)");
+        {
+            static const BYTE s_old[5] = { 0xE8, 0xC2, 0xC8, 0x08, 0x00 };  /* call simclock_GetSimDt at 0x40fed9 */
+            BYTE s_new[5] = { 0xE8 };
+            rel = (LONG)((DWORD_PTR)ai_dt20 - (0x0040fed9 + 5)); memcpy(s_new + 1, &rel, 4);
+            n += patch_bytes(0x0040fed9, s_old, s_new, 5, "AI steering gain");
+        }
     }
     {
         static const BYTE p1_old[5] = { 0xE8, 0xFD, 0x4A, 0xFC, 0xFF };   /* call 0x4250f0 at 0x4605ee (CRADAR.WAV) */
@@ -1042,7 +1052,7 @@ static void apply_framerate_fixes(void) {
         }
     }
     g_ratefix = 1;
-    mlog("  framerate-fixes: %d/19 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle gain)", n);
+    mlog("  framerate-fixes: %d/20 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain)", n);
 }
 
 /* ===========================================================================
