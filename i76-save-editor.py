@@ -236,25 +236,26 @@ def parse_header(d):
     return cstr(d[0:20]), cstr(d[20:40]), cstr(d[40:56])
 
 def parse_dir(path):
-    """savegame.dir: u32 count, u32 active?, then 60-byte entries at 8+60k:
-    name[20] @ +0x20, mission u32 @ +0x38 (the newest entry's mission dword is
-    often truncated at EOF - report it as '?')."""
+    """savegame.dir: u32 count, then 60-byte records at 4+60k:
+    u32 scene @+0, display name[32] @+4, file name[16] @+36 ("saveNNN"), u32 @+52, u32 @+56.
+    (Until 2026-10-01 this read records at 8+60k with the scene at +0x38, i.e. the NEXT record's scene:
+    every listed scene was shifted by one and the last entry read as '?'. Checked against the raw bytes
+    of a game-written directory; the lab's 364-byte file is exactly 4 + 60 x 6.)"""
     out = {}
     try:
         d = open(path, "rb").read()
     except OSError:
         return out
-    if len(d) < 8: return out
+    if len(d) < 4: return out
     count, = struct.unpack_from("<I", d, 0)
     for k in range(count):
-        e = 8 + 60 * k
-        if e + 0x20 + 20 > len(d): break
-        nm = cstr(d[e+0x20:e+0x20+20])
-        if not nm.startswith("save"): continue
-        if e + 0x38 + 4 <= len(d):
-            out[nm] = struct.unpack_from("<I", d, e+0x38)[0]
-        else:
-            out[nm] = "?"
+        e = 4 + 60 * k
+        if e + 60 > len(d): break
+        scene, = struct.unpack_from("<I", d, e)
+        fn = cstr(d[e+36:e+52])
+        if not fn.startswith("save"): continue
+        out[fn] = scene
+        out[fn + ".name"] = cstr(d[e+4:e+36])
     return out
 
 # ---------------------------------------------------------------- catalog helpers
