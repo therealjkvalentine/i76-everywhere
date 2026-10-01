@@ -39,9 +39,14 @@ Ways to view the stream (all no-rig):
 - `tools/ffb-udp-listen.py` — UDP dashboard / `--raw` dump / `--csv` recorder.
   Proves the wire and stands in for SimHub until a plugin exists.
 
-**STATUS: builds clean, spec-complete against the disassembly, NOT yet run
-against the live game.** Rumble constants are first-guess; the telemetry
-exists precisely so they can be tuned from a field run.
+**STATUS (corrected 2026-10-01): field-run and tuned on the Mac over 2026-07-19/20.** The earlier
+"NOT yet run against the live game" line here was written at `bcb9caa` (2026-07-19) and never updated; the
+field runs are in the git log for this folder the same and next day — `25d3033` "deploy to prefix",
+`4cbc4d4` "impact nodes are FLOATS (was pinning the motor after collisions)", `fe86069` "rework from field feel",
+`f762b89` "narrated-drive rework", `579ce0f` "much lower engine idle" — every one a change made from a live
+drive, and [docs/FFB-STACKS.md](../docs/FFB-STACKS.md) records the same status ("field-run and tuned on the
+Mac over 2026-07-19/20"). Tuning sheet: [docs/FFB-MORNING-TEST.md](../docs/FFB-MORNING-TEST.md). Still true: it
+has only ever run on the Mac, and wheel / shakers / pad have never run together (FFB-STACKS point 3).
 
 ## Build (no binaries in the repo — same rule as smack-music-fix)
 
@@ -72,7 +77,8 @@ The telemetry adds `slip100=` (0–100) so both viewers show wheel slip directly
 Verified natively (parser + slip math on the real 123-envelope file): idle /
 airborne / crawling → 0; cruise → a light grit floor; hard skid → slip pegs and
 dominates the left motor with a high-freq chirp on the right. Not yet run in the
-live game.
+live game. *(Written 2026-07-19 at `bcb9caa`; the live runs and tuning followed over 2026-07-19/20 — see STATUS
+above.)*
 
 ## Files
 

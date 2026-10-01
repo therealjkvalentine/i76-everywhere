@@ -6,6 +6,20 @@ known, what is folklore, and what to measure next. Confidence tags: **[verified]
 repo field test or fetched primary source; **[probable]** = consistent secondary
 evidence; **[folklore]** = repeated claim nobody has measured.*
 
+> **Superseded 2026-10-01.** This research pass has been overtaken by measurement. The engine is dt-driven (not
+> the per-frame-constant model assumed below), the two "unknowns" in the verdict are answered (pose transform at
+> object+0x18; frame loop 0x4039a0..0x403f20), and the proposed renderer-side interpolation plus the per-frame fixes
+> are implemented as opt-in switches in the Strlkup proxy and measured live in the sandbox. Read these instead:
+> - [music-fix/README.md](../music-fix/README.md) — the switch table with per-switch measured evidence
+>   (`I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`,
+>   `I76_FPS_CAP`);
+> - i76-map `captures/014-framerate/README.md` (`C:\Users\james\i76-map\captures\014-framerate\README.md`) — the
+>   live captures, 2026-09-27: claim-by-claim verdicts, drop test, jump test, step-rate analysis;
+> - i76-map `subsystems/framerate.md` and `subsystems/simclock.md` — the static reading those captures tested.
+>
+> Status of the result: sandbox-verified, not yet console-verified by James; nothing deployed to the playable
+> install. The text below is kept as the dated record of what was believed before the measurements.
+
 **The question:** can the engine's real frame rate be doubled/tripled (20 → 40–60) by
 scaling the physics so it doesn't break? Frame generation (LSFG x2, see
 [Setup-FrameGen.ps1](../Setup-FrameGen.ps1)) already fakes 40 at the display; this is

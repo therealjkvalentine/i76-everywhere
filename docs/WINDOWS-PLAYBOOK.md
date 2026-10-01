@@ -40,6 +40,18 @@ The community-standard guide is [CahootsMalone's I76+dgVoodoo walkthrough](https
    range and AI driving all break ([Local Ditch FAQ](https://www.localditch.com/interstate-76/faq.html)).
    *(Nitrous helps on the ramp — bind `nitrous_on`/`nitrous_off` in `input.map`; this build ships
    them unbound.)*
+
+   > **Note 2026-10-01 — the "do not raise it" rule above was measured false in the sandbox** (i76-map
+   > `captures/014-framerate`, 2026-09-27). The sim is dt-driven, not fixed-step: gravity is dt-correct (g = 9.8 in
+   > the drop test at stock 20 and at 60 fps with the switches; the uncap-lab fall test read −9.89 vs −9.74 m/s²),
+   > and the Mission 5 canyon jump was cleared at 60 fps (uncap-lab `docs/framerate/README.md`). What *is* true:
+   > stock 60 fps steps the physics 60×/s and bleeds speed before a ramp, so jumps land short — the kernel of the
+   > folklore; with `I76_FIXED_STEP=24` the jump height was judged "good, almost like 20 Hz" in play. The other
+   > per-frame effects that really do scale with frame rate (sky drift, free-look/zoom keys, keyboard throttle ramp,
+   > lock tones, radar ping, AI throttle/steering/fire rate, flamers, smoke, missile trails, HUD digit roll, engine
+   > smoothing, clock jitter) and the switch that fixes each are in
+   > [music-fix/README.md](../music-fix/README.md)'s switch table. **The 60 fps switch set is sandbox-verified; it
+   > has not yet been console-verified by James, and nothing is deployed to the playable install.**
 5. **Resolution: force any 4:3 value** — dgVoodoo accepts dynamic specifiers (`2x`, `3x`, `Max`,
    `Max ISF`) and custom strings like `2560x1920, 60`
    ([dgVoodoo ReadmeGeneral](https://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/)). Start at `2x`,
@@ -67,6 +79,13 @@ motion is frame interpolation on top:
 > are *interpolated display frames*; the game still simulates at the 20fps base dgVoodoo enforces,
 > so the Mission 5 jump and all physics stay correct. Never "fix" smoothness by raising FPSLimit —
 > that breaks the jump. Interpolate on top of 20, don't run the sim above it.
+
+> **Note 2026-10-01:** "cannot be raised" was measured false in the sandbox — see the note under section 1
+> point 4. There is now a real-frame-rate route: the proxy's switch set in
+> [music-fix/README.md](../music-fix/README.md) (`I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`,
+> `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`) keeps the physics on a 24 Hz step and draws interpolated frames at 60.
+> Sandbox-verified only; not yet console-verified by James. Frame-gen on a 20 fps base remains the deployed,
+> known-good option.
 
 - **The realistic path: [Lossless Scaling](https://store.steampowered.com/app/993090/) (LSFG),
   ~$7.** Capture-based (WGC/DXGI desktop capture): it doesn't care that the game is from 1997 —
@@ -155,6 +174,8 @@ That's a Windows-box activity the Mac port can't do yet — worth a session.
 
 - **Widescreen/FOV:** impossible — 4:3 hardcoded in the camera; 16:9 forcing stretches, HUD breaks.
 - **Raising the frame cap:** breaks physics (see Local Ditch FAQ list) — the 20fps limiter stays.
+  *(Note 2026-10-01: no longer a dead end — measured false in the sandbox, see section 1 point 4's note and the
+  switch table in [music-fix/README.md](../music-fix/README.md). Sandbox-verified, not yet console-verified.)*
 - **HD textures:** no released pack exists; this repo's `tools/` has the format research
   (VQM/PAK/ZFS decoders) if that itch ever needs scratching — same ceilings on Windows.
 

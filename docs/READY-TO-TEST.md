@@ -4,6 +4,14 @@ Everything below is **already deployed to the portable daily-driver install**
 (`…\Interstate76-i76-everywhere-portable-20260801\Interstate 76`) and verified as far as it can
 be without a human at the machine. Both fixes are on and consistent (checked 2026-08-16).
 
+> **Correction 2026-10-01 (i76-map finding L004):** only the u32x fix is deployed. The camera-rate patch is
+> **not** on the portable install: "The portable i76.exe 6319abf7 differs from pristine only by the aio clusters
+> and the u32x import rename; the .rdata constant 0x4bc528 is unchanged there
+> (binaries/diff-9a232dcc-vs-6319abf7.tsv: .rdata run list), so no camera-rate patch is deployed." The rescaled
+> constant exists in the sandbox / lab only. The 2026-08-16 claim below was stated from intent, not from reading
+> the binary back. The free-look camera sites are now covered instead by the proxy's `I76_FRAMERATE_FIXES`
+> ([music-fix/README.md](../music-fix/README.md)), also sandbox-only.
+
 > **Must be at the physical console.** The 3D engine won't initialize over RDP, so every item in
 > section A needs you in front of the machine. Audio was left muted during the unattended work; unmute
 > when you sit down.
@@ -13,7 +21,7 @@ Deployed state, confirmed:
 | Fix | Where | Status |
 |---|---|---|
 | **u32x save/mouse proxy** (no freeze + full-screen mouse) | portable `i76shell.dll` → `u32x.dll` | PATCHED, `u32x.dll` present (74,752 B) |
-| **60 fps camera rate** (death-cam / pan) | portable `i76.exe` constant | `-0.3333°` = stock × 20/60 → tuned for 60 fps |
+| **60 fps camera rate** (death-cam / pan) | portable `i76.exe` constant | `-0.3333°` = stock × 20/60 → tuned for 60 fps — **NOT deployed to the portable** (L004, 2026-10-01: 0x4bc528 unchanged in portable 6319abf7; sandbox only) |
 
 ---
 
@@ -50,6 +58,8 @@ synthetic key injection dropped 4/5 chars only because it raced focus/delivery.
   shell patch. If it's fine when focused, we can close 1c. Please note which.
 
 ### A5 — 60 fps camera feel (the rate fix)
+*(2026-10-01: this test cannot be run on the portable — the patch is not there, see the L004 correction at the top.
+Run it on the sandbox, or with `I76_FRAMERATE_FIXES=1`.)*
 - **Death camera:** get destroyed; the orbit/spin should look **smooth and normal-speed**, not the ~3× fast
   whip it had before at 60 fps.
 - General camera pans/turns should feel right (not sped up). If anything feels *slow*, that's the opposite

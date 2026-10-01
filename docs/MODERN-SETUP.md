@@ -18,6 +18,16 @@ assumption from 1997). Above ~30 FPS the sim over-integrates and things break:
 The reverse-engineering team, the GOG "de-facto" guide, and the AiO patch all use 20.
 This is a code-level bug — it exists regardless of which renderer you use.
 
+> **Note 2026-10-01 — "above ~30 FPS the sim over-integrates" was measured false in the sandbox** (i76-map
+> `captures/014-framerate`, 2026-09-27). The physics is dt-driven with substeps of at most 50 ms, not a fixed
+> timestep: gravity is dt-correct (g = 9.8 at 20 and at 60 fps) and jumps clear at 60 fps with the fixed physics
+> step (`I76_FIXED_STEP=24`; stock 60 fps does bleed speed before a ramp and lands short, which is the kernel of
+> the folklore). The things that really do scale with frame rate are per-frame effects — sky drift, free-look and
+> zoom keys, keyboard throttle ramp, lock tones, radar ping, AI throttle/steering gains and fire rate, flamers,
+> smoke, missile trails, HUD digit roll, engine smoothing, clock jitter — and each has an opt-in fix listed in
+> [music-fix/README.md](../music-fix/README.md)'s switch table. **That 60 fps set is sandbox-verified, not yet
+> console-verified by James**; the 20 FPS cap below remains the known-good default for play.
+
 ## ⚠️ Do NOT use i76fix's pre-patched exe / patcher on THIS copy
 `immi101/i76fix` (the popular 25 FPS patcher) expects GOG `i76.exe` MD5
 `9a232dcc...` (a 2017 build). **Yours is the 2019 build (`60abf7bc...`).** The patcher

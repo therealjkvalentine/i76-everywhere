@@ -17,6 +17,14 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
   prior-art catalog and the folklore-vs-measured corrections in
   [docs/FRAMERATE-UNCAP-RESEARCH.md](docs/FRAMERATE-UNCAP-RESEARCH.md). Nothing
   field-tested yet.
+  - **2026-10-01 update:** superseded by measurement. The sim turned out to be dt-driven (i76-map
+    `subsystems/simclock.md`), the "two unknowns" were pinned (pose at object+0x18; the frame loop at
+    0x4039a0..0x403f20), and the proxy now carries the opt-in switch set — `I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`,
+    `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`, `I76_FPS_CAP` — measured live in the sandbox
+    (i76-map `captures/014-framerate`, 2026-09-27: dt exact, gravity dt-correct, 24 Hz body motion as calm as stock
+    20, 31-33% motionless frames at 60 fps → 0% with interpolation). Per-switch evidence is the table in
+    [music-fix/README.md](music-fix/README.md). Sandbox-verified; not yet console-verified by James; nothing
+    deployed to the playable install.
 - **Wheel buttons moved to the AHK layer, with a shift layer (~27 actions from 13
   buttons).** `input.map` now carries only the analog sinks; every button and the hat are
   emitted as stock keys by [i76-remap.ahk](i76-remap.ahk). **Retraction:** an earlier commit
