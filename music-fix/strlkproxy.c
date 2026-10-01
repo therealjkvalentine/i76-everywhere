@@ -36,6 +36,7 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+#include "../tools/telemetry/i76tel.h"   /* telemetry export layout, shared with tools/telemetry/i76tel.py */
 
 #define FAKE_CD_ID 0xC0DE
 
@@ -833,8 +834,13 @@ static int g_tick20 = 1;
 static DWORD g_tick20_n;                                     /* grid frames so far */
 static void radar_ping_flush(void);
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
+static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
+static void tel_frame(void);
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
+    /* The frame just rendered is complete here (ticks, post-ticks, camera, render, Flip): publish it before any cap
+     * wait, so the datagram leaves as soon as the frame is on screen. */
+    if (g_tel_on) tel_frame();
     if (!g_cap_period.QuadPart) goto clock;
     QueryPerformanceCounter(&now);
     if (!g_cap_started) {
@@ -1730,6 +1736,367 @@ static void apply_render_interp(void) {
     mlog("  render-interp: %d/11 hooks, %s, smoothing %d (debug block %p)", ok, g_interp ? "on" : "NOT applied", g_smooth, (void *)&g_idbg);
 }
 
+/* ===========================================================================
+ * TELEMETRY EXPORT  (I76_TELEMETRY=<udp port>; 1 = port 7676; off by default)
+ * ===========================================================================
+ * Replaces the memory scanners the FFB / motion tools use to read the player's
+ * state (docs/FFB-DATA-AUDIT.md section 4.2, row 8 of section 6). Once per
+ * rendered frame a packed i76tel_frame_t (tools/telemetry/i76tel.h, the one
+ * source of the layout) is filled from the player's object / entity / engine /
+ * wheel blocks and from the exe's own FFB block 0x4f2328, then
+ *   (a) sent as one UDP datagram to 127.0.0.1:port, followed by the events
+ *       recorded since the previous send, and
+ *   (b) written in place to the shared memory Local\I76Telemetry together with
+ *       the whole 64-entry event ring, bracketed by a seq counter (odd while
+ *       writing, even when consistent) so a reader can reject a torn copy.
+ *
+ * WHEN. The audit suggested the `call 0x446110` at 0x445e83 (ffb_WriteSimState's
+ * dispatch) or the render wrapper. Neither is unconditional: 0x445ba0 returns at
+ * 0x445bb0 unless 0x52bbd0 == 1 (a wheel driver or the shim present), and
+ * render_wrap exists only under I76_RENDER_INTERP. The frame hook at 0x4039b8 is
+ * the point every per-frame feature here already shares, and WinMain's loop
+ * (framerate.md: clock, input, ticks, post-ticks, VM, camera, render, Flip) makes
+ * its entry the first instruction after the previous frame is complete. So the
+ * snapshot is taken at the top of frame_cap_then_clock, before simclock_Update
+ * advances the counters: it describes the frame just shown, with the physics
+ * pose (render-interp puts the drawn pose back after the render call).
+ *
+ * WHAT. Player chain [0x54a264] -> record -> [+0] object -> [obj+0x70] entity,
+ * accepted only while object flag 0x10 (local player, the test object_IsPlayer
+ * 0x458bf0 makes) is set; engine [[ent+0x3c4]+0x70] type 21, suspension +0x3c8
+ * type 23, brakes +0x3cc type 22, wheels [ent+0x3a8+4i] type 30 - each component
+ * is used only when its object carries that class type at +0x6c. Field sources
+ * are cited in i76tel.h. The snapshot runs under SEH: between missions the record
+ * pointer can be stale, and a fault there must cost one frame of telemetry, not
+ * the game.
+ *
+ * EVENTS, through the two hook kinds already in this file:
+ *   weapon_FireShot 0x4a6e90(instance, weapdef, count, dt_left) - two call sites
+ *       (0x4a6b16, 0x4a6d43, both in weapon_UpdateInstanceFiring 0x4a6470) are
+ *       repointed; the wrapper records player shots (instance+0x18 -> vehicle
+ *       weapon record -> +0 vehicle object) after the shot, so ammo is post-shot.
+ *   entity_SpawnExplosion 0x49ead0(name lo, name hi, p3, x, y, z, owner) - 21
+ *       call sites in 14 functions, so its entry is detoured as cam_set_hook
+ *       does 0x472990: the 8 position-independent prologue bytes run in a
+ *       trampoline. The template name is passed by value as two dwords (the
+ *       function upper-cases its own copy).
+ *   physics_ApplyCollisionDamage 0x4a7c80(target, source, normal, impact vector,
+ *       direction) - 7 call sites, entry detoured (6 bytes). The damage amount is
+ *       computed inside (weapon_BuildImpactDamage for ordnance, mass x closing
+ *       speed for collisions) and only reaches the FFB lists while 0x52bbd0 == 1,
+ *       so the wrapper measures it as the player's armour + chassis + component
+ *       hp before minus after the call.
+ * Zero cost when I76_TELEMETRY is unset: nothing is patched and the frame hook
+ * is not installed on its account.
+ * Static reading only - NOT yet verified live.
+ */
+static i76tel_event_t g_tel_ring[I76TEL_RING];
+static DWORD g_tel_ev_seq, g_tel_ev_sent, g_tel_pub_seq, g_tel_faults;
+static HMODULE g_tel_ws;
+static SOCKET g_tel_sock = INVALID_SOCKET;
+static struct sockaddr_in g_tel_dst;
+static int (__stdcall *p_tel_sendto)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+static HANDLE g_tel_map;
+static i76tel_shm_t *g_tel_shm;
+static BYTE *g_tel_tramp, *g_tel_expl_tramp, *g_tel_coll_tramp;
+static int g_tel_tramp_used;
+
+static void tel_event(DWORD type, float f0, float f1, float f2, float f3, int i0, int i1) {
+    DWORD seq = ++g_tel_ev_seq;
+    i76tel_event_t *e = &g_tel_ring[seq % I76TEL_RING];
+    e->seq = seq; e->frame = g_frame; e->type = type;
+    e->f[0] = f0; e->f[1] = f1; e->f[2] = f2; e->f[3] = f3;
+    e->i[0] = i0; e->i[1] = i1;
+}
+
+/* the local player's object and entity, or 0 */
+static BYTE *tel_player(BYTE **ent_out) {
+    BYTE **rec = *(BYTE ***)0x0054a264, *obj, *ent;
+    obj = rec ? *rec : 0;
+    if (!obj || !(*(DWORD *)(obj + 0x10) & 0x10)) return 0;    /* I76_OBJF_LOCAL_PLAYER, as object_IsPlayer tests */
+    ent = *(BYTE **)(obj + 0x70);
+    if (!ent) return 0;
+    if (ent_out) *ent_out = ent;
+    return obj;
+}
+
+/* a component's data block ([slot object]+0x70) when the slot holds an object of the expected class, else 0 */
+static BYTE *tel_comp(BYTE *ent, int slot, int type) {
+    BYTE *o = *(BYTE **)(ent + 0x3a8 + 4 * slot);
+    if (!o || *(int *)(o + 0x6c) != type) return 0;
+    return *(BYTE **)(o + 0x70);
+}
+
+/* armour + chassis + engine / suspension / brake / wheel hp: the quantity a hit on the player takes away */
+static int tel_health_sum(BYTE *obj) {
+    BYTE *ent = *(BYTE **)(obj + 0x70), *c;
+    int s = 0, i;
+    if (!ent) return 0;
+    for (i = 0; i < 4; i++) s += *(int *)(ent + 0x138 + 4 * i) + *(int *)(ent + 0x148 + 4 * i);
+    if ((c = tel_comp(ent, 7, 21)) != 0) s += *(int *)c;
+    if ((c = tel_comp(ent, 8, 23)) != 0) s += *(int *)c;
+    if ((c = tel_comp(ent, 9, 22)) != 0) s += *(int *)(c + 4);
+    for (i = 0; i < 6; i++) if ((c = tel_comp(ent, i, 30)) != 0) s += *(int *)(c + 4);
+    return s;
+}
+
+static void tel_header(i76tel_frame_t *t) {                   /* fixed globals only: safe whatever the player chain holds */
+    memset(t, 0, sizeof *t);
+    t->magic = I76TEL_MAGIC; t->version = I76TEL_VERSION; t->size = (uint16_t)sizeof *t;
+    t->frame = *(DWORD *)0x005a7e1c;                         /* simclock_frame_count */
+    t->proxy_frame = g_frame;
+    t->sim_time = *(float *)0x005a7e74;                      /* simclock_time */
+    t->sim_dt = *(float *)0x004fe420;                        /* simclock_sim_dt */
+    t->dt = *(float *)0x004fe428;                            /* simclock_dt */
+    t->step_count = -1;
+    t->ffb_present = *(DWORD *)0x0052bbd0;
+    t->ffb_rpm = *(int *)0x004f2334;
+    t->ffb_engine_running = *(DWORD *)0x004f2338;
+    t->ffb_engine_starting = *(DWORD *)0x004f233c;
+    t->ffb_gear_changed = *(DWORD *)0x004f2340;
+    t->ffb_nitrous = *(DWORD *)0x004f2344;
+    memcpy(t->accel_body, (void *)0x004f2418, 12);
+    t->ffb_list_ordnance = *(DWORD *)0x004f2478;
+    t->ffb_list_concussion = *(DWORD *)0x004f247c;
+    t->ffb_list_collision = *(DWORD *)0x004f2484;
+    t->ffb_dt = *(float *)0x004f2488;
+    t->event_seq = g_tel_ev_seq;
+}
+
+static void tel_player_fill(i76tel_frame_t *t) {
+    BYTE *ent = 0, *obj = tel_player(&ent), *c;
+    int i, n;
+    if (!obj) return;
+    t->player_present = 1;
+    t->obj_addr = (uint32_t)(DWORD_PTR)obj; t->ent_addr = (uint32_t)(DWORD_PTR)ent;
+    memcpy(t->pos, obj + 0x40, sizeof t->pos);
+    memcpy(t->rot, obj + 0x18, sizeof t->rot);
+    memcpy(t->velocity, ent + 0xbc, sizeof t->velocity);
+    t->speed = *(float *)(ent + 0xac);
+    t->pitch_rate = *(float *)(ent + 0xc8); t->yaw_rate = *(float *)(ent + 0xcc); t->roll_rate = *(float *)(ent + 0xd0);
+    memcpy(t->accel, ent + 0xd4, sizeof t->accel);
+    t->steer = *(float *)(ent + 0xe0); t->throttle = *(float *)(ent + 0xe4); t->gear_dir = *(float *)(ent + 0xe8);
+    t->handbrake = *(int *)(ent + 0xf0); t->exhaust_brake = *(int *)(ent + 0xf4); t->gear_lever = *(int *)(ent + 0x104);
+    if ((c = tel_comp(ent, 7, 21)) != 0) {                   /* I76_EngineData */
+        t->engine_hp = *(int *)c; t->engine_hp_max = *(int *)(c + 4); t->gear = *(int *)(c + 8);
+        t->drive_power = *(float *)(c + 0x10); t->rpm = *(float *)(c + 0x1c); t->speedo = *(float *)(c + 0x24);
+    }
+    if ((c = tel_comp(ent, 8, 23)) != 0) { t->susp_hp = *(int *)c; t->susp_hp_max = *(int *)(c + 4); }
+    if ((c = tel_comp(ent, 9, 22)) != 0) { t->brake_hp = *(int *)(c + 4); t->brake_hp_max = *(int *)(c + 8); t->brake_effective = *(float *)(c + 0x10); }
+    t->flags = *(DWORD *)(ent + 0x454); t->surface = *(DWORD *)(ent + 0x45c);
+    memcpy(t->ground_normal, ent + 0x460, sizeof t->ground_normal);
+    t->clearance = *(float *)(ent + 0x470); t->state_timer = *(float *)(ent + 0x450);
+    memcpy(t->armour, ent + 0x138, 16); memcpy(t->armour_max, ent + 0x158, 16);
+    memcpy(t->chassis, ent + 0x148, 16); memcpy(t->chassis_max, ent + 0x168, 16);
+    for (i = 0; i < 6; i++) {
+        i76tel_wheel_t *w = &t->wheel[i];
+        if ((c = tel_comp(ent, i, 30)) == 0) continue;       /* I76_WheelData */
+        w->present = 1; w->hp = *(int *)(c + 4); w->hp_max = *(int *)(c + 8); w->grip = *(float *)(c + 0xc);
+        w->ground_speed = *(float *)(c + 0x20); w->susp_offset = *(float *)(c + 0x24);
+        w->unloaded = *(int *)(c + 0x40); w->flat = *(int *)(c + 0x44); w->skid_active = *(int *)(c + 0x48);
+    }
+    /* selected weapon: the vehicle weapon record whose +0 is this object (0x5be4d8 + i x 0x2c8, count 0x5da78c), its
+     * selected row +4, the row's instance at +0x58 + row x 0x58 + 0x50 (weapons.md) */
+    t->weapon_row = t->weapon_def = -1;
+    n = *(int *)0x005da78c;
+    if (n > 150) n = 150;                                     /* 0x5be4d8..0x5d88d8 holds 151 records at most */
+    for (i = 0; i < n; i++) {
+        BYTE *rec = (BYTE *)0x005be4d8 + i * 0x2c8;
+        int row;
+        if (*(BYTE **)rec != obj) continue;
+        row = *(int *)(rec + 4);
+        t->weapon_row = row;
+        if (row >= 0 && row < 7) {
+            BYTE *inst = *(BYTE **)(rec + 0x58 + row * 0x58 + 0x50), *root;
+            if (inst) {
+                t->weapon_def = *(int *)(inst + 0x30); t->weapon_ammo = *(int *)(inst + 0x20); t->weapon_hp = *(int *)(inst + 0xc);
+                root = *(BYTE **)(inst + 8);
+                if (root) memcpy(t->weapon_name, root, 8);
+            }
+        }
+        break;
+    }
+    if (g_fixed_step > 0.0f) {                               /* substeps the fixed stepper ran in the frame just completed */
+        int st = step_slot(ent + 0x444, 0);
+        if (st >= 0 && g_step_acc[st].frame == g_frame) t->step_count = g_step_acc[st].n;
+    } else {
+        int cnt = (int)(t->sim_dt * 20.0f) + 1;               /* simclock_StepperBegin: floor(dt x 20) + 1, at most 20 */
+        t->step_count = cnt > 20 ? 20 : cnt;
+    }
+}
+
+static int tel_fill(i76tel_frame_t *t) {
+    tel_header(t);
+#ifdef _MSC_VER
+    __try { tel_player_fill(t); }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        g_tel_faults++;
+        tel_header(t);                                       /* a stale player chain: this frame reports no player */
+        return 0;
+    }
+#else
+    tel_player_fill(t);
+#endif
+    return 1;
+}
+
+static void tel_frame(void) {
+    static BYTE pkt[sizeof(i76tel_frame_t) + I76TEL_RING * sizeof(i76tel_event_t)];
+    i76tel_frame_t *t = (i76tel_frame_t *)pkt;
+    DWORD n, first, k;
+    tel_fill(t);
+    t->seq = ++g_tel_pub_seq;
+    n = g_tel_ev_seq - g_tel_ev_sent;                        /* events since the last datagram; the ring keeps the newest 64 */
+    if (n > I76TEL_RING) n = I76TEL_RING;
+    first = g_tel_ev_seq - n + 1;
+    for (k = 0; k < n; k++)
+        memcpy(pkt + sizeof *t + k * sizeof(i76tel_event_t), &g_tel_ring[(first + k) % I76TEL_RING], sizeof(i76tel_event_t));
+    t->event_count = n;
+    g_tel_ev_sent = g_tel_ev_seq;
+    if (g_tel_sock != INVALID_SOCKET)
+        p_tel_sendto(g_tel_sock, (const char *)pkt, (int)(sizeof *t + n * sizeof(i76tel_event_t)), 0, (const struct sockaddr *)&g_tel_dst, sizeof g_tel_dst);
+    if (g_tel_shm) {
+        volatile uint32_t *seq = &g_tel_shm->seq;
+        uint32_t v = *seq;
+        *seq = v + 1;                                        /* odd: being written */
+#ifdef _MSC_VER
+        _ReadWriteBarrier();
+#else
+        __sync_synchronize();
+#endif
+        memcpy(&g_tel_shm->frame, t, sizeof *t);
+        g_tel_shm->frame.event_count = 0;                    /* the ring is beside it, not appended */
+        memcpy(g_tel_shm->ring, g_tel_ring, sizeof g_tel_ring);
+#ifdef _MSC_VER
+        _ReadWriteBarrier();
+#else
+        __sync_synchronize();
+#endif
+        *seq = v + 2;                                        /* even: consistent */
+    }
+}
+
+/* --- event hooks ---------------------------------------------------------- */
+static void __cdecl tel_fire_wrap(BYTE *inst, BYTE *wdef, int count, float dt_left) {
+    BYTE **vrec, *veh;
+    ((void (__cdecl *)(BYTE *, BYTE *, int, float))0x004a6e90)(inst, wdef, count, dt_left);   /* weapon_FireShot */
+    if (!inst) return;
+    vrec = *(BYTE ***)(inst + 0x18);                         /* I76_WeaponInstance.vrec -> +0 vehicle object */
+    veh = vrec ? *vrec : 0;
+    if (veh && ((int (__cdecl *)(BYTE *))0x00458bf0)(veh))   /* object_IsPlayer */
+        tel_event(I76TEL_EV_SHOT, (float)*(int *)(inst + 0x1c), (float)*(int *)(inst + 0x20), (float)*(DWORD *)(inst + 0x10), dt_left,
+                  *(int *)(inst + 0x30), count);
+}
+
+static float tel_player_dist(float x, float y, float z) {   /* distance from the player, -1 without one; guarded like the snapshot */
+    float d = -1.0f;
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE *obj = tel_player(0);
+        if (obj) {
+            double *p = (double *)(obj + 0x40);
+            double dx = x - p[0], dy = y - p[1], dz = z - p[2];
+            d = (float)sqrt(dx * dx + dy * dy + dz * dz);
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; }
+#endif
+    return d;
+}
+
+static DWORD * __cdecl tel_expl_hook(DWORD name_lo, DWORD name_hi, DWORD p3, float x, float y, float z, DWORD owner) {
+    DWORD lo = name_lo, hi = name_hi;                        /* the callee upper-cases its own copy of the name */
+    DWORD *r = ((DWORD *(__cdecl *)(DWORD, DWORD, DWORD, float, float, float, DWORD))g_tel_expl_tramp)(name_lo, name_hi, p3, x, y, z, owner);
+    tel_event(I76TEL_EV_EXPLOSION, x, y, z, tel_player_dist(x, y, z), (int)lo, (int)hi);
+    return r;
+}
+
+static int __cdecl tel_coll_hook(BYTE *target, BYTE *source, float *normal, float *impact, float *dir) {
+    int is_player = target && ((int (__cdecl *)(BYTE *))0x00458bf0)(target) != 0;
+    int before = is_player ? tel_health_sum(target) : 0, r;
+    float v[3] = { 0.0f, 0.0f, 0.0f };
+    if (impact) { v[0] = impact[0]; v[1] = impact[1]; v[2] = impact[2]; }
+    r = ((int (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))g_tel_coll_tramp)(target, source, normal, impact, dir);
+    tel_event(I76TEL_EV_IMPACT, v[0], v[1], v[2], is_player ? (float)(before - tel_health_sum(target)) : 0.0f,
+              is_player, source ? *(int *)(source + 0x6c) : 0);
+    return r;                                                /* the exe's bool result, in al; eax passes through untouched */
+}
+
+/* Entry detour of the cam_set_hook kind: the first n bytes of the function (position-independent, verified first) are
+ * copied into a trampoline that jumps back to entry+n, and the entry becomes `jmp hook` padded with nops. Returns the
+ * trampoline (what the hook calls to run the original) or 0 with nothing changed. */
+static BYTE *tel_detour(DWORD entry, const BYTE *expect, int n, void *hook, const char *what) {
+    BYTE patch[16], *tr;
+    LONG rel;
+    if (!g_tel_tramp) g_tel_tramp = (BYTE *)VirtualAlloc(NULL, 64, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!g_tel_tramp || g_tel_tramp_used + n + 5 > 64 || n > 11 || memcmp((void *)entry, expect, n) != 0) {
+        mlog("  patch: %s at 0x%08lX has UNEXPECTED bytes (or no trampoline room) - not patching", what, (unsigned long)entry);
+        return 0;
+    }
+    tr = g_tel_tramp + g_tel_tramp_used;
+    memcpy(tr, expect, n);
+    tr[n] = 0xE9; rel = (LONG)((entry + n) - ((DWORD_PTR)tr + n + 5)); memcpy(tr + n + 1, &rel, 4);
+    memset(patch, 0x90, sizeof patch);
+    patch[0] = 0xE9; rel = (LONG)((DWORD_PTR)hook - (entry + 5)); memcpy(patch + 1, &rel, 4);
+    if (!patch_bytes(entry, expect, patch, n, what)) return 0;
+    g_tel_tramp_used += n + 5;
+    return tr;
+}
+
+static void apply_telemetry(void) {
+    static const BYTE expl_old[8] = { 0x8B, 0x44, 0x24, 0x04, 0x8B, 0x4C, 0x24, 0x08 };   /* 0x49ead0: mov eax,[esp+4]; mov ecx,[esp+8] */
+    static const BYTE coll_old[6] = { 0x81, 0xEC, 0xD0, 0x00, 0x00, 0x00 };               /* 0x4a7c80: sub esp, 0xd0 */
+    static const DWORD fire_sites[2] = { 0x004a6b16, 0x004a6d43 };                          /* call 0x4a6e90 in weapon_UpdateInstanceFiring */
+    char v[16]; int port, hooks = 0, i;
+    DWORD n = GetEnvironmentVariableA("I76_TELEMETRY", v, sizeof(v));
+    if (n == 0 || n >= sizeof(v)) return;
+    port = atoi(v);
+    if (port == 1) port = I76TEL_PORT;
+    if (port < 1 || port > 65535) { mlog("  telemetry: '%s' is not a port - off", v); return; }
+    install_frame_hook();
+    if (!g_frame_hook) { mlog("  telemetry: frame hook missing - off"); return; }
+
+    /* UDP, through ws2_32 loaded by hand: winsock is not linked by either toolchain's build line, and a LoadLibrary
+     * here keeps the dependency inside the feature that uses it (nothing is loaded when the variable is unset). The
+     * winsock 1 types from windows.h match ws2_32's exports for these five calls. */
+    g_tel_ws = LoadLibraryA("ws2_32.dll");
+    if (g_tel_ws) {
+        int (__stdcall *p_startup)(WORD, WSADATA *) = (int (__stdcall *)(WORD, WSADATA *))GetProcAddress(g_tel_ws, "WSAStartup");
+        SOCKET (__stdcall *p_socket)(int, int, int) = (SOCKET (__stdcall *)(int, int, int))GetProcAddress(g_tel_ws, "socket");
+        WSADATA wsa;
+        p_tel_sendto = (int (__stdcall *)(SOCKET, const char *, int, int, const struct sockaddr *, int))GetProcAddress(g_tel_ws, "sendto");
+        if (p_startup && p_socket && p_tel_sendto && p_startup(0x0202, &wsa) == 0) {
+            g_tel_sock = p_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            g_tel_dst.sin_family = AF_INET;
+            g_tel_dst.sin_port = (u_short)(((port & 0xff) << 8) | (port >> 8));      /* htons by hand: no need for the import */
+            g_tel_dst.sin_addr.s_addr = 0x0100007f;                                  /* 127.0.0.1 */
+        }
+    }
+    /* shared memory: created here, so a reader that starts later finds it; one that started earlier (and created it
+     * empty) is handed the same section by name */
+    g_tel_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76tel_shm_t), I76TEL_SHM_NAME);
+    if (g_tel_map) {
+        g_tel_shm = (i76tel_shm_t *)MapViewOfFile(g_tel_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76tel_shm_t));
+        if (g_tel_shm) { memset(g_tel_shm, 0, sizeof *g_tel_shm); g_tel_shm->size = sizeof(i76tel_shm_t); }
+    }
+    /* events */
+    for (i = 0; i < 2; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(0x004a6e90 - (fire_sites[i] + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)tel_fire_wrap - (fire_sites[i] + 5)); memcpy(w + 1, &rel, 4);
+        hooks += patch_bytes(fire_sites[i], o, w, 5, "weapon_FireShot call (telemetry)");
+    }
+    g_tel_expl_tramp = tel_detour(0x0049ead0, expl_old, 8, (void *)tel_expl_hook, "entity_SpawnExplosion entry (telemetry)");
+    g_tel_coll_tramp = tel_detour(0x004a7c80, coll_old, 6, (void *)tel_coll_hook, "physics_ApplyCollisionDamage entry (telemetry)");
+    hooks += (g_tel_expl_tramp != 0) + (g_tel_coll_tramp != 0);
+    g_tel_on = 1;
+    mlog("  telemetry: on - udp 127.0.0.1:%d %s, shm %s %s, %d/4 event hooks (FireShot call sites x2, SpawnExplosion entry, ApplyCollisionDamage entry), frame %u B + events %u B, ring %d",
+         port, g_tel_sock != INVALID_SOCKET ? "open" : "FAILED", I76TEL_SHM_NAME, g_tel_shm ? "mapped" : "FAILED",
+         hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -1748,6 +2115,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
         apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
+        apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
@@ -1767,6 +2135,9 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         }
     } else if (reason == DLL_PROCESS_DETACH) {
         stop_track();
+        g_tel_on = 0;
+        if (g_tel_shm) { UnmapViewOfFile(g_tel_shm); g_tel_shm = 0; }
+        if (g_tel_map) { CloseHandle(g_tel_map); g_tel_map = 0; }
     }
     return TRUE;
 }
