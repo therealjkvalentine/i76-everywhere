@@ -1313,6 +1313,40 @@ static void apply_fix_label_table(void) {
 }
 
 /* ===========================================================================
+ * DRAW DISTANCE  (I76_FAR_CLIP=<metres>; off by default)
+ * ===========================================================================
+ * docs/DRAW-DISTANCE.md: every mission's WRLD chunk carries far = 600 m, parsed into the one global 0x4c271c, read
+ * by the projection setup at 0x4059de (`mov eax, [0x4c271c]`). The renderer's 12-byte draw-record arena (512 KB,
+ * [0x5dd324]) and the transformed-vertex buffer (0x1a5e0 B, [0x5dd320], split at +0xd2f0) have no bounds check and
+ * overflowed at far = 5000 (585,736 B used; crash at 0x491a11), so the pools are enlarged 16x in the same step -
+ * never one without the other (patch-farclip.ps1 did the same to the file). This runs from DllMain, before WinMain
+ * allocates the pools (0x402f98..0x402fd9). The read is repointed at g_far_clip, so the menu path (150 m) and the
+ * clamp in camera_Create 0x472220 (100..100000) are untouched. Second ceiling (i76-map renderer.md): the depth
+ * buckets drop anything past about 3796 m whatever the far clip says. */
+static float g_far_clip = 600.0f;
+static void apply_far_clip(void) {
+    static const BYTE rd_old[5] = { 0xA1, 0x1C, 0x27, 0x4C, 0x00 };          /* mov eax, [0x4c271c] at 0x4059de */
+    static const struct { DWORD va; DWORD old; } pool[5] = {
+        { 0x00402f99, 0x40000 }, { 0x00402f9e, 0x1a5e0 }, { 0x00402fc6, 0xd2f0 }, { 0x00402fcb, 0x80000 }, { 0x00402fd0, 0x80000 } };
+    char v[16]; DWORD n; float far_m; BYTE rd_new[5] = { 0xA1 }; DWORD a; int i, ok = 0;
+    n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
+    if (n == 0 || n >= sizeof(v)) return;
+    far_m = (float)atof(v);
+    if (far_m < 100.0f || far_m > 100000.0f) { mlog("  far-clip: %s out of range (100..100000 m) - not applied", v); return; }
+    for (i = 0; i < 5; i++) if (*(DWORD *)(DWORD_PTR)pool[i].va != pool[i].old) { mlog("  far-clip: pool constant %d differs - not applied", i); return; }
+    if (memcmp((void *)0x004059de, rd_old, 5) != 0) { mlog("  far-clip: read site differs - not applied"); return; }
+    for (i = 0; i < 5; i++) {
+        DWORD nv = pool[i].old * 16;
+        ok += patch_bytes(pool[i].va, (const BYTE *)&pool[i].old, (const BYTE *)&nv, 4, "render pool x16");
+    }
+    g_far_clip = far_m;
+    a = (DWORD)(DWORD_PTR)&g_far_clip; memcpy(rd_new + 1, &a, 4);
+    ok += patch_bytes(0x004059de, rd_old, rd_new, 5, "far clip read");
+    mlog("  far-clip: %s (%g m, pools x16, %d/6 sites)%s", ok == 6 ? "on" : "PARTIAL", far_m, ok,
+         far_m > 3796.0f ? " - note: depth buckets stop drawing past ~3796 m" : "");
+}
+
+/* ===========================================================================
  * PHYSICS SUBSTEP RATE  (I76_PHYS_RATE=<steps per second>; off by default; EXPERIMENT)
  * ===========================================================================
  * entity_InitVehicle seeds each vehicle's physics stepper with a 0.05 s maximum
@@ -2141,6 +2175,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
         apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
+        apply_far_clip();         /* opt-in: I76_FAR_CLIP=<metres> (+ render pools x16) */
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
