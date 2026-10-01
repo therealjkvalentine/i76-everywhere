@@ -118,24 +118,19 @@ to stay installable.
 
 Then on Windows, `git pull` and run `Install-Saves.ps1`.
 
-## The index is written short - watch for it
+## The index was never written short (correction, 2026-10-01)
 
-The game writes `savegame.dir` **36 bytes short**, cutting the tail off the record it just
-wrote. The last bookmark then has no scene number, and the shell lists it wrong or not at all.
+For three months this section said the game wrote `savegame.dir` 36 bytes short and the launchers re-padded it at
+every start. The game writes it exactly: `4 + 60 x count` bytes, a `u32 count` then 60-byte records
+`{u32 scene, char[32] display name, char[16] file name, u32 state, u32 0}`. The "missing 36 bytes" were the editor's
+model (`0x28` header, scene at `+0x18` of a record that started 36 bytes late), which read each record's scene from
+the record after it. Consequences, now fixed: every scene the editor showed was one too high; the editor wrote scene
+numbers into the wrong record; removing a slot shifted every remaining record by 36 bytes; the installers refused
+game-written files; the launchers appended zero slack and kept `.trunc-*` copies of files that were whole.
 
-A correct file is exactly `0x28 + count * 60` bytes: a 0x28 header whose first dword is the
-record count, then 60 bytes per record - name at `+0`, flags at `+0x10`, **scene at `+0x18`**,
-and the entry's display name in the 32 bytes *preceding* it (`0x08 + 60k`).
-
-`PLAY-i76.ps1` re-pads a short file at launch and keeps a `.trunc-<timestamp>` copy, and the
-Mac launcher stub does the same, so this mostly repairs itself - which is why the shipped
-`savegame.dir` is 876 bytes where 13 records need only 820. That padding is deliberate; never
-trim it back down. But **check the count before committing saves** - a truncated index
-committed here would ship the bug to every machine:
+The slack is harmless (the game reads `count` records) and the shipped directories keep theirs. Check a set with:
 
 ```bash
-python3 i76-save-editor.py --dir saves --list      # a truncated tail shows "mission ?"
+python3 i76-save-editor.py --dir saves --list
+node tools/tests/test-save-editor-dir.mjs saves/savegame.dir
 ```
-
-Padding restores the file's length, not the lost dword: a record that was cut still reads
-scene 0 afterwards, which is exactly what happened to `save017` above.
