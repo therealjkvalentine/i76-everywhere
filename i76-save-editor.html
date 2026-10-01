@@ -507,53 +507,54 @@ function eqOptions(slot,curName){
   }}));
   return [];
 }
-/* savegame.dir entry layout (CORRECTED 2026-07-14 after a board screenshot
-   proved every row wore the PREVIOUS entry's name): the 32-byte display NAME
-   of entry k PRECEDES its file field - name(save_k) @ 0x08+60k, then
-   file[16] @ 0x28+60k, u32 (+16: 1 or 8, unknown), u32, u32 SCENE (+24).
-   Blank names are legal (the board shows a default "SCENE N." label). The
-   game truncates the newest entry when it writes the file itself. */
+/* savegame.dir layout (CORRECTED 2026-10-01 against the raw bytes of a game-written directory; the lab's
+   364-byte file is exactly 4 + 60 x 6): u32 count, then 60-byte records at 4+60k:
+     +0  u32 SCENE (the last completed scene; loading plays the next one)
+     +4  char[32] display name (blank is legal: the board shows "SCENE N.")
+     +36 char[16] file name "saveNNN"
+     +52 u32 state the shell was entered with (1 success / 8 reconfigure)
+     +56 u32 0
+   The 2026-07 model read the scene at "name+24", which is the NEXT record's scene: every scene shown was off by one,
+   the last entry read as truncated, and writes landed one record down. There is no truncated last entry. */
+const DIR_HDR=4, DIR_REC=60, DIR_NAME=4, DIR_FILE=36, DIR_STATE=52;
+const dirRec=k=>DIR_HDR+DIR_REC*k;
 function parseDir(buf){
   const dv=new DataView(buf), u8=new Uint8Array(buf), out={};
-  if(u8.length<8) return out;
+  if(u8.length<DIR_HDR) return out;
   const count=u32(dv,0);
   for(let k=0;k<count;k++){
-    const e=0x28+60*k;
-    if(e+16>u8.length) break;
-    const nm=cstr(u8,e,16);
+    const r=dirRec(k);
+    if(r+DIR_REC>u8.length) break;
+    const nm=cstr(u8,r+DIR_FILE,16);
     if(!nm.startsWith("save")) continue;
-    out[nm]={scene:(e+28<=u8.length)?u32(dv,e+24):null,
-             name:cstr(u8,e-32,32)};
+    out[nm]={scene:u32(dv,r), name:cstr(u8,r+DIR_NAME,32), state:u32(dv,r+DIR_STATE)};
   }
   return out;
 }
 const sceneOf=b=>{const d=dirMissions[b]; return d&&typeof d.scene==="number"?d.scene:null;};
 const nameOf =b=>{const d=dirMissions[b]; return d?d.name:"";};
-/* THE GAME DROPS THE LAST DIR ENTRY when the file ends exactly at it (field-
-   observed 2026-07-14: an 8-entry, exactly-sized dir listed only 7; the
-   game's own writer always truncates its final entry, so its reader over-
-   reads). Every dir buffer we write gets 56 bytes of zero slack after the
-   last entry - more than the reader peeks, less than a phantom 9th entry. */
+/* a directory is exactly 4 + 60 x count bytes; extend a short one (older editor writes left records
+   truncated) with zeros so every record is whole. (The 2026-07 "game drops the last entry" note described
+   the misframed reader, not the game.) */
 function padDir(buf){
   const u8=new Uint8Array(buf);
-  if(u8.length<4) return buf;
-  const need=0x28+60*new DataView(buf).getUint32(0,true)+56;
+  if(u8.length<DIR_HDR) return buf;
+  const need=dirRec(new DataView(buf).getUint32(0,true));
   if(u8.length>=need) return buf;
   const out=new Uint8Array(need); out.set(u8);
   return out.buffer;
 }
-/* set an existing slot's scene dword (name+24), extending the file when the
-   game left the final entry truncated - THE GAME LOADS THIS NUMBER: a 0 here
+/* set an existing slot's scene dword (record +0) - THE GAME LOADS THIS NUMBER: a 0 here
    starts the bookmark at Scene 1 with the scripted starter car. */
 function dirSetScene(dirBuf, slotBase, scene){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
   const count=dv0.getUint32(0,true);
   for(let k=0;k<count;k++){
-    const nameOff=0x28+60*k;
-    if(nameOff+16>old.length) break;
-    if(cstr(old,nameOff,16)===slotBase){
-      const out=new Uint8Array(Math.max(old.length,nameOff+28)); out.set(old);
-      new DataView(out.buffer).setUint32(nameOff+24,scene,true);
+    const r=dirRec(k);
+    if(r+DIR_REC>old.length) break;
+    if(cstr(old,r+DIR_FILE,16)===slotBase){
+      const out=new Uint8Array(old.length); out.set(old);
+      new DataView(out.buffer).setUint32(r,scene,true);
       return padDir(out.buffer);
     }
   }
@@ -562,34 +563,28 @@ function dirSetScene(dirBuf, slotBase, scene){
 function dirWithSlot(dirBuf, slotBase, scene, dispName){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
   const count=dv0.getUint32(0,true);
-  const entOff=0x28+60*count;
-  const len=Math.max(old.length, entOff+60);   // full entry incl. the name field
-  const out=new Uint8Array(len); out.set(old);
+  const r=dirRec(count);
+  const out=new Uint8Array(Math.max(old.length, r+DIR_REC)); out.set(old);
   const dv=new DataView(out.buffer);
   dv.setUint32(0,count+1,true);
-  out.fill(0,entOff,entOff+60);
-  out.set(new TextEncoder().encode(slotBase).subarray(0,16),entOff);
-  dv.setUint32(entOff+16,1,true);
-  dv.setUint32(entOff+24,typeof scene==="number"?scene:0,true);
-  /* the display name PRECEDES the entry (name(save_k) @ entryOff-32) */
-  if(dispName){
-    out.fill(0,entOff-32,entOff);
-    out.set(new TextEncoder().encode(dispName).subarray(0,31),entOff-32);
-  }
+  out.fill(0,r,r+DIR_REC);
+  dv.setUint32(r,typeof scene==="number"?scene:0,true);
+  if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),r+DIR_NAME);
+  out.set(new TextEncoder().encode(slotBase).subarray(0,15),r+DIR_FILE);
+  dv.setUint32(r+DIR_STATE,1,true);
   return padDir(out.buffer);
 }
-/* set/clear the 32-byte display name of an existing entry - the name sits
-   BEFORE the entry's file field (name(save_k) @ 0x08+60k) */
+/* set/clear the 32-byte display name of an existing entry (record +4) */
 function dirSetName(dirBuf, slotBase, dispName){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
   const count=dv0.getUint32(0,true);
   for(let k=0;k<count;k++){
-    const e=0x28+60*k;
-    if(e+16>old.length) break;
-    if(cstr(old,e,16)===slotBase){
-      const out=new Uint8Array(Math.max(old.length,e+28)); out.set(old);
-      out.fill(0,e-32,e);
-      if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),e-32);
+    const r=dirRec(k);
+    if(r+DIR_REC>old.length) break;
+    if(cstr(old,r+DIR_FILE,16)===slotBase){
+      const out=new Uint8Array(old.length); out.set(old);
+      out.fill(0,r+DIR_NAME,r+DIR_NAME+32);
+      if(dispName) out.set(new TextEncoder().encode(dispName).subarray(0,31),r+DIR_NAME);
       return padDir(out.buffer);
     }
   }
@@ -656,25 +651,21 @@ async function slotSceneFromDirHistory(slotBase){
   }
   return null;
 }
-/* drop a slot's entry from savegame.dir (rebuild header + remaining entries) */
+/* drop a slot's entry from savegame.dir (header + the remaining whole records) */
 function dirRemoveSlot(dirBuf, slotBase){
   const old=new Uint8Array(dirBuf), dv0=new DataView(dirBuf);
   const count=dv0.getUint32(0,true);
   const kept=[];
   for(let k=0;k<count;k++){
-    const nameOff=0x28+60*k;
-    if(nameOff+16>old.length) break;
-    const nm=cstr(old,nameOff,16);
-    if(nm && nm!==slotBase) kept.push(nameOff);
+    const r=dirRec(k);
+    if(r+DIR_REC>old.length) break;
+    const nm=cstr(old,r+DIR_FILE,16);
+    if(nm && nm!==slotBase) kept.push(r);
   }
-  const out=new Uint8Array(0x28+60*kept.length);
-  out.set(old.subarray(0,0x28));
-  kept.forEach((src,k)=>{
-    const chunk=old.subarray(src,Math.min(src+60,old.length));
-    out.set(chunk,0x28+60*k);
-  });
+  const out=new Uint8Array(dirRec(kept.length));
+  kept.forEach((src,k)=>out.set(old.subarray(src,src+DIR_REC),dirRec(k)));
   new DataView(out.buffer).setUint32(0,kept.length,true);
-  return padDir(out.buffer);
+  return out.buffer;
 }
 const $=id=>document.getElementById(id);
 const tray=$("tray"), filein=$("filein"), pad=$("pad"), padbox=$("padbox"),
