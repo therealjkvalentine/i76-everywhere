@@ -17,11 +17,13 @@ if (Get-Process i76 -EA SilentlyContinue) { throw "close the game first - it rew
 
 $src = @(Get-ChildItem (Join-Path $SaveDir 'save*.cmp')) + @(Get-Item (Join-Path $SaveDir 'savegame.dir'))
 
-# refuse to install a short index rather than ship the truncation bug onward
+# refuse to install a short index. A directory is exactly 4 + 60 x count bytes (u32 count, then 60-byte records:
+# scene, name[32], file[16], state, 0). Until 2026-10-01 this check demanded 0x28 + 60 x count, the misframed
+# editor model, and rejected every file the game itself had written.
 $dir = Get-Item (Join-Path $SaveDir 'savegame.dir')
 $n = [BitConverter]::ToUInt32([IO.File]::ReadAllBytes($dir.FullName), 0)
-$want = 0x28 + $n * 60
-if ($dir.Length -lt $want) { throw ("savegame.dir is truncated ({0} bytes, need {1} for {2} records) - repair it before installing" -f $dir.Length, $want, $n) }
+$want = 4 + $n * 60
+if ($dir.Length -lt $want) { throw ("savegame.dir is short ({0} bytes, need {1} for {2} records) - repair it before installing" -f $dir.Length, $want, $n) }
 
 $existing = @(Get-ChildItem (Join-Path $GameDir 'save*.cmp') -EA SilentlyContinue) +
             @(Get-Item (Join-Path $GameDir 'savegame.dir') -EA SilentlyContinue)

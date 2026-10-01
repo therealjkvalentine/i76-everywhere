@@ -15,19 +15,25 @@ Current contents - the Mac campaign run, scenes 2 through 15, lifted from the wr
 
 | slot | scene | name |
 |---|---|---|
-| save000 | 2 | *(unnamed)* |
-| save001 | 3 | *(unnamed)* |
-| save002 | 5 | *(unnamed)* |
-| save008 | 6 | TRUTH |
-| save009 | 7 | TURRET TEST |
-| save010 | 9 | Yay! |
-| save011 | 10 | *(unnamed)* |
-| save012 | 11 | GOT IT |
-| save013 | 12 | Easy Groove! |
-| save014 | 13 | OOOH SHIT |
-| save015 | 14 | TRUCK STP SECURE |
-| save016 | 15 | County Line |
-| save017 | **none - see below** | So Many Turrets |
+| save000 | 1 | *(unnamed)* |
+| save001 | 2 | *(unnamed)* |
+| save002 | 3 | *(unnamed)* |
+| save008 | 5 | TRUTH |
+| save009 | 6 | TURRET TEST |
+| save010 | 7 | Yay! |
+| save011 | 9 | *(unnamed)* |
+| save012 | 10 | GOT IT |
+| save013 | 11 | Easy Groove! |
+| save014 | 12 | OOOH SHIT |
+| save015 | 13 | TRUCK STP SECURE |
+| save016 | 14 | County Line |
+| save017 | 15 | So Many Turrets |
+
+*Corrected 2026-10-01.* Every scene in the table used to read one too high and save017 "none": the editor's
+directory model put the scene dword at the wrong offset (the next record's), so each row wore the next row's scene
+and the last row looked truncated. The real record is `{u32 scene, name[32], file[16], u32 state, u32 0}` at
+`4 + 60k`; `python i76-save-editor.py --dir saves --list` and `node tools/tests/test-save-editor-dir.mjs saves/savegame.dir`
+now agree with the bytes.
 
 Slots 003-007 are missing by history, not by accident - they were deleted from the Mac
 install before this snapshot, and `rescue-20260718/` below is the only copy left. The index
@@ -39,18 +45,13 @@ List them at any time with:
 python3 i76-save-editor.py --dir saves --list
 ```
 
-### save017 ships with no scene, on purpose
+### save017 has a scene after all (correction, 2026-10-01)
 
-`save017` ("So Many Turrets") is the save the engine orphaned on 2026-07-19 and the launcher
-stub recovered byte-identically (`docs/SAVE-ORPHAN-INVESTIGATION.md`; it is still the twin of
-that session's `save-01.cmp`). Its index record lost its scene dword to the truncating write
-described at the bottom of this file, and that byte **was never written** - there is nothing
-to recover. It ships exactly as the game left it: scene 0, which the engine reads as "play
-Scene 1".
-
-It was very likely 16 - it is the next save after `save016` / scene 15, from the same evening
-- but that is a guess about a byte nobody has, so the set ships the game's own value instead
-of a fabricated one. Set it with the editor if you want the bookmark to jump properly.
+`save017` ("So Many Turrets") is the save the engine orphaned on 2026-07-19 and the launcher stub recovered
+byte-identically (`docs/SAVE-ORPHAN-INVESTIGATION.md`). This section used to say its index record had lost its
+scene dword to a "truncating write" and shipped as scene 0. There was no truncating write: the editor read the scene
+from the following record, and for the last record there is none. Under the real frame the record reads scene 15,
+the value the game wrote, and the directory is exactly 4 + 60 x 13 bytes plus the slack an older editor appended.
 
 ## Installing them
 
@@ -75,7 +76,7 @@ files, so slots cannot be merged piecemeal.
 | directory | what it is |
 |---|---|
 | `windows-20260906/` | the 7 bookmarks that shipped in this directory before the Mac set landed: scenes 2, 3, 5 and four at scene 6, off the Windows install. Includes the `save004.cmp` recovered from the 2026-09-05 field case (see `PLAY-i76.ps1`). Index is intact - installable. |
-| `rescue-20260718/` | a whole-folder snapshot of the Mac game directory taken 2026-07-18, and the only surviving copy of slots 003-007. **Its index is truncated** (844 bytes, needs 880 for its 14 records), so both install scripts will refuse it by design - treat it as a data archive, and note its cut tail entry `save013` is the same file the live set above indexes as scene 12. |
+| `rescue-20260718/` | a whole-folder snapshot of the Mac game directory taken 2026-07-18, and the only surviving copy of slots 003-007. Its index is complete (844 bytes = 4 + 60 x 14 records; the old installers demanded 880 and refused it: fixed 2026-10-01). Its `save013` is the same file the live set above indexes as scene 11. |
 
 Both are complete sets rather than loose files, so the PowerShell installer can take either
 one directly:
@@ -87,10 +88,9 @@ pwsh -File saves/Install-Saves.ps1 -GameDir "C:\path\to\Interstate 76" -SaveDir 
 `install-saves.sh` has no equivalent switch - it always installs the set sitting beside it -
 so on a Mac, copy an archived set up into this directory first.
 
-`save006` in `windows-20260906/` lost its scene field to the same truncating write and was
-**reconstructed as 6**, not recovered: its two siblings `save004`/`save005` are scene 6 and
-byte-identical in size, so 6 is the only consistent value - but it is an inference, and the
-original byte is gone.
+`save006` in `windows-20260906/` was once "reconstructed as 6" on the belief that its scene field had been lost
+to a truncating write. Under the corrected frame the record reads scene 6 directly (state 8, name `z`); nothing was
+lost. The directory carries 36 bytes of slack from the old editor, which the game ignores (it reads `count` records).
 
 ## Adding your own saves from another machine
 

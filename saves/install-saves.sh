@@ -17,7 +17,7 @@ import struct, sys, os
 p = sys.argv[1]
 d = open(p, 'rb').read()
 n = struct.unpack_from('<I', d, 0)[0]
-want = 0x28 + n * 60
+want = 4 + n * 60  # 4 + 60 x count: the real frame (2026-10-01); 0x28+60n was the misframed editor model
 if len(d) < want:
     sys.exit("savegame.dir is truncated (%d bytes, need %d for %d records) - repair it first" % (len(d), want, n))
 PY
