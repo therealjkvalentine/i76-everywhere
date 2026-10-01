@@ -1,0 +1,34 @@
+i76tel.h: frame 608 B, event 36 B, ring 64, version 1
+listening on 127.0.0.1:7676 - set I76_TELEMETRY=7676 (or =1 for 7676), start the game, enter a mission
+  ev #1      frame 1578    SHOT      row 2 weapdef 1 x1  ammo left 699  dmg/hit 30  dt_left 0.017
+  ev #2      frame 1578    SHOT      row 1 weapdef 3 x1  ammo left 299  dmg/hit 60  dt_left 0.017
+  ev #3      frame 1581    IMPACT    other  source class 51  impact (-0.5, -0.0, -0.9) |1.0|  lost 0 hp
+  ev #4      frame 1581    EXPLOSION X1_BULC1 at (3576.8, 3.1, 36266.7)  8.0 m from the player
+  ev #5      frame 1581    SHOT      row 2 weapdef 1 x1  ammo left 698  dmg/hit 30  dt_left 0.017
+  ev #6      frame 1584    SHOT      row 2 weapdef 1 x1  ammo left 697  dmg/hit 30  dt_left 0.017
+  ev #7      frame 1587    SHOT      row 2 weapdef 1 x1  ammo left 696  dmg/hit 30  dt_left 0.017
+  ev #8      frame 1590    SHOT      row 2 weapdef 1 x1  ammo left 695  dmg/hit 30  dt_left 0.017
+  ev #9      frame 1593    SHOT      row 2 weapdef 1 x1  ammo left 694  dmg/hit 30  dt_left 0.017
+  ev #10     frame 1596    SHOT      row 2 weapdef 1 x1  ammo left 693  dmg/hit 30  dt_left 0.017
+  ev #11     frame 1598    SHOT      row 1 weapdef 3 x1  ammo left 298  dmg/hit 60  dt_left 0.017
+  ev #12     frame 1599    SHOT      row 2 weapdef 1 x1  ammo left 692  dmg/hit 30  dt_left 0.017
+  ev #13     frame 1601    IMPACT    other  source class 51  impact (-0.5, -0.0, -0.9) |1.0|  lost 0 hp
+  ev #14     frame 1601    EXPLOSION X1_BULC1 at (3580.7, 3.1, 36273.7)  7.9 m from the player
+  ev #15     frame 1602    SHOT      row 2 weapdef 1 x1  ammo left 691  dmg/hit 30  dt_left 0.017
+  ev #16     frame 1605    SHOT      row 2 weapdef 1 x1  ammo left 690  dmg/hit 30  dt_left 0.017
+  ev #17     frame 1608    SHOT      row 2 weapdef 1 x1  ammo left 689  dmg/hit 30  dt_left 0.017
+  ev #18     frame 1611    SHOT      row 2 weapdef 1 x1  ammo left 688  dmg/hit 30  dt_left 0.017
+  ev #19     frame 1614    SHOT      row 2 weapdef 1 x1  ammo left 687  dmg/hit 30  dt_left 0.017
+  ev #20     frame 1617    SHOT      row 2 weapdef 1 x1  ammo left 686  dmg/hit 30  dt_left 0.017
+  ev #21     frame 1618    SHOT      row 1 weapdef 3 x1  ammo left 297  dmg/hit 60  dt_left 0.017
+  ev #22     frame 1620    SHOT      row 2 weapdef 1 x1  ammo left 685  dmg/hit 30  dt_left 0.017
+  ev #23     frame 1621    IMPACT    other  source class 51  impact (-0.5, -0.0, -0.9) |1.0|  lost 0 hp
+  ev #24     frame 1621    EXPLOSION X1_BULC1 at (3584.7, 3.1, 36280.9)  8.1 m from the player
+  ev #25     frame 1623    SHOT      row 2 weapdef 1 x1  ammo left 684  dmg/hit 30  dt_left 0.017
+  ev #26     frame 1626    SHOT      row 2 weapdef 1 x1  ammo left 683  dmg/hit 30  dt_left 0.017
+  ev #27     frame 1629    SHOT      row 2 weapdef 1 x1  ammo left 682  dmg/hit 30  dt_left 0.017
+  ev #28     frame 1632    SHOT      row 2 weapdef 1 x1  ammo left 681  dmg/hit 30  dt_left 0.017
+  ev #29     frame 1635    SHOT      row 2 weapdef 1 x1  ammo left 680  dmg/hit 30  dt_left 0.017
+  ev #30     frame 1638    SHOT      row 2 weapdef 1 x1  ammo left 679  dmg/hit 30  dt_left 0.017
+  ev #31     frame 1638    SHOT      row 1 weapdef 3 x1  ammo left 296  dmg/hit 60  dt_left 0.017
+  ev #32     frame 1645    EXPLOSION X1_BULG1 at (3596.6, 2.2, 36302.5)  22.6 m from the player
