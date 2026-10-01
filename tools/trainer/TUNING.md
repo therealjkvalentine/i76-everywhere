@@ -173,3 +173,7 @@ Append to `entries` in `tunables.json`: `id`, `group`, `name`, `addr` (VA for ex
 at base+off - hp words are i32, so use `ri` for them - and `note`). Then run `--offline list`: an entry whose bytes do not match its default or section is
 reported as `MISMATCH` and should be fixed or dropped before use. The addresses are for md5 9a232dcc (the GOG / AiO
 link); `tools\disasm.py <function>` in i76-map shows the readers.
+
+## Verified live (2026-10-01, sandbox)
+
+`set gear_ratio_3rd 0.5` on a running game: 47 of 47 third-gear samples followed rpm = 850 + 126.81 x 0.5 x v and none followed the stock 0.67; `reset` read back 0.67. The gear table is in .data, so that write needed no unprotect; .rdata entries take the VirtualProtectEx path (not yet exercised).

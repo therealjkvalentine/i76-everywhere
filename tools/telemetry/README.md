@@ -1,6 +1,6 @@
 # I'76 telemetry export (`I76_TELEMETRY`)
 
-> **Not yet verified live (2026-10-01).** Everything below is a static reading of the pristine exe (md5 9a232dcc)
+> **Verified live 2026-10-01 (sandbox, i76.exe, t01):** 1,067 of 1,067 frames decoded with the player present, frame counter monotonic, gear / rpm / ammo / weapon name matching the live tables; a 3-second burst produced SHOT events whose `ammo left` stepped 699, 698, ... in lock with the weapon instance table, one IMPACT and one EXPLOSION (`X1_BULC1`, 8 m) - see `verification-2026-10-01.txt`. The telemetry stops while the game is outside its play loop (menus, mission over); that is by design. The rest of this file is the static reading it was written from.
 > through the i76-map specs, compiled and size-checked but never run against the game. Field sources are cited so a
 > live check can go straight to the instruction when a value looks wrong. First checks to make: the frame counter
 > advances by 1 per datagram, `speed` matches the HUD, `gear` steps 1 -> 2 -> 3 -> 4 as `engine.md` says, one `SHOT`
