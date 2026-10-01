@@ -162,6 +162,13 @@ static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
 static DWORD g_timeFormat = MCI_FORMAT_MSF;
 static int   g_curTrack = 0;
 static int   g_playingTrack = 0;   /* what is REALLY on the head right now */
+/* The engine never asks for one track: every MCI_PLAY carries MCI_FROM|MCI_TO (flags 0xC in every field log), the
+ * run N..15 built by 0x424190 from the TOC table (i76-map sound.md; docs/MUSIC-TRACK-MAP.md). Until 2026-10-01 the
+ * proxy read only dwFrom, so the mpegvideo device stopped after one song, the exe's status poll (0x424550, every
+ * 5 s in a mission) saw playing -> stopped and re-issued the same track: one song looping with gaps. g_runStart /
+ * g_runEnd hold the requested run; playing_now() advances to the next track when the current one ends. */
+static int   g_runStart = 0, g_runEnd = 0;
+static MCIERROR play_track(int track);
 static DWORD g_lenCache[LAST_TRACK + 1];   /* ms, 0 = not yet queried */
 
 static void mci_str(const char *cmd);
@@ -229,7 +236,13 @@ static int playing_now(void) {
     _snprintf(cmd, sizeof(cmd), "status %s mode", g_alias);
     ret[0] = 0;
     if (real_mciSendStringA(cmd, ret, sizeof(ret), NULL) != 0) return 0;
-    return strstr(ret, "playing") != NULL;
+    if (strstr(ret, "playing") != NULL) return 1;
+    if (g_playingTrack && g_playingTrack >= g_runStart && g_playingTrack < g_runEnd) {   /* song ended: next in the run */
+        int next = g_playingTrack + 1;
+        mlog("  run %d..%d: track %d ended -> %d", g_runStart, g_runEnd, g_playingTrack, next);
+        return play_track(next) == 0;
+    }
+    return 0;
 }
 
 /* Encode milliseconds in whatever time format the game selected via MCI_SET. */
@@ -327,6 +340,10 @@ static MCIERROR play_track(int track) {
      * That is why music restarted whenever the window lost and regained focus, and
      * why a track could never play through to its end. A CD player asked for the
      * track already under the head does not lift the needle. */
+    if (track == g_runStart && g_playingTrack > g_runStart && g_playingTrack <= g_runEnd && still_playing()) {
+        mlog("  PLAY track %d re-issued while its run is on track %d - kept", track, g_playingTrack);
+        return 0;
+    }
     if (track == g_playingTrack && still_playing()) {
         mlog("  track %d already playing - not restarting", track);
         return 0;
@@ -345,6 +362,8 @@ static MCIERROR play_track(int track) {
     stop_track();
     _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", mp3, g_alias); mci_str(cmd);
     g_open = 1;
+    _snprintf(cmd, sizeof(cmd), "setaudio %s volume to %lu", g_alias, (unsigned long)g_volume); mci_str(cmd);   /* the exe sets the
+                                                                   slider once (0x423d50), not per track: re-apply it (M2) */
     _snprintf(cmd, sizeof(cmd), "play %s", g_alias); mci_str(cmd);
     g_playingTrack = track;
     mlog("  PLAY track %d", track);
@@ -410,12 +429,19 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
             DWORD from = (DWORD)p->dwFrom;          /* TMSF: track in the low byte */
             track = (from & 0xFF) ? (int)(from & 0xFF) : (int)from;
         }
-        mlog("MCI_PLAY flags=0x%lX from=%ld -> track %d",
-             (unsigned long)flags, p ? (long)p->dwFrom : -1, track);
+        {
+            int to = track;
+            if (p && (flags & MCI_TO)) { DWORD t = (DWORD)p->dwTo; to = (t & 0xFF) ? (int)(t & 0xFF) : (int)t; }
+            if (to < track) to = track;
+            if (to > LAST_TRACK) to = LAST_TRACK;
+            g_runStart = track; g_runEnd = to;
+            mlog("MCI_PLAY flags=0x%lX from=%ld to=%ld -> run %d..%d",
+                 (unsigned long)flags, p ? (long)p->dwFrom : -1, p ? (long)p->dwTo : -1, track, to);
+        }
         g_curTrack = track;
         return play_track(track);
     }
-    case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE: stop_track(); return 0;
+    case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE: g_runStart = g_runEnd = 0; stop_track(); return 0;
     /* MCI_STATUS - and the per-track answers matter as much as the open.
      *
      * This used to answer `default: dwReturn = 0`, and the log showed the game

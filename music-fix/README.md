@@ -24,6 +24,7 @@ Measured in the sandbox (i76-map `captures/014-framerate`). All of these are off
 
 | variable | fixes | evidence |
 |---|---|---|
+| (music, always on) | 2026-10-01: the proxy now plays the **run** the game asks for (`MCI_PLAY` with FROM|TO, tracks N..15; before, only track N played and the exe's 5 s status poll restarted it: one song looping with gaps, visible in every field log as repeated `PLAY track 7`), and re-applies the music slider on every track change (the exe sets it once at init) | built; not yet heard in play |
 | `I76_HIRES_CLOCK=1` | jittery dt: 15.6 ms GetTickCount steps and float32 uptime decay | dt exact (50.00 ms at 20 fps, 16/17 ms at 60 fps) |
 | `I76_FIXED_STEP=24` | chassis/cockpit buzz, jump behaviour: physics always steps in 41.7 ms slices, the mean step of stock play at 20 fps | stock 20 fps actually steps 46.9 ms (80%) / 31.2 ms (GetTickCount frame dts split by the stepper); 24 Hz body motion as calm as stock 20 (at rest 0.83-0.86 in 3 of 4 runs vs 0.45-0.84), acceleration unchanged. The first choice, 40 (25 ms), made jumps fall short and the body feel quick in play |
 | `I76_FIX_HEALTH_PCT=1` | stock bug fix, off by default: the vehicle health percent (object_HealthFraction) drops its x100 once engine, suspension or brakes are below 99.99%, so a scratched car reads under 1%. Damage smoke, handgun targeting, script hpLesser, AI fleeing and the target brackets all see it. Missions may be tuned around it, so try it on the sandbox | 99% engine: no smoke (stock: heaviest smoke); 50%: smoke |
