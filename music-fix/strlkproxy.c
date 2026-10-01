@@ -492,6 +492,16 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
 }
 
 /* Rewrite module's IAT slot for dll!func -> newfn. Returns the old pointer. */
+static int patch_iat_has_dll(HMODULE mod, const char *dll) {
+    BYTE *base = (BYTE *)mod;
+    IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
+    IMAGE_DATA_DIRECTORY dd = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    IMAGE_IMPORT_DESCRIPTOR *d;
+    if (!dd.VirtualAddress) return 0;
+    for (d = (IMAGE_IMPORT_DESCRIPTOR *)(base + dd.VirtualAddress); d->Name; d++)
+        if (lstrcmpiA((char *)(base + d->Name), dll) == 0) return 1;
+    return 0;
+}
 static void *patch_iat(HMODULE mod, const char *dll, const char *func, void *newfn) {
     BYTE *base = (BYTE *)mod;
     IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)base;
@@ -1967,7 +1977,9 @@ static void tel_player_fill(i76tel_frame_t *t) {
         row = *(int *)(rec + 4);
         t->weapon_row = row;
         if (row >= 0 && row < 7) {
-            BYTE *inst = *(BYTE **)(rec + 0x58 + row * 0x58 + 0x50), *root;
+            int idx = *(int *)(rec + 0x58 + row * 0x58 + 0x50);   /* slot+0x50 is an INDEX into the instance table
+                                                                       (I76_WeaponSlot; live: 2/3/1 on the sandbox car) */
+            BYTE *inst = (idx >= 0 && idx < *(int *)0x005da750 && idx < 150) ? (BYTE *)0x005aab08 + idx * 0x4c : 0, *root;
             if (inst) {
                 t->weapon_def = *(int *)(inst + 0x30); t->weapon_ammo = *(int *)(inst + 0x20); t->weapon_hp = *(int *)(inst + 0xc);
                 root = *(BYTE **)(inst + 8);
@@ -2185,6 +2197,9 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
              redirect_global_import(exe), (void *)p_GlobalObj);
         {
         void *old = patch_iat(exe, "WINMM.dll", "mciSendCommandA", hook_mciSendCommandA);
+        if (!old && !patch_iat_has_dll(exe, "WINMM.dll"))
+            mlog("  NOTE: this exe has no WINMM.dll import (i76fix builds route winmm through WIN32.dll): the music redirect and"
+                 " the aux volume hooks cannot attach; CD audio goes to that shim instead. Use i76.exe for music.");
         mlog("--- strlkproxy: IAT patch mciSendCommandA old=%p new=%p ---", old, (void *)hook_mciSendCommandA);
         /* The aux trio is what actually gets the engine to TRY. Without these the
          * mci hook above was installed and never called even once - see the note
