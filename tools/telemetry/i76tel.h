@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 #define I76TEL_MAGIC    0x54363749u  /* the bytes 'I' '7' '6' 'T' in memory order */
-#define I76TEL_VERSION  1
+#define I76TEL_VERSION  2
 #define I76TEL_RING     64           /* event ring entries; slot = seq % I76TEL_RING */
 #define I76TEL_PORT     7676         /* default UDP port (I76_TELEMETRY=1) */
 #define I76TEL_SHM_NAME "Local\\I76Telemetry"
@@ -50,7 +50,7 @@ typedef struct i76tel_event_t {         /* 36 bytes */
     int32_t  i[2];
 } i76tel_event_t;
 
-typedef struct i76tel_frame_t {         /* 608 bytes, one per rendered frame */
+typedef struct i76tel_frame_t {         /* 628 bytes (v2), one per rendered frame */
     uint32_t magic;                     /* I76TEL_MAGIC */
     uint16_t version;                   /* I76TEL_VERSION */
     uint16_t size;                      /* sizeof(i76tel_frame_t) */
@@ -115,6 +115,13 @@ typedef struct i76tel_frame_t {         /* 608 bytes, one per rendered frame */
     uint32_t ffb_list_concussion;       /* 0x4f247c */
     uint32_t ffb_list_collision;        /* 0x4f2484 */
     float    ffb_dt;                    /* 0x4f2488 simclock_GetDt copy */
+    /* v2 (2026-10-02): the inputs the oracles could only fit, not read */
+    float    engine_power;              /* eng+0x14 ENGN power P (drive power = P x f x rpm x (7000-rpm)/3500^2) */
+    float    mass;                      /* ent+0xa4 total mass (kg); offline brake strength = 2300/m */
+    float    inv_mass;                  /* ent+0xa8 1/m */
+    float    drag;                      /* ent+0x120 VDFC drag: a = -0.1 x drag x v^2 */
+    float    health_pct;                /* object_HealthFraction(obj) 0x40b450 called on the game thread: 28 + 72 x worst side ratio,
+                                           or the unscaled component ratio once engine/susp/brakes < 99.99% (damage.md); x100 under I76_FIX_HEALTH_PCT */
     uint32_t event_seq;                 /* total events recorded so far (the last event's seq) */
     uint32_t event_count;               /* events appended to this datagram after the struct (0 in shared memory) */
 } i76tel_frame_t;

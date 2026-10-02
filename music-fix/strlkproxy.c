@@ -1966,6 +1966,9 @@ static void tel_player_fill(i76tel_frame_t *t) {
     }
     if ((c = tel_comp(ent, 8, 23)) != 0) { t->susp_hp = *(int *)c; t->susp_hp_max = *(int *)(c + 4); }
     if ((c = tel_comp(ent, 9, 22)) != 0) { t->brake_hp = *(int *)(c + 4); t->brake_hp_max = *(int *)(c + 8); t->brake_effective = *(float *)(c + 0x10); }
+    if ((c = tel_comp(ent, 7, 21)) != 0) t->engine_power = *(float *)(c + 0x14);          /* v2 fields */
+    t->mass = *(float *)(ent + 0xa4); t->inv_mass = *(float *)(ent + 0xa8); t->drag = *(float *)(ent + 0x120);
+    t->health_pct = ((float (__cdecl *)(BYTE *))0x0040b450)(obj);                        /* object_HealthFraction, pure read */
     t->flags = *(DWORD *)(ent + 0x454); t->surface = *(DWORD *)(ent + 0x45c);
     memcpy(t->ground_normal, ent + 0x460, sizeof t->ground_normal);
     t->clearance = *(float *)(ent + 0x470); t->state_timer = *(float *)(ent + 0x450);

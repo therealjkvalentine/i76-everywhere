@@ -143,7 +143,7 @@ everything is little-endian and naturally aligned.
 | 12 | 16 | `float[4]` | `f` | per type, see the I76TEL_EV_* comments |
 | 28 | 8 | `int32_t[2]` | `i` |  |
 
-### `i76tel_frame_t` (608 bytes)
+### `i76tel_frame_t` (628 bytes)
 
 | offset | size | type | field | source / meaning |
 |---:|---:|---|---|---|
@@ -211,17 +211,22 @@ everything is little-endian and naturally aligned.
 | 588 | 4 | `uint32_t` | `ffb_list_concussion` | 0x4f247c |
 | 592 | 4 | `uint32_t` | `ffb_list_collision` | 0x4f2484 |
 | 596 | 4 | `float` | `ffb_dt` | 0x4f2488 simclock_GetDt copy |
-| 600 | 4 | `uint32_t` | `event_seq` | total events recorded so far (the last event's seq) |
-| 604 | 4 | `uint32_t` | `event_count` | events appended to this datagram after the struct (0 in shared memory) |
+| 600 | 4 | `float` | `engine_power` | eng+0x14 ENGN power P (drive power = P x f x rpm x (7000-rpm)/3500^2) |
+| 604 | 4 | `float` | `mass` | ent+0xa4 total mass (kg); offline brake strength = 2300/m |
+| 608 | 4 | `float` | `inv_mass` | ent+0xa8 1/m |
+| 612 | 4 | `float` | `drag` | ent+0x120 VDFC drag: a = -0.1 x drag x v^2 |
+| 616 | 4 | `float` | `health_pct` |  |
+| 620 | 4 | `uint32_t` | `event_seq` | total events recorded so far (the last event's seq) |
+| 624 | 4 | `uint32_t` | `event_count` | events appended to this datagram after the struct (0 in shared memory) |
 
-### `i76tel_shm_t` (2920 bytes)
+### `i76tel_shm_t` (2940 bytes)
 
 | offset | size | type | field | source / meaning |
 |---:|---:|---|---|---|
 | 0 | 4 | `uint32_t` | `seq` | odd while the writer is inside, even when the block is consistent: read seq, copy, re-read seq, accept if equal and even |
 | 4 | 4 | `uint32_t` | `size` | sizeof(i76tel_shm_t) |
-| 8 | 608 | `i76tel_frame_t` | `frame` |  |
-| 616 | 2304 | `i76tel_event_t[64]` | `ring` | I76TEL_RING entries, slot = event seq % 64 |
+| 8 | 628 | `i76tel_frame_t` | `frame` |  |
+| 636 | 2304 | `i76tel_event_t[64]` | `ring` | I76TEL_RING entries, slot = event seq % 64 |
 
 <!-- layout:end -->
 
