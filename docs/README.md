@@ -5,7 +5,14 @@ efforts — some of it is the shipping solution, some is a **tried-and-abandoned
 only so nobody re-chases it. Each doc below is tagged so you know which is which before you act on
 it.*
 
-## Current state (2026-07-11)
+## Current state (2026-07-11; Windows state updated 2026-10-02)
+
+> **(corrected 2026-10-02)** The bullets below describe the Mac build as of 2026-07-11 and are kept for that
+> platform. The Windows daily driver has moved on: the `u32x` save/mouse proxy, the `i76shell.dll` text-entry
+> repair and the in-mission music proxy are **deployed and verified in play**; the 60 fps switch set, the
+> draw-distance patch and the health-percent fix are **sandbox-only** (console-verified by the owner on 2026-10-02,
+> not deployed). The component-by-component state table is [RELEASE-PLAN.md](RELEASE-PLAN.md) section 1 and the
+> open work is [BACKLOG-2026-10-02.md](BACKLOG-2026-10-02.md).
 
 - **The Mac build = the software renderer via DxWnd.** One app: **`Interstate 76 - Software
   (DxWnd).app`** (+ a DxWnd-settings app). Instant start, no shader compile, big 4:3 window,
@@ -28,7 +35,7 @@ it.*
 | [`../i76-save-editor.command`](../i76-save-editor.command) | **One-click launcher** for the browser editor: starts [`i76-save-editor-server.py`](../i76-save-editor-server.py) (localhost-only), auto-finds the wrapper's saves (`--dir` to override), opens the page with the order pad pre-loaded, and lets **Save Bookmark write straight back to the game folder**. Every write keeps a **timestamped backup** (restore via the History dropdown); **Delete** removes a bookmark from the game recoverably (a "↩ restore" row appears on the pad). Without the launcher the page runs in drag-and-drop/download mode (artifact, Deck, Windows). |
 | [`../smack-music-fix/`](../smack-music-fix/) | **Cutscene-music fix** — proxy `SMACKW32.DLL` that stops the leaked CD track when a movie starts (recreates the 1997 CD-drive behavior the devs relied on). Ordinal-exact 39-export forwarder; works on Mac (DxWnd) and GOG-Windows. Install: `setup-cutscene-music-fix.sh`. |
 | [EDITOR-FIELD-TESTS.md](EDITOR-FIELD-TESTS.md) | The save editor's open in-game questions as a 10-minute checklist (paint vtf swap, GROSS WT calibration, bench/van caps, condition colors, spc01) — results get locked into the editor + format docs. |
-| **[INPUT-REMAPPER.md](INPUT-REMAPPER.md)** | **Universal input remapper** — AutoHotkey v1.1 running INSIDE the Wine/Proton prefix (one config for Mac/Deck/Windows): mouse buttons 4/5 → specials, wheel → gear shift. Install: `setup-input-remapper.sh` (sha256-pinned download, `--test` hook harness); config: `i76-remap.ahk`; auto-started/reaped by the Mac launcher. In-game button test pending user field run. |
+| **[INPUT-REMAPPER.md](INPUT-REMAPPER.md)** | **Universal input remapper** — AutoHotkey v1.1 running INSIDE the Wine/Proton prefix (one config for Mac/Deck/Windows): mouse buttons 4/5 → specials, wheel → gear shift. Install: `setup-input-remapper.sh` (sha256-pinned download, `--test` hook harness); config: `i76-remap.ahk`; auto-started/reaped by the Mac launcher. Controller layer verified in play on Mac and Windows ([../CHANGELOG.md](../CHANGELOG.md) Unreleased; corrected 2026-10-02 — this said "in-game button test pending"). |
 
 ## 🅿️ Dead ends & parked — tried on the Mac, do NOT re-chase
 

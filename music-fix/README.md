@@ -27,7 +27,7 @@ Measured in the sandbox (i76-map `captures/014-framerate`). All of these are off
 | (music, always on) | 2026-10-01: the proxy now plays the **run** the game asks for (`MCI_PLAY` with FROM|TO, tracks N..15; before, only track N played and the exe's 5 s status poll restarted it: one song looping with gaps, visible in every field log as repeated `PLAY track 7`), and re-applies the music slider on every track change (the exe sets it once at init) | verified in the sandbox 2026-10-01 on i76.exe: `run 2..15` parsed, `setaudio ... 700` before each track, `track 2 ended -> 3` then `PLAY track 3` (track 2 truncated to 400 KB for the test). NOTE: `i76_pristine_fix.exe` (i76fix) imports `WIN32.dll` instead of `WINMM.dll`, so this proxy's music and volume hooks cannot attach there - the log now says so |
 | `I76_HIRES_CLOCK=1` | jittery dt: 15.6 ms GetTickCount steps and float32 uptime decay | dt exact (50.00 ms at 20 fps, 16/17 ms at 60 fps) |
 | `I76_FIXED_STEP=24` | chassis/cockpit buzz, jump behaviour: physics always steps in 41.7 ms slices, the mean step of stock play at 20 fps | stock 20 fps actually steps 46.9 ms (80%) / 31.2 ms (GetTickCount frame dts split by the stepper); 24 Hz body motion as calm as stock 20 (at rest 0.83-0.86 in 3 of 4 runs vs 0.45-0.84), acceleration unchanged. The first choice, 40 (25 ms), made jumps fall short and the body feel quick in play |
-| `I76_FIX_HEALTH_PCT=1` | stock bug fix, off by default: the vehicle health percent (object_HealthFraction) drops its x100 once engine, suspension or brakes are below 99.99%, so a scratched car reads under 1%. Damage smoke, handgun targeting, script hpLesser, AI fleeing and the target brackets all see it. Fixed value: min(28 + 72 x worst side ratio, 100 x worst core ratio) - the first version (x100 alone) made the target bar rise and go green when a damaged car's engine was scratched (docs/HEALTH-BAR-COLOUR.md); `=2` keeps that reading for A/B. Missions may be tuned around it, so try it on the sandbox | 99% engine: no smoke (stock: heaviest smoke); 50%: smoke; min() version not yet run live |
+| `I76_FIX_HEALTH_PCT=1` | stock bug fix, off by default: the vehicle health percent (object_HealthFraction) drops its x100 once engine, suspension or brakes are below 99.99%, so a scratched car reads under 1%. Damage smoke, handgun targeting, script hpLesser, AI fleeing and the target brackets all see it. Fixed value: min(28 + 72 x worst side ratio, 100 x worst core ratio) - the first version (x100 alone) made the target bar rise and go green when a damaged car's engine was scratched (docs/HEALTH-BAR-COLOUR.md); `=2` keeps that reading for A/B. Missions may be tuned around it, so try it on the sandbox | 99% engine: no smoke (stock: heaviest smoke); 50%: smoke. min() version measured live 2026-10-02 (`tools/trainer/tests/health_pct_live_test.py`: stock 0.99 / `=2` x100-only 99.0 / `=1` min() 49.6 on a 30% armour car with a 99% engine — the field report's rising green target bar was the x100-only reading). Target-bracket colours under the fix are still open (backlog P1-01) |
 | `I76_FIX_LABEL_TABLE=1` | stock bug fix: the per-mission object-label table (start capacity 2048) grows through a broken path (CRT `_msize` on a private heap, new pointer discarded, NULL written through on failure). Only huge custom missions reach it. `I76_LABEL_TEST=1` shrinks the start capacity to 16 to exercise it | T01 with capacity 16: grew to 272, all 88 labels kept, game ran |
 | `I76_FRAMERATE_FIXES=1` | sky drift, free-look camera keys, zoom key, keyboard throttle ramp, missile-lock tones, radar lock ping (locked on it pinged every frame: 60/s at 60 fps; coalesced to 20/s as at 20 fps), per-frame vehicle sounds, AI throttle and steering gains, AI fire decisions (the random fire gate is rolled on the 20 Hz grid and held for the window; stock rolled it every frame: about 3x the fire decisions at 60 fps; `I76_AI_FIRE_CACHE=0` disables only this), flamers (stream ageing on the 20 Hz grid, stock-20 shape, damage 20 times a second from the main pass only: stock applied it per rendered frame, and again in the rear-mirror pass), smoke puffs (updated on the 20 Hz grid, drawn smoothly in between), missile-trail fade, HUD ammo-digit roll (20 steps/s, not measured) | clouds 0.0300 /s at 60 fps = 20 fps (stock 0.0899); sky, free-look confirmed in play; smoke puffs age 19.1 steps/s at 60 fps (stock 57.8; stock 20 fps: 20), i76-map capture 014 `smoke_*.json`; flame stream at 60 fps 18.7 segments (stock 0.6, stock 20 fps 19.0: stock 60 fps has, in effect, no flamers) |
 | `I76_ENGINE_DT_FIX=1` | engine RPM/torque smoothing counted per substep | static; consistent with the fixed step |
@@ -47,8 +47,11 @@ stock 20 fps, and restores the sandbox afterwards.
 
 AI throttle chatter at 60 fps: 26.2 (stock) vs 1.56 at 20 fps. `I76_HIRES_CLOCK` alone brings it to 9.0, and adding
 the fixed step to 5.3 (n = 3 each, still above 20 fps). With the fixed step alone, the physics advances on two
-frames out of three at 60 fps (40 Hz), which shows as judder; `I76_RENDER_INTERP` removes it. Nothing here is deployed
-to the playable install.
+frames out of three at 60 fps (40 Hz), which shows as judder; `I76_RENDER_INTERP` removes it. The set was
+**console-verified by the owner on 2026-10-02** in the sandbox (`TEST-FRAMERATE.bat` mode `all`, every switch on:
+in-mission music, F6 hood view and B binoculars at `I76_FAR_CLIP=1800`, flamer, music slider, AI behaviour, the
+Mission 5 jump without nitrous, the out-of-gas jumps, body roll speed, keyboard save). Nothing here is deployed to
+the playable install.
 
 ### Diagnostics
 
@@ -122,9 +125,9 @@ QueryPerformanceCounter clock (ms since process start). It supports both layouts
 AiO 0x49c85d/0x49c927. Each site's bytes are verified before writing, so any other build is left alone.
 
 **Status:** the write was verified in the sandbox (2/2 sites read back as `call [ptr] -> hires_clock_ms`, log line
-`hires-clock: 2/2`). It has **not** been played yet. Next console test: the same mission with and without the flag, at
-20 and at 40–60 fps. Compare how smooth it feels and the dt at 0x4fe428 (it should read about 50 ms steadily instead
-of 47/63).
+`hires-clock: 2/2`); dt measured exact in i76-map capture 014 (50.00 ms at 20 fps, 16/17 ms at 60 fps); played in
+the sandbox as part of the recommended set and console-verified by the owner on 2026-10-02 (corrected 2026-10-02:
+this line said "has not been played yet"). Not deployed to the playable install.
 
 ## Opt-in: frame-rate-independent engine response (`I76_ENGINE_DT_FIX=1`, 2026-09-26)
 
@@ -134,8 +137,10 @@ second as at 60 fps, and GetTickCount jitter flips it between one and two subste
 that one `call simclock_GetDt` (0x46a333, the same bytes in the Galaxy and AiO builds) at a function returning
 2 × sim_dt / substep count. That reproduces the two-substep (20 fps) response at any frame rate.
 
-**Status:** the write was verified in the sandbox together with `I76_HIRES_CLOCK` (`engine-dt-fix: 1/1`). It has not
-been played. Test at 60 fps with and without it: time the throttle from standstill to 100 km/h in the same car.
+**Status:** the write was verified in the sandbox together with `I76_HIRES_CLOCK` (`engine-dt-fix: 1/1`); played in
+the sandbox as part of the recommended set and console-verified by the owner on 2026-10-02 (corrected 2026-10-02:
+this line said "has not been played"). Not measured in isolation: the standstill-to-100 km/h timing with and without
+it is still worth one run. Not deployed to the playable install.
 
 ## Opt-in: render interpolation (`I76_RENDER_INTERP=1`, needs `I76_FIXED_STEP`, 2026-09-27)
 

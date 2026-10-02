@@ -398,6 +398,11 @@ I-FORCE was Immersion's force-feedback standard, licensed to Microsoft for the
 SideWinder Force Feedback Pro. A 1997 title sits on the seam: authored in
 Immersion's tooling, targeting DirectInput.
 
+> **(corrected 2026-10-02, i76-map finding L084)** The game's own FFB plugin `i7_sfrce.dll` is the **Microsoft
+> SideWinder SDK helper**, not Immersion I-FORCE code (its fault at RVA 0x2505 is `IDirectInputEffect::GetParameters`
+> on a null effect), and **no registry key gates FFB** in the exe — presence is `[0x52bbe4] != 0`. The I-FORCE
+> vocabulary below is kept as design background for the era's effect types.
+
 The era's vocabulary: **conditions** (spring, damper, inertia, friction);
 **time-based** (periodic — square, sine, sawtooth up/down — plus constant and
 ramp); and **positional** effects with no DirectInput equivalent (texture,

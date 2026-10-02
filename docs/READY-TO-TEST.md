@@ -3,6 +3,9 @@
 Everything below is **already deployed to the portable daily-driver install**
 (`…\Interstate76-i76-everywhere-portable-20260801\Interstate 76`) and verified as far as it can
 be without a human at the machine. Both fixes are on and consistent (checked 2026-08-16).
+*(corrected 2026-10-02: only the u32x fix is deployed — next paragraph — and it has since been verified in play:
+the owner saved from the keyboard with no freeze on 2026-10-02. This file is a 2026-08-16 snapshot slated to fold
+into [VERIFIED-FIXES.md](VERIFIED-FIXES.md); the live state table is [RELEASE-PLAN.md](RELEASE-PLAN.md) section 1.)*
 
 > **Correction 2026-10-01 (i76-map finding L004):** only the u32x fix is deployed. The camera-rate patch is
 > **not** on the portable install: "The portable i76.exe 6319abf7 differs from pristine only by the aio clusters
@@ -33,6 +36,8 @@ Deployed state, confirmed:
 - **Pass = the old "mouse in the wrong place" is gone.**
 
 ### A2 — Save without freezing (the headline fix)
+*(2026-10-02: passed from the keyboard — Enter saves with no freeze. The **mouse is dead on the Save Bookmark
+screen only**, so the YES/NO click below cannot be tested with the mouse yet; backlog P1-02.)*
 1. Start/continue a mission, open the save screen.
 2. Press **SAVE**. When the **"Overwrite an existing bookmark?"** popup appears, click **YES/NO where they
    visually are.**
@@ -49,6 +54,9 @@ Deployed state, confirmed:
   a fresh name gives a fresh slot.
 
 ### A4 — Save-name typing (open question — please observe, don't assume a fix)
+*(Closed 2026-09-07, field-confirmed: the fault was two patched bytes in the pack-lineage `i76shell.dll`
+(`+0x1C12B`) that left ToAscii's output word uncleared, repaired by `tools\fix-shell-textentry.ps1` — not the
+message-queue path described below. See [SAVE-FREEZE-ROOT-CAUSE.md](SAVE-FREEZE-ROOT-CAUSE.md). Corrected 2026-10-02.)*
 The name box is a **message-queue / focus** path (traced to `i76shell.dll+0x1D630`: a 64-entry ring buffer +
 `PeekMessageA(WM_KEYFIRST..WM_KEYLAST)` with its own `ToAscii` translation — *not* a slow poll, and untouched
 by the cursor proxy). Prediction: **it works cleanly when you type at human speed into a focused field**; my
@@ -107,7 +115,8 @@ tools\instruments\deploy-shellfix.ps1 -GameDir "<portable>\Interstate 76" -Resto
 tools\framerate\patch-camera-rate.ps1 -GameDir "<portable>\Interstate 76" -Restore   # camera rate back to stock
 ```
 
-`-Status` on either shows the current state without changing anything.
+`-Status` on either shows the current state without changing anything. *(The camera-rate line applies to the
+sandbox only — no camera patch is on the portable, L004.)*
 
 ---
 
@@ -118,15 +127,21 @@ tools\framerate\patch-camera-rate.ps1 -GameDir "<portable>\Interstate 76" -Resto
 even big pools) with the render pools enlarged 128× (the fix for the crash that capped it). Screenshots in
 `i76-uncap-lab\captures\farclip\` show the delta: fog-clipped mesa stubs → full mountain ranges.
 
+*(corrected 2026-10-02: the 8000 m / 128x sandbox crashed on the F6 hood view and B binoculars every time —
+the terrain tessellator's 16-bit vertex indices overflow between 2500 and 2750 m,
+[FARCLIP-CAMERA-CRASH.md](FARCLIP-CAMERA-CRASH.md). The sandbox file patch was set to **1800 m** on 2026-10-02 and
+the proxy's `I76_FAR_CLIP` refuses values above 2500. The console test happened the same day: F6 and B at 1800 m
+are good. Still not deployed to the portable.)*
+
 Your call at the console, in the sandbox:
 1. Launch the sandbox, drive the training mission (or any mission). **Does the long horizon look
    right to you?** Full mountain silhouettes, less haze — more Utah, less murk.
 2. Watch for the known caveats: buildings/roads may still pop at their old shorter cull distance,
    and distant vehicles are now visible (including ones the mission design assumed were hidden).
 3. FPS cost measured at zero (60.0 flat at 5000 m), but feel free to confirm it feels smooth.
-4. Pick the portable's dose: **1800** (conservative, dramatic) or **5000** (maximal), then say the
-   word and I'll deploy `patch-farclip.ps1` to the portable (with `.farorig` backup, composes with
-   the camera patch) — or `-Restore` puts the sandbox back to stock if you hate it.
+4. Pick the portable's dose: **1800** (conservative, dramatic) — *5000 is no longer an option, keep it at or
+   below 2500 m (2026-10-02)* — then say the word and I'll deploy `patch-farclip.ps1` to the portable (with
+   `.farorig` backup) — or `-Restore` puts the sandbox back to stock if you hate it.
 
 ## A7 — Force feedback: RPM/shift + the bass shakers (NEW — two threads meeting)
 

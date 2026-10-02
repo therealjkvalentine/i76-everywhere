@@ -5,8 +5,9 @@
 **SOLVED 2026-08-16 (unattended session).** The "landscapes pop in late" improvement is a
 one-global engine value with a fixed-size render pool as its crash ceiling — both found, both
 patched, verified live at 3× and 8.3× stock with screenshots, arena telemetry, and FPS
-measurements. **Deployed to the sandbox only; the portable install is untouched pending the
-console eyeball test** ([READY-TO-TEST.md](READY-TO-TEST.md)).
+measurements. **Deployed to the sandbox only; the portable install is untouched.** The console
+eyeball test happened on 2026-10-02 at 1800 m (F6 hood view and B binoculars good); deploying to the
+portable is a separate, announced step (corrected 2026-10-02: this said "pending the console eyeball test").
 
 ## The chain, end to end
 
@@ -69,8 +70,10 @@ i76-uncap-lab\tools\framerate\patch-farclip.ps1 -GameDir <dir> -Status
 ```
 
 Keeps `i76.exe.farorig`. Composes with the camera-rate patch (different bytes, own backup).
-**Sandbox is currently at 5000 with enlarged pools.** Recommended first deploy to the
-portable after the eyeball test: **1800** (dramatic, conservative) or 5000 (maximal).
+**Sandbox is at 1800 m with enlarged pools** (corrected 2026-10-02: this line said 5000; the sandbox was
+in fact at 8000 m / 128x until the F6/B crash and was set to 1800 on 2026-10-02). Recommended dose for the
+portable: **1800**. Anything above 2500 m crashes the wide views ([FARCLIP-CAMERA-CRASH.md](FARCLIP-CAMERA-CRASH.md)),
+so 5000 is no longer an option; the proxy's `I76_FAR_CLIP` refuses it.
 
 ## Caveats for the console test
 

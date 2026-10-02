@@ -111,8 +111,10 @@ focused — foreground confirmed via `GetForegroundWindow` — every write retur
 **But read that claim narrowly.** It establishes that *our* acquisition survives.
 It does **not** establish that the *game* can still play *its* effects while we
 hold the device, and those are different questions. The engine's `0x52bbd0` flag
-and `0x52bbcc` effect pointer are written once at init and never cleared, so they
-cannot answer it either. Confirming it needs a trigger-pull with both running.
+and `0x52bbcc` (the `Forcefeed` heap handle from `HeapCreate` at 0x445af9, not an
+effect object — corrected 2026-10-02, i76-map finding L083; the device-present test
+is `[0x52bbe4] != 0`, the SIM_Effect pointer) are written once at init and never
+cleared, so they cannot answer it either. Confirming it needs a trigger-pull with both running.
 
 ### Firing used to crash the game. Fixed.
 

@@ -23,8 +23,10 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
     `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`, `I76_FPS_CAP` — measured live in the sandbox
     (i76-map `captures/014-framerate`, 2026-09-27: dt exact, gravity dt-correct, 24 Hz body motion as calm as stock
     20, 31-33% motionless frames at 60 fps → 0% with interpolation). Per-switch evidence is the table in
-    [music-fix/README.md](music-fix/README.md). Sandbox-verified; not yet console-verified by James; nothing
-    deployed to the playable install.
+    [music-fix/README.md](music-fix/README.md). Sandbox-verified, and **console-verified by the owner on
+    2026-10-02** in the sandbox with every switch on (in-mission music, F6/B at `I76_FAR_CLIP=1800`, flamer,
+    music slider, AI behaviour, the Mission 5 jump without nitrous, the out-of-gas jumps, body roll); nothing
+    deployed to the playable install (corrected 2026-10-02: this said "not yet console-verified").
 - **Wheel buttons moved to the AHK layer, with a shift layer (~27 actions from 13
   buttons).** `input.map` now carries only the analog sinks; every button and the hat are
   emitted as stock keys by [i76-remap.ahk](i76-remap.ahk). **Retraction:** an earlier commit

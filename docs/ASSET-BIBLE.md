@@ -5,7 +5,7 @@ Mirrored from `asset.doc`. The online copy at <https://interstate76.com/resource
 
 **What it is for:** levels reference objects by CLASS NAME. This table turns those codes into a real object, its footprint, and its type — which is how you read a level's contents without rendering it. `greg-kennedy/i76render` cites it for the same reason. See [COMMUNITY-RESOURCES.md](COMMUNITY-RESOURCES.md).
 
-`X DIM` / `Z DIM` are the footprint in metres. `Class ID` is the engine's object class (`Struct1`, `Bridge`, `Ramp`, `Paved`, `Dirt`, …).
+`X DIM` / `Z DIM` are the footprint in metres. `Class ID` is the Bible's class label (`Struct1`, `Bridge`, `Ramp`, `Paved`, `Dirt`, …) — **a lossy summary, not the engine's class id** (corrected 2026-10-02, i76-map finding L069): the engine class is `SDFC+16` (12 values matching I76EDIT's `CLASS_ID_*` strings) and 6 of 26 sampled rows here disagree with it.
 
 **Ramps carry their height in the object name** — the single most useful thing here for jump/ballistics work, since it gives a known launch height per ramp.
 
