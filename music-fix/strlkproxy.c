@@ -2543,12 +2543,18 @@ static void apply_trainer(void) {
  *     (b) shell_cb_17 0x470f90 (the CD-2 intro-movie callback): prompts only when its arg 0 is non-zero and no drive
  *         carries I76_CD2. WinMain calls it with 1 at 0x402ce2 - ONLY when startup_IsMinimum returned 1 at 0x402ccd.
  *         The shell DLL calls the slot itself before missions.
- *   startup_IsMinimum: HKLM\SOFTWARE\Activision\Interstate '76 Gold Edition\Minimum ("0"/"1"); when absent,
- *   FindFirstFileA("miss8") RELATIVE TO THE CURRENT DIRECTORY decides and is written back. A launcher that starts
- *   the exe with the wrong working directory therefore gets Minimum = 1 -> WinMain prompts at startup through (b)
- *   and the VFS later through (a). That matches the sitting-1 note (Start-Process runs prompted, Popen runs with
- *   cwd set never). The AiO exe (lab i76.exe, the daily driver) has 0x4b2220 patched to `xor eax,eax; ret`, so
- *   neither path can start from Minimum there; i76_pristine*.exe carry the stock function.
+ *   startup_IsMinimum 0x4b2220, the actual rule (re-read against the 2026-10-02 live run and measured with the same
+ *   three calls from an x86 test program): RegOpenKeyExA(HKLM, "SOFTWARE\Activision", KEY_READ) fails -> 1;
+ *   RegCreateKeyExA(that, "Interstate '76 Gold Edition", KEY_ALL_ACCESS) fails -> 1; value "0" -> 0; "1" -> 1;
+ *   absent/other -> FindFirstFileA("miss8") relative to the cwd: found -> 0 (written back as "0"), else 1 ("1").
+ *   On this machine the key exists in the real HKLM (WOW6432Node, owner Administrators, Users = ReadKey, Minimum =
+ *   "0") so the KEY_ALL_ACCESS create is DENIED (err 5) for every non-elevated launch - registry virtualization
+ *   (enabled: no manifest) does not redirect an existing key - and the stock function answers 1 BEFORE reading the
+ *   value or looking for miss8. Elevated launches get FullControl, read "0" and answer 0. So the 6/21 split is the
+ *   launcher's elevation, not its cwd (the cwd still matters afterwards: the loose miss16\ opens are cwd-relative,
+ *   which is what the proxy's cwd fix is for). The AiO exe (lab i76.exe, the daily driver) has 0x4b2220 patched to
+ *   `xor eax,eax; ret` - the same answer the registry would give a full install - which is why it never prompts;
+ *   i76_pristine*.exe carry the stock function.
  *
  * WHAT THIS INSTALLS (every hook verifies the stock bytes first; a different exe is left alone):
  *   H1  IAT hook on MessageBoxA (slot 0x4bc35c; the import descriptor says USER32.dll on stock builds and u32x.dll
@@ -2565,13 +2571,17 @@ static void apply_trainer(void) {
  *   H4  entry hook on shell_cb_17 0x470f90 (81 EC A4 00 00 00 -> E9 rel32 90): one line per call with arg 0 and the
  *       MCI state (a few calls per session).
  *
- * I76_CD_FAKE=1 (EXPERIMENTAL, built untested): in H3, when the stock function answers 1 (Minimum) but
- * <game dir>\miss8 exists as a directory, answer 0 instead. Exact effect: vfs_LoadZix marks miss8/miss16 as a local
- * directory container (type 1), vfs_ResolveFilePath then builds "miss16\<file>" as on every healthy launch, and
- * WinMain skips its shell_cb_17(1) call - i.e. the stock behaviour of a full install whose registry value reads "0".
- * The stock function still runs first, so its own registry write happens as before. Risk: none new on a full
- * install; on a genuinely minimal install (no miss8 directory) the answer is unchanged. It does nothing on the AiO
- * exe (already 0) and nothing about the shell's own shell_cb_17 calls (plan option C would be the next step).
+ * I76_CD_FAKE=1 (verified live 2026-10-02 on the sandbox, autotest\cd2-test.ps1, i76_pristine_fix.exe, cwd C:\Windows:
+ * three startup_IsMinimum calls faked 1 -> 0, no MSGBOX, the game proceeds; with the cwd fix in DllMain): in H3, when
+ * the stock function answers 1 (Minimum) but <game dir>\miss8 exists as a directory, answer 0 instead. Exact effect:
+ * vfs_LoadZix marks miss8/miss16 as a local directory container (type 1), vfs_ResolveFilePath then builds
+ * "miss16\<file>" as on every healthy launch, and WinMain skips its shell_cb_17(1) call - i.e. the stock behaviour
+ * of a full install whose registry value reads "0", or of the AiO exe. The stock function still runs first, so its
+ * own registry write (only on the value-absent path, which a denied create never reaches) happens as before. This
+ * IS the right permanent mitigation for the pristine exes: the stock question "is this a full install?" is answered
+ * by a registry write that a non-elevated process cannot make, and the directory the function itself falls back to
+ * is the ground truth. On a genuinely minimal install (no miss8 directory) the answer is unchanged. It does nothing
+ * on the AiO exe (already 0) and nothing about the shell's own shell_cb_17 calls (none seen; plan option C if any).
  */
 static int    g_cd_fake;
 typedef int (WINAPI *mbox_fn)(HWND, LPCSTR, LPCSTR, UINT);
@@ -2698,34 +2708,60 @@ static __declspec(naked) void ismin_tramp(void) {
     }
 }
 typedef LONG (WINAPI *regopen_fn)(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
+typedef LONG (WINAPI *regcreate_fn)(HKEY, LPCSTR, DWORD, LPSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
 typedef LONG (WINAPI *regquery_fn)(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 typedef LONG (WINAPI *regclose_fn)(HKEY);
+typedef BOOL (WINAPI *opentok_fn)(HANDLE, DWORD, PHANDLE);
+typedef BOOL (WINAPI *tokinfo_fn)(HANDLE, TOKEN_INFORMATION_CLASS, LPVOID, DWORD, PDWORD);
 static int __cdecl hook_IsMinimum(void) {
-    char cwd[MAX_PATH], reg[32], dir[MAX_PATH]; HKEY k = NULL; DWORD sz = sizeof reg - 1, rc = 1, attr; int r, rel;
+    /* The exe's OWN sequence, call for call (a KEY_READ probe of the value would miss the point: measured 2026-10-02,
+     * the stock function never reaches the value): RegOpenKeyExA(HKLM, "SOFTWARE\Activision", KEY_READ), then
+     * RegCreateKeyExA(.., "Interstate '76 Gold Edition", .., KEY_ALL_ACCESS, ..) - which a non-elevated process is DENIED
+     * (err 5) once the key exists in the real HKLM owned by Administrators (registry virtualization does not redirect an
+     * existing key), and the function returns 1 right there. Only an elevated launch, or a machine where the key is still
+     * absent, gets as far as the value / the FindFirstFile("miss8") fallback. */
+    char cwd[MAX_PATH], reg[48], dir[MAX_PATH]; HKEY k = NULL, k2 = NULL; DWORD sz = sizeof reg - 1, disp = 0, attr, virt = 0, elev = 0, n;
+    LONG r1 = -1, r2 = -1, r3 = -1; int r, rel; HANDLE tok;
     HMODULE adv = GetModuleHandleA("advapi32.dll");         /* the exe imports it, so it is loaded; resolved here to keep
                                                                the link line as it was */
     regopen_fn ropen = adv ? (regopen_fn)GetProcAddress(adv, "RegOpenKeyExA") : NULL;
+    regcreate_fn rcreate = adv ? (regcreate_fn)GetProcAddress(adv, "RegCreateKeyExA") : NULL;
     regquery_fn rquery = adv ? (regquery_fn)GetProcAddress(adv, "RegQueryValueExA") : NULL;
     regclose_fn rclose = adv ? (regclose_fn)GetProcAddress(adv, "RegCloseKey") : NULL;
+    tokinfo_fn tinfo = adv ? (tokinfo_fn)GetProcAddress(adv, "GetTokenInformation") : NULL;
+    opentok_fn topen = adv ? (opentok_fn)GetProcAddress(adv, "OpenProcessToken") : NULL;
     WIN32_FIND_DATAA fd; HANDLE h;
-    lstrcpynA(reg, "(advapi32?)", sizeof reg);
-    if (ropen && rquery && rclose) {
-        rc = (DWORD)ropen(HKEY_LOCAL_MACHINE, "SOFTWARE\\Activision\\Interstate '76 Gold Edition", 0, KEY_READ, &k);
-        if (rc == 0) {
-            if (rquery(k, "Minimum", NULL, NULL, (BYTE *)reg, &sz) == 0) reg[sz < sizeof reg ? sz : sizeof reg - 1] = 0;
-            else lstrcpynA(reg, "(no value)", sizeof reg);
+    lstrcpynA(reg, "(not reached)", sizeof reg);
+    if (ropen && rcreate && rquery && rclose) {
+        r1 = ropen(HKEY_LOCAL_MACHINE, "SOFTWARE\\Activision", 0, KEY_READ, &k);
+        if (r1 == 0) {
+            r2 = rcreate(k, "Interstate '76 Gold Edition", 0, NULL, 0, KEY_ALL_ACCESS, NULL, &k2, &disp);   /* opens or creates,
+                                                                                        exactly as the stock code is about to */
+            if (r2 == 0) {
+                r3 = rquery(k2, "Minimum", NULL, NULL, (BYTE *)reg, &sz);
+                if (r3 == 0) reg[sz < sizeof reg ? sz : sizeof reg - 1] = 0; else _snprintf(reg, sizeof reg, "(query err %ld)", r3);
+                rclose(k2);
+            }
             rclose(k);
-        } else _snprintf(reg, sizeof reg, "(key err %lu)", (unsigned long)rc);
+        }
+    }
+    if (topen && tinfo && topen(GetCurrentProcess(), TOKEN_QUERY, &tok)) {
+        tinfo(tok, TokenVirtualizationEnabled, &virt, sizeof virt, &n);
+        tinfo(tok, TokenElevation, &elev, sizeof elev, &n);
+        CloseHandle(tok);
     }
     cwd[0] = 0; GetCurrentDirectoryA(sizeof cwd, cwd);
     h = FindFirstFileA("miss8", &fd); rel = h != INVALID_HANDLE_VALUE; if (rel) FindClose(h);
     _snprintf(dir, sizeof dir, "%s\\miss8", g_dir); attr = GetFileAttributesA(dir);
     r = ((int (__cdecl *)(void))ismin_tramp)();
     g_ismin_calls++;
-    if (r) flog("CD: startup_IsMinimum #%d -> 1 (MINIMUM: miss8/miss16 become a CD container, WinMain prompts) | registry Minimum %s | cwd \"%s\" | FindFirstFile(miss8) %s | %s %s",
-                g_ismin_calls, reg, cwd, rel ? "found" : "NOT found", dir,
+    if (r) flog("CD: startup_IsMinimum #%d -> 1 (MINIMUM: miss8/miss16 become a CD container, WinMain prompts) | RegOpenKeyExA(Activision, KEY_READ) %ld,"
+                " RegCreateKeyExA(Gold Edition, KEY_ALL_ACCESS) %ld%s, Minimum %s | token elevated %lu virtualization %lu | cwd \"%s\" | FindFirstFile(miss8) %s | %s %s",
+                g_ismin_calls, r1, r2, r2 == 5 ? " (ACCESS_DENIED: the stock function returns 1 here, before the value)" : "", reg,
+                (unsigned long)elev, (unsigned long)virt, cwd, rel ? "found" : "NOT found", dir,
                 attr == INVALID_FILE_ATTRIBUTES ? "missing" : (attr & FILE_ATTRIBUTE_DIRECTORY) ? "is a directory" : "is a file");
-    else   mlog("  startup_IsMinimum #%d -> 0 | registry Minimum %s | cwd \"%s\" | FindFirstFile(miss8) %s", g_ismin_calls, reg, cwd, rel ? "found" : "NOT found");
+    else   mlog("  startup_IsMinimum #%d -> 0 | RegOpenKeyExA %ld RegCreateKeyExA %ld Minimum %s | token elevated %lu virtualization %lu | cwd \"%s\" | FindFirstFile(miss8) %s",
+                g_ismin_calls, r1, r2, reg, (unsigned long)elev, (unsigned long)virt, cwd, rel ? "found" : "NOT found");
     if (r && g_cd_fake && attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
         flog("CD FAKE: startup_IsMinimum answer 1 -> 0 (%s is a directory; EXPERIMENTAL I76_CD_FAKE)", dir);
         r = 0;
