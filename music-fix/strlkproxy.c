@@ -1370,6 +1370,43 @@ static void apply_far_clip(void) {
 }
 
 /* ===========================================================================
+ * CRASH LOG  (always on; I76_CRASH_LOG=0 disables)
+ * ===========================================================================
+ * A vectored exception handler that writes the faulting address, code, registers and the first stack dwords to
+ * mciproxy.log, then lets the exception continue to the default handler (the game dies as before). "Instrument the
+ * crash": a reproducible fault address is the fastest route to the function (tools/disasm.py). Added 2026-10-02 after
+ * the hood-view / binoculars crash on the far-clip-patched sandbox exe. */
+static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
+    EXCEPTION_RECORD *r = ep->ExceptionRecord; CONTEXT *c = ep->ContextRecord;
+    static int depth;
+    if ((r->ExceptionCode & 0xF0000000) != 0xC0000000 || depth) return EXCEPTION_CONTINUE_SEARCH;   /* real faults only, once */
+    depth++;
+    mlog("CRASH: code 0x%08lX at 0x%08lX (exe+0x%lX) %s addr 0x%08lX | eax %08lX ebx %08lX ecx %08lX edx %08lX esi %08lX edi %08lX ebp %08lX esp %08lX | frame %lu state %lu cam cb 0x%08lX mode %lu",
+         (unsigned long)r->ExceptionCode, (unsigned long)(DWORD_PTR)r->ExceptionAddress,
+         (unsigned long)((DWORD_PTR)r->ExceptionAddress - (DWORD_PTR)GetModuleHandleA(NULL)),
+         r->ExceptionCode == EXCEPTION_ACCESS_VIOLATION ? (r->ExceptionInformation[0] ? "write" : "read") : "",
+         (unsigned long)(r->NumberParameters > 1 ? r->ExceptionInformation[1] : 0),
+         (unsigned long)c->Eax, (unsigned long)c->Ebx, (unsigned long)c->Ecx, (unsigned long)c->Edx, (unsigned long)c->Esi,
+         (unsigned long)c->Edi, (unsigned long)c->Ebp, (unsigned long)c->Esp,
+         (unsigned long)*(volatile DWORD *)0x005a7e1c, (unsigned long)*(volatile DWORD *)0x004c2164,
+         (unsigned long)*(volatile DWORD *)0x004c2720, (unsigned long)*(volatile DWORD *)0x004c2728);
+    {
+        DWORD *sp = (DWORD *)(DWORD_PTR)c->Esp; char buf[400]; int i, n = 0;
+        for (i = 0; i < 16; i++) {
+            if (IsBadReadPtr(sp + i, 4)) break;
+            n += _snprintf(buf + n, sizeof(buf) - n, " %08lX", (unsigned long)sp[i]);
+        }
+        buf[n] = 0; mlog("CRASH: stack%s", buf);
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+static void apply_crash_log(void) {
+    char v[8];
+    if (GetEnvironmentVariableA("I76_CRASH_LOG", v, sizeof(v)) && v[0] == '0') return;
+    AddVectoredExceptionHandler(1, crash_log_handler);
+}
+
+/* ===========================================================================
  * PHYSICS SUBSTEP RATE  (I76_PHYS_RATE=<steps per second>; off by default; EXPERIMENT)
  * ===========================================================================
  * entity_InitVehicle seeds each vehicle's physics stepper with a 0.05 s maximum
@@ -2193,6 +2230,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
         g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
         load_orig();   /* must happen before the game calls any forwarded export */
+        apply_crash_log();        /* always on: fault address + registers to the log */
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
