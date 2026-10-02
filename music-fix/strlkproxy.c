@@ -870,6 +870,7 @@ static int g_tick20 = 1;
 static DWORD g_tick20_n;                                     /* grid frames so far */
 static void radar_ping_flush(void);
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
+static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
 static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
 static void tel_frame(void);
 static void __cdecl frame_cap_then_clock(void) {
@@ -892,6 +893,11 @@ static void __cdecl frame_cap_then_clock(void) {
     if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
 clock:
     g_frame++;
+    if (g_voltest_frame && g_frame == g_voltest_frame) {    /* I76_VOLUME_TEST=<level>,<frame>: call sound_SetCdVolume on the
+                                                               game's own thread, as the Options slider does (test knob) */
+        mlog("  volume-test: sound_SetCdVolume(%d) at frame %lu", g_voltest_level, (unsigned long)g_frame);
+        ((void (__cdecl *)(int))0x00424b60)(g_voltest_level);
+    }
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
     if (g_hires_on) {
         /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
@@ -931,6 +937,13 @@ static void install_frame_hook(void) {
     mlog("  frame hook at 0x4039b8: %s", g_frame_hook ? "installed" : "NOT installed");
 }
 
+static void apply_volume_test(void) {
+    char v[32]; DWORD n = GetEnvironmentVariableA("I76_VOLUME_TEST", v, sizeof(v));
+    if (n == 0 || n >= sizeof(v)) return;
+    g_voltest_level = atoi(v); g_voltest_frame = (DWORD)atol(strchr(v, ',') ? strchr(v, ',') + 1 : "600");
+    install_frame_hook();
+    mlog("  volume-test: armed - level %d at proxy frame %lu", g_voltest_level, (unsigned long)g_voltest_frame);
+}
 static void apply_frame_cap(void) {
     static const BYTE old_call[5] = { 0xE8, 0x63, 0x8F, 0x09, 0x00 };   /* call 0x49c920 at 0x4039b8 */
     BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
@@ -2181,6 +2194,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
+        apply_volume_test();      /* test knob: I76_VOLUME_TEST=<level>,<frame> */
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
