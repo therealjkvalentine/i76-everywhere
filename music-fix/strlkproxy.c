@@ -1355,7 +1355,10 @@ static void apply_far_clip(void) {
     n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
     if (n == 0 || n >= sizeof(v)) return;
     far_m = (float)atof(v);
-    if (far_m < 100.0f || far_m > 100000.0f) { mlog("  far-clip: %s out of range (100..100000 m) - not applied", v); return; }
+    /* Third ceiling (docs/FARCLIP-CAMERA-CRASH.md, 2026-10-02): the terrain tessellator stores vertex indices as int16
+     * (renderer_SplitTerrainEdge 0x4918f0); past ~32,767 terrain vertices in a frame the index wraps and the game dies.
+     * The hood view (120 deg) and binoculars (8x) reach that between 2500 and 2750 m on t01, so 2500 is the cap. */
+    if (far_m < 100.0f || far_m > 2500.0f) { mlog("  far-clip: %s out of the safe range (100..2500 m: int16 terrain vertex indices, see FARCLIP-CAMERA-CRASH.md) - not applied", v); return; }
     for (i = 0; i < 5; i++) if (*(DWORD *)(DWORD_PTR)pool[i].va != pool[i].old) { mlog("  far-clip: pool constant %d differs - not applied", i); return; }
     if (memcmp((void *)0x004059de, rd_old, 5) != 0) { mlog("  far-clip: read site differs - not applied"); return; }
     for (i = 0; i < 5; i++) {
@@ -1366,7 +1369,7 @@ static void apply_far_clip(void) {
     a = (DWORD)(DWORD_PTR)&g_far_clip; memcpy(rd_new + 1, &a, 4);
     ok += patch_bytes(0x004059de, rd_old, rd_new, 5, "far clip read");
     mlog("  far-clip: %s (%g m, pools x16, %d/6 sites)%s", ok == 6 ? "on" : "PARTIAL", far_m, ok,
-         far_m > 3796.0f ? " - note: depth buckets stop drawing past ~3796 m" : "");
+         "");
 }
 
 /* ===========================================================================
