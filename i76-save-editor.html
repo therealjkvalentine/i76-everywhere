@@ -230,7 +230,10 @@ details .paths li{margin:6px 0}
     these (V)), and a trailing section, the <b>repair order</b> (R), which is copies of the (R) parts and is rebuilt
     from them when you save. Ammo is never stored — bookmarks
     happen at the shack, weapons refill from their spec. Each part carries a <b>state</b> — (C) mounted on the car, one per equipped
-    slot, (V) in the van, (R) on the bench, (S) in field salvage — and <b>condition points vs full condition</b>.
+    slot, (V) in the van, (R) on the bench, (S) in field salvage — and <b>condition points vs full condition</b>
+    (the game's highlight is floor(3 × cond ÷ full): red, yellow, green, and none at 100 % — sandbox-measured). The
+    garage keeps only the first <b>11</b> car/van/bench weapons in file order; a mounted weapon past that reads
+    Empty, so the page warns and reorders on save.
     <b>The scene number in <code>savegame.dir</code>:</b> a garage save (state 8) loads that scene, a post-mission
     save (state 1) plays the next one. Until 2026-10-02 this editor read every part's condition and state from the
     record AFTER it (and the scene from the next bookmark), so re-check saves edited before then — a scene 0 loads at Scene 1
@@ -321,7 +324,7 @@ const WEAPONS=[
  ["Gas Lnch Trt","flm02","tfmedium.gdf",400,64,30,20,1,700,35,null,"bus in 3.3s"],
  ["Napalm Trt","flm03","tfheavy.gdf",600,102,45,20,1,600,30,null,"bus in 2.6s"],
  ["Pyro-Turret","flm04","tfpyro.gdf",600,120,60,20,1,500,30,null,"late-Trip"]];
-const SPECIALS=[["Radar Jammer","spc01","(inferred)"],["NitrousOxide","spc02","verified"],
+const SPECIALS=[["Radar Jammer","spc01","verified (name only; effect untested)"],["NitrousOxide","spc02","verified"],
  ["Blower","spc03","(inferred)"],["X-Aust Brake","spc04","verified"],["Structo Bmpr","spc05","verified"],
  ["Curb Feelers","spc06","(inferred)"],["Mud Flaps","spc07","(inferred)"],["Heated Seats","spc08","(inferred)"],
  ["Cup Holders","spc09","(inferred)"]];
@@ -384,6 +387,7 @@ function recInfo(buf,off){
     dfl:cstr(u8,off+R_DFL,13), full, dur:full, wt:dv.getFloat32(off+R_WT,true),
     cond:u32(dv,off+N_COND), state:u32(dv,off+N_STATE), u22:u32(dv,off+R_U22), u48:u32(dv,off+R_U48)};
 }
+const withLevel=r=>Object.assign(r,{level:(r.type===13||!r.full)?null:Math.min(3,Math.floor(3*r.cond/r.full))});
 const stateAt=(buf,off)=>new DataView(buf).getUint32(off+N_STATE,true);
 const setState=(buf,off,v)=>new DataView(buf).setUint32(off+N_STATE,v,true);
 const setCond=(buf,off,v)=>new DataView(buf).setUint32(off+N_COND,Math.max(0,v|0),true);
@@ -410,6 +414,67 @@ function withRepairQueue(buf){
   for(const o of want){ out.set(u8.subarray(o,o+REC),p); p+=REC; }
   return out.buffer;
 }
+/* condition colour, sandbox-measured 2026-10-02 (CAL COLOR): level = floor(3*cond/full):
+   0 red, 1 yellow, 2 green, 3 (= 100 %) unmarked; specials (full 0) unmarked. */
+const LEVEL_NAMES={0:"red",1:"yellow",2:"green",3:"none"};
+const levelOf=r=>(r.type===13||!r.full)?null:Math.min(3,Math.floor(3*r.cond/r.full));
+/* The garage's (C)+(V)+(R) WEAPONS list keeps at most 11 type-7/8 records with state != 4, in
+   FILE order (Inventory_ClassifyParts 0x10019945); the rest drop to Field Salvage, and a mounted
+   weapon past the cap reads EMPTY on its hardpoint (sandbox-verified 2026-10-02). The other lists
+   have no count check - List_Insert never tests capacity, so more records than List_New
+   allocated overflow the heap. Same constants and strings as i76-save-editor.py. */
+const WEAPON_CAP=11;
+const LIST_ALLOC={2:4,3:6,4:6,5:32,7:32,13:10};
+const PLURAL={2:"engines",3:"suspensions",4:"brakes",5:"wheels",7:"weapons",13:"specials"};
+const EQ_NAMES=["Engine","Suspension","Brakes","Tire FR","Tire FL","Tire RR","Tire RL",
+                "Weapon 1","Weapon 2","Weapon 3","Weapon 4","Special 1","Special 2","Special 3"];
+const isWeapon=r=>r.type===7||r.type===8;
+function weaponsInCap(buf,recs){ return recs.filter(o=>{const r=recInfo(buf,o); return isWeapon(r)&&r.state!==4;}).slice(0,WEAPON_CAP); }
+function weaponsOverCap(buf,recs){ return recs.filter(o=>{const r=recInfo(buf,o); return isWeapon(r)&&r.state!==4;}).slice(WEAPON_CAP); }
+/* one state-1 record per equipped label, matched by display name; a weapon only counts within the cap */
+function mountedMap(buf,recs){
+  const incap=new Set(weaponsInCap(buf,recs));
+  const pool=recs.filter(o=>{const r=recInfo(buf,o); return r.state===1&&(!isWeapon(r)||incap.has(o));});
+  const out={};
+  parseCar(buf).eq.forEach((nm,slot)=>{ if(!nm||nm==="Empty") return;
+    const i=pool.findIndex(o=>recInfo(buf,o).name===nm);
+    if(i>=0){ out[slot]=pool[i]; pool.splice(i,1); }
+  });
+  return out;
+}
+function loadoutWarnings(buf){
+  const recs=scan(buf), w=[];
+  const over=weaponsOverCap(buf,recs);
+  if(over.length) w.push(`${WEAPON_CAP+over.length} car/van/bench weapons: the garage keeps the first ${WEAPON_CAP} in file order, the rest drop to Field Salvage: `+
+    over.map(o=>{const r=recInfo(buf,o); return `#${recs.indexOf(o)} (${LOC_BADGE[r.state]||"?"}) ${r.name}`;}).join(", "));
+  const got=mountedMap(buf,recs);
+  parseCar(buf).eq.forEach((nm,slot)=>{
+    if(nm&&nm!=="Empty"&&!(slot in got))
+      w.push(`${EQ_NAMES[slot]} label '${nm}' has no mounted (state 1) record${slot>=7&&slot<=10?" within the weapon cap":""}: the hardpoint reads EMPTY`);
+  });
+  const counts={};
+  recs.forEach(o=>{const r=recInfo(buf,o); if(r.state!==4){const t=isWeapon(r)?7:r.type; counts[t]=(counts[t]||0)+1;}});
+  Object.keys(counts).map(Number).sort((a,b)=>a-b).forEach(t=>{
+    if(t in LIST_ALLOC&&counts[t]>LIST_ALLOC[t]) w.push(`${counts[t]} car/van/bench ${PLURAL[t]}: the garage list is allocated for ${LIST_ALLOC[t]} (heap overflow)`);
+  });
+  return w;
+}
+/* what Save Bookmark does beyond serialising: mounted weapons go to the front of section A when
+   one of them sits past the cap (file order decides what the garage keeps), then the repair queue
+   is rebuilt. An untouched file comes back as the same buffer. */
+function prepareForWrite(buf){
+  const recs=scan(buf), u8=new Uint8Array(buf);
+  const incap=new Set(weaponsInCap(buf,recs));
+  const mountedW=o=>{const r=recInfo(buf,o); return isWeapon(r)&&r.state===1;};
+  if(recs.some(o=>mountedW(o)&&!incap.has(o))){
+    const order=[...recs.filter(mountedW),...recs.filter(o=>!mountedW(o))];
+    const out=new Uint8Array(buf.byteLength); out.set(u8.subarray(0,HDR_LEN+4));
+    order.forEach((o,i)=>out.set(u8.subarray(o,o+REC),HDR_LEN+4+REC*i));
+    out.set(u8.subarray(HDR_LEN+4+REC*recs.length),HDR_LEN+4+REC*recs.length);
+    buf=out.buffer;
+  }
+  return withRepairQueue(buf);
+}
 function parseHeader(buf){
   const u8=new Uint8Array(buf);
   return {car:cstr(u8,0,20), variant:cstr(u8,20,20)};
@@ -418,7 +483,7 @@ function parseHeader(buf){
    game's own order: armor F/R/L/Rear then chassis F/R/L/Rear (verified against
    the in-game DEFENSE panel). */
 const EQ_SLOTS=["Engine","Suspension","Brakes","Tire FR","Tire FL","Tire RR","Tire RL",
-                "Weapon #1","Weapon #2","Weapon #3","Weapon #4","Special 1","Special 2","Special 3"];
+                "Weapon 1","Weapon 2","Weapon 3","Weapon 4","Special 1","Special 2","Special 3"];
 /* The save stores weapons in hardpoint-registry order [Dropper, Top1, Top2, Rear]
    (PP1_GDB1/GIB1/GPF1/GPF2); the game's Build form shows Top1, Top2, Rear, Dropper.
    Campaign saves are always the Piranha, so present the game's order when slot 7
@@ -455,7 +520,8 @@ function writeEqName(buf,slot,name){
    wheels wdf x3 @2106/@2119(null)/@2132 (front/mid/rear). Swapping the vtf to
    piranha2/3/4.vtf = repaint (schemes read from the game's own vtf files);
    the header variant text ("Stock (Orange)") is LOAD-list display metadata
-   and is deliberately left alone. In-game verification pending. */
+   and is deliberately left alone. Sandbox-verified 2026-10-02 (CAL PAINT BLUE: hood blue in
+   the mission; the LOAD board prints "Scene N. <name>", never the variant text). */
 const VDF_OFF=2080, VTF_OFF=2093;
 const PAINTS=[["piranha1.vtf","Orange / Black (stock)"],["piranha2.vtf","Blue / White"],
  ["piranha3.vtf","Black / Checker"],["piranha4.vtf","Lime Green / Black"]];
@@ -752,19 +818,15 @@ function isDirty(s){
    4 = dropped = field salvage (S). Condition is PartNode +0xc vs PartRec +0x4c. */
 const LOC_BADGE={1:"C",2:"V",3:"R",4:"S"};
 const LOC_LABEL={1:"(C) mounted on the car",2:"(V) in the van",3:"(R) queued for repair",4:"(S) field salvage"};
+/* the game's own thirds (sandbox-measured 2026-10-02): floor(3*cond/full) = 0 red, 1 yellow, 2 green, 3 none */
 function condMarker(r){
-  if(r.type===13||!r.dur) return "";
-  const pct=100*r.cond/r.dur;
-  if(pct>=100) return "";
-  if(pct>=67) return "m-grn";
-  if(pct>=34) return "m-yel";
-  return "m-red";
+  const l=levelOf(r);
+  return l===null||l>=3?"":(l===2?"m-grn":(l===1?"m-yel":"m-red"));
 }
 function snapUndo(sv){(sv.undo=sv.undo||[]).push(sv.buf.slice(0)); if(sv.undo.length>80)sv.undo.shift();}
-/* bench cap: "13" was a single observation, but repo save000 legitimately
-   carries 14 (R) jobs - so the true cap is >=14 (or soft). WARN, don't
-   block, until the field test pins it. */
-const REPAIR_CAP=14;   // highest (R) count seen in a real save so far
+/* the repair bench has NO cap (sandbox 2026-10-02: 15 queued jobs all listed, scrolling) and the
+   van holds >= 5 suspensions; the only storage bounds are the garage's list allocations, which
+   loadoutWarnings() reports. */
 /* best-effort mirror of the game's own bookkeeping when equipping by name: the part
    that was mounted (state 1) goes to the van (2); a van or salvage copy of the new
    name becomes the mounted record (1) */
@@ -871,23 +933,28 @@ function render(){
   const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent=s.base+" · Name";
   const scOf=document.createElement("span"); scOf.className="lbl2"; scOf.textContent="Scene № of 17";
   sceneCheck.append(scLab,nameIn,scOf,sceneSel);
+  /* what the garage will do with this file that the bytes do not say (weapon cap, labels
+     without a mounted record, list allocations) - the same checks as i76-save-editor.py */
+  {
+    const warns=loadoutWarnings(s.buf);
+    if(warns.length){
+      const wb=document.createElement("div"); wb.className="box";
+      wb.innerHTML=`<div class="boxhead">⚠ Garage warnings <span class="hint">read from the bytes the way the game's Inventory_ClassifyParts does</span></div>`;
+      const ul=document.createElement("div"); ul.style.padding="6px 12px"; ul.className="hand";
+      warns.forEach(w=>{const d=document.createElement("div"); d.textContent=w; ul.appendChild(d);});
+      wb.appendChild(ul); editor.appendChild(wb);
+    }
+  }
   const grid=document.createElement("div"); grid.className="grid";
   const left=document.createElement("div"); left.className="stack";
   const right=document.createElement("div"); right.className="stack";
 
   /* PARTS / WEAPONS / SPCL (equipped - stored in the car block, read-only here) */
-  const VAN_CAP={2:3,3:4}; // engines, suspensions - the game's van holds no more (in-game check open)
   const loc=off=>stateAt(s.buf,off);
-  const vanCount=type=>s.recs.filter(off=>loc(off)===2&&new DataView(s.buf).getUint32(off+R_TYPE,true)===type).length;
-  const repCount=()=>s.recs.filter(off=>loc(off)===3).length;
-  // ONE part per equipped slot: match each slot name to a state-1 record (consumed
-  // records show their condition inline on the car sheet, not in the lists)
-  const pool=s.recs.filter(off=>loc(off)===1);
-  const eqMatch={};
-  car.eq.forEach((nm,slot)=>{ if(!nm||nm==="Empty") return;
-    const i=pool.findIndex(off=>cstr(new Uint8Array(s.buf),off+R_NAME,30)===nm);
-    if(i>=0){ eqMatch[slot]=pool[i]; pool.splice(i,1); }
-  });
+  // ONE part per equipped slot: match each slot label to a state-1 record the way the garage
+  // does (weapons only within the 11-record cap); consumed records show their condition inline
+  // on the car sheet, not in the lists
+  const eqMatch=mountedMap(s.buf,s.recs);
   const consumed=new Set(Object.values(eqMatch));
   const repRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)===3);
   const carVanRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)!==3);
@@ -896,16 +963,15 @@ function render(){
      FIRST ("mount your spare", like the in-game form); the full catalog stays
      available but demoted to a clearly-labeled conjure section */
   const vanNames=new Set(vanInfos.map(r=>r.name));
-  const nEng=vanInfos.filter(r=>r.type===2).length, nSus=vanInfos.filter(r=>r.type===3).length;
-  const capNote=(nEng>3||nSus>4)?` ⚠ over the van cap (3 engines / 4 susp) — extras may vanish in-game`:"";
+  const capNote=weaponsOverCap(s.buf,s.recs).length?` ⚠ more than ${WEAPON_CAP} car/van/bench weapons — the garage drops the extras to Field Salvage (see the warnings box)`:"";
   /* shared compact condition controls (colored preset + points) for one record */
   function condControls(rOff){
     const r=recInfo(s.buf,rOff);
     const frag=document.createDocumentFragment();
     if(r.type===13||!r.dur) return frag;
-    const pct=r.cond>=r.dur?100:Math.round(100*r.cond/r.dur);
-    const cls=pct>=100?"":(pct>=67?"t2":(pct>=34?"t3":"t4"));
-    const cur=pct>=100?"perfect":(pct>=67?"scuffed":(pct>=34?"beatup":"wrecked"));
+    const lvl=levelOf(r);
+    const cls=lvl>=3?"":(lvl===2?"t2":(lvl===1?"t3":"t4"));
+    const cur=lvl>=3?"perfect":(lvl===2?"scuffed":(lvl===1?"beatup":"wrecked"));
     const csel=document.createElement("select");
     csel.className="tiersel "+cls;
     csel.setAttribute("aria-label","condition");
@@ -1020,7 +1086,7 @@ function render(){
   if(readRef(s.buf,VDF_OFF)==="vppirnha.vdf"){
     const curVtf=readRef(s.buf,VTF_OFF);
     const paintBox=document.createElement("div"); paintBox.className="box";
-    paintBox.innerHTML=`<div class="boxhead">Paint Shop <span class="hint">rewrites the texture-set ref — first in-game check pending</span></div>`;
+    paintBox.innerHTML=`<div class="boxhead">Paint Shop <span class="hint">rewrites the texture-set ref — verified in-game 2026-10-02 (the car repaints; the LOAD board shows the bookmark name, not the variant)</span></div>`;
     const prow=document.createElement("div"); prow.style.padding="8px 12px";
     const psel=document.createElement("select"); psel.className="eqsel";
     psel.setAttribute("aria-label","paint scheme");
@@ -1083,7 +1149,13 @@ function render(){
     const box=document.createElement("div"); box.className="box";
     box.innerHTML=`<div class="boxhead">${title} <span class="hint">${hint}</span></div>`;
     const list=document.createElement("div"); list.className="inv";
-    const infos=offs.map(o=>recInfo(s.buf,o));
+    /* the game's display order (sandbox 2026-10-02): the (C)/(V)/(R) list shows (C) records in
+       ascending file order, then the rest in DESCENDING file order; Field Salvage sorts by name
+       group, condition descending within it */
+    const all=offs.map(o=>recInfo(s.buf,o));
+    const infos=[...all.filter(r=>r.state===1),
+                 ...all.filter(r=>r.state!==1&&r.state!==4).sort((a,b)=>b.off-a.off),
+                 ...all.filter(r=>r.state===4).sort((a,b)=>a.name.localeCompare(b.name)||b.cond-a.cond)];
     CAT_ORDER.forEach(([cat,types])=>{
       const items=infos.filter(r=>types.includes(r.type));
       if(!items.length) return;
@@ -1118,13 +1190,9 @@ function render(){
           const here=loc(r.off);
           const mk=(txt,title,fn)=>{const b=document.createElement("button"); b.className="movebtn"; b.textContent=txt; b.title=title; b.addEventListener("click",fn); row.appendChild(b);};
           if(here!==2) mk("→ van","stow it in the van (V)",()=>{
-            const cap=VAN_CAP[r.type];
-            if(cap&&vanCount(r.type)>=cap){toast(`The van only holds ${cap} ${KIND[r.type]}s`);return;}
             snapUndo(s); setState(s.buf,r.off,2); render();
           });
-          if(here!==3) mk("→ repair","put it on Skeeter's bench (R)",()=>{
-            if(repCount()>=REPAIR_CAP)
-              toast(`Heads-up: ${repCount()+1} bench jobs — beyond anything we've seen a real save carry (${REPAIR_CAP}); if the game drops one, we've found the cap`);
+          if(here!==3) mk("→ repair","put it on Skeeter's bench (R) — no cap",()=>{
             snapUndo(s); setState(s.buf,r.off,3); render();
           });
           if(here!==4) mk("→ salvage","drop it into field salvage (S)",()=>{
@@ -1143,7 +1211,7 @@ function render(){
   right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length} jobs (section C is rebuilt from these on save) · cap unverified (≥14 seen in a real save)`,repRecs,""));
   right.appendChild(invBox("Van / Field Salvage",`spares — (V) in the van, (S) in field salvage${capNote}`,carVanRecs,""));
   const legend=document.createElement("div"); legend.className="legend";
-  legend.textContent="Mounted parts (state 1, one per equipped slot) show their condition on the car sheet. Spares: (V) van, (R) bench, (S) field salvage — the → buttons move them. Colors here = STORED condition thirds (green scuffed, yellow beat-up, red wrecked), the same thirds the shell's PartNode_DamageLevel uses; the in-game colour thresholds are still an open in-game check (every 2026-07 colour experiment edited the wrong record).";
+  legend.textContent="Mounted parts (state 1, one per equipped slot) show their condition on the car sheet. Spares: (V) van, (R) bench, (S) field salvage — the → buttons move them; lists are in the game's own order. Colors = the game's thirds, sandbox-measured 2026-10-02: floor(3 × cond ÷ full) — 0 red, 1 yellow, 2 green, 100 % unmarked (1/3 exactly is yellow, 2/3 exactly is green).";
   right.appendChild(legend);
 
   grid.append(left,right); editor.appendChild(grid);
@@ -1167,17 +1235,19 @@ function render(){
     snapUndo(s);
     const dv=new DataView(s.buf);
     const need=[...parseCar(s.buf).eq.filter(n=>n&&n!=="Empty")];
-    let kept=0,stowed=0;
-    const VAN_CAP2={2:3,3:4}; const vanNow={2:0,3:0}; let cargo=0;
+    let kept=0,stowed=0,cargo=0;
+    /* keep each garage list inside its allocation (engines 4, suspensions 6, brakes 6, specials 10,
+       weapons 11-by-cap): extras go to Field Salvage (S) */
+    const now={};
     s.recs.forEach(off=>{
       const nm=cstr(new Uint8Array(s.buf),off+R_NAME,30);
-      const typ=dv.getUint32(off+R_TYPE,true);
+      const typ=dv.getUint32(off+R_TYPE,true), t=(typ===8?7:typ), lim=(t===7?WEAPON_CAP:LIST_ALLOC[t]);
       const i=need.indexOf(nm);
-      if(i>=0){ need.splice(i,1); setState(s.buf,off,1); kept++; }
-      else if(VAN_CAP2[typ]&&vanNow[typ]>=VAN_CAP2[typ]){ setState(s.buf,off,4); cargo++; }
-      else { if(typ in vanNow) vanNow[typ]++; setState(s.buf,off,2); stowed++; }
+      if(i>=0){ need.splice(i,1); setState(s.buf,off,1); kept++; now[t]=(now[t]||0)+1; }
+      else if(lim&&(now[t]||0)>=lim){ setState(s.buf,off,4); cargo++; }
+      else { now[t]=(now[t]||0)+1; setState(s.buf,off,2); stowed++; }
     });
-    toast(`${kept} equipped kept (C), ${stowed} stowed (V)${cargo?`, ${cargo} over the van cap dropped to field salvage (S)`:""}`); render();
+    toast(`${kept} equipped kept (C), ${stowed} stowed (V)${cargo?`, ${cargo} past the garage's list sizes dropped to field salvage (S)`:""}`); render();
   });
   const undo=document.createElement("button"); undo.className="obtn quiet"; undo.textContent="Undo";
   undo.disabled=!(s.undo&&s.undo.length);
@@ -1229,8 +1299,9 @@ function render(){
     const target=slotSel.value, fname=target+".cmp";
     const du=updatedDir(target);
     const warn=du&&du.warn?" ⚠ scene unknown — fill the Scene box or the game will load it at Scene 1!":"";
-    /* the repair queue (section C) follows the (R) rows; rebuilding it can change the file size */
-    const out=withRepairQueue(s.buf);
+    /* mounted weapons go first in section A when one sits past the garage's cap, and the
+       repair queue (section C) follows the (R) rows; rebuilding it can change the file size */
+    const out=prepareForWrite(s.buf);
     if(out!==s.buf){ s.buf=out; s.recs=scan(out); }
     if(liveDir){
       try{

@@ -104,6 +104,57 @@ def test_sync_repair_queue_is_identity_on_game_files():
         data = _read(p); c = ed.Cmp(data)
         assert c.sync_repair_queue() is False and c.to_bytes() == data, _rel(p)
 
+# condition colours, sandbox-measured 2026-10-02 (CAL COLOR + base): level = floor(3*cond/full)
+COLOUR_POINTS = [((100, 100), "none"), ((955, 1000), "green"), ((85, 100), "green"), ((70, 100), "green"),
+                 ((55, 100), "yellow"), ((50, 100), "yellow"), ((40, 100), "yellow"), ((357, 1000), "yellow"),
+                 ((337, 1000), "yellow"), ((100, 300), "yellow"), ((47, 150), "red"), ((25, 100), "red"),
+                 ((247, 1000), "red"), ((22, 100), "red"), ((19, 100), "red"), ((15, 100), "red"), ((10, 100), "red"),
+                 ((6, 100), "red"), ((55, 1000), "red"), ((1, 100), "red"), ((200, 300), "green"), ((199, 300), "yellow")]
+
+@pytest.mark.parametrize("cf,colour", COLOUR_POINTS, ids=[f"{c}/{f}" for (c, f), _ in COLOUR_POINTS])
+def test_condition_colour_thresholds(cf, colour):
+    cond, full = cf
+    p = ed.Part.new("50cal Turret", 7, "slg02", "tmmedium.gdf", full, 47.0, cond=cond, state=2)
+    assert p.colour == colour
+    sp = ed.Part.new("Structo Bmpr", 13, "", "spc05", 0, 0.0, cond=0, state=2)
+    assert sp.level() is None and sp.colour == "none"
+
+def test_weapon_cap_warning_and_reorder():
+    """CAL COLOR reproduced: three salvage guns moved into the van push the mounted Oil Slick (#62) past the
+    garage's 11-weapon cap -> its dropper hardpoint reads EMPTY (sandbox 2026-10-02). The base save003 holds
+    exactly 11 car/van/bench weapons with Oil Slick the 11th, so it has no warning."""
+    base = ed.Cmp.load(os.path.join(LAB_FIX, "save003.cmp"))
+    assert base.loadout_warnings() == [] and len(base.weapons_in_cap()) == 11
+    assert base.weapons_in_cap()[-1].name == "Oil Slick" and base.a.index(base.weapons_in_cap()[-1]) == 62
+    c = ed.Cmp.load(os.path.join(LAB_FIX, "save003.cmp"))
+    moved = [p for p in c.a if p.is_weapon and p.state == 4][:3]
+    for p in moved: p.state = 2
+    w = c.loadout_warnings()
+    assert len(w) == 2 and w[0].startswith("14 car/van/bench weapons: the garage keeps the first 11") and "#62 (C) Oil Slick" in w[0]
+    assert w[1] == "Weapon 1 label 'Oil Slick' has no mounted (state 1) record within the weapon cap: the hardpoint reads EMPTY"
+    assert 7 not in c.mounted() and c.weapons_over_cap()[-1].name == "Oil Slick"
+    acts = c.prepare_for_write()
+    assert acts and acts[0].startswith("moved 4 mounted weapon records to the front of section A")
+    w2 = c.loadout_warnings()        # still 14 weapons: the garage will drop three VAN guns, but no mounted one
+    assert len(w2) == 1 and w2[0].startswith("14 car/van/bench weapons") and "(C)" not in w2[0]
+    assert c.check() == [] and len(c.a) == 64 and 7 in c.mounted()
+    assert all(p.is_weapon and p.state == 1 for p in c.a[:4])
+    assert sorted((p.name, p.dfl, p.cond) for p in c.a) == sorted((p.name, p.dfl, p.cond) for p in base.a)   # a permutation, nothing lost
+    # untouched game saves need nothing (the lab folder may still hold the first-generation CAL COLOR
+    # probe, whose mounted Oil Slick sits past the cap by design - it carries a warning and is skipped)
+    for p in CMP_FILES:
+        if _rel(p) in EDITOR_TOUCHED: continue
+        cc = ed.Cmp(_read(p))
+        if cc.loadout_warnings(): continue
+        assert cc.prepare_for_write() == [] and cc.to_bytes() == _read(p), _rel(p)
+
+def test_list_allocation_warning():
+    c = ed.Cmp.load(os.path.join(LAB_FIX, "save003.cmp"))
+    engines = [p for p in c.a if p.type == 2 and p.state == 4]
+    for p in engines[:2]: p.state = 2          # 3 car/van/bench engines + 2 = 5 > List_New(4)
+    assert c.loadout_warnings() == ["5 car/van/bench engines: the garage list is allocated for 4 (heap overflow)"]
+    assert (ed.WEAPON_CAP, ed.LIST_ALLOC) == (11, {2: 4, 3: 6, 4: 6, 5: 32, 7: 32, 13: 10})
+
 def test_part_new_and_identity():
     p = ed.Part.new("50cal Turret", 7, "slg02", "tmmedium.gdf", 400, 47.0, cond=100, state=2)
     assert len(p.raw) == ed.REC_LEN
@@ -178,7 +229,7 @@ def test_html_parser_lockstep_with_python():
             for r in py["records"]:
                 assert j["records"][r["file"]] == {"scene": r["scene"], "name": r["name"], "state": r["state"]}, (path, r)
         else:
-            for k in ("size", "car", "variant", "nA", "nC", "armor", "equipped"):
+            for k in ("size", "car", "variant", "nA", "nC", "armor", "equipped", "warnings"):
                 assert j[k] == py[k], (path, k)
             assert j["a"] == py["a"] and j["c"] == py["c"], path
 
@@ -208,6 +259,7 @@ def test_calibration_staging(tmp_path):
         assert p.is_file(), r.file
         data = _read(p); c = ed.Cmp(data)
         assert c.to_bytes() == data and c.check() == [], r.file
+        assert c.loadout_warnings() == [], (r.file, c.loadout_warnings())   # no probe may trip the garage's caps
     assert (out / "CAL-MANIFEST.md").is_file()
     # staging never touches the game directory
     assert ed.SaveDir.load(os.path.join(LAB_FIX, "savegame.dir")).to_bytes() == game_dir.to_bytes()

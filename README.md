@@ -19,6 +19,30 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
 
+## Playing at 60 / 120 fps
+
+The game is 20 fps as GOG ships it. The music-fix proxy (`music-fix/Strlkup.dll`) carries an
+opt-in switch set that makes it play well above that; `PLAY-i76.ps1 -Preset <name>` applies a
+named set from [`presets/`](presets/) to the game process only (`-Preset ?` lists them,
+`-DryRun` shows what the game would get without starting it; `LAUNCHER.ps1` has the same
+drop-down). The default, `stock`, sets nothing.
+
+| preset | what it sets | status |
+|---|---|---|
+| `stock` | nothing | [verified in play] the daily driver |
+| `smooth-60` | `I76_HIRES_CLOCK=1 I76_FIXED_STEP=24 I76_FRAMERATE_FIXES=1 I76_ENGINE_DT_FIX=1 I76_RENDER_INTERP=1` | [measured, sandbox] capture 014; [console-verified 2026-10-02, sandbox] n = 1 |
+| `smooth-60-bugfixes` | smooth-60 + `I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1` | [measured, sandbox]; on in the 2026-10-02 console session |
+| `smooth-120` | smooth-60-bugfixes + `I76_GLIDE_REFRESH=120` | [measured, sandbox] 120.0 fps on the proxy counter; not played at the console |
+| `lab-all` | smooth-60-bugfixes + `I76_FAR_CLIP=1800 I76_TELEMETRY=1` (TEST-FRAMERATE mode 5) | [console-verified 2026-10-02, sandbox] n = 1 |
+
+**Nothing above is deployed to the playable install**; every preset is experimental until the
+A/B in [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. Two things have to be true
+for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
+(the launcher compares it and tells you to run `setup-windows.ps1` if not; it copies nothing), and
+GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so).
+Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz analysis:
+[docs/FPS-120.md](docs/FPS-120.md).
+
 ## Open improvements
 
 Live backlog of things still worth fixing, **non-frame-rate** ones first because they affect

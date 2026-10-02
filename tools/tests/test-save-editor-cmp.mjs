@@ -24,14 +24,15 @@ const src = [
   grab("const DIR_HDR=", "const sceneOf="),                        // DIR_*, dirRec, parseDir
 ].join("\n");
 const td = new TextDecoder("latin1");
-const api = new Function("td", src + "\nreturn {parseCmp,scan,recInfo,stateAt,setState,setCond,withRepairQueue,parseHeader,parseCar,parseDir,REC,HDR_LEN};")(td);
+const api = new Function("td", "const LOC_BADGE={1:'C',2:'V',3:'R',4:'S'};\n" + src +
+  "\nreturn {parseCmp,scan,recInfo,withLevel,stateAt,setState,setCond,withRepairQueue,loadoutWarnings,prepareForWrite,weaponsInCap,mountedMap,parseHeader,parseCar,parseDir,REC,HDR_LEN,WEAPON_CAP};")(td);
 
 const args = process.argv.slice(2);
 const asJson = args.includes("--json");
 const files = args.filter(a => a !== "--json");
 if (!files.length) { console.error("usage: node test-save-editor-cmp.mjs [--json] files..."); process.exit(2); }
 
-const rec = (buf, o) => { const r = api.recInfo(buf, o); return { name: r.name, type: r.type, cls: r.cls, dfl: r.dfl, full: r.full, wt: Math.round(r.wt * 1000) / 1000, cond: r.cond, state: r.state, u22: r.u22, u48: r.u48 }; };
+const rec = (buf, o) => { const r = api.withLevel(api.recInfo(buf, o)); return { name: r.name, type: r.type, cls: r.cls, dfl: r.dfl, full: r.full, wt: Math.round(r.wt * 1000) / 1000, cond: r.cond, state: r.state, u22: r.u22, u48: r.u48, level: r.level }; };
 const toBuf = f => { const b = fs.readFileSync(f); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
 const multiset = (buf, offs) => offs.map(o => { const r = api.recInfo(buf, o); return `${r.name}|${r.cond}|${r.dfl}`; }).sort().join("\n");
 
@@ -51,8 +52,20 @@ for (const f of files) {
   if (asJson) {
     const h = api.parseHeader(buf), car = api.parseCar(buf);
     out.push({ file: base, size: buf.byteLength, car: h.car, variant: h.variant, nA: p.a.length, nC: p.c.length,
-      armor: car.armor, equipped: car.eq, a: p.a.map(o => rec(buf, o)), c: p.c.map(o => rec(buf, o)) });
+      armor: car.armor, equipped: car.eq, a: p.a.map(o => rec(buf, o)), c: p.c.map(o => rec(buf, o)),
+      warnings: api.loadoutWarnings(buf) });
     continue;
+  }
+  // prepareForWrite: identity unless a mounted weapon sits past the cap; afterwards every mounted weapon is in the cap
+  {
+    const incap = new Set(api.weaponsInCap(buf, p.a));
+    const past = p.a.some(o => { const r = api.recInfo(buf, o); return (r.type === 7 || r.type === 8) && r.state === 1 && !incap.has(o); });
+    const b5 = api.prepareForWrite(buf);
+    const queueOk5 = multiset(buf, p.c) === multiset(buf, p.a.filter(o => api.stateAt(buf, o) === 3));
+    check((b5 === buf) === (!past && queueOk5), `${base}: prepareForWrite identity iff nothing to do (past cap ${past}, queue ok ${queueOk5})`);
+    const p5 = api.parseCmp(b5), incap5 = new Set(api.weaponsInCap(b5, p5.a));
+    check(p5.a.every(o => { const r = api.recInfo(b5, o); return !((r.type === 7 || r.type === 8) && r.state === 1) || incap5.has(o); }), `${base}: mounted weapons inside the cap after prepareForWrite`);
+    check(p5.a.length === p.a.length && b5.byteLength >= buf.byteLength - api.REC * p.c.length, `${base}: prepareForWrite keeps every A record`);
   }
   // self-checks
   check(buf.byteLength === api.HDR_LEN + 8 + api.REC * (p.a.length + p.c.length), `${base}: size formula`);
