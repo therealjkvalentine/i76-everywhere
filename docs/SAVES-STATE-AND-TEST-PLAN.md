@@ -341,4 +341,8 @@ control run, never experiment on the daily driver, count calls not status flags,
 - `saves/README.md` scene table corrected (save017 is scene 15); the rescue index was never truncated.
 - Leg A is being run by a sandbox harness under `i76-uncap-labutotest\saves\`; its report is
   `SAVES-LEG-A-RUN-2026-10-01.md` when it lands.
+- Leg B passed (`SAVES-LEG-B-RUN-2026-10-01.md`): the Leg-A bookmark loads into t05 with the car matching its .cmp;
+  an editor-modified directory (scene 5 -> 3, one byte) loads t03. State-8 records load the dword as-is; state-1
+  records play scene+1. The garage DONE writes vehscn.vcf/.vsf (chassis non-zero) and reconfig.spc; the bookmark
+  load itself writes only I76PLYR.DEF. The chassis-0 lead does not apply to this path.
 

@@ -78,7 +78,8 @@ game's own garage screens, 2026-07):
       renumbering? mission-vs-scene numbering?). The +24 dword is still what
       the game LOADS (proven). Field test: load the mislabeled row, see which
       mission starts.
-  The scene dword = last COMPLETED scene; loading plays the NEXT one (dword 7
+  The scene dword: a post-mission save (state 1) plays scene+1, a garage save (state 8) plays
+  the scene as written (sandbox-verified 2026-10-01). Older note: loading plays the NEXT one (dword 7
   -> you play Scene 8). 0 -> Scene 1 with the scripted starter car. The game
   writes the newest entry's scene truncated.
 

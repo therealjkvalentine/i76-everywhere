@@ -35,6 +35,10 @@ and the last row looked truncated. The real record is `{u32 scene, name[32], fil
 `4 + 60k`; `python i76-save-editor.py --dir saves --list` and `node tools/tests/test-save-editor-dir.mjs saves/savegame.dir`
 now agree with the bytes.
 
+Which scene a bookmark *plays* depends on its state field (sandbox-verified 2026-10-01, `docs/SAVES-LEG-B-RUN-2026-10-01.md`):
+a post-mission save (state 1) plays scene+1; a save made from the garage (state 8) plays the scene as written. The
+scenes in the table are the stored dwords.
+
 Slots 003-007 are missing by history, not by accident - they were deleted from the Mac
 install before this snapshot, and `rescue-20260718/` below is the only copy left. The index
 addresses files by name, so the gap is legal.

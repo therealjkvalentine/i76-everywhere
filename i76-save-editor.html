@@ -330,8 +330,9 @@ const SCENES=["Seagraves fireworks","Race Taurus · save the school","Destroy th
  "Fletcher & Sons warehouse","Catch the spy Calisto","Road to Roswell",
  "Cross the Pecos River","Find V&N Pneumatics","Chase the tanker",
  "Spanner's Truck Stop","Mesa maze to Ft. Davis","Into Fort Davis","Malochio showdown"];
-/* the dir dword = last COMPLETED scene; loading the bookmark plays the NEXT one */
-const sceneLabel=n=>(n>=1&&n<=16)?`${n} done → plays ${n+1}: ${SCENES[n]}`:(n===17?"17 done — campaign finished":String(n));
+/* the dir dword: a post-mission save (state 1) plays scene+1, a garage save (state 8) plays the scene as written */
+const playsScene=(n,st)=>st===8?n:n+1;   /* garage save (state 8) plays the dword; post-mission save (state 1) plays the next */
+const sceneLabel=(n,st)=>{const pl=playsScene(n,st); return (n>=1&&n<=17&&pl<=17)?`${n} → plays ${pl}: ${SCENES[pl-1]}`:(pl>17?`${n} — campaign finished`:String(n));};
 const KIND={2:"engine",3:"suspension",4:"brakes",5:"wheel",7:"weapon",8:"weapon",13:"special"};
 const CAT_ORDER=[["Engines",[2]],["Weapons",[7,8]],["Wheels",[5]],["Brakes",[4]],["Suspensions",[3]],["Specials",[13]]];
 const REC=116;
@@ -509,7 +510,7 @@ function eqOptions(slot,curName){
 }
 /* savegame.dir layout (CORRECTED 2026-10-01 against the raw bytes of a game-written directory; the lab's
    364-byte file is exactly 4 + 60 x 6): u32 count, then 60-byte records at 4+60k:
-     +0  u32 SCENE (the last completed scene; loading plays the next one)
+     +0  u32 SCENE (state 1 = post-mission save: plays scene+1; state 8 = garage save: plays this scene; verified 2026-10-01)
      +4  char[32] display name (blank is legal: the board shows "SCENE N.")
      +36 char[16] file name "saveNNN"
      +52 u32 state the shell was entered with (1 success / 8 reconfigure)
@@ -533,6 +534,7 @@ function parseDir(buf){
 }
 const sceneOf=b=>{const d=dirMissions[b]; return d&&typeof d.scene==="number"?d.scene:null;};
 const nameOf =b=>{const d=dirMissions[b]; return d?d.name:"";};
+const stateOf=b=>{const d=dirMissions[b]; return d&&typeof d.state==="number"?d.state:1;};
 /* a directory is exactly 4 + 60 x count bytes; extend a short one (older editor writes left records
    truncated) with zeros so every record is whole. (The 2026-07 "game drops the last entry" note described
    the misframed reader, not the game.) */
@@ -763,11 +765,12 @@ function render(){
   padbox.hidden=!saves.length;
   pad.innerHTML="";
   saves.forEach((s,i)=>{
-    const m=sceneOf(s.base), nm=nameOf(s.base);
+    const m=sceneOf(s.base), nm=nameOf(s.base), st=stateOf(s.base);
     const row=document.createElement("div");
     row.className="padrow"; row.setAttribute("role","tab"); row.tabIndex=0;
     row.setAttribute("aria-selected",String(i===current));
-    const playsTxt=(typeof m==="number"&&m>=1&&m<=16)?`plays Scene ${m+1} · ${SCENES[m]}`:(m===17?"campaign finished":"scene ?");
+    const pl=(typeof m==="number")?playsScene(m,st):null;
+    const playsTxt=(pl!==null&&pl>=1&&pl<=17)?`plays Scene ${pl} · ${SCENES[pl-1]}`:(pl!==null&&pl>17?"campaign finished":"scene ?");
     /* named bookmarks show their in-game name (the game's LOAD board does the
        same); unnamed ones get the plays-next line like the game's default */
     const sceneTxt=nm?`“${nm}” — ${playsTxt}`:playsTxt.charAt(0).toUpperCase()+playsTxt.slice(1);
@@ -809,7 +812,7 @@ function render(){
             await refreshBackups();
             toast(ent==null
               ?`Restored ${base}, but its scene wasn't in the dir history — SET THE SCENE BOX and Save Bookmark, or the game loads it at Scene 1`
-              :`Restored ${base} onto the game's LOAD list (${ent.name?`“${ent.name}” · `:""}${ent.scene} done → plays ${ent.scene+1})`);
+              :`Restored ${base} onto the game's LOAD list (${ent.name?`“${ent.name}” · `:""}scene ${ent.scene} → plays ${playsScene(ent.scene,ent.state)})`);
           }catch(e){
             toast(e instanceof TypeError
               ?"The editor server isn't running — relaunch i76-save-editor.command and retry"
@@ -835,10 +838,10 @@ function render(){
   sceneSel.setAttribute("aria-label","scene number for this bookmark");
   sceneSel.title="Written to savegame.dir on Save Bookmark — the game loads the bookmark at this scene";
   {
-    const dm=sceneOf(s.base);
+    const dm=sceneOf(s.base), dst=stateOf(s.base);
     const knownScene=(typeof dm==="number"&&dm>=1&&dm<=17)?dm:null;
     sceneSel.innerHTML=(knownScene===null?`<option value="" selected>?</option>`:"")+
-      Array.from({length:17},(_,i)=>`<option value="${i+1}" ${knownScene===i+1?"selected":""}>${sceneLabel(i+1)}</option>`).join("");
+      Array.from({length:17},(_,i)=>`<option value="${i+1}" ${knownScene===i+1?"selected":""}>${sceneLabel(i+1,dst)}</option>`).join("");
   }
   /* bookmark NAME (savegame.dir +28, 32 bytes) - what the game's LOAD board
      prints on the order-pad line; blank = the game's own "SCENE N." default */
