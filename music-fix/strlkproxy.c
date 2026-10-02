@@ -1269,26 +1269,85 @@ static void apply_framerate_fixes(void) {
  * engine starts the heaviest damage smoke). Callers that see it: damage smoke, entity_DamageComponent's < 33 test
  * (handgun hits go to component 6), fsm_HpLesser (script hpLesser), ai_ShouldFleeWhenHurt (AI flees below
  * 30 + 17 x skill), the target-bracket readout and the network state packers.
- * The fix repoints the four table entries at a stub that multiplies by 100 (the constant at 0x4bc620) and continues
- * at 0x40b6f0. Missions may have been tuned around the stock behaviour, so this is opt-in. */
-static DWORD g_hf_cont = 0x0040b6f0;
-static __declspec(naked) void hf_scale_stub(void) {
+ * Missions may have been tuned around the stock behaviour, so this is opt-in.
+ *
+ * What the fix returns: health = min(28 + 72 x r, 100 x c), r = the worst armour/chassis side ratio (the stock
+ * intact-core value), c = the worst live core component ratio. The first version (2026-09-27) returned 100 x c alone
+ * on the component branch; that forgot the armour, so a car at 30% armour read 49.6 (yellow target bar) until its
+ * engine took a scratch and 98 (green, nearly full) after it - the bar rose and changed colour the wrong way as the
+ * car was shot (field report 2026-10-02, docs/HEALTH-BAR-COLOUR.md). The bar's colour and length are pure functions
+ * of this value (renderer_DrawTargetBrackets 0x45af10: red <= 33.3, yellow <= 66.7, green < 100, white = 100;
+ * length 30 x sqrt(v/100) px), so the value has to be monotone in damage. min() is: it never rises, it equals the
+ * stock value while the core is intact, and it keeps every measured result of the x100 version (99% engine: no
+ * smoke; 50% engine: smoke) because those runs had near-full armour. I76_FIX_HEALTH_PCT=2 keeps the x100-only
+ * reading for A/B runs.
+ *
+ * Two sites, both byte-checked before either is written:
+ *   1. the four table entries at 0x40b7b8 -> hf_comp_stub: st0 (c) x 100, parked in the frame slot [esp+0x14]
+ *      (local_3c: FLT_MAX from the prologue at 0x40b470; its only other use is the multi-part cases 2/3/0xb/0xc at
+ *      0x40b75c..0x40b776, which return through their own epilogue, never through 0x40b6f0), then jump to the
+ *      armour/chassis side loop at 0x40b5f5, which computes 28 + 72 x r and exits to 0x40b6f0;
+ *   2. the clamp entry 0x40b6f0 (fcom [0x4bc620], 6 bytes) -> hf_min_stub: st0 = min(st0, [esp+0x14]), the
+ *      displaced fcom, back to 0x40b6f6. The other paths into 0x40b6f0 (intact core via 0x40b6ca / 0x40b6dc, the
+ *      impossible dead-count > 3 default via 0x40b6ec) still hold FLT_MAX in the slot, so they are unchanged.
+ *   The slot lives in the caller's frame, so the fix is re-entrant and needs no global. All three core components
+ *   dead leaves c = FLT_MAX (x100 = +inf): the sides decide, instead of the stock 100 for a dead car. */
+static DWORD g_hf_cont   = 0x0040b6f0;   /* the clamp (x100-only reading) */
+static DWORD g_hf_sides  = 0x0040b5f5;   /* the armour/chassis side loop */
+static DWORD g_hf_resume = 0x0040b6f6;   /* after the displaced fcom at 0x40b6f0 */
+static __declspec(naked) void hf_scale_stub(void) {        /* =2: x100, straight to the clamp (the 2026-09-27 reading) */
     __asm {
         fmul dword ptr ds:[0x004bc620]
         jmp dword ptr [g_hf_cont]
+    }
+}
+static __declspec(naked) void hf_comp_stub(void) {         /* =1: switch-table target; st0 = c, edi = entity, frame intact */
+    __asm {
+        fmul dword ptr ds:[0x004bc620]      ; 100 x c
+        fstp dword ptr [esp + 0x14]         ; park it; pops st0 as the stock fstp st(0) at 0x40b5f3 does
+        jmp dword ptr [g_hf_sides]
+    }
+}
+static __declspec(naked) void hf_min_stub(void) {          /* =1: entered from 0x40b6f0; st0 = 28 + 72 x r */
+    __asm {
+        fcom dword ptr [esp + 0x14]
+        fnstsw ax                           ; eax is dead here: the next stock instruction (0x40b6f6) is fnstsw ax
+        test ah, 1                          ; C0 set: st0 < slot, keep the side value
+        jne keep
+        fstp st(0)
+        fld dword ptr [esp + 0x14]
+    keep:
+        fcom dword ptr ds:[0x004bc620]      ; the displaced instruction
+        jmp dword ptr [g_hf_resume]
     }
 }
 static void apply_fix_health_pct(void) {
     static const BYTE old_tab[16] = { 0xF0, 0xB6, 0x40, 0x00, 0xF0, 0xB6, 0x40, 0x00, 0xF0, 0xB6, 0x40, 0x00, 0xF0, 0xB6, 0x40, 0x00 };
     static const BYTE old_jmp[7] = { 0xFF, 0x24, 0x9D, 0xB8, 0xB7, 0x40, 0x00 };   /* jmp [ebx*4 + 0x40b7b8] at 0x40b6e3 */
     static const BYTE k100[4] = { 0x00, 0x00, 0xC8, 0x42 };                          /* 100.0f at 0x4bc620 */
-    BYTE new_tab[16]; DWORD a = (DWORD)(DWORD_PTR)hf_scale_stub; int i;
-    if (GetEnvironmentVariableA("I76_FIX_HEALTH_PCT", NULL, 0) == 0) return;
-    if (memcmp((void *)0x0040b6e3, old_jmp, 7) != 0 || memcmp((void *)0x004bc620, k100, 4) != 0) {
-        mlog("  fix-health-pct: bytes differ at 0x40b6e3 / 0x4bc620 - not applied"); return;
+    static const BYTE old_clamp[6] = { 0xD8, 0x15, 0x20, 0xC6, 0x4B, 0x00 };         /* fcom dword ptr [0x4bc620] at 0x40b6f0 */
+    static const BYTE old_sides[6] = { 0x8D, 0x8F, 0x58, 0x01, 0x00, 0x00 };         /* lea ecx, [edi+0x158] at 0x40b5f5 */
+    BYTE new_tab[16], new_clamp[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
+    char v[8]; DWORD a, rel; int x100_only, i;
+    DWORD n = GetEnvironmentVariableA("I76_FIX_HEALTH_PCT", v, sizeof(v));
+    if (n == 0) return;
+    x100_only = (n < sizeof(v) && v[0] == '2');
+    a = (DWORD)(DWORD_PTR)(x100_only ? hf_scale_stub : hf_comp_stub);
+    if (memcmp((void *)0x0040b6e3, old_jmp, 7) != 0 || memcmp((void *)0x004bc620, k100, 4) != 0 ||
+        memcmp((void *)0x0040b6f0, old_clamp, 6) != 0 || memcmp((void *)0x0040b5f5, old_sides, 6) != 0) {
+        mlog("  fix-health-pct: bytes differ at 0x40b6e3 / 0x4bc620 / 0x40b6f0 / 0x40b5f5 - not applied"); return;
     }
     for (i = 0; i < 4; i++) memcpy(new_tab + 4 * i, &a, 4);
-    mlog("  fix-health-pct: %s", patch_bytes(0x0040b7b8, old_tab, new_tab, 16, "health percent switch table") ? "on (component branch x100)" : "NOT applied");
+    if (!patch_bytes(0x0040b7b8, old_tab, new_tab, 16, "health percent switch table")) { mlog("  fix-health-pct: NOT applied"); return; }
+    if (x100_only) { mlog("  fix-health-pct: on (component branch x100 only - A/B reading, the target bar can rise; docs/HEALTH-BAR-COLOUR.md)"); return; }
+    rel = (DWORD)(DWORD_PTR)hf_min_stub - (0x0040b6f0 + 5);
+    memcpy(new_clamp + 1, &rel, 4);
+    if (!patch_bytes(0x0040b6f0, old_clamp, new_clamp, 6, "health percent clamp entry")) {
+        /* cannot happen after the pre-check; still, never leave the two sites disagreeing */
+        patch_bytes(0x0040b7b8, new_tab, old_tab, 16, "health percent switch table (restore)");
+        mlog("  fix-health-pct: NOT applied"); return;
+    }
+    mlog("  fix-health-pct: on (health = min(28 + 72 x worst side ratio, 100 x worst core ratio); sites 0x40b7b8, 0x40b6f0)");
 }
 
 /* ===========================================================================
