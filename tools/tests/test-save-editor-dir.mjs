@@ -28,13 +28,15 @@ const d = show("game file  ", buf);
 const n0 = new DataView(buf).getUint32(0, true);
 const slot = "save" + String(n0).padStart(3, "0");          // a slot the file does not have yet
 check(buf.byteLength === 4 + 60 * n0, "game-written file is exactly 4 + 60 x count");
-check(d.save000?.scene === 1 && d.save005?.scene === 6 && d.save005?.name === "s" && d.save003?.scene === 5, "expected scenes 1,2,3,5,6,6 and name s");
-const b2 = api.dirSetScene(buf, "save003", 9); const d2 = show("set 003->9 ", b2);
-check(d2.save003.scene === 9 && d2.save004.scene === 6 && d2.save002.scene === 3 && b2.byteLength === buf.byteLength, "set scene must touch only save003");
+const lab = !!(d.save003 && d.save005);                       // the lab set; other directories skip the lab-specific values
+if (lab) check(d.save000?.scene === 1 && d.save005?.scene === 6 && d.save005?.name === "s" && d.save003?.scene === 5, "expected scenes 1,2,3,5,6,6 and name s");
+const tgt = lab ? "save003" : Object.keys(d)[1], keep = lab ? "save004" : Object.keys(d)[2];
+const b2 = api.dirSetScene(buf, tgt, 9); const d2 = show("set " + tgt + "->9", b2);
+check(d2[tgt].scene === 9 && d2[keep].scene === d[keep].scene && d2.save002.scene === 3 && b2.byteLength === buf.byteLength, "set scene must touch only " + tgt);
 const b3 = api.dirWithSlot(buf, slot, 7, "AUTOSAVE1"); const d3 = show("add " + slot, b3);
-check(b3.byteLength === 4 + 60 * (n0 + 1) && d3[slot].scene === 7 && d3[slot].name === "AUTOSAVE1" && d3[slot].state === 1 && d3.save005.scene === 6, "new record framing");
+check(b3.byteLength === 4 + 60 * (n0 + 1) && d3[slot].scene === 7 && d3[slot].name === "AUTOSAVE1" && d3[slot].state === 1 && d3[keep].scene === d[keep].scene, "new record framing");
 const b4 = api.dirRemoveSlot(b3, "save001"); const d4 = show("drop 001   ", b4);
-check(b4.byteLength === 4 + 60 * n0 && !d4.save001 && d4.save002.scene === 3 && d4[slot].scene === 7 && d4.save005.name === "s", "remove keeps the other records whole");
+check(b4.byteLength === 4 + 60 * n0 && !d4.save001 && d4.save002.scene === 3 && d4[slot].scene === 7 && d4[keep].name === d[keep].name, "remove keeps the other records whole");
 const b5 = api.dirSetName(buf, "save000", "Hello"); const d5 = show("name 000   ", b5);
 check(d5.save000.name === "Hello" && d5.save000.scene === 1 && d5.save001.scene === 2, "set name must not move the scene");
 console.log(fail ? `${fail} FAILED` : "all checks passed");
