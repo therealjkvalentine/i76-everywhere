@@ -1378,6 +1378,12 @@ static void apply_ai_fixes(void) {
  * 014). The wrapper sets the stock step for the mirror call and restores the per-frame value after. The mirror pass's
  * flamer update calls 0x4458fe / 0x445968 stay unwrapped on purpose (g_flame_dmg_ok is 0 there, nothing is applied).
  * Kept out of I76_FRAMERATE_FIXES for A/B (docs/FRAMERATE-COVERAGE-2026-10-02.md P5 / U5). NOT yet measured in game.
+ *
+ * Two layouts at the gate, as for the hires clock: the 2017 Galaxy exe (md5 9a232dcc) has the `call` above; GOG's
+ * 2019 AiO build (60abf7bc, and the sandbox exe built on it) removed the gate itself - `EB 17 90 90 90` jumps over
+ * the compare to 0x4457cd and the `jl` became `jb` (0F 82), the only Galaxy/AiO difference in this function (i76-map
+ * binaries/diff-9a232dcc-vs-60abf7bc.tsv, cluster 0x4457b4-0x4457c1) - so there the mirror redraws on EVERY frame.
+ * Writing the call restores the gate on the grid count in both; the unsigned compare is fine with a DWORD count.
  */
 static DWORD g_idbg_mirror_draws;                           /* copied into the debug block by the render wrapper */
 static int __cdecl mirror_frame_count(void) {
@@ -1392,21 +1398,24 @@ static void __cdecl mirror_clouds_wrap(void *cam, DWORD colour) {
     g_cloud_u = u; g_cloud_v = v;
 }
 static void apply_mirror_rate(void) {
-    static const struct { DWORD site, target; void *wrap; const char *what; } cs[] = {
-        { 0x004457b4, 0x0049c7d0, (void *)mirror_frame_count, "rear mirror refresh gate" },   /* E8 17 70 05 00 */
-        { 0x004459a1, 0x00405200, (void *)mirror_clouds_wrap,  "rear mirror cloud step" },    /* E8 5A F8 FB FF */
-    };
-    int i, n = 0;
+    static const BYTE gate_galaxy[5] = { 0xE8, 0x17, 0x70, 0x05, 0x00 };   /* call 0x49c7d0 simclock_GetFrameCount at 0x4457b4 (Galaxy) */
+    static const BYTE gate_aio[5]    = { 0xEB, 0x17, 0x90, 0x90, 0x90 };   /* jmp 0x4457cd: gate removed (AiO: mirror every frame) */
+    static const BYTE cloud_old[5]   = { 0xE8, 0x5A, 0xF8, 0xFB, 0xFF };   /* call 0x405200 renderer_DrawClouds at 0x4459a1 */
+    BYTE gate_new[5] = { 0xE8 }, cloud_new[5] = { 0xE8 };
+    LONG rel; int n = 0; const char *layout;
     if (GetEnvironmentVariableA("I76_MIRROR_RATE", NULL, 0) == 0) return;
     if (!g_ratefix) { mlog("  mirror-rate: needs I76_FRAMERATE_FIXES (the 20 Hz grid) - not applied"); return; }
-    for (i = 0; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
-        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
-        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
-        memcpy(o + 1, &rel, 4);
-        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
-        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+    rel = (LONG)((DWORD_PTR)mirror_frame_count - (0x004457b4 + 5)); memcpy(gate_new + 1, &rel, 4);
+    if (memcmp((void *)0x004457b4, gate_aio, 5) == 0) {
+        layout = "AiO: gate was removed, mirror every frame";
+        n += patch_bytes(0x004457b4, gate_aio, gate_new, 5, "rear mirror refresh gate (AiO)");
+    } else {
+        layout = "Galaxy";
+        n += patch_bytes(0x004457b4, gate_galaxy, gate_new, 5, "rear mirror refresh gate (Galaxy)");
     }
-    mlog("  mirror-rate: %d/2 sites repointed (refresh gate on the 20 Hz grid count = 10 redraws/s, mirror cloud step at the stock 1.0)", n);
+    rel = (LONG)((DWORD_PTR)mirror_clouds_wrap - (0x004459a1 + 5)); memcpy(cloud_new + 1, &rel, 4);
+    n += patch_bytes(0x004459a1, cloud_old, cloud_new, 5, "rear mirror cloud step");
+    mlog("  mirror-rate: %d/2 sites repointed (refresh gate on the 20 Hz grid count = 10 redraws/s, layout %s; mirror cloud step at the stock 1.0)", n, layout);
 }
 
 /* ===========================================================================
