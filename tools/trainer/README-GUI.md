@@ -122,3 +122,12 @@ a zeroed one that the proxy adopts when the game starts later (magic 0 = no prox
   game (run both as the same user).
 - `find_game` picks the first `i76*.exe` it finds (see above).
 - The game grabs the mouse and keyboard; alt-tab out to reach the window, or put it on a second monitor.
+
+## Verified against the game (2026-10-02, sandbox t01)
+
+Launched while the sandbox ran with the new proxy: attached to the sandbox pid, `mode proxy`, `proxy live,
+heartbeat ... (60 fps)`, telemetry live, the status panel showed armour 800/800 x4, chassis 720/720 x4, engine
+1200/1200, wheels 400/400, the selected weapon and the live instance slots. Flipping god through the control block
+showed `applied 0x0001` and `play 0x18: armour, chassis` in the panel within a second. The toggles and one-shots
+themselves were exercised through the same block by `tests/trainer_live_test.py` (13/13). Not yet: a person
+clicking through every control.
