@@ -115,6 +115,11 @@ Copy-Item (Join-Path $repo 'i76-save-editor.html') $staging -Force -ErrorAction 
 # predate repo changes (it did on 2026-08-01 - the bundle shipped a PLAY-i76.ps1
 # with no -LosslessScaling support), and the bundle should carry the current one.
 Copy-Item (Join-Path $repo 'PLAY-i76.ps1') $gameOut -Force -ErrorAction SilentlyContinue
+# ... and the frame-rate presets it reads (presets\*.psd1; -Preset stock, the default, uses none).
+if (Test-Path (Join-Path $repo 'presets')) {
+    New-Item -ItemType Directory -Force (Join-Path $gameOut 'presets') | Out-Null
+    Copy-Item (Join-Path $repo 'presets\*.psd1') (Join-Path $gameOut 'presets') -Force -ErrorAction SilentlyContinue
+}
 
 # --- optional: bundle Lossless Scaling (frame generation) --------------------
 # It has NO Steam dependency (docs/WINDOWS-PLAYBOOK.md sec 2), so it runs from

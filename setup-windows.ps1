@@ -285,6 +285,13 @@ if ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')) -and (Test-
 # targeting keys; the engine has no wheel tokens - see tools/i76wheel.c;
 # build: gcc -O2 -s -mwindows -o i76wheel.exe i76wheel.c -luser32).
 Copy-Item (Join-Path $repoGameDir 'PLAY-i76.ps1') $GameDir -Force
+# The frame-rate presets PLAY-i76.ps1 -Preset reads (presets\*.psd1, data files). Copied beside
+# the launcher so the installed copy finds them; none is applied unless asked for.
+$presetSrc = Join-Path $repoGameDir 'presets'
+if (Test-Path $presetSrc) {
+    New-Item -ItemType Directory -Force (Join-Path $GameDir 'presets') | Out-Null
+    Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $GameDir 'presets') -Force
+}
 $wheelExe = Join-Path $repoGameDir 'tools\i76wheel.exe'
 if (Test-Path $wheelExe) {
     Copy-Item $wheelExe $GameDir -Force

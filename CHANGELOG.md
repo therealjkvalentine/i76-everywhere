@@ -5,6 +5,14 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+- **Frame-rate presets for players (backlog P2-03)** `[built, dry-run tested]`: `PLAY-i76.ps1 -Preset <name>`
+  reads `presets\<name>.psd1` (`stock`, `smooth-60`, `smooth-60-bugfixes`, `smooth-120`, `lab-all`; `-Preset ?`
+  lists them) and hands the `I76_*` switches to the game process only; `-DryRun` prints the command line and
+  environment and exits. Warns, without copying, when the game folder's `Strlkup.dll` is not the current
+  `music-fix` build (size + md5) or when `I76PATCH.DLL` still caps the game. `LAUNCHER.ps1` gained the same
+  drop-down; `setup-windows.ps1` and the portable zip carry `presets\`. Each preset's header says what is
+  verified where (smooth-60 and the bug fixes console-verified 2026-10-02 in the sandbox, 120 measured in the
+  sandbox); nothing is deployed to the playable install.
 - **Research: raising the REAL frame rate is plausible — but only by inverting the
   question.** A 9-agent research pass (repo RE docs + web prior art) concluded the
   engine has no frame limiter and no sim/render separation: physics, AI, script VM and

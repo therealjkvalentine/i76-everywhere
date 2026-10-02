@@ -9,10 +9,25 @@
 # 1997 engine has no wheel tokens, see tools/i76wheel.c) and cleans it up when
 # the game exits.
 #
-# Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe]
+# Frame-rate presets (2026-10-02): -Preset <name> loads presets\<name>.psd1, a documented set of
+# the music-fix proxy's opt-in I76_* switches (music-fix/README.md has the table), and hands it
+# to the GAME PROCESS ONLY - your shell's environment is never touched. The default, stock, sets
+# nothing and is exactly the old behaviour. -Preset ? lists them. -DryRun prints the command line
+# and the environment the game would get, then exits without starting anything. The switches are
+# no-ops unless the game folder's Strlkup.dll is the current music-fix build, so the launcher
+# compares it against music-fix\Strlkup.dll and warns (it copies nothing: run setup-windows.ps1).
+# Nothing in a preset is deployed to the playable install by default; see presets\*.psd1 headers
+# for what is verified where.
+#
+# Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe] [-Preset smooth-60] [-DryRun]
 param(
     [string]$GameDir = "C:\Games\Interstate 76",
     [string]$Exe = "i76.exe",
+    # Which presets\<name>.psd1 to hand to the game process. 'stock' = no switches (the default,
+    # the pre-preset behaviour). '?' lists the presets and exits. A path to a .psd1 also works.
+    [string]$Preset = "stock",
+    # Print the game command line and its environment, then exit. Starts nothing.
+    [switch]$DryRun,
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
     [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
     # Head tracking. Pass "" to skip. opentrack is started AND told to begin
@@ -70,6 +85,136 @@ param(
     [switch]$NoCursorOverlay
 )
 $ErrorActionPreference = 'SilentlyContinue'
+
+# ---- frame-rate preset ------------------------------------------------------
+# $gameEnv is every environment variable the GAME gets that this shell does not have. It is
+# applied through ProcessStartInfo at launch, so nothing here leaks into the shell that ran
+# this script (the old code set $env:I76MUSIC_LOG / $env:I76_MISSION in the script's own
+# process, which is the user's shell when the script is run by hand).
+$gameEnv = [ordered]@{}
+
+# presets\ lives beside this script in the repo; setup-windows.ps1 and the portable zip copy it
+# beside the installed PLAY-i76.ps1, and the game folder is tried too.
+$presetDirs = @((Join-Path $PSScriptRoot 'presets'), (Join-Path $GameDir 'presets')) | Where-Object { Test-Path $_ } | Select-Object -Unique
+
+function Read-Preset([string]$path) {
+    # Data file only: Import-PowerShellDataFile evaluates no code, so a preset cannot do
+    # anything but name variables. ErrorAction Stop because the script runs SilentlyContinue.
+    try { $d = Import-PowerShellDataFile -Path $path -ErrorAction Stop } catch { return $null }
+    if (-not $d.ContainsKey('Env')) { return $null }
+    $d
+}
+
+if ($Preset -eq '?' -or $Preset -eq 'list') {
+    Write-Host "presets (PLAY-i76.ps1 -Preset <name>):" -ForegroundColor Cyan
+    $files = @(foreach ($d in $presetDirs) { Get-ChildItem (Join-Path $d '*.psd1') -ErrorAction SilentlyContinue })
+    if (-not $files) { Write-Host "  no presets\ folder found next to the script or in the game folder." -ForegroundColor Yellow }
+    foreach ($f in ($files | Sort-Object Name -Unique)) {
+        $d = Read-Preset $f.FullName
+        if (-not $d) { Write-Host ("  {0,-20} (unreadable)" -f $f.BaseName) -ForegroundColor Red; continue }
+        $vars = if ($d.Env.Count) { ($d.Env.Keys | Sort-Object | ForEach-Object { "$_=$($d.Env[$_])" }) -join ' ' } else { '(nothing set)' }
+        Write-Host ("  {0,-20} {1}" -f $f.BaseName, $d.Summary)
+        Write-Host ("  {0,-20} {1}" -f '', $vars) -ForegroundColor DarkGray
+        Write-Host ("  {0,-20} {1}" -f '', $d.Verified) -ForegroundColor DarkGray
+    }
+    exit 0
+}
+
+$presetFile = $null
+if ($Preset -match '\.psd1$' -and (Test-Path $Preset)) {
+    $presetFile = (Resolve-Path $Preset).Path
+} else {
+    foreach ($d in $presetDirs) {
+        $p = Join-Path $d "$Preset.psd1"
+        if (Test-Path $p) { $presetFile = $p; break }
+    }
+}
+$presetData = $null
+if ($presetFile) {
+    $presetData = Read-Preset $presetFile
+    if (-not $presetData) {
+        Write-Host "preset file $presetFile could not be read as a data file - launching with NO switches." -ForegroundColor Red
+    }
+} elseif ($Preset -ne 'stock') {
+    # An unknown name must not silently become stock: the player asked for 60 fps and would get
+    # 20 with nothing on screen to say why. Refuse instead.
+    Write-Host "unknown preset '$Preset'. PLAY-i76.ps1 -Preset ? lists them." -ForegroundColor Red
+    exit 2
+}
+# stock with no presets\ folder at all (an old portable zip) is fine: stock sets nothing.
+if ($presetData) { foreach ($k in ($presetData.Env.Keys | Sort-Object)) { $gameEnv[$k] = [string]$presetData.Env[$k] } }
+
+# The switches are implemented by music-fix/Strlkup.dll, so a preset that sets any of them is
+# a no-op unless the game folder's Strlkup.dll is (a) the proxy and (b) the build that knows
+# them. The playable install has run an older proxy build for weeks (backlog P1-07): compare
+# size + md5 against the repo's copy and SAY so. Nothing is copied here - deploying a DLL to the
+# install the owner plays on is its own deliberate step (setup-windows.ps1 / the deploy step).
+if ($gameEnv.Count) {
+    $installed = Join-Path $GameDir 'Strlkup.dll'
+    $reference = Join-Path $PSScriptRoot 'music-fix\Strlkup.dll'
+    if (-not (Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))) {
+        Write-Host "WARNING: the music-fix proxy is not deployed in $GameDir (no strlkup_orig.dll) - every I76_* switch in this preset is a NO-OP. Run setup-windows.ps1 (it deploys Strlkup.dll)." -ForegroundColor Red
+    } elseif (Test-Path $reference) {
+        $iLen = (Get-Item $installed).Length; $rLen = (Get-Item $reference).Length
+        $iMd5 = (Get-FileHash $installed -Algorithm MD5).Hash; $rMd5 = (Get-FileHash $reference -Algorithm MD5).Hash
+        if ($iLen -ne $rLen -or $iMd5 -ne $rMd5) {
+            Write-Host ("WARNING: {0} is {1} B md5 {2}, not the current music-fix build ({3} B md5 {4}) - switches it does not know are silently ignored. Run setup-windows.ps1 (or the deploy step) to update it; this launcher copies nothing." -f $installed, $iLen, $iMd5.Substring(0,8), $rLen, $rMd5.Substring(0,8)) -ForegroundColor Yellow
+        } else {
+            Write-Host ("Strlkup.dll matches music-fix\Strlkup.dll ({0} B md5 {1})." -f $iLen, $iMd5.Substring(0,8)) -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "note: music-fix\Strlkup.dll not found beside this script, so the installed proxy's build could not be checked against it." -ForegroundColor DarkGray
+    }
+    # GOG's I76PATCH.DLL is the AiO 20 fps cap. With it in place a 60 fps preset runs its fixes
+    # under a 20 fps cap, which looks exactly like "the preset does nothing". Say so; renaming
+    # it is a file change to the install and is left to the owner (RELEASE-PLAN section 2).
+    if (Test-Path (Join-Path $GameDir 'I76PATCH.DLL')) {
+        Write-Host "note: I76PATCH.DLL (GOG's 20 fps cap) is present in $GameDir - the frame rate stays ~20 until it is renamed (e.g. I76PATCH.DLL.disabled). This launcher does not rename it." -ForegroundColor Yellow
+    }
+}
+
+# Print what the game will get, before anything starts.
+$presetLabel = if ($presetData) { $presetData.Name } else { 'stock' }
+if ($gameEnv.Count) {
+    Write-Host ("preset {0}: {1}" -f $presetLabel, $presetData.Summary) -ForegroundColor Cyan
+    foreach ($k in $gameEnv.Keys) { Write-Host ("  {0}={1}" -f $k, $gameEnv[$k]) -ForegroundColor Cyan }
+    if ($presetData.Verified) { Write-Host ("  {0}" -f $presetData.Verified) -ForegroundColor DarkGray }
+} else {
+    Write-Host "preset $presetLabel (no engine switches)" -ForegroundColor DarkGray
+}
+
+# music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs to
+# mciproxy.log only when this is set. Set UNCONDITIONALLY: it was opt-in, which meant the
+# normal launch path - desktop shortcut -> .bat -> here, no env var anywhere - produced no
+# log, and "hook installed but silent" looked exactly like "hook never ran". A handful of
+# lines per session is worth never being blind again. (Game process only, see $gameEnv.)
+$gameEnv['I76MUSIC_LOG'] = '1'
+
+if ($Mission) {
+    if (-not (Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))) {
+        Write-Host "-Mission needs the music-fix proxy deployed (it applies the patch)." -ForegroundColor Yellow
+        Write-Host "  build it with: music-fix\build.ps1 -Install" -ForegroundColor DarkGray
+    } else {
+        $gameEnv['I76_MISSION'] = $Mission
+        if ($SkipMovies) { $gameEnv['I76_SKIP_MOVIES'] = '1' }
+        Write-Host "booting directly into $Mission$(if ($SkipMovies) { ' (movies skipped)' })" -ForegroundColor Cyan
+    }
+}
+
+if ($DryRun) {
+    Write-Host "DRY RUN - nothing started." -ForegroundColor Yellow
+    Write-Host ("  command:  `"{0}`" -glide" -f (Join-Path $GameDir $Exe))
+    Write-Host ("  cwd:      {0}" -f $GameDir)
+    Write-Host  "  environment handed to the game process (in addition to this shell's):"
+    foreach ($k in $gameEnv.Keys) { Write-Host ("    {0}={1}" -f $k, $gameEnv[$k]) }
+    $skipped = @()
+    if ($LosslessScaling -and (Test-Path $LosslessScaling)) { $skipped += 'Lossless Scaling' }
+    if ($OpenTrack -and (Test-Path $OpenTrack)) { $skipped += 'opentrack' }
+    if (Test-Path (Join-Path $GameDir '_ahk\AutoHotkeyU32.exe')) { $skipped += 'AHK layers' }
+    if ($Ffb) { $skipped += 'FFB interposer' }
+    if ($skipped) { Write-Host ("  helpers that a real run would also start: {0}" -f ($skipped -join ', ')) -ForegroundColor DarkGray }
+    exit 0
+}
 
 $wheel = $null
 if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
@@ -315,23 +460,7 @@ if ($stale.Count) { Start-Sleep -Milliseconds 700 }   # let the device release
 
 Start-Sleep -Milliseconds 800     # let the AHK layers finish their device probe
 
-# music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs
-# to mciproxy.log only when this is set. Set UNCONDITIONALLY: it was opt-in, which
-# meant the normal launch path - desktop shortcut -> .bat -> here, no env var
-# anywhere - produced no log, and "hook installed but silent" looked exactly like
-# "hook never ran". A handful of lines per session is worth never being blind again.
-$env:I76MUSIC_LOG = "1"
-
-if ($Mission) {
-    if (-not (Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))) {
-        Write-Host "-Mission needs the music-fix proxy deployed (it applies the patch)." -ForegroundColor Yellow
-        Write-Host "  build it with: music-fix\build.ps1 -Install" -ForegroundColor DarkGray
-    } else {
-        $env:I76_MISSION = $Mission
-        if ($SkipMovies) { $env:I76_SKIP_MOVIES = "1" }
-        Write-Host "booting directly into $Mission$(if ($SkipMovies) { ' (movies skipped)' })" -ForegroundColor Cyan
-    }
-}
+# (I76MUSIC_LOG and I76_MISSION / I76_SKIP_MOVIES are in $gameEnv, set above with the preset.)
 
 # music-fix/ (the deployed Strlkup.dll IAT hook) is the REAL soundtrack fix and it is
 # SYNCHRONISED - the game picks its own track. tools/i76-music.ps1 is only a stopgap
@@ -344,7 +473,19 @@ if (-not $NoMusic -and (Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))) {
     $NoMusic = $true
 }
 
-$proc = Start-Process -FilePath (Join-Path $GameDir $Exe) -ArgumentList '-glide' -WorkingDirectory $GameDir -PassThru
+# ProcessStartInfo rather than Start-Process so the preset's I76_* variables (and the log /
+# mission switches) exist in the GAME process only. PowerShell 5.1's Start-Process has no
+# -Environment, and $env: assignments would land in the shell that ran this script.
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName         = Join-Path $GameDir $Exe
+$psi.Arguments        = '-glide'
+$psi.WorkingDirectory = $GameDir
+$psi.UseShellExecute  = $false
+foreach ($k in $gameEnv.Keys) { $psi.EnvironmentVariables[$k] = [string]$gameEnv[$k] }
+$proc = [System.Diagnostics.Process]::Start($psi)
+if (-not $proc) {
+    Write-Host ("could not start {0}" -f $psi.FileName) -ForegroundColor Red
+}
 
 # Custom force feedback, AFTER the game: it reads the game's own memory, so the
 # process has to exist first. It waits for a mission to load on its own (the

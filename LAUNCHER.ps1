@@ -11,6 +11,11 @@
   Nothing here is required to play: PLAY-i76.ps1 remains the real entry point and this only
   builds a command line for it.
 
+  Frame-rate preset (2026-10-02): the drop-down in "This session" lists presets\*.psd1 and
+  feeds PLAY-i76.ps1 -Preset <name>; the variables go to the game process only. 'stock' is the
+  old behaviour. What is NOT here yet: showing the proxy's mciproxy.log lines after a run
+  (backlog P2-03 wanted that too) - read <game dir>\mciproxy.log by hand for now.
+
       powershell -ExecutionPolicy Bypass -File LAUNCHER.ps1
 #>
 param(
@@ -223,6 +228,26 @@ $tbVol = New-Object Windows.Forms.TextBox
 $tbVol.Location = New-Object Drawing.Point(555, 127); $tbVol.Size = New-Object Drawing.Size(120, 22)
 $gPlay.Controls.Add($tbVol)
 
+# Frame-rate preset: one entry per presets\*.psd1 (a data file - Import-PowerShellDataFile runs
+# no code). The game process gets the preset's I76_* variables; this window and the shell do not.
+New-Label $gPlay 'Frame-rate preset' 14 162 120 | Out-Null
+$cbPreset = New-Object Windows.Forms.ComboBox
+$cbPreset.Location = New-Object Drawing.Point(140, 159); $cbPreset.Size = New-Object Drawing.Size(170, 22)
+$cbPreset.DropDownStyle = 'DropDownList'
+$gPlay.Controls.Add($cbPreset)
+$lblPreset = New-Label $gPlay '' 320 162 505
+$lblPreset.ForeColor = [Drawing.Color]::DimGray
+$presetInfo = @{}
+foreach ($f in (Get-ChildItem (Join-Path $RepoRoot 'presets\*.psd1') -ErrorAction SilentlyContinue | Sort-Object Name)) {
+    try { $d = Import-PowerShellDataFile $f.FullName } catch { continue }
+    if (-not $d.Env) { $d.Env = @{} }
+    $vars = if ($d.Env.Count) { ($d.Env.Keys | Sort-Object | ForEach-Object { "$_=$($d.Env[$_])" }) -join ' ' } else { 'no engine switches' }
+    $presetInfo[$f.BaseName] = "$($d.Summary)  |  $vars  |  $($d.Verified)"
+    [void]$cbPreset.Items.Add($f.BaseName)
+}
+if (-not $cbPreset.Items.Contains('stock')) { [void]$cbPreset.Items.Insert(0, 'stock'); $presetInfo['stock'] = 'no engine switches (the pre-preset behaviour)' }
+$cbPreset.Add_SelectedIndexChanged({ $lblPreset.Text = $presetInfo[[string]$cbPreset.SelectedItem]; Update-Cmd })
+
 # ---- install health ----
 $gHealth = New-Group 'What is installed  (read-only)' 12 390 840 214
 $lvHealth = New-Object Windows.Forms.ListView
@@ -280,6 +305,8 @@ function Get-PlayArgs {
     if ($tbMission.Text.Trim())  { $a += @('-Mission', $tbMission.Text.Trim()) }
     if ($ckSkipMov.Checked)      { $a += '-SkipMovies' }
     if ($tbVol.Text.Trim() -and $tbVol.Text.Trim() -ne '550') { $a += @('-MusicVolume', $tbVol.Text.Trim()) }
+    $preset = [string]$cbPreset.SelectedItem
+    if ($preset -and $preset -ne 'stock') { $a += @('-Preset', $preset) }
     # these two are paths, and "" is how PLAY-i76.ps1 is told to skip them
     if (-not $ckLossless.Checked)  { $a += @('-LosslessScaling', '""') }
     if (-not $ckOpenTrack.Checked) { $a += @('-OpenTrack', '""') }
@@ -322,6 +349,7 @@ $btnPlay.Add_Click({
 $ckMusic.Checked = $true; $ckStick.Checked = $true
 $ckLossless.Checked = $true; $ckOpenTrack.Checked = $true
 $tbVol.Text = '550'
+$cbPreset.SelectedItem = 'stock'
 
 Refresh-All
 [void]$form.ShowDialog()
