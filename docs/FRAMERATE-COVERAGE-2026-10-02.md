@@ -427,3 +427,15 @@ the default here, as for every other site.
 The gate rolls 3x / 6x more often at 60 / 120 fps than at 20, and the 20 Hz hold brings it back to the stock
 rate. (`dodge_yes` was 0 in every window: no projectiles reached the AI in a 20 s drive; the call rate is the
 quantity the patch controls.) Report: lab `captures\rate-ab\dodge\REPORT.md`.
+
+**P5 mirror cadence (`I76_MIRROR_RATE`), measure `mirror`, a01 (car parked), 15 s windows, n = 2 per condition:**
+`g_idbg.mirror_draws` = 10.01 / s with the switch (0 counted without it: the counter lives in the wrapper), so the
+gate runs at the 20 Hz grid's half rate as designed, on the AiO sandbox exe where stock redraws the mirror every
+frame. Sky drift (`sky-motion.ps1`) read 0.8 px/s in every condition except one stock-60 run at 0.0 (its quantum is
+0.8 px/s with the car parked, so this only says the switch did not change it); cloud offsets drifted < 0.02 / s in
+all conditions. Report: lab `captures\rate-ab\mirror\REPORT.md`.
+
+**P1 collision window (`I76_COLL_WINDOW`), measure `cactus`, a01: not measured.** All 10 runs were excluded with
+"gauntlet aborted: control or steer calibration" - `cactus-gauntlet.ps1`'s control acquisition does not work on the
+direct-boot a01 the driver uses (it was written for the menu route into TRAINING). The switch applies (3/3 sites)
+and the game ran; the measurement needs the gauntlet ported to the direct boot before P1 can be accepted.
