@@ -2303,6 +2303,56 @@ static void apply_telemetry(void) {
 }
 
 /* ===========================================================================
+ * GLIDE REFRESH OVERRIDE  (I76_GLIDE_REFRESH=<hz>; off by default; docs/FPS-120.md)
+ * ===========================================================================
+ * The frame rate sits at exactly 60 whatever the panel does (179 Hz desktop, FPSLimit inert, ForceVerticalSync
+ * false, a forced "3360x2100, 120" Glide resolution: all measured 60.0 on 2026-10-02), with the main thread waiting
+ * inside the NVIDIA D3D11 user-mode driver's present. The one lever not yet pulled: the renderer (ZGLIDE.DLL, loaded
+ * by name through LoadLibraryA) opens its window with grSstWinOpen(hWnd, res, refresh = GR_REFRESH_60Hz, ...) and
+ * dgVoodoo paces windowed presents at the refresh the app asked for. zglide reaches grSstWinOpen through its own
+ * import slot (glide2x.dll!_grSstWinOpen@28), so: hook the exe's LoadLibraryA, and when ZGLIDE.DLL comes in, repoint
+ * that slot at a wrapper that substitutes the requested refresh code. Glide 2.x codes: 60 Hz 0, 70 1, 72 2, 75 3,
+ * 80 4, 90 5, 100 6, 85 7, 120 8; "none" 0xff. Measured result in the log. */
+typedef DWORD (__stdcall *grSstWinOpen_t)(DWORD hwnd, DWORD res, DWORD refresh, DWORD cfmt, DWORD origin, int ncol, int naux);
+static grSstWinOpen_t p_grSstWinOpen;
+static HMODULE (WINAPI *p_LoadLibraryA)(LPCSTR);
+static DWORD g_glide_refresh_code = 0xffffffff, g_glide_refresh_hz;
+
+static DWORD __stdcall hook_grSstWinOpen(DWORD hwnd, DWORD res, DWORD refresh, DWORD cfmt, DWORD origin, int ncol, int naux) {
+    DWORD r;
+    mlog("  glide-refresh: grSstWinOpen(res %lu, refresh %lu -> %lu (%lu Hz), cfmt %lu, origin %lu, %d/%d buffers)",
+         (unsigned long)res, (unsigned long)refresh, (unsigned long)g_glide_refresh_code, (unsigned long)g_glide_refresh_hz,
+         (unsigned long)cfmt, (unsigned long)origin, ncol, naux);
+    r = p_grSstWinOpen(hwnd, res, g_glide_refresh_code, cfmt, origin, ncol, naux);
+    mlog("  glide-refresh: context %lu", (unsigned long)r);
+    return r;
+}
+
+static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
+    HMODULE m = p_LoadLibraryA(name);
+    if (m && name) {
+        const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
+        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen) {
+            p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
+            mlog("  glide-refresh: %s loaded at %p, grSstWinOpen slot %s", b, (void *)m, p_grSstWinOpen ? "repointed" : "NOT found");
+        }
+    }
+    return m;
+}
+
+static void apply_glide_refresh(void) {
+    static const struct { DWORD hz, code; } tab[] = { {60, 0}, {70, 1}, {72, 2}, {75, 3}, {80, 4}, {90, 5}, {100, 6}, {85, 7}, {120, 8}, {0, 0xff} };
+    char v[8]; DWORD n = GetEnvironmentVariableA("I76_GLIDE_REFRESH", v, sizeof(v)); int i;
+    if (n == 0 || n >= sizeof(v)) return;
+    g_glide_refresh_hz = (DWORD)atoi(v);
+    for (i = 0; i < (int)(sizeof tab / sizeof tab[0]); i++) if (tab[i].hz == g_glide_refresh_hz) g_glide_refresh_code = tab[i].code;
+    if (g_glide_refresh_code == 0xffffffff) { mlog("  glide-refresh: %s is not a Glide refresh (60 70 72 75 80 85 90 100 120, 0 = none) - not applied", v); return; }
+    p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
+    mlog("  glide-refresh: %lu Hz (code %lu) armed; LoadLibraryA %s", (unsigned long)g_glide_refresh_hz, (unsigned long)g_glide_refresh_code,
+         p_LoadLibraryA ? "hooked" : "NOT hooked");
+}
+
+/* ===========================================================================
  * TRAINER CONTROL BLOCK  (always on; I76_TRAINER=0 disables)
  * ===========================================================================
  * tools/trainer/i76trn.h is the contract: a 192-byte i76trn_ctl_t in the shared memory Local\I76Trainer that a
@@ -2485,6 +2535,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_far_clip();         /* opt-in: I76_FAR_CLIP=<metres> (+ render pools x16) */
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
+        apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
