@@ -74,6 +74,15 @@ map. Stack: GOG Gold (2019 exe) + Sikarugir Wine 10 (wow64) wrapper, Apple Silic
 | **HD pack: night missions (e.g. Mission 6) color-shifted; day worlds fine** | The pack ships night only as software **VQM** (`nightm.pak`), and VQM is indexed against each level's own 8-bit `.ACT` palette (no per-tile palette like Glide M16) — the pack's night VQM was quantized against the wrong palette. Stock ADDON had no night files, so it's a pack artifact, not a game bug. **Fix:** `setup-mac-hd-textures.sh` now excludes the night VQM (stashes it in `ADDON/.night-hd-disabled/`); night falls back to correct stock textures, day worlds keep the HD upgrade. Real cure = re-quantize night against its `.ACT` on the Windows box. See [HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md) |
 | dgVoodoo under Wine needs 3 conditions | ≤2.78.2 + **DXVK** d3d11 (wined3d refuses FL10.1 on GL and Vulkan) + wrap **Glide only** (wrapping ddraw too = dual swapchains stacking invisibly in winemac). Full saga: [DXGI-DGVOODOO-RESEARCH.md](DXGI-DGVOODOO-RESEARCH.md) |
 
+## Saves (all platforms; sandbox-verified 2026-10-01)
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| Every save's scene listed one too high; the newest bookmark "truncated"; "the game writes `savegame.dir` 36 bytes short"; installers refusing good save sets; launchers re-padding the index at every boot | **Our own model of `savegame.dir` was misframed**: it assumed a 40-byte header, so each record's scene was read from the record after it. The real file is `u32 count` + 60-byte records `{u32 scene, char[32] name, char[16] file, u32 state, u32 0}`, exactly 4 + 60 x count bytes, every game-written file | Editor (.py, .html), both installers, `PLAY-i76.ps1` and the Mac stub re-derived from the real frame; node regression test against a game-written directory ([saves/README.md](../saves/README.md)) |
+| Web editor's "set scene" moved the wrong save; deleting a slot scrambled the rest | Same misframe: the scene was written to the next record; slot removal copied records 36 bytes late | Fixed with the above; saves edited before 2026-10-01 should have their scene re-checked |
+| "Synthetic typing lands zero characters on the save screen" | Not reproduced: `keybd_event`, `SendInput` and `PostMessage WM_KEYDOWN` all land on this shell build when the window is focused | Automated save harness in `i76-uncap-labutotest\saves` ([docs/SAVES-LEG-A-RUN-2026-10-01.md](SAVES-LEG-A-RUN-2026-10-01.md)) |
+| Save screen freeze / mouse lands wrong | Shell hit-tests raw screen coordinates against 640x480 | `u32x.dll` v2 (i76.exe imports it); the sandbox run saved through Enter/overwrite and through typing with no freeze or ghosting in 6 s idle; **not yet confirmed by a human at the console** |
+
 ## Gameplay quirks (engine, not the port)
 
 | Symptom | Root cause | Fix |
