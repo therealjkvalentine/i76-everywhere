@@ -227,13 +227,14 @@ details .paths li{margin:6px 0}
     downloads an updated <code>savegame.dir</code> — copy both in, or the LOAD screen won't list the new slot.</p>
     <p>Format notes (reverse-engineered, see the repo docs): the save holds the car (equipped parts, armor
     in tenths, exactly as the DEFENSE panel shows), the <b>van inventory</b> (spare parts — the game marks
-    these (V)), and a trailing section we read as the <b>repair order</b> (R). Ammo is never stored — bookmarks
-    happen at the shack, weapons refill from their spec. Each part carries a <b>location flag</b> — (C) in/on the car, (R) in repair, (V) in the van — and
-    <b>condition points vs durability</b> drive the game's highlight colors (green scuffed → red wrecked;
-    full points = no highlight). Don't mark everything (C): the game piles it into the car and unmounts
-    hardpoints — "Stow spares in van" fixes that. <b>The scene number in <code>savegame.dir</code> is the last
-    COMPLETED scene; loading plays the next one</b> (until 2026-10-01 this editor read and wrote the scene one record off, so
-    check the Scene box of saves edited before then — a 0 loads at Scene 1 with the scripted starter loadout). Weapon <b>range and DPS</b> come from
+    these (V)), and a trailing section, the <b>repair order</b> (R), which is copies of the (R) parts and is rebuilt
+    from them when you save. Ammo is never stored — bookmarks
+    happen at the shack, weapons refill from their spec. Each part carries a <b>state</b> — (C) mounted on the car, one per equipped
+    slot, (V) in the van, (R) on the bench, (S) in field salvage — and <b>condition points vs full condition</b>.
+    <b>The scene number in <code>savegame.dir</code>:</b> a garage save (state 8) loads that scene, a post-mission
+    save (state 1) plays the next one. Until 2026-10-02 this editor read every part's condition and state from the
+    record AFTER it (and the scene from the next bookmark), so re-check saves edited before then — a scene 0 loads at Scene 1
+    with the scripted starter loadout, and "Stow spares in van" re-sorts scrambled states. Weapon <b>range and DPS</b> come from
     <a href="https://www.localditch.com/interstate-76/weapons.html">Local Ditch's weapons page</a>
     (community measurements by Greg Schwartz / Zaphod-AVA, in "points of armor" — the same tenths the
     DEFENSE panel uses); where no measurement exists we show "~N dps spec" computed from the game's own
@@ -345,57 +346,69 @@ function dpsText(w){
   const s=specDps(w); return s?`~${Math.round(s)} dps spec`:"no direct dmg";
 }
 
-/* ---------- parsing (same byte-level logic as i76-save-editor.py) ---------- */
+/* ---------- parsing: the game's own frame (same constants as i76-save-editor.py) ----------
+   saveNNN.cmp = GarageRec 0x8c4 | u32 nA | nA x 116-byte records (section A, the inventory)
+                 | u32 nC | nC x 116-byte records (section C, the repair queue: copies of the
+                 state-3 A records, resolved back by condition + state 3 + def file on load)
+   size == 0x8c4 + 8 + 116*(nA+nC), exactly (the shell's Cmp_Write; 27/27 real saves match).
+   Each record = PartNode (0x20: 3 runtime pointers, +0xc CONDITION, +0x10 STATE, 12 leftover
+   bytes) then PartRec (0x54: +0 name[30], +0x1e type, +0x2e class[13], +0x3b def[13],
+   +0x4c full condition, +0x50 f32 weight). STATE: 1 mounted on the car (one record per
+   equipped name), 2 in the van (V), 3 queued for repair (R), 4 dropped = field salvage (S).
+   Until 2026-10-02 this page framed records name-first (32 bytes late), so every cond/state it
+   showed or wrote belonged to the NEXT record - see docs/SAVE-EDITOR-STATUS-2026-10-02.md. */
 const td=new TextDecoder("latin1");
 function cstr(u8,a,n){const s=u8.subarray(a,a+n);const z=s.indexOf(0);return td.decode(z<0?s:s.subarray(0,z));}
 function u32(dv,o){return dv.getUint32(o,true)}
-function plausibleName(u8,off){
-  let n=0; while(n<30 && u8[off+n]!==0) n++;
-  if(n<3||n>29) return false;
-  for(let i=0;i<n;i++){const c=u8[off+i]; if(c<32||c>=127) return false;}
-  return true;
+const HDR_LEN=0x8c4;
+const N_COND=0x0c, N_STATE=0x10;
+const R_NAME=0x20, R_TYPE=0x3e, R_U22=0x42, R_CLS=0x4e, R_DFL=0x5b, R_U48=0x68, R_FULL=0x6c, R_WT=0x70;
+function parseCmp(buf){
+  const dv=new DataView(buf), n=buf.byteLength;
+  if(n<HDR_LEN+8) throw new Error(`${n} bytes is shorter than a GarageRec + two counts`);
+  const nA=u32(dv,HDR_LEN), oC=HDR_LEN+4+REC*nA;
+  if(oC+4>n) throw new Error(`nA=${nA} runs past the end of the file (${n} bytes)`);
+  const nC=u32(dv,oC), want=HDR_LEN+8+REC*(nA+nC);
+  if(n!==want) throw new Error(`size ${n} != 0x8c4 + 8 + 116*(${nA}+${nC}) = ${want}`);
+  const a=[], c=[];
+  for(let i=0;i<nA;i++) a.push(HDR_LEN+4+REC*i);
+  for(let j=0;j<nC;j++) c.push(oC+4+REC*j);
+  return {a,c};
 }
-function scan(buf){
-  const u8=new Uint8Array(buf), dv=new DataView(buf), recs=[];
-  let i=0;
-  while(i+REC<=u8.length){
-    const typ=u32(dv,i+30);
-    if(KIND[typ] && plausibleName(u8,i)){
-      let z=true; for(let k=34;k<46;k++) if(u8[i+k]!==0){z=false;break;}
-      if(z){
-        const cls=cstr(u8,i+46,13), dfl=cstr(u8,i+59,13);
-        const ok=(cls==="" && dfl.startsWith("spc")) ||
-                 (cls!=="" && /^[a-z0-9_.]+$/i.test(cls+dfl));
-        if(ok && dfl){ recs.push(i); i+=REC; continue; }
-      }
-    }
-    i+=2;
-  }
-  return recs;
-}
-/* van vs repair: records run in 116-byte trains; a break in the train = the
-   section boundary. First train = van inventory (V); later trains = repair (R). */
-function sections(recs){
-  const out=[];
-  recs.forEach((off,k)=>{
-    if(k===0 || off-recs[k-1]!==REC) out.push([]);
-    out[out.length-1].push(off);
-  });
-  return {van:out[0]||[], repair:out.slice(1).flat()};
-}
+/* the editable inventory is section A; section C is derived from it on save */
+function scan(buf){ return parseCmp(buf).a; }
 function recInfo(buf,off){
   const u8=new Uint8Array(buf), dv=new DataView(buf);
-  return {off, name:cstr(u8,off,30), type:u32(dv,off+30), cls:cstr(u8,off+46,13),
-    dfl:cstr(u8,off+59,13), dur:u32(dv,off+76), wt:dv.getFloat32(off+80,true),
-    cond:u32(dv,off+96), grade:u32(dv,off+100)};
+  const full=u32(dv,off+R_FULL);
+  return {off, name:cstr(u8,off+R_NAME,30), type:u32(dv,off+R_TYPE), cls:cstr(u8,off+R_CLS,13),
+    dfl:cstr(u8,off+R_DFL,13), full, dur:full, wt:dv.getFloat32(off+R_WT,true),
+    cond:u32(dv,off+N_COND), state:u32(dv,off+N_STATE), u22:u32(dv,off+R_U22), u48:u32(dv,off+R_U48)};
 }
+const stateAt=(buf,off)=>new DataView(buf).getUint32(off+N_STATE,true);
+const setState=(buf,off,v)=>new DataView(buf).setUint32(off+N_STATE,v,true);
+const setCond=(buf,off,v)=>new DataView(buf).setUint32(off+N_COND,Math.max(0,v|0),true);
 function writeIdentity(buf,off,[name,typ,cls,dfl,dur,wt]){
   const u8=new Uint8Array(buf), dv=new DataView(buf), te=new TextEncoder();
-  u8.fill(0,off,off+30); u8.set(te.encode(name).subarray(0,30),off);
-  dv.setUint32(off+30,typ,true);
-  u8.fill(0,off+46,off+59); u8.set(te.encode(cls).subarray(0,13),off+46);
-  u8.fill(0,off+59,off+72); u8.set(te.encode(dfl).subarray(0,13),off+59);
-  dv.setUint32(off+76,dur,true); dv.setFloat32(off+80,wt,true);
+  u8.fill(0,off+R_NAME,off+R_NAME+30); u8.set(te.encode(name).subarray(0,30),off+R_NAME);
+  dv.setUint32(off+R_TYPE,typ,true);
+  u8.fill(0,off+R_CLS,off+R_CLS+13); u8.set(te.encode(cls).subarray(0,13),off+R_CLS);
+  u8.fill(0,off+R_DFL,off+R_DFL+13); u8.set(te.encode(dfl).subarray(0,13),off+R_DFL);
+  dv.setUint32(off+R_FULL,dur,true); dv.setFloat32(off+R_WT,wt,true);
+}
+/* Section C must list the state-3 records of section A. When it already does (as a
+   multiset of name|cond|def) the buffer is returned untouched - an unedited save stays
+   byte-identical; otherwise C is rebuilt from copies of the queued A records. */
+function withRepairQueue(buf){
+  const {a,c}=parseCmp(buf), u8=new Uint8Array(buf);
+  const key=o=>{const r=recInfo(buf,o); return `${r.name}|${r.cond}|${r.dfl}`;};
+  const want=a.filter(o=>stateAt(buf,o)===3), have=c.slice();
+  if(want.length===have.length && want.map(key).sort().join("\n")===have.map(key).sort().join("\n")) return buf;
+  const out=new Uint8Array(HDR_LEN+8+REC*(a.length+want.length));
+  out.set(u8.subarray(0,HDR_LEN+4+REC*a.length));
+  let p=HDR_LEN+4+REC*a.length;
+  new DataView(out.buffer).setUint32(p,want.length,true); p+=4;
+  for(const o of want){ out.set(u8.subarray(o,o+REC),p); p+=REC; }
+  return out.buffer;
 }
 function parseHeader(buf){
   const u8=new Uint8Array(buf);
@@ -715,9 +728,10 @@ async function loadFiles(list){
   for(const f of list){
     const buf=await f.arrayBuffer();
     if(f.name.toLowerCase().endsWith(".dir")){ dirBuf=buf; dirMissions=parseDir(buf); continue; }
-    if(!f.name.toLowerCase().endsWith(".cmp")) continue;
-    const recs=scan(buf);
-    if(!recs.length){ toast(`${f.name}: no parts found — is this an I'76 bookmark?`); continue; }
+    if(!/\.(cmp|spc)$/i.test(f.name)) continue;
+    let recs;
+    try{ recs=scan(buf); }
+    catch(e){ toast(`${f.name}: not an I'76 bookmark (${e.message})`); continue; }
     const base=f.name.replace(/\.cmp$/i,"");
     const entry={name:f.name, base, buf, orig:buf.slice(0), recs};
     const ex=saves.findIndex(s=>s.name===f.name);
@@ -727,16 +741,17 @@ async function loadFiles(list){
 }
 function isDirty(s){
   const a=new Uint8Array(s.buf), b=new Uint8Array(s.orig);
+  if(a.length!==b.length) return true;
   for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return true;
   return false;
 }
 
 /* ---------- render ---------- */
-/* +100 is the LOCATION flag - proven in-game: writing 1 everywhere moved every
-   part into the car as (C). 1 = on the car, 2 = in the car (rare), 3 = in
-   repair, 4 = in the van. Condition COLOR is points vs durability. */
-const LOC_BADGE={1:"C",2:"C",3:"R",4:"V"};
-const LOC_LABEL={1:"(C) on the car",2:"(C) in the car",3:"(R) in repair",4:"(V) in the van"};
+/* PartNode +0x10 is the STATE: 1 = mounted on the car (exactly one record per equipped
+   name in every game-written save), 2 = in the van (V), 3 = queued for repair (R),
+   4 = dropped = field salvage (S). Condition is PartNode +0xc vs PartRec +0x4c. */
+const LOC_BADGE={1:"C",2:"V",3:"R",4:"S"};
+const LOC_LABEL={1:"(C) mounted on the car",2:"(V) in the van",3:"(R) queued for repair",4:"(S) field salvage"};
 function condMarker(r){
   if(r.type===13||!r.dur) return "";
   const pct=100*r.cond/r.dur;
@@ -750,15 +765,17 @@ function snapUndo(sv){(sv.undo=sv.undo||[]).push(sv.buf.slice(0)); if(sv.undo.le
    carries 14 (R) jobs - so the true cap is >=14 (or soft). WARN, don't
    block, until the field test pins it. */
 const REPAIR_CAP=14;   // highest (R) count seen in a real save so far
-/* best-effort mirror of the game's own bookkeeping when equipping by name */
+/* best-effort mirror of the game's own bookkeeping when equipping by name: the part
+   that was mounted (state 1) goes to the van (2); a van or salvage copy of the new
+   name becomes the mounted record (1) */
 function reconcileFlags(buf,oldName,newName){
-  const dv=new DataView(buf);
+  const u8=new Uint8Array(buf);
   const recs=scan(buf);
-  const find=(nm,loc)=>recs.find(o=>cstr(new Uint8Array(buf),o,30)===nm&&dv.getUint32(o+100,true)===loc);
-  const oldRec=oldName?find(oldName,1):null;
-  if(oldRec!==null&&oldRec!==undefined) dv.setUint32(oldRec+100,4,true);
-  const newRec=newName?find(newName,4):null;
-  if(newRec!==null&&newRec!==undefined) dv.setUint32(newRec+100,1,true);
+  const find=(nm,...states)=>recs.find(o=>cstr(u8,o+R_NAME,30)===nm&&states.includes(stateAt(buf,o)));
+  const oldRec=oldName?find(oldName,1):undefined;
+  if(oldRec!==undefined) setState(buf,oldRec,2);
+  const newRec=newName?find(newName,2,4):undefined;
+  if(newRec!==undefined) setState(buf,newRec,1);
 }
 function render(){
   // bookmark pad
@@ -854,29 +871,27 @@ function render(){
   const scLab=document.createElement("span"); scLab.className="lbl2"; scLab.textContent=s.base+" · Name";
   const scOf=document.createElement("span"); scOf.className="lbl2"; scOf.textContent="Scene № of 17";
   sceneCheck.append(scLab,nameIn,scOf,sceneSel);
-  const secs=sections(s.recs);
-
   const grid=document.createElement("div"); grid.className="grid";
   const left=document.createElement("div"); left.className="stack";
   const right=document.createElement("div"); right.className="stack";
 
   /* PARTS / WEAPONS / SPCL (equipped - stored in the car block, read-only here) */
-  const VAN_CAP={2:3,3:4}; // engines, suspensions - the game's van holds no more
-  const loc=off=>new DataView(s.buf).getUint32(off+100,true);
-  const vanCount=type=>s.recs.filter(off=>![1,2,3].includes(loc(off))&&new DataView(s.buf).getUint32(off+30,true)===type).length;
+  const VAN_CAP={2:3,3:4}; // engines, suspensions - the game's van holds no more (in-game check open)
+  const loc=off=>stateAt(s.buf,off);
+  const vanCount=type=>s.recs.filter(off=>loc(off)===2&&new DataView(s.buf).getUint32(off+R_TYPE,true)===type).length;
   const repCount=()=>s.recs.filter(off=>loc(off)===3).length;
-  // ONE part per equipped slot: match each slot name to a flag-1 record (consumed
+  // ONE part per equipped slot: match each slot name to a state-1 record (consumed
   // records show their condition inline on the car sheet, not in the lists)
   const pool=s.recs.filter(off=>loc(off)===1);
   const eqMatch={};
-  car.eq.forEach((nm,slot)=>{ if(!nm) return;
-    const i=pool.findIndex(off=>cstr(new Uint8Array(s.buf),off,30)===nm);
+  car.eq.forEach((nm,slot)=>{ if(!nm||nm==="Empty") return;
+    const i=pool.findIndex(off=>cstr(new Uint8Array(s.buf),off+R_NAME,30)===nm);
     if(i>=0){ eqMatch[slot]=pool[i]; pool.splice(i,1); }
   });
   const consumed=new Set(Object.values(eqMatch));
   const repRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)===3);
   const carVanRecs=s.recs.filter(off=>!consumed.has(off)&&loc(off)!==3);
-  const vanInfos=carVanRecs.filter(off=>![1,2].includes(loc(off))).map(o=>recInfo(s.buf,o));
+  const vanInfos=carVanRecs.filter(off=>loc(off)===2).map(o=>recInfo(s.buf,o));
   /* names sitting in the van right now - the equipped dropdowns list these
      FIRST ("mount your spare", like the in-game form); the full catalog stays
      available but demoted to a clearly-labeled conjure section */
@@ -899,14 +914,14 @@ function render(){
     csel.addEventListener("change",()=>{
       snapUndo(s);
       const f={perfect:1,scuffed:.75,beatup:.5,wrecked:.2}[csel.value];
-      new DataView(s.buf).setUint32(rOff+96,Math.max(1,Math.round(r.dur*f)),true); render();
+      setCond(s.buf,rOff,Math.max(1,Math.round(r.dur*f))); render();
     });
     const pts=document.createElement("input");
     pts.type="number"; pts.min="0"; pts.max="9999"; pts.value=r.cond; pts.className="ptsin";
     pts.title=`condition points (durability ${r.dur})`;
     pts.setAttribute("aria-label","condition points");
     pts.addEventListener("change",()=>{snapUndo(s);
-      new DataView(s.buf).setUint32(rOff+96,Math.max(0,+pts.value|0),true); render();});
+      setCond(s.buf,rOff,+pts.value|0); render();});
     frag.append(csel,pts);
     return frag;
   }
@@ -978,12 +993,12 @@ function render(){
   }
   function mountedWeight(buf){
     const dv=new DataView(buf), u8=new Uint8Array(buf);
-    const pool2=scan(buf).filter(o=>dv.getUint32(o+100,true)===1);
+    const pool2=scan(buf).filter(o=>stateAt(buf,o)===1);
     let t=0;
     parseCar(buf).eq.forEach(nm=>{
-      if(!nm) return;
-      const i=pool2.findIndex(o=>cstr(u8,o,30)===nm);
-      if(i>=0){ t+=dv.getFloat32(pool2[i]+80,true); pool2.splice(i,1); }
+      if(!nm||nm==="Empty") return;
+      const i=pool2.findIndex(o=>cstr(u8,o+R_NAME,30)===nm);
+      if(i>=0){ t+=dv.getFloat32(pool2[i]+R_WT,true); pool2.splice(i,1); }
       else t+=weightOfName(nm);
     });
     return t;
@@ -1080,7 +1095,7 @@ function render(){
         let ch=false; for(let i=0;i<REC;i++) if(chOrig[i]!==chNow[i]){ch=true;break;}
         const w=WEAPONS.find(x=>x[2]===r.dfl);
         const meta=`${w?`${dpsText(w)}${w[9]?` · ${w[9]}m`:""}`:(r.type===13?"special":"")}${ch?" · edited":""}`;
-        row.innerHTML=`<span class="locflag">(${LOC_BADGE[r.grade]||"?"})</span>`;
+        row.innerHTML=`<span class="locflag" title="${LOC_LABEL[r.state]||"state "+r.state}">(${LOC_BADGE[r.state]||"?"})</span>`;
         // the part itself: an obvious dropdown, like the equipped panel
         const opts=optionsFor(r);
         const curIdx=opts.findIndex(o=>o.args[0]===r.name&&o.args[3]===r.dfl);
@@ -1093,35 +1108,28 @@ function render(){
           const o=opts[+psel.value];
           snapUndo(s);
           writeIdentity(s.buf,r.off,o.args);
-          if(r.type!==13){new DataView(s.buf).setUint32(r.off+96,o.args[4],true);}
+          if(r.type!==13){setCond(s.buf,r.off,o.args[4]);}
           toast(`${r.name} → ${o.args[0]} (full condition)`); render();
         });
         row.appendChild(psel);
         row.appendChild(condControls(r.off));
-        // one small move button per row - parts live in exactly one list
+        // move buttons: a part lives in exactly one of van (2) / bench (3) / salvage (4)
         {
           const here=loc(r.off);
-          const mv=document.createElement("button"); mv.className="movebtn";
-          if(here===3){ mv.textContent="→ van"; mv.title="send back to the van";
-            mv.addEventListener("click",()=>{
-              const cap=VAN_CAP[r.type];
-              if(cap&&vanCount(r.type)>=cap){toast(`The van only holds ${cap} ${KIND[r.type]}s`);return;}
-              snapUndo(s); new DataView(s.buf).setUint32(r.off+100,4,true); render();
-            });
-          } else if(here===1||here===2){ mv.textContent="→ van"; mv.title="stow this spare in the van";
-            mv.addEventListener("click",()=>{
-              const cap=VAN_CAP[r.type];
-              if(cap&&vanCount(r.type)>=cap){toast(`The van only holds ${cap} ${KIND[r.type]}s`);return;}
-              snapUndo(s); new DataView(s.buf).setUint32(r.off+100,4,true); render();
-            });
-          } else { mv.textContent="→ repair"; mv.title="put it on Skeeter's bench";
-            mv.addEventListener("click",()=>{
-              if(repCount()>=REPAIR_CAP)
-                toast(`Heads-up: ${repCount()+1} bench jobs — beyond anything we've seen a real save carry (${REPAIR_CAP}); if the game drops one, we've found the cap`);
-              snapUndo(s); new DataView(s.buf).setUint32(r.off+100,3,true); render();
-            });
-          }
-          row.appendChild(mv);
+          const mk=(txt,title,fn)=>{const b=document.createElement("button"); b.className="movebtn"; b.textContent=txt; b.title=title; b.addEventListener("click",fn); row.appendChild(b);};
+          if(here!==2) mk("→ van","stow it in the van (V)",()=>{
+            const cap=VAN_CAP[r.type];
+            if(cap&&vanCount(r.type)>=cap){toast(`The van only holds ${cap} ${KIND[r.type]}s`);return;}
+            snapUndo(s); setState(s.buf,r.off,2); render();
+          });
+          if(here!==3) mk("→ repair","put it on Skeeter's bench (R)",()=>{
+            if(repCount()>=REPAIR_CAP)
+              toast(`Heads-up: ${repCount()+1} bench jobs — beyond anything we've seen a real save carry (${REPAIR_CAP}); if the game drops one, we've found the cap`);
+            snapUndo(s); setState(s.buf,r.off,3); render();
+          });
+          if(here!==4) mk("→ salvage","drop it into field salvage (S)",()=>{
+            snapUndo(s); setState(s.buf,r.off,4); render();
+          });
         }
         const fill=document.createElement("span"); fill.className="fill";
         const metaEl=document.createElement("span"); metaEl.className="meta"; metaEl.textContent=meta;
@@ -1132,10 +1140,10 @@ function render(){
     box.appendChild(list);
     return box;
   }
-  right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length} jobs · cap unverified (≥14 seen in a real save)`,repRecs,""));
-  right.appendChild(invBox("Car / Van Inventory",`spares — (C) riding in the car, (V) in the van${capNote}`,carVanRecs,""));
+  right.appendChild(invBox("Repair Order",`Skeeter's bench — ${repRecs.length} jobs (section C is rebuilt from these on save) · cap unverified (≥14 seen in a real save)`,repRecs,""));
+  right.appendChild(invBox("Van / Field Salvage",`spares — (V) in the van, (S) in field salvage${capNote}`,carVanRecs,""));
   const legend=document.createElement("div"); legend.className="legend";
-  legend.textContent="Mounted parts show their condition on the car sheet. Spares: (C) rides in the car, (V) in the van — the → buttons move them. Colors here = STORED condition (green scuffed, yellow beat-up, red wrecked). Note: the game's own garage highlights are painted at render time and won't match — proven by the ALL-PERFECT/TRUTH experiment.";
+  legend.textContent="Mounted parts (state 1, one per equipped slot) show their condition on the car sheet. Spares: (V) van, (R) bench, (S) field salvage — the → buttons move them. Colors here = STORED condition thirds (green scuffed, yellow beat-up, red wrecked), the same thirds the shell's PartNode_DamageLevel uses; the in-game colour thresholds are still an open in-game check (every 2026-07 colour experiment edited the wrong record).";
   right.appendChild(legend);
 
   grid.append(left,right); editor.appendChild(grid);
@@ -1148,28 +1156,28 @@ function render(){
   const repair=document.createElement("button"); repair.className="obtn quiet"; repair.textContent="Repair All";
   repair.addEventListener("click",()=>{
     snapUndo(s);
-    let n=0; const dv=new DataView(s.buf);
+    let n=0;
     s.recs.forEach(off=>{const r=recInfo(s.buf,off);
-      if(r.type!==13&&r.dur){dv.setUint32(off+96,r.dur,true);n++;}});
+      if(r.type!==13&&r.dur){setCond(s.buf,off,r.dur);n++;}});
     toast(`Repaired ${n} parts to full condition (locations untouched)`); render();
   });
   const stow=document.createElement("button"); stow.className="obtn quiet"; stow.textContent="Stow spares in van";
-  stow.title="Marks every part (V) except one match per equipped slot (C) — fixes saves where everything piled into the car";
+  stow.title="Marks every part (V) except one match per equipped slot (C) — repairs saves whose states were scrambled by the pre-2026-10-02 editor";
   stow.addEventListener("click",()=>{
     snapUndo(s);
     const dv=new DataView(s.buf);
-    const need=[...parseCar(s.buf).eq.filter(Boolean)];
+    const need=[...parseCar(s.buf).eq.filter(n=>n&&n!=="Empty")];
     let kept=0,stowed=0;
     const VAN_CAP2={2:3,3:4}; const vanNow={2:0,3:0}; let cargo=0;
     s.recs.forEach(off=>{
-      const nm=cstr(new Uint8Array(s.buf),off,30);
-      const typ=dv.getUint32(off+30,true);
+      const nm=cstr(new Uint8Array(s.buf),off+R_NAME,30);
+      const typ=dv.getUint32(off+R_TYPE,true);
       const i=need.indexOf(nm);
-      if(i>=0){ need.splice(i,1); dv.setUint32(off+100,1,true); kept++; }
-      else if(VAN_CAP2[typ]&&vanNow[typ]>=VAN_CAP2[typ]){ dv.setUint32(off+100,2,true); cargo++; }
-      else { if(typ in vanNow) vanNow[typ]++; dv.setUint32(off+100,4,true); stowed++; }
+      if(i>=0){ need.splice(i,1); setState(s.buf,off,1); kept++; }
+      else if(VAN_CAP2[typ]&&vanNow[typ]>=VAN_CAP2[typ]){ setState(s.buf,off,4); cargo++; }
+      else { if(typ in vanNow) vanNow[typ]++; setState(s.buf,off,2); stowed++; }
     });
-    toast(`${kept} equipped kept (C), ${stowed} stowed (V)${cargo?`, ${cargo} over the van cap left as car cargo — sell them in the garage`:""}`); render();
+    toast(`${kept} equipped kept (C), ${stowed} stowed (V)${cargo?`, ${cargo} over the van cap dropped to field salvage (S)`:""}`); render();
   });
   const undo=document.createElement("button"); undo.className="obtn quiet"; undo.textContent="Undo";
   undo.disabled=!(s.undo&&s.undo.length);
@@ -1221,6 +1229,9 @@ function render(){
     const target=slotSel.value, fname=target+".cmp";
     const du=updatedDir(target);
     const warn=du&&du.warn?" ⚠ scene unknown — fill the Scene box or the game will load it at Scene 1!":"";
+    /* the repair queue (section C) follows the (R) rows; rebuilding it can change the file size */
+    const out=withRepairQueue(s.buf);
+    if(out!==s.buf){ s.buf=out; s.recs=scan(out); }
     if(liveDir){
       try{
         const res=await putFile(fname,s.buf);

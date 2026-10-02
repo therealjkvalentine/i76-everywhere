@@ -66,10 +66,12 @@ A single self-contained web page styled after the game's garage paperwork.
 - `i76-save-editor.py` — the same parser as a terminal tool
 
 What it edits: equipped parts (any weapon on any mount — off-spec swaps clearly marked),
-armor (the DEFENSE panel numbers), every part's location (car/van/repair), condition, part
+armor (the DEFENSE panel numbers), every part's state (car/van/bench/salvage), condition, part
 swaps with **measured DPS + range** on every weapon (data: Local Ditch), scene selection
-("Scene № on a diner check"), save-as-slot, delete/restore. The save format was
-reverse-engineered in this repo — details in the `.py` docstring.
+("Scene № on a diner check"), save-as-slot, delete/restore. The save format follows the
+game's own writer (`.py` docstring; `docs/SAVE-FORMAT-GAPS.md`); both editors round-trip every
+sample save byte for byte and stay in lockstep (`python -m pytest tests/`). Status and the
+open in-game checks: `docs/SAVE-EDITOR-STATUS-2026-10-02.md`.
 
 ## Highlights under the hood
 

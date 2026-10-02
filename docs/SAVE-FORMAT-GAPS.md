@@ -1,155 +1,127 @@
-# Save format: what we READ vs what the GAME reads
+# Save format: what we READ vs what the GAME writes
 
-*The part-by-part reconciliation of `save004.cmp` bytes against the in-game **Build and
-Repair Form** + **Field Salvage** screenshots (user field run, 2026-07-14). Ground truth =
-the screenshots. Statements below are graded ✅ verified / 🔧 corrected / ❓ open.*
+*Reconciled 2026-10-02 against the shell's own writer (`i76shell.dll` `Cmp_Write` 0x10032980,
+`dir_WriteAndSave` 0x10032f80 - `../i76-map/shell/SAVE.md`, `shell/work/cmp-layout.md`) and 46
+game-written `.cmp`/`.spc` files + 5 `savegame.dir` files (byte-exact round trips in
+`tests/test_save_editor.py`). The 2026-07 version of this page was built on an inventory frame
+that started 32 bytes late and a directory frame that started 36 bytes late; everything it called
+"open", "truncated" or "corrupt" was that offset. The retired statements are summarised at the
+bottom so nobody re-derives them. Status words: **verified** = bytes vs the in-game screen or the
+shell's code; **data** = holds on every game-written file on this machine, not yet shown on screen;
+**open** = needs the game (probes in [EDITOR-FIELD-TESTS.md](EDITOR-FIELD-TESTS.md)).*
 
-## ✅ Verified exactly (byte ↔ screen)
+## 1. `saveNNN.cmp` (and `reconfig.spc`, `trip4.spc` - same writer)
 
-| Piece | Evidence |
-|---|---|
-| **Armor @2044, 8×u32 tenths, order F/R/L/Rear armor then chassis** | 910,570,570,700,700,400,400,550 ↔ form shows 91/57/57/70 armor + 70/40/40/55 chassis. Perfect. |
-| **Equipped-by-name block @1024 (14×30)** | Every (C) row and every PARTS/WEAPONS/SPCL form line matches a slot name, incl. wheels ("14in Rally" ↔ `wauto_1b`) |
-| **Hardpoint slot map** (slot7=dropper `PP1_GDB1`, 8=#1 Top, 9=#2 Top, 10=#1 Rear) | Slot names ↔ form rows 1:1 (form lists Rear ABOVE Dropper — display order only) |
-| **Empty hardpoint = literal string `"Empty"`** | slot8 = `'Empty'` ↔ form "#1 Top: EMPTY" |
-| **Repair Order = the TRAILING section** after a count dword (`06`), records duplicated out of the main pool; **the game truncates the final record at EOF** (same quirk as savegame.dir) | Trailing section = 305ci V-8, 25mm, Gas Launcher, HE Mortar, 4-Wheel Disc, 4-Wheel Disc(truncated: name/type/cls/dur=150/wt=17.0 present, cond/loc cut) ↔ the form's six repair rows exactly |
-| **Mr. Damage registry = the game's damage panel**, and its 2nd/3rd dwords are the panel x,y coords | WHL FR (408,119), FL (270,119), BR (408,312), BL (270,312) — a 2×2 grid |
-| **Special 1/2/3 = REGISTRY order, not @1024 slot order** | Registry: X-Aust, Nitrous, Structo ↔ form Special 1/2/3 exactly; @1024 slots hold them in a different order. (Also matches field test: button 5 → key `7` fired nitrous = Special 2 ✓) |
-| **Hand weapon (.45 CAL)** is implicit — nowhere in the save | No record, no slot |
+```
+0x000  GarageRec, 0x8c4 bytes (the shell's slot record, written verbatim)
+0x8c4  u32 nA
+0x8c8  nA x 0x74  section A - the inventory ring
+       u32 nC
+       nC x 0x74  section C - the repair queue (copies of the state-3 A records)
+size == 0x8c4 + 8 + 0x74*(nA+nC), exactly.  No padding, no trailer, nothing truncated.
+```
 
-## 🔧 Corrected (the old model was wrong)
+Each 0x74 record is a **PartNode (0x20) followed by a PartRec (0x54)**:
 
-| Old belief | Corrected reading |
-|---|---|
-| loc flag: 1/2=(C) car, 3=(R), 4=(V) van | **4 = FIELD SALVAGE** (the user-identified 4th state; scrollable lists, loc4 count 26 fits), **2 = van-ish**, 1 = car-ish. **(C) rows are NOT loc-1 records — they're the equipped-name slots**; equipping consumes records by name, and un-consumed loc-1 leftovers (e.g. a ghost `20mm Cannon 0/200` from the now-empty hardpoint) surface in SALVAGE |
-| "First record train = van, later trains = repair" | One big main pool + the count-prefixed trailing repair section. Main-pool loc=3 items are NOT the repair order |
-| Repair bench cap 13 (then ≥14) | The "(R)" rows in the inventory panel ARE the repair-order items (same six). The old 13/14 counts mixed in salvage records — bench cap still unknown but small (form shows ~13 visible lines) |
-| Specials behave like parts | **Specials always display (V) unless equipped** (salvage specials box empty, repair shows none; non-equipped specials sit at loc 2/3/4 indiscriminately). Their cond field (15/41/100/300 with dur=0) means something else — ❓ charges/uses? |
-| +104 = 12 zero bytes | Often nonzero — it mirrors the NEXT record's registry-style type code for a stretch of records = more saved runtime garbage, not semantics |
+| offset | field | status |
+|---|---|---|
+| +0x00 u32[3] | runtime pointers (rec*, next, prev) - rewritten on load, garbage on disk | verified (code) |
+| **+0x0c u32** | **condition** (hit points) | verified (code; `PartNode_DamageLevel` grades it against +0x6c in thirds) |
+| **+0x10 u32** | **state**: 1 mounted on the car, 2 in the van (V), 3 queued for repair (R), 4 dropped = field salvage (S) | 1 and 3 verified (data: state-1 names == the equipped block in 21/21 game saves; section C == state-3 records in 21/21); 2 vs 4 **open** (data: state-2 counts never exceed the panel caps, state-4 counts run to 46; `trip4.spc` loading frees state 4) |
+| +0x14 12 B | runtime leftovers, never read (often the slot type) | verified (code) |
+| +0x20 char[30] | display name | verified |
+| +0x3e u32 | type: 2 engine, 3 suspension, 4 brakes, 5 wheel, 7 gun, 8 dropper, 13 special | verified |
+| +0x42 u32 | 0; 11 on game-rewritten turret-class guns | data, meaning unknown |
+| +0x4e char[13] | class id (`eng01`, `slg02`, `whe01`; "" for specials) | verified |
+| +0x5b char[13] | def file (`gmmedium.gdf`, `eng02`, `wauto_1b.wdf`, `spc05`) - what section C is matched on | verified (code) |
+| +0x68 u32 | 0..3 | data, meaning unknown |
+| +0x6c u32 | full condition = the def's maxHP (gdf offset 76) | verified |
+| +0x70 f32 | weight = the def's weight | verified |
 
-**Inventory caps (from the game's own panels, user-verified):** engines 3, suspensions 4,
-brakes 4, specials 9, weapons 11, wheels 11 — counting C+V+R together; salvage is separate
-and scrolls. Same-axle wheels must match (fits the save's front/rear `wauto` pair).
+**Section C** is written from the shell's repair list: byte copies of ring records whose state is 3,
+in bench order (not A order). On load each C record is resolved back to the first ring node with the
+same condition, state 3 and def file; unmatched references are dropped silently. So an editor that
+changes a part's state or condition must regenerate C (`Cmp.sync_repair_queue()` /
+`withRepairQueue()`), and an unedited file must keep C's bytes - both tested.
 
-## ❓ Open — the calibration saves answer these (see below)
+### GarageRec (0x8c4 bytes)
 
-1. **Condition→color thresholds.** Percent-only bands are DISPROVEN: a no-highlight (C)
-   Aim-Nein sits at 50% while a red (V) Aim-Nein sits at 0%, and salvage rows contradict any
-   single cutoff. Possibly cond is not always points-vs-durability (some records hold cond >
-   dur: 200/100, 300/200, 400/300...).
-2. **V vs S rule for normal parts.** loc2↔(V) fits weapons/wheels/engines counts, but one
-   (V) "Stock" suspension has no loc2 record — some rule beyond loc is in play.
-3. ~~Weight formula~~ **SOLVED (field-calibrated 2026-07-14 with two builds):**
-   `total = 2910 (Piranha chassis + driver + hand gun) + Σ mounted part weights +
-   1.0 lb × armor points`. Derived from Reconfig (3986 lbs / 480 pts / 596 lbs parts) vs
-   WEIGHT CAL (3727 lbs / 490 pts / 327 lbs parts); exact on both, and the editor's Weight
-   box reproduces the game's 3986 on save005 byte-for-byte. The vdf@76 value (1320) is NOT
-   the chassis weight. Note: the game weighs AFTER load-time mount validation — saves with
-   non-fitting equipped names weigh less in-game than their stored loadout implies.
-4. **@1956 triple (2,3,1), dir +16 (1 vs 8), spc cond values, the corrupt-looking
-   NitrousOxide record @9588** (its tail is shifted 4 bytes — likely the same write bug
-   family as the EOF truncation).
+| offset | content | status |
+|---|---|---|
+| +0x000 char[20] | car name ("Picard Piranha") | verified |
+| +0x014 char[20] | variant ("Stock (Orange)") - LOAD-list text; the string exists nowhere else in the game data, so it is written-not-read | verified |
+| +0x028 char[16] | id ("doarmel") | data |
+| +0x03c u32, +0x040 | Mr. Damage registry: count, then 32-byte records `{u32 slot type, char[16] name, u32 x, u32 y, u32 0}`; x,y are the damage-panel coordinates (WHL FR 408,119 ...) | verified |
+| +0x400 char[14][30] | **equipped by name**: engine, susp, brakes, tires FR/FL/RR/RL, weapons x4 (Piranha order: dropper, top1, top2, rear), specials x3; empty hardpoint = the literal `"Empty"`. Special 1/2/3 display order = registry order | verified |
+| +0x7fc u32[8] | **armor in tenths**: armor F/R/L/Rear, chassis F/R/L/Rear (910,570,570,700 <-> 91/57/57/70) | verified |
+| +0x820 / +0x82d char[13] | vdf `vppirnha.vdf`, vtf `piranha1.vtf` = the paint (2/3/4 = the other factory schemes) | vdf verified; repaint **open** (CAL PAINT BLUE) |
+| +0x83a/+0x847/+0x854 | wheel wdf front/mid(null)/rear | verified |
+| +0x864 13 x u32 | slot classes (2,4,1,2,5,2,1,1,3,1,1,...) | data |
+| +0x898.. | two floats (1940.0-ish, 1320.0) and zeros | data; the 1320 is NOT the chassis weight |
 
-## savegame.dir: entry fully decoded (2026-07-14, second field run)
+**Weight (verified 2026-07-14, unaffected by the frame bug):** `total = 2910 + sum of mounted part
+weights + 1.0 lb x armor points`, exact on two in-game builds (3986 / 3727 lbs).
 
-60-byte entries @0x28+60k: `file[16] | u32 (+16: 1 or 8, unknown) | u32 | u32 scene (+24) |
-char[32] DISPLAY NAME (+28)`. The name is the LOAD board's line text (found live:
-"Reconfig"). **Blank names are legal** — the game's own bookmarks are unnamed and get a
-default "SCENE N." label (whose N doesn't always match the dword — default-label semantics
-unchased; typed names supersede them, which retires the earlier label-vs-dword mystery).
+**Panel caps (user-read 2026-07-14):** engines 3, suspensions 4, brakes 4, specials 9, weapons 11,
+wheels 11 for car+van+bench together; salvage scrolls. Consistent with the state-2 counts in every
+save (max seen: 2 engines, 3 suspensions, 4 brakes, 6 specials, 7 weapons, 6 wheels).
 
-**Live-observed game bug:** saving to a fresh slot wrote the dir entry as `save005` but the
-file as **`save-01.cmp`** (`sprintf("save%03d", -1)` — the slot allocator returned
-not-found), orphaning the bookmark: the LOAD board points at a file that doesn't exist.
-Likely provoked by dir entries the editor added without the fields the allocator walks
-(now written in full, including names). Repair: rename the orphan file to match its entry,
-complete the truncated entry, move `save-01.cmp` out of the game's glob.
+## 2. `savegame.dir`
 
-The editor now reads/writes the name field everywhere (pad labels, a Name box on the diner
-check, restore recovers names from dir history), and the calibration saves land as slots
-006 "COLOR CAL" / 007 "WEIGHT CAL" (save005 = the user's recovered in-game save).
+```
+u32 count
+count x 60-byte records at 4 + 60k:
+  +0  u32 scene      state 8 (saved in the garage): loads this scene
+                     state 1 (saved after a mission): plays scene+1      [sandbox-verified 2026-10-01]
+  +4  char[32] name  the typed bookmark name, buffer written verbatim (stale bytes after the NUL are normal)
+  +36 char[16] file  "saveNNN" - the reader opens "%s.cmp" and silently DROPS a record whose file is missing
+  +52 u32 state      1 or 8 (the exe game_state the shell was entered with)
+  +56 u32 flags      0
+size == 4 + 60*count, exactly.
+```
 
-**RETRACTION + the real bug (third board screenshot, 2026-07-14):** the "game drops the
-last dir entry" theory was WRONG — no row was ever dropped. The 32-byte display name
-**precedes** its entry (`name(save_k) @ 0x08+60k`, before `file[16] @ 0x28+60k`); writing
-names at entry+28 made every board row wear the *previous* entry's name, which looked like
-a missing final row (and made "COLOR CAL" load save007's bytes — confirmed by the 101.0
-front-armor fingerprint). All writers corrected; the launcher-stub boot padding stays as
-harmless insurance against the game's own truncating writes (a truncated final entry loses
-its scene dword on disk either way — the editor completes those on save).
+Padding (the launchers' zero slack) is harmless: the reader stops at `count`. Shrinking is what to
+avoid; the editors never do it. The `save-01.cmp` orphan is a shell bug reproduced from the code
+(SAVE.md section 4: slot -1 after a second pass through the name field; Wine prints `-01`, Windows
+`-001`); the stub's rescue copies the orphan onto the newest entry without a file.
 
-**Load-time mount validation:** loading a save whose equipped names don't fit the chassis
-(e.g. turret-class guns on the Piranha) makes the game silently UNMOUNT them to Empty —
-the equipped block is a request, not a guarantee. The stripped-car case also shows (C)
-rows for records the equipped block doesn't name, so the C/V/S bucket rule is still open.
+## 3. Open - the probes in EDITOR-FIELD-TESTS.md answer these
 
-**CONDITION COLORS: CLOSED (the TRUTH experiment, 2026-07-14).** The controlled test:
-feed the game a save with EVERY durable record at exactly 100% ("ALL PERFECT"), watch the
-garage paint highlights anyway, have the game save that exact state ("TRUTH"), diff. Result:
-**all 65 records still exactly 100% — the highlights never touch the file.** Garage colors
-are generated at render time (a per-load roll/transient state) and are NOT a readout of the
-cond field. `cond/dur` remains the real stored part health (edits to it changed gameplay
-state and cleared long-stable colors), but the paint itself is not data. Stop modeling it.
-Bonus findings from the same diff: the game DISSOLVES the repair queue on save when nothing
-is damaged (the four queue records vanished); it re-triages van overflow to salvage; and it
-ingested our fully synthetic save cleanly — the editor's writer is game-proven. Also
-reproduced 2/2: EVERY in-game save to a fresh slot writes the file as `save-01.cmp` with a
-dir entry for saveNNN (the sprintf(-1) allocator bug) — repair recipe: rename the file to
-match the entry, complete the truncated scene, pad.
+1. colour thresholds (which third is which colour; is 100 % unmarked) - **CAL COLOR**
+2. state 2 = van pane, state 4 = Field Salvage pane - **CAL V VS S**
+3. bench cap - **CAL BENCH 15** (also the first in-game load of an editor-rebuilt section C)
+4. four suspensions in the van - **CAL SUSP 4**
+5. repaint via the vtf field - **CAL PAINT BLUE**
+6. spc01 = Radar Jammer, any effect - **CAL JAMMER**
+7. LOAD-board default label - **CAL LABEL 7 / 7+1**
+8. meaning of PartRec +0x42 (11 on turrets), +0x68 (0..3), GarageRec +0x864 slot classes - no probe
 
-**Session 2026-07-15 observations:** the render-roll verdict was RETRACTED by the turret
-experiment (a byte-verified 600/600 "30mm Turret" renders red, stably, across loads and when
-carried) - persistent per-part color state exists that is NOT the +96 cond field and NOT
-(yet) located; prime suspects are the inherited +84 dwords or slot-keyed state (the same
-record slot also renders in salvage regardless of its loc flag). Also observed: the slot
-allocator bug is intermittent (save010/011 got real filenames, the session's last save
-became save-01.cmp again), and the game bumped save009's dir scene 6->7 without rewriting
-the cmp. The decisive experiment remains: save the red turret via SAVE BOOKMARK without
-playing a mission, then diff.
+## 4. Retired (2026-07 statements that were the frame offset)
 
-**Historical notes below (superseded or refined by the above):**
-- **Field Salvage colors are RE-ROLLED at load, not stored state.** Proven: identical
-  save006 bytes produced all-red 13in Stocks in one session and green/green/red/red in the
-  next. No formula against the record fields can ever fit that pane — stop trying.
-- **Car/Van inventory colors ARE stable across loads** (same (R)/(V) colors in every
-  session) → stored-state-derived; Repair Order colors likely encode the panel's own
-  REPAIR TIME semantics rather than raw condition.
-- The game **auto-mounts** mountable pool weapons into empty validated hardpoints on load
-  (v2's 7.62/WP/Cluster showed up (C) uninvited) — bucket rule: (C) = post-validation,
-  post-auto-fill mounted set.
-- gdf fact: **offset 76 of every weapon .gdf = max HP** (same +76 position as in save
-  records — the record embeds the def's field). All catalog durabilities verified correct.
-- **COLOR CAL v3** targets the stable pane: seven unique TURRET-class weapons (unmountable
-  on the Piranha, so they stay (V)) in the van at 10/25/40/55/70/85/100%. Readback maps
-  van colors → thresholds directly.
+- *"the game truncates the final inventory record at EOF"*, *"+84 inherited pointers"*, *"+96 cond /
+  +100 loc"*, *"+104 mirrors the next record"*, *"corrupt NitrousOxide @9588 shifted 4 bytes"* - a
+  name-first frame: the tail of record k was the head of record k+1 (or the section-C count).
+- *"4 = FIELD SALVAGE, 2 = van-ish, 1 = car-ish; (C) rows are NOT loc-1 records"*, *"one (V) Stock
+  suspension has no loc2 record"*, *"specials sit at loc 2/3/4 indiscriminately; their cond (15/41/
+  100/300) means charges"* - every value was the next record's. Specials carry cond 0.
+- *"first 116-byte train = van, later trains = repair"*, *"13/14 repair jobs, cap >= 14"* - section
+  C is the queue; the trains were signature-scan artefacts.
+- all **COLOR CAL / ALL PERFECT / TRUTH / TURRET** conclusions ("colours are render-time", "stored
+  colour state not in the file", "salvage re-rolls") - each probe set cond on the record after the
+  one it named. The five saves they produced (`saves/save008.cmp`, rescue `save004/006/007/008`)
+  are the only files that fail the game invariants; they still round-trip and the editor's
+  "Stow spares in van" re-sorts their states.
+- `savegame.dir`: *"0x28 header, name at +0 / scene at +0x18 / name precedes its entry / 36 bytes
+  short / last entry dropped unless padded / scene not recoverable / +16 = 1 or 8 unknown"* - the
+  record starts at 4+60k; +52 is the entry state (1 post-mission, 8 garage); the "pad label vs dword"
+  mismatch was the misread plus the state rule above.
+- *"the game bumped save009's scene 6->7 without rewriting the cmp"* - a row click on the Save
+  screen writes the current scene into that entry (SAVE.md section 4), not a bug.
 
-## The calibration saves (game-as-oracle protocol)
+## 5. Sample saves from the wild (research, 2026-07-14, unchanged)
 
-Generated by [`../i76-calibration-saves.py`](../i76-calibration-saves.py) from save004:
-
-- **save005 "COLOR CAL"**: the 7 salvage-pool guns are rewritten to identical `50cal MG`s
-  with conditions 10/25/40/55/70/85/100%, and two salvage wheels set to 120% and 200%.
-  *Field read:* open Field Salvage, list the weapon colors top to bottom (and the two odd
-  wheels). One glance = the full threshold curve + the over-100% rendering. Also: the four
-  salvage-pool suspensions got distinct conditions (Stock 27.5/52.5/77.5%, Sway Bars 12.5%)
-  — note which ONE shows in the van (V) vs salvage → cracks the V/S rule.
-- **save006 "WEIGHT CAL"**: byte-identical to save004 except FRONT armor 91.0 → 101.0.
-  *Field read:* the form's total weight. (4100 + 10×k → k = armor lbs/point; chassis follows.)
-
-Both slots got savegame.dir entries (scene 7). The old deleted save005/006 contents remain
-in their timestamped backups.
-
-## Sample saves from the wild (research, 2026-07-14)
-
-- **Best: "Lightfoot's I'76 Save Games"** — 14 campaign `.cmp` files (missions 2–15) from
-  the defunct interstate76.com, preserved raw by the Wayback Machine (Nov 2007 captures,
-  `id_` URLs). Imported to `game-data/downloads/lightfoot-saves/`. ~1.3–2.6 KB each —
-  notably smaller than our 6–10 KB GOG saves; likely the pre-Gold format. No savegame.dir
-  archived (we can synthesize one).
-- SavesForGames.com hosts a claimed 100%-complete save (RAR, no provenance); TheTechGame
-  id 63063 (29 KB zip) is plausibly the same Lightfoot set repacked. Both skipped — fetch
-  only if the Wayback set proves insufficient.
-- Verified absent: GameFAQs (no PC saves), archive.org software items, VOGONS, GOG forums,
-  ModDB. **No Nitro Riders / melee / non-Piranha saves exist publicly.** Best ask-venues:
-  the VOGONS AiO-patch thread (zirkoni), Shane Peelar (I76 reverse engineer), GOG
-  `interstate_series` board. GOG Galaxy cloud saves: feature doesn't exist for I76.
+- **"Lightfoot's I'76 Save Games"** - 14 campaign `.cmp` files (missions 2-15) from the defunct
+  interstate76.com via the Wayback Machine (Nov 2007), in `game-data/downloads/lightfoot-saves/`;
+  1.3-2.6 KB each, likely the pre-Gold format; no `savegame.dir`. Not yet parsed with the new frame.
+- SavesForGames / TheTechGame sets skipped; GameFAQs, archive.org, VOGONS, GOG forums, ModDB hold
+  none. No Nitro Riders / melee / non-Piranha saves exist publicly.
