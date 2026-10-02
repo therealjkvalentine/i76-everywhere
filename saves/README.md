@@ -79,6 +79,7 @@ files, so slots cannot be merged piecemeal.
 
 | directory | what it is |
 |---|---|
+| `lab-20261002/` | read-only copy of the sandbox set as of 2026-10-02 (`../i76-uncap-lab/game`): save000-008 incl. the Leg A/B bookmarks and the player's saves of that day, plus `reconfig.spc` / `trip4.spc` (same writer). Test fixtures for `tests/test_save_editor.py` and the base for `i76-calibration-saves.py`; installable (index exact, 544 B = 4 + 60 x 9). |
 | `windows-20260906/` | the 7 bookmarks that shipped in this directory before the Mac set landed: scenes 2, 3, 5 and four at scene 6, off the Windows install. Includes the `save004.cmp` recovered from the 2026-09-05 field case (see `PLAY-i76.ps1`). Index is intact - installable. |
 | `rescue-20260718/` | a whole-folder snapshot of the Mac game directory taken 2026-07-18, and the only surviving copy of slots 003-007. Its index is complete (844 bytes = 4 + 60 x 14 records; the old installers demanded 880 and refused it: fixed 2026-10-01). Its `save013` is the same file the live set above indexes as scene 11. |
 
