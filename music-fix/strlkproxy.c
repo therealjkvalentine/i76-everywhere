@@ -37,6 +37,7 @@
 #include <intrin.h>
 #endif
 #include "../tools/telemetry/i76tel.h"   /* telemetry export layout, shared with tools/telemetry/i76tel.py */
+#include "../tools/trainer/i76trn.h"     /* trainer control block layout, shared with tools/trainer/i76trainer_gui.py */
 
 #define FAKE_CD_ID 0xC0DE
 
@@ -873,6 +874,8 @@ static DWORD g_frame;                                        /* proxy frame coun
 static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
 static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
 static void tel_frame(void);
+static i76trn_ctl_t *g_trn;                                  /* trainer control block (below, with apply_trainer) */
+static void trn_frame(void);
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now;
     /* The frame just rendered is complete here (ticks, post-ticks, camera, render, Flip): publish it before any cap
@@ -898,6 +901,7 @@ clock:
         mlog("  volume-test: sound_SetCdVolume(%d) at frame %lu", g_voltest_level, (unsigned long)g_frame);
         ((void (__cdecl *)(int))0x00424b60)(g_voltest_level);
     }
+    if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
     if (g_hires_on) {
         /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
@@ -1351,7 +1355,7 @@ static void apply_far_clip(void) {
     static const BYTE rd_old[5] = { 0xA1, 0x1C, 0x27, 0x4C, 0x00 };          /* mov eax, [0x4c271c] at 0x4059de */
     static const struct { DWORD va; DWORD old; } pool[5] = {
         { 0x00402f99, 0x40000 }, { 0x00402f9e, 0x1a5e0 }, { 0x00402fc6, 0xd2f0 }, { 0x00402fcb, 0x80000 }, { 0x00402fd0, 0x80000 } };
-    char v[16]; DWORD n; float far_m; BYTE rd_new[5] = { 0xA1 }; DWORD a; int i, ok = 0;
+    char v[16]; DWORD n; float far_m; BYTE rd_new[5] = { 0xA1 }; DWORD a; int i, ok = 0, filepatched = 0;
     n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
     if (n == 0 || n >= sizeof(v)) return;
     far_m = (float)atof(v);
@@ -1359,6 +1363,20 @@ static void apply_far_clip(void) {
      * (renderer_SplitTerrainEdge 0x4918f0); past ~32,767 terrain vertices in a frame the index wraps and the game dies.
      * The hood view (120 deg) and binoculars (8x) reach that between 2500 and 2750 m on t01, so 2500 is the cap. */
     if (far_m < 100.0f || far_m > 2500.0f) { mlog("  far-clip: %s out of the safe range (100..2500 m: int16 terrain vertex indices, see FARCLIP-CAMERA-CRASH.md) - not applied", v); return; }
+    /* An exe already file-patched by tools/framerate/patch-farclip.ps1 (the sandbox is) carries the pools at x16 and
+     * `mov eax, imm32 <float>` at the read site. Recognise that, report the file value, and still take over the read
+     * so the environment value wins (2026-10-02: "pool constant 0 differs - not applied" hid that the 1800 m came from
+     * the file, not the switch). */
+    for (i = 0; i < 5; i++) if (*(DWORD *)(DWORD_PTR)pool[i].va == pool[i].old * 16) filepatched++;
+    if (filepatched == 5 && *(BYTE *)0x004059de == 0xB8) {
+        BYTE imm_old[5]; float file_m;
+        memcpy(imm_old, (void *)0x004059de, 5); memcpy(&file_m, imm_old + 1, 4);
+        g_far_clip = far_m;
+        a = (DWORD)(DWORD_PTR)&g_far_clip; memcpy(rd_new + 1, &a, 4);
+        ok = patch_bytes(0x004059de, imm_old, rd_new, 5, "far clip read (file-patched exe)");
+        mlog("  far-clip: exe is file-patched (%g m, pools x16); %s (%g m from I76_FAR_CLIP)", file_m, ok ? "read site repointed" : "NOT repointed", far_m);
+        return;
+    }
     for (i = 0; i < 5; i++) if (*(DWORD *)(DWORD_PTR)pool[i].va != pool[i].old) { mlog("  far-clip: pool constant %d differs - not applied", i); return; }
     if (memcmp((void *)0x004059de, rd_old, 5) != 0) { mlog("  far-clip: read site differs - not applied"); return; }
     for (i = 0; i < 5; i++) {
@@ -2225,6 +2243,166 @@ static void apply_telemetry(void) {
          hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
 }
 
+/* ===========================================================================
+ * TRAINER CONTROL BLOCK  (always on; I76_TRAINER=0 disables)
+ * ===========================================================================
+ * tools/trainer/i76trn.h is the contract: a 192-byte i76trn_ctl_t in the shared memory Local\I76Trainer that a
+ * front end (tools/trainer/i76trainer_gui.py) fills and this proxy applies on the game's own thread at the top of
+ * every frame, before simclock_Update, the physics tick and the render. That placement is the point: an external
+ * poke (tools/trainer/i76trainer.py) can land inside the render window, where I76_RENDER_INTERP puts the physics
+ * pose back, and a hit can register in the same frame as a repair; here the hold runs first.
+ *
+ *   flags (held every frame)       I76TRN_F_GOD        armour / chassis / components at max, flats cleared, and
+ *                                                      options_play_flags 0x18 (entity_ApplyDamage 0x465620 zeroes the
+ *                                                      amount for the offline player: cheats.md section 1) forced on
+ *                                  I76TRN_F_AMMO       play flag 0x04 forced on + the player's weapon instances' ammo
+ *                                                      (0x5aab08 + i x 0x4c, +0x20; instance +0x18 -> vehicle record
+ *                                                      whose +0 is the vehicle object) = 0x0fffffff
+ *                                  I76TRN_F_NOFLATS    wheel flat flag +0x44 cleared, radius +0x1c / 0.688 (0x46dde1)
+ *                                  I76TRN_F_COMPONENTS components at max only
+ *                                  I76TRN_F_FREEZE_POS obj+0x40 = pos, velocity and body rates 0
+ *   one-shots (req_seq != ack_seq) repair, teleport, ammo, slot ammo, play flags, stop
+ *
+ * Forced play-flag bits are remembered the first time they are forced and put back when the forcing flag is
+ * released, so a session that only used the trainer leaves the Options as they were. Poking the dword does not set
+ * the "cheats used" marker 0x535f78 (only the menus do), so a mission won this way still counts.
+ * The whole apply runs under SEH like the telemetry snapshot: between missions the player chain is stale, and a
+ * fault must cost one frame of trainer service, never the game. */
+static HANDLE g_trn_map;
+static DWORD g_trn_forcing, g_trn_play_saved;
+
+static void trn_msg(const char *s) { lstrcpynA(g_trn->msg, s, sizeof g_trn->msg); }
+
+/* components at max: engine / suspension / brakes (slots 7..9), the six wheels, anything else that carries a
+ * known class type; weapon instances (type 50) are held through the instance table below */
+static void trn_components(BYTE *ent, int only_flats) {
+    int i;
+    for (i = 0; i < 24; i++) {
+        BYTE *o = *(BYTE **)(ent + 0x3a8 + 4 * i), *c;
+        int type, ho = -1, mo = -1;
+        if (!o) continue;
+        type = *(int *)(o + 0x6c); c = *(BYTE **)(o + 0x70);
+        if (!c) continue;
+        if (type == 30) {                                     /* wheel: hp +4 / max +8, flat +0x44, radius +0x1c */
+            if (*(DWORD *)(c + 0x44)) { *(float *)(c + 0x1c) = *(float *)(c + 0x1c) / 0.688f; *(DWORD *)(c + 0x44) = 0; }
+            if (only_flats) continue;
+            ho = 4; mo = 8;
+        } else if (only_flats) continue;
+        else if (type == 20 || type == 21 || type == 23) { ho = 0; mo = 4; }
+        else if (type == 22) { ho = 4; mo = 8; }
+        else if (type == 24) { ho = 8; mo = 0xc; }
+        if (ho < 0) continue;
+        if (*(int *)(c + mo) > 0 && *(int *)(c + ho) != *(int *)(c + mo)) *(int *)(c + ho) = *(int *)(c + mo);
+    }
+}
+
+static void trn_repair(BYTE *ent) {
+    int s;
+    for (s = 0; s < 4; s++) {
+        int am = *(int *)(ent + 0x158 + 4 * s), cm = *(int *)(ent + 0x168 + 4 * s);
+        *(int *)(ent + 0x138 + 4 * s) = am; *(int *)(ent + 0x178 + 4 * s) = am;
+        *(int *)(ent + 0x148 + 4 * s) = cm; *(int *)(ent + 0x18c + 4 * s) = cm;
+    }
+    trn_components(ent, 0);
+}
+
+/* the player's weapon instances: ammo = value (value < 0: leave), hp to max when hp_max is set */
+static int trn_weapons(BYTE *obj, int ammo, int hp_max) {
+    int n = *(int *)0x005da750, i, hit = 0;
+    if (n > 150) n = 150;
+    for (i = 0; i < n; i++) {
+        BYTE *inst = (BYTE *)0x005aab08 + i * 0x4c, *vrec = *(BYTE **)(inst + 0x18);
+        if (!*(DWORD *)(inst + 4) || !vrec || *(BYTE **)vrec != obj) continue;
+        if (ammo >= 0) *(int *)(inst + 0x20) = ammo;
+        if (hp_max && *(int *)(inst + 0x14) > 0) *(int *)(inst + 0xc) = *(int *)(inst + 0x14);
+        hit++;
+    }
+    return hit;
+}
+
+static void trn_apply_inner(void) {
+    i76trn_ctl_t *c = g_trn;
+    volatile DWORD *play = (volatile DWORD *)0x00654b98;
+    BYTE *ent = 0, *obj;
+    DWORD fl = c->flags, force, applied = 0;
+    c->heartbeat = g_frame;
+    /* play-flag forcing, with restore: the baseline is captured the first time any bit is forced, and a bit that
+     * stops being forced goes back to its baseline value */
+    force = ((fl & I76TRN_F_GOD) ? 0x18u : 0u) | ((fl & I76TRN_F_AMMO) ? 0x04u : 0u);
+    if (force != g_trn_forcing) {
+        DWORD released = g_trn_forcing & ~force;
+        if (!g_trn_forcing) { g_trn_play_saved = *play; c->play_flags_saved = g_trn_play_saved; }
+        if (released) *play = (*play & ~released) | (g_trn_play_saved & released);
+        g_trn_forcing = force;
+    }
+    if (force) *play |= force;
+    c->play_flags_now = *play;
+
+    obj = tel_player(&ent);
+    c->player_present = obj != 0;
+    if (obj) {
+        if (fl & I76TRN_F_GOD) { trn_repair(ent); trn_weapons(obj, -1, 1); applied |= I76TRN_F_GOD; }
+        if (fl & I76TRN_F_COMPONENTS) { trn_components(ent, 0); trn_weapons(obj, -1, 1); applied |= I76TRN_F_COMPONENTS; }
+        if (fl & I76TRN_F_NOFLATS) { trn_components(ent, 1); applied |= I76TRN_F_NOFLATS; }
+        if (fl & I76TRN_F_AMMO) { trn_weapons(obj, 0x0fffffff, 0); applied |= I76TRN_F_AMMO; }
+        if (fl & I76TRN_F_FREEZE_POS) {
+            memcpy(obj + 0x40, c->pos, 24); memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12);
+            applied |= I76TRN_F_FREEZE_POS;
+        }
+    }
+    if (c->req_seq != c->ack_seq) {
+        DWORD cmd = c->cmd;
+        c->cmd_result = 0;
+        if (cmd == I76TRN_CMD_PLAYFLAGS) {
+            *play = (*play & ~c->play_clear) | c->play_set;
+            g_trn_play_saved = (g_trn_play_saved & ~c->play_clear) | c->play_set;   /* the user's new baseline */
+            c->play_flags_now = *play; trn_msg("play flags set");
+        } else if (!obj) { c->cmd_result = 1; trn_msg("no player vehicle (not in a mission?)"); }
+        else switch (cmd) {
+        case I76TRN_CMD_REPAIR:   trn_repair(ent); trn_weapons(obj, -1, 1); trn_msg("repaired"); break;
+        case I76TRN_CMD_TELEPORT: memcpy(obj + 0x40, c->pos, 24); memcpy(ent + 0xbc, c->vel, 12); memset(ent + 0xc8, 0, 12);
+                                  trn_msg("teleported"); break;
+        case I76TRN_CMD_AMMO:     { char b[64]; wsprintfA(b, "ammo set on %d weapons", trn_weapons(obj, c->ammo_value, 0)); trn_msg(b); } break;
+        case I76TRN_CMD_SLOT_AMMO: {
+            int n = *(int *)0x005da750, i = c->slot_index;
+            BYTE *inst = (BYTE *)0x005aab08 + i * 0x4c;
+            if (i < 0 || i >= n || i >= 150 || !*(DWORD *)(inst + 4)) { c->cmd_result = 3; trn_msg("bad weapon slot"); }
+            else { *(int *)(inst + 0x20) = c->ammo_value; trn_msg("slot ammo set"); }
+            break; }
+        case I76TRN_CMD_STOP:     memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12); trn_msg("stopped"); break;
+        default:                  c->cmd_result = 2; trn_msg("unknown command"); break;
+        }
+        c->ack_seq = c->req_seq;
+    }
+    c->applied = applied;
+}
+
+static void trn_frame(void) {
+    if (!g_trn || g_trn->magic != I76TRN_MAGIC) return;
+#ifdef _MSC_VER
+    __try { trn_apply_inner(); }
+    __except (EXCEPTION_EXECUTE_HANDLER) { g_trn->faults++; }
+#else
+    trn_apply_inner();
+#endif
+}
+
+static void apply_trainer(void) {
+    char v[8];
+    DWORD k = GetEnvironmentVariableA("I76_TRAINER", v, sizeof(v));
+    if (k && k < sizeof(v) && v[0] == '0') { mlog("  trainer: disabled (I76_TRAINER=0)"); return; }
+    g_trn_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76trn_ctl_t), I76TRN_SHM_NAME);
+    if (g_trn_map) g_trn = (i76trn_ctl_t *)MapViewOfFile(g_trn_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76trn_ctl_t));
+    if (!g_trn) { mlog("  trainer: shared memory %s NOT created (%lu)", I76TRN_SHM_NAME, GetLastError()); return; }
+    memset(g_trn, 0, sizeof *g_trn);                          /* a front end that mapped first sees the block reset */
+    g_trn->version = I76TRN_VERSION; g_trn->size = sizeof(i76trn_ctl_t);
+    trn_msg("proxy ready");
+    install_frame_hook();
+    g_trn->magic = g_frame_hook ? I76TRN_MAGIC : 0;           /* no hook, no service: the magic stays clear */
+    mlog("  trainer: %s (%s, %u B, frame hook %s)", g_frame_hook ? "on" : "NOT applied", I76TRN_SHM_NAME,
+         (unsigned)sizeof(i76trn_ctl_t), g_frame_hook ? "ok" : "missing");
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -2247,6 +2425,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
         apply_far_clip();         /* opt-in: I76_FAR_CLIP=<metres> (+ render pools x16) */
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
+        apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -
@@ -2272,6 +2451,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         g_tel_on = 0;
         if (g_tel_shm) { UnmapViewOfFile(g_tel_shm); g_tel_shm = 0; }
         if (g_tel_map) { CloseHandle(g_tel_map); g_tel_map = 0; }
+        if (g_trn) { g_trn->magic = 0; UnmapViewOfFile(g_trn); g_trn = 0; }
+        if (g_trn_map) { CloseHandle(g_trn_map); g_trn_map = 0; }
     }
     return TRUE;
 }
