@@ -69,18 +69,45 @@ the wrong record). The `savegame.dir` had the same disease (records at 0x28+60k 
   consistent files, rebuild after a state edit, `setCond` touches one record) and the existing
   `test-save-editor-dir.mjs` pass.
 
-## Not verified yet - needs the game (see EDITOR-FIELD-TESTS.md)
+## Verified in the sandbox (2026-10-02, probes 1 and 2 - locked into both editors)
 
-- the colour thresholds (the shell grades cond/full in thirds; which third is which colour, and
-  whether 100 % has no highlight) - CAL COLOR;
-- state 2 = van pane / 4 = Field Salvage pane - CAL V VS S (the data supports it: state-2 counts
-  never exceed the panel caps, state-4 counts run to 46);
-- bench cap (15 queued) - CAL BENCH 15; four suspensions in the van - CAL SUSP 4;
-- paint via vtf - CAL PAINT BLUE; spc01 Radar Jammer - CAL JAMMER;
-- LOAD-board default label vs scene/state - CAL LABEL 7 / 7+1 (expected from Leg B: state 8 shows
-  and loads the dword, state 1 shows and loads dword+1);
-- that a save written by the new editors loads and plays (Leg B loaded a one-byte-edited directory
-  on 2026-10-01; a `.cmp` with a rebuilt section C has not been loaded yet - CAL BENCH 15 is that test).
+- **Colours:** `level = floor(3 x cond / full)`, 0 red / 1 yellow / 2 green / 3 (100 %) unmarked,
+  specials unmarked (`Part.level()` / `levelOf()`, 22 measured data points in the tests, 1/3 exactly
+  is yellow). The colour is stored state.
+- **States:** 2 = van pane, 4 = Field Salvage pane (with 1 = mounted and 3 = bench from the data).
+- **The 11-weapon cap** (`Inventory_ClassifyParts`, `cmp [list+4], 0xb`): the car/van/bench WEAPONS
+  list keeps the first 11 type-7/8 state-1/2/3 records in file order; the rest become state 4
+  (Field Salvage) and a mounted one past the cap reads EMPTY on its hardpoint. The editors now warn
+  (`Cmp.loadout_warnings()` / `loadoutWarnings()`: over-cap weapons by index, labels without an in-cap
+  state-1 record, per-type counts above the garage's list allocations - engines 4, suspensions 6,
+  brakes 6, specials 10, wheels 32; `List_Insert` has no bounds check) and on write move the mounted
+  weapon records to the front of section A when one sits past the cap (`prepare_for_write()` /
+  `prepareForWrite()`); `mounted()` matches labels the way the garage does. The lists are drawn in
+  the game's order ((C) ascending, then descending; salvage by name, condition descending).
+- The lab's own `save003` carries exactly 11 car/van/bench weapons with the mounted Oil Slick (#62)
+  the 11th - inside the cap, no warning; CAL COLOR's three promoted salvage guns pushed it out.
+
+## Verified in the sandbox (2026-10-02, probes 3-7; record in `i76-uncap-lab\autotest\saves\runs\garage-ui\RESULTS.md`)
+
+- **Bench: no cap.** All 15 queued jobs listed (scrolling REPAIR ORDER panel, file order) and the
+  editor-rebuilt section C loaded - a `.cmp` written by the new editors loads and plays. The HTML's
+  "beyond 14 jobs" heads-up is gone.
+- **Van suspensions: no cap of 3/4** (>= 5 listed). The editors no longer block "-> van" at 3/4; the
+  only storage bound is the garage's list allocation (engines 4, suspensions 6, brakes 6, specials 10,
+  wheels 32, weapons 11-by-cap), reported in the warnings box.
+- **Paint:** swapping the vtf repaints the car (hood blue in the mission); the LOAD board prints
+  "Scene N. <name>", never the variant text.
+- **spc01 = "Radar Jammer"** in the Special 3 row and the SPECIALS chooser (effect in a mission untested).
+- **LOAD-board label** = scene + (state == 1): "Scene 7." for scene 7/state 8, "Scene 8." for scene 7/
+  state 1 - the editors' `plays()` rule. (Loading those two rows to watch the mission start was not done.)
+- The inventory dialog's column heights (ENGINES 4, WEAPONS 11, WHEELS 12 rows) are display limits; the
+  2026-07 "panel caps" were those.
+
+## Still open
+
+- the Radar Jammer's in-mission effect;
+- loading the CAL LABEL rows to confirm the mission that starts (Leg B covered the state-8 case);
+- PartRec +0x42 (11 on turrets) / +0x68 (0..3) and the GarageRec +0x864 slot classes.
 
 ## Retracted by this audit
 

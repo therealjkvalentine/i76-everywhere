@@ -58,25 +58,36 @@ def pick(cmp, pred, n, exclude=()):
     out = [p for p in cmp.a if pred(p) and p.state != 1 and p not in exclude]
     return out[:n]
 
+def headroom(c, typ):
+    """how many more state-1/2/3 records of this type the garage's list can take"""
+    t = 7 if typ in (7, 8) else typ
+    n = sum(1 for p in c.a if p.state != 4 and (7 if p.is_weapon else p.type) == t)
+    cap = ed.WEAPON_CAP if t == 7 else ed.LIST_ALLOC[t]
+    return cap - n
+
 def probe_color(base):
     c = ed.Cmp(base.to_bytes())
     guns = pick(c, lambda p: p.type in (7, 8) and p.state == 2, 7)
-    guns += pick(c, lambda p: p.type in (7, 8) and p.state == 4, 7 - len(guns), exclude=guns)
-    if len(guns) < 7: raise SystemExit(f"CAL COLOR needs 7 spare guns, found {len(guns)}")
+    # the van's weapon list is capped at 11 (sandbox 2026-10-02): salvage guns are promoted only while there is room,
+    # the rest of the ladder stays in Field Salvage (whose colours were measured the same way)
+    room = max(0, headroom(c, 7))
+    promote = pick(c, lambda p: p.type in (7, 8) and p.state == 4, min(room, 7 - len(guns)), exclude=guns)
+    stay = pick(c, lambda p: p.type in (7, 8) and p.state == 4, 7 - len(guns) - len(promote), exclude=guns + promote)
+    if len(guns) + len(promote) + len(stay) < 7: raise SystemExit("CAL COLOR needs 7 spare guns")
     rows = []
-    for p, (nm, cls, dfl, full, wt, pct) in zip(guns, TURRETS):
-        p.set_identity(nm, 7, cls, dfl, full, wt); p.state = 2; p.cond = full * pct // 100
-        rows.append((nm, pct, p.cond, full))
+    for p, (nm, cls, dfl, full, wt, pct) in zip(guns + promote + stay, TURRETS):
+        p.set_identity(nm, 7, cls, dfl, full, wt); p.state = 4 if p in stay else 2; p.cond = full * pct // 100
+        rows.append((nm, pct, p.cond, full, "van" if p.state == 2 else "Field Salvage"))
     c.sync_repair_queue()
-    expect = "; ".join(f"**{nm}** {pct} % = {cond}/{full} ({'top third' if pct > 66 else 'middle third' if pct > 33 else 'bottom third'}{', full' if pct == 100 else ''})" for nm, pct, cond, full in rows)
-    return c, ("Van pane of the Build & Repair Form. Screenshot the whole van list. Write down the highlight colour "
-               "(none / green / yellow / red) next to each of the seven turrets. Reload the bookmark once and "
-               "screenshot again: a colour that changes between loads is not stored state. Set: " + expect + ".")
+    expect = "; ".join(f"**{nm}** {pct} % = {cond}/{full} ({'top third' if pct > 66 else 'middle third' if pct > 33 else 'bottom third'}{', full' if pct == 100 else ''}, {pane})" for nm, pct, cond, full, pane in rows)
+    return c, ("Van pane of the Build & Repair Form (and Field Salvage for the ladder rows marked so). Screenshot both. "
+               "Write down the highlight colour (none / green / yellow / red) next to each of the seven turrets. Reload the "
+               "bookmark once and screenshot again: a colour that changes between loads is not stored state. Set: " + expect + ".")
 
 def probe_v_vs_s(base):
     c = ed.Cmp(base.to_bytes())
     v = pick(c, lambda p: p.type in (7, 8) and p.state == 2, 1)
-    s = pick(c, lambda p: p.type in (7, 8) and p.state == 4, 1, exclude=v)
+    s = pick(c, lambda p: p.type in (7, 8) and p.state == 4, 1, exclude=v)   # stays state 4: no cap pressure
     if not v or not s: raise SystemExit("CAL V VS S needs one spare gun in the van and one in salvage")
     v[0].set_identity("Howitzer", 7, "slg06", "tthowitz.gdf", 900, 170.0); v[0].cond = 900; v[0].state = 2
     s[0].set_identity("HADES Turret", 7, "slg07", "tchades.gdf", 600, 150.0); s[0].cond = 600; s[0].state = 4
@@ -90,10 +101,17 @@ def probe_bench(base, target=15):
     c = ed.Cmp(base.to_bytes())
     have = sum(1 for p in c.a if p.state == 3)
     need = target - have
-    cands = pick(c, lambda p: p.state == 4 and p.type != 13 and p.full and p.cond < p.full, need)
-    cands += pick(c, lambda p: p.state == 2 and p.type != 13 and p.full and p.cond < p.full, need - len(cands),
-                  exclude=cands)
-    if len(cands) < need: raise SystemExit(f"CAL BENCH needs {need} more damaged spares, found {len(cands)}")
+    # van parts first (already counted in their list), then salvage parts only while their type's garage list has
+    # room: List_Insert has no bounds check (2026-10-02), so e.g. a 5th car/van/bench engine overflows the heap
+    cands = pick(c, lambda p: p.state == 2 and p.type != 13 and p.full and p.cond < p.full, need)
+    for p in c.a:
+        if len(cands) >= need: break
+        if p.state == 4 and p.type != 13 and p.full and p.cond < p.full and p not in cands:
+            tmp = ed.Cmp(c.to_bytes())
+            for q in cands: tmp.a[c.a.index(q)].state = 3
+            tmp.a[c.a.index(p)].state = 3
+            if headroom(tmp, p.type) >= 0 and not tmp.loadout_warnings(): cands.append(p)
+    if len(cands) < need: raise SystemExit(f"CAL BENCH needs {need} more damaged spares within the list caps, found {len(cands)}")
     for p in cands: p.state = 3
     c.sync_repair_queue()
     names = ", ".join(f"{p.name} {p.cond}/{p.full}" for p in c.a if p.state == 3)
@@ -157,6 +175,7 @@ def main():
     for name, fn in probes:
         cmp, what = fn(base)
         if cmp.check(): raise SystemExit(f"{name}: {cmp.check()}")
+        if cmp.loadout_warnings(): raise SystemExit(f"{name}: {cmp.loadout_warnings()}")
         slot = sd.free_slot()
         data = cmp.to_bytes()
         with open(os.path.join(out, slot + ".cmp"), "wb") as f: f.write(data)

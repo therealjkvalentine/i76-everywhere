@@ -27,7 +27,7 @@ Each 0x74 record is a **PartNode (0x20) followed by a PartRec (0x54)**:
 |---|---|---|
 | +0x00 u32[3] | runtime pointers (rec*, next, prev) - rewritten on load, garbage on disk | verified (code) |
 | **+0x0c u32** | **condition** (hit points) | verified (code; `PartNode_DamageLevel` grades it against +0x6c in thirds) |
-| **+0x10 u32** | **state**: 1 mounted on the car, 2 in the van (V), 3 queued for repair (R), 4 dropped = field salvage (S) | 1 and 3 verified (data: state-1 names == the equipped block in 21/21 game saves; section C == state-3 records in 21/21); 2 vs 4 **open** (data: state-2 counts never exceed the panel caps, state-4 counts run to 46; `trip4.spc` loading frees state 4) |
+| **+0x10 u32** | **state**: 1 mounted on the car, 2 in the van (V), 3 queued for repair (R), 4 dropped = Field Salvage (S) | all four **verified**: 1 and 3 from the data (state-1 names == the equipped block in 21/21 game saves; section C == state-3 records in 21/21), 2 and 4 in the sandbox 2026-10-02 (CAL V VS S: a state-2 Howitzer listed (V) in the van only, a state-4 HADES Turret in Field Salvage only) |
 | +0x14 12 B | runtime leftovers, never read (often the slot type) | verified (code) |
 | +0x20 char[30] | display name | verified |
 | +0x3e u32 | type: 2 engine, 3 suspension, 4 brakes, 5 wheel, 7 gun, 8 dropper, 13 special | verified |
@@ -54,17 +54,54 @@ changes a part's state or condition must regenerate C (`Cmp.sync_repair_queue()`
 | +0x03c u32, +0x040 | Mr. Damage registry: count, then 32-byte records `{u32 slot type, char[16] name, u32 x, u32 y, u32 0}`; x,y are the damage-panel coordinates (WHL FR 408,119 ...) | verified |
 | +0x400 char[14][30] | **equipped by name**: engine, susp, brakes, tires FR/FL/RR/RL, weapons x4 (Piranha order: dropper, top1, top2, rear), specials x3; empty hardpoint = the literal `"Empty"`. Special 1/2/3 display order = registry order | verified |
 | +0x7fc u32[8] | **armor in tenths**: armor F/R/L/Rear, chassis F/R/L/Rear (910,570,570,700 <-> 91/57/57/70) | verified |
-| +0x820 / +0x82d char[13] | vdf `vppirnha.vdf`, vtf `piranha1.vtf` = the paint (2/3/4 = the other factory schemes) | vdf verified; repaint **open** (CAL PAINT BLUE) |
+| +0x820 / +0x82d char[13] | vdf `vppirnha.vdf`, vtf `piranha1.vtf` = the paint (2/3/4 = the other factory schemes) | verified; swapping the vtf repaints the car (sandbox 2026-10-02, CAL PAINT BLUE: hood blue in the mission) |
 | +0x83a/+0x847/+0x854 | wheel wdf front/mid(null)/rear | verified |
 | +0x864 13 x u32 | slot classes (2,4,1,2,5,2,1,1,3,1,1,...) | data |
 | +0x898.. | two floats (1940.0-ish, 1320.0) and zeros | data; the 1320 is NOT the chassis weight |
 
+### Condition colours (verified in the sandbox 2026-10-02, CAL COLOR + base, pixel-measured)
+
+`level = floor(3 x cond / full)`: **0 red, 1 yellow, 2 green, 3 (= 100 %) unmarked**; specials (full 0)
+unmarked. Data points: 100 % none; 95.5 / 85 / 70 % green; 55, 50, 40, 35.7, 33.7 and exactly 1/3
+(100/300) yellow; 31.3 (47/150), 25, 24.7, 22, 19, 15, 10, 6, 5.5, 1 % red. The 640x480 UI paints red
+(231,106,75), yellow ~(240,200,80), green (163,170,79). Both editors use this rule (`Part.level()`,
+`levelOf()`); the (C)/(V)/(R) list and Field Salvage colour the same way, and the colour is stored
+state (it survives reloads) - the 2026-07 "render-time paint" verdict came from editing the wrong record.
+
+### The weapon list cap and the display order (verified in the sandbox 2026-10-02)
+
+`Inventory_ClassifyParts` (0x100197c0) walks section A in **file order** and puts every type-7/8 record
+with state != 4 into the car/van/bench WEAPONS list until it holds **11** (`cmp [list+4], 0xb` at
+0x10019945); the 12th and later get **state 4** (0x10019952) and list under Field Salvage. A *mounted*
+(state 1) weapon past the cap is therefore not in the list, so its hardpoint reads **EMPTY** even though the
+label at `+0x400` names it (CAL COLOR: 14 weapons, #48 (V) 7.62 Turret, #59 (V) 20mm Turret and #62 (C)
+Oil Slick missing from the van list, the turrets in Field Salvage, the dropper row Empty; with 11 weapons,
+CAL V VS S, all showed, Oil Slick included). The 14 labels at `+0x400` only take effect when a state-1
+record with that display name is in the list (MOUNT-VALIDATION.md: no mount-class check at load, the
+turret rule only on DONE). The editors warn when C+V+R weapons exceed 11 or a label has no in-cap
+state-1 record, and on write move the mounted weapon records to the front of section A when one of them
+sits past the cap.
+
+The other lists have **no count check**: `List_Insert` (0x10027970) never tests capacity, so more records
+than `Inventory_BuildLists` allocated overflow the heap. `List_New` sizes (0x10019a82..0x10019b78):
+engines (`0x100d1dac`) **4**, specials (`0x100d1db0`) **10**, weapons (`0x100d1db4`) 32, wheels
+(`0x100d1db8`) 32, brakes (`0x100d1dbc`) **6**, suspensions (`0x100d1dc0`) **6**; the Field Salvage lists
+16/64/64/64/... Game-written maxima: engines 3, suspensions 4, brakes 5, wheels 11, specials 9. The
+user-read panel caps (engines 3, suspensions 4, brakes 4, specials 9, weapons 11, wheels 11) are the
+visible row counts; the editors warn at the allocation sizes.
+
+Display order: the (C)/(V)/(R) list shows the (C) records in ascending file order, then the rest in
+**descending** file order; Field Salvage sorts by name group, condition descending within the group.
+
 **Weight (verified 2026-07-14, unaffected by the frame bug):** `total = 2910 + sum of mounted part
 weights + 1.0 lb x armor points`, exact on two in-game builds (3986 / 3727 lbs).
 
-**Panel caps (user-read 2026-07-14):** engines 3, suspensions 4, brakes 4, specials 9, weapons 11,
-wheels 11 for car+van+bench together; salvage scrolls. Consistent with the state-2 counts in every
-save (max seen: 2 engines, 3 suspensions, 4 brakes, 6 specials, 7 weapons, 6 wheels).
+**Caps (sandbox 2026-10-02):** the repair bench has **no cap** (15 queued jobs all listed in the
+scrolling REPAIR ORDER panel, file order; the editor-rebuilt section C loaded fine); the van holds
+**>= 5 suspensions** (no cap of 3/4); the only real list cap is the **11 weapons** below. The 2026-07
+"panel caps" (engines 3, suspensions 4, brakes 4, specials 9, wheels 11) were the inventory dialog's
+column heights (ENGINES 4 rows, WEAPONS 11, WHEELS 12 measured) - display, not storage. Storage is
+bounded only by the list allocations in the same section.
 
 ## 2. `savegame.dir`
 
@@ -80,6 +117,10 @@ count x 60-byte records at 4 + 60k:
 size == 4 + 60*count, exactly.
 ```
 
+The LOAD board prints `"Scene N. <name>"` with **N = scene + (state == 1)** (sandbox 2026-10-02, CAL
+LABEL 7 / 7+1: scene 7 state 8 -> "Scene 7.", scene 7 state 1 -> "Scene 8."); the variant text from the
+GarageRec is not on the board.
+
 Padding (the launchers' zero slack) is harmless: the reader stops at `count`. Shrinking is what to
 avoid; the editors never do it. The `save-01.cmp` orphan is a shell bug reproduced from the code
 (SAVE.md section 4: slot -1 after a second pass through the name field; Wine prints `-01`, Windows
@@ -87,14 +128,17 @@ avoid; the editors never do it. The `save-01.cmp` orphan is a shell bug reproduc
 
 ## 3. Open - the probes in EDITOR-FIELD-TESTS.md answer these
 
-1. colour thresholds (which third is which colour; is 100 % unmarked) - **CAL COLOR**
-2. state 2 = van pane, state 4 = Field Salvage pane - **CAL V VS S**
-3. bench cap - **CAL BENCH 15** (also the first in-game load of an editor-rebuilt section C)
-4. four suspensions in the van - **CAL SUSP 4**
-5. repaint via the vtf field - **CAL PAINT BLUE**
-6. spc01 = Radar Jammer, any effect - **CAL JAMMER**
-7. LOAD-board default label - **CAL LABEL 7 / 7+1**
+1. ~~colour thresholds~~ **closed 2026-10-02** (thirds, see above) - CAL COLOR
+2. ~~state 2 = van pane, state 4 = Field Salvage pane~~ **closed 2026-10-02** - CAL V VS S
+3. ~~bench cap~~ **closed 2026-10-02: none** (15 listed; rebuilt section C loads) - CAL BENCH 15
+4. ~~four suspensions in the van~~ **closed 2026-10-02: >= 5 listed** - CAL SUSP 4
+5. ~~repaint via the vtf field~~ **closed 2026-10-02: repaints** - CAL PAINT BLUE
+6. spc01 = "Radar Jammer" **closed 2026-10-02** (garage name); its in-mission effect is still **open** - CAL JAMMER
+7. ~~LOAD-board default label~~ **closed 2026-10-02**: "Scene N." with N = scene + (state == 1); loading the
+   rows to watch the mission start was not done - CAL LABEL 7 / 7+1
 8. meaning of PartRec +0x42 (11 on turrets), +0x68 (0..3), GarageRec +0x864 slot classes - no probe
+
+Captures and the full record of the 2026-10-02 run: `..\..\i76-uncap-lab\autotest\saves\runs\garage-ui\RESULTS.md`.
 
 ## 4. Retired (2026-07 statements that were the frame offset)
 
