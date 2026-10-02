@@ -121,7 +121,8 @@ typedef struct i76tel_frame_t {         /* 628 bytes (v2), one per rendered fram
     float    inv_mass;                  /* ent+0xa8 1/m */
     float    drag;                      /* ent+0x120 VDFC drag: a = -0.1 x drag x v^2 */
     float    health_pct;                /* object_HealthFraction(obj) 0x40b450 called on the game thread: 28 + 72 x worst side ratio,
-                                           or the unscaled component ratio once engine/susp/brakes < 99.99% (damage.md); x100 under I76_FIX_HEALTH_PCT */
+                                           or the unscaled component ratio once engine/susp/brakes < 99.99% (damage.md);
+                                           min(28 + 72 x side, 100 x core) under I76_FIX_HEALTH_PCT=1, 100 x core under =2 */
     uint32_t event_seq;                 /* total events recorded so far (the last event's seq) */
     uint32_t event_count;               /* events appended to this datagram after the struct (0 in shared memory) */
 } i76tel_frame_t;
