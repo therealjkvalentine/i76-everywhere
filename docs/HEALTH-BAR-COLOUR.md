@@ -181,3 +181,19 @@ per `music-fix/README.md` Build) and the sandbox copy restored afterwards. Three
    smoke, 50% engine smoke (both predicted above).
 
 Pass: C is monotone in step 2 and 3 and reproduces step 5; B shows the rise (confirms the diagnosis); A shows stock.
+
+## Verified live (2026-10-02, sandbox t01, `tools/trainer/tests/health_pct_live_test.py`)
+
+The value the bar is a function of, read through telemetry `health_pct` on the player's car after direct pokes
+(armour sides to 30 % of max, then the engine to 99 % and 20 % of its 1200), n = 1 run per variant, every row exact:
+
+| state | stock | `I76_FIX_HEALTH_PCT=2` (x100 only) | `I76_FIX_HEALTH_PCT=1` (min) |
+|---|---|---|---|
+| armour 30 %, core intact | 49.6 | 49.6 | 49.6 |
+| + engine 99 % | **0.99** | **99.0** (the bar jumps to green / full) | 49.6 |
+| + engine 20 % | 0.20 | 20.0 | 20.0 |
+| repair | 100 | 100 | 100 |
+
+So the field report (bar goes to the wrong colour as a car takes damage, one car correct) is the `=2` column; `=1` is
+monotone. The proxy log line names the variant: `fix-health-pct: on (health = min(...); sites 0x40b7b8, 0x40b6f0)`.
+Still to do by eye: the bracket itself on an enemy (colour and width per the table above).
