@@ -22,7 +22,8 @@ machine: 27 files, 1676 records, 100 % formula matches, 100 % round-trips).
              +0x7fc u32[8]   ARMOR in tenths: armor F/R/L/Rear then chassis F/R/L/Rear
                     (verified against the in-game DEFENSE panel)
              +0x820 char[13] vdf ("vppirnha.vdf"), +0x82d char[13] vtf = the PAINT
-                    ("piranha1.vtf"; 2/3/4 = the other factory schemes - in-game check open),
+                    ("piranha1.vtf"; 2/3/4 = the other factory schemes; swapping it repaints
+                    the car - sandbox-verified 2026-10-02),
                     +0x83a/+0x847/+0x854 char[13] wheel wdf front/mid/rear
              +0x864 13 x u32 slot classes, +0x898 .. +0x8c4 misc (two floats, zeros; opaque)
     0x8c4  u32 nA
@@ -31,9 +32,14 @@ machine: 27 files, 1676 records, 100 % formula matches, 100 % round-trips).
              +0x00 u32[3]   runtime pointers (rec*, next, prev) - garbage, rewritten on load
              +0x0c u32      CONDITION (hit points; full value is PartRec +0x4c below)
              +0x10 u32      STATE: 1 = mounted on the car (exactly one record per non-Empty
-                            equipped name - 21/21 game-written saves), 2 = owned, in the
-                            van (V), 3 = queued for repair (R), 4 = dropped = field salvage
-                            (S; trip4.spc loading discards these)
+                            equipped name - 21/21 game-written saves), 2 = in the van (V),
+                            3 = queued for repair (R), 4 = dropped = Field Salvage (S; trip4.spc
+                            loading discards these). 2 and 4 sandbox-verified 2026-10-02.
+                            Colour = floor(3*cond/full): 0 red, 1 yellow, 2 green, 3 unmarked
+                            (sandbox-measured). The garage's car/van/bench WEAPONS list keeps only
+                            the first 11 type-7/8 state-1/2/3 records in FILE order; later ones
+                            become state 4 and a mounted one past the cap reads EMPTY on its
+                            hardpoint (WEAPON_CAP / LIST_ALLOC below; loadout_warnings()).
              +0x14 12 bytes runtime leftovers (never read by the game; often the slot type)
              +0x20 char[30] display name           +0x3e u32 type (2 engine, 3 susp, 4 brakes,
                             5 wheel, 7 gun, 8 dropper, 13 special)
@@ -70,7 +76,11 @@ machine: 27 files, 1676 records, 100 % formula matches, 100 % round-trips).
 Catalog sources: g*/t*.gdf (44 weapons), wauto_*.wdf (wheels: 4 designs x car-size family
 digit), compnent.cdf (engines/susp/brakes), specials spc01..spc09 from the exe string table
 (spc02 NitrousOxide, spc04 X-Aust, spc05 Structo, spc06 Curb Feelers, spc07 Mud Flaps,
-spc08 Heated Seats, spc09 Cup Holders seen in saves; spc01 Radar Jammer / spc03 Blower inferred).
+spc08 Heated Seats, spc09 Cup Holders seen in saves; spc01 prints as "Radar Jammer" in the garage
+(sandbox 2026-10-02, effect untested); spc03 Blower inferred).
+Caps (sandbox 2026-10-02): the repair bench has none (15 queued jobs all listed, scrolling); the
+van holds >= 5 suspensions; only the weapon list's 11 is a real cap. The inventory dialog's columns
+are height-limited (ENGINES 4 rows, WEAPONS 11, WHEELS 12) - display, not storage.
 
 Usage:
   i76-save-editor.py                      interactive (auto-finds the Mac wrapper saves)
@@ -103,6 +113,19 @@ D_SCENE, D_NAME, D_FILE, D_STATE, D_FLAGS = 0, 4, 36, 52, 56
 STATE_BADGE = {1: "C", 2: "V", 3: "R", 4: "S"}
 STATE_LABEL = {1: "(C) mounted on the car", 2: "(V) in the van",
                3: "(R) queued for repair", 4: "(S) field salvage"}
+# condition colour, sandbox-measured 2026-10-02 (CAL COLOR): level = floor(3 * cond / full);
+# 0 red, 1 yellow, 2 green, 3 (= 100 %) unmarked; specials (full 0) unmarked.
+LEVEL_NAMES = {0: "red", 1: "yellow", 2: "green", 3: "none"}
+# The garage's (C)+(V)+(R) WEAPONS list keeps at most 11 type-7/8 records with state != 4, in FILE
+# order (Inventory_ClassifyParts 0x10019945: `cmp [list+4], 0xb`); the 12th and later are set to
+# state 4 and show in Field Salvage - a mounted one past the cap reads EMPTY on its hardpoint
+# (sandbox-verified 2026-10-02, CAL COLOR / CAL V VS S). The other lists have no count check:
+# List_Insert (0x10027970) never tests capacity, so more records than Inventory_BuildLists
+# allocated (List_New sizes below, 0x10019a82..0x10019b78) overflow the heap. Observed maxima in
+# game-written saves: engines 3, suspensions 4, brakes 5, wheels 11, specials 9.
+WEAPON_CAP = 11
+LIST_ALLOC = {2: 4, 3: 6, 4: 6, 5: 32, 7: 32, 13: 10}   # per type; 8 (droppers) shares the weapon list
+PLURAL = {2: "engines", 3: "suspensions", 4: "brakes", 5: "wheels", 7: "weapons", 13: "specials"}
 TYPE_NAMES = {2: "engine", 3: "suspension", 4: "brakes", 5: "wheel", 7: "weapon", 8: "weapon", 13: "special"}
 EQ_SLOTS = ["Engine", "Suspension", "Brakes", "Tire FR", "Tire FL", "Tire RR", "Tire RL",
             "Weapon 1", "Weapon 2", "Weapon 3", "Weapon 4", "Special 1", "Special 2", "Special 3"]
@@ -186,7 +209,7 @@ WEAPONS = [
 ]
 # specials: def "spcNN"; "seen" = the name/def pair occurs in a game-written save
 SPECIALS = [
-    ("Radar Jammer", "spc01", "(inferred)"),
+    ("Radar Jammer", "spc01", "verified (name only; effect untested)"),
     ("NitrousOxide", "spc02", "seen"),
     ("Blower",       "spc03", "(inferred)"),
     ("X-Aust Brake", "spc04", "seen"),
@@ -278,6 +301,14 @@ class Part:
     def kind(self): return TYPE_NAMES.get(self.type, f"type{self.type}")
     @property
     def badge(self): return STATE_BADGE.get(self.state, "?")
+    @property
+    def is_weapon(self): return self.type in (7, 8)
+    def level(self):
+        """the game's highlight level: 0 red, 1 yellow, 2 green, 3 unmarked; None for specials"""
+        if self.type == 13 or not self.full: return None
+        return min(3, 3 * self.cond // self.full)
+    @property
+    def colour(self): return LEVEL_NAMES.get(self.level(), "none")
 
     def set_identity(self, name, typ, cls_id, dfl, full, wt):
         self.name = name
@@ -293,7 +324,8 @@ class Part:
 
     def info(self):
         return dict(name=self.name, type=self.type, cls=self.cls, dfl=self.dfl, full=self.full,
-                    wt=round(self.wt, 3), cond=self.cond, state=self.state, u22=self.u22, u48=self.u48)
+                    wt=round(self.wt, 3), cond=self.cond, state=self.state, u22=self.u22, u48=self.u48,
+                    level=self.level())
 
     def __repr__(self):
         return f"<Part {self.badge} {self.name!r} {self.kind} {self.dfl} {self.cond}/{self.full}>"
@@ -373,15 +405,60 @@ class Cmp:
         return False
 
     # ---- inventory views
+    def weapons_in_cap(self):
+        """the type-7/8 records with state != 4 the garage keeps, in file order (first WEAPON_CAP)"""
+        return [p for p in self.a if p.is_weapon and p.state != 4][:WEAPON_CAP]
+    def weapons_over_cap(self):
+        return [p for p in self.a if p.is_weapon and p.state != 4][WEAPON_CAP:]
+
     def mounted(self):
-        """one state-1 record per equipped name, matched by name (what the car sheet shows)"""
-        pool = [p for p in self.a if p.state == 1]
+        """one state-1 record per equipped label, matched by display name - what the garage
+        resolves (MOUNT-VALIDATION.md): a weapon only counts when it is within the 11-record cap"""
+        incap = set(id(p) for p in self.weapons_in_cap())
+        pool = [p for p in self.a if p.state == 1 and (not p.is_weapon or id(p) in incap)]
         out = {}
         for slot, nm in enumerate(self.equipped):
             if not nm or nm == "Empty": continue
             for p in pool:
                 if p.name == nm: out[slot] = p; pool.remove(p); break
         return out
+
+    def loadout_warnings(self):
+        """what the garage will do with this file that the bytes do not say: the same strings
+        the browser editor's loadoutWarnings() produces (tests compare them)"""
+        w = []
+        over = self.weapons_over_cap()
+        if over:
+            w.append(f"{WEAPON_CAP + len(over)} car/van/bench weapons: the garage keeps the first {WEAPON_CAP} in file order, "
+                     "the rest drop to Field Salvage: " + ", ".join(f"#{self.a.index(p)} ({p.badge}) {p.name}" for p in over))
+        got = self.mounted()
+        for slot, nm in enumerate(self.equipped):
+            if nm and nm != "Empty" and slot not in got:
+                w.append(f"{EQ_SLOTS[slot]} label '{nm}' has no mounted (state 1) record"
+                         + (" within the weapon cap" if 7 <= slot <= 10 else "") + ": the hardpoint reads EMPTY")
+        counts = {}
+        for p in self.a:
+            if p.state != 4:
+                t = 7 if p.is_weapon else p.type
+                counts[t] = counts.get(t, 0) + 1
+        for t, n in sorted(counts.items()):
+            if t in LIST_ALLOC and n > LIST_ALLOC[t]:
+                w.append(f"{n} car/van/bench {PLURAL[t]}: the garage list is allocated for {LIST_ALLOC[t]} (heap overflow)")
+        return w
+
+    def prepare_for_write(self):
+        """what write_cmp does beyond serialising: move mounted weapons to the front of section A
+        when one of them sits past the 11-record cap (file order decides what the garage keeps),
+        then rebuild the repair queue. Returns the list of actions taken; an untouched file gets none."""
+        actions = []
+        incap = set(id(p) for p in self.weapons_in_cap())
+        if any(p.is_weapon and p.state == 1 and id(p) not in incap for p in self.a):
+            first = [p for p in self.a if p.is_weapon and p.state == 1]
+            self.a = first + [p for p in self.a if not (p.is_weapon and p.state == 1)]
+            actions.append(f"moved {len(first)} mounted weapon records to the front of section A")
+        if self.sync_repair_queue():
+            actions.append(f"rebuilt the repair queue ({len(self.c)} references)")
+        return actions
 
     def sync_repair_queue(self):
         """Section C must list the state-3 records of section A (the reader resolves each
@@ -429,7 +506,8 @@ class Cmp:
         return dict(file=file, size=size, car=self.car, variant=self.variant, id=self.ident,
                     nA=len(self.a), nC=len(self.c), armor=self.armor, equipped=self.equipped,
                     vdf=self.vdf, vtf=self.vtf, wdf=self.wdf, registry=[list(r) for r in self.registry],
-                    a=[p.info() for p in self.a], c=[p.info() for p in self.c])
+                    a=[p.info() for p in self.a], c=[p.info() for p in self.c],
+                    warnings=self.loadout_warnings())
 
 # ---------------------------------------------------------------- savegame.dir
 class DirRec:
@@ -542,7 +620,7 @@ def write_file(path, data, backup=True):
     return len(data)
 
 def write_cmp(path, cmp, backup=True):
-    cmp.sync_repair_queue()
+    cmp.prepare_for_write()
     return write_file(path, cmp.to_bytes(), backup)
 
 def write_dir(path, sd, backup=True):
@@ -623,14 +701,15 @@ def show_save(cmp, warnings=True):
     eq = cmp.equipped
     print("  Equipped: " + ", ".join(f"{EQ_SLOTS[k]}={n}" for k, n in enumerate(eq) if n))
     print(f"  Inventory: {len(cmp.a)} records (section A) + {len(cmp.c)} repair-queue references (section C)")
-    print(f"  {'#':>3} {'':3} {'item':22} {'kind':10} {'class':6} {'def':13} {'full':>4} {'cond':>5} {'state':>5}")
-    print(f"  {'-'*3} {'-'*3} {'-'*22} {'-'*10} {'-'*6} {'-'*13} {'-'*4} {'-'*5} {'-'*5}")
+    print(f"  {'#':>3} {'':3} {'item':22} {'kind':10} {'class':6} {'def':13} {'full':>4} {'cond':>5} {'state':>5} colour")
+    print(f"  {'-'*3} {'-'*3} {'-'*22} {'-'*10} {'-'*6} {'-'*13} {'-'*4} {'-'*5} {'-'*5} ------")
     for k, p in enumerate(cmp.a):
-        print(f"  {k:>3} ({p.badge}) {p.name:22} {p.kind:10} {p.cls:6} {p.dfl:13} {p.full:>4} {p.cond:>5} {p.state:>5}")
+        print(f"  {k:>3} ({p.badge}) {p.name:22} {p.kind:10} {p.cls:6} {p.dfl:13} {p.full:>4} {p.cond:>5} {p.state:>5} {p.colour}")
     if cmp.c:
         print("  Repair queue (section C, bench order): " + ", ".join(f"{p.name} {p.cond}/{p.full}" for p in cmp.c))
     if warnings:
-        for w in cmp.check(): print(f"  WARNING: {w}")
+        for w in cmp.check(): print(f"  FORMAT WARNING: {w}")
+        for w in cmp.loadout_warnings(): print(f"  GARAGE WARNING: {w}")
 
 def ask(prompt, valid=None):
     while True:
@@ -706,8 +785,8 @@ def interactive(sdir):
             elif cmd.lower() == "w":
                 if cmp.to_bytes() == orig:
                     print("  no changes"); continue
-                if cmp.sync_repair_queue():
-                    print(f"  repair queue rebuilt: {len(cmp.c)} references")
+                for w in cmp.loadout_warnings(): print(f"  GARAGE WARNING: {w}")
+                for act in cmp.prepare_for_write(): print(f"  {act}")
                 n = write_cmp(fn, cmp)
                 orig = cmp.to_bytes()
                 print(f"  written: {fn} ({n} bytes, backups kept)")
@@ -761,9 +840,10 @@ def cmd_check(sdir):
         except FormatError as e:
             print(f"{os.path.basename(fn)}: FAIL {e}"); bad += 1; continue
         rt = c.to_bytes() == data
-        w = c.check()
+        w = c.check(); g = c.loadout_warnings()
         print(f"{os.path.basename(fn)}: {len(data)} B, nA {len(c.a)} nC {len(c.c)}, round-trip {'OK' if rt else 'FAIL'}"
-              + (f", {len(w)} warning(s): " + "; ".join(w) if w else ""))
+              + (f", {len(w)} format warning(s): " + "; ".join(w) if w else "")
+              + (f", {len(g)} garage warning(s): " + "; ".join(g) if g else ""))
         bad += not rt
     return bad
 

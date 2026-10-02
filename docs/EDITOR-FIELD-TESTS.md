@@ -31,20 +31,28 @@ daily-driver install.
 
 ## The checklist
 
-| # | probe (slot on today's lab set) | question | do | screenshot / report |
-|---|---|---|---|---|
-| 1 | **CAL COLOR** (save009) | condition -> highlight colour. The shell grades `cond/full` in thirds (`PartNode_DamageLevel`, x 1/3); which third is which colour, is 100 % unmarked? | load, ACCEPT SALVAGE, garage, Build & Repair Form, van pane | the seven turrets with their colours: 30cal 10 %, 50cal 25 %, 7.62 40 %, 20mm 55 %, 25mm 70 %, 30mm 85 %, Pyro 100 %. Reload once; note any colour that changed (= not stored state) |
-| 2 | **CAL V VS S** (save010) | state 2 = van pane, state 4 = Field Salvage pane? | garage: Build & Repair Form, then Field Salvage | **Howitzer** (state 2) must be in the van list only; **HADES Turret** (state 4) in Field Salvage only. Count the (C) rows: exactly the 14 equipped names? |
-| 3 | **CAL BENCH 15** (save011) | repair-bench cap (13? 14? none?) | garage, repair order | how many bench jobs are listed - 13, 14 or 15? Which are missing, if any. This is also the first in-game load of a `.cmp` whose section C the editor rebuilt |
-| 4 | **CAL SUSP 4** (save012) | does the van hold 4 suspensions (or 3)? | garage, van pane | Stock / Sway Bars / Coil Overs / EtherX Rally all listed? |
-| 5 | **CAL PAINT BLUE** (save013) | does the vtf field repaint the car? | LOAD board, garage, then DONE into the mission | car blue/white? LOAD text unchanged ("Stock (Orange)")? decals/textures OK in the mission? |
-| 6 | **CAL JAMMER** (save014) | is spc01 "Radar Jammer", and does it do anything? | garage Spcl. row + Mr. Damage panel; mission: press the Special 3 key | the name the game prints; any HUD text / effect; or "ejected to Empty" |
-| 7 | **CAL LABEL 7** (save015) / **CAL LABEL 7+1** (save016) | the LOAD board's default label vs the dir dword and state | LOAD board; load each | labels printed for the two blank-named rows (expected "SCENE 7." for state 8, "SCENE 8." for state 1); which mission starts |
+| # | probe (slot on today's lab set) | question | do | screenshot / report | result (sandbox, 2026-10-02) |
+|---|---|---|---|---|---|
+| 1 | **CAL COLOR** (save009) | condition -> highlight colour. The shell grades `cond/full` in thirds (`PartNode_DamageLevel`, x 1/3); which third is which colour, is 100 % unmarked? | load, ACCEPT SALVAGE, garage, Build & Repair Form, van pane | the seven turrets with their colours: 30cal 10 %, 50cal 25 %, 7.62 40 %, 20mm 55 %, 25mm 70 %, 30mm 85 %, Pyro 100 %. Reload once; note any colour that changed (= not stored state) | **CLOSED.** `level = floor(3 x cond / full)`: 0 red, 1 yellow, 2 green, 3 (100 %) unmarked; specials unmarked. Pixel-measured on Field Salvage and the weapon chooser: 100 % none; 95.5/85/70 % green; 55, 50, 40, 35.7, 33.7, 33.3 (= 1/3) % yellow; 31.3, 25, 24.7, 22, 19, 15, 10, 6, 5.5, 1 % red. Red (231,106,75), yellow ~(240,200,80), green (163,170,79). Locked into both editors. **Bonus finding:** the probe's 14 car/van weapons tripped the garage's 11-record WEAPONS cap - #48, #59 and #62 (the mounted Oil Slick) fell out of the list, the dropper row read Empty (SAVE-FORMAT-GAPS.md, "weapon list cap"). |
+| 2 | **CAL V VS S** (save010) | state 2 = van pane, state 4 = Field Salvage pane? | garage: Build & Repair Form, then Field Salvage | **Howitzer** (state 2) must be in the van list only; **HADES Turret** (state 4) in Field Salvage only. Count the (C) rows: exactly the 14 equipped names? | **CLOSED.** Howitzer (state 2) shown as (V) in the van list only; HADES Turret (state 4) in Field Salvage only. With 11 weapons all 11 showed, Oil Slick (C) included. Display order: (C) records ascending by file index, then the rest descending; Field Salvage by name group, condition descending. |
+| 3 | **CAL BENCH 15** (save011) | repair-bench cap (13? 14? none?) | garage, repair order | how many bench jobs are listed - 13, 14 or 15? Which are missing, if any. This is also the first in-game load of a `.cmp` whose section C the editor rebuilt | **CLOSED: no cap.** All 15 queued jobs listed in the form's scrolling REPAIR ORDER panel, in file order, and the editor-rebuilt section C loaded fine. (That first-generation save011 also queued a 5th engine, past the engine list's `List_New(4)` allocation; it did not crash this time, but `List_Insert` has no bounds check, so the script now keeps every probe inside the allocations.) |
+| 4 | **CAL SUSP 4** (save012) | does the van hold 4 suspensions (or 3)? | garage, van pane | Stock / Sway Bars / Coil Overs / EtherX Rally all listed? | **CLOSED: no cap of 3/4.** The van held all four distinct suspensions plus the base's extra Stock (>= 5 listed). |
+| 5 | **CAL PAINT BLUE** (save013) | does the vtf field repaint the car? | LOAD board, garage, then DONE into the mission | car blue/white? LOAD text unchanged ("Stock (Orange)")? decals/textures OK in the mission? | **CLOSED: yes.** The vtf swap repaints the car (hood blue in the mission). The LOAD board row prints "Scene 5. CAL PAINT BLUE" - the variant text is not on the board. |
+| 6 | **CAL JAMMER** (save014) | is spc01 "Radar Jammer", and does it do anything? | garage Spcl. row + Mr. Damage panel; mission: press the Special 3 key | the name the game prints; any HUD text / effect; or "ejected to Empty" | **Name CLOSED:** spc01 prints as "Radar Jammer" in the Special 3 row and the SPECIALS chooser. In-mission effect **untested**. |
+| 7 | **CAL LABEL 7** (save015) / **CAL LABEL 7+1** (save016) | the LOAD board's default label vs the dir dword and state | LOAD board; load each | labels printed for the two blank-named rows (expected "SCENE 7." for state 8, "SCENE 8." for state 1); which mission starts | **CLOSED:** scene 7 / state 8 prints "Scene 7.", scene 7 / state 1 prints "Scene 8." - label = scene + (state == 1), the same rule the editors use for "plays". Loading them to confirm the mission was not done (Leg B already loaded a state-8 scene-5 record into t05). |
+
+Captures and the full record: `C:\Users\james\i76-uncap-lab\autotest\saves\runs\garage-ui\RESULTS.md`. Also measured
+there: the inventory dialog's columns are height-limited (ENGINES 4 rows, WEAPONS 11, WHEELS 12); only the
+WEAPONS cap of 11 is a real list cap (verified by the overflow into Field Salvage).
 
 Settled without the game (2026-10-01/02, from the shell's code and 27 game-written files):
 ~~weight formula~~ (solved 2026-07-14: `2910 + mounted parts + 1 lb/armor point`, unaffected by the
 frame bug); the `savegame.dir` and `.cmp` layouts; state 1 = the mounted set; section C = the
 repair queue; the "truncated" records and the orphan `save-01.cmp` mechanism (SAVE.md section 4).
 
-Findings get locked into `i76-save-editor.py` (docstring + `STATE_LABEL`), `i76-save-editor.html`
-(`LOC_LABEL`, `condMarker`), `docs/SAVE-FORMAT-GAPS.md`, and this table gets a result column.
+Still open after this round: the Radar Jammer's in-mission effect; loading the CAL LABEL rows to watch
+which mission starts; the meaning of PartRec +0x42 / +0x68 and GarageRec +0x864.
+
+Findings are locked into `i76-save-editor.py` (docstring, `LEVEL_NAMES`, `WEAPON_CAP`, `LIST_ALLOC`,
+`loadout_warnings()`), `i76-save-editor.html` (`levelOf`, `loadoutWarnings`, `prepareForWrite`),
+`docs/SAVE-FORMAT-GAPS.md` and `docs/SAVE-EDITOR-STATUS-2026-10-02.md`.
