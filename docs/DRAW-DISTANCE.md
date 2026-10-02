@@ -1,6 +1,6 @@
 # Draw distance: cracked, patched, and proven in the sandbox
 
-> **2026-10-02: a third ceiling, and a crash.** Terrain edge records hold vertex indices as `int16`; wide views (F6 hood at 120 deg, B binoculars at 8x) push a frame past 32,767 terrain vertices between **2500 and 2750 m** and the game faults in `renderer_SplitTerrainEdge`. Keep the far clip at **2500 m or below**. The sandbox's file patch sat at 8000 m and crashed on F6/B every time; 1800 is safe. Details: [FARCLIP-CAMERA-CRASH.md](FARCLIP-CAMERA-CRASH.md). The proxy's `I76_FAR_CLIP` refuses values above 2500.
+> **2026-10-02: a third ceiling, and a crash.** Terrain edge records hold vertex indices as `int16`; wide views (F6 hood at 120 deg, B binoculars at 8x) push a frame past 32,767 terrain vertices between **2500 and 2750 m** and the game faults in `renderer_SplitTerrainEdge`. Keep the far clip at **2500 m or below**. The sandbox's file patch sat at 8000 m and crashed on F6/B every time; it was set to 1800 m on 2026-10-02, which is safe. Details: [FARCLIP-CAMERA-CRASH.md](FARCLIP-CAMERA-CRASH.md). The proxy's `I76_FAR_CLIP` refuses values above 2500.
 
 **SOLVED 2026-08-16 (unattended session).** The "landscapes pop in late" improvement is a
 one-global engine value with a fixed-size render pool as its crash ceiling — both found, both
