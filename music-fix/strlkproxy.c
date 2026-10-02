@@ -2972,6 +2972,22 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_crash_log();        /* always on: fault address + registers to the log */
+        /* WORKING DIRECTORY (always on; I76_CWD_FIX=0 disables). The exe resolves its data relative to the current
+         * directory: startup_IsMinimum 0x4b2220 looks for "miss8" there and, failing, treats the mission data as a CD
+         * container and WinMain raises "Please insert CD 2"; the next cwd-relative open then fails outright ("unable
+         * to find required files ... check your working directory"). Both reproduced 2026-10-02 by launching the
+         * pristine exe from C:\Windows. Launchers set the cwd; a bare double-click or Start-Process does not. The DLL
+         * knows the game folder (it lives there), so make the cwd right before the exe's entry point runs. */
+        {
+            char v[8], cwd[MAX_PATH]; DWORD k = GetEnvironmentVariableA("I76_CWD_FIX", v, sizeof(v));
+            if (!(k && k < sizeof(v) && v[0] == '0')) {
+                GetCurrentDirectoryA(sizeof(cwd), cwd);
+                if (lstrcmpiA(cwd, g_dir) != 0) {
+                    BOOL ok = SetCurrentDirectoryA(g_dir);
+                    mlog("  cwd-fix: current directory was \"%s\", %s \"%s\"", cwd, ok ? "now" : "FAILED to set", g_dir);
+                }
+            }
+        }
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
