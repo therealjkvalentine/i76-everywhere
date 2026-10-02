@@ -829,12 +829,17 @@ static void apply_hires_clock(void) {
  * Static reading only - NOT yet measured in game.
  */
 static float g_fixed_step;
+static int g_in_far;                                        /* inside physics_StepVehicleFar (I76_FAR_ENGINE_DT, below) */
+static int g_engine_dt_on;
 static float __cdecl engine_substep_dt(void) {
+    float sim_dt, rate; int count;
+    /* I76_FAR_ENGINE_DT: the far path applies the engine update once per frame, where the stock whole-frame dt is right */
+    if (g_in_far) return *(volatile float *)0x004fe428;    /* simclock_dt, what simclock_GetDt returns */
     /* I76_FIXED_STEP: stock at 20 fps hands the engine the whole frame's dt (~50 ms) on every substep; keep that */
     if (g_fixed_step > 0.0f) return 0.05f;
-    float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
-    float rate = 1.0f / 0.05f;                              /* stepper rate set by entity_InitVehicle */
-    int count = (int)(sim_dt * rate) + 1;                   /* truncation, as _ftol at 0x49cc2d */
+    sim_dt = *(volatile float *)0x004fe420;                 /* simclock_sim_dt */
+    rate = 1.0f / 0.05f;                                    /* stepper rate set by entity_InitVehicle */
+    count = (int)(sim_dt * rate) + 1;                       /* truncation, as _ftol at 0x49cc2d */
     if (count > 20) count = 20;
     return 2.0f * (sim_dt / (float)count);
 }
@@ -845,8 +850,37 @@ static void apply_engine_dt_fix(void) {
     LONG rel = (LONG)((DWORD_PTR)engine_substep_dt - (0x0046a333 + 5));
     if (GetEnvironmentVariableA("I76_ENGINE_DT_FIX", NULL, 0) == 0) return;
     memcpy(new_call + 1, &rel, 4);
-    mlog("  engine-dt-fix: %d/1 call site repointed (0x46a333 -> %p)",
-         patch_bytes(0x0046a333, old_call, new_call, 5, "engine update simclock_GetDt call"), (void *)engine_substep_dt);
+    g_engine_dt_on = patch_bytes(0x0046a333, old_call, new_call, 5, "engine update simclock_GetDt call");
+    mlog("  engine-dt-fix: %d/1 call site repointed (0x46a333 -> %p)", g_engine_dt_on, (void *)engine_substep_dt);
+}
+
+/* ===========================================================================
+ * FAR-VEHICLE ENGINE DT  (I76_FAR_ENGINE_DT=1, needs I76_ENGINE_DT_FIX; off by default)
+ * ===========================================================================
+ * Far vehicles (physics.md "Far vehicles"): beyond the camera far radius + 25 m, entity_TickVehicle 0x463800 takes
+ * one whole-frame kinematic step, physics_StepVehicleFar 0x43a3c0 (sole caller 0x46384e, `push edi; push esi`, result
+ * unused), which calls physics_UpdateEngine 0x46a320 once per frame (0x43a548). There the stock whole-frame dt read
+ * at 0x46a333 is already right (one application per frame), but I76_ENGINE_DT_FIX repoints that read at
+ * engine_substep_dt: 2 x dt (no fixed step: 2x the stock far-path convergence at any rate) or 0.05 on every frame
+ * (fixed step: 3x at 60 fps, 6x at 120). The far call is flagged and the engine gets the stock value inside it
+ * (docs/FRAMERATE-COVERAGE-2026-10-02.md P4 / U4). Static reading - NOT yet measured in game.
+ */
+static DWORD g_idbg_far_steps;                              /* copied into the debug block by the render wrapper */
+static void __cdecl far_step_wrap(DWORD obj, DWORD arg) {
+    g_in_far = 1;
+    ((void (__cdecl *)(DWORD, DWORD))0x0043a3c0)(obj, arg);
+    g_in_far = 0;
+    g_idbg_far_steps++;
+}
+static void apply_far_engine_dt(void) {
+    static const BYTE old_call[5] = { 0xE8, 0x6D, 0x6B, 0xFD, 0xFF };   /* call 0x43a3c0 (physics_StepVehicleFar) at 0x46384e */
+    BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
+    LONG rel = (LONG)((DWORD_PTR)far_step_wrap - (0x0046384e + 5));
+    if (GetEnvironmentVariableA("I76_FAR_ENGINE_DT", NULL, 0) == 0) return;
+    if (!g_engine_dt_on) { mlog("  far-engine-dt: needs I76_ENGINE_DT_FIX - not applied"); return; }
+    memcpy(new_call + 1, &rel, 4);
+    mlog("  far-engine-dt: %d/1 far vehicle step call repointed (0x46384e -> %p): stock whole-frame dt for the far engine update",
+         patch_bytes(0x0046384e, old_call, new_call, 5, "far vehicle step call"), (void *)far_step_wrap);
 }
 
 /* ===========================================================================
@@ -1264,6 +1298,108 @@ static void apply_framerate_fixes(void) {
 }
 
 /* ===========================================================================
+ * AI DODGE GATE + AVOIDANCE HORIZON  (I76_AI_FIXES=1; off by default)
+ * ===========================================================================
+ * Kept out of I76_FRAMERATE_FIXES on purpose so each can be A/B'd against the recommended set
+ * (docs/FRAMERATE-COVERAGE-2026-10-02.md P2 / P3, both unmeasured static readings).
+ *
+ * P2, AI dodge checks (ai_TestControlCandidate 0x41b270, i76-map subsystems/ai.md 7). Each avoidance candidate (14 call
+ * sites, several per car per frame) rolls rand() % 1000 against 850 + 150 x (1 - skill) (0x41b651-0x41b692: constants
+ * 0x4bc91c = 1, 0x4bca70 = -150, 0x4bca74 = 850) and, on a pass (p = 0.15 x skill per call), runs the incoming-projectile
+ * check ai_CheckIncomingProjectiles 0x41abf0 (sole caller 0x41b698: `push ebp; push ebx; push esi; push edi`, `add esp,
+ * 0x10`, result tested in eax). Rolled once per frame per candidate, so at 60 fps the AI looks for projectiles to dodge
+ * 3x as often per second as at stock 20 (6x at 120). Held to grid frames: between them the check reports "nothing
+ * incoming", as a frame that does not exist at 20 fps would. The roll itself still runs (rand() is consumed as before).
+ * I76_AI_DODGE_HOLD=0 keeps the counters but passes every call through (for measuring stock behaviour), as
+ * I76_AI_FIRE_CACHE=0 does for the fire gate.
+ *
+ * P3, AI avoidance horizon (ai.md 34-39). Each candidate control pair is tested by predicting ONE FRAME of motion
+ * (physics_PredictVehicleMotion 0x43a560 reads sim_dt at 0x43a562) and probing terrain (0x419930, no clock read) at the
+ * predicted pose, then sweeping cars (0x41a530) and static colliders (0x41a040) by a velocity rebuilt from that
+ * displacement x sim_rate x 50 x gear (0x41b58f / 0x41b5ab, 0x41b5b0-0x41b5f5) over their own sim_dt (0x41a54e,
+ * 0x41a047). The sweep lengths cancel; the horizon does not: 50 ms at 20 fps, 16.7 at 60, 8.3 at 120. All five reads
+ * get the 20 fps values (ai_dt20 / ai_rate20 above), so the AI looks 50 ms ahead at any rate and the prediction, the
+ * velocity derived from it and the probes' sweeps stay mutually consistent, as they are at stock 20 fps.
+ */
+static int g_dodge_hold = 1;
+static DWORD g_idbg_dodge_calls, g_idbg_dodge_yes;         /* copied into the debug block by the render wrapper */
+static int __cdecl ai_dodge_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
+    int r;
+    if (g_dodge_hold && !g_tick20) return 0;
+    r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD))0x0041abf0)(a, b, c, d);
+    g_idbg_dodge_calls++; if (r) g_idbg_dodge_yes++;
+    return r;
+}
+static void apply_ai_fixes(void) {
+    static const struct { DWORD site, target; void *wrap; const char *what; } cs[] = {
+        { 0x0041b698, 0x0041abf0, (void *)ai_dodge_wrap, "AI dodge check" },                 /* E8 53 F5 FF FF */
+        { 0x0043a562, 0x0049c7a0, (void *)ai_dt20,       "AI avoidance prediction dt" },     /* E8 39 22 06 00 */
+        { 0x0041b58f, 0x0049c7b0, (void *)ai_rate20,     "AI avoidance rate (cap test)" },   /* E8 1C 12 08 00 */
+        { 0x0041b5ab, 0x0049c7b0, (void *)ai_rate20,     "AI avoidance rate" },              /* E8 00 12 08 00 */
+        { 0x0041a54e, 0x0049c7a0, (void *)ai_dt20,       "AI car probe dt" },                /* E8 4D 22 08 00 */
+        { 0x0041a047, 0x0049c7a0, (void *)ai_dt20,       "AI collider probe dt" },           /* E8 54 27 08 00 */
+    };
+    int i, n = 0, first = 0;
+    if (GetEnvironmentVariableA("I76_AI_FIXES", NULL, 0) == 0) return;
+    if (!g_ratefix) { mlog("  ai-fixes: dodge hold needs I76_FRAMERATE_FIXES (the 20 Hz grid) - horizon pins only"); first = 1; }
+    for (i = first; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+    }
+    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_DODGE_HOLD", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_dodge_hold = 0; }
+    mlog("  ai-fixes: %d/6 sites repointed (dodge check %s, avoidance horizon pinned to 50 ms: prediction dt, rate x2, probe dt x2)",
+         n, first ? "skipped" : g_dodge_hold ? "held to the 20 Hz grid" : "counted, passed through");
+}
+
+/* ===========================================================================
+ * REAR MIRROR CADENCE  (I76_MIRROR_RATE=1, needs I76_FRAMERATE_FIXES; off by default)
+ * ===========================================================================
+ * Rear mirror (renderer_DrawRearMirror 0x445750, framerate.md row 7): redraws when frame_count >= next, next =
+ * frame + 2 (`call simclock_GetFrameCount` 0x4457b4; `cmp eax,[0x52bbc8]; jl skip; add eax,2; mov [0x52bbc8],eax`
+ * 0x4457b9-0x4457c8), i.e. every 2nd frame - 10/s at stock 20, 30/s at 60, 60/s at 120, and at mirror level 2 each
+ * redraw is a full scene (terrain, roads, flamers, objects, tracers, puffs, clouds, bucket flush, 0x445933-0x4459b4).
+ * On the 20 Hz grid count the same gate gives every 2nd grid tick = 10/s at any rate, as stock. The cloud scroll
+ * (sites 0x405461/0x405484, rescaled per call to dt x 20) is also advanced by the mirror's own 0x405200 call
+ * (0x4459a1, args cam 0x608c80, colour 0xef): stock is 20 main + 10 mirror steps/s = 30/s, and with the mirror at
+ * 10/s each mirror call must step the stock 1.0, not the rescaled dt x 20, to keep the measured 0.0300 /s (capture
+ * 014). The wrapper sets the stock step for the mirror call and restores the per-frame value after. The mirror pass's
+ * flamer update calls 0x4458fe / 0x445968 stay unwrapped on purpose (g_flame_dmg_ok is 0 there, nothing is applied).
+ * Kept out of I76_FRAMERATE_FIXES for A/B (docs/FRAMERATE-COVERAGE-2026-10-02.md P5 / U5). NOT yet measured in game.
+ */
+static DWORD g_idbg_mirror_draws;                           /* copied into the debug block by the render wrapper */
+static int __cdecl mirror_frame_count(void) {
+    int c = g_ratefix ? (int)g_tick20_n : *(volatile int *)0x005a7e1c;
+    if (c >= *(volatile int *)0x0052bbc8) g_idbg_mirror_draws++;    /* the gate that follows passes: a redraw */
+    return c;
+}
+static void __cdecl mirror_clouds_wrap(void *cam, DWORD colour) {
+    float u = g_cloud_u, v = g_cloud_v;
+    g_cloud_u = 1.0f; g_cloud_v = -1.0f;
+    ((void (__cdecl *)(void *, DWORD))0x00405200)(cam, colour);
+    g_cloud_u = u; g_cloud_v = v;
+}
+static void apply_mirror_rate(void) {
+    static const struct { DWORD site, target; void *wrap; const char *what; } cs[] = {
+        { 0x004457b4, 0x0049c7d0, (void *)mirror_frame_count, "rear mirror refresh gate" },   /* E8 17 70 05 00 */
+        { 0x004459a1, 0x00405200, (void *)mirror_clouds_wrap,  "rear mirror cloud step" },    /* E8 5A F8 FB FF */
+    };
+    int i, n = 0;
+    if (GetEnvironmentVariableA("I76_MIRROR_RATE", NULL, 0) == 0) return;
+    if (!g_ratefix) { mlog("  mirror-rate: needs I76_FRAMERATE_FIXES (the 20 Hz grid) - not applied"); return; }
+    for (i = 0; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+    }
+    mlog("  mirror-rate: %d/2 sites repointed (refresh gate on the 20 Hz grid count = 10 redraws/s, mirror cloud step at the stock 1.0)", n);
+}
+
+/* ===========================================================================
  * STOCK BUG: HEALTH PERCENT  (I76_FIX_HEALTH_PCT=1; off by default - changes stock play)
  * ===========================================================================
  * object_HealthFraction 0x40b450 returns a vehicle's health in percent: 28 + 72 x (worst armour/chassis side ratio)
@@ -1574,6 +1710,43 @@ static void apply_fixed_step(void) {
 }
 
 /* ===========================================================================
+ * COLLISION SWEEP WINDOW  (I76_COLL_WINDOW=1, needs I76_FIXED_STEP; off by default)
+ * ===========================================================================
+ * physics_CollideObjects 0x4349c0 runs once per frame from WinMain 0x403a12 (physics.md "Objects and vehicles"). Its
+ * sweeps cover [0, frame dt] from the current pose and the car consumes the contact on its next substep. With
+ * I76_FIXED_STEP the pose only moves on step frames, by one step (41.7 ms at 24/s), while the sweep still covers one
+ * frame: 16.7 ms at 60 fps, 8.3 at 120 - 40% / 20% of the step the contact is consumed by. Cover one whole step
+ * instead (or the frame, if it is longer: several steps per frame below the step rate), so the contact the step
+ * consumes is the one on the path the step will take. Stock (no fixed step) is unchanged. Far vehicles (0x43a3c0, one
+ * whole-frame step) are swept over the same window; they are > 849 m from the camera and take collision damage on the
+ * predicted contact (0x4643c0 applies it at once), so a far car may be damaged up to (step - dt) early.
+ * Three `call simclock_GetSimDt` (0x49c7a0) in the collision tree, a single chain of callers (0x4349c0 <- WinMain
+ * only; 0x434bb0 <- 0x434ae7 / 0x434b19 in 0x4349c0 only; 0x43f8c0 <- 0x43f656 in the pair test's scenery path and its
+ * own recursion 0x43fd5f). docs/FRAMERATE-COVERAGE-2026-10-02.md P1 / U1. Unmeasured: cactus-ab.ps1 at 60 and 120
+ * with the fixed step, before and after, n >= 10 approaches per rate.
+ */
+static float __cdecl coll_dt(void) {
+    float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
+    return (g_fixed_step > sim_dt) ? g_fixed_step : sim_dt;
+}
+static void apply_coll_window(void) {
+    static const struct { DWORD site; BYTE old[5]; const char *what; } s[3] = {
+        { 0x004349da, { 0xE8, 0xC1, 0x7D, 0x06, 0x00 }, "collision sweep dt (driver 0x4349c0)" },        /* -> [esp+0x10], the xz AABB sweep extent */
+        { 0x00434c70, { 0xE8, 0x2B, 0x7B, 0x06, 0x00 }, "collision sweep dt (pair test 0x434bb0)" },     /* pushed to the swept-sphere test 0x434f00 */
+        { 0x0043f9e1, { 0xE8, 0xBA, 0xCD, 0x05, 0x00 }, "collision sweep dt (scenery tree 0x43f8c0)" },  /* pushed to the node sweep */
+    };
+    int i, n = 0;
+    if (GetEnvironmentVariableA("I76_COLL_WINDOW", NULL, 0) == 0) return;
+    if (g_fixed_step <= 0.0f) { mlog("  coll-window: needs I76_FIXED_STEP - not applied"); return; }
+    for (i = 0; i < 3; i++) {
+        BYTE w[5] = { 0xE8 };
+        LONG rel = (LONG)((DWORD_PTR)coll_dt - (s[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(s[i].site, s[i].old, w, 5, s[i].what);
+    }
+    mlog("  coll-window: %d/3 sweep dt reads -> max(sim_dt, fixed step %.1f ms)", n, g_fixed_step * 1000.0f);
+}
+
+/* ===========================================================================
  * RENDER INTERPOLATION  (I76_RENDER_INTERP=1, needs I76_FIXED_STEP; off by default)
  * ===========================================================================
  * With a fixed 25 ms physics step at 60 fps, the cars advance on two frames out
@@ -1610,7 +1783,8 @@ static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 /* read by captures\014-framerate\fr_probe.py (address logged at start) */
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
                 struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; float roll_t, pitch_t, roll_d, pitch_d; } ring[16];
-                DWORD ping_req, ping_play, ping_frames, flame_hits, flame_dmg, aifire_calls, aifire_yes, tick20_n; } g_idbg;   /* every frame, for samplers that miss some */
+                DWORD ping_req, ping_play, ping_frames, flame_hits, flame_dmg, aifire_calls, aifire_yes, tick20_n;
+                DWORD dodge_calls, dodge_yes, mirror_draws, far_steps; } g_idbg;   /* every frame, for samplers that miss some; new fields append */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 static void v3norm(float *a) {
@@ -1855,6 +2029,8 @@ static void __cdecl render_wrap(void *cam) {
         g_idbg.ping_req = g_idbg_ping_req; g_idbg.ping_play = g_idbg_ping_play; g_idbg.ping_frames = g_idbg_ping_frames;
         g_idbg.flame_hits = g_idbg_flame_hits; g_idbg.flame_dmg = g_idbg_flame_dmg;
         g_idbg.aifire_calls = g_idbg_aifire_calls; g_idbg.aifire_yes = g_idbg_aifire_yes; g_idbg.tick20_n = g_tick20_n;
+        g_idbg.dodge_calls = g_idbg_dodge_calls; g_idbg.dodge_yes = g_idbg_dodge_yes;
+        g_idbg.mirror_draws = g_idbg_mirror_draws; g_idbg.far_steps = g_idbg_far_steps;
         g_idbg.frame = g_frame; g_idbg.nveh = n; g_idbg.cam_fixed = cam_fixed;
         g_idbg.cam_caller = g_cam_caller; g_idbg.cam_mode = *(DWORD *)0x004c2720;
         if (pl) {
@@ -2528,7 +2704,11 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_volume_test();      /* test knob: I76_VOLUME_TEST=<level>,<frame> */
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
+        apply_coll_window();      /* opt-in: I76_COLL_WINDOW=1 (after apply_fixed_step: needs g_fixed_step) */
+        apply_far_engine_dt();    /* opt-in: I76_FAR_ENGINE_DT=1 (after apply_engine_dt_fix: needs its site) */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
+        apply_ai_fixes();         /* opt-in: I76_AI_FIXES=1 (after apply_framerate_fixes: the dodge hold needs the 20 Hz grid) */
+        apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
         apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
