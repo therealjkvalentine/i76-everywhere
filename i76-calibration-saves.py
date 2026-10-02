@@ -160,11 +160,11 @@ def main():
     for slot, disp in (("save006", "COLOR CAL"), ("save007", "WEIGHT CAL")):
         if slot in have: continue
         off = 4 + 60*count
-        if len(d) < off + 60: d += b" " * (off + 60 - len(d))
-        d[off:off+60] = b" " * 60
+        if len(d) < off + 60: d += b"\0" * (off + 60 - len(d))
+        d[off:off+60] = b"\0" * 60
         struct.pack_into("<I", d, off, base_scene)
-        d[off+4:off+36] = disp.encode().ljust(32, b" ")
-        d[off+36:off+52] = slot.encode().ljust(16, b" ")
+        d[off+4:off+36] = disp.encode().ljust(32, b"\0")
+        d[off+36:off+52] = slot.encode().ljust(16, b"\0")
         struct.pack_into("<I", d, off+52, 1)
         # display name PRECEDES the entry: name(save_k) @ 0x08+60k = off-32
         d[off-32:off] = disp.encode().ljust(32, b"\0")
