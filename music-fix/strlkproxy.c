@@ -80,12 +80,22 @@ static auxVolFn  real_auxSetVolume;
 
 static DWORD g_volume = 1000;      /* MCI scale, 0..1000 */
 
-static void mlog(const char *fmt, ...) {
-    if (!g_logging) return;
+static void vmlog(const char *fmt, va_list ap) {
     char path[MAX_PATH]; _snprintf(path, sizeof(path), "%s\\mciproxy.log", g_dir);
     FILE *f = fopen(path, "a"); if (!f) return;
-    va_list ap; va_start(ap, fmt); vfprintf(f, fmt, ap); va_end(ap);
+    vfprintf(f, fmt, ap);
     fputc('\n', f); fclose(f);
+}
+static void mlog(const char *fmt, ...) {
+    va_list ap;
+    if (!g_logging) return;
+    va_start(ap, fmt); vmlog(fmt, ap); va_end(ap);
+}
+/* flog: written whether or not I76MUSIC_LOG is set. For rare, high-value events only (a CD prompt is one: it shows
+ * up on a handful of launches and the whole point of catching it is not to need the run again). */
+static void flog(const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt); vmlog(fmt, ap); va_end(ap);
 }
 
 /* resolve the real winmm entry points from the already-loaded system winmm */
@@ -2512,6 +2522,262 @@ static void apply_trainer(void) {
          (unsigned)sizeof(i76trn_ctl_t), g_frame_hook ? "ok" : "missing");
 }
 
+/* ===========================================================================
+ * THE "PLEASE INSERT CD 'Interstate '76 CD 2'" PROMPT: INSTRUMENT (always on; I76_CD_LOG=0 disables)
+ * and I76_CD_FAKE=1 (EXPERIMENTAL mitigation)
+ * ===========================================================================
+ * Backlog P1-09 / MENU-USABILITY-PLAN P8 / E6. The modal fired on 6 of ~21 lab launches (i76_pristine_fix.exe,
+ * sitting 1) with no known trigger. Static reading (i76-map status\tasks\m12-cd-prompt.md, re-read 2026-10-02 against
+ * i76_ref.exe md5 9a232dcc):
+ *
+ *   The prompt text lives in exactly two places, both calling the message-box helper 0x471580 (MessageBoxA, caption
+ *   "Interstate '76 Gold Edition", OK = retry, Cancel = exit(1)):
+ *     (a) cd_PromptLoop 0x470d90, reached ONLY through the slot 0x6562d0 at 0x4b2faa in vfs_FindContainerForFile
+ *         0x4b2e00: the file asked for lives only in a container of type 0 ("cdN" in i76.zix, or the miss8/miss16
+ *         container that vfs_LoadZix 0x4b23e0 appends as type 0 when startup_IsMinimum 0x4b2220 returns 1), and that
+ *         volume is not the current one (0x4fff18, init -1, set only when the drive in 0x58d92c carries a label equal
+ *         to a zix volume label). The lab zix is "0 \ I76_CD2" + "DIR: i76.zfs", and the mounted ISO is I76_CD1, so
+ *         0x4fff18 stays -1 on every run and (a) fires exactly when a file resolves to the miss8/miss16 container
+ *         with startup_IsMinimum == 1. Once up, OK rescans the CD-ROM drives for a label starting "I76_CD2": never
+ *         present here, so OK re-prompts for ever, as seen.
+ *     (b) shell_cb_17 0x470f90 (the CD-2 intro-movie callback): prompts only when its arg 0 is non-zero and no drive
+ *         carries I76_CD2. WinMain calls it with 1 at 0x402ce2 - ONLY when startup_IsMinimum returned 1 at 0x402ccd.
+ *         The shell DLL calls the slot itself before missions.
+ *   startup_IsMinimum: HKLM\SOFTWARE\Activision\Interstate '76 Gold Edition\Minimum ("0"/"1"); when absent,
+ *   FindFirstFileA("miss8") RELATIVE TO THE CURRENT DIRECTORY decides and is written back. A launcher that starts
+ *   the exe with the wrong working directory therefore gets Minimum = 1 -> WinMain prompts at startup through (b)
+ *   and the VFS later through (a). That matches the sitting-1 note (Start-Process runs prompted, Popen runs with
+ *   cwd set never). The AiO exe (lab i76.exe, the daily driver) has 0x4b2220 patched to `xor eax,eax; ret`, so
+ *   neither path can start from Minimum there; i76_pristine*.exe carry the stock function.
+ *
+ * WHAT THIS INSTALLS (every hook verifies the stock bytes first; a different exe is left alone):
+ *   H1  IAT hook on MessageBoxA (slot 0x4bc35c; the import descriptor says USER32.dll on stock builds and u32x.dll
+ *       on the AiO/lab build - both are tried). Cost: nothing until a box is shown. Logs caption, text, the CD
+ *       globals, the game state, the frame and a return-address chain (so (a) and (b) and plain fatal errors are
+ *       told apart: 0x470de9 = cd_PromptLoop, 0x471153 = shell_cb_17 whose arg 0 is read from its frame).
+ *   H2  call-site hook at 0x4b2faa (FF 15 D0 62 65 00 -> E8 rel32 90): logs the file name being looked up (frame of
+ *       vfs_FindContainerForFile), its file-table entry and container bitset, the wanted volume, the container
+ *       and volume tables, a live GetVolumeInformationA probe of every CD-ROM drive, then calls the original.
+ *       Cost: nothing until the prompt path runs.
+ *   H3  entry hook on startup_IsMinimum 0x4b2220 (stock prologue 81 EC 5C 01 00 00 -> E9 rel32 90): logs each call's
+ *       answer with the registry value, the cwd and the FindFirstFile("miss8") result (2..3 calls per launch; a
+ *       `1` is force-logged, a `0` only under I76MUSIC_LOG). Skipped, with a note, on the AiO exe.
+ *   H4  entry hook on shell_cb_17 0x470f90 (81 EC A4 00 00 00 -> E9 rel32 90): one line per call with arg 0 and the
+ *       MCI state (a few calls per session).
+ *
+ * I76_CD_FAKE=1 (EXPERIMENTAL, built untested): in H3, when the stock function answers 1 (Minimum) but
+ * <game dir>\miss8 exists as a directory, answer 0 instead. Exact effect: vfs_LoadZix marks miss8/miss16 as a local
+ * directory container (type 1), vfs_ResolveFilePath then builds "miss16\<file>" as on every healthy launch, and
+ * WinMain skips its shell_cb_17(1) call - i.e. the stock behaviour of a full install whose registry value reads "0".
+ * The stock function still runs first, so its own registry write happens as before. Risk: none new on a full
+ * install; on a genuinely minimal install (no miss8 directory) the answer is unchanged. It does nothing on the AiO
+ * exe (already 0) and nothing about the shell's own shell_cb_17 calls (plan option C would be the next step).
+ */
+static int    g_cd_fake;
+typedef int (WINAPI *mbox_fn)(HWND, LPCSTR, LPCSTR, UINT);
+static mbox_fn real_MessageBoxA;
+static DWORD  g_ismin_resume = 0x004b2226;                   /* after the displaced `sub esp, 0x15c` */
+static DWORD  g_cb17_resume  = 0x00470f96;                   /* after the displaced `sub esp, 0xa4` */
+static int    g_ismin_calls, g_cb17_calls, g_cd_boxes;
+
+static void sncat(char *buf, int size, int *n, const char *fmt, ...) {
+    va_list ap; int k;
+    if (*n >= size - 1) return;
+    va_start(ap, fmt); k = _vsnprintf(buf + *n, size - *n, fmt, ap); va_end(ap);
+    if (k < 0 || *n + k >= size) { *n = size - 1; buf[*n] = 0; } else *n += k;
+}
+
+static int cd_is_text(DWORD a) { return a >= 0x00401000 && a < 0x004bc000; }
+/* Does a call instruction end right before `a`? (the exe keeps no frame pointers, so the chain is a stack scan) */
+static int cd_call_before(DWORD a) {
+    const BYTE *p = (const BYTE *)(DWORD_PTR)a;
+    if (p[-5] == 0xE8) return 1;                                                        /* call rel32 */
+    if (p[-6] == 0xFF && (p[-5] == 0x15 || (p[-5] & 0xF8) == 0x90)) return 1;          /* call [disp32] / [reg+disp32] */
+    if (p[-3] == 0xFF && ((p[-2] & 0xF8) == 0x50 || p[-2] == 0x14)) return 1;          /* call [reg+disp8] / [sib] */
+    if (p[-4] == 0xFF && p[-3] == 0x54) return 1;                                       /* call [esp+disp8] */
+    if (p[-2] == 0xFF && ((p[-1] & 0xF8) == 0xD0 || (p[-1] & 0xF8) == 0x10)) return 1;  /* call reg / call [reg] */
+    if (p[-7] == 0xFF && (p[-6] == 0x14 || p[-6] == 0x94)) return 1;                    /* call [idx*4+disp32] */
+    return 0;
+}
+/* Return-address candidates above `from`, innermost first: dwords inside i76.exe .text that a call precedes.
+ * 0x471580 (the message-box helper) has a 0x404-byte frame, so the scan reaches 6 KB up the stack. */
+static void cd_chain(const DWORD *from, char *buf, int size) {
+    DWORD lo = __readfsdword(8), hi = __readfsdword(4);      /* NT_TIB StackLimit / StackBase */
+    const DWORD *p; int n = 0, hits = 0;
+    buf[0] = 0;
+    for (p = from; (DWORD)(DWORD_PTR)p >= lo && (DWORD)(DWORD_PTR)p + 4 <= hi && p - from < 1536 && hits < 12; p++) {
+        if (!cd_is_text(*p) || !cd_call_before(*p)) continue;
+        sncat(buf, size, &n, " %08lX", (unsigned long)*p);
+        if (*p == 0x00471153)                                /* inside shell_cb_17: sub esp,0xa4 + 4 pushes + push eax + this
+                                                                slot = 0xbc, so its arg 0 is 0xc0 above */
+            sncat(buf, size, &n, "[shell_cb_17 arg0=%ld]", (long)p[0xc0 / 4]);
+        hits++;
+    }
+}
+
+static void cd_log_state(const char *who) {
+    const BYTE *flags = (const BYTE *)0x00609520; char drives[32], cwd[MAX_PATH]; int i, n = 0, cnt;
+    for (i = 0; i < 26; i++) if (flags[i]) drives[n++] = (char)('A' + i);
+    drives[n] = 0;
+    cwd[0] = 0; GetCurrentDirectoryA(sizeof cwd, cwd);
+    flog("CD[%s]: cd2_drive 0x%02X cdrom_drives [%s] scan_idx %lu cur_cd_index %ld cd_path_flag %lu | mci open_err %lu dev %ld active %lu"
+         " | state %lu frame %lu cwd \"%s\"", who,
+         *(volatile BYTE *)0x0058d92c, drives, (unsigned long)*(volatile DWORD *)0x0058d930,
+         (long)*(volatile DWORD *)0x004fff18, (unsigned long)*(volatile DWORD *)0x00669ee4,
+         (unsigned long)*(volatile DWORD *)0x00524678, (long)*(volatile DWORD *)0x004ed890, (unsigned long)*(volatile DWORD *)0x00524674,
+         (unsigned long)*(volatile DWORD *)0x004c2164, (unsigned long)g_frame, cwd);
+    for (i = 0; i < 26; i++) {                               /* what every CD-ROM drive answers RIGHT NOW */
+        char root[4] = "A:\\", label[64]; DWORD fs = 0;
+        if (!flags[i]) continue;
+        root[0] = (char)('A' + i); label[0] = 0;
+        if (GetVolumeInformationA(root, label, sizeof label, NULL, NULL, &fs, NULL, 0))
+            flog("CD[%s]:   drive %c: label \"%s\" (type %lu)", who, root[0], label, (unsigned long)GetDriveTypeA(root));
+        else
+            flog("CD[%s]:   drive %c: GetVolumeInformationA FAILS err %lu (type %lu)", who, root[0], (unsigned long)GetLastError(), (unsigned long)GetDriveTypeA(root));
+    }
+    cnt = *(volatile int *)0x006562cc;                       /* zix volume table */
+    for (i = 0; i < cnt && i < 16; i++) {
+        const char *v = (const char *)0x006562e0 + i * 0x300;
+        flog("CD[%s]:   volume %d label \"%.32s\" text \"%.32s\" path \"%.64s\"", who, i, v, v + 0x100, v + 0x200);
+    }
+    cnt = *(volatile int *)0x006562c8;                       /* container table: name, +0x100 type (1 dir, 0 cdN), +0x104 volume, +0x108 handle */
+    for (i = 0; i < cnt && i < 16; i++) {
+        const BYTE *c = (const BYTE *)0x006592e0 + i * 0x10c;
+        flog("CD[%s]:   container %d \"%.64s\" type %lu volume %ld handle 0x%lX", who, i, (const char *)c,
+             (unsigned long)*(const DWORD *)(c + 0x100), (long)*(const DWORD *)(c + 0x104), (unsigned long)*(const DWORD *)(c + 0x108));
+    }
+}
+
+/* H1: every MessageBoxA the exe shows (CD prompts, fatal errors) with the state and the chain. */
+static int WINAPI hook_MessageBoxA(HWND w, LPCSTR text, LPCSTR cap, UINT type) {
+    DWORD *A = (DWORD *)_AddressOfReturnAddress(); char chain[400], t[300]; int i;
+    for (i = 0; text && text[i] && i < (int)sizeof t - 1; i++) t[i] = (text[i] == '\r' || text[i] == '\n') ? ' ' : text[i];
+    t[i] = 0;
+    g_cd_boxes++;
+    flog("MSGBOX #%d: caption \"%s\" text \"%s\" type 0x%X from 0x%08lX", g_cd_boxes, cap ? cap : "(null)", t, type, (unsigned long)A[0]);
+    cd_log_state("box");
+    cd_chain(A, chain, sizeof chain);
+    flog("MSGBOX: chain%s", chain);
+    return real_MessageBoxA ? real_MessageBoxA(w, text, cap, type) : IDOK;
+}
+
+/* H2: the VFS is about to ask for a CD. Frame of vfs_FindContainerForFile 0x4b2e00 above our return slot A:
+ * sub esp,0x38 + 4 pushes + 3 args = 0x58, so its own return address is A[0x58/4] and its arg 0 (the file name,
+ * a 16-byte key) is A[0x5c/4]. */
+typedef int (__cdecl *cd_prompt_fn)(int, const char *, const char *);
+static int __cdecl hook_cd_PromptLoop(int letter, const char *label, const char *text) {
+    DWORD *A = (DWORD *)_AddressOfReturnAddress();
+    const char *name = (const char *)(DWORD_PTR)A[0x5c / 4];
+    char chain[400]; int i, cnt;
+    if (IsBadReadPtr(name, 16)) name = "(unreadable)";
+    flog("CD PROMPT (vfs_FindContainerForFile returning to 0x%08lX): file \"%.16s\" wants volume %ld label \"%.32s\" text \"%.32s\" (empty -> default 'Interstate '76 CD 2') cd2_drive 0x%02X",
+         (unsigned long)A[0x58 / 4], name, (long)(((DWORD_PTR)label - 0x006562e0) / 0x300), label ? label : "", text ? text : "", (unsigned)(BYTE)letter);
+    cnt = *(volatile int *)0x005daccc;                       /* file table: 0x30 B records, 16 B name + 256-bit container set */
+    for (i = 0; i < cnt && i < 65536; i++) {
+        const BYTE *e = *(const BYTE **)0x005dacc8 + i * 0x30;
+        if (_strnicmp((const char *)e, name, 16) == 0) {
+            const DWORD *bits = (const DWORD *)(e + 0x10); char cl[200]; int m = 0, j;
+            for (j = 0; j < 256; j++) if (bits[j >> 5] & (1u << (j & 31))) sncat(cl, sizeof cl, &m, " %d", j);
+            flog("CD:   file entry %d \"%.16s\" in containers:%s", i, (const char *)e, cl);
+            break;
+        }
+    }
+    if (i >= cnt) flog("CD:   file \"%.16s\" is not in the file table (%d entries)", name, cnt);
+    cd_log_state("vfs");
+    cd_chain(A, chain, sizeof chain);
+    flog("CD:   chain%s", chain);
+    return ((cd_prompt_fn)(DWORD_PTR)*(volatile DWORD *)0x006562d0)(letter, label, text);
+}
+
+/* H3: startup_IsMinimum, with the inputs it is about to read. The stock body runs through a trampoline that
+ * re-executes the displaced prologue. */
+static __declspec(naked) void ismin_tramp(void) {
+    __asm {
+        sub esp, 0x15c
+        jmp dword ptr [g_ismin_resume]
+    }
+}
+typedef LONG (WINAPI *regopen_fn)(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
+typedef LONG (WINAPI *regquery_fn)(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+typedef LONG (WINAPI *regclose_fn)(HKEY);
+static int __cdecl hook_IsMinimum(void) {
+    char cwd[MAX_PATH], reg[32], dir[MAX_PATH]; HKEY k = NULL; DWORD sz = sizeof reg - 1, rc = 1, attr; int r, rel;
+    HMODULE adv = GetModuleHandleA("advapi32.dll");         /* the exe imports it, so it is loaded; resolved here to keep
+                                                               the link line as it was */
+    regopen_fn ropen = adv ? (regopen_fn)GetProcAddress(adv, "RegOpenKeyExA") : NULL;
+    regquery_fn rquery = adv ? (regquery_fn)GetProcAddress(adv, "RegQueryValueExA") : NULL;
+    regclose_fn rclose = adv ? (regclose_fn)GetProcAddress(adv, "RegCloseKey") : NULL;
+    WIN32_FIND_DATAA fd; HANDLE h;
+    lstrcpynA(reg, "(advapi32?)", sizeof reg);
+    if (ropen && rquery && rclose) {
+        rc = (DWORD)ropen(HKEY_LOCAL_MACHINE, "SOFTWARE\\Activision\\Interstate '76 Gold Edition", 0, KEY_READ, &k);
+        if (rc == 0) {
+            if (rquery(k, "Minimum", NULL, NULL, (BYTE *)reg, &sz) == 0) reg[sz < sizeof reg ? sz : sizeof reg - 1] = 0;
+            else lstrcpynA(reg, "(no value)", sizeof reg);
+            rclose(k);
+        } else _snprintf(reg, sizeof reg, "(key err %lu)", (unsigned long)rc);
+    }
+    cwd[0] = 0; GetCurrentDirectoryA(sizeof cwd, cwd);
+    h = FindFirstFileA("miss8", &fd); rel = h != INVALID_HANDLE_VALUE; if (rel) FindClose(h);
+    _snprintf(dir, sizeof dir, "%s\\miss8", g_dir); attr = GetFileAttributesA(dir);
+    r = ((int (__cdecl *)(void))ismin_tramp)();
+    g_ismin_calls++;
+    if (r) flog("CD: startup_IsMinimum #%d -> 1 (MINIMUM: miss8/miss16 become a CD container, WinMain prompts) | registry Minimum %s | cwd \"%s\" | FindFirstFile(miss8) %s | %s %s",
+                g_ismin_calls, reg, cwd, rel ? "found" : "NOT found", dir,
+                attr == INVALID_FILE_ATTRIBUTES ? "missing" : (attr & FILE_ATTRIBUTE_DIRECTORY) ? "is a directory" : "is a file");
+    else   mlog("  startup_IsMinimum #%d -> 0 | registry Minimum %s | cwd \"%s\" | FindFirstFile(miss8) %s", g_ismin_calls, reg, cwd, rel ? "found" : "NOT found");
+    if (r && g_cd_fake && attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        flog("CD FAKE: startup_IsMinimum answer 1 -> 0 (%s is a directory; EXPERIMENTAL I76_CD_FAKE)", dir);
+        r = 0;
+    }
+    return r;
+}
+
+/* H4: shell_cb_17 (the CD-2 movie callback) with its arg 0 - the only thing that lets it prompt - and the MCI state. */
+static __declspec(naked) void cb17_tramp(void) {
+    __asm {
+        sub esp, 0xa4
+        jmp dword ptr [g_cb17_resume]
+    }
+}
+static int __cdecl hook_shell_cb_17(int arg0) {
+    DWORD *A = (DWORD *)_AddressOfReturnAddress(); int r;
+    g_cb17_calls++;
+    mlog("  shell_cb_17 #%d (arg0 %d) from 0x%08lX: mci open_err %lu dev %ld active %lu cd2_drive 0x%02X | state %lu frame %lu",
+         g_cb17_calls, arg0, (unsigned long)A[0], (unsigned long)*(volatile DWORD *)0x00524678, (long)*(volatile DWORD *)0x004ed890,
+         (unsigned long)*(volatile DWORD *)0x00524674, *(volatile BYTE *)0x0058d92c, (unsigned long)*(volatile DWORD *)0x004c2164, (unsigned long)g_frame);
+    r = ((int (__cdecl *)(int))cb17_tramp)(arg0);
+    mlog("  shell_cb_17 #%d -> %d", g_cb17_calls, r);
+    return r;
+}
+
+static void apply_cd_instrument(HMODULE exe) {
+    static const BYTE pl_old[6] = { 0xFF, 0x15, 0xD0, 0x62, 0x65, 0x00 };   /* call [0x6562d0] at 0x4b2faa */
+    static const BYTE im_old[6] = { 0x81, 0xEC, 0x5C, 0x01, 0x00, 0x00 };   /* sub esp, 0x15c at 0x4b2220 (stock) */
+    static const BYTE im_aio[6] = { 0x31, 0xC0, 0xC3, 0x90, 0x90, 0x90 };   /* xor eax,eax; ret: the AiO no-CD patch */
+    static const BYTE cb_old[6] = { 0x81, 0xEC, 0xA4, 0x00, 0x00, 0x00 };   /* sub esp, 0xa4 at 0x470f90 */
+    BYTE pl_new[6] = { 0xE8, 0, 0, 0, 0, 0x90 }, im_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 }, cb_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
+    char v[8]; LONG rel; void *old; int n2, n3 = 0, n4; const char *mb = "USER32.dll", *im = "hooked";
+    if (GetEnvironmentVariableA("I76_CD_LOG", v, sizeof v) && v[0] == '0') { mlog("  cd-instrument: disabled (I76_CD_LOG=0)"); return; }
+    g_cd_fake = GetEnvironmentVariableA("I76_CD_FAKE", v, sizeof v) > 0 && v[0] == '1';
+    old = patch_iat(exe, mb, "MessageBoxA", hook_MessageBoxA);
+    if (!old) { mb = "u32x.dll"; old = patch_iat(exe, mb, "MessageBoxA", hook_MessageBoxA); }   /* AiO: USER32 through u32x */
+    real_MessageBoxA = (mbox_fn)old;
+    rel = (LONG)((DWORD_PTR)hook_cd_PromptLoop - (0x004b2faa + 5)); memcpy(pl_new + 1, &rel, 4);
+    n2 = patch_bytes(0x004b2faa, pl_old, pl_new, 6, "cd_PromptLoop call site");
+    if (memcmp((const void *)0x004b2220, im_aio, 6) == 0) im = "already 0 in this exe (AiO no-CD patch), not hooked";
+    else {
+        rel = (LONG)((DWORD_PTR)hook_IsMinimum - (0x004b2220 + 5)); memcpy(im_new + 1, &rel, 4);
+        n3 = patch_bytes(0x004b2220, im_old, im_new, 6, "startup_IsMinimum entry");
+        if (!n3) im = "NOT hooked";
+    }
+    rel = (LONG)((DWORD_PTR)hook_shell_cb_17 - (0x00470f90 + 5)); memcpy(cb_new + 1, &rel, 4);
+    n4 = patch_bytes(0x00470f90, cb_old, cb_new, 6, "shell_cb_17 entry");
+    mlog("  cd-instrument: MessageBoxA %s (%s, was %p), cd_PromptLoop call %s, startup_IsMinimum %s, shell_cb_17 %s%s",
+         old ? "hooked" : "NOT hooked", mb, old, n2 ? "hooked" : "NOT hooked", im, n4 ? "hooked" : "NOT hooked",
+         g_cd_fake ? " | I76_CD_FAKE=1: a Minimum answer becomes 0 when <game>\\miss8 is a directory (EXPERIMENTAL)" : "");
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -2556,6 +2822,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
              patch_iat(exe, "WINMM.dll", "auxGetDevCapsA", hook_auxGetDevCapsA),
              patch_iat(exe, "WINMM.dll", "auxSetVolume",   hook_auxSetVolume));
         }
+        apply_cd_instrument(exe); /* always on (I76_CD_LOG=0 disables): the "insert CD 2" prompt, logged with its cause;
+                                     I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */
     } else if (reason == DLL_PROCESS_DETACH) {
         stop_track();
         g_tel_on = 0;
