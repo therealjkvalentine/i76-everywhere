@@ -150,7 +150,8 @@ garage exit, before `ShellMain` returns.
 - `tools\tests\test-save-editor-dir.mjs` now reports 2 FAILs against the lab file: its `dirWithSlot`/`dirRemoveSlot`
   checks hard-code the six-record set (`4 + 60 * 7` after adding save006), and the lab has had seven records since
   Leg A. `dirSetScene` itself is correct (B2 relied on it). The test's expectations need the 7-record set, or a fixture
-  copy of the old file.
+  copy of the old file. *(Fixed later on 2026-10-01 in commits `88db720`, `c880e0a`, `58ec240`: the test now derives the
+  slot and sizes from the record count and passes on all four directories.)*
 
 ## 7. State of the lab folder after the run
 

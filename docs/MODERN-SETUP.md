@@ -8,25 +8,28 @@ Your build (verified 2026-06-08):
 
 ## The one bug that matters
 
-I'76's physics, AI, and scripted events are tied to frame rate (a fixed-timestep
-assumption from 1997). Above ~30 FPS the sim over-integrates and things break:
-- cars flip / launch off jumps (the **Mission 5 ramp** becomes impossible),
-- flamethrower won't fully extend, mortar range shrinks to suicide distance,
-- AI cars cap around 35 mph and twitch, scripted events fire early/late.
+*(rewritten 2026-10-02: the earlier text here taught the "above ~30 FPS the sim over-integrates" folklore as
+fact; it was measured false in the sandbox on 2026-09-27, i76-map `captures/014-framerate`, and confirmed in
+play on 2026-10-02.)*
 
-**Fix = cap the frame rate. Community consensus: 20 FPS (24–25 fine, 30 is the loose ceiling).**
-The reverse-engineering team, the GOG "de-facto" guide, and the AiO patch all use 20.
-This is a code-level bug — it exists regardless of which renderer you use.
+I'76's simulation is **dt-driven**, not fixed-step: physics runs in substeps of at most 50 ms derived from the
+measured frame time, gravity is dt-correct (g = 9.8 at 20 and at 60 fps), and the Mission 5 jump clears at 60 fps
+with the fixed physics step. What the stock game gets wrong above 20 fps is a long list of **per-frame effects**
+that carry no dt — sky drift, free-look and zoom keys, keyboard throttle ramp, lock tones, radar ping, AI
+throttle/steering gains and fire rate, flamers (effectively none at stock 60 fps), smoke, missile trails, HUD
+digit roll, engine smoothing, clock jitter — and the ground-contact model is tuned for the stock ~42 ms physics
+step, so **stock** 60 fps bleeds speed before a ramp and lands short. That is the kernel of the folklore.
 
-> **Note 2026-10-01 — "above ~30 FPS the sim over-integrates" was measured false in the sandbox** (i76-map
-> `captures/014-framerate`, 2026-09-27). The physics is dt-driven with substeps of at most 50 ms, not a fixed
-> timestep: gravity is dt-correct (g = 9.8 at 20 and at 60 fps) and jumps clear at 60 fps with the fixed physics
-> step (`I76_FIXED_STEP=24`; stock 60 fps does bleed speed before a ramp and lands short, which is the kernel of
-> the folklore). The things that really do scale with frame rate are per-frame effects — sky drift, free-look and
-> zoom keys, keyboard throttle ramp, lock tones, radar ping, AI throttle/steering gains and fire rate, flamers,
-> smoke, missile trails, HUD digit roll, engine smoothing, clock jitter — and each has an opt-in fix listed in
-> [music-fix/README.md](../music-fix/README.md)'s switch table. **That 60 fps set is sandbox-verified, not yet
-> console-verified by James**; the 20 FPS cap below remains the known-good default for play.
+**Two ways to play it right:**
+
+- **Cap the frame rate at 20.** The community consensus, the GOG "de-facto" guide and the AiO patch all use it;
+  it is known-good and it is how the playable install runs. (On the GOG 2019 exe the cap comes from the bundled
+  `I76PATCH.DLL`; dgVoodoo's `FPSLimit` is ignored on this build.)
+- **The proxy's opt-in switch set** — `I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`,
+  `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` ([music-fix/README.md](../music-fix/README.md) switch table, with
+  per-switch measured evidence) — fixes each per-frame effect and holds the stock step at 60 fps. Sandbox-measured
+  and **console-verified by the owner on 2026-10-02** (music, flamer, AI, jumps, body roll all good); **not deployed
+  to the playable install**, so the 20 fps cap remains the default for play.
 
 ## ⚠️ Do NOT use i76fix's pre-patched exe / patcher on THIS copy
 `immi101/i76fix` (the popular 25 FPS patcher) expects GOG `i76.exe` MD5

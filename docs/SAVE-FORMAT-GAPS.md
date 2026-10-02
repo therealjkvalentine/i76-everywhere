@@ -4,6 +4,18 @@
 Repair Form** + **Field Salvage** screenshots (user field run, 2026-07-14). Ground truth =
 the screenshots. Statements below are graded ✅ verified / 🔧 corrected / ❓ open.*
 
+> **Superseded in part (2026-10-01, header added 2026-10-02).** The byte-exact save and directory layout now lives
+> in [SAVES-STATE-AND-TEST-PLAN.md](SAVES-STATE-AND-TEST-PLAN.md) section 2.1 (from i76-map shell `SAVE.md`), measured
+> by the sandbox harness (`../i76-uncap-lab/autotest/saves/parse_saves.py`,
+> [SAVES-LEG-A-RUN-2026-10-01.md](SAVES-LEG-A-RUN-2026-10-01.md)). Four claims below are marked superseded in place:
+> the `.cmp` "truncates its final record" (a PartRec-first parser starting 0x20 bytes late); the `savegame.dir`
+> entry layout at `0x28+60k` (the header is 4 bytes; records are `{u32 scene, char[32] name, char[16] file,
+> u32 state, u32 0}` at `4+60k`); the dir "+16 (1 vs 8)" unknown (it is `+0x34`, the exe's game state when the
+> shell was entered: 1 = mission success, 8 = Reconfigure); and the orphan-save "allocator returned not-found,
+> provoked by editor entries" theory (`SaveMenu_Edit` resets the slot to -1 on every entry and a second pass
+> through the edit loop in one visit skips the slot assignment — editor entries are not the trigger). The
+> screen-vs-bytes reconciliation of the inventory records (armour, equipped names, repair order, caps) stands.
+
 ## ✅ Verified exactly (byte ↔ screen)
 
 | Piece | Evidence |
@@ -12,7 +24,7 @@ the screenshots. Statements below are graded ✅ verified / 🔧 corrected / ❓
 | **Equipped-by-name block @1024 (14×30)** | Every (C) row and every PARTS/WEAPONS/SPCL form line matches a slot name, incl. wheels ("14in Rally" ↔ `wauto_1b`) |
 | **Hardpoint slot map** (slot7=dropper `PP1_GDB1`, 8=#1 Top, 9=#2 Top, 10=#1 Rear) | Slot names ↔ form rows 1:1 (form lists Rear ABOVE Dropper — display order only) |
 | **Empty hardpoint = literal string `"Empty"`** | slot8 = `'Empty'` ↔ form "#1 Top: EMPTY" |
-| **Repair Order = the TRAILING section** after a count dword (`06`), records duplicated out of the main pool; **the game truncates the final record at EOF** (same quirk as savegame.dir) | Trailing section = 305ci V-8, 25mm, Gas Launcher, HE Mortar, 4-Wheel Disc, 4-Wheel Disc(truncated: name/type/cls/dur=150/wt=17.0 present, cond/loc cut) ↔ the form's six repair rows exactly |
+| **Repair Order = the TRAILING section** after a count dword (`06`), records duplicated out of the main pool; **the game truncates the final record at EOF** (same quirk as savegame.dir) *(superseded 2026-10-01: nothing is truncated — records are PartNode 0x20 then PartRec 0x54, and a PartRec-first parser starts 0x20 bytes late; 27 of 27 saves match `0x8c4 + 8 + 0x74*(nA+nC)`. The dir file is complete too.)* | Trailing section = 305ci V-8, 25mm, Gas Launcher, HE Mortar, 4-Wheel Disc, 4-Wheel Disc(truncated: name/type/cls/dur=150/wt=17.0 present, cond/loc cut) ↔ the form's six repair rows exactly |
 | **Mr. Damage registry = the game's damage panel**, and its 2nd/3rd dwords are the panel x,y coords | WHL FR (408,119), FL (270,119), BR (408,312), BL (270,312) — a 2×2 grid |
 | **Special 1/2/3 = REGISTRY order, not @1024 slot order** | Registry: X-Aust, Nitrous, Structo ↔ form Special 1/2/3 exactly; @1024 slots hold them in a different order. (Also matches field test: button 5 → key `7` fired nitrous = Special 2 ✓) |
 | **Hand weapon (.45 CAL)** is implicit — nowhere in the save | No record, no slot |
@@ -48,9 +60,18 @@ and scrolls. Same-axle wheels must match (fits the save's front/rear `wauto` pai
    non-fitting equipped names weigh less in-game than their stored loadout implies.
 4. **@1956 triple (2,3,1), dir +16 (1 vs 8), spc cond values, the corrupt-looking
    NitrousOxide record @9588** (its tail is shifted 4 bytes — likely the same write bug
-   family as the EOF truncation).
+   family as the EOF truncation). *(superseded 2026-10-01: the dir field is `+0x34` of the real frame = the exe's
+   game state on entering the shell, 1 mission success / 8 Reconfigure; the "corrupt" record and the "EOF
+   truncation" are the same 0x20-byte parser misframe, not a write bug. Still open: the @1956 triple and the
+   spc cond values.)*
 
 ## savegame.dir: entry fully decoded (2026-07-14, second field run)
+
+**(superseded 2026-10-01, corrected here 2026-10-02)** The real frame is `u32 count` then 60-byte records at
+`4+60k`: `u32 scene | char[32] name | char[16] file | u32 state (+0x34: 1 mission success / 8 Reconfigure) | u32 0`,
+exactly `4 + 60*count` bytes in every game-written file. The `0x28+60k` reading below was a 36-byte misframe that
+read each record's scene from the record after it (and made the LOAD board's "SCENE N" look off by one: the shell
+prints scene+1 for state-1 records). Historical text follows.
 
 60-byte entries @0x28+60k: `file[16] | u32 (+16: 1 or 8, unknown) | u32 | u32 scene (+24) |
 char[32] DISPLAY NAME (+28)`. The name is the LOAD board's line text (found live:
@@ -65,6 +86,13 @@ Likely provoked by dir entries the editor added without the fields the allocator
 (now written in full, including names). Repair: rename the orphan file to match its entry,
 complete the truncated entry, move `save-01.cmp` out of the game's glob.
 
+*(superseded 2026-10-01: the cause is in the shell, not in editor-written entries — `SaveMenu_Edit` 0x100147a0 sets
+the slot variable to -1 on every entry, and a second pass through the edit loop in one visit (a click on the name
+field after leaving it, or NO on the overwrite prompt) finds the record already appended and skips the slot
+assignment, so the save runs with slot -1; `dir_Load` 0x10033020 then drops any record whose `.cmp` does not open,
+which is why the bookmark vanishes. 10-byte fix F2 built, live test not run. SAVES-STATE-AND-TEST-PLAN.md section 1,
+MENU-USABILITY-PLAN.md P5.)*
+
 The editor now reads/writes the name field everywhere (pad labels, a Name box on the diner
 check, restore recovers names from dir history), and the calibration saves land as slots
 006 "COLOR CAL" / 007 "WEIGHT CAL" (save005 = the user's recovered in-game save).
@@ -76,7 +104,8 @@ names at entry+28 made every board row wear the *previous* entry's name, which l
 a missing final row (and made "COLOR CAL" load save007's bytes — confirmed by the 101.0
 front-armor fingerprint). All writers corrected; the launcher-stub boot padding stays as
 harmless insurance against the game's own truncating writes (a truncated final entry loses
-its scene dword on disk either way — the editor completes those on save).
+its scene dword on disk either way — the editor completes those on save). *(superseded 2026-10-01: the game
+does not truncate the directory; the padding is harmless but unnecessary.)*
 
 **Load-time mount validation:** loading a save whose equipped names don't fit the chassis
 (e.g. turret-class guns on the Piranha) makes the game silently UNMOUNT them to Empty —

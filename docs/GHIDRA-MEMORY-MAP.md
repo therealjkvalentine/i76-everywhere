@@ -37,7 +37,7 @@ entirely in REVERSING.md.
 - Full struct layouts with byte offsets (ZFS entries, VFS sources, cache nodes,
   PakEntry, OEG mesh format, .fnt format).
 - Hash constants, heap-sizing logic, call graphs, a 32-entry ShellMain callback
-  table at stack `&local_80`.
+  table at stack `&local_80` *(Gold fills **27** slots at 0x4022e0 — corrected 2026-10-02, i76-map finding L104)*.
 
 **⚠ CRITICAL CAVEAT — wrong binary for direct address reuse.** The decompile
 targets the **Nitro Pack** executable (GOG Nitro release, Win32 MSVC), *not* our
@@ -125,18 +125,19 @@ What IS there (all Nitro addresses):
 | Item | Symbol | Confidence |
 |---|---|---|
 | Entity allocator | `FUN_004b3e20` ("object_alloc") | DIRECT (proposed name) |
-| Entity spawn/world-insert | `FUN_00453d50` ("entity_spawn"; fatal `"cannot create entity"`) | DIRECT (string-anchored) |
+| Entity spawn/world-insert | `FUN_00453d50` ("entity_spawn"; fatal `"cannot create entity"`) | DIRECT (string-anchored) — *in Gold the signature match is 0x4572b0, but both `cannot create entity` literals are referenced from 0x451180/0x4513c0 and 0x4b7ac0/0x4b8f70, so 0x4572b0 has no string anchor and stays proposed on the signature alone (corrected 2026-10-02, finding L102)* |
 | Entity link/register | `FUN_004540b0` ("entity_register") | DIRECT-GUESS |
 | Per-object type code | OBJ record `+0x64` switch in `FUN_004b3660` | DIRECT |
 | Object struct fields | `+0x5c` mesh ptr; `+0x84..+0xab` transform-ish blocks | DIRECT / DIRECT-GUESS |
-| Object→model registry | `g_objmodel_registry` @ `0x00529bf0`, 2029 buckets keyed by object ptr, hash `(ptr*0x6cd+0xaab)%0x7ed` | DIRECT |
+| Object→model registry | `g_objmodel_registry` @ `0x00529bf0`, 2029 buckets keyed by object ptr, hash `(ptr*0x6cd+0xaab)%0x7ed` | DIRECT — *corrected 2026-10-02 (finding L103): the 2029-bucket hash is the **mesh cache** (`12*k+0xaab`, modulus 0x7ed), not an object store, and the 0x6cd multiplier occurs at neither build's cache* |
 | Model record damage-state hook | 0x3c record: `+0x08` variant idx / `+0x0c` slot idx select a 16-byte mesh name from a 7-slot × N-node grid — the repo reads this as "LOD / **damage state** / part swap" | DIRECT (mechanism), DIRECT-GUESS (damage-state meaning) |
 
 **Static pointer chain: not derivable from this source.** No global holding
 "player entity" is identified. INFERRED leads for our own Gold RE:
 - `g_objmodel_registry`-equivalent in Gold is easy to find (2029-bucket table,
   hash constants 0x6cd/0xaab/0x7ed are distinctive immediates — search for
-  `imul reg, 0x6cd`), and every live object passes through it. But it's keyed
+  `imul reg, 0x6cd`), and every live object passes through it. *(L103: in Gold
+  that table is the mesh cache and carries no 0x6cd — corrected 2026-10-02.)* But it's keyed
   by pointer, so it doesn't give "the player" directly.
 - Better: our save editor proves the `.cmp` writer dumps **live component
   records** — the 116-byte inventory record carries *saved runtime pointers*

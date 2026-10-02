@@ -31,27 +31,26 @@ The community-standard guide is [CahootsMalone's I76+dgVoodoo walkthrough](https
    "texture panics"/corruption ([VOGONS t=70951](https://www.vogons.org/viewtopic.php?t=70951)).
 3. **Glide gamma ramp: ON** (this is the bright 3dfx look), **force true PCI access: ON**,
    **vSync: ON**.
-4. **FPSLimit = 20** in dgVoodoo.conf — and here **dgVoodoo's limiter is the one that matters**,
-   not just belt-and-braces. The exe's AiO limiter overshoots slightly (measured **~20.66** on the
-   Mac software path), and **the Mission 5 canyon jump falls just short at anything over exactly 20**
-   — jump distance is inversely tied to framerate ([Local Ditch: FPS jumping](https://www.localditch.com/posts/fps-jumping/)).
-   dgVoodoo `FPSLimit = 20` caps the Glide buffer-swap precisely at 20, so the physics loop runs at a
-   true 20 and the jump works. **Do not raise it.** Above ~30fps: jump physics, flamethrower, mortar
-   range and AI driving all break ([Local Ditch FAQ](https://www.localditch.com/interstate-76/faq.html)).
-   *(Nitrous helps on the ramp — bind `nitrous_on`/`nitrous_off` in `input.map`; this build ships
-   them unbound.)*
-
-   > **Note 2026-10-01 — the "do not raise it" rule above was measured false in the sandbox** (i76-map
-   > `captures/014-framerate`, 2026-09-27). The sim is dt-driven, not fixed-step: gravity is dt-correct (g = 9.8 in
-   > the drop test at stock 20 and at 60 fps with the switches; the uncap-lab fall test read −9.89 vs −9.74 m/s²),
-   > and the Mission 5 canyon jump was cleared at 60 fps (uncap-lab `docs/framerate/README.md`). What *is* true:
-   > stock 60 fps steps the physics 60×/s and bleeds speed before a ramp, so jumps land short — the kernel of the
-   > folklore; with `I76_FIXED_STEP=24` the jump height was judged "good, almost like 20 Hz" in play. The other
-   > per-frame effects that really do scale with frame rate (sky drift, free-look/zoom keys, keyboard throttle ramp,
-   > lock tones, radar ping, AI throttle/steering/fire rate, flamers, smoke, missile trails, HUD digit roll, engine
-   > smoothing, clock jitter) and the switch that fixes each are in
-   > [music-fix/README.md](../music-fix/README.md)'s switch table. **The 60 fps switch set is sandbox-verified; it
-   > has not yet been console-verified by James, and nothing is deployed to the playable install.**
+4. **Frame rate: stock 20 fps is the known-good cap, and on the GOG 2019 exe it comes from the bundled
+   AiO patch (`I76PATCH.DLL`), not from dgVoodoo.** *(rewritten 2026-10-02: this point used to say dgVoodoo's
+   `FPSLimit = 20` "is the one that matters", that jump distance is inversely tied to frame rate, and "do not
+   raise it"; all three were measured false.)* dgVoodoo's `FPSLimit` is **ignored** on this build in both
+   directions (uncap-lab `docs/framerate/README.md` matrix, n = 9 cells; the daily driver's `19.2` does nothing),
+   and the AiO limiter overshoots slightly (~**20.66** measured on the Mac software path). The sim is
+   dt-driven — gravity is dt-correct (g = 9.8 at 20 and at 60 fps; the uncap-lab fall test read −9.89 vs
+   −9.74 m/s²) and the Mission 5 canyon jump was cleared at 60 fps — but the ground-contact model is tuned for
+   the stock ~42 ms physics step, so **stock** 60 fps bleeds speed before a ramp and lands short, and a long
+   list of per-frame effects (sky drift, free-look/zoom keys, keyboard throttle ramp, lock tones, radar ping, AI
+   throttle/steering/fire rate, flamers, smoke, missile trails, HUD digit roll, engine smoothing, clock jitter)
+   run 3x fast. That is why the community's 20 fps advice works
+   ([Local Ditch: FPS jumping](https://www.localditch.com/posts/fps-jumping/),
+   [FAQ](https://www.localditch.com/interstate-76/faq.html)). To play above 20 fps use the proxy's switch set —
+   `I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`, plus
+   `I76_FPS_CAP=n` for a precise cap ([music-fix/README.md](../music-fix/README.md) switch table): sandbox-measured,
+   **console-verified by the owner on 2026-10-02** (the Mission 5 jump cleared at 60 fps with no nitrous), and
+   **not deployed to the playable install**.
+   *(Nitrous helps on the ramp — it is a mounted special fired from the `special1/2/3` slots, not a bindable
+   `nitrous_on` action; see [VERIFIED-FIXES.md](VERIFIED-FIXES.md).)*
 5. **Resolution: force any 4:3 value** — dgVoodoo accepts dynamic specifiers (`2x`, `3x`, `Max`,
    `Max ISF`) and custom strings like `2560x1920, 60`
    ([dgVoodoo ReadmeGeneral](https://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/)). Start at `2x`,

@@ -62,6 +62,15 @@ flag — I'76 has two distinct fire actions (`weapon_fire` and `hardpoint1_fire`
 which has caused trouble in this repo before when a binding landed on the wrong
 one. Which of the two is which is **not** established.
 
+**Correction 2026-10-02 (i76-map finding L031, table primacy):** the exe's own input
+table at `0x4f2860` names row 7 `weapon_fire` with state byte **`0x5367db`** (read by
+`mov al,[0x5367db]` at 0x4a5945), row 1 `throttle_up` = **`0x5367d0`** (byte at
+0x44f249), and `hardpoint1_fire` = `0x5367de` (0x4a2dc8). The 2026-08-04 live diff
+above toggled the throttle-up byte — consistent with a stimulus that pressed a
+throttle key, not fire — so `0x5367db` was never a transcription slip. The
+2026-08-04 "correction" is withdrawn. `tools/ffb/Telemetry.ps1` (`TEL_FIRE_ADDR`) and
+the lab's `memlib.ps1` still carry `0x5367d0` (backlog P3-24).
+
 **SUPERSEDED for weapon detection.** These input bytes were used to drive the FFB
 weapon channel and produced no response across two field sessions — a button
 moving is not the same thing as a weapon firing. Use the engine's own effect table

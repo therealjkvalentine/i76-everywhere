@@ -225,6 +225,12 @@ connects weapons/components/armor to a permanent root; the entity side is done.
 
 ## 9. Component/weapon offset CORRECTION — indexed 0x144-stride sub-structs
 
+> **(corrected 2026-10-02, i76-map finding L049)** The finder is `0x4b6850` (shell callback slot `shell_cb_03`);
+> `0x4b6860` below is **mid-instruction** — `sub esp,0x150` at 0x4b6850 puts no boundary there — and the record
+> it walks is the shell's **0x8c4-byte vehicle-definition record**, not a 0x144-stride sub-struct. The `N*0x144`
+> arithmetic below came from a misaligned decode. The 0x90 component record this file's header mentions is a
+> different structure (`components[24]`, health at +0x70; i76-map `types/i76_runtime.h`).
+
 Re-read the component-finder prologue (0x4b6860): the offsets I quoted as
 `car+0x3c`/`+0x40`/`+0xa718` are NOT relative to the object base. The function
 computes `ebp = N * 0x144` (324 bytes/entry: `N*5<<4 + N, <<2`) and addresses

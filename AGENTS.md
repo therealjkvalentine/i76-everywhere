@@ -194,26 +194,25 @@ Traps that produce **wrong data rather than errors** (full list in the README):
 - The game prefix lives inside the Mac wrappers under
   `~/Applications/Sikarugir/…/Contents/SharedSupport/prefix/…`. All live game
   files (input.map, savegame.dir, saves) are THERE, not in this repo.
-- `savegame.dir` truncates its newest entry on every game save (engine bug).
-  Never "fix" the file size DOWN - it is always too short, never too long. Save
-  prune/delete work only with the game closed.
+- `savegame.dir` is `u32 count` followed by fixed **60-byte** records: exactly
+  `4 + 60 * count` bytes in every game-written file (15 of 15 checked). Record k sits
+  at `4 + 60k` and reads `{u32 scene, char[32] name, char[16] file, u32 state, u32 0}`;
+  `state` is the exe's game state when the shell was entered (1 = mission success,
+  8 = Reconfigure), and the LOAD board prints scene+1 for state-1 records. Save
+  prune/delete work only with the game closed. Byte-exact parser:
+  `../i76-uncap-lab/autotest/saves/parse_saves.py`; the run records are
+  docs/SAVES-LEG-A-RUN-2026-10-01.md and docs/VERIFIED-FIXES.md ("Saves").
 
-  **Layout, measured 2026-09-05:** a `0x28` header whose first dword is the record
-  count, then fixed **60-byte** records - name at `+0`, scene number at `+0x18`.
-  So a well-formed file is `0x28 + count * 60` bytes. Each save leaves it 36 short,
-  which cuts the tail off the record just written: the `.cmp` lands on disk fine
-  and the bookmark is then **invisible in the load list**.
-
-  **The re-pad now runs on Windows too.** This entry used to say "the launcher
-  stubs re-pad at boot and mid-session" - that is the **Mac** stubs. Nothing did
-  it on Windows, so every Windows save silently lost its index entry, and a real
-  save (`save004.cmp`, 8,980 bytes) went missing in the field before anyone
-  noticed. `PLAY-i76.ps1` now pads at boot, keeping a `.trunc-<timestamp>` copy.
-
-  The scene number in the truncated record is **not recoverable** - it is not in
-  the `.cmp` (checked: no offset holds it across all five saves) or anywhere else.
-  Padding restores the entry with scene 0; re-save the bookmark over itself to set
-  it. A doc that says a guard exists is not a guard.
+  **(corrected 2026-10-02)** This entry used to assert a `0x28` header with the name
+  at `+0` and the scene at `+0x18`, that the engine leaves the file "36 bytes short"
+  on every save, and that a launcher re-pad at boot is required. All of that was our
+  own parser misframing the layout: a 40-byte header made each record's scene read
+  from the record after it, and every "short" file was one our tools had re-padded
+  (docs/MENU-USABILITY-PLAN.md P7, docs/SAVES-STATE-AND-TEST-PLAN.md section 1). The
+  engine writes the file complete and no scene dword is lost. The re-pad in
+  `PLAY-i76.ps1` is harmless (the reader stops after `count`, so trailing bytes are
+  ignored) but unnecessary; `LAUNCHER.ps1:116` still checks `0x28 + 60n` and is wrong
+  (backlog P3-04). A doc that says a guard exists is not a guard.
 - Parallel Claude sessions run on this repo: re-check git state before staging
   and stage only your own hunks.
 
