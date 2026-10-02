@@ -439,3 +439,12 @@ all conditions. Report: lab `captures\rate-ab\mirror\REPORT.md`.
 "gauntlet aborted: control or steer calibration" - `cactus-gauntlet.ps1`'s control acquisition does not work on the
 direct-boot a01 the driver uses (it was written for the menu route into TRAINING). The switch applies (3/3 sites)
 and the game ran; the measurement needs the gauntlet ported to the direct boot before P1 can be accepted.
+
+**Airborne rotation (P2-04 re-measure), measure `airborne`, t06 ramp A, n = 2:** stock 20 fps gain 1.20 (sd 0.06),
+stock 60 fps gain 0.39 (sd 0.10) - the stock-60 under-rotation the lab measured in August reproduces with the new
+driver. Every fixed-set run (fixed 60, fixed 60 + `I76_COLL_WINDOW`, fixed 120) was excluded with
+"no-airborne-segments": the detector (eye angles + angular velocity, `airborne-test.ps1`) found no free-flight
+samples under the fixed step with interpolation, so either the placement or the airborne detection needs porting
+to the interpolated pose (telemetry flag 0x4 "airborne" is the robust source). The fixed-step verdict on mid-air
+rotation is therefore still open here; the owner's playtest (Mission 5 jump and the out-of-gas mission jumps
+felt right) is the current evidence.
