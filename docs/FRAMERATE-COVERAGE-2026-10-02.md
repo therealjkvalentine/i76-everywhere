@@ -412,3 +412,18 @@ the default here, as for every other site.
 - Four record corrections (section 4): three of FPS-120.md's "unfixed camera keys" are fixed; the mode-2 head-look
   step does not exist in the binary; the renderer cache is wall-time bound; renderer.md's "not yet fixed" is stale.
   The MW2 "tick delta / 4" item is confirmed as not an I'76 site.
+
+## Acceptance results (2026-10-02, sandbox, `i76-uncap-lab\tools\framerate\rate-ab.ps1`)
+
+**P2 AI dodge gate (`I76_AI_FIXES`), measure `dodge`, t01, 20 s windows, n = 2 per condition, A/A first:**
+
+| condition | fps | dodge checks / s | sd | vs A/A |
+|---|---|---|---|---|
+| fixed set, capped 20 (A/A control) | 20.0 | 2.87 | 0.10 | noise floor |
+| fixed set, 60, hold off (`I76_AI_DODGE_HOLD=0`) | 59.9 | 8.90 | 0.36 | +6.0 (3.1x) |
+| fixed set, 60, **hold on** | 60.0 | 3.17 | 0.40 | +0.30 (within the run spread) |
+| fixed set, 120, hold off | 120.0 | 17.19 | 1.43 | +14.3 (6x) |
+
+The gate rolls 3x / 6x more often at 60 / 120 fps than at 20, and the 20 Hz hold brings it back to the stock
+rate. (`dodge_yes` was 0 in every window: no projectiles reached the AI in a 20 s drive; the call rate is the
+quantity the patch controls.) Report: lab `captures\rate-ab\dodge\REPORT.md`.
