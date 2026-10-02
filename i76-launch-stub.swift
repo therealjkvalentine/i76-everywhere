@@ -130,16 +130,17 @@ func reap(_ A: String) {
     try? w.run(); w.waitUntilExit()
 }
 
-// Heal savegame.dir before the game reads it: the game's LOAD board DROPS the
-// final dir entry when the file ends exactly at it (its reader over-reads; its
-// own writer truncates the newest entry - the engine's lifelong lost-bookmark
-// bug, field-diagnosed 2026-07-14). Pad with 56 zero bytes of slack past the
-// last entry on every boot; the game's next write re-truncates, we re-pad.
+// savegame.dir slack (CORRECTED 2026-10-01). A directory is exactly 4 + 60 x count bytes: u32 count, then
+// 60-byte records {u32 scene, name[32], file[16], u32 state, u32 0}. The 2026-07 belief that the game writes
+// it 36 bytes short came from the editor's misframed model (0x28 header, scene at +0x18), which read each
+// record's scene from the next record. Whether the LOAD board drops a final entry on an exactly-sized file
+// was never re-checked under the right frame, so the harmless 56-byte zero slack is kept; it is now measured
+// from the real record end instead of 36 bytes past it.
 func padSaveDir(_ A: String) {
     let p = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/savegame.dir"
     guard var d = FileManager.default.contents(atPath: p), d.count >= 4 else { return }
     let count = d.withUnsafeBytes { $0.load(fromByteOffset: 0, as: UInt32.self) }
-    let need = 0x28 + 60 * Int(count) + 56
+    let need = 4 + 60 * Int(count) + 56
     if d.count < need {
         d.append(Data(count: need - d.count))
         try? d.write(to: URL(fileURLWithPath: p))
@@ -166,9 +167,9 @@ func rescueOrphanSave(_ A: String) {
     guard count > 0, count < 4096 else { return }
     // walk newest-first: the orphan always belongs to the most recent save
     for i in stride(from: count - 1, through: 0, by: -1) {
-        let off = 0x28 + 60 * i
-        guard off + 28 <= d.count else { continue }
-        let name = String(bytes: d.subdata(in: off..<(off + 28)).prefix(while: { $0 != 0 }),
+        let off = 4 + 60 * i + 36                         // the record's file-name field
+        guard off + 16 <= d.count else { continue }
+        let name = String(bytes: d.subdata(in: off..<(off + 16)).prefix(while: { $0 != 0 }),
                           encoding: .ascii) ?? ""
         guard name.hasPrefix("save"), !name.contains("/") else { continue }
         let target = dir + "/" + name + ".cmp"

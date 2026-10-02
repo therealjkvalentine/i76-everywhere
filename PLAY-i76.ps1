@@ -173,25 +173,20 @@ if ($ot -and $OpenTrack -and (Test-Path $OpenTrack)) {
         } catch { Start-Sleep -Milliseconds 400 }
     }
 }
-# ---- savegame.dir truncation guard -------------------------------------------
-# THE ENGINE TRUNCATES ITS OWN SAVE INDEX. On every bookmark save it writes
-# savegame.dir 36 bytes short, cutting the tail off the record it just wrote - so
-# the .cmp lands on disk correctly and the bookmark is then INVISIBLE in the load
-# list. Field case 2026-09-05: a save made mid-session wrote save004.cmp (8,980
-# bytes) and never appeared; the index was 304 bytes where 5 records need 340.
-#
-# AGENTS.md says "the launcher stubs re-pad at boot" - that is the MAC stubs.
-# Nothing did it on Windows until this block, so every Windows save silently lost
-# its index entry.
-#
-# Layout: a 0x28 header whose first dword is the record count, then fixed 60-byte
-# records - name at +0, and the scene number at +0x18.
+# ---- savegame.dir short-file guard ---------------------------------------------
+# CORRECTED 2026-10-01. This block used to say the engine writes its save index 36 bytes short on every save. It
+# does not: a directory is exactly 4 + 60 x count bytes (u32 count, then 60-byte records {u32 scene, name[32],
+# file[16], u32 state, u32 0}). The "36 missing bytes" were the save editor's model (0x28 header, scene at +0x18 of
+# a record starting 36 bytes late), which read each record's scene from the record after it. The 2026-09-05 field
+# case ("304 bytes where 5 records need 340") was a complete 5-record file. The guard now pads only a file that is
+# really shorter than 4 + 60 x count, which the game has never been seen to write, and no longer rewrites whole files
+# or keeps .trunc copies of them.
 $dirPath = Join-Path $GameDir 'savegame.dir'
 if (Test-Path $dirPath) {
     $sg = [IO.File]::ReadAllBytes($dirPath)
     if ($sg.Length -ge 4) {
         $count = [BitConverter]::ToUInt32($sg, 0)
-        $want  = 0x28 + $count * 60
+        $want  = 4 + $count * 60
         # sanity-bound the count so a corrupt header can never make us write a
         # huge file; 64 bookmarks is far beyond anything the engine offers.
         if ($count -ge 1 -and $count -le 64 -and $sg.Length -lt $want) {
@@ -200,11 +195,7 @@ if (Test-Path $dirPath) {
             $fixed = New-Object byte[] $want
             [Array]::Copy($sg, $fixed, $sg.Length)      # zero-fill the rest
             [IO.File]::WriteAllBytes($dirPath, $fixed)
-            Write-Host ("savegame.dir was truncated ({0} bytes, need {1}) - re-padded." -f $sg.Length, $want) -ForegroundColor Yellow
-            Write-Host "  Your newest bookmark is on disk but its index entry lost its tail." -ForegroundColor Yellow
-            Write-Host "  It will list again now. The SCENE NUMBER cannot be recovered - it is" -ForegroundColor Yellow
-            Write-Host "  not stored anywhere else - so if that bookmark shows the wrong scene," -ForegroundColor Yellow
-            Write-Host ("  just save it again over itself. Original kept as {0}." -f (Split-Path $bak -Leaf)) -ForegroundColor DarkGray
+            Write-Host ("savegame.dir was short ({0} bytes, need {1} for {2} records) - padded with zeros. Original kept as {3}." -f $sg.Length, $want, $count, (Split-Path $bak -Leaf)) -ForegroundColor Yellow
         }
     }
 }
