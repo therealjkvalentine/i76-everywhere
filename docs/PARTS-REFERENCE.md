@@ -186,10 +186,10 @@ carries (bullet / explosive / fire / blox) **[RE: i76-map notes, 0x4a774d]**.
     acceleration by 5 for 15 s.
   - The "minor/flavor" label for the X-Aust Brake, Curb Feelers, Mud Flaps, Heated Seats and Cup Holders is
     wrong: each has a measurable effect in the code.
-- **i76-map's physics.md** (lines 214 and 334, sibling repo, not edited here) says the WDFC size factor is the
+- **i76-map's physics.md** (lines 214 and 334; corrected there 2026-10-03, i76-map commit `8473641d`) said the WDFC size factor is the
   tyre's grip base. The code puts it only into the current grip, and the base stays 1.0, so the bonus is lost on
   the first hit (engine.md has this right).
-- **i76-map's physics.md** (line 333) says suspension handling only matters on flag-0x10000 cars. That is true
+- **i76-map's physics.md** (line 333; corrected there the same day) said suspension handling only matters on flag-0x10000 cars. That is true
   only of the steering limit: the slide threshold uses handling on every car (engine.md has this right).
 - **Not changed, still open:**
   - The editor's community ranges for the DrRadar (3000 m) and Cherub (4000 m) are longer than the 1000 m their

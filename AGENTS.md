@@ -186,8 +186,8 @@ sandbox is void**: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, the 
 owner's daily-driver conf was accepted. Before trusting any conf finding, **prove the file is loaded**: flip a
 visible key (`3DfxWatermark = true`) and hide the global file. Record:
 [`../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md`](../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md),
-docs/records/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md itself predates this and has not been corrected
-(docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md).
+docs/records/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md predates this; it carries a correction
+header since 2026-10-03 (lab commit `a664306`), but its rows were not re-measured.
 
 Clicking the menus is now **screenshot → read coordinate → click it**: the OS cursor position
 *is* the engine's 640x480 UI coordinate, 1:1. `Capture-UI` crops to the game and rescales so one

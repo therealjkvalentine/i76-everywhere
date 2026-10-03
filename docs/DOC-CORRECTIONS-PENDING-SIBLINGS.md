@@ -8,6 +8,24 @@ text, so the integrator can apply them verbatim. Line numbers are from a read on
 
 Pair numbers are the backlog's.
 
+> **Applied 2026-10-03 (evening): the two "Pending since 2026-10-03" sections below.**
+> - `i76-uncap-lab` commit `a664306`: the rejected-conf notes. `CONFIG-OPTIONS.md` got a header note, and its
+>   `EnableInactiveAppState` row now says `[Glide]` only. `framerate/README.md` section 6 and its `FPSLimit`
+>   warning, the `uncap-vsync.ps1` header, and `MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` were annotated. The
+>   1920x1440-box note sits at section 5a, where that claim is; there is a pointer at 2.5.
+> - `i76-uncap-lab` commit `c73ec8f`: the moved-record paths in the lab `README.md`, `autotest/README.md`,
+>   `gate-folder.ps1`, `vptr-test.ps1`, `rate-ab.ps1:584`, `make-variants.py:85` with its 12 `conf-*.conf`
+>   (the comment line only) and both renderer scripts.
+> - `i76-map` commit `ee48d0f4`: `tools/gen_binaries.py:26`, `foldin/ledger/make_batch.py` (the six moved files),
+>   the `README.md` line about old `source` paths, the `FOLDIN-REPORT.md:259` note and the capture 014 README.
+> - `i76-map` commit `8473641d`: `subsystems/physics.md:214,333,334`, the corrections listed in
+>   [PARTS-REFERENCE.md](PARTS-REFERENCE.md).
+> - **Still open:**
+>   - the two comments in lab `src/u32x.c`, left alone while the u32x work is in flight;
+>   - lab `autotest/saves/runs/garage-ui/RESULTS.md`, a run record;
+>   - i76-map's three agent briefs and the other prose rows of the i76-map table, which the README line now covers;
+>   - lab `autotest/lib/memlib.ps1:48` (code; see the code table).
+
 > **Added 2026-10-03: a new set of pending lab corrections, the rejected `dgVoodoo.conf`.** Not applied (this
 > repo's passes do not edit the lab). Section ["Pending since 2026-10-03"](#pending-since-2026-10-03-the-rejected-dgvoodooconf-lab-docs)
 > at the end of this file.
