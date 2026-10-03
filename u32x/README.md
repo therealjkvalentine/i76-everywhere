@@ -35,7 +35,16 @@ Save Bookmark screen after 10 s idle: row click, SAVE twice, overwrite prompt. T
 work stays in the lab until it passes the same route, and then moves here as a new recorded build. Not verified
 by this build: the fullscreen Esc menu's Exit button (use the keyboard there).
 
-**Not yet done for this build:** a run on the daily driver, and a fresh-install run of `setup-windows.ps1` on a
+**The daily driver runs a newer lab build (added 2026-10-03).** The daily driver built on 2026-10-03
+(`C:\Users\james\Games\Interstate76-2026-10-03`, [docs/NEW-DAILY-DRIVER-RECIPE.md](../docs/NEW-DAILY-DRIVER-RECIPE.md))
+does not use the `u32x.dll` committed here. It uses lab build md5 `054fb411d57c275f9a6ebcf9a99893e6`
+(`..\i76-uncap-lab\src\u32x_gated_054fb411.dll`), gated 2026-10-02/03: leg-b 3/3, trip route at 120 fps, save
+screen, Esc-menu Exit, melee. **The source for that build lives in the lab repo** (`..\i76-uncap-lab\src`), not
+here: `u32x_min.c` in this folder builds `a5927cea`, not `054fb411`. The md5 is in `deploy-u32x.ps1`'s
+`$KnownGood`, so `-U32xDll <path to that file>` installs it without `-AllowUnverified`. Moving its source here
+and replacing `u32x.dll` (the "Promoting a rebuild" steps below) is still to do.
+
+**Not yet done for the committed build (`a5927cea`):** a run on the daily driver, and a fresh-install run of `setup-windows.ps1` on a
 clean GOG folder (RELEASE-PLAN section 7 item 3). `deploy-u32x.ps1` was exercised offline on 2026-10-02 against
 scratch copies of the pristine GOG binaries (`..\i76-map\sandbox-gog\main\app`, `i76.exe` md5 `9a232dcc`):
 install changes exactly 10 bytes in each of `i76.exe` and `i76shell.dll` (the import-descriptor name),

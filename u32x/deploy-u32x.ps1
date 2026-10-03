@@ -39,6 +39,9 @@ $ErrorActionPreference = 'Stop'
 # md5 -> what it is. Source and provenance: u32x\README.md.
 $KnownGood = @{
     'a5927cea02697657ce2102be766b5616' = 'u32x_min: 2026-08-16 build + DisableProcessWindowsGhosting (sandbox-verified 2026-10-02)'
+    # Lab build (source in ..\i76-uncap-lab\src, not in this repo; binary kept there as
+    # src\u32x_gated_054fb411.dll). The 2026-10-03 daily driver runs this one.
+    '054fb411d57c275f9a6ebcf9a99893e6' = 'gated 2026-10-02/03: leg-b 3/3, trip route 120 fps, save screen, Esc-menu Exit, melee'
 }
 
 $TARGETS = @(
