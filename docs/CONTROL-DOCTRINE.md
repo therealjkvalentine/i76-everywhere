@@ -29,6 +29,14 @@ handbrake, one active-special (nitrous), and camera glance. All of these are in 
 `joystick1` blocks — see [input.map.reference](input.map.reference) and the layout table in
 [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md).
 
+*Note 2026-10-03, Windows.* The map the Windows installer now writes by default
+([`controls/input.map`](../controls/input.map), the owner's daily-driver map) carries only the two analog
+`joystick1` axes natively; every pad button comes from the AutoHotkey layer, because a native button beside the
+layer fires twice (WHEEL-T300.md). The native button tier described here is what `setup-windows.ps1 -Controls stock`
+installs, and what the Mac map has. On the default Windows map a pad without the layer can steer and
+accelerate but not fire: that is a known departure from the rule above, recorded in [CONTROLS.md](CONTROLS.md)
+section 4.
+
 **What baseline does *not* try to do:** navigate the game's **menus** with the pad. I76's menus are
 mouse/keyboard-driven; a native joystick doesn't move a menu cursor. Baseline players use
 keyboard/mouse for menus (all input methods are live simultaneously — the pad doesn't lock them
@@ -39,7 +47,7 @@ out). The convenience tier is what makes menus pad-navigable (A→Enter, stick/d
 | Pad control | winmm channel | Action | `input.map` |
 |---|---|---|---|
 | Left stick X | `Left/Right` | **steer** (analog) | `steer` |
-| Left stick Y | `Up/Down` | **throttle/brake** (analog) | `throttle` |
+| Left stick Y | `Down/Up` (corrected 2026-10-03: `Up/Down` is not a token) | **throttle/brake** (analog) | `throttle` |
 | A | `Button1` | **fire** (contextual) | `weapon_fire` |
 | B | `Button2` | **special 1** (nitrous slot) | `special1` |
 | X | `Button3` | **cycle weapon** | `weapon_cycle` |

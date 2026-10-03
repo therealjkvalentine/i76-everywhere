@@ -130,7 +130,8 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ;   trigger          gun                 -> weapon_fire       Enter
 ;   top red (pickle) weapon release      -> hardpoint2_fire   2
 ;   back-side / MODE -                   -> special1 (nitrous) 6
-;   pinky            NWS / AR disconnect -> weapon_link       F
+;   pinky            NWS / AR disconnect -> pilot_glance_target E   (was weapon_link F until
+;                                           2026-08-08; comment corrected 2026-10-03, BTN[4] is the truth)
 ;   convex serrated  -                   -> DIRECT FIRE, hardpoints 2-5
 ;   castle           target management   -> front/next/nearest/radar range  Q Y T R
 ;   trim             displays + nitrous  -> nitrous/notepad/view/map        6 N V M

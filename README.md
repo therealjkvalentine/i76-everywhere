@@ -16,6 +16,7 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Play on Windows** | [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) — max graphics, FFB, frame-gen |
 | **Sit down and play: the controls** | [docs/CONTROLS.md](docs/CONTROLS.md) — one page for all keyboard, keyboard and mouse, gamepad, and wheel and stick (HOWAS): the keys, how to turn each on, what to do when it misbehaves |
 | **Edit your saves** (no install) | **[Open the save editor in your browser →](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)** — drag a save in, download it back out. Details: [the save editor](#the-save-editor) |
+| **A printable key sheet** | [docs/Interstate76-Controls-Quick-Reference.pdf](docs/Interstate76-Controls-Quick-Reference.pdf): four pages (keyboard and mouse, gamepad, wheel and stick, 1997 keys vs ours), generated from the shipped map by [tools/controls-sheet](tools/controls-sheet/README.md). **This project installs its own WASD-style control map, not the 1997 layout**; `-Controls stock` keeps the original keys ([docs/CONTROLS.md](docs/CONTROLS.md)) |
 | **Understand the file formats** | [i76-save-editor.py](i76-save-editor.py) docstring (save format) + [docs/HD-TEXTURES-RESEARCH.md](docs/HD-TEXTURES-RESEARCH.md) (ZFS/VQM/M16) |
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
@@ -26,7 +27,7 @@ It is not only graphics. **[docs/ENHANCEMENTS.md](docs/ENHANCEMENTS.md)** is the
 in this repo, each with how to turn it on and how far it has been proven:
 
 - **Controls**: the gamepad layout and its AutoHotkey shift layer, a CH Fighterstick layer, a force-feedback wheel,
-  mouse driving, the Steam Deck layout, and an `input.map` lint.
+  mouse buttons, the Steam Deck layout, an `input.map` lint, and a printable key sheet generated from the map.
 - **Force feedback and haptics**: the game's own effects on a modern wheel, a custom wheel force model, bass
   shakers, pad rumble, and a telemetry feed for motion rigs.
 - **Head tracking**: opentrack driving the in-game view.
@@ -106,6 +107,10 @@ shakers ([tools/ffb/README.md](tools/ffb/README.md), backlog P3-17); draw distan
 ([docs/DRAW-DISTANCE.md](docs/DRAW-DISTANCE.md), [docs/records/FARCLIP-CAMERA-CRASH.md](docs/records/FARCLIP-CAMERA-CRASH.md)).
 
 ## The gamepad layout
+
+**For Windows, the current layout is page 2 of [the printable key sheet](docs/Interstate76-Controls-Quick-Reference.pdf)**, generated
+from the shipped map and the layer script. The two pictures below were drawn from a Mac game folder's map
+and show native button bindings the shipped Windows map does not have.
 
 The full controller scheme — native `input.map` bindings plus the AutoHotkey/XInput
 layer (shift layer, look-back fire, rumble). These render from the **live configs**

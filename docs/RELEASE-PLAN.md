@@ -268,7 +268,7 @@ Numbers from `docs/VERIFIED-FIXES.md`, `music-fix/README.md`, `CHANGELOG.md`, un
 | Controller: LB shift layer, independent triggers, look-back rear gun, rumble mixer | verified (Mac, Windows); Deck baseline unverified | ~27 actions from 13 buttons |
 | Head tracking (opentrack) | verified | |
 | Frame generation (Lossless Scaling) | verified, needs a paid app | LSFG 2x on a 20 fps base; artefacts expected |
-| Mouse driving + 3 mouse buttons; joystick5 -> joystick1 fix; never use the in-game bind menu | verified | lint: `tools/lint-input-map.py` |
+| 3 mouse buttons; joystick5 -> joystick1 fix; never use the in-game bind menu (mouse driving is Mac-only since 2026-10-03: not offered on Windows, where the installer writes `controls/input.map`) | verified | lint: `tools/lint-input-map.py` |
 | Save editor (weapons, armor tenths, parts, condition, scene, slots, DPS/range) | verified byte-identical | 116-byte records |
 | Draw distance 600 m -> up to 5000 m | sandbox-verified, **not deployed** | crash ceiling removed by 16x render pool; 60 fps flat at 1800/5000 m |
 | Trainer: repair, unlimited ammo/armour/chassis without the "cheated" marker, teleport | sandbox | marker `0x535f78` not set |

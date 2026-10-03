@@ -213,6 +213,11 @@ Full handoff brief: [docs/records/MAC-SETUP.md](records/MAC-SETUP.md). Deep rese
 
 ## Controls: mouse driving + Xbox controller (native!)
 
+*Note 2026-10-03.* This section describes the Mac. On Windows the installer now writes the owner's WASD map
+([`controls/input.map`](../controls/input.map)) and mouse steering is no longer offered. The Mac map and
+scripts were not changed and have not been compared with the Windows map: "Mac: converge later" in
+[CONTROLS.md](CONTROLS.md#mac-converge-later).
+
 The engine natively supports **mouse driving** (analog `mouse Left/Right` steer, `Down/Up`
 throttle, three buttons) and **winmm joysticks** — no mapper software needed.
 [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) patches the active `input.map`: mouse
@@ -254,9 +259,9 @@ Quirk: bare Shift can't be a primary key (the parser treats it as a modifier).
 ## Force feedback (wheel/joystick)
 
 Real, and in this GOG build (Nitro Pack) - but dormant by default, and **there is no macOS path**
-(Wine's only FFB backend is Linux evdev). On a **Windows box**: run
-[`enable-force-feedback.bat`](../enable-force-feedback.bat) as Administrator and your FFB wheel
-works like the Sidewinder did. Full analysis:
+(Wine's only FFB backend is Linux evdev). On a **Windows box** an FFB wheel works like the Sidewinder
+did, with nothing to switch on: [`enable-force-feedback.bat`](../enable-force-feedback.bat) is not needed
+per the disassembly in WHEEL-T300.md (harmless; not re-tested without it). Full analysis:
 [docs/FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md). (FFB **does** work on the
 Steam Deck with a docked wheel — Linux has the evdev backend.)
 

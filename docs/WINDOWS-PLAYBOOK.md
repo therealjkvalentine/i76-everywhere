@@ -13,9 +13,12 @@ found and they're experiments, not guarantees.*
 > **Scripted:** [`setup-windows.ps1`](../setup-windows.ps1) automates §1 plus the input.map
 > fixes (§4): retires GOG's OpenGLide, deploys dgVoodoo2 x86 Glide DLLs, installs
 > [`dgVoodoo.windows.conf`](../dgVoodoo.windows.conf) (20 FPS cap, Voodoo1 2MB/1TMU, 3x res,
-> 8x MSAA, windowed), patches joystick5→joystick1 + mouse driving, writes `PLAY-i76.bat` +
-> desktop shortcut. Force feedback stays a separate admin step
-> ([`enable-force-feedback.bat`](../enable-force-feedback.bat)).
+> 8x MSAA, windowed), installs the control map, writes `PLAY-i76.bat` +
+> desktop shortcut. *2026-10-03:* the control map is now this project's own WASD-style map
+> ([`controls/input.map`](../controls/input.map)); `-Controls stock` keeps GOG's keys with the
+> joystick5→joystick1 patch ([CONTROLS.md](CONTROLS.md)). Mouse steering is no longer offered. Force
+> feedback needs no step on the Gold exe: [`enable-force-feedback.bat`](../enable-force-feedback.bat) is not
+> needed per the disassembly in WHEEL-T300.md (harmless; not re-tested without it).
 > Note for 2.87.x: `WatermarkDisplayDuration = 0` now means *infinite* — the real watermark
 > switches are `3DfxWatermark = false` (Glide) / `dgVoodooWatermark = false` (DirectX).
 
@@ -130,7 +133,9 @@ motion is frame interpolation on top:
 
 ## 3. Force feedback (the Sidewinder nostalgia, for real)
 
-- Run [`enable-force-feedback.bat`](../enable-force-feedback.bat) **as Administrator** — it
+- *2026-10-03: WHEEL-T300.md's later disassembly found force-feedback start-up unconditional on the Gold
+  exe and this registry key irrelevant, so this step is not needed (harmless; nobody re-tested without it).*
+  The original step: run [`enable-force-feedback.bat`](../enable-force-feedback.bat) **as Administrator** — it
   `reg copy`s `HKLM\SOFTWARE\ACTIVISION\Interstate'76FRC` → `Interstate '76` (WOW6432Node-aware,
   reversible). The Gold Edition ships the Nitro-Pack FFB code but reads the un-suffixed key
   ([PCGW](https://www.pcgamingwiki.com/wiki/Interstate_'76)).
@@ -152,7 +157,9 @@ motion is frame interpolation on top:
 
 ## 4. Input on Windows (same engine facts as the Mac port)
 
-- The game is **winmm-native** (joyGetPosEx; no DirectInput for input) and has **native mouse
+- *2026-10-03: mouse steering is no longer an offered feature on Windows (owner decision); the shipped map
+  binds the three mouse buttons only. What follows is the engine fact.*
+  The game is **winmm-native** (joyGetPosEx; no DirectInput for input) and has **native mouse
   driving**: analog channels `mouse Left/Right` / `mouse Down/Up`, buttons
   LeftBtn/RightBtn/MiddleBtn (exactly three — weapon 4 can't live on a mouse button).
   [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) documents the exact `input.map` blocks —

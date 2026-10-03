@@ -264,13 +264,14 @@ TO PLAY
 
 OPTIONAL, per machine
   * Setup-This-PC.bat  - makes a Desktop shortcut for this copy.
-  * Force feedback     - right-click 'Interstate 76\enable-force-feedback.bat'
-                         -> Run as administrator (one-time HKLM write).
+  * Force feedback     - works without a switch on the Gold exe. The old step (right-click
+                         'Interstate 76\enable-force-feedback.bat' -> Run as administrator)
+                         is not needed per the disassembly; it is harmless.
   * i76-save-editor.html - open in any browser to edit your saves (runs locally).
 
 WHAT'S BAKED IN
   * dgVoodoo (20 FPS physics cap so scene 5's ramp jump works, sharp Voodoo look, MSAA)
-  * Corrected input.map (mouse driving + gamepad: joystick1, glance hat, e-brake...)
+  * The input.map of the install this zip was made from (see docs\CONTROLS.md in the repo)
   * The cutscene-music fix (if it was built) and the mouse-wheel targeting helper.
 
 Connect your controller BEFORE launching - the 1997 engine enumerates joysticks

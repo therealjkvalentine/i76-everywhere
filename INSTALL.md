@@ -42,6 +42,8 @@ Useful switches:
 | `./Setup-From-GOG.ps1 -Force` | Reinstall even if a game is already there |
 | `./Setup-From-GOG.ps1 -Preset stock` | The recipe from before 2026-10-03: 20 fps, no engine switches (see [Presets](#presets-best-120-and-stock)) |
 | `./Setup-From-GOG.ps1 -NoShortcut` | No desktop shortcut |
+| `./Setup-From-GOG.ps1 -Controls stock` (or `INSTALL.bat -Controls stock`) | Keep GOG's 1997 keys. The default installs this project's own WASD-style control map (see [Controls](#controls-this-projects-map-or-the-1997-keys)) |
+| `./setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly` | On an install already made: switch the controls back to the 1997 keys and touch nothing else (`-Controls i76e` switches forward again) |
 | `./install.ps1 -GameDir "D:\Games\I76" -NoShortcut -SkipNitro` | Configure a game that is already installed, writing nothing outside that folder (once `C:\Games\_tools` holds dgVoodoo and AutoHotkey) |
 
 ### What it does
@@ -70,19 +72,19 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    as `i76.exe.u32xorig`, `i76shell.dll.orig`; undo: `u32x\deploy-u32x.ps1 -GameDir <dir> -Restore`).
 5. Renames GOG's **`I76PATCH.DLL`** (the 20 fps cap, where the build ships one) to
    `I76PATCH.DLL.disabled`.
-6. Patches **`input.map`** (native layer): GOG's phantom `joystick5` -> `joystick1` (or adds the
-   analog `steer` / `throttle` blocks when GOG's map has none), mouse buttons and the native
-   **gamepad** bindings. One analog source per block (`joystick1`); mouse *steering* is no
-   longer written, because a `joystick1` + `mouse` block pins the axis
-   ([docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md)).
+6. Installs **this project's own control map** as `input.map`
+   ([`controls/input.map`](controls/input.map), the owner's daily-driver map): `W` `A` `S` `D` drive, the
+   arrow keys look around. **It is not the 1997 layout.** GOG's map is kept beside it as
+   `input.map.stock-<timestamp>`. `-Controls stock` keeps GOG's keys instead; see
+   [Controls](#controls-this-projects-map-or-the-1997-keys) just below.
    *Never rebind via the in-game menu — it corrupts the file.*
-7. Deploys the **full controller layer** — downloads AutoHotkey 1.1 (pinned +
-   sha256-checked) and drops `i76-remap.ahk` in `<game>\_ahk\`, the same
-   XInput/shift-layer scheme tuned on Mac: **LB shift layer (all five hardpoints),
-   right-stick glance, independent triggers, look-back rear gun, camera cycle,
-   rumble**. The launcher starts/stops it with the game.
+7. Deploys the **controller layers** — downloads AutoHotkey 1.1 (pinned +
+   sha256-checked) and puts `i76-remap.ahk` and `i76-ch-fighterstick.ahk` in `<game>\_ahk\`:
+   **LB shift layer, right-stick glance, independent triggers, look-back rear gun, camera
+   cycle**, the wheel's buttons, the flight stick. The launcher starts/stops them with the game.
+   Not with `-Controls stock`: the layers type this project's keys.
 8. Installs the **cutscene-music fix** (if the proxy DLL has been built) and the
-   mouse-wheel targeting helper.
+   mouse-wheel helper (wheel up = cycle weapon, wheel down = hardpoint 5).
 9. Copies the launcher (`PLAY-i76.ps1`) and `presets\*.psd1`, writes **`PLAY-i76.bat`**
    (`-Preset best-120`) and **`PLAY-stock.bat`** (`-Preset stock`) in the game folder, and makes a
    **desktop shortcut** ("Interstate '76") to `PLAY-i76.bat`.
@@ -156,20 +158,52 @@ Tested on 2026-10-03, **without starting the game**:
   bytes in each file, and `-Restore` returns both to their original md5. Its gate ran on the lab sandbox
   and the daily driver, not on a fresh GOG folder, and the whole installer was not re-run with it.
   `setup-windows.ps1 -U32xDll u32x\u32x.dll` installs the minimal build (`a5927cea`) instead.
-- The `joystick1`-only analog blocks on hardware (they are the form of `docs/input.map.reference`
-  and of the daily driver's map).
+- The installed map on a fresh install. It is byte for byte the daily driver's map (md5 `a937f36d`), which the
+  owner plays on, but no game was started from an installer-made folder.
 - The Nitro Pack path (unchanged).
 
-Not installed, although the daily driver has them: the owner's own `input.map` (wheel-specific),
-the cursor-overlay and head-tracking AutoHotkey scripts, Lossless Scaling, and the owner's saves.
+Not installed, although the daily driver has them: the cursor-overlay and head-tracking AutoHotkey scripts, Lossless Scaling, and the owner's saves.
+
+### Controls: this project's map or the 1997 keys
+
+The installer writes its own control map by default (`-Controls i76e`). The keys, beside the original ones, are
+in [docs/CONTROLS.md](docs/CONTROLS.md); the printable sheet is
+[docs/Interstate76-Controls-Quick-Reference.pdf](docs/Interstate76-Controls-Quick-Reference.pdf).
+
+| | `-Controls i76e` (default) | `-Controls stock` |
+|---|---|---|
+| `input.map` | `controls\input.map`, written whole; verified by md5 and by `tools\lint-input-map.py` when Python is installed | GOG's map plus the minimal patch: analog `joystick1` steer / throttle, three mouse buttons, native pad buttons 1 / 3 / 4 and hat, `K` `O` `[` `]` for hardpoints 1 to 4 |
+| What is kept | GOG's map as `input.map.stock-<timestamp>`, taken once. A map that is not GOG's own (hand-tuned, or patched by an earlier run) as `input.map.before-i76e-<timestamp>` | `input.map.pre-windows-setup`. Coming from i76e: GOG's map is restored from `input.map.stock-<timestamp>` first |
+| AutoHotkey pad / wheel / stick layers | installed in `_ahk\` | not installed; copies from an earlier run are moved to `_ahk\off-stock-controls\` |
+| Gamepad | left stick native, everything else through the layer | native only: left stick, A fire, X cycle weapon, Y handbrake, D-pad glance (button numbers assumed) |
+| Wheel, flight stick | steering and pedals native, buttons through the layers | steering and pedals only |
+
+- **Going back on an installed game:** `setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly`.
+  It needs the `input.map.stock-<timestamp>` file the first install left; without it (a portable zip, or a
+  folder whose first map was already hand-tuned) it says so and changes nothing.
+- The choice is written to `<game>\i76e-controls.txt`. A later run without `-Controls` keeps it, so updating
+  an install never switches the keys.
+- **A hand-tuned `input.map` is replaced** by the default mode (it is kept as `.before-i76e-<timestamp>`).
+  To keep your own map through a re-run, put it back afterwards, or change `controls\input.map` in your clone.
+- Mouse steering is not offered.
+
+Tested offline on a copy of the unpacked GOG 2.1.0.17 tree (`controls-test`), the game never started:
+fresh -> i76e (md5 of the result = the repo's map, lint OK, GOG's map kept); -> stock (GOG's map restored and
+patched, lint OK, layer scripts moved out of `_ahk\`); -> i76e -> stock again (no second backup); a re-run with
+no `-Controls` (stays stock); `install.ps1 -Controls i76e` end to end; a hand-tuned map in place (kept as
+`.before-i76e-*`, and `-Controls stock` then refuses for lack of a stock backup). The launcher's `input.map`
+guard was run in isolation on both results: it does nothing on either, and on a map wrecked by the in-game
+menu it restores `input.map.as-installed`. **Not tested:** any of it in play, and the Nitro Pack with the
+i76e map (the lint runs against `nitro.exe` at install time and puts the old map back if it has findings).
 
 **Connect your controller before launching** — the 1997 engine only enumerates
 joysticks at startup.
 
 ### Optional extras
-- **Force feedback** (wheels / FFB sticks): right-click
-  `enable-force-feedback.bat` in the game folder -> **Run as administrator**
-  (one-time `HKLM` write).
+- **Force feedback** (wheels / FFB sticks): nothing to switch on. Start-up of the game's force feedback is
+  unconditional on the Gold exe ([docs/WHEEL-T300.md](docs/WHEEL-T300.md), from disassembly), so
+  `enable-force-feedback.bat` is not needed; it is harmless. Nobody has re-tested a wheel on a PC where it was
+  never run. Close the wheel's control panel before launching.
 - **Save editing:** open `i76-save-editor.html` in any browser, or use the
   [hosted editor](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)
   — drag a save in, edit, download it back out (runs locally, nothing uploaded).

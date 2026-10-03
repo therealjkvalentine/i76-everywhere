@@ -1,5 +1,9 @@
 # Porting the Windows-box wins back to the Mac/Wine stack — feasibility & recipes
 
+*Superseded 2026-10-03 on one point: the "mouse-steer `input.map`" row. Mouse steering is no longer offered
+on Windows, whose installer now writes `controls/input.map`; the Mac map is unchanged and not yet converged
+(docs/CONTROLS.md, "Mac: converge later").*
+
 *2026-07-10. After the Windows box got: a full-game HD texture pack, a tuned enhancement
 recipe, frame-gen smoothing, FFB, and an aspect-ratio cheat — the question is how much of
 that runs back under Wine on Apple Silicon. Short answer: **the single most valuable piece

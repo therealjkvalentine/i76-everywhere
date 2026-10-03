@@ -5,8 +5,14 @@ native joystick support, so an Xbox pad drives it directly through the game's ow
 emulation. This is the **BASELINE** tier — see [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) for how it
 relates to the Deck's convenience layer.*
 
+> **Windows, 2026-10-03:** the map the Windows installer writes by default
+> ([`controls/input.map`](../controls/input.map)) has the two analog lines below and **no native pad buttons**;
+> the buttons come from the AutoHotkey layer. The native button table on this page applies to
+> `setup-windows.ps1 -Controls stock` and to the Mac. See [CONTROLS.md](CONTROLS.md) section 4.
+
 > **Status (2026-07-14, field-tested):** the `joystick1` device token is **confirmed** (Xbox pad on
-> Mac — steering responded) and button numbering A=1 / X=3 is confirmed (A fired, X cycled). But the
+> Mac — steering responded) and button A=1 is confirmed (A fired). X=3 was reported confirmed here (X cycled);
+> that was **retracted 2026-07-18** (table below) and X is unconfirmed. But the
 > re-added analog blocks had **two token bugs**, now fixed against the game's own template (see next
 > note). Still to confirm: buttons B=2 / Y=4 and 5-10, plus the full Option-1 layout.
 

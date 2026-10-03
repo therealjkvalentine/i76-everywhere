@@ -6,7 +6,8 @@ X-Mouse on Windows), we run a single **Windows-native** remapper INSIDE the same
 everywhere: **AutoHotkey v1.1.37.02**, config checked into this repo as
 [`../i76-remap.ahk`](../i76-remap.ahk). Status 2026-07-14: installed, verified headlessly, and
 **confirmed in-game by the user — mouse button 5 (forward) fires nitrous** (button N>3 → special
-slot works end-to-end). A wheel remap shipped briefly and was **removed after a field regression**
+slot works end-to-end). *Corrected 2026-10-03 against the script: since 2026-07-18 nitrous (special 1, key `6`)
+is on button **4**, and button 5 sends `3` (hardpoint 3); the table below is the script's.* A wheel remap shipped briefly and was **removed after a field regression**
 (it killed WASD two ways — see the wheel warning below).
 
 ## Why this exists
@@ -34,10 +35,12 @@ suppression ever failed, nothing double-triggers.
 | Physical input | Sends key | input.map action |
 |---|---|---|
 | Mouse button 4 ("back") | `6` | `special1` — the default nitrous slot |
-| Mouse button 5 ("forward") | `7` | `special2` |
+| Mouse button 5 ("forward") | `3` | `hardpoint3_fire` |
 
 Edit the `.ahk`, re-run `./setup-input-remapper.sh`, relaunch the game. Keys on the right are
-engine key names already bound in [`input.map.reference`](input.map.reference).
+engine key names already bound in the installed map: [`../controls/input.map`](../controls/input.map) on Windows,
+[`input.map.reference`](input.map.reference) on the Mac. `tools\controls-sheet\build.ps1` checks every key the
+script sends against the Windows map.
 
 **The wheel is deliberately unbound — never remap it.** AHK v1 officially does *not* support
 the remap syntax for the wheel ("The following keys are not supported by the built-in

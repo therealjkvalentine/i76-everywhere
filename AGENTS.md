@@ -45,7 +45,15 @@ Rules for ANY control change:
    history is full of retractions for skipping that.
 
 Full control-design doctrine: docs/CONTROL-DOCTRINE.md. Binding reference:
-docs/input.map.reference, docs/GAMEPAD-PC-MAC.md.
+controls/input.map (the map the Windows installer writes: the owner's WASD-style map, not the 1997
+layout; `setup-windows.ps1 -Controls stock` keeps GOG's keys), docs/input.map.reference (the Mac
+installer's map; not yet converged with the Windows one), docs/GAMEPAD-PC-MAC.md, docs/CONTROLS.md.
+
+6. After ANY change to controls/input.map, i76-remap.ahk, i76-ch-fighterstick.ahk or the mouse-wheel
+   defaults in PLAY-i76.ps1, run `tools\controls-sheet\build.ps1`. It lints the map, checks the map
+   and the layers against each other, and regenerates the printable sheet
+   (docs/Interstate76-Controls-Quick-Reference.pdf) and the table in docs/CONTROLS.md, or lists what is
+   inconsistent. `tests/test_controls.py` runs the same check.
 
 ## Community resources: check before reverse-engineering
 

@@ -138,7 +138,7 @@ diagram*, whose callout lines don't reliably separate 11 from 12 — exactly the
 
 | # | Physical | Base | Hold **6** = shift |
 |---|---|---|---|
-| 1 | L1 left paddle | **lights** | hardpoint 1 |
+| 1 | L1 left paddle | **lights** | fire selected weapon (the script sends a left click; corrected 2026-10-03, this cell said hardpoint 1) |
 | 2 | R1 right paddle | **fire selected weapon** (incl. cockpit handgun) | front target |
 | 3 / 4 / 5 | cluster | cycle weapon / handbrake / nitrous | combat view / reverse / special 2 |
 | **6** | cluster | **SHIFT** | — |
@@ -165,9 +165,10 @@ cannot release. **Changing what a button does means re-checking every table keye
 on its number.**
 | Hat | D-pad | lights / map / ignition / notepad | gear up/down (Period/Comma) |
 
-**R2 = link fire is the engine-native way to fire several weapons at once** — one event, one FFB
+**`weapon_link` is the engine-native way to fire several weapons at once** — one event, one FFB
 effect. That matters here: firing multiple hardpoints from a single button is what crashed
-`I7_SFRCE.DLL` (below). `weapon_link` is also on keyboard `F`.
+`I7_SFRCE.DLL` (below). Until the 2026-08-08 rebalance it was on R2; R2 is now a horn, and
+`weapon_link` is on keyboard `F` only (corrected 2026-10-03; this paragraph still said "R2 = link fire").
 
 Direct hardpoint keys are **one shot per press** by design; sustained fire is what the right
 paddle's `weapon_fire` hold is for. A repeat-tap mode was tried and removed — see the FFB section.
@@ -477,9 +478,12 @@ Safe because the keyboard bindings live in *separate earlier blocks* —
 tracking's arrow keys and the layer's keys all survive. Afterwards `joystick1`
 appears **only** on `steer` and `throttle`, which is the wheel doctrine.
 
-**Re-running `setup-windows.ps1` will put them back** — it appends the gamepad
-baseline unconditionally. After any re-run on a wheel machine, strip them again
-and re-lint. To find them:
+**Re-running `setup-windows.ps1` does not put them back** (corrected 2026-10-03; this said it
+"appends the gamepad baseline unconditionally"). The code is the truth: the stock patch skips a
+map that carries its marker line, and since 2026-10-03 the default mode (`-Controls i76e`) writes
+[`controls/input.map`](../controls/input.map), the daily-driver map, which has no native buttons.
+Only `-Controls stock` on GOG's own map adds the native pad buttons, and in that mode the wheel
+layer is not installed. To check a map:
 
 ```
 grep -n "joystick1" input.map     # should show ONLY steer + throttle

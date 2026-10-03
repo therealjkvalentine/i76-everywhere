@@ -6,6 +6,11 @@ laptop — culminating in what we believe is the **first working vehicle-texture
 replacement pipeline** for the game, including a public spec for the previously
 undocumented `.M16` hardware-texture format.*
 
+*Superseded 2026-10-03, two points. (1) `enable-force-feedback.bat`: the later disassembly in
+docs/WHEEL-T300.md found force-feedback start-up unconditional on the Gold exe and the registry key
+irrelevant; the bat is not needed (harmless; nobody re-tested without it). (2) Mouse driving is no longer an
+offered feature on Windows; the installer writes `controls/input.map` (docs/CONTROLS.md).*
+
 *Everything below was tested first-hand on 2026-07-09 unless cited otherwise.
 Test rig: Windows 11 Home, GTX 1650 Ti Max-Q + Iris Xe hybrid laptop, 3440x1440
 external display. Game: GOG Gold `i76.exe` MD5 `60abf7bc699da72476128ddce991a3d1`

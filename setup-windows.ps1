@@ -400,9 +400,18 @@ if (-not (Test-Path $mapPath)) {
         if (-not $stockBak) {
             $curText = Get-Content $mapPath -Raw
             $pre = "$mapPath.pre-windows-setup"
-            $src = if (($curText -match 'setup-windows\.ps1|setup-mouse-and-pad\.sh') -and (Test-Path $pre)) { $pre } else { $mapPath }
-            $stockBak = Copy-Item $src "$mapPath.stock-$mapStamp" -Force -PassThru
-            Write-Host "  GOG's map is kept as $($stockBak.Name) (from $(Split-Path $src -Leaf))."
+            # A map carrying a setup script's marker line is not GOG's own (a patched map, or a
+            # hand-tuned descendant of one such as the owner's). GOG's map is then
+            # input.map.pre-windows-setup if that is still there; otherwise there is no stock
+            # map to keep, and the current one is saved as .before-i76e-* just below.
+            $marked = ($curText -match 'setup-windows\.ps1|setup-mouse-and-pad\.sh')
+            $src = if (-not $marked) { $mapPath } elseif (Test-Path $pre) { $pre } else { $null }
+            if ($src) {
+                $stockBak = Copy-Item $src "$mapPath.stock-$mapStamp" -Force -PassThru
+                Write-Host "  GOG's map is kept as $($stockBak.Name) (from $(Split-Path $src -Leaf))."
+            } else {
+                Write-Host "  The map in place is not GOG's own (it carries a setup marker) and there is no input.map.pre-windows-setup: no stock backup taken, so -Controls stock will not be able to go back." -ForegroundColor Yellow
+            }
         }
         Save-MapOnce 'before-i76e'
         $prev = [IO.File]::ReadAllBytes($mapPath)
@@ -428,8 +437,8 @@ if (-not (Test-Path $mapPath)) {
         [IO.File]::WriteAllBytes($mapPath, [IO.File]::ReadAllBytes($stockBak.FullName))
         Write-Host "input.map: GOG's map restored from $($stockBak.Name)."
         Add-StockPatch
-    } elseif ($isShipped) {
-        Write-Host "input.map is this project's map and there is no input.map.stock-* backup to go back to (a portable zip has none)." -ForegroundColor Red
+    } elseif ($isShipped -or $recorded -eq 'i76e') {
+        Write-Host "input.map is this project's map (or one edited from it) and there is no input.map.stock-* backup to go back to (a portable zip has none)." -ForegroundColor Red
         Write-Host "  Put GOG's own input.map in the folder (reinstall, or take it from the GOG installer) and run this again. Controls left as they are." -ForegroundColor Red
         $Controls = 'i76e'
     } else {
