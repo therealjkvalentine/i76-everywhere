@@ -1333,6 +1333,35 @@ static void apply_framerate_fixes(void) {
  */
 static int g_dodge_hold = 1;
 static DWORD g_idbg_dodge_calls, g_idbg_dodge_yes;         /* copied into the debug block by the render wrapper */
+/* STATIONARY HAZARD CONTACT EFFECTS (part of I76_FRAMERATE_FIXES; found in play at 120 fps, 2026-10-02: "the oil
+ * slick sound plays too fast"). The projectile update 0x4a0410 steps every live ordnance once per rendered frame.
+ * The oil slick (weapon_StepOilSlick 0x4aa150) and the fire patch (weapon_StepFirePatch 0x4aa450) are stationary
+ * probes: on every step with a vehicle in contact they call weapon impact 0x4a7190, which spawns the impact
+ * template (entity_SpawnExplosion 0x49ead0) and its 3D sound (0x4232a0). So the effect, its sound and whatever the
+ * template does fire once per FRAME in contact: 20 / s at stock 20 fps, 60 at 60, 120 at 120. The traction-loss
+ * timer the oil starts (0x466e80, 2 s) is idempotent and stays per frame. Both call sites are held to the 20 Hz
+ * grid, like the other per-frame starts here. Same bytes on the Galaxy and AiO exes. Static + field report; the
+ * events/s measurement (telemetry EXPLOSION events parked on a slick at 20 / 60 / 120) is still to run. */
+static DWORD g_idbg_hazard_calls;
+static void __cdecl hazard_impact_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
+    if (!g_tick20) return;
+    g_idbg_hazard_calls++;
+    ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD))0x004a7190)(a, b, c, d);
+}
+static void apply_hazard_fix(void) {
+    static const struct { DWORD site; BYTE old[5]; const char *what; } cs[2] = {
+        { 0x004aa27f, { 0xE8, 0x0C, 0xCF, 0xFF, 0xFF }, "oil slick contact effect" },
+        { 0x004aa559, { 0xE8, 0x32, 0xCC, 0xFF, 0xFF }, "fire patch contact effect" } };
+    int i, n = 0;
+    if (!g_ratefix) return;
+    for (i = 0; i < 2; i++) {
+        BYTE w[5] = { 0xE8 }; LONG rel = (LONG)((DWORD_PTR)hazard_impact_wrap - (cs[i].site + 5));
+        memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, cs[i].old, w, 5, cs[i].what);
+    }
+    mlog("  hazard-contact: %d/2 sites repointed (oil slick + fire patch contact effect and sound on the 20 Hz grid)", n);
+}
+
 static int __cdecl ai_dodge_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
     int r;
     if (g_dodge_hold && !g_tick20) return 0;
@@ -3040,6 +3069,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_coll_window();      /* opt-in: I76_COLL_WINDOW=1 (after apply_fixed_step: needs g_fixed_step) */
         apply_far_engine_dt();    /* opt-in: I76_FAR_ENGINE_DT=1 (after apply_engine_dt_fix: needs its site) */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
+        apply_hazard_fix();       /* with I76_FRAMERATE_FIXES: oil slick / fire patch contact effects on the 20 Hz grid */
         apply_ai_fixes();         /* opt-in: I76_AI_FIXES=1 (after apply_framerate_fixes: the dodge hold needs the 20 Hz grid) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
