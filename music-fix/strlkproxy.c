@@ -1017,6 +1017,14 @@ static void apply_frame_cap(void) {
     if (n == 0 || n >= sizeof(v) || (fps = atoi(v)) < 5 || fps > 1000) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     g_cap_period.QuadPart = g_qpf.QuadPart / fps;
+    {   /* The cap sleeps (left - 2) ms and spins the rest. With the default 15.6 ms timer tick a 3 ms sleep takes a
+         * whole tick, so any cap above ~64 fps delivered ~62 (measured 2026-10-03: I76_FPS_CAP=179 -> 62.6 fps under
+         * nGlide). Ask for 1 ms timer resolution for the life of the process (winmm resolved at run time: the fix
+         * builds of the exe have no WINMM import). */
+        HMODULE wm = LoadLibraryA("winmm.dll");
+        UINT (WINAPI *tbp)(UINT) = wm ? (UINT (WINAPI *)(UINT))GetProcAddress(wm, "timeBeginPeriod") : NULL;
+        if (tbp) tbp(1);
+    }
     (void)old_call; (void)new_call; (void)rel;
     install_frame_hook();
     mlog("  fps-cap: %d fps%s", fps, g_frame_hook ? "" : " (hook failed: no cap)");
