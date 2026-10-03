@@ -10,9 +10,10 @@
 #      daily driver (proven ACCEPTED by dgVoodoo 2.87.3; FPSLimit 0, 16:10 picture, 2x internal
 #      resolution, 4x MSAA). With -Preset stock, and always for the Nitro Pack:
 #      dgVoodoo.windows.conf as before (19.2 FPS physics cap, 8x MSAA).
-#   5. Patches input.map: GOG's phantom joystick5 -> joystick1, adds native
-#      mouse driving + pad bindings (port of setup-mouse-and-pad.sh; idempotent;
-#      backup written beside it). NEVER rebind via the in-game menu - it's buggy.
+#   5. Patches input.map: GOG's phantom joystick5 -> joystick1 (or adds the analog steer /
+#      throttle blocks when GOG's map has none), mouse buttons + pad bindings (port of
+#      setup-mouse-and-pad.sh; idempotent; backup written beside it). One analog source per
+#      block: no mouse line beside joystick1. NEVER rebind via the in-game menu - it's buggy.
 #   6. Writes PLAY-i76.bat (PLAY-i76.ps1 -Preset <the -Preset given here, default best-120>),
 #      PLAY-stock.bat (the same folder with -Preset stock: no engine switches) and a desktop
 #      shortcut to PLAY-i76.bat (-NoShortcut skips the shortcut; nothing is then written
@@ -229,21 +230,39 @@ if (Test-Path $mapPath) {
     $map = Get-Content $mapPath -Raw
     if ($map -notmatch 'setup-windows\.ps1|setup-mouse-and-pad\.sh') {
         Copy-Item $mapPath "$mapPath.pre-windows-setup" -Force
-        # analog sinks: stale joystick5 -> joystick1 + native mouse driving
+        # analog sinks: stale joystick5 -> joystick1
         # (instance .Replace() because the static one has no count overload)
+        # ONE analog source per block. Until 2026-10-03 this wrote "- joystick1" AND "- mouse"
+        # into the same steer / throttle block, which is the analog chord trap of
+        # docs/VERIFIED-FIXES.md (the axis pins dead-centre) and fails tools/lint-input-map.py.
+        # The blocks are now joystick1 only, as in docs/input.map.reference and the daily
+        # driver's map. Mouse BUTTONS are unchanged. Mouse steering = replace the joystick1
+        # line with "- mouse Left/Right" by hand (one source per block), then lint.
+        # GOG's 2.1.0.17 offline installer (i76.exe 9a232dcc) ships an input.map with NO analog
+        # 'throttle' / 'steer' block at all (keyboard throttle_up / steer_left only) and e_brake
+        # on Z. Found 2026-10-03 on a fresh extract: the replaces below matched nothing and the
+        # result had no analog sink (lint: NO 'steer' BLOCK). A missing block is now appended.
         $throttleRx = New-Object regex 'throttle \{[^}]*\}'
-        $map = $throttleRx.Replace($map, "throttle {`r`n   - joystick1  Down/Up`r`n   - mouse      Down/Up`r`n}", 1)
+        $analogAdd = @()
+        if (-not $throttleRx.IsMatch($map)) { $analogAdd += 'throttle {', '   - joystick1  Down/Up', '}' }
+        if ($map -notmatch 'steer \{[^}]*\}') { $analogAdd += 'steer {', '   - joystick1  Left/Right', '}' }
+        $map = $throttleRx.Replace($map, "throttle {`r`n   - joystick1  Down/Up`r`n}", 1)
         $steerRx = New-Object regex 'steer \{[^}]*\}'
-        $map = $steerRx.Replace($map, "steer {`r`n   - joystick1  Left/Right`r`n   - mouse      Left/Right`r`n}", 1)
+        $map = $steerRx.Replace($map, "steer {`r`n   - joystick1  Left/Right`r`n}", 1)
         $map = $map -replace '\+ joystick5  Button2', '+ joystick1  Button2'
         # Handbrake on Space, matching the Mac map (docs/input.map.reference) and
         # the verified rebind in docs/VERIFIED-FIXES.md: e_brake moves off C onto
         # Space, and keyboard fire moves off Space onto Enter so the two don't
         # collide (mouse LeftBtn + pad still fire; Space is the natural handbrake).
+        # Fire only leaves Space if the handbrake really took it: the 2.1.0.17 map has e_brake
+        # on Z and weapon_cycle already on Enter, and there the unconditional swap put fire AND
+        # weapon cycle on Enter with nothing on Space. That map keeps its stock Z / Space.
         $ebRx = New-Object regex 'e_brake \{\s*\+ keyboard\s+C\b'
-        $map = $ebRx.Replace($map, "e_brake {`r`n   + keyboard   Space", 1)
-        $wfRx = New-Object regex 'weapon_fire \{\s*\+ keyboard\s+Space\b'
-        $map = $wfRx.Replace($map, "weapon_fire {`r`n   + keyboard   Enter", 1)
+        if ($ebRx.IsMatch($map)) {
+            $map = $ebRx.Replace($map, "e_brake {`r`n   + keyboard   Space", 1)
+            $wfRx = New-Object regex 'weapon_fire \{\s*\+ keyboard\s+Space\b'
+            $map = $wfRx.Replace($map, "weapon_fire {`r`n   + keyboard   Enter", 1)
+        }
         # separate blocks = alternative bindings (not chords); engine has exactly
         # three mouse-button tokens, so weapon 4 stays on keyboard 'Four'
         #
@@ -256,7 +275,7 @@ if (Test-Path $mapPath) {
         # (docs/input.map.reference:213 also puts LeftBtn on weapon_fire.)
         $add = @(
             '',
-            '# --- Mouse + gamepad additions (setup-windows.ps1) ---',
+            '# --- Mouse + gamepad additions (setup-windows.ps1) ---') + $analogAdd + @(
             'weapon_fire {', '   + mouse      LeftBtn', '}',
             'hardpoint2_fire {', '   + mouse      RightBtn', '}',
             'pilot_glance_left {', '   + mouse      MiddleBtn', '}',
