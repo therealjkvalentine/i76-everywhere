@@ -171,6 +171,14 @@ def test_alpha_regenerate_recovers_mask():
     assert de.min() > 20
 
 
+def test_pick_key_avoids_palette_colours():
+    pal = np.array([[0.2, 0.3, 0.4], [0.9, 0.4, 0.1]], np.float32)
+    k0 = np.array(pp.pick_key(pal), np.float32)
+    assert pp.delta_e2000(pp.srgb_to_lab(k0)[None], pp.srgb_to_lab(pal)).min() > 30
+    k = pp.pick_key(np.array([[1, 0, 1], [0.9, 0.1, 0.9]], np.float32))
+    assert k != (1.0, 0.0, 1.0)
+
+
 def test_halo_metrics_detect_dark_rim():
     m = _disc(64, 64, 20)
     ref = np.full((64, 64, 3), 0.7, np.float32)

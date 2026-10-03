@@ -141,6 +141,22 @@ def key_fill(rgb, mask, key=(1.0, 0.0, 1.0)):
     return out
 
 
+_KEY_CANDIDATES = np.array([[1, 0, 1], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 1, 0], [1, 0, 0], [0.5, 0, 1],
+                            [0, 1, 0.5], [1, 0.5, 1]], np.float32)
+
+
+def pick_key(palette):
+    """Key colour for key_fill/alpha_regenerate that is farthest (CIEDE2000) from every opaque palette colour.
+    Magenta is the convention, but some I'76 tiles USE magenta as real paint (zdash101 under t01.act), and a key
+    that is also a palette colour makes the regenerated mask eat real pixels."""
+    pal = np.asarray(palette, np.float32).reshape(-1, 3)
+    if not len(pal):
+        return tuple(_KEY_CANDIDATES[0])
+    cl, pl = srgb_to_lab(_KEY_CANDIDATES), srgb_to_lab(pal)
+    d = delta_e2000(cl[:, None, :], pl[None, :, :]).min(1)
+    return tuple(float(v) for v in _KEY_CANDIDATES[int(d.argmax())])
+
+
 def upscale_alpha_threshold(mask, w, h, method="bilinear", thr=0.5):
     """Separate-alpha path without a model: resize the binary mask with a smooth filter, then threshold."""
     return resize(np.asarray(mask, np.float32), w, h, method) >= thr
