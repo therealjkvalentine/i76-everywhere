@@ -185,8 +185,24 @@ def cmd_sheet(a):
         if not c or (r["native_w"] <= c and r["native_h"] <= c):
             return None
         cw, ch = min(c, r["native_w"]), min(c, r["native_h"])
-        x0, y0 = (r["native_w"] - cw) // 2 + a.dx, (r["native_h"] - ch) // 2 + a.dy
+        x0, y0 = busiest(r, cw, ch) if a.busy else ((r["native_w"] - cw) // 2 + a.dx, (r["native_h"] - ch) // 2 + a.dy)
         return tuple(round(v * scale) for v in (x0, y0, x0 + cw, y0 + ch))
+
+    def busiest(r, cw, ch):
+        """Crop origin (native px) of the window with the most edge energy over opaque pixels."""
+        g = uc.read_rgb(os.path.join(a.work, r["file"])).mean(axis=2)
+        m = uc.read_mask(os.path.join(a.work, r["mask"])) if r["has_alpha"] else None
+        e = np.abs(np.diff(g, axis=0, prepend=g[:1])) + np.abs(np.diff(g, axis=1, prepend=g[:, :1]))
+        if m is not None:
+            e = e * (m >= 0.5) + 0.02 * (m >= 0.5)  # prefer opaque content over empty colour-key
+        ii = np.pad(e.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+        best, bx, by, st = -1, 0, 0, 8
+        for y0 in range(0, r["native_h"] - ch + 1, st):
+            for x0 in range(0, r["native_w"] - cw + 1, st):
+                s = ii[y0 + ch, x0 + cw] - ii[y0, x0 + cw] - ii[y0 + ch, x0] + ii[y0, x0]
+                if s > best:
+                    best, bx, by = s, x0, y0
+        return bx, by
 
     cols = ["original", "nearest 2x"] + labels
     cells = []
@@ -301,6 +317,7 @@ def main():
     p.add_argument("--dx", type=int, default=0)
     p.add_argument("--dy", type=int, default=0)
     p.add_argument("--zoom", type=int, default=1)
+    p.add_argument("--busy", action="store_true", help="crop the window with the most detail, not the centre")
     p = sp.add_parser("abprep")
     p.add_argument("--pairs", nargs="+", required=True, metavar="CLASS:RUN_A:RUN_B")
     p.add_argument("--session", default="u2-ab")
