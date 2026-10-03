@@ -18,12 +18,12 @@ play; **parked** = settled dead end; **research** = documents only.
 |---|---|---|---|
 | Windows installer from a GOG offline backup | `INSTALL.bat` -> `Setup-From-GOG.ps1` (silent Inno install, dgVoodoo, input.map, AHK layer, Strlkup proxy, shortcut) | verified on this machine (INSTALL.md) | `install.ps1` is the older "game already installed" path; both call `setup-windows.ps1` |
 | Windows launcher | `PLAY-i76.ps1` (starts i76wheel, AHK remap, cursor overlay, Fighterstick, opentrack, Lossless Scaling, optional `-Ffb`, `-Mission`, savegame.dir re-pad) | deployed, verified | daily driver has `PLAY-i76.ps1`, `_ahk\`, `i76wheel.exe` |
-| Settings panel | `LAUNCHER.ps1` (WinForms: dgVoodoo FPSLimit, cursor mode, music volume, health checks for u32x / shell bytes / savegame.dir / Strlkup; builds the PLAY-i76 command line) | deployed | this is the only "tuner" in the repo; `$GameDir` defaults to the daily driver |
+| Settings panel | `LAUNCHER.ps1` (WinForms: dgVoodoo FPSLimit, cursor mode, music volume, health checks for u32x / shell bytes / savegame.dir / Strlkup; builds the PLAY-i76 command line) | deployed | this is the only "tuner" in the repo; `$GameDir` no longer defaults to the daily driver (2026-10-02, backlog P3-12: `I76_GAME_DIR`, then an install beside the script, then the lab sandbox; the title bar names the folder) |
 | Portable zip | `MAKE-PORTABLE.bat` -> `Make-Portable-Zip.ps1` (adds `PLAY.bat`, `Setup-This-PC.bat`, save editor, README) | verified (the daily driver *is* one) | contains game files; for the owner's machines only |
 | Stock 20 fps cap | GOG's `I76PATCH.DLL` (AiO) | deployed | dgVoodoo `FPSLimit` is **ignored** on this build in both directions (uncap-lab `docs/framerate/README.md` matrix, n=9 cells); the daily driver still carries `FPSLimit = 19.2` |
 | In-mission music | `music-fix\Strlkup.dll` (IAT hook: virtual cdaudio over `music\N.mp3`; aux-volume device so the in-game slider works) | deployed, verified in a mission (`docs/MUSIC.md`: `MCI_PLAY -> track 13`) | daily driver `Strlkup.dll` md5 `b910850f` is **older** than the repo's `fe82a0ee` (2026-09-27, 148,480 B) |
 | Cutscene-music fix | `smack-music-fix\` (ordinal-exact SMACKW32 proxy) | Mac: verified by ear 2026-07-14. Windows: built; **not** on the daily driver (no `smackorg.dll` there) | DLL is gitignored, built from source |
-| Save-screen mouse + freeze fix | `u32x.dll` USER32 proxy; source `i76-uncap-lab\src\u32x.c` (+ DWM ghosting fix) | deployed (`u32x.dll`, `i76.exe.u32xorig`, `i76shell.dll` present) | LAUNCHER treats it as required. Its verification record is spread over `docs/SAVE-FREEZE-ROOT-CAUSE.md` (v2), `READY-TO-TEST.md` (pre-test) and `tools/bisect/LAYERS.ps1`; **the source is not in this repo** |
+| Save-screen mouse + freeze fix | `u32x.dll` USER32 proxy; source `u32x\u32x_min.c` in this repo since 2026-10-02 (the 2026-08-16 revision + DWM ghosting fix; the lab's `src\u32x.c` is the development branch) | deployed (`u32x.dll`, `i76.exe.u32xorig`, `i76shell.dll` present) | LAUNCHER treats it as required. Its verification record is spread over `docs/SAVE-FREEZE-ROOT-CAUSE.md` (v2), `READY-TO-TEST.md` (pre-test) and `tools/bisect/LAYERS.ps1`; the source, the verified binary's md5 (`a5927cea`) and its live record are now in `u32x/README.md` (corrected 2026-10-02: this said "the source is not in this repo") |
 | 60 fps proxy switches | `music-fix\Strlkup.dll`: `I76_HIRES_CLOCK`, `I76_FIXED_STEP`, `I76_FRAMERATE_FIXES` (+`I76_AI_FIRE_CACHE`), `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` (+`I76_INTERP_SMOOTH`), `I76_FPS_CAP`, `I76_FIX_HEALTH_PCT`, `I76_FIX_LABEL_TABLE`, `I76_MISSION`, `I76_SKIP_MOVIES` | sandbox; measured (music-fix/README.md "recommended switch set", i76-map capture 014); **played** in two console sessions (render-interp notes) and **console-verified by the owner 2026-10-02** with every switch on (music, F6/B at 1800 m, flamer, slider, AI, jumps, body roll); "Nothing here is deployed to the playable install" | launcher: `i76-uncap-lab\TEST-FRAMERATE.bat` (4 modes: fixed / nointerp / stock60 / stock20) |
 | Draw-distance patch | `patch-farclip.ps1` (uncap-lab), render pool x16 | sandbox, verified at 1800/5000 m (`docs/DRAW-DISTANCE.md`) | `i76.exe.farorig` in the sandbox only |
 | Camera-rate 60 fps constant patch | `i76.exe` `.rdata` 0x4bc528 | sandbox only (`i76.exe.camorig`); `READY-TO-TEST.md` carried a "deployed" claim and now carries the L004 correction (portable `6319abf7` = AiO + u32x rename only) — conflict resolved 2026-10-01 | superseded by `I76_FRAMERATE_FIXES` row 5 |
@@ -76,8 +76,9 @@ i76-everywhere as the bridge (it already is).
 
 What should move between repos before release:
 
-- `i76-uncap-lab\src\u32x.c`, `u32x.def`, `build-u32x.ps1` -> **i76-everywhere** (`u32x/`, proposed). A deployed,
-  load-bearing DLL whose source is in a private lab repo is not releasable.
+- `i76-uncap-lab\src\u32x.c`, `u32x.def`, `build-u32x.ps1` -> **i76-everywhere** (`u32x/`). **Done 2026-10-02** for
+  the build that is actually verified: `u32x_min.c` + its `.def`, the DLL (md5 `a5927cea`), `build.ps1`,
+  `deploy-u32x.ps1`, README with provenance. The lab's newer `u32x.c` stays there until it passes the bookmark route.
 - `i76-uncap-lab\TEST-FRAMERATE.ps1` -> the preset logic in it becomes the player launcher's presets (below); the
   script itself stays a lab tool.
 - `i76-uncap-lab\docs\framerate\{README,MEASUREMENTS,DEAD-ENDS}.md` -> i76-everywhere `docs/framerate/` (proposed).
@@ -102,7 +103,7 @@ i76-everywhere/
     smooth-60.ps1                            I76PATCH.DLL off, HIRES_CLOCK FIXED_STEP=24 FRAMERATE_FIXES ENGINE_DT_FIX RENDER_INTERP
     smooth-60-bugfixes.ps1                   smooth-60 + I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1
   music-fix/        Strlkup.dll proxy: source, build.ps1, README (the switch table lives here)
-  u32x/             (proposed, moved from i76-uncap-lab/src) USER32 proxy: u32x.c, u32x.def, build-u32x.ps1, README
+  u32x/             (done 2026-10-02, from i76-uncap-lab/src) USER32 proxy: u32x_min.c, u32x.def, u32x.dll, build.ps1, deploy-u32x.ps1, README
   smack-music-fix/  ffb-shim/  sound-rumble/   (as is; DLLs built locally, gitignored)
   tools/            trainer/  ffb/  i76wheel.c  lint-input-map.py  pad-diagram.py  bisect/  (RE instruments pruned, section 5)
   mac/              (proposed, step 2) build-launchers.sh  *.swift  setup-*.sh  *.command  interstate-76.dxw  fix-arrows-for-mac.sh  slim-wrapper.sh
@@ -194,8 +195,9 @@ One-page README outline (proposed) for public i76-map:
 6. To get 60 fps today you must: rename `I76PATCH.DLL`, set the five `I76_*` variables in the shell, start
    `i76.exe -glide` from that shell. **Not automated for players**: only `i76-uncap-lab\TEST-FRAMERATE.bat` does it,
    and only against the sandbox. **Missing before release**: the preset switch in `PLAY-i76.ps1`/`LAUNCHER.ps1`
-   (section 2) and `u32x.dll` deployment in `setup-windows.ps1` (today only the portable zip carries it; a fresh
-   `INSTALL.bat` install gets no u32x, so the save-screen mouse bug is present).
+   (section 2; done 2026-10-02, `PLAY-i76.ps1 -Preset`) and `u32x.dll` deployment in `setup-windows.ps1` (**coded
+   2026-10-02**, step 5a3 via `u32x\deploy-u32x.ps1`, also run on the portable zip's staged copy; exercised offline on
+   scratch copies of the pristine binaries only. The fresh-install console run in section 7 item 3 is still owed).
 7. Optional: `enable-force-feedback.bat` as admin (FFB wheels), `Setup-FrameGen.ps1` (Lossless Scaling), `LAUNCHER.ps1`.
 
 ### Mac (today: 20 fps only)

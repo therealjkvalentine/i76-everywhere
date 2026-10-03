@@ -21,21 +21,32 @@ public class FFBChk {
 }
 "@ -ErrorAction SilentlyContinue
 
-# Confirmed by Ghidra recon PART 4 (docs/GHIDRA-MEMORY-MAP.md): the game only
-# emits FFB when it has a detected device, and these two globals say whether it does.
+# The engine's own FFB state. Names CORRECTED 2026-10-02 from i76-map status/findings.md
+# (L083, L084; backlog P3-18) - this script used to call 0x52bbcc the "effect object":
+#   0x52bbd0  the detected flag this script has always read (nonzero once I7FF_InitSystem
+#             opened a device; the "module loaded but no device" tell is 0x52bbdc != 0 with
+#             this still 0)
+#   0x52bbcc  the `Forcefeed` HEAP HANDLE (HeapCreate at 0x445af9) - not an effect object.
+#             Nonzero only says the FFB heap was created.
+#   0x52bbe4  device presence per the static map: [0x52bbe4] != 0. Printed for information;
+#             the verdict below still uses 0x52bbd0, the flag the field cases were diagnosed with.
 $ADDR_PRESENT = 0x52bbd0
-$ADDR_OBJECT  = 0x52bbcc
+$ADDR_HEAP    = 0x52bbcc
+$ADDR_DEVICE  = 0x52bbe4
 
 $proc = Get-Process i76,nitro -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $proc) { Write-Host "Game is not running - start it, get INTO A MISSION, then re-run." -ForegroundColor Yellow; exit 1 }
 Write-Host "game: $($proc.ProcessName) (PID $($proc.Id))" -ForegroundColor Cyan
 
-# 1. registry gate - the Gold Edition looks for this key name specifically
+# 1. registry key - INFORMATIONAL ONLY. No registry key gates force feedback inside i76.exe
+#    (i76-map finding L084: the SideWinder helper reads no registry gate); this line used to
+#    be printed in red as "the registry gate". enable-force-feedback.bat writes the key and a
+#    working setup has it, so its absence is worth a glance, not a verdict.
 $key = "HKLM:\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76"
 $key2 = "HKLM:\SOFTWARE\ACTIVISION\Interstate '76"
 $haveKey = (Test-Path $key) -or (Test-Path $key2)
-Write-Host ("registry key            : {0}" -f $(if($haveKey){"present"}else{"MISSING - run enable-force-feedback.bat AS ADMIN"})) `
-    -ForegroundColor $(if($haveKey){'Green'}else{'Red'})
+Write-Host ("registry key (info only) : {0}" -f $(if($haveKey){"present"}else{"absent (not a gate in the exe; enable-force-feedback.bat writes it)"})) `
+    -ForegroundColor $(if($haveKey){'Green'}else{'DarkGray'})
 
 # 2. is anything holding the device exclusively?
 $tm = Get-Process tmJoycpl,TMController* -ErrorAction SilentlyContinue
@@ -61,20 +72,22 @@ Write-Host ("I7_SFRCE.DLL loaded     : {0}" -f $(if($mod){"yes (I7FF_InitSystem 
 
 # 4. the engine's own verdict
 $present = RInt $ADDR_PRESENT
-$obj     = RInt $ADDR_OBJECT
+$heap    = RInt $ADDR_HEAP
+$device  = RInt $ADDR_DEVICE
 [void][FFBChk]::CloseHandle($h)
 
 Write-Host ("FF device detected flag : {0}" -f $present) -ForegroundColor $(if($present){'Green'}else{'Red'})
-Write-Host ("FF effect object ptr    : 0x{0:X8}" -f $obj) -ForegroundColor $(if($obj){'Green'}else{'Red'})
+Write-Host ("Forcefeed heap handle   : 0x{0:X8}  (0x52bbcc)" -f $heap) -ForegroundColor $(if($heap){'Green'}else{'Red'})
+Write-Host ("FF device ptr [0x52bbe4]: 0x{0:X8}  (info)" -f $device) -ForegroundColor $(if($device){'Green'}else{'DarkGray'})
 
 Write-Host ""
-if ($present -and $obj) {
+if ($present -and $heap) {
     Write-Host "FFB IS LIVE. If you feel nothing, it is effect strength/tuning, not plumbing." -ForegroundColor Green
 } elseif ($mod) {
     Write-Host "MODULE LOADED BUT NO DEVICE - this is I7FF_InitSystem failing:" -ForegroundColor Red
     Write-Host "  'I7FF_InitSystem Failed to open FF Joystick.  Try again next time.'" -ForegroundColor Red
     Write-Host ""
-    Write-Host "The DLL, its exports and the registry are all fine - the wheel is not being" -ForegroundColor Yellow
+    Write-Host "The DLL and its exports are fine - the wheel is not being" -ForegroundColor Yellow
     Write-Host "OPENED for force feedback. FFB needs DirectInput EXCLUSIVE acquisition, and it" -ForegroundColor Yellow
     Write-Host "is attempted ONCE during startup ('try again next time'). Likely causes:" -ForegroundColor Yellow
     Write-Host "  * something else held the device at that moment - Thrustmaster control panel," -ForegroundColor Yellow

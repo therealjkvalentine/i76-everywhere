@@ -1,0 +1,70 @@
+; u32x.def - exports for the I'76 USER32 proxy.
+;
+; BOTH binaries are retargeted to this DLL (2026-08-16): i76shell.dll (menus/save/garage) AND
+; i76.exe. The engine turned out to own the cursor - measured live, the shell makes ZERO
+; GetCursorPos/ClipCursor calls while navigating menus, and it is i76.exe's own
+; ClipCursor(0,0,640,480) that traps the pointer in the physical top-left box. Patching only
+; the shell (v1/v2) therefore fixed nothing visible.
+;
+; So this list is the UNION of both modules' USER32 imports (53 = shell 43 + engine 41,
+; overlapping). The four coordinate-translating intercepts point at our implementations;
+; every other function is forwarded untouched to the real user32.
+; (Forward strings resolve at load time; no code of ours runs for them.)
+LIBRARY u32x
+EXPORTS
+    GetCursorPos        = My_GetCursorPos
+    SetCursorPos        = My_SetCursorPos
+    ClipCursor          = My_ClipCursor
+    PeekMessageA        = My_PeekMessageA
+
+    SetWindowPos        = user32.SetWindowPos
+    SetWindowLongA      = user32.SetWindowLongA
+    LoadCursorA         = user32.LoadCursorA
+    SetDlgItemTextA     = user32.SetDlgItemTextA
+    DialogBoxParamA     = user32.DialogBoxParamA
+    GetAsyncKeyState    = user32.GetAsyncKeyState
+    MessageBoxA         = user32.MessageBoxA
+    wsprintfA           = user32.wsprintfA
+    SetCursor           = user32.SetCursor
+    PostMessageA        = user32.PostMessageA
+    EndDialog           = user32.EndDialog
+    wvsprintfA          = user32.wvsprintfA
+    ToAscii             = user32.ToAscii
+    SetFocus            = user32.SetFocus
+    SendDlgItemMessageA = user32.SendDlgItemMessageA
+    GetDlgItem          = user32.GetDlgItem
+    GetDlgItemTextA     = user32.GetDlgItemTextA
+    GetWindowLongA      = user32.GetWindowLongA
+    CreateWindowExA     = user32.CreateWindowExA
+    GetDC               = user32.GetDC
+    ReleaseDC           = user32.ReleaseDC
+    ScreenToClient      = user32.ScreenToClient
+    ClientToScreen      = user32.ClientToScreen
+    WaitMessage         = user32.WaitMessage
+    GetClientRect       = user32.GetClientRect
+    LoadCursorFromFileA = user32.LoadCursorFromFileA
+    SendMessageA        = user32.SendMessageA
+    DispatchMessageA    = user32.DispatchMessageA
+    SetMenu             = user32.SetMenu
+    PostQuitMessage     = user32.PostQuitMessage
+    BeginPaint          = user32.BeginPaint
+    AdjustWindowRect    = user32.AdjustWindowRect
+    DefWindowProcA      = user32.DefWindowProcA
+    GetKeyState         = user32.GetKeyState
+    ShowCursor          = user32.ShowCursor
+    TranslateMessage    = user32.TranslateMessage
+    GetSystemMetrics    = user32.GetSystemMetrics
+    ShowWindow          = user32.ShowWindow
+    EndPaint            = user32.EndPaint
+
+    ; --- imported by i76.exe only (engine) ---
+    DestroyWindow       = user32.DestroyWindow
+    FindWindowA         = user32.FindWindowA
+    GetFocus            = user32.GetFocus
+    GetKeyboardType     = user32.GetKeyboardType
+    GetWindowRect       = user32.GetWindowRect
+    MapVirtualKeyA      = user32.MapVirtualKeyA
+    RegisterClassA      = user32.RegisterClassA
+    SetRect             = user32.SetRect
+    UpdateWindow        = user32.UpdateWindow
+    ValidateRect        = user32.ValidateRect
