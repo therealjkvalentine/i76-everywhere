@@ -111,6 +111,25 @@ def seam_strength(img):
     return out
 
 
+def repair_seam(img, band=3, sigma=1.2):
+    """Soften a native wrap seam (tp04/tp09/tp18 carry one in the 1997 art) before upscaling: roll the seam to the
+    centre, blend a 1-D Gaussian-blurred copy across +-band px with a tent weight, roll back; rows then columns.
+    Touches 2*band columns and rows only. float HxWx3 in, float out."""
+    import numpy as np
+    from scipy.ndimage import gaussian_filter1d
+    a = np.asarray(img, np.float64).copy()
+    for axis in (1, 0):
+        n = a.shape[axis]
+        r = np.roll(a, n // 2, axis=axis)  # wrap edge now between n//2-1 and n//2
+        bl = gaussian_filter1d(r, sigma, axis=axis, mode="wrap")
+        k = np.arange(n) - (n // 2 - 0.5)
+        wgt = np.clip(1 - np.abs(k) / band, 0, 1)
+        shape = [1, 1, 1]; shape[axis] = n
+        wgt = wgt.reshape(shape)
+        a = np.roll(r * (1 - wgt) + bl * wgt, -(n // 2), axis=axis)
+    return a
+
+
 def save_png(path, arr):
     from PIL import Image
     Image.fromarray(arr).save(path)
