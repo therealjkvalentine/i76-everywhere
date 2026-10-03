@@ -19,7 +19,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
-if (-not $Plan -and (Get-Process i76* -ErrorAction SilentlyContinue)) { Write-Host 'REFUSED: the game is running. Close it and run again.' -ForegroundColor Red; exit 1 }
+if (-not $Plan -and (Get-Process i76* -ErrorAction SilentlyContinue | Where-Object { $_.Path -and ($_.Path.StartsWith($Driver, 'OrdinalIgnoreCase') -or $_.Path.StartsWith($Golden, 'OrdinalIgnoreCase')) })) { Write-Host 'REFUSED: the game is running. Close it and run again.' -ForegroundColor Red; exit 1 }
 foreach ($root in $Driver, $Golden) { if (-not (Test-Path (Join-Path $root 'Interstate 76\i76.exe'))) { Write-Host "REFUSED: $root is not a driver folder" -ForegroundColor Red; exit 1 } }
 foreach ($src in $Files.Values) { if (-not (Test-Path -LiteralPath $src)) { Write-Host "REFUSED: missing source $src" -ForegroundColor Red; exit 1 } }
 
