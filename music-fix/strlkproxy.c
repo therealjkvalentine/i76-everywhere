@@ -2549,6 +2549,12 @@ static DWORD __stdcall hook_grSstWinOpen(DWORD hwnd, DWORD res, DWORD refresh, D
          (unsigned long)cfmt, (unsigned long)origin, ncol, naux);
     r = p_grSstWinOpen(hwnd, res, g_glide_refresh_code, cfmt, origin, ncol, naux);
     mlog("  glide-refresh: context %lu", (unsigned long)r);
+    if (!r) {   /* dgVoodoo rejects codes above 8 (measured 2026-10-02: code 9 -> context 0, then the exe faults at
+                   0x42e209): never leave the game without a window - fall back to what the renderer asked for */
+        r = p_grSstWinOpen(hwnd, res, refresh, cfmt, origin, ncol, naux);
+        mlog("  glide-refresh: code %lu rejected - reopened with the renderer's own refresh %lu, context %lu",
+             (unsigned long)g_glide_refresh_code, (unsigned long)refresh, (unsigned long)r);
+    }
     return r;
 }
 
@@ -2570,6 +2576,10 @@ static void apply_glide_refresh(void) {
     if (n == 0 || n >= sizeof(v)) return;
     g_glide_refresh_hz = (DWORD)atoi(v);
     for (i = 0; i < (int)(sizeof tab / sizeof tab[0]); i++) if (tab[i].hz == g_glide_refresh_hz) g_glide_refresh_code = tab[i].code;
+    {   /* probe knob: I76_GLIDE_REFRESH_CODE=<n> passes a raw GrScreenRefresh_t code (Glide 2.x defines 0..8) */
+        char c[8]; DWORD kc = GetEnvironmentVariableA("I76_GLIDE_REFRESH_CODE", c, sizeof(c));
+        if (kc && kc < sizeof(c)) g_glide_refresh_code = (DWORD)strtoul(c, NULL, 0);
+    }
     if (g_glide_refresh_code == 0xffffffff) { mlog("  glide-refresh: %s is not a Glide refresh (60 70 72 75 80 85 90 100 120, 0 = none) - not applied", v); return; }
     p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
     mlog("  glide-refresh: %lu Hz (code %lu) armed; LoadLibraryA %s", (unsigned long)g_glide_refresh_hz, (unsigned long)g_glide_refresh_code,
