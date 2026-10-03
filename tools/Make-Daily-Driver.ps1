@@ -1,5 +1,5 @@
 <#
-  Make-Daily-Driver.ps1 - First run 2026-10-03 (lab twin, then C:SERSJAMESGAMESINTERSTATE76-2026-10-03 + GOLDEN COPY). Read docs\NEW-DAILY-DRIVER-RECIPE.md first.
+  Make-Daily-Driver.ps1 - First run 2026-10-03 (lab twin, then Games\Interstate76-2026-10-03 + golden copy). Read docs\NEW-DAILY-DRIVER-RECIPE.md first.
 
   Assembles a NEW, self-contained Interstate '76 folder from the current daily driver plus the
   parts the integrator names, and (optionally) a golden copy of the result.
