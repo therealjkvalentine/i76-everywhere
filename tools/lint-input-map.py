@@ -62,6 +62,11 @@ def parse_blocks(path):
     return blocks
 
 def main():
+    # A Windows console (cp1252) cannot encode the warning sign printed with each finding, and the
+    # lint then died with UnicodeEncodeError instead of listing them (seen 2026-10-03).
+    for stream in (sys.stdout, sys.stderr):
+        try: stream.reconfigure(errors="replace")
+        except Exception: pass
     if len(sys.argv) == 2 and os.path.isdir(sys.argv[1]):
         gd = sys.argv[1]
         imap = os.path.join(gd, "input.map")

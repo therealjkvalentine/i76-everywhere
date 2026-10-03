@@ -1,0 +1,308 @@
+# Interstate '76 Input mapping file
+# MW5-STYLE LAPTOP LAYOUT applied to the ACTIVE input.map (2026-07-04)
+# (KEYBOARD.MAP is IGNORED by this build; this is the file the engine reads.)
+# W/S throttle(notched)  A/D steer  Space fire  Tab cycle  F link  X reverse
+# C handbrake  I ignition  Q front-target  T nearest  Y next  U untarget
+# R radar-range  K radar-cam  E glance-target  Arrows glance  P poetry
+throttle {
+   - joystick1  Down/Up
+}
+steer {
+   - joystick1  Left/Right
+}
+throttle_up {
+   + keyboard   W
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+throttle_down {
+   + keyboard   S
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+steer_left {
+   + keyboard   A
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+steer_right {
+   + keyboard   D
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+shift_down {
+   + keyboard   Comma
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+shift_up {
+   + keyboard   Period
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+frontal_target {
+   + keyboard   Q
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+NEXT_TARGET {
+   + keyboard   Y
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+TARGET_NEAREST_ENEMY {
+   + keyboard   T
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+RESET_TARGET {
+   + keyboard   U
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+RADAR_RANGE_TOGGLE {
+   + keyboard   R
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+RADAR_CAMERA_TOGGLE {
+   + keyboard   K
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+start_engine {
+   + keyboard   I
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+SHOW_MAP {
+   + keyboard   M
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+SHOW_NOTEPAD {
+   + keyboard   N
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+TOGGLE_BINOCULARS {
+   + keyboard   B
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+HONK_HORN {
+   + keyboard   G
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+e_brake {
+   + keyboard   Space
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+toggle_lights {
+   + keyboard   H
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+# --- Arrow cluster: on Mac (Wine) AND over RDP the physical arrow keys arrive
+# --- as NUMPAD "Grey" codes, so everything arrow-related is bound to Grey*Arrow.
+# --- Bare arrow      = pilot glance (look out the side/rear windows).
+# --- Shift + arrow   = tracking / overview camera (the old "numpad" functions).
+# ---   Shift, NOT Ctrl: macOS reserves Ctrl+arrows for Mission Control / Spaces,
+# ---   so Ctrl+arrow never reaches the game. Shift passes straight through Wine.
+pilot_glance_up {
+   + keyboard   GreyUpArrow
+   - keyboard   Shift
+}
+pilot_glance_down {
+   + keyboard   GreyDownArrow
+   - keyboard   Shift
+}
+pilot_glance_left {
+   + keyboard   GreyLeftArrow
+   - keyboard   Shift
+}
+pilot_glance_right {
+   + keyboard   GreyRightArrow
+   - keyboard   Shift
+}
+track_pitch_minus {
+   + keyboard   GreyUpArrow
+   + keyboard   Shift
+}
+overview_z_minus {
+   + keyboard   GreyUpArrow
+   + keyboard   Shift
+}
+track_pitch_plus {
+   + keyboard   GreyDownArrow
+   + keyboard   Shift
+}
+overview_z_plus {
+   + keyboard   GreyDownArrow
+   + keyboard   Shift
+}
+track_yaw_minus {
+   + keyboard   GreyLeftArrow
+   + keyboard   Shift
+}
+overview_x_minus {
+   + keyboard   GreyLeftArrow
+   + keyboard   Shift
+}
+track_yaw_plus {
+   + keyboard   GreyRightArrow
+   + keyboard   Shift
+}
+overview_x_plus {
+   + keyboard   GreyRightArrow
+   + keyboard   Shift
+}
+pilot_glance_target {
+   + keyboard   E
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+weapon_fire {
+   + keyboard   Enter
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+weapon_cycle {
+   + keyboard   Tab
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+weapon_link {
+   + keyboard   F
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint2_fire {
+   + keyboard   Two
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint3_fire {
+   + keyboard   Three
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint4_fire {
+   + keyboard   Four
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint5_fire {
+   + keyboard   Five
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+special1 {
+   + keyboard   Six
+}
+special2 {
+   + keyboard   Seven
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+special3 {
+   + keyboard   Eight
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+POETRY {
+   + keyboard   P
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+toggle_cmbt_view {
+   + keyboard   V
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+reverse_direction {
+   + keyboard   X
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+track_distance_plus {
+	+ keyboard   GreyPageDown
+}
+track_distance_minus {
+	+ keyboard   GreyPageUp
+}
+overview_zoom_plus {
+	+ keyboard	GreyPageDown
+}
+overview_zoom_minus {
+	+ keyboard	GreyPageUp
+}
+zoom_factor_plus {
+	+ keyboard	GreyPageDown
+}
+zoom_factor_minus {
+	+ keyboard	GreyPageUp
+}
+zoom_factor_reset {
+	+ keyboard	GreyEnd
+}
+show_player_scores {
+	+ keyboard	Quote
+}
+show_team_scores {
+	+ keyboard	SemiColon
+}
+
+# --- Mouse + gamepad additions (setup-windows.ps1) ---
+weapon_fire {
+   + mouse      LeftBtn
+}
+hardpoint2_fire {
+   + mouse      RightBtn
+}
+pilot_glance_left {
+   + mouse      MiddleBtn
+}
+
+
+
+# =====================================================================
+#  WHEEL / JOYSTICK BUTTON TIER  (restored 2026-08-08)
+#
+#  WHY THIS KEEPS DISAPPEARING: the in-game controls menu REWRITES input.map
+#  and silently drops bindings it does not understand. Twice now the file has
+#  come back with the two ANALOG joystick lines intact (steer + throttle) and
+#  every joystick BUTTON block gone - which is exactly the symptom "steering
+#  and pedals and force feedback all work, but no buttons do anything".
+#
+#  The device is never at fault in that state: winmm still enumerates the wheel
+#  with all 13 buttons, and the lint passes, because what is left IS valid -
+#  there is simply nothing bound. Check `grep -i joystick input.map`: if the
+#  only hits are the two axis lines, this block has been eaten again.
+#
+#  These are ALTERNATIVES layered on top of the keyboard/mouse bindings above -
+#  additive, nothing removed. Rollback = delete this whole block.
+#  Button numbers are the wheel's winmm indices; identify yours with
+#  tools\ffb\ffb-buttons.ps1 and edit to taste.
+# =====================================================================
+
+#  SUPERSEDED 2026-08-08 - this tier has been REMOVED, deliberately.
+#
+#  Wheel buttons are owned by i76-remap.ahk, which emits the engine's stock
+#  KEYS for them. That is the documented design (docs/WHEEL-T300.md) and it
+#  buys a shift layer: ~27 actions from 13 buttons, where a native binding
+#  here tops out at one action per button and cannot be shifted at all.
+#
+#  Binding them in BOTH places double-fires. Measured with the tier present:
+#  button 1 fired weapon_fire here AND hardpoint2 via AHK - two weapon
+#  effects from one press, which is the exact pattern that crashed
+#  I7_SFRCE.DLL on 2026-08-01. Button 3 cycled weapons twice per press.
+#
+#  If wheel buttons go dead, the cause is almost certainly that _ahk\i76-remap.ahk
+#  is missing or STALE - not that this block is absent. Check it has a
+#  gWheelBase table (`grep gWheelBase`); a copy without one predates the wheel
+#  layer entirely, which is exactly how this tier came to be added.
+#
+#  Previous contents preserved in input.map.pre-wheel-ahk-20260808.

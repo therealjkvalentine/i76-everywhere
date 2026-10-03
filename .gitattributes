@@ -22,3 +22,8 @@
 *.pix       binary
 *.vdf       binary
 *.svg       -text
+
+# The shipped Windows control map is installed byte for byte and its md5 is printed on the
+# quick reference sheet. It has mixed line endings (as the owner's game folder has it), so
+# no conversion in either direction.
+controls/input.map -text
