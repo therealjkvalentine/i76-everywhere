@@ -14,7 +14,7 @@ their pieces actively contradict each other. This is the map; it is what the mer
 | what it drives | T300 wheel over DirectInput (`FfbCore.ps1`), bass shakers (`LfeSynth.ps1`) | XInput gamepad motors |
 | its idea of feel | **synthesise** what a 1997 engine has no vocabulary for — slip, load, road texture — from game state | **replay what the engine decided**, textured by the game's own `.gpw` skid/surface audio |
 | status | output, telemetry, mixer, interposer and calibration all working; feel tuning not started | field-run and tuned on the Mac over 2026-07-19/20 |
-| written up in | `tools/ffb/README.md`, [FFB-DESIGN-LIBRARY.md](FFB-DESIGN-LIBRARY.md) | [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md), `ffb-shim/README.md` |
+| written up in | `tools/ffb/README.md`, [FFB-DESIGN-LIBRARY.md](FFB-DESIGN-LIBRARY.md) | [FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md), `ffb-shim/README.md` |
 
 `sound-rumble/` is a third, experimental path: a `dsound.dll` proxy that derives rumble
 from the audio actually playing. It is a backup for platforms where the shim cannot go,
@@ -111,13 +111,13 @@ is installed"), but nobody has run that check on a real Windows or Deck install,
 wrong guess here reads as "my rumble broke" rather than as an error.
 
 **3. Three outputs, never run together.** Wheel, shakers and pad have each only ever
-run alone. `docs/READY-TO-TEST.md` §A7 already flags wheel-vs-shaker interference as
+run alone. `docs/records/READY-TO-TEST.md` §A7 already flags wheel-vs-shaker interference as
 unproven; the pad is now a third claimant on the same events.
 
 ## Telemetry: two wires carrying the same picture
 
 The shim sends its own format to UDP `127.0.0.1:17676` (consumed by
-`tools/ffb-udp-listen.py`, aimed at SimTools/SimHub — [MOTION-SIM.md](MOTION-SIM.md)).
+`tools/ffb-udp-listen.py`, aimed at SimTools/SimHub — [MOTION-SIM.md](records/MOTION-SIM.md)).
 The Windows stack sends SimTools PluginAPI and OutSim formats on 4123/4124
 (`tools/ffb/ffb-telemetry-udp.ps1`). No port collision, but it is two encodings of one
 data set, and only one of them needs `ReadProcessMemory` to produce it.
@@ -131,7 +131,7 @@ need the shim running on Windows, which has never been done.
 - `+0x10`: frequency or direction (above).
 - The shim has only ever run under Wine on the Mac. It is an ordinary win32 DLL, so it
   should load on Windows, but that is an expectation, not a result.
-- Everything in `docs/READY-TO-TEST.md` §A7: shift-detection thresholds have never seen
+- Everything in `docs/records/READY-TO-TEST.md` §A7: shift-detection thresholds have never seen
   a real drive, and whether world explosions reach the effect table at all is unknown.
 - Whether the shim's `.gpw`-derived skid texture and the Windows mixer's synthesised
   road texture describe the same surface the same way.

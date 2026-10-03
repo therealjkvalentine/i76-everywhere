@@ -1,7 +1,7 @@
 ; Interstate '76 world scanner — enumerate every vehicle in the mission.
 ; Runs INSIDE the Wine prefix (same session as i76.exe). Read-only.
 ;
-; Uses the live-verified ENTITY TABLE (docs/STATIC-RE-FABLE.md section 11/12):
+; Uses the live-verified ENTITY TABLE (docs/records/STATIC-RE-FABLE.md section 11/12):
 ;   8 faction/team groups; counts @ 0x51f5d0, pointer arrays @ 0x507da0
 ;   (stride 0x100, 64 slots/group). entity(g,s) = [0x507da0 + g*0x100 + s*4].
 ;   From an entity wrapper: [.] -> +0x70 -> +0x108 = vehicle-LOGIC object;

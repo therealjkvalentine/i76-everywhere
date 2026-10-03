@@ -62,7 +62,7 @@ confirmed in-sim, no flip needed. Survives the V34 firmware flash.
 ### 3. Remove the `mouse` source from the analog sinks, or steering is dead
 
 Pedals worked; **steering did nothing**. Cause was already documented in
-[DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md) §1 and hit the Deck the same way:
+[DECK-INPUT-SCIENCE.md](records/DECK-INPUT-SCIENCE.md) §1 and hit the Deck the same way:
 
 > *input.map sinks can list several analog sources (`joystick1` + `mouse`). The game's
 > arbitration between them is undocumented — with the OS cursor parked, the mouse source
@@ -181,7 +181,7 @@ the keyboard (`M`).
 **Short version: remove other joystick devices (especially virtual ones) and reboot.**
 Full diagnosis, including the winmm-vs-DirectInput signature that identifies it, is in
 [**FFB: SOLVED — a 3Dconnexion emulator was stealing the DirectInput device**](#ffb-solved--a-3dconnexion-emulator-was-stealing-the-directinput-device)
-below, and in [FFB-LAPTOP-RECON.md](FFB-LAPTOP-RECON.md) with the ruled-out list.
+below, and in [FFB-LAPTOP-RECON.md](records/FFB-LAPTOP-RECON.md) with the ruled-out list.
 
 ## FFB works — but CLOSE THE THRUSTMASTER CONTROL PANEL FIRST
 

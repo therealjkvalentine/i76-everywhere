@@ -39,7 +39,7 @@ function RdInt([int64]$a) { $b = New-Object byte[] 4; $r = 0
 function RdBlk([int64]$a,[int]$n) { $b = New-Object byte[] $n; $r = 0
     if ([TP]::ReadProcessMemory($hProc,[IntPtr]$a,$b,$n,[ref]$r)) { $b } else { $null } }
 
-# player_entity = [[[0x54a264]]+0x70]   (docs/GHIDRA-MEMORY-MAP.md, live-verified)
+# player_entity = [[[0x54a264]]+0x70]   (docs/records/GHIDRA-MEMORY-MAP.md, live-verified)
 $ent = RdInt ((RdInt (RdInt 0x54a264)) + 0x70)
 if ($ent -eq 0) { Write-Host "Player entity is NULL - are you in a mission?" -ForegroundColor Red; exit 1 }
 Write-Host ("player entity = 0x{0:X8}" -f $ent) -ForegroundColor Cyan

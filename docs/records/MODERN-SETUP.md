@@ -27,7 +27,7 @@ step, so **stock** 60 fps bleeds speed before a ramp and lands short. That is th
   `I76PATCH.DLL`; dgVoodoo's `FPSLimit` was recorded as ignored on this build, a result that is void since
   2026-10-03: the sandbox conf was being rejected when it was measured, see [FPS-120.md](FPS-120.md).)
 - **The proxy's opt-in switch set** — `I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`,
-  `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` ([music-fix/README.md](../music-fix/README.md) switch table, with
+  `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` ([music-fix/README.md](../../music-fix/README.md) switch table, with
   per-switch measured evidence) — fixes each per-frame effect and holds the stock step at 60 fps. Sandbox-measured
   and **console-verified by the owner on 2026-10-02** (music, flamer, AI, jumps, body roll all good); **not deployed
   to the playable install**, so the 20 fps cap remains the default for play.

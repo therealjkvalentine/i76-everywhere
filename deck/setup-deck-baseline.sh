@@ -6,7 +6,7 @@
 # triggers, look-back rear gun, camera cycle and the RUMBLE MIXER, while the
 # game's own winmm joystick1 bindings carry analog steer/throttle.
 #
-# Trade-off you are opting into (docs/DECK-BASELINE.md): the Steam Input v4
+# Trade-off you are opting into (docs/records/DECK-BASELINE.md): the Steam Input v4
 # config's trackpad radial menu and L4/L5/R4/R5 grip bindings go away. They are
 # convenience-tier only - every critical action is covered by this tier
 # (docs/CONTROL-DOCTRINE.md).
@@ -180,7 +180,7 @@ safely while Steam is running.
    haptics.
 
 Then: connect nothing, just launch (the Deck's own pad enumerates at
-startup). Work through the decode sheet in docs/DECK-BASELINE.md and
+startup). Work through the decode sheet in docs/records/DECK-BASELINE.md and
 report back - the button numbering and the rumble path are ASSUMED on
 Deck hardware until you confirm them.
 

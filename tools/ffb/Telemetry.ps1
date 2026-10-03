@@ -716,7 +716,7 @@ function Tel-Sample {
     # path calls into I7_SFRCE.DLL WITHOUT null-checking its effect object: if we
     # have taken the device exclusively, the effect handle underneath is dead and
     # the next shot faults at I7_SFRCE.DLL+0x2505 (0xC0000005). Confirmed twice in
-    # the field, and predicted in docs/FFB-LAPTOP-RECON.md.
+    # the field, and predicted in docs/records/FFB-LAPTOP-RECON.md.
     $gameFfb = 0
     $gb = $Ctx.FireBuf
     $gn = 0

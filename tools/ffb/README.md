@@ -125,7 +125,7 @@ a null check**, so once we hold the wheel exclusively the first shot faulted:
 Faulting module: I7_SFRCE.DLL   Exception: 0xc0000005   Fault offset: 0x2505
 ```
 
-`docs/FFB-LAPTOP-RECON.md` predicted that signature exactly, before it happened.
+`docs/records/FFB-LAPTOP-RECON.md` predicted that signature exactly, before it happened.
 Disassembling `I7_SFRCE.DLL+0x2505` shows a plain COM virtual call —
 `mov eax,[edx]` then `call [eax+0x14]` — on a pointer nothing validated.
 
@@ -156,7 +156,7 @@ skips the write and restores the old warn-and-don't-fire behaviour.
 
 **Nothing may hold the wheel when the game starts.** The engine acquires FFB *once*
 at startup and never retries — "try again next time" is a give-up, not a retry
-(`docs/FFB-LAPTOP-RECON.md`). So an interposer left running from a previous session
+(`docs/records/FFB-LAPTOP-RECON.md`). So an interposer left running from a previous session
 means the game gets **no force feedback at all, for the whole session**, with
 nothing on screen to say why.
 

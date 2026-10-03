@@ -3,7 +3,7 @@
 ; demand, sets every record's CURRENT = MAX (full ammo + full part condition).
 ; Read-only until you press the hotkey; nothing is written on load.
 ;
-; Chain (docs/GHIDRA-MEMORY-MAP.md PART 13/13b, live-verified across a mission
+; Chain (docs/records/GHIDRA-MEMORY-MAP.md PART 13/13b, live-verified across a mission
 ; reload, GOG Gold i76.exe, no ASLR -> base 0x400000 under Wine):
 ;   entity = [ [ [0x54a264] ] + 0x70 ]
 ;   table  = entity - 0x14C8          ; 17 records x 0x38

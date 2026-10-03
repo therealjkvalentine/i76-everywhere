@@ -48,7 +48,7 @@ Bar(v01, w := 22) {
         out .= Chr(0x2500)
     return out
 }
-Surface(id) {   ; id order is a GUESS (docs/FFB-DEEP-DIVE.md) — trailing ? flags that
+Surface(id) {   ; id order is a GUESS (docs/records/FFB-DEEP-DIVE.md) — trailing ? flags that
     static names := {0:"stopped",1:"dirt-x?",2:"parking?",3:"rocky?",4:"wash?",5:"dirt-rd?",6:"paved?",7:"veg?",8:"packed?",9:"in-air?"}
     return names.HasKey(id) ? names[id] : "id" id
 }

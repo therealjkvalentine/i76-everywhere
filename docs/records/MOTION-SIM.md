@@ -60,7 +60,7 @@ effects, and a *2-axis* motion tease (surge+sway from the force vector).
 **Not in the stream — needed for true 6DOF:** heave, roll, pitch, yaw come from
 the vehicle's **orientation matrix + vertical**, which we already located in
 memory: the entity transform at `entity+0x08` and speed candidate `entity+0x94`
-([MEMORY-MAP-INDEX.md](MEMORY-MAP-INDEX.md) Tier 2). A small memory reader
+([MEMORY-MAP-INDEX.md](../MEMORY-MAP-INDEX.md) Tier 2). A small memory reader
 (build on `i76-worldscan.ahk`) can emit those on the same UDP wire to complete
 the DOF set. That's the next RE step for full motion.
 

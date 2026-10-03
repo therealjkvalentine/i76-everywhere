@@ -8,7 +8,7 @@
 #                           1% (smoke, handgun targeting, script hpLesser, AI fleeing, target
 #                           brackets all see it). Fixed value: min(28 + 72 x worst side ratio,
 #                           100 x worst core ratio). Missions may be tuned around the bug, which is
-#                           why it is a separate preset. docs/HEALTH-BAR-COLOUR.md
+#                           why it is a separate preset. docs/records/HEALTH-BAR-COLOUR.md
 #   I76_FIX_LABEL_TABLE=1   stock bug: the per-mission object-label table grows through a broken
 #                           path (new pointer discarded, NULL written through on failure). Only
 #                           huge custom missions reach it.

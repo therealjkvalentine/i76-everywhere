@@ -5,7 +5,7 @@ Everything below is **already deployed to the portable daily-driver install**
 be without a human at the machine. Both fixes are on and consistent (checked 2026-08-16).
 *(corrected 2026-10-02: only the u32x fix is deployed — next paragraph — and it has since been verified in play:
 the owner saved from the keyboard with no freeze on 2026-10-02. This file is a 2026-08-16 snapshot slated to fold
-into [VERIFIED-FIXES.md](VERIFIED-FIXES.md); the live state table is [RELEASE-PLAN.md](RELEASE-PLAN.md) section 1.)*
+into [VERIFIED-FIXES.md](../VERIFIED-FIXES.md); the live state table is [RELEASE-PLAN.md](../RELEASE-PLAN.md) section 1.)*
 
 > **2026-10-03:** "the portable daily-driver install" here is the old folder in Downloads. The daily driver is now
 > `C:\Users\james\Games\Interstate76-2026-10-03` ([NEW-DAILY-DRIVER-RECIPE.md](NEW-DAILY-DRIVER-RECIPE.md)).
@@ -16,7 +16,7 @@ into [VERIFIED-FIXES.md](VERIFIED-FIXES.md); the live state table is [RELEASE-PL
 > (binaries/diff-9a232dcc-vs-6319abf7.tsv: .rdata run list), so no camera-rate patch is deployed." The rescaled
 > constant exists in the sandbox / lab only. The 2026-08-16 claim below was stated from intent, not from reading
 > the binary back. The free-look camera sites are now covered instead by the proxy's `I76_FRAMERATE_FIXES`
-> ([music-fix/README.md](../music-fix/README.md)), also sandbox-only.
+> ([music-fix/README.md](../../music-fix/README.md)), also sandbox-only.
 
 > **Must be at the physical console.** The 3D engine won't initialize over RDP, so every item in
 > section A needs you in front of the machine. Audio was left muted during the unattended work; unmute
@@ -59,7 +59,7 @@ screen only**, so the YES/NO click below cannot be tested with the mouse yet; ba
 ### A4 — Save-name typing (open question — please observe, don't assume a fix)
 *(Closed 2026-09-07, field-confirmed: the fault was two patched bytes in the pack-lineage `i76shell.dll`
 (`+0x1C12B`) that left ToAscii's output word uncleared, repaired by `tools\fix-shell-textentry.ps1` — not the
-message-queue path described below. See [SAVE-FREEZE-ROOT-CAUSE.md](SAVE-FREEZE-ROOT-CAUSE.md). Corrected 2026-10-02.)*
+message-queue path described below. See [SAVE-FREEZE-ROOT-CAUSE.md](../SAVE-FREEZE-ROOT-CAUSE.md). Corrected 2026-10-02.)*
 The name box is a **message-queue / focus** path (traced to `i76shell.dll+0x1D630`: a 64-entry ring buffer +
 `PeekMessageA(WM_KEYFIRST..WM_KEYLAST)` with its own `ToAscii` translation — *not* a slow poll, and untouched
 by the cursor proxy). Prediction: **it works cleanly when you type at human speed into a focused field**; my
@@ -125,7 +125,7 @@ sandbox only — no camera patch is on the portable, L004.)*
 
 ## A6 — Draw distance (NEW, 2026-08-16 — sandbox only, judge before deploying)
 
-**Cracked and verified unattended** — [DRAW-DISTANCE.md](DRAW-DISTANCE.md) has the full story. The
+**Cracked and verified unattended** — [DRAW-DISTANCE.md](../DRAW-DISTANCE.md) has the full story. The
 **sandbox** (`i76-uncap-lab\game`) is currently patched to **8000 m** (stock is 600; 12000 crashed
 even big pools) with the render pools enlarged 128× (the fix for the crash that capped it). Screenshots in
 `i76-uncap-lab\captures\farclip\` show the delta: fog-clipped mesa stubs → full mountain ranges.
@@ -153,7 +153,7 @@ the session that tests that.
 
 There is now a **third** claimant on the same events — the Mac's in-process shim, merged
 2026-09-06. It does not run here, but it decoded the same effect block and disagrees about
-one field. Read [FFB-STACKS.md](FFB-STACKS.md) before this session: it maps both stacks,
+one field. Read [FFB-STACKS.md](../FFB-STACKS.md) before this session: it maps both stacks,
 lists what they independently confirmed, and carries the pick-up notes for this box.
 
 ### Where the RPM/gear work is

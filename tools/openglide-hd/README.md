@@ -4,7 +4,7 @@ The patch series that turns [voyageur/openglide](https://github.com/voyageur/ope
 into **OpenGLide-HD**: hash-based texture dump/replace at arbitrary resolution —
 the only route past the engine's fixed texture dimensions (the dgVoodoo/ADDON
 pipeline is same-size "enhanced" only). Background and bring-up saga:
-[docs/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](../../docs/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md) §7.1.
+[docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](../../docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md) §7.1.
 
 What the patches add (~300 lines + vendored stb single-file libs):
 

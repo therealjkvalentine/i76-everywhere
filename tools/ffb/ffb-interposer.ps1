@@ -286,7 +286,7 @@ try {
     # dereferences its effect object WITHOUT null-checking it; our exclusive
     # acquisition kills that handle underneath it, and the next shot faults with
     # 0xC0000005 at I7_SFRCE.DLL+0x2505. Confirmed twice in the field 2026-08-04,
-    # and predicted in docs/FFB-LAPTOP-RECON.md before it ever happened.
+    # and predicted in docs/records/FFB-LAPTOP-RECON.md before it ever happened.
     #
     # Not made fatal: driving is unaffected and is most of the value here. But it
     # is impossible to miss, and the weapon channel is force-muted, because leaving

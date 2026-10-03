@@ -69,7 +69,7 @@ C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -Command "(Get-Process
 ```
 
 This is the same trap recorded in
-[FFB-LAPTOP-RECON.md](FFB-LAPTOP-RECON.md#the-false-negative-that-cost-the-most-time),
+[FFB-LAPTOP-RECON.md](records/FFB-LAPTOP-RECON.md#the-false-negative-that-cost-the-most-time),
 where it sent a search after a `LoadLibrary` failure that never happened. **Running
 from `SysWOW64` is the fix**, and it is simpler than the workaround used there
 (reading an exe-internal `GetProcAddress` result).

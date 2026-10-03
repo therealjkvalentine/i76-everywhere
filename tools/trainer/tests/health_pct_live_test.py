@@ -1,6 +1,6 @@
 """Live check of object_HealthFraction (0x40b450) under the I76_FIX_HEALTH_PCT variants, on the PLAYER's car.
 
-The target bracket's colour and length are pure functions of this value (docs/HEALTH-BAR-COLOUR.md), so a numeric
+The target bracket's colour and length are pure functions of this value (docs/records/HEALTH-BAR-COLOUR.md), so a numeric
 check of the value settles the bar. Reads health_pct from Local\\I76Telemetry (the proxy calls the function on the
 game thread each frame), pokes the player's armour sides and engine hp directly (tools/trainer/i76trainer.py's Game),
 then repairs through the trainer block.

@@ -35,7 +35,7 @@ and the last row looked truncated. The real record is `{u32 scene, name[32], fil
 `4 + 60k`; `python i76-save-editor.py --dir saves --list` and `node tools/tests/test-save-editor-dir.mjs saves/savegame.dir`
 now agree with the bytes.
 
-Which scene a bookmark *plays* depends on its state field (sandbox-verified 2026-10-01, `docs/SAVES-LEG-B-RUN-2026-10-01.md`):
+Which scene a bookmark *plays* depends on its state field (sandbox-verified 2026-10-01, `docs/records/SAVES-LEG-B-RUN-2026-10-01.md`):
 a post-mission save (state 1) plays scene+1; a save made from the garage (state 8) plays the scene as written. The
 scenes in the table are the stored dwords.
 
@@ -52,7 +52,7 @@ python3 i76-save-editor.py --dir saves --list
 ### save017 has a scene after all (correction, 2026-10-01)
 
 `save017` ("So Many Turrets") is the save the engine orphaned on 2026-07-19 and the launcher stub recovered
-byte-identically (`docs/SAVE-ORPHAN-INVESTIGATION.md`). This section used to say its index record had lost its
+byte-identically (`docs/records/SAVE-ORPHAN-INVESTIGATION.md`). This section used to say its index record had lost its
 scene dword to a "truncating write" and shipped as scene 0. There was no truncating write: the editor read the scene
 from the following record, and for the last record there is none. Under the real frame the record reads scene 15,
 the value the game wrote, and the directory is exactly 4 + 60 x 13 bytes plus the slack an older editor appended.

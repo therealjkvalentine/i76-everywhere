@@ -58,7 +58,7 @@ machine: 27 files, 1676 records, 100 % formula matches, 100 % round-trips).
     i.e. 32 bytes late, so every record's "cond/loc" (+96/+100) were really the NEXT record's
     node, the last record of each section looked "truncated" / "shifted by the count dword",
     and every cond/loc edit landed one record down. All July colour/location experiments
-    edited the wrong record and must be re-run (docs/SAVE-EDITOR-STATUS-2026-10-02.md).
+    edited the wrong record and must be re-run (docs/records/SAVE-EDITOR-STATUS-2026-10-02.md).
 
   savegame.dir
     u32 count, then count x 60-byte records at 4 + 60k:

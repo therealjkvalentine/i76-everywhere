@@ -9,7 +9,7 @@
 #                       the renderer's two fixed pools enlarged 16x in the same step. Keep it at or
 #                       below 2500: the hood view (F6) and binoculars (B) overflow the terrain
 #                       tessellator's 16-bit vertex indices between 2500 and 2750 m and crash the
-#                       game (docs/FARCLIP-CAMERA-CRASH.md); the proxy refuses values above 2500.
+#                       game (docs/records/FARCLIP-CAMERA-CRASH.md); the proxy refuses values above 2500.
 #   I76_TELEMETRY=1     UDP to 127.0.0.1:7676 + shared memory Local\I76Telemetry; watch it with
 #                       python tools\telemetry\i76tel.py (tools/telemetry/README.md).
 #

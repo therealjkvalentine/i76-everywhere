@@ -14,7 +14,7 @@ The assembly script `tools\Make-Daily-Driver.ps1` is a **draft: parsed, never ru
 > - **What went in** (answers open questions 2, 3, 4 and 9 in section 7): preset **`best-120`** (not `smooth-120`
 >   as decision 5 says); u32x lab build md5 **`054fb411`** (not the repo's `a5927cea`; gated 2026-10-02/03: leg-b
 >   3/3, trip route 120 fps, save screen, Esc-menu Exit, melee); the repo's `Strlkup.dll`; the conf
->   [`dgVoodoo.daily-driver-2026-10-03.conf`](../dgVoodoo.daily-driver-2026-10-03.conf); `I76PATCH.DLL` disabled.
+>   [`dgVoodoo.daily-driver-2026-10-03.conf`](../../dgVoodoo.daily-driver-2026-10-03.conf); `I76PATCH.DLL` disabled.
 > - **Section 1.2's worry did not hold: the driver's conf was accepted by dgVoodoo.** Only the lab sandbox's conf
 >   was being rejected. The new conf is the owner's own with three changes (`FPSLimit` 19.2 -> 0, 2x internal
 >   resolution, 4x MSAA) and was verified on the twin with the global `%APPDATA%` file hidden.

@@ -359,7 +359,7 @@ function dpsText(w){
    +0x4c full condition, +0x50 f32 weight). STATE: 1 mounted on the car (one record per
    equipped name), 2 in the van (V), 3 queued for repair (R), 4 dropped = field salvage (S).
    Until 2026-10-02 this page framed records name-first (32 bytes late), so every cond/state it
-   showed or wrote belonged to the NEXT record - see docs/SAVE-EDITOR-STATUS-2026-10-02.md. */
+   showed or wrote belonged to the NEXT record - see docs/records/SAVE-EDITOR-STATUS-2026-10-02.md. */
 const td=new TextDecoder("latin1");
 function cstr(u8,a,n){const s=u8.subarray(a,a+n);const z=s.indexOf(0);return td.decode(z<0?s:s.subarray(0,z));}
 function u32(dv,o){return dv.getUint32(o,true)}

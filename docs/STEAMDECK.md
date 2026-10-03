@@ -39,7 +39,7 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > runs the same AutoHotkey pad layer as the Mac and Windows builds inside the Proton prefix —
 > which is what brings **rumble**, the LB shift layer, independent triggers and the look-back rear
 > gun to the Deck. It trades away the trackpad radial menu and the grip buttons. Deploy with
-> `./deck/deck-push.sh`; recipe, decode sheet and rollback in **[DECK-BASELINE.md](DECK-BASELINE.md)**.
+> `./deck/deck-push.sh`; recipe, decode sheet and rollback in **[DECK-BASELINE.md](records/DECK-BASELINE.md)**.
 > Not yet field-tested on Deck hardware.
 
 ## Controller layout (installed as a template — apply once)
@@ -192,7 +192,7 @@ The Deck has no built-in FFB, but **dock a USB force-feedback wheel** and it wor
    via Heroic → Winetricks → `regedit`, or `protontricks`, or our
    [`enable-force-feedback.bat`](../enable-force-feedback.bat) run in the prefix.
    *(2026-07-19 disassembly note: the Gold `i76.exe` FFB init is unconditional — no registry gate
-   was found in the binary ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) §2). The community rename step is
+   was found in the binary ([FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md) §2). The community rename step is
    likely harmless cargo cult on Gold; keep doing it until a Deck run confirms, since it costs
    nothing. Actual requirements: `i7_sfrce.dll` beside the exe + an FFB device present at launch.)*
 2. Plug the wheel in **before launching** (winmm enumerates at startup).
@@ -244,7 +244,7 @@ The cross-platform two-tier directive from that handoff shipped as
   game's internal 640×480 cursor, not the input method. Candidates: gamescope scaling flags
   (`-w/-h/-W/-H`, `--force-grab-cursor`), a dgVoodoo cursor option, or matching the in-game
   resolution. Low priority (d-pad + A covers menus). Three-cursor analysis:
-  [DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md).
+  [DECK-INPUT-SCIENCE.md](records/DECK-INPUT-SCIENCE.md).
 - **Untested / beta**: the Option 2 "Racing" template (triggers = gas/brake) has never been
   user-tried; `deck/deck-install.sh` has never run end-to-end on a fresh Deck (watch:
   innoextract 1.9 may choke on GOG's Inno Setup 6.3 repacks — ship a static build from master

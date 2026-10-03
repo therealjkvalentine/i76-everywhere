@@ -9,7 +9,7 @@
 > here is correct. See [README.md](README.md).
 >
 > **Memory-RE update 2 (2026-07-19) — the Mac verdict below is OVERTURNED.**
-> Full disassembly of the FFB subsystem ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md))
+> Full disassembly of the FFB subsystem ([FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md))
 > found it is a **plugin architecture**: the exe computes a fully-mapped
 > 364-byte force-state block (engine, speed, terrain, skids, weapon fire,
 > steering-kick vector, impact events with direction+damage) EVERY sim tick

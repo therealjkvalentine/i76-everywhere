@@ -8,7 +8,7 @@
 
 The Strlkup proxy (`music-fix/strlkproxy.c`, section "TELEMETRY EXPORT") publishes the player's state once per
 rendered frame, plus an event stream, so FFB / motion / logging tools stop scanning process memory
-(`docs/FFB-DATA-AUDIT.md` section 4.2 and row 8 of section 6). Three files:
+(`docs/records/FFB-DATA-AUDIT.md` section 4.2 and row 8 of section 6). Three files:
 
 | file | role |
 |---|---|
@@ -31,7 +31,7 @@ use), repoints two call sites and detours two function entries (below), loads `w
 mapping. Works alongside every other `I76_*` option; it reads the fixed-step accumulator when `I76_FIXED_STEP` is on
 so `step_count` is exact there.
 
-Test on the sandbox copy, not the daily-driver install (`docs/FFB-DATA-AUDIT.md` section 6).
+Test on the sandbox copy, not the daily-driver install (`docs/records/FFB-DATA-AUDIT.md` section 6).
 
 ## What is published, and when
 

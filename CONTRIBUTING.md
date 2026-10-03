@@ -46,7 +46,7 @@ Two standing exceptions, so the rule above is not read as contradicting the tree
 
 ## Good first contributions
 
-- **Test an untested claim.** Anything tagged research/untested — the [phone-port playbook](docs/PHONE-PORTS.md),
+- **Test an untested claim.** Anything tagged research/untested — the [phone-port playbook](docs/records/PHONE-PORTS.md),
   the BETA `mac-install.command` — needs someone with the hardware to confirm or correct it.
 - **Port a fix across platforms.** A working Mac/Deck fix that isn't yet documented for the others.
 - **Format research.** Extend the save/texture format notes, or the `texture-lab/` encoders.

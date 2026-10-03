@@ -150,7 +150,7 @@ static int g_tex_pos;        /* looping cursor into it */
 #define R_LAND_MAX     0.85f  /* landing thump ceiling, scaled by speed (LEFT) */
 #define R_BLOWOUT      0.70f  /* tire-blowout jolt (LEFT) */
 #define R_IMPACT_NORM  220.0f /* impact magnitude -> 0..1 divisor */
-/* ERM-motor shaping (docs/SIM-RUMBLE-RESEARCH.md): the bottom ~30% of a rumble
+/* ERM-motor shaping (docs/records/SIM-RUMBLE-RESEARCH.md): the bottom ~30% of a rumble
  * motor's range isn't felt, so an ACTIVE event is lifted above this dead-zone
  * (Min Force); gentle inputs are gamma-2 curved so cruising stays calm and real
  * events pop; motors take the MAX of their effects each frame, never the SUM. */
@@ -337,7 +337,7 @@ static float impacts(IMPACT_NODE *n, float base, float k, const char *tag)
 }
 
 /* Turn a raw 0..1 effect STRENGTH into the motor level you'll actually FEEL,
- * through the sim-tactile chain (docs/SIM-RUMBLE-RESEARCH.md):
+ * through the sim-tactile chain (docs/records/SIM-RUMBLE-RESEARCH.md):
  *   Threshold (dead-band: silent until it matters — stops the floor firing on
  *   noise) -> rescale -> Gamma-2 (gentle stays gentle, events pop) -> Min-Force
  *   (lift above the ERM dead-zone so an active event is FELT the frame it fires).

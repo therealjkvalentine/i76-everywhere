@@ -55,10 +55,10 @@ drop-down). The default, `stock`, sets nothing.
 | `lab-all` | smooth-60-bugfixes + `I76_FAR_CLIP=1800 I76_TELEMETRY=1` (TEST-FRAMERATE mode 5) | [console-verified 2026-10-02, sandbox] n = 1 |
 
 **State on 2026-10-03:** a new daily driver was built by `tools\Make-Daily-Driver.ps1` with `best-120` as its
-preset ([docs/NEW-DAILY-DRIVER-RECIPE.md](docs/NEW-DAILY-DRIVER-RECIPE.md),
-[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md) last section). The other presets remain experimental
+preset ([docs/records/NEW-DAILY-DRIVER-RECIPE.md](docs/records/NEW-DAILY-DRIVER-RECIPE.md),
+[docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md) last section). The other presets remain experimental
 until the A/B in [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. 120 fps is the ceiling of every
-renderer tested ([docs/RENDERER-ALTERNATIVES.md](docs/RENDERER-ALTERNATIVES.md) section 11). Two things have to
+renderer tested ([docs/records/RENDERER-ALTERNATIVES.md](docs/records/RENDERER-ALTERNATIVES.md) section 11). Two things have to
 be true for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
 (the launcher compares it and tells you to run `setup-windows.ps1` if not; it copies nothing), and
 GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so;
@@ -75,7 +75,7 @@ installs the earlier 20 fps recipe instead. Evidence: the apply step was run on 
 daily driver's newer `054fb411`, which is not in this repo. Details and the full not-tested list:
 [INSTALL.md, Evidence](INSTALL.md#evidence-what-was-tested).
 Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz analysis:
-[docs/FPS-120.md](docs/FPS-120.md).
+[docs/records/FPS-120.md](docs/records/FPS-120.md).
 
 **Multiplayer is untested with any preset other than `stock`** (backlog P3-20): the fixed step and the
 interpolation change when the simulation advances, and nobody has run two machines against each other with
@@ -88,10 +88,10 @@ achieved: both copies need UDP port 21157, and the internet transport wants a ga
 There is no backlog table in this README any more (the one that stood here was a 2026-08-16 snapshot and kept
 going stale). The live lists:
 
-- **[docs/BACKLOG-2026-10-02.md](docs/BACKLOG-2026-10-02.md)**: every open problem and unknown in one prioritised
+- **[docs/records/BACKLOG-2026-10-02.md](docs/records/BACKLOG-2026-10-02.md)**: every open problem and unknown in one prioritised
   table (P1 normal play, P2 the 60 fps experience, P3 release hygiene, P4 RE completeness), each row with its
   evidence state, what resolving it needs, and the cheapest next step.
-- **[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md)**: what the 2026-10-02 session built (with a
+- **[docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md)**: what the 2026-10-02 session built (with a
   2026-10-03 section for the new daily driver), how each item was verified, and what was left open or withdrawn.
 - [docs/REPO-ORGANIZATION-PROPOSAL.md](docs/REPO-ORGANIZATION-PROPOSAL.md): a proposed tidier layout for this
   repo (nothing moved yet).
@@ -100,9 +100,9 @@ going stale). The live lists:
 
 The topics the old table covered, and where each lives now: saving / popups / menu mouse
 ([docs/SAVE-FREEZE-ROOT-CAUSE.md](docs/SAVE-FREEZE-ROOT-CAUSE.md), [u32x/README.md](u32x/README.md),
-[docs/SHELL-MENU-AND-SAVE-FREEZE.md](docs/SHELL-MENU-AND-SAVE-FREEZE.md)); force feedback with wheel and bass
+[docs/records/SHELL-MENU-AND-SAVE-FREEZE.md](docs/records/SHELL-MENU-AND-SAVE-FREEZE.md)); force feedback with wheel and bass
 shakers ([tools/ffb/README.md](tools/ffb/README.md), backlog P3-17); draw distance and texture LOD
-([docs/DRAW-DISTANCE.md](docs/DRAW-DISTANCE.md), [docs/FARCLIP-CAMERA-CRASH.md](docs/FARCLIP-CAMERA-CRASH.md)).
+([docs/DRAW-DISTANCE.md](docs/DRAW-DISTANCE.md), [docs/records/FARCLIP-CAMERA-CRASH.md](docs/records/FARCLIP-CAMERA-CRASH.md)).
 
 ## The gamepad layout
 
@@ -137,7 +137,7 @@ swaps with **measured DPS + range** on every weapon (data: Local Ditch), scene s
 ("Scene № on a diner check"), save-as-slot, delete/restore. The save format follows the
 game's own writer (`.py` docstring; `docs/SAVE-FORMAT-GAPS.md`); both editors round-trip every
 sample save byte for byte and stay in lockstep (`python -m pytest tests/`). Status and the
-open in-game checks: `docs/SAVE-EDITOR-STATUS-2026-10-02.md`.
+open in-game checks: `docs/records/SAVE-EDITOR-STATUS-2026-10-02.md`.
 
 ## Highlights under the hood
 

@@ -31,7 +31,7 @@ mediates the debug API through wineserver rather than macOS ptrace.
 
 What CE would still have given us is its polished successive-scan UI — and the
 debug menu's **F10 scan** now covers that workflow natively (see
-[DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md)).
+[DEBUG-MENU-FIELD-TEST.md](records/DEBUG-MENU-FIELD-TEST.md)).
 
 ## Status — installed and RUNNING (2026-07-19)
 

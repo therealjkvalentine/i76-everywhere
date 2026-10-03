@@ -6,7 +6,7 @@ skid/slide/airborne/oil flags, per-hardpoint weapon fire, steering-kick force
 vector, tire status, and impact events with direction + damage) and hands it to
 `i7_SFRCE.DLL` — a tiny DLL with **three stdcall exports** that is the only
 thing in the game that touches DirectInput. Full reverse-engineering record:
-[docs/FFB-DEEP-DIVE.md](../docs/FFB-DEEP-DIVE.md) → distilled in
+[docs/records/FFB-DEEP-DIVE.md](../docs/records/FFB-DEEP-DIVE.md) → distilled in
 [docs/MEMORY-MAP-INDEX.md](../docs/MEMORY-MAP-INDEX.md).
 
 This shim **replaces** that DLL. The game then:
@@ -29,7 +29,7 @@ and the shim:
   `C:\AutoHotkey\ffb-events.txt`;
 - **sends the same telemetry as UDP** to `127.0.0.1:17676` every tick — the
   bridge to home motion-sim receivers (SimTools/SimHub) and their built-in
-  axis visualizers. See [docs/MOTION-SIM.md](../docs/MOTION-SIM.md).
+  axis visualizers. See [docs/records/MOTION-SIM.md](../docs/records/MOTION-SIM.md).
 
 Ways to view the stream (all no-rig):
 
@@ -45,7 +45,7 @@ field runs are in the git log for this folder the same and next day — `25d3033
 `4cbc4d4` "impact nodes are FLOATS (was pinning the motor after collisions)", `fe86069` "rework from field feel",
 `f762b89` "narrated-drive rework", `579ce0f` "much lower engine idle" — every one a change made from a live
 drive, and [docs/FFB-STACKS.md](../docs/FFB-STACKS.md) records the same status ("field-run and tuned on the
-Mac over 2026-07-19/20"). Tuning sheet: [docs/FFB-MORNING-TEST.md](../docs/FFB-MORNING-TEST.md). Still true: it
+Mac over 2026-07-19/20"). Tuning sheet: [docs/records/FFB-MORNING-TEST.md](../docs/records/FFB-MORNING-TEST.md). Still true: it
 has only ever run on the Mac, and wheel / shakers / pad have never run together (FFB-STACKS point 3).
 
 ## Build (no binaries in the repo — same rule as smack-music-fix)

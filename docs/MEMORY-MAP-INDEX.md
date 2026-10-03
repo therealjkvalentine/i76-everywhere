@@ -3,8 +3,8 @@
 *Read this FIRST. This is the reconciled result of the 2026-07-18 multi-thread
 reverse-engineering push (static disassembly + live process reads, several
 parallel sessions). The raw session logs live in
-[GHIDRA-MEMORY-MAP.md](GHIDRA-MEMORY-MAP.md) (PARTs 1–13b) and
-[STATIC-RE-FABLE.md](STATIC-RE-FABLE.md) (§1–12) — they contain intermediate
+[GHIDRA-MEMORY-MAP.md](records/GHIDRA-MEMORY-MAP.md) (PARTs 1–13b) and
+[STATIC-RE-FABLE.md](records/STATIC-RE-FABLE.md) (§1–12) — they contain intermediate
 claims that were later corrected; where this file and a PART/§ disagree, THIS
 file wins. Machine-readable map: `tools/i76-addresses.json`.*
 
@@ -45,7 +45,7 @@ combat ints mutate on tick boundaries, so correlate actions to deltas by ticks.
 | 0x52bbd0 | int | FFB present flag (1 only if i7_SFRCE.DLL init succeeded at boot) | ✓ live (0 on Mac without the shim) |
 | 0x52bbcc | handle | private Win32 heap for FFB impact-event nodes (HeapCreate(0,0,0) — the old "FFB object ptr" label was wrong) | disasm |
 | 0x52bbdc / e0 / e4 | ptr | I7FF_InitSystem / ExitSystem / SIM_Effect fn ptrs from the DLL | disasm |
-| 0x4f2328 | 364 B | FFB force-state block, filled EVERY sim tick by ffb_tick 0x445ba0 whenever the flag is 1 — full field map in [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) | disasm (deep-dived 2026-07-19) |
+| 0x4f2328 | 364 B | FFB force-state block, filled EVERY sim tick by ffb_tick 0x445ba0 whenever the flag is 1 — full field map in [FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md) | disasm (deep-dived 2026-07-19) |
 | 0x541070 | table | DirectPlay MP player table (16×0x48, veh ptr @+0x28) | ✓ live-zero in SP — MP only |
 
 **CORRECTION 2026-08-04 — weapon fire is `0x5367d0`, not `0x5367db`.** Measured
@@ -260,7 +260,7 @@ offset — need drive-correlation ("which 3 floats move together").
   dead (dead end #8). Production plan: opentrack/webcam → UDP → writer at
   frame rate; the trainer's F7 sweep is the proof-of-life.
 - **Rumble that reads the game** — SOLVED at the architecture level
-  (2026-07-19, [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md)): the FFB plugin DLL
+  (2026-07-19, [FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md)): the FFB plugin DLL
   `i7_SFRCE.DLL` receives a fully-mapped 364-byte force-state block every sim
   tick (engine/speed/terrain/skid/weapon-fire/steering-kick/impact events
   with direction+damage). `../ffb-shim/` is a drop-in replacement that
@@ -272,7 +272,7 @@ offset — need drive-correlation ("which 3 floats move together").
   the standard home-rig receivers (SimTools/SimHub), whose axis-testers are the
   visualizer. The force vector gives surge+sway today; true heave/roll/pitch/yaw
   want a memory reader for the entity transform (Tier 2). Full plan, honest
-  gaps, and the wheel-torque reality (Windows-only): [MOTION-SIM.md](MOTION-SIM.md).
+  gaps, and the wheel-torque reality (Windows-only): [MOTION-SIM.md](records/MOTION-SIM.md).
 - **Smarter music** — read 0x524674 to know exactly when the engine thinks
   music plays (replaces launcher inference). Volume: the engine feeds
   `auxSetVolume` (0x424ba2) from the Music Level setting to device
@@ -334,7 +334,7 @@ offset — need drive-correlation ("which 3 floats move together").
 4. **+0x108 vs +0x10c reconciliation** — cheap: read both, diff the targets.
 5. **Music Level global** — unlocks live volume set.
 6. **Gauge-table static root** — a second, independent chain to ammo.
-7. **FFB leftovers** ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md) §6): surface-id →
+7. **FFB leftovers** ([FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md) §6): surface-id →
    I7_* terrain-name order; hardpoint gain/freq scales; what [veh+0xe4]
    really is (steer input vs lateral slip) — all answerable from the shim's
    telemetry in one field run.
@@ -343,10 +343,10 @@ offset — need drive-correlation ("which 3 floats move together").
 
 | tool | purpose | status |
 |---|---|---|
-| `tools/i76-debugmenu.ahk` + `debugmenu.sh` | **the debug menu**: live table of every inventory record (cur/max) + the armor-candidate grids; double-click = edit, checkbox = FREEZE (entity-relative, relocation-proof); `*` marks rows that just changed and every change auto-logs in the prefix (`debugmenu.sh --fetch`); F6 rearm-all. Field-test sheet: [DEBUG-MENU-FIELD-TEST.md](DEBUG-MENU-FIELD-TEST.md) | built 2026-07-19, NOT yet field-run |
-| `../ffb-shim/` | fake i7_SFRCE.DLL: activates the game's FFB path with no DI device, receives the per-tick force stream, drives XInput rumble + telemetry files + UDP ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md)) | field-run and tuned on the Mac 2026-07-19/20; never run on Windows |
+| `tools/i76-debugmenu.ahk` + `debugmenu.sh` | **the debug menu**: live table of every inventory record (cur/max) + the armor-candidate grids; double-click = edit, checkbox = FREEZE (entity-relative, relocation-proof); `*` marks rows that just changed and every change auto-logs in the prefix (`debugmenu.sh --fetch`); F6 rearm-all. Field-test sheet: [DEBUG-MENU-FIELD-TEST.md](records/DEBUG-MENU-FIELD-TEST.md) | built 2026-07-19, NOT yet field-run |
+| `../ffb-shim/` | fake i7_SFRCE.DLL: activates the game's FFB path with no DI device, receives the per-tick force stream, drives XInput rumble + telemetry files + UDP ([FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md)) | field-run and tuned on the Mac 2026-07-19/20; never run on Windows |
 | `tools/i76-ffb-monitor.ahk` | in-prefix overlay of the FFB stream (motor bars, force channels, flags, impacts) — the "watch it while driving" viewer | built 2026-07-19, NOT yet field-run |
-| `tools/ffb-udp-listen.py` | UDP telemetry listener: live dashboard / `--raw` / `--csv`; proves the wire, stands in for SimHub ([MOTION-SIM.md](MOTION-SIM.md)) | wire-verified loopback |
+| `tools/ffb-udp-listen.py` | UDP telemetry listener: live dashboard / `--raw` / `--csv`; proves the wire, stands in for SimHub ([MOTION-SIM.md](records/MOTION-SIM.md)) | wire-verified loopback |
 | `tools/gpw-envelopes.py` | sound→rumble table generator: decodes every .gpw effect (GAS0+WAVE), emits windowed-RMS envelopes (0-100) for the AHK rumble layer; output gitignored | run end-to-end (123 envelopes), integration pending |
 | `tools/i76-rearm.ahk` | repair+rearm via the Tier 3 chain (F5 view / F6 write) | field-tested |
 | `tools/i76-worldscan.ahk` | enumerate all vehicles via the Tier 4 table | field-tested |
@@ -361,7 +361,7 @@ offset — need drive-correlation ("which 3 floats move together").
 Method references: [RE-METHODOLOGY.md](RE-METHODOLOGY.md) (scan/watchpoint
 discipline), [RE-FIELD-GUIDE.md](RE-FIELD-GUIDE.md) +
 [RE-RESOURCES.md](RE-RESOURCES.md) (cited canon),
-[MW2-I76-STRUCTS.md](MW2-I76-STRUCTS.md) (file-format/struct shapes),
+[MW2-I76-STRUCTS.md](records/MW2-I76-STRUCTS.md) (file-format/struct shapes),
 [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md) (save ↔ screen reconciliation),
 [SCOPE-AND-LEGITIMACY.md](SCOPE-AND-LEGITIMACY.md) (why this is fine).
 
@@ -399,7 +399,7 @@ player entity at `+0x70`, so that is the per-event path.
 Inside the block, base `+0x030`, **stride `0x1C`**, six slots. Two independent
 routes reached this structure and agree on its shape: measured live from outside
 by `tools/ffb/ffb-watch-effects.ps1` (Windows), and disassembled out of
-`i7_sfrce.dll` itself to build the shim ([FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md),
+`i7_sfrce.dll` itself to build the shim ([FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md),
 Mac). They are one record per **hardpoint**, not per generic effect.
 
 | field | live observation | name from the DLL disasm |
@@ -434,7 +434,7 @@ in 0.1 s bursts (rapid fire).
 **Mind the field widths on the impact list.** Its nodes store direction and
 magnitude as **floats**, not ints — a shim that read them as ints turned a
 50-damage hit into ~1e9 and pinned the motor (live-confirmed 2026-07-20). Full
-node layout in [FFB-DEEP-DIVE.md](FFB-DEEP-DIVE.md).
+node layout in [FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md).
 
 **Why this beats the input flag at `0x5367d0`:** it is what the engine *decided*,
 after input handling, weapon logic, ammo and damage rules have run. An input byte

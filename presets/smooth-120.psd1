@@ -1,5 +1,5 @@
 #
-# smooth-120 - smooth-60-bugfixes with the Glide window opened at 120 Hz (docs/FPS-120.md).
+# smooth-120 - smooth-60-bugfixes with the Glide window opened at 120 Hz (docs/records/FPS-120.md).
 #
 #   (everything in smooth-60-bugfixes.psd1, same values)
 #   I76_GLIDE_REFRESH=120   ZGLIDE.DLL opens its window with grSstWinOpen(..., GR_REFRESH_60Hz, ...)

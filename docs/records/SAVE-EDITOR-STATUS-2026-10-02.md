@@ -1,7 +1,7 @@
 # Save editor status, 2026-10-02
 
 *What works, what is verified byte-exact, what still needs the game. Companion to
-[SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md) (the format) and [EDITOR-FIELD-TESTS.md](EDITOR-FIELD-TESTS.md)
+[SAVE-FORMAT-GAPS.md](../SAVE-FORMAT-GAPS.md) (the format) and [EDITOR-FIELD-TESTS.md](../EDITOR-FIELD-TESTS.md)
 (the in-game checklist). Written on the worktree branch after the audit requested by the owner.*
 
 ## The audit in one paragraph

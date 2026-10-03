@@ -21,13 +21,13 @@ play; **parked** = settled dead end; **research** = documents only.
 >   (golden copy `...\Interstate76-golden-2026-10-03`) on 2026-10-03: repo `Strlkup.dll`, u32x lab build `054fb411`,
 >   `dgVoodoo.daily-driver-2026-10-03.conf`, preset `best-120`, `I76PATCH.DLL` disabled. "Daily driver" in the rows
 >   below means the old folder in Downloads, which is now the rollback
->   ([STATUS-2026-10-02.md](STATUS-2026-10-02.md) "2026-10-03", [NEW-DAILY-DRIVER-RECIPE.md](NEW-DAILY-DRIVER-RECIPE.md)).
+>   ([STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) "2026-10-03", [NEW-DAILY-DRIVER-RECIPE.md](records/NEW-DAILY-DRIVER-RECIPE.md)).
 >   So the "60 fps proxy switches", "draw distance" and "sandbox only" statuses no longer hold for the owner's machine.
 > - **Every "this dgVoodoo knob does nothing" result from the lab sandbox is void.** dgVoodoo 2.87.3 was rejecting
 >   the sandbox's `dgVoodoo.conf` and running a 2020 global `%APPDATA%` file, so `FPSLimit`, `CaptureMouse`,
 >   `FreeMouse`, forced refresh and the 1920x1440 pointer box were never tested. The owner's daily-driver conf was
->   accepted. [GRAPHICS-ENHANCEMENT.md](GRAPHICS-ENHANCEMENT.md) "Measured 2026-10-03",
->   [RENDERER-ALTERNATIVES.md](RENDERER-ALTERNATIVES.md) section 11.
+>   accepted. [GRAPHICS-ENHANCEMENT.md](records/GRAPHICS-ENHANCEMENT.md) "Measured 2026-10-03",
+>   [RENDERER-ALTERNATIVES.md](records/RENDERER-ALTERNATIVES.md) section 11.
 > - **120 fps** (`I76_GLIDE_REFRESH=120`) is measured (120.1 fps) and owner-played; 120 is the ceiling of every
 >   renderer tested.
 > - `I76_MULTI_INSTANCE=1` (proxy, 2026-10-03): two lab copies ran side by side; a multiplayer session between
@@ -62,7 +62,7 @@ play; **parked** = settled dead end; **research** = documents only.
 | Steam Deck | `deck/deck-install.sh` (innoextract + dgVoodoo 2.78.2 from archive.org), controller template, artwork | verified installed 2026-07-11 (Glide path + FFB) | QAM limiter 20 is the documented cap; proxy untested under Proton |
 | HD textures | `texture-lab/`, `tools/i76img.py`, `tools/openglide-hd/` | **retired** (night palette artefacts); M16/VQM format crack kept | |
 | Voodoo (Glide->Metal) on Mac | `docs/VOODOO-PARKED.md` | **parked** (MoltenVK pipeline persistence) | |
-| Phone ports | `docs/PHONE-PORTS.md` | research only | |
+| Phone ports | `docs/records/PHONE-PORTS.md` | research only | |
 | **i76-map**: subsystem specs | `subsystems/*.md` (15 files: ai, camera, cheats, damage, engine, framerate, mission, network, options, physics, renderer, simclock, sound, weapons, VOCABULARY) | static specs; 2,193/2,217 functions named (REIMPLEMENTATION.md) | every claim cites an instruction; live confirmation partial (capture 014, HealthFraction live) |
 | **i76-map**: runtime header | `types/i76_runtime.h` (1,300 lines, 42 structs, 126 static offset checks, MSVC `/W4` clean), `types/i76.h` (Ghidra) | built; 15-claim disassembly sample 14 confirmed (`i76_runtime-conflicts.md`) | |
 | **i76-map**: format parsers | `data/fmt/` (`roundtrip.py`: 6,368 files, 526 MB, 0 byte diffs), `data/FORMATS.md`, `FORMATS-tables.md` | verified byte-exact | `DATABASE.MW2`, `.pcx`, `.fnt` still typed/unknown |
@@ -256,7 +256,7 @@ Numbers from `docs/VERIFIED-FIXES.md`, `music-fix/README.md`, `CHANGELOG.md`, un
 | Frame-rate bugs fixed at 60 fps (sky, free-look, zoom, throttle ramp, lock tones, radar ping, vehicle sounds, AI throttle/steer, AI fire rate, flamers, smoke, missile trails, HUD digits) | **experimental** (same preset, `I76_FRAMERATE_FIXES`) | clouds 0.0300/s at 60 fps = 20 fps value (stock 0.0899); smoke puffs 19.1 steps/s (stock 57.8); flame stream 18.7 segments at 60 fps (stock 60 fps 0.6: "in effect no flamers"); AI yes-fire decisions 1.2-1.9/weapon-s with hold vs 4.9-5.2 stock 60 (n=2); AI throttle chatter 26.2 stock -> 5.3 with clock+fixed step (n=3) |
 | Exact dt (hires clock) | **experimental** | dt 50.00 ms at 20 fps, 16/17 ms at 60 (stock: 47/63 ms jitter from 15.6 ms GetTickCount) |
 | Exact 20 fps cap without I76PATCH (`I76_FPS_CAP=20`) | sandbox, measured | held 20.0 fps exactly |
-| Vehicle health % bug fix (`I76_FIX_HEALTH_PCT`) | verified live in sandbox, **off by default** (missions may be tuned around the bug); revised 2026-10-02 to min(28 + 72 x side, 100 x core) after the target bar rose on scratched cars (docs/HEALTH-BAR-COLOUR.md); revision measured live 2026-10-02 (`tools/trainer/tests/health_pct_live_test.py`: stock 0.99 / x100-only 99.0 / min() 49.6 on a 30% armour car with a 99% engine); `=2` keeps the x100-only reading for A/B | 99% engine: stock = heaviest smoke, fixed = none; 50%: smoke |
+| Vehicle health % bug fix (`I76_FIX_HEALTH_PCT`) | verified live in sandbox, **off by default** (missions may be tuned around the bug); revised 2026-10-02 to min(28 + 72 x side, 100 x core) after the target bar rose on scratched cars (docs/records/HEALTH-BAR-COLOUR.md); revision measured live 2026-10-02 (`tools/trainer/tests/health_pct_live_test.py`: stock 0.99 / x100-only 99.0 / min() 49.6 on a 30% armour car with a 99% engine); `=2` keeps the x100-only reading for A/B | 99% engine: stock = heaviest smoke, fixed = none; 50%: smoke |
 | Object-label table fix for huge custom missions (`I76_FIX_LABEL_TABLE`) | verified with forced capacity 16 | T01 grew 16 -> 272, 88/88 labels kept |
 | In-mission music on a machine with no optical drive; in-game volume slider works | **verified, deployed** | engine state `0x524674` 0 -> 1, MCI handle `0xC0DE`; `auxSetVolume -> 700/1000` |
 | Cutscene music no longer bleeds over FMVs | verified (Mac, by ear); Windows built, not deployed | 39 ordinal-exact exports; ~1 s residue on in-engine fades accepted |
@@ -288,18 +288,18 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | keep | fold in / retire | why |
 |---|---|---|
 | `docs/LEGITIMACY-AND-SCOPE.md` | `docs/SCOPE-AND-LEGITIMACY.md` | same content, written a day apart; `docs/README.md` links both |
-| `docs/MAC-BUILD.md` | `docs/MAC-SETUP.md` (handoff brief, 2026-07-04) | MAC-SETUP describes a package (`i76-stable-gog.zip`, `I76_CD1.ISO`) that must not be referenced publicly |
-| `docs/WINDOWS-PLAYBOOK.md` | `docs/MODERN-SETUP.md`, `docs/WHAT-THIS-IS-dgvoodoo.txt`, `docs/i76-research-full.txt` | pre-July notes; the playbook supersedes them |
+| `docs/MAC-BUILD.md` | `docs/records/MAC-SETUP.md` (handoff brief, 2026-07-04) | MAC-SETUP describes a package (`i76-stable-gog.zip`, `I76_CD1.ISO`) that must not be referenced publicly |
+| `docs/WINDOWS-PLAYBOOK.md` | `docs/records/MODERN-SETUP.md`, `docs/records/WHAT-THIS-IS-dgvoodoo.txt`, `docs/records/i76-research-full.txt` | pre-July notes; the playbook supersedes them |
 | `music-fix/README.md` (switch table) + `docs/MUSIC.md` (diagnosis) | the "NOT YET BUILT", "needs 32-bit gcc", "Not yet observed: MCI_PLAY" paragraphs inside `music-fix/README.md` | the DLL has been built and `MCI_PLAY` was observed (MUSIC.md); the README now contradicts itself top to bottom. Rewrite as: what it does, switches, build, history link |
-| `docs/VERIFIED-FIXES.md` | `docs/READY-TO-TEST.md` | READY-TO-TEST is a dated checklist (2026-08-16); its camera-rate "deployed" claim was corrected in place on 2026-10-01 (L004) and its other stale items on 2026-10-02. Still slated: close its items into VERIFIED-FIXES rows and delete |
+| `docs/VERIFIED-FIXES.md` | `docs/records/READY-TO-TEST.md` | READY-TO-TEST is a dated checklist (2026-08-16); its camera-rate "deployed" claim was corrected in place on 2026-10-01 (L004) and its other stale items on 2026-10-02. Still slated: close its items into VERIFIED-FIXES rows and delete |
 | `README.md` "Open improvements" table | the whole table | it is a 2026-08-16 status snapshot (u32x "awaiting verification", FFB "never run together"); release README has no live backlog |
-| `CHANGELOG.md` "Unreleased" | its first bullet ("raising the real frame rate is plausible... nothing field-tested") | done 2026-10-01: the bullet carries the superseding update (`CHANGELOG.md` "2026-10-01 update") and `docs/FRAMERATE-UNCAP-RESEARCH.md` its superseded header; close in v1.1.0 (backlog P3-06) |
-| uncap-lab `docs/framerate/README.md` | `docs/MODERN-SETUP.md` "20 FPS... above ~30 FPS the sim over-integrates" and `WINDOWS-PLAYBOOK.md` section 1 point 4 "Do not raise it" | measured false (gravity dt-correct, jump clears at 60); the playbook still teaches the lore as fact |
+| `CHANGELOG.md` "Unreleased" | its first bullet ("raising the real frame rate is plausible... nothing field-tested") | done 2026-10-01: the bullet carries the superseding update (`CHANGELOG.md` "2026-10-01 update") and `docs/records/FRAMERATE-UNCAP-RESEARCH.md` its superseded header; close in v1.1.0 (backlog P3-06) |
+| uncap-lab `docs/framerate/README.md` | `docs/records/MODERN-SETUP.md` "20 FPS... above ~30 FPS the sim over-integrates" and `WINDOWS-PLAYBOOK.md` section 1 point 4 "Do not raise it" | measured false (gravity dt-correct, jump clears at 60); the playbook still teaches the lore as fact |
 | `ffb-shim/README.md` status line | `docs/README.md` row for ffb-shim | resolved 2026-10-01: the shim README now says field-run and tuned on the Mac 2026-07-19/20, matching the doc map; what remains open is "never run on Windows / with the wheel" (backlog P3-18) |
 | `docs/README.md` (doc map) | its "Current state (2026-07-11)" block | three months stale; regenerate from the section 1 table |
 | `THIRD-PARTY.md` dgVoodoo row | `install.ps1` (fetches 2.87.3 from GitHub), `deck-install.sh` (2.78.2 from archive.org), VERIFIED-FIXES (2.78.2 on Mac) | one row saying which version per platform and from where |
 | `subsystems/framerate.md` row 5 | "the portable install's patch rescales the constant" | resolved: `../i76-map/subsystems/framerate.md:37` already cites L004 and says "sandbox / lab only" (corrected 2026-10-01) |
-| `docs/GHIDRA-MEMORY-MAP.md` (990 lines), `STATIC-RE-FABLE.md`, `MEMORY-MAP-INDEX.md`, `MW2-I76-STRUCTS.md`, `RE-METHODOLOGY.md`, `RE-FIELD-GUIDE.md`, `FIND-WHAT-WRITES.md` | move to the private i76-map tree or an `docs/archive/` folder | 2026-07 RE logs superseded by i76-map; the public player repo does not need 3,000 lines of raw session logs, and they contain intermediate claims the i76-map `findings.md` has since contradicted |
+| `docs/records/GHIDRA-MEMORY-MAP.md` (990 lines), `STATIC-RE-FABLE.md`, `MEMORY-MAP-INDEX.md`, `MW2-I76-STRUCTS.md`, `RE-METHODOLOGY.md`, `RE-FIELD-GUIDE.md`, `FIND-WHAT-WRITES.md` | move to the private i76-map tree or an `docs/archive/` folder | 2026-07 RE logs superseded by i76-map; the public player repo does not need 3,000 lines of raw session logs, and they contain intermediate claims the i76-map `findings.md` has since contradicted |
 
 ### Overlapping scripts
 

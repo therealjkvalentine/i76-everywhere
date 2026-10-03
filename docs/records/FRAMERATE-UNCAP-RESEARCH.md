@@ -10,7 +10,7 @@ evidence; **[folklore]** = repeated claim nobody has measured.*
 > the per-frame-constant model assumed below), the two "unknowns" in the verdict are answered (pose transform at
 > object+0x18; frame loop 0x4039a0..0x403f20), and the proposed renderer-side interpolation plus the per-frame fixes
 > are implemented as opt-in switches in the Strlkup proxy and measured live in the sandbox. Read these instead:
-> - [music-fix/README.md](../music-fix/README.md) — the switch table with per-switch measured evidence
+> - [music-fix/README.md](../../music-fix/README.md) — the switch table with per-switch measured evidence
 >   (`I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`,
 >   `I76_FPS_CAP`);
 > - i76-map `captures/014-framerate/README.md` (`C:\Users\james\i76-map\captures\014-framerate\README.md`) — the
@@ -22,7 +22,7 @@ evidence; **[folklore]** = repeated claim nobody has measured.*
 
 **The question:** can the engine's real frame rate be doubled/tripled (20 → 40–60) by
 scaling the physics so it doesn't break? Frame generation (LSFG x2, see
-[Setup-FrameGen.ps1](../Setup-FrameGen.ps1)) already fakes 40 at the display; this is
+[Setup-FrameGen.ps1](../../Setup-FrameGen.ps1)) already fakes 40 at the display; this is
 about real frames.
 
 > **Update 2026-09-26 (static, i76-map `subsystems/simclock.md`).** The first true unknown below is answered: a
@@ -82,7 +82,7 @@ angular velocity (+0xc8) and camera floats (`0x4c2964/70`) are already mapped an
 writable; extrapolation is the cheaper variant (no prev-state capture; 1-tick
 mispredictions self-correct — D2DX's documented behavior). Delivery: in-exe injection
 at the frame loop (i76fix proves the pattern on this exe family) or a proxy DLL
-scheduler (proven build chain: [smack-music-fix](../smack-music-fix/),
+scheduler (proven build chain: [smack-music-fix](../../smack-music-fix/),
 winmm-cdaudio). HUD/cockpit/audio stay 20 Hz — acceptable. FFB/telemetry unaffected
 (sim tick never changes).
 
@@ -116,7 +116,7 @@ months on a better-instrumented engine.
 Warping timeGetTime/QPC (Cheat Engine speedhack, DxWnd Time Stretch) changes **game
 speed, not smoothness** — tick scheduler and per-tick step read the same lied-to clock.
 Zero counterexamples exist anywhere. Budget one day with a winmm proxy (from the
-[tools/winmm-cdaudio](../tools/winmm-cdaudio/) pattern) purely to learn which clock, if
+[tools/winmm-cdaudio](../../tools/winmm-cdaudio/) pattern) purely to learn which clock, if
 any, paces the sim. Note: the 2017 Galaxy exe imports **no winmm at all**; only the
 2019 lineage imports timeGetTime.
 
@@ -140,7 +140,7 @@ any, paces the sim. Note: the 2017 Galaxy exe imports **no winmm at all**; only 
    `0x4f2488` uncapped too.
 4. **Re-anchor the main loop into the exe we'd patch.** Disassemble around i76fix's
    frame-loop hook (`0x4039B8` i76.exe / `0x432805` nitro.exe; CPU-measure no-op at
-   `0x499b25` / `0x49AE45`) with [tools/exe-xref.py](../tools/exe-xref.py) + the
+   `0x499b25` / `0x49AE45`) with [tools/exe-xref.py](../../tools/exe-xref.py) + the
    capstone disasm tooling; re-anchor the `while(g_gamestate==5)` hot loop
    (g_gamestate @ Nitro `0x4f30cc`) via string xrefs. Deliverable: Gold VAs for the
    sim-update call and the render/present call — **the seam every route needs**.
@@ -157,7 +157,7 @@ any, paces the sim. Note: the 2017 Galaxy exe imports **no winmm at all**; only 
    once found): direct struct read vs snapshot vs scene list, and whether
    software/Glide/D3D share one choke point. Decides if route 1 has one seam or three.
 9. **Reverse I76PATCH.DLL** (present in the Mac GOG install per
-   [MAC-BUILD.md](MAC-BUILD.md); absent from both Windows installs — presence varies by
+   [MAC-BUILD.md](../MAC-BUILD.md); absent from both Windows installs — presence varies by
    install). What does its QPC+Sleep trampoline hook, and why does it overshoot to
    20.66? Its insertion point is a field-proven host for a scheduler.
 10. **Build the per-mechanic breakage ladder nobody has:** 22/25/30/40 FPS with the

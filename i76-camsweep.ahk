@@ -4,7 +4,7 @@
 ; trusting the map. Sweeps ONE candidate at a time with a slow sine wave while
 ; you drive: when the view starts swinging by itself, that address is the one.
 ;
-; WHY THIS EXISTS: docs/GHIDRA-MEMORY-MAP.md lists cam_yaw @ 0x4c2964 as the
+; WHY THIS EXISTS: docs/records/GHIDRA-MEMORY-MAP.md lists cam_yaw @ 0x4c2964 as the
 ; head-tracking target, but writing it produced no visible movement. That
 ; reading was taken with the game sitting on the pause menu, so it proved
 ; nothing either way - this settles it under real gameplay.

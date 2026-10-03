@@ -14,7 +14,7 @@
 ;     view, needs nothing but the game running.
 ;
 ;  2. ANALOG - writes the live camera yaw float directly into the game
-;     (cam_yaw @ 0x4c2964, confirmed in docs/GHIDRA-MEMORY-MAP.md "CAMERA").
+;     (cam_yaw @ 0x4c2964, confirmed in docs/records/GHIDRA-MEMORY-MAP.md "CAMERA").
 ;     The engine's cockpit_look_apply (0x406b00) recomputes those floats every
 ;     frame from the int inputs at 0x536770/78, so this deliberately re-writes
 ;     at ~66 Hz against a 20 FPS sim to win the race. Cockpit view only.
@@ -27,7 +27,7 @@
 ;  - NO modal dialogs (they hide behind the game and kill input).
 ;
 ; Run it alongside i76-remap.ahk (they don't overlap: that one owns the pad,
-; this one owns the head). Docs: docs/GHIDRA-MEMORY-MAP.md, docs/HEAD-TRACKING.md
+; this one owns the head). Docs: docs/records/GHIDRA-MEMORY-MAP.md, docs/HEAD-TRACKING.md
 
 #NoEnv
 #NoTrayIcon
@@ -112,7 +112,7 @@ global INVERT_PITCH := 1     ; pitch: looking up glances up
 global GAME_EXE    := "i76.exe"
 
 ; Camera angle block, i76.exe Gold. NOTE the map's labels are SWAPPED against
-; what the engine actually does: docs/GHIDRA-MEMORY-MAP.md calls 0x4c2964
+; what the engine actually does: docs/records/GHIDRA-MEMORY-MAP.md calls 0x4c2964
 ; "cam_yaw" and 0x4c2970 "cam_pitch", but in play, writing 0x4c2970 swings the
 ; view HORIZONTALLY and 0x4c2964 vertically (field-confirmed 2026-08-01 - head
 ; up/down was moving the view left/right). So they are bound the other way here.

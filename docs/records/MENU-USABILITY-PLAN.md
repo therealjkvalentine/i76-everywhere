@@ -7,7 +7,7 @@ Status words: **fixed** = confirmed in the field or live; **built, unverified** 
 
 > **Superseded items (note added 2026-10-03).** This is the 2026-10-01 survey. Since then: the ghosting fix (P4,
 > "deployed nowhere") and the Esc-menu Exit are in the u32x lab build `054fb411`, gated 2026-10-02/03 and on the
-> daily driver built 2026-10-03 ([u32x/README.md](../u32x/README.md)); "both installs" below means the sandbox and
+> daily driver built 2026-10-03 ([u32x/README.md](../../u32x/README.md)); "both installs" below means the sandbox and
 > the old driver in Downloads. The `CaptureMouse` / `FreeMouse` observations made on the lab sandbox are void:
 > dgVoodoo was rejecting that conf and running a 2020 global file
 > ([RENDERER-ALTERNATIVES.md](RENDERER-ALTERNATIVES.md) section 11).

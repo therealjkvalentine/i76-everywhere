@@ -40,7 +40,7 @@ scripts that fetch them from their official sources at install time.
 | **GE-Proton** (GloriousEggroll) | Proton build the Deck scripts select | Proton's licences (BSD-style / LGPL components) — [github.com/GloriousEggroll/proton-ge-custom](https://github.com/GloriousEggroll/proton-ge-custom). Fetched on the Deck, not shipped |
 | **Steam ROM Manager** | The controller-config apply mechanism `deck/add-to-steam.py` imitates (its configset approach); no code of it is used | GPL — [github.com/SteamGridDB/steam-rom-manager](https://github.com/SteamGridDB/steam-rom-manager). Referenced, not shipped |
 | **input-remapper** | Referenced by the Deck control-tier scripts and docs (`deck/setup-deck-baseline.sh`, [docs/INPUT-REMAPPER.md](docs/INPUT-REMAPPER.md)) | GPL — [github.com/sezanzeb/input-remapper](https://github.com/sezanzeb/input-remapper). Installed on the Deck by the user, not shipped |
-| **ViGEm / vJoy** | Mentioned only as things that can break FFB device acquisition ([docs/FFB-LAPTOP-RECON.md](docs/FFB-LAPTOP-RECON.md)) | Not used, not shipped |
+| **ViGEm / vJoy** | Mentioned only as things that can break FFB device acquisition ([docs/records/FFB-LAPTOP-RECON.md](docs/records/FFB-LAPTOP-RECON.md)) | Not used, not shipped |
 | **w64devkit** (skeeto) | Optional 32-bit gcc for `music-fix/build.ps1` | Unlicense / GPL toolchain components — [github.com/skeeto/w64devkit](https://github.com/skeeto/w64devkit). A build tool; nothing of it is in the output |
 | **Microsoft Visual C++ Build Tools 2019 (x86)** | What actually builds `Strlkup.dll` and `u32x.dll` (statically linked CRT, `/MT` for the proxy) | Microsoft licence; a build tool, not shipped |
 | **RAD Smacker** (`SMACKW32.DLL`) | Game-shipped FMV library. `smack-music-fix/` builds a proxy that forwards to the game's own copy (renamed `smackorg.dll`) | © RAD Game Tools; part of the game install, never in this repo. Our proxy DLL is gitignored and built locally |
@@ -52,7 +52,7 @@ scripts that fetch them from their official sources at install time.
 |---|---|---|
 | **Ghidra** (NSA) | Static analysis behind the memory maps in `docs/` and the sibling `i76-map` repo | Apache-2.0 — [ghidra-sre.org](https://ghidra-sre.org/). Decompiler output is Activision's code in another form and is **never** committed here |
 | **capstone**, **pefile**, **Unicorn**, **Frida** | Disassembly, PE parsing, emulation and live instrumentation in the Python instruments (`tools/exe-disasm.py`, `tools/exe-xref.py`, the `i76-map` tools) | BSD / MIT / GPLv2 / wxWindows Library Licence respectively. `pip`-installed locally |
-| **immi101's i76fix**, **bolrog's D2DX** | Prior art read for the frame-loop hook and render-interpolation design ([docs/FRAMERATE-UNCAP-RESEARCH.md](docs/FRAMERATE-UNCAP-RESEARCH.md)). No code of either is included | Their own licences; kept only in the lab's gitignored `refs/` |
+| **immi101's i76fix**, **bolrog's D2DX** | Prior art read for the frame-loop hook and render-interpolation design ([docs/records/FRAMERATE-UNCAP-RESEARCH.md](docs/records/FRAMERATE-UNCAP-RESEARCH.md)). No code of either is included | Their own licences; kept only in the lab's gitignored `refs/` |
 | **Visual C++ 5.0 media** | Held locally for toolchain fingerprinting of the 1997 exe (sibling `i76-map`) | Microsoft; **never distributed**, not in any of the repos |
 
 ## Data & research credits
@@ -63,7 +63,7 @@ scripts that fetch them from their official sources at install time.
 - **File-format groundwork**: **"That Tony"** reversed many I76 formats (2016–17), the
   foundation later reimplementations and this repo's save/texture work build on.
 - **Reimplementation projects** referenced (not included): **Open76** (Unity) and
-  **Roanish/i76 "Vigalante '76"** — see [docs/MODERN-PORTS-AND-VR.md](docs/MODERN-PORTS-AND-VR.md).
+  **Roanish/i76 "Vigalante '76"** — see [docs/records/MODERN-PORTS-AND-VR.md](docs/records/MODERN-PORTS-AND-VR.md).
 - **CahootsMalone's `interstate-76-stuff`** guide and tools, and the other community sources indexed by
   problem in [docs/COMMUNITY-RESOURCES.md](docs/COMMUNITY-RESOURCES.md). Linked, not copied.
 

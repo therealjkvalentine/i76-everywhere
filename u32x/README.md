@@ -26,7 +26,7 @@ asked for it: a deployed, load-bearing DLL whose source sat only in the private 
 The two source files carry `-text` in `.gitattributes` so the md5s above hold on any checkout.
 
 **Why this build and not the lab's newer `u32x.c`.** The verified-safe build is this minimal one. Its live record
-([docs/STATUS-2026-10-02.md](../docs/STATUS-2026-10-02.md), "Correction, 22:30"), all on the sandbox
+([docs/records/STATUS-2026-10-02.md](../docs/records/STATUS-2026-10-02.md), "Correction, 22:30"), all on the sandbox
 `..\i76-uncap-lab\game`: TRIP -> LOAD BOOKMARK -> garage -> DONE 2/2 (leg-b B1.9: 3 of 3 with this build and with
 the 2026-08-16 build); `TEST-FRAMERATE` option 6 through the trip menus 2/2 at 120.0 fps, option 5 1/1 at 60.0;
 Save Bookmark screen after 10 s idle: row click, SAVE twice, overwrite prompt. The lab's development branch
@@ -36,7 +36,7 @@ work stays in the lab until it passes the same route, and then moves here as a n
 by this build: the fullscreen Esc menu's Exit button (use the keyboard there).
 
 **The daily driver runs a newer lab build (added 2026-10-03).** The daily driver built on 2026-10-03
-(`C:\Users\james\Games\Interstate76-2026-10-03`, [docs/NEW-DAILY-DRIVER-RECIPE.md](../docs/NEW-DAILY-DRIVER-RECIPE.md))
+(`C:\Users\james\Games\Interstate76-2026-10-03`, [docs/records/NEW-DAILY-DRIVER-RECIPE.md](../docs/records/NEW-DAILY-DRIVER-RECIPE.md))
 does not use the `u32x.dll` committed here. It uses lab build md5 `054fb411d57c275f9a6ebcf9a99893e6`
 (`..\i76-uncap-lab\src\u32x_gated_054fb411.dll`), gated 2026-10-02/03: leg-b 3/3, trip route at 120 fps, save
 screen, Esc-menu Exit, melee. **The source for that build lives in the lab repo** (`..\i76-uncap-lab\src`), not

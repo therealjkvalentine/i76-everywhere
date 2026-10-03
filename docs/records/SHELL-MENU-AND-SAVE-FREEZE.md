@@ -73,7 +73,7 @@ captured copy, which may not even show the shell's current screen.
 
 A second, separate freeze candidate to rule out on the day: the **save file write**. The shell
 formats names with `sprintf("save%3.3d.cmp")`, and the slot allocator is known to return −1 →
-`save-01.cmp` (see [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md)). A write down a bad path, or a
+`save-01.cmp` (see [SAVE-FORMAT-GAPS.md](../SAVE-FORMAT-GAPS.md)). A write down a bad path, or a
 `WaitForSingleObject` on a file handle, could also stall — but the 100%-CPU spin points at input
 starvation first.
 

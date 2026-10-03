@@ -47,7 +47,7 @@ Useful switches:
 ### What it does
 
 Since 2026-10-03 the installer sets the base game up like the owner's daily driver
-([docs/NEW-DAILY-DRIVER-RECIPE.md](docs/NEW-DAILY-DRIVER-RECIPE.md)). What was tested and what was not is in
+([docs/records/NEW-DAILY-DRIVER-RECIPE.md](docs/records/NEW-DAILY-DRIVER-RECIPE.md)). What was tested and what was not is in
 [Evidence](#evidence-what-was-tested) below: **the result has not been started on a fresh install yet.**
 
 1. **Silent-installs** the game (and Nitro Pack) from your GOG `.exe` — no wizard

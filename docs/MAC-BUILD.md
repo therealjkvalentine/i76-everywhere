@@ -184,7 +184,7 @@ Mission 5's ramp jump becomes impossible, the flamethrower/mortar break, AI caps
 Community consensus cap = **20 FPS** (24-25 ok, 30 = loose ceiling).
 
 - On Windows this was fixed with dgVoodoo2 `FPSLimit = 20` - verified across ~40 min of melee +
-  campaign play, zero crashes. Config in [docs/WHAT-THIS-IS-dgvoodoo.txt](WHAT-THIS-IS-dgvoodoo.txt).
+  campaign play, zero crashes. Config in [docs/records/WHAT-THIS-IS-dgvoodoo.txt](records/WHAT-THIS-IS-dgvoodoo.txt).
 - On macOS **no external limiter is needed**: the GOG exe's own `I76PATCH.DLL` cap holds under
   Wine. **Confirmed in-sim (2026-07-04): ~20.66 FPS measured from the session log, physics limiter
   working** - this is what closed out "the challenge of the port." The cap is inside the exe on
@@ -207,9 +207,9 @@ mode; re-check it (checklist below) if you switch to a Glide path or a different
 - **Path C - stream from the Windows box** (zero-risk fallback, already fully working there):
   Sunshine host + Moonlight client, Ethernet. A 20fps game makes stream latency irrelevant.
 
-Full handoff brief: [docs/MAC-SETUP.md](MAC-SETUP.md). Deep research with sources:
-[docs/i76-research-full.txt](i76-research-full.txt). Windows-side notes:
-[docs/MODERN-SETUP.md](MODERN-SETUP.md).
+Full handoff brief: [docs/records/MAC-SETUP.md](records/MAC-SETUP.md). Deep research with sources:
+[docs/records/i76-research-full.txt](records/i76-research-full.txt). Windows-side notes:
+[docs/records/MODERN-SETUP.md](records/MODERN-SETUP.md).
 
 ## Controls: mouse driving + Xbox controller (native!)
 
@@ -233,7 +233,7 @@ interpolation, ALIVE multiplayer community)? The cited to-do list is
 [setup-windows.ps1](../setup-windows.ps1). The full July 2026 findings report — verified
 dgVoodoo recipe, the first documented I76+LSFG frame-generation result, the **cracked
 .M16 hardware-texture format**, and the first working vehicle-texture replacement
-pipeline — is **[docs/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md)**.
+pipeline — is **[docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md)**.
 
 ## Controls: Mac arrow keys (required fix)
 

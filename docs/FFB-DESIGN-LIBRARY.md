@@ -116,7 +116,7 @@ and keeps effects valid. Reach for the latter.
 
 **FFB requires exclusive acquisition.** This is why a vendor control panel left
 open, or a stray virtual joystick, breaks initialisation — both confirmed
-first-hand in [WHEEL-T300.md](WHEEL-T300.md) and [FFB-LAPTOP-RECON.md](FFB-LAPTOP-RECON.md).
+first-hand in [WHEEL-T300.md](WHEEL-T300.md) and [FFB-LAPTOP-RECON.md](records/FFB-LAPTOP-RECON.md).
 
 ---
 

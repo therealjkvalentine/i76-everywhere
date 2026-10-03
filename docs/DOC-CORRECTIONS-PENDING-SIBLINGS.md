@@ -1,6 +1,6 @@
 # Doc corrections pending in the sibling repos (2026-10-02)
 
-Companion to [BACKLOG-2026-10-02.md](BACKLOG-2026-10-02.md) section 2. That table lists 28 pairs of stale or
+Companion to [BACKLOG-2026-10-02.md](records/BACKLOG-2026-10-02.md) section 2. That table lists 28 pairs of stale or
 contradictory claims; the pairs whose stale side lives in **this** repo were corrected in place on 2026-10-02
 (commit message lists them). The pairs below have their stale side in `../i76-uncap-lab` or `../i76-map`, which
 this pass did not edit. Each entry gives the file and line as of 2026-10-02, what is there, and the replacement
@@ -174,7 +174,7 @@ Neither is the physics timestep; dt is the variable `0x4fe428` (`simclock_dt`, w
 Replace the single row `| T1..T10 | | | | not run (data track does not drive the console) |` with:
 
 ```
-| T1 armour chain | 2026-09-05 | 1 run (capture `012-armour`) | entity 0xc3058c0 in the AirBase melee held the eight predicted fields at +0x138..+0x1a0, each equal to the modded ADDON `.vcf` dword x2 (the sandbox loads the user's modded ADDON file: `../i76-everywhere/docs/SAVES-STATE-AND-TEST-PLAN.md:23`), engine 200 where the loader stores 100; zeroing +0x178[0] was followed by the vehicle's destruction (`status/tasks/armour-hunt.md:60-66`) | layout and values confirmed live; `armour` vs `armour_hud` naming still waits on the A/B control |
+| T1 armour chain | 2026-09-05 | 1 run (capture `012-armour`) | entity 0xc3058c0 in the AirBase melee held the eight predicted fields at +0x138..+0x1a0, each equal to the modded ADDON `.vcf` dword x2 (the sandbox loads the user's modded ADDON file: `../i76-everywhere/docs/records/SAVES-STATE-AND-TEST-PLAN.md:23`), engine 200 where the loader stores 100; zeroing +0x178[0] was followed by the vehicle's destruction (`status/tasks/armour-hunt.md:60-66`) | layout and values confirmed live; `armour` vs `armour_hud` naming still waits on the A/B control |
 | T3 mass | 2026-10-01 | 1 | telemetry v2 read mass 1951.0 (ent+0xa4) on the sandbox Piranha, alongside engine_power 193960, drag 0.0003, health_pct 100 (`../i76-everywhere` commit `5f1d388`) | read live; the poke-and-observe half not run |
 | T2, T4..T10 | | | | not run (data track does not drive the console) |
 ```
@@ -236,18 +236,18 @@ Fact (lab `docs/DGVOODOO-CONF-REJECTED.md`): dgVoodoo 2.87.3 rejected `game\dgVo
 2026-08-09 (when `EnableInactiveAppState = true` was added to `[General]` and `[DirectX]`; also
 `WindowedAttributes = border`) until 2026-10-02 and ran the 2020 global `%APPDATA%\dgVoodoo\dgVoodoo.conf`. The
 docs in this repo that relied on the void results were annotated on 2026-10-03 (`AGENTS.md`, `README.md`,
-`docs/FPS-120.md`, `docs/GRAPHICS-ENHANCEMENT.md`, `docs/WINDOWS-PLAYBOOK.md`, `docs/MODERN-SETUP.md`,
-`docs/RELEASE-PLAN.md`, `docs/BACKLOG-2026-10-02.md`, `docs/MENU-USABILITY-PLAN.md`, `docs/MENU-REBUILD-DESIGN.md`,
-`docs/PLAYTEST-2026-10-02.md`, `docs/STATUS-2026-10-02.md`, `music-fix/README.md`, `presets/smooth-120.psd1`).
+`docs/records/FPS-120.md`, `docs/records/GRAPHICS-ENHANCEMENT.md`, `docs/WINDOWS-PLAYBOOK.md`, `docs/records/MODERN-SETUP.md`,
+`docs/RELEASE-PLAN.md`, `docs/records/BACKLOG-2026-10-02.md`, `docs/records/MENU-USABILITY-PLAN.md`, `docs/records/MENU-REBUILD-DESIGN.md`,
+`docs/records/PLAYTEST-2026-10-02.md`, `docs/records/STATUS-2026-10-02.md`, `music-fix/README.md`, `presets/smooth-120.psd1`).
 The lab files below were read on 2026-10-03 only as far as a search for "reject" / "void": the mouse doc already
 carries the correction in its own section 9.8, the others do not. Line numbers were not taken; the integrator should place each note at the top of the named section.
 
 | lab file | what it says | note to add |
 |---|---|---|
 | `docs/CONFIG-OPTIONS.md` (whole file; AGENTS.md sends every agent here first) | indexes dgVoodoo knobs by symptom and by section; "dgVoodoo silently ignores a key in the wrong section"; `EnableInactiveAppState` as the fix for the unfocused freeze | Header: "From 2026-08-09 to 2026-10-02 dgVoodoo was rejecting this sandbox's conf as a whole (a key in a section it does not belong to rejects the file, it is not skipped) and running a 2020 global file. Every row here that reports what a key did or did not do in that window is void until re-measured on an accepted conf: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, `Resolution`, MSAA. `EnableInactiveAppState` belongs in `[Glide]` only. See `DGVOODOO-CONF-REJECTED.md`." |
-| `docs/framerate/README.md` section 6 (the 60 fps ceiling; the `FPSLimit` 0/21/30/45/90/120 matrix, "n = 9 cells") | `FPSLimit` inert in both directions; forced `640x480@120` ignored; ceiling "accepted" | "Void for the conf keys (measured 2026-08-10, conf rejected). The ceiling itself is explained: dgVoodoo paces by the Glide refresh code (`I76_GLIDE_REFRESH`, i76-everywhere `docs/FPS-120.md`); 120 is the ceiling of every renderer tested." |
-| `docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` (H2, the 1920x1440 pointer box; section 8) | dgVoodoo pins the pointer to a 1920x1440 box at the client origin | "The box was the global conf's `Resolution = h:1920, v:1440`, not a dgVoodoo property; on the fixed conf the pointer clip is 0,0-3440,1440 (i76-everywhere `docs/RENDERER-ALTERNATIVES.md` section 11)." The file's section 9.8 ("dgVoodoo had been rejecting `game\dgVoodoo.conf`") already says this; what is missing is a pointer at H2 and section 8. |
-| `tools/framerate/uncap-vsync.ps1` header | says the swap interval "is the 60fps cap" | already listed as wrong in i76-everywhere `docs/FPS-120.md` section 1 point 2; the cap is the refresh code |
+| `docs/framerate/README.md` section 6 (the 60 fps ceiling; the `FPSLimit` 0/21/30/45/90/120 matrix, "n = 9 cells") | `FPSLimit` inert in both directions; forced `640x480@120` ignored; ceiling "accepted" | "Void for the conf keys (measured 2026-08-10, conf rejected). The ceiling itself is explained: dgVoodoo paces by the Glide refresh code (`I76_GLIDE_REFRESH`, i76-everywhere `docs/records/FPS-120.md`); 120 is the ceiling of every renderer tested." |
+| `docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` (H2, the 1920x1440 pointer box; section 8) | dgVoodoo pins the pointer to a 1920x1440 box at the client origin | "The box was the global conf's `Resolution = h:1920, v:1440`, not a dgVoodoo property; on the fixed conf the pointer clip is 0,0-3440,1440 (i76-everywhere `docs/records/RENDERER-ALTERNATIVES.md` section 11)." The file's section 9.8 ("dgVoodoo had been rejecting `game\dgVoodoo.conf`") already says this; what is missing is a pointer at H2 and section 8. |
+| `tools/framerate/uncap-vsync.ps1` header | says the swap interval "is the 60fps cap" | already listed as wrong in i76-everywhere `docs/records/FPS-120.md` section 1 point 2; the cap is the refresh code |
 | i76-map capture 014 README line 12 | "FPSLimit=21 did not cap this build (it ran at 60 fps, vsync)" | "Void as a statement about `FPSLimit`: the conf was rejected. The 60 was the Glide refresh code." |
 
 ## Pending since 2026-10-03: paths in this repo that moved (sibling repos still name the old path)
@@ -266,12 +266,40 @@ path, as opposed to a bare memory address or a file name without a folder.
 The other hits for `0x501918` in both siblings are the memory address, not this folder. No sibling file names
 `drive5.csv`, `fx.csv`, `lfe-sweep.wav`, `swap-renderer.ps1` or `test-drive.ps1`.
 
+**Dated records, `docs/<NAME>` -> `docs/records/<NAME>`** (48 files; the list is in
+`docs/REPO-ORGANIZATION-PROPOSAL.md` section 8). Counted with `git grep` over tracked files for `docs/<NAME>` or
+`docs\<NAME>`: 26 hits in 23 lab files, 1,302 hits in 224 i76-map files. Nothing in either sibling's live tooling
+opens one of these files by path (checked: i76-map `tools/foldin_verify.py`, `tools/foldin_coverage.py`,
+`tools/merge.py`, `tools/gates/*`; the gates test that a `source` field is present, not that the file exists;
+`foldin_coverage.py` walks the whole repo so it finds the new folder). Two generators hold the old folder as a
+constant and would need it changed before a re-run.
+
+| sibling file | names (old path `i76-everywhere\docs\...`) | what to do |
+|---|---|---|
+| lab `README.md` | FRAMERATE-UNCAP-RESEARCH.md | re-path to `docs/records/` |
+| lab `autotest/README.md`, `autotest/gate-folder.ps1` (header) | NEW-DAILY-DRIVER-RECIPE.md | re-path (comment / prose only) |
+| lab `autotest/saves/runs/garage-ui/RESULTS.md` | MOUNT-VALIDATION.md | a run record: leave, or add a dated note |
+| lab `autotest/vptr-test.ps1` (header), `docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md`, `src/u32x.c` (2 comments) | MENU-REBUILD-DESIGN.md | re-path. `src/u32x.c`: comments only, the binary does not change |
+| lab `tools/framerate/rate-ab.ps1:584` (a string written into the result file) | PER-FRAME-AUDIT-2026-10-03.md | re-path the string |
+| lab `tools/graphics/make-variants.py:85` and the 12 `tools/graphics/conf-*.conf` it generates | GRAPHICS-ENHANCEMENT.md | re-path in the generator, regenerate |
+| lab `tools/renderers/make-renderer-copy.ps1`, `tools/renderers/switch-renderer.ps1` (headers and one error message) | RENDERER-ALTERNATIVES.md, FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md | re-path |
+| i76-map `tools/gen_binaries.py:26` (`METHOD_DOC`, written into `binaries/*.toml` and one evidence `source`) | FRESH-START-METHOD.md | change the constant; regenerated files follow |
+| i76-map `foldin/ledger/make_batch.py:30` (`EW = ...\i76-everywhere\docs`, then opens at least 6 moved files: STATIC-RE-FABLE, GHIDRA-MEMORY-MAP, READY-TO-TEST, FRAMERATE-UNCAP-RESEARCH, SHELL-MENU-AND-SAVE-FREEZE, FRESH-START-2026-09-04) | those | a one-off batch builder; it fails on a re-run until they are pointed at `docs\records` |
+| i76-map `evidence/E40862`..`E42408` (about 195 files), `foldin/round2/claims.json`, `ledger.json`, `ledger.tsv`, `fields.tsv`, `status/tasks/foldin-r2.batch.json`, `status/tasks/p5-foldin-merge.batch.json` | the `source` field: FFB-DEEP-DIVE.md, FFB-LAPTOP-RECON.md, GHIDRA-MEMORY-MAP.md, STATIC-RE-FABLE.md, READY-TO-TEST.md, FRAMERATE-UNCAP-RESEARCH.md, SHELL-MENU-AND-SAVE-FREEZE.md, FRESH-START-2026-09-04.md | **the owner's call.** These are provenance stamps of where a claim was read on the day; rewriting 1,200 evidence rows to follow a file move is a bulk merge with its own risk. One line in i76-map `README.md` ("`i76-everywhere\docs\<record>` is `docs\records\<record>` since 2026-10-03") covers them without touching a row |
+| i76-map `README.md`, `agents/drafter-c.md`, `agents/drafter-pcode.md`, `agents/reviewer.md`, `status/tasks/t0`, `t1`, `t3`, `t6`, `t7`, `tools/merge.py:4` (docstring), `binaries/*.toml` | FRESH-START-METHOD.md | re-path in the README and the three agent briefs (agents are sent to read it); the task files are records |
+| i76-map `data/LIVE-TESTS.md`, `status/GOAL-COVERAGE.md` | SAVES-STATE-AND-TEST-PLAN.md, SAVES-LEG-A-RUN-2026-10-01.md | re-path |
+| i76-map `subsystems/renderer.md`, `verify/README.md`, `verify/scenarios/camera-farclip.json` | FARCLIP-CAMERA-CRASH.md | re-path |
+| i76-map `status/findings.md`, `foldin/FOLDIN-REPORT.md`, `foldin/community/REPORT.md`, `recon-2026-09-04/i76-fresh-start-dossier.html` | several | reports and records: leave, covered by the README line |
+
+Outside all three repos: the owner's untracked `tools/rdp-to-console.cmd` (line 4) names `docs\FRESH-START-METHOD.md`,
+and the memory note "I'76 fresh start 2026-09" names `docs/FRESH-START-*.md`. Neither was edited.
+
 ## Pairs with nothing left to edit
 
 - **Pair 27, `docs/HEAD-TRACKING.md` (L229, L241):** the findings quote the doc's own refutation (`0x4c2964` "not the
   yaw"; "pitch injection does not work on this build") — the doc already records both as dead ends, so no
   correction was needed.
-- **Pair 27, `docs/FRESH-START-2026-09-04.md:7` (L002, L003):** L002 (+132 B / WINMM belong to the 2019 AiO build)
+- **Pair 27, `docs/records/FRESH-START-2026-09-04.md:7` (L002, L003):** L002 (+132 B / WINMM belong to the 2019 AiO build)
   is already corrected in the paragraph as it stands; L003 ("code below 0x4bbe55 identical") was a task premise,
   not a sentence in the doc. L100 was corrected in place (section 1 point 2 and the section 2 table row).
 - **Pair 28:** already done on 2026-10-01 (CHANGELOG update bullet, FRAMERATE-UNCAP-RESEARCH header); the

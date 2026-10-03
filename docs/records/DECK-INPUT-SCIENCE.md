@@ -64,7 +64,7 @@ joystick or ESC.** One cause, many symptoms.
 Two probes now exist, one per boundary:
 
 **A. `I76 Input Probe` (new Steam shortcut on the Deck).** A tiny Windows console tool
-([source](../deck/probe/i76-input-probe.c)) that reads the SAME APIs the game reads — `joyGetPosEx`
+([source](../../deck/probe/i76-input-probe.c)) that reads the SAME APIs the game reads — `joyGetPosEx`
 (all axes/buttons), `GetAsyncKeyState` (every key we bind), `GetCursorPos` — and logs everything for
 120 s to `~/Games/Interstate76/probe/i76-probe.log`. Protocol:
 1. In Steam, open **I76 Input Probe** → controller icon → apply the **same template** as the game.

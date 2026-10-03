@@ -10,8 +10,8 @@ undocumented `.M16` hardware-texture format.*
 Test rig: Windows 11 Home, GTX 1650 Ti Max-Q + Iris Xe hybrid laptop, 3440x1440
 external display. Game: GOG Gold `i76.exe` MD5 `60abf7bc699da72476128ddce991a3d1`
 (byte-identical to UCyborg's AiO Unofficial Patch final build). Repo tooling
-referenced throughout lives in [`../tools/`](../tools/) and
-[`../texture-lab/`](../texture-lab/).*
+referenced throughout lives in [`../tools/`](../../tools/) and
+[`../texture-lab/`](../../texture-lab/).*
 
 ---
 
@@ -33,8 +33,8 @@ referenced throughout lives in [`../tools/`](../tools/) and
 
 **TL;DR: dgVoodoo2 (2.87.3) in windowed mode, Glide renderer, 20 FPS cap, 3x
 resolution, 8x MSAA — scripted end-to-end in
-[`setup-windows.ps1`](../setup-windows.ps1) with the config in
-[`dgVoodoo.windows.conf`](../dgVoodoo.windows.conf).**
+[`setup-windows.ps1`](../../setup-windows.ps1) with the config in
+[`dgVoodoo.windows.conf`](../../dgVoodoo.windows.conf).**
 
 Verified findings:
 
@@ -237,7 +237,7 @@ there's a 2024 report that the GOG build's FFB just works.**
   That's the whole mystery: the PCGW rename hack is CD-era; on GOG the key is
   pre-enabled, which is why FFB "just works" there. For zip installs, *create*
   the minimal key —
-  [`enable-force-feedback.bat`](../enable-force-feedback.bat) now does this
+  [`enable-force-feedback.bat`](../../enable-force-feedback.bat) now does this
   automatically when no FRC source exists. The key is machine-wide (HKLM), so
   one run covers every copy of the game on the box.
 - **Third route (untested): the original Force Feedback Patch v1.083** is still
@@ -259,7 +259,7 @@ there's a 2024 report that the GOG build's FFB just works.**
   engine enumerates joysticks once, at startup).
 - Never rebind in the in-game Control Configuration menu (community-confirmed
   append/wrong-device/crash bugs) — edit `input.map` in a text editor;
-  [`setup-windows.ps1`](../setup-windows.ps1) applies the known-good mouse+pad
+  [`setup-windows.ps1`](../../setup-windows.ps1) applies the known-good mouse+pad
   blocks automatically.
 
 ## 4. Asset archaeology
@@ -268,7 +268,7 @@ there's a 2024 report that the GOG build's FFB just works.**
 
 `I76.ZFS` ("ZFSF" v1, 55 MB, 6,116 files) — per-entry compression: 493 stored,
 1,526 **LZO1X**, 4,097 **LZO1Y**. Full layout in
-[`zfs_extract.py`](../tools/zfs_extract.py) (matches
+[`zfs_extract.py`](../../tools/zfs_extract.py) (matches
 [Open76](https://github.com/r1sc/Open76)'s reader and
 [Roanish/i76's Ghidra-verified notes](https://github.com/Roanish/i76/blob/master/docs/REVERSING.md)).
 Windows note: `python-lzo` wheels only expose LZO1X; point the tool's `LZO2_DLL`
@@ -334,9 +334,9 @@ have full 16-bit color freedom** — unlike VQM repaints, which must quantize to
 level's shared 256-color `.ACT`. The hardware path is the *better* modding target.
 
 Decoder/encoder: `decode_m16` / `encode_m16` in
-[`i76img.py`](../tools/i76img.py) (round-trip pixel-diff 0). The VQM/CBK/MAP/
+[`i76img.py`](../../tools/i76img.py) (round-trip pixel-diff 0). The VQM/CBK/MAP/
 PAK/PIX codecs live in the same file; full layouts in
-[HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md).
+[HD-TEXTURES-RESEARCH.md](../HD-TEXTURES-RESEARCH.md).
 
 ## 5. Texture-replacement pipeline
 
@@ -362,10 +362,10 @@ and the Sovereign.**
   low-color art the `realesrgan-x4plus-anime` model clearly beats `x4plus`
   (cleaner edges, no mud). It slightly flattens subtle shading — a better
   model/workflow per tile class is an open item.
-- **Scripts** (in [`../texture-lab/`](../texture-lab/)):
-  [`enhance_cars_m16.py`](../texture-lab/enhance_cars_m16.py) (hardware sets),
-  [`enhance_cars.py`](../texture-lab/enhance_cars.py) (software/VQM sets, used by
-  the Mac port's DxWnd mode), [`make_marker.py`](../texture-lab/make_marker.py)
+- **Scripts** (in [`../texture-lab/`](../../texture-lab/)):
+  [`enhance_cars_m16.py`](../../texture-lab/enhance_cars_m16.py) (hardware sets),
+  [`enhance_cars.py`](../../texture-lab/enhance_cars.py) (software/VQM sets, used by
+  the Mac port's DxWnd mode), [`make_marker.py`](../../texture-lab/make_marker.py)
   (probe builder). Built and installed first: `pirana16` (38 tiles) and
   `sovern16` (29 tiles).
 - **Distribution stance**: like the rest of this repo — recipes and tools only,
@@ -513,7 +513,7 @@ Ordered by leverage; contributions welcome.
    - Fixes: the Windows **256COLOR compat layer** on i76.exe restores real
      palettes. dgVoodoo's DDraw also provides palettes but **collides with
      OpenGLide's GL window at boot** (deterministic winmmbase fault) — never
-     mix the two wrappers. [`swap-renderer.ps1`](../lab-residue/swap-renderer.ps1)
+     mix the two wrappers. [`swap-renderer.ps1`](../../lab-residue/swap-renderer.ps1)
      automates the dgVoodoo ⇄ OpenGLide-HD switch including compat-flag and
      DDraw handling.
    - Status: boots and stays alive on the fork; the in-sim dump→upscale→replace
@@ -551,7 +551,7 @@ Ordered by leverage; contributions welcome.
    night:* the melee default variant is itself defined by GOG's own
    `ADDON\valepre4.vcf` — overwrite that VCF with any car's (e.g. `vppirna1.vcf`
    = Jade's Piranha) and the melee form defaults to that car; no UI needed.
-   [`test-drive.ps1`](../lab-residue/test-drive.ps1) automates boot → Instant Melee → chase
+   [`test-drive.ps1`](../../lab-residue/test-drive.ps1) automates boot → Instant Melee → chase
    cam → screenshot (~90 s) for visual regression. The synthetic-click mystery
    itself is still open. (Also verified: `i76.exe` has no command-line mission
    launch — everything routes through the shell.)

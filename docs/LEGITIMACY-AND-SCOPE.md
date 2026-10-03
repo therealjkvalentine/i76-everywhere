@@ -58,4 +58,4 @@ inspection — and to refuse only the things this repo already refuses
 systems).
 
 *See also: docs/RE-METHODOLOGY.md (technique reference) and
-docs/GHIDRA-MEMORY-MAP.md (the actual findings).*
+docs/records/GHIDRA-MEMORY-MAP.md (the actual findings).*

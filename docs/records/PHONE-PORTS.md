@@ -40,11 +40,11 @@ Adreno GPUs) — the same Wine→DXVK→Vulkan chain as our `-glide` Deck launch
 | Our path (Mac/Deck) | Android equivalent | Notes |
 |---|---|---|
 | **Software renderer** (DxWnd wraps 1997 DirectDraw) | **cnc-ddraw** | Winlator bundles it; same job as DxWnd — wrap legacy DirectDraw for a modern display. The low-risk first attempt. |
-| **Glide path** (dgVoodoo 2.78.2 → DXVK → Metal) | **dgVoodoo 2.78.2 `Glide2x.dll` + our [`dgVoodoo.conf`](../dgVoodoo.conf)** → DXVK → Turnip | **Literally the Deck recipe.** Drop the same Glide wrapper + config into the container; DXVK/Turnip do the rest. This is the path most likely to look great. |
+| **Glide path** (dgVoodoo 2.78.2 → DXVK → Metal) | **dgVoodoo 2.78.2 `Glide2x.dll` + our [`dgVoodoo.conf`](../../dgVoodoo.conf)** → DXVK → Turnip | **Literally the Deck recipe.** Drop the same Glide wrapper + config into the container; DXVK/Turnip do the rest. This is the path most likely to look great. |
 
 The Glide path is the one to bet on: it's the *identical* wrapper and config file we already tuned
 for the Deck (gamma + 4× MSAA + 32-bit), and Turnip on Adreno is a genuine Vulkan driver — no
-MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](VOODOO-PARKED.md)).
+MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](../VOODOO-PARKED.md)).
 
 ### Concrete container settings (starting point)
 
@@ -57,7 +57,7 @@ MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](VOODO
 - **Input API = DirectInput** (Winlator 11.x lets you pick DirectInput vs XInput per game).
   I76 is winmm/DirectInput-era, not XInput — same lesson as the Mac gamepad work.
 - **FPS:** set **`FPSLimit=20`** in `dgVoodoo.conf` (already in ours). The
-  [frame-rate ↔ jump-distance rule](VERIFIED-FIXES.md) is engine-level and applies on *every*
+  [frame-rate ↔ jump-distance rule](../VERIFIED-FIXES.md) is engine-level and applies on *every*
   platform — Mission 5's canyon jump misses above ~20 FPS no matter the hardware.
 
 ### Hardware reality
@@ -71,11 +71,11 @@ MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](VOODO
 
 | Repo asset | Phone use |
 |---|---|
-| [`dgVoodoo.conf`](../dgVoodoo.conf) + dgVoodoo 2.78.2 `Glide2x.dll` | Drop into the Winlator container for the Glide path — unchanged. |
-| [`input.map`](input.map.reference) | Wine's winmm joystick path serves a Bluetooth controller the same way it does on Mac/Deck. Start from our reference and adapt bindings. |
-| [`smack-music-fix/`](../smack-music-fix/) + [`setup-music.sh`](../setup-music.sh) | The MCI/redbook mission-music problem **and** the cutscene-music-bleed bug both exist under Wine on Android too — our virtual-CD setup + `SMACKW32.DLL` proxy port directly. |
-| [`i76-save-editor.html`](../i76-save-editor.html) | **Works on a phone today** — open the page in any mobile browser, drag in a `.cmp`, edit, download. No install. (The `.command` launcher/server is desktop-only; the page's drag-and-drop mode is not.) |
-| [`deck/`](../deck/) install tooling | The closest existing analog to a Winlator setup script — the config-application logic is reusable in spirit. |
+| [`dgVoodoo.conf`](../../dgVoodoo.conf) + dgVoodoo 2.78.2 `Glide2x.dll` | Drop into the Winlator container for the Glide path — unchanged. |
+| [`input.map`](../input.map.reference) | Wine's winmm joystick path serves a Bluetooth controller the same way it does on Mac/Deck. Start from our reference and adapt bindings. |
+| [`smack-music-fix/`](../../smack-music-fix/) + [`setup-music.sh`](../../setup-music.sh) | The MCI/redbook mission-music problem **and** the cutscene-music-bleed bug both exist under Wine on Android too — our virtual-CD setup + `SMACKW32.DLL` proxy port directly. |
+| [`i76-save-editor.html`](../../i76-save-editor.html) | **Works on a phone today** — open the page in any mobile browser, drag in a `.cmp`, edit, download. No install. (The `.command` launcher/server is desktop-only; the page's drag-and-drop mode is not.) |
+| [`deck/`](../../deck/) install tooling | The closest existing analog to a Winlator setup script — the config-application logic is reusable in spirit. |
 
 ### Proposed next step
 
@@ -131,7 +131,7 @@ experiment, not a daily driver.
 | **iPhone/iPad** | UTM SE / UTM+JIT VM | Playable-ish, not smooth | Experiment |
 | **Both** | Open76 native (WIP) | Not yet a game | Watch, don't wait |
 
-*Repo assets that already work on a phone with zero effort: the **[save editor](../i76-save-editor.html)**
+*Repo assets that already work on a phone with zero effort: the **[save editor](../../i76-save-editor.html)**
 (any mobile browser). Everything else is a copy-the-Deck-files exercise waiting on a test device.*
 
 ---

@@ -873,7 +873,7 @@ static void apply_engine_dt_fix(void) {
  * at 0x46a333 is already right (one application per frame), but I76_ENGINE_DT_FIX repoints that read at
  * engine_substep_dt: 2 x dt (no fixed step: 2x the stock far-path convergence at any rate) or 0.05 on every frame
  * (fixed step: 3x at 60 fps, 6x at 120). The far call is flagged and the engine gets the stock value inside it
- * (docs/FRAMERATE-COVERAGE-2026-10-02.md P4 / U4). Static reading - NOT yet measured in game.
+ * (docs/records/FRAMERATE-COVERAGE-2026-10-02.md P4 / U4). Static reading - NOT yet measured in game.
  */
 static DWORD g_idbg_far_steps;                              /* copied into the debug block by the render wrapper */
 static void __cdecl far_step_wrap(DWORD obj, DWORD arg) {
@@ -1335,7 +1335,7 @@ static void apply_framerate_fixes(void) {
  * AI DODGE GATE + AVOIDANCE HORIZON  (I76_AI_FIXES=1; off by default)
  * ===========================================================================
  * Kept out of I76_FRAMERATE_FIXES on purpose so each can be A/B'd against the recommended set
- * (docs/FRAMERATE-COVERAGE-2026-10-02.md P2 / P3, both unmeasured static readings).
+ * (docs/records/FRAMERATE-COVERAGE-2026-10-02.md P2 / P3, both unmeasured static readings).
  *
  * P2, AI dodge checks (ai_TestControlCandidate 0x41b270, i76-map subsystems/ai.md 7). Each avoidance candidate (14 call
  * sites, several per car per frame) rolls rand() % 1000 against 850 + 150 x (1 - skill) (0x41b651-0x41b692: constants
@@ -1372,7 +1372,7 @@ static void __cdecl hazard_impact_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
     g_idbg_hazard_calls++;
     ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD))0x004a7190)(a, b, c, d);
 }
-/* THE WHOLE STEP, not only its effect (docs/PER-FRAME-AUDIT-2026-10-03.md H1). The contact test of these probes is
+/* THE WHOLE STEP, not only its effect (docs/records/PER-FRAME-AUDIT-2026-10-03.md H1). The contact test of these probes is
  * physics_SweepSegment 0x435830 (0x435cc0 for the canister), and a hit there applies the ordnance's damage at once
  * (0x435c92 -> physics_ApplyCollisionDamage 0x4a7c80: weapon_BuildImpactDamage 0x4a76a0, the full per-shot amount,
  * no dt) before the step ever reaches the impact call above. So a car standing in a fire patch takes the Fire-Dropper's
@@ -1427,7 +1427,7 @@ static void apply_hazard_fix(void) {
 }
 
 /* ===========================================================================
- * MORE PER-FRAME ACTIONS  (part of I76_FRAMERATE_FIXES; docs/PER-FRAME-AUDIT-2026-10-03.md)
+ * MORE PER-FRAME ACTIONS  (part of I76_FRAMERATE_FIXES; docs/records/PER-FRAME-AUDIT-2026-10-03.md)
  * ===========================================================================
  * Found by the 2026-10-03 audit of everything that acts once per rendered frame (or once per projectile step, which
  * is the same thing: weapon_UpdateProjectiles 0x4a0410 steps each live ordnance once per frame). All static readings
@@ -1555,7 +1555,7 @@ static void apply_ai_fixes(void) {
  * 10/s each mirror call must step the stock 1.0, not the rescaled dt x 20, to keep the measured 0.0300 /s (capture
  * 014). The wrapper sets the stock step for the mirror call and restores the per-frame value after. The mirror pass's
  * flamer update calls 0x4458fe / 0x445968 stay unwrapped on purpose (g_flame_dmg_ok is 0 there, nothing is applied).
- * Kept out of I76_FRAMERATE_FIXES for A/B (docs/FRAMERATE-COVERAGE-2026-10-02.md P5 / U5). NOT yet measured in game.
+ * Kept out of I76_FRAMERATE_FIXES for A/B (docs/records/FRAMERATE-COVERAGE-2026-10-02.md P5 / U5). NOT yet measured in game.
  *
  * Two layouts at the gate, as for the hires clock: the 2017 Galaxy exe (md5 9a232dcc) has the `call` above; GOG's
  * 2019 AiO build (60abf7bc, and the sandbox exe built on it) removed the gate itself - `EB 17 90 90 90` jumps over
@@ -1612,7 +1612,7 @@ static void apply_mirror_rate(void) {
  * intact-core value), c = the worst live core component ratio. The first version (2026-09-27) returned 100 x c alone
  * on the component branch; that forgot the armour, so a car at 30% armour read 49.6 (yellow target bar) until its
  * engine took a scratch and 98 (green, nearly full) after it - the bar rose and changed colour the wrong way as the
- * car was shot (field report 2026-10-02, docs/HEALTH-BAR-COLOUR.md). The bar's colour and length are pure functions
+ * car was shot (field report 2026-10-02, docs/records/HEALTH-BAR-COLOUR.md). The bar's colour and length are pure functions
  * of this value (renderer_DrawTargetBrackets 0x45af10: red <= 33.3, yellow <= 66.7, green < 100, white = 100;
  * length 30 x sqrt(v/100) px), so the value has to be monotone in damage. min() is: it never rises, it equals the
  * stock value while the core is intact, and it keeps every measured result of the x100 version (99% engine: no
@@ -1751,7 +1751,7 @@ static void apply_far_clip(void) {
     n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
     if (n == 0 || n >= sizeof(v)) return;
     far_m = (float)atof(v);
-    /* Third ceiling (docs/FARCLIP-CAMERA-CRASH.md, 2026-10-02): the terrain tessellator stores vertex indices as int16
+    /* Third ceiling (docs/records/FARCLIP-CAMERA-CRASH.md, 2026-10-02): the terrain tessellator stores vertex indices as int16
      * (renderer_SplitTerrainEdge 0x4918f0); past ~32,767 terrain vertices in a frame the index wraps and the game dies.
      * The hood view (120 deg) and binoculars (8x) reach that between 2500 and 2750 m on t01, so 2500 is the cap. */
     if (far_m < 100.0f || far_m > 2500.0f) { mlog("  far-clip: %s out of the safe range (100..2500 m: int16 terrain vertex indices, see FARCLIP-CAMERA-CRASH.md) - not applied", v); return; }
@@ -1919,7 +1919,7 @@ static void apply_fixed_step(void) {
  * predicted contact (0x4643c0 applies it at once), so a far car may be damaged up to (step - dt) early.
  * Three `call simclock_GetSimDt` (0x49c7a0) in the collision tree, a single chain of callers (0x4349c0 <- WinMain
  * only; 0x434bb0 <- 0x434ae7 / 0x434b19 in 0x4349c0 only; 0x43f8c0 <- 0x43f656 in the pair test's scenery path and its
- * own recursion 0x43fd5f). docs/FRAMERATE-COVERAGE-2026-10-02.md P1 / U1. Unmeasured: cactus-ab.ps1 at 60 and 120
+ * own recursion 0x43fd5f). docs/records/FRAMERATE-COVERAGE-2026-10-02.md P1 / U1. Unmeasured: cactus-ab.ps1 at 60 and 120
  * with the fixed step, before and after, n >= 10 approaches per rate.
  */
 static float __cdecl coll_dt(void) {
@@ -1946,7 +1946,7 @@ static void apply_coll_window(void) {
 /* ===========================================================================
  * COLLISION CONTACT REPEATS  (with I76_FIXED_STEP; I76_COLL_DEDUPE=0 counts only)
  * ===========================================================================
- * docs/PER-FRAME-AUDIT-2026-10-03.md C1. A dependency the fixed step itself creates. physics_CollideAll 0x4349c0 runs
+ * docs/records/PER-FRAME-AUDIT-2026-10-03.md C1. A dependency the fixed step itself creates. physics_CollideAll 0x4349c0 runs
  * once per rendered frame (WinMain 0x403a12, after the frame clock, before the object ticks). For every contact
  * physics_CollideBodyPair 0x434bb0 plays an impact sound (sound_PlayOnObject at 0x434ebc, or vvbo1.wav at 0x434d7e for
  * a walkable structure) and runs both bodies' class collision handlers (object_ClassCollide 0x461f70), which apply
@@ -2408,7 +2408,7 @@ static void apply_render_interp(void) {
  * TELEMETRY EXPORT  (I76_TELEMETRY=<udp port>; 1 = port 7676; off by default)
  * ===========================================================================
  * Replaces the memory scanners the FFB / motion tools use to read the player's
- * state (docs/FFB-DATA-AUDIT.md section 4.2, row 8 of section 6). Once per
+ * state (docs/records/FFB-DATA-AUDIT.md section 4.2, row 8 of section 6). Once per
  * rendered frame a packed i76tel_frame_t (tools/telemetry/i76tel.h, the one
  * source of the layout) is filled from the player's object / entity / engine /
  * wheel blocks and from the exe's own FFB block 0x4f2328, then
@@ -2771,7 +2771,7 @@ static void apply_telemetry(void) {
 }
 
 /* ===========================================================================
- * GLIDE REFRESH OVERRIDE  (I76_GLIDE_REFRESH=<hz>; off by default; docs/FPS-120.md)
+ * GLIDE REFRESH OVERRIDE  (I76_GLIDE_REFRESH=<hz>; off by default; docs/records/FPS-120.md)
  * ===========================================================================
  * The frame rate sits at exactly 60 whatever the panel does (179 Hz desktop, FPSLimit inert, ForceVerticalSync
  * false, a forced "3360x2100, 120" Glide resolution: all measured 60.0 on 2026-10-02), with the main thread waiting

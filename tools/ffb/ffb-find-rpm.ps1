@@ -2,7 +2,7 @@
   ffb-find-rpm.ps1 - locate engine RPM (and, if it shows, gear) in the vehicle
   struct by value-scanning.
 
-  WHY A SCAN AND NOT A DECOMPILE: docs/GHIDRA-MEMORY-MAP.md:149 is explicit -
+  WHY A SCAN AND NOT A DECOMPILE: docs/records/GHIDRA-MEMORY-MAP.md:149 is explicit -
   "RPM/gear/velocity: nothing anywhere; Gold-exe RE or value-scan required." The
   decompile has no vehicle struct at all. Velocity has since been found by scan;
   RPM and gear are what is left.

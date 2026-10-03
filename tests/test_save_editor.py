@@ -28,7 +28,7 @@ CMP_FILES = sorted(p for d in SAMPLE_DIRS for p in glob.glob(os.path.join(d, "sa
 DIR_FILES = sorted(p for d in SAMPLE_DIRS if os.path.isfile(p := os.path.join(d, "savegame.dir")))
 # saves the 2026-07 editor wrote with its records framed 32 bytes late: their states and repair
 # queue are scrambled in a way the game-written invariants do not hold for (documented in
-# docs/SAVE-EDITOR-STATUS-2026-10-02.md); they still have to round-trip byte for byte.
+# docs/records/SAVE-EDITOR-STATUS-2026-10-02.md); they still have to round-trip byte for byte.
 EDITOR_TOUCHED = {"saves/save008.cmp", "saves/rescue-20260718/save004.cmp", "saves/rescue-20260718/save006.cmp",
                   "saves/rescue-20260718/save007.cmp", "saves/rescue-20260718/save008.cmp"}
 LAB_FIX = os.path.join(REPO, "saves", "lab-20261002")

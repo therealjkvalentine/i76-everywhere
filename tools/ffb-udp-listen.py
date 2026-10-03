@@ -10,7 +10,7 @@ and the mixed rumble motor levels). This is:
     should see numbers move (no motion rig or SimHub needed);
   * a stand-in visualizer until a SimTools/SimHub plugin consumes the same
     datagram (the industry-standard receivers whose axis-testers become the
-    real visualizer — see docs/MOTION-SIM.md);
+    real visualizer — see docs/records/MOTION-SIM.md);
   * a recorder (--csv) so a field run can be analyzed / tuned offline.
 
 Usage:
@@ -28,7 +28,7 @@ import argparse, re, socket, sys, time
 FIELDS = ("tick", "on", "spd10", "surf", "run", "pitch", "air", "skid",
           "slide", "oil", "steer", "fx1000", "fy1000", "fy2_1000",
           "gain", "slip100", "low100", "high100")
-# surface id -> name; ORDER IS A GUESS (docs/FFB-DEEP-DIVE.md open item) — the
+# surface id -> name; ORDER IS A GUESS (docs/records/FFB-DEEP-DIVE.md open item) — the
 # telemetry is exactly how you confirm it: drive on pavement vs dirt and watch.
 SURFACES = {0: "stopped", 1: "dirt-x?", 2: "parking?", 3: "rocky?", 4: "wash?",
             5: "dirt-rd?", 6: "paved?", 7: "veg?", 8: "packed?", 9: "in-air?"}

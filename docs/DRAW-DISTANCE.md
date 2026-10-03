@@ -1,6 +1,6 @@
 # Draw distance: cracked, patched, and proven in the sandbox
 
-> **2026-10-02: a third ceiling, and a crash.** Terrain edge records hold vertex indices as `int16`; wide views (F6 hood at 120 deg, B binoculars at 8x) push a frame past 32,767 terrain vertices between **2500 and 2750 m** and the game faults in `renderer_SplitTerrainEdge`. Keep the far clip at **2500 m or below**. The sandbox's file patch sat at 8000 m and crashed on F6/B every time; it was set to 1800 m on 2026-10-02, which is safe. Details: [FARCLIP-CAMERA-CRASH.md](FARCLIP-CAMERA-CRASH.md). The proxy's `I76_FAR_CLIP` refuses values above 2500.
+> **2026-10-02: a third ceiling, and a crash.** Terrain edge records hold vertex indices as `int16`; wide views (F6 hood at 120 deg, B binoculars at 8x) push a frame past 32,767 terrain vertices between **2500 and 2750 m** and the game faults in `renderer_SplitTerrainEdge`. Keep the far clip at **2500 m or below**. The sandbox's file patch sat at 8000 m and crashed on F6/B every time; it was set to 1800 m on 2026-10-02, which is safe. Details: [FARCLIP-CAMERA-CRASH.md](records/FARCLIP-CAMERA-CRASH.md). The proxy's `I76_FAR_CLIP` refuses values above 2500.
 
 **SOLVED 2026-08-16 (unattended session).** The "landscapes pop in late" improvement is a
 one-global engine value with a fixed-size render pool as its crash ceiling — both found, both
@@ -72,7 +72,7 @@ i76-uncap-lab\tools\framerate\patch-farclip.ps1 -GameDir <dir> -Status
 Keeps `i76.exe.farorig`. Composes with the camera-rate patch (different bytes, own backup).
 **Sandbox is at 1800 m with enlarged pools** (corrected 2026-10-02: this line said 5000; the sandbox was
 in fact at 8000 m / 128x until the F6/B crash and was set to 1800 on 2026-10-02). Recommended dose for the
-portable: **1800**. Anything above 2500 m crashes the wide views ([FARCLIP-CAMERA-CRASH.md](FARCLIP-CAMERA-CRASH.md)),
+portable: **1800**. Anything above 2500 m crashes the wide views ([FARCLIP-CAMERA-CRASH.md](records/FARCLIP-CAMERA-CRASH.md)),
 so 5000 is no longer an option; the proxy's `I76_FAR_CLIP` refuses it.
 
 ## Caveats for the console test

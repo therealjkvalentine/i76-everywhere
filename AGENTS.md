@@ -104,7 +104,7 @@ somewhere else.**
 
 | role | path | may an experiment touch it? |
 |---|---|---|
-| **daily driver — playable** (since 2026-10-03) | `C:\Users\james\Games\Interstate76-2026-10-03` (built by `tools\Make-Daily-Driver.ps1`, docs/NEW-DAILY-DRIVER-RECIPE.md) | **NO.** Only finished, verified changes, announced. |
+| **daily driver — playable** (since 2026-10-03) | `C:\Users\james\Games\Interstate76-2026-10-03` (built by `tools\Make-Daily-Driver.ps1`, docs/records/NEW-DAILY-DRIVER-RECIPE.md) | **NO.** Only finished, verified changes, announced. |
 | golden copy | `C:\Users\james\Games\Interstate76-golden-2026-10-03` | **NO.** Never played; promotions only (`PROMOTIONS.md` inside). |
 | previous daily driver — the rollback | `~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76` | **NO.** Kept untouched. |
 | test copy | `../i76-uncap-lab/game` | yes - this is what automation drives |
@@ -177,7 +177,7 @@ sandbox is void**: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, the 
 owner's daily-driver conf was accepted. Before trusting any conf finding, **prove the file is loaded**: flip a
 visible key (`3DfxWatermark = true`) and hide the global file. Record:
 [`../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md`](../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md),
-docs/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md itself predates this and has not been corrected
+docs/records/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md itself predates this and has not been corrected
 (docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md).
 
 Clicking the menus is now **screenshot → read coordinate → click it**: the OS cursor position
@@ -220,7 +220,7 @@ Traps that produce **wrong data rather than errors** (full list in the README):
   only with the game closed, and use `i76-save-editor.py --check` on any set before
   committing it. The `.cmp` had the same bug: records are PartNode (0x20) then PartRec
   (0x54); the old name-first frame read every part's condition/location from the next
-  record (docs/SAVE-EDITOR-STATUS-2026-10-02.md).
+  record (docs/records/SAVE-EDITOR-STATUS-2026-10-02.md).
 - Parallel Claude sessions run on this repo: re-check git state before staging
   and stage only your own hunks.
 

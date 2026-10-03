@@ -579,7 +579,7 @@ portable (before)   0x1B52C=40  0x1B535=0c     drops characters
 ```
 
 That shell differs from pristine GOG in **9,819 bytes**, so it ships pre-patched;
-`docs/FRESH-START-2026-09-04.md` credits *"UCyborg's AiO fixes out-of-bounds writes"*, and
+`docs/records/FRESH-START-2026-09-04.md` credits *"UCyborg's AiO fixes out-of-bounds writes"*, and
 this narrowing is exactly that shape of change. The irony is that the out-of-bounds write it
 was fixing does not appear to exist - the stock bounds cover the ToAscii output word plus the
 256-byte key state exactly (4 + 256 = 0x104) and overrun nothing.

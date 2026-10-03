@@ -1,7 +1,7 @@
 # framegen-90: the best-120 switch set with the game at 90 fps, meant to run under Lossless Scaling frame generation
 # x2 for 180 fps on a ~180 Hz panel (2026-10-03, on the owner's question "can we use frame interpolation to try 180").
 #
-# Why 90: no renderer tested gets the game itself past 120 (docs/RENDERER-ALTERNATIVES.md section 11), and fixed x2 on
+# Why 90: no renderer tested gets the game itself past 120 (docs/records/RENDERER-ALTERNATIVES.md section 11), and fixed x2 on
 # 120 gives 240, more than the panel shows. Two routes to 180:
 #   a) this preset (real 90) + LSFG fixed x2            -> every second frame is generated
 #   b) best-120 (real 120) + LSFG 3 ADAPTIVE, target 179 -> one frame in three is generated (needs LS 3.1+; 3.2.2 is bundled)

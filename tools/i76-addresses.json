@@ -74,7 +74,7 @@
         "va": "0x52bbd0",
         "type": "int",
         "conf": "confirmed",
-        "note": "1 only if i7_SFRCE.DLL loaded + 3 exports + InitSystem>=0 at boot (one shot, no retry). NO registry gate in Gold. See docs/FFB-DEEP-DIVE.md"
+        "note": "1 only if i7_SFRCE.DLL loaded + 3 exports + InitSystem>=0 at boot (one shot, no retry). NO registry gate in Gold. See docs/records/FFB-DEEP-DIVE.md"
       },
       "ffb_event_heap": {
         "va": "0x52bbcc",
@@ -93,7 +93,7 @@
         "type": "blob",
         "size": 364,
         "conf": "confirmed",
-        "note": "force-state block filled EVERY sim tick by ffb_tick 0x445ba0 when flag=1; full field map in docs/FFB-DEEP-DIVE.md; ffb-shim/ consumes it for pad rumble"
+        "note": "force-state block filled EVERY sim tick by ffb_tick 0x445ba0 when flag=1; full field map in docs/records/FFB-DEEP-DIVE.md; ffb-shim/ consumes it for pad rumble"
       },
       "music_active_flag": {
         "va": "0x524674",

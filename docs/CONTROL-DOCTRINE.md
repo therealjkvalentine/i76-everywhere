@@ -86,7 +86,7 @@ once, and I76 lets all input methods run simultaneously:
 - **On the Deck with the v4 keyboard-emulation config:** the physical pad is consumed by Steam and
   re-emitted as **keyboard/mouse** → the game's WASD + mouse bindings fire. Convenience tier is
   live. (The `joystick1` *analog* blocks are still fed by Steam Input's virtual pad — that's how
-  steer/throttle work there; see [DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md). Only the *button*
+  steer/throttle work there; see [DECK-INPUT-SCIENCE.md](records/DECK-INPUT-SCIENCE.md). Only the *button*
   blocks are inert.)
 - **On PC/Mac with a bare pad (Steam Input off):** the pad enumerates as a **winmm joystick** →
   the `joystick1` blocks fire. Keyboard/mouse bindings stay available for menus and desktop players.
@@ -94,7 +94,7 @@ once, and I76 lets all input methods run simultaneously:
 - **On the Deck with the "Gamepad" template (added 2026-08-01):** Steam Input presents a plain
   XInput pad and emits no keys, so the Deck runs the **baseline tier plus the shared AutoHotkey
   layer** — the same one Mac and Windows use, which is what carries the rumble mixer. Full parity;
-  costs the trackpad radial menu and the grip buttons. See [DECK-BASELINE.md](DECK-BASELINE.md).
+  costs the trackpad radial menu and the grip buttons. See [DECK-BASELINE.md](records/DECK-BASELINE.md).
   *Note this is a third mode, not "Steam Input off" — fully disabling Steam Input on a Deck gives
   lizard-mode keyboard/mouse, which is neither tier.*
 

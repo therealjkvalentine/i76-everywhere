@@ -41,7 +41,7 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
   second from the main pass (`weapons.md`, Flamers).
 - **Vehicle health percent is broken in stock** (object_HealthFraction). Once any core component is scratched it
   reads under 1%, so AI flee, script `hpLesser` and damage smoke all trigger at the first scratch. The opt-in fix is
-  `I76_FIX_HEALTH_PCT=1` (health = min(28 + 72 x worst side ratio, 100 x worst core ratio); docs/HEALTH-BAR-COLOUR.md).
+  `I76_FIX_HEALTH_PCT=1` (health = min(28 + 72 x worst side ratio, 100 x worst core ratio); docs/records/HEALTH-BAR-COLOUR.md).
   Balance scripts with it off, as players will, or ship it together with retuned scripts.
 - **Big custom missions:** the object-label table (2048 labels to start) has a broken grow path (0x4ad450): heap
   corruption past 2048 labels. Stock T01 uses 88. `I76_FIX_LABEL_TABLE=1` repairs it (verified with the start

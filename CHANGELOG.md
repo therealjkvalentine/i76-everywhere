@@ -10,15 +10,15 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 - **New daily driver** built by `tools/Make-Daily-Driver.ps1` at `C:\Users\james\Games\Interstate76-2026-10-03`
   with a golden copy beside it; preset `best-120`, the repo's `Strlkup.dll`, u32x lab build `054fb411`,
   `dgVoodoo.daily-driver-2026-10-03.conf`. Gated on a lab twin
-  ([docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md) last section).
+  ([docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md) last section).
 - **dgVoodoo had been rejecting the lab sandbox's `dgVoodoo.conf`** and running a 2020 global `%APPDATA%` file.
   Every earlier "this dgVoodoo knob does nothing" finding (`FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh,
   the 1920x1440 pointer box) is `[retracted]`. The owner's daily-driver conf was accepted.
-  [docs/GRAPHICS-ENHANCEMENT.md](docs/GRAPHICS-ENHANCEMENT.md),
-  [docs/RENDERER-ALTERNATIVES.md](docs/RENDERER-ALTERNATIVES.md) section 11.
+  [docs/records/GRAPHICS-ENHANCEMENT.md](docs/records/GRAPHICS-ENHANCEMENT.md),
+  [docs/records/RENDERER-ALTERNATIVES.md](docs/records/RENDERER-ALTERNATIVES.md) section 11.
 - **120 fps** `[verified in play]`: 120.1 fps measured and owner-played; 120 is the ceiling of every renderer
   tested (nGlide, DXVK, ReShade, DDrawCompat).
-- **Per-frame audit fixes** ([docs/PER-FRAME-AUDIT-2026-10-03.md](docs/PER-FRAME-AUDIT-2026-10-03.md)):
+- **Per-frame audit fixes** ([docs/records/PER-FRAME-AUDIT-2026-10-03.md](docs/records/PER-FRAME-AUDIT-2026-10-03.md)):
   oil-slick hazard contact `[measured, sandbox]` 20 contacts/s at 20 / 60 / 120 fps (9 of 10 runs, one staging
   miss); dead-weapon click `[measured, sandbox]` 20/s at 20 / 60 / 120 (2 runs each); collision dedupe and AI roll
   hold `[built, untested]` (the tests ran but produced no data; count-only in `best-120`); radar turn
@@ -36,9 +36,9 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 Status words are the ones [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 6 asks for: `[verified in play]`,
 `[measured, sandbox]`, `[built, untested]`, `[retracted]`. "Sandbox" is `..\i76-uncap-lab\game`; **nothing in
-this block is deployed to the playable install.** Session record: [docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md),
-owner's console run: [docs/PLAYTEST-2026-10-02.md](docs/PLAYTEST-2026-10-02.md), open work:
-[docs/BACKLOG-2026-10-02.md](docs/BACKLOG-2026-10-02.md).
+this block is deployed to the playable install.** Session record: [docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md),
+owner's console run: [docs/records/PLAYTEST-2026-10-02.md](docs/records/PLAYTEST-2026-10-02.md), open work:
+[docs/records/BACKLOG-2026-10-02.md](docs/records/BACKLOG-2026-10-02.md).
 
 Binaries of our own code at the end of the day: `music-fix/Strlkup.dll` 172,032 B, md5
 `cf7329ea89660faa0d9299c754463c7b` (commit `7c998bf`; MSVC 2019 x86, `cl /nologo /LD /MT /O2 /W3
@@ -56,13 +56,13 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   hook) and substitutes the refresh code. 120.1 fps, dt 8.34 ms sd 0.06, physics still 24 steps/s, hood view and
   binoculars fine at 1800 m; melee entries at 120 passed 10 of 10. Not played by a person at 120 *(superseded:
   the owner played it that evening, see 2026-10-03 above)*.
-  [docs/FPS-120.md](docs/FPS-120.md).
+  [docs/records/FPS-120.md](docs/records/FPS-120.md).
 - **Trainer**: `Local\I76Trainer` control block in the proxy (god mode, unlimited ammo, no flats, component
   hold, freeze, held on the game thread; repair / teleport / ammo / stop one-shots; forced Play Options bits) and
   `tools/trainer/i76trainer_gui.py` + `TRAINER.bat` `[measured, sandbox]`: `trainer_live_test.py` 13/13 (a 40 m
   drop costs 156 hp without god mode, 0 with); GUI attached to the live game, toggles reflected.
 - **Four opt-in frame-rate coverage switches** (backlog P2-05,
-  [docs/FRAMERATE-COVERAGE-2026-10-02.md](docs/FRAMERATE-COVERAGE-2026-10-02.md)); all four apply on the sandbox
+  [docs/records/FRAMERATE-COVERAGE-2026-10-02.md](docs/records/FRAMERATE-COVERAGE-2026-10-02.md)); all four apply on the sandbox
   (coll-window 3/3 sites, ai-fixes 6/6, far-engine-dt 1/1, mirror-rate 2/2 on the AiO layout):
   - `I76_AI_FIXES` `[measured, sandbox]`: AI dodge gate 2.87 checks/s at 20 fps, 8.90 at 60 unheld, 3.17 at 60
     with the switch, 17.19 at 120 unheld (A/A first, n = 2).
@@ -99,9 +99,9 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   offline against scratch copies of the pristine GOG binaries only (10 bytes changed per file, `-Restore`
   returns the original md5); the fresh-install console run (RELEASE-PLAN section 7 item 3) is still owed.
 - **Docs**: the prioritised backlog (76 rows, 28 stale-claim pairs), the session status, the playtest record,
-  [docs/HEALTH-BAR-COLOUR.md](docs/HEALTH-BAR-COLOUR.md), [docs/MOUNT-VALIDATION.md](docs/MOUNT-VALIDATION.md)
+  [docs/records/HEALTH-BAR-COLOUR.md](docs/records/HEALTH-BAR-COLOUR.md), [docs/records/MOUNT-VALIDATION.md](docs/records/MOUNT-VALIDATION.md)
   (static: no class check at load; the turret rule applies only on DONE),
-  [docs/SAVE-EDITOR-STATUS-2026-10-02.md](docs/SAVE-EDITOR-STATUS-2026-10-02.md),
+  [docs/records/SAVE-EDITOR-STATUS-2026-10-02.md](docs/records/SAVE-EDITOR-STATUS-2026-10-02.md),
   [docs/EDITOR-FIELD-TESTS.md](docs/EDITOR-FIELD-TESTS.md).
 
 #### Changed
@@ -186,7 +186,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   pre-decomp SM64 60fps). Blocked today by two unknowns: entity position/orientation
   offsets and the Gold exe's main-loop seam. Full verdict, ordered go/no-go checklist,
   prior-art catalog and the folklore-vs-measured corrections in
-  [docs/FRAMERATE-UNCAP-RESEARCH.md](docs/FRAMERATE-UNCAP-RESEARCH.md). Nothing
+  [docs/records/FRAMERATE-UNCAP-RESEARCH.md](docs/records/FRAMERATE-UNCAP-RESEARCH.md). Nothing
   field-tested yet.
   - **2026-10-01 update:** superseded by measurement. The sim turned out to be dt-driven (i76-map
     `subsystems/simclock.md`), the "two unknowns" were pinned (pose at object+0x18; the frame loop at
@@ -217,7 +217,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   `0x52bbdc` nonzero while `0x52bbd0` stays 0. A dormant **bus** is harmless (the working
   machine has ViGEm installed with no children); what matters is whether a joystick *device*
   enumerates. Full writeup, disassembly detail and the ruled-out list in
-  [docs/FFB-LAPTOP-RECON.md](docs/FFB-LAPTOP-RECON.md); new
+  [docs/records/FFB-LAPTOP-RECON.md](docs/records/FFB-LAPTOP-RECON.md); new
   [`tools/ffb-recon.ps1`](tools/ffb-recon.ps1) dumps machine-side facts in a fixed order so two
   machines diff mechanically — which is how this was found. Generalises: *a 1997 game that
   acquires a DirectInput device once at startup has no tolerance for a crowded device list, and
@@ -271,7 +271,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   timer, and warms up before baselining — a naive trigger fires on the device settling,
   not the user). Two more traps found in play: the `mouse` source sitting alongside
   `joystick1` on an analog sink **pins the axis** — steering was dead until it was removed,
-  the same trap [DECK-INPUT-SCIENCE.md](docs/DECK-INPUT-SCIENCE.md) documented on the Deck;
+  the same trap [DECK-INPUT-SCIENCE.md](docs/records/DECK-INPUT-SCIENCE.md) documented on the Deck;
   and the in-game Control Configuration menu **rewrites `input.map` destructively** (strips
   comments, deletes the keyboard driving bindings, moves `hardpoint2_fire` to the mouse).
   Native `joystick1 Button5`–`Button13` all work — they were briefly and wrongly blamed for
@@ -298,7 +298,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   [`deck/deck-push.sh`](deck/deck-push.sh) deploys it over ssh. The correct Steam setting
   is the **"Gamepad" template**, *not* "disable Steam Input" — the latter drops a Deck into
   lizard-mode keyboard/mouse. Recipe, decode sheet and rollback:
-  [docs/DECK-BASELINE.md](docs/DECK-BASELINE.md). **Deployable but unverified** — the Deck
+  [docs/records/DECK-BASELINE.md](docs/records/DECK-BASELINE.md). **Deployable but unverified** — the Deck
   was offline when this landed; button numbering and the XInput→haptics rumble path are
   ASSUMED until the decode sheet comes back.
 - **Windows: Nitro Pack fully scripted.** `install.ps1` now auto-detects a GOG Nitro
@@ -309,7 +309,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   `FullscreenAttributes=fake`/windowed so the engine's modal dialogs no longer
   deadlock behind an exclusive surface; `[GlideExt] pure32bit` restored (16-bit
   fallback was causing purple night terrain); and the KB5101650 `winmmbase` boot
-  crash diagnosed (uninstall the update — see docs/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md).
+  crash diagnosed (uninstall the update — see docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md).
 - **HD texture pack RETIRED.** The full-game enhanced-texture pack was built and then
   pulled: the in-game improvement didn't justify shipping it, and palette-indexed
   tiles rendered wrong on night missions (no palette-agnostic fix exists). The
@@ -358,7 +358,7 @@ Everything below was hit, diagnosed, and verified in play on this port — detai
 - The doc map ([docs/README.md](docs/README.md)) tags every approach **working / parked dead-end /
   other-platform / reference** so nobody re-chases a settled problem (Voodoo-on-Mac shader
   persistence, Mac force feedback, HD-on-Mac renderer switch).
-- New: **phone-port research** ([docs/PHONE-PORTS.md](docs/PHONE-PORTS.md)) — Android via Winlator,
+- New: **phone-port research** ([docs/records/PHONE-PORTS.md](docs/records/PHONE-PORTS.md)) — Android via Winlator,
   iPhone via streaming/UTM.
 
 ### Project

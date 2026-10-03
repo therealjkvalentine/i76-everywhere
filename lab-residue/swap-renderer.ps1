@@ -3,7 +3,7 @@
 #   dgVoodoo   - the daily driver: 3x windowed, 8x MSAA, LSFG-friendly.
 #   openglide  - the OpenGLide-HD fork build: TRUE high-resolution texture
 #                replacement (hdtex\ pack) + dumping (hdtex\dump\), at native
-#                640x480 window. See docs/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md.
+#                640x480 window. See docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md.
 #
 # OpenGLide-HD notes (hard-won; see FINDINGS doc for the full saga):
 #   - OpenGLid.ini MUST keep TextureMemorySize=2 (and FrameBufferMemorySize=2):

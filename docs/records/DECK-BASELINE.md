@@ -7,7 +7,7 @@
 > both files extract; the `input.map` transform hits `steer`/`throttle` without touching
 > `steer_left`/`throttle_up`, is idempotent, and appends the blocks if they're missing;
 > `deck-push.sh` argument parsing across six invocation forms; and
-> [`i76-deck-launch.sh`](../deck/i76-deck-launch.sh) driven end-to-end against a **simulated
+> [`i76-deck-launch.sh`](../../deck/i76-deck-launch.sh) driven end-to-end against a **simulated
 > Proton and game** — Proton discovered from a reaper-style argv, payload staged into a cold
 > prefix that only appears after warm-up, AHK started with the right Windows paths, exit code
 > propagated, cleanup run, and graceful degradation with no payload / no Proton.
@@ -24,7 +24,7 @@ pad and emits keyboard/mouse ([DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md)). M
 the Mac and Windows builds grew a richer layer that the Deck never got:
 
 - the **rumble mixer** — nitrous kick, handbrake thud, gear click, mine thud, ignition
-  crank, plus a continuous engine growl that scales with throttle ([i76-remap.ahk](../i76-remap.ahk), line 338 when written)
+  crank, plus a continuous engine growl that scales with throttle ([i76-remap.ahk](../../i76-remap.ahk), line 338 when written)
 - the **LB shift layer** — all five hardpoints, camera cycle, gears, binoculars, horn
 - **independent triggers** (winmm merges them into one axis; XInput doesn't)
 - **look-back rear gun** — RT while the right stick is held back fires hardpoint 3
@@ -35,7 +35,7 @@ Proton prefix — one source of truth across Mac, Windows and Deck.
 
 **What you give up:** the Steam Input v4 trackpad radial menu and the L4/L5/R4/R5 grip
 bindings. Both are convenience-tier only; every critical action is covered here
-([CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md)). Rollback is one command.
+([CONTROL-DOCTRINE.md](../CONTROL-DOCTRINE.md)). Rollback is one command.
 
 ## Deploy
 
@@ -86,7 +86,7 @@ Templates → **"Gamepad"**.
 ```
 
 The two consumers poll the same device through different APIs — exactly as on Mac and
-Windows. [`i76-deck-launch.sh`](../deck/i76-deck-launch.sh) is what gets AHK into the
+Windows. [`i76-deck-launch.sh`](../../deck/i76-deck-launch.sh) is what gets AHK into the
 *same* prefix: it reads `$STEAM_COMPAT_DATA_PATH` at launch (Steam runs non-Steam
 shortcuts from `compatdata/<appid>/`, **not** the prefix `deck-install.sh` built), copies
 the payload in, waits 15 s for Proton to boot the prefix, then starts AHK and tears it

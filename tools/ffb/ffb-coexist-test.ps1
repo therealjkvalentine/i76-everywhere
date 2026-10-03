@@ -12,7 +12,7 @@
 
   But exclusivity interacts with FOCUS. DirectInput auto-unacquires a device held
   at DISCL_FOREGROUND when its owner loses foreground, and I'76 acquires ONCE at
-  startup and never retries (docs/FFB-LAPTOP-RECON.md: "try again next time" is a
+  startup and never retries (docs/records/FFB-LAPTOP-RECON.md: "try again next time" is a
   give-up, not a retry). If that is right then the engine's FFB is already gone
   the first time you alt-tab, and we can take the wheel with no patch at all.
 
@@ -56,7 +56,7 @@ $hProc = [CoTest]::OpenProcess(0x38, $false, $proc.Id)
 
 function GameFfbState {
     # 0x52bbd0 = FF-device-detected flag, 0x52bbcc = effect object pointer.
-    # Both from docs/FFB-LAPTOP-RECON.md; meaningful only in a mission.
+    # Both from docs/records/FFB-LAPTOP-RECON.md; meaningful only in a mission.
     $b = New-Object byte[] 4; $n = 0
     [void][CoTest]::ReadProcessMemory($hProc, [IntPtr]0x52bbd0, $b, 4, [ref]$n)
     $flag = [BitConverter]::ToInt32($b, 0)

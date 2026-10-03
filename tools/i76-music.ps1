@@ -15,7 +15,7 @@
     * `win32.dll` and `audiere.dll` - GOG's music bridge - are NOT LOADED into
       the running process. Verified by enumerating modules from 32-bit
       PowerShell; a 64-bit host reports 0 modules for a 32-bit process, which is
-      the false negative documented in docs/FFB-LAPTOP-RECON.md.
+      the false negative documented in docs/records/FFB-LAPTOP-RECON.md.
 
   GOG ships the soundtrack as music\2.mp3 .. 17.mp3 - the original CD's audio
   track numbers, with no 1.mp3 because track 1 was the data track - but does not

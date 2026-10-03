@@ -1,7 +1,7 @@
 <#
   FFB recon - run on BOTH machines, diff the output.
 
-  Force feedback works on one Windows box and not another. docs/FFB-LAPTOP-RECON.md
+  Force feedback works on one Windows box and not another. docs/records/FFB-LAPTOP-RECON.md
   records what is already settled by disassembly; this collects the machine-side
   facts in a fixed order so `fc` / `diff` on two runs shows the difference instead
   of two people reading two walls of text.
