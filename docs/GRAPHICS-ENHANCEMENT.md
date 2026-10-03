@@ -372,3 +372,31 @@ Promotion to the live sandbox conf (and later the portable install) is a separat
   URL returns 404; the `[Glide]` key list was taken from the live conf and the CPL-written conf in
   `%APPDATA%\dgVoodoo\dgVoodoo.conf`.
 - ZGLIDE import census: `pefile` on `game\ZGLIDE.DLL`, 39 imports from `glide2x.dll`, 2026-10-02.
+
+## Measured 2026-10-03 on the FIXED config (the earlier matrix was void)
+
+The first capture matrix (2026-10-02) showed identical frames for every variant because dgVoodoo was rejecting the
+sandbox conf and running a 2020 global file (lab docs/DGVOODOO-CONF-REJECTED.md). Everything in this document about
+"the sandbox already supersamples 1.46x with 8x MSAA" described a file that was not in effect: the owner had been
+playing 1920x1440 internal with no antialiasing. With the fixed conf (fake fullscreen, 4:3 picture 1920x1440 on the
+3440x1440 panel) the variants differ as expected. t01, car frozen at one spot, `I76_GLIDE_REFRESH=120`, n = 1 each
+(the current setting and 1x were run twice: same numbers), `tools\graphics\run-matrix2.ps1`:
+
+| internal resolution | MSAA | downscale | fps | dt sd (ms) | GPU load | GPU memory |
+|---|---|---|---|---|---|---|
+| 1920x1440 (1x) | off | bilinear | 120.1 | 0.08 | 14 % | 986 MiB |
+| 1920x1440 (1x) | 8x | bilinear | 120.1 | 0.05 | 13 % | 1271 MiB |
+| 2880x2160 (1.5x) | 4x | bilinear | 120.0 | 0.66 (p99 11.2) | 20 % | 1329 MiB |
+| 3840x2880 (2x) | off | bilinear | 120.1 | 0.08 | 28 % | 1140 MiB |
+| **3840x2880 (2x)** | **4x** | **bilinear** | **120.1** | **0.06** | **28-37 %** | **1666 MiB** |
+| 3840x2880 (2x) | 4x | bicubic / lanczos-3 | 120.1 / 120.0 | 0.18 / 0.20 | 37 % | 1666 MiB |
+| 3840x2880 (2x) | 8x | bilinear | **92.7** | 1.26 | 47 % | 2257 MiB |
+| 5760x4320 (3x) | off | bilinear | 120.1 | 1.02 (p99 9.8) | 45 % | 1377 MiB |
+| 5760x4320 (3x) | 4x | bilinear / lanczos-3 | **90.1** | 0.09 | 56 % | 2572 MiB |
+| 3840x2880 (2x), `TMUFiltering = appdriven` | 4x | bilinear | 120.1 | 0.03 | 25 % | 1666 MiB |
+
+Reading (crops in lab `captures\graphics\try\cmp-matrix2.png`): 1x without AA shows the stair-stepped silhouettes
+the owner has been looking at; any MSAA level removes them; 2x adds texture and distant-object detail (road signs,
+terrain shading) on top; 3x is not visibly better than 2x in these crops and costs the 120. **Pick: 2x internal +
+4x MSAA + bilinear** (an exact 2x2 box at 2x), which is the sandbox conf now. 2x + 8x MSAA and 3x + 4x MSAA fall to
+~90 fps on the GTX 1080 Ti and are out for a 120 Hz preset. Not yet judged by eye in motion.
