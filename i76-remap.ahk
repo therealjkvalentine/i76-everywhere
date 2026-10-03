@@ -21,10 +21,13 @@
 ;    window has focus. If you run it globally on native Windows, wrap the
 ;    remaps in:  #IfWinActive ahk_exe i76.exe
 ;
-; The key names on the RIGHT are what input.map binds (docs/input.map.reference):
+; The key names on the RIGHT are what input.map binds (controls/input.map, the
+; Windows map):
 ;   6 / 7 / 8  =  special1 / special2 / special3  (nitrous, bumpers... fire
 ;                 from whichever special slot the part is mounted in)
-;   = / -      =  shift_up / shift_down (gear shift)
+;   . / ,      =  shift_up / shift_down (gear shift). 2026-10-03: the pad layer
+;                 sends these now, not = / -. The Mac map (docs/input.map.reference)
+;                 still has gears on = / - and has not been converged.
 
 #NoEnv
 #NoTrayIcon
@@ -181,10 +184,11 @@ SetTimer, WheelPoll, 15
 ; @pad LB+X: radar zoom toggle (R)
 ; @pad A(tap): OK/select in menus - click+Enter; in-sim a single shot
 ; @pad A(hold 400ms): NITROUS while held
-; @pad B(tap): cycle weapon (C)
+; @pad B(tap): cycle weapon (Tab)
 ; @pad X: cycle targets (Y)
 ; @pad Y: toggle chase cam <-> cockpit (F3/F1)
 ; @pad LB(tap): front target (Q)
+; @pad RB: handbrake (Space, hold)
 ; @pad Select: pause menu / skip cutscene (Esc)
 ; @pad Start: map (M)
 ; @pad Dpad-Up: headlights (H)
@@ -202,8 +206,8 @@ SetTimer, WheelPoll, 15
 ; @pad L3: nitrous / special 1 (hold); with LEFT stick pulled back = toggle reverse
 ; @pad LB+Dpad-Up: binoculars (B)
 ; @pad LB+Dpad-Down: horn (G)
-; @pad LB+Dpad-Left: gear down (-)
-; @pad LB+Dpad-Right: gear up (=)
+; @pad LB+Dpad-Left: gear down (,)
+; @pad LB+Dpad-Right: gear up (.)
 gXIDll := ""
 Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 {
@@ -216,6 +220,7 @@ gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
 gYPrev := false, gCamIdx := 0, gYExt := false
+gRBSpace := false    ; RB holds Space (handbrake); see XIPoll
 gTL := 0, gTR := 0, gTTicks := 0, gGrowl := 0
 ; ---- RUMBLE OWNERSHIP (2026-07-19) ----
 ; The ffb-shim (i7_SFRCE.DLL) now drives the pad from the game's REAL force
@@ -398,7 +403,7 @@ if (gXIDll != "")
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
 RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
 RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
-RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet("-", false), RSGSet("=", false), RSGSet("b", false), RSGSet("g", false), RSGSet("e", false), RSGSet("r", false)
+RSGSet("y", false), RSGSet("u", false), RSGSet("v", false), RSGSet("x", false), RSGSet(",", false), RSGSet(".", false), RSGSet("Space", false), RSGSet("b", false), RSGSet("g", false), RSGSet("e", false), RSGSet("r", false)
 ExitApp
 
 ; ---- XInput poll (see init near the top). State struct: buttons WORD @4,
@@ -416,6 +421,8 @@ if (DllCall(gXIDll . "\XInputGetState", "UInt", gXIPad, "Ptr", &xiState, "UInt")
     }
     if (!found) {
         RSGSet("1", false), RSGSet("2", false)
+        if (gRBSpace)
+            RSGSet("Space", false), gRBSpace := false
         gXIPrevBtns := 0
         return
     }
@@ -502,10 +509,10 @@ RSGSet("5", lbHeld && gLTHeld)
 r3Held := (btns & 0x0080) != 0
 RSGSet("e", r3Held && !gLookBack)
 
-; B: base tap = cycle weapon (C); shifted = dropper (hardpoint 4)
+; B: base tap = cycle weapon (Tab); shifted = dropper (hardpoint 4)
 RSGSet("4", (lbHeld && bHeld) || (r3Held && gLookBack))
 if (!lbHeld && bHeld && !gBPrev)
-    SendEvent, c
+    SendEvent, {Tab}
 gBPrev := bHeld
 
 ; X: cycle targets (Y key); shifted = radar zoom toggle (R)
@@ -526,16 +533,27 @@ if (lbHeld && yHeld && !gYPrev) {
 }
 gYPrev := yHeld
 
+; RB: handbrake (Space) while held, on both layers. Edge-driven, NOT mirrored
+; every tick like the keys below: the wheel layer holds Space through the same
+; RSGSet table (wheel button 4), and a per-tick RSGSet("Space", false) from here
+; would release the wheel's handbrake 15 ms after it was pressed.
+rbNow := (btns & 0x0200) != 0
+if (rbNow != gRBSpace) {
+    RSGSet("Space", rbNow)
+    gRBSpace := rbNow
+}
+
 ; D-pad: base = utilities (held-mirrored keys, work inside map/notepad
-; screens too); shifted = driving (reverse / gear down / gear up)
+; screens too); shifted = driving (gear down / gear up on , and . - what
+; controls/input.map binds; they were - and = until 2026-10-03)
 RSGSet("h", !lbHeld && dU)
 RSGSet("i", !lbHeld && dD)
 RSGSet("n", !lbHeld && dL)
 RSGSet("m", stHeld || (!lbHeld && dR))   ; Start also = map
 RSGSet("b", lbHeld && dU)     ; binoculars
 RSGSet("g", lbHeld && dD)     ; horn (hold to honk)
-RSGSet("-", lbHeld && dL)
-RSGSet("=", lbHeld && dR)
+RSGSet(",", lbHeld && dL)
+RSGSet(".", lbHeld && dR)
 
 if (lbHeld && (aHeld || bHeld || xHeld || yHeld || gRTHeld || gLTHeld || dU || dD || dL || dR))
     gLBUsed := true

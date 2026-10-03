@@ -45,7 +45,8 @@ Rules for ANY control change:
    history is full of retractions for skipping that.
 
 Full control-design doctrine: docs/CONTROL-DOCTRINE.md. Binding reference:
-controls/input.map (the map the Windows installer writes: the owner's WASD-style map, not the 1997
+controls/input.map (the map the Windows installer writes: the owner's WASD-style map plus `1` / `J` / `L`
+fire keys since 2026-10-03, see controls/README.md; not the 1997
 layout; `setup-windows.ps1 -Controls stock` keeps GOG's keys), docs/input.map.reference (the Mac
 installer's map; not yet converged with the Windows one), docs/GAMEPAD-PC-MAC.md, docs/CONTROLS.md.
 

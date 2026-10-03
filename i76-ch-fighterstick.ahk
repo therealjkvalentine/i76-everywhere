@@ -175,8 +175,8 @@ BTN[4]  := {ctl: "pinky red",            act: "pilot_glance_target",  key: "E"}
 ; --- convex serrated hat = DIRECT FIRE, one hardpoint per direction ---
 ; ONE hardpoint per direction, never two from one control: firing two weapon
 ; effects from a single press is what crashed I7_SFRCE.DLL on 2026-08-01.
-; hardpoint1_fire has no keyboard binding in input.map at all, so the four
-; directions are hardpoints 2-5.
+; hardpoint1_fire had no keyboard binding in input.map when this was laid out
+; (it is on 1 and J since 2026-10-03), so the four directions are hardpoints 2-5.
 BTN[5]  := {ctl: "serrated UP",          act: "hardpoint2_fire",      key: "Two"}
 BTN[6]  := {ctl: "serrated RIGHT",       act: "hardpoint3_fire",      key: "Three"}
 BTN[7]  := {ctl: "serrated DOWN",        act: "hardpoint4_fire",      key: "Four"}

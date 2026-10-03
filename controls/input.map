@@ -1,9 +1,10 @@
 # Interstate '76 Input mapping file
 # MW5-STYLE LAPTOP LAYOUT applied to the ACTIVE input.map (2026-07-04)
 # (KEYBOARD.MAP is IGNORED by this build; this is the file the engine reads.)
-# W/S throttle(notched)  A/D steer  Space fire  Tab cycle  F link  X reverse
-# C handbrake  I ignition  Q front-target  T nearest  Y next  U untarget
+# W/S throttle(notched)  A/D steer  Enter fire  Tab cycle  F link  X reverse
+# Space handbrake  I ignition  Q front-target  T nearest  Y next  U untarget
 # R radar-range  K radar-cam  E glance-target  Arrows glance  P poetry
+# 1-5 hardpoints 1-5  J hardpoint 1  L hardpoint 2  (header corrected 2026-10-03)
 throttle {
    - joystick1  Down/Up
 }
@@ -179,6 +180,11 @@ weapon_link {
 	- Keyboard	Shift
 	- Keyboard	Control
 }
+hardpoint1_fire {
+   + keyboard   One
+	- Keyboard	Shift
+	- Keyboard	Control
+}
 hardpoint2_fire {
    + keyboard   Two
 	- Keyboard	Shift
@@ -264,6 +270,22 @@ hardpoint2_fire {
 }
 pilot_glance_left {
    + mouse      MiddleBtn
+}
+
+# --- Right-hand home-row fire keys (added 2026-10-03, owner ruling) ---
+# ADDITIVE: a second block for the same action is an ALTERNATIVE binding, not a
+# chord. 1 and 2 keep firing as before; J and L add a right-hand way to do it.
+# L, not K, for hardpoint 2: K is the radar camera here and the wheel layer types
+# K for it. The swap (K = hardpoint 2, radar camera on L) is in controls/README.md.
+hardpoint1_fire {
+   + keyboard   J
+	- Keyboard	Shift
+	- Keyboard	Control
+}
+hardpoint2_fire {
+   + keyboard   L
+	- Keyboard	Shift
+	- Keyboard	Control
 }
 
 

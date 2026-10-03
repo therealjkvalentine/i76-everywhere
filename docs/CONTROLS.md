@@ -2,8 +2,8 @@
 
 > **This project installs its own control map (WASD-style), not the 1997 layout.**
 > `W` `A` `S` `D` drive, the arrow keys look around, `Enter` or the left mouse button fires, `Space` is the
-> handbrake. It is the owner's daily-driver map, shipped as [`controls/input.map`](../controls/input.map)
-> (decision of 2026-10-03). The table in section 1 lists every key beside the original one.
+> handbrake. It is the owner's daily-driver map plus three fire keys (`1`, `J`, `L`), shipped as
+> [`controls/input.map`](../controls/input.map) (decision of 2026-10-03). The table in section 1 lists every key beside the original one.
 >
 > **To keep the original keys:**
 >
@@ -29,8 +29,9 @@ Deep docs are linked, not repeated.
 
 Two facts first. The engine reads **`input.map`** in the game folder and nothing else ([AGENTS.md](../AGENTS.md)).
 And a Windows install made by `INSTALL.bat` has, as of 2026-10-03, **never been started** by anyone on this project
-([INSTALL.md, Evidence](../INSTALL.md#evidence-what-was-tested)): the map is the one the owner plays on, but
-the installer's copy of it was checked by md5 and lint, not by play.
+([INSTALL.md, Evidence](../INSTALL.md#evidence-what-was-tested)): the map is the one the owner plays on plus
+three keys added 2026-10-03 ([controls/README.md](../controls/README.md)), and the installer's copy of it was
+checked by md5 and lint, not by play.
 
 ## 0. Thirty seconds
 
@@ -38,7 +39,7 @@ the installer's copy of it was checked by md5 and lint, not by play.
 |---|---|---|---|
 | All keyboard | A keyboard | `INSTALL.bat`; section 2 | The owner's daily-driver map. Fresh install: "the game was not started from it" (INSTALL.md) |
 | Keyboard and mouse | Plus a three-button mouse | The same map binds the three mouse buttons; the launcher adds the wheel and buttons 4 / 5; section 3 | Same as above. Mouse wheel helper: "status not recorded" (ENHANCEMENTS) |
-| Gamepad | An Xbox-style pad, **connected before launch** | `INSTALL.bat`, then `PLAY-i76.bat` (starts the AutoHotkey layer); section 4 | Layer: "deployed, verified on Mac/Windows" (RELEASE-PLAN section 1). No play test of the pad on this map is recorded; four pad controls send keys it does not bind |
+| Gamepad | An Xbox-style pad, **connected before launch** | `INSTALL.bat`, then `PLAY-i76.bat` (starts the AutoHotkey layer); section 4 | Layer: "deployed, verified on Mac/Windows" (RELEASE-PLAN section 1). No play test of the pad on this map is recorded; four pad controls were changed 2026-10-03 and are not yet played (section 4) |
 | HOWAS | Thrustmaster T300RS + CH Fighterstick, Windows | Driver, pedals COMBINED, `PLAY-i76.ps1`; section 5 | Wheel: "STATUS 2026-08-01: WORKING AND PLAYED". Stick: "Field-confirmed working 2026-08-08". Both on this map |
 | Steam Deck | The Deck | The installer pre-applies the layout | "INSTALLED on this user's Deck (2026-07-11)"; see [DECK-CONTROLS.md](DECK-CONTROLS.md) |
 | Mac | | The Mac installer copies a different map, [`input.map.reference`](input.map.reference) | Not compared with this page; see "Mac: converge later" at the end |
@@ -67,14 +68,14 @@ Shift move the outside camera and the map instead of glancing.
 | Fire selected weapon | `Space` | `Enter`<br>`Left mouse button` | changed |
 | Cycle weapon | `Enter` | `Tab` | changed |
 | Link weapons | `L` | `F` | changed |
-| Fire hardpoint 2 | `2` | `2`<br>`Right mouse button` | changed |
+| Fire hardpoint 1 | `1` | `1`<br>`J` | changed |
+| Fire hardpoint 2 | `2` | `2`<br>`Right mouse button`<br>`L` | changed |
 | Fire hardpoint 3 | `3` | `3` |  |
 | Fire hardpoint 4 | `4` | `4` |  |
 | Fire hardpoint 5 | `5` | `5` |  |
 | Special 1 (nitrous slot) | `6` | `6` |  |
 | Special 2 | `7` | `7` |  |
 | Special 3 | `8` | `8` |  |
-| Fire hardpoint 1 | `1` | not bound | changed |
 | Target in front | `Q` | `Q` |  |
 | Next target | `E` | `Y` | changed |
 | Target nearest enemy | `T` | `T` |  |
@@ -100,7 +101,7 @@ Shift move the outside camera and the map instead of glancing.
 | Player scores (multiplayer) | `' (quote)` | `' (quote)` |  |
 | Team scores (multiplayer) | `; (semicolon)` | `; (semicolon)` |  |
 
-Generated from `controls/input.map` (md5 `a937f36dba46644d2b0f421097aede2f`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
+Generated from `controls/input.map` (md5 `90122d370333b545d27070f3f94b1265`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
 
 <!-- END generated: stock-vs-ours -->
 
@@ -109,14 +110,16 @@ Not in `input.map` at all (engine keys, from the comments in [`i76-remap.ahk`](.
 
 What to know about our map:
 
-- **Hardpoint 1 has no key.** Stock fires it with `1`; our map binds hardpoints 2 to 5 (`2` `3` `4` `5`) and
-  nothing to hardpoint 1. `K` is the radar camera. Fire the selected weapon with `Enter` or the left mouse
-  button, pick it with `Tab`, fire linked groups with `F`.
+- **Hardpoints 1 to 5 are on `1` to `5`.** `1` was unbound until 2026-10-03. The right hand also has `J`
+  (hardpoint 1) and `L` (hardpoint 2) on the home row; `K` between them is the radar camera
+  ([controls/README.md](../controls/README.md) has the one-line swap to `K`). Fire the selected weapon with
+  `Enter` or the left mouse button, pick it with `Tab`, fire linked groups with `F`. The daily driver gets
+  `1`, `J` and `L` by promotion after a pad test.
 - **Looking up and down is the right way round.** Stock binds "glance down" to the up arrow; ours does not.
 - **No native pad or wheel buttons.** `joystick1` appears only on `steer` and `throttle`. Buttons come from the
   AutoHotkey layers (sections 4 and 5), which type the keys in this table.
-- The file's own header comment (2026-07-04) says `Space fire` and `C handbrake`; the bindings, which are what
-  the game reads, are `Space` handbrake and `C` unbound ([controls/README.md](../controls/README.md)).
+- `C` is unbound. The file's header comment said `Space fire` and `C handbrake` until 2026-10-03; it now says
+  what the bindings are (`Enter` fire, `Space` handbrake).
 
 **What the installer does to `input.map`** ([`setup-windows.ps1`](../setup-windows.ps1) step 5):
 
@@ -143,6 +146,7 @@ and back twice, a re-run with no `-Controls`, and `install.ps1 -Controls`; each 
 
 `I` starts the engine. `W` accelerates, `S` brakes, `A` and `D` steer. `Space` is the handbrake, `X` toggles
 reverse, `,` and `.` shift down and up. `Enter` fires the selected weapon, `Tab` picks it, `F` links.
+`1` to `5` fire hardpoints 1 to 5 directly; `J` and `L` also fire hardpoints 1 and 2.
 `Q` targets what is in front, `T` the nearest enemy, `Y` the next, `U` clears. The **arrow keys look around**
 (the dedicated arrow cluster, confirmed by the owner 2026-10-03); with Shift they move the outside camera and
 the map. `E` looks at the target.
@@ -183,20 +187,25 @@ Connect the pad **before** launching: the engine lists joysticks once, at startu
 
 The layout, every button and the LB layer, is page 2 of the
 [quick reference](Interstate76-Controls-Quick-Reference.pdf), which is built from the script's `@pad` lines and
-checked against the keys its code sends. In short: RT fires, LT is hardpoint 2, A is a single shot (and OK in
-menus) and nitrous when held, X is the next target, Y switches cockpit and chase camera, the right stick looks
+checked against the keys its code sends. In short: RT fires, LT is hardpoint 2, RB is the handbrake, A is a single shot (and OK in
+menus) and nitrous when held, B cycles the weapon, X is the next target, Y switches cockpit and chase camera, the right stick looks
 around, R3 looks at the target, L3 is nitrous (reverse when pressed with the stick pulled back), the D-pad is
 lights / ignition / notepad / map, Back is Esc, Start is the map.
 
-**Known mismatches** (found by the sheet's checker, left as the owner plays it; `tools/controls-sheet/README.md`):
+**Fixed 2026-10-03** (owner ruling; the sheet's checker had found four pad controls typing keys the map does not
+bind). None of these has been played yet; the daily driver gets them by promotion after a pad test:
 
-| Pad control | Key the layer types | In the map | Effect |
+| Pad control | Typed before | Types now | Does |
 |---|---|---|---|
-| LB + D-pad left / right | `-` / `=` (gear down / up) | Gears are `,` and `.`; nothing is on `-` or `=` | Does nothing |
-| B | `C` (cycle weapon) | Cycle weapon is `Tab`; nothing is on `C` | Does nothing |
-| LB + RT | `1` (hardpoint 1) | Hardpoint 1 has no binding | Does nothing |
+| LB + D-pad left / right | `-` / `=` | `,` / `.` | gear down / up |
+| B | `C` | `Tab` | cycle weapon |
+| LB + RT | `1` (unbound) | `1` (now bound in the map) | hardpoint 1 |
+| RB | nothing | `Space`, held | handbrake |
 
-RB has no function in the layer. The older pictures [`pad-layout.svg`](pad-layout.svg) and
+RB is the handbrake because the layer's design already said so: `pad-layout.svg` labels it "handbrake" and the
+layer's rumble code has a "handbrake thud" on RB; only the key was never sent. **Mac and Deck:** the same script
+runs there against [`input.map.reference`](input.map.reference), which still has gears on `-` / `=`, so LB +
+D-pad left / right do nothing there until the maps converge (last section). The older pictures [`pad-layout.svg`](pad-layout.svg) and
 [`pad-layout-shift.svg`](pad-layout-shift.svg) were drawn from a Mac game folder's map by `tools/pad-diagram.py`
 and show native bindings the shipped map does not have; use the PDF.
 
@@ -211,8 +220,8 @@ the same keys do this (a comparison of files):
 | Key sent | Meant as (who sends it) | On GOG's map |
 |---|---|---|
 | `Enter` | fire (pad A tap, wheel right paddle, stick trigger) | cycle weapon |
-| `Space` | handbrake (wheel 4, stick pulled back) | fire |
-| `Tab` | cycle weapon (wheel 3, mouse wheel up) | reverse |
+| `Space` | handbrake (pad RB, wheel 4, stick pulled back) | fire |
+| `Tab` | cycle weapon (pad B, wheel 3, mouse wheel up) | reverse |
 | `X` | reverse (pad L3 with stick back, wheel shift+4, stick forward) | unbound (reverse is `Tab`) |
 | `Y` | next target (pad X, stick castle right) | clear target |
 | `E` | look at target (pad R3, stick pinky, wheel shift+9) | next target |
@@ -338,7 +347,7 @@ separate blocks ([I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)). The de
 
 The Mac build may have grown a different two-handed keyboard layout. It has not been examined against this page:
 the Mac installer copies [`input.map.reference`](input.map.reference) (2026-09-06), which differs from
-`controls/input.map` (gears on `-` / `=`, home-row hardpoints `L` `O` `[` `]`, weapon link on Shift + left
+`controls/input.map` (gears on `-` / `=`, which the pad layer no longer types since 2026-10-03; home-row hardpoints `L` `O` `[` `]`, weapon link on Shift + left
 click, bare `Joystick` hat blocks), and `setup-mouse-and-pad.sh` still writes mouse steering there. Converging
 the two maps is open work; until then this page and the PDF describe Windows.
 
@@ -347,7 +356,9 @@ the two maps is open work; until then this page and the PDF describe Windows.
 Owner ruling: the daily driver's live configuration is the truth. Each item below was a contradiction between
 two docs or a doc and a script; the source docs were corrected the same day.
 
-1. **Home-row hardpoint 1.** The shipped map has no hardpoint 1 key at all; `K` is the radar camera. `K` `O`
+1. **Home-row hardpoint 1.** The daily driver's map has no hardpoint 1 key at all; `K` is the radar camera.
+   (Later the same day the owner ruled that the shipped map bind `1` and `J` to hardpoint 1 and `L` to
+   hardpoint 2; the driver gets them by promotion.) `K` `O`
    `[` `]` exist only in the `-Controls stock` patch (all four are free in GOG's map). `L` in
    `input.map.reference` is the Mac map.
 2. **Arrows.** The dedicated arrow keys look around (`pilot_glance_*` on `Grey*Arrow`); driving is
@@ -362,7 +373,7 @@ two docs or a doc and a script; the source docs were corrected the same day.
 7. **Wheel shift + 1.** A left click, which fires the selected weapon. WHEEL-T300's table said hardpoint 1 and
    its prose still had link fire on R2.
 8. **Stick pinky.** Look at target (`E`). The script's header comment said weapon link.
-   Pad gear shift on `-` / `=` is a real mismatch, listed in section 4, not a doc error.
+   Pad gear shift on `-` / `=` was a real mismatch, not a doc error; fixed in the pad layer (section 4).
 9. **`enable-force-feedback.bat`.** Not settled by the configuration. Printed as current: force-feedback start
    is unconditional on the Gold exe, the registry key is irrelevant (WHEEL-T300, from disassembly); the bat is
    not needed and harmless. Nobody has re-tested without it.

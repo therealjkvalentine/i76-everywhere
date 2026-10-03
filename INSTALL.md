@@ -158,8 +158,9 @@ Tested on 2026-10-03, **without starting the game**:
   bytes in each file, and `-Restore` returns both to their original md5. Its gate ran on the lab sandbox
   and the daily driver, not on a fresh GOG folder, and the whole installer was not re-run with it.
   `setup-windows.ps1 -U32xDll u32x\u32x.dll` installs the minimal build (`a5927cea`) instead.
-- The installed map on a fresh install. It is byte for byte the daily driver's map (md5 `a937f36d`), which the
-  owner plays on, but no game was started from an installer-made folder.
+- The installed map on a fresh install. It is the daily driver's map (md5 `a937f36d`), which the owner plays
+  on, plus three fire keys added 2026-10-03 (`1`, `J`, `L`; md5 `90122d37`, `controls/README.md`); no game was
+  started from an installer-made folder, and the three keys have not been played.
 - The Nitro Pack path (unchanged).
 
 Not installed, although the daily driver has them: the cursor-overlay and head-tracking AutoHotkey scripts, Lossless Scaling, and the owner's saves.

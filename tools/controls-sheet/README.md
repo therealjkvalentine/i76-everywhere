@@ -49,13 +49,15 @@ AutoHotkey script.
 
 ## Known mismatches
 
-Real inconsistencies between the owner's map and the pad layer, found by the check on 2026-10-03 and **left as
-the owner plays it** (the daily driver's live configuration is the truth). They are printed on the gamepad page
-with a dagger. Known mismatches: pad LB + D-pad left / right type `-` / `=` (gear down / up) but the map has
-gears on `,` / `.` and nothing on `-` / `=`; pad B types `C` (cycle weapon) but cycle weapon is `Tab` and `C`
-is unbound; pad LB + RT types `1` (hardpoint 1) but the map has no hardpoint 1 binding. All four do nothing.
-To close one, bind the key in `controls/input.map` or change the key in `i76-remap.ahk`, remove its entry from
-`known_mismatches`, and run the build.
+Known mismatches: none (the list in `controls-sheet.json` is empty). The check found four on 2026-10-03, all in
+the pad layer, and the owner ruled the same day that they be fixed there: LB + D-pad left / right typed `-` / `=`
+and now type `,` / `.` (gear down / up); B typed `C` and now types `Tab` (cycle weapon); LB + RT types `1`, which
+`controls/input.map` now binds to hardpoint 1. RB, which had no function, holds `Space` (handbrake). None of the
+four has been played yet; the daily driver gets the map and the script by promotion after a pad test.
+
+A mismatch that has to stay for a while goes under `known_mismatches` with id `<layer>:<control>:<key sent>`;
+it is then printed on its page with a dagger. To close one, bind the key in `controls/input.map` or change the
+key in `i76-remap.ahk`, remove the entry, and run the build.
 
 ## Files
 

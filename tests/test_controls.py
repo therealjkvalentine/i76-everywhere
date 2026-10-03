@@ -21,7 +21,7 @@ bs = importlib.util.module_from_spec(spec); spec.loader.exec_module(bs)
 
 
 def test_sources_agree():
-    """The one-command check: exit 0, and it names the known mismatches instead of hiding them."""
+    """The one-command check: exit 0. Known mismatches, when there are any, are named in its output."""
     r = subprocess.run([sys.executable, SHEET, "--check"], capture_output=True, text=True)
     assert r.returncode == 0, r.stdout + r.stderr
     assert "sources agree" in r.stdout
@@ -66,8 +66,13 @@ def test_checker_fails_loudly():
     assert any("wheel 3" in f and "meant to be" in f for f in bs.check(M))
 
     M = bs.load()                                   # a known mismatch that is no longer one must be removed
-    M.by_key[("keyboard", "c")] = ["weapon_cycle"]
+    M.known["gamepad:B(tap):C"] = "Pad B sends 'C' (fixed 2026-10-03: it sends Tab)"
     assert any("no longer finds" in f for f in bs.check(M))
+
+    M = bs.load()                                   # an unbound key that IS listed is tolerated, and recorded
+    del M.by_key[("keyboard", "tab")]
+    M.known.update({"gamepad:B(tap):Tab": "x", "wheel:3:Tab": "x", "mouse:WheelUp:Tab": "x"})
+    assert bs.check(M) == [] and "gamepad:B(tap):Tab" in M.mismatches
 
 
 def _exe():

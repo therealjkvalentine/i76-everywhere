@@ -29,6 +29,7 @@
     "weapon_fire":          {"group": "weapons",   "label": "Fire selected weapon",        "key": "Fire"},
     "weapon_cycle":         {"group": "weapons",   "label": "Cycle weapon",                "key": "Cycle weapon"},
     "weapon_link":          {"group": "weapons",   "label": "Link weapons",                "key": "Link weapons"},
+    "hardpoint1_fire":      {"group": "weapons",   "label": "Fire hardpoint 1",            "key": "Hardpoint 1"},
     "hardpoint2_fire":      {"group": "weapons",   "label": "Fire hardpoint 2",            "key": "Hardpoint 2"},
     "hardpoint3_fire":      {"group": "weapons",   "label": "Fire hardpoint 3",            "key": "Hardpoint 3"},
     "hardpoint4_fire":      {"group": "weapons",   "label": "Fire hardpoint 4",            "key": "Hardpoint 4"},
@@ -77,8 +78,7 @@
   },
 
   "stock_only_actions": {
-    "_readme": "Actions GOG's 1997 map binds and controls/input.map does not. Only used on the comparison page.",
-    "hardpoint1_fire":      {"group": "weapons",   "label": "Fire hardpoint 1",            "key": "Hardpoint 1"}
+    "_readme": "Actions GOG's 1997 map binds and controls/input.map does not. Only used on the comparison page. Empty since 2026-10-03, when hardpoint1_fire was bound (1 and J)."
   },
 
   "fixed_keys": {
@@ -125,9 +125,10 @@
       {"control": "RT", "layer": "base",  "at": "RT(looking back)",  "sends": ["3"],                "expect": ["hardpoint3_fire"],   "how": "while the right stick is held back (rear view)"},
       {"control": "LT", "layer": "base",  "at": "LT",                "sends": ["2"],                "expect": ["hardpoint2_fire"],   "how": "hold"},
       {"control": "LB", "layer": "base",  "at": "LB(tap)",           "sends": ["q"],                "expect": ["frontal_target"],    "how": "tap; hold = SHIFT"},
+      {"control": "RB", "layer": "base",  "at": "RB",                "sends": ["Space"],            "expect": ["e_brake"],           "how": "hold"},
       {"control": "A",  "layer": "base",  "at": "A(tap)",            "sends": ["LButton", "Enter"], "expect": ["weapon_fire", "weapon_fire"], "how": "tap; types a click and Enter: OK in menus, one shot in the car"},
       {"control": "A",  "layer": "base",  "at": "A(hold 400ms)",     "sends": ["6"],                "expect": ["special1"],          "how": "hold 0.4 s"},
-      {"control": "B",  "layer": "base",  "at": "B(tap)",            "sends": ["c"],                "expect": ["weapon_cycle"],      "how": "tap"},
+      {"control": "B",  "layer": "base",  "at": "B(tap)",            "sends": ["Tab"],               "expect": ["weapon_cycle"],      "how": "tap"},
       {"control": "X",  "layer": "base",  "at": "X",                 "sends": ["y"],                "expect": ["next_target"],       "how": ""},
       {"control": "Y",  "layer": "base",  "at": "Y",                 "sends": ["F3", "F1"],         "expect": [null, null],          "how": "alternates"},
       {"control": "Back",  "layer": "base", "at": "Select",          "sends": ["Esc"],              "expect": [null],                "how": ""},
@@ -149,12 +150,11 @@
       {"control": "Y",  "layer": "shift", "at": "LB+Y",              "sends": ["F1", "F2", "F3", "F7", "F8", "F9", "F10"], "expect": [null, null, null, null, null, null, null], "how": "one step per press", "label": "Cycle camera views"},
       {"control": "D-pad up",    "layer": "shift", "at": "LB+Dpad-Up",    "sends": ["b"],           "expect": ["toggle_binoculars"], "how": ""},
       {"control": "D-pad down",  "layer": "shift", "at": "LB+Dpad-Down",  "sends": ["g"],           "expect": ["honk_horn"],         "how": "hold"},
-      {"control": "D-pad left",  "layer": "shift", "at": "LB+Dpad-Left",  "sends": ["-"],           "expect": ["shift_down"],        "how": ""},
-      {"control": "D-pad right", "layer": "shift", "at": "LB+Dpad-Right", "sends": ["="],           "expect": ["shift_up"],          "how": ""}
+      {"control": "D-pad left",  "layer": "shift", "at": "LB+Dpad-Left",  "sends": [","],           "expect": ["shift_down"],        "how": ""},
+      {"control": "D-pad right", "layer": "shift", "at": "LB+Dpad-Right", "sends": ["."],           "expect": ["shift_up"],          "how": ""}
     ],
     "unbound_controls": {
-      "_readme": "Pad controls with no @pad line and no native binding in the map.",
-      "RB": "not bound"
+      "_readme": "Pad controls with no @pad line and no native binding in the map. Empty since 2026-10-03 (RB = handbrake)."
     }
   },
 
@@ -197,26 +197,21 @@
   },
 
   "known_mismatches": {
-    "_readme": "Real inconsistencies between the owner's map and the layers, found by the checker and LEFT AS PLAYED (owner ruling 2026-10-03: the daily driver's live config is the truth; do not change behaviour). Each id is '<layer>:<control>:<key sent>'. The build fails on a mismatch that is not listed here, and on an entry here that is no longer a mismatch.",
-    "list": [
-      {"id": "gamepad:LB+Dpad-Left:Minus",  "what": "Pad LB + D-pad left sends '-' for gear down. The map binds gear down to ',' and nothing to '-'. The control does nothing."},
-      {"id": "gamepad:LB+Dpad-Right:Equal", "what": "Pad LB + D-pad right sends '=' for gear up. The map binds gear up to '.' and nothing to '='. The control does nothing."},
-      {"id": "gamepad:B(tap):C",            "what": "Pad B sends 'C' for cycle weapon. The map binds cycle weapon to Tab and nothing to 'C'. The control does nothing."},
-      {"id": "gamepad:LB+RT:One",           "what": "Pad LB + RT sends '1' for hardpoint 1. The map has no hardpoint 1 binding at all. The control does nothing."}
-    ]
+    "_readme": "Real inconsistencies between the owner's map and the layers, found by the checker and listed instead of fixed. Empty since 2026-10-03: the owner ruled that the four pad mismatches found that day be fixed in the pad layer (gears on , and ., B types Tab, 1 bound to hardpoint 1). Each id is '<layer>:<control>:<key sent>'. The build fails on a mismatch that is not listed here, and on an entry here that is no longer a mismatch.",
+    "list": []
   },
 
   "status": {
     "_readme": "Printed under each page. Each line quotes or cites a doc; nothing is marked verified that the docs do not record.",
     "keyboard": [
-      "Map: the owner's daily-driver map, copied 2026-10-03. The dedicated arrow keys look around and W A S D drive (owner, 2026-10-03).",
+      "Map: the owner's daily-driver map of 2026-10-03 plus three keys added the same day (1 and J = hardpoint 1, L = hardpoint 2); the daily driver gets them by promotion after a pad test. The dedicated arrow keys look around and W A S D drive (owner, 2026-10-03).",
       "A fresh install made by INSTALL.bat has not been started by anyone on this project (INSTALL.md, Evidence): on such an install this page is read from the files, not played."
     ],
     "mouse": [
       "Buttons 4 and 5 need the AutoHotkey layer (i76-remap.ahk); the wheel needs i76wheel.exe, started by PLAY-i76.ps1. Status of the wheel helper: not recorded (ENHANCEMENTS.md)."
     ],
     "gamepad": [
-      "Pad layer: \"deployed, verified on Mac/Windows\" (RELEASE-PLAN section 1). The docs do not record a play test of the pad on this map; controls marked with a dagger send a key this map does not bind.",
+      "Pad layer: \"deployed, verified on Mac/Windows\" (RELEASE-PLAN section 1). The docs do not record a play test of the pad on this map. Changed 2026-10-03 and not yet played: LB + D-pad left / right (gears), B (cycle weapon), LB + RT (hardpoint 1), RB (handbrake).",
       "Connect the pad before launching. Without the AutoHotkey layer a pad has the left stick only: this map binds no pad button natively."
     ],
     "wheel": [

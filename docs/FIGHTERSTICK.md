@@ -189,8 +189,8 @@ convention. Left/right are not inverted.
 
 **One hardpoint per direction, never two from one control.** Firing two weapon
 effects from a single press is what crashed `I7_SFRCE.DLL` on 2026-08-01.
-`hardpoint1_fire` has no keyboard binding in `input.map` at all, which is why
-direct fire is hardpoints 2–5.
+`hardpoint1_fire` had no keyboard binding in `input.map` when this was laid out, which is why
+direct fire is hardpoints 2–5. (Since 2026-10-03 the repo's map binds it to `1` and `J`; the hat is unchanged.)
 
 **Button 3 is bound despite being the mode switch**, by request and knowingly: it
 cycles the base LED through three positions, and on CH sticks the mode renumbers
