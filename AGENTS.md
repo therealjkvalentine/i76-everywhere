@@ -97,13 +97,16 @@ tags and how each was established:
 
 ## NEVER TEST ON THE PLAYABLE INSTALL (field-enforced 2026-09-07)
 
-**The portable install is the daily driver. It is where James plays. Experiments do not go
+**The daily driver is where James plays (until 2026-10-03 that was the portable install in Downloads; the table
+has the current folder). Experiments do not go
 there - not binaries, not dgVoodoo.conf, not saves - until they are finished and verified
 somewhere else.**
 
 | role | path | may an experiment touch it? |
 |---|---|---|
-| **daily driver — playable** | `~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76` | **NO.** Only finished, verified changes, announced. |
+| **daily driver — playable** (since 2026-10-03) | `C:\Users\james\Games\Interstate76-2026-10-03` (built by `tools\Make-Daily-Driver.ps1`, docs/NEW-DAILY-DRIVER-RECIPE.md) | **NO.** Only finished, verified changes, announced. |
+| golden copy | `C:\Users\james\Games\Interstate76-golden-2026-10-03` | **NO.** Never played; promotions only (`PROMOTIONS.md` inside). |
+| previous daily driver — the rollback | `~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76` | **NO.** Kept untouched. |
 | test copy | `../i76-uncap-lab/game` | yes - this is what automation drives |
 | pristine control | `../i76-map/sandbox-gog/main/app` | read-only reference for diffing |
 
@@ -157,14 +160,25 @@ What it gives you:
   ~1000× cheaper than screenshots; prefer them for all verification.
 - `autotest/lib/inputlib.ps1` / `maplib.ps1` / `focuslib.ps1` — key + mouse injection, the
   cursor mapping and cropped screen capture, and window focusing.
-- `tools/physics-trace.ps1` + `tools/trace-diff.py` — deterministic scripted-input traces and a
+- `tools/framerate/physics-trace.ps1` + `tools/framerate/trace-diff.py` (in the lab repo) — deterministic scripted-input traces and a
   checkpoint diff, so physics claims are settled with numbers.
 
 **Check the config before reverse-engineering:
 [`../i76-uncap-lab/docs/CONFIG-OPTIONS.md`](../i76-uncap-lab/docs/CONFIG-OPTIONS.md)** indexes
-every `dgVoodoo.conf` knob **by symptom**, and — critically — **which section each must live in**
-(dgVoodoo silently ignores a key in the wrong section). Two problems that cost hours of
-debugger work were one config line each. It also documents the DLL's runtime control file.
+every `dgVoodoo.conf` knob **by symptom**, and — critically — **which section each must live in**.
+Two problems that cost hours of debugger work were one config line each. It also documents the DLL's
+runtime control file.
+
+**Corrected 2026-10-03: a key in the wrong section is not "silently ignored" — dgVoodoo 2.87.3 REJECTS THE
+WHOLE FILE** and falls back to the global `%APPDATA%\dgVoodoo\dgVoodoo.conf` (here a 2020 file from another
+game). The lab sandbox ran that way from 2026-08-09 to 2026-10-02 (`EnableInactiveAppState` in `[General]` and
+`[DirectX]`, `WindowedAttributes = border`), so **every "this dgVoodoo knob does nothing" result from the
+sandbox is void**: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, the 1920x1440 pointer box. The
+owner's daily-driver conf was accepted. Before trusting any conf finding, **prove the file is loaded**: flip a
+visible key (`3DfxWatermark = true`) and hide the global file. Record:
+[`../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md`](../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md),
+docs/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md itself predates this and has not been corrected
+(docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md).
 
 Clicking the menus is now **screenshot → read coordinate → click it**: the OS cursor position
 *is* the engine's 640x480 UI coordinate, 1:1. `Capture-UI` crops to the game and rescales so one
@@ -180,9 +194,10 @@ Traps that produce **wrong data rather than errors** (full list in the README):
    *zero* regions and silently dumps empty files.
 3. **Discrete key taps aren't comparable across frame rates** — they faked a 48-vs-25 m/s
    difference. Use continuous holds, or write the input block directly.
-4. *(Historical, both fixed — see CONFIG-OPTIONS.md)* the game freezing and screenshots going
+4. *(Historical — see CONFIG-OPTIONS.md)* the game freezing and screenshots going
    stale while unfocused was `EnableInactiveAppState` being in the wrong section, **not** an
-   engine limitation.
+   engine limitation. (2026-10-03: the 2026-08-09 "fix" for it, the same key added to `[General]` and
+   `[DirectX]`, is what made dgVoodoo reject the sandbox conf; the key belongs in `[Glide]` only.)
 
 ## Other hard-won invariants
 

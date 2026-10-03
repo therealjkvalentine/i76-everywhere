@@ -5,6 +5,13 @@ look at both installs. Nothing was run and nothing outside this file was edited.
 (measured or read from code, with where) or **[proposed]** (not built, or built but not shown to work in a running game).
 Status words: **fixed** = confirmed in the field or live; **built, unverified** = bytes exist, no live run; **open**.*
 
+> **Superseded items (note added 2026-10-03).** This is the 2026-10-01 survey. Since then: the ghosting fix (P4,
+> "deployed nowhere") and the Esc-menu Exit are in the u32x lab build `054fb411`, gated 2026-10-02/03 and on the
+> daily driver built 2026-10-03 ([u32x/README.md](../u32x/README.md)); "both installs" below means the sandbox and
+> the old driver in Downloads. The `CaptureMouse` / `FreeMouse` observations made on the lab sandbox are void:
+> dgVoodoo was rejecting that conf and running a 2020 global file
+> ([RENDERER-ALTERNATIVES.md](RENDERER-ALTERNATIVES.md) section 11).
+
 Read first if you only have five minutes: section 1 (the catalogue), section 5 (the plan). Section 4 says which binary
 owns what, because every fix below lands in one of four places: `i76.exe`, `i76shell.dll`, the `u32x.dll` USER32 proxy
 (i76-uncap-lab), or the `Strlkup.dll` proxy (music-fix). Rule carried over from AGENTS.md: everything is tried on the

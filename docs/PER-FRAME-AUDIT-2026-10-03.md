@@ -31,6 +31,16 @@ per-frame action is a call, not arithmetic; that is the shape screened for here.
 
 Rates in the tables are per second while the condition holds: stock 20 fps / 60 fps / 120 fps.
 
+> **Measured later on 2026-10-03 (this note is newer than the text below, which says nothing was run).**
+>
+> | fix | result |
+> |---|---|
+> | F1 hazards (oil slick) | **20 contacts/s at 20, 60 and 120 fps**, 9 of 10 runs (one staging miss) |
+> | F4 WMISS (dead-weapon click) | **20/s at 20, 60 and 120 fps**, 2 runs each |
+> | F3 collision dedupe | acceptance test ran, **no data**: the rams could not be staged. Count-only in `presets\best-120.psd1` (`I76_COLL_DEDUPE=0`) |
+> | F5 AI skid / horn roll hold | acceptance test ran, **no data**: no AI car entered the behaviour. Count-only in `best-120` (`I76_AI_ROLL_HOLD=0`) |
+> | F2 radar missile turn | not measured |
+
 ## 1. Confirmed (static), with fixes built
 
 | id | what | address(es) | per frame it does | 20 / 60 / 120 | severity | dt-scaled in stock? | fix |

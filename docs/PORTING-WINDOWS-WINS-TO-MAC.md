@@ -70,6 +70,10 @@ For now the honest recommendation is: **play the Mac version at native 20 FPS wi
 
 ## How to apply on the Mac (quick start)
 
+*(Note 2026-10-03: `setup-mac-hd-textures.sh` below is not in this repo, and `games/interstate-76/` is the path
+this folder had inside mac-gaming-ports. The HD texture pack was retired on 2026-07-27:
+[HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md), `texture-lab/README.md`. Kept as the 2026-07-10 record.)*
+
 ```sh
 # 1. copy the built pack from the Windows box (it's portable — identical game files)
 #    e.g. via Taildrop / scp: the folder C:\Games\_tools\i76-build-final  ->  ~/i76-hd-pack

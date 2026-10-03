@@ -34,8 +34,10 @@ The community-standard guide is [CahootsMalone's I76+dgVoodoo walkthrough](https
 4. **Frame rate: stock 20 fps is the known-good cap, and on the GOG 2019 exe it comes from the bundled
    AiO patch (`I76PATCH.DLL`), not from dgVoodoo.** *(rewritten 2026-10-02: this point used to say dgVoodoo's
    `FPSLimit = 20` "is the one that matters", that jump distance is inversely tied to frame rate, and "do not
-   raise it"; all three were measured false.)* dgVoodoo's `FPSLimit` is **ignored** on this build in both
-   directions (uncap-lab `docs/framerate/README.md` matrix, n = 9 cells; the daily driver's `19.2` does nothing),
+   raise it"; all three were measured false.)* dgVoodoo's `FPSLimit` was recorded as **ignored** on this build in both
+   directions (uncap-lab `docs/framerate/README.md` matrix, n = 9 cells; the daily driver's `19.2` does nothing)
+   *(void 2026-10-03: dgVoodoo was rejecting the sandbox's conf when that matrix ran, so `FPSLimit` was never in
+   effect; whether it caps on an accepted conf has not been re-measured; [FPS-120.md](FPS-120.md) top note)*,
    and the AiO limiter overshoots slightly (~**20.66** measured on the Mac software path). The sim is
    dt-driven — gravity is dt-correct (g = 9.8 at 20 and at 60 fps; the uncap-lab fall test read −9.89 vs
    −9.74 m/s²) and the Mission 5 canyon jump was cleared at 60 fps — but the ground-contact model is tuned for

@@ -10,6 +10,15 @@ think of to enhance the graphics."
 Stack: `i76.exe -glide` -> `ZGLIDE.DLL` -> `Glide2x.dll` (dgVoodoo **2.87.3**, file version checked) -> D3D11
 FL10.1 -> GTX 1080 Ti (11 GB) -> a borderless window on the 3440x1440 179 Hz panel.
 
+> **Read the last section first (note added 2026-10-03).** Sections 1 to 6 were written before it was known that
+> dgVoodoo was rejecting the sandbox's `dgVoodoo.conf` and running a 2020 global `%APPDATA%` file. The section 1
+> table (3360x2100 internal, 8x MSAA, bilinear downscale, the conf line numbers), every cost estimate built on it,
+> and "`FPSLimit` ... is inert on this build" in section 3 describe a file that was not in effect. The measured
+> matrix and the pick (2x internal + 4x MSAA at 120.1 fps) are in
+> ["Measured 2026-10-03 on the FIXED config"](#measured-2026-10-03-on-the-fixed-config-the-earlier-matrix-was-void);
+> ReShade over dgVoodoo was run on 2026-10-03 (120.1 fps, [RENDERER-ALTERNATIVES.md](RENDERER-ALTERNATIVES.md)
+> section 11), so "Nothing here was run in the game" above and "Not yet run together" in section 3 are superseded.
+
 ## 1. Where the picture stands today (the facts the menu rests on)
 
 | fact | value | source |
@@ -229,6 +238,7 @@ softens HUD text; its place is a cheap fallback if a large target turns out not 
 - `I76_FAR_CLIP`, `I76_FIXED_STEP`, `I76_RENDER_INTERP`, `I76_FRAMERATE_FIXES`, telemetry: engine-side, unaffected.
   A longer far clip adds triangles, not pixels; its cost does not multiply with the resolution.
 - `FPSLimit` in `[GeneralExt]` is inert on this build (`docs\FPS-120.md`); the variants leave it alone.
+  *(Void 2026-10-03: measured while the conf was rejected; not re-measured. The fixed conf sets `FPSLimit = 0`.)*
 - ReShade's `dxgi.dll` is loaded by dgVoodoo, after the proxy's `LoadLibraryA` hook has matched `ZGLIDE.DLL` by
   name; the two do not touch the same import slots. Not yet run together.
 

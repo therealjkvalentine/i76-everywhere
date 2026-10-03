@@ -4,6 +4,25 @@ Written 2026-10-02 (late evening) from a read-only survey. Nothing under `C:\Use
 no game was started, the sandbox was only read (a dgVoodoo conf bisect was running in it at the time).
 The assembly script `tools\Make-Daily-Driver.ps1` is a **draft: parsed, never run**.
 
+> **Outcome, 2026-10-03: this is no longer a plan. The driver was built.** Read the rest of this document as the
+> survey and reasoning behind it; where it says "proposed", "draft" or "to be confirmed", this box is the newer fact.
+>
+> - **Built** by `tools\Make-Daily-Driver.ps1` (first on the lab twin `i76-uncap-lab\game-dd-20261003`, then for
+>   real): play from `C:\Users\james\Games\Interstate76-2026-10-03\PLAY.bat`. **Golden copy:**
+>   `C:\Users\james\Games\Interstate76-golden-2026-10-03` (never played; `PROMOTIONS.md` inside). The old driver in
+>   Downloads is untouched and is the rollback.
+> - **What went in** (answers open questions 2, 3, 4 and 9 in section 7): preset **`best-120`** (not `smooth-120`
+>   as decision 5 says); u32x lab build md5 **`054fb411`** (not the repo's `a5927cea`; gated 2026-10-02/03: leg-b
+>   3/3, trip route 120 fps, save screen, Esc-menu Exit, melee); the repo's `Strlkup.dll`; the conf
+>   [`dgVoodoo.daily-driver-2026-10-03.conf`](../dgVoodoo.daily-driver-2026-10-03.conf); `I76PATCH.DLL` disabled.
+> - **Section 1.2's worry did not hold: the driver's conf was accepted by dgVoodoo.** Only the lab sandbox's conf
+>   was being rejected. The new conf is the owner's own with three changes (`FPSLimit` 19.2 -> 0, 2x internal
+>   resolution, 4x MSAA) and was verified on the twin with the global `%APPDATA%` file hidden.
+> - **Gate** (lab twin): conf accepted without the global file, bookmark route 3/3, trip route through `PLAY.bat`
+>   at 120 fps 2/2, save screen, Esc-menu Exit, melee, `input.map` lint, saves byte-identical after. **Not
+>   verified:** force feedback (no wheel attached during the gate), multiplayer.
+>   Record: [STATUS-2026-10-02.md](STATUS-2026-10-02.md), section "2026-10-03".
+
 The goal, in the owner's words: a new fully independent, portable daily driver directory that carries the best
 new config plus every tweak from the current daily driver (aspect ratio, controls, FFB, config, everything),
 playable tomorrow with a friend, saving progress as they go, plus a golden copy to promote future improvements to.

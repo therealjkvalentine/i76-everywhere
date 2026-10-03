@@ -75,7 +75,9 @@ obstacle). Two things make it:
 1. **Cap to ≤ 20 FPS** — lower = more jump distance, so a touch under 20 clears these most reliably.
    **Mac default: DxWnd Timing → Limit ON + delay `52` ms ≈ 19.2 FPS** — this also clears the
    *later-mission* bridge/ramp gaps, which are tuned tight for the era's exact-20 sim (`50` ms = 20
-   FPS is the reference). Windows/Deck: dgVoodoo `FPSLimit` 19–20. The GOG exe self-caps ~20.66, so
+   FPS is the reference). Windows/Deck: dgVoodoo `FPSLimit` 19–20 (2026-10-03: on Windows the GOG exe's own `I76PATCH.DLL` cap is what
+   is known to hold 20; and "lower = more jump distance" is corrected in VERIFIED-FIXES: it is the physics step
+   size, which `I76_FIXED_STEP=24` fixes at any frame rate). The GOG exe self-caps ~20.66, so
    the DxWnd limiter only bites when set below that. See VERIFIED-FIXES.
 2. **Full acceleration down the hill + hit nitrous** (`6`/`7`/`8`, whichever slot) on the ramp.
 

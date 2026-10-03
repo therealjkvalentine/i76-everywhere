@@ -47,14 +47,19 @@ drop-down). The default, `stock`, sets nothing.
 
 | preset | what it sets | status |
 |---|---|---|
-| `stock` | nothing | [verified in play] the daily driver |
+| `stock` | nothing | [verified in play] the game as GOG ships it (the daily driver until 2026-10-03) |
 | `smooth-60` | `I76_HIRES_CLOCK=1 I76_FIXED_STEP=24 I76_FRAMERATE_FIXES=1 I76_ENGINE_DT_FIX=1 I76_RENDER_INTERP=1` | [measured, sandbox] capture 014; [console-verified 2026-10-02, sandbox] n = 1 |
 | `smooth-60-bugfixes` | smooth-60 + `I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1` | [measured, sandbox]; on in the 2026-10-02 console session |
-| `smooth-120` | smooth-60-bugfixes + `I76_GLIDE_REFRESH=120` | [measured, sandbox] 120.0 fps on the proxy counter; not played at the console |
+| `smooth-120` | smooth-60-bugfixes + `I76_GLIDE_REFRESH=120` | [measured, sandbox] 120.1 fps; the same switches plus the 1800 m far clip were played by the owner at 120 on 2026-10-02 (as `best-120`) |
+| `best-120` | smooth-120 + `I76_FAR_CLIP=1800`; `I76_COLL_DEDUPE=0`, `I76_AI_ROLL_HOLD=0` (count only, not measured) | [console-verified 2026-10-02, sandbox] by the owner; [measured] 120 fps through the trip menus; the preset of the daily driver built 2026-10-03 |
 | `lab-all` | smooth-60-bugfixes + `I76_FAR_CLIP=1800 I76_TELEMETRY=1` (TEST-FRAMERATE mode 5) | [console-verified 2026-10-02, sandbox] n = 1 |
 
-**Nothing above is deployed to the playable install**; every preset is experimental until the
-A/B in [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. Two things have to be true
+**State on 2026-10-03:** a new daily driver was built by `tools\Make-Daily-Driver.ps1` with `best-120` as its
+preset ([docs/NEW-DAILY-DRIVER-RECIPE.md](docs/NEW-DAILY-DRIVER-RECIPE.md),
+[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md) last section); the installers in this repo still deploy
+`stock`, and the other presets remain experimental until the A/B in
+[docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. 120 fps is the ceiling of every renderer tested
+([docs/RENDERER-ALTERNATIVES.md](docs/RENDERER-ALTERNATIVES.md) section 11). Two things have to be true
 for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
 (the launcher compares it and tells you to run `setup-windows.ps1` if not; it copies nothing), and
 GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so).
@@ -63,7 +68,9 @@ Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz anal
 
 **Multiplayer is untested with any preset other than `stock`** (backlog P3-20): the fixed step and the
 interpolation change when the simulation advances, and nobody has run two machines against each other with
-them on. Play online on `stock` until someone has.
+them on. Play online on `stock` until someone has. (2026-10-03: the proxy's `I76_MULTI_INSTANCE=1` lets two
+copies run on one PC, and two lab copies ran side by side; a multiplayer session between them was **not**
+achieved: both copies need UDP port 21157, and the internet transport wants a game server.)
 
 ## Open work
 
@@ -73,8 +80,10 @@ going stale). The live lists:
 - **[docs/BACKLOG-2026-10-02.md](docs/BACKLOG-2026-10-02.md)**: every open problem and unknown in one prioritised
   table (P1 normal play, P2 the 60 fps experience, P3 release hygiene, P4 RE completeness), each row with its
   evidence state, what resolving it needs, and the cheapest next step.
-- **[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md)**: what the last session built, how each item was
-  verified, and what was left open or withdrawn.
+- **[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md)**: what the 2026-10-02 session built (with a
+  2026-10-03 section for the new daily driver), how each item was verified, and what was left open or withdrawn.
+- [docs/REPO-ORGANIZATION-PROPOSAL.md](docs/REPO-ORGANIZATION-PROPOSAL.md): a proposed tidier layout for this
+  repo (nothing moved yet).
 - [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 1 is the state table (what is deployed where);
   [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) is the record of what is fixed, with root causes.
 
@@ -124,8 +133,11 @@ open in-game checks: `docs/SAVE-EDITOR-STATUS-2026-10-02.md`.
 - **Cutscene-music fix** ([smack-music-fix/](smack-music-fix/)): a proxy `SMACKW32.DLL` that
   recreates the 1997 CD-drive behavior (music stops when a movie starts) — fixes a GOG bug
   the community called unfixable. Ordinal-exact export forwarding; works on Mac and Windows.
-- **Exactly-20 FPS physics** everywhere (the engine ties physics to framerate; scene 5's
-  canyon jump is impossible above it): DxWnd delay on Mac, dgVoodoo `FPSLimit` on Deck/Windows.
+- **20 FPS as shipped** everywhere by default (stock, the engine's behaviour changes with the frame rate; the
+  60 / 120 fps switch set above is what corrects that): DxWnd delay on Mac, dgVoodoo `FPSLimit` on the Deck,
+  GOG's `I76PATCH.DLL` on Windows. (Corrected 2026-10-03: this said dgVoodoo `FPSLimit` on Windows. The lab's
+  "FPSLimit is ignored" result is void, measured while dgVoodoo was rejecting the sandbox conf; whether
+  `FPSLimit` caps on Windows has not been re-measured.)
 - **The `.M16` hardware-texture format cracked** (round-trip encoder in
   [tools/i76img.py](tools/i76img.py)) — the RE prize from an enhanced-texture-pack
   experiment that was ultimately **retired** (marginal in-game gain; palette-indexed

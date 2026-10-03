@@ -473,7 +473,7 @@ the Nitro Pack from the GOG library alongside — same dgVoodoo recipe applies.
   (hacking/modding utility archive), the [AVA league](http://www.interstate76.com/the-ava/),
   and the GOG forum. Local Ditch also runs a deep
   [MechWarrior 2 hub](https://www.localditch.com/mechwarrior/mech2/index.html) —
-  see [`games/mechwarrior-2/`](../../mechwarrior-2/) in this repo.
+  see `games/mechwarrior-2/` in [mac-gaming-ports](https://github.com/therealjkvalentine/mac-gaming-ports) (this doc was written there; the folder is not in this repo).
 - [CahootsMalone's dgVoodoo walkthrough](https://github.com/CahootsMalone/interstate-76-stuff/blob/master/running-interstate-76-gog-release-using-dgvoodoo.md)
   (mirrored on the [GOG forum](https://www.gog.com/forum/interstate_series/simple_stepbystep_instructions_for_running_interstate_76_with_hardware_acceleration_using_dgvood/page1))
 - Multiplayer lives: community server **glenrio.interstate76.com**, weekly

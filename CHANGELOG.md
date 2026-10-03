@@ -5,6 +5,33 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+### 2026-10-03
+
+- **New daily driver** built by `tools/Make-Daily-Driver.ps1` at `C:\Users\james\Games\Interstate76-2026-10-03`
+  with a golden copy beside it; preset `best-120`, the repo's `Strlkup.dll`, u32x lab build `054fb411`,
+  `dgVoodoo.daily-driver-2026-10-03.conf`. Gated on a lab twin
+  ([docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md) last section).
+- **dgVoodoo had been rejecting the lab sandbox's `dgVoodoo.conf`** and running a 2020 global `%APPDATA%` file.
+  Every earlier "this dgVoodoo knob does nothing" finding (`FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh,
+  the 1920x1440 pointer box) is `[retracted]`. The owner's daily-driver conf was accepted.
+  [docs/GRAPHICS-ENHANCEMENT.md](docs/GRAPHICS-ENHANCEMENT.md),
+  [docs/RENDERER-ALTERNATIVES.md](docs/RENDERER-ALTERNATIVES.md) section 11.
+- **120 fps** `[verified in play]`: 120.1 fps measured and owner-played; 120 is the ceiling of every renderer
+  tested (nGlide, DXVK, ReShade, DDrawCompat).
+- **Per-frame audit fixes** ([docs/PER-FRAME-AUDIT-2026-10-03.md](docs/PER-FRAME-AUDIT-2026-10-03.md)):
+  oil-slick hazard contact `[measured, sandbox]` 20 contacts/s at 20 / 60 / 120 fps (9 of 10 runs, one staging
+  miss); dead-weapon click `[measured, sandbox]` 20/s at 20 / 60 / 120 (2 runs each); collision dedupe and AI roll
+  hold `[built, untested]` (the tests ran but produced no data; count-only in `best-120`); radar turn
+  `[built, untested]`.
+- **`I76_MULTI_INSTANCE=1`** `[measured, sandbox]`: two lab copies ran side by side. A multiplayer session
+  between them was not achieved (both need UDP port 21157; the internet transport wants a game server).
+- **u32x**: lab build `054fb411` added to `deploy-u32x.ps1`'s known-good list (gated 2026-10-02/03: leg-b 3/3,
+  trip route 120 fps, save screen, Esc-menu Exit, melee). Its source is in the lab repo; `u32x/u32x.dll` here is
+  still `a5927cea`.
+- Docs: stale statements corrected or annotated, `docs/README.md` rewritten as an index of every doc,
+  `docs/REPO-ORGANIZATION-PROPOSAL.md` added; tracked `.pyc` files and `grep.exe.stackdump` removed.
+- Save-editor tests re-run: 156 passed with the lab saves folder present, 133 on the repo samples alone.
+
 ### 2026-10-02 (commits `c9e2695..7c998bf` plus the release-hygiene pass)
 
 Status words are the ones [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 6 asks for: `[verified in play]`,
@@ -27,7 +54,8 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
 - **120 fps: `I76_GLIDE_REFRESH=<hz>`** `[measured, sandbox]`: the 60 fps ceiling was `ZGLIDE.DLL` asking
   dgVoodoo for `GR_REFRESH_60Hz` in `grSstWinOpen`; the proxy repoints that import (through a `LoadLibraryA`
   hook) and substitutes the refresh code. 120.1 fps, dt 8.34 ms sd 0.06, physics still 24 steps/s, hood view and
-  binoculars fine at 1800 m; melee entries at 120 passed 10 of 10. Not played by a person at 120.
+  binoculars fine at 1800 m; melee entries at 120 passed 10 of 10. Not played by a person at 120 *(superseded:
+  the owner played it that evening, see 2026-10-03 above)*.
   [docs/FPS-120.md](docs/FPS-120.md).
 - **Trainer**: `Local\I76Trainer` control block in the proxy (god mode, unlimited ammo, no flats, component
   hold, freeze, held on the game thread; repair / teleport / ammo / stop one-shots; forced Play Options bits) and
@@ -45,7 +73,8 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   - `I76_FAR_ENGINE_DT` `[built, untested]`: applies; no acceptance driver yet.
 - **`I76_FRAMERATE_FIXES`: oil slick and fire patch contact effect held to the 20 Hz grid** `[built, untested]`
   (commit `7c998bf`): the impact template and its sound fired once per rendered frame in contact (field report
-  at 120 fps: "the oil slick sound plays too fast"). Not yet measured live.
+  at 120 fps: "the oil slick sound plays too fast"). Not yet measured live *(superseded 2026-10-03: measured,
+  20 contacts/s at 20 / 60 / 120 fps)*.
 - **"Insert CD 2" prompt explained and mitigated** (backlog P1-09) `[measured, sandbox]`: the prompt fires when
   `startup_IsMinimum` 0x4b2220 answers 1, which on the pristine exes happens because `RegCreateKeyExA(...,
   KEY_ALL_ACCESS)` on the existing HKLM key is denied to a non-elevated process (the 6-of-21 split was launcher
@@ -82,7 +111,8 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   The x100-only reading made the enemy target bar rise and go green on scratched cars (owner's playtest);
   `=2` keeps it for comparison.
 - **Save editor rewritten on the game's own record frame** (`.cmp` = PartNode 0x20 + PartRec 0x54; the old
-  editors read every part 32 bytes late) `[measured, sandbox]`: 172 tests, byte-exact round trips on 46 saves,
+  editors read every part 32 bytes late) `[measured, sandbox]`: 172 tests *(the count follows the save files found; 2026-10-03: 156 with the lab folder,
+  133 on the repo samples)*, byte-exact round trips on 46 saves,
   HTML == Python, and seven in-game probes (condition colour thirds; state 2 = van, 4 = salvage; **the garage's
   weapon list holds 11 records, a mounted weapon past the 11th reads EMPTY**; bench has no cap; the van holds
   >= 5 suspensions; vtf repaint works; spc01 = "Radar Jammer"; the LOAD label is scene + (state == 1)).

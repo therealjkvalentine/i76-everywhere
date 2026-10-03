@@ -2,7 +2,8 @@
 
 A separate install for finding out **which of our modifications causes what**. It is not the
 daily driver and nothing here touches it
-(`~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76`).
+(`~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76` when this was written; since 2026-10-03 the
+daily driver is the folder named in AGENTS.md).
 
 ```
 game/    the playable folder. With no layers applied it is the GOG release, unmodified.

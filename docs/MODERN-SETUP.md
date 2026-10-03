@@ -24,7 +24,8 @@ step, so **stock** 60 fps bleeds speed before a ramp and lands short. That is th
 
 - **Cap the frame rate at 20.** The community consensus, the GOG "de-facto" guide and the AiO patch all use it;
   it is known-good and it is how the playable install runs. (On the GOG 2019 exe the cap comes from the bundled
-  `I76PATCH.DLL`; dgVoodoo's `FPSLimit` is ignored on this build.)
+  `I76PATCH.DLL`; dgVoodoo's `FPSLimit` was recorded as ignored on this build, a result that is void since
+  2026-10-03: the sandbox conf was being rejected when it was measured, see [FPS-120.md](FPS-120.md).)
 - **The proxy's opt-in switch set** — `I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`,
   `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` ([music-fix/README.md](../music-fix/README.md) switch table, with
   per-switch measured evidence) — fixes each per-frame effect and holds the stock step at 60 fps. Sandbox-measured

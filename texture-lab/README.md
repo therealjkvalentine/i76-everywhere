@@ -10,8 +10,10 @@
 > If you resurrect this: build **M16-only** (`reencode_all.py` defaults to
 > `M16_ONLY=1`) and handle per-level palettes for anything palette-indexed.
 
-Workspace for editing Interstate '76 art and seeing it in-game. Everything here except this
-README is gitignored (decoded game art is copyrighted - same rule as `game-data/`).
+Workspace for editing Interstate '76 art and seeing it in-game. The scripts and this README are
+tracked; `src/`, `enhanced/` and `build/` are gitignored and were removed from the repo's history on
+2026-10-03 (decoded game art is copyrighted - same rule as `game-data/`), so those folders are empty
+on a fresh clone until you decode your own files.
 
 ## Layout
 
@@ -24,7 +26,7 @@ README is gitignored (decoded game art is copyrighted - same rule as `game-data/
 ## Workflow
 
 ```sh
-cd games/interstate-76
+cd i76-everywhere        # the repo root (this said games/interstate-76, the path in mac-gaming-ports)
 GAME=~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix/"drive_c/GOG Games/Interstate 76"
 
 # 1. (once) extract the archive somewhere and decode more art

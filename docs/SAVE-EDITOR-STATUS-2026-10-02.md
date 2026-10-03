@@ -51,6 +51,11 @@ the wrong record). The `savegame.dir` had the same disease (records at 0x28+60k 
 
 ## Verified byte-exact (tests/test_save_editor.py, 132 tests)
 
+> **Count re-run 2026-10-03:** `python -m pytest tests/` gives **156 passed** with the lab saves folder present and
+> **133 passed** on the repo's sample sets alone (`I76_LAB_DIR=""`). The suite is parametrised over every save file
+> it finds, so the number moves with the lab folder's contents; STATUS-2026-10-02 and the CHANGELOG wrote 172 the
+> same day for the same reason.
+
 - parse -> serialise == input on **every** sample: `saves/` (13), `saves/lab-20261002/` (9 + 2 .spc,
   today's player saves), `saves/windows-20260906/` (7), `saves/rescue-20260718/` (15 incl. the
   `save-01.cmp` orphan), and the live lab copy when present (read-only) - 46 `.cmp`/`.spc` files;

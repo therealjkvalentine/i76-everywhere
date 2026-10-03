@@ -8,6 +8,10 @@ text, so the integrator can apply them verbatim. Line numbers are from a read on
 
 Pair numbers are the backlog's.
 
+> **Added 2026-10-03: a new set of pending lab corrections, the rejected `dgVoodoo.conf`.** Not applied (this
+> repo's passes do not edit the lab). Section ["Pending since 2026-10-03"](#pending-since-2026-10-03-the-rejected-dgvoodooconf-lab-docs)
+> at the end of this file.
+
 > **Applied 2026-10-02.** Every replacement below was applied as written: the `i76-uncap-lab` ones in lab commit
 > `251ec57` (pairs 9, 10, 11, 12, 13, 26; six files under `docs/`), the `i76-map` ones in commit `cbe728d8` (pairs 14, 15,
 > 24, 25). Still open after that: pair 12's re-measure (P2-04), pair 15's per-item spec citations (P4-08), pair
@@ -225,6 +229,26 @@ written); `../i76-uncap-lab/autotest/lib/memlib.ps1:48` still open.
 | `tools/check-ffb.ps1:33-35` | registry-key gate check | no registry key gates FFB in the exe (L084); keep only as an informational print or drop | P3-18 |
 | `tools/ffb/Telemetry.ps1` `TEL_FIRE_ADDR` | `0x5367d0` as fire | `0x5367d0` is `throttle_up`; `weapon_fire` is `0x5367db` (type 1 byte), `hardpoint1_fire` `0x5367de` (L031) | P3-24 |
 | `../i76-uncap-lab/autotest/lib/memlib.ps1:48` | `InFire` = 0x5367D0 | same as above | P3-24 |
+
+## Pending since 2026-10-03: the rejected dgVoodoo.conf (lab docs)
+
+Fact (lab `docs/DGVOODOO-CONF-REJECTED.md`): dgVoodoo 2.87.3 rejected `game\dgVoodoo.conf` as a whole from
+2026-08-09 (when `EnableInactiveAppState = true` was added to `[General]` and `[DirectX]`; also
+`WindowedAttributes = border`) until 2026-10-02 and ran the 2020 global `%APPDATA%\dgVoodoo\dgVoodoo.conf`. The
+docs in this repo that relied on the void results were annotated on 2026-10-03 (`AGENTS.md`, `README.md`,
+`docs/FPS-120.md`, `docs/GRAPHICS-ENHANCEMENT.md`, `docs/WINDOWS-PLAYBOOK.md`, `docs/MODERN-SETUP.md`,
+`docs/RELEASE-PLAN.md`, `docs/BACKLOG-2026-10-02.md`, `docs/MENU-USABILITY-PLAN.md`, `docs/MENU-REBUILD-DESIGN.md`,
+`docs/PLAYTEST-2026-10-02.md`, `docs/STATUS-2026-10-02.md`, `music-fix/README.md`, `presets/smooth-120.psd1`).
+The lab files below were read on 2026-10-03 only as far as a search for "reject" / "void": the mouse doc already
+carries the correction in its own section 9.8, the others do not. Line numbers were not taken; the integrator should place each note at the top of the named section.
+
+| lab file | what it says | note to add |
+|---|---|---|
+| `docs/CONFIG-OPTIONS.md` (whole file; AGENTS.md sends every agent here first) | indexes dgVoodoo knobs by symptom and by section; "dgVoodoo silently ignores a key in the wrong section"; `EnableInactiveAppState` as the fix for the unfocused freeze | Header: "From 2026-08-09 to 2026-10-02 dgVoodoo was rejecting this sandbox's conf as a whole (a key in a section it does not belong to rejects the file, it is not skipped) and running a 2020 global file. Every row here that reports what a key did or did not do in that window is void until re-measured on an accepted conf: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, `Resolution`, MSAA. `EnableInactiveAppState` belongs in `[Glide]` only. See `DGVOODOO-CONF-REJECTED.md`." |
+| `docs/framerate/README.md` section 6 (the 60 fps ceiling; the `FPSLimit` 0/21/30/45/90/120 matrix, "n = 9 cells") | `FPSLimit` inert in both directions; forced `640x480@120` ignored; ceiling "accepted" | "Void for the conf keys (measured 2026-08-10, conf rejected). The ceiling itself is explained: dgVoodoo paces by the Glide refresh code (`I76_GLIDE_REFRESH`, i76-everywhere `docs/FPS-120.md`); 120 is the ceiling of every renderer tested." |
+| `docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` (H2, the 1920x1440 pointer box; section 8) | dgVoodoo pins the pointer to a 1920x1440 box at the client origin | "The box was the global conf's `Resolution = h:1920, v:1440`, not a dgVoodoo property; on the fixed conf the pointer clip is 0,0-3440,1440 (i76-everywhere `docs/RENDERER-ALTERNATIVES.md` section 11)." The file's section 9.8 ("dgVoodoo had been rejecting `game\dgVoodoo.conf`") already says this; what is missing is a pointer at H2 and section 8. |
+| `tools/framerate/uncap-vsync.ps1` header | says the swap interval "is the 60fps cap" | already listed as wrong in i76-everywhere `docs/FPS-120.md` section 1 point 2; the cap is the refresh code |
+| i76-map capture 014 README line 12 | "FPSLimit=21 did not cap this build (it ran at 60 fps, vsync)" | "Void as a statement about `FPSLimit`: the conf was rejected. The 60 was the Glide refresh code." |
 
 ## Pairs with nothing left to edit
 

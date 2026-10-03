@@ -17,6 +17,8 @@ least not rising. A car whose engine, suspension and brakes were never touched t
 and reads correctly - that is the "one was actually correct". The fix is now `health = min(28 + 72 x r, 100 x c)`:
 monotone in every kind of damage, equal to stock while the core is intact, and it reproduces both measured results of
 the x100 version (99% engine: no smoke; 50% engine: smoke) because those runs had near-full armour. Not yet run live.
+*(Superseded 2026-10-02, later the same day: measured live by `tools/trainer/tests/health_pct_live_test.py`: stock
+0.99 / x100-only 99.0 / min() 49.6 on a 30 % armour car with a 99 % engine; `music-fix/README.md` switch table.)*
 
 ## 1. The trace
 

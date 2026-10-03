@@ -85,7 +85,7 @@ that is what `u32x.dll` does (it is the USER32 import of both: `deploy-shellfix.
   state loads only for the car's basename in a trip; and with `0x504c10` set every end state except Replay exits
   the process.
 - **Saves are solved outside the game.** `i76-save-editor.py` / `.html` parse and write `.cmp`, `.spc` and
-  `savegame.dir` byte-exact (46 files, 132 tests), with the mount, cap and repair-queue rules the garage applies
+  `savegame.dir` byte-exact (46 files, 132 tests; re-run 2026-10-03: 133 on the repo samples, 156 with the lab folder), with the mount, cap and repair-queue rules the garage applies
   [fact: `docs\SAVE-EDITOR-STATUS-2026-10-02.md`, `docs\MOUNT-VALIDATION.md`]. `i76-map\data` has byte-exact
   `.vcf` / `.vsf` codecs (`fmt\l_vcf.py`, `mod\i76mod.py`).
 
@@ -132,6 +132,10 @@ the screen origin: the client sits at the screen origin today, so the two cannot
 State of the proxy [fact: MOUSE doc §8, `STATUS-2026-10-02.md` 22:30]: the sandbox runs `u32x_min.dll` (`a5927cea`,
 Aug-16 behaviour + ghosting fix). The box-mapping build broke garage DONE (its keep-alive pump ate ShellMain's
 WM_QUIT, 4 of 4); the quit-guard build `05c9a7be` is compiled and **not yet run** (gate §8.6).
+*(Superseded: that build was gated at 23:30 the same night, and the build now on the daily driver is lab md5
+`054fb411`, gated 2026-10-02/03: leg-b 3/3, trip route 120 fps, save screen, Esc-menu Exit, melee;
+`u32x/README.md`. The "dgVoodoo pins the pointer to a 1920x1440 box" row in the table above was an artefact of a
+rejected `dgVoodoo.conf`, `RENDERER-ALTERNATIVES.md` section 11.)*
 
 ## 2. DATABASE.MW2 is mostly cracked already
 

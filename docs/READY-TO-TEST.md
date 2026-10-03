@@ -7,6 +7,9 @@ be without a human at the machine. Both fixes are on and consistent (checked 202
 the owner saved from the keyboard with no freeze on 2026-10-02. This file is a 2026-08-16 snapshot slated to fold
 into [VERIFIED-FIXES.md](VERIFIED-FIXES.md); the live state table is [RELEASE-PLAN.md](RELEASE-PLAN.md) section 1.)*
 
+> **2026-10-03:** "the portable daily-driver install" here is the old folder in Downloads. The daily driver is now
+> `C:\Users\james\Games\Interstate76-2026-10-03` ([NEW-DAILY-DRIVER-RECIPE.md](NEW-DAILY-DRIVER-RECIPE.md)).
+
 > **Correction 2026-10-01 (i76-map finding L004):** only the u32x fix is deployed. The camera-rate patch is
 > **not** on the portable install: "The portable i76.exe 6319abf7 differs from pristine only by the aio clusters
 > and the u32x import rename; the .rdata constant 0x4bc528 is unchanged there

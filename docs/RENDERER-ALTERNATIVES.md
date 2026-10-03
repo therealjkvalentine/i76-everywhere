@@ -8,6 +8,12 @@ the doc that holds it), **[disk]** read from a file today, **[web]** fetched tod
 
 The owner's request: "try different glide wrappers or other rendering solutions".
 
+> **Outcome, 2026-10-03: the matrix was run. Results are in [section 11](#11-measured-2026-10-03-game-alt-t01-fixed-dgvoodoo-conf-as-the-control).**
+> So "nothing was run in the game" (above and in the update below) describes sections 1 to 10 as written, not the
+> state now. In short: dgVoodoo on the fixed conf 120.1 fps with the pointer free over the whole screen; nGlide
+> Direct3D 9 62.6 / 124.9 fps; nGlide Vulkan and DXVK did not open a window; ReShade and DDrawCompat 120.1. No
+> wrapper passes 120. Rows L1 to L4 and every [untested] tag below are the survey's predictions.
+
 > **Update, 2026-10-02 23:45 (same night).** The owner approved the downloads. D1-D4 are fetched and unpacked
 > (hashes in section 8), the test copy `i76-uncap-lab\game-alt` exists, and one script runs the whole matrix:
 > **section 10**. Still **nothing was run in the game** by this work. Two things changed under this document:

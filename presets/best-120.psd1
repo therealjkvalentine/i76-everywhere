@@ -5,7 +5,8 @@
 #   I76_FIXED_STEP=24       physics always in 41.67 ms slices (stock's mean step): jumps and body roll as tuned
 #   I76_FRAMERATE_FIXES=1   per-frame starts held to the 20 Hz grid (36 sites + hazard contact, radar turn, WMISS,
 #                           AI skid/horn rolls added 2026-10-03; hazard contact measured: oil slick 20 contacts/s
-#                           at 20 / 60 / 120 fps, 9 of 10 runs, one staging miss; radar and WMISS not measured)
+#                           at 20 / 60 / 120 fps, 9 of 10 runs, one staging miss; WMISS 20/s at 20 / 60 / 120, 2 runs each;
+#                           radar turn not measured)
 #   I76_ENGINE_DT_FIX=1     engine model's 0.05 s substep
 #   I76_RENDER_INTERP=1     draws between physics poses (what makes 60/120 smooth)
 #   I76_FIX_HEALTH_PCT=1    target health bar: min(28 + 72 x side, 100 x core) (verified live 2026-10-02)
@@ -31,7 +32,8 @@
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1800'
         I76_GLIDE_REFRESH   = '120'
-        # not yet measured (2026-10-03: the ram test could not stage its rams): count only, behave as played on 2026-10-02
+        # no data yet (2026-10-03: the ram test could not stage its rams; no AI car entered the roll behaviour):
+        # count only, behave as played on 2026-10-02
         I76_COLL_DEDUPE     = '0'
         I76_AI_ROLL_HOLD    = '0'
     }
