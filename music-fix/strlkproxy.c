@@ -3288,6 +3288,16 @@ static void apply_cd_instrument(HMODULE exe) {
          g_cd_fake ? " | I76_CD_FAKE=1: a Minimum answer becomes 0 when <game>\\miss8 is a directory (EXPERIMENTAL)" : "");
 }
 
+/* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
+ * WinMain 0x402ca0: FindWindowA(class 0x4c2680, NULL); a hit restores that window (ShowWindow 9) and returns 0, so a
+ * second copy exits at once (measured 2026-10-03: second process exit code 0). The switch turns `je 0x402ccd`
+ * (found nothing -> carry on) into `jmp`, for two copies on one PC (local multiplayer tests). */
+static void apply_multi_instance(void) {
+    static const BYTE expect[2] = { 0x74, 0x1c }, want[2] = { 0xeb, 0x1c };
+    if (GetEnvironmentVariableA("I76_MULTI_INSTANCE", NULL, 0) == 0) return;
+    patch_bytes(0x402caf, expect, want, 2, "multi-instance: single-instance check skipped");
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -3314,6 +3324,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
             }
         }
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
+        apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
