@@ -8,6 +8,13 @@ text, so the integrator can apply them verbatim. Line numbers are from a read on
 
 Pair numbers are the backlog's.
 
+> **Applied 2026-10-02.** Every replacement below was applied as written: the `i76-uncap-lab` ones in lab commit
+> `251ec57` (pairs 9, 10, 11, 12, 13, 26; six files under `docs/`), the `i76-map` ones in commit `cbe728d8` (pairs 14, 15,
+> 24, 25). Still open after that: pair 12's re-measure (P2-04), pair 15's per-item spec citations (P4-08), pair
+> 26's A/A re-test (P4-21). The "code" table at the end: the three rows in this repo are done (`e4485ca`, and
+> `Telemetry.ps1` was already correct); the lab's `memlib.ps1:48` is **not** edited (lab code, outside a docs
+> pass). This file is kept as the record of what was changed and why.
+
 ---
 
 ## i76-uncap-lab
@@ -206,6 +213,10 @@ unpoked (corrected 2026-10-02).
 ---
 
 ## Code in this repo and the lab that still carries a corrected claim (not edited by this docs pass)
+
+Status 2026-10-02: `LAUNCHER.ps1` and both `tools/check-ffb.ps1` rows fixed in `e4485ca`; `tools/ffb/Telemetry.ps1`
+already read `TEL_FIRE_ADDR = 0x5367db` (corrected in the file on 2026-09-27, so the row below was stale when
+written); `../i76-uncap-lab/autotest/lib/memlib.ps1:48` still open.
 
 | file:line | carries | should read | backlog |
 |---|---|---|---|
