@@ -1,0 +1,3 @@
+# generated art is game data: it stays on this machine (see docs/MENU-HD-ART.md)
+out/
+__pycache__/
