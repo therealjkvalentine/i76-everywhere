@@ -2802,6 +2802,124 @@ static DWORD __stdcall hook_grSstWinOpen(DWORD hwnd, DWORD res, DWORD refresh, D
     return r;
 }
 
+/* ===========================================================================
+ * TEXTURE CENSUS  (I76_TEX_CENSUS=1; off by default; lab docs/TEXTURE-DELIVERY.md s.2/6, docs/TERRAIN-WHITE-FLASH.md)
+ * ===========================================================================
+ * Count-only hooks on ZGLIDE's glide2x imports (no behaviour change): texture downloads and their bytes
+ * (grTexCalcMemRequired of the GrTexInfo), full cache flushes (grTexMinAddress: once in FirstDevice, once per flush at
+ * 0x100017f7), and a readback of grTexMaxAddress (which MemorySizeOfTMU dgVoodoo really took). Per swapped frame
+ * (grBufferSwap) it samples ZGLIDE's own state: next free TMU address [0x1001fd20] (bytes resident = next - min),
+ * TMU index [0x1001f894], and the "no slot, drawn with the wrong texture" flag [0x10178ea0] (set at 0x100018f3,
+ * cleared by the flush). Every flush and every rising edge of the flag is logged with its frame number and QPC ms;
+ * a summary line every 600 swaps. */
+typedef struct { int smallLod, largeLod, aspect, format; void *data; } tc_texinfo_t;
+static int g_tc_on;
+static HMODULE g_tc_zg;
+static DWORD g_tc_minaddr;
+static DWORD (__stdcall *p_tc_MaxAddress)(DWORD);
+static DWORD (__stdcall *p_tc_MinAddress)(DWORD);
+static void  (__stdcall *p_tc_Download)(DWORD, DWORD, DWORD, tc_texinfo_t *);
+static DWORD (__stdcall *p_tc_CalcMem)(int, int, int, int);
+static void  (__stdcall *p_tc_Swap)(int);
+static DWORD g_tc_swaps, g_tc_dl, g_tc_dlb, g_tc_flush, g_tc_minc, g_tc_noslot, g_tc_noslot_frames, g_tc_last_flag;
+static DWORD g_tc_win_dl, g_tc_win_dlb, g_tc_win_flush, g_tc_win_noslot, g_tc_peak_res;
+static double tc_ms(void) { LARGE_INTEGER q; QueryPerformanceCounter(&q); return (double)q.QuadPart * 1000.0 / (double)g_qpf.QuadPart; }
+static DWORD tc_zg(DWORD va) { return g_tc_zg ? *(volatile DWORD *)((BYTE *)g_tc_zg + (va - 0x10000000)) : 0; }
+static DWORD __stdcall tc_MaxAddress(DWORD t) {
+    DWORD r = p_tc_MaxAddress(t); static DWORD last = 0xffffffff;
+    if (r != last) { last = r; mlog("  tex-census: grTexMaxAddress(%lu) = 0x%lx (%lu KB usable TMU)", (unsigned long)t, (unsigned long)r, (unsigned long)(r / 1024)); }
+    return r;
+}
+static void tc_dump(const char *kind, int buf);
+static DWORD g_tc_shot_at, g_tc_ctl_at, g_tc_shots;
+static DWORD __stdcall tc_MinAddress(DWORD t) {
+    DWORD r = p_tc_MinAddress(t);
+    g_tc_minaddr = r; g_tc_minc++;
+    if (g_tc_minc > 1 || g_tc_swaps) {   /* the FirstDevice call is not a flush */
+        g_tc_flush++; g_tc_win_flush++;
+        if (g_tc_on == 2 && g_tc_shots < 16 && !g_tc_shot_at && !g_tc_ctl_at) { g_tc_shots++; g_tc_shot_at = g_tc_swaps + 1; tc_dump("flush-front", 0); }
+        mlog("  tex-census: FLUSH #%lu at swap %lu (proxy frame %lu, t %.0f ms): %lu downloads / %lu KB since start, resident before %lu KB, no-slot flag %lu",
+             (unsigned long)g_tc_flush, (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)g_tc_dl,
+             (unsigned long)(g_tc_dlb / 1024), (unsigned long)((tc_zg(0x1001fd20) - r) / 1024), (unsigned long)tc_zg(0x10178ea0));
+    } else mlog("  tex-census: grTexMinAddress(%lu) = 0x%lx (FirstDevice)", (unsigned long)t, (unsigned long)r);
+    return r;
+}
+static void __stdcall tc_Download(DWORD tmu, DWORD addr, DWORD eo, tc_texinfo_t *i) {
+    DWORD b = (p_tc_CalcMem && i) ? p_tc_CalcMem(i->smallLod, i->largeLod, i->aspect, i->format) : 0;
+    g_tc_dl++; g_tc_dlb += b; g_tc_win_dl++; g_tc_win_dlb += b;
+    p_tc_Download(tmu, addr, eo, i);
+}
+/* I76_TEX_CENSUS=2 adds frame dumps: the back buffer about to be shown at the swap right after a flush (the frame
+ * drawn while the no-slot flag was up) and a control 30 swaps later, read with grLfbReadRegion (app resolution, RGB565)
+ * to <game>\texcensus-<swap>-{flush,ctl}.bmp, at most 16 flushes. */
+static void tc_dump(const char *kind, int buf) {
+    typedef int (__stdcall *rd_t)(int, DWORD, DWORD, DWORD, DWORD, DWORD, void *);
+    typedef DWORD (__stdcall *wh_t)(void);
+    HMODULE g = GetModuleHandleA("glide2x.dll");
+    rd_t rd = (rd_t)GetProcAddress(g, "_grLfbReadRegion@28");
+    wh_t sw = (wh_t)GetProcAddress(g, "_grSstScreenWidth@0"), sh = (wh_t)GetProcAddress(g, "_grSstScreenHeight@0");
+    DWORD w = sw ? sw() : 640, h = sh ? sh() : 480, y, x; WORD *px; BYTE *row; char path[MAX_PATH]; HANDLE f; DWORD wr;
+    BITMAPFILEHEADER bf; BITMAPINFOHEADER bi;
+    if (!rd || w == 0 || h == 0 || w > 4096 || h > 4096) { mlog("  tex-census: dump %s - no grLfbReadRegion / size %lux%lu", kind, (unsigned long)w, (unsigned long)h); return; }
+    px = (WORD *)HeapAlloc(GetProcessHeap(), 0, w * h * 2); row = (BYTE *)HeapAlloc(GetProcessHeap(), 0, w * 3 + 4);
+    if (!px || !row) return;
+    if (!rd(buf /* 0 front, 1 back */, 0, 0, w, h, w * 2, px)) { mlog("  tex-census: dump %s - grLfbReadRegion failed", kind); goto out; }
+    wsprintfA(path, "%s\\texcensus-%05lu-%s.bmp", g_dir, (unsigned long)g_tc_swaps, kind);
+    f = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+    if (f == INVALID_HANDLE_VALUE) goto out;
+    ZeroMemory(&bf, sizeof bf); ZeroMemory(&bi, sizeof bi);
+    bf.bfType = 0x4d42; bf.bfOffBits = sizeof bf + sizeof bi; bf.bfSize = bf.bfOffBits + ((w * 3 + 3) & ~3u) * h;
+    bi.biSize = sizeof bi; bi.biWidth = (LONG)w; bi.biHeight = (LONG)h; bi.biPlanes = 1; bi.biBitCount = 24;
+    WriteFile(f, &bf, sizeof bf, &wr, NULL); WriteFile(f, &bi, sizeof bi, &wr, NULL);
+    for (y = h; y-- > 0;) {
+        for (x = 0; x < w; x++) { WORD p = px[y * w + x];
+            row[x * 3 + 2] = (BYTE)(((p >> 11) & 31) * 255 / 31); row[x * 3 + 1] = (BYTE)(((p >> 5) & 63) * 255 / 63); row[x * 3] = (BYTE)((p & 31) * 255 / 31); }
+        WriteFile(f, row, (w * 3 + 3) & ~3u, &wr, NULL);
+    }
+    CloseHandle(f);
+    mlog("  tex-census: dumped %s (%lux%lu)", path, (unsigned long)w, (unsigned long)h);
+out:
+    HeapFree(GetProcessHeap(), 0, px); HeapFree(GetProcessHeap(), 0, row);
+}
+static void __stdcall tc_Swap(int interval) {
+    DWORD flag = tc_zg(0x10178ea0), res = tc_zg(0x1001fd20) - g_tc_minaddr;
+    if (g_tc_on == 2) {
+        if (g_tc_shot_at && g_tc_swaps + 1 >= g_tc_shot_at) { g_tc_shot_at = 0; tc_dump("flush-back", 1); g_tc_ctl_at = g_tc_swaps + 30; }
+        else if (g_tc_ctl_at && g_tc_swaps >= g_tc_ctl_at) { g_tc_ctl_at = 0; tc_dump("ctl-back", 1); }
+    }
+    g_tc_swaps++;
+    if (res > g_tc_peak_res && res < 0x10000000) g_tc_peak_res = res;
+    if (flag) g_tc_noslot_frames++;
+    if (flag && !g_tc_last_flag) {
+        g_tc_noslot++; g_tc_win_noslot++;
+        mlog("  tex-census: NO-SLOT at swap %lu (proxy frame %lu, t %.0f ms): a texture found no free space and no same-size victim; resident %lu KB, TMU %lu",
+             (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)(res / 1024), (unsigned long)tc_zg(0x1001f894));
+    }
+    g_tc_last_flag = flag;
+    if (g_tc_swaps % 600 == 0) {
+        mlog("  tex-census: swaps %lu (proxy frame %lu): last 600: %lu downloads %lu KB, %lu flushes, %lu no-slot; resident %lu KB (peak %lu KB), TMU %lu; totals %lu dl, %lu flushes, %lu no-slot (%lu flagged frames)",
+             (unsigned long)g_tc_swaps, (unsigned long)g_frame, (unsigned long)g_tc_win_dl, (unsigned long)(g_tc_win_dlb / 1024),
+             (unsigned long)g_tc_win_flush, (unsigned long)g_tc_win_noslot, (unsigned long)(res / 1024), (unsigned long)(g_tc_peak_res / 1024),
+             (unsigned long)tc_zg(0x1001f894), (unsigned long)g_tc_dl, (unsigned long)g_tc_flush, (unsigned long)g_tc_noslot, (unsigned long)g_tc_noslot_frames);
+        g_tc_win_dl = g_tc_win_dlb = g_tc_win_flush = g_tc_win_noslot = 0;
+    }
+    p_tc_Swap(interval);
+}
+static void tex_census_attach(HMODULE m) {
+    void *o;
+    g_tc_zg = m; g_tc_minc = 0; g_tc_swaps = 0;
+    p_tc_CalcMem = (DWORD (__stdcall *)(int, int, int, int))GetProcAddress(GetModuleHandleA("glide2x.dll"), "_grTexCalcMemRequired@16");
+#define TC_HOOK(name, hook, ptr) o = patch_iat(m, "glide2x.dll", name, (void *)hook); if (o && o != (void *)hook) *(void **)&ptr = o;
+    TC_HOOK("_grTexMaxAddress@4", tc_MaxAddress, p_tc_MaxAddress)
+    TC_HOOK("_grTexMinAddress@4", tc_MinAddress, p_tc_MinAddress)
+    TC_HOOK("_grTexDownloadMipMap@16", tc_Download, p_tc_Download)
+    TC_HOOK("_grBufferSwap@4", tc_Swap, p_tc_Swap)
+#undef TC_HOOK
+    mlog("  tex-census: ZGLIDE at %p: max %s, min %s, download %s, swap %s, calcmem %s; ZGLIDE 0x1a93 = %02x %02x (75 = stock boundary rule, eb = tmufix)",
+         (void *)m, p_tc_MaxAddress ? "hooked" : "NOT", p_tc_MinAddress ? "hooked" : "NOT", p_tc_Download ? "hooked" : "NOT",
+         p_tc_Swap ? "hooked" : "NOT", p_tc_CalcMem ? "found" : "NOT found", ((BYTE *)m)[0x1a93], ((BYTE *)m)[0x1a94]);
+}
+
 /* I76_GLIDE_DIR=<subfolder> (EXPERIMENT, lab docs/WIDESCREEN-2D.md): menus and cutscenes are 640x480 DirectDraw (dgVoodoo's
  * DDraw.dll), missions are Glide (its Glide2x.dll), and each dgVoodoo DLL looks for dgVoodoo.conf in its own folder
  * first. Loading <game>\<subfolder>\Glide2x.dll before ZGLIDE binds ZGLIDE's glide2x.dll import to that copy, so the
@@ -2821,7 +2939,9 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     m = p_LoadLibraryA(name);
     if (m && name) {
         const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
-        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen) {
+        if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on) tex_census_attach(m);
+        /* (the census alone hooks LoadLibraryA too: the refresh wrapper is only for the two switches that did before) */
+        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_dir[0] || g_glide_refresh_code != 0xffffffff)) {
             p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
             mlog("  glide-refresh: %s loaded at %p, grSstWinOpen slot %s", b, (void *)m, p_grSstWinOpen ? "repointed" : "NOT found");
         }
@@ -2832,6 +2952,14 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
 static void apply_glide_refresh(void) {
     static const struct { DWORD hz, code; } tab[] = { {60, 0}, {70, 1}, {72, 2}, {75, 3}, {80, 4}, {90, 5}, {100, 6}, {85, 7}, {120, 8}, {0, 0xff} };
     char v[8]; DWORD n; int i;
+    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_TEX_CENSUS", c, sizeof(c));
+        if (k && k < sizeof(c) && (c[0] == '1' || c[0] == '2')) {
+            g_tc_on = c[0] - '0';
+            if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
+            if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
+            mlog("  tex-census: on, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
+        }
+    }
     {   DWORD k = GetEnvironmentVariableA("I76_GLIDE_DIR", g_glide_dir, sizeof(g_glide_dir));
         if (k == 0 || k >= sizeof(g_glide_dir)) g_glide_dir[0] = 0;
         else if (!p_LoadLibraryA) {
