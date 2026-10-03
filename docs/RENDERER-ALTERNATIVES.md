@@ -8,6 +8,24 @@ the doc that holds it), **[disk]** read from a file today, **[web]** fetched tod
 
 The owner's request: "try different glide wrappers or other rendering solutions".
 
+> **Update, 2026-10-02 23:45 (same night).** The owner approved the downloads. D1-D4 are fetched and unpacked
+> (hashes in section 8), the test copy `i76-uncap-lab\game-alt` exists, and one script runs the whole matrix:
+> **section 10**. Still **nothing was run in the game** by this work. Two things changed under this document:
+>
+> 1. **L2 (the 1920x1440 pointer box) was a symptom of a rejected conf, not a property of dgVoodoo.** dgVoodoo
+>    2.87.3 was silently rejecting the sandbox's `dgVoodoo.conf` (two invalid lines) and using the global
+>    `%APPDATA%\dgVoodoo\dgVoodoo.conf`. The sandbox conf is fixed (`FullScreenMode = true`,
+>    `FullscreenAttributes = fake`, `[Glide] Resolution = 3840x2880`, `Antialiasing = 4x`; the rejected file is kept
+>    as `game\dgVoodoo.conf.rejected-20261002`; lab commit 90504ca "pointer box gone, real supersampling").
+>    **Every statement below that assumes a pointer pinned to a 1920x1440 box is obsolete**: the L2 row, the
+>    "L2 likely / maybe" cells of section 2, M3's pass criterion in section 7, and the `maplib.ps1` remark in
+>    section 6 (its frame rectangle now comes from a conf dgVoodoo really uses). The pin test stays in the matrix,
+>    but as raw numbers to compare between candidates, not as "does it escape the 1920 box".
+> 2. Facts read from the unpacked nGlide 2.10 (section 10.1) replace the third-party guide: the settings key is
+>    `HKCU\Software\Zeus Software\nGlide2`, the installer is 3.30 MB (not 4.75), the aspect options are called
+>    "Entire screen" / "Aspect correction" / "Integer rendering" / "Integer scaling", and Interstate '76 Gold
+>    Edition has been on nGlide's supported list since 0.94.
+
 ## 1. What is being fixed
 
 Stack today: `i76.exe -glide` -> `ZGLIDE.DLL` -> `Glide2x.dll` (dgVoodoo 2.87.3) -> D3D11 -> GTX 1080 Ti, borderless
@@ -16,7 +34,7 @@ window on a 3440x1440 179 Hz panel. The limits of that path, all measured:
 | # | limit | evidence |
 |---|---|---|
 | L1 | **Refresh ceiling 120.** dgVoodoo paces presents by the Glide refresh code the app passes to `grSstWinOpen` (60 by default; 90, 100, 120 work; "none" gives 60; codes above 8 are rejected). The panel is 179 Hz | `docs\FPS-120.md` "Measured" and "Above 120" [measured] |
-| L2 | **Pointer box.** In the in-mission Esc menu dgVoodoo pins the pointer to a 1920x1440 box at the client origin and ignores the 760 px pillarbox, so items right of the box cannot be reached | lab `docs\MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` [measured] |
+| L2 | **(Obsolete, see the update above: caused by the rejected conf.)** Pointer box. In the in-mission Esc menu dgVoodoo pins the pointer to a 1920x1440 box at the client origin and ignores the 760 px pillarbox, so items right of the box cannot be reached | lab `docs\MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` [measured] |
 | L3 | **No anisotropic filter, no mip bias** for Glide in dgVoodoo | `docs\GRAPHICS-ENHANCEMENT.md` rank 6 |
 | L4 | **No texture replacement** in dgVoodoo | `docs\FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md`, `docs\HD-TEXTURES-RESEARCH.md` |
 | L5 | Window / focus behaviour is owned by dgVoodoo's fake-fullscreen logic (the conf carries several load-bearing keys for it) | lab `docs\CONFIG-OPTIONS.md` |
@@ -177,7 +195,10 @@ test run was using it.
   `-glide`). It refuses a folder outside `i76-uncap-lab`. `autotest\test-escmenu.ps1` passes the same two through.
 - `.gitignore`: `game-*/`.
 
-Harness limits under a non-dgVoodoo wrapper: `maplib.ps1` (`Capture-UI`, `Click-UI`, `Get-UIRect`) derives the
+Added 2026-10-02 late: `tools\renderers\nglide-settings.ps1`, `tools\renderers\renderer-matrix.ps1`, `tools\renderers\reshade\` (section 10).
+
+Harness limits under a non-dgVoodoo wrapper (written against the old pinned 1920x1440 box; the conf it reads is now the
+fixed 3840x2880 one, so re-derive before trusting any cropped capture): `maplib.ps1` (`Capture-UI`, `Click-UI`, `Get-UIRect`) derives the
 frame rectangle from `..\..\game\dgVoodoo.conf`, i.e. from dgVoodoo's scaling. Under another wrapper the *memory*
 reads, the pin test's raw `SetCursorPos` / `GetCursorPos` / `GetClipCursor` values and `frame_stats.py` are valid;
 the cropped captures and `Click-UI` coordinates are not, until the map is re-derived for that wrapper.
@@ -200,7 +221,7 @@ the noise floor):
 |---|---|---|---|
 | M1 | boots into a mission | `autotest\proxy-run.ps1 -GameDir ..\game-alt -Mission t01 -Hold 0 -Run {...}` | "in mission after N s"; the proxy log lines (no `CRASH`); `u32x.log` |
 | M2 | pacing at the desktop refresh | inside `-Run`: `python C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py 15 <tag>`; three conditions: no cap, `-Env @{ I76_FPS_CAP = "179" }`, `-Env @{ I76_FPS_CAP = "120" }` | fps, dt mean / sd / p99. Pass for 179: mean 5.59 ms, sd < 0.3 ms, no 8.3 or 16.7 ms mode. Uncapped mean dt = the engine + wrapper frame cost (headroom) |
-| M3 | pointer box | `autotest\test-escmenu.ps1 -Stage open -Tag <cand> -GameDir ..\game-alt`, then `-Stage close -GameDir ..\game-alt` | the two "cursor after SetCursorPos" lines and `osclip` / `client`: under dgVoodoo the cursor pushed to x = 3400 comes back clamped to the 1920-wide box. Pass: the pointer reaches the drawn right edge of the menu (x up to 2680 on this panel) |
+| M3 | pointer box (**pass criterion obsolete**, see the update at the top: record the raw numbers only) | `autotest\test-escmenu.ps1 -Stage open -Tag <cand> -GameDir ..\game-alt`, then `-Stage close -GameDir ..\game-alt` | the two "cursor after SetCursorPos" lines and `osclip` / `client`: under dgVoodoo the cursor pushed to x = 3400 comes back clamped to the 1920-wide box. Pass: the pointer reaches the drawn right edge of the menu (x up to 2680 on this panel) |
 | M4 | picture | `tools\graphics\capture-frame.ps1 -Out captures\renderers\<cand>.png` inside `-Run`, same mission, parked car, 8 s after entry | the frame rectangle it prints; compare with the dgVoodoo baseline shot via `make-crops.py` (terrain edge, thin pole, HUD text, near texture). Under exclusive fullscreen the capture may be black: note it, use a phone |
 | M5 | regressions | 10 minutes by hand: Esc menu, save screen, garage DONE, hood view (F6), binoculars (B), Alt+Tab and back, quit | each of L5's known behaviours, plus sound and music |
 
@@ -242,7 +263,33 @@ git-ignored; never run an installer):
 **Deliver:** one table (candidate x M1-M5, with n), the pin-test lines, the crops, and a pick. Promotion of a
 winner into `game\` and later the playable install is a separate, announced step.
 
-## 8. Downloads awaiting approval (nothing was fetched)
+## 8. Downloads
+
+**Fetched 2026-10-02 23:31-23:36** with `curl.exe` into `C:\Users\james\i76-uncap-lab\refs\renderers\<name>\`
+(git-ignored). No installer was run: the two NSIS setups were opened with 7-Zip. No site refused the fetch (the
+direct nGlide file URL answered 200 to curl; only the zeus-software.com *pages* had refused automated reads earlier).
+
+| id | file (in `refs\renderers\`) | URL | bytes | sha256 | licence text |
+|---|---|---|---|---|---|
+| D1 | `nglide\nGlide210_setup.exe` (not Authenticode-signed) | https://www.zeus-software.com/files/nglide/nGlide210_setup.exe | 3,301,587 | `3cfcd03a923386c36685a772d24797fb78762cfbe63fe5676756091cf27da7a4` | `nglide\nglide_readme.txt` section 9 "Legal" (freeware, property of Zeus Software; the 3DfxSpl*.dll splash plug-ins are 3Dfx's). No redistribution grant: keep it out of any package |
+| D2 | `dxvk\dxvk-2.7.1.tar.gz` (v2.7.1, 2025-08-30, the last 2.7.x; 3.x needs a newer NVIDIA driver) | https://github.com/doitsujin/dxvk/releases/download/v2.7.1/dxvk-2.7.1.tar.gz | 10,310,666 | `d85ce7c79f57ecd765aaa1b9e7007cb875e6fde9f6d331df799bce73d513ce87` | `dxvk\LICENSE` (zlib/libpng; fetched from the v2.7.1 tag, the tarball has none) |
+| D3 | `reshade\ReShade_Setup_6.8.0.exe` (signed "CN=ReShade"; Windows reports the chain as not trusted on this PC) | https://reshade.me/downloads/ReShade_Setup_6.8.0.exe | 4,075,064 | `207aea16205fbf952bc8fe1879966672454cf04002e7ad34237c7990a5b3c0b4` | `reshade\LICENSE.md` (BSD 3-clause; from the v6.8.0 tag) |
+| D3s | shader files, 7 files: `ReShade.fxh`, `ReShadeUI.fxh` from crosire/reshade-shaders `slim` @ fd00221; `CAS.fx`, `SMAA.fx`, `SMAA.fxh`, `AreaTex.png`, `SearchTex.png` from **CeeJayDK/SweetFX** @ 93ddf39 (crosire's repo no longer carries SMAA or CAS: its `slim` branch is headers + 5 effects, `legacy` has neither) | raw.githubusercontent.com at those commits | 4,250 / 9,930 / 7,005 / 9,523 / 57,679 / 30,346 / 126 | CAS.fx `5cbf1468...1c46`, SMAA.fx `fd6591ee...0007`, SMAA.fxh `ee18b0f3...8310`, ReShade.fxh `6dabfbba...174f`, ReShadeUI.fxh `78adf672...b901`, AreaTex `0044e6b4...beed`, SearchTex `55a97853...96f3` | headers: CC0-1.0 (SPDX line in each file); SweetFX: MIT, `reshade\Shaders\SweetFX-LICENSE.txt`; SMAA.fxh carries its own MIT-style notice |
+| D4 | `ddrawcompat\DDrawCompat-v0.7.1.zip` | https://github.com/narzoul/DDrawCompat/releases/download/v0.7.1/DDrawCompat-v0.7.1.zip | 1,067,481 | `0c33ecb1c01c1c779063b490a2e818f6d9227b3b4ee827c51790fb0fd59b17c5` | `ddrawcompat\LICENSE.txt` (0BSD: confirmed; from the v0.7.1 tag) |
+
+Extracted files the switcher installs (all 32-bit x86, checked by `switch-renderer.ps1`):
+
+| file | bytes | sha256 | identifies as |
+|---|---|---|---|
+| `nglide\glide2x.dll` | 1,630,208 | `7cbd095872e821b54cd6fa03f76aa22073271567175069c53ebb2e73b0299aab` | version resource "3Dfx Interactive, Inc. Glide DLL 2.61.00.0658" (nGlide poses as the real driver; the switcher now identifies it by its settings-key string) |
+| `nglide\glide.dll` / `glide3x.dll` / `nglide_config.exe` | 1,536,000 / 1,732,608 / 348,160 | `3e1bcd94...87a4` / `dd765740...7fdc6` / `c145622c...dc67` | Glide 2.1.1 / 3.10 / "nGlide Configurator 2.10" |
+| `dxvk\dxvk-2.7.1\x32\d3d11.dll` | 4,890,638 | `7406e13d2694244499783d2e9fb1be285b6324890a348137fe5b5042c64b5913` | DXVK |
+| `dxvk\dxvk-2.7.1\x32\dxgi.dll` | 3,194,894 | `53defc65dd2e53d05924a960c0891e15692ca8780ed0509a1a7efda71f4d631e` | DXVK |
+| `dxvk\dxvk-2.7.1\x32\d3d10core.dll` | 176,142 | `9f305720d5be52a8329cebb34f3c2e26ca3decace0d57b1d618531673d11e9bc` | DXVK |
+| `reshade\ReShade32.dll` | 4,136,216 | `538998f66c0197adcdeadfe8e5ea19dd6ca3253e40399476d291f385ce518b88` | ReShade 6.8.0.2157 |
+| `ddrawcompat\ddraw.dll` | 3,612,672 | `f75f0ac48d2782f225c483dc2f1142303a513e8dd8a60793891ade89f64755ea` | DDrawCompat v0.7.1 |
+
+Not fetched (not needed for the matrix): D5-D8 below. The original request list, for reference:
 
 | id | what | URL | size | licence | needed for |
 |---|---|---|---|---|---|
@@ -256,6 +303,116 @@ winner into `game\` and later the playable install is a separate, announced step
 | D8 | DxWnd | https://sourceforge.net/projects/dxwnd/ | about 10 MB (not checked) | GPL | not proposed for Windows |
 
 Sizes marked "not checked" are estimates; read the real figure off the release page before approving.
+
+## 10. Staged for the integrator (2026-10-02 23:45)
+
+### 10.1 nGlide 2.10: what the unpacked files say
+
+[disk] = read from `nglide_readme.txt`; [static] = disassembly / strings of `glide2x.dll` and `nglide_config.exe`
+(neither was run). Nothing here is confirmed by a run yet.
+
+- Settings: **`HKCU\Software\Zeus Software\nGlide2`**, values `Backend`, `Resolution`, `Aspect`, `Refresh`, `Vsync`,
+  `Gamma`, `Splash`, each a **REG_SZ decimal number** (the DLL reads 255 bytes and `sscanf("%d")`s them) [static].
+  The key does not exist on this PC (nGlide was never installed), so nGlide would use its defaults.
+- Environment variables `NGLIDE_BACKEND`, `NGLIDE_RESOLUTION`, `NGLIDE_ASPECT`, `NGLIDE_REFRESH`, `NGLIDE_VSYNC`,
+  `NGLIDE_GAMMA`, `NGLIDE_SPLASH` are read after the registry and override it for that process [static; readme
+  1.04 "individual configurations via environment variables", 2.00 "NGLIDE_BACKEND"].
+- Value meanings [static: the configurator's combo fill order plus the DLL's range checks and fallback defaults]:
+  Backend 0 Automatic / 1 DirectX (D3D9) / 2 Vulkan; Resolution 0 By app / 1 By desktop / 2.. fixed sizes from
+  640x480 up; Aspect 0 Entire screen / 1 Aspect correction / 2 Integer rendering / 3 Integer scaling; Refresh
+  0 By app / 1 By desktop / 2.. 60-144 Hz; **Vsync 0 Off / 1 On (default)**; Gamma 5 = 1.0; Splash 0 Off / 1 On.
+  The Vsync and Splash polarity rests on the DLL falling back to 1 where the readme says "On by default"; the
+  uncapped frame rate of the first run confirms or refutes it (far above 179 = vsync really off).
+- "Framerate is capped at 1000 fps with VSync off or windowed mode" [disk, 1.05 changelog]; Alt+Enter toggles the
+  window [disk]; 144 Hz is the highest fixed refresh entry, "By desktop" exists since 2.00 [disk].
+- Anti-aliasing and anisotropic filtering: nGlide has no option; its readme says to force both in the display
+  driver panel [disk]. That is a possible L3 route, but a driver override is keyed on `i76.exe` and would also hit
+  the playable install (the reason DSR was ruled out), so it is not in the matrix.
+- `glide2x.dll` imports `Direct3DCreate9` from `d3d9.dll` and **also `DirectDrawCreate` from `ddraw.dll`** [static]:
+  with `-DDraw keep` nGlide itself will call into dgVoodoo's `DDraw.dll` in the game folder. If nGlide misbehaves
+  at start, the first variant to try is `-DDraw ddrawcompat`, then `-DDraw park -CompatLayer`.
+- Interstate '76: Gold Edition: "added support" in 0.94 [disk]. No I'76 entry in any later changelog.
+
+### 10.2 What is staged
+
+- `i76-uncap-lab\refs\renderers\{nglide,dxvk,reshade,ddrawcompat}\` - the downloads of section 8, unpacked.
+- **`i76-uncap-lab\game-alt`** - made 23:40 with `make-renderer-copy.ps1 -HardLinkAssets` while no `i76` process
+  was running and no lock was held: 451 files, 399.1 MB hard-linked (`smk\`, `music\`, `I76.ZFS`, `DATABASE.MW2`),
+  88.3 MB copied. Manifest `.renderer-copy.json` re-verified (45 of 45 md5s match the files; all match `game\` at
+  that moment). It carries the **fixed** conf (md5 6be07be8..., `[Glide] Resolution = 3840x2880`,
+  `Antialiasing = 4x`, `FullScreenMode = true`, `FullscreenAttributes = fake`) and the sandbox's `STRLKUP.DLL`.
+  Baseline of its 10 renderer slot files saved in `game-alt\_renderer-baseline\`.
+- Lab scripts (commit in `i76-uncap-lab`):
+  - `tools\renderers\nglide-settings.ps1` - sets the `nGlide2` values for a test (`-Backend vulkan|d3d9`, vsync
+    off, resolution by desktop, aspect 4:3, refresh by app, splash off), saves the previous state, `-Restore`
+    removes the key again if it did not exist, `-EnvOnly` returns the `NGLIDE_*` hashtable. Round-trip tested.
+  - `tools\renderers\reshade\ReShade.ini` + `i76-cas-smaa.ini` - minimal config and a preset enabling
+    `SMAA@SMAA.fx` then `ContrastAdaptiveSharpen@CAS.fx`, default parameters, absolute search paths into `refs\`.
+  - `tools\renderers\switch-renderer.ps1` - fix: nGlide's DLL is identified by content (its version resource says
+    3Dfx), otherwise `-Renderer nglide` refused the real file.
+  - `tools\renderers\renderer-matrix.ps1` - the driver (below).
+- Tested without the game: `renderer-matrix.ps1 -DryRun` (all 8 candidates resolve, 0 files missing) and
+  `-SwitchOnly` (every candidate switched on `game-alt`, md5-verified, restored; final state = baseline, nGlide
+  key absent). **Not tested:** anything that needs the game running - the in-mission block (screenshot,
+  `frame_stats.py`, pin test, Esc) has only been checked for scoping with a mock.
+
+### 10.3 Commands
+
+The one command, at the physical console, no other `i76` running (it waits up to 5 minutes for one to end):
+
+```powershell
+C:\Users\james\i76-uncap-lab\tools\renderers\renderer-matrix.ps1
+```
+
+About one minute per candidate, 8 candidates; add `-Repeat 2` for a noise floor, `-Only nglide-vk-cap179,dxvk` for
+a subset, `-DryRun` to print without touching anything. Output: `autotest\runs\renderers\<stamp>\results.md`
+(candidate, desktop Hz, boot line, fps, dt mean / sd / p99, window rectangle, pin test driving and in the Esc menu,
+notes), plus `<candidate>-drive.png`, `<candidate>-menu.png` (full desktop), `<candidate>.log`, and any
+`ReShade.log` / `DDrawCompat-i76.log` / `u32x.log` the run left. After every candidate the copy returns to its
+baseline and nGlide's registry values are removed again, also when a candidate fails.
+
+| candidate | switch | environment |
+|---|---|---|
+| `dgvoodoo` (control) | `-Renderer dgvoodoo` | `I76_GLIDE_REFRESH=120` |
+| `nglide-vk` | `-Renderer nglide`, `nglide-settings.ps1 -Backend vulkan` | `I76_GLIDE_REFRESH=120` + `NGLIDE_*` |
+| `nglide-vk-cap179` | same | `I76_FPS_CAP=179` + `NGLIDE_*`, no `I76_GLIDE_REFRESH` |
+| `nglide-d3d9` | `-Renderer nglide`, `nglide-settings.ps1 -Backend d3d9` | `I76_GLIDE_REFRESH=120` + `NGLIDE_*` |
+| `nglide-d3d9-cap179` | same | `I76_FPS_CAP=179` + `NGLIDE_*`, no `I76_GLIDE_REFRESH` |
+| `dxvk` | `-Renderer dgvoodoo -Overlay dxvk` | `I76_GLIDE_REFRESH=120` |
+| `reshade` | `-Renderer dgvoodoo -Overlay reshade -ReShadeAs dxgi` | `I76_GLIDE_REFRESH=120` |
+| `ddrawcompat` | `-Renderer dgvoodoo -DDraw ddrawcompat` | `I76_GLIDE_REFRESH=120` |
+
+The same steps by hand (one candidate, game left for `proxy-run` to kill after 20 s):
+
+```powershell
+cd C:\Users\james\i76-uncap-lab
+$alt = "C:\Users\james\i76-uncap-lab\game-alt"
+# nGlide, Vulkan (for Direct3D 9: -Backend d3d9)
+.\tools\renderers\switch-renderer.ps1 -GameDir $alt -Renderer nglide -Source refs\renderers\nglide
+.\tools\renderers\nglide-settings.ps1 -Backend vulkan
+.\autotest\proxy-run.ps1 -GameDir $alt -Mission t01 -Env @{ I76_FPS_CAP = "179" }
+# DXVK under dgVoodoo
+.\tools\renderers\switch-renderer.ps1 -GameDir $alt -Renderer dgvoodoo -Overlay dxvk -OverlaySource refs\renderers\dxvk\dxvk-2.7.1
+# ReShade (CAS + SMAA) under dgVoodoo
+.\tools\renderers\switch-renderer.ps1 -GameDir $alt -Renderer dgvoodoo -Overlay reshade -ReShadeAs dxgi -OverlaySource refs\renderers\reshade
+# DDrawCompat as the DirectDraw provider (also: -Renderer nglide ... -DDraw ddrawcompat)
+.\tools\renderers\switch-renderer.ps1 -GameDir $alt -Renderer dgvoodoo -DDraw ddrawcompat -DDrawSource refs\renderers\ddrawcompat
+.\autotest\proxy-run.ps1 -GameDir $alt -Mission t01 -Env @{ I76_GLIDE_REFRESH = "120" }
+# back to the baseline
+.\tools\renderers\switch-renderer.ps1 -GameDir $alt -Restore ; .\tools\renderers\nglide-settings.ps1 -Restore
+.\tools\renderers\switch-renderer.ps1 -GameDir $alt -Status
+```
+
+Known limits of the matrix as written:
+
+- `proxy-run.ps1` refuses to start while **any** `i76*` process exists, so the matrix and the integrator's own runs
+  on `game\` cannot overlap; the matrix waits, then skips the candidate and says so in the table.
+- The screenshot is `CopyFromScreen` of the whole virtual desktop. Under nGlide's exclusive fullscreen it may come
+  back black or show the desktop: that is a finding about the capture, not about the renderer.
+- The pin test moves the real pointer and presses Esc once (opens the in-mission menu); the game is killed after.
+- If the game-alt conf should follow later changes to `game\dgVoodoo.conf`, re-make the copy
+  (`make-renderer-copy.ps1 -HardLinkAssets -Force`); the copy does not track the sandbox.
+- ReShade's dxgi proxy and DXVK's `dxgi.dll` use the same slot, so the two are separate candidates, not stacked.
 
 ## 9. What is not known (stated so nobody reads the table as measured)
 
