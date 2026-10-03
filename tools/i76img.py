@@ -86,6 +86,33 @@ def decode_m16(d):
                            (c & 31) * 255 // 31, 255))
     return w, h, flags, bytes(rgba)
 
+def parse_m16(d):
+    """M16 -> (w, h, flags, indices bytes, palette list[u16 RGB565]); index-level, lossless.
+    Terrain tiles (tp??m6.pak, 2026-10-03 census) use the same layout as vehicles: flags is 0x80 on
+    every M16 in I76.ZFS (5,644 entries), no trailing bytes after the palette, one size per file.
+    The high byte is a flag, not a palette offset: e.g. TP182SW6 has count 11 and indices 0..10."""
+    w, h_raw = struct.unpack_from("<2I", d, 0)
+    h, flags = h_raw & 0xFFFFFF, h_raw >> 24
+    idx = bytes(d[8:8 + w*h])
+    count = struct.unpack_from("<I", d, 8 + w*h)[0]
+    pal = list(struct.unpack_from(f"<{count}H", d, 12 + w*h))
+    if 12 + w*h + 2*count != len(d):
+        raise ValueError(f"M16 size {len(d)} != {12 + w*h + 2*count} (w={w} h={h} count={count})")
+    return w, h, flags, idx, pal
+
+def build_m16(w, h, flags, indices, pal):
+    """Inverse of parse_m16 (byte-identical for every game file)."""
+    assert len(indices) == w*h and len(pal) <= 256
+    return (struct.pack("<2I", w, h | (flags << 24)) + bytes(indices)
+            + struct.pack("<I", len(pal)) + struct.pack(f"<{len(pal)}H", *pal))
+
+def rgb565_to_rgb888(c):
+    return ((c >> 11 & 31) * 255 // 31, (c >> 5 & 63) * 255 // 63, (c & 31) * 255 // 31)
+
+def rgb888_to_rgb565(r, g, b):
+    """Round-to-nearest inverse of rgb565_to_rgb888 (exact on 565-born colours)."""
+    return ((r * 31 + 127) // 255) << 11 | ((g * 63 + 127) // 255) << 5 | ((b * 31 + 127) // 255)
+
 def encode_m16(rgba, w, h, flags=0):
     """RGBA -> M16 bytes with a per-tile RGB565 palette (max 255 colors + 0xFF alpha).
     Colors are median-cut quantized to 255 if needed (PIL)."""
