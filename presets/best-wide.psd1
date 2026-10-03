@@ -1,4 +1,4 @@
-﻿# best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
+# best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
 # Needs the widescreen dgVoodoo conf (dgVoodoo.wide.conf: [Glide] Resolution 5160x2160, ScalingMode stretched);
 # the daily driver's PLAY.bat copies it in before launching. I76_ASPECT is this panel's shape (3440x1440); for another
 # display set it to that display's width x height (tools\Make-Wide-Conf.ps1 writes both the conf and this file's
@@ -6,7 +6,7 @@
 # stretched sideways (known cost).
 @{
     Name        = 'best-wide'
-    Summary     = 'Widescreen 21:9 (Hor+) + best-120 + detail farther out: terrain x8, textures x8, objects x8, bushes 300 m, shadows 200 m, roads 1800 m, mirror 300 m'
+    Summary     = 'Widescreen 21:9 (Hor+) + best-120 + detail farther out: terrain x8, textures x8, objects x8, bushes 300 m, shadows 200 m, mirror 300 m'
     Verified    = '[owner-played 2026-10-03, sandbox] widescreen full-width cockpit approved; detail set measured 120 fps on t01; gate on the lab twin before the daily driver'
     Env         = @{
         I76_HIRES_CLOCK     = '1'
@@ -25,7 +25,7 @@
         I76_OBJECT_LOD      = '8'
         I76_SHADOW_DIST     = '4'
         I76_ROAD_TEX        = '8'
-        I76_ROAD_DIST       = '1800'
+        # I76_ROAD_DIST removed 2026-10-03: 1800 m overflows the depth-bucket node pool (exe+0x9051B); t11 crashed at boot 2/2 (lab docs/SOAK-BEST-WIDE-2026-10-03.md). Stock 450 m.
         I76_CLUTTER_DIST    = '300'   # ground clutter (bushes) to 300 m view depth; see music-fix/README.md
         I76_MIRROR_FAR      = '300'   # rear-view mirror sees 300 m instead of 100 m
         # no data yet (2026-10-03: the ram test could not stage its rams; no AI car entered the roll behaviour):
