@@ -17,9 +17,10 @@
 # Status: [console-verified 2026-10-02, sandbox] by the owner for the switch set at 120 (option 6);
 #         [measured, sandbox] 120.0 fps through TRIP -> bookmark -> garage -> DONE; not multiplayer-tested.
 @{
-    Summary = 'Smooth 120 fps + bug fixes + 1800 m draw distance (the 2026-10-02 option 6 set, no telemetry)'
-    Status  = '[console-verified 2026-10-02, sandbox]; [measured, sandbox] via the trip menus'
-    Env     = @{
+    Name        = 'best-120'
+    Summary     = 'Smooth 120 fps + bug fixes + 1800 m draw distance (the 2026-10-02 option 6 set, no telemetry)'
+    Verified    = '[console-verified 2026-10-02, sandbox]; [measured, sandbox] via the trip menus'
+    Env         = @{
         I76_HIRES_CLOCK     = '1'
         I76_FIXED_STEP      = '24'
         I76_FRAMERATE_FIXES = '1'
