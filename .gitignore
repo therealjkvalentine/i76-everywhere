@@ -70,3 +70,6 @@ texture-lab/build/
 *.pyc
 *.stackdump
 .pytest_cache/
+
+# quick reference sheet: page previews written by tools/controls-sheet/build.ps1 -Png
+tools/controls-sheet/*.png

@@ -1,0 +1,233 @@
+{
+  "_readme": "Human-edited half of the quick reference sheet. build_sheet.py reads the BINDINGS from controls/input.map and from the AutoHotkey sources; this file only says what those cannot: labels, grouping, physical control names, what each layer control is MEANT to do (expect), and what is known to be inconsistent. Run tools\\controls-sheet\\build.ps1 after any edit. See README.md beside this file.",
+
+  "title": "Interstate '76: controls quick reference",
+  "subtitle": "i76-everywhere control map (WASD-style). This is not the 1997 key layout; the last page compares the two.",
+
+  "groups": [
+    {"id": "driving",   "label": "Driving",   "code": "D", "color": "#cfe2f7"},
+    {"id": "weapons",   "label": "Weapons",   "code": "W", "color": "#f8d0cc"},
+    {"id": "targeting", "label": "Targeting", "code": "T", "color": "#fbe7b0"},
+    {"id": "views",     "label": "Views",     "code": "V", "color": "#d3eecf"},
+    {"id": "systems",   "label": "Systems",   "code": "S", "color": "#e4d9f3"}
+  ],
+
+  "actions": {
+    "_readme": "One entry per action name in controls/input.map (case does not matter). label = full name; key = short form drawn on a keyboard key (two short words at most). The build fails if an action here is not in the map, or an action in the map is not here.",
+    "throttle":             {"group": "driving",   "label": "Throttle / brake, analog", "key": "Throttle"},
+    "steer":                {"group": "driving",   "label": "Steer, analog",              "key": "Steer"},
+    "throttle_up":          {"group": "driving",   "label": "Accelerate",                  "key": "Gas"},
+    "throttle_down":        {"group": "driving",   "label": "Brake",                       "key": "Brake"},
+    "steer_left":           {"group": "driving",   "label": "Steer left",                  "key": "Steer left"},
+    "steer_right":          {"group": "driving",   "label": "Steer right",                 "key": "Steer right"},
+    "shift_down":           {"group": "driving",   "label": "Gear down",                   "key": "Gear down"},
+    "shift_up":             {"group": "driving",   "label": "Gear up",                     "key": "Gear up"},
+    "e_brake":              {"group": "driving",   "label": "Handbrake",                   "key": "Handbrake"},
+    "reverse_direction":    {"group": "driving",   "label": "Reverse (toggle)",            "key": "Reverse"},
+    "start_engine":         {"group": "driving",   "label": "Ignition (start engine)",     "key": "Ignition"},
+
+    "weapon_fire":          {"group": "weapons",   "label": "Fire selected weapon",        "key": "Fire"},
+    "weapon_cycle":         {"group": "weapons",   "label": "Cycle weapon",                "key": "Cycle weapon"},
+    "weapon_link":          {"group": "weapons",   "label": "Link weapons",                "key": "Link weapons"},
+    "hardpoint2_fire":      {"group": "weapons",   "label": "Fire hardpoint 2",            "key": "Hardpoint 2"},
+    "hardpoint3_fire":      {"group": "weapons",   "label": "Fire hardpoint 3",            "key": "Hardpoint 3"},
+    "hardpoint4_fire":      {"group": "weapons",   "label": "Fire hardpoint 4",            "key": "Hardpoint 4"},
+    "hardpoint5_fire":      {"group": "weapons",   "label": "Fire hardpoint 5",            "key": "Hardpoint 5"},
+    "special1":             {"group": "weapons",   "label": "Special 1 (nitrous slot)",    "key": "Special 1"},
+    "special2":             {"group": "weapons",   "label": "Special 2",                   "key": "Special 2"},
+    "special3":             {"group": "weapons",   "label": "Special 3",                   "key": "Special 3"},
+
+    "frontal_target":       {"group": "targeting", "label": "Target in front",             "key": "Target front"},
+    "next_target":          {"group": "targeting", "label": "Next target",                 "key": "Target next"},
+    "target_nearest_enemy": {"group": "targeting", "label": "Target nearest enemy",        "key": "Target nearest"},
+    "reset_target":         {"group": "targeting", "label": "Clear target",                "key": "Target clear"},
+    "radar_range_toggle":   {"group": "targeting", "label": "Radar range",                 "key": "Radar range"},
+    "radar_camera_toggle":  {"group": "targeting", "label": "Radar camera",                "key": "Radar camera"},
+
+    "pilot_glance_up":      {"group": "views",     "label": "Look up",                     "key": "Look up"},
+    "pilot_glance_down":    {"group": "views",     "label": "Look down",                   "key": "Look down"},
+    "pilot_glance_left":    {"group": "views",     "label": "Look left",                   "key": "Look left"},
+    "pilot_glance_right":   {"group": "views",     "label": "Look right",                  "key": "Look right"},
+    "pilot_glance_target":  {"group": "views",     "label": "Look at target",              "key": "Look at target"},
+    "toggle_cmbt_view":     {"group": "views",     "label": "Combat view (toggle)",        "key": "Combat view"},
+    "toggle_binoculars":    {"group": "views",     "label": "Binoculars",                  "key": "Binocs"},
+    "track_pitch_minus":    {"group": "views",     "label": "Move outside camera / pan map",   "key": "Camera up"},
+    "overview_z_minus":     {"group": "views",     "label": "Move outside camera / pan map",   "key": "Camera up"},
+    "track_pitch_plus":     {"group": "views",     "label": "Move outside camera / pan map", "key": "Camera down"},
+    "overview_z_plus":      {"group": "views",     "label": "Move outside camera / pan map", "key": "Camera down"},
+    "track_yaw_minus":      {"group": "views",     "label": "Move outside camera / pan map", "key": "Camera left"},
+    "overview_x_minus":     {"group": "views",     "label": "Move outside camera / pan map", "key": "Camera left"},
+    "track_yaw_plus":       {"group": "views",     "label": "Move outside camera / pan map","key": "Camera right"},
+    "overview_x_plus":      {"group": "views",     "label": "Move outside camera / pan map","key": "Camera right"},
+    "track_distance_minus": {"group": "views",     "label": "Zoom minus (view, map, camera)", "key": "Zoom minus"},
+    "overview_zoom_minus":  {"group": "views",     "label": "Zoom minus (view, map, camera)", "key": "Zoom minus"},
+    "zoom_factor_minus":    {"group": "views",     "label": "Zoom minus (view, map, camera)", "key": "Zoom minus"},
+    "track_distance_plus":  {"group": "views",     "label": "Zoom plus (view, map, camera)",  "key": "Zoom plus"},
+    "overview_zoom_plus":   {"group": "views",     "label": "Zoom plus (view, map, camera)",  "key": "Zoom plus"},
+    "zoom_factor_plus":     {"group": "views",     "label": "Zoom plus (view, map, camera)",  "key": "Zoom plus"},
+    "zoom_factor_reset":    {"group": "views",     "label": "Zoom reset",                  "key": "Zoom reset"},
+
+    "show_map":             {"group": "systems",   "label": "Map",                         "key": "Map"},
+    "show_notepad":         {"group": "systems",   "label": "Notepad",                     "key": "Notepad"},
+    "toggle_lights":        {"group": "systems",   "label": "Headlights",                  "key": "Lights"},
+    "honk_horn":            {"group": "systems",   "label": "Horn",                        "key": "Horn"},
+    "poetry":               {"group": "systems",   "label": "Poetry",                      "key": "Poetry"},
+    "show_player_scores":   {"group": "systems",   "label": "Player scores (multiplayer)", "key": "Player scores"},
+    "show_team_scores":     {"group": "systems",   "label": "Team scores (multiplayer)",   "key": "Team scores"}
+  },
+
+  "stock_only_actions": {
+    "_readme": "Actions GOG's 1997 map binds and controls/input.map does not. Only used on the comparison page.",
+    "hardpoint1_fire":      {"group": "weapons",   "label": "Fire hardpoint 1",            "key": "Hardpoint 1"}
+  },
+
+  "fixed_keys": {
+    "_readme": "Keys the engine handles outside input.map. They cannot be read from the map, so they are listed here with their source.",
+    "F1":  {"group": "views",   "label": "Cockpit view",                "key": "Cockpit", "source": "i76-remap.ahk, '@pad Y' and '@pad LB+Y' comment lines"},
+    "F3":  {"group": "views",   "label": "Chase camera",                "key": "Chase",   "source": "i76-remap.ahk, '@pad Y' comment line"},
+    "F2":  {"group": "views",   "label": "Other camera view",           "key": "View",    "source": "i76-remap.ahk, '@pad LB+Y' comment line (cycle F1 F2 F3 F7 F8 F9 F10)"},
+    "F7":  {"group": "views",   "label": "Other camera view",           "key": "View",    "source": "same"},
+    "F8":  {"group": "views",   "label": "Other camera view",           "key": "View",    "source": "same"},
+    "F9":  {"group": "views",   "label": "Other camera view",           "key": "View",    "source": "same"},
+    "F10": {"group": "views",   "label": "Other camera view",           "key": "View",    "source": "same"},
+    "Esc": {"group": "systems", "label": "Pause menu / skip cutscene",  "key": "Menu / skip", "source": "i76-remap.ahk, '@pad Select' comment line"}
+  },
+
+  "allow_shared_keys": {
+    "_readme": "Sets of actions that are MEANT to sit on one key (the game uses them in different screens). Any other two actions on one key fail the build.",
+    "sets": [
+      ["track_pitch_minus", "overview_z_minus"],
+      ["track_pitch_plus", "overview_z_plus"],
+      ["track_yaw_minus", "overview_x_minus"],
+      ["track_yaw_plus", "overview_x_plus"],
+      ["track_distance_minus", "overview_zoom_minus", "zoom_factor_minus"],
+      ["track_distance_plus", "overview_zoom_plus", "zoom_factor_plus"]
+    ]
+  },
+
+  "mouse": {
+    "_readme": "Left / right / middle come from the map. Buttons 4 and 5 are parsed from i76-remap.ahk (XButton1 / XButton2). The wheel keys are parsed from PLAY-i76.ps1's -WheelUp / -WheelDown defaults. expect = the action each is meant to perform; the build fails if the key sent is bound to something else.",
+    "XButton1":  {"name": "Button 4 (back)",    "expect": "special1"},
+    "XButton2":  {"name": "Button 5 (forward)", "expect": "hardpoint3_fire"},
+    "WheelUp":   {"name": "Wheel up",           "expect": "weapon_cycle"},
+    "WheelDown": {"name": "Wheel down",         "expect": "hardpoint5_fire"}
+  },
+
+  "gamepad": {
+    "_readme": "The pad layer (XIPoll in i76-remap.ahk) is code, not a table, so its bindings are listed here by hand. source: i76-remap.ahk, the '@pad' comment lines and the XIPoll section, read 2026-10-03. The build cross-checks every entry: 'at' must be an existing @pad line and every @pad line must be used; a key named in brackets on the @pad line must be in 'sends'; the union of all 'sends' must equal the set of keys the XIPoll code actually sends; and each key must be bound in the map to 'expect'.",
+    "source": "i76-remap.ahk @pad lines + XIPoll code",
+    "native": {
+      "_readme": "From the map: the only native pad bindings are the two analog axes.",
+      "LS": "Left stick"
+    },
+    "entries": [
+      {"control": "RT", "layer": "base",  "at": "RT",                "sends": ["LButton"],          "expect": ["weapon_fire"],       "how": "hold"},
+      {"control": "RT", "layer": "base",  "at": "RT(looking back)",  "sends": ["3"],                "expect": ["hardpoint3_fire"],   "how": "while the right stick is held back (rear view)"},
+      {"control": "LT", "layer": "base",  "at": "LT",                "sends": ["2"],                "expect": ["hardpoint2_fire"],   "how": "hold"},
+      {"control": "LB", "layer": "base",  "at": "LB(tap)",           "sends": ["q"],                "expect": ["frontal_target"],    "how": "tap; hold = SHIFT"},
+      {"control": "A",  "layer": "base",  "at": "A(tap)",            "sends": ["LButton", "Enter"], "expect": ["weapon_fire", "weapon_fire"], "how": "tap; types a click and Enter: OK in menus, one shot in the car"},
+      {"control": "A",  "layer": "base",  "at": "A(hold 400ms)",     "sends": ["6"],                "expect": ["special1"],          "how": "hold 0.4 s"},
+      {"control": "B",  "layer": "base",  "at": "B(tap)",            "sends": ["c"],                "expect": ["weapon_cycle"],      "how": "tap"},
+      {"control": "X",  "layer": "base",  "at": "X",                 "sends": ["y"],                "expect": ["next_target"],       "how": ""},
+      {"control": "Y",  "layer": "base",  "at": "Y",                 "sends": ["F3", "F1"],         "expect": [null, null],          "how": "alternates"},
+      {"control": "Back",  "layer": "base", "at": "Select",          "sends": ["Esc"],              "expect": [null],                "how": ""},
+      {"control": "Start", "layer": "base", "at": "Start",           "sends": ["m"],                "expect": ["show_map"],          "how": ""},
+      {"control": "D-pad up",    "layer": "base", "at": "Dpad-Up",    "sends": ["h"],               "expect": ["toggle_lights"],     "how": ""},
+      {"control": "D-pad down",  "layer": "base", "at": "Dpad-Down",  "sends": ["i"],               "expect": ["start_engine"],      "how": ""},
+      {"control": "D-pad left",  "layer": "base", "at": "Dpad-Left",  "sends": ["n"],               "expect": ["show_notepad"],      "how": ""},
+      {"control": "D-pad right", "layer": "base", "at": "Dpad-Right", "sends": ["m"],               "expect": ["show_map"],          "how": ""},
+      {"control": "RS", "layer": "base",  "at": "RStick",            "sends": ["Up", "Down", "Left", "Right"], "expect": ["pilot_glance_up", "pilot_glance_down", "pilot_glance_left", "pilot_glance_right"], "how": "held while deflected", "label": "Look around"},
+      {"control": "R3", "layer": "base",  "at": "R3",                "sends": ["e"],                "expect": ["pilot_glance_target"], "how": ""},
+      {"control": "R3", "layer": "base",  "at": "R3(looking back)",  "sends": ["4"],                "expect": ["hardpoint4_fire"],   "how": "while the right stick is held back"},
+      {"control": "L3", "layer": "base",  "at": "L3",                "sends": ["6"],                "expect": ["special1"],          "how": "hold"},
+      {"control": "L3", "layer": "base",  "at": "L3",                "sends": ["x"],                "expect": ["reverse_direction"], "how": "pressed with the left stick pulled back"},
+      {"control": "RT", "layer": "shift", "at": "LB+RT",             "sends": ["1"],                "expect": ["hardpoint1_fire"],   "how": "hold"},
+      {"control": "LT", "layer": "shift", "at": "LB+LT",             "sends": ["5", "2"],           "expect": ["hardpoint5_fire", "hardpoint2_fire"], "how": "hold"},
+      {"control": "A",  "layer": "shift", "at": "LB+A",              "sends": ["3"],                "expect": ["hardpoint3_fire"],   "how": "hold"},
+      {"control": "B",  "layer": "shift", "at": "LB+B",              "sends": ["4"],                "expect": ["hardpoint4_fire"],   "how": "hold"},
+      {"control": "X",  "layer": "shift", "at": "LB+X",              "sends": ["r"],                "expect": ["radar_range_toggle"], "how": ""},
+      {"control": "Y",  "layer": "shift", "at": "LB+Y",              "sends": ["F1", "F2", "F3", "F7", "F8", "F9", "F10"], "expect": [null, null, null, null, null, null, null], "how": "one step per press", "label": "Cycle camera views"},
+      {"control": "D-pad up",    "layer": "shift", "at": "LB+Dpad-Up",    "sends": ["b"],           "expect": ["toggle_binoculars"], "how": ""},
+      {"control": "D-pad down",  "layer": "shift", "at": "LB+Dpad-Down",  "sends": ["g"],           "expect": ["honk_horn"],         "how": "hold"},
+      {"control": "D-pad left",  "layer": "shift", "at": "LB+Dpad-Left",  "sends": ["-"],           "expect": ["shift_down"],        "how": ""},
+      {"control": "D-pad right", "layer": "shift", "at": "LB+Dpad-Right", "sends": ["="],           "expect": ["shift_up"],          "how": ""}
+    ],
+    "unbound_controls": {
+      "_readme": "Pad controls with no @pad line and no native binding in the map.",
+      "RB": "not bound"
+    }
+  },
+
+  "wheel": {
+    "_readme": "Keys are parsed from gWheelBase / gWheelAlt / gWheelHat / gWheelHatAlt / gWheelHoldSet in i76-remap.ahk. This section gives each button its physical name and the action it is MEANT to perform on each layer; the build fails if the key the script sends is bound to another action.",
+    "device": "Thrustmaster T300RS (winmm joystick1)",
+    "names_source": "Thrustmaster manual, 'MAPPING FOR PC' page, as recorded in docs/WHEEL-T300.md and the i76-remap.ahk header",
+    "buttons": {
+      "1":  {"name": "L1 left paddle",   "base": "toggle_lights",        "shift": "weapon_fire"},
+      "2":  {"name": "R1 right paddle",  "base": "weapon_fire",          "shift": "frontal_target"},
+      "3":  {"name": "cluster",          "base": "weapon_cycle",         "shift": "toggle_cmbt_view"},
+      "4":  {"name": "cluster",          "base": "e_brake",              "shift": "reverse_direction"},
+      "5":  {"name": "cluster",          "base": "special1",             "shift": "special2"},
+      "6":  {"name": "cluster",          "base": "SHIFT",                "shift": "SHIFT"},
+      "7":  {"name": "SE (share)",       "base": "hardpoint3_fire",      "shift": "hardpoint4_fire"},
+      "8":  {"name": "OPTIONS",          "base": "target_nearest_enemy", "shift": "reset_target"},
+      "9":  {"name": "R2",               "base": "honk_horn",            "shift": "pilot_glance_target"},
+      "10": {"name": "L2",               "base": "honk_horn",            "shift": "radar_range_toggle"},
+      "11": {"name": "L3",               "base": "toggle_lights",        "shift": "radar_camera_toggle"},
+      "12": {"name": "R3",               "base": "start_engine",         "shift": "toggle_binoculars"},
+      "13": {"name": "PS",               "base": "honk_horn",            "shift": "poetry"}
+    },
+    "hat": {
+      "0":     {"name": "D-pad up",    "base": "toggle_lights", "shift": "shift_up"},
+      "9000":  {"name": "D-pad right", "base": "show_map",      "shift": null},
+      "18000": {"name": "D-pad down",  "base": "start_engine",  "shift": "shift_down"},
+      "27000": {"name": "D-pad left",  "base": "show_notepad",  "shift": null}
+    }
+  },
+
+  "stick": {
+    "_readme": "Everything is parsed from the BTN / POV / AXIS tables of i76-ch-fighterstick.ahk (control name, action, key). Nothing to edit here except the hat grouping used to draw the page.",
+    "device": "CH Fighterstick (winmm joystick2)",
+    "hats": [
+      {"name": "Convex serrated hat: direct fire", "buttons": [5, 6, 7, 8]},
+      {"name": "Castle hat: targeting",            "buttons": [9, 10, 11, 12]},
+      {"name": "Trim hat: displays and nitrous",   "buttons": [13, 14, 15, 16]}
+    ],
+    "grip_buttons": [1, 2, 3, 4]
+  },
+
+  "known_mismatches": {
+    "_readme": "Real inconsistencies between the owner's map and the layers, found by the checker and LEFT AS PLAYED (owner ruling 2026-10-03: the daily driver's live config is the truth; do not change behaviour). Each id is '<layer>:<control>:<key sent>'. The build fails on a mismatch that is not listed here, and on an entry here that is no longer a mismatch.",
+    "list": [
+      {"id": "gamepad:LB+Dpad-Left:Minus",  "what": "Pad LB + D-pad left sends '-' for gear down. The map binds gear down to ',' and nothing to '-'. The control does nothing."},
+      {"id": "gamepad:LB+Dpad-Right:Equal", "what": "Pad LB + D-pad right sends '=' for gear up. The map binds gear up to '.' and nothing to '='. The control does nothing."},
+      {"id": "gamepad:B(tap):C",            "what": "Pad B sends 'C' for cycle weapon. The map binds cycle weapon to Tab and nothing to 'C'. The control does nothing."},
+      {"id": "gamepad:LB+RT:One",           "what": "Pad LB + RT sends '1' for hardpoint 1. The map has no hardpoint 1 binding at all. The control does nothing."}
+    ]
+  },
+
+  "status": {
+    "_readme": "Printed under each page. Each line quotes or cites a doc; nothing is marked verified that the docs do not record.",
+    "keyboard": [
+      "Map: the owner's daily-driver map, copied 2026-10-03. The dedicated arrow keys look around and W A S D drive (owner, 2026-10-03).",
+      "A fresh install made by INSTALL.bat has not been started by anyone on this project (INSTALL.md, Evidence): on such an install this page is read from the files, not played."
+    ],
+    "mouse": [
+      "Buttons 4 and 5 need the AutoHotkey layer (i76-remap.ahk); the wheel needs i76wheel.exe, started by PLAY-i76.ps1. Status of the wheel helper: not recorded (ENHANCEMENTS.md)."
+    ],
+    "gamepad": [
+      "Pad layer: \"deployed, verified on Mac/Windows\" (RELEASE-PLAN section 1). The docs do not record a play test of the pad on this map; controls marked with a dagger send a key this map does not bind.",
+      "Connect the pad before launching. Without the AutoHotkey layer a pad has the left stick only: this map binds no pad button natively."
+    ],
+    "wheel": [
+      "Wheel: \"STATUS 2026-08-01: WORKING AND PLAYED\" (WHEEL-T300.md). Buttons rebalanced 2026-08-08; of the rebalanced buttons the docs record only the held horn as confirmed in the game (FIGHTERSTICK.md)."
+    ],
+    "stick": [
+      "Stick: \"Confirmed in the game, 2026-08-08, control by control\": trigger, the three hats, special 1, cone-hat glance, stick axes (FIGHTERSTICK.md). Pickle (2) and pinky (4) are not in that table."
+    ],
+    "compare": [
+      "1997 column: input.map of GOG's offline installer 2.1.0.17 (stock-2.1.0.17.json). Its plain arrow tokens (UpArrow ...) versus the Grey set have not been checked on a Windows keyboard by anyone on this project.",
+      "To keep the 1997 keys: setup-windows.ps1 -GameDir <game folder> -Controls stock -ControlsOnly"
+    ]
+  }
+}

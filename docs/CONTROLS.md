@@ -1,177 +1,252 @@
 # Controls: sit down and play
 
+> **This project installs its own control map (WASD-style), not the 1997 layout.**
+> `W` `A` `S` `D` drive, the arrow keys look around, `Enter` or the left mouse button fires, `Space` is the
+> handbrake. It is the owner's daily-driver map, shipped as [`controls/input.map`](../controls/input.map)
+> (decision of 2026-10-03). The table in section 1 lists every key beside the original one.
+>
+> **To keep the original keys:**
+>
+> - on a new install, add `-Controls stock`: `INSTALL.bat -Controls stock` (or the same switch on
+>   `Setup-From-GOG.ps1`, `install.ps1`, `setup-windows.ps1`);
+> - on an install already made, from the repo folder:
+>   `powershell -ExecutionPolicy Bypass -File setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly`
+>   It puts GOG's map back from the `input.map.stock-<timestamp>` copy the installer kept, and changes nothing
+>   else. `-Controls i76e -ControlsOnly` switches back.
+>
+> With the original keys the AutoHotkey pad, wheel and stick layers are **not** installed: they type this
+> project's keys (section 4). A gamepad then has only the game's native bindings.
+
+**Printable:** [Interstate76-Controls-Quick-Reference.pdf](Interstate76-Controls-Quick-Reference.pdf), four
+US Letter pages (keyboard and mouse, gamepad, wheel and stick, 1997 keys vs ours). It is generated from the map
+and the layer scripts by [`tools/controls-sheet`](../tools/controls-sheet/README.md); after changing a binding,
+run `tools\controls-sheet\build.ps1`.
+
 One page for the four ways to drive Interstate '76 with this repo: **all keyboard**, **keyboard and mouse**,
-**gamepad**, and **HOWAS** (hands on wheel and stick). Written 2026-10-03. Every binding below is copied from a
-file in this repo or from GOG's own `input.map`; the source is named under each table. Statuses are quoted from
-the docs and not upgraded. Deep docs are linked, not repeated.
+**gamepad**, and **HOWAS** (hands on wheel and stick). Written 2026-10-03. Every binding below is read from a
+file in this repo; the source is named under each table. Statuses are quoted from the docs and not upgraded.
+Deep docs are linked, not repeated.
 
 Two facts first. The engine reads **`input.map`** in the game folder and nothing else ([AGENTS.md](../AGENTS.md)).
 And a Windows install made by `INSTALL.bat` has, as of 2026-10-03, **never been started** by anyone on this project
-([INSTALL.md, Evidence](../INSTALL.md#evidence-what-was-tested)): the fresh-install rows below are read from the
-files, not played.
+([INSTALL.md, Evidence](../INSTALL.md#evidence-what-was-tested)): the map is the one the owner plays on, but
+the installer's copy of it was checked by md5 and lint, not by play.
 
 ## 0. Thirty seconds
 
 | Setup | What you need | How to turn it on | Status (quoted) |
 |---|---|---|---|
-| All keyboard | A keyboard, ideally with a numeric keypad | Nothing. GOG's stock keys; section 2 | Stock game. Our patched fresh install: "the game was not started from it" (INSTALL.md) |
-| Keyboard and mouse | Plus a three-button mouse | `INSTALL.bat` (`setup-windows.ps1`) adds mouse **buttons**. Mouse **steering** is not written; section 3 | Mouse steering "SOLVED 2026-07-13" on the Mac under DxWnd (VERIFIED-FIXES); untested on a Windows fresh install |
-| Gamepad | An Xbox-style pad, **connected before launch** | `INSTALL.bat`, then `PLAY-i76.bat` (starts the AutoHotkey layer); section 4 | Native: "field-tested 2026-07-14: `joystick1` token confirmed" [d3]. AutoHotkey layer: "deployed, verified on Mac/Windows" (ENHANCEMENTS) |
-| HOWAS | Thrustmaster T300RS + CH Fighterstick, Windows | Driver, pedals COMBINED, `PLAY-i76.ps1`; section 5 | Wheel: "STATUS 2026-08-01: WORKING AND PLAYED". Stick: "Field-confirmed working 2026-08-08". Both on the owner's own `input.map`, which is not in this repo |
+| All keyboard | A keyboard | `INSTALL.bat`; section 2 | The owner's daily-driver map. Fresh install: "the game was not started from it" (INSTALL.md) |
+| Keyboard and mouse | Plus a three-button mouse | The same map binds the three mouse buttons; the launcher adds the wheel and buttons 4 / 5; section 3 | Same as above. Mouse wheel helper: "status not recorded" (ENHANCEMENTS) |
+| Gamepad | An Xbox-style pad, **connected before launch** | `INSTALL.bat`, then `PLAY-i76.bat` (starts the AutoHotkey layer); section 4 | Layer: "deployed, verified on Mac/Windows" (RELEASE-PLAN section 1). No play test of the pad on this map is recorded; four pad controls send keys it does not bind |
+| HOWAS | Thrustmaster T300RS + CH Fighterstick, Windows | Driver, pedals COMBINED, `PLAY-i76.ps1`; section 5 | Wheel: "STATUS 2026-08-01: WORKING AND PLAYED". Stick: "Field-confirmed working 2026-08-08". Both on this map |
 | Steam Deck | The Deck | The installer pre-applies the layout | "INSTALLED on this user's Deck (2026-07-11)"; see [DECK-CONTROLS.md](DECK-CONTROLS.md) |
+| Mac | | The Mac installer copies a different map, [`input.map.reference`](input.map.reference) | Not compared with this page; see "Mac: converge later" at the end |
 
-## 1. Keys every setup shares
+## 1. The keys: this project's map beside the 1997 one
 
-The stock map of GOG 2.1.0.17, all 55 action blocks, plus what `setup-windows.ps1` appends on a fresh install.
-Every letter, number and punctuation binding is ignored while Shift or Ctrl is held (the `- Keyboard Shift` /
-`- Keyboard Control` lines); the glance, zoom and score keys are not.
+Every action, with GOG's original key and ours. Every letter, number and punctuation binding is ignored while
+Shift or Ctrl is held (the `- Keyboard Shift` / `- Keyboard Control` lines); in our map the arrow keys with
+Shift move the outside camera and the map instead of glancing.
 
-| Action | Key | Origin |
+<!-- BEGIN generated by tools/controls-sheet/build_sheet.py: stock-vs-ours. Do not edit by hand. -->
+
+| Action | 1997 keys (GOG 2.1.0.17) | This project's map | |
+|---|---|---|---|
+| Throttle / brake, analog | not bound | `Joystick 1, forward / back axis` | changed |
+| Steer, analog | not bound | `Joystick 1, left / right axis` | changed |
+| Accelerate | `Up arrow (plain set)` | `W` | changed |
+| Brake | `Down arrow (plain set)` | `S` | changed |
+| Steer left | `Left arrow (plain set)` | `A` | changed |
+| Steer right | `Right arrow (plain set)` | `D` | changed |
+| Gear down | `, (comma)` | `, (comma)` |  |
+| Gear up | `. (period)` | `. (period)` |  |
+| Handbrake | `Z` | `Space` | changed |
+| Reverse (toggle) | `Tab` | `X` | changed |
+| Ignition (start engine) | `S` | `I` | changed |
+| Fire selected weapon | `Space` | `Enter`<br>`Left mouse button` | changed |
+| Cycle weapon | `Enter` | `Tab` | changed |
+| Link weapons | `L` | `F` | changed |
+| Fire hardpoint 2 | `2` | `2`<br>`Right mouse button` | changed |
+| Fire hardpoint 3 | `3` | `3` |  |
+| Fire hardpoint 4 | `4` | `4` |  |
+| Fire hardpoint 5 | `5` | `5` |  |
+| Special 1 (nitrous slot) | `6` | `6` |  |
+| Special 2 | `7` | `7` |  |
+| Special 3 | `8` | `8` |  |
+| Fire hardpoint 1 | `1` | not bound | changed |
+| Target in front | `Q` | `Q` |  |
+| Next target | `E` | `Y` | changed |
+| Target nearest enemy | `T` | `T` |  |
+| Clear target | `Y` | `U` | changed |
+| Radar range | `R` | `R` |  |
+| Radar camera | `W` | `K` | changed |
+| Look up | `Down arrow` | `Up arrow` | changed |
+| Look down | `Up arrow` | `Down arrow` | changed |
+| Look left | `Left arrow` | `Left arrow`<br>`Middle mouse button` | changed |
+| Look right | `Right arrow` | `Right arrow` |  |
+| Look at target | `Insert` | `E` | changed |
+| Combat view (toggle) | `V` | `V` |  |
+| Binoculars | `B` | `B` |  |
+| Move outside camera / pan map | `Up arrow`<br>`Left arrow`<br>`Right arrow`<br>`Down arrow` | `Shift + Up arrow`<br>`Shift + Down arrow`<br>`Shift + Left arrow`<br>`Shift + Right arrow` | changed |
+| Zoom minus (view, map, camera) | `Page Up` | `Page Up` |  |
+| Zoom plus (view, map, camera) | `Page Down` | `Page Down` |  |
+| Zoom reset | `End` | `End` |  |
+| Map | `M` | `M` |  |
+| Notepad | `N` | `N` |  |
+| Headlights | `H` | `H` |  |
+| Horn | `G` | `G` |  |
+| Poetry | `C` | `P` | changed |
+| Player scores (multiplayer) | `' (quote)` | `' (quote)` |  |
+| Team scores (multiplayer) | `; (semicolon)` | `; (semicolon)` |  |
+
+Generated from `controls/input.map` (md5 `a937f36dba46644d2b0f421097aede2f`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
+
+<!-- END generated: stock-vs-ours -->
+
+Not in `input.map` at all (engine keys, from the comments in [`i76-remap.ahk`](../i76-remap.ahk)): `F1` cockpit,
+`F3` chase camera, `F2` `F7` `F8` `F9` `F10` other views, `Esc` pause menu and skip a cutscene.
+
+What to know about our map:
+
+- **Hardpoint 1 has no key.** Stock fires it with `1`; our map binds hardpoints 2 to 5 (`2` `3` `4` `5`) and
+  nothing to hardpoint 1. `K` is the radar camera. Fire the selected weapon with `Enter` or the left mouse
+  button, pick it with `Tab`, fire linked groups with `F`.
+- **Looking up and down is the right way round.** Stock binds "glance down" to the up arrow; ours does not.
+- **No native pad or wheel buttons.** `joystick1` appears only on `steer` and `throttle`. Buttons come from the
+  AutoHotkey layers (sections 4 and 5), which type the keys in this table.
+- The file's own header comment (2026-07-04) says `Space fire` and `C handbrake`; the bindings, which are what
+  the game reads, are `Space` handbrake and `C` unbound ([controls/README.md](../controls/README.md)).
+
+**What the installer does to `input.map`** ([`setup-windows.ps1`](../setup-windows.ps1) step 5):
+
+| | `-Controls i76e` (default) | `-Controls stock` |
 |---|---|---|
-| Accelerate / brake | `UpArrow` / `DownArrow` (see the arrow note in section 2) | stock |
-| Steer | `LeftArrow` / `RightArrow` | stock |
-| Analog steer / throttle | `joystick1` Left/Right, Down/Up | added by this repo (GOG's map has no analog block) |
-| Gear down / up | `,` / `.` | stock |
-| Handbrake | `Z`; pad `Button4` | stock; button added by this repo |
-| Reverse (a toggle) | `Tab` | stock |
-| Start engine | `S` | stock |
-| Fire selected weapon | `Space`; mouse left; pad `Button1` | stock; mouse and pad added by this repo |
-| Cycle weapon | `Enter`; pad `Button3` | stock; button added by this repo |
-| Link weapons | `L` | stock |
-| Hardpoints 1 to 5 | `1` `2` `3` `4` `5` | stock |
-| Hardpoints 1 to 4, home row | `K` `O` `[` `]`; mouse right = hardpoint 2 | added by this repo (K since 2026-10-03, [d1]) |
-| Specials 1 to 3 (nitrous is whichever slot it sits in) | `6` `7` `8` | stock |
-| Target in front / next / nearest enemy / clear | `Q` / `E` / `T` / `Y` | stock |
-| Radar range / radar camera | `R` / `W` | stock |
-| Map / notepad / binoculars | `M` / `N` / `B` | stock |
-| Lights / horn / poetry | `H` / `G` / `C` | stock |
-| Combat view toggle | `V` | stock |
-| Glance up, down, left, right | `GreyUpArrow` etc.; pad hat; mouse middle = glance left | stock; hat and mouse added by this repo |
-| Glance at target | `Insert` | stock |
-| Zoom minus / plus / reset (also map zoom and chase-camera distance) | `GreyPageUp` / `GreyPageDown` / `GreyEnd` | stock |
-| Player / team scores (multiplayer) | `'` / `;` | stock |
-| Camera views | `F1` cockpit, `F3` chase; `F2` `F7` `F8` `F9` `F10` others | not in `input.map`; from the comments in `i76-remap.ahk` |
-| Pause menu, skip a cutscene | `Esc` | same source |
+| The map | `controls\input.map` written whole, checked by md5 and by the lint when Python is installed | GOG's keyboard keys, plus the minimal patch below |
+| Backup | The map that was there, once, as `input.map.stock-<timestamp>` (GOG's untouched map; on a folder an earlier run patched, that is `input.map.pre-windows-setup`). Any other map in place is kept as `input.map.before-i76e-<timestamp>` | `input.map.pre-windows-setup`; coming from i76e, the current map as `input.map.before-stock-<timestamp>` if no identical copy exists |
+| AutoHotkey layers in `_ahk\` | `i76-remap.ahk` and `i76-ch-fighterstick.ahk` copied in | Not copied; copies from an earlier run are moved to `_ahk\off-stock-controls\` |
+| Mouse wheel (launcher) | up = `Tab`, down = `5` | up = `Enter` (stock's cycle weapon), down = `5` |
 
-Sources: `input.map.pre-windows-setup` from an unpacked GOG 2.1.0.17 installer (stock);
-[`setup-windows.ps1`](../setup-windows.ps1) section 5 (added); [`i76-remap.ahk`](../i76-remap.ahk) `@pad` lines.
+Both modes write `input.map.as-installed` (what the launcher's guard restores first, section 7) and record the
+choice in `<game>\i76e-controls.txt`; a later run without `-Controls` keeps it.
 
-**What the patch does, exactly.** It backs the map up as `input.map.pre-windows-setup`, appends
-`throttle { - joystick1 Down/Up }` and `steer { - joystick1 Left/Right }`, the three mouse buttons, pad buttons
-1 / 3 / 4, the hat, and `K O [ ]`. It moves the handbrake to `Space` and fire to `Enter` **only** when GOG's map
-has the handbrake on `C` (an older GOG build); the 2.1.0.17 map keeps `Z` and `Space`. It runs once: a map that
-already carries its marker line is skipped, so an install patched before 2026-10-03 still has hardpoint 1 on `L`
-and a `- mouse` line beside `joystick1` (fault 1 in section 7).
+The minimal patch of `-Controls stock`: `throttle { - joystick1 Down/Up }` and `steer { - joystick1 Left/Right }`,
+the three mouse buttons, native pad buttons 1 / 3 / 4 and the hat, and `K` `O` `[` `]` as extra keys for
+hardpoints 1 to 4 (all four are unbound in GOG's 2.1.0.17 map). It moves the handbrake to `Space` and fire to
+`Enter` only when GOG's map has the handbrake on `C` (an older GOG build). A map that already carries its marker
+line is skipped.
+
+Tested offline on a copy of the unpacked GOG 2.1.0.17 tree, the game never started: fresh to i76e, i76e to stock
+and back twice, a re-run with no `-Controls`, and `install.ps1 -Controls`; each result checked by md5 and lint.
 
 ## 2. All keyboard
 
-Nothing to install: section 1's "stock" rows are the whole layout. Start the engine with `S`, drive, `Space`
-fires, `Enter` picks the weapon, `T` targets the nearest enemy, `Z` is the handbrake, `Tab` toggles reverse.
+`I` starts the engine. `W` accelerates, `S` brakes, `A` and `D` steer. `Space` is the handbrake, `X` toggles
+reverse, `,` and `.` shift down and up. `Enter` fires the selected weapon, `Tab` picks it, `F` links.
+`Q` targets what is in front, `T` the nearest enemy, `Y` the next, `U` clears. The **arrow keys look around**
+(the dedicated arrow cluster, confirmed by the owner 2026-10-03); with Shift they move the outside camera and
+the map. `E` looks at the target.
 
-**The arrow note.** The engine has two sets of arrow names. Driving is on the plain `UpArrow` set; glancing is on
-the `Grey*Arrow` set. On Windows the dedicated arrow cluster is the Grey set: the Fighterstick layer and head
-tracking both send those keys to glance, "confirmed in the game 2026-08-08" ([FIGHTERSTICK.md](FIGHTERSTICK.md)).
-So on the stock map the **dedicated arrows look around and the plain set, the numeric keypad's arrows, drives**
-([MAC-BUILD.md](MAC-BUILD.md) "Controls: Mac arrow keys" says the same from the Mac side) [d2]. Nobody here has
-checked this on a fresh Windows install, nor whether NumLock matters. If your arrows glance instead of drive,
-that is why; on a keyboard with no keypad, swap the four plain and four Grey arrow tokens in `input.map` (back
-up, then lint; rules in section 7), which is what `fix-arrows-for-mac.sh` does for Mac users.
+Driving is never on the arrow keys in our map, so the question of which arrow set drives does not arise.
 
-What our install changes for a keyboard player: the home-row hardpoints `K O [ ]`, and nothing else on the
-2.1.0.17 map.
+**With `-Controls stock`**, GOG's map drives on the tokens `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow`
+and glances on the `Grey*Arrow` set. On Windows the dedicated arrow cluster sends the `Grey` set (measured
+2026-08-08, [FIGHTERSTICK.md](FIGHTERSTICK.md)), so on the stock map the dedicated arrows would look around and
+the plain set, which should be the numeric keypad's arrows, would drive. **Nobody on this project has checked
+that on a Windows keyboard**, nor whether NumLock matters.
 
 ## 3. Keyboard and mouse
 
-State on fresh installs as of 2026-10-03, from `setup-windows.ps1`:
+From [`controls/input.map`](../controls/input.map) and the launcher:
 
-- **Mouse buttons are written**: left = fire selected weapon (also the handgun on foot), right = hardpoint 2,
-  middle = glance left [d4].
-- **Mouse steering is not written.** Until 2026-10-03 the script wrote `- joystick1` and `- mouse` into the same
-  `steer` / `throttle` block. That is the analog chord trap: with two analog sources in one block the axis pins
-  dead-centre ("SOLVED 2026-07-13", [VERIFIED-FIXES.md](VERIFIED-FIXES.md)). The blocks are now `joystick1` only.
-- **Mouse wheel**: `PLAY-i76.ps1` starts `i76wheel.exe` with wheel up = `Tab`, wheel down = `5` [d5]. On the
-  2.1.0.17 map `Tab` is reverse, not weapon cycle (section 4, gap table). `-WheelUp` / `-WheelDown` change the keys.
-- **Mouse buttons 4 and 5** (through `i76-remap.ahk`): `6` (special 1) and `3` (hardpoint 3) [d6].
+- **Left button**: fire the selected weapon (also the handgun on foot). **Right button**: hardpoint 2.
+  **Middle button**: look left.
+- **Mouse wheel**: up = `Tab` (cycle weapon), down = `5` (hardpoint 5, where the dropper usually sits).
+  `PLAY-i76.ps1` starts `i76wheel.exe` for this, because the engine has no wheel input; `-WheelUp` /
+  `-WheelDown` change the keys.
+- **Buttons 4 and 5** (through `i76-remap.ahk`): 4 (back) = `6`, special 1, the nitrous slot;
+  5 (forward) = `3`, hardpoint 3.
 
-**If you want mouse steering**, the recipe the docs support is a hand edit, one analog source per block:
-
-```
-steer    { - mouse  Left/Right }
-throttle { - mouse  Down/Up    }      # optional; leave joystick1 here to keep pedals or a stick
-```
-
-The trade-offs, all from the code: (1) a block has one source, so a pad or wheel no longer steers; (2)
-`PLAY-i76.ps1` treats a `steer` or `throttle` block without a joystick line as damage from the in-game menu and
-restores the newest `input.map.*` backup that has both joystick sinks, if there is one; (3) with both blocks on
-the mouse and pad buttons still bound, the lint reports "NO analog sink uses a joystick". Status: works alone
-under DxWnd on the Mac (2026-07-13); not tested on Windows. It is not offered by the installer.
+The mouse does not steer. Mouse steering is not offered by this project (owner decision 2026-10-03); the mouse
+is for the buttons above and for the menus.
 
 ## 4. Gamepad
 
-Connect the pad **before** launching: the engine lists joysticks once, at startup. Two layers:
+Connect the pad **before** launching: the engine lists joysticks once, at startup.
 
-1. **Native** (`input.map`, written by the installer): left stick steers and is the throttle, A fires, X cycles
-   the weapon, Y is the handbrake, D-pad glances. No Steam Input, no emulation. Menus still need the mouse or
-   keyboard. Status: A = Button1 "confirmed"; B, Y and the hat "assumed" ([GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md)) [d3].
-2. **The AutoHotkey layer** ([`i76-remap.ahk`](../i76-remap.ahk)): triggers as two separate buttons, right-stick
-   glance, an LB shift layer with all five hardpoints, look-back fire, camera cycle. `PLAY-i76.bat` /
-   `PLAY-i76.ps1` starts it from `<game>\_ahk\` and stops it with the game. It works by typing keys.
+1. **Native** (`input.map`): the left stick steers and is the throttle (`joystick1`, `Left/Right` and
+   `Down/Up`). Our map binds **no pad button**.
+2. **The AutoHotkey layer** ([`i76-remap.ahk`](../i76-remap.ahk)) does the rest by typing keys: triggers as two
+   separate buttons, right-stick look, an LB shift layer, look-back fire, camera cycle. `PLAY-i76.bat` /
+   `PLAY-i76.ps1` starts it from `<game>\_ahk\` and stops it with the game. Without it (AutoHotkey could not be
+   downloaded, or the game was started by `i76.exe` directly) a pad has the left stick and nothing else.
 
-![Controller layout, base layer](pad-layout.svg)
+The layout, every button and the LB layer, is page 2 of the
+[quick reference](Interstate76-Controls-Quick-Reference.pdf), which is built from the script's `@pad` lines and
+checked against the keys its code sends. In short: RT fires, LT is hardpoint 2, A is a single shot (and OK in
+menus) and nitrous when held, X is the next target, Y switches cockpit and chase camera, the right stick looks
+around, R3 looks at the target, L3 is nitrous (reverse when pressed with the stick pulled back), the D-pad is
+lights / ignition / notepad / map, Back is Esc, Start is the map.
 
-![Controller layout, LB held](pad-layout-shift.svg)
+**Known mismatches** (found by the sheet's checker, left as the owner plays it; `tools/controls-sheet/README.md`):
 
-The pictures are generated from the layer's own `@pad` lines by `tools/pad-diagram.py`. Design rules:
-[CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md). The layer itself: [INPUT-REMAPPER.md](INPUT-REMAPPER.md).
+| Pad control | Key the layer types | In the map | Effect |
+|---|---|---|---|
+| LB + D-pad left / right | `-` / `=` (gear down / up) | Gears are `,` and `.`; nothing is on `-` or `=` | Does nothing |
+| B | `C` (cycle weapon) | Cycle weapon is `Tab`; nothing is on `C` | Does nothing |
+| LB + RT | `1` (hardpoint 1) | Hardpoint 1 has no binding | Does nothing |
+
+RB has no function in the layer. The older pictures [`pad-layout.svg`](pad-layout.svg) and
+[`pad-layout-shift.svg`](pad-layout-shift.svg) were drawn from a Mac game folder's map by `tools/pad-diagram.py`
+and show native bindings the shipped map does not have; use the PDF.
+
+Design rules: [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md). The layer itself: [INPUT-REMAPPER.md](INPUT-REMAPPER.md).
+Native button numbers, for `-Controls stock`: A = Button1 "confirmed"; X = Button3 unconfirmed (the 2026-07-14
+confirmation was retracted); B, Y and the hat "assumed" ([GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md)).
 Steam Deck: [DECK-CONTROLS.md](DECK-CONTROLS.md).
 
-**Known gap on a fresh GOG 2.1.0.17 install.** The AutoHotkey layers (pad, wheel and stick) type the keys of the
-owner's map. Comparing the keys they send with the map the installer leaves (a comparison of files, not a play
-test) gives these mismatches:
+**Why the layers are not installed with `-Controls stock`.** They type our map's keys. On GOG's 2.1.0.17 map
+the same keys do this (a comparison of files):
 
-| Key sent | Meant as (who sends it) | On the fresh 2.1.0.17 map |
+| Key sent | Meant as (who sends it) | On GOG's map |
 |---|---|---|
 | `Enter` | fire (pad A tap, wheel right paddle, stick trigger) | cycle weapon |
 | `Space` | handbrake (wheel 4, stick pulled back) | fire |
 | `Tab` | cycle weapon (wheel 3, mouse wheel up) | reverse |
 | `X` | reverse (pad L3 with stick back, wheel shift+4, stick forward) | unbound (reverse is `Tab`) |
-| `C` | cycle weapon (pad B) | poetry |
 | `Y` | next target (pad X, stick castle right) | clear target |
 | `E` | look at target (pad R3, stick pinky, wheel shift+9) | next target |
 | `I` | ignition (pad D-pad down, wheel 12 and hat down) | unbound (engine is `S`) |
-| `U` / `K` / `P` | untarget / radar camera / poetry (wheel shift layer) | unbound / hardpoint 1 / unbound |
-| `-` / `=` | gear down / up (pad LB + D-pad) | unbound (gears are `,` `.`) |
+| `U` / `K` / `P` | untarget / radar camera / poetry (wheel shift layer) | unbound / unbound / unbound |
 
-Also: the diagram's RB handbrake has no native binding in the installer's patch (the handbrake it writes is
-Button4, Y), and native A / X / Y (by the doc's assumed button numbering) act at the same time as the layer's A / X / Y. Until this is reconciled, a
-fresh install has the native layer plus the parts of the AutoHotkey layer whose keys match (triggers, hardpoints,
-nitrous, glance, lights, map, notepad, horn, binoculars, front target, radar range, camera keys). To close a gap
-yourself, add a separate block binding the key to the intended action in `input.map`, back up, lint.
+So in that mode a pad uses the native bindings of the minimal patch (left stick, A fire, X cycle weapon,
+Y handbrake, D-pad glance), and a wheel has steering and pedals but no buttons.
 
 ## 5. HOWAS: hands on wheel and stick
 
 HOWAS is this project's own word, after the flight-sim HOTAS: the left hand on a force-feedback wheel, the right
 on a flight stick, feet on the pedals. The setup is a **Thrustmaster T300RS** (winmm `joystick1`) and a
 **CH Fighterstick** (`joystick2`). The wheel steers and holds the things you reach for without looking; the stick
-is the gearbox, the handbrake and the weapons.
+is the gearbox, the handbrake and the weapons. Page 3 of the
+[quick reference](Interstate76-Controls-Quick-Reference.pdf) is generated from the two scripts' own tables.
 
 **Wheel** ([WHEEL-T300.md](WHEEL-T300.md), "The layout"; "Rebalanced 2026-08-08"). `input.map` carries only
 `steer { - joystick1 Left/Right }` and `throttle { - joystick1 Down/Up }`; every button is typed by `i76-remap.ahk`.
 
 | # | Physical | Base | Hold 6 = shift |
 |---|---|---|---|
-| 1 | L1 left paddle | lights | hardpoint 1 [d7] |
+| 1 | L1 left paddle | lights | fire selected weapon (a left click) |
 | 2 | R1 right paddle | fire selected weapon (incl. cockpit handgun) | front target |
 | 3 / 4 / 5 | cluster | cycle weapon / handbrake / nitrous | combat view / reverse / special 2 |
 | 6 | cluster | SHIFT | |
-| 7 | SE | rear gun (hp3) | dropper (hp4) |
-| 8 | OPTIONS | target nearest | untarget |
+| 7 | SE | hardpoint 3 (rear gun) | hardpoint 4 (dropper) |
+| 8 | OPTIONS | target nearest | clear target |
 | 9 | R2 | horn | look at target |
 | 10 | L2 | horn | radar range |
 | 11 | L3 | lights | radar camera |
 | 12 | R3 | ignition | binoculars |
 | 13 | PS | horn | poetry |
-| Hat | D-pad | lights / map / ignition / notepad | gear up / down |
+| Hat | D-pad | lights / map / ignition / notepad (up, right, down, left) | gear up / gear down (up, down) |
 
 **Stick as a gearbox** ([FIGHTERSTICK.md](FIGHTERSTICK.md), "The stick as a gearbox"):
 
@@ -189,14 +264,13 @@ is the gearbox, the handbrake and the weapons.
 | 1 | trigger | fire selected weapon | `Enter` |
 | 2 | top red (pickle) | hardpoint 2 | `2` |
 | 3 | back-side red (also the mode switch) | special 1 (nitrous) | `6` |
-| 4 | pinky red | glance at target | `E` |
+| 4 | pinky red | look at target | `E` |
 | 5 to 8 | convex serrated hat: direct fire | hardpoint 2 / 3 / 4 / 5 | `2` `3` `4` `5` |
 | 9 to 12 | castle hat: targeting | front / next / nearest / radar range | `Q` `Y` `T` `R` |
 | 13 to 16 | trim hat | nitrous / notepad / combat view / map | `6` `N` `V` `M` |
-| POV | cone hat: glance, held (vertical inverted) | glance down / right / up / left | arrow cluster |
+| POV | cone hat: look, held (vertical inverted) | look down / right / up / left | arrow cluster |
 
-Hat directions read up, right, down, left. Weapon link is on the wheel's shift layer and keyboard `F` on the
-owner's map [d8].
+Hat directions read up, right, down, left. Weapon link is on the keyboard only (`F`).
 
 **Before you launch** (the rules those docs give):
 
@@ -205,21 +279,23 @@ owner's map [d8].
 2. **No other joysticks, least of all virtual ones** (vJoy, the 3Dconnexion KMJ emulator). They break force
    feedback while steering still works; remove them and reboot.
 3. One-time: install Thrustmaster's driver, set the pedals to **COMBINED**, rotation 300 degrees.
-4. On a wheel machine, strip the native pad blocks the installer appends, so that `joystick1` appears only on
-   `steer` and `throttle`; otherwise half the wheel double-fires (section 7, fault 4).
-5. The key table in section 4 applies: this layout was played on the owner's map.
+4. Use the default controls (`-Controls i76e`). The shipped map has no native `joystick1` buttons, so nothing
+   has to be stripped by hand any more. With `-Controls stock` the wheel layer is not installed.
 
-**Force feedback.** The game's own 1997 effects need no switch on the Gold exe: with the two rules above they
-engage at startup [d9]. The custom force model (self-aligning weight, slip, road texture) is opt-in:
-`PLAY-i76.ps1 -Ffb`, after `tools\ffb\ffb-calibrate.ps1`; status "Feel tuning: not started"
-([tools/ffb/README.md](../tools/ffb/README.md)). Leave `-Ffb` off and it is off. Read
+**Force feedback.** The game's own 1997 effects need no switch on the Gold exe: force-feedback start-up is
+unconditional there (from disassembly, [WHEEL-T300.md](WHEEL-T300.md)), so with the two rules above the effects
+engage at startup. `enable-force-feedback.bat` is therefore **not needed per the disassembly, and harmless**;
+nobody has re-tested a wheel on a PC where it was never run. The custom force model (self-aligning weight,
+slip, road texture) is opt-in: `PLAY-i76.ps1 -Ffb`, after `tools\ffb\ffb-calibrate.ps1`; status "Feel tuning:
+not started" ([tools/ffb/README.md](../tools/ffb/README.md)). Leave `-Ffb` off and it is off. Read
 [FFB-STACKS.md](FFB-STACKS.md) before running any of it. 2026-10-03 daily driver: "Not verified: force feedback
 (module loads; no wheel was attached during the gate)".
 
 **How the launcher starts the layers.** [`PLAY-i76.ps1`](../PLAY-i76.ps1) starts, from `<game>\_ahk\`,
 `i76-remap.ahk` (pad, wheel buttons, mouse 4/5), `i76-ch-fighterstick.ahk` unless `-NoStick` (it exits by itself
 when no stick is found), the cursor overlay unless `-NoCursorOverlay`, opentrack and the head-look script unless
-`-OpenTrack ""`, and the custom force feedback only with `-Ffb`. The game starts **last**, because the engine
+`-OpenTrack ""`, and the custom force feedback only with `-Ffb`. A script that is not in `_ahk\` is not started,
+which is how `-Controls stock` leaves the two control layers out. The game starts **last**, because the engine
 lists joysticks and acquires force feedback once, at startup. On exit it stops the layers and sends key-ups for
 every key they can hold. The installer puts only the first two scripts in `_ahk\`.
 
@@ -240,27 +316,55 @@ python tools\lint-input-map.py "<game folder>"
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Stick, wheel or mouse steering does nothing, or sits dead-centre | The analog chord trap: two analog sources (`joystick1` and `mouse`) in one `steer` / `throttle` block | Keep one line per block ([VERIFIED-FIXES.md](VERIFIED-FIXES.md), WHEEL-T300 section 3) |
-| A controller that worked is dead; `steer` / `throttle` blocks gone, file smaller | The in-game **Control Configuration** menu rewrote `input.map`. Never open it: it appends chords, drops the analog blocks and re-points buttons at other joystick slots | Restore a known-good `input.map` (an `input.map.pre-*` backup, or the portable zip's), lint, restart ([AGENTS.md](../AGENTS.md)) |
+| Stick or wheel steering does nothing, or sits dead-centre | The analog chord trap: two analog sources in one `steer` / `throttle` block (an install patched before 2026-10-03 has a `- mouse` line beside `joystick1`) | Keep one line per block; re-running the installer with the default controls replaces the map ([VERIFIED-FIXES.md](VERIFIED-FIXES.md), WHEEL-T300 section 3) |
+| A controller that worked is dead; `steer` / `throttle` blocks gone, file smaller | The in-game **Control Configuration** menu rewrote `input.map`. Never open it: it appends chords, drops the analog blocks and re-points buttons at other joystick slots | `PLAY-i76.ps1` notices the missing analog blocks at the next start and restores `input.map.as-installed` (else the newest other backup with both blocks). By hand: copy that file over `input.map`, lint, restart ([AGENTS.md](../AGENTS.md)) |
 | Wheel or pad not detected | Plugged in after launch; or the wheel is on the generic driver or pedals on SEPARATE | Connect first, then launch. "Perfect in the vendor panel, dead in game" means the game's own config: lint before touching drivers ([WHEEL-T300.md](WHEEL-T300.md)) |
-| Wheel buttons do two things at once | Native `joystick1` button and hat blocks beside the AutoHotkey wheel layer | Delete them so `joystick1` is only on `steer` and `throttle` (WHEEL-T300, "Buttons: strip the NATIVE joystick1 bindings") [d10] |
+| Wheel buttons do two things at once | Native `joystick1` button and hat blocks beside the AutoHotkey wheel layer (a map patched by an older installer, or `-Controls stock` with the layer started by hand) | Install the default controls; `joystick1` must be only on `steer` and `throttle` (WHEEL-T300, "Buttons: strip the NATIVE joystick1 bindings") |
+| Pad buttons, wheel buttons or the stick type the wrong things | The folder has the 1997 keys (`-Controls stock`) and a layer was started anyway, or the other way round | `<game>\i76e-controls.txt` says which mode the folder is in; re-run `setup-windows.ps1 -Controls <mode> -ControlsOnly` |
 | A key is stuck: car crawls, view jammed sideways, hang at PLEASE STAND BY | An AutoHotkey layer was killed while holding a key | Start and stop through `PLAY-i76.ps1` (it sends the key-ups); quit the Fighterstick script from its tray icon ([FIGHTERSTICK.md](FIGHTERSTICK.md), "If a key sticks") |
+
+**The launcher's guard and the two control modes.** `PLAY-i76.ps1` restores a backup only when `steer` or
+`throttle` has no joystick line. Both modes leave both lines, so it does not act on a healthy install of either.
+When it does act it takes `input.map.as-installed` first and never one of the mode-switch backups
+(`input.map.stock-*`, `.before-i76e-*`, `.before-stock-*`), so it cannot put back a map of the other mode.
 
 A binding you added does nothing: two `+` lines in one block are a chord (both at once); alternatives go in
 separate blocks ([I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)). The device name is `joystick1`; bare
-`Joystick` parses and binds nothing. Edits need a backup first (`input.map.pre-<change>`) and a restart.
+`Joystick` parses and binds nothing. Edit `controls/input.map` in the repo, run `tools\controls-sheet\build.ps1`
+(lint, consistency check, new sheet), then install; or edit the game folder's file after a backup
+(`input.map.pre-<change>`) and restart.
 
-## Where the docs disagree
+## Mac: converge later
 
-Printed above is the newer statement in each case.
+The Mac build may have grown a different two-handed keyboard layout. It has not been examined against this page:
+the Mac installer copies [`input.map.reference`](input.map.reference) (2026-09-06), which differs from
+`controls/input.map` (gears on `-` / `=`, home-row hardpoints `L` `O` `[` `]`, weapon link on Shift + left
+click, bare `Joystick` hat blocks), and `setup-mouse-and-pad.sh` still writes mouse steering there. Converging
+the two maps is open work; until then this page and the PDF describe Windows.
 
-- **[d1]** Hardpoint 1 home-row key: `L` in [`input.map.reference`](input.map.reference) (2026-09-06), `K` in `setup-windows.ps1` (2026-10-03, because stock 2.1.0.17 has weapon link on `L`).
-- **[d2]** VERIFIED-FIXES and MAC-BUILD call the `Grey*` arrows the "numpad" codes; FIGHTERSTICK.md and its script (measured 2026-08-08) say they are the dedicated cluster. Both agree the dedicated arrows glance. The same two docs fix the Mac arrows in `KEYBOARD.MAP`, which AGENTS.md (2026-07-18) says the engine never reads.
-- **[d3]** ENHANCEMENTS says pad buttons "A=1 / X=3 confirmed"; GAMEPAD-PC-MAC's table retracts the X=3 confirmation (2026-07-18: it was made on the dead bare `Joystick` token). CONTROL-DOCTRINE still lists the throttle axis as `Up/Down`; the real token is `Down/Up`.
-- **[d4]** Mouse buttons: ENHANCEMENTS and VERIFIED-FIXES say right = all guns, middle = dropper (the Mac script and `input.map.reference`); MAC-BUILD says buttons 1 / 2 / 3 = weapons 1 / 2 / 3; `setup-windows.ps1` writes right = hardpoint 2, middle = glance left.
-- **[d5]** Mouse wheel: `PLAY-i76.ps1`'s header and `setup-windows.ps1`'s message say up = front target (`Q`), down = target nearest (`T`); the script's parameters, which are what runs, and ENHANCEMENTS say up = `Tab`, down = `5`.
-- **[d6]** Mouse button 5: INPUT-REMAPPER.md says `7` (special 2); `i76-remap.ahk` (2026-07-18) sends `3`.
-- **[d7]** Wheel shift+1: WHEEL-T300 says hardpoint 1; the script sends a left mouse click, which the maps bind to fire selected weapon. The prose under the same table still describes R2 as link fire (before the 2026-08-08 rebalance).
-- **[d8]** Stick pinky: FIGHTERSTICK.md's map and the script's table say glance at target (`E`); the script's header comment still says weapon link (`F`). Gears: the pad layer sends `-` / `=`, the wheel and stick send `,` / `.`.
-- **[d9]** `enable-force-feedback.bat`: ENHANCEMENTS and VERIFIED-FIXES say to run it; WHEEL-T300 (its later sections, from disassembly) says force-feedback init is unconditional on the Gold exe and the registry key is "irrelevant".
-- **[d10]** WHEEL-T300 says re-running `setup-windows.ps1` "appends the gamepad baseline unconditionally"; the script skips a map that still carries its marker comment.
+## Where the docs disagreed: resolved 2026-10-03
+
+Owner ruling: the daily driver's live configuration is the truth. Each item below was a contradiction between
+two docs or a doc and a script; the source docs were corrected the same day.
+
+1. **Home-row hardpoint 1.** The shipped map has no hardpoint 1 key at all; `K` is the radar camera. `K` `O`
+   `[` `]` exist only in the `-Controls stock` patch (all four are free in GOG's map). `L` in
+   `input.map.reference` is the Mac map.
+2. **Arrows.** The dedicated arrow keys look around (`pilot_glance_*` on `Grey*Arrow`); driving is
+   `W` `A` `S` `D`. For GOG's stock map the keypad question stays unchecked (section 2).
+3. **Analog tokens and pad button numbers.** `steer` is `- joystick1 Left/Right`, `throttle` is
+   `- joystick1 Down/Up` (CONTROL-DOCTRINE said `Up/Down`). Pad A = Button1 is confirmed; X = Button3 is
+   unconfirmed (GAMEPAD-PC-MAC's retraction stands; the driver's map has no native buttons to settle it).
+4. **Mouse buttons.** Left = fire selected weapon, right = hardpoint 2, middle = look left.
+5. **Mouse wheel.** Up = `Tab` (cycle weapon), down = `5` (hardpoint 5). The `Q` / `T` text in the launcher's
+   header and the installer's message was stale.
+6. **Mouse buttons 4 and 5.** `6` (special 1) and `3` (hardpoint 3). INPUT-REMAPPER's `7` was wrong.
+7. **Wheel shift + 1.** A left click, which fires the selected weapon. WHEEL-T300's table said hardpoint 1 and
+   its prose still had link fire on R2.
+8. **Stick pinky.** Look at target (`E`). The script's header comment said weapon link.
+   Pad gear shift on `-` / `=` is a real mismatch, listed in section 4, not a doc error.
+9. **`enable-force-feedback.bat`.** Not settled by the configuration. Printed as current: force-feedback start
+   is unconditional on the Gold exe, the registry key is irrelevant (WHEEL-T300, from disassembly); the bat is
+   not needed and harmless. Nobody has re-tested without it.
+10. **Re-running the installer.** It does not append the pad bindings again: the stock patch skips a map that
+    carries its marker, and the default mode writes a map without native buttons.

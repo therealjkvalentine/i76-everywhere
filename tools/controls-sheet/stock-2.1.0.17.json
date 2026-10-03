@@ -1,0 +1,897 @@
+{
+ "_readme": "Bindings of GOG's own input.map (offline installer 2.1.0.17), as facts: action, sign, device, token per block. Written by build_sheet.py --extract-stock; used for the 'stock vs ours' page and the table in docs/CONTROLS.md. The game file itself is not in this repo.",
+ "source": "input.map from setup_interstate76_2.1.0.17 (GOG offline installer), before any setup script touched it",
+ "md5": "74d2da3734b1c304e88b7ceb88050f1d",
+ "blocks": [
+  {
+   "action": "throttle_up",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "UpArrow"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "throttle_down",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "DownArrow"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "steer_left",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "LeftArrow"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "steer_right",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "RightArrow"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "shift_down",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Comma"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "shift_up",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Period"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "frontal_target",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Q"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "NEXT_TARGET",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "E"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "TARGET_NEAREST_ENEMY",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "T"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "RESET_TARGET",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Y"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "RADAR_RANGE_TOGGLE",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "R"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "RADAR_CAMERA_TOGGLE",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "W"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "start_engine",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "S"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "SHOW_MAP",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "M"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "SHOW_NOTEPAD",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "N"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "TOGGLE_BINOCULARS",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "B"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "HONK_HORN",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "G"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "e_brake",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Z"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "toggle_lights",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "H"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "pilot_glance_down",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyUpArrow"
+    ]
+   ]
+  },
+  {
+   "action": "track_pitch_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyUpArrow"
+    ]
+   ]
+  },
+  {
+   "action": "overview_z_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyUpArrow"
+    ]
+   ]
+  },
+  {
+   "action": "pilot_glance_left",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyLeftArrow"
+    ]
+   ]
+  },
+  {
+   "action": "track_yaw_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyLeftArrow"
+    ]
+   ]
+  },
+  {
+   "action": "overview_x_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyLeftArrow"
+    ]
+   ]
+  },
+  {
+   "action": "pilot_glance_right",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyRightArrow"
+    ]
+   ]
+  },
+  {
+   "action": "track_yaw_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyRightArrow"
+    ]
+   ]
+  },
+  {
+   "action": "overview_x_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyRightArrow"
+    ]
+   ]
+  },
+  {
+   "action": "pilot_glance_up",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyDownArrow"
+    ]
+   ]
+  },
+  {
+   "action": "track_pitch_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyDownArrow"
+    ]
+   ]
+  },
+  {
+   "action": "overview_z_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyDownArrow"
+    ]
+   ]
+  },
+  {
+   "action": "pilot_glance_target",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Insert"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "weapon_fire",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Space"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "weapon_cycle",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Enter"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "weapon_link",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "L"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "hardpoint1_fire",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "One"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "hardpoint2_fire",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Two"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "hardpoint3_fire",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Three"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "hardpoint4_fire",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Four"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "hardpoint5_fire",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Five"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "special1",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Six"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "special2",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Seven"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "special3",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Eight"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "POETRY",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "C"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "toggle_cmbt_view",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "V"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "reverse_direction",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Tab"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Shift"
+    ],
+    [
+     "-",
+     "Keyboard",
+     "Control"
+    ]
+   ]
+  },
+  {
+   "action": "track_distance_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyPageDown"
+    ]
+   ]
+  },
+  {
+   "action": "track_distance_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyPageUp"
+    ]
+   ]
+  },
+  {
+   "action": "overview_zoom_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyPageDown"
+    ]
+   ]
+  },
+  {
+   "action": "overview_zoom_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyPageUp"
+    ]
+   ]
+  },
+  {
+   "action": "zoom_factor_plus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyPageDown"
+    ]
+   ]
+  },
+  {
+   "action": "zoom_factor_minus",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyPageUp"
+    ]
+   ]
+  },
+  {
+   "action": "zoom_factor_reset",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "GreyEnd"
+    ]
+   ]
+  },
+  {
+   "action": "show_player_scores",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "Quote"
+    ]
+   ]
+  },
+  {
+   "action": "show_team_scores",
+   "lines": [
+    [
+     "+",
+     "keyboard",
+     "SemiColon"
+    ]
+   ]
+  }
+ ]
+}
