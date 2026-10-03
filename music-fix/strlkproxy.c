@@ -2708,7 +2708,7 @@ static void apply_trainer(void) {
 }
 
 /* ===========================================================================
- * THE "PLEASE INSERT CD 'Interstate '76 CD 2'" PROMPT: INSTRUMENT (always on; I76_CD_LOG=0 disables)
+ * THE "PLEASE INSERT CD 'Interstate '76 CD 2'" PROMPT: INSTRUMENT (opt-in: I76_CD_LOG=1)
  * and I76_CD_FAKE=1 (EXPERIMENTAL mitigation)
  * ===========================================================================
  * Backlog P1-09 / MENU-USABILITY-PLAN P8 / E6. The modal fired on 6 of ~21 lab launches (i76_pristine_fix.exe,
@@ -2979,7 +2979,13 @@ static void apply_cd_instrument(HMODULE exe) {
     static const BYTE cb_old[6] = { 0x81, 0xEC, 0xA4, 0x00, 0x00, 0x00 };   /* sub esp, 0xa4 at 0x470f90 */
     BYTE pl_new[6] = { 0xE8, 0, 0, 0, 0, 0x90 }, im_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 }, cb_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
     char v[8]; LONG rel; void *old; int n2, n3 = 0, n4; const char *mb = "USER32.dll", *im = "hooked";
-    if (GetEnvironmentVariableA("I76_CD_LOG", v, sizeof v) && v[0] == '0') { mlog("  cd-instrument: disabled (I76_CD_LOG=0)"); return; }
+    /* OPT-IN since 2026-10-02 22:xx: always-on broke the trip route. The H4 wrapper forwards one argument to
+     * shell_cb_17 0x470f90; on the bookmark -> garage -> DONE path the shell calls it (from i76shell, arg0 0), the
+     * wrapped call returned -1 and the shell never started the mission (exe frame counter stuck at 0, leg-b B1.9,
+     * 2 of 2; the owner's option-6 run hung the same way). Melee and the direct mission boot do not take that path,
+     * which is why 15 automated entries passed. Until the callback's full signature is carried through, nothing here
+     * is patched unless I76_CD_LOG=1. */
+    if (!GetEnvironmentVariableA("I76_CD_LOG", v, sizeof v) || v[0] == '0') return;
     g_cd_fake = GetEnvironmentVariableA("I76_CD_FAKE", v, sizeof v) > 0 && v[0] == '1';
     old = patch_iat(exe, mb, "MessageBoxA", hook_MessageBoxA);
     if (!old) { mb = "u32x.dll"; old = patch_iat(exe, mb, "MessageBoxA", hook_MessageBoxA); }   /* AiO: USER32 through u32x */
@@ -3063,7 +3069,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
              patch_iat(exe, "WINMM.dll", "auxGetDevCapsA", hook_auxGetDevCapsA),
              patch_iat(exe, "WINMM.dll", "auxSetVolume",   hook_auxSetVolume));
         }
-        apply_cd_instrument(exe); /* always on (I76_CD_LOG=0 disables): the "insert CD 2" prompt, logged with its cause;
+        apply_cd_instrument(exe); /* opt-in (I76_CD_LOG=1): the "insert CD 2" prompt, logged with its cause;
                                      I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */
     } else if (reason == DLL_PROCESS_DETACH) {
         stop_track();
