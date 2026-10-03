@@ -3369,6 +3369,173 @@ static void apply_shadow_road_dist(void) {
     patch_rdata_float("I76_ROAD_DIST", 0x4be7b8, 450.0f, 450.0f, 3000.0f, 0, "road-dist");
 }
 
+/* GROUND CLUTTER DISTANCE  (I76_CLUTTER_DIST=<metres 120..600>, I76_CLUTTER_RISE=<metres 0..100>; off by default;
+ * EXPERIMENT, static findings in i76-uncap-lab docs/CLUTTER-AND-MIRROR.md, 2026-10-03)
+ * renderer_QueueTerrainClutter 0x45c380 (only with Terrain Detail on): the camera's 100 m cell is snapped to the lower
+ * corner (0x4f7180 x, 0x4f7188 z; re-snapped only when the camera leaves it), and every template in list 0x54ac70 is
+ * tried once per cell of a 9-entry offsets table 0x4f7190 ({dx,dz} floats, -100..100: the 3x3 block). The cell loop
+ * is `mov eax, 0x4f7194` (0x45c4fa first template, 0x45c507 the others) ... `add eax, 8; cmp eax, 0x4f71dc; jl`
+ * (0x45c825). Per instance: surface type (0x4927b0) must be enabled in 0x4be070; terrain height minus the camera's
+ * ground height must be <= 5.0 (f64 0x4be0c8, one reference 0x45c5bf: only ABOVE the camera's ground is limited);
+ * view z <= 120.00001 (f32 0x4be0d0, one reference 0x45c619); 2 m sphere frustum test 0x472c10 (call at 0x45c634).
+ * Each passing instance writes one draw record per face (0x490590) into the record pool, 0x5a550 bytes allocated
+ * once at startup (push at 0x48f9b5), which has NO bounds check anywhere. Off-map positions are clamped by the
+ * terrain lookups (type 5, default height), so a bigger block never reads outside the map arrays.
+ * The switch: view z limit -> D; the loop runs over a proxy table rebuilt once per frame (stub at 0x45c4fa, after
+ * the engine has snapped the cell) holding only the cells of a (2R+1)^2 block whose centre passes the engine's own
+ * transform + side/near/far test with a cell-sized sphere and view z <= D + margin, nearest first; the loop end is
+ * a 5-byte call at 0x45c825 to `cmp eax, [g_cl_end]; ret` (flags survive the ret; the next instruction is a mov).
+ * Rise limit 5 m -> 5 x D / 120 (the same angle above the horizon), or I76_CLUTTER_RISE. Record pool x8 (2.9 MB) and
+ * the frustum call at 0x45c634 refuses further instances once the pool holds more than (pool - stock pool) bytes, so
+ * everything queued after clutter keeps at least the stock pool size. Stats every 600 frames with I76MUSIC_LOG. */
+#define CL_RMAX 24
+static float g_cl_tab[2 * (2 * CL_RMAX + 1) * (2 * CL_RMAX + 1) + 2];
+static DWORD g_cl_end;                      /* address one entry past the last used dz, compared by the loop stub */
+static signed char g_cl_cand[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)][2];
+static int g_cl_ncand;
+static float g_cl_dist = 120.0f, g_cl_margin = 100.0f;
+static DWORD g_cl_limit;                    /* record-pool bytes in use beyond which instances are refused */
+static DWORD g_cl_frames, g_cl_cells, g_cl_cells_max, g_cl_tests, g_cl_capped, g_cl_pool_max;
+static LONGLONG g_cl_ticks, g_cl_ticks_max, g_cl_qpf;
+static void __cdecl clutter_build(BYTE *cam, double ground) {
+    float cx = *(float *)0x004f7180, cz = *(float *)0x004f7188, v[3];
+    int k, n = 0;
+    for (k = 0; k < g_cl_ncand; k++) {
+        int i = g_cl_cand[k][0], j = g_cl_cand[k][1];
+        float *p = ((float *(__cdecl *)(float *, void *, double, double, double))0x00472d30)
+                   (v, cam, cx + 100.0 * i + 50.0, ground, cz + 100.0 * j + 50.0);
+        if (p[2] - g_cl_margin > g_cl_dist) continue;
+        p[1] = 0.0f;                        /* vertical planes ignored: bushes can sit far below the camera */
+        if (((int (__cdecl *)(void *, float *, float))0x00472c10)(cam, p, 81.0f) > 0 && (i || j)) continue;
+        g_cl_tab[2 * n] = 100.0f * i; g_cl_tab[2 * n + 1] = 100.0f * j; n++;
+    }
+    if (n == 0) { g_cl_tab[0] = 0.0f; g_cl_tab[1] = 0.0f; n = 1; }   /* the loop is do-while: one entry minimum */
+    g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tab[1] + 8 * n;
+    g_cl_cells += n; if ((DWORD)n > g_cl_cells_max) g_cl_cells_max = n;
+}
+static __declspec(naked) void clutter_build_stub(void) {        /* replaces `mov eax, 0x4f7194` at 0x45c4fa */
+    __asm {
+        push dword ptr [ebp - 0x30]         /* camera ground height (f64 at [ebp-0x34]) */
+        push dword ptr [ebp - 0x34]
+        push edi                            /* camera */
+        call clutter_build
+        add esp, 12
+        mov eax, offset g_cl_tab
+        add eax, 4
+        ret
+    }
+}
+static __declspec(naked) void clutter_end_stub(void) {          /* replaces `cmp eax, 0x4f71dc` at 0x45c825 */
+    __asm {
+        cmp eax, g_cl_end
+        ret
+    }
+}
+static int __cdecl clutter_cull_wrap(void *cam, float *v, float r) {   /* the call at 0x45c634 */
+    DWORD used = *(DWORD *)0x006543c0 - *(DWORD *)0x00654398;
+    g_cl_tests++;
+    if (used > g_cl_limit) { g_cl_capped++; return 1; }
+    return ((int (__cdecl *)(void *, float *, float))0x00472c10)(cam, v, r);
+}
+static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls at 0x401e47 / 0x402111 */
+    LARGE_INTEGER a, b; DWORD used;
+    QueryPerformanceCounter(&a);
+    ((void (__cdecl *)(void *))0x0045c380)(cam);
+    QueryPerformanceCounter(&b);
+    used = *(DWORD *)0x006543c0 - *(DWORD *)0x00654398;
+    if (used > g_cl_pool_max) g_cl_pool_max = used;
+    g_cl_ticks += b.QuadPart - a.QuadPart; if (b.QuadPart - a.QuadPart > g_cl_ticks_max) g_cl_ticks_max = b.QuadPart - a.QuadPart;
+    if (++g_cl_frames >= 600) {
+        if (g_logging && g_cl_qpf)
+            mlog("  clutter: 600 frames: %.0f us avg, %.0f us max; cells %.1f avg, %lu max; instances tested %lu/frame; refused (pool) %lu; record pool high water %lu KB",
+                 g_cl_ticks * 1e6 / g_cl_qpf / 600.0, g_cl_ticks_max * 1e6 / g_cl_qpf, g_cl_cells / 600.0,
+                 (unsigned long)g_cl_cells_max, (unsigned long)(g_cl_tests / 600), (unsigned long)g_cl_capped, (unsigned long)(g_cl_pool_max >> 10));
+        g_cl_frames = g_cl_cells = g_cl_cells_max = g_cl_tests = g_cl_capped = g_cl_pool_max = 0; g_cl_ticks = g_cl_ticks_max = 0;
+    }
+}
+static int cl_cmp(const void *a, const void *b) {
+    const signed char *p = (const signed char *)a, *q = (const signed char *)b;
+    return (p[0] * p[0] + p[1] * p[1]) - (q[0] * q[0] + q[1] * q[1]);
+}
+static void apply_clutter_dist(void) {
+    static const BYTE tab_old[5] = { 0xb8, 0x94, 0x71, 0x4f, 0x00 };     /* mov eax, 0x4f7194 (0x45c4fa, 0x45c507) */
+    static const BYTE end_old[5] = { 0x3d, 0xdc, 0x71, 0x4f, 0x00 };     /* cmp eax, 0x4f71dc (0x45c825) */
+    static const BYTE cull_old[5] = { 0xe8, 0xd7, 0x65, 0x01, 0x00 };    /* call 0x472c10 (0x45c634) */
+    static const BYTE frm1_old[5] = { 0xe8, 0x34, 0xa5, 0x05, 0x00 };    /* call 0x45c380 (0x401e47, software scene) */
+    static const BYTE frm2_old[5] = { 0xe8, 0x6a, 0xa2, 0x05, 0x00 };    /* call 0x45c380 (0x402111, hardware scene) */
+    static const BYTE pool_old[5] = { 0x68, 0x50, 0xa5, 0x05, 0x00 };    /* push 0x5a550 (0x48f9b5, record pool size) */
+    static const DWORD sites[5] = { 0x45c4fa, 0x45c825, 0x45c634, 0x401e47, 0x402111 };
+    static const BYTE *olds[5] = { tab_old, end_old, cull_old, frm1_old, frm2_old };
+    void *targets[5];
+    BYTE pool_new[5] = { 0x68 }, tab2_new[5] = { 0xb8 }, w[5];
+    char v[16]; DWORD n = GetEnvironmentVariableA("I76_CLUTTER_DIST", v, sizeof(v));
+    float d, rise, five = 5.0f; double rise_old = 5.0, rise_new, stock_z; float z_old, z_new;
+    DWORD pool = 0x5a550 * 8, a; int i, j, R, ok = 0;
+    LARGE_INTEGER f;
+    if (n == 0 || n >= sizeof(v)) return;
+    d = (float)atof(v);
+    if (d < 120.0f || d > 600.0f) { mlog("  clutter-dist: %s out of range (120..600 m) - not applied", v); return; }
+    rise = five * d / 120.0f;
+    n = GetEnvironmentVariableA("I76_CLUTTER_RISE", v, sizeof(v));
+    if (n && n < sizeof(v)) {
+        float r = (float)atof(v);
+        if (r < 0.0f || r > 100.0f) mlog("  clutter-dist: I76_CLUTTER_RISE %s out of range (0..100 m) - using %.1f", v, rise);
+        else rise = r;
+    }
+    /* every site checked before anything is written: all or nothing */
+    for (i = 0; i < 5; i++) if (memcmp((void *)(DWORD_PTR)sites[i], olds[i], 5) != 0) { mlog("  clutter-dist: site 0x%06lX differs - not applied", (unsigned long)sites[i]); return; }
+    if (memcmp((void *)0x0045c507, tab_old, 5) || memcmp((void *)0x0048f9b5, pool_old, 5) ||
+        memcmp((void *)0x004be0c8, &rise_old, 8)) { mlog("  clutter-dist: pool/rise/table sites differ - not applied"); return; }
+    memcpy(&z_old, (void *)0x004be0d0, 4); stock_z = z_old;
+    if (stock_z < 119.9 || stock_z > 120.1) { mlog("  clutter-dist: view z constant is not 120 - not applied"); return; }
+    /* candidate cells, nearest first; R from the widest view this exe can show (Hor+ hood ~140 deg: ~3x D radially) */
+    g_cl_dist = d; g_cl_margin = 71.0f + rise + 20.0f;
+    R = (int)ceil((d + g_cl_margin) * 3.0 / 100.0) + 1; if (R > CL_RMAX) R = CL_RMAX;
+    g_cl_ncand = 0;
+    for (i = -R; i <= R; i++) for (j = -R; j <= R; j++) {
+        int ai = i < 0 ? -i : i, aj = j < 0 ? -j : j; ai = ai ? ai - 1 : 0; aj = aj ? aj - 1 : 0;
+        if (100.0 * sqrt((double)(ai * ai + aj * aj)) > (d + g_cl_margin) * 3.0) continue;   /* nearest point out of reach */
+        g_cl_cand[g_cl_ncand][0] = (signed char)i; g_cl_cand[g_cl_ncand][1] = (signed char)j; g_cl_ncand++;
+    }
+    qsort(g_cl_cand, g_cl_ncand, sizeof(g_cl_cand[0]), cl_cmp);
+    g_cl_tab[0] = 0.0f; g_cl_tab[1] = 0.0f; g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tab[1] + 8;
+    g_cl_limit = pool - 0x5a550;
+    if (QueryPerformanceFrequency(&f)) g_cl_qpf = f.QuadPart;
+    /* record pool first: if this fails nothing else is touched */
+    memcpy(pool_new + 1, &pool, 4);
+    if (!patch_bytes(0x0048f9b5, pool_old, pool_new, 5, "clutter record pool x8")) { mlog("  clutter-dist: record pool not enlarged - not applied"); return; }
+    targets[0] = (void *)clutter_build_stub; targets[1] = (void *)clutter_end_stub; targets[2] = (void *)clutter_cull_wrap;
+    targets[3] = (void *)clutter_frame_wrap; targets[4] = (void *)clutter_frame_wrap;
+    for (i = 0; i < 5; i++) {
+        LONG rel = (LONG)((DWORD_PTR)targets[i] - (sites[i] + 5));
+        w[0] = 0xe8; memcpy(w + 1, &rel, 4);
+        ok += patch_bytes(sites[i], olds[i], w, 5, "clutter call");
+    }
+    a = (DWORD)(DWORD_PTR)&g_cl_tab[1]; memcpy(tab2_new + 1, &a, 4);
+    ok += patch_bytes(0x0045c507, tab_old, tab2_new, 5, "clutter table (later templates)");
+    rise_new = rise;
+    ok += patch_bytes(0x004be0c8, (const BYTE *)&rise_old, (const BYTE *)&rise_new, 8, "clutter rise limit");
+    z_new = d;
+    ok += patch_bytes(0x004be0d0, (const BYTE *)&z_old, (const BYTE *)&z_new, 4, "clutter view z limit");
+    mlog("  clutter-dist: %s, %d/8 sites; view z 120 -> %.0f m, rise limit 5 -> %.1f m, cells from a %dx%d block culled per frame, record pool %lu KB (instances refused past %lu KB)",
+         ok == 8 ? "on" : "PARTIAL", ok, d, rise, 2 * R + 1, 2 * R + 1, (unsigned long)(pool >> 10), (unsigned long)(g_cl_limit >> 10));
+}
+
+/* MIRROR RANGE  (I76_MIRROR_FAR=<metres 100..600>; off by default; EXPERIMENT, lab docs/CLUTTER-AND-MIRROR.md)
+ * The rear mirror is a software render into a private 256x64 8-bit copy of the cockpit mirror texture (ZMIRI101.MAP),
+ * re-uploaded as a Glide texture: its resolution is the texture's, not dgVoodoo's. What a constant can change is its
+ * range: mirror_Init 0x445380 creates the mirror camera with far = 100 m (`push 0x42c80000` at 0x44553c; fov 30 deg,
+ * camera_Create 0x472220 clamps far to 100..100000), so nothing past 100 m shows behind you. */
+static void apply_mirror_far(void) {
+    static const BYTE old[5] = { 0x68, 0x00, 0x00, 0xc8, 0x42 };
+    BYTE want[5] = { 0x68 }; char v[16]; DWORD n = GetEnvironmentVariableA("I76_MIRROR_FAR", v, sizeof(v)); float f;
+    if (n == 0 || n >= sizeof(v)) return;
+    f = (float)atof(v);
+    if (f < 100.0f || f > 600.0f) { mlog("  mirror-far: %s out of range (100..600 m) - not applied", v); return; }
+    memcpy(want + 1, &f, 4);
+    if (patch_bytes(0x0044553c, old, want, 5, "mirror far clip")) mlog("  mirror-far: mirror camera far clip 100 -> %.0f m", f);
+}
+
 /* WIDESCREEN, HOR+ (I76_ASPECT=<display aspect: 2.389, 21:9, 16:9 or 3440x1440>; off by default; EXPERIMENT stage A,
  * lab docs/WIDESCREEN-FEASIBILITY.md, static only). The frame stays 640x480; the camera sees a wider horizontal field
  * and dgVoodoo must present it at the display aspect (a [Glide] Resolution of that aspect + ScalingMode stretched),
@@ -3381,7 +3548,7 @@ static void apply_aspect(void) {
     static const DWORD push_sites[17] = { 0x405a00, 0x4069e3, 0x406eb8, 0x406faf, 0x4070d5, 0x4079f6, 0x407f46,
         0x4080cb, 0x4083f6, 0x408546, 0x408696, 0x408816, 0x4089a0, 0x408bf0, 0x4090d0, 0x409316, 0x4094e7 };
     char v[24], *sep; DWORD n = GetEnvironmentVariableA("I76_ASPECT", v, sizeof(v));
-    double D, k; float three = 3.0f, cst, f90, w90, f120, w120, clamp0, clamp1; int i, ok = 0;
+    double D, k; float three = 3.0f, cst, f90, w90, wcock, f120, w120, clamp0, clamp1; int i, ok = 0;
     if (n == 0 || n >= sizeof(v)) return;
     sep = strchr(v, ':'); if (!sep) sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X');
     D = sep ? atof(v) / atof(sep + 1) : atof(v);
@@ -3395,11 +3562,21 @@ static void apply_aspect(void) {
     w120 = (float)(2.0 * atan(k * tan(f120 / 2.0)));
     clamp1 = w120 + 0.08f > clamp0 ? w120 + 0.08f : clamp0;
     ok += patch_bytes(0x4bc510, (const BYTE *)&three, (const BYTE *)&cst, 4, "aspect constant");
-    for (i = 0; i < 17; i++) ok += patch_bytes(push_sites[i] + 1, (const BYTE *)&f90, (const BYTE *)&w90, 4, "aspect fov");
+    /* Cockpit view (F1 / V, level-start reset, binocular toggle back: sites 1..4): the cockpit mesh was modelled for
+     * 90 deg and its right side ends inside the full Hor+ view (owner, 2026-10-03). I76_ASPECT_COCKPIT_FOV=<deg>
+     * (default 0 = full Hor+; e.g. 105 narrows it; 90 = stock width) gives those four sites their own horizontal fov. */
+    {
+        char c[16]; DWORD m = GetEnvironmentVariableA("I76_ASPECT_COCKPIT_FOV", c, sizeof(c)); double deg = 0.0;
+        if (m && m < sizeof(c)) deg = atof(c);
+        wcock = (deg <= 0.0) ? w90 : (float)(deg / 57.29578);
+        if (wcock < f90) wcock = f90;
+        if (wcock > w90) wcock = w90;
+    }
+    for (i = 0; i < 17; i++) ok += patch_bytes(push_sites[i] + 1, (const BYTE *)&f90, (const BYTE *)((i >= 1 && i <= 4) ? &wcock : &w90), 4, "aspect fov");
     ok += patch_bytes(0x4075a7, (const BYTE *)&f120, (const BYTE *)&w120, 4, "aspect hood fov");
     ok += patch_bytes(0x4be5ac, (const BYTE *)&clamp0, (const BYTE *)&clamp1, 4, "aspect fov clamp");
-    mlog("  aspect: D %.3f, %d/20 sites; fov 90 -> %.1f deg, hood 120 -> %.1f deg, clamp %.1f deg (present at %.3f:1, stretched)",
-         D, ok, w90 * 57.29578, w120 * 57.29578, clamp1 * 57.29578, D);
+    mlog("  aspect: D %.3f, %d/20 sites; fov 90 -> %.1f deg (cockpit %.1f), hood 120 -> %.1f deg, clamp %.1f deg (present at %.3f:1, stretched)",
+         D, ok, w90 * 57.29578, wcock * 57.29578, w120 * 57.29578, clamp1 * 57.29578, D);
 }
 
 /* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
@@ -3442,6 +3619,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
+        apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
+        apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
