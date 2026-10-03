@@ -21,9 +21,9 @@ asked for it: a deployed, load-bearing DLL whose source sat only in the private 
 | `u32x.def` | export list: 4 intercepts + 49 forwarders = 53 names, the union of the USER32 imports of `i76shell.dll` and `i76.exe` | `9188eca53eb351a0c664ca2f2c222dfc` | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.def` |
 | `u32x.dll` | **the verified binary**, 75,264 B, x86 | `a5927cea02697657ce2102be766b5616` (sha256 `140990d8…cb952ab`) | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.dll`, built there 2026-09-07 15:56 by `src\build-min.ps1` (MSVC 2019 x86, `cl /O2 /LD u32x_min.c /link /DEF:u32x_min.def user32.lib`) |
 | `build.ps1` | rebuilds from the two source files to `u32x.build.dll` (never over `u32x.dll` unless `-Replace`) | | port of the lab's `src\build-min.ps1` |
-| `u32x_full.c` | the source of the **full build**, the one the daily driver runs (added 2026-10-03) | `72ecf27a4acaa1d9a907ce34276a2c94` | byte-identical to the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`). Not the lab's current `u32x.c` |
+| `u32x_full.c` | the source of the **full build** (added 2026-10-03) | `eb3c2cc7147b41e9044907fe8942b547` | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19" below; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` does not have the fix |
 | `u32x_full.def` | its export list: the same 53 names, with `GetAsyncKeyState` and `GetKeyState` also pointed at our code (6 intercepts + 47 forwarders) | `2902622b28ab4ed5f79a59b54c50176d` | byte-identical to the lab's `src\u32x.def` at the same commit (blob `4b94a933`) |
-| `u32x_full.dll` | **the gated full binary**, 112,640 B, x86, link time 2026-10-02 23:36:45 | `054fb411d57c275f9a6ebcf9a99893e6` (sha256 `957cf671…cf78cabd`) | byte-identical copy of `..\i76-uncap-lab\src\u32x_gated_054fb411.dll` |
+| `u32x_full.dll` | **the gated full binary with the P1-19 fix**, 112,640 B, x86, built 2026-10-03 by `build-full.ps1` from the `u32x_full.c` above | `696577dcc5ed7c2997e6099421e68000` (sha256 `4e2c3fd0…98ed27a7`) | sandbox-gated 2026-10-03 (section "P1-19"). The previous binary, `054fb411` (what the 2026-10-03 daily driver runs), stays in the lab as `src\u32x_gated_054fb411.dll` and in the sandbox as `game\u32x.dll.054fb411`; it is still on `$KnownGood` |
 | `build-full.ps1` | rebuilds the full build to `u32x_full.build.dll` and reports which bytes differ from `u32x_full.dll` | | port of the lab's `src\build-u32x.ps1` (same compiler line) |
 | `deploy-u32x.ps1` | installs / removes the proxy in a game folder | | port of the lab's `tools\instruments\deploy-shellfix.ps1`, with import/export and md5 guards |
 
@@ -74,8 +74,8 @@ says so when it does.
 | A per-call census and log (`cl /DU32X_LOG`) | build time | not built here: it writes to a hard-coded lab path |
 
 It also imports `gdi32.dll` (a pragma in the source). The comments in `u32x_full.c` name lab paths and
-`docs/MENU-REBUILD-DESIGN.md` as they were on the day; the file is kept byte-identical to the lab blob, so they
-are not updated.
+`docs/MENU-REBUILD-DESIGN.md` as they were on the day; they are not updated. (Until 2026-10-03 the file was
+byte-identical to the lab blob; the P1-19 fix below is the first change made here.)
 
 **Gate evidence** (2026-10-02/03, as recorded in `deploy-u32x.ps1`'s `$KnownGood` and
 [docs/records/STATUS-2026-10-02.md](../docs/records/STATUS-2026-10-02.md), last section; lab run folders
@@ -91,6 +91,51 @@ the DLL to `deploy-u32x.ps1`, which accepts only an md5 on its `$KnownGood` list
 `-U32xDll u32x\u32x.dll` installs the minimal build. `Make-Portable-Zip.ps1` and `tools\Make-Daily-Driver.ps1`
 still default to `u32x.dll`: pass `-U32xDll u32x\u32x_full.dll` to them (a portable zip made without it puts
 the minimal build into the staged copy).
+
+## P1-19: no keep-alive pump inside the shell's modal loops (build `696577dc`, 2026-10-03)
+
+**Symptom (owner, sandbox, `054fb411`).** Garage, Build & Repair, DONE with a part missing: "CAN'T GET VERY FAR
+WITHOUT AN ENGINE" comes up and neither mouse nor keyboard closes it. Static analysis:
+`..\i76-uncap-lab\docs\GARAGE-POPUP-STUCK.md`.
+
+**Cause (measured).** The popup is the shell's `Modal_ImageOk` (0x1000b800). It does one present, then loops on
+`Mouse_Update` + left-click, with no `PeekMessage` of its own. In `054fb411`, `GetCursorPos` / `GetAsyncKeyState`
+ran `pump_keepalive()` inside that loop. After any focus change (Alt+Tab, a toast) the pump delivered `WM_ACTIVATEAPP 0`.
+`ShellWindowProc` then cleared the shell's input gate `[i76shell+0x43224]`, and `Mouse_Update` returns before any
+USER32 call while the gate is 0. Nothing pumps again, so the gate never reopens. Stock delivers nothing inside the
+modal: the gate stays 1 and a click on OK works on return. Lab sandbox, focus taken by a notepad and given back,
+click on OK:
+
+| build / switch | launches | trials | popup closed | gate during the focus change |
+|---|---|---|---|---|
+| `054fb411` | 2 | 2 (+1 retry click each) | **0 of 2** | 0 within 0.3 s, shell mouse frozen |
+| `054fb411` + `I76_U32X_PUMPS=0` (control) | 2 | 4 valid | 4 of 4 | 1 |
+| `696577dc` (this fix) | 2 | 6 | **6 of 6** | 1 |
+| `696577dc` + `I76_U32X_MODAL_PUMP=1` (kill switch) | 1 | 1 (+1 retry) | 0 of 1 | 0 |
+
+**Fix.** `pump_from_poll(ra)` replaces the unconditional `pump_keepalive()` in `My_GetCursorPos`,
+`My_GetAsyncKeyState` and `My_GetKeyState`. A caller inside `i76shell.dll` pumps only while ShellMain's own frame
+loop is alive, i.e. its unfiltered `PeekMessageA(.., 0, 0, PM_REMOVE)` (recorded in `My_PeekMessageA`) ran within
+the last 250 ms. Inside a modal it does not pump, which is stock semantics. Exe callers (the mission), the
+keyboard-filter pump of the name-entry loop and the GDI/Glide present hooks are unchanged. Ghosting stays off
+(`DisableProcessWindowsGhosting`). **Kill switch: `I76_U32X_MODAL_PUMP=1`** restores the `054fb411` behaviour.
+
+**Gate (sandbox `..\i76-uncap-lab\game`, 2026-10-03; lab `autotest\runs\gate\20261003-122320` and following):**
+leg-b bookmark route **3 of 3**; trip route through `TEST-FRAMERATE -Mode all120` **2 of 2 at 120 fps**; Save
+Bookmark screen (gate stays 1 over 10 s idle, mouse follows, SAVE x2, NO writes nothing, YES writes only the scratch
+bookmark, savegame.dir exact) **pass**; melee by menus **pass**; widescreen Esc menu (`I76_ASPECT=3440x1440`,
+`I76_U32X_MENU_ASPECT=3440:1440`, `I76_GLIDE_REFRESH=120`, `dgVoodoo.aspect-wide.conf`): Exit clicked where drawn
+at screen (2319,1329), `[0x4fe534]` 0x10 -> 0x1 **pass**. Gate row 5 (Esc menu with the folder's own conf and the
+global conf hidden) **failed for both builds alike**: its direct t01 boot never left the shell ("not in a mission
+after 90 s", client 640x480; the same-condition control with `054fb411` failed identically, 1 of 1), while
+`test-escmenu -Stage open` without the gate reached mode 0x10 with both builds. That is a gate-environment
+problem in the sandbox, not this change. **Not run:** the daily driver or its twin (not touched), the owner's own
+hands.
+
+**Not fixed by this.** The pencil does not move while the popup is up: inside `Modal_ImageOk` nothing presents,
+so the drawn pointer stays where DONE was clicked (captured live: shell mouse at (150,150) and (500,350), pencil
+still on DONE). The player aims at OK blind. A click on OK closes it (verified). Two possible follow-ups:
+re-present from u32x while a shell modal spins, or the shell's F7 Enter/Space exit (lab doc section 4, Fix 2).
 
 ## The minimal build: notes
 

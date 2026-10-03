@@ -40,10 +40,13 @@ $ErrorActionPreference = 'Stop'
 # md5 -> what it is. Source and provenance: u32x\README.md.
 $KnownGood = @{
     'a5927cea02697657ce2102be766b5616' = 'u32x_min: 2026-08-16 build + DisableProcessWindowsGhosting (sandbox-verified 2026-10-02)'
-    # u32x_full.dll in this folder (source u32x_full.c = lab src\u32x.c at lab commit 68a8a39;
+    # the previous u32x_full.dll of this folder (source = lab src\u32x.c at lab commit 68a8a39;
     # the lab keeps the same binary as src\u32x_gated_054fb411.dll). The 2026-10-03 daily
     # driver runs this one, and setup-windows.ps1 installs it by default.
     '054fb411d57c275f9a6ebcf9a99893e6' = 'gated 2026-10-02/03: leg-b 3/3, trip route 120 fps, save screen, Esc-menu Exit, melee'
+    # u32x_full.dll since 2026-10-03: 054fb411 + the P1-19 fix (no keep-alive pump inside the shell's modal loops;
+    # I76_U32X_MODAL_PUMP=1 = old). Sandbox only so far: garage DONE popup closes after a focus change 6/6 (054fb411 0/2).
+    '696577dcc5ed7c2997e6099421e68000' = 'gated 2026-10-03 (sandbox): garage popup after focus change 6/6, leg-b 3/3, trip route 2/2 120 fps, save screen NO/YES, widescreen Esc-menu Exit, melee'
 }
 
 $TARGETS = @(

@@ -122,6 +122,8 @@ static void log_caller(const char *tag, void *ra)
  *   I76_U32X_QUITGUARD=0     pump_keepalive may swallow WM_QUIT again (the regression; control)
  *   I76_U32X_PUMP_PRIVATE=1  pump_keepalive dispatches WM_USER.. / 0xC0xx messages again (old)
  *   I76_U32X_PUMPS=0         no keep-alive pumping at all (every site)
+ *   I76_U32X_MODAL_PUMP=1    pump from the shell's input polls inside its modal loops again (the
+ *                            054fb411 behaviour; P1-19, the garage DONE popup dead end; control)
  *   I76_U32X_KEYS=0          GetAsyncKeyState / GetKeyState are plain pass-throughs (no pump)
  *   I76_U32X_IAT=0           no IAT patches (BitBlt / StretchBlt / SetDIBitsToDevice / grBufferSwap)
  *   I76_U32X_DIALOG=0        dialog_owns_input() is always false
@@ -151,6 +153,7 @@ static int env_switch(const char *name, int *cache, int def)
 static int sw_quitguard(void)    { static int c = -1; return env_switch("I76_U32X_QUITGUARD",    &c, 1); }
 static int sw_pump_private(void) { static int c = -1; return env_switch("I76_U32X_PUMP_PRIVATE", &c, 0); }
 static int sw_pumps(void)        { static int c = -1; return env_switch("I76_U32X_PUMPS",        &c, 1); }
+static int sw_modalpump(void)    { static int c = -1; return env_switch("I76_U32X_MODAL_PUMP",   &c, 0); }
 static int sw_keys(void)         { static int c = -1; return env_switch("I76_U32X_KEYS",         &c, 1); }
 static int sw_iat(void)          { static int c = -1; return env_switch("I76_U32X_IAT",          &c, 1); }
 static int sw_dialog(void)       { static int c = -1; return env_switch("I76_U32X_DIALOG",       &c, 1); }
@@ -1240,6 +1243,37 @@ static void pump_keepalive(void)
         if (!pump_dispatch(&m)) return;
 }
 
+/* NO KEEP-ALIVE PUMP INSIDE THE SHELL'S MODAL LOOPS.  (2026-10-03, BACKLOG P1-19)
+ *
+ * The garage DONE refusal ("CAN'T GET VERY FAR WITHOUT AN ENGINE") is Modal_ImageOk 0x1000b800:
+ * one present, then Mouse_Update + Mouse_GetLeftClick forever, no PeekMessage of its own. Stock,
+ * a deactivation (Alt+Tab, Win key, a toast) is simply not delivered until the popup closes, so
+ * the shell's input gate [0x10043224] stays 1 and a click on OK still works on return. Our pump
+ * from GetCursorPos / GetAsyncKeyState delivered the WM_ACTIVATEAPP 0 right there: ShellWindowProc
+ * cleared the gate, Mouse_Update then returns before any USER32 call, nothing pumps again, the
+ * WM_ACTIVATEAPP 1 never arrives - mouse dead for good. Measured in the lab sandbox: 2 of 2 stuck
+ * (gate 0 within 0.3 s of the focus change, shell mouse frozen), I76_U32X_PUMPS=0 control 4 of 4
+ * closed with the gate at 1 (lab docs\GARAGE-POPUP-STUCK.md section 7).
+ *
+ * So a shell caller pumps only while ShellMain's own loop is alive, i.e. its unfiltered
+ * PeekMessageA(&m, NULL, 0, 0, PM_REMOVE) ran within the last 250 ms. A shell caller whose main
+ * loop has gone quiet is inside a modal (Modal_*, the save screen's confirm, the ControlConfig
+ * capture): stock delivers nothing there and neither do we. Ghosting is already off
+ * (DisableProcessWindowsGhosting, DllMain). The keyboard-filter pump in My_PeekMessageA (name
+ * entry) is untouched: there the shell's own filtered peek delivers sent messages anyway, as in
+ * stock, and keeps peeking, so its gate recovers. Exe callers (the mission) are untouched.
+ * I76_U32X_MODAL_PUMP=1 restores the old unconditional pump for the control run. */
+static volatile DWORD g_shell_loop_tick;    /* last unfiltered PeekMessageA from i76shell (ShellMain) */
+
+static void pump_from_poll(const void *ra)
+{
+    if (!sw_modalpump() && GetTickCount() - g_shell_loop_tick > 250 && caller_is_shell(ra)) {
+        LOG_V("[%lu] shell poll outside ShellMain's loop (modal) - no pump\n", (unsigned long)GetTickCount());
+        return;
+    }
+    pump_keepalive();
+}
+
 /* ---- reach the save screen from the RENDER side ----------------------------------------
  * MEASURED 2026-09-05: on the Save Bookmark screen the shell calls NONE of the USER32
  * functions this proxy exports - the instrumented log goes silent the instant that screen
@@ -1396,8 +1430,9 @@ BOOL WINAPI My_GetCursorPos(LPPOINT p)
     ensure_gdi_patched();
 
     /* The confirm-popup poll lives here: it calls GetCursorPos forever and pumps nothing.
-     * Without this the window is declared hung, gets ghosted, and can never be clicked. */
-    pump_keepalive();
+     * Without this the window is declared hung, gets ghosted, and can never be clicked.
+     * (2026-10-03: not from a shell modal any more - pump_from_poll; ghosting is off anyway.) */
+    pump_from_poll(ra);
     menu_box_record();
     menu_free_pointer();
 
@@ -1474,7 +1509,7 @@ SHORT WINAPI My_GetAsyncKeyState(int vk)
 {
     BUMP(c_gaks);
     if (sw_keys())
-        pump_keepalive();
+        pump_from_poll(_ReturnAddress());   /* Mouse_Update's button reads: same rule as GetCursorPos */
     return GetAsyncKeyState(vk);
 }
 
@@ -1487,7 +1522,7 @@ SHORT WINAPI My_GetKeyState(int vk)
     /* gks spikes to exactly 3 per keystroke on the save screen - that is the engine
      * deciding what character a key means. Log which keys it asks about and from where. */
     {   SHORT r;
-        pump_keepalive();
+        pump_from_poll(_ReturnAddress());
         r = GetKeyState(vk);
         LOG("[%lu] GetKeyState(0x%02X) = 0x%04X\n", (unsigned long)GetTickCount(),
             (unsigned)vk, (unsigned short)r);
@@ -1495,7 +1530,7 @@ SHORT WINAPI My_GetKeyState(int vk)
         return r;
     }
 #else
-    pump_keepalive();
+    pump_from_poll(_ReturnAddress());
     return GetKeyState(vk);
 #endif
 }
@@ -1599,6 +1634,9 @@ BOOL WINAPI My_PeekMessageA(LPMSG msg, HWND hWnd, UINT lo, UINT hi, UINT remove)
 #endif
         pump_keepalive();
     }
+
+    if (lo == 0 && hi == 0 && caller_is_shell(ra))
+        g_shell_loop_tick = GetTickCount();     /* ShellMain's frame loop is alive (pump_from_poll) */
 
     ok = PeekMessageA(msg, hWnd, lo, hi, remove);
     if (ok && msg && msg->message == WM_QUIT && (remove & PM_REMOVE)) {
