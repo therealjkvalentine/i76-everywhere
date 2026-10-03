@@ -14,7 +14,7 @@
 
   Follows i76-uncap-lab\CONSOLE-LOCK.md: exclusive create of .console-owner, no i76 process, no .console-test.lock in
   game / game-alt / game-dd-20261003; the owner file is removed in finally. One run takes about a minute.
-  Boots t01 through autotest\proxy-run.ps1 -KeepInstalledDll (game-tex's own STRLKUP.DLL, so a proxy rebuild in
+  Boots t01 through autotest\proxy-run.ps1 -Dll $ProxyDll (a pinned proxy copy, so a rebuild in
   progress elsewhere cannot leak in), then captures the presented frame in the start view, after F3 and after F4
   (preset views 3 and 12; one of them is the chase view). Captures: i76-uncap-lab\captures\texscale\<stamp>-<tag>-*.png
   (captures\ is gitignored: decoded game art, never commit).
@@ -25,7 +25,10 @@ param(
     [string]$Conf = "",
     [switch]$ZglideFix,            # run with game-tex\ZGLIDE.tmufix.dll (zglide_tmu_patch.py) in place of ZGLIDE.DLL
     [string]$Mission = "t01",
-    [string]$Owner = "U5 texture-scale"
+    [string]$Owner = "U5 texture-scale",
+    # pinned copy of the sandbox proxy (game\STRLKUP.DLL, md5 0b18d77c on 2026-10-03), which boots I76_MISSION.
+    # game-alt's own STRLKUP.DLL is the August music-only proxy: -KeepInstalledDll sat in the shell 3/3 runs.
+    [string]$ProxyDll = "C:\Users\james\i76-uncap-lab\game-tex\Strlkup.u5test.dll"
 )
 $ErrorActionPreference = "Stop"
 $Lab = "C:\Users\james\i76-uncap-lab"
@@ -75,7 +78,7 @@ try {
         Send-Key 0x73; Start-Sleep -Seconds 2          # F4 = PRESET_VIEW_12
         & $cf -Out (Join-Path $capDir "$stamp-$Tag-F4.png")
     }   # no GetNewClosure: dynamic scope must reach proxy-run's Send-Key (inputlib) and this script's $capDir/$stamp/$Tag
-    & (Join-Path $Lab "autotest\proxy-run.ps1") -GameDir $G -KeepInstalledDll -Mission $Mission -Hold 2 -Run $run
+    & (Join-Path $Lab "autotest\proxy-run.ps1") -GameDir $G -Dll $ProxyDll -Mission $Mission -Hold 2 -Run $run
 } finally {
     foreach ($n in $moved) { Move-Item (Join-Path $Aside $n) (Join-Path $Addon $n) -Force }
     if ($zBak) { Copy-Item $zBak (Join-Path $G "ZGLIDE.DLL") -Force; Remove-Item $zBak }
