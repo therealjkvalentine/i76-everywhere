@@ -56,13 +56,24 @@ drop-down). The default, `stock`, sets nothing.
 
 **State on 2026-10-03:** a new daily driver was built by `tools\Make-Daily-Driver.ps1` with `best-120` as its
 preset ([docs/NEW-DAILY-DRIVER-RECIPE.md](docs/NEW-DAILY-DRIVER-RECIPE.md),
-[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md) last section); the installers in this repo still deploy
-`stock`, and the other presets remain experimental until the A/B in
-[docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. 120 fps is the ceiling of every renderer tested
-([docs/RENDERER-ALTERNATIVES.md](docs/RENDERER-ALTERNATIVES.md) section 11). Two things have to be true
-for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
+[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md) last section). The other presets remain experimental
+until the A/B in [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. 120 fps is the ceiling of every
+renderer tested ([docs/RENDERER-ALTERNATIVES.md](docs/RENDERER-ALTERNATIVES.md) section 11). Two things have to
+be true for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
 (the launcher compares it and tells you to run `setup-windows.ps1` if not; it copies nothing), and
-GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so).
+GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so;
+`setup-windows.ps1` does it).
+
+**Installing on Windows from your own GOG copy** ([INSTALL.md](INSTALL.md)): since 2026-10-03 `INSTALL.bat`
+(`Setup-From-GOG.ps1` -> `install.ps1` -> `setup-windows.ps1`) sets a fresh install up like that daily driver:
+the daily-driver `dgVoodoo.conf`, the music-fix proxy, `u32x.dll`, `I76PATCH.DLL` renamed, and `PLAY-i76.bat`
+starting `-Preset best-120`, with `PLAY-stock.bat` beside it. `-Preset stock` on any of the three scripts
+installs the earlier 20 fps recipe instead. Evidence: the apply step was run on an unpacked copy of GOG's
+2.1.0.17 installer and checked by file listing, md5, the `input.map` lint and the launcher's `-DryRun`;
+**the game was not started from it**, and `best-120` has not been run on the exe that installer gives
+(`9a232dcc`; the gates ran on `60abf7bc`). The installer deploys the repo's `u32x.dll` (`a5927cea`), not the
+daily driver's newer `054fb411`, which is not in this repo. Details and the full not-tested list:
+[INSTALL.md, Evidence](INSTALL.md#evidence-what-was-tested).
 Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz analysis:
 [docs/FPS-120.md](docs/FPS-120.md).
 
@@ -137,7 +148,8 @@ open in-game checks: `docs/SAVE-EDITOR-STATUS-2026-10-02.md`.
   60 / 120 fps switch set above is what corrects that): DxWnd delay on Mac, dgVoodoo `FPSLimit` on the Deck,
   GOG's `I76PATCH.DLL` on Windows. (Corrected 2026-10-03: this said dgVoodoo `FPSLimit` on Windows. The lab's
   "FPSLimit is ignored" result is void, measured while dgVoodoo was rejecting the sandbox conf; whether
-  `FPSLimit` caps on Windows has not been re-measured.)
+  `FPSLimit` caps on Windows has not been re-measured.) Since 2026-10-03 the Windows installer is the exception:
+  it sets up `best-120` unless run with `-Preset stock` ([INSTALL.md](INSTALL.md)).
 - **The `.M16` hardware-texture format cracked** (round-trip encoder in
   [tools/i76img.py](tools/i76img.py)) — the RE prize from an enhanced-texture-pack
   experiment that was ultimately **retired** (marginal in-game gain; palette-indexed
