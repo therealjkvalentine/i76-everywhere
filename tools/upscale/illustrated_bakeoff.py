@@ -152,10 +152,11 @@ def cmd_run(a):
 CROPS = {  # (x, y, w, h) in native pixels: the detail each sheet should show
     "dash_a": (0, 0, 256, 128), "dash_b": (0, 0, 256, 128), "bg_a": (0, 0, 320, 200),
     "bg_b": (0, 150, 320, 200), "text_a": (0, 50, 320, 150), "sprite_a": (0, 0, 190, 98), "font_a": (0, 0, 224, 120),
+    "map_a": (0, 0, 320, 200),
 }
 CROPS4 = {  # (x, y) of the half-size crop used on the 4x sheets
     "bg_a": (180, 20), "bg_b": (170, 320), "dash_a": (0, 0), "dash_b": (0, 0), "text_a": (180, 55), "sprite_a": (0, 0),
-    "font_a": (0, 0),
+    "font_a": (0, 0), "map_a": (60, 120),
 }
 
 

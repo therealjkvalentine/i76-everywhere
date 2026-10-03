@@ -66,9 +66,16 @@ def cockpit(zfs, out, act, rows):
             op, nc = save(rgba, w, h, os.path.join(d, fn))
             rows.append(dict(cls="cockpit", file="u6_cockpit/" + fn, source=base + ".pak:" + name, fmt=fmt, w=w, h=h,
                              opaque_pct=op, colours=nc))
-    for f in sorted(glob.glob(os.path.join(zfs, "z*.map")) + glob.glob(os.path.join(zfs, "z*.m16"))):
+    for f in sorted(glob.glob(os.path.join(zfs, "z*.map")) + glob.glob(os.path.join(zfs, "z*.m16"))
+                    + glob.glob(os.path.join(zfs, "z*.vqm"))):
         b = open(f, "rb").read()
-        if f.endswith(".m16"):
+        if f.endswith(".vqm"):
+            try:
+                w, h, rgba = i76img.decode_vqm(b, pal, zfs); fmt = "VQM(loose)/" + act
+            except OSError as e:  # codebook not in the archive
+                rows.append(dict(cls="cockpit-hud", file="", source=os.path.basename(f), fmt="VQM ?" + str(e)[:60]))
+                continue
+        elif f.endswith(".m16"):
             # loose M16s are also inside the z*.pak sets above; record size only
             w, h, _f, rgba = i76img.decode_m16(b); fmt = "M16(loose)"
         else:
