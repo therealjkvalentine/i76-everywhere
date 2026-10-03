@@ -1,0 +1,19 @@
+# code only: game art, upscales, weights and scores stay in the local work dir
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.pcx
+*.dds
+*.m16
+*.vqm
+*.pak
+*.pth
+*.safetensors
+*.onnx
+*.ckpt
+*.csv
+runs/
+src/
+models/
+__pycache__/

@@ -1,0 +1,12 @@
+# Smoke run (U1, 2026-10-03): realesrgan-x4plus-anime, overscale 4x -> lanczos to 2x, separate alpha + 8 px bleed.
+default:
+  model: RealESRGAN_x4plus_anime_6B.pth
+  overscale: 4
+  target_scale: 2
+  downscale: lanczos
+  alpha: separate
+  bleed_px: 8
+  pad: auto        # terrain rows (tiles=wrap) get wrap padding, everything else reflect
+  pad_px: 16
+  color_match: false
+  palette_lock: false
