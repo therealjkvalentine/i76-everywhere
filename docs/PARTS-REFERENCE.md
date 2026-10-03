@@ -133,7 +133,7 @@ effect, except for the two that apply once at spawn (Blower, Heated Seats) and t
 | Curb Feelers (spc06) | Armour absorb multiplier 1.1 on every side: a hit costs the armour damage / 1.1, about 9% less | ×1.1 | passive | [RE: engine.md, 0x465772..0x4657d8] |
 | Mud Flaps (spc07) | Chassis multiplier +0.1 on every side (2.1 on the front and back with the Structo Bumper): a hit costs the chassis damage / 1.1 | +0.1 | passive | [RE: engine.md, 0x4656ef..0x465759, -0.1 at 0x4be208; re-read] |
 | Heated Seats (spc08) | Every mounted weapon gets ×1.1 ammo | +10% | passive, once at spawn | [RE: engine.md, 0x438ecb → 0x4a4a40, 1.1 at 0x4beb20] |
-| Cup Holders (spc09) | A hit that reaches a component does no damage 10% of the time | 10% | passive | [RE: engine.md, damage.md, `rand()%100 < 10` at 0x465b7e]. [I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md) lists cup holders among "minor/flavor items (some are jokes)" [community]. The code gives them a real effect. |
+| Cup Holders (spc09) | A hit that reaches a component does no damage 10% of the time | 10% | passive | [RE: engine.md, damage.md, `rand()%100 < 10` at 0x465b7e]. [I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md) listed cup holders among "minor/flavor items (some are jokes)" [community] (corrected there 2026-10-03). The code gives them a real effect. |
 
 The panel icon `dash_mary` (type 10) has no effect found and no garage name. `tire_covr` (type 11) is cut
 content: tyre covers against a wheel hazard that no stock weapon fires **[RE: engine.md]**.

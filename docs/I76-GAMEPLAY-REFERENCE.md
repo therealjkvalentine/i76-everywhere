@@ -30,10 +30,21 @@ screen.
 
 | Special | What it does | Activate? |
 |---|---|---|
-| **Nitrous (NOS)** | **+50% acceleration, +20% top speed for ~15 s, 3 charges** | **Yes** — a special key. Great for the Mission 5 jump: punch it on the ramp |
-| **Blower** | +25% acceleration (passive engine boost) | Passive |
+| **Nitrous (NOS)** | **Drive acceleration x5 for 15 s, 3 charges** (still capped by rear-tyre grip; pressing again restarts the 15 s and uses another charge) | **Yes** — a special key. Great for the Mission 5 jump: punch it on the ramp |
+| **Radar Jammer** | Hidden from AI radar, the radar display and radar-guided missiles for 8 s; 5 uses | **Yes** — a special key |
+| **Blower** | Drive acceleration x1.25 (passive engine boost; set at spawn, so it survives being shot off) | Passive |
 | **Structo Bumper** | **Doubles front + rear chassis reinforcement** (armor/ram value) | **No — passive.** It just makes you tougher and better at ramming; nothing to press |
-| X-Aust Brake, Curb Feelers, Mud Flaps, Heated Seats, Cup Holders | Minor/flavor items (some are jokes) | Passive |
+| **X-Aust Brake** | Brake input x2 (still capped by four-tyre grip) | **Yes, once** — press its special key; it stays latched for the rest of the car's life |
+| **Curb Feelers** | Armour takes about 9% less from every hit (absorb x1.1 on every side) | Passive |
+| **Mud Flaps** | Chassis takes damage / 1.1 on every side | Passive |
+| **Heated Seats** | Every mounted weapon gets +10% ammo (once, at spawn) | Passive |
+| **Cup Holders** | A hit that reaches a component does no damage 10% of the time | Passive |
+
+> **Corrected 2026-10-03.** This table said nitrous gave "+50% acceleration, +20% top speed for ~15 s" (the
+> community figure) and called the X-Aust Brake, Curb Feelers, Mud Flaps, Heated Seats and Cup Holders "minor/flavor
+> items (some are jokes)". The code says otherwise: nitrous multiplies drive acceleration by 5 for 15 s, and each of
+> those five has a real effect. Numbers, addresses and what is still untested (the Radar Jammer was never tested
+> live): [PARTS-REFERENCE.md](PARTS-REFERENCE.md), "Specials".
 
 **Key point:** only *active* specials (nitrous especially) need a keypress; armor/engine items like
 the Structo Bumper work on their own.
