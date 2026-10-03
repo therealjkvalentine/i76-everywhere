@@ -913,6 +913,9 @@ static LARGE_INTEGER g_prev_q;
 static float g_acc20;                                        /* 20 Hz grid: g_tick20 is set on frames that cross it */
 static int g_tick20 = 1;
 static DWORD g_tick20_n;                                     /* grid frames so far */
+static float g_grid_acc, g_grid_win = 0.05f;                 /* time since the last grid frame; on a grid frame, the window it closes */
+static float g_turn_k = 1.0f, g_turn_g = 1.0f;               /* per-step turn scales (radar missiles): min(dt x 20, 1) and its gain form */
+static int g_coll_dup;                                       /* collision pass: the contact just found repeats last frame's (below) */
 static void radar_ping_flush(void);
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
 static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
@@ -970,9 +973,22 @@ clock:
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
         g_thr_up = -0.4f * k; g_thr_dn = 0.5f * k;
         g_acc20 += *(volatile float *)0x004fe428;
+        g_grid_acc += *(volatile float *)0x004fe428;
         g_tick20 = g_acc20 >= 0.049f;                        /* 1 ms tolerance: n x dt lands a hair under 0.05 */
-        if (g_tick20) { g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; g_tick20_n++; radar_ping_flush(); }
+        if (g_tick20) {
+            g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; g_tick20_n++; radar_ping_flush();
+            g_grid_win = g_grid_acc; g_grid_acc = 0.0f;      /* what a per-frame step skipped since the last grid frame has to cover */
+        }
+        /* a turn of `a` per 50 ms step, spread over frames: a rate limit scales by k; a proportional step that removes
+         * 0.75 of the error scales to 1 - 0.25^k of it, so 1/k frames remove 0.75 again (radar_turn_wrap) */
+        g_turn_k = k < 1.0f ? k : 1.0f;
+        {   /* 0.25^k = exp(-ln 4 x k), k in (0, 1]: 12 series terms are exact to float (no CRT pow: it adds 25 KB) */
+            double x = -1.3862943611198906 * (double)g_turn_k, term = 1.0, e = 1.0; int j;
+            for (j = 1; j <= 12; j++) { term *= x / (double)j; e += term; }
+            g_turn_g = g_turn_k >= 1.0f ? 1.0f : (float)((1.0 - e) / 0.75);   /* 20 fps and below: stock, exactly */
+        }
     }
+    g_coll_dup = 0;
 }
 
 static void install_frame_hook(void) {
@@ -1348,18 +1364,143 @@ static void __cdecl hazard_impact_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
     g_idbg_hazard_calls++;
     ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD))0x004a7190)(a, b, c, d);
 }
+/* THE WHOLE STEP, not only its effect (docs/PER-FRAME-AUDIT-2026-10-03.md H1). The contact test of these probes is
+ * physics_SweepSegment 0x435830 (0x435cc0 for the canister), and a hit there applies the ordnance's damage at once
+ * (0x435c92 -> physics_ApplyCollisionDamage 0x4a7c80: weapon_BuildImpactDamage 0x4a76a0, the full per-shot amount,
+ * no dt) before the step ever reaches the impact call above. So a car standing in a fire patch takes the Fire-Dropper's
+ * damage once per FRAME: 20 hits/s at stock 20 fps, 60 at 60, 120 at 120; the wheel hazard (id 0xe, no stock weapon)
+ * damages the nearest wheel the same way, and the oil slick restarts its traction-loss timer. The four stationary
+ * steps are therefore called on grid frames only, from their call sites in weapon_StepProjectileByType 0x4a0800
+ * (`push dt; push edi; call`, result in eax; all return 1: they die by life, which 0x4a0990 counts down by dt before
+ * the step, untouched). A grid-frame step has to cover the time since the last one, as a 50 ms stock frame does: the
+ * sweep reads the sim dt and rate itself (0x43583a / 0x435846), so both are set to the grid window for the call and
+ * put back. The canister (id 0x16, no stock weapon) flies like a mortar until it lands (pd+0x48) and is only held
+ * once it burns. */
+static DWORD g_idbg_hazard_steps;
+static DWORD hazard_step_call(DWORD fn, BYTE *proj, float dt) {
+    volatile float *sim_dt = (volatile float *)0x004fe420, *sim_rate = (volatile float *)0x004fe424;
+    float d0 = *sim_dt, r0 = *sim_rate, w = g_grid_win;
+    DWORD r;
+    if (w < d0) w = d0;
+    if (w > 0.2f) w = 0.2f;                                 /* simclock's own dt clamp */
+    *sim_dt = w; *sim_rate = 1.0f / w;
+    g_idbg_hazard_steps++;
+    r = ((DWORD (__cdecl *)(BYTE *, float))(DWORD_PTR)fn)(proj, dt);
+    *sim_dt = d0; *sim_rate = r0;
+    return r;
+}
+static DWORD __cdecl hazard_step_oil(BYTE *proj, float dt)   { return g_tick20 ? hazard_step_call(0x004aa150, proj, dt) : 1; }
+static DWORD __cdecl hazard_step_wheel(BYTE *proj, float dt) { return g_tick20 ? hazard_step_call(0x004aa2d0, proj, dt) : 1; }
+static DWORD __cdecl hazard_step_fire(BYTE *proj, float dt)  { return g_tick20 ? hazard_step_call(0x004aa450, proj, dt) : 1; }
+static DWORD __cdecl hazard_step_canister(BYTE *proj, float dt) {
+    BYTE *pd = *(BYTE **)(proj + 0x70);
+    if (!pd || *(int *)(pd + 0x48) == 0)                    /* still in flight: a moving projectile, dt-driven */
+        return ((DWORD (__cdecl *)(BYTE *, float))0x004ac800)(proj, dt);
+    return g_tick20 ? hazard_step_call(0x004ac800, proj, dt) : 1;
+}
 static void apply_hazard_fix(void) {
-    static const struct { DWORD site; BYTE old[5]; const char *what; } cs[2] = {
-        { 0x004aa27f, { 0xE8, 0x0C, 0xCF, 0xFF, 0xFF }, "oil slick contact effect" },
-        { 0x004aa559, { 0xE8, 0x32, 0xCC, 0xFF, 0xFF }, "fire patch contact effect" } };
+    static const struct { DWORD site, target; void *wrap; const char *what; } cs[6] = {
+        { 0x004aa27f, 0x004a7190, (void *)hazard_impact_wrap,   "oil slick contact effect" },      /* E8 0C CF FF FF */
+        { 0x004aa559, 0x004a7190, (void *)hazard_impact_wrap,   "fire patch contact effect" },     /* E8 32 CC FF FF */
+        { 0x004a08ec, 0x004aa150, (void *)hazard_step_oil,      "oil slick step" },                /* E8 5F 98 00 00 */
+        { 0x004a0900, 0x004aa2d0, (void *)hazard_step_wheel,    "wheel hazard step" },             /* E8 CB 99 00 00 */
+        { 0x004a0914, 0x004aa450, (void *)hazard_step_fire,     "fire patch step" },               /* E8 37 9B 00 00 */
+        { 0x004a0856, 0x004ac800, (void *)hazard_step_canister, "canister step (landed)" } };      /* E8 A5 BF 00 00 */
     int i, n = 0;
     if (!g_ratefix) return;
-    for (i = 0; i < 2; i++) {
-        BYTE w[5] = { 0xE8 }; LONG rel = (LONG)((DWORD_PTR)hazard_impact_wrap - (cs[i].site + 5));
-        memcpy(w + 1, &rel, 4);
-        n += patch_bytes(cs[i].site, cs[i].old, w, 5, cs[i].what);
+    for (i = 0; i < 6; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
     }
-    mlog("  hazard-contact: %d/2 sites repointed (oil slick + fire patch contact effect and sound on the 20 Hz grid)", n);
+    mlog("  hazard-contact: %d/6 sites repointed (oil slick / fire patch / wheel hazard / landed canister: contact test, damage, effect and sound on the 20 Hz grid)", n);
+}
+
+/* ===========================================================================
+ * MORE PER-FRAME ACTIONS  (part of I76_FRAMERATE_FIXES; docs/PER-FRAME-AUDIT-2026-10-03.md)
+ * ===========================================================================
+ * Found by the 2026-10-03 audit of everything that acts once per rendered frame (or once per projectile step, which
+ * is the same thing: weapon_UpdateProjectiles 0x4a0410 steps each live ordnance once per frame). All static readings
+ * of md5 9a232dcc, bytes identical on the AiO-based sandbox exe; none measured in game yet.
+ *
+ * R1, radar missile turn (weapon_StepRadarMissile 0x4aa9f0, ids 8: DrRadar, Cherub; its jammer-proof twin 0x4ab1c0,
+ * id 0x14, no stock weapon). Each STEP, when dot(nose, target) < 0.998, the missile rotates about cross(nose, target)
+ * by min(0.75 x |cross|, c), c = sin 3 / 15 / 20 deg for < 15 / 15-150 / > 150 m flown (0x4aabf1..0x4aac62: gain
+ * 0x4bec24, limits 0x4bec2c / 0x4bec34 / 0x4bec38, used as radians), then `call math_MatrixFromAxisAngle
+ * 0x494460(out, -angle, axis x, y, z)` at 0x4aaca0; the twin at 0x4ab400. Nothing scales it by dt: the
+ * far limit is 392 deg/s at stock 20 fps, 1176 at 60, 2352 at 120, and the proportional part converges 3x / 6x as fast,
+ * so radar missiles out-turn everything at high frame rates. The angle is rescaled at the call: a clamped angle (one
+ * of the three constants) x k, k = min(dt x 20, 1); an unclamped one, which removes 0.75 of the error per stock
+ * step, x (1 - 0.25^k) / 0.75, which removes 0.75 again over 1/k frames. At 20 fps and below both factors are 1.
+ *
+ * S1, dead-weapon click (weapon_ReadPlayerTrigger 0x4a5870): while fire is held on a weapon at 0 condition the
+ * trigger is cleared and WMISS.WAV is requested through the one-shot 0x4250f0 at 0x4a5a0e on EVERY FRAME - the same
+ * repeat-until-false shape as the lock tones. Requests between grid frames are dropped (the key is a level, the next
+ * grid frame asks again).
+ *
+ * A1, AI skid-turn roll (ai_ShouldSkid 0x41f590, the transition test behaviour 5 dirt_brave -> 7 tactic_skid): the
+ * first thing it does against a vehicle target is roll rand() % (8 + int((1 - skill) x 40)) == 0, skill = ai+0xa820
+ * (0x41f5d4..0x41f600; 0x4bcae4 = 1, 0x4bcb64 = 40), once per frame, so the mean wait for a handbrake turn is 3x / 6x
+ * shorter at 60 / 120 fps. A2, AI horn (ai_WillCollideOnPath 0x41d8b0, the 'avoid clsn' interrupt test): when the
+ * avoidance probe finds a vehicle in the way, (rand() & 3) == 0 honks (0x41dacc -> sound_PlayHorn 0x424f10), per
+ * frame. Both `call [rand]` (FF 15 0C C2 4B 00) are repointed at a function that rolls on grid frames and returns 1
+ * (which fails both tests) between them. I76_AI_ROLL_HOLD=0 keeps the counters and rolls every frame (to measure
+ * stock), as I76_AI_FIRE_CACHE=0 does for the fire gate.
+ */
+static DWORD g_idbg_radar_turns, g_idbg_wmiss_req, g_idbg_wmiss_play, g_idbg_skid_rolls, g_idbg_horn_rolls;
+static void *__cdecl radar_turn_wrap(float *out, float angle, float x, float y, float z) {
+    float a = angle < 0.0f ? -angle : angle;
+    /* clamped: the angle is one of the three limit floats, loaded as-is (fld [limit]; fchs; fstp) - exact compare */
+    int clamped = a == *(volatile float *)0x004bec2c || a == *(volatile float *)0x004bec34 || a == *(volatile float *)0x004bec38;
+    g_idbg_radar_turns++;
+    return ((void *(__cdecl *)(float *, float, float, float, float))0x00494460)(out, angle * (clamped ? g_turn_k : g_turn_g), x, y, z);
+}
+static int __cdecl wmiss_wrap(const char *name, BYTE *obj, int flag) {
+    g_idbg_wmiss_req++;
+    if (!g_tick20) return 0;
+    g_idbg_wmiss_play++;
+    return ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(name, obj, flag);
+}
+static int g_ai_roll_hold = 1;
+static int __cdecl ai_skid_rand(void) {
+    if (g_ai_roll_hold && !g_tick20) return 1;
+    g_idbg_skid_rolls++;
+    return (*(int (__cdecl **)(void))0x004bc20c)();         /* the exe's own rand (MSVCRT import) */
+}
+static int __cdecl ai_horn_rand(void) {
+    if (g_ai_roll_hold && !g_tick20) return 1;
+    g_idbg_horn_rolls++;
+    return (*(int (__cdecl **)(void))0x004bc20c)();
+}
+static void apply_perframe_fixes(void) {
+    static const struct { DWORD site, target; void *wrap; const char *what; } cs[3] = {
+        { 0x004aaca0, 0x00494460, (void *)radar_turn_wrap, "radar missile turn" },                  /* E8 BB 97 FE FF */
+        { 0x004ab400, 0x00494460, (void *)radar_turn_wrap, "radar missile turn (id 0x14)" },        /* E8 5B 90 FE FF */
+        { 0x004a5a0e, 0x004250f0, (void *)wmiss_wrap,      "dead-weapon click (WMISS.WAV)" } };     /* E8 DD F6 F7 FF */
+    static const struct { DWORD site; void *wrap; const char *what; } rs[2] = {
+        { 0x0041f5d4, (void *)ai_skid_rand, "AI skid-turn roll" },
+        { 0x0041dacc, (void *)ai_horn_rand, "AI horn roll" } };
+    static const BYTE rand_old[6] = { 0xFF, 0x15, 0x0C, 0xC2, 0x4B, 0x00 };   /* call dword ptr [0x4bc20c] (rand) */
+    int i, n = 0;
+    if (!g_ratefix) return;
+    for (i = 0; i < 3; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+    }
+    for (i = 0; i < 2; i++) {
+        BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };             /* call rel32; nop */
+        LONG rel = (LONG)((DWORD_PTR)rs[i].wrap - (rs[i].site + 5));
+        memcpy(w + 1, &rel, 4);
+        n += patch_bytes(rs[i].site, rand_old, w, 6, rs[i].what);
+    }
+    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_ROLL_HOLD", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_ai_roll_hold = 0; }
+    mlog("  perframe-fixes: %d/5 sites repointed (radar missile turn x2 scaled by dt x 20, WMISS click on the 20 Hz grid, AI skid-turn and horn rolls %s)",
+         n, g_ai_roll_hold ? "held to the 20 Hz grid" : "counted, every frame");
 }
 
 static int __cdecl ai_dodge_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
@@ -1795,6 +1936,95 @@ static void apply_coll_window(void) {
 }
 
 /* ===========================================================================
+ * COLLISION CONTACT REPEATS  (with I76_FIXED_STEP; I76_COLL_DEDUPE=0 counts only)
+ * ===========================================================================
+ * docs/PER-FRAME-AUDIT-2026-10-03.md C1. A dependency the fixed step itself creates. physics_CollideAll 0x4349c0 runs
+ * once per rendered frame (WinMain 0x403a12, after the frame clock, before the object ticks). For every contact
+ * physics_CollideBodyPair 0x434bb0 plays an impact sound (sound_PlayOnObject at 0x434ebc, or vvbo1.wav at 0x434d7e for
+ * a walkable structure) and runs both bodies' class collision handlers (object_ClassCollide 0x461f70), which apply
+ * physics_ApplyCollisionDamage 0x4a7c80 AT ONCE (vehicles: entity_CollideStoreContact 0x4643c0 at 0x4644bc; scenery
+ * and types 7 / 0xa: object_CollideApplyDamage 0x46f890 at 0x46f8d4) and stamp the AI damage event. A car then
+ * consumes the stored contact on its next substep. Stock runs at least one substep every frame, so the response
+ * always lands before the next test. With the fixed step at 60 / 120 fps most frames run NO substep: pose and
+ * velocity are bit-identical on the next frame, the same contact is found again, and the sound, the damage and the
+ * AI event repeat on every frame until the step comes - up to 3 times per impact at 60 fps with 24 steps/s, 5 at 120.
+ *
+ * A contact is a repeat when the same pair made one on the previous frame and neither body has moved since: for a
+ * vehicle, exactly, its fixed stepper ran 0 steps in the previous frame's tick (g_step_acc, stamped by
+ * fixed_stepper_begin; a far or wrecked vehicle does not go through it and counts as moved); for anything else its
+ * position doubles (+0x40) are unchanged. The two `call physics_CollideShapes 0x43f510` in the pair test (0x434ccf /
+ * 0x434cf1, the only callers) are wrapped to make that call; on a repeat the two sound calls and the two damage
+ * calls return without acting. The handlers still run, so the stored contact record is rewritten exactly as before.
+ * Without the fixed step nothing is patched. Static reading, not measured: the acceptance run is the counters
+ * (coll_events / coll_dups per second in sustained contact) and the damage per ram at 20 vs 120 fps.
+ */
+typedef struct { BYTE *a, *b; DWORD frame; double pa[3], pb[3]; } collpair_t;
+static collpair_t g_collpair[64];
+static int g_coll_dedupe = 1;
+static DWORD g_idbg_coll_events, g_idbg_coll_dups;
+static int coll_body_unmoved(BYTE *obj, const double *snap) {
+    if (*(int *)(obj + 0x6c) == 1 && *(BYTE **)(obj + 0x70)) {                 /* a vehicle: stepper at entity+0x444 */
+        int s = step_slot(*(BYTE **)(obj + 0x70) + 0x444, 0);
+        return s >= 0 && g_step_acc[s].frame == g_frame - 1 && g_step_acc[s].n == 0;
+    }
+    return memcmp(obj + 0x40, snap, 24) == 0;
+}
+static int __cdecl coll_shapes_wrap(BYTE **ra, BYTE **rb, void *ca, void *cb) {
+    int r = ((int (__cdecl *)(BYTE **, BYTE **, void *, void *))0x0043f510)(ra, rb, ca, cb), i, slot = 0;
+    BYTE *a, *b;
+    DWORD oldest = 0xffffffff;
+    g_coll_dup = 0;
+    if (!r) return r;
+    a = *ra; b = *rb;                                                          /* record +0: the object */
+    if (!a || !b) return r;
+    if (a > b) { BYTE *t = a; a = b; b = t; }                                  /* the two call sites pass either order */
+    g_idbg_coll_events++;
+    for (i = 0; i < 64; i++) {
+        if (g_collpair[i].a == a && g_collpair[i].b == b) { slot = i; break; }
+        if (g_collpair[i].frame < oldest) { oldest = g_collpair[i].frame; slot = i; }
+    }
+    if (i < 64 && g_collpair[slot].frame == g_frame - 1
+        && coll_body_unmoved(a, g_collpair[slot].pa) && coll_body_unmoved(b, g_collpair[slot].pb)) {
+        g_idbg_coll_dups++;
+        g_coll_dup = g_coll_dedupe;
+    }
+    g_collpair[slot].a = a; g_collpair[slot].b = b; g_collpair[slot].frame = g_frame;
+    memcpy(g_collpair[slot].pa, a + 0x40, 24); memcpy(g_collpair[slot].pb, b + 0x40, 24);
+    return r;
+}
+static int __cdecl coll_sound_wrap(const char *name, BYTE *obj, int flag) {
+    if (g_coll_dup) return 0;
+    return ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)(name, obj, flag);
+}
+static DWORD __cdecl coll_damage_wrap(DWORD victim, DWORD source, DWORD v, DWORD n, DWORD p) {
+    if (g_coll_dup) return 1;                                                  /* "victim still there"; both callers ignore it */
+    return ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
+}
+static void apply_coll_dedupe(void) {
+    static const struct { DWORD site, target; void *wrap; const char *what; } cs[6] = {
+        { 0x00434ccf, 0x0043f510, (void *)coll_shapes_wrap, "collision contact test" },             /* E8 3C A8 00 00 */
+        { 0x00434cf1, 0x0043f510, (void *)coll_shapes_wrap, "collision contact test (swapped)" },   /* E8 1A A8 00 00 */
+        { 0x00434d7e, 0x004231f0, (void *)coll_sound_wrap,  "collision sound (walkable)" },         /* E8 6D E4 FE FF */
+        { 0x00434ebc, 0x004231f0, (void *)coll_sound_wrap,  "collision sound (impact)" },           /* E8 2F E3 FE FF */
+        { 0x004644bc, 0x004a7c80, (void *)coll_damage_wrap, "collision damage (vehicles)" },        /* E8 BF 37 04 00 */
+        { 0x0046f8d4, 0x004a7c80, (void *)coll_damage_wrap, "collision damage (objects)" } };       /* E8 A7 83 03 00 */
+    int i, n = 0;
+    if (g_fixed_step <= 0.0f) return;                       /* only the fixed step makes frames without a substep */
+    install_frame_hook();
+    if (!g_frame_hook) { mlog("  coll-dedupe: frame hook missing - not applied"); return; }
+    for (i = 0; i < 6; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+    }
+    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_COLL_DEDUPE", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_coll_dedupe = 0; }
+    mlog("  coll-dedupe: %d/6 sites repointed (contact repeats on frames without a physics step: sound + damage %s)",
+         n, g_coll_dedupe ? "applied once per step" : "counted, passed through");
+}
+
+/* ===========================================================================
  * RENDER INTERPOLATION  (I76_RENDER_INTERP=1, needs I76_FIXED_STEP; off by default)
  * ===========================================================================
  * With a fixed 25 ms physics step at 60 fps, the cars advance on two frames out
@@ -1832,7 +2062,9 @@ static DWORD g_cam_stamp, g_cam_caller, g_cam_sets;
 static struct { DWORD frame; float alpha; double true_p[3], disp_p[3]; int nveh, cam_fixed; DWORD cam_caller, cam_mode; double cam_true[3], cam_drawn[3];
                 struct { DWORD frame, cam; double true_p[3], disp_p[3], cam_p[3]; float v_tick0, v_tick1; int steps, pad; float roll_t, pitch_t, roll_d, pitch_d; } ring[16];
                 DWORD ping_req, ping_play, ping_frames, flame_hits, flame_dmg, aifire_calls, aifire_yes, tick20_n;
-                DWORD dodge_calls, dodge_yes, mirror_draws, far_steps; } g_idbg;   /* every frame, for samplers that miss some; new fields append */
+                DWORD dodge_calls, dodge_yes, mirror_draws, far_steps;
+                DWORD hazard_impacts, hazard_steps, radar_turns, wmiss_req, wmiss_play, skid_rolls, horn_rolls, coll_events, coll_dups;   /* PER-FRAME-AUDIT-2026-10-03 */
+              } g_idbg;   /* every frame, for samplers that miss some; new fields append */
 
 static float v3dot(const float *a, const float *b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 static void v3norm(float *a) {
@@ -2079,6 +2311,10 @@ static void __cdecl render_wrap(void *cam) {
         g_idbg.aifire_calls = g_idbg_aifire_calls; g_idbg.aifire_yes = g_idbg_aifire_yes; g_idbg.tick20_n = g_tick20_n;
         g_idbg.dodge_calls = g_idbg_dodge_calls; g_idbg.dodge_yes = g_idbg_dodge_yes;
         g_idbg.mirror_draws = g_idbg_mirror_draws; g_idbg.far_steps = g_idbg_far_steps;
+        g_idbg.hazard_impacts = g_idbg_hazard_calls; g_idbg.hazard_steps = g_idbg_hazard_steps; g_idbg.radar_turns = g_idbg_radar_turns;
+        g_idbg.wmiss_req = g_idbg_wmiss_req; g_idbg.wmiss_play = g_idbg_wmiss_play;
+        g_idbg.skid_rolls = g_idbg_skid_rolls; g_idbg.horn_rolls = g_idbg_horn_rolls;
+        g_idbg.coll_events = g_idbg_coll_events; g_idbg.coll_dups = g_idbg_coll_dups;
         g_idbg.frame = g_frame; g_idbg.nveh = n; g_idbg.cam_fixed = cam_fixed;
         g_idbg.cam_caller = g_cam_caller; g_idbg.cam_mode = *(DWORD *)0x004c2720;
         if (pl) {
@@ -3077,9 +3313,11 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
         apply_coll_window();      /* opt-in: I76_COLL_WINDOW=1 (after apply_fixed_step: needs g_fixed_step) */
+        apply_coll_dedupe();      /* with I76_FIXED_STEP: collision sound + damage once per physics step (I76_COLL_DEDUPE=0 counts only) */
         apply_far_engine_dt();    /* opt-in: I76_FAR_ENGINE_DT=1 (after apply_engine_dt_fix: needs its site) */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
-        apply_hazard_fix();       /* with I76_FRAMERATE_FIXES: oil slick / fire patch contact effects on the 20 Hz grid */
+        apply_hazard_fix();       /* with I76_FRAMERATE_FIXES: stationary hazards (oil slick, fire patch, ...) step on the 20 Hz grid */
+        apply_perframe_fixes();   /* with I76_FRAMERATE_FIXES: radar missile turn, WMISS click, AI skid + horn rolls */
         apply_ai_fixes();         /* opt-in: I76_AI_FIXES=1 (after apply_framerate_fixes: the dodge hold needs the 20 Hz grid) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */

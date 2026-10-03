@@ -23,7 +23,11 @@ TRN_MAGIC = 0x43363749
 TRN_FMT = "<I H H I I I I I i i 3d 3f I I I I I I I I 64s"
 TRN = ("magic version size flags play_set play_clear req_seq cmd slot_index ammo_value pos0 pos1 pos2 vel0 vel1 vel2 "
        "ack_seq heartbeat applied player_present play_flags_now play_flags_saved faults cmd_result msg").split()
-TRN_OFF = {n: struct.calcsize("<" + "".join(c for c in TRN_FMT[1:].split()[:i])) for i, n in enumerate(TRN)}
+# one offset per NAME: the format has "3d" / "3f" items covering three names each, so expand it per field first
+_PER_FIELD = []
+for _c in TRN_FMT[1:].split():
+    _PER_FIELD += [_c[-1]] * int(_c[:-1]) if _c[:-1].isdigit() and _c[-1] != "s" else [_c]
+TRN_OFF = {n: struct.calcsize("<" + "".join(_PER_FIELD[:i])) for i, n in enumerate(TRN)}
 F_GOD, F_AMMO = 1, 2
 CMD_REPAIR, CMD_TELEPORT = 1, 2
 UNLIMITED = 0x0FFFFFFF
