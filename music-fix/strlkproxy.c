@@ -3317,6 +3317,39 @@ static void apply_terrain_lod(void) {
     mlog("  terrain-lod: x%.2f, %d/6 constants patched (split distance up, height-error threshold down)", f, ok);
 }
 
+/* TERRAIN TEXTURE AND OBJECT DETAIL DISTANCE  (I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16>; off by default;
+ * EXPERIMENT, static findings in i76-uncap-lab docs/TEXTURE-AND-OBJECT-LOD.md, 2026-10-03)
+ * No mipmaps under Glide: each mission carries five terrain texture sizes (256..16 px) and the leaf setup 0x4923f0
+ * picks level = clamp(9 - floor(log2(W*40 / z)), 0, 6); with W = 640 the 256 px tile ends at 50 m. The switch turns
+ * `lea eax,[eax+eax*4]; shl eax,3` (W*40) at 0x492458 into `imul eax,eax,40*f`: every boundary moves out by f. No
+ * extra vertices or records. Objects: renderer_SelectObjectLod 0x457f40 compares radius against depth/focal times the
+ * record's thresholds; both queue passes load 1.0 from 0x4bdf94 for 1/focal, so writing 1/f keeps the detailed mesh
+ * (and the un-reduced vehicle) f times farther. More faces through the pools and the 2 MB texture unit: cost unmeasured. */
+static void apply_detail_distance(void) {
+    char v[16]; DWORD n; float f;
+    n = GetEnvironmentVariableA("I76_TERRAIN_TEX", v, sizeof(v));
+    if (n && n < sizeof(v)) {
+        f = (float)atof(v);
+        if (f < 1.0f || f > 16.0f) mlog("  terrain-tex: %s out of range (1..16) - not applied", v);
+        else {
+            static const BYTE expect[6] = { 0x8d, 0x04, 0x80, 0xc1, 0xe0, 0x03 };
+            BYTE want[6] = { 0x69, 0xc0, 0, 0, 0, 0 };
+            DWORD k = (DWORD)(40.0f * f + 0.5f);
+            memcpy(want + 2, &k, 4);
+            if (patch_bytes(0x492458, expect, want, 6, "terrain-tex")) mlog("  terrain-tex: x%.2f (texture level boundaries at %lu/40 x stock distance)", f, (unsigned long)k);
+        }
+    }
+    n = GetEnvironmentVariableA("I76_OBJECT_LOD", v, sizeof(v));
+    if (n && n < sizeof(v)) {
+        f = (float)atof(v);
+        if (f < 1.0f || f > 16.0f) mlog("  object-lod: %s out of range (1..16) - not applied", v);
+        else {
+            float one = 1.0f, inv = 1.0f / f;
+            if (patch_bytes(0x4bdf94, (const BYTE *)&one, (const BYTE *)&inv, 4, "object-lod")) mlog("  object-lod: x%.2f (objects and vehicles keep their detailed mesh that much farther)", f);
+        }
+    }
+}
+
 /* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
  * WinMain 0x402ca0: FindWindowA(class 0x4c2680, NULL); a hit restores that window (ShowWindow 9) and returns 0, so a
  * second copy exits at once (measured 2026-10-03: second process exit code 0). The switch turns `je 0x402ccd`
@@ -3355,6 +3388,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
+        apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
