@@ -3381,12 +3381,13 @@ static void apply_aspect(void) {
     static const DWORD push_sites[17] = { 0x405a00, 0x4069e3, 0x406eb8, 0x406faf, 0x4070d5, 0x4079f6, 0x407f46,
         0x4080cb, 0x4083f6, 0x408546, 0x408696, 0x408816, 0x4089a0, 0x408bf0, 0x4090d0, 0x409316, 0x4094e7 };
     char v[24], *sep; DWORD n = GetEnvironmentVariableA("I76_ASPECT", v, sizeof(v));
-    double D, k; float three = 3.0f, cst, f90 = 1.5707964f, w90, f120, w120, clamp0, clamp1; int i, ok = 0;
+    double D, k; float three = 3.0f, cst, f90, w90, f120, w120, clamp0, clamp1; int i, ok = 0;
     if (n == 0 || n >= sizeof(v)) return;
     sep = strchr(v, ':'); if (!sep) sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X');
     D = sep ? atof(v) / atof(sep + 1) : atof(v);
     if (!(D >= 1.34 && D <= 3.6)) { mlog("  aspect: %s out of range (1.34..3.6) - not applied", v); return; }
     k = 0.75 * D;
+    { static const DWORD f90_bits = 0x3fc90fda; memcpy(&f90, &f90_bits, 4); }   /* the exe's pi/2 is one ulp below (float)(pi/2) */
     memcpy(&f120, (const void *)0x4075a7, 4);
     memcpy(&clamp0, (const void *)0x4be5ac, 4);
     cst = (float)(4.0 / D);
