@@ -1,6 +1,11 @@
 # Repo organisation proposal
 
-Written 2026-10-03. **A proposal: nothing described here has been moved.** The only tidying done so far is that
+Written 2026-10-03. **Status, later on 2026-10-03: the owner approved it; stage 1 (lab residue) and the
+"records only" docs move are done, everything else is deferred. Section 8 at the end is the done / deferred table
+and the move table.** Sections 1 to 7 and the appendices are the proposal as written, before anything moved: the
+layout, counts and paths in them are the pre-move ones.
+
+As first written: nothing described here has been moved. The only tidying done so far is that
 three compiled Python files and `grep.exe.stackdump` are no longer tracked (ignore rules added). Everything else at
 the repo root stays where it is until the owner picks a stage below, because the scripts find each other by path.
 
@@ -378,3 +383,54 @@ Proposed folder per doc (the grouping of `docs/README.md`), and how many places 
 | `LEGITIMACY-AND-SCOPE.md` | `docs/scope/` | 3 | 3 |
 
 Total: 1417 hits to re-path, plus every row of `docs/README.md`. `index.html` (the public GitHub Pages front page) links six docs by absolute GitHub URL: `docs/MAC-BUILD.md`, `docs/STEAMDECK.md`, `docs/WINDOWS-PLAYBOOK.md`, `docs/PHONE-PORTS.md`, `docs/VERIFIED-FIXES.md`, `docs/README.md`.
+
+## 8. Done / deferred (2026-10-03)
+
+The owner approved the proposal on 2026-10-03 ("your cleanup ideas sound fine, go for it"). Only the stages that
+could be fully checked on the Windows machine, without starting the game and without touching the owner's
+uncommitted files, were done. No history was rewritten and nothing was pushed by the session that did it.
+
+| stage | state | what was done, or why not |
+|---|---|---|
+| 0 untrack `.pyc`, `grep.exe.stackdump` | done earlier on 2026-10-03 | |
+| 1 lab residue -> `lab-residue/` | **done**, commit `d7c606d` | 9 files moved (`0x501918/` with 4 screenshots, `drive5.csv`, `fx.csv`, `lfe-sweep.wav`, `swap-renderer.ps1`, `test-drive.ps1`). 3 Markdown links and 5 text mentions updated. The owner's uncommitted `tools/ffb/FfbMixer.ps1` and `ffb-lfe-demo.ps1` name none of them (`FfbMixer.ps1` names the script `ffb-lfe-sweep.ps1`, not the `.wav`), so `lfe-sweep.wav` moved too. Nothing was deleted |
+| 2 `.ahk` sources -> `ahk/` | **deferred** | the owner's uncommitted `tools/ffb/FfbMixer.ps1` looks `i76-remap.ahk` up at the root; moving them needs that file committed or the owner's say. Mac and Deck scripts also read them and cannot be run here |
+| 3 configs -> `config/` | **deferred** | the Deck installer fetches `dgVoodoo.conf` by raw URL from `main`; the change is only live once pushed and cannot be tested on this machine |
+| 4, 4b Mac scripts -> `mac/`, `setup-steamdeck.sh` -> `deck/` | **deferred** | need one run each on the Mac and the Deck |
+| 5 Windows scripts -> `windows/` | **deferred** | `PLAY-i76.ps1` runs from two places (the repo and the game folder it is copied into); the highest-risk stage, to be done alone with an installer test |
+| 6 save editor -> `save-editor/` | **deferred** | not asked for in this pass; low risk, covered by `tests/` |
+| 7 docs into topic folders | **not done; the cheaper alternative was taken** | see the next row |
+| "records only" docs move (section 5, second alternative) | **done**, commit `21f9757` | 48 files moved to `docs/records/` (list below). 267 Markdown links in 45 files re-pathed, including every relative link inside a moved file; 136 plain-text mentions of `docs/<NAME>` in 51 files that are not records re-pathed (AGENTS.md, README, CHANGELOG, living docs, comments in scripts and sources, `index.html`'s PHONE-PORTS card). Plain-text paths inside the records were left as written (constraint 9); `docs/README.md` carries the note. Two records stay in `docs/` because they are still being added to: `DOC-CORRECTIONS-PENDING-SIBLINGS.md` and this file |
+| 8 proxies -> `proxies/` | **deferred** | optional; every installer reads those folders |
+
+Section 5 said the records move leaves AGENTS.md and `index.html` untouched. That was wrong: AGENTS.md named three
+records and `index.html` linked one (`PHONE-PORTS.md`); both were updated in the same commit.
+
+**Left on purpose.** `music-fix/strlkproxy.c` keeps `docs/HEALTH-BAR-COLOUR.md` inside one log string, so the
+source still builds the shipped `Strlkup.dll`; the comments in that file were re-pathed. `u32x/u32x_full.c` is kept
+byte-identical to its lab revision and names `docs/MENU-REBUILD-DESIGN.md` in two comments. The OpenGLide patch
+file under `tools/openglide-hd/` is third-party text and was not edited.
+
+**Checks after the moves (2026-10-03).** Every relative link in every tracked `.md` resolves (149 files, 1,285
+links, 0 broken; 0 broken before the moves too). The PowerShell parser passes on all 57 `.ps1` / `.psd1` files.
+`python -m pytest tests/ -q`: 156 passed. `sh -n` passes on every `.sh` and `.command` at the root and in `deck/`.
+None of `INSTALL.bat`, `MAKE-PORTABLE.bat`, `Setup-From-GOG.ps1`, `install.ps1`, `setup-windows.ps1`,
+`Make-Portable-Zip.ps1`, `PLAY-i76.ps1`, `LAUNCHER.ps1`, `Setup-FrameGen.ps1`, `tools\Make-Daily-Driver.ps1`,
+`deck\*.sh`, `*.sh` or `*.command` names a moved file by its old path (36 files searched for each moved name; the
+only hits are two messages in `Make-Daily-Driver.ps1` and two comments in `deck/setup-deck-baseline.sh`, already
+re-pathed). Not run: the game, `INSTALL.bat`, `Make-Portable-Zip.ps1`, anything on the Mac or the Deck.
+
+**Outside this repo.** References from the sibling repos to moved paths are listed in
+`docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md` (the "paths in this repo that moved" section): one for the residue, and
+for the records 26 hits in 23 lab files and 1,302 hits in 224 i76-map files, most of them evidence `source` stamps.
+No live tool in either sibling opens a moved file by path. The owner's untracked `tools/rdp-to-console.cmd` and
+one memory note name `docs\FRESH-START-METHOD.md`.
+
+### Move table
+
+| old path | new path |
+|---|---|
+| `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav`, `swap-renderer.ps1`, `test-drive.ps1` (root) | `lab-residue/<same name>` |
+| `docs/<NAME>` for each of the 48 names below | `docs/records/<NAME>` |
+
+The 48: `BACKLOG-2026-10-02.md`, `STATUS-2026-10-02.md`, `PLAYTEST-2026-10-02.md`, `NEW-DAILY-DRIVER-RECIPE.md`, `READY-TO-TEST.md`, `OUTREACH-DRAFT.md`, `FPS-120.md`, `FRAMERATE-COVERAGE-2026-10-02.md`, `PER-FRAME-AUDIT-2026-10-03.md`, `FRAMERATE-UNCAP-RESEARCH.md`, `HEALTH-BAR-COLOUR.md`, `GRAPHICS-ENHANCEMENT.md`, `RENDERER-ALTERNATIVES.md`, `FARCLIP-CAMERA-CRASH.md`, `MENU-HD-ART.md`, `MODERN-PORTS-AND-VR.md`, `DECK-INPUT-SCIENCE.md`, `DECK-BASELINE.md`, `FFB-DEEP-DIVE.md`, `FFB-DATA-AUDIT.md`, `FFB-LAPTOP-RECON.md`, `FFB-MORNING-TEST.md`, `SIM-RUMBLE-RESEARCH.md`, `MOTION-SIM.md`, `SOUND-INTERPOSER-REVIEW.md`, `SHELL-MENU-AND-SAVE-FREEZE.md`, `MENU-USABILITY-PLAN.md`, `MENU-REBUILD-DESIGN.md`, `SAVES-STATE-AND-TEST-PLAN.md`, `SAVES-LEG-A-RUN-2026-10-01.md`, `SAVES-LEG-B-RUN-2026-10-01.md`, `SAVE-ORPHAN-INVESTIGATION.md`, `SAVE-EDITOR-STATUS-2026-10-02.md`, `MOUNT-VALIDATION.md`, `MAC-SETUP.md`, `PORTING-WINDOWS-WINS-TO-MAC.md`, `FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md`, `MODERN-SETUP.md`, `WHAT-THIS-IS-dgvoodoo.txt`, `RUNNING-I76-EVERYWHERE.md`, `i76-research-full.txt`, `PHONE-PORTS.md`, `GHIDRA-MEMORY-MAP.md`, `STATIC-RE-FABLE.md`, `MW2-I76-STRUCTS.md`, `FRESH-START-2026-09-04.md`, `FRESH-START-METHOD.md`, `DEBUG-MENU-FIELD-TEST.md`.
