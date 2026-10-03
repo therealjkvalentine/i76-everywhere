@@ -23,6 +23,7 @@ inside records were not.
 
 | You want | Read |
 |---|---|
+| The controls, to sit down and play (keyboard, mouse, gamepad, wheel and stick) | [CONTROLS.md](CONTROLS.md) |
 | What this repo adds, and how far each thing is proven | [ENHANCEMENTS.md](ENHANCEMENTS.md) |
 | Every fix as symptom, cause, fix | [VERIFIED-FIXES.md](VERIFIED-FIXES.md) |
 | What is open | [BACKLOG-2026-10-02.md](records/BACKLOG-2026-10-02.md) (read the superseded-rows note at its top) |
@@ -100,6 +101,7 @@ Binding rules are in [`../AGENTS.md`](../AGENTS.md): `input.map` is the only liv
 
 | | Doc | What it is |
 |---|---|---|
+| living | [CONTROLS.md](CONTROLS.md) | Start here: the four control setups on one page (all keyboard, keyboard and mouse, gamepad, wheel and stick), the shared keys, and the five common faults |
 | living | [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) | The two-tier control design: critical actions never depend on one platform's layer |
 | living | [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md) | Xbox pad on PC and Mac through the native joystick path |
 | living | [INPUT-REMAPPER.md](INPUT-REMAPPER.md) | The AutoHotkey layer inside the Wine / Proton prefix (shift layer, mouse buttons, wheel) |

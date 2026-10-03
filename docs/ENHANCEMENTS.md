@@ -40,6 +40,9 @@ The one rule behind all of it: the engine reads `input.map` and nothing else, an
 menu corrupts that file ([AGENTS.md](../AGENTS.md), [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md)). The layouts are drawn
 from the live configs in the [README](../README.md#the-gamepad-layout).
 
+**To sit down and play, read [CONTROLS.md](CONTROLS.md)**: the four control setups (all keyboard, keyboard and mouse,
+gamepad, wheel and stick), the keys they share, and the common faults, on one page.
+
 | enhancement | what the player gets | how to turn it on | evidence status | doc |
 |---|---|---|---|---|
 | Native gamepad (baseline tier) | Any Xbox pad drives the game through the engine's own joystick bindings: analog steer and throttle, fire, cycle weapon, handbrake, a special, camera glance. No Steam Input, no emulation | `setup-windows.ps1` (Windows) or [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) (Mac) patches `input.map` to `joystick1`. Connect the pad before launching | Field-tested 2026-07-14: `joystick1` token confirmed, buttons A=1 / X=3 confirmed; "still to confirm: buttons B=2 / Y=4 and 5-10" | [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md), [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) |
