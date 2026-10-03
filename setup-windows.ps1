@@ -5,15 +5,21 @@
 #      GOG 2019 / AiO build (MD5 60abf7bc699da72476128ddce991a3d1).
 #   2. Moves GOG's bundled OpenGLide DLLs aside (so dgVoodoo's Glide2x.dll wins).
 #   3. Copies dgVoodoo2's x86 Glide DLLs + control panel into the game folder.
-#   4. Installs dgVoodoo.windows.conf as the game folder's dgVoodoo.conf
-#      (19.2 FPS physics cap - matches Mac; Voodoo1 2MB TMU, 3x res, 8x MSAA; starts
-#      FULLSCREEN aspect-correct, Alt+Enter toggles windowed, mouse correct
-#      in both via dgVoodoo cursor emulation).
+#   4. Installs the game folder's dgVoodoo.conf. Since 2026-10-03, for the base game with the
+#      default -Preset best-120: dgVoodoo.daily-driver-2026-10-03.conf, the conf of the owner's
+#      daily driver (proven ACCEPTED by dgVoodoo 2.87.3; FPSLimit 0, 16:10 picture, 2x internal
+#      resolution, 4x MSAA). With -Preset stock, and always for the Nitro Pack:
+#      dgVoodoo.windows.conf as before (19.2 FPS physics cap, 8x MSAA).
 #   5. Patches input.map: GOG's phantom joystick5 -> joystick1, adds native
 #      mouse driving + pad bindings (port of setup-mouse-and-pad.sh; idempotent;
 #      backup written beside it). NEVER rebind via the in-game menu - it's buggy.
-#   6. Writes PLAY-i76.bat (launches i76.exe -glide from the game folder) and a
-#      desktop shortcut.
+#   6. Writes PLAY-i76.bat (PLAY-i76.ps1 -Preset <the -Preset given here, default best-120>),
+#      PLAY-stock.bat (the same folder with -Preset stock: no engine switches) and a desktop
+#      shortcut to PLAY-i76.bat (-NoShortcut skips the shortcut; nothing is then written
+#      outside the game folder).
+#   Also (5a2b, base game, preset other than stock): renames GOG's I76PATCH.DLL (the 20 fps
+#      cap of the 2019 offline build) to I76PATCH.DLL.disabled, as on the daily driver; with it
+#      loaded every 60/120 preset runs at 20. -Preset stock renames it back.
 #   Also (5a3, base game only): installs the USER32 proxy u32x.dll and retargets the
 #      USER32 imports of i76.exe and i76shell.dll to it - the menu / save-screen mouse
 #      mapping and the Save Bookmark ghosting fix. Source, md5 and provenance of the
@@ -39,12 +45,25 @@ param(
     # The USER32 proxy to install (step 5a3). Default: the committed, sandbox-verified
     # minimal build (u32x\u32x.dll, md5 a5927cea; built from u32x\u32x_min.c).
     [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x.dll'),
-    [switch]$NoU32x
+    [switch]$NoU32x,
+    # Which presets\<name>.psd1 the installed PLAY-i76.bat hands to PLAY-i76.ps1 (base game only;
+    # the Nitro Pack has no proxy and always gets the stock recipe). best-120 is the owner's
+    # daily driver since 2026-10-03. "stock" installs what this script installed before that
+    # date: the 19.2 fps dgVoodoo cap, I76PATCH.DLL left active, no engine switches.
+    [string]$Preset = 'best-120',
+    # Do not create the desktop shortcut (the only thing this script writes outside -GameDir).
+    [switch]$NoShortcut
 )
 
 $ErrorActionPreference = 'Stop'
 $repoGameDir = $PSScriptRoot
 $isNitro = ($Exe -ieq 'nitro.exe')
+if ($isNitro) { $Preset = 'stock' }
+if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "presets\$Preset.psd1"))) {
+    Write-Host "Unknown -Preset '$Preset' (no presets\$Preset.psd1 in $repoGameDir)." -ForegroundColor Red
+    exit 1
+}
+$fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
 
 # --- 1. sanity ---------------------------------------------------------------
 # NOTE: local var deliberately NOT named $exe - PowerShell variables are
@@ -61,12 +80,18 @@ if (-not (Test-Path $exePath)) {
 if ($isNitro) {
     Write-Host "Nitro Pack ($Exe): same engine, same recipe - no built-in FPS limiter, so the conf cap is load-bearing here."
 } else {
-    $md5 = (Get-FileHash $exePath -Algorithm MD5).Hash.ToLower()
+    # after a first run i76.exe carries the u32x import rename; the build is identified by the kept original
+    $md5From = if (Test-Path "$exePath.u32xorig") { "$exePath.u32xorig" } else { $exePath }
+    $md5 = (Get-FileHash $md5From -Algorithm MD5).Hash.ToLower()
     if ($md5 -eq '60abf7bc699da72476128ddce991a3d1') {
         Write-Host "i76.exe is the known-good GOG 2019 / AiO build (20 FPS limiter built in)." -ForegroundColor Green
     } else {
-        Write-Host "i76.exe MD5 = $md5 - NOT the verified GOG 2019 build (60abf7bc...)." -ForegroundColor Yellow
-        Write-Host "Setup continues, but VERIFY THE CAP after launch (see checklist in the repo README)."
+        Write-Host "i76.exe MD5 = $md5 - NOT the GOG 2019 build (60abf7bc...) the presets were gated on." -ForegroundColor Yellow
+        if ($fastPreset) {
+            Write-Host "Setup continues. Preset $Preset has NOT been run on this build: the proxy checks the bytes at every patch site and skips a mismatch (<game>\mciproxy.log lists each). If the game runs too fast, re-run with -Preset stock."
+        } else {
+            Write-Host "Setup continues, but VERIFY THE CAP after launch (see checklist in the repo README)."
+        }
     }
 }
 
@@ -120,6 +145,52 @@ Write-Host "dgVoodoo Glide + DirectDraw DLLs + control panel deployed."
 
 # --- 4. config ---------------------------------------------------------------
 $confPath = Join-Path $GameDir 'dgVoodoo.conf'
+$driverConf = Join-Path $repoGameDir 'dgVoodoo.daily-driver-2026-10-03.conf'
+if ($fastPreset -and (Test-Path $driverConf)) {
+    # The daily driver's conf (2026-10-03). dgVoodoo 2.87.3 REJECTS a whole conf over one line it
+    # does not like and then silently uses %APPDATA%\dgVoodoo\dgVoodoo.conf instead, so this file
+    # is deployed byte for byte wherever the display allows, and otherwise only the DIGITS of the
+    # two Resolution lines change (same keys, same sections, same compact WxH form, ASCII, CRLF).
+    #   [DirectX] Resolution: 1680x1050 as proven, or the largest smaller 16:10 mode that fits
+    #                         the panel (the mode list this script has always used).
+    #   [Glide]   Resolution: 2x the 16:10 frame at the panel's height. 1440 lines and taller
+    #                         -> 4608x2880, the proven value (measured on a 1440-line display;
+    #                         a taller panel keeps it rather than a GPU load nobody measured);
+    #                         1080 lines -> 3456x2160.
+    # Only the 1440-line result (the unchanged file) has been run. The others are computed.
+    $proven = [IO.File]::ReadAllText($driverConf, [Text.Encoding]::ASCII)
+    $conf = $proven
+    $dx = $null; $gl = $null
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+        $dx = @(1680,1050), @(1440,900), @(1280,800) |
+            Where-Object { $_[0] -le $b.Width -and $_[1] -le $b.Height } | Select-Object -First 1
+        $ph = [Math]::Min($b.Height, 1440); $pw = [int][Math]::Floor($ph * 1.6)
+        if ($pw -gt $b.Width) { $pw = $b.Width; $ph = [int][Math]::Floor($pw / 1.6) }
+        $gl = @((2 * $pw), (2 * $ph))
+    } catch { }
+    if ($gl) {
+        $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
+        $dxRx = New-Object regex '(?ms)(^\[DirectX\]\s.*?^Resolution\s*= )\d+x\d+'
+        $conf = $glRx.Replace($conf, ('${1}' + "$($gl[0])x$($gl[1])"), 1)
+        # a panel smaller than 1280x800 keeps the [DirectX] line as it is (this script always did)
+        if ($dx) { $conf = $dxRx.Replace($conf, ('${1}' + "$($dx[0])x$($dx[1])"), 1) }
+        # Same shape or nothing: apart from the Resolution digits the text must equal the proven file.
+        $mask = '(?m)^(Resolution\s*= )\d+x\d+'
+        if (($conf -replace $mask, '$1') -cne ($proven -replace $mask, '$1')) { $conf = $proven }
+    }
+    [IO.File]::WriteAllText($confPath, $conf, [Text.Encoding]::ASCII)
+    if ($conf -ceq $proven) {
+        Write-Host "dgVoodoo.conf installed: the daily-driver conf of 2026-10-03, unchanged (FPSLimit 0, [Glide] 4608x2880, 4x MSAA, borderless)."
+    } else {
+        $resNow = ([regex]::Matches($conf, '(?m)^Resolution\s*= (\d+x\d+)') | ForEach-Object { $_.Groups[1].Value }) -join ' / '
+        Write-Host "dgVoodoo.conf installed: the daily-driver conf of 2026-10-03 with [Glide] / [DirectX] Resolution $resNow for this display (computed; only 4608x2880 / 1680x1050 has been run)." -ForegroundColor Yellow
+    }
+    if (Test-Path (Join-Path $env:APPDATA 'dgVoodoo\dgVoodoo.conf')) {
+        Write-Host "  note: a global $env:APPDATA\dgVoodoo\dgVoodoo.conf exists on this PC. dgVoodoo uses it, silently, if it ever rejects the game folder's conf (a watermark or a 4:3 picture is the sign)." -ForegroundColor Yellow
+    }
+} else {
 Copy-Item (Join-Path $repoGameDir 'dgVoodoo.windows.conf') $confPath -Force
 
 # Window size is DISPLAY-DEPENDENT and dgVoodoo SNAPS it to a real enumerated
@@ -150,6 +221,7 @@ try {
 } catch {
     Write-Host "dgVoodoo.conf installed (couldn't read display size - left the default 1680x1050)." -ForegroundColor Yellow
 }
+}   # end: stock / Nitro conf
 
 # --- 5. input.map: joystick5 -> joystick1, mouse driving, pad bindings --------
 $mapPath = Join-Path $GameDir 'input.map'
@@ -255,6 +327,24 @@ if (-not $isNitro -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {
     }
 }
 
+# --- 5a2b. GOG's I76PATCH.DLL (the 2019 offline build's 20 fps cap) --------------
+# With it loaded a 60/120 preset runs its fixes under a 20 fps cap and looks like it does
+# nothing, so it is renamed (never deleted), as tools\Make-Daily-Driver.ps1 does for the daily
+# driver. -Preset stock puts it back. The 2017 Galaxy build ships no such file: nothing to do.
+if (-not $isNitro) {
+    $patchDll = Join-Path $GameDir 'I76PATCH.DLL'
+    $patchOff = "$patchDll.disabled"
+    if ($fastPreset -and (Test-Path $patchDll)) {
+        Move-Item $patchDll $patchOff -Force
+        Write-Host "I76PATCH.DLL -> I76PATCH.DLL.disabled (GOG's 20 fps cap off; preset $Preset paces the game)."
+    } elseif ($fastPreset) {
+        Write-Host "I76PATCH.DLL: not present$(if (Test-Path $patchOff) { ' (already disabled)' }) - nothing to do."
+    } elseif ((Test-Path $patchOff) -and -not (Test-Path $patchDll)) {
+        Move-Item $patchOff $patchDll
+        Write-Host "I76PATCH.DLL.disabled -> I76PATCH.DLL (preset stock: GOG's 20 fps cap back on)."
+    }
+}
+
 # --- 5a3. USER32 proxy (u32x.dll): menu / save-screen mouse ---------------------
 # The shell and the engine hit-test raw screen coordinates against 640x480 widget
 # rectangles, so under dgVoodoo's stretch the mouse lands wrong in the menus and the
@@ -323,7 +413,7 @@ if ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')) -and (Test-
 # build: gcc -O2 -s -mwindows -o i76wheel.exe i76wheel.c -luser32).
 Copy-Item (Join-Path $repoGameDir 'PLAY-i76.ps1') $GameDir -Force
 # The frame-rate presets PLAY-i76.ps1 -Preset reads (presets\*.psd1, data files). Copied beside
-# the launcher so the installed copy finds them; none is applied unless asked for.
+# the launcher so the installed copy finds them. PLAY-i76.bat below names the one to apply.
 $presetSrc = Join-Path $repoGameDir 'presets'
 if (Test-Path $presetSrc) {
     New-Item -ItemType Directory -Force (Join-Path $GameDir 'presets') | Out-Null
@@ -338,11 +428,26 @@ if (Test-Path $wheelExe) {
 }
 $batName = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY-i76.bat' }
 $bat = Join-Path $GameDir $batName
-Set-Content $bat "@echo off`r`nstart `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe $Exe`r`n" -Encoding ascii
+$launch = "start `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe $Exe"
+if ($fastPreset) {
+    # "-LosslessScaling none" as in the daily driver's PLAY.bat: the preset renders every frame
+    # itself, so frame generation is not started ("none" is not a path; an empty string would be
+    # swallowed by powershell.exe -File).
+    Set-Content $bat "@echo off`r`nREM Interstate '76, preset $Preset (see presets\$Preset.psd1). PLAY-stock.bat = no engine switches.`r`nREM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.`r`n$launch -Preset $Preset -LosslessScaling none" -Encoding ascii
+    Set-Content (Join-Path $GameDir 'PLAY-stock.bat') "@echo off`r`nREM The same folder with NO engine switches (preset stock). This is NOT the 20 fps game: this`r`nREM install has GOG's 20 fps cap off (I76PATCH.DLL.disabled, where GOG shipped one) and FPSLimit 0, so`r`nREM the frame rate is whatever dgVoodoo paces (60) and the physics are not corrected for it.`r`nREM For the game as GOG ships it (20 fps), re-run the setup with -Preset stock:`r`nREM   setup-windows.ps1 -GameDir <this folder> -Preset stock`r`n$launch -Preset stock -LosslessScaling none" -Encoding ascii
+} else {
+    Set-Content $bat "@echo off`r`n$launch`r`n" -Encoding ascii
+    # a PLAY-stock.bat left by an earlier best-120 setup would describe a state that is gone
+    $staleStock = Join-Path $GameDir 'PLAY-stock.bat'
+    if (-not $isNitro -and (Test-Path $staleStock)) { Remove-Item $staleStock -Force }
+}
 # Desktop shortcut is a convenience, NOT load-bearing - never let it abort setup
 # (e.g. a redirected/OneDrive Desktop, or a detached session where the shell folder
 # can't be written). PLAY-i76.bat in the game folder is always the real entry point.
 try {
+    if ($NoShortcut) {
+        Write-Host "$batName created (-NoShortcut: no desktop shortcut)."
+    } else {
     $ws = New-Object -ComObject WScript.Shell
     $desktop = [Environment]::GetFolderPath('Desktop')
     if ($desktop -and (Test-Path $desktop)) {
@@ -362,13 +467,19 @@ try {
     } else {
         Write-Host "$batName created (Desktop not writable here - skipped the shortcut)." -ForegroundColor Yellow
     }
+    }   # end: -NoShortcut
 } catch {
     Write-Host "$batName created (couldn't write the desktop shortcut: $($_.Exception.Message))." -ForegroundColor Yellow
 }
 
 Write-Host ""
 Write-Host "DONE. Boot takes 60-75s of 'PLEASE STAND BY' - ESC skips the intro." -ForegroundColor Green
-Write-Host "Verify the cap in Instant Melee (no flips on bumps; AI cars exceed 35 mph),"
-Write-Host "then the canonical test: Mission 5's ramp jump."
+if ($fastPreset) {
+    Write-Host "$batName starts preset $Preset (120 fps, physics stepped as at 20); PLAY-stock.bat starts the same folder with no engine switches."
+    Write-Host "Check in Instant Melee: smooth picture, no flips on bumps; then Mission 5's ramp jump."
+} else {
+    Write-Host "Verify the cap in Instant Melee (no flips on bumps; AI cars exceed 35 mph),"
+    Write-Host "then the canonical test: Mission 5's ramp jump."
+}
 Write-Host "Optional: enable-force-feedback.bat AS ADMIN for FFB wheels/sticks."
 Write-Host "Connect controller BEFORE launching - the engine enumerates joysticks at startup only."

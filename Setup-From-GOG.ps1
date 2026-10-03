@@ -4,9 +4,11 @@
   You bring: the GOG offline installer(s) you downloaded from gog.com/account
              (setup_interstate76_*.exe, and optionally the Nitro Pack one).
   This does: silent-installs the game (+ Nitro Pack) from those .exe files, then
-             applies every improvement in this repo - dgVoodoo (20fps physics cap,
-             sharp Voodoo look, MSAA), the corrected input.map (mouse driving +
-             gamepad), the cutscene-music fix hook, and a desktop launcher.
+             applies every improvement in this repo - dgVoodoo (sharp Voodoo look,
+             MSAA), the music-fix proxy with the best-120 preset (120 fps, physics
+             stepped as at 20; -Preset stock = the earlier 20 fps recipe), the menu
+             mouse fix (u32x), the corrected input.map (mouse driving + gamepad),
+             the controller layer, and a desktop launcher.
 
   Ships NO copyrighted game files. The bytes come from YOUR GOG .exe; this repo is
   only scripts + config.
@@ -16,6 +18,8 @@
     ./Setup-From-GOG.ps1 -GameDir "D:\Games\Interstate 76"
     ./Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe" -NitroExe "C:\path\setup_interstate76_nitro_pack_2.1.0.17.exe"
     ./Setup-From-GOG.ps1 -SkipNitro          # base game only
+    ./Setup-From-GOG.ps1 -Preset stock       # the pre-2026-10-03 recipe: 20 fps, no engine switches
+    ./Setup-From-GOG.ps1 -NoShortcut         # no desktop shortcut
 
   Or just double-click INSTALL.bat.
 #>
@@ -25,6 +29,8 @@ param(
     [string]$GameDir  = "C:\GOG Games\Interstate 76",  # GOG's own default: user-writable, so the installer stays headless (no UAC)
     [string]$ToolsDir = "C:\Games\_tools",
     [switch]$SkipNitro,
+    [string]$Preset = 'best-120',   # handed to install.ps1 / setup-windows.ps1; 'stock' = the old recipe
+    [switch]$NoShortcut,            # no desktop shortcut (the GOG installer itself still writes its registry keys)
     [switch]$Force,      # re-run the GOG installer even if i76.exe already exists
     [switch]$Yes
 )
@@ -96,12 +102,15 @@ Say "  $GameDir  (i76.exe MD5 $((Get-FileHash $exePath -Algorithm MD5).Hash.ToLo
 
 # --- 2. apply every repo improvement (delegates to install.ps1) --------------
 # install.ps1 fetches dgVoodoo2 into $ToolsDir and runs setup-windows.ps1:
-#   dgVoodoo config (FPS cap / Voodoo1 look / MSAA / 14:9), input.map (mouse + pad),
-#   saves, PLAY-i76.bat + desktop shortcut.
+#   dgVoodoo config, music-fix proxy, u32x, I76PATCH.DLL rename, input.map (mouse + pad),
+#   saves, PLAY-i76.bat (-Preset best-120) + PLAY-stock.bat + desktop shortcut.
 Say "`nApplying i76-everywhere improvements ..." 'Cyan'
-$installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir }
+$installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir; Preset = $Preset }
 if ($Yes)            { $installArgs['Yes'] = $true }
+if ($NoShortcut)     { $installArgs['NoShortcut'] = $true }
+$global:LASTEXITCODE = 0
 & (Join-Path $repo 'install.ps1') @installArgs
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
 # --- 3. cutscene-music fix (optional, if the proxy DLL has been built) --------
 $smack = Join-Path $repo 'smack-music-fix\SMACKW32.DLL'
@@ -115,6 +124,8 @@ if (Test-Path $smack) {
 }
 
 Say "`n=== DONE ===" 'Green'
-Say "Play from the desktop shortcut `"Interstate '76`" (or PLAY-i76.bat in the game folder)."
+if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
+else             { Say "Play from the desktop shortcut `"Interstate '76`" (or PLAY-i76.bat in the game folder)." }
+if ($Preset -ne 'stock') { Say "PLAY-i76.bat = preset $Preset; PLAY-stock.bat = the same folder with no engine switches." }
 Say "First boot: ~60-75s of 'PLEASE STAND BY' - ESC skips the intro."
 Say "To move this working install to another PC, run:  ./Make-Portable-Zip.ps1"
