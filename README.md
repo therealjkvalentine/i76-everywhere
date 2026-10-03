@@ -71,8 +71,8 @@ starting `-Preset best-120`, with `PLAY-stock.bat` beside it. `-Preset stock` on
 installs the earlier 20 fps recipe instead. Evidence: the apply step was run on an unpacked copy of GOG's
 2.1.0.17 installer and checked by file listing, md5, the `input.map` lint and the launcher's `-DryRun`;
 **the game was not started from it**, and `best-120` has not been run on the exe that installer gives
-(`9a232dcc`; the gates ran on `60abf7bc`). The installer deploys the repo's `u32x.dll` (`a5927cea`), not the
-daily driver's newer `054fb411`, which is not in this repo. Details and the full not-tested list:
+(`9a232dcc`; the gates ran on `60abf7bc`). Since 2026-10-03 the installer deploys the daily driver's u32x build
+(`u32x/u32x_full.dll`, `054fb411`; source in [u32x/](u32x/README.md)); `-U32xDll u32x\u32x.dll` gives the minimal `a5927cea`. Details and the full not-tested list:
 [INSTALL.md, Evidence](INSTALL.md#evidence-what-was-tested).
 Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz analysis:
 [docs/records/FPS-120.md](docs/records/FPS-120.md).

@@ -54,7 +54,9 @@ __pycache__/
 sound-rumble/dsound.dll
 rumble-fingerprints.ini
 u32x/u32x.build.dll
+u32x/u32x_full.build.dll
 u32x/build.log
+u32x/build-full.log
 u32x/*.obj
 u32x/*.exp
 u32x/*.lib

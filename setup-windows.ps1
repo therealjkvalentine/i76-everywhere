@@ -43,9 +43,11 @@ param(
     [string]$AhkDir = "",  # folder holding AutoHotkeyU32.exe; enables the pad/XInput layer
     [string]$Exe = "i76.exe",  # "nitro.exe" for the GOG Nitro Pack - identical recipe
                                # (verified 2026-07-10, FINDINGS doc sec 1.1)
-    # The USER32 proxy to install (step 5a3). Default: the committed, sandbox-verified
-    # minimal build (u32x\u32x.dll, md5 a5927cea; built from u32x\u32x_min.c).
-    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x.dll'),
+    # The USER32 proxy to install (step 5a3). Default since 2026-10-03: the build the daily
+    # driver runs (u32x\u32x_full.dll, md5 054fb411; built from u32x\u32x_full.c; also maps the
+    # Esc menu). The minimal build is still here: -U32xDll u32x\u32x.dll (md5 a5927cea).
+    # deploy-u32x.ps1 accepts only an md5 on its KnownGood list.
+    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x_full.dll'),
     [switch]$NoU32x,
     # Which presets\<name>.psd1 the installed PLAY-i76.bat hands to PLAY-i76.ps1 (base game only;
     # the Nitro Pack has no proxy and always gets the stock recipe). best-120 is the owner's

@@ -28,6 +28,12 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 - **u32x**: lab build `054fb411` added to `deploy-u32x.ps1`'s known-good list (gated 2026-10-02/03: leg-b 3/3,
   trip route 120 fps, save screen, Esc-menu Exit, melee). Its source is in the lab repo; `u32x/u32x.dll` here is
   still `a5927cea`.
+- **u32x full build in this repo** (the binary is the one gated above; `[built, untested]` on a fresh GOG
+  install): `u32x/u32x_full.c` + `u32x_full.def` (lab `src/u32x.c` at lab commit `68a8a39`) and the gated binary
+  `u32x/u32x_full.dll` (`054fb411`). `u32x/build-full.ps1` rebuilds it: same size, 4 bytes differ, all link-time
+  stamps. `setup-windows.ps1` now installs this build by default (`-U32xDll u32x\u32x.dll` for the minimal one).
+- **Repo tidy** (docs/REPO-ORGANIZATION-PROPOSAL.md): lab residue moved to `lab-residue/`; the 48 dated records
+  moved to `docs/records/`. No installer or launcher moved.
 - Docs: stale statements corrected or annotated, `docs/README.md` rewritten as an index of every doc,
   `docs/REPO-ORGANIZATION-PROPOSAL.md` added; tracked `.pyc` files and `grep.exe.stackdump` removed.
 - Save-editor tests re-run: 156 passed with the lab saves folder present, 133 on the repo samples alone.

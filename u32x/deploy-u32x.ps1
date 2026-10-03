@@ -17,7 +17,8 @@
   This is the repo's port of ..\i76-uncap-lab\tools\instruments\deploy-shellfix.ps1 (which
   string-searched for "USER32.dll"; this one patches the import descriptor's own name).
 
-      u32x\deploy-u32x.ps1 -GameDir <dir>                 # install the committed u32x.dll
+      u32x\deploy-u32x.ps1 -GameDir <dir>                 # install the committed u32x.dll (minimal build)
+      u32x\deploy-u32x.ps1 -GameDir <dir> -U32xDll u32x\u32x_full.dll   # the daily driver's build
       u32x\deploy-u32x.ps1 -GameDir <dir> -Status
       u32x\deploy-u32x.ps1 -GameDir <dir> -Restore        # put the original binaries back
       u32x\deploy-u32x.ps1 -GameDir <dir> -U32xDll <path> -AllowUnverified   # a test build
@@ -39,8 +40,9 @@ $ErrorActionPreference = 'Stop'
 # md5 -> what it is. Source and provenance: u32x\README.md.
 $KnownGood = @{
     'a5927cea02697657ce2102be766b5616' = 'u32x_min: 2026-08-16 build + DisableProcessWindowsGhosting (sandbox-verified 2026-10-02)'
-    # Lab build (source in ..\i76-uncap-lab\src, not in this repo; binary kept there as
-    # src\u32x_gated_054fb411.dll). The 2026-10-03 daily driver runs this one.
+    # u32x_full.dll in this folder (source u32x_full.c = lab src\u32x.c at lab commit 68a8a39;
+    # the lab keeps the same binary as src\u32x_gated_054fb411.dll). The 2026-10-03 daily
+    # driver runs this one, and setup-windows.ps1 installs it by default.
     '054fb411d57c275f9a6ebcf9a99893e6' = 'gated 2026-10-02/03: leg-b 3/3, trip route 120 fps, save screen, Esc-menu Exit, melee'
 }
 

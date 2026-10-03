@@ -124,7 +124,9 @@ Tested on 2026-10-03, **without starting the game**:
   with no analog `steer` / `throttle` block.
 - Result, by file listing and md5: `dgVoodoo.conf` identical to the daily-driver conf (`fd68005a`, on a
   3440x1440 display); `Strlkup.dll` = the repo's proxy with `strlkup_orig.dll` `e5951e0f`; `u32x.dll`
-  `a5927cea` with exactly 10 bytes changed in each of `i76.exe` and `i76shell.dll`; six preset files
+  `a5927cea` with exactly 10 bytes changed in each of `i76.exe` and `i76shell.dll` (that run used the
+  installer's default of the day; since later on 2026-10-03 the default is `u32x\u32x_full.dll`, `054fb411`:
+  see the not-tested list); six preset files
   identical to the repo's; `PLAY-i76.bat` and `PLAY-stock.bat` as described; `tools\lint-input-map.py`
   OK; `PLAY-i76.ps1 -Preset best-120 -DryRun` prints the eleven `I76_*` values and the game folder as
   working directory.
@@ -147,9 +149,13 @@ Tested on 2026-10-03, **without starting the game**:
 - Whether dgVoodoo accepts the conf with other `Resolution` digits. Only the unchanged file
   (1440-line display) is proven accepted. Signs of a rejected conf: a dgVoodoo or 3dfx watermark, a
   4:3 picture.
-- `u32x.dll` `a5927cea` at run time on a fresh GOG install. The daily driver runs a newer build
-  (`054fb411`, also fixes the Esc menu) whose source and binary are in the lab repo and **not in this
-  one**, so the installer cannot deploy it.
+- `u32x.dll` at run time on a fresh GOG install, either build. Since 2026-10-03 the installer deploys the
+  daily driver's build (`u32x\u32x_full.dll`, md5 `054fb411`, also maps the Esc menu; source
+  `u32x\u32x_full.c`). Checked without the game: `deploy-u32x.ps1` on scratch copies of GOG's `i76.exe`
+  (`9a232dcc`) and `i76shell.dll` accepts it (every imported USER32 name is exported), changes exactly 10
+  bytes in each file, and `-Restore` returns both to their original md5. Its gate ran on the lab sandbox
+  and the daily driver, not on a fresh GOG folder, and the whole installer was not re-run with it.
+  `setup-windows.ps1 -U32xDll u32x\u32x.dll` installs the minimal build (`a5927cea`) instead.
 - The `joystick1`-only analog blocks on hardware (they are the form of `docs/input.map.reference`
   and of the daily driver's map).
 - The Nitro Pack path (unchanged).
