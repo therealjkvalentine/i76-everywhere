@@ -29,9 +29,21 @@
 param(
     [ValidateSet('emulated', 'free', 'raw')] [string]$Mode,
     [switch]$Show,
-    [string]$GameDir = 'C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76'
+    [string]$GameDir = ''
 )
 $ErrorActionPreference = 'Stop'
+if (-not $GameDir) {
+    # No built-in default onto the playable install (AGENTS.md "never test on the playable
+    # install"; backlog P3-12 - this parameter used to default to the daily driver's path).
+    # Order: $env:I76_GAME_DIR, the folder this script sits in or beside (an installed copy),
+    # then the lab sandbox. Anything else has to be named with -GameDir.
+    $cands = @($env:I76_GAME_DIR, (Split-Path $PSScriptRoot -Parent), (Join-Path (Split-Path $PSScriptRoot -Parent) 'Interstate 76'),
+               (Join-Path (Split-Path $PSScriptRoot -Parent) '..\i76-uncap-lab\game'))
+    $GameDir = $cands | Where-Object { $_ -and (Test-Path (Join-Path $_ 'i76.exe')) } | Select-Object -First 1
+    if (-not $GameDir) { throw "No game folder: pass -GameDir <folder with i76.exe> or set I76_GAME_DIR." }
+    $GameDir = (Resolve-Path $GameDir).Path
+}
+Write-Host "game folder: $GameDir" -ForegroundColor DarkGray
 
 $conf = Join-Path $GameDir 'dgVoodoo.conf'
 if (-not (Test-Path $conf)) { throw "no dgVoodoo.conf in $GameDir" }

@@ -5,6 +5,139 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 
 ## Unreleased
 
+### 2026-10-02 (commits `c9e2695..7c998bf` plus the release-hygiene pass)
+
+Status words are the ones [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 6 asks for: `[verified in play]`,
+`[measured, sandbox]`, `[built, untested]`, `[retracted]`. "Sandbox" is `..\i76-uncap-lab\game`; **nothing in
+this block is deployed to the playable install.** Session record: [docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md),
+owner's console run: [docs/PLAYTEST-2026-10-02.md](docs/PLAYTEST-2026-10-02.md), open work:
+[docs/BACKLOG-2026-10-02.md](docs/BACKLOG-2026-10-02.md).
+
+Binaries of our own code at the end of the day: `music-fix/Strlkup.dll` 172,032 B, md5
+`cf7329ea89660faa0d9299c754463c7b` (commit `7c998bf`; MSVC 2019 x86, `cl /nologo /LD /MT /O2 /W3
+/D_CRT_SECURE_NO_WARNINGS strlkproxy.c /link user32.lib` via `music-fix/build.ps1`); `u32x/u32x.dll` 75,264 B,
+md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DEF:u32x.def user32.lib`).
+
+#### Added
+
+- **The whole switch set played at the console** `[verified in play]` (sandbox, owner, n = 1): in-mission music,
+  F6 hood view and B binoculars at `I76_FAR_CLIP=1800`, flamer, music slider, AI behaviour, the Mission 5 jump
+  without nitrous, the out-of-gas jumps, body roll, keyboard save. Why the jumps and body roll work:
+  `I76_FIXED_STEP=24` steps 41.67 ms, the measured mean step of stock play at 20 fps.
+- **120 fps: `I76_GLIDE_REFRESH=<hz>`** `[measured, sandbox]`: the 60 fps ceiling was `ZGLIDE.DLL` asking
+  dgVoodoo for `GR_REFRESH_60Hz` in `grSstWinOpen`; the proxy repoints that import (through a `LoadLibraryA`
+  hook) and substitutes the refresh code. 120.1 fps, dt 8.34 ms sd 0.06, physics still 24 steps/s, hood view and
+  binoculars fine at 1800 m; melee entries at 120 passed 10 of 10. Not played by a person at 120.
+  [docs/FPS-120.md](docs/FPS-120.md).
+- **Trainer**: `Local\I76Trainer` control block in the proxy (god mode, unlimited ammo, no flats, component
+  hold, freeze, held on the game thread; repair / teleport / ammo / stop one-shots; forced Play Options bits) and
+  `tools/trainer/i76trainer_gui.py` + `TRAINER.bat` `[measured, sandbox]`: `trainer_live_test.py` 13/13 (a 40 m
+  drop costs 156 hp without god mode, 0 with); GUI attached to the live game, toggles reflected.
+- **Four opt-in frame-rate coverage switches** (backlog P2-05,
+  [docs/FRAMERATE-COVERAGE-2026-10-02.md](docs/FRAMERATE-COVERAGE-2026-10-02.md)); all four apply on the sandbox
+  (coll-window 3/3 sites, ai-fixes 6/6, far-engine-dt 1/1, mirror-rate 2/2 on the AiO layout):
+  - `I76_AI_FIXES` `[measured, sandbox]`: AI dodge gate 2.87 checks/s at 20 fps, 8.90 at 60 unheld, 3.17 at 60
+    with the switch, 17.19 at 120 unheld (A/A first, n = 2).
+  - `I76_MIRROR_RATE` `[measured, sandbox]`: 10 mirror redraws/s with the switch; on the sandbox exe (GOG's AiO
+    layout) the mirror otherwise redraws every frame.
+  - `I76_COLL_WINDOW` `[built, untested]`: applies; the cactus-gauntlet acceptance run aborts on the direct-boot
+    arena and was not ported.
+  - `I76_FAR_ENGINE_DT` `[built, untested]`: applies; no acceptance driver yet.
+- **`I76_FRAMERATE_FIXES`: oil slick and fire patch contact effect held to the 20 Hz grid** `[built, untested]`
+  (commit `7c998bf`): the impact template and its sound fired once per rendered frame in contact (field report
+  at 120 fps: "the oil slick sound plays too fast"). Not yet measured live.
+- **"Insert CD 2" prompt explained and mitigated** (backlog P1-09) `[measured, sandbox]`: the prompt fires when
+  `startup_IsMinimum` 0x4b2220 answers 1, which on the pristine exes happens because `RegCreateKeyExA(...,
+  KEY_ALL_ACCESS)` on the existing HKLM key is denied to a non-elevated process (the 6-of-21 split was launcher
+  elevation); GOG's AiO exes carry `xor eax,eax; ret` there. The proxy now sets the current directory to the game
+  folder at load (always on; `I76_CWD_FIX=0` disables), and `I76_CD_FAKE=1` (opt-in) answers 0 when
+  `<game>\miss8` is a directory. `I76_CD_LOG=1` (opt-in since the evening, see Retracted) logs the modal with its
+  cause.
+- **Far clip on a file-patched exe** `[measured, sandbox]`: the proxy recognises the file patch and takes over the
+  read (`far-clip: exe is file-patched (1800 m, pools x16); read site repointed`). Soak at 1800 m (backlog
+  P1-14): trip missions t01-t17 clean with hood view and binoculars (t14 inconclusive); melee/arena missions are
+  not direct-bootable and remain untested at 1800 m.
+- **`u32x/`: the USER32 proxy's source, build script, deploy script and verified binary are in this repo**
+  (backlog P3-02). The binary is the lab's `u32x_min` build (the 2026-08-16 revision + the DWM ghosting call)
+  `[measured, sandbox]`: bookmark route to DONE 2/2, `TEST-FRAMERATE` option 6 through the trip menus 2/2 at
+  120.0 fps, option 5 1/1 at 60.0, Save Bookmark after 10 s idle (row click, SAVE twice, overwrite prompt).
+  Provenance and md5 in [u32x/README.md](u32x/README.md); a rebuild from the committed source differs from the
+  committed DLL in 6 bytes (link stamps).
+- **A fresh install and the portable zip now get u32x** (backlog P3-03) `[built, untested]`: `setup-windows.ps1`
+  step 5a3 and `Make-Portable-Zip.ps1` (staged copy only) call `u32x\deploy-u32x.ps1`, which refuses a DLL that
+  is not a recorded verified build, checks that it exports every USER32 function `i76.exe` and `i76shell.dll`
+  import before writing anything, keeps the originals and reads every write back (`-U32xDll`, `-NoU32x`). Run
+  offline against scratch copies of the pristine GOG binaries only (10 bytes changed per file, `-Restore`
+  returns the original md5); the fresh-install console run (RELEASE-PLAN section 7 item 3) is still owed.
+- **Docs**: the prioritised backlog (76 rows, 28 stale-claim pairs), the session status, the playtest record,
+  [docs/HEALTH-BAR-COLOUR.md](docs/HEALTH-BAR-COLOUR.md), [docs/MOUNT-VALIDATION.md](docs/MOUNT-VALIDATION.md)
+  (static: no class check at load; the turret rule applies only on DONE),
+  [docs/SAVE-EDITOR-STATUS-2026-10-02.md](docs/SAVE-EDITOR-STATUS-2026-10-02.md),
+  [docs/EDITOR-FIELD-TESTS.md](docs/EDITOR-FIELD-TESTS.md).
+
+#### Changed
+
+- **`I76_FIX_HEALTH_PCT=1` is now `min(28 + 72 x side, 100 x core)`** `[measured, sandbox]`
+  (`health_pct_live_test.py`: stock 0.99 / x100-only 99.0 / min 49.6 on a 30 % armour car with a 99 % engine).
+  The x100-only reading made the enemy target bar rise and go green on scratched cars (owner's playtest);
+  `=2` keeps it for comparison.
+- **Save editor rewritten on the game's own record frame** (`.cmp` = PartNode 0x20 + PartRec 0x54; the old
+  editors read every part 32 bytes late) `[measured, sandbox]`: 172 tests, byte-exact round trips on 46 saves,
+  HTML == Python, and seven in-game probes (condition colour thirds; state 2 = van, 4 = salvage; **the garage's
+  weapon list holds 11 records, a mounted weapon past the 11th reads EMPTY**; bench has no cap; the van holds
+  >= 5 suspensions; vtf repaint works; spc01 = "Radar Jammer"; the LOAD label is scene + (state == 1)).
+- **No tool defaults to the playable install any more** (backlog P3-12) `[built, untested]`: `LAUNCHER.ps1` and
+  `tools/cursor-mode.ps1` take `-GameDir`, else `I76_GAME_DIR`, else an install beside the script, else the lab
+  sandbox, else stop (LAUNCHER's title bar names the folder); `music-fix/build.ps1 -Install` lost the daily
+  driver and `C:\Games\Interstate 76` from its fallback list. **If you started `LAUNCHER.ps1` with no arguments
+  to configure the daily driver, pass `-GameDir` or set `I76_GAME_DIR` now.** Parse-checked, and `cursor-mode.ps1
+  -Show` run read-only against the sandbox; the LAUNCHER window itself was not opened.
+- **`music-fix/build.ps1` builds under a captured stderr** `[measured]` (no game involved): the MSVC branch
+  aborted under `ErrorActionPreference Stop` because the in-`cmd` redirect covered `cl` but not `vcvars32.bat`'s
+  "vswhere is not recognized" line. The chain is parenthesised, `-Msvc` forces the branch, `build-msvc.ps1` is
+  now a wrapper for it, and the dead `$fwd` list is gone. `build-msvc.ps1` run from a captured-stderr shell:
+  172,032 B, x86, exit 0 (the test build was discarded; the committed DLL is unchanged).
+- **`tools/check-ffb.ps1` names** (backlog P3-18, i76-map L083/L084) `[built, untested]`: `0x52bbcc` is printed as
+  the `Forcefeed` heap handle, not an "effect object"; `[0x52bbe4]` (device presence in the static map) is
+  printed for information; the registry key line is informational, since no registry key gates FFB in the exe.
+  The verdict logic (`0x52bbd0` and `0x52bbdc`) is unchanged. Not run against a live game.
+- **`THIRD-PARTY.md`** (backlog P3-05): the committed binaries of our own code are stated; rows added for
+  Lossless Scaling, opentrack, GE-Proton, Steam ROM Manager, input-remapper, w64devkit, the MSVC build tools,
+  RAD Smacker, Cheat Engine, the RE tools, i76fix / D2DX, the VC5 media; the dgVoodoo row says where it is
+  fetched from and makes **no** redistribution claim (the licence text was not checked).
+- **README**: the "Open improvements" table (a 2026-08-16 snapshot) is replaced by a pointer to the backlog and
+  the status doc (backlog P3-07); the preset section says multiplayer is untested with any preset but `stock`
+  (P3-20). **CONTRIBUTING**: the committed `saves/` and the three own-code binaries are named exceptions to
+  "never commit save files / binaries" (P3-10).
+
+#### Fixed
+
+- **`LAUNCHER.ps1` "Save index" health check used the wrong `savegame.dir` model** (backlog P3-04) `[measured]`
+  (offline, on files): it wanted `0x28 + 60 x count` bytes, so every game-written file read as "TRUNCATED" (the
+  sandbox's own 9-bookmark file is 544 B = `4 + 60 x 9`; the old check wanted 580). It now checks
+  `size >= 4 + 60 x count`, reports padding as harmless, and flags records whose state is not 1 or 8. Layout:
+  `u32 count`, then `{u32 scene, char name[32], char file[16], u32 state, u32 0}` at `4 + 60k`.
+- **Save Bookmark screen mouse** (owner's playtest row 8) `[measured, sandbox]`: fixed by the ghosting call in the
+  u32x build above (with `u32x_min`: 10 s idle, row click, SAVE twice, overwrite prompt reached by mouse; the
+  full mouse-only save through YES was shown with the withdrawn `037fcb3a` build, which carries the same call).
+- **18 stale or contradictory doc claims** in this repo (backlog section 2), and on 2026-10-02 the remaining
+  sibling-repo ones listed in [docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md](docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md)
+  were applied in `i76-uncap-lab` and `i76-map`.
+
+#### Retracted
+
+- **Fullscreen Esc-menu Exit fix** `[retracted]`: the rebuilt u32x with the Esc-menu box mapping (md5 `037fcb3a`)
+  reached the Exit button but **broke TRIP -> LOAD BOOKMARK -> garage -> DONE** (leg-b B1.9: 4 of 4 failing;
+  found by the owner on `TEST-FRAMERATE` option 6). It had been tested on the direct mission boot, melee, the Esc
+  menu and the save screen, not on the bookmark route. The sandbox went back to `u32x_min`; use the keyboard in
+  that menu.
+- **Always-on CD-prompt instrument** `[retracted]`: its `shell_cb_17` wrapper forwards one argument on an
+  unverified signature and logged a -1 on the failing route. It was not the cause, but it is now opt-in
+  (`I76_CD_LOG=1`).
+- **`savegame.dir` "0x28 header, 36 bytes short on every save"** and **the `.cmp` "truncated final record"**
+  `[retracted]`: both were our parsers off by a constant (AGENTS.md invariant rewritten; the launcher's check
+  above was the last code site).
+
 - **Frame-rate presets for players (backlog P2-03)** `[built, dry-run tested]`: `PLAY-i76.ps1 -Preset <name>`
   reads `presets\<name>.psd1` (`stock`, `smooth-60`, `smooth-60-bugfixes`, `smooth-120`, `lab-all`; `-Preset ?`
   lists them) and hands the `I76_*` switches to the game process only; `-DryRun` prints the command line and

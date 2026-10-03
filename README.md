@@ -43,26 +43,28 @@ GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launch
 Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz analysis:
 [docs/FPS-120.md](docs/FPS-120.md).
 
-## Open improvements
+**Multiplayer is untested with any preset other than `stock`** (backlog P3-20): the fixed step and the
+interpolation change when the simulation advances, and nobody has run two machines against each other with
+them on. Play online on `stock` until someone has.
 
-Live backlog of things still worth fixing, **non-frame-rate** ones first because they affect
-normal play at any frame rate. (Frame-rate-specific bugs have their own tracked list in
-[`../i76-uncap-lab/docs/framerate/MEASUREMENTS.md`](../i76-uncap-lab/docs/framerate/MEASUREMENTS.md).)
+## Open work
 
-> **Sitting down to test?** [docs/READY-TO-TEST.md](docs/READY-TO-TEST.md) — the one-page checklist of
-> what to click. It is a 2026-08-16 snapshot and its deployment claims carry dated corrections (the u32x
-> save/mouse fix is deployed and verified, the camera-rate patch is **not** deployed, the save-name typing
-> question closed 2026-09-07); the live state table is [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 1
-> and the work list is [docs/BACKLOG-2026-10-02.md](docs/BACKLOG-2026-10-02.md).
+There is no backlog table in this README any more (the one that stood here was a 2026-08-16 snapshot and kept
+going stale). The live lists:
 
-| # | Issue | Status / leads |
-|---|---|---|
-| 1 | **Saving/popups freeze the game** ("not responding") + the mouse does nothing / lands wrong | ✅ **Root cause solved; `u32x` v2 deployed to the daily driver and verified in play** (corrected 2026-10-02: this row said "v2 built 2026-08-16 and awaiting verification"; the sandbox harness saved through Enter/overwrite and through typing with no freeze on 2026-10-01, [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) "Saves", and the owner's field test on 2026-10-02 saved from the keyboard with no freeze) — [docs/SAVE-FREEZE-ROOT-CAUSE.md](docs/SAVE-FREEZE-ROOT-CAUSE.md). The shell hit-tests raw `GetCursorPos` screen coords against its 640×480 button rects. The **`u32x` USER32 proxy** (`i76-uncap-lab/src/u32x.c`, deploy via `tools/instruments/deploy-shellfix.ps1`) translates screen↔640×480. **v1 shipped inert**: `FindWindowA` returned NULL (so it disabled itself), and its "value already in range → don't translate" guard mis-read black-bar coordinates, while its untranslated `ClipCursor` trapped the pointer in the physical top-left box. **v2** finds the window via `EnumWindows` on our own PID and translates unconditionally from live geometry. **Still open (field 2026-10-02):** the mouse is dead on the Save Bookmark screen only — keyboard saving works — and the fullscreen Esc menu cannot reach its Exit button (raw coordinates); both are backlog P1 items |
-| 1b | **"Always says overwriting on a new save"** | Mechanism found (not the `save-01` allocator): the Save screen **pre-fills the name with the loaded bookmark's name**, so SAVE matches an existing entry → overwrite prompt. With the freeze fixed, YES now saves; a new slot needs a new name. Nicer fix (default a fresh name) deferred — see the doc |
-| 1c | **Save-name text box is hard to type into** | ✅ **Fixed 2026-09-07, field-confirmed ("yep that's it")** (corrected 2026-10-02: the ring-buffer / focus theory this row carried was wrong). The cause was **two patched bytes in the pack-lineage `i76shell.dll`** (`+0x1C12B`: `mov ecx,0x40` / `lea edi,[esp+0xC]` vs stock `0x41` / `[esp+8]`) that left ToAscii's output word uncleared, so at most one character landed. `tools\fix-shell-textentry.ps1` repairs it, `PLAY-i76.ps1` re-applies it at launch, and both installs hold the stock bytes. The two-byte repair alone restores saving — the DWM-ghosting fix is not needed for it. Details in [docs/SAVE-FREEZE-ROOT-CAUSE.md](docs/SAVE-FREEZE-ROOT-CAUSE.md) |
-| 4 | **Force feedback — wheel + bass shakers** (T300RS, Aura transducers on an EVO 4) | 🔧 **Both halves built, never yet run together — [docs/READY-TO-TEST.md](docs/READY-TO-TEST.md) A7.** RPM found at `0x4F2334` (inside the FFB param block at `0x4f2328`, *not* in the vehicle struct — the entity scan was a true null). Shift detection is unit-tested but has never seen a real drive, so its thresholds are still guesses. Shaker chain is measured clean end to end after the root-cause fix (WAVEHDRs were in managed memory, so the driver's WHDR_DONE never reached the audio thread — that was the 'buzz'). Open question: whether world explosions reach the effect table at all, or only the player's own. Tools: `ffb-lfe-live.ps1`, `ffb-lfe-probe.ps1`, `ffb-lfe-trace.ps1`, `ffb-find-rpm-wide.ps1` |
-| 2 | Shell/menu architecture background (why menus, garage, popups and save all behave alike) | [docs/SHELL-MENU-AND-SAVE-FREEZE.md](docs/SHELL-MENU-AND-SAVE-FREEZE.md) — one shell (`i76shell.dll`) drives them all |
-| 3 | **Draw distance + texture LOD** — landscapes pop in late; high-res textures only appear close | ✅ **Draw distance CRACKED & sandbox-verified (2026-08-16) — [docs/DRAW-DISTANCE.md](docs/DRAW-DISTANCE.md).** Far clip is a per-mission WDEF field (all missions = 600 m) read through one global (`0x4C271C`); patched to any value + the fixed 512K render pool that crashed above ~3000 m enlarged 16×. Verified at 1800/5000 m, 60 fps flat, screenshots + soak tests. **Caution (2026-10-02): keep it at or below 2500 m.** Wide views (hood F6, binoculars B) overflow the terrain tessellator's 16-bit vertex indices between 2500 and 2750 m and crash the game ([docs/FARCLIP-CAMERA-CRASH.md](docs/FARCLIP-CAMERA-CRASH.md)); 5000 only survived because those views were never used in the soak. `patch-farclip.ps1` (file) or `I76_FAR_CLIP=<m>` in the proxy (refuses values above 2500). The sandbox file patch is at 1800 m and was **console-verified by the owner 2026-10-02** (F6 hood view and B binoculars good); **not deployed to the portable** (corrected 2026-10-02: this row said "awaiting console eyeball test"). Texture-LOD half deferred: far mips are hand-authored pak data (doc has the path) |
+- **[docs/BACKLOG-2026-10-02.md](docs/BACKLOG-2026-10-02.md)**: every open problem and unknown in one prioritised
+  table (P1 normal play, P2 the 60 fps experience, P3 release hygiene, P4 RE completeness), each row with its
+  evidence state, what resolving it needs, and the cheapest next step.
+- **[docs/STATUS-2026-10-02.md](docs/STATUS-2026-10-02.md)**: what the last session built, how each item was
+  verified, and what was left open or withdrawn.
+- [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 1 is the state table (what is deployed where);
+  [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) is the record of what is fixed, with root causes.
+
+The topics the old table covered, and where each lives now: saving / popups / menu mouse
+([docs/SAVE-FREEZE-ROOT-CAUSE.md](docs/SAVE-FREEZE-ROOT-CAUSE.md), [u32x/README.md](u32x/README.md),
+[docs/SHELL-MENU-AND-SAVE-FREEZE.md](docs/SHELL-MENU-AND-SAVE-FREEZE.md)); force feedback with wheel and bass
+shakers ([tools/ffb/README.md](tools/ffb/README.md), backlog P3-17); draw distance and texture LOD
+([docs/DRAW-DISTANCE.md](docs/DRAW-DISTANCE.md), [docs/FARCLIP-CAMERA-CRASH.md](docs/FARCLIP-CAMERA-CRASH.md)).
 
 ## The gamepad layout
 

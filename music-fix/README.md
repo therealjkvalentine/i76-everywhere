@@ -77,14 +77,17 @@ original as `strlkup_orig.dll` and drops the proxy in as `Strlkup.dll`.
 
 ## Build
 
-A prebuilt 32-bit `Strlkup.dll` is committed here (148,480 B; it is our own code and contains no Activision
-bytes — it loads the GOG `strlkup_orig.dll` by name, so it works on any GOG install). To rebuild after editing
+A prebuilt 32-bit `Strlkup.dll` is committed here (it is our own code and contains no Activision bytes — it
+loads the GOG `strlkup_orig.dll` by name, so it works on any GOG install). Its size and md5 change with every
+rebuild, so they are not quoted as a constant here: as of commit `7c998bf` (2026-10-02) it is 172,032 B, md5
+`cf7329ea89660faa0d9299c754463c7b`; `git log -1 -- music-fix/Strlkup.dll` and the CHANGELOG entry of a release
+give the current one (corrected 2026-10-02: this said 148,480 B, the 2026-09-27 build). To rebuild after editing
 `strlkproxy.c`, run `build.ps1`:
 
 - **Preferred: w64devkit's 32-bit gcc** (`-Gcc`, default `C:\Games\_tools\w64devkit\bin\gcc.exe`), compiling
   `strlkproxy.c` with `strlkup.def`. w64devkit is portable, no installer — but **optional**: it is not installed
   on the lab machine and the committed DLL was not built with it.
-- **Fallback: MSVC x86** (what actually built the committed binary, most recently 2026-09-27). If gcc is absent,
+- **Fallback: MSVC x86** (what actually built every committed binary). If gcc is absent, or with `-Msvc`,
   `build.ps1` finds `vcvars32.bat` under the Visual Studio Build Tools and runs
   `cl /LD /MT /O2 strlkproxy.c /link user32.lib`. `link.exe` does not emit forwarders to another DLL from either
   the `.def` or `/EXPORT:name=strlkup_orig.name` (it reports the five as unresolved externals), so the source
@@ -92,11 +95,19 @@ bytes — it loads the GOG `strlkup_orig.dll` by name, so it works on any GOG in
   address `GetProcAddress(strlkup_orig.dll, …)` resolved in `DllMain`, and the DATA export
   `StrLookup_Global_Object` is handled by repointing i76.exe's IAT slot at the original's variable (see the
   comment block "FORWARDING THE FIVE Strlkup EXPORTS WITHOUT LINKER FORWARDERS" in `strlkproxy.c`). Either
-  toolchain therefore produces a working DLL from the same source. (`build.ps1` still assembles a `$fwd` list of
-  `/EXPORT:` switches for the MSVC branch but does not pass it to `cl`; it is dead code.)
+  toolchain therefore produces a working DLL from the same source. (The dead `$fwd` list of `/EXPORT:`
+  switches that `build.ps1` used to assemble and never pass to `cl` was removed 2026-10-02.)
+- **`build-msvc.ps1` is now `build.ps1 -Msvc`.** It was written because the MSVC branch of `build.ps1` aborted
+  under `$ErrorActionPreference = 'Stop'` whenever stderr was captured (an agent's tool call, `2>&1`):
+  `vcvars32.bat` prints a benign "'vswhere.exe' is not recognized", and the in-`cmd` redirect covered only the
+  last command of the `&&` chain (`cl`), not `vcvars32.bat`. The chain is now parenthesised so the whole of it
+  goes to `build.log`, and the one native call runs under `'Continue'`. Checked 2026-10-02: `build-msvc.ps1`
+  from a captured-stderr shell builds 172,032 B, x86, exit 0.
 - The script is **non-destructive**: it builds to `Strlkup.build.dll`, checks the PE machine field is 0x14c
-  (32-bit) and only then replaces `Strlkup.dll`. `-Install` deploys to the running game / `$env:I76_GAME_DIR` /
-  the usual locations.
+  (32-bit) and only then replaces `Strlkup.dll`. `-Install` deploys to `-GameDir`, else the running game's
+  folder, else `$env:I76_GAME_DIR`, else the lab sandbox (`..\..\i76-uncap-lab\game`). The daily driver's path
+  was in that fallback list until 2026-10-02 and has been removed: promoting a build to the playable install is
+  a deliberate copy with a `.pre-<date>` kept beside it (AGENTS.md), never a side effect of `-Install`.
 
 ## How the music hook works
 

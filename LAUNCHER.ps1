@@ -16,12 +16,27 @@
   old behaviour. What is NOT here yet: showing the proxy's mciproxy.log lines after a run
   (backlog P2-03 wanted that too) - read <game dir>\mciproxy.log by hand for now.
 
-      powershell -ExecutionPolicy Bypass -File LAUNCHER.ps1
+      powershell -ExecutionPolicy Bypass -File LAUNCHER.ps1 -GameDir "<folder with i76.exe>"
+
+  -GameDir has no built-in default onto the playable install (2026-10-02, backlog P3-12): with
+  none given it takes $env:I76_GAME_DIR, then an install this script sits in or beside, then the
+  lab sandbox (..\i76-uncap-lab\game). The window title names the folder it is looking at.
 #>
 param(
-    [string]$GameDir = 'C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76'
+    [string]$GameDir = ''
 )
 $ErrorActionPreference = 'Stop'
+if (-not $GameDir) {
+    # No built-in default onto the playable install (AGENTS.md "never test on the playable
+    # install"; backlog P3-12 - this parameter used to default to the daily driver's path).
+    # Order: $env:I76_GAME_DIR, the folder this script sits in or beside (an installed copy),
+    # then the lab sandbox. Anything else has to be named with -GameDir.
+    $cands = @($env:I76_GAME_DIR, $PSScriptRoot, (Join-Path $PSScriptRoot 'Interstate 76'),
+               (Join-Path $PSScriptRoot '..\i76-uncap-lab\game'))
+    $GameDir = $cands | Where-Object { $_ -and (Test-Path (Join-Path $_ 'i76.exe')) } | Select-Object -First 1
+    if (-not $GameDir) { throw "No game folder: pass -GameDir <folder with i76.exe> or set I76_GAME_DIR." }
+    $GameDir = (Resolve-Path $GameDir).Path
+}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
@@ -116,14 +131,32 @@ function Get-Health {
 
     $dir = Join-Path $g 'savegame.dir'
     if (Test-Path $dir) {
+        # savegame.dir = u32 count, then 60-byte records at 4 + 60k:
+        #   { u32 scene, char name[32], char file[16], u32 state (1 post-mission / 8 garage), u32 0 }
+        # A game-written file is exactly 4 + 60*count bytes (the shell's dir_WriteAndSave; 15 of
+        # 15 game-written files on this machine). The "0x28 header, 36 bytes short" model this
+        # check used until 2026-10-02 was the save editor's misframe (AGENTS.md; backlog P3-04).
+        # Longer is fine - older launchers padded with zeros and the reader stops at count.
         $d = [IO.File]::ReadAllBytes($dir)
-        $n = [BitConverter]::ToUInt32($d, 0)
-        $want = 0x28 + $n * 60
-        $ok = $d.Length -ge $want
-        $out += , @('Save index',
-                    $(if ($ok) { "$n bookmarks, index intact" }
-                      else { "TRUNCATED - $($d.Length) bytes, needs $want (the launcher re-pads at start)" }),
-                    $(if ($ok) { 'ok' } else { 'warn' }))
+        if ($d.Length -lt 4) {
+            $out += , @('Save index', "UNREADABLE - $($d.Length) bytes, no record count", 'bad')
+        } else {
+            $n = [BitConverter]::ToUInt32($d, 0)
+            $want = 4 + $n * 60
+            $ok = $d.Length -ge $want
+            $badState = 0
+            if ($ok) {
+                for ($k = 0; $k -lt $n; $k++) {
+                    $st = [BitConverter]::ToUInt32($d, 4 + 60 * $k + 52)
+                    if ($st -ne 1 -and $st -ne 8) { $badState++ }
+                }
+            }
+            $txt = if (-not $ok) { "SHORT - $($d.Length) bytes, $n records need $want (4 + 60 x count)" }
+                   elseif ($badState) { "$n bookmarks; $badState with a state other than 1/8 (i76-save-editor.py --check)" }
+                   elseif ($d.Length -gt $want) { "$n bookmarks, index intact (+$($d.Length - $want) bytes of padding, harmless)" }
+                   else { "$n bookmarks, index intact" }
+            $out += , @('Save index', $txt, $(if ($ok -and -not $badState) { 'ok' } else { 'warn' }))
+        }
     } else { $out += , @('Save index', 'no savegame.dir - no bookmarks installed', 'warn') }
 
     $music = Join-Path $g 'Strlkup.dll'
@@ -139,7 +172,7 @@ function Get-Health {
 
 # ------------------------------------------------------------------------------- the form ---
 $form                 = New-Object Windows.Forms.Form
-$form.Text            = "Interstate '76 - launcher"
+$form.Text            = "Interstate '76 - launcher - $($script:GameDir)"
 $form.Size            = New-Object Drawing.Size(880, 720)
 $form.StartPosition   = 'CenterScreen'
 $form.Font            = New-Object Drawing.Font('Segoe UI', 9)

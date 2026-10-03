@@ -20,6 +20,11 @@ param(
     [switch]$IncludeSaves,   # include your savegames in the portable zip
     [switch]$IncludeFrameGen,# bundle Lossless Scaling too (your licence, your PCs only)
     [switch]$IncludeHeadTrack,# bundle opentrack + the head-tracking scripts (opentrack is GPL)
+    # The USER32 proxy the bundle carries (menu / save-screen mouse fix). Default: the committed,
+    # sandbox-verified minimal build (u32x\u32x.dll, md5 a5927cea; source u32x\u32x_min.c).
+    # Applied to the STAGED copy only - the source install is never modified.
+    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x.dll'),
+    [switch]$NoU32x,          # leave the staged copy's u32x state exactly as the source install has it
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
@@ -119,6 +124,25 @@ Copy-Item (Join-Path $repo 'PLAY-i76.ps1') $gameOut -Force -ErrorAction Silently
 if (Test-Path (Join-Path $repo 'presets')) {
     New-Item -ItemType Directory -Force (Join-Path $gameOut 'presets') | Out-Null
     Copy-Item (Join-Path $repo 'presets\*.psd1') (Join-Path $gameOut 'presets') -Force -ErrorAction SilentlyContinue
+}
+
+# --- USER32 proxy (u32x.dll) in the bundle -----------------------------------
+# Until 2026-10-02 the zip carried u32x only if the source install happened to have it, and
+# then whatever build was there. Install the recorded verified build into the staged copy
+# (import retarget of i76.exe + i76shell.dll, originals kept beside them; a different
+# u32x.dll already in the copy is kept as u32x.dll.pre-<md5>). u32x\README.md has the md5
+# and the source note; deploy-u32x.ps1 refuses a build that is not recorded as verified.
+$u32xDeploy = Join-Path $repo 'u32x\deploy-u32x.ps1'
+if ($NoU32x) {
+    Say "u32x: left as the source install has it (-NoU32x)." 'Yellow'
+} elseif (-not (Test-Path $u32xDeploy) -or -not (Test-Path $U32xDll)) {
+    Say "u32x: $u32xDeploy or $U32xDll missing - the bundle keeps the source install's state." 'Yellow'
+} else {
+    try {
+        & $u32xDeploy -GameDir $gameOut -U32xDll $U32xDll | ForEach-Object { Say "  u32x: $_" 'DarkGray' }
+    } catch {
+        Say "u32x NOT installed in the bundle: $($_.Exception.Message)" 'Yellow'
+    }
 }
 
 # --- optional: bundle Lossless Scaling (frame generation) --------------------

@@ -14,6 +14,11 @@
 #      backup written beside it). NEVER rebind via the in-game menu - it's buggy.
 #   6. Writes PLAY-i76.bat (launches i76.exe -glide from the game folder) and a
 #      desktop shortcut.
+#   Also (5a3, base game only): installs the USER32 proxy u32x.dll and retargets the
+#      USER32 imports of i76.exe and i76shell.dll to it - the menu / save-screen mouse
+#      mapping and the Save Bookmark ghosting fix. Source, md5 and provenance of the
+#      DLL: u32x\README.md. -U32xDll names another build (only recorded verified
+#      builds are accepted here), -NoU32x skips the step.
 #
 # NOT done here (separate, optional):
 #   - Force feedback: run enable-force-feedback.bat AS ADMINISTRATOR (HKLM write).
@@ -29,8 +34,12 @@ param(
     [string]$GameDir = "C:\Games\Interstate 76",
     [string]$DgVoodooDir = "C:\Games\_tools\dgVoodoo2_87_3",
     [string]$AhkDir = "",  # folder holding AutoHotkeyU32.exe; enables the pad/XInput layer
-    [string]$Exe = "i76.exe"   # "nitro.exe" for the GOG Nitro Pack - identical recipe
+    [string]$Exe = "i76.exe",  # "nitro.exe" for the GOG Nitro Pack - identical recipe
                                # (verified 2026-07-10, FINDINGS doc sec 1.1)
+    # The USER32 proxy to install (step 5a3). Default: the committed, sandbox-verified
+    # minimal build (u32x\u32x.dll, md5 a5927cea; built from u32x\u32x_min.c).
+    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x.dll'),
+    [switch]$NoU32x
 )
 
 $ErrorActionPreference = 'Stop'
@@ -243,6 +252,34 @@ if (-not $isNitro -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {
         Write-Host "In-mission music fix installed (Strlkup.dll proxy; original -> strlkup_orig.dll)."
     } else {
         Write-Host "In-mission music fix already installed - skipping."
+    }
+}
+
+# --- 5a3. USER32 proxy (u32x.dll): menu / save-screen mouse ---------------------
+# The shell and the engine hit-test raw screen coordinates against 640x480 widget
+# rectangles, so under dgVoodoo's stretch the mouse lands wrong in the menus and the
+# overwrite prompt can spin forever; and DWM ghosts the Save Bookmark screen after
+# ~5.9 s idle. u32x.dll translates the coordinates and switches ghosting off. Until
+# 2026-10-02 only the portable zip carried it - a fresh install had the bug (backlog
+# P3-03). deploy-u32x.ps1 checks, before writing anything, that the DLL exports every
+# USER32 function the two binaries import, keeps i76shell.dll.orig / i76.exe.u32xorig,
+# and reads each write back. Undo: u32x\deploy-u32x.ps1 -GameDir <dir> -Restore.
+# NOT YET PROVEN on a fresh GOG install end to end (needs a console run of
+# Setup-From-GOG.ps1 on a clean folder; RELEASE-PLAN section 7 item 3).
+$u32xDeploy = Join-Path $repoGameDir 'u32x\deploy-u32x.ps1'
+if ($NoU32x) {
+    Write-Host "u32x (menu/save-screen mouse fix) skipped (-NoU32x)."
+} elseif ($isNitro) {
+    Write-Host "u32x not installed for the Nitro Pack: its export list was built from i76.exe + i76shell.dll and has never been run with nitro.exe." -ForegroundColor Yellow
+} elseif (-not (Test-Path $u32xDeploy) -or -not (Test-Path $U32xDll)) {
+    Write-Host "u32x NOT installed: $u32xDeploy or $U32xDll is missing (menus will mis-map the mouse)." -ForegroundColor Yellow
+} else {
+    try {
+        & $u32xDeploy -GameDir $GameDir -U32xDll $U32xDll -Exe $Exe | ForEach-Object { Write-Host "  u32x: $_" }
+        Write-Host "Menu / save-screen mouse fix installed (u32x.dll; originals kept as i76shell.dll.orig, $Exe.u32xorig)."
+    } catch {
+        Write-Host "u32x NOT installed: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  The game still runs; the menu mouse will be mis-mapped under dgVoodoo's stretch." -ForegroundColor Yellow
     }
 }
 
