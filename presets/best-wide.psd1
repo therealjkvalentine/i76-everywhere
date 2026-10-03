@@ -1,4 +1,4 @@
-# best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
+﻿# best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
 # Needs the widescreen dgVoodoo conf (dgVoodoo.aspect-wide.conf: [Glide] Resolution 5160x2160, ScalingMode stretched);
 # the daily driver's PLAY.bat copies it in before launching. I76_ASPECT is this panel's shape (3440x1440); for another
 # display set it to that display's width x height. Menus, cutscenes and 2D text are stretched sideways (known cost).
@@ -17,6 +17,7 @@
         I76_FAR_CLIP        = '1800'
         I76_GLIDE_REFRESH   = '120'
         I76_ASPECT          = '3440x1440'
+        I76_U32X_MENU_ASPECT = '3440:1440'   # the mouse DLL maps the in-mission Esc menu to the full panel (verified: Exit answers where drawn)
         I76_TERRAIN_LOD     = '8'
         I76_TERRAIN_TEX     = '8'
         I76_OBJECT_LOD      = '8'
