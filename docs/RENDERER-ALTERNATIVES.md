@@ -456,3 +456,25 @@ Web, fetched 2026-10-02:
   adaptive frame generation and queue target: https://techenclave.com/t/lossless-scaling-3-1-adds-adaptive-frame-generation/273906
 - Not reachable today: zeus-software.com (bot wall), pcgamingwiki.com (403), web.archive.org (blocked),
   interstate76.fandom.com (402).
+
+## 11. Measured 2026-10-03 (game-alt, t01, fixed dgVoodoo conf as the control)
+
+`tools\renderers\renderer-matrix.ps1` (n = 1 each, `I76_GLIDE_REFRESH=120` unless stated) and `nglide-pacing.ps1`:
+
+| candidate | result |
+|---|---|
+| dgVoodoo 2.87.3 (control, fixed conf) | 120.1 fps, dt 8.33 ms; pointer free over the whole screen (clip 0,0-3440,1440) |
+| nGlide 2.10, Vulkan back end | did not open a window (no result) |
+| nGlide 2.10, Direct3D 9 back end | correct 4:3 picture; **124.9 fps** with the 120 request (dt 8.02 ms: an 8 ms timer, not vsync) |
+| nGlide D3D9, no refresh request, vsync off | **62.6 fps** (dt 16.00 ms), uncapped or with `I76_FPS_CAP=179` |
+| nGlide D3D9, no refresh request, vsync on | 60.0 fps |
+| DXVK 2.7.1 under dgVoodoo | did not open a window (no result) |
+| ReShade 6.8.0 (CAS + SMAA) over dgVoodoo | 120.1 fps, dt sd 0.05; picture as dgVoodoo (effect not judged by eye yet) |
+| DDrawCompat 0.7.1 as the DirectDraw layer | 120.1 fps |
+
+So nGlide also paces by the Glide refresh code (a 16 ms or 8 ms tick): it does not lift the 120 ceiling, and at 125
+it is unsynchronised where dgVoodoo is exact. **No tested wrapper reaches the panel's 179 Hz**; the remaining route is
+frame generation on top of 120 (Lossless Scaling, already owned). dgVoodoo with the fixed conf stays the renderer:
+exact pacing, supersampling + MSAA, and the pointer box that motivated this survey was the rejected-conf artefact.
+The first 179-cap run also exposed a proxy flaw (the cap's sleep ran on the 15.6 ms timer tick, so any cap above
+~64 fps delivered ~62); the proxy now requests 1 ms timer resolution.
