@@ -58,3 +58,8 @@ u32x/build.log
 u32x/*.obj
 u32x/*.exp
 u32x/*.lib
+
+# decoded / rebuilt game art (copyrighted): never committed (removed from history 2026-10-03)
+texture-lab/src/
+texture-lab/enhanced/
+texture-lab/build/

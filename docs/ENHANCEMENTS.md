@@ -238,9 +238,7 @@ of the repository, not legal advice.
   folder.
 - **Game art and audio, original or upscaled.** The texture and menu-art tools work on your own install and write
   their output to folders that are not committed ([MENU-HD-ART.md](MENU-HD-ART.md) section 9: "Upscaled derivatives
-  of the game's art are game data"; [texture-lab/README.md](../texture-lab/README.md) states the same rule). The
-  archived `texture-lab/` folder does carry a few sample files from the retired texture experiment (two dashboard
-  tiles and one level palette, with their edited and rebuilt versions).
+  of the game's art are game data"; [texture-lab/README.md](../texture-lab/README.md) states the same rule).
 - **Bulk decompiled listings.** THIRD-PARTY.md: decompiler output "is Activision's code in another form and is
   never committed here". The documents in this folder describe addresses, structures and behaviour.
 - **Third-party binaries.** THIRD-PARTY.md: "no third-party binaries". dgVoodoo, DxWnd, AutoHotkey, opentrack,
