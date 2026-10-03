@@ -20,6 +20,9 @@
     ./Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe" -NitroExe "C:\path\setup_interstate76_nitro_pack_2.1.0.17.exe"
     ./Setup-From-GOG.ps1 -SkipNitro          # base game only
     ./Setup-From-GOG.ps1 -Preset stock       # the pre-2026-10-03 recipe: 20 fps, no engine switches
+    ./Setup-From-GOG.ps1 -Preset best-wide   # opt-in widescreen (Hor+) + detail farther out; needs a display
+                                             # wider than 4:3; played only on 3440x1440 (others computed by
+                                             # tools\Make-Wide-Conf.ps1); menus stay stretched
     ./Setup-From-GOG.ps1 -NoShortcut         # no desktop shortcut
     ./Setup-From-GOG.ps1 -Controls stock     # keep GOG's 1997 keys (docs\CONTROLS.md)
 
@@ -31,7 +34,8 @@ param(
     [string]$GameDir  = "C:\GOG Games\Interstate 76",  # GOG's own default: user-writable, so the installer stays headless (no UAC)
     [string]$ToolsDir = "C:\Games\_tools",
     [switch]$SkipNitro,
-    [string]$Preset = 'best-120',   # handed to install.ps1 / setup-windows.ps1; 'stock' = the old recipe
+    [string]$Preset = 'best-120',   # handed to install.ps1 / setup-windows.ps1; 'stock' = the old recipe;
+                                    # 'best-wide' = opt-in widescreen (see Usage)
     [switch]$NoShortcut,            # no desktop shortcut (the GOG installer itself still writes its registry keys)
     [ValidateSet('', 'i76e', 'stock')]
     [string]$Controls = '',         # handed to install.ps1 / setup-windows.ps1; stock = GOG's 1997 keys
@@ -132,5 +136,6 @@ Say "`n=== DONE ===" 'Green'
 if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
 else             { Say "Play from the desktop shortcut `"Interstate '76`" (or PLAY-i76.bat in the game folder)." }
 if ($Preset -ne 'stock') { Say "PLAY-i76.bat = preset $Preset; PLAY-stock.bat = the same folder with no engine switches." }
+if ($Preset -eq 'best-wide') { Say "PLAY-16x10.bat = the tested 16:10 picture (best-120), if widescreen does not suit this display." }
 Say "First boot: ~60-75s of 'PLEASE STAND BY' - ESC skips the intro."
 Say "To move this working install to another PC, run:  ./Make-Portable-Zip.ps1"

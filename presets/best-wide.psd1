@@ -1,7 +1,9 @@
 ﻿# best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
-# Needs the widescreen dgVoodoo conf (dgVoodoo.aspect-wide.conf: [Glide] Resolution 5160x2160, ScalingMode stretched);
+# Needs the widescreen dgVoodoo conf (dgVoodoo.wide.conf: [Glide] Resolution 5160x2160, ScalingMode stretched);
 # the daily driver's PLAY.bat copies it in before launching. I76_ASPECT is this panel's shape (3440x1440); for another
-# display set it to that display's width x height. Menus, cutscenes and 2D text are stretched sideways (known cost).
+# display set it to that display's width x height (tools\Make-Wide-Conf.ps1 writes both the conf and this file's
+# values for one game folder; setup-windows.ps1 -Preset best-wide runs it). Menus, cutscenes and 2D text are
+# stretched sideways (known cost).
 @{
     Name        = 'best-wide'
     Summary     = 'Widescreen 21:9 (Hor+) + best-120 + detail farther out: terrain x8, textures x8, objects x8, bushes 300 m, shadows 200 m, roads 1800 m, mirror 300 m'

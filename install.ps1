@@ -22,6 +22,11 @@
     ./install.ps1 -GameDir "D:\Games\Interstate 76"
     ./install.ps1 -Yes                  # no prompts
     ./install.ps1 -Preset stock         # the pre-2026-10-03 recipe: 20 fps, no engine switches
+    ./install.ps1 -Preset best-wide     # opt-in widescreen (Hor+) + detail farther out, as the owner's
+                                        # daily driver since 2026-10-03; needs a display wider than 4:3.
+                                        # Played only on 3440x1440: other displays get computed values
+                                        # (tools\Make-Wide-Conf.ps1); menus stay stretched. PLAY-16x10.bat
+                                        # beside it starts the tested 16:10 picture (best-120).
     ./install.ps1 -Controls stock       # keep GOG's 1997 keys (default: this project's WASD-style
                                         # map, controls\input.map; see docs\CONTROLS.md)
     ./install.ps1 -GameDir <dir> -NoShortcut -SkipNitro   # write nothing outside <dir>
@@ -32,7 +37,8 @@
 param(
     [string]$GameDir = "",
     [string]$ToolsDir = "C:\Games\_tools",
-    [string]$Preset = 'best-120',   # handed to setup-windows.ps1 (base game); 'stock' = the old recipe
+    [string]$Preset = 'best-120',   # handed to setup-windows.ps1 (base game); 'stock' = the old recipe;
+                                    # 'best-wide' = opt-in widescreen (see Usage)
     [switch]$NoShortcut,            # no desktop shortcut
     [ValidateSet('', 'i76e', 'stock')]
     [string]$Controls = '',         # handed to setup-windows.ps1: i76e (its default) = this project's map,

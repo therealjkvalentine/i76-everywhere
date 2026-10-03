@@ -40,7 +40,7 @@ Useful switches:
 | `./Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe"` | Point at a specific installer |
 | `./Setup-From-GOG.ps1 -SkipNitro` | Base game only |
 | `./Setup-From-GOG.ps1 -Force` | Reinstall even if a game is already there |
-| `./Setup-From-GOG.ps1 -Preset stock` | The recipe from before 2026-10-03: 20 fps, no engine switches (see [Presets](#presets-best-120-and-stock)) |
+| `./Setup-From-GOG.ps1 -Preset stock` | The recipe from before 2026-10-03: 20 fps, no engine switches (see [Presets](#presets-best-120-stock-and-best-wide)) |
 | `./Setup-From-GOG.ps1 -NoShortcut` | No desktop shortcut |
 | `./Setup-From-GOG.ps1 -Controls stock` (or `INSTALL.bat -Controls stock`) | Keep GOG's 1997 keys. The default installs this project's own WASD-style control map (see [Controls](#controls-this-projects-map-or-the-1997-keys)) |
 | `./setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly` | On an install already made: switch the controls back to the 1997 keys and touch nothing else (`-Controls i76e` switches forward again) |
@@ -97,7 +97,7 @@ Double-click the **Interstate '76** desktop shortcut (or `PLAY-i76.bat`).
 First boot shows ~60–75 s of "PLEASE STAND BY" — press **ESC** to skip the intro.
 Run it at the PC itself, not over Remote Desktop (the game hangs on "PLEASE STAND BY" there).
 
-### Presets: best-120 and stock
+### Presets: best-120, stock and best-wide
 
 | Launcher | Preset | What you get |
 |---|---|---|
@@ -115,6 +115,23 @@ That swaps the conf, renames `I76PATCH.DLL.disabled` back, rewrites `PLAY-i76.ba
 and removes `PLAY-stock.bat`. Running it once more without `-Preset stock` returns to `best-120`.
 `PLAY-i76.ps1 -Preset ?` lists the other presets. **Play multiplayer on the `-Preset stock` install**:
 no other preset has been tested between two machines.
+
+**Widescreen (opt-in): `-Preset best-wide`.** The owner's daily driver has run this since 2026-10-03: the
+camera widened to the display's shape (Hor+, `I76_ASPECT`), plus terrain, texture, object, shadow, road,
+bush and mirror detail farther out ([presets/best-wide.psd1](presets/best-wide.psd1)). It is not the
+default because it has only been played on one display, a 3440x1440 panel. On that run the setup
+derives `dgVoodoo.wide.conf` from the installed 16:10 conf with
+[tools/Make-Wide-Conf.ps1](tools/Make-Wide-Conf.ps1). Two lines change: `[General] ScalingMode = stretched`
+and `[Glide] Resolution` = the display's shape at 2160 lines (5160x2160 on 3440x1440, byte-identical to
+the daily driver's conf). The script also writes the display's width x height into the installed copy of
+`presets\best-wide.psd1`: `I76_ASPECT` and the Esc-menu mouse map `I76_U32X_MENU_ASPECT`, which the repo
+copy sets to 3440x1440. `PLAY-i76.bat` copies the wide conf in before each start. **`PLAY-16x10.bat`**
+copies the 16:10 conf back and starts `best-120`. Known cost: the menus, cutscenes and in-mission text stay
+stretched to the display's shape ([docs/ENHANCEMENTS.md](docs/ENHANCEMENTS.md#5-graphics)). The setup
+refuses `best-wide` on a display that is not wider than 4:3. For another display later, run
+`tools\Make-Wide-Conf.ps1 -GameDir <game>` again. Tested offline only (2026-10-03, scratch copy, game not
+started): 3440x1440 gave the daily driver's conf and preset byte for byte; 2560x1080 gave 5120x2160 and
+`2560x1080` / `2560:1080`, both read back by `PLAY-i76.ps1 -DryRun`; a 4:3 display was refused.
 
 ### Evidence: what was tested
 

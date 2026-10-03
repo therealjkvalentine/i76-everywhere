@@ -10,6 +10,13 @@
 #      daily driver (proven ACCEPTED by dgVoodoo 2.87.3; FPSLimit 0, 16:10 picture, 2x internal
 #      resolution, 4x MSAA). With -Preset stock, and always for the Nitro Pack:
 #      dgVoodoo.windows.conf as before (19.2 FPS physics cap, 8x MSAA).
+#      -Preset best-wide (widescreen, opt-in): the same daily-driver conf is kept as
+#      dgVoodoo.16x10.conf, and tools\Make-Wide-Conf.ps1 derives dgVoodoo.wide.conf from it for
+#      THIS display ([General] ScalingMode = stretched, [Glide] Resolution = display aspect at 2160
+#      lines) and writes this display's W x H into the installed presets\best-wide.psd1
+#      (I76_ASPECT, I76_U32X_MENU_ASPECT; the repo copy says 3440x1440). PLAY-i76.bat copies the
+#      wide conf in before each start; PLAY-16x10.bat copies the 16:10 one back and runs best-120.
+#      Widescreen has been played only on a 3440x1440 panel; menus and cutscenes stay stretched.
 #   5. input.map, by -Controls (since 2026-10-03):
 #        i76e (default)  writes controls\input.map wholesale: this project's own WASD-style map
 #                        (the owner's daily-driver map), NOT the 1997 key layout. The map that
@@ -58,9 +65,9 @@ param(
     [string]$AhkDir = "",  # folder holding AutoHotkeyU32.exe; enables the pad/XInput layer
     [string]$Exe = "i76.exe",  # "nitro.exe" for the GOG Nitro Pack - identical recipe
                                # (verified 2026-07-10, FINDINGS doc sec 1.1)
-    # The USER32 proxy to install (step 5a3). Default since 2026-10-03: the build the daily
-    # driver runs (u32x\u32x_full.dll, md5 054fb411; built from u32x\u32x_full.c; also maps the
-    # Esc menu). The minimal build is still here: -U32xDll u32x\u32x.dll (md5 a5927cea).
+    # The USER32 proxy to install (step 5a3). Default since 2026-10-03: the gated full build
+    # (u32x\u32x_full.dll, built from u32x\u32x_full.c; also maps the Esc menu; the daily driver of
+    # 2026-10-03 runs its 054fb411 build, the md5 of the current one is in deploy-u32x.ps1's KnownGood). The minimal build is still here: -U32xDll u32x\u32x.dll (md5 a5927cea).
     # deploy-u32x.ps1 accepts only an md5 on its KnownGood list.
     [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x_full.dll'),
     [switch]$NoU32x,
@@ -68,6 +75,8 @@ param(
     # the Nitro Pack has no proxy and always gets the stock recipe). best-120 is the owner's
     # daily driver since 2026-10-03. "stock" installs what this script installed before that
     # date: the 19.2 fps dgVoodoo cap, I76PATCH.DLL left active, no engine switches.
+    # "best-wide" = the daily driver's widescreen set (Hor+, detail farther out); opt-in, because
+    # widescreen has only been played on one display (3440x1440). Needs a display wider than 4:3.
     [string]$Preset = 'best-120',
     # Do not create the desktop shortcut (the only thing this script writes outside -GameDir).
     [switch]$NoShortcut,
@@ -91,6 +100,26 @@ if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "pr
     exit 1
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
+$widePreset = ($Preset -eq 'best-wide')
+$wideTool = Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1'
+if ($widePreset -and -not $ControlsOnly) {
+    # refuse before anything is written: best-wide needs a display wider than 4:3 and the generator
+    $dispW = 0; $dispH = 0
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        $sb = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $dispW = $sb.Width; $dispH = $sb.Height
+    } catch { }
+    if ($env:I76_WIDE_DISPLAY -match '^(\d+)x(\d+)$') { $dispW = [int]$Matches[1]; $dispH = [int]$Matches[2] }   # override, e.g. for an offline test
+    if (-not (Test-Path $wideTool)) {
+        Write-Host "-Preset best-wide needs $wideTool (missing)." -ForegroundColor Red; exit 1
+    }
+    if ($dispW -le 0 -or ($dispW / $dispH) -le (4.0 / 3.0 + 0.01)) {
+        Write-Host "-Preset best-wide needs a display wider than 4:3 (read: ${dispW}x${dispH}). Use the default best-120." -ForegroundColor Red; exit 1
+    }
+    if ($dispW -ne 3440 -or $dispH -ne 1440) {
+        Write-Host "Widescreen has only been played on 3440x1440; ${dispW}x${dispH} gets computed values (not tested). PLAY-16x10.bat will start the tested 16:10 picture." -ForegroundColor Yellow
+    }
+}
 # -Controls not given: an earlier run's choice wins, so a re-run (an update) never switches a
 # player who chose the 1997 keys back to the WASD map behind their back.
 $controlsFile = Join-Path $GameDir 'i76e-controls.txt'
@@ -219,6 +248,9 @@ if ($fastPreset -and (Test-Path $driverConf)) {
         if (($conf -replace $mask, '$1') -cne ($proven -replace $mask, '$1')) { $conf = $proven }
     }
     [IO.File]::WriteAllText($confPath, $conf, [Text.Encoding]::ASCII)
+    # The 16:10 conf under its own name as well: PLAY-16x10.bat / PLAY-stock.bat copy it back in,
+    # and Make-Wide-Conf.ps1 derives the widescreen conf from it (best-wide, step 6).
+    [IO.File]::WriteAllText((Join-Path $GameDir 'dgVoodoo.16x10.conf'), $conf, [Text.Encoding]::ASCII)
     if ($conf -ceq $proven) {
         Write-Host "dgVoodoo.conf installed: the daily-driver conf of 2026-10-03, unchanged (FPSLimit 0, [Glide] 4608x2880, 4x MSAA, borderless)."
     } else {
@@ -622,6 +654,15 @@ if (Test-Path $presetSrc) {
     New-Item -ItemType Directory -Force (Join-Path $GameDir 'presets') | Out-Null
     Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $GameDir 'presets') -Force
 }
+if ($widePreset) {
+    # dgVoodoo.wide.conf + this display's W x H in the installed presets\best-wide.psd1
+    $global:LASTEXITCODE = 0
+    & $wideTool -GameDir $GameDir -Width $dispW -Height $dispH | ForEach-Object { Write-Host "  wide: $_" }
+    if ($LASTEXITCODE -or -not (Test-Path (Join-Path $GameDir 'dgVoodoo.wide.conf'))) {
+        Write-Host "Widescreen conf NOT generated - re-run with the default -Preset best-120." -ForegroundColor Red; exit 1
+    }
+    Copy-Item (Join-Path $GameDir 'dgVoodoo.wide.conf') (Join-Path $GameDir 'dgVoodoo.conf') -Force
+}
 $wheelExe = Join-Path $repoGameDir 'tools\i76wheel.exe'
 if (Test-Path $wheelExe) {
     Copy-Item $wheelExe $GameDir -Force
@@ -633,14 +674,24 @@ if (Test-Path $wheelExe) {
 $batName = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY-i76.bat' }
 $bat = Join-Path $GameDir $batName
 $launch = "start `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe $Exe"
+$play16 = Join-Path $GameDir 'PLAY-16x10.bat'
+# best-wide: each .bat puts its own conf in place first, as the daily driver's PLAY.bat / PLAY-16x10.bat do
+$useWide = if ($widePreset) { "copy /y `"%~dp0dgVoodoo.wide.conf`" `"%~dp0dgVoodoo.conf`" >nul`r`n" } else { '' }
+$use16 = if ($widePreset) { "copy /y `"%~dp0dgVoodoo.16x10.conf`" `"%~dp0dgVoodoo.conf`" >nul`r`n" } else { '' }
 if ($fastPreset) {
     # "-LosslessScaling none" as in the daily driver's PLAY.bat: the preset renders every frame
     # itself, so frame generation is not started ("none" is not a path; an empty string would be
     # swallowed by powershell.exe -File).
-    Set-Content $bat "@echo off`r`nREM Interstate '76, preset $Preset (see presets\$Preset.psd1). PLAY-stock.bat = no engine switches.`r`nREM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.`r`n$launch -Preset $Preset -LosslessScaling none" -Encoding ascii
-    Set-Content (Join-Path $GameDir 'PLAY-stock.bat') "@echo off`r`nREM The same folder with NO engine switches (preset stock). This is NOT the 20 fps game: this`r`nREM install has GOG's 20 fps cap off (I76PATCH.DLL.disabled, where GOG shipped one) and FPSLimit 0, so`r`nREM the frame rate is whatever dgVoodoo paces (60) and the physics are not corrected for it.`r`nREM For the game as GOG ships it (20 fps), re-run the setup with -Preset stock:`r`nREM   setup-windows.ps1 -GameDir <this folder> -Preset stock`r`n$launch -Preset stock -LosslessScaling none" -Encoding ascii
+    Set-Content $bat "@echo off`r`nREM Interstate '76, preset $Preset (see presets\$Preset.psd1). PLAY-stock.bat = no engine switches.`r`nREM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.`r`n$useWide$launch -Preset $Preset -LosslessScaling none" -Encoding ascii
+    if ($widePreset) {
+        Set-Content $play16 "@echo off`r`nREM The same folder with the 16:10 picture (dgVoodoo.16x10.conf) and preset best-120: the tested setup.`r`nREM Run at the physical console, never over Remote Desktop.`r`n$use16$launch -Preset best-120 -LosslessScaling none" -Encoding ascii
+    } elseif (Test-Path $play16) {
+        Remove-Item $play16 -Force   # left by an earlier best-wide setup
+    }
+    Set-Content (Join-Path $GameDir 'PLAY-stock.bat') "@echo off`r`nREM The same folder with NO engine switches (preset stock). This is NOT the 20 fps game: this`r`nREM install has GOG's 20 fps cap off (I76PATCH.DLL.disabled, where GOG shipped one) and FPSLimit 0, so`r`nREM the frame rate is whatever dgVoodoo paces (60) and the physics are not corrected for it.`r`nREM For the game as GOG ships it (20 fps), re-run the setup with -Preset stock:`r`nREM   setup-windows.ps1 -GameDir <this folder> -Preset stock`r`n$use16$launch -Preset stock -LosslessScaling none" -Encoding ascii
 } else {
     Set-Content $bat "@echo off`r`n$launch`r`n" -Encoding ascii
+    if (Test-Path $play16) { Remove-Item $play16 -Force }   # left by an earlier best-wide setup
     # a PLAY-stock.bat left by an earlier best-120 setup would describe a state that is gone
     $staleStock = Join-Path $GameDir 'PLAY-stock.bat'
     if (-not $isNitro -and (Test-Path $staleStock)) { Remove-Item $staleStock -Force }
@@ -680,6 +731,7 @@ Write-Host ""
 Write-Host "DONE. Boot takes 60-75s of 'PLEASE STAND BY' - ESC skips the intro." -ForegroundColor Green
 if ($fastPreset) {
     Write-Host "$batName starts preset $Preset (120 fps, physics stepped as at 20); PLAY-stock.bat starts the same folder with no engine switches."
+    if ($widePreset) { Write-Host "Widescreen: $batName copies dgVoodoo.wide.conf in first; PLAY-16x10.bat goes back to the tested 16:10 picture (best-120). Menus and cutscenes are stretched to the display's shape (known)." }
     Write-Host "Check in Instant Melee: smooth picture, no flips on bumps; then Mission 5's ramp jump."
 } else {
     Write-Host "Verify the cap in Instant Melee (no flips on bumps; AI cars exceed 35 mph),"
