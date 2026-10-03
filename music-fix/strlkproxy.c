@@ -3288,7 +3288,7 @@ static void apply_cd_instrument(HMODULE exe) {
          g_cd_fake ? " | I76_CD_FAKE=1: a Minimum answer becomes 0 when <game>\\miss8 is a directory (EXPERIMENTAL)" : "");
 }
 
-/* TERRAIN DETAIL DISTANCE  (I76_TERRAIN_LOD=<factor 1..8>; off by default; EXPERIMENT, sandbox only)
+/* TERRAIN DETAIL DISTANCE  (I76_TERRAIN_LOD=<factor 1..16>; off by default; EXPERIMENT, sandbox only)
  * The terrain is a quadtree rebuilt every frame (i76-map subsystems/renderer.md, 0x491341): a node becomes a leaf when
  * d2 > (2h)^2 * K, K ~ A, and otherwise splits when a midpoint height error exceeds a threshold ~ B. Nothing blends
  * between levels, so vertices snap as the camera approaches. renderer_SetTerrainResolution 0x493080 loads A [0x4fad20]
@@ -3305,7 +3305,7 @@ static void apply_terrain_lod(void) {
     n = GetEnvironmentVariableA("I76_TERRAIN_LOD", v, sizeof(v));
     if (n == 0 || n >= sizeof(v)) return;
     f = (float)atof(v);
-    if (f < 1.0f || f > 8.0f) { mlog("  terrain-lod: %s out of range (1..8) - not applied", v); return; }
+    if (f < 1.0f || f > 16.0f) { mlog("  terrain-lod: %s out of range (1..16) - not applied", v); return; }
     for (i = 0; i < 3; i++) {
         float a0, b0, a1, b1;
         memcpy(&a0, (const void *)lv[i].a_site, 4); memcpy(&b0, (const void *)lv[i].b_site, 4);   /* the exe's own bits */
@@ -3354,7 +3354,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         }
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
-        apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..8> */
+        apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
