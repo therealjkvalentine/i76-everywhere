@@ -13,7 +13,7 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 |---|---|
 | **Play on a Mac** (Apple Silicon) | [docs/MAC-BUILD.md](docs/MAC-BUILD.md) — the shipping build: software renderer via DxWnd in a self-contained Wine wrapper. Instant start, music, clean quit, 20 FPS physics-safe |
 | **Play on a Steam Deck** | [docs/STEAMDECK.md](docs/STEAMDECK.md) — the pretty Glide path (dgVoodoo→Vulkan) + force feedback |
-| **Play on Windows** | [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) — max graphics, FFB, frame-gen |
+| **Play on Windows** | [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) — max graphics, FFB, frame-gen. Install: [INSTALL.md](INSTALL.md) (120 fps by default; widescreen with `-Preset best-wide`, opt-in) |
 | **Sit down and play: the controls** | [docs/CONTROLS.md](docs/CONTROLS.md) — one page for all keyboard, keyboard and mouse, gamepad, and wheel and stick (HOWAS): the keys, how to turn each on, what to do when it misbehaves |
 | **Edit your saves** (no install) | **[Open the save editor in your browser →](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)** — drag a save in, download it back out. Details: [the save editor](#the-save-editor) |
 | **A printable key sheet** | [docs/Interstate76-Controls-Quick-Reference.pdf](docs/Interstate76-Controls-Quick-Reference.pdf): four pages (keyboard and mouse, gamepad, wheel and stick, 1997 keys vs ours), generated from the shipped map by [tools/controls-sheet](tools/controls-sheet/README.md). **This project installs its own WASD-style control map, not the 1997 layout**; `-Controls stock` keeps the original keys ([docs/CONTROLS.md](docs/CONTROLS.md)) |
@@ -32,7 +32,8 @@ in this repo, each with how to turn it on and how far it has been proven:
   shakers, pad rumble, and a telemetry feed for motion rigs.
 - **Head tracking**: opentrack driving the in-game view.
 - **Frame rate and simulation fixes**: 60 and 120 fps with the physics, AI and effects behaving as at 20.
-- **Graphics**: supersampling and antialiasing, draw distance, frame generation, menu art tools.
+- **Graphics**: widescreen (Hor+), supersampling and antialiasing, draw distance and detail distances,
+  frame generation, menu art tools.
 - **Audio**: the CD soundtrack restored in missions, and the cutscene-music fix.
 - **Bug fixes**, a **trainer**, the **save editor**, modding and reverse-engineering tools, and the
   **Mac / Steam Deck / Windows** install and packaging scripts.
@@ -54,10 +55,18 @@ drop-down). The default, `stock`, sets nothing.
 | `smooth-60-bugfixes` | smooth-60 + `I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1` | [measured, sandbox]; on in the 2026-10-02 console session |
 | `smooth-120` | smooth-60-bugfixes + `I76_GLIDE_REFRESH=120` | [measured, sandbox] 120.1 fps; the same switches plus the 1800 m far clip were played by the owner at 120 on 2026-10-02 (as `best-120`) |
 | `best-120` | smooth-120 + `I76_FAR_CLIP=1800`; `I76_COLL_DEDUPE=0`, `I76_AI_ROLL_HOLD=0` (count only, not measured) | [console-verified 2026-10-02, sandbox] by the owner; [measured] 120 fps through the trip menus; the preset of the daily driver built 2026-10-03 |
+| `best-wide` | best-120 + widescreen `I76_ASPECT` + terrain, texture, object, shadow, road, bush and mirror detail farther out | [owner-played 2026-10-03, sandbox]; the daily driver's `PLAY.bat` since 2026-10-03 (promotion 2). Needs a widescreen dgVoodoo conf; played only on 3440x1440. Menus and cutscenes stay stretched |
 | `lab-all` | smooth-60-bugfixes + `I76_FAR_CLIP=1800 I76_TELEMETRY=1` (TEST-FRAMERATE mode 5) | [console-verified 2026-10-02, sandbox] n = 1 |
 
+**Widescreen:** `best-wide` widens the camera to the display's shape instead of stretching a 4:3 view. The
+game still renders 640x480, so dgVoodoo must present it stretched to that shape. `setup-windows.ps1 -Preset
+best-wide` writes that conf and this display's width x height into the installed preset
+([INSTALL.md](INSTALL.md#presets-best-120-stock-and-best-wide)). The menus, cutscenes and in-mission text stay
+stretched ([docs/ENHANCEMENTS.md](docs/ENHANCEMENTS.md#5-graphics) says why). The other presets in
+[`presets/`](presets/) (`exp-*`, `framegen-90`) are experiments.
+
 **State on 2026-10-03:** a new daily driver was built by `tools\Make-Daily-Driver.ps1` with `best-120` as its
-preset ([docs/records/NEW-DAILY-DRIVER-RECIPE.md](docs/records/NEW-DAILY-DRIVER-RECIPE.md),
+preset (since promotion 2 that day, `best-wide`; `PLAY-16x10.bat` keeps `best-120`) ([docs/records/NEW-DAILY-DRIVER-RECIPE.md](docs/records/NEW-DAILY-DRIVER-RECIPE.md),
 [docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md) last section). The other presets remain experimental
 until the A/B in [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 7 is done. 120 fps is the ceiling of every
 renderer tested ([docs/records/RENDERER-ALTERNATIVES.md](docs/records/RENDERER-ALTERNATIVES.md) section 11). Two things have to
@@ -74,7 +83,7 @@ installs the earlier 20 fps recipe instead. Evidence: the apply step was run on 
 2.1.0.17 installer and checked by file listing, md5, the `input.map` lint and the launcher's `-DryRun`;
 **the game was not started from it**, and `best-120` has not been run on the exe that installer gives
 (`9a232dcc`; the gates ran on `60abf7bc`). Since 2026-10-03 the installer deploys the daily driver's u32x build
-(`u32x/u32x_full.dll`, `054fb411`; source in [u32x/](u32x/README.md)); `-U32xDll u32x\u32x.dll` gives the minimal `a5927cea`. Details and the full not-tested list:
+(`u32x/u32x_full.dll`; source in [u32x/](u32x/README.md); the daily driver runs `054fb411`, the committed build is `696577dc` since the evening of 2026-10-03, sandbox-gated); `-U32xDll u32x\u32x.dll` gives the minimal `a5927cea`. Details and the full not-tested list:
 [INSTALL.md, Evidence](INSTALL.md#evidence-what-was-tested).
 Per-switch evidence: [music-fix/README.md](music-fix/README.md); the 120 Hz analysis:
 [docs/records/FPS-120.md](docs/records/FPS-120.md).

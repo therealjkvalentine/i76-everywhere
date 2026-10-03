@@ -144,7 +144,7 @@ Tested on 2026-10-03, **without starting the game**:
 - Result, by file listing and md5: `dgVoodoo.conf` identical to the daily-driver conf (`fd68005a`, on a
   3440x1440 display); `Strlkup.dll` = the repo's proxy with `strlkup_orig.dll` `e5951e0f`; `u32x.dll`
   `a5927cea` with exactly 10 bytes changed in each of `i76.exe` and `i76shell.dll` (that run used the
-  installer's default of the day; since later on 2026-10-03 the default is `u32x\u32x_full.dll`, `054fb411`:
+  installer's default of the day; since later on 2026-10-03 the default is `u32x\u32x_full.dll`, `054fb411`, rebuilt that evening as `696577dc`:
   see the not-tested list); six preset files
   identical to the repo's; `PLAY-i76.bat` and `PLAY-stock.bat` as described; `tools\lint-input-map.py`
   OK; `PLAY-i76.ps1 -Preset best-120 -DryRun` prints the eleven `I76_*` values and the game folder as
@@ -169,7 +169,8 @@ Tested on 2026-10-03, **without starting the game**:
   (1440-line display) is proven accepted. Signs of a rejected conf: a dgVoodoo or 3dfx watermark, a
   4:3 picture.
 - `u32x.dll` at run time on a fresh GOG install, either build. Since 2026-10-03 the installer deploys the
-  daily driver's build (`u32x\u32x_full.dll`, md5 `054fb411`, also maps the Esc menu; source
+  daily driver's build (`u32x\u32x_full.dll`, md5 `054fb411`, also maps the Esc menu; since the evening of 2026-10-03 the
+  committed file is `696577dc`, which adds the garage popup fix, sandbox-gated, not checked by this list; source
   `u32x\u32x_full.c`). Checked without the game: `deploy-u32x.ps1` on scratch copies of GOG's `i76.exe`
   (`9a232dcc`) and `i76shell.dll` accepts it (every imported USER32 name is exported), changes exactly 10
   bytes in each file, and `-Restore` returns both to their original md5. Its gate ran on the lab sandbox
