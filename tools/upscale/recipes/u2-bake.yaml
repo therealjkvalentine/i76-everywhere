@@ -1,0 +1,14 @@
+# U2 bake-off (H1/H4/H5), 2026-10-03: harness defaults, model/overscale/target set per run by bakeoff.py.
+# Separate alpha with 8 px edge bleed, lanczos downscale, colour-match and palette-lock OFF (H1 judges the raw model).
+default:
+  model: RealESRGAN_x4plus_anime_6B.pth
+  overscale: 4
+  target_scale: 2
+  downscale: lanczos
+  alpha: separate
+  bleed_px: 8
+  pad: auto
+  pad_px: 16
+  color_match: false
+  palette_lock: false
+  tile: 512
