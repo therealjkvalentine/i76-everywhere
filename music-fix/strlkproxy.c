@@ -3369,6 +3369,38 @@ static void apply_shadow_road_dist(void) {
     patch_rdata_float("I76_ROAD_DIST", 0x4be7b8, 450.0f, 450.0f, 3000.0f, 0, "road-dist");
 }
 
+/* WIDESCREEN, HOR+ (I76_ASPECT=<display aspect: 2.389, 21:9, 16:9 or 3440x1440>; off by default; EXPERIMENT stage A,
+ * lab docs/WIDESCREEN-FEASIBILITY.md, static only). The frame stays 640x480; the camera sees a wider horizontal field
+ * and dgVoodoo must present it at the display aspect (a [Glide] Resolution of that aspect + ScalingMode stretched),
+ * so 2D sprites and text come out stretched by D*3/4. camera_Init's fov is horizontal: fx = halfW*zoom/tan(fov/2),
+ * fy = -aspect*fx, with the main camera's aspect computed at 0x4059b3 as 4H/(3W) from the 3.0 at 0x4bc510 (one
+ * reference). Hor+: aspect constant 4/D, and every fov f -> 2*atan(0.75*D*tan(f/2)): seventeen `push 0x3fc90fda`
+ * (pi/2) and the hood view's `push 0x40060a92` (2.094 = 120 deg) at 0x4075a6; the fov clamp max at 0x4be5ac
+ * (2.356) is raised to stay above the widest. */
+static void apply_aspect(void) {
+    static const DWORD push_sites[17] = { 0x405a00, 0x4069e3, 0x406eb8, 0x406faf, 0x4070d5, 0x4079f6, 0x407f46,
+        0x4080cb, 0x4083f6, 0x408546, 0x408696, 0x408816, 0x4089a0, 0x408bf0, 0x4090d0, 0x409316, 0x4094e7 };
+    char v[24], *sep; DWORD n = GetEnvironmentVariableA("I76_ASPECT", v, sizeof(v));
+    double D, k; float three = 3.0f, cst, f90 = 1.5707964f, w90, f120, w120, clamp0, clamp1; int i, ok = 0;
+    if (n == 0 || n >= sizeof(v)) return;
+    sep = strchr(v, ':'); if (!sep) sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X');
+    D = sep ? atof(v) / atof(sep + 1) : atof(v);
+    if (!(D >= 1.34 && D <= 3.6)) { mlog("  aspect: %s out of range (1.34..3.6) - not applied", v); return; }
+    k = 0.75 * D;
+    memcpy(&f120, (const void *)0x4075a7, 4);
+    memcpy(&clamp0, (const void *)0x4be5ac, 4);
+    cst = (float)(4.0 / D);
+    w90 = (float)(2.0 * atan(k * tan(f90 / 2.0)));
+    w120 = (float)(2.0 * atan(k * tan(f120 / 2.0)));
+    clamp1 = w120 + 0.08f > clamp0 ? w120 + 0.08f : clamp0;
+    ok += patch_bytes(0x4bc510, (const BYTE *)&three, (const BYTE *)&cst, 4, "aspect constant");
+    for (i = 0; i < 17; i++) ok += patch_bytes(push_sites[i] + 1, (const BYTE *)&f90, (const BYTE *)&w90, 4, "aspect fov");
+    ok += patch_bytes(0x4075a7, (const BYTE *)&f120, (const BYTE *)&w120, 4, "aspect hood fov");
+    ok += patch_bytes(0x4be5ac, (const BYTE *)&clamp0, (const BYTE *)&clamp1, 4, "aspect fov clamp");
+    mlog("  aspect: D %.3f, %d/20 sites; fov 90 -> %.1f deg, hood 120 -> %.1f deg, clamp %.1f deg (present at %.3f:1, stretched)",
+         D, ok, w90 * 57.29578, w120 * 57.29578, clamp1 * 57.29578, D);
+}
+
 /* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
  * WinMain 0x402ca0: FindWindowA(class 0x4c2680, NULL); a hit restores that window (ShowWindow 9) and returns 0, so a
  * second copy exits at once (measured 2026-10-03: second process exit code 0). The switch turns `je 0x402ccd`
@@ -3409,6 +3441,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
+        apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
