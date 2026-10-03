@@ -19,6 +19,24 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
 
+## Everything this adds
+
+It is not only graphics. **[docs/ENHANCEMENTS.md](docs/ENHANCEMENTS.md)** is the one catalogue of every enhancement
+in this repo, each with how to turn it on and how far it has been proven:
+
+- **Controls**: the gamepad layout and its AutoHotkey shift layer, a CH Fighterstick layer, a force-feedback wheel,
+  mouse driving, the Steam Deck layout, and an `input.map` lint.
+- **Force feedback and haptics**: the game's own effects on a modern wheel, a custom wheel force model, bass
+  shakers, pad rumble, and a telemetry feed for motion rigs.
+- **Head tracking**: opentrack driving the in-game view.
+- **Frame rate and simulation fixes**: 60 and 120 fps with the physics, AI and effects behaving as at 20.
+- **Graphics**: supersampling and antialiasing, draw distance, frame generation, menu art tools.
+- **Audio**: the CD soundtrack restored in missions, and the cutscene-music fix.
+- **Bug fixes**, a **trainer**, the **save editor**, modding and reverse-engineering tools, and the
+  **Mac / Steam Deck / Windows** install and packaging scripts.
+
+Many items are opt-in or sandbox-only; the catalogue's evidence column says which.
+
 ## Playing at 60 / 120 fps
 
 The game is 20 fps as GOG ships it. The music-fix proxy (`music-fix/Strlkup.dll`) carries an
