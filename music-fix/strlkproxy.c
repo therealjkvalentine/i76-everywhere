@@ -3567,6 +3567,69 @@ static void apply_mirror_far(void) {
  * reference). Hor+: aspect constant 4/D, and every fov f -> 2*atan(0.75*D*tan(f/2)): seventeen `push 0x3fc90fda`
  * (pi/2) and the hood view's `push 0x40060a92` (2.094 = 120 deg) at 0x4075a6; the fov clamp max at 0x4be5ac
  * (2.356) is raised to stay above the widest. */
+/* HUD SPRITE SQUEEZE (with I76_ASPECT; I76_HUD_SQUEEZE=0 turns it off). The frame is presented stretched by
+ * k = 0.75 D, so every 2D sprite comes out k times too wide. renderer_DrawHudSprite 0x45b450 (11 callers, all HUD)
+ * builds one screen-space quad in its locals (4 vertices x 6 floats, x at +0/+24/+48/+72) and hands it to the
+ * polygon drawer with the single `call 0x4260d0` at 0x45b87a (Glide path; the software paths 0x471fd0 / 0x47aa50
+ * are untouched). That call is repointed at hud_quad_wrap, which narrows the quad's x by 1/k about an anchor and
+ * calls 0x4260d0; the texture coordinates are unchanged, so the sprite is resampled at full resolution.
+ *   anchor = the quad's own centre (default): target-bracket corners 0x45b184/1a0/1bc/1d8, target health bar
+ *     0x45b3cf, off-screen target marker ztarg90x 0x45b087 (all in renderer_DrawTargetBrackets 0x45af10; they sit on a
+ *     projected 3D position, so each keeps its place and the bracket box keeps the target's projected size), weapon
+ *     reticles zretc_1 0x45c19b / 0x45c20c / 0x45c2c4, and the bottom-centred cockpit sprite zcbh3101.tmt 0x45c314.
+ *   anchor = a screen side (gauge loop 0x45c0d1 in renderer_DrawInstrumentOverlay 0x45be20, via hud_gauge_wrap):
+ *     quads whose centre is in the left third scale about the view's left edge, the right third about its right
+ *     edge, the middle about the view centre. Every gauge on one side shares one anchor, so a gauge and anything
+ *     layered over it keep their relative layout and the cluster stays against its screen edge.
+ * Nothing on this path spans the screen (no fades or full-screen overlays: those are LFB or DirectDraw), so all 11
+ * callers are squeezed. LFB text, the Esc menu and the binocular mask are not on this path and stay stretched. */
+static float g_hud_inv_k = 1.0f;          /* 1/k; 1 = off */
+static int g_hud_side_anchor;             /* set by hud_gauge_wrap around the gauge loop's call */
+static int g_hud_log_left = 24;           /* first gauge quads logged (I76MUSIC_LOG) */
+static float *__cdecl hud_quad_wrap(float *cam, float *v, float *n, DWORD *tex, float *flags) {
+    if (g_hud_inv_k < 1.0f && (DWORD_PTR)n == 4) {
+        float xmin = v[0], xmax = v[0], a; int i;
+        for (i = 1; i < 4; i++) { if (v[i * 6] < xmin) xmin = v[i * 6]; if (v[i * 6] > xmax) xmax = v[i * 6]; }
+        a = 0.5f * (xmin + xmax);
+        if (g_hud_side_anchor) {
+            BYTE *scr = *(BYTE **)((BYTE *)cam + 0x3c);
+            float w = scr ? (float)(*(int *)(scr + 0x24) - *(int *)(scr + 0x1c) + 1) : 640.0f;
+            float c = a;
+            a = (c < w / 3.0f) ? 0.0f : (c > 2.0f * w / 3.0f) ? w : 0.5f * w;
+            if (g_hud_log_left > 0) { g_hud_log_left--; mlog("  hud-squeeze: gauge quad x %.0f..%.0f (view %.0f) -> anchor %.0f", xmin, xmax, w, a); }
+        }
+        for (i = 0; i < 4; i++) v[i * 6] = a + (v[i * 6] - a) * g_hud_inv_k;
+    }
+    return ((float *(__cdecl *)(float *, float *, float *, DWORD *, float *))0x004260d0)(cam, v, n, tex, flags);
+}
+static void __cdecl hud_gauge_wrap(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {
+    g_hud_side_anchor = 1;
+    ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0045b450)(a, b, c, d, e, f, g);
+    g_hud_side_anchor = 0;
+}
+static void apply_hud_squeeze(double k) {
+    static const struct { DWORD site, target; void *wrap; const char *what; } cs[2] = {
+        { 0x0045b87a, 0x004260d0, (void *)hud_quad_wrap,  "HUD sprite quad draw" },
+        { 0x0045c0d1, 0x0045b450, (void *)hud_gauge_wrap, "HUD gauge loop sprite call" },
+    };
+    char v[8]; DWORD m = GetEnvironmentVariableA("I76_HUD_SQUEEZE", v, sizeof(v)); int i, n = 0;
+    if (m && m < sizeof(v) && v[0] == '0') { mlog("  hud-squeeze: off (I76_HUD_SQUEEZE=0): HUD sprites stay stretched x%.2f", k); return; }
+    if (!(k > 1.0)) return;
+    for (i = 0; i < 2; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
+        memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
+    }
+    if (n) g_hud_inv_k = (float)(1.0 / k);   /* either site alone is safe: the gauge wrap only sets the anchor flag */
+    {   /* read back the quad call's target */
+        LONG rel; memcpy(&rel, (const void *)(0x0045b87a + 1), 4);
+        mlog("  hud-squeeze: %d/2 sites, quad call -> %s; HUD sprite quads x 1/%.3f (brackets, reticles, zcbh sprite about their centres; gauges about their screen side)",
+             n, (DWORD_PTR)(0x0045b87a + 5 + rel) == (DWORD_PTR)hud_quad_wrap ? "wrapper" : "STOCK", k);
+    }
+}
+
 static void apply_aspect(void) {
     static const DWORD push_sites[17] = { 0x405a00, 0x4069e3, 0x406eb8, 0x406faf, 0x4070d5, 0x4079f6, 0x407f46,
         0x4080cb, 0x4083f6, 0x408546, 0x408696, 0x408816, 0x4089a0, 0x408bf0, 0x4090d0, 0x409316, 0x4094e7 };
@@ -3600,6 +3663,7 @@ static void apply_aspect(void) {
     ok += patch_bytes(0x4be5ac, (const BYTE *)&clamp0, (const BYTE *)&clamp1, 4, "aspect fov clamp");
     mlog("  aspect: D %.3f, %d/20 sites; fov 90 -> %.1f deg (cockpit %.1f), hood 120 -> %.1f deg, clamp %.1f deg (present at %.3f:1, stretched)",
          D, ok, w90 * 57.29578, wcock * 57.29578, w120 * 57.29578, clamp1 * 57.29578, D);
+    apply_hud_squeeze(k);
 }
 
 /* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
