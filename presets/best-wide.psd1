@@ -1,9 +1,11 @@
-# exp-detail-8: exp-terrain-8 plus I76_TERRAIN_TEX=8 (sharp ground textures 8x farther) and I76_OBJECT_LOD=8
-# (objects and vehicles keep their detailed mesh 8x farther). EXPERIMENT for the lab twin (music-fix/README.md).
+# best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
+# Needs the widescreen dgVoodoo conf (dgVoodoo.aspect-wide.conf: [Glide] Resolution 5160x2160, ScalingMode stretched);
+# the daily driver's PLAY.bat copies it in before launching. I76_ASPECT is this panel's shape (3440x1440); for another
+# display set it to that display's width x height. Menus, cutscenes and 2D text are stretched sideways (known cost).
 @{
-    Name        = 'exp-detail-8'
-    Summary     = 'EXPERIMENT: best-120 + terrain shape x8 + terrain textures x8 + object detail x8 + shadows 200 m + road textures 480 m + roads to 1800 m + bushes to 300 m'
-    Verified    = '[experiment] 120 fps on t01 in the lab twin, one 6 s run; not soaked; not played'
+    Name        = 'best-wide'
+    Summary     = 'Widescreen 21:9 (Hor+) + best-120 + detail farther out: terrain x8, textures x8, objects x8, bushes 300 m, shadows 200 m, roads 1800 m, mirror 300 m'
+    Verified    = '[owner-played 2026-10-03, sandbox] widescreen full-width cockpit approved; detail set measured 120 fps on t01; gate on the lab twin before the daily driver'
     Env         = @{
         I76_HIRES_CLOCK     = '1'
         I76_FIXED_STEP      = '24'
@@ -14,6 +16,7 @@
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1800'
         I76_GLIDE_REFRESH   = '120'
+        I76_ASPECT          = '3440x1440'
         I76_TERRAIN_LOD     = '8'
         I76_TERRAIN_TEX     = '8'
         I76_OBJECT_LOD      = '8'

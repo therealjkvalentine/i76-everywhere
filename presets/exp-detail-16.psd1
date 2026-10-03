@@ -21,6 +21,7 @@
         I76_ROAD_TEX        = '8'
         I76_ROAD_DIST       = '1800'
         I76_CLUTTER_DIST    = '400'   # ground clutter (bushes) to 400 m view depth; see music-fix/README.md
+        I76_MIRROR_FAR      = '300'   # rear-view mirror sees 300 m instead of 100 m
         # no data yet (2026-10-03: the ram test could not stage its rams; no AI car entered the roll behaviour):
         # count only, behave as played on 2026-10-02
         I76_COLL_DEDUPE     = '0'
