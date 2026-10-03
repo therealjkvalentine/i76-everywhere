@@ -250,6 +250,22 @@ carries the correction in its own section 9.8, the others do not. Line numbers w
 | `tools/framerate/uncap-vsync.ps1` header | says the swap interval "is the 60fps cap" | already listed as wrong in i76-everywhere `docs/FPS-120.md` section 1 point 2; the cap is the refresh code |
 | i76-map capture 014 README line 12 | "FPSLimit=21 did not cap this build (it ran at 60 fps, vsync)" | "Void as a statement about `FPSLimit`: the conf was rejected. The 60 was the Glide refresh code." |
 
+## Pending since 2026-10-03: paths in this repo that moved (sibling repos still name the old path)
+
+The repo tidy of 2026-10-03 (`docs/REPO-ORGANIZATION-PROPOSAL.md`, done / deferred table) moved files. The sibling
+repos were searched read-only (`git grep` over tracked files) for every moved name; these are the hits that name a
+path, as opposed to a bare memory address or a file name without a folder.
+
+**Lab residue, root -> `lab-residue/`** (`0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav`, `swap-renderer.ps1`,
+`test-drive.ps1`):
+
+| sibling file | what it says | note to add |
+|---|---|---|
+| i76-map `foldin/FOLDIN-REPORT.md:259` (Housekeeping) | "Move `C:\Users\james\i76-everywhere\0x501918\` (stray sky screenshots) to `i76-uncap-lab\captures\sky`" | "Since 2026-10-03 the folder is `i76-everywhere\lab-residue\0x501918\`; the move to the lab has not been done." |
+
+The other hits for `0x501918` in both siblings are the memory address, not this folder. No sibling file names
+`drive5.csv`, `fx.csv`, `lfe-sweep.wav`, `swap-renderer.ps1` or `test-drive.ps1`.
+
 ## Pairs with nothing left to edit
 
 - **Pair 27, `docs/HEAD-TRACKING.md` (L229, L241):** the findings quote the doc's own refutation (`0x4c2964` "not the

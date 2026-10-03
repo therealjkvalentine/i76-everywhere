@@ -26,7 +26,7 @@ git am path\to\i76-everywhere\tools\openglide-hd\*.patch
 ```
 
 Output: `glide2x.dll` (32-bit). Deploy with
-[`swap-renderer.ps1 openglide`](../../swap-renderer.ps1), which also owns the two
+[`swap-renderer.ps1 openglide`](../../lab-residue/swap-renderer.ps1), which also owns the two
 load-bearing companions (never skip them):
 
 - `OpenGLid.ini` **must** keep `TextureMemorySize=2` / `FrameBufferMemorySize=2`
@@ -47,4 +47,4 @@ realesrgan-ncnn-vulkan -i hdtex\dump -o hdtex -n realesrgan-x4plus-anime
 ```
 
 (folder mode keeps the hash filenames — that output IS the pack).
-dgVoodoo remains the daily driver; swap back with `swap-renderer.ps1 dgvoodoo`.
+dgVoodoo remains the daily driver; swap back with `lab-residue\swap-renderer.ps1 dgvoodoo`.

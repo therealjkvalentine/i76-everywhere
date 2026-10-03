@@ -9,7 +9,7 @@
 # = the melee form's default "GTA2" variant) with any VCF from the archive - e.g.
 # vppirna1.vcf = Jade's Piranha. Back up the original first (texture-lab keeps a copy).
 #
-# Usage: powershell -ExecutionPolicy Bypass -File test-drive.ps1
+# Usage: powershell -ExecutionPolicy Bypass -File lab-residue\test-drive.ps1
 #          [-GameDir "C:\Games\Interstate 76"] [-Shot out.png]
 
 param(

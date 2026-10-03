@@ -6,7 +6,7 @@
 
       tools\ffb\ffb-watch-effects.ps1              # live, with change detection
       tools\ffb\ffb-watch-effects.ps1 -Dump        # full 364-byte block, once
-      tools\ffb\ffb-watch-effects.ps1 -Log fx.csv  # record every change
+      tools\ffb\ffb-watch-effects.ps1 -Log fx.csv  # record every change (a sample is in lab-residue\fx.csv)
 
   ---------------------------------------------------------------------------
   HOW THIS WORKS, AND WHY IT BEATS READING AN INPUT FLAG

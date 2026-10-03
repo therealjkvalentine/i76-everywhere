@@ -19,7 +19,7 @@
 #     clears the compat flag. The two fixes are mode-specific and this script
 #     owns the switching.
 #
-# Usage: powershell -ExecutionPolicy Bypass -File swap-renderer.ps1 dgvoodoo|openglide
+# Usage: powershell -ExecutionPolicy Bypass -File lab-residue\swap-renderer.ps1 dgvoodoo|openglide
 #          [-GameDir "C:\Games\Interstate 76"]
 
 param(

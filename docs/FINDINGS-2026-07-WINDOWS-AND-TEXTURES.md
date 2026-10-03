@@ -513,7 +513,7 @@ Ordered by leverage; contributions welcome.
    - Fixes: the Windows **256COLOR compat layer** on i76.exe restores real
      palettes. dgVoodoo's DDraw also provides palettes but **collides with
      OpenGLide's GL window at boot** (deterministic winmmbase fault) — never
-     mix the two wrappers. [`swap-renderer.ps1`](../swap-renderer.ps1)
+     mix the two wrappers. [`swap-renderer.ps1`](../lab-residue/swap-renderer.ps1)
      automates the dgVoodoo ⇄ OpenGLide-HD switch including compat-flag and
      DDraw handling.
    - Status: boots and stays alive on the fork; the in-sim dump→upscale→replace
@@ -551,7 +551,7 @@ Ordered by leverage; contributions welcome.
    night:* the melee default variant is itself defined by GOG's own
    `ADDON\valepre4.vcf` — overwrite that VCF with any car's (e.g. `vppirna1.vcf`
    = Jade's Piranha) and the melee form defaults to that car; no UI needed.
-   [`test-drive.ps1`](../test-drive.ps1) automates boot → Instant Melee → chase
+   [`test-drive.ps1`](../lab-residue/test-drive.ps1) automates boot → Instant Melee → chase
    cam → screenshot (~90 s) for visual regression. The synthetic-click mystery
    itself is still open. (Also verified: `i76.exe` has no command-line mission
    launch — everything routes through the shell.)
