@@ -77,7 +77,8 @@ Catalog sources: g*/t*.gdf (44 weapons), wauto_*.wdf (wheels: 4 designs x car-si
 digit), compnent.cdf (engines/susp/brakes), specials spc01..spc09 from the exe string table
 (spc02 NitrousOxide, spc04 X-Aust, spc05 Structo, spc06 Curb Feelers, spc07 Mud Flaps,
 spc08 Heated Seats, spc09 Cup Holders seen in saves; spc01 prints as "Radar Jammer" in the garage
-(sandbox 2026-10-02, effect untested); spc03 Blower inferred).
+(sandbox 2026-10-02); every pair is also code-verified: the exe builds the def as sprintf("spc%02d", type),
+0x4b1502, i76-map engine.md). What each part does: PARTS_INFO below and docs/PARTS-REFERENCE.md.
 Caps (sandbox 2026-10-02): the repair bench has none (15 queued jobs all listed, scrolling); the
 van holds >= 5 suspensions; only the weapon list's 11 is a real cap. The inventory dialog's columns
 are height-limited (ENGINES 4 rows, WEAPONS 11, WHEELS 12) - display, not storage.
@@ -89,11 +90,12 @@ Usage:
   i76-save-editor.py --dir DIR --dump N   dump slot N (index in --list order, or "save006")
   i76-save-editor.py --dir DIR --check    validate every file against the writer's frame
   i76-save-editor.py --json FILE...       machine-readable dump (tests/ compare it to the HTML parser)
+  i76-save-editor.py --parts              what every part does, with sources (docs/PARTS-REFERENCE.md)
 
 Every modified file gets a one-time <name>.pre-edit backup plus a timestamped .bak-<ts>
 copy next to it, and is read back after the write.
 """
-import argparse, datetime, glob, json, os, shutil, struct, sys
+import argparse, datetime, glob, json, os, re, shutil, struct, sys
 
 # ---------------------------------------------------------------- frame constants
 HDR_LEN  = 0x8c4          # GarageRec
@@ -209,9 +211,9 @@ WEAPONS = [
 ]
 # specials: def "spcNN"; "seen" = the name/def pair occurs in a game-written save
 SPECIALS = [
-    ("Radar Jammer", "spc01", "verified (name only; effect untested)"),
+    ("Radar Jammer", "spc01", "verified (garage name; spc%02d code)"),
     ("NitrousOxide", "spc02", "seen"),
-    ("Blower",       "spc03", "(inferred)"),
+    ("Blower",       "spc03", "code-verified (spc%02d)"),
     ("X-Aust Brake", "spc04", "seen"),
     ("Structo Bmpr", "spc05", "seen"),
     ("Curb Feelers", "spc06", "seen"),
@@ -229,6 +231,222 @@ def catalog_weight(name):
         if n == name: return w
     if any(n == name for _, n in WHEEL_DESIGNS): return WHEEL_WT
     return 0.0
+
+# ---------------------------------------------------------------- what each part does in game
+# Keyed by def code: eng01.., sus01.., bra01.., wauto_a..wauto_d (the design letter; the family
+# digit is the car's size class and changes nothing below), the weapon .gdf, spc01..spc09.
+# "short" is the one-line label the listings show; "what" carries the numbers and a source label
+# on every claim:
+#   [game data]  read from the stock I76.ZFS (md5 6dd57b16..., the lab and the pristine copy are
+#                identical; the sandbox ADDON folder overrides none of these files) through
+#                i76-map's parsers (data\mod\i76mod.py show zfs:compnent.cdf ENGN#0, ...)
+#   [RE: ...]    i76-map's static reading of i76.exe (md5 9a232dcc), doc + address
+#   [community]  published player measurements (Local Ditch, docs/WEAPON-STATS.md)
+#   [unknown]    nothing found
+# i76-save-editor.html embeds the same table as JSON (tests/test_save_editor.py keeps them equal).
+# Full table with every source: docs/PARTS-REFERENCE.md.
+PARTS_INFO = {}
+
+def _info(key, name, short, what):
+    PARTS_INFO[key] = {"name": name, "short": short, "what": what}
+
+_ENG_TAIL = (" Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd"
+             " at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm"
+             " [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by"
+             " hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is"
+             " x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured).")
+for _k, _n, _p, _m, _raw, _pir in [
+        ("eng01", "261ci  6 cyl", 104440, 200, "1.00", "1.00"),
+        ("eng02", "305ci  V-8", 138010, 230, "1.32", "1.30"),
+        ("eng03", "432ci  SHO V8", 193960, 275, "1.86", "1.79"),
+        ("eng04", "595ci  V-10", 290940, 340, "2.79", "2.59")]:
+    _info(_k, _n, f"power {_p:,} (" + ("baseline" if _raw == "1.00" else f"{_raw}x the 6 cyl") + ")",
+          f"Drive power {_p:,}, 300 hp, {_m} lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed)"
+          f" x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: {_raw}x the 261ci's"
+          f" power, about {_pir}x its acceleration on the Piranha once the engine's own weight is counted"
+          f" (Jade's 1951-unit car) [derived from game data]." + _ENG_TAIL)
+
+_SUS_TAIL = (" The coefficient sets the cornering force the car holds before it breaks into a slide: slide threshold"
+             " = 2 x gravity x handling x surface grip x tyre grip x 0.25 (physics_ComputeSteerYawRate 0x43ce10,"
+             " used at 0x43d00c for every car) [RE: engine.md; re-read from the exe in this pass]. Your steering"
+             " limit itself (7.84 x tyre grip) does not use it [RE: physics.md 0x43cee0]. Damage decays it toward"
+             " 0.5 [RE: engine.md]. The 'percent' field only feeds the suspension's own damage check [RE: engine.md]."
+             " Spring rate, damping and ride height are not in the file: wheel travel is +-0.25 x wheel radius on"
+             " every car [RE: physics.md 0x46d820].")
+for _k, _n, _h, _pc, _m in [
+        ("sus01", "Stock", "1.00", 0, 35), ("sus02", "Sway Bars", "1.25", 10, 37),
+        ("sus03", "Coil Overs", "1.55", 20, 41), ("sus04", "EtherX Rally", "2.00", 45, 46)]:
+    _info(_k, _n, "handling 1.00 (baseline)" if _h == "1.00" else f"handling {_h}x: slides later",
+          f"Handling coefficient {_h}, percent {_pc}, 200 hp, {_m} lbs [game data: compnent.cdf SUSP]." + _SUS_TAIL)
+
+_BRA_TAIL = (" Offline, this number is ignored: single-player cars get brake strength 2300 / mass whatever"
+             " brake is fitted (physics_BrakeSetStrength 0x46a890 replaces it unless the game is networked or"
+             " multi-melee, where it multiplies) [RE: engine.md; re-read from the exe in this pass]. Braking ="
+             " strength x pedal x 8, capped by four-tyre grip; damage scales it by hp/max, floor 0.2"
+             " [RE: engine.md, 0x43c49a / 0x46a7f0]. So in the campaign a better brake only adds weight (and"
+             " 2300 / mass makes a heavier car brake slightly weaker); the X-Aust Brake special is the real upgrade.")
+for _k, _n, _s, _m in [("bra01", "4-Wheel Drum", "1.0", 12), ("bra02", "Disc & Drum", "1.3", 15),
+                       ("bra03", "4-Wheel Disc", "1.6", 17), ("bra04", "Aircraft Brk", "2.0", 20)]:
+    _info(_k, _n, f"strength {_s} (ignored offline)",
+          f"Brake strength {_s}, 150 hp, {_m} lbs [game data: compnent.cdf BRAK]." + _BRA_TAIL)
+
+_WHL_TAIL = (" Tyre grip sets rear-wheel drive traction, the steering limit (7.84 m/s^2 per unit of grip) and the slide"
+             " threshold [RE: physics.md, 0x43c543 / 0x43ce10]. The loader writes the size factor only into the"
+             " tyre's current grip (wheel+0xc, 0x4ae8cf); the grip base (+0x10) is 1.0 for every tyre (0x46d795), so"
+             " the first hit that damages a tyre resets its grip to hp/max (floor 0.5) and the size bonus is gone"
+             " for that tyre until the car is rebuilt [RE: engine.md; re-read from the exe in this pass]. 100 hp,"
+             " 10 lbs per wheel in the file [game data: wauto_*.wdf]; a blown tyre's radius drops to x0.688"
+             " [RE: engine.md].")
+for _l, _n, _g in [("a", "13in Stock", "1.0"), ("b", "14in Rally", "1.2"),
+                   ("c", "15in Kragers", "1.4"), ("d", "16in Billets", "1.6")]:
+    _info("wauto_" + _l, _n, f"grip {_g}x till the tyre is hit",
+          f"Size factor {_g} [game data: WDFC +0x30; every *_N{_l}.wdf in the archive (wauto, wbtck, wctnk, ...) carries the same]." + _WHL_TAIL)
+
+# weapons: what the shot does (numbers from the stock .gdf / ORDF / .xdf; flight models from i76-map
+# subsystems/weapons.md, weapon_StepProjectileByType 0x4a0800)
+_GUN = ("Straight-line bullets, {speed} m/s, {life} s flight (= {rng} m), bullet damage {dmg} per hit [game data: {gdf}];"
+        " flight weapon_StepBullet 0x4abe60 [RE: weapons.md].")
+def _gun(gdf, name, short, speed, life, dmg, extra=""):
+    _info(gdf, name, short, _GUN.format(speed=speed, life=life, rng=round(speed * life), dmg=dmg, gdf=gdf) + extra)
+for _g, _n, _s, _sp, _lf, _d in [
+        ("gmlight.gdf", "30cal MG", "bullets, 10/s", 150, 3.33, 15), ("gmmedium.gdf", "50cal MG", "bullets, 10/s", 150, 3.33, 25),
+        ("gmheavy.gdf", "7.62mm MG", "bullets, 20/s", 150, 3.33, 24), ("gclight.gdf", "20mm Cannon", "shells, 4/s", 200, 2.5, 45),
+        ("gcmedium.gdf", "25mm Cannon", "shells, 3/s", 200, 2.5, 60), ("gcheavy.gdf", "30mm Cannon", "shells, 2/s", 200, 2.5, 150),
+        ("gchades.gdf", "HADES Cannon", "shells, 2/s, 165 a hit", 200, 2.5, 165),
+        ("tmmedium.gdf", "50cal Turret", "turret bullets, 10/s", 150, 3.33, 25), ("tmheavy.gdf", "7.62 Turret", "turret bullets, 20/s", 150, 3.33, 24),
+        ("tclight.gdf", "20mm Turret", "turret shells, 4/s", 200, 2.5, 45), ("tcmedium.gdf", "25mm Turret", "turret shells, 3/s", 200, 2.5, 60),
+        ("tcheavy.gdf", "30mm Turret", "turret shells, 2/s", 200, 2.5, 150), ("tchades.gdf", "HADES Turret", "turret shells, 2/s, 165 a hit", 200, 2.5, 165)]:
+    _gun(_g, _n, _s, _sp, _lf, _d, " Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]." if _g.startswith("t") else "")
+_gun("tmlight.gdf", "30cal Turret", "turret bullets, 10/s, fast rounds", 700, 0.714, 15,
+     " Unlike the 30cal MG its rounds fly at 700 m/s (same 500 m reach) [game data]. Turret variant [RE: VEHICLES.md].")
+for _g, _n in [("gtktank.gdf", "Tank Cannon"), ("gtptank.gdf", "Police Tank Cann")]:
+    _gun(_g, _n, "boss gun: 900 m/s shells", 900, 6.67, 260, " One shot a second plus a 2 s pause after each [game data].")
+_info("tthowitz.gdf", "Howitzer", "boss mortar: 4 g arc",
+      "Mortar shell, 100 m/s at 4 g (ballistic), 120 damage, 1 shot then a 5 s pause, 60 s flight [game data: tthowitz.gdf];"
+      " flight weapon_StepMortarShell 0x4ac3d0 [RE: weapons.md].")
+_MSL = " Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+for _g, _n in [("gdumb.gdf", "FireRite Rkt"), ("tdumb.gdf", "FireRite Trt")]:
+    _info(_g, _n, "unguided rockets, bursts of 3",
+          "Unguided rockets: bursts of 3 at 4.5 a second, then a 1 s pause; 450 m/s, 1000 m flight, 120 explosive"
+          f" damage a hit [game data: {_g}]; speed eases to 450 m/s (weapon_StepRocket 0x4aa5b0) [RE: weapons.md]." + _MSL)
+for _g, _n in [("gsheat.gdf", "Aim-Nein Msl"), ("tsheat.gdf", "Aim-Nein Trt")]:
+    _info(_g, _n, "heat seeker: snaps onto the target",
+          f"Heat-seeking missile: 220 explosive damage, 450 m/s, 1000 m flight, one every 2 s [game data: {_g}]."
+          " It re-acquires a heat target every step and snaps its nose straight at it: no turn limit"
+          " (weapon_StepHeatMissile 0x4ab920) [RE: weapons.md]. A radar jammer does not affect it [RE: the jammer"
+          " is read only by radar code and the radar missile, engine.md]." + _MSL)
+for _g, _n, _sp, _lf in [("gsradar.gdf", "DrRadar Msl", 125, 8.0), ("tsradar.gdf", "DrRadar Trt", 450, 2.22)]:
+    _info(_g, _n, "radar-guided, turn-limited; jammable",
+          f"Radar-guided missile: 410 explosive damage, {_sp} m/s for {_lf} s (1000 m), one every 5 s [game data: {_g}]."
+          " Turns at most 3 / 15 / 20 degrees a step (< 15 / 15-150 / > 150 m flown) and drops a jammed or dead"
+          " target (weapon_StepRadarMissile 0x4aa9f0) [RE: weapons.md]." + _MSL)
+for _g, _n in [("gscherub.gdf", "Cherub Msl"), ("tscherub.gdf", "Cherub Trt")]:
+    _info(_g, _n, "radar-guided, 3200 a hit; jammable",
+          f"The DrRadar's guidance (ordnance 8: turn-limited, drops a jammed target) with 3200 explosive damage a hit,"
+          f" 450 m/s, 1000 m flight, 3 rounds [game data: {_g}; RE: weapons.md 0x4aa9f0]." + _MSL)
+_FLM = (" Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure"
+        " (time to destroy a bus) [community].")
+for _g, _n, _d, _mode in [("gflight.gdf", "FlameThrower", 15, 0), ("tflight.gdf", "Flame Turret", 15, 0),
+                          ("gfmedium.gdf", "Gas Launcher", 30, 1), ("tfmedium.gdf", "Gas Lnch Trt", 30, 1),
+                          ("gfheavy.gdf", "Napalm Hose", 45, 2), ("tfheavy.gdf", "Napalm Trt", 45, 2),
+                          ("gfpyro.gdf", "Pyro-Tomic", 60, 2), ("tfpyro.gdf", "Pyro-Turret", 60, 2)]:
+    _info(_g, _n, "fire stream", f"Fire damage {_d} a tick, 20 ticks a second [game data: {_g}], emitter mode {_mode}." + _FLM)
+_MORT = " Shooter immunity: 1 s [RE: weapons.md]."
+_info("ggrenade.gdf", "HE Mortar", "lobbed shell, blast 95 in 25 m",
+      "Lobbed shell: 100 m/s at 4 g, 3 a second, 45 explosive damage on a direct hit plus a blast of 95 within 25 m"
+      " (xgren1.xdf) [game data]; weapon_StepMortarShell 0x4ac3d0 [RE: weapons.md]." + _MORT)
+_info("gwhiteph.gdf", "WP Mortar", "lobbed shell, explosive + fire, blast 145",
+      "Lobbed shell like the HE mortar; its 45 direct damage is split between explosive and fire (mask 6), and the"
+      " blast is 145 within 25 m (xwhph1.xdf) [game data; RE: damage split over set bits, i76-map notes 0x4a774d]." + _MORT)
+_info("gcluster.gdf", "Cluster-Bomb", "splits into 9-12 bomblets",
+      "Mortar flight, then 9-12 bomblets spread +-10 m that go off over 1.8 s (weapon_StepClusterBomb 0x4ace20)"
+      " [RE: weapons.md]; 45 damage and a blast of 45 within 20 m each (xclst1.xdf), 2 shells a second [game data]." + _MORT)
+_info("gezkill.gdf", "EZK Mortar", "lobbed shell, tight spread",
+      "Lobbed shell with twice the HE mortar's flight time (8 s) and a tighter spread (0.01), 25 direct damage plus the"
+      " HE blast of 95 within 25 m (xgren1.xdf) [game data: gezkill.gdf]; weapon_StepMortarShell [RE: weapons.md]." + _MORT)
+_DROP = " Shooter immunity: 2 s [RE: weapons.md]."
+_info("goilslck.gdf", "Oil Slick", "spins out whoever drives over it",
+      "Drops oil patches (60 a second, each lasts 20 s) that do no damage [game data: goilslck.gdf]. A car touching one"
+      " loses traction for 2 s (weapon_StepOilSlick 0x4aa150, 0x466e80); the timer is shared with nitrous, so oil"
+      " during a boost cuts the boost to 2 s [RE: weapons.md, engine.md; the nitrous interaction is a static inference]." + _DROP)
+_info("gfirdrop.gdf", "Fire-Dropper", "fire patches on the road",
+      "Drops burning patches (60 a second, each lasts 20 s) carrying 15 fire damage [game data: gfirdrop.gdf]; a patch"
+      " is a stationary probe that fires an impact every frame a car touches it (weapon_StepFirePatch 0x4aa450)"
+      " [RE: weapons.md]." + _DROP)
+_info("glandmin.gdf", "Landmines", "mines: 240 + blast, kicks the car",
+      "Mines that tumble, settle and wait (1000 s): 240 explosive damage plus a blast of 25 within 5 m (xmine1.xdf),"
+      " and they kick the car that hits them (1, 2, 0.75) [game data: glandmin.gdf; RE: weapon_StepTumblingMine"
+      " 0x4a92e0, weapons.md]." + _DROP)
+_info("gceracer.gdf", "Car-E-Racer", "super-mine: 1200 a hit",
+      "The landmine with 1200 explosive damage, 5 rounds, and only 20 hp of its own [game data: gceracer.gdf];"
+      " same tumbling-mine flight and kick [RE: weapons.md]." + _DROP)
+_info("gblox.gdf", "BloxDropper", "blocks: 95 blox damage, small kick",
+      "Drops tumbling blocks that settle and wait: 95 damage of the 'blox' type (mask 8), a softer kick (0.5, 0.5, 0.5),"
+      " one every 2 s, 10 rounds [game data: gblox.gdf; RE: weapons.md 0x4a92e0]." + _DROP)
+
+_SPC = (" Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect"
+        " unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0].")
+_info("spc01", "Radar Jammer", "8 s invisible to radar, 5 uses (key)",
+      "Press its special key: for 8 s your car is hidden from AI radar and the radar display, and radar-guided missiles"
+      " (DrRadar, Cherub) drop you as a target; 5 uses, and every press costs one even while already active"
+      " (entity_ActivateRadarJammer 0x461770, -8.0 at 0x4be17c) [RE: engine.md]. The heat seeker's code is not among its"
+      " readers, so Aim-Nein missiles should ignore it [RE: inferred from the reader list]. Not yet live-tested." + _SPC)
+_info("spc02", "NitrousOxide", "x5 drive for 15 s, 3 charges (key)",
+      "Press its special key: drive acceleration x5.0 for 15 s, still capped by rear-tyre traction; 3 charges, a second"
+      " press restarts the 15 s and costs a charge (physics_FireNitro 0x43d280, 15.0 at 0x43d2a6, x5.0 at 0x4bd1dc;"
+      " re-read from the exe in this pass) [RE: engine.md]. The community figure '+50% acceleration, +20% top"
+      " speed' [community: docs/I76-GAMEPLAY-REFERENCE.md] does not match the code." + _SPC)
+_info("spc03", "Blower", "permanent x1.25 drive",
+      "Passive: drive acceleration x1.25 from spawn (+0x128 = 1.25 at 0x438edb, read at 0x43c587; re-read in this pass)"
+      " [RE: engine.md]. Set once at spawn, so it keeps working even after it is shot off [RE: engine.md].")
+_info("spc04", "X-Aust Brake", "doubles braking (key, stays on)",
+      "Press its special key once: brake input x2 for the rest of the car's life, no uses, no hp check (0x44f608 sets"
+      " +0xf4; 0x43ab46 doubles a negative pedal; re-read in this pass) [RE: engine.md]. Still capped by four-tyre"
+      " grip. This is the only brake upgrade that matters offline (see the brakes).")
+_info("spc05", "Structo Bmpr", "front/rear chassis damage halved",
+      "Passive: chassis absorb multiplier 2.0 on the front and back: a hit there is absorbed while it is <= chassis x 2"
+      " and costs the chassis half as much (entity_ApplyDamage 0x46565b..0x4656ce) [RE: engine.md, damage.md]." + _SPC)
+_info("spc06", "Curb Feelers", "armour takes ~9% less (x1.1)",
+      "Passive: armour absorb multiplier 1.1 on every side: hits cost the armour damage / 1.1 (0x465772..0x4657d8)"
+      " [RE: engine.md, damage.md]." + _SPC)
+_info("spc07", "Mud Flaps", "chassis takes ~9% less (+0.1)",
+      "Passive: chassis multiplier +0.1 on every side (2.1 front/back with the Structo Bumper): hits cost the chassis"
+      " damage / 1.1 (0x4656ef..0x465759, -0.1 at 0x4be208; re-read in this pass) [RE: engine.md, damage.md]." + _SPC)
+_info("spc08", "Heated Seats", "+10% ammo on every weapon",
+      "Passive: every mounted weapon's ammo x1.1 at spawn (0x438ecb -> 0x4a4a40, 1.1 at 0x4beb20) [RE: engine.md]."
+      " Applied once at spawn [RE: engine.md].")
+_info("spc09", "Cup Holders", "10% chance a component hit does nothing",
+      "Passive: a hit that reaches a component is absorbed whole 10% of the time (entity_DamageComponent, rand()%100 < 10"
+      " at 0x465b7e) [RE: engine.md, damage.md]. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some"
+      " are jokes)' [community]; the code gives them a real effect." + _SPC)
+
+def info_key(typ, dfl, cls=""):
+    """PARTS_INFO key for a record: engines/suspensions/brakes by def, wheels by design letter, weapons by .gdf"""
+    if typ == 5:     # <family>_<size digit><design letter>.wdf: wauto_1b.wdf, wbtck_1d.wdf (same stats per letter)
+        m = re.search(r"_\d([a-d])\.wdf$", dfl.lower())
+        return "wauto_" + m.group(1) if m else None
+    return dfl or cls or None
+
+def part_info(typ, dfl, cls=""):
+    return PARTS_INFO.get(info_key(typ, dfl, cls) or "")
+
+def parts_json():
+    """the exact text between the PARTS_INFO markers in i76-save-editor.html"""
+    return "const PARTS_INFO=" + json.dumps(PARTS_INFO, ensure_ascii=False, indent=0) + ";"
+
+def info_by_name(name):
+    """the PARTS_INFO entry for a display name (equipped slots store only the name)"""
+    return next((v for v in PARTS_INFO.values() if v["name"] == name), None)
+
+def does(p):
+    """one-line 'what it does' for a Part record ('' when unknown)"""
+    i = part_info(p.type, p.dfl, p.cls)
+    return i["short"] if i else ""
+
+def print_parts_reference():
+    for k, v in PARTS_INFO.items():
+        print(f"{k:13} {v['name']:17} {v['short']}")
+        print(f"{'':31}{v['what']}")
 
 # ---------------------------------------------------------------- byte helpers
 def cstr(b):
@@ -632,19 +850,20 @@ def write_dir(path, sd, backup=True):
 def catalog_for(part):
     """Return list of (label, apply_args) the record may become."""
     t = part.type
-    if t == 2:  return [(f"{n:14} (dur {du}, wt {w:.0f})", (n, ty, c, df, du, w)) for n,c,df,ty,du,w in ENGINES]
-    if t == 3:  return [(f"{n:14} (dur {du}, wt {w:.0f})", (n, ty, c, df, du, w)) for n,c,df,ty,du,w in SUSPENSIONS]
-    if t == 4:  return [(f"{n:14} (dur {du}, wt {w:.0f})", (n, ty, c, df, du, w)) for n,c,df,ty,du,w in BRAKES]
+    sh = lambda key: (PARTS_INFO.get(key) or {}).get("short", "")
+    if t == 2:  return [(f"{n:14} (dur {du}, wt {w:.0f})  {sh(df)}", (n, ty, c, df, du, w)) for n,c,df,ty,du,w in ENGINES]
+    if t == 3:  return [(f"{n:14} (dur {du}, wt {w:.0f})  {sh(df)}", (n, ty, c, df, du, w)) for n,c,df,ty,du,w in SUSPENSIONS]
+    if t == 4:  return [(f"{n:14} (dur {du}, wt {w:.0f})  {sh(df)}", (n, ty, c, df, du, w)) for n,c,df,ty,du,w in BRAKES]
     if t == 5:
         d = part.dfl
         fam = d[6] if d.startswith("wauto_") and len(d) > 6 else "1"
-        return [(f"{n:14} (wauto_{fam}{l})", (n, 5, "whe01", f"wauto_{fam}{l}.wdf", WHEEL_DUR, WHEEL_WT))
+        return [(f"{n:14} (wauto_{fam}{l})  {sh('wauto_' + l)}", (n, 5, "whe01", f"wauto_{fam}{l}.wdf", WHEEL_DUR, WHEEL_WT))
                 for l, n in WHEEL_DESIGNS]
     if t in (7, 8):
-        return [(f"{n:17} [{m}] (dur {du}, wt {w:.0f})", (n, weapon_type(m), m, df, du, w))
+        return [(f"{n:17} [{m}] (dur {du}, wt {w:.0f})  {sh(df)}", (n, weapon_type(m), m, df, du, w))
                 for n, m, df, du, w in WEAPONS]
     if t == 13:
-        return [(f"{n:14} {tag}", (n, 13, "", df, 0, 0.0)) for n, df, tag in SPECIALS]
+        return [(f"{n:14} {sh(df)}  [{tag}]", (n, 13, "", df, 0, 0.0)) for n, df, tag in SPECIALS]
     return []
 
 # ---------------------------------------------------------------- save-set discovery
@@ -700,11 +919,14 @@ def show_save(cmp, warnings=True):
     print(f"  Weight: {cmp.total_weight():.0f} lbs (2910 + mounted parts + 1 lb/armor point)")
     eq = cmp.equipped
     print("  Equipped: " + ", ".join(f"{EQ_SLOTS[k]}={n}" for k, n in enumerate(eq) if n))
+    for k, n in enumerate(eq):
+        i = info_by_name(n) if n and k not in (4, 5, 6) else None        # the four tyres share one design
+        if i: print(f"    {EQ_SLOTS[k] if k != 3 else 'Tires':11} {n:17} {i['short']}")
     print(f"  Inventory: {len(cmp.a)} records (section A) + {len(cmp.c)} repair-queue references (section C)")
-    print(f"  {'#':>3} {'':3} {'item':22} {'kind':10} {'class':6} {'def':13} {'full':>4} {'cond':>5} {'state':>5} colour")
-    print(f"  {'-'*3} {'-'*3} {'-'*22} {'-'*10} {'-'*6} {'-'*13} {'-'*4} {'-'*5} {'-'*5} ------")
+    print(f"  {'#':>3} {'':3} {'item':22} {'kind':10} {'class':6} {'def':13} {'full':>4} {'cond':>5} {'state':>5} {'colour':6}  what it does")
+    print(f"  {'-'*3} {'-'*3} {'-'*22} {'-'*10} {'-'*6} {'-'*13} {'-'*4} {'-'*5} {'-'*5} ------  ------------")
     for k, p in enumerate(cmp.a):
-        print(f"  {k:>3} ({p.badge}) {p.name:22} {p.kind:10} {p.cls:6} {p.dfl:13} {p.full:>4} {p.cond:>5} {p.state:>5} {p.colour}")
+        print(f"  {k:>3} ({p.badge}) {p.name:22} {p.kind:10} {p.cls:6} {p.dfl:13} {p.full:>4} {p.cond:>5} {p.state:>5} {p.colour:6}  {does(p)}")
     if cmp.c:
         print("  Repair queue (section C, bench order): " + ", ".join(f"{p.name} {p.cond}/{p.full}" for p in cmp.c))
     if warnings:
@@ -721,6 +943,8 @@ def edit_record(cmp, k):
     p = cmp.a[k]
     while True:
         print(f"\n  [{k}] {p.name}  ({p.kind}, {p.dfl})  full={p.full} cond={p.cond} state={p.state} {STATE_LABEL.get(p.state,'')}")
+        i = part_info(p.type, p.dfl, p.cls)
+        if i: print(f"      what it does: {i['what']}")
         c = ask("  [s]wap item  [c]ondition  [l]ocation  [b]ack > ", ("s","c","l","b"))
         if c == "b": return
         if c == "s":
@@ -854,7 +1078,14 @@ def main():
     ap.add_argument("--dump", metavar="N", help="dump save slot N (index from --list) or saveNNN")
     ap.add_argument("--check", action="store_true", help="validate every file in --dir")
     ap.add_argument("--json", nargs="+", metavar="FILE", help="JSON dump of the given .cmp/.spc/.dir files")
+    ap.add_argument("--parts", action="store_true", help="print what every part does (docs/PARTS-REFERENCE.md)")
+    ap.add_argument("--parts-json", action="store_true", help="print PARTS_INFO as the JSON the HTML editor embeds")
     a = ap.parse_args()
+
+    if a.parts:
+        return print_parts_reference()
+    if a.parts_json:
+        return print(parts_json())
 
     if a.json:
         return cmd_json(a.json)

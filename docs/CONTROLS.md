@@ -105,6 +105,10 @@ Generated from `controls/input.map` (md5 `90122d370333b545d27070f3f94b1265`) and
 
 <!-- END generated: stock-vs-ours -->
 
+The Special 1 / 2 / 3 keys fire whatever special sits in that slot, and only three specials respond to a key:
+the Radar Jammer, Nitrous and the X-Aust Brake. The other specials work on their own. What each one does, with
+its numbers: [PARTS-REFERENCE.md](PARTS-REFERENCE.md#specials-spc01spc09).
+
 Not in `input.map` at all (engine keys, from the comments in [`i76-remap.ahk`](../i76-remap.ahk)): `F1` cockpit,
 `F3` chase camera, `F2` `F7` `F8` `F9` `F10` other views, `Esc` pause menu and skip a cutscene.
 

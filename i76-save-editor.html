@@ -243,6 +243,11 @@ details .paths li{margin:6px 0}
     DEFENSE panel uses); where no measurement exists we show "~N dps spec" computed from the game's own
     weapon files (damage × salvo × shots/sec ÷ 10, all shots hitting — real DPS runs lower with misses).
     Flamethrowers are rated the community way: time to destroy a bus.
+    <b>What each part does</b> (the line after every engine, suspension, brake, wheel, weapon and special; hover
+    for the numbers and their sources) comes from the game's own definition files (<code>compnent.cdf</code>,
+    the <code>.wdf</code>/<code>.gdf</code> files) and the reverse-engineered code: offline, for instance, every
+    brake brakes the same and bigger wheels only grip better until the tyre is first hit. Full table:
+    <code>docs/PARTS-REFERENCE.md</code>.
     <b>Paint Shop</b> rewrites the save's own texture-set reference (the same <code>piranhaN.vtf</code>
     field the game's car configs use) — the LOAD list's "Stock (Orange)" label is display-only text
     and stays as-is. <b>Weight</b> is computed (the save stores none): real per-part weights plus the
@@ -303,8 +308,8 @@ const WEAPONS=[
  ["WP Mortar","mor02","gwhiteph.gdf",400,89,45,3,1,70,100,null,""],
  ["Cluster-Bomb","mor03","gcluster.gdf",600,109,45,2,1,30,100,null,"wide spread"],
  ["EZK Mortar","mor04","gezkill.gdf",650,123,25,3,1,40,100,null,"late-Trip"],
- ["Oil Slick","drp01","goilslck.gdf",200,46,0,50,1,2000,null,null,"spinout, no dmg"],
- ["Fire-Dropper","drp04","gfirdrop.gdf",200,70,15,50,1,2000,null,null,"burns chassis"],
+ ["Oil Slick","drp01","goilslck.gdf",200,46,0,60,1,2000,null,null,"spinout, no dmg"],
+ ["Fire-Dropper","drp04","gfirdrop.gdf",200,70,15,60,1,2000,null,null,"burns chassis"],
  ["Landmines","drp05","glandmin.gdf",200,60,240,1,1,25,null,null,""],
  ["Car-E-Racer","drp05","gceracer.gdf",20,169,1200,1,1,5,null,null,"late-Trip"],
  ["BloxDropper","drp06","gblox.gdf",200,139,95,0.5,1,10,null,null,"chassis dmg"],
@@ -324,10 +329,360 @@ const WEAPONS=[
  ["Gas Lnch Trt","flm02","tfmedium.gdf",400,64,30,20,1,700,35,null,"bus in 3.3s"],
  ["Napalm Trt","flm03","tfheavy.gdf",600,102,45,20,1,600,30,null,"bus in 2.6s"],
  ["Pyro-Turret","flm04","tfpyro.gdf",600,120,60,20,1,500,30,null,"late-Trip"]];
-const SPECIALS=[["Radar Jammer","spc01","verified (name only; effect untested)"],["NitrousOxide","spc02","verified"],
- ["Blower","spc03","(inferred)"],["X-Aust Brake","spc04","verified"],["Structo Bmpr","spc05","verified"],
- ["Curb Feelers","spc06","(inferred)"],["Mud Flaps","spc07","(inferred)"],["Heated Seats","spc08","(inferred)"],
- ["Cup Holders","spc09","(inferred)"]];
+/* name/def pairing: every spcNN is the exe's sprintf("spc%02d", type) (0x4b1502), so all nine are code-verified */
+const SPECIALS=[["Radar Jammer","spc01","verified (garage name; spc%02d code)"],["NitrousOxide","spc02","seen"],
+ ["Blower","spc03","code-verified (spc%02d)"],["X-Aust Brake","spc04","seen"],["Structo Bmpr","spc05","seen"],
+ ["Curb Feelers","spc06","seen"],["Mud Flaps","spc07","seen"],["Heated Seats","spc08","seen"],
+ ["Cup Holders","spc09","seen"]];
+/* ---------- what each part does in game ----------
+   Keyed by def code (wheels by design letter: wauto_a..d). "short" = the one-line label, "what" = the numbers,
+   each claim tagged [game data] (stock I76.ZFS via i76-map's parsers) / [RE: doc, address] / [community] / [unknown].
+   Generated: python i76-save-editor.py --parts-json (the Python table is the source; tests/test_save_editor.py
+   fails if the two differ). Readable version with sources: docs/PARTS-REFERENCE.md. */
+/* PARTS_INFO:BEGIN */
+const PARTS_INFO={
+"eng01": {
+"name": "261ci  6 cyl",
+"short": "power 104,440 (baseline)",
+"what": "Drive power 104,440, 300 hp, 200 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.00x the 261ci's power, about 1.00x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+},
+"eng02": {
+"name": "305ci  V-8",
+"short": "power 138,010 (1.32x the 6 cyl)",
+"what": "Drive power 138,010, 300 hp, 230 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.32x the 261ci's power, about 1.30x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+},
+"eng03": {
+"name": "432ci  SHO V8",
+"short": "power 193,960 (1.86x the 6 cyl)",
+"what": "Drive power 193,960, 300 hp, 275 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.86x the 261ci's power, about 1.79x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+},
+"eng04": {
+"name": "595ci  V-10",
+"short": "power 290,940 (2.79x the 6 cyl)",
+"what": "Drive power 290,940, 300 hp, 340 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 2.79x the 261ci's power, about 2.59x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+},
+"sus01": {
+"name": "Stock",
+"short": "handling 1.00 (baseline)",
+"what": "Handling coefficient 1.00, percent 0, 200 hp, 35 lbs [game data: compnent.cdf SUSP]. The coefficient sets the cornering force the car holds before it breaks into a slide: slide threshold = 2 x gravity x handling x surface grip x tyre grip x 0.25 (physics_ComputeSteerYawRate 0x43ce10, used at 0x43d00c for every car) [RE: engine.md; re-read from the exe in this pass]. Your steering limit itself (7.84 x tyre grip) does not use it [RE: physics.md 0x43cee0]. Damage decays it toward 0.5 [RE: engine.md]. The 'percent' field only feeds the suspension's own damage check [RE: engine.md]. Spring rate, damping and ride height are not in the file: wheel travel is +-0.25 x wheel radius on every car [RE: physics.md 0x46d820]."
+},
+"sus02": {
+"name": "Sway Bars",
+"short": "handling 1.25x: slides later",
+"what": "Handling coefficient 1.25, percent 10, 200 hp, 37 lbs [game data: compnent.cdf SUSP]. The coefficient sets the cornering force the car holds before it breaks into a slide: slide threshold = 2 x gravity x handling x surface grip x tyre grip x 0.25 (physics_ComputeSteerYawRate 0x43ce10, used at 0x43d00c for every car) [RE: engine.md; re-read from the exe in this pass]. Your steering limit itself (7.84 x tyre grip) does not use it [RE: physics.md 0x43cee0]. Damage decays it toward 0.5 [RE: engine.md]. The 'percent' field only feeds the suspension's own damage check [RE: engine.md]. Spring rate, damping and ride height are not in the file: wheel travel is +-0.25 x wheel radius on every car [RE: physics.md 0x46d820]."
+},
+"sus03": {
+"name": "Coil Overs",
+"short": "handling 1.55x: slides later",
+"what": "Handling coefficient 1.55, percent 20, 200 hp, 41 lbs [game data: compnent.cdf SUSP]. The coefficient sets the cornering force the car holds before it breaks into a slide: slide threshold = 2 x gravity x handling x surface grip x tyre grip x 0.25 (physics_ComputeSteerYawRate 0x43ce10, used at 0x43d00c for every car) [RE: engine.md; re-read from the exe in this pass]. Your steering limit itself (7.84 x tyre grip) does not use it [RE: physics.md 0x43cee0]. Damage decays it toward 0.5 [RE: engine.md]. The 'percent' field only feeds the suspension's own damage check [RE: engine.md]. Spring rate, damping and ride height are not in the file: wheel travel is +-0.25 x wheel radius on every car [RE: physics.md 0x46d820]."
+},
+"sus04": {
+"name": "EtherX Rally",
+"short": "handling 2.00x: slides later",
+"what": "Handling coefficient 2.00, percent 45, 200 hp, 46 lbs [game data: compnent.cdf SUSP]. The coefficient sets the cornering force the car holds before it breaks into a slide: slide threshold = 2 x gravity x handling x surface grip x tyre grip x 0.25 (physics_ComputeSteerYawRate 0x43ce10, used at 0x43d00c for every car) [RE: engine.md; re-read from the exe in this pass]. Your steering limit itself (7.84 x tyre grip) does not use it [RE: physics.md 0x43cee0]. Damage decays it toward 0.5 [RE: engine.md]. The 'percent' field only feeds the suspension's own damage check [RE: engine.md]. Spring rate, damping and ride height are not in the file: wheel travel is +-0.25 x wheel radius on every car [RE: physics.md 0x46d820]."
+},
+"bra01": {
+"name": "4-Wheel Drum",
+"short": "strength 1.0 (ignored offline)",
+"what": "Brake strength 1.0, 150 hp, 12 lbs [game data: compnent.cdf BRAK]. Offline, this number is ignored: single-player cars get brake strength 2300 / mass whatever brake is fitted (physics_BrakeSetStrength 0x46a890 replaces it unless the game is networked or multi-melee, where it multiplies) [RE: engine.md; re-read from the exe in this pass]. Braking = strength x pedal x 8, capped by four-tyre grip; damage scales it by hp/max, floor 0.2 [RE: engine.md, 0x43c49a / 0x46a7f0]. So in the campaign a better brake only adds weight (and 2300 / mass makes a heavier car brake slightly weaker); the X-Aust Brake special is the real upgrade."
+},
+"bra02": {
+"name": "Disc & Drum",
+"short": "strength 1.3 (ignored offline)",
+"what": "Brake strength 1.3, 150 hp, 15 lbs [game data: compnent.cdf BRAK]. Offline, this number is ignored: single-player cars get brake strength 2300 / mass whatever brake is fitted (physics_BrakeSetStrength 0x46a890 replaces it unless the game is networked or multi-melee, where it multiplies) [RE: engine.md; re-read from the exe in this pass]. Braking = strength x pedal x 8, capped by four-tyre grip; damage scales it by hp/max, floor 0.2 [RE: engine.md, 0x43c49a / 0x46a7f0]. So in the campaign a better brake only adds weight (and 2300 / mass makes a heavier car brake slightly weaker); the X-Aust Brake special is the real upgrade."
+},
+"bra03": {
+"name": "4-Wheel Disc",
+"short": "strength 1.6 (ignored offline)",
+"what": "Brake strength 1.6, 150 hp, 17 lbs [game data: compnent.cdf BRAK]. Offline, this number is ignored: single-player cars get brake strength 2300 / mass whatever brake is fitted (physics_BrakeSetStrength 0x46a890 replaces it unless the game is networked or multi-melee, where it multiplies) [RE: engine.md; re-read from the exe in this pass]. Braking = strength x pedal x 8, capped by four-tyre grip; damage scales it by hp/max, floor 0.2 [RE: engine.md, 0x43c49a / 0x46a7f0]. So in the campaign a better brake only adds weight (and 2300 / mass makes a heavier car brake slightly weaker); the X-Aust Brake special is the real upgrade."
+},
+"bra04": {
+"name": "Aircraft Brk",
+"short": "strength 2.0 (ignored offline)",
+"what": "Brake strength 2.0, 150 hp, 20 lbs [game data: compnent.cdf BRAK]. Offline, this number is ignored: single-player cars get brake strength 2300 / mass whatever brake is fitted (physics_BrakeSetStrength 0x46a890 replaces it unless the game is networked or multi-melee, where it multiplies) [RE: engine.md; re-read from the exe in this pass]. Braking = strength x pedal x 8, capped by four-tyre grip; damage scales it by hp/max, floor 0.2 [RE: engine.md, 0x43c49a / 0x46a7f0]. So in the campaign a better brake only adds weight (and 2300 / mass makes a heavier car brake slightly weaker); the X-Aust Brake special is the real upgrade."
+},
+"wauto_a": {
+"name": "13in Stock",
+"short": "grip 1.0x till the tyre is hit",
+"what": "Size factor 1.0 [game data: WDFC +0x30; every *_Na.wdf in the archive (wauto, wbtck, wctnk, ...) carries the same]. Tyre grip sets rear-wheel drive traction, the steering limit (7.84 m/s^2 per unit of grip) and the slide threshold [RE: physics.md, 0x43c543 / 0x43ce10]. The loader writes the size factor only into the tyre's current grip (wheel+0xc, 0x4ae8cf); the grip base (+0x10) is 1.0 for every tyre (0x46d795), so the first hit that damages a tyre resets its grip to hp/max (floor 0.5) and the size bonus is gone for that tyre until the car is rebuilt [RE: engine.md; re-read from the exe in this pass]. 100 hp, 10 lbs per wheel in the file [game data: wauto_*.wdf]; a blown tyre's radius drops to x0.688 [RE: engine.md]."
+},
+"wauto_b": {
+"name": "14in Rally",
+"short": "grip 1.2x till the tyre is hit",
+"what": "Size factor 1.2 [game data: WDFC +0x30; every *_Nb.wdf in the archive (wauto, wbtck, wctnk, ...) carries the same]. Tyre grip sets rear-wheel drive traction, the steering limit (7.84 m/s^2 per unit of grip) and the slide threshold [RE: physics.md, 0x43c543 / 0x43ce10]. The loader writes the size factor only into the tyre's current grip (wheel+0xc, 0x4ae8cf); the grip base (+0x10) is 1.0 for every tyre (0x46d795), so the first hit that damages a tyre resets its grip to hp/max (floor 0.5) and the size bonus is gone for that tyre until the car is rebuilt [RE: engine.md; re-read from the exe in this pass]. 100 hp, 10 lbs per wheel in the file [game data: wauto_*.wdf]; a blown tyre's radius drops to x0.688 [RE: engine.md]."
+},
+"wauto_c": {
+"name": "15in Kragers",
+"short": "grip 1.4x till the tyre is hit",
+"what": "Size factor 1.4 [game data: WDFC +0x30; every *_Nc.wdf in the archive (wauto, wbtck, wctnk, ...) carries the same]. Tyre grip sets rear-wheel drive traction, the steering limit (7.84 m/s^2 per unit of grip) and the slide threshold [RE: physics.md, 0x43c543 / 0x43ce10]. The loader writes the size factor only into the tyre's current grip (wheel+0xc, 0x4ae8cf); the grip base (+0x10) is 1.0 for every tyre (0x46d795), so the first hit that damages a tyre resets its grip to hp/max (floor 0.5) and the size bonus is gone for that tyre until the car is rebuilt [RE: engine.md; re-read from the exe in this pass]. 100 hp, 10 lbs per wheel in the file [game data: wauto_*.wdf]; a blown tyre's radius drops to x0.688 [RE: engine.md]."
+},
+"wauto_d": {
+"name": "16in Billets",
+"short": "grip 1.6x till the tyre is hit",
+"what": "Size factor 1.6 [game data: WDFC +0x30; every *_Nd.wdf in the archive (wauto, wbtck, wctnk, ...) carries the same]. Tyre grip sets rear-wheel drive traction, the steering limit (7.84 m/s^2 per unit of grip) and the slide threshold [RE: physics.md, 0x43c543 / 0x43ce10]. The loader writes the size factor only into the tyre's current grip (wheel+0xc, 0x4ae8cf); the grip base (+0x10) is 1.0 for every tyre (0x46d795), so the first hit that damages a tyre resets its grip to hp/max (floor 0.5) and the size bonus is gone for that tyre until the car is rebuilt [RE: engine.md; re-read from the exe in this pass]. 100 hp, 10 lbs per wheel in the file [game data: wauto_*.wdf]; a blown tyre's radius drops to x0.688 [RE: engine.md]."
+},
+"gmlight.gdf": {
+"name": "30cal MG",
+"short": "bullets, 10/s",
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 15 per hit [game data: gmlight.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"gmmedium.gdf": {
+"name": "50cal MG",
+"short": "bullets, 10/s",
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 25 per hit [game data: gmmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"gmheavy.gdf": {
+"name": "7.62mm MG",
+"short": "bullets, 20/s",
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 24 per hit [game data: gmheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"gclight.gdf": {
+"name": "20mm Cannon",
+"short": "shells, 4/s",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 45 per hit [game data: gclight.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"gcmedium.gdf": {
+"name": "25mm Cannon",
+"short": "shells, 3/s",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 60 per hit [game data: gcmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"gcheavy.gdf": {
+"name": "30mm Cannon",
+"short": "shells, 2/s",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 150 per hit [game data: gcheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"gchades.gdf": {
+"name": "HADES Cannon",
+"short": "shells, 2/s, 165 a hit",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 165 per hit [game data: gchades.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]."
+},
+"tmmedium.gdf": {
+"name": "50cal Turret",
+"short": "turret bullets, 10/s",
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 25 per hit [game data: tmmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+},
+"tmheavy.gdf": {
+"name": "7.62 Turret",
+"short": "turret bullets, 20/s",
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 24 per hit [game data: tmheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+},
+"tclight.gdf": {
+"name": "20mm Turret",
+"short": "turret shells, 4/s",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 45 per hit [game data: tclight.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+},
+"tcmedium.gdf": {
+"name": "25mm Turret",
+"short": "turret shells, 3/s",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 60 per hit [game data: tcmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+},
+"tcheavy.gdf": {
+"name": "30mm Turret",
+"short": "turret shells, 2/s",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 150 per hit [game data: tcheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+},
+"tchades.gdf": {
+"name": "HADES Turret",
+"short": "turret shells, 2/s, 165 a hit",
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 165 per hit [game data: tchades.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+},
+"tmlight.gdf": {
+"name": "30cal Turret",
+"short": "turret bullets, 10/s, fast rounds",
+"what": "Straight-line bullets, 700 m/s, 0.714 s flight (= 500 m), bullet damage 15 per hit [game data: tmlight.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Unlike the 30cal MG its rounds fly at 700 m/s (same 500 m reach) [game data]. Turret variant [RE: VEHICLES.md]."
+},
+"gtktank.gdf": {
+"name": "Tank Cannon",
+"short": "boss gun: 900 m/s shells",
+"what": "Straight-line bullets, 900 m/s, 6.67 s flight (= 6003 m), bullet damage 260 per hit [game data: gtktank.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. One shot a second plus a 2 s pause after each [game data]."
+},
+"gtptank.gdf": {
+"name": "Police Tank Cann",
+"short": "boss gun: 900 m/s shells",
+"what": "Straight-line bullets, 900 m/s, 6.67 s flight (= 6003 m), bullet damage 260 per hit [game data: gtptank.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. One shot a second plus a 2 s pause after each [game data]."
+},
+"tthowitz.gdf": {
+"name": "Howitzer",
+"short": "boss mortar: 4 g arc",
+"what": "Mortar shell, 100 m/s at 4 g (ballistic), 120 damage, 1 shot then a 5 s pause, 60 s flight [game data: tthowitz.gdf]; flight weapon_StepMortarShell 0x4ac3d0 [RE: weapons.md]."
+},
+"gdumb.gdf": {
+"name": "FireRite Rkt",
+"short": "unguided rockets, bursts of 3",
+"what": "Unguided rockets: bursts of 3 at 4.5 a second, then a 1 s pause; 450 m/s, 1000 m flight, 120 explosive damage a hit [game data: gdumb.gdf]; speed eases to 450 m/s (weapon_StepRocket 0x4aa5b0) [RE: weapons.md]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"tdumb.gdf": {
+"name": "FireRite Trt",
+"short": "unguided rockets, bursts of 3",
+"what": "Unguided rockets: bursts of 3 at 4.5 a second, then a 1 s pause; 450 m/s, 1000 m flight, 120 explosive damage a hit [game data: tdumb.gdf]; speed eases to 450 m/s (weapon_StepRocket 0x4aa5b0) [RE: weapons.md]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"gsheat.gdf": {
+"name": "Aim-Nein Msl",
+"short": "heat seeker: snaps onto the target",
+"what": "Heat-seeking missile: 220 explosive damage, 450 m/s, 1000 m flight, one every 2 s [game data: gsheat.gdf]. It re-acquires a heat target every step and snaps its nose straight at it: no turn limit (weapon_StepHeatMissile 0x4ab920) [RE: weapons.md]. A radar jammer does not affect it [RE: the jammer is read only by radar code and the radar missile, engine.md]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"tsheat.gdf": {
+"name": "Aim-Nein Trt",
+"short": "heat seeker: snaps onto the target",
+"what": "Heat-seeking missile: 220 explosive damage, 450 m/s, 1000 m flight, one every 2 s [game data: tsheat.gdf]. It re-acquires a heat target every step and snaps its nose straight at it: no turn limit (weapon_StepHeatMissile 0x4ab920) [RE: weapons.md]. A radar jammer does not affect it [RE: the jammer is read only by radar code and the radar missile, engine.md]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"gsradar.gdf": {
+"name": "DrRadar Msl",
+"short": "radar-guided, turn-limited; jammable",
+"what": "Radar-guided missile: 410 explosive damage, 125 m/s for 8.0 s (1000 m), one every 5 s [game data: gsradar.gdf]. Turns at most 3 / 15 / 20 degrees a step (< 15 / 15-150 / > 150 m flown) and drops a jammed or dead target (weapon_StepRadarMissile 0x4aa9f0) [RE: weapons.md]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"tsradar.gdf": {
+"name": "DrRadar Trt",
+"short": "radar-guided, turn-limited; jammable",
+"what": "Radar-guided missile: 410 explosive damage, 450 m/s for 2.22 s (1000 m), one every 5 s [game data: tsradar.gdf]. Turns at most 3 / 15 / 20 degrees a step (< 15 / 15-150 / > 150 m flown) and drops a jammed or dead target (weapon_StepRadarMissile 0x4aa9f0) [RE: weapons.md]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"gscherub.gdf": {
+"name": "Cherub Msl",
+"short": "radar-guided, 3200 a hit; jammable",
+"what": "The DrRadar's guidance (ordnance 8: turn-limited, drops a jammed target) with 3200 explosive damage a hit, 450 m/s, 1000 m flight, 3 rounds [game data: gscherub.gdf; RE: weapons.md 0x4aa9f0]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"tscherub.gdf": {
+"name": "Cherub Trt",
+"short": "radar-guided, 3200 a hit; jammable",
+"what": "The DrRadar's guidance (ordnance 8: turn-limited, drops a jammed target) with 3200 explosive damage a hit, 450 m/s, 1000 m flight, 3 rounds [game data: tscherub.gdf; RE: weapons.md 0x4aa9f0]. Shooter immunity: your own rockets and missiles cannot hit you for the first 70 m [RE: weapons.md]."
+},
+"gflight.gdf": {
+"name": "FlameThrower",
+"short": "fire stream",
+"what": "Fire damage 15 a tick, 20 ticks a second [game data: gflight.gdf], emitter mode 0. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"tflight.gdf": {
+"name": "Flame Turret",
+"short": "fire stream",
+"what": "Fire damage 15 a tick, 20 ticks a second [game data: tflight.gdf], emitter mode 0. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"gfmedium.gdf": {
+"name": "Gas Launcher",
+"short": "fire stream",
+"what": "Fire damage 30 a tick, 20 ticks a second [game data: gfmedium.gdf], emitter mode 1. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"tfmedium.gdf": {
+"name": "Gas Lnch Trt",
+"short": "fire stream",
+"what": "Fire damage 30 a tick, 20 ticks a second [game data: tfmedium.gdf], emitter mode 1. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"gfheavy.gdf": {
+"name": "Napalm Hose",
+"short": "fire stream",
+"what": "Fire damage 45 a tick, 20 ticks a second [game data: gfheavy.gdf], emitter mode 2. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"tfheavy.gdf": {
+"name": "Napalm Trt",
+"short": "fire stream",
+"what": "Fire damage 45 a tick, 20 ticks a second [game data: tfheavy.gdf], emitter mode 2. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"gfpyro.gdf": {
+"name": "Pyro-Tomic",
+"short": "fire stream",
+"what": "Fire damage 60 a tick, 20 ticks a second [game data: gfpyro.gdf], emitter mode 2. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"tfpyro.gdf": {
+"name": "Pyro-Turret",
+"short": "fire stream",
+"what": "Fire damage 60 a tick, 20 ticks a second [game data: tfpyro.gdf], emitter mode 2. Not a projectile: an emitter (weapon_FlameEmit 0x443c90) [RE: weapons.md]. Range is the community figure (time to destroy a bus) [community]."
+},
+"ggrenade.gdf": {
+"name": "HE Mortar",
+"short": "lobbed shell, blast 95 in 25 m",
+"what": "Lobbed shell: 100 m/s at 4 g, 3 a second, 45 explosive damage on a direct hit plus a blast of 95 within 25 m (xgren1.xdf) [game data]; weapon_StepMortarShell 0x4ac3d0 [RE: weapons.md]. Shooter immunity: 1 s [RE: weapons.md]."
+},
+"gwhiteph.gdf": {
+"name": "WP Mortar",
+"short": "lobbed shell, explosive + fire, blast 145",
+"what": "Lobbed shell like the HE mortar; its 45 direct damage is split between explosive and fire (mask 6), and the blast is 145 within 25 m (xwhph1.xdf) [game data; RE: damage split over set bits, i76-map notes 0x4a774d]. Shooter immunity: 1 s [RE: weapons.md]."
+},
+"gcluster.gdf": {
+"name": "Cluster-Bomb",
+"short": "splits into 9-12 bomblets",
+"what": "Mortar flight, then 9-12 bomblets spread +-10 m that go off over 1.8 s (weapon_StepClusterBomb 0x4ace20) [RE: weapons.md]; 45 damage and a blast of 45 within 20 m each (xclst1.xdf), 2 shells a second [game data]. Shooter immunity: 1 s [RE: weapons.md]."
+},
+"gezkill.gdf": {
+"name": "EZK Mortar",
+"short": "lobbed shell, tight spread",
+"what": "Lobbed shell with twice the HE mortar's flight time (8 s) and a tighter spread (0.01), 25 direct damage plus the HE blast of 95 within 25 m (xgren1.xdf) [game data: gezkill.gdf]; weapon_StepMortarShell [RE: weapons.md]. Shooter immunity: 1 s [RE: weapons.md]."
+},
+"goilslck.gdf": {
+"name": "Oil Slick",
+"short": "spins out whoever drives over it",
+"what": "Drops oil patches (60 a second, each lasts 20 s) that do no damage [game data: goilslck.gdf]. A car touching one loses traction for 2 s (weapon_StepOilSlick 0x4aa150, 0x466e80); the timer is shared with nitrous, so oil during a boost cuts the boost to 2 s [RE: weapons.md, engine.md; the nitrous interaction is a static inference]. Shooter immunity: 2 s [RE: weapons.md]."
+},
+"gfirdrop.gdf": {
+"name": "Fire-Dropper",
+"short": "fire patches on the road",
+"what": "Drops burning patches (60 a second, each lasts 20 s) carrying 15 fire damage [game data: gfirdrop.gdf]; a patch is a stationary probe that fires an impact every frame a car touches it (weapon_StepFirePatch 0x4aa450) [RE: weapons.md]. Shooter immunity: 2 s [RE: weapons.md]."
+},
+"glandmin.gdf": {
+"name": "Landmines",
+"short": "mines: 240 + blast, kicks the car",
+"what": "Mines that tumble, settle and wait (1000 s): 240 explosive damage plus a blast of 25 within 5 m (xmine1.xdf), and they kick the car that hits them (1, 2, 0.75) [game data: glandmin.gdf; RE: weapon_StepTumblingMine 0x4a92e0, weapons.md]. Shooter immunity: 2 s [RE: weapons.md]."
+},
+"gceracer.gdf": {
+"name": "Car-E-Racer",
+"short": "super-mine: 1200 a hit",
+"what": "The landmine with 1200 explosive damage, 5 rounds, and only 20 hp of its own [game data: gceracer.gdf]; same tumbling-mine flight and kick [RE: weapons.md]. Shooter immunity: 2 s [RE: weapons.md]."
+},
+"gblox.gdf": {
+"name": "BloxDropper",
+"short": "blocks: 95 blox damage, small kick",
+"what": "Drops tumbling blocks that settle and wait: 95 damage of the 'blox' type (mask 8), a softer kick (0.5, 0.5, 0.5), one every 2 s, 10 rounds [game data: gblox.gdf; RE: weapons.md 0x4a92e0]. Shooter immunity: 2 s [RE: weapons.md]."
+},
+"spc01": {
+"name": "Radar Jammer",
+"short": "8 s invisible to radar, 5 uses (key)",
+"what": "Press its special key: for 8 s your car is hidden from AI radar and the radar display, and radar-guided missiles (DrRadar, Cherub) drop you as a target; 5 uses, and every press costs one even while already active (entity_ActivateRadarJammer 0x461770, -8.0 at 0x4be17c) [RE: engine.md]. The heat seeker's code is not among its readers, so Aim-Nein missiles should ignore it [RE: inferred from the reader list]. Not yet live-tested. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+},
+"spc02": {
+"name": "NitrousOxide",
+"short": "x5 drive for 15 s, 3 charges (key)",
+"what": "Press its special key: drive acceleration x5.0 for 15 s, still capped by rear-tyre traction; 3 charges, a second press restarts the 15 s and costs a charge (physics_FireNitro 0x43d280, 15.0 at 0x43d2a6, x5.0 at 0x4bd1dc; re-read from the exe in this pass) [RE: engine.md]. The community figure '+50% acceleration, +20% top speed' [community: docs/I76-GAMEPLAY-REFERENCE.md] does not match the code. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+},
+"spc03": {
+"name": "Blower",
+"short": "permanent x1.25 drive",
+"what": "Passive: drive acceleration x1.25 from spawn (+0x128 = 1.25 at 0x438edb, read at 0x43c587; re-read in this pass) [RE: engine.md]. Set once at spawn, so it keeps working even after it is shot off [RE: engine.md]."
+},
+"spc04": {
+"name": "X-Aust Brake",
+"short": "doubles braking (key, stays on)",
+"what": "Press its special key once: brake input x2 for the rest of the car's life, no uses, no hp check (0x44f608 sets +0xf4; 0x43ab46 doubles a negative pedal; re-read in this pass) [RE: engine.md]. Still capped by four-tyre grip. This is the only brake upgrade that matters offline (see the brakes)."
+},
+"spc05": {
+"name": "Structo Bmpr",
+"short": "front/rear chassis damage halved",
+"what": "Passive: chassis absorb multiplier 2.0 on the front and back: a hit there is absorbed while it is <= chassis x 2 and costs the chassis half as much (entity_ApplyDamage 0x46565b..0x4656ce) [RE: engine.md, damage.md]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+},
+"spc06": {
+"name": "Curb Feelers",
+"short": "armour takes ~9% less (x1.1)",
+"what": "Passive: armour absorb multiplier 1.1 on every side: hits cost the armour damage / 1.1 (0x465772..0x4657d8) [RE: engine.md, damage.md]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+},
+"spc07": {
+"name": "Mud Flaps",
+"short": "chassis takes ~9% less (+0.1)",
+"what": "Passive: chassis multiplier +0.1 on every side (2.1 front/back with the Structo Bumper): hits cost the chassis damage / 1.1 (0x4656ef..0x465759, -0.1 at 0x4be208; re-read in this pass) [RE: engine.md, damage.md]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+},
+"spc08": {
+"name": "Heated Seats",
+"short": "+10% ammo on every weapon",
+"what": "Passive: every mounted weapon's ammo x1.1 at spawn (0x438ecb -> 0x4a4a40, 1.1 at 0x4beb20) [RE: engine.md]. Applied once at spawn [RE: engine.md]."
+},
+"spc09": {
+"name": "Cup Holders",
+"short": "10% chance a component hit does nothing",
+"what": "Passive: a hit that reaches a component is absorbed whole 10% of the time (entity_DamageComponent, rand()%100 < 10 at 0x465b7e) [RE: engine.md, damage.md]. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some are jokes)' [community]; the code gives them a real effect. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+}
+};
+/* PARTS_INFO:END */
+/* wheels: <family>_<size digit><design letter>.wdf (wauto_1b, wbtck_1d): the same stats per letter */
+const infoKey=(type,dfl,cls)=>{if(type!==5) return dfl||cls||null; const m=/_\d([a-d])\.wdf$/.exec((dfl||"").toLowerCase()); return m?"wauto_"+m[1]:null;};
+const partInfo=(type,dfl,cls)=>PARTS_INFO[infoKey(type,dfl,cls)]||null;
+const infoByName=n=>Object.values(PARTS_INFO).find(p=>p.name===n)||null;
+const escHtml=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 /* T.R.I.P. scene labels, grounded in Local Ditch's walkthrough */
 const SCENES=["Seagraves fireworks","Race Taurus · save the school","Destroy the Bar-D",
  "Race Patriot","Rescue Taurus","Brownfield gas run","Chase Cloaker",
@@ -561,10 +916,11 @@ function renameRegistry(buf,oldName,newName){
 }
 /* options for an equipped slot; weapons constrained to the same mount family */
 function eqOptions(slot,curName){
-  if(slot===0) return ENGINES.map(e=>({name:e[0],label:e[0],apply:b=>{writeEqName(b,0,e[0]);reconcileFlags(b,curName,e[0]);}}));
-  if(slot===1) return SUSP.map(e=>({name:e[0],label:e[0],apply:b=>{writeEqName(b,1,e[0]);reconcileFlags(b,curName,e[0]);}}));
-  if(slot===2) return BRAKES.map(e=>({name:e[0],label:e[0],apply:b=>{writeEqName(b,2,e[0]);reconcileFlags(b,curName,e[0]);}}));
-  if(slot>=3&&slot<=6) return WHEELS.map(([l,n])=>({name:n,label:`${n} (all four)`,apply:b=>{
+  const sh=k=>PARTS_INFO[k]?` — ${PARTS_INFO[k].short}`:"";
+  if(slot===0) return ENGINES.map(e=>({name:e[0],label:e[0]+sh(e[2]),apply:b=>{writeEqName(b,0,e[0]);reconcileFlags(b,curName,e[0]);}}));
+  if(slot===1) return SUSP.map(e=>({name:e[0],label:e[0]+sh(e[2]),apply:b=>{writeEqName(b,1,e[0]);reconcileFlags(b,curName,e[0]);}}));
+  if(slot===2) return BRAKES.map(e=>({name:e[0],label:e[0]+sh(e[2]),apply:b=>{writeEqName(b,2,e[0]);reconcileFlags(b,curName,e[0]);}}));
+  if(slot>=3&&slot<=6) return WHEELS.map(([l,n])=>({name:n,label:`${n} (all four)${sh("wauto_"+l)}`,apply:b=>{
     for(let k=3;k<=6;k++) writeEqName(b,k,n);
     writeWheelDefs(b,l);
   }}));
@@ -580,7 +936,7 @@ function eqOptions(slot,curName){
       label:`${w[0]} — ${dpsText(w)}${w[9]?` · rng ${w[9]}m`:""} [${w[1]}]`,
       apply:b=>{writeEqName(b,slot,w[0]); reconcileFlags(b,curName,w[0]);}}));
   }
-  if(slot>=11&&slot<=13) return SPECIALS.map(([n,d,tag])=>({name:n,label:`${n} ${tag}`,apply:b=>{
+  if(slot>=11&&slot<=13) return SPECIALS.map(([n,d,tag])=>({name:n,label:`${n}${sh(d)}`,apply:b=>{
     renameRegistry(b,curName,n);
     writeEqName(b,slot,n);
     reconcileFlags(b,curName,n);
@@ -676,18 +1032,19 @@ const WEAPONS_ORDERED=[...WEAPONS].sort((a,b)=>isLate(a)-isLate(b));
 function optionsFor(r){
   const t=r.type;
   const mk=(label,args)=>({label,args});
-  if(t===2) return ENGINES.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)`,[e[0],2,e[1],e[2],e[3],e[4]]));
-  if(t===3) return SUSP.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)`,[e[0],3,e[1],e[2],e[3],e[4]]));
-  if(t===4) return BRAKES.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)`,[e[0],4,e[1],e[2],e[3],e[4]]));
+  const sh=k=>PARTS_INFO[k]?` — ${PARTS_INFO[k].short}`:"";
+  if(t===2) return ENGINES.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)${sh(e[2])}`,[e[0],2,e[1],e[2],e[3],e[4]]));
+  if(t===3) return SUSP.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)${sh(e[2])}`,[e[0],3,e[1],e[2],e[3],e[4]]));
+  if(t===4) return BRAKES.map(e=>mk(`${e[0]}  (dur ${e[3]}, ${e[4]} lbs)${sh(e[2])}`,[e[0],4,e[1],e[2],e[3],e[4]]));
   if(t===5){
     const fam=(r.dfl.startsWith("wauto_")&&r.dfl.length>6)?r.dfl[6]:"1";
-    return WHEELS.map(([l,n])=>mk(n,[n,5,"whe01",`wauto_${fam}${l}.wdf`,100,20]));
+    return WHEELS.map(([l,n])=>mk(n+sh("wauto_"+l),[n,5,"whe01",`wauto_${fam}${l}.wdf`,100,20]));
   }
   if(t===7||t===8) return WEAPONS_ORDERED.map(w=>mk(
     `${w[0]}  — ${dpsText(w)}${w[9]?` · rng ${w[9]}m`:""} · ammo ${w[8]}`+
     `${w[11]&&!w[11].startsWith("bus")?` · ${w[11]}`:""} [${w[1]}]`,
     [w[0],w[1].startsWith("drp")?8:7,w[1],w[2],w[3],w[4]]));
-  if(t===13) return SPECIALS.map(([n,d,tag])=>mk(`${n}  ${tag}`,[n,13,"",d,0,0]));
+  if(t===13) return SPECIALS.map(([n,d,tag])=>mk(`${n}${sh(d)}`,[n,13,"",d,0,0]));
   return [];
 }
 
@@ -1017,7 +1374,8 @@ function render(){
         const sel=document.createElement("select"); sel.className="eqsel";
         sel.setAttribute("aria-label",`${label}: swap part`);
         const curIdx=opts.findIndex(o=>o.name===n);
-        const opt=(o,i)=>`<option value="${i}" ${i===curIdx?"selected":""}>${o.label}</option>`;
+        const opt=(o,i)=>{const pi=infoByName(o.name);
+          return `<option value="${i}" ${i===curIdx?"selected":""}${pi?` title="${escHtml(pi.what)}"`:""}>${o.label}</option>`;};
         /* in-game-form order: your own van spares first, then the catalog
            (conjures a part from thin air), then off-spec experiments */
         const own=opts.filter(o=>vanNames.has(o.name)),
@@ -1039,6 +1397,9 @@ function render(){
         });
         cell.appendChild(sel);
         if(eqMatch[slot]!==undefined) cell.appendChild(condControls(eqMatch[slot]));
+        /* what the mounted part does: the label carries the one-liner, hover for the sourced numbers */
+        const pi=infoByName(n);
+        if(pi) sel.title=`${n}: ${pi.what}`;
       }
       pt.appendChild(tr);
     });
@@ -1166,7 +1527,8 @@ function render(){
         const chOrig=new Uint8Array(s.orig,r.off,REC), chNow=new Uint8Array(s.buf,r.off,REC);
         let ch=false; for(let i=0;i<REC;i++) if(chOrig[i]!==chNow[i]){ch=true;break;}
         const w=WEAPONS.find(x=>x[2]===r.dfl);
-        const meta=`${w?`${dpsText(w)}${w[9]?` · ${w[9]}m`:""}`:(r.type===13?"special":"")}${ch?" · edited":""}`;
+        const pinf=partInfo(r.type,r.dfl,r.cls);
+        const meta=`${w?`${dpsText(w)}${w[9]?` · ${w[9]}m`:""}`:""}${pinf?`${w?" · ":""}${pinf.short}`:(!w&&r.type===13?"special":"")}${ch?" · edited":""}`;
         row.innerHTML=`<span class="locflag" title="${LOC_LABEL[r.state]||"state "+r.state}">(${LOC_BADGE[r.state]||"?"})</span>`;
         // the part itself: an obvious dropdown, like the equipped panel
         const opts=optionsFor(r);
@@ -1174,7 +1536,8 @@ function render(){
         const psel=document.createElement("select"); psel.className="eqsel marker "+condMarker(r);
         psel.setAttribute("aria-label",`swap this ${KIND[r.type]||"part"}`);
         psel.innerHTML=(curIdx<0?`<option value="" selected>${r.name}</option>`:"")+
-          opts.map((o,k)=>`<option value="${k}" ${k===curIdx?"selected":""}>${o.label}</option>`).join("");
+          opts.map((o,k)=>{const pi=partInfo(o.args[1],o.args[3],o.args[2]);
+            return `<option value="${k}" ${k===curIdx?"selected":""}${pi?` title="${escHtml(pi.what)}"`:""}>${o.label}</option>`;}).join("");
         psel.addEventListener("change",()=>{
           if(psel.value===""||+psel.value===curIdx) return;
           const o=opts[+psel.value];
@@ -1201,6 +1564,7 @@ function render(){
         }
         const fill=document.createElement("span"); fill.className="fill";
         const metaEl=document.createElement("span"); metaEl.className="meta"; metaEl.textContent=meta;
+        if(pinf) metaEl.title=pinf.what;
         row.append(fill,metaEl);
         list.appendChild(row);
       });

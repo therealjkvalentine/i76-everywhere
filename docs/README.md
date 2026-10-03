@@ -156,6 +156,7 @@ Binding rules are in [`../AGENTS.md`](../AGENTS.md): `input.map` is the only liv
 | living | [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md) | The save format as the game writes it, against what the editor reads |
 | record 2026-10-02 | [SAVE-EDITOR-STATUS-2026-10-02.md](records/SAVE-EDITOR-STATUS-2026-10-02.md) | Save editor: what works, what is byte-exact, what still needs the game |
 | living | [EDITOR-FIELD-TESTS.md](EDITOR-FIELD-TESTS.md) | The save editor's in-game verification checklist |
+| living | [PARTS-REFERENCE.md](PARTS-REFERENCE.md) | What every engine, suspension, brake, wheel, special and weapon does in game, with numbers and sources (the editor shows the same lines) |
 | record 2026-10-02 | [MOUNT-VALIDATION.md](records/MOUNT-VALIDATION.md) | What decides whether an equipped item stays mounted when a save loads |
 | living | [MISSION-LAUNCH.md](MISSION-LAUNCH.md) | Booting straight into a mission with `I76_MISSION` |
 

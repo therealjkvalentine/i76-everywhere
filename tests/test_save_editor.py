@@ -242,6 +242,55 @@ def test_html_dir_functions():
     subprocess.check_call([NODE, os.path.join(REPO, "tools", "tests", "test-save-editor-dir.mjs"),
                            os.path.join(LAB_FIX, "savegame.dir")], stdout=subprocess.DEVNULL)
 
+# ---------------------------------------------------------------- what each part does (PARTS_INFO)
+def _html():
+    with open(os.path.join(REPO, "i76-save-editor.html"), encoding="utf-8") as f: return f.read()
+
+def test_parts_info_html_matches_python():
+    """the HTML embeds the Python table verbatim (regenerate: python i76-save-editor.py --parts-json)"""
+    html = _html()
+    i, j = html.index("/* PARTS_INFO:BEGIN */\n"), html.index("\n/* PARTS_INFO:END */")
+    block = html[i + len("/* PARTS_INFO:BEGIN */\n"):j]
+    assert block == ed.parts_json()
+    assert json.loads(block[len("const PARTS_INFO="):-1]) == ed.PARTS_INFO
+
+def test_parts_info_covers_every_catalog_part():
+    keys = set(ed.PARTS_INFO)
+    for n, c, d, t, du, w in ed.ENGINES + ed.SUSPENSIONS + ed.BRAKES:
+        assert ed.PARTS_INFO[d]["name"] == n
+    for l, n in ed.WHEEL_DESIGNS:
+        assert ed.PARTS_INFO["wauto_" + l]["name"] == n
+    for n, m, d, du, w in ed.WEAPONS:
+        assert ed.PARTS_INFO[d]["name"] == n, d
+    for n, d, tag in ed.SPECIALS:
+        assert ed.PARTS_INFO[d]["name"] == n
+    assert len(keys) == len(ed.ENGINES) + len(ed.SUSPENSIONS) + len(ed.BRAKES) + len(ed.WHEEL_DESIGNS) + len(ed.WEAPONS) + len(ed.SPECIALS)
+    labels = ("[game data", "[RE:", "[community", "[unknown", "[derived")
+    for k, v in ed.PARTS_INFO.items():
+        assert v["short"] and len(v["short"]) <= 60, k
+        assert any(t in v["what"] for t in labels), f"{k}: every 'what' carries a source label"
+    # every name is unique, so the equipped slots (which store only the name) resolve to one entry
+    names = [v["name"] for v in ed.PARTS_INFO.values()]
+    assert len(names) == len(set(names))
+
+def test_parts_info_resolves_every_sample_record():
+    seen = 0
+    for p in CMP_FILES:
+        for part in ed.Cmp(_read(p)).a:
+            i = ed.part_info(part.type, part.dfl, part.cls)
+            assert i is not None, (_rel(p), part.name, part.dfl)
+            assert i["name"] == part.name or part.type == 5 or _rel(p) in EDITOR_TOUCHED, (_rel(p), part.name, i["name"])
+            seen += 1
+    assert seen > 100
+
+def test_html_catalog_defs_have_parts_info():
+    """every def code the browser catalog can write has an entry"""
+    html = _html()
+    cat = html[html.index("const ENGINES="):html.index("/* name/def pairing")]
+    import re
+    defs = set(re.findall(r'"((?:eng|sus|bra)0\d|spc0\d|[gt][a-z]+\.gdf)"', cat))
+    assert defs and defs <= set(ed.PARTS_INFO), defs - set(ed.PARTS_INFO)
+
 # ---------------------------------------------------------------- calibration staging
 def test_calibration_staging(tmp_path):
     out = tmp_path / "staging"
