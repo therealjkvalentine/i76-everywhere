@@ -292,7 +292,8 @@ if (Test-Path $mapPath) {
             '# Home-row hardpoints 1-4. Additive: a second block for the same action is',
             '# an ALTERNATIVE binding, not a chord, so the number keys and mouse buttons',
             '# above keep working. Fires that ONE hardpoint, ignoring selection/linking.',
-            'hardpoint1_fire {', '   + keyboard   L', '}',
+            '# hardpoint 1 is on K, not L (2026-10-03): stock GOG 2.1.0.17 has weapon_link on L; K was unbound.',
+            'hardpoint1_fire {', '   + keyboard   K', '}',
             'hardpoint2_fire {', '   + keyboard   O', '}',
             'hardpoint3_fire {', '   + keyboard   LeftBracket', '}',
             'hardpoint4_fire {', '   + keyboard   RightBracket', '}'
