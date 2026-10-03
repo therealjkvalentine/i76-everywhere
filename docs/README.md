@@ -28,7 +28,7 @@ inside records were not.
 | What this repo adds, and how far each thing is proven | [ENHANCEMENTS.md](ENHANCEMENTS.md) |
 | Every fix as symptom, cause, fix | [VERIFIED-FIXES.md](VERIFIED-FIXES.md) |
 | What is open | [BACKLOG-2026-10-02.md](records/BACKLOG-2026-10-02.md) (read the superseded-rows note at its top). Added 2026-10-03, **Mac: converge later**: Windows now ships the owner's WASD map (`controls/input.map`); the Mac build may have grown a different two-handed keyboard layout and still installs `input.map.reference`. Not examined; converge the two ([CONTROLS.md](CONTROLS.md#mac-converge-later)). **Shadow transparency: skipped for now by the owner 2026-10-03.** Notes: shadows are flattened meshes drawn opaque under Glide; translucent modes exist; overlapping triangles would double-darken, so it needs a one-fragment-per-pixel depth trick; estimate two sandbox sessions |
-| What happened last | [STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) (its last section is 2026-10-03) |
+| What happened last | [STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) (its last section is 2026-10-03: the new daily driver, and promotion 2, widescreen `best-wide` as `PLAY.bat`) |
 | Rules for working on this repo | [`../AGENTS.md`](../AGENTS.md) |
 
 ## Current state (2026-10-03)
@@ -58,7 +58,7 @@ inside records were not.
 | living | [VERIFIED-FIXES.md](VERIFIED-FIXES.md) | Every symptom, root cause and fix that shipped, in one table (Mac-first, with Windows rows) |
 | living | [RELEASE-PLAN.md](RELEASE-PLAN.md) | Community release plan; section 1 is the component state table (written 2026-10-01, corrected in place) |
 | record 2026-10-02 | [BACKLOG-2026-10-02.md](records/BACKLOG-2026-10-02.md) | Every open problem and unknown in one prioritised table (P1 to P4) |
-| record 2026-10-02 | [STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) | What the autonomous session built and how each item was verified; 2026-10-03 daily-driver section |
+| record 2026-10-02 | [STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) | What the autonomous session built and how each item was verified; 2026-10-03 daily-driver section, including promotion 2 (widescreen) |
 | record 2026-10-02 | [PLAYTEST-2026-10-02.md](records/PLAYTEST-2026-10-02.md) | The owner's first console run of the whole switch set, verdict by verdict |
 | record 2026-10-02 | [NEW-DAILY-DRIVER-RECIPE.md](records/NEW-DAILY-DRIVER-RECIPE.md) | Inventory of the old daily driver by md5 and the recipe for the new one; outcome box at the top |
 | record 2026-10-02 | [DOC-CORRECTIONS-PENDING-SIBLINGS.md](DOC-CORRECTIONS-PENDING-SIBLINGS.md) | Corrections owed to the sibling repos (applied ones, the 2026-10-03 rejected-conf set, and the paths that moved on 2026-10-03). Stays in `docs/` |
