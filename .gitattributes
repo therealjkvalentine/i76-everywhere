@@ -27,3 +27,7 @@
 # quick reference sheet. It has mixed line endings (as the owner's game folder has it), so
 # no conversion in either direction.
 controls/input.map -text
+
+# Windows batch files: cmd mis-handles labels and goto in LF-only files (TEST-FRAMERATE.bat skipped a menu, 2026-10-03)
+*.bat text eol=crlf
+*.cmd text eol=crlf
