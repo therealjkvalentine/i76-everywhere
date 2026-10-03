@@ -2,7 +2,7 @@
 # (objects and vehicles keep their detailed mesh 8x farther). EXPERIMENT for the lab twin (music-fix/README.md).
 @{
     Name        = 'exp-detail-8'
-    Summary     = 'EXPERIMENT: best-120 + terrain shape x8 + terrain textures x8 + object detail x8'
+    Summary     = 'EXPERIMENT: best-120 + terrain shape x8 + terrain textures x8 + object detail x8 + shadows 200 m + road textures 480 m + roads to 1800 m'
     Verified    = '[experiment] 120 fps on t01 in the lab twin, one 6 s run; not soaked; not played'
     Env         = @{
         I76_HIRES_CLOCK     = '1'
@@ -17,6 +17,9 @@
         I76_TERRAIN_LOD     = '8'
         I76_TERRAIN_TEX     = '8'
         I76_OBJECT_LOD      = '8'
+        I76_SHADOW_DIST     = '4'
+        I76_ROAD_TEX        = '8'
+        I76_ROAD_DIST       = '1800'
         # no data yet (2026-10-03: the ram test could not stage its rams; no AI car entered the roll behaviour):
         # count only, behave as played on 2026-10-02
         I76_COLL_DEDUPE     = '0'

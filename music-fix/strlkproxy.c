@@ -3350,6 +3350,25 @@ static void apply_detail_distance(void) {
     }
 }
 
+/* SHADOW AND ROAD DISTANCES  (I76_SHADOW_DIST=<1..16>, I76_ROAD_TEX=<1..16>, I76_ROAD_DIST=<metres 450..3000>;
+ * off by default; EXPERIMENT, lab docs/TEXTURE-AND-OBJECT-LOD.md). Three .rdata floats, each read only at the sites
+ * named (checked 2026-10-03 by scanning the exe for the address): 50.0 at 0x4bdfa0 = shadow view-z limit (0x4583d6,
+ * 0x4584a1); 60.0 at 0x4be7bc = near road texture set (0x48ec16); 450.0 at 0x4be7b8 = road segments stop being queued
+ * past this midpoint depth whatever the far clip (0x48ead7). */
+static void patch_rdata_float(const char *env, DWORD_PTR va, float stock, float lo, float hi, int is_factor, const char *what) {
+    char v[16]; DWORD n = GetEnvironmentVariableA(env, v, sizeof(v)); float f, val;
+    if (n == 0 || n >= sizeof(v)) return;
+    f = (float)atof(v);
+    if (f < lo || f > hi) { mlog("  %s: %s out of range (%g..%g) - not applied", what, v, lo, hi); return; }
+    val = is_factor ? stock * f : f;
+    if (patch_bytes(va, (const BYTE *)&stock, (const BYTE *)&val, 4, what)) mlog("  %s: %.0f -> %.0f m", what, stock, val);
+}
+static void apply_shadow_road_dist(void) {
+    patch_rdata_float("I76_SHADOW_DIST", 0x4bdfa0, 50.0f, 1.0f, 16.0f, 1, "shadow-dist");
+    patch_rdata_float("I76_ROAD_TEX", 0x4be7bc, 60.0f, 1.0f, 16.0f, 1, "road-tex");
+    patch_rdata_float("I76_ROAD_DIST", 0x4be7b8, 450.0f, 450.0f, 3000.0f, 0, "road-dist");
+}
+
 /* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
  * WinMain 0x402ca0: FindWindowA(class 0x4c2680, NULL); a hit restores that window (ShowWindow 9) and returns 0, so a
  * second copy exits at once (measured 2026-10-03: second process exit code 0). The switch turns `je 0x402ccd`
@@ -3389,6 +3408,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
+        apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
