@@ -63,3 +63,8 @@ u32x/*.lib
 texture-lab/src/
 texture-lab/enhanced/
 texture-lab/build/
+
+# build / debug residue (untracked 2026-10-03)
+*.pyc
+*.stackdump
+.pytest_cache/
