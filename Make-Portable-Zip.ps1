@@ -20,10 +20,12 @@ param(
     [switch]$IncludeSaves,   # include your savegames in the portable zip
     [switch]$IncludeFrameGen,# bundle Lossless Scaling too (your licence, your PCs only)
     [switch]$IncludeHeadTrack,# bundle opentrack + the head-tracking scripts (opentrack is GPL)
-    # The USER32 proxy the bundle carries (menu / save-screen mouse fix). Default: the committed,
-    # sandbox-verified minimal build (u32x\u32x.dll, md5 a5927cea; source u32x\u32x_min.c).
+    # The USER32 proxy the bundle carries (menu / save-screen mouse fix). Default since 2026-10-03:
+    # the gated full build (u32x\u32x_full.dll, source u32x\u32x_full.c; md5 and gate in deploy-u32x.ps1's KnownGood).
+    # deploy-u32x.ps1 refuses any md5 not on its KnownGood list. The minimal build (md5 a5927cea;
+    # source u32x\u32x_min.c): -U32xDll u32x\u32x.dll.
     # Applied to the STAGED copy only - the source install is never modified.
-    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x.dll'),
+    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x_full.dll'),
     [switch]$NoU32x,          # leave the staged copy's u32x state exactly as the source install has it
     [switch]$Yes
 )

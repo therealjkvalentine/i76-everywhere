@@ -39,7 +39,10 @@ param(
     [switch]$KeepSourceConf,      # explicit opt-out: carry the driver's conf unchanged (NOT independent)
 
     [string]$StrlkupDll = (Join-Path $PSScriptRoot '..\music-fix\Strlkup.dll'),
-    [string]$U32xDll    = (Join-Path $PSScriptRoot '..\u32x\u32x.dll'),
+    # Default since 2026-10-03: the gated full build, u32x\u32x_full.dll (the 2026-10-03 daily driver runs its
+    # 054fb411 build; later rebuilds are gated and recorded before they are committed). Its md5 must be on
+    # deploy-u32x.ps1's KnownGood list, which is checked below. Minimal build: -U32xDll u32x\u32x.dll.
+    [string]$U32xDll    = (Join-Path $PSScriptRoot '..\u32x\u32x_full.dll'),
     [switch]$AllowUnrecordedU32x, # accept a u32x build whose md5 is not in u32x\deploy-u32x.ps1's $KnownGood
     [string]$GameExe    = '',     # optional replacement i76.exe (must already import u32x.dll)
 
