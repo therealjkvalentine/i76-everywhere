@@ -4,10 +4,10 @@
 # (aspect-correct stretched_ar), Alt+Enter toggles fullscreen/windowed, and
 # dgVoodoo's emulated cursor keeps the mouse correct in both modes.
 #
-# This launcher just starts the game plus i76wheel.exe (mouse-wheel -> targeting
-# keys: wheel up = Q frontal_target, wheel down = T target_nearest_enemy - the
-# 1997 engine has no wheel tokens, see tools/i76wheel.c) and cleans it up when
-# the game exits.
+# This launcher just starts the game plus i76wheel.exe (mouse wheel -> keys:
+# wheel up = Tab = weapon_cycle, wheel down = 5 = hardpoint5_fire, see -WheelUp /
+# -WheelDown below - the 1997 engine has no wheel tokens, see tools/i76wheel.c)
+# and cleans it up when the game exits.
 #
 # Frame-rate presets (2026-10-02): -Preset <name> loads presets\<name>.psd1, a documented set of
 # the music-fix proxy's opt-in I76_* switches (music-fix/README.md has the table), and hands it
@@ -67,6 +67,10 @@ param(
     # all - it is translated to a keystroke instead.
     #   up   = Tab  -> weapon_cycle     (toggle the front weapon)
     #   down = 5    -> hardpoint5_fire  (normally the dropper)
+    # Tab is weapon_cycle on this project's map (controls\input.map). On GOG's 1997 map Tab is
+    # REVERSE and weapon_cycle is Enter, so in a folder set up with -Controls stock (recorded in
+    # <game>\i76e-controls.txt) the default for -WheelUp becomes Enter. A -WheelUp given on the
+    # command line always wins.
     # WhichKey the dropper needs depends on the CAR'S LOADOUT, not the game, so if
     # the dropper sits on a different hardpoint use -WheelDown 4 (etc).
     # Names must match input.map; verify with tools/lint-input-map.py.
@@ -217,6 +221,9 @@ if ($DryRun) {
 }
 
 $wheel = $null
+# Controls mode of this folder, as setup-windows.ps1 recorded it (absent = i76e, this project's map).
+$controlsMode = Get-Content (Join-Path $GameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
+if ($controlsMode -eq 'stock' -and -not $PSBoundParameters.ContainsKey('WheelUp')) { $WheelUp = 'Enter' }
 if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
     # Mouse wheel -> keystroke. Which hardpoint holds the dropper depends on the
     # car's loadout, not on the game, so it is a parameter rather than a constant.
@@ -419,9 +426,19 @@ if (Test-Path $mapPath) {
         # Pick a backup by the SAME test that just failed - intact analog sinks -
         # not by the old button-tier test, or we would restore a map that is broken
         # in precisely the way we are trying to repair.
+        #
+        # 2026-10-03, the two -Controls modes of setup-windows.ps1 (i76e = this project's
+        # map, stock = GOG's keys + a minimal patch). Both leave joystick1 analog sinks, so
+        # this guard does not fire on either. When it DOES fire it must not switch modes:
+        # "newest backup with sinks" could be input.map.before-i76e-* (a stock-keys map) in a
+        # folder whose AutoHotkey layers type the i76e keys, or the other way round. So:
+        #   - input.map.as-installed (what the installer last left, either mode) is tried first;
+        #   - input.map.stock-*, .before-i76e-* and .before-stock-* (the mode switch's own
+        #     backups) are never candidates.
+        # A folder the installer has not touched since has none of those names: unchanged there.
         $bak = Get-ChildItem (Join-Path $GameDir 'input.map.*') -ErrorAction SilentlyContinue |
-               Where-Object { $_.Name -notmatch '\.stripped-' } |
-               Sort-Object LastWriteTime -Descending |
+               Where-Object { $_.Name -notmatch '\.(stripped|stock|before-i76e|before-stock)-' } |
+               Sort-Object @{ Expression = { $_.Name -ne 'input.map.as-installed' } }, @{ Expression = { $_.LastWriteTime }; Descending = $true } |
                Where-Object {
                    $t = Get-Content $_.FullName -Raw
                    ($t -match '(?ims)^\s*steer\s*\{[^}]*joystick\d*\s+\S+/\S+') -and

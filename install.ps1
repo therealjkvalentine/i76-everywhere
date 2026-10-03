@@ -22,6 +22,8 @@
     ./install.ps1 -GameDir "D:\Games\Interstate 76"
     ./install.ps1 -Yes                  # no prompts
     ./install.ps1 -Preset stock         # the pre-2026-10-03 recipe: 20 fps, no engine switches
+    ./install.ps1 -Controls stock       # keep GOG's 1997 keys (default: this project's WASD-style
+                                        # map, controls\input.map; see docs\CONTROLS.md)
     ./install.ps1 -GameDir <dir> -NoShortcut -SkipNitro   # write nothing outside <dir>
                                         # (given that -ToolsDir already holds dgVoodoo + AutoHotkey)
 
@@ -32,6 +34,10 @@ param(
     [string]$ToolsDir = "C:\Games\_tools",
     [string]$Preset = 'best-120',   # handed to setup-windows.ps1 (base game); 'stock' = the old recipe
     [switch]$NoShortcut,            # no desktop shortcut
+    [ValidateSet('', 'i76e', 'stock')]
+    [string]$Controls = '',         # handed to setup-windows.ps1: i76e (its default) = this project's map,
+                                    # stock = GOG's 1997 keys + the minimal patch, no AutoHotkey layers.
+                                    # Not given = setup-windows.ps1 decides (an earlier choice is kept).
     [switch]$SkipNitro,             # do not look for / configure an installed Nitro Pack
     [switch]$Yes
 )
@@ -104,7 +110,8 @@ if ($ahk) { Say "AutoHotkey ready." 'Green' }
 # --- 3. configure (the load-bearing part) ------------------------------------
 Say "`nConfiguring dgVoodoo + input.map + launcher ..."
 $global:LASTEXITCODE = 0
-& (Join-Path $repo 'setup-windows.ps1') -GameDir $GameDir -DgVoodooDir $dgv -AhkDir $ahk -Preset $Preset -NoShortcut:$NoShortcut
+$ctl = @{}; if ($Controls) { $ctl['Controls'] = $Controls }
+& (Join-Path $repo 'setup-windows.ps1') -GameDir $GameDir -DgVoodooDir $dgv -AhkDir $ahk -Preset $Preset -NoShortcut:$NoShortcut @ctl
 if ($LASTEXITCODE) { Say "setup-windows.ps1 stopped (exit $LASTEXITCODE) - see its message above." 'Red'; exit $LASTEXITCODE }
 
 # --- 3b. Nitro Pack, if present (identical recipe - FINDINGS doc sec 1.1) -----
@@ -126,10 +133,11 @@ $ncands += 'C:\Games\Interstate 76 Nitro Pack','C:\GOG Games\Interstate 76 Nitro
 $NitroDir = $ncands | Where-Object { $_ -and (Test-Path (Join-Path $_ 'nitro.exe')) } | Select-Object -First 1
 if ($NitroDir) {
     Say "`nNitro Pack found: $NitroDir - applying the same recipe ..."
-    & (Join-Path $repo 'setup-windows.ps1') -GameDir $NitroDir -DgVoodooDir $dgv -AhkDir $ahk -Exe nitro.exe -NoShortcut:$NoShortcut
+    & (Join-Path $repo 'setup-windows.ps1') -GameDir $NitroDir -DgVoodooDir $dgv -AhkDir $ahk -Exe nitro.exe -NoShortcut:$NoShortcut @ctl
 }
 
 Say "`n=== DONE ===" 'Green'
 if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
 else             { Say "Play from the desktop shortcut 'Interstate '76' (or PLAY-i76.bat in the game folder)." }
+if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\CONTROLS.md; printable: docs\Interstate76-Controls-Quick-Reference.pdf)." }
 Say "First boot: 60-75s of 'PLEASE STAND BY' - ESC skips the intro."

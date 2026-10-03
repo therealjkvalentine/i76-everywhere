@@ -10,10 +10,23 @@
 #      daily driver (proven ACCEPTED by dgVoodoo 2.87.3; FPSLimit 0, 16:10 picture, 2x internal
 #      resolution, 4x MSAA). With -Preset stock, and always for the Nitro Pack:
 #      dgVoodoo.windows.conf as before (19.2 FPS physics cap, 8x MSAA).
-#   5. Patches input.map: GOG's phantom joystick5 -> joystick1 (or adds the analog steer /
-#      throttle blocks when GOG's map has none), mouse buttons + pad bindings (port of
-#      setup-mouse-and-pad.sh; idempotent; backup written beside it). One analog source per
-#      block: no mouse line beside joystick1. NEVER rebind via the in-game menu - it's buggy.
+#   5. input.map, by -Controls (since 2026-10-03):
+#        i76e (default)  writes controls\input.map wholesale: this project's own WASD-style map
+#                        (the owner's daily-driver map), NOT the 1997 key layout. The map that
+#                        was there is kept once as input.map.stock-<timestamp>.
+#        stock           keeps GOG's keyboard keys and applies only the minimal patch this script
+#                        applied before that date: GOG's phantom joystick5 -> joystick1 (or adds
+#                        the analog steer / throttle blocks when GOG's map has none), mouse
+#                        buttons, native pad buttons, K O [ ] hardpoints. On a folder that has
+#                        the i76e map it first restores input.map.stock-<timestamp>. The
+#                        AutoHotkey pad / wheel / stick layers are NOT deployed in this mode:
+#                        they type the keys of the i76e map (docs/CONTROLS.md section 4).
+#      The way back for an installed user, touching nothing but the controls:
+#          setup-windows.ps1 -GameDir <dir> -Controls stock -ControlsOnly
+#      and forward again with -Controls i76e -ControlsOnly. The choice is remembered in
+#      <game>\i76e-controls.txt; a re-run without -Controls keeps it.
+#      One analog source per block: no mouse line beside joystick1. NEVER rebind via the
+#      in-game menu - it's buggy.
 #   6. Writes PLAY-i76.bat (PLAY-i76.ps1 -Preset <the -Preset given here, default best-120>),
 #      PLAY-stock.bat (the same folder with -Preset stock: no engine switches) and a desktop
 #      shortcut to PLAY-i76.bat (-NoShortcut skips the shortcut; nothing is then written
@@ -28,7 +41,9 @@
 #      builds are accepted here), -NoU32x skips the step.
 #
 # NOT done here (separate, optional):
-#   - Force feedback: run enable-force-feedback.bat AS ADMINISTRATOR (HKLM write).
+#   - Force feedback: nothing to do on the Gold exe, which starts it unconditionally
+#     (docs/WHEEL-T300.md, from disassembly). enable-force-feedback.bat is therefore not
+#     needed; it is harmless. Nobody has re-tested a wheel without having run it.
 #   - Frame smoothing: Lossless Scaling x2 experiment - set ForceVerticalSync=false
 #     in dgVoodoo.conf first so LS owns presentation (see WINDOWS-PLAYBOOK.md sec 2).
 #
@@ -55,7 +70,16 @@ param(
     # date: the 19.2 fps dgVoodoo cap, I76PATCH.DLL left active, no engine switches.
     [string]$Preset = 'best-120',
     # Do not create the desktop shortcut (the only thing this script writes outside -GameDir).
-    [switch]$NoShortcut
+    [switch]$NoShortcut,
+    # Which control map the game folder gets (step 5). i76e = this project's WASD-style map
+    # (controls\input.map), the default. stock = GOG's 1997 keys plus the minimal patch, and no
+    # AutoHotkey pad / wheel / stick layers. Not given = keep what <game>\i76e-controls.txt
+    # records from an earlier run, else i76e.
+    [ValidateSet('i76e','stock')]
+    [string]$Controls = 'i76e',
+    # Do only the control steps (5 and 5b: input.map and the AutoHotkey layer scripts) and stop.
+    # Needs no dgVoodoo folder and changes nothing else in the game folder.
+    [switch]$ControlsOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,6 +91,16 @@ if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "pr
     exit 1
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
+# -Controls not given: an earlier run's choice wins, so a re-run (an update) never switches a
+# player who chose the 1997 keys back to the WASD map behind their back.
+$controlsFile = Join-Path $GameDir 'i76e-controls.txt'
+if (-not $PSBoundParameters.ContainsKey('Controls') -and (Test-Path $controlsFile)) {
+    $was = (Get-Content $controlsFile -TotalCount 1)
+    if ($was -eq 'stock' -or $was -eq 'i76e') {
+        $Controls = $was
+        Write-Host "Controls: keeping '$Controls' (recorded in i76e-controls.txt by an earlier run; -Controls i76e / stock changes it)."
+    }
+}
 
 # --- 1. sanity ---------------------------------------------------------------
 # NOTE: local var deliberately NOT named $exe - PowerShell variables are
@@ -98,6 +132,7 @@ if ($isNitro) {
     }
 }
 
+if (-not $ControlsOnly) {   # steps 2-4 (closed before step 5)
 $glideSrc = Join-Path $DgVoodooDir '3Dfx\x86'
 if (-not (Test-Path (Join-Path $glideSrc 'Glide2x.dll'))) {
     Write-Host "dgVoodoo2 not found at `"$DgVoodooDir`" (need 3Dfx\x86\Glide2x.dll)." -ForegroundColor Red
@@ -225,21 +260,60 @@ try {
     Write-Host "dgVoodoo.conf installed (couldn't read display size - left the default 1680x1050)." -ForegroundColor Yellow
 }
 }   # end: stock / Nitro conf
+}   # end: -ControlsOnly skips steps 2-4
 
-# --- 5. input.map: joystick5 -> joystick1, mouse driving, pad bindings --------
+# --- 5. input.map: -Controls i76e (the shipped map, wholesale) or stock (minimal patch) ---
 $mapPath = Join-Path $GameDir 'input.map'
-if (Test-Path $mapPath) {
+$shippedMap = Join-Path $repoGameDir 'controls\input.map'
+$mapStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+function Get-Md5([string]$p) { (Get-FileHash $p -Algorithm MD5).Hash.ToLower() }
+# Keep the current input.map as input.map.<tag>-<timestamp>, unless a byte-identical
+# input.map.* is already there (so switching back and forth does not pile up copies).
+function Save-MapOnce([string]$tag) {
+    if (-not (Test-Path $mapPath)) { return }
+    $cur = Get-Md5 $mapPath
+    $same = Get-ChildItem (Join-Path $GameDir 'input.map.*') -ErrorAction SilentlyContinue |
+        Where-Object { (Get-Md5 $_.FullName) -eq $cur } | Select-Object -First 1
+    if ($same) { return }
+    $dest = "$mapPath.$tag-$mapStamp"
+    Copy-Item $mapPath $dest -Force
+    Write-Host "  the map that was there is kept as $(Split-Path $dest -Leaf)."
+}
+# tools\lint-input-map.py on the game folder's map. $true = clean, $false = findings (printed),
+# $null = no Python on this PC (the lint is then skipped and said so).
+function Test-MapLint {
+    $lint = Join-Path $repoGameDir 'tools\lint-input-map.py'
+    if (-not (Test-Path $lint)) { return $null }
+    foreach ($cand in @(@('py','-3'), @('python'), @('python3'))) {
+        $cmd = Get-Command $cand[0] -ErrorAction SilentlyContinue
+        if (-not $cmd) { continue }
+        $pre = @($cand | Select-Object -Skip 1)
+        try {
+            $null = & $cmd.Source @pre --version 2>$null
+            if ($LASTEXITCODE -ne 0) { continue }      # e.g. the Microsoft Store stub
+            $out = & $cmd.Source @pre $lint $mapPath $exePath
+            $ok = ($LASTEXITCODE -eq 0)
+            $out | ForEach-Object { Write-Host "  lint: $_" }
+            $global:LASTEXITCODE = 0
+            return $ok
+        } catch { continue }
+    }
+    $global:LASTEXITCODE = 0
+    return $null
+}
+# The minimal patch for GOG's own map (all this script did to input.map before 2026-10-03).
+function Add-StockPatch {
     $map = Get-Content $mapPath -Raw
     if ($map -notmatch 'setup-windows\.ps1|setup-mouse-and-pad\.sh') {
-        Copy-Item $mapPath "$mapPath.pre-windows-setup" -Force
+        if (-not (Test-Path "$mapPath.pre-windows-setup")) { Copy-Item $mapPath "$mapPath.pre-windows-setup" -Force }
         # analog sinks: stale joystick5 -> joystick1
         # (instance .Replace() because the static one has no count overload)
         # ONE analog source per block. Until 2026-10-03 this wrote "- joystick1" AND "- mouse"
         # into the same steer / throttle block, which is the analog chord trap of
         # docs/VERIFIED-FIXES.md (the axis pins dead-centre) and fails tools/lint-input-map.py.
         # The blocks are now joystick1 only, as in docs/input.map.reference and the daily
-        # driver's map. Mouse BUTTONS are unchanged. Mouse steering = replace the joystick1
-        # line with "- mouse Left/Right" by hand (one source per block), then lint.
+        # driver's map (controls\input.map). Mouse BUTTONS are unchanged. Mouse steering is not
+        # offered (owner decision 2026-10-03).
         # GOG's 2.1.0.17 offline installer (i76.exe 9a232dcc) ships an input.map with NO analog
         # 'throttle' / 'steer' block at all (keyboard throttle_up / steer_left only) and e_brake
         # on Z. Found 2026-10-03 on a fresh extract: the replaces below matched nothing and the
@@ -292,7 +366,7 @@ if (Test-Path $mapPath) {
             '# Home-row hardpoints 1-4. Additive: a second block for the same action is',
             '# an ALTERNATIVE binding, not a chord, so the number keys and mouse buttons',
             '# above keep working. Fires that ONE hardpoint, ignoring selection/linking.',
-            '# hardpoint 1 is on K, not L (2026-10-03): stock GOG 2.1.0.17 has weapon_link on L; K was unbound.',
+            '# hardpoint 1 is on K, not L (2026-10-03): stock GOG 2.1.0.17 has weapon_link on L; K, O, [ and ] are unbound in it.',
             'hardpoint1_fire {', '   + keyboard   K', '}',
             'hardpoint2_fire {', '   + keyboard   O', '}',
             'hardpoint3_fire {', '   + keyboard   LeftBracket', '}',
@@ -304,10 +378,77 @@ if (Test-Path $mapPath) {
     } else {
         Write-Host "input.map already patched - skipping."
     }
-} else {
-    Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
 }
 
+$stockBak = Get-ChildItem (Join-Path $GameDir 'input.map.stock-*') -ErrorAction SilentlyContinue |
+    Sort-Object Name | Select-Object -First 1
+$recorded = if (Test-Path $controlsFile) { Get-Content $controlsFile -TotalCount 1 } else { '' }
+if (-not (Test-Path $mapPath)) {
+    Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
+} elseif ($Controls -eq 'i76e' -and -not (Test-Path $shippedMap)) {
+    Write-Host "controls\input.map is missing from $repoGameDir - falling back to -Controls stock (GOG's keys + the minimal patch)." -ForegroundColor Yellow
+    $Controls = 'stock'
+    Add-StockPatch
+} elseif ($Controls -eq 'i76e') {
+    $shipMd5 = Get-Md5 $shippedMap
+    if ((Get-Md5 $mapPath) -eq $shipMd5) {
+        Write-Host "input.map is already this project's map (controls\input.map, md5 $($shipMd5.Substring(0,8))) - nothing to do."
+    } else {
+        Write-Host "input.map: installing this project's control map (WASD-style, NOT the 1997 keys)."
+        # The stock backup is taken ONCE. On a folder an earlier run patched, GOG's untouched map
+        # is input.map.pre-windows-setup, and that is what "stock" means.
+        if (-not $stockBak) {
+            $curText = Get-Content $mapPath -Raw
+            $pre = "$mapPath.pre-windows-setup"
+            $src = if (($curText -match 'setup-windows\.ps1|setup-mouse-and-pad\.sh') -and (Test-Path $pre)) { $pre } else { $mapPath }
+            $stockBak = Copy-Item $src "$mapPath.stock-$mapStamp" -Force -PassThru
+            Write-Host "  GOG's map is kept as $($stockBak.Name) (from $(Split-Path $src -Leaf))."
+        }
+        Save-MapOnce 'before-i76e'
+        $prev = [IO.File]::ReadAllBytes($mapPath)
+        # written, not copied: a new timestamp, so the lint's "KEYBOARD.MAP is newer" tripwire stays quiet
+        [IO.File]::WriteAllBytes($mapPath, [IO.File]::ReadAllBytes($shippedMap))
+        $lintOk = Test-MapLint
+        if ((Get-Md5 $mapPath) -ne $shipMd5 -or $lintOk -eq $false) {
+            [IO.File]::WriteAllBytes($mapPath, $prev)
+            Write-Host "input.map: the shipped map did not verify (md5 read-back or lint) - the previous map was put back. Controls are as before this run." -ForegroundColor Red
+            $Controls = if ($recorded -eq 'i76e') { 'i76e' } else { 'stock' }
+        } else {
+            $lintNote = if ($null -eq $lintOk) { 'lint skipped: no Python found' } else { 'lint clean' }
+            Write-Host "input.map installed (md5 $($shipMd5.Substring(0,8)), $lintNote). W A S D drive, the arrow keys look around."
+            Write-Host "  Keys: docs\CONTROLS.md and docs\Interstate76-Controls-Quick-Reference.pdf."
+            Write-Host "  The 1997 keys instead: setup-windows.ps1 -GameDir `"$GameDir`" -Controls stock -ControlsOnly"
+        }
+    }
+} else {
+    # -Controls stock
+    $isShipped = (Test-Path $shippedMap) -and ((Get-Md5 $mapPath) -eq (Get-Md5 $shippedMap))
+    if ($stockBak -and ($isShipped -or $recorded -eq 'i76e')) {
+        Save-MapOnce 'before-stock'
+        [IO.File]::WriteAllBytes($mapPath, [IO.File]::ReadAllBytes($stockBak.FullName))
+        Write-Host "input.map: GOG's map restored from $($stockBak.Name)."
+        Add-StockPatch
+    } elseif ($isShipped) {
+        Write-Host "input.map is this project's map and there is no input.map.stock-* backup to go back to (a portable zip has none)." -ForegroundColor Red
+        Write-Host "  Put GOG's own input.map in the folder (reinstall, or take it from the GOG installer) and run this again. Controls left as they are." -ForegroundColor Red
+        $Controls = 'i76e'
+    } else {
+        Add-StockPatch
+    }
+    if ($Controls -eq 'stock') {
+        $lintOk = Test-MapLint
+        if ($lintOk -eq $false) { Write-Host "input.map: the lint has findings (above). Fix them before playing." -ForegroundColor Red }
+        Write-Host "Controls: stock. GOG's 1997 keyboard keys, plus analog joystick1, mouse buttons, native pad buttons 1 / 3 / 4 and hat, K O [ ] hardpoints."
+    }
+}
+if (Test-Path $mapPath) {
+    # What this run left, for PLAY-i76.ps1's guard: if the in-game menu later wrecks input.map,
+    # the launcher restores THIS file first, so it can never bring back a map of the other mode.
+    Copy-Item $mapPath "$mapPath.as-installed" -Force
+    Set-Content $controlsFile @($Controls, "# written by setup-windows.ps1 $(Get-Date -Format 'yyyy-MM-dd HH:mm'); read by setup-windows.ps1 and PLAY-i76.ps1", "# i76e = this project's map (controls\input.map); stock = GOG's keys + the minimal patch, no AutoHotkey layers") -Encoding ascii
+}
+
+if (-not $ControlsOnly) {   # steps 5a - 5a3 (closed before step 5b)
 # --- 5a. saves: bring the repo's campaign saves across (base game only) --------
 # The engine reads save###.cmp + savegame.dir from the game root (same place the
 # save editor writes). The repo carries a set in saves/; deploy them ONLY if the
@@ -395,43 +536,74 @@ if ($NoU32x) {
     }
 }
 
+}   # end: -ControlsOnly skips steps 5a - 5a3
+
 # --- 5b. controller layer: AutoHotkey + i76-remap.ahk into <game>\_ahk\ --------
 # The full pad scheme (right stick -> glance arrows, independent triggers, LB
-# shift layer with all five hardpoints, look-back fire, camera cycle, rumble)
-# lives in i76-remap.ahk and runs identically on Wine (Mac), Proton (Deck) and
-# native Windows. It emits the engine's STOCK keys, which input.map already
-# binds, so it's purely additive. We keep it in the GAME FOLDER (not C:\AutoHotkey)
-# so the portable zip carries it; PLAY-i76.ps1 starts/stops it with the game.
+# shift layer, look-back fire, camera cycle), the wheel's buttons and the CH
+# Fighterstick layer live in i76-remap.ahk / i76-ch-fighterstick.ahk. They work by
+# TYPING KEYS, and the keys they type are those of the i76e map (controls\input.map):
+# Enter = fire, Space = handbrake, Tab = cycle weapon, X = reverse, I = ignition...
+# On GOG's 1997 map the same keys do other things (docs/CONTROLS.md section 4 has the
+# table), so with -Controls stock the two layer scripts are NOT put in _ahk\, and
+# copies from an earlier run are moved to _ahk\off-stock-controls\. PLAY-i76.ps1 starts
+# a layer only when its script is in _ahk\, so nothing else has to know.
+# We keep the layer in the GAME FOLDER (not C:\AutoHotkey) so the portable zip carries
+# it; PLAY-i76.ps1 starts/stops it with the game.
 $ahkOut = Join-Path $GameDir '_ahk'
 $remapSrc = Join-Path $repoGameDir 'i76-remap.ahk'
-if ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')) -and (Test-Path $remapSrc)) {
+$layerScripts = 'i76-remap.ahk', 'i76-ch-fighterstick.ahk'
+$haveAhkSrc = ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')))
+if ($Controls -eq 'stock') {
+    $off = Join-Path $ahkOut 'off-stock-controls'
+    foreach ($f in $layerScripts) {
+        $p = Join-Path $ahkOut $f
+        if (Test-Path $p) {
+            New-Item -ItemType Directory -Force $off | Out-Null
+            Move-Item $p (Join-Path $off $f) -Force
+            Write-Host "Controls stock: _ahk\$f moved to _ahk\off-stock-controls\ (it types the i76e map's keys)."
+        }
+    }
+    Write-Host "AutoHotkey pad / wheel / stick layers NOT deployed (-Controls stock)." -ForegroundColor Yellow
+    Write-Host "  A gamepad still works natively: left stick, A fire, X cycle weapon, Y handbrake, D-pad glance (button numbers assumed, docs/GAMEPAD-PC-MAC.md)."
+    Write-Host "  Lost with the layers: triggers, right-stick glance, the LB shift layer, wheel buttons, the Fighterstick, mouse buttons 4 / 5."
+} elseif (($haveAhkSrc -or (Test-Path (Join-Path $ahkOut 'AutoHotkeyU32.exe'))) -and (Test-Path $remapSrc)) {
     New-Item -ItemType Directory -Force $ahkOut | Out-Null
-    Copy-Item (Join-Path $AhkDir 'AutoHotkeyU32.exe') $ahkOut -Force
-    foreach ($extra in 'license.txt','AutoHotkey.chm') {
-        $p = Join-Path $AhkDir $extra; if (Test-Path $p) { Copy-Item $p $ahkOut -Force -ErrorAction SilentlyContinue }
+    if ($haveAhkSrc) {
+        Copy-Item (Join-Path $AhkDir 'AutoHotkeyU32.exe') $ahkOut -Force
+        foreach ($extra in 'license.txt','AutoHotkey.chm') {
+            $p = Join-Path $AhkDir $extra; if (Test-Path $p) { Copy-Item $p $ahkOut -Force -ErrorAction SilentlyContinue }
+        }
     }
     Copy-Item $remapSrc $ahkOut -Force
+    $off = Join-Path $ahkOut 'off-stock-controls'   # copies set aside by an earlier -Controls stock run
+    if (Test-Path $off) { Remove-Item $off -Recurse -Force }
     # CH Fighterstick HOTAS layer, deployed alongside the remapper so a fresh
     # install has it. Harmless without the stick: it identifies the device itself
     # and exits if there is none. Enumerated here BY NAME because that is how this
     # script works - and that is precisely how _ahk\i76-remap.ahk sat three weeks
     # stale while the repo's copy grew a whole wheel layer nobody was running.
-    # Add new AHK layers here or they silently never ship.
+    # Add new AHK layers here (and to $layerScripts above) or they silently never ship.
     $stickSrc = Join-Path $repoGameDir 'i76-ch-fighterstick.ahk'
     if (Test-Path $stickSrc) { Copy-Item $stickSrc $ahkOut -Force }
-    Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk; starts with the game)."
-    Write-Host "  Pad scheme: LB shift layer, triggers=fire/hp2, look-back rear gun, camera cycle, rumble."
+    Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk + i76-ch-fighterstick.ahk; starts with the game)."
+    Write-Host "  Pad scheme: LB shift layer, triggers=fire/hp2, look-back rear gun, camera cycle."
     Write-Host "  Connect the controller BEFORE launching (the engine + XInput enumerate at startup)."
 } else {
-    Write-Host "Controller (AHK/XInput) layer NOT deployed - native pad + mouse only." -ForegroundColor Yellow
+    Write-Host "Controller (AHK/XInput) layer NOT deployed - keyboard + mouse only; a pad or wheel has its analog axes and NO buttons (the i76e map binds none natively)." -ForegroundColor Yellow
     if (-not $AhkDir) { Write-Host "  (run via install.ps1, which fetches AutoHotkey and passes -AhkDir.)" -ForegroundColor DarkGray }
+}
+if ($ControlsOnly) {
+    Write-Host ""
+    Write-Host "DONE (-ControlsOnly): controls are '$Controls'. Nothing else in the game folder was changed." -ForegroundColor Green
+    exit 0
 }
 
 # --- 6. launcher + shortcut ---------------------------------------------------
 # dgVoodoo (the conf above) owns presentation: fullscreen by default,
 # Alt+Enter toggles windowed, emulated cursor keeps the mouse correct in both.
 # PLAY-i76.ps1 just launches the game plus i76wheel.exe (mouse wheel ->
-# targeting keys; the engine has no wheel tokens - see tools/i76wheel.c;
+# keys: up = cycle weapon, down = hardpoint 5; the engine has no wheel tokens - see tools/i76wheel.c;
 # build: gcc -O2 -s -mwindows -o i76wheel.exe i76wheel.c -luser32).
 Copy-Item (Join-Path $repoGameDir 'PLAY-i76.ps1') $GameDir -Force
 # The frame-rate presets PLAY-i76.ps1 -Preset reads (presets\*.psd1, data files). Copied beside
@@ -444,7 +616,8 @@ if (Test-Path $presetSrc) {
 $wheelExe = Join-Path $repoGameDir 'tools\i76wheel.exe'
 if (Test-Path $wheelExe) {
     Copy-Item $wheelExe $GameDir -Force
-    Write-Host "i76wheel.exe deployed (wheel up = target reticle, down = target nearest)."
+    $wheelUpIs = if ($Controls -eq 'stock') { 'Enter' } else { 'Tab' }
+    Write-Host "i76wheel.exe deployed (mouse wheel up = $wheelUpIs = cycle weapon, down = 5 = hardpoint 5; PLAY-i76.ps1 -WheelUp / -WheelDown change them)."
 } else {
     Write-Host "tools\i76wheel.exe not built - wheel targeting disabled (see tools\i76wheel.c)." -ForegroundColor Yellow
 }
@@ -503,5 +676,10 @@ if ($fastPreset) {
     Write-Host "Verify the cap in Instant Melee (no flips on bumps; AI cars exceed 35 mph),"
     Write-Host "then the canonical test: Mission 5's ramp jump."
 }
-Write-Host "Optional: enable-force-feedback.bat AS ADMIN for FFB wheels/sticks."
+if ($Controls -eq 'i76e') {
+    Write-Host "Controls: i76e - this project's WASD-style map, not the 1997 keys. Sheet: docs\Interstate76-Controls-Quick-Reference.pdf. The 1997 keys: -Controls stock -ControlsOnly"
+} else {
+    Write-Host "Controls: stock - GOG's 1997 keys + the minimal patch; no AutoHotkey layers. This project's map: -Controls i76e -ControlsOnly"
+}
+Write-Host "Force feedback: the Gold exe starts it by itself (docs/WHEEL-T300.md); enable-force-feedback.bat is not needed per the disassembly."
 Write-Host "Connect controller BEFORE launching - the engine enumerates joysticks at startup only."

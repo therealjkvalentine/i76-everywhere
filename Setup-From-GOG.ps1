@@ -7,8 +7,9 @@
              applies every improvement in this repo - dgVoodoo (sharp Voodoo look,
              MSAA), the music-fix proxy with the best-120 preset (120 fps, physics
              stepped as at 20; -Preset stock = the earlier 20 fps recipe), the menu
-             mouse fix (u32x), the corrected input.map (mouse driving + gamepad),
-             the controller layer, and a desktop launcher.
+             mouse fix (u32x), this project's own control map (WASD-style, not the
+             1997 layout; -Controls stock keeps GOG's keys), the controller layer,
+             and a desktop launcher.
 
   Ships NO copyrighted game files. The bytes come from YOUR GOG .exe; this repo is
   only scripts + config.
@@ -20,6 +21,7 @@
     ./Setup-From-GOG.ps1 -SkipNitro          # base game only
     ./Setup-From-GOG.ps1 -Preset stock       # the pre-2026-10-03 recipe: 20 fps, no engine switches
     ./Setup-From-GOG.ps1 -NoShortcut         # no desktop shortcut
+    ./Setup-From-GOG.ps1 -Controls stock     # keep GOG's 1997 keys (docs\CONTROLS.md)
 
   Or just double-click INSTALL.bat.
 #>
@@ -31,6 +33,8 @@ param(
     [switch]$SkipNitro,
     [string]$Preset = 'best-120',   # handed to install.ps1 / setup-windows.ps1; 'stock' = the old recipe
     [switch]$NoShortcut,            # no desktop shortcut (the GOG installer itself still writes its registry keys)
+    [ValidateSet('', 'i76e', 'stock')]
+    [string]$Controls = '',         # handed to install.ps1 / setup-windows.ps1; stock = GOG's 1997 keys
     [switch]$Force,      # re-run the GOG installer even if i76.exe already exists
     [switch]$Yes
 )
@@ -102,12 +106,13 @@ Say "  $GameDir  (i76.exe MD5 $((Get-FileHash $exePath -Algorithm MD5).Hash.ToLo
 
 # --- 2. apply every repo improvement (delegates to install.ps1) --------------
 # install.ps1 fetches dgVoodoo2 into $ToolsDir and runs setup-windows.ps1:
-#   dgVoodoo config, music-fix proxy, u32x, I76PATCH.DLL rename, input.map (mouse + pad),
+#   dgVoodoo config, music-fix proxy, u32x, I76PATCH.DLL rename, input.map (-Controls),
 #   saves, PLAY-i76.bat (-Preset best-120) + PLAY-stock.bat + desktop shortcut.
 Say "`nApplying i76-everywhere improvements ..." 'Cyan'
 $installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir; Preset = $Preset }
 if ($Yes)            { $installArgs['Yes'] = $true }
 if ($NoShortcut)     { $installArgs['NoShortcut'] = $true }
+if ($Controls)       { $installArgs['Controls'] = $Controls }
 $global:LASTEXITCODE = 0
 & (Join-Path $repo 'install.ps1') @installArgs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
