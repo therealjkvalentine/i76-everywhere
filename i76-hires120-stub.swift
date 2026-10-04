@@ -21,6 +21,7 @@
 // every launch; expect a short hitch the first time each effect appears in a session.
 // Build:  swiftc -O -o /tmp/hires i76-hires120-stub.swift
 import Foundation
+import CoreGraphics
 
 let exe = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
 let A = exe.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path
@@ -108,9 +109,29 @@ if let txt = try? String(contentsOfFile: game + "/hires120.env", encoding: .utf8
 }
 // HIRES_DESKTOP=WxH sets the Wine virtual desktop (the output window) instead of the
 // panel's full pixel size; it is read here, not passed to the game.
+// HIRES_DESKTOP=auto takes the main display's size in points (what Wine sees without RetinaMode); a desktop of
+// exactly the screen's size is created by explorer as a borderless popup, i.e. fullscreen, and the game's window
+// fills it. HIRES_OGL_FIT=1 then rewrites OpenGLid.INI's Resolution= to the widest 4:3 output that fits that
+// height (OpenGLide-HD centres its GL child in the game window, so the picture is pillarboxed, not stretched).
 var desktop = "3456x2234"
 if let d = env.first(where: { $0.0 == "HIRES_DESKTOP" }) { desktop = d.1 }
-env.removeAll { $0.0 == "HIRES_DESKTOP" }
+let fitOgl = env.first(where: { $0.0 == "HIRES_OGL_FIT" })?.1 == "1"
+env.removeAll { $0.0 == "HIRES_DESKTOP" || $0.0 == "HIRES_OGL_FIT" }
+if desktop == "auto" {
+    let b = CGDisplayBounds(CGMainDisplayID())
+    desktop = "\(Int(b.width))x\(Int(b.height))"
+}
+if fitOgl, let x = desktop.firstIndex(of: "x"), let h = Int(desktop[desktop.index(after: x)...]) {
+    let w = (h * 4 / 3) & ~1                                   // OpenGLide derives height = width * 3 / 4
+    let ini = game + "/OpenGLid.INI"
+    if let txt = try? String(contentsOfFile: ini, encoding: .isoLatin1) {
+        var lines = txt.components(separatedBy: "\n")
+        for i in lines.indices where lines[i].hasPrefix("Resolution=") {
+            lines[i] = "Resolution=\(w)" + (lines[i].hasSuffix("\r") ? "\r" : "")
+        }
+        try? lines.joined(separator: "\n").write(toFile: ini, atomically: true, encoding: .isoLatin1)
+    }
+}
 for (k, v) in env where !v.isEmpty { setenv(k, v, 1) }
 
 let wine = A + "/Contents/SharedSupport/wine/bin/wine"
