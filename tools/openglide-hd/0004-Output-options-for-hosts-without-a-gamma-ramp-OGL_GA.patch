@@ -1,4 +1,4 @@
-From f221f703898f27e59fcbf71869169f5210186f41 Mon Sep 17 00:00:00 2001
+From 48d0f4c77000b41b09c98f5a3b0a97a26bfdec28 Mon Sep 17 00:00:00 2001
 From: therealjkvalentine <james.k.valentine@gmail.com>
 Date: Sun, 4 Oct 2026 13:24:50 -0500
 Subject: [PATCH] Output options for hosts without a gamma ramp: OGL_GAMMA,
@@ -22,9 +22,9 @@ All three are off unless set. Measured under Wine 10 on an M5 Pro (I'76 t01):
 output with both on ran 106-118 fps before the run's late slowdown.
 ---
  grguSstGlide.cpp            |  12 ++
- platform/windows/output.cpp | 224 ++++++++++++++++++++++++++++++++++++
+ platform/windows/output.cpp | 286 ++++++++++++++++++++++++++++++++++++
  platform/windows/window.cpp |  18 +++
- 3 files changed, 254 insertions(+)
+ 3 files changed, 316 insertions(+)
  create mode 100644 platform/windows/output.cpp
 
 diff --git a/grguSstGlide.cpp b/grguSstGlide.cpp
@@ -56,10 +56,10 @@ index a431e51..dd56ccb 100644
  
 diff --git a/platform/windows/output.cpp b/platform/windows/output.cpp
 new file mode 100644
-index 0000000..b3224e8
+index 0000000..f9c771d
 --- /dev/null
 +++ b/platform/windows/output.cpp
-@@ -0,0 +1,224 @@
+@@ -0,0 +1,286 @@
 +//**************************************************************
 +//*            OpenGLide-HD - output options (env-driven)
 +//*
@@ -81,6 +81,7 @@ index 0000000..b3224e8
 +#include <windows.h>
 +#include <stdio.h>
 +#include <stdlib.h>
++#include <math.h>
 +#include <GL/gl.h>
 +#include <GL/glext.h>
 +
@@ -180,6 +181,17 @@ index 0000000..b3224e8
 +static PFNGLUNIFORM1IARBPROC           p_Uniform1i;
 +static PFNGLGETOBJECTPARAMETERIVARBPROC p_GetParam;
 +static PFNGLACTIVETEXTUREARBPROC       p_ActiveTexture;
++// The frame is read through an FBO blit when the extensions exist: glCopyTexSubImage2D from a multisampled window
++// (OGL_MSAA) left the frame unchanged on Apple's GL under Wine (the gamma pass had nothing to work on), while a
++// blit from the default framebuffer into a single-sampled FBO is the defined way to resolve it.
++static PFNGLGENFRAMEBUFFERSEXTPROC        p_GenFramebuffers;
++static PFNGLBINDFRAMEBUFFEREXTPROC        p_BindFramebuffer;
++static PFNGLFRAMEBUFFERTEXTURE2DEXTPROC   p_FramebufferTexture2D;
++static PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC p_CheckFramebufferStatus;
++static PFNGLBLITFRAMEBUFFEREXTPROC        p_BlitFramebuffer;
++static GLuint s_fbo;
++static int    s_use_blit;
++static unsigned s_frames;
 +
 +static int    s_gamma_state;           // 0 untried, 1 ready, -1 off
 +static float  s_gamma = 1.0f;
@@ -228,7 +240,14 @@ index 0000000..b3224e8
 +    p_GetParam( s_prog, GL_OBJECT_LINK_STATUS_ARB, &ok );
 +    if ( !ok ) { GlideMsg( "OGL_GAMMA: program link failed\n" ); return -1; }
 +    glGenTextures( 1, &s_tex );
-+    GlideMsg( "OGL_GAMMA: %.2f applied at swap\n", s_gamma );
++    p_GenFramebuffers        = (PFNGLGENFRAMEBUFFERSEXTPROC)        wglGetProcAddress( "glGenFramebuffersEXT" );
++    p_BindFramebuffer        = (PFNGLBINDFRAMEBUFFEREXTPROC)        wglGetProcAddress( "glBindFramebufferEXT" );
++    p_FramebufferTexture2D   = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)   wglGetProcAddress( "glFramebufferTexture2DEXT" );
++    p_CheckFramebufferStatus = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC) wglGetProcAddress( "glCheckFramebufferStatusEXT" );
++    p_BlitFramebuffer        = (PFNGLBLITFRAMEBUFFEREXTPROC)        wglGetProcAddress( "glBlitFramebufferEXT" );
++    s_use_blit = p_GenFramebuffers && p_BindFramebuffer && p_FramebufferTexture2D && p_CheckFramebufferStatus && p_BlitFramebuffer;
++    if ( s_use_blit ) p_GenFramebuffers( 1, &s_fbo );
++    GlideMsg( "OGL_GAMMA: %.2f applied at swap (frame read by %s)\n", s_gamma, s_use_blit ? "FBO blit" : "glCopyTexSubImage2D" );
 +    return 1;
 +}
 +
@@ -254,15 +273,47 @@ index 0000000..b3224e8
 +    glBindTexture( GL_TEXTURE_2D, s_tex );
 +    if ( s_tex_w != w || s_tex_h != h )
 +    {
-+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL );
++        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
 +        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 +        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 +        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 +        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 +        s_tex_w = w; s_tex_h = h;
++        if ( s_use_blit )
++        {
++            p_BindFramebuffer( GL_FRAMEBUFFER_EXT, s_fbo );
++            p_FramebufferTexture2D( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, s_tex, 0 );
++            GLenum st = p_CheckFramebufferStatus( GL_FRAMEBUFFER_EXT );
++            p_BindFramebuffer( GL_FRAMEBUFFER_EXT, 0 );
++            if ( st != GL_FRAMEBUFFER_COMPLETE_EXT )
++            {
++                GlideMsg( "OGL_GAMMA: FBO incomplete (0x%x), falling back to glCopyTexSubImage2D\n", st );
++                s_use_blit = 0;
++            }
++        }
 +    }
-+    glReadBuffer( GL_BACK );
-+    glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, w, h );
++    unsigned char before[4] = { 0, 0, 0, 0 }, after[4] = { 0, 0, 0, 0 };
++    const bool check = ( ++s_frames == 600 );                   // one numeric before/after sample per session
++    if ( s_use_blit )
++    {
++        p_BindFramebuffer( GL_READ_FRAMEBUFFER_EXT, 0 );
++        p_BindFramebuffer( GL_DRAW_FRAMEBUFFER_EXT, s_fbo );
++        glReadBuffer( GL_BACK );
++        p_BlitFramebuffer( 0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST );
++        if ( check )
++        {
++            p_BindFramebuffer( GL_READ_FRAMEBUFFER_EXT, s_fbo );
++            glReadPixels( w / 2, h / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, before );
++        }
++        p_BindFramebuffer( GL_FRAMEBUFFER_EXT, 0 );
++        glDrawBuffer( GL_BACK );
++    }
++    else
++    {
++        glReadBuffer( GL_BACK );
++        glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, w, h );
++    }
++    if ( check ) { GLenum e = glGetError( ); if ( e ) GlideMsg( "OGL_GAMMA: GL error 0x%x reading the frame\n", e ); }
 +
 +    p_Use( s_prog );
 +    p_Uniform1i( p_Uniform( s_prog, "frame" ), 0 );
@@ -275,6 +326,17 @@ index 0000000..b3224e8
 +    glTexCoord2f( 0, 1 ); glVertex2f( 0, 1 );
 +    glEnd( );
 +    p_Use( 0 );
++    if ( check )
++    {
++        glReadBuffer( GL_BACK );
++        glReadPixels( w / 2, h / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, after );
++        GLenum e = glGetError( );
++        GlideMsg( "OGL_GAMMA: frame 600 sample (%d,%d): before %d %d %d -> after %d %d %d (expected %d %d %d)%s\n",
++                  w / 2, h / 3, before[0], before[1], before[2], after[0], after[1], after[2],
++                  (int)( 255.0 * pow( before[0] / 255.0, 1.0 / s_gamma ) + 0.5 ),
++                  (int)( 255.0 * pow( before[1] / 255.0, 1.0 / s_gamma ) + 0.5 ),
++                  (int)( 255.0 * pow( before[2] / 255.0, 1.0 / s_gamma ) + 0.5 ), e ? " (GL error on readback)" : "" );
++    }
 +
 +    glMatrixMode( GL_MODELVIEW );  glPopMatrix( );
 +    glMatrixMode( GL_PROJECTION ); glPopMatrix( );

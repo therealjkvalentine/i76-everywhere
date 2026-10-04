@@ -152,7 +152,7 @@ Run on the MacBook (M5 Pro, Wine 10, built as route B). All off unless set; the 
 
 | setting | what | Mac result |
 |---|---|---|
-| `OGL_GAMMA=1.3` | gamma on the finished frame at swap (GLSL `pow`). The owner reported OpenGLide "too dark, and not a monitor-brightness thing": ZGLIDE never calls `grGammaCorrectionValue`, the brightness came from the Voodoo's own output ramp (dgVoodoo: `EnableGlideGammaRamp`), and the prefix's `AllowSetGamma=0` would block `SetDeviceGammaRamp` anyway. Same diagnosis as on VOGONS for XQuartz/XWayland | `OGL_GAMMA: 1.30 applied at swap`; look not yet judged |
+| `OGL_GAMMA=1.3` | gamma on the finished frame at swap (GLSL `pow`). The owner reported OpenGLide "too dark, and not a monitor-brightness thing": ZGLIDE never calls `grGammaCorrectionValue`, the brightness came from the Voodoo's own output ramp (dgVoodoo: `EnableGlideGammaRamp`), and the prefix's `AllowSetGamma=0` would block `SetDeviceGammaRamp` anyway. Same diagnosis as on VOGONS for XQuartz/XWayland | Owner: "perfect" without MSAA. **With `OGL_MSAA` the first version changed nothing on screen**: it read the frame with `glCopyTexSubImage2D`, which does not work from Apple GL's multisampled window under Wine. Fixed by resolving the frame with `glBlitFramebufferEXT` into a single-sampled FBO first; the pass logs one sample at frame 600: `before 77 35 16 -> after 102 55 30 (expected 102 55 30)` with 4x MSAA on |
 | `OGL_MSAA=4` | multisampled window via `wglChoosePixelFormatARB` | `OGL_MSAA: 4x multisample pixel format 85` (winemac grants it) |
 | `OGL_OUTPUT=WxH` | output of any aspect, the 4:3 Glide frame stretched to it | launcher `HIRES_OGL_FIT=stretch` sets it to the desktop |
 
