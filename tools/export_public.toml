@@ -1,0 +1,149 @@
+# export_public.toml - allowlist for tools/export_public.py (dry run staging only; nothing here moves files into
+# this repo). Globs are fnmatch over repo-relative posix paths; `*` also crosses `/`.
+# Order of tests per tracked file: include (must match) -> [never] -> exclude -> needs_scrub -> denied extension.
+# Classes (see the 2026-10-03 public-export inventory):
+#   include      PUBLIC-SAFE candidates: our own code, prose/table docs, format specs, test scripts.
+#   needs_scrub  public in principle, held back until edited: the gate found decompiler names/tokens in them.
+#   never        never public: decompiler exports, game data and screenshots, third-party sources/media.
+
+[staging]
+out = "../i76-public-staging"          # outside every repo; I76_PUBLIC_STAGING overrides
+
+[identity]
+# Addresses that may appear in public text (commit trailers, generic placeholders).
+allowed_emails = ["noreply@anthropic.com", "noreply@github.com", "user@example.com"]
+# sha256 of the owner's lower-cased addresses: counted as owner_email, so the config never spells them out.
+owner_email_sha256 = [
+  "7b2e6373683d4cb1ca5a5fddae76a03a5277917794a694781ef3c1602a02c0be",
+  "690c815fdb3061f1a9b1df8162b918f855b78f67fee7a6fe28c88dffab2c37b8",
+  "08e80530bc9839e47cd44dabead4862c9230337ae653d610ac14ee938ba43efb",
+]
+
+[never]
+globs = [
+  "ghidra/export*",            # decompiler output (.c / .pcode), 18,022 files: Activision's code in another form
+  "shell/ghidra/*",            # same, for the shell DLL
+  "verify/queue/*",            # per-function decompile excerpts fed to the judges
+  "status/blind/*",            # blind-pass rows quoting decompiled bodies
+  "functions/history/*",       # proposal drafts incl. *.pcode.md
+  "*.pcode.md",                # P-code listings of game functions
+  "recon-2026-09-04/*",        # archive: third-party sources, ZFS/BWD2 samples, web sweep, toolchain media lists
+  "captures/*",                # game screenshots (tracked .png/.bmp) and raw telemetry
+  "sandbox-*",                 # game/CD extraction provenance
+  "toolchain/*",               # Visual C++ media manifest
+  "external/*",                # third-party clones (gitignored already)
+  "data/out/*",                # game mission FSMs and outputs derived from game files
+  "symbols/strings.tsv",       # the exe's string table (game text)
+  "binaries/diff-*.tsv",       # byte clusters of the game exe
+  "*/__pycache__/*",
+  "*.pyc",
+]
+
+# ---------------------------------------------------------------------------------------------------------------
+[[source]]
+name = "lab"
+repo = "../i76-uncap-lab"
+env = "I76_LAB_ROOT"
+dest = "lab"
+include = ["*"]
+exclude = []
+needs_scrub = [
+  # FUN_xxxxxxxx / DAT_ / local_ names in prose (rename to bare addresses or proposed names). All three already
+  # exist, in some version, in i76-everywhere/docs/.
+  "docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md",
+  "docs/WIDESCREEN-2D.md",
+  "docs/WIDESCREEN-FEASIBILITY.md",
+]
+
+# ---------------------------------------------------------------------------------------------------------------
+[[source]]
+name = "map"
+repo = "../i76-map"
+env = "I76_MAP_ROOT"
+dest = "re"
+include = [
+  "README.md", "ARCHITECTURE.md", "REIMPLEMENTATION.md", "OPEN76-GAPS.md", ".gitattributes",
+  "subsystems/*",
+  "functions/*.md",
+  "data/*.md", "data/fmt/*", "data/mod/*", "data/tests/*", "data/notes/*", "data/roundtrip.json", "data/.gitignore",
+  "shell/*.md", "shell/tools/*", "shell/symbols/*",
+  "symbols/*",
+  "types/*",
+  "tools/*",
+  "ghidra/README.md", "ghidra/scripts/*",
+  "binaries/README.md", "binaries/*.toml",
+  "verify/*.py", "verify/*.md", "verify/schemas/*", "verify/scenarios/*", "verify/oracles/*", "verify/fixtures/*",
+  "requests/*",
+]
+exclude = [
+  "data/vehicles.csv",         # stats lifted from the game's own files: owner's call (WEAPON-STATS.md precedent)
+  "data/exe-proposals.tsv",
+]
+needs_scrub = [
+  # decompiler tokens (iVarN, puVarN, undefinedN) quoted in prose: rewrite as types/semantics
+  "README.md",
+  "data/notes/gdf-wdf-xdf-vtf.md",
+  "functions/00454090.md", "functions/00466e30.md", "functions/0046de10.review.md",
+  "shell/work/*",
+  "subsystems/physics.md",
+  "types/i76_runtime-conflicts.md", "types/i76_runtime.h",
+  # tool code that names Ghidra's types as strings (legit; waive after a read, or move the names to a constant)
+  "ghidra/scripts/ApplyMap.py", "ghidra/scripts/README.md",
+  "tools/emulate_leaf.py", "tools/gates/gateG3_consistency.py",
+  # gate hits on the first dry run (2026-10-03): FUN_/DAT_/local_ auto-names in prose, TSV name columns and tool
+  # code; third-party e-mail addresses (VC5-SETUP.md). Scrub = bare address or proposed name, then delete the line.
+  "data/fmt/mw2db.py",
+  "data/notes/terrain-text-sound.md",
+  "functions/0042de70.md",
+  "functions/00432740.md",
+  "functions/00433d90.md",
+  "functions/00434340.md",
+  "functions/004343d0.md",
+  "functions/0044aa20.md",
+  "functions/0044b830.md",
+  "functions/00450de0.md",
+  "functions/00465620.md",
+  "functions/0046a790.proposal.md",
+  "functions/0046a7b0.proposal.md",
+  "functions/0046a7b0.review.md",
+  "functions/00479ec0.md",
+  "functions/0047a100.md",
+  "functions/00497290.md",
+  "functions/00497640.proposal.md",
+  "functions/00497640.review.md",
+  "functions/0049bb40.md",
+  "functions/0049bee0.proposal.md",
+  "functions/0049c400.md",
+  "functions/0049c8d0.md",
+  "functions/004a11e0.proposal.md",
+  "functions/004a9020.md",
+  "functions/004b1cb0.proposal.md",
+  "functions/004b2220.md",
+  "shell/FIXES.md",
+  "shell/SAVE.md",
+  "shell/SCREENS.md",
+  "shell/symbols/functions.tsv",
+  "shell/tools/patch_shell.py",
+  "symbols/functions.tsv",
+  "symbols/hookability.tsv",
+  "symbols/modules.tsv",
+  "symbols/ported.tsv",
+  "symbols/regions.tsv",
+  "symbols/tables.tsv",
+  "tools/VC5-SETUP.md",
+  "tools/gen_tables.py",
+  "tools/harness/README.md",
+  "tools/harness/apply-gamekey-007.ps1",
+  "tools/lzo_calibrate.py",
+  "tools/t5b_roanish_parse.py",
+  "types/cpp_island.md",
+  "types/i76.h",
+  "verify/BLIND-PASS-3.md",
+  "verify/BLIND-PASS-4-SLICE2.md",
+  "verify/BLIND-PASS-4-SLICE3.md",
+  "verify/BLIND-PASS-4.md",
+  "verify/BLIND-PASS-5.md",
+  "verify/BLIND-SAMPLE-2.md",
+  "verify/prompts/blind-name.md",
+  "verify/prompts/cadence-claim.md",
+]
