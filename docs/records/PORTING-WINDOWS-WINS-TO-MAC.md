@@ -124,3 +124,23 @@ the HUD squeeze on the software path, a played mission.
 
 Software resolution ceiling: 1024x768, set in-game (Options -> Graphic Detail -> Screen Resolution;
 [VERIFIED-FIXES.md](../VERIFIED-FIXES.md)). Anything above it is engine RE, not a setting.
+
+### Later the same night: measuring the CPU path
+
+- The frame hook (`0x4039b8`) does **not** run at the main menu or in the attract demo on the
+  software path, although the game state `0x4c2164` reads 5 ("running") there. `I76_FPS_LOG` now has
+  a watcher thread that says so (`fps: no mission frames; game state 5, proxy frame 0; hook site e8
+  ..`), and it showed the patched call intact. So nothing undoes the hook; the menu's 3D is drawn
+  through some other loop.
+- `I76_MISSION=t01` does not reach the mission loop under DxWnd/software: state 5, zero hooked frames
+  for 90 s at about 30 % of a core, DxWnd virtual CD on or off. A candidate is the setup wait at
+  `0x403518..0x403532` (spins on `simclock_Update` until `0x452f20` returns nonzero); not confirmed.
+- So the frame rate in a real mission is still unmeasured. The test wrapper now runs the lean set
+  (the 120 fps switches only, `I76_FPS_LOG=5`) for a played mission; `mciproxy.log` will hold the
+  numbers, or the watcher line if the hook does not run in missions either.
+- A Wine command started from an agent's sandboxed shell (`wine cmd /c echo`) never reaches the
+  wrapper's running session and prints nothing. `open`-launching the app works. Instrument from inside
+  the game (the proxy log), not with side tools run from the shell.
+- The test prefix's `users/<name>/Documents` etc. were symlinks into the real home folder. A clone with
+  a new bundle id makes macOS ask for Documents access, and a pending privacy prompt blocks the
+  caller. They are plain folders in the test prefix now.

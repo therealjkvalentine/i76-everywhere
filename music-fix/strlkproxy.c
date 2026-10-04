@@ -1035,12 +1035,28 @@ static void apply_volume_test(void) {
     install_frame_hook();
     mlog("  volume-test: armed - level %d at proxy frame %lu", g_voltest_level, (unsigned long)g_voltest_frame);
 }
+/* The frame hook only runs inside the mission loop (game state 0x4c2164 == 5), so a game parked in the shell, a
+ * movie or a modal logs nothing at all. This thread says where it is instead: once a period, if the frame counter
+ * has not moved, the state and the counter. */
+static DWORD WINAPI fps_log_watch(LPVOID arg) {
+    DWORD sec = (DWORD)(DWORD_PTR)arg, last = (DWORD)-1;
+    for (;;) {
+        Sleep(sec * 1000);
+        if (g_frame == last) {
+            volatile BYTE *b = (volatile BYTE *)0x004039b8;           /* our call, or did something rewrite it? */
+            mlog("  fps: no mission frames; game state %ld, proxy frame %lu; hook site %02x %02x %02x %02x %02x",
+                 *(volatile LONG *)0x004c2164, (unsigned long)g_frame, b[0], b[1], b[2], b[3], b[4]);
+        }
+        last = g_frame;
+    }
+}
 static void apply_fps_log(void) {
     char v[16]; DWORD n = GetEnvironmentVariableA("I76_FPS_LOG", v, sizeof(v)); int sec;
     if (n == 0 || n >= sizeof(v) || (sec = atoi(v)) < 1 || sec > 600) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     g_fl_period = g_qpf.QuadPart * sec;
     install_frame_hook();
+    CloseHandle(CreateThread(NULL, 0, fps_log_watch, (LPVOID)(DWORD_PTR)sec, 0, NULL));
     mlog("  fps-log: every %d s%s", sec, g_frame_hook ? "" : " (hook failed: no log)");
 }
 static void apply_frame_cap(void) {
