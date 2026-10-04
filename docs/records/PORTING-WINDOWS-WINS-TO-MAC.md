@@ -159,13 +159,19 @@ come from `I76_FPS_LOG=5 I76_FPS_PROF=1` (proxy built with `music-fix/build-mac.
 | path (lean 120 set, no detail switches) | fps | frame work | main thread time |
 |---|---|---|---|
 | DxWnd software, 1024x768, DxWnd `maxfps0=0` | 19-24 | 42-52 ms | i76.exe 87 %, ntdll 11 %, dxwnd 1 % |
-| OpenGLide (GOG's 0.09rc5 `Glide2x.dll`) `-glide` in a Wine desktop, null audio, no movies | 20-21 | 47-49 ms | ntdll 77 %, i76.exe 13 %, glide2x 3 % |
+| dgVoodoo **1.50 Beta2** (2004; the game folder's `Glide2x.dll.openglide-backup`, see correction below) `-glide` in a Wine desktop, null audio, no movies | 20-21 | 47-49 ms | ntdll 77 %, i76.exe 13 %, glide2x 3 % |
 
 - **Software:** CPU-bound in the game's own code. About 70 % of all samples fall in the software rasteriser's pages
   (0x47c000-0x488000; re/subsystems/renderer.md, "Software rasteriser"), 1997 x87 span code under Rosetta. The
   detail switches only add to that. Fewer pixels is the only lever on this path, and at ~70 % fill even 640x480
   would not reach 120.
-- **OpenGLide:** rasterising moved to the GPU (the exe's own share fell to ~6 ms a frame), but the frame now waits
+- **CORRECTION, same night: that "OpenGLide" was not OpenGLide.** `Glide2x.dll.openglide-backup` (md5 59708a9c...) is
+  **dgVoodoo v1.50 Beta2** by SuckSoftware ("dgVoodoo Glide wrapper (for Glide v2.43)", imports `Direct3DCreate9` /
+  `DirectDrawCreateEx`, window class `DGVOODOOWINDOWCLASS`); `glide.dll` is the same product for Glide 2.11. The
+  `OpenGLid.INI` beside it is a leftover. So the row above is old dgVoodoo on Wine's ddraw/d3d9 (wined3d -> GL), which is
+  why the waits sit in DDRAW/wined3d. **Real OpenGLide is untested on this Mac**; a build would come from
+  voyageur/openglide (+ `tools/openglide-hd/` patches) with mingw.
+- **dgVoodoo 1.50 (above):** rasterising moved to the GPU (the exe's own share fell to ~6 ms a frame), but the frame now waits
   ~37 ms in Wine's DirectDraw-on-GL: one sampled stack is ntdll wait <- wined3d x4 <- DDRAW x3 <- glide2x.dll.
   OpenGLide calls DirectDraw every frame and blocks there; the likely suspect is a framebuffer lock/readback for the
   HUD. That wait, not the GPU, is the ceiling on this path. Unresolved.
@@ -174,5 +180,5 @@ come from `I76_FPS_LOG=5 I76_FPS_PROF=1` (proxy built with `music-fix/build-mac.
 - The proxy's music hung the main thread in mmdevapi (CoreAudio device setup via quartz/WINMM) on the external-display
   session; the GL clone uses Wine's null audio driver (`HKCU\Software\Wine\Drivers "Audio"=""`).
 - Test wrappers: `Interstate 76 - CPU120 TEST.app` (DxWnd + proxy, playable: pad script restored, lean set,
-  `I76_FPS_LOG=5`) and `Interstate 76 - GL120 TEST.app` (OpenGLide, measurement only: no movies, no sound, automation
+  `I76_FPS_LOG=5`) and `Interstate 76 - GL120 TEST.app` (dgVoodoo 1.50 Beta2, measurement only: no movies, no sound, automation
   script in place of the pad script).
