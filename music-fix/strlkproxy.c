@@ -3794,6 +3794,55 @@ static void apply_aspect(void) {
     apply_hud_squeeze(k);
 }
 
+/* SOFTWARE RENDERER HIGH RESOLUTION (I76_SW_RES=<W>x<H> or 1; off by default; EXPERIMENT, lab
+ * docs/SOFTWARE-RENDERER-HIRES.md). The DirectDraw software driver keeps a 10-entry mode table at 0x4f9e08 (7 dwords:
+ * supported flag, 0, 0, display W, H, render W, H) that already holds 1600x1200 (slot 1) and 1280x1024 (slot 2) in
+ * every build, but its EnumDisplayModes callback 0x475350 only marks a mode supported when width <= 0x400
+ * (`cmp edi,0x400` 0x47535b) and height <= 0x300 (`cmp esi,0x300` 0x475366), at 8 bpp. That is the "1024x768
+ * ceiling". The back buffer is a DDraw system-memory surface of the render size (0x475cd3), the span edge table
+ * grows on demand (0x473760), and the screen, shadow-mask and binocular bitmaps are allocated from the mode size, so
+ * nothing else is sized to 1024x768 by a constant. BUT the span records the rasteriser queues pack one span into a
+ * dword: x in bits 21..31 (11 bits), length in bits 10..20 (11 bits), y in bits 0..9 (10 bits) - read back with
+ * `and 0x3ff` / `shr 0xa; and 0x7ff` / `shr 0x15` in the edge code 0x473022.. and every SpanFill drawer (0x47cb63 ..).
+ * So the real limits are H <= 1024 and W <= 2048. Measured 2026-10-03 (lab game-alt, dgVoodoo DDraw): 1600x1200 draws
+ * the 3D view only down to row ~1024 (bottom strip black) and crashed once in two runs (heap fault in ntdll).
+ *   I76_SW_RES=1        lifts the enum limits to 2048 x 1024: the stock 1280x1024 slot becomes selectable
+ *                       (Options -> Graphic Detail -> Screen Resolution) when DirectDraw enumerates it at 8 bpp;
+ *                       1600x1200 stays rejected.
+ *   I76_SW_RES=1584x1024 also rewrites slot 1 (1600x1200) to that size and its menu label (0x4fc794 -> our string);
+ *                       W <= 2048 (a multiple of 8), H <= 1024. 1584x1024 is the MacBook panel's 1.547 aspect.
+ * The mode index persists as byte 0x40 of I76PLYR.DEF (1 = slot 1). The camera still assumes a 4:3 frame
+ * (aspect 4H/3W): for a non-4:3 size presented with square pixels add I76_ASPECT=<W>:<H> (Hor+). */
+static char g_swres_label[16];
+static void apply_sw_res(void) {
+    static const DWORD lim_w_stock = 0x400, lim_h_stock = 0x300, lim_w_new = 0x800, lim_h_new = 0x400;
+    static const DWORD slot1_stock[4] = { 1600, 1200, 1600, 1200 };
+    char v[24], *sep; DWORD n = GetEnvironmentVariableA("I76_SW_RES", v, sizeof(v)); int ok = 0;
+    if (n == 0 || n >= sizeof(v) || v[0] == '0') return;
+    ok += patch_bytes(0x47535d, (const BYTE *)&lim_w_stock, (const BYTE *)&lim_w_new, 4, "sw-res: enum width limit");
+    ok += patch_bytes(0x475368, (const BYTE *)&lim_h_stock, (const BYTE *)&lim_h_new, 4, "sw-res: enum height limit");
+    sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X'); if (!sep) sep = strchr(v, ':');
+    if (sep) {
+        DWORD w = (DWORD)atoi(v), h = (DWORD)atoi(sep + 1), want[4];
+        DWORD label_stock = 0x4fd7a8, label_new = (DWORD)(DWORD_PTR)g_swres_label;
+        if (w < 320 || h < 200 || w > 2048 || h > 1024 || (w & 7)) {
+            mlog("  sw-res: %s rejected (320..2048 x 200..1024, width a multiple of 8: span records hold y in 10 bits) - limits only", v);
+        } else {
+            want[0] = w; want[1] = h; want[2] = w; want[3] = h;
+            wsprintfA(g_swres_label, "%lux%lu", (unsigned long)w, (unsigned long)h);
+            ok += patch_bytes(0x4f9e24 + 12, (const BYTE *)slot1_stock, (const BYTE *)want, 16, "sw-res: mode slot 1");
+            ok += patch_bytes(0x4fc794, (const BYTE *)&label_stock, (const BYTE *)&label_new, 4, "sw-res: slot 1 label");
+        }
+    }
+    {   /* read back */
+        const DWORD *e = (const DWORD *)(0x4f9e24 + 12);
+        mlog("  sw-res: %d sites; enum limits %lu x %lu; slot 1 = %lux%lu (render %lux%lu), slot 2 = %lux%lu",
+             ok, (unsigned long)*(const DWORD *)0x47535d, (unsigned long)*(const DWORD *)0x475368,
+             (unsigned long)e[0], (unsigned long)e[1], (unsigned long)e[2], (unsigned long)e[3],
+             (unsigned long)e[7], (unsigned long)e[8]);
+    }
+}
+
 /* SECOND INSTANCE  (I76_MULTI_INSTANCE=1; off by default)
  * WinMain 0x402ca0: FindWindowA(class 0x4c2680, NULL); a hit restores that window (ShowWindow 9) and returns 0, so a
  * second copy exits at once (measured 2026-10-03: second process exit code 0). The switch turns `je 0x402ccd`
@@ -3837,6 +3886,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
         apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
+        apply_sw_res();           /* experiment: I76_SW_RES=<W>x<H> or 1 (software renderer above 1024x768) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
