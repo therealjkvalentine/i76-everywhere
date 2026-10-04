@@ -2103,6 +2103,31 @@ static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
         }
         buf[n] = 0; mlog("CRASH: stack%s", buf);
     }
+    {   /* the module that owns the fault address and the first return addresses outside the exe (2026-10-04: the driver's
+           0x6E988AD3 had to be matched by hand to AcGenral.DLL+0x98AD3 from a September WER report) */
+        DWORD *sp = (DWORD *)(DWORD_PTR)c->Esp; char buf[600]; int i, n = 0, m = 0;
+        DWORD a[4]; int na = 0;
+        a[na++] = (DWORD)(DWORD_PTR)r->ExceptionAddress;
+        for (i = 0; i < 16 && na < 4; i++) {
+            DWORD d;
+            if (IsBadReadPtr(sp + i, 4)) break;
+            d = sp[i];
+            if (d >= 0x00400000 && d < 0x00610000) continue;          /* the exe: already readable as exe+offset */
+            if (d < 0x00010000 || d >= 0x80000000) continue;
+            a[na++] = d;
+        }
+        for (i = 0; i < na; i++) {
+            MEMORY_BASIC_INFORMATION mb; char path[MAX_PATH]; const char *base;
+            if (!VirtualQuery((void *)(DWORD_PTR)a[i], &mb, sizeof mb) || mb.Type != MEM_IMAGE || !mb.AllocationBase) continue;
+            path[0] = 0; GetModuleFileNameA((HMODULE)mb.AllocationBase, path, sizeof path);
+            base = strrchr(path, '\\'); base = base ? base + 1 : path;
+            n += _snprintf(buf + n, sizeof(buf) - n, "%s %08lX = %s+0x%lX (base %p)", m++ ? ";" : "", (unsigned long)a[i], base,
+                           (unsigned long)(a[i] - (DWORD)(DWORD_PTR)mb.AllocationBase), mb.AllocationBase);
+            if (n >= (int)sizeof(buf) - 80) break;
+        }
+        buf[n < (int)sizeof(buf) ? n : (int)sizeof(buf) - 1] = 0;
+        if (m) mlog("CRASH: modules%s", buf);
+    }
     return EXCEPTION_CONTINUE_SEARCH;
 }
 static void apply_crash_log(void) {
@@ -3173,8 +3198,75 @@ static void tc_dump(const char *kind, int buf) {
 out:
     HeapFree(GetProcessHeap(), 0, px); HeapFree(GetProcessHeap(), 0, row);
 }
+/* ===========================================================================
+ * FRAME SPIKE LOG  (I76_FRAME_SPIKES=<ms>, 1 = 250; off by default; lab docs/RENDER-FREEZE-2026-10-04.md)
+ * ===========================================================================
+ * For the owner's "the picture freezes for a few seconds while the game runs on" and "the terrain flashes to sky"
+ * reports under best-wide. Turns on the texture census hooks (above; no behaviour change) and times every swap:
+ * frame = swap-to-swap interval, present = time inside glide2x grBufferSwap (dgVoodoo's present + its pacing).
+ * A frame or present at or above the threshold is logged as SPIKE with that frame's census deltas (downloads, KB,
+ * flushes, no-slot flag, resident) and the scene counters sampled at the scene flush (road_flush_wrap, below):
+ *   terrain vertices [0x6442ec] (reset per QueueTerrain; renderer_SplitTerrainEdge stores the index as int16, so a
+ *     frame past 32,767 draws wrong vertices without faulting - docs/records/FARCLIP-CAMERA-CRASH.md; the 2500 m cap
+ *     was measured WITHOUT I76_TERRAIN_LOD, which raises the count),
+ *   draw-record arena use [0x654380] - [0x5dd324] (pool 0x80000 x16, docs/DRAW-DISTANCE.md), its record count
+ *     [0x59c568], span nodes [0x6543b8] - [0x6543bc] (road pool).
+ * The other two enlarged constants (0x40000 at 0x402f99, the 0xd2f0 split) have no known cursor: not sampled.
+ * Rising edges past 32,767 vertices are logged as TERRAIN-WRAP; a summary every 600 swaps. Written 2026-10-04 while
+ * the console was reserved: NOT YET BUILT OR RUN - the addresses are from the docs above, check the first log. */
+static DWORD g_fs_ms;                                   /* threshold; 0 = off */
+static double g_fs_last;                                /* tc_ms() after the previous swap */
+static DWORD g_fs_dl0, g_fs_dlb0, g_fs_fl0;             /* census totals after the previous swap */
+static DWORD g_fs_spikes, g_fs_win_spikes, g_fs_win_slow, g_fs_win_dlmax;
+static double g_fs_win_frame, g_fs_win_present;
+static DWORD g_fs_vcount, g_fs_arena, g_fs_recs, g_fs_nodes, g_fs_scenes;          /* last scene flush */
+static DWORD g_fs_win_vmax, g_fs_win_arena, g_fs_win_over, g_fs_over_total, g_fs_last_over;
+static void fs_sample_scene(void) {                     /* from road_flush_wrap, before the flush */
+    DWORD v = *(volatile DWORD *)0x006442ec, cur = *(volatile DWORD *)0x00654380, base = *(volatile DWORD *)0x005dd324;
+    DWORD nc = *(volatile DWORD *)0x006543b8, nb = *(volatile DWORD *)0x006543bc;
+    g_fs_scenes++;
+    g_fs_vcount = v; g_fs_recs = *(volatile DWORD *)0x0059c568;
+    g_fs_arena = (base && cur >= base) ? cur - base : 0;
+    g_fs_nodes = (nb && nc >= nb) ? nc - nb : 0;
+    if (v > g_fs_win_vmax) g_fs_win_vmax = v;
+    if (g_fs_arena > g_fs_win_arena) g_fs_win_arena = g_fs_arena;
+    if (v > 32767) {
+        g_fs_win_over++; g_fs_over_total++;
+        if (!g_fs_last_over)
+            mlog("  frame-spikes: TERRAIN-WRAP at swap %lu (proxy frame %lu, t %.0f ms): %lu terrain vertices > 32767 (int16 index wraps: wrong vertices this frame); arena %lu KB",
+                 (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)v, (unsigned long)(g_fs_arena >> 10));
+    }
+    g_fs_last_over = v > 32767;
+}
+static void fs_after_swap(double t0) {
+    double t1 = tc_ms(), frame = g_fs_last > 0.0 ? t1 - g_fs_last : 0.0, present = t1 - t0;
+    DWORD dl = g_tc_dl - g_fs_dl0, kb = (g_tc_dlb - g_fs_dlb0) >> 10, fl = g_tc_flush - g_fs_fl0;
+    if (frame > g_fs_win_frame) g_fs_win_frame = frame;
+    if (present > g_fs_win_present) g_fs_win_present = present;
+    if (dl > g_fs_win_dlmax) g_fs_win_dlmax = dl;
+    if (frame >= 100.0) g_fs_win_slow++;
+    if (g_fs_last > 0.0 && (frame >= (double)g_fs_ms || present >= (double)g_fs_ms)) {
+        g_fs_spikes++; g_fs_win_spikes++;
+        mlog("  frame-spikes: SPIKE #%lu at swap %lu (proxy frame %lu, t %.0f ms, state %lu): frame %.1f ms, present %.1f ms | this frame: %lu downloads %lu KB, %lu flushes, no-slot %lu, resident %lu KB | scene: terrain vertices %lu, arena %lu KB (%lu records), span nodes %lu KB",
+             (unsigned long)g_fs_spikes, (unsigned long)g_tc_swaps, (unsigned long)g_frame, t1, (unsigned long)*(volatile DWORD *)0x004c2164,
+             frame, present, (unsigned long)dl, (unsigned long)kb, (unsigned long)fl, (unsigned long)tc_zg(0x10178ea0),
+             (unsigned long)((tc_zg(0x1001fd20) - g_tc_minaddr) / 1024), (unsigned long)g_fs_vcount, (unsigned long)(g_fs_arena >> 10),
+             (unsigned long)g_fs_recs, (unsigned long)(g_fs_nodes >> 10));
+    }
+    if (g_tc_swaps % 600 == 0) {
+        mlog("  frame-spikes: swaps %lu: last 600: max frame %.1f ms, max present %.1f ms, %lu frames >= 100 ms, %lu spikes >= %lu ms, max %lu downloads in one frame | terrain vertices max %lu (%lu frames > 32767), arena max %lu KB; %lu scene flushes | totals %lu spikes, %lu wrap frames",
+             (unsigned long)g_tc_swaps, g_fs_win_frame, g_fs_win_present, (unsigned long)g_fs_win_slow, (unsigned long)g_fs_win_spikes,
+             (unsigned long)g_fs_ms, (unsigned long)g_fs_win_dlmax, (unsigned long)g_fs_win_vmax, (unsigned long)g_fs_win_over,
+             (unsigned long)(g_fs_win_arena >> 10), (unsigned long)g_fs_scenes, (unsigned long)g_fs_spikes, (unsigned long)g_fs_over_total);
+        g_fs_win_frame = g_fs_win_present = 0.0; g_fs_win_spikes = g_fs_win_slow = g_fs_win_dlmax = 0;
+        g_fs_win_vmax = g_fs_win_arena = g_fs_win_over = g_fs_scenes = 0;
+    }
+    g_fs_last = tc_ms(); g_fs_dl0 = g_tc_dl; g_fs_dlb0 = g_tc_dlb; g_fs_fl0 = g_tc_flush;   /* after the mlog: its cost is not the next frame's */
+}
+
 static void __stdcall tc_Swap(int interval) {
     DWORD flag = tc_zg(0x10178ea0), res = tc_zg(0x1001fd20) - g_tc_minaddr;
+    double t0;
     if (g_tc_on == 2) {
         if (g_tc_shot_at && g_tc_swaps + 1 >= g_tc_shot_at) { g_tc_shot_at = 0; tc_dump("flush-back", 1); g_tc_ctl_at = g_tc_swaps + 30; }
         else if (g_tc_ctl_at && g_tc_swaps >= g_tc_ctl_at) { g_tc_ctl_at = 0; tc_dump("ctl-back", 1); }
@@ -3195,7 +3287,10 @@ static void __stdcall tc_Swap(int interval) {
              (unsigned long)tc_zg(0x1001f894), (unsigned long)g_tc_dl, (unsigned long)g_tc_flush, (unsigned long)g_tc_noslot, (unsigned long)g_tc_noslot_frames);
         g_tc_win_dl = g_tc_win_dlb = g_tc_win_flush = g_tc_win_noslot = 0;
     }
+    if (!g_fs_ms) { p_tc_Swap(interval); return; }
+    t0 = tc_ms();
     p_tc_Swap(interval);
+    fs_after_swap(t0);
 }
 static void tex_census_attach(HMODULE m) {
     void *o;
@@ -3245,8 +3340,8 @@ static void apply_glide_refresh(void) {
     static const struct { DWORD hz, code; } tab[] = { {60, 0}, {70, 1}, {72, 2}, {75, 3}, {80, 4}, {90, 5}, {100, 6}, {85, 7}, {120, 8}, {0, 0xff} };
     char v[8]; DWORD n; int i;
     {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_TEX_CENSUS", c, sizeof(c));
-        if (k && k < sizeof(c) && (c[0] == '1' || c[0] == '2')) {
-            g_tc_on = c[0] - '0';
+        if ((k && k < sizeof(c) && (c[0] == '1' || c[0] == '2')) || g_fs_ms) {   /* I76_FRAME_SPIKES needs the census hooks */
+            g_tc_on = (k && k < sizeof(c) && c[0] == '2') ? 2 : 1;
             if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
             if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
             mlog("  tex-census: on, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
@@ -3853,8 +3948,11 @@ static __declspec(naked) void road_node_stub(void) {            /* replaces `mov
         ret
     }
 }
+static int g_rp_on;                         /* the span-node pool is enlarged + guarded (stats lines are about it) */
 static void __cdecl road_flush_wrap(void *cam, int flag) {       /* the scene flush calls 0x401e8d / 0x40216d */
+    if (g_fs_ms) fs_sample_scene();         /* I76_FRAME_SPIKES: this scene's queue, before the flush rewinds it */
     ((void (__cdecl *)(void *, int))0x0048fac0)(cam, flag);
+    if (!g_rp_on) return;                   /* installed by apply_frame_spikes alone (no road pool): no pool stats */
     if (++g_rp_frames >= 600) {
         g_rp_refused_total += g_rp_refused;
         if (g_logging)
@@ -3897,8 +3995,31 @@ static void apply_road_pool(void) {
     n = patch_bytes(0x00401e8d, fl1_old, w, 5, "road-pool frame count (sw)");
     rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x0040216d + 5)); memcpy(w + 1, &rel, 4);
     n += patch_bytes(0x0040216d, fl2_old, w, 5, "road-pool frame count (hw)");
+    g_rp_on = 1;
     mlog("  road-pool: span-node pool x%d (%lu KB), end guard %s, stats %s (roads %.0f m)", factor, (unsigned long)(pool >> 10),
          ok ? "on" : "NOT installed", n == 2 ? "every 600 frames" : "OFF (flush sites differ)", road);
+}
+
+/* I76_FRAME_SPIKES=<ms> (1 = 250): see FRAME SPIKE LOG in the texture census section. Runs after apply_road_pool: if the
+ * road pool did not wrap the two scene flush calls (no I76_FAR_CLIP / I76_ROAD_DIST, e.g. the stock-preset control),
+ * wrap them here so the scene counters are still sampled. apply_glide_refresh then turns the census hooks on. */
+static void apply_frame_spikes(void) {
+    static const BYTE fl1_old[5] = { 0xe8, 0x2e, 0xdc, 0x08, 0x00 };   /* call 0x48fac0 (0x401e8d) */
+    static const BYTE fl2_old[5] = { 0xe8, 0x4e, 0xd9, 0x08, 0x00 };   /* call 0x48fac0 (0x40216d) */
+    char v[16]; DWORD n = GetEnvironmentVariableA("I76_FRAME_SPIKES", v, sizeof(v)); int ms, k = 0; BYTE w[5] = { 0xe8 }; LONG rel;
+    if (n == 0 || n >= sizeof(v)) return;
+    ms = atoi(v);
+    if (ms <= 1) ms = 250;
+    g_fs_ms = (DWORD)ms;
+    if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
+    if (!g_rp_on) {
+        rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x00401e8d + 5)); memcpy(w + 1, &rel, 4);
+        k = patch_bytes(0x00401e8d, fl1_old, w, 5, "frame-spikes scene sample (sw)");
+        rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x0040216d + 5)); memcpy(w + 1, &rel, 4);
+        k += patch_bytes(0x0040216d, fl2_old, w, 5, "frame-spikes scene sample (hw)");
+    }
+    mlog("  frame-spikes: on, threshold %lu ms; scene counters %s; census hooks follow (glide-refresh / tex-census lines)",
+         (unsigned long)g_fs_ms, g_rp_on ? "via the road-pool flush wrap" : (k == 2 ? "via its own flush wrap" : "NOT sampled (flush sites differ)"));
 }
 
 /* GROUND CLUTTER DISTANCE  (I76_CLUTTER_DIST=<metres 120..600>, I76_CLUTTER_RISE=<metres 0..100>; off by default;
@@ -4265,6 +4386,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
         apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP: span-node pool x16 + end guard (I76_ROAD_POOL=0 off) */
+        apply_frame_spikes();     /* opt-in: I76_FRAME_SPIKES=<ms> (after apply_road_pool: shares its flush wrap; before apply_glide_refresh) */
         apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
         apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
