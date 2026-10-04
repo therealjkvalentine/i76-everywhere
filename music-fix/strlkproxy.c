@@ -3212,8 +3212,9 @@ out:
  *   draw-record arena use [0x654380] - [0x5dd324] (pool 0x80000 x16, docs/DRAW-DISTANCE.md), its record count
  *     [0x59c568], span nodes [0x6543b8] - [0x6543bc] (road pool).
  * The other two enlarged constants (0x40000 at 0x402f99, the 0xd2f0 split) have no known cursor: not sampled.
- * Rising edges past 32,767 vertices are logged as TERRAIN-WRAP; a summary every 600 swaps. Written 2026-10-04 while
- * the console was reserved: NOT YET BUILT OR RUN - the addresses are from the docs above, check the first log. */
+ * Rising edges past 32,767 vertices are logged as TERRAIN-WRAP; a summary every 600 swaps. Live 2026-10-04 on the
+ * lab twin: vertex counts 1.1k..17.9k and arena 0.1..0.7 MB, matching the soaks; every spike was a chain of ZGLIDE
+ * cache flushes (lab docs/RENDER-FREEZE-2026-10-04.md). */
 static DWORD g_fs_ms;                                   /* threshold; 0 = off */
 static double g_fs_last;                                /* tc_ms() after the previous swap */
 static DWORD g_fs_dl0, g_fs_dlb0, g_fs_fl0;             /* census totals after the previous swap */
