@@ -1,7 +1,8 @@
 # controls-sheet: the printable quick reference, and the check that keeps it true
 
 Output: [docs/Interstate76-Controls-Quick-Reference.pdf](../../docs/Interstate76-Controls-Quick-Reference.pdf),
-four US Letter landscape pages: keyboard and mouse, gamepad, HOWAS (wheel and stick), stock 1997 keys vs ours.
+five US Letter landscape pages: keyboard and mouse, gamepad, wheel (T300RS), flight stick (CH Fighterstick), stock
+1997 keys vs ours. The pad, wheel and stick pages put each control's box around a schematic picture of the device.
 
 ## Change a binding, regenerate
 

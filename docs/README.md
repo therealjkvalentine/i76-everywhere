@@ -103,7 +103,7 @@ Binding rules are in [`../AGENTS.md`](../AGENTS.md): `input.map` is the only liv
 | | Doc | What it is |
 |---|---|---|
 | living | [CONTROLS.md](CONTROLS.md) | Start here: this project's own control map (WASD-style, not the 1997 layout) and how to keep the original keys; the four control setups on one page; every key beside the stock one; the common faults |
-| living | [Interstate76-Controls-Quick-Reference.pdf](Interstate76-Controls-Quick-Reference.pdf) | The printable quick reference, four US Letter pages. Generated, never hand-edited: [`../tools/controls-sheet`](../tools/controls-sheet/README.md) builds it from the map and the layer scripts and fails when they disagree |
+| living | [Interstate76-Controls-Quick-Reference.pdf](Interstate76-Controls-Quick-Reference.pdf) | The printable quick reference, five US Letter pages. Generated, never hand-edited: [`../tools/controls-sheet`](../tools/controls-sheet/README.md) builds it from the map and the layer scripts and fails when they disagree |
 | living | [`../controls/input.map`](../controls/input.map) | The control map the Windows installer writes (the owner's daily-driver map); notes in [`../controls/README.md`](../controls/README.md) |
 | living | [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) | The two-tier control design: critical actions never depend on one platform's layer |
 | living | [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md) | Xbox pad on PC and Mac through the native joystick path |

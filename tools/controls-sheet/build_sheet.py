@@ -746,17 +746,98 @@ def cross(title, up, right, down, left, centre=""):
                 esc(title), c(up), c(left), esc(centre), c(right), c(down)))
 
 
-def howas_page(M):
-    rows = "".join('<tr><td class="n">%s</td><td>%s</td>%s%s</tr>' % (esc(n), esc(name), cell(b), cell(s))
-                   for n, name, b, s in M.wheel_rows)
-    rows += "".join('<tr><td class="n">hat</td><td>%s</td>%s%s</tr>' % (esc(name), cell(b), cell(s)) for name, b, s in M.wheel_hat)
+# Schematic front view of the T300RS rim (PS4 layout). Positions are drawn from the Thrustmaster layout, not
+# measured; the badge is the PC button number from the manual's "MAPPING FOR PC" page (docs/WHEEL-T300.md).
+# The four face buttons carry the numbers in the order the manual lists them (triangle, square, circle, cross = 3 to 6).
+WHEEL_SPOTS = {  # PC button -> (x, y, legend, shape, badge dx, badge dy)
+    "1": (150, 82, "L1", "paddle", -22, -2), "2": (290, 82, "R1", "paddle", 22, -2),
+    "10": (100, 232, "L2", "round", -16, -10), "11": (146, 252, "L3", "round", -16, 8), "7": (176, 132, "SHARE", "pill", -28, 0),
+    "9": (340, 232, "R2", "round", 16, -10), "12": (294, 252, "R3", "round", 16, 8), "8": (264, 132, "OPTIONS", "pill", 30, 0),
+    "3": (318, 152, "△", "face", 0, -18), "4": (292, 178, "□", "face", -19, -10), "5": (344, 178, "○", "face", 19, -10), "6": (318, 204, "✕", "face", 0, 18),
+    "13": (220, 268, "PS", "round", 18, -8),
+}
+
+
+def wheel_svg(M):
+    o = ['<svg class="wheel" viewBox="20 20 400 352" xmlns="http://www.w3.org/2000/svg">',
+         # the two shift paddles sit behind the rim, upper left and right of the hub
+         '<path d="M118,64 h50 a8,8 0 0 1 8,8 v22 h-66 v-22 a8,8 0 0 1 8,-8 z" class="pp dash"/>',
+         '<path d="M272,64 h50 a8,8 0 0 1 8,8 v22 h-66 v-22 a8,8 0 0 1 8,-8 z" class="pp dash"/>',
+         '<circle cx="220" cy="185" r="150" fill="none" stroke="#222" stroke-width="26"/>',
+         '<circle cx="220" cy="185" r="150" fill="none" stroke="#f4f4f4" stroke-width="22"/>',
+         '<path d="M74,160 h292 a8,8 0 0 1 8,8 v46 a8,8 0 0 1 -8,8 h-70 l-30,74 h-92 l-30,-74 h-70 a8,8 0 0 1 -8,-8 v-46 a8,8 0 0 1 8,-8 z" fill="#f4f4f4" stroke="#222" stroke-width="2"/>',
+         '<rect x="140" y="110" width="160" height="110" rx="26" fill="#f4f4f4" stroke="#222" stroke-width="2"/>',
+         '<text x="220" y="196" class="pt sm">T300 RS</text>',
+         # D-pad (POV hat) on the left spoke
+         '<path d="M118,166 h18 v14 h14 v18 h-14 v14 h-18 v-14 h-14 v-18 h14 z" class="pp"/>',
+         '<text x="127" y="192" class="pt xs">D-pad</text>']
+    for n, (x, y, leg, shape, bdx, bdy) in WHEEL_SPOTS.items():
+        if shape == "paddle":
+            o.append('<text x="%d" y="%d" class="pt sm">%s paddle (behind)</text>' % (x - 7 if n == "1" else x + 7, y - 6, leg))
+        elif shape == "pill":
+            o.append('<rect x="%d" y="%d" width="40" height="14" rx="7" class="pp"/><text x="%d" y="%d" class="pt xs">%s</text>' % (x - 20, y - 7, x, y + 3, leg))
+        elif shape == "face":
+            o.append('<circle cx="%d" cy="%d" r="10" class="pp"/><text x="%d" y="%d" class="pt">%s</text>' % (x, y, x, y + 4.5, leg))
+        else:
+            o.append('<circle cx="%d" cy="%d" r="11" class="pp"/><text x="%d" y="%d" class="pt sm">%s</text>' % (x, y, x, y + 3, leg))
+        bx, by = x + bdx, y + bdy
+        if shape == "paddle":
+            bx, by = (x - 50 if n == "1" else x + 50), y - 9
+        o.append('<circle cx="%d" cy="%d" r="7.5" class="badge"/><text x="%d" y="%d" class="bt">%s</text>' % (bx, by, bx, by + 3.2, n))
+    o.append('<text x="220" y="365" class="pt sm">pedals: throttle / brake &#183; rim: steer (native, no layer needed)</text></svg>')
+    return "".join(o)
+
+
+def wbox(M, num, title, b, s, hold=False):
+    def line(c):
+        text, key, ok = c
+        return '%s%s <span class="kk">%s</span>' % (esc(text), dag(ok), esc(short_key(key)) if key else "")
+    base = ('<div class="pl">%s%s</div>' % (line(b), ' <i>(hold)</i>' if hold else "")) if b[0] else '<div class="pl un">not bound</div>'
+    shift = ('<div class="pshift"><span class="lb">%s +</span><span>%s</span></div>' % (esc(M.remap["shift_btn"]), line(s))) if s[0] else ""
+    badge = '<span class="nb">%s</span>' % esc(num) if num else ""
+    return '<div class="pbox"><div class="pname">%s%s</div><div class="pbase">%s</div>%s</div>' % (badge, esc(title), base, shift)
+
+
+def wheel_page(M):
     wd = M.data["wheel"]
-    nat = "".join("<li>%s: %s %s</li>" % (esc(label(M, b.action)), esc(b.analog[0]), esc(b.analog[1])) for b in M.native_joy if b.analog)
-    wheel = ('<div class="hw"><h2>Wheel: %s</h2><p class="note">Steering and pedals are native (input.map):</p><ul class="nat">%s</ul>'
-             '<p class="note">Buttons are typed by i76-remap.ahk. Hold button %s for the shift column. Buttons %s hold their key while pressed; the others tap once.</p>'
-             '<table class="wt"><tr><th>#</th><th>Control</th><th>Base</th><th>Shift (hold %s)</th></tr>%s</table>%s</div>' % (
-                 esc(wd["device"]), nat, esc(M.remap["shift_btn"]), esc(", ".join(sorted(M.remap["gWheelHoldSet"], key=int))),
-                 esc(M.remap["shift_btn"]), rows, status_block(M, "wheel")))
+    rows = {n: (name, b, s) for n, name, b, s in M.wheel_rows}
+    hold = set(M.remap["gWheelHoldSet"])
+    def btn(n, title):
+        name, b, s = rows[n]
+        return wbox(M, n, title, b, s, n in hold)
+    hat = {name: (b, s) for name, b, s in M.wheel_hat}
+    left = btn("1", "L1 left paddle") + "".join(wbox(M, "", nm, *hat[nm]) for nm in ("D-pad up", "D-pad right", "D-pad down", "D-pad left")) + \
+        btn("7", "SHARE (SE)") + btn("10", "L2") + btn("11", "L3")
+    sb = M.remap["shift_btn"]
+    right = btn("2", "R1 right paddle") + btn("3", "△ face button") + btn("4", "□ face button") + btn("5", "○ face button") + \
+        btn(sb, "✕ face button: SHIFT (hold)") + btn("8", "OPTIONS") + btn("9", "R2") + btn("12", "R3") + btn("13", "PS")
+    mid = ('<div class="padmid">%s<p class="note"><b>Hold button %s</b> (the lowest face button) for the shift layer: the '
+           '<span class="lb">%s +</span> lines. Small grey text is the key i76-remap.ahk types; buttons with <i>(hold)</i> keep their key down while pressed, '
+           'the rest tap once. Steering and pedals are native (input.map) and work without the layer.</p>'
+           '<p class="note">The black badge is the PC button number (Thrustmaster manual). The picture is a schematic of the PS4-layout rim; '
+           'the face-button numbers follow the order the manual lists them (△ □ ○ ✕ = 3 to 6) and have not been press-tested by symbol: '
+           'if one is off, the numbers on the boxes are what counts.</p>%s</div>' % (wheel_svg(M), esc(sb), esc(sb), status_block(M, "wheel")))
+    return '<div class="padgrid wheelgrid"><div class="pcol">%s</div>%s<div class="pcol">%s</div></div>' % (left, mid, right)
+
+
+# Schematic CH Fighterstick grip, seen from the pilot's seat (front of the grip to the left). Positions approximate.
+STICK_SVG = '''<svg class="stick" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+<ellipse cx="150" cy="370" rx="120" ry="20" fill="#e4e4e4" stroke="#222" stroke-width="2"/>
+<rect x="138" y="300" width="24" height="70" fill="#ccc" stroke="#222" stroke-width="1.5"/>
+<path d="M95,120 q-10,-70 55,-80 q70,-5 70,70 l-10,80 q-5,40 -10,110 h-70 q-5,-60 -20,-100 q-20,-40 -15,-80 z" fill="#f4f4f4" stroke="#222" stroke-width="2"/>
+<circle cx="120" cy="70" r="15" class="pp"/><circle cx="120" cy="70" r="6" class="ps"/><text x="120" y="98" class="pt xs">cone (POV)</text>
+<circle cx="185" cy="72" r="14" class="pp"/><path d="M175,72 h20 M185,62 v20" stroke="#222" stroke-width="1.2"/><text x="185" y="99" class="pt xs">convex 5-8</text>
+<rect x="168" y="112" width="30" height="24" rx="4" class="pp"/><path d="M172,112 v-5 h6 v5 M180,112 v-5 h6 v5 M188,112 v-5 h6 v5" fill="none" stroke="#222"/><text x="183" y="149" class="pt xs">castle 9-12</text>
+<circle cx="120" cy="128" r="12" class="pp"/><text x="120" y="152" class="pt xs">trim 13-16</text>
+<rect x="148" y="38" width="22" height="12" rx="5" fill="#c33" stroke="#222"/><text x="159" y="31" class="pt xs">2 pickle</text>
+<path d="M92,170 q-22,10 -18,40 l14,-2 q-2,-22 10,-30 z" fill="#ccc" stroke="#222" stroke-width="1.5"/><text x="58" y="196" class="pt xs">1 trigger</text>
+<rect x="88" y="252" width="14" height="22" rx="4" fill="#c33" stroke="#222"/><text x="64" y="268" class="pt xs">4 pinky</text>
+<rect x="212" y="150" width="12" height="22" rx="4" class="pp"/><text x="230" y="165" class="pt xs" text-anchor="start" style="text-anchor:start">3 MODE (back)</text>
+<text x="150" y="395" class="pt xs">forward = reverse &#183; back = handbrake &#183; left / right = gear</text>
+</svg>'''
+
+
+def stick_page(M):
     sd = M.data["stick"]
     ax = {(a_["ctl"]): a_ for a_ in M.stick_axis}
     def find(prefix):
@@ -766,19 +847,19 @@ def howas_page(M):
         return {"text": "", "key": "", "ok": True}
     gear = cross("Stick deflection: gearbox and handbrake", find("FORWARD"), find("RIGHT"), find("BACK"), find("LEFT"), "stick")
     pov = M.stick_pov
-    crosses = gear + cross("Cone hat (POV): look, held", pov[0], pov[1], pov[2], pov[3], "cone")
+    cone = cross("Cone hat (POV): look, held", pov[0], pov[1], pov[2], pov[3], "cone")
+    hats = []
     for h in sd["hats"]:
         b = [M.stick_btn[n] for n in h["buttons"]]
-        crosses += cross("%s (buttons %d to %d)" % (h["name"], h["buttons"][0], h["buttons"][-1]), b[0], b[1], b[2], b[3], "hat")
-    grip = "".join('<tr><td class="n">%d</td><td>%s</td>%s</tr>' % (
-        n, esc(M.stick_btn[n]["ctl"]), cell((M.stick_btn[n]["text"], M.stick_btn[n]["key"], M.stick_btn[n]["ok"]))) for n in sd["grip_buttons"])
-    modes = {a_["ctl"]: a_["mode"] for a_ in M.stick_axis}
-    stick = ('<div class="hs"><h2>Stick: %s</h2><div class="crosses">%s<div class="cross gripbox"><div class="ct">Grip buttons</div>'
-             '<table class="wt"><tr><th>#</th><th>Control</th><th>Action</th></tr>%s</table></div></div>'
-             '<p class="note">All stick controls are typed by i76-ch-fighterstick.ahk. Forward = reverse only while held; back = handbrake while held; '
-             'left / right = one gear per movement. Weapon link is on the keyboard (F) only.</p>%s</div>' % (
-                 esc(sd["device"]), crosses, grip, status_block(M, "stick")))
-    return '<div class="howas">%s%s</div>' % (wheel, stick)
+        hats.append(cross("%s (buttons %d to %d)" % (h["name"], h["buttons"][0], h["buttons"][-1]), b[0], b[1], b[2], b[3], "hat"))
+    grip = "".join(wbox(M, str(n), M.stick_btn[n]["ctl"], (M.stick_btn[n]["text"], M.stick_btn[n]["key"], M.stick_btn[n]["ok"]), ("", "", True))
+                   for n in sd["grip_buttons"])
+    mid = ('<div class="padmid">%s<p class="note">All stick controls are typed by i76-ch-fighterstick.ahk. Forward = reverse only while held; '
+           'back = handbrake while held; left / right = one gear per movement. Weapon link is on the keyboard (F) only. '
+           'The picture is a schematic of the grip; hat and button names follow FIGHTERSTICK.md.</p>%s</div>' % (STICK_SVG, status_block(M, "stick")))
+    left = cone + hats[0] + gear
+    right = hats[1] + hats[2] + grip
+    return '<div class="padgrid stickgrid"><div class="pcol">%s</div>%s<div class="pcol">%s</div></div>' % (left, mid, right)
 
 
 def compare_page(M):
@@ -847,13 +928,15 @@ td.mn { font-weight: 600; white-space: nowrap; padding-right: 5px; }
 svg.pad { width: 100%; height: auto; }
 .pp { fill: #dcdcdc; stroke: #222; stroke-width: 1.2; } .ps { fill: #fff; stroke: #222; }
 .pt { font: 700 12px Arial; text-anchor: middle; fill: #000; } .pt.sm { font: 600 7.4px Arial; }
-/* page 3 */
-.howas { display: grid; grid-template-columns: 46fr 54fr; gap: 14px; }
-.wt td, .wt th { border: 1px solid #555; padding: 2px 4px; font-size: 9.2px; }
-.wt th { background: #e4e4e4; }
-.wt td.n { text-align: center; font-weight: 700; width: 26px; }
-ul.nat { margin: 0 0 3px; padding-left: 16px; }
-.crosses { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px; }
+/* pages 3 and 4: wheel and stick */
+svg.wheel, svg.stick { width: 100%; height: auto; }
+svg.stick { max-height: 4.3in; }
+.pt.xs { font: 600 7px Arial; } .pp.dash { stroke-dasharray: 4 2; }
+.badge { fill: #000; } .bt { font: 700 8.5px Arial; fill: #fff; text-anchor: middle; }
+.nb { display: inline-block; min-width: 15px; text-align: center; background: #000; color: #fff; border-radius: 8px; font-size: 8.5px; margin-right: 5px; padding: 0 3px; }
+.wheelgrid .pbox { padding-top: 1px; padding-bottom: 2px; } .wheelgrid .pcol { gap: 3px; }
+.stickgrid { grid-template-columns: 1fr 3.1in 1fr; }
+.stickgrid .pcol { gap: 6px; }
 .cross { border: 1px solid #000; border-radius: 4px; padding: 3px 5px 5px; }
 .ct { font-weight: 700; font-size: 9.6px; margin-bottom: 3px; }
 .cg { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto auto; gap: 3px 5px; align-items: center; font-size: 9px; }
@@ -868,7 +951,7 @@ ul.nat { margin: 0 0 3px; padding-left: 16px; }
 .cmp th { border-bottom: 1.5px solid #000; }
 .cmp tr.chg td { font-weight: 600; background: #eee; }
 .cmp td.ch { width: 12px; text-align: center; }
-.p2 .padgrid { zoom: 1.2; } .p3 .howas { zoom: 1.27; } .p4 .cmpwrap { zoom: 1.33; }
+.p2 .padgrid { zoom: 1.2; } .p3 .padgrid { zoom: 1.12; } .p3s .padgrid { zoom: 1.2; } .p4 .cmpwrap { zoom: 1.33; }
 @media screen { body { background: #777; } .page { background: #fff; margin: 12px auto; padding: 0; box-shadow: 0 0 8px #000; outline: 0.4in solid #fff; margin-top: 0.6in; margin-bottom: 0.9in; } }
 '''
 
@@ -878,7 +961,8 @@ def build_html(M):
           'Keys with no label are not bound. F-keys and Esc are engine keys, not in input.map.</p>'
           '<div class="lists">%s%s</div>%s' % (keyboard_svg(M), group_lists(M), mouse_block(M), status_block(M, "keyboard", "mouse")))
     pages = [("Keyboard and mouse", p1, "p1"), ("Gamepad (Xbox layout)", gamepad_page(M), "p2"),
-             ("HOWAS: hands on wheel and stick", howas_page(M), "p3"),
+             ("Wheel: " + M.data["wheel"]["device"], wheel_page(M), "p3"),
+             ("Flight stick: " + M.data["stick"]["device"], stick_page(M), "p3s"),
              ("Stock 1997 keys vs ours", compare_page(M), "p4")]
     body = "".join(page(M, i + 1, len(pages), "Interstate '76: " + t, b, c) for i, (t, b, c) in enumerate(pages))
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>%s</title><style>%s</style></head><body>%s</body></html>\n'

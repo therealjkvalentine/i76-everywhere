@@ -240,8 +240,9 @@ Y handbrake, D-pad glance), and a wheel has steering and pedals but no buttons.
 HOWAS is this project's own word, after the flight-sim HOTAS: the left hand on a force-feedback wheel, the right
 on a flight stick, feet on the pedals. The setup is a **Thrustmaster T300RS** (winmm `joystick1`) and a
 **CH Fighterstick** (`joystick2`). The wheel steers and holds the things you reach for without looking; the stick
-is the gearbox, the handbrake and the weapons. Page 3 of the
-[quick reference](Interstate76-Controls-Quick-Reference.pdf) is generated from the two scripts' own tables.
+is the gearbox, the handbrake and the weapons. Pages 3 (wheel) and 4 (stick) of the
+[quick reference](Interstate76-Controls-Quick-Reference.pdf) are generated from the two scripts' own tables, each
+around a labelled picture of the device.
 
 **Wheel** ([WHEEL-T300.md](WHEEL-T300.md), "The layout"; "Rebalanced 2026-08-08"). `input.map` carries only
 `steer { - joystick1 Left/Right }` and `throttle { - joystick1 Down/Up }`; every button is typed by `i76-remap.ahk`.
