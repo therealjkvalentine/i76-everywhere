@@ -182,3 +182,29 @@ come from `I76_FPS_LOG=5 I76_FPS_PROF=1` (proxy built with `music-fix/build-mac.
 - Test wrappers: `Interstate 76 - CPU120 TEST.app` (DxWnd + proxy, playable: pad script restored, lean set,
   `I76_FPS_LOG=5`) and `Interstate 76 - GL120 TEST.app` (dgVoodoo 1.50 Beta2, measurement only: no movies, no sound, automation
   script in place of the pad script).
+
+### Real OpenGLide on the Mac: 65-105 fps (2026-10-03, night)
+
+Built on the Mac by `tools/openglide-hd/MAC-BUILD.md` route B: voyageur/openglide `ad9a3dd` + patches 0001-0003,
+`CXX=i686-w64-mingw32-g++ sh build-mingw.sh` (Homebrew mingw-w64 14.0.0). 1.29 MB PE32, 127 exports, all 39 that
+`ZGLIDE.DLL` imports present; imports OPENGL32/GLU32/GDI32/USER32/KERNEL32 + UCRT. Installed as `Glide2x.dll` in
+`Interstate 76 - GL120 TEST.app` with the MAC-BUILD `OpenGLid.INI` (`Version=0.09rc9`). It boots with no extension
+MessageBox; `OpenGLid.log`: Vendor Apple, Renderer Apple M5 Pro, **Version 2.1 Metal - 90.5**
+(`GL_EXT_texture_env_combine` emulated). Launched `-glide` in `explorer /desktop=...,1280x960` by
+[`i76-hires120-stub.swift`](../../i76-hires120-stub.swift); t01 direct boot (movies hidden, null audio), W held by script.
+
+| OpenGLid `Resolution` | fps (5 s windows) | OpenGLide frame_ms | lfb_total_ms | swap_ms | main thread |
+|---|---|---|---|---|---|
+| 0 (640x480) | 85-105 (one window 67) | 9.4-13.0 | 0.05 | 0.24-0.37 | i76.exe 68 %, glide2x 12 %, opengl32 9 %, ZGLIDE 7 % |
+| 2 (1280x960) | 65-67 | 14.9-15.0 | 0.05 | 0.23-0.24 | same split |
+
+- **About 4-5x the CPU path, and limited by the game's own code** (exe pages 0x494000 / 0x491000 / 0x47c000 hottest:
+  terrain queueing and transform, re/subsystems/renderer.md), not by the LFB or Wine's present. 120 needs ~8.3 ms;
+  640x480 is at ~10 ms.
+- The 1280x960 runs were slower with the same module split. Whether that is resolution or what the scripted car drove
+  through is open: paired runs needed (MAC-BUILD section 4).
+- Not seen: screencapture returns black for this window (full-screen GL on its own Space, as in July), so the picture,
+  the menus' placement in the Wine desktop and the menu mouse mapping are unverified. Sound was off (null driver) in
+  the measured runs; the clone is back on the default driver for play.
+- The playable state of the clone: movies back, pad script back, no direct boot, `I76_FPS_LOG=5`, lean 120 set,
+  `Resolution=0`.
