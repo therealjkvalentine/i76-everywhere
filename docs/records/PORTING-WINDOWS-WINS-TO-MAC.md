@@ -148,3 +148,31 @@ Software resolution ceiling: 1024x768, set in-game (Options -> Graphic Detail ->
 - The test prefix's `users/<name>/Documents` etc. were symlinks into the real home folder. A clone with
   a new bundle id makes macOS ask for Documents access, and a pending privacy prompt blocks the
   caller. They are plain folders in the test prefix now.
+
+### Measured: where the Mac's frame goes (2026-10-03, late)
+
+The menu route can be scripted: an AutoHotkey script started *inside* the wrapper's session (put in place of
+`C:\AutoHotkey\i76-remap.ahk`, which the launch stub runs) clicks MELEE (450,300), AUTO MELEE (490,360), INSTANT
+MELEE (535,375) and ENTER AREA (299,461), scaled from 640x480 into the DxWnd client rect, then holds W. Numbers
+come from `I76_FPS_LOG=5 I76_FPS_PROF=1` (proxy built with `music-fix/build-mac.sh`).
+
+| path (lean 120 set, no detail switches) | fps | frame work | main thread time |
+|---|---|---|---|
+| DxWnd software, 1024x768, DxWnd `maxfps0=0` | 19-24 | 42-52 ms | i76.exe 87 %, ntdll 11 %, dxwnd 1 % |
+| OpenGLide (GOG's 0.09rc5 `Glide2x.dll`) `-glide` in a Wine desktop, null audio, no movies | 20-21 | 47-49 ms | ntdll 77 %, i76.exe 13 %, glide2x 3 % |
+
+- **Software:** CPU-bound in the game's own code. About 70 % of all samples fall in the software rasteriser's pages
+  (0x47c000-0x488000; re/subsystems/renderer.md, "Software rasteriser"), 1997 x87 span code under Rosetta. The
+  detail switches only add to that. Fewer pixels is the only lever on this path, and at ~70 % fill even 640x480
+  would not reach 120.
+- **OpenGLide:** rasterising moved to the GPU (the exe's own share fell to ~6 ms a frame), but the frame now waits
+  ~37 ms in Wine's DirectDraw-on-GL: one sampled stack is ntdll wait <- wined3d x4 <- DDRAW x3 <- glide2x.dll.
+  OpenGLide calls DirectDraw every frame and blocks there; the likely suspect is a framebuffer lock/readback for the
+  HUD. That wait, not the GPU, is the ceiling on this path. Unresolved.
+- Direct boot on the Glide path also needs the mission's own movie skipped (`I76_SKIP_MOVIES` only blanks the intro
+  and credits names; the mission movie is the name at 0x5dd300). The GL test clone has its `smk` folder renamed.
+- The proxy's music hung the main thread in mmdevapi (CoreAudio device setup via quartz/WINMM) on the external-display
+  session; the GL clone uses Wine's null audio driver (`HKCU\Software\Wine\Drivers "Audio"=""`).
+- Test wrappers: `Interstate 76 - CPU120 TEST.app` (DxWnd + proxy, playable: pad script restored, lean set,
+  `I76_FPS_LOG=5`) and `Interstate 76 - GL120 TEST.app` (OpenGLide, measurement only: no movies, no sound, automation
+  script in place of the pad script).

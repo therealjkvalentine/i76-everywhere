@@ -1085,6 +1085,103 @@ static DWORD WINAPI fps_log_watch(LPVOID arg) {
         last = g_frame;
     }
 }
+/* I76_FPS_PROF=1 (with I76_FPS_LOG): a sampling profiler for "where do the frame's milliseconds go". Every ~2 ms
+ * the main thread is suspended just long enough to read eip, then resumed; only after the resume is the sample
+ * classified (module lookup takes the loader lock, which the suspended thread might hold). Each log period it
+ * prints the share per module and the hottest 4 KB code pages of i76.exe. Adds a few % overhead: diagnosis only. */
+#define PROF_MODS 24
+static HMODULE g_pm_mod[PROF_MODS]; static DWORD g_pm_n[PROF_MODS], g_pm_total;
+static DWORD g_pm_page[0xC0];                                   /* i76.exe 0x400000..0x4bffff by 4 KB page */
+#define PROF_CALLERS 32
+static DWORD g_pc_chain[10], g_pc_chain_n;                     /* one raw chain of an outside-the-exe sample per period */
+static DWORD g_pc_addr[PROF_CALLERS], g_pc_n[PROF_CALLERS];     /* outside the exe: the first exe return address up the
+                                                                   ebp chain, i.e. which game call site is waiting */
+static void prof_log(void) {
+    int i, j, order[PROF_MODS], n = 0; char line[700]; int pos = 0;
+    if (!g_pm_total) return;
+    for (i = 0; i < PROF_MODS; i++) if (g_pm_n[i]) order[n++] = i;
+    for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) if (g_pm_n[order[j]] > g_pm_n[order[i]]) { int t = order[i]; order[i] = order[j]; order[j] = t; }
+    for (i = 0; i < n && i < 8 && pos < (int)sizeof(line) - 60; i++) {
+        char name[MAX_PATH] = "?", *base = name, *q;
+        if (g_pm_mod[order[i]]) GetModuleFileNameA(g_pm_mod[order[i]], name, sizeof(name));
+        for (q = name; *q; q++) if (*q == '\\' || *q == '/') base = q + 1;
+        pos += _snprintf(line + pos, sizeof(line) - pos, " %s %.0f%%", base, 100.0 * g_pm_n[order[i]] / g_pm_total);
+    }
+    line[sizeof(line) - 1] = 0;
+    mlog("  prof: %lu samples:%s", (unsigned long)g_pm_total, line);
+    pos = 0;
+    for (i = 0; i < 6; i++) {                                     /* top i76.exe pages */
+        int best = -1;
+        for (j = 0; j < 0xC0; j++) if (g_pm_page[j] && (best < 0 || g_pm_page[j] > g_pm_page[best])) best = j;
+        if (best < 0) break;
+        pos += _snprintf(line + pos, sizeof(line) - pos, " %06lx %.0f%%", 0x400000ul + best * 0x1000ul, 100.0 * g_pm_page[best] / g_pm_total);
+        g_pm_page[best] = 0;
+    }
+    line[sizeof(line) - 1] = 0;
+    if (pos) mlog("  prof: i76.exe hot pages:%s", line);
+    pos = 0;
+    for (i = 0; i < 6; i++) {                                     /* top exe call sites seen from outside the exe */
+        int best = -1;
+        for (j = 0; j < PROF_CALLERS; j++) if (g_pc_n[j] && (best < 0 || g_pc_n[j] > g_pc_n[best])) best = j;
+        if (best < 0) break;
+        pos += _snprintf(line + pos, sizeof(line) - pos, " %08lx %.0f%%", (unsigned long)g_pc_addr[best], 100.0 * g_pc_n[best] / g_pm_total);
+        g_pc_n[best] = 0;
+    }
+    line[sizeof(line) - 1] = 0;
+    if (pos) mlog("  prof: outside the exe, called from:%s", line);
+    if (g_pc_chain_n) {                                           /* the sample chain: eip, esp, ebp, then return addresses */
+        int k; pos = 0;
+        for (k = 0; k < (int)g_pc_chain_n && pos < (int)sizeof(line) - 70; k++) {
+            HMODULE m = NULL; char name[MAX_PATH] = "-", *base = name, *q;
+            if (k != 1 && k != 2 && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                                       (LPCSTR)(DWORD_PTR)g_pc_chain[k], &m) && m) {
+                GetModuleFileNameA(m, name, sizeof(name));
+                for (q = name; *q; q++) if (*q == '\\' || *q == '/') base = q + 1;
+            }
+            pos += _snprintf(line + pos, sizeof(line) - pos, " %08lx(%s)", (unsigned long)g_pc_chain[k], base);
+        }
+        line[sizeof(line) - 1] = 0;
+        mlog("  prof: one outside sample [eip esp ebp ret...]:%s", line);
+        g_pc_chain_n = 0;
+    }
+    memset(g_pc_addr, 0, sizeof g_pc_addr); memset(g_pc_n, 0, sizeof g_pc_n);
+    memset(g_pm_n, 0, sizeof g_pm_n); memset(g_pm_page, 0, sizeof g_pm_page); g_pm_total = 0;
+}
+static DWORD WINAPI prof_thread(LPVOID arg) {
+    DWORD period_ms = (DWORD)(DWORD_PTR)arg, t0 = GetTickCount();
+    for (;;) {
+        CONTEXT c; DWORD eip = 0; HMODULE m = NULL; int i;
+        Sleep(2);
+        if (SuspendThread(g_fl_main) == (DWORD)-1) continue;
+        DWORD caller = 0;
+        c.ContextFlags = CONTEXT_CONTROL;
+        if (GetThreadContext(g_fl_main, &c)) {
+            eip = c.Eip;
+            if (eip < 0x400000 || eip >= 0x4c0000) {              /* walk the ebp chain to the first exe return address */
+                DWORD fp = c.Ebp, fr[2]; SIZE_T got; int d, keep = !g_pc_chain_n;
+                if (keep) { g_pc_chain[0] = eip; g_pc_chain[1] = c.Esp; g_pc_chain[2] = c.Ebp; g_pc_chain_n = 3; }
+                for (d = 0; d < 12 && fp; d++) {
+                    if (!ReadProcessMemory(GetCurrentProcess(), (LPCVOID)(DWORD_PTR)fp, fr, 8, &got) || got != 8) break;
+                    if (keep && g_pc_chain_n < 10) g_pc_chain[g_pc_chain_n++] = fr[1];
+                    if (fr[1] >= 0x400000 && fr[1] < 0x4c0000) { caller = fr[1]; break; }
+                    if (fr[0] <= fp) break;
+                    fp = fr[0];
+                }
+            }
+        }
+        ResumeThread(g_fl_main);
+        if (!eip || !g_frame) continue;                           /* only while mission frames run */
+        if (caller) {
+            for (i = 0; i < PROF_CALLERS; i++) if (g_pc_addr[i] == caller || !g_pc_n[i]) { g_pc_addr[i] = caller; g_pc_n[i]++; break; }
+        }
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           (LPCSTR)(DWORD_PTR)eip, &m);
+        for (i = 0; i < PROF_MODS; i++) if (g_pm_mod[i] == m || (!g_pm_mod[i] && !g_pm_n[i])) { g_pm_mod[i] = m; g_pm_n[i]++; break; }
+        if (eip >= 0x400000 && eip < 0x4c0000) g_pm_page[(eip - 0x400000) >> 12]++;
+        g_pm_total++;
+        if (GetTickCount() - t0 >= period_ms) { prof_log(); t0 = GetTickCount(); }
+    }
+}
 static void apply_fps_log(void) {
     char v[16]; DWORD n = GetEnvironmentVariableA("I76_FPS_LOG", v, sizeof(v)); int sec;
     if (n == 0 || n >= sizeof(v) || (sec = atoi(v)) < 1 || sec > 600) return;
@@ -1093,6 +1190,10 @@ static void apply_fps_log(void) {
     install_frame_hook();
     g_fl_main = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, GetCurrentThreadId());
     CloseHandle(CreateThread(NULL, 0, fps_log_watch, (LPVOID)(DWORD_PTR)sec, 0, NULL));
+    if (GetEnvironmentVariableA("I76_FPS_PROF", v, sizeof(v)) && v[0] == '1' && g_fl_main) {
+        CloseHandle(CreateThread(NULL, 0, prof_thread, (LPVOID)(DWORD_PTR)(sec * 1000), 0, NULL));
+        mlog("  fps-prof: sampling the main thread every ~2 ms");
+    }
     mlog("  fps-log: every %d s%s", sec, g_frame_hook ? "" : " (hook failed: no log)");
 }
 static void apply_frame_cap(void) {
