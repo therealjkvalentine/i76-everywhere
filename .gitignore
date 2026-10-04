@@ -78,3 +78,29 @@ tools/controls-sheet/*.png
 lab-residue/0x501918/
 lab-residue/**/*.png
 
+# lab/ and re/ are public-safe SNAPSHOTS of i76-uncap-lab and i76-map (2026-10-03, tools/export_public.py).
+# The private data of those repos (decompiler output, game captures, extracted game files, third-party media) stays
+# outside this repo. These rules make sure it can never be committed even if it is copied in alongside.
+re/ghidra/export*/
+re/shell/ghidra/
+re/evidence/
+re/verify/queue/
+re/verify/runs/*
+!re/verify/runs/PROGRESS.md
+re/status/
+re/captures/
+re/recon-*/
+re/sandbox-*/
+re/toolchain/
+re/external/
+re/data/out/
+re/functions/history/
+re/foldin/
+lab/game/
+lab/game*/
+lab/refs/
+lab/captures/
+*.pcode.md
+*.pcode
+strings.tsv
+diff-*.tsv
