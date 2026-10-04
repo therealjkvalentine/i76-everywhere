@@ -262,10 +262,14 @@ if ($disablePatch) {
 }
 
 # save editor (current repo build; the driver's top-level html is the 2026-07-21 pre-fix parser)
-foreach ($n in 'i76-save-editor.html', 'i76-save-editor.py') {
+foreach ($n in 'i76-save-editor.html', 'i76-save-editor.py', 'i76-save-editor-server.py') {
     $p = Join-Path $repo $n
     if (Test-Path -LiteralPath $p) { CopyVerified $p (Join-Path $Dest $n) 'repo: save editor' }
 }
+# root launchers for the save editor and the trainer (trainer code in _tools; the GUI reads ..\telemetry\i76tel.h)
+foreach ($n in 'TRAINER.bat', 'SAVE-EDITOR.bat') { CopyVerified (Join-Path $repo "tools\driver\$n") (Join-Path $Dest $n) 'repo: tools\driver' }
+foreach ($n in 'i76trainer_gui.py', 'i76trainer.py', 'i76trn.h', 'README-GUI.md') { CopyVerified (Join-Path $repo "tools\trainer\$n") (Join-Path $Dest "_tools\trainer\$n") 'repo: tools\trainer' }
+foreach ($n in 'i76tel.py', 'i76tel.h') { CopyVerified (Join-Path $repo "tools\telemetry\$n") (Join-Path $Dest "_tools\telemetry\$n") 'repo: tools\telemetry' }
 $lint = Join-Path $repo 'tools\lint-input-map.py'
 if (Test-Path -LiteralPath $lint) { CopyVerified $lint (Join-Path $Dest '_tools\lint-input-map.py') 'repo: input.map linter' }
 
