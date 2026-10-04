@@ -21,9 +21,9 @@ EXPORTS
     SetWindowLongA      = user32.SetWindowLongA
     LoadCursorA         = user32.LoadCursorA
     SetDlgItemTextA     = user32.SetDlgItemTextA
-    DialogBoxParamA     = user32.DialogBoxParamA
+    DialogBoxParamA     = My_DialogBoxParamA
     GetAsyncKeyState    = My_GetAsyncKeyState
-    MessageBoxA         = user32.MessageBoxA
+    MessageBoxA         = My_MessageBoxA
     wsprintfA           = user32.wsprintfA
     SetCursor           = user32.SetCursor
     PostMessageA        = user32.PostMessageA

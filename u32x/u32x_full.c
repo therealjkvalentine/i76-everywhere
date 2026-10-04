@@ -1707,6 +1707,134 @@ BOOL WINAPI My_ClipCursor(const RECT *r)
     return ClipCursor(r);
 }
 
+/* WIN32 MESSAGE BOXES IN FRONT, ON THE PICTURE, WITH A POINTER.  (2026-10-03, audit item b2,
+ * lab docs\DIALOG-AND-CLICK-AUDIT.md; I76_U32X_MSGBOX=0 makes both plain forwards again)
+ *
+ * The CD-2 prompt (exe 0x471630), the shell's network errors ("Unable to create an IPX
+ * connection...", 16 sites, owner [0x100f702c]) and the "I76 Error" input.map box are plain
+ * MessageBoxA calls. Over the fullscreen picture one was measured opening BEHIND it (#32770 at
+ * screen 1515,668, MULTIPLAYER-LOCAL-TEST F3): the game then looks frozen, and the pointer is
+ * clipped / hidden by the engine anyway. Around the real call:
+ *   1. remember the clip and release it; raise this thread's ShowCursor count to >= 0 (the exe
+ *      hides the arrow) and hide the modal-pointer arrow window if it is up;
+ *   2. MB_TOPMOST | MB_SETFOREGROUND, and a thread-local WH_CBT hook that, when the #32770
+ *      activates, centres it on the game window (clamped to that monitor's work area) and makes
+ *      it HWND_TOPMOST - the same for DialogBoxParamA's dialog;
+ *   3. afterwards give back exactly the ShowCursor increments we added, put the clip back (the
+ *      engine's next mouse_Poll reclips anyway) and return the foreground to the game window. */
+static int sw_msgbox(void)       { static int c = -1; return env_switch("I76_U32X_MSGBOX",       &c, 1); }
+static HHOOK g_mb_hook;
+static HWND  g_mb_placed;
+
+static LRESULT CALLBACK mb_cbt(int code, WPARAM wp, LPARAM lp)
+{
+    if (code == HCBT_ACTIVATE && (HWND)wp != g_mb_placed) {
+        HWND dlg = (HWND)wp, gw = game_window();
+        char cls[16];
+        RECT dr, gr;
+        if (GetClassNameA(dlg, cls, sizeof cls) && lstrcmpA(cls, "#32770") == 0 &&
+            GetWindowRect(dlg, &dr)) {
+            int w = dr.right - dr.left, h = dr.bottom - dr.top, x = dr.left, y = dr.top;
+            if (gw && dlg != gw && GetWindowRect(gw, &gr)) {
+                MONITORINFO mi;
+                mi.cbSize = sizeof mi;
+                x = (gr.left + gr.right) / 2 - w / 2;
+                y = (gr.top + gr.bottom) / 2 - h / 2;
+                if (GetMonitorInfoA(MonitorFromWindow(gw, MONITOR_DEFAULTTONEAREST), &mi)) {
+                    x = clampl(x, mi.rcWork.left, mi.rcWork.right  - w);
+                    y = clampl(y, mi.rcWork.top,  mi.rcWork.bottom - h);
+                }
+            }
+            SetWindowPos(dlg, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+            g_mb_placed = dlg;
+            LOG("[%lu] msgbox: #32770 %p placed at (%d,%d) %dx%d, topmost\n",
+                (unsigned long)GetTickCount(), (void *)dlg, x, y, w, h);
+        }
+    }
+    return CallNextHookEx(g_mb_hook, code, wp, lp);
+}
+
+typedef struct { RECT clip; int clipped; int shows; HHOOK prev; HWND prevplaced; } MbState;
+
+static void mb_enter(MbState *st)
+{
+    RECT vs;
+    st->shows = 0;
+    st->clipped = 0;
+    if (GetClipCursor(&st->clip)) {
+        vs.left = GetSystemMetrics(SM_XVIRTUALSCREEN); vs.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        vs.right = vs.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        vs.bottom = vs.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        st->clipped = st->clip.left > vs.left || st->clip.top > vs.top ||
+                      st->clip.right < vs.right || st->clip.bottom < vs.bottom;
+    }
+    ClipCursor(NULL);
+    if (g_mp_on && game_window() &&         /* the modal-pointer arrow: the box has the OS arrow */
+        GetWindowThreadProcessId(game_window(), NULL) == GetCurrentThreadId()) {
+        g_mp_on = 0;
+        g_mp_tick = 0;
+        vptr_hide();
+    }
+    while (st->shows < 64) {                /* every ShowCursor(TRUE) we make is given back in mb_leave */
+        st->shows++;
+        if (ShowCursor(TRUE) >= 0)
+            break;
+    }
+    st->prev = g_mb_hook;                   /* nested boxes: keep the outer hook, add ours */
+    st->prevplaced = g_mb_placed;
+    g_mb_placed = NULL;
+    g_mb_hook = SetWindowsHookExA(WH_CBT, mb_cbt, NULL, GetCurrentThreadId());
+    LOG("[%lu] msgbox enter: clip %s (%ld,%ld)-(%ld,%ld), ShowCursor +%d, hook %p\n",
+        (unsigned long)GetTickCount(), st->clipped ? "held" : "free", st->clip.left, st->clip.top,
+        st->clip.right, st->clip.bottom, st->shows, (void *)g_mb_hook);
+}
+
+static void mb_leave(MbState *st)
+{
+    HWND gw;
+    if (g_mb_hook)
+        UnhookWindowsHookEx(g_mb_hook);
+    g_mb_hook = st->prev;
+    g_mb_placed = st->prevplaced;
+    while (st->shows-- > 0)
+        ShowCursor(FALSE);
+    if (st->clipped)
+        ClipCursor(&st->clip);              /* screen space already; mouse_Poll reclips anyway */
+    gw = game_window();
+    if (gw && IsWindow(gw))
+        SetForegroundWindow(gw);
+    LOG("[%lu] msgbox leave: clip %s, foreground -> %p\n", (unsigned long)GetTickCount(),
+        st->clipped ? "restored" : "left free", (void *)gw);
+}
+
+int WINAPI My_MessageBoxA(HWND h, LPCSTR text, LPCSTR cap, UINT flags)
+{
+    MbState st;
+    int r;
+    if (!sw_msgbox())
+        return MessageBoxA(h, text, cap, flags);
+    LOG("[%lu] MessageBoxA(%p, \"%.120s\", \"%.60s\", 0x%x)\n", (unsigned long)GetTickCount(),
+        (void *)h, text ? text : "", cap ? cap : "", flags);
+    mb_enter(&st);
+    r = MessageBoxA(h, text, cap, flags | MB_TOPMOST | MB_SETFOREGROUND);
+    mb_leave(&st);
+    LOG("[%lu] MessageBoxA -> %d\n", (unsigned long)GetTickCount(), r);
+    return r;
+}
+
+INT_PTR WINAPI My_DialogBoxParamA(HINSTANCE inst, LPCSTR tmpl, HWND h, DLGPROC proc, LPARAM lp)
+{
+    MbState st;
+    INT_PTR r;
+    if (!sw_msgbox())
+        return DialogBoxParamA(inst, tmpl, h, proc, lp);
+    mb_enter(&st);
+    r = DialogBoxParamA(inst, tmpl, h, proc, lp);
+    mb_leave(&st);
+    LOG("[%lu] DialogBoxParamA -> %ld\n", (unsigned long)GetTickCount(), (long)r);
+    return r;
+}
+
 BOOL WINAPI My_PeekMessageA(LPMSG msg, HWND hWnd, UINT lo, UINT hi, UINT remove)
 {
     const void *ra = _ReturnAddress();
