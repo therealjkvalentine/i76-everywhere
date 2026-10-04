@@ -47,6 +47,9 @@ $KnownGood = @{
     # u32x_full.dll since 2026-10-03: 054fb411 + the P1-19 fix (no keep-alive pump inside the shell's modal loops;
     # I76_U32X_MODAL_PUMP=1 = old). Sandbox only so far: garage DONE popup closes after a focus change 6/6 (054fb411 0/2).
     '696577dcc5ed7c2997e6099421e68000' = 'gated 2026-10-03 (sandbox): garage popup after focus change 6/6, leg-b 3/3, trip route 2/2 120 fps, save screen NO/YES, widescreen Esc-menu Exit, melee'
+    # u32x_full.dll since 2026-10-03 evening: 696577dc + the modal pointer (an arrow on the picture while a shell OK popup
+    # spins; I76_U32X_MODAL_PTR=0 = off). Pairs with the shell F7 patch (tools\patch-shell-f7.py) for Enter / Space.
+    '19ab8dd1e259c5072693a77970320d2a' = 'gated 2026-10-03 (sandbox + twin): popup arrow on point 16:10 and wide, Enter/Space/click close after focus change, leg-b 3/3, trip 2/2 120 fps, save screen NO/YES, melee'
 }
 
 $TARGETS = @(

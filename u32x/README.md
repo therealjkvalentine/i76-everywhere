@@ -21,9 +21,9 @@ asked for it: a deployed, load-bearing DLL whose source sat only in the private 
 | `u32x.def` | export list: 4 intercepts + 49 forwarders = 53 names, the union of the USER32 imports of `i76shell.dll` and `i76.exe` | `9188eca53eb351a0c664ca2f2c222dfc` | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.def` |
 | `u32x.dll` | **the verified binary**, 75,264 B, x86 | `a5927cea02697657ce2102be766b5616` (sha256 `140990d8…cb952ab`) | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.dll`, built there 2026-09-07 15:56 by `src\build-min.ps1` (MSVC 2019 x86, `cl /O2 /LD u32x_min.c /link /DEF:u32x_min.def user32.lib`) |
 | `build.ps1` | rebuilds from the two source files to `u32x.build.dll` (never over `u32x.dll` unless `-Replace`) | | port of the lab's `src\build-min.ps1` |
-| `u32x_full.c` | the source of the **full build** (added 2026-10-03) | `eb3c2cc7147b41e9044907fe8942b547` | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19" below; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` does not have the fix |
+| `u32x_full.c` | the source of the **full build** (added 2026-10-03) | `c7b6fe5f31b9ada3d3f5a1d77f56378a` | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19") **and the modal pointer** (section "Modal pointer"; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` has neither |
 | `u32x_full.def` | its export list: the same 53 names, with `GetAsyncKeyState` and `GetKeyState` also pointed at our code (6 intercepts + 47 forwarders) | `2902622b28ab4ed5f79a59b54c50176d` | byte-identical to the lab's `src\u32x.def` at the same commit (blob `4b94a933`) |
-| `u32x_full.dll` | **the gated full binary with the P1-19 fix**, 112,640 B, x86, built 2026-10-03 by `build-full.ps1` from the `u32x_full.c` above | `696577dcc5ed7c2997e6099421e68000` (sha256 `4e2c3fd0…98ed27a7`) | sandbox-gated 2026-10-03 (section "P1-19"). The previous binary, `054fb411` (what the 2026-10-03 daily driver runs), stays in the lab as `src\u32x_gated_054fb411.dll` and in the sandbox as `game\u32x.dll.054fb411`; it is still on `$KnownGood` |
+| `u32x_full.dll` | **the gated full binary: P1-19 fix + modal pointer**, 114,688 B, x86, built 2026-10-03 by `build-full.ps1` from the `u32x_full.c` above | `19ab8dd1e259c5072693a77970320d2a` (sha256 `7f3d6054…7abdc30d`) | sandbox- and twin-gated 2026-10-03 (section "Modal pointer"). Previous binaries: `696577dc` (P1-19 only; sandbox `game\u32x.dll.696577dc`, twin `u32x.dll.pre-f7-696577dc`) and `054fb411` (lab `src\u32x_gated_054fb411.dll`); both stay on `$KnownGood` |
 | `build-full.ps1` | rebuilds the full build to `u32x_full.build.dll` and reports which bytes differ from `u32x_full.dll` | | port of the lab's `src\build-u32x.ps1` (same compiler line) |
 | `deploy-u32x.ps1` | installs / removes the proxy in a game folder | | port of the lab's `tools\instruments\deploy-shellfix.ps1`, with import/export and md5 guards |
 
@@ -136,6 +136,48 @@ hands.
 so the drawn pointer stays where DONE was clicked (captured live: shell mouse at (150,150) and (500,350), pencil
 still on DONE). The player aims at OK blind. A click on OK closes it (verified). Two possible follow-ups:
 re-present from u32x while a shell modal spins, or the shell's F7 Enter/Space exit (lab doc section 4, Fix 2).
+
+## Modal pointer: a moving arrow in the shell's OK popups (build `19ab8dd1`, 2026-10-03)
+
+**Symptom (owner).** The garage DONE refusals ("CAN'T GET VERY FAR WITHOUT AN ENGINE") and the "REMEMBER, USE THE
+SAVE BOOKMARK BUTTON" reminder after ACCEPT SALVAGE in scene 2 are the shell's `Modal_ImageOk` (0x1000b800). It
+presents one frame and then only polls the mouse, so the drawn pencil freezes where DONE / ACCEPT was clicked and
+the player aims at OK blind (measured, lab `docs\GARAGE-POPUP-STUCK.md` section 7 step 4).
+
+**Change.** While a shell caller polls `GetCursorPos` outside ShellMain's loop (the same 250 ms rule as P1-19) and
+nothing has gone through the present hooks (`grBufferSwap`, `SetDIBitsToDevice`) for 250 ms, the existing vptr
+cursor window (24x38 click-through layered arrow, owned by the game window; it retrieves and sends no message) is
+put where the point the shell was just handed lies in the picture: picture origin + scale x UI. The picture is the
+4:3 fit of the client, or the whole client when the folder's `dgVoodoo.conf` says `ScalingMode = stretched`
+(`I76_U32X_SHELL_FILL=0/1` overrides). It goes away when ShellMain peeks again, when the game is not foreground and
+when the shell stops polling for 300 ms. Under `I76_U32X_VPTR=1` the vptr block owns the window and this stands
+down. **Kill switch: `I76_U32X_MODAL_PTR=0`.** The shell's own pencil still freezes; the arrow is the pointer.
+
+The keyboard half (Enter / Space close the popup) is a shell patch, F7: `tools\patch-shell-f7.py` (section 9 of the
+lab doc). With F7 the modal loop peeks the keyboard, so a focus change now does close the input gate while away
+(the P1-19 trap), and the same peek delivers `WM_ACTIVATEAPP 1` on return: measured gate 0/0/0 away, 1 back, every
+trial below.
+
+**Measured (lab, i76shell + F7 `9d6247a6`, 2026-10-03; hot spot read from the window rect, captures CAPTUREBLT):**
+
+| folder / conf | test | n | arrow on the mapped shell point (delta) | closed |
+|---|---|---|---|---|
+| sandbox, 16:10-era fullscreen conf (stretched_ar, 3440x1440 client) | garage DONE popup, focused probe + baseline click | 1 launch | 2 of 2 points, (0,0); moved with the hand | baseline click 1/1 |
+| same | garage popup after a focus change (notepad, back) | 3 trials | 3 of 3, (0,0) | Enter 1/1, Space 1/1, click 1/1 |
+| same | reminder (save001 row 1, -RowUy 205), with focus change | 1 | 3 of 3 | Enter 1/1 |
+| same | reminder, no focus change | 1 | 3 of 3 | Space 1/1 |
+| twin `game-dd-20261003` | garage popup after a focus change | 3 trials | 3 of 3, (0,0) | Space, Enter, click 3/3 |
+| sandbox, `dgVoodoo.aspect-wide.conf` (stretched, fills 3440 wide), `I76_U32X_MENU_ASPECT=3440:1440` | garage popup: probe, baseline, 2 trials after a focus change | 1 launch | 5 of 5, (0,0); capture: the tip on the drawn OK | baseline click, Enter, click 3/3 |
+
+Kill-switch control (`I76_U32X_MODAL_PTR=0`, sandbox, 1 launch): no arrow window at any of 3 probes; baseline
+click and Space after a focus change still close (F7 is independent). Arrow hidden after every close (window not
+visible). Gate (lab `autotestuns\gate61003-200914`, sandbox):
+leg-b bookmark route 3/3, trip route through `TEST-FRAMERATE -Mode all120` 2/2 at 120 fps, save screen (gate 1 over
+10 s idle, NO writes nothing, YES only the scratch, savegame.dir exact), melee by menus: **PASS 14 FAIL 0**. Twin
+(`20261003-201714`): the same rows pass (PLAY.bat, 120 fps); row D fails on `dgVoodoo.conf` only, because PLAY.bat
+copies `dgVoodoo.wide.conf` over it (the twin's conf had drifted from the driver's; the earlier twin gates
+`115416` / `141237` failed row D the same way with the previous builds). **Not run:** Modal_Ok's F7 path live
+(emulated only), the owner's hands.
 
 ## The minimal build: notes
 

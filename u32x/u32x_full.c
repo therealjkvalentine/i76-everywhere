@@ -1274,6 +1274,127 @@ static void pump_from_poll(const void *ra)
     pump_keepalive();
 }
 
+/* A MOVING POINTER IN THE SHELL'S OK POPUPS.  (2026-10-03, lab docs\GARAGE-POPUP-STUCK.md
+ * sections 7 and 9; I76_U32X_MODAL_PTR=0 turns it off)
+ *
+ * Modal_ImageOk 0x1000b800 (the garage DONE refusals, the "use SAVE BOOKMARK" reminder) presents
+ * ONE frame and then only polls Mouse_Update: the pencil the shell drew stays frozen where the
+ * click that opened it was, and the player aims blind (measured: shell mouse (150,150) ->
+ * (500,350) while the captures show the pencil still on DONE). So while a shell caller polls the
+ * pointer outside ShellMain's loop (the same 250 ms rule as pump_from_poll) AND nothing has been
+ * presented for 250 ms (screens that draw their own pencil - the save screen - keep presenting),
+ * the vptr cursor window (the click-through layered arrow below; no message is retrieved or sent
+ * to the game window) is put where the point the shell was just handed lies in the PICTURE:
+ * picture origin + scale * UI. The picture is the 4:3 fit of the client (dgVoodoo stretched_ar /
+ * stretched_4_3), or the whole client when dgVoodoo.conf next to the exe says ScalingMode =
+ * stretched (I76_U32X_SHELL_FILL=0/1 overrides the conf). Hidden again when ShellMain peeks, when
+ * the game is not foreground, and when the shell has stopped polling for 300 ms (its input gate
+ * closed). Under I76_U32X_VPTR=1 the vptr block owns the window and this stands down. */
+static int sw_modalptr(void)     { static int c = -1; return env_switch("I76_U32X_MODAL_PTR",    &c, 1); }
+static volatile DWORD g_present_tick;   /* last present that went through us (grBufferSwap / SetDIBitsToDevice) */
+static DWORD g_mp_tick;                 /* last shell pointer poll inside a modal */
+static POINT g_mp_ui;
+static int   g_mp_on;
+
+static int shell_fills_client(void)
+{
+    static int fill = -1;
+    if (fill < 0) {
+        char v[64], path[MAX_PATH], *slash;
+        DWORD n = GetEnvironmentVariableA("I76_U32X_SHELL_FILL", v, sizeof v);
+        if (n == 1 && (v[0] == '0' || v[0] == '1')) {
+            fill = v[0] - '0';
+            LOG("modal pointer: I76_U32X_SHELL_FILL=%d\n", fill);
+        } else {
+            fill = 0;
+            n = GetModuleFileNameA(NULL, path, MAX_PATH - 16);
+            slash = (n > 0 && n < MAX_PATH - 16) ? strrchr(path, '\\') : NULL;
+            if (slash) {
+                lstrcpyA(slash + 1, "dgVoodoo.conf");
+                GetPrivateProfileStringA("General", "ScalingMode", "", v, sizeof v, path);
+                fill = lstrcmpiA(v, "stretched") == 0;
+                LOG("modal pointer: %s ScalingMode='%s' -> shell picture %s\n", path, v,
+                    fill ? "fills the client" : "4:3 fit");
+            }
+        }
+    }
+    return fill;
+}
+
+static Map shell_picture_map(void)
+{
+    if (shell_fills_client()) {
+        Map m = { 1.0, 1.0, 0, 0, UI_W, UI_H, 0, 0, 0, "UI-fill" };
+        HWND h = game_window();
+        RECT rc;
+        POINT org = { 0, 0 };
+        if (h && GetClientRect(h, &rc) && rc.right > 0 && rc.bottom > 0) {
+            ClientToScreen(h, &org);
+            m.cw = rc.right; m.ch = rc.bottom;
+            m.sx = org.x; m.sy = org.y;
+            m.scale_x = (double)rc.right / UI_W;
+            m.scale   = (double)rc.bottom / UI_H;
+            m.valid = 1;
+        }
+        return m;
+    }
+    return get_map();
+}
+
+static void modal_ptr_tick(void)
+{
+    HWND gw, fg;
+    DWORD now;
+    int want = 0;
+    Map pm;
+
+    if (sw_vptr() || (!g_mp_on && !g_mp_tick))
+        return;                             /* VPTR owns the window / never needed */
+    gw = game_window();
+    if (!gw || GetWindowThreadProcessId(gw, NULL) != GetCurrentThreadId())
+        return;                             /* the game's UI thread only (ShowCursor is per thread) */
+    now = GetTickCount();
+    fg  = GetForegroundWindow();
+    if (sw_modalptr() && now - g_shell_loop_tick > 250 && now - g_present_tick > 250 &&
+        now - g_mp_tick < 300 && fg && (fg == gw || IsChild(gw, fg)) && !IsIconic(gw)) {
+        pm = shell_picture_map();
+        if (pm.valid) {
+            LONG ax = pm.sx + (LONG)(g_mp_ui.x * pm.scale_x + 0.5);
+            LONG ay = pm.sy + (LONG)(g_mp_ui.y * pm.scale   + 0.5);
+            if (!g_mp_on)
+                LOG("[%lu] modal pointer up: UI (%ld,%ld) -> screen (%ld,%ld) %s scale %.3f/%.3f\n",
+                    (unsigned long)now, g_mp_ui.x, g_mp_ui.y, ax, ay, pm.tag, pm.scale_x, pm.scale);
+            vptr_show(gw, ax, ay, pm.scale);
+            want = g_vp_shown;
+        }
+    }
+    if (want) {
+        g_mp_on = 1;
+    } else if (g_mp_on) {
+        g_mp_on = 0;
+        vptr_hide();
+        LOG("[%lu] modal pointer down\n", (unsigned long)now);
+    }
+}
+
+/* My_GetCursorPos, shell caller, after the value is final: note the UI point Mouse_Update stores */
+static void modal_ptr_note(const POINT *p)
+{
+    HWND gw;
+    POINT q;
+    if (sw_vptr() || !sw_modalptr() || GetTickCount() - g_shell_loop_tick <= 250)
+        return;
+    gw = game_window();
+    if (!gw)
+        return;
+    q = *p;
+    ScreenToClient(gw, &q);                 /* what Mouse_Update 0x1001fca3 does with it */
+    g_mp_ui.x = clampl(q.x, 0, UI_W - 1);
+    g_mp_ui.y = clampl(q.y, 0, UI_H - 1);
+    g_mp_tick = GetTickCount();
+    modal_ptr_tick();
+}
+
 /* ---- reach the save screen from the RENDER side ----------------------------------------
  * MEASURED 2026-09-05: on the Save Bookmark screen the shell calls NONE of the USER32
  * functions this proxy exports - the instrumented log goes silent the instant that screen
@@ -1359,6 +1480,7 @@ static grBufferSwapFn real_grBufferSwap;
 
 static void WINAPI My_grBufferSwap(DWORD interval)
 {
+    g_present_tick = GetTickCount();
     pump_keepalive();
     if (real_grBufferSwap) real_grBufferSwap(interval);
 }
@@ -1377,6 +1499,7 @@ static int WINAPI My_SetDIBitsToDevice(HDC dc,int x,int y,DWORD w,DWORD h,int sx
                                        const BITMAPINFO *bi,UINT use)
 {
     BUMP(c_dib);
+    g_present_tick = GetTickCount();
     pump_keepalive();
     return real_SetDIBitsToDevice
         ? real_SetDIBitsToDevice(dc,x,y,w,h,sx,sy,start,lines,bits,bi,use) : 0;
@@ -1466,6 +1589,8 @@ BOOL WINAPI My_GetCursorPos(LPPOINT p)
         p->y = clampl(p->y, 0, m.lh - 1);
         if (shell)
             vptr_note_shell(p->x, p->y);    /* VPTR_MAP=0 / free pointer: today's value, still shown */
+        else if (caller_is_shell(ra))
+            modal_ptr_note(p);              /* inside a shell modal: our arrow on the picture */
     }
     vptr_tick(0);
     return ok;
@@ -1637,6 +1762,7 @@ BOOL WINAPI My_PeekMessageA(LPMSG msg, HWND hWnd, UINT lo, UINT hi, UINT remove)
 
     if (lo == 0 && hi == 0 && caller_is_shell(ra))
         g_shell_loop_tick = GetTickCount();     /* ShellMain's frame loop is alive (pump_from_poll) */
+    modal_ptr_tick();                       /* the modal pointer: hide once ShellMain peeks again (or focus left) */
 
     ok = PeekMessageA(msg, hWnd, lo, hi, remove);
     if (ok && msg && msg->message == WM_QUIT && (remove & PM_REMOVE)) {

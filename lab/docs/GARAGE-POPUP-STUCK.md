@@ -364,3 +364,68 @@ lack of time). The only measured difference is that the window does not answer W
 (hung by Windows' definition; ghosting is off). What the owner saw is still open: candidates are the frozen pencil
 (no present in the loop, every build) plus a missed blind click, or a focus change. Next: `-FocusChange` n >= 2 per
 build, and ask the owner whether a click on OK (UI 318,262) was tried. All saves byte-identical after the runs.
+
+## 9. F7 + modal pointer: a moving arrow, Enter / Space close (built and gated 2026-10-03, 20:00-20:35)
+
+Owner's goal: the OK popups show a moving pointer and close with the keyboard. Two pieces, both now built.
+
+**(b) Keyboard: shell patch F7** (`i76-everywhere\tools\patch-shell-f7.py`). Section 4's design, for **both** mouse-only
+OK loops: `Modal_ImageOk` (hook 0x1000b916, cave 0x10040380) and `Modal_Ok` (hook 0x1000b79f, cave 0x100403c0, the
+"Game Server Not Responding" box; same 5 bytes, same shape, esi free). Each cave is 61 bytes, position-independent,
+calls `KeyInput_Poll` and leaves the loop through the function's own close path on Enter (0x0d) or Space (0x20).
+Esc (poll code 3) and every other key are consumed and ignored, so an Esc pressed at the popup no longer queues up
+for the garage. `.text` VirtualSize 0x3f340 -> 0x3f400. No relocation in any patched range (checked by the
+script). The script refuses a file whose bytes at every site are not the expected originals (or exactly F7), and
+reads its output back: only the 124 F7 bytes differ.
+Callers covered (all `Modal_ImageOk` calls go through the one patched loop): garage 0x10004c06 (image 0x1e),
+`Garage_ValidateCar` 0x10007561-0x10007609 (0x15-0x1c), inventory 0x10018e6f (0x21) and 0x1001933c (0x20, the
+reminder), 0x10026131 (0x19, own hit rect); `Modal_Ok`: 0x100301ff.
+**Emulated** (Unicorn, `patch-shell-f7.py <dll> --emulate`, KeyInput_Poll stubbed): 22 cases (11 per loop: click
+-> hit test, no key / held button / Esc / y / n / LF / 0x10d / 0xd20 -> loop top, Enter / Space -> close, stack
+balanced), **0 mismatches**; the unpatched shell gives 4 mismatches (the Enter / Space cases), so the emulator tells
+the two apart. The daily driver's `i76shell.dll` is md5 `fd96f871`, the same file as the lab's (its text-entry
+bytes are already in that lineage), so one output serves both: **`staging\f7\i76shell-driver-F7.dll` md5
+`9d6247a61f55836ecdd3c1d9d2025554`** (sha256 `8f2b8fecâ€¦aa5f155f`).
+
+**(a) Pointer: u32x modal pointer** (`i76-everywhere\u32x\u32x_full.c`, build **`19ab8dd1`**). While a shell caller
+polls `GetCursorPos` outside ShellMain's loop (P1-19's 250 ms rule) and no frame has gone through the present hooks
+for 250 ms, the existing vptr cursor window (click-through layered arrow, owned by the game window; it retrieves
+and sends no message, so it cannot deliver `WM_ACTIVATEAPP`) is placed at picture origin + scale x the UI point the
+shell was just handed. Picture = 4:3 fit of the client, or the whole client when the folder's `dgVoodoo.conf` has
+`ScalingMode = stretched` (`I76_U32X_SHELL_FILL=0/1` overrides). Hidden when ShellMain peeks again, when the game
+is not foreground, and when the shell stops polling for 300 ms. Kill switch `I76_U32X_MODAL_PTR=0`; stands down
+under `I76_U32X_VPTR=1`. The shell's own frozen pencil stays where it was drawn; the arrow is the live pointer.
+
+**P1-19 re-verified with F7.** F7's peek does deliver `WM_ACTIVATEAPP 0` while away: the gate reads **0/0/0** at
+0.3 / 1 / 2 s in every focus-change trial. The same peek delivers `WM_ACTIVATEAPP 1` on return: gate **1** at "back"
+in every trial, mouse follows, the popup closes. No lock.
+
+**Live** (scripts extended: `popup-repro.ps1 -GameDir -CloseWith click,enter,space`, `reminder-repro.ps1 -CloseWith`,
+both read the arrow window's rect via `lib\modalptr.ps1` and take CAPTUREBLT captures `ptr-*.png`):
+
+| folder / conf | run (`autotest\saves\runs\...`) | condition | n | arrow at the mapped shell point | result |
+|---|---|---|---|---|---|
+| sandbox, folder conf (stretched_ar, 3440x1440) | `popup\20261003-200534-f7ptr-r2` | garage popup focused: probe 150,150 / 500,350, baseline click | 1 | 2 of 2, delta (0,0), moved | click closed |
+| same | same | after a focus change: Enter / Space / click | 3 | 3 of 3, (0,0) | **3 of 3 closed** (one each) |
+| same | `reminder\20261003-200718-f7rem-enter-fc` | reminder (save001, -RowUy 205), -FocusChange, Enter | 1 | 3 of 3 | closed -> garage 0xC00F, gate 1 |
+| same | `reminder\20261003-200812-f7rem-space` | reminder, Space | 1 | 3 of 3 | closed -> garage |
+| twin `game-dd-20261003` (driver DLLs + these two) | `popup\20261003-201559-twin-f7ptr` | after a focus change: Space / Enter / click | 3 | 3 of 3, (0,0) | **3 of 3 closed** |
+| sandbox, `dgVoodoo.aspect-wide.conf` swapped in, global conf hidden, `I76_U32X_MENU_ASPECT=3440:1440` | `popup\20261003-202508-wide-f7ptr` | probe, baseline click, focus change + Enter / click | 1 launch, 5 probes | 5 of 5, (0,0); the arrow fills 3440 wide (UI 318 -> x 1709 = 318 x 5.375); capture: tip on the drawn OK | 3 of 3 closed |
+| sandbox, `I76_U32X_MODAL_PTR=0` (control) | `popup‚61003-202707-f7-ptroff-ctl` | probe + focus change + Space | 1 | no arrow window (0 of 3) | closed (F7 alone) |
+
+`I76_ASPECT=3440x1440` was not in effect for the widescreen row: leg-b scrubs every `I76*` variable except
+`I76_U32X_*`. It sets the 3D frame, which the shell's 2D popup does not use. The arrow was hidden after every
+close. The first launch (`f7ptr-r1`) stopped at the capture helper (a .NET enum bug, fixed); its probe was already
+on point.
+
+**Gate** (`autotest\gate-folder.ps1 -Only 2,3,4,6`):
+
+| folder | run | result |
+|---|---|---|
+| sandbox `game` (u32x `19ab8dd1`, shell `9d6247a6`) | `runs\gate\20261003-200914` | **PASS 14 FAIL 0**: leg-b 3/3 through B1.10, trip 2/2 at 120 fps, save screen (gate 1 over 10 s, NO nothing, YES scratch only, dir exact), melee, saves byte-identical |
+| twin `game-dd-20261003` (same two DLLs) | `runs\gate\20261003-201714` | rows 2, 3 (PLAY.bat, 120 fps), 4, 6 and S **PASS**; row D **FAIL: dgVoodoo.conf changed**. Cause: PLAY.bat copies `dgVoodoo.wide.conf` over `dgVoodoo.conf`. The twin's conf (`fd68005a`) had drifted from the driver's. After the gate it is `c310f3f6`, the same as the driver's and as `dgVoodoo.wide.conf`. The twin gates `115416` and `141237` failed row D the same way with the earlier builds. Not caused by these DLLs |
+
+Installed and left in place (gated): sandbox `game\u32x.dll` = `19ab8dd1`, `game\i76shell.dll` = `9d6247a6`
+(backups `u32x.dll.696577dc`, `i76shell.dll.fd96f871`); twin `Interstate 76\u32x.dll` / `i76shell.dll` the same
+(backups `*.pre-f7-696577dc` / `*.pre-f7-fd96f871`). Not run: Modal_Ok's F7 path live (no multiplayer session;
+emulated only), Esc at the popup (never pressed in the garage; emulated), the owner's hands.
