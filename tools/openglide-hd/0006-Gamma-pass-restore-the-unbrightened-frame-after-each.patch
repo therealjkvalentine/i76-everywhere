@@ -1,0 +1,149 @@
+From f55d3e5ce07f8ed39da5c20a4c531c28861911d5 Mon Sep 17 00:00:00 2001
+From: therealjkvalentine <james.k.valentine@gmail.com>
+Date: Sun, 4 Oct 2026 17:41:38 -0500
+Subject: [PATCH] Gamma pass: restore the unbrightened frame after each swap;
+ OGL_GAMMA_TRACE / OGL_GAMMA_RESTORE
+
+The pass brightens the back buffer in place. Screens that do not redraw the 3D
+view every frame (I'76's in-mission Esc menu redraws only its LFB page over the
+last frame) then had every swap brighten the already brightened image (owner:
+'every time I move something in the menu it makes it brighter'). After
+SwapBuffers the saved unbrightened frame is drawn back at gamma 1.0.
+OGL_GAMMA_RESTORE=0 restores the old behaviour for A/B; OGL_GAMMA_TRACE=1 logs
+a before/after sample every 30 swaps. The pass now reads the frame size from
+the GL viewport (the drawable), so a mismatched OGL_VIEWPORT shows up instead
+of copying the frame into a corner of itself.
+---
+ platform/windows/output.cpp | 54 ++++++++++++++++++++++++++++++++++---
+ platform/windows/window.cpp |  3 +++
+ 2 files changed, 54 insertions(+), 3 deletions(-)
+
+diff --git a/platform/windows/output.cpp b/platform/windows/output.cpp
+index 2c0e12f..b669cbc 100644
+--- a/platform/windows/output.cpp
++++ b/platform/windows/output.cpp
+@@ -130,6 +130,7 @@ static PFNGLBLITFRAMEBUFFEREXTPROC        p_BlitFramebuffer;
+ static GLuint s_fbo;
+ static int    s_use_blit;
+ static unsigned s_frames;
++static int    s_vw, s_vh;                // viewport size (game units) of the last processed frame
+ 
+ static int    s_gamma_state;           // 0 untried, 1 ready, -1 off
+ static float  s_gamma = 1.0f;
+@@ -198,6 +199,7 @@ void OutputContextLost( void )
+     s_prog = 0; s_tex = 0; s_fbo = 0;
+     s_tex_w = s_tex_h = 0;
+     s_frames = 0;
++    s_vw = s_vh = 0;
+ }
+ 
+ // Called with the finished frame in the back buffer, just before SwapBuffers.
+@@ -214,6 +216,7 @@ void OutputPostProcess( void )
+     GLint vp[4] = { 0, 0, 0, 0 };
+     glGetIntegerv( GL_VIEWPORT, vp );
+     const int rw = vp[2] > 0 ? vp[2] : w, rh = vp[3] > 0 ? vp[3] : h;
++    s_vw = w; s_vh = h;
+     glPushAttrib( GL_ALL_ATTRIB_BITS );
+     glMatrixMode( GL_TEXTURE );    glPushMatrix( ); glLoadIdentity( );
+     glMatrixMode( GL_PROJECTION ); glPushMatrix( ); glLoadIdentity( ); glOrtho( 0, 1, 0, 1, -1, 1 );
+@@ -250,7 +253,12 @@ void OutputPostProcess( void )
+         }
+     }
+     unsigned char before[4] = { 0, 0, 0, 0 }, after[4] = { 0, 0, 0, 0 };
+-    const bool check = ( ++s_frames == 600 );                   // one numeric before/after sample per session
++    // one numeric before/after sample per session; OGL_GAMMA_TRACE=1 samples every 30 swaps (diagnosis: a frame that
++    // is not redrawn between swaps shows up as a 'before' that climbs)
++    static int trace = -1;
++    if ( trace < 0 ) { const char *t = getenv( "OGL_GAMMA_TRACE" ); trace = t && *t == '1'; }
++    ++s_frames;
++    const bool check = trace ? ( s_frames % 30 == 0 ) : ( s_frames == 600 );
+     if ( s_use_blit )
+     {
+         p_BindFramebuffer( GL_READ_FRAMEBUFFER_EXT, 0 );
+@@ -288,8 +296,8 @@ void OutputPostProcess( void )
+         glReadBuffer( GL_BACK );
+         glReadPixels( rw / 2, rh / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, after );
+         GLenum e = glGetError( );
+-        GlideMsg( "OGL_GAMMA: frame 600 sample (%d,%d): before %d %d %d -> after %d %d %d (expected %d %d %d)%s\n",
+-                  rw / 2, rh / 3, before[0], before[1], before[2], after[0], after[1], after[2],
++        GlideMsg( "OGL_GAMMA: frame %u sample (%d,%d): before %d %d %d -> after %d %d %d (expected %d %d %d)%s\n",
++                  s_frames, rw / 2, rh / 3, before[0], before[1], before[2], after[0], after[1], after[2],
+                   (int)( 255.0 * pow( before[0] / 255.0, 1.0 / s_gamma ) + 0.5 ),
+                   (int)( 255.0 * pow( before[1] / 255.0, 1.0 / s_gamma ) + 0.5 ),
+                   (int)( 255.0 * pow( before[2] / 255.0, 1.0 / s_gamma ) + 0.5 ), e ? " (GL error on readback)" : "" );
+@@ -302,4 +310,44 @@ void OutputPostProcess( void )
+     glPopAttrib( );
+ }
+ 
++// After SwapBuffers: put the frame back WITHOUT gamma. The pass brightens the back buffer in place, and screens that
++// do not redraw the 3D scene every frame (the in-mission Esc menu redraws only its LFB page over the last frame) then
++// had the next swap brighten the already brightened image: the menu got brighter with every move until the 3D view
++// came back (owner report 2026-10-04). s_tex still holds the unbrightened frame, so redraw it at gamma 1.0.
++void OutputAfterSwap( void )
++{
++    if ( s_gamma_state != 1 || !s_tex_w || !s_vw ) return;
++    static int restore = -1;                                    // OGL_GAMMA_RESTORE=0: old behaviour, for A/B only
++    if ( restore < 0 ) { const char *r = getenv( "OGL_GAMMA_RESTORE" ); restore = !( r && *r == '0' ); }
++    if ( !restore ) return;
++    glPushAttrib( GL_ALL_ATTRIB_BITS );
++    glMatrixMode( GL_TEXTURE );    glPushMatrix( ); glLoadIdentity( );
++    glMatrixMode( GL_PROJECTION ); glPushMatrix( ); glLoadIdentity( ); glOrtho( 0, 1, 0, 1, -1, 1 );
++    glMatrixMode( GL_MODELVIEW );  glPushMatrix( ); glLoadIdentity( );
++    p_ActiveTexture( GL_TEXTURE1_ARB ); glDisable( GL_TEXTURE_2D );
++    p_ActiveTexture( GL_TEXTURE0_ARB ); glEnable( GL_TEXTURE_2D );
++    glDisable( GL_DEPTH_TEST ); glDisable( GL_BLEND ); glDisable( GL_ALPHA_TEST ); glDisable( GL_FOG );
++    glDisable( GL_CULL_FACE ); glDisable( GL_SCISSOR_TEST ); glDisable( GL_LIGHTING );
++    glDepthMask( GL_FALSE ); glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
++    glViewport( 0, 0, s_vw, s_vh );
++    glDrawBuffer( GL_BACK );
++    glBindTexture( GL_TEXTURE_2D, s_tex );
++    p_Use( s_prog );
++    p_Uniform1i( p_Uniform( s_prog, "frame" ), 0 );
++    p_Uniform1f( p_Uniform( s_prog, "inv_gamma" ), 1.0f );
++    glColor4f( 1, 1, 1, 1 );
++    glBegin( GL_QUADS );
++    glTexCoord2f( 0, 0 ); glVertex2f( 0, 0 );
++    glTexCoord2f( 1, 0 ); glVertex2f( 1, 0 );
++    glTexCoord2f( 1, 1 ); glVertex2f( 1, 1 );
++    glTexCoord2f( 0, 1 ); glVertex2f( 0, 1 );
++    glEnd( );
++    p_Use( 0 );
++    glMatrixMode( GL_MODELVIEW );  glPopMatrix( );
++    glMatrixMode( GL_PROJECTION ); glPopMatrix( );
++    glMatrixMode( GL_TEXTURE );    glPopMatrix( );
++    glMatrixMode( GL_MODELVIEW );
++    glPopAttrib( );
++}
++
+ #endif // !C_USE_SDL && WIN32
+diff --git a/platform/windows/window.cpp b/platform/windows/window.cpp
+index 82db854..322d438 100644
+--- a/platform/windows/window.cpp
++++ b/platform/windows/window.cpp
+@@ -43,6 +43,7 @@ int  OutputChooseMsaaFormat( HDC hDC, int samples );
+ void OutputEnableMsaa( void );
+ void OutputPostProcess( void );
+ void OutputContextLost( void );
++void OutputAfterSwap( void );
+ 
+ static BOOL ramp_stored  = false;
+ static BOOL mode_changed = false;
+@@ -197,6 +198,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+     wglMakeCurrent( hDC, hRC );
+     OutputEnableMsaa( );
+ 
++
+     HDC pDC = GetDC( NULL );
+ 
+     ramp_stored = GetDeviceGammaRamp( pDC, &old_ramp );
+@@ -308,6 +310,7 @@ void SwapBuffers()
+     }
+     OutputPostProcess( );
+     SwapBuffers(hDC);
++    OutputAfterSwap( );
+ }
+ 
+ #endif // !C_USE_SDL && WIN32
+-- 
+2.53.0
+

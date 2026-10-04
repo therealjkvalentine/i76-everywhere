@@ -197,9 +197,41 @@ func padSaveDirIfQuiescent(_ A: String) {
     padSaveDir(A)
 }
 
+// OpenGLide under DxWnd (the Mac's -glide setup, tools/openglide-hd/MAC-BUILD.md section 8): DxWnd reports a virtual
+// 800x600 client area and stretches OpenGLide's output window to its real window, so OpenGLide cannot learn the real
+// size itself; it renders at OGL_VIEWPORT. That size depends on the display the game opens on - DxWnd's "Desktop"
+// position fits a window of the profile's sizx0:sizy0 shape into the main display: 1728x1117 on the 14" panel,
+// 2228x1440 on a 3440x1440 monitor. A fixed value is wrong on the other display (the brightness pass then copied the
+// frame into a corner of itself: a "hall of mirrors" in the in-mission menu). So compute it here, before Wine starts,
+// whenever the prefix's environment opts in with OGL_OUTPUT=parent.
+func setGlideViewport(_ A: String) {
+    let reg = A + "/Contents/SharedSupport/prefix/user.reg"
+    let ini = A + "/Contents/SharedSupport/prefix/drive_c/dxwnd/dxwnd.ini"
+    guard var txt = try? String(contentsOfFile: reg, encoding: .utf8), txt.contains("\"OGL_OUTPUT\"=\"parent\""),
+          let dx = try? String(contentsOfFile: ini, encoding: .isoLatin1) else { return }
+    func iniInt(_ k: String) -> Double? {
+        for l in dx.components(separatedBy: .newlines) where l.hasPrefix(k + "=") { return Double(l.dropFirst(k.count + 1)) }
+        return nil
+    }
+    let b = CGDisplayBounds(CGMainDisplayID())
+    guard let sx = iniInt("sizx0"), let sy = iniInt("sizy0"), sx > 0, sy > 0, b.width > 0, b.height > 0 else { return }
+    var w = b.width, h = b.height
+    if w / h > sx / sy { w = (h * sx / sy).rounded() } else { h = (w * sy / sx).rounded() }
+    let want = "\"OGL_VIEWPORT\"=\"\(Int(w))x\(Int(h))\""
+    if let r = txt.range(of: "\"OGL_VIEWPORT\"=\"[^\"]*\"", options: .regularExpression) {
+        if txt[r] == want { return }
+        txt.replaceSubrange(r, with: want)
+    } else if let e = txt.range(of: "[Environment]"), let eol = txt.range(of: "\n", range: e.upperBound..<txt.endIndex),
+              let eol2 = txt.range(of: "\n", range: eol.upperBound..<txt.endIndex) {
+        txt.insert(contentsOf: want + "\n", at: eol2.upperBound)   // after the header and its #time line
+    } else { return }
+    try? txt.write(toFile: reg, atomically: true, encoding: .utf8)
+}
+
 setupEnv(A)
 padSaveDir(A)
 rescueOrphanSave(A)   // recover any save the engine orphaned as save-01.cmp last session
+setGlideViewport(A)
 
 // Reap on app-quit too (cmd-Q / Dock quit / LaunchServices logout sends SIGTERM;
 // SIGINT for good measure). Without this, quitting the .app while the game runs

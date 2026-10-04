@@ -207,3 +207,35 @@ Same day, later: the owner renamed the wrapper to **`~/Applications/Sikarugir/In
 software renderer). Every live reference in the repo (launch stubs, setup scripts, save editor, trainer, docs) now uses
 that path; the Nitro and DxWnd Settings launchers were rebuilt from the updated stubs. Dated records under
 `docs/records/` keep the old name as history.
+
+## 10. Unattended pass, 2026-10-04 evening (owner away; promoted to `Interstate 76.app`)
+
+**In-mission menu "gets brighter with every move" / hall of mirrors.** Two causes, both in the gamma pass.
+(1) The pass brightens the back buffer in place; the Esc menu redraws only its LFB page over the last frame, so every
+swap brightened the already brightened frame. Patch 0006 draws the saved unbrightened frame back after each swap.
+(2) On the 3440x1440 display the fixed `OGL_VIEWPORT=1728x1117` did not match DxWnd's real 2228x1440 window, and the
+pass copied the frame into a corner of itself on every menu redraw (nested copies, visible in captures). Fixed in the
+launcher: `i76-launch-stub.swift` now computes `OGL_VIEWPORT` before Wine starts whenever the prefix environment has
+`OGL_OUTPUT=parent` - the profile's `sizx0:sizy0` shape fitted into the main display (laptop 1728x1117, ultrawide
+2228x1440). Verified on the TEST clone at 2228x1440: the Esc menu, 8 moves, no nesting, no brightening.
+(An `OGL_VIEWPORT=auto` read of the initial GL viewport was tried and dropped: the output child is hidden when the
+context is made current and the viewport is not sized yet.)
+
+**Music through the proxy under DxWnd** (music-fix/strlkproxy.c, `I76_MUSIC_GUARD`, `I76_MUSIC_RESUME`, aux fix).
+DxWnd re-hooks i76.exe's WINMM import slots after the proxy's DllMain and also answers `GetProcAddress`, so the
+proxy (a) never saw a CD command and (b) counted DxWnd's 2 virtual drives as real. Now a guard thread re-claims the
+four slots (logged: `slot held by dxwnd.dll - re-claimed`), aux devices that resolve outside winmm.dll count as none,
+and DxWnd's own virtual CD is off in the profile (`flagm0=65536`). Result: the menu track (13) and the mission run
+(9..15) play through the proxy at the slider's volume, tracks follow on, no errors.
+- The owner's "music restarts after the menu": with the saved **music level at 1 (= off)** the engine sends
+  `auxSetVolume(0x000F000F)` and STOPs/CLOSEs the CD when leaving the options menu; DxWnd's virtual CD ignored the
+  volume (so music was heard anyway) and then restarted the song. At level 5 the engine never stops it: track 9 played
+  straight through the Esc menu and back. The level had become 1 in the GL test-clone line (the software install
+  still has 5); `I76PLYR.DEF` byte 0x50 was set back to 5. Independently, `I76_MUSIC_RESUME` now pauses on
+  STOP/PAUSE/CLOSE and resumes on a PLAY of the same run instead of restarting it.
+- Unattended testing ended when the Mac locked: input does not reach the game while the screen is locked. The replay
+  black-screen fix (0005) is in the install but was not re-tested here.
+
+Promoted to `~/Applications/Sikarugir/Interstate 76.app` with every replaced file kept as `*.pre-20261004b`
+(Glide2x.dll, Strlkup.dll, the launcher, dxwnd.ini, I76PLYR.DEF). Boot check: render size 2228x1440 computed, the
+guard re-claimed all four slots, the CD device opened. The test clone `Interstate 76 TEST.app` stays for the next pass.

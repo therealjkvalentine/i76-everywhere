@@ -118,12 +118,33 @@ static void ensure_real(void) {
  * the aux code stays beside the comment explaining why it exists. */
 static void mci_str(const char *cmd);
 
+/* How many aux devices the SYSTEM has. A windowing layer with its own virtual CD (DxWnd, the Mac's daily path) hooks
+ * GetProcAddress too, so "the real auxGetNumDevs" can resolve into that layer and report its fake drives (2 under
+ * DxWnd, measured 2026-10-04) even with its virtual CD switched off - and the proxy then stood aside for a CD player
+ * that does not exist: the game opened the cdaudio device and never issued a PLAY. Count only what winmm.dll itself
+ * reports. */
+static UINT real_aux_devices(void) {
+    static int foreign = -1;
+    ensure_real();
+    if (!real_auxGetNumDevs) return 0;
+    if (foreign < 0) {
+        HMODULE m = NULL; char path[MAX_PATH] = "", *b = path, *q;
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           (LPCSTR)real_auxGetNumDevs, &m);
+        if (m) GetModuleFileNameA(m, path, sizeof(path));
+        for (q = path; *q; q++) if (*q == '\\' || *q == '/') b = q + 1;
+        foreign = m && lstrcmpiA(b, "winmm.dll") != 0;
+        if (foreign) mlog("  aux devices come from %s, not winmm.dll (a layer's virtual CD): counted as none", b);
+    }
+    return foreign ? 0 : real_auxGetNumDevs();
+}
+
 /* Claim one CD-audio aux device only when the system genuinely has none, so a
  * machine WITH real aux hardware keeps its own behaviour untouched. */
 static UINT WINAPI hook_auxGetNumDevs(void) {
     UINT n;
     ensure_real();
-    n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
+    n = real_aux_devices();
     mlog("auxGetNumDevs called (real=%u) -> %u", n, n ? n : 1);
     if (n == 0) return 1;
     return n;
@@ -132,7 +153,7 @@ static UINT WINAPI hook_auxGetNumDevs(void) {
 static MMRESULT WINAPI hook_auxGetDevCapsA(UINT_PTR id, LPAUXCAPSA caps, UINT size) {
     UINT n;
     ensure_real();
-    n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
+    n = real_aux_devices();
     if (n == 0 && caps && size >= sizeof(AUXCAPSA)) {
         memset(caps, 0, size);
         caps->wMid = 1; caps->wPid = 1; caps->vDriverVersion = 0x0100;
@@ -159,7 +180,7 @@ static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
         mci_str(cmd);
     }
     mlog("auxSetVolume(0x%08lX) -> %lu/1000", (unsigned long)vol, (unsigned long)g_volume);
-    n = real_auxGetNumDevs ? real_auxGetNumDevs() : 0;
+    n = real_aux_devices();
     if (n > 0 && real_auxSetVolume) return real_auxSetVolume(id, vol);
     return MMSYSERR_NOERROR;
 }
@@ -179,6 +200,16 @@ static int   g_playingTrack = 0;   /* what is REALLY on the head right now */
  * 5 s in a mission) saw playing -> stopped and re-issued the same track: one song looping with gaps. g_runStart /
  * g_runEnd hold the requested run; playing_now() advances to the next track when the current one ends. */
 static int   g_runStart = 0, g_runEnd = 0;
+/* I76_MUSIC_RESUME (default on; =0 = the old stop-and-restart): the engine STOPs / PAUSEs / CLOSEs the CD whenever it
+ * leaves the driving view (the in-mission menu, a cutscene, the shell) and later re-issues MCI_PLAY for the same run,
+ * which a real CD player - and this proxy until 2026-10-04 - answered by starting the song again from 0:00 (owner:
+ * "music should continue, not restart, when I go back into the game from a menu"). Now a stop pauses the mp3 where it
+ * is, and a PLAY of the same run resumes it; a PLAY of anything else closes it and starts the new track as before. */
+static int   g_resumeOn = -1, g_paused = 0, g_pausedRunStart = 0, g_pausedRunEnd = 0;
+static int resume_on(void) {
+    if (g_resumeOn < 0) { char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_RESUME", v, sizeof(v)); g_resumeOn = !(n && v[0] == '0'); }
+    return g_resumeOn;
+}
 static MCIERROR play_track(int track);
 static DWORD g_lenCache[LAST_TRACK + 1];   /* ms, 0 = not yet queried */
 
@@ -450,9 +481,33 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
                  (unsigned long)flags, p ? (long)p->dwFrom : -1, p ? (long)p->dwTo : -1, track, to);
         }
         g_curTrack = track;
+        if (g_paused) {
+            g_paused = 0;
+            if (track == g_pausedRunStart && g_open && g_playingTrack) {
+                char cmd[64];
+                _snprintf(cmd, sizeof(cmd), "resume %s", g_alias); mci_str(cmd);
+                g_runStart = g_pausedRunStart; g_runEnd = g_pausedRunEnd;
+                mlog("  PLAY run %d..%d after a stop: track %d RESUMED where it was", g_runStart, g_runEnd, g_playingTrack);
+                return 0;
+            }
+            mlog("  PLAY of a different run (%d, paused run was %d): the paused track is closed", track, g_pausedRunStart);
+            stop_track();
+        }
         return play_track(track);
     }
-    case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE: g_runStart = g_runEnd = 0; stop_track(); return 0;
+    case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE:
+        if (resume_on() && g_open && g_playingTrack) {
+            char cmd[64];
+            if (!g_paused) { g_pausedRunStart = g_runStart; g_pausedRunEnd = g_runEnd; }
+            _snprintf(cmd, sizeof(cmd), "pause %s", g_alias); mci_str(cmd);
+            g_paused = 1;
+            mlog("  %s: track %d paused where it is (run %d..%d kept for a resume)",
+                 msg == MCI_STOP ? "MCI_STOP" : msg == MCI_PAUSE ? "MCI_PAUSE" : "MCI_CLOSE",
+                 g_playingTrack, g_pausedRunStart, g_pausedRunEnd);
+            g_runStart = g_runEnd = 0;                  /* paused: playing_now() must not advance the run */
+            return 0;
+        }
+        g_runStart = g_runEnd = 0; stop_track(); return 0;
     /* MCI_STATUS - and the per-track answers matter as much as the open.
      *
      * This used to answer `default: dwReturn = 0`, and the log showed the game
@@ -540,6 +595,55 @@ static void *patch_iat(HMODULE mod, const char *dll, const char *func, void *new
     return NULL;
 }
 
+/* I76_MUSIC_GUARD (default on; =0 off). The music hooks are i76.exe IAT slots set in DllMain. A layer that hooks the
+ * same imports later - DxWnd does, for its own virtual CD, on the Mac's daily path - silently takes them back, and
+ * the proxy then never sees a CD command (measured 2026-10-03/04: no MCI line in mciproxy.log under DxWnd, and its
+ * aux hook reporting DxWnd's 2 fake drives as "real"). Every 500 ms, put any slot that is not ours back, once
+ * logged with the module that held it. With DxWnd's own virtual CD switched off (profile flagm0 bit 0) the proxy is
+ * then the only CD player. Costs one pointer compare per slot per tick. */
+static void **iat_slot(HMODULE mod, const char *dll, const char *func) {
+    BYTE *base = (BYTE *)mod;
+    IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
+    IMAGE_DATA_DIRECTORY dd = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    IMAGE_IMPORT_DESCRIPTOR *d;
+    if (!dd.VirtualAddress) return NULL;
+    for (d = (IMAGE_IMPORT_DESCRIPTOR *)(base + dd.VirtualAddress); d->Name; d++) {
+        IMAGE_THUNK_DATA *oft, *ft;
+        if (lstrcmpiA((char *)(base + d->Name), dll) != 0) continue;
+        oft = (IMAGE_THUNK_DATA *)(base + (d->OriginalFirstThunk ? d->OriginalFirstThunk : d->FirstThunk));
+        ft  = (IMAGE_THUNK_DATA *)(base + d->FirstThunk);
+        for (; oft->u1.AddressOfData; oft++, ft++) {
+            if (oft->u1.Ordinal & IMAGE_ORDINAL_FLAG) continue;
+            if (lstrcmpA((char *)((IMAGE_IMPORT_BY_NAME *)(base + oft->u1.AddressOfData))->Name, func) == 0)
+                return (void **)&ft->u1.Function;
+        }
+    }
+    return NULL;
+}
+static DWORD WINAPI music_guard(LPVOID arg) {
+    static const struct { const char *name; void *hook; } h[] = {
+        { "mciSendCommandA", (void *)hook_mciSendCommandA }, { "auxGetNumDevs", (void *)hook_auxGetNumDevs },
+        { "auxGetDevCapsA",  (void *)hook_auxGetDevCapsA },  { "auxSetVolume",  (void *)hook_auxSetVolume } };
+    HMODULE exe = GetModuleHandleA(NULL);
+    int logged[4] = { 0, 0, 0, 0 }, i;
+    (void)arg;
+    for (;;) {
+        Sleep(500);
+        for (i = 0; i < 4; i++) {
+            void **slot = iat_slot(exe, "WINMM.dll", h[i].name);
+            if (!slot || *slot == h[i].hook) continue;
+            if (logged[i] < 3) {                                 /* who took it */
+                HMODULE m = NULL; char who[MAX_PATH] = "?", *b = who, *q;
+                if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                       (LPCSTR)*slot, &m) && m) GetModuleFileNameA(m, who, sizeof(who));
+                for (q = who; *q; q++) if (*q == '\\' || *q == '/') b = q + 1;
+                mlog("  music-guard: WINMM!%s slot held by %s (%p) - re-claimed", h[i].name, b, *slot);
+                logged[i]++;
+            }
+            patch_iat(exe, "WINMM.dll", h[i].name, h[i].hook);
+        }
+    }
+}
 /* ===========================================================================
  * FORWARDING THE FIVE Strlkup EXPORTS WITHOUT LINKER FORWARDERS
  * ===========================================================================
@@ -4206,6 +4310,10 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
              patch_iat(exe, "WINMM.dll", "auxGetNumDevs",  hook_auxGetNumDevs),
              patch_iat(exe, "WINMM.dll", "auxGetDevCapsA", hook_auxGetDevCapsA),
              patch_iat(exe, "WINMM.dll", "auxSetVolume",   hook_auxSetVolume));
+        }
+        {   /* I76_MUSIC_GUARD=0 disables; see music_guard */
+            char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_GUARD", v, sizeof(v));
+            if (!(n && v[0] == '0')) { CloseHandle(CreateThread(NULL, 0, music_guard, NULL, 0, NULL)); mlog("  music-guard: on"); }
         }
         apply_cd_instrument(exe); /* opt-in (I76_CD_LOG=1): the "insert CD 2" prompt, logged with its cause;
                                      I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */
