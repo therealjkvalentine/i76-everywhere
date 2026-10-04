@@ -1,0 +1,110 @@
+From 74cff581e5bd5b39c193983bcb71d52f0839c5c4 Mon Sep 17 00:00:00 2001
+From: therealjkvalentine <james.k.valentine@gmail.com>
+Date: Sun, 4 Oct 2026 14:17:34 -0500
+Subject: [PATCH 5/5] Replay black screen: show each new output window; rebuild
+ gamma objects per context; OGL_OUTPUT=parent
+
+The game closes and reopens its Glide window between missions. Two things broke
+the second mission (owner: 'always works the first time but loads black the
+second time'): SwapBuffers showed the passthrough child once per process
+(static bool), so the second mission's new child stayed hidden; and the gamma
+pass kept its program, texture and FBO from the destroyed context.
+
+OGL_OUTPUT=parent sizes the output to the game window's client area, for a
+windowing layer (DxWnd) that owns the window size.
+---
+ platform/windows/output.cpp | 11 +++++++++++
+ platform/windows/window.cpp | 26 ++++++++++++++++++++++----
+ 2 files changed, 33 insertions(+), 4 deletions(-)
+
+diff --git a/platform/windows/output.cpp b/platform/windows/output.cpp
+index f9c771d..c40ae6c 100644
+--- a/platform/windows/output.cpp
++++ b/platform/windows/output.cpp
+@@ -189,6 +189,17 @@ static int GammaInit( void )
+     return 1;
+ }
+ 
++// The game closes and reopens its Glide window between missions (grSstWinClose / grSstWinOpen), and with it the GL
++// context: every object above belonged to the old one. Forget them so the next frame rebuilds them in the new context
++// (keeping them drew the second mission through a dead program and texture: a black screen).
++void OutputContextLost( void )
++{
++    s_gamma_state = 0;
++    s_prog = 0; s_tex = 0; s_fbo = 0;
++    s_tex_w = s_tex_h = 0;
++    s_frames = 0;
++}
++
+ // Called with the finished frame in the back buffer, just before SwapBuffers.
+ void OutputPostProcess( void )
+ {
+diff --git a/platform/windows/window.cpp b/platform/windows/window.cpp
+index 992e8f8..01cc645 100644
+--- a/platform/windows/window.cpp
++++ b/platform/windows/window.cpp
+@@ -18,6 +18,8 @@
+ #include <windows.h>
+ #include <io.h>
+ #include <math.h>
++#include <string.h>
++#include <stdlib.h>
+ 
+ #include "GlOgl.h"
+ 
+@@ -39,6 +41,7 @@ int  OutputMsaaSamples( void );
+ int  OutputChooseMsaaFormat( HDC hDC, int samples );
+ void OutputEnableMsaa( void );
+ void OutputPostProcess( void );
++void OutputContextLost( void );
+ 
+ static BOOL ramp_stored  = false;
+ static BOOL mode_changed = false;
+@@ -105,6 +108,18 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+     GetClientRect( hwnd, &crect );
+     int cw = crect.right - crect.left;
+     int ch = crect.bottom - crect.top;
++
++    // OGL_OUTPUT=parent (patch 0004): the output fills the game window's client area, whatever size a windowing layer
++    // (DxWnd) gave it. The caller derives everything after this (clip, LFB buffers, viewport) from OpenGL.Window*.
++    {
++        const char *o = getenv( "OGL_OUTPUT" );
++        if ( o && !strcmp( o, "parent" ) && cw > 0 && ch > 0 )
++        {
++            width = OpenGL.WindowWidth = cw;
++            height = OpenGL.WindowHeight = ch;
++            GlideMsg( "OGL_OUTPUT: parent client area %dx%d\n", cw, ch );
++        }
++    }
+     int cx = cw > width  ? ( cw - width ) / 2  : 0;
+     int cy = ch > height ? ( ch - height ) / 2 : 0;
+ 
+@@ -191,6 +206,7 @@ void FinaliseOpenGLWindow( void)
+ 
+     wglMakeCurrent( NULL, NULL );
+     wglDeleteContext( hRC );
++    OutputContextLost( );
+     ReleaseDC( hWND, hDC );
+ 
+     if ( hWND && hWND != hParentWND )
+@@ -270,11 +286,13 @@ void ResetScreenMode()
+ void SwapBuffers()
+ {
+     // first real 3D present = the moment the Voodoo passthrough would kick in
+-    static bool shown = false;
+-    if ( !shown && hWND && hWND != hParentWND && !IsWindowVisible( hWND ) )
++    // per output window, not per process: the game closes and reopens its Glide window between missions, and a
++    // process-wide flag left the second mission's new (hidden) child hidden for good - a black screen on replay
++    static HWND shown_for = NULL;
++    if ( hWND && hWND != hParentWND && shown_for != hWND )
+     {
+-        ShowGlideOutput( true );
+-        shown = true;
++        if ( !IsWindowVisible( hWND ) ) ShowGlideOutput( true );
++        shown_for = hWND;
+     }
+     OutputPostProcess( );
+     SwapBuffers(hDC);
+-- 
+2.53.0
+
