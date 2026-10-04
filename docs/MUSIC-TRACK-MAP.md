@@ -119,7 +119,35 @@ numbers"), so on our setup **CD track 3 plays the Theme** and 15/16/17 are rotat
   the likeliest source. (Note: "track 2 = the theme" in the 2026-10-04 correction below means disc track 2,
   Never Get Outta The Car, not the Interstate '76 Theme.)
 
-### Proposed fix (proxy-side, opt-in, off by default; NOT built)
+### 2026-10-04 lab test: built and measured (proxy 3a2c6d4a, lab twin, I76MUSIC_LOG=1)
+
+All three are in `music-fix\strlkproxy.c` (switch rows in music-fix/README.md). The startup line
+`music: run end exclusive, disc order ..., shell ..., resume on` names the active set. Tested on the twin
+`i76-uncap-lab\game-dd-20261003` with 5 s silent stand-ins for 2/12/13/14.mp3 (originals restored and compared
+with the driver's music folder afterwards: 16/16 identical). Logs: session scratchpad `music-runs\*.log`.
+
+- **The exe polls the CD every 60 s in a mission, not every 5 s.** A 5 s track is replaced at the next poll
+  (`ended -> 13` 60.5 s after `PLAY track 12`, every run). The 5 s poll is the shell's (`[0x524574]` = state 6).
+  So a mission run of N tracks always lasts at least N minutes of polls, whatever the mp3 lengths.
+- **M03 / M09 by direct boot crash at frame 0 in the control too** (driver proxy f9b0c481: `CRASH 0xC0000005 at
+  0x00000000`, return 0x40386E, state 5): melee arenas cannot be booted with `I76_MISSION`. The run-end test used
+  T12 (WRLD 13, run 13..14) instead; M09 (15 alone) was not run live.
+- **Run end, T12, n = 2 each:** exclusive (new default): `MCI_PLAY from=13 to=<start of 15> -> run 13..14`, 13 -> 14,
+  then at the next poll **no track 15**: the exe's own fallback `MCI_PLAY from=2 ... -> run 2..14` follows
+  immediately (confirms the state-5 theme fallback). `I76_MUSIC_TO_INCLUSIVE=1` (control): `run 13..15`,
+  13 -> 14 -> **`PLAY track 15`** in both runs. T11 (run 12..14) showed 12 -> 13 -> 14 the same way (n = 1).
+- **`I76_MUSIC_DISC_ORDER=1`, T02 (WRLD 3), n = 2:** `disc track 3 -> file 16.mp3 (disc order)`; control (off, n = 1)
+  plays 3.mp3. The TOC the exe reads changes with it (`to=1057167119` vs `992875791`: the disc lengths moved).
+- **`I76_MUSIC_SHELL=1997`, n = 2, control n = 2:** menu `run 13..14 -> disc 15 alone (file 17.mp3)`; Options >
+  Credits `run 8..14 -> disc 16 alone (file 15.mp3)`; leaving Credits, 15 again. The exe's 5 s shell poll replays the
+  track after it ends: credits replay at +63.6 s (15.mp3 = 62.3 s), menu at +60.3 s (17.mp3 = 59.3 s) (run 1). With
+  `I76_MUSIC_RESUME` on, menu -> Credits -> menu logs `PLAY of a different run (16, paused run was 15): the paused
+  track is closed`: a remapped shell run never resumes as a different track. Control: `run 13..14` (13 -> 14 at the
+  5 s shell poll), `run 8..14`, with the exclusive end in force: no 15 in the shell either.
+- Not tested live: shell -> mission -> shell with SHELL=1997 (by code: the mission's PLAY is a different run, so the
+  paused shell track is closed; returning to the shell starts 17.mp3 from 0:00), the end-of-campaign credits.
+
+### Proposed fix (proxy-side, opt-in, off by default) - BUILT 2026-10-04, see above
 
 1. Land the inclusive-end fix from `i76-uncap-lab\docs\MUSIC-RUN-END-2026-10-04.md` first (it removes the
    stray 15.mp3 at the end of every run).
