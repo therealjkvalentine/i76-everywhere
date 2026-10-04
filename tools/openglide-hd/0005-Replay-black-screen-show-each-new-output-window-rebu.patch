@@ -1,4 +1,4 @@
-From 74cff581e5bd5b39c193983bcb71d52f0839c5c4 Mon Sep 17 00:00:00 2001
+From 13a126d02878277b9be6b8d9a83a42b1f3715a9e Mon Sep 17 00:00:00 2001
 From: therealjkvalentine <james.k.valentine@gmail.com>
 Date: Sun, 4 Oct 2026 14:17:34 -0500
 Subject: [PATCH 5/5] Replay black screen: show each new output window; rebuild
@@ -13,12 +13,12 @@ pass kept its program, texture and FBO from the destroyed context.
 OGL_OUTPUT=parent sizes the output to the game window's client area, for a
 windowing layer (DxWnd) that owns the window size.
 ---
- platform/windows/output.cpp | 11 +++++++++++
- platform/windows/window.cpp | 26 ++++++++++++++++++++++----
- 2 files changed, 33 insertions(+), 4 deletions(-)
+ platform/windows/output.cpp | 35 ++++++++++++++++++++++++++--------
+ platform/windows/window.cpp | 38 +++++++++++++++++++++++++++++++++----
+ 2 files changed, 61 insertions(+), 12 deletions(-)
 
 diff --git a/platform/windows/output.cpp b/platform/windows/output.cpp
-index f9c771d..c40ae6c 100644
+index f9c771d..2c0e12f 100644
 --- a/platform/windows/output.cpp
 +++ b/platform/windows/output.cpp
 @@ -189,6 +189,17 @@ static int GammaInit( void )
@@ -39,20 +39,90 @@ index f9c771d..c40ae6c 100644
  // Called with the finished frame in the back buffer, just before SwapBuffers.
  void OutputPostProcess( void )
  {
+@@ -196,6 +207,13 @@ void OutputPostProcess( void )
+     if ( s_gamma_state != 1 ) return;
+ 
+     const int w = OpenGL.WindowWidth, h = OpenGL.WindowHeight;
++    // The framebuffer's real size. Under a windowing layer such as DxWnd, the game (and OpenGLide) see a virtual
++    // window size while glViewport is scaled to the real drawable behind their back: OpenGLide's own viewport, read
++    // back here, is in real pixels. Copy and sample in real pixels; set our viewport in the same (virtual) units
++    // OpenGLide uses so the layer scales it the same way. Without such a layer both sizes are equal.
++    GLint vp[4] = { 0, 0, 0, 0 };
++    glGetIntegerv( GL_VIEWPORT, vp );
++    const int rw = vp[2] > 0 ? vp[2] : w, rh = vp[3] > 0 ? vp[3] : h;
+     glPushAttrib( GL_ALL_ATTRIB_BITS );
+     glMatrixMode( GL_TEXTURE );    glPushMatrix( ); glLoadIdentity( );
+     glMatrixMode( GL_PROJECTION ); glPushMatrix( ); glLoadIdentity( ); glOrtho( 0, 1, 0, 1, -1, 1 );
+@@ -209,14 +227,15 @@ void OutputPostProcess( void )
+     glViewport( 0, 0, w, h );
+ 
+     glBindTexture( GL_TEXTURE_2D, s_tex );
+-    if ( s_tex_w != w || s_tex_h != h )
++    if ( s_tex_w != rw || s_tex_h != rh )
+     {
+-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
++        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, rw, rh, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+-        s_tex_w = w; s_tex_h = h;
++        s_tex_w = rw; s_tex_h = rh;
++        GlideMsg( "OGL_GAMMA: frame %dx%d (window as the game sees it %dx%d)\n", rw, rh, w, h );
+         if ( s_use_blit )
+         {
+             p_BindFramebuffer( GL_FRAMEBUFFER_EXT, s_fbo );
+@@ -237,11 +256,11 @@ void OutputPostProcess( void )
+         p_BindFramebuffer( GL_READ_FRAMEBUFFER_EXT, 0 );
+         p_BindFramebuffer( GL_DRAW_FRAMEBUFFER_EXT, s_fbo );
+         glReadBuffer( GL_BACK );
+-        p_BlitFramebuffer( 0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST );
++        p_BlitFramebuffer( 0, 0, rw, rh, 0, 0, rw, rh, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+         if ( check )
+         {
+             p_BindFramebuffer( GL_READ_FRAMEBUFFER_EXT, s_fbo );
+-            glReadPixels( w / 2, h / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, before );
++            glReadPixels( rw / 2, rh / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, before );
+         }
+         p_BindFramebuffer( GL_FRAMEBUFFER_EXT, 0 );
+         glDrawBuffer( GL_BACK );
+@@ -249,7 +268,7 @@ void OutputPostProcess( void )
+     else
+     {
+         glReadBuffer( GL_BACK );
+-        glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, w, h );
++        glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, rw, rh );
+     }
+     if ( check ) { GLenum e = glGetError( ); if ( e ) GlideMsg( "OGL_GAMMA: GL error 0x%x reading the frame\n", e ); }
+ 
+@@ -267,10 +286,10 @@ void OutputPostProcess( void )
+     if ( check )
+     {
+         glReadBuffer( GL_BACK );
+-        glReadPixels( w / 2, h / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, after );
++        glReadPixels( rw / 2, rh / 3, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, after );
+         GLenum e = glGetError( );
+         GlideMsg( "OGL_GAMMA: frame 600 sample (%d,%d): before %d %d %d -> after %d %d %d (expected %d %d %d)%s\n",
+-                  w / 2, h / 3, before[0], before[1], before[2], after[0], after[1], after[2],
++                  rw / 2, rh / 3, before[0], before[1], before[2], after[0], after[1], after[2],
+                   (int)( 255.0 * pow( before[0] / 255.0, 1.0 / s_gamma ) + 0.5 ),
+                   (int)( 255.0 * pow( before[1] / 255.0, 1.0 / s_gamma ) + 0.5 ),
+                   (int)( 255.0 * pow( before[2] / 255.0, 1.0 / s_gamma ) + 0.5 ), e ? " (GL error on readback)" : "" );
 diff --git a/platform/windows/window.cpp b/platform/windows/window.cpp
-index 992e8f8..01cc645 100644
+index 992e8f8..82db854 100644
 --- a/platform/windows/window.cpp
 +++ b/platform/windows/window.cpp
-@@ -18,6 +18,8 @@
+@@ -18,6 +18,9 @@
  #include <windows.h>
  #include <io.h>
  #include <math.h>
++#include <stdio.h>
 +#include <string.h>
 +#include <stdlib.h>
  
  #include "GlOgl.h"
  
-@@ -39,6 +41,7 @@ int  OutputMsaaSamples( void );
+@@ -39,6 +42,7 @@ int  OutputMsaaSamples( void );
  int  OutputChooseMsaaFormat( HDC hDC, int samples );
  void OutputEnableMsaa( void );
  void OutputPostProcess( void );
@@ -60,7 +130,7 @@ index 992e8f8..01cc645 100644
  
  static BOOL ramp_stored  = false;
  static BOOL mode_changed = false;
-@@ -105,6 +108,18 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+@@ -105,6 +109,29 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
      GetClientRect( hwnd, &crect );
      int cw = crect.right - crect.left;
      int ch = crect.bottom - crect.top;
@@ -74,12 +144,23 @@ index 992e8f8..01cc645 100644
 +            width = OpenGL.WindowWidth = cw;
 +            height = OpenGL.WindowHeight = ch;
 +            GlideMsg( "OGL_OUTPUT: parent client area %dx%d\n", cw, ch );
++            // OGL_VIEWPORT=WxH: the drawable's REAL size when a windowing layer (DxWnd) reports a virtual client
++            // size and stretches the child window to the screen behind our back. The child keeps the virtual size
++            // (so the layer maps it onto the whole window); OpenGL renders, composites and post-processes at WxH.
++            const char *v = getenv( "OGL_VIEWPORT" );
++            int vw = 0, vh = 0;
++            if ( v && sscanf( v, "%dx%d", &vw, &vh ) == 2 && vw > 0 && vh > 0 )
++            {
++                OpenGL.WindowWidth = vw;
++                OpenGL.WindowHeight = vh;
++                GlideMsg( "OGL_VIEWPORT: rendering at %dx%d\n", vw, vh );
++            }
 +        }
 +    }
      int cx = cw > width  ? ( cw - width ) / 2  : 0;
      int cy = ch > height ? ( ch - height ) / 2 : 0;
  
-@@ -191,6 +206,7 @@ void FinaliseOpenGLWindow( void)
+@@ -191,6 +218,7 @@ void FinaliseOpenGLWindow( void)
  
      wglMakeCurrent( NULL, NULL );
      wglDeleteContext( hRC );
@@ -87,7 +168,7 @@ index 992e8f8..01cc645 100644
      ReleaseDC( hWND, hDC );
  
      if ( hWND && hWND != hParentWND )
-@@ -270,11 +286,13 @@ void ResetScreenMode()
+@@ -270,11 +298,13 @@ void ResetScreenMode()
  void SwapBuffers()
  {
      // first real 3D present = the moment the Voodoo passthrough would kick in

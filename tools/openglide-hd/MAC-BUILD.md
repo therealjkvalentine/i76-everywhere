@@ -165,3 +165,30 @@ with or without 4x MSAA and gamma) ran **104-118 fps** in its first 25 s; three 
 the rest, one recovered to 120. The plateau did not follow the settings, so it is suspected to be macOS scheduling an
 unfocused, unattended game onto the efficiency cores, not GPU cost; the owner's own (focused) session held 120. One
 Retina run without MSAA logged no mission frames; not reproduced. Played look and fps: pending the owner.
+
+## 8. The Mac play setup (2026-10-04): DxWnd for the menus, OpenGLide for the 3D
+
+Running `-glide` in a bare Wine desktop left the 640x480 DirectDraw menus unscaled with the cursor off. DxWnd
+already scales those menus and maps the cursor on the software path, so the Glide path now runs under DxWnd too
+(`Interstate 76 - GL DxWnd TEST.app`: the daily DxWnd launcher, profile `cmdline0=i76.exe -glide` - DxWnd passes
+`cmdline0` as the WHOLE command line, so the program name must come first or `-glide` is dropped as argv[0]).
+
+- **Window size under DxWnd.** DxWnd reports a virtual 800x600 client area and stretches child windows to the real
+  window. Patch 0005: `OGL_OUTPUT=parent` sizes the output child to that virtual area (so DxWnd maps it over the whole
+  window) and `OGL_VIEWPORT=WxH` renders at the real size (here 1728x1117). Either alone is wrong: `parent` alone drew
+  the 3D into an 800x600 corner, an explicit `OGL_OUTPUT=1728x1117` came out zoomed and cropped.
+- **Intermittent crash at launch** (call to address 0, ~1 in 6 launches, args `GL_FRAGMENT_PROGRAM_ARB` /
+  `GL_MAX_PROGRAM_ENV_PARAMETERS_ARB`): Wine's wined3d, initialising GL caps for the menus' DirectDraw, through an
+  empty function pointer while OpenGLide also owns a GL context. Fix: `HKCU\Software\Wine\AppDefaults\i76.exe\Direct3D`
+  `"renderer"="gdi"` (DirectDraw without 3D; the menus need none). 12/12 clean launches after, vs 2 crashes in 7 before.
+- **Black screen on a replayed mission** (owner): the game closes and reopens its Glide window between missions;
+  patch 0005 shows each new output child (0002 did it once per process) and rebuilds the gamma pass's GL objects per
+  context. Not yet re-tested by the owner.
+- Settings live in the prefix's `HKCU\Environment` (the DxWnd launcher has no env file): `OGL_OUTPUT=parent`,
+  `OGL_VIEWPORT=1728x1117`, `OGL_MSAA=4`, `OGL_GAMMA=1.3`, the lean 120 `I76_*` set. DxWnd profile `sizx0/sizy0` =
+  1728x1117 (the laptop's shape: a gentle stretch, no extra field of view), `maxfps0=0`.
+- Verified by a scripted run (AutoHotkey inside the session, real clicks): the fullscreen Driver Entry Form, into an
+  Instant Melee, 97-118 fps, full HUD, gamma sample `94 53 14 -> 118 76 27` (expected), no crash. Screenshots of this
+  setup work (unlike the bare-desktop fullscreen GL window).
+- Open: `OGL_VIEWPORT` is fixed at the laptop's size; on the 3440x1440 display DxWnd's window differs and it would need
+  that display's value.
