@@ -1,0 +1,505 @@
+From 1ba0bb111d2903bad559accb7599e0ef1c00de26 Mon Sep 17 00:00:00 2001
+From: therealjkvalentine <lab@local>
+Date: Sat, 3 Oct 2026 21:11:12 -0500
+Subject: [PATCH] LFB profiler (OGL_LFB_PROF), faster write-only unlock, GL 1.2
+ extension check, MSVC + mingw build scripts
+
+- lfbprof.cpp/.h: per-frame CPU timing of grLfbLock/grLfbUnlock/grBufferSwap, off unless OGL_LFB_PROF is set.
+- grLfbUnlock (write-only): skip colour-key-only rows two pixels per compare, convert only rows with written
+  pixels, upload only the written columns (GL_UNPACK_ROW_LENGTH). OGL_LFB_FAST=0 restores the stock loop.
+  The write-only lock never read back the frame buffer; the cost was the full-buffer scan and upload.
+- GLExtensions: GL_EXT_packed_pixels / GL_EXT_bgra are core in GL 1.2; accept them so macOS legacy contexts
+  (GL_APPLE_packed_pixels) do not raise a modal warning at boot.
+- build-msvc.ps1 (VS 2019 x86, /MT, CPPDLL exports) and build-mingw.sh (i686 mingw-w64, macOS/Linux/w64devkit).
+---
+ GLExtensions.cpp |   8 ++-
+ build-hd.ps1     |   2 +-
+ build-mingw.sh   |  19 ++++++
+ build-msvc.ps1   |  31 ++++++++++
+ grguBuffer.cpp   |  10 ++++
+ grguLfb.cpp      | 150 ++++++++++++++++++++++++++++++++++++++++-------
+ lfbprof.cpp      |  75 ++++++++++++++++++++++++
+ lfbprof.h        |  30 ++++++++++
+ 8 files changed, 301 insertions(+), 24 deletions(-)
+ create mode 100644 build-mingw.sh
+ create mode 100644 build-msvc.ps1
+ create mode 100644 lfbprof.cpp
+ create mode 100644 lfbprof.h
+
+diff --git a/GLExtensions.cpp b/GLExtensions.cpp
+index a840310..ca28a1f 100644
+--- a/GLExtensions.cpp
++++ b/GLExtensions.cpp
+@@ -248,7 +248,13 @@ void ValidateUserConfig( void )
+         switch ( glNecessaryExt[ index ].type )
+         {
+         case OGL_EXT_REQUIRED:
+-            if ( ! OGLIsExtensionSupported( glNecessaryExt[ index ].name ) )
++            // GL_EXT_packed_pixels and GL_EXT_bgra are core since OpenGL 1.2. macOS legacy (2.1) contexts, which
++            // Wine's winemac.drv hands out, list GL_APPLE_packed_pixels instead, and the modal warning would
++            // stop the game at boot. Accept them on any >= 1.2 context.
++            if ( ! OGLIsExtensionSupported( glNecessaryExt[ index ].name ) &&
++                 ! ( ( !strcmp( glNecessaryExt[ index ].name, "GL_EXT_packed_pixels" ) ||
++                       !strcmp( glNecessaryExt[ index ].name, "GL_EXT_bgra" ) ) &&
++                     glGetString( GL_VERSION ) && atof( (const char *)glGetString( GL_VERSION ) ) >= 1.2 ) )
+             {
+                 char szError[ 256 ];
+                 sprintf( szError, "Severe Problem: OpenGL %s extension is required for OpenGLide!", 
+diff --git a/build-hd.ps1 b/build-hd.ps1
+index 0316ba3..f64e747 100644
+--- a/build-hd.ps1
++++ b/build-hd.ps1
+@@ -15,7 +15,7 @@ $src = @(
+     'OGLTextureTables.cpp','OGLColorAlphaTables.cpp','TexDB.cpp','PGUTexture.cpp',
+     'Glide.cpp','GLExtensions.cpp','PGTexture.cpp','FormatConversion.cpp',
+     'grguBuffer.cpp','grguColorAlpha.cpp','GLutil.cpp','gsplash.cpp',
+-    'hdtexture.cpp'
++    'hdtexture.cpp','lfbprof.cpp'
+ ) + (Get-ChildItem platform\windows\*.cpp | ForEach-Object { "platform/windows/$($_.Name)" })
+ 
+ g++ -shared -o glide2x.dll -O2 -fpermissive -w -std=gnu++14 -I. -Iplatform/windows `
+diff --git a/build-mingw.sh b/build-mingw.sh
+new file mode 100644
+index 0000000..fdff152
+--- /dev/null
++++ b/build-mingw.sh
+@@ -0,0 +1,19 @@
++#!/bin/sh
++# Build OpenGLide(-HD) glide2x.dll, 32-bit, with a mingw-w64 i686 g++.
++#   macOS (Homebrew):  brew install mingw-w64 && CXX=i686-w64-mingw32-g++ sh build-mingw.sh
++#   Linux:             apt install g++-mingw-w64-i686 && CXX=i686-w64-mingw32-g++ sh build-mingw.sh
++#   Windows:           w64devkit x86 (its g++ is i686): sh build-mingw.sh
++# Output: glide2x.dll (OUT=... to rename). Needs only Wine/Windows system DLLs at run time.
++set -e
++cd "$(dirname "$0")"
++CXX="${CXX:-g++}"
++OUT="${OUT:-glide2x.dll}"
++SRC="grguDepth.cpp grguMisc.cpp grgu3df.cpp grguDraw.cpp grguSstGlide.cpp grguFog.cpp grguTex.cpp
++grguLfb.cpp GLRender.cpp OGLFogTables.cpp OGLTextureTables.cpp OGLColorAlphaTables.cpp TexDB.cpp
++PGUTexture.cpp Glide.cpp GLExtensions.cpp PGTexture.cpp FormatConversion.cpp grguBuffer.cpp
++grguColorAlpha.cpp GLutil.cpp gsplash.cpp"
++for f in hdtexture.cpp lfbprof.cpp; do [ -f "$f" ] && SRC="$SRC $f"; done
++SRC="$SRC $(ls platform/windows/*.cpp)"
++"$CXX" -shared -o "$OUT" -O2 -fpermissive -w -std=gnu++14 -I. -Iplatform/windows $SRC Glide2x.def \
++    -static -static-libgcc -static-libstdc++ -lopengl32 -lglu32 -lgdi32 -luser32 -lwinmm
++echo "built $OUT ($(wc -c < "$OUT") bytes)"
+diff --git a/build-msvc.ps1 b/build-msvc.ps1
+new file mode 100644
+index 0000000..a7a63cd
+--- /dev/null
++++ b/build-msvc.ps1
+@@ -0,0 +1,31 @@
++# Build OpenGLide(-HD) glide2x.dll, 32-bit, with the Visual Studio 2019 C++ x86 build tools
++# (the same toolchain music-fix\build-msvc.ps1 and u32x\build-full.ps1 use). Static CRT (/MT).
++# Usage: powershell -ExecutionPolicy Bypass -File build-msvc.ps1
++$ErrorActionPreference = 'Stop'
++Set-Location $PSScriptRoot
++$vcvars = $null
++foreach ($root in @("${env:ProgramFiles(x86)}\Microsoft Visual Studio", "$env:ProgramFiles\Microsoft Visual Studio")) {
++    if (-not (Test-Path $root)) { continue }
++    $f = Get-ChildItem $root -Recurse -Filter 'vcvars32.bat' -ErrorAction SilentlyContinue | Select-Object -First 1
++    if ($f) { $vcvars = $f.FullName; break }
++}
++if (-not $vcvars) { Write-Host 'vcvars32.bat not found' -ForegroundColor Red; exit 1 }
++
++$src = @(
++    'grguDepth.cpp','grguMisc.cpp','grgu3df.cpp','grguDraw.cpp','grguSstGlide.cpp',
++    'grguFog.cpp','grguTex.cpp','grguLfb.cpp','GLRender.cpp','OGLFogTables.cpp',
++    'OGLTextureTables.cpp','OGLColorAlphaTables.cpp','TexDB.cpp','PGUTexture.cpp',
++    'Glide.cpp','GLExtensions.cpp','PGTexture.cpp','FormatConversion.cpp',
++    'grguBuffer.cpp','grguColorAlpha.cpp','GLutil.cpp','gsplash.cpp'
++)
++if (Test-Path hdtexture.cpp) { $src += 'hdtexture.cpp' }
++if (Test-Path lfbprof.cpp)   { $src += 'lfbprof.cpp' }
++$src += (Get-ChildItem platform\windows\*.cpp | ForEach-Object { "platform\windows\$($_.Name)" })
++
++New-Item -ItemType Directory -Force obj | Out-Null
++$cl   = "cl /nologo /c /O2 /MT /EHsc /W0 /D_CRT_SECURE_NO_WARNINGS /DWIN32 /D_WINDOWS /DCPPDLL /DNDEBUG /I. /Iplatform\windows /Ikhr-include /Foobj\ " + ($src -join ' ')
++$link = 'link /nologo /DLL /OUT:glide2x.dll obj\*.obj opengl32.lib glu32.lib gdi32.lib user32.lib winmm.lib advapi32.lib'
++cmd /c "call `"$vcvars`" >nul && $cl && $link"
++if ($LASTEXITCODE -eq 0) {
++    Write-Host "built glide2x.dll ($([math]::Round((Get-Item glide2x.dll).Length/1KB)) KB, x86, MSVC)"
++} else { Write-Host 'build failed' -ForegroundColor Red; exit 1 }
+diff --git a/grguBuffer.cpp b/grguBuffer.cpp
+index 5c5327d..4c8b7d7 100644
+--- a/grguBuffer.cpp
++++ b/grguBuffer.cpp
+@@ -14,6 +14,7 @@
+ 
+ #include "GlOgl.h"
+ #include "GLRender.h"
++#include "lfbprof.h"
+ 
+ #include "platform/window.h"
+ 
+@@ -85,6 +86,9 @@ grBufferSwap( int swap_interval )
+     GlideMsg( "grBufferSwap( %d )\n", swap_interval );
+ #endif
+ 
++    if ( LfbProfOn < 0 ) LfbProfInit( );
++    double lp_t0 = LfbProfOn ? LfbProfNow( ) : 0.0;
++
+     RenderDrawTriangles( );
+     glFlush( );
+ 
+@@ -100,6 +104,12 @@ grBufferSwap( int swap_interval )
+ 
+     SwapBuffers( );
+ 
++    if ( LfbProfOn )
++    {
++        LfbProfAdd( LP_SWAP, LfbProfNow( ) - lp_t0 );
++        LfbProfFrame( );
++    }
++
+ #ifdef OGL_DEBUG
+     RDTSC( FinalTick );
+     Temp = (float)(FinalTick - InitialTick);
+diff --git a/grguLfb.cpp b/grguLfb.cpp
+index 1458432..854a360 100644
+--- a/grguLfb.cpp
++++ b/grguLfb.cpp
+@@ -14,6 +14,9 @@
+ #include "Glextensions.h"
+ #include "GLRender.h"
+ #include "FormatConversion.h"
++#include "lfbprof.h"
++#include <stdlib.h>
++#include <string.h>
+ 
+ 
+ #define BLUE_SCREEN     (0x07FF)
+@@ -31,8 +34,13 @@ grLfbLock( GrLock_t dwType,
+     GlideMsg( "grLfbLock( %d, %d, %d, %d, %d, --- )\n", dwType, dwBuffer, dwWriteMode, dwOrigin, bPixelPipeline ); 
+ #endif
+ 
++    if ( LfbProfOn < 0 ) LfbProfInit( );
++    double lp_t0 = LfbProfOn ? LfbProfNow( ) : 0.0;
++
+     RenderDrawTriangles( );
+ 
++    double lp_t1 = LfbProfOn ? LfbProfNow( ) : 0.0;
++
+     if ( dwType & 1 )
+     {
+         Glide.DstBuffer.Lock            = true;
+@@ -136,6 +144,14 @@ grLfbLock( GrLock_t dwType,
+     lfbInfo->writeMode = GR_LFBWRITEMODE_565;
+     lfbInfo->strideInBytes = Glide.WindowWidth * 2;
+ 
++    if ( LfbProfOn )
++    {
++        double lp_t2 = LfbProfNow( );
++        LfbProfAdd( LP_LOCK_FLUSH, lp_t1 - lp_t0 );
++        LfbProfAdd( ( dwType & 1 ) ? LP_LOCK_WO : LP_LOCK_RO, lp_t2 - lp_t1 );
++        LfbProfCount( ( dwType & 1 ) ? 1 : 0, ( dwType & 1 ) ? 0 : 1, 0, 0 );
++    }
++
+     return FXTRUE;
+ }
+ 
+@@ -153,6 +169,8 @@ grLfbUnlock( GrLock_t dwType, GrBuffer_t dwBuffer )
+         {
+             return FXFALSE;
+         }
++        double lp_t0 = LfbProfOn > 0 ? LfbProfNow( ) : 0.0;
++        unsigned lp_px = 0;
+ 
+         FxU32 ii,
+             x,
+@@ -162,34 +180,103 @@ grLfbUnlock( GrLock_t dwType, GrBuffer_t dwBuffer )
+             minx = Glide.WindowWidth,
+             miny = Glide.WindowHeight;
+ 
+-        for ( ii = 0, x = 0, y = 0; ii < Glide.WindowTotalPixels; ii++ )
++        // Fast path (default; OGL_LFB_FAST=0 restores the original loop).
++        // I'76 writes HUD text, the Esc menu and the binocular mask into a write-only lock every frame and
++        // leaves most of the 640x480 buffer at the colour key. Skip key-only rows two pixels per compare,
++        // convert only rows that hold written pixels, and upload only the written columns (unlock_draw).
++        static int s_fast = -1;
++        if ( s_fast < 0 )
++        {
++            const char *e = getenv( "OGL_LFB_FAST" );
++            s_fast = ( e && e[ 0 ] == '0' ) ? 0 : 1;
++        }
++        bool lp_fast = s_fast && !( Glide.WindowWidth & 1 );
++
++        if ( lp_fast )
+         {
+-            if ( Glide.DstBuffer.Address[ ii ] != BLUE_SCREEN )
++            const FxU32 W = Glide.WindowWidth;
++            const FxU32 W2 = W >> 1;
++            static unsigned char *s_dirty = NULL;
++            static FxU32 s_dirtyN = 0;
++            if ( s_dirtyN < Glide.WindowHeight )
+             {
+-                if ( x > maxx ) maxx = x;
+-                if ( y > maxy ) maxy = y;
+-                if ( x < minx ) minx = x;
++                delete[] s_dirty;
++                s_dirty = new unsigned char[ Glide.WindowHeight ];
++                s_dirtyN = Glide.WindowHeight;
++            }
++            for ( y = 0; y < Glide.WindowHeight; y++ )
++            {
++                FxU16 *row = Glide.DstBuffer.Address + y * W;
++                const FxU32 *r32 = (const FxU32 *)row;
++                FxU32 k = 0;
++                while ( k < W2 && r32[ k ] == 0x07FF07FFu ) k++;
++                if ( k == W2 )
++                {
++                    s_dirty[ y ] = 0;
++                    continue;
++                }
++                s_dirty[ y ] = 1;
+                 if ( y < miny ) miny = y;
+-
+-                OpenGL.tmpBuf[ ii ] = 0x0    |                      // A
+-                ( Glide.DstBuffer.Address[ ii ] & 0x001F ) << 19 |  // B
+-                ( Glide.DstBuffer.Address[ ii ] & 0x07E0 ) << 5  |  // G
+-                ( Glide.DstBuffer.Address[ ii ] >> 8 );             // R
+-                Glide.DstBuffer.Address[ ii ] = BLUE_SCREEN;
+-            } else
+-                OpenGL.tmpBuf[ ii ] = 0xFFFFFFFF;
+-
+-            x++;
+-            if ( x == Glide.WindowWidth )
++                maxy = y;
++                FxU32 *dst = OpenGL.tmpBuf + y * W;
++                for ( x = 0; x < 2 * k; x++ ) dst[ x ] = 0xFFFFFFFF;
++                for ( x = 2 * k; x < W; x++ )
++                {
++                    FxU16 p = row[ x ];
++                    if ( p != BLUE_SCREEN )
++                    {
++                        if ( x > maxx ) maxx = x;
++                        if ( x < minx ) minx = x;
++                        lp_px++;
++                        dst[ x ] = ( p & 0x001F ) << 19 | ( p & 0x07E0 ) << 5 | ( p >> 8 );
++                        row[ x ] = BLUE_SCREEN;
++                    }
++                    else
++                        dst[ x ] = 0xFFFFFFFF;
++                }
++            }
++            // key-only rows inside the written band must be transparent in the uploaded rectangle
++            if ( maxx >= minx )
++                for ( y = miny; y <= maxy; y++ )
++                    if ( !s_dirty[ y ] )
++                        memset( OpenGL.tmpBuf + y * W, 0xFF, W * 4 );
++        }
++        else
++        {
++            for ( ii = 0, x = 0, y = 0; ii < Glide.WindowTotalPixels; ii++ )
+             {
+-                x = 0;
+-                y++;
++                if ( Glide.DstBuffer.Address[ ii ] != BLUE_SCREEN )
++                {
++                    if ( x > maxx ) maxx = x;
++                    if ( y > maxy ) maxy = y;
++                    if ( x < minx ) minx = x;
++                    if ( y < miny ) miny = y;
++                    lp_px++;
++
++                    OpenGL.tmpBuf[ ii ] = 0x0    |                      // A
++                    ( Glide.DstBuffer.Address[ ii ] & 0x001F ) << 19 |  // B
++                    ( Glide.DstBuffer.Address[ ii ] & 0x07E0 ) << 5  |  // G
++                    ( Glide.DstBuffer.Address[ ii ] >> 8 );             // R
++                    Glide.DstBuffer.Address[ ii ] = BLUE_SCREEN;
++                } else
++                    OpenGL.tmpBuf[ ii ] = 0xFFFFFFFF;
++
++                x++;
++                if ( x == Glide.WindowWidth )
++                {
++                    x = 0;
++                    y++;
++                }
+             }
+         }
+ 
++        double lp_t1 = LfbProfOn > 0 ? LfbProfNow( ) : 0.0;
++        unsigned lp_rows = 0;
++
+         if ( maxx >= minx )
+         {
+             maxx++; maxy++;
++            lp_rows = maxy - miny;
+             FxU32 ysize = maxy - miny;
+ 
+             // Draw a textured quad
+@@ -208,6 +295,17 @@ grLfbUnlock( GrLock_t dwType, GrBuffer_t dwBuffer )
+             glDisable( GL_DEPTH_TEST );
+ 
+             glBindTexture( GL_TEXTURE_2D, Glide.LFBTexture );
++            // fast path: upload only columns minx..maxx, placed at texture x = 0 (u0 = 0)
++            FxU32 lp_u0 = minx;
++            if ( lp_fast )
++            {
++                glPixelStorei( GL_UNPACK_ROW_LENGTH, Glide.WindowWidth );
++                glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, maxx - minx, ysize, GL_RGBA,
++                    GL_UNSIGNED_BYTE, OpenGL.tmpBuf + ( miny * Glide.WindowWidth ) + minx );
++                glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
++                lp_u0 = 0;
++            }
++            else
+             glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, Glide.WindowWidth, ysize, GL_RGBA,
+                 GL_UNSIGNED_BYTE, OpenGL.tmpBuf + ( miny * Glide.WindowWidth ) );
+ 
+@@ -218,16 +316,16 @@ grLfbUnlock( GrLock_t dwType, GrBuffer_t dwBuffer )
+             glBegin( GL_QUADS );
+                 glColor3f( 1.0f, 1.0f, 1.0f );
+ 
+-                glTexCoord2f( (float)minx/Glide.LFBTextureSize, 0.0f );
++                glTexCoord2f( (float)lp_u0/Glide.LFBTextureSize, 0.0f );
+                 glVertex2f( (float)minx, (float)miny );
+ 
+-                glTexCoord2f((float)maxx/Glide.LFBTextureSize, 0.0f );
++                glTexCoord2f((float)(lp_u0 + maxx - minx)/Glide.LFBTextureSize, 0.0f );
+                 glVertex2f( (float)maxx, (float)miny );
+ 
+-                glTexCoord2f( (float)maxx/Glide.LFBTextureSize, (float)ysize/Glide.LFBTextureSize );
++                glTexCoord2f( (float)(lp_u0 + maxx - minx)/Glide.LFBTextureSize, (float)ysize/Glide.LFBTextureSize );
+                 glVertex2f( (float)maxx, (float)maxy );
+ 
+-                glTexCoord2f( (float)minx/Glide.LFBTextureSize, (float)ysize/Glide.LFBTextureSize );
++                glTexCoord2f( (float)lp_u0/Glide.LFBTextureSize, (float)ysize/Glide.LFBTextureSize );
+                 glVertex2f( (float)minx, (float)maxy );
+             glEnd( );
+ 
+@@ -242,6 +340,14 @@ grLfbUnlock( GrLock_t dwType, GrBuffer_t dwBuffer )
+ 
+         Glide.DstBuffer.Lock = false;
+ 
++        if ( LfbProfOn > 0 )
++        {
++            double lp_t2 = LfbProfNow( );
++            LfbProfAdd( LP_UNLOCK_SCAN, lp_t1 - lp_t0 );
++            LfbProfAdd( LP_UNLOCK_DRAW, lp_t2 - lp_t1 );
++            LfbProfCount( 0, 0, lp_px, lp_rows );
++        }
++
+         return FXTRUE;
+     }
+     else
+diff --git a/lfbprof.cpp b/lfbprof.cpp
+new file mode 100644
+index 0000000..f9b955d
+--- /dev/null
++++ b/lfbprof.cpp
+@@ -0,0 +1,75 @@
++//**************************************************************
++//* LFB lock/unlock profiler (OpenGLide-HD, i76-everywhere). See lfbprof.h.
++//**************************************************************
++#include <windows.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "lfbprof.h"
++
++int LfbProfOn = -1;
++
++static FILE    *s_log;
++static double   s_freq;
++static double   s_acc[ LP_COUNT ];
++static unsigned s_locksWO, s_locksRO, s_frames, s_every = 100;
++static double   s_px, s_rows;
++static double   s_lastFrame, s_frameAcc, s_frameMax;
++
++void LfbProfInit( void )
++{
++    if ( LfbProfOn >= 0 ) return;
++    LfbProfOn = 0;
++    const char *v = getenv( "OGL_LFB_PROF" );
++    if ( !v || !*v || !strcmp( v, "0" ) ) return;
++    const char *n = getenv( "OGL_LFB_PROF_N" );
++    if ( n && atoi( n ) > 0 ) s_every = (unsigned)atoi( n );
++    s_log = fopen( strcmp( v, "1" ) ? v : "OpenGLid-lfb.log", "a" );
++    if ( !s_log ) return;
++    LARGE_INTEGER f; QueryPerformanceFrequency( &f );
++    s_freq = (double)f.QuadPart / 1000.0;
++    fprintf( s_log, "# OpenGLide LFB profile, per-frame averages over %u swaps (ms; px/rows per frame)\n"
++                    "# frames frame_ms frame_max_ms locksWO locksRO lock_flush_ms lockWO_ms lockRO_ms "
++                    "unlock_scan_ms unlock_draw_ms lfb_total_ms swap_ms written_px upload_rows\n", s_every );
++    fflush( s_log );
++    LfbProfOn = 1;
++}
++
++double LfbProfNow( void )
++{
++    LARGE_INTEGER c; QueryPerformanceCounter( &c );
++    return (double)c.QuadPart / s_freq;
++}
++
++void LfbProfAdd( int slot, double ms ) { s_acc[ slot ] += ms; }
++
++void LfbProfCount( int wo, int ro, unsigned px, unsigned rows )
++{
++    s_locksWO += wo; s_locksRO += ro; s_px += px; s_rows += rows;
++}
++
++void LfbProfFrame( void )
++{
++    double now = LfbProfNow( );
++    if ( s_lastFrame > 0 )
++    {
++        double d = now - s_lastFrame;
++        s_frameAcc += d;
++        if ( d > s_frameMax ) s_frameMax = d;
++        s_frames++;
++    }
++    s_lastFrame = now;
++    if ( s_frames < s_every ) return;
++
++    double f = (double)s_frames;
++    double lfb = s_acc[ LP_LOCK_WO ] + s_acc[ LP_LOCK_RO ] + s_acc[ LP_UNLOCK_SCAN ] + s_acc[ LP_UNLOCK_DRAW ];
++    fprintf( s_log, "%u %.3f %.3f %.2f %.2f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.0f %.0f\n",
++             s_frames, s_frameAcc / f, s_frameMax, s_locksWO / f, s_locksRO / f,
++             s_acc[ LP_LOCK_FLUSH ] / f, s_acc[ LP_LOCK_WO ] / f, s_acc[ LP_LOCK_RO ] / f,
++             s_acc[ LP_UNLOCK_SCAN ] / f, s_acc[ LP_UNLOCK_DRAW ] / f, lfb / f,
++             s_acc[ LP_SWAP ] / f, s_px / f, s_rows / f );
++    fflush( s_log );
++    memset( s_acc, 0, sizeof( s_acc ) );
++    s_locksWO = s_locksRO = s_frames = 0;
++    s_px = s_rows = s_frameAcc = s_frameMax = 0;
++}
+diff --git a/lfbprof.h b/lfbprof.h
+new file mode 100644
+index 0000000..1c677e9
+--- /dev/null
++++ b/lfbprof.h
+@@ -0,0 +1,30 @@
++//**************************************************************
++//* LFB lock/unlock profiler (OpenGLide-HD, i76-everywhere).
++//* Off unless the environment variable OGL_LFB_PROF is set:
++//*   OGL_LFB_PROF=1          -> log to OpenGLid-lfb.log in the CWD
++//*   OGL_LFB_PROF=<path>     -> log to <path>
++//* One line per OGL_LFB_PROF_N swaps (default 100), all times CPU-side
++//* wall clock (QueryPerformanceCounter), per-frame averages in ms.
++//**************************************************************
++#ifndef LFBPROF_H
++#define LFBPROF_H
++
++enum LfbProfSlot
++{
++    LP_LOCK_FLUSH = 0,  // RenderDrawTriangles() inside grLfbLock (3D work, not LFB)
++    LP_LOCK_WO,         // rest of grLfbLock, write-only locks
++    LP_LOCK_RO,         // rest of grLfbLock, read locks (glReadPixels + convert)
++    LP_UNLOCK_SCAN,     // grLfbUnlock write: colour-key scan + 565->8888
++    LP_UNLOCK_DRAW,     // grLfbUnlock write: glTexSubImage2D + quad
++    LP_SWAP,            // grBufferSwap (flush + SwapBuffers)
++    LP_COUNT
++};
++
++extern int  LfbProfOn;
++void        LfbProfInit( void );
++double      LfbProfNow( void );                 // ms
++void        LfbProfAdd( int slot, double ms );
++void        LfbProfCount( int locksWO, int locksRO, unsigned writtenPx, unsigned uploadRows );
++void        LfbProfFrame( void );               // call once per grBufferSwap, after the swap
++
++#endif
+-- 
+2.47.0.windows.2
+

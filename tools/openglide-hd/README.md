@@ -15,6 +15,14 @@ What the patches add (~300 lines + vendored stb single-file libs):
   and `README-HD.md`.
 - `0002` — passthrough output window (input-transparent GL child shown only
   during 3D present) + a `WinOpenDelayMS` race guard at boot.
+- `0003` — LFB profiler (`OGL_LFB_PROF=1` -> `OpenGLid-lfb.log`), a faster
+  write-only `grLfbUnlock` (`OGL_LFB_FAST=0` restores stock), acceptance of
+  `GL_EXT_packed_pixels`/`GL_EXT_bgra` on any GL >= 1.2 context (macOS legacy
+  GL lists `GL_APPLE_packed_pixels`; stock raises a modal box), and two build
+  scripts: `build-msvc.ps1` (VS 2019 x86) and `build-mingw.sh` (i686 mingw-w64:
+  w64devkit, Homebrew, Linux).
+
+**Mac (Wine) recipe and Windows measurements: [MAC-BUILD.md](MAC-BUILD.md).**
 
 ## Rebuild from scratch
 
@@ -23,7 +31,12 @@ git clone https://github.com/voyageur/openglide.git
 cd openglide
 git am path\to\i76-everywhere\tools\openglide-hd\*.patch
 ./build-hd.ps1     # added by patch 0001; needs w64devkit x86 (32-bit GCC) on PATH
+# or: ./build-msvc.ps1 (VS 2019 x86 tools; Khronos glext.h in khr-include\, see MAC-BUILD.md)
+# or: CXX=i686-w64-mingw32-g++ sh build-mingw.sh
 ```
+
+The built DLL is LGPL-2.1 (OpenGLide) and is not committed here (THIRD-PARTY.md:
+no third-party binaries); keep sources and builds in the lab's gitignored `refs\openglide`.
 
 Output: `glide2x.dll` (32-bit). Deploy with
 [`swap-renderer.ps1 openglide`](../../lab-residue/swap-renderer.ps1), which also owns the two
@@ -35,6 +48,12 @@ load-bearing companions (never skip them):
 - The Windows **256COLOR** compat flag on `i76.exe` (HKCU AppCompatFlags) — the
   game needs 8-bit DDraw palettes or it crashes at sim entry; dgVoodoo's DDraw
   wrapper can't be used here (collides with OpenGLide's GL window at boot).
+
+## Status (2026-10-03)
+
+Built with MSVC and with GCC 16 (w64devkit) from voyageur master + 0001-0003;
+runs t01 at `Resolution=0`, `2` and `1920` in the lab copy `game-oglide`
+(correct picture, Esc menu and binocular mask via the LFB). See MAC-BUILD.md.
 
 ## Status (2026-07-10)
 
