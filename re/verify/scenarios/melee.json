@@ -1,0 +1,25 @@
+{
+ "id": "melee",
+ "description": "Instant Melee on i76_pristine_fix.exe (run_scenario --nomission --exe i76_pristine_fix.exe --ai 1): no scripted end, one AI opponent so the AI loop, its fire decisions and the damage chain run. Engine started if off, then throttle (W), circles (W+A, W+D) with a weapon_fire burst (Enter) between legs, a stop, and throttle to the end. Keys per the sandbox input.map.",
+ "duration_s": 120,
+ "covers": ["ai behaviour", "ai fire", "damage", "renderer", "sound", "shell hud"],
+ "steps": [
+  {"op": "wait", "s": 2},
+  {"op": "check", "player_present": true},
+  {"op": "start_engine", "after": 1.5},
+  {"op": "check", "engine_on": true},
+  {"op": "hold", "key": "W", "s": 10},
+  {"op": "hold", "key": "ENTER", "s": 0.6},
+  {"op": "hold", "keys": ["W", "A"], "s": 15},
+  {"op": "hold", "key": "ENTER", "s": 0.6},
+  {"op": "hold", "keys": ["W", "D"], "s": 15},
+  {"op": "hold", "key": "ENTER", "s": 0.6},
+  {"op": "brake_to_stop", "max_s": 10},
+  {"op": "wait", "s": 5},
+  {"op": "hold", "key": "2", "s": 0.6},
+  {"op": "hold", "key": "3", "s": 0.6},
+  {"op": "hold", "key": "W", "s": 15},
+  {"op": "hold", "key": "ENTER", "s": 0.6},
+  {"op": "hold", "keys": ["W", "A"], "s": -1}
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "id": "menu-idle",
+ "boot": "menu",
+ "description": "Plain boot of i76.exe (no I76_MISSION): the intro movies are skipped with Esc taps while the game state 0x4c2164 is not 6, the shell main menu comes up (state 6) and sits with no input until --secs after launch. Shell-only cadence (shell_*, font_*, input_* menu code); no entity, no frame counter: census.py classifies by the snapshot timeline (init_only = no call once the menu sat, menu_only = still called while it sat).",
+ "duration_s": 75,
+ "covers": ["shell menu", "startup", "intro movie skip", "menu_only"],
+ "steps": [
+  {"op": "wait", "s": -1}
+ ]
+}

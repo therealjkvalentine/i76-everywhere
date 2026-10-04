@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.tmp
+out/*
+!out/fsm/
+!out/mw2db/
+out/mw2db/*
+!out/mw2db/manifest.json

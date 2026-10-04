@@ -1,0 +1,1 @@
+{"python": "3.13.14", "python_bits": 64, "frida": "17.17.0", "target": "C:\\Windows\\SysWOW64\\notepad.exe", "pid": 15704, "target_wow64": true, "hook_hits_after_2s": 1, "attach": "ok", "target_exit": 1, "messages": [{"arch": "ia32", "pointerSize": 4, "gettickcount": "0x76072640"}, {"hook_hit": 1, "tick": 32707140}, {"self_call_ret": 32707140}]}

@@ -1,0 +1,219 @@
+# requests/measurements.yaml  (gate H7, method doc section 4.5)
+# The plan's own dependent unknowns. Each item: one falsifiable blocker sentence, an owner, the earliest
+# task that can settle it, the decision it flips, and status (open | settled | partial) with the evidence.
+# Written by t6-environment (Task 6) on 2026-09-04; later tasks append `settled:` blocks, never delete.
+# Host: Windows 10 Pro 19045, i7-7700K, 64 GB, RDP session at the time of Task 6 (no console work here).
+
+schema:
+  status: [open, partial, settled]
+  fields: [id, question, blocker, owner, earliest_task, decision_flipped, status, evidence]
+
+items:
+  - id: M01
+    question: Frida 64->32 attach on this host
+    blocker: "A 64-bit Python 3.13 frida.attach() to a WoW64 process fails or cannot install an Interceptor hook on kernel32!GetTickCount."
+    owner: t6-environment
+    earliest_task: Task 6
+    decision_flipped: "Whether Task 1's console smoke test and the Task 10 census/ledger scripts can run from the 64-bit Python (frida attach, never spawn, per H10) or need a 32-bit Python."
+    status: settled
+    evidence:
+      answer: "yes"
+      python: "3.13.14 64-bit (MSC v.1944), frida 17.17.0, frida-tools 14.10.4"
+      target: "C:\\Windows\\SysWOW64\\notepad.exe pid 15704, IsWow64Process=True, Process.arch=ia32, pointerSize=4"
+      hook: "Interceptor.attach on kernel32!GetTickCount at 0x76072640; hook fired 1x in 2 s (a NativeFunction self-call from the script, ret 32707140 == onLeave retval 32707140); script.unload, session.detach, target killed"
+      script: tools/env-check/frida_attach32.py
+      output: tools/env-check/frida_attach32.out
+      caveat: "notepad itself did not call GetTickCount in the 2 s window (hook count 1 = the self-call), so the count proves the hook path, not notepad's behaviour; the game will be a separate measurement under H0."
+
+  - id: M02
+    question: TTD recording under dgVoodoo
+    blocker: "WinDbg TTD cannot record i76 under the dgVoodoo ddraw/glide2x wrappers (fails to attach, or the recording is unusably slow, or the sim canary dies during recording)."
+    owner: console-sitting
+    earliest_task: Task 10 (capture 004/005 slot, 60 s window cap per H8)
+    decision_flipped: "Whether gate D tier 2 (recorded-state replay) draws its trace corpus from TTD or from Frida stalker traces."
+    status: open
+    evidence:
+      note: "Not attempted in Task 6 (no game launch allowed; user on RDP)."
+
+  - id: M03
+    question: Unicorn on x87 leaves
+    blocker: "Unicorn 2.1.x mis-executes the x87 instruction forms the game's float leaves use (80-bit intermediates, precision-control word, fistp/fld TBYTE, the 0xbfc rsqrt trick), so gate E's emulated-io tables differ from the live values by more than ulp tolerance."
+    owner: gate-E-owner
+    earliest_task: Task 9 (oracle-library run over the pure leaves), first data point Task 6
+    decision_flipped: "Whether gate E (emulated-io) is admissible as a primary evidence kind for float leaves, or only for integer/pointer leaves."
+    status: partial
+    evidence:
+      answer: "unicorn 2.1.4 executes basic x87 correctly: fld1; fld1; faddp; fld dword[1.5]; fmulp; fstp dword -> 3.0 exact (6 instructions, all hooked); integer test 10/10 instructions, register state == hand-computed (eax 36, ebx 71, ecx 7, edx 1)."
+      script: tools/env-check/unicorn_x86_32.py
+      output: tools/env-check/unicorn_x86_32.out
+      still_open: "80-bit intermediate precision, FPU control-word (precision/rounding) fidelity, fistp rounding, and the x87 flags after fcom/fcomp were not exercised; Task 9 must compare an emulated leaf against a capture (H2)."
+
+  - id: M04
+    question: nitro<->i76 Version Tracking rate
+    blocker: "Ghidra Version Tracking between nitro.exe (28b8ae27..., 1998-03-27, LINK 5.10) and i76.exe (9a232dcc..., 1998-02-19, LINK 5.10) yields fewer than ~60% exact/instruction matches on the 2,165-function partition, making Roanish's ~130 items unportable at a stated score."
+    owner: t5b
+    earliest_task: Task 5b (needs open decision 2)
+    decision_flipped: "Whether the 5-day Task 5b box is spent; whether Roanish's names enter as proposed-with-score or stay foldin-only."
+    status: settled
+    evidence:
+      inputs_ready: "sandbox-gog/nitro-pack/app/nitro.exe md5 28b8ae276e88f4ffb13f17df159f09dc (1,070,080 B, PE ts 1998-03-27T22:14:38Z, LINK 5.10, Rich header, MSVCRT.DLL) extracted by Task 6; sandbox-gog/main/app/i76.exe md5 9a232dcc2c164648cff20c414c1f9698 == pristine. Both same linker generation, so the VT correlators start from the best case."
+    settled:
+      by: t5b-sibling-vt (appended by t11-phase0-report, 2026-09-04)
+      answer: "blocker falsified: 1,705 unique accepted function pairs = 77.3% of 2,207 reference functions (77.5% of 2,200 nitro functions); 1,422 of them by Exact Function Instructions, 203 Exact Bytes, 10 Mnemonics, 69 Function Reference, 1 Combined; 1,814 data matches"
+      method: "ghidra/scripts/RunVT_T5b.java, correlators in the stated order, exact 1:1 accepted, reference correlators similarity>=0.95 confidence>=10, no implied matches; unique first-acceptance dedupe over status/vt-nitro.json"
+      consequence: "Roanish's items entered symbols/ported.tsv as proposed with scores (74 functions, 36 globals); 502 reference functions have no nitro partner (t5b blocker 2)"
+      record: status/tasks/t5b-sibling-vt.md section 3
+
+  - id: M04b
+    question: 1997 retail CD I76.EXE as a third Version Tracking build
+    blocker: "The 1997 CD I76.EXE (6cc509ad..., 1,019,392 B, LINK 4.20 = Visual C++ 4.2 generation, static CRT, no Rich header) is a different compiler generation from the Gold exe (LINK 5.10, MSVCRT), so VT exact-byte/instruction correlators return under ~30% and only reference/BSim correlators help."
+    owner: t5b
+    earliest_task: Task 5b (after the nitro pass; time-boxed with it)
+    decision_flipped: "Whether the CD build is worth a third pass-4 import, or only serves as a string/table cross-check (older code, more asserts?)."
+    status: settled
+    evidence:
+      inputs_ready: "sandbox-cd1997/I76.EXE + I76SHELL.DLL (7013d6ef..., 471,552 B, LINK 4.20) copied from I76_CD1.ISO (md5 8fcd930d8d7245268b882fb7a0cd4018) by Task 6; the GOG-shipped I76SHELL_1083.DLL (d523756c..., 1997-07-22, LINK 4.20) is a third shell build between them."
+    settled:
+      by: t5b-sibling-vt (appended by t11-phase0-report, 2026-09-04)
+      answer: "blocker confirmed: 128 unique accepted function pairs = 5.8% of 2,207 reference functions (5.5% of 2,318 cd1997 functions), mostly tiny leaves; 1,247 data matches"
+      method: "same RunVT_T5b.java recipe over status/vt-cd1997.json"
+      consequence: "the CD build serves as a string/table/switch-shape cross-check only; That Tony's three FSM addresses were confirmed as function starts in it (his build is the 1997 CD I76.EXE 6cc509ad...) and carried to GOG by string xref, never by VT"
+      record: status/tasks/t5b-sibling-vt.md sections 3 and 5
+
+  - id: M05
+    question: idle churn p
+    blocker: "The per-byte idle change rate p over .data/heap/pool in a cockpit-idle A/A pair is high enough (p such that N*p^k > 1 at k=5) that the sentinel/consequence-poke scans cannot separate signal from churn."
+    owner: console-sitting
+    earliest_task: Task 10 item 003
+    decision_flipped: "k (alternations) and N (candidate bytes) for every H1 A/B; whether 20 Hz snapshot cadence is enough."
+    status: partial
+    evidence:
+      by: console smoke session (captures 002-idle-null, 003-mission-idle, 2026-09-04 16:59-17:02; appended by t11-phase0-report)
+      answer: "menu state only (both captures classified 'menu': frame counter 0x5a7e1c stayed 0, so 003 never reached a mission): per 20 s window at 5 Hz, 192-193 of 434,110 dwords of 0x4c2000-0x669ef8 change (p = 4.4e-4); A/A pairs differ in 190-192 dwords (p = 4.4e-4); the churn is one run 0x608680-0x60897c (192 dwords, bss) plus 0x5280cc"
+      method: "captures/002-idle-null/idle_null.py: 3 windows x 100 ReadProcessMemory snapshots, changed = dword differs from the window's first snapshot; A/A = last snapshots of two windows"
+      still_open: "cockpit idle with the engine on (frame counter moving) is unmeasured; heap and pool regions are unmeasured (item 003 of the runbook in status/PHASE0-REPORT.md)"
+
+  - id: M06
+    question: whether MONO_DEBUG / FSM_DEBUGGER render
+    blocker: "MONO_DEBUG_TOGGLE, FSM_DEBUGGER and DAMAGE_DEBUG_* bound in the sandbox keyboard.map produce no visible on-screen output on the Gold build under dgVoodoo."
+    owner: console-sitting
+    earliest_task: Task 10 item 007
+    decision_flipped: "Whether H2 channel 3 (built-in debug screens as read-back) exists at all."
+    status: settled
+    settled:
+      by: console-sitting-1 item 9 (main session, 2026-09-05)
+      answer: "blocker confirmed: Control+M/N/F/D/T and Alt+F in an AirBase melee render nothing and change no .data dword beyond input bookkeeping (11-12 survivors per chord against ~650 churn dwords, all in the key-queue globals); the chords were delivered (u16 chord ring 0x608e60 recorded 016d 016e 0166 0164 0174 0466 in order), so the null is real"
+      method: "captures/007-debug-keys: screenshots per chord + chordmem.py .data diff with idle A/A pairs; encoding Control 0x100 / Alt 0x400 / tolower(letter) confirmed live"
+      consequence: "H2 channel 3 does not exist in the Gold build; read-back stays Frida/ReadProcessMemory + HUD; the DEBUG gamekey names in table 0x4f3320 are dead in release"
+      record: captures/007-debug-keys/debug-keys.md
+
+  - id: M07
+    question: whether vehicle objects come from a heap or a pool
+    blocker: "The ledger (HeapAlloc/pool 0x498940/0x499ce0 by return address) shows vehicle-sized allocations only from a pool carve, so vehicle field claims cannot be keyed (heap, key, offset) and need (pool, slot, offset) with the pool base as anchor."
+    owner: console-sitting
+    earliest_task: Task 10 item 005
+    decision_flipped: "The H6 invariant-frame key format for the vehicle struct and every field label downstream."
+    status: open
+
+  - id: M08
+    question: whether the built-in render path runs on Win10
+    blocker: "Launching without -glide (ZDX5DRAW / DirectDraw path through dgVoodoo ddraw) crashes at 3D init or never stores the 18 renderer slots at 0x608ba4-0x608be4."
+    owner: console-sitting
+    earliest_task: Task 10 item 008
+    decision_flipped: "Whether the renderer-plugin proxy (Phase 5) must cover ZDX5DRAW, or ZGLIDE only."
+    status: open
+
+  - id: M09
+    question: vsOlder_x86 FID hit rate on Z*.DLL
+    blocker: "Ghidra's vsOlder_x86 FID library identifies fewer than ~20% of the functions in ZGLIDE/ZREDLINE/ZDX5DRAW/zpowervr (LINK 5.10/5.2, no MSVCRT import = static CRT), so the CRT partition of those DLLs must be done by asm-shape matching."
+    owner: ghidra-owner
+    earliest_task: Task 2 (pass-4 build; FID is part of analysis), reported in Task 4
+    decision_flipped: "Whether the Z*.DLL library gate (L) rows come from FID or from manual asm-shape evidence."
+    status: open
+    evidence:
+      inputs_ready: "All four Z*.DLL in sandbox-gog/main/app with md5 (PE-INVENTORY.tsv); note zglide.dll in the nitro pack (f28fe42b..., 1998-02-28, LINK 5.0, no Rich) differs from the main-installer ZGLIDE.DLL (05c1dde4..., 1998-02-18, LINK 5.10)."
+
+  - id: M10
+    question: whether Replay / NETWORK_POSLOG records
+    blocker: "Binding the replay/poslog keys or setting the corresponding config flag writes no file and toggles no global in the paused snapshot, so there is no built-in trace corpus for gate D tier 2."
+    owner: console-sitting
+    earliest_task: Task 10 (after item 007)
+    decision_flipped: "Whether the tier-2 trace corpus can come from the game's own recorder instead of Frida/TTD."
+    status: open
+
+  - id: M11
+    question: DynamoRIO injection on 19045
+    blocker: "drrun -32 cannot inject into the WoW64 game process on Windows 10 19045 under dgVoodoo (DynamoRIO's Windows 10 support lags the build), so drcov-style block coverage is unavailable."
+    owner: console-sitting
+    earliest_task: Task 10 or later (not needed for Phase 0)
+    decision_flipped: "Whether branch coverage for gate D certification comes from DynamoRIO or from Frida Stalker."
+    status: open
+    evidence:
+      note: "Not attempted in Task 6 (DynamoRIO not installed; would need a game process)."
+
+  # Environment facts settled by Task 6 (not in the section 4.5 list, recorded so nobody re-measures them)
+  - id: E01
+    question: PyGhidra usable from 64-bit Python
+    status: settled
+    owner: t6-environment
+    earliest_task: Task 6
+    decision_flipped: "Whether ApplyMap/DumpAll/gate scripts can be Python driving Ghidra in-process (pyghidra) instead of analyzeHeadless -postScript only."
+    evidence:
+      answer: "yes"
+      versions: "pyghidra 2.2.1 + JPype1 1.5.2 from the shipped wheels (Ghidra\\Features\\PyGhidra\\pypkg\\dist, --no-index); Ghidra 11.4.1 PUBLIC; OpenJDK 21.0.8"
+      smoke: "pyghidra.start() 8.5 s; open_program(i76.exe.2017galaxy, analyze=False) in a scratch project: image base 0x400000, x86:LE:32:default/windows, blocks Headers/.text 0x401000 (765,952)/.rdata 0x4bc000 (22,528)/.data 0x4c2000 (1,736,440)/.rsrc 0x66a000; 171 functions before analysis (import thunks/entry only); total 21.1 s"
+      script: tools/env-check/pyghidra_smoke.py
+      output: tools/env-check/pyghidra_smoke.out
+      note: "Scratch project lived in the session scratchpad, not ghidra\\proj (single-writer rule respected)."
+  - id: E02
+    question: Unicorn version pinned
+    status: settled
+    owner: t6-environment
+    earliest_task: Task 6
+    decision_flipped: "none (prerequisite for M03)"
+    evidence: { answer: "yes", version: "unicorn 2.1.4 (pip 'unicorn>=2.1,<2.2' already satisfied)" }
+  - id: E03
+    question: cl.exe with /arch:IA32 /fp:precise produces a 32-bit PE with x87 code
+    status: settled
+    owner: t6-environment
+    earliest_task: Task 6
+    decision_flipped: "Whether gate D tier-2 replacements and the reccmp ratchet can be built on this host (VS2019 16.11 Build Tools) without acquiring VC5 first."
+    evidence:
+      answer: "yes"
+      compiler: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.29.30133\\bin\\Hostx86\\x86\\cl.exe (VS 16.11.35731.53), via vcvarsall.bat x86"
+      command: "cl /nologo /arch:IA32 /fp:precise /O2 /Oy /FAs hello.c /Fe:hello.exe /link /MACHINE:X86"
+      result: "hello.exe machine 0x14c, PE32 magic 0x10b, LINK 14.29, md5 1b06d4ffc1cd44f1a333d5264371393b; runs and prints 'hello 32-bit 4'; listing hello.asm has 15 x87 lines (fld/fstp/fmul/fadd) and 0 SSE (mulss/addss/movss)"
+      files: tools/env-check/cl-hello/
+      caveat: "vcvarsall prints a harmless 'vswhere.exe is not recognized' line; the compiler is VS2019 not VC5 SP3, so codegen is a ratchet reference only (gate D)."
+  - id: E04
+    question: innoextract available
+    status: settled
+    owner: t6-environment
+    earliest_task: Task 6
+    decision_flipped: "none (prerequisite for M04)"
+    evidence:
+      answer: "yes"
+      install: "winget dscharrer.innoextract 1.9 was already installed (winget exit 43 = no upgrade available); binary %LOCALAPPDATA%\\Microsoft\\WinGet\\Packages\\dscharrer.innoextract_Microsoft.Winget.Source_8wekyb3d8bbwe\\innoextract.exe sha256 946bd06d8b3722a791fea4d84f496139eef6faef61640924cb72f5f1998a68e1 (1,218,560 B)"
+      gotcha: "--include paths must use backslashes on Windows ('app\\nitro.exe'); forward-slash patterns match nothing and exit 0 silently."
+  - id: E05
+    question: capa
+    status: open
+    owner: t6-environment
+    earliest_task: skipped in Task 6 by instruction
+    decision_flipped: "none for Phase 0"
+    evidence: { note: "Not installed: capa's Ghidra backend needs Ghidra 12; this host runs 11.4.1." }
+
+  - id: M12
+    question: why the launcher's Start-Process runs show the insert-CD-2 modal and the Python spawns never do
+    blocker: "A game started by tools/launch.ps1 (Start-Process, then which_build.py) enters the CD-check prompt path at startup on 6 of 7 runs with -glide and on both no-glide runs; a game started by Python subprocess.Popen / frida spawn from the same directory with the same arguments never has (8 of 8, including item 9). Once in the path, OK re-prompts forever and Cancel exits; the CD1 ISO on E: is mounted and OK in both cases."
+    owner: console-sitting
+    earliest_task: sitting 2 (hook MessageBoxA + GetVolumeInformationA + GetDriveTypeA + mciSendCommandA on a launcher run; record the first failing drive letter and the caller)
+    decision_flipped: "Whether launch.ps1 can be the H0-stamping launcher (today: launch from Python, stamp with which_build.py --name after the fact) and whether the CD check is drive-letter- or environment-sensitive."
+    status: partial
+    evidence:
+      seen: "prompt stack (item 8): WinMain 0x402cab -> 0x470cd0 -> shell_cb_17 0x470f90 -> 0x471580 -> MessageBoxA; on a good run 0x470d7c reads E: (the CD1 ISO)"
+      static: "read 2026-09-05 (status/tasks/m12-cd-prompt.md): shell_cb_17 0x470f90 returns -1 without any CD check when the MCI cdaudio device opens ([0x524678] set by 0x423b30); only when that open fails does it scan CD-ROM drives for the volume label I76_CD2 (GetVolumeInformationA + _strnicmp at 0x47106c) and prompt through 0x471580. Prediction: the prompt follows a killed instance (no MCI_CLOSE), never a clean exit; test next sitting with two runs each."
+      prediction_test: "captures/013-m12-prediction: 5 launches (2 after kills, 2 after forced exits) with the cdaudio probe ok before each: 0 prompts; the MCI-open-blocked-by-a-killed-instance prediction is refuted; remaining candidates are the MCI mode check in 0x423d50 (usable modes 0x20d..0x212) and 0x423b30's own checks"
+      flag_runs: "captures/013-m12-prediction m12flag.py: 4 launches, 0 prompts, [0x524678]=0 (MCI open ok, device id 1) and [0x58d92c]=0x45 (drive E found by 0x470ed0) on all; so the prompt needs a GetVolumeInformationA failure on every CD-ROM drive at startup (0x58d92c stays 0); transient ISO-drive readiness is the open candidate"
+      probe_runs: "capture 010-cd-prompt (same sitting, later): 4 launcher-style runs under an attach-on-dialog Frida probe, 0 prompts (3 x Start-Process, 1 x launch.ps1 -SettleSeconds 3), so the launcher path is not the discriminator; the trigger is unknown (6 prompts in ~21 launches today). Frida attach at +2 s freezes startup; attach from the menu onward."
+

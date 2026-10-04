@@ -1,0 +1,24 @@
+{
+ "id": "camera-farclip",
+ "description": "Far-clip x camera matrix (2026-10-02, docs/FARCLIP-CAMERA-CRASH.md): t01 direct boot, F1, F6 (hood camera, per-frame 0x407680) held 3 s, F1 back, B (binoculars, 0x4071a0) 3 s, B off, then idle to 45 s. Run with --exe i76.exe | i76_pristine_fix.exe and --env I76_FAR_CLIP=<m> (the proxy's in-memory far clip + pools x16); the game surviving both views is the check. camera-hood.json / camera-binoc.json are the single-view repros.",
+ "duration_s": 45,
+ "covers": ["hood camera crash repro", "binoculars crash repro", "far clip"],
+ "watch": ["cam"],
+ "steps": [
+  {"op": "check", "player_present": true},
+  {"op": "tap", "key": "F1", "after": 2.0},
+  {"op": "tap", "key": "F6", "after": 3.0},
+  {"op": "check", "cam_mode_in": [1], "player_present": true},
+  {"op": "wait", "s": 3},
+  {"op": "check", "cam_mode_in": [1], "player_present": true},
+  {"op": "tap", "key": "F1", "after": 1.0},
+  {"op": "check", "cam_mode_in": [0]},
+  {"op": "tap", "key": "B", "after": 2.0},
+  {"op": "check", "cam_mode_in": [2], "player_present": true},
+  {"op": "wait", "s": 3},
+  {"op": "check", "cam_mode_in": [2], "player_present": true},
+  {"op": "tap", "key": "B", "after": 1.0},
+  {"op": "check", "cam_mode_in": [0]},
+  {"op": "wait", "s": -1}
+ ]
+}

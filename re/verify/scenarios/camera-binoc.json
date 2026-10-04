@@ -1,0 +1,20 @@
+{
+ "id": "camera-binoc",
+ "description": "Crash repro (2026-10-02, camera-cycle census run 132035 on i76.exe): the game died with 0xC0000005 about 1 s after B (toggle_binoculars, camera_mode 2, per-frame 0x4071a0) pressed in the cockpit after a second F1 (which flips 0x654b88, 2D dash <-> 3D cockpit). This repro presses B first in the plain cockpit (3 s), B off, then F1 (flip), B again (3 s), B off. No census: separates the exe from the hooks.",
+ "duration_s": 30,
+ "covers": ["binoculars crash repro"],
+ "watch": ["cam"],
+ "steps": [
+  {"op": "check", "player_present": true},
+  {"op": "tap", "key": "F1", "after": 2.0},
+  {"op": "tap", "key": "B", "after": 3.0},
+  {"op": "check", "cam_mode_in": [2], "player_present": true},
+  {"op": "tap", "key": "B", "after": 2.0},
+  {"op": "check", "cam_mode_in": [0]},
+  {"op": "tap", "key": "F1", "after": 2.0},
+  {"op": "tap", "key": "B", "after": 3.0},
+  {"op": "check", "cam_mode_in": [2], "player_present": true},
+  {"op": "tap", "key": "B", "after": 2.0},
+  {"op": "wait", "s": -1}
+ ]
+}

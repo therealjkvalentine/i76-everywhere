@@ -1,0 +1,223 @@
+{
+ "id": "radar-lock",
+ "description": "Instant Melee on i76_pristine_fix.exe (run_scenario --nomission --exe i76_pristine_fix.exe --ai 1): one AI opponent as the radar contact, no scripted end. Engine on (radar needs it), the range toggle first, then 10 s of driving so the AI car is inside the radar's 600 m (the first census run's T at frame 574 found no contact; its second T at 1488 locked), then the target keys with repeated T taps from the sandbox input.map: T TARGET_NEAREST_ENEMY (entity_RadarSetTarget -> flags 0x10, bank-1 lock display, CGROWL), R RADAR_RANGE_TOGGLE twice (range index 1 -> 0 -> 1: 600 / 100 m display), Y NEXT_TARGET, Q frontal_target, K RADAR_CAMERA_TOGGLE (target view flag 2) twice, F4 / F5 target and enemy views (camera_mode 4, need the radar target) then F1, Tab weapon_cycle, the lock held through a W+A circle with a weapon_fire burst (Enter), U RESET_TARGET (entity_RadarClearTarget: lock lost), re-acquire with T and lose it again. The melee loadout is one gmmedium machine gun (telemetry weapon_name in every melee run), so 'missile weapon selected' is the Tab cycle over what the car carries; the class-4 lock-on timer (weapons.md) is used by no stock .gdf. The watch thread logs every change of the radar block [[ent+0x434]+0x70] (range, flags, locked contact) and of camera_mode with the frame.",
+ "duration_s": 90,
+ "covers": [
+  "radar",
+  "lock",
+  "radar range",
+  "target cycle",
+  "target view",
+  "lock tones",
+  "ping"
+ ],
+ "watch": [
+  "radar",
+  "cam"
+ ],
+ "steps": [
+  {
+   "op": "wait",
+   "s": 2
+  },
+  {
+   "op": "check",
+   "player_present": true
+  },
+  {
+   "op": "start_engine",
+   "after": 1.5
+  },
+  {
+   "op": "check",
+   "engine_on": true
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": 3
+  },
+  {
+   "op": "tap",
+   "key": "R",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "radar_range_in": [
+    0
+   ]
+  },
+  {
+   "op": "wait",
+   "s": 2
+  },
+  {
+   "op": "tap",
+   "key": "R",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "radar_range_in": [
+    1
+   ]
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": 10
+  },
+  {
+   "op": "tap",
+   "key": "T",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "T",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "Y",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "Q",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "T",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "radar_locked": true
+  },
+  {
+   "op": "tap",
+   "key": "K",
+   "after": 2.0
+  },
+  {
+   "op": "tap",
+   "key": "K",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "F4",
+   "after": 3.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    4
+   ]
+  },
+  {
+   "op": "tap",
+   "key": "F5",
+   "after": 3.0
+  },
+  {
+   "op": "tap",
+   "key": "F1",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    0
+   ]
+  },
+  {
+   "op": "tap",
+   "key": "TAB",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "TAB",
+   "after": 1.0
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "W",
+    "A"
+   ],
+   "s": 8
+  },
+  {
+   "op": "hold",
+   "key": "ENTER",
+   "s": 0.6
+  },
+  {
+   "op": "check",
+   "radar_locked": true
+  },
+  {
+   "op": "tap",
+   "key": "U",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "radar_locked": false
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": 5
+  },
+  {
+   "op": "tap",
+   "key": "T",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "T",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "radar_locked": true
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "W",
+    "D"
+   ],
+   "s": 8
+  },
+  {
+   "op": "hold",
+   "key": "ENTER",
+   "s": 0.6
+  },
+  {
+   "op": "tap",
+   "key": "U",
+   "after": 1.0
+  },
+  {
+   "op": "check",
+   "radar_locked": false
+  },
+  {
+   "op": "brake_to_stop",
+   "max_s": 8
+  },
+  {
+   "op": "wait",
+   "s": -1
+  }
+ ]
+}

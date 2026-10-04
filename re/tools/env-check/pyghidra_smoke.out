@@ -1,0 +1,3 @@
+C:\Users\james\i76-map\tools\env-check\pyghidra_smoke.py:1: SyntaxWarning: invalid escape sequence '\p'
+  """Task 6(c): PyGhidra smoke test. Opens a scratch project (NOT ghidra\proj), imports the pristine exe
+{"pyghidra": "2.2.1", "ghidra_install_dir": "C:\\Users\\james\\Downloads\\ghidra_11.4.1_PUBLIC_20250731\\ghidra_11.4.1_PUBLIC", "ghidra_version": "11.4.1", "ghidra_release": "PUBLIC", "java_version": "21.0.8", "start_s": 8.5, "program": "i76.exe.2017galaxy", "image_base": "00400000", "language": "x86:LE:32:default", "compiler_spec": "windows", "blocks": [["Headers", "00400000", 1024], [".text", "00401000", 765952], [".rdata", "004bc000", 22528], [".data", "004c2000", 1736440], [".rsrc", "0066a000", 1024]], "functions_before_analysis": 171, "total_s": 21.1}

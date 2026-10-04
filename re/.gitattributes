@@ -1,0 +1,3 @@
+# Keep every byte as-is: no EOL conversion anywhere. The archive must match MANIFEST.md5
+# after a checkout, and the map files are read by tools that expect LF.
+* -text

@@ -1,0 +1,19 @@
+{
+ "id": "camera-hood",
+ "description": "Crash repro (2026-10-02, camera-cycle baseline run 131502): t01 direct boot on i76.exe, F1 then F6 (PRESET_VIEW_4 = hood camera, transition 0x407500, per-frame 0x407680). The baseline run died with 0xC0000005 one frame after the callback changed to 0x407680, with the car coasting at 5 m/s. The watch thread logs the camera mode; the game surviving 10 s in the hood view is the check.",
+ "duration_s": 30,
+ "covers": ["hood camera crash repro"],
+ "watch": ["cam"],
+ "steps": [
+  {"op": "check", "player_present": true},
+  {"op": "tap", "key": "F1", "after": 2.0},
+  {"op": "tap", "key": "F6", "after": 3.0},
+  {"op": "check", "cam_mode_in": [1], "player_present": true},
+  {"op": "wait", "s": 5},
+  {"op": "tap", "key": "F1", "after": 2.0},
+  {"op": "hold", "key": "W", "s": 3},
+  {"op": "tap", "key": "F6", "after": 3.0},
+  {"op": "check", "cam_mode_in": [1], "player_present": true},
+  {"op": "wait", "s": -1}
+ ]
+}

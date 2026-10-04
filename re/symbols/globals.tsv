@@ -1,0 +1,161 @@
+# globals.tsv - written only by tools/merge.py. addr class per gate A (init|bss|iat); width cites a width-from instruction (gate T); readers/writers: method=capstone ref-sites listed in the evidence rows.
+# status: auto|proposed|supported|anchored|library|synthetic. evidence_ids -> evidence/E*.json
+addr	class	width	type	name	status	readers	writers	bound_evidence	evidence_ids
+0x4bc3c4	iat	4	FARPROC	_SmackNextFrame@4	anchored	call=2 load=0 (imports.tsv, capstone)			E40379
+0x4bc3c8	iat	4	FARPROC	_SmackWait@4	anchored	call=1 load=0 (imports.tsv, capstone)			E40380
+0x4bc3cc	iat	4	FARPROC	_SmackBufferSetPalette@4	anchored	call=2 load=0 (imports.tsv, capstone)			E40381
+0x4bc3d0	iat	4	FARPROC	_SmackOpen@12	anchored	call=0 load=1 (imports.tsv, capstone)			E40382
+0x4bc3d4	iat	4	FARPROC	_SmackBufferNewPalette@12	anchored	call=1 load=0 (imports.tsv, capstone)			E40383
+0x4bc3d8	iat	4	FARPROC	_SmackSoundOnOff@8	anchored	call=2 load=0 (imports.tsv, capstone)			E40384
+0x4bc3dc	iat	4	FARPROC	_SmackToBuffer@28	anchored	call=2 load=0 (imports.tsv, capstone)			E40385
+0x4bc3e0	iat	4	FARPROC	_SmackClose@4	anchored	call=6 load=0 (imports.tsv, capstone)			E40386
+0x4bc3e4	iat	4	FARPROC	_SmackToBufferRect@8	anchored	call=0 load=1 (imports.tsv, capstone)			E40387
+0x4bc3e8	iat	4	FARPROC	_SmackColorRemap@16	anchored	call=1 load=0 (imports.tsv, capstone)			E40388
+0x4bc3ec	iat	4	FARPROC	_SmackDoFrame@4	anchored	call=2 load=0 (imports.tsv, capstone)			E40389
+0x4bc3f0	iat	4	FARPROC	_SmackBufferBlit@32	anchored	call=0 load=1 (imports.tsv, capstone)			E40390
+0x4bc3f4	iat	4	FARPROC	_SmackBufferClose@4	anchored	call=5 load=0 (imports.tsv, capstone)			E40391
+0x4bc3f8	iat	4	FARPROC	_SmackSoundUseDirectSound@4	anchored	call=2 load=0 (imports.tsv, capstone)			E40392
+0x4bc3fc	iat	4	FARPROC	_SmackBufferOpen@24	anchored	call=1 load=0 (imports.tsv, capstone)			E40393
+0x4bc528	init	4	float	const_neg_1deg_rad	supported	0x405b90;0x4061b0			E40988;E40989;E40990
+0x4bd19c	init	4	float	const_9_8f	supported	0x438fd0			E41017;E41018;E41019
+0x4bd31c	init	4	float	const_0_05f	supported	0x443fc0			E41014;E41015;E41016
+0x4be994	init	4	float	const_ms_to_s	supported	0x49c7f0;0x49c920			E40903;E40904;E40905
+0x4be9ac	init	4	float	simclock_dt_min	supported	0x49c920			E40906;E40907;E40908
+0x4be9b0	init	4	float	simclock_dt_max	supported	0x49c920			E40909;E40910;E40911
+0x4c2164	init	4	int32	game_state	proposed	0x4022e0;0x402610;0x402b30	0x4022e0;0x402620;0x402b30		E40912;E40913;E40914;E43086;E43087
+0x4c271c	init	4	float	world_far_clip	supported	0x405970	0x4b8a10		E41020;E41021;E41022
+0x4c2720	init	4	FARPROC	camera_look_callback	supported	0x402b30;0x4058b0;0x405910;0x406920;0x406e00;0x406f30;0x407500;0x407930;0x407950;0x407ea0;0x408030;0x408350;0x4084a0;0x4085f0;0x408770;0x4088f0;0x408b50;0x408c60;0x409030;0x409140;0x409270;0x409400;0x409540;0x463800	0x406920;0x406e00;0x406f30;0x407500;0x407950;0x407ea0;0x408030;0x408350;0x4084a0;0x4085f0;0x408770;0x4088f0;0x408b50;0x409030;0x409270;0x409400;0x49d420		E40982;E40983;E40984
+0x4c2728	init	4	int32	camera_mode	supported	0x405910;0x405970;0x406920;0x406e00;0x406f30;0x407500;0x407950;0x407ad0;0x407ea0;0x408030;0x408350;0x4084a0;0x4085f0;0x408770;0x4088f0;0x408b50;0x408c60;0x409030;0x409140;0x409270;0x409400;0x409540;0x4096c0;0x44ed50;0x45be20;0x463800	0x405970;0x406920;0x406e00;0x406f30;0x407500;0x407950;0x407ea0;0x408030;0x408350;0x4084a0;0x4085f0;0x408770;0x4088f0;0x408b50;0x409030;0x409270;0x409400;0x49d420		E40985;E40986;E40987
+0x4c2908	init	4	void*	world_ctx_cache	supported	0x4026c0;0x405b90;0x4061b0;0x406ab0;0x4071a0;0x407680;0x407ad0;0x408240;0x408a10;0x408c60;0x409140;0x409540;0x421b40;0x422440;0x422750;0x422b40;0x445750;0x44ed50;0x457a90;0x457ff0;0x45adf0;0x45be20	0x4026c0;0x405970;0x405b90;0x4061b0;0x406920;0x406ab0;0x406e00;0x406f30;0x4071a0;0x407500;0x407680;0x407950;0x407ad0;0x407ea0;0x408030;0x408240;0x408350;0x4084a0;0x4085f0;0x408770;0x4088f0;0x408a10;0x408b50;0x408c60;0x409030;0x409140;0x409270;0x409400;0x409540;0x421b40;0x422440;0x422750;0x422b40;0x445750;0x457a90;0x457ff0;0x45adf0;0x45be20		E40995;E40996;E40997
+0x4ed890	init	4	uint32	mci_cdaudio_device_id	proposed	0x423f7a;0x423d74	0x423c41;0x423c68;0x423f93		E41006;E41007;E41008;E41385;E41386;E41387;E41388;E42723;E42724;E42736;E42737;E42930;E42931;E43096;E43097;E43098;E43110;E43111;E43112
+0x4f2488	init	4	float	ffb_simstate_dt	supported		0x445a60;0x445ba0		E40918;E40919;E40920
+0x4f3320	init		struct{char* name; uint32 id}[80]	gamekey_name_table	proposed	0x44d6ba			E41248;E41249
+0x4f54e8	init	4	char	input_tag_tracker	proposed				E41428;E41429;E41430
+0x4f56ac	init	4	char	input_tag_joystick	proposed				E41431;E41432;E41433
+0x4fcdd8	init	4	void*	options_callback_4fcdd8	proposed		0x495b1c;0x495b4c		E41541;E41542;E41543;E41544
+0x4fe420	init	4	float	simclock_sim_dt	proposed		0x49cb9b		E42983;E42984;E42985
+0x4fe424	init	4	float	simclock_sim_rate	proposed		0x49cb7c		E42986;E42987;E42988
+0x4fe428	init	4	float	simclock_dt	supported	0x49c8b0	0x49c920;0x49c7f0		E40451;E40452;E40453;E40454
+0x4fe42c	init	4	float	simclock_rate	proposed		0x49ca6a		E42989;E42990;E42991
+0x4fe534	init	4	uint32	render_gate_flags	proposed	0x402b30;0x421b40;0x422340;0x44de40;0x44e030;0x45adf0;0x45be20;0x45e2b0;0x462130;0x4621e0;0x49c920;0x49cdd0;0x49cdf0;0x49d000;0x49d140	0x49cdc0;0x49cdd0;0x49cdf0;0x49d000;0x49d140		E40915;E40916;E40917;E43043;E43044
+0x5049f0	bss	1	char	startup_mission_name	supported	0x402d6f;0x403491;0x4034a6;0x4034bb;0x4034ef	0x402d33;0x403421;0x49d1e0		E41782;E41783;E41784;E41785;E41786;E41787;E41788;E41789;E41790;E41791;E41796;E41797;E41798;E41799
+0x524674	bss	4	uint32	mci_cdaudio_active	proposed	0x423f71;0x423dac	0x423d84;0x423f9d		E41002;E41003;E41004;E41005;E41382;E41383;E41384;E42738;E42739;E42932;E42933;E43099;E43100;E43101;E43113;E43114;E43115
+0x524678	bss	4	uint32	mci_cdaudio_open_error	proposed	0x470f96;0x470fae;0x470fbb	0x423c18		E41378;E41379;E41380;E41381;E41519;E41520;E41521;E41522;E41523;E42725;E42726
+0x5280cc	bss	4	unsigned int	renderer_surface_locked	proposed				E42774;E42775;E42776;E42777;E42941;E42942;E42943;E42944;E42954;E42955;E42956;E42957
+0x5280d8	bss	4	unsigned int	renderer_flip_pending	proposed				E42778;E42779;E42780;E42781
+0x5280e0	bss	4	uint32	renderer_texture_mem_low	proposed				E43402;E43403
+0x52bbcc	bss	4	HANDLE	ffb_heap	proposed	0x445b10;0x445ba0;0x445f70;0x445fd0	0x445a60;0x445b10		E41009;E41010;E41011;E41012;E41013;E43030;E43031
+0x52bbd8	bss	4	uint32	ffb_enabled	proposed				E42963;E42964;E42970;E42971
+0x52bbdc	bss	4	FARPROC	ffb_fn_I7FF_InitSystem	anchored		0x446089		E40442;E40443;E40444
+0x52bbe0	bss	4	FARPROC	ffb_fn_I7FF_ExitSystem	proposed		0x446096		E40445;E40446;E40447;E43269;E43270
+0x52bbe4	bss	4	FARPROC	ffb_fn_I7FF_SIM_Effect	proposed		0x4460a3		E40448;E40449;E40450;E43217;E43218
+0x531d04	bss	4	HANDLE	heap_531d04	anchored		0x447f90		E40474;E40475;E40476
+0x535f68	bss	4	HANDLE	heap_535f68	anchored		0x44ae30		E40477;E40478;E40479
+0x535f74	bss	4	int32	input_cursor_show_count	proposed				E41453;E41454;E41455;E41456;E41457;E41458;E43289;E43290;E43291;E43292
+0x536770	bss	4	int32	input_pilot_yaw_delta	anchored	0x406ab0;0x4071a0;0x407680;0x44dcc0	0x44ed50;0x44f830		E40943;E40944;E40945;E40946;E40947
+0x536778	bss	4	int32	input_pilot_pitch	anchored	0x406ab0;0x4071a0;0x407680	0x44ed50;0x44f830		E40948;E40949;E40950;E40951;E40952
+0x536780	bss	4	int32	input_pilot_roll	anchored	0x406ab0;0x4071a0;0x407680	0x44ed50;0x44f830		E40953;E40954;E40955;E40956;E40957
+0x53679c	bss	4	int32	input_track_yaw_delta	proposed	0x405b90;0x4061b0	0x402b30;0x456ea0;0x463a80;0x464890;0x466180;0x46c8b0		E40958;E40959;E40960;E40961;E40962;E42490;E42491;E42492
+0x5367cc	bss	4	int32	input_throttle	anchored	0x44f1c0			E40933;E40934;E40935;E40936;E40937
+0x5367d0	bss	1	uint8	input_throttle_up	anchored	0x44f1c0			E40968;E40969;E40970;E40971;E40972
+0x5367d4	bss	4	int32	input_steer	anchored	0x44f1c0			E40938;E40939;E40940;E40941;E40942
+0x5367db	bss	1	uint8	input_weapon_fire	anchored	0x4a5870			E40973;E40974;E40975;E40976;E40977
+0x5367de	bss		uint8	input_hardpoint1_fire	anchored				E40978;E40979;E40980;E40981
+0x5367e7	bss	1	uint8	input_toggle_lights	proposed	0x44f4d5			E42418;E42419;E42420
+0x5367f9	bss	1	uint8	input_self_destruct	proposed	0x44f580	0x44e1d8;0x44f594;0x495abf		E42910;E42911;E42912;E42913;E42914
+0x536808	bss	4	int32	input_menu_item	anchored		0x44dcc0		E40963;E40964;E40965;E40966;E40967
+0x53eb40	bss	4	uint32	gamekey_key_queue_head	supported	0x44e700;0x44e72a;0x44e844;0x44e9f3	0x44e733;0x44e73a;0x44e852;0x44e85a;0x44e8ee;0x44ea09		E41240;E41241;E41242;E41243
+0x53eb44	bss	4	uint32	gamekey_key_queue_tail	supported	0x44e705;0x44e81e;0x44e9cd	0x44e82f;0x44e836;0x44e8e4;0x44e9de;0x44e9e5		E41244;E41245;E41246;E41247
+0x541024	bss	4	void *	net_dp	proposed				E41510;E41511;E41512;E41513;E42443;E42444;E42445
+0x541030	bss	4	uint32	net_game_flag	proposed	0x452d20	0x452d34;0x452d4b;0x45386c		E41361;E41362;E41363;E42446;E42447;E42448;E42859;E42860
+0x541060	bss	2	uint16_t	net_group_id	proposed				E41514;E41515;E41516;E41517;E41518
+0x54a264	bss	4	void*	world_root	supported	0x457530;0x457540;0x4577f0;0x457a90;0x457ff0	0x457100;0x4572b0;0x457420		E40991;E40992;E40993;E40994
+0x54b67c	bss	4	uint32	renderer_mask_enabled	proposed				E43045;E43046
+0x588dec	bss	4	uint32	spatial_registry_count	supported	0x468040;0x4680a0;0x468270;0x468440;0x468620;0x4687f0;0x468c40;0x468dc0;0x469210;0x469680	0x468040;0x4680a0;0x468270;0x468440;0x468620;0x4687f0;0x468c40;0x468dc0;0x469210;0x469680		E40929;E40930;E40931;E40932
+0x58d92c	bss	1	uint8	cd2_drive_index	supported	0x47109c	0x470fe4;0x471079		E41371;E41372;E41373;E41374
+0x58d930	bss	4	uint32	cd_scan_index	proposed	0x47100a	0x470fde;0x47103a		E41375;E41376;E41377;E43305;E43306;E43307;E43308
+0x58dac8	bss	4	HANDLE	heap_58dac8	proposed		0x474c10		E40480;E40481;E40482;E43658;E43659;E43660;E43661;E43662
+0x58daf4	bss	4	uint32	font_lee_loaded	proposed				E41696;E41697;E41698;E41699;E41700;E41701
+0x59c568	bss	4	void*	pool_count_59c568	supported	0x490a00;0x4911e0;0x4918b0;0x4918f0	0x490a00;0x4911e0;0x4918b0;0x4918f0		E41027;E41028;E41029;E41030
+0x5a7c90	bss	4	FILE*	profiler_file	supported		0x498af0;0x498c00		E40467;E40468;E40469;E40470
+0x5a7cc0	bss	4	HANDLE	heap_5a7cc0	proposed		0x499c90		E40486;E40487;E40488;E43672;E43673;E43681;E43682;E43683
+0x5a7cc8	bss	4	HANDLE	heap_5a7cc8	anchored		0x499c90		E40483;E40484;E40485
+0x5a7cd8	bss	4	char	image_smk_path	proposed				E42897;E42898;E42899
+0x5a7d70	bss	4	uint32	image_smack_handle	proposed				E43576;E43577;E43578;E43579
+0x5a7d74	bss	4	uint32	image_smack_buffer	proposed				E43580;E43581
+0x5a7d9c	bss	4	HANDLE	heap_5a7d9c	anchored		0x49b7e0		E40489;E40490;E40491
+0x5a7da0	bss	4	HANDLE	heap_5a7da0	proposed		0x49c300		E40492;E40493;E40494;E43687;E43688;E43689;E43690
+0x5a7e10	bss	4	float	simclock_last_tick	proposed		0x49ca2e		E42995;E42996;E42997
+0x5a7e14	bss	4	float	simclock_accum_dt	supported	0x49c7e0	0x49c920;0x49c7f0		E40463;E40464;E40465;E40466
+0x5a7e1c	bss	4	uint32	simclock_frame_count	supported	0x49c7d0	0x49c920;0x49c7f0		E40459;E40460;E40461;E40462
+0x5a7e70	bss	4	float	simclock_sim_time	proposed		0x49cba6		E42992;E42993;E42994;E43184;E43185;E43198;E43199
+0x5a7e74	bss	4	float	simclock_time	supported	0x49c8c0	0x49c920;0x49c7f0		E40455;E40456;E40457;E40458
+0x5a80f4	bss	4	HANDLE	heap_5a80f4	proposed				E43597;E43598;E43599
+0x5a8104	bss	4	HANDLE	heap_5a8104	anchored		0x49f1f0		E40495;E40496;E40497
+0x5d88d4	bss	4	int32	weapon_def_count	supported	0x4a2ff0	0x4a2d30;0x4a2ff0		E40998;E40999;E41000;E41001
+0x5da78c	bss	4	int32	weapon_record_count	proposed	0x4a4155			E41772;E41773;E41774;E42622;E42623;E42624;E42625;E42626
+0x5da798	bss	4	uint32	ammo_unlimited_active	proposed		0x4a419b;0x4a41a7		E41767;E41768;E41769;E41770;E41771;E42627;E42628;E42629;E42630;E42631;E42632
+0x5da7b8	bss	4	uint32	math_random_index	proposed				E43607;E43608
+0x5da7c0	bss	4	float	math_random_table	proposed				E43609;E43610
+0x5dabb0	bss	1	char	vfs_filename_buf	proposed				E43520;E43521
+0x5db97c	bss	4	uint32	bwd2_mission_data	proposed				E43071;E43072
+0x5db980	bss	4	uint32	bwd2_mission_data_end	proposed				E43073;E43074
+0x5db990	bss	4	HANDLE	heap_5db990	proposed		0x4b9dd0		E40498;E40499;E40500;E43700;E43701;E43707;E43708;E43709
+0x5db998	bss		char	zfs_error_message	proposed				E41669;E41670;E41671;E41672;E41673;E41674
+0x5dcf30	bss	4	int32	input_client_height	proposed				E41459;E41460;E41461;E41462;E41463;E41464
+0x5dd2bc	bss	4	FARPROC	present_fn_5dd2bc	supported	0x401cc0;0x401fa0;0x402b30;0x45e190;0x477300;0x477760;0x496870;0x49a670			E40921;E40922;E40923;E40924
+0x5dd2c0	bss	4	FARPROC	present_fn_5dd2c0	supported	0x401fa0;0x402b30;0x45e190;0x477300;0x477760;0x496870;0x49a670			E40925;E40926;E40927;E40928
+0x5dd320	bss	4	void*	pool_5dd320	supported	0x402b30;0x4420b0;0x442480;0x442ba0;0x443fc0;0x445060;0x45c380;0x45c850;0x45d100;0x45d530;0x45dcc0;0x48e900;0x48f570;0x490640;0x490a00;0x4911e0;0x491810;0x4918f0;0x491a30;0x4922f0;0x4924b0;0x4937c0;0x4b8f70;0x4bb1c0;0x4bb5a0	0x402b30		E41031;E41032;E41033;E41034
+0x5dd324	bss	4	void*	pool_5dd324	supported	0x402b30;0x45c850;0x45d100;0x45d530;0x45dcc0;0x490a00	0x402b30		E41035;E41036;E41037;E41038
+0x5fcdc0	bss	4	DS3DLISTENER	ds3d_listener	supported	0x421962;0x421967;0x42196d;0x421978;0x421983;0x42198f	0x421239;0x4224ab;0x4224bb;0x4224c5;0x4224cb;0x4224d7;0x4224e3;0x4224ed;0x4224ff;0x42250b;0x422518;0x42251e;0x422524		E41250;E41251;E41252;E41253;E41254
+0x6080b8	bss	4	void *	renderer_ddraw	proposed				E43404;E43405
+0x6080c0	bss	4	void *	renderer_flip_surface	proposed				E42782;E42783;E42784;E42785
+0x6080c4	bss	4	void *	renderer_lock_surface	proposed				E42786;E42787;E42788;E42789
+0x608400	bss	4	int	renderer_surface_width	proposed				E42790;E42791;E42792;E42793
+0x608404	bss	4	int	renderer_surface_height	proposed				E42794;E42795;E42796;E42797
+0x608424	bss	4	int	renderer_client_width	proposed				E43418;E43419;E43420
+0x608428	bss	4	int	renderer_client_height	proposed				E43421;E43422;E43423
+0x60865e	bss	2	uint16	renderer_mask_color16	proposed				E43047;E43048
+0x608ba4	bss	4	FARPROC	renderer_fn_SetLumaTable	anchored		0x426a1c		E40394;E40395;E40396
+0x608ba8	bss	4	FARPROC	renderer_fn_FirstDevice	anchored		0x426a29		E40397;E40398;E40399
+0x608bac	bss	4	FARPROC	renderer_fn_LastDevice	anchored		0x426a36		E40400;E40401;E40402
+0x608bb0	bss	4	FARPROC	renderer_fn_Render	anchored		0x426a43		E40403;E40404;E40405
+0x608bb4	bss	4	FARPROC	renderer_fn_RenderRefresh	anchored		0x426a50		E40406;E40407;E40408
+0x608bbc	bss	4	FARPROC	renderer_fn_GetSocketCaps	anchored		0x426a5d		E40409;E40410;E40411
+0x608bc0	bss	4	FARPROC	renderer_fn_SetState	anchored		0x426a6a		E40412;E40413;E40414
+0x608bc4	bss	4	FARPROC	renderer_fn_SetTexturePalette	anchored		0x426a77		E40415;E40416;E40417
+0x608bc8	bss	4	FARPROC	renderer_fn_LockDisplay	proposed		0x426a84		E40418;E40419;E40420;E42945;E42946
+0x608bcc	bss	4	FARPROC	renderer_fn_UnlockDisplay	anchored		0x426a91		E40421;E40422;E40423
+0x608bd0	bss	4	FARPROC	renderer_fn_RefreshDisplay	anchored		0x426a9e		E40424;E40425;E40426
+0x608bd4	bss	4	FARPROC	renderer_fn_PreloadTexture	anchored		0x426aab		E40427;E40428;E40429
+0x608bd8	bss	4	FARPROC	renderer_fn_RenderNoClip	anchored		0x426ab8		E40430;E40431;E40432
+0x608bdc	bss	4	FARPROC	renderer_fn_RestoreDevice	anchored		0x426ac5		E40433;E40434;E40435
+0x608be0	bss	4	FARPROC	renderer_fn_LostDeviceDisplay	anchored		0x426ad2		E40436;E40437;E40438
+0x608be4	bss	4	FARPROC	renderer_fn_UpdateTexture	anchored		0x426add		E40439;E40440;E40441
+0x608be8	bss	4	HANDLE	heap_608be8	proposed		0x43e950		E40471;E40472;E40473;E43635;E43636;E43637
+0x608e60	bss	2	uint16[64]	gamekey_key_queue	supported	0x44e71f	0x44e823;0x44e9d2	cmp-imm@0x44e730:64	E41233;E41234;E41235;E41236;E41237;E41238;E41239
+0x609520	bss	1	uint8[26]	cdrom_drive_flags	proposed	0x470ff7	0x470d13	cmp-imm@0x470d1d:26	E41364;E41365;E41366;E41367;E43137;E43138;E43309;E43310
+0x609540	bss		char[32]	cd_volume_label	proposed	0x47106b	0x471034		E41368;E41369;E41370
+0x654380	bss	4	void*	pool_cursor_654380	supported	0x490a00;0x4911e0;0x491810;0x4918b0;0x4918f0	0x490a00;0x4911e0;0x491810;0x4918b0;0x4918f0		E41023;E41024;E41025;E41026
+0x654b81	bss	1	uint8	options_clouds	proposed	0x496239,0x49626a	0x49622c;0x49625f;0x496282		E43710;E43711;E43712;E43713
+0x654b82	bss	1	uint8	options_terrain_detail	proposed	0x49657a	0x496556;0x49656d		E43714;E43715;E43716;E43717
+0x654b86	bss	1	uint8	options_shadow_detail	proposed	0x4965a9,0x4965dd	0x4965c4;0x4965d6		E43721;E43722;E43723;E43724
+0x654b87	bss	1	uint8	options_terrain_resolution	proposed	0x4964d9,0x4964fb	0x4964f4;0x49651d		E43725;E43726;E43727;E43728
+0x654b89	bss	1	uint8	options_object_detail	proposed	0x4963b9	0x4963d4;0x4963e6		E43718;E43719;E43720
+0x654b8a	bss	1	uint8	options_visibility_range	proposed	0x496129,0x49614b	0x496144;0x49616c		E43729;E43730;E43731;E43732
+0x654b8b	bss	1	uint8	options_terrain_textures	proposed	0x496449,0x49647a	0x49643c;0x49646f;0x496497		E43733;E43734;E43735;E43736
+0x654b8c	bss	1	uint8	options_brightness	proposed	0x4960c5	0x496010;0x496091		E43737;E43738;E43739;E43740
+0x654b8d	bss	1	uint8	options_rear_mirror	proposed	0x4961a9,0x4961cb	0x4961c4;0x4961f1		E43741;E43742;E43743;E43744
+0x654b8e	bss	1	uint8	options_ext_instruments	proposed	0x496349,0x49636b	0x496364;0x496382		E43745;E43746;E43747;E43748
+0x654b8f	bss	1	uint8	options_horizon_textures	proposed	0x4962c9,0x4962fa	0x4962bc;0x4962ef;0x496312		E43749;E43750;E43751;E43752
+0x654b90	bss	1	uint8	options_music_level	proposed	0x496669	0x496635;0x496655		E43753;E43754;E43755;E43756
+0x654b91	bss	1	uint8	options_sfx_level	proposed	0x4966a9,0x4966f5	0x4966c1;0x4966e1		E43757;E43758;E43759;E43760
+0x654b92	bss	1	uint8	options_voice_level	proposed	0x496739,0x496785	0x496751;0x496771		E43761;E43762;E43763;E43764
+0x654b93	bss	1	uint8	options_sound_channels	proposed	0x4967f3	0x4967c6;0x4967d8		E43765;E43766;E43767;E43768
+0x654b98	bss	4	uint32	options_play_flags	proposed	0x4659d9;0x465a8c;0x4658fe;0x4659a3;0x4a418b;0x438f06;0x4950e8;0x495987;0x497781;0x495226;0x497241;0x497a00;0x495d1a;0x495d3b	0x495d23;0x495d30;0x495d06;0x495c96;0x495cb3;0x495cc0;0x495d93;0x495da0;0x495e03;0x495e10;0x495c2d;0x495c4e;0x495ba7;0x495bc0		E41345;E41346;E41347;E41348;E41349;E41350;E41351;E42553;E42554;E42555;E42556;E42557;E42915;E42916;E42917;E42918;E43225;E43226;E43227;E43228;E43238;E43239;E43240
+0x654b9c	bss	1	uint8	options_difficulty	proposed	0x495e53;0x495e7f	0x495e78;0x495e96		E41355;E41356;E41357
+0x654bf8	bss	4	uint32	options_play_flags_saved	proposed	0x495d01;0x495b81;0x495c01;0x495c91;0x495d71;0x495de1	0x497651		E41352;E41353;E41354;E43229;E43230;E43241;E43242
+0x654bfc	bss	1	uint8	options_difficulty_saved	proposed	0x495e91	0x495e8a		E41358;E41359;E41360
+0x6562c0	bss	4	uint32	bwd2_mission_number	proposed				E43075;E43076
+0x6562d0	bss	4	void*	vfs_cd_prompt_fn	supported	0x4b2faa	0x47139c		E41537;E41538;E41539;E41540
+0x669ee0	bss	4	void*	vfs_cd_probe_fn	supported	0x4b282f	0x471388		E41533;E41534;E41535;E41536

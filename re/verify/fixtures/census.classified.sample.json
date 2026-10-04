@@ -1,0 +1,22 @@
+{
+ "_comment": "Synthetic fixture for make_units.py census-grade (VERIFICATION-PROGRAM.md 2.2). One run = one scenario. Rows are per hooked function: {addr, scenario, frames, calls, frames_with_calls, calls_per_frame_hist {calls-in-a-frame: frame-count}, callers {return-site function addr: count}, first_frame, last_frame, classification}. `events` are the telemetry event counts of the same run (events.csv); when absent make_units reads <run>/events.csv. Addresses below are physics functions that have cadence-claim units; the numbers are invented. A bare JSON list of rows is also accepted (scenario taken from the run directory name).",
+ "scenario": "drive",
+ "run": "fixtures/drive/synthetic",
+ "frames": 2400,
+ "step_count_mean": 1.6,
+ "events": {"gear": 2, "impact": 1, "shot": 0, "damage": 0},
+ "functions": [
+  {"addr": "0x434670", "scenario": "drive", "frames": 2400, "calls": 3812, "frames_with_calls": 2398,
+   "calls_per_frame_hist": {"0": 2, "1": 988, "2": 1410}, "callers": {"0x438fd0": 3812},
+   "first_frame": 1, "last_frame": 2400, "classification": "per_substep"},
+  {"addr": "0x4346d0", "scenario": "drive", "frames": 2400, "calls": 2400, "frames_with_calls": 2400,
+   "calls_per_frame_hist": {"1": 2400}, "callers": {"0x402b30": 2400},
+   "first_frame": 1, "last_frame": 2400, "classification": "per_frame"},
+  {"addr": "0x434960", "scenario": "drive", "frames": 2400, "calls": 57, "frames_with_calls": 19,
+   "calls_per_frame_hist": {"0": 2381, "3": 19}, "callers": {"0x438fd0": 57},
+   "first_frame": 212, "last_frame": 2290, "classification": "irregular"},
+  {"addr": "0x4349c0", "scenario": "drive", "frames": 2400, "calls": 0, "frames_with_calls": 0,
+   "calls_per_frame_hist": {"0": 2400}, "callers": {},
+   "first_frame": null, "last_frame": null, "classification": "never"}
+ ]
+}

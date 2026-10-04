@@ -1,0 +1,266 @@
+{
+ "id": "camera-cycle",
+ "description": "Instant Melee on i76_pristine_fix.exe (run_scenario --nomission --exe i76_pristine_fix.exe --ai 1), not the t01 boot of VERIFICATION-PROGRAM 2.1: t01 ends when 'groove' reaches the car (frame 1603 = 51 s after the hand-over in run 132350, with the key taps then landing on the debrief and the process dying), and the sandbox's patched i76.exe dies with 0xC0000005 on the hood view F6 (one frame after the callback switches to 0x407680; runs 131502, 131634, 2/2) and about 1 s after the binoculars B (runs 132035, 132251, 2/2; the only sandbox patch in the camera range is 0x4059de..0x4059e3 in camera_ApplyViewOptions); i76_pristine_fix.exe survives both (runs 131741, 132350). Melee has no scripted end and one AI car, so F4 / F5 (target and enemy views, camera_mode 4) get a radar target (T first). Engine on, roll 3 s, then the preset views F1..F10 (sandbox gamekey.map / camera.md: F1 cockpit 0, F2 orbit 7, F3 reverse chase 1, F4 target view 4, F5 enemy view 4, F6 hood 1, F7 / F8 mounted 1, F9 chase 150 deg 1, F10 overview 3) 3 s each, F1 twice (the second flips 2D dash / 3D cockpit), binoculars B with zoom in (GreyPageDown = zoom_factor_plus) and reset (GreyEnd), B off, pilot glance (bare GreyArrows, E = glance at target), the orbit camera F2 with the Shift+GreyArrow track keys and GreyPageUp/Down track distance, V toggle_cmbt_view, F11 missile cam after a weapon_fire burst (only takes with a player projectile), the chase F3 and the cockpit F1 while driving. The watch thread logs every camera_mode / callback change with its frame.",
+ "duration_s": 90,
+ "covers": [
+  "camera modes",
+  "HUD",
+  "mirror",
+  "binoculars",
+  "zoom",
+  "free look",
+  "orbit keys",
+  "overview zoom"
+ ],
+ "watch": [
+  "cam",
+  "radar"
+ ],
+ "steps": [
+  {
+   "op": "wait",
+   "s": 2
+  },
+  {
+   "op": "check",
+   "player_present": true
+  },
+  {
+   "op": "start_engine",
+   "after": 1.5
+  },
+  {
+   "op": "check",
+   "engine_on": true
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": 3
+  },
+  {
+   "op": "tap",
+   "key": "T",
+   "after": 0.5
+  },
+  {
+   "op": "tap",
+   "key": "F1",
+   "after": 3.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    0
+   ]
+  },
+  {
+   "op": "tap",
+   "key": "F2",
+   "after": 3.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    7
+   ]
+  },
+  {
+   "op": "tap",
+   "key": "F3",
+   "after": 3.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    1
+   ]
+  },
+  {
+   "op": "tap",
+   "key": "F4",
+   "after": 3.0
+  },
+  {
+   "op": "tap",
+   "key": "F5",
+   "after": 3.0
+  },
+  {
+   "op": "tap",
+   "key": "F6",
+   "after": 3.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    1
+   ]
+  },
+  {
+   "op": "tap",
+   "key": "F7",
+   "after": 3.0
+  },
+  {
+   "op": "tap",
+   "key": "F8",
+   "after": 3.0
+  },
+  {
+   "op": "tap",
+   "key": "F9",
+   "after": 3.0
+  },
+  {
+   "op": "tap",
+   "key": "F10",
+   "after": 2.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    3
+   ]
+  },
+  {
+   "op": "hold",
+   "key": "GREYPGDN",
+   "s": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "F1",
+   "after": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "F1",
+   "after": 1.5
+  },
+  {
+   "op": "tap",
+   "key": "B",
+   "after": 1.5
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    2
+   ]
+  },
+  {
+   "op": "hold",
+   "key": "GREYPGDN",
+   "s": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "GREYEND",
+   "after": 0.5
+  },
+  {
+   "op": "tap",
+   "key": "B",
+   "after": 1.0
+  },
+  {
+   "op": "hold",
+   "key": "GREYLEFT",
+   "s": 1.2
+  },
+  {
+   "op": "hold",
+   "key": "GREYRIGHT",
+   "s": 1.2
+  },
+  {
+   "op": "hold",
+   "key": "GREYUP",
+   "s": 1.0
+  },
+  {
+   "op": "hold",
+   "key": "E",
+   "s": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "F2",
+   "after": 0.5
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "LSHIFT",
+    "GREYLEFT"
+   ],
+   "s": 1.5
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "LSHIFT",
+    "GREYUP"
+   ],
+   "s": 1.0
+  },
+  {
+   "op": "hold",
+   "key": "GREYPGDN",
+   "s": 1.0
+  },
+  {
+   "op": "hold",
+   "key": "GREYPGUP",
+   "s": 0.5
+  },
+  {
+   "op": "tap",
+   "key": "V",
+   "after": 1.5
+  },
+  {
+   "op": "tap",
+   "key": "V",
+   "after": 1.0
+  },
+  {
+   "op": "hold",
+   "key": "ENTER",
+   "s": 0.5
+  },
+  {
+   "op": "tap",
+   "key": "F11",
+   "after": 2.0
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "W",
+    "F3"
+   ],
+   "s": 3.0
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "W",
+    "F1"
+   ],
+   "s": 3.0
+  },
+  {
+   "op": "check",
+   "cam_mode_in": [
+    0
+   ]
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": -1
+  }
+ ]
+}

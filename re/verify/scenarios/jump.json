@@ -1,0 +1,27 @@
+{
+ "id": "jump",
+ "description": "t01 direct boot on i76.exe. From the hand-over (car at ~24 m/s) three airborne spells through fr_probe --place's write path: `launch` lifts the player object 1.5 m and sets the velocity's y to 12 m/s with x/z kept (a ramp exit at the current heading and speed: ~2.4 s of flight, apex ~7 m), `lift` raises the parked car 20 m and lets it fall (fr_probe --drop 20: 2.0 s, vy -19.6 at the ground). Each spell must set the airborne flag 0x4 (ent+0x454) and end in a landing (flag clears; physics.md: air branch of physics_IntegrateVehicleMotion, gravity -9.8, land when clearance < 0.5 m). The watch thread logs every airborne transition with its frame; the checks need > 40 airborne frames (2 s at 20 fps) before the end. t01 ends when the car comes within 50 m of 'groove' (data\\out\\fsm\\t01.fsm), about 45 s after the hand-over, so everything happens in the first 30 s.",
+ "duration_s": 90,
+ "covers": ["airborne flag", "landing", "fall", "gravity", "far-vehicle switch"],
+ "watch": ["airborne", "cam"],
+ "steps": [
+  {"op": "check", "player_present": true, "engine_on": true},
+  {"op": "hold", "key": "W", "s": 2},
+  {"op": "launch", "vy": 12.0, "dy": 1.5, "after": 0.5},
+  {"op": "check", "airborne": true},
+  {"op": "wait", "s": 4},
+  {"op": "check", "airborne": false, "airborne_frames_gt": 20},
+  {"op": "brake_to_stop", "max_s": 8},
+  {"op": "wait", "s": 1},
+  {"op": "lift", "m": 20.0, "after": 0.5},
+  {"op": "check", "airborne": true},
+  {"op": "wait", "s": 4},
+  {"op": "check", "airborne": false},
+  {"op": "hold", "key": "W", "s": 4},
+  {"op": "launch", "vy": 12.0, "dy": 1.5, "after": 0.5},
+  {"op": "check", "airborne": true},
+  {"op": "wait", "s": 4},
+  {"op": "check", "airborne": false, "airborne_frames_gt": 40},
+  {"op": "hold", "key": "W", "s": -1}
+ ]
+}

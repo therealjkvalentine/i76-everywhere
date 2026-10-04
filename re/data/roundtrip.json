@@ -1,0 +1,1886 @@
+{
+ "time": "2026-10-02T23:05:24",
+ "tool": "data/fmt/roundtrip.py",
+ "corpus": {
+  "zfs_out": "C:\\Users\\james\\i76-map\\recon-2026-09-04\\recon\\formats\\zfs_out",
+  "sandbox": "C:\\Users\\james\\i76-map\\sandbox-gog\\main\\app"
+ },
+ "families": [
+  {
+   "family": "smk",
+   "files": 29,
+   "bytes": 316812876,
+   "parsed": 29,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 316812876,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "smk": {
+     "cited": 0,
+     "typed": 316812876,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "RAD Smacker 2 header + frame size/type tables parsed; trees and frames are RAD's codec (SMACKW32.DLL)",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 100.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "pak",
+   "files": 1758,
+   "bytes": 70149016,
+   "parsed": 1758,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 67978700,
+    "typed": 0,
+    "unused": 2170316,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "pak/.vqm": {
+     "cited": 6902772,
+     "typed": 0,
+     "unused": 24000,
+     "unknown": 0
+    },
+    "pak/.geo": {
+     "cited": 16115308,
+     "typed": 0,
+     "unused": 2047136,
+     "unknown": 0
+    },
+    "pak/.m16": {
+     "cited": 41505584,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "pak/.tmt": {
+     "cited": 175668,
+     "typed": 0,
+     "unused": 99180,
+     "unknown": 0
+    },
+    "pak/.map": {
+     "cited": 3279368,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "members split by the sibling .pix; each member decoded by its extension",
+   "coverage_pct": {
+    "cited": 96.91,
+    "typed": 0.0,
+    "unused": 3.09,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "ter",
+   "files": 80,
+   "bytes": 59703296,
+   "parsed": 80,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 59703296,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "ter": {
+     "cited": 59703296,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "N x 32 KiB tiles",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "wav",
+   "files": 508,
+   "bytes": 28011479,
+   "parsed": 508,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 28011479,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "wav": {
+     "cited": 28011479,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "standard RIFF WAVE PCM (8-bit mono 11025 Hz); identity",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "m16",
+   "files": 225,
+   "bytes": 8901426,
+   "parsed": 225,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 8901426,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "m16": {
+     "cited": 8901426,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "w, h|0x80000000, w*h u8 indices, u32 n, n x u16 RGB565 palette (flag set in every corpus file)",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "mw2",
+   "files": 1,
+   "bytes": 8204554,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 6913365,
+    "typed": 1291189,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "mw2/index": {
+     "cited": 336,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "mw2/pcx": {
+     "cited": 3741035,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "mw2/shp": {
+     "cited": 3090374,
+     "typed": 5776,
+     "unused": 0,
+     "unknown": 0
+    },
+    "mw2/fnt": {
+     "cited": 81620,
+     "typed": 270588,
+     "unused": 0,
+     "unknown": 0
+    },
+    "mw2/wav": {
+     "cited": 0,
+     "typed": 1009620,
+     "unused": 0,
+     "unknown": 0
+    },
+    "mw2/text": {
+     "cited": 0,
+     "typed": 5205,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "mw2db.py: u32 count + offsets; members decoded to values and re-encoded (LZSS-packed PCX backgrounds, '1.10' shape tables, '1.' fonts; WAV and credits text held whole); consumer i76shell.dll TMPackDataBaseObj",
+   "coverage_pct": {
+    "cited": 84.26,
+    "typed": 15.74,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:msn",
+   "files": 80,
+   "bytes": 7830056,
+   "parsed": 80,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 6165792,
+    "typed": 0,
+    "unused": 1664264,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 73376,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "WDEF/WREV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "WDEF/WRLD": {
+     "cited": 23920,
+     "typed": 0,
+     "unused": 2560,
+     "unknown": 0
+    },
+    "WDEF/EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "TDEF/TREV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "TDEF/ZMAP": {
+     "cited": 512080,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "TDEF/ZONE": {
+     "cited": 1040,
+     "typed": 0,
+     "unused": 80,
+     "unknown": 0
+    },
+    "TDEF/EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "RDEF/RREV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "RDEF/RSEG": {
+     "cited": 2877456,
+     "typed": 0,
+     "unused": 1433520,
+     "unknown": 0
+    },
+    "RDEF/EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "ODEF/OREV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "ODEF/OBJ": {
+     "cited": 333840,
+     "typed": 0,
+     "unused": 222560,
+     "unknown": 0
+    },
+    "ODEF/EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "LDEF/LREV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "LDEF/EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "ADEF/AREV": {
+     "cited": 320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "ADEF/FSM": {
+     "cited": 2326392,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "ADEF/EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "LDEF/OBJ": {
+     "cited": 14808,
+     "typed": 0,
+     "unused": 5544,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 78.75,
+    "typed": 0.0,
+    "unused": 21.25,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:vdf",
+   "files": 48,
+   "bytes": 4172640,
+   "parsed": 48,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 518420,
+    "typed": 18864,
+    "unused": 3635356,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 9320,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 192,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "VDFC": {
+     "cited": 3696,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "SOBJ": {
+     "cited": 368,
+     "typed": 0,
+     "unused": 4232,
+     "unknown": 0
+    },
+    "VSHL": {
+     "cited": 0,
+     "typed": 2160,
+     "unused": 0,
+     "unknown": 0
+    },
+    "VLOC": {
+     "cited": 11648,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "VGEO": {
+     "cited": 461236,
+     "typed": 0,
+     "unused": 3624156,
+     "unknown": 0
+    },
+    "VCHK": {
+     "cited": 15984,
+     "typed": 0,
+     "unused": 5600,
+     "unknown": 0
+    },
+    "LOBJ": {
+     "cited": 1368,
+     "typed": 0,
+     "unused": 1368,
+     "unknown": 0
+    },
+    "COLP": {
+     "cited": 2304,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "WLOC": {
+     "cited": 0,
+     "typed": 16128,
+     "unused": 0,
+     "unknown": 0
+    },
+    "HLOC": {
+     "cited": 11920,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "SPCS": {
+     "cited": 0,
+     "typed": 576,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 12.42,
+    "typed": 0.45,
+    "unused": 87.12,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "tab",
+   "files": 29,
+   "bytes": 3801088,
+   "parsed": 29,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 3801088,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "tab": {
+     "cited": 3801088,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "65536 x u16 RGB565 colour grade",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "cbk",
+   "files": 53,
+   "bytes": 3376084,
+   "parsed": 53,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 3375872,
+    "typed": 0,
+    "unused": 212,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "cbk": {
+     "cited": 3375872,
+     "typed": 0,
+     "unused": 212,
+     "unknown": 0
+    }
+   },
+   "method": "u32 n, n*16 tile bytes",
+   "coverage_pct": {
+    "cited": 99.99,
+    "typed": 0.0,
+    "unused": 0.01,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "gpw",
+   "files": 123,
+   "bytes": 2632051,
+   "parsed": 123,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 2631559,
+    "typed": 0,
+    "unused": 492,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "gpw": {
+     "cited": 2631559,
+     "typed": 0,
+     "unused": 492,
+     "unknown": 0
+    }
+   },
+   "method": "GAS0 + 6 i32 + RIFF WAVE",
+   "coverage_pct": {
+    "cited": 99.98,
+    "typed": 0.0,
+    "unused": 0.02,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "vqm",
+   "files": 101,
+   "bytes": 2360824,
+   "parsed": 101,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 2360420,
+    "typed": 0,
+    "unused": 404,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "vqm": {
+     "cited": 2360420,
+     "typed": 0,
+     "unused": 404,
+     "unknown": 0
+    }
+   },
+   "method": "u32 w, u32 h, cbk[12], u32, u16 per 4x4 block",
+   "coverage_pct": {
+    "cited": 99.98,
+    "typed": 0.0,
+    "unused": 0.02,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "lum",
+   "files": 35,
+   "bytes": 2293760,
+   "parsed": 35,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 2293760,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "lum": {
+     "cited": 2293760,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "256x256 shade table [level][colour]",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "tbl",
+   "files": 35,
+   "bytes": 2293760,
+   "parsed": 35,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 2293760,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "tbl": {
+     "cited": 2293760,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "256x256 translucency [src][dst]",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "map",
+   "files": 153,
+   "bytes": 2245810,
+   "parsed": 153,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 2245810,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "map": {
+     "cited": 2245810,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "u32 w, u32 h, w*h indices",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:sdf",
+   "files": 371,
+   "bytes": 1198686,
+   "parsed": 371,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 321698,
+    "typed": 0,
+    "unused": 876988,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 19600,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 1484,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "SDFC": {
+     "cited": 17066,
+     "typed": 0,
+     "unused": 8904,
+     "unknown": 0
+    },
+    "SGEO": {
+     "cited": 242604,
+     "typed": 0,
+     "unused": 843920,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "SCHK": {
+     "cited": 37476,
+     "typed": 0,
+     "unused": 23328,
+     "unknown": 0
+    },
+    "LOBJ": {
+     "cited": 468,
+     "typed": 0,
+     "unused": 468,
+     "unknown": 0
+    },
+    "SOBJ": {
+     "cited": 32,
+     "typed": 0,
+     "unused": 368,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 26.84,
+    "typed": 0.0,
+    "unused": 73.16,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "pcx",
+   "files": 24,
+   "bytes": 642401,
+   "parsed": 24,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 642401,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "pcx": {
+     "cited": 0,
+     "typed": 642401,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "ZSoft PCX",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 100.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "pix",
+   "files": 1758,
+   "bytes": 567917,
+   "parsed": 1758,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 567917,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "pix": {
+     "cited": 567917,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: count, then 'NAME.EXT offset size' per member of the sibling .pak (reader 0x470660: sscanf '%d' then '%s %d %d', names lowercased, qsorted)",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "pcf",
+   "files": 24,
+   "bytes": 398686,
+   "parsed": 24,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 256873,
+    "typed": 0,
+    "unused": 141813,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "pcf": {
+     "cited": 256873,
+     "typed": 0,
+     "unused": 141813,
+     "unknown": 0
+    }
+   },
+   "method": "text: pcf_Preload 0x4026c0: '<type p/t/x/v/a/g> <name>'; the trailing numbers are never parsed",
+   "coverage_pct": {
+    "cited": 64.43,
+    "typed": 0.0,
+    "unused": 35.57,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:vtf",
+   "files": 117,
+   "bytes": 146016,
+   "parsed": 117,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 138411,
+    "typed": 0,
+    "unused": 7605,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 2808,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 468,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "VTFC": {
+     "cited": 134199,
+     "typed": 0,
+     "unused": 7605,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 94.79,
+    "typed": 0.0,
+    "unused": 5.21,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:wdf",
+   "files": 70,
+   "bytes": 119980,
+   "parsed": 70,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 28140,
+    "typed": 0,
+    "unused": 91840,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 2240,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 280,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "WDFC": {
+     "cited": 2940,
+     "typed": 0,
+     "unused": 1680,
+     "unknown": 0
+    },
+    "WGEO": {
+     "cited": 22120,
+     "typed": 0,
+     "unused": 90160,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 23.45,
+    "typed": 0.0,
+    "unused": 76.55,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:gdf",
+   "files": 43,
+   "bytes": 119967,
+   "parsed": 43,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 64557,
+    "typed": 0,
+    "unused": 55410,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 2408,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 172,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "GDFC": {
+     "cited": 6106,
+     "typed": 0,
+     "unused": 946,
+     "unknown": 0
+    },
+    "GPOF": {
+     "cited": 8256,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "GGEO": {
+     "cited": 34508,
+     "typed": 0,
+     "unused": 54464,
+     "unknown": 0
+    },
+    "ORDF": {
+     "cited": 5891,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "OGEO": {
+     "cited": 6872,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 53.81,
+    "typed": 0.0,
+    "unused": 46.19,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "zix",
+   "files": 1,
+   "bytes": 93873,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 93873,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "zix": {
+     "cited": 93873,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: vfs_LoadZix 0x4b23e0: count, volume table, container table, 'index name' lines",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:vcf",
+   "files": 295,
+   "bytes": 74665,
+   "parsed": 295,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 74657,
+    "typed": 0,
+    "unused": 8,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 17472,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 1180,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "VCFC": {
+     "cited": 38055,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 8,
+     "unknown": 0
+    },
+    "WEPN": {
+     "cited": 15130,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "SPEC": {
+     "cited": 460,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 99.99,
+    "typed": 0.0,
+    "unused": 0.01,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "act",
+   "files": 67,
+   "bytes": 51456,
+   "parsed": 67,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 51456,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "act": {
+     "cited": 51456,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "768-byte RGB palette",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "elt",
+   "files": 1,
+   "bytes": 34106,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 34106,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "elt": {
+     "cited": 34106,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: elt_Load 0x448010: dst/src <map>, label <name> x y w h, '#' comments",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "map_text",
+   "files": 6,
+   "bytes": 32542,
+   "parsed": 6,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 32542,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "map_text": {
+     "cited": 0,
+     "typed": 32542,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: input bindings",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 100.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "tmt",
+   "files": 104,
+   "bytes": 24584,
+   "parsed": 104,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 20840,
+    "typed": 0,
+    "unused": 3744,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "tmt": {
+     "cited": 20840,
+     "typed": 0,
+     "unused": 3744,
+     "unknown": 0
+    }
+   },
+   "method": "64-byte header + 8-char frame names",
+   "coverage_pct": {
+    "cited": 84.77,
+    "typed": 0.0,
+    "unused": 15.23,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "fnt",
+   "files": 3,
+   "bytes": 24533,
+   "parsed": 3,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 24533,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "fnt": {
+     "cited": 0,
+     "typed": 24533,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.fnt: '1.' fonts",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 100.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "npt",
+   "files": 62,
+   "bytes": 18190,
+   "parsed": 62,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 18190,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "npt": {
+     "cited": 18190,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: npt_Load 0x45dea0: <= 6 objectives ('(hidden)' prefix), then '(failure)' + <= 16 failure lines",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "hzd",
+   "files": 74,
+   "bytes": 16576,
+   "parsed": 74,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 16576,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "hzd": {
+     "cited": 16576,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: hzd_Load 0x401540: exactly 16 tokens split on ' ,\t\r\n' into 16-byte slots",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "msk",
+   "files": 5,
+   "bytes": 9089,
+   "parsed": 5,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 9084,
+    "typed": 0,
+    "unused": 5,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "msk": {
+     "cited": 9084,
+     "typed": 0,
+     "unused": 5,
+     "unknown": 0
+    }
+   },
+   "method": "u16 list",
+   "coverage_pct": {
+    "cited": 99.94,
+    "typed": 0.0,
+    "unused": 0.06,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:xdf",
+   "files": 23,
+   "bytes": 8924,
+   "parsed": 23,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 4140,
+    "typed": 0,
+    "unused": 4784,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 736,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 92,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "XDFC": {
+     "cited": 368,
+     "typed": 0,
+     "unused": 552,
+     "unknown": 0
+    },
+    "XGEO": {
+     "cited": 2760,
+     "typed": 0,
+     "unused": 4232,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 46.39,
+    "typed": 0.0,
+    "unused": 53.61,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "frc",
+   "files": 14,
+   "bytes": 7704,
+   "parsed": 14,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 7704,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "frc": {
+     "cited": 0,
+     "typed": 7704,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.frc: RIFF FORC force-feedback effects",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 100.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "rtm",
+   "files": 18,
+   "bytes": 7668,
+   "parsed": 18,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 7668,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "rtm": {
+     "cited": 7668,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: road_LoadTextureManifest 0x48e1a0: up to 30 names (slots 10/10/5/5 over built-in defaults), 15 chars, blank lines ignored",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "geo",
+   "files": 7,
+   "bytes": 3757,
+   "parsed": 7,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 3221,
+    "typed": 0,
+    "unused": 536,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "geo": {
+     "cited": 3221,
+     "typed": 0,
+     "unused": 536,
+     "unknown": 0
+    }
+   },
+   "method": "Open76 GeoParser layout, verified by exact consumption",
+   "coverage_pct": {
+    "cited": 85.73,
+    "typed": 0.0,
+    "unused": 14.27,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:cdf",
+   "files": 1,
+   "bytes": 3608,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 3428,
+    "typed": 0,
+    "unused": 180,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 184,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 4,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "ECNK": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "NTBL": {
+     "cited": 1024,
+     "typed": 0,
+     "unused": 4,
+     "unknown": 0
+    },
+    "ENGN": {
+     "cited": 48,
+     "typed": 0,
+     "unused": 56,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "BCNK": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "BTBL": {
+     "cited": 1024,
+     "typed": 0,
+     "unused": 4,
+     "unknown": 0
+    },
+    "BRAK": {
+     "cited": 48,
+     "typed": 0,
+     "unused": 56,
+     "unknown": 0
+    },
+    "SCNK": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "STBL": {
+     "cited": 1024,
+     "typed": 0,
+     "unused": 4,
+     "unknown": 0
+    },
+    "SUSP": {
+     "cited": 64,
+     "typed": 0,
+     "unused": 56,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 95.01,
+    "typed": 0.0,
+    "unused": 4.99,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "def",
+   "files": 4,
+   "bytes": 1685,
+   "parsed": 4,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 1685,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "def": {
+     "cited": 0,
+     "typed": 1685,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: definitions",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 100.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "fsi",
+   "files": 13,
+   "bytes": 1487,
+   "parsed": 13,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 1487,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "fsi": {
+     "cited": 1487,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: fsi_LoadFitout 0x4b1a20: '#' comments; .wdf/.gdf by extension, eng/sus/bra/spc by prefix",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "dat",
+   "files": 1,
+   "bytes": 1237,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 1237,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "dat": {
+     "cited": 1237,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: engsnd_Load 0x469b00: sscanf 11 fields per non-# line",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "raw:(none)",
+   "files": 1,
+   "bytes": 1145,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 0,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 1145
+   },
+   "per_chunk": {},
+   "method": "unmodelled: identity, whole file counted unknown",
+   "coverage_pct": {
+    "cited": 0.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 100.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "lst",
+   "files": 2,
+   "bytes": 871,
+   "parsed": 2,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 871,
+    "typed": 0,
+    "unused": 0,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "lst": {
+     "cited": 871,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    }
+   },
+   "method": "text: fullres.lst: tex_ApplyFullResFlag 0x471840 (hashed name set); internet.lst is shell-only",
+   "coverage_pct": {
+    "cited": 100.0,
+    "typed": 0.0,
+    "unused": 0.0,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  },
+  {
+   "family": "bwd2:vsf",
+   "files": 1,
+   "bytes": 232,
+   "parsed": 1,
+   "parse_errors": [],
+   "diff_files": 0,
+   "diffs": [],
+   "coverage": {
+    "cited": 224,
+    "typed": 0,
+    "unused": 8,
+    "unknown": 0
+   },
+   "per_chunk": {
+    "(chunk headers)": {
+     "cited": 64,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "REV": {
+     "cited": 4,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "VCST": {
+     "cited": 76,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "WLST": {
+     "cited": 24,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "WPST": {
+     "cited": 48,
+     "typed": 0,
+     "unused": 0,
+     "unknown": 0
+    },
+    "EXIT": {
+     "cited": 0,
+     "typed": 0,
+     "unused": 8,
+     "unknown": 0
+    }
+   },
+   "method": "i76fmt.bwd2 container + data/fmt layouts per chunk body; decode -> encode -> byte compare",
+   "coverage_pct": {
+    "cited": 96.55,
+    "typed": 0.0,
+    "unused": 3.45,
+    "unknown": 0.0
+   },
+   "accounted_pct": 100.0
+  }
+ ],
+ "totals": {
+  "families": 43,
+  "files": 6368,
+  "parsed": 6368,
+  "diff_files": 0,
+  "parse_errors": 0,
+  "bytes": 526400305,
+  "coverage": {
+   "cited": 198913401,
+   "typed": 318831794,
+   "unused": 8653965,
+   "unknown": 1145
+  },
+  "seconds": 69.9
+ },
+ "verdict": "PASS"
+}

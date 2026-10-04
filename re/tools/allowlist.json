@@ -1,0 +1,14 @@
+{
+ "comment": "H0 allowlist for tools/which_build.py. A differing range passes only if it lies inside an entry AND the live bytes over the entry span hash to md5. Source: captures/001-smoke/allowlist.json (console smoke, 2026-09-04).",
+ "base_md5": "9a232dcc2c164648cff20c414c1f9698",
+ "entries": [
+  {
+   "va": "0x499b25",
+   "len": 5,
+   "orig": "e826feffff",
+   "new": "b8c8000000",
+   "md5": "3ffc1bf437d8892558e4cac8e2676aaf",
+   "why": "i76fix patch1: call 0x499950 (PIT CPU-speed probe, STATUS_PRIVILEGED_INSTRUCTION on NT) -> mov eax,200; stamps pristine+i76fix-p1"
+  }
+ ]
+}

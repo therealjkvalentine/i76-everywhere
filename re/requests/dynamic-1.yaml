@@ -1,0 +1,198 @@
+# requests/dynamic-1.yaml - console sitting 1 (Task 10), pre-checked by gate S (tools\gates\gateS_static_first.py).
+# Written by p6-finalize on 2026-09-05 from the method doc section 7 (Task 10), foldin\FOLDIN-REPORT.md section 6.3,
+# and the instruments delivered by p1-p5 (status\tasks\p1..p5-*.md). The runbook that executes it, in order, with
+# every command, stop condition and expected output, is status\RUNBOOK-SITTING-1.md.
+#
+# Grammar (gate S): id, what, static_check {export_files, unsettled}, owner, blocker (one falsifiable sentence, H7),
+# canary (H4), plus capture, instrument, expected, stop, manifest_gates (the capture-time gates that validate the
+# manifest: tools\gates\capture_gates.py --all) and budget_min.
+# Not requested (settled statically, gate S): the per-frame clock and its dt cell, the 18-name plugin export table of
+# the renderer, the plugin calling convention, the LZO identity. Address classes: bss / init (.data) / text / heap-offset.
+# Build for every capture: C:\Users\james\i76-uncap-lab\game\i76_pristine_fix.exe md5 58d9dec00c18a5383820e77e51850b74
+# (pristine + the 5-B i76fix patch at 0x499b25; the only bytes that run on Win10 19045, captures\001-smoke); the
+# launcher / frida_run / i76poke / snapshot each stamp it (H0) and refuse anything else.
+
+sitting: 1
+date_planned: next physical-console session
+h10:
+  session: "physical console only: query session '>console <user> N Active', no rdp-tcp#N Active, TerminalServerSession False (tools\\launch.ps1 exit 4 otherwise); Chrome Remote Desktop / Parsec are invisible to the gate and forbidden for captures"
+  monitor: "OpenSSH from the laptop for reading logs only; Frida attaches, never spawns; no agent launches the game"
+  budget_min: 180
+  void_rules: "a dead canary, stimulus_fired=false, or a 0 hook fired-counter voids the item, not the sitting (G-STIM, G-ATTEST)"
+
+items:
+  - id: D1-000
+    capture: 000-live-check
+    what: "H0 live stamp of the running build and the first Frida attach to the game (M01 caveat): frida_gettick hook on kernel32!GetTickCount counting callers whose return address is in .text"
+    static_check:
+      export_files: >-
+        symbols/imports.tsv (GetTickCount 0x4bc100 9 call + 1 load sites), captures/001-smoke/manifest.json (live .text identical except 0x499b25), binaries/diff-9a232dcc-vs-58d9dec0.tsv
+      unsettled: "whether frida.attach succeeds on the game under dgVoodoo + the GOG win32.dll shim (Phase 0 blocker 31), and whether which_build.py --pid reads a real i76 process (blocker 3); the export cannot answer either"
+    owner: console-sitting
+    blocker: "frida.attach to i76_pristine_fix.exe raises, or which_build.py --pid reports h0_pass false on the live image although the file md5 is 58d9dec0."
+    canary: "process alive after -SettleSeconds 15; main-menu state (frame counter 0x5a7e1c == 0, bss)"
+    instrument: [tools/launch.ps1, tools/which_build.py, tools/frida_gettick.py]
+    expected: "launch.ps1 exit 0; manifest.build.h0_pass true, diff_signature 58d9dec0; frida-gettick.json calls_from_text > 0 with return addresses among the 9 imports.tsv call sites"
+    stop: "launch.ps1 exit 1/3/4 or frida.attach raising: record, stop the Frida items (D1-002 pump, D1-004, D1-005), continue with the ReadProcessMemory-only items"
+    manifest_gates: [G-ATTEST, G-CONF]
+    budget_min: 10
+
+  - id: D1-002
+    capture: 002-paused
+    what: "paused .data + heap snapshot pair while PAUSE_GAME is held in a mission (gate E input, H8); canary = PeekMessageA pump count from tools/pump_counter.js"
+    static_check:
+      export_files: >-
+        ghidra/export/functions/0044d460.c (gamekey.map parser; PAUSE_GAME id 51, key code 0x1ff 'Pause'), symbols/imports.tsv (PeekMessageA slot 0x4bc350), status/tasks/p3-harness-pause.md section 2
+      unsettled: "whether the Pause key freezes 0x5a7e1c while the message pump keeps running under dgVoodoo/DirectInput (p3 blocker 3), and whether the pump hook sees callers from .text (p2 blocker 1/6); static reading gives the binding, not the behaviour"
+    owner: console-sitting
+    blocker: "snapshot.py --label paused --pump reports a state other than 'paused (0x5a7e1c > 0 frozen, pump advanced N)' with N > 0 for two pairs 30 s apart."
+    canary: "paused: 0x5a7e1c (bss) frozen AND > 0 AND pump count advanced; 'dead' voids, 'frozen (pump unmeasured)' = frida did not attach"
+    instrument: [tools/harness/enter-melee-pristine.ps1, tools/snapshot.py, tools/which_build.py]
+    expected: "captures/002-paused/raw/{snapshot.bin,snapshot-2.bin} 1,736,440 B each + heap-0x<base>.bin per named region; frames tagged coherent; differing-dword count = pump churn under pause; n = 2 (002-paused, 002-paused-b)"
+    stop: "state 'menu' = not in a mission (fix D1-000's entry first); 'dead' = the process hung: kill, relaunch, note"
+    manifest_gates: [G-TORN, G-ATTEST, G-POS, G-CONF]
+    budget_min: 10
+
+  - id: D1-003
+    capture: 003-cockpit-null
+    what: "M05 cockpit-idle churn p for .data, per heap and per pool: 3 windows x 20 s at 5 Hz, hands off, engine on, with the A/A pairs and the H1 expected-false-survivor count"
+    static_check:
+      export_files: >-
+        captures/002-idle-null/manifest.json and captures/003-mission-idle/manifest.json (menu-state p = 4.4e-4, 192-193 of 434,110 dwords), requests/measurements.yaml M05
+      unsettled: "the driving-state churn (frame counter advancing) and every heap/pool region's p are unmeasured; both captures so far were menu state (read the null: 0x5a7e1c stayed 0)"
+    owner: console-sitting
+    blocker: "N*p^5 exceeds 1 for the .data region (p above ~1e-1) so a five-alternation A/B cannot separate signal from churn, or the heap regions cannot be named because the handle globals read 0."
+    canary: "driving: 0x5a7e1c advanced within 1 s (G-POS row 0x5a7e1c:uint32:changes); 'menu' voids"
+    instrument: [tools/snapshot.py --series --hz 5 --window 20 --windows 3 --heaps --read-heaps]
+    expected: "manifest snapshot.win*_p, AA_*_p, churn runs, heap_p per region, expected_false_survivors_k5; raw/frame0.bin + w<i>-<j>.delta.xz under the 20 GB budget"
+    stop: "state != driving after 5 s: stop, re-enter the mission; budget exit 4: stop the series"
+    manifest_gates: [G-UNITS, G-TORN, G-POS, G-ATTEST]
+    budget_min: 25
+
+  - id: D1-POS
+    capture: 003-cockpit-null
+    what: "positive control and L060 relabel: write 1234 at 0x5aab28 (bss; ammo slot 0 = 0x5aab0c + 0x1c), three-horizon read-back (immediate / +1 frame / +5 frames of 0x5a7e1c), HUD screenshot; the G-POS row every later funnel cites"
+    static_check:
+      export_files: >-
+        symbols/ported.tsv L060 (0x5aab0c stride 0x4c, +0x1c ammo; HUD digits 0x4a4e40, tick 0x4a4130, fire 0x4a6470), types/i76.h I76_AmmoSlot (+0x1c cited at 0x4a3453), status/tasks/p2-poke-snapshot-h0.md
+      unsettled: "the write was HUD-verified on the aio build only (patched-build-only); whether the 58d9dec0 build shows the digits and whether the value sticks or is clobbered per frame is unmeasured"
+    owner: console-sitting
+    blocker: "i76poke.py reports did-not-land (WriteProcessMemory refused) or clobbered-per-frame at 0x5aab28, or the HUD digits do not read 1234 in the screenshot although the horizons read 1234."
+    canary: "driving (0x5a7e1c advancing) at each horizon; the poke record's class; HUD screenshot md5"
+    instrument: [tools/i76poke.py, tools/harness/stimuli.ps1 Invoke-AmmoPositiveControl -Screenshot]
+    expected: "pokes.jsonl: class sticks (or clobbered-on-event after a shot), readback 1234 on all three horizons; screenshot shows 1234 in the ammo counter; L060 -> verified on 58d9dec0"
+    stop: "exit 3 (H0 refused) = the live md5 is not 58d9dec0: stop everything and read the manifest; exit 1 = write path dead: skip D1-006's poke half"
+    manifest_gates: [G-POS, G-UNITS, G-ATTEST]
+    budget_min: 10
+
+  - id: D1-STIM
+    capture: 005-stimuli
+    what: "input-table verification with a stimulus canary (G-STIM): Enter held 1.5 s; prediction 0x5367db (bss, row 7 weapon_fire) = 1 on every held sample and 0x5367d0 (row 1 throttle_up) = 0, hardpoint1_fire 0x5367de recorded; GetAsyncKeyState read-back and the ammo delta prove the key fired; then W held (throttle_up = 1, throttle 0x5367cc and entity +0xe4 rise); then the self-destruct marker (Control+ALT+X) with the entity pointer before/after"
+    static_check:
+      export_files: >-
+        symbols/tables.tsv and ported.tsv 0x4f2860 (86 x 32-B rows re-read by p3), symbols/globals.tsv input_weapon_fire 0x5367db / input_throttle_up 0x5367d0, ghidra/export/functions/0044f1c0.c, status/findings.md L031
+      unsettled: "the 2026-08-04 live byte diff claimed 0x5367d0 toggles on fire; the table says 0x5367db; only a stimulus with its own proof of firing decides which (G-TABLE-PRIMACY keeps the table row until the capture explains it)"
+    owner: console-sitting
+    blocker: "with only Enter held, the sampled 0x5367d0 byte reads 1 or 0x5367db stays 0 while GetAsyncKeyState shows the key down and ammo slot 0 falls."
+    canary: "stimulus_fired = os_key_seen AND engine byte followed AND ammo moved; frames_advanced > 0 during the hold"
+    instrument: [tools/harness/stimuli.ps1 Invoke-FireHold / Invoke-ThrottleHold / Invoke-SelfDestructMarker]
+    expected: "stimuli.jsonl entries with fire_db_1_while_held true, throttle_up_d0_1_while_held false, ammo_delta_slot0 < 0; self-destruct entry with entity pointer timeline (L053)"
+    stop: "os_key_seen 0 = injection never reached the OS (focus): fix focus with Ensure-Foreground, do not reinterpret the bytes"
+    manifest_gates: [G-STIM, G-UNITS, G-POS]
+    budget_min: 10
+
+  - id: D1-004
+    capture: 004-census
+    what: "function-call census under Frida CModule counters: first 200 hookable rows + the mandatory includes (0x406ab0, 0x4b6850, 0x445ba0, 0x438630, the per-frame counter incrementer, WinMain) for 60 s in the cockpit, then all 2,004 hookable rows for 120 s if the frame rate holds; rate classes never / init / per-tick / per-frame / event"
+    static_check:
+      export_files: >-
+        symbols/functions.tsv hookable column (2,004 yes after p4), symbols/hookability.tsv, status/tasks/p1-census-ledger.md (notepad mechanics: 250-295 ns per call, 3.2 ms per 200-hook batch)
+      unsettled: "which functions run per frame / per tick / on events cannot be read from the static export; the hot-path cost of 2,004 hooks on the real sim is unmeasured (p1 blocker 1)"
+    owner: console-sitting
+    blocker: "the counter of the per-frame incrementer differs from the 0x5a7e1c delta over the run (the rate classes are mis-based), or --hooks all drops the 0x5a7e1c rate below half of the --hooks 200 run."
+    canary: "0x5a7e1c advancing (else every class reads unclassified-sim-stalled); frida.census.fired_total > 0 (void otherwise)"
+    instrument: [tools/frida_run.py --census, tools/census_classify.py]
+    expected: "census/classes.csv with 206 then 1,986 rows; attach_errors 0 (any non-zero = hookability.py bug, per address in targets.csv); never-seen list"
+    stop: "attach raising = D1-000's Frida verdict; frame-rate drop = stop at --hooks 200 and record the 0x5a7e1c rates of both runs"
+    manifest_gates: [G-ATTEST, G-UNITS]
+    budget_min: 30
+
+  - id: D1-005
+    capture: 005-ledger
+    what: "M07 allocation ledger: HeapCreate/Alloc/ReAlloc/Free/Destroy, msvcrt malloc/free/realloc/new/delete, pool_Reserve 0x498940 / pool_Free 0x498a00, the 0x499ce0 wrapper keyed on [0x5a7cc0], watermarks 0x6442ec / 0x654380 per drain; two self-destruct markers >= 30 s apart; whether the player entity address changes across respawn (L053)"
+    static_check:
+      export_files: >-
+        symbols/imports.tsv (HeapCreate 19 call + 7 load in 26 functions), symbols/globals.tsv (10 heap handles), ghidra/export/functions/00498940.c and 00402b30.c (pool sizing), status/tasks/p1-census-ledger.md (the 0x5dd320 arena is carved inline, no carve function)
+      unsettled: "whether vehicle-sized allocations come from a Win32 heap, msvcrt, operator new or a pool carve, and the (source, key, size, retaddr) type table itself"
+    owner: console-sitting
+    blocker: "no allocation type with n_alloc >= 1 lands inside the 5 s window after both self-destruct markers, so the vehicle object cannot be keyed and heaptypes.tsv stays empty."
+    canary: "0x5a7e1c advancing; frida.ledger.fired_total > 0; records_dropped_ring_overflow == 0"
+    instrument: [tools/frida_run.py --ledger, tools/ledger_mark.py, tools/ledger_types.py --window-s 5]
+    expected: "ledger/types.csv (source, key, size, retaddr, n_alloc, n_freed, lifetime, marker-window share); markers.json with two labels; heaptypes.tsv seed rows for the next merge"
+    stop: "dropped > 0: rerun with --ring-records 262144 or --drain-ms 100; the mission ending on self-destruct: re-enter and mark again"
+    manifest_gates: [G-ATTEST, G-UNITS]
+    budget_min: 20
+
+  - id: D1-006
+    capture: 006-null then 006-variant-a / 006-variant-b
+    what: "armour sentinel (L050): null scan first (no variant file; 0 aligned u32 hits required for 695,697,699,701,703,705,707,709 over .data + the stored heap/pool regions), then the loose ADDON\\vppt01.vcf made by tools/make_sentinel_vcf.py (armour block at file 0x79, read back), two variant runs (n = 2) with the scan and the [[[0x54a264]]+0x70] chain resolved to +0x138/+0x158/+0x178, the file-open log (loose vs ZFS), then one poke of the resolved current-armour dword while paused and the cockpit armour lamp as the display read-back"
+    static_check:
+      export_files: >-
+        symbols/ported.tsv L050 / L041 / L053, types/i76.h I76_Entity v0 (+0x70 chain cited at 0x44f1dd; armour offsets uncited), tools/i76fmt/bwd2.py vcfc (armour at body+93 = file 0x79, verified on vppt01.vcf and the user's valepre4 pair), status/tasks/p5-foldin-merge.md blocker 1
+      unsettled: "no static reader of entity +0x138..+0x198 is anchored; the armour block location, its copy count (predicted 3 per face) and the memory order are capture-only facts, and the loader's loose-file precedence over the ZFS entry is unmeasured"
+    owner: console-sitting
+    blocker: "the null scan shows >= 1 aligned u32 hit for a sentinel value (frame unusable: choose other values), or the two variant runs disagree on the entity-relative offsets of the hits (spread != 0 in the invariant frame), or the file-open log shows the loose ADDON file was never opened."
+    canary: "paused pair for each scan (0x5a7e1c > 0 frozen, pump advanced); poke record class; lamp screenshot md5"
+    instrument: [tools/make_sentinel_vcf.py, tools/snapshot.py --heaps --read-heaps, tools/sentinel_scan.py, tools/i76poke.py --chain, tools/harness/stimuli.ps1 Save-Screenshot]
+    expected: "006-null manifest null_scan.usable_null true; 006-variant-a/b manifests with aligned hits at entity-relative offsets equal in both runs, chain.result resolved; pokes.jsonl with the lamp verdict; first verified heap-offset label candidate"
+    stop: "null scan not usable: record counts, pick values, no variant run; chain unresolved (heap not stored): record which hop, scan hits only; a poke exit 1 ends the item"
+    manifest_gates: [G-POS, G-TORN, G-UNITS, G-NORESTORE]
+    budget_min: 30
+
+  - id: D1-007
+    capture: 007-debug-keys
+    what: "M06: whether MONO_DEBUG_TOGGLE / MONO_DEBUG_NEXT_SCREEN / FSM_DEBUGGER / DAMAGE_DEBUG_FIRE / DAMAGE_DEBUG_NEXT_TARGET (gamekey.map chords Control+M/N/F/D/T, installed by apply-gamekey-007.ps1) and TOGGLE_FRAMERATE (ALT+F, ' FrameRate' string 0x4fde6c) render anything on the Gold build"
+    static_check:
+      export_files: >-
+        symbols/strings.tsv (80 gamekey names at 0x4f3af0 / the [name][id] table 0x4f3320), ghidra/export/functions/0044d460.c, tools/harness/gamekey.map.007-debug-keys, requests/measurements.yaml M06
+      unsettled: "no code reference to the gamekey name table base is visible statically (Phase 0 blocker 15), so whether the handlers exist in the release build is unknowable from the export; the file header's 'Don't function in release build' is the expected null"
+    owner: console-sitting
+    blocker: "every Invoke-DebugKey screenshot is pixel-identical to the pre-key screenshot (the expected null) - a rendered overlay after any chord falsifies it and settles M06 the other way."
+    canary: "driving before and after each chord (0x5a7e1c advancing); screenshot md5 per key; the game still responds"
+    instrument: [tools/harness/apply-gamekey-007.ps1, tools/harness/stimuli.ps1 Invoke-DebugKey]
+    expected: "captures/007-debug-keys/<KEY>.png x6 with entries in stimuli.jsonl; debug-keys.md one line per key: rendered / nothing / crash; gamekey.map restored (md5 916bf58c...)"
+    stop: "a crash = H9 capture (exit code, fault offset from the event log) then relaunch; do not retry the same key"
+    manifest_gates: [G-STIM, G-ATTEST]
+    budget_min: 20
+
+  - id: D1-008
+    capture: 008-builtin-renderer
+    what: "M08 + L080: launch without -glide (built-in ZDX5DRAW path through dgVoodoo ddraw) and record whether the process survives 20 s; read the plugin name buffer 0x5dd340 and flag 0x504be8 (bss), and the FFB driver pointers 0x52bbdc / 0x52bbe0 / 0x52bbe4 (bss, I7FF_InitSystem / ExitSystem / SIM_Effect) with the wheel present"
+    static_check:
+      export_files: >-
+        ghidra/export/functions/00426900.c (LoadLibraryA/GetProcAddress loader), 0042d0c0.c (built-in init under -hal), 00445a60.c and 00446020.c (FFB loader), captures/001-smoke/manifest.json (-glide run: 16 of 17 stores, name ZGLIDE.DLL), requests/measurements.yaml M08
+      unsettled: "whether the non-glide path initialises on Win10 at all, which plugin name lands in the buffer, and whether SIM_Effect resolves non-null with the wheel attached (L080 is confirmed statically only)"
+    owner: console-sitting
+    blocker: "the no-glide process exits before 20 s (exit code recorded = M08 blocker confirmed), or [0x52bbe4] reads 0 with the wheel plugged in and i7_sfrce.dll listed in the module list."
+    canary: "process alive at +20 s (launch.ps1 exit 0 / 5); menu state; module list contains i7_sfrce.dll"
+    instrument: [tools/launch.ps1 -GameArgs @(), tools/which_build.py --pid, tools/snapshot.py --label menu-noglide --gap 1]
+    expected: "manifest.build with the module list; snapshot.bin from which the name buffer, flag and three FFB pointers are read (command in the runbook); exit code recorded on failure"
+    stop: "exit 5 (process died) = record the code and stop; the census pass on this path is not requested (budget)"
+    manifest_gates: [G-CONF, G-ATTEST]
+    budget_min: 15
+
+  - id: D1-DS3D
+    capture: 009-ds3d-listener
+    what: "optional, only if time remains: A/A then A/B poke of 0x5fcdc4 (bss, the DS3DLISTENER block at 0x5fcdc0 per the fresh label; the prior claim was 'eye/view transform, moves the camera' with no control, L024): prediction from the corrected label = audio pan changes, the camera does not"
+    static_check:
+      export_files: >-
+        symbols/ported.tsv L024, evidence for 0x4224ab fstp [0x5fcdc4] in 0x422440 (hwbp-trap-after resolution, p5), ghidra/export/functions/00422440.c
+      unsettled: "the static reader names a DirectSound3D listener; whether a poke changes the pan or the picture is a runtime observation with no capture yet and the prior observation had no A/A"
+    owner: console-sitting
+    blocker: "two A/A screenshot pairs (no poke) differ by more than the A/B pair (poke 0x5fcdc4 = +5.0), so the 'camera moves' claim cannot be separated from churn either way."
+    canary: "paused for the screenshots (0x5a7e1c frozen > 0); poke record class; screenshot md5s"
+    instrument: [tools/i76poke.py --va 0x5fcdc4 --type float, tools/harness/stimuli.ps1 Save-Screenshot]
+    expected: "pokes.jsonl with restore; 4 screenshots (A/A x2, A/B x2) and the pan observation as a manifest note"
+    stop: "skip entirely when the running budget passes 160 min"
+    manifest_gates: [G-POS, G-NORESTORE]
+    budget_min: 10

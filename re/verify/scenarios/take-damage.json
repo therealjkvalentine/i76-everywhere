@@ -1,0 +1,21 @@
+{
+ "id": "take-damage",
+ "description": "t01 direct boot on i76.exe. From the hand-over (car at ~24 m/s near (3607, 36322) heading ~29 deg) drive_to the barn 'bhbarn1' ODEF/OBJ#64 at (3750, 36730) (432 m, bearing 19 deg; the saguaro cluster nsagu* at (3755-3825, 36715-36765) stands in front of it) and ram it for 3 s, so physics_ApplyCollisionDamage fires IMPACT events (type 3, i_0 = 1) on the player. Then the trainer pokes (i76trainer.Game.wr): armour side 0 to 10% (scaled branch: object_HealthFraction = 28 + 72 x 0.1 = 35.2 -> smoke at the next hit), ram again; engine to 50% (unscaled branch: health_pct 0.5) and front-left wheel to 25%; ram again, back off in reverse and ram once more. t01 ends about 45 s after the hand-over (frame counter frozen), so the recording's tail is static. I76_FIX_HEALTH_PCT is off (stock health fraction).",
+ "duration_s": 60,
+ "covers": ["collision", "damage chain", "components", "smoke", "health fraction both branches", "engine health factor", "brake hp floor"],
+ "steps": [
+  {"op": "check", "player_present": true, "engine_on": true},
+  {"op": "drive_to", "x": 3750, "z": 36730, "radius": 12, "max_s": 22, "ram_s": 3},
+  {"op": "poke", "what": "armour", "side": 0, "pct": 10},
+  {"op": "hold", "key": "W", "s": 3},
+  {"op": "poke", "what": "engine_hp", "pct": 50},
+  {"op": "poke", "what": "wheel_hp", "slot": 0, "pct": 25},
+  {"op": "hold", "key": "W", "s": 3},
+  {"op": "tap", "key": "X", "after": 0.5},
+  {"op": "hold", "key": "W", "s": 3},
+  {"op": "brake_to_stop", "max_s": 3},
+  {"op": "tap", "key": "X", "after": 0.5},
+  {"op": "drive_to", "x": 3750, "z": 36730, "radius": 10, "max_s": 8, "ram_s": 4},
+  {"op": "wait", "s": -1}
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "$id": "verify/schemas/blind-judge.schema.json",
+ "title": "blind-judge result (VERIFICATION-PROGRAM.md 4.5)",
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["unit_id", "verdict", "payload", "reason"],
+ "properties": {
+  "unit_id": {"type": "string", "pattern": "^blind-judge-0x[0-9a-f]{5,8}$"},
+  "verdict": {"type": "string", "enum": ["PASS", "FAIL", "INCONCLUSIVE"]},
+  "payload": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["agreement", "reason"],
+   "properties": {
+    "agreement": {"type": "string", "enum": ["same", "compatible", "different"]},
+    "reason": {"type": "string", "minLength": 1, "maxLength": 600}
+   }
+  },
+  "reason": {"type": "string", "minLength": 1, "maxLength": 600},
+  "meta": {"type": "object", "description": "written by worker.py after validation; never by the model"}
+ }
+}

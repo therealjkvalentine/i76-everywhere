@@ -1,0 +1,7 @@
+# duplicates.tsv - the four H6 pairs compared by capstone instruction stream (tools/hookability.py). addr class: init.
+# 'identical-modulo-relocations' = same size and every instruction equal after replacing image-absolute imm/disp (0x400000-0x66b000) and branch displacements; only such pairs get duplicate_of in functions.tsv.
+a	b	size_a	size_b	insns_a	insns_b	verdict	instruction_diffs
+0x48a870	0x48c320	2707	2707	791	791	near-duplicate(2 insn diffs)	48a884:mov esi, dword ptr [eax + 0x1c]<>48c334:mov esi, dword ptr [eax + 0x14]; 48a887:mov edx, dword ptr [eax + 0x14]<>48c337:mov edx, dword ptr [eax + 0x1c]
+0x487480	0x488e40	2586	2586	724	724	near-duplicate(2 insn diffs)	487494:mov esi, dword ptr [eax + 0x14]<>488e54:mov esi, dword ptr [eax + 0x1c]; 487497:mov edx, dword ptr [eax + 0x1c]<>488e57:mov edx, dword ptr [eax + 0x14]
+0x489be0	0x48b690	2463	2463	718	718	identical-modulo-relocations	
+0x486860	0x488220	2342	2342	651	651	near-duplicate(2 insn diffs)	486874:mov edx, dword ptr [eax + 0x1c]<>488234:mov edx, dword ptr [eax + 0x14]; 48687a:mov ecx, dword ptr [eax + 0x14]<>48823a:mov ecx, dword ptr [eax + 0x1c]

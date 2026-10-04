@@ -1,0 +1,3 @@
+# build products of the Task 6 cl.exe check; rebuild with build.cmd
+hello.exe
+hello.obj

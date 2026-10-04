@@ -1,0 +1,18 @@
+{
+ "id": "fire-each",
+ "description": "Stopped car; one burst per hardpoint key 1..5 (0.6 s each, 1 s apart), then one burst of weapon_fire (Enter: hardpoint1_fire has no key in the sandbox input.map), then idle. Weapon fire chain, projectile steps, explosions, tracers.",
+ "duration_s": 120,
+ "covers": ["weapon fire chain", "projectiles", "explosions", "tracers"],
+ "steps": [
+  {"op": "brake_to_stop", "max_s": 12},
+  {"op": "wait", "s": 2},
+  {"op": "check", "speed_lt": 1.0, "engine_on": true},
+  {"op": "hold", "key": "1", "s": 0.6}, {"op": "wait", "s": 1},
+  {"op": "hold", "key": "2", "s": 0.6}, {"op": "wait", "s": 1},
+  {"op": "hold", "key": "3", "s": 0.6}, {"op": "wait", "s": 1},
+  {"op": "hold", "key": "4", "s": 0.6}, {"op": "wait", "s": 1},
+  {"op": "hold", "key": "5", "s": 0.6}, {"op": "wait", "s": 1},
+  {"op": "hold", "key": "ENTER", "s": 0.6}, {"op": "wait", "s": 1},
+  {"op": "wait", "s": -1}
+ ]
+}

@@ -1,0 +1,111 @@
+{
+ "id": "drive",
+ "description": "Throttle (W) held with the automatic gear changes happening naturally, brake (S) to a stop, reverse (X) and drive backwards, forward again, then W+A and W+D circles so the car stays near the start (a 35 s straight run in t01 ended in a scripted kill at sim-time 79 s). Keys per the sandbox input.map (W throttle_up, S throttle_down, A/D steer, X reverse_direction).",
+ "duration_s": 120,
+ "covers": [
+  "engine",
+  "gearbox",
+  "wheels",
+  "suspension",
+  "ground contact"
+ ],
+ "steps": [
+  {
+   "op": "brake_to_stop",
+   "max_s": 12
+  },
+  {
+   "op": "wait",
+   "s": 2
+  },
+  {
+   "op": "check",
+   "speed_lt": 1.0,
+   "engine_on": true
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": 12
+  },
+  {
+   "op": "check",
+   "speed_gt": 5.0,
+   "gear_in": [
+    3,
+    4
+   ]
+  },
+  {
+   "op": "brake_to_stop",
+   "max_s": 15
+  },
+  {
+   "op": "check",
+   "speed_lt": 1.0
+  },
+  {
+   "op": "tap",
+   "key": "X",
+   "after": 0.5
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": 8
+  },
+  {
+   "op": "check",
+   "speed_gt": 1.0,
+   "gear_in": [
+    0
+   ]
+  },
+  {
+   "op": "brake_to_stop",
+   "max_s": 8
+  },
+  {
+   "op": "tap",
+   "key": "X",
+   "after": 0.5
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "W",
+    "A"
+   ],
+   "s": 20
+  },
+  {
+   "op": "check",
+   "speed_gt": 5.0,
+   "gear_in": [
+    3,
+    4
+   ]
+  },
+  {
+   "op": "brake_to_stop",
+   "max_s": 10
+  },
+  {
+   "op": "hold",
+   "keys": [
+    "W",
+    "D"
+   ],
+   "s": 20
+  },
+  {
+   "op": "brake_to_stop",
+   "max_s": 10
+  },
+  {
+   "op": "hold",
+   "key": "W",
+   "s": -1
+  }
+ ]
+}

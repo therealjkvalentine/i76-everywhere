@@ -1,0 +1,12 @@
+{
+ "id": "mission-idle",
+ "description": "t01 direct boot, braked to a stop after the scripted hand-over, engine on, no further input. Per-frame vs per-substep baseline, idle sounds.",
+ "duration_s": 90,
+ "covers": ["per_frame", "per_substep", "idle sounds"],
+ "steps": [
+  {"op": "brake_to_stop", "max_s": 12},
+  {"op": "wait", "s": 2},
+  {"op": "check", "speed_lt": 1.0, "engine_on": true, "player_present": true},
+  {"op": "wait", "s": -1}
+ ]
+}

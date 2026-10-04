@@ -1,0 +1,1 @@
+{"unicorn": "2.1.4", "test1_instructions_executed": 10, "test1_expected": {"eax": 36, "ebx": 71, "ecx": 7, "edx": 1, "esp": 32768}, "test1_got": {"eax": 36, "ebx": 71, "ecx": 7, "edx": 1, "esp": 32768}, "test1_pass": true, "test2_x87_instructions_executed": 6, "test2_x87_result": 3.0, "test2_x87_pass": true, "pass": true}

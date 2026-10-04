@@ -1,0 +1,31 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "$id": "verify/schemas/cadence-claim.schema.json",
+ "title": "cadence-claim result (VERIFICATION-PROGRAM.md 4.1)",
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["unit_id", "verdict", "payload", "reason"],
+ "properties": {
+  "unit_id": {"type": "string", "pattern": "^cadence-claim-0x[0-9a-f]{5,8}$"},
+  "verdict": {"type": "string", "enum": ["PASS", "FAIL", "INCONCLUSIVE"]},
+  "payload": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["cadence", "event", "callers_expected", "confidence"],
+   "properties": {
+    "cadence": {"type": "string",
+                "enum": ["per_frame", "per_substep", "per_event", "init_only", "menu_only", "never", "irregular", "unknown"]},
+    "event": {"type": ["string", "null"],
+              "enum": ["shot", "explosion", "impact", "damage", "spawn", "load", "save", "key", null]},
+    "callers_expected": {"type": "array", "maxItems": 12,
+                         "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_@]*$"}},
+    "confidence": {"type": "string", "enum": ["high", "medium", "low"]}
+   },
+   "if": {"properties": {"cadence": {"const": "per_event"}}},
+   "then": {"properties": {"event": {"type": "string"}}},
+   "else": {"properties": {"event": {"type": "null"}}}
+  },
+  "reason": {"type": "string", "minLength": 1, "maxLength": 600},
+  "meta": {"type": "object", "description": "written by worker.py after validation; never by the model"}
+ }
+}
