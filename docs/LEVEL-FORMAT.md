@@ -9,7 +9,7 @@ Parser: **`tools/level-objects.py`**.
 ## Container
 
 The same chunk scheme as `.VCF` (see
-[`i76-uncap-lab/docs/CAR-CONFIG.md`](../../i76-uncap-lab/docs/CAR-CONFIG.md)): a 4-character
+[`i76-uncap-lab/docs/CAR-CONFIG.md`](../lab/docs/CAR-CONFIG.md)): a 4-character
 tag, then a `u32` size **which includes the 8-byte header**.
 
 ```

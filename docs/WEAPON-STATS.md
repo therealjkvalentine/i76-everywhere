@@ -81,7 +81,7 @@ The **bold** ammo figures above were compared with the engine's own weapon defin
 
 **Eight for eight.** That is mutual corroboration: it confirms Local Ditch's numbers are taken
 from the real data, and independently confirms we are reading the right structure at
-`0x005D8800`. See [`i76-uncap-lab/docs/WEAPONS-MEMORY.md`](../../i76-uncap-lab/docs/WEAPONS-MEMORY.md)
+`0x005D8800`. See [`i76-uncap-lab/docs/WEAPONS-MEMORY.md`](../lab/docs/WEAPONS-MEMORY.md)
 for the memory layout, the live ammo array, and the GDF-name ↔ weapon mapping
 (`gmlight` = 30cal MG, `gmmedium` = 50cal MG, `gcmedium` = 25mm Cannon, `gfmedium` = Gas
 Launcher, `glandmin` = Land Mines, `goilslck` = Oil Slick).

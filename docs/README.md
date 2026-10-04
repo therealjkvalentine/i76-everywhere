@@ -181,8 +181,9 @@ The editors themselves are at the repo root: [`../i76-save-editor.html`](../i76-
 
 ## 9. Reverse engineering: memory, engine, formats
 
-For the engine as a whole, the sibling repos hold the current references (`../i76-uncap-lab/docs/ENGINE-REFERENCE.md`,
-`../i76-map`); see [`../AGENTS.md`](../AGENTS.md).
+For the engine as a whole, the lab and the RE map hold the current references; public snapshots of both are in this
+repo since 2026-10-03 (section 12): [`../lab/docs/ENGINE-REFERENCE.md`](../lab/docs/ENGINE-REFERENCE.md) and
+[`../re/`](../re/README.md). See also [`../AGENTS.md`](../AGENTS.md).
 
 | | Doc | What it is |
 |---|---|---|
@@ -216,6 +217,24 @@ For the engine as a whole, the sibling repos hold the current references (`../i7
 |---|---|---|
 | living | [SCOPE-AND-LEGITIMACY.md](SCOPE-AND-LEGITIMACY.md) | What the project is and why modifying an owned copy is legitimate |
 | living | [LEGITIMACY-AND-SCOPE.md](LEGITIMACY-AND-SCOPE.md) | The shorter scope statement (overlaps the one above; backlog P3-08 proposes folding them) |
+
+## 12. The lab and the RE map (public snapshots, 2026-10-03)
+
+The two working repos that never had a remote, `i76-uncap-lab` (the 60 fps lab and its test harness) and `i76-map`
+(the reverse-engineering map of i76.exe), are imported here as **snapshots without history**, filtered by
+[`tools/export_public.py`](../tools/export_public.py) (allowlist [`tools/export_public.toml`](../tools/export_public.toml)).
+Only the files that pass the export gate are in; the private data (decompiler exports, game captures, extracted
+game files, third-party media) and 71 files awaiting a scrub stay in the working copies at their old paths outside
+this repo, and `.gitignore` blocks those directories under `lab/` and `re/`. Each folder's README says which
+commit it is and how to refresh it.
+
+| | Folder | What it is |
+|---|---|---|
+| snapshot | [`../lab/`](../lab/README.md) | i76-uncap-lab: engine reference, frame-rate work, the autotest harness, u32x/uncap sources, renderer and graphics probes. Start at [`lab/docs/README.md`](../lab/docs/README.md) and [`lab/docs/ENGINE-REFERENCE.md`](../lab/docs/ENGINE-REFERENCE.md) |
+| snapshot | [`../re/`](../re/README.md) | i76-map: architecture, re-implementation spec index, subsystem specs, per-function notes, file-format specs and parsers ([`re/data/FORMATS.md`](../re/data/FORMATS.md)), the shell DLL, and the tooling |
+
+The scripts in both still carry the lab machine's absolute paths and are Windows-specific; the path-convention
+migration (`I76_LAB_ROOT`, `I76_GAME_DIR`, `I76_MAP_ROOT`) is the next step.
 
 ## Docs outside this folder
 

@@ -70,7 +70,7 @@ hunting an unknown field, the published number tells you what to look for.
 
 ## Before any memory hunt: read the technique note
 
-**[`../i76-uncap-lab/docs/RE-TECHNIQUES.md`](../i76-uncap-lab/docs/RE-TECHNIQUES.md)** — how to
+**[`../i76-uncap-lab/docs/RE-TECHNIQUES.md`](lab/docs/RE-TECHNIQUES.md)** — how to
 find values in this game, the traps that each produced a *confidently wrong* answer here, and,
 most importantly, **when to stop hand-rolling and use Cheat Engine**.
 
@@ -173,7 +173,7 @@ What it gives you:
   checkpoint diff, so physics claims are settled with numbers.
 
 **Check the config before reverse-engineering:
-[`../i76-uncap-lab/docs/CONFIG-OPTIONS.md`](../i76-uncap-lab/docs/CONFIG-OPTIONS.md)** indexes
+[`../i76-uncap-lab/docs/CONFIG-OPTIONS.md`](lab/docs/CONFIG-OPTIONS.md)** indexes
 every `dgVoodoo.conf` knob **by symptom**, and — critically — **which section each must live in**.
 Two problems that cost hours of debugger work were one config line each. It also documents the DLL's
 runtime control file.
@@ -185,7 +185,7 @@ game). The lab sandbox ran that way from 2026-08-09 to 2026-10-02 (`EnableInacti
 sandbox is void**: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, the 1920x1440 pointer box. The
 owner's daily-driver conf was accepted. Before trusting any conf finding, **prove the file is loaded**: flip a
 visible key (`3DfxWatermark = true`) and hide the global file. Record:
-[`../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md`](../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md),
+[`../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md`](lab/docs/DGVOODOO-CONF-REJECTED.md),
 docs/records/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md predates this; it carries a correction
 header since 2026-10-03 (lab commit `a664306`), but its rows were not re-measured.
 

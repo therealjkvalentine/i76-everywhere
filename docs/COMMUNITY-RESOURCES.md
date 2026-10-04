@@ -19,7 +19,7 @@ Last swept: 2026-08-09.
 **Why this matters for memory work:** the published ammo capacities are exactly the values that
 appear in the engine's weapon definition table, so they double as a cross-check that you are
 reading the right structure. Verified against a live game — see
-[`i76-uncap-lab/docs/WEAPONS-MEMORY.md`](../../i76-uncap-lab/docs/WEAPONS-MEMORY.md).
+[`i76-uncap-lab/docs/WEAPONS-MEMORY.md`](../lab/docs/WEAPONS-MEMORY.md).
 Weights are similarly useful: the CHASSIS CONFIGURATION FORM's "total weight" is a sum you can
 decompose against them.
 
@@ -59,7 +59,7 @@ in a map like any vehicle, using the class code `regen`. That makes a repair eve
 That matters because a controlled repair is the one stimulus that cracks live armor. Damage has
 been unreliable in every form tried (AI fire, wall grinding, own landmines), and nothing else in
 memory moves *upward* on cue. See the open item in
-[`i76-uncap-lab/docs/CAR-CONFIG.md`](../../i76-uncap-lab/docs/CAR-CONFIG.md).
+[`i76-uncap-lab/docs/CAR-CONFIG.md`](../lab/docs/CAR-CONFIG.md).
 
 ### Top-down level maps — **found**
 
@@ -71,7 +71,7 @@ Local Ditch — `maps.html` there is a download catalogue with no pictures.
 ### Vehicle class codes
 
 `76car.html` lists the code for every car, which complements the `.vdf` names in
-[`CAR-CONFIG.md`](../../i76-uncap-lab/docs/CAR-CONFIG.md):
+[`CAR-CONFIG.md`](../lab/docs/CAR-CONFIG.md):
 `valepre1-4` Leprechaun, `vppirna1-4` Piranha, `vcmanta1-4` Manta, `vgoon1-3/vgoonf` Bushmaster,
 `vjsovrn1-3` Sovereign, `vxbus1/2` Bus, `vstank1/2/f` tank, turrets (`c1turr`, `mg1turr`,
 `flm1turr`, `sp1turr`…), and the Trip-mode cars including **`t01js01` = Taurus**.
@@ -131,7 +131,7 @@ accidentally break.
 
 Not I'76-specific, but this is the problem class our armor hunt is stuck in, and the community
 solved it long ago. Full write-up:
-[`../../i76-uncap-lab/docs/RE-TECHNIQUES.md`](../../i76-uncap-lab/docs/RE-TECHNIQUES.md).
+[`../../i76-uncap-lab/docs/RE-TECHNIQUES.md`](../lab/docs/RE-TECHNIQUES.md).
 
 | resource | URL | why |
 |---|---|---|
@@ -175,7 +175,7 @@ walkthroughs, vehicles, weapons and codes.
   appears to have published clean overhead shots of the *campaign* levels.
 - ~~Anything on the multiplayer healing building~~ — answered by §1a (`regen` class code) and
   now moot: live armor itself is located, see
-  [`i76-uncap-lab/docs/ARMOR-INVESTIGATION.md`](../../i76-uncap-lab/docs/ARMOR-INVESTIGATION.md)
+  [`i76-uncap-lab/docs/ARMOR-INVESTIGATION.md`](../lab/docs/ARMOR-INVESTIGATION.md)
   (entity `+0x138`, found offline by cross-instance offset diff, 2026-08-10).
 
 ## House rules for this index

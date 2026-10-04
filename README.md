@@ -20,6 +20,8 @@ scripts, source, and documentation. Downloaded/copyrighted material lives in a l
 | **Understand the file formats** | [i76-save-editor.py](i76-save-editor.py) docstring (save format) + [docs/HD-TEXTURES-RESEARCH.md](docs/HD-TEXTURES-RESEARCH.md) (ZFS/VQM/M16) |
 | **Know what's already settled** | [docs/README.md](docs/README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
+| **The 60 fps lab and its test harness** | [lab/](lab/README.md) — public snapshot of i76-uncap-lab (2026-10-03): the engine reference, frame-rate work, autotest scripts |
+| **The reverse-engineering map** | [re/](re/README.md) — public snapshot of i76-map (2026-10-03): engine architecture, subsystem specs, file formats and parsers |
 
 ## Everything this adds
 
