@@ -1038,14 +1038,49 @@ static void apply_volume_test(void) {
 /* The frame hook only runs inside the mission loop (game state 0x4c2164 == 5), so a game parked in the shell, a
  * movie or a modal logs nothing at all. This thread says where it is instead: once a period, if the frame counter
  * has not moved, the state and the counter. */
+static HANDLE g_fl_main;                                     /* the game's main thread (DllMain runs on it) */
 static DWORD WINAPI fps_log_watch(LPVOID arg) {
     DWORD sec = (DWORD)(DWORD_PTR)arg, last = (DWORD)-1;
     for (;;) {
         Sleep(sec * 1000);
         if (g_frame == last) {
             volatile BYTE *b = (volatile BYTE *)0x004039b8;           /* our call, or did something rewrite it? */
-            mlog("  fps: no mission frames; game state %ld, proxy frame %lu; hook site %02x %02x %02x %02x %02x",
-                 *(volatile LONG *)0x004c2164, (unsigned long)g_frame, b[0], b[1], b[2], b[3], b[4]);
+            /* Where the main thread is parked: eip and up to 8 return addresses off the ebp chain. Read while it is
+             * suspended, logged after it resumes (mlog must not run while it might hold a lock we need). */
+            DWORD ret[9] = {0}; int nret = 0;
+            if (g_fl_main && SuspendThread(g_fl_main) != (DWORD)-1) {
+                CONTEXT c; DWORD fp, fr[2]; SIZE_T got;
+                c.ContextFlags = CONTEXT_CONTROL;
+                if (GetThreadContext(g_fl_main, &c)) {
+                    ret[nret++] = c.Eip; fp = c.Ebp;
+                    while (nret < 9 && fp &&
+                           ReadProcessMemory(GetCurrentProcess(), (LPCVOID)(DWORD_PTR)fp, fr, 8, &got) && got == 8) {
+                        ret[nret++] = fr[1];
+                        if (fr[0] <= fp) break;                       /* frames grow up the stack; stop on a bad link */
+                        fp = fr[0];
+                    }
+                }
+                ResumeThread(g_fl_main);
+            }
+            mlog("  fps: no mission frames; game state %ld, proxy frame %lu; hook site %02x %02x %02x %02x %02x; "
+                 "main thread at %08lx < %08lx %08lx %08lx %08lx %08lx %08lx %08lx %08lx",
+                 *(volatile LONG *)0x004c2164, (unsigned long)g_frame, b[0], b[1], b[2], b[3], b[4],
+                 ret[0], ret[1], ret[2], ret[3], ret[4], ret[5], ret[6], ret[7], ret[8]);
+            {   /* which module each address is in, as module+offset */
+                int k; char line[600]; int pos = 0;
+                for (k = 0; k < nret && pos < (int)sizeof(line) - 80; k++) {
+                    HMODULE m = NULL; char name[MAX_PATH] = "?", *base = name, *q;
+                    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                           (LPCSTR)(DWORD_PTR)ret[k], &m) && m) {
+                        GetModuleFileNameA(m, name, sizeof(name));
+                        for (q = name; *q; q++) if (*q == '\\' || *q == '/') base = q + 1;
+                    }
+                    pos += _snprintf(line + pos, sizeof(line) - pos, " %s+%lx", base,
+                                     (unsigned long)(m ? ret[k] - (DWORD)(DWORD_PTR)m : ret[k]));
+                }
+                line[sizeof(line) - 1] = 0;
+                mlog("  fps: main thread modules:%s", line);
+            }
         }
         last = g_frame;
     }
@@ -1056,6 +1091,7 @@ static void apply_fps_log(void) {
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     g_fl_period = g_qpf.QuadPart * sec;
     install_frame_hook();
+    g_fl_main = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, GetCurrentThreadId());
     CloseHandle(CreateThread(NULL, 0, fps_log_watch, (LPVOID)(DWORD_PTR)sec, 0, NULL));
     mlog("  fps-log: every %d s%s", sec, g_frame_hook ? "" : " (hook failed: no log)");
 }
