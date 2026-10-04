@@ -50,6 +50,9 @@ $KnownGood = @{
     # u32x_full.dll since 2026-10-03 evening: 696577dc + the modal pointer (an arrow on the picture while a shell OK popup
     # spins; I76_U32X_MODAL_PTR=0 = off). Pairs with the shell F7 patch (tools\patch-shell-f7.py) for Enter / Space.
     '19ab8dd1e259c5072693a77970320d2a' = 'gated 2026-10-03 (sandbox + twin): popup arrow on point 16:10 and wide, Enter/Space/click close after focus change, leg-b 3/3, trip 2/2 120 fps, save screen NO/YES, melee'
+    # u32x_full.dll since 2026-10-03 night: 19ab8dd1 + b2 (MessageBoxA / DialogBoxParamA: topmost, foreground, centred on
+    # the game window, clip released + OS cursor shown, restored after; I76_U32X_MSGBOX=0 = plain forward).
+    '602bfbc559f383b0e4a2641578ec9b1f' = 'gated 2026-10-03 (sandbox + twin): Win32 box in front/centred 4/4 (folder conf, wide, 16:10), steering after 3/3, leg-b 3/3, trip 2/2 120 fps, save screen NO/YES + K3 keys, melee'
 }
 
 $TARGETS = @(

@@ -23,7 +23,7 @@ asked for it: a deployed, load-bearing DLL whose source sat only in the private 
 | `build.ps1` | rebuilds from the two source files to `u32x.build.dll` (never over `u32x.dll` unless `-Replace`) | | port of the lab's `src\build-min.ps1` |
 | `u32x_full.c` | the source of the **full build** (added 2026-10-03) | `c7b6fe5f31b9ada3d3f5a1d77f56378a` | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19") **and the modal pointer** (section "Modal pointer"; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` has neither |
 | `u32x_full.def` | its export list: the same 53 names, with `GetAsyncKeyState` and `GetKeyState` also pointed at our code (6 intercepts + 47 forwarders) | `2902622b28ab4ed5f79a59b54c50176d` | byte-identical to the lab's `src\u32x.def` at the same commit (blob `4b94a933`) |
-| `u32x_full.dll` | **the gated full binary: P1-19 fix + modal pointer**, 114,688 B, x86, built 2026-10-03 by `build-full.ps1` from the `u32x_full.c` above | `19ab8dd1e259c5072693a77970320d2a` (sha256 `7f3d6054…7abdc30d`) | sandbox- and twin-gated 2026-10-03 (section "Modal pointer"). Previous binaries: `696577dc` (P1-19 only; sandbox `game\u32x.dll.696577dc`, twin `u32x.dll.pre-f7-696577dc`) and `054fb411` (lab `src\u32x_gated_054fb411.dll`); both stay on `$KnownGood` |
+| `u32x_full.dll` | **the gated full binary: P1-19 fix + modal pointer + Win32 message boxes (b2)**, 116,736 B, x86, built 2026-10-03 by `build-full.ps1` from the `u32x_full.c` above | `602bfbc559f383b0e4a2641578ec9b1f` (sha256 `91fd7943…02158c9a1c`) | sandbox- and twin-gated 2026-10-03 night (section "Win32 message boxes"). Previous binaries: `19ab8dd1` (modal pointer; sandbox `game\u32x.dll.19ab8dd1`, twin `u32x.dll.pre-msgbox-19ab8dd1`), `696577dc` (P1-19 only; sandbox `game\u32x.dll.696577dc`, twin `u32x.dll.pre-f7-696577dc`) and `054fb411` (lab `src\u32x_gated_054fb411.dll`); both stay on `$KnownGood` |
 | `build-full.ps1` | rebuilds the full build to `u32x_full.build.dll` and reports which bytes differ from `u32x_full.dll` | | port of the lab's `src\build-u32x.ps1` (same compiler line) |
 | `deploy-u32x.ps1` | installs / removes the proxy in a game folder | | port of the lab's `tools\instruments\deploy-shellfix.ps1`, with import/export and md5 guards |
 
@@ -178,6 +178,31 @@ leg-b bookmark route 3/3, trip route through `TEST-FRAMERATE -Mode all120` 2/2 a
 copies `dgVoodoo.wide.conf` over it (the twin's conf had drifted from the driver's; the earlier twin gates
 `115416` / `141237` failed row D the same way with the previous builds). **Not run:** Modal_Ok's F7 path live
 (emulated only), the owner's hands.
+
+## Win32 message boxes: in front, centred, with a pointer (build `602bfbc5`, 2026-10-03 night)
+
+**Problem (audit item b2, lab `docs\DIALOG-AND-CLICK-AUDIT.md`).** The shell's network errors (16 `MessageBoxA` sites,
+e.g. "Unable to create an IPX connection..."), the "I76 Error" input.map box, the exe's start-up boxes and the CD-2
+prompt are plain Win32 boxes. Over the fullscreen picture one was measured opening behind it (MULTIPLAYER-LOCAL-TEST
+F3): the game looks frozen, and the engine keeps the pointer clipped and hidden.
+
+**Change.** `MessageBoxA` and `DialogBoxParamA` are now real exports (`My_MessageBoxA`, `My_DialogBoxParamA`). Around
+the real call: the clip is remembered and released, the modal arrow is hidden if up, this thread's `ShowCursor` count
+is raised to >= 0, `MB_TOPMOST | MB_SETFOREGROUND` is added, and a thread-local `WH_CBT` hook centres the `#32770` on
+the game window (clamped to that monitor's work area) and makes it `HWND_TOPMOST`. Afterwards exactly the added
+`ShowCursor` increments are given back, a held clip is restored (the engine's `mouse_Poll` reclips anyway) and the
+foreground goes back to the game window. **Kill switch: `I76_U32X_MSGBOX=0`** (plain forwards, the old behaviour).
+
+**Measured** (lab sandbox, shell `a300db63` = F7 + `tools\patch-shell-modals.py`; HOST > IPX without IPXWrapper gives
+the shell's Win32 box; `..\i76-uncap-lab\autotest\msgbox-test.ps1 -Case ipxerr`): in front, topmost, foreground,
+centred on the game window, OS cursor shown, clip free in 4 of 4 launches (folder fullscreen conf x2,
+`dgVoodoo.aspect-wide.conf`, `dgVoodoo.aspect-16x10.conf`); closed by Enter 2/2 and by a click on OK 2/2; the
+foreground returned to the game every time. Then, in the same process, an instant melee: speed and both steering
+directions as in a no-box control (3/3, `msgbox-steer.ps1`). Control `I76_U32X_MSGBOX=0`: the box was not topmost and
+sat 25 px low, but in this single-instance case it was already in front and answerable, so these runs do **not**
+reproduce the "behind the picture" failure itself (that was two stacked instances). Gate: sandbox rows 2 (leg-b 3/3),
+3 (2/2 at 120 fps), 4 (save screen NO / YES, and K3 keys N / Esc / Y), 6 (melee) PASS; twin `game-dd-20261003` rows
+2, 3 (PLAY.bat, 120 fps), 4, 6, S, D all PASS (lab `autotest\runs\gate\20261003-212415`).
 
 ## The minimal build: notes
 
