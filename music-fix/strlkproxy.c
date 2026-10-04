@@ -3520,6 +3520,95 @@ static void apply_shadow_road_dist(void) {
     patch_rdata_float("I76_ROAD_DIST", 0x4be7b8, 450.0f, 450.0f, 3000.0f, 0, "road-dist");
 }
 
+/* DEPTH-BUCKET SPAN-NODE POOL  (automatic with I76_ROAD_DIST > 450 or I76_FAR_CLIP; I76_ROAD_POOL=0 off,
+ * =<1..64> pool factor, default 16; lab docs/SOAK-BEST-WIDE-2026-10-03.md, ceiling #4)
+ * The depth queue 0x48fe10 hands kind-1 and kind-0xb records to 0x490470(rec, z0, z1, a, b), which links one 16-byte
+ * node {f32 a, f32 b, rec, next} into EVERY 1 m bucket between z0 and z1 (bucket table [0x654388]: 0xc000 B =
+ * 4096 x {head, tail, count}). Nodes come from a bump cursor [0x6543b8] into one 0x1f400 B block (~8,000 nodes;
+ * `push 0x1f400` at 0x48f9d6 in 0x48f9b0, base [0x6543bc]) with no end check; the flush 0x48fac0 rewinds the cursor
+ * (0x48fd50) when [0x59c498] says nodes were taken. The only readers walk the lists (0x490030..0x490100), so the
+ * pool size is assumed nowhere else. Roads queued out to 1800 m span hundreds of buckets each and ran the cursor off
+ * the block (fault exe+0x9051B, t11 at boot 2/2). Fix: pool x16 (2 MB), and the loop head 0x4904cd (`mov eax,
+ * [0x654388]`, 5 bytes) calls a stub that, when the next node would pass the pool end or the bucket index is outside
+ * the table, leaves the loop through the function's own exit (0x490578: pops, sets the flag, ret): that polygon stays
+ * linked into the buckets it already got, the rest are dropped. Refusals and the high water are logged every 600
+ * frames (frames counted by wrapping the scene flush calls 0x401e8d / 0x40216d). */
+static DWORD g_rp_maxoff = 0x1f400 - 16;    /* last node offset that still fits */
+static DWORD g_rp_hw, g_rp_refused, g_rp_lost, g_rp_bucket, g_rp_frames, g_rp_refused_total;
+static __declspec(naked) void road_node_stub(void) {            /* replaces `mov eax, [0x654388]` at 0x4904cd */
+    __asm {
+        cmp ecx, 0xc000 - 12                /* ecx = bucket index x 12 */
+        ja bucket_out
+        mov eax, dword ptr ds:[0x006543b8]
+        sub eax, dword ptr ds:[0x006543bc]
+        cmp eax, g_rp_maxoff
+        ja pool_full
+        cmp eax, g_rp_hw
+        jbe take
+        mov g_rp_hw, eax
+    take:
+        mov eax, dword ptr ds:[0x00654388]
+        ret
+    bucket_out:
+        inc g_rp_bucket
+        jmp refuse
+    pool_full:
+        inc g_rp_refused
+    refuse:
+        add g_rp_lost, edx                  /* buckets this polygon does not get */
+        add esp, 4                          /* drop the return into the loop */
+        push 0x00490578                     /* the function's exit: pop ebx, pop esi, flag = 1, pop edi, ret */
+        ret
+    }
+}
+static void __cdecl road_flush_wrap(void *cam, int flag) {       /* the scene flush calls 0x401e8d / 0x40216d */
+    ((void (__cdecl *)(void *, int))0x0048fac0)(cam, flag);
+    if (++g_rp_frames >= 600) {
+        g_rp_refused_total += g_rp_refused;
+        if (g_logging)
+            mlog("  road-pool: 600 frames: refused %lu polygons (%lu past the pool, %lu past bucket 4095), %lu bucket links dropped; node high water %lu KB of %lu KB; refusals since start %lu",
+                 (unsigned long)(g_rp_refused + g_rp_bucket), (unsigned long)g_rp_refused, (unsigned long)g_rp_bucket,
+                 (unsigned long)g_rp_lost, (unsigned long)((g_rp_hw + 16) >> 10), (unsigned long)((g_rp_maxoff + 16) >> 10),
+                 (unsigned long)g_rp_refused_total);
+        g_rp_frames = g_rp_hw = g_rp_refused = g_rp_lost = g_rp_bucket = 0;
+    }
+}
+static void apply_road_pool(void) {
+    static const BYTE pool_old[5]  = { 0x68, 0x00, 0xf4, 0x01, 0x00 };   /* push 0x1f400 (0x48f9d6) */
+    static const BYTE head_old[5]  = { 0xa1, 0x88, 0x43, 0x65, 0x00 };   /* mov eax, [0x654388] (0x4904cd) */
+    static const BYTE fl1_old[5]   = { 0xe8, 0x2e, 0xdc, 0x08, 0x00 };   /* call 0x48fac0 (0x401e8d, software scene) */
+    static const BYTE fl2_old[5]   = { 0xe8, 0x4e, 0xd9, 0x08, 0x00 };   /* call 0x48fac0 (0x40216d, hardware scene) */
+    static const BYTE exit_old[10] = { 0x5b, 0x5e, 0xc7, 0x05, 0x98, 0xc4, 0x59, 0x00, 0x01, 0x00 }; /* 0x490578 */
+    char v[16]; DWORD n; int factor = 16, want = 0, ok = 0; float road = 450.0f; DWORD pool; LONG rel;
+    BYTE pool_new[5] = { 0x68 }, w[5] = { 0xe8 };
+    n = GetEnvironmentVariableA("I76_ROAD_POOL", v, sizeof(v));
+    if (n && n < sizeof(v)) {
+        factor = atoi(v);
+        if (factor == 0) { mlog("  road-pool: off (I76_ROAD_POOL=0)"); return; }
+        if (factor < 1 || factor > 64) { mlog("  road-pool: I76_ROAD_POOL=%s out of range (0 off, 1..64) - using 16", v); factor = 16; }
+        want = 1;
+    }
+    n = GetEnvironmentVariableA("I76_ROAD_DIST", v, sizeof(v));
+    if (n && n < sizeof(v)) { road = (float)atof(v); if (road > 450.0f) want = 1; }
+    n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
+    if (n && n < sizeof(v)) want = 1;
+    if (!want) return;
+    if (memcmp((void *)0x0048f9d6, pool_old, 5) || memcmp((void *)0x004904cd, head_old, 5) ||
+        memcmp((void *)0x00490578, exit_old, 10)) { mlog("  road-pool: sites differ - not applied"); return; }
+    pool = 0x1f400 * (DWORD)factor;
+    memcpy(pool_new + 1, &pool, 4);
+    if (!patch_bytes(0x0048f9d6, pool_old, pool_new, 5, "span-node pool")) { mlog("  road-pool: pool not enlarged - not applied"); return; }
+    g_rp_maxoff = pool - 16;
+    rel = (LONG)((DWORD_PTR)road_node_stub - (0x004904cd + 5)); memcpy(w + 1, &rel, 4);
+    ok = patch_bytes(0x004904cd, head_old, w, 5, "span-node guard");
+    rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x00401e8d + 5)); memcpy(w + 1, &rel, 4);
+    n = patch_bytes(0x00401e8d, fl1_old, w, 5, "road-pool frame count (sw)");
+    rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x0040216d + 5)); memcpy(w + 1, &rel, 4);
+    n += patch_bytes(0x0040216d, fl2_old, w, 5, "road-pool frame count (hw)");
+    mlog("  road-pool: span-node pool x%d (%lu KB), end guard %s, stats %s (roads %.0f m)", factor, (unsigned long)(pool >> 10),
+         ok ? "on" : "NOT installed", n == 2 ? "every 600 frames" : "OFF (flush sites differ)", road);
+}
+
 /* GROUND CLUTTER DISTANCE  (I76_CLUTTER_DIST=<metres 120..600>, I76_CLUTTER_RISE=<metres 0..100>; off by default;
  * EXPERIMENT, static findings in i76-uncap-lab docs/CLUTTER-AND-MIRROR.md, 2026-10-03)
  * renderer_QueueTerrainClutter 0x45c380 (only with Terrain Detail on): the camera's 100 m cell is snapped to the lower
@@ -3883,6 +3972,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
+        apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP: span-node pool x16 + end guard (I76_ROAD_POOL=0 off) */
         apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
         apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
