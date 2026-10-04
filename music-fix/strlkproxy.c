@@ -210,6 +210,39 @@ static int resume_on(void) {
     if (g_resumeOn < 0) { char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_RESUME", v, sizeof(v)); g_resumeOn = !(n && v[0] == '0'); }
     return g_resumeOn;
 }
+/* Three music options (2026-10-04; docs/MUSIC-TRACK-MAP.md top section, lab docs/MUSIC-RUN-END-2026-10-04.md):
+ *  - run end (default: EXCLUSIVE, a bug fix; I76_MUSIC_TO_INCLUSIVE=1 restores the old reading). MCI_TO is an end
+ *    POSITION: "play from track N to the start of track T" stops before T. The exe only passes TOC track starts, so
+ *    the last track is T-1. Read inclusively, every AiO mission run 12..15 played 15.mp3 as an extra song and M09's
+ *    15..16 played 16.mp3 after 15.
+ *  - I76_MUSIC_DISC_ORDER=1 (off): GOG's mp3s are not in the disc's order for four tracks (frame-walk lengths vs the
+ *    redump TOC): disc 3 = 16.mp3, 15 = 17.mp3, 16 = 15.mp3, 17 = 3.mp3. Applied to the files played AND to the TOC
+ *    lengths/positions the exe reads, so the disc the exe sees is the original's.
+ *  - I76_MUSIC_SHELL=1997 (off): in the shell (game state [0x4c2164] == 6) the Gold DLL's menu 13 and credits 8 become
+ *    the 1997 DLL's choices, one track each: 13 -> disc 15 (Ovum Bisquit), 8 -> disc 16 (Malochio Down). The exe's
+ *    own 5 s shell poll replays the requested track when it stops, so each loops. The remapped play always uses the
+ *    disc-order file (17.mp3 / 15.mp3), with or without I76_MUSIC_DISC_ORDER, since the option asks for those songs. */
+static int g_toIncl = -1, g_discOrder = 0, g_shell1997 = 0;
+static int g_runForce = 0, g_playingForce = 0, g_pausedForce = 0;   /* 1 = the run is a shell-1997 remap */
+static void music_opts(void) {
+    char v[16]; DWORD n;
+    if (g_toIncl >= 0) return;
+    n = GetEnvironmentVariableA("I76_MUSIC_TO_INCLUSIVE", v, sizeof(v)); g_toIncl  = (n && n < sizeof(v) && v[0] == '1');
+    n = GetEnvironmentVariableA("I76_MUSIC_DISC_ORDER", v, sizeof(v));   g_discOrder = (n && n < sizeof(v) && v[0] == '1');
+    n = GetEnvironmentVariableA("I76_MUSIC_SHELL", v, sizeof(v));        g_shell1997 = (n && n < sizeof(v) && lstrcmpA(v, "1997") == 0);
+    mlog("  music: run end %s, disc order %s, shell %s, resume %s",
+         g_toIncl ? "INCLUSIVE (I76_MUSIC_TO_INCLUSIVE=1, old)" : "exclusive",
+         g_discOrder ? "ON {3:16,15:17,16:15,17:3}" : "off (N -> N.mp3)",
+         g_shell1997 ? "1997 (13 -> disc 15, 8 -> disc 16, one track)" : "as asked", resume_on() ? "on" : "off");
+}
+/* disc track -> music\N.mp3 number */
+static int disc_file(int trk, int force) {
+    if (g_discOrder || force) switch (trk) { case 3: return 16; case 15: return 17; case 16: return 15; case 17: return 3; }
+    return trk;
+}
+static DWORD game_state(void) {
+    return IsBadReadPtr((void *)0x004c2164, 4) ? 0xFFFFFFFFu : *(volatile DWORD *)0x004c2164;
+}
 static MCIERROR play_track(int track);
 static DWORD g_lenCache[LAST_TRACK + 1];   /* ms, 0 = not yet queried */
 
@@ -222,7 +255,7 @@ static DWORD track_len_ms(int trk) {
     char mp3[MAX_PATH], cmd[MAX_PATH + 64], ret[64];
     if (trk < FIRST_TRACK || trk > LAST_TRACK) return 0;
     if (g_lenCache[trk]) return g_lenCache[trk];
-    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, trk);
+    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, disc_file(trk, 0));
     if (GetFileAttributesA(mp3) == INVALID_FILE_ATTRIBUTES) return 0;
     ensure_real();
     if (!real_mciSendStringA) return 0;
@@ -281,7 +314,7 @@ static int playing_now(void) {
     if (strstr(ret, "playing") != NULL) return 1;
     if (g_playingTrack && g_playingTrack >= g_runStart && g_playingTrack < g_runEnd) {   /* song ended: next in the run */
         int next = g_playingTrack + 1;
-        mlog("  run %d..%d: track %d ended -> %d", g_runStart, g_runEnd, g_playingTrack, next);
+        mlog("  run %d..%d: track %d ended -> %d (t=%lu)", g_runStart, g_runEnd, g_playingTrack, next, (unsigned long)GetTickCount());
         return play_track(next) == 0;
     }
     return 0;
@@ -320,7 +353,7 @@ static void stop_track(void) {
 static int track_exists(int trk) {
     char mp3[MAX_PATH];
     if (trk < FIRST_TRACK || trk > LAST_TRACK) return 0;
-    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, trk);
+    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, disc_file(trk, g_runForce));
     return GetFileAttributesA(mp3) != INVALID_FILE_ATTRIBUTES;
 }
 
@@ -382,11 +415,12 @@ static MCIERROR play_track(int track) {
      * That is why music restarted whenever the window lost and regained focus, and
      * why a track could never play through to its end. A CD player asked for the
      * track already under the head does not lift the needle. */
-    if (track == g_runStart && g_playingTrack > g_runStart && g_playingTrack <= g_runEnd && still_playing()) {
+    if (track == g_runStart && g_playingTrack > g_runStart && g_playingTrack <= g_runEnd && g_playingForce == g_runForce
+        && still_playing()) {
         mlog("  PLAY track %d re-issued while its run is on track %d - kept", track, g_playingTrack);
         return 0;
     }
-    if (track == g_playingTrack && still_playing()) {
+    if (track == g_playingTrack && g_playingForce == g_runForce && still_playing()) {
         mlog("  track %d already playing - not restarting", track);
         return 0;
     }
@@ -400,15 +434,17 @@ static MCIERROR play_track(int track) {
     if (actual != track)
         mlog("  track %d not on disk - substituting nearest available (%d)", track, actual);
     track = actual;
-    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, track);
+    _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, disc_file(track, g_runForce));
+    if (disc_file(track, g_runForce) != track)
+        mlog("  disc track %d -> file %d.mp3 (%s)", track, disc_file(track, g_runForce), g_runForce ? "shell 1997" : "disc order");
     stop_track();
     _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", mp3, g_alias); mci_str(cmd);
     g_open = 1;
     _snprintf(cmd, sizeof(cmd), "setaudio %s volume to %lu", g_alias, (unsigned long)g_volume); mci_str(cmd);   /* the exe sets the
                                                                    slider once (0x423d50), not per track: re-apply it (M2) */
     _snprintf(cmd, sizeof(cmd), "play %s", g_alias); mci_str(cmd);
-    g_playingTrack = track;
-    mlog("  PLAY track %d", track);
+    g_playingTrack = track; g_playingForce = g_runForce;
+    mlog("  PLAY track %d (t=%lu)", track, (unsigned long)GetTickCount());
     return 0;
 }
 
@@ -471,34 +507,49 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
             DWORD from = (DWORD)p->dwFrom;          /* TMSF: track in the low byte */
             track = (from & 0xFF) ? (int)(from & 0xFF) : (int)from;
         }
+        int force = 0;
+        music_opts();
         {
             int to = track;
-            if (p && (flags & MCI_TO)) { DWORD t = (DWORD)p->dwTo; to = (t & 0xFF) ? (int)(t & 0xFF) : (int)t; }
+            if (p && (flags & MCI_TO)) {
+                DWORD t = (DWORD)p->dwTo; int tt = (t & 0xFF) ? (int)(t & 0xFF) : (int)t;
+                to = g_toIncl ? tt : (tt > track ? tt - 1 : track);   /* MCI_TO = end position: stops BEFORE track tt */
+            }
             if (to < track) to = track;
             if (to > LAST_TRACK) to = LAST_TRACK;
+            mlog("MCI_PLAY flags=0x%lX from=%ld to=%ld -> run %d..%d%s (t=%lu)",
+                 (unsigned long)flags, p ? (long)p->dwFrom : -1, p ? (long)p->dwTo : -1, track, to,
+                 g_toIncl ? " (to inclusive)" : "", (unsigned long)GetTickCount());
+            if (g_shell1997 && (track == 13 || track == 8)) {
+                DWORD st = game_state();
+                if (st == 6) {
+                    int nt = (track == 13) ? 15 : 16;
+                    mlog("  shell 1997: state 6, run %d..%d -> disc %d alone (file %d.mp3)", track, to, nt, disc_file(nt, 1));
+                    track = to = nt; force = 1;
+                } else mlog("  shell 1997: track %d asked in state %lu (not the shell) - unchanged", track, (unsigned long)st);
+            }
             g_runStart = track; g_runEnd = to;
-            mlog("MCI_PLAY flags=0x%lX from=%ld to=%ld -> run %d..%d",
-                 (unsigned long)flags, p ? (long)p->dwFrom : -1, p ? (long)p->dwTo : -1, track, to);
         }
         g_curTrack = track;
         if (g_paused) {
             g_paused = 0;
-            if (track == g_pausedRunStart && g_open && g_playingTrack) {
+            if (track == g_pausedRunStart && force == g_pausedForce && g_open && g_playingTrack) {
                 char cmd[64];
                 _snprintf(cmd, sizeof(cmd), "resume %s", g_alias); mci_str(cmd);
-                g_runStart = g_pausedRunStart; g_runEnd = g_pausedRunEnd;
+                g_runStart = g_pausedRunStart; g_runEnd = g_pausedRunEnd; g_runForce = force;
                 mlog("  PLAY run %d..%d after a stop: track %d RESUMED where it was", g_runStart, g_runEnd, g_playingTrack);
                 return 0;
             }
             mlog("  PLAY of a different run (%d, paused run was %d): the paused track is closed", track, g_pausedRunStart);
             stop_track();
         }
+        g_runForce = force;
         return play_track(track);
     }
     case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE:
         if (resume_on() && g_open && g_playingTrack) {
             char cmd[64];
-            if (!g_paused) { g_pausedRunStart = g_runStart; g_pausedRunEnd = g_runEnd; }
+            if (!g_paused) { g_pausedRunStart = g_runStart; g_pausedRunEnd = g_runEnd; g_pausedForce = g_runForce; }
             _snprintf(cmd, sizeof(cmd), "pause %s", g_alias); mci_str(cmd);
             g_paused = 1;
             mlog("  %s: track %d paused where it is (run %d..%d kept for a resume)",
@@ -4469,6 +4520,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
             char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_GUARD", v, sizeof(v));
             if (!(n && v[0] == '0')) { CloseHandle(CreateThread(NULL, 0, music_guard, NULL, 0, NULL)); mlog("  music-guard: on"); }
         }
+        music_opts();             /* run end / I76_MUSIC_DISC_ORDER / I76_MUSIC_SHELL: one log line */
         apply_cd_instrument(exe); /* opt-in (I76_CD_LOG=1): the "insert CD 2" prompt, logged with its cause;
                                      I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */
     } else if (reason == DLL_PROCESS_DETACH) {
