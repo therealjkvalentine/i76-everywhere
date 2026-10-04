@@ -133,8 +133,12 @@ Software resolution ceiling: 1024x768, set in-game (Options -> Graphic Detail ->
   ..`), and it showed the patched call intact. So nothing undoes the hook; the menu's 3D is drawn
   through some other loop.
 - `I76_MISSION=t01` does not reach the mission loop under DxWnd/software: state 5, zero hooked frames
-  for 90 s at about 30 % of a core, DxWnd virtual CD on or off. A candidate is the setup wait at
-  `0x403518..0x403532` (spins on `simclock_Update` until `0x452f20` returns nonzero); not confirmed.
+  for 90 s, DxWnd virtual CD on or off, and also with `I76_SKIP_MOVIES=1` (movie names invalidated
+  2/2). The watcher's stack samples put the main thread in a Wine wait called from `dxwnd.dll`
+  (DDraw -> wined3d) at ~30 % of a core with DxWnd `maxfps0` set, and in `dxwnd.dll -> win32u` at
+  ~114 % with `maxfps0=0`. Not the movie and not the net join wait (`0x452f20` =
+  net_JoinHandshakeStep, re/ map): the software device's graphics init through DxWnd is the
+  remaining candidate. On Windows the direct boot was only ever run with `-glide`.
 - So the frame rate in a real mission is still unmeasured. The test wrapper now runs the lean set
   (the 120 fps switches only, `I76_FPS_LOG=5`) for a played mission; `mciproxy.log` will hold the
   numbers, or the watcher line if the hook does not run in missions either.
