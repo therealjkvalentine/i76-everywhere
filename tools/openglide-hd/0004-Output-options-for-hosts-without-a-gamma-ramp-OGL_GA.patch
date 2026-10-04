@@ -1,0 +1,339 @@
+From f221f703898f27e59fcbf71869169f5210186f41 Mon Sep 17 00:00:00 2001
+From: therealjkvalentine <james.k.valentine@gmail.com>
+Date: Sun, 4 Oct 2026 13:24:50 -0500
+Subject: [PATCH] Output options for hosts without a gamma ramp: OGL_GAMMA,
+ OGL_MSAA, OGL_OUTPUT
+
+OGL_GAMMA=<g>: gamma applied to the finished frame at swap (copy the back
+buffer to a texture, redraw it through a one-line GLSL pow), the way a Voodoo's
+RAMDAC ramp applied to the whole output. SetDeviceGammaRamp does nothing on
+Wine's macOS driver by default (AllowSetGamma=0), so 3Dfx games came out darker
+than on the hardware or under dgVoodoo's EnableGlideGammaRamp.
+
+OGL_MSAA=<n>: multisampled window via WGL_ARB_pixel_format/WGL_ARB_multisample
+(a throwaway context asks wglChoosePixelFormatARB; halves n until a format
+exists), then GL_MULTISAMPLE.
+
+OGL_OUTPUT=WxH: output of any size and aspect; the Glide frame is stretched
+to it (viewport and the LFB composite already scale x and y separately).
+
+All three are off unless set. Measured under Wine 10 on an M5 Pro (I'76 t01):
+4x format granted (pixel format 85), gamma 1.30 applied, 3456x2234 stretched
+output with both on ran 106-118 fps before the run's late slowdown.
+---
+ grguSstGlide.cpp            |  12 ++
+ platform/windows/output.cpp | 224 ++++++++++++++++++++++++++++++++++++
+ platform/windows/window.cpp |  18 +++
+ 3 files changed, 254 insertions(+)
+ create mode 100644 platform/windows/output.cpp
+
+diff --git a/grguSstGlide.cpp b/grguSstGlide.cpp
+index a431e51..dd56ccb 100644
+--- a/grguSstGlide.cpp
++++ b/grguSstGlide.cpp
+@@ -1,3 +1,5 @@
++#include <stdio.h>
++#include <stdlib.h>
+ 
+ #include "platform.h"
+ #include "GlOgl.h"
+@@ -294,6 +296,16 @@ grSstWinOpen(   FxU hwnd,
+         OpenGL.WindowHeight = UserConfig.Resolution * 3 / 4;
+     }
+ 
++    {   // OGL_OUTPUT=WxH: output of any size and aspect; the Glide frame is stretched to it (output.cpp)
++        const char *o = getenv( "OGL_OUTPUT" );
++        int ow = 0, oh = 0;
++        if ( o && sscanf( o, "%dx%d", &ow, &oh ) == 2 && ow > 0 && oh > 0 )
++        {
++            OpenGL.WindowWidth = ow;
++            OpenGL.WindowHeight = oh;
++        }
++    }
++
+     Glide.WindowTotalPixels = Glide.WindowWidth * Glide.WindowHeight;
+     OpenGL.WaitSignal = (int)( 1000 / OpenGL.Refresh );
+ 
+diff --git a/platform/windows/output.cpp b/platform/windows/output.cpp
+new file mode 100644
+index 0000000..b3224e8
+--- /dev/null
++++ b/platform/windows/output.cpp
+@@ -0,0 +1,224 @@
++//**************************************************************
++//*            OpenGLide-HD - output options (env-driven)
++//*
++//*   OGL_MSAA=<n>      multisampled window (WGL_ARB_pixel_format +
++//*                     WGL_ARB_multisample); 0/1 or unsupported = off
++//*   OGL_GAMMA=<g>     gamma applied to the finished frame at swap,
++//*                     the way a Voodoo's RAMDAC ramp applied to the
++//*                     whole output. For hosts where SetDeviceGammaRamp
++//*                     does nothing (Wine's macOS driver by default,
++//*                     XQuartz/XWayland): 3Dfx games otherwise come out
++//*                     darker than on the hardware. 1.0 / unset = off
++//*   OGL_OUTPUT=WxH    (grguSstGlide.cpp) output size of any aspect;
++//*                     the Glide frame is stretched to it
++//*
++//*         OpenGLide is OpenSource under LGPL license
++//**************************************************************
++#if !defined C_USE_SDL && defined WIN32
++
++#include <windows.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <GL/gl.h>
++#include <GL/glext.h>
++
++#include "GlOgl.h"
++#include "platform/window.h"
++
++#define WGL_DRAW_TO_WINDOW_ARB    0x2001
++#define WGL_ACCELERATION_ARB      0x2003
++#define WGL_SUPPORT_OPENGL_ARB    0x2010
++#define WGL_DOUBLE_BUFFER_ARB     0x2011
++#define WGL_PIXEL_TYPE_ARB        0x2013
++#define WGL_COLOR_BITS_ARB        0x2014
++#define WGL_DEPTH_BITS_ARB        0x2022
++#define WGL_FULL_ACCELERATION_ARB 0x2027
++#define WGL_TYPE_RGBA_ARB         0x202B
++#define WGL_SAMPLE_BUFFERS_ARB    0x2041
++#define WGL_SAMPLES_ARB           0x2042
++#ifndef GL_MULTISAMPLE_ARB
++#define GL_MULTISAMPLE_ARB        0x809D
++#endif
++
++typedef BOOL ( WINAPI *ChoosePixelFormatARB_t )( HDC, const int *, const FLOAT *, UINT, int *, UINT * );
++
++int OutputMsaaSamples( void )
++{
++    const char *v = getenv( "OGL_MSAA" );
++    int n = v ? atoi( v ) : 0;
++    return n > 1 ? n : 0;
++}
++
++// A multisampled pixel format needs wglChoosePixelFormatARB, which needs a current context: make a throwaway
++// window + context, ask, tear it down. Returns the format index for hDC, or 0 (caller keeps its own format).
++int OutputChooseMsaaFormat( HDC hDC, int samples )
++{
++    int fmt = 0;
++    HWND tmp = CreateWindowA( "STATIC", "", WS_POPUP, 0, 0, 16, 16, NULL, NULL, GetModuleHandle( NULL ), NULL );
++    if ( !tmp ) return 0;
++    HDC tdc = GetDC( tmp );
++    PIXELFORMATDESCRIPTOR pfd;
++    ZeroMemory( &pfd, sizeof( pfd ) );
++    pfd.nSize = sizeof( pfd ); pfd.nVersion = 1;
++    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
++    pfd.iPixelType = PFD_TYPE_RGBA; pfd.cColorBits = 32; pfd.cDepthBits = 24;
++    int pf = ChoosePixelFormat( tdc, &pfd );
++    if ( pf && SetPixelFormat( tdc, pf, &pfd ) )
++    {
++        HGLRC trc = wglCreateContext( tdc );
++        if ( trc && wglMakeCurrent( tdc, trc ) )
++        {
++            ChoosePixelFormatARB_t choose = (ChoosePixelFormatARB_t) wglGetProcAddress( "wglChoosePixelFormatARB" );
++            if ( choose )
++            {
++                for ( int s = samples; s >= 2 && !fmt; s /= 2 )
++                {
++                    int attr[] = { WGL_DRAW_TO_WINDOW_ARB, TRUE, WGL_SUPPORT_OPENGL_ARB, TRUE,
++                                   WGL_DOUBLE_BUFFER_ARB, TRUE, WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
++                                   WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
++                                   WGL_COLOR_BITS_ARB, 24, WGL_DEPTH_BITS_ARB, 24,
++                                   WGL_SAMPLE_BUFFERS_ARB, 1, WGL_SAMPLES_ARB, s, 0 };
++                    int got = 0; UINT n = 0;
++                    if ( choose( hDC, attr, NULL, 1, &got, &n ) && n > 0 )
++                    {
++                        fmt = got;
++                        GlideMsg( "OGL_MSAA: %dx multisample pixel format %d\n", s, fmt );
++                    }
++                }
++            }
++            else
++            {
++                GlideMsg( "OGL_MSAA: wglChoosePixelFormatARB not available\n" );
++            }
++            wglMakeCurrent( NULL, NULL );
++        }
++        if ( trc ) wglDeleteContext( trc );
++    }
++    ReleaseDC( tmp, tdc );
++    DestroyWindow( tmp );
++    if ( !fmt ) GlideMsg( "OGL_MSAA: no multisample format, staying single-sampled\n" );
++    return fmt;
++}
++
++void OutputEnableMsaa( void )
++{
++    if ( OutputMsaaSamples( ) ) glEnable( GL_MULTISAMPLE_ARB );
++}
++
++// ---- gamma pass ---------------------------------------------------------------------------------
++static PFNGLCREATESHADEROBJECTARBPROC  p_CreateShader;
++static PFNGLSHADERSOURCEARBPROC        p_ShaderSource;
++static PFNGLCOMPILESHADERARBPROC       p_CompileShader;
++static PFNGLCREATEPROGRAMOBJECTARBPROC p_CreateProgram;
++static PFNGLATTACHOBJECTARBPROC        p_Attach;
++static PFNGLLINKPROGRAMARBPROC         p_Link;
++static PFNGLUSEPROGRAMOBJECTARBPROC    p_Use;
++static PFNGLGETUNIFORMLOCATIONARBPROC  p_Uniform;
++static PFNGLUNIFORM1FARBPROC           p_Uniform1f;
++static PFNGLUNIFORM1IARBPROC           p_Uniform1i;
++static PFNGLGETOBJECTPARAMETERIVARBPROC p_GetParam;
++static PFNGLACTIVETEXTUREARBPROC       p_ActiveTexture;
++
++static int    s_gamma_state;           // 0 untried, 1 ready, -1 off
++static float  s_gamma = 1.0f;
++static GLhandleARB s_prog;
++static GLuint s_tex;
++static int    s_tex_w, s_tex_h;
++
++static int GammaInit( void )
++{
++    const char *v = getenv( "OGL_GAMMA" );
++    s_gamma = v ? (float) atof( v ) : 1.0f;
++    if ( s_gamma <= 0.0f || ( s_gamma > 0.99f && s_gamma < 1.01f ) ) return -1;
++
++#define LOAD( p, t, n ) p = (t) wglGetProcAddress( n ); if ( !p ) { GlideMsg( "OGL_GAMMA: no %s\n", n ); return -1; }
++    LOAD( p_CreateShader,  PFNGLCREATESHADEROBJECTARBPROC,  "glCreateShaderObjectARB" );
++    LOAD( p_ShaderSource,  PFNGLSHADERSOURCEARBPROC,        "glShaderSourceARB" );
++    LOAD( p_CompileShader, PFNGLCOMPILESHADERARBPROC,       "glCompileShaderARB" );
++    LOAD( p_CreateProgram, PFNGLCREATEPROGRAMOBJECTARBPROC, "glCreateProgramObjectARB" );
++    LOAD( p_Attach,        PFNGLATTACHOBJECTARBPROC,        "glAttachObjectARB" );
++    LOAD( p_Link,          PFNGLLINKPROGRAMARBPROC,         "glLinkProgramARB" );
++    LOAD( p_Use,           PFNGLUSEPROGRAMOBJECTARBPROC,    "glUseProgramObjectARB" );
++    LOAD( p_Uniform,       PFNGLGETUNIFORMLOCATIONARBPROC,  "glGetUniformLocationARB" );
++    LOAD( p_Uniform1f,     PFNGLUNIFORM1FARBPROC,           "glUniform1fARB" );
++    LOAD( p_Uniform1i,     PFNGLUNIFORM1IARBPROC,           "glUniform1iARB" );
++    LOAD( p_GetParam,      PFNGLGETOBJECTPARAMETERIVARBPROC, "glGetObjectParameterivARB" );
++    LOAD( p_ActiveTexture, PFNGLACTIVETEXTUREARBPROC,       "glActiveTextureARB" );
++#undef LOAD
++
++    // fragment-only program: the fixed-function vertex stage passes gl_TexCoord[0]
++    static const char *fs =
++        "uniform sampler2D frame;\n"
++        "uniform float inv_gamma;\n"
++        "void main() {\n"
++        "    vec3 c = texture2D(frame, gl_TexCoord[0].st).rgb;\n"
++        "    gl_FragColor = vec4(pow(c, vec3(inv_gamma)), 1.0);\n"
++        "}\n";
++    GLhandleARB sh = p_CreateShader( GL_FRAGMENT_SHADER_ARB );
++    p_ShaderSource( sh, 1, &fs, NULL );
++    p_CompileShader( sh );
++    GLint ok = 0;
++    p_GetParam( sh, GL_OBJECT_COMPILE_STATUS_ARB, &ok );
++    if ( !ok ) { GlideMsg( "OGL_GAMMA: shader compile failed\n" ); return -1; }
++    s_prog = p_CreateProgram( );
++    p_Attach( s_prog, sh );
++    p_Link( s_prog );
++    p_GetParam( s_prog, GL_OBJECT_LINK_STATUS_ARB, &ok );
++    if ( !ok ) { GlideMsg( "OGL_GAMMA: program link failed\n" ); return -1; }
++    glGenTextures( 1, &s_tex );
++    GlideMsg( "OGL_GAMMA: %.2f applied at swap\n", s_gamma );
++    return 1;
++}
++
++// Called with the finished frame in the back buffer, just before SwapBuffers.
++void OutputPostProcess( void )
++{
++    if ( s_gamma_state == 0 ) s_gamma_state = GammaInit( );
++    if ( s_gamma_state != 1 ) return;
++
++    const int w = OpenGL.WindowWidth, h = OpenGL.WindowHeight;
++    glPushAttrib( GL_ALL_ATTRIB_BITS );
++    glMatrixMode( GL_TEXTURE );    glPushMatrix( ); glLoadIdentity( );
++    glMatrixMode( GL_PROJECTION ); glPushMatrix( ); glLoadIdentity( ); glOrtho( 0, 1, 0, 1, -1, 1 );
++    glMatrixMode( GL_MODELVIEW );  glPushMatrix( ); glLoadIdentity( );
++
++    p_ActiveTexture( GL_TEXTURE1_ARB ); glDisable( GL_TEXTURE_2D );
++    p_ActiveTexture( GL_TEXTURE0_ARB ); glEnable( GL_TEXTURE_2D );
++    glDisable( GL_DEPTH_TEST ); glDisable( GL_BLEND ); glDisable( GL_ALPHA_TEST ); glDisable( GL_FOG );
++    glDisable( GL_CULL_FACE ); glDisable( GL_SCISSOR_TEST ); glDisable( GL_LIGHTING );
++    glDepthMask( GL_FALSE ); glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
++    glViewport( 0, 0, w, h );
++
++    glBindTexture( GL_TEXTURE_2D, s_tex );
++    if ( s_tex_w != w || s_tex_h != h )
++    {
++        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL );
++        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
++        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
++        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
++        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
++        s_tex_w = w; s_tex_h = h;
++    }
++    glReadBuffer( GL_BACK );
++    glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, w, h );
++
++    p_Use( s_prog );
++    p_Uniform1i( p_Uniform( s_prog, "frame" ), 0 );
++    p_Uniform1f( p_Uniform( s_prog, "inv_gamma" ), 1.0f / s_gamma );
++    glColor4f( 1, 1, 1, 1 );
++    glBegin( GL_QUADS );
++    glTexCoord2f( 0, 0 ); glVertex2f( 0, 0 );
++    glTexCoord2f( 1, 0 ); glVertex2f( 1, 0 );
++    glTexCoord2f( 1, 1 ); glVertex2f( 1, 1 );
++    glTexCoord2f( 0, 1 ); glVertex2f( 0, 1 );
++    glEnd( );
++    p_Use( 0 );
++
++    glMatrixMode( GL_MODELVIEW );  glPopMatrix( );
++    glMatrixMode( GL_PROJECTION ); glPopMatrix( );
++    glMatrixMode( GL_TEXTURE );    glPopMatrix( );
++    glMatrixMode( GL_MODELVIEW );
++    glPopAttrib( );
++}
++
++#endif // !C_USE_SDL && WIN32
+diff --git a/platform/windows/window.cpp b/platform/windows/window.cpp
+index 39c2338..992e8f8 100644
+--- a/platform/windows/window.cpp
++++ b/platform/windows/window.cpp
+@@ -34,6 +34,12 @@ static struct
+     FxU16 blue[ 256 ];
+ } old_ramp;
+ 
++// output.cpp (OGL_MSAA / OGL_GAMMA)
++int  OutputMsaaSamples( void );
++int  OutputChooseMsaaFormat( HDC hDC, int samples );
++void OutputEnableMsaa( void );
++void OutputPostProcess( void );
++
+ static BOOL ramp_stored  = false;
+ static BOOL mode_changed = false;
+ 
+@@ -132,6 +138,16 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+         exit( 1 );
+     } 
+ 
++    if ( OutputMsaaSamples( ) )
++    {
++        int msaa = OutputChooseMsaaFormat( hDC, OutputMsaaSamples( ) );
++        if ( msaa )
++        {
++            PixFormat = msaa;
++            DescribePixelFormat( hDC, PixFormat, sizeof( PIXELFORMATDESCRIPTOR ), &pfd );
++        }
++    }
++
+     // the window must have WS_CLIPCHILDREN and WS_CLIPSIBLINGS for this call to
+     // work correctly, so we SHOULD set this attributes, not doing that yet
+     if ( !SetPixelFormat( hDC, PixFormat, &pfd ) )
+@@ -152,6 +168,7 @@ bool InitialiseOpenGLWindow(FxU wnd, int x, int y, int width, int height)
+ 
+     hRC = wglCreateContext( hDC );
+     wglMakeCurrent( hDC, hRC );
++    OutputEnableMsaa( );
+ 
+     HDC pDC = GetDC( NULL );
+ 
+@@ -259,6 +276,7 @@ void SwapBuffers()
+         ShowGlideOutput( true );
+         shown = true;
+     }
++    OutputPostProcess( );
+     SwapBuffers(hDC);
+ }
+ 
+-- 
+2.53.0
+

@@ -54,6 +54,25 @@ let gameProc = "^\"?C:\\\\GOG Games\\\\Interstate 76\\\\i76\\.exe"
 // version sat forever behind an invisible modal), so the message goes through osascript.
 var waited = 0
 while running(gameProc) && waited < 10 { Thread.sleep(forTimeInterval: 1); waited += 1 }
+// Wine RetinaMode for this prefix, edited in user.reg before Wine starts (the stub refuses to start while a game
+// runs, and the previous session was reaped, so no wineserver holds the file).
+func setRetinaMode(_ on: Bool) {
+    let reg = A + "/Contents/SharedSupport/prefix/user.reg"
+    guard var txt = try? String(contentsOfFile: reg, encoding: .utf8) else { return }
+    let key = "[Software\\\\Wine\\\\Mac Driver]"
+    guard let r = txt.range(of: key) else { return }
+    let want = "\"RetinaMode\"=\"" + (on ? "y" : "n") + "\""
+    let sectionEnd = txt.range(of: "\n\n", range: r.upperBound..<txt.endIndex)?.lowerBound ?? txt.endIndex
+    if let old = txt.range(of: "\"RetinaMode\"=\"[yn]\"", options: .regularExpression, range: r.upperBound..<sectionEnd) {
+        if txt[old] == want { return }
+        txt.replaceSubrange(old, with: want)
+    } else {
+        guard let eol = txt.range(of: "\n", range: r.upperBound..<txt.endIndex) else { return }
+        txt.insert(contentsOf: want + "\n", at: eol.upperBound)
+    }
+    try? txt.write(toFile: reg, atomically: true, encoding: .utf8)
+}
+
 if running(gameProc) {
     let o = Process()
     o.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
@@ -115,12 +134,21 @@ if let txt = try? String(contentsOfFile: game + "/hires120.env", encoding: .utf8
 // height (OpenGLide-HD centres its GL child in the game window, so the picture is pillarboxed, not stretched).
 var desktop = "3456x2234"
 if let d = env.first(where: { $0.0 == "HIRES_DESKTOP" }) { desktop = d.1 }
-let fitOgl = env.first(where: { $0.0 == "HIRES_OGL_FIT" })?.1 == "1"
-env.removeAll { $0.0 == "HIRES_DESKTOP" || $0.0 == "HIRES_OGL_FIT" }
+// HIRES_OGL_FIT=stretch instead sets OGL_OUTPUT to the whole desktop (OpenGLide-HD patch 0004): the 4:3 frame
+// stretched to the screen's shape. HIRES_RETINA=1 sets this prefix's Wine RetinaMode (so Wine sees real pixels, not
+// points) and makes "auto" the display's pixel size: a 2x sharper output on a Retina panel.
+let fitMode = env.first(where: { $0.0 == "HIRES_OGL_FIT" })?.1 ?? ""
+let fitOgl = fitMode == "1"
+let retina = env.first(where: { $0.0 == "HIRES_RETINA" })?.1 == "1"
+env.removeAll { $0.0 == "HIRES_DESKTOP" || $0.0 == "HIRES_OGL_FIT" || $0.0 == "HIRES_RETINA" }
+setRetinaMode(retina)
 if desktop == "auto" {
     let b = CGDisplayBounds(CGMainDisplayID())
-    desktop = "\(Int(b.width))x\(Int(b.height))"
+    var w = Int(b.width), h = Int(b.height)
+    if retina, let m = CGDisplayCopyDisplayMode(CGMainDisplayID()) { w = m.pixelWidth; h = m.pixelHeight }
+    desktop = "\(w)x\(h)"
 }
+if fitMode == "stretch" { env.removeAll { $0.0 == "OGL_OUTPUT" }; env.append(("OGL_OUTPUT", desktop)) }
 if fitOgl, let x = desktop.firstIndex(of: "x"), let h = Int(desktop[desktop.index(after: x)...]) {
     let w = (h * 4 / 3) & ~1                                   // OpenGLide derives height = width * 3 / 4
     let ini = game + "/OpenGLid.INI"

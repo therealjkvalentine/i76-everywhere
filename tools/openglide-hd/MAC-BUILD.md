@@ -144,3 +144,24 @@ MSVC build, GTX 1080 Ti, t01 through `autotest\proxy-run.ps1`, 7 runs, no crash.
   binoculars (79k pixels written); with `0003` 0.06-0.07 ms and 0.36-0.53 ms.
 - So on the Mac the LFB should cost low single-digit ms even translated by Rosetta; if frames are slow, the
   time will be in `swap_ms` (Wine's GL present), not the LFB.
+
+## 7. Patch 0004 on the Mac (2026-10-04): gamma, MSAA, stretched output
+
+Run on the MacBook (M5 Pro, Wine 10, built as route B). All off unless set; the Mac launcher
+([`i76-hires120-stub.swift`](../../i76-hires120-stub.swift)) passes them from `hires120.env`:
+
+| setting | what | Mac result |
+|---|---|---|
+| `OGL_GAMMA=1.3` | gamma on the finished frame at swap (GLSL `pow`). The owner reported OpenGLide "too dark, and not a monitor-brightness thing": ZGLIDE never calls `grGammaCorrectionValue`, the brightness came from the Voodoo's own output ramp (dgVoodoo: `EnableGlideGammaRamp`), and the prefix's `AllowSetGamma=0` would block `SetDeviceGammaRamp` anyway. Same diagnosis as on VOGONS for XQuartz/XWayland | `OGL_GAMMA: 1.30 applied at swap`; look not yet judged |
+| `OGL_MSAA=4` | multisampled window via `wglChoosePixelFormatARB` | `OGL_MSAA: 4x multisample pixel format 85` (winemac grants it) |
+| `OGL_OUTPUT=WxH` | output of any aspect, the 4:3 Glide frame stretched to it | launcher `HIRES_OGL_FIT=stretch` sets it to the desktop |
+
+Launcher keys: `HIRES_DESKTOP=auto` (desktop = main display; a screen-sized Wine desktop is borderless fullscreen),
+`HIRES_RETINA=1` (sets the prefix's `RetinaMode` and sizes "auto" in pixels: 3456x2234 on the 14" panel),
+`HIRES_OGL_FIT=1` (4:3 pillarbox via `Resolution=`) or `stretch`.
+
+Frame rate, t01 direct boot, Terrain Resolution Medium, 5 s windows: every configuration (1728x1117 or 3456x2234,
+with or without 4x MSAA and gamma) ran **104-118 fps** in its first 25 s; three of four runs then sat near 57-60 for
+the rest, one recovered to 120. The plateau did not follow the settings, so it is suspected to be macOS scheduling an
+unfocused, unattended game onto the efficiency cores, not GPU cost; the owner's own (focused) session held 120. One
+Retina run without MSAA logged no mission frames; not reproduced. Played look and fps: pending the owner.
