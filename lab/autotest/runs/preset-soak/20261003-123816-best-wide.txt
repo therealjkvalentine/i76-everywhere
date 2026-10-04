@@ -1,0 +1,23 @@
+== t01 (best-wide) boot: no mission
+cockpit-drive: 1013 frames 101.2 fps | dt mean 8.41 p99 19.28 max 32.00 ms | verts peak 5620 (17% of 32767) | cam 0:100% | alive
+cockpit: 965 frames 96.5 fps | dt mean 8.35 p99 17.43 max 36.18 ms | verts peak 5456 (17% of 32767) | cam 0:100% | alive
+hood: 551 frames 110.2 fps | dt mean 8.82 p99 13.52 max 25.01 ms | verts peak 17393 (53% of 32767) | cam 1:100% | alive
+binoc: 275 frames 55.0 fps | dt mean 18.38 p99 72.05 max 78.31 ms | verts peak 17184 (52% of 32767) | cam 2:100% | alive
+glance-left: 204 frames 101.9 fps | dt mean 9.03 p99 13.28 max 24.71 ms | verts peak 5573 (17% of 32767) | cam 0:100% | alive
+glance-right: 221 frames 110.5 fps | dt mean 8.28 p99 22.40 max 32.75 ms | verts peak 5216 (16% of 32767) | cam 0:100% | alive
+glance-up: 201 frames 100.5 fps | dt mean 8.98 p99 17.25 max 33.66 ms | verts peak 5339 (16% of 32767) | cam 0:100% | alive
+glance-down: 231 frames 115.5 fps | dt mean 8.34 p99 11.24 max 13.05 ms | verts peak 5339 (16% of 32767) | cam 0:100% | alive
+   log: terrain-lod: x8.00, 6/6 constants patched (split distance up, height-error threshold down)
+   log: clutter-dist: on, 8/8 sites; view z 120 -> 300 m, rise limit 5 -> 12.5 m, cells from a 29x29 block culled per frame, record pool 2890 KB (instances refused past 2529 KB)
+   log: aspect: D 2.389, 20/20 sites; fov 90 -> 121.7 deg (cockpit 121.7), hood 120 -> 144.3 deg, clamp 148.9 deg (present at 2.389:1, stretched)
+   log: far-clip: exe is file-patched (1800 m, pools x16); read site repointed (1800 m from I76_FAR_CLIP)
+   log: clutter: 600 frames: 524 us avg, 759 us max; cells 46.5 avg, 51 max; instances tested 265/frame; refused (pool) 0; record pool high water 178 KB
+   log: clutter: 600 frames: 509 us avg, 737 us max; cells 46.5 avg, 50 max; instances tested 305/frame; refused (pool) 0; record pool high water 181 KB
+   log: clutter: 600 frames: 518 us avg, 806 us max; cells 47.4 avg, 55 max; instances tested 309/frame; refused (pool) 0; record pool high water 200 KB
+   log: clutter: 600 frames: 578 us avg, 814 us max; cells 47.7 avg, 50 max; instances tested 327/frame; refused (pool) 0; record pool high water 138 KB
+   log: clutter: 600 frames: 686 us avg, 1728 us max; cells 56.4 avg, 80 max; instances tested 448/frame; refused (pool) 0; record pool high water 180 KB
+   log: clutter: 600 frames: 1086 us avg, 2289 us max; cells 72.3 avg, 81 max; instances tested 572/frame; refused (pool) 0; record pool high water 182 KB
+   log: CRASH: code 0xC0000005 at 0x0049051B (exe+0x9051B) write addr 0x7EF40004 | eax 7EF40000 ebx 7EF40000 ecx 00005148 edx 00000024 esi 000006B5 edi 00000000 ebp 00000004 esp 0019F250 | frame 3955 state 5 cam cb 0x00406AB0 mode 0
+   log: CRASH: stack 7EF8C464 00000004 000006B5 00000035 43380000 000006B5 43380000 0048FF52 000006B5 44B11DC9 44DD4AD5 C4A022AC C499C0AE C3A80482 133FD8F0 00000004
+   log: clutter: 600 frames: 317 us avg, 737 us max; cells 31.7 avg, 50 max; instances tested 201/frame; refused (pool) 0; record pool high water 224 KB
+   log: clutter: 600 frames: 616 us avg, 984 us max; cells 46.0 avg, 51 max; instances tested 342/frame; refused (pool) 0; record pool high water 204 KB

@@ -1,0 +1,9 @@
+game/
+game-*/
+refs/
+*.exe
+*.dll
+*.DLL
+captures/
+__pycache__/
+*.pyc

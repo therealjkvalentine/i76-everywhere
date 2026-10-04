@@ -1,0 +1,114 @@
+== t04 (exp-detail-16) boot: ok 10 s
+cockpit: 1201 frames 120.1 fps | dt mean 8.33 p99 9.77 max 10.37 ms | verts peak 5916 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 265160 (9% of 2960000 B) | cam 0:100% | frames 373-1573 | alive
+hood: 602 frames 120.4 fps | dt mean 8.33 p99 10.10 max 10.57 ms | verts peak 17803 (54% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 264264 (9% of 2960000 B) | cam 1:100% | frames 1658-2259 | alive
+binoc: 389 frames 77.8 fps | dt mean 12.88 p99 14.96 max 34.34 ms | verts peak 17671 (54% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 64812 (2% of 2960000 B) | cam 2:100% | frames 2377-2765 | alive
+glance-left: 241 frames 120.5 fps | dt mean 8.33 p99 8.47 max 8.64 ms | verts peak 5786 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 196848 (7% of 2960000 B) | cam 0:100% | frames 2857-3097 | alive
+glance-right: 242 frames 121.0 fps | dt mean 8.30 p99 8.54 max 8.76 ms | verts peak 5870 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 244220 (8% of 2960000 B) | cam 0:100% | frames 3128-3369 | alive
+glance-up: 241 frames 120.4 fps | dt mean 8.33 p99 8.46 max 8.49 ms | verts peak 5419 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 203900 (7% of 2960000 B) | cam 0:100% | frames 3390-3630 | alive
+glance-down: 241 frames 120.4 fps | dt mean 8.33 p99 8.44 max 8.89 ms | verts peak 5372 (16% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 187048 (6% of 2960000 B) | cam 0:100% | frames 3652-3892 | alive
+cockpit-drive: 1202 frames 120.2 fps | dt mean 8.33 p99 8.54 max 10.78 ms | verts peak 6055 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 249376 (8% of 2960000 B) | cam 0:100% | frames 3913-5114 | alive
+   run: [proxy-run] in mission after 10 s - speed 10.0 m/s, 4 entities
+   log: terrain-lod: x16.00, 6/6 constants patched (split distance up, height-error threshold down)
+   log: clutter-dist: on, 8/8 sites; view z 120 -> 400 m, rise limit 5 -> 16.7 m, cells from a 35x35 block culled per frame, record pool 2890 KB (instances refused past 2529 KB)
+   log: aspect: D 2.389, 20/20 sites; fov 90 -> 121.7 deg (cockpit 121.7), hood 120 -> 144.3 deg, clamp 148.9 deg (present at 2.389:1, stretched)
+   log: far-clip: exe is file-patched (1800 m, pools x16); read site repointed (1800 m from I76_FAR_CLIP)
+   log: clutter: 600 frames: 677 us avg, 1040 us max; cells 67.1 avg, 73 max; instances tested 536/frame; refused (pool) 0; record pool high water 264 KB
+   log: clutter: 600 frames: 650 us avg, 923 us max; cells 61.5 avg, 67 max; instances tested 562/frame; refused (pool) 0; record pool high water 258 KB
+   log: clutter: 600 frames: 837 us avg, 1664 us max; cells 85.5 avg, 116 max; instances tested 680/frame; refused (pool) 0; record pool high water 258 KB
+   log: clutter: 600 frames: 897 us avg, 1695 us max; cells 97.6 avg, 117 max; instances tested 687/frame; refused (pool) 0; record pool high water 254 KB
+   log: clutter: 600 frames: 352 us avg, 1180 us max; cells 38.7 avg, 77 max; instances tested 323/frame; refused (pool) 0; record pool high water 228 KB
+   log: clutter: 600 frames: 720 us avg, 1245 us max; cells 68.6 avg, 74 max; instances tested 634/frame; refused (pool) 0; record pool high water 238 KB
+   log: clutter: 600 frames: 694 us avg, 1033 us max; cells 68.7 avg, 75 max; instances tested 607/frame; refused (pool) 0; record pool high water 236 KB
+   log: clutter: 600 frames: 597 us avg, 926 us max; cells 68.0 avg, 74 max; instances tested 559/frame; refused (pool) 0; record pool high water 243 KB
+== t07 (exp-detail-16) boot: ok 10 s
+cockpit: 1201 frames 120.1 fps | dt mean 8.33 p99 9.81 max 12.24 ms | verts peak 5847 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 306524 (10% of 2960000 B) | cam 0:100% | frames 383-1583 | alive
+hood: 596 frames 119.2 fps | dt mean 8.41 p99 11.22 max 17.23 ms | verts peak 17675 (54% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 258696 (9% of 2960000 B) | cam 1:100% | frames 1667-2262 | alive
+binoc: 358 frames 71.6 fps | dt mean 14.03 p99 16.48 max 16.80 ms | verts peak 17804 (54% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 93740 (3% of 2960000 B) | cam 2:100% | frames 2376-2733 | alive
+glance-left: 241 frames 120.5 fps | dt mean 8.33 p99 8.43 max 8.49 ms | verts peak 5968 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 230600 (8% of 2960000 B) | cam 0:100% | frames 2823-3063 | alive
+glance-right: 242 frames 121.0 fps | dt mean 8.30 p99 8.50 max 10.19 ms | verts peak 5806 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 226972 (8% of 2960000 B) | cam 0:100% | frames 3093-3334 | alive
+glance-up: 241 frames 120.5 fps | dt mean 8.33 p99 8.44 max 8.51 ms | verts peak 5481 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 208328 (7% of 2960000 B) | cam 0:100% | frames 3354-3594 | alive
+glance-down: 241 frames 120.4 fps | dt mean 8.33 p99 8.44 max 8.68 ms | verts peak 5481 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 208412 (7% of 2960000 B) | cam 0:100% | frames 3614-3854 | alive
+cockpit-drive: 1201 frames 120.1 fps | dt mean 8.34 p99 9.84 max 10.26 ms | verts peak 6190 (19% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 254100 (9% of 2960000 B) | cam 0:100% | frames 3873-5073 | alive
+   run: [proxy-run] in mission after 10 s - speed 24.8 m/s, 15 entities
+   log: terrain-lod: x16.00, 6/6 constants patched (split distance up, height-error threshold down)
+   log: clutter-dist: on, 8/8 sites; view z 120 -> 400 m, rise limit 5 -> 16.7 m, cells from a 35x35 block culled per frame, record pool 2890 KB (instances refused past 2529 KB)
+   log: aspect: D 2.389, 20/20 sites; fov 90 -> 121.7 deg (cockpit 121.7), hood 120 -> 144.3 deg, clamp 148.9 deg (present at 2.389:1, stretched)
+   log: far-clip: exe is file-patched (1800 m, pools x16); read site repointed (1800 m from I76_FAR_CLIP)
+   log: clutter: 600 frames: 758 us avg, 1314 us max; cells 66.6 avg, 77 max; instances tested 657/frame; refused (pool) 0; record pool high water 299 KB
+   log: clutter: 600 frames: 803 us avg, 1259 us max; cells 67.9 avg, 73 max; instances tested 649/frame; refused (pool) 0; record pool high water 274 KB
+   log: clutter: 600 frames: 1165 us avg, 2703 us max; cells 82.7 avg, 117 max; instances tested 788/frame; refused (pool) 0; record pool high water 250 KB
+   log: clutter: 600 frames: 1427 us avg, 2622 us max; cells 97.5 avg, 118 max; instances tested 912/frame; refused (pool) 0; record pool high water 252 KB
+   log: clutter: 600 frames: 314 us avg, 1247 us max; cells 39.2 avg, 74 max; instances tested 288/frame; refused (pool) 0; record pool high water 230 KB
+   log: clutter: 600 frames: 808 us avg, 1317 us max; cells 66.4 avg, 74 max; instances tested 606/frame; refused (pool) 0; record pool high water 227 KB
+   log: clutter: 600 frames: 823 us avg, 1347 us max; cells 66.8 avg, 73 max; instances tested 569/frame; refused (pool) 0; record pool high water 211 KB
+   log: clutter: 600 frames: 888 us avg, 1401 us max; cells 68.4 avg, 72 max; instances tested 487/frame; refused (pool) 0; record pool high water 212 KB
+== t12 (exp-detail-16) boot: ok 10 s
+cockpit: 1201 frames 120.1 fps | dt mean 8.33 p99 8.47 max 18.26 ms | verts peak 5120 (16% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 157252 (5% of 2960000 B) | cam 0:100% | frames 378-1578 | alive
+hood: 599 frames 119.8 fps | dt mean 8.34 p99 9.54 max 13.14 ms | verts peak 17221 (53% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 202776 (7% of 2960000 B) | cam 1:100% | frames 1662-2262 | alive
+binoc: 407 frames 81.4 fps | dt mean 12.33 p99 14.45 max 16.86 ms | verts peak 17108 (52% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 37268 (1% of 2960000 B) | cam 2:100% | frames 2385-2791 | alive
+glance-left: 241 frames 120.4 fps | dt mean 8.33 p99 8.49 max 8.56 ms | verts peak 5150 (16% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 143888 (5% of 2960000 B) | cam 0:100% | frames 2881-3121 | alive
+glance-right: 242 frames 121.0 fps | dt mean 8.30 p99 9.86 max 14.43 ms | verts peak 5450 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 269252 (9% of 2960000 B) | cam 0:100% | frames 3153-3394 | alive
+glance-up: 241 frames 120.5 fps | dt mean 8.33 p99 8.52 max 9.10 ms | verts peak 5605 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 261064 (9% of 2960000 B) | cam 0:100% | frames 3414-3654 | alive
+glance-down: 241 frames 120.5 fps | dt mean 8.33 p99 8.45 max 8.47 ms | verts peak 5564 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 182252 (6% of 2960000 B) | cam 0:100% | frames 3672-3912 | alive
+cockpit-drive: 1202 frames 120.2 fps | dt mean 8.32 p99 8.50 max 11.96 ms | verts peak 5475 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 272448 (9% of 2960000 B) | cam 0:100% | frames 3933-5134 | alive
+   run: [proxy-run] in mission after 10 s - speed 0.0 m/s, 9 entities
+   log: terrain-lod: x16.00, 6/6 constants patched (split distance up, height-error threshold down)
+   log: clutter-dist: on, 8/8 sites; view z 120 -> 400 m, rise limit 5 -> 16.7 m, cells from a 35x35 block culled per frame, record pool 2890 KB (instances refused past 2529 KB)
+   log: aspect: D 2.389, 20/20 sites; fov 90 -> 121.7 deg (cockpit 121.7), hood 120 -> 144.3 deg, clamp 148.9 deg (present at 2.389:1, stretched)
+   log: far-clip: exe is file-patched (1800 m, pools x16); read site repointed (1800 m from I76_FAR_CLIP)
+   log: clutter: 600 frames: 646 us avg, 1445 us max; cells 66.8 avg, 68 max; instances tested 508/frame; refused (pool) 0; record pool high water 153 KB
+   log: clutter: 600 frames: 613 us avg, 916 us max; cells 68.0 avg, 68 max; instances tested 581/frame; refused (pool) 0; record pool high water 153 KB
+   log: clutter: 600 frames: 1052 us avg, 2424 us max; cells 87.0 avg, 120 max; instances tested 797/frame; refused (pool) 0; record pool high water 198 KB
+   log: clutter: 600 frames: 1394 us avg, 2498 us max; cells 102.3 avg, 120 max; instances tested 990/frame; refused (pool) 0; record pool high water 198 KB
+   log: clutter: 600 frames: 259 us avg, 912 us max; cells 33.8 avg, 73 max; instances tested 293/frame; refused (pool) 0; record pool high water 153 KB
+   log: CRASH: code 0xC0000005 at 0x0049051B (exe+0x9051B) write addr 0x7EF40004 | eax 7EF40000 ebx 7EF40000 ecx 000028EC edx 00000013 esi 00000367 edi 00000000 ebp 00000008 esp 0019F250 | frame 3172 state 5 cam cb 0x00406AB0 mode 0
+   log: CRASH: stack 7EF919C4 00000008 00000367 00000015 43380000 00000367 43380000 0048FF52 00000367 440EC7F6 445F04C6 44347432 4439FC0B C2495EC9 13361014 00000008
+   log: clutter: 600 frames: 654 us avg, 1331 us max; cells 66.5 avg, 71 max; instances tested 431/frame; refused (pool) 0; record pool high water 262 KB
+   log: clutter: 600 frames: 728 us avg, 1365 us max; cells 67.4 avg, 73 max; instances tested 439/frame; refused (pool) 0; record pool high water 266 KB
+   log: clutter: 600 frames: 628 us avg, 1060 us max; cells 68.0 avg, 68 max; instances tested 581/frame; refused (pool) 0; record pool high water 153 KB
+== t13 (exp-detail-16) boot: ok 10 s
+cockpit: 1200 frames 120.0 fps | dt mean 8.33 p99 9.77 max 12.43 ms | verts peak 5796 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 312728 (11% of 2960000 B) | cam 0:100% | frames 381-1580 | alive
+hood: 589 frames 117.8 fps | dt mean 8.51 p99 11.18 max 11.55 ms | verts peak 17539 (54% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 296740 (10% of 2960000 B) | cam 1:100% | frames 1667-2255 | alive
+binoc: 340 frames 68.0 fps | dt mean 14.72 p99 18.19 max 22.00 ms | verts peak 17999 (55% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 163036 (6% of 2960000 B) | cam 2:100% | frames 2371-2710 | alive
+glance-left: 245 frames 122.4 fps | dt mean 8.19 p99 10.65 max 11.18 ms | verts peak 5909 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 313252 (11% of 2960000 B) | cam 0:100% | frames 2796-3040 | alive
+glance-right: 244 frames 121.9 fps | dt mean 8.26 p99 9.77 max 10.42 ms | verts peak 5941 (18% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 274668 (9% of 2960000 B) | cam 0:100% | frames 3071-3314 | alive
+glance-up: 242 frames 121.0 fps | dt mean 8.30 p99 8.46 max 8.55 ms | verts peak 5588 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 170444 (6% of 2960000 B) | cam 0:100% | frames 3333-3574 | alive
+glance-down: 240 frames 120.0 fps | dt mean 8.33 p99 9.57 max 12.22 ms | verts peak 5608 (17% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 177324 (6% of 2960000 B) | cam 0:100% | frames 3595-3835 | alive
+cockpit-drive: 1202 frames 120.2 fps | dt mean 8.33 p99 10.47 max 11.12 ms | verts peak 7202 (22% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 300824 (10% of 2960000 B) | cam 0:100% | frames 3854-5055 | alive
+   run: [proxy-run] in mission after 10 s - speed 38.0 m/s, 11 entities
+   log: terrain-lod: x16.00, 6/6 constants patched (split distance up, height-error threshold down)
+   log: clutter-dist: on, 8/8 sites; view z 120 -> 400 m, rise limit 5 -> 16.7 m, cells from a 35x35 block culled per frame, record pool 2890 KB (instances refused past 2529 KB)
+   log: aspect: D 2.389, 20/20 sites; fov 90 -> 121.7 deg (cockpit 121.7), hood 120 -> 144.3 deg, clamp 148.9 deg (present at 2.389:1, stretched)
+   log: far-clip: exe is file-patched (1800 m, pools x16); read site repointed (1800 m from I76_FAR_CLIP)
+   log: clutter: 600 frames: 500 us avg, 792 us max; cells 70.8 avg, 80 max; instances tested 450/frame; refused (pool) 0; record pool high water 235 KB
+   log: clutter: 600 frames: 707 us avg, 1190 us max; cells 69.3 avg, 79 max; instances tested 548/frame; refused (pool) 0; record pool high water 277 KB
+   log: clutter: 600 frames: 1064 us avg, 2206 us max; cells 82.1 avg, 120 max; instances tested 709/frame; refused (pool) 0; record pool high water 305 KB
+   log: clutter: 600 frames: 1182 us avg, 2347 us max; cells 94.1 avg, 122 max; instances tested 695/frame; refused (pool) 0; record pool high water 272 KB
+   log: CRASH: code 0xC0000005 at 0x0049051B (exe+0x9051B) write addr 0x7EF40004 | eax 7EF40000 ebx 7EF40000 ecx 000015E4 edx 00000009 esi 000001D1 edi 00000000 ebp 00000004 esp 0019F250 | frame 2788 state 5 cam cb 0x00406AB0 mode 0
+   log: CRASH: stack 7EFA29AC 00000004 000001D1 0000000B 43380000 000001D1 43380000 0048FF52 000001D1 4324D36D 43EDFF86 C36EDE05 C3645450 7EFA29AC 3F800000 C1EC0B82
+   log: clutter: 600 frames: 443 us avg, 1361 us max; cells 40.2 avg, 71 max; instances tested 295/frame; refused (pool) 0; record pool high water 306 KB
+   log: clutter: 600 frames: 716 us avg, 1383 us max; cells 67.5 avg, 75 max; instances tested 379/frame; refused (pool) 0; record pool high water 304 KB
+   log: clutter: 600 frames: 896 us avg, 1415 us max; cells 67.2 avg, 77 max; instances tested 416/frame; refused (pool) 0; record pool high water 238 KB
+   log: clutter: 600 frames: 647 us avg, 1088 us max; cells 75.0 avg, 172 max; instances tested 509/frame; refused (pool) 0; record pool high water 264 KB
+== t17 (exp-detail-16) boot: ok 4 s
+cockpit: 1200 frames 120.0 fps | dt mean 8.33 p99 9.24 max 12.79 ms | verts peak 5341 (16% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 212512 (7% of 2960000 B) | cam 0:1%,5:99% | frames 322-1522 | alive
+hood: 537 frames 107.4 fps | dt mean 9.33 p99 13.33 max 13.69 ms | verts peak 17081 (52% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 268896 (9% of 2960000 B) | cam 1:100% | frames 1601-2137 | alive
+binoc: 362 frames 72.4 fps | dt mean 13.85 p99 16.01 max 16.45 ms | verts peak 17003 (52% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 113876 (4% of 2960000 B) | cam 2:100% | frames 2256-2617 | alive
+glance-left: 246 frames 123.0 fps | dt mean 8.15 p99 8.87 max 8.96 ms | verts peak 4725 (14% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 156236 (5% of 2960000 B) | cam 0:100% | frames 2700-2945 | alive
+glance-right: 242 frames 121.0 fps | dt mean 8.30 p99 9.63 max 9.96 ms | verts peak 4948 (15% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 187548 (6% of 2960000 B) | cam 0:100% | frames 2981-3222 | alive
+glance-up: 242 frames 121.0 fps | dt mean 8.30 p99 8.49 max 9.51 ms | verts peak 5148 (16% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 152132 (5% of 2960000 B) | cam 0:100% | frames 3241-3482 | alive
+glance-down: 241 frames 120.5 fps | dt mean 8.33 p99 8.44 max 8.99 ms | verts peak 5113 (16% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 148372 (5% of 2960000 B) | cam 0:100% | frames 3502-3742 | alive
+cockpit-drive: 1202 frames 120.2 fps | dt mean 8.33 p99 9.72 max 10.28 ms | verts peak 4914 (15% of 32767) | nodes peak 0 (0% of 128000 B) | records peak 180224 (6% of 2960000 B) | cam 0:100% | frames 3762-4963 | alive
+   run: [proxy-run] in mission after 4 s - speed 12.8 m/s, 5 entities
+   log: terrain-lod: x16.00, 6/6 constants patched (split distance up, height-error threshold down)
+   log: clutter-dist: on, 8/8 sites; view z 120 -> 400 m, rise limit 5 -> 16.7 m, cells from a 35x35 block culled per frame, record pool 2890 KB (instances refused past 2529 KB)
+   log: aspect: D 2.389, 20/20 sites; fov 90 -> 121.7 deg (cockpit 121.7), hood 120 -> 144.3 deg, clamp 148.9 deg (present at 2.389:1, stretched)
+   log: far-clip: exe is file-patched (1800 m, pools x16); read site repointed (1800 m from I76_FAR_CLIP)
+   log: clutter: 600 frames: 1174 us avg, 2022 us max; cells 68.4 avg, 70 max; instances tested 520/frame; refused (pool) 0; record pool high water 130 KB
+   log: clutter: 600 frames: 1204 us avg, 2006 us max; cells 67.1 avg, 71 max; instances tested 534/frame; refused (pool) 0; record pool high water 207 KB
+   log: clutter: 600 frames: 1870 us avg, 3471 us max; cells 86.8 avg, 112 max; instances tested 882/frame; refused (pool) 0; record pool high water 252 KB
+   log: clutter: 600 frames: 1506 us avg, 3885 us max; cells 76.0 avg, 120 max; instances tested 826/frame; refused (pool) 0; record pool high water 262 KB
+   log: clutter: 600 frames: 584 us avg, 2169 us max; cells 48.0 avg, 73 max; instances tested 428/frame; refused (pool) 0; record pool high water 185 KB
+   log: clutter: 600 frames: 741 us avg, 1144 us max; cells 66.8 avg, 75 max; instances tested 502/frame; refused (pool) 0; record pool high water 175 KB
+   log: clutter: 600 frames: 1232 us avg, 2241 us max; cells 66.6 avg, 75 max; instances tested 656/frame; refused (pool) 0; record pool high water 176 KB
+   log: clutter: 600 frames: 1527 us avg, 2517 us max; cells 67.9 avg, 70 max; instances tested 721/frame; refused (pool) 0; record pool high water 159 KB

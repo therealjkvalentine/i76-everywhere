@@ -1,0 +1,7 @@
+{
+  "_comment": "Rectangles [x, y, w, h] in presented-frame pixels (2304x1440 frame from capture-frame.ps1). These are PLACEHOLDERS chosen from the layout of the cockpit view, not from a screenshot: open the 1x shot of t01, move each rectangle onto the named feature, then reuse the file unchanged for every variant.",
+  "terrain-edge": [1000, 600, 320, 120],
+  "thin-pole":    [1400, 560, 160, 200],
+  "hud-text":     [300, 1180, 320, 120],
+  "texture-near": [1000, 900, 320, 200]
+}
