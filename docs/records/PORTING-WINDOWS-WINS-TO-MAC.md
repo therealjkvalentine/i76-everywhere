@@ -208,3 +208,22 @@ MessageBox; `OpenGLid.log`: Vendor Apple, Renderer Apple M5 Pro, **Version 2.1 M
   the measured runs; the clone is back on the default driver for play.
 - The playable state of the clone: movies back, pad script back, no direct boot, `I76_FPS_LOG=5`, lean 120 set,
   `Resolution=0`.
+
+### 120 fps on the Mac: OpenGLide + Terrain Resolution Medium
+
+The hot exe pages are the terrain path (re/subsystems/renderer.md: renderer_QueueTerrain 0x490a00, the split test and
+renderer_SubdivideTerrainQuad / SplitTerrainEdge 0x4916e7 / 0x4918f0, renderer_SetTerrainResolution 0x493080), so the
+game's own **Terrain Resolution** option is the lever. It is `I76PLYR.DEF` byte **0x47** (options block at file
+0x40, `+0x07` = options_terrain_resolution 0x654b87: 0 Low, 1 Medium, 2 High) and the game reads it at start (the file
+kept the value set across runs). Same build and set as above, `Resolution=0`, t01 direct boot, W held, 5 s windows:
+
+| Terrain Resolution | fps |
+|---|---|
+| High (2), run b | 82.7 94.0 86.1 57.9 87.9 97.8 98.5 97.5 97.8 98.7 100.1 108.9 104.2 |
+| Medium (1), run a | 101.1 115.0 110.9 68.1 114.4 117.7 120.2 120.0 120.0 118.1 120.0 120.0 100.2 |
+| Medium (1), run b | 106.3 119.4 115.2 72.8 113.4 112.8 120.0 116.3 |
+
+(High run a logged no frames. The 57-72 window is the same spot of the t01 drive in every run.) **Medium holds the
+120 cap for most of the drive.** The GL120 TEST clone is left at Medium; the daily install's own setting is High and
+untouched. Consistent with this: `I76_TERRAIN_LOD > 1` and a long `I76_FAR_CLIP` multiply exactly this work, so on
+the Mac keep both off.
