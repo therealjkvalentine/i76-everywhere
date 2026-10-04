@@ -60,12 +60,22 @@ A watchdog re-issues playback when the run finishes (`0x423445` region):
 0x423479  call 0x424670          ; MCI play
 ```
 
-So: in the mission state the run **loops from the mission's own track**; outside
-it, playback falls back to **track 2** (almost certainly the theme — consistent
-with the front end having no track of its own). `0x4c2164` is the game-state
-global (`0x402610` is just `return [0x4c2164]`); the ==6 comparison is what
-selects looping vs fallback. GUESS: 6 = in-mission/shell-active; not yet
-confirmed live.
+**Corrected 2026-10-04** (the paragraph here used to say a mission loops its own
+run; that rested on the guess "6 = in-mission", which is backwards).
+`[0x524574]` is written once, when music starts in 0x423330
+(`0x4233ae call 0x402610; cmp eax,6; sete dl; mov [0x524574],edx`), and
+`i76-map\subsystems\mission.md` has game state 6 = **shell running**, 5 =
+mission running. A mission's music is started from WinMain at 0x4037e1 in state
+5, so the flag is 0: when the mission's run ends the exe plays **track 2 (the
+theme) as a run 2..14**, re-polling every 60 s (0x42342c) rather than 5 s. The
+shell (0x49514b, state 6) is where a track loops on itself. Not yet read live.
+
+**The "to 15" is the AiO exe, not GOG pristine.** The disassembly above is from
+the AiO exe (6319abf7 / 85de44a7). GOG pristine 9a232dcc has `cmp edi,1 / jge /
+mov esi,1` at 0x424688 (and 0x4241a7): `to` = track+1, the mission track alone.
+Also note `MCI_TO` is an end *position*: "to the start of track 15" stops before
+15, so the AiO run is N..14, not N..15. Details and the proxy fix (it played 15
+as an extra track): `i76-uncap-lab\docs\MUSIC-RUN-END-2026-10-04.md`.
 
 ## How the engine picks a track (static RE, i76.exe GOG Gold)
 
@@ -99,7 +109,8 @@ first/last track, `0x524590[]` = per-track seek positions.
 ## The per-mission table (extracted from miss8/*.MSN)
 
 Field = the raw WRLD dword = the track the mission's music RUN starts at (it then
-plays on through track 15, looping). "Predicted" applies the title hypothesis below.
+plays on up to the start of track 15, i.e. through 14, on the AiO exe; then the
+theme run from track 2 — see the 2026-10-04 correction above). "Predicted" applies the title hypothesis below.
 
 | Mission | field (run START) | predicted first file | predicted first title |
 |---|---|---|---|
