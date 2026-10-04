@@ -36,52 +36,16 @@ TIREBLWR, WPNCYCLE, WPNLINK, WPNUNLNK). No path, no registry lookup — plain
 `GetModuleHandleA`/`LoadLibraryA` on the bare name (LoadLibrary default search
 = exe directory first).
 
-### Loader fn 0x446020 (whole function) — DIRECT
+### Loader fn 0x446020 (summary + excerpt) — DIRECT
+
+The function builds the 13-byte name `I7_SFRCE.DLL` on the stack from three string dwords at 0x4f2500..0x4f250c,
+tries `GetModuleHandleA` (IAT 0x4bc0ec) and falls back to `LoadLibraryA` (IAT 0x4bc0b0); an HMODULE at or below 0x20
+counts as failure. It then resolves three exports with `GetProcAddress` and stores them in globals:
+`I7FF_InitSystem` -> 0x52bbdc, `I7FF_ExitSystem` -> 0x52bbe0, `I7FF_SIM_Effect` -> 0x52bbe4. All three must be
+non-NULL, or it reports "Error loading i7_SFRCE.dll" through `OutputDebugStringA` only (no dialog, no log file).
+On success it calls InitSystem with a parameter block whose first dword is its size:
 
 ```
-0x00446020  sub    esp, 0x10
-0x00446023  mov    ecx, dword ptr [0x4f2504]      ; 'FRCE.DLL'   <-- dword 2 of "I7_SFRCE.DLL"
-0x00446029  mov    eax, dword ptr [0x4f2500]      ; 'I7_SFRCE.DLL'
-0x0044602e  mov    edx, dword ptr [0x4f2508]      ; '.DLL'
-0x00446034  mov    dword ptr [esp + 4], ecx        ; builds the 13-byte name on the stack
-0x00446039  mov    dword ptr [esp + 4], eax        ;   (dword/dword/dword/byte copy)
-0x0044603d  mov    al, byte ptr [0x4f250c]
-0x00446042  lea    ecx, [esp + 4]
-0x00446047  push   ecx
-0x00446050  call   dword ptr [0x4bc0ec]            ; KERNEL32!GetModuleHandleA
-0x00446056  mov    esi, eax
-0x00446058  test   esi, esi
-0x0044605a  jne    0x446070
-0x0044605c  lea    edx, [esp + 8]
-0x00446060  push   edx
-0x00446061  call   dword ptr [0x4bc0b0]            ; KERNEL32!LoadLibraryA
-0x00446067  mov    esi, eax
-0x00446069  cmp    esi, 0x20                       ; HMODULE must be > 0x20
-0x0044606c  jae    0x446073
-0x0044606e  jmp    0x4460ba                        ; -> fail
-0x00446070  cmp    esi, 0x20
-0x00446073  jbe    0x4460ba
-0x00446075  mov    edi, dword ptr [0x4bc0a0]       ; KERNEL32!GetProcAddress
-0x0044607b  push   0x4f24f0                        ; "I7FF_InitSystem"
-0x00446080  push   esi
-0x00446081  call   edi
-0x00446083  push   0x4f24e0                        ; "I7FF_ExitSystem"
-0x00446088  push   esi
-0x00446089  mov    dword ptr [0x52bbdc], eax       ; 0x52bbdc = InitSystem ptr
-0x0044608e  call   edi
-0x00446090  push   0x4f24d0                        ; "I7FF_SIM_Effect"
-0x00446095  push   esi
-0x00446096  mov    dword ptr [0x52bbe0], eax       ; 0x52bbe0 = ExitSystem ptr
-0x0044609b  call   edi
-0x0044609d  mov    ecx, dword ptr [0x52bbdc]
-0x004460a3  mov    dword ptr [0x52bbe4], eax       ; 0x52bbe4 = SIM_Effect ptr
-0x004460a8  test   ecx, ecx                        ; all three must be non-NULL
-...
-0x004460c0  push   0x4f24b4                        ; "Error loading i7_SFRCE.dll"
-0x004460c5  call   dword ptr [0x4bc0f4]            ; KERNEL32!OutputDebugStringA (errors go to ODS only)
-...
-0x004460d3  mov    eax, dword ptr [0x52bbdc]       ; on success: call I7FF_InitSystem
-0x004460d8  mov    esi, 0x8004050f                 ; default error if ptr NULL
 0x004460e1  push   0x4f2328                        ; &param block
 0x004460e6  mov    dword ptr [0x4f2328], 0x16c     ; block[0] = sizeof = 364
 0x004460f0  call   eax                             ; I7FF_InitSystem(&block)  — NO add esp: stdcall
@@ -89,7 +53,6 @@ TIREBLWR, WPNCYCLE, WPNLINK, WPNUNLNK). No path, no registry lookup — plain
 0x004460f6  jge    0x446103                        ; HRESULT >= 0 = success
 0x004460f8  push   0x4f2494                        ; "Unable to get SWForce object!"
 ...
-0x00446106  test   esi, esi
 0x00446108  setge  al                              ; returns bool success
 ```
 

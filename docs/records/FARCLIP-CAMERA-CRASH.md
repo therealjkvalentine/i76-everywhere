@@ -102,11 +102,12 @@ quad's z term, incidental).
 ...
 0x4919c8  mov   eax, [0x654380]              ; draw-record arena cursor (12-byte records, DRAW-DISTANCE.md)
 0x4919db  mov   word ptr [eax], cx           ; new edge record: index A ...
-0x4919de  mov   word ptr [eax+2], bx         ; ... and the midpoint's index, TRUNCATED TO 16 BITS  ((short)iVar5 in the .c)
+0x4919de  mov   word ptr [eax+2], bx         ; ... and the midpoint's index, TRUNCATED TO 16 BITS
 0x491a0a  mov   word ptr [eax], bx           ; second half-edge, same truncation
 ```
 
-The decompile says it plainly: `*(short *)((int)piVar6 + 2) = (short)iVar5;` with `iVar5 = DAT_006442ec`. Once a frame
+The decompile says it plainly: the vertex count read from 0x6442ec is cast to a 16-bit short and stored at offset +2 of
+the edge record. Once a frame
 has queued more than 32,767 vertices the next midpoint index is stored as a negative short; the next split of that edge
 (the recursion in `renderer_SubdivideTerrainQuad` splits each quad's four edges, then the children's) reads it back
 through `movsx` and addresses `pool + (count - 65536) * 12`. The faulting eax is always about -5118 because indices

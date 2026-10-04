@@ -73,3 +73,8 @@ texture-lab/build/
 
 # quick reference sheet: page previews written by tools/controls-sheet/build.ps1 -Png
 tools/controls-sheet/*.png
+
+# game frame captures (lab residue): kept on disk, never committed (removed from the tree 2026-10-03; history keeps them)
+lab-residue/0x501918/
+lab-residue/**/*.png
+
