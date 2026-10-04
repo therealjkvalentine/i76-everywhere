@@ -107,7 +107,7 @@ On a Mac the game folder is inside the wrapper bundle:
 ```bash
 cd ~/path/to/i76-everywhere
 git pull
-GAME=~/Applications/Sikarugir/"Interstate 76 - Software (DxWnd).app"/Contents/SharedSupport/prefix/drive_c/"GOG Games"/"Interstate 76"
+GAME=~/Applications/Sikarugir/"Interstate 76.app"/Contents/SharedSupport/prefix/drive_c/"GOG Games"/"Interstate 76"
 cp "$GAME"/save0*.cmp "$GAME"/savegame.dir saves/
 python3 i76-save-editor.py --dir saves --list      # sanity check before committing
 git add saves && git commit -m "saves: bookmarks for scenes N..M from the Mac install" && git push

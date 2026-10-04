@@ -9,7 +9,7 @@
 #
 #  Bring your own GOG Nitro installer (setup_interstate76_nitro_pack_*.exe). This
 #  script ships NO game content. Requires the base
-#    "Interstate 76 - Software (DxWnd).app"
+#    "Interstate 76.app"
 #  wrapper to already be set up (it reuses that wrapper's wine, DxWnd, our
 #  input.map, and the already-built SMACKW32 cutscene-music proxy).
 #
@@ -35,7 +35,7 @@ set -eu
 
 DIR=$(cd "$(dirname "$0")" && pwd)
 SIK="$HOME/Applications/Sikarugir"
-APP="$SIK/Interstate 76 - Software (DxWnd).app"
+APP="$SIK/Interstate 76.app"
 PFX="$APP/Contents/SharedSupport/prefix"
 GOGDIR="$PFX/drive_c/GOG Games"
 BASE="$GOGDIR/Interstate 76"

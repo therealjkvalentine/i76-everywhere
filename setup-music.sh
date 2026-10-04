@@ -19,7 +19,7 @@
 #   setup-music.sh --on     re-ENABLE it.
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 GAME="$APP/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
 DXWINI="$APP/Contents/SharedSupport/prefix/drive_c/dxwnd/dxwnd.ini"
 REPO_DXW="$HERE/interstate-76.dxw"

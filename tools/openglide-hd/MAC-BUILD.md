@@ -202,3 +202,8 @@ launcher (which runs from that wrapper's prefix via DxWnd profile 2), `DxWnd Set
 software-renderer install is kept untouched as `Interstate 76 - Software-renderer backup 2026-10-04.app` (bundle id
 `com.jkv.i76.softwarebackup`); the CPU120 / GL120 / GL DxWnd test wrappers were removed. Saves and `input.map` were
 identical in all copies (md5-checked) before the swap. Rollback: swap the two `Contents` folders back.
+
+Same day, later: the owner renamed the wrapper to **`~/Applications/Sikarugir/Interstate 76.app`** (it is no longer the
+software renderer). Every live reference in the repo (launch stubs, setup scripts, save editor, trainer, docs) now uses
+that path; the Nitro and DxWnd Settings launchers were rebuilt from the updated stubs. Dated records under
+`docs/records/` keep the old name as history.

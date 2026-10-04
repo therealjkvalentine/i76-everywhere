@@ -81,8 +81,8 @@ ceiling) — leave camera glance on the D-pad/hat.
 
 Run the Wine joystick control panel against the prefix (Mac):
 ```
-WINEPREFIX="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix" \
-"$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/wine/bin/wine" control joy.cpl
+WINEPREFIX="$HOME/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/prefix" \
+"$HOME/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/wine/bin/wine" control joy.cpl
 ```
 The pad should list (often twice — as HID gamepad + XInput device); the test tab shows live
 axes/buttons. If the game grabs a wrong/duplicate stick, set `Enable SDL=0` under

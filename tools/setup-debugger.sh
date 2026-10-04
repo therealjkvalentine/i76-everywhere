@@ -20,7 +20,7 @@
 # Downloads nothing on --launch/--remove. Ships no binaries in this repo.
 
 set -e
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 PREFIX="$APP/Contents/SharedSupport/prefix"
 DEST="$PREFIX/drive_c/x64dbg"
 URL="https://github.com/x64dbg/x64dbg/releases/download/2026.05.27/snapshot_2026-05-27_12-11.zip"

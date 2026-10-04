@@ -1,16 +1,16 @@
 #!/bin/sh
 # Interstate '76 - build & install all three launchers. Idempotent; run after any
-# stub source change. Requires: Xcode CLT (swiftc), the Interstate 76 - Software (DxWnd).app wrapper
+# stub source change. Requires: Xcode CLT (swiftc), the Interstate 76.app wrapper
 # already set up (see README).
 #
-#   1. Interstate 76 - Software (DxWnd).app          - THE game (DxWnd big-window mode, dxwnd.exe /R:1)
+#   1. Interstate 76.app          - THE game (DxWnd big-window mode, dxwnd.exe /R:1)
 #   2. Interstate 76 - Glide-dgVoodoo-DXVK-Metal.app            - dgVoodoo Glide mode (bright 3dfx color, 2x res;
 #                                  one-time pipeline break-in - see README)
 #   3. Interstate 76 - DxWnd Settings.app    - DxWnd GUI for tweaking the profile
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SIK="$HOME/Applications/Sikarugir"
-APP="$SIK/Interstate 76 - Software (DxWnd).app"
+APP="$SIK/Interstate 76.app"
 [ -d "$APP" ] || { echo "wrapper not found: $APP"; exit 1; }
 TMP="$(mktemp -d)"
 

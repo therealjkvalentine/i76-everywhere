@@ -92,7 +92,7 @@ same bytes `winebuild --builtin` writes.)
 ## Install
 
 ```sh
-APP=~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app
+APP=~/Applications/Sikarugir/Interstate 76.app
 DIR=$APP/Contents/SharedSupport/wine/lib/wine/i386-windows
 cp "$DIR/d3d11.dll" "$DIR/d3d11.dll.dxvk-unpatched"   # stock Kegworks DXVK (once)
 cp d3d11-patched.dll "$DIR/d3d11.dll"

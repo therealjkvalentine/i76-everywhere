@@ -21,7 +21,7 @@
 # "Down/Up" to "Throttle" (winmm Z axis - both triggers share it, resting
 # center: RT pushes +, LT pushes -). Probe axes with: wine control joy.cpl
 set -e
-GAME="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
+GAME="$HOME/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
 MAP="$GAME/input.map"
 [ -f "$MAP" ] || { echo "input.map not found: $MAP"; exit 1; }
 [ -f "$MAP.pre-mouse-pad" ] || cp "$MAP" "$MAP.pre-mouse-pad"

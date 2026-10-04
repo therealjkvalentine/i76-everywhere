@@ -11,7 +11,7 @@
 #        ./slim-wrapper.sh --restore  (undo: move quarantine back)
 set -e
 SIK="$HOME/Applications/Sikarugir"
-APP="$SIK/Interstate 76 - Software (DxWnd).app"
+APP="$SIK/Interstate 76.app"
 PFX="$APP/Contents/SharedSupport/prefix/drive_c"
 SHARE="$APP/Contents/SharedSupport/wine/share/wine"
 Q="$SIK/.i76-quarantine"

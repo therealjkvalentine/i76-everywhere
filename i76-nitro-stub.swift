@@ -3,7 +3,7 @@
 // The Nitro Pack (nitro.exe) is a STANDALONE expansion installed alongside the base
 // game in the SAME wrapper prefix (drive_c/GOG Games/Interstate 76 Nitro Pack). This
 // launcher is a small satellite bundle (like the DxWnd Settings app): it holds no wine
-// of its own - it points at the main "Interstate 76 - Software (DxWnd).app" wrapper and
+// of its own - it points at the main "Interstate 76.app" wrapper and
 // runs `dxwnd.exe /R:2` (DxWnd profile 1 = Nitro, cloned from the base profile so it
 // inherits the same aspect/letterbox/FPS-cap/primary-surface/virtual-CD settings).
 //
@@ -19,7 +19,7 @@ import CoreGraphics
 
 // The main wrapper (this satellite carries no prefix of its own).
 let A = FileManager.default.homeDirectoryForCurrentUser.path
-        + "/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+        + "/Applications/Sikarugir/Interstate 76.app"
 
 func setupEnv(_ A: String) {
     let gv = A + "/Contents/Frameworks/GStreamer.framework/Versions/1.0"

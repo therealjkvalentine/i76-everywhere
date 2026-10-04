@@ -225,7 +225,7 @@ One-page README outline (proposed) for public i76-map:
 2. Wine wrapper (Sikarugir) + the repo's stubs: `build-launchers.sh`, `setup-dxwnd.sh`, `setup-music.sh`,
    `fix-arrows-for-mac.sh`, `setup-cutscene-music-fix.sh`, `setup-input-remapper.sh`. **Semi-automated**;
    `mac-install.command` is BETA (CHANGELOG v1.0.0 "Known gaps").
-3. Launch `Interstate 76 - Software (DxWnd).app`; deny the microphone prompt once. Set 1024x768 in Options.
+3. Launch `Interstate 76.app`; deny the microphone prompt once. Set 1024x768 in Options.
 4. 60 fps: **not available**. The software renderer plus DxWnd is capped at ~19.2 fps by design (`maxfps0=52`), and the
    Strlkup proxy has never been loaded under Wine. The MCI `mpegvideo` device the music half uses, and the DxWnd
    virtual-CD hook, would both be answering `mciSendCommandA`. **Proposed test** before claiming anything: proxy with

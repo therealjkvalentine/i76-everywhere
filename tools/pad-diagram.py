@@ -14,7 +14,7 @@ import os, re, sys, html, datetime
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PREFIX = os.path.expanduser(
-    "~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix")
+    "~/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/prefix")
 IMAP = PREFIX + "/drive_c/GOG Games/Interstate 76/input.map"
 AHK = os.path.join(REPO, "i76-remap.ahk")
 

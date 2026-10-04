@@ -44,7 +44,7 @@ import Foundation
 
 // Satellite app: the wrapper bundle lives at a fixed place, not inside us.
 let A = FileManager.default.homeDirectoryForCurrentUser.path
-        + "/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+        + "/Applications/Sikarugir/Interstate 76.app"
 let gv = A + "/Contents/Frameworks/GStreamer.framework/Versions/1.0"
 setenv("DYLD_FALLBACK_LIBRARY_PATH",
        A + "/Contents/Frameworks:" + gv + "/lib:" + A + "/Contents/SharedSupport/wine/lib", 1)

@@ -11,7 +11,7 @@
 # Mac arrows; glance/track -> the numpad, still usable on a full-size external
 # keyboard). Run it on the KEYBOARD.MAP inside your wrapper's game folder:
 #
-#   ./fix-arrows-for-mac.sh "~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/KEYBOARD.MAP"
+#   ./fix-arrows-for-mac.sh "~/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/KEYBOARD.MAP"
 #
 # A .pre-mac-arrows backup is written beside the file. Restart the game after.
 set -e

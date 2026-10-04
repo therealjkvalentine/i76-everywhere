@@ -4,7 +4,7 @@
 # editing dgVoodoo.conf (Glide/DirectX tabs). We ship no binaries in the repo, so this
 # grabs the 32-bit CPL from the archived 2.78.2 package (matches our Glide2x.dll).
 set -e
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 GAME="$APP/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
 [ -d "$GAME" ] || { echo "game dir not found: $GAME"; exit 1; }
 TMP="$(mktemp -d)"

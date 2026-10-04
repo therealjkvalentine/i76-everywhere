@@ -27,7 +27,7 @@ on a fresh clone until you decode your own files.
 
 ```sh
 cd i76-everywhere        # the repo root (this said games/interstate-76, the path in mac-gaming-ports)
-GAME=~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix/"drive_c/GOG Games/Interstate 76"
+GAME=~/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/prefix/"drive_c/GOG Games/Interstate 76"
 
 # 1. (once) extract the archive somewhere and decode more art
 python3 tools/zfs_extract.py "$GAME/I76.ZFS" /tmp/i76-assets

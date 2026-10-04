@@ -5,7 +5,7 @@
 # DXVK d3d11 swap is checked (not performed) - see docs/DXGI-DGVOODOO-RESEARCH.md.
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 GAME="$APP/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
 [ -d "$GAME" ] || { echo "game dir not found: $GAME"; exit 1; }
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 AHK="$APP/Contents/SharedSupport/prefix/drive_c/AutoHotkey"
 export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1
 export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/Frameworks/GStreamer.framework/Versions/1.0/lib:$APP/Contents/SharedSupport/wine/lib"

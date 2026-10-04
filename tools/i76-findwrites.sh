@@ -15,7 +15,7 @@
 # competes with the user's game for the display. Run when the user's session is
 # paused, or point WINEPREFIX at a cloned prefix (I76_DEBUG_PREFIX env).
 set -e
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 PFX="${I76_DEBUG_PREFIX:-$APP/Contents/SharedSupport/prefix}"
 WINE="$APP/Contents/SharedSupport/wine/bin/wine"
 GAME='C:\GOG Games\Interstate 76\i76.exe'

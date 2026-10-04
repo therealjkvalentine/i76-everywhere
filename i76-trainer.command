@@ -2,7 +2,7 @@
 # Double-click to launch the I'76 memory trainer overlay on the running game.
 # Start Interstate '76 FIRST, get into a mission, THEN run this.
 set -e
-APP="$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app"
+APP="$HOME/Applications/Sikarugir/Interstate 76.app"
 PFX="$APP/Contents/SharedSupport/prefix"
 AHKDIR="$PFX/drive_c/AutoHotkey"
 HERE="$(cd "$(dirname "$0")" && pwd)"

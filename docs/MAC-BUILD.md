@@ -13,7 +13,7 @@ Built/installed by [`build-launchers.sh`](../build-launchers.sh) into `~/Applica
 
 | App | What it is |
 |---|---|
-| **`Interstate 76 - Software (DxWnd).app`** | **The Mac build.** DxWnd wraps the software renderer into a big screen-filling 4:3 window (black bars, title bar, draggable). Double-click → straight into the game (`dxwnd.exe /R:1`, headless). Instant start, zero shader compile. Quitting (in-game EXIT, closing the window, *or* cmd-Q on the app) tears down *everything* — no leftover black window. |
+| **`Interstate 76.app`** | **The Mac build.** DxWnd wraps the software renderer into a big screen-filling 4:3 window (black bars, title bar, draggable). Double-click → straight into the game (`dxwnd.exe /R:1`, headless). Instant start, zero shader compile. Quitting (in-game EXIT, closing the window, *or* cmd-Q on the app) tears down *everything* — no leftover black window. |
 | **`Interstate 76 - DxWnd Settings.app`** | The DxWnd GUI for tweaking the profile (select the "Interstate 76" row → Edit; settings map in [docs/DXWND-TUNING.md](DXWND-TUNING.md)). Changes save to the live `dxwnd.ini`. |
 
 > **The "Voodoo" Glide→Metal mode is parked.** It worked and looked great (bright 3dfx gamma, MSAA,
@@ -146,7 +146,7 @@ per-launch async-shader warmup, see quirks.)
    treats the desktop window - which exactly equals Wine's virtual screen - as a fullscreen window
    and MINIMIZES it (parks it at -16000,-16000). Symptom: the game window appears, draws once,
    and vanishes within a few hundred ms. This key makes it float like a normal window.
-7. Launch via the wrapper (`open .../Interstate 76 - Software (DxWnd).app`).
+7. Launch via the wrapper (`open .../Interstate 76.app`).
 
 Do NOT force `renderer=gdi` for ddraw - the shell creates a Direct3D device and crashes at the
 same address if refused. The default wined3d GL path works (one harmless

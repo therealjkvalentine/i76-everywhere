@@ -7,7 +7,7 @@
 #   ./saves/install-saves.sh [path-to-game-folder]
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
-GAME=${1:-"$HOME/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"}
+GAME=${1:-"$HOME/Applications/Sikarugir/Interstate 76.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"}
 [ -f "$GAME/i76.exe" ] || { echo "no i76.exe in: $GAME" >&2; exit 1; }
 pgrep -f 'i76.exe' >/dev/null 2>&1 && { echo "close the game first - it rewrites savegame.dir on exit" >&2; exit 1; }
 
