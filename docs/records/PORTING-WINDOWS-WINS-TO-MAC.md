@@ -96,3 +96,31 @@ games/interstate-76/setup-mac-hd-textures.sh ~/i76-hd-pack
 The Python pipeline (`decode_all.py` / `reencode_all.py` / `tools/*.py`) is already
 cross-platform (PIL + numpy + ctypes-loaded liblzo2); `zfs_extract.py` finds `liblzo2.dylib`
 automatically on macOS (Homebrew) and takes `LZO2_DLL` on Windows.
+
+## 2026-10-03 evening: the proxy switches on the Mac, measured
+
+**The music-fix proxy (`music-fix/Strlkup.dll`, build of `fc3541a`) works under Wine 10 on the Mac
+`i76.exe`** (GOG AiO `60abf7bc` + a one-byte PE-header stack patch). Every switch logged full site
+counts in `mciproxy.log` in both renderers: far clip 6/6, aspect 20/20, HUD squeeze 2/2, framerate
+fixes 36/36, render interp 11/11, terrain/object/clutter/mirror distances, fps cap, and the music
+IAT hook. The proxy's own CD emulation played `music\9.mp3` through mpegvideo/GStreamer.
+
+**dgVoodoo -> DXVK -> MoltenVK -> Metal (the parked Voodoo path): renders, but at 0.4-0.5 fps.**
+Test wrapper `Interstate 76 - HiRes120 TEST.app` ([`i76-hires120-stub.swift`](../../i76-hires120-stub.swift)).
+Correct picture (cockpit, Hor+ widescreen, round reticle) on the DXVK HUD at 0.4 fps with one core
+pinned. **Not the proxy:** the same 0.4 fps with every `I76_*` switch off (music only), and with
+`I76_GLIDE_REFRESH` / `I76_FPS_CAP` off. At the full 3456x2234 (Wine `RetinaMode=y`, screen-sized
+virtual desktop, dgVoodoo `Resolution = h:3456, v:2234`) it also crashed within a minute on a Metal
+assertion, `MTLTextureDescriptor has width of zero`, after a good 3456x2234 swapchain. Cause of the
+0.4 fps not found; the owner's call: stay on the CPU path.
+
+**Software renderer via DxWnd + the proxy: runs.** Test wrapper `Interstate 76 - CPU120 TEST.app`
+(an APFS clone of the daily one): proxy installed, `I76PATCH.DLL` renamed, switches in the prefix's
+`HKCU\Environment` (best-wide minus the Glide-only keys, `I76_ASPECT=1600x1000` = the DxWnd window's
+`sizx0:sizy0`, `I76_FPS_CAP=120`), DxWnd `maxfps0` 52 -> 120 and its virtual CD off (`flagm0` bit 0)
+so the proxy owns the music. The attract demo draws widescreen at the window's shape with terrain to
+the horizon; game process 17-60 % of a core. Not yet measured: the frame rate, music in a mission,
+the HUD squeeze on the software path, a played mission.
+
+Software resolution ceiling: 1024x768, set in-game (Options -> Graphic Detail -> Screen Resolution;
+[VERIFIED-FIXES.md](../VERIFIED-FIXES.md)). Anything above it is engine RE, not a setting.

@@ -21,7 +21,6 @@
 // every launch; expect a short hitch the first time each effect appears in a session.
 // Build:  swiftc -O -o /tmp/hires i76-hires120-stub.swift
 import Foundation
-import AppKit
 
 let exe = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
 let A = exe.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path
@@ -44,11 +43,21 @@ func rx(_ s: String) -> String {
     return o
 }
 
-if running("i76\\.exe") {
-    let a = NSAlert()
-    a.messageText = "Interstate '76 is already running"
-    a.informativeText = "Quit the other copy first - the HiRes120 test and the DxWnd install cannot run at the same time."
-    a.runModal()
+// The GAME process only: Wine rewrites argv to the Windows command line, and the
+// explorer desktop's own command line also contains "i76.exe" (it is the program to
+// start), so an unanchored pattern would also match a desktop process.
+let gameProc = "^\"?C:\\\\GOG Games\\\\Interstate 76\\\\i76\\.exe"
+
+// The other install may still be shutting down (or hung on exit - a known DxWnd-mode bug):
+// give it 10 s, then say so. NSAlert cannot show from this bundle (NSBGOnly=1: the first
+// version sat forever behind an invisible modal), so the message goes through osascript.
+var waited = 0
+while running(gameProc) && waited < 10 { Thread.sleep(forTimeInterval: 1); waited += 1 }
+if running(gameProc) {
+    let o = Process()
+    o.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+    o.arguments = ["-e", "display alert \"Interstate '76 is already running\" message \"Quit the other copy first (if it hung on exit, force-quit it). The HiRes120 test and the DxWnd install cannot run at the same time.\""]
+    try? o.run(); o.waitUntilExit()
     exit(1)
 }
 
@@ -97,14 +106,25 @@ if let txt = try? String(contentsOfFile: game + "/hires120.env", encoding: .utf8
         env.append((k, v))
     }
 }
+// HIRES_DESKTOP=WxH sets the Wine virtual desktop (the output window) instead of the
+// panel's full pixel size; it is read here, not passed to the game.
+var desktop = "3456x2234"
+if let d = env.first(where: { $0.0 == "HIRES_DESKTOP" }) { desktop = d.1 }
+env.removeAll { $0.0 == "HIRES_DESKTOP" }
 for (k, v) in env where !v.isEmpty { setenv(k, v, 1) }
 
 let wine = A + "/Contents/SharedSupport/wine/bin/wine"
 let p = Process()
 p.executableURL = URL(fileURLWithPath: wine)
-p.arguments = ["explorer", "/desktop=I76HiRes,3456x2234",
+p.arguments = ["explorer", "/desktop=I76HiRes," + desktop,
                "C:\\GOG Games\\Interstate 76\\i76.exe", "-glide"]
 p.currentDirectoryURL = URL(fileURLWithPath: game)   // dgVoodoo.conf discovery is cwd-relative
+// Wine's own output (crashes, missing DLLs, DXVK/MoltenVK errors) -> hires120-wine.log,
+// rewritten each launch. The stub is headless, so this is the only place it shows.
+FileManager.default.createFile(atPath: game + "/hires120-wine.log", contents: nil)
+if let h = FileHandle(forWritingAtPath: game + "/hires120-wine.log") {
+    p.standardOutput = h; p.standardError = h
+}
 try! p.run()
 
 // Pad layer, as the main stub.
@@ -117,10 +137,6 @@ if FileManager.default.fileExists(atPath: ahkDir + "/AutoHotkeyU32.exe"),
     try? ahk.run()
 }
 
-// The GAME process only: Wine rewrites argv to the Windows command line, and the
-// explorer desktop's own command line also contains "i76.exe" (it is the program to
-// start), so an unanchored pattern would wait on the desktop forever.
-let gameProc = "^\"?C:\\\\GOG Games\\\\Interstate 76\\\\i76\\.exe"
 var booted = false
 for _ in 0..<120 {
     Thread.sleep(forTimeInterval: 1)
