@@ -3272,6 +3272,17 @@ static void __stdcall tc_Swap(int interval) {
         else if (g_tc_ctl_at && g_tc_swaps >= g_tc_ctl_at) { g_tc_ctl_at = 0; tc_dump("ctl-back", 1); }
     }
     g_tc_swaps++;
+    {   /* the 2 MB boundary rule (0x10001a95): every time it fires it rewinds next-free to 2 MB and adds 2 to [0x1001f898].
+           Under a TMU above 2 MB the second firing (at the 4 MB top) lands next-free on resident textures (2026-10-04) */
+        static DWORD last_b = 0xffffffff; DWORD b = tc_zg(0x1001f898);
+        if (b != last_b) {
+            if (last_b != 0xffffffff)
+                mlog("  tex-census: BOUNDARY RULE fired at swap %lu (proxy frame %lu): [0x1001f898] %lu -> %lu, next-free now 0x%lx%s",
+                     (unsigned long)g_tc_swaps, (unsigned long)g_frame, (unsigned long)last_b, (unsigned long)b, (unsigned long)tc_zg(0x1001fd20),
+                     b > 4 ? " - REWOUND ONTO RESIDENT TEXTURES (2..4 MB still in the slot list: wrong textures follow)" : "");
+            last_b = b;
+        }
+    }
     if (res > g_tc_peak_res && res < 0x10000000) g_tc_peak_res = res;
     if (flag) g_tc_noslot_frames++;
     if (flag && !g_tc_last_flag) {
@@ -3312,6 +3323,7 @@ static void tex_census_attach(HMODULE m) {
  * first. Loading <game>\<subfolder>\Glide2x.dll before ZGLIDE binds ZGLIDE's glide2x.dll import to that copy, so the
  * mission can take that folder's conf (widescreen, stretched) while the shell keeps the game folder's (4:3). */
 static char g_glide_dir[MAX_PATH];
+static int g_zg_tmufix;                     /* I76_ZGLIDE_TMUFIX=1 */
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     HMODULE m;
     if (name && g_glide_dir[0]) {
@@ -3326,6 +3338,18 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     m = p_LoadLibraryA(name);
     if (m && name) {
         const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
+        if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix) {
+            /* I76_ZGLIDE_TMUFIX=1: ZGLIDE+0x1a93 `jne +0x24` (75 24) -> `jmp +0x24` (eb 24): skip the Voodoo 1 "no texture
+               across 2 MB" rule. Its rewind target is the constant 2 MB, and it runs BEFORE the grTexMaxAddress check, so
+               under MemorySizeOfTMU 4096 the first allocation that would pass the 4 MB top moves next-free back to 2 MB
+               while the textures at 2..4 MB stay in the slot list: later uploads overwrite live textures (the owner's
+               "texture exchange" with 4096, promotion 5R). Lab docs/RENDER-FREEZE-2026-10-04.md, TEXTURE-DELIVERY.md s.2. */
+            BYTE *p = (BYTE *)m + 0x1a93; DWORD op;
+            if (p[0] == 0x75 && p[1] == 0x24 && VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, &op)) {
+                p[0] = 0xEB; VirtualProtect(p, 1, op, &op); FlushInstructionCache(GetCurrentProcess(), p, 1);
+                mlog("  zglide-tmufix: ZGLIDE+0x1a93 75 24 -> %02x 24 (2 MB boundary rule skipped)", p[0]);
+            } else mlog("  zglide-tmufix: ZGLIDE+0x1a93 = %02x %02x, not the stock 75 24 - not applied", p[0], p[1]);
+        }
         if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on) tex_census_attach(m);
         /* (the census alone hooks LoadLibraryA too: the refresh wrapper is only for the two switches that did before) */
         if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_dir[0] || g_glide_refresh_code != 0xffffffff)) {
@@ -3345,6 +3369,13 @@ static void apply_glide_refresh(void) {
             if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
             if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
             mlog("  tex-census: on, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
+        }
+    }
+    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_ZGLIDE_TMUFIX", c, sizeof(c));
+        if (k && k < sizeof(c) && c[0] == '1') {
+            g_zg_tmufix = 1;
+            if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
+            mlog("  zglide-tmufix: armed, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
         }
     }
     {   DWORD k = GetEnvironmentVariableA("I76_GLIDE_DIR", g_glide_dir, sizeof(g_glide_dir));
