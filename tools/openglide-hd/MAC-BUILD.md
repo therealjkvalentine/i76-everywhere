@@ -192,3 +192,13 @@ already scales those menus and maps the cursor on the software path, so the Glid
   setup work (unlike the bare-desktop fullscreen GL window).
 - Open: `OGL_VIEWPORT` is fixed at the laptop's size; on the 3440x1440 display DxWnd's window differs and it would need
   that display's value.
+
+## 9. Consolidated (2026-10-04): this is the Mac daily driver
+
+At the owner's request the hybrid became the one Mac install. Its `Contents` were moved into
+`~/Applications/Sikarugir/Interstate 76 - Software (DxWnd).app` - the same path as before, so the Dock item, the Nitro
+launcher (which runs from that wrapper's prefix via DxWnd profile 2), `DxWnd Settings`, the save editor and every
+`setup-*.sh` keep working; the name is now historical (the base game runs `-glide` through OpenGLide). The previous
+software-renderer install is kept untouched as `Interstate 76 - Software-renderer backup 2026-10-04.app` (bundle id
+`com.jkv.i76.softwarebackup`); the CPU120 / GL120 / GL DxWnd test wrappers were removed. Saves and `input.map` were
+identical in all copies (md5-checked) before the swap. Rollback: swap the two `Contents` folders back.
