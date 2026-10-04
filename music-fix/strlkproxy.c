@@ -923,8 +923,29 @@ static int g_tel_on;                                         /* I76_TELEMETRY: p
 static void tel_frame(void);
 static i76trn_ctl_t *g_trn;                                  /* trainer control block (below, with apply_trainer) */
 static void trn_frame(void);
+/* I76_FPS_LOG=<seconds> (off by default): every period, log the frame rate and where each frame's time went -
+ * "work" is hook return to the next hook entry (sim, render, Flip / present, anything the frame blocks on), "cap"
+ * is the I76_FPS_CAP wait. Work near the frame time with the process far below a full core means the frame is
+ * WAITING (present, a lock, a sleep), not computing - the question that decides what to cut first. */
+static LONGLONG g_fl_period, g_fl_start, g_fl_out, g_fl_work, g_fl_workmax, g_fl_cap;
+static DWORD g_fl_frames;
+static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
+    LONGLONG work = g_fl_out ? tin - g_fl_out : 0;
+    if (!g_fl_start) g_fl_start = tin;
+    g_fl_out = tout;
+    g_fl_frames++; g_fl_work += work; g_fl_cap += tcap - tin;
+    if (work > g_fl_workmax) g_fl_workmax = work;
+    if (tout - g_fl_start >= g_fl_period) {
+        double s = (double)(tout - g_fl_start) / (double)g_qpf.QuadPart, f = (double)g_fl_frames;
+        double ms = 1000.0 / (double)g_qpf.QuadPart;
+        mlog("  fps: %.1f (%lu frames / %.1f s); work %.2f ms avg, %.2f ms max; cap wait %.2f ms avg",
+             f / s, (unsigned long)g_fl_frames, s, g_fl_work * ms / f, g_fl_workmax * ms, g_fl_cap * ms / f);
+        g_fl_start = tout; g_fl_frames = 0; g_fl_work = g_fl_workmax = g_fl_cap = 0;
+    }
+}
 static void __cdecl frame_cap_then_clock(void) {
-    LARGE_INTEGER now;
+    LARGE_INTEGER now, fl_in = {0}, fl_cap = {0};
+    if (g_fl_period) QueryPerformanceCounter(&fl_in);
     /* The frame just rendered is complete here (ticks, post-ticks, camera, render, Flip): publish it before any cap
      * wait, so the datagram leaves as soon as the frame is on screen. */
     if (g_tel_on) tel_frame();
@@ -942,6 +963,7 @@ static void __cdecl frame_cap_then_clock(void) {
     g_cap_next.QuadPart += g_cap_period.QuadPart;
     if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
 clock:
+    if (g_fl_period) QueryPerformanceCounter(&fl_cap);
     g_frame++;
     if (g_voltest_frame && g_frame == g_voltest_frame) {    /* I76_VOLUME_TEST=<level>,<frame>: call sound_SetCdVolume on the
                                                                game's own thread, as the Options slider does (test knob) */
@@ -989,6 +1011,11 @@ clock:
         }
     }
     g_coll_dup = 0;
+    if (g_fl_period) {
+        LARGE_INTEGER fl_out;
+        QueryPerformanceCounter(&fl_out);
+        fps_log_frame(fl_in.QuadPart, fl_cap.QuadPart, fl_out.QuadPart);
+    }
 }
 
 static void install_frame_hook(void) {
@@ -1007,6 +1034,14 @@ static void apply_volume_test(void) {
     g_voltest_level = atoi(v); g_voltest_frame = (DWORD)atol(strchr(v, ',') ? strchr(v, ',') + 1 : "600");
     install_frame_hook();
     mlog("  volume-test: armed - level %d at proxy frame %lu", g_voltest_level, (unsigned long)g_voltest_frame);
+}
+static void apply_fps_log(void) {
+    char v[16]; DWORD n = GetEnvironmentVariableA("I76_FPS_LOG", v, sizeof(v)); int sec;
+    if (n == 0 || n >= sizeof(v) || (sec = atoi(v)) < 1 || sec > 600) return;
+    if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
+    g_fl_period = g_qpf.QuadPart * sec;
+    install_frame_hook();
+    mlog("  fps-log: every %d s%s", sec, g_frame_hook ? "" : " (hook failed: no log)");
 }
 static void apply_frame_cap(void) {
     static const BYTE old_call[5] = { 0xE8, 0x63, 0x8F, 0x09, 0x00 };   /* call 0x49c920 at 0x4039b8 */
@@ -3980,6 +4015,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
+        apply_fps_log();          /* opt-in: I76_FPS_LOG=<seconds> */
         apply_volume_test();      /* test knob: I76_VOLUME_TEST=<level>,<frame> */
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
