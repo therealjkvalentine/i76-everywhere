@@ -653,28 +653,28 @@ const PARTS_INFO={
 },
 "spc05": {
 "name": "Structo Bmpr",
-"short": "front/rear chassis damage halved",
-"what": "Passive: chassis absorb multiplier 2.0 on the front and back: a hit there is absorbed while it is <= chassis x 2 and costs the chassis half as much (entity_ApplyDamage 0x46565b..0x4656ce) [RE: engine.md, damage.md]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+"short": "front/rear rams cost the chassis half",
+"what": "Passive: chassis absorb multiplier 2.0 on the front and back. It acts on ram (collision) damage, the only kind the chassis takes: a ram there is absorbed while it is <= chassis x 2 and costs the chassis half as much (entity_ApplyDamage 0x46565b..0x4656ce; chassis test 'mask & 8' at 0x4658f4, used at 0x46592b; re-read 2026-10-04) [RE: engine.md]. Community 'doubles front/rear chassis reinforcement': true. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
 },
 "spc06": {
 "name": "Curb Feelers",
-"short": "armour takes ~9% less (x1.1)",
-"what": "Passive: armour absorb multiplier 1.1 on every side: hits cost the armour damage / 1.1 (0x465772..0x4657d8) [RE: engine.md, damage.md]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+"short": "armour takes ~9% less (x1.1); no anti-flip",
+"what": "Passive: armour absorb multiplier 1.1 on every side against bullet and explosive hits: they cost the armour damage / 1.1 (set 0x465772..0x4657d8, used at 0x465a06; re-read 2026-10-04) [RE: engine.md]. Community 'reduces the likelihood of flipping': false; the damage routine is the only reader of special type 6, in i76.exe and in nitro.exe [RE: xref sweep 2026-10-04]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
 },
 "spc07": {
 "name": "Mud Flaps",
-"short": "chassis takes ~9% less (+0.1)",
-"what": "Passive: chassis multiplier +0.1 on every side (2.1 front/back with the Structo Bumper): hits cost the chassis damage / 1.1 (0x4656ef..0x465759, -0.1 at 0x4be208; re-read in this pass) [RE: engine.md, damage.md]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+"short": "rams cost the chassis ~9% less (+0.1)",
+"what": "Passive: chassis multiplier +0.1 on every side (2.1 front/back with the Structo Bumper): rams (collision damage) cost the chassis damage / 1.1 (0x4656ef..0x465759, -0.1 at 0x4be208, used at 0x46592b; re-read 2026-10-04) [RE: engine.md]. Community 'less chassis damage from vegetation': half true. It covers every collision, not vegetation in particular; no code tests the special against scenery type, and ground clutter (grass, bushes) is drawn only, with no collision [RE: xref sweep 2026-10-04; renderer.md 0x45c619]. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
 },
 "spc08": {
 "name": "Heated Seats",
 "short": "+10% ammo on every weapon",
-"what": "Passive: every mounted weapon's ammo x1.1 at spawn (0x438ecb -> 0x4a4a40, 1.1 at 0x4beb20) [RE: engine.md]. Applied once at spawn [RE: engine.md]."
+"what": "Passive: every mounted weapon's ammo x1.1 at spawn, rounded down (0x438ecb -> 0x4a4a40, 1.1 at 0x4beb20) [RE: engine.md]. Applied once at spawn [RE: engine.md]. Community '+10% ammo': true."
 },
 "spc09": {
 "name": "Cup Holders",
-"short": "10% chance a component hit does nothing",
-"what": "Passive: a hit that reaches a component is absorbed whole 10% of the time (entity_DamageComponent, rand()%100 < 10 at 0x465b7e) [RE: engine.md, damage.md]. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some are jokes)' [community]; the code gives them a real effect. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+"short": "10% of hits do no internal damage",
+"what": "Passive: a hit that gets past the armour and chassis to the components does no internal damage 10% of the time (entity_DamageComponent, rand()%100 < 10 at 0x465b7e clears the record's type mask) [RE: engine.md, damage.md]. The armour and chassis still take their share first, so the community 'reduces the probability of being hit by 10%' is only partly true. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some are jokes)' [community]; the code gives them a real effect. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
 }
 };
 /* PARTS_INFO:END */

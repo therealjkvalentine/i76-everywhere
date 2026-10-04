@@ -403,21 +403,30 @@ _info("spc04", "X-Aust Brake", "doubles braking (key, stays on)",
       "Press its special key once: brake input x2 for the rest of the car's life, no uses, no hp check (0x44f608 sets"
       " +0xf4; 0x43ab46 doubles a negative pedal; re-read in this pass) [RE: engine.md]. Still capped by four-tyre"
       " grip. This is the only brake upgrade that matters offline (see the brakes).")
-_info("spc05", "Structo Bmpr", "front/rear chassis damage halved",
-      "Passive: chassis absorb multiplier 2.0 on the front and back: a hit there is absorbed while it is <= chassis x 2"
-      " and costs the chassis half as much (entity_ApplyDamage 0x46565b..0x4656ce) [RE: engine.md, damage.md]." + _SPC)
-_info("spc06", "Curb Feelers", "armour takes ~9% less (x1.1)",
-      "Passive: armour absorb multiplier 1.1 on every side: hits cost the armour damage / 1.1 (0x465772..0x4657d8)"
-      " [RE: engine.md, damage.md]." + _SPC)
-_info("spc07", "Mud Flaps", "chassis takes ~9% less (+0.1)",
-      "Passive: chassis multiplier +0.1 on every side (2.1 front/back with the Structo Bumper): hits cost the chassis"
-      " damage / 1.1 (0x4656ef..0x465759, -0.1 at 0x4be208; re-read in this pass) [RE: engine.md, damage.md]." + _SPC)
+_info("spc05", "Structo Bmpr", "front/rear rams cost the chassis half",
+      "Passive: chassis absorb multiplier 2.0 on the front and back. It acts on ram (collision) damage, the only kind the"
+      " chassis takes: a ram there is absorbed while it is <= chassis x 2 and costs the chassis half as much"
+      " (entity_ApplyDamage 0x46565b..0x4656ce; chassis test 'mask & 8' at 0x4658f4, used at 0x46592b; re-read 2026-10-04)"
+      " [RE: engine.md]. Community 'doubles front/rear chassis reinforcement': true." + _SPC)
+_info("spc06", "Curb Feelers", "armour takes ~9% less (x1.1); no anti-flip",
+      "Passive: armour absorb multiplier 1.1 on every side against bullet and explosive hits: they cost the armour"
+      " damage / 1.1 (set 0x465772..0x4657d8, used at 0x465a06; re-read 2026-10-04) [RE: engine.md]. Community 'reduces"
+      " the likelihood of flipping': false; the damage routine is the only reader of special type 6, in i76.exe and in"
+      " nitro.exe [RE: xref sweep 2026-10-04]." + _SPC)
+_info("spc07", "Mud Flaps", "rams cost the chassis ~9% less (+0.1)",
+      "Passive: chassis multiplier +0.1 on every side (2.1 front/back with the Structo Bumper): rams (collision damage)"
+      " cost the chassis damage / 1.1 (0x4656ef..0x465759, -0.1 at 0x4be208, used at 0x46592b; re-read 2026-10-04)"
+      " [RE: engine.md]. Community 'less chassis damage from vegetation': half true. It covers every collision, not"
+      " vegetation in particular; no code tests the special against scenery type, and ground clutter (grass, bushes) is"
+      " drawn only, with no collision [RE: xref sweep 2026-10-04; renderer.md 0x45c619]." + _SPC)
 _info("spc08", "Heated Seats", "+10% ammo on every weapon",
-      "Passive: every mounted weapon's ammo x1.1 at spawn (0x438ecb -> 0x4a4a40, 1.1 at 0x4beb20) [RE: engine.md]."
-      " Applied once at spawn [RE: engine.md].")
-_info("spc09", "Cup Holders", "10% chance a component hit does nothing",
-      "Passive: a hit that reaches a component is absorbed whole 10% of the time (entity_DamageComponent, rand()%100 < 10"
-      " at 0x465b7e) [RE: engine.md, damage.md]. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some"
+      "Passive: every mounted weapon's ammo x1.1 at spawn, rounded down (0x438ecb -> 0x4a4a40, 1.1 at 0x4beb20) [RE:"
+      " engine.md]. Applied once at spawn [RE: engine.md]. Community '+10% ammo': true.")
+_info("spc09", "Cup Holders", "10% of hits do no internal damage",
+      "Passive: a hit that gets past the armour and chassis to the components does no internal damage 10% of the time"
+      " (entity_DamageComponent, rand()%100 < 10 at 0x465b7e clears the record's type mask) [RE: engine.md, damage.md]."
+      " The armour and chassis still take their share first, so the community 'reduces the probability of being hit by"
+      " 10%' is only partly true. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some"
       " are jokes)' [community]; the code gives them a real effect." + _SPC)
 
 def info_key(typ, dfl, cls=""):

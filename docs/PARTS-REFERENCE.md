@@ -129,14 +129,25 @@ effect, except for the two that apply once at spawn (Blower, Heated Seats) and t
 | NitrousOxide (spc02) | Drive acceleration ×5.0 for 15 s, still capped by rear-tyre grip | 3 charges; pressing again restarts the 15 s and uses another charge | key | [RE: engine.md, `physics_FireNitro` 0x43d280, 15.0 at 0x43d2a6, ×5.0 at 0x4bd1dc; re-read]. Nitrous shares a timer with the oil-slick spin, so oil during a boost cuts the boost to 2 s [RE: static inference]. The community figure of "+50% acceleration, +20% top speed" [community] does not match the code. |
 | Blower (spc03) | Drive acceleration ×1.25 | permanent | passive, set at spawn | [RE: engine.md, 0x438edb → 0x43c587; re-read]. It is only written at spawn, so it keeps working after it is shot off. |
 | X-Aust Brake (spc04) | Brake input ×2, still capped by four-tyre grip | latched for the rest of the car's life: no uses, no hp check | key (press once) | [RE: engine.md, 0x44f608 sets +0xf4, 0x43ab46 doubles a negative pedal; re-read]. The manual's "passive / flavour" label [community] is wrong. |
-| Structo Bmpr (spc05) | Chassis absorb multiplier 2.0 on the front and back. A hit there is fully absorbed if it is ≤ chassis × 2, and costs the chassis half as much | ×2.0 | passive | [RE: engine.md, damage.md, 0x46565b..0x4656ce; re-read] |
-| Curb Feelers (spc06) | Armour absorb multiplier 1.1 on every side: a hit costs the armour damage / 1.1, about 9% less | ×1.1 | passive | [RE: engine.md, 0x465772..0x4657d8] |
-| Mud Flaps (spc07) | Chassis multiplier +0.1 on every side (2.1 on the front and back with the Structo Bumper): a hit costs the chassis damage / 1.1 | +0.1 | passive | [RE: engine.md, 0x4656ef..0x465759, -0.1 at 0x4be208; re-read] |
-| Heated Seats (spc08) | Every mounted weapon gets ×1.1 ammo | +10% | passive, once at spawn | [RE: engine.md, 0x438ecb → 0x4a4a40, 1.1 at 0x4beb20] |
-| Cup Holders (spc09) | A hit that reaches a component does no damage 10% of the time | 10% | passive | [RE: engine.md, damage.md, `rand()%100 < 10` at 0x465b7e]. [I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md) listed cup holders among "minor/flavor items (some are jokes)" [community] (corrected there 2026-10-03). The code gives them a real effect. |
+| Structo Bmpr (spc05) | Chassis absorb multiplier 2.0 on the front and back. It acts on ram (collision) damage, the only kind the chassis takes: a ram there is fully absorbed if it is ≤ chassis × 2, and costs the chassis half as much | ×2.0 | passive | [RE: engine.md, 0x46565b..0x4656ce; chassis test `mask & 8` at 0x4658f4, multiplier used at 0x46592b; re-read 2026-10-04]. Community "doubles front/rear chassis reinforcement": **true**. |
+| Curb Feelers (spc06) | Armour absorb multiplier 1.1 on every side, against bullet and explosive hits: they cost the armour damage / 1.1, about 9% less | ×1.1 | passive | [RE: engine.md, set 0x465772..0x4657d8, used at 0x465a06; re-read 2026-10-04]. Community "reduces the likelihood of flipping": **false**. The damage routine is the only reader of special type 6, in i76.exe and in nitro.exe [RE: xref sweep 2026-10-04]. |
+| Mud Flaps (spc07) | Chassis multiplier +0.1 on every side (2.1 on the front and back with the Structo Bumper): a ram costs the chassis damage / 1.1 | +0.1 | passive | [RE: engine.md, 0x4656ef..0x465759, -0.1 at 0x4be208, used at 0x46592b; re-read 2026-10-04]. Community "less chassis damage from vegetation": **half true**. It covers every collision, not vegetation in particular. No code tests the special against scenery type, and ground clutter (grass, bushes) is drawn only, with no collision [RE: xref sweep 2026-10-04; renderer.md 0x45c619]. |
+| Heated Seats (spc08) | Every mounted weapon gets ×1.1 ammo, rounded down | +10% | passive, once at spawn | [RE: engine.md, 0x438ecb → 0x4a4a40, 1.1 at 0x4beb20, `_ftol` 0x4a4b1a]. Community "+10% ammo": **true**. |
+| Cup Holders (spc09) | A hit that gets past the armour and chassis to the components does no internal damage 10% of the time. The armour and chassis still take their share first | 10% | passive | [RE: engine.md, damage.md, `rand()%100 < 10` at 0x465b7e clears the record's type mask]. Community "reduces the probability of being hit by 10%": **partly true**. It is a 10% chance per hit of no internal damage, not a 10% chance of no hit. [I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md) listed cup holders among "minor/flavor items (some are jokes)" [community] (corrected there 2026-10-03). The code gives them a real effect. |
 
-The panel icon `dash_mary` (type 10) has no effect found and no garage name. `tire_covr` (type 11) is cut
-content: tyre covers against a wheel hazard that no stock weapon fires **[RE: engine.md]**.
+**Dashboard Mary** (panel icon `dash_mary`, type 10) does **nothing in Interstate '76** (i76.exe md5 9a232dcc, the
+Gold / GOG exe we play). The I'76 garage lists types 1..9 only, and no stock or ADDON `.vcf` carries type 10. No code
+reads type 10 except the panel icon. The weapon damage builder (`weapon_BuildImpactDamage` 0x4a76a0) applies only the
+difficulty factor, and no ×1.1 or +1 rule exists anywhere in the exe **[RE: xref sweep of every special-type reader
+and every 1.1 constant, 2026-10-04]**. The community claim ("+10% damage to each round, minimum +1") describes the
+**Nitro Pack**. nitro.exe (md5 28b8ae27) lists "Dashboard Mary" and "Tire Covers" in its garage. Its vehicle init
+(0x424af1, jump table 0x424d78) sends type 10 to 0x4b0680, which multiplies each mounted weapon's per-round damage
+(instance +0x10, the GDFC damage that the projectile carries) by 1.1, rounded down, once at spawn. The code has no
+"minimum +1". A weapon under 10 damage per round would gain nothing, but the stock guns do 15 or more per hit, so
+for them the gain is at least +1 **[RE: nitro.exe static read, 2026-10-04; not live-tested]**. Nitro's Tire Covers
+(type 11) also differ from I'76: at spawn they appear to double two values on every wheel, probably hp and max hp
+(0x424b37 via 0x466b20 / 0x466b60) **[RE: inferred]**. `tire_covr` (type 11) in I'76 is cut content: tyre covers against a wheel hazard
+that no stock weapon fires **[RE: engine.md]**.
 
 ## Weapons: what the shot does
 
