@@ -2309,6 +2309,42 @@ static void __cdecl fixed_stepper_begin(float *stepper) {
     ((int *)stepper)[2] = n;                                 /* +8 count */
 }
 
+/* ===========================================================================
+ * INPUT LATCH  (I76_INPUT_LATCH=1; off by default; meant for I76_FIXED_STEP)
+ * ===========================================================================
+ * Owner report 2026-10-04: "pressing I for the ignition works maybe one time in five" (best-wide: 120 fps,
+ * I76_FIXED_STEP=24). Static reading, md5 9a232dcc = AiO 6319abf7 at these bytes:
+ *   - start_engine (byte 0x5367e6) and toggle_lights (0x5367e7) are discrete commands of type 2 (table 0x4f2aa0 /
+ *     0x4f2ac0). input_UpdateControls 0x44d9e0 zeroes every discrete byte each frame (0x44daa6) and sets it for ONE
+ *     frame on the key's rising edge (0x44db74..0x44db87), however long the key is held;
+ *   - input_ApplyToEntity 0x44f1c0 copies the bytes, once per rendered frame, into the player entity: 0x44f4cf
+ *     `mov [edi+0xec], ecx` (ignition request) and 0x44f4dc `mov [edi+0x100], edx` (lights request);
+ *   - entity_UpdateState 0x465370 reads and clears both (0x4653d4 / 0x465438, 0x4653c7 / 0x4653df) - once per PHYSICS
+ *     STEP, from the substep loop of entity_TickVehicle 0x463800 (0x4638b0).
+ * Stock, every frame has at least one substep, so the one-frame pulse is always consumed. Under I76_FIXED_STEP a
+ * frame can have none: at 24 steps/s and 120 fps four frames in five run no step, the next frame's copy overwrites the
+ * pulse with 0, and the press is lost - one press in five works, which is what the owner counted. Holding the key
+ * longer does not help (edge-triggered). The headlights key has the same loss.
+ * Fix: make the two copies OR instead of MOV (opcode 89 -> 09, one byte each, same length and operands), so the
+ * request stays set until the next physics step consumes and clears it. With a step every frame (stock) nothing
+ * changes. */
+static void apply_input_latch(void) {
+    static const BYTE ign_old[6] = { 0x89, 0x8F, 0xEC, 0x00, 0x00, 0x00 };   /* 0x44f4cf mov [edi+0xec], ecx */
+    static const BYTE ign_new[6] = { 0x09, 0x8F, 0xEC, 0x00, 0x00, 0x00 };   /*          or  [edi+0xec], ecx */
+    static const BYTE lgt_old[6] = { 0x89, 0x97, 0x00, 0x01, 0x00, 0x00 };   /* 0x44f4dc mov [edi+0x100], edx */
+    static const BYTE lgt_new[6] = { 0x09, 0x97, 0x00, 0x01, 0x00, 0x00 };   /*          or  [edi+0x100], edx */
+    int n;
+    if (GetEnvironmentVariableA("I76_INPUT_LATCH", NULL, 0) == 0) {
+        if (g_fixed_step > 0.0f)
+            mlog("  input-latch: off - with I76_FIXED_STEP the ignition (I) and lights keys are lost on frames without a physics step; I76_INPUT_LATCH=1 keeps them");
+        return;
+    }
+    n = patch_bytes(0x0044f4cf, ign_old, ign_new, 6, "ignition request copy (input latch)")
+      + patch_bytes(0x0044f4dc, lgt_old, lgt_new, 6, "lights request copy (input latch)");
+    mlog("  input-latch: %d/2 sites (ignition, lights requests held until the next physics step)%s", n,
+         g_fixed_step > 0.0f ? "" : " - note: without I76_FIXED_STEP every frame steps, so this changes nothing");
+}
+
 static void apply_fixed_step(void) {
     static const BYTE old_entry[6] = { 0xD9, 0x05, 0x20, 0xE4, 0x4F, 0x00 };   /* fld [0x4fe420] at 0x49cc20 */
     BYTE jmp[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
@@ -3521,7 +3557,9 @@ static void apply_glide_refresh(void) {
  *
  * Forced play-flag bits are remembered the first time they are forced and put back when the forcing flag is
  * released, so a session that only used the trainer leaves the Options as they were. Poking the dword does not set
- * the "cheats used" marker 0x535f78 (only the menus do), so a mission won this way still counts.
+ * the "cheats used" marker 0x535f78 by itself, BUT the game's own options-menu close, player_SaveDef and the
+ * post-shell I76PLYR.DEF reload all turn set bits 0x1c into the marker (corrected 2026-10-04; see the CHEAT-MARKER
+ * GUARD below, which hides the forced bits from those three paths so a mission won with God / Ammo held still counts).
  * The whole apply runs under SEH like the telemetry snapshot: between missions the player chain is stale, and a
  * fault must cost one frame of trainer service, never the game. */
 static HANDLE g_trn_map;
@@ -3643,6 +3681,58 @@ static void trn_frame(void) {
 #endif
 }
 
+/* CHEAT-MARKER GUARD (2026-10-04, owner report "the trainer stops the campaign advancing"). Static reading of
+ * md5 9a232dcc, the same bytes in AiO 6319abf7: the forced play bits above DID reach the cheats-used marker, through
+ * the game's own code, not through a poke:
+ *   - the in-mission options menu's close 0x495170 (Esc in a mission, or its close callback) writes I76PLYR.DEF from
+ *     0x654b40 and sets 0x535f78 = 1 when 0x654b98 & 0x1c (0x495226);
+ *   - player_SaveDef 0x497290 (mission end 0x4040f7, graphics-mode key 0x44e3a1) writes the forced bits to I76PLYR.DEF;
+ *   - after every shell return 0x4970f0 reads I76PLYR.DEF back and sets the marker when the bits are there (0x497241).
+ * Nothing but 'Turn off Cheater Options' (0x4976a0) clears the marker, so from then on every win in that game
+ * process becomes outcome 0xb (no salvage, no vehscn.vsf, no scene advance), with or without the trainer.
+ * The guard: those three call paths are redirected through wrappers that put the forced bits back to the user's
+ * baseline before the game's code runs (the frame hook re-forces them on the next frame). Bits the user SET as a new
+ * baseline (CMD_PLAYFLAGS) are not hidden: that is the Options switch itself, and the GUI warns about it. */
+static void trn_unforce(void) {
+    volatile DWORD *play = (volatile DWORD *)0x00654b98;
+    if (g_trn_forcing) *play = (*play & ~g_trn_forcing) | (g_trn_play_saved & g_trn_forcing);
+}
+static void trn_reforce(void) {
+    if (g_trn && g_trn->magic == I76TRN_MAGIC && g_trn_forcing) *(volatile DWORD *)0x00654b98 |= g_trn_forcing;
+}
+static DWORD g_trn_guard_hits;
+static void __cdecl trn_savedef_wrap(void) {               /* player_SaveDef 0x497290: no args, result unused */
+    trn_unforce(); g_trn_guard_hits++;
+    ((void (__cdecl *)(void))0x00497290)();
+    if (*(volatile DWORD *)0x004c2164 == 5) trn_reforce();  /* mid-mission (video-mode key) only; at mission end leave them off */
+}
+static void __cdecl trn_menuclose_wrap(void) {             /* 0x495170: no args (push esi / ... / pop esi; ret) */
+    trn_unforce(); g_trn_guard_hits++;
+    ((void (__cdecl *)(void))0x00495170)();
+    trn_reforce();
+}
+static int trn_install_guard(void) {
+    static const DWORD save_sites[2] = { 0x004040f7, 0x0044e3a1 };   /* call 0x497290 */
+    int i, ok = 0;
+    for (i = 0; i < 2; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(0x00497290 - (save_sites[i] + 5)); memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)trn_savedef_wrap - (save_sites[i] + 5)); memcpy(w + 1, &rel, 4);
+        ok += patch_bytes(save_sites[i], o, w, 5, "player_SaveDef call (trainer guard)");
+    }
+    {   /* 0x44e0c1: call 0x495170 (the menu key while the menu is open) */
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(0x00495170 - (0x0044e0c1 + 5)); memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)trn_menuclose_wrap - (0x0044e0c1 + 5)); memcpy(w + 1, &rel, 4);
+        ok += patch_bytes(0x0044e0c1, o, w, 5, "options-menu close call (trainer guard)");
+    }
+    {   /* 0x495120: push 0x495170 (the menu's close callback, handed to 0x4953e0) - the imm32 at 0x495121 */
+        DWORD o = 0x00495170, w = (DWORD)(DWORD_PTR)trn_menuclose_wrap;
+        ok += patch_bytes(0x00495121, (const BYTE *)&o, (const BYTE *)&w, 4, "options-menu close callback (trainer guard)");
+    }
+    return ok;
+}
+
 static void apply_trainer(void) {
     char v[8];
     DWORD k = GetEnvironmentVariableA("I76_TRAINER", v, sizeof(v));
@@ -3657,6 +3747,11 @@ static void apply_trainer(void) {
     g_trn->magic = g_frame_hook ? I76TRN_MAGIC : 0;           /* no hook, no service: the magic stays clear */
     mlog("  trainer: %s (%s, %u B, frame hook %s)", g_frame_hook ? "on" : "NOT applied", I76TRN_SHM_NAME,
          (unsigned)sizeof(i76trn_ctl_t), g_frame_hook ? "ok" : "missing");
+    if (g_frame_hook) {
+        int g = trn_install_guard();
+        mlog("  trainer: cheat-marker guard %d/4 sites (SaveDef x2, options-menu close x2)%s", g,
+             g == 4 ? "" : " - INCOMPLETE: God / Ammo held through a menu close or a mission end can still mark the game as cheated");
+    }
 }
 
 /* ===========================================================================
@@ -4529,6 +4624,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_volume_test();      /* test knob: I76_VOLUME_TEST=<level>,<frame> */
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
+        apply_input_latch();      /* opt-in: I76_INPUT_LATCH=1 (after apply_fixed_step: ignition / lights keys survive step-less frames) */
         apply_coll_window();      /* opt-in: I76_COLL_WINDOW=1 (after apply_fixed_step: needs g_fixed_step) */
         apply_coll_dedupe();      /* with I76_FIXED_STEP: collision sound + damage once per physics step (I76_COLL_DEDUPE=0 counts only) */
         apply_far_engine_dt();    /* opt-in: I76_FAR_ENGINE_DT=1 (after apply_engine_dt_fix: needs its site) */
