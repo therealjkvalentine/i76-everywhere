@@ -33,6 +33,7 @@
         I76_FAR_CLIP        = '1800'
         I76_ZGLIDE_TMUFIX   = '1'   # needs dgVoodoo [Glide] MemorySizeOfTMU 8192 (promotion 12): no ZGLIDE flush freezes, no 2 MB boundary rewind (lab RENDER-FREEZE-2026-10-04.md; gate + soak 2026-10-04)
         I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) survive frames without a physics step: 50/50 each at 120 fps vs 13/50 and 7/50 without (lab 2026-10-04, consolidated proxy 89a97d25)
+        I76_AI_BACKAWAY_GRID = '1'  # AI back_away stuck test on the 20 Hz grid, not 4 rendered frames: T12 opening cut 6.6 s 5/5 + 3/3 as vanilla 7/7 (was 0/5); route gate rows 2-4 PLAY.bat + PLAY-16x10.bat 14/15 each, only D (lab 2026-10-05, proxy 89a97d25)
         I76_GLIDE_REFRESH   = '120'
         # no data yet (2026-10-03: the ram test could not stage its rams; no AI car entered the roll behaviour):
         # count only, behave as played on 2026-10-02
