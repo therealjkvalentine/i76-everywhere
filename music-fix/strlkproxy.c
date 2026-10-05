@@ -1886,6 +1886,54 @@ static void apply_ai_fixes(void) {
 }
 
 /* ===========================================================================
+ * AI BACK_AWAY RING ON THE 20 Hz GRID  (I76_AI_BACKAWAY_GRID=1; off by default)
+ * ===========================================================================
+ * Lab doc 2026-10-04-milk-truck-opening-divergence.md sections 7-8. The back_away interrupt test 0x41d240 stores
+ * ai_GripLimitedThrottle(e, 1.0) (0x43c600) into a 4-slot ring ai+0x9d58..+0x9d64 (all 1.0 at AI init, 0x415610)
+ * indexed by `call 0x415600` at 0x41d286 (= `mov eax,[0x524550]`, the AI-pass stamp: inc once per AI/FSM pass at
+ * 0x40a658, i.e. once per rendered frame) & 3, and pushes back_away (reverse, 4 s) when all four are < 0.1
+ * ([0x4bcadc]). "Four frames below 0.1" is 200 ms at stock 20 fps but 33 ms at 120, less than one FIXED_STEP 24
+ * physics step: an AI car that spawns unloaded on a slope (T12's speedy) reverses at 0.3-0.4 s and loops for the
+ * rest of the minute (best-wide 0/5 shot cuts vs vanilla 7/7 at 6.6 s). The call is repointed at a stub that
+ * returns round(sim time [0x5a7e70] x 20), a 20 Hz grid count: the ring then holds the last value of each of the
+ * last four grid ticks (~150-200 ms) at any frame rate; at 20 fps and below one grid tick per frame = stock. The
+ * index is used for nothing else (ring users: 0x415610 init, 0x41d29d store, 0x41d2a7..0x41d2e9 test).
+ * Tested in-process first (probe -GridFix, same 6-instruction body): best-wide 5/5 cut at 6.6-6.7 s, 0 reverses.
+ *
+ * Audit of the other users of the stamp (2026-10-04, exe 6319abf7; all 8 `call 0x415600` and all 6 [0x524550]
+ * references): fsm_isShot 0x40b410 / fsm_isRammed 0x40b800 / fsm_isAttacked 0x40b990 (calls 0x40b41e/42e,
+ * 0x40b80e/81e, 0x40b99e/9ae) and the rammed terminator 0x41c2c0 (0x41c2d2) compare a stamp written by the
+ * damage notifier 0x4157a0 (raw [0x524550] at 0x415830/0x415844/0x415855 -> ai+0xa6d8/+0xa6d4/+0xa6dc) with
+ * "this pass or the last one" (the terminator: this pass), and the FSM edge reads consume the stamp. Writer and
+ * readers count the same passes and the readers are polled every pass, so the catch is certain at any rate:
+ * neutral, left alone (repointing only the readers would also compare frame stamps with grid counts). */
+static float g_bag_k20 = 20.0f;
+static __declspec(naked) void ai_backaway_grid_stub(void) {      /* replaces `call 0x415600` at 0x41d286 */
+    __asm {                                     /* clobbers eax only (as the original); FPU stack balanced */
+        push eax                                /* scratch slot */
+        fld dword ptr ds:[0x005a7e70]           /* simclock sim time, s (0x49c7c0 reads the same float) */
+        fmul g_bag_k20
+        fistp dword ptr [esp]                   /* current rounding mode, as the in-process test's cave */
+        pop eax
+        ret
+    }
+}
+static void apply_ai_backaway_grid(void) {
+    static const BYTE old[5] = { 0xE8, 0x75, 0x83, 0xFF, 0xFF };   /* call 0x415600 at 0x41d286 */
+    BYTE w[5] = { 0xE8 };
+    LONG rel;
+    char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_BACKAWAY_GRID", v, sizeof(v));
+    if (k == 0 || k >= sizeof(v) || v[0] == '0') return;
+    rel = (LONG)((DWORD_PTR)ai_backaway_grid_stub - (0x0041d286 + 5)); memcpy(w + 1, &rel, 4);
+    if (patch_bytes(0x0041d286, old, w, 5, "AI back_away ring index")) {
+        mlog("  ai-backaway-grid: back_away ring on the 20 Hz grid (0x41d286 -> sim time x 20; read back %s)",
+             memcmp((void *)0x0041d286, w, 5) == 0 ? "ok" : "MISMATCH");
+    } else {
+        mlog("  ai-backaway-grid: NOT applied (0x41d286 bytes differ from E8 75 83 FF FF)");
+    }
+}
+
+/* ===========================================================================
  * REAR MIRROR CADENCE  (I76_MIRROR_RATE=1, needs I76_FRAMERATE_FIXES; off by default)
  * ===========================================================================
  * Rear mirror (renderer_DrawRearMirror 0x445750, framerate.md row 7): redraws when frame_count >= next, next =
@@ -4488,6 +4536,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_hazard_fix();       /* with I76_FRAMERATE_FIXES: stationary hazards (oil slick, fire patch, ...) step on the 20 Hz grid */
         apply_perframe_fixes();   /* with I76_FRAMERATE_FIXES: radar missile turn, WMISS click, AI skid + horn rolls */
         apply_ai_fixes();         /* opt-in: I76_AI_FIXES=1 (after apply_framerate_fixes: the dodge hold needs the 20 Hz grid) */
+        apply_ai_backaway_grid(); /* opt-in: I76_AI_BACKAWAY_GRID=1 (back_away ring indexed by sim time x 20, not frames) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
