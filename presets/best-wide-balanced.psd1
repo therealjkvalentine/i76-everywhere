@@ -4,6 +4,10 @@
 # only the binoculars run below 120, and there the far clip is the one switch with a clear effect (terrain vertices 15.8k
 # -> 4.3k, 79 -> 99 fps). Halving terrain LOD / terrain tex / object LOD / road tex / shadows / clutter changed nothing
 # beyond run-to-run spread, so they stay at best-wide's values.
+# Reps 2026-10-05 (lab autotest\runs\flash-probe-20261005, t04 god-mode circle drive 75 s + binoculars 10 s, n=5 valid each):
+# binoculars best-wide 72.9 fps [65.4..81.6] vs balanced 85.7 [80.3..88.6] (terrain vertices 16.2k vs 4.3k, CPU 17.9 vs
+# 15.8 ms/frame); cockpit identical (119.8 / 119.9 fps, CPU 8.8 / 8.9 ms/frame, GPU 3D 33 / 35 %). The gain is real but
+# smaller than the n=1 99 fps of the first run.
 # best-wide: the 2026-10-03 daily-driver candidate. best-120 + the exp-detail-8 set + I76_ASPECT (Hor+ widescreen).
 # Needs the widescreen dgVoodoo conf (dgVoodoo.wide.conf: [Glide] Resolution 5160x2160, ScalingMode stretched);
 # the daily driver's PLAY.bat copies it in before launching. I76_ASPECT is this panel's shape (3440x1440); for another
@@ -23,6 +27,7 @@
         I76_FIX_HEALTH_PCT  = '1'
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1200'   # balanced: 1800 in best-wide
+        I76_CAM_GROUND_FIX  = '1'   # terrain kept when the eye dips under the ground (stock skips ALL terrain that frame = the terrain-to-sky flash; lab RENDER-FREEZE-2026-10-04.md s.9; promotion 14)
         I76_ZGLIDE_TMUFIX   = '1'   # needs dgVoodoo [Glide] MemorySizeOfTMU 8192 (promotion 12): no ZGLIDE flush freezes, no 2 MB boundary rewind (lab RENDER-FREEZE-2026-10-04.md; gate + soak 2026-10-04)
         I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) survive frames without a physics step: 50/50 each at 120 fps vs 13/50 and 7/50 without (lab 2026-10-04, consolidated proxy 89a97d25)
         I76_AI_BACKAWAY_GRID = '1'  # AI back_away stuck test on the 20 Hz grid, not 4 rendered frames: T12 opening cut 6.6 s 5/5 + 3/3 as vanilla 7/7 (was 0/5); route gate rows 2-4 PLAY.bat + PLAY-16x10.bat 14/15 each, only D (lab 2026-10-05, proxy 89a97d25)

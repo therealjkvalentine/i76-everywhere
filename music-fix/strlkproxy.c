@@ -1955,14 +1955,15 @@ static void apply_ai_backaway_grid(void) {
  * Writing the call restores the gate on the grid count in both; the unsigned compare is fine with a DWORD count.
  */
 static DWORD g_idbg_mirror_draws;                           /* copied into the debug block by the render wrapper */
+static int g_mirror_rate_mode = 1;                          /* 1 = every 2nd grid tick (10/s, stock), 2 = every tick (20/s) */
 static int __cdecl mirror_frame_count(void) {
-    int c = g_ratefix ? (int)g_tick20_n : *(volatile int *)0x005a7e1c;
+    int c = g_ratefix ? (int)g_tick20_n * g_mirror_rate_mode : *(volatile int *)0x005a7e1c;
     if (c >= *(volatile int *)0x0052bbc8) g_idbg_mirror_draws++;    /* the gate that follows passes: a redraw */
     return c;
 }
 static void __cdecl mirror_clouds_wrap(void *cam, DWORD colour) {
     float u = g_cloud_u, v = g_cloud_v;
-    g_cloud_u = 1.0f; g_cloud_v = -1.0f;
+    g_cloud_u = 1.0f / (float)g_mirror_rate_mode; g_cloud_v = -1.0f / (float)g_mirror_rate_mode;   /* 20/s: half steps, same 10 steps/s */
     ((void (__cdecl *)(void *, DWORD))0x00405200)(cam, colour);
     g_cloud_u = u; g_cloud_v = v;
 }
@@ -1972,7 +1973,9 @@ static void apply_mirror_rate(void) {
     static const BYTE cloud_old[5]   = { 0xE8, 0x5A, 0xF8, 0xFB, 0xFF };   /* call 0x405200 renderer_DrawClouds at 0x4459a1 */
     BYTE gate_new[5] = { 0xE8 }, cloud_new[5] = { 0xE8 };
     LONG rel; int n = 0; const char *layout;
-    if (GetEnvironmentVariableA("I76_MIRROR_RATE", NULL, 0) == 0) return;
+    {   char mv[4]; DWORD mk = GetEnvironmentVariableA("I76_MIRROR_RATE", mv, sizeof(mv));
+        if (mk == 0 || mk >= sizeof(mv) || mv[0] == '0') return;
+        g_mirror_rate_mode = mv[0] == '2' ? 2 : 1; }   /* =2: the gate's "next = count + 2" passes on every grid tick (20/s) */
     if (!g_ratefix) { mlog("  mirror-rate: needs I76_FRAMERATE_FIXES (the 20 Hz grid) - not applied"); return; }
     rel = (LONG)((DWORD_PTR)mirror_frame_count - (0x004457b4 + 5)); memcpy(gate_new + 1, &rel, 4);
     if (memcmp((void *)0x004457b4, gate_aio, 5) == 0) {
@@ -1984,7 +1987,7 @@ static void apply_mirror_rate(void) {
     }
     rel = (LONG)((DWORD_PTR)mirror_clouds_wrap - (0x004459a1 + 5)); memcpy(cloud_new + 1, &rel, 4);
     n += patch_bytes(0x004459a1, cloud_old, cloud_new, 5, "rear mirror cloud step");
-    mlog("  mirror-rate: %d/2 sites repointed (refresh gate on the 20 Hz grid count = 10 redraws/s, layout %s; mirror cloud step at the stock 1.0)", n, layout);
+    mlog("  mirror-rate: %d/2 sites repointed (refresh gate on the 20 Hz grid count = %d redraws/s, layout %s; mirror cloud step %s)", n, g_mirror_rate_mode == 2 ? 20 : 10, layout, g_mirror_rate_mode == 2 ? "0.5 per redraw = the stock 10 steps/s" : "at the stock 1.0");
 }
 
 /* ===========================================================================
@@ -3296,9 +3299,14 @@ static DWORD __stdcall tc_MinAddress(DWORD t) {
     } else mlog("  tex-census: grTexMinAddress(%lu) = 0x%lx (FirstDevice)", (unsigned long)t, (unsigned long)r);
     return r;
 }
+static int g_fp_on;                                     /* I76_FLASH_PROBE (FLASH PROBE below) */
+static void fp_log_download(DWORD addr, tc_texinfo_t *i, DWORD bytes, DWORD *sp);
+static void fp_before_swap(void);
+static void fp_window(void);
 static void __stdcall tc_Download(DWORD tmu, DWORD addr, DWORD eo, tc_texinfo_t *i) {
     DWORD b = (p_tc_CalcMem && i) ? p_tc_CalcMem(i->smallLod, i->largeLod, i->aspect, i->format) : 0;
     g_tc_dl++; g_tc_dlb += b; g_tc_win_dl++; g_tc_win_dlb += b;
+    if (g_fp_on) fp_log_download(addr, i, b, (DWORD *)_AddressOfReturnAddress());
     p_tc_Download(tmu, addr, eo, i);
 }
 /* I76_TEX_CENSUS=2 adds frame dumps: the back buffer about to be shown at the swap right after a flush (the frame
@@ -3400,9 +3408,167 @@ static void fs_after_swap(double t0) {
     g_fs_last = tc_ms(); g_fs_dl0 = g_tc_dl; g_fs_dlb0 = g_tc_dlb; g_fs_fl0 = g_tc_flush;   /* after the mlog: its cost is not the next frame's */
 }
 
+/* ===========================================================================
+ * CAMERA-UNDER-GROUND TERRAIN SKIP  (I76_CAM_GROUND_FIX=1; off by default; lab docs/RENDER-FREEZE-2026-10-04.md s.9)
+ * ===========================================================================
+ * The owner's one-frame "terrain vanishes, sky shows" (b). renderer_QueueTerrain 0x490a00 calls the terrain setup
+ * 0x4929b0(camera) at 0x490b1e; its first step (0x4929f7..0x492a11) samples the terrain height under the camera
+ * (0x493550, cdecl (double x, double z) -> st0) and, if the camera is less than 0.01 m (0x4be878) above it, returns 0:
+ * QueueTerrain then queues NO terrain this frame and fills the view with palette 0xb4 (0x490b46, 0x474ea0); under
+ * Glide the sky and clouds drawn before stay, so the whole ground turns to sky for that frame. It happens whenever the
+ * eye point dips under the local terrain surface: cockpit / hood eye with the car nosed into a bank or a slope, a
+ * chase camera behind a crest. Found with I76_FLASH_PROBE on t04 (2026-10-05): 3 zero-terrain frames in 60 s of
+ * circle driving into the dunes, eye 0.04 .. 1.25 m under the surface, the dumped frame all sky below the horizon.
+ * Fix: call the setup; when it bails, lift the camera's y (+0x168, double) to 0.05 m above the sampled height, call it
+ * again so the terrain footprint and quadtree are built as for a camera just above the ground, and put y back before
+ * anything else reads it. The view transform is untouched (the frame is drawn from the real eye; the surface just
+ * above the eye is seen from below, as the car body already is). Counted and logged (first 20, then every 600 swaps
+ * with I76_FLASH_PROBE). The same setup serves the mirror pass, which gets the same treatment. */
+static int g_cg_on; static DWORD g_cg_lifts, g_cg_fail;
+static int __cdecl cam_ground_setup_wrap(BYTE *cam) {
+    int r = ((int (__cdecl *)(BYTE *))0x004929b0)(cam);
+    if (r == 0 && g_cg_on && cam) {
+        double *py = (double *)(cam + 0x168), y0 = *py;
+        double h = ((double (__cdecl *)(double, double))0x00493550)(*(double *)(cam + 0x160), *(double *)(cam + 0x170));
+        if (h > -1.0e6 && h < 1.0e6 && h + 0.05 > y0 && h + 0.05 - y0 < 50.0) {
+            *py = h + 0.05;
+            r = ((int (__cdecl *)(BYTE *))0x004929b0)(cam);
+            *py = y0;
+            g_cg_lifts++;
+            if (!r) g_cg_fail++;
+            if (g_cg_lifts <= 20 || !r)
+                mlog("  cam-ground-fix: lift #%lu (camera %p, %s): eye %.3f m under the terrain height %.2f; setup %s",
+                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)0x004c2730 ? "main" : "other", h - y0, h, r ? "ok, terrain queued" : "STILL refused");
+        }
+    }
+    return r;
+}
+static void apply_cam_ground_fix(void) {
+    static const BYTE old[5] = { 0xe8, 0x8d, 0x1e, 0x00, 0x00 };   /* call 0x4929b0 at 0x490b1e */
+    BYTE w[5] = { 0xe8 }; LONG rel; char c[4]; DWORD k = GetEnvironmentVariableA("I76_CAM_GROUND_FIX", c, sizeof(c));
+    if (!(k && k < sizeof(c) && c[0] == '1')) return;
+    rel = (LONG)((DWORD_PTR)cam_ground_setup_wrap - (0x00490b1e + 5)); memcpy(w + 1, &rel, 4);
+    g_cg_on = patch_bytes(0x00490b1e, old, w, 5, "terrain setup call (camera-under-ground lift)");
+    mlog("  cam-ground-fix: %s (QueueTerrain 0x490b1e -> lift the camera 0.05 m above the terrain for the terrain setup when it is under it)",
+         g_cg_on ? "on" : "NOT applied (bytes differ)");
+}
+
+/* ===========================================================================
+ * FLASH PROBE  (I76_FLASH_PROBE=1 per-frame terrain counters, =2 also pixel rows; needs I76_FRAME_SPIKES; off by default)
+ * ===========================================================================
+ * For the owner's one-frame "terrain vanishes, sky colour shows" (lab docs/RENDER-FREEZE-2026-10-04.md (b)); a 150 ms
+ * screen sampler sees a one-frame event only ~5 % of the time, so this looks at EVERY main scene:
+ *  - at the main scene flush (road_flush_wrap): terrain vertices [0x6442ec] (reset by renderer_QueueTerrain 0x490add
+ *    BEFORE its camera-under-ground bail 0x490b26: no terrain queued, screen filled with palette 0xb4 by 0x474ea0), the
+ *    camera QueueTerrain was given [0x6442d4] (position doubles at +0x160), the terrain height under it (0x493550,
+ *    cdecl (double x, double z), st0), state, camera mode [0x4c2728]. A scene with 0 vertices after one with > 500, or
+ *    under 30 % of the previous scene's with the camera moved < 2 m, is logged as TERRAIN-DROP and its back buffer is
+ *    dumped at the swap that follows (<game>\texcensus-<swap>-flashprobe-drop.bmp, at most 12 dumps in all).
+ *  - =2: before each swap, grLfbReadRegion reads rows at I76_FLASH_ROWS percent of the height (default 12,55,70; the
+ *    first is the reference "sky" row). A frame whose lower rows are uniform (mean abs deviation < 6) and either within
+ *    30 of the reference row's colour or near-white, after a frame where they were not, is logged as PIXEL-FLASH and
+ *    dumped (texcensus-<swap>-flashprobe-pix.bmp). Costs one back-buffer readback per frame: measure before trusting fps.
+ *  - texture downloads of swaps 1800..1802 and 7200..7202 are logged one by one (address, size, LODs, aspect, format,
+ *    the first i76.exe return addresses on the stack) to name the steady per-frame uploads. */
+static DWORD g_fp_prev_v, g_fp_events, g_fp_zero, g_fp_drop, g_fp_dumps, g_fp_dump_kind, g_fp_scenes;
+static DWORD g_fp_win_vmin = 0xffffffff, g_fp_win_zero, g_fp_win_drop, g_fp_pix_events, g_fp_win_pix, g_fp_logged_cam;
+static double g_fp_prev_pos[3];
+static int g_fp_rows[3] = { 12, 55, 70 };
+static int g_fp_prev_flag;
+static double g_fp_win_maxlow;                      /* min distance low-vs-ref in the window (closest to sky) */
+static DWORD g_fp_seen_lifts;
+static void fp_scene(void *cam_arg) {
+    DWORD v = *(volatile DWORD *)0x006442ec; BYTE *cam = *(BYTE **)0x006442d4; double p[3] = { 0, 0, 0 }, mv = 0.0, gh = 0.0;
+    g_fp_scenes++;
+    if (!g_fp_logged_cam) { g_fp_logged_cam = 1; mlog("  flash-probe: first main scene: flush camera %p, QueueTerrain camera %p", cam_arg, (void *)cam); }
+    if (cam) { memcpy(p, cam + 0x160, sizeof p); }
+    { double dx = p[0] - g_fp_prev_pos[0], dy = p[1] - g_fp_prev_pos[1], dz = p[2] - g_fp_prev_pos[2]; mv = sqrt(dx * dx + dy * dy + dz * dz); }
+    if (v < g_fp_win_vmin) g_fp_win_vmin = v;
+    if (g_fp_prev_v > 500 && (v == 0 || (v * 10 < g_fp_prev_v * 3 && mv < 2.0))) {
+        float *pl = (float *)0x0054e11c;
+        g_fp_events++; if (v == 0) { g_fp_zero++; g_fp_win_zero++; } else { g_fp_drop++; g_fp_win_drop++; }
+        if (cam) gh = ((double (__cdecl *)(double, double))0x00493550)(p[0], p[2]);
+        if (g_fp_events <= 300)
+            mlog("  flash-probe: TERRAIN-DROP #%lu at swap %lu (proxy frame %lu, t %.0f ms, state %lu, cam mode %lu): terrain vertices %lu (previous scene %lu) | camera (%.2f, %.2f, %.2f), %.3f m above the terrain height %.2f, moved %.2f m since the previous scene | player (%.1f, %.1f, %.1f) | records %lu",
+                 (unsigned long)g_fp_events, (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)*(volatile DWORD *)0x004c2164,
+                 (unsigned long)*(volatile DWORD *)0x004c2728, (unsigned long)v, (unsigned long)g_fp_prev_v, p[0], p[1], p[2], p[1] - gh, gh, mv,
+                 pl[0], pl[1], pl[2], (unsigned long)*(volatile DWORD *)0x0059c568);
+        if (g_fp_dumps < 12 && !g_fp_dump_kind) g_fp_dump_kind = 1;
+    }
+    if (g_cg_lifts != g_fp_seen_lifts) {       /* a lifted (fixed) frame: dump the first few to see what it looks like */
+        g_fp_seen_lifts = g_cg_lifts;
+        if (g_fp_dumps < 12 && !g_fp_dump_kind && g_cg_lifts <= 6) g_fp_dump_kind = 2;
+    }
+    g_fp_prev_v = v; memcpy(g_fp_prev_pos, p, sizeof p);
+}
+static void fp_dump_named(const char *kind) {       /* tc_dump writes texcensus-<swap>-<kind>.bmp; name it flashprobe-... */
+    char k[32]; wsprintfA(k, "flashprobe-%s", kind); tc_dump(k, 1); g_fp_dumps++;
+}
+typedef int (__stdcall *fp_rd_t)(int, DWORD, DWORD, DWORD, DWORD, DWORD, void *);
+static fp_rd_t g_fp_rd; static DWORD g_fp_w, g_fp_h; static WORD *g_fp_row;
+static void fp_row_stats(DWORD y, double m[3], double *mad) {      /* 32 samples across one row of the back buffer */
+    int i; double s[32][3];
+    m[0] = m[1] = m[2] = 0; *mad = 0;
+    if (!g_fp_rd(1, 0, y, g_fp_w, 1, g_fp_w * 2, g_fp_row)) { *mad = -1; return; }
+    for (i = 0; i < 32; i++) { WORD q = g_fp_row[(g_fp_w * (2 * i + 1)) / 64];
+        s[i][0] = ((q >> 11) & 31) * 255.0 / 31; s[i][1] = ((q >> 5) & 63) * 255.0 / 63; s[i][2] = (q & 31) * 255.0 / 31;
+        m[0] += s[i][0]; m[1] += s[i][1]; m[2] += s[i][2]; }
+    m[0] /= 32; m[1] /= 32; m[2] /= 32;
+    for (i = 0; i < 32; i++) *mad += (fabs(s[i][0] - m[0]) + fabs(s[i][1] - m[1]) + fabs(s[i][2] - m[2])) / 3.0;
+    *mad /= 32;
+}
+static void fp_before_swap(void) {
+    if (g_fp_dump_kind) { fp_dump_named(g_fp_dump_kind == 2 ? "lifted" : "drop"); g_fp_dump_kind = 0; }
+    if (g_fp_on < 2) return;
+    if (!g_fp_rd) {
+        HMODULE g = GetModuleHandleA("glide2x.dll"); DWORD (__stdcall *sw)(void), (__stdcall *sh)(void);
+        g_fp_rd = (fp_rd_t)GetProcAddress(g, "_grLfbReadRegion@28");
+        sw = (DWORD (__stdcall *)(void))GetProcAddress(g, "_grSstScreenWidth@0"); sh = (DWORD (__stdcall *)(void))GetProcAddress(g, "_grSstScreenHeight@0");
+        g_fp_w = sw ? sw() : 0; g_fp_h = sh ? sh() : 0;
+        if (!g_fp_rd || !g_fp_w || g_fp_w > 8192 || !g_fp_h) { g_fp_on = 1; mlog("  flash-probe: no grLfbReadRegion / screen size - pixel rows off"); return; }
+        g_fp_row = (WORD *)HeapAlloc(GetProcessHeap(), 0, g_fp_w * 2 + 16);
+        mlog("  flash-probe: pixel rows at %d/%d/%d %% of %lux%lu", g_fp_rows[0], g_fp_rows[1], g_fp_rows[2], (unsigned long)g_fp_w, (unsigned long)g_fp_h);
+    }
+    if (*(volatile DWORD *)0x004c2164 != 5) { g_fp_prev_flag = 0; return; }     /* missions only */
+    {   double r[3], a[3], b[3], mr, ma, mb, da, db; int white, sky, flag;
+        fp_row_stats(g_fp_h * g_fp_rows[0] / 100, r, &mr); fp_row_stats(g_fp_h * g_fp_rows[1] / 100, a, &ma); fp_row_stats(g_fp_h * g_fp_rows[2] / 100, b, &mb);
+        if (mr < 0 || ma < 0 || mb < 0) return;
+        da = (fabs(a[0] - r[0]) + fabs(a[1] - r[1]) + fabs(a[2] - r[2])) / 3.0; db = (fabs(b[0] - r[0]) + fabs(b[1] - r[1]) + fabs(b[2] - r[2])) / 3.0;
+        sky = ma < 6 && mb < 6 && da < 30 && db < 30;
+        white = ma < 6 && mb < 6 && a[0] > 225 && a[1] > 225 && a[2] > 225 && b[0] > 225 && b[1] > 225 && b[2] > 225;
+        flag = sky || white;
+        if (flag && !g_fp_prev_flag) {
+            g_fp_pix_events++; g_fp_win_pix++;
+            if (g_fp_pix_events <= 300)
+                mlog("  flash-probe: PIXEL-FLASH #%lu (%s) at swap %lu (proxy frame %lu, t %.0f ms, cam mode %lu): ref row rgb %.0f %.0f %.0f | row %d%% rgb %.0f %.0f %.0f mad %.1f | row %d%% rgb %.0f %.0f %.0f mad %.1f | terrain vertices %lu",
+                     (unsigned long)g_fp_pix_events, white ? "white" : "sky", (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(),
+                     (unsigned long)*(volatile DWORD *)0x004c2728, r[0], r[1], r[2], g_fp_rows[1], a[0], a[1], a[2], ma, g_fp_rows[2], b[0], b[1], b[2], mb,
+                     (unsigned long)g_fp_prev_v);
+            if (g_fp_dumps < 12) fp_dump_named("pix");
+        }
+        g_fp_prev_flag = flag;
+        if (da + db > g_fp_win_maxlow) g_fp_win_maxlow = da + db;
+    }
+}
+static void fp_window(void) {                          /* every 600 swaps, from tc_Swap */
+    mlog("  flash-probe: swaps %lu: last 600: %lu main scenes, terrain vertices min %lu, %lu zero-terrain scenes, %lu drops < 30 %%, %lu pixel flashes | totals %lu terrain events (%lu zero), %lu pixel flashes | cam-ground lifts %lu (%lu refused)",
+         (unsigned long)g_tc_swaps, (unsigned long)g_fp_scenes, (unsigned long)(g_fp_win_vmin == 0xffffffff ? 0 : g_fp_win_vmin), (unsigned long)g_fp_win_zero,
+         (unsigned long)g_fp_win_drop, (unsigned long)g_fp_win_pix, (unsigned long)g_fp_events, (unsigned long)g_fp_zero, (unsigned long)g_fp_pix_events, (unsigned long)g_cg_lifts, (unsigned long)g_cg_fail);
+    g_fp_scenes = 0; g_fp_win_vmin = 0xffffffff; g_fp_win_zero = g_fp_win_drop = g_fp_win_pix = 0; g_fp_win_maxlow = 0;
+}
+static void fp_log_download(DWORD addr, tc_texinfo_t *i, DWORD bytes, DWORD *sp) {
+    DWORD ra[3] = { 0, 0, 0 }; int k = 0, j;
+    if (!((g_tc_swaps >= 1800 && g_tc_swaps < 1803) || (g_tc_swaps >= 7200 && g_tc_swaps < 7203))) return;
+    for (j = 0; j < 400 && k < 3; j++) { DWORD d = sp[j]; if (d >= 0x00401000 && d < 0x004bb000) ra[k++] = d; }
+    mlog("  flash-probe: download at swap %lu: addr 0x%lx, %lu B, lod %d..%d, aspect %d, format %d; exe returns %08lx %08lx %08lx",
+         (unsigned long)g_tc_swaps, (unsigned long)addr, (unsigned long)bytes, i ? i->smallLod : -1, i ? i->largeLod : -1, i ? i->aspect : -1,
+         i ? i->format : -1, (unsigned long)ra[0], (unsigned long)ra[1], (unsigned long)ra[2]);
+}
+
 static void __stdcall tc_Swap(int interval) {
     DWORD flag = tc_zg(0x10178ea0), res = tc_zg(0x1001fd20) - g_tc_minaddr;
     double t0;
+    if (g_fp_on) fp_before_swap();
     if (g_tc_on == 2) {
         if (g_tc_shot_at && g_tc_swaps + 1 >= g_tc_shot_at) { g_tc_shot_at = 0; tc_dump("flush-back", 1); g_tc_ctl_at = g_tc_swaps + 30; }
         else if (g_tc_ctl_at && g_tc_swaps >= g_tc_ctl_at) { g_tc_ctl_at = 0; tc_dump("ctl-back", 1); }
@@ -3433,6 +3599,7 @@ static void __stdcall tc_Swap(int interval) {
              (unsigned long)g_tc_win_flush, (unsigned long)g_tc_win_noslot, (unsigned long)(res / 1024), (unsigned long)(g_tc_peak_res / 1024),
              (unsigned long)tc_zg(0x1001f894), (unsigned long)g_tc_dl, (unsigned long)g_tc_flush, (unsigned long)g_tc_noslot, (unsigned long)g_tc_noslot_frames);
         g_tc_win_dl = g_tc_win_dlb = g_tc_win_flush = g_tc_win_noslot = 0;
+        if (g_fp_on) fp_window();
     }
     if (!g_fs_ms) { p_tc_Swap(interval); return; }
     t0 = tc_ms();
@@ -4177,6 +4344,7 @@ static __declspec(naked) void road_node_stub(void) {            /* replaces `mov
 static int g_rp_on;                         /* the span-node pool is enlarged + guarded (stats lines are about it) */
 static void __cdecl road_flush_wrap(void *cam, int flag) {       /* the scene flush calls 0x401e8d / 0x40216d */
     if (g_fs_ms) fs_sample_scene();         /* I76_FRAME_SPIKES: this scene's queue, before the flush rewinds it */
+    if (g_fp_on) fp_scene(cam);             /* I76_FLASH_PROBE: per-scene terrain drop detector */
     ((void (__cdecl *)(void *, int))0x0048fac0)(cam, flag);
     if (!g_rp_on) return;                   /* installed by apply_frame_spikes alone (no road pool): no pool stats */
     if (++g_rp_frames >= 600) {
@@ -4243,6 +4411,14 @@ static void apply_frame_spikes(void) {
         k = patch_bytes(0x00401e8d, fl1_old, w, 5, "frame-spikes scene sample (sw)");
         rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x0040216d + 5)); memcpy(w + 1, &rel, 4);
         k += patch_bytes(0x0040216d, fl2_old, w, 5, "frame-spikes scene sample (hw)");
+    }
+    {   char f[8]; DWORD k2 = GetEnvironmentVariableA("I76_FLASH_PROBE", f, sizeof(f));
+        if (k2 && k2 < sizeof(f) && (f[0] == '1' || f[0] == '2')) {
+            char r[32]; DWORD kr = GetEnvironmentVariableA("I76_FLASH_ROWS", r, sizeof(r)); int a, b, c;
+            g_fp_on = f[0] - '0';
+            if (kr && kr < sizeof(r) && sscanf(r, "%d,%d,%d", &a, &b, &c) == 3 && a > 0 && a < 100 && b > 0 && b < 100 && c > 0 && c < 100) { g_fp_rows[0] = a; g_fp_rows[1] = b; g_fp_rows[2] = c; }
+            mlog("  flash-probe: on (level %d: terrain counters%s)", g_fp_on, g_fp_on == 2 ? " + pixel rows" : "");
+        }
     }
     mlog("  frame-spikes: on, threshold %lu ms; scene counters %s; census hooks follow (glide-refresh / tex-census lines)",
          (unsigned long)g_fs_ms, g_rp_on ? "via the road-pool flush wrap" : (k == 2 ? "via its own flush wrap" : "NOT sampled (flush sites differ)"));
@@ -4716,6 +4892,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_frame_spikes();     /* opt-in: I76_FRAME_SPIKES=<ms> (after apply_road_pool: shares its flush wrap; before apply_glide_refresh) */
         apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
         apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
+        apply_cam_ground_fix();   /* opt-in: I76_CAM_GROUND_FIX=1 (terrain kept when the eye dips under the ground) */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
         apply_sw_res();           /* experiment: I76_SW_RES=<W>x<H> or 1 (software renderer above 1024x768) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
