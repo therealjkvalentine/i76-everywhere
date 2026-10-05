@@ -9,9 +9,16 @@ REM
 REM Needs Python 3 with tkinter (the stock python.org / Store build has it). No packages to install.
 REM     TRAINER.bat --selftest    parse the headers and round-trip a request, no game needed
 REM     TRAINER.bat --any         start with the non-sandbox box ticked
+REM
+REM CAMPAIGN: Play Options ammo/armour/chassis (and, on a proxy without the 'cheat-marker guard 4/4' log line,
+REM God mode / Unlimited ammo left ticked through an Esc-menu close or a mission end) make the game mark itself
+REM as cheated: won missions then do NOT advance. Repair / refill / teleport / freeze are safe. Fix: the window's
+REM 'Turn off cheater options' button, or the game's own 'Turn off Cheater Options', then win the mission again.
 
 setlocal
 cd /d "%~dp0"
+echo Campaign: untick God mode / Unlimited ammo before the mission ends or you close the Esc menu, unless the
+echo window says the proxy has the cheat-marker guard. Never Set ammo/armour/chassis Play Options in a campaign.
 where py >nul 2>&1
 if %errorlevel%==0 (
   py -3 "%~dp0i76trainer_gui.py" %*

@@ -15,9 +15,16 @@ Two ways of applying a cheat, chosen automatically (README-GUI.md):
           (cheats.md section 2), and a hit can register in the same frame as a repair; the hold timer papers over
           both, which is why this is the fallback and not the default.
 
-Every address comes from i76-map\subsystems\cheats.md. Nothing here sets the "cheats used" marker 0x535f78; the
-Play Options menus do (a cheated mission success then becomes outcome 0xb). Status comes from Local\I76Telemetry
-(i76tel.h) when the game publishes it, from direct reads otherwise.
+Every address comes from i76-map\subsystems\cheats.md. Status comes from Local\I76Telemetry (i76tel.h) when the game
+publishes it, from direct reads otherwise.
+
+CAMPAIGN (corrected 2026-10-04, README-GUI.md "Campaign progress"): Play Options bits 0x04 / 0x08 / 0x10 in the game's
+memory become the "cheats used" marker 0x535f78 through the GAME's own code (options-menu close 0x495170, the
+I76PLYR.DEF write at mission end 0x497290 and its reload after the shell 0x4970f0), and with the marker set every win
+is refused (outcome 0xb, no next mission). God and Unlimited ammo force those bits while held; a proxy whose log says
+'cheat-marker guard 4/4' hides them from those three paths. Without that guard (older proxy, or direct mode) the
+holds must be off before a mission ends or the Esc menu is closed; direct mode no longer forces the bits at all.
+The Play Options 'Set' button sets them for real and always counts as cheating. 'Turn off cheater options' undoes it.
 """
 import sys, os, io, mmap, struct, time, json, contextlib, ctypes, collections
 
@@ -259,9 +266,25 @@ def process_alive(g):
 
 # ---------------------------------------------------------------- the window
 
+def proxy_guard_in_log(exe_path):
+    """True when the proxy log beside the game says the latest proxy start installed the cheat-marker guard 4/4
+    (strlkproxy.c apply_trainer), False when it started without it, None when there is no log to read."""
+    log = os.path.join(os.path.dirname(exe_path or ""), "mciproxy.log")
+    try:
+        with open(log, "rb") as f:
+            f.seek(0, 2); size = f.tell(); f.seek(max(0, size - 4 * 1024 * 1024))
+            text = f.read().decode("latin1", "replace")
+    except OSError:
+        return None
+    start = text.rfind("trainer: on (")
+    if start < 0:
+        return None
+    return "cheat-marker guard 4/4" in text[start:start + 4000]
+
+
 def build_gui():
     import tkinter as tk
-    from tkinter import ttk, scrolledtext
+    from tkinter import ttk, scrolledtext, messagebox
 
     class TrainerGui(tk.Tk):
         def __init__(self, allow_any):
@@ -281,6 +304,7 @@ def build_gui():
             self.hb_changed_at = None                          # when the heartbeat was last seen to move
             self.live_pid = None                               # the attached pid the block was last seen live for
             self.pending = None                                # (req_seq, sent_at, label)
+            self.guard_ok = None                               # proxy log says 'cheat-marker guard 4/4' (True / False / None = no log)
             self.direct_saved = {}                             # play-flag bit -> value before the direct hold forced it
             self.freeze_armed = False
             self.slots = []
@@ -317,14 +341,16 @@ def build_gui():
             holds = ttk.LabelFrame(right, text="Holds (flags, held every frame)", padding=6)
             holds.pack(fill="x")
             self.var_flag = {}
-            for name, text in (("GOD", "God mode (armour, chassis, components, flats; play bits 0x18)"),
-                               ("AMMO", "Unlimited ammo (play bit 0x04 + every slot 0x0fffffff)"),
+            for name, text in (("GOD", "God mode (armour, chassis, components, flats; play bits 0x18 - see campaign note)"),
+                               ("AMMO", "Unlimited ammo (play bit 0x04 + every slot 0x0fffffff - see campaign note)"),
                                ("NOFLATS", "No flats (wheel flag +0x44 cleared, radius restored)"),
                                ("COMPONENTS", "Components invulnerable (engine / susp / brakes / wheels / weapons at max)"),
                                ("FREEZE_POS", "Freeze position (held at the teleport x y z, zero velocity)")):
                 v = tk.BooleanVar(value=False)
                 self.var_flag[name] = v
                 ttk.Checkbutton(holds, text=text, variable=v, command=self.on_flags_change).pack(anchor="w")
+            self.var_campaign = tk.StringVar(value="campaign: attach to check")
+            ttk.Label(holds, textvariable=self.var_campaign, wraplength=420, foreground="#a33").pack(anchor="w", pady=(4, 0))
 
             shots = ttk.LabelFrame(right, text="One-shots", padding=6)
             shots.pack(fill="x", pady=4)
@@ -373,7 +399,11 @@ def build_gui():
             row = ttk.Frame(play); row.pack(fill="x", pady=2)
             ttk.Button(row, text="Set ticked bits", command=lambda: self.do_playflags(True)).pack(side="left")
             ttk.Button(row, text="Clear ticked bits", command=lambda: self.do_playflags(False)).pack(side="left", padx=4)
-            ttk.Label(play, text="Poking these does not set the 'cheats used' marker 0x535f78; the menus do.", wraplength=380).pack(anchor="w")
+            ttk.Label(play, text="ammo / armour / chassis set here are the game's cheater options: the game marks itself "
+                                 "cheated (0x535f78) at the next Esc-menu close or mission end, and from then on no won "
+                                 "mission advances the campaign.", wraplength=380).pack(anchor="w")
+            row = ttk.Frame(play); row.pack(fill="x", pady=2)
+            ttk.Button(row, text="Turn off cheater options (campaign fix)", command=self.do_uncheat).pack(side="left")
 
             logf = ttk.LabelFrame(self, text="Log (every direct write is read back)", padding=6)
             logf.grid(row=3, column=0, sticky="nsew", padx=6, pady=4)
@@ -414,6 +444,7 @@ def build_gui():
                 return False
             self.attach_error, self.live_pid, self.hb_changed_at = "", None, None
             self.hb.clear()
+            self.guard_ok = proxy_guard_in_log(self.path)
             self.var_attach.set("pid %d  %s" % (self.pid, self.path))
             self.log("attached to %s (pid %d)%s" % (self.path, self.pid,
                      "" if os.path.normcase(os.path.dirname(self.path)) == SANDBOX else "   NOT THE SANDBOX"))
@@ -506,6 +537,21 @@ def build_gui():
                     if slots and (not self.var_slot.get() or not self.var_slot.get().split(":")[0].isdigit()):
                         self.slot_box.current(0)
             self.set_status(self.status_lines(st, pstate, pdetail, tel_live, fr))
+            self.var_campaign.set(self.campaign_note())
+
+        def campaign_note(self):
+            if not self.game:
+                return "campaign: not attached"
+            if self.mode == "direct":
+                return ("campaign: safe - direct mode holds God / Ammo by repair and ammo writes only, no play bits "
+                        "(a big hit between two 5 Hz repairs can still kill). Play Options 'Set' is still cheating.")
+            if self.mode == "proxy" and self.guard_ok:
+                return ("campaign: safe - this proxy hides God / Ammo's play bits from the game's cheat check "
+                        "(log: cheat-marker guard 4/4). Repair, refill, teleport, freeze, components, no-flats never touch it.")
+            return ("campaign: UNTICK God and Unlimited ammo before the mission ends and before closing the Esc menu - "
+                    "this proxy %s, so the game would mark itself cheated and refuse to advance the campaign. "
+                    "Repair now / Refill ammo / teleport / freeze / components / no-flats are safe."
+                    % ("has no cheat-marker guard" if self.guard_ok is False else "log was not found, so the cheat-marker guard is unconfirmed"))
 
         def status_lines(self, st, pstate, pdetail, tel_live, fr):
             L = []
@@ -522,8 +568,9 @@ def build_gui():
                 pf = self.ctl.get("play_flags_now") if pstate == "live" else g.u32(PLAY_FLAGS)
                 marker = g.u32(CHEAT_MARKER)
                 names = ", ".join(n for n, b in PLAY_BITS if pf is not None and pf & b) or "none"
-                L.append("play     0x%02x: %-36s cheats-used marker 0x535f78 = %s (menus set it; pokes do not)" % (
-                    pf or 0, names, "?" if marker is None else marker))
+                L.append("play     0x%02x: %-36s cheats-used marker 0x535f78 = %s%s" % (
+                    pf or 0, names, "?" if marker is None else marker,
+                    "  <- WINS WILL NOT ADVANCE THE CAMPAIGN: 'Turn off cheater options'" if marker else ""))
             if not st["present"]:
                 L.append("player   absent (menu, loading, or no mission)")
                 return "\n".join(L)
@@ -566,32 +613,15 @@ def build_gui():
                 self.ctl.set("flags", word)
                 self.log("flags -> 0x%04x (%s)" % (word, ", ".join(n for n, v in self.var_flag.items() if v.get()) or "none"))
             elif self.mode == "direct":
-                self.direct_apply_play_bits()
-                self.log("direct hold flags -> 0x%04x (re-asserted at 5 Hz)" % word)
+                self.log("direct hold flags -> 0x%04x (re-asserted at 5 Hz; no Play Options bits)" % word)
             else:
                 for v in self.var_flag.values():
                     v.set(False)
                 self.log("not attached: nothing to hold")
 
-        def direct_apply_play_bits(self):
-            """direct mode: force the play bits the proxy would force (0x18 for god, 0x04 for ammo), remembering what they were"""
-            g = self.game
-            cur = g.u32(PLAY_FLAGS)
-            if cur is None:
-                return
-            want = cur
-            for flag, bits in (("GOD", 0x18), ("AMMO", 0x04)):
-                if self.var_flag[flag].get():
-                    for b in (0x04, 0x08, 0x10):
-                        if bits & b and b not in self.direct_saved:
-                            self.direct_saved[b] = cur & b
-                    want |= bits
-                else:
-                    for b in (0x04, 0x08, 0x10):
-                        if bits & b and b in self.direct_saved and not any(self.var_flag[o].get() and ob & b for o, ob in (("GOD", 0x18), ("AMMO", 0x04))):
-                            want = (want & ~b) | self.direct_saved.pop(b)
-            if want != cur:
-                self.log(capture(g.put, PLAY_FLAGS, "<I", want, "options_play_flags")[1])
+        # direct mode no longer forces Play Options bits (2026-10-04): with no proxy guard the game turns forced bits
+        # 0x1c into the cheats-used marker at the next Esc-menu close or mission end and the campaign stops advancing.
+        # God / Ammo hold by the 5 Hz repair and ammo writes alone.
 
         def release_direct(self):
             if self.game and self.direct_saved:
@@ -812,6 +842,14 @@ def build_gui():
                 self.log("play options: tick at least one bit"); return
             if self.mode == "none":
                 self.log("play options: not attached"); return
+            if on and bits & 0x1c and not messagebox.askokcancel(
+                    "Cheater options",
+                    "ammo / armour / chassis are the game's own cheater options. Once set, the game marks itself as "
+                    "cheated at the next Esc-menu close or mission end, saves them in I76PLYR.DEF, and refuses to "
+                    "advance the campaign after any won mission until you use 'Turn off cheater options'.\n\n"
+                    "For the campaign, use the God / Unlimited ammo holds or the one-shots instead.\n\nSet them anyway?",
+                    icon="warning", parent=self):
+                self.log("play options: set cancelled"); return
             if self.mode == "proxy":
                 if self.pending:
                     self.log("play options: a command is still waiting for its ack"); return
@@ -821,6 +859,26 @@ def build_gui():
                 g = self.game
                 f = g.u32(PLAY_FLAGS)
                 self.log(capture(g.put, PLAY_FLAGS, "<I", (f | bits) if on else (f & ~bits), "options_play_flags")[1])
+
+        def do_uncheat(self):
+            """what the game's own 'Turn off Cheater Options' (0x4976a0) does in memory: bits 0x1c off, marker 0. The
+            proxy clears the bits on the game thread (and in its baseline, so a released hold does not bring them back);
+            the marker is a direct write, read back. The game rewrites I76PLYR.DEF clean at the next Esc-menu close or
+            mission end; with the game closed, i76-save-editor.py --clear-cheat-options does the file."""
+            if self.mode == "none" or not self.game:
+                self.log("uncheat: not attached"); return
+            if self.mode == "proxy":
+                if self.pending:
+                    self.log("uncheat: a command is still waiting for its ack"); return
+                for v in (self.var_flag["GOD"], self.var_flag["AMMO"]):
+                    v.set(False)
+                self.ctl.set("flags", self.flags_word())
+                self.send("PLAYFLAGS", "uncheat: play options clear 0x1c", play_set=0, play_clear=0x1c)
+                self.log(capture(self.game.put, CHEAT_MARKER, "<I", 0, "cheats-used marker")[1])
+            else:
+                self.log(capture(i76trainer.cmd_uncheat, self.game)[1])
+            self.log("uncheat: done - win the mission again (or replay it) and it will advance; "
+                     "God / Ammo holds were released")
 
         # ------------------------------------------------ shutdown
         def on_close(self):

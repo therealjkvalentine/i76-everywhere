@@ -6,12 +6,18 @@ r"""i76trainer.py - a small trainer for the running Interstate '76 (GOG builds),
     python i76trainer.py repair                   armour and chassis to max, every component to max, flat tyres fixed
     python i76trainer.py ammo                     every live weapon slot to unlimited (0x0FFFFFFF)
     python i76trainer.py teleport X Y Z           move the player's car (y is up; keep it above ground)
+    python i76trainer.py uncheat                  clear the cheats-used marker 0x535f78 and Play Options bits 0x1c
     python i76trainer.py --any ...                allow a game that is not the sandbox copy
 
 Every address comes from i76-map\subsystems\cheats.md (static reading of md5 9a232dcc, same link as the AiO builds
-outside their patched clusters). The Play Options route uses the game's own checks and is the least invasive;
-setting those bits here does NOT set the "cheats used" marker 0x535f78 that the menus set (which turns a mission
-success into outcome 0xb). Every write is read back and reported.
+outside their patched clusters). Every write is read back and reported.
+
+CAMPAIGN WARNING (corrected 2026-10-04): `flags ammo|armour|chassis` (bits 0x04 / 0x08 / 0x10) DOES end up marking the
+game as cheated. The poke itself does not set the marker 0x535f78, but the game does as soon as it sees the bits:
+closing the in-mission options menu (0x495170), the I76PLYR.DEF write at mission end (0x497290) and the DEF reload
+after every return to the shell (0x4970f0). With the marker set, every mission won in that game process is refused
+(outcome 0xb: no salvage, no next mission) until 'Turn off Cheater Options' or `uncheat` + a clean I76PLYR.DEF.
+repair / ammo / teleport do not touch the Play Options and are safe for the campaign.
 """
 import ctypes, ctypes.wintypes as wt, struct, sys, os
 
@@ -167,6 +173,19 @@ def cmd_teleport(g, args):
     print("  position now (%.1f, %.1f, %.1f)" % struct.unpack("<3d", g.rd(obj + 0x40, 24)))
 
 
+CHEAT_MARKER, CHEAT_BITS = 0x535f78, 0x1c
+
+
+def cmd_uncheat(g):
+    """the game's own 'Turn off Cheater Options' (0x4976a0) in memory: Play Options &= ~0x1c, marker 0x535f78 = 0.
+    I76PLYR.DEF is rewritten clean by the game at the next options-menu close or mission end (or offline:
+    i76-save-editor.py --clear-cheat-options with the game closed)."""
+    f = g.u32(PLAY_FLAGS)
+    if f is not None and f & CHEAT_BITS:
+        g.put(PLAY_FLAGS, "<I", f & ~CHEAT_BITS, "options_play_flags (cheat bits off)")
+    g.put(CHEAT_MARKER, "<I", 0, "cheats-used marker")
+
+
 def main():
     args = [a for a in sys.argv[1:] if a != "--any"]
     if not args:
@@ -176,7 +195,8 @@ def main():
     g = Game(pid)
     cmd, rest = args[0], args[1:]
     {"status": lambda: cmd_status(g), "flags": lambda: cmd_flags(g, rest), "repair": lambda: cmd_repair(g),
-     "ammo": lambda: cmd_ammo(g), "teleport": lambda: cmd_teleport(g, rest)}.get(cmd, lambda: print(__doc__))()
+     "ammo": lambda: cmd_ammo(g), "teleport": lambda: cmd_teleport(g, rest),
+     "uncheat": lambda: cmd_uncheat(g)}.get(cmd, lambda: print(__doc__))()
 
 
 if __name__ == "__main__":

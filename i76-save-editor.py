@@ -95,7 +95,7 @@ Usage:
 Every modified file gets a one-time <name>.pre-edit backup plus a timestamped .bak-<ts>
 copy next to it, and is read back after the write.
 """
-import argparse, datetime, glob, json, os, re, shutil, struct, sys
+import argparse, datetime, glob, json, os, re, shutil, struct, subprocess, sys
 
 # ---------------------------------------------------------------- frame constants
 HDR_LEN  = 0x8c4          # GarageRec
@@ -1078,7 +1078,61 @@ def cmd_check(sdir):
               + (f", {len(w)} format warning(s): " + "; ".join(w) if w else "")
               + (f", {len(g)} garage warning(s): " + "; ".join(g) if g else ""))
         bad += not rt
+    plyr_def_report(sdir)
     return bad
+
+# I76PLYR.DEF: the exe's 0x60-byte options block 0x654b40 (player_SaveDef 0x497290). The Play Options dword
+# 0x654b98 sits at +0x58. Bits 0x04 / 0x08 / 0x10 (unlimited ammo / armour / chassis) are the "cheater options": when
+# the file holds any of them, the exe sets the cheats-used marker 0x535f78 after every shell return (0x497241), and a
+# mission won with the marker set becomes outcome 0xb - no salvage and NO campaign advance (i76-map subsystems
+# cheats.md / mission.md). The campaign saves (savegame.dir, saveNNN.cmp) carry none of this.
+PLYR_FLAGS_OFF, CHEAT_BITS = 0x58, 0x1c
+PLAY_BIT_NAMES = ((0x01, "arcade"), (0x02, "no-salvage"), (0x04, "ammo"), (0x08, "armour"), (0x10, "chassis"), (0x20, "wiper"))
+
+def plyr_def_path(sdir):
+    for cand in (os.path.join(sdir, "I76PLYR.DEF"), os.path.join(os.path.dirname(sdir), "I76PLYR.DEF")):
+        if os.path.isfile(cand):
+            return cand
+    return None
+
+def plyr_def_report(sdir):
+    p = plyr_def_path(sdir)
+    if not p:
+        print("I76PLYR.DEF: not found beside the saves"); return None
+    data = open(p, "rb").read()
+    if len(data) < PLYR_FLAGS_OFF + 4:
+        print(f"I76PLYR.DEF: {len(data)} B, too short for the play-options dword"); return None
+    f = struct.unpack_from("<I", data, PLYR_FLAGS_OFF)[0]
+    names = ", ".join(n for b, n in PLAY_BIT_NAMES if f & b) or "none"
+    print(f"I76PLYR.DEF: play options 0x{f:02x} ({names})"
+          + (f"  <- CHEATER OPTIONS ON (0x{f & CHEAT_BITS:02x}): every mission won in this state is refused (no scene advance);"
+             " fix: --clear-cheat-options with the game closed" if f & CHEAT_BITS else "  - no cheater options, missions can advance"))
+    return f
+
+def game_running():
+    try:
+        out = subprocess.run(["tasklist", "/fo", "csv", "/nh"], capture_output=True, text=True).stdout.lower()
+    except OSError:
+        return False
+    return any(line.startswith('"i76') and "i76wheel" not in line for line in out.splitlines())
+
+def clear_cheat_options(sdir):
+    p = plyr_def_path(sdir)
+    if not p:
+        sys.exit("I76PLYR.DEF not found beside the saves (use --dir)")
+    if game_running():
+        sys.exit("an i76 process is running: close the game first (it rewrites I76PLYR.DEF at every menu close and mission end)")
+    data = bytearray(open(p, "rb").read())
+    f = struct.unpack_from("<I", data, PLYR_FLAGS_OFF)[0]
+    if not f & CHEAT_BITS:
+        print(f"I76PLYR.DEF play options 0x{f:02x}: no cheater options set, nothing to do"); return
+    bak = p + ".pre-uncheat"
+    if not os.path.exists(bak):
+        shutil.copy2(p, bak)
+    struct.pack_into("<I", data, PLYR_FLAGS_OFF, f & ~CHEAT_BITS)
+    open(p, "wb").write(bytes(data))
+    back = struct.unpack_from("<I", open(p, "rb").read(), PLYR_FLAGS_OFF)[0]
+    print(f"I76PLYR.DEF play options 0x{f:02x} -> 0x{back:02x} ({'ok' if back == f & ~CHEAT_BITS else 'READ-BACK FAILED'}); backup {bak}")
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -1089,6 +1143,9 @@ def main():
     ap.add_argument("--json", nargs="+", metavar="FILE", help="JSON dump of the given .cmp/.spc/.dir files")
     ap.add_argument("--parts", action="store_true", help="print what every part does (docs/PARTS-REFERENCE.md)")
     ap.add_argument("--parts-json", action="store_true", help="print PARTS_INFO as the JSON the HTML editor embeds")
+    ap.add_argument("--clear-cheat-options", action="store_true",
+                    help="clear Play Options bits 0x1c (unlimited ammo/armour/chassis) in I76PLYR.DEF beside the saves, "
+                         "game closed; a set bit makes every won mission refuse to advance the campaign")
     a = ap.parse_args()
 
     if a.parts:
@@ -1108,6 +1165,8 @@ def main():
         s = ask("pick location # > ")
         sdir = dirs[int(s)] if s.isdigit() and int(s) < len(dirs) else dirs[0]
 
+    if a.clear_cheat_options:
+        return clear_cheat_options(sdir)
     if a.check:
         sys.exit(1 if cmd_check(sdir) else 0)
     if a.list:

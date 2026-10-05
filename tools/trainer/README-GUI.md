@@ -56,25 +56,73 @@ table `0x5aab08`, stride `0x4c`, count `0x5da750`, name from `[inst+0x08]` -> 8-
 `inst+0x20`), Play Options (`0x654b98`, from the proxy's `play_flags_now` when it is live) and the **cheats-used
 marker `0x535f78`**.
 
-About that marker (cheats.md section 1): the Play Options *menus* set it, and at mission end a set marker turns
-a success into outcome 0xb ("Turn off Cheater Options", no salvage, no scene advance). Nothing this window does
-sets it - neither the pokes nor the proxy touch `0x535f78` - which is why the value is shown: if it reads 1 the
-menus were used, and the mission result will reflect that regardless of this tool.
+About that marker: see **Campaign progress** below. If it reads 1, no mission won in this game process will
+advance the campaign; the status line says so.
+
+## Campaign progress: what blocks the next mission, and what to do (corrected 2026-10-04)
+
+Owner report, daily driver, 2026-10-04: "using the trainer seems to trigger the cheating flag because it won't
+progress to the next level". The earlier claim here ("nothing this window does sets the marker") was wrong. Static
+reading of md5 9a232dcc, the same bytes in the AiO 6319abf7 the driver runs:
+
+- At mission end WinMain turns a success (0x4c2164 = 1) into **0xb** when the cheats-used marker `0x535f78` is set
+  (0x40412f). 0xb is handled like a failure: the mission-over menu offers 'Turn off Cheater Options', there is no
+  salvage, no `vehscn.vsf`, and the shell DLL does not advance the trip scene (it advances only on 1).
+- The marker is set by the **game**, from the Play Options dword `0x654b98`, whenever bits **0x04 / 0x08 / 0x10**
+  (unlimited ammo / armour / chassis) are set at one of three moments:
+  1. closing the in-mission options menu (Esc menu) - 0x495170 also writes `I76PLYR.DEF` (0x495226);
+  2. `player_SaveDef` 0x497290 at mission end (0x4040f7) and on the video-mode key (0x44e3a1) writes them to
+     `I76PLYR.DEF`, and after every return to the shell 0x4970f0 reads the file back and sets the marker (0x497241).
+  (Ticking them in the game's Play Options menu goes through the "I'm a cheater" page, then route 1.)
+- **Only 'Turn off Cheater Options' (0x4976a0) clears it.** Once set, every later win in the same game process is
+  refused, with or without the trainer, and if `I76PLYR.DEF` holds the bits the next game start sets it again.
+- The campaign saves (`savegame.dir`, `saveNNN.cmp`) do not carry the marker or the bits: a refused win simply
+  writes no new save. The state lives in game memory and in `I76PLYR.DEF` (+0x58).
+
+Which trainer actions trip it:
+
+| action | touches 0x654b98? | campaign |
+|---|---|---|
+| God mode hold | forces 0x18 while held | **trips it** on an old proxy (no guard): Esc-menu close or mission end while ticked. Safe with the guarded proxy (below) |
+| Unlimited ammo hold | forces 0x04 while held | same as God mode |
+| Play Options Set (ammo / armour / chassis) | sets the bits for real | **always trips it** (that is the game's own cheat switch); the window now asks first |
+| Play Options Set (arcade / no-salvage) | 0x01 / 0x02 | not a cheat bit (no marker); no-salvage of course means no salvage |
+| Repair now, Stop car, Refill ammo, Set slot ammo, Teleport, waypoints | no | safe |
+| No flats, Components, Freeze position holds | no | safe |
+| CLI `i76trainer.py flags ammo/armour/chassis` | sets the bits | **trips it** |
+
+The fixes:
+
+- **Proxy cheat-marker guard** (music-fix/strlkproxy.c, part of the trainer block, built 2026-10-04, lab only): the
+  two `player_SaveDef` calls and both routes into the options-menu close (the call at 0x44e0c1 and the close
+  callback pushed at 0x495120) go through wrappers that put the bits God / Ammo forced back to the user's baseline
+  before the game's code runs. The log line `trainer: cheat-marker guard 4/4 sites` confirms it; the window reads
+  `mciproxy.log` beside the game and says in red under the holds whether the running proxy has it.
+- **Direct mode** (no proxy) no longer forces any Play Options bits; God / Ammo hold by the 5 Hz repair and ammo
+  writes alone (a big hit between two repairs can kill).
+- **'Turn off cheater options (campaign fix)'** button: clears bits 0x1c (in the proxy's baseline too, and releases
+  the God / Ammo holds) and writes the marker to 0, read back. CLI: `i76trainer.py --any uncheat`. Then win the
+  mission again; the game rewrites `I76PLYR.DEF` clean at the next Esc-menu close or mission end.
+- **Offline**: `python i76-save-editor.py --dir "<game>\Interstate 76" --check` reports the play options stored in
+  `I76PLYR.DEF`; `--clear-cheat-options` (game closed) clears bits 0x1c there, keeping `I76PLYR.DEF.pre-uncheat`.
+
+If a won mission did not advance: choose **Turn off Cheater Options** in the mission-over menu (the game's own
+recovery), then **Replay** and win it again with God / Ammo unticked (or with the guarded proxy). Or quit the game,
+run the save-editor check above (clear the bits if it reports any), restart, load the last bookmark and replay.
 
 ## Holds (checkbuttons -> `i76trn_ctl_t.flags`, held every frame)
 
 | control | proxy flag | what the game thread does (i76trn.h) | direct-mode equivalent |
 |---|---|---|---|
-| God mode | `I76TRN_F_GOD` 0x01 | armour + chassis (`+0x138/+0x148` and the HUD copies `+0x178/+0x18c`) at max, every component at max, flats cleared, and Play Options bits 0x18 forced on (`entity_ApplyDamage` 0x465620 zeroes the amount) | `cmd_repair` every 200 ms + bits 0x18 set once (restored when unticked) |
-| Unlimited ammo | `I76TRN_F_AMMO` 0x02 | bit 0x04 forced on (`weapon_Update` 0x4a418b copies it, the offline fire paths test it), every live slot's ammo = 0x0fffffff | `cmd_ammo` every 200 ms + bit 0x04 (restored when unticked) |
+| God mode | `I76TRN_F_GOD` 0x01 | armour + chassis (`+0x138/+0x148` and the HUD copies `+0x178/+0x18c`) at max, every component at max, flats cleared, and Play Options bits 0x18 forced on (`entity_ApplyDamage` 0x465620 zeroes the amount; hidden from the cheat check by the guard - Campaign progress) | `cmd_repair` every 200 ms (no play bits since 2026-10-04) |
+| Unlimited ammo | `I76TRN_F_AMMO` 0x02 | bit 0x04 forced on (`weapon_Update` 0x4a418b copies it, the offline fire paths test it), every live slot's ammo = 0x0fffffff | `cmd_ammo` every 200 ms (no play bits since 2026-10-04) |
 | No flats | `I76TRN_F_NOFLATS` 0x04 | wheel flat flag `+0x44` cleared, radius `+0x1c` restored (undoing 0x46ddd0's x0.688) | same, every 200 ms |
 | Components invulnerable | `I76TRN_F_COMPONENTS` 0x08 | every component's health = its max (`entity_ComponentHealth` 0x466ac0 offsets by type) | same, every 200 ms |
 | Freeze position | `I76TRN_F_FREEZE_POS` 0x10 | the car held at `pos[]` with zero velocity | `obj+0x40` and `ent+0xbc` rewritten every 200 ms |
 
 Freeze seeds `pos[]` from where the car is at the moment you tick it (the teleport entries are overwritten with
 it); it refuses when there is no player. Unticking a hold releases it; the proxy restores the Play Options bits
-it forced (`play_flags_saved`) when the forcing flag clears, and the direct mode restores the bits it saw before.
-Closing the window writes `flags = 0`.
+it forced (`play_flags_saved`) when the forcing flag clears. Closing the window writes `flags = 0`.
 
 ## One-shots (`cmd` + `req_seq`, acked by `ack_seq`)
 
@@ -99,7 +147,9 @@ teleport target above the ground, and prefer a saved waypoint over typed numbers
 
 Play Options bits (cheats.md section 1): 0x01 arcade physics, 0x02 no salvage management, 0x04 unlimited ammo
 (offline), 0x08 unlimited armour and 0x10 unlimited chassis (player, offline: `entity_ApplyDamage` zeroes the
-amount). These are the game's own switches - the least invasive route - and offline only.
+amount). These are the game's own switches and offline only. 0x04 / 0x08 / 0x10 are its **cheater options**:
+setting them here is the same as ticking them in the game's menu and stops the campaign advancing (Campaign
+progress). 'Turn off cheater options (campaign fix)' clears them and the marker.
 
 ## Layout safety
 
