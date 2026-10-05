@@ -6,10 +6,21 @@
 #   -Close                      kill both, restore STRLKUP.DLL, remove locks, put back any changed state file (incl. internet.lst)
 # It never clicks or types into a window that is not the chosen game (a Windows Firewall prompt is reported, not touched).
 param([switch]$Start, [ValidateSet("A","B")][string]$Inst = "A", [string]$Click, [string]$Shot, [string]$Key, [string]$Type, [switch]$State, [switch]$Buttons, [switch]$Close,
-      [int]$Settle = 900, [switch]$OnlyA, [switch]$Full)
+      [int]$Settle = 900, [switch]$OnlyA, [switch]$Full,
+      # 2026-10-05: other lab pairs (game-nucleus / game-mpb for the gate-0 IPX run) and another proxy build
+      [string]$DirA = "C:\Users\james\i76-uncap-lab\game", [string]$DirB = "C:\Users\james\i76-uncap-lab\game-alt",
+      [string]$Proxy = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll",
+      # 2026-10-05 (no-minimize A/B): extra env "K=V;K=V" for the copies launched, B launched later on its own
+      # (-LaunchB, after -Start -OnlyA), and -Wins: each game window's folder / iconic / foreground state
+      [string]$Env, [switch]$LaunchB, [switch]$Wins)
+function Set-RunEnv {
+    Get-ChildItem Env: | Where-Object { $_.Name -like "I76*" } | ForEach-Object { Remove-Item "Env:$($_.Name)" }
+    $env:I76_MULTI_INSTANCE = "1"; $env:I76MUSIC_LOG = "1"
+    if ($Env) { foreach ($kv in ($Env -split ";")) { $k, $v = $kv -split "=", 2; Set-Item "Env:$k" $v; "env $k=$v" } }
+}
 $ErrorActionPreference = "Continue"
 $Lab = "C:\Users\james\i76-uncap-lab"
-$DirA = "$Lab\game"; $DirB = "$Lab\game-alt"; $dirs = @($DirA, $DirB)
+$dirs = @($DirA, $DirB)
 $Out = "$Lab\autotest\runs\mp\explore"; New-Item -ItemType Directory -Force $Out | Out-Null
 $Bak = "$Lab\autotest\runs\mp\bak"     # state files copied here at -Start (once), compared and put back at -Close; delete the folder after a clean -Close
 $stateFiles = { param($d) Get-ChildItem $d -File -Force | Where-Object { $_.Name -match '(?i)^(savegame\.dir|save.*\.cmp|internet\.lst|.*\.def|.*\.spc|input\.map)$' } }
@@ -20,14 +31,27 @@ if ($Start) {
         Set-Content "$d\.console-test.lock" "mp-explore $PID"
         $bd = Join-Path $Bak (Split-Path -Leaf $d)
         if (-not (Test-Path $bd)) { New-Item -ItemType Directory -Force $bd | Out-Null; & $stateFiles $d | ForEach-Object { Copy-Item $_.FullName $bd } ; "backed up $((Get-ChildItem $bd).Count) files of $d" }
-        Copy-Item "$d\STRLKUP.DLL" "$d\STRLKUP.DLL.pretest" -Force; Copy-Item "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll" "$d\STRLKUP.DLL" -Force
+        Copy-Item "$d\STRLKUP.DLL" "$d\STRLKUP.DLL.pretest" -Force; Copy-Item $Proxy "$d\STRLKUP.DLL" -Force
     }
-    Get-ChildItem Env: | Where-Object { $_.Name -like "I76*" } | ForEach-Object { Remove-Item "Env:$($_.Name)" }
-    $env:I76_MULTI_INSTANCE = "1"; $env:I76MUSIC_LOG = "1"
-    $pa = Start-Process "$DirA\i76.exe" -ArgumentList "-glide" -WorkingDirectory $DirA -PassThru
+    Set-RunEnv
+    $pa =Start-Process "$DirA\i76.exe" -ArgumentList "-glide" -WorkingDirectory $DirA -PassThru
     "A pid $($pa.Id)"
     if (-not $OnlyA) { Start-Sleep -Seconds 12; $pb = Start-Process "$DirB\i76.exe" -ArgumentList "-glide" -WorkingDirectory $DirB -PassThru; "B pid $($pb.Id)" }
     Start-Sleep -Seconds 10
+    exit 0
+}
+if ($LaunchB) {
+    if (-not (Test-Path "$DirB\.console-test.lock")) { "B folder not prepared by -Start"; exit 1 }
+    Set-RunEnv
+    $pb = Start-Process "$DirB\i76.exe" -ArgumentList "-glide" -WorkingDirectory $DirB -PassThru; "B pid $($pb.Id)"; Start-Sleep -Seconds 10; exit 0
+}
+if ($Wins) {
+    Add-Type @"
+using System;using System.Runtime.InteropServices;
+public class MPW { [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h); [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); }
+"@
+    $fg = [MPW]::GetForegroundWindow()
+    Get-Process i76 -ErrorAction SilentlyContinue | ForEach-Object { "pid $($_.Id) $(Split-Path -Leaf (Split-Path $_.Path)) hwnd $($_.MainWindowHandle) iconic $([MPW]::IsIconic($_.MainWindowHandle)) foreground $($_.MainWindowHandle -eq $fg) responding $($_.Responding)" }
     exit 0
 }
 $G = if ($Inst -eq "A") { $DirA } else { $DirB }
