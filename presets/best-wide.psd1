@@ -17,6 +17,8 @@
         I76_FIX_HEALTH_PCT  = '1'
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1800'
+        I76_ZGLIDE_TMUFIX   = '1'   # needs dgVoodoo [Glide] MemorySizeOfTMU 8192 (promotion 12): no ZGLIDE flush freezes, no 2 MB boundary rewind (lab RENDER-FREEZE-2026-10-04.md; gate + soak 2026-10-04)
+        I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) survive frames without a physics step: 50/50 each at 120 fps vs 13/50 and 7/50 without (lab 2026-10-04, consolidated proxy 89a97d25)
         I76_GLIDE_REFRESH   = '120'
         I76_ASPECT          = '3440x1440'
         I76_U32X_MENU_ASPECT = '3440:1440'   # the mouse DLL maps the in-mission Esc menu to the full panel (verified: Exit answers where drawn)
