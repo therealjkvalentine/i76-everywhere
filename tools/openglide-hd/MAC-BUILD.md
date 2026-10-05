@@ -239,3 +239,19 @@ and DxWnd's own virtual CD is off in the profile (`flagm0=65536`). Result: the m
 Promoted to `~/Applications/Sikarugir/Interstate 76.app` with every replaced file kept as `*.pre-20261004b`
 (Glide2x.dll, Strlkup.dll, the launcher, dxwnd.ini, I76PLYR.DEF). Boot check: render size 2228x1440 computed, the
 guard re-claimed all four slots, the CD device opened. The test clone `Interstate 76 TEST.app` stays for the next pass.
+
+## 11. One step from a DxWnd wrapper: `setup-mac-glide.sh`
+
+[`setup-mac-glide.sh`](../../setup-mac-glide.sh) `[wrapper.app]` applies everything above to a working DxWnd install:
+builds OpenGLide (voyageur `ad9a3dd` + every patch here, cached in `~/Library/Caches/i76-everywhere`) and the proxy,
+installs both (the original Strlkup kept as `strlkup_orig.dll`, GOG's `I76PATCH.DLL` disabled), sets DxWnd target 0
+(`cmdline0=i76.exe -glide`, `maxfps0=0`, 1728x1117 shape, its virtual CD off), the prefix environment, GDI DirectDraw
+for `i76.exe`, Retina off, Terrain Resolution Medium and a music level above "off", and installs the launcher that
+computes `OGL_VIEWPORT`. Every replaced file is kept as `*.pre-glide-<timestamp>`.
+
+Checked 2026-10-05 without launching the game (the owner was using the Mac): run on a clone of the software-renderer
+backup, the result matched the working install on all 27 settings compared (environment, renderer, Retina, DxWnd
+target 0, player options, which DLLs are present/disabled). The DLLs it builds are not byte-identical to the installed
+ones: two back-to-back builds of the same source differ (~6 KB, spread through `.text`), so this toolchain is not
+byte-reproducible; the sources are the committed ones. Launching the converted clone (`I76 SETUP TEST.app`) is the
+remaining check.
