@@ -277,3 +277,86 @@ one PC at the transport level. The run stopped one step earlier, at the host's v
    carry identical car data, because the joiner runs the same check (0x1002e6f5).
 2. Rerun 8.5 with these changes: start A alone, walk it to BROADCAST GAME, then launch B and JOIN > IPX.
 3. Owner: dismiss or answer the firewall prompt first. It hides the shell's modal boxes and their OK buttons.
+
+## 9. Gate 0 and the joystick slots (2026-10-05, console held 08:37-08:43) [measured unless marked]
+
+Folders: two fresh copies of `game-alt` made for this, `game-nucleus` (A) and `game-mpb` (B); `game` and `game-alt` were
+only read. In both: `ADDON\valepre4.vcf` = `valepre4.orig` (de680a86), `I76.ZFS` 6dd57b16 (= pristine GOG), no
+`.vdf/.wdf/.gdf/.cdf` in the root or ADDON, STRLKUP.DLL = c8b15a62 (main 6f28a3b source: 89a97d25's switches +
+I76_JOY_MAP / I76_JOY_SYNTH). `ipx-setup.ps1 -Install -DirA game-nucleus -DirB game-mpb` (A stock 06a01d0f, B fad787e8),
+`mp-explore.ps1 -Start -OnlyA -DirA .. -DirB .. -Proxy ..`, I76_MULTI_INSTANCE=1.
+
+### 9.1 Gate 0: PASS (n = 1)
+| step | result |
+|---|---|
+| A: intro keys, MELEE, MULTI MELEE, HOST, IPX (343,406) | host form, car PICARD PIRANHA / JADE'S CAR (`g0-a-hostform.png`) |
+| A: BROADCAST GAME (298,461) | **no rejected box; A went straight into The Crater** (`g0-a-after-broadcast.png`). ValidateVcf passes with the stock file, confirming MULTIPLAYER-CAR-CHECK.md's prediction |
+| B launched after A; JOIN, IPX | GAME NAME list: **"THE CRATER (1/4)"** (`g0-b-joinform.png`) |
+| B: select row (80,157), JOIN GAME (298,461) | B in the arena (`g0-b-after-join.png`); both processes responding |
+| same mission? | memlib position table in each process: A slot 0 (2808.62, 8.19, 48965.80), slot 1 (1579.54, 12.16, 50157.95); B slot 0 (1579.46, 12.17, 50157.90), slot 1 (2808.62, 8.27, 48965.80). Each copy holds both cars, mirrored, within 0.1 m |
+
+IPXWrapper nodes: A 92:DA:A4:AC:05:7A, B 2F:E4:D6:9F:90:93 (logs in `autotest\runs\mp\ipx`). **Firewall:** a new
+"Windows Security Alert" opened for `game-nucleus\i76.exe` (pid 29744) and one for `game-mpb\i76.exe` (pid 28332). Not
+clicked; loopback did not need them. They are still on screen for the owner.
+Restored: `mp-explore -Close` (STRLKUP back to c8b15a62, 21 state files per folder compared, locks off),
+`ipx-setup -Remove` (3 DLLs + ini per folder removed, logs moved).
+
+### 9.2 Joystick slots (Nucleus test plan step 2), without a real pad
+No pad was plugged in (winmm ids 0..15 all return 165 = JOYERR_PARMS), so the slot question was settled with the
+proxy's synthetic pad (`I76_JOY_SYNTH=<winmm id>:<X>`, X = 0 = full left) and `autotest\joy-slot-test.ps1`
+(t01 direct boot, player applied steer = entity +0xE0 sampled 30 x 200 ms, no key pressed; n = 1 per condition;
+`runs\joy-slot\joy-slot-20261005-083945.csv`).
+
+| condition | input.map | synthetic pad at winmm id | max abs steer | proxy log (rc per engine id) |
+|---|---|---|---|---|
+| C0 control | joystick1 | none | 0 | caps id 0: 165 |
+| C1 | joystick1 | 0 | **1.0** | |
+| C2 | joystick2 | 1 | **1.0** | caps id 1: 0, poll id 1: 0 |
+| C3 | joystick3 | 2 | **0** | caps id 2: 0, then **poll of engine id 1** (not 2): 165 -> open fails, id 2 never polled |
+| C4 | joystick3 | 1 (centred) and 2 | **1.0** | caps 1 and 2: 0, polls 1 and 2: 0 |
+| C5 | joystick1 + `I76_JOY_MAP=0=2` | 2 | **1.0** | engine id 0 routed to winmm id 2 |
+
+Reading [measured + static]: the engine names winmm id k `joystick<k+1>` (0x44ff90), but its open step 0x450490 calls
+joyGetDevCapsA and the first joyGetPosEx with `(id != 0)` (`setne` at 0x4504b4): winmm id 0 for joystick1, **id 1 for
+every other slot**. So joystick1 and joystick2 work on their own; joystick3+ open only while a device sits at winmm id 1
+(and take id 1's axis ranges); after opening, polls use the real id (0x4508df). Exe-side message on a failed open:
+`The "%s" input device is not connected properly` (0x4f45e0), not fatal (C3 booted into the mission).
+Consequence for Nucleus: binding `joystickN` per instance (the handler's first design) breaks for N >= 3 and for pads
+whose ids are not 0/1. The handler now keeps `joystick1` in every instance and sets `I76_JOY_MAP=0=<that pad's id>`
+(JOY_WINMM). Real-pad confirmation still needs the owner's pads (owner action).
+Trap: proxy-run.ps1 does not clear `I76_JOY_*` between runs in one PowerShell, so C0's `I76_JOY_MAP=15=15` stayed set
+in C1-C4 (an identity map, harmless here).
+
+### 9.3 First Nucleus Co-op run (console 09:04-09:27) [measured]
+Full step table in `nucleus-coop\README.md` section Runs. Short: Nucleus v2.4.2 (elevated through one UAC approval,
+`autotest\nucleus-bridge.ps1`) started two copies of `game-nucleus` side by side; instance 0 hosted over IPX, instance 1
+listed "THE CRATER (1/4)" and joined; both position tables held both cars, mirrored. Two handler/setup bugs fixed on
+the way (Nucleus path check under C:\Users; `Game.BinariesFolder` unset -> NullReferenceException). Open: an unfocused
+instance minimises before the input lock (a minimised host is not found by the joiner), and per-player input with the
+real keyboard + a real pad (owner).
+
+### 9.4 I76_NO_MINIMIZE A/B (console held 09:42-09:51) [measured]
+Why: the first Nucleus run read "an unfocused host minimises, and a minimised host is not found". Static reading found
+the minimise is the game's own (WndProc WM_ACTIVATEAPP 0 -> `ShowWindow(hwnd, SW_MINIMIZE)` at 0x404acc); the proxy
+switch `I76_NO_MINIMIZE=1` (i76-everywhere `ef8564c`, STRLKUP 3df367d9) turns it into SW_SHOWNA. Setup as 9.1:
+`game-nucleus` (A) + `game-mpb` (B, recreated from game-nucleus), `ipx-setup -Install`, full-screen dgVoodoo conf
+(6be07be8), proxy 3df367d9 in both, `mp-explore -Start -OnlyA [-Env I76_NO_MINIMIZE=1]`, A: HOST > IPX > BROADCAST GAME
+(arena), then `mp-explore -LaunchB` (same env), B: JOIN > IPX, list read 12 s later. n = 1 per condition.
+
+| condition | proxy log (A) | A after B took focus | B's list after 12 s | join |
+|---|---|---|---|---|
+| C0 switch off | `multi-instance: ... read back ok` only | **iconic True** | **"THE CRATER (1/4)"** (`c0-b-joinform.png`) | not tried |
+| C1 `I76_NO_MINIMIZE=1` | `no-minimize: WM_ACTIVATEAPP 0 no longer minimises the window (0x404acc push 6 -> push 8; read back ok)` | **iconic False**, responding | "THE CRATER (1/4)" (`c1-b-joinform.png`) | B in the arena; A slots (1637.51, 18.23, 49328.44) / (2765.53, 3.62, 48986.42), B the same pair swapped (within 0.05 m) |
+
+Reading: the switch does what it says, and the session works with it. **But C0 refutes the first run's causal claim
+for this setup**: a minimised host still answers the joiner's search (full-screen conf; n = 1; the windowed
+dgVoodoo case of the Nucleus run was not repeated, it needs the owner's UAC). The first run's "No games found" is
+better explained by timing (the host's 5 s broadcast, the list read once) or by the setup not being finished (Nucleus's
+"post hooks" prompt was still open, nucleus-coop README Clean stop). The switch stays in the handler for a
+different reason: side-by-side windows that do not vanish when the other player clicks.
+Click trap (new, measured): with B in its menus and A minimised in the arena, the cursor clip was confined for only
+~100 ms of every ~1.5 s, shorter than `Safe-Click`'s 150 ms settle, so every mp-explore click on B was refused
+("cursor regime kept flipping"). A click sent within a few ms of the free->confined edge landed every time (9 of 9).
+Restored: `mp-explore -Close` (STRLKUP c8b15a62 back in both, state files compared), `ipx-setup -Remove`. Then
+`game-nucleus\STRLKUP.DLL` = 3df367d9 on purpose (the handler sets I76_NO_MINIMIZE; previous kept as
+`STRLKUP.DLL.c8b15a62`). `game-mpb` is left in place (a full copy of game-nucleus) for the next two-copy run.

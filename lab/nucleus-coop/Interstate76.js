@@ -67,8 +67,9 @@ Game.FileSymlinkCopyInstead = [                        // [MH 18] [RM 56] [HUB S
 ];
 Game.FileSymlinkExclusions = [                         // [MH 13] [RM 55]; excluded = neither linked nor copied
   "dgVoodoo.conf",                                     //   [RM 1109]; Game.Play writes these per instance
-  "ipxwrapper.dll", "wsock32.dll", "mswsock.dll", "ipxwrapper.ini", "ipxwrapper.log"
-];
+  "ipxwrapper.dll", "wsock32.dll", "mswsock.dll", "ipxwrapper.ini", "ipxwrapper.log",
+  "mciproxy.log"                                       //   the proxy's log: each instance writes its own (first run: one
+];                                                     //   was written through a link into the source folder)
 
 // ---- launch through cmd, so each instance gets its environment -----------------------------------------------
 // Nucleus has no per-instance environment option. With CMDLaunch it writes one .cmd per instance: the
@@ -83,7 +84,12 @@ Game.CMDOptions = [                                    // [RM 310] one per insta
 ];
 Game.StartArguments = "-glide";                        // [MH 37]
 Game.CMDBatchBefore = (function () {                   // [RM 311] [RM 515-521 for the NUCLEUS_* variables]
-  var l = ["set I76_MULTI_INSTANCE=1"];
+  var l = ["set I76_MULTI_INSTANCE=1",
+           // the game minimises itself on WM_ACTIVATEAPP 0 (0x404acc); a minimised host is not found by the joiner.
+           // Proxy switch (STRLKUP.DLL 2026-10-05 or later, i76-everywhere music-fix README); logs "no-minimize: ..."
+           "set I76_NO_MINIMIZE=1",
+           // the trainer's shared block has one name (Local\I76Trainer): two instances would open the same one
+           "set I76_TRAINER=0"];
   for (var i = 0; i < BEST120.length; i++) l.push("set " + BEST120[i]);
   // per-instance values (I76_ASPECT) from the file Game.Play writes into this instance's folder:
   l.push("for /f \"usebackq eol=# tokens=1* delims==\" %%a in (\"%NUCLEUS_INST_EXE_FOLDER%\\i76-nucleus.env\") do set \"%%a=%%b\"");

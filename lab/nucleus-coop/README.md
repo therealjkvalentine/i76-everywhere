@@ -18,6 +18,8 @@ IPX session and each held both cars. Per-player input with real devices is not v
 | INTERNET (WINET) route | not viable without an anet game server (lab doc 8.3) | same |
 | gate 0 (IPX between two lab copies, no Nucleus) | **PASS** 2026-10-05 (`game-nucleus` + a temporary copy) | `..\docs\MULTIPLAYER-LOCAL-TEST.md` 9.1 |
 | first Nucleus run | 2026-10-05: steps 1-6 pass, 7 partial (no real devices), 8 done | section Runs |
+| follow-up | 2026-10-05: `I76_NO_MINIMIZE` + `I76_TRAINER=0` in the handler, clean stop, owner checklist; no-minimize A/B without Nucleus (n = 1 each) | section Runs, follow-up; `..\docs\MULTIPLAYER-LOCAL-TEST.md` 9.4 |
+| real pads, two players | **owner** | section Owner checklist |
 
 Licences: Nucleus Co-op is GPL-3.0. IPXWrapper 0.7.2 is GPL-2.0 (`Interstate76\IPXWRAPPER-LICENSE.txt`, copied from
 its `license.txt`). We redistribute neither from here: the DLLs stay git-ignored, and the handler copies the user's
@@ -70,7 +72,7 @@ game keeps its state in its folder, not the profile); `UseForceBindIP`/`ChangeIP
    `[Glide] Resolution` = the instance's window size; `ScalingMode` = `stretched` when the window is wider than 4:3,
    else `stretched_ar`. Written us-ascii (EditTextFile with "utf-8" would add a BOM).
 2. Writes `i76-nucleus.env` with `I76_ASPECT=<W>x<H>` when the window is wider than 4:3 (the proxy accepts 1.34..3.6).
-   The `.cmd` sets `I76_MULTI_INSTANCE=1` and the best-120 switch set (i76-everywhere `presets\best-120.psd1`),
+   The `.cmd` sets `I76_MULTI_INSTANCE=1`, `I76_NO_MINIMIZE=1`, `I76_TRAINER=0` (since 2026-10-05) and the best-120 switch set (i76-everywhere `presets\best-120.psd1`),
    then reads this file.
 3. Leaves `input.map` (a real copy) on `joystick1` and writes `I76_JOY_MAP=0=<JOY_WINMM[id]>` into `i76-nucleus.env` (2026-10-05; was a per-instance `joystickN`, which breaks for slot 3+, see Runs).
 4. Copies IPXWrapper 0.7.2 (`ipxwrapper.dll`, `wsock32.dll`, `mswsock.dll`) from the handler folder. **The patch is
@@ -183,6 +185,64 @@ Problems found, for the next run:
 - `mciproxy.log` is written through a link into `game-nucleus` (not in the copy list): harmless, add it to
   FileSymlinkCopyInstead for per-instance logs.
 - Both instances open the trainer's shared block `Local\I76Trainer` (same name): add `set I76_TRAINER=0` for Nucleus.
+
+### 2026-10-05 follow-up (handler changes; live A/B without Nucleus, console 09:42-09:51)
+| problem | cause | change |
+|---|---|---|
+| unfocused instance minimises | **the game itself**: WndProc `WM_ACTIVATEAPP` with wParam 0 (0x404aba) calls `ShowWindow(hwnd, SW_MINIMIZE)` (0x404acc), then clears the active flag 0x504c1c. Not dgVoodoo, not u32x (i76.exe imports ShowWindow through u32x, which forwards it unchanged). In a net game the main loop keeps running frames while inactive (0x4039e4 tests 0x452d20), so only the minimise is in the way. Same bytes in the AiO, pristine_fix and sandbox exes | proxy switch `I76_NO_MINIMIZE=1` (i76-everywhere `ef8564c`, STRLKUP md5 3df367d9): `push 6` -> `push 8` (SW_SHOWNA). The handler sets it. Proto Input focus hooks at start were not needed for this |
+| does a minimised host really hide its game? | **No, in the A/B (lab doc 9.4, n = 1 each, two copies without Nucleus, full-screen conf):** switch off, A went iconic when B took focus and B still listed "THE CRATER (1/4)" after 12 s; switch on, A stayed un-minimised, B listed it and joined (cars mirrored). So the first run's "No games found" was more likely timing (5 s broadcast, list read once) or the unfinished setup (the post-hooks prompt was still open; Clean stop). The windowed Nucleus case was not repeated (needs the owner's UAC) | the switch stays: side-by-side windows should not vanish when the other player clicks. `game-nucleus\STRLKUP.DLL` is now 3df367d9 (previous kept as `.c8b15a62`) |
+| trainer block shared | both instances opened `Local\I76Trainer` | `set I76_TRAINER=0` |
+| `mciproxy.log` written through a link into `game-nucleus` | the file existed in the source folder, so Nucleus linked it | `mciproxy.log` added to `FileSymlinkExclusions`; each instance writes its own |
+| Nucleus did not close (CloseMainWindow, Ctrl+Q) | see Clean stop | `autotest\nucleus-stop.ps1` |
+
+## Clean stop
+Why the first run's two attempts did nothing (Nucleus v2.4.2 source, `HotkeyListener.cs`, `MainWindowFunc.cs`,
+`GenericGameHandler.End`; and the run's bridge log `autotest\runs\nucleus\queue`):
+- **Ctrl+Q / Ctrl+E while input is locked are dropped.** `HotkeyListener.WndProc` returns early for every `WM_HOTKEY`
+  while `LockInputRuntime.IsLocked`, showing "Unlock Inputs First" (only the cutscene key and pass-through custom keys
+  get through). The run pressed End (lock) at 09:25:38 and never unlocked; Ctrl+Q came at 09:26:35.
+- **`Process.CloseMainWindow()` closes the wrong window.** It posts WM_CLOSE to the process's main window as .NET picks
+  it; during a session the main form is hidden (rect Empty) and that window was Nucleus's pending "install post hooks"
+  prompt (`PromptBetweenInstances`, open since 09:21:46). Closing it is what let setup finish ("All instances accounted
+  for", 09:26:06), so the input tests before that ran without the post-launch hooks.
+- The final `Stop-Process` of the games made Nucleus's update thread call End ("Killing process i76 ... Access is
+  denied": the process was already going).
+
+Clean stop, in order of preference:
+1. At the keyboard: press **End** to unlock input, then **Ctrl+Q** (close Nucleus; it ends the session first) or
+   **Ctrl+E** (end the session, keep Nucleus open).
+2. From a script (works while locked): `autotest\nucleus-stop.ps1`, run elevated (through the bridge:
+   `nucleus-q.ps1 -Cmd "& C:\Users\james\i76-uncap-lab\autotest\nucleus-stop.ps1"`). It posts WM_CLOSE to the form titled
+   "Nucleus Co-op" (hidden or not); `MainForm_Closed` -> `End(false)`, which skips the lock check, kills the games and
+   restores windows. It waits 30 s and only then falls back to Stop-Process, and says so. **Not run yet** (needs an
+   elevated session).
+Debug log of a clean stop: `----------------- SHUTTING DOWN -----------------` with no "Access is denied".
+
+## Owner checklist: real pads, two players, 2 minutes
+Lab copies only (`game-nucleus`). About 15 minutes. You need two pads (or one pad + the keyboard) and to approve
+Nucleus's UAC prompt.
+1. **Plug the pads in**, then find their winmm ids (the only joystick API the game uses):
+   `powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\nucleus-coop\find-pads.ps1`.
+   It lists each present id with its name, then for 30 s prints `winmm id N moved` when you press a button on one pad
+   at a time. Write down which id is which pad.
+2. **Set `JOY_WINMM`** at the top of `Interstate76.js` (this folder): one entry per instance, instance 0 first.
+   Keyboard + one pad: `[15, <pad id>]` (15 = no pad: instance 0 is the keyboard player and the IPX host).
+   Two pads: `[<pad 1 id>, <pad 2 id>]`. Copy the file to `..\refs\nucleus\run\handlers\Interstate76.js`.
+3. **STRLKUP.DLL** in `game-nucleus` must be the 2026-10-05 build or later (`findstr I76_NO_MINIMIZE STRLKUP.DLL`
+   prints a line). Each instance's `mciproxy.log` should then show `joy-map: engine id 0 (joystick1) -> winmm id <id>`
+   and `no-minimize: ... read back ok`.
+4. **Start Nucleus** (`..\refs\nucleus\run\NucleusCoop.exe`, approve UAC). Pick Interstate '76, 2 players, side by side;
+   keyboard on screen 1, a pad on screen 2 (the device screen does not route pads for this game; JOY_WINMM does). Play.
+   Nucleus pauses between instances: click OK on each prompt once the instance sits in its menu, **including the last
+   one (post hooks)**. Leave any Windows Firewall prompt alone: one PC does not need it.
+5. **Network** (input unlocked, the mouse works in both windows): left window: MELEE > MULTI MELEE > HOST > IPX >
+   BROADCAST GAME. Right window: MELEE > MULTI MELEE > JOIN > IPX; select "THE CRATER (1/4)"; JOIN GAME. Both windows
+   should stay visible; if the left one minimises, note it (the switch did not load).
+6. **Lock input: press End.** Drive for **2 minutes**: the keyboard drives only the left car, the pad only the right
+   car. Note anything that crosses over (a keyboard key moving the right car, the pad moving the left one).
+7. **Stop:** press End (unlock), then Ctrl+Q. If Nucleus stays open, ask an agent to run `autotest\nucleus-stop.ps1`.
+   Leave `run\content` as it is; an agent checks `game-nucleus` md5s against Runs step 1.
+Report: pass/fail for steps 5 and 6, what crossed over, and whether Ctrl+Q closed everything.
 
 ## Rules
 Lab copies only (`game-nucleus` for Nucleus runs; `game`, `game-alt` belong to other tests). Never the daily driver
