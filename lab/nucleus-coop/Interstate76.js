@@ -1,4 +1,4 @@
-// Nucleus Co-op handler for Interstate '76 Gold Edition (GOG). NEVER RUN. Written 2026-10-03 against Nucleus Co-op
+// Nucleus Co-op handler for Interstate '76 Gold Edition (GOG). First run 2026-10-05 (README, section Runs). Written 2026-10-03 against Nucleus Co-op
 // v2.4.2 (SplitScreen-Me/splitscreenme-nucleus, GPL-3.0; unpacked in ..\refs\nucleus\app, source in ..\refs\nucleus\src).
 // Every option name is cited to where it was verified:
 //   [MH n]    refs\nucleus\app\handlers\MasterHandler.js line n
@@ -15,18 +15,22 @@
 //   CMDLaunch does not do [SRC GenericGameHandler.cs:1669] [PI 136-138].
 // - Joystick: the engine is WinMM-only (joyGetNumDevs/joyGetPosEx; no DirectInput or XInput import in i76.exe or
 //   i76shell.dll; DINPUT is used only by i7_sfrce.dll for force feedback) [static, 2026-10-03]. Nucleus and Proto Input
-//   hook XInput/DirectInput only, so NOTHING in Nucleus can route a pad to an instance. Each instance instead gets its
-//   own input.map naming a different winmm slot: joystickN = winmm id N-1 [inferred: i76-everywhere
-//   docs/HEAD-TRACKING.md, devices at ids 4 and 8 bound as joystick5]. Whether the engine polls slots other than the
-//   first is not measured (docs/FIGHTERSTICK.md leaves it open). Set JOY_SLOT below.
+//   hook XInput/DirectInput only, so NOTHING in Nucleus can route a pad to an instance. joystickN = winmm id N-1
+//   (create 0x44ff90, "joystick%d" with id+1), but the open step uses winmm id (id != 0) for its caps and first poll,
+//   so only joystick1/joystick2 open on their own [static 2026-10-05; live: README step 2]. Each instance keeps
+//   joystick1 and gets I76_JOY_MAP=0=<its pad's winmm id> (proxy switch). Set JOY_WINMM below.
 // - Keyboard: GetAsyncKeyState / GetKeyState through u32x.dll -> USER32 [static]. Global: every instance sees every
 //   key unless Proto Input's key-state hooks are installed (input lock, End key).
 // - Network: IPX via IPXWrapper 0.7.2 (WIPX socket 0x52A3, 5 s self-echo broadcast). Instance 2+ needs its own mutex
 //   and HKCU key: one byte each in ipxwrapper.dll, patched per instance below [measured for 2 copies, lab doc 8.6].
 
 // ---- owner settings ------------------------------------------------------------------------------------------
-var JOY_SLOT = [1, 2, 3, 4];   // input.map joystickN for instance 0..3. MEASURE FIRST (README test plan step 2):
-                               // on the owner's PC real devices sat at winmm ids 4 and 8 (= joystick5, joystick9).
+var JOY_WINMM = [15, 0, 1, 2]; // winmm id of each instance's pad (instance 0..3); 15 = none (the keyboard player).
+                               // Every instance keeps input.map's joystick1; the proxy (I76_JOY_MAP=0=<id>, STRLKUP.DLL
+                               // built 2026-10-05 or later) routes engine id 0 to this pad. Not joystickN per instance:
+                               // the engine opens joystick2+ with winmm id 1's caps and first poll (0x4504b4, id != 0),
+                               // so joystick3+ fail unless id 1 is present (README step 2). Plug the pads in, then list
+                               // the ids (deck\probe, or README step 2's winmm one-liner).
 var STOCK_JADE = true;         // lab copies carry a modded ADDON\valepre4.vcf that fails ValidateVcf
                                // (..\docs\MULTIPLAYER-CAR-CHECK.md); put ADDON\valepre4.orig (stock) in its place
 var IPX_LOG_DEBUG = true;      // ipxwrapper.ini "logging = debug" per instance (first runs)
@@ -39,6 +43,7 @@ var BEST120 = [                // i76-everywhere\presets\best-120.psd1, Env bloc
 // ---- game info -----------------------------------------------------------------------------------------------
 Game.ExecutableName = "i76.exe";                       // [MH 28] [RM 19]
 Game.ExecutableContext = ["i76shell.dll", "I76.ZFS"];  // [MH 1]
+Game.BinariesFolder = "";                             // [MH 34] must be set: with CMDBatchBefore, Nucleus does exeFolder.Substring(0, len - BinariesFolder.Length) and a null value throws NullReferenceException (first run 2026-10-05; GenericGameHandler.cs:1904)
 Game.GUID = "Interstate76";                            // [MH 30] letters only
 Game.GameName = "Interstate '76 Gold Edition";         // [MH 31]
 Game.MaxPlayers = 4;                                   // [MH 32] info only
@@ -47,8 +52,8 @@ Game.HandlerInterval = 100;                            // [MH 24]
 Game.PauseBetweenStarts = 20;                          // [MH 54] [HUB RV 20, SM64 40]
 Game.PromptBetweenInstances = true;                    // [RM 288] [HUB SM64]: start B only once A sits in its menu
 Game.Description = "Lab handler. IPX LAN: instance 1 HOST > IPX > BROADCAST GAME, the others JOIN > IPX. " +
-  "Walk the menus with input unlocked, then press End to lock input. Pads are chosen by each instance's input.map " +
-  "(joystickN), not by the Nucleus device screen.";      // [RM 305]
+  "Walk the menus with input unlocked, then press End to lock input. Pads are chosen per instance by " +
+  "(JOY_WINMM -> I76_JOY_MAP), not by the Nucleus device screen."; // [RM 305]
 
 // ---- files: symlinked game; real copies of everything an instance writes or Game.Play edits ----------------------
 Game.SymlinkGame = true;                               // [MH 25] [RM 45]
@@ -184,12 +189,10 @@ Game.Play = function () {
   // 2. this instance's own environment, read by the for /f line in CMDBatchBefore
   var env = ["# Interstate76.js, instance " + id];
   if (wide) env.push("I76_ASPECT=" + w + "x" + h);
+  env.push("I76_JOY_MAP=0=" + JOY_WINMM[id]);                  // this instance's pad -> its joystick1
   Context.WriteTextFile(dir + "\\i76-nucleus.env", env);             // [RM 241] [SRC GenericContext.cs:1082] (no BOM)
 
-  // 3. input.map (a real copy): this instance's winmm joystick slot
-  var map = dir + "\\input.map";
-  var txt = "" + System.IO.File.ReadAllText(map);
-  System.IO.File.WriteAllText(map, txt.replace(/joystick\d+/g, "joystick" + JOY_SLOT[id]));
+  // 3. input.map (a real copy) stays as it is: every instance binds joystick1; I76_JOY_MAP (step 2) picks the pad.
 
   // 4. IPXWrapper 0.7.2 from the handler folder. Instance id > 0 gets its own named-mutex prefix and HKCU key:
   //    "ipxwrapper_socket_%hu" (file 0x1BEAC '_') and "Software\IPXWrapper" (file 0x1CB7C 'r') -> letter 'A'+id.

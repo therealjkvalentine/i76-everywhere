@@ -1,8 +1,9 @@
 # Nucleus Co-op handler for Interstate '76 (SEPARATE EFFORT)
 
 Started 2026-10-03. Kept apart on purpose: nothing here touches the i76-everywhere repo, the patch set, or the
-daily driver. **Status: handler written against verified option names; never run.** Nucleus Co-op v2.4.2 is
-unpacked (not installed, not run) in `..\refs\nucleus\app`.
+daily driver. **Status (2026-10-05): first run done (section Runs).** Two instances started from Nucleus side by side, shared one
+IPX session and each held both cars. Per-player input with real devices is not verified yet. Nucleus v2.4.2 runs from
+`..\refs\nucleus\run` (a copy of `app`, with `DebugLog=True` and `DisablePathCheck=True` in its Settings.ini).
 
 ## Status
 | item | state | where |
@@ -15,7 +16,8 @@ unpacked (not installed, not run) in `..\refs\nucleus\app`.
 | handler folder | `Interstate76\dgVoodoo.conf` (windowed template), IPXWrapper 0.7.2 DLLs (git-ignored; from `..\refs\ipxwrapper\bin\ipxwrapper-0.7.2`), `IPXWRAPPER-LICENSE.txt` | `Interstate76\` |
 | IPX between two lab copies | transport works (lab doc 8.6); session not opened yet (host car failed ValidateVcf; cause now known) | `..\docs\MULTIPLAYER-LOCAL-TEST.md` 8.6-8.7, `..\docs\MULTIPLAYER-CAR-CHECK.md` |
 | INTERNET (WINET) route | not viable without an anet game server (lab doc 8.3) | same |
-| first Nucleus run | **gated** on an IPX session between `game` and `game-alt` without Nucleus | test plan below |
+| gate 0 (IPX between two lab copies, no Nucleus) | **PASS** 2026-10-05 (`game-nucleus` + a temporary copy) | `..\docs\MULTIPLAYER-LOCAL-TEST.md` 9.1 |
+| first Nucleus run | 2026-10-05: steps 1-6 pass, 7 partial (no real devices), 8 done | section Runs |
 
 Licences: Nucleus Co-op is GPL-3.0. IPXWrapper 0.7.2 is GPL-2.0 (`Interstate76\IPXWRAPPER-LICENSE.txt`, copied from
 its `license.txt`). We redistribute neither from here: the DLLs stay git-ignored, and the handler copies the user's
@@ -70,7 +72,7 @@ game keeps its state in its folder, not the profile); `UseForceBindIP`/`ChangeIP
 2. Writes `i76-nucleus.env` with `I76_ASPECT=<W>x<H>` when the window is wider than 4:3 (the proxy accepts 1.34..3.6).
    The `.cmd` sets `I76_MULTI_INSTANCE=1` and the best-120 switch set (i76-everywhere `presets\best-120.psd1`),
    then reads this file.
-3. Rewrites the instance's `input.map` (a real copy) so every `joystickN` becomes `joystick<JOY_SLOT[id]>`.
+3. Leaves `input.map` (a real copy) on `joystick1` and writes `I76_JOY_MAP=0=<JOY_WINMM[id]>` into `i76-nucleus.env` (2026-10-05; was a per-instance `joystickN`, which breaks for slot 3+, see Runs).
 4. Copies IPXWrapper 0.7.2 (`ipxwrapper.dll`, `wsock32.dll`, `mswsock.dll`) from the handler folder. **The patch is
    parameterised:** instance id > 0 gets the letter `'A'+id` at file 0x1BEAC (`ipxwrapper_socket_%hu` ->
    `ipxwrapperBsocket_%hu`, `...Csocket...`) and at 0x1CB7C (`Software\IPXWrapper` -> `Software\IPXWrappeB`, `...C`).
@@ -145,6 +147,42 @@ game, JOIN GAME, both reach the same mission. Do not start Nucleus until this pa
    (3+ players). Keep `run\content` for the record; md5-check `game-nucleus` against step 1.
 
 Record n, the debug log and two screenshots in `..\docs\MULTIPLAYER-LOCAL-TEST.md` (a new section 9).
+
+## Runs
+
+### 2026-10-05 (console 09:04-09:27, one UAC approval via `autotest\nucleus-bridge.ps1`) [measured]
+Elevation: one `Start-Process -Verb RunAs` started `nucleus-bridge.ps1` (60 min queue runner). Nucleus, and every click
+into it and into the elevated games, went through it (`autotest\nucleus-q.ps1`; helpers in `autotest\runs\nucleus`).
+No driver or tool install was offered or accepted. Evidence: `..\refs\nucleus\run\debug-log.txt`, captures
+`autotest\runs\nucleus\n*.png`. n = 1.
+
+| step | result |
+|---|---|
+| 1 source folder | `game-nucleus` from `game-alt`: valepre4.vcf de680a86, I76.ZFS 6dd57b16, no ADDON vdf/wdf/gdf/cdf, no IPX dlls, STRLKUP c8b15a62 (I76_MULTI_INSTANCE, I76_ASPECT, I76_JOY_MAP). md5 i76.exe 85de44a7, u32x 05c9a7be, input.map a937f36d, dgVoodoo.conf 6be07be8. All unchanged after the run; save/def/spc files equal game-alt's |
+| 2 joystick slots | no pad plugged in; settled with the proxy's synthetic pad instead (lab doc 9.2): joystick1/2 open, joystick3+ need winmm id 1. Handler now uses `I76_JOY_MAP` per instance. Real pads: owner |
+| 3 install | Nucleus refused to start under C:\Users ("should not be installed here") until `[Dev] DisablePathCheck=True`. Add game: file dialog -> `game-nucleus\i76.exe`; handler picked up ("Interstate '76 Gold Edition 2 - 4") |
+| first PLAY | **NullReferenceException** before launch: with CMDBatchBefore set, Nucleus computes `exeFolder.Substring(0, len - Game.BinariesFolder.Length)` and BinariesFolder was unset. Fixed: `Game.BinariesFolder = ""` |
+| 4 layout | 2 players side by side (1720x1440 each, aspect 1.19 -> stretched_ar, no I76_ASPECT); keyboard+mouse = P1, Nucleus's "virtual" mouse = P2 (no pad present) |
+| 5 checks | log line `start "" /D "%NUCLEUS_INST_EXE_FOLDER%" "...\Instance0\i76.exe" -glide` (unknown 6: yes). Instance files: dgVoodoo.conf FullScreenMode = false, [Glide] Resolution = 1720x1440; i76-nucleus.env `I76_JOY_MAP=0=15` / `=0=0`; Instance1 ipxwrapper.dll fad787e8 = the B patch, so `Context.HexEdit` with a JS array works (unknown 7: yes); valepre4.vcf de680a86 in both. Proxy log: `joy-map: engine id 0 (joystick1) -> winmm id 15`. Window title "Interstate '76 Gold Edition" (unknown 3: yes). Both processes ran at once. The `I76:` Context.Log line did not appear in debug-log.txt (unknown 5 open) |
+| 6 network | instance 0 HOST > IPX > BROADCAST GAME -> arena; instance 1 JOIN > IPX listed "THE CRATER (1/4)" once instance 0 was un-minimised; JOIN GAME -> arena. Position tables mirrored: I0 slot 0/1 (2272.5, 1.83, 49022.52) / (2003.54, 14.73, 49155.65), I1 the same pair swapped. IPX nodes 92:DA:A4:AC:05:7A and 2F:E4:D6:9F:90:93. **PASS** |
+| 7 input | unlocked: injected W (keybd_event) moved only the focused instance (I1 0 -> 18.7 m/s, I0 stayed 0). After End (lock): injected W moved neither (Proto Input's key-state hook serves raw input from the assigned device; injected keys carry none). Real keyboard + pad and the 2-minute two-car drive: **not done** (owner) |
+| 8 close | Nucleus did not close on CloseMainWindow or an injected Ctrl+Q; the games and Nucleus were ended with Stop-Process. User Shell Folders unchanged; no HKCU\Software\IPXWrappeC. `run\content` kept |
+
+Problems found, for the next run:
+- **Windows are placed late, and an unfocused instance minimises.** Instance 0 started at 0,0 (left half) and
+  minimised when instance 1 took focus; instance 1 also opened at 0,0. A minimised host does not answer the joiner's
+  search ("No games found" until it was restored with ShowWindow(SW_SHOWNOACTIVATE) and moved to 1720,0). Proto
+  Input's focus hooks are installed only on lock (OnInputLocked), so before the lock nothing stops the minimise. Next:
+  install FocusHooks and the WM_ACTIVATE/WM_ACTIVATEAPP filters at start, and see whether Nucleus repositions after
+  the last instance (ResetWindows, Ctrl+R).
+- Clicks in a windowed instance: screen = window origin + (2.6875 x UI x, 75 + 2.6875 x UI y) for 1720x1440
+  stretched_ar (the 640x480 image is letterboxed by 75 px top and bottom).
+- Four Windows Firewall prompts are open (game-nucleus, game-mpb, Instance0, Instance1 `i76.exe`); not clicked. One
+  covered Nucleus's "launch instance 2" OK button; the bridge moved Nucleus's prompt instead. One stray click landed on
+  a firewall prompt's Name text field (selects text only; no button was pressed).
+- `mciproxy.log` is written through a link into `game-nucleus` (not in the copy list): harmless, add it to
+  FileSymlinkCopyInstead for per-instance logs.
+- Both instances open the trainer's shared block `Local\I76Trainer` (same name): add `set I76_TRAINER=0` for Nucleus.
 
 ## Rules
 Lab copies only (`game-nucleus` for Nucleus runs; `game`, `game-alt` belong to other tests). Never the daily driver
