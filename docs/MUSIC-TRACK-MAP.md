@@ -124,7 +124,7 @@ numbers"), so on our setup **CD track 3 plays the Theme** and 15/16/17 are rotat
 All three are in `music-fix\strlkproxy.c` (switch rows in music-fix/README.md). The startup line
 `music: run end exclusive, disc order ..., shell ..., resume on` names the active set. Tested on the twin
 `i76-uncap-lab\game-dd-20261003` with 5 s silent stand-ins for 2/12/13/14.mp3 (originals restored and compared
-with the driver's music folder afterwards: 16/16 identical). Logs: session scratchpad `music-runs\*.log`.
+with the driver's music folder afterwards: 16/16 identical). Logs: `i76-uncap-lab\autotest\runs\music-tmu-20261004\music-runs\*.log`.
 
 - **The exe polls the CD every 60 s in a mission, not every 5 s.** A 5 s track is replaced at the next poll
   (`ended -> 13` 60.5 s after `PLAY track 12`, every run). The 5 s poll is the shell's (`[0x524574]` = state 6).
