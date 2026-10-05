@@ -4578,7 +4578,28 @@ static void apply_sw_res(void) {
 static void apply_multi_instance(void) {
     static const BYTE expect[2] = { 0x74, 0x1c }, want[2] = { 0xeb, 0x1c };
     if (GetEnvironmentVariableA("I76_MULTI_INSTANCE", NULL, 0) == 0) return;
-    patch_bytes(0x402caf, expect, want, 2, "multi-instance: single-instance check skipped");
+    if (patch_bytes(0x402caf, expect, want, 2, "multi-instance"))   /* patch_bytes logs only a mismatch */
+        mlog("  multi-instance: single-instance check skipped (0x402caf je -> jmp; read back %s)",
+             *(const BYTE *)0x402caf == 0xeb ? "ok" : "FAILED");
+}
+
+/* NO MINIMISE ON DEACTIVATION  (I76_NO_MINIMIZE=1; off by default)
+ * The game minimises ITSELF when it loses activation: WndProc WM_ACTIVATEAPP (0x1c) with wParam 0 (0x404aba) calls
+ * ShowWindow(hwnd, SW_MINIMIZE) (`6a 06 51 ff 15 40 c3 4b 00` at 0x404acc), then clears the active flag [0x504c1c]
+ * and sets NORMAL_PRIORITY_CLASS. Not dgVoodoo, not u32x (static read 2026-10-05; same bytes in the AiO 85de44a7,
+ * i76_pristine_fix 58d9dec0 and sandbox 9a232dcc exes). Two windowed copies side by side (Nucleus) each deactivate
+ * the other, and a minimised host stops answering the joiner's search (nucleus-coop README, first run). The main
+ * loop keeps running frames while inactive when 0x452d20 reports a net game (0x4039e4), so only the minimise is in
+ * the way. The switch turns `push 6` into `push 8` (SW_SHOWNA: show in the current state, no activation; a no-op
+ * for a visible window). The active flag, the priority call and the mouse release are unchanged. */
+static void apply_no_minimize(void) {
+    static const BYTE expect[9] = { 0x6a, 0x06, 0x51, 0xff, 0x15, 0x40, 0xc3, 0x4b, 0x00 };
+    static const BYTE want[9]   = { 0x6a, 0x08, 0x51, 0xff, 0x15, 0x40, 0xc3, 0x4b, 0x00 };
+    char v[8]; DWORD k = GetEnvironmentVariableA("I76_NO_MINIMIZE", v, sizeof(v));
+    if (k == 0 || k >= sizeof(v) || v[0] == '0') return;
+    if (patch_bytes(0x404acc, expect, want, 9, "no-minimize"))
+        mlog("  no-minimize: WM_ACTIVATEAPP 0 no longer minimises the window (0x404acc push 6 -> push %d; read back %s)",
+             *(const BYTE *)0x404acd, *(const BYTE *)0x404acd == 0x08 ? "ok" : "FAILED");
 }
 
 /* JOYSTICK ROUTING  (I76_JOY_MAP, I76_JOY_SYNTH; both off by default; i76.exe's WINMM imports only)
@@ -4687,6 +4708,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         }
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
+        apply_no_minimize();      /* opt-in: I76_NO_MINIMIZE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
