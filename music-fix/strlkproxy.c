@@ -4581,6 +4581,85 @@ static void apply_multi_instance(void) {
     patch_bytes(0x402caf, expect, want, 2, "multi-instance: single-instance check skipped");
 }
 
+/* JOYSTICK ROUTING  (I76_JOY_MAP, I76_JOY_SYNTH; both off by default; i76.exe's WINMM imports only)
+ * The engine names winmm id k "joystick<k+1>" (create 0x44ff90, "joystick%d" with id+1) and polls it with
+ * joyGetPosEx(id) (0x4508df). Its open step 0x450490 does NOT use the id for its caps and first poll: it passes
+ * (id != 0), i.e. winmm id 0 for joystick1 and winmm id 1 for EVERY other slot (`setne cl` at 0x4504b4; static
+ * read 2026-10-05). So joystick1 and joystick2 open normally, while joystick3+ open only when winmm id 1 is also
+ * present, and take id 1's axis ranges. For two game copies on one PC (Nucleus), each copy binds joystick1 and this
+ * switch routes engine id 0 to that copy's own pad:
+ *   I76_JOY_MAP=0=4          engine id 0 -> winmm id 4 (pairs "a=b", comma-separated, ids 0..15)
+ *   I76_JOY_SYNTH=1:0        TEST ONLY: (after the map) winmm id 1 reports a synthetic 2-axis, 4-button pad with
+ *                            X = 0 (full left), Y centred; ":<x>" is 0..65535. Several "id:x" comma-separated.
+ * Each change of a slot's result code is logged ("joy: ..."), so a run shows which ids the engine opened/polled. */
+typedef MMRESULT (WINAPI *joyCapsFn)(UINT_PTR, LPJOYCAPSA, UINT);
+typedef MMRESULT (WINAPI *joyPosFn)(UINT, LPJOYINFOEX);
+static joyCapsFn real_joyGetDevCapsA;
+static joyPosFn  real_joyGetPosEx;
+static int  g_joy_map[16];
+static int  g_joy_synth[16];          /* -1 = real device; else synthetic X value */
+static LONG g_joy_lastrc[2][16];      /* [caps/pos][engine id], logged on change */
+static LONG g_joy_polls[16];
+static UINT joy_route(UINT id) { return id < 16 ? (UINT)g_joy_map[id] : id; }
+static void joy_note(int kind, UINT id, UINT real, MMRESULT rc) {
+    if (id >= 16) return;
+    if (kind) InterlockedIncrement(&g_joy_polls[id]);
+    if (InterlockedExchange(&g_joy_lastrc[kind][id], (LONG)rc) != (LONG)rc)
+        mlog("  joy: %s engine id %u (joystick%u) -> winmm id %u%s: rc %u (poll #%ld)", kind ? "joyGetPosEx" : "joyGetDevCapsA",
+             id, id + 1, real, (real < 16 && g_joy_synth[real] >= 0) ? " [synthetic]" : "", (unsigned)rc, g_joy_polls[id]);
+}
+static MMRESULT WINAPI hook_joyGetDevCapsA(UINT_PTR id, LPJOYCAPSA c, UINT sz) {
+    UINT real = joy_route((UINT)id); MMRESULT rc;
+    if (real < 16 && g_joy_synth[real] >= 0) {
+        if (!c || sz < sizeof(JOYCAPSA)) rc = MMSYSERR_INVALPARAM;
+        else {
+            memset(c, 0, sz); c->wMid = 0x0FFF; c->wPid = 0x0076; lstrcpynA(c->szPname, "i76 synthetic pad", 32);
+            c->wXmax = c->wYmax = c->wZmax = c->wRmax = c->wUmax = c->wVmax = 65535;
+            c->wNumButtons = 4; c->wPeriodMin = 10; c->wPeriodMax = 1000; c->wMaxAxes = 6; c->wNumAxes = 2; c->wMaxButtons = 32;
+            rc = JOYERR_NOERROR;
+        }
+    } else rc = real_joyGetDevCapsA ? real_joyGetDevCapsA(real, c, sz) : MMSYSERR_NODRIVER;
+    joy_note(0, (UINT)id, real, rc);
+    return rc;
+}
+static MMRESULT WINAPI hook_joyGetPosEx(UINT id, LPJOYINFOEX j) {
+    UINT real = joy_route(id); MMRESULT rc;
+    if (real < 16 && g_joy_synth[real] >= 0) {
+        if (!j) rc = MMSYSERR_INVALPARAM;
+        else {
+            DWORD sz = j->dwSize, fl = j->dwFlags;
+            memset(j, 0, sizeof(*j)); j->dwSize = sz; j->dwFlags = fl;
+            j->dwXpos = (DWORD)g_joy_synth[real]; j->dwYpos = j->dwZpos = j->dwRpos = j->dwUpos = j->dwVpos = 32767;
+            j->dwPOV = JOY_POVCENTERED;
+            rc = JOYERR_NOERROR;
+        }
+    } else rc = real_joyGetPosEx ? real_joyGetPosEx(real, j) : MMSYSERR_NODRIVER;
+    joy_note(1, id, real, rc);
+    return rc;
+}
+static void apply_joy_routing(HMODULE exe) {
+    char v[128]; DWORD n; int i, any = 0; char *p;
+    for (i = 0; i < 16; i++) { g_joy_map[i] = i; g_joy_synth[i] = -1; g_joy_lastrc[0][i] = g_joy_lastrc[1][i] = -1; }
+    n = GetEnvironmentVariableA("I76_JOY_MAP", v, sizeof(v));
+    if (n && n < sizeof(v)) for (p = v; *p; ) {
+        int a = atoi(p), b; char *eq = strchr(p, '='); if (!eq) break; b = atoi(eq + 1);
+        if (a >= 0 && a < 16 && b >= 0 && b < 16) { g_joy_map[a] = b; any = 1; mlog("  joy-map: engine id %d (joystick%d) -> winmm id %d", a, a + 1, b); }
+        p = strchr(eq, ','); if (!p) break; p++;
+    }
+    n = GetEnvironmentVariableA("I76_JOY_SYNTH", v, sizeof(v));
+    if (n && n < sizeof(v)) for (p = v; *p; ) {
+        int a = atoi(p), x = 0; char *c = p; while (*c && *c != ',' && *c != ':') c++;
+        if (*c == ':') x = atoi(c + 1);
+        if (a >= 0 && a < 16) { g_joy_synth[a] = x < 0 ? 0 : (x > 65535 ? 65535 : x); any = 1; mlog("  joy-synth: winmm id %d is a synthetic pad, X = %d (TEST ONLY)", a, g_joy_synth[a]); }
+        p = strchr(p, ','); if (!p) break; p++;
+    }
+    if (!any) return;
+    real_joyGetDevCapsA = (joyCapsFn)patch_iat(exe, "WINMM.dll", "joyGetDevCapsA", hook_joyGetDevCapsA);
+    real_joyGetPosEx    = (joyPosFn)patch_iat(exe, "WINMM.dll", "joyGetPosEx", hook_joyGetPosEx);
+    mlog("  joy-routing: IAT joyGetDevCapsA old=%p joyGetPosEx old=%p%s", (void *)real_joyGetDevCapsA, (void *)real_joyGetPosEx,
+         (real_joyGetDevCapsA && real_joyGetPosEx) ? "" : " - NOT HOOKED (no WINMM import: i76fix exe?)");
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -4665,6 +4744,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
             char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_GUARD", v, sizeof(v));
             if (!(n && v[0] == '0')) { CloseHandle(CreateThread(NULL, 0, music_guard, NULL, 0, NULL)); mlog("  music-guard: on"); }
         }
+        apply_joy_routing(exe);   /* opt-in: I76_JOY_MAP=a=b / I76_JOY_SYNTH=id:x (test) */
         music_opts();             /* run end / I76_MUSIC_DISC_ORDER / I76_MUSIC_SHELL: one log line */
         apply_cd_instrument(exe); /* opt-in (I76_CD_LOG=1): the "insert CD 2" prompt, logged with its cause;
                                      I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */
