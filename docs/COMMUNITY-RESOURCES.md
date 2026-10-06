@@ -112,6 +112,25 @@ Local Ditch — `maps.html` there is a download catalogue with no pictures.
 | Local Ditch — Message boards | https://www.localditch.com/interstate-76/message-boards.html |
 | **CahootsMalone/interstate-76-stuff — cheat codes & easter eggs** | https://github.com/CahootsMalone/interstate-76-stuff/blob/master/cheat-codes-and-easter-eggs.md | Verified 2026-08-10. All codes held with CTRL+SHIFT during gameplay: `blflat`/`brflat`/`flflat`/`frflat` destroy one named tire, `getdown` succeeds the mission on vehicle destruction and turns every vehicle hostile, `wiggleburger` is a persistent visual effect. Separately, **CTRL+ALT+X detonates the player's vehicle** — a scriptable death on demand. `freelance` (poetry) and `thirdnostril` (radar range) are reported not to work. **Relevant to `i76-uncap-lab`:** the death-camera measurement in the frame-rate work was blocked because melee AI could not kill the player in 400s of ramming — this cheat solves that outright, no AI or terrain dependency. |
 
+## 3a. "How do people play online today?" (swept 2026-10-06)
+
+| resource | URL | what it gives |
+|---|---|---|
+| **Peelar — I'76 / Nitro netcode patches** | https://inbetweennames.net/projects/interstate76anet/ | The NAT fix in GOG's `WINET.DLL` (6-byte addresses), direct IP over UDP 21157, and the Nitro `WINETS2.DLL` UPnP patch |
+| Peelar — RE blog | https://inbetweennames.net/blog/2021-05-04-interstate-76-reverse-engineering-efforts-the-story-so-far/ | Background to the patches |
+| ANet source (Activision, LGPL) | https://kegel.com/anet/ , https://github.com/Nielk1/anet | The game's network library; `dpio.c` explains the own-address handle |
+| ANet master server list | http://www.kegel.com/anet/master/servers.txt | `911.alink.bz911.net` (answering Oct 2026), `battlezone1.net`, `play.interstate76.com` |
+| **UltraFunk Discord** | https://discord.gg/dyJnDmSJBB | Where online Nitro games are arranged (234 members, Oct 2026) |
+| interstate76.com | https://interstate76.com/ | Community hub; forums block bots, read in a browser or via Wayback |
+| UCyborg on ANet NAT and direct IP (thread 1508) | http://web.archive.org/web/20250909023656/https://forums.interstate76.com/viewtopic.php?t=1508 | Why every ANet server mishandles NAT; "Direct IP connections work" |
+| Lightfoot's Nitro online guide (thread 1443) | http://web.archive.org/web/20250909095936/https://forums.interstate76.com/viewtopic.php?t=1443 | Step by step for Nitro + UPnP + bz911 |
+| Local Ditch FAQ / Install Guide | https://www.localditch.com/interstate-76/faq.html , https://www.localditch.com/interstate-76/install-guide-faq.html | Current multiplayer answers (bz911, Anet patches); recommends this repo |
+| GOG forum multiplayer threads | https://www.gog.com/forum/interstate_series/help_us_with_the_multiplayer_gog | 2010-2019 practice: own IP in the server list, Tunngle/VPN IPs |
+| IPXWrapper | https://www.solemnwarning.net/ipxwrapper/ , issue #22: https://github.com/solemnwarning/ipxwrapper/issues/22 | Lists I'76 as working; its DOSBox mode does not work with I'76 (ANet) |
+| Community "Arsenal for modern systems" pack | https://archive.org/details/the-interstate-76-arsenal-for-modern-systems | Mirror of the Nitro update pack the guides use |
+
+Not supported: GameRanger (no Interstate title). Kali and Tunngle: dead or unused for I'76 since about 2011.
+
 ## 4. "How is the game meant to be played?"
 
 | resource | URL |

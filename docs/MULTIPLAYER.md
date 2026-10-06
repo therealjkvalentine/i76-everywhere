@@ -1,8 +1,37 @@
-# Multiplayer over the home LAN (IPX through IPXWrapper)
+# Multiplayer: home LAN and online
 
 *2026-10-05. Status line, measured / not measured, is in section 0. Lab records behind every claim:
 `../i76-uncap-lab/docs/MULTIPLAYER-LOCAL-TEST.md` (transport, sections 8 and 9) and
 `../i76-uncap-lab/docs/MULTIPLAYER-CAR-CHECK.md` (the anti-cheat car check).*
+
+## How the community plays today, and the order to try things (research 2026-10-06)
+
+Checked against primary sources (Peelar's netcode page, UCyborg and Lightfoot on interstate76.com via Wayback, the GOG
+forum threads, Local Ditch's FAQ dated 9/28/26, Kegel's ANet master list, IPXWrapper's compatibility list):
+
+- **The live scene plays Nitro Pack (`nitro.exe`, ANet2), not base I'76**, through community-hosted ANet lobby
+  servers (`911.alink.bz911.net` resolves and answers in October 2026), with UPnP on the router (Peelar's
+  `WINETS2.DLL` + `miniupnpc`), and arranges games on the UltraFunk Discord (https://discord.gg/dyJnDmSJBB, 234
+  members, 40 online when checked). Direct-IP joins do not work in Nitro. Nobody uses IPX any more.
+- **Base I'76 has a direct-IP route with no extra software.** GOG's `WINET.DLL` carries Peelar's NAT fix (ANet over
+  UDP **21157**). Community instructions: the host adds a server entry with **its own IP** and hosts INTERNET; joiners
+  add the **host's IP**. UCyborg (2019): "Direct IP connections work as far as I can tell". **Not yet tested here.** The
+  lab's "a peer cannot stand in for the server" (section 1) was measured with `127.0.0.1` on one PC, which is not this
+  setup, so it does not rule it out.
+- **IPX through IPXWrapper** is on IPXWrapper's list as working with I'76 (0.7.2) and works here between two copies on
+  one PC. It needs three DLLs per install and, on the Mac, Wine DLL overrides.
+
+Order for a home game (Windows PC + Mac on one network), simplest first:
+1. **Direct IP, no DLLs:** host: MULTI MELEE > HOST > INTERNET, add a server with the host's LAN address (e.g.
+   `192.168.1.81`, never `127.0.0.1`), host. Joiner: JOIN > INTERNET, add the host's LAN address. Allow the game through
+   the Windows firewall (UDP 21157) and accept macOS's incoming-connections question. If the host gets "Game Server
+   Not Responding", try `911.alink.bz911.net` as the host's server while the joiner keeps the host's address.
+2. **If that fails: IPX through IPXWrapper**, sections 2-6 below.
+
+Over the internet with friends: the host forwards UDP 21157 (or uses UPnP) and friends type the host's public
+address; or a virtual LAN that carries broadcast (ZeroTier, Radmin VPN) for IPX. **Tailscale is layer 3 and does not
+carry broadcast**, so IPX discovery over it will not work; direct IP over 100.x addresses might (untested). To play
+with the existing community, use Nitro Pack with the bz911 lobby and the Discord.
 
 ## 0. Status
 
@@ -17,8 +46,9 @@
 
 The game's multiplayer menu offers MODEM, IPX, INTERNET, NULLMODEM. Only **IPX** works today:
 
-- **INTERNET** needs an Activision game server (`internet.lst`). Those are gone. Hosting stops at "Game Server Not
-  Responding" and a peer cannot stand in for the server (lab doc 8.2-8.3).
+- **INTERNET** looks for a game server from `internet.lst` (Activision's are gone). Hosting against `127.0.0.1` on one
+  PC stopped at "Game Server Not Responding" (lab doc 8.2-8.3), but the community's direct-IP route (the host lists
+  its own real address) was not tried; see the section above.
 - **MODEM / NULLMODEM** need serial ports.
 - **IPX** finds sessions by broadcast on the local network; no server. Windows 10/11 no longer ships an IPX protocol,
   so each PC gets **IPXWrapper**, which carries IPX inside UDP (port **54792**) on the ordinary LAN.
