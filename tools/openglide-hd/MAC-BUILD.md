@@ -261,7 +261,7 @@ remaining check.
 Every new test copy stopped at "Sikarugir would like to access the Microphone", a system dialog that takes the
 keyboard and mouse from the whole Mac until someone answers it. Measured cause, in two parts:
 
-- **Wine touches every input device.** A probe run under the clone's prefix with `WINEDEBUG=+coreaudio`:
+- **Wine touches every input device** (and, as it turned out, any audio output asks too: next paragraph). A probe run under the clone's prefix with `WINEDEBUG=+coreaudio`:
   `auxGetNumDevs` and `DirectSoundCreate` only read mix formats (device properties), but `waveOutGetNumDevs` starts
   winmm's device init, which runs ~270 format tests through CoreAudio AudioUnits on every endpoint, including the
   built-in mic, the webcams and the EVO4 input. macOS counts that as microphone access. With the null driver
@@ -271,6 +271,16 @@ keyboard and mouse from the whole Mac until someone answers it. Measured cause, 
   as a path (`client_type 1`, `.../Contents/MacOS/Sikarugir`) with `csreq` = `cdhash H"..."` of that binary. A new
   clone name asks again, and so does any rebuild of the launcher, on the daily install too (it was asked again on
   2026-10-04 after the rename). The owner had allowed it each time; nothing here changes TCC.
+
+**Hiding the inputs is not enough, so sound and the prompt come together (measured the same day).** A proxy hook
+that hid capture endpoints from winmm (`IMMDeviceEnumerator` vtable) cut the non-preflight requests from 460 to 80, but
+the rest come from the OUTPUT devices. A minimal native test app with no `NSMicrophoneUsageDescription`, opened through
+LaunchServices so it had its own TCC identity, settled it: one AUHAL output unit on the MacBook speakers (an
+output-only device) and even Apple's `kAudioUnitSubType_DefaultOutput` both reached `AUTHREQ_PROMPTING` for
+`kTCCServiceMicrophone` (refused silently with `authReason=8`, missing usage string, so no dialog). On this Mac (macOS
+26, with the Microsoft Teams Audio and EVO4 drivers installed) any app that opens an audio output unit gets the
+microphone question, so no Wine setting can drop it while keeping sound. The hook was not shipped. The camera was never
+requested.
 
 [`tools/mac-test-clone.sh`](../mac-test-clone.sh) makes and runs test copies with both causes removed:
 
