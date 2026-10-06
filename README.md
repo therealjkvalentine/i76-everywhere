@@ -7,11 +7,56 @@ This repo ships **no copyrighted game files**. You bring your own GOG copy; ever
 scripts, source, and documentation. Downloaded/copyrighted material lives in a local, gitignored
 `game-data/` folder.
 
+## Play it on a modern PC, Mac or Steam Deck
+
+You need **[Interstate '76 Arsenal from GOG](https://www.gog.com/en/game/interstate76)** (the game plus the
+Nitro Pack). It is not sold on Steam. CD copies are untested. Download GOG's **offline backup installer**
+(`setup_interstate76_*.exe`: gog.com/account > Interstate '76 > More > Download offline backup game installers) and
+leave it in your Downloads folder. Everything below works from that file; nothing here contains game data.
+
+| platform | what you get | state |
+|---|---|---|
+| **Windows 10/11** | 120 fps with the game's timing kept right, longer draw distance, music that continues, controller and wheel layouts; widescreen opt-in | played daily by the owner; the installer has not yet been run end to end on a freshly installed PC |
+| **Mac, Apple Silicon** | Glide renderer through Wine, about 100-120 fps, fullscreen, music | beta: one manual step (the Wine wrapper) before the scripts |
+| **Steam Deck** | Glide through dgVoodoo/Vulkan, controller layout | beta: not yet run end to end on a fresh Deck |
+
+**Windows**
+1. Get this repo (green *Code* button > *Download ZIP*, then unzip).
+2. Double-click **`INSTALL.bat`**. It installs the game from your GOG file to `C:\GOG Games\Interstate 76`, checks it is
+   a build it knows, downloads dgVoodoo and AutoHotkey, and adds the fixes.
+3. Start the game from the new desktop shortcut.
+
+Options (original 1997 keys, 20 fps stock, widescreen, another folder) and undoing it: [INSTALL.md](INSTALL.md).
+
+**Mac (Apple Silicon)**
+1. Build the Wine wrapper with the GOG game inside it: [docs/MAC-BUILD.md](docs/MAC-BUILD.md), "The working recipe".
+   This is the manual step.
+2. Double-click **`mac-install.command`**. It sets up DxWnd, the music, the controls and the launcher.
+3. Run **`setup-mac-glide.sh`** in Terminal for the 120 fps Glide renderer
+   ([tools/openglide-hd/MAC-BUILD.md](tools/openglide-hd/MAC-BUILD.md) section 11). It needs `brew install mingw-w64`.
+4. Open **`~/Applications/Sikarugir/Interstate 76.app`**. The first start asks for microphone access. The game never
+   records anything; macOS asks any app that opens an audio output unit on some Macs (section 12 of the same file).
+
+**Steam Deck**
+1. Put the GOG installer in `~/Downloads`.
+2. In Desktop Mode run [`deck/Install-I76.desktop`](deck/Install-I76.desktop) (or the one-liner in
+   [docs/STEAMDECK.md](docs/STEAMDECK.md)).
+3. Back in Game Mode, start it from your library. Details and the controller layout: [docs/STEAMDECK.md](docs/STEAMDECK.md).
+
+**Playing together on a home network:** [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md) (IPX through IPXWrapper; tested
+between two copies on one PC so far).
+
+**If it goes wrong**
+- Hangs on "PLEASE STAND BY": you are connected over Remote Desktop. Play at the machine itself.
+- A controller or wheel does nothing: `python3 tools/lint-input-map.py "<game folder>"`, then
+  [docs/CONTROLS.md](docs/CONTROLS.md).
+- Anything else: [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) (symptom > cause > fix), then open an issue.
+
 ## Start here
 
 | You want to… | Go to |
 |---|---|
-| **Play on a Mac** (Apple Silicon) | [docs/MAC-BUILD.md](docs/MAC-BUILD.md) — the shipping build: software renderer via DxWnd in a self-contained Wine wrapper. Instant start, music, clean quit, 20 FPS physics-safe |
+| **Play on a Mac** (Apple Silicon) | [docs/MAC-BUILD.md](docs/MAC-BUILD.md) (the Wine wrapper and DxWnd), then [tools/openglide-hd/MAC-BUILD.md](tools/openglide-hd/MAC-BUILD.md) — since 2026-10-04 the daily Mac build is the Glide renderer (OpenGLide) under DxWnd, ~100-120 fps. The software renderer (20 fps) remains the fallback |
 | **Play on a Steam Deck** | [docs/STEAMDECK.md](docs/STEAMDECK.md) — the pretty Glide path (dgVoodoo→Vulkan) + force feedback |
 | **Play on Windows** | [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) — max graphics, FFB, frame-gen. Install: [INSTALL.md](INSTALL.md) (120 fps by default; widescreen with `-Preset best-wide`, opt-in) |
 | **Sit down and play: the controls** | [docs/CONTROLS.md](docs/CONTROLS.md) — one page for all keyboard, keyboard and mouse, gamepad, and wheel and stick (HOWAS): the keys, how to turn each on, what to do when it misbehaves |

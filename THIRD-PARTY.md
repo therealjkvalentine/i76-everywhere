@@ -15,7 +15,7 @@ not own or redistribute.
 **Interstate '76** and all its assets (executables, `*.ZFS`, textures, audio, FMV,
 missions) are **© 1997 Activision** (rights now with Microsoft). This project does
 **not** include, host, or distribute any of it. You must own a legitimate copy —
-the [GOG "Interstate '76 Arsenal / Gold" release](https://www.gog.com/game/interstate_76)
+the [GOG "Interstate '76 Arsenal / Gold" release](https://www.gog.com/en/game/interstate76)
 is the tested source. Downloaded game material lives only in a local, gitignored
 `game-data/` folder on your own machine.
 

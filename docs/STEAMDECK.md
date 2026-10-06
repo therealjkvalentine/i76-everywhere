@@ -16,7 +16,7 @@ transfers — minus the one layer that caused us the most pain.*
 
 ## Stupid-easy install (BETA — for anyone with a Deck + the GOG game)
 
-1. **Buy [Interstate '76 on GOG](https://www.gog.com/game/interstate_76)** and download the
+1. **Buy [Interstate '76 on GOG](https://www.gog.com/en/game/interstate76)** and download the
    **offline installer** (`setup_interstate_76_...exe`) to `~/Downloads` using the Deck's
    Desktop-Mode browser.
 2. In Desktop Mode, download and double-click

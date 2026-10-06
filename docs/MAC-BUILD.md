@@ -299,6 +299,6 @@ without MoltenVK, so the shader-warmup stutter largely disappears — and force 
 
 ## Get the game
 
-Buy [Interstate '76 on GOG](https://www.gog.com/game/interstate_76) (I76 Gold includes the Nitro
+Buy [Interstate '76 on GOG](https://www.gog.com/en/game/interstate76) (I76 Gold includes the Nitro
 Pack). Then see `game-data/README.md` (local, gitignored; not in the repo) for what to place where - the repo
 contains no game files.
