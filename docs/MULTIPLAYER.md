@@ -21,12 +21,18 @@ forum threads, Local Ditch's FAQ dated 9/28/26, Kegel's ANet master list, IPXWra
 - **IPX through IPXWrapper** is on IPXWrapper's list as working with I'76 (0.7.2) and works here between two copies on
   one PC. It needs three DLLs per install and, on the Mac, Wine DLL overrides.
 
-Order for a home game (Windows PC + Mac on one network), simplest first:
-1. **Direct IP, no DLLs:** host: MULTI MELEE > HOST > INTERNET, add a server with the host's LAN address (e.g.
-   `192.168.1.81`, never `127.0.0.1`), host. Joiner: JOIN > INTERNET, add the host's LAN address. Allow the game through
-   the Windows firewall (UDP 21157) and accept macOS's incoming-connections question. If the host gets "Game Server
-   Not Responding", try `911.alink.bz911.net` as the host's server while the joiner keeps the host's address.
-2. **If that fails: IPX through IPXWrapper**, sections 2-6 below.
+**Measured 2026-10-06, Windows 11 PC + Mac (Wine) on one home network, lab/test copies, n = 1:**
+
+| route | result |
+|---|---|
+| **IPX through IPXWrapper 0.7.2, PC hosts, Mac joins** | **works.** The Mac's JOIN > IPX list showed "THE CRATER (1/4)", JOIN GAME put it in the PC's arena, and the PC's position table held both cars: the Mac's car moved ~220 m in the PC's memory while the Mac held W for 6 s |
+| INTERNET, host lists its own LAN address as the server | **fails**: "Game Server Not Responding" on the host after DONE |
+| INTERNET, joiner lists the host's address | **fails**: "No games found", then "Game Server Not Responding" |
+| INTERNET, both through the `911.alink.bz911.net` lobby | host started (the lobby answered, BROADCAST GAME went into the arena) but the joiner's list stayed "No games found" |
+
+Peelar's own page explains the direct-IP failure: the base-game patch was tested only below version 1.083 (GOG is
+1.083) and says "make sure there are no clients on the host's own network". **So at home: IPX through IPXWrapper**
+(sections 2-6). Direct IP is an internet-only route, and unverified here.
 
 Over the internet with friends: the host forwards UDP 21157 (or uses UPnP) and friends type the host's public
 address; or a virtual LAN that carries broadcast (ZeroTier, Radmin VPN) for IPX. **Tailscale is layer 3 and does not
@@ -38,9 +44,9 @@ with the existing community, use Nitro Pack with the bz911 lobby and the Discord
 | claim | state |
 |---|---|
 | IPX between two game copies on one PC, IPXWrapper 0.7.2 | **works** (2026-10-05, n = 1): host BROADCAST GAME went into The Crater, the joiner listed "THE CRATER (1/4)", JOIN GAME, and each copy then held both cars at the same coordinates (within 0.1 m). Stock car data (Jade's Car `valepre4.vcf` de680a86) |
-| IPX between two PCs on 192.168.1.0/24 | **not run yet** (same mechanism: IPXWrapper broadcasts UDP on every LAN interface) |
+| IPX between two machines on 192.168.1.0/24 | **works** (2026-10-06, n = 1): Windows 11 PC host, Mac (Wine) joiner |
 | The daily driver's cars pass the anti-cheat check | its `valepre4.vcf` is byte-identical to the file that passed the host and joiner checks live in row 1; the other 67 variants: static read (MULTIPLAYER-CAR-CHECK.md section 0) |
-| Mac (Wine) running IPXWrapper | **unknown**, see section 6 |
+| Mac (Wine) running IPXWrapper | **works** (2026-10-06, n = 1): the Mac joined a Windows-hosted IPX game, see the top of this page and section 6 |
 
 ## 1. Why IPX, and what the other buttons do
 
@@ -114,8 +120,12 @@ No proxy switch is needed for PCs on a LAN. (`I76_MULTI_INSTANCE=1` is only for 
 
 ## 6. The Mac (Wine)
 
-Not run yet. The Mac session surveyed the MacBook read-only on 2026-10-05; nothing there was changed, and trying
-IPXWrapper is for a **test clone** of the prefix, after the owner says yes in that session.
+**Works (2026-10-06, n = 1)**: the Mac test copy (`I76 IPX TEST.app`, DxWnd + OpenGLide, Wine 10) joined an IPX game
+hosted by the Windows PC, with steps 1, 2 and 5 below and nothing else: step 3 was not needed (two interfaces on the
+subnet did no harm), and step 4 did not come up (the macOS application firewall is off on this Mac). All three open
+questions at the end of this section came out fine: WIPX init succeeded under Wine, DxWnd did not get in the way,
+Tailscale did not matter. Stock car on the Mac for the run (de680a86), put back afterwards. The Mac copy was started
+with `tools/mac-test-clone.sh run` (no microphone prompt).
 
 What the survey found:
 - Wine 10 (Sikarugir), wow64 x86_64 under Rosetta. The game starts through **DxWnd** (`dxwnd.exe /R:1`), which hooks
@@ -136,7 +146,7 @@ Steps, on the test clone:
 4. macOS asks once whether the Wine process may accept incoming connections: allow.
 5. Debug log as on Windows (`ipxwrapper.ini` with `logging = debug`).
 
-Open questions: whether Wine's `ws2_32` loopback-delivers the subnet broadcast that WIPX must hear back within 5 s
+Open questions before the run (all fine, see the top of this section): whether Wine's `ws2_32` loopback-delivers the subnet broadcast that WIPX must hear back within 5 s
 (otherwise IPX init fails, error 0x84), whether DxWnd's winsock hooks get in IPXWrapper's way, and whether Tailscale
 changes which interface the broadcast leaves on.
 

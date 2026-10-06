@@ -43,9 +43,9 @@ Options (original 1997 keys, 20 fps stock, widescreen, another folder) and undoi
    [docs/STEAMDECK.md](docs/STEAMDECK.md)).
 3. Back in Game Mode, start it from your library. Details and the controller layout: [docs/STEAMDECK.md](docs/STEAMDECK.md).
 
-**Playing together:** [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md). At home, try the game's own INTERNET option with
-the host's network address first (no extra software; not yet tested here), then IPX through IPXWrapper (works between
-two copies on one PC). The online community plays Nitro Pack through a community lobby; the same page says how.
+**Playing together at home:** IPX through IPXWrapper ([docs/MULTIPLAYER.md](docs/MULTIPLAYER.md)). A Windows PC hosted
+and a Mac joined the same arena on 2026-10-06. The game's INTERNET option does not work between machines on one home
+network. Online, the community plays Nitro Pack through a community lobby; the same page says how.
 
 **If it goes wrong**
 - Hangs on "PLEASE STAND BY": you are connected over Remote Desktop. Play at the machine itself.
