@@ -112,6 +112,84 @@ static void ensure_real(void) {
     }
 }
 
+/* --- the music thread (I76_MUSIC_THREAD=1, off by default) ---------------------------------------------------
+ * Every mciSendString the proxy makes (open / play / pause / status of the mp3) normally runs on the GAME's thread,
+ * inside its MCI call. When the audio device does not answer - Wine with no output device, a CoreAudio device that is
+ * being reconfigured - the mpegvideo open blocks in quartz / mmdevapi and the whole game freezes with it (measured on
+ * the Mac 2026-10-04/05: main thread parked in quartz <- mciqtz32 <- WINMM, at the shell and at mission start).
+ * With the switch, one dedicated thread owns every MCI string call (MCI aliases belong to the thread that opened
+ * them, so all of them must come from the same one); the game's thread hands the command over and waits at most
+ * 300 ms. A call that does not come back in time answers "device not ready" and the game goes on; while the music
+ * thread is stuck for over a second, further calls fail at once instead of queueing behind it. */
+typedef struct mreq { struct mreq *next; HANDLE done; volatile LONG state; /* 0 queued, 1 done, 2 abandoned */
+                      MCIERROR err; UINT retlen; char cmd[MAX_PATH + 96]; char ret[128]; } mreq;
+static int g_mt_on = -1;
+static CRITICAL_SECTION g_mq_cs;
+static mreq *g_mq_head, *g_mq_tail;
+static HANDLE g_mq_sem;
+static volatile LONG g_mq_busy_since;                       /* GetTickCount|1 while a call runs, 0 when idle */
+static DWORD WINAPI music_worker(LPVOID arg) {
+    (void)arg;
+    for (;;) {
+        mreq *r;
+        WaitForSingleObject(g_mq_sem, INFINITE);
+        EnterCriticalSection(&g_mq_cs);
+        r = g_mq_head; if (r) { g_mq_head = r->next; if (!g_mq_head) g_mq_tail = NULL; }
+        LeaveCriticalSection(&g_mq_cs);
+        if (!r) continue;
+        InterlockedExchange(&g_mq_busy_since, (LONG)(GetTickCount() | 1));
+        r->err = real_mciSendStringA(r->cmd, r->retlen ? r->ret : NULL, r->retlen, NULL);
+        InterlockedExchange(&g_mq_busy_since, 0);
+        if (InterlockedCompareExchange(&r->state, 1, 0) == 2) {        /* the caller gave up: ours to free */
+            CloseHandle(r->done); HeapFree(GetProcessHeap(), 0, r);
+        } else SetEvent(r->done);
+    }
+}
+static int music_thread_on(void) {
+    if (g_mt_on < 0) {
+        char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_THREAD", v, sizeof(v));
+        g_mt_on = n && v[0] == '1';
+        if (g_mt_on) {
+            InitializeCriticalSection(&g_mq_cs);
+            g_mq_sem = CreateSemaphoreA(NULL, 0, 0x7fffffff, NULL);
+            CloseHandle(CreateThread(NULL, 0, music_worker, NULL, 0, NULL));
+            mlog("  music-thread: on (MCI string calls off the game thread, 300 ms wait)");
+        }
+    }
+    return g_mt_on;
+}
+static MCIERROR mci_call(const char *cmd, char *ret, UINT retlen) {
+    static DWORD warned;
+    mreq *r; LONG busy; MCIERROR e;
+    ensure_real();
+    if (!real_mciSendStringA) return MCIERR_DEVICE_NOT_READY;
+    if (!music_thread_on()) return real_mciSendStringA(cmd, ret, retlen, NULL);
+    busy = g_mq_busy_since;
+    if (busy && GetTickCount() - (DWORD)busy > 1000) {
+        if (GetTickCount() - warned > 5000) { mlog("  music-thread: stuck for %lu ms - '%s' skipped", GetTickCount() - (DWORD)busy, cmd); warned = GetTickCount(); }
+        return MCIERR_DEVICE_NOT_READY;
+    }
+    r = (mreq *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof *r);
+    if (!r) return MCIERR_OUT_OF_MEMORY;
+    lstrcpynA(r->cmd, cmd, sizeof(r->cmd));
+    r->retlen = ret ? (retlen < sizeof(r->ret) ? retlen : (UINT)sizeof(r->ret)) : 0;
+    r->done = CreateEventA(NULL, TRUE, FALSE, NULL);
+    EnterCriticalSection(&g_mq_cs);
+    if (g_mq_tail) g_mq_tail->next = r; else g_mq_head = r;
+    g_mq_tail = r;
+    LeaveCriticalSection(&g_mq_cs);
+    ReleaseSemaphore(g_mq_sem, 1, NULL);
+    if (WaitForSingleObject(r->done, 300) != WAIT_OBJECT_0 && InterlockedCompareExchange(&r->state, 2, 0) == 0) {
+        mlog("  music-thread: '%s' did not answer in 300 ms - the game goes on", cmd);
+        return MCIERR_DEVICE_NOT_READY;                         /* the worker frees r when the call returns */
+    }
+    WaitForSingleObject(r->done, INFINITE);                     /* done (possibly just after the timeout) */
+    if (ret && retlen) lstrcpynA(ret, r->ret, retlen);
+    e = r->err;
+    CloseHandle(r->done); HeapFree(GetProcessHeap(), 0, r);
+    return e;
+}
+
 /* --- aux hooks ------------------------------------------------------------ */
 /* mci_str is defined below; hook_auxSetVolume needs it to push the volume onto the
  * playing alias. Forward-declared rather than moving these hooks further down, so
@@ -260,11 +338,11 @@ static DWORD track_len_ms(int trk) {
     ensure_real();
     if (!real_mciSendStringA) return 0;
     _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias i76len", mp3);
-    if (real_mciSendStringA(cmd, NULL, 0, NULL) != 0) return 0;
+    if (mci_call(cmd, NULL, 0) != 0) return 0;
     ret[0] = 0;
-    if (real_mciSendStringA("status i76len length", ret, sizeof(ret), NULL) == 0)
+    if (mci_call("status i76len length", ret, sizeof(ret)) == 0)
         g_lenCache[trk] = (DWORD)strtoul(ret, NULL, 10);
-    real_mciSendStringA("close i76len", NULL, 0, NULL);
+    mci_call("close i76len", NULL, 0);
     return g_lenCache[trk];
 }
 
@@ -299,7 +377,7 @@ static DWORD position_ms(void) {
     if (!real_mciSendStringA) return 0;
     _snprintf(cmd, sizeof(cmd), "status %s position", g_alias);
     ret[0] = 0;
-    if (real_mciSendStringA(cmd, ret, sizeof(ret), NULL) != 0) return 0;
+    if (mci_call(cmd, ret, sizeof(ret)) != 0) return 0;
     return (DWORD)strtoul(ret, NULL, 10);
 }
 
@@ -310,7 +388,7 @@ static int playing_now(void) {
     if (!real_mciSendStringA) return 0;
     _snprintf(cmd, sizeof(cmd), "status %s mode", g_alias);
     ret[0] = 0;
-    if (real_mciSendStringA(cmd, ret, sizeof(ret), NULL) != 0) return 0;
+    if (mci_call(cmd, ret, sizeof(ret)) != 0) return 0;
     if (strstr(ret, "playing") != NULL) return 1;
     if (g_playingTrack && g_playingTrack >= g_runStart && g_playingTrack < g_runEnd) {   /* song ended: next in the run */
         int next = g_playingTrack + 1;
@@ -331,7 +409,7 @@ static DWORD fmt_time(DWORD ms, int trk) {
 
 static void mci_str(const char *cmd) {
     ensure_real();
-    MCIERROR e = real_mciSendStringA ? real_mciSendStringA(cmd, NULL, 0, NULL) : 1;
+    MCIERROR e = real_mciSendStringA ? mci_call(cmd, NULL, 0) : 1;
     /* Two calls, not one conditional format string. The single-format version
      *     mlog(e ? "str FAIL(%lu): %s" : "str ok: %s", (unsigned long)e, cmd);
      * passes `e` as the FIRST vararg, so on the success path - whose format has
@@ -386,7 +464,7 @@ static int still_playing(void) {
     char ret[64];
     if (!g_open || !real_mciSendStringA) return 0;
     ret[0] = 0;
-    if (real_mciSendStringA("status i76cd mode", ret, sizeof(ret), NULL) != 0) return 0;
+    if (mci_call("status i76cd mode", ret, sizeof(ret)) != 0) return 0;
     return strncmp(ret, "playing", 7) == 0;
 }
 
