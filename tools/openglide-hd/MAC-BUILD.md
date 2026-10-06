@@ -255,3 +255,34 @@ target 0, player options, which DLLs are present/disabled). The DLLs it builds a
 ones: two back-to-back builds of the same source differ (~6 KB, spread through `.text`), so this toolchain is not
 byte-reproducible; the sources are the committed ones. Launching the converted clone (`I76 SETUP TEST.app`) is the
 remaining check.
+
+## 12. The microphone prompt, and test copies that never raise it (2026-10-06)
+
+Every new test copy stopped at "Sikarugir would like to access the Microphone", a system dialog that takes the
+keyboard and mouse from the whole Mac until someone answers it. Measured cause, in two parts:
+
+- **Wine touches every input device.** A probe run under the clone's prefix with `WINEDEBUG=+coreaudio`:
+  `auxGetNumDevs` and `DirectSoundCreate` only read mix formats (device properties), but `waveOutGetNumDevs` starts
+  winmm's device init, which runs ~270 format tests through CoreAudio AudioUnits on every endpoint, including the
+  built-in mic, the webcams and the EVO4 input. macOS counts that as microphone access. With the null driver
+  (`HKCU\Software\Wine\Drivers "Audio"=""`, trace: `mmdevapi:init_driver User explicitly chose no driver`) there
+  are zero CoreAudio calls.
+- **macOS remembers per path and per launcher build.** The wrappers are ad-hoc signed, so TCC.db stores the client
+  as a path (`client_type 1`, `.../Contents/MacOS/Sikarugir`) with `csreq` = `cdhash H"..."` of that binary. A new
+  clone name asks again, and so does any rebuild of the launcher, on the daily install too (it was asked again on
+  2026-10-04 after the rename). The owner had allowed it each time; nothing here changes TCC.
+
+[`tools/mac-test-clone.sh`](../mac-test-clone.sh) makes and runs test copies with both causes removed:
+
+- `make NAME`: APFS clone of the daily install with its own bundle id, the null audio driver (also keeps tests
+  silent), `I76_MUSIC_THREAD=1` and `I76_SKIP_MOVIES=1`, and user-folder symlinks out of the prefix replaced by
+  plain folders.
+- `run NAME`: starts the launcher from the calling shell instead of `open`. TCC then attributes the game to the app
+  that owns the shell: `responsibility_get_pid_responsible_for_pid(i76.exe)` returned Claude Code's pid, which
+  already holds a decision. From Terminal.app it would be Terminal's decision (asked at most once, ever).
+- `stop NAME`.
+
+Verified: a never-seen clone path, run this way, launched with no dialog on screen at 5, 15 and 30 s and left no
+TCC.db row; the frontmost app stayed the one the owner was using, so a shell launch also does not take focus. The
+music thread under null audio: the MP3 open returned an error (`str FAIL(277)`) and the game kept running and polling
+at the title, where before it hung in quartz. That is one run, not yet a played mission.
