@@ -30,9 +30,13 @@ Mac (f00bad90 / abb41681). Two changes to mission T01 ("keep up with Taurus"):
 | the Mac holds W for 8 s | in the **PC's** memory, the Mac's car moved 142 m north from its spawn point. Two other cars moved ~350 m in the same 8 s (the convoy, driven by the PC's own AI and script) |
 | two minutes in, version B | still game state 5 on the PC; no failure while the Mac was driving |
 
-The PC's world root (`Mem-PlayerEntity`, 0x13556B30) is **neither human's car**. The mission's own player object
-(`vppirna1`, objFlags 0x10) is still built from the ODEF, and a car moved with the convoy. So the script's "player" is
-a third car, not the host and not the joiner [inferred: object identity read from memory, driver not traced].
+**Correction (same day, later runs): the host IS the mission's player.** The first reading below the table said the
+script followed "a third car". Re-measured: the host's network vehicle (player table slot 0) is an object with the
+player flag (`+0x10` = 0x810), its entity (`object + 0x70`) is the world root, and the host's view opens at T01's
+normal start behind Taurus, not at a spawn point. The car that "moved with the convoy" while the host was idle was the
+host's own: T01 opens with a scripted stretch that drives the player's car and locks the controls (the fire key did
+nothing for the first ~20 s in every run). The car created at the host's spawn point is a spare that just sits there.
+So the script judges the host, as in single player. The joiner's car is the one placed at a spawn point.
 
 ## What this means for real co-op
 
@@ -40,8 +44,8 @@ Working already: loading, spawning both humans, seeing each other drive, the hos
 
 Still to build, in order (the plan from the co-op discussion, now with evidence):
 
-1. **Make the script's player a human.** In a network game, skip creating the ODEF player object, and bind its FSM
-   label to the host's car. Proxy hook in the ODEF loader (`bwd2_h_OBJ` 0x4b7ac0, `bwd2_LoadVcfForObject` 0x4ad6f0).
+1. ~~Make the script's player a human~~: it already is the host (correction above). Left: stop the spare car at the
+   host's spawn point (or use it for the joiner).
 2. **One copy of the enemies.** The host runs the script and AI. The joiner skips both and shows the host's AI cars,
    sent as extra network players through the existing 'ST'/'SH' packets (16 player slots, remote-car smoothing at
    0x464890 already there).
@@ -49,10 +53,17 @@ Still to build, in order (the plan from the co-op discussion, now with evidence)
    probably already consistent once there is only one copy of each enemy.
 4. **Skip, not blank, the movies:** play them on both machines while keeping the network alive, or skip them in
    network games only.
-5. The joiner must be on the JOIN list when the host broadcasts (the host goes straight into the mission and there is
+5. **Difficulty: `I76_COOP_DAMAGE=<factor>`** (proxy, 2026-10-06) scales every human's weapon and flame damage in
+   network games, the remote player's too (owner's choice over tougher enemies). 0.5 = two players as strong as one
+   on Normal. Live: 4/4 sites patched in the PC lab process and the mission ran; the hit counter it logs (with
+   `I76_FPS_LOG`) has not seen a hit yet, because no clean shot was set up (see the proxy comment).
+6. The joiner must be on the JOIN list when the host broadcasts (the host goes straight into the mission and there is
    no lobby). A lobby wait is a later nicety.
 
 ## Files
 
+- Object -> entity: `object + 0x70`; armour at entity +0x138 (4 sides) and chassis +0x148, integer tenths (Taurus
+  3000, the tractor 800, the host's Piranha 400 / 360). Label table 0x54a178: {heap, table, count, cap}, entries of
+  16 bytes = label[8], object pointer, 0.
 - Builder: `tools/coop-mission.py` (its output for T01 is byte-identical to the file tested here, miss8 and miss16).
 - Logs: PC `i76-uncap-lab\autotest\runs\mp\ipx\` (IPXWrapper), Mac session scratchpad (`coop-mac-*.log`).

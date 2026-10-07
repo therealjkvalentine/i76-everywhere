@@ -1162,6 +1162,8 @@ static void trn_frame(void);
  * WAITING (present, a lock, a sleep), not computing - the question that decides what to cut first. */
 static LONGLONG g_fl_period, g_fl_start, g_fl_out, g_fl_work, g_fl_workmax, g_fl_cap;
 static DWORD g_fl_frames;
+static volatile LONG g_coop_hits_impact, g_coop_hits_flame, g_coop_remote;   /* I76_COOP_DAMAGE counters (see below) */
+static LONG g_coop_logged = -1;
 static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
     LONGLONG work = g_fl_out ? tin - g_fl_out : 0;
     if (!g_fl_start) g_fl_start = tin;
@@ -1174,6 +1176,11 @@ static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
         mlog("  fps: %.1f (%lu frames / %.1f s); work %.2f ms avg, %.2f ms max; cap wait %.2f ms avg",
              f / s, (unsigned long)g_fl_frames, s, g_fl_work * ms / f, g_fl_workmax * ms, g_fl_cap * ms / f);
         g_fl_start = tout; g_fl_frames = 0; g_fl_work = g_fl_workmax = g_fl_cap = 0;
+        if (g_coop_hits_impact + g_coop_hits_flame + g_coop_remote != g_coop_logged) {
+            g_coop_logged = g_coop_hits_impact + g_coop_hits_flame + g_coop_remote;
+            if (g_coop_logged) mlog("  coop-damage: %ld weapon hits and %ld flame hits scaled so far (%ld by a remote player's car)",
+                                    g_coop_hits_impact, g_coop_hits_flame, g_coop_remote);
+        }
     }
 }
 static void __cdecl frame_cap_then_clock(void) {
@@ -2009,6 +2016,83 @@ static void apply_ai_backaway_grid(void) {
     } else {
         mlog("  ai-backaway-grid: NOT applied (0x41d286 bytes differ from E8 75 83 FF FF)");
     }
+}
+
+/* ===========================================================================
+ * CO-OP DAMAGE FACTOR  (I76_COOP_DAMAGE=<factor>, e.g. 0.6; off by default; network games only)
+ * ===========================================================================
+ * The game's only difficulty lever is the player's own weapon damage (weapons.md): weapon_BuildImpactDamage 0x4a76a0
+ * and the flamer hit 0x444384 load 2.0 / 1.0 / 0.75 by difficulty [0x654b9c] when the shooter is the player
+ * (`call 0x458bf0`, objFlags bit 0x10) and the game is NOT a network game (`call 0x452d20`); a network game, or any
+ * other shooter, gets the 1.0 kept in a stack slot ([esp+8] / [esp+0x11c] at the call). For co-op (docs/COOP-SPIKE.md)
+ * both calls are repointed at both sites:
+ *   - "is the shooter a human": the player flag, OR the car of any player in the network table 0x541070 (16 x 0x48,
+ *     vehicle at +0x28), so a remote player's shots scale the same on every machine;
+ *   - "is this a network game": unchanged answer, and when it is, the co-op factor is written into the caller's 1.0 slot
+ *     first, which the network path then loads. Offline nothing changes (the difficulty table is used as stock).
+ * 0.5 makes two players together as strong as one on Normal; 0.6 is 1.2x. Read from the 2019 AiO exe (60abf7bc base).
+ * With I76_FPS_LOG on, the log line after each fps line counts the scaled hits (and those credited to a remote
+ * player's car through the network table), the in-game evidence that the factor is being applied.
+ * STATUS 2026-10-06: built; the 4 sites hold the expected bytes in the Mac and PC lab exes, and a live PC lab launch logged 4/4 patched and ran the network mission.
+ * NOT yet measured in game: T01's opening locks the player's controls, and no clean shot was set up. */
+static DWORD g_coop_dmg_bits;                               /* the factor as float bits, written into the caller's slot */
+static int __cdecl coop_is_human(BYTE *obj) {               /* replaces `call 0x458bf0` (cdecl, 1 arg) at both sites */
+    int i;
+    if (!obj) return 0;
+    if (obj[0x10] & 0x10) return 1;
+    for (i = 0; i < 16; i++) {
+        BYTE *p = (BYTE *)0x00541070 + i * 0x48;
+        if (*(WORD *)p && *(BYTE **)(p + 0x28) == obj) { if (*(volatile int *)0x00541030) g_coop_remote++; return 1; }
+    }
+    return 0;
+}
+static __declspec(naked) void coop_net_impact_stub(void) {  /* replaces `call 0x452d20` at 0x4a76d1 */
+    __asm {
+        mov eax, 0x00452d20
+        call eax                                /* net_IsNetworkGame */
+        test eax, eax
+        jz done
+        mov ecx, g_coop_dmg_bits
+        mov [esp + 0xC], ecx                    /* caller's [esp+8]: the 1.0 the network path loads */
+        inc g_coop_hits_impact
+    done:
+        ret
+    }
+}
+static __declspec(naked) void coop_net_flame_stub(void) {   /* replaces `call 0x452d20` at 0x44439f */
+    __asm {
+        mov eax, 0x00452d20
+        call eax
+        test eax, eax
+        jz done
+        mov ecx, g_coop_dmg_bits
+        mov [esp + 0x120], ecx                  /* caller's [esp+0x11c] */
+        inc g_coop_hits_flame
+    done:
+        ret
+    }
+}
+static void apply_coop_damage(void) {
+    static const struct { DWORD site, target; void *stub; const char *what; } s[4] = {
+        { 0x004a76c5, 0x00458bf0, (void *)coop_is_human,        "impact: is-player" },
+        { 0x004a76d1, 0x00452d20, (void *)coop_net_impact_stub, "impact: network factor" },
+        { 0x00444393, 0x00458bf0, (void *)coop_is_human,        "flamer: is-player" },
+        { 0x0044439f, 0x00452d20, (void *)coop_net_flame_stub,  "flamer: network factor" },
+    };
+    char v[16]; float f; int i, n = 0;
+    DWORD k = GetEnvironmentVariableA("I76_COOP_DAMAGE", v, sizeof(v));
+    if (k == 0 || k >= sizeof(v)) return;
+    f = (float)atof(v);
+    if (!(f > 0.0f && f <= 4.0f)) { mlog("  coop-damage: '%s' is not a factor in (0, 4] - off", v); return; }
+    memcpy(&g_coop_dmg_bits, &f, 4);
+    for (i = 0; i < 4; i++) {
+        BYTE old[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG r0 = (LONG)(s[i].target - (s[i].site + 5)), r1 = (LONG)((DWORD_PTR)s[i].stub - (s[i].site + 5));
+        memcpy(old + 1, &r0, 4); memcpy(w + 1, &r1, 4);
+        if (patch_bytes(s[i].site, old, w, 5, s[i].what)) n++;
+        else mlog("  coop-damage: %s at 0x%08lx NOT patched (bytes differ)", s[i].what, (unsigned long)s[i].site);
+    }
+    mlog("  coop-damage: %d/4 sites; humans' weapon damage x %.2f in network games (offline: difficulty as stock)", n, f);
 }
 
 /* ===========================================================================
@@ -4989,6 +5073,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_perframe_fixes();   /* with I76_FRAMERATE_FIXES: radar missile turn, WMISS click, AI skid + horn rolls */
         apply_ai_fixes();         /* opt-in: I76_AI_FIXES=1 (after apply_framerate_fixes: the dodge hold needs the 20 Hz grid) */
         apply_ai_backaway_grid(); /* opt-in: I76_AI_BACKAWAY_GRID=1 (back_away ring indexed by sim time x 20, not frames) */
+        apply_coop_damage();      /* opt-in: I76_COOP_DAMAGE=<factor> (humans' weapon damage in network games) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */
