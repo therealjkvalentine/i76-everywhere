@@ -78,6 +78,25 @@ spawn record's forward row; ODEF rotation rows are right, up, forward). IPX game
 joiner's shots on its own copy of the world, and the factor applies to them. In the unset two-player run both cars
 were listed at the same spawn point and the host's burst only grazed the bus (2 + 52), so that row is not used.
 
+## Shared enemies: `I76_COOP_AI=1` on both machines (2026-10-06)
+
+The host's mission cars are the real ones; the joiner shows them. How (proxy comment "CO-OP SHARED ENEMIES"): the host
+exports every mission vehicle with the game's own state writer (the record the 'ST' packet carries) about 10 times a
+second and sends it as a new packet type 'AT', 2 cars per packet; the joiner catches 'AT' after `dpReceive` and drives
+each car with the game's remote-player mirror, skips its own `ai_FrameTick` (AI and script), replays the host's AI
+trigger pulls, and blocks local damage to those cars so kills are the host's.
+
+| run | result [measured] |
+|---|---|
+| T01, 5 cars per packet (508 B) | host sent, joiner received nothing, no send error: ANet drops packets that size |
+| T01, 2 per packet | joiner applied 1,625 records in 40 s; Taurus 3562.8,36242.0 (host) vs 3559.4,36236.1 (joiner), samples ~0.3 s apart at ~25 m/s; with its AI off the joiner's Taurus only moves by the host's records |
+| T01, longer | after ~2 min T01 failed on the idle host (mission-over menu stops the network loop) and the Mac promoted itself to host: a test-design limit, not a sync fault |
+| T04, host start moved 80 m from the gang | gang at rest: 1210.0,50265.0 on both machines; host AI fire replayed on the joiner from t+125 s (11,729 trigger pulls by t+250 s); when the host's mission ended, both gang cars' last positions identical on both machines |
+| hits / kills | not observed: the gang patrolled and never closed in; nobody took damage |
+
+Open: see the proxy comment (mission outcome on the joiner, radio and objectives, owner id 0 in the score code), and a
+run where the gang actually engages, to watch a kill arrive on the joiner.
+
 ## Files
 
 - Object -> entity: `object + 0x70`; armour at entity +0x138 (4 sides) and chassis +0x148, integer tenths (Taurus

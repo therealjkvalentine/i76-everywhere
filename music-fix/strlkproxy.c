@@ -1163,6 +1163,7 @@ static void trn_frame(void);
 static LONGLONG g_fl_period, g_fl_start, g_fl_out, g_fl_work, g_fl_workmax, g_fl_cap;
 static DWORD g_fl_frames;
 static volatile LONG g_coop_hits_impact, g_coop_hits_flame, g_coop_remote;   /* I76_COOP_DAMAGE counters (see below) */
+static void coop_ai_log(void);                                                   /* I76_COOP_AI status line (see below) */
 static LONG g_coop_logged = -1;
 static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
     LONGLONG work = g_fl_out ? tin - g_fl_out : 0;
@@ -1181,6 +1182,7 @@ static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
             if (g_coop_logged) mlog("  coop-damage: %ld weapon hits and %ld flame hits scaled so far (%ld by a remote player's car)",
                                     g_coop_hits_impact, g_coop_hits_flame, g_coop_remote);
         }
+        coop_ai_log();
     }
 }
 static void __cdecl frame_cap_then_clock(void) {
@@ -2095,6 +2097,219 @@ static void apply_coop_damage(void) {
         else mlog("  coop-damage: %s at 0x%08lx NOT patched (bytes differ)", s[i].what, (unsigned long)s[i].site);
     }
     mlog("  coop-damage: %d/4 sites; humans' weapon damage x %.2f in network games (offline: difficulty as stock)", n, f);
+}
+
+/* ===========================================================================
+ * CO-OP SHARED ENEMIES  (I76_COOP_AI=1 on BOTH machines; off by default; network games only)
+ * ===========================================================================
+ * docs/COOP-SPIKE.md. In a network game each machine runs its own copy of a mission's AI cars and script, so the two
+ * players fight different enemies. This makes the HOST's copies the real ones:
+ *   - role: network game [0x541030] and both ids known; host when the local id [0x541028] equals the host id
+ *     [0x541064], joiner otherwise;
+ *   - host: about 10 times a second, every vehicle in the mission's label table (0x54a178: {heap, table, count};
+ *     entries of 16 bytes = label[8], object), skipping player cars (objFlags 0x10 or in the network player table), is
+ *     exported with the game's own state writer 0x4644d0 (object, float[24]: the 0x60-byte record the 'ST' packet
+ *     carries: time, transform, velocity, spin, controls, flags incl. destroyed, damage levels, target) and sent as
+ *     packet 'AT' = { u16 'AT', u8 0, u8 n, float time, n x { u16 label index, u16 0, record[0x60] } }, n <= 2
+ *     (208 bytes): 5 per packet (508) never arrived, ANet's packet limit is lower than the pump's 512-byte buffer. Same mission file on both machines = same label order.
+ *   - joiner: the 'AT' packets are caught after the game's dpReceive (the pump ignores the unknown type) and each
+ *     record goes to the same-index car through the remote-car mirror 0x464890 (object, record), the function that
+ *     drives remote players' cars from 'ST'; older records than the last applied are dropped. ai_FrameTick (the AI
+ *     decisions AND the mission script, call at 0x403ddf) is skipped, so physics drives those cars with the host's
+ *     controls between packets, as for remote players.
+ *   - the joiner's shots already reach the host's copies through the game's own 'SH' fire packets (measured with
+ *     I76_COOP_DAMAGE: the host computes them), so kills happen on the host and arrive with the 'destroyed' flag.
+ * Read from the 2019 AiO exe (60abf7bc base) and the Ghidra export of 9a232dcc (same addresses here).
+ *   - fire: the host records the AI's trigger pulls (`call 0x4a3560` at 0x414f86 in ai_FireWeapons) and puts a per-car
+ *     mask in each record (byte 2; bits as in 'SH': weapons 0..4 of the 0x4a31d0 list, 0x20 / 0x40 the two specials);
+ *     the joiner pulls those triggers on every pump call for 150 ms after each record.
+ *   - damage: on the joiner, object_ClassDamage (5 call sites) is skipped for the mirrored cars, so only the host's
+ *     copies take damage; a kill arrives in the record's 'destroyed' flag and the mirror wrecks the car.
+ * MEASURED 2026-10-06 (docs/COOP-SPIKE.md "Shared enemies"): PC host + Mac joiner, co-op T01 and T04. Roles right; the
+ * joiner applied 1,625-7,038 records per run; positions match (T04's gang at rest: 1210.0,50265.0 on both; after the
+ * host's mission ended, both cars' last positions identical); the host's AI fire replayed on the joiner (11,729 pulls).
+ * 5 records per packet (508 B) were silently dropped by ANet: 2 per packet. NOT observed yet: a hit, a kill. Gaps: the
+ * mission outcome is the host's alone (when the host's mission ends the joiner stays in), radio/objectives are not
+ * sent, and AI cars carry owner id 0 into the mirror's score bookkeeping. */
+typedef int (__cdecl *dprecv_fn)(void *, void *, void *, int, void *, void *);
+typedef int (__cdecl *dpsend_fn)(void *, int, int, int, void *, int);
+static dprecv_fn real_dpReceive;
+static volatile LONG g_coop_ai_sent, g_coop_ai_applied, g_coop_ai_role, g_coop_ai_senderr, g_coop_ai_rx;
+static DWORD g_coop_ai_last;
+static float g_coop_ai_seen[2048];
+static BYTE g_coop_ai_fired[1024];                          /* host: weapon instances the AI triggered since the last send */
+static BYTE g_coop_ai_mask[2048];                           /* joiner: last fire mask per label index ... */
+static DWORD g_coop_ai_until[2048];                         /* ... and until when it holds (GetTickCount) */
+static volatile LONG g_coop_ai_shots, g_coop_ai_blocked;
+static int coop_ai_weapon_mask(BYTE *o, int *w8) {          /* weapon list 0x4a31d0: count, w[5], special a, b (as 'SH') */
+    int i, mask = 0;
+    memset(w8, 0, 8 * sizeof(int));
+    if (((int (__cdecl *)(BYTE *, int *))0x004a31d0)(o, w8) != 1) return -1;
+    for (i = 0; i < w8[0] && i < 5; i++) if (w8[1 + i] >= 0 && w8[1 + i] < 1024 && g_coop_ai_fired[w8[1 + i]]) mask |= 1 << i;
+    if (w8[6] > 0 && w8[6] < 1024 && g_coop_ai_fired[w8[6]]) mask |= 0x20;
+    if (w8[7] > 0 && w8[7] < 1024 && g_coop_ai_fired[w8[7]]) mask |= 0x40;
+    return mask;
+}
+#define COOP_AI_PKT 0x5441                                   /* 'AT' (low byte first, as dppt_MAKE) */
+static int coop_ai_role(void) {
+    WORD me, host;
+    if (!*(volatile int *)0x00541030) return 0;
+    me = *(volatile WORD *)0x00541028; host = *(volatile WORD *)0x00541064;
+    if (!me || !host) return 0;
+    return me == host ? 1 : 2;
+}
+static int coop_ai_in_mission(void) {                        /* game state 5 and a world root */
+    return *(volatile int *)0x004c2164 == 5 && ((int (__cdecl *)(void))0x00457530)() != 0;   /* world_GetRoot */
+}
+static BYTE *coop_ai_object(int i, int count, BYTE *tab) {   /* a mission vehicle that no player drives, or NULL */
+    BYTE *o; int k;
+    if (i >= count) return NULL;
+    o = *(BYTE **)(tab + i * 16 + 8);
+    if (!o || *(int *)(o + 0x6c) != 1 || !*(BYTE **)(o + 0x70) || (o[0x10] & 0x10)) return NULL;
+    for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == o) return NULL; }
+    return o;
+}
+static void coop_ai_host_send(void) {
+    BYTE pkt[512]; BYTE *tab; int count, i, n = 0;
+    DWORD now = GetTickCount();
+    if (now - g_coop_ai_last < 100 || !coop_ai_in_mission()) return;
+    g_coop_ai_last = now;
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (!tab || count <= 0 || count > 2048) return;
+    for (i = 0; i <= count; i++) {
+        BYTE *o = i < count ? coop_ai_object(i, count, tab) : NULL;
+        if (o) {
+            BYTE *r = pkt + 8 + n * 100;
+            int w8[8], m = coop_ai_weapon_mask(o, w8);
+            *(WORD *)r = (WORD)i; r[2] = (BYTE)(m < 0 ? 0 : m); r[3] = 0;
+            ((void (__cdecl *)(BYTE *, float *))0x004644d0)(o, (float *)(r + 4));
+            n++;
+        }
+        if (n && (n == 2 || i == count)) {
+            *(WORD *)pkt = COOP_AI_PKT; pkt[2] = 0; pkt[3] = (BYTE)n;
+            *(float *)(pkt + 4) = *(float *)(pkt + 8 + 4);
+            if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
+                                                    ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, 8 + n * 100) == 0) g_coop_ai_sent += n;
+            else g_coop_ai_senderr++;
+            n = 0;
+        }
+    }
+    memset(g_coop_ai_fired, 0, sizeof(g_coop_ai_fired));
+}
+static void coop_ai_apply(BYTE *pkt, int size) {
+    BYTE *tab; int count, n, j;
+    if (size < 8 || !coop_ai_in_mission()) return;
+    n = pkt[3]; if (8 + n * 100 > size) return;
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (!tab || count <= 0 || count > 2048) return;
+    for (j = 0; j < n; j++) {
+        BYTE *r = pkt + 8 + j * 100; int i = *(WORD *)r; float t = *(float *)(r + 4);
+        BYTE *o = coop_ai_object(i, count, tab);
+        if (!o || t <= g_coop_ai_seen[i]) continue;
+        g_coop_ai_seen[i] = t;
+        g_coop_ai_mask[i] = r[2]; g_coop_ai_until[i] = GetTickCount() + 150;
+        ((void (__cdecl *)(BYTE *, float *))0x00464890)(o, (float *)(r + 4));
+        g_coop_ai_applied++;
+    }
+}
+static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
+    BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
+    if (!real_dpReceive) return;
+    len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
+                  g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
+                  g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (tab && count > 0 && count <= 2048 && *(volatile int *)0x004c2164 == 5)
+        for (i = 0; i < count && shown < 2; i++) {
+            BYTE *o = coop_ai_object(i, count, tab);
+            if (!o) continue;
+            len += sprintf(buf + len, "; #%d %.8s at %.1f,%.1f armour %d%s", i, (char *)(tab + i * 16), *(double *)(o + 0x40),
+                           *(double *)(o + 0x50), *(int *)(*(BYTE **)(o + 0x70) + 0x138 + 12),
+                           (*(BYTE **)(o + 0x70))[0x454] & 0x20 ? " DEAD" : "");
+            shown++;
+        }
+    if (tab && count > 0 && count <= 2048 && *(volatile int *)0x004c2164 == 5) {
+        int alive = 0, dead = 0;
+        for (i = 0; i < count; i++) { BYTE *o = coop_ai_object(i, count, tab); if (o) { if ((*(BYTE **)(o + 0x70))[0x454] & 0x20) dead++; else alive++; } }
+        len += sprintf(buf + len, "; mission cars alive %d dead %d", alive, dead);
+        {   BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();          /* world_GetRoot: the local player's car */
+            BYTE *e = (root && *root) ? *(BYTE **)(*root + 0x70) : NULL;
+            if (e) len += sprintf(buf + len, "; own armour %d,%d,%d,%d", *(int *)(e + 0x138), *(int *)(e + 0x13c), *(int *)(e + 0x140), *(int *)(e + 0x144)); }
+    }
+    mlog("%s", buf);
+}
+static void coop_ai_joiner_fire(void) {                     /* every pump call: hold the host's triggers for 150 ms */
+    BYTE *tab; int count, i, k, w8[8]; DWORD now = GetTickCount();
+    if (!coop_ai_in_mission()) return;
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (!tab || count <= 0 || count > 2048) return;
+    for (i = 0; i < count; i++) {
+        BYTE *o; int m = g_coop_ai_mask[i];
+        if (!m || (LONG)(now - g_coop_ai_until[i]) > 0 || !(o = coop_ai_object(i, count, tab))) continue;
+        memset(w8, 0, sizeof(w8));
+        if (((int (__cdecl *)(BYTE *, int *))0x004a31d0)(o, w8) != 1) continue;
+        for (k = 0; k < w8[0] && k < 5; k++) if (m & (1 << k)) ((int (__cdecl *)(int, int))0x004a3560)(w8[1 + k], 1);
+        if ((m & 0x20) && w8[6]) ((int (__cdecl *)(int, int))0x004a3560)(w8[6], 1);
+        if ((m & 0x40) && w8[7]) ((int (__cdecl *)(int, int))0x004a3560)(w8[7], 1);
+        g_coop_ai_shots++;
+    }
+}
+static int __cdecl coop_ai_trigger(int w, int v) {         /* replaces `call 0x4a3560` at 0x414f86 (ai_FireWeapons) */
+    if (w >= 0 && w < 1024 && v) g_coop_ai_fired[w] = 1;
+    return ((int (__cdecl *)(int, int))0x004a3560)(w, v);
+}
+static int coop_ai_is_mirrored(BYTE *o) {                  /* joiner: one of the cars the host drives */
+    BYTE *tab; int count, i;
+    if (!o || *(int *)(o + 0x6c) != 1 || (o[0x10] & 0x10)) return 0;
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (!tab || count <= 0 || count > 2048) return 0;
+    for (i = 0; i < count; i++) if (*(BYTE **)(tab + i * 16 + 8) == o) return coop_ai_object(i, count, tab) != NULL;
+    return 0;
+}
+static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces `call object_ClassDamage 0x462040` x5 */
+    if (coop_ai_role() == 2 && coop_ai_is_mirrored(o)) { g_coop_ai_blocked++; return 0; }
+    return ((int (__cdecl *)(BYTE *, int, int))0x00462040)(o, a, rec);
+}
+static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
+    int r = real_dpReceive(dp, from, to, flags, buf, size);
+    int role = coop_ai_role();
+    g_coop_ai_role = role;
+    if (role == 1) coop_ai_host_send();
+    else if (role == 2) coop_ai_joiner_fire();
+    if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
+    return r;
+}
+static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
+    if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
+    return ((int (__cdecl *)(int))0x0040a320)(a);
+}
+static void apply_coop_ai(HMODULE exe) {
+    BYTE old[5] = { 0xE8 }, w[5] = { 0xE8 }; LONG r0, r1;
+    char v[8]; DWORD k = GetEnvironmentVariableA("I76_COOP_AI", v, sizeof(v));
+    if (k == 0 || k >= sizeof(v) || v[0] != '1') return;
+    real_dpReceive = (dprecv_fn)patch_iat(exe, "anetdll.dll", "dpReceive", (void *)coop_dpReceive);
+    r0 = (LONG)(0x0040a320 - (0x00403ddf + 5)); r1 = (LONG)((DWORD_PTR)coop_ai_frametick - (0x00403ddf + 5));
+    memcpy(old + 1, &r0, 4); memcpy(w + 1, &r1, 4);
+    mlog("  coop-ai: dpReceive %s, ai_FrameTick call %s (host sends mission cars as 'AT', joiner mirrors them)",
+         real_dpReceive ? "hooked" : "NOT hooked",
+         patch_bytes(0x00403ddf, old, w, 5, "coop-ai: ai_FrameTick") ? "repointed" : "NOT repointed");
+    {   /* AI trigger pulls (host records them) and the damage entry (joiner blocks it for mirrored cars) */
+        static const struct { DWORD site, target; void *stub; } c[6] = {
+            { 0x00414f86, 0x004a3560, (void *)coop_ai_trigger },
+            { 0x00465e5a, 0x00462040, (void *)coop_ai_class_damage }, { 0x0046648f, 0x00462040, (void *)coop_ai_class_damage },
+            { 0x0046aae4, 0x00462040, (void *)coop_ai_class_damage }, { 0x004a81d3, 0x00462040, (void *)coop_ai_class_damage },
+            { 0x004a8266, 0x00462040, (void *)coop_ai_class_damage },
+        };
+        int i, n = 0;
+        for (i = 0; i < 6; i++) {
+            BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
+            LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
+            memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
+            if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
+        }
+        mlog("  coop-ai: %d/6 trigger + damage sites repointed", n);
+    }
+    if (!real_dpReceive) { mlog("  coop-ai: no dpReceive import - off"); }
 }
 
 /* ===========================================================================
@@ -5109,6 +5324,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
             if (!(n && v[0] == '0')) { CloseHandle(CreateThread(NULL, 0, music_guard, NULL, 0, NULL)); mlog("  music-guard: on"); }
         }
         apply_joy_routing(exe);   /* opt-in: I76_JOY_MAP=a=b / I76_JOY_SYNTH=id:x (test) */
+        apply_coop_ai(exe);       /* opt-in: I76_COOP_AI=1 (host's mission cars mirrored to the joiner) */
         music_opts();             /* run end / I76_MUSIC_DISC_ORDER / I76_MUSIC_SHELL: one log line */
         apply_cd_instrument(exe); /* opt-in (I76_CD_LOG=1): the "insert CD 2" prompt, logged with its cause;
                                      I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */
