@@ -89,7 +89,7 @@ Shift move the outside camera and the map instead of glancing.
 | Look at target | `Insert` | `E` | changed |
 | Combat view (toggle) | `V` | `V` |  |
 | Binoculars | `B` | `B` |  |
-| Move outside camera / pan map | `Up arrow`<br>`Left arrow`<br>`Right arrow`<br>`Down arrow` | `Shift + Up arrow`<br>`Shift + Down arrow`<br>`Shift + Left arrow`<br>`Shift + Right arrow` | changed |
+| Move outside camera / pan map | `Up arrow`<br>`Left arrow`<br>`Right arrow`<br>`Down arrow` | `Shift + Up arrow`<br>`Shift + Down arrow`<br>`Left arrow`<br>`Right arrow`<br>`Up arrow`<br>`Down arrow`<br>`Shift + Left arrow`<br>`Shift + Right arrow` | changed |
 | Zoom minus (view, map, camera) | `Page Up` | `Page Up` |  |
 | Zoom plus (view, map, camera) | `Page Down` | `Page Down` |  |
 | Zoom reset | `End` | `End` |  |
@@ -101,7 +101,7 @@ Shift move the outside camera and the map instead of glancing.
 | Player scores (multiplayer) | `' (quote)` | `' (quote)` |  |
 | Team scores (multiplayer) | `; (semicolon)` | `; (semicolon)` |  |
 
-Generated from `controls/input.map` (md5 `90122d370333b545d27070f3f94b1265`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
+Generated from `controls/input.map` (md5 `b1f352caf5f6da3525497d6ca3151b01`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
 
 <!-- END generated: stock-vs-ours -->
 

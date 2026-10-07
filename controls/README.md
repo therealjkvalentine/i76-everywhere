@@ -10,15 +10,19 @@ WASD layout, **not** the 1997 key layout; how to keep the original keys is at th
 
 | File | md5 |
 |---|---|
-| `controls/input.map` (this repo) | `90122d370333b545d27070f3f94b1265` |
+| `controls/input.map` (this repo) | `b1f352caf5f6da3525497d6ca3151b01` |
 | the daily driver's `input.map` | `a937f36dba46644d2b0f421097aede2f` |
 
-The difference is three added bindings and a corrected header comment; nothing was removed or moved:
+The difference is added bindings and a corrected header comment; nothing was removed or moved:
 
 - `1` = `hardpoint1_fire` (it had no binding at all; stock has it on `1`, and the pad layer's LB + RT types `1`);
 - `J` = `hardpoint1_fire` and `L` = `hardpoint2_fire`, right-hand home-row fire keys, as second blocks
   (alternatives, not chords) beside `1` and `2`;
 - the header comment now says `Enter fire` and `Space handbrake`, which is what the bindings always were.
+- (2026-10-07) the four external-camera orbit actions (`track_yaw_*`, `track_pitch_*`) also answer the arrows
+  **without** Shift, as alternative blocks: the pad's right stick sends plain arrows, so outside the car it did
+  nothing. In the cockpit the arrows still glance. Measured on the Steam Deck (chase view orbits, glance unchanged);
+  not yet pad-tested on Windows.
 
 The daily driver gets this map **by promotion after a pad test** (`tools\Promote-To-Driver.ps1`), together with
 the changed `i76-remap.ahk`. Until then the driver has the old map and the old pad layer.

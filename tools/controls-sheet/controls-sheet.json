@@ -94,12 +94,12 @@
   },
 
   "allow_shared_keys": {
-    "_readme": "Sets of actions that are MEANT to sit on one key (the game uses them in different screens). Any other two actions on one key fail the build.",
+    "_readme": "Sets of actions that are MEANT to sit on one key (the game uses them in different screens or views: since 2026-10-07 the arrows glance in the cockpit and orbit the external camera). Any other two actions on one key fail the build.",
     "sets": [
-      ["track_pitch_minus", "overview_z_minus"],
-      ["track_pitch_plus", "overview_z_plus"],
-      ["track_yaw_minus", "overview_x_minus"],
-      ["track_yaw_plus", "overview_x_plus"],
+      ["track_pitch_minus", "overview_z_minus", "pilot_glance_up"],
+      ["track_pitch_plus", "overview_z_plus", "pilot_glance_down"],
+      ["track_yaw_minus", "overview_x_minus", "pilot_glance_left"],
+      ["track_yaw_plus", "overview_x_plus", "pilot_glance_right"],
       ["track_distance_minus", "overview_zoom_minus", "zoom_factor_minus"],
       ["track_distance_plus", "overview_zoom_plus", "zoom_factor_plus"]
     ]

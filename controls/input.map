@@ -140,6 +140,21 @@ track_pitch_plus {
    + keyboard   GreyDownArrow
    + keyboard   Shift
 }
+# Orbit without Shift too (2026-10-07): the pad layer's right stick sends plain arrows, so outside
+# the car the stick did nothing. Alternatives, not chords; in the cockpit the same arrows still
+# glance (pilot_glance_*). Measured on the Steam Deck: chase view orbits, cockpit glance unchanged.
+track_yaw_minus {
+   + keyboard   GreyLeftArrow
+}
+track_yaw_plus {
+   + keyboard   GreyRightArrow
+}
+track_pitch_minus {
+   + keyboard   GreyUpArrow
+}
+track_pitch_plus {
+   + keyboard   GreyDownArrow
+}
 overview_z_plus {
    + keyboard   GreyDownArrow
    + keyboard   Shift

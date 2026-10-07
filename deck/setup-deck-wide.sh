@@ -60,6 +60,9 @@ if [ "${1:-}" = "--revert" ]; then
             rm -f "$INSTALL/$rel"; say "removed $rel (was absent before)"
         fi
     done < "$B/MANIFEST"
+    if [ -f "$GAME/input.map.pre-trackarrows" ]; then
+        mv -f "$GAME/input.map.pre-trackarrows" "$GAME/input.map"; say "restored input.map (before the arrow orbit)"
+    fi
     rm -f "$LAST"
     echo "Done. Launch options can stay: the wrapper launches bare without i76-env.sh."
     exit 0
@@ -200,6 +203,31 @@ elif [ -f "$GAME/ipxwrapper.dll" ]; then
     IPX=1; say "already installed"
 else
     say "not in the payload - skipped (LAN over IPX unavailable; see docs/MULTIPLAYER.md)"
+fi
+
+# ------------------------------------------- 3c. input.map: orbit on arrows --
+# The right stick sends plain arrows; the external camera orbit (track_yaw / track_pitch) was
+# Shift+arrows only, so outside the car the stick did nothing. Same change as controls/input.map
+# (2026-10-07; measured on the Deck: chase view orbits, cockpit glance unchanged). Alternatives,
+# both arrow token sets (this map binds both). Backup: input.map.pre-trackarrows.
+echo "== 3c. input.map: external camera on the arrows =="
+MAPF="$GAME/input.map"
+if [ ! -f "$MAPF" ]; then
+    say "no input.map yet - launch the game once, then re-run"
+elif grep -q "track-arrows" "$MAPF"; then
+    say "already present"
+else
+    [ -f "$MAPF.pre-trackarrows" ] || cp "$MAPF" "$MAPF.pre-trackarrows"
+    {
+        echo
+        echo "# --- track-arrows (deck/setup-deck-wide.sh): orbit the external camera with the plain arrows too."
+        echo "# Alternatives (separate blocks). Rollback: input.map.pre-trackarrows"
+        for pair in "track_yaw_minus Left" "track_yaw_plus Right" "track_pitch_minus Up" "track_pitch_plus Down"; do
+            set -- $pair
+            printf '%s {\n   + keyboard Grey%sArrow\n}\n%s {\n   + keyboard %sArrow\n}\n' "$1" "$2" "$1" "$2"
+        done
+    } >> "$MAPF"
+    say "added (backup: input.map.pre-trackarrows)"
 fi
 
 # ----------------------------------------------------- 4. the switch file ----
