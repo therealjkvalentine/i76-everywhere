@@ -134,14 +134,19 @@ python3 - "$GAME/dgVoodoo.conf" <<'PY'
 import re, sys
 p = sys.argv[1]
 t = open(p, encoding="latin-1").read()
-want = [  # (section, key, value, required)
-    ("General",    "ScalingMode",           "stretched",   True),   # fills 16:10; I76_ASPECT widens the camera to match
-    ("General",    "KeepWindowAspectRatio", "false",       False),
-    ("GeneralExt", "FPSLimit",              "0",           True),   # pacing: I76_GLIDE_REFRESH; physics: the fixed step
-    ("Glide",      "MemorySizeOfTMU",       "8192",        True),   # ONLY with I76_ZGLIDE_TMUFIX=1 (4096+ without it corrupts textures)
-    ("Glide",      "Resolution",            "1280x800",    True),   # the panel, 16:10
-    ("Glide",      "Antialiasing",          "4x",          True),
-    ("GlideExt",   "Dithering",             "forcealways", False),
+want = [  # (section, key, value, mode)  mode: req = must exist, opt = skip if absent, add = insert if absent
+    ("General",    "ScalingMode",           "stretched",   "req"),  # fills 16:10; I76_ASPECT widens the camera to match
+    ("General",    "KeepWindowAspectRatio", "false",       "opt"),
+    ("GeneralExt", "FPSLimit",              "0",           "req"),  # pacing: I76_GLIDE_REFRESH; physics: the fixed step
+    # Without this dgVoodoo switches to a 640x480 mode and Proton scales that mode to the panel
+    # keeping 4:3: a 1067x800 pillarbox whatever ScalingMode says (measured on the Deck 2026-10-06:
+    # child window 1067x800 at x=107). Fake fullscreen presents at the desktop's 1280x800.
+    # The key exists in 2.78.2 (the repo's 2.78 conf carries it empty).
+    ("GeneralExt", "FullscreenAttributes",  "fake",        "add"),
+    ("Glide",      "MemorySizeOfTMU",       "8192",        "req"),   # ONLY with I76_ZGLIDE_TMUFIX=1 (4096+ without it corrupts textures)
+    ("Glide",      "Resolution",            "1280x800",    "req"),   # the panel, 16:10
+    ("Glide",      "Antialiasing",          "4x",          "req"),
+    ("GlideExt",   "Dithering",             "forcealways", "opt"),
 ]
 sec_re = re.compile(r'(?m)^\[([^\]]+)\]\s*$')
 heads = [(m.group(1), m.start(), m.end()) for m in sec_re.finditer(t)]
@@ -150,14 +155,20 @@ def span(name):
         if n == name:
             return e, (heads[i + 1][1] if i + 1 < len(heads) else len(t))
     raise SystemExit("REFUSED: no [%s] section" % name)
-for sec, key, val, required in want:
+for sec, key, val, mode in want:
     a, b = span(sec)
     body = t[a:b]
     # value, then an optional inline "; comment" that is kept
     pat = re.compile(r'(?m)^(%s\s*=[ \t]*)([^;\r\n]*?)([ \t]*;[^\r\n]*)?$' % re.escape(key))
     hits = pat.findall(body)
-    if len(hits) == 0 and not required:
+    if len(hits) == 0 and mode == "opt":
         print("  [%s] %s: absent, left absent (optional)" % (sec, key))
+        continue
+    if len(hits) == 0 and mode == "add":
+        body = "\n%-37s= %s   ; added by deck/setup-deck-wide.sh" % (key, val) + body
+        t = t[:a] + body + t[b:]
+        heads = [(m.group(1), m.start(), m.end()) for m in sec_re.finditer(t)]
+        print("  [%s] %s: absent -> %s (added)" % (sec, key, val))
         continue
     if len(hits) != 1:
         raise SystemExit("REFUSED: [%s] %s occurs %d times" % (sec, key, len(hits)))

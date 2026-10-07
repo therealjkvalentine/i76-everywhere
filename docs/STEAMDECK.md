@@ -55,11 +55,17 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > touched file. dgVoodoo stays 2.78.2, controls are untouched (`I76_DECK_AHK=0`). **This
 > supersedes the 20 fps / 4:3 advice below** (QAM framerate limit off, not 20).
 > Installed on the owner's Deck (LCD, SteamOS 3.8.16) 2026-10-06 21:33, backup
-> `~/Games/Interstate76/backups/pre-wide-20261006-213343`. Not yet launched there; the proxy's
-> switches were proven under Wine 10 on the Mac with the same exe
-> ([PORTING-WINDOWS-WINS-TO-MAC.md](records/PORTING-WINDOWS-WINS-TO-MAC.md)), not under Proton.
-> Before the change the Deck stretched the 4:3 picture to 16:10 (`ScalingMode = stretched`);
-> the Hor+ camera is what makes that stretch correct. Its `ADDON\valepre4.vcf` is the non-stock
+> `~/Games/Interstate76/backups/pre-wide-20261006-213343`. **Run there the same evening (GE-Proton10-12,
+> desktop mode, launched through Steam with the wrapper):** every switch applied, as on the Mac under
+> Wine (`mciproxy.log`: aspect 20/20, HUD squeeze 2/2, framerate fixes 36/36, far clip 6/6, TMU fix,
+> Glide window at 60 Hz). Booted into T01 (`I76_MISSION=t01`, test only): cockpit fills the
+> 1280x800 panel, round radar and reticle, **60.0 fps steady** (`I76_FPS_LOG=5`, 6 windows; isolated
+> frames to 37-47 ms). Asking for 120 Hz (`I76_GLIDE_REFRESH=120`) still gave 60.0: presentation
+> is locked to the 60 Hz panel. Saves byte-identical afterwards. **Pillarbox found and fixed:**
+> with a real fullscreen mode change dgVoodoo runs 640x480 and Proton scales that mode keeping 4:3
+> (child window 1067x800 at x=107), so the Hor+ camera came out squeezed into a 4:3 box;
+> `[GeneralExt] FullscreenAttributes = fake` presents at 1280x800 (the setup script adds it).
+> Not checked: Game Mode (gamescope), driving with the physical controls, LAN play from the Deck. Its `ADDON\valepre4.vcf` is the non-stock
 > 4ed297ca, as on the Mac: pick a car other than Jade's for LAN games against a stock PC.
 
 ## Controller layout (installed as a template — apply once)
