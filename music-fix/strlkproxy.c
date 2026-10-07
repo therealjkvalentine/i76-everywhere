@@ -2215,6 +2215,7 @@ static void coop_ai_apply(BYTE *pkt, int size) {
 }
 static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
 static int g_coop_adopt = 1;                                /* I76_COOP_ADOPT=0: the host keeps a separate network car (diagnostic) */
+static int g_coop_hostmodel = 1;                            /* I76_COOP_HOSTMODEL=0: the joiner's mission player object keeps the local car model */
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
 static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played, g_coop_obj_sent, g_coop_obj_got;
@@ -2514,6 +2515,37 @@ static BYTE *coop_find_mission_player(void) {
     }
     return NULL;
 }
+/* The host's car model on the joiner. The object loader 0x4ad6f0 gives every player-flagged (0x10) object the LOCAL
+ * car file (`push 0x5dd370` 0x4ad750, the path the multiplayer menu set), so on the joiner the mission player object,
+ * which shows the host, had the joiner's car (and its weapon layout). The host is not known yet while a mission loads
+ * (host id 0, measured), but its car file is on disk from the mission before: the network join sends the host's .vcf
+ * and 0x455e60 writes it as nvclN.vcf, the name in the host's player table slot. So on a chain reload the joiner
+ * loads the mission player object from that file, if the game can open it (0x470340, the loader's own lookup).
+ * The first mission of a session still shows the joiner's model. Removing the object and showing the host's own
+ * network car instead crashed the joiner in the mission code that still refers to the player object (0x40c084). */
+static char g_coop_host_car[16];
+static const char *__cdecl coop_player_car(BYTE *o) {
+    const char *local = (const char *)0x005dd370;
+    if (!g_coop_chain || !g_coop_adopt || !g_coop_hostmodel || !g_coop_host_car[0] || !*(volatile int *)0x00541030) return local;
+    if (!o || !(o[0x10] & 0x10) || *(volatile WORD *)0x00541064) return local;   /* only during the load (host still 0) */
+    if (!((BYTE (__cdecl *)(const char *))0x00470340)(g_coop_host_car)) {
+        mlog("  coop-chain: mission player object - the host's '%s' cannot be opened, local car", g_coop_host_car);
+        return local;
+    }
+    mlog("  coop-chain: mission player object loads the host's car '%s' (local is '%s')", g_coop_host_car, local);
+    return g_coop_host_car;
+}
+static __declspec(naked) void coop_player_car_stub(void) {  /* replaces `push 0x5dd370` 0x4ad750 (5 bytes) */
+    __asm {
+        mov eax, [ebx]                          /* the object being loaded (0x4ad711) */
+        push eax
+        call coop_player_car
+        add esp, 4
+        pop ecx                                 /* our return address */
+        push eax                                /* what the original pushed */
+        jmp ecx
+    }
+}
 static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x451180` x7 */
     WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
     if (g_coop_chain && g_coop_adopt && *(volatile int *)0x00541030 && host && (WORD)id == host) {
@@ -2521,10 +2553,16 @@ static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size
         if (o) {
             unsigned __int64 nm = ((unsigned __int64 (__cdecl *)(short))0x00454800)((short)id);
             if (!nm && data && size) nm = ((unsigned __int64 (__cdecl *)(void *, size_t))0x00455e60)(data, size);
-            if ((WORD)id != me) *(DWORD *)(o + 0x10) = (*(DWORD *)(o + 0x10) & ~0x10u) | 0x20;
+            if ((WORD)id != me) {
+                char nm9[9]; int k;
+                *(DWORD *)(o + 0x10) = (*(DWORD *)(o + 0x10) & ~0x10u) | 0x20;
+                for (k = 0; k < 8; k++) nm9[k] = (char)(((BYTE *)&nm)[k] & 0x7f);
+                nm9[8] = 0;
+                if (nm9[0]) sprintf(g_coop_host_car, "%s.vcf", nm9);   /* for the next load, coop_player_car */
+            }
             ((int (__cdecl *)(short, DWORD, DWORD, BYTE *))0x00454750)((short)id, (DWORD)nm, (DWORD)(nm >> 32), o);
             g_coop_adopted++;
-            mlog("  coop-chain: host (id %u) %s the mission's player object %p (%.8s)", id, (WORD)id == me ? "drives" : "is shown as", o, (char *)&nm);
+            mlog("  coop-chain: host (id %u) %s the mission's player object %p (%.8s; model %.8s)", id, (WORD)id == me ? "drives" : "is shown as", o, (char *)&nm, (char *)o);
             return (char *)o;
         }
     }
@@ -2698,7 +2736,13 @@ static void apply_coop_ai(HMODULE exe) {
                     if (patch_bytes(sp[q], o5, w5, 5, "coop-chain: spawn")) ok++;
                 }
                 mlog("  coop-chain: %d/7 spawn sites adopt the mission player object for the host", ok);
+                {   BYTE pu[5] = { 0x68, 0x70, 0xd3, 0x5d, 0x00 }, cl[5] = { 0xE8 };
+                    LONG ac = (LONG)((DWORD_PTR)coop_player_car_stub - (0x004ad750 + 5));
+                    memcpy(cl + 1, &ac, 4);
+                    patch_bytes(0x004ad750, pu, cl, 5, "coop-chain: mission player car (host's model on the joiner)");
+                }
                 { char av[8]; DWORD ak = GetEnvironmentVariableA("I76_COOP_ADOPT", av, sizeof(av)); if (ak && ak < sizeof(av) && av[0] == '0') { g_coop_adopt = 0; mlog("  coop-chain: adoption OFF (I76_COOP_ADOPT=0)"); } }
+                { char hv[8]; DWORD hk = GetEnvironmentVariableA("I76_COOP_HOSTMODEL", hv, sizeof(hv)); if (hk && hk < sizeof(hv) && hv[0] == '0') { g_coop_hostmodel = 0; mlog("  coop-chain: host model on the joiner OFF (I76_COOP_HOSTMODEL=0)"); } }
             }
             mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
         }

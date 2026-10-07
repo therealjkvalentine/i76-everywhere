@@ -47,8 +47,12 @@ multiplayer menu, starting beside the host.
 ## Not done / known gaps
 
 - **On-screen text messages** from the script (if any beyond the radio and the notepad) are the host's only.
-- **The host's car looks like the buddy's chosen model** on the buddy's screen (the mission's player object takes the
-  local car file). Position, damage and gunfire are right.
+- **In the first mission of a session the host's car looks like the buddy's chosen model** on the buddy's screen
+  (the mission's player object takes the local car file, and the host is not known yet while it loads). From the
+  second mission on the buddy loads it from the host's own car file, which the game already received (`NVCL\nvcl0.vcf`;
+  measured: buddy "GTA2", host "Jade's Car", reloads show "Jade's Car"). `I76_COOP_HOSTMODEL=0` turns this off.
+  Removing the object and showing the host's own network car instead crashed the buddy (the mission code still
+  refers to it).
 - **Brief host hand-over during a reload:** while the host reloads (a few seconds) ANet may make the buddy host; the
   lower id (the original host) takes it back. Seen once, no harm measured.
 - **Max-score option:** AI cars carry owner id 0 into the game's score code; harmless with MAX SCORE off (the default),
