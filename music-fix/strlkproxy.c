@@ -2036,7 +2036,7 @@ static void apply_ai_backaway_grid(void) {
  * MEASURED 2026-10-06 (docs/COOP-SPIKE.md "Measured"): IPX game, PC host + Mac joiner, arena M01 cut to two spawns with a
  * parked tractor / bus 20 m ahead of each, 3 s of 50 cal (hardpoint 1), armour read in the host's memory. Per hit:
  * host's own shots 25.0 stock -> 12.0 at 0.5 (725 vs 348 over 29 hits, twice, identical); the Mac's shots on the host
- * 12.0 at 0.5 (516 / 43 hits, all 43 credited through the network table). 25 x 0.5 = 12.5 is truncated to 12.
+ * 12.0 at 0.5 (516 / 43 hits, all 43 credited through the network table). 25 x 0.5 = 12.5 is truncated to 12. */
 static DWORD g_coop_dmg_bits;                               /* the factor as float bits, written into the caller's slot */
 static int __cdecl coop_is_human(BYTE *obj) {               /* replaces `call 0x458bf0` (cdecl, 1 arg) at both sites */
     int i;
