@@ -130,7 +130,7 @@
       {"control": "A",  "layer": "base",  "at": "A(hold 400ms)",     "sends": ["6"],                "expect": ["special1"],          "how": "hold 0.4 s"},
       {"control": "B",  "layer": "base",  "at": "B(tap)",            "sends": ["Tab"],               "expect": ["weapon_cycle"],      "how": "tap"},
       {"control": "X",  "layer": "base",  "at": "X",                 "sends": ["y"],                "expect": ["next_target"],       "how": ""},
-      {"control": "Y",  "layer": "base",  "at": "Y",                 "sends": ["F3", "F1"],         "expect": [null, null],          "how": "alternates"},
+      {"control": "Y",  "layer": "base",  "at": "Y",                 "sends": ["F3", "F1"],         "expect": [null, null],          "how": "cycles: chase, cockpit without dash, cockpit with dash", "label": "View cycle"},
       {"control": "Back",  "layer": "base", "at": "Select",          "sends": ["Esc"],              "expect": [null],                "how": ""},
       {"control": "Start", "layer": "base", "at": "Start",           "sends": ["m"],                "expect": ["show_map"],          "how": ""},
       {"control": "D-pad up",    "layer": "base", "at": "Dpad-Up",    "sends": ["h"],               "expect": ["toggle_lights"],     "how": ""},

@@ -186,7 +186,7 @@ SetTimer, WheelPoll, 15
 ; @pad A(hold 400ms): NITROUS while held
 ; @pad B(tap): cycle weapon (Tab)
 ; @pad X: cycle targets (Y)
-; @pad Y: toggle chase cam <-> cockpit (F3/F1)
+; @pad Y: view cycle - chase cam (F3), cockpit without dash (F1 twice), cockpit with dash (F1)
 ; @pad LB(tap): front target (Q)
 ; @pad RB: handbrake (Space, hold)
 ; @pad Select: pause menu / skip cutscene (Esc)
@@ -219,7 +219,7 @@ Loop, Parse, % "xinput1_4.dll,xinput1_3.dll,xinput9_1_0.dll", `,
 gXIPad := 0, gXIPrevBtns := 0, gRTHeld := false, gLTHeld := false
 gLBPrev := false, gLBUsed := false, gLBt0 := 0
 gAPrev := false, gAt0 := 0, gANitro := false, gBPrev := false, gSelPrev := false
-gYPrev := false, gCamIdx := 0, gYExt := false
+gYPrev := false, gCamIdx := 0, gYView := 0
 gRBSpace := false    ; RB holds Space (handbrake); see XIPoll
 gTL := 0, gTR := 0, gTTicks := 0, gGrowl := 0
 ; ---- RUMBLE OWNERSHIP (2026-07-19) ----
@@ -519,17 +519,32 @@ gBPrev := bHeld
 RSGSet("y", !lbHeld && xHeld)
 RSGSet("r", lbHeld && xHeld)
 
-; Y: base = chase <-> cockpit toggle (F3/F1); shifted = cycle camera views
+; Y: base = view cycle (owner 2026-10-07): dash cockpit -> chase -> cockpit without the dash ->
+; dash cockpit. Engine behaviour it relies on, measured on the Steam Deck 2026-10-07 (mission T01,
+; screenshots after each key): F1 in the cockpit toggles the 3D dash <-> the open view with small 2D
+; gauges; F1 from an outside view goes back to the cockpit mode last used; F3 = close chase camera.
+; gYView: 0 dash cockpit (how a mission opens), 1 chase, 2 no dash. The cycle only ever leaves the
+; cockpit from state 0, so "last used" is the dash and state 2 is F1 (back in) + F1 (dash off).
+; The two F1s are 120 ms apart so the game sees two presses even at stock 20 fps (50 ms frames).
+; Shifted (LB+Y) = step through every view; it re-syncs the cycle (F1 = cockpit, anything else = out).
 if (!lbHeld && yHeld && !gYPrev) {
-    gYExt := !gYExt
-    yKey := gYExt ? "F3" : "F1"
-    SendEvent, {%yKey%}
-    gCamIdx := gYExt ? 2 : 0     ; keep the LB+Y cycle in step
+    gYView := Mod(gYView + 1, 3)
+    if (gYView = 1) {
+        SendEvent, {F3}
+    } else if (gYView = 2) {
+        SendEvent, {F1}
+        Sleep, 120
+        SendEvent, {F1}
+    } else {
+        SendEvent, {F1}
+    }
+    gCamIdx := (gYView = 1) ? 2 : 0     ; keep the LB+Y cycle in step
 }
 if (lbHeld && yHeld && !gYPrev) {
     gCamIdx := Mod(gCamIdx + 1, 8)
     camKey := StrSplit("F1,F2,F3,F7,F8,F9,F10,F1", ",")[gCamIdx + 1]
     SendEvent, {%camKey%}
+    gYView := (camKey = "F1") ? 0 : 1
 }
 gYPrev := yHeld
 

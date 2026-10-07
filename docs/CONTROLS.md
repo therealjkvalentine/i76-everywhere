@@ -192,7 +192,7 @@ Connect the pad **before** launching: the engine lists joysticks once, at startu
 The layout, every button and the LB layer, is page 2 of the
 [quick reference](Interstate76-Controls-Quick-Reference.pdf), which is built from the script's `@pad` lines and
 checked against the keys its code sends. In short: RT fires, LT is hardpoint 2, RB is the handbrake, A is a single shot (and OK in
-menus) and nitrous when held, B cycles the weapon, X is the next target, Y switches cockpit and chase camera, the right stick looks
+menus) and nitrous when held, B cycles the weapon, X is the next target, Y cycles the views (chase camera, cockpit without the dash, cockpit with the dash), the right stick looks
 around, R3 looks at the target, L3 is nitrous (reverse when pressed with the stick pulled back), the D-pad is
 lights / ignition / notepad / map, Back is Esc, Start is the map.
 
