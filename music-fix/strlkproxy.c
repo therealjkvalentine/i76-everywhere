@@ -2205,7 +2205,8 @@ static void coop_ai_apply(BYTE *pkt, int size) {
     for (j = 0; j < n; j++) {
         BYTE *r = pkt + 8 + j * 100; int i = *(WORD *)r; float t = *(float *)(r + 4);
         BYTE *o = coop_ai_object(i, count, tab);
-        if (!o || t <= g_coop_ai_seen[i]) continue;
+        if (!o) continue;
+        if (t <= g_coop_ai_seen[i] && t > g_coop_ai_seen[i] - 2.0f) continue;   /* older than the last one (time restarts on a reload) */
         g_coop_ai_seen[i] = t;
         g_coop_ai_mask[i] = r[2]; g_coop_ai_until[i] = GetTickCount() + 150;
         ((void (__cdecl *)(BYTE *, float *))0x00464890)(o, (float *)(r + 4));
@@ -2214,12 +2215,17 @@ static void coop_ai_apply(BYTE *pkt, int size) {
 }
 static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
+static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
+static volatile LONG g_coop_adopted;
+static int g_coop_diag; static void coop_sb_log(void);
 static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
     if (!real_dpReceive) return;
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
+    len += sprintf(buf + len, ", retargets %ld, adopted %ld", g_coop_retarget, g_coop_adopted);
+    if (g_coop_diag) { static int t; if (++t % 2 == 0) coop_sb_log(); }
     if (g_coop_chain) len += sprintf(buf + len, ", chain AM sent %ld got %ld, mission %.12s", g_coop_chain_sent, g_coop_chain_got, (char *)0x005049f0);
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
     if (tab && count > 0 && count <= 2048 && *(volatile int *)0x004c2164 == 5)
@@ -2373,6 +2379,85 @@ static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner, in the pum
     *(volatile int *)0x004c2164 = 7;
     g_coop_chain_got++;
 }
+/* Enemies only know one player: the scripts aim at "player" (the host's car). On the host, all 9 calls of
+ * ai_SetBehaviour 0x412830 go through here; any behaviour with a human target except follow (0x1e) retargets to the
+ * nearest live human car (wingmen still follow the script's player). First version only did attack/evade/race: in T05
+ * t05cm03 stayed on the host 700 m away with the joiner 27 m from it (another behaviour). T04's gang
+ * uses only evade (0x412fad, behaviour 24, the player as threat; I76_COOP_AI_DIAG=1 counts per site), and fires from
+ * ai_SetBehaviour's fire decision at that target. The joiner sees the fire through the replayed triggers and takes the
+ * hits on its own car. */
+static int __cdecl coop_ai_attack(BYTE *a, BYTE *t, int b, int x) {
+    int human = 0, k0;
+    if (t && (t[0x10] & 0x10)) human = 1;
+    else if (t) for (k0 = 0; k0 < 16; k0++) { BYTE *p = (BYTE *)0x00541070 + k0 * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == t) { human = 1; break; } }
+    if (b != 0x1e && a && human && coop_ai_role() == 1) {   /* every behaviour aimed at a human except follow */
+        double ax = *(double *)(a + 0x40), az = *(double *)(a + 0x50), best = 1e30; BYTE *pick = t; int k;
+        for (k = 0; k < 16; k++) {
+            BYTE *p = (BYTE *)0x00541070 + k * 0x48, *o;
+            if (!*(WORD *)p || !(o = *(BYTE **)(p + 0x28)) || !*(BYTE **)(o + 0x70) || ((*(BYTE **)(o + 0x70))[0x454] & 0x20)) continue;
+            { double dx = *(double *)(o + 0x40) - ax, dz = *(double *)(o + 0x50) - az, d = dx * dx + dz * dz; if (d < best) { best = d; pick = o; } }
+        }
+        if (pick != t) g_coop_retarget++;
+        t = pick;
+    }
+    return ((int (__cdecl *)(BYTE *, BYTE *, int, int))0x00412830)(a, t, b, x);
+}
+static LONG g_coop_sb_hist[9][40];                          /* diagnostics (I76_COOP_AI_DIAG=1): ai_SetBehaviour behaviour ids per site */
+static LONG g_coop_sb_human[9];
+#define COOP_SB_STUB(n) static int __cdecl coop_sb_##n(BYTE *a, BYTE *t, int b, int x) { \
+    int k; if (b >= 0 && b < 40) g_coop_sb_hist[n][b]++; \
+    if (t && (t[0x10] & 0x10)) g_coop_sb_human[n]++; else if (t) for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == t) { g_coop_sb_human[n]++; break; } } \
+    return coop_ai_attack(a, t, b, x); }
+COOP_SB_STUB(0) COOP_SB_STUB(1) COOP_SB_STUB(2) COOP_SB_STUB(3) COOP_SB_STUB(4) COOP_SB_STUB(5) COOP_SB_STUB(6) COOP_SB_STUB(7) COOP_SB_STUB(8)
+static void coop_sb_log(void) {
+    char line[900]; int n, b, len;
+    static const DWORD sites[9] = { 0x40a232, 0x412dac, 0x412def, 0x412e32, 0x412e9c, 0x412f11, 0x412fad, 0x413049, 0x414046 };
+    len = sprintf(line, "  coop-ai diag: SetBehaviour calls by site:");
+    for (n = 0; n < 9; n++) {
+        int any = 0; for (b = 0; b < 40; b++) if (g_coop_sb_hist[n][b]) any = 1;
+        if (!any) continue;
+        len += sprintf(line + len, " [%06lx human %ld:", (unsigned long)sites[n], g_coop_sb_human[n]);
+        for (b = 0; b < 40; b++) if (g_coop_sb_hist[n][b]) len += sprintf(line + len, " b%d=%ld", b, g_coop_sb_hist[n][b]);
+        len += sprintf(line + len, "]");
+    }
+    mlog("%s", line);
+}
+/* The mission's own player object (the ODEF record with objFlags 0x10, label e.g. 'vppirna1') is what the script
+ * watches ("keep up", "isDead player", attack targets). A network game spawns a NEW car for every player (0x451180),
+ * so the host drove a different object and the script followed a stand-in (measured 2026-10-07 in T05: label object
+ * 0x136EF034 flags 0x10810 vs the host's table car 0x1371F16C flags 0x810, 3 km apart). With I76_COOP_CHAIN the spawn
+ * of the HOST's car instead adopts the unclaimed mission player object, on both machines: linked to the host's id
+ * through 0x454750 (table car + entity+0x480); on the joiner it is the host's remote car (flag 0x10 -> 0x20, as
+ * 0x451180 marks remote cars). On the joiner that object carries the joiner's car model (the player vcf substitution
+ * uses the local car name 0x5dd370): cosmetic. A host respawn finds it claimed and spawns normally (the mission has
+ * failed by then). */
+static BYTE *coop_find_mission_player(void) {
+    BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i, k;
+    if (!tab || count <= 0 || count > 2048) return NULL;
+    for (i = 0; i < count; i++) {
+        BYTE *o = *(BYTE **)(tab + i * 16 + 8);
+        if (!o || *(int *)(o + 0x6c) != 1 || !(o[0x10] & 0x10) || !*(BYTE **)(o + 0x70) || ((*(BYTE **)(o + 0x70))[0x454] & 0x20)) continue;
+        for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == o) break; }
+        if (k == 16) return o;
+    }
+    return NULL;
+}
+static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x451180` x7 */
+    WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
+    if (g_coop_chain && *(volatile int *)0x00541030 && host && (WORD)id == host) {
+        BYTE *o = coop_find_mission_player();
+        if (o) {
+            unsigned __int64 nm = ((unsigned __int64 (__cdecl *)(short))0x00454800)((short)id);
+            if (!nm && data && size) nm = ((unsigned __int64 (__cdecl *)(void *, size_t))0x00455e60)(data, size);
+            if ((WORD)id != me) *(DWORD *)(o + 0x10) = (*(DWORD *)(o + 0x10) & ~0x10u) | 0x20;
+            ((int (__cdecl *)(short, DWORD, DWORD, BYTE *))0x00454750)((short)id, (DWORD)nm, (DWORD)(nm >> 32), o);
+            g_coop_adopted++;
+            mlog("  coop-chain: host (id %u) %s the mission's player object %p (%.8s)", id, (WORD)id == me ? "drives" : "is shown as", o, (char *)&nm);
+            return (char *)o;
+        }
+    }
+    return ((char *(__cdecl *)(unsigned, int, int, void *, size_t))0x00451180)(id, idx, type, data, size);
+}
 static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
     if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
     return ((int (__cdecl *)(int))0x0040a320)(a);
@@ -2388,20 +2473,39 @@ static void apply_coop_ai(HMODULE exe) {
          real_dpReceive ? "hooked" : "NOT hooked",
          patch_bytes(0x00403ddf, old, w, 5, "coop-ai: ai_FrameTick") ? "repointed" : "NOT repointed");
     {   /* AI trigger pulls (host records them) and the damage entry (joiner blocks it for mirrored cars) */
-        static const struct { DWORD site, target; void *stub; } c[6] = {
+        static const struct { DWORD site, target; void *stub; } c[15] = {
             { 0x00414f86, 0x004a3560, (void *)coop_ai_trigger },
             { 0x00465e5a, 0x00462040, (void *)coop_ai_class_damage }, { 0x0046648f, 0x00462040, (void *)coop_ai_class_damage },
             { 0x0046aae4, 0x00462040, (void *)coop_ai_class_damage }, { 0x004a81d3, 0x00462040, (void *)coop_ai_class_damage },
             { 0x004a8266, 0x00462040, (void *)coop_ai_class_damage },
+            { 0x00412dac, 0x00412830, (void *)coop_ai_attack }, { 0x0040a232, 0x00412830, (void *)coop_ai_attack },
+            { 0x00412def, 0x00412830, (void *)coop_ai_attack }, { 0x00412e32, 0x00412830, (void *)coop_ai_attack },
+            { 0x00412e9c, 0x00412830, (void *)coop_ai_attack }, { 0x00412f11, 0x00412830, (void *)coop_ai_attack },
+            { 0x00412fad, 0x00412830, (void *)coop_ai_attack }, { 0x00413049, 0x00412830, (void *)coop_ai_attack },
+            { 0x00414046, 0x00412830, (void *)coop_ai_attack },
         };
+        static const struct { DWORD site; void *stub; } dg[9] = { { 0x40a232, (void *)coop_sb_0 }, { 0x412dac, (void *)coop_sb_1 },
+            { 0x412def, (void *)coop_sb_2 }, { 0x412e32, (void *)coop_sb_3 }, { 0x412e9c, (void *)coop_sb_4 }, { 0x412f11, (void *)coop_sb_5 },
+            { 0x412fad, (void *)coop_sb_6 }, { 0x413049, (void *)coop_sb_7 }, { 0x414046, (void *)coop_sb_8 } };
+        char dv[8]; DWORD dk = GetEnvironmentVariableA("I76_COOP_AI_DIAG", dv, sizeof(dv));
         int i, n = 0;
-        for (i = 0; i < 6; i++) {
+        for (i = 0; i < 15; i++) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
-        mlog("  coop-ai: %d/6 trigger + damage sites repointed", n);
+        mlog("  coop-ai: %d/15 trigger + damage + SetBehaviour sites repointed", n);
+        if (dk && dk < sizeof(dv) && dv[0] == '1') {
+            int m = 0;
+            for (i = 0; i < 9; i++) {
+                BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 }, cur[5];
+                LONG a1 = (LONG)((DWORD_PTR)dg[i].stub - (dg[i].site + 5)), a0 = (LONG)(0x00412830 - (dg[i].site + 5));
+                memcpy(cur, (void *)dg[i].site, 5); memcpy(w5 + 1, &a1, 4); memcpy(o5 + 1, &a0, 4);
+                if (cur[0] == 0xE8) { DWORD old; if (VirtualProtect((void *)dg[i].site, 5, PAGE_EXECUTE_READWRITE, &old)) { memcpy((void *)dg[i].site, w5, 5); VirtualProtect((void *)dg[i].site, 5, old, &old); m++; } }
+            }
+            g_coop_diag = 1; mlog("  coop-ai diag: %d/9 SetBehaviour sites instrumented", m);
+        }
     }
     {   char c8[8]; DWORD kk = GetEnvironmentVariableA("I76_COOP_CHAIN", c8, sizeof(c8));
         if (kk && kk < sizeof(c8) && c8[0] == '1') {
@@ -2412,6 +2516,15 @@ static void apply_coop_ai(HMODULE exe) {
             a0 = (LONG)(0x00452d30 - (0x00404662 + 5)); a1 = (LONG)((DWORD_PTR)coop_netflag - (0x00404662 + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             if (!patch_bytes(0x00404662, o5, w5, 5, "coop-chain: teardown net flag")) g_coop_chain = 0;
+            {   static const DWORD sp[7] = { 0x403ab8, 0x403cd5, 0x456161, 0x456a6c, 0x456bbc, 0x456cec, 0x456f17 };
+                int q, ok = 0;
+                for (q = 0; q < 7; q++) {
+                    a0 = (LONG)(0x00451180 - (sp[q] + 5)); a1 = (LONG)((DWORD_PTR)coop_spawn - (sp[q] + 5));
+                    memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
+                    if (patch_bytes(sp[q], o5, w5, 5, "coop-chain: spawn")) ok++;
+                }
+                mlog("  coop-chain: %d/7 spawn sites adopt the mission player object for the host", ok);
+            }
             mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
         }
     }
