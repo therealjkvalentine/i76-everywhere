@@ -2296,6 +2296,16 @@ static WORD g_coop_group; static DWORD g_coop_group_wait;    /* the session's ga
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
+    if (g_coop_chain && *(volatile int *)0x00541030 && *(volatile int *)0x004c2164 != 5) {   /* diagnostics while not playing */
+        static DWORD lastw; DWORD now = GetTickCount();
+        if (now - lastw > 5000) {
+            lastw = now;
+            mlog("  coop-chain: waiting - state %d, group %u (kept %u), in-game %d, pump-exit %d, me %u, host %u, players %d",
+                 *(volatile int *)0x004c2164, *(volatile WORD *)0x00541060, g_coop_group, *(volatile int *)0x00541034,
+                 *(volatile int *)0x00609320, *(volatile WORD *)0x00541028, *(volatile WORD *)0x00541064,
+                 ((int (__cdecl *)(void))0x00454610)());
+        }
+    }
     if (g_coop_chain) {
         /* net_WaitForGroupThenEnumPlayers 0x454090 (every load) clears the group 0x541060 and loops dpReceive +
          * dpEnumGroups until a group shows up. After a chain reload the joiner sometimes never saw it again (stuck in
@@ -2375,10 +2385,12 @@ static int coop_chain_next(const char *cur, char *out) {    /* m01 -> m42, m41..
     sprintf(out, "m%02d.msn", n);
     return 1;
 }
+static BYTE g_coop_am_seq;                                  /* host: number of the reload; joiner: last one applied */
 static void coop_chain_send(int kind, const char *name) {
     BYTE pkt[20]; int i;
     memset(pkt, 0, sizeof(pkt));
-    *(WORD *)pkt = COOP_AM_PKT; pkt[3] = (BYTE)kind; strncpy((char *)pkt + 4, name, 15);
+    if (++g_coop_am_seq == 0) g_coop_am_seq = 1;
+    *(WORD *)pkt = COOP_AM_PKT; pkt[2] = g_coop_am_seq; pkt[3] = (BYTE)kind; strncpy((char *)pkt + 4, name, 15);
     for (i = 0; i < 3; i++)
         if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
                                                 ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, sizeof(pkt)) == 0) g_coop_chain_sent++;
@@ -2399,9 +2411,10 @@ static void __cdecl coop_chain_at_end(char *winmain_esp) {
     }
     if (*state == 7 && g_coop_next[0]) {
         g_coop_reload_pending = 1;
-        strncpy(setup_name, g_coop_next, 15); setup_name[15] = 0;
-        strncpy(cur, g_coop_next, 15); cur[15] = 0;
-        mlog("  coop-chain: %s reloads as '%s'", role == 1 ? "host" : "joiner", g_coop_next);
+        /* exactly strlen + 1 bytes: the setup block's field size is not known, and a 16-byte strncpy zero-filled
+         * whatever follows "mNN.msn" (suspect for the rare teardown heap crash, 2026-10-07) */
+        { size_t L = strlen(g_coop_next); if (L > 12) L = 12; memcpy(setup_name, g_coop_next, L); setup_name[L] = 0; memcpy(cur, g_coop_next, L); cur[L] = 0; }
+        mlog("  coop-chain: %s reloads as '%s' (reload #%u)", role == 1 ? "host" : "joiner", g_coop_next, g_coop_am_seq);
         g_coop_next[0] = 0;
     }
 }
@@ -2419,6 +2432,10 @@ static __declspec(naked) void coop_chain_stub(void) {       /* replaces `call 0x
 static char g_coop_pending_am[16];                          /* an 'AM' that arrived while this machine was loading */
 static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner (or not yet sure), in the pump */
     if (size < 20 || !g_coop_chain) return;
+    /* the 3 copies of one reload: the 2nd and 3rd often sit in the queue through the joiner's load and arrived once its
+     * mission ran, which reloaded it a second time and left it stuck in state 7 (fast-chain run 2026-10-07) */
+    if (pkt[2] && pkt[2] == g_coop_am_seq) return;
+    if (pkt[2]) g_coop_am_seq = pkt[2];
     g_coop_chain_got++;
     if (*(volatile int *)0x004c2164 != 5 || !coop_ai_in_mission()) {   /* loading: keep it for when the mission runs */
         strncpy(g_coop_pending_am, (char *)pkt + 4, 15); g_coop_pending_am[15] = 0;

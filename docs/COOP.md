@@ -40,6 +40,7 @@ multiplayer menu, starting beside the host.
 | Objectives (notepad) | the script's success / fail / reveal actions are forwarded ('AO') and applied on the buddy; a late joiner gets every objective's flags once its car exists for 3 s | T01: host 2 objective events, buddy applied 2; late join: 4 objective states applied |
 | Joining late | nothing special: the movies are out of the mission files | buddy joined ~50 s into T01 and played on |
 | Next mission / retry | won -> both reload the next co-op mission in the same session; lost -> both reload the same one ('AM' + the game's Replay path, network kept up) | forced win T01 -> T02 on both; script-engine win -> T02; natural losses (host killed, objective failed) retried, several times in a row |
+| The whole campaign loads | wins forced through the script engine's success path, one mission after another | all 17 co-op missions (T01..T17) on both machines, 0 crashes; T17's win ends the game normally; the whole chain at 30 s per mission, both machines in step at every mission, one reload each (16/16) |
 | Buddy respawns | the buddy requests a respawn by itself 5 s after dying | two self-destructs, a new car each time |
 | Difficulty | co-op damage factor | 25 -> 12 per hit at 0.5, for the host's and the buddy's shots |
 
@@ -54,8 +55,15 @@ multiplayer menu, starting beside the host.
   not tested on.
 - **A natural full-campaign run** (17 missions played through) has not been done; wins were forced through the
   script engine's own success path.
-- One crash seen once (Windows' AcGenral heap shim during a reload, before the network-flag fix) has not come back in
-  ~10 reloads since.
+- **A rare host crash at a reload:** Windows' compatibility shim (AcGenral, applied to i76.exe by Windows' own database)
+  crashed in `HeapDestroy` of the weapon-debris heap during the teardown (0x4a2cd0), twice in about 50 reloads, both
+  with a joiner present. Not reproduced without co-op; cause not found. Suspect fixed 2026-10-07: the next-mission name
+  was written as 16 bytes into WinMain's setup block (now exactly its length). Mac (Wine) never showed it.
+- **Back-to-back reloads** (faster than real play) once left the joiner waiting for the session group forever; it now
+  reuses the last group id after 3 s, and an 'AM' that arrives during a load is applied after it. The host sends each
+  'AM' three times; the spare copies could wait in the queue through the joiner's load and reload it a second time,
+  which stranded it in state 7. Each 'AM' now carries the reload's number and copies are dropped (fixed and re-measured
+  2026-10-07, 16/16).
 
 ## How it fits together (for the next person)
 
