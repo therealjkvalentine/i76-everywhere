@@ -46,6 +46,8 @@ Options (original 1997 keys, 20 fps stock, widescreen, another folder) and undoi
 **Playing together at home:** IPX through IPXWrapper ([docs/MULTIPLAYER.md](docs/MULTIPLAYER.md)). A Windows PC hosted
 and a Mac joined the same arena on 2026-10-06. The game's INTERNET option does not work between machines on one home
 network. Online, the community plays Nitro Pack through a community lobby; the same page says how.
+**Co-op campaign (experimental):** two players through the story missions, the host as the hero and the buddy in
+their own car, sharing the enemies, radio and progress: [docs/COOP.md](docs/COOP.md).
 
 **If it goes wrong**
 - Hangs on "PLEASE STAND BY": you are connected over Remote Desktop. Play at the machine itself.

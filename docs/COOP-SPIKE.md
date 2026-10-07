@@ -1,5 +1,7 @@
 # Co-op spike: a campaign mission as a network game (2026-10-06)
 
+*Development record. The feature as it stands, and how to play it: [COOP.md](COOP.md).*
+
 **Question:** can two players be in a campaign (TRIP) mission together, using the game's own network code?
 **Answer from this spike: they can be in it together, today, with a data-only change. It is not co-op yet:** the
 mission script and the AI still run separately on each machine, and the script follows a car of its own rather
@@ -30,13 +32,12 @@ Mac (f00bad90 / abb41681). Two changes to mission T01 ("keep up with Taurus"):
 | the Mac holds W for 8 s | in the **PC's** memory, the Mac's car moved 142 m north from its spawn point. Two other cars moved ~350 m in the same 8 s (the convoy, driven by the PC's own AI and script) |
 | two minutes in, version B | still game state 5 on the PC; no failure while the Mac was driving |
 
-**Correction (same day, later runs): the host IS the mission's player.** The first reading below the table said the
-script followed "a third car". Re-measured: the host's network vehicle (player table slot 0) is an object with the
-player flag (`+0x10` = 0x810), its entity (`object + 0x70`) is the world root, and the host's view opens at T01's
-normal start behind Taurus, not at a spawn point. The car that "moved with the convoy" while the host was idle was the
-host's own: T01 opens with a scripted stretch that drives the player's car and locks the controls (the fire key did
-nothing for the first ~20 s in every run). The car created at the host's spawn point is a spare that just sits there.
-So the script judges the host, as in single player. The joiner's car is the one placed at a spawn point.
+**Second correction (2026-10-07): the first reading was right.** A same-day "correction" here said the host *was*
+the mission's player because table slot 0 carried the player bit (0x810) and its entity was the world root. Both
+objects carry that bit: the mission's player object (label `vppirna1`, flags 0x10810) and the host's network-spawned car
+(0x810) are different objects (T05: 3 km apart). The script watched the stand-in, which the opening sequence drives and
+then leaves. Fixed in the proxy: with `I76_COOP_CHAIN` the host's spawn adopts the mission player object
+([COOP.md](COOP.md)).
 
 ## What this means for real co-op
 
