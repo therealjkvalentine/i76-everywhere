@@ -2216,7 +2216,7 @@ static void coop_ai_apply(BYTE *pkt, int size) {
 static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
-static volatile LONG g_coop_adopted, g_coop_respawns;
+static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played;
 static int g_coop_diag; static void coop_sb_log(void);
 static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
@@ -2224,7 +2224,7 @@ static void coop_ai_log(void) {                            /* after each fps lin
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
-    len += sprintf(buf + len, ", retargets %ld, adopted %ld, respawns %ld", g_coop_retarget, g_coop_adopted, g_coop_respawns);
+    len += sprintf(buf + len, ", retargets %ld, adopted %ld, respawns %ld, cb sent %ld played %ld", g_coop_retarget, g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played);
     if (g_coop_diag) { static int t; if (++t % 2 == 0) coop_sb_log(); }
     if (g_coop_chain) len += sprintf(buf + len, ", chain AM sent %ld got %ld, mission %.12s", g_coop_chain_sent, g_coop_chain_got, (char *)0x005049f0);
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
@@ -2280,6 +2280,9 @@ static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces
     return ((int (__cdecl *)(BYTE *, int, int))0x00462040)(o, a, rec);
 }
 #define COOP_AM_PKT 0x4d41                                   /* 'AM' (co-op chain, below) */
+#define COOP_AC_PKT 0x4341                                   /* 'AC' (CB radio line, below) */
+static void coop_cb_receive(BYTE *pkt, int size);
+static void coop_cb_flush(void); static volatile LONG g_coop_cb_qn;
 static void coop_chain_receive(BYTE *pkt, int size);
 static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: packets in one unbroken pump loop */
 static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
@@ -2297,7 +2300,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         if (g_coop_rx_n >= 64) g_coop_rx_n = 0;
     }
     g_coop_ai_role = role;
-    if (role == 1) coop_ai_host_send();
+    if (role == 1) { coop_ai_host_send(); if (g_coop_cb_qn) coop_cb_flush(); }
     else if (role == 2) {
         coop_ai_joiner_fire();
         if (g_coop_chain && coop_ai_in_mission()) {          /* the joiner respawns by itself (RAISE_DEAD has no key) */
@@ -2315,6 +2318,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT) coop_chain_receive((BYTE *)buf, *(int *)size);
+    if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AC_PKT) coop_cb_receive((BYTE *)buf, *(int *)size);
     return r;
 }
 /* CO-OP CAMPAIGN CHAIN (I76_COOP_CHAIN=1 with I76_COOP_AI=1, both machines). A network game tears its in-game network
@@ -2472,6 +2476,44 @@ static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size
     }
     return ((char *(__cdecl *)(unsigned, int, int, void *, size_t))0x00451180)(id, idx, type, data, size);
 }
+/* CB radio (the story's voice lines and the AI's taunts) is played by 0x423620(file, speaker object, priority). On the
+ * joiner the script and AI are off, so nothing played. The host forwards the game-logic calls (0x40a0f8 AI, the script
+ * actions' 0x40bfcc / 0x40bfee / 0x40c011 / 0x40c029 and cb 0x41348f) as 'AC' { u16 'AC', u8 0, u8 priority,
+ * i16 speaker label index (-1 none), u16 0, char file[32] } and the joiner plays the same line. */
+static int coop_label_index(BYTE *o) {
+    BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i;
+    if (!o || !tab || count <= 0 || count > 2048) return -1;
+    for (i = 0; i < count; i++) if (*(BYTE **)(tab + i * 16 + 8) == o) return i;
+    return -1;
+}
+static BYTE g_coop_cb_q[8][40];                             /* queued here, sent from the pump */
+static int __cdecl coop_cb_play(char *file, BYTE *speaker, int prio) {
+    /* Sending from here (inside the script / AI frame) crashed the host in the script dispatcher's epilogue
+     * (0x4144d1, esi corrupt; 1 of 1 runs with it, 0 of 1 without); the line is queued and sent from the pump. */
+    if (coop_ai_role() == 1 && file && g_coop_cb_qn < 8) {
+        BYTE *pkt = g_coop_cb_q[g_coop_cb_qn]; memset(pkt, 0, 40);
+        *(WORD *)pkt = COOP_AC_PKT; pkt[3] = (BYTE)prio; *(short *)(pkt + 4) = (short)coop_label_index(speaker);
+        strncpy((char *)pkt + 8, file, 31);
+        g_coop_cb_qn++;
+    }
+    return ((int (__cdecl *)(char *, BYTE *, int))0x00423620)(file, speaker, prio);
+}
+static void coop_cb_flush(void) {                            /* host, in the pump */
+    LONG i, n = g_coop_cb_qn;
+    for (i = 0; i < n; i++)
+        if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
+                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, g_coop_cb_q[i], 40) == 0) g_coop_cb_sent++;
+    g_coop_cb_qn = 0;
+}
+static void coop_cb_receive(BYTE *pkt, int size) {           /* joiner, in the pump */
+    BYTE *tab, *o = NULL; int count, li; char file[32];
+    if (size < 40 || !coop_ai_in_mission()) return;
+    li = *(short *)(pkt + 4); tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (li >= 0 && tab && li < count && count <= 2048) o = *(BYTE **)(tab + li * 16 + 8);
+    memcpy(file, pkt + 8, 31); file[31] = 0;
+    ((int (__cdecl *)(char *, BYTE *, int))0x00423620)(file, o, pkt[3]);
+    g_coop_cb_played++;
+}
 static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
     if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
     return ((int (__cdecl *)(int))0x0040a320)(a);
@@ -2487,7 +2529,7 @@ static void apply_coop_ai(HMODULE exe) {
          real_dpReceive ? "hooked" : "NOT hooked",
          patch_bytes(0x00403ddf, old, w, 5, "coop-ai: ai_FrameTick") ? "repointed" : "NOT repointed");
     {   /* AI trigger pulls (host records them) and the damage entry (joiner blocks it for mirrored cars) */
-        static const struct { DWORD site, target; void *stub; } c[15] = {
+        static const struct { DWORD site, target; void *stub; } c[21] = {
             { 0x00414f86, 0x004a3560, (void *)coop_ai_trigger },
             { 0x00465e5a, 0x00462040, (void *)coop_ai_class_damage }, { 0x0046648f, 0x00462040, (void *)coop_ai_class_damage },
             { 0x0046aae4, 0x00462040, (void *)coop_ai_class_damage }, { 0x004a81d3, 0x00462040, (void *)coop_ai_class_damage },
@@ -2497,19 +2539,24 @@ static void apply_coop_ai(HMODULE exe) {
             { 0x00412e9c, 0x00412830, (void *)coop_ai_attack }, { 0x00412f11, 0x00412830, (void *)coop_ai_attack },
             { 0x00412fad, 0x00412830, (void *)coop_ai_attack }, { 0x00413049, 0x00412830, (void *)coop_ai_attack },
             { 0x00414046, 0x00412830, (void *)coop_ai_attack },
+            { 0x0040a0f8, 0x00423620, (void *)coop_cb_play }, { 0x0040bfcc, 0x00423620, (void *)coop_cb_play },
+            { 0x0040bfee, 0x00423620, (void *)coop_cb_play }, { 0x0040c011, 0x00423620, (void *)coop_cb_play },
+            { 0x0040c029, 0x00423620, (void *)coop_cb_play }, { 0x0041348f, 0x00423620, (void *)coop_cb_play },
         };
         static const struct { DWORD site; void *stub; } dg[9] = { { 0x40a232, (void *)coop_sb_0 }, { 0x412dac, (void *)coop_sb_1 },
             { 0x412def, (void *)coop_sb_2 }, { 0x412e32, (void *)coop_sb_3 }, { 0x412e9c, (void *)coop_sb_4 }, { 0x412f11, (void *)coop_sb_5 },
             { 0x412fad, (void *)coop_sb_6 }, { 0x413049, (void *)coop_sb_7 }, { 0x414046, (void *)coop_sb_8 } };
         char dv[8]; DWORD dk = GetEnvironmentVariableA("I76_COOP_AI_DIAG", dv, sizeof(dv));
         int i, n = 0;
-        for (i = 0; i < 15; i++) {
+        char cbv[8]; DWORD cbk = GetEnvironmentVariableA("I76_COOP_CB", cbv, sizeof(cbv));
+        int nsites = (cbk && cbk < sizeof(cbv) && cbv[0] == '0') ? 15 : 21;   /* I76_COOP_CB=0: no CB radio forwarding */
+        for (i = 0; i < nsites; i++) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
-        mlog("  coop-ai: %d/15 trigger + damage + SetBehaviour sites repointed", n);
+        mlog("  coop-ai: %d/21 trigger + damage + SetBehaviour + CB radio sites repointed", n);
         if (dk && dk < sizeof(dv) && dv[0] == '1') {
             int m = 0;
             for (i = 0; i < 9; i++) {
