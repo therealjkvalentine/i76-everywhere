@@ -2216,7 +2216,7 @@ static void coop_ai_apply(BYTE *pkt, int size) {
 static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
-static volatile LONG g_coop_adopted;
+static volatile LONG g_coop_adopted, g_coop_respawns;
 static int g_coop_diag; static void coop_sb_log(void);
 static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
@@ -2224,7 +2224,7 @@ static void coop_ai_log(void) {                            /* after each fps lin
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
-    len += sprintf(buf + len, ", retargets %ld, adopted %ld", g_coop_retarget, g_coop_adopted);
+    len += sprintf(buf + len, ", retargets %ld, adopted %ld, respawns %ld", g_coop_retarget, g_coop_adopted, g_coop_respawns);
     if (g_coop_diag) { static int t; if (++t % 2 == 0) coop_sb_log(); }
     if (g_coop_chain) len += sprintf(buf + len, ", chain AM sent %ld got %ld, mission %.12s", g_coop_chain_sent, g_coop_chain_got, (char *)0x005049f0);
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
@@ -2298,7 +2298,21 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     }
     g_coop_ai_role = role;
     if (role == 1) coop_ai_host_send();
-    else if (role == 2) coop_ai_joiner_fire();
+    else if (role == 2) {
+        coop_ai_joiner_fire();
+        if (g_coop_chain && coop_ai_in_mission()) {          /* the joiner respawns by itself (RAISE_DEAD has no key) */
+            static DWORD last; DWORD now = GetTickCount();
+            if (now - last > 1000) {
+                BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();
+                BYTE *o = root ? *root : NULL;
+                last = now;
+                if (o && *(BYTE **)(o + 0x70) && ((*(BYTE **)(o + 0x70))[0x454] & 0x20) && !*(volatile int *)0x00540d8c) {
+                    ((int (__cdecl *)(int))0x00451570)(1);   /* waits out the 5 s itself; sets the pending flag 0x540d8c once sent */
+                    if (*(volatile int *)0x00540d8c) { g_coop_respawns++; mlog("  coop-chain: joiner dead - respawn requested"); }
+                }
+            }
+        }
+    }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT) coop_chain_receive((BYTE *)buf, *(int *)size);
     return r;
