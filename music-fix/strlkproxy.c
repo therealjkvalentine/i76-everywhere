@@ -4436,20 +4436,42 @@ typedef DWORD (__stdcall *grSstWinOpen_t)(DWORD hwnd, DWORD res, DWORD refresh, 
 static grSstWinOpen_t p_grSstWinOpen;
 static HMODULE (WINAPI *p_LoadLibraryA)(LPCSTR);
 static DWORD g_glide_refresh_code = 0xffffffff, g_glide_refresh_hz;
+/* I76_GLIDE_GAMMA=<g> (2026-10-07; off by default). ZGLIDE.DLL imports no Glide gamma call at all (its glide2x imports
+ * were listed: no grGammaCorrectionValue), so the game never sets a ramp and dgVoodoo's [Glide] EnableGlideGammaRamp has
+ * nothing to apply on any platform (A/B on the Steam Deck: identical frames with it on and off). On a real Voodoo the
+ * board's own default gamma (about 1.3) brightened the picture; nothing provides that here, which is the "darker than I
+ * remember" look. With this switch the wrapper below calls glide2x!grGammaCorrectionValue(g) after every successful
+ * grSstWinOpen. A curve lifts the mid-tones without clipping highlights, which dgVoodoo's linear [General] Brightness
+ * does. Needs EnableGlideGammaRamp = true in the conf. */
+static float g_glide_gamma;
+
+static void glide_apply_gamma(void) {
+    void (__stdcall *gamma)(float);
+    HMODULE g = GetModuleHandleA("glide2x.dll");
+    if (g_glide_gamma <= 0.0f) return;
+    gamma = g ? (void (__stdcall *)(float))GetProcAddress(g, "_grGammaCorrectionValue@4") : NULL;
+    if (gamma) gamma(g_glide_gamma);
+    mlog("  glide-gamma: grGammaCorrectionValue(%d.%02d) %s", (int)g_glide_gamma, (int)(g_glide_gamma * 100.0f + 0.5f) % 100,
+         gamma ? "called" : "NOT found in glide2x.dll");
+}
 
 static DWORD __stdcall hook_grSstWinOpen(DWORD hwnd, DWORD res, DWORD refresh, DWORD cfmt, DWORD origin, int ncol, int naux) {
     DWORD r;
+    /* only I76_GLIDE_REFRESH substitutes the refresh; under I76_GLIDE_DIR / I76_GLIDE_GAMMA alone the renderer's own
+       code goes through (before 2026-10-07 the unset 0xffffffff was passed and rescued by the fallback reopen below) */
+    DWORD code = (g_glide_refresh_code != 0xffffffff) ? g_glide_refresh_code : refresh;
     mlog("  glide-refresh: grSstWinOpen(res %lu, refresh %lu -> %lu (%lu Hz), cfmt %lu, origin %lu, %d/%d buffers)",
-         (unsigned long)res, (unsigned long)refresh, (unsigned long)g_glide_refresh_code, (unsigned long)g_glide_refresh_hz,
+         (unsigned long)res, (unsigned long)refresh, (unsigned long)code, (unsigned long)g_glide_refresh_hz,
          (unsigned long)cfmt, (unsigned long)origin, ncol, naux);
-    r = p_grSstWinOpen(hwnd, res, g_glide_refresh_code, cfmt, origin, ncol, naux);
+    r = p_grSstWinOpen(hwnd, res, code, cfmt, origin, ncol, naux);
     mlog("  glide-refresh: context %lu", (unsigned long)r);
     if (!r) {   /* dgVoodoo rejects codes above 8 (measured 2026-10-02: code 9 -> context 0, then the exe faults at
                    0x42e209): never leave the game without a window - fall back to what the renderer asked for */
         r = p_grSstWinOpen(hwnd, res, refresh, cfmt, origin, ncol, naux);
         mlog("  glide-refresh: code %lu rejected - reopened with the renderer's own refresh %lu, context %lu",
-             (unsigned long)g_glide_refresh_code, (unsigned long)refresh, (unsigned long)r);
+             (unsigned long)code, (unsigned long)refresh, (unsigned long)r);
     }
+    if (r) glide_apply_gamma();
     return r;
 }
 
@@ -4854,7 +4876,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
         }
         if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on) tex_census_attach(m);
         /* (the census alone hooks LoadLibraryA too: the refresh wrapper is only for the two switches that did before) */
-        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_dir[0] || g_glide_refresh_code != 0xffffffff)) {
+        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_dir[0] || g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
             p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
             mlog("  glide-refresh: %s loaded at %p, grSstWinOpen slot %s", b, (void *)m, p_grSstWinOpen ? "repointed" : "NOT found");
         }
@@ -4885,6 +4907,16 @@ static void apply_glide_refresh(void) {
         else if (!p_LoadLibraryA) {
             p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
             mlog("  glide-dir: %s, LoadLibraryA %s", g_glide_dir, p_LoadLibraryA ? "hooked" : "NOT hooked");
+        }
+    }
+    {   char gv[16]; DWORD k = GetEnvironmentVariableA("I76_GLIDE_GAMMA", gv, sizeof(gv));
+        if (k && k < sizeof(gv)) {
+            double gd = atof(gv);
+            if (gd >= 0.5 && gd <= 3.0) {
+                g_glide_gamma = (float)gd;
+                if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
+                mlog("  glide-gamma: %s armed (applied after each grSstWinOpen); LoadLibraryA %s", gv, p_LoadLibraryA ? "hooked" : "NOT hooked");
+            } else mlog("  glide-gamma: %s is outside 0.5..3.0 - not applied", gv);
         }
     }
     n = GetEnvironmentVariableA("I76_GLIDE_REFRESH", v, sizeof(v));

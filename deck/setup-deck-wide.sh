@@ -8,9 +8,9 @@
 #     interpolation (smooth above 20 fps without breaking jumps), the frame-rate fixes,
 #     draw distance 1200 m, terrain/texture/object detail x8, bushes 300 m, mirror 300 m,
 #     the terrain-flash fix, the TMU fix, and in-mission music from GOG's mp3s
-#   * dgVoodoo.conf: stretched to the panel at native 1280x800 (the Deck's conf point-samples
-#     its downscale, so 2x internal would only add shimmer), 4x MSAA, TMU 8192 (only together
-#     with I76_ZGLIDE_TMUFIX), FPSLimit off, forced 32-bit dithering
+#   * dgVoodoo.conf: stretched to the panel, rendered at 2x (2560x1600) and averaged down
+#     bilinear, 4x MSAA, TMU 8192 (only together with I76_ZGLIDE_TMUFIX), FPSLimit off, forced
+#     32-bit dithering, fake fullscreen, CaptureMouse off; gamma 1.3 through the proxy
 #   * I76PATCH.DLL (GOG's ~20 fps cap) disabled: the fixed step keeps physics at stock pace
 #   * LAN play: IPXWrapper's three DLLs (if the push brought them) + WINEDLLOVERRIDES for
 #     wsock32/mswsock, the recipe that put the Mac into a PC-hosted IPX game (docs/MULTIPLAYER.md)
@@ -36,8 +36,8 @@ GAME="${I76_GAMEDIR:-$INSTALL/game}"
 BACKUPS="$INSTALL/backups"
 LAST="$BACKUPS/LAST-WIDE"
 PAYLOAD="${I76_PAYLOAD:-$HERE/..}"        # repo root (or the pushed copy of it)
-PROXY="$PAYLOAD/deck/Strlkup.deck.dll"     # Mac build (music-fix/build-mac.sh) of main + I76_CURSOR_MAP, the Deck-tested binary
-PROXY_MD5="7b780281bb92c10cbaab8fe80d9c0d76"
+PROXY="$PAYLOAD/deck/Strlkup.deck.dll"     # Mac build (music-fix/build-mac.sh) of main + I76_CURSOR_MAP + I76_GLIDE_GAMMA, the Deck-tested binary
+PROXY_MD5="b8948d90c55e03e9674fc81fe0264191"
 
 say() { echo "  $*"; }
 die() { echo "FATAL: $*"; exit 1; }
@@ -150,12 +150,19 @@ want = [  # (section, key, value, mode)  mode: req = must exist, opt = skip if a
     # dgVoodoo's default (true) confines the pointer to the app's 640x480 area at the top left of the
     # 1280x800 screen (measured 2026-10-07: clip (0,0)-(640,480), raw x never past 639).
     ("General",    "CaptureMouse",          "false",       "add"),
-    # [Glide] EnableGlideGammaRamp has no effect under Proton (A/B 2026-10-07, fake and real fullscreen:
-    # identical frames on/off), so the 3dfx lift is missing; dgVoodoo's own output brightness stands in
-    # (125 clipped highlights to white; 115 = "a hair" brighter, the owner's report).
-    ("General",    "Brightness",            "115",         "add"),
+    # The 3dfx lift: ZGLIDE.DLL never calls a Glide gamma function, so the ramp stays identity unless
+    # the proxy sets it (I76_GLIDE_GAMMA=1.3 below). Measured on the Deck, same T01 frame: gamma 1.3 mean
+    # 92 / median 71 / 12 % near-black / 0.5 % clipped, against Brightness 115: 86 / 57 / 30 % / 1.2 %.
+    # So Brightness goes back to neutral (it is a linear multiplier and clips highlights).
+    ("General",    "Brightness",            "100",         "add"),
+    ("Glide",      "EnableGlideGammaRamp",  "true",        "add"),
     ("Glide",      "MemorySizeOfTMU",       "8192",        "req"),   # ONLY with I76_ZGLIDE_TMUFIX=1 (4096+ without it corrupts textures)
-    ("Glide",      "Resolution",            "1280x800",    "req"),   # the panel, 16:10
+    # 2x the panel, averaged down: supersampling for the texture shimmer MSAA cannot touch (no mipmaps
+    # under Glide). 60.0 fps held on the Deck LCD with 4x MSAA on top (T01, 2026-10-07).
+    ("Glide",      "Resolution",            "2560x1600",   "req"),
+    # exact 2x + bilinear = a 2x2 box filter. pointsampled (the Mac-era choice against lanczos halation)
+    # would drop three of every four pixels and waste the supersampling.
+    ("GeneralExt", "Resampling",            "bilinear",    "add"),
     ("Glide",      "Antialiasing",          "4x",          "req"),
     ("GlideExt",   "Dithering",             "forcealways", "opt"),
 ]
@@ -264,6 +271,7 @@ export I76_CLUTTER_DIST=300
 export I76_MIRROR_FAR=300
 export I76_COLL_DEDUPE=0
 export I76_AI_ROLL_HOLD=0
+export I76_GLIDE_GAMMA=1.3          # the Voodoo's default gamma: the game never sets one (needs EnableGlideGammaRamp)
 export I76_CURSOR_MAP=1             # menus: pointer mapped to the stretched 640x480 page (needs CaptureMouse = false)
 export I76MUSIC_LOG=1               # mciproxy.log in the game folder: proves which switches applied
 export I76_DECK_AHK=0               # 1 = start the baseline AHK pad layer too (deck/setup-deck-baseline.sh)
