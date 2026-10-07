@@ -22,8 +22,8 @@ On **every** machine (each needs the same game data: stock GOG files, stock car)
    | `I76_COOP_DAMAGE=0.5` *(optional)* | difficulty for two: each player's weapon damage x 0.5 (0.6 = a bit stronger) |
 
 Then the **host**: MELEE > MULTI MELEE > HOST > IPX, pick **The Crater**, BROADCAST GAME. The **buddy**: MELEE > MULTI
-MELEE > JOIN > IPX, select the game, JOIN GAME. The buddy should be on the JOIN list before the host broadcasts (the
-host goes straight into the mission). The host drives the story's car; the buddy drives the car picked in the
+MELEE > JOIN > IPX, select the game, JOIN GAME. Joining a mission already in progress works (measured: joined ~50 s
+in); the buddy gets the objectives' current state on arrival, but radio lines spoken before it joined are not replayed. The host drives the story's car; the buddy drives the car picked in the
 multiplayer menu, starting beside the host.
 
 ## What works (measured)
@@ -37,7 +37,8 @@ multiplayer menu, starting beside the host.
 | Enemies go after the buddy | every AI behaviour aimed at a human (except follow) picks the nearest live human | T05: gang car's target became the buddy's car; with the Mac hosting, the PC buddy took damage (400 -> 370) |
 | Kills decided once, shown on both | the buddy ignores damage to shared enemies locally; the host computes every hit (including the buddy's shots, which the game already relays) and sends the result | host's shots: bus destroyed on both screens; buddy's shots: tractor destroyed on the host and then on the buddy |
 | Radio (story lines, taunts) | the host's CB lines are queued and sent ('AC'); the buddy plays them | T01: host 10 lines, buddy played 6 (the rest before it joined) |
-| Objectives (notepad) | the script's success / fail / reveal actions are forwarded ('AO') and applied on the buddy | T01: host 2 objective events, buddy applied 2 |
+| Objectives (notepad) | the script's success / fail / reveal actions are forwarded ('AO') and applied on the buddy; a late joiner gets every objective's flags once its car exists for 3 s | T01: host 2 objective events, buddy applied 2; late join: 4 objective states applied |
+| Joining late | nothing special: the movies are out of the mission files | buddy joined ~50 s into T01 and played on |
 | Next mission / retry | won -> both reload the next co-op mission in the same session; lost -> both reload the same one ('AM' + the game's Replay path, network kept up) | forced win T01 -> T02 on both; script-engine win -> T02; natural losses (host killed, objective failed) retried, several times in a row |
 | Buddy respawns | the buddy requests a respawn by itself 5 s after dying | two self-destructs, a new car each time |
 | Difficulty | co-op damage factor | 25 -> 12 per hit at 0.5, for the host's and the buddy's shots |
@@ -47,7 +48,6 @@ multiplayer menu, starting beside the host.
 - **On-screen text messages** from the script (if any beyond the radio and the notepad) are the host's only.
 - **The host's car looks like the buddy's chosen model** on the buddy's screen (the mission's player object takes the
   local car file). Position, damage and gunfire are right.
-- **Joining late:** the buddy should be on the JOIN list before the host broadcasts.
 - **Brief host hand-over during a reload:** while the host reloads (a few seconds) ANet may make the buddy host; the
   lower id (the original host) takes it back. Seen once, no harm measured.
 - **Max-score option:** AI cars carry owner id 0 into the game's score code; harmless with MAX SCORE off (the default),

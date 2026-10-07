@@ -2286,7 +2286,7 @@ static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces
 static void coop_obj_receive(BYTE *pkt, int size);
 static void coop_cb_receive(BYTE *pkt, int size);
 static void coop_cb_flush(void); static volatile LONG g_coop_cb_qn;
-static void coop_obj_flush(void); static volatile LONG g_coop_obj_qn;
+static void coop_obj_flush(void); static volatile LONG g_coop_obj_qn; static void coop_obj_catchup(void);
 static void coop_chain_receive(BYTE *pkt, int size);
 static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: packets in one unbroken pump loop */
 static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
@@ -2304,7 +2304,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         if (g_coop_rx_n >= 64) g_coop_rx_n = 0;
     }
     g_coop_ai_role = role;
-    if (role == 1) { coop_ai_host_send(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
+    if (role == 1) { coop_ai_host_send(); coop_obj_catchup(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
     else if (role == 2) {
         coop_ai_joiner_fire();
         if (g_coop_chain && coop_ai_in_mission()) {          /* the joiner respawns by itself (RAISE_DEAD has no key) */
@@ -2522,7 +2522,9 @@ static void coop_cb_receive(BYTE *pkt, int size) {           /* joiner, in the p
 /* Objectives: the script's success / fail / reveal actions (calls at 0x4136b1 fsm_Success 0x45e9e0, 0x4136c7 fsm_Fail
  * 0x45ea90, 0x41420e reveal 0x40be50 -> 0x45e960) run on the host only; forwarded as 'AO' { u16 'AO', u8 0, u8 kind
  * (1 success, 2 fail, 3 reveal), int objective } so the buddy's notepad (and its chime) follows. A repeat is harmless:
- * the functions' error path 0x42d5d0 is empty. */
+ * the functions' error path 0x42d5d0 is empty. Objective table: count 0x6093c0, valid 0x6093c8[i], flags 0x609420[i]
+ * (1 hidden, 2 succeeded, 4 failed). A player who joins late gets every objective's flags once (kind 4, written
+ * directly, no chime). */
 static int g_coop_obj_q[16][2];
 static void coop_obj_queue(int kind, int n) { if (coop_ai_role() == 1 && g_coop_obj_qn < 16) { g_coop_obj_q[g_coop_obj_qn][0] = kind; g_coop_obj_q[g_coop_obj_qn][1] = n; g_coop_obj_qn++; } }
 static void __cdecl coop_obj_success(int n) { coop_obj_queue(1, n); ((void (__cdecl *)(int))0x0045e9e0)(n); }
@@ -2541,11 +2543,38 @@ static void coop_obj_receive(BYTE *pkt, int size) {          /* joiner, in the p
     int n;
     if (size < 8 || !coop_ai_in_mission()) return;
     n = *(int *)(pkt + 4);
-    if (n < 1 || n > 32) return;
+    if (pkt[3] != 4 && (n < 1 || n > 32)) return;
     if (pkt[3] == 1) ((void (__cdecl *)(int))0x0045e9e0)(n);
     else if (pkt[3] == 2) ((void (__cdecl *)(int))0x0045ea90)(n);
     else if (pkt[3] == 3) ((void (__cdecl *)(int))0x0045e960)(n);
+    else if (pkt[3] == 4) {                                  /* catch-up: raw flags, no chime */
+        int f = (*(int *)(pkt + 4) >> 8) & 7, i = (*(int *)(pkt + 4) & 0xff) - 1;
+        if (i >= 0 && i < *(volatile int *)0x006093c0 && ((int *)0x006093c8)[i]) ((int *)0x00609420)[i] = (((int *)0x00609420)[i] & ~7) | f;
+    }
     g_coop_obj_got++;
+}
+static void coop_obj_catchup(void) {                         /* host: a newcomer with a car for 3 s -> every objective's flags */
+    static WORD seen[16]; static DWORD carsince[16]; static DWORD last; DWORD now = GetTickCount(); int k, j, fresh = 0;
+    if (now - last < 1000) return;
+    last = now;
+    if (!coop_ai_in_mission()) { memset(seen, 0, sizeof(seen)); memset(carsince, 0, sizeof(carsince)); return; }
+    for (k = 0; k < 16; k++) {
+        BYTE *p = (BYTE *)0x00541070 + k * 0x48; WORD id = *(WORD *)p;
+        if (!id || id == *(volatile WORD *)0x00541028 || !*(BYTE **)(p + 0x28)) { carsince[k] = 0; continue; }
+        for (j = 0; j < 16 && seen[j] != id; j++) ;
+        if (j < 16) continue;                                 /* already caught up */
+        if (!carsince[k]) { carsince[k] = now; continue; }
+        if (now - carsince[k] < 3000) continue;
+        for (j = 0; j < 16 && seen[j]; j++) ;
+        if (j < 16) seen[j] = id;
+        fresh = 1;
+    }
+    if (fresh) {
+        int n = *(volatile int *)0x006093c0, i;
+        for (i = 0; i < n && i < 32 && g_coop_obj_qn < 16; i++)
+            if (((int *)0x006093c8)[i]) coop_obj_queue(4, (i + 1) | ((((int *)0x00609420)[i] & 7) << 8));
+        mlog("  coop-ai: new player in the session - %d objective states queued for it", n);
+    }
 }
 static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
     if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
