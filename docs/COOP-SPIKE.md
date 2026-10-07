@@ -55,10 +55,28 @@ Still to build, in order (the plan from the co-op discussion, now with evidence)
    network games only.
 5. **Difficulty: `I76_COOP_DAMAGE=<factor>`** (proxy, 2026-10-06) scales every human's weapon and flame damage in
    network games, the remote player's too (owner's choice over tougher enemies). 0.5 = two players as strong as one
-   on Normal. Live: 4/4 sites patched in the PC lab process and the mission ran; the hit counter it logs (with
-   `I76_FPS_LOG`) has not seen a hit yet, because no clean shot was set up (see the proxy comment).
+   on Normal. **Measured**, see the next section.
 6. The joiner must be on the JOIN list when the host broadcasts (the host goes straight into the mission and there is
    no lobby). A lobby wait is a later nicety.
+
+## Measured: the co-op damage factor (2026-10-06)
+
+Target range: arena M01 cut to two spawn points with a parked tractor (`vxktrac1`) and bus (`vxbus1`) 20 m ahead of
+each, placed on the car's measured aim line (cars land exactly on the spawn point, nose up 13 degrees, facing the
+spawn record's forward row; ODEF rotation rows are right, up, forward). IPX game, PC hosts, Mac joins, each fires the
+50 cal (hardpoint 1) for 3 s at its target. Armour read from the host's memory (object -> entity +0x70, armour +0x138).
+
+| shooter | `I76_COOP_DAMAGE` on the host | hits | armour lost | per hit |
+|---|---|---|---|---|
+| host (local), host alone | unset | 29 | 725 | 25.0 (twice, identical) |
+| host (local), host alone | 0.5 | 29 | 348 | 12.0 (twice, identical) |
+| host (local), Mac in the game | 0.5 | 29 | 348 | 12.0 |
+| Mac (remote), hit computed on the host | 0.5 | 43 | 516 | 12.0; all 43 counted "by a remote player's car" |
+| Mac (remote), hit computed on the host | unset | ? | 800 (armour emptied) | at least 18.6 |
+
+25 x 0.5 = 12.5 is truncated to 12 per hit, so 0.5 gives 0.48 of the damage. The host computes the damage of the
+joiner's shots on its own copy of the world, and the factor applies to them. In the unset two-player run both cars
+were listed at the same spawn point and the host's burst only grazed the bus (2 + 52), so that row is not used.
 
 ## Files
 
