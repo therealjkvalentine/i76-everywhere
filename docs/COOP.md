@@ -55,19 +55,42 @@ multiplayer menu, starting beside the host.
   refers to it).
 - **Brief host hand-over during a reload:** while the host reloads (a few seconds) ANet may make the buddy host; the
   lower id (the original host) takes it back. Seen once, no harm measured.
-- **Max-score option:** AI cars carry owner id 0 into the game's score code; harmless with MAX SCORE off (the default),
-  not tested on.
+- **Max-score option:** not tested on; leave MAX SCORE off (the default). The mission ends the mission, not a score.
+  (On the buddy, every mirrored enemy used to write its score into the first free player slot, owner id 0, and in a
+  team game that counted toward the max-score check; owner id 0 is now skipped there, 2026-10-07.)
 - **A natural full-campaign run** (17 missions played through) has not been done; wins were forced through the
   script engine's own success path.
-- **A rare host crash at a reload:** Windows' compatibility shim (AcGenral, applied to i76.exe by Windows' own database)
-  crashed in `HeapDestroy` of the weapon-debris heap during the teardown (0x4a2cd0), twice in about 50 reloads, both
-  with a joiner present. Not reproduced without co-op; cause not found. Suspect fixed 2026-10-07: the next-mission name
-  was written as 16 bytes into WinMain's setup block (now exactly its length). Mac (Wine) never showed it.
+- **The host crash at a reload (Windows), found and fixed 2026-10-07.** Windows applies a compatibility shim
+  (AcGenral) to i76.exe; it replaces the game's heaps with its own, kept in ONE list with no lock. The NVIDIA D3D11
+  driver (nvwgf2um.dll, under dgVoodoo) sits in the DriverStore, so the shim treats it as part of the application too,
+  and it creates and destroys heaps on its own thread. A driver destroy landing inside a game create left the list
+  pointing at freed memory; the next teardown's walk (`HeapDestroy`, chunk heap 0x4a2cd0 and others) crashed (3 in
+  ~100 reloads), and once the list was cut short ~40 heaps were unreachable. Evidence: a crash record on the driver's
+  thread (nvwgf2um+0x94FDF7 -> AcGenral +0x98ad3) reading the same freed node the main thread's teardown hit; every
+  game-side heap call measured on the main thread. Fix, in the proxy with co-op on: the shim's internal create
+  (+0x9899b) and destroy (+0x98a70) run under one lock (found by their own code; no match, no patch;
+  `I76_COOP_SHIMLOCK=0` off), and a guard puts any heap the list cannot reach back at its head before the destroy
+  (`I76_COOP_HEAPGUARD=0` off). Not co-op specific in principle: single-player loads can race the driver the same way,
+  only less often. Mac (Wine) has no such shim. (The 2026-10-07 "setup-name write" suspect was not it.)
+- **The host finishing (or failing) a mission while the buddy is still loading it** left the buddy in the game's
+  join handshake for good: that handshake waits for 5 s of quiet from the host, and a host already playing never
+  goes quiet. After 8 s the buddy now takes the game's own timeout (as a late join does), and the held next-mission
+  message brings it to the host's mission (measured: forced in T02, buddy in step one reload later).
+- **The rear mirror with no car:** a buddy running frames before its own car exists crashed in the mirror (NULL car,
+  0x4457f6); the mirror is skipped then.
+- **If the buddy's game freezes** (rather than quits), the host waits at the next mission load until the frozen game
+  is closed, then carries on alone (measured 2026-10-07). A buddy that quits normally is simply dropped.
+- **A crash on the buddy at a mission load, fixed 2026-10-07:** the proxy's 60 fps radar-ping smoothing could hold a
+  ping across the end of a mission and play it in the next one on a car that no longer existed (0x4250f0 -> 0x458c90
+  on a freed pointer). Held pings older than 250 ms are dropped now. Not co-op specific: any Replay could hit it.
 - **Back-to-back reloads** (faster than real play) once left the joiner waiting for the session group forever; it now
   reuses the last group id after 3 s, and an 'AM' that arrives during a load is applied after it. The host sends each
   'AM' three times; the spare copies could wait in the queue through the joiner's load and reload it a second time,
   which stranded it in state 7. Each 'AM' now carries the reload's number and copies are dropped (fixed and re-measured
-  2026-10-07, 16/16).
+  2026-10-07, 16/16). A third way to strand it: the host finishes a mission while the buddy is still loading it. State 5
+  and a world root are already true inside the load's network wait, and an 'AM' applied there left the buddy waiting
+  for good; it is now applied only once mission frames run (more than 10 since the reload, the last under 0.5 s ago)
+  and held until then.
 
 ## How it fits together (for the next person)
 
@@ -87,4 +110,5 @@ All in `music-fix/strlkproxy.c`, sections "CO-OP DAMAGE FACTOR", "CO-OP SHARED E
 - tools: `tools/coop-mission.py` (one mission), `tools/coop-install.py` (all 17 + The Crater, reversible).
 - diagnostics: `I76_FPS_LOG=5` adds a `coop-ai:` line every 5 s (role, packets, applied, retargets, chain, radio, the
   first two mission cars and the local armour); `I76_COOP_AI_DIAG=1` counts AI behaviours per call site;
-  `I76_COOP_CB=0` turns radio forwarding off.
+  `I76_COOP_CB=0` turns radio forwarding off; `I76_COOP_HOSTMODEL=0` keeps the buddy's model for the host's car;
+  `I76_COOP_ADOPT=0` gives the host a separate network car (the script then follows a stand-in).

@@ -36,6 +36,7 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+#include <tlhelp32.h>
 #include "../tools/telemetry/i76tel.h"   /* telemetry export layout, shared with tools/telemetry/i76tel.py */
 #include "../tools/trainer/i76trn.h"     /* trainer control block layout, shared with tools/trainer/i76trainer_gui.py */
 
@@ -1518,16 +1519,20 @@ static DWORD g_idbg_ping_req, g_idbg_ping_play, g_idbg_ping_frames, g_ping_req_l
 static const char *g_ping_name;
 static BYTE *g_ping_obj;
 static int g_ping_flag, g_ping_pending;
-static DWORD g_ping_frame;
+static DWORD g_ping_frame, g_ping_tick;
 static int __cdecl radar_ping_wrap(const char *name, BYTE *obj, int flag) {
     g_idbg_ping_req++;
     if (g_ping_req_last != g_frame) { g_ping_req_last = g_frame; g_idbg_ping_frames++; }
-    if (!g_tick20) { g_ping_name = name; g_ping_obj = obj; g_ping_flag = flag; g_ping_pending = 1; return 0; }
+    if (!g_tick20) { g_ping_name = name; g_ping_obj = obj; g_ping_flag = flag; g_ping_pending = 1; g_ping_tick = GetTickCount(); return 0; }
     if (g_ping_frame == g_frame) return 0;                   /* one per grid frame */
     g_ping_frame = g_frame; g_ping_pending = 0; g_idbg_ping_play++;
     return ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(name, obj, flag);
 }
 static void radar_ping_flush(void) {                        /* from the frame hook, on grid frames */
+    /* a ping held across a mission end must not play: its object is freed by then (the next mission crashed in
+     * 0x4250f0 -> 0x458c90 on the freed pointer, co-op soak 2026-10-07, after 50+ clean reloads). Held pings are at
+     * most one grid frame (50 ms) old in play; older ones are dropped. */
+    if (g_ping_pending && GetTickCount() - g_ping_tick > 250) g_ping_pending = 0;
     if (g_ping_pending && g_ping_frame != g_frame) {
         g_ping_pending = 0; g_ping_frame = g_frame; g_idbg_ping_play++;
         ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(g_ping_name, g_ping_obj, g_ping_flag);
@@ -2130,7 +2135,8 @@ static void apply_coop_damage(void) {
  * host's mission ended, both cars' last positions identical); the host's AI fire replayed on the joiner (11,729 pulls).
  * 5 records per packet (508 B) were silently dropped by ANet: 2 per packet. NOT observed yet: a hit, a kill. Gaps: the
  * mission outcome is the host's alone (when the host's mission ends the joiner stays in), radio/objectives are not
- * sent, and AI cars carry owner id 0 into the mirror's score bookkeeping. */
+ * sent, and AI cars carry owner id 0 into the mirror's score bookkeeping. (All three since handled: the campaign chain,
+ * 'AC' / 'AO', coop_ai_score_set.) */
 typedef int (__cdecl *dprecv_fn)(void *, void *, void *, int, void *, void *);
 typedef int (__cdecl *dpsend_fn)(void *, int, int, int, void *, int);
 static dprecv_fn real_dpReceive;
@@ -2220,9 +2226,299 @@ static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
 static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played, g_coop_obj_sent, g_coop_obj_got;
 static int g_coop_diag; static void coop_sb_log(void);
+/* Heap shim watch (I76_COOP_HEAPWATCH=1; I76_COOP_HEAPLOCK=1 also serialises). On Windows the compatibility shim
+ * AcGenral (applied to i76.exe by Windows' own database) replaces HeapCreate / HeapDestroy with a private heap whose
+ * HeapDestroy unlinks the heap from ONE global list without a global lock (AcGenral 10.0.19041.3636 +0x98abd..0x98adc:
+ * walk from the head, next at +0x48, then VirtualFree). The rare host crash at a chain reload is that walk reading a
+ * node whose memory was already released (read 0x138B0048, list node 0x138B0000, in the chunk heap's HeapDestroy
+ * 0x4a2d22; 3 times in ~100 reloads, always with a joiner present). The shim engine hooks the imports of every
+ * non-system module, the network DLLs too, so a heap created or destroyed on a network thread at the same moment
+ * would corrupt the list. This counts every module's HeapCreate / HeapDestroy by thread and, with the lock, makes
+ * them one at a time. Modules are (re)scanned from the pump every 5 s; each slot keeps its own original. */
+#define COOP_HP_N 24
+static void **g_hp_cslot[COOP_HP_N], **g_hp_dslot[COOP_HP_N];
+static void *g_hp_corig[COOP_HP_N], *g_hp_dorig[COOP_HP_N];
+static char g_hp_mod[COOP_HP_N][20]; static int g_hp_shim[COOP_HP_N], g_hp_n;
+static volatile LONG g_hp_cnt[COOP_HP_N][4];                /* create main, create other, destroy main, destroy other */
+static DWORD g_hp_main; static int g_hp_lock_on; static CRITICAL_SECTION g_hp_cs;
+/* Live shim heaps (handle = header address; the shim's destroy frees the header's segment chain, next at +4, after
+ * unlinking the heap from its list, next at +0x48). After each destroy every other live heap must still be mapped;
+ * one that is not is a dead node left in the shim's list - the crash signature - and is logged with both callers.
+ * Before a destroy a segment chain that leads into another live heap's header is cut there (that heap then keeps its
+ * memory; the destroyed heap leaks the rest of its chain). */
+#define HP_LIVE 1024
+static BYTE *g_hp_live[HP_LIVE]; static void *g_hp_live_by[HP_LIVE]; static int g_hp_nlive;
+static volatile LONG g_hp_dead, g_hp_cut;
+static int hp_mapped(const void *p) {
+    MEMORY_BASIC_INFORMATION mi;
+    return VirtualQuery(p, &mi, sizeof(mi)) == sizeof(mi) && mi.State == MEM_COMMIT;
+}
+/* The guard (on with I76_COOP_AI unless I76_COOP_HEAPGUARD=0). Measured 2026-10-07 with the watch: every heap
+ * create/destroy came from i76.exe on the main thread (no race), no destroy freed another live heap, and the crash
+ * still came - once as the walk reading a released node, once as the walk running off the END of the list (the heap
+ * being destroyed was no longer reachable). So the list links get damaged; the writer is not found. The guard walks
+ * the shim's list itself first (head found by matching the shim's own unlink code, `mov ecx,[list]; add ecx,8; ...
+ * lea ecx,[eax+48h]; mov eax,[ecx]; cmp eax,edi; jne`, AcGenral 10.0.19041.3636 +0x98ac5; no match = no guard), every
+ * node checked readable. A heap it cannot reach is put back at the head before the shim's destroy runs, so the shim
+ * finds it at once, unlinks it and frees it (measured: one teardown found ~40 heaps unreachable - the list had been
+ * cut - and the first of them would have been the crash). */
+static BYTE **g_hp_list;                                    /* AcGenral's global; its +8 is the list head */
+static int g_hs_want = 1;                                   /* I76_COOP_SHIMLOCK=0: no lock in the shim itself */
+static int g_hp_guard, g_hp_only_exe; static volatile LONG g_hp_skipped;
+/* The race, found 2026-10-07: the other party is the NVIDIA user-mode D3D11 driver (nvwgf2um.dll, under dgVoodoo's
+ * D3D11 output). It lives in the DriverStore, not System32, so the shim engine treats it as an application module and
+ * its heap calls go through the same AcGenral heap; it destroys heaps on its own worker thread (a crash record: the
+ * shim's walk on that thread, called from nvwgf2um+0x94FDF7) while the game creates them on the main thread. The
+ * shim's internal create (+0x9899b, fastcall + 1 stack arg, ret 4) inserts at the head and its internal destroy
+ * (+0x98a70, heap in ecx, ret) unlinks, neither under a lock: a destroy between a create's read of the head and its
+ * write leaves the new heap pointing at the freed one (the dead node) and everything older cut off (the "list ends
+ * early" teardowns). Both are wrapped here in one lock; each is found by its own prologue near the list code it
+ * contains, and nothing is patched unless both match. The game's own calls do not reach the driver's path, so
+ * hooking imports could never serialise it. */
+static CRITICAL_SECTION g_hs_cs; static BYTE *g_hs_ctramp, *g_hs_dtramp; static volatile LONG g_hs_on;
+static void __cdecl hs_enter(void) { EnterCriticalSection(&g_hs_cs); }
+static void __cdecl hs_leave(void) { LeaveCriticalSection(&g_hs_cs); }
+static __declspec(naked) void hs_create_stub(void) {        /* ecx, edx = args, [esp+4] = the stack arg */
+    __asm {
+        push ecx
+        push edx
+        call hs_enter
+        pop edx
+        pop ecx
+        push dword ptr [esp + 4]                /* the stack arg again: the original's ret 4 pops this copy */
+        call dword ptr [g_hs_ctramp]
+        push eax
+        call hs_leave
+        pop eax
+        ret 4
+    }
+}
+static __declspec(naked) void hs_destroy_stub(void) {       /* ecx = heap */
+    __asm {
+        push ecx
+        call hs_enter
+        pop ecx
+        call dword ptr [g_hs_dtramp]
+        push eax
+        call hs_leave
+        pop eax
+        ret
+    }
+}
+static BYTE *hs_back(BYTE *from, int range, const BYTE *pro, int n) {   /* nearest prologue before `from` */
+    BYTE *q;
+    for (q = from; q > from - range; q--) if (memcmp(q, pro, n) == 0) return q;
+    return NULL;
+}
+static void hs_install(BYTE *unlink_code, BYTE *m, BYTE *end) {
+    static const BYTE dpro[10] = { 0x8B, 0xFF, 0x53, 0x57, 0x6A, 0x00, 0x33, 0xD2, 0x8B, 0xF9 };   /* destroy: 6 bytes moved */
+    static const BYTE cpro[14] = { 0x8B, 0xFF, 0x55, 0x8B, 0xEC, 0x51, 0x51, 0x83, 0x65, 0xFC, 0x00, 0x56, 0x8B, 0xF1 };  /* create: 5 moved */
+    static const BYTE ins[11] = { 0x8B, 0x40, 0x08, 0x89, 0x43, 0x48, 0xA1 };   /* mov eax,[eax+8]; mov [ebx+48h],eax; mov eax,[g] */
+    BYTE *df = hs_back(unlink_code, 0x80, dpro, sizeof(dpro)), *ip = NULL, *cf = NULL, *t; DWORD old; LONG rel;
+    for (t = m + 0x1000; t < end && !ip; t++)
+        if (t[0] == 0xA1 && memcmp(t + 5, ins, 7) == 0 && *(BYTE ***)(t + 1) == g_hp_list && *(BYTE ***)(t + 12) == g_hp_list &&
+            t[16] == 0x89 && t[17] == 0x58 && t[18] == 0x08) ip = t;
+    if (ip) cf = hs_back(ip, 0x100, cpro, sizeof(cpro));
+    if (!df || !cf) { mlog("  coop-heap: shim create/destroy not recognised (destroy %p, insert %p, create %p) - no shim lock", df, ip, cf); return; }
+    t = (BYTE *)VirtualAlloc(NULL, 64, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!t) return;
+    InitializeCriticalSection(&g_hs_cs);
+    g_hs_ctramp = t; memcpy(t, cf, 5); t[5] = 0xE9; rel = (LONG)((cf + 5) - (t + 10)); memcpy(t + 6, &rel, 4);
+    g_hs_dtramp = t + 32; memcpy(t + 32, df, 6); t[38] = 0xE9; rel = (LONG)((df + 6) - (t + 43)); memcpy(t + 39, &rel, 4);
+    FlushInstructionCache(GetCurrentProcess(), t, 64);
+    if (VirtualProtect(df, 6, PAGE_EXECUTE_READWRITE, &old)) {
+        BYTE j[6]; rel = (LONG)((BYTE *)hs_destroy_stub - (df + 5)); j[0] = 0xE9; memcpy(j + 1, &rel, 4); j[5] = 0x90;
+        memcpy(df, j, 6); VirtualProtect(df, 6, old, &old);
+    }
+    if (VirtualProtect(cf, 5, PAGE_EXECUTE_READWRITE, &old)) {
+        BYTE j[5]; rel = (LONG)((BYTE *)hs_create_stub - (cf + 5)); j[0] = 0xE9; memcpy(j + 1, &rel, 4);
+        memcpy(cf, j, 5); VirtualProtect(cf, 5, old, &old);
+    }
+    FlushInstructionCache(GetCurrentProcess(), NULL, 0);
+    g_hs_on = 1;
+    mlog("  coop-heap: shim heap create +0x%lx / destroy +0x%lx now run one at a time (all threads)", (unsigned long)(cf - m), (unsigned long)(df - m));
+}
+static void hp_find_list(void) {
+    BYTE *m = (BYTE *)GetModuleHandleA("AcGenral.dll"), *p, *end;
+    static const BYTE tail[14] = { 0x83, 0xC1, 0x08, 0xEB, 0x03, 0x8D, 0x48, 0x48, 0x8B, 0x01, 0x3B, 0xC7, 0x75, 0xF7 };
+    IMAGE_NT_HEADERS *nt;
+    if (!m) return;
+    nt = (IMAGE_NT_HEADERS *)(m + ((IMAGE_DOS_HEADER *)m)->e_lfanew);
+    end = m + nt->OptionalHeader.SizeOfImage - 20;
+    for (p = m + 0x1000; p < end; p++)
+        if (p[0] == 0x8B && p[1] == 0x0D && memcmp(p + 6, tail, sizeof(tail)) == 0 && hp_mapped(p)) {
+            g_hp_list = *(BYTE ***)(p + 2);
+            mlog("  coop-heap: AcGenral heap list at %p (code +0x%lx) - destroy guard on", g_hp_list, (unsigned long)(p - m));
+            if (g_hs_want) hs_install(p, m, end);
+            return;
+        }
+    mlog("  coop-heap: AcGenral loaded but its heap list code was not recognised - no destroy guard");
+}
+static BYTE *g_hp_tail; static int g_hp_len;               /* the last walk: where the list ended, how long it was */
+static int hp_reachable(BYTE *h, BYTE **dead) {              /* 1 found, 0 not (dead = the unreadable node, if any) */
+    BYTE *n, *prev = NULL; int steps = 0;
+    *dead = NULL;
+    if (!hp_mapped(g_hp_list) || !hp_mapped(*g_hp_list + 8)) return 1;   /* cannot tell: let the shim do it */
+    for (n = *(BYTE **)(*g_hp_list + 8); n && steps < 16384; steps++) {
+        if (n == h) return 1;
+        if (!hp_mapped(n + 0x48)) { *dead = n; g_hp_tail = prev; g_hp_len = steps; return 0; }
+        prev = n; n = *(BYTE **)(n + 0x48);
+    }
+    g_hp_tail = prev; g_hp_len = steps;
+    return n == h;
+}
+static HANDLE hp_create(int i, DWORD f, SIZE_T a, SIZE_T b, void *by) {
+    HANDLE h;
+    InterlockedIncrement(&g_hp_cnt[i][GetCurrentThreadId() == g_hp_main ? 0 : 1]);
+    if (g_hp_lock_on) EnterCriticalSection(&g_hp_cs);
+    h = ((HANDLE (WINAPI *)(DWORD, SIZE_T, SIZE_T))g_hp_corig[i])(f, a, b);
+    if (h && g_hp_shim[i] && g_hp_nlive < HP_LIVE) { g_hp_live[g_hp_nlive] = (BYTE *)h; g_hp_live_by[g_hp_nlive] = by; g_hp_nlive++; }
+    if (g_hp_lock_on) LeaveCriticalSection(&g_hp_cs);
+    return h;
+}
+static BOOL hp_destroy(int i, HANDLE h, void *by) {
+    BOOL r; int k, j;
+    InterlockedIncrement(&g_hp_cnt[i][GetCurrentThreadId() == g_hp_main ? 2 : 3]);
+    if (g_hp_lock_on) EnterCriticalSection(&g_hp_cs);
+    for (k = 0; k < g_hp_nlive; k++) if (g_hp_live[k] == (BYTE *)h) { g_hp_live[k] = g_hp_live[--g_hp_nlive]; g_hp_live_by[k] = g_hp_live_by[g_hp_nlive]; break; }
+    if (g_hp_shim[i] && h && hp_mapped(h)) {                /* the segment chain must not lead into another live heap */
+        BYTE *seg = (BYTE *)h; int steps = 0;
+        while (seg && steps++ < 256 && hp_mapped(seg + 4)) {
+            BYTE *next = *(BYTE **)(seg + 4);
+            for (j = 0; next && j < g_hp_nlive; j++) if (g_hp_live[j] == next) break;
+            if (next && j < g_hp_nlive) {
+                mlog("  coop-heap: destroying %p (caller %p): its segment chain leads into LIVE heap %p (created by %p) - cut at %p",
+                     h, by, next, g_hp_live_by[j], seg);
+                *(BYTE **)(seg + 4) = NULL; InterlockedIncrement(&g_hp_cut);
+                break;
+            }
+            seg = next;
+        }
+    }
+    if (g_hp_guard && g_hp_list && g_hp_shim[i] && h) {
+        BYTE *dead;
+        if (!hp_reachable((BYTE *)h, &dead)) {
+            static int told;
+            InterlockedIncrement(&g_hp_skipped);
+            if (told++ < 3) {                                /* where the list ends now, and what that node looks like */
+                int j; void *tby = NULL; char hx[0x50 * 3 + 1]; int L = 0;
+                for (j = 0; j < g_hp_nlive; j++) if (g_hp_live[j] == g_hp_tail) tby = g_hp_live_by[j];
+                if (g_hp_tail && hp_mapped(g_hp_tail)) for (j = 0; j < 0x50; j++) L += sprintf(hx + L, "%02x", g_hp_tail[j]);
+                hx[L] = 0;
+                mlog("  coop-heap: HeapDestroy(%p) from %p: not reachable in the shim's heap list (%s; walk ended after %d nodes at %p, created by %p) - relinked at the head",
+                     h, by, dead ? "a released node blocks the walk" : "the list ends early", g_hp_len, g_hp_tail, tby);
+                mlog("  coop-heap:   end node header %s%s", hx, dead ? " (released node follows)" : "");
+            }
+            if (!hp_mapped((BYTE *)h + 0x48)) {             /* cannot relink: leave it allocated rather than crash */
+                mlog("  coop-heap: HeapDestroy(%p) SKIPPED - header not mapped", h);
+                if (g_hp_lock_on) LeaveCriticalSection(&g_hp_cs);
+                return TRUE;
+            }
+            /* put it back at the head: the shim's walk then finds it first and unlinks it (head = its next = the old
+             * head), so the list is as before and the heap is freed properly */
+            *(BYTE **)((BYTE *)h + 0x48) = *(BYTE **)(*g_hp_list + 8);
+            *(BYTE **)(*g_hp_list + 8) = (BYTE *)h;
+        }
+    }
+    r = ((BOOL (WINAPI *)(HANDLE))g_hp_dorig[i])(h);
+    if (g_hp_shim[i])
+        for (k = 0; k < g_hp_nlive; k++)
+            if (!hp_mapped(g_hp_live[k])) {
+                mlog("  coop-heap: after destroying %p (caller %p) live heap %p (created by %p) is GONE - dead node in the shim's list",
+                     h, by, g_hp_live[k], g_hp_live_by[k]);
+                InterlockedIncrement(&g_hp_dead);
+                g_hp_live[k] = g_hp_live[--g_hp_nlive]; g_hp_live_by[k] = g_hp_live_by[g_hp_nlive]; k--;
+            }
+    if (g_hp_lock_on) LeaveCriticalSection(&g_hp_cs);
+    return r;
+}
+#define HPW(i) static HANDLE WINAPI hpc##i(DWORD f, SIZE_T a, SIZE_T b) { return hp_create(i, f, a, b, __builtin_return_address(0)); } \
+               static BOOL WINAPI hpd##i(HANDLE h) { return hp_destroy(i, h, __builtin_return_address(0)); }
+HPW(0) HPW(1) HPW(2) HPW(3) HPW(4) HPW(5) HPW(6) HPW(7) HPW(8) HPW(9) HPW(10) HPW(11)
+HPW(12) HPW(13) HPW(14) HPW(15) HPW(16) HPW(17) HPW(18) HPW(19) HPW(20) HPW(21) HPW(22) HPW(23)
+static void *const g_hpc[COOP_HP_N] = { hpc0, hpc1, hpc2, hpc3, hpc4, hpc5, hpc6, hpc7, hpc8, hpc9, hpc10, hpc11,
+    hpc12, hpc13, hpc14, hpc15, hpc16, hpc17, hpc18, hpc19, hpc20, hpc21, hpc22, hpc23 };
+static void *const g_hpd[COOP_HP_N] = { hpd0, hpd1, hpd2, hpd3, hpd4, hpd5, hpd6, hpd7, hpd8, hpd9, hpd10, hpd11,
+    hpd12, hpd13, hpd14, hpd15, hpd16, hpd17, hpd18, hpd19, hpd20, hpd21, hpd22, hpd23 };
+static int g_hp_watch;
+static void **hp_slot(HMODULE mod, const char *func) {        /* iat_slot for any module: needs the name table, checks every RVA */
+    BYTE *base = (BYTE *)mod; IMAGE_NT_HEADERS *nt; IMAGE_IMPORT_DESCRIPTOR *d; DWORD size, n = 0;
+    if (((IMAGE_DOS_HEADER *)base)->e_magic != IMAGE_DOS_SIGNATURE) return NULL;
+    nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return NULL;
+    size = nt->OptionalHeader.SizeOfImage;
+    if (!nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress) return NULL;
+    for (d = (IMAGE_IMPORT_DESCRIPTOR *)(base + nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+         d->Name && n < 256; d++, n++) {
+        IMAGE_THUNK_DATA *oft, *ft; DWORD k;
+        if (d->Name >= size || !d->OriginalFirstThunk || d->OriginalFirstThunk >= size || d->FirstThunk >= size) continue;
+        if (lstrcmpiA((char *)(base + d->Name), "KERNEL32.dll") != 0) continue;
+        oft = (IMAGE_THUNK_DATA *)(base + d->OriginalFirstThunk); ft = (IMAGE_THUNK_DATA *)(base + d->FirstThunk);
+        for (k = 0; oft->u1.AddressOfData && k < 4096; oft++, ft++, k++) {
+            if (oft->u1.Ordinal & IMAGE_ORDINAL_FLAG) continue;
+            if (oft->u1.AddressOfData + 2 >= size) break;
+            if (lstrcmpA((char *)((IMAGE_IMPORT_BY_NAME *)(base + oft->u1.AddressOfData))->Name, func) == 0) return (void **)&ft->u1.Function;
+        }
+    }
+    return NULL;
+}
+static void coop_heap_scan(void) {                           /* from the pump (main thread) */
+    static DWORD last; DWORD now = GetTickCount();
+    HANDLE sn; MODULEENTRY32 me; HMODULE self = NULL;
+    if (!g_hp_watch || (last && now - last < 5000)) return;
+    last = now;
+    {   int k;                                               /* a live heap released by anything but a destroy */
+        if (g_hp_lock_on) EnterCriticalSection(&g_hp_cs);
+        for (k = 0; k < g_hp_nlive; k++)
+            if (!hp_mapped(g_hp_live[k])) {
+                mlog("  coop-heap: live heap %p (created by %p) is GONE without a destroy", g_hp_live[k], g_hp_live_by[k]);
+                InterlockedIncrement(&g_hp_dead);
+                g_hp_live[k] = g_hp_live[--g_hp_nlive]; g_hp_live_by[k] = g_hp_live_by[g_hp_nlive]; k--;
+            }
+        if (g_hp_lock_on) LeaveCriticalSection(&g_hp_cs);
+    }
+    if (!g_hp_main) { g_hp_main = GetCurrentThreadId(); if (g_hp_guard && !g_hp_list) hp_find_list(); }
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)coop_heap_scan, &self);
+    sn = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, 0);
+    if (sn == INVALID_HANDLE_VALUE) return;
+    me.dwSize = sizeof(me);
+    if (Module32First(sn, &me)) do {
+        void **cs, **ds; int i, k;
+        if (me.hModule == self || g_hp_n >= COOP_HP_N) continue;
+        if (g_hp_only_exe && me.hModule != GetModuleHandleA(NULL)) continue;
+        cs = hp_slot(me.hModule, "HeapCreate"); ds = hp_slot(me.hModule, "HeapDestroy");
+        if (!cs || !ds) continue;
+        for (k = 0; k < g_hp_n; k++) if (g_hp_cslot[k] == cs) break;
+        if (k < g_hp_n) continue;                            /* already ours */
+        {   HMODULE owner = NULL; char on[MAX_PATH] = "?";
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)*cs, &owner);
+            if (owner) { char *b; GetModuleFileNameA(owner, on, sizeof(on)); b = strrchr(on, '\\'); if (b) memmove(on, b + 1, strlen(b)); }
+            i = g_hp_n;
+            g_hp_cslot[i] = cs; g_hp_dslot[i] = ds; g_hp_corig[i] = *cs; g_hp_dorig[i] = *ds;
+            lstrcpynA(g_hp_mod[i], me.szModule, sizeof(g_hp_mod[i]));
+            g_hp_shim[i] = _strnicmp(on, "kernel", 6) != 0;
+            {   DWORD old;
+                if (VirtualProtect(cs, sizeof(void *), PAGE_READWRITE, &old)) { *cs = g_hpc[i]; VirtualProtect(cs, sizeof(void *), old, &old); }
+                if (VirtualProtect(ds, sizeof(void *), PAGE_READWRITE, &old)) { *ds = g_hpd[i]; VirtualProtect(ds, sizeof(void *), old, &old); }
+            }
+            g_hp_n++;
+            mlog("  coop-heap: watching %s (HeapCreate goes to %s)%s", me.szModule, on, g_hp_lock_on ? ", serialised" : "");
+        }
+    } while (Module32Next(sn, &me));
+    CloseHandle(sn);
+}
+static void coop_heap_log(void) {
+    char line[COOP_HP_N * 48 + 32]; int i, len = sprintf(line, "  coop-heap:");
+    if (!g_hp_watch || !g_hp_n) return;
+    for (i = 0; i < g_hp_n; i++)
+        if (g_hp_cnt[i][0] | g_hp_cnt[i][1] | g_hp_cnt[i][2] | g_hp_cnt[i][3])
+            len += sprintf(line + len, " %.12s c%ld/%ld d%ld/%ld;", g_hp_mod[i], g_hp_cnt[i][0], g_hp_cnt[i][1], g_hp_cnt[i][2], g_hp_cnt[i][3]);
+    mlog("%s (main/other thread); live %d, dead nodes %ld, chains cut %ld, destroys relinked %ld", line, g_hp_nlive, g_hp_dead, g_hp_cut, g_hp_skipped);
+}
 static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
     if (!real_dpReceive) return;
+    coop_heap_log();
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
@@ -2278,6 +2574,24 @@ static int coop_ai_is_mirrored(BYTE *o) {                  /* joiner: one of the
     for (i = 0; i < count; i++) if (*(BYTE **)(tab + i * 16 + 8) == o) return coop_ai_object(i, count, tab) != NULL;
     return 0;
 }
+/* Score: the remote-car mirror 0x464890 ends with 0x454ea0(owner id, score, kills, deaths) (`call` at 0x465267), which
+ * stores the record's score in the owner's player table slot and checks MAX SCORE. A mission car's owner id is 0, and
+ * the slot lookup for id 0 finds the first EMPTY slot, so on the joiner each enemy wrote into a free slot (in a team
+ * game that slot's team, 0, then counted toward the max-score check). Real players never have id 0: skipped for it. */
+static void __cdecl coop_ai_score_set(int id, int score, int kills, int deaths) {
+    if ((WORD)id == 0) return;
+    ((void (__cdecl *)(int, int, int, int))0x00454ea0)(id, score, kills, deaths);
+}
+/* Rear mirror without a car: renderer_DrawRearMirror 0x445750 reads the local car through the world root
+ * (*world_GetRoot() -> 0x467440 -> +0x70) with no NULL check. A joiner can run mission frames before its own car
+ * exists (stuck in a load the host had already left, soak 2026-10-07: crash at 0x467444 reading 0x70, from 0x4457f6,
+ * twice). Both calls (0x401cfe, 0x401fde) skip the mirror while there is no local car. */
+static volatile LONG g_coop_mirror_skips;
+static void __cdecl coop_mirror(void) {
+    BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();
+    if (!root || !*root || !*(BYTE **)(*root + 0x70)) { g_coop_mirror_skips++; return; }
+    ((void (__cdecl *)(void))0x00445750)();
+}
 static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces `call object_ClassDamage 0x462040` x5 */
     if (coop_ai_role() == 2 && coop_ai_is_mirrored(o)) { g_coop_ai_blocked++; return 0; }
     return ((int (__cdecl *)(BYTE *, int, int))0x00462040)(o, a, rec);
@@ -2294,9 +2608,11 @@ static void coop_chain_pending(void);
 static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: packets in one unbroken pump loop */
 static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
 static WORD g_coop_group; static DWORD g_coop_group_wait;    /* the session's game group, kept across chain reloads */
+static char g_coop_pending_am[16];                          /* an 'AM' that arrived while this machine was loading */
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
+    coop_heap_scan();
     if (g_coop_chain && *(volatile int *)0x00541030 && *(volatile int *)0x004c2164 != 5) {   /* diagnostics while not playing */
         static DWORD lastw; DWORD now = GetTickCount();
         if (now - lastw > 5000) {
@@ -2305,6 +2621,44 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
                  *(volatile int *)0x004c2164, *(volatile WORD *)0x00541060, g_coop_group, *(volatile int *)0x00541034,
                  *(volatile int *)0x00609320, *(volatile WORD *)0x00541028, *(volatile WORD *)0x00541064,
                  ((int (__cdecl *)(void))0x00454610)());
+        }
+    }
+    if (g_coop_chain && __builtin_return_address(0) == (void *)0x00452F70) {   /* the join handshake 0x452f20 */
+        /* The handshake (called every frame until it returns 1) ends when this player's 'SP' arrives (sent to players
+         * joining from the menus) or after 5 s (game clock) with no 'XX' / 0xcc43 from a lower id (0x540ffc = the last
+         * one). On a chain reload both machines load together and the host's load is that quiet spell. When the host
+         * is already PLAYING (it finished the mission the joiner was still loading; soak 2026-10-07) its 'XX' and
+         * 0xcc43 never stop (measured: every 0.2 s for minutes) and the joiner waited forever. After 8 s the host's
+         * chatter is aged on every empty receive, so the game's own timeout spawns the joiner as for a late join; a
+         * held 'AM' then takes it to the host's mission. */
+        static WORD ty[16], fr[16]; static int n, total; static DWORD last, start, told;
+        DWORD now = GetTickCount();
+        if (!last || now - last > 3000) { n = 0; total = 0; start = now; told = 0; }  /* a new handshake */
+        last = now;
+        if (r != 0 && now - start > 8000 && *(volatile WORD *)0x00541064 && *(volatile WORD *)0x00541064 != *(volatile WORD *)0x00541028) {
+            *(volatile float *)0x00540ffc = (float)((double (__cdecl *)(void))0x0049c8c0)() - 10.0f;
+            if (!told) { told = 1; mlog("  coop-chain: handshake 8 s old and the host is not quiet (it is already playing) - spawning on the game's timeout path"); }
+        }
+        if (r == 0 && buf && from) {
+            int k;
+            for (k = 0; k < n; k++) if (ty[k] == *(WORD *)buf && fr[k] == *(WORD *)from) break;
+            if (k == n && n < 16) { ty[n] = *(WORD *)buf; fr[n] = *(WORD *)from; n++; }
+            if (++total <= 12 || (total % 200) == 0) {
+                char line[16 * 12 + 96]; int i, len = sprintf(line, "  coop-chain: handshake rx #%d (pump-exit %d, quiet-since %.1f, now %.1f), kinds:", total,
+                    *(volatile int *)0x00609320, *(volatile float *)0x00540ffc, (float)((double (__cdecl *)(void))0x0049c8c0)());   /* simclock_GetTime */
+                for (i = 0; i < n; i++) len += sprintf(line + len, " %c%c/%u", ty[i] & 0xff, ty[i] >> 8, fr[i]);
+                mlog("%s", line);
+            }
+        }
+    }
+    if (g_coop_chain && *(volatile int *)0x00541030 && *(volatile int *)0x004c2164 == 5) {   /* a load-time network wait */
+        static DWORD lastf, lastt, lastlog; DWORD now = GetTickCount();
+        if (g_frame != lastf) { lastf = g_frame; lastt = now; }
+        else if (lastt && now - lastt > 5000 && now - lastlog > 5000) {
+            lastlog = now;
+            mlog("  coop-chain: no mission frames for %lu s in state 5 - dpReceive called from %p (group %u, me %u, host %u, players %d, held AM '%s')",
+                 (now - lastt) / 1000, __builtin_return_address(0), *(volatile WORD *)0x00541060, *(volatile WORD *)0x00541028,
+                 *(volatile WORD *)0x00541064, ((int (__cdecl *)(void))0x00454610)(), g_coop_pending_am);
         }
     }
     if (g_coop_chain) {
@@ -2374,6 +2728,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
  *     single-player mission (measured 2026-10-07: player table empty, host stopped sending). */
 static char g_coop_next[16];
 static int g_coop_reload_pending;                           /* a chain reload: keep the game networked through teardown */
+static DWORD g_coop_reload_frame;                           /* g_frame at the last chain reload (coop_chain_frames_running) */
 static void __cdecl coop_netflag(int v) {                   /* replaces `call 0x452d30` (net flag := v) at 0x404662 */
     if (g_coop_reload_pending) { v = 1; g_coop_reload_pending = 0; mlog("  coop-chain: teardown keeps the network flag for the reload"); }
     ((void (__cdecl *)(int))0x00452d30)(v);
@@ -2412,6 +2767,7 @@ static void __cdecl coop_chain_at_end(char *winmain_esp) {
     }
     if (*state == 7 && g_coop_next[0]) {
         g_coop_reload_pending = 1;
+        g_coop_reload_frame = g_frame;
         /* exactly strlen + 1 bytes: the setup block's field size is not known, and a 16-byte strncpy zero-filled
          * whatever follows "mNN.msn" (suspect for the rare teardown heap crash, 2026-10-07) */
         { size_t L = strlen(g_coop_next); if (L > 12) L = 12; memcpy(setup_name, g_coop_next, L); setup_name[L] = 0; memcpy(cur, g_coop_next, L); cur[L] = 0; }
@@ -2430,7 +2786,15 @@ static __declspec(naked) void coop_chain_stub(void) {       /* replaces `call 0x
         ret
     }
 }
-static char g_coop_pending_am[16];                          /* an 'AM' that arrived while this machine was loading */
+/* "In the mission" for the chain means mission FRAMES are running: state 5 and a world root are already true inside a
+ * load's network wait (main thread in the WIPX receive, no mission frames), and an 'AM' that set state 7 there left
+ * the joiner in that wait for good (soak 2026-10-07: the host won the mission the joiner was still loading). So:
+ * more than 10 mission frames since this machine's last chain reload, the latest one less than half a second ago. */
+static int coop_chain_frames_running(void) {
+    static DWORD lastf, lastt; DWORD now = GetTickCount();
+    if (g_frame != lastf) { lastf = g_frame; lastt = now; }
+    return lastt && now - lastt < 500 && g_frame - g_coop_reload_frame > 10 && coop_ai_in_mission();
+}
 static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner (or not yet sure), in the pump */
     if (size < 20 || !g_coop_chain) return;
     /* the 3 copies of one reload: the 2nd and 3rd often sit in the queue through the joiner's load and arrived once its
@@ -2438,7 +2802,7 @@ static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner (or not yet
     if (pkt[2] && pkt[2] == g_coop_am_seq) return;
     if (pkt[2]) g_coop_am_seq = pkt[2];
     g_coop_chain_got++;
-    if (*(volatile int *)0x004c2164 != 5 || !coop_ai_in_mission()) {   /* loading: keep it for when the mission runs */
+    if (!coop_chain_frames_running()) {                      /* loading: keep it for when the mission runs */
         strncpy(g_coop_pending_am, (char *)pkt + 4, 15); g_coop_pending_am[15] = 0;
         return;
     }
@@ -2446,7 +2810,7 @@ static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner (or not yet
     *(volatile int *)0x004c2164 = 7;
 }
 static void coop_chain_pending(void) {                       /* every pump call: a held 'AM' once the mission runs */
-    if (!g_coop_pending_am[0] || *(volatile int *)0x004c2164 != 5 || !coop_ai_in_mission()) return;
+    if (!g_coop_pending_am[0] || !coop_chain_frames_running()) return;
     if (_strnicmp(g_coop_pending_am, (char *)0x005049f0, 8) == 0) { g_coop_pending_am[0] = 0; return; }   /* already there */
     strncpy(g_coop_next, g_coop_pending_am, 15); g_coop_next[15] = 0; g_coop_pending_am[0] = 0;
     *(volatile int *)0x004c2164 = 7;
@@ -2672,13 +3036,26 @@ static void apply_coop_ai(HMODULE exe) {
     char v[8]; DWORD k = GetEnvironmentVariableA("I76_COOP_AI", v, sizeof(v));
     if (k == 0 || k >= sizeof(v) || v[0] != '1') return;
     real_dpReceive = (dprecv_fn)patch_iat(exe, "anetdll.dll", "dpReceive", (void *)coop_dpReceive);
+    {   char hv[8]; DWORD hk = GetEnvironmentVariableA("I76_COOP_HEAPWATCH", hv, sizeof(hv)), lk;
+        if (hk && hk < sizeof(hv) && hv[0] == '1') g_hp_watch = 1;
+        lk = GetEnvironmentVariableA("I76_COOP_HEAPLOCK", hv, sizeof(hv));
+        if (lk && lk < sizeof(hv) && hv[0] == '1') { g_hp_watch = 1; g_hp_lock_on = 1; }
+        {   DWORD sk = GetEnvironmentVariableA("I76_COOP_SHIMLOCK", hv, sizeof(hv)); if (sk && sk < sizeof(hv) && hv[0] == '0') g_hs_want = 0; }
+        lk = GetEnvironmentVariableA("I76_COOP_HEAPGUARD", hv, sizeof(hv));
+        if (!(lk && lk < sizeof(hv) && hv[0] == '0') && GetModuleHandleA("AcGenral.dll")) {
+            g_hp_guard = 1;
+            if (!g_hp_watch) { g_hp_watch = 1; g_hp_only_exe = 1; }   /* guard alone: i76.exe's imports only */
+            hp_find_list();                                  /* at load: the shim lock covers the whole session */
+        }
+        if (g_hp_watch) InitializeCriticalSection(&g_hp_cs);
+    }
     r0 = (LONG)(0x0040a320 - (0x00403ddf + 5)); r1 = (LONG)((DWORD_PTR)coop_ai_frametick - (0x00403ddf + 5));
     memcpy(old + 1, &r0, 4); memcpy(w + 1, &r1, 4);
     mlog("  coop-ai: dpReceive %s, ai_FrameTick call %s (host sends mission cars as 'AT', joiner mirrors them)",
          real_dpReceive ? "hooked" : "NOT hooked",
          patch_bytes(0x00403ddf, old, w, 5, "coop-ai: ai_FrameTick") ? "repointed" : "NOT repointed");
     {   /* AI trigger pulls (host records them) and the damage entry (joiner blocks it for mirrored cars) */
-        static const struct { DWORD site, target; void *stub; } c[24] = {
+        static const struct { DWORD site, target; void *stub; } c[27] = {
             { 0x00414f86, 0x004a3560, (void *)coop_ai_trigger },
             { 0x00465e5a, 0x00462040, (void *)coop_ai_class_damage }, { 0x0046648f, 0x00462040, (void *)coop_ai_class_damage },
             { 0x0046aae4, 0x00462040, (void *)coop_ai_class_damage }, { 0x004a81d3, 0x00462040, (void *)coop_ai_class_damage },
@@ -2688,6 +3065,8 @@ static void apply_coop_ai(HMODULE exe) {
             { 0x00412e9c, 0x00412830, (void *)coop_ai_attack }, { 0x00412f11, 0x00412830, (void *)coop_ai_attack },
             { 0x00412fad, 0x00412830, (void *)coop_ai_attack }, { 0x00413049, 0x00412830, (void *)coop_ai_attack },
             { 0x00414046, 0x00412830, (void *)coop_ai_attack },
+            { 0x00465267, 0x00454ea0, (void *)coop_ai_score_set },
+            { 0x00401cfe, 0x00445750, (void *)coop_mirror }, { 0x00401fde, 0x00445750, (void *)coop_mirror },
             { 0x0040a0f8, 0x00423620, (void *)coop_cb_play }, { 0x0040bfcc, 0x00423620, (void *)coop_cb_play },
             { 0x0040bfee, 0x00423620, (void *)coop_cb_play }, { 0x0040c011, 0x00423620, (void *)coop_cb_play },
             { 0x0040c029, 0x00423620, (void *)coop_cb_play }, { 0x0041348f, 0x00423620, (void *)coop_cb_play },
@@ -2700,14 +3079,14 @@ static void apply_coop_ai(HMODULE exe) {
         char dv[8]; DWORD dk = GetEnvironmentVariableA("I76_COOP_AI_DIAG", dv, sizeof(dv));
         int i, n = 0;
         char cbv[8]; DWORD cbk = GetEnvironmentVariableA("I76_COOP_CB", cbv, sizeof(cbv));
-        int nsites = (cbk && cbk < sizeof(cbv) && cbv[0] == '0') ? 15 : 24;   /* I76_COOP_CB=0: no radio / objective forwarding */
+        int nsites = (cbk && cbk < sizeof(cbv) && cbv[0] == '0') ? 18 : 27;   /* I76_COOP_CB=0: no radio / objective forwarding */
         for (i = 0; i < nsites; i++) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
-        mlog("  coop-ai: %d/%d trigger + damage + SetBehaviour + radio + objective sites repointed", n, nsites);
+        mlog("  coop-ai: %d/%d trigger + damage + SetBehaviour + score + mirror + radio + objective sites repointed", n, nsites);
         if (dk && dk < sizeof(dv) && dv[0] == '1') {
             int m = 0;
             for (i = 0; i < 9; i++) {
