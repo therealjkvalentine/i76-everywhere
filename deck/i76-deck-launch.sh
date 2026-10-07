@@ -61,7 +61,9 @@ done
 # run where a new user is watching.
 DRIVE_C="${STEAM_COMPAT_DATA_PATH:-}/pfx/drive_c"
 HAVE_PAYLOAD=""
-if [ -n "${STEAM_COMPAT_DATA_PATH:-}" ] \
+if [ "${I76_DECK_AHK:-1}" = "0" ]; then
+    log "I76_DECK_AHK=0 - pad layer off (Steam Input layout drives the game)"
+elif [ -n "${STEAM_COMPAT_DATA_PATH:-}" ] \
    && [ -f "$STAGE/AutoHotkeyU32.exe" ] && [ -f "$STAGE/i76-remap.ahk" ]; then
     HAVE_PAYLOAD=1
 else

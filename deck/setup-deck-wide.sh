@@ -8,16 +8,20 @@
 #     interpolation (smooth above 20 fps without breaking jumps), the frame-rate fixes,
 #     draw distance 1200 m, terrain/texture/object detail x8, bushes 300 m, mirror 300 m,
 #     the terrain-flash fix, the TMU fix, and in-mission music from GOG's mp3s
-#   * dgVoodoo.conf: stretched to the panel at 2x internal (2560x1600), 4x MSAA, TMU 8192
-#     (only together with I76_ZGLIDE_TMUFIX), FPSLimit off, forced 32-bit dithering
+#   * dgVoodoo.conf: stretched to the panel at native 1280x800 (the Deck's conf point-samples
+#     its downscale, so 2x internal would only add shimmer), 4x MSAA, TMU 8192 (only together
+#     with I76_ZGLIDE_TMUFIX), FPSLimit off, forced 32-bit dithering
 #   * I76PATCH.DLL (GOG's ~20 fps cap) disabled: the fixed step keeps physics at stock pace
+#   * LAN play: IPXWrapper's three DLLs (if the push brought them) + WINEDLLOVERRIDES for
+#     wsock32/mswsock, the recipe that put the Mac into a PC-hosted IPX game (docs/MULTIPLAYER.md)
 #
 # Kept as is: dgVoodoo 2.78.2 (the version proven under Proton on this Deck), the Steam
-# Input controller layout, input.map. Not carried: u32x.dll (the Windows mouse DLL; the
-# Esc menu's mouse map may be off at 16:10 - keys still work).
+# Input controller layout, input.map; the AHK pad layer stays off (I76_DECK_AHK=0). Not
+# carried: u32x.dll (the Windows mouse DLL; the Esc menu's mouse map may be off at 16:10).
 #
-# STATUS: built 2026-10-06 from the Mac, offline. The proxy has never run under Proton.
-# Everything below verifies before it writes, and --revert puts every touched file back.
+# STATUS: built 2026-10-06. The proxy ran every switch under Wine 10 on the Mac with this
+# same exe (AiO + stack patch, docs/records/PORTING-WINDOWS-WINS-TO-MAC.md); not yet under
+# Proton. Everything below verifies before it writes; --revert puts every touched file back.
 #
 #   ./setup-deck-wide.sh                 install (re-runnable)
 #   ./setup-deck-wide.sh --revert        restore the files saved by the last install
@@ -70,11 +74,6 @@ if pgrep -x 'i76.exe' >/dev/null 2>&1; then die "the game is running - quit it f
 # Only the FIRST install is backed up: a re-run (e.g. a newer proxy) keeps the original
 # pre-wide state as the revert target instead of saving its own previous output.
 TS="$(date +%Y%m%d-%H%M%S)"
-for f in "$GAME"/*; do
-    case "$(basename "$f")" in
-        STRLKUP.DLL|strlkup.dll) die "found $(basename "$f") - rename it to Strlkup.dll by hand first";;
-    esac
-done
 if [ -f "$LAST" ] && [ -d "$(cat "$LAST")" ]; then
     B="$(cat "$LAST")"
     echo "== 0. re-run: keeping the original backup $B =="
@@ -82,8 +81,9 @@ else
     B="$BACKUPS/pre-wide-$TS"
     mkdir -p "$B/game"
     : > "$B/MANIFEST"
-    for rel in game/Strlkup.dll game/strlkup_orig.dll game/dgVoodoo.conf game/I76PATCH.DLL \
-               game/I76PATCH.DLL.disabled i76-env.sh i76-deck-launch.sh; do
+    for rel in game/Strlkup.dll game/STRLKUP.DLL game/strlkup_orig.dll game/dgVoodoo.conf \
+               game/I76PATCH.DLL game/I76PATCH.DLL.disabled game/ipxwrapper.dll game/wsock32.dll \
+               game/mswsock.dll i76-env.sh i76-deck-launch.sh; do
         if [ -e "$INSTALL/$rel" ]; then
             cp -p "$INSTALL/$rel" "$B/$rel"; echo "$rel present" >> "$B/MANIFEST"
         else
@@ -97,6 +97,10 @@ fi
 
 # ------------------------------------------------------------- 1. proxy -----
 echo "== 1. Strlkup.dll proxy =="
+# GOG's installer may write it upper case. Wine resolves either; this script needs one name.
+if [ ! -f "$GAME/Strlkup.dll" ] && [ -f "$GAME/STRLKUP.DLL" ]; then
+    mv "$GAME/STRLKUP.DLL" "$GAME/Strlkup.dll"; say "STRLKUP.DLL -> Strlkup.dll (revert restores the old name)"
+fi
 [ -f "$GAME/Strlkup.dll" ] || die "no Strlkup.dll in $GAME"
 if grep -qa 'strlkup_orig' "$GAME/Strlkup.dll"; then
     say "Strlkup.dll is already a proxy - replacing it with $PROXY_MD5"
@@ -130,14 +134,14 @@ python3 - "$GAME/dgVoodoo.conf" <<'PY'
 import re, sys
 p = sys.argv[1]
 t = open(p, encoding="latin-1").read()
-want = [  # (section, key, value)
-    ("General",    "ScalingMode",           "stretched"),      # the frame fills 16:10; I76_ASPECT widens the camera to match
-    ("General",    "KeepWindowAspectRatio", "false"),
-    ("GeneralExt", "FPSLimit",              "0"),              # pacing comes from I76_GLIDE_REFRESH; physics from the fixed step
-    ("Glide",      "MemorySizeOfTMU",       "8192"),           # ONLY with I76_ZGLIDE_TMUFIX=1 (4096+ without it corrupts textures)
-    ("Glide",      "Resolution",            "2560x1600"),      # 2x the panel, 16:10
-    ("Glide",      "Antialiasing",          "4x"),
-    ("GlideExt",   "Dithering",             "forcealways"),
+want = [  # (section, key, value, required)
+    ("General",    "ScalingMode",           "stretched",   True),   # fills 16:10; I76_ASPECT widens the camera to match
+    ("General",    "KeepWindowAspectRatio", "false",       False),
+    ("GeneralExt", "FPSLimit",              "0",           True),   # pacing: I76_GLIDE_REFRESH; physics: the fixed step
+    ("Glide",      "MemorySizeOfTMU",       "8192",        True),   # ONLY with I76_ZGLIDE_TMUFIX=1 (4096+ without it corrupts textures)
+    ("Glide",      "Resolution",            "1280x800",    True),   # the panel, 16:10
+    ("Glide",      "Antialiasing",          "4x",          True),
+    ("GlideExt",   "Dithering",             "forcealways", False),
 ]
 sec_re = re.compile(r'(?m)^\[([^\]]+)\]\s*$')
 heads = [(m.group(1), m.start(), m.end()) for m in sec_re.finditer(t)]
@@ -146,20 +150,38 @@ def span(name):
         if n == name:
             return e, (heads[i + 1][1] if i + 1 < len(heads) else len(t))
     raise SystemExit("REFUSED: no [%s] section" % name)
-for sec, key, val in want:
+for sec, key, val, required in want:
     a, b = span(sec)
     body = t[a:b]
-    pat = re.compile(r'(?m)^(%s\s*=[ \t]*)([^\r\n]*)$' % re.escape(key))
+    # value, then an optional inline "; comment" that is kept
+    pat = re.compile(r'(?m)^(%s\s*=[ \t]*)([^;\r\n]*?)([ \t]*;[^\r\n]*)?$' % re.escape(key))
     hits = pat.findall(body)
+    if len(hits) == 0 and not required:
+        print("  [%s] %s: absent, left absent (optional)" % (sec, key))
+        continue
     if len(hits) != 1:
         raise SystemExit("REFUSED: [%s] %s occurs %d times" % (sec, key, len(hits)))
     old = hits[0][1].strip()
-    body = pat.sub(lambda m: m.group(1) + val, body)
+    # unchanged value keeps its comment; a changed one says what it was
+    note = lambda m: (m.group(3) or "") if old == val else "   ; was %s (deck/setup-deck-wide.sh)" % (old or "empty")
+    body = pat.sub(lambda m: m.group(1) + val + note(m), body)
     t = t[:a] + body + t[b:]
     heads = [(m.group(1), m.start(), m.end()) for m in sec_re.finditer(t)]
     print("  [%s] %s: %s -> %s" % (sec, key, old or "(empty)", val))
 open(p, "w", encoding="latin-1", newline="").write(t)
 PY
+
+# ------------------------------------------------------------ 3b. LAN (IPX) --
+echo "== 3b. IPXWrapper (LAN play) =="
+IPX=""
+if [ -f "$PAYLOAD/ipx/ipxwrapper.dll" ] && [ -f "$PAYLOAD/ipx/wsock32.dll" ] && [ -f "$PAYLOAD/ipx/mswsock.dll" ]; then
+    cp -f "$PAYLOAD/ipx/ipxwrapper.dll" "$PAYLOAD/ipx/wsock32.dll" "$PAYLOAD/ipx/mswsock.dll" "$GAME/"
+    IPX=1; say "ipxwrapper.dll, wsock32.dll, mswsock.dll installed"
+elif [ -f "$GAME/ipxwrapper.dll" ]; then
+    IPX=1; say "already installed"
+else
+    say "not in the payload - skipped (LAN over IPX unavailable; see docs/MULTIPLAYER.md)"
+fi
 
 # ----------------------------------------------------- 4. the switch file ----
 echo "== 4. i76-env.sh (preset best-wide-balanced, Deck values) =="
@@ -196,7 +218,14 @@ export I76_MIRROR_FAR=300
 export I76_COLL_DEDUPE=0
 export I76_AI_ROLL_HOLD=0
 export I76MUSIC_LOG=1               # mciproxy.log in the game folder: proves which switches applied
+export I76_DECK_AHK=0               # 1 = start the baseline AHK pad layer too (deck/setup-deck-baseline.sh)
 EOF
+if [ -n "$IPX" ]; then
+    cat >> "$INSTALL/i76-env.sh" <<'EOF'
+# IPXWrapper: Wine must load the game folder's winsock DLLs, not its own.
+export WINEDLLOVERRIDES="wsock32,mswsock=n,b${WINEDLLOVERRIDES:+;$WINEDLLOVERRIDES}"
+EOF
+fi
 say "written ($HZ Hz target)"
 
 # ------------------------------------------------------------ 5. wrapper ----

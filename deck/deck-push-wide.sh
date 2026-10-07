@@ -22,7 +22,7 @@ REPO="$(cd "$HERE/.." && pwd)"
 DEST="i76-deploy"
 
 echo "== target: $HOST =="
-ssh -o ConnectTimeout=10 "$HOST" 'echo "   reachable: $(hostname)"' \
+ssh -o ConnectTimeout=10 "$HOST" 'echo "   reachable: $(uname -n)"' \
     || { echo "Cannot reach $HOST - Deck awake? sshd on? (see deck-push.sh)"; exit 1; }
 
 echo "== copying payload =="
@@ -30,7 +30,18 @@ ssh "$HOST" "mkdir -p ~/$DEST/deck ~/$DEST/music-fix"
 scp -q "$REPO/music-fix/Strlkup.dll" "$HOST:~/$DEST/music-fix/Strlkup.dll"
 scp -q "$HERE/setup-deck-wide.sh" "$HERE/i76-deck-launch.sh" "$HERE/set-launch-options.py" \
        "$HERE/add-to-steam.py" "$HOST:~/$DEST/deck/"
-echo "   5 files -> ~/$DEST"
+N=5
+# IPXWrapper (GPL-2.0, solemnwarning.net/ipxwrapper; not in this repo): taken from a local
+# copy, by default the Mac IPX test wrapper's game folder (docs/MULTIPLAYER.md section 6).
+IPXD="${I76_IPXWRAPPER_DIR:-$HOME/Applications/Sikarugir/I76 IPX TEST.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76}"
+if [ -f "$IPXD/ipxwrapper.dll" ] && [ -f "$IPXD/wsock32.dll" ] && [ -f "$IPXD/mswsock.dll" ]; then
+    ssh "$HOST" "mkdir -p ~/$DEST/ipx"
+    scp -q "$IPXD/ipxwrapper.dll" "$IPXD/wsock32.dll" "$IPXD/mswsock.dll" "$HOST:~/$DEST/ipx/"
+    N=$((N + 3))
+else
+    echo "   (no IPXWrapper DLLs in $IPXD - LAN over IPX skipped; set I76_IPXWRAPPER_DIR)"
+fi
+echo "   $N files -> ~/$DEST"
 
 echo "== running setup on the Deck =="
 ssh "$HOST" "sed -i 's/\r$//' ~/$DEST/deck/*.sh; chmod +x ~/$DEST/deck/*.sh; bash ~/$DEST/deck/setup-deck-wide.sh $ARGS"

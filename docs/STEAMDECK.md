@@ -42,17 +42,25 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > `./deck/deck-push.sh`; recipe, decode sheet and rollback in **[DECK-BASELINE.md](records/DECK-BASELINE.md)**.
 > Not yet field-tested on Deck hardware.
 
-> **NEW 2026-10-06: the current graphics build, for the Deck.** `./deck/deck-push-wide.sh` (from
-> the Mac) runs [`deck/setup-deck-wide.sh`](../deck/setup-deck-wide.sh) on the Deck: the
-> `Strlkup.dll` proxy with the Windows daily driver's `best-wide-balanced` switches, set for the
-> 1280x800 panel (`I76_ASPECT=1280x800` Hor+ widescreen, HUD squeeze, fixed 24 Hz physics step +
-> render interpolation at 60 Hz (90 on an OLED), far clip 1200 m, detail x8, terrain-flash and
-> TMU fixes, mp3 music), dgVoodoo stretched to 2560x1600 with 4x MSAA, and GOG's 20 fps cap
-> (`I76PATCH.DLL`) off. The switches live in `~/Games/Interstate76/i76-env.sh`, loaded by
-> [`i76-deck-launch.sh`](../deck/i76-deck-launch.sh); `--revert` restores every touched file.
-> dgVoodoo stays 2.78.2 and the controller layout is untouched. **This supersedes the 20 fps /
-> 4:3 advice below** (QAM framerate limit off, not 20). Checked offline only (install, re-run,
-> revert and launch-option edit on a fake Deck folder); the proxy has never run under Proton.
+> **NEW 2026-10-06: the current graphics build, for the Deck.** `./deck/deck-push-wide.sh
+> deck@steamdeck.local` (from the Mac) runs [`deck/setup-deck-wide.sh`](../deck/setup-deck-wide.sh)
+> on the Deck: the `Strlkup.dll` proxy with the Windows daily driver's `best-wide-balanced`
+> switches set for the 1280x800 panel (`I76_ASPECT=1280x800` Hor+ widescreen, HUD squeeze, fixed
+> 24 Hz physics step + render interpolation at 60 Hz (90 on an OLED), far clip 1200 m, detail x8,
+> terrain-flash and TMU fixes, mp3 music), dgVoodoo at native 1280x800 + 4x MSAA with TMU 8192,
+> GOG's 20 fps cap (`I76PATCH.DLL`) off, and IPXWrapper + `WINEDLLOVERRIDES` for LAN play
+> ([MULTIPLAYER.md](MULTIPLAYER.md)). Switches live in `~/Games/Interstate76/i76-env.sh`, loaded by
+> [`i76-deck-launch.sh`](../deck/i76-deck-launch.sh), which needs the launch options
+> `"/home/deck/Games/Interstate76/i76-deck-launch.sh" %command% -glide`. `--revert` restores every
+> touched file. dgVoodoo stays 2.78.2, controls are untouched (`I76_DECK_AHK=0`). **This
+> supersedes the 20 fps / 4:3 advice below** (QAM framerate limit off, not 20).
+> Installed on the owner's Deck (LCD, SteamOS 3.8.16) 2026-10-06 21:33, backup
+> `~/Games/Interstate76/backups/pre-wide-20261006-213343`. Not yet launched there; the proxy's
+> switches were proven under Wine 10 on the Mac with the same exe
+> ([PORTING-WINDOWS-WINS-TO-MAC.md](records/PORTING-WINDOWS-WINS-TO-MAC.md)), not under Proton.
+> Before the change the Deck stretched the 4:3 picture to 16:10 (`ScalingMode = stretched`);
+> the Hor+ camera is what makes that stretch correct. Its `ADDON\valepre4.vcf` is the non-stock
+> 4ed297ca, as on the Mac: pick a car other than Jade's for LAN games against a stock PC.
 
 ## Controller layout (installed as a template — apply once)
 
