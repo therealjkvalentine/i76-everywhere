@@ -4817,6 +4817,8 @@ static void tex_census_attach(HMODULE m) {
          p_tc_Swap ? "hooked" : "NOT", p_tc_CalcMem ? "found" : "NOT found", ((BYTE *)m)[0x1a93], ((BYTE *)m)[0x1a94]);
 }
 
+#include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
+
 /* I76_GLIDE_DIR=<subfolder> (EXPERIMENT, lab docs/WIDESCREEN-2D.md): menus and cutscenes are 640x480 DirectDraw (dgVoodoo's
  * DDraw.dll), missions are Glide (its Glide2x.dll), and each dgVoodoo DLL looks for dgVoodoo.conf in its own folder
  * first. Loading <game>\<subfolder>\Glide2x.dll before ZGLIDE binds ZGLIDE's glide2x.dll import to that copy, so the
@@ -4837,6 +4839,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     m = p_LoadLibraryA(name);
     if (m && name) {
         const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
+        cursor_map_attach(m, b);
         if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix) {
             /* I76_ZGLIDE_TMUFIX=1: ZGLIDE+0x1a93 `jne +0x24` (75 24) -> `jmp +0x24` (eb 24): skip the Voodoo 1 "no texture
                across 2 MB" rule. Its rewind target is the constant 2 MB, and it runs BEFORE the grTexMaxAddress check, so
@@ -6116,6 +6119,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
+        apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

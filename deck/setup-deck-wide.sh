@@ -36,7 +36,8 @@ GAME="${I76_GAMEDIR:-$INSTALL/game}"
 BACKUPS="$INSTALL/backups"
 LAST="$BACKUPS/LAST-WIDE"
 PAYLOAD="${I76_PAYLOAD:-$HERE/..}"        # repo root (or the pushed copy of it)
-PROXY_MD5="d603cccf889bb8cff784fc1e933f6f27"
+PROXY="$PAYLOAD/deck/Strlkup.deck.dll"     # Mac build (music-fix/build-mac.sh) of main + I76_CURSOR_MAP, the Deck-tested binary
+PROXY_MD5="7b780281bb92c10cbaab8fe80d9c0d76"
 
 say() { echo "  $*"; }
 die() { echo "FATAL: $*"; exit 1; }
@@ -65,8 +66,8 @@ if [ "${1:-}" = "--revert" ]; then
 fi
 
 [ -f "$GAME/i76.exe" ] || die "no i76.exe in $GAME (set I76_GAMEDIR)"
-[ -f "$PAYLOAD/music-fix/Strlkup.dll" ] || die "payload missing: $PAYLOAD/music-fix/Strlkup.dll"
-[ "$(md5 "$PAYLOAD/music-fix/Strlkup.dll")" = "$PROXY_MD5" ] \
+[ -f "$PROXY" ] || die "payload missing: $PROXY"
+[ "$(md5 "$PROXY")" = "$PROXY_MD5" ] \
     || die "proxy md5 is not $PROXY_MD5 (copy damaged, or the repo build moved on: update PROXY_MD5)"
 if pgrep -x 'i76.exe' >/dev/null 2>&1; then die "the game is running - quit it first"; fi
 
@@ -112,7 +113,7 @@ else
     mv "$GAME/Strlkup.dll" "$GAME/strlkup_orig.dll"
     say "GOG's Strlkup.dll -> strlkup_orig.dll"
 fi
-cp -f "$PAYLOAD/music-fix/Strlkup.dll" "$GAME/Strlkup.dll"
+cp -f "$PROXY" "$GAME/Strlkup.dll"
 [ "$(md5 "$GAME/Strlkup.dll")" = "$PROXY_MD5" ] || die "copy check failed"
 say "proxy installed ($PROXY_MD5)"
 
@@ -143,6 +144,13 @@ want = [  # (section, key, value, mode)  mode: req = must exist, opt = skip if a
     # child window 1067x800 at x=107). Fake fullscreen presents at the desktop's 1280x800.
     # The key exists in 2.78.2 (the repo's 2.78 conf carries it empty).
     ("GeneralExt", "FullscreenAttributes",  "fake",        "add"),
+    # dgVoodoo's default (true) confines the pointer to the app's 640x480 area at the top left of the
+    # 1280x800 screen (measured 2026-10-07: clip (0,0)-(640,480), raw x never past 639).
+    ("General",    "CaptureMouse",          "false",       "add"),
+    # [Glide] EnableGlideGammaRamp has no effect under Proton (A/B 2026-10-07, fake and real fullscreen:
+    # identical frames on/off), so the 3dfx lift is missing; dgVoodoo's own output brightness stands in
+    # (125 clipped highlights to white; 115 = "a hair" brighter, the owner's report).
+    ("General",    "Brightness",            "115",         "add"),
     ("Glide",      "MemorySizeOfTMU",       "8192",        "req"),   # ONLY with I76_ZGLIDE_TMUFIX=1 (4096+ without it corrupts textures)
     ("Glide",      "Resolution",            "1280x800",    "req"),   # the panel, 16:10
     ("Glide",      "Antialiasing",          "4x",          "req"),
@@ -228,6 +236,7 @@ export I76_CLUTTER_DIST=300
 export I76_MIRROR_FAR=300
 export I76_COLL_DEDUPE=0
 export I76_AI_ROLL_HOLD=0
+export I76_CURSOR_MAP=1             # menus: pointer mapped to the stretched 640x480 page (needs CaptureMouse = false)
 export I76MUSIC_LOG=1               # mciproxy.log in the game folder: proves which switches applied
 export I76_DECK_AHK=0               # 1 = start the baseline AHK pad layer too (deck/setup-deck-baseline.sh)
 EOF

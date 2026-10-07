@@ -26,9 +26,8 @@ ssh -o ConnectTimeout=10 "$HOST" 'echo "   reachable: $(uname -n)"' \
     || { echo "Cannot reach $HOST - Deck awake? sshd on? (see deck-push.sh)"; exit 1; }
 
 echo "== copying payload =="
-ssh "$HOST" "mkdir -p ~/$DEST/deck ~/$DEST/music-fix"
-scp -q "$REPO/music-fix/Strlkup.dll" "$HOST:~/$DEST/music-fix/Strlkup.dll"
-scp -q "$HERE/setup-deck-wide.sh" "$HERE/i76-deck-launch.sh" "$HERE/set-launch-options.py" \
+ssh "$HOST" "mkdir -p ~/$DEST/deck"
+scp -q "$HERE/Strlkup.deck.dll" "$HERE/setup-deck-wide.sh" "$HERE/i76-deck-launch.sh" "$HERE/set-launch-options.py" \
        "$HERE/add-to-steam.py" "$HOST:~/$DEST/deck/"
 N=5
 # IPXWrapper (GPL-2.0, solemnwarning.net/ipxwrapper; not in this repo): taken from a local
