@@ -23,8 +23,12 @@ It contains no Activision bytes: it is our own code plus forwarders by name.
 > including its Exit answer by pointer on the Deck, with no binary patched and no Esc-menu-specific code. Two
 > limits of this DLL that the measurement explains: `u32x_min.c` passes through any position inside 0..639 /
 > 0..479 untranslated (wrong whenever the pointer is free on a bigger screen), and its free-pointer map is always
-> 4:3 (`stretched_ar`), off by up to x1.79 under best-wide's `stretched`. Not yet run on Windows: the proxy
-> switch with `CaptureMouse = false` in place of this DLL's mapping (keep this DLL's ghosting fix either way).
+> 4:3 (`stretched_ar`), off by up to x1.79 under best-wide's `stretched`. **Run on Windows the same day** (lab twin
+> `game-dd-20261003`, 3440x1440, best-wide): `CaptureMouse = false` + `I76_CURSOR_MAP=1` + `I76_CURSOR_MAP_U32X=1`
+> (the proxy takes this DLL's four mapped slots; its ghosting fix and the rest stay) - every main-menu button lit
+> under the pointer, the bookmark route reached the mission and the in-mission Esc menu's items and Exit answered,
+> all by pointer at drawn positions. So this DLL's mapping, its `I76_U32X_MENU*` Esc-menu code and the corner
+> regime are no longer needed for the pointer; not yet promoted (daily driver unchanged, needs an owner play).
 
 ## What is here, and where it came from
 

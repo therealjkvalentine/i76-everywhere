@@ -35,6 +35,11 @@
 #include <math.h>
 #ifdef _MSC_VER
 #include <intrin.h>
+#if defined(_MSC_VER) && !defined(__clang__)
+/* MSVC has no __builtin_return_address; the co-op hooks (13b5455) and cursormap.c use it, which broke the MSVC
+   link (LNK2019 ___builtin_return_address, 2026-10-07). Only level 0 is used anywhere in this file. */
+#define __builtin_return_address(level) _ReturnAddress()
+#endif
 #endif
 #include <tlhelp32.h>
 #include "../tools/telemetry/i76tel.h"   /* telemetry export layout, shared with tools/telemetry/i76tel.py */

@@ -24,7 +24,10 @@
  * Unlike u32x_min it translates in-range values too: on a 1280x800 screen most raw positions are inside 0..639 /
  * 0..479 and still wrong.
  *
- * Stands down when u32x.dll is loaded (the Windows daily driver: it already maps, and mapping twice is wrong).
+ * Stands down when u32x.dll is loaded (the Windows daily driver: it already maps, and mapping twice is wrong),
+ * unless I76_CURSOR_MAP_U32X=1: then the four slots the exe and the shell import FROM u32x.dll are taken as well,
+ * so this map replaces u32x's (its other work - the DWM ghosting fix, the key routing - stays). That is the test
+ * of whether u32x's mapping is still needed once dgVoodoo's CaptureMouse is off (lab twin, 2026-10-07).
  * Only the game's own modules are repointed; dgVoodoo, Wine and AutoHotkey keep the real calls.
  */
 static int  g_cm_mode;                 /* 0 off, 1 stretched, 2 ar */
@@ -127,13 +130,21 @@ static BOOL WINAPI cm_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm
 }
 
 /* Repoint one module's USER32 slots. Returns the number of slots taken (0..4). */
+static int g_cm_over_u32x;             /* I76_CURSOR_MAP_U32X=1 */
 static int cm_patch_module(HMODULE mod, const char *what) {
-    void *o; int n = 0;
-    if ((o = patch_iat(mod, "USER32.dll", "GetCursorPos", cm_GetCursorPos))) { if (!p_cm_GetCursorPos) p_cm_GetCursorPos = o; n++; }
-    if ((o = patch_iat(mod, "USER32.dll", "SetCursorPos", cm_SetCursorPos))) { if (!p_cm_SetCursorPos) p_cm_SetCursorPos = o; n++; }
-    if ((o = patch_iat(mod, "USER32.dll", "ClipCursor",   cm_ClipCursor)))   { if (!p_cm_ClipCursor)   p_cm_ClipCursor   = o; n++; }
-    if ((o = patch_iat(mod, "USER32.dll", "PeekMessageA", cm_PeekMessageA))) { if (!p_cm_PeekMessageA) p_cm_PeekMessageA = o; n++; }
-    mlog("  cursor-map: %s %d/4 USER32 slots repointed", what, n);
+    static const char *dlls[2] = { "USER32.dll", "u32x.dll" };
+    int n = 0, i;
+    /* The p_cm_* pointers are the REAL user32 functions (apply_cursor_map), so a slot that pointed at u32x is
+       bypassed rather than chained: mapping twice would be wrong. */
+    for (i = 0; i < (g_cm_over_u32x ? 2 : 1); i++) {
+        int k = 0;
+        if (patch_iat(mod, dlls[i], "GetCursorPos", cm_GetCursorPos)) k++;
+        if (patch_iat(mod, dlls[i], "SetCursorPos", cm_SetCursorPos)) k++;
+        if (patch_iat(mod, dlls[i], "ClipCursor",   cm_ClipCursor))   k++;
+        if (patch_iat(mod, dlls[i], "PeekMessageA", cm_PeekMessageA)) k++;
+        if (k || i == 0) mlog("  cursor-map: %s %d/4 %s slots repointed", what, k, dlls[i]);
+        n += k;
+    }
     return n;
 }
 /* from hook_LoadLibraryA: b = the loaded file's base name */
@@ -145,8 +156,9 @@ static void apply_cursor_map(void) {
     char v[16]; DWORD n = GetEnvironmentVariableA("I76_CURSOR_MAP", v, sizeof(v));
     HMODULE exe = GetModuleHandleA(NULL), sh;
     if (n == 0 || n >= sizeof(v) || v[0] == '0') return;
-    if (GetModuleHandleA("u32x.dll") || patch_iat_has_dll(exe, "u32x.dll")) {
-        mlog("  cursor-map: u32x.dll present (it maps the cursor already) - not applied");
+    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_MAP_U32X", c, sizeof(c)); g_cm_over_u32x = (k && k < sizeof(c) && c[0] == '1'); }
+    if (!g_cm_over_u32x && (GetModuleHandleA("u32x.dll") || patch_iat_has_dll(exe, "u32x.dll"))) {
+        mlog("  cursor-map: u32x.dll present (it maps the cursor already) - not applied (I76_CURSOR_MAP_U32X=1 takes its slots)");
         return;
     }
     g_cm_mode = (lstrcmpiA(v, "ar") == 0) ? 2 : 1;
