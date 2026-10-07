@@ -1,5 +1,6 @@
 #!/bin/bash
-# Interstate '76 - Steam launch wrapper for the Deck BASELINE tier.
+# Interstate '76 - Steam launch wrapper for the Deck: loads the engine switches
+# (i76-env.sh, written by setup-deck-wide.sh) and the BASELINE tier's AHK pad layer.
 #
 # Put this in the shortcut's LAUNCH OPTIONS (Steam > Interstate 76 > Properties):
 #
@@ -31,6 +32,18 @@ log() { echo "[i76-launch] $*" >> "$LOG"; }
 
 log "argv: $*"
 log "STEAM_COMPAT_DATA_PATH=${STEAM_COMPAT_DATA_PATH:-<unset>}"
+
+# --- engine switches (deck/setup-deck-wide.sh) -------------------------------
+# The Strlkup.dll proxy reads I76_* from the environment, and Wine passes the Unix
+# environment through to i76.exe. No file = stock behaviour.
+ENVF="${I76_ENV_FILE:-$HOME/Games/Interstate76/i76-env.sh}"
+if [ -f "$ENVF" ]; then
+    # shellcheck disable=SC1090
+    . "$ENVF"
+    log "switches from $ENVF: $(env | grep -E '^I76' | sort | tr '\n' ' ')"
+else
+    log "no $ENVF - no engine switches"
+fi
 
 # --- locate Proton in the expanded %command% -------------------------------
 PROTON=""

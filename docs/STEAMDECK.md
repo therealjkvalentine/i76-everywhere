@@ -42,6 +42,18 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > `./deck/deck-push.sh`; recipe, decode sheet and rollback in **[DECK-BASELINE.md](records/DECK-BASELINE.md)**.
 > Not yet field-tested on Deck hardware.
 
+> **NEW 2026-10-06: the current graphics build, for the Deck.** `./deck/deck-push-wide.sh` (from
+> the Mac) runs [`deck/setup-deck-wide.sh`](../deck/setup-deck-wide.sh) on the Deck: the
+> `Strlkup.dll` proxy with the Windows daily driver's `best-wide-balanced` switches, set for the
+> 1280x800 panel (`I76_ASPECT=1280x800` Hor+ widescreen, HUD squeeze, fixed 24 Hz physics step +
+> render interpolation at 60 Hz (90 on an OLED), far clip 1200 m, detail x8, terrain-flash and
+> TMU fixes, mp3 music), dgVoodoo stretched to 2560x1600 with 4x MSAA, and GOG's 20 fps cap
+> (`I76PATCH.DLL`) off. The switches live in `~/Games/Interstate76/i76-env.sh`, loaded by
+> [`i76-deck-launch.sh`](../deck/i76-deck-launch.sh); `--revert` restores every touched file.
+> dgVoodoo stays 2.78.2 and the controller layout is untouched. **This supersedes the 20 fps /
+> 4:3 advice below** (QAM framerate limit off, not 20). Checked offline only (install, re-run,
+> revert and launch-option edit on a fake Deck folder); the proxy has never run under Proton.
+
 ## Controller layout (installed as a template — apply once)
 
 Every I76 control is mapped to a Deck input in the conventional driving/vehicular-combat idiom.
