@@ -2216,7 +2216,7 @@ static void coop_ai_apply(BYTE *pkt, int size) {
 static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
-static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played;
+static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played, g_coop_obj_sent, g_coop_obj_got;
 static int g_coop_diag; static void coop_sb_log(void);
 static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
@@ -2225,6 +2225,7 @@ static void coop_ai_log(void) {                            /* after each fps lin
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
     len += sprintf(buf + len, ", retargets %ld, adopted %ld, respawns %ld, cb sent %ld played %ld", g_coop_retarget, g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played);
+    len += sprintf(buf + len, ", objectives sent %ld got %ld", g_coop_obj_sent, g_coop_obj_got);
     if (g_coop_diag) { static int t; if (++t % 2 == 0) coop_sb_log(); }
     if (g_coop_chain) len += sprintf(buf + len, ", chain AM sent %ld got %ld, mission %.12s", g_coop_chain_sent, g_coop_chain_got, (char *)0x005049f0);
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
@@ -2281,8 +2282,11 @@ static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces
 }
 #define COOP_AM_PKT 0x4d41                                   /* 'AM' (co-op chain, below) */
 #define COOP_AC_PKT 0x4341                                   /* 'AC' (CB radio line, below) */
+#define COOP_AO_PKT 0x4f41                                   /* 'AO' (objective success / fail / reveal, below) */
+static void coop_obj_receive(BYTE *pkt, int size);
 static void coop_cb_receive(BYTE *pkt, int size);
 static void coop_cb_flush(void); static volatile LONG g_coop_cb_qn;
+static void coop_obj_flush(void); static volatile LONG g_coop_obj_qn;
 static void coop_chain_receive(BYTE *pkt, int size);
 static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: packets in one unbroken pump loop */
 static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
@@ -2300,7 +2304,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         if (g_coop_rx_n >= 64) g_coop_rx_n = 0;
     }
     g_coop_ai_role = role;
-    if (role == 1) { coop_ai_host_send(); if (g_coop_cb_qn) coop_cb_flush(); }
+    if (role == 1) { coop_ai_host_send(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
     else if (role == 2) {
         coop_ai_joiner_fire();
         if (g_coop_chain && coop_ai_in_mission()) {          /* the joiner respawns by itself (RAISE_DEAD has no key) */
@@ -2319,6 +2323,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT) coop_chain_receive((BYTE *)buf, *(int *)size);
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AC_PKT) coop_cb_receive((BYTE *)buf, *(int *)size);
+    if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AO_PKT) coop_obj_receive((BYTE *)buf, *(int *)size);
     return r;
 }
 /* CO-OP CAMPAIGN CHAIN (I76_COOP_CHAIN=1 with I76_COOP_AI=1, both machines). A network game tears its in-game network
@@ -2514,6 +2519,34 @@ static void coop_cb_receive(BYTE *pkt, int size) {           /* joiner, in the p
     ((int (__cdecl *)(char *, BYTE *, int))0x00423620)(file, o, pkt[3]);
     g_coop_cb_played++;
 }
+/* Objectives: the script's success / fail / reveal actions (calls at 0x4136b1 fsm_Success 0x45e9e0, 0x4136c7 fsm_Fail
+ * 0x45ea90, 0x41420e reveal 0x40be50 -> 0x45e960) run on the host only; forwarded as 'AO' { u16 'AO', u8 0, u8 kind
+ * (1 success, 2 fail, 3 reveal), int objective } so the buddy's notepad (and its chime) follows. A repeat is harmless:
+ * the functions' error path 0x42d5d0 is empty. */
+static int g_coop_obj_q[16][2];
+static void coop_obj_queue(int kind, int n) { if (coop_ai_role() == 1 && g_coop_obj_qn < 16) { g_coop_obj_q[g_coop_obj_qn][0] = kind; g_coop_obj_q[g_coop_obj_qn][1] = n; g_coop_obj_qn++; } }
+static void __cdecl coop_obj_success(int n) { coop_obj_queue(1, n); ((void (__cdecl *)(int))0x0045e9e0)(n); }
+static void __cdecl coop_obj_fail(int n) { coop_obj_queue(2, n); ((void (__cdecl *)(int))0x0045ea90)(n); }
+static void __cdecl coop_obj_reveal(int *p) { if (p) coop_obj_queue(3, *p); ((void (__cdecl *)(int *))0x0040be50)(p); }
+static void coop_obj_flush(void) {
+    LONG i, n = g_coop_obj_qn;
+    for (i = 0; i < n; i++) {
+        BYTE pkt[8]; *(WORD *)pkt = COOP_AO_PKT; pkt[2] = 0; pkt[3] = (BYTE)g_coop_obj_q[i][0]; *(int *)(pkt + 4) = g_coop_obj_q[i][1];
+        if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
+                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, sizeof(pkt)) == 0) g_coop_obj_sent++;
+    }
+    g_coop_obj_qn = 0;
+}
+static void coop_obj_receive(BYTE *pkt, int size) {          /* joiner, in the pump */
+    int n;
+    if (size < 8 || !coop_ai_in_mission()) return;
+    n = *(int *)(pkt + 4);
+    if (n < 1 || n > 32) return;
+    if (pkt[3] == 1) ((void (__cdecl *)(int))0x0045e9e0)(n);
+    else if (pkt[3] == 2) ((void (__cdecl *)(int))0x0045ea90)(n);
+    else if (pkt[3] == 3) ((void (__cdecl *)(int))0x0045e960)(n);
+    g_coop_obj_got++;
+}
 static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
     if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
     return ((int (__cdecl *)(int))0x0040a320)(a);
@@ -2529,7 +2562,7 @@ static void apply_coop_ai(HMODULE exe) {
          real_dpReceive ? "hooked" : "NOT hooked",
          patch_bytes(0x00403ddf, old, w, 5, "coop-ai: ai_FrameTick") ? "repointed" : "NOT repointed");
     {   /* AI trigger pulls (host records them) and the damage entry (joiner blocks it for mirrored cars) */
-        static const struct { DWORD site, target; void *stub; } c[21] = {
+        static const struct { DWORD site, target; void *stub; } c[24] = {
             { 0x00414f86, 0x004a3560, (void *)coop_ai_trigger },
             { 0x00465e5a, 0x00462040, (void *)coop_ai_class_damage }, { 0x0046648f, 0x00462040, (void *)coop_ai_class_damage },
             { 0x0046aae4, 0x00462040, (void *)coop_ai_class_damage }, { 0x004a81d3, 0x00462040, (void *)coop_ai_class_damage },
@@ -2542,6 +2575,8 @@ static void apply_coop_ai(HMODULE exe) {
             { 0x0040a0f8, 0x00423620, (void *)coop_cb_play }, { 0x0040bfcc, 0x00423620, (void *)coop_cb_play },
             { 0x0040bfee, 0x00423620, (void *)coop_cb_play }, { 0x0040c011, 0x00423620, (void *)coop_cb_play },
             { 0x0040c029, 0x00423620, (void *)coop_cb_play }, { 0x0041348f, 0x00423620, (void *)coop_cb_play },
+            { 0x004136b1, 0x0045e9e0, (void *)coop_obj_success }, { 0x004136c7, 0x0045ea90, (void *)coop_obj_fail },
+            { 0x0041420e, 0x0040be50, (void *)coop_obj_reveal },
         };
         static const struct { DWORD site; void *stub; } dg[9] = { { 0x40a232, (void *)coop_sb_0 }, { 0x412dac, (void *)coop_sb_1 },
             { 0x412def, (void *)coop_sb_2 }, { 0x412e32, (void *)coop_sb_3 }, { 0x412e9c, (void *)coop_sb_4 }, { 0x412f11, (void *)coop_sb_5 },
@@ -2549,14 +2584,14 @@ static void apply_coop_ai(HMODULE exe) {
         char dv[8]; DWORD dk = GetEnvironmentVariableA("I76_COOP_AI_DIAG", dv, sizeof(dv));
         int i, n = 0;
         char cbv[8]; DWORD cbk = GetEnvironmentVariableA("I76_COOP_CB", cbv, sizeof(cbv));
-        int nsites = (cbk && cbk < sizeof(cbv) && cbv[0] == '0') ? 15 : 21;   /* I76_COOP_CB=0: no CB radio forwarding */
+        int nsites = (cbk && cbk < sizeof(cbv) && cbv[0] == '0') ? 15 : 24;   /* I76_COOP_CB=0: no radio / objective forwarding */
         for (i = 0; i < nsites; i++) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
-        mlog("  coop-ai: %d/21 trigger + damage + SetBehaviour + CB radio sites repointed", n);
+        mlog("  coop-ai: %d/%d trigger + damage + SetBehaviour + radio + objective sites repointed", n, nsites);
         if (dk && dk < sizeof(dv) && dv[0] == '1') {
             int m = 0;
             for (i = 0; i < 9; i++) {

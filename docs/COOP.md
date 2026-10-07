@@ -37,14 +37,14 @@ multiplayer menu, starting beside the host.
 | Enemies go after the buddy | every AI behaviour aimed at a human (except follow) picks the nearest live human | T05: gang car's target became the buddy's car; with the Mac hosting, the PC buddy took damage (400 -> 370) |
 | Kills decided once, shown on both | the buddy ignores damage to shared enemies locally; the host computes every hit (including the buddy's shots, which the game already relays) and sends the result | host's shots: bus destroyed on both screens; buddy's shots: tractor destroyed on the host and then on the buddy |
 | Radio (story lines, taunts) | the host's CB lines are queued and sent ('AC'); the buddy plays them | T01: host 10 lines, buddy played 6 (the rest before it joined) |
+| Objectives (notepad) | the script's success / fail / reveal actions are forwarded ('AO') and applied on the buddy | T01: host 2 objective events, buddy applied 2 |
 | Next mission / retry | won -> both reload the next co-op mission in the same session; lost -> both reload the same one ('AM' + the game's Replay path, network kept up) | forced win T01 -> T02 on both; script-engine win -> T02; natural losses (host killed, objective failed) retried, several times in a row |
 | Buddy respawns | the buddy requests a respawn by itself 5 s after dying | two self-destructs, a new car each time |
 | Difficulty | co-op damage factor | 25 -> 12 per hit at 0.5, for the host's and the buddy's shots |
 
 ## Not done / known gaps
 
-- **Objectives screen and on-screen messages** are the host's only; the buddy hears the radio but its notepad is not
-  updated.
+- **On-screen text messages** from the script (if any beyond the radio and the notepad) are the host's only.
 - **The host's car looks like the buddy's chosen model** on the buddy's screen (the mission's player object takes the
   local car file). Position, damage and gunfire are right.
 - **Joining late:** the buddy should be on the JOIN list before the host broadcasts.
@@ -68,6 +68,7 @@ All in `music-fix/strlkproxy.c`, sections "CO-OP DAMAGE FACTOR", "CO-OP SHARED E
   mission player object for the host.
 - joiner: `ai_FrameTick` skipped; 'AT' -> remote-car mirror 0x464890; fire masks replayed through 0x4a3560; local
   damage to shared cars blocked (5 `object_ClassDamage` sites); 'AM' -> state 7 + next name; 'AC' -> 0x423620;
+  'AO' -> fsm_Success 0x45e9e0 / fsm_Fail 0x45ea90 / reveal 0x45e960;
   auto-respawn through 0x451570.
 - both: the teardown's network-flag clear (0x404662) passes 1 for a chain reload, so the reload re-initialises the
   network from the open session (0x452d40).
