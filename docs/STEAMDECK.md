@@ -68,7 +68,20 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > with a real fullscreen mode change dgVoodoo runs 640x480 and Proton scales that mode keeping 4:3
 > (child window 1067x800 at x=107), so the Hor+ camera came out squeezed into a 4:3 box;
 > `[GeneralExt] FullscreenAttributes = fake` presents at 1280x800 (the setup script adds it).
-> Not checked: Game Mode (gamescope), driving with the physical controls, LAN play from the Deck. Its `ADDON\valepre4.vcf` is the non-stock
+> Not checked: Game Mode (gamescope), driving with the physical controls, LAN play from the Deck.
+>
+> **2026-10-07, after the owner played it:** (1) **menu pointer** acted up and to the left of the arrow and
+> bookmarks could not be loaded. dgVoodoo's `CaptureMouse` (default on) fenced the OS pointer into the
+> top-left 640x480, and the game reads raw screen pixels. Fixed with `CaptureMouse = false` plus the
+> proxy's new `I76_CURSOR_MAP=1` (music-fix/README.md); verified by pointer: every main-menu button
+> lights under the arrow, TRIP -> LOAD BOOKMARK -> Scene 5 -> LOAD reaches the garage. The Deck runs the
+> Mac build `deck/Strlkup.deck.dll` (md5 7b780281) until the MSVC build carries the switch. (2) **"a hair
+> too dark"**: dgVoodoo's Glide gamma ramp has no effect under Proton (identical frames with it on and
+> off), so `Brightness = 115` stands in. (3) **right stick outside the car** did nothing: the orbit was
+> Shift+arrows only; now the plain arrows orbit too (controls/input.map and the Deck's map). (4)
+> **Controls guide:** [deck-controls.html](deck-controls.html). (5) The Deck's left stick was already
+> analog (`joystick_move` -> joystick1); the v4 table below is stale on that point. All in
+> `deck/setup-deck-wide.sh`. Its `ADDON\valepre4.vcf` is the non-stock
 > 4ed297ca, as on the Mac: pick a car other than Jade's for LAN games against a stock PC.
 
 ## Controller layout (installed as a template — apply once)

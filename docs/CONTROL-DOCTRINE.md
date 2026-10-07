@@ -26,12 +26,20 @@ scheme going forward. Concretely, the target Deck stack is the baseline tier bel
 - Deck extras (back grips, trackpad wheel) only as tier-2 additions on top, never the sole home of
   an action.
 
-**Not switched yet.** On 2026-10-07 the owner's Deck still runs the July keyboard-emulation layout
-([`deck/controller_neptune_i76.vdf`](../deck/controller_neptune_i76.vdf)): digital steering and
-throttle. The pieces exist ([DECK-BASELINE.md](records/DECK-BASELINE.md), `deck/setup-deck-baseline.sh`)
-but have never run on Deck hardware; switch the default once the decode sheet there is filled in on
-the Deck. Until then, any change to the shared pad layer is made with the Deck in mind (Proton runs
-`xinput*.dll` like Wine on the Mac), and Deck-only `.vdf` work is frozen.
+**Where the Deck stands (corrected 2026-10-07, read from the live layout).** The owner's Deck runs
+[`deck/controller_neptune_i76.vdf`](../deck/controller_neptune_i76.vdf) ("Option 1 v8"), which is a
+**hybrid**, not pure keyboard emulation: its left stick is in Steam Input's `joystick_move` mode, so it
+reaches the game as the virtual pad's stick on `joystick1`, where the Deck's `input.map` (since the
+2026-08-01 baseline edit) puts **analog** `steer` and `throttle`. Driving is therefore already analog
+on the Deck; the buttons, triggers (fire), grips, D-pad, right stick (arrows) and trackpads are keys.
+The owner likes that driving and shooting layout ("great", 2026-10-07). An earlier version of this
+section called the Deck's steering digital; that was read from the stale v4 table in STEAMDECK.md.
+What is still Deck-only is the button half (keys and the trackpad menu) and the absence of the
+shared AutoHotkey layer, hence no rumble. The pieces for the full shared stack exist
+([DECK-BASELINE.md](records/DECK-BASELINE.md), `deck/setup-deck-baseline.sh`) but have never run on
+Deck hardware. Any change to the shared pad layer is made with the Deck in mind (Proton runs
+`xinput*.dll` like Wine on the Mac); when the Deck layout changes, keep its driving/shooting
+placement, which the owner approved.
 
 **Open, shared-layout question (decide once, for every platform):** accel/brake are on the left
 stick's Y axis today, because the triggers fire. winmm merges LT and RT into one axis (RT minus
