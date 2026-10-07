@@ -2214,6 +2214,7 @@ static void coop_ai_apply(BYTE *pkt, int size) {
     }
 }
 static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
+static int g_coop_adopt = 1;                                /* I76_COOP_ADOPT=0: the host keeps a separate network car (diagnostic) */
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
 static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played, g_coop_obj_sent, g_coop_obj_got;
@@ -2288,11 +2289,29 @@ static void coop_cb_receive(BYTE *pkt, int size);
 static void coop_cb_flush(void); static volatile LONG g_coop_cb_qn;
 static void coop_obj_flush(void); static volatile LONG g_coop_obj_qn; static void coop_obj_catchup(void);
 static void coop_chain_receive(BYTE *pkt, int size);
+static void coop_chain_pending(void);
 static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: packets in one unbroken pump loop */
 static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
+static WORD g_coop_group; static DWORD g_coop_group_wait;    /* the session's game group, kept across chain reloads */
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
+    if (g_coop_chain) {
+        /* net_WaitForGroupThenEnumPlayers 0x454090 (every load) clears the group 0x541060 and loops dpReceive +
+         * dpEnumGroups until a group shows up. After a chain reload the joiner sometimes never saw it again (stuck in
+         * state 7 for minutes while the host went on; 1 of 3 fast-chain runs). The group id does not change across a
+         * reload, so after 3 s of waiting it is put back from the last mission. */
+        WORD gr = *(volatile WORD *)0x00541060;
+        if (gr && *(volatile int *)0x004c2164 == 5) { g_coop_group = gr; g_coop_group_wait = 0; }
+        else if (!gr && g_coop_group && *(volatile int *)0x00541030) {
+            DWORD now = GetTickCount();
+            if (!g_coop_group_wait) g_coop_group_wait = now;
+            else if (now - g_coop_group_wait > 3000) {
+                *(volatile WORD *)0x00541060 = g_coop_group; g_coop_group_wait = 0;
+                mlog("  coop-chain: the session group did not come back after the reload - reusing %u", g_coop_group);
+            }
+        }
+    }
     if (r != 0) g_coop_rx_run = 0;
     else {
         if (g_coop_rx_n < 64 && buf && from) { g_coop_rx_types[g_coop_rx_n] = *(WORD *)buf; g_coop_rx_from[g_coop_rx_n] = *(WORD *)from; g_coop_rx_n++; }
@@ -2321,7 +2340,8 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         }
     }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
-    if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT) coop_chain_receive((BYTE *)buf, *(int *)size);
+    if (role != 1 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT && *(volatile int *)0x00541030) coop_chain_receive((BYTE *)buf, *(int *)size);
+    if (role != 1 && g_coop_chain) coop_chain_pending();
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AC_PKT) coop_cb_receive((BYTE *)buf, *(int *)size);
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AO_PKT) coop_obj_receive((BYTE *)buf, *(int *)size);
     return r;
@@ -2396,11 +2416,23 @@ static __declspec(naked) void coop_chain_stub(void) {       /* replaces `call 0x
         ret
     }
 }
-static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner, in the pump */
-    if (size < 20 || !g_coop_chain || *(volatile int *)0x004c2164 != 5) return;
+static char g_coop_pending_am[16];                          /* an 'AM' that arrived while this machine was loading */
+static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner (or not yet sure), in the pump */
+    if (size < 20 || !g_coop_chain) return;
+    g_coop_chain_got++;
+    if (*(volatile int *)0x004c2164 != 5 || !coop_ai_in_mission()) {   /* loading: keep it for when the mission runs */
+        strncpy(g_coop_pending_am, (char *)pkt + 4, 15); g_coop_pending_am[15] = 0;
+        return;
+    }
     strncpy(g_coop_next, (char *)pkt + 4, 15); g_coop_next[15] = 0;
     *(volatile int *)0x004c2164 = 7;
-    g_coop_chain_got++;
+}
+static void coop_chain_pending(void) {                       /* every pump call: a held 'AM' once the mission runs */
+    if (!g_coop_pending_am[0] || *(volatile int *)0x004c2164 != 5 || !coop_ai_in_mission()) return;
+    if (_strnicmp(g_coop_pending_am, (char *)0x005049f0, 8) == 0) { g_coop_pending_am[0] = 0; return; }   /* already there */
+    strncpy(g_coop_next, g_coop_pending_am, 15); g_coop_next[15] = 0; g_coop_pending_am[0] = 0;
+    *(volatile int *)0x004c2164 = 7;
+    mlog("  coop-chain: applying an 'AM' that arrived during the load -> '%s'", g_coop_next);
 }
 /* Enemies only know one player: the scripts aim at "player" (the host's car). On the host, all 9 calls of
  * ai_SetBehaviour 0x412830 go through here; any behaviour with a human target except follow (0x1e) retargets to the
@@ -2467,7 +2499,7 @@ static BYTE *coop_find_mission_player(void) {
 }
 static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x451180` x7 */
     WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
-    if (g_coop_chain && *(volatile int *)0x00541030 && host && (WORD)id == host) {
+    if (g_coop_chain && g_coop_adopt && *(volatile int *)0x00541030 && host && (WORD)id == host) {
         BYTE *o = coop_find_mission_player();
         if (o) {
             unsigned __int64 nm = ((unsigned __int64 (__cdecl *)(short))0x00454800)((short)id);
@@ -2649,6 +2681,7 @@ static void apply_coop_ai(HMODULE exe) {
                     if (patch_bytes(sp[q], o5, w5, 5, "coop-chain: spawn")) ok++;
                 }
                 mlog("  coop-chain: %d/7 spawn sites adopt the mission player object for the host", ok);
+                { char av[8]; DWORD ak = GetEnvironmentVariableA("I76_COOP_ADOPT", av, sizeof(av)); if (ak && ak < sizeof(av) && av[0] == '0') { g_coop_adopt = 0; mlog("  coop-chain: adoption OFF (I76_COOP_ADOPT=0)"); } }
             }
             mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
         }
