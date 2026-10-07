@@ -10,6 +10,22 @@ replace the Save Bookmark screen with a ghost window after about 5.9 s idle. Roo
 
 It contains no Activision bytes: it is our own code plus forwarders by name.
 
+
+> **2026-10-07, measured on the Steam Deck: what the pointer problems were.** Two mechanisms, separately
+> measured: (1) dgVoodoo's `CaptureMouse` (true in our Windows confs and in dgVoodoo's default) clips the OS
+> pointer to a box the size of the app's mode at the screen's top left (Deck: `(0,0)-(640,480)`; the "1920x1440
+> pointer box" of 2026-10-02 is the same thing under the rejected-conf's 1920x1440 mode); (2) i76.exe and
+> i76shell.dll hit-test raw screen coordinates against 640x480. With (1) on, the pointer lives in the corner
+> where raw == UI 1:1 and dgVoodoo draws an emulated arrow over the stretched picture, which is why things
+> "worked sometimes" and why the drawn pencil and the real pointer disagreed. With `CaptureMouse = false` and the
+> proxy's `I76_CURSOR_MAP` (music-fix/README.md: the same four calls as this DLL, through the client rect, x and
+> y scaled separately for `stretched`), every main-menu button, the bookmark route and the in-mission Esc menu
+> including its Exit answer by pointer on the Deck, with no binary patched and no Esc-menu-specific code. Two
+> limits of this DLL that the measurement explains: `u32x_min.c` passes through any position inside 0..639 /
+> 0..479 untranslated (wrong whenever the pointer is free on a bigger screen), and its free-pointer map is always
+> 4:3 (`stretched_ar`), off by up to x1.79 under best-wide's `stretched`. Not yet run on Windows: the proxy
+> switch with `CaptureMouse = false` in place of this DLL's mapping (keep this DLL's ghosting fix either way).
+
 ## What is here, and where it came from
 
 Moved into this repo on 2026-10-02 (backlog P3-02; [docs/RELEASE-PLAN.md](../docs/RELEASE-PLAN.md) section 2
@@ -171,7 +187,8 @@ trial below.
 
 Kill-switch control (`I76_U32X_MODAL_PTR=0`, sandbox, 1 launch): no arrow window at any of 3 probes; baseline
 click and Space after a focus change still close (F7 is independent). Arrow hidden after every close (window not
-visible). Gate (lab `autotestuns\gate61003-200914`, sandbox):
+visible). Gate (lab `autotest
+uns\gate61003-200914`, sandbox):
 leg-b bookmark route 3/3, trip route through `TEST-FRAMERATE -Mode all120` 2/2 at 120 fps, save screen (gate 1 over
 10 s idle, NO writes nothing, YES only the scratch, savegame.dir exact), melee by menus: **PASS 14 FAIL 0**. Twin
 (`20261003-201714`): the same rows pass (PLAY.bat, 120 fps); row D fails on `dgVoodoo.conf` only, because PLAY.bat
