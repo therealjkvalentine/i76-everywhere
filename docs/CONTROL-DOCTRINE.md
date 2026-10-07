@@ -10,6 +10,34 @@ that. So we split the control design into two tiers with a hard rule between the
 > **BASELINE** tier. The **CONVENIENCE** tier only *adds* speed and discoverability on top. No
 > critical action may live *only* in the convenience tier.
 
+## Direction for the Steam Deck (owner ruling 2026-10-07)
+
+**The Deck plays with the same pad controls as PC and Mac, and every improvement to the gamepad
+layout, rumble or force feedback must reach the Deck by the same files.** No Deck-only control
+scheme going forward. Concretely, the target Deck stack is the baseline tier below:
+
+- Steam Input on Valve's **"Gamepad" template**: a plain XInput pad, no keyboard emulation;
+- the shared [`controls/input.map`](../controls/input.map) with **analog** `steer` and `throttle`
+  on `joystick1` (required: digital A/D steering and W/S throttle are not acceptable as the
+  Deck default);
+- the shared AutoHotkey layer [`i76-remap.ahk`](../i76-remap.ahk) inside the Proton prefix
+  (shift layer, look-back, rumble), started by [`deck/i76-deck-launch.sh`](../deck/i76-deck-launch.sh)
+  with `I76_DECK_AHK=1` in `i76-env.sh`; rumble reaches the Deck's haptics through XInput;
+- Deck extras (back grips, trackpad wheel) only as tier-2 additions on top, never the sole home of
+  an action.
+
+**Not switched yet.** On 2026-10-07 the owner's Deck still runs the July keyboard-emulation layout
+([`deck/controller_neptune_i76.vdf`](../deck/controller_neptune_i76.vdf)): digital steering and
+throttle. The pieces exist ([DECK-BASELINE.md](records/DECK-BASELINE.md), `deck/setup-deck-baseline.sh`)
+but have never run on Deck hardware; switch the default once the decode sheet there is filled in on
+the Deck. Until then, any change to the shared pad layer is made with the Deck in mind (Proton runs
+`xinput*.dll` like Wine on the Mac), and Deck-only `.vdf` work is frozen.
+
+**Open, shared-layout question (decide once, for every platform):** accel/brake are on the left
+stick's Y axis today, because the triggers fire. winmm merges LT and RT into one axis (RT minus
+LT), which is exactly an accel/brake axis, so `throttle` could read the triggers instead; that
+moves fire off the triggers on PC, Mac and Deck alike.
+
 ---
 
 ## Tier 1 — BASELINE (any Xbox controller, no Steam Input)

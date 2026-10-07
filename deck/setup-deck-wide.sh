@@ -262,8 +262,9 @@ cat <<EOF
 Done. Backup + revert list: $B
 Rollback:  bash $HERE/setup-deck-wide.sh --revert
 
-First launch: Game Mode, QAM > Performance > Framerate limit OFF (or $HZ),
-NOT 20 - physics no longer depends on it. Play Instant Melee first.
+First launch: Game Mode. Leave QAM > Performance > Framerate limit at its default
+(off): the game paces itself to $HZ Hz (I76_GLIDE_REFRESH). If you once set a
+per-game limit of 20 for the old build, turn it off. Play Instant Melee first.
 After a session, mciproxy.log in the game folder lists every switch the
 proxy applied (look for 'aspect', 'hud-squeeze', 'fixed-step', 'tmufix').
 ================================================================

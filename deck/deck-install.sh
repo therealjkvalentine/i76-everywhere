@@ -132,5 +132,5 @@ python3 "$WORK/bundle/config/add-to-steam.py" || die "Steam registration failed 
 # relaunch Steam
 ( setsid steam >/dev/null 2>&1 & ) || true
 
-Z --info --text "Done!\n\n1. Find 'Interstate 76' in your library (Non-Steam).\n2. Launch from GAME MODE (Desktop Mode has window-focus quirks).\n3. Set QAM > Performance > Framerate Limit = 20 (physics!).\n4. First launch builds the Proton prefix (a minute); if it misbehaves, run first-launch-fix.sh and see docs/STEAMDECK.md.\n\nThe controller layout is pre-applied. Have fun on the interstate." || true
+Z --info --text "Done!\n\n1. Find 'Interstate 76' in your library (Non-Steam).\n2. Launch from GAME MODE (Desktop Mode has window-focus quirks). Leave QAM > Performance > Framerate Limit at its default: the game paces itself.\n3. First launch builds the Proton prefix (a minute); if it misbehaves, run first-launch-fix.sh and see docs/STEAMDECK.md.\n\nThe controller layout is pre-applied. Have fun on the interstate." || true
 info "install complete"

@@ -77,6 +77,6 @@ Next (in Steam / Game Mode):
      $GAMEDIR/i76.exe ; set launch options to:  -glide
   2. In the game's Properties > Compatibility, force Proton (GE-Proton if you have it).
   3. Controller: apply the "Interstate 76 (driving)" config - see STEAMDECK-README.txt.
-  4. Cap to 20 FPS (QAM > Performance > Framerate Limit = 20) - physics safety.
+  (No QAM framerate limit needed: the game caps itself.)
 First launch takes a bit (shader precompile); after that it's warm. Have fun.
 EOF

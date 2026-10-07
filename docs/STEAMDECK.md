@@ -29,7 +29,10 @@ transfers — minus the one layer that caused us the most pain.*
    applies our tuned configs + Deck input.map, auto-detects your Steam user + GE-Proton (downloads
    it if missing), registers the game with artwork, and **pre-applies the controller layout with
    zero taps** (the Steam-ROM-Manager `configset` mechanism). No game content is redistributed.
-3. Switch to **Game Mode**, set QAM → Framerate Limit = **20**, play.
+3. Switch to **Game Mode** and play. Leave QAM → Framerate Limit at its default (off): the game
+   caps itself (this build at ~20 through GOG's `I76PATCH.DLL`, the 2026-10-06 build at the
+   panel's refresh through `I76_GLIDE_REFRESH`). Steam keeps that setting in no file a script can
+   set, which is why the installers no longer ask for it.
 
 *Advanced controller techniques used here (mode shifts, touch menus, activators, portability) are
 documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-MODES.md).*
@@ -159,8 +162,9 @@ and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on th
 5. **20 FPS cap — EXACTLY 20 (the Mission 5 jump depends on it):** our `dgVoodoo.conf` sets
    `FPSLimit = 20`, which is the precise one (the exe's `I76PATCH.DLL` limiter overshoots to ~20.66,
    and the **Mission 5 canyon jump falls just short at anything over 20** — jump distance is inversely
-   tied to framerate, [Local Ditch: FPS jumping](https://www.localditch.com/posts/fps-jumping/)). Set
-   the Deck's **QAM → Framerate Limit → 20** as well (belt-and-braces). **Don't raise it.** Above
+   tied to framerate, [Local Ditch: FPS jumping](https://www.localditch.com/posts/fps-jumping/)). *(2026-10-07: superseded on the Deck by the 2026-10-06 build, whose fixed physics step keeps the
+   jump distances at any frame rate; there the QAM limit stays at its default.)* **On a build without
+   the fixed step, don't raise it.** Above
    ~25–30 FPS everything breaks (cars flip, jumps/flamethrower/mortar misbehave) —
    [Local Ditch FAQ](https://www.localditch.com/interstate-76/faq.html). *(Nitrous helps on the ramp:
    bind `nitrous_on`/`nitrous_off` in the Deck `input.map` — this build ships them unbound.)*
