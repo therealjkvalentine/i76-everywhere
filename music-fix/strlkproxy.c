@@ -2212,12 +2212,15 @@ static void coop_ai_apply(BYTE *pkt, int size) {
         g_coop_ai_applied++;
     }
 }
+static int g_coop_chain = 0;                                /* I76_COOP_CHAIN (see "CO-OP CAMPAIGN CHAIN" below) */
+static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static void coop_ai_log(void) {                            /* after each fps line: role, counts, first two mission cars */
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
     if (!real_dpReceive) return;
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
+    if (g_coop_chain) len += sprintf(buf + len, ", chain AM sent %ld got %ld, mission %.12s", g_coop_chain_sent, g_coop_chain_got, (char *)0x005049f0);
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
     if (tab && count > 0 && count <= 2048 && *(volatile int *)0x004c2164 == 5)
         for (i = 0; i < count && shown < 2; i++) {
@@ -2270,14 +2273,105 @@ static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces
     if (coop_ai_role() == 2 && coop_ai_is_mirrored(o)) { g_coop_ai_blocked++; return 0; }
     return ((int (__cdecl *)(BYTE *, int, int))0x00462040)(o, a, rec);
 }
+#define COOP_AM_PKT 0x4d41                                   /* 'AM' (co-op chain, below) */
+static void coop_chain_receive(BYTE *pkt, int size);
+static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: packets in one unbroken pump loop */
+static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
+    if (r != 0) g_coop_rx_run = 0;
+    else {
+        if (g_coop_rx_n < 64 && buf && from) { g_coop_rx_types[g_coop_rx_n] = *(WORD *)buf; g_coop_rx_from[g_coop_rx_n] = *(WORD *)from; g_coop_rx_n++; }
+        if (++g_coop_rx_run == 2000 && g_coop_rx_logged < 3) {
+            char line[64 * 12 + 64]; int i, len = sprintf(line, "  coop-ai: pump loop at 2000 packets; last types/from:");
+            for (i = 0; i < g_coop_rx_n; i++) len += sprintf(line + len, " %c%c/%u", g_coop_rx_types[i] & 0xff, g_coop_rx_types[i] >> 8, g_coop_rx_from[i]);
+            mlog("%s", line); g_coop_rx_logged++;
+        }
+        if (g_coop_rx_n >= 64) g_coop_rx_n = 0;
+    }
     g_coop_ai_role = role;
     if (role == 1) coop_ai_host_send();
     else if (role == 2) coop_ai_joiner_fire();
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
+    if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT) coop_chain_receive((BYTE *)buf, *(int *)size);
     return r;
+}
+/* CO-OP CAMPAIGN CHAIN (I76_COOP_CHAIN=1 with I76_COOP_AI=1, both machines). A network game tears its in-game network
+ * state down at mission end and goes back to the shell, which owns the connection. The Replay path (game state 7)
+ * reloads WITHOUT the shell, and the reload runs net setup 0x452d40 again with the same session handle, so a mission
+ * can be swapped in place. The co-op missions are installed as m41..m57 (= T01..T17, tools/coop-mission.py) and
+ * m01 ("The Crater") is T01 as the entry point. At `call 0x461810` 0x404110 (first call after the mission loop,
+ * WinMain's stack balanced, before the outcome is read at 0x404123):
+ *   - host, game state 1 (won): the next mission's name goes to the setup block WinMain copies from on every load
+ *     ([esp+0x2b9] in WinMain = stub esp + 4 + 0x2b9; copied to 0x5049f0 at 0x403419) and to 0x5049f0, state 7, and an
+ *     'AM' packet { u16 'AM', u8 0, u8 kind (1 next, 0 retry), char name[16] } goes to the joiner (3 copies);
+ *     game state 0 / 0xb (lost): the same with the same mission (both retry); after m57 a win is left alone;
+ *   - joiner: 'AM' (caught in the dpReceive hook) sets state 7 and queues the name, written here when its loop exits.
+ *   - both: the teardown clears the network flag (0x453860, then `push 0; call 0x452d30` at 0x404662) and the reload
+ *     re-initialises the network (0x452d40 with the setup block's session handle) only if the flag is set, so a pending
+ *     chain reload passes 1 there (the shell does the same, `push 1` at 0x4024ea). Without it the reload came back as a
+ *     single-player mission (measured 2026-10-07: player table empty, host stopped sending). */
+static char g_coop_next[16];
+static int g_coop_reload_pending;                           /* a chain reload: keep the game networked through teardown */
+static void __cdecl coop_netflag(int v) {                   /* replaces `call 0x452d30` (net flag := v) at 0x404662 */
+    if (g_coop_reload_pending) { v = 1; g_coop_reload_pending = 0; mlog("  coop-chain: teardown keeps the network flag for the reload"); }
+    ((void (__cdecl *)(int))0x00452d30)(v);
+}
+static int coop_chain_next(const char *cur, char *out) {    /* m01 -> m42, m41..m56 -> +1, m57 -> none */
+    int n;
+    if ((cur[0] | 0x20) != 'm' || cur[1] < '0' || cur[1] > '9' || cur[2] < '0' || cur[2] > '9') return 0;
+    n = (cur[1] - '0') * 10 + (cur[2] - '0');
+    if (n == 1) n = 42; else if (n >= 41 && n < 57) n++; else return 0;
+    sprintf(out, "m%02d.msn", n);
+    return 1;
+}
+static void coop_chain_send(int kind, const char *name) {
+    BYTE pkt[20]; int i;
+    memset(pkt, 0, sizeof(pkt));
+    *(WORD *)pkt = COOP_AM_PKT; pkt[3] = (BYTE)kind; strncpy((char *)pkt + 4, name, 15);
+    for (i = 0; i < 3; i++)
+        if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
+                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, sizeof(pkt)) == 0) g_coop_chain_sent++;
+}
+static void __cdecl coop_chain_at_end(char *winmain_esp) {
+    volatile int *state = (volatile int *)0x004c2164;
+    char *setup_name = winmain_esp + 0x2b9, *cur = (char *)0x005049f0;
+    int role = coop_ai_role();
+    if (role == 1 && (*state == 1 || *state == 0 || *state == 0xb)) {
+        char next[16];
+        int won = *state == 1;
+        if (won && !coop_chain_next(cur, next)) { mlog("  coop-chain: '%s' won and it is the last mission - normal end", cur); return; }
+        if (!won) { strncpy(next, cur, 15); next[15] = 0; }
+        coop_chain_send(won, next);
+        strncpy(g_coop_next, next, 15); g_coop_next[15] = 0;
+        *state = 7;
+        mlog("  coop-chain: host %s '%s' -> loading '%s' in the same session (AM sent x%ld)", won ? "won" : "lost", cur, next, g_coop_chain_sent);
+    }
+    if (*state == 7 && g_coop_next[0]) {
+        g_coop_reload_pending = 1;
+        strncpy(setup_name, g_coop_next, 15); setup_name[15] = 0;
+        strncpy(cur, g_coop_next, 15); cur[15] = 0;
+        mlog("  coop-chain: %s reloads as '%s'", role == 1 ? "host" : "joiner", g_coop_next);
+        g_coop_next[0] = 0;
+    }
+}
+static __declspec(naked) void coop_chain_stub(void) {       /* replaces `call 0x461810` at 0x404110 */
+    __asm {
+        mov eax, 0x00461810
+        call eax
+        lea eax, [esp + 4]                      /* WinMain's esp before this call */
+        push eax
+        call coop_chain_at_end
+        add esp, 4
+        ret
+    }
+}
+static void coop_chain_receive(BYTE *pkt, int size) {      /* joiner, in the pump */
+    if (size < 20 || !g_coop_chain || *(volatile int *)0x004c2164 != 5) return;
+    strncpy(g_coop_next, (char *)pkt + 4, 15); g_coop_next[15] = 0;
+    *(volatile int *)0x004c2164 = 7;
+    g_coop_chain_got++;
 }
 static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
     if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
@@ -2308,6 +2402,18 @@ static void apply_coop_ai(HMODULE exe) {
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
         mlog("  coop-ai: %d/6 trigger + damage sites repointed", n);
+    }
+    {   char c8[8]; DWORD kk = GetEnvironmentVariableA("I76_COOP_CHAIN", c8, sizeof(c8));
+        if (kk && kk < sizeof(c8) && c8[0] == '1') {
+            BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
+            LONG a0 = (LONG)(0x00461810 - (0x00404110 + 5)), a1 = (LONG)((DWORD_PTR)coop_chain_stub - (0x00404110 + 5));
+            memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
+            g_coop_chain = patch_bytes(0x00404110, o5, w5, 5, "coop-chain: loop exit");
+            a0 = (LONG)(0x00452d30 - (0x00404662 + 5)); a1 = (LONG)((DWORD_PTR)coop_netflag - (0x00404662 + 5));
+            memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
+            if (!patch_bytes(0x00404662, o5, w5, 5, "coop-chain: teardown net flag")) g_coop_chain = 0;
+            mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
+        }
     }
     if (!real_dpReceive) { mlog("  coop-ai: no dpReceive import - off"); }
 }
