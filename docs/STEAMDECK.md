@@ -83,6 +83,9 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > analog (`joystick_move` -> joystick1); the v4 table below is stale on that point. All in
 > `deck/setup-deck-wide.sh`.
 >
+> **2026-10-08: superseded - one layout.** The Deck now plays exactly the gamepad layout (single entry,
+> layout v10, the shared pad layer); see CONTROL-DOCTRINE.md. The two-profile note below is history.
+>
 > **2026-10-07, later: two control profiles.** `./deck/deck-push-pad.sh` adds a second library entry,
 > **"Interstate 76 (pad layer)"**: Steam layout v9 (`deck/controller_neptune_i76_pad.vdf`, a plain gamepad
 > plus the grips, the trackpad menu and the trackpad mouse) with the shared `i76-remap.ahk` running in the

@@ -77,6 +77,7 @@ dd { margin: 0; min-width: 0; }
 .trick { display: grid; grid-template-columns: 6px 1fr; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 14px 0; overflow: hidden; }
 .trick::before { content: ""; background: repeating-linear-gradient(180deg, var(--stripe) 0 14px, transparent 14px 24px); }
 .trick div { display: grid; gap: 4px; min-width: 0; }
+.shift { color: var(--accent); font-weight: 700; }
 .trick strong { font-weight: 600; }
 
 .tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
@@ -92,104 +93,67 @@ td:first-child { white-space: nowrap; }
 <div class="wrap">
   <header>
     <span class="shield"><b>76</b> Steam Deck</span>
-    <h1>Interstate '76 on the Deck: what every control does</h1>
-    <p class="lede">The layout this project installs on the Deck ("Option 1 v8.1"). Driving is analog on the left stick, the triggers fire, and the rarely used keys sit in a menu on the left trackpad. Inputs marked in yellow behave differently from what you might expect.</p>
+    <h1>Interstate '76 on the Deck: the gamepad layout</h1>
+    <p class="lede">The Deck uses exactly the layout of an Xbox pad on Windows and Mac, so there is one set of controls to learn. The only Deck extras are the two trackpads: a quick-select menu on the left, the menu pointer on the right. The back grips do nothing.</p>
   </header>
 
   <figure class="figure" style="margin:0">
     <svg viewBox="0 0 1200 520" role="img" aria-labelledby="front-t">
-      <title id="front-t">Steam Deck front view with the Interstate '76 action of every control</title>
-      <!-- shoulder buttons -->
-      <rect class="s-ctl" x="200" y="18" width="180" height="26" rx="10"/><text class="s-name" x="214" y="37">L2</text>
+      <title id="front-t">Steam Deck front view with the Interstate '76 gamepad layout</title>
+      <rect class="s-ctl" x="200" y="18" width="180" height="26" rx="10"/><text class="s-name" x="214" y="37">LT</text>
       <text class="s-cap" x="250" y="37" style="fill:var(--deck-ink)">Fire hardpoint 2</text>
-      <rect class="s-ctl" x="186" y="52" width="210" height="26" rx="10"/><text class="s-name" x="200" y="71">L1</text>
-      <text class="s-cap" x="236" y="71" style="fill:var(--deck-ink)">Next target</text>
-      <rect class="s-ctl" x="820" y="18" width="180" height="26" rx="10"/><text class="s-name" x="834" y="37">R2</text>
+      <rect class="s-ctl" x="186" y="52" width="210" height="26" rx="10"/><text class="s-name" x="200" y="71">LB</text>
+      <text class="s-cap" x="236" y="71" style="fill:var(--deck-ink)">Front target · hold: shift</text>
+      <rect class="s-ctl" x="820" y="18" width="180" height="26" rx="10"/><text class="s-name" x="834" y="37">RT</text>
       <text class="s-cap" x="870" y="37" style="fill:var(--deck-ink)">Fire weapon</text>
-      <rect class="s-ctl" x="804" y="52" width="210" height="26" rx="10"/><text class="s-name" x="818" y="71">R1</text>
+      <rect class="s-ctl" x="804" y="52" width="210" height="26" rx="10"/><text class="s-name" x="818" y="71">RB</text>
       <text class="s-cap" x="854" y="71" style="fill:var(--deck-ink)">Handbrake</text>
-      <!-- body -->
       <rect class="s-body" x="140" y="90" width="920" height="380" rx="170"/>
       <rect class="s-screen" x="400" y="128" width="400" height="250" rx="10"/>
       <text class="s-scrb" x="600" y="244" text-anchor="middle">1280 × 800</text>
-      <text class="s-scr" x="600" y="272" text-anchor="middle">16:10 · Hor+ widescreen · 60 fps</text>
-      <!-- view / menu -->
+      <text class="s-scr" x="600" y="272" text-anchor="middle">same layout as an Xbox pad</text>
       <rect class="s-ctl" x="352" y="132" width="34" height="22" rx="6"/><text class="s-name" x="369" y="149" text-anchor="middle" style="font-size:13px">⧉</text>
       <rect class="s-ctl" x="814" y="132" width="34" height="22" rx="6"/><text class="s-name" x="831" y="149" text-anchor="middle" style="font-size:13px">☰</text>
       <text class="s-mute" x="369" y="176" text-anchor="middle" style="fill:var(--deck-ink)">Pause</text>
       <text class="s-mute" x="831" y="176" text-anchor="middle" style="fill:var(--deck-ink)">Map</text>
-      <!-- left stick -->
       <circle class="s-ctl" cx="290" cy="185" r="46"/><circle cx="290" cy="185" r="30" fill="#59646e"/>
       <circle class="s-trick" cx="324" cy="151" r="7"/>
-      <!-- dpad -->
       <path class="s-ctl" d="M222 262h28v-28h28v28h28v28h-28v28h-28v-28h-28z"/>
-      <!-- left trackpad -->
       <rect class="s-ctl" x="226" y="350" width="104" height="92" rx="16"/><text class="s-name" x="278" y="402" text-anchor="middle">Menu</text>
-      <circle class="s-trick" cx="322" cy="358" r="7"/>
-      <!-- abxy -->
       <circle class="s-ctl" cx="925" cy="150" r="21"/><text class="s-name" x="925" y="156" text-anchor="middle">Y</text>
-      <circle class="s-trick" cx="942" cy="134" r="7"/>
       <circle class="s-ctl" cx="885" cy="188" r="21"/><text class="s-name" x="885" y="194" text-anchor="middle">X</text>
       <circle class="s-ctl" cx="965" cy="188" r="21"/><text class="s-name" x="965" y="194" text-anchor="middle">B</text>
       <circle class="s-ctl" cx="925" cy="226" r="21"/><text class="s-name" x="925" y="232" text-anchor="middle">A</text>
       <circle class="s-trick" cx="942" cy="210" r="7"/>
-      <!-- right stick -->
       <circle class="s-ctl" cx="900" cy="300" r="44"/><circle cx="900" cy="300" r="28" fill="#59646e"/>
       <circle class="s-trick" cx="932" cy="268" r="7"/>
-      <!-- right trackpad -->
       <rect class="s-ctl" x="870" y="350" width="104" height="92" rx="16"/><text class="s-name" x="922" y="402" text-anchor="middle">Pointer</text>
-
-      <!-- left captions -->
       <text class="s-capb" x="20" y="170">Left stick</text>
       <text class="s-cap" x="20" y="190">Steer · up gas · down brake</text>
-      <text class="s-cap" x="20" y="210">Click: special 1 (nitrous)</text>
+      <text class="s-cap" x="20" y="210">Click: nitrous · back+click: reverse</text>
       <line x1="196" y1="182" x2="244" y2="185" stroke="var(--muted)" stroke-width="1.2"/>
       <text class="s-capb" x="20" y="252">D-pad</text>
-      <text class="s-cap" x="20" y="272">↑ binoculars · ↓ horn</text>
-      <text class="s-cap" x="20" y="292">← start engine · → lights</text>
+      <text class="s-cap" x="20" y="272">↑ lights · ↓ ignition</text>
+      <text class="s-cap" x="20" y="292">← notepad · → map</text>
       <line x1="196" y1="276" x2="220" y2="276" stroke="var(--muted)" stroke-width="1.2"/>
-      <text class="s-capb" x="20" y="384">Left trackpad</text>
-      <text class="s-cap" x="20" y="404">13-slice menu: map, radar,</text>
-      <text class="s-cap" x="20" y="424">weapons 2–3, specials, more</text>
+      <text class="s-capb" x="20" y="384">Left trackpad (Deck)</text>
+      <text class="s-cap" x="20" y="404">Quick select: map, radar,</text>
+      <text class="s-cap" x="20" y="424">weapons, specials, more</text>
       <line x1="196" y1="396" x2="224" y2="396" stroke="var(--muted)" stroke-width="1.2"/>
-      <!-- right captions -->
-      <text class="s-capb" x="1010" y="132">Y</text><text class="s-cap" x="1028" y="132">chase cam</text>
-      <text class="s-cap" x="1010" y="150">tap twice: cockpit</text>
-      <text class="s-capb" x="1010" y="182">B</text><text class="s-cap" x="1028" y="182">cycle weapon</text>
-      <text class="s-capb" x="1010" y="206">X</text><text class="s-cap" x="1028" y="206">reverse</text>
-      <text class="s-capb" x="1010" y="230">A</text><text class="s-cap" x="1028" y="230">select / click</text>
+      <text class="s-capb" x="1010" y="132">Y</text><text class="s-cap" x="1028" y="132">cycle views</text>
+      <text class="s-capb" x="1010" y="160">B</text><text class="s-cap" x="1028" y="160">cycle weapon</text>
+      <text class="s-capb" x="1010" y="188">X</text><text class="s-cap" x="1028" y="188">next target</text>
+      <text class="s-capb" x="1010" y="216">A</text><text class="s-cap" x="1028" y="216">OK / shot</text>
+      <text class="s-cap" x="1010" y="236">hold: nitrous</text>
       <text class="s-capb" x="1010" y="292">Right stick</text>
       <text class="s-cap" x="1010" y="312">look / orbit camera</text>
       <text class="s-cap" x="1010" y="332">click: look at target</text>
-      <text class="s-capb" x="1010" y="390">Right trackpad</text>
+      <text class="s-capb" x="1010" y="390">Right trackpad (Deck)</text>
       <text class="s-cap" x="1010" y="410">menu pointer</text>
       <text class="s-cap" x="1010" y="430">press: click</text>
-      <!-- legend -->
-      <circle class="s-trick" cx="430" cy="500" r="7"/><text class="s-mute" x="444" y="505">has a second job or a catch: see "Watch for these"</text>
+      <circle class="s-trick" cx="430" cy="500" r="7"/><text class="s-mute" x="444" y="505">tap and hold do different things: see "Watch for these"</text>
     </svg>
-    <figcaption>Front of the Deck.</figcaption>
-  </figure>
-
-  <figure class="figure" style="margin:0">
-    <svg viewBox="0 0 1200 330" role="img" aria-labelledby="back-t" style="min-width:600px">
-      <title id="back-t">Steam Deck back view: the four grip buttons and what each does</title>
-      <rect class="s-body" x="250" y="40" width="700" height="250" rx="120"/>
-      <text class="s-mute" x="600" y="170" text-anchor="middle" style="fill:var(--deck-ink)">back of the Deck, held as you play</text>
-      <rect class="s-ctl" x="300" y="95" width="70" height="44" rx="14"/><text class="s-name" x="335" y="123" text-anchor="middle">L4</text>
-      <rect class="s-ctl" x="300" y="175" width="70" height="44" rx="14"/><text class="s-name" x="335" y="203" text-anchor="middle">L5</text>
-      <rect class="s-ctl" x="830" y="95" width="70" height="44" rx="14"/><text class="s-name" x="865" y="123" text-anchor="middle">R4</text>
-      <rect class="s-ctl" x="830" y="175" width="70" height="44" rx="14"/><text class="s-name" x="865" y="203" text-anchor="middle">R5</text>
-      <line x1="296" y1="117" x2="250" y2="117" stroke="var(--muted)" stroke-width="1.2"/>
-      <line x1="296" y1="197" x2="250" y2="197" stroke="var(--muted)" stroke-width="1.2"/>
-      <line x1="904" y1="117" x2="950" y2="117" stroke="var(--muted)" stroke-width="1.2"/>
-      <line x1="904" y1="197" x2="950" y2="197" stroke="var(--muted)" stroke-width="1.2"/>
-      <text class="s-capb" x="240" y="112" text-anchor="end">L4 (upper)</text><text class="s-cap" x="240" y="132" text-anchor="end">Target the car in front</text>
-      <text class="s-capb" x="240" y="192" text-anchor="end">L5 (lower)</text><text class="s-cap" x="240" y="212" text-anchor="end">Target the nearest car</text>
-      <text class="s-capb" x="960" y="112">R4 (upper)</text><text class="s-cap" x="960" y="132">Fire hardpoint 3</text>
-      <text class="s-capb" x="960" y="192">R5 (lower)</text><text class="s-cap" x="960" y="212">Fire hardpoints 4 and 5</text>
-      <text class="s-mute" x="600" y="318" text-anchor="middle">Left hand targets, right hand fires. Grips fire for as long as you hold them.</text>
-    </svg>
-    <figcaption>Back of the Deck. L4 and R4 are the upper grips, L5 and R5 the lower ones.</figcaption>
+    <figcaption>Front of the Deck. Hold LB for the shift layer below. The back grips are not used.</figcaption>
   </figure>
 
   <section>
@@ -198,57 +162,60 @@ td:first-child { white-space: nowrap; }
       <div class="group">
         <h3>Drive</h3>
         <dl>
-          <dt><span class="btn">L stick</span></dt><dd>Steer left and right, push up for gas, pull down to brake. Analog: a light push is a light touch.</dd>
-          <dt><span class="btn">R1</span></dt><dd>Handbrake <span class="key">C</span></dd>
-          <dt><span class="btn">X</span></dt><dd>Reverse gear on and off <span class="key">X</span></dd>
-          <dt><span class="btn">L3</span></dt><dd>Click the left stick: special 1, the nitrous slot <span class="key">6</span><span class="tag">click</span></dd>
-          <dt><span class="btn">D-pad ←</span></dt><dd>Start the engine <span class="key">I</span></dd>
+          <dt><span class="btn">L stick</span></dt><dd>Steer, push up for gas, pull down to brake. Analog.</dd>
+          <dt><span class="btn">RB</span></dt><dd>Handbrake, while held</dd>
+          <dt><span class="btn">L3</span></dt><dd>Click the left stick: nitrous (special 1). With the stick pulled back: reverse gear<span class="tag">click</span></dd>
+          <dt><span class="btn">D-pad ↓</span></dt><dd>Ignition</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + D-pad ← →</span></dt><dd>Gear down, gear up</dd>
         </dl>
       </div>
       <div class="group">
         <h3>Fight</h3>
         <dl>
-          <dt><span class="btn">R2</span></dt><dd>Fire the selected weapon <span class="key">Space</span></dd>
-          <dt><span class="btn">L2</span></dt><dd>Fire hardpoint 2 <span class="key">2</span></dd>
-          <dt><span class="btn">B</span></dt><dd>Cycle the selected weapon <span class="key">Tab</span></dd>
-          <dt><span class="btn">R4</span></dt><dd>Fire hardpoint 3 <span class="key">3</span></dd>
-          <dt><span class="btn">R5</span></dt><dd>Fire hardpoints 4 and 5 together <span class="key">4 + 5</span><span class="tag">two at once</span></dd>
-          <dt><span class="btn">L pad</span></dt><dd>Fire all, weapon 2, weapon 3, specials 2 and 3 are slices of the trackpad menu</dd>
+          <dt><span class="btn">RT</span></dt><dd>Fire the selected weapon; while looking back, the rear gun</dd>
+          <dt><span class="btn">LT</span></dt><dd>Fire hardpoint 2</dd>
+          <dt><span class="btn">A</span></dt><dd>Tap: one shot. Hold 0.4 s: nitrous<span class="tag">tap / hold</span></dd>
+          <dt><span class="btn">B</span></dt><dd>Cycle the selected weapon</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + RT</span></dt><dd>Hardpoint 1</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + LT</span></dt><dd>Hardpoints 5 and 2</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + A / B</span></dt><dd>Hardpoint 3 / hardpoint 4</dd>
+          <dt><span class="btn">R3</span></dt><dd>While looking back: drop mines (hardpoint 4)</dd>
         </dl>
       </div>
       <div class="group">
         <h3>Target</h3>
         <dl>
-          <dt><span class="btn">L1</span></dt><dd>Next target <span class="key">Y</span></dd>
-          <dt><span class="btn">L4</span></dt><dd>Target the car in front <span class="key">Q</span></dd>
-          <dt><span class="btn">L5</span></dt><dd>Target the nearest car <span class="key">T</span></dd>
-          <dt><span class="btn">R3</span></dt><dd>Click the right stick: look at the target <span class="key">E</span><span class="tag">click</span></dd>
+          <dt><span class="btn">LB</span></dt><dd>Tap: target the car in front<span class="tag">tap / hold</span></dd>
+          <dt><span class="btn">X</span></dt><dd>Next target</dd>
+          <dt><span class="btn">R3</span></dt><dd>Click the right stick: look at the target</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + X</span></dt><dd>Radar range</dd>
         </dl>
       </div>
       <div class="group">
         <h3>Look</h3>
         <dl>
-          <dt><span class="btn">R stick</span></dt><dd>In the car: glance up, down, left, right. Outside the car: swing the camera around it.</dd>
-          <dt><span class="btn">Y</span></dt><dd>Chase camera <span class="key">F2</span></dd>
-          <dt><span class="btn">Y Y</span></dt><dd>Double-tap: back into the cockpit; double-tap again to drop the dashboard <span class="key">F1</span><span class="tag">double-tap</span></dd>
-          <dt><span class="btn">D-pad ↑</span></dt><dd>Binoculars <span class="key">B</span></dd>
+          <dt><span class="btn">R stick</span></dt><dd>In the car: glance. Outside: swing the camera around the car.</dd>
+          <dt><span class="btn">Y</span></dt><dd>Cycle: chase camera, cockpit without the dash, cockpit with the dash</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + Y</span></dt><dd>Step through every camera view</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + D-pad ↑</span></dt><dd>Binoculars</dd>
         </dl>
       </div>
       <div class="group">
         <h3>Car and radio</h3>
         <dl>
-          <dt><span class="btn">D-pad →</span></dt><dd>Headlights <span class="key">H</span></dd>
-          <dt><span class="btn">D-pad ↓</span></dt><dd>Horn <span class="key">G</span></dd>
-          <dt><span class="btn">L pad</span></dt><dd>Radar range, radar camera, notepad, map, poetry are slices of the trackpad menu</dd>
+          <dt><span class="btn">D-pad ↑</span></dt><dd>Headlights</dd>
+          <dt><span class="btn"><span class="shift">LB</span> + D-pad ↓</span></dt><dd>Horn, while held</dd>
+          <dt><span class="btn">D-pad ←</span></dt><dd>Notepad</dd>
+          <dt><span class="btn">D-pad → / ☰</span></dt><dd>Map</dd>
         </dl>
       </div>
       <div class="group">
-        <h3>Menus</h3>
+        <h3>Menus and Deck extras</h3>
         <dl>
-          <dt><span class="btn">R pad</span></dt><dd>Move the pointer; press the pad to click. In a mission that click fires hardpoint 1.</dd>
-          <dt><span class="btn">A</span></dt><dd>Select (Enter) and click at once; also skips a cutscene</dd>
-          <dt><span class="btn">⧉ View</span></dt><dd>Pause and the in-mission menu <span class="key">Esc</span></dd>
-          <dt><span class="btn">☰ Menu</span></dt><dd>Map <span class="key">M</span></dd>
+          <dt><span class="btn">A</span></dt><dd>OK / select</dd>
+          <dt><span class="btn">⧉ View</span></dt><dd>Pause menu, skip a cutscene</dd>
+          <dt><span class="btn">R pad</span></dt><dd>Menu pointer; press to click (Deck only)</dd>
+          <dt><span class="btn">L pad</span></dt><dd>Quick select: fire all, weapons 2 and 3, specials 2 and 3, map, notepad, radar range, radar camera, ignition, lights, combat camera, poetry (Deck only)</dd>
         </dl>
       </div>
     </div>
@@ -257,36 +224,15 @@ td:first-child { white-space: nowrap; }
   <section>
     <h2>Watch for these</h2>
     <div class="tricks">
-      <div class="trick"><div><strong>Y does two things.</strong><p>A single tap goes to the chase camera. A quick double-tap goes back into the cockpit, and another double-tap there switches between the full dashboard and the open view with small gauges. Tap slowly and you get the chase camera twice.</p></div></div>
-      <div class="trick"><div><strong>A is both Enter and a mouse click.</strong><p>It presses Enter and clicks wherever the pointer is. In menus, park the pointer somewhere harmless if you only mean Enter. In a mission a left click fires hardpoint 1, so A does too.</p></div></div>
-      <div class="trick"><div><strong>Both sticks click.</strong><p>Pressing the left stick in is special 1, which on most cars is the nitrous. Pressing the right stick in turns your view toward the current target. Both are easy to hit by accident in a hard turn.</p></div></div>
-      <div class="trick"><div><strong>The right stick depends on the view.</strong><p>Inside the car it glances and springs back when you let go. Outside the car it swings the camera around the car, and the camera stays where you leave it.</p></div></div>
-      <div class="trick"><div><strong>The trackpad menu needs a light touch.</strong><p>Rest your thumb on the left trackpad to bring up the 13-slice menu, slide to a slice, then press. The "Combat camera" slice switches to the camera behind the car; the dashboard itself is the Y double-tap.</p></div></div>
-      <div class="trick"><div><strong>R5 fires two hardpoints.</strong><p>The lower right grip fires hardpoints 4 and 5 at the same time, for as long as you hold it. Hardpoint 3 is on the upper right grip, R4. Dropping a target has no button in this layout.</p></div></div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Camera views</h2>
-    <p>Y and its double-tap reach the chase camera and both cockpit views. The others are on the keyboard (Steam + X).</p>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>Key</th><th>View</th><th>On the Deck</th></tr></thead>
-        <tbody>
-          <tr><td><span class="key">F1</span></td><td>Cockpit. Pressed again in the cockpit: the open view with small gauges and no dashboard</td><td>Y double-tap</td></tr>
-          <tr><td><span class="key">F2</span></td><td>Chase camera, high behind the car</td><td>Y</td></tr>
-          <tr><td><span class="key">F3</span></td><td>Chase camera, close behind the car</td><td>keyboard</td></tr>
-          <tr><td><span class="key">V</span></td><td>Combat camera behind the car; again to return</td><td>trackpad menu</td></tr>
-          <tr><td><span class="key">F7</span> <span class="key">F8</span></td><td>Side cameras beside the wheels</td><td>keyboard</td></tr>
-          <tr><td><span class="key">F9</span></td><td>High chase, wider</td><td>keyboard</td></tr>
-          <tr><td><span class="key">F10</span></td><td>Overhead</td><td>keyboard</td></tr>
-        </tbody>
-      </table>
+      <div class="trick"><div><strong>LB is two buttons.</strong><p>A quick tap targets the car in front. Holding it turns on the shift layer: while it is down, the triggers, A, B, X, Y and the D-pad do the jobs marked LB + above.</p></div></div>
+      <div class="trick"><div><strong>A: tap or hold.</strong><p>A tap is OK in menus and one shot in the car. Holding it for about half a second fires nitrous for as long as you hold.</p></div></div>
+      <div class="trick"><div><strong>Looking back changes RT and R3.</strong><p>Hold the right stick back to look behind you; while you do, RT fires the rear gun and clicking the right stick drops mines.</p></div></div>
+      <div class="trick"><div><strong>The left stick click has two jobs.</strong><p>A plain click is nitrous. Pulled back and clicked, it puts the car in reverse.</p></div></div>
+      <div class="trick"><div><strong>The right stick depends on the view.</strong><p>Inside the car it glances and springs back. Outside it swings the camera around the car, and the camera stays where you leave it.</p></div></div>
     </div>
   </section>
 
   <div class="foot">
-    <p>Read from <span class="key">deck/controller_neptune_i76.vdf</span> and the Deck's <span class="key">input.map</span> on 7 October 2026. Camera views measured on the Deck in mission T01.</p>
-    <p>A second library entry, "Interstate 76 (pad layer)", plays with the Windows and Mac pad controls instead (Y cycles the views, LB is a shift layer); the grips and trackpads work the same in both. The layout is a Steam Input template; pick it under the game's controller settings, Templates, "Interstate 76 - Option 1 v8.1 (all-in-one wheel)". Steam + X opens the on-screen keyboard for anything not listed here.</p>
+    <p>The layout is the shared pad layer (<span class="key">i76-remap.ahk</span>, <span class="key">controls/input.map</span>), the same files Windows and Mac use; the Windows/Mac quick-reference sheet shows the same buttons. On the Deck it is the Steam Input layout "Interstate 76 - gamepad (v10)", which the launcher pairs with the pad layer.</p>
   </div>
 </div>

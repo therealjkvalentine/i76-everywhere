@@ -46,23 +46,22 @@ else
 fi
 
 # --- control profile (deck/setup-deck-pad.sh) ---------------------------------
-# Two library entries share one game folder. "Interstate 76" (Steam layout v8.1, keys)
-# runs with the Deck's own map; "Interstate 76 (pad layer)" sets I76_PROFILE=pad in its
-# launch options: Steam layout v9 presents a plain pad, the shared i76-remap.ahk (the
-# Windows/Mac pad layer) turns it into keys, so the shared controls/input.map must be
-# the live map. input.map is the only file the engine reads, so the right one is copied
-# into place on every launch.
+# One layout since 2026-10-08 (owner: the Deck plays exactly the gamepad layout): Steam layout
+# controller_neptune_i76_pad.vdf presents a plain pad, the shared i76-remap.ahk (the Windows/Mac
+# pad layer) turns it into keys, so the shared controls/input.map is the live map. input.map is
+# the only file the engine reads, so it is copied into place on every launch. I76_PROFILE=deck
+# (launch options) brings back the old key layout's map for a v8.1 controller layout.
 GAMEDIR_W="${I76_GAMEDIR:-$HOME/Games/Interstate76/game}"
-if [ "${I76_PROFILE:-}" = "pad" ]; then
+if [ "${I76_PROFILE:-pad}" = "pad" ]; then
     export I76_DECK_AHK=1
     MAPSRC="$GAMEDIR_W/input.map.profile-pad"
 else
     MAPSRC="$GAMEDIR_W/input.map.profile-deck"
 fi
 if [ -f "$MAPSRC" ]; then
-    cp -f "$MAPSRC" "$GAMEDIR_W/input.map" && log "profile ${I76_PROFILE:-deck}: input.map <- $(basename "$MAPSRC")"
+    cp -f "$MAPSRC" "$GAMEDIR_W/input.map" && log "profile ${I76_PROFILE:-pad}: input.map <- $(basename "$MAPSRC")"
 else
-    log "profile ${I76_PROFILE:-deck}: $MAPSRC missing - input.map left as it is"
+    log "profile ${I76_PROFILE:-pad}: $MAPSRC missing - input.map left as it is"
 fi
 
 # --- locate Proton in the expanded %command% -------------------------------

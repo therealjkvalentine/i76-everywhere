@@ -1,8 +1,8 @@
 "controller_mappings"
 {
 	"version" "3"
-	"title" "Interstate 76 - Option 2 v9 (shared pad layer)"
-	"description" "Gamepad for the shared i76-remap.ahk pad layer (same as Windows/Mac: analog driving, Y view cycle, LB shift layer), plus Deck extras: grips L4 front target, L5 nearest target, R4 hardpoint 3, R5 hardpoints 4+5; left trackpad menu; right trackpad mouse, press = click. Launch the Interstate 76 (pad layer) library entry."
+	"title" "Interstate 76 - gamepad (v10)"
+	"description" "The Interstate 76 gamepad layout, identical to Windows and Mac (the shared i76-remap.ahk pad layer: analog driving, Y view cycle, LB shift layer). Deck-only: the left trackpad quick-select menu, and the right trackpad as the menu pointer (press = click). Back grips unbound."
 	"controller_type"		"controller_neptune"
 	"group"
 	{
@@ -573,7 +573,6 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press T, Target nearest (L5)"
 						}
 					}
 				}
@@ -586,8 +585,6 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press 4, Fire hardpoint 4 (R5)"
-							"binding"		"key_press 5, Fire hardpoint 5 (R5)"
 						}
 					}
 				}
@@ -600,7 +597,6 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press Q, Front target (L4)"
 						}
 					}
 				}
@@ -613,7 +609,6 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press 3, Fire hardpoint 3 (R4)"
 						}
 					}
 				}

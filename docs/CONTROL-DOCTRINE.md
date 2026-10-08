@@ -26,20 +26,15 @@ scheme going forward. Concretely, the target Deck stack is the baseline tier bel
 - Deck extras (back grips, trackpad wheel) only as tier-2 additions on top, never the sole home of
   an action.
 
-**Where the Deck stands (corrected 2026-10-07, read from the live layout).** The owner's Deck runs
-[`deck/controller_neptune_i76.vdf`](../deck/controller_neptune_i76.vdf) ("Option 1 v8"), which is a
-**hybrid**, not pure keyboard emulation: its left stick is in Steam Input's `joystick_move` mode, so it
-reaches the game as the virtual pad's stick on `joystick1`, where the Deck's `input.map` (since the
-2026-08-01 baseline edit) puts **analog** `steer` and `throttle`. Driving is therefore already analog
-on the Deck; the buttons, triggers (fire), grips, D-pad, right stick (arrows) and trackpads are keys.
-The owner likes that driving and shooting layout ("great", 2026-10-07). An earlier version of this
-section called the Deck's steering digital; that was read from the stale v4 table in STEAMDECK.md.
-What is still Deck-only is the button half (keys and the trackpad menu) and the absence of the
-shared AutoHotkey layer, hence no rumble. The pieces for the full shared stack exist
-([DECK-BASELINE.md](records/DECK-BASELINE.md), `deck/setup-deck-baseline.sh`) but have never run on
-Deck hardware. Any change to the shared pad layer is made with the Deck in mind (Proton runs
-`xinput*.dll` like Wine on the Mac); when the Deck layout changes, keep its driving/shooting
-placement, which the owner approved.
+**Done 2026-10-08 (owner: "match the gamepad layout exactly, the only difference being the pad quick
+select ... no L4 L5").** The Deck has one library entry and one layout: Steam Input
+`deck/controller_neptune_i76_pad.vdf` ("gamepad (v10)": Valve's Deck gamepad template, grips unbound) +
+the shared `i76-remap.ahk` in the prefix + the shared `controls/input.map`, which `deck/i76-deck-launch.sh`
+copies into place on every launch. The only Deck additions: the left trackpad quick-select menu and the right
+trackpad as the menu pointer (press = click; a Deck has no mouse). Layout v8.1 (keys) and the temporary second
+entry are retired; `deck/use-pad-layout.py` converts a Deck. Change pad controls in the shared files only.
+Guide: [deck-controls.html](deck-controls.html). Not yet played on the Deck by hand; rumble there is the open
+item (the pad layer's mixer is gated by `gShimOwnsRumble`).
 
 **Open, shared-layout question (decide once, for every platform):** accel/brake are on the left
 stick's Y axis today, because the triggers fire. winmm merges LT and RT into one axis (RT minus
