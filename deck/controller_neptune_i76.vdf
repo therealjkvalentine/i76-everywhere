@@ -2,7 +2,7 @@
 {
 	"version"		"3"
 	"game"		"Interstate 76"
-	"title"		"Interstate 76 - Option 1 v8 (all-in-one wheel)"
+	"title"		"Interstate 76 - Option 1 v8.1 (all-in-one wheel)"
 	"description"		"Sticks: drive (analog; L3=Special 1) + glance/menus (R3=look at target). R2 fire / L2 weapon-2. RB handbrake, LB next target. A confirm, B cycle, X reverse, Y chase cam (2x=cockpit). Dpad: binoculars/horn/engine/lights. LEFT PAD: all-functions wheel (labeled). RIGHT PAD: mouse. Grips: targeting (front/untarget/nearest/next). Select=map, Start=pause."
 	"controller_type"		"controller_neptune"
 	"major_revision"		"0"
@@ -642,7 +642,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press Q, Front target"
+							"binding"		"key_press T, Target nearest (L5)"
 						}
 					}
 				}
@@ -655,7 +655,8 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press T, Target nearest"
+							"binding"		"key_press 4, Fire hardpoint 4 (R5)"
+							"binding"		"key_press 5, Fire hardpoint 5 (R5)"
 						}
 					}
 				}
@@ -668,7 +669,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press U, Untarget"
+							"binding"		"key_press Q, Front target (L4)"
 						}
 					}
 				}
@@ -681,7 +682,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press Y, Next target"
+							"binding"		"key_press 3, Fire hardpoint 3 (R4)"
 						}
 					}
 				}

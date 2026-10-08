@@ -93,7 +93,7 @@ td:first-child { white-space: nowrap; }
   <header>
     <span class="shield"><b>76</b> Steam Deck</span>
     <h1>Interstate '76 on the Deck: what every control does</h1>
-    <p class="lede">The layout this project installs on the Deck ("Option 1 v8"). Driving is analog on the left stick, the triggers fire, and the rarely used keys sit in a menu on the left trackpad. Inputs marked in yellow behave differently from what you might expect.</p>
+    <p class="lede">The layout this project installs on the Deck ("Option 1 v8.1"). Driving is analog on the left stick, the triggers fire, and the rarely used keys sit in a menu on the left trackpad. Inputs marked in yellow behave differently from what you might expect.</p>
   </header>
 
   <figure class="figure" style="margin:0">
@@ -167,7 +167,29 @@ td:first-child { white-space: nowrap; }
       <!-- legend -->
       <circle class="s-trick" cx="430" cy="500" r="7"/><text class="s-mute" x="444" y="505">has a second job or a catch: see "Watch for these"</text>
     </svg>
-    <figcaption>Front of the Deck. The four grip buttons on the back are in the targeting group below.</figcaption>
+    <figcaption>Front of the Deck.</figcaption>
+  </figure>
+
+  <figure class="figure" style="margin:0">
+    <svg viewBox="0 0 1200 330" role="img" aria-labelledby="back-t" style="min-width:600px">
+      <title id="back-t">Steam Deck back view: the four grip buttons and what each does</title>
+      <rect class="s-body" x="250" y="40" width="700" height="250" rx="120"/>
+      <text class="s-mute" x="600" y="170" text-anchor="middle" style="fill:var(--deck-ink)">back of the Deck, held as you play</text>
+      <rect class="s-ctl" x="300" y="95" width="70" height="44" rx="14"/><text class="s-name" x="335" y="123" text-anchor="middle">L4</text>
+      <rect class="s-ctl" x="300" y="175" width="70" height="44" rx="14"/><text class="s-name" x="335" y="203" text-anchor="middle">L5</text>
+      <rect class="s-ctl" x="830" y="95" width="70" height="44" rx="14"/><text class="s-name" x="865" y="123" text-anchor="middle">R4</text>
+      <rect class="s-ctl" x="830" y="175" width="70" height="44" rx="14"/><text class="s-name" x="865" y="203" text-anchor="middle">R5</text>
+      <line x1="296" y1="117" x2="250" y2="117" stroke="var(--muted)" stroke-width="1.2"/>
+      <line x1="296" y1="197" x2="250" y2="197" stroke="var(--muted)" stroke-width="1.2"/>
+      <line x1="904" y1="117" x2="950" y2="117" stroke="var(--muted)" stroke-width="1.2"/>
+      <line x1="904" y1="197" x2="950" y2="197" stroke="var(--muted)" stroke-width="1.2"/>
+      <text class="s-capb" x="240" y="112" text-anchor="end">L4 (upper)</text><text class="s-cap" x="240" y="132" text-anchor="end">Target the car in front</text>
+      <text class="s-capb" x="240" y="192" text-anchor="end">L5 (lower)</text><text class="s-cap" x="240" y="212" text-anchor="end">Target the nearest car</text>
+      <text class="s-capb" x="960" y="112">R4 (upper)</text><text class="s-cap" x="960" y="132">Fire hardpoint 3</text>
+      <text class="s-capb" x="960" y="192">R5 (lower)</text><text class="s-cap" x="960" y="212">Fire hardpoints 4 and 5</text>
+      <text class="s-mute" x="600" y="318" text-anchor="middle">Left hand targets, right hand fires. Grips fire for as long as you hold them.</text>
+    </svg>
+    <figcaption>Back of the Deck. L4 and R4 are the upper grips, L5 and R5 the lower ones.</figcaption>
   </figure>
 
   <section>
@@ -189,6 +211,8 @@ td:first-child { white-space: nowrap; }
           <dt><span class="btn">R2</span></dt><dd>Fire the selected weapon <span class="key">Space</span></dd>
           <dt><span class="btn">L2</span></dt><dd>Fire hardpoint 2 <span class="key">2</span></dd>
           <dt><span class="btn">B</span></dt><dd>Cycle the selected weapon <span class="key">Tab</span></dd>
+          <dt><span class="btn">R4</span></dt><dd>Fire hardpoint 3 <span class="key">3</span></dd>
+          <dt><span class="btn">R5</span></dt><dd>Fire hardpoints 4 and 5 together <span class="key">4 + 5</span><span class="tag">two at once</span></dd>
           <dt><span class="btn">L pad</span></dt><dd>Fire all, weapon 2, weapon 3, specials 2 and 3 are slices of the trackpad menu</dd>
         </dl>
       </div>
@@ -197,9 +221,7 @@ td:first-child { white-space: nowrap; }
         <dl>
           <dt><span class="btn">L1</span></dt><dd>Next target <span class="key">Y</span></dd>
           <dt><span class="btn">L4</span></dt><dd>Target the car in front <span class="key">Q</span></dd>
-          <dt><span class="btn">R4</span></dt><dd>Target the nearest car <span class="key">T</span></dd>
-          <dt><span class="btn">L5</span></dt><dd>Drop the target <span class="key">U</span></dd>
-          <dt><span class="btn">R5</span></dt><dd>Next target, same as L1 <span class="key">Y</span></dd>
+          <dt><span class="btn">L5</span></dt><dd>Target the nearest car <span class="key">T</span></dd>
           <dt><span class="btn">R3</span></dt><dd>Click the right stick: look at the target <span class="key">E</span><span class="tag">click</span></dd>
         </dl>
       </div>
@@ -240,7 +262,7 @@ td:first-child { white-space: nowrap; }
       <div class="trick"><div><strong>Both sticks click.</strong><p>Pressing the left stick in is special 1, which on most cars is the nitrous. Pressing the right stick in turns your view toward the current target. Both are easy to hit by accident in a hard turn.</p></div></div>
       <div class="trick"><div><strong>The right stick depends on the view.</strong><p>Inside the car it glances and springs back when you let go. Outside the car it swings the camera around the car, and the camera stays where you leave it.</p></div></div>
       <div class="trick"><div><strong>The trackpad menu needs a light touch.</strong><p>Rest your thumb on the left trackpad to bring up the 13-slice menu, slide to a slice, then press. The slice labelled "Dash toggle" sends V, which in this game switches the combat camera behind the car; the dashboard itself is the Y double-tap.</p></div></div>
-      <div class="trick"><div><strong>Next target is on two buttons.</strong><p>L1 and the R5 grip both cycle targets, so you can target with either hand.</p></div></div>
+      <div class="trick"><div><strong>R5 fires two hardpoints.</strong><p>The lower right grip fires hardpoints 4 and 5 at the same time, for as long as you hold it. Hardpoint 3 is on the upper right grip, R4. Dropping a target has no button in this layout.</p></div></div>
     </div>
   </section>
 
@@ -265,6 +287,6 @@ td:first-child { white-space: nowrap; }
 
   <div class="foot">
     <p>Read from <span class="key">deck/controller_neptune_i76.vdf</span> and the Deck's <span class="key">input.map</span> on 7 October 2026. Camera views measured on the Deck in mission T01.</p>
-    <p>The layout is a Steam Input template; pick it under the game's controller settings, Templates, "Interstate 76 - Option 1 v8 (all-in-one wheel)". Steam + X opens the on-screen keyboard for anything not listed here.</p>
+    <p>The layout is a Steam Input template; pick it under the game's controller settings, Templates, "Interstate 76 - Option 1 v8.1 (all-in-one wheel)". Steam + X opens the on-screen keyboard for anything not listed here.</p>
   </div>
 </div>

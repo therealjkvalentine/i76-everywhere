@@ -158,7 +158,7 @@ Rules and gotchas (Valve mode-shifting doc + Steam Input Wiki):
 ```
 
 with `"30"  "dpad active modeshift"` in the preset, and on `button_back_left`
-(L4) inside the `switches` group: `"binding"  "mode_shift dpad 30"` +
+(L5; see the naming note below) inside the `switches` group: `"binding"  "mode_shift dpad 30"` +
 `"interruptable" "0"`.
 
 ---
@@ -501,3 +501,9 @@ Community (accessed 2026-07-11):
 - [Ryvaeus: Use Steam Input's Radial Menu](https://ryvaeus.com/blog/steam-input-radial-menu/) / [ResetEra: Virtual Menus on Deck](https://www.resetera.com/threads/virtual-menus-in-steam-input-are-amazing-on-steam-deck.649086/)
 - Non-Steam sharing limitations: [Steam Controller forums](https://steamcommunity.com/app/353370/discussions/0/1635237606654389025/), [NeoGAF non-Steam config sharing thread](https://www.neogaf.com/threads/steam-controller-non-steam-game-config-sharing-thread.1125840/)
 - Gyro for retro/KBM games: [Steam Deck forums gyro discussions](https://steamcommunity.com/app/1675200/discussions/0/597399921281226202/)
+
+
+> **Grip naming, verified 2026-10-07 on the Deck** (EmuDeck's Steam Deck template labels its own bindings):
+> `button_back_left_upper` = **L4**, `button_back_left` = **L5**, `button_back_right_upper` = **R4**,
+> `button_back_right` = **R5**. L4/R4 are the upper grips. Earlier notes here and the first controls guide had
+> `button_back_left` as L4; that was wrong.
