@@ -1,12 +1,12 @@
 #!/bin/bash
 # Interstate '76 - bring the Deck up to the current graphics build. RUNS ON THE DECK.
 #
-# What the Windows daily driver runs (preset best-wide-balanced), adapted to the Deck's
+# What the Windows daily driver runs (preset best-wide), adapted to the Deck's
 # 1280x800 panel:
 #   * the Strlkup.dll proxy (music-fix/), which carries every I76_* engine switch:
 #     Hor+ widescreen at 16:10, the HUD squeeze, fixed 24 Hz physics step + render
 #     interpolation (smooth above 20 fps without breaking jumps), the frame-rate fixes,
-#     draw distance 1200 m, terrain/texture/object detail x8, bushes 300 m, mirror 300 m,
+#     draw distance 1800 m, terrain/texture/object detail x8, bushes 300 m, mirror 300 m,
 #     the terrain-flash fix, the TMU fix, and in-mission music from GOG's mp3s
 #   * dgVoodoo.conf: stretched to the panel, rendered at 2x (2560x1600) and averaged down
 #     bilinear, 4x MSAA, TMU 8192 (only together with I76_ZGLIDE_TMUFIX), FPSLimit off, forced
@@ -238,14 +238,14 @@ else
 fi
 
 # ----------------------------------------------------- 4. the switch file ----
-echo "== 4. i76-env.sh (preset best-wide-balanced, Deck values) =="
+echo "== 4. i76-env.sh (preset best-wide, Deck values) =="
 # Deck model: LCD (Jupiter) 60 Hz, OLED (Galileo) 90 Hz. The engine paces to the Glide
 # refresh it asks for, so this is the frame-rate target.
 HZ=60
 if grep -qi galileo /sys/class/dmi/id/product_name 2>/dev/null; then HZ=90; fi
 cat > "$INSTALL/i76-env.sh" <<EOF
 # Interstate '76 engine switches for the Deck - sourced by i76-deck-launch.sh.
-# Written by deck/setup-deck-wide.sh on $TS. Source: presets/best-wide-balanced.psd1,
+# Written by deck/setup-deck-wide.sh on $TS. Source: presets/best-wide.psd1 (far clip 1800),
 # with I76_ASPECT for the 1280x800 panel and the refresh for this Deck ($HZ Hz).
 # Delete this file (or run setup-deck-wide.sh --revert) to launch with no switches.
 export I76_HIRES_CLOCK=1
@@ -255,7 +255,7 @@ export I76_ENGINE_DT_FIX=1
 export I76_RENDER_INTERP=1
 export I76_FIX_HEALTH_PCT=1
 export I76_FIX_LABEL_TABLE=1
-export I76_FAR_CLIP=1200
+export I76_FAR_CLIP=1800          # as best-wide on the PC. Deck LCD, T01, 2x SS: cockpit 60.0 fps, binoculars 53-56; 1200 = 60 everywhere
 export I76_CAM_GROUND_FIX=1
 export I76_ZGLIDE_TMUFIX=1          # required by MemorySizeOfTMU 8192 in dgVoodoo.conf
 export I76_INPUT_LATCH=1
