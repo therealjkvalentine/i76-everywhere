@@ -30,8 +30,11 @@ param(
     [switch]$DryRun,
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
     [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
-    # Head tracking. Pass "" to skip. opentrack is started AND told to begin
-    # tracking (it has no auto-start switch - see i76-opentrack-autostart.ahk).
+    # Head tracking, OPT-IN since 2026-10-08 (owner: remove the dependency). With -HeadTrack, opentrack
+    # ($OpenTrack) is started AND told to begin tracking (it has no auto-start switch - see
+    # i76-opentrack-autostart.ahk), the launcher waits for it to publish, and the head-look layer runs.
+    # Without it none of the three happens, whatever is installed.
+    [switch]$HeadTrack,
     [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe",
     # Custom force feedback (tools/ffb). OPT-IN on purpose: it synthesises real
     # slip/load/impact feel from telemetry, but the gains have not been judged by
@@ -213,7 +216,7 @@ if ($DryRun) {
     foreach ($k in $gameEnv.Keys) { Write-Host ("    {0}={1}" -f $k, $gameEnv[$k]) }
     $skipped = @()
     if ($LosslessScaling -and (Test-Path $LosslessScaling)) { $skipped += 'Lossless Scaling' }
-    if ($OpenTrack -and (Test-Path $OpenTrack)) { $skipped += 'opentrack' }
+    if ($HeadTrack -and $OpenTrack -and (Test-Path $OpenTrack)) { $skipped += 'opentrack' }
     if (Test-Path (Join-Path $GameDir '_ahk\AutoHotkeyU32.exe')) { $skipped += 'AHK layers' }
     if ($Ffb) { $skipped += 'FFB interposer' }
     if ($skipped) { Write-Host ("  helpers that a real run would also start: {0}" -f ($skipped -join ', ')) -ForegroundColor DarkGray }
@@ -270,7 +273,7 @@ if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg)) {
 $ot = $null
 $otHelper = $null
 $track = $null
-if ($OpenTrack -and (Test-Path $OpenTrack)) {
+if ($HeadTrack -and $OpenTrack -and (Test-Path $OpenTrack)) {
     if (-not (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue)) {
         $ot = Start-Process -FilePath $OpenTrack -PassThru
     }
@@ -280,7 +283,7 @@ if ($OpenTrack -and (Test-Path $OpenTrack)) {
     }
 }
 $trackCfg = Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk'
-if ((Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
+if ($HeadTrack -and (Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
     $track = Start-Process -FilePath $ahkExe -ArgumentList "`"$trackCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 

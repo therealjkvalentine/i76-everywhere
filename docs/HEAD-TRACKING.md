@@ -6,6 +6,10 @@ build (`i76.exe` MD5 `60abf7bc699da72476128ddce991a3d1`).
 Script: [`../i76-opentrack-headlook.ahk`](../i76-opentrack-headlook.ahk) ·
 Test harness: [`../i76-opentrack-headlook-test.ahk`](../i76-opentrack-headlook-test.ahk)
 
+> **Opt-in since 2026-10-08.** `PLAY-i76.ps1` no longer starts opentrack, its auto-start helper or the
+> head-look layer by default, and no longer waits for tracking before launching the game. Pass
+> **`-HeadTrack`** (e.g. a `HEADTRACK.bat` that calls `PLAY-i76.ps1 ... -HeadTrack`) to get all three back.
+
 ---
 
 ## Quick start
