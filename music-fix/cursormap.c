@@ -148,8 +148,60 @@ static int cm_patch_module(HMODULE mod, const char *what) {
     return n;
 }
 /* from hook_LoadLibraryA: b = the loaded file's base name */
+/* I76_CURSOR_MAP_DGV=1 (with I76_CURSOR_MAP; 2026-10-08): the pencil the player sees is not drawn by the game. The exe
+ * hides the OS arrow (ShowCursor), the shell sets Pencil.cur as the cursor, and dgVoodoo renders that cursor into its
+ * presented frame (lab GARAGE-POPUP-STUCK.md: it freezes when the app stops presenting). dgVoodoo places it by its own
+ * GetCursorPos, read as an app (640x480) coordinate and scaled up: with CaptureMouse = false the raw screen position
+ * goes in, so the pencil is drawn at raw x 5.4 / y 3 on a 3440x1440 panel (owner report 2026-10-08; capture of
+ * 2026-10-07: pointer (392,123), arrow drawn near (2050,375)). Feeding dgVoodoo the mapped position puts the pencil
+ * under the real pointer. dgVoodoo's DLLs are packed (their PE imports are only LoadLibraryA / GetProcAddress) and
+ * rebuild their user32 table in memory, so instead of an import slot: scan the unpacked image of ddraw.dll and
+ * glide2x.dll for DWORDs equal to user32!GetCursorPos / GetCursorInfo and replace them. A thread rescans for 30 s
+ * (unpacking can happen after this proxy's DllMain) and logs each slot taken. */
+static BOOL (WINAPI *p_cm_GetCursorInfo)(PCURSORINFO);
+static BOOL WINAPI cm_GetCursorInfo(PCURSORINFO ci) {
+    BOOL ok = p_cm_GetCursorInfo(ci);
+    if (ok && ci) { CmMap m = cm_map(); if (m.on) cm_to_ui(&m, &ci->ptScreenPos); }
+    return ok;
+}
+static int cm_swap_ptrs(HMODULE mod) {
+    BYTE *base = (BYTE *)mod; IMAGE_NT_HEADERS *nt; IMAGE_SECTION_HEADER *s; int i, n = 0;
+    if (!mod) return 0;
+    nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
+    s = IMAGE_FIRST_SECTION(nt);
+    for (i = 0; i < nt->FileHeader.NumberOfSections; i++, s++) {
+        DWORD_PTR *p = (DWORD_PTR *)(base + s->VirtualAddress), *e = (DWORD_PTR *)(base + s->VirtualAddress + (s->Misc.VirtualSize & ~3u));
+        for (; p < e; p++) {
+            void *to = NULL;
+            if (*p == (DWORD_PTR)p_cm_GetCursorPos) to = (void *)cm_GetCursorPos;
+            else if (*p == (DWORD_PTR)p_cm_GetCursorInfo) to = (void *)cm_GetCursorInfo;
+            if (to) { DWORD op; if (VirtualProtect(p, sizeof *p, PAGE_READWRITE, &op)) { *p = (DWORD_PTR)to; VirtualProtect(p, sizeof *p, op, &op); n++; } }
+        }
+    }
+    return n;
+}
+static DWORD WINAPI cm_dgv_thread(LPVOID arg) {
+    int round, tot[2] = { 0, 0 }; const char *names[2] = { "ddraw.dll", "glide2x.dll" };
+    (void)arg;
+    for (round = 0; round < 120; round++) {
+        int i;
+        for (i = 0; i < 2; i++) {
+            int k = cm_swap_ptrs(GetModuleHandleA(names[i]));
+            if (k) { tot[i] += k; mlog("  cursor-map: dgVoodoo %s: %d cursor pointer(s) taken (round %d, total %d)", names[i], k, round, tot[i]); }
+        }
+        Sleep(1000);
+    }
+    mlog("  cursor-map: dgVoodoo scan done (ddraw %d, glide2x %d slots)", tot[0], tot[1]);
+    return 0;
+}
+
+static int g_cm_dgv;
 static void cursor_map_attach(HMODULE m, const char *b) {
     static int shell_done;
+    if (g_cm_dgv && _strnicmp(b, "zglide", 6) == 0) {   /* ZGLIDE pulls in dgVoodoo's glide2x.dll: take its slots now */
+        int k = cm_swap_ptrs(GetModuleHandleA("glide2x.dll"));
+        mlog("  cursor-map: dgVoodoo glide2x.dll at ZGLIDE load: %d cursor pointer(s) taken", k);
+    }
     if (g_cm_mode && !shell_done && _strnicmp(b, "i76shell", 8) == 0) { shell_done = 1; cm_patch_module(m, b); }
 }
 static void apply_cursor_map(void) {
@@ -169,6 +221,16 @@ static void apply_cursor_map(void) {
         p_cm_SetCursorPos = (BOOL (WINAPI *)(int, int))GetProcAddress(u, "SetCursorPos");
         p_cm_ClipCursor   = (BOOL (WINAPI *)(const RECT *))GetProcAddress(u, "ClipCursor");
         p_cm_PeekMessageA = (BOOL (WINAPI *)(LPMSG, HWND, UINT, UINT, UINT))GetProcAddress(u, "PeekMessageA");
+    }
+    p_cm_GetCursorInfo = (BOOL (WINAPI *)(PCURSORINFO))GetProcAddress(GetModuleHandleA("user32.dll"), "GetCursorInfo");
+    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_MAP_DGV", c, sizeof(c));
+        if (k && k < sizeof(c) && c[0] == '1') {
+            HANDLE th;
+            g_cm_dgv = 1;
+            th = CreateThread(NULL, 0, cm_dgv_thread, NULL, 0, NULL);
+            if (th) CloseHandle(th);
+            mlog("  cursor-map: dgVoodoo cursor (I76_CURSOR_MAP_DGV): scanning ddraw.dll / glide2x.dll for 120 s and when ZGLIDE loads");
+        }
     }
     mlog("  cursor-map: on (%s: the 640x480 UI %s the game window's client rect)",
          g_cm_mode == 2 ? "ar" : "stretched", g_cm_mode == 2 ? "letterboxed 4:3 in" : "stretched over");
