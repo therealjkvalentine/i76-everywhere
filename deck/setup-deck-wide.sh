@@ -219,6 +219,9 @@ fi
 # both arrow token sets (this map binds both). Backup: input.map.pre-trackarrows.
 echo "== 3c. input.map: external camera on the arrows =="
 MAPF="$GAME/input.map"
+# with the two control profiles (setup-deck-pad.sh) the wrapper copies input.map.profile-deck over input.map
+# on every launch of the normal entry, so that is the file to change
+if [ -f "$GAME/input.map.profile-deck" ]; then MAPF="$GAME/input.map.profile-deck"; fi
 if [ ! -f "$MAPF" ]; then
     say "no input.map yet - launch the game once, then re-run"
 elif grep -q "track-arrows" "$MAPF"; then
@@ -276,12 +279,15 @@ export I76_CURSOR_MAP=1             # menus: pointer mapped to the stretched 640
 export I76MUSIC_LOG=1               # mciproxy.log in the game folder: proves which switches applied
 export I76_DECK_AHK=0               # 1 = start the baseline AHK pad layer too (deck/setup-deck-baseline.sh)
 EOF
-if [ -n "$IPX" ]; then
-    cat >> "$INSTALL/i76-env.sh" <<'EOF'
-# IPXWrapper: Wine must load the game folder's winsock DLLs, not its own.
-export WINEDLLOVERRIDES="wsock32,mswsock=n,b${WINEDLLOVERRIDES:+;$WINEDLLOVERRIDES}"
+# Game-folder DLLs Wine must prefer over its own. ddraw + d3dimm are dgVoodoo's: without them Wine's
+# DirectDraw runs the menus and intro and changes the display to 640x480, which Proton scales to a 4:3
+# pillarbox whatever dgVoodoo is told (found 2026-10-07: the July prefix had these as registry overrides,
+# a fresh prefix did not). Set here so every prefix, including a new library entry's, gets them.
+OVR="ddraw,d3dimm"
+if [ -n "$IPX" ]; then OVR="$OVR,wsock32,mswsock"; fi      # IPXWrapper's winsock
+cat >> "$INSTALL/i76-env.sh" <<EOF
+export WINEDLLOVERRIDES="$OVR=n,b\${WINEDLLOVERRIDES:+;\$WINEDLLOVERRIDES}"
 EOF
-fi
 say "written ($HZ Hz target)"
 
 # ------------------------------------------------------------ 5. wrapper ----

@@ -258,7 +258,7 @@
 					{
 						"bindings"
 						{
-							"binding"		"key_press V, Dash toggle"
+							"binding"		"key_press V, Combat camera"
 						}
 					}
 				}

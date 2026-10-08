@@ -45,6 +45,26 @@ else
     log "no $ENVF - no engine switches"
 fi
 
+# --- control profile (deck/setup-deck-pad.sh) ---------------------------------
+# Two library entries share one game folder. "Interstate 76" (Steam layout v8.1, keys)
+# runs with the Deck's own map; "Interstate 76 (pad layer)" sets I76_PROFILE=pad in its
+# launch options: Steam layout v9 presents a plain pad, the shared i76-remap.ahk (the
+# Windows/Mac pad layer) turns it into keys, so the shared controls/input.map must be
+# the live map. input.map is the only file the engine reads, so the right one is copied
+# into place on every launch.
+GAMEDIR_W="${I76_GAMEDIR:-$HOME/Games/Interstate76/game}"
+if [ "${I76_PROFILE:-}" = "pad" ]; then
+    export I76_DECK_AHK=1
+    MAPSRC="$GAMEDIR_W/input.map.profile-pad"
+else
+    MAPSRC="$GAMEDIR_W/input.map.profile-deck"
+fi
+if [ -f "$MAPSRC" ]; then
+    cp -f "$MAPSRC" "$GAMEDIR_W/input.map" && log "profile ${I76_PROFILE:-deck}: input.map <- $(basename "$MAPSRC")"
+else
+    log "profile ${I76_PROFILE:-deck}: $MAPSRC missing - input.map left as it is"
+fi
+
 # --- locate Proton in the expanded %command% -------------------------------
 PROTON=""
 for a in "$@"; do

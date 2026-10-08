@@ -81,7 +81,17 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > Shift+arrows only; now the plain arrows orbit too (controls/input.map and the Deck's map). (4)
 > **Controls guide:** [deck-controls.html](deck-controls.html). (5) The Deck's left stick was already
 > analog (`joystick_move` -> joystick1); the v4 table below is stale on that point. All in
-> `deck/setup-deck-wide.sh`. Its `ADDON\valepre4.vcf` is the non-stock
+> `deck/setup-deck-wide.sh`.
+>
+> **2026-10-07, later: two control profiles.** `./deck/deck-push-pad.sh` adds a second library entry,
+> **"Interstate 76 (pad layer)"**: Steam layout v9 (`deck/controller_neptune_i76_pad.vdf`, a plain gamepad
+> plus the grips, the trackpad menu and the trackpad mouse) with the shared `i76-remap.ahk` running in the
+> prefix and the shared `controls/input.map` live, so the Deck plays with the Windows/Mac pad controls (Y
+> view cycle, LB shift layer). The normal entry keeps layout v8.1 and the Deck's own map; the wrapper copies
+> `input.map.profile-pad` or `input.map.profile-deck` into place per launch. Smoke-tested: each entry
+> swaps the right map, the pad layer runs only in the pad entry, both full screen. Not yet played by hand.
+> **Found on the way:** the Deck's full-screen picture depended on `ddraw`/`d3dimm` = native overrides in
+> the July prefix's registry; a fresh prefix pillarboxed. `i76-env.sh` now sets them in `WINEDLLOVERRIDES`. Its `ADDON\valepre4.vcf` is the non-stock
 > 4ed297ca, as on the Mac: pick a car other than Jade's for LAN games against a stock PC.
 
 ## Controller layout (installed as a template — apply once)
