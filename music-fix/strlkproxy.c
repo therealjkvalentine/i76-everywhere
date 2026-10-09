@@ -4697,8 +4697,14 @@ static int __cdecl cam_ground_setup_wrap(BYTE *cam) {
             g_cg_lifts++;
             if (!r) g_cg_fail++;
             if (g_cg_lifts <= 20 || !r)
-                mlog("  cam-ground-fix: lift #%lu (camera %p, %s): eye %.3f m under the terrain height %.2f; setup %s",
-                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)0x004c2730 ? "main" : "other", h - y0, h, r ? "ok, terrain queued" : "STILL refused");
+                mlog("  cam-ground-fix: lift #%lu (camera %p, %s, mode %d): eye %.3f m under the terrain height %.2f; setup %s",
+                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)0x004c2730 ? "main" : "other", *(int *)0x004c2728, h - y0, h, r ? "ok, terrain queued" : "STILL refused");
+            /* 2026-10-09: the main camera under the ground IN COCKPIT VIEW (camera_mode 0x4c2728 == 0) means the car
+               body is under it too (orbit / chase views put the eye near the ground on their own). Counted apart. */
+            if (cam == (BYTE *)0x004c2730 && *(int *)0x004c2728 == 0) {
+                static unsigned long n_ck;
+                if (++n_ck <= 200) mlog("  cam-ground-fix: COCKPIT-UNDER #%lu: eye %.3f m under the terrain height %.2f", n_ck, h - y0, h);
+            }
         }
     }
     return r;
