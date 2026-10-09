@@ -3621,14 +3621,17 @@ static void apply_coll_window(void) {
                 { 0x0043e1c8, { 0xE8, 0xD3, 0xE5, 0x05, 0x00 }, (void *)coll_dt_gated,  "collision accept dt (slab test 0x43df10)" },
                 { 0x0043ec6a, { 0xE8, 0x31, 0xDB, 0x05, 0x00 }, (void *)coll_dt_gated,  "collision accept dt (mesh test 0x43ebc0)" },
             };
-            int m = 0;
+            int m = 0, mask = 3;
+            char mv[8]; DWORD mk = GetEnvironmentVariableA("I76_COLL_WINDOW_SITES", mv, sizeof(mv));
+            if (mk && mk < sizeof(mv)) mask = atoi(mv) & 3;  /* 1 = slab test 0x43e1c8, 2 = mesh test 0x43ec6a (2026-10-09: both = the car sank into the terrain on t04 drives) */
             for (i = 0; i < 3; i++) {
                 BYTE w[5] = { 0xE8 };
                 LONG rel = (LONG)((DWORD_PTR)t[i].fn - (t[i].site + 5)); memcpy(w + 1, &rel, 4);
                 if (i > 0 && m == 0) break;                 /* no flag, no gated reads: the AI would see the window */
+                if (i > 0 && !(mask & (1 << (i - 1)))) continue;
                 m += patch_bytes(t[i].site, t[i].old, w, 5, t[i].what);
             }
-            mlog("  coll-window v2: %d/3 (pass flag + the two accept tests, gated to the collision pass)", m);
+            mlog("  coll-window v2: %d patched (pass flag + accept tests, sites mask %d: 1 slab 0x43e1c8, 2 mesh 0x43ec6a)", m, mask);
         }
     }
 }
