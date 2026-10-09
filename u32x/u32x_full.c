@@ -166,6 +166,7 @@ static int sw_vptr_hideos(void)  { static int c = -1; return env_switch("I76_U32
 static int sw_vptr_widen(void)   { static int c = -1; return env_switch("I76_U32X_VPTR_WIDEN",   &c, 1); }
 static int sw_vptr_always(void)  { static int c = -1; return env_switch("I76_U32X_VPTR_CURSOR_ALWAYS", &c, 0); }
 static int sw_vptr_window(void)  { static int c = -1; return env_switch("I76_U32X_VPTR_WINDOW",  &c, 0); }
+static int sw_shell_stretch(void){ static int c = -1; return env_switch("I76_U32X_SHELL_STRETCH", &c, 0); }
 
 /* ---- locate the game window ------------------------------------------------------------
  * v2 (2026-08-16): do NOT trust FindWindowA. Measured live on the portable install, all four
@@ -420,8 +421,21 @@ static Map map_for(double aw, double ah, int lw, int lh)
     return m;
 }
 
-/* the 2D shell: a 640x480 surface, always 4:3 */
-static Map get_map(void) { return map_for(4.0, 3.0, UI_W, UI_H); }
+/* the 2D shell: a 640x480 surface, always 4:3 - unless I76_U32X_SHELL_STRETCH=1 and dgVoodoo.conf says
+ * ScalingMode = stretched: then the 640x480 page fills the whole client (x and y scaled separately), the same
+ * picture the modal pointer already uses (shell_picture_map). 2026-10-08, for CaptureMouse = false with the
+ * proxy's cursor map taking only i76.exe's slots (I76_CURSOR_MAP_U32X=exe): i76shell keeps this DLL, so its
+ * modal pointer, the modal-pump rule and the name-entry keep-alive stay, and its map must be the stretched one.
+ * Off by default: the daily driver's CaptureMouse = true confs keep the confined pass-through, unchanged. */
+static int sw_shell_stretch(void);
+static int shell_fills_client(void);
+static Map shell_picture_map(void);
+static Map get_map(void)
+{
+    if (sw_shell_stretch() && shell_fills_client())
+        return shell_picture_map();         /* fill: never calls get_map */
+    return map_for(4.0, 3.0, UI_W, UI_H);
+}
 
 /* ---- the reachable box (Test A, 2026-10-02) --------------------------------------------
  * Measured on the sandbox with the Aug-16 DLL and with this source's log build alike: in the
