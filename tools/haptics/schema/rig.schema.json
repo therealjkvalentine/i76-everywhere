@@ -20,7 +20,17 @@
         "wheel": {"properties": {"device_match": {"type": "string"}, "min_force": {"type": "number"}, "min_force_gate": {"type": "number"}, "clamp": {"type": "number", "maximum": 10000}, "slew_max": {"type": "number"}, "update_only_on_change": {"type": "boolean"}}},
         "pad": {"properties": {"slot": {"type": "integer", "minimum": 0, "maximum": 3}, "deadzone": {"type": "number"}, "min_pulse_ms": {"type": "number"}, "mode": {"enum": ["max", "sum"]}, "silence_below": {"type": "number"}}},
         "lfe": {"properties": {"device_name_match": {"type": "string"}, "rate": {"type": "integer"}, "hp_hz": {"type": "number"}, "lp_hz": {"type": "number"}, "drive": {"type": "number"}, "master": {"type": "number"},
-                "resp_hz": {"type": "array", "items": {"type": "number"}}, "resp_rel": {"type": "array", "items": {"type": "number"}}, "comp_max": {"type": "number"}, "channels": {"type": "integer"}, "max_voices": {"type": "integer"}}},
+                "resp_hz": {"type": "array", "items": {"type": "number"}}, "resp_rel": {"type": "array", "items": {"type": "number"}}, "comp_max": {"type": "number"}, "channels": {"type": "integer"}, "max_voices": {"type": "integer"},
+                "sources": {"type": "object", "description": "shaker source gains summed before the HP/LP/limiter: synth = Lfe.Synth, stems = Lfe.Stems; env I76_LFE_SOURCES=synth=..,stems=.. overrides for one run", "properties": {"synth": {"type": "number", "minimum": 0}, "stems": {"type": "number", "minimum": 0}, "note": {"type": "string"}}}}},
+        "stems": {"description": "Lfe.Stems: HD sound pack LFE stems keyed by SOUND_START / SOUND_STOP (Renderers/LfeStems.cs); opened with any lfe sink when enabled and lfe.sources.stems > 0",
+                  "properties": {"manifest": {"type": "string", "description": "lfe-manifest.json, relative to tools/haptics"}, "gain": {"type": "number", "minimum": 0}, "max_voices": {"type": "integer", "minimum": 1},
+                  "near_m": {"type": "number", "description": "priority class boundary: player > nearby (<= near_m, or 2D) > far"},
+                  "distance": {"type": "object", "properties": {"curve": {"enum": ["inverse", "inverse_square", "linear", "none"]}, "ref_m": {"type": "number"}, "max_m": {"type": "number"}, "rolloff": {"type": "number"}}},
+                  "rate_scale": {"type": "object", "properties": {"categories": {"type": "array", "items": {"type": "string"}}, "min": {"type": "number"}, "max": {"type": "number"}}},
+                  "default_nominal_hz": {"type": "number"}, "fade_ms": {"type": "number"}, "loop_max_s": {"type": "number", "description": "0 = a loop lives until its SOUND_STOP"},
+                  "min_gain": {"type": "number"}, "vol_max": {"type": "number"},
+                  "limiter": {"type": "object", "properties": {"knee": {"type": "number"}, "ceiling": {"type": "number", "maximum": 1}}},
+                  "category_gain": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0}}}},
         "loopback": {"properties": {"gain": {"type": "number"}, "hp_hz": {"type": "number"}, "lp_hz": {"type": "number"}, "duck_on_transient": {"type": "number"}, "gate": {"enum": ["player_present", "none"]}, "input_wav": {"type": "string"}}},
         "motion": {"description": "plug-in point for docs/MOTION-OUTPUT.md"}
       }

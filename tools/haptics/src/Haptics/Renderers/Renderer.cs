@@ -51,6 +51,7 @@ namespace Haptics.Renderers
             ["Pad.XInput"] = () => new PadXInput(),
             ["Lfe.Synth"] = () => new LfeSynthRenderer(),
             ["Lfe.Loopback"] = () => new LfeLoopbackRenderer(),
+            ["Lfe.Stems"] = () => new LfeStemsRenderer(),        // HD sound pack LFE stems (Renderers/LfeStems.cs)
             ["Motion.FileSink"] = () => new MotionFileSink(),
             // Kept as a name so older rig files resolve; the OutSim/OutGauge packet work moved to docs/MOTION-OUTPUT.md.
             ["Udp.OutSim"] = () => new MotionFileSink(),
