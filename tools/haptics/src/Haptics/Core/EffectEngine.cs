@@ -178,7 +178,8 @@ namespace Haptics.Core
             var duck = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             foreach (var v in voices)
             {
-                var e = Effects.First(x => x.Id == v.Id);
+                var e = Effects.FirstOrDefault(x => x.Id == v.Id);
+                if (e == null) continue;
                 foreach (var g in e.DuckGroups)
                 {
                     double f = 1.0 - e.DuckDepth * Math.Min(1.0, v.Level);
@@ -186,7 +187,7 @@ namespace Haptics.Core
                 }
             }
             foreach (var v in voices)
-                if (duck.TryGetValue(v.Group, out var f) && !Effects.First(x => x.Id == v.Id).DuckGroups.Contains(v.Group))
+                if (v.Group != null && duck.TryGetValue(v.Group, out var f) && !(Effects.FirstOrDefault(x => x.Id == v.Id)?.DuckGroups.Contains(v.Group) ?? false))
                 {
                     v.Level *= f; v.Wheel *= f; v.LfeAmp *= f; v.PadL *= f; v.PadR *= f;
                 }

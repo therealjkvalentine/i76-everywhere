@@ -13,6 +13,9 @@ namespace Haptics.Tests
             bool Want(string s) => only == null || s.IndexOf(only, StringComparison.OrdinalIgnoreCase) >= 0;
 
             if (Want("golden")) GoldenTests.Run(Tune.Defaults, "Tune.Defaults oracle");
+            if (Want("core")) CoreTests.Run();
+            if (Want("transport")) TransportTests.Run();
+            if (Want("renderer")) RendererTests.Run();
 
             Console.WriteLine();
             Console.ForegroundColor = T.Fail == 0 ? ConsoleColor.Green : ConsoleColor.Red;

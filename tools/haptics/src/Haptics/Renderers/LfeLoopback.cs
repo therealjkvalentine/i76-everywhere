@@ -8,7 +8,7 @@ namespace Haptics.Renderers
 {
     /// <summary>
     /// The game-audio ambience bed for the shakers (HAPTICS-ARCHITECTURE section 5, option 2): mono-mix, resample to the
-    /// synth rate, 2-pole HP + 2-pole LP, gain (default 0.25), gate (silent with no player = menus / cut-scenes, and while
+    /// synth rate, 2-pole HP + 4-pole LP (the mix carries music and speech up to 11 kHz, so it needs a steeper slope than the synth), gain (default 0.25), gate (silent with no player = menus / cut-scenes, and while
     /// a CD track plays when the v3 frame says so), duck under transients. Summed into Lfe.Synth BEFORE its filters and
     /// limiter, so bed and synth share one HP/LP/limiter chain. Feed: WASAPI loopback (live) or a WAV file (offline).
     /// </summary>
@@ -18,7 +18,7 @@ namespace Haptics.Renderers
         readonly object _lk = new object();
         readonly Queue<float> _q = new Queue<float>();
         int _srcRate = 48000; double _pos; float _a, _b; bool _have;
-        double _hp1, _hp1in, _hp2, _hp2in, _lp1, _lp2; readonly double _aHp, _kLp;
+        double _hp1, _hp1in, _hp2, _hp2in, _lp1, _lp2, _lp3, _lp4; readonly double _aHp, _kLp;
         double _duck = 1, _gate = 1, _gateS = 1;
         public long Pushed, Pulled, Starved;
         public int MaxQueue;
@@ -59,9 +59,9 @@ namespace Haptics.Renderers
             Pulled++;
             double h1 = _aHp * (_hp1 + x - _hp1in); _hp1in = x; _hp1 = h1;
             double h2 = _aHp * (_hp2 + h1 - _hp2in); _hp2in = h1; _hp2 = h2;
-            _lp1 += _kLp * (h2 - _lp1); _lp2 += _kLp * (_lp1 - _lp2);
+            _lp1 += _kLp * (h2 - _lp1); _lp2 += _kLp * (_lp1 - _lp2); _lp3 += _kLp * (_lp2 - _lp3); _lp4 += _kLp * (_lp3 - _lp4);
             _gateS += 0.002 * (_gate - _gateS);            // ~30 ms at 16 kHz: no click when the gate moves
-            return _lp2 * _gain * _duck * _gateS;
+            return _lp4 * _gain * _duck * _gateS;
         }
     }
 

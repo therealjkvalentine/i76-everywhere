@@ -140,7 +140,7 @@ namespace Haptics.Host
             var outDir = OutDir(a, "preview");
             var p = Session.Build(set, a.List("--sinks", "wheel-file,pad-file,lfe-wav"), outDir, id, a.Has("--live"), (int)a.Num("--core-hz", 250));
             p.Core.Solo.Add(id);
-            if (id == "gear.shift") p.Core.Solo.Add("impact.collision");   // the shaker's impulse source carries shifts
+            foreach (var c in Preview.Companions(id)) p.Core.Solo.Add(c);
             if (!e.Enabled) Console.WriteLine("note: " + id + " is disabled in its file; previewing it anyway");
             if (!e.Enabled) { e.Enabled = true; p.Core.Load(set); }
             p.Run(Preview.Stimulus(e));

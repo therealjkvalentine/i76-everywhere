@@ -17,6 +17,17 @@ namespace Haptics
     {
         public const double Seconds = 2.5, Hz = 60.0, At = 0.5;
 
+        /// <summary>Effects that only make sense with others sounding: preview solos them together.</summary>
+        public static string[] Companions(string id)
+        {
+            switch (id)
+            {
+                case "grip.loss": return new[] { "steer.center", "steer.corner" };   // it attenuates the steady channels; alone it is silent
+                case "gear.shift": return new[] { "impact.collision" };              // the shaker's impulse source carries shifts
+                default: return new string[0];
+            }
+        }
+
         public static IEnumerable<FrameIn> Stimulus(EffectDef e)
         {
             var rnd = new Random(1976);

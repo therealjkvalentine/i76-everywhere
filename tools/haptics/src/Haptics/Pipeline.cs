@@ -92,50 +92,65 @@ namespace Haptics
             if (RealTime) timeBeginPeriod(1);
             try
             {
-                FrameIn cur = null; double coreT = double.NaN, lastSim = double.NaN, simAnchor = 0, stall = 0;
-                double hostStart = double.NaN;
+                // Core time = engine sim time + every stalled (paused / menu) interval measured on the source clock,
+                // so it is monotonic and equals sim time in normal play. Grid mode: updates at k / CoreHz on that axis;
+                // a frame shorter than one grid step hands its events / one-shots to the next update (never lost).
+                FrameIn cur = null; double lastSim = double.NaN, offset = 0, lastEnd = double.NaN, lastAdvStart = 0;
+                double grid0 = double.NaN; long k = 0; double rt0 = double.NaN;
+                var pendEv = new List<HapticEvent>(); int? pendShift = null; List<FxFired> pendFx = null;
                 foreach (var next in frames.Concat(new FrameIn[] { null }))
                 {
                     if (ct.IsCancellationRequested) break;
                     if (cur == null) { cur = next; continue; }
                     Frames++;
-                    // core time: the engine clock while it advances; host time while it is stalled (pause / menu)
                     bool advanced = double.IsNaN(lastSim) || cur.SimT > lastSim;
-                    if (advanced) { simAnchor = cur.SimT; stall = 0; lastSim = cur.SimT; }
                     double span;
                     if (next == null) span = CoreHz > 0 ? 1.0 / CoreHz : 0.0;
                     else if (next.SimT > cur.SimT) span = next.SimT - cur.SimT;
                     else span = Math.Max(0.0, next.HostT - cur.HostT);
                     span = Math.Min(span, 0.25);
-                    double t0 = advanced ? cur.SimT : (double.IsNaN(coreT) ? cur.SimT : coreT + (CoreHz > 0 ? 1.0 / CoreHz : 0.016));
-                    if (!double.IsNaN(coreT) && t0 <= coreT) t0 = coreT + 1e-6;
-                    int n = CoreHz > 0 ? Math.Max(1, (int)Math.Round(span * CoreHz)) : 1;
-                    if (double.IsNaN(hostStart)) hostStart = cur.HostT;
-                    for (int k = 0; k < n; k++)
+                    double start = advanced || double.IsNaN(lastEnd) ? cur.SimT + offset : lastEnd;
+                    if (!double.IsNaN(lastEnd) && start < lastEnd) start = lastEnd;
+                    double end = start + span;
+                    if (advanced) { lastSim = cur.SimT; lastAdvStart = start; } else offset += span;
+                    lastEnd = end;
+
+                    pendEv.AddRange(cur.Events);
+                    if (cur.D.Sample.Shift.HasValue && cur.D.Sample.Shift.Value != 0) pendShift = cur.D.Sample.Shift;
+                    if (cur.D.Sample.FxFired != null) (pendFx ?? (pendFx = new List<FxFired>())).AddRange(cur.D.Sample.FxFired);
+
+                    var times = new List<double>();
+                    if (CoreHz <= 0) times.Add(start);
+                    else
                     {
-                        double t = CoreHz > 0 ? t0 + k / (double)CoreHz : t0;
+                        if (double.IsNaN(grid0)) grid0 = start;
+                        while (true) { double t = grid0 + k / (double)CoreHz; if (t >= end - 1e-9 && !(next == null && times.Count == 0)) break; times.Add(t); k++; if (next == null) break; }
+                    }
+                    for (int j = 0; j < times.Count; j++)
+                    {
+                        double t = times[j];
                         if (RealTime)
                         {
-                            double due = (cur.HostT - hostStart) + (t - t0);
+                            if (double.IsNaN(rt0)) rt0 = t;
+                            double due = t - rt0;
                             while (sw.Elapsed.TotalSeconds < due - 0.0015) Thread.Sleep(1);
                             while (sw.Elapsed.TotalSeconds < due) Thread.SpinWait(50);
                             LatenessMs.Add((sw.Elapsed.TotalSeconds - due) * 1000.0);
                         }
-                        Derive.Result d = cur.D;
-                        IList<HapticEvent> evs = cur.Events;
-                        if (k > 0)
+                        var s = cur.D.Sample;
+                        if (CoreHz > 0 || !advanced)
                         {
-                            var s = d.Sample.Clone(); s.Shift = s.Shift.HasValue ? 0 : (int?)null; s.FxFired = null;
-                            d = new Derive.Result { Sample = s, State = d.State, Vars = d.Vars };
-                            evs = null;
+                            s = s.Clone();
+                            s.Shift = pendShift ?? (s.Shift.HasValue ? 0 : (int?)null);
+                            s.FxFired = pendFx;
+                            s.SinceTick = Math.Max(0, t - lastAdvStart);
                         }
-                        if (!advanced || k > 0) { var s2 = d.Sample.Clone(); s2.SinceTick = stall + (t - t0); d = new Derive.Result { Sample = s2, State = d.State, Vars = d.Vars, Events = d.Events }; }
-                        var step = Core.Step(d, evs ?? new List<HapticEvent>(), t);
-                        step.NewFrame = k == 0;
+                        var d = new Derive.Result { Sample = s, State = cur.D.State, Vars = cur.D.Vars };
+                        var evs = pendEv; pendEv = new List<HapticEvent>(); pendShift = null; pendFx = null;
+                        var step = Core.Step(d, evs, t);
+                        step.NewFrame = j == 0;
                         Emit(step);
-                        coreT = t;
                     }
-                    if (!advanced) stall += span;
                     cur = next;
                 }
             }

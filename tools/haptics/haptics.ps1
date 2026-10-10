@@ -34,6 +34,9 @@ switch ($cmd) {
         Write-Host "--- golden: running tools/ffb/FfbMixer.ps1 over the synthetic drives ---" -ForegroundColor Cyan
         & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here 'tests\golden\make-golden.ps1') -RealDrives $real
         if ($LASTEXITCODE -ne 0) { throw "make-golden failed" }
+        Write-Host "--- probe WAVs: tools/ffb/ffb-lfe-probe.ps1 renders the reference shaker signal (files only, nothing plays) ---" -ForegroundColor Cyan
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $real 'ffb-lfe-probe.ps1') -OutDir (Join-Path $here 'tests\out\probe') | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "ffb-lfe-probe failed" }
         Write-Host "--- C# tests ---" -ForegroundColor Cyan
         & $testExe @rest
         $csharp = $LASTEXITCODE
