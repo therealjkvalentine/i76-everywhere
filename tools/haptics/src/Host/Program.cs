@@ -193,8 +193,12 @@ namespace Haptics.Host
             var codec = TelCodec.Default();
             var first = codec.Decode(recs[0].data); var last = codec.Decode(recs[recs.Count - 1].data);
             if (first?.Frame == null || last?.Frame == null) yield break;
-            double hostSpan = recs[recs.Count - 1].t - recs[0].t + (recs[1].t - recs[0].t);
-            double simSpan = last.Frame.SimTime - first.Frame.SimTime + Math.Max(0.001, last.Frame.SimDt);
+            // passes are separated by 1.5 s of silence: the end of a pass and the start of the next are different places and
+            // speeds, so the host must see a dropout (no derivative across the seam, a smooth ramp to neutral and back)
+            // rather than a teleport (which would read as a huge impulse)
+            const double Seam = 1.5;
+            double hostSpan = recs[recs.Count - 1].t - recs[0].t + (recs[1].t - recs[0].t) + Seam;
+            double simSpan = last.Frame.SimTime - first.Frame.SimTime + Math.Max(0.001, last.Frame.SimDt) + Seam;
             double frameSpan = last.Frame.SimFrame - first.Frame.SimFrame + 1, seqSpan = last.Frame.Seq - first.Frame.Seq + 1;
             double pfSpan = last.Frame.ProxyFrame - first.Frame.ProxyFrame + 1, evSpan = last.Frame.EventSeq;
             for (int k = 1; k < repeat; k++)
