@@ -1,0 +1,85 @@
+{
+  "$comment": "Where every tunable of tools/ffb/FfbMixer.ps1 Mix-DefaultTune lives now. Key -> '<effect id>#<JSON pointer>' (effects/<id>.json) or 'rig#<pointer>' (the active rigs/*.json). design/migrate_tune.py --diff proves each key landed in exactly one place with the same value; Effects/EffectSet.BuildTune reads them back for the reference model. 66 keys.",
+  "source": "tools/ffb/FfbMixer.ps1 Mix-DefaultTune (commit 560dcd2)",
+  "keys": {
+    "Master":          "global.mixer#/mix/master",
+    "RampMs":          "global.mixer#/mix/ramp_ms",
+    "IdleFadeAfter":   "global.mixer#/mix/idle_fade_after_s",
+    "IdleFadeOver":    "global.mixer#/mix/idle_fade_over_s",
+
+    "SatGain":         "steer.center#/routing/wheel/gain",
+    "SatRef":          "steer.center#/source/speed_ref",
+    "SatFloor":        "steer.center#/source/speed_floor",
+
+    "CornerGain":      "steer.corner#/routing/wheel/gain",
+    "CornerRef":       "steer.corner#/source/ref",
+
+    "UndersteerDrop":  "grip.loss#/routing/wheel/attenuate_steady",
+    "OversteerGain":   "slip.oversteer#/routing/wheel/gain",
+
+    "ScrubGain":       "slip.scrub#/routing/wheel/gain",
+    "ScrubHz":         "slip.scrub#/routing/wheel/hz",
+    "LfeScrubHz":      "slip.scrub#/routing/lfe/hz",
+    "LfeScrubAmp":     "slip.scrub#/routing/lfe/amp",
+
+    "TextureGain":     "road.texture#/routing/wheel/gain",
+    "TexRef":          "road.texture#/source/speed_ref",
+    "TextureHz":       "road.texture#/routing/wheel/hz",
+    "RoughRef":        "road.texture#/source/rough_ref",
+    "TextureFloor":    "road.texture#/response/min_force",
+    "BumpGain":        "road.texture#/routing/wheel/bump_gain",
+    "LfeRoadLoHz":     "road.texture#/routing/lfe/hz_lo",
+    "LfeRoadHiHz":     "road.texture#/routing/lfe/hz_hi",
+    "LfeRoadAmp":      "road.texture#/routing/lfe/amp",
+
+    "BrakeGain":       "brake.weight#/routing/wheel/gain",
+    "BrakeRef":        "brake.weight#/source/ref",
+    "JudderGain":      "brake.judder#/routing/wheel/gain",
+    "JudderHz":        "brake.judder#/routing/wheel/hz",
+
+    "ImpactGain":      "impact.collision#/routing/wheel/gain",
+    "ImpactRef":       "impact.collision#/source/ref",
+    "ImpactMs":        "impact.collision#/envelope/decay_ms",
+    "LfeImpactAmp":    "impact.collision#/routing/lfe/amp",
+    "LfeImpactHz":     "impact.collision#/routing/lfe/hz",
+    "KerbGain":        "impact.kerb#/routing/wheel/gain",
+
+    "ShiftGain":       "gear.shift#/routing/wheel/gain",
+    "ShiftMs":         "gear.shift#/envelope/decay_ms",
+    "ShiftDownScale":  "gear.shift#/routing/wheel/down_scale",
+
+    "WeaponGain":      "weapon.fire#/routing/wheel/gain",
+    "WeaponMs":        "weapon.fire#/envelope/decay_ms",
+    "WeaponHz":        "weapon.fire#/routing/wheel/hz",
+    "WeaponMagRef":    "weapon.fire#/source/mag_ref",
+    "WeaponMagMax":    "weapon.fire#/source/mag_scale_max",
+    "WeaponBlankMs":   "weapon.fire#/envelope/blank_ms",
+    "LfeWeaponAmp":    "weapon.fire#/routing/lfe/amp",
+    "LfeWeaponHz":     "weapon.fire#/routing/lfe/hz",
+
+    "LfeEngineIdleHz": "engine.vibration#/carrier/base_hz",
+    "LfeEngineMaxHz":  "engine.vibration#/carrier/high_hz",
+    "LfeEngineRefSpd": "engine.vibration#/source/speed_ref",
+    "LfeRpmIdle":      "engine.vibration#/source/rpm_idle",
+    "LfeRpmMax":       "engine.vibration#/source/rpm_max",
+    "LfeEngineAmp":    "engine.vibration#/routing/lfe/amp",
+    "LfeEngineJitter": "engine.vibration#/carrier/jitter",
+
+    "LfeExplodeHz":    "explosion.blast#/routing/lfe/hz",
+    "LfeExplodeAmp":   "explosion.blast#/routing/lfe/amp",
+    "LfeExplodeDuck":  "explosion.blast#/mix/duck/depth",
+    "LfeExplodeMag":   "explosion.blast#/source/mag_threshold",
+
+    "LfeCarrierHz":    "body.heave#/carrier/base_hz",
+    "LfeHeaveAmp":     "body.heave#/routing/lfe/amp",
+    "LfeHeaveRef":     "body.heave#/source/ref",
+
+    "MinForce":        "rig#/outputs/wheel/min_force",
+    "MinForceGate":    "rig#/outputs/wheel/min_force_gate",
+    "Clamp":           "rig#/outputs/wheel/clamp",
+    "SlewMax":         "rig#/outputs/wheel/slew_max",
+    "LfeRespHz":       "rig#/outputs/lfe/resp_hz",
+    "LfeRespRel":      "rig#/outputs/lfe/resp_rel",
+    "LfeCompMax":      "rig#/outputs/lfe/comp_max"
+  }
+}

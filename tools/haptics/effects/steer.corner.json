@@ -1,0 +1,27 @@
+{
+  "id": "steer.corner",
+  "kind": "continuous",
+  "model": "legacy.corner",
+  "source": {
+    "channel": "lat_g",
+    "ref": 2.8
+  },
+  "routing": {
+    "wheel": {
+      "gain": 3400.0,
+      "sign": "oppose_yaw"
+    },
+    "pad": [],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "steady",
+    "priority": 40
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#vehicle.force",
+    "sounds": []
+  },
+  "notes": "Cornering load; collinear with steer.center in this engine (no tyre model). Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

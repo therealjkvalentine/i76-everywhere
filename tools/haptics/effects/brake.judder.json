@@ -1,0 +1,35 @@
+{
+  "id": "brake.judder",
+  "kind": "continuous",
+  "model": "legacy.judder",
+  "source": {
+    "channel": "-long_g",
+    "threshold": 0.45
+  },
+  "routing": {
+    "wheel": {
+      "gain": 1300.0,
+      "hz": 12.0
+    },
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 1.0,
+        "from": "tactile.judder"
+      }
+    ],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "brake",
+    "priority": 70
+  },
+  "reference": {
+    "stock": null,
+    "sounds": [
+      "fdmg1"
+    ]
+  },
+  "notes": "Lockup shimmy under heavy braking (no ABS in 1997). Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

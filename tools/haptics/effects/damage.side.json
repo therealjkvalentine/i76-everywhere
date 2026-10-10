@@ -1,0 +1,68 @@
+{
+  "id": "damage.side",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "event": "DAMAGE_SIDE",
+    "where": {
+      "is_player": 1
+    },
+    "level": "clamp(amount / 50, 0, 1)"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.02,
+    "min_force": 0.2,
+    "gamma": 1.0
+  },
+  "envelope": {
+    "attack_ms": 0,
+    "hold_ms": 30,
+    "decay_ms": 160,
+    "retrigger": "max"
+  },
+  "carrier": {
+    "base_hz": 32,
+    "high_hz": 32
+  },
+  "routing": {
+    "wheel": {
+      "amp": 0.35,
+      "shape": "impulse",
+      "direction": "side"
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 0.7,
+        "from": "level"
+      },
+      {
+        "motor": "R",
+        "gain": 0.7,
+        "from": "level"
+      }
+    ],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "impact",
+    "priority": 85
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#impact.ordnance",
+    "sounds": []
+  },
+  "preview": {
+    "event": {
+      "type": "DAMAGE_SIDE",
+      "side": 1,
+      "zone": 0,
+      "amount": 30,
+      "is_player": 1
+    }
+  },
+  "notes": "i76tel v3 DAMAGE_SIDE (entity_DamageAndKill 0x463a80). Side 1 (left) pushes the wheel left, 2 (right) right, front/back give no wheel push. Wheel + pad only: the shaker already gets the hit through impact.collision. [proposed]; needs owner console test C1."
+}

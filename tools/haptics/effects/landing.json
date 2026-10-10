@@ -1,0 +1,71 @@
+{
+  "id": "landing",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "event": "LANDING",
+    "level": "clamp(-vy_before / 8, 0, 1)"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.1,
+    "min_force": 0.3,
+    "gamma": 1.0
+  },
+  "envelope": {
+    "attack_ms": 0,
+    "hold_ms": 40,
+    "decay_ms": 200,
+    "retrigger": "max"
+  },
+  "carrier": {
+    "base_hz": 28,
+    "high_hz": 28
+  },
+  "routing": {
+    "wheel": {
+      "amp": 0.25,
+      "shape": "impulse",
+      "direction": "+1"
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 1.0,
+        "from": "level"
+      }
+    ],
+    "lfe": {
+      "amp": 0.55,
+      "hz": 28
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "impact",
+    "priority": 80,
+    "duck": {
+      "groups": [
+        "engine",
+        "road"
+      ],
+      "depth": 0.4
+    }
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#vehicle.airborne",
+    "sounds": [
+      "vland",
+      "vlanding"
+    ],
+    "analysis": "analysis/vland.json"
+  },
+  "preview": {
+    "event": {
+      "type": "LANDING",
+      "vy_before": -6.0
+    }
+  },
+  "notes": "Host-derived: falling edge of flags & 4 (airborne), level from the vertical velocity of the frame before. Bottom-out / big landing per SIM-RUMBLE-RESEARCH Part B #11 (attack 0, hold 40, decay 200)."
+}

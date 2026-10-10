@@ -1,0 +1,60 @@
+{
+  "id": "weapon.ui",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "event": "WEAPON_UI",
+    "level": "1"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.0,
+    "min_force": 0.0,
+    "gamma": 1.0
+  },
+  "envelope": {
+    "attack_ms": 0,
+    "hold_ms": 40,
+    "decay_ms": 30,
+    "retrigger": "restart"
+  },
+  "carrier": {
+    "base_hz": 60,
+    "high_hz": 60
+  },
+  "routing": {
+    "wheel": {
+      "amp": 0.12,
+      "shape": "buzz",
+      "hz": 15
+    },
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 0.5,
+        "from": "level"
+      }
+    ],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "ui",
+    "priority": 20
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#weapon.ui.cycle",
+    "sounds": [
+      "wclick"
+    ],
+    "analysis": "analysis/wclick.json"
+  },
+  "preview": {
+    "event": {
+      "type": "WEAPON_UI",
+      "action": 0
+    }
+  },
+  "notes": "i76tel v3 WEAPON_UI (block one-shots 0x4f234c/50/54). Stock WPNCYCLE/WPNLINK/WPNUNLNK are SquareHigh clicks: a tick on the pad's buzz motor and a whisper on the wheel. Not on the shaker (UI is not a body event). Pad pulse >= 40 ms (ERM spin-up)."
+}

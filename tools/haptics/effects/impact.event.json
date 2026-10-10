@@ -1,0 +1,85 @@
+{
+  "id": "impact.event",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": false,
+  "source": {
+    "event": "IMPACT",
+    "where": {
+      "is_player": 1
+    },
+    "level": "clamp(hp_lost / 60, 0, 1)"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.02,
+    "min_force": 0.25,
+    "gamma": 1.0
+  },
+  "envelope": {
+    "attack_ms": 0,
+    "hold_ms": 40,
+    "decay_ms": 220,
+    "retrigger": "max"
+  },
+  "carrier": {
+    "base_hz": 30,
+    "high_hz": 30
+  },
+  "routing": {
+    "wheel": {
+      "amp": 0.8,
+      "shape": "impulse",
+      "direction": "impact_x"
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 1.0,
+        "from": "level"
+      },
+      {
+        "motor": "R",
+        "gain": 0.5,
+        "from": "level"
+      }
+    ],
+    "lfe": {
+      "amp": 0.62,
+      "hz": 30
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "impact",
+    "priority": 90,
+    "duck": {
+      "groups": [
+        "engine",
+        "road"
+      ],
+      "depth": 0.5
+    }
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#impact.collision",
+    "sounds": [
+      "vvch2",
+      "vvcre2",
+      "vvcbb3"
+    ],
+    "analysis": "analysis/vvch2.json"
+  },
+  "preview": {
+    "event": {
+      "type": "IMPACT",
+      "is_player": 1,
+      "source_class": 1,
+      "impact_x": -3.0,
+      "impact_y": 0.0,
+      "impact_z": 4.0,
+      "hp_lost": 45
+    }
+  },
+  "notes": "The i76tel IMPACT event (physics_ApplyCollisionDamage) as an input, with a direction from the impact vector. DISABLED by default: impact.collision (the reference model's jolt edge) already renders collisions; enable this one and disable that one to compare. Envelope 0/40/220 ms per SIM-RUMBLE-RESEARCH Part B #4."
+}

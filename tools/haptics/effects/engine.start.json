@@ -1,0 +1,59 @@
+{
+  "id": "engine.start",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "event": "ENGINE_START",
+    "level": "1"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.0,
+    "min_force": 0.0,
+    "gamma": 1.0
+  },
+  "envelope": {
+    "attack_ms": 60,
+    "hold_ms": 250,
+    "decay_ms": 400,
+    "retrigger": "ignore"
+  },
+  "carrier": {
+    "base_hz": 26,
+    "high_hz": 26
+  },
+  "routing": {
+    "wheel": {
+      "amp": 0.15,
+      "shape": "buzz",
+      "hz": 8
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 0.6,
+        "from": "level"
+      }
+    ],
+    "lfe": {
+      "amp": 0.4,
+      "hz": 26
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "engine",
+    "priority": 30
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#engine.start",
+    "sounds": []
+  },
+  "preview": {
+    "event": {
+      "type": "ENGINE_START"
+    }
+  },
+  "notes": "Host-derived: rising edge of flags & 8 (starting). Stock ENGSTART.FRC is a one-shot the DLL plays on block +0x14."
+}

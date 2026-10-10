@@ -1,0 +1,53 @@
+{
+  "id": "impact.collision",
+  "kind": "transient",
+  "model": "legacy.impact",
+  "source": {
+    "channel": "jolt",
+    "ref": 70.0,
+    "trigger_fraction": 0.08
+  },
+  "envelope": {
+    "attack_ms": "12% of decay",
+    "hold_ms": 0,
+    "decay_ms": 260.0,
+    "retrigger": "add"
+  },
+  "routing": {
+    "wheel": {
+      "gain": 9000.0,
+      "shape": "jolt",
+      "direction": "from_yaw"
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 1.0,
+        "from": "transient.impact"
+      }
+    ],
+    "lfe": {
+      "amp": 0.62,
+      "hz": 30.0
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "impact",
+    "priority": 90
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#impact.collision",
+    "sounds": [
+      "vvch2",
+      "vvcre2",
+      "vvcbb3",
+      "vnvcs1",
+      "vnvcs3",
+      "vnvcs5",
+      "vnvco3"
+    ],
+    "analysis": "analysis/vvch2.json"
+  },
+  "notes": "stock: (55 + 0.5625*dmg)*100 DI units, decays by dt to -1500. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

@@ -5,7 +5,7 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <AssemblyName>haptics</AssemblyName>
+    <AssemblyName>i76haptics</AssemblyName>
     <RootNamespace>Haptics.Host</RootNamespace>
     <NoWarn>CA1416</NoWarn>
   </PropertyGroup>

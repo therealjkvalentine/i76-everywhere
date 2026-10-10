@@ -267,6 +267,7 @@ namespace Haptics.Core
             bus.Transient = Math.Round(((transImpact + transWeapon) * mScale) / N, 4);
             bus.TransientImpact = Math.Round((transImpact * mScale) / N, 4);
             bus.TransientWeapon = Math.Round((transWeapon * mScale) / N, 4);
+            bus.TransientShift = Math.Round((transShift * mScale) / N, 4);    // not in FfbMixer.ps1's bus: for the pad's shift tick
 
             var m = bus.Motion;
             m.SurgeA = Math.Round(s.LongAccel ?? 0.0, 3);

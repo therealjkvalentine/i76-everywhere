@@ -13,7 +13,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $cfg = 'Release'
 $hostProj = Join-Path $here 'src\Host\Host.csproj'
 $testProj = Join-Path $here 'tests\Haptics.Tests\Haptics.Tests.csproj'
-$hostExe = Join-Path $here "src\Host\bin\$cfg\net8.0\haptics.exe"
+$hostExe = Join-Path $here "src\Host\bin\$cfg\net8.0\i76haptics.exe"
 $testExe = Join-Path $here "tests\Haptics.Tests\bin\$cfg\net8.0\Haptics.Tests.exe"
 
 function Build-All {

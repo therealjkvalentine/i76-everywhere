@@ -1,0 +1,31 @@
+{
+  "id": "slip.oversteer",
+  "kind": "continuous",
+  "model": "legacy.oversteer",
+  "source": {
+    "channel": "oversteer"
+  },
+  "routing": {
+    "wheel": {
+      "gain": 3600.0,
+      "sign": "with_yaw"
+    },
+    "pad": [],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "steady",
+    "priority": 60
+  },
+  "reference": {
+    "stock": null,
+    "sounds": [
+      "tskid1",
+      "tskid2",
+      "tskid3",
+      "tskid4"
+    ]
+  },
+  "notes": "Counter-steer push toward the correction. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

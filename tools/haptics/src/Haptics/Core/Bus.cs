@@ -13,6 +13,8 @@ namespace Haptics.Core
         public double Steady, OscValue;
         public TactileOsc[] Tactile = new TactileOsc[3];
         public double Transient, TransientImpact, TransientWeapon;
+        /// <summary>Added (FfbMixer.ps1 folds shift into Lfe.ImpulseAmp only): the shift transient, for the pad tick.</summary>
+        public double TransientShift;
         public MotionBlock Motion = new MotionBlock();
         public LfeBlock Lfe = new LfeBlock();
         public List<Voice> Voices = new List<Voice>();

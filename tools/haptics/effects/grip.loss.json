@@ -1,0 +1,25 @@
+{
+  "id": "grip.loss",
+  "kind": "continuous",
+  "model": "legacy.grip",
+  "source": {
+    "channel": "max(understeer, oversteer)"
+  },
+  "routing": {
+    "wheel": {
+      "attenuate_steady": 0.75
+    },
+    "pad": [],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "steady",
+    "priority": 60
+  },
+  "reference": {
+    "stock": null,
+    "sounds": []
+  },
+  "notes": "Losing the car makes the wheel go LIGHT: attenuates center+corner. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

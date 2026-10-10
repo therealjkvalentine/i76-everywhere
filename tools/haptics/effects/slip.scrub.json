@@ -1,0 +1,44 @@
+{
+  "id": "slip.scrub",
+  "kind": "continuous",
+  "model": "legacy.scrub",
+  "source": {
+    "channel": "max(understeer, oversteer)",
+    "threshold": 0.15
+  },
+  "routing": {
+    "wheel": {
+      "gain": 900.0,
+      "hz": 14.0
+    },
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 1.0,
+        "from": "tactile.scrub"
+      }
+    ],
+    "lfe": {
+      "amp": 0.34,
+      "hz": 70.0
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "slip",
+    "priority": 60
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#tyre.skid",
+    "sounds": [
+      "tskid1",
+      "tskid2",
+      "tskid3",
+      "tskid4",
+      "tturn1",
+      "tturn2"
+    ],
+    "analysis": "analysis/tskid1.json"
+  },
+  "notes": "Tyre-scrub buzz on a spin; on the shaker a rough-amplitude tone. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

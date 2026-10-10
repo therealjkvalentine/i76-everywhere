@@ -1,0 +1,46 @@
+{
+  "id": "explosion.blast",
+  "kind": "transient",
+  "model": "legacy.blast",
+  "source": {
+    "event": "EXPLOSION",
+    "mag_threshold": 40.0,
+    "reach_m": 100.0,
+    "reach_note": "[proposed] blast level = clamp(1 - distance/reach_m); the engine's own concussion range is unknown (backlog P4-20, console test 6). 100 m = the sound's 3D min distance for vexplode"
+  },
+  "envelope": {
+    "decay": "x0.90 per update",
+    "retrigger": "max"
+  },
+  "routing": {
+    "wheel": null,
+    "pad": [],
+    "lfe": {
+      "amp": 0.58,
+      "hz": 25.0
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "explosion",
+    "priority": 95,
+    "duck": {
+      "groups": [
+        "engine",
+        "road",
+        "slip"
+      ],
+      "depth": 0.75
+    }
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#impact.concussion",
+    "sounds": [
+      "vexplode",
+      "xcar",
+      "xbuild"
+    ],
+    "analysis": "analysis/vexplode.json"
+  },
+  "notes": "Deepest, longest event; ducks the beds instead of out-shouting them. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

@@ -1,0 +1,46 @@
+{
+  "id": "engine.vibration",
+  "kind": "continuous",
+  "model": "legacy.engine",
+  "source": {
+    "channel": "rpm (speed fallback)",
+    "rpm_idle": 1050.0,
+    "rpm_max": 6000.0,
+    "speed_ref": 40.0
+  },
+  "carrier": {
+    "base_hz": 26.0,
+    "high_hz": 38.0,
+    "jitter": 0.06
+  },
+  "routing": {
+    "wheel": null,
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 0.5,
+        "from": "lfe.engine_amp"
+      }
+    ],
+    "lfe": {
+      "amp": 0.45
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "engine",
+    "priority": 10
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#engine.vibration",
+    "sounds": [
+      "eishp",
+      "eshp1",
+      "esshp1",
+      "eimarx",
+      "eitank"
+    ],
+    "analysis": "analysis/eshp1.json"
+  },
+  "notes": "The one always-on source: smallest budget. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

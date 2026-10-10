@@ -1,0 +1,52 @@
+{
+  "id": "road.texture",
+  "kind": "continuous",
+  "model": "legacy.texture",
+  "source": {
+    "channel": "uncommanded acceleration residual",
+    "speed_ref": 16.0,
+    "rough_ref": 6.0
+  },
+  "response": {
+    "min_force": 0.06
+  },
+  "routing": {
+    "wheel": {
+      "gain": 1500.0,
+      "hz": 11.0,
+      "bump_gain": 1400.0
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 0.6,
+        "from": "lfe.road_amp"
+      },
+      {
+        "motor": "R",
+        "gain": 0.5,
+        "from": "tactile.texture"
+      }
+    ],
+    "lfe": {
+      "amp": 0.34,
+      "hz_lo": 55.0,
+      "hz_hi": 72.0
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "road",
+    "priority": 20
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#terrain.rumble",
+    "sounds": [
+      "vcddirt",
+      "vcdsand",
+      "vcdgrav"
+    ],
+    "analysis": "analysis/vcddirt.json"
+  },
+  "notes": "Road texture: oscillator on the wheel (11 Hz, under the 62 Hz loop's Nyquist), noise bed on the shaker. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

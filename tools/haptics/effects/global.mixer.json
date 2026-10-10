@@ -1,0 +1,14 @@
+{
+  "id": "global.mixer",
+  "kind": "global",
+  "model": "legacy.global",
+  "mix": {
+    "master": 1.0,
+    "ramp_ms": 700.0,
+    "idle_fade_after_s": 20.0,
+    "idle_fade_over_s": 2.0,
+    "pad_mode": "max",
+    "wheel_continuous_budget": 0.7
+  },
+  "notes": "Global scale, fade-in, thermal idle guard (Thrustmaster KB 1744). pad_mode 'max' = per-motor MAX (SIM-RUMBLE-RESEARCH Part E rule 1); 'sum' reproduces Mix-RenderPad exactly. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}
