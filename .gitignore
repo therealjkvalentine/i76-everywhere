@@ -104,3 +104,12 @@ lab/captures/
 *.pcode
 strings.tsv
 diff-*.tsv
+
+# haptics host (tools/haptics): build output, regenerated test data, design-facility output from the owner's game files
+tools/haptics/**/bin/
+tools/haptics/**/obj/
+tools/haptics/tests/golden/out/
+tools/haptics/tests/out/
+tools/haptics/design/out/
+tools/haptics/design/__pycache__/
+tools/haptics/out/
