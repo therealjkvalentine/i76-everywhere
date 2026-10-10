@@ -582,6 +582,15 @@ if (-not $isNitro -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {
     } else {
         Write-Host "In-mission music fix already installed - skipping."
     }
+    # The build deployed here, for the installed PLAY-i76.ps1: it has no music-fix\ beside it to
+    # compare Strlkup.dll against, so it checks against this record instead (fresh-install check
+    # 2026-10-10, gap 5). Line 1: md5 (lower case) and size in bytes. music-fix\build.ps1 -Install
+    # rewrites it when it replaces the DLL.
+    $proxyRecord = Join-Path $GameDir 'strlkup-proxy-build.txt'
+    $proxyMd5 = (Get-FileHash $musicProxy -Algorithm MD5).Hash.ToLower()
+    $proxyLine = "$proxyMd5 $((Get-Item $musicProxy).Length)"
+    $proxyWas = if (Test-Path $proxyRecord) { Get-Content $proxyRecord -TotalCount 1 } else { '' }
+    if ($proxyWas -ne $proxyLine) { Set-Content $proxyRecord @($proxyLine, "# Strlkup.dll (music-fix proxy) as deployed by setup-windows.ps1 $(Get-Date -Format 'yyyy-MM-dd HH:mm'); read by PLAY-i76.ps1") -Encoding ascii }
 }
 
 # --- 5a2b. GOG's I76PATCH.DLL (the 2019 offline build's 20 fps cap) --------------

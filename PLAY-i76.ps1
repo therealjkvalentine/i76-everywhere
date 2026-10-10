@@ -16,6 +16,8 @@
 # and the environment the game would get, then exits without starting anything. The switches are
 # no-ops unless the game folder's Strlkup.dll is the current music-fix build, so the launcher
 # compares it against music-fix\Strlkup.dll and warns (it copies nothing: run setup-windows.ps1).
+# Installed (no music-fix\ beside it) it compares against <game>\strlkup-proxy-build.txt, the
+# build setup-windows.ps1 deployed; with neither it says nothing.
 # Nothing in a preset is deployed to the playable install by default; see presets\*.psd1 headers
 # for what is verified where.
 # Preset guard (2026-10-10, -DryRun included): I76_TERRAIN_LOD > 1 without I76_FAR_CLIP is refused (exit 3:
@@ -194,9 +196,17 @@ if ($gameEnv.Count) {
         } else {
             Write-Host ("Strlkup.dll matches music-fix\Strlkup.dll ({0} B md5 {1})." -f $iLen, $iMd5.Substring(0,8)) -ForegroundColor DarkGray
         }
-    } else {
-        Write-Host "note: music-fix\Strlkup.dll not found beside this script, so the installed proxy's build could not be checked against it." -ForegroundColor DarkGray
-    }
+    } elseif (Test-Path (Join-Path $GameDir 'strlkup-proxy-build.txt')) {
+        # An installed launcher has no music-fix\ beside it: check against the build setup-windows.ps1
+        # recorded when it deployed the proxy (line 1: md5 and size). Says nothing about newer repo builds.
+        $rec = "$(Get-Content (Join-Path $GameDir 'strlkup-proxy-build.txt') -TotalCount 1)".Trim()
+        $iLen = (Get-Item $installed).Length; $iMd5 = (Get-FileHash $installed -Algorithm MD5).Hash.ToLower()
+        if ($rec -eq "$iMd5 $iLen") {
+            Write-Host ("Strlkup.dll is the build the setup deployed ({0} B md5 {1})." -f $iLen, $iMd5.Substring(0,8)) -ForegroundColor DarkGray
+        } else {
+            Write-Host ("WARNING: {0} is {1} B md5 {2}, not the build the setup deployed (strlkup-proxy-build.txt: {3}) - switches it does not know are silently ignored. Re-run setup-windows.ps1 to put the proxy back; this launcher copies nothing." -f $installed, $iLen, $iMd5.Substring(0,8), $rec) -ForegroundColor Yellow
+        }
+    }   # neither music-fix\ nor a record (an older install): nothing to compare against, so nothing is said
     # GOG's I76PATCH.DLL is the AiO 20 fps cap. With it in place a 60 fps preset runs its fixes
     # under a 20 fps cap, which looks exactly like "the preset does nothing". Say so; renaming
     # it is a file change to the install and is left to the owner (RELEASE-PLAN section 2).

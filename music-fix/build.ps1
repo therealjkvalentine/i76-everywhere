@@ -131,5 +131,10 @@ if ($Install) {
         exit 1
     }
     Write-Host "installed -> $dest  (verified $($a.Substring(0,8)))" -ForegroundColor Green
+    # setup-windows.ps1's record of the deployed build (the installed PLAY-i76.ps1 checks against it)
+    $rec = Join-Path $gd 'strlkup-proxy-build.txt'
+    if (Test-Path $rec) {
+        Set-Content $rec @("$($a.ToLower()) $((Get-Item $dest).Length)", "# Strlkup.dll (music-fix proxy) as deployed by music-fix\build.ps1 -Install $(Get-Date -Format 'yyyy-MM-dd HH:mm'); read by PLAY-i76.ps1") -Encoding ascii
+    }
     Write-Host "Revert: copy strlkup_orig.dll over Strlkup.dll. Restart the game." -ForegroundColor Cyan
 }
