@@ -29,6 +29,8 @@
                                         # beside it starts the tested 16:10 picture (best-120).
     ./install.ps1 -Controls stock       # keep GOG's 1997 keys (default: this project's WASD-style
                                         # map, controls\input.map; see docs\CONTROLS.md)
+    ./install.ps1 -Display 3440x1440    # size the dgVoodoo confs for this monitor (needed over Remote
+                                        # Desktop, where the display read is the RDP desktop)
     ./install.ps1 -GameDir <dir> -NoShortcut -SkipNitro   # write nothing outside <dir>
                                         # (given that -ToolsDir already holds dgVoodoo + AutoHotkey)
 
@@ -45,6 +47,8 @@ param(
                                     # stock = GOG's 1997 keys + the minimal patch, no AutoHotkey layers.
                                     # Not given = setup-windows.ps1 decides (an earlier choice is kept).
     [switch]$SkipNitro,             # do not look for / configure an installed Nitro Pack
+    [string]$Display = '',          # WxH of the monitor the game runs on (e.g. 3440x1440), handed to
+                                    # setup-windows.ps1; needed over Remote Desktop (else the RDP desktop's size)
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
@@ -116,7 +120,7 @@ if ($ahk) { Say "AutoHotkey ready." 'Green' }
 # --- 3. configure (the load-bearing part) ------------------------------------
 Say "`nConfiguring dgVoodoo + input.map + launcher ..."
 $global:LASTEXITCODE = 0
-$ctl = @{}; if ($Controls) { $ctl['Controls'] = $Controls }
+$ctl = @{}; if ($Controls) { $ctl['Controls'] = $Controls }; if ($Display) { $ctl['Display'] = $Display }
 & (Join-Path $repo 'setup-windows.ps1') -GameDir $GameDir -DgVoodooDir $dgv -AhkDir $ahk -Preset $Preset -NoShortcut:$NoShortcut @ctl
 if ($LASTEXITCODE) { Say "setup-windows.ps1 stopped (exit $LASTEXITCODE) - see its message above." 'Red'; exit $LASTEXITCODE }
 

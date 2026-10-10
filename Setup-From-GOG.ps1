@@ -25,6 +25,8 @@
                                              # tools\Make-Wide-Conf.ps1); menus stay stretched
     ./Setup-From-GOG.ps1 -NoShortcut         # no desktop shortcut
     ./Setup-From-GOG.ps1 -Controls stock     # keep GOG's 1997 keys (docs\CONTROLS.md)
+    ./Setup-From-GOG.ps1 -Display 3440x1440  # size the dgVoodoo confs for this monitor; needed when
+                                             # installing over Remote Desktop (INSTALL.bat -Display ... too)
 
   Or just double-click INSTALL.bat.
 #>
@@ -39,6 +41,8 @@ param(
     [switch]$NoShortcut,            # no desktop shortcut (the GOG installer itself still writes its registry keys)
     [ValidateSet('', 'i76e', 'stock')]
     [string]$Controls = '',         # handed to install.ps1 / setup-windows.ps1; stock = GOG's 1997 keys
+    [string]$Display = '',          # WxH of the monitor the game runs on (e.g. 3440x1440), handed to
+                                    # install.ps1 / setup-windows.ps1; needed over Remote Desktop
     [switch]$Force,      # re-run the GOG installer even if i76.exe already exists
     [switch]$Yes
 )
@@ -127,6 +131,7 @@ $installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir; Preset = $Preset }
 if ($Yes)            { $installArgs['Yes'] = $true }
 if ($NoShortcut)     { $installArgs['NoShortcut'] = $true }
 if ($Controls)       { $installArgs['Controls'] = $Controls }
+if ($Display)        { $installArgs['Display'] = $Display }
 if ($SkipNitro)      { $installArgs['SkipNitro'] = $true }   # base game only: install.ps1 must not configure a Nitro Pack found elsewhere either
 $global:LASTEXITCODE = 0
 & (Join-Path $repo 'install.ps1') @installArgs

@@ -92,7 +92,13 @@ param(
     [string]$Controls = 'i76e',
     # Do only the control steps (5 and 5b: input.map and the AutoHotkey layer scripts) and stop.
     # Needs no dgVoodoo folder and changes nothing else in the game folder.
-    [switch]$ControlsOnly
+    [switch]$ControlsOnly,
+    # The display the game will run on, as WxH (e.g. 3440x1440). Every dgVoodoo conf step sizes for
+    # it: the 16:10 daily-driver conf, the stock conf, and best-wide's conf + presets. Not given =
+    # the environment variable I76_WIDE_DISPLAY (the older test hook), else the primary display as
+    # read here. Pass it when installing over Remote Desktop, where the primary display is the RDP
+    # desktop, not the PC's monitor (docs\records\FRESH-INSTALL-CHECK-2026-10-10.md, gap 4).
+    [string]$Display = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -106,14 +112,43 @@ if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "pr
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
 $widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced')   # both need dgVoodoo.wide.conf
 $wideTool = Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1'
+# The display every conf step below sizes for (step 4's 16:10 / stock conf, step 6's wide conf and
+# presets): -Display, else $env:I76_WIDE_DISPLAY, else the primary display. 0x0 = could not be read
+# (the conf steps then keep their files' own Resolution lines, as they always did).
+$dispW = 0; $dispH = 0; $dispFrom = 'the primary display'
+try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    $sb = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $dispW = $sb.Width; $dispH = $sb.Height
+} catch { }
+$dispOverride = if ($Display) { $Display } elseif ($env:I76_WIDE_DISPLAY) { $env:I76_WIDE_DISPLAY } else { '' }
+if ($dispOverride) {
+    $dispName = if ($Display) { '-Display' } else { 'I76_WIDE_DISPLAY' }
+    if ($dispOverride -notmatch '^(\d+)x(\d+)$' -or [int]$Matches[1] -lt 640 -or [int]$Matches[2] -lt 480) {
+        Write-Host "$dispName '$dispOverride' is not a display size like 3440x1440." -ForegroundColor Red; exit 1
+    }
+    $dispW = [int]$Matches[1]; $dispH = [int]$Matches[2]; $dispFrom = $dispName
+}
+# Over Remote Desktop the primary display is the RDP client's desktop, not the PC's monitor, so a
+# conf sized to it is wrong at the console (the 2026-10-10 check got 1726x1011). Say so, loudly.
+$isRdp = ($env:SESSIONNAME -like 'RDP-*')
+try { if ([System.Windows.Forms.SystemInformation]::TerminalServerSession) { $isRdp = $true } } catch { }
+$rdpUnsized = ($isRdp -and -not $dispOverride -and -not $ControlsOnly)
+function Write-RdpWarning {
+    Write-Host ''
+    Write-Host "!!! REMOTE DESKTOP SESSION: the display read here (${dispW}x${dispH}) is the RDP desktop, not this PC's monitor." -ForegroundColor Red
+    Write-Host "!!! The dgVoodoo confs$(if ($widePreset) { ' and the widescreen presets' }) are sized to it and will be wrong at the console." -ForegroundColor Red
+    Write-Host "!!! Re-run at the PC itself, or pass the monitor's size, e.g.:  -Display 3440x1440" -ForegroundColor Red
+    Write-Host "!!! (INSTALL.bat / Setup-From-GOG.ps1, install.ps1 and setup-windows.ps1 all take -Display WxH)" -ForegroundColor Red
+    Write-Host ''
+}
+if ($rdpUnsized) { Write-RdpWarning }
+elseif ($isRdp -and -not $ControlsOnly) {
+    Write-Host "Remote Desktop session: sizing the confs for ${dispW}x${dispH} ($dispFrom), not the RDP desktop." -ForegroundColor Yellow
+} elseif ($dispOverride -and -not $ControlsOnly) {
+    Write-Host "Display: ${dispW}x${dispH} ($dispFrom)."
+}
 if ($widePreset -and -not $ControlsOnly) {
     # refuse before anything is written: best-wide needs a display wider than 4:3 and the generator
-    $dispW = 0; $dispH = 0
-    try {
-        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-        $sb = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $dispW = $sb.Width; $dispH = $sb.Height
-    } catch { }
-    if ($env:I76_WIDE_DISPLAY -match '^(\d+)x(\d+)$') { $dispW = [int]$Matches[1]; $dispH = [int]$Matches[2] }   # override, e.g. for an offline test
     if (-not (Test-Path $wideTool)) {
         Write-Host "-Preset $Preset needs $wideTool (missing)." -ForegroundColor Red; exit 1
     }
@@ -246,15 +281,13 @@ if ($fastPreset -and (Test-Path $driverConf)) {
     }
     $conf = $proven
     $dx = $null; $gl = $null
-    try {
-        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-        $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    if ($dispW -gt 0 -and $dispH -gt 0) {   # the display chosen above (-Display / I76_WIDE_DISPLAY / primary)
         $dx = @(1680,1050), @(1440,900), @(1280,800) |
-            Where-Object { $_[0] -le $b.Width -and $_[1] -le $b.Height } | Select-Object -First 1
-        $ph = [Math]::Min($b.Height, 1440); $pw = [int][Math]::Floor($ph * 1.6)
-        if ($pw -gt $b.Width) { $pw = $b.Width; $ph = [int][Math]::Floor($pw / 1.6) }
+            Where-Object { $_[0] -le $dispW -and $_[1] -le $dispH } | Select-Object -First 1
+        $ph = [Math]::Min($dispH, 1440); $pw = [int][Math]::Floor($ph * 1.6)
+        if ($pw -gt $dispW) { $pw = $dispW; $ph = [int][Math]::Floor($pw / 1.6) }
         $gl = @((2 * $pw), (2 * $ph))
-    } catch { }
+    }
     if ($gl) {
         $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
         $dxRx = New-Object regex '(?ms)(^\[DirectX\]\s.*?^Resolution\s*= )\d+x\d+'
@@ -289,14 +322,12 @@ Copy-Item (Join-Path $repoGameDir 'dgVoodoo.windows.conf') $confPath -Force
 # and pick whichever is CLOSEST to the Mac's 14:9 = 1.5556, largest wins on ties.
 # Both Resolution lines get the value: [DirectX] owns the window, [Glide] the
 # 3D render target, and they must agree.
-try {
-    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+if ($dispW -gt 0 -and $dispH -gt 0) {   # the display chosen above (-Display / I76_WIDE_DISPLAY / primary)
     # 16:10 (1.600) is the closest STANDARD display aspect to the Mac's 14:9
     # (1.556) - and dgVoodoo only honours real modes, so this is the practical
     # target. Pick the largest 16:10 mode that fits the panel.
     $best = @(2560,1600), @(1920,1200), @(1680,1050), @(1440,900), @(1280,800) |
-        Where-Object { $_[0] -le $b.Width -and $_[1] -le $b.Height } |
+        Where-Object { $_[0] -le $dispW -and $_[1] -le $dispH } |
         Select-Object -First 1
     if ($best) {
         (Get-Content $confPath) -replace '^Resolution(\s+)= \d+x\d+', "Resolution`$1= $($best[0])x$($best[1])" |
@@ -306,7 +337,7 @@ try {
     } else {
         Write-Host "dgVoodoo.conf installed (panel smaller than 1280x800 - left the default)." -ForegroundColor Yellow
     }
-} catch {
+} else {
     Write-Host "dgVoodoo.conf installed (couldn't read display size - left the default 1680x1050)." -ForegroundColor Yellow
 }
 }   # end: stock / Nitro conf
@@ -768,3 +799,4 @@ if ($Controls -eq 'i76e') {
 }
 Write-Host "Force feedback: the Gold exe starts it by itself (docs/WHEEL-T300.md); enable-force-feedback.bat is not needed per the disassembly."
 Write-Host "Connect controller BEFORE launching - the engine enumerates joysticks at startup only."
+if ($rdpUnsized) { Write-RdpWarning }   # again at the end, where it is read

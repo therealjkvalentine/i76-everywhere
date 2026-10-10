@@ -42,6 +42,7 @@ Useful switches:
 | `./Setup-From-GOG.ps1 -Force` | Reinstall even if a game is already there |
 | `./Setup-From-GOG.ps1 -Preset stock` | The recipe from before 2026-10-03: 20 fps, no engine switches (see [Presets](#presets-best-120-stock-and-best-wide)) |
 | `./Setup-From-GOG.ps1 -NoShortcut` | No desktop shortcut |
+| `./Setup-From-GOG.ps1 -Display 3440x1440` (or `INSTALL.bat -Display 3440x1440`) | Size the dgVoodoo confs (and best-wide's presets) for this monitor instead of the display the setup reads. Needed when installing over Remote Desktop: there the display read is the RDP desktop, and the setup says so in red. `install.ps1` and `setup-windows.ps1` take the same switch |
 | `./Setup-From-GOG.ps1 -Controls stock` (or `INSTALL.bat -Controls stock`) | Keep GOG's 1997 keys. The default installs this project's own WASD-style control map (see [Controls](#controls-this-projects-map-or-the-1997-keys)) |
 | `./setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly` | On an install already made: switch the controls back to the 1997 keys and touch nothing else (`-Controls i76e` switches forward again) |
 | `./install.ps1 -GameDir "D:\Games\I76" -NoShortcut -SkipNitro` | Configure a game that is already installed, writing nothing outside that folder (once `C:\Games\_tools` holds dgVoodoo and AutoHotkey) |
