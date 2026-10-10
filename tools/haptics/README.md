@@ -98,6 +98,55 @@ workstream, [docs/MOTION-OUTPUT.md](../../docs/MOTION-OUTPUT.md). Its plug-in po
 orientation, body rates, plus `CoreStep.Events`), `RendererRegistry.Register("Motion.<name>", ...)`, and name it in
 `rigs/*.json` `outputs.motion.renderer`.
 
+## Lfe.Stems: the HD sound pack's LFE stems on the shaker
+
+A third shaker source beside Lfe.Synth (synthesised from the bus) and Lfe.Loopback (the game-audio bed), as
+[docs/SOUND-HD-PACK.md](../../docs/SOUND-HD-PACK.md) section 4 recommends: the per-sound 25-90 Hz stems that
+`tools/soundhd` writes to `out\pack-v1\lfe\` (16 kHz mono, plus `lfe-manifest.json`), played on the i76tel v3
+`SOUND_START` / `SOUND_STOP` events. Code: `src/Haptics/Renderers/LfeStems.cs`; tests: `tests/Haptics.Tests/StemsTests.cs`.
+
+```powershell
+tools\soundhd\.venv\Scripts\python tools\soundhd\soundhd.py build                # the stems are gitignored audio: build them once (~2 min)
+tools\haptics\haptics.ps1 stems status                                           # manifest, stems on disk, the effective source gains
+tools\haptics\haptics.ps1 stems render --name whcan --dist 25                    # one SOUND_START -> out\stems\stem_whcan.lfe.wav + .stems.wav
+$env:I76_LFE_SOURCES='synth=0,stems=1'; tools\haptics\haptics.ps1 replay synthetic   # one run with stems only
+python tools\haptics\design\stems_view.py                                        # each stem next to what Lfe.Synth makes for the same event
+```
+
+* **Voices.** `SOUND_START`: the name is looked up in the manifest (`by_alias`, case-insensitive, with or without
+  `.gpw`) and a voice starts on the first sample of the core update that carried the event. Modes 1 (loop) and 2
+  (sustained) loop until the `SOUND_STOP` with the same voice address (Derive now passes it as the event field
+  `voice`); a stop fades out over `fade_ms`. One-shots end at the stem's end. A `SOUND_STOP` with no live voice is
+  counted and ignored; `loop_max_s` can cap a loop whose stop never arrives (default off).
+* **Gain.** vol% / 100 x distance attenuation x manifest `suggested_gain` x `category_gain` x `gain`. The player's own
+  sounds and 2D sounds (no position) play at full level; others by `distance.curve` (`inverse` = DirectSound's
+  rolloff law, `inverse_square`, `linear`, `none`) between `ref_m` and `max_m`, silent beyond `max_m` and while no
+  player is present. The distance is taken at the start; a moving source is not tracked (no position updates exist).
+* **Rate.** For `rate_scale.categories` (engine loops) the playback rate is event Hz / the stock sample rate (read
+  from the pack's `manifest.json`), so idle (8268.75 Hz) plays the stem x0.75. The player's own engine loop then
+  follows the frame rpm with the engine's pitch law (`8268.75 + 8268.75 x (rpm - 1050) / 4950`, callback 0x424ca0),
+  because `SOUND_START` only carries the start Hz. AI engine loops keep their start Hz.
+* **Budget.** `max_voices` (6) with priority player > nearby (within `near_m`, or 2D) > far, then level: a new voice
+  steals the weakest only if it outranks it, otherwise it is dropped. A soft limiter (tanh above `limiter.knee`, never
+  above `limiter.ceiling`) keeps the stems sum bounded before it joins the synth.
+* **Mix.** The stems are summed into Lfe.Synth **before** its HP/LP and limiter, like the loopback bed, and are not
+  ducked under transients (they are the transients). `outputs.lfe.sources` in the rig sets the gain of each source:
+  `{"synth": 1, "stems": 1}` both (shipped), `{"synth": 0, ...}` stems only, `{"stems": 0}` synth only (then Lfe.Stems is
+  not opened at all). `I76_LFE_SOURCES=synth=..,stems=..` overrides the rig for one run; the Lfe.Stems summary line
+  prints the gains in force and where they came from. With the default gains every existing render is sample-identical
+  until a `SOUND_START` with a stem arrives (the probe and golden tests are unchanged).
+* **Opened** automatically with any `lfe` sink when the rig's `outputs.stems` is enabled and `sources.stems > 0`; the
+  sink `stems` opens it explicitly (alone it renders a standalone `<tag>.stems.wav`). In file mode it always writes
+  `<tag>.stems.wav`, the stems signal alone after its limiter. Live, it rides on Lfe.Synth's waveOut stream.
+* **Fallback.** No manifest, or none of its stems on disk: one log line, the summary says `shaker = Lfe.Synth only`, and
+  the output is byte-identical to synth only (tested). A sound without a stem (tyres, horns, UI, CB) is counted per name.
+
+Open or unverified: nothing here has run against the game or a shaker (owner test 16). The stems are not compensated
+by the rig's response curve (`resp_hz` / `resp_rel`), which the synth's oscillators are; across 25-90 Hz that curve
+asks for 1.0-1.5x, so stems may feel slightly weaker than synth content of the same level. The 7 dropper / nitro
+stems have no Lfe.Synth effect on their event at all (the design view lists them). Event-to-shaker latency is the
+synth's plus one core update at most.
+
 ## Stubbed, unverified, or left open (honest list)
 
 * **Live device paths were not run** (the console was not available): wheel acquire/force, XInput, waveOut streaming.
