@@ -696,7 +696,7 @@ def cmd_check(a):
         results.append(res)
     total_bytes = man["totals"]["addon_bytes"]
     summary = dict(pack_version=man["pack_version"], checked=len(results), passed=len(results) - fails, failed=fails,
-                   per_check={k: dict(pass_=v[0], fail=v[1]) for k, v in sorted(totals.items())},
+                   per_check={k: {"pass": v[0], "fail": v[1]} for k, v in sorted(totals.items())},
                    addon_bytes=total_bytes, budget_note="design 1.3: ~14 MB if every effect is 22,050/16",
                    untouched=len(man["untouched"]))
     jdump(dict(summary=summary, results=results), os.path.join(pack, "check-results.json"))
