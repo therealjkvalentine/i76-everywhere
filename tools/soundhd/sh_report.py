@@ -46,7 +46,7 @@ def figure(path, name, sx, sfs, nx, nfs, sb, nb):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(9.0, 5.2), dpi=80)
-    gs = fig.add_gridspec(2, 2, width_ratios=[2.2, 1.0], hspace=0.45, wspace=0.28)
+    gs = fig.add_gridspec(2, 2, width_ratios=[2.2, 1.0], hspace=0.45, wspace=0.45)
     vmax = max(_peak_db(sx, sfs), _peak_db(nx, nfs))
     a1 = fig.add_subplot(gs[0, 0])
     _spec(a1, sx, sfs, vmax, "%s  stock (8-bit, %d Hz)" % (name, sfs), plt)

@@ -531,7 +531,7 @@ def band_energies_db(x, fs):
     out = []
     for lo, hi in BANDS:
         m = (f >= lo) & (f < hi)
-        out.append(round(10 * math.log10(p[m].sum() + 1e-20) + 3.01, 1) if m.any() and lo < fs / 2 else None)
+        out.append(round(10 * math.log10(p[m].sum() + 1e-20) + 3.01, 1) if m.any() and hi <= fs / 2 + 1 else None)
     return out
 
 

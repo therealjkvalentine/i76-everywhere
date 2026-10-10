@@ -65,12 +65,23 @@ def decode(blob):
     """blob (.wav or .gpw bytes) -> dict(gas_header, gas, fmt, chunks, x float64 mono in [-1,1), data_bytes)."""
     hdr, gas, riff = split_gpw(blob)
     chunks, fmt, data = walk_riff(riff)
-    if fmt["tag"] != 1:
-        raise WavError("fmt tag %d (not PCM)" % fmt["tag"])
-    if fmt["bits"] == 8:
+    tag = fmt["tag"]
+    if tag == 0xFFFE:  # WAVE_FORMAT_EXTENSIBLE (RX exports): sub-format GUID's first u16 is the real tag
+        tag = struct.unpack_from("<H", riff, [o for c, o, _ in chunks if c == "fmt "][0] + 8 + 24)[0]
+    if tag not in (1, 3):
+        raise WavError("fmt tag %d (not PCM / float)" % fmt["tag"])
+    if tag == 3 and fmt["bits"] == 32:
+        x = np.frombuffer(data[: len(data) // 4 * 4], dtype="<f4").astype(np.float64)
+    elif tag == 3:
+        raise WavError("float bits %d unsupported" % fmt["bits"])
+    elif fmt["bits"] == 8:
         x = (np.frombuffer(data, dtype=np.uint8).astype(np.float64) - 128.0) / 128.0
     elif fmt["bits"] == 16:
         x = np.frombuffer(data[: len(data) // 2 * 2], dtype="<i2").astype(np.float64) / 32768.0
+    elif fmt["bits"] == 24:
+        b = np.frombuffer(data[: len(data) // 3 * 3], dtype=np.uint8).reshape(-1, 3).astype(np.int32)
+        v = b[:, 0] | (b[:, 1] << 8) | (b[:, 2] << 16)
+        x = np.where(v >= 1 << 23, v - (1 << 24), v).astype(np.float64) / float(1 << 23)
     else:
         raise WavError("bits %d unsupported" % fmt["bits"])
     if fmt["channels"] > 1:

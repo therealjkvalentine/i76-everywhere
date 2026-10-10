@@ -96,6 +96,11 @@ def cmd_extract(a):
         with open(os.path.join(stock, name), "wb") as fo:
             fo.write(blob)
         files.append(dict(name=name, source="zfs", bytes=len(blob), md5=md5b(blob), zfs_method=e.method, zfs_id=e.id))
+        if name.endswith(".gpw"):
+            # RX cannot open .gpw: the bare RIFF goes to stock-wav as the optional RX pre-pass input
+            os.makedirs(os.path.join(work, "stock-wav"), exist_ok=True)
+            with open(os.path.join(work, "stock-wav", name[:-4] + ".wav"), "wb") as fo:
+                fo.write(sh_wav.split_gpw(blob)[2])
     loose = os.path.join(os.path.dirname(a.zfs), "music.wav")
     if os.path.exists(loose):
         blob = open(loose, "rb").read()
@@ -397,8 +402,10 @@ def cmd_recipe(a):
 
 
 # ============================================================================================== render
-def process(dec, rec, small_speakers=False, seed_name=""):
-    """Stock decode -> (speaker mix float @ rec.rate, lfe source float @ rec.rate, info)."""
+def process(dec, rec, small_speakers=False, seed_name="", rx=None):
+    """Stock decode -> (speaker mix float @ rec.rate, lfe source float @ rec.rate, info).
+    rx: optional decode of an iZotope RX pre-pass file for this sound; it replaces the stock samples as the source
+    and the Python de-clip / de-click / de-noise steps are skipped (DC removal stays). Loudness still matches STOCK."""
     import sh_dsp as D
     fs0 = dec["fmt"]["rate"]
     loop = bool(rec["loop"])
@@ -407,15 +414,21 @@ def process(dec, rec, small_speakers=False, seed_name=""):
     ref = x - np.mean(x)
     info["stock_lufs"] = D.loudness(ref, fs0)
     info["stock_tp_dbtp"] = D.true_peak_db(ref, loop)
-    y = x.copy()
     clean = rec.get("clean", [])
+    if rx is not None:
+        if rx["fmt"]["channels"] != 1:
+            raise ValueError("RX pre-pass file must be mono")
+        x, fs0 = rx["x"], rx["fmt"]["rate"]
+        clean = ["dc"]
+        info["rx_pass"] = True
+    y = x.copy()
     if "declip" in clean:
         y, info["declip_runs"] = D.declip(y, loop)
     if "dc" in clean:
         y = D.remove_dc(y, fs0, loop)
     if "declick" in clean:
         y, info["declick_samples"] = D.declick(y, loop)
-    if "denoise" in clean and dec["fmt"]["bits"] == 8:
+    if "denoise" in clean and dec["fmt"]["bits"] == 8 and rx is None:
         y = D.denoise_quant(y, fs0, loop)
     fs = int(rec["rate"])
     y = D.resample(y, fs0, fs, loop)
@@ -461,7 +474,7 @@ def cmd_render(a):
     pack = guard_out(a.pack)
     addon = os.path.join(pack, "addon")
     os.makedirs(addon, exist_ok=True)
-    cache = os.path.join(a.work, "lfe-src")
+    cache = os.path.join(a.pack, "lfe-src")
     os.makedirs(cache, exist_ok=True)
     recipes = jload(os.path.join(pack, "recipes", "recipes.json"))
     _, idx = stock_index(a.work)
@@ -475,7 +488,13 @@ def cmd_render(a):
         name = rec["file"]
         blob = read_stock(a.work, name, idx[name]["md5"])
         dec = sh_wav.decode(blob)
-        out, lfe_src, info = process(dec, rec, small_speakers=a.small_speakers, seed_name=stem)
+        rx, rxp = None, (os.path.join(a.clean, stem + ".wav") if a.clean else None)
+        if rxp and os.path.exists(rxp):
+            rxb = open(rxp, "rb").read()
+            rx = sh_wav.decode(rxb)
+        out, lfe_src, info = process(dec, rec, small_speakers=a.small_speakers, seed_name=stem, rx=rx)
+        if rx is not None:
+            info["rx_file_md5"] = md5b(rxb)
         seed = int(md5b(stem.encode())[:8], 16)
         riff = sh_wav.build_riff(sh_wav.to_pcm16(out, seed), int(rec["rate"]), 16, 1)
         payload = sh_wav.build_gpw(dec["gas_header"], riff) if rec["ext"] == "gpw" else riff
@@ -506,7 +525,7 @@ def cmd_lfe(a):
     for stem, rec in recipes["sounds"].items():
         if not rec.get("lfe"):
             continue
-        p = os.path.join(a.work, "lfe-src", stem + ".npy")
+        p = os.path.join(a.pack, "lfe-src", stem + ".npy")
         if not os.path.exists(p):
             sys.exit("no LFE source for %s: run render first" % stem)
         x = np.load(p).astype(np.float64)
@@ -562,12 +581,12 @@ def cmd_manifest(a):
             loudness=dict(stock_lufs=ri.get("stock_lufs"), new_lufs=ri.get("new_lufs"), new_tp_dbtp=ri.get("new_tp_dbtp"),
                           gain_db=ri.get("gain_db")),
             recipe=dict(clean=rec["clean"], sub=rec["sub"], harmonics_db=rec["harmonics_db"]),
-            shadowed_twins=rec.get("shadowed_twins", []), rx_pass=False))
+            shadowed_twins=rec.get("shadowed_twins", []), rx_pass=bool(ri.get("rx_pass")), rx_file_md5=ri.get("rx_file_md5")))
     untouched = [dict(file=n, md5=idx[n]["md5"], reason=why) for n, why in sorted(recipes["untouched"].items())]
     man = dict(pack_version=PACK_VERSION, created_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                source=dict(zfs=smani["zfs"], zfs_md5=smani["zfs_md5"], pristine=smani["zfs_is_pristine"],
                            extractor=smani["extractor"]),
-               engine_pitch_patch_p5=False, rx_pass=None,
+               engine_pitch_patch_p5=False, rx_pass_count=sum(1 for v in rinfo.values() if v.get("rx_pass")),
                totals=dict(rendered=sum(1 for s in sounds if s["replacement"]), lfe=sum(1 for s in sounds if s["lfe"]),
                            untouched=len(untouched),
                            addon_bytes=sum(s["replacement"]["bytes"] for s in sounds if s["replacement"]),
@@ -745,6 +764,7 @@ def main(argv=None):
     q = add("render", cmd_render)
     q.add_argument("--small-speakers", action="store_true", help="harmonics +4 dB, true sub -6 dB")
     q.add_argument("--only", help="comma-separated stems")
+    q.add_argument("--clean", help="folder of iZotope RX pre-pass outputs <stem>.wav (mono; 16/24-bit or 32-bit float)")
     add("lfe", cmd_lfe)
     add("manifest", cmd_manifest)
     add("report", cmd_report)
@@ -756,6 +776,7 @@ def main(argv=None):
     q = add("build", cmd_build)
     q.add_argument("--fresh", action="store_true", help="re-extract")
     q.add_argument("--small-speakers", action="store_true")
+    q.add_argument("--clean", help="folder of iZotope RX pre-pass outputs <stem>.wav")
     a = p.parse_args(argv)
     rc = a.fn(a)
     return rc or 0

@@ -59,6 +59,22 @@ def test_8bit_decode_is_unsigned():
     assert np.allclose(x, [0.0, 127 / 128, -1.0])
 
 
+def _riff_raw(tag, bits, rate, data):
+    align = bits // 8
+    fmt = struct.pack("<HHIIHH", tag, 1, rate, rate * align, align, bits)
+    body = b"WAVE" + b"fmt " + struct.pack("<I", 16) + fmt + b"data" + struct.pack("<I", len(data)) + data
+    return b"RIFF" + struct.pack("<I", len(body)) + body
+
+
+def test_rx_prepass_formats_decode():
+    """RX Batch Processor exports 24-bit PCM or 32-bit float WAVE; render --clean must read both."""
+    v = np.array([0.0, 0.5, -0.5, -1.0])
+    f32 = _riff_raw(3, 32, 22050, v.astype("<f4").tobytes())
+    assert np.allclose(sh_wav.decode(f32)["x"], v)
+    i24 = b"".join(int(round(s * (1 << 23))).to_bytes(4, "little", signed=True)[:3] for s in [0.0, 0.5, -0.5, -1.0])
+    assert np.allclose(sh_wav.decode(_riff_raw(1, 24, 22050, i24))["x"], v)
+
+
 @pytest.mark.skipif(not os.path.isdir(STOCK), reason="stock corpus not extracted")
 def test_every_stock_gpw_has_riff_at_0x1c():
     n = 0
