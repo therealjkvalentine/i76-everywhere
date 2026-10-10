@@ -1,0 +1,44 @@
+{
+  "id": "gear.shift",
+  "kind": "transient",
+  "model": "legacy.shift",
+  "source": {
+    "event": "GEAR"
+  },
+  "envelope": {
+    "attack_ms": "12% of decay",
+    "hold_ms": 0,
+    "decay_ms": 90.0,
+    "retrigger": "add"
+  },
+  "routing": {
+    "wheel": {
+      "gain": 2600.0,
+      "shape": "jolt",
+      "down_scale": 0.55
+    },
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 0.6,
+        "from": "transient.shift"
+      }
+    ],
+    "lfe": {
+      "via": "impact.collision"
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "shift",
+    "priority": 50
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#engine.gear_changed",
+    "sounds": [
+      "vshif1a"
+    ],
+    "analysis": "analysis/vshif1a.json"
+  },
+  "notes": "One short firm hit. The LFE impulse source carries impact + shift together (Mix-Update ImpulseAmp). The pad tap is new (Mix-RenderPad had no shift); it only exists in pad_mode 'max'. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

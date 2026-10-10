@@ -1,0 +1,27 @@
+{
+  "id": "brake.weight",
+  "kind": "continuous",
+  "model": "legacy.brake",
+  "source": {
+    "channel": "-long_g",
+    "ref": 0.6
+  },
+  "routing": {
+    "wheel": {
+      "gain": 2200.0,
+      "sign": "with_steer_opposed"
+    },
+    "pad": [],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "steady",
+    "priority": 40
+  },
+  "reference": {
+    "stock": null,
+    "sounds": []
+  },
+  "notes": "Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

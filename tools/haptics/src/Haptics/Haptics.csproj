@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The haptics host's library: Core (pure), Effects, Transport, Renderers.
+    No NuGet packages on purpose: everything here builds offline with the .NET 8 SDK alone
+    (device interop is hand-written P/Invoke / COM vtables, the same approach as tools/ffb/FfbCore.ps1).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Haptics</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>CA1416;CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- the frozen v2 wire layout: decoding v2 frames must not depend on whatever version i76tel.h is at today -->
+    <EmbeddedResource Include="Transport\i76tel.v2.h" LogicalName="i76tel.v2.h" />
+    <!-- v3 as landed by the proxy agent (commit 80e1667): frame 664 B, event 56 B -->
+    <EmbeddedResource Include="Transport\i76tel.v3.h" LogicalName="i76tel.v3.h" />
+  </ItemGroup>
+</Project>

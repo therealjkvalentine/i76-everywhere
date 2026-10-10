@@ -1,0 +1,98 @@
+{
+  "name": "desk-t300-evo4",
+  "description": "James's desk: Thrustmaster T300RS (belt), Audient EVO 4 -> Aura AST-2B shaker, an XInput pad. Every output names the renderer that serves it; the host instantiates exactly the outputs listed here.",
+  "outputs": {
+    "wheel": {
+      "renderer": "Wheel.DirectInput",
+      "device_match": "T300",
+      "min_force": 900.0,
+      "min_force_gate": 150.0,
+      "clamp": 9500.0,
+      "slew_max": 2600.0,
+      "update_only_on_change": true
+    },
+    "pad": {
+      "renderer": "Pad.XInput",
+      "slot": 0,
+      "deadzone": 0.3,
+      "min_pulse_ms": 40,
+      "mode": "max",
+      "silence_below": 0.02
+    },
+    "lfe": {
+      "renderer": "Lfe.Synth",
+      "device_name_match": "EVO4",
+      "rate": 16000,
+      "hp_hz": 11.0,
+      "lp_hz": 85.0,
+      "drive": 1.5,
+      "master": 0.9,
+      "resp_hz": [
+        8.0,
+        10.0,
+        12.0,
+        13.0,
+        15.0,
+        18.0,
+        20.0,
+        22.0,
+        25.0,
+        28.0,
+        31.0,
+        35.0,
+        40.0,
+        45.0,
+        50.0,
+        55.0,
+        60.0,
+        70.0,
+        80.0,
+        90.0,
+        100.0
+      ],
+      "resp_rel": [
+        0.0,
+        0.0,
+        0.11,
+        0.11,
+        0.22,
+        0.33,
+        0.44,
+        0.56,
+        0.67,
+        0.78,
+        0.89,
+        1.0,
+        0.89,
+        0.78,
+        0.67,
+        0.67,
+        0.67,
+        0.67,
+        0.67,
+        0.56,
+        0.44
+      ],
+      "comp_max": 1.6,
+      "channels": 1,
+      "max_voices": 3,
+      "hp_lp_note": "11/85 Hz are what ffb-lfe-live.ps1 / ffb-lfe-probe.ps1 ship (the LP corner is raised x1.35 inside LfeCore); HAPTICS-ARCHITECTURE's 'HP 22 / LP 90' describes intent, not the shipped constants",
+      "resp_source": "ffb-lfe-sweep.ps1, 21 steps, perceived by body, n = 1 rater (2026-08)"
+    },
+    "loopback": {
+      "renderer": "Lfe.Loopback",
+      "enabled": false,
+      "gain": 0.25,
+      "hp_hz": 22.0,
+      "lp_hz": 90.0,
+      "duck_on_transient": 0.6,
+      "gate": "player_present",
+      "endpoint": "default-render"
+    },
+    "motion": {
+      "renderer": "Motion.FileSink",
+      "enabled": false,
+      "note": "Plug-in point only. Motion cueing, washout and packet formats are a separate workstream: docs/MOTION-OUTPUT.md"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "body.heave",
+  "kind": "continuous",
+  "model": "legacy.heave",
+  "source": {
+    "channel": "|d(vy)/dt|",
+    "ref": 10.0
+  },
+  "carrier": {
+    "base_hz": 35.0,
+    "modulation": "AM"
+  },
+  "routing": {
+    "wheel": null,
+    "pad": [],
+    "lfe": {
+      "amp": 0.44
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "heave",
+    "priority": 30
+  },
+  "reference": {
+    "stock": null,
+    "sounds": []
+  },
+  "notes": "Sub-shaker heave rendered as AM of a carrier at the rig peak. Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

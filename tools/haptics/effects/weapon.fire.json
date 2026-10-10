@@ -1,0 +1,55 @@
+{
+  "id": "weapon.fire",
+  "kind": "transient",
+  "model": "legacy.weapon",
+  "source": {
+    "event": "SHOT",
+    "mag_ref": 10.0,
+    "mag_scale_max": 2.6,
+    "shot_mag": "10",
+    "shot_mag_note": "i76tel SHOT carries damage-per-hit, not the hardpoint FFB gain (+0x14, observed 5/10/60) the reference model was tuned on; nominal 10 until a live capture maps one to the other"
+  },
+  "envelope": {
+    "decay_ms": 140.0,
+    "blank_ms": 70.0,
+    "retrigger": "rising_edge"
+  },
+  "routing": {
+    "wheel": {
+      "gain": 3400.0,
+      "hz": 13.0,
+      "shape": "buzz"
+    },
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 1.0,
+        "from": "transient.weapon"
+      }
+    ],
+    "lfe": {
+      "amp": 0.75,
+      "hz": 38.0
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "weapon",
+    "priority": 80
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#weapon.hardpoint",
+    "sounds": [
+      "wlmgun",
+      "wmmgun",
+      "whmgun",
+      "wlcan",
+      "wmcan",
+      "whcan",
+      "wrock",
+      "wmiss"
+    ],
+    "analysis": "analysis/wmmgun.json"
+  },
+  "notes": "Decaying buzz scaled by sqrt(engine magnitude). Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

@@ -1,0 +1,315 @@
+{
+ "generated_by": "tools/haptics/design/stock_reference.py",
+ "sources": [
+  "docs/records/FFB-DEEP-DIVE.md section 3",
+  "tools/ffb/parse-frc.py over the pristine force\\*.FRC (14 files)"
+ ],
+ "note": "Stock = what i7_sfrce.dll did. The .frc parameter blocks are NOT decoded (parse-frc.py); only type names are listed.",
+ "events": {
+  "impact.collision": {
+   "family": "constant force, directional, decaying",
+   "trigger": "impact-collision list node (block +0x15c), one active node per list",
+   "formula": "mag = (55.0 + 0.5625 * dmg) * 100 DI units; direction = node angle (deg) * 100",
+   "decay": "per tick by block +0x160 dt; stopped when mag < -1500",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3 impact event nodes (DIRECT); node floats live-confirmed 2026-07-20",
+   "frc_composition": {}
+  },
+  "impact.ordnance": {
+   "family": "constant force, directional, decaying",
+   "trigger": "ordnance-impact list node (block +0x150): weapon hits on the player",
+   "formula": "mag = (40.0 + 0.6667 * dmg) * 100",
+   "decay": "as impact.collision",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "impact.concussion": {
+   "family": "EXPLOSN.FRC template, directional",
+   "trigger": "concussion list node (block +0x154)",
+   "formula": "mag = (35.0 + 0.6667 * dmg) * 100",
+   "decay": "as impact.collision",
+   "frc": [
+    "EXPLOSN.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3; fn 0x10001930",
+   "frc_composition": {
+    "EXPLOSN.FRC": [
+     "SawtoothDown1"
+    ]
+   }
+  },
+  "engine.vibration": {
+   "family": "periodic (engine vibration)",
+   "trigger": "block +0x10 engine running",
+   "formula": "gain = 0x14 - min(speed_mph / 2, 0x14) (loudest at idle); freq = 8 - round(pitch * k1 * k2), pitch = block +0x0c (ftol rpm)",
+   "decay": "continuous",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3 handler 0x10001d90",
+   "frc_composition": {}
+  },
+  "engine.start": {
+   "family": "one-shot",
+   "trigger": "block +0x14 engine starting (DLL clears it)",
+   "formula": "authored ENGSTART.FRC",
+   "decay": "authored",
+   "frc": [
+    "ENGSTART.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {
+    "ENGSTART.FRC": [
+     "SquareLow1",
+     "SquareHigh2",
+     "Sequence4"
+    ]
+   }
+  },
+  "engine.gear_changed": {
+   "family": "re-parameterise (not a felt effect)",
+   "trigger": "block +0x18 = engine object changed (new car / engine), NOT a gear shift (FFB-DATA-AUDIT 2.3)",
+   "formula": "-",
+   "decay": "-",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3; label corrected by FFB-DATA-AUDIT 2.3",
+   "frc_composition": {}
+  },
+  "terrain.rumble": {
+   "family": "periodic by surface",
+   "trigger": "block +0x148 surface id + 1 (0 = stopped), with speed",
+   "formula": "table by surface: I7_DIRT_INTERSECTION, I7_PARKING_LOT, I7_ROCKY, I7_WASH_ROAD, I7_DIRT_ROAD, I7_PAVED_ROAD, I7_LIGHT_VEGETATION, I7_PACKED_DIRT, I7_STOPPED, I7_IN_AIR (id order = jump table, GUESS); gain scales with speed",
+   "decay": "continuous",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3 handler 0x10002f80",
+   "frc_composition": {}
+  },
+  "tyre.flat": {
+   "family": "Sine + Constant + Superimpose (side kick with a shake)",
+   "trigger": "tire status FL/FR/RL/RR (block +0x108..0x114) vs 3000",
+   "formula": "'Flat Tire: gain%d'",
+   "decay": "while flat",
+   "frc": [
+    "TIREBLWL.FRC",
+    "TIREBLWR.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3 handler 0x100029e0",
+   "frc_composition": {
+    "TIREBLWL.FRC": [
+     "Sine1",
+     "ConstantForce1",
+     "Superimpose3"
+    ],
+    "TIREBLWR.FRC": [
+     "ConstantForce1",
+     "Sine1",
+     "Superimpose4"
+    ]
+   }
+  },
+  "tyre.skid": {
+   "family": "modifier",
+   "trigger": "block +0x130 skidding (flags & 2)",
+   "formula": "modifies the X/Y vehicle force",
+   "decay": "while set",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "tyre.sliding": {
+   "family": "modifier",
+   "trigger": "block +0x138 sliding (flags & 0x2000, grip limit)",
+   "formula": "modifies the X/Y vehicle force",
+   "decay": "while set",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "vehicle.airborne": {
+   "family": "modifier",
+   "trigger": "block +0x128 airborne (flags & 4)",
+   "formula": "forces released in the air",
+   "decay": "while set",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "vehicle.oil": {
+   "family": "modifier",
+   "trigger": "block +0x140 oil slick (flags & 0x400)",
+   "formula": "-",
+   "decay": "while set",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "vehicle.force": {
+   "family": "constant force X/Y from the body-frame acceleration",
+   "trigger": "block +0xf0..+0xf8 every tick",
+   "formula": "ForceX = steering kick with a +-0x320 bias; ForceY mag = 2 * sqrt(x^2 + y^2) signed; +2500 lateral with block +0x1c (nitrous)",
+   "decay": "continuous",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3 handler 0x100027d0",
+   "frc_composition": {}
+  },
+  "vehicle.centering": {
+   "family": "spring / friction (XSpring, XFriction)",
+   "trigger": "speed (block +0x104, mph, clamp 165)",
+   "formula": "spring and friction coefficients scale with speed",
+   "decay": "continuous",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "weapon.hardpoint": {
+   "family": "per-hardpoint periodic / authored",
+   "trigger": "hardpoint record +0x00 firing (6 records at block +0x30, stride 0x1c)",
+   "formula": "gain = record +0x14 (observed 5 / 10 / 60); WpnId +0x0c picks the template (CANNON1-4 UserDefined, MISSILE2/5, MISSIL45); missiles get random direction jitter; +0x10 firing freq (or direction: open question, owner test C5)",
+   "decay": "while the trigger is held",
+   "frc": [
+    "CANNON1.FRC",
+    "CANNON2.FRC",
+    "CANNON3.FRC",
+    "CANNON4.FRC",
+    "MISSILE2.FRC",
+    "MISSILE5.FRC",
+    "MISSIL45.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3 hardpoint records (DIRECT)",
+   "frc_composition": {
+    "CANNON1.FRC": [
+     "UserDefined1"
+    ],
+    "CANNON2.FRC": [
+     "UserDefined1"
+    ],
+    "CANNON3.FRC": [
+     "UserDefined1"
+    ],
+    "CANNON4.FRC": [
+     "UserDefined1"
+    ],
+    "MISSILE2.FRC": [
+     "Cosine1",
+     "ConstantForce1",
+     "Sequence5"
+    ],
+    "MISSILE5.FRC": [
+     "Cosine1",
+     "ConstantForce1",
+     "Sequence6"
+    ],
+    "MISSIL45.FRC": [
+     "Cosine1"
+    ]
+   }
+  },
+  "weapon.misfire": {
+   "family": "one-shot",
+   "trigger": "hardpoint +0x04 / +0x08 event flags",
+   "formula": "'Misfire: Triggered'",
+   "decay": "authored",
+   "frc": [],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {}
+  },
+  "weapon.ui.cycle": {
+   "family": "one-shot click",
+   "trigger": "block +0x24 (DLL clears)",
+   "formula": "authored",
+   "decay": "authored",
+   "frc": [
+    "WPNCYCLE.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {
+    "WPNCYCLE.FRC": [
+     "RampDown1"
+    ]
+   }
+  },
+  "weapon.ui.link": {
+   "family": "one-shot click",
+   "trigger": "block +0x28",
+   "formula": "authored",
+   "decay": "authored",
+   "frc": [
+    "WPNLINK.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {
+    "WPNLINK.FRC": [
+     "SquareHigh1"
+    ]
+   }
+  },
+  "weapon.ui.unlink": {
+   "family": "one-shot click",
+   "trigger": "block +0x2c",
+   "formula": "authored",
+   "decay": "authored",
+   "frc": [
+    "WPNUNLNK.FRC"
+   ],
+   "evidence": "docs/records/FFB-DEEP-DIVE.md section 3",
+   "frc_composition": {
+    "WPNUNLNK.FRC": [
+     "SquareHigh1"
+    ]
+   }
+  }
+ },
+ "frc_files": {
+  "CANNON1.FRC": [
+   "UserDefined1"
+  ],
+  "CANNON2.FRC": [
+   "UserDefined1"
+  ],
+  "CANNON3.FRC": [
+   "UserDefined1"
+  ],
+  "CANNON4.FRC": [
+   "UserDefined1"
+  ],
+  "ENGSTART.FRC": [
+   "SquareLow1",
+   "SquareHigh2",
+   "Sequence4"
+  ],
+  "EXPLOSN.FRC": [
+   "SawtoothDown1"
+  ],
+  "MISSIL45.FRC": [
+   "Cosine1"
+  ],
+  "MISSILE2.FRC": [
+   "Cosine1",
+   "ConstantForce1",
+   "Sequence5"
+  ],
+  "MISSILE5.FRC": [
+   "Cosine1",
+   "ConstantForce1",
+   "Sequence6"
+  ],
+  "TIREBLWL.FRC": [
+   "Sine1",
+   "ConstantForce1",
+   "Superimpose3"
+  ],
+  "TIREBLWR.FRC": [
+   "ConstantForce1",
+   "Sine1",
+   "Superimpose4"
+  ],
+  "WPNCYCLE.FRC": [
+   "RampDown1"
+  ],
+  "WPNLINK.FRC": [
+   "SquareHigh1"
+  ],
+  "WPNUNLNK.FRC": [
+   "SquareHigh1"
+  ]
+ }
+}

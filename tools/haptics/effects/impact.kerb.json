@@ -1,0 +1,23 @@
+{
+  "id": "impact.kerb",
+  "kind": "transient",
+  "model": "legacy.unused",
+  "enabled": false,
+  "routing": {
+    "wheel": {
+      "gain": 2500.0
+    },
+    "pad": [],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "impact",
+    "priority": 50
+  },
+  "reference": {
+    "stock": null,
+    "sounds": []
+  },
+  "notes": "KerbGain is defined in Mix-DefaultTune but NO code reads it (FfbMixer.ps1 at 560dcd2). Kept so the migration is complete; a kerb effect should be a chain effect on wheel susp_offset edges (HAPTICS-ARCHITECTURE 6.8)."
+}

@@ -1,0 +1,34 @@
+{
+  "id": "steer.center",
+  "kind": "continuous",
+  "model": "legacy.center",
+  "source": {
+    "channel": "steer",
+    "speed_ref": 9.0,
+    "speed_floor": 0.28
+  },
+  "routing": {
+    "wheel": {
+      "gain": 5200.0,
+      "sign": "oppose_steer"
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 0.25,
+        "from": "bus.steady"
+      }
+    ],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "steady",
+    "priority": 40
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#vehicle.centering",
+    "sounds": []
+  },
+  "notes": "Self-aligning torque. The pad tap degrades the whole signed steady sum to unsigned weight on the heavy motor (Mix-RenderPad). Implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1). The numbers here ARE that model's tune: edit them here, not in FfbMixer.ps1. Design rationale: FfbMixer.ps1 comments."
+}

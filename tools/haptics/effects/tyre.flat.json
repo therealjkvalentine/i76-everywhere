@@ -1,0 +1,70 @@
+{
+  "id": "tyre.flat",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "event": "FLAT",
+    "level": "1"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.0,
+    "min_force": 0.0,
+    "gamma": 1.0
+  },
+  "envelope": {
+    "attack_ms": 0,
+    "hold_ms": 120,
+    "decay_ms": 500,
+    "retrigger": "ignore"
+  },
+  "carrier": {
+    "base_hz": 25,
+    "high_hz": 25
+  },
+  "routing": {
+    "wheel": {
+      "amp": 0.7,
+      "shape": "buzz",
+      "hz": 9,
+      "direction": "wheel_side"
+    },
+    "pad": [
+      {
+        "motor": "L",
+        "gain": 1.0,
+        "from": "level"
+      },
+      {
+        "motor": "R",
+        "gain": 0.4,
+        "from": "level"
+      }
+    ],
+    "lfe": {
+      "amp": 0.5,
+      "hz": 25
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "impact",
+    "priority": 88
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#tyre.flat",
+    "sounds": [
+      "tblow",
+      "tflat"
+    ],
+    "analysis": "analysis/tblow.json"
+  },
+  "preview": {
+    "event": {
+      "type": "FLAT",
+      "wheel": 0
+    }
+  },
+  "notes": "Host-derived: rising edge of wheel[i].flat. Stock TIREBLWL/R.FRC = Sine + Constant + Superimpose (parse-frc.py): a side kick with a shake, which is what this does on the wheel (sign by wheel side)."
+}

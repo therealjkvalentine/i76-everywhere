@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tools/haptics/schema/effect.schema.json",
+  "title": "Haptics effect definition (effects/<id>.json)",
+  "description": "HAPTICS-ARCHITECTURE 4.2. ShakeIt-shaped response chain + AHAP-shaped transient/continuous envelope + per-output routing. 'legacy.*' models are implemented by the reference model (Core/ReferenceMixer.cs = tools/ffb/FfbMixer.ps1) and read their numbers through schema/legacy-tunemap.json; 'chain' effects are interpreted by Core/EffectEngine.cs. Semantics are enforced by `i76haptics lint`, not by this schema alone.",
+  "type": "object",
+  "required": ["id", "kind", "model"],
+  "properties": {
+    "id": {"type": "string", "description": "equals the file name without .json"},
+    "kind": {"enum": ["transient", "continuous", "global"]},
+    "model": {"type": "string", "pattern": "^(chain|legacy\\.[a-z]+)$"},
+    "enabled": {"type": "boolean", "default": true, "description": "false gates the effect (legacy: its reference-model channel)"},
+    "source": {
+      "type": "object",
+      "properties": {
+        "event": {"enum": ["SHOT", "EXPLOSION", "IMPACT", "SOUND_START", "SOUND_STOP", "DAMAGE_SIDE", "WEAPON_UI", "GEAR", "LANDING", "TAKEOFF", "SURFACE", "FLAT", "GRIP_LIMIT", "SKID", "OIL", "ENGINE_START", "NITROUS", "DESTROYED"]},
+        "where": {"type": "object", "description": "event field == number, or in [numbers]; 'name' / 'name_prefix' (string or list) match the event's 8-char name", "additionalProperties": true},
+        "level": {"type": "string", "description": "expression over the event's fields (then frame variables): + - * / ( ) clamp min max abs sqrt pow"},
+        "channel": {"type": "string", "description": "continuous effects: expression over frame variables (EffectSet.FrameVariables)"}
+      },
+      "additionalProperties": true
+    },
+    "response": {
+      "type": "object",
+      "properties": {
+        "input_gain": {"type": "number", "default": 1},
+        "threshold": {"type": "number", "minimum": 0, "maximum": 1, "default": 0, "description": "dead-band on input x gain"},
+        "min_force": {"type": "number", "minimum": 0, "maximum": 1, "default": 0, "description": "floor anything above the threshold is lifted to"},
+        "gamma": {"type": "number", "exclusiveMinimum": 0, "default": 1}
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "attack_ms": {"type": ["number", "string"]}, "hold_ms": {"type": ["number", "string"]}, "decay_ms": {"type": ["number", "string"]},
+        "smooth_ms": {"type": "number", "description": "continuous: one-pole smoothing"},
+        "retrigger": {"enum": ["restart", "max", "ignore", "add", "rising_edge"], "default": "max"},
+        "blank_ms": {"type": "number"}
+      }
+    },
+    "carrier": {"type": "object", "properties": {"base_hz": {"type": "number"}, "high_hz": {"type": "number"}, "jitter": {"type": "number"}, "modulation": {"type": "string"}}},
+    "routing": {
+      "type": "object",
+      "properties": {
+        "wheel": {"type": ["object", "null"], "properties": {
+          "amp": {"type": "number", "description": "chain: fraction of full scale (-1..1 x 10000 DI units)"},
+          "gain": {"type": "number", "description": "legacy: DI units"},
+          "shape": {"enum": ["impulse", "buzz", "jolt"]}, "hz": {"type": "number"},
+          "direction": {"type": "string", "description": "+1 | -1 | side | wheel_side | impact_x | from_yaw (or a legacy description)"}}},
+        "pad": {"type": "array", "items": {"type": "object", "required": ["motor", "gain"], "properties": {
+          "motor": {"enum": ["L", "R"]}, "gain": {"type": "number", "minimum": 0},
+          "from": {"type": "string", "default": "level", "description": "level | bus.steady | lfe.engine_amp | lfe.road_amp | transient.impact | transient.weapon | transient.shift | tactile.texture | tactile.scrub | tactile.judder"}}}},
+        "lfe": {"type": ["object", "null"], "properties": {"amp": {"type": "number", "minimum": 0}, "hz": {"type": "number"}, "hz_lo": {"type": "number"}, "hz_hi": {"type": "number"}}},
+        "motion": {"description": "reserved for the motion workstream (docs/MOTION-OUTPUT.md)"}
+      }
+    },
+    "mix": {
+      "type": "object",
+      "properties": {
+        "group": {"type": "string"}, "priority": {"type": "integer"},
+        "duck": {"type": "object", "properties": {"groups": {"type": "array", "items": {"type": "string"}}, "depth": {"type": "number", "minimum": 0, "maximum": 1}}},
+        "master": {"type": "number"}, "ramp_ms": {"type": "number"}, "idle_fade_after_s": {"type": "number"}, "idle_fade_over_s": {"type": "number"}
+      }
+    },
+    "reference": {"type": "object", "properties": {"stock": {"type": ["string", "null"]}, "sounds": {"type": "array", "items": {"type": "string"}}, "analysis": {"type": "string"}}},
+    "preview": {"type": "object", "description": "chain effects: {event: {...}} injected at 0.5 s, or {frames: {speed, flags}}"},
+    "notes": {"type": "string"}
+  }
+}

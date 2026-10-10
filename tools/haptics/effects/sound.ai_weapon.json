@@ -1,0 +1,74 @@
+{
+  "id": "sound.ai_weapon",
+  "kind": "transient",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "event": "SOUND_START",
+    "where": {
+      "is_player": 0,
+      "name_prefix": [
+        "w"
+      ]
+    },
+    "level": "clamp(1 - dist / 120, 0, 1) * vol / 100"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.05,
+    "min_force": 0.0,
+    "gamma": 1.5
+  },
+  "envelope": {
+    "attack_ms": 0,
+    "hold_ms": 40,
+    "decay_ms": 90,
+    "retrigger": "max"
+  },
+  "carrier": {
+    "base_hz": 40,
+    "high_hz": 48
+  },
+  "routing": {
+    "wheel": null,
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 0.35,
+        "from": "level"
+      }
+    ],
+    "lfe": {
+      "amp": 0.3,
+      "hz": 42
+    },
+    "motion": null
+  },
+  "mix": {
+    "group": "ambient",
+    "priority": 25
+  },
+  "reference": {
+    "stock": null,
+    "sounds": [
+      "wlmgun",
+      "wmmgun",
+      "whmgun",
+      "wlcan",
+      "whcan",
+      "wrock"
+    ],
+    "analysis": "analysis/whcan.json"
+  },
+  "preview": {
+    "event": {
+      "type": "SOUND_START",
+      "name": "whcan",
+      "is_player": 0,
+      "vol": 100,
+      "dist": 25.0,
+      "hz": 11025
+    }
+  },
+  "notes": "i76tel v3 SOUND_START with is_player 0 and a weapon (w*) sound: an AI car firing nearby, felt faintly and only by distance (the host computes dist from the event position and the frame position). The one input the stock DLL never had. Gamma 1.5 keeps distant fire silent. [proposed]."
+}

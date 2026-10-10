@@ -1,0 +1,56 @@
+{
+  "id": "slip.grip_limit",
+  "kind": "continuous",
+  "model": "chain",
+  "enabled": true,
+  "source": {
+    "channel": "flag_grip_limit * clamp((speed - 7) / 15, 0, 1)"
+  },
+  "response": {
+    "input_gain": 1.0,
+    "threshold": 0.05,
+    "min_force": 0.2,
+    "gamma": 2.0
+  },
+  "envelope": {
+    "smooth_ms": 50
+  },
+  "carrier": {
+    "base_hz": 0,
+    "high_hz": 0
+  },
+  "routing": {
+    "wheel": null,
+    "pad": [
+      {
+        "motor": "R",
+        "gain": 0.5,
+        "from": "level"
+      }
+    ],
+    "lfe": null,
+    "motion": null
+  },
+  "mix": {
+    "group": "slip",
+    "priority": 60
+  },
+  "reference": {
+    "stock": "stock-ffb-reference.json#tyre.sliding",
+    "sounds": [
+      "tturn1",
+      "tturn2",
+      "tturn3",
+      "tturn4"
+    ],
+    "analysis": "analysis/tturn1.json"
+  },
+  "preview": {
+    "frames": {
+      "speed": 20.0,
+      "flags": 8193,
+      "seconds": 1.5
+    }
+  },
+  "notes": "The engine's own grip-limit flag (ent+0x454 & 0x2000, set at 0x43b50c: lateral force at the cap) as pad texture on the right motor; the tyre-turn sound plays on the same condition above 7 m/s. Texture belongs on the pad's ERM (the only Pacinian-band actuator, HAPTICS-ARCHITECTURE 6.3); the shaker and the wheel already get slip from slip.scrub."
+}

@@ -46,3 +46,20 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    Report per sound if you can (the names are in `tools\soundhd\out\pack-v1\report\index.html`, with a spectrogram for each).
    Transducer stem test (later, once the haptics host plays `pack-v1\lfe\` on SOUND_START): your own hits heavy, AI hits lighter,
    engine rumble follows the revs, and nothing felt late compared with the sound.
+
+## Haptics host (tools/haptics, Phase C of docs/HAPTICS-ARCHITECTURE.md; lab copy, A/A before A/B, report n)
+
+8. **Record a real telemetry session.** Lab game with `I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76_DAMAGE_EVENTS=1`; in a console
+   `tools\haptics\haptics.ps1 record --udp --out tools\haptics\replays\t01-c1.i76rec --seconds 300`; drive t01, shoot, hit a wall,
+   jump, get shot. Then `haptics.ps1 decode <file> --events`. Expected: v3 frames; SOUND_START is_player 1 for your weapons, 0 for an
+   AI car's; DAMAGE_SIDE on hits. The file replaces the scripted session as every offline test's input - keep it.
+9. **Wheel + pad + shakers together.** `haptics.ps1 live --source udp` (files only) for one drive, then the same with `--live` and all
+   three devices connected. Only question: interference or dropouts (feel comes later).
+10. **Latency.** `--live --record` run: fire one shot, ram one wall, phone microphone on the shaker; event frame vs shaker onset.
+11. **Wheel coexistence.** Host holding the wheel (`--live`), pull the trigger: does the game's own FFB still play anything?
+12. **Hardpoint +0x10.** Same weapon aimed two ways with `tools\ffb\ffb-watch-effects.ps1`: firing frequency or direction?
+13. **Explosion reach.** An AI car explodes nearby: EXPLOSION distance vs any concussion kick; sets `explosion.blast` reach_m.
+14. **Effects one at a time.** `haptics.ps1 preview --effect <id> --live --sinks pad,lfe` for impact.collision, landing,
+    weapon.fire, slip.grip_limit: does each read as what it is? (Devices move: owner present.)
+15. **Feel session.** `python tools\haptics\design\report.py` open on a second screen; edit one effects\*.json at a time while
+    `haptics.ps1 live --live` runs (hot reload), two laps per change.
