@@ -79,9 +79,9 @@ SKELETONS = {
     "global.mixer": {
         "kind": "global", "model": "legacy.global",
         "mix": {"master": None, "ramp_ms": None, "idle_fade_after_s": None, "idle_fade_over_s": None,
-                "pad_mode": "max", "wheel_continuous_budget": 0.70},
-        "notes": "Global scale, fade-in, thermal idle guard (Thrustmaster KB 1744). pad_mode 'max' = per-motor MAX "
-                 "(SIM-RUMBLE-RESEARCH Part E rule 1); 'sum' reproduces Mix-RenderPad exactly. " + LEGACY_NOTE,
+                "wheel_continuous_budget": 0.70},
+        "notes": "Global scale, fade-in, thermal idle guard (Thrustmaster KB 1744). The pad's max/sum mode is a device fact: "
+                 "rigs/*.json outputs.pad.mode. " + LEGACY_NOTE,
     },
     "steer.center": {
         "kind": "continuous", "model": "legacy.center",

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tools/haptics/schema/rig.schema.json",
+  "title": "Haptics rig (rigs/<name>.json)",
+  "description": "Which outputs exist and the device facts each renderer needs. Every output names a renderer type registered in Renderers/RendererRegistry (Wheel.DirectInput, Pad.XInput, Lfe.Synth, Lfe.Loopback, Motion.FileSink, or a plug-in). The host opens only the outputs the run asks for (--sinks), and opens a real device only with --live.",
+  "type": "object",
+  "required": ["name", "outputs"],
+  "properties": {
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "outputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["renderer"],
+        "properties": {"renderer": {"type": "string"}, "enabled": {"type": "boolean"}},
+        "additionalProperties": true
+      },
+      "properties": {
+        "wheel": {"properties": {"device_match": {"type": "string"}, "min_force": {"type": "number"}, "min_force_gate": {"type": "number"}, "clamp": {"type": "number", "maximum": 10000}, "slew_max": {"type": "number"}, "update_only_on_change": {"type": "boolean"}}},
+        "pad": {"properties": {"slot": {"type": "integer", "minimum": 0, "maximum": 3}, "deadzone": {"type": "number"}, "min_pulse_ms": {"type": "number"}, "mode": {"enum": ["max", "sum"]}, "silence_below": {"type": "number"}}},
+        "lfe": {"properties": {"device_name_match": {"type": "string"}, "rate": {"type": "integer"}, "hp_hz": {"type": "number"}, "lp_hz": {"type": "number"}, "drive": {"type": "number"}, "master": {"type": "number"},
+                "resp_hz": {"type": "array", "items": {"type": "number"}}, "resp_rel": {"type": "array", "items": {"type": "number"}}, "comp_max": {"type": "number"}, "channels": {"type": "integer"}, "max_voices": {"type": "integer"}}},
+        "loopback": {"properties": {"gain": {"type": "number"}, "hp_hz": {"type": "number"}, "lp_hz": {"type": "number"}, "duck_on_transient": {"type": "number"}, "gate": {"enum": ["player_present", "none"]}, "input_wav": {"type": "string"}}},
+        "motion": {"description": "plug-in point for docs/MOTION-OUTPUT.md"}
+      }
+    }
+  }
+}

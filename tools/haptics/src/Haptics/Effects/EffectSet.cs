@@ -178,7 +178,7 @@ namespace Haptics.Effects
             try { BuildTune(); } catch (Exception ex) { Add("tunemap", null, ex.Message, true); }
 
             double deadzone = Rig.Num("pad", "deadzone", 0.30);
-            string padMode = EffectDef.Str(Get("global.mixer")?.Json?["mix"] as JsonObject, "pad_mode") ?? "max";
+            string padMode = EffectDef.Str(Rig.Output("pad"), "mode") ?? "max";
             var on = Effects.Where(e => e.Enabled).ToList();
 
             foreach (var e in Effects)
