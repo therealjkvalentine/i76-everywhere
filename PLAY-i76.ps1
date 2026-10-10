@@ -151,6 +151,28 @@ if ($presetFile) {
 # stock with no presets\ folder at all (an old portable zip) is fine: stock sets nothing.
 if ($presetData) { foreach ($k in ($presetData.Env.Keys | Sort-Object)) { $gameEnv[$k] = [string]$presetData.Env[$k] } }
 
+# ---- preset guard: switch combinations with a known failure ------------------
+# Judged on what the game will actually see: the preset's value, else this shell's (the game inherits it).
+# tests/test_presets.py applies the same two rules to every presets\*.psd1.
+function Get-GameVar([string]$name) {
+    if ($gameEnv.Contains($name)) { return [string]$gameEnv[$name] }
+    [string][Environment]::GetEnvironmentVariable($name)
+}
+$terrainLod = 0
+[void][int]::TryParse((Get-GameVar 'I76_TERRAIN_LOD'), [ref]$terrainLod)
+if ($terrainLod -gt 1 -and -not (Get-GameVar 'I76_FAR_CLIP')) {
+    # Refuse: binoculars write past the stock transformed-vertex pool (exe+0x919B1), 3 of 3 batches on t05;
+    # only I76_FAR_CLIP enlarges the pools (lab docs\RENDER-FREEZE-2026-10-04.md section 4).
+    Write-Host ("REFUSED: preset {0} sets I76_TERRAIN_LOD={1} without I76_FAR_CLIP. More terrain detail overruns the stock terrain vertex pool in binoculars (crashed 3 of 3, lab RENDER-FREEZE-2026-10-04.md s.4); only I76_FAR_CLIP enlarges it. Add I76_FAR_CLIP (the shipped presets use 1200 or 1800) or drop I76_TERRAIN_LOD." -f $Preset, $terrainLod) -ForegroundColor Red
+    exit 3
+}
+$collWindow = Get-GameVar 'I76_COLL_WINDOW'
+if ($collWindow -and $collWindow -ne '0' -and -not (Get-GameVar 'I76_FIXED_STEP')) {
+    # Warn only: without the fixed step there is no step to widen the sweep to, so the switch does nothing
+    # (music-fix/README.md, I76_COLL_WINDOW: "needs I76_FIXED_STEP"; stock timing is left unchanged).
+    Write-Host ("WARNING: I76_COLL_WINDOW={0} without I76_FIXED_STEP has no effect (the collision window is widened to the fixed physics step; there is none)." -f $collWindow) -ForegroundColor Yellow
+}
+
 # The switches are implemented by music-fix/Strlkup.dll, so a preset that sets any of them is
 # a no-op unless the game folder's Strlkup.dll is (a) the proxy and (b) the build that knows
 # them. The playable install has run an older proxy build for weeks (backlog P1-07): compare
