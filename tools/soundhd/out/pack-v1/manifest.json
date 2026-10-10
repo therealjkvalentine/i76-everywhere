@@ -1,0 +1,8341 @@
+{
+ "pack_version": "sound-hd v1 (2026-10-10)",
+ "created_utc": "2026-10-10T14:01:11Z",
+ "source": {
+  "zfs": "C:\\Users\\james\\i76-map\\sandbox-gog\\main\\app\\I76.ZFS",
+  "zfs_md5": "6dd57b1627d73e814247c0d9521f9778",
+  "pristine": true,
+  "extractor": "re/tools/i76fmt/zfs.py (= i76-map/tools/i76fmt/zfs.py)"
+ },
+ "engine_pitch_patch_p5": false,
+ "rx_pass_count": 0,
+ "totals": {
+  "rendered": 123,
+  "lfe": 85,
+  "untouched": 507,
+  "addon_bytes": 9509238,
+  "stock_bytes_replaced": 2632051
+ },
+ "sounds": [
+  {
+   "name": "adwind",
+   "category": "ambient",
+   "recipe_id": "ambient/none",
+   "loop": true,
+   "original": {
+    "file": "adwind.gpw",
+    "md5": "266a6a4a5d2a7a3b6aa64ad988888f83",
+    "bytes": 40915,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "adwind.gpw",
+    "md5": "447ead5e737f767f215d1e466fa030a3",
+    "bytes": 163444,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -23.712,
+    "new_lufs": -23.738,
+    "new_tp_dbtp": -12.336,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "afworks",
+   "category": "ambient",
+   "recipe_id": "ambient/none",
+   "loop": false,
+   "original": {
+    "file": "afworks.gpw",
+    "md5": "f33e7d1d7fa8845ae71d7aa73708b410",
+    "bytes": 52743,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "afworks.gpw",
+    "md5": "daf67f9260c03e93fc0cdff2ed013eca",
+    "bytes": 210756,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -7.093,
+    "new_lufs": -7.196,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.4
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "aheli",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "aheli.gpw",
+    "md5": "b16d8b3eb9a498180e9a811eebbdf7d5",
+    "bytes": 13668,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "aheli.gpw",
+    "md5": "3eb3d692705b68ebb9eddbc330240637",
+    "bytes": 27264,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "aheli.wav",
+    "md5": "d0951aa9d5f18f4d84e705fbabaa2fc7"
+   },
+   "loudness": {
+    "stock_lufs": -8.09,
+    "new_lufs": -8.176,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.24
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "aps2",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": true,
+   "original": {
+    "file": "aps2.gpw",
+    "md5": "d412f196df2b9c24b854ac71de9f5df7",
+    "bytes": 3676,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "aps2.gpw",
+    "md5": "29b7df96a89dbd9d70cfe47a8bfcfa2b",
+    "bytes": 14488,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -16.973,
+    "new_lufs": -16.879,
+    "new_tp_dbtp": -10.717,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "bnitro",
+   "category": "nitro",
+   "recipe_id": "nitro/transient",
+   "loop": false,
+   "original": {
+    "file": "bnitro.gpw",
+    "md5": "0e63d668dfb04959df6dbcd5f0f70058",
+    "bytes": 44174,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "bnitro.gpw",
+    "md5": "2cb0f81cc3274f0fa18173e24b3d9022",
+    "bytes": 176476,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "bnitro.wav",
+    "md5": "f6e8ecc3cb28643b760f94592b0c9d37"
+   },
+   "loudness": {
+    "stock_lufs": -11.355,
+    "new_lufs": -11.494,
+    "new_tp_dbtp": -0.507,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.2,
+     "sweep_s": 0.15,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cammo",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cammo.gpw",
+    "md5": "f9d018f8e94e5f8868ae41d24c965889",
+    "bytes": 1884,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cammo.gpw",
+    "md5": "cf513917623d8920d5cad06ad3000491",
+    "bytes": 3694,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -14.691,
+    "new_lufs": -14.795,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.36
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cgrowl",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cgrowl.gpw",
+    "md5": "9482f100563367e0a27867b425e3b128",
+    "bytes": 3246,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cgrowl.gpw",
+    "md5": "e389a6f56cd5a8e4e7b18cae48ea777f",
+    "bytes": 6418,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -4.897,
+    "new_lufs": -4.991,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.74
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cjamm",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cjamm.gpw",
+    "md5": "751c9d439f59373a4ce32e9f39b8b5cc",
+    "bytes": 33191,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cjamm.gpw",
+    "md5": "ddbb66a8586ce1461a1d602631ef16ca",
+    "bytes": 66310,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -19.807,
+    "new_lufs": -19.869,
+    "new_tp_dbtp": -8.748,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "clockon",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "clockon.gpw",
+    "md5": "d72005180bfacf60d68bfcb93dad6516",
+    "bytes": 11036,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "clockon.gpw",
+    "md5": "96f8a139680ca81eecce494d466d3e09",
+    "bytes": 22000,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -17.643,
+    "new_lufs": -17.645,
+    "new_tp_dbtp": -8.231,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cmap2",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cmap2.gpw",
+    "md5": "074d5ad2b7df2cd3c945d044a1b9a226",
+    "bytes": 16204,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cmap2.gpw",
+    "md5": "91ce7feec7f3d436b8bcd0de7929c65e",
+    "bytes": 32336,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -26.529,
+    "new_lufs": -26.58,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.68
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cmike",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cmike.gpw",
+    "md5": "afab18c9e9b9aa31e89dc5eba47f0ad2",
+    "bytes": 4140,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cmike.gpw",
+    "md5": "bb4fa9259b16f78bb391e94380f6ef89",
+    "bytes": 8206,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -7.961,
+    "new_lufs": -8.027,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.23
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cnote",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cnote.gpw",
+    "md5": "0b169e9d62076063b6f9bef2ff1d02f0",
+    "bytes": 9444,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cnote.gpw",
+    "md5": "4917a96fe095f13a42e00e75a81ce8af",
+    "bytes": 18814,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -14.293,
+    "new_lufs": -14.296,
+    "new_tp_dbtp": -1.082,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cradar",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cradar.gpw",
+    "md5": "386b0a46634a9c122d358b252d242604",
+    "bytes": 756,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cradar.gpw",
+    "md5": "02b618c5959d64f69bee00382995a0e4",
+    "bytes": 1376,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -21.957,
+    "new_lufs": -21.949,
+    "new_tp_dbtp": -12.491,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "croger",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "croger.gpw",
+    "md5": "0c404b04e29e6253d2a8788ddfd56ebe",
+    "bytes": 6294,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "croger.gpw",
+    "md5": "16aadd1b49bc4f4f1039e45012a639de",
+    "bytes": 12514,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -14.065,
+    "new_lufs": -14.138,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.41
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "cwstat",
+   "category": "cockpit_ui",
+   "recipe_id": "cockpit_ui/none",
+   "loop": false,
+   "original": {
+    "file": "cwstat.gpw",
+    "md5": "3185928eaa9b47df0e001380a8ad01bd",
+    "bytes": 19290,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "cwstat.gpw",
+    "md5": "167397b5e9b4ab4edcae9781826aa3ff",
+    "bytes": 38508,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -17.314,
+    "new_lufs": -17.314,
+    "new_tp_dbtp": -7.753,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "dblox",
+   "category": "dropper",
+   "recipe_id": "dropper/transient",
+   "loop": false,
+   "original": {
+    "file": "dblox.gpw",
+    "md5": "1642f95983f79ff9d1905674ba8d6918",
+    "bytes": 12422,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "dblox.gpw",
+    "md5": "a2356642dfc4c812621b55d1c5d4af57",
+    "bytes": 49468,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "dblox.wav",
+    "md5": "11983c2e972b5b229ff90dd886b7bbce"
+   },
+   "loudness": {
+    "stock_lufs": -18.066,
+    "new_lufs": -18.174,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.73
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "dcaltrop",
+   "category": "dropper",
+   "recipe_id": "dropper/transient",
+   "loop": false,
+   "original": {
+    "file": "dcaltrop.gpw",
+    "md5": "37f63de42922842097df3468efdc922c",
+    "bytes": 13316,
+    "rate": 22050,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "dcaltrop.gpw",
+    "md5": "410dcc59ca58383c9b335b6250c3ba39",
+    "bytes": 26532,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "dcaltrop.wav",
+    "md5": "eb79831a8851aa100a4702925e0e6452"
+   },
+   "loudness": {
+    "stock_lufs": -12.433,
+    "new_lufs": -12.547,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.8
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "derase",
+   "category": "dropper",
+   "recipe_id": "dropper/transient",
+   "loop": false,
+   "original": {
+    "file": "derase.gpw",
+    "md5": "e5d703c609c863dc7611f2f8691d7889",
+    "bytes": 4240,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "derase.gpw",
+    "md5": "02dd67ce7a4fb55743da77aa6535c9eb",
+    "bytes": 16740,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "derase.wav",
+    "md5": "b85871ed542574b36840eef46dbbfea9"
+   },
+   "loudness": {
+    "stock_lufs": -12.127,
+    "new_lufs": -12.257,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 2.09
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "dfire",
+   "category": "dropper",
+   "recipe_id": "dropper/transient",
+   "loop": false,
+   "original": {
+    "file": "dfire.gpw",
+    "md5": "6d59d2b33d819bcdcfba003da72d3f3e",
+    "bytes": 21886,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "dfire.gpw",
+    "md5": "c2d36c92cf3bc4f6188344591e4cbcb1",
+    "bytes": 87324,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "dfire.wav",
+    "md5": "762a5c2e61b80c47f25ae7dbfd85aff9"
+   },
+   "loudness": {
+    "stock_lufs": -10.92,
+    "new_lufs": -10.999,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.55
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "dmines1",
+   "category": "dropper",
+   "recipe_id": "dropper/none",
+   "loop": false,
+   "original": {
+    "file": "dmines1.gpw",
+    "md5": "afdeb3f2180b822176fa3fe8f02d286c",
+    "bytes": 3640,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "dmines1.gpw",
+    "md5": "8814cea3bf5aa0d5f24b069e8bf23d8a",
+    "bytes": 14344,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "dmines1.wav",
+    "md5": "af137190185cf2ed67cbc611b6a59cc5"
+   },
+   "loudness": {
+    "stock_lufs": -10.029,
+    "new_lufs": -10.146,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.4
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.55 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "doil",
+   "category": "dropper",
+   "recipe_id": "dropper/transient",
+   "loop": false,
+   "original": {
+    "file": "doil.gpw",
+    "md5": "2e0bdaf45d264279bacc5130c371d3ef",
+    "bytes": 16936,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "doil.gpw",
+    "md5": "78b676cc9ddbc41ab1194482d03c4598",
+    "bytes": 67524,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "doil.wav",
+    "md5": "3cf71cf7ffc436dcd7d4522df88f0345"
+   },
+   "loudness": {
+    "stock_lufs": -11.129,
+    "new_lufs": -11.19,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.27
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eihp",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "eihp.gpw",
+    "md5": "df6ee7b063f0ba02e83b618c7408d7bf",
+    "bytes": 10981,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eihp.gpw",
+    "md5": "1dd3615df26ed188f4aa95a676c45b3c",
+    "bytes": 21890,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eihp.wav",
+    "md5": "ed949cb0e06abf4e8247465963457ffd"
+   },
+   "loudness": {
+    "stock_lufs": -13.629,
+    "new_lufs": -13.523,
+    "new_tp_dbtp": -3.906,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eimarx",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/none",
+   "loop": true,
+   "original": {
+    "file": "eimarx.gpw",
+    "md5": "b614b3ad5182976269b7b6b1322799ba",
+    "bytes": 25080,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eimarx.gpw",
+    "md5": "3da6a6f9249b8d96cb9fbf831f7b9272",
+    "bytes": 50086,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eimarx.wav",
+    "md5": "acad990d8cb48c2285fb8dc9a7554db1"
+   },
+   "loudness": {
+    "stock_lufs": -9.095,
+    "new_lufs": -9.24,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.48
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.60 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "einp1",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "einp1.gpw",
+    "md5": "7a0fe73251e3bd98c2bf7356495a1e54",
+    "bytes": 10846,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "einp1.gpw",
+    "md5": "c0bd3f001841713c0a78018f9a4e2c79",
+    "bytes": 21620,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "einp1.wav",
+    "md5": "f85cd4413e81360b1a90453236e2a705"
+   },
+   "loudness": {
+    "stock_lufs": -17.821,
+    "new_lufs": -17.689,
+    "new_tp_dbtp": -4.494,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eishp",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "eishp.gpw",
+    "md5": "0d785273d3426100f2fd59823579aac9",
+    "bytes": 22866,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eishp.gpw",
+    "md5": "3e69d22dbad2fe18857b07b32cd16911",
+    "bytes": 45660,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eishp.wav",
+    "md5": "b6e781f038b27f9c39ef642f156d3661"
+   },
+   "loudness": {
+    "stock_lufs": -15.341,
+    "new_lufs": -15.341,
+    "new_tp_dbtp": -6.923,
+    "gain_db": 0.31
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eisv",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "eisv.gpw",
+    "md5": "acb08f01bf0e4277b06438c25f236c7c",
+    "bytes": 31733,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eisv.gpw",
+    "md5": "4f8659d6a5bfb079edf3f10a5298f348",
+    "bytes": 63394,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eisv.wav",
+    "md5": "b3b3bb56e5cd175580e4939d61570f1f"
+   },
+   "loudness": {
+    "stock_lufs": -16.568,
+    "new_lufs": -16.684,
+    "new_tp_dbtp": -5.346,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eitank",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/none",
+   "loop": true,
+   "original": {
+    "file": "eitank.gpw",
+    "md5": "e4891b0186fa0d02eebb6e96f58a1f82",
+    "bytes": 46744,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eitank.gpw",
+    "md5": "3029973639ad73f6790a4ea0128f8408",
+    "bytes": 93414,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eitank.wav",
+    "md5": "92f95a236fd2c3f245dadd989c37841e"
+   },
+   "loudness": {
+    "stock_lufs": -10.352,
+    "new_lufs": -10.475,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.41
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.53 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eshp1",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "eshp1.gpw",
+    "md5": "e24fd1efe8aaea93f25729db7c41b5ed",
+    "bytes": 25032,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eshp1.gpw",
+    "md5": "e5007c930f3be8e5b41f7a697c1b02cb",
+    "bytes": 99912,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eshp1.wav",
+    "md5": "34f9f9e29f98099d1109b404b66e32cc"
+   },
+   "loudness": {
+    "stock_lufs": -16.053,
+    "new_lufs": -15.931,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eshp2",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "eshp2.gpw",
+    "md5": "6838f14be9690a21724d330e299bf82e",
+    "bytes": 52200,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eshp2.gpw",
+    "md5": "90fb725ad2f9a618ef6a2358fd013681",
+    "bytes": 208584,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eshp2.wav",
+    "md5": "351aea9b71b090cc58cabc50a5d155ed"
+   },
+   "loudness": {
+    "stock_lufs": -14.571,
+    "new_lufs": -14.434,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "eshp3",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "eshp3.gpw",
+    "md5": "f4cdf5a6cc01f844c2a6ae446ab21add",
+    "bytes": 110340,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "eshp3.gpw",
+    "md5": "61993010242c7e77ea2c08466312cda2",
+    "bytes": 441144,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "eshp3.wav",
+    "md5": "6e89b84f132c201f2a3018c5755d99ce"
+   },
+   "loudness": {
+    "stock_lufs": -11.702,
+    "new_lufs": -11.843,
+    "new_tp_dbtp": -0.548,
+    "gain_db": 0.78
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esmarx",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "esmarx.gpw",
+    "md5": "a6aff0bba94db6c4765f5fe0c4b69949",
+    "bytes": 26742,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esmarx.gpw",
+    "md5": "454d475265756ec025d6a8b4f95cd1d6",
+    "bytes": 106752,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esmarx.wav",
+    "md5": "338ba45fe1684d6f9427722eb84dc125"
+   },
+   "loudness": {
+    "stock_lufs": -13.654,
+    "new_lufs": -13.759,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esnp1",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "esnp1.gpw",
+    "md5": "1dc2d455d88a25b02823504f04d2224c",
+    "bytes": 19250,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esnp1.gpw",
+    "md5": "cc4fe0b0ff8dcae54b77e681f90bf2ad",
+    "bytes": 76780,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esnp1.wav",
+    "md5": "479104b261216799c65c5644115b1214"
+   },
+   "loudness": {
+    "stock_lufs": -22.197,
+    "new_lufs": -22.299,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.58
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esnp2",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "esnp2.gpw",
+    "md5": "915af72fa08eedd88b7d8de8d19d2fb6",
+    "bytes": 23984,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esnp2.gpw",
+    "md5": "35e0ae97971c2fa2d1a39a1e0c380042",
+    "bytes": 95716,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esnp2.wav",
+    "md5": "468ce366962c4fa563cd919d5515eef6"
+   },
+   "loudness": {
+    "stock_lufs": -15.884,
+    "new_lufs": -15.917,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esnp3",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "esnp3.gpw",
+    "md5": "b20e155dd52aa81ded3254132a8fad78",
+    "bytes": 102340,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esnp3.gpw",
+    "md5": "0946a82d7b58fbfb0a9936bf8cfd270f",
+    "bytes": 409140,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esnp3.wav",
+    "md5": "279c670211de639a91157c1701a14493"
+   },
+   "loudness": {
+    "stock_lufs": -18.346,
+    "new_lufs": -18.37,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esshp1",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "esshp1.gpw",
+    "md5": "33f36a7aae23847f6870d7bb8da2a780",
+    "bytes": 31336,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esshp1.gpw",
+    "md5": "3e7d6fc813b8accf9553a2ed2c0a14ee",
+    "bytes": 125128,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esshp1.wav",
+    "md5": "54abb57709544228ad30ce1cc8e40ff4"
+   },
+   "loudness": {
+    "stock_lufs": -11.106,
+    "new_lufs": -11.074,
+    "new_tp_dbtp": -0.344,
+    "gain_db": -0.16
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esshp2",
+   "category": "engine_start",
+   "recipe_id": "engine_start/none",
+   "loop": false,
+   "original": {
+    "file": "esshp2.gpw",
+    "md5": "ce0136cb6af8e8dd5d61626f3a75f6ca",
+    "bytes": 30238,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esshp2.gpw",
+    "md5": "12bbebf3803aba9b887c26d008dba2c4",
+    "bytes": 120732,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esshp2.wav",
+    "md5": "00b21feceb2dbd8ace452a489cf6a6e4"
+   },
+   "loudness": {
+    "stock_lufs": -9.815,
+    "new_lufs": -9.946,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 2.25
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.83 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "esshp3",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "esshp3.gpw",
+    "md5": "62c75c16720fb29c7d7e0066b2e99dec",
+    "bytes": 52310,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "esshp3.gpw",
+    "md5": "69b27e8f4cc6fdd9a0f104d4b86e0af5",
+    "bytes": 209020,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "esshp3.wav",
+    "md5": "dee57798a92a8a86fc0323de00a985af"
+   },
+   "loudness": {
+    "stock_lufs": -12.259,
+    "new_lufs": -12.376,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.61
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "essv",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "essv.gpw",
+    "md5": "e28caeb348ac8a3e7ebbf7370522054f",
+    "bytes": 42364,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "essv.gpw",
+    "md5": "64ba6912f018fc461c97ba7c8d41f149",
+    "bytes": 169240,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "essv.wav",
+    "md5": "bc41dcedf9e02bdf63491979d537480e"
+   },
+   "loudness": {
+    "stock_lufs": -14.132,
+    "new_lufs": -14.19,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "estank",
+   "category": "engine_start",
+   "recipe_id": "engine_start/transient+octave",
+   "loop": false,
+   "original": {
+    "file": "estank.gpw",
+    "md5": "c628957c10d4c9da7e42899373bee6b6",
+    "bytes": 44270,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "estank.gpw",
+    "md5": "f9ef13b3a52217da1d89d5c946442765",
+    "bytes": 176864,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "estank.wav",
+    "md5": "719ad371b8c6a90fd50dd8eaab7e7cbb"
+   },
+   "loudness": {
+    "stock_lufs": -13.146,
+    "new_lufs": -13.099,
+    "new_tp_dbtp": -0.359,
+    "gain_db": -0.28
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient+octave",
+     "level_db": -6.0,
+     "band": [
+      35,
+      90
+     ],
+     "tau_s": 0.25,
+     "sweep_s": 0.25,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "fdmg1",
+   "category": "damage",
+   "recipe_id": "damage/transient",
+   "loop": false,
+   "original": {
+    "file": "fdmg1.gpw",
+    "md5": "f9027889d5503e412c92af80d6f0ddd6",
+    "bytes": 12690,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "fdmg1.gpw",
+    "md5": "c09c6ba938c9f596cbd5531f43325ec1",
+    "bytes": 50176,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "fdmg1.wav",
+    "md5": "d52aba99153b9df774aee0a7e32e06f8"
+   },
+   "loudness": {
+    "stock_lufs": -14.442,
+    "new_lufs": -14.472,
+    "new_tp_dbtp": -2.637,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "h45ch",
+   "category": "handgun",
+   "recipe_id": "handgun/transient",
+   "loop": false,
+   "original": {
+    "file": "h45ch.gpw",
+    "md5": "43b5f913e6a33ab35a5f614a34c8b368",
+    "bytes": 9960,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "h45ch.gpw",
+    "md5": "6ec0293263df0833f1497820b7e2c2b7",
+    "bytes": 39624,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "h45ch.wav",
+    "md5": "a8a01f7cbd07d5fd3a259d4c8d38dbe9"
+   },
+   "loudness": {
+    "stock_lufs": -10.748,
+    "new_lufs": -10.775,
+    "new_tp_dbtp": -0.468,
+    "gain_db": 0.21
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "hssr1",
+   "category": "handgun",
+   "recipe_id": "handgun/transient",
+   "loop": false,
+   "original": {
+    "file": "hssr1.gpw",
+    "md5": "a83ecabcdb0884113d1384185b65cdc9",
+    "bytes": 3848,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "hssr1.gpw",
+    "md5": "4d0a6997086c1a293211cd89f86605ed",
+    "bytes": 15176,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "hssr1.wav",
+    "md5": "c2d7acc7ff4fcb68ca01dcfd247b3a2b"
+   },
+   "loudness": {
+    "stock_lufs": -10.106,
+    "new_lufs": -10.162,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.3
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "hssr2",
+   "category": "handgun",
+   "recipe_id": "handgun/transient",
+   "loop": false,
+   "original": {
+    "file": "hssr2.gpw",
+    "md5": "2afd77c83b83ea63d8c3707b81cebc5e",
+    "bytes": 5320,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "hssr2.gpw",
+    "md5": "91a8d11b1782ac51621edbbd6aa3cfa1",
+    "bytes": 21064,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "hssr2.wav",
+    "md5": "9ca4bf47f7cc0d57def0b45fc68ea007"
+   },
+   "loudness": {
+    "stock_lufs": -14.08,
+    "new_lufs": -14.114,
+    "new_tp_dbtp": -0.663,
+    "gain_db": 0.17
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "msllock1",
+   "category": "missile_lock",
+   "recipe_id": "missile_lock/none",
+   "loop": false,
+   "original": {
+    "file": "msllock1.gpw",
+    "md5": "c8b6ec41e33f4ad9b77172ca611103af",
+    "bytes": 18840,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "msllock1.gpw",
+    "md5": "76a8f27fb4349fdb4f37ea6509ef0e97",
+    "bytes": 37608,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -12.098,
+    "new_lufs": -12.259,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.53
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "msllock2",
+   "category": "missile_lock",
+   "recipe_id": "missile_lock/none",
+   "loop": false,
+   "original": {
+    "file": "msllock2.gpw",
+    "md5": "6bc8fa1d540f293870cf1e540208e009",
+    "bytes": 5640,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "msllock2.gpw",
+    "md5": "9080144746f477a1921b0064672fe365",
+    "bytes": 11208,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -8.698,
+    "new_lufs": -8.839,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.57
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "msllock3",
+   "category": "missile_lock",
+   "recipe_id": "missile_lock/none",
+   "loop": false,
+   "original": {
+    "file": "msllock3.gpw",
+    "md5": "c3376fe4248de717216c81000cfbca85",
+    "bytes": 8280,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "msllock3.gpw",
+    "md5": "3443c8e58f379329475352abf24e2a30",
+    "bytes": 16486,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -3.878,
+    "new_lufs": -4.005,
+    "new_tp_dbtp": -0.346,
+    "gain_db": 2.24
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tblow",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": false,
+   "original": {
+    "file": "tblow.gpw",
+    "md5": "4d147d67c3917e37816b576372eb408f",
+    "bytes": 3240,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tblow.gpw",
+    "md5": "7314bf03e1167cd6cab343f7fb833145",
+    "bytes": 12744,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -12.869,
+    "new_lufs": -12.989,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.76
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tcaltrop",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": false,
+   "original": {
+    "file": "tcaltrop.gpw",
+    "md5": "c5ca8cb8157173a4aecb522db749e92f",
+    "bytes": 22544,
+    "rate": 22050,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tcaltrop.gpw",
+    "md5": "e52ce0c5d91fb1e90977b793e612b91b",
+    "bytes": 44988,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -10.228,
+    "new_lufs": -10.353,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.72
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tflat",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tflat.gpw",
+    "md5": "e89c98e98a245c00f3c55a7777772cdd",
+    "bytes": 6487,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tflat.gpw",
+    "md5": "14cde25566e9b29fa210188bcfa1f48d",
+    "bytes": 25732,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -15.13,
+    "new_lufs": -15.26,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tskid1",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tskid1.gpw",
+    "md5": "3dc5f2ded2b067e66b5a3924213e5c84",
+    "bytes": 13200,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tskid1.gpw",
+    "md5": "a93130200f1317dd3a23847996ee5c1e",
+    "bytes": 52584,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -11.666,
+    "new_lufs": -11.667,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tskid2",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tskid2.gpw",
+    "md5": "7a32563712d482962518ae2d6b39361a",
+    "bytes": 18030,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tskid2.gpw",
+    "md5": "c5a636e5c91fed7e8c723c93074aca62",
+    "bytes": 71904,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -10.978,
+    "new_lufs": -11.0,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tskid3",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tskid3.gpw",
+    "md5": "0d18bf124fe81cdd9f72e70c7253d347",
+    "bytes": 18030,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tskid3.gpw",
+    "md5": "6d688f5300000f558842bf3f7dab4dae",
+    "bytes": 71904,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -12.285,
+    "new_lufs": -12.273,
+    "new_tp_dbtp": -0.314,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tskid4",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tskid4.gpw",
+    "md5": "0d18bf124fe81cdd9f72e70c7253d347",
+    "bytes": 18030,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tskid4.gpw",
+    "md5": "b21384bc57763d9d1fe6c2051d4331bc",
+    "bytes": 71904,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -12.285,
+    "new_lufs": -12.273,
+    "new_tp_dbtp": -0.314,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tturn1",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tturn1.gpw",
+    "md5": "3dc5f2ded2b067e66b5a3924213e5c84",
+    "bytes": 13200,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tturn1.gpw",
+    "md5": "726cf0bc24742d146e4a8aa87b9c1c67",
+    "bytes": 52584,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -11.666,
+    "new_lufs": -11.667,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tturn2",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tturn2.gpw",
+    "md5": "7a32563712d482962518ae2d6b39361a",
+    "bytes": 18030,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tturn2.gpw",
+    "md5": "73394ab8ca58b6bf8a8070b17c5c52b6",
+    "bytes": 71904,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -10.978,
+    "new_lufs": -11.0,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tturn3",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tturn3.gpw",
+    "md5": "0d18bf124fe81cdd9f72e70c7253d347",
+    "bytes": 18030,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tturn3.gpw",
+    "md5": "c25a90ba3dc07c0f7a77f3e299ebc69c",
+    "bytes": 71904,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -12.285,
+    "new_lufs": -12.273,
+    "new_tp_dbtp": -0.314,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "tturn4",
+   "category": "tyre_surface",
+   "recipe_id": "tyre_surface/none",
+   "loop": true,
+   "original": {
+    "file": "tturn4.gpw",
+    "md5": "0d18bf124fe81cdd9f72e70c7253d347",
+    "bytes": 18030,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "tturn4.gpw",
+    "md5": "b4930826a33c8420ea463271f4b0751c",
+    "bytes": 71904,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -12.285,
+    "new_lufs": -12.273,
+    "new_tp_dbtp": -0.314,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vballoon",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "vballoon.gpw",
+    "md5": "134c9fbfbc86b972004585f09aca0713",
+    "bytes": 68314,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vballoon.gpw",
+    "md5": "34ef73cd56a615646dd67e69fa262789",
+    "bytes": 136554,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vballoon.wav",
+    "md5": "65392299a172b374803f4656a72296c5"
+   },
+   "loudness": {
+    "stock_lufs": -8.974,
+    "new_lufs": -9.09,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vcddirt",
+   "category": "surface_loop",
+   "recipe_id": "surface_loop/none",
+   "loop": true,
+   "original": {
+    "file": "vcddirt.gpw",
+    "md5": "d628d39eaa9ecb1fd084214b9883050a",
+    "bytes": 23006,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vcddirt.gpw",
+    "md5": "9e9401b9a04f3b7514ddeb6d80db3abb",
+    "bytes": 91804,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -19.181,
+    "new_lufs": -19.183,
+    "new_tp_dbtp": -1.986,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vcdgrav",
+   "category": "surface_loop",
+   "recipe_id": "surface_loop/none",
+   "loop": true,
+   "original": {
+    "file": "vcdgrav.gpw",
+    "md5": "8a54fee573f35ca52487ba9a8c02e069",
+    "bytes": 61846,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vcdgrav.gpw",
+    "md5": "ca2275ff6cb2a936ce8dde589f6f4c28",
+    "bytes": 247164,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -17.623,
+    "new_lufs": -17.642,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vcdoil",
+   "category": "surface_loop",
+   "recipe_id": "surface_loop/none",
+   "loop": true,
+   "original": {
+    "file": "vcdoil.gpw",
+    "md5": "96e80089efddf152da1b7b0150388fcd",
+    "bytes": 22560,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vcdoil.gpw",
+    "md5": "6ff8b30a7d067048d400930c43218836",
+    "bytes": 90024,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -15.36,
+    "new_lufs": -15.39,
+    "new_tp_dbtp": -3.806,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vcdsand",
+   "category": "surface_loop",
+   "recipe_id": "surface_loop/none",
+   "loop": true,
+   "original": {
+    "file": "vcdsand.gpw",
+    "md5": "5c984b0bf9678300c0c29b243f8192ad",
+    "bytes": 18588,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vcdsand.gpw",
+    "md5": "29597816037e2916215dff7632af240d",
+    "bytes": 74132,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -17.684,
+    "new_lufs": -17.678,
+    "new_tp_dbtp": -3.85,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vexplode",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/none",
+   "loop": false,
+   "original": {
+    "file": "vexplode.gpw",
+    "md5": "33492a50112a1e379d1d3dffb6df7766",
+    "bytes": 52744,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vexplode.gpw",
+    "md5": "d426df1b433554a4ce2dff2952b29b00",
+    "bytes": 210756,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vexplode.wav",
+    "md5": "91e35175cf05b5d4cebc72f089656f38"
+   },
+   "loudness": {
+    "stock_lufs": -10.775,
+    "new_lufs": -10.837,
+    "new_tp_dbtp": -0.799,
+    "gain_db": 0.32
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.74 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vhorn1",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": false,
+   "original": {
+    "file": "vhorn1.gpw",
+    "md5": "f13dae466a0782be68c3b0cb30d602eb",
+    "bytes": 5118,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vhorn1.gpw",
+    "md5": "ec4ab9ebecdb982144b7ac9375303662",
+    "bytes": 20256,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -8.125,
+    "new_lufs": -8.198,
+    "new_tp_dbtp": -0.783,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vhorn2",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": false,
+   "original": {
+    "file": "vhorn2.gpw",
+    "md5": "443b3562a169567686b3a87fa6899770",
+    "bytes": 18208,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vhorn2.gpw",
+    "md5": "061d39bcf1b14ccf9db05c050bb5348b",
+    "bytes": 72612,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -7.441,
+    "new_lufs": -7.489,
+    "new_tp_dbtp": -0.477,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vhorn3",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": false,
+   "original": {
+    "file": "vhorn3.gpw",
+    "md5": "5c55a2bb2b588d81f5dffebfec1479e1",
+    "bytes": 18108,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vhorn3.gpw",
+    "md5": "6fe46eb0f6e1abafead87903515d9e61",
+    "bytes": 72216,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -7.373,
+    "new_lufs": -7.441,
+    "new_tp_dbtp": -0.563,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vhorn4",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": false,
+   "original": {
+    "file": "vhorn4.gpw",
+    "md5": "1fba8fabfc001143d987fff2e154a60d",
+    "bytes": 16152,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vhorn4.gpw",
+    "md5": "f7ba53aef049bb80df4fe52e9d5939fe",
+    "bytes": 64388,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -7.953,
+    "new_lufs": -8.056,
+    "new_tp_dbtp": -0.6,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vhorn5",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": false,
+   "original": {
+    "file": "vhorn5.gpw",
+    "md5": "828e34ae0f96e6a3d935915d0fa071d9",
+    "bytes": 19464,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vhorn5.gpw",
+    "md5": "15aeaa47e1ac57bcb3b842e581f74d3a",
+    "bytes": 77636,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -8.589,
+    "new_lufs": -8.684,
+    "new_tp_dbtp": -0.795,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vhorn6",
+   "category": "horn_siren",
+   "recipe_id": "horn_siren/octave",
+   "loop": false,
+   "original": {
+    "file": "vhorn6.gpw",
+    "md5": "828e34ae0f96e6a3d935915d0fa071d9",
+    "bytes": 19464,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vhorn6.gpw",
+    "md5": "888eae14ee6ffec4bf835118bc443e48",
+    "bytes": 77636,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -8.589,
+    "new_lufs": -8.684,
+    "new_tp_dbtp": -0.795,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -12.0,
+     "band": [
+      45,
+      90
+     ]
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vland",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vland.gpw",
+    "md5": "4dba1472fe17b9baf58dd7461436a7d0",
+    "bytes": 7294,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vland.gpw",
+    "md5": "66b6789b75d8758eb11a5baec6147431",
+    "bytes": 28960,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vland.wav",
+    "md5": "99905ca505317589452a52c9c00e3866"
+   },
+   "loudness": {
+    "stock_lufs": -12.441,
+    "new_lufs": -12.539,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.17
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vlanding",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vlanding.gpw",
+    "md5": "e18a64393ee6ec41e5a886ac665b847e",
+    "bytes": 16262,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vlanding.gpw",
+    "md5": "1a271348ff14a60ec0f8bb26359e8a17",
+    "bytes": 64828,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vlanding.wav",
+    "md5": "11d740e8c1a24d9a6f6f317f36706b8e"
+   },
+   "loudness": {
+    "stock_lufs": -16.305,
+    "new_lufs": -16.326,
+    "new_tp_dbtp": -0.611,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vnvco3",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vnvco3.gpw",
+    "md5": "991f5390759dd049576aac7c60196848",
+    "bytes": 4328,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vnvco3.gpw",
+    "md5": "fd2745ba890f7a96e676721ca3242541",
+    "bytes": 17096,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vnvco3.wav",
+    "md5": "19e226bd70921ce6837c2fcc261669d7"
+   },
+   "loudness": {
+    "stock_lufs": -11.733,
+    "new_lufs": -11.694,
+    "new_tp_dbtp": -0.666,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vnvcs1",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vnvcs1.gpw",
+    "md5": "026724da4fdba1453a25ab06f3508526",
+    "bytes": 16876,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vnvcs1.gpw",
+    "md5": "a0845dbc019fd20c8bd67dc0dd89fc13",
+    "bytes": 67284,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vnvcs1.wav",
+    "md5": "86c33d8504e7763d8cffadc04e58ba1f"
+   },
+   "loudness": {
+    "stock_lufs": -15.206,
+    "new_lufs": -15.34,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vnvcs3",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vnvcs3.gpw",
+    "md5": "af66dfd2d3f642f73fb9dcf430e87b21",
+    "bytes": 36924,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vnvcs3.gpw",
+    "md5": "c444ee49f10bec2fee45d48a7e2f3a95",
+    "bytes": 147480,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vnvcs3.wav",
+    "md5": "a66001dac1c6adc41c63103765d6f638"
+   },
+   "loudness": {
+    "stock_lufs": -9.795,
+    "new_lufs": -9.917,
+    "new_tp_dbtp": -0.549,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vnvcs5",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vnvcs5.gpw",
+    "md5": "d5a4eb57b4dc100c7fef61355f557610",
+    "bytes": 28790,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vnvcs5.gpw",
+    "md5": "a41ed0b648b178bc3b9e862c3bef03bc",
+    "bytes": 114944,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vnvcs5.wav",
+    "md5": "93c1833df7f224043a62084c47c06262"
+   },
+   "loudness": {
+    "stock_lufs": -8.317,
+    "new_lufs": -8.34,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.16
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vshif1a",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vshif1a.gpw",
+    "md5": "7a152d5a6c616fa118649191c12647b7",
+    "bytes": 8072,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vshif1a.gpw",
+    "md5": "c9b25c5e51a941db1f71246d03d618bb",
+    "bytes": 32072,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vshif1a.wav",
+    "md5": "5cb5e41b1bf74d178b3899a0b240d60b"
+   },
+   "loudness": {
+    "stock_lufs": -20.803,
+    "new_lufs": -20.691,
+    "new_tp_dbtp": -0.55,
+    "gain_db": -0.22
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vskid",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/none",
+   "loop": true,
+   "original": {
+    "file": "vskid.gpw",
+    "md5": "5fd040d418c09bb18ed34cb7841cf840",
+    "bytes": 73298,
+    "rate": 22050,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vskid.gpw",
+    "md5": "f05506e5d4331a3292bc8f9166fadf07",
+    "bytes": 146456,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": null,
+   "loudness": {
+    "stock_lufs": -8.969,
+    "new_lufs": -9.07,
+    "new_tp_dbtp": -0.789,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vtcoll",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/none",
+   "loop": false,
+   "original": {
+    "file": "vtcoll.gpw",
+    "md5": "3c066eec4b7fff28527502bc9b2e76f6",
+    "bytes": 14510,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vtcoll.gpw",
+    "md5": "5b72139e48ffe56edfde340a7efc741b",
+    "bytes": 57820,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vtcoll.wav",
+    "md5": "bf391bbad667d29612e0bbfb37ffa48c"
+   },
+   "loudness": {
+    "stock_lufs": -13.971,
+    "new_lufs": -14.096,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 2.15
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.56 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vufo",
+   "category": "engine_loop",
+   "recipe_id": "engine_loop/octave",
+   "loop": true,
+   "original": {
+    "file": "vufo.gpw",
+    "md5": "a7ff4d7a2decfdb287e4d7873697c2fa",
+    "bytes": 19944,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vufo.gpw",
+    "md5": "5bdee06f2adbdc78e3cbabe0ff12afa4",
+    "bytes": 39814,
+    "rate": 11025,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vufo.wav",
+    "md5": "325d8c5bed742bbcff5a46223713e587"
+   },
+   "loudness": {
+    "stock_lufs": -14.089,
+    "new_lufs": -14.103,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "octave",
+     "level_db": -8.0,
+     "band": [
+      30,
+      90
+     ],
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -10.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vvbo1",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vvbo1.gpw",
+    "md5": "51f3774513315456ed6441e70637f899",
+    "bytes": 15528,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vvbo1.gpw",
+    "md5": "0ed2a1d9b211c31f2d6e7e7a32881b12",
+    "bytes": 61892,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vvbo1.wav",
+    "md5": "c4339c952f13bcb329738383324d8509"
+   },
+   "loudness": {
+    "stock_lufs": -11.032,
+    "new_lufs": -11.102,
+    "new_tp_dbtp": -0.641,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vvcbb3",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vvcbb3.gpw",
+    "md5": "fe802a307f0b8022e259637dadbd07ae",
+    "bytes": 11108,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vvcbb3.gpw",
+    "md5": "38d7098f5a8263f6a6e769fc0455779d",
+    "bytes": 44216,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vvcbb3.wav",
+    "md5": "a24b201ff7132dddd18d6bfb59c93556"
+   },
+   "loudness": {
+    "stock_lufs": -15.282,
+    "new_lufs": -15.175,
+    "new_tp_dbtp": -0.55,
+    "gain_db": -0.2
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vvch2",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vvch2.gpw",
+    "md5": "ea85cb6619b3d3b6a9fe4cf11b02d289",
+    "bytes": 16994,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vvch2.gpw",
+    "md5": "c89cf8c29ef344a6ac1e9f0bfbae744c",
+    "bytes": 67760,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vvch2.wav",
+    "md5": "1dab8c845995483cebe78e1445df37eb"
+   },
+   "loudness": {
+    "stock_lufs": -9.261,
+    "new_lufs": -9.281,
+    "new_tp_dbtp": -0.512,
+    "gain_db": 0.17
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vvcre2",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vvcre2.gpw",
+    "md5": "bcbd5053e5d30ca7acde123d99ef98fd",
+    "bytes": 15296,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vvcre2.gpw",
+    "md5": "ace9547733887fcdfa369c6e777adb7a",
+    "bytes": 60964,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vvcre2.wav",
+    "md5": "40d8d2489952870bacc8057bc552e826"
+   },
+   "loudness": {
+    "stock_lufs": -10.186,
+    "new_lufs": -10.17,
+    "new_tp_dbtp": -0.395,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "vvcre3",
+   "category": "vehicle_collision",
+   "recipe_id": "vehicle_collision/transient",
+   "loop": false,
+   "original": {
+    "file": "vvcre3.gpw",
+    "md5": "14c41ce86f25aa8c815233d5e8e55dad",
+    "bytes": 15522,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "vvcre3.gpw",
+    "md5": "8b41ed6f02d52b6a2604515b050a9ad0",
+    "bytes": 61872,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "vvcre3.wav",
+    "md5": "56cd209b30a925fca8ea542b3f7ac305"
+   },
+   "loudness": {
+    "stock_lufs": -11.828,
+    "new_lufs": -11.754,
+    "new_tp_dbtp": -0.589,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wbalflam",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wbalflam.gpw",
+    "md5": "878dbb29cd59638f0e562ee17f11efac",
+    "bytes": 10440,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wbalflam.gpw",
+    "md5": "956443909a47d0411f00588b4ceded2a",
+    "bytes": 41544,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wbalflam.wav",
+    "md5": "18376cf702a2b263584a8cef196b00ef"
+   },
+   "loudness": {
+    "stock_lufs": -8.3,
+    "new_lufs": -8.324,
+    "new_tp_dbtp": -0.731,
+    "gain_db": 0.16
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wcbl",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wcbl.gpw",
+    "md5": "ebcd233cdd78e2869b7ee4b2f774059b",
+    "bytes": 6412,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wcbl.gpw",
+    "md5": "d9e6c1806679704bbc4fb5bd48bb137b",
+    "bytes": 25432,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wcbl.wav",
+    "md5": "3e2068ddf72cd39bcd9c774c26a52d5b"
+   },
+   "loudness": {
+    "stock_lufs": -16.355,
+    "new_lufs": -16.495,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.29
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wchem",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "wchem.gpw",
+    "md5": "662f2075a78a79d39e4ec0f959655053",
+    "bytes": 6198,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wchem.gpw",
+    "md5": "e324d6f9879eab2b6244c5deff959414",
+    "bytes": 24572,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wchem.wav",
+    "md5": "3c37f1cd6a7e08fd2c8407fdf33b8c77"
+   },
+   "loudness": {
+    "stock_lufs": -14.612,
+    "new_lufs": -14.747,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.73
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.55 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wcherub",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wcherub.gpw",
+    "md5": "3c6e85da0d358d45300fd701360c40f8",
+    "bytes": 29060,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wcherub.gpw",
+    "md5": "58a5a5c3f10b1d3874717fa36be57d77",
+    "bytes": 116024,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wcherub.wav",
+    "md5": "8518dba8fc5554109899c29159fe87f2"
+   },
+   "loudness": {
+    "stock_lufs": -9.344,
+    "new_lufs": -9.444,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.33
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wclick",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wclick.gpw",
+    "md5": "551239e7519667c448510b8f95b5b2ff",
+    "bytes": 1160,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wclick.gpw",
+    "md5": "005a25c70a8ad181b6c812608b3cbf49",
+    "bytes": 4424,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wclick.wav",
+    "md5": "1aca63e1b0d3dfc046605363b8cb3387"
+   },
+   "loudness": {
+    "stock_lufs": -21.81,
+    "new_lufs": -21.81,
+    "new_tp_dbtp": -12.665,
+    "gain_db": -0.45
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wcvr",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wcvr.gpw",
+    "md5": "7e6385c08e8f8db869b69c4f42fcc233",
+    "bytes": 7478,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wcvr.gpw",
+    "md5": "e5c436a4b9600a79c65f0cac5e28e574",
+    "bytes": 29696,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wcvr.wav",
+    "md5": "c1da97f9c8b3f6a47dbab9b2d4eb628e"
+   },
+   "loudness": {
+    "stock_lufs": -15.314,
+    "new_lufs": -15.425,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.6
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wezk",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wezk.gpw",
+    "md5": "86741677df2747a68015678accb8f44f",
+    "bytes": 6916,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wezk.gpw",
+    "md5": "ff70b292a88063d84d2f88a016aff99c",
+    "bytes": 27448,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wezk.wav",
+    "md5": "44608c7d799969e4d6629f5cb284b56d"
+   },
+   "loudness": {
+    "stock_lufs": -12.368,
+    "new_lufs": -12.465,
+    "new_tp_dbtp": -0.668,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wgl",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wgl.gpw",
+    "md5": "8e5fc70f4fd9e0b22c6498e669890113",
+    "bytes": 5786,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wgl.gpw",
+    "md5": "eb2a12ae67c4b5ff46ad75fc1f5515b9",
+    "bytes": 22928,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wgl.wav",
+    "md5": "29efb1bf2b30af85bc793a2d4794aa08"
+   },
+   "loudness": {
+    "stock_lufs": -12.583,
+    "new_lufs": -12.722,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.17
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "whades",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "whades.gpw",
+    "md5": "57f13c12c542b26aac1d78b00899fad5",
+    "bytes": 9770,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "whades.gpw",
+    "md5": "abe0c188485e5474003758a990938634",
+    "bytes": 38864,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "whades.wav",
+    "md5": "8f3c1725cf71ada8ba6592554a95c9d3"
+   },
+   "loudness": {
+    "stock_lufs": -13.761,
+    "new_lufs": -13.889,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.14
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.59 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "whcan",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "whcan.gpw",
+    "md5": "42a137e2b06476fd08fe93b365ceca7b",
+    "bytes": 3962,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "whcan.gpw",
+    "md5": "cd53b76f829aa82755e1f2b0037a028d",
+    "bytes": 15632,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "whcan.wav",
+    "md5": "518297a49da751fbf22e638f3a41c37b"
+   },
+   "loudness": {
+    "stock_lufs": -9.731,
+    "new_lufs": -9.787,
+    "new_tp_dbtp": -0.514,
+    "gain_db": 0.32
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.89 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "whflame",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": true,
+   "original": {
+    "file": "whflame.gpw",
+    "md5": "7fc3c2cb785716eab4fc3f12e75050d8",
+    "bytes": 32040,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "whflame.gpw",
+    "md5": "324bc0f0a75f26f36092dd58bfd567c6",
+    "bytes": 127940,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "whflame.wav",
+    "md5": "966b17c8b1bfc8f901c7df6d7dc8053f"
+   },
+   "loudness": {
+    "stock_lufs": -8.571,
+    "new_lufs": -8.595,
+    "new_tp_dbtp": -0.642,
+    "gain_db": 0.16
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "whmgun",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": true,
+   "original": {
+    "file": "whmgun.gpw",
+    "md5": "3222cd59c87cc755da05f0ea62baf042",
+    "bytes": 6986,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "whmgun.gpw",
+    "md5": "358e676cf8981e9042ad9a8ae3f2771d",
+    "bytes": 27724,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "whmgun.wav",
+    "md5": "89c52617f2376518ca7dd8d013a67d0b"
+   },
+   "loudness": {
+    "stock_lufs": -6.767,
+    "new_lufs": -6.829,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "whowitz",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "whowitz.gpw",
+    "md5": "d4a797435de03a2f63ecc3a0639f6bf5",
+    "bytes": 19840,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "whowitz.gpw",
+    "md5": "2d8a60222f239642c115c5a1f01541c6",
+    "bytes": 79144,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "whowitz.wav",
+    "md5": "ae96a3818e643ab668632df68e744daa"
+   },
+   "loudness": {
+    "stock_lufs": -10.39,
+    "new_lufs": -10.531,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.89
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.63 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "whsm",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "whsm.gpw",
+    "md5": "52d1a9be89c36470cf9850fbe361350e",
+    "bytes": 21902,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "whsm.gpw",
+    "md5": "e3acf5ed04ba3efa5fe37db31d94dfa0",
+    "bytes": 87392,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "whsm.wav",
+    "md5": "1b51a780a47bf26a70435dfd3225f5ec"
+   },
+   "loudness": {
+    "stock_lufs": -8.454,
+    "new_lufs": -8.497,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.26
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wlcan",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "wlcan.gpw",
+    "md5": "4c375f354502061cea9e5c7b0c94c4be",
+    "bytes": 3841,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wlcan.gpw",
+    "md5": "fb83c6679d4dbc6255267651a4e3dd33",
+    "bytes": 15148,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wlcan.wav",
+    "md5": "aba44c76708ca0ad3348306951968257"
+   },
+   "loudness": {
+    "stock_lufs": -10.556,
+    "new_lufs": -10.773,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 3.05
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.58 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wlflame",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": true,
+   "original": {
+    "file": "wlflame.gpw",
+    "md5": "6a92e8ab0089183d0c9f700ef7a10a06",
+    "bytes": 33180,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wlflame.gpw",
+    "md5": "71e143bed406ca79e76ffd5e351671cd",
+    "bytes": 132504,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wlflame.wav",
+    "md5": "456086e736bc5b2b946c644c91e65475"
+   },
+   "loudness": {
+    "stock_lufs": -10.893,
+    "new_lufs": -10.985,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.2
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wlmgun",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": true,
+   "original": {
+    "file": "wlmgun.gpw",
+    "md5": "f14a1ea3a25f0b2e8943c2f03d3eac8a",
+    "bytes": 14560,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wlmgun.gpw",
+    "md5": "4fd2daad2401b7892e836b5f59e35ba3",
+    "bytes": 58024,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wlmgun.wav",
+    "md5": "404724d87712d7c80facfdef539e8d83"
+   },
+   "loudness": {
+    "stock_lufs": -7.74,
+    "new_lufs": -7.767,
+    "new_tp_dbtp": -0.368,
+    "gain_db": 0.18
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.57 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wmcan",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "wmcan.gpw",
+    "md5": "279ac22d8196c42568cc68ebfaaf0923",
+    "bytes": 4954,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wmcan.gpw",
+    "md5": "54f0b880c14e21b7c816b51bfbe856a1",
+    "bytes": 19600,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wmcan.wav",
+    "md5": "7fab8134f5ee8edcc822222f78a74403"
+   },
+   "loudness": {
+    "stock_lufs": -9.955,
+    "new_lufs": -10.003,
+    "new_tp_dbtp": -0.421,
+    "gain_db": 0.46
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.54 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wmflame",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": true,
+   "original": {
+    "file": "wmflame.gpw",
+    "md5": "238368c022d7fd2ade97eb73876be729",
+    "bytes": 32812,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wmflame.gpw",
+    "md5": "39a584e4e53643966a31dba3687bc9c6",
+    "bytes": 131032,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wmflame.wav",
+    "md5": "8c48bc624ec2b7d9a93b0b1e7221247d"
+   },
+   "loudness": {
+    "stock_lufs": -10.412,
+    "new_lufs": -10.559,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.11
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.61 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wmgr1",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wmgr1.gpw",
+    "md5": "df7184cc2d22a6463d5f82b860a3ffb6",
+    "bytes": 4346,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wmgr1.gpw",
+    "md5": "9fe8d82f2fbad80075d352627ab3dfb4",
+    "bytes": 17164,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wmgr1.wav",
+    "md5": "1829b18c8838353c765bab0bac94920a"
+   },
+   "loudness": {
+    "stock_lufs": -12.854,
+    "new_lufs": -12.921,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.16
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wmgr2",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wmgr2.gpw",
+    "md5": "11a8914df810a96dc4f1b26a17622454",
+    "bytes": 11842,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wmgr2.gpw",
+    "md5": "233b826cf14488ad49554746f39f38b2",
+    "bytes": 47024,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wmgr2.wav",
+    "md5": "5c70b42842dd4bc53396886698c9963c"
+   },
+   "loudness": {
+    "stock_lufs": -27.598,
+    "new_lufs": -27.645,
+    "new_tp_dbtp": -12.164,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wmiss",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wmiss.gpw",
+    "md5": "35b296091f43d78393073cae9d5bbfab",
+    "bytes": 14712,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wmiss.gpw",
+    "md5": "8d288db306bfe9aed1bd867d526cf1e3",
+    "bytes": 58628,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wmiss.wav",
+    "md5": "e38c63776a109aa32f4858d7b8f21cdd"
+   },
+   "loudness": {
+    "stock_lufs": -9.625,
+    "new_lufs": -9.683,
+    "new_tp_dbtp": -0.681,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wmmgun",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": true,
+   "original": {
+    "file": "wmmgun.gpw",
+    "md5": "5aa210c5b37c481a42f3e5fe4272d560",
+    "bytes": 22232,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wmmgun.gpw",
+    "md5": "fe76ffeeaf8cae593890fedc3c6fb358",
+    "bytes": 88712,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wmmgun.wav",
+    "md5": "19dcb0a9cf10c424ff7fc362748a3399"
+   },
+   "loudness": {
+    "stock_lufs": -9.827,
+    "new_lufs": -9.852,
+    "new_tp_dbtp": -0.378,
+    "gain_db": 0.17
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.56 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wrhm",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wrhm.gpw",
+    "md5": "4b99c1054bcdc528df804b020a9ae1a0",
+    "bytes": 41076,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wrhm.gpw",
+    "md5": "cfde04104462d39635210f287ccf5cd2",
+    "bytes": 164088,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wrhm.wav",
+    "md5": "0f859bef133059aa878df0425d0fcbb9"
+   },
+   "loudness": {
+    "stock_lufs": -11.388,
+    "new_lufs": -11.488,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.12
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wrock",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wrock.gpw",
+    "md5": "f5ffaa8844f22fbeb62cb2f5f86f8bb4",
+    "bytes": 23852,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wrock.gpw",
+    "md5": "a8dedd7dee26ab28439603db1e16b4bf",
+    "bytes": 95188,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wrock.wav",
+    "md5": "29232f6097b8661398fe45919fcdb31d"
+   },
+   "loudness": {
+    "stock_lufs": -7.863,
+    "new_lufs": -8.001,
+    "new_tp_dbtp": -0.42,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wtank",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/none",
+   "loop": false,
+   "original": {
+    "file": "wtank.gpw",
+    "md5": "d4a797435de03a2f63ecc3a0639f6bf5",
+    "bytes": 19840,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wtank.gpw",
+    "md5": "f02f1f9fed07d84735c7859f1d0873fc",
+    "bytes": 79144,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wtank.wav",
+    "md5": "6fdfc2ca67df942825f1952be1d02436"
+   },
+   "loudness": {
+    "stock_lufs": -10.39,
+    "new_lufs": -10.531,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.89
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.63 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "wwpgl",
+   "category": "weapon_fire",
+   "recipe_id": "weapon_fire/transient",
+   "loop": false,
+   "original": {
+    "file": "wwpgl.gpw",
+    "md5": "be8ca6fb6a44d181f9a0efa4ad39fdd4",
+    "bytes": 5786,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "wwpgl.gpw",
+    "md5": "f5e27bf74620ea462ff67ee7a59c2460",
+    "bytes": 22928,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "wwpgl.wav",
+    "md5": "f2b5f6864b677285e32985b79f6bb850"
+   },
+   "loudness": {
+    "stock_lufs": -13.701,
+    "new_lufs": -13.828,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 1.13
+   },
+   "recipe": {
+    "clean": [
+     "dc",
+     "declick"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -8.0,
+     "band": [
+      40,
+      90
+     ],
+     "f_lo": 40.0,
+     "tau_s": 0.12,
+     "sweep_s": 0.1,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xbridge",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/none",
+   "loop": false,
+   "original": {
+    "file": "xbridge.gpw",
+    "md5": "f63e9879b05dbe090fb9105c02f5bf81",
+    "bytes": 23720,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xbridge.gpw",
+    "md5": "fda4822bc66ff37c5905f0a0060f9c12",
+    "bytes": 94664,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xbridge.wav",
+    "md5": "14b0e56e1fe69a0047cfcc91fb9b1fb7"
+   },
+   "loudness": {
+    "stock_lufs": -8.696,
+    "new_lufs": -8.746,
+    "new_tp_dbtp": -0.797,
+    "gain_db": 0.27
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.53 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xbuild",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/transient",
+   "loop": false,
+   "original": {
+    "file": "xbuild.gpw",
+    "md5": "8402f6c9af922efb099991dc621e408c",
+    "bytes": 40692,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xbuild.gpw",
+    "md5": "7c5180959112649bd6400ea56566f6e3",
+    "bytes": 162548,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xbuild.wav",
+    "md5": "2951581ed52c67ea3923d5306d451ff0"
+   },
+   "loudness": {
+    "stock_lufs": -8.896,
+    "new_lufs": -8.994,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xcar",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/none",
+   "loop": false,
+   "original": {
+    "file": "xcar.gpw",
+    "md5": "3d5f219a85ba9a416ceddf40f25d21ad",
+    "bytes": 52744,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xcar.gpw",
+    "md5": "cae13c31cbc4ede0d0573730516ca8e1",
+    "bytes": 210756,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xcar.wav",
+    "md5": "628a0dd8489be01e13ce5aba6e640b12"
+   },
+   "loudness": {
+    "stock_lufs": -10.775,
+    "new_lufs": -10.837,
+    "new_tp_dbtp": -0.799,
+    "gain_db": 0.32
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.74 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xemt1",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/transient",
+   "loop": false,
+   "original": {
+    "file": "xemt1.gpw",
+    "md5": "7d8e5d50d5e55bef2682e316fcdcf3ba",
+    "bytes": 22798,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xemt1.gpw",
+    "md5": "7fc22cd221a698e0b9b3af70bc947d1a",
+    "bytes": 90976,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xemt1.wav",
+    "md5": "ad7149a5eed15c41fcd9e39d178ae17b"
+   },
+   "loudness": {
+    "stock_lufs": -11.384,
+    "new_lufs": -11.346,
+    "new_tp_dbtp": -0.615,
+    "gain_db": -0.41
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xemt2",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/none",
+   "loop": false,
+   "original": {
+    "file": "xemt2.gpw",
+    "md5": "66b577390fe43eb9d9e88cc166954580",
+    "bytes": 27902,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xemt2.gpw",
+    "md5": "be2892ef3f7fb49d784c1fd1c8514853",
+    "bytes": 111392,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xemt2.wav",
+    "md5": "eee7b9a95c06241bc28e192570ba0b46"
+   },
+   "loudness": {
+    "stock_lufs": -9.758,
+    "new_lufs": -9.855,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 0.42
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.84 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xfire1",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/transient",
+   "loop": true,
+   "original": {
+    "file": "xfire1.gpw",
+    "md5": "c44288e1c2e4f914658154555b58936c",
+    "bytes": 24542,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xfire1.gpw",
+    "md5": "68218a800ffe60f526a8934a9c5e9884",
+    "bytes": 97948,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xfire1.wav",
+    "md5": "3b3832f01c39618079c9074da273ddd5"
+   },
+   "loudness": {
+    "stock_lufs": -8.914,
+    "new_lufs": -8.889,
+    "new_tp_dbtp": -0.39,
+    "gain_db": -0.84
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xgas",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/none",
+   "loop": false,
+   "original": {
+    "file": "xgas.gpw",
+    "md5": "46feb5a72dcb5553434a04ce59c479ef",
+    "bytes": 24978,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xgas.gpw",
+    "md5": "2033c96371e054263300117354b07132",
+    "bytes": 99692,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xgas.wav",
+    "md5": "3107c594b7b0d1a17bb834794d6d08b8"
+   },
+   "loudness": {
+    "stock_lufs": -10.014,
+    "new_lufs": -10.237,
+    "new_tp_dbtp": -0.55,
+    "gain_db": 2.44
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.62 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xms2",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/none",
+   "loop": false,
+   "original": {
+    "file": "xms2.gpw",
+    "md5": "93127496e9bcc0b6891a67d1a1cfd3ed",
+    "bytes": 14230,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xms2.gpw",
+    "md5": "c1d34361a5f14c71f1f9ac2c4ebfceaa",
+    "bytes": 56704,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xms2.wav",
+    "md5": "fd42511a696df867e8f2aaacaa5e9e46"
+   },
+   "loudness": {
+    "stock_lufs": -12.453,
+    "new_lufs": -12.599,
+    "new_tp_dbtp": -0.668,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.54 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xmv1",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/transient",
+   "loop": false,
+   "original": {
+    "file": "xmv1.gpw",
+    "md5": "226d5919dc4582f335478212183ef78c",
+    "bytes": 25854,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xmv1.gpw",
+    "md5": "1b4d02db3b84cceed49f5565ce3915f0",
+    "bytes": 103196,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xmv1.wav",
+    "md5": "9f3ea06cd2dbc396ceb19ee7db8581fc"
+   },
+   "loudness": {
+    "stock_lufs": -7.958,
+    "new_lufs": -7.988,
+    "new_tp_dbtp": -0.336,
+    "gain_db": 0.19
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [
+    "xmv1.wav"
+   ],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xmv2",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/none",
+   "loop": false,
+   "original": {
+    "file": "xmv2.gpw",
+    "md5": "0c2aee87bd9a8bde4706fb653f13b4a4",
+    "bytes": 23856,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xmv2.gpw",
+    "md5": "73bd71703cec709c9610ab61f24fcb7e",
+    "bytes": 95208,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xmv2.wav",
+    "md5": "f9f3803d936d5df18cb00b2a339d2ca3"
+   },
+   "loudness": {
+    "stock_lufs": -9.237,
+    "new_lufs": -9.265,
+    "new_tp_dbtp": -0.435,
+    "gain_db": 0.23
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "none",
+     "skipped": "stock E<120 0.65 >= 0.50 (already bass-heavy)"
+    },
+    "harmonics_db": null
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xsv1",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/transient",
+   "loop": false,
+   "original": {
+    "file": "xsv1.gpw",
+    "md5": "70ba7eb885597c0b2ab60a24e64a2073",
+    "bytes": 14534,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xsv1.gpw",
+    "md5": "643fb2ee09a524b2bcd01b7d748b705d",
+    "bytes": 57920,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xsv1.wav",
+    "md5": "6dbbbfd90f673d9ba572eb09c44377ab"
+   },
+   "loudness": {
+    "stock_lufs": -11.256,
+    "new_lufs": -11.184,
+    "new_tp_dbtp": -0.633,
+    "gain_db": -0.5
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  },
+  {
+   "name": "xsv2",
+   "category": "explosion_impact",
+   "recipe_id": "explosion_impact/transient",
+   "loop": false,
+   "original": {
+    "file": "xsv2.gpw",
+    "md5": "80cf9ed51774216e3a56bcf0e24c5300",
+    "bytes": 17714,
+    "rate": 11025,
+    "bits": 8
+   },
+   "replacement": {
+    "file": "xsv2.gpw",
+    "md5": "9cf403fe650c5dd5e8b03026ddb6ded3",
+    "bytes": 70640,
+    "rate": 22050,
+    "bits": 16
+   },
+   "lfe": {
+    "file": "xsv2.wav",
+    "md5": "dec6ec8667b90d49d193dbf22fa70877"
+   },
+   "loudness": {
+    "stock_lufs": -8.682,
+    "new_lufs": -8.798,
+    "new_tp_dbtp": -0.619,
+    "gain_db": 0.0
+   },
+   "recipe": {
+    "clean": [
+     "declip",
+     "dc",
+     "denoise"
+    ],
+    "sub": {
+     "method": "transient",
+     "level_db": -5.0,
+     "band": [
+      30,
+      90
+     ],
+     "tau_s": 0.3,
+     "sweep_s": 0.3,
+     "skip_if_e120": 0.5
+    },
+    "harmonics_db": -8.0
+   },
+   "shadowed_twins": [],
+   "rx_pass": false,
+   "rx_file_md5": null
+  }
+ ],
+ "untouched": [
+  {
+   "file": "01sbu01.wav",
+   "md5": "95c958731b2669d97dae42d2e1d78b2a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc06.wav",
+   "md5": "2f441c5c6894fffdaa64a5c8cb83a3f0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc07.wav",
+   "md5": "38ea75bcea6ecfc855b093e2db772553",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc08.wav",
+   "md5": "309c42ffb39560bd02d0fc27357fc0d6",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc09.wav",
+   "md5": "37b49dc8585682b48f135b900c0670c3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc10.wav",
+   "md5": "99518bc535f4b360f15cb5c684332b15",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc11.wav",
+   "md5": "5b6d168af5c594cfa4013354ce81883d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc12.wav",
+   "md5": "37db8762da94e6dd9cb71e0c0053d732",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sgc15.wav",
+   "md5": "245e8ab5cd84b00c44bae13b724c5870",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sir01.wav",
+   "md5": "fe9864982efcf5c2dbf2e304c5e16ccf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sir03.wav",
+   "md5": "b017dc07233346b1fd9ebb71da1298a5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01ssk01.wav",
+   "md5": "d5f8d50261a2bad7a8bba94b9ec6f03e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta09.wav",
+   "md5": "53d53be2ebe6f72adb85bc994fa23935",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta10.wav",
+   "md5": "ec5356332263f91ea7bfdd9d6302acb5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta12.wav",
+   "md5": "5e61ed558d0eb7464a5ad930142ded75",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta13.wav",
+   "md5": "6522c58da0c8e752f7ac463552d70ebf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta14.wav",
+   "md5": "6d862ab472fb2af09d27e23e84d77ad1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta15.wav",
+   "md5": "99d635a1246704004bb923a9d7586ee4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta16.wav",
+   "md5": "047c5aad299b607c7f5d3191cba43ef0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta17.wav",
+   "md5": "d31783bb5a1827d8335c4161f04bf0ce",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta18.wav",
+   "md5": "be20a382377504304d46d11fa2c018c3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta19.wav",
+   "md5": "b8d3616173784b804b4422d191808de2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta20.wav",
+   "md5": "f867a779b6729d05a6dbb03983de4f68",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta21.wav",
+   "md5": "f1b0d1266217eb839caea78ee0a5c598",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta22.wav",
+   "md5": "b41442b949be7aef47d84ec0fa6da607",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta23.wav",
+   "md5": "0b0353c4f077e9449693df2a9f7bab6f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta24.wav",
+   "md5": "c5b843a9dfa836f53e03b084a3ba0171",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta25.wav",
+   "md5": "4570ae3547eff97af09e26266ab887b2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta26.wav",
+   "md5": "2c336d66998e4a2c965521541b19549e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta28.wav",
+   "md5": "18fa97d3116a26bd1b11b2c35fb9698f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta29.wav",
+   "md5": "3d5d719f304b6a7b045348817e7ba9a5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta30.wav",
+   "md5": "0beeabc5cde9f05c32f648f6d756425a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta60.wav",
+   "md5": "30e46e525d56fb4c926c1659d8ab7751",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta61.wav",
+   "md5": "e4a3b31c7251a6c7cce86427d3748446",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta62.wav",
+   "md5": "1f0d2eda85503b0ae7ba29dedcf6187a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta63.wav",
+   "md5": "14685ef7bd5247db4d62fb38e85eb5eb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta65.wav",
+   "md5": "45229e91405882ae4e6de85a9b061032",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "01sta66.wav",
+   "md5": "03e1c515d34a82d6815d0e26800b0f68",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02agc09.wav",
+   "md5": "e36ec2a6fb4447bb8b8d2f50c35200b4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc05.wav",
+   "md5": "5d756255c7369d577c1a86241f2fbb0e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc06.wav",
+   "md5": "d61fb9a5b0ba6cd97d5ecd7365827b16",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc07.wav",
+   "md5": "837537b95eda04114640a788a18915ab",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc10.wav",
+   "md5": "e78f9408bd8897935876156d092d66cd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc11.wav",
+   "md5": "7496333dfbe9b3490e770ea5220ae022",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc12.wav",
+   "md5": "0c18c2c2990ad3a296853bd7e7301fbc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc13.wav",
+   "md5": "54052f5849b6f8ea0d18d1bc3aade7a0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc14.wav",
+   "md5": "98a126a50a34bb32046b129125374d97",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc15.wav",
+   "md5": "55238d995f759769ac31a8098519504c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc16.wav",
+   "md5": "ddb159c1d732946652f129a19114611a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc17.wav",
+   "md5": "249c01965524ac11191ef4e570e51ba0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc19.wav",
+   "md5": "3a6a85303fce9cb5a588bc62ff1a2fa9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc20.wav",
+   "md5": "6aaf8618ab7edb29d3732cc1dd4ab8c6",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sgc21.wav",
+   "md5": "a4d52a329cb0b9051a14b00806f21534",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02ssk05.wav",
+   "md5": "48a39ebcddbe761a4db5dc45607c8bca",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02ssk06.wav",
+   "md5": "9b6892bb3addf2755668208fbd2ae1c7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta02.wav",
+   "md5": "888802285de36476279fe65a2a6b660a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta03.wav",
+   "md5": "eab8bcb79acc37f616b74bd29c2e7a52",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta04.wav",
+   "md5": "664e9045f643aa464236539c01a2377e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta06.wav",
+   "md5": "90c222a195ab05ff792bb23669d87560",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta07.wav",
+   "md5": "760f8a0c7ca38cbdc5a33e1f2a875034",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta08.wav",
+   "md5": "80a9354509c98c26dbbca6fa7e549659",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta09.wav",
+   "md5": "758da78c2fa59d100dfc4dfd96093f6c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta10.wav",
+   "md5": "0440ffa2da0c16fb9a3860ac29436495",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta11.wav",
+   "md5": "bc5c3440a740647426be87006bbf90a7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta12.wav",
+   "md5": "08a64921990bb9b01b2e78c295291d59",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta13.wav",
+   "md5": "b2adfc197ac706b99ee52d8d4730fab7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta14.wav",
+   "md5": "be4a3738cfa4b7c14c56289c208545fe",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta15.wav",
+   "md5": "be20a382377504304d46d11fa2c018c3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta16.wav",
+   "md5": "e223e934fbd4b56b80480d5f733b2cf5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta17.wav",
+   "md5": "24b901a5e769353b5860cb8730a98833",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta20.wav",
+   "md5": "47a25a8a6ef3b058ebfd92909394606e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta23.wav",
+   "md5": "e7242452d2e4e44ddc2d35b1b11e08de",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta24.wav",
+   "md5": "71e7e20e36848f48032a4ca73109df85",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta25.wav",
+   "md5": "17bd0b9872a34e40a4ac1a5fa7e1d3eb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta29.wav",
+   "md5": "4341b12caf9e94d8257a5cba469656c3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta30.wav",
+   "md5": "0d47e4b6831c5872821538bd92d28012",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta33.wav",
+   "md5": "235ab3cbe8d19abe3e6b41c4f8f69784",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "02sta35.wav",
+   "md5": "5a7fe374997c5ee1667e6f40177a3be2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sgc03.wav",
+   "md5": "65786a69f7290a7616aa0fb10b048364",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sgc04.wav",
+   "md5": "7f9f14733f246c586a96070d722b5a1c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sgc05.wav",
+   "md5": "41b075b7ca339e16d1f3d16e5b0a72cd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sta07.wav",
+   "md5": "ecd64da7abd1f02eb4a64e762ac78192",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sta08.wav",
+   "md5": "0db66c59659b00387d570145991cc7d2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sta09.wav",
+   "md5": "d4b1e729f16b6d01d86d84f507a0c3a8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sta10.wav",
+   "md5": "701e2acc01f0e2e6a922281907738c74",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sta11.wav",
+   "md5": "eb7ca173e97806c57c4b769a87579905",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "03sta13.wav",
+   "md5": "2d78058c2b1b50b87b358572ceee3f59",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgb01.wav",
+   "md5": "27835a0b4d4d348082f16e833be8cf86",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgb02.wav",
+   "md5": "d2111cc3b8f3855581e778c30db52dca",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc02.wav",
+   "md5": "5400d606477557a762902c493e448fdf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc03.wav",
+   "md5": "797086b1f96aa87c05e712d97f3b54d3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc04.wav",
+   "md5": "1194b82a33c466da05c3e8ddc0e2d8bc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc07.wav",
+   "md5": "eeae831659537344c90089af754d6db4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc08.wav",
+   "md5": "22b46dbc92a7601c3c97a78023de502f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc09.wav",
+   "md5": "4002cd9cdfd725008ac9a14b18f0a715",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04sgc10.wav",
+   "md5": "9d0ac379c4a56aabf0442ee2c879448d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa03.wav",
+   "md5": "c461be75022ca270e9e570f6da1c2bfa",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa04.wav",
+   "md5": "dd5d3d12581f360ff99f9240e10bc96e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa05.wav",
+   "md5": "278cd16f3d7b739f643bd830fd3bb530",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa06.wav",
+   "md5": "fe4ea0edda47cea51712640d6f5454bb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa07.wav",
+   "md5": "55d3d6686d5216456530fc651d1f8f23",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa08.wav",
+   "md5": "42ffdd7f6aa6687cc2a5d3652f0345bc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa09.wav",
+   "md5": "66bb74dba90d2affd78a0ff5e13ab25d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04spa10.wav",
+   "md5": "6b43b2fee5f93bb1dce7af81e196efa3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04srk01.wav",
+   "md5": "5d2dd5e10ad3b80c7e5826f381b14778",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04srk02.wav",
+   "md5": "4c7472e036c7a4be738fc565913d38f3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "04srk03.wav",
+   "md5": "01e3233984e10792b1f2237c2086df6f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sba01.wav",
+   "md5": "ca850e69d72ea80c7333b6c0242f3a8b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sba02.wav",
+   "md5": "8681b732a1c258c4cd3420db33d831be",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sba03.wav",
+   "md5": "f8c5972edf9233f008a0d0a4837dd7fe",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sdc01.wav",
+   "md5": "d29b8788071a0d9c7c8cf0c4b30d25b9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sdc02.wav",
+   "md5": "f369031202268f7508c69cc64757662b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc02.wav",
+   "md5": "6d15bfbc9f132fc115b3d61e2a6bd424",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc05.wav",
+   "md5": "a4b20f0d6f0afadbb14ee050e827a524",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc06.wav",
+   "md5": "d2f8dfcaf1c8445dbc2b7082f3d2126a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc07.wav",
+   "md5": "16dab921f781b574e9d07b88cc460c57",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc08.wav",
+   "md5": "65a27ef073d22bbc117e7a59741c55f3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc09.wav",
+   "md5": "ff5d895b002b6d92bde006dde8f4dd6b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc10.wav",
+   "md5": "e7ba0e4199c2fbe1e6ada12f20ff42b7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc11.wav",
+   "md5": "a2a2b422b55546e85a1d74de6da08e49",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc13.wav",
+   "md5": "9f903b8639a76da404bb5f1972721790",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sgc15.wav",
+   "md5": "3ca8e06e3c7fbb1d2f9fcbafdc69a23e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05ssk01.wav",
+   "md5": "847a54256cfa3cda46de08023d2333db",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05ssk02.wav",
+   "md5": "d7a9bde465c7594a4656616f8cfda433",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05ssk03.wav",
+   "md5": "710ba5f3169622c756c021ae602ffaa0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05ssk04.wav",
+   "md5": "b648f3d003c2721b61512a51ce6a17d4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05ssk05.wav",
+   "md5": "99d95a8b509dc7c7249669b056951b77",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05ssk06.wav",
+   "md5": "0fcef6c465c12f6b6fb8c4ab6e2800b0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sta03.wav",
+   "md5": "cd5cf3fca19ba696c9053ee2f6b97fee",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "05sta04.wav",
+   "md5": "56e5927f4dd8e3f0a3c57ec92f9dafab",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc05.wav",
+   "md5": "2aa058d443b04feb078ef4900fa48528",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc06.wav",
+   "md5": "0577942eb8e819a51b903374a19ea25f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc07.wav",
+   "md5": "be0533c7ed6b068da4a0ac0f7876bd5a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc09.wav",
+   "md5": "ab8aab751b0c03babbf6cae5d3619e1b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc14.wav",
+   "md5": "f7150bb2f9ffe0b2fed9dd0199955919",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc15.wav",
+   "md5": "21f35573bcbb3f6d5016e400c59947a3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc16.wav",
+   "md5": "f5f8f4e944576f55df58f6a9a2e5e160",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sgc17.wav",
+   "md5": "00942197a691d7fe7cf4426a986891a4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sin01.wav",
+   "md5": "979ab38dc059547fe2486d19e9c9821b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sin02.wav",
+   "md5": "bf179d5cdb6e90fdce52d5cfdd3ff798",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sin03.wav",
+   "md5": "d14da9a094233fa7135008439125f625",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sin04.wav",
+   "md5": "288643c073c086e24552533d5f167a47",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06sin05.wav",
+   "md5": "ffaf0c98547ac6e9798f97879c3027b5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06ssk05.wav",
+   "md5": "92f740b86cbec717ef6280c9bc408592",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "06ssk06.wav",
+   "md5": "24d60d8f73edf58f5ac8ff6dda0fee04",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc11.wav",
+   "md5": "38067198b6769c031bd6f97f3e8a7e0d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc14.wav",
+   "md5": "5df6790647cc94afba82c560770b9caa",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc15.wav",
+   "md5": "b3c2567af21dadc363a47297272b8904",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc16.wav",
+   "md5": "d05300f70fdf01ffd24873bf0c000446",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc17.wav",
+   "md5": "ee0e3d529b5a3c32a8309d9e5ab3fb7e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc18.wav",
+   "md5": "53cf01f571dc0f368abfc6df116af52a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc19.wav",
+   "md5": "40c41f067091dda4e4b2be9fdbe897fd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc20.wav",
+   "md5": "383ee729e5e61bc1c831ab80a01b24d7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc21.wav",
+   "md5": "278a572751cb946204aad4b33bed5299",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc22.wav",
+   "md5": "439a8627aa58cdd9711c8b90c7cc55d6",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc23.wav",
+   "md5": "cb5993a72e0f87311253366ae4a7fcb3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc24.wav",
+   "md5": "cdf0928bc055056434509c53c0cbec27",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc25.wav",
+   "md5": "c029ae92d218a148be0d6e13a9cbf487",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sgc26.wav",
+   "md5": "d7d5ae57554446f8f0cb2a2fde9198c8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07shf02.wav",
+   "md5": "35843f34847fa3f62f2ab15d0f7b9348",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07shf03.wav",
+   "md5": "203ec765752c3162930c165bf670a22c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07som01.wav",
+   "md5": "efad33e09cc50d6b7ab64d6e278f6023",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07som07.wav",
+   "md5": "4fcc2e15ff24ec74a3fe77ea23e946e4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sse01.wav",
+   "md5": "f660d4b821239ca63fc2ed45459edb08",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sse07.wav",
+   "md5": "6e5a440099d317250f42220434c21bed",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sse08.wav",
+   "md5": "7b82921177d608aec888381851e720af",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sse09.wav",
+   "md5": "61661fb9b9b1d54e3c37a94120146765",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sse10.wav",
+   "md5": "15ecb8cf8d9100880c3fa20b100c99e9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sta06.wav",
+   "md5": "1eba1a5099bbe852cacdb4e6c1b15bea",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sta10.wav",
+   "md5": "e0034b99835bcb2dbf0033cbf4760ed5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sta13.wav",
+   "md5": "31edf3a1850ba7ff9c15e490104e0829",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sta14.wav",
+   "md5": "ca19eaedd8b9326cae417da270c84b13",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "07sta15.wav",
+   "md5": "c4e4196bde3adfdb65d669d820abc0c5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc01.wav",
+   "md5": "21ffed11172e3cf2e007bab1b08d182e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc02.wav",
+   "md5": "a9b87f77bb74b228865a067b4704b960",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc03.wav",
+   "md5": "7ae65acef5f33b1bbc8f33c4702b0081",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc04.wav",
+   "md5": "e6c263e8f84f98700135d1d2db4dce88",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc05.wav",
+   "md5": "0e809021dbffa5c3f4ff4b75f87cf107",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc06.wav",
+   "md5": "ed3b93fc02c802776f640e29766b02dc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sgc07.wav",
+   "md5": "1166b8a18da4195e01497b44338f6d92",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sta02.wav",
+   "md5": "9a39431428363a60ca5df3fe6e81f606",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sta03.wav",
+   "md5": "5a457e61f62bb50b223f644f3ecdb55e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sta04.wav",
+   "md5": "4b5f36d679d80d07301957ee28be32a0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sta05.wav",
+   "md5": "4ea03f97ce7c88a3e51d539f94e655f9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sta06.wav",
+   "md5": "42724f7da5f8c1f3bd8f575960ec1dbf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "08sta07.wav",
+   "md5": "e7e0b60ce067b46bc18f01b6877b2c0f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sca01.wav",
+   "md5": "e4c532118894a2641735cbb8d44f2d8b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sca02.wav",
+   "md5": "58de0a1988187f032fb6afd03739f899",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sca03.wav",
+   "md5": "4895352f1cc0b37f7c5e9aee85cbbbea",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sca04.wav",
+   "md5": "cfbb2edf5662d01828469be8d59b2ff2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sca05.wav",
+   "md5": "c4ea3ac6d749db65f91eab489ff53693",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sca06.wav",
+   "md5": "22c47f434063b1ce2dbfa78e3e23d488",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sdc01.wav",
+   "md5": "795bdb891b2d1a534b6ea7a83d3fa707",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sdc02.wav",
+   "md5": "f5e1f0c968f0fadd17d6c953c369defc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sgc07.wav",
+   "md5": "37b96fe5b5a37ad6a1a87a9f09dc144c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sgc08.wav",
+   "md5": "3d142fced36569dd4baf323004983855",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sgc09.wav",
+   "md5": "165859dfa444247e5a57588f6554f996",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sta01.wav",
+   "md5": "f127a4bd753244623a1ad9c16272ed26",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "09sta02.wav",
+   "md5": "1ad6a8dac2bb19474036f3c538dd108f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sgc02.wav",
+   "md5": "495ee9dfa778a27f918f7af6e5454781",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sgc03.wav",
+   "md5": "35e13e7261930cdfc52966f778942a62",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sgc04.wav",
+   "md5": "8daea4a85c1f1f8ca3385f2dacebfa53",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sgc05.wav",
+   "md5": "113fee141b3cb56375f41e92007fb922",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sof01.wav",
+   "md5": "44d749ec28774d948409e8a2bc47ff98",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sof02.wav",
+   "md5": "ce4c100d75b081d43ae651f0c3d6fbd5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sof03.wav",
+   "md5": "ebede11499d9241bd6c0a1d898904446",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10ssn01.wav",
+   "md5": "bf59ef6e92dbc83c7c4cf9e1040fff45",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10ssn02.wav",
+   "md5": "b23fca89677eea4986cbef0329646810",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sta02.wav",
+   "md5": "9a376a49f245c6a456d741f4f6b0dd47",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sta03.wav",
+   "md5": "b82b9d62525ed030d3554dd21a405baf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sta04.wav",
+   "md5": "fd4fcc888f519a50ac4d8af456475904",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sta05.wav",
+   "md5": "9800a3374770c6cdd63d3bedaaf23ac8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sta06.wav",
+   "md5": "b322c27f06923fb6e7002bcbef234822",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "10sta07.wav",
+   "md5": "94bb0efb7f5cd356e887adca254df99f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "11sgc06.wav",
+   "md5": "8225b4abdb6d13c6bf8c2f16fa33c029",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "11sgc07.wav",
+   "md5": "c4c78056e7f7d2a85483c966e451016f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "11sta06.wav",
+   "md5": "e732c8181c809ac341475f22b6642939",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "11sta07.wav",
+   "md5": "1edebf2ecdbb10b93af9d7503e3c420b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "11sta08.wav",
+   "md5": "09a93595e81270e329c854eb5cce631e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sdc01.wav",
+   "md5": "103d240af8660f7e54c42b7ce0e984e7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc03.wav",
+   "md5": "25c8b7d3f2320afef69b581efa74feee",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc04.wav",
+   "md5": "7370f72c040e46e34794a572f77eebfb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc05.wav",
+   "md5": "a12eea3301c417670233ff3abd29bacd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc06.wav",
+   "md5": "a62f8c9925642ccd591bed3a6216c3ba",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc08.wav",
+   "md5": "954d33a67bdf2c65d2350beea4d47edb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc09.wav",
+   "md5": "b4d97c83e10abe18136135c188b1a15d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc11.wav",
+   "md5": "23f038adf2284cd489a006c7a6debd2c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc12.wav",
+   "md5": "e57a72abc996aaa8f39aead785d5fd49",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc13.wav",
+   "md5": "0f2d19b748c2a49cbe524625f5340590",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc14.wav",
+   "md5": "77217d9499020b9cdf2b4aa17778b8ab",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sgc15.wav",
+   "md5": "1b7e9d7c26789403ee59d115db3117f4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sns01.wav",
+   "md5": "b2a39e899fa25fa9f18c48ccaa81526c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sns02.wav",
+   "md5": "3688907368013eb6acf4007560692fb1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sns04.wav",
+   "md5": "3688907368013eb6acf4007560692fb1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sns05.wav",
+   "md5": "9876ce14e57c0d847c42c0510a6273c8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sok01.wav",
+   "md5": "e251f023039e86fee88396c3f19fa65c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sok02.wav",
+   "md5": "75a8fa03e71db5e9e13f598503ced9ee",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sok03.wav",
+   "md5": "341f4664d4a6ed319a77a6e1fbea8a76",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sta03.wav",
+   "md5": "f5a87db0a0a9f28bbdba7f47855f5c3f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sta04.wav",
+   "md5": "8f61f59671358bf1b7b88b8979ee8572",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sta05.wav",
+   "md5": "730f164bcc6abba4a3ab43451310f78d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sta06.wav",
+   "md5": "8ee1fac2c7858ce8b071da1bf68f0427",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "12sta07.wav",
+   "md5": "b0e36b2312c9118e2ddd1db959a6b2c1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sgc07.wav",
+   "md5": "782b5e8d5b47ba009b6e9070f81aa1e1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sgc09.wav",
+   "md5": "a2c51fe314bc8250d6937f26b9aae5dd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sgc10.wav",
+   "md5": "b604243083a7897420bb0be8dd837bd0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sgc11.wav",
+   "md5": "0a129fd85eacf67c0ed77d09b3380f1b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sgc13.wav",
+   "md5": "17a6041f0ff362b238ff321f5d166119",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sgc14.wav",
+   "md5": "1081d3db8cfa016c1d1eb3af1c24ae04",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sta06.wav",
+   "md5": "7d95dd7d4740757aa2bc392b01acd7f5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sta08.wav",
+   "md5": "8f960f44ffe61982b25035b5de813f15",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sta09.wav",
+   "md5": "018c1c7e28a39f7ec14813aa2652688a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sta12.wav",
+   "md5": "a8c0cb3b0712ef52e6f15ffc60d52149",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "13sta13.wav",
+   "md5": "5194925489a52e8a20b0d261d4d1da4e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sfu01.wav",
+   "md5": "9f62f0ab80ea814cbb2c08c5350122b8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sfu02.wav",
+   "md5": "35abb45a295a0623ebcccfb84be4b0a5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sfu03.wav",
+   "md5": "7edd97e44ad4e8025e98143bcbaa8145",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sfu04.wav",
+   "md5": "9a1fc3eb814bd5f8fcfc52a888783e2e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sgc03.wav",
+   "md5": "684e480e75517dca7262cab75a0ea00d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sgc04.wav",
+   "md5": "a30f9a5ceb19a57c3339942e579db67a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sgc05.wav",
+   "md5": "bec6a96368965fc0d283c59d6c71505e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sgc06.wav",
+   "md5": "9a317cab8ab38d485f371c9d69aa45bf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14ssk02.wav",
+   "md5": "d228e4c1ac159cd80963a1bb06d6ba64",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14ssk04.wav",
+   "md5": "5533ff45e0426ac01f07c669e14ca0ae",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta04.wav",
+   "md5": "7da8a3d87d694cec1036bad434fcf0dc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta05.wav",
+   "md5": "e37be8c2474483763f1ed7d34869026b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta06.wav",
+   "md5": "47119a75d5bc18deaf5e9cce252cab69",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta07.wav",
+   "md5": "54310363cb7cae5c80e58673bf6ab5ac",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta08.wav",
+   "md5": "4e2d932ab405f23e8c96bdae93741f6b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta09.wav",
+   "md5": "71864a1be4f070bbeeae4275a698fcf0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "14sta10.wav",
+   "md5": "6890d73712b6ae14413ef55db839f897",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "15sgc02.wav",
+   "md5": "2042c4fe3e739327b832aa65aeff5ed1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "15sgc04.wav",
+   "md5": "e6ab265a2f03c94a4afe26964ad4fa00",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "15sgc05.wav",
+   "md5": "2a924f2dbec6efef1d1e07b5ec261940",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "16sgc04.wav",
+   "md5": "7d4270f7bc6012bb7c5cc5624ca92d24",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "16sgc05.wav",
+   "md5": "72084929f327b4121796340b2f6eb2c0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "16sgc06.wav",
+   "md5": "9346cddc97d4d37355378f51f4bff0be",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "16sta06.wav",
+   "md5": "ddbf5e125ac873ad919a6b59ba4285bf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "16sta07.wav",
+   "md5": "c2950e0172c48aa1f95db9fdf9d8c1e0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam01.wav",
+   "md5": "ca9080bac90fe8fc083d9fd5f488def4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam02.wav",
+   "md5": "c9fec1f1346ef7e5310811efac6229a7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam03.wav",
+   "md5": "eafd11ad17ab4e2f61579a1b8a9b9bd2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam04.wav",
+   "md5": "aca1de7dae7a2d5773d6ff0a14b8de42",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam05.wav",
+   "md5": "416ed11b9627d99362da595dd9b4b84e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam06.wav",
+   "md5": "29b3f45c2c824718c09d64f6aa83bde4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sam07.wav",
+   "md5": "2303e295e43d0ef451588b63afc5f766",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17scl01.wav",
+   "md5": "8ce373e84f453e41703a85a30cc1dd4f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17scl02.wav",
+   "md5": "f24e080dbcbbd9c1d2750a7748d80240",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "17sgc02.wav",
+   "md5": "1ac9db4f70a990189287569a3efdf4e4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gadv.wav",
+   "md5": "93db2b3c88d68d36648f0a8e47517e1f",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gback.wav",
+   "md5": "41240cb89272a0de55b43ca52efe0c8b",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gdsgc01.wav",
+   "md5": "7cfcf50733fd4ce727c5597a713073d5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc02.wav",
+   "md5": "859d57e2d6f12d655b1c9255c6764642",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc03.wav",
+   "md5": "3084eda895c71fdf7e21bca1dff923c5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc04.wav",
+   "md5": "3d369f86b655bc0813160cce01bf676e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc05.wav",
+   "md5": "c7e0e3858b98ffc69457ca5f757526b4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc06.wav",
+   "md5": "6bf418e29c27bfc72d3de987a49477f9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc07.wav",
+   "md5": "cae42fb698027a2beac3224f94be2fc4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc08.wav",
+   "md5": "0750b966db99a7c8d9764df2382ca48d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc09.wav",
+   "md5": "ba87acd62f835e253c88130f3fde4402",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc10.wav",
+   "md5": "fbc51cdb484ae1a499af77552324f650",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc11.wav",
+   "md5": "3a1dfed9b2c9bf75b576813c3c1291a4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc12.wav",
+   "md5": "c4a8153d8036916e9f41c201f384122a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc13.wav",
+   "md5": "f939187641efffee42595e8d028eb3be",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc14.wav",
+   "md5": "3392ec0b4abe33e808df7c0ff08216e0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc15.wav",
+   "md5": "447bdd1f6ca148c846adaf77296e5fe3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc16.wav",
+   "md5": "c6f33ff9845172e49caa49a1416a8afe",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc17.wav",
+   "md5": "8e1b59e099ebad0f722e752b558af6ed",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc18.wav",
+   "md5": "42ad1bd622cae5b5fa4a378289eed4a7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc19.wav",
+   "md5": "3d5f2c74053d5ccb366f30bd679791ce",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc20.wav",
+   "md5": "d49bd021d6c813cc2a9e98650e193c01",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc21.wav",
+   "md5": "7bb8f56cfb80d37155bb2d168dbacf67",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc22.wav",
+   "md5": "c41a826079782e71eeff4649bc30e519",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc23.wav",
+   "md5": "7e19e921ecfdbf1024665057e8fe3c33",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc24.wav",
+   "md5": "6476ea6558022bd4fb57e93f44ca173d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc25.wav",
+   "md5": "26816878a1e7153d131ac9c8ea9368e3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc26.wav",
+   "md5": "fe0f37a1fd1bbe2a70c1ff3c83d4c39f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc28.wav",
+   "md5": "b6b92e46e5286d789275e6fa445a8b65",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc29.wav",
+   "md5": "9ad6ada798796ef37007f675511d6c3c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc32.wav",
+   "md5": "732834ca16e66080bbc7133363b64d63",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc33.wav",
+   "md5": "41ccf139e48bbdaee48809ce2ab9adf1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc34.wav",
+   "md5": "9b44b7671b935bd0e021dd00ebf08750",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc35.wav",
+   "md5": "7ff344a2c0fd1aacd1413524472b7c8a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc36.wav",
+   "md5": "8b6a62d2ee228c167e8e2bd150c32548",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc37.wav",
+   "md5": "2834e1d774b9d2c07478c456d0171245",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc40.wav",
+   "md5": "7fea8283f20a7308cd7d65921b97403a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc41.wav",
+   "md5": "9a68df26abfe08eadc890c37b8d7676d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc42.wav",
+   "md5": "63e24a8d143597758671d718b5e7bb1f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc43.wav",
+   "md5": "6ad49371252396f96e4e56b44de65beb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc44.wav",
+   "md5": "d65e94ee544f13acba7c34767df4ad87",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc45.wav",
+   "md5": "307b50c14df05be99941622a52cf1bbb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc46.wav",
+   "md5": "14495fccb665e4345bd4bf7bbbc480c9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc47.wav",
+   "md5": "181234f0346015c6124cbc6de54ecf60",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc48.wav",
+   "md5": "f6da09910fedd2bb3a7edebaa1188a6e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc49.wav",
+   "md5": "451e0d6955a3d7799e5c5b084b94b9ef",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc50.wav",
+   "md5": "0cd0ec7c9b49c6252a70d11a34753713",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc52.wav",
+   "md5": "67e2fcaf32b2c2e5d702907ee2d9cf22",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc53.wav",
+   "md5": "92d292033fc2e6e64f60adabb8ea38b0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc55.wav",
+   "md5": "dcd10fb7e62df73e430d2f2e1e181630",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc65.wav",
+   "md5": "aad920f148a03b031e8b44cc8e0af1f1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc67.wav",
+   "md5": "e2aa3d3031cffae0d995c7664a18366b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc68.wav",
+   "md5": "a398c70afc75cfed3a37759dc9e9d18e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc69.wav",
+   "md5": "0162dca135c43f9b568400ecbbba6e85",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc74.wav",
+   "md5": "967d1a6b85f9b679c4192facca24e002",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc75.wav",
+   "md5": "bf4e975fd58c2ce4ed1c92fabe07e032",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc77.wav",
+   "md5": "dc335b0dea75f535c85acbb6576b25cd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsgc78.wav",
+   "md5": "16111cb62249bed90f5b4686232dd4f1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge01.wav",
+   "md5": "b1148b974539f90e1c0ccc559cb16b2d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge02.wav",
+   "md5": "36ad662f31233728eae9730c95a93c28",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge03.wav",
+   "md5": "1f9d2fe45ac4a6aade4fb91713c05036",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge04.wav",
+   "md5": "96bd16766da15ae42ae9504b9832d2f4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge05.wav",
+   "md5": "847b181d40c57fc2704c7cdbe54758c2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge06.wav",
+   "md5": "16ec96a2302dc0d1827b90f5cc3e5697",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsge07.wav",
+   "md5": "611c4a10716c519686c4c770f255b9aa",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk01.wav",
+   "md5": "4fdb4868e7cd2abd7e913b55006d29d3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk02.wav",
+   "md5": "3bb51f75f3ad44e24298b41387646d78",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk03.wav",
+   "md5": "903a66ee4d595ab9c148c23c2569d3f4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk04.wav",
+   "md5": "4a5e2a24cb1a2c8455f1df2b7effdaa1",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk05.wav",
+   "md5": "3bfdd2b0cb9b43d34188148175efc01e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk06.wav",
+   "md5": "3b37b8e80730eb1232401ccb058548cf",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdssk07.wav",
+   "md5": "cb53ef1a5b4acb742417c4661cff92fc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta02.wav",
+   "md5": "9861ff5df4ef5d1f5885424534d731bc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta03.wav",
+   "md5": "d61fb7a61398ddc0300a5281b800ef5d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta05.wav",
+   "md5": "62fd2c213f0852f68e235b472af045f5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta06.wav",
+   "md5": "c28c6f6e2bac0df3508ba276e2612ead",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta07.wav",
+   "md5": "f1582c883e1273111126ce2b3692f609",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta08.wav",
+   "md5": "395a5f417f985326baa03587fb037072",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta09.wav",
+   "md5": "ed221c9fc65b41e65b7716b081d959a5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta10.wav",
+   "md5": "f4c1c0acad10947a4731905c87423386",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta12.wav",
+   "md5": "18196172f11f6598f57ecf1c8fed2581",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta13.wav",
+   "md5": "0d297f20ebdec392a8ff050f11efdbd3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta14.wav",
+   "md5": "f5ecdb80058e8d0d29e4e70b2d0179b0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta15.wav",
+   "md5": "6951fa5c1eb24dfb413dd752f60a7c17",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta16.wav",
+   "md5": "0dee6e220f1175fd65943668d537cb7e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta19.wav",
+   "md5": "342f00548e545aca5578eb46ec27a092",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta23.wav",
+   "md5": "01116e275c72a605ac1b4b91a7cf7748",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta24.wav",
+   "md5": "6dcbeaa3ab1827942625f322c11c164a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gdsta25.wav",
+   "md5": "64993f8d55ff1ada276890f8641f33c5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "gic.wav",
+   "md5": "fffaa2ed83fbb8d52a33db3a2aa51223",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gpage.wav",
+   "md5": "c0c64faf9f9fd0ace2697db22c3630b6",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gpencil.wav",
+   "md5": "956b84e795beb06410a362f290cf5e43",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gquit.wav",
+   "md5": "c639c999bbaad2f118347cb0dc03f369",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "grp.wav",
+   "md5": "d79c97aead7b616a59a93f8fe948018a",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gsml.wav",
+   "md5": "32aa530d651f3f5bccb9f7c0a4612e2e",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gsms.wav",
+   "md5": "8f046a0e944ad6f148c07924fd977042",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gsr.wav",
+   "md5": "f678a2fd335c8dd0295a93357a0af581",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gsws.wav",
+   "md5": "194524a9bc975a4c99a4afa81b544ebe",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "gtext.wav",
+   "md5": "cefc9d994766d609e5a910d14461d4c8",
+   "reason": "shell/map UI untouched in v1"
+  },
+  {
+   "file": "music.wav",
+   "md5": "4ce807736b688f64530a25ed341b254c",
+   "reason": "loose music.wav untouched (the GOG mp3 soundtrack plays through the music proxy)"
+  },
+  {
+   "file": "posta01.wav",
+   "md5": "8201faa52958ec099eca67f7f4052a05",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta02.wav",
+   "md5": "88523c9f04f41fdd9a30cab87fe6dc05",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta03.wav",
+   "md5": "f74578aeebf86812ea20fa2e45e848e8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta04.wav",
+   "md5": "0237bfc99f3b9052326b3cb055cad8e3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta05.wav",
+   "md5": "0c455a641b55b40c9fc33a547d05c444",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta06.wav",
+   "md5": "42d9adc1bd852317fef247c0252b0b7e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta07.wav",
+   "md5": "7c055293a1482b2f3ea9268767c203aa",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta08.wav",
+   "md5": "6f62b2f3d57f6c0b45b0d655b5323743",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta09.wav",
+   "md5": "f892cc44dfcea27e27a62a6ad8f944e6",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta10.wav",
+   "md5": "1ea8d56f9c2b1b7e344db35c2e3a19be",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta11.wav",
+   "md5": "7d39e89495f4412a86e47c32d6abdcab",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta12.wav",
+   "md5": "a0eace0a64ef88e2c84ad35343591cef",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta13.wav",
+   "md5": "79632e54df5d5965e6d135a12820313a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta14.wav",
+   "md5": "ac7620efdcc512ce4d8bef328554ee14",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "posta15.wav",
+   "md5": "24534aa9a83f7a5fd226c611c5594630",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sba01.wav",
+   "md5": "8366355beaa57ff80ef8b0f84fa88309",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sgc01.wav",
+   "md5": "f68751d2650445ff3a2d590956f56572",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sgc02.wav",
+   "md5": "4df0c4c82cbbf221188e2e1642f651fe",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sgc03.wav",
+   "md5": "99195edbcc28599ccbd29947e3a939c7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta01.wav",
+   "md5": "0ae1ea3b444e6de09d77e6eb408576ab",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta02.wav",
+   "md5": "cd1fc74a1796a4dce3210a77bcaf531f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta03.wav",
+   "md5": "00a7c07c4e4766a75e0f39c1596e6d03",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta04.wav",
+   "md5": "7455c135bf5002df7b6a3651dd5775cc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta05.wav",
+   "md5": "f2c28858d17e8aa6d8025b18d95ab98d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta06.wav",
+   "md5": "1c855e71ddae36f305ba4ecee616dcf5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta07.wav",
+   "md5": "853aef24284236459aa7869a7da648d8",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s1sta08.wav",
+   "md5": "c01463a4a1c5a94629fdccee4bea964f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sgc03.wav",
+   "md5": "4527906e0b54dd5765a1fc04bd2eec74",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sgc04.wav",
+   "md5": "ea61c57aeec1f7eb771685fa3a11afa9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2smg01.wav",
+   "md5": "51c6fde4b6f6d540609a36cfe7aef023",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2soc01.wav",
+   "md5": "ab6599766dbf4800f0ec827c20c1becd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2soc02.wav",
+   "md5": "fb78c96e6fd5f72da62ce574e419bdc5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sta01.wav",
+   "md5": "72f00022eed07803b6f02d4b9e023ce7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sta02.wav",
+   "md5": "2e2c7e814cec83183d5cee28b387ee78",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sta03.wav",
+   "md5": "1524a8cc4d6398f54a4c152cf0732ec9",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sta04.wav",
+   "md5": "eed8397138aa575e84f880cbaafc1506",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sta05.wav",
+   "md5": "46a4ff9dfdccb144422d02235e3360e6",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s2sta06.wav",
+   "md5": "d65a3f11578b3e221bf7a617f11bbee5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sbx01.wav",
+   "md5": "d8cd110a15293d72896dd43d0c7c6465",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sbx02.wav",
+   "md5": "4cd97f70dee3552c16101d33787381ba",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sgc01.wav",
+   "md5": "926d11e05a47688c0bd67b83d5c2e774",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sgc02.wav",
+   "md5": "0e6aad4d3e2590911350fbc976b408d7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sgc03.wav",
+   "md5": "edc896e6adab7b18a6937c6dbbe2391f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sta02.wav",
+   "md5": "2a452216d13b76a2a30404c32fdaabc2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sta03.wav",
+   "md5": "a13fff9b205bd16f7eeac5d592949855",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sta04.wav",
+   "md5": "ea1a48dc1a6200e382800efc76f03f9e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sta06.wav",
+   "md5": "2319078dc9ff5cde727d2e6d5fb6a630",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s3sta07.wav",
+   "md5": "8e0d290a62eface62fc2c24662dadeec",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sgc01.wav",
+   "md5": "192ac1daf3007fa13add0bab4bfeb196",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sgc02.wav",
+   "md5": "edd5f957acbc973cbe77fe9d7ef199b5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sgc03.wav",
+   "md5": "a6b64960cd3bdcc509d0f47dbcdab915",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sma01.wav",
+   "md5": "a4f3da7905a6d246e84d7d34742491be",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sma02.wav",
+   "md5": "a57258c55f43b0ff77c858661aa6003b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sma03.wav",
+   "md5": "9671b5e6d30c495e42288561231ca5ab",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sma04.wav",
+   "md5": "2053ad417514f5b98b118ce582dec95f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4snl01.wav",
+   "md5": "2826576af83cee1e3fc993139fc1b339",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sta01.wav",
+   "md5": "90f6c087fa2f2c12a76e149862c4c3ef",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sta02.wav",
+   "md5": "e4b97896bb184c058d43f4329feac3b5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sta03.wav",
+   "md5": "775ca26ed31b46752d37c33097cce90a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sta04.wav",
+   "md5": "169c212eae1c77fe38a113dd4b1f2ce7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s4sta05.wav",
+   "md5": "c13b6629e1c83b418f955f50d7102b41",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sbd01.wav",
+   "md5": "cc06b3b5e8816b43669d5d0fb7937173",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sbd02.wav",
+   "md5": "51e3d66cc0a2f43924c2a8732f0e221c",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5scd01.wav",
+   "md5": "37c46b80220a8415d5763cae8ea2de93",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5scd02.wav",
+   "md5": "2c2c4dfc06cb8b7fd9c1fd851ef2f5d5",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5scd03.wav",
+   "md5": "8d578a0a0e5405b06f29f304c75d34f7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sgc01.wav",
+   "md5": "085d827219bdd4d76202c3daa8ea1f07",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sgc02.wav",
+   "md5": "aebb125fa24b8c89be08f7cd62963fe6",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sgc03.wav",
+   "md5": "91a82e9f2465401612fe2e13bf3fe4aa",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sgc04.wav",
+   "md5": "0c1b68c4483bf1760aa411612252c8f3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sgc05.wav",
+   "md5": "5b1a76a58a36c0f5fefa9146db505867",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sgc06.wav",
+   "md5": "c66c9626b8e3ccc356c1efccc258ff1f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sps01.wav",
+   "md5": "f1218b4c41dff2e71729fa69c0ad4a02",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sps02.wav",
+   "md5": "6b0a2abef58f001afafc7bbb22fe4bbc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sta01.wav",
+   "md5": "574a0d9b503ee035c205c2e73a8095fb",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s5sta02.wav",
+   "md5": "bfdc2e9fc3ce14e17ec2885a95f6b3bd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s6sfz01.wav",
+   "md5": "c405002a3eb153b059f2172f024b02a2",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s6sgc01.wav",
+   "md5": "02b2d6f25aeb431ea40114c0efa9bbec",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s6sgc02.wav",
+   "md5": "1c7f7f38b65d105b7858c6e363567305",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s6sgc03.wav",
+   "md5": "9472f7753588b12c059331105b43f8bd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s6sgc05.wav",
+   "md5": "2ec36a16c840185665be3444edbf2acd",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s6sta01.wav",
+   "md5": "e03bf6a94cd0ce9cd824df1fe9f5d698",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s7sgc01.wav",
+   "md5": "0c1c8fd14af4705cd2675f3b6240da16",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s7sgc02.wav",
+   "md5": "183973301d359c854e4e4d8ce3ecc05e",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s7sgc03.wav",
+   "md5": "360f2ddbf130bdad888819c724f3944f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s7sgc04.wav",
+   "md5": "0a91cacb8e5139b411c4732af47bccb7",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s7sta01.wav",
+   "md5": "5a03497dea6d011f2b97ab0a8ae41160",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s8sgc01.wav",
+   "md5": "8cb5798c591bcf5ce7c232296e7f8913",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s8sgc02.wav",
+   "md5": "c5804f5cf4cf12a82e901b2d56c9d00b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "s8sn201.wav",
+   "md5": "4e404814bc09f4a5f18f7eb226e0595f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsgc01.wav",
+   "md5": "faef8def86ee08f4dfdf2708d30caa82",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsgc02.wav",
+   "md5": "d1f79294492cf74bc0f87b869cee3b23",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsgc03.wav",
+   "md5": "df03f5fb08fd3e0ff97f81863456073d",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsgc04.wav",
+   "md5": "3d4e25b87351b9cbe5396944a4512002",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc01.wav",
+   "md5": "20f5f6d6ad1f7d280b72aa9f9344af11",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc02.wav",
+   "md5": "274dbf629233c52ca74275999e96c9e3",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc03.wav",
+   "md5": "bf03bd4c61e76eec8542251e8c9557a4",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc04.wav",
+   "md5": "77180f08a040d61c8efc87fff2d9f83a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc05.wav",
+   "md5": "1fc45dbcbbad8fe907ae857b9e7388ee",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc06.wav",
+   "md5": "63f01b8f82ef9d7c10f13216fd6de1ad",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc07.wav",
+   "md5": "becf3213d3f866e6c06ecd4827142985",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc08.wav",
+   "md5": "1e0c43dc4ab33a91398392c82c297e89",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc09.wav",
+   "md5": "24722386513ee01812d4292cda32d0c0",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc10.wav",
+   "md5": "5c3c9f1de6f2aecbd4f4ae4066621d23",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc11.wav",
+   "md5": "d3cac49f71dbd689fca875b7cc7301ed",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc12.wav",
+   "md5": "ea5de178716328ad7f3aa431ba5634fa",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc13.wav",
+   "md5": "ff03e5c1878c6f34034615cb97a44f80",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc14.wav",
+   "md5": "8f9f42ff974ca9c9057bf31611d5314f",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc15.wav",
+   "md5": "d55ec75ffc23f162c7ec4cef9ffed329",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc16.wav",
+   "md5": "9d31975988d7d7a44485da6a30cd51dc",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc17.wav",
+   "md5": "c602fc146799278c17c0fe3bee2ba434",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc18.wav",
+   "md5": "6d150db77935e531b64194fa21a6e651",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc19.wav",
+   "md5": "740d7826787466d775ca6f8026ae3f9b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc20.wav",
+   "md5": "8caab5ebf0501aacfc9dcd9e7b45df2a",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc21.wav",
+   "md5": "a030b2dffe8ad800043c5d451cdd097b",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc22.wav",
+   "md5": "45c2cec7b7ba55ca2f60adaaa63bb731",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc23.wav",
+   "md5": "cea919af3ce87cf679267dbe507d41be",
+   "reason": "CB/dialogue untouched in v1"
+  },
+  {
+   "file": "tmsjc24.wav",
+   "md5": "c09eab52072e34cd9144aaf7af55274a",
+   "reason": "CB/dialogue untouched in v1"
+  }
+ ]
+}

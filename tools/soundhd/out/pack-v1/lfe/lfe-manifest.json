@@ -1,0 +1,1713 @@
+{
+ "pack_version": "sound-hd v1 (2026-10-10)",
+ "purpose": "LFE stems for the haptics host: look up the sound name of a SOUND_START event (lowercase, with or without extension) in `aliases`, play `file` to the shaker bus; loop while the voice lives when `loop` is true. Band 25-90 Hz, 16 kHz mono 16-bit, levels comparable across sounds.",
+ "key": "lowercase stem",
+ "rate": 16000,
+ "count": 85,
+ "sounds": {
+  "aheli": {
+   "file": "aheli.wav",
+   "md5": "d0951aa9d5f18f4d84e705fbabaa2fc7",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 19731,
+   "duration_s": 1.2332,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -12.24,
+   "aliases": [
+    "aheli",
+    "aheli.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "bnitro": {
+   "file": "bnitro.wav",
+   "md5": "f6e8ecc3cb28643b760f94592b0c9d37",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 64002,
+   "duration_s": 4.0001,
+   "loop": false,
+   "category": "nitro",
+   "peak_dbfs": -5.3,
+   "rms_dbfs": -22.0,
+   "aliases": [
+    "bnitro",
+    "bnitro.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "dblox": {
+   "file": "dblox.wav",
+   "md5": "11983c2e972b5b229ff90dd886b7bbce",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 17922,
+   "duration_s": 1.1201,
+   "loop": false,
+   "category": "dropper",
+   "peak_dbfs": -11.67,
+   "rms_dbfs": -24.06,
+   "aliases": [
+    "dblox",
+    "dblox.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "dcaltrop": {
+   "file": "dcaltrop.wav",
+   "md5": "eb79831a8851aa100a4702925e0e6452",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 9600,
+   "duration_s": 0.6,
+   "loop": false,
+   "category": "dropper",
+   "peak_dbfs": -10.86,
+   "rms_dbfs": -22.6,
+   "aliases": [
+    "dcaltrop",
+    "dcaltrop.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "derase": {
+   "file": "derase.wav",
+   "md5": "b85871ed542574b36840eef46dbbfea9",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 6048,
+   "duration_s": 0.378,
+   "loop": false,
+   "category": "dropper",
+   "peak_dbfs": -7.21,
+   "rms_dbfs": -17.57,
+   "aliases": [
+    "derase",
+    "derase.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "dfire": {
+   "file": "dfire.wav",
+   "md5": "762a5c2e61b80c47f25ae7dbfd85aff9",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 31657,
+   "duration_s": 1.9786,
+   "loop": false,
+   "category": "dropper",
+   "peak_dbfs": -10.99,
+   "rms_dbfs": -26.46,
+   "aliases": [
+    "dfire",
+    "dfire.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "dmines1": {
+   "file": "dmines1.wav",
+   "md5": "af137190185cf2ed67cbc611b6a59cc5",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 5179,
+   "duration_s": 0.3237,
+   "loop": false,
+   "category": "dropper",
+   "peak_dbfs": -4.57,
+   "rms_dbfs": -16.9,
+   "aliases": [
+    "dmines1",
+    "dmines1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "doil": {
+   "file": "doil.wav",
+   "md5": "3cf71cf7ffc436dcd7d4522df88f0345",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 24473,
+   "duration_s": 1.5296,
+   "loop": false,
+   "category": "dropper",
+   "peak_dbfs": -17.82,
+   "rms_dbfs": -28.79,
+   "aliases": [
+    "doil",
+    "doil.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eihp": {
+   "file": "eihp.wav",
+   "md5": "ed949cb0e06abf4e8247465963457ffd",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 15832,
+   "duration_s": 0.9895,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -11.22,
+   "rms_dbfs": -19.18,
+   "aliases": [
+    "eihp",
+    "eihp.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eimarx": {
+   "file": "eimarx.wav",
+   "md5": "acad990d8cb48c2285fb8dc9a7554db1",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 36291,
+   "duration_s": 2.2682,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -5.16,
+   "rms_dbfs": -11.61,
+   "aliases": [
+    "eimarx",
+    "eimarx.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "einp1": {
+   "file": "einp1.wav",
+   "md5": "f85cd4413e81360b1a90453236e2a705",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 15636,
+   "duration_s": 0.9772,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -17.07,
+   "rms_dbfs": -26.37,
+   "aliases": [
+    "einp1",
+    "einp1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eishp": {
+   "file": "eishp.wav",
+   "md5": "b6e781f038b27f9c39ef642f156d3661",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 33080,
+   "duration_s": 2.0675,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -11.25,
+   "rms_dbfs": -20.78,
+   "aliases": [
+    "eishp",
+    "eishp.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eisv": {
+   "file": "eisv.wav",
+   "md5": "b3b3bb56e5cd175580e4939d61570f1f",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 45948,
+   "duration_s": 2.8718,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -14.59,
+   "rms_dbfs": -24.13,
+   "aliases": [
+    "eisv",
+    "eisv.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eitank": {
+   "file": "eitank.wav",
+   "md5": "92f95a236fd2c3f245dadd989c37841e",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 67731,
+   "duration_s": 4.2332,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -3.48,
+   "rms_dbfs": -12.34,
+   "aliases": [
+    "eitank",
+    "eitank.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eshp1": {
+   "file": "eshp1.wav",
+   "md5": "34f9f9e29f98099d1109b404b66e32cc",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 36224,
+   "duration_s": 2.264,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -8.52,
+   "rms_dbfs": -22.29,
+   "aliases": [
+    "eshp1",
+    "eshp1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eshp2": {
+   "file": "eshp2.wav",
+   "md5": "351aea9b71b090cc58cabc50a5d155ed",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 75651,
+   "duration_s": 4.7282,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -1.66,
+   "rms_dbfs": -17.58,
+   "aliases": [
+    "eshp2",
+    "eshp2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "eshp3": {
+   "file": "eshp3.wav",
+   "md5": "6e89b84f132c201f2a3018c5755d99ce",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 160027,
+   "duration_s": 10.0017,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -3.65,
+   "rms_dbfs": -18.56,
+   "aliases": [
+    "eshp3",
+    "eshp3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esmarx": {
+   "file": "esmarx.wav",
+   "md5": "338ba45fe1684d6f9427722eb84dc125",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 38705,
+   "duration_s": 2.4191,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -6.99,
+   "rms_dbfs": -19.45,
+   "aliases": [
+    "esmarx",
+    "esmarx.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esnp1": {
+   "file": "esnp1.wav",
+   "md5": "479104b261216799c65c5644115b1214",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 27831,
+   "duration_s": 1.7394,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -13.53,
+   "rms_dbfs": -29.32,
+   "aliases": [
+    "esnp1",
+    "esnp1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esnp2": {
+   "file": "esnp2.wav",
+   "md5": "468ce366962c4fa563cd919d5515eef6",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 34701,
+   "duration_s": 2.1688,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -10.69,
+   "rms_dbfs": -25.14,
+   "aliases": [
+    "esnp2",
+    "esnp2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esnp3": {
+   "file": "esnp3.wav",
+   "md5": "279c670211de639a91157c1701a14493",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 148415,
+   "duration_s": 9.2759,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -13.84,
+   "rms_dbfs": -29.79,
+   "aliases": [
+    "esnp3",
+    "esnp3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esshp1": {
+   "file": "esshp1.wav",
+   "md5": "54abb57709544228ad30ce1cc8e40ff4",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 45372,
+   "duration_s": 2.8357,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -5.1,
+   "rms_dbfs": -20.75,
+   "aliases": [
+    "esshp1",
+    "esshp1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esshp2": {
+   "file": "esshp2.wav",
+   "md5": "00b21feceb2dbd8ace452a489cf6a6e4",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 43777,
+   "duration_s": 2.7361,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -10.94,
+   "aliases": [
+    "esshp2",
+    "esshp2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "esshp3": {
+   "file": "esshp3.wav",
+   "md5": "dee57798a92a8a86fc0323de00a985af",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 75809,
+   "duration_s": 4.7381,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -6.05,
+   "rms_dbfs": -19.82,
+   "aliases": [
+    "esshp3",
+    "esshp3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "essv": {
+   "file": "essv.wav",
+   "md5": "bc41dcedf9e02bdf63491979d537480e",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 61377,
+   "duration_s": 3.8361,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -6.25,
+   "rms_dbfs": -21.12,
+   "aliases": [
+    "essv",
+    "essv.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "estank": {
+   "file": "estank.wav",
+   "md5": "719ad371b8c6a90fd50dd8eaab7e7cbb",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 64143,
+   "duration_s": 4.0089,
+   "loop": false,
+   "category": "engine_start",
+   "peak_dbfs": -4.15,
+   "rms_dbfs": -20.7,
+   "aliases": [
+    "estank",
+    "estank.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "fdmg1": {
+   "file": "fdmg1.wav",
+   "md5": "d52aba99153b9df774aee0a7e32e06f8",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 18179,
+   "duration_s": 1.1362,
+   "loop": false,
+   "category": "damage",
+   "peak_dbfs": -9.83,
+   "rms_dbfs": -20.69,
+   "aliases": [
+    "fdmg1",
+    "fdmg1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "h45ch": {
+   "file": "h45ch.wav",
+   "md5": "a8a01f7cbd07d5fd3a259d4c8d38dbe9",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 14350,
+   "duration_s": 0.8969,
+   "loop": false,
+   "category": "handgun",
+   "peak_dbfs": -7.14,
+   "rms_dbfs": -21.33,
+   "aliases": [
+    "h45ch",
+    "h45ch.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "hssr1": {
+   "file": "hssr1.wav",
+   "md5": "c2d7acc7ff4fcb68ca01dcfd247b3a2b",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 5480,
+   "duration_s": 0.3425,
+   "loop": false,
+   "category": "handgun",
+   "peak_dbfs": -7.13,
+   "rms_dbfs": -19.74,
+   "aliases": [
+    "hssr1",
+    "hssr1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "hssr2": {
+   "file": "hssr2.wav",
+   "md5": "9ca4bf47f7cc0d57def0b45fc68ea007",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 7617,
+   "duration_s": 0.4761,
+   "loop": false,
+   "category": "handgun",
+   "peak_dbfs": -5.36,
+   "rms_dbfs": -19.48,
+   "aliases": [
+    "hssr2",
+    "hssr2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vballoon": {
+   "file": "vballoon.wav",
+   "md5": "65392299a172b374803f4656a72296c5",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 99035,
+   "duration_s": 6.1897,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -4.78,
+   "rms_dbfs": -22.88,
+   "aliases": [
+    "vballoon",
+    "vballoon.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vexplode": {
+   "file": "vexplode.wav",
+   "md5": "91e35175cf05b5d4cebc72f089656f38",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 76439,
+   "duration_s": 4.7774,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -13.76,
+   "aliases": [
+    "vexplode",
+    "vexplode.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vland": {
+   "file": "vland.wav",
+   "md5": "99905ca505317589452a52c9c00e3866",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 10481,
+   "duration_s": 0.6551,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -14.56,
+   "aliases": [
+    "vland",
+    "vland.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vlanding": {
+   "file": "vlanding.wav",
+   "md5": "11d740e8c1a24d9a6f6f317f36706b8e",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 23495,
+   "duration_s": 1.4684,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -8.28,
+   "rms_dbfs": -23.9,
+   "aliases": [
+    "vlanding",
+    "vlanding.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vnvco3": {
+   "file": "vnvco3.wav",
+   "md5": "19e226bd70921ce6837c2fcc261669d7",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 6177,
+   "duration_s": 0.3861,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -2.36,
+   "rms_dbfs": -13.25,
+   "aliases": [
+    "vnvco3",
+    "vnvco3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vnvcs1": {
+   "file": "vnvcs1.wav",
+   "md5": "86c33d8504e7763d8cffadc04e58ba1f",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 24386,
+   "duration_s": 1.5241,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -8.91,
+   "rms_dbfs": -24.1,
+   "aliases": [
+    "vnvcs1",
+    "vnvcs1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vnvcs3": {
+   "file": "vnvcs3.wav",
+   "md5": "a66001dac1c6adc41c63103765d6f638",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 53482,
+   "duration_s": 3.3426,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -4.77,
+   "rms_dbfs": -22.33,
+   "aliases": [
+    "vnvcs3",
+    "vnvcs3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vnvcs5": {
+   "file": "vnvcs5.wav",
+   "md5": "93c1833df7f224043a62084c47c06262",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 41677,
+   "duration_s": 2.6048,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -8.27,
+   "rms_dbfs": -21.52,
+   "aliases": [
+    "vnvcs5",
+    "vnvcs5.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vshif1a": {
+   "file": "vshif1a.wav",
+   "md5": "5cb5e41b1bf74d178b3899a0b240d60b",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 11610,
+   "duration_s": 0.7256,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -11.1,
+   "rms_dbfs": -25.07,
+   "aliases": [
+    "vshif1a",
+    "vshif1a.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vtcoll": {
+   "file": "vtcoll.wav",
+   "md5": "bf391bbad667d29612e0bbfb37ffa48c",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 20952,
+   "duration_s": 1.3095,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -2.21,
+   "rms_dbfs": -15.26,
+   "aliases": [
+    "vtcoll",
+    "vtcoll.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vufo": {
+   "file": "vufo.wav",
+   "md5": "325d8c5bed742bbcff5a46223713e587",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 28838,
+   "duration_s": 1.8024,
+   "loop": true,
+   "category": "engine_loop",
+   "peak_dbfs": -13.98,
+   "rms_dbfs": -21.67,
+   "aliases": [
+    "vufo",
+    "vufo.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vvbo1": {
+   "file": "vvbo1.wav",
+   "md5": "c4339c952f13bcb329738383324d8509",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 22430,
+   "duration_s": 1.4019,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -1.89,
+   "rms_dbfs": -17.72,
+   "aliases": [
+    "vvbo1",
+    "vvbo1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vvcbb3": {
+   "file": "vvcbb3.wav",
+   "md5": "a24b201ff7132dddd18d6bfb59c93556",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 16016,
+   "duration_s": 1.001,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -2.4,
+   "rms_dbfs": -15.84,
+   "aliases": [
+    "vvcbb3",
+    "vvcbb3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vvch2": {
+   "file": "vvch2.wav",
+   "md5": "1dab8c845995483cebe78e1445df37eb",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 24559,
+   "duration_s": 1.5349,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -4.41,
+   "rms_dbfs": -17.11,
+   "aliases": [
+    "vvch2",
+    "vvch2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vvcre2": {
+   "file": "vvcre2.wav",
+   "md5": "40d8d2489952870bacc8057bc552e826",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 22093,
+   "duration_s": 1.3808,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -5.18,
+   "rms_dbfs": -18.45,
+   "aliases": [
+    "vvcre2",
+    "vvcre2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "vvcre3": {
+   "file": "vvcre3.wav",
+   "md5": "56cd209b30a925fca8ea542b3f7ac305",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 22422,
+   "duration_s": 1.4014,
+   "loop": false,
+   "category": "vehicle_collision",
+   "peak_dbfs": -4.59,
+   "rms_dbfs": -15.29,
+   "aliases": [
+    "vvcre3",
+    "vvcre3.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wbalflam": {
+   "file": "wbalflam.wav",
+   "md5": "18376cf702a2b263584a8cef196b00ef",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 15047,
+   "duration_s": 0.9404,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -4.85,
+   "rms_dbfs": -15.68,
+   "aliases": [
+    "wbalflam",
+    "wbalflam.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wcbl": {
+   "file": "wcbl.wav",
+   "md5": "3e2068ddf72cd39bcd9c774c26a52d5b",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 9201,
+   "duration_s": 0.5751,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -9.5,
+   "rms_dbfs": -20.31,
+   "aliases": [
+    "wcbl",
+    "wcbl.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wchem": {
+   "file": "wchem.wav",
+   "md5": "3c37f1cd6a7e08fd2c8407fdf33b8c77",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 8889,
+   "duration_s": 0.5556,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.55,
+   "rms_dbfs": -17.48,
+   "aliases": [
+    "wchem",
+    "wchem.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wcherub": {
+   "file": "wcherub.wav",
+   "md5": "8518dba8fc5554109899c29159fe87f2",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 42069,
+   "duration_s": 2.6293,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.54,
+   "rms_dbfs": -15.9,
+   "aliases": [
+    "wcherub",
+    "wcherub.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wclick": {
+   "file": "wclick.wav",
+   "md5": "1aca63e1b0d3dfc046605363b8cb3387",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 1579,
+   "duration_s": 0.0987,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -21.56,
+   "rms_dbfs": -29.06,
+   "aliases": [
+    "wclick",
+    "wclick.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wcvr": {
+   "file": "wcvr.wav",
+   "md5": "c1da97f9c8b3f6a47dbab9b2d4eb628e",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 10748,
+   "duration_s": 0.6717,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -4.49,
+   "rms_dbfs": -18.02,
+   "aliases": [
+    "wcvr",
+    "wcvr.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wezk": {
+   "file": "wezk.wav",
+   "md5": "44608c7d799969e4d6629f5cb284b56d",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 9933,
+   "duration_s": 0.6208,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -6.61,
+   "rms_dbfs": -18.25,
+   "aliases": [
+    "wezk",
+    "wezk.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wgl": {
+   "file": "wgl.wav",
+   "md5": "29efb1bf2b30af85bc793a2d4794aa08",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 8293,
+   "duration_s": 0.5183,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -5.28,
+   "rms_dbfs": -16.87,
+   "aliases": [
+    "wgl",
+    "wgl.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "whades": {
+   "file": "whades.wav",
+   "md5": "8f3c1725cf71ada8ba6592554a95c9d3",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 14075,
+   "duration_s": 0.8797,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -4.4,
+   "rms_dbfs": -15.56,
+   "aliases": [
+    "whades",
+    "whades.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "whcan": {
+   "file": "whcan.wav",
+   "md5": "518297a49da751fbf22e638f3a41c37b",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 5646,
+   "duration_s": 0.3529,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -1.25,
+   "rms_dbfs": -9.37,
+   "aliases": [
+    "whcan",
+    "whcan.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "whflame": {
+   "file": "whflame.wav",
+   "md5": "966b17c8b1bfc8f901c7df6d7dc8053f",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 46392,
+   "duration_s": 2.8995,
+   "loop": true,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.84,
+   "rms_dbfs": -13.3,
+   "aliases": [
+    "whflame",
+    "whflame.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "whmgun": {
+   "file": "whmgun.wav",
+   "md5": "89c52617f2376518ca7dd8d013a67d0b",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 10032,
+   "duration_s": 0.627,
+   "loop": true,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.23,
+   "rms_dbfs": -11.25,
+   "aliases": [
+    "whmgun",
+    "whmgun.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "whowitz": {
+   "file": "whowitz.wav",
+   "md5": "ae96a3818e643ab668632df68e744daa",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 28689,
+   "duration_s": 1.7931,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.35,
+   "rms_dbfs": -13.57,
+   "aliases": [
+    "whowitz",
+    "whowitz.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "whsm": {
+   "file": "whsm.wav",
+   "md5": "1b51a780a47bf26a70435dfd3225f5ec",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 31681,
+   "duration_s": 1.9801,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -1.72,
+   "rms_dbfs": -17.46,
+   "aliases": [
+    "whsm",
+    "whsm.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wlcan": {
+   "file": "wlcan.wav",
+   "md5": "aba44c76708ca0ad3348306951968257",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 5470,
+   "duration_s": 0.3419,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -9.51,
+   "aliases": [
+    "wlcan",
+    "wlcan.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wlflame": {
+   "file": "wlflame.wav",
+   "md5": "456086e736bc5b2b946c644c91e65475",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 48048,
+   "duration_s": 3.003,
+   "loop": true,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.66,
+   "rms_dbfs": -14.97,
+   "aliases": [
+    "wlflame",
+    "wlflame.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wlmgun": {
+   "file": "wlmgun.wav",
+   "md5": "404724d87712d7c80facfdef539e8d83",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 21026,
+   "duration_s": 1.3141,
+   "loop": true,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.72,
+   "rms_dbfs": -11.26,
+   "aliases": [
+    "wlmgun",
+    "wlmgun.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wmcan": {
+   "file": "wmcan.wav",
+   "md5": "7fab8134f5ee8edcc822222f78a74403",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 7085,
+   "duration_s": 0.4428,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.83,
+   "rms_dbfs": -11.55,
+   "aliases": [
+    "wmcan",
+    "wmcan.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wmflame": {
+   "file": "wmflame.wav",
+   "md5": "8c48bc624ec2b7d9a93b0b1e7221247d",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 47514,
+   "duration_s": 2.9696,
+   "loop": true,
+   "category": "weapon_fire",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -10.53,
+   "aliases": [
+    "wmflame",
+    "wmflame.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wmgr1": {
+   "file": "wmgr1.wav",
+   "md5": "1829b18c8838353c765bab0bac94920a",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 6202,
+   "duration_s": 0.3876,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -7.15,
+   "rms_dbfs": -18.44,
+   "aliases": [
+    "wmgr1",
+    "wmgr1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wmgr2": {
+   "file": "wmgr2.wav",
+   "md5": "5c70b42842dd4bc53396886698c9963c",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 17035,
+   "duration_s": 1.0647,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -29.06,
+   "rms_dbfs": -43.23,
+   "aliases": [
+    "wmgr2",
+    "wmgr2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wmiss": {
+   "file": "wmiss.wav",
+   "md5": "e38c63776a109aa32f4858d7b8f21cdd",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 21245,
+   "duration_s": 1.3278,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -14.21,
+   "rms_dbfs": -24.06,
+   "aliases": [
+    "wmiss",
+    "wmiss.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wmmgun": {
+   "file": "wmmgun.wav",
+   "md5": "19dcb0a9cf10c424ff7fc362748a3399",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 32160,
+   "duration_s": 2.01,
+   "loop": true,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.08,
+   "rms_dbfs": -13.48,
+   "aliases": [
+    "wmmgun",
+    "wmmgun.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wrhm": {
+   "file": "wrhm.wav",
+   "md5": "0f859bef133059aa878df0425d0fcbb9",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 59507,
+   "duration_s": 3.7192,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -3.32,
+   "rms_dbfs": -21.43,
+   "aliases": [
+    "wrhm",
+    "wrhm.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wrock": {
+   "file": "wrock.wav",
+   "md5": "29232f6097b8661398fe45919fcdb31d",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 34510,
+   "duration_s": 2.1569,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -15.92,
+   "rms_dbfs": -28.73,
+   "aliases": [
+    "wrock",
+    "wrock.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wtank": {
+   "file": "wtank.wav",
+   "md5": "6fdfc2ca67df942825f1952be1d02436",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 28689,
+   "duration_s": 1.7931,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -2.35,
+   "rms_dbfs": -13.57,
+   "aliases": [
+    "wtank",
+    "wtank.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "wwpgl": {
+   "file": "wwpgl.wav",
+   "md5": "f2b5f6864b677285e32985b79f6bb850",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 8293,
+   "duration_s": 0.5183,
+   "loop": false,
+   "category": "weapon_fire",
+   "peak_dbfs": -7.07,
+   "rms_dbfs": -18.97,
+   "aliases": [
+    "wwpgl",
+    "wwpgl.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xbridge": {
+   "file": "xbridge.wav",
+   "md5": "14b0e56e1fe69a0047cfcc91fb9b1fb7",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 34320,
+   "duration_s": 2.145,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -11.21,
+   "aliases": [
+    "xbridge",
+    "xbridge.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xbuild": {
+   "file": "xbuild.wav",
+   "md5": "2951581ed52c67ea3923d5306d451ff0",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 58949,
+   "duration_s": 3.6843,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -15.17,
+   "aliases": [
+    "xbuild",
+    "xbuild.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xcar": {
+   "file": "xcar.wav",
+   "md5": "628a0dd8489be01e13ce5aba6e640b12",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 76439,
+   "duration_s": 4.7774,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -13.76,
+   "aliases": [
+    "xcar",
+    "xcar.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xemt1": {
+   "file": "xemt1.wav",
+   "md5": "ad7149a5eed15c41fcd9e39d178ae17b",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 32982,
+   "duration_s": 2.0614,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.78,
+   "rms_dbfs": -13.99,
+   "aliases": [
+    "xemt1",
+    "xemt1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xemt2": {
+   "file": "xemt2.wav",
+   "md5": "eee7b9a95c06241bc28e192570ba0b46",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 40389,
+   "duration_s": 2.5243,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -10.1,
+   "aliases": [
+    "xemt2",
+    "xemt2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xfire1": {
+   "file": "xfire1.wav",
+   "md5": "3b3832f01c39618079c9074da273ddd5",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 35511,
+   "duration_s": 2.2194,
+   "loop": true,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.55,
+   "rms_dbfs": -11.76,
+   "aliases": [
+    "xfire1",
+    "xfire1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xgas": {
+   "file": "xgas.wav",
+   "md5": "3107c594b7b0d1a17bb834794d6d08b8",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 36144,
+   "duration_s": 2.259,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -10.45,
+   "aliases": [
+    "xgas",
+    "xgas.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xms2": {
+   "file": "xms2.wav",
+   "md5": "fd42511a696df867e8f2aaacaa5e9e46",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 20547,
+   "duration_s": 1.2842,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -3.91,
+   "rms_dbfs": -15.17,
+   "aliases": [
+    "xms2",
+    "xms2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xmv1": {
+   "file": "xmv1.wav",
+   "md5": "9f3ea06cd2dbc396ceb19ee7db8581fc",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 37415,
+   "duration_s": 2.3384,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -12.6,
+   "aliases": [
+    "xmv1",
+    "xmv1.gpw",
+    "xmv1.wav"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xmv2": {
+   "file": "xmv2.wav",
+   "md5": "f9f3803d936d5df18cb00b2a339d2ca3",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 34517,
+   "duration_s": 2.1573,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.26,
+   "rms_dbfs": -12.12,
+   "aliases": [
+    "xmv2",
+    "xmv2.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xsv1": {
+   "file": "xsv1.wav",
+   "md5": "6dbbbfd90f673d9ba572eb09c44377ab",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 20988,
+   "duration_s": 1.3117,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -1.02,
+   "rms_dbfs": -13.87,
+   "aliases": [
+    "xsv1",
+    "xsv1.gpw"
+   ],
+   "suggested_gain": 1.0
+  },
+  "xsv2": {
+   "file": "xsv2.wav",
+   "md5": "dec6ec8667b90d49d193dbf22fa70877",
+   "rate": 16000,
+   "bits": 16,
+   "channels": 1,
+   "samples": 25603,
+   "duration_s": 1.6002,
+   "loop": false,
+   "category": "explosion_impact",
+   "peak_dbfs": -2.72,
+   "rms_dbfs": -15.89,
+   "aliases": [
+    "xsv2",
+    "xsv2.gpw"
+   ],
+   "suggested_gain": 1.0
+  }
+ },
+ "by_alias": {
+  "aheli": "aheli",
+  "aheli.gpw": "aheli",
+  "bnitro": "bnitro",
+  "bnitro.gpw": "bnitro",
+  "dblox": "dblox",
+  "dblox.gpw": "dblox",
+  "dcaltrop": "dcaltrop",
+  "dcaltrop.gpw": "dcaltrop",
+  "derase": "derase",
+  "derase.gpw": "derase",
+  "dfire": "dfire",
+  "dfire.gpw": "dfire",
+  "dmines1": "dmines1",
+  "dmines1.gpw": "dmines1",
+  "doil": "doil",
+  "doil.gpw": "doil",
+  "eihp": "eihp",
+  "eihp.gpw": "eihp",
+  "eimarx": "eimarx",
+  "eimarx.gpw": "eimarx",
+  "einp1": "einp1",
+  "einp1.gpw": "einp1",
+  "eishp": "eishp",
+  "eishp.gpw": "eishp",
+  "eisv": "eisv",
+  "eisv.gpw": "eisv",
+  "eitank": "eitank",
+  "eitank.gpw": "eitank",
+  "eshp1": "eshp1",
+  "eshp1.gpw": "eshp1",
+  "eshp2": "eshp2",
+  "eshp2.gpw": "eshp2",
+  "eshp3": "eshp3",
+  "eshp3.gpw": "eshp3",
+  "esmarx": "esmarx",
+  "esmarx.gpw": "esmarx",
+  "esnp1": "esnp1",
+  "esnp1.gpw": "esnp1",
+  "esnp2": "esnp2",
+  "esnp2.gpw": "esnp2",
+  "esnp3": "esnp3",
+  "esnp3.gpw": "esnp3",
+  "esshp1": "esshp1",
+  "esshp1.gpw": "esshp1",
+  "esshp2": "esshp2",
+  "esshp2.gpw": "esshp2",
+  "esshp3": "esshp3",
+  "esshp3.gpw": "esshp3",
+  "essv": "essv",
+  "essv.gpw": "essv",
+  "estank": "estank",
+  "estank.gpw": "estank",
+  "fdmg1": "fdmg1",
+  "fdmg1.gpw": "fdmg1",
+  "h45ch": "h45ch",
+  "h45ch.gpw": "h45ch",
+  "hssr1": "hssr1",
+  "hssr1.gpw": "hssr1",
+  "hssr2": "hssr2",
+  "hssr2.gpw": "hssr2",
+  "vballoon": "vballoon",
+  "vballoon.gpw": "vballoon",
+  "vexplode": "vexplode",
+  "vexplode.gpw": "vexplode",
+  "vland": "vland",
+  "vland.gpw": "vland",
+  "vlanding": "vlanding",
+  "vlanding.gpw": "vlanding",
+  "vnvco3": "vnvco3",
+  "vnvco3.gpw": "vnvco3",
+  "vnvcs1": "vnvcs1",
+  "vnvcs1.gpw": "vnvcs1",
+  "vnvcs3": "vnvcs3",
+  "vnvcs3.gpw": "vnvcs3",
+  "vnvcs5": "vnvcs5",
+  "vnvcs5.gpw": "vnvcs5",
+  "vshif1a": "vshif1a",
+  "vshif1a.gpw": "vshif1a",
+  "vtcoll": "vtcoll",
+  "vtcoll.gpw": "vtcoll",
+  "vufo": "vufo",
+  "vufo.gpw": "vufo",
+  "vvbo1": "vvbo1",
+  "vvbo1.gpw": "vvbo1",
+  "vvcbb3": "vvcbb3",
+  "vvcbb3.gpw": "vvcbb3",
+  "vvch2": "vvch2",
+  "vvch2.gpw": "vvch2",
+  "vvcre2": "vvcre2",
+  "vvcre2.gpw": "vvcre2",
+  "vvcre3": "vvcre3",
+  "vvcre3.gpw": "vvcre3",
+  "wbalflam": "wbalflam",
+  "wbalflam.gpw": "wbalflam",
+  "wcbl": "wcbl",
+  "wcbl.gpw": "wcbl",
+  "wchem": "wchem",
+  "wchem.gpw": "wchem",
+  "wcherub": "wcherub",
+  "wcherub.gpw": "wcherub",
+  "wclick": "wclick",
+  "wclick.gpw": "wclick",
+  "wcvr": "wcvr",
+  "wcvr.gpw": "wcvr",
+  "wezk": "wezk",
+  "wezk.gpw": "wezk",
+  "wgl": "wgl",
+  "wgl.gpw": "wgl",
+  "whades": "whades",
+  "whades.gpw": "whades",
+  "whcan": "whcan",
+  "whcan.gpw": "whcan",
+  "whflame": "whflame",
+  "whflame.gpw": "whflame",
+  "whmgun": "whmgun",
+  "whmgun.gpw": "whmgun",
+  "whowitz": "whowitz",
+  "whowitz.gpw": "whowitz",
+  "whsm": "whsm",
+  "whsm.gpw": "whsm",
+  "wlcan": "wlcan",
+  "wlcan.gpw": "wlcan",
+  "wlflame": "wlflame",
+  "wlflame.gpw": "wlflame",
+  "wlmgun": "wlmgun",
+  "wlmgun.gpw": "wlmgun",
+  "wmcan": "wmcan",
+  "wmcan.gpw": "wmcan",
+  "wmflame": "wmflame",
+  "wmflame.gpw": "wmflame",
+  "wmgr1": "wmgr1",
+  "wmgr1.gpw": "wmgr1",
+  "wmgr2": "wmgr2",
+  "wmgr2.gpw": "wmgr2",
+  "wmiss": "wmiss",
+  "wmiss.gpw": "wmiss",
+  "wmmgun": "wmmgun",
+  "wmmgun.gpw": "wmmgun",
+  "wrhm": "wrhm",
+  "wrhm.gpw": "wrhm",
+  "wrock": "wrock",
+  "wrock.gpw": "wrock",
+  "wtank": "wtank",
+  "wtank.gpw": "wtank",
+  "wwpgl": "wwpgl",
+  "wwpgl.gpw": "wwpgl",
+  "xbridge": "xbridge",
+  "xbridge.gpw": "xbridge",
+  "xbuild": "xbuild",
+  "xbuild.gpw": "xbuild",
+  "xcar": "xcar",
+  "xcar.gpw": "xcar",
+  "xemt1": "xemt1",
+  "xemt1.gpw": "xemt1",
+  "xemt2": "xemt2",
+  "xemt2.gpw": "xemt2",
+  "xfire1": "xfire1",
+  "xfire1.gpw": "xfire1",
+  "xgas": "xgas",
+  "xgas.gpw": "xgas",
+  "xms2": "xms2",
+  "xms2.gpw": "xms2",
+  "xmv1": "xmv1",
+  "xmv1.gpw": "xmv1",
+  "xmv1.wav": "xmv1",
+  "xmv2": "xmv2",
+  "xmv2.gpw": "xmv2",
+  "xsv1": "xsv1",
+  "xsv1.gpw": "xsv1",
+  "xsv2": "xsv2",
+  "xsv2.gpw": "xsv2"
+ }
+}

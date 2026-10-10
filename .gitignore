@@ -109,3 +109,18 @@ diff-*.tsv
 tools/trainer/waypoints.json
 # i76tel v3 side builds (never over the committed Strlkup.dll)
 music-fix/out/
+# HD sound pack (tools/soundhd): venv, extracted stock audio and rendered audio are local only (game-derived
+# audio is never committed). The manifest, recipes and report index are committed.
+tools/soundhd/.venv/
+tools/soundhd/out/**
+!tools/soundhd/out/
+!tools/soundhd/out/pack-v1/
+!tools/soundhd/out/pack-v1/manifest.json
+!tools/soundhd/out/pack-v1/check-results.json
+!tools/soundhd/out/pack-v1/recipes/
+!tools/soundhd/out/pack-v1/recipes/**
+!tools/soundhd/out/pack-v1/report/
+!tools/soundhd/out/pack-v1/report/index.html
+!tools/soundhd/out/pack-v1/lfe/
+!tools/soundhd/out/pack-v1/lfe/lfe-manifest.json
+tools/soundhd/__pycache__/

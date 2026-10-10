@@ -1,0 +1,21 @@
+# Per-sound recipe overrides for soundhd.py recipe (merged over the category defaults in soundhd.py
+# CATEGORY_RECIPES; `recipe` reads THIS file and copies it into <pack>\recipes\overrides.toml as a record).
+# Keys are lowercase stems; `harmonics_db = false` turns harmonics off (TOML has no null). Example:
+#
+# [sound.vexplode]
+# harmonics_db = -12.0
+# sub = { method = "transient", level_db = -8.0, band = [30, 90], tau_s = 0.4, sweep_s = 0.4 }
+#
+# [sound.eimarx]
+# sub = { level_db = -12.0 }
+
+[sound]
+
+# vskid.gpw: named v* so the survey files it under vehicle_collision, but it is a 3.3 s mode-1 skid LOOP
+# (22,050 Hz stock, DC -0.07). Skids get no sub (design 3.2 tyre row); the transient detector would put
+# sub drops on the skid's grain.
+[sound.vskid]
+sub = { method = "none" }
+harmonics_db = false
+lfe = false
+why = "skid loop filed under vehicle_collision by name: treated like tyre_surface (clean 16-bit, no sub)"
