@@ -41,7 +41,7 @@ switch ($cmd) {
         & $testExe @rest
         $csharp = $LASTEXITCODE
         Write-Host "--- Python design tests ---" -ForegroundColor Cyan
-        & python -I (Join-Path $here 'design\test_design.py')
+        & python (Join-Path $here 'design\test_design.py')
         $py = $LASTEXITCODE
         Write-Host ("C# tests exit {0}, Python tests exit {1}" -f $csharp, $py)
         if ($csharp -ne 0 -or $py -ne 0) { exit 1 }

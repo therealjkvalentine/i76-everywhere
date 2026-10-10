@@ -56,5 +56,5 @@
       "action": 0
     }
   },
-  "notes": "i76tel v3 WEAPON_UI (block one-shots 0x4f234c/50/54). Stock WPNCYCLE/WPNLINK/WPNUNLNK are SquareHigh clicks: a tick on the pad's buzz motor and a whisper on the wheel. Not on the shaker (UI is not a body event). Pad pulse >= 40 ms (ERM spin-up)."
+  "notes": "i76tel v3 WEAPON_UI (block one-shots 0x4f234c/50/54). Stock WPNCYCLE.FRC is RampDown1 and WPNLINK/WPNUNLNK are SquareHigh1 (parse-frc.py over the pristine install; FfbMixer.ps1 calls all three SquareHigh): a tick on the pad's buzz motor and a whisper on the wheel. Not on the shaker (UI is not a body event). Pad pulse >= 40 ms (ERM spin-up)."
 }
