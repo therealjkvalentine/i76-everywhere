@@ -130,3 +130,38 @@ Differences worth the owner's attention (not errors in the installer, but a fres
 6. Cosmetic: the em dash in the stock conf's first comment (above); Setup-From-GOG and install.ps1 each print their own
    `=== DONE ===` block, so the run ends with two.
 7. The cutscene-music fix (`smack-music-fix\SMACKW32.DLL`) is not built in the repo, so no install gets it ("not built (optional)").
+
+## Follow-up fixes (same day, `762d449`..`fbfe01f`)
+
+| gap | fix | commit |
+|---|---|---|
+| 4 | `setup-windows.ps1` reads the display once: **`-Display WxH`**, else `I76_WIDE_DISPLAY`, else the primary display; the 16:10, stock and wide conf steps all use it. In an RDP session with no override it prints a red `!!! REMOTE DESKTOP SESSION` block naming `-Display` (at the display step and at its end), and Setup-From-GOG ends with it too. `install.ps1` / `Setup-From-GOG.ps1` (so `INSTALL.bat -Display 3440x1440`) pass it through. INSTALL.md lists the switch. RDP is detected by `TerminalServerSession` or `SESSIONNAME=RDP-*` (this session: `SESSIONNAME=Console` but `TerminalServerSession` True). | `762d449`, `5c82535`, `c3b4e73` |
+| 5 | `setup-windows.ps1` writes `<game>\strlkup-proxy-build.txt` (md5 + size of the proxy it deployed; rewritten only when that changes). The installed launcher compares `Strlkup.dll` against it: match = one gray line ("is the build the setup deployed"), mismatch = WARNING; with neither `music-fix\` nor a record (older installs, the daily driver) it says nothing. `music-fix\build.ps1 -Install` refreshes the record when one exists. | `a86e3b4` |
+| 6 | One `=== DONE ===`: Setup-From-GOG calls `install.ps1 -Nested`, which skips its own block (its controls hint moved into Setup-From-GOG's). | `97c65c0` |
+| (1) | The stock conf is read and written as UTF-8 without BOM: line 1 keeps its em dash, the file equals `dgVoodoo.windows.conf` except the Resolution digits. | `4a437d8` |
+| - | Setup-From-GOG's summary names `PLAY-16x10.bat` for `best-wide-balanced` too (it is written for both wide presets). | `dd9a249` |
+| (2) | Found re-running B2 byte for byte: `Make-Wide-Conf.ps1` rewrote `best-wide*.psd1` with a UTF-8 BOM, so off 3440x1440 they differed from the repo by the BOM as well as the two aspect values (the original line compare missed it). It now keeps the file's own BOM state. | `fbfe01f` |
+
+**Re-run** (repo at `fbfe01f` for the variants marked *, else `c3b4e73`; same source, switches, `-ToolsDir` scratch copy and dummy
+`-GogExe` as above; scratch `%TEMP%\i76-followup-20261010`, deleted afterwards), RDP session 1726x1011 again:
+
+| folder | switches | checks | result |
+|---|---|---|---|
+| A-default* | (none) | 46/46 | RDP warning shown (3 places); 16:10 conf `3234x2022` / `1440x900` as before |
+| A2-display | `-Display 3440x1440` | 46/46 | "sizing the confs for 3440x1440 (-Display)"; **16:10 conf byte-equal to `299a6811`** |
+| B-wide | `-Preset best-wide`, `I76_WIDE_DISPLAY=3440x1440` | 50/50 | the override now reaches the 16:10 step: 16:10 = `299a6811`, wide = `ac0ecdeb`, both byte for byte |
+| B2-wide-realdisplay* | `-Preset best-wide` | 49/49 | both wide presets byte-equal to the repo except the two aspect values |
+| C-ctlstock | `-Controls stock` | 45/45 | |
+| D-balanced | `-Preset best-wide-balanced`, `I76_WIDE_DISPLAY=3440x1440` | 50/50 | as B |
+| E-stock* | `-Preset stock` | 43/43 | line 1 = repo line 1 (em dash), Resolution `1440x900` x2 |
+| E2-stock-display* | `-Preset stock -Display 3440x1440` | 43/43 | Resolution `1920x1200` x2 |
+
+Every run exited 0 with exactly one `=== DONE ===`. The checks are the ones in the table above (md5s of Strlkup / strlkup_orig /
+u32x, the 10-byte exe and shell patches and their pristine backups, 13 presets byte-equal, dgVoodoo DLLs, OpenGLide backup, confs,
+PLAY*.bat set, launcher and i76wheel = repo, input.map, lint OK, GOG files changed only where intended) plus the record file. The
+`-DryRun` of every PLAY*.bat: exit 0, no REFUSED / WARNING, no "not found" note, and the preset runs print
+`Strlkup.dll is the build the setup deployed (274944 B md5 c11f7f7d)`. Negative controls: a wrong record gives the WARNING, no record
+gives silence; `-Display 3440by1440` exits 1 before writing anything. Idempotence (A, run twice more): 423 files before and after
+(422 + the record), only `i76e-controls.txt`'s time stamp changed. `tests\test_presets.py`: 20 passed. Source tree unchanged
+(371 files, `i76.exe` `9a232dcc`, `i76shell.dll` `deb41008`), `C:\Games\_tools` and the desktop unchanged, no GOG installer log.
+Not checked: an install at the console (no RDP), where the warning must stay silent; the boot (owner test 16) as before.
