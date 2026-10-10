@@ -29,15 +29,18 @@ namespace Haptics.Core.Motion
         public int Derived, Repeats;
 
         public PhysicsSample Last => _prev;
+        public bool FixedStepMode;
+        int _stepsSince;
 
         /// <summary>Is this state a new physics state? (also records it as seen)</summary>
         public bool IsNew(VehicleState st)
         {
             if (ReferenceEquals(st, _lastObj)) return false;
             var prevObj = _lastObj; _lastObj = st;
+            if (st.StepCount > 0) _stepsSince = st.StepCount;
             if (!st.Present) return false;
             if (prevObj == null || !prevObj.Present || _prev == null) return true;
-            if (st.StepCount == 0) { Repeats++; return false; }
+            if (st.StepCount == 0) { Repeats++; FixedStepMode = true; return false; }
             bool moved = st.PosWorld.X != _prev.PosWorld[0] || st.PosWorld.Y != _prev.PosWorld[1] || st.PosWorld.Z != _prev.PosWorld[2]
                       || st.VelWorld.X != _prev.VelWorld[0] || st.VelWorld.Y != _prev.VelWorld[1] || st.VelWorld.Z != _prev.VelWorld[2];
             if (st.StepCount > 0) { if (st.SimFrame != prevObj.SimFrame || st.T != prevObj.T || moved) return true; Repeats++; return false; }
@@ -55,7 +58,14 @@ namespace Haptics.Core.Motion
             for (int i = 0; i < 9; i++) s.Rot[i] = st.Rot[i];
             s.PosWorld = new[] { st.PosWorld.X, st.PosWorld.Y, st.PosWorld.Z };
             s.VelWorld = new[] { st.VelWorld.X, st.VelWorld.Y, st.VelWorld.Z };
-            double dt = _prev != null ? st.T - _prev.SimT : 0;
+            // physics time since the previous state. Under I76_FIXED_STEP the proxy reports sim_time / sim_dt of the RENDERED
+            // frame and steps physics in whole fixed steps (strlkproxy.c fixed-step accumulator), so the state advanced
+            // step_count x the fixed step, not the sim_time difference (which jitters 33 / 50 ms at 60 fps). Fixed-step mode
+            // is recognised by a step_count of 0, or one that differs from the stock stepper's floor(sim_dt x 20) + 1.
+            if (st.StepCount == 0 || (st.StepCount > 0 && st.StepCount != Math.Min(20, (int)(st.SimDt * 20.0f) + 1) && st.SimDt > 0)) FixedStepMode = true;
+            double dt;
+            if (FixedStepMode && _prev != null && _stepsSince > 0) dt = _stepsSince / Math.Max(1.0, P.FixedStepHz);
+            else dt = _prev != null ? st.T - _prev.SimT : 0;
             if (!(dt > 0.005 && dt < 1.0)) dt = _prev != null && _prev.Dt > 0 ? _prev.Dt : 1.0 / 24;
             s.Dt = dt;
 

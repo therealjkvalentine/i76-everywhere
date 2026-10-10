@@ -127,6 +127,9 @@ namespace Haptics.Renderers
         {
             if (Core == null) return;
             double c = Clock(step); _lastClock = c;
+            // ticks before this step's time belong to the previous state (after a telemetry gap the replay clock jumps:
+            // those ticks must see the stale stream and ramp to neutral, not the new frame)
+            foreach (var f in Core.Pump(c - 1e-7)) Emit(f);
             Core.Feed(step.State, step.Events, c);
             foreach (var f in Core.Pump(c)) Emit(f);
         }

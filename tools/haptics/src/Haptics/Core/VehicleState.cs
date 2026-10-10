@@ -50,6 +50,7 @@ namespace Haptics.Core
         public double[] SuspOffset = new double[6];
         public bool[] WheelOnGround = new bool[6];
         // motion workstream additions (docs/MOTION-OUTPUT.md 4.1): physics-step detection and the dash / wheel fields
+        public double SimDt;               // i76tel sim_dt (the rendered frame's dt)
         public int StepCount = -1;         // i76tel step_count: physics substeps this frame (0 = repeated pose under I76_FIXED_STEP; -1 unknown)
         public bool[] WheelSkid = new bool[6];
         public double[] WheelGroundSpeed = new double[6];

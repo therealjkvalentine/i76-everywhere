@@ -25,6 +25,7 @@ namespace Haptics.Core.Motion
         public bool AirborneZeroPhysics = true;    // gate the physics accelerations while flags & 4 (gravity convention of the airborne branch unknown)
         public double SpeedRef = 30.0;             // texture = surface amplitude x speed / SpeedRef, clamped 0..1
         public Dictionary<string, double> Surfaces = new Dictionary<string, double> { ["0"] = 0.0, ["2"] = 0.1, ["default"] = 0.3 };
+        public double FixedStepHz = 24;            // I76_FIXED_STEP rate: physics dt = step_count / this, when the stream is in fixed-step mode
         public double SteerLockRad = 0.76;         // OutSimPack2 InputSteer = steer x lock (ffb-calib value until ent+0x118 lock is exported)
         public double WheelRadius = 0.35;          // Forza wheel rotation speed / normalised travel until the radius is exported (M5)
         public double SuspTravel = 0.0875;         // +-0.25 x r: Forza NormalizedSuspensionTravel = 0.5 + offset / (2 x travel)
@@ -72,6 +73,7 @@ namespace Haptics.Core.Motion
                 p.AirborneZeroPhysics = B(m, "airborne_zero_physics", p.AirborneZeroPhysics);
                 p.HoldLpHz = N(m, "hold_lp_hz", p.HoldLpHz);
                 p.SpeedRef = N(m, "speed_ref", p.SpeedRef);
+                p.FixedStepHz = N(m, "fixed_step_hz", p.FixedStepHz);
                 p.SteerLockRad = N(m, "steer_lock_rad", p.SteerLockRad);
                 p.WheelRadius = N(m, "wheel_radius", p.WheelRadius);
                 p.SuspTravel = N(m, "susp_travel", p.SuspTravel);

@@ -46,11 +46,19 @@ namespace Haptics.Core.Motion
             _lastState = st;
             if (firstSight) { _lastFeedClock = clock; _present = st.Present; _destroyed = (st.Flags & (TelFrame.FlagDestroyed | TelFrame.FlagWreck)) != 0; }
             if (!st.Present && firstSight) { Derive.ResetHistory(); }
+            // back after a dropout (stale): no derivative across the gap, no interpolation from the pre-gap state
+            if (firstSight && st.Present && !double.IsNaN(_lastPhysicsClock) && clock - _lastPhysicsClock > P.StaleMs / 1000.0)
+            { Derive.ResetHistory(); Resample.Reset(); _lastStamp = double.NaN; }
             if (Derive.IsNew(st))
             {
                 var prev = Derive.Last;
                 double vyPrev = prev != null ? prev.VelWorld[1] : 0;
                 var s = Derive.Derive(st, clock);
+                // fixed-step streams: put the state on the physics timeline (previous stamp + step dt) so the interpolator
+                // does not inherit the 33 / 50 ms render-frame jitter; re-anchor to the arrival clock if it drifts > 2 steps
+                if (Derive.FixedStepMode && prev != null && !double.IsNaN(_lastStamp) && Math.Abs(_lastStamp + s.Dt - clock) < 2 * s.Dt)
+                    s.Clock = _lastStamp + s.Dt;
+                _lastStamp = s.Clock;
                 Resample.Push(s);
                 PhysicsStates++;
                 _lastPhysicsClock = clock;
@@ -61,6 +69,7 @@ namespace Haptics.Core.Motion
             if (events != null && events.Count > 0) Cues.OnEvents(events, clock, Derive.Last);
         }
         VehicleState _lastState;
+        double _lastStamp = double.NaN;
 
         /// <summary>All output ticks up to and including clock.</summary>
         public List<MotionFrame> Pump(double clock)
@@ -68,9 +77,9 @@ namespace Haptics.Core.Motion
             var o = new List<MotionFrame>();
             if (double.IsNaN(_firstData)) return o;               // nothing to say before the first physics state
             if (double.IsNaN(_nextTick)) _nextTick = Math.Ceiling(_firstData / Period - 1e-9) * Period;
-            if (clock - _nextTick > 1.0) _nextTick = Math.Ceiling(clock / Period - 1e-9) * Period - Period;   // fell far behind (suspend): resync
+            if (clock - _nextTick > 10.0) _nextTick = Math.Ceiling(clock / Period - 1e-9) * Period - Period;   // more than 10 s behind (suspend / long pause): resync, the gap is neutral anyway
             int guard = 0;
-            while (_nextTick <= clock + 1e-9 && guard++ < 1000)
+            while (_nextTick <= clock + 1e-9 && guard++ < 2000)
             {
                 o.Add(Tick(_nextTick));
                 _seq++;

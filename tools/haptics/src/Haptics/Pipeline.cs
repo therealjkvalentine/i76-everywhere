@@ -124,6 +124,11 @@ namespace Haptics
                     else
                     {
                         if (double.IsNaN(grid0)) grid0 = start;
+                        // a gap in the input (telemetry silent for longer than the 0.25 s span cap): resume the grid at the
+                        // new frame's time instead of back-filling the gap with the new frame's state (the motion renderer
+                        // must see the gap to ramp to neutral). Contiguous input never takes this branch.
+                        long kmin = (long)Math.Ceiling((start - grid0) * CoreHz - 1e-6);
+                        if (kmin > k) k = kmin;
                         while (true) { double t = grid0 + k / (double)CoreHz; if (t >= end - 1e-9 && !(next == null && times.Count == 0)) break; times.Add(t); k++; if (next == null) break; }
                     }
                     for (int j = 0; j < times.Count; j++)
