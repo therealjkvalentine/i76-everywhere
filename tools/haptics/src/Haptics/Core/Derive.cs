@@ -242,6 +242,10 @@ namespace Haptics.Core
             }
             st.VelBody = st.ToBody(v); st.AccBody = st.ToBody(st.AccWorld);
             for (int w = 0; w < 6; w++) { st.SuspOffset[w] = f.WheelSusp(w); st.WheelOnGround[w] = f.WheelPresent(w) && f["wheel" + w + "_unloaded"] == 0; }
+            for (int w = 0; w < 6; w++) { st.WheelSkid[w] = f["wheel" + w + "_skid_active"] != 0; st.WheelGroundSpeed[w] = f["wheel" + w + "_ground_speed"]; }
+            st.StepCount = f.Has("step_count") ? (int)f["step_count"] : -1; st.SimDt = f.SimDt;
+            st.Handbrake = f["handbrake"] != 0; st.Mass = f["mass"]; st.WeaponName = f.WeaponNameString;
+            st.EngineHealth = f["engine_hp_max"] > 0 ? f["engine_hp"] / f["engine_hp_max"] : 1.0;
             r.State = st;
             r.Sample = s;
             FillVars(r.Vars, f, s, st);

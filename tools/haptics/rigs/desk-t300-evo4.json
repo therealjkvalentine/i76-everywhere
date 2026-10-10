@@ -92,7 +92,29 @@
     "motion": {
       "renderer": "Motion.FileSink",
       "enabled": false,
-      "note": "Plug-in point only. Motion cueing, washout and packet formats are a separate workstream: docs/MOTION-OUTPUT.md"
+      "note": "The raw VehicleState as CSV (sink motion-file). The motion simulator output is motion_udp below."
+    },
+    "motion_udp": {
+      "renderer": "Motion.Udp",
+      "targets_file": "motion/targets.json",
+      "note": "Sink motion-udp: MotionCore -> LFS OutSim/OutGauge, Forza Data Out, i76motion (docs/MOTION-OUTPUT.md). Packet logs only, unless --live (or haptics.ps1 motion --send): then UDP to the enabled targets, loopback only."
     }
+  },
+  "motion": {
+    "accel_source": "integrator",
+    "airborne_zero_physics": true,
+    "hold_lp_hz": 8,
+    "speed_ref": 30.0,
+    "steer_lock_rad": 0.76,
+    "wheel_radius": 0.35,
+    "susp_travel": 0.0875,
+    "cues": {"impact_gain": 1.0, "impact_peak": 30.0, "impact_tau_ms": 60, "explosion_gain": 40.0, "explosion_tau_ms": 120,
+             "explosion_min_dist": 3.0, "explosion_push": 0.25, "landing_k": 1.0, "landing_tau_ms": 80, "shot_recoil": 0.0,
+             "impulse_threshold": 25.0, "impulse_gain": 0.5, "cue_max": 60.0, "min_gap_ms": 150, "cue_budget": "max"},
+    "surfaces": {"0": 0.0, "2": 0.1, "default": 0.3},
+    "safety": {"clamp_udp": false, "stale_ms": 250, "neutral_ramp_ms": 1000, "startup_neutral_s": 2.0, "max_jerk": 400, "max_rate_change": 20},
+    "washout": {"enabled": false, "hp_hz": 0.4, "zeta": 0.7, "tilt_lp_hz": 0.3, "tilt_rate_dps": 3.0, "tilt_max_rad": 0.25, "rot_hp_tau_s": 1.5, "k_t": 0.3, "k_r": 0.5,
+                "note": "phase M6, not implemented: enabling it fails the motion lint"},
+    "note": "docs/MOTION-OUTPUT.md 4 / 6 / 7. accel_source stays 'integrator' until owner test T1 proves the sign of accel_body; impact_peak (m/s^2 at 60 hp lost) and impulse_* are this implementation's additions to the design's cue list."
   }
 }

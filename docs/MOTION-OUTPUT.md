@@ -4,6 +4,14 @@
 installed. This is the plan the implementation agent builds the `Udp.*` motion renderers and the `Motion` core
 module from, inside the haptics host of `docs/HAPTICS-ARCHITECTURE.md`. It is not a record of anything built.*
 
+*Implementation status (2026-10-10): phases M0-M3 are built in `tools/haptics` (`src/Haptics/Core/Motion/`, the
+`Motion.Udp` renderer, `haptics.ps1 motion`, the validator and the desk-bench instructions in
+`tools/haptics/motion/README.md`); M4-M6 are not. Where the build departs from this plan: synthetic replays are
+`.i76rec` (the host's recording container), not `.i76tel`; the cue list adds the a_diff residual as an "impulse" cue
+and an `impact_peak` gain; i76motion rotations are pinned to the aerospace body convention (the "right-handed" wording
+in 3.3 is not self-consistent for forward / right / up); the M0 result is recorded in the 3.1 note below. Owner tests
+are items 16-24 of docs/OWNER-TEST-LIST.md.*
+
 **Owner's request.** "Add motion simulator output to the force feedback stuff, and a way to test it with whatever
 motion simulator software people use." Owner context: sim cockpit first, four actuators later; D-BOX and Sigma are
 closed ecosystems for a custom feed.
@@ -136,6 +144,18 @@ value it sends in X and Y is zero today, so nothing is wrong on the wire yet). W
 world or car-local in LFS is **unknown** (disputed, section 1.2); the host offers both via `frame: "world" | "body"`
 per target, default `world` as the script has it, and the FlyPT test in section 5.1 settles which one makes the
 rig behave (brake: the rig should pitch nose-down regardless of heading; if it depends on heading, the frame is wrong).
+
+**M0 result (2026-10-10, implementation agent).** `OutSimPack.txt` / `OutSimPack.h` could still not be read: not on the
+LFS manual wiki ([OutSim](https://en.lfsmanual.net/wiki/OutSim) only points at the file), and the lfs.net forum threads are
+login-gated. The [InSim.txt mirror](https://en.lfsmanual.net/wiki/InSim.txt) gives the classic field list and the angle
+conventions (Heading anticlockwise from above (Z), Pitch anticlockwise from right (X), Roll anticlockwise from front
+(Y); "X and Y axes are on the ground, Z is up") and nothing on frames. A web-search summary of the LFS developer's reply in
+the U9 OutSimPack thread ([lfs.net/forum/post/2066823](https://www.lfs.net/forum/post/2066823)) says positions,
+velocities and accelerations are **world** coordinates (convert with the Euler angles); AngVel is not addressed
+[forum, via search summary, not read first-hand]. The implementation: `frame` per target, default `world`, AngVel
+rotated with the same matrix; AngVel X = pitch rate (about right), Y = roll rate (about forward), Z = rotation about up,
+anticlockwise-positive (so a right turn sends a negative Z, and the heading is sent negated). The existing script's
+X/Y labels were indeed swapped and its heading sign was clockwise; both are superseded by the host. T2 still decides.
 
 **OutSimPack2, 280 bytes (`Opts 1ff`).** Consumers: FlyPT (4123, ID 1), SimHub (63393, ID 0), Simucube Tuner (63393).
 Layout as the existing builder: `0 'LFST'`, `4 i32 ID`, `8 u32 Time`, `12..71 OutSimMain` (the 60 bytes = classic

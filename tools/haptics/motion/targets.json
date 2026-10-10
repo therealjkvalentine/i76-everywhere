@@ -1,0 +1,15 @@
+{
+  "$comment": "Motion output targets (docs/MOTION-OUTPUT.md 7). One entry per consumer; the host sends a copy to every enabled target (we are the sender, so 'one listener per port' does not bite). Ports: FlyPT Mover LFS source 4123/4124 ID 1 (Opts 1ff); SimTools LFS plugin classic 64 B on 4123 ID 0; SimHub LFS 63393/63392 (Opts 1ff); Forza Data Out to the port SimHub's Forza page shows (5300 assumed - read it in the UI); i76motion 7677. frame: world | body for the LFS formats (world = the LFS developer's statement; owner test T2 settles it). Packets go to UDP only with --send / --live, and only to loopback unless a target sets allow_remote. clamp / slew: off for software (the rig software crops).",
+  "output_hz": 100,
+  "resample": "interp",
+  "hold_lp_hz": 8,
+  "targets": [
+    {"name": "flypt",        "format": "lfs-pack2",   "host": "127.0.0.1", "port": 4123,  "id": 1, "frame": "world", "gauge_port": 4124},
+    {"name": "simtools",     "format": "lfs-classic", "host": "127.0.0.1", "port": 4123,  "id": 0, "frame": "world", "gauge_port": 4124, "enabled": false,
+     "note": "shares 4123 with flypt in a different format: enable one of the two"},
+    {"name": "simhub",       "format": "lfs-pack2",   "host": "127.0.0.1", "port": 63393, "id": 0, "frame": "world", "gauge_port": 63392},
+    {"name": "simhub-forza", "format": "forza-dash",  "host": "127.0.0.1", "port": 5300,  "enabled": false,
+     "note": "SimHub game 'Forza Motorsport 7'; check the port in SimHub's Forza settings"},
+    {"name": "native",       "format": "i76motion",   "host": "127.0.0.1", "port": 7677}
+  ]
+}

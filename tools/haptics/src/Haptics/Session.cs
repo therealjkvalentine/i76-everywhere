@@ -15,10 +15,11 @@ namespace Haptics
         {
             ["wheel-file"] = "wheel", ["wheel"] = "wheel", ["pad-file"] = "pad", ["pad"] = "pad", ["lfe-wav"] = "lfe", ["lfe"] = "lfe",
             ["loopback"] = "loopback", ["loopback-wav"] = "loopback", ["motion-file"] = "motion", ["motion"] = "motion",
+            ["motion-udp"] = "motion_udp",
         };
 
         public static Pipeline Build(EffectSet set, IEnumerable<string> sinks, string outDir, string tag, bool live,
-                                     int coreHz, int frameHz = 60, string loopbackWav = null, TextWriter log = null)
+                                     int coreHz, int frameHz = 60, string loopbackWav = null, TextWriter log = null, bool hostClock = false)
         {
             var core = new HapticCore(set);
             var p = new Pipeline { Core = core, CoreHz = coreHz };
@@ -35,7 +36,7 @@ namespace Haptics
                 r.Open(new RendererContext
                 {
                     OutputName = output, Config = cfg, Rig = set.Rig, Tune = tune, Effects = set, Live = live, OutDir = outDir, Tag = tag,
-                    CoreHz = coreHz > 0 ? coreHz : frameHz, Log = log ?? Console.Out,
+                    CoreHz = coreHz > 0 ? coreHz : frameHz, Log = log ?? Console.Out, HostClock = hostClock,
                 });
                 p.Renderers.Add(r);
                 if (r is LfeSynthRenderer s) synth = s;

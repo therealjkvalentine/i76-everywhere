@@ -89,6 +89,14 @@ namespace Haptics.Tests
                 tx.Send(payload, payload.Length, new IPEndPoint(IPAddress.Loopback, u.Port));
                 var got = u.Receive(1000);
                 T.Check("a datagram sent to 127.0.0.1 arrives intact", got != null && got.SequenceEqual(payload), got == null ? "nothing" : got.Length + " B");
+                // the live loop drains with Receive(0): it must poll, not block (ReceiveTimeout 0 = infinite in .NET)
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var none = u.Receive(0);
+                T.Check("Receive(0) with nothing queued returns null at once (the live loop's drain must not block)", none == null && sw.ElapsedMilliseconds < 100, sw.ElapsedMilliseconds + " ms");
+                tx.Send(payload, payload.Length, new IPEndPoint(IPAddress.Loopback, u.Port));
+                System.Threading.Thread.Sleep(50);
+                var q = u.Receive(0);
+                T.Check("Receive(0) returns a queued datagram", q != null && q.SequenceEqual(payload), q == null ? "nothing" : q.Length + " B");
             }
 
             T.Section(".i76rec recorder / replayer");

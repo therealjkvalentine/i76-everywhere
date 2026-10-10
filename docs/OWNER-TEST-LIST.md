@@ -78,3 +78,49 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
     `-Preset best-wide` (`PLAY-i76.bat`, `PLAY-balanced.bat`, `PLAY-16x10.bat`). Fail = skipped patches, a watermark, the mouse off in
     the menus, or no music; `install.ps1 -GameDir "C:\GOG Games\Interstate 76" -Preset stock` is the way back.
 
+## Motion simulator output (tools/haptics/motion, docs/MOTION-OUTPUT.md; desk benches need no hardware and no game; A/A before A/B, report n)
+
+Setup steps in detail: `tools\haptics\motion\README.md`. Scenario times count from the start of each scenario; the host
+holds neutral for the first 3 s. Nothing here was installed or run by an agent.
+
+17. **FlyPT Mover desk bench (install it, then replay).** Download FlyPT Mover 3.5 or 3.7 beta from flyptmover.com (free),
+    unzip outside any game folder, add the **Live For Speed** source (OutSim 4123, ID 1, OutGauge 4124), a **6DOF**
+    virtual rig, open its **3D view**, map surge / sway / heave / yaw / pitch / roll to the source outputs (write down
+    Mover's names for them). Then `tools\haptics\haptics.ps1 motion all --targets flypt --send`. The source should turn
+    green. Expected on the virtual rig: **braking** (5-7.6 s) nose-down then back; **accelerating** (4-9 s) nose-up;
+    **turn** pushed left during the right turn (4.5-7 s) and right during the left turn (7.5-10 s), with yaw;
+    **crest** a small heave kick ~5.4 s; **jump** still in flight (5-6.2 s), one heave kick on landing; **impact** one
+    sharp jolt at 5.0 s and a small kick at 7.5 s (explosion); **dropout** settles smoothly to neutral at ~5.3 s and
+    comes back after 7 s (never a jump). Screenshots of the 3D view and the source graphs go in
+    `docs\records\MOTION-BENCH-<date>.md`.
+18. **T2 - LFS frame world or body.** Same bench, `tools\haptics\haptics.ps1 motion braking --targets flypt --send --repeat 5`
+    (the braking runs at heading 30 deg). Straight-line braking must be **pure pitch, nose-down**. Pitch and roll
+    together, or nose-up, means the frame is wrong: set `"frame": "body"` on `flypt` in `tools\haptics\motion\targets.json`
+    and repeat. Report which one gave pure nose-down pitch.
+19. **SimHub desk bench.** Install SimHub (free), game **Live for Speed** (OutSim 63393 / OutGauge 63392), then
+    `tools\haptics\haptics.ps1 motion all --targets simhub --send`. Check: speed / rpm / gear read sensibly (gear 2 on
+    the wire = 1st), the motion add-on's **3D preview** does what item 16 lists, ShakeIt preview with no audio device
+    (or the EVO 4 only while you are at the desk). SimTools only if you own a licence (the free DIY licence ended
+    May 2026): Network interface 127.0.0.1:6123, Default axis profile, `--targets simtools`, close Mover first (both use 4123).
+20. **T3 - Forza in SimHub.** Game **Forza Motorsport 7**, note the UDP port SimHub shows (5300 assumed; change
+    `simhub-forza.port` in targets.json if not), `tools\haptics\haptics.ps1 motion all --targets simhub-forza --send`.
+    Gear / speed / rpm right? (One gear too many = Forza counts gears differently: say so.) Does braking show as
+    deceleration and the right turn as a rightward / outward g in SimHub's view? Those settle the Forza sign convention.
+21. **T1 - signs from the real game (lab copy, after item 8's recording works).** `I76_TELEMETRY=1`, then
+    `tools\haptics\haptics.ps1 live --source udp --sinks motion-udp` (files only) while driving t01: launch, full brake,
+    a right-hand corner, the T06 ramp (aaramp5), a wall. Then
+    `python tools\haptics\motion\i76motion.py --plot tools\haptics\out\live\live.native.i76motion.i76rec t1.html`.
+    Expected: surge about -9.5 while braking, pitch nose-down (~-3 deg), sway positive in the right-hander with yaw rate
+    positive, heave cue only at the landing, a surge cue at the wall, physics channels flat in the air. Anything with the
+    opposite sign (especially surge or yaw) = the engine's accel_body / yaw_rate convention differs: report which.
+22. **T4 - interp vs hold.** Two identical braking runs first (A/A), then `resample` `interp` vs `hold` in targets.json,
+    same bench (item 16 or 18): does Mover's / SimHub's graph show a 24 Hz staircase with `hold`, and how much later does
+    the pitch start with `interp` (one physics step, ~42 ms, expected)?
+23. **T5 - motion latency.** Item 20's live command with `--record tools\haptics\replays\t5.i76rec` added; fire one
+    shot / ram one wall; compare the IMPACT event's frame time with the first packet carrying the cue (cue_surge) in the
+    native log. Report the milliseconds (n runs).
+24. **T6 - explosion reach.** An AI car blows up near you and far away (shares the sitting with item 13): cue_heave vs the
+    EXPLOSION distance in the plot. Sets `explosion_gain` / `cue_max` in the rig's motion section.
+25. **T7 - real rig, later (hardware not chosen).** Only once a rig and controller exist: Mover's output module for it,
+    the host still only sending UDP, the controller's E-stop in reach. Kill the host mid-drive (Ctrl+C, then end the
+    process): the rig must ramp to neutral over about 1 s, not drop. Also pause the game: same ramp after 250 ms.

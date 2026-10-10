@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Trace</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --surface-2: #f2f1ee; --text: #0b0b0b; --text-2: #52514e; --muted: #8a8984; --grid: #e4e3df;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --neutral-band: rgba(138,137,132,0.18); --air-band: rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --surface-2: #242423; --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e88; --grid: #33332f;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --neutral-band: rgba(195,194,183,0.14); --air-band: rgba(57,135,229,0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --surface-2: #242423; --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e88; --grid: #33332f;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --neutral-band: rgba(195,194,183,0.14); --air-band: rgba(57,135,229,0.16);
+  }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--text-2); margin: 0 0 12px; font-size: 13px; overflow-wrap: anywhere; }
+  .panel { background: var(--surface-2); border-radius: 8px; padding: 10px 12px 6px; margin: 0 0 12px; }
+  .ptitle { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; background: var(--c); }
+  .legend .readout { color: var(--text); font-variant-numeric: tabular-nums; }
+  svg { display: block; width: 100%; height: 150px; overflow: visible; }
+  .key { font-size: 12px; color: var(--text-2); margin: 0 0 12px; }
+  .key i { display: inline-block; width: 18px; height: 10px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  details { margin-top: 16px; } table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; } td, th { padding: 2px 8px; text-align: right; border-bottom: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<h1>Motion output trace</h1>
+<p class="sub" id="sub"></p>
+<p class="key">Bands: <i style="background:var(--neutral-band)"></i>fail-to-neutral active (status bit 5) <i style="background:var(--air-band)"></i>airborne (bit 1). Hover a panel for values at that time.</p>
+<div id="panels"></div>
+<details><summary>Table (every 10th tick)</summary><div id="table"></div></details>
+<script>
+const P = /*__DATA__*/null;
+const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)"];
+document.getElementById("sub").textContent = P.title + " - " + P.data.t.length + " ticks" + (P.meta && P.meta.output_hz ? " at " + P.meta.output_hz + " Hz, " + (P.meta.resample || "") + ", accel " + (P.meta.accel_source || "") : "");
+const T = P.data.t, N = T.length, t0 = T[0], t1 = T[N - 1];
+function bands(bit) { const out = []; let s = null; for (let i = 0; i < N; i++) { const on = (P.data.status[i] >>> bit) & 1; if (on && s === null) s = T[i]; if (!on && s !== null) { out.push([s, T[i]]); s = null; } } if (s !== null) out.push([s, t1]); return out; }
+const NEUT = bands(5), AIR = bands(1);
+const NS = "http://www.w3.org/2000/svg";
+function el(n, a, p) { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+const W = 1000, H = 150, L = 44, R = 8, TOP = 6, B = 20;
+const root = document.getElementById("panels"), views = [];
+for (const [title, chans] of P.panels) {
+  const div = document.createElement("div"); div.className = "panel"; root.appendChild(div);
+  div.innerHTML = "<div class='ptitle'></div><div class='legend'></div>";
+  div.querySelector(".ptitle").textContent = title;
+  const leg = div.querySelector(".legend"), reads = [];
+  chans.forEach((c, k) => { const s = document.createElement("span"); s.style.setProperty("--c", COLORS[k]); s.innerHTML = c + " <b class='readout'></b>"; leg.appendChild(s); reads.push(s.querySelector(".readout")); });
+  let lo = Infinity, hi = -Infinity;
+  for (const c of chans) for (const v of P.data[c]) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (lo > 0) lo = 0; if (hi < 0) hi = 0; if (hi - lo < 1e-6) { hi += 1; lo -= 1; }
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", role: "img", "aria-label": title }, div);
+  const X = t => L + (t - t0) / (t1 - t0 || 1) * (W - L - R), Y = v => TOP + (hi - v) / (hi - lo) * (H - TOP - B);
+  for (const [a, b] of NEUT) el("rect", { x: X(a), y: TOP, width: Math.max(1, X(b) - X(a)), height: H - TOP - B, fill: "var(--neutral-band)" }, svg);
+  for (const [a, b] of AIR) el("rect", { x: X(a), y: TOP, width: Math.max(1, X(b) - X(a)), height: H - TOP - B, fill: "var(--air-band)" }, svg);
+  const ticks = 4; for (let i = 0; i <= ticks; i++) { const v = lo + (hi - lo) * i / ticks; el("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: "var(--grid)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }, svg); const tx = el("text", { x: L - 6, y: Y(v) + 4, "text-anchor": "end", fill: "var(--muted)", "font-size": 11 }, svg); tx.textContent = (+v.toPrecision(3)).toString(); }
+  el("line", { x1: L, x2: W - R, y1: Y(0), y2: Y(0), stroke: "var(--muted)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }, svg);
+  const step = (t1 - t0) > 20 ? 5 : (t1 - t0) > 8 ? 2 : 1;
+  for (let t = Math.ceil(t0 / step) * step; t <= t1; t += step) { const tx = el("text", { x: X(t), y: H - 4, "text-anchor": "middle", fill: "var(--muted)", "font-size": 11 }, svg); tx.textContent = t + " s"; }
+  chans.forEach((c, k) => { const d = P.data[c]; let s = ""; for (let i = 0; i < N; i++) s += (i ? "L" : "M") + X(T[i]).toFixed(1) + " " + Y(d[i]).toFixed(1); el("path", { d: s, fill: "none", stroke: COLORS[k], "stroke-width": 2, "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round" }, svg); });
+  const cross = el("line", { y1: TOP, y2: H - B, stroke: "var(--text-2)", "stroke-width": 1, "vector-effect": "non-scaling-stroke", visibility: "hidden" }, svg);
+  views.push({ svg, X, cross, chans, reads });
+}
+function show(i) { for (const v of views) { v.cross.setAttribute("x1", v.X(T[i])); v.cross.setAttribute("x2", v.X(T[i])); v.cross.setAttribute("visibility", "visible"); v.chans.forEach((c, k) => v.reads[k].textContent = "= " + P.data[c][i].toFixed(3) + " @ " + T[i].toFixed(2) + " s"); } }
+for (const v of views) {
+  v.svg.addEventListener("mousemove", e => { const r = v.svg.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * W; const t = t0 + (x - L) / (W - L - R) * (t1 - t0); let i = Math.round((t - t0) / (t1 - t0) * (N - 1)); i = Math.max(0, Math.min(N - 1, i)); while (i > 0 && T[i] > t) i--; while (i < N - 1 && T[i + 1] <= t) i++; show(i); });
+  v.svg.addEventListener("mouseleave", () => { for (const w of views) { w.cross.setAttribute("visibility", "hidden"); w.reads.forEach(r => r.textContent = ""); } });
+}
+const cols = ["t"].concat(...P.panels.map(p => p[1]));
+let h = "<table><tr>" + cols.map(c => "<th>" + c + "</th>").join("") + "</tr>";
+for (let i = 0; i < N; i += 10) h += "<tr>" + cols.map(c => "<td>" + (+P.data[c][i]).toFixed(3) + "</td>").join("") + "</tr>";
+document.getElementById("table").innerHTML = h + "</table>";
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Preview</title>
+<!--
+  motion_preview.html - a Mover-independent look at what the haptics host's motion output says (docs/MOTION-OUTPUT.md 5.4).
+  Left: the car body posed by the i76motion heading / pitch / roll, with its acceleration arrow (physics + cues).
+  Right: a generic motion platform driven the way rig software would drive it: posing angles + tilt coordination
+  (low-passed surge / sway as tilt, rate-limited) + high-passed, washed-out translation from the accelerations.
+  The platform filter is a PREVIEW only (the host sends raw data; FlyPT / SimHub do the real cueing).
+  Data: an i76motion packet log (.i76rec written by `haptics.ps1 motion`, or by `i76motion.py --sniff --log`), opened
+  with the file picker, or embedded by `python i76motion.py --preview LOG OUT.html`.
+  three.js r128 from cdnjs (pinned).
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { color-scheme: light; --surface: #fcfcfb; --surface-2: #f2f1ee; --text: #0b0b0b; --text-2: #52514e; --muted: #8a8984; --grid: #e4e3df;
+          --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --warn: #c98500; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --surface: #1a1a19; --surface-2: #242423; --text: #fff; --text-2: #c3c2b7; --muted: #8f8e88; --grid: #33332f; --s1: #3987e5; --s2: #d95926; --s3: #199e70; } }
+  :root[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --surface-2: #242423; --text: #fff; --text-2: #c3c2b7; --muted: #8f8e88; --grid: #33332f; --s1: #3987e5; --s2: #d95926; --s3: #199e70; }
+  body { margin: 0; padding: 16px; background: var(--surface); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 10px; }
+  button, select, input[type=file] { font: inherit; }
+  #view { width: 100%; height: min(60vh, 520px); background: var(--surface-2); border-radius: 8px; display: block; }
+  #scrub { width: 100%; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px 14px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .dof { font-size: 12px; color: var(--text-2); }
+  .dof .track { height: 8px; background: var(--grid); border-radius: 4px; position: relative; margin-top: 2px; }
+  .dof .fill { position: absolute; top: 0; bottom: 0; background: var(--s1); border-radius: 4px; }
+  .dof .zero { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+  #status { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--text-2); overflow-wrap: anywhere; }
+  .note { color: var(--text-2); font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Motion preview</h1>
+<div class="bar">
+  <input type="file" id="file" accept=".i76rec">
+  <button id="play">Play</button>
+  <label>speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option></select></label>
+  <span id="name" class="note"></span>
+</div>
+<canvas id="view"></canvas>
+<input type="range" id="scrub" min="0" max="0" value="0" aria-label="time">
+<div id="status"></div>
+<div class="grid" id="dofs"></div>
+<p class="note">Left: car pose (heading / pitch / roll from the packets; arrow = acceleration incl. cues, grey = gravity-free). Right: a generic platform
+with a preview washout (translation HP 0.4 Hz, tilt LP 0.3 Hz at 3 deg/s). Braking should pitch both nose-down; a right turn rolls the car body left-side-down
+and tilts the platform to push you outward; a landing is a heave kick only.</p>
+<script>
+const EMBED = /*__EMBEDDED__*/null;
+let D = null, i = 0, playing = false, tPlay = 0;
+const $ = id => document.getElementById(id);
+
+function parseI76rec(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  const magic = String.fromCharCode(...u8.slice(0, 8));
+  if (magic !== "I76REC01") throw new Error("not an .i76rec file (magic " + magic + ")");
+  const ml = dv.getUint32(8, true); let p = 12 + ml;
+  const keys = { t_sim: 16, status: -12, surge: 20, sway: 24, heave: 28, roll: 44, pitch: 48, heading: 52, yaw_rate: 40, speed: 56, cue_surge: 116, cue_sway: 120, cue_heave: 124 };
+  const out = {}; for (const k in keys) out[k] = [];
+  while (p + 12 <= buf.byteLength) {
+    const n = dv.getUint32(p + 8, true); const q = p + 12; p = q + n;
+    if (p > buf.byteLength) break;
+    if (n !== 144 || u8[q] !== 73 || u8[q + 1] !== 55 || u8[q + 2] !== 54 || u8[q + 3] !== 77) continue;   // 'I76M'
+    for (const k in keys) out[k].push(keys[k] < 0 ? dv.getUint32(q + 12, true) : dv.getFloat32(q + keys[k], true));
+  }
+  if (!out.t_sim.length) throw new Error("no i76motion packets in this log (use the <tag>.native.i76motion.i76rec file)");
+  return out;
+}
+
+// ---- preview washout (platform), recomputed per sample ----
+function platform(d) {
+  const n = d.t_sim.length, g = 9.81, P = { x: [], y: [], z: [], roll: [], pitch: [], yaw: [] };
+  let lpS = 0, lpW = 0, tiltP = 0, tiltR = 0, hp = { s: [0, 0, 0], w: [0, 0, 0], h: [0, 0, 0] }, yaw = 0, prevA = { s: 0, w: 0, h: 0 };
+  for (let k = 0; k < n; k++) {
+    const dt = k ? Math.max(1e-3, d.t_sim[k] - d.t_sim[k - 1]) : 0.01;
+    const s = d.surge[k] + d.cue_surge[k], w = d.sway[k] + d.cue_sway[k], h = d.heave[k] + d.cue_heave[k];
+    const aLP = 1 - Math.exp(-2 * Math.PI * 0.3 * dt);
+    lpS += aLP * (s - lpS); lpW += aLP * (w - lpW);
+    const rate = 3 * Math.PI / 180 * dt;
+    // tilt coordination: let gravity stand in for the sustained acceleration. Braking (surge < 0): nose down (pitch < 0)
+    // so you lean into the belts; a right turn (sway > 0): left side down (roll < 0) so you are pushed outward.
+    const tP = Math.asin(Math.max(-0.25, Math.min(0.25, lpS / g)));
+    const tR = -Math.asin(Math.max(-0.25, Math.min(0.25, lpW / g)));
+    tiltP += Math.max(-rate, Math.min(rate, tP - tiltP)); tiltR += Math.max(-rate, Math.min(rate, tR - tiltR));
+    // translation: HP (0.4 Hz) of the acceleration, double integrated, position washed out (tau 2 s)
+    const kh = Math.exp(-2 * Math.PI * 0.4 * dt), kw = Math.exp(-dt / 2);
+    for (const [key, a] of [["s", s], ["w", w], ["h", h]]) {
+      const st = hp[key];
+      st[0] = kh * (st[0] + a - prevA[key]);           // high-passed acceleration
+      st[1] = kw * (st[1] + st[0] * dt);              // velocity
+      st[2] = kw * (st[2] + st[1] * dt);              // position
+      prevA[key] = a;
+    }
+    const yr = d.yaw_rate[k]; yaw = Math.exp(-dt / 1.5) * (yaw + yr * dt);
+    P.x.push(Math.max(-0.15, Math.min(0.15, hp.w[2] * 0.6))); P.y.push(Math.max(-0.15, Math.min(0.15, hp.h[2] * 0.6))); P.z.push(Math.max(-0.15, Math.min(0.15, hp.s[2] * 0.6)));
+    P.pitch.push(d.pitch[k] * 0.8 + tiltP); P.roll.push(d.roll[k] * 0.8 + tiltR); P.yaw.push(Math.max(-0.3, Math.min(0.3, yaw)));
+  }
+  return P;
+}
+
+// ---- three.js scene ----
+if (typeof THREE === "undefined") { document.body.insertAdjacentHTML("afterbegin", "<p style='color:var(--warn)'>three.js did not load (offline?): the 3D view needs cdnjs.cloudflare.com.</p>"); throw new Error("three.js missing"); }
+const canvas = $("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 2, 0.1, 100);
+camera.position.set(0, 4.2, 9.5); camera.lookAt(0, 0.6, 0);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x666666, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(3, 8, 5); scene.add(sun);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const mat = c => new THREE.MeshStandardMaterial({ color: new THREE.Color(css(c) || "#888"), roughness: 0.7 });
+const grid = new THREE.GridHelper(16, 16, 0x888888, 0x888888); grid.material.opacity = 0.25; grid.material.transparent = true; scene.add(grid);
+
+// car (left): body + cabin + nose marker; I'76 body axes: x right, y up, z forward -> three.js: x right, y up, -z forward
+const car = new THREE.Group(); car.position.set(-2.6, 0.6, 0); scene.add(car);
+const carPose = new THREE.Group(); car.add(carPose);
+const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.2), mat("--s1")); carPose.add(body);
+const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 1.8), mat("--muted")); cabin.position.set(0, 0.47, 0.3); carPose.add(cabin);
+const nose = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 12), mat("--s2")); nose.rotation.x = -Math.PI / 2; nose.position.set(0, 0, -2.4); carPose.add(nose);
+const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 1.1, 0), 1, new THREE.Color(css("--s2") || "#e60").getHex(), 0.3, 0.2); carPose.add(arrow);
+
+// platform (right): base, six legs (visual), deck plate with a seat
+const rig = new THREE.Group(); rig.position.set(2.8, 0, 0); scene.add(rig);
+const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.12, 6), mat("--muted")); base.position.y = 0.06; rig.add(base);
+const deck = new THREE.Group(); deck.position.y = 1.0; rig.add(deck);
+const plate = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.1, 6), mat("--s3")); deck.add(plate);
+const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.6), mat("--s1")); seat.position.set(0, 0.4, 0.2); deck.add(seat);
+const seatNose = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 10), mat("--s2")); seatNose.rotation.x = -Math.PI / 2; seatNose.position.set(0, 0.1, -0.9); deck.add(seatNose);
+const legs = [];
+for (let k = 0; k < 6; k++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 8), mat("--muted")); rig.add(l); legs.push(l); }
+const baseAnch = [], topAnch = [];
+for (let k = 0; k < 6; k++) { const a = (k * 60 + (k % 2 ? 20 : -20)) * Math.PI / 180, b = (k * 60 + (k % 2 ? -20 : 20) + 30) * Math.PI / 180;
+  baseAnch.push(new THREE.Vector3(1.25 * Math.cos(a), 0.12, 1.25 * Math.sin(a))); topAnch.push(new THREE.Vector3(0.95 * Math.cos(b), -0.05, 0.95 * Math.sin(b))); }
+
+function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+window.addEventListener("resize", resize);
+
+// i76motion angles -> three.js Euler (order YXZ), car forward = -z: heading (clockwise from above) = -rotation about +y;
+// pitch (+ nose up) = +rotation about x (the nose at -z rises); roll (+ right side down) = -rotation about z (+z rotation
+// raises +x, the right side).
+function pose(obj, heading, pitch, roll) { obj.rotation.order = "YXZ"; obj.rotation.set(pitch, -heading, -roll); }
+
+let PL = null;
+const DOFS = [["surge", 12], ["sway", 12], ["heave", 12], ["roll", 0.15], ["pitch", 0.15], ["yaw_rate", 1.0], ["cue_surge", 40], ["cue_sway", 40], ["cue_heave", 40]];
+$("dofs").innerHTML = DOFS.map(([k]) => `<div class="dof"><span>${k}</span> <b id="v_${k}"></b><div class="track"><div class="zero"></div><div class="fill" id="f_${k}"></div></div></div>`).join("");
+function bits(s) { const n = { 0: "live", 1: "airborne", 2: "skid", 3: "destroyed", 4: "paused", 5: "NEUTRAL", 6: "interp", 7: "cue", 31: "SHUTDOWN" }; return Object.entries(n).filter(([b]) => (s >>> b) & 1).map(([, v]) => v).join(" ") + "  surface " + ((s >>> 8) & 255) + "  gear " + ((s >>> 16) & 255); }
+
+function draw() {
+  if (!D) { renderer.render(scene, camera); return; }
+  const k = i;
+  pose(carPose, D.heading[k], D.pitch[k], D.roll[k]);
+  car.rotation.y = 0;
+  // acceleration arrow in body axes: (sway, heave, surge) -> three (x, y, -z)
+  const ax = D.sway[k] + D.cue_sway[k], ay = D.heave[k] + D.cue_heave[k], az = D.surge[k] + D.cue_surge[k];
+  const m = Math.hypot(ax, ay, az);
+  if (m > 0.05) { arrow.visible = true; arrow.setDirection(new THREE.Vector3(ax, ay, -az).normalize()); arrow.setLength(Math.min(3, 0.25 + m / 6), 0.3, 0.2); } else arrow.visible = false;
+  deck.position.set(PL.x[k], 1.0 + PL.y[k], -PL.z[k]);
+  deck.rotation.order = "YXZ"; deck.rotation.set(PL.pitch[k], -PL.yaw[k], -PL.roll[k]);
+  deck.updateMatrixWorld(); rig.updateMatrixWorld();
+  for (let n = 0; n < 6; n++) {
+    const a = baseAnch[n].clone(), b = topAnch[n].clone().applyMatrix4(deck.matrix);
+    const mid = a.clone().add(b).multiplyScalar(0.5), len = a.distanceTo(b);
+    legs[n].position.copy(mid); legs[n].scale.set(1, len, 1);
+    legs[n].quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+  }
+  for (const [key, full] of DOFS) {
+    const v = D[key][k], f = Math.max(-1, Math.min(1, v / full)), el = $("f_" + key);
+    el.style.left = (50 + Math.min(0, f) * 50) + "%"; el.style.width = Math.abs(f) * 50 + "%";
+    $("v_" + key).textContent = (key === "roll" || key === "pitch") ? (v * 180 / Math.PI).toFixed(2) + " deg" : v.toFixed(2);
+  }
+  $("status").textContent = "t " + D.t_sim[k].toFixed(3) + " s   speed " + D.speed[k].toFixed(1) + " m/s   heading " + (D.heading[k] * 180 / Math.PI).toFixed(1) + " deg   status: " + bits(D.status[k]);
+  $("scrub").value = k;
+  renderer.render(scene, camera);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (playing && D) {
+    tPlay += dt * parseFloat($("speed").value);
+    while (i < D.t_sim.length - 1 && D.t_sim[i + 1] <= tPlay) i++;
+    if (i >= D.t_sim.length - 1) { playing = false; $("play").textContent = "Play"; }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+function load(data, name) {
+  D = data; PL = platform(D); i = 0; tPlay = D.t_sim[0];
+  const m = /t=([\d.]+)/.exec(location.hash); if (m) { while (i < D.t_sim.length - 1 && D.t_sim[i] < +m[1]) i++; tPlay = D.t_sim[i]; }   // #t=6.2 opens at 6.2 s
+  $("scrub").max = D.t_sim.length - 1; $("name").textContent = name + " - " + D.t_sim.length + " ticks, " + (D.t_sim[D.t_sim.length - 1] - D.t_sim[0]).toFixed(1) + " s";
+}
+$("file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; f.arrayBuffer().then(b => { try { load(parseI76rec(b), f.name); } catch (err) { $("name").textContent = err.message; } }); });
+$("play").addEventListener("click", () => { if (!D) return; if (i >= D.t_sim.length - 1) { i = 0; tPlay = D.t_sim[0]; } playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; });
+$("scrub").addEventListener("input", e => { if (!D) return; i = +e.target.value; tPlay = D.t_sim[i]; });
+resize();
+if (EMBED) load(EMBED.data, EMBED.name);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

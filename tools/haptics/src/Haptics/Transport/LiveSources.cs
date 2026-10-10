@@ -106,9 +106,15 @@ namespace Haptics.Transport
             Port = ((IPEndPoint)_u.Client.LocalEndPoint).Port;
             _u.Client.ReceiveTimeout = 50;
         }
-        /// <summary>The next datagram, or null within the timeout.</summary>
+        /// <summary>The next datagram, or null within the timeout. timeoutMs &lt;= 0 polls: null at once when nothing is queued
+        /// (a socket ReceiveTimeout of 0 means INFINITE in .NET, which made the live loop's drain block forever).</summary>
         public byte[] Receive(int timeoutMs = 50)
         {
+            if (timeoutMs <= 0)
+            {
+                if (_u.Available == 0) return null;
+                timeoutMs = 50;
+            }
             _u.Client.ReceiveTimeout = timeoutMs;
             try { IPEndPoint ep = null; return _u.Receive(ref ep); }
             catch (SocketException) { return null; }
