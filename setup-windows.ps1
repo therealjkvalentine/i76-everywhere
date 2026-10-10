@@ -330,8 +330,12 @@ if ($dispW -gt 0 -and $dispH -gt 0) {   # the display chosen above (-Display / I
         Where-Object { $_[0] -le $dispW -and $_[1] -le $dispH } |
         Select-Object -First 1
     if ($best) {
-        (Get-Content $confPath) -replace '^Resolution(\s+)= \d+x\d+', "Resolution`$1= $($best[0])x$($best[1])" |
-            Set-Content $confPath -Encoding ascii
+        # The repo file's own bytes (UTF-8, CRLF) with only the Resolution digits changed.
+        # Get-Content / Set-Content -Encoding ascii turned line 1's em dash into '???' (2026-10-10 check).
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        $stockConf = [IO.File]::ReadAllText($confPath, $utf8)
+        $stockConf = [regex]::Replace($stockConf, '(?m)^(Resolution[ \t]+= )\d+x\d+', ('${1}' + "$($best[0])x$($best[1])"))
+        [IO.File]::WriteAllText($confPath, $stockConf, $utf8)
         Write-Host "dgVoodoo.conf installed (FPSLimit=19.2; Voodoo1 2MB/1TMU, 8x MSAA, borderless windowed)."
         Write-Host ("  aspect: {0}x{1} (ratio {2:N3}) - closest real display mode to the Mac's 14:9 = 1.556." -f $best[0], $best[1], ($best[0]/$best[1]))
     } else {
