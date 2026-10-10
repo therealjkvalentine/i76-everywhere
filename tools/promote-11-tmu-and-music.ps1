@@ -1,3 +1,4 @@
+# 2026-10-10: SUPERSEDED, not run: promote-12-all-fixes.ps1 ran instead, as promotion 11 on 2026-10-05 08:16 (golden PROMOTIONS.md row 11). This draft's -What text and its gate proxy 3a2c6d4a appear in no PROMOTIONS.md row (Promote-To-Driver.ps1 appends -What to that file). Record only: do not run.
 # Promotion 11 (DRAFT 2026-10-04, NOT RUN - the owner decides): render-freeze fix + music fixes.
 #   1. dgVoodoo [Glide] MemorySizeOfTMU 2048 -> 8192 in dgVoodoo.wide.conf AND dgVoodoo.16x10.conf (NumberOfTMUs stays 1)
 #   2. I76_ZGLIDE_TMUFIX = '1' in presets\best-wide.psd1 (PLAY.bat) AND presets\best-120.psd1 (PLAY-16x10.bat, which

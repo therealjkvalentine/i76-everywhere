@@ -1,3 +1,4 @@
+# 2026-10-10: APPLIED as promotion 11 on 2026-10-05 08:16 (golden PROMOTIONS.md row 11 carries this script's -What text verbatim; proxy 89a97d25, rollback _rollback	). The 'DRAFT ... NOT RUN' line below is the 2026-10-04 state. Record only: do not re-run.
 # Promotion 12 (DRAFT 2026-10-04, NOT RUN - the owner decides): every fix of 2026-10-04 in one step. Supersedes the
 # promote-11 draft (run this one instead; it is idempotent over a promote-11 that was already applied).
 #   1. the consolidated proxy music-fix\Strlkup.dll (89a97d25, i76-everywhere b903730): music run end exclusive +
