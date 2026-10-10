@@ -20,3 +20,7 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
 4. **Terrain drop-out watch.** `TEST-terrain-watch.bat` = PLAY.bat + drop detector. Play where you saw it (open desert, road bend). If the
    ground vanishes, note the time; the log (`Interstate 76\mciproxy.log`, lines `TERRAIN-DROP`) and a saved frame tell us the rest.
    Expected: never (the lab copy lacked I76_CAM_GROUND_FIX when you saw it; your driver has it).
+5. **`PLAY-stock.bat` textures (daily driver).** Flagged 2026-10-10 by the preset-sync agent: it runs preset `stock` (no
+   I76_ZGLIDE_TMUFIX) on `dgVoodoo.16x10.conf`, which has MemorySizeOfTMU 8192 since promotion 11; 4096+ without TMUFIX gave
+   "texture exchange issues" in promotion 5R. Launch it briefly: wrong / swapped textures on terrain or cars = confirmed (fix: give
+   PLAY-stock its own conf at 2048, a small promotion). Low priority if you never use PLAY-stock.
