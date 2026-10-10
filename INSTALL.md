@@ -89,6 +89,8 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
 9. Copies the launcher (`PLAY-i76.ps1`) and `presets\*.psd1`, writes **`PLAY-i76.bat`**
    (`-Preset best-120`) and **`PLAY-stock.bat`** (`-Preset stock`) in the game folder, and makes a
    **desktop shortcut** ("Interstate '76") to `PLAY-i76.bat`.
+10. Copies the repo's **mission bookmarks** (`saves\save*.cmp` + `savegame.dir`: 13 bookmarks of a Mac campaign
+   run, [saves/README.md](saves/README.md)) into the game folder, **only if it has no `save*.cmp` yet**.
 
 The Nitro Pack, if installed, gets the earlier recipe unchanged (`dgVoodoo.windows.conf` with the
 19.2 fps cap, no proxy, no preset).
@@ -182,7 +184,14 @@ Tested on 2026-10-03, **without starting the game**:
   started from an installer-made folder, and the three keys have not been played.
 - The Nitro Pack path (unchanged).
 
-Not installed, although the daily driver has them: the cursor-overlay and head-tracking AutoHotkey scripts, Lossless Scaling, and the owner's saves.
+Not installed, although the daily driver has them: the cursor-overlay and head-tracking AutoHotkey scripts, Lossless Scaling,
+the owner's saves, and the shell keyboard patches of promotions 6 and 7 (`tools\patch-shell-f7.py`, `tools\patch-shell-modals.py`:
+Enter / Space close the OK popups, Y / N / Esc answer the yes/no ones). Both patch scripts apply cleanly to a copy of GOG 2.1.0.17's
+`i76shell.dll` (`deb41008`) offline; nobody has run the result.
+
+**Re-checked 2026-10-10** on six clean scratch folders made from the unpacked 2.1.0.17 files (default, `-Preset best-wide` twice,
+`-Controls stock`, `-Preset best-wide-balanced`, `-Preset stock`), the game not started:
+[docs/records/FRESH-INSTALL-CHECK-2026-10-10.md](docs/records/FRESH-INSTALL-CHECK-2026-10-10.md).
 
 ### Controls: this project's map or the 1997 keys
 
