@@ -151,6 +151,10 @@ namespace Haptics.Renderers
         public double MinGain = 0.002;                  // voices quieter than this after attenuation are not started
         public string[] RateScale = { "engine_loop" };  // categories whose playback rate follows the event Hz
         public double RateMin = 0.25, RateMax = 4.0;
+        // the player's own engine loop follows the frame rpm with the engine's pitch law (callback 0x424ca0, verified in
+        // docs/records/SOUND-INTERPOSER-REVIEW.md): Hz = base + base x (rpm - idle) / span; SOUND_START only carries the start Hz
+        public bool FollowRpm = true;
+        public double RpmIdle = 1050, RpmSpan = 4950, PitchBaseHz = 8268.75;
         public double DefaultNominalHz = 11025;
         public double FadeMs = 15;                      // release fade on SOUND_STOP / voice steal
         public double LoopMaxS = 0;                     // 0 = a loop lives until its SOUND_STOP
@@ -180,6 +184,9 @@ namespace Haptics.Renderers
             {
                 if (rs["categories"] is JsonArray ca) c.RateScale = ca.Select(x => x.GetValue<string>()).ToArray();
                 c.RateMin = EffectDef.Num(rs, "min", c.RateMin); c.RateMax = EffectDef.Num(rs, "max", c.RateMax);
+                if (rs["follow_rpm"] is JsonValue fv && fv.TryGetValue<bool>(out var fb)) c.FollowRpm = fb;
+                c.RpmIdle = EffectDef.Num(rs, "rpm_idle", c.RpmIdle); c.RpmSpan = EffectDef.Num(rs, "rpm_span", c.RpmSpan);
+                c.PitchBaseHz = EffectDef.Num(rs, "pitch_base_hz", c.PitchBaseHz);
             }
             if (o["limiter"] is JsonObject li) { c.Knee = EffectDef.Num(li, "knee", c.Knee); c.Ceiling = EffectDef.Num(li, "ceiling", c.Ceiling); }
             if (o["category_gain"] is JsonObject cg) foreach (var kv in cg) if (kv.Value is JsonValue v && v.TryGetValue<double>(out var g)) c.CategoryGain[kv.Key] = g;
@@ -213,10 +220,10 @@ namespace Haptics.Renderers
     {
         sealed class V
         {
-            public string Key, Name; public Stem Stem; public double Pos, Step, Gain, Fade = 1, FadeStep; public bool Loop, Releasing;
+            public string Key, Name; public Stem Stem; public double Pos, Step, Gain, Fade = 1, FadeStep; public bool Loop, Releasing, FollowRpm;
             public int Class; public long StartSample, MaxSamples;
         }
-        struct Job { public bool Start; public string Key, Name; public double Hz, Vol, Dist; public int Mode; public bool Player, HasPos, Present; }
+        struct Job { public bool Start, Rpm; public string Key, Name; public double Hz, Vol, Dist; public int Mode; public bool Player, HasPos, Present; }
 
         public readonly StemManifest Manifest;
         public readonly StemsConfig Cfg;
@@ -241,9 +248,8 @@ namespace Haptics.Renderers
 
         public void OnStep(CoreStep step)
         {
-            if (step.Events == null) return;
             bool present = step.State?.Present ?? true;
-            foreach (var e in step.Events)
+            foreach (var e in step.Events ?? new List<HapticEvent>())
             {
                 if (e.Type != "SOUND_START" && e.Type != "SOUND_STOP") continue;
                 double voice = e["voice"];
@@ -254,7 +260,11 @@ namespace Haptics.Renderers
                     Dist = e["dist"], Mode = (int)e["mode"], Player = e["is_player"] != 0, HasPos = e["has_pos"] != 0, Present = present,
                 });
             }
+            double rpm = step.State?.Rpm ?? 0;
+            if (Cfg.FollowRpm && present && rpm > 0) _q.Enqueue(new Job { Rpm = true, Hz = Cfg.PitchBaseHz + Cfg.PitchBaseHz * (rpm - Cfg.RpmIdle) / Cfg.RpmSpan });
         }
+
+        double Ratio(Stem st, double hz) => Math.Max(Cfg.RateMin, Math.Min(Cfg.RateMax, hz / st.NominalHz));
 
         /// <summary>The gain a SOUND_START would get (before the limiter), and its priority class (3 player, 2 near / 2D, 1 far).</summary>
         public (double gain, int cls) GainFor(Stem st, double vol, bool player, bool hasPos, double dist, bool present)
@@ -271,6 +281,11 @@ namespace Haptics.Renderers
 
         void Apply(Job j)
         {
+            if (j.Rpm)
+            {
+                if (j.Hz > 1) foreach (var v in _voices) if (v.FollowRpm) v.Step = (double)v.Stem.Rate / _rate * Ratio(v.Stem, j.Hz);
+                return;
+            }
             if (!j.Start)
             {
                 var v = _voices.FirstOrDefault(x => x.Key == j.Key && !x.Releasing);
@@ -296,12 +311,12 @@ namespace Haptics.Renderers
                 else { Dropped++; return; }
             }
             double ratio = 1.0;
-            if (j.Hz > 0 && st.NominalHz > 0 && Cfg.RateScale.Any(c => string.Equals(c, st.Category, StringComparison.OrdinalIgnoreCase)))
-                ratio = Math.Max(Cfg.RateMin, Math.Min(Cfg.RateMax, j.Hz / st.NominalHz));
+            bool scaled = st.NominalHz > 0 && Cfg.RateScale.Any(c => string.Equals(c, st.Category, StringComparison.OrdinalIgnoreCase));
+            if (scaled && j.Hz > 0) ratio = Ratio(st, j.Hz);
             var nv = new V
             {
                 Key = j.Key, Name = st.Name, Stem = st, Gain = gain, Class = cls, Loop = j.Mode == 1 || j.Mode == 2,
-                Step = (double)st.Rate / _rate * ratio, StartSample = Samples,
+                Step = (double)st.Rate / _rate * ratio, StartSample = Samples, FollowRpm = scaled && Cfg.FollowRpm && j.Player && (j.Mode == 1 || j.Mode == 2),
                 MaxSamples = Cfg.LoopMaxS > 0 ? (long)(Cfg.LoopMaxS * _rate) : long.MaxValue,
             };
             _voices.Add(nv); Started++;

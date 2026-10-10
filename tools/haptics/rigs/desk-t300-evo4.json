@@ -112,7 +112,11 @@
           "engine_loop"
         ],
         "min": 0.25,
-        "max": 4.0
+        "max": 4.0,
+        "follow_rpm": true,
+        "rpm_idle": 1050,
+        "rpm_span": 4950,
+        "pitch_base_hz": 8268.75
       },
       "default_nominal_hz": 11025,
       "fade_ms": 15.0,

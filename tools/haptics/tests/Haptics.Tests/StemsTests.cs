@@ -56,7 +56,8 @@ namespace Haptics.Tests
             public short[] Lfe, Stems; public StemBank Bank; public LfeStemsRenderer R; public string Dir; public Pipeline P;
         }
 
-        static Res Go(string tag, IList<SoundCue> cues, double seconds = 2.0, Action<RigDef> rig = null, string[] sinks = null, Action<Pipeline> onP = null, bool present = true)
+        static Res Go(string tag, IList<SoundCue> cues, double seconds = 2.0, Action<RigDef> rig = null, string[] sinks = null, Action<Pipeline> onP = null, bool present = true,
+                      Func<double, double> rpm = null)
         {
             var set = EffectSet.Load();
             var st = set.Rig.Output("stems");
@@ -67,7 +68,7 @@ namespace Haptics.Tests
             var p = Session.Build(set, sinks ?? new[] { "lfe-wav" }, dir, tag, false, 250, 50, null, TextWriter.Null);
             onP?.Invoke(p);
             var d = new Derive(); p.Core.Configure(d);
-            p.Run(Sources.FromDatagrams(SyntheticSound.Session(cues, seconds, 50, present), d, new TelCodec(null)));
+            p.Run(Sources.FromDatagrams(SyntheticSound.Session(cues, seconds, 50, present, rpm), d, new TelCodec(null)));
             foreach (var r in p.Renderers) r.Close();
             var run = new Res { Dir = dir, P = p };
             run.R = p.Renderers.OfType<LfeStemsRenderer>().FirstOrDefault();
@@ -176,9 +177,18 @@ namespace Haptics.Tests
                 var idle = Go("rate_idle", new[] { new SoundCue { Name = "tengine", At = 0.2, Mode = 1, Hz = 8268.75, Player = true, Dist = 0 } }, 1.6);
                 double fi = ZeroCrossHz(idle.Stems, 4800, 20800);
                 T.Check("engine loop at 8268.75 Hz (idle, x0.75 of 11025): the 40 Hz stem plays at 30 Hz", Math.Abs(fi - 30) < 0.3, fi.ToString("0.00") + " Hz");
-                var high = Go("rate_high", new[] { new SoundCue { Name = "tengine", At = 0.2, Mode = 1, Hz = 11025 * 1.65, Player = true, Dist = 0 } }, 1.6);
+                var high = Go("rate_high", new[] { new SoundCue { Name = "tengine", At = 0.2, Mode = 1, Hz = 11025 * 1.65, Dist = 5 } }, 1.6);
                 double fh = ZeroCrossHz(high.Stems, 4800, 20800);
-                T.Check("engine loop at 1.65 x 11025 Hz: 66 Hz", Math.Abs(fh - 66) < 0.5, fh.ToString("0.00") + " Hz");
+                T.Check("an AI engine loop started at 1.65 x 11025 Hz plays at 66 Hz (its start Hz: no rpm for AI cars)", Math.Abs(fh - 66) < 0.5, fh.ToString("0.00") + " Hz");
+                var rev = Go("rate_follow_rpm", new[] { new SoundCue { Name = "tengine", At = 0.2, Mode = 1, Hz = 8268.75, Player = true, Dist = 0 } }, 1.6, null, null, null, true,
+                             t => t < 0.75 ? 1050 : 6000);
+                double f0 = ZeroCrossHz(rev.Stems, 4800, 11200), f1 = ZeroCrossHz(rev.Stems, 13600, 24000);
+                T.Check("the player's engine loop follows the frame rpm by the pitch law (1050 rpm 30 Hz -> 6000 rpm 2 x 8268.75 Hz = 60 Hz)",
+                    Math.Abs(f0 - 30) < 0.3 && Math.Abs(f1 - 60) < 0.5, f0.ToString("0.00") + " -> " + f1.ToString("0.00") + " Hz");
+                var norpm = Go("rate_no_follow", new[] { new SoundCue { Name = "tengine", At = 0.2, Mode = 1, Hz = 8268.75, Player = true, Dist = 0 } }, 1.6,
+                               rig => ((JsonObject)rig.Output("stems")["rate_scale"])["follow_rpm"] = false, null, null, true, t => t < 0.75 ? 1050 : 6000);
+                double fn = ZeroCrossHz(norpm.Stems, 13600, 24000);
+                T.Check("rate_scale.follow_rpm false: the loop keeps its start Hz (30 Hz)", Math.Abs(fn - 30) < 0.3, fn.ToString("0.00") + " Hz");
                 var wpn = Go("rate_weapon", new[] { new SoundCue { Name = "tbang", At = 0.2, Hz = 22050, Player = true, Dist = 0 } }, 0.8);
                 T.Check("a weapon stem is not rate-scaled (not in rate_scale.categories)", wpn.Bank.StartLog.Count == 1 && wpn.Bank.StartLog[0].step == 1.0, "");
             }

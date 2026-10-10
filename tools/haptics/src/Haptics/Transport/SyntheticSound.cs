@@ -25,7 +25,8 @@ namespace Haptics.Transport
     /// </summary>
     public static class SyntheticSound
     {
-        public static IEnumerable<(double t, byte[] data)> Session(IList<SoundCue> cues, double seconds, double fps = 50.0, bool playerPresent = true)
+        /// <param name="rpm">engine rpm per frame time (default 1050: the pitch law's idle, so a player engine loop sits at 8268.75 Hz)</param>
+        public static IEnumerable<(double t, byte[] data)> Session(IList<SoundCue> cues, double seconds, double fps = 50.0, bool playerPresent = true, Func<double, double> rpm = null)
         {
             var L = I76TelLayout.V3;
             uint seq = 0, evSeq = 0;
@@ -62,7 +63,7 @@ namespace Haptics.Transport
                 f["step_count"] = 1; f["player_present"] = playerPresent ? 1 : 0; f["obj_addr"] = 0x1000; f["ent_addr"] = 0x2000;
                 double[] rot = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
                 for (int k = 0; k < 9; k++) f["rot_" + k] = rot[k];
-                f["flags"] = TelFrame.FlagEngineRunning; f["gear"] = 1; f["rpm"] = 850; f["surface"] = 5; f["ground_normal_1"] = 1; f["clearance"] = 0.3;
+                f["flags"] = TelFrame.FlagEngineRunning; f["gear"] = 1; f["rpm"] = rpm?.Invoke(t) ?? 1050; f["surface"] = 5; f["ground_normal_1"] = 1; f["clearance"] = 0.3;
                 for (int w = 0; w < 6; w++) { bool pr = w != 2 && w != 3; f["wheel" + w + "_present"] = pr ? 1 : 0; f["wheel" + w + "_hp"] = 100; f["wheel" + w + "_hp_max"] = 100; f["wheel" + w + "_grip"] = 1.0; }
                 f["mass"] = 1800; f["inv_mass"] = 1 / 1800.0; f["health_pct"] = 100; f["event_hooks"] = 0x18;
                 f["event_seq"] = evSeq;
