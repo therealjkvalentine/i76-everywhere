@@ -1,0 +1,7836 @@
+{
+ "summary": {
+  "pack_version": "sound-hd v1 (2026-10-10)",
+  "checked": 123,
+  "passed": 123,
+  "failed": 0,
+  "per_check": {
+   "bits16": {
+    "pass": 123,
+    "fail": 0
+   },
+   "decodable": {
+    "pass": 123,
+    "fail": 0
+   },
+   "e20_120_in_target": {
+    "pass": 123,
+    "fail": 0
+   },
+   "fmt_ge_14_bytes": {
+    "pass": 123,
+    "fail": 0
+   },
+   "gpw_header_equals_stock": {
+    "pass": 123,
+    "fail": 0
+   },
+   "lfe_stem": {
+    "pass": 85,
+    "fail": 0
+   },
+   "loop_seam": {
+    "pass": 32,
+    "fail": 0
+   },
+   "loudness_delta_le_0.5LU": {
+    "pass": 123,
+    "fail": 0
+   },
+   "mono": {
+    "pass": 123,
+    "fail": 0
+   },
+   "original_md5": {
+    "pass": 123,
+    "fail": 0
+   },
+   "rate_rule": {
+    "pass": 123,
+    "fail": 0
+   },
+   "replacement_md5": {
+    "pass": 123,
+    "fail": 0
+   },
+   "riff_chunks_fmt_then_data": {
+    "pass": 123,
+    "fail": 0
+   },
+   "size_le_8x": {
+    "pass": 123,
+    "fail": 0
+   },
+   "sub_integer_cycles": {
+    "pass": 8,
+    "fail": 0
+   },
+   "true_peak_le_-0.3dBTP": {
+    "pass": 123,
+    "fail": 0
+   }
+  },
+  "addon_bytes": 9509238,
+  "budget_note": "design 1.3: ~14 MB if every effect is 22,050/16",
+  "untouched": 507
+ },
+ "results": [
+  {
+   "name": "adwind",
+   "category": "ambient",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -23.71 new -23.74 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-12.34 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.099 -> 0.099 (target 0.069..0.149)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "163444 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.13 x p99 step (stock 0.40)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "afworks",
+   "category": "ambient",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.09 new -7.20 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.166 -> 0.156 (target 0.136..0.216)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "210756 B = 4.00x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "aheli",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.09 new -8.18 delta -0.09 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.309 -> 0.404 (target 0.279..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "27264 B = 1.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 1.43 x p99 step (stock 1.74)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 73 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS, seam 0.51"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "aps2",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -16.97 new -16.88 delta +0.09 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-10.72 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.037 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "14488 B = 3.94x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.14 x p99 step (stock 0.00)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 25 cycles over the loop"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "bnitro",
+   "category": "nitro",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.35 new -11.49 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.51 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.288 -> 0.274 (target 0.258..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "176476 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -5.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cammo",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.69 new -14.80 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.004 -> 0.004 (target 0.000..0.054)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "3694 B = 1.96x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cgrowl",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -4.90 new -4.99 delta -0.09 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "6418 B = 1.98x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cjamm",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -19.81 new -19.87 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-8.75 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.796 -> 0.795 (target 0.766..0.846)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "66310 B = 2.00x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "clockon",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -17.64 new -17.65 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-8.23 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "22000 B = 1.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cmap2",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -26.53 new -26.58 delta -0.05 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.014 -> 0.020 (target 0.000..0.064)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "32336 B = 2.00x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cmike",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.96 new -8.03 delta -0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.004 -> 0.004 (target 0.000..0.054)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "8206 B = 1.98x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cnote",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.29 new -14.30 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-1.08 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "18814 B = 1.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cradar",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -21.96 new -21.95 delta +0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-12.49 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.002 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "1376 B = 1.82x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "croger",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.06 new -14.14 delta -0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "12514 B = 1.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "cwstat",
+   "category": "cockpit_ui",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -17.31 new -17.31 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-7.75 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "38508 B = 2.00x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "dblox",
+   "category": "dropper",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -18.07 new -18.17 delta -0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.110 -> 0.239 (target 0.080..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "49468 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -11.7 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "dcaltrop",
+   "category": "dropper",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.43 new -12.55 delta -0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.001 -> 0.135 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "26532 B = 1.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -10.9 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "derase",
+   "category": "dropper",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.13 new -12.26 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.139 -> 0.225 (target 0.109..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "16740 B = 3.95x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -7.2 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "dfire",
+   "category": "dropper",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.92 new -11.00 delta -0.08 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.019 -> 0.032 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "87324 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -11.0 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "dmines1",
+   "category": "dropper",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.03 new -10.15 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.542 -> 0.523 (target 0.512..0.592)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "14344 B = 3.94x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.6 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "doil",
+   "category": "dropper",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.13 new -11.19 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.028 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "67524 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -17.8 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eihp",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 75, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -13.63 new -13.52 delta +0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-3.91 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.099 -> 0.254 (target 0.069..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "21890 B = 1.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 1.11 x p99 step (stock 1.10)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 59 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -11.2 dBFS, seam 0.08"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eimarx",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": 1, \"volume\": 60, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.10 new -9.24 delta -0.15 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.598 -> 0.598 (target 0.568..0.648)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "50086 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.17 x p99 step (stock 0.17)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -5.2 dBFS, seam 0.51"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "einp1",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 75, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -17.82 new -17.69 delta +0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-4.49 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.047 -> 0.125 (target 0.017..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "21620 B = 1.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.87 x p99 step (stock 0.86)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 95 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -17.1 dBFS, seam 0.37"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eishp",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.34 new -15.34 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-6.92 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.109 -> 0.226 (target 0.079..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "45660 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 2.40 x p99 step (stock 2.64)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 144 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -11.3 dBFS, seam 0.11"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eisv",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -16.57 new -16.68 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-5.35 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.043 -> 0.123 (target 0.013..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "63394 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.20 x p99 step (stock 0.17)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 195 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -14.6 dBFS, seam 0.22"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eitank",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.35 new -10.47 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.528 -> 0.528 (target 0.498..0.578)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "93414 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.22 x p99 step (stock 0.24)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -3.5 dBFS, seam 0.26"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eshp1",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -16.05 new -15.93 delta +0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.026 -> 0.244 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "99912 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -8.5 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eshp2",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.57 new -14.43 delta +0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.334 -> 0.473 (target 0.304..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "208584 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.7 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "eshp3",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.70 new -11.84 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.217 -> 0.265 (target 0.187..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "441144 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -3.7 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esmarx",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -13.65 new -13.76 delta -0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.043 -> 0.226 (target 0.013..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "106752 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -7.0 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esnp1",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -22.20 new -22.30 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.056 -> 0.216 (target 0.026..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "76780 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -13.5 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esnp2",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.88 new -15.92 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.012 -> 0.152 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "95716 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -10.7 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esnp3",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -18.35 new -18.37 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.044 -> 0.101 (target 0.014..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "409140 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -13.8 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esshp1",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.11 new -11.07 delta +0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.34 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.277 -> 0.371 (target 0.247..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "125128 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -5.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esshp2",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.81 new -9.95 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.824 -> 0.800 (target 0.794..0.874)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "120732 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "esshp3",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.26 new -12.38 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.104 -> 0.237 (target 0.074..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "209020 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -6.0 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "essv",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.13 new -14.19 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.182 -> 0.255 (target 0.152..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "169240 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -6.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "estank",
+   "category": "engine_start",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -13.15 new -13.10 delta +0.05 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.36 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.143 -> 0.356 (target 0.113..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "176864 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "fdmg1",
+   "category": "damage",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.44 new -14.47 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-2.64 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.288 -> 0.323 (target 0.258..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "50176 B = 3.95x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -9.8 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "h45ch",
+   "category": "handgun",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.75 new -10.78 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.47 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.055 -> 0.097 (target 0.025..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "39624 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -7.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "hssr1",
+   "category": "handgun",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 3, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.11 new -10.16 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.358 -> 0.384 (target 0.328..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "15176 B = 3.94x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -7.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "hssr2",
+   "category": "handgun",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 3, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.08 new -14.11 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.66 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.165 -> 0.254 (target 0.135..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "21064 B = 3.96x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -5.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "msllock1",
+   "category": "missile_lock",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.10 new -12.26 delta -0.16 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "37608 B = 2.00x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "msllock2",
+   "category": "missile_lock",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.70 new -8.84 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "11208 B = 1.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "msllock3",
+   "category": "missile_lock",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "11025 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -3.88 new -4.01 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.35 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.002 -> 0.002 (target 0.000..0.052)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "16486 B = 1.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tblow",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.87 new -12.99 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.576 -> 0.566 (target 0.546..0.626)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "12744 B = 3.93x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tcaltrop",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.23 new -10.35 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.026 -> 0.030 (target 0.000..0.076)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "44988 B = 2.00x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tflat",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.13 new -15.26 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.111 -> 0.111 (target 0.081..0.161)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "25732 B = 3.97x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.16 x p99 step (stock 0.31)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tskid1",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.67 new -11.67 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.002 -> 0.002 (target 0.000..0.052)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "52584 B = 3.98x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.65 x p99 step (stock 0.56)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tskid2",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.98 new -11.00 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "71904 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.23 x p99 step (stock 0.26)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tskid3",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.28 new -12.27 delta +0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.31 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "71904 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.45 x p99 step (stock 0.43)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tskid4",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.28 new -12.27 delta +0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.31 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "71904 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.45 x p99 step (stock 0.43)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tturn1",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.67 new -11.67 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.002 -> 0.002 (target 0.000..0.052)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "52584 B = 3.98x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.65 x p99 step (stock 0.56)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tturn2",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.98 new -11.00 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "71904 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.23 x p99 step (stock 0.26)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tturn3",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.28 new -12.27 delta +0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.31 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "71904 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.45 x p99 step (stock 0.43)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "tturn4",
+   "category": "tyre_surface",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": 50, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.28 new -12.27 delta +0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.31 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "71904 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.45 x p99 step (stock 0.43)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vballoon",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.97 new -9.09 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.113 -> 0.190 (target 0.083..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "136554 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.00 x p99 step (stock 0.00)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 340 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.8 dBFS, seam 0.01"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vcddirt",
+   "category": "surface_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -19.18 new -19.18 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-1.99 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.034 -> 0.034 (target 0.004..0.084)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "91804 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.57 x p99 step (stock 0.57)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vcdgrav",
+   "category": "surface_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -17.62 new -17.64 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.054 -> 0.054 (target 0.024..0.104)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "247164 B = 4.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.20 x p99 step (stock 0.25)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vcdoil",
+   "category": "surface_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.36 new -15.39 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-3.81 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.002 -> 0.002 (target 0.000..0.052)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "90024 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.02 x p99 step (stock 0.11)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vcdsand",
+   "category": "surface_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -17.68 new -17.68 delta +0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-3.85 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.035 -> 0.035 (target 0.005..0.085)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "74132 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.60 x p99 step (stock 0.58)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vexplode",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 80, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.77 new -10.84 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.80 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.701 -> 0.706 (target 0.671..0.751)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "210756 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vhorn1",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.13 new -8.20 delta -0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.78 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.036 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "20256 B = 3.96x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vhorn2",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.44 new -7.49 delta -0.05 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.48 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.028 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "72612 B = 3.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vhorn3",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.37 new -7.44 delta -0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.56 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.044 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "72216 B = 3.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vhorn4",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.95 new -8.06 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.60 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.032 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "64388 B = 3.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vhorn5",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.59 new -8.68 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.80 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.039 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "77636 B = 3.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vhorn6",
+   "category": "horn_siren",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.59 new -8.68 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.80 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.039 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "77636 B = 3.99x stock"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vland",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": 60, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.44 new -12.54 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.375 -> 0.428 (target 0.345..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "28960 B = 3.97x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vlanding",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -16.30 new -16.33 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.61 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.199 -> 0.208 (target 0.169..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "64828 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -8.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vnvco3",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.73 new -11.69 delta +0.04 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.67 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.481 -> 0.554 (target 0.451..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "17096 B = 3.95x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vnvcs1",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.21 new -15.34 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.141 -> 0.226 (target 0.111..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "67284 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -8.9 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vnvcs3",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.79 new -9.92 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.051 -> 0.074 (target 0.021..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "147480 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.8 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vnvcs5",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.32 new -8.34 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.015 -> 0.065 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "114944 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -8.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vshif1a",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -20.80 new -20.69 delta +0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.019 -> 0.298 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "32072 B = 3.97x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -11.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vskid",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.97 new -9.07 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.79 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.000 -> 0.000 (target 0.000..0.050)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "146456 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.07 x p99 step (stock 0.15)"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vtcoll",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": 60, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -13.97 new -14.10 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.555 -> 0.555 (target 0.525..0.605)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "57820 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.2 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vufo",
+   "category": "engine_loop",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "engine loop at 11025 (must be 11025 until P5)"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.09 new -14.10 delta -0.01 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.002 -> 0.126 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "39814 B = 2.00x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.01 x p99 step (stock 0.00)"
+    },
+    "sub_integer_cycles": {
+     "ok": true,
+     "detail": "sub completes 86 cycles over the loop"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -14.0 dBFS, seam 0.23"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vvbo1",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.03 new -11.10 delta -0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.64 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.281 -> 0.321 (target 0.251..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "61892 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.9 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vvcbb3",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.28 new -15.17 delta +0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.423 -> 0.648 (target 0.393..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "44216 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vvch2",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.26 new -9.28 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.51 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.279 -> 0.291 (target 0.249..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "67760 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vvcre2",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.19 new -10.17 delta +0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.39 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.061 -> 0.195 (target 0.031..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "60964 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -5.2 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "vvcre3",
+   "category": "vehicle_collision",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.83 new -11.75 delta +0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.59 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.353 -> 0.457 (target 0.323..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "61872 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.6 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wbalflam",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.30 new -8.32 delta -0.02 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.73 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.234 -> 0.288 (target 0.204..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "41544 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.9 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wcbl",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -16.36 new -16.50 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.246 -> 0.419 (target 0.216..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "25432 B = 3.97x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -9.5 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wchem",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -14.61 new -14.75 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.537 -> 0.540 (target 0.507..0.587)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "24572 B = 3.96x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.6 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wcherub",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.34 new -9.44 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.228 -> 0.203 (target 0.198..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "116024 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.5 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wclick",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -21.81 new -21.81 delta -0.00 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-12.66 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.225 -> 0.324 (target 0.195..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "4424 B = 3.81x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -21.6 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wcvr",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 3, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -15.31 new -15.43 delta -0.11 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.369 -> 0.477 (target 0.339..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "29696 B = 3.97x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.5 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wezk",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.37 new -12.47 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.67 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.060 -> 0.199 (target 0.030..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "27448 B = 3.97x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -6.6 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wgl",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.58 new -12.72 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.168 -> 0.255 (target 0.138..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "22928 B = 3.96x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -5.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "whades",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -13.76 new -13.89 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.586 -> 0.592 (target 0.556..0.636)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "38864 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -4.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "whcan",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.73 new -9.79 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.51 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.862 -> 0.868 (target 0.832..0.912)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "15632 B = 3.95x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "whflame",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.57 new -8.60 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.64 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.179 -> 0.277 (target 0.149..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "127940 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.25 x p99 step (stock 0.19)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.8 dBFS, seam 0.01"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "whmgun",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -6.77 new -6.83 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.189 -> 0.310 (target 0.159..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "27724 B = 3.97x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.17 x p99 step (stock 0.91)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.2 dBFS, seam 0.66"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "whowitz",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.39 new -10.53 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.602 -> 0.624 (target 0.572..0.652)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "79144 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "whsm",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.45 new -8.50 delta -0.04 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.175 -> 0.177 (target 0.145..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "87392 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.7 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wlcan",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.56 new -10.77 delta -0.22 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.581 -> 0.578 (target 0.551..0.631)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "15148 B = 3.94x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wlflame",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.89 new -10.99 delta -0.09 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.196 -> 0.347 (target 0.166..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "132504 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.13 x p99 step (stock 0.11)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.7 dBFS, seam 0.86"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wlmgun",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.74 new -7.77 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.37 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.565 -> 0.566 (target 0.535..0.615)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "58024 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.02 x p99 step (stock 0.09)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.7 dBFS, seam 0.02"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wmcan",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.96 new -10.00 delta -0.05 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.42 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.541 -> 0.530 (target 0.511..0.591)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "19600 B = 3.96x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.8 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wmflame",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.41 new -10.56 delta -0.15 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.465 -> 0.463 (target 0.435..0.515)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "131032 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.55 x p99 step (stock 0.18)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS, seam 0.04"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wmgr1",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": 3, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.85 new -12.92 delta -0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.330 -> 0.341 (target 0.300..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "17164 B = 3.95x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -7.2 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wmgr2",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -27.60 new -27.65 delta -0.05 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-12.16 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.001 -> 0.027 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "47024 B = 3.97x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -29.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wmiss",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.63 new -9.68 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.68 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.001 -> 0.030 (target 0.000..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "58628 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -14.2 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wmmgun",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.83 new -9.85 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.38 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.559 -> 0.560 (target 0.529..0.609)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "88712 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.01 x p99 step (stock 0.03)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.1 dBFS, seam 0.02"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wrhm",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.39 new -11.49 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.120 -> 0.131 (target 0.090..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "164088 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -3.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wrock",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 3, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.86 new -8.00 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.42 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.033 -> 0.045 (target 0.003..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "95188 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -15.9 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wtank",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.39 new -10.53 delta -0.14 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.602 -> 0.624 (target 0.572..0.652)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "79144 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.4 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "wwpgl",
+   "category": "weapon_fire",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 70, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -13.70 new -13.83 delta -0.13 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.108 -> 0.194 (target 0.078..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "22928 B = 3.96x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -7.1 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xbridge",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": -1, \"max_instances\": -1, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.70 new -8.75 delta -0.05 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.80 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.505 -> 0.488 (target 0.475..0.555)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "94664 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xbuild",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.90 new -8.99 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.269 -> 0.312 (target 0.239..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "162548 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xcar",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.77 new -10.84 delta -0.06 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.80 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.701 -> 0.706 (target 0.671..0.751)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "210756 B = 4.00x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xemt1",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.38 new -11.35 delta +0.04 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.62 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.454 -> 0.594 (target 0.424..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "90976 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.8 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xemt2",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.76 new -9.86 delta -0.10 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.778 -> 0.787 (target 0.748..0.828)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "111392 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xfire1",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": -1, \"play_mode\": 1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.91 new -8.89 delta +0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.39 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.385 -> 0.617 (target 0.355..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "97948 B = 3.99x stock"
+    },
+    "loop_seam": {
+     "ok": true,
+     "detail": "seam jump 0.56 x p99 step (stock 0.51)"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.6 dBFS, seam 0.34"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xgas",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -10.01 new -10.24 delta -0.22 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.55 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.619 -> 0.607 (target 0.589..0.669)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "99692 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xms2",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -12.45 new -12.60 delta -0.15 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.67 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.526 -> 0.513 (target 0.496..0.576)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "56704 B = 3.98x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -3.9 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xmv1",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -7.96 new -7.99 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.34 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.404 -> 0.436 (target 0.374..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "103196 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xmv2",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -9.24 new -9.27 delta -0.03 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.44 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.627 -> 0.617 (target 0.597..0.677)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "95208 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.3 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xsv1",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -11.26 new -11.18 delta +0.07 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.63 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.454 -> 0.596 (target 0.424..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "57920 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -1.0 dBFS"
+    }
+   },
+   "ok": true
+  },
+  {
+   "name": "xsv2",
+   "category": "explosion_impact",
+   "checks": {
+    "original_md5": {
+     "ok": true,
+     "detail": "stock payload md5 vs manifest and pristine archive 6dd57b1627d73e814247c0d9521f9778"
+    },
+    "replacement_md5": {
+     "ok": true,
+     "detail": ""
+    },
+    "decodable": {
+     "ok": true,
+     "detail": ""
+    },
+    "riff_chunks_fmt_then_data": {
+     "ok": true,
+     "detail": "['fmt ', 'data']"
+    },
+    "fmt_ge_14_bytes": {
+     "ok": true,
+     "detail": "fmt 16 bytes tag 1"
+    },
+    "mono": {
+     "ok": true,
+     "detail": ""
+    },
+    "bits16": {
+     "ok": true,
+     "detail": ""
+    },
+    "rate_rule": {
+     "ok": true,
+     "detail": "22050 Hz"
+    },
+    "gpw_header_equals_stock": {
+     "ok": true,
+     "detail": "{\"priority\": 60, \"max_instances\": 2, \"play_mode\": -1, \"volume\": -1, \"random_pitch\": -1, \"frequency\": -1}"
+    },
+    "loudness_delta_le_0.5LU": {
+     "ok": true,
+     "detail": "stock -8.68 new -8.80 delta -0.12 LU"
+    },
+    "true_peak_le_-0.3dBTP": {
+     "ok": true,
+     "detail": "-0.62 dBTP"
+    },
+    "e20_120_in_target": {
+     "ok": true,
+     "detail": "E20-120 0.280 -> 0.325 (target 0.250..0.750)"
+    },
+    "size_le_8x": {
+     "ok": true,
+     "detail": "70640 B = 3.99x stock"
+    },
+    "lfe_stem": {
+     "ok": true,
+     "detail": "16000 Hz 1 ch 16 bit, peak -2.7 dBFS"
+    }
+   },
+   "ok": true
+  }
+ ]
+}

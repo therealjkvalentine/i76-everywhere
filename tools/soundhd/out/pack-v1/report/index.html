@@ -1,0 +1,1504 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
+<title>Sound HD report</title><style>
+:root{--bg:#ffffff;--fg:#1f1f1e;--muted:#5f5e58;--line:#e2e1da;--bad:#b3261e;--good:#1b7f3b;--card:#f7f6f2}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1a1a19;--fg:#f2f1ea;--muted:#c3c2b7;--line:#3a3a37;--bad:#ff8a80;--good:#7ed69a;--card:#232321}}
+:root[data-theme="dark"]{--bg:#1a1a19;--fg:#f2f1ea;--muted:#c3c2b7;--line:#3a3a37;--bad:#ff8a80;--good:#7ed69a;--card:#232321}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;margin:0;padding:16px;max-width:1200px}
+h1{font-size:20px;margin:0 0 4px} h2{font-size:16px;margin:24px 0 8px} p{margin:4px 0 8px;color:var(--muted)}
+.wrap{overflow-x:auto} table{border-collapse:collapse;font-size:12px;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:var(--bg);text-align:right} td.l,th.l{text-align:left}
+.bad{color:var(--bad);font-weight:600} .good{color:var(--good)}
+details{background:var(--card);border-radius:6px;padding:6px 10px;margin:6px 0} img{max-width:100%;height:auto;background:#fff}
+</style></head><body>
+<h1>I'76 HD sound pack: A/B report</h1>
+<p>sound-hd v1 (2026-10-10). 123 replacements; 507 stock files untouched (CB/dialogue, shell UI, loose music). Stock = the pristine I76.ZFS payload (8-bit); HD = the rendered ADDON file (16-bit). Loudness = BS.1770-4 integrated (files under 400 ms: one block of their own length). E20-120 = fraction of energy between 20 and 120 Hz. Band columns = HD minus stock octave-band energy in dB. Figures (stock/HD spectrograms on one dB scale + band energies) open per row.</p>
+<div class=wrap><table><thead><tr><th class=l>sound</th><th class=l>recipe</th><th>loop</th><th>Hz</th><th>stock LUFS</th><th>HD LUFS</th><th>&Delta; LU</th><th>HD dBTP</th><th>E20-120 stock</th><th>E20-120 HD</th>
+<th>&Delta;20</th>
+<th>&Delta;40</th>
+<th>&Delta;80</th>
+<th>&Delta;160</th>
+<th>&Delta;320</th>
+<th>&Delta;640</th>
+<th>&Delta;1.3k</th>
+<th>&Delta;2.6k</th>
+<th>&Delta;5.5k</th>
+<th class=l>peak stage</th></tr></thead><tbody>
+<tr><td class=l><a href='#adwind'>adwind.gpw</a></td><td class=l>ambient/none</td><td>yes</td><td>22050</td><td>-23.71</td><td>-23.74</td><td class=''>-0.03</td><td class=''>-12.34</td><td>0.099</td><td>0.099</td>
+<td>+0.2</td>
+<td>-0.7</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.5</td>
+<td>-3.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#afworks'>afworks.gpw</a></td><td class=l>ambient/none</td><td></td><td>22050</td><td>-7.09</td><td>-7.20</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.166</td><td>0.156</td>
+<td>+0.1</td>
+<td>-0.7</td>
+<td>-0.2</td>
+<td>+0.2</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.8 dB)</td></tr>
+<tr><td class=l><a href='#aheli'>aheli.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-8.09</td><td>-8.18</td><td class=''>-0.09</td><td class=''>-0.55</td><td>0.309</td><td>0.404</td>
+<td>-0.3</td>
+<td>+1.7</td>
+<td>+0.7</td>
+<td>-0.8</td>
+<td>-0.4</td>
+<td>-0.4</td>
+<td>-0.3</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.2 dB)</td></tr>
+<tr><td class=l><a href='#aps2'>aps2.gpw</a></td><td class=l>horn_siren/octave</td><td>yes</td><td>22050</td><td>-16.97</td><td>-16.88</td><td class=''>+0.09</td><td class=''>-10.72</td><td>0.000</td><td>0.037</td>
+<td>+31.9</td>
+<td>+40.3</td>
+<td>+36.2</td>
+<td>+13.3</td>
+<td>-2.4</td>
+<td>+0.1</td>
+<td>-1.7</td>
+<td>+0.1</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#bnitro'>bnitro.gpw</a></td><td class=l>nitro/transient</td><td></td><td>22050</td><td>-11.35</td><td>-11.49</td><td class=''>-0.14</td><td class=''>-0.51</td><td>0.288</td><td>0.274</td>
+<td>-0.8</td>
+<td>-1.6</td>
+<td>+1.1</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.4 dB)</td></tr>
+<tr><td class=l><a href='#cammo'>cammo.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-14.69</td><td>-14.80</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.004</td><td>0.004</td>
+<td>-0.9</td>
+<td>-0.4</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 0.7 dB)</td></tr>
+<tr><td class=l><a href='#cgrowl'>cgrowl.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-4.90</td><td>-4.99</td><td class=''>-0.09</td><td class=''>-0.55</td><td>0.000</td><td>0.000</td>
+<td>+13.1</td>
+<td>+12.1</td>
+<td>+13.9</td>
+<td>+7.3</td>
+<td>+13.1</td>
+<td>-0.3</td>
+<td>-0.2</td>
+<td>+2.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.4 dB)</td></tr>
+<tr><td class=l><a href='#cjamm'>cjamm.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-19.81</td><td>-19.87</td><td class=''>-0.06</td><td class=''>-8.75</td><td>0.796</td><td>0.795</td>
+<td>-0.8</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#clockon'>clockon.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-17.64</td><td>-17.65</td><td class=''>-0.00</td><td class=''>-8.23</td><td>0.000</td><td>0.000</td>
+<td>-0.9</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#cmap2'>cmap2.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-26.53</td><td>-26.58</td><td class=''>-0.05</td><td class=''>-0.55</td><td>0.014</td><td>0.020</td>
+<td>+0.9</td>
+<td>+1.5</td>
+<td>+2.6</td>
+<td>+3.1</td>
+<td>+0.8</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>limiter (GR 1.4 dB)</td></tr>
+<tr><td class=l><a href='#cmike'>cmike.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-7.96</td><td>-8.03</td><td class=''>-0.07</td><td class=''>-0.55</td><td>0.004</td><td>0.004</td>
+<td>+0.5</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.7 dB)</td></tr>
+<tr><td class=l><a href='#cnote'>cnote.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-14.29</td><td>-14.30</td><td class=''>-0.00</td><td class=''>-1.08</td><td>0.000</td><td>0.000</td>
+<td>-0.8</td>
+<td>-0.3</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#cradar'>cradar.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-21.96</td><td>-21.95</td><td class=''>+0.01</td><td class=''>-12.49</td><td>0.000</td><td>0.002</td>
+<td>+27.4</td>
+<td>+2.3</td>
+<td>+0.3</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#croger'>croger.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-14.06</td><td>-14.14</td><td class=''>-0.07</td><td class=''>-0.55</td><td>0.000</td><td>0.000</td>
+<td>+16.1</td>
+<td>+15.9</td>
+<td>+17.8</td>
+<td>+17.8</td>
+<td>+10.2</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td>+1.2</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.7 dB)</td></tr>
+<tr><td class=l><a href='#cwstat'>cwstat.gpw</a></td><td class=l>cockpit_ui/none</td><td></td><td>11025</td><td>-17.31</td><td>-17.31</td><td class=''>-0.00</td><td class=''>-7.75</td><td>0.000</td><td>0.000</td>
+<td>-1.1</td>
+<td>-0.3</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#dblox'>dblox.gpw</a></td><td class=l>dropper/transient</td><td></td><td>22050</td><td>-18.07</td><td>-18.17</td><td class=''>-0.11</td><td class=''>-0.55</td><td>0.110</td><td>0.239</td>
+<td>+1.1</td>
+<td>+4.6</td>
+<td>+1.8</td>
+<td>+0.3</td>
+<td>+0.0</td>
+<td>-0.4</td>
+<td>-0.1</td>
+<td>+0.5</td>
+<td></td>
+<td class=l>limiter (GR 1.9 dB)</td></tr>
+<tr><td class=l><a href='#dcaltrop'>dcaltrop.gpw</a></td><td class=l>dropper/transient</td><td></td><td>22050</td><td>-12.43</td><td>-12.55</td><td class=''>-0.11</td><td class=''>-0.55</td><td>0.001</td><td>0.135</td>
+<td>+13.7</td>
+<td>+23.4</td>
+<td>+14.0</td>
+<td>+3.4</td>
+<td>+0.8</td>
+<td>-0.4</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td>-0.4</td>
+<td class=l>softclip+limiter (GR 4.7 dB)</td></tr>
+<tr><td class=l><a href='#derase'>derase.gpw</a></td><td class=l>dropper/transient</td><td></td><td>22050</td><td>-12.13</td><td>-12.26</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.139</td><td>0.225</td>
+<td>+13.5</td>
+<td>+4.9</td>
+<td>+2.1</td>
+<td>+0.5</td>
+<td>+1.2</td>
+<td>+1.5</td>
+<td>+2.1</td>
+<td>+2.2</td>
+<td></td>
+<td class=l>limiter (GR 3.6 dB)</td></tr>
+<tr><td class=l><a href='#dfire'>dfire.gpw</a></td><td class=l>dropper/transient</td><td></td><td>22050</td><td>-10.92</td><td>-11.00</td><td class=''>-0.08</td><td class=''>-0.55</td><td>0.019</td><td>0.032</td>
+<td>+0.6</td>
+<td>+1.3</td>
+<td>+0.6</td>
+<td>-0.3</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter (GR 2.5 dB)</td></tr>
+<tr><td class=l><a href='#dmines1'>dmines1.gpw</a></td><td class=l>dropper/none</td><td></td><td>22050</td><td>-10.03</td><td>-10.15</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.542</td><td>0.523</td>
+<td>-1.2</td>
+<td>-2.4</td>
+<td>+1.1</td>
+<td>+1.1</td>
+<td>+1.1</td>
+<td>+0.7</td>
+<td>+0.9</td>
+<td>+2.5</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.9 dB)</td></tr>
+<tr><td class=l><a href='#doil'>doil.gpw</a></td><td class=l>dropper/transient</td><td></td><td>22050</td><td>-11.13</td><td>-11.19</td><td class=''>-0.06</td><td class=''>-0.55</td><td>0.000</td><td>0.028</td>
+<td>+32.2</td>
+<td>+34.9</td>
+<td>+20.8</td>
+<td>+12.0</td>
+<td>+1.5</td>
+<td>+0.3</td>
+<td>+0.2</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 1.5 dB)</td></tr>
+<tr><td class=l><a href='#eihp'>eihp.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-13.63</td><td>-13.52</td><td class=''>+0.11</td><td class=''>-3.91</td><td>0.099</td><td>0.254</td>
+<td>-0.5</td>
+<td>+18.5</td>
+<td>+1.8</td>
+<td>-0.5</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.9</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#eimarx'>eimarx.gpw</a></td><td class=l>engine_loop/none</td><td>yes</td><td>11025</td><td>-9.10</td><td>-9.24</td><td class=''>-0.15</td><td class=''>-0.55</td><td>0.598</td><td>0.598</td>
+<td>+0.7</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter (GR 2.1 dB)</td></tr>
+<tr><td class=l><a href='#einp1'>einp1.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-17.82</td><td>-17.69</td><td class=''>+0.13</td><td class=''>-4.49</td><td>0.047</td><td>0.125</td>
+<td>+2.4</td>
+<td>+7.8</td>
+<td>+1.2</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#eishp'>eishp.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-15.34</td><td>-15.34</td><td class=''>-0.00</td><td class=''>-6.92</td><td>0.109</td><td>0.226</td>
+<td>+0.9</td>
+<td>+4.0</td>
+<td>-0.3</td>
+<td>+0.2</td>
+<td>+0.3</td>
+<td>+0.3</td>
+<td>+0.1</td>
+<td>-9.1</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#eisv'>eisv.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-16.57</td><td>-16.68</td><td class=''>-0.12</td><td class=''>-5.35</td><td>0.043</td><td>0.123</td>
+<td>+8.3</td>
+<td>+5.4</td>
+<td>-0.2</td>
+<td>-0.5</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-3.1</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#eitank'>eitank.gpw</a></td><td class=l>engine_loop/none</td><td>yes</td><td>11025</td><td>-10.35</td><td>-10.47</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.528</td><td>0.528</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter (GR 1.0 dB)</td></tr>
+<tr><td class=l><a href='#eshp1'>eshp1.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-16.05</td><td>-15.93</td><td class=''>+0.12</td><td class=''>-0.55</td><td>0.026</td><td>0.244</td>
+<td>+6.2</td>
+<td>+14.7</td>
+<td>+6.4</td>
+<td>-0.9</td>
+<td>-0.3</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 2.0 dB)</td></tr>
+<tr><td class=l><a href='#eshp2'>eshp2.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-14.57</td><td>-14.43</td><td class=''>+0.14</td><td class=''>-0.55</td><td>0.334</td><td>0.473</td>
+<td>+1.5</td>
+<td>+2.8</td>
+<td>+4.1</td>
+<td>-0.6</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 1.6 dB)</td></tr>
+<tr><td class=l><a href='#eshp3'>eshp3.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-11.70</td><td>-11.84</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.217</td><td>0.265</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>+2.1</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter (GR 3.7 dB)</td></tr>
+<tr><td class=l><a href='#esmarx'>esmarx.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-13.65</td><td>-13.76</td><td class=''>-0.11</td><td class=''>-0.55</td><td>0.043</td><td>0.226</td>
+<td>+13.5</td>
+<td>+7.6</td>
+<td>+4.0</td>
+<td>-0.1</td>
+<td>-0.7</td>
+<td>-0.5</td>
+<td>-0.2</td>
+<td>+0.4</td>
+<td></td>
+<td class=l>limiter (GR 2.5 dB)</td></tr>
+<tr><td class=l><a href='#esnp1'>esnp1.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-22.20</td><td>-22.30</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.056</td><td>0.216</td>
+<td>+5.5</td>
+<td>+7.9</td>
+<td>+7.0</td>
+<td>+0.4</td>
+<td>+0.6</td>
+<td>+1.3</td>
+<td>+2.5</td>
+<td>+3.0</td>
+<td></td>
+<td class=l>limiter (GR 3.0 dB)</td></tr>
+<tr><td class=l><a href='#esnp2'>esnp2.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-15.88</td><td>-15.92</td><td class=''>-0.03</td><td class=''>-0.55</td><td>0.012</td><td>0.152</td>
+<td>+16.6</td>
+<td>+13.5</td>
+<td>+4.1</td>
+<td>-0.6</td>
+<td>-0.3</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>limiter (GR 2.8 dB)</td></tr>
+<tr><td class=l><a href='#esnp3'>esnp3.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-18.35</td><td>-18.37</td><td class=''>-0.02</td><td class=''>-0.55</td><td>0.044</td><td>0.101</td>
+<td>+2.2</td>
+<td>+3.7</td>
+<td>+3.5</td>
+<td>+0.2</td>
+<td>+0.2</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 2.0 dB)</td></tr>
+<tr><td class=l><a href='#esshp1'>esshp1.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-11.11</td><td>-11.07</td><td class=''>+0.03</td><td class=''>-0.34</td><td>0.277</td><td>0.371</td>
+<td>+3.4</td>
+<td>+0.4</td>
+<td>+0.6</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td>-0.3</td>
+<td>-0.1</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.1 dB)</td></tr>
+<tr><td class=l><a href='#esshp2'>esshp2.gpw</a></td><td class=l>engine_start/none</td><td></td><td>22050</td><td>-9.81</td><td>-9.95</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.824</td><td>0.800</td>
+<td>+1.9</td>
+<td>-0.8</td>
+<td>-0.3</td>
+<td>-0.3</td>
+<td>+0.4</td>
+<td>+1.6</td>
+<td>+0.8</td>
+<td>+2.2</td>
+<td></td>
+<td class=l>limiter (GR 3.5 dB)</td></tr>
+<tr><td class=l><a href='#esshp3'>esshp3.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-12.26</td><td>-12.38</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.104</td><td>0.237</td>
+<td>+10.0</td>
+<td>+2.9</td>
+<td>+1.5</td>
+<td>-0.9</td>
+<td>-0.8</td>
+<td>-0.5</td>
+<td>-0.3</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>limiter (GR 2.6 dB)</td></tr>
+<tr><td class=l><a href='#essv'>essv.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-14.13</td><td>-14.19</td><td class=''>-0.06</td><td class=''>-0.55</td><td>0.182</td><td>0.255</td>
+<td>-0.5</td>
+<td>+1.5</td>
+<td>+1.9</td>
+<td>-0.6</td>
+<td>-0.3</td>
+<td>-0.6</td>
+<td>-0.4</td>
+<td>+0.2</td>
+<td></td>
+<td class=l>limiter (GR 2.0 dB)</td></tr>
+<tr><td class=l><a href='#estank'>estank.gpw</a></td><td class=l>engine_start/transient+octave</td><td></td><td>22050</td><td>-13.15</td><td>-13.10</td><td class=''>+0.05</td><td class=''>-0.36</td><td>0.143</td><td>0.356</td>
+<td>+7.2</td>
+<td>+5.9</td>
+<td>+1.4</td>
+<td>-0.5</td>
+<td>+0.0</td>
+<td>-0.4</td>
+<td>+0.0</td>
+<td>-0.7</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.1 dB)</td></tr>
+<tr><td class=l><a href='#fdmg1'>fdmg1.gpw</a></td><td class=l>damage/transient</td><td></td><td>22050</td><td>-14.44</td><td>-14.47</td><td class=''>-0.03</td><td class=''>-2.64</td><td>0.288</td><td>0.323</td>
+<td>-0.7</td>
+<td>-0.7</td>
+<td>+1.2</td>
+<td>-0.4</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#h45ch'>h45ch.gpw</a></td><td class=l>handgun/transient</td><td></td><td>22050</td><td>-10.75</td><td>-10.78</td><td class=''>-0.03</td><td class=''>-0.47</td><td>0.055</td><td>0.097</td>
+<td>+6.5</td>
+<td>+6.6</td>
+<td>-0.8</td>
+<td>+0.1</td>
+<td>+0.8</td>
+<td>+1.4</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.0 dB)</td></tr>
+<tr><td class=l><a href='#hssr1'>hssr1.gpw</a></td><td class=l>handgun/transient</td><td></td><td>22050</td><td>-10.11</td><td>-10.16</td><td class=''>-0.06</td><td class=''>-0.55</td><td>0.358</td><td>0.384</td>
+<td>+2.1</td>
+<td>+2.3</td>
+<td>+6.6</td>
+<td>+6.0</td>
+<td>+6.7</td>
+<td>+5.5</td>
+<td>+5.0</td>
+<td>+5.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.9 dB)</td></tr>
+<tr><td class=l><a href='#hssr2'>hssr2.gpw</a></td><td class=l>handgun/transient</td><td></td><td>22050</td><td>-14.08</td><td>-14.11</td><td class=''>-0.03</td><td class=''>-0.66</td><td>0.165</td><td>0.254</td>
+<td>+0.8</td>
+<td>+1.2</td>
+<td>+1.1</td>
+<td>-0.2</td>
+<td>+2.2</td>
+<td>+2.6</td>
+<td>+1.2</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.7 dB)</td></tr>
+<tr><td class=l><a href='#msllock1'>msllock1.gpw</a></td><td class=l>missile_lock/none</td><td></td><td>11025</td><td>-12.10</td><td>-12.26</td><td class=''>-0.16</td><td class=''>-0.55</td><td>0.000</td><td>0.000</td>
+<td>+0.1</td>
+<td>+0.7</td>
+<td>+0.8</td>
+<td>+0.8</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 2.0 dB)</td></tr>
+<tr><td class=l><a href='#msllock2'>msllock2.gpw</a></td><td class=l>missile_lock/none</td><td></td><td>11025</td><td>-8.70</td><td>-8.84</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.000</td><td>0.000</td>
+<td>-0.8</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.2</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 1.1 dB)</td></tr>
+<tr><td class=l><a href='#msllock3'>msllock3.gpw</a></td><td class=l>missile_lock/none</td><td></td><td>11025</td><td>-3.88</td><td>-4.01</td><td class=''>-0.13</td><td class=''>-0.35</td><td>0.002</td><td>0.002</td>
+<td>-0.7</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td>+0.2</td>
+<td>+3.6</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.5 dB)</td></tr>
+<tr><td class=l><a href='#tblow'>tblow.gpw</a></td><td class=l>tyre_surface/none</td><td></td><td>22050</td><td>-12.87</td><td>-12.99</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.576</td><td>0.566</td>
+<td>-0.8</td>
+<td>-0.4</td>
+<td>+2.4</td>
+<td>+0.4</td>
+<td>+0.7</td>
+<td>+0.8</td>
+<td>+0.9</td>
+<td>+0.7</td>
+<td></td>
+<td class=l>limiter (GR 2.8 dB)</td></tr>
+<tr><td class=l><a href='#tcaltrop'>tcaltrop.gpw</a></td><td class=l>tyre_surface/none</td><td></td><td>22050</td><td>-10.23</td><td>-10.35</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.026</td><td>0.030</td>
+<td>+0.9</td>
+<td>+1.1</td>
+<td>+0.4</td>
+<td>+0.3</td>
+<td>-0.4</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>+0.5</td>
+<td>+0.5</td>
+<td class=l>softclip+limiter (GR 5.2 dB)</td></tr>
+<tr><td class=l><a href='#tflat'>tflat.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-15.13</td><td>-15.26</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.111</td><td>0.111</td>
+<td>+0.5</td>
+<td>-0.8</td>
+<td>+0.0</td>
+<td>-0.6</td>
+<td>+0.1</td>
+<td>+0.2</td>
+<td>-0.6</td>
+<td>-1.1</td>
+<td></td>
+<td class=l>limiter (GR 0.7 dB)</td></tr>
+<tr><td class=l><a href='#tskid1'>tskid1.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-11.67</td><td>-11.67</td><td class=''>-0.00</td><td class=''>-0.55</td><td>0.002</td><td>0.002</td>
+<td>+0.4</td>
+<td>-0.6</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 0.3 dB)</td></tr>
+<tr><td class=l><a href='#tskid2'>tskid2.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-10.98</td><td>-11.00</td><td class=''>-0.02</td><td class=''>-0.55</td><td>0.000</td><td>0.000</td>
+<td>+0.0</td>
+<td>-0.9</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.4</td>
+<td>+0.0</td>
+<td>+0.3</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 0.3 dB)</td></tr>
+<tr><td class=l><a href='#tskid3'>tskid3.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-12.28</td><td>-12.27</td><td class=''>+0.01</td><td class=''>-0.31</td><td>0.000</td><td>0.000</td>
+<td>+0.7</td>
+<td>-0.8</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#tskid4'>tskid4.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-12.28</td><td>-12.27</td><td class=''>+0.01</td><td class=''>-0.31</td><td>0.000</td><td>0.000</td>
+<td>+0.7</td>
+<td>-0.8</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#tturn1'>tturn1.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-11.67</td><td>-11.67</td><td class=''>-0.00</td><td class=''>-0.55</td><td>0.002</td><td>0.002</td>
+<td>+0.4</td>
+<td>-0.6</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 0.3 dB)</td></tr>
+<tr><td class=l><a href='#tturn2'>tturn2.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-10.98</td><td>-11.00</td><td class=''>-0.02</td><td class=''>-0.55</td><td>0.000</td><td>0.000</td>
+<td>+0.0</td>
+<td>-0.9</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.4</td>
+<td>+0.0</td>
+<td>+0.3</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter (GR 0.3 dB)</td></tr>
+<tr><td class=l><a href='#tturn3'>tturn3.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-12.28</td><td>-12.27</td><td class=''>+0.01</td><td class=''>-0.31</td><td>0.000</td><td>0.000</td>
+<td>+0.7</td>
+<td>-0.8</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#tturn4'>tturn4.gpw</a></td><td class=l>tyre_surface/none</td><td>yes</td><td>22050</td><td>-12.28</td><td>-12.27</td><td class=''>+0.01</td><td class=''>-0.31</td><td>0.000</td><td>0.000</td>
+<td>+0.7</td>
+<td>-0.8</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#vballoon'>vballoon.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-8.97</td><td>-9.09</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.113</td><td>0.190</td>
+<td>+16.1</td>
+<td>-0.4</td>
+<td>+0.1</td>
+<td>-0.3</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.2 dB)</td></tr>
+<tr><td class=l><a href='#vcddirt'>vcddirt.gpw</a></td><td class=l>surface_loop/none</td><td>yes</td><td>22050</td><td>-19.18</td><td>-19.18</td><td class=''>-0.00</td><td class=''>-1.99</td><td>0.034</td><td>0.034</td>
+<td>+2.0</td>
+<td>-0.3</td>
+<td>+0.0</td>
+<td>+0.2</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#vcdgrav'>vcdgrav.gpw</a></td><td class=l>surface_loop/none</td><td>yes</td><td>22050</td><td>-17.62</td><td>-17.64</td><td class=''>-0.02</td><td class=''>-0.55</td><td>0.054</td><td>0.054</td>
+<td>+0.6</td>
+<td>-0.4</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter (GR 0.6 dB)</td></tr>
+<tr><td class=l><a href='#vcdoil'>vcdoil.gpw</a></td><td class=l>surface_loop/none</td><td>yes</td><td>22050</td><td>-15.36</td><td>-15.39</td><td class=''>-0.03</td><td class=''>-3.81</td><td>0.002</td><td>0.002</td>
+<td>+0.5</td>
+<td>-0.6</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#vcdsand'>vcdsand.gpw</a></td><td class=l>surface_loop/none</td><td>yes</td><td>22050</td><td>-17.68</td><td>-17.68</td><td class=''>+0.01</td><td class=''>-3.85</td><td>0.035</td><td>0.035</td>
+<td>+1.7</td>
+<td>-0.4</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#vexplode'>vexplode.gpw</a></td><td class=l>vehicle_collision/none</td><td></td><td>22050</td><td>-10.77</td><td>-10.84</td><td class=''>-0.06</td><td class=''>-0.80</td><td>0.701</td><td>0.706</td>
+<td>+0.4</td>
+<td>-0.7</td>
+<td>-0.1</td>
+<td>+0.2</td>
+<td>+0.2</td>
+<td>+0.3</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.6 dB)</td></tr>
+<tr><td class=l><a href='#vhorn1'>vhorn1.gpw</a></td><td class=l>horn_siren/octave</td><td></td><td>22050</td><td>-8.13</td><td>-8.20</td><td class=''>-0.07</td><td class=''>-0.78</td><td>0.000</td><td>0.036</td>
+<td>+34.2</td>
+<td>+48.1</td>
+<td>+27.8</td>
+<td>+3.0</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.7 dB)</td></tr>
+<tr><td class=l><a href='#vhorn2'>vhorn2.gpw</a></td><td class=l>horn_siren/octave</td><td></td><td>22050</td><td>-7.44</td><td>-7.49</td><td class=''>-0.05</td><td class=''>-0.48</td><td>0.000</td><td>0.028</td>
+<td>+16.8</td>
+<td>+40.6</td>
+<td>+36.5</td>
+<td>+11.9</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 6.0 dB)</td></tr>
+<tr><td class=l><a href='#vhorn3'>vhorn3.gpw</a></td><td class=l>horn_siren/octave</td><td></td><td>22050</td><td>-7.37</td><td>-7.44</td><td class=''>-0.07</td><td class=''>-0.56</td><td>0.000</td><td>0.044</td>
+<td>+15.6</td>
+<td>+47.8</td>
+<td>+29.3</td>
+<td>+1.9</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 7.4 dB)</td></tr>
+<tr><td class=l><a href='#vhorn4'>vhorn4.gpw</a></td><td class=l>horn_siren/octave</td><td></td><td>22050</td><td>-7.95</td><td>-8.06</td><td class=''>-0.10</td><td class=''>-0.60</td><td>0.000</td><td>0.032</td>
+<td>+32.4</td>
+<td>+44.0</td>
+<td>+31.1</td>
+<td>+4.8</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.7 dB)</td></tr>
+<tr><td class=l><a href='#vhorn5'>vhorn5.gpw</a></td><td class=l>horn_siren/octave</td><td></td><td>22050</td><td>-8.59</td><td>-8.68</td><td class=''>-0.10</td><td class=''>-0.80</td><td>0.000</td><td>0.039</td>
+<td>+12.4</td>
+<td>+38.7</td>
+<td>+16.4</td>
+<td>-1.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>-0.5</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.6 dB)</td></tr>
+<tr><td class=l><a href='#vhorn6'>vhorn6.gpw</a></td><td class=l>horn_siren/octave</td><td></td><td>22050</td><td>-8.59</td><td>-8.68</td><td class=''>-0.10</td><td class=''>-0.80</td><td>0.000</td><td>0.039</td>
+<td>+12.4</td>
+<td>+38.7</td>
+<td>+16.4</td>
+<td>-1.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>-0.5</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.6 dB)</td></tr>
+<tr><td class=l><a href='#vland'>vland.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-12.44</td><td>-12.54</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.375</td><td>0.428</td>
+<td>+2.2</td>
+<td>-2.1</td>
+<td>+0.7</td>
+<td>-1.9</td>
+<td>-1.0</td>
+<td>+0.1</td>
+<td>-1.1</td>
+<td>-1.6</td>
+<td></td>
+<td class=l>limiter (GR 3.2 dB)</td></tr>
+<tr><td class=l><a href='#vlanding'>vlanding.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-16.30</td><td>-16.33</td><td class=''>-0.02</td><td class=''>-0.61</td><td>0.199</td><td>0.208</td>
+<td>+0.4</td>
+<td>-0.4</td>
+<td>+1.9</td>
+<td>-0.5</td>
+<td>-0.2</td>
+<td>+0.2</td>
+<td>-0.2</td>
+<td>-0.6</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#vnvco3'>vnvco3.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-11.73</td><td>-11.69</td><td class=''>+0.04</td><td class=''>-0.67</td><td>0.481</td><td>0.554</td>
+<td>+2.2</td>
+<td>+0.6</td>
+<td>+1.6</td>
+<td>-0.1</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td>+0.7</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.1 dB)</td></tr>
+<tr><td class=l><a href='#vnvcs1'>vnvcs1.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-15.21</td><td>-15.34</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.141</td><td>0.226</td>
+<td>+6.0</td>
+<td>+0.5</td>
+<td>+0.4</td>
+<td>-0.8</td>
+<td>-0.6</td>
+<td>+0.1</td>
+<td>+0.7</td>
+<td>+0.4</td>
+<td></td>
+<td class=l>limiter (GR 1.1 dB)</td></tr>
+<tr><td class=l><a href='#vnvcs3'>vnvcs3.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-9.79</td><td>-9.92</td><td class=''>-0.12</td><td class=''>-0.55</td><td>0.051</td><td>0.074</td>
+<td>+6.0</td>
+<td>+1.0</td>
+<td>+0.8</td>
+<td>-0.8</td>
+<td>-0.3</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.1 dB)</td></tr>
+<tr><td class=l><a href='#vnvcs5'>vnvcs5.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-8.32</td><td>-8.34</td><td class=''>-0.02</td><td class=''>-0.55</td><td>0.015</td><td>0.065</td>
+<td>+6.6</td>
+<td>+9.3</td>
+<td>+0.2</td>
+<td>-0.2</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.9 dB)</td></tr>
+<tr><td class=l><a href='#vshif1a'>vshif1a.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-20.80</td><td>-20.69</td><td class=''>+0.11</td><td class=''>-0.55</td><td>0.019</td><td>0.298</td>
+<td>+23.8</td>
+<td>+10.8</td>
+<td>+4.1</td>
+<td>-1.9</td>
+<td>-2.5</td>
+<td>-2.1</td>
+<td>-2.0</td>
+<td>-2.2</td>
+<td></td>
+<td class=l>limiter (GR 0.7 dB)</td></tr>
+<tr><td class=l><a href='#vskid'>vskid.gpw</a></td><td class=l>vehicle_collision/none</td><td>yes</td><td>22050</td><td>-8.97</td><td>-9.07</td><td class=''>-0.10</td><td class=''>-0.79</td><td>0.000</td><td>0.000</td>
+<td>+0.2</td>
+<td>+0.4</td>
+<td>+1.1</td>
+<td>+0.3</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>-0.4</td>
+<td class=l>softclip+limiter (GR 1.4 dB)</td></tr>
+<tr><td class=l><a href='#vtcoll'>vtcoll.gpw</a></td><td class=l>vehicle_collision/none</td><td></td><td>22050</td><td>-13.97</td><td>-14.10</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.555</td><td>0.555</td>
+<td>+1.5</td>
+<td>+0.1</td>
+<td>+0.5</td>
+<td>+0.1</td>
+<td>+0.6</td>
+<td>+0.5</td>
+<td>+0.5</td>
+<td>+0.5</td>
+<td></td>
+<td class=l>limiter (GR 3.6 dB)</td></tr>
+<tr><td class=l><a href='#vufo'>vufo.gpw</a></td><td class=l>engine_loop/octave</td><td>yes</td><td>11025</td><td>-14.09</td><td>-14.10</td><td class=''>-0.01</td><td class=''>-0.55</td><td>0.002</td><td>0.126</td>
+<td>+8.4</td>
+<td>+25.9</td>
+<td>+4.2</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td>-0.7</td>
+<td></td>
+<td class=l>limiter (GR 1.7 dB)</td></tr>
+<tr><td class=l><a href='#vvbo1'>vvbo1.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-11.03</td><td>-11.10</td><td class=''>-0.07</td><td class=''>-0.64</td><td>0.281</td><td>0.321</td>
+<td>-0.2</td>
+<td>-0.4</td>
+<td>+1.4</td>
+<td>+0.5</td>
+<td>-0.7</td>
+<td>-0.3</td>
+<td>-0.7</td>
+<td>-0.6</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.0 dB)</td></tr>
+<tr><td class=l><a href='#vvcbb3'>vvcbb3.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-15.28</td><td>-15.17</td><td class=''>+0.11</td><td class=''>-0.55</td><td>0.423</td><td>0.648</td>
+<td>+0.8</td>
+<td>+2.7</td>
+<td>+2.1</td>
+<td>+0.0</td>
+<td>+1.6</td>
+<td>-0.9</td>
+<td>-0.8</td>
+<td>-1.2</td>
+<td></td>
+<td class=l>limiter (GR 2.8 dB)</td></tr>
+<tr><td class=l><a href='#vvch2'>vvch2.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-9.26</td><td>-9.28</td><td class=''>-0.02</td><td class=''>-0.51</td><td>0.279</td><td>0.291</td>
+<td>+0.3</td>
+<td>-1.5</td>
+<td>+1.6</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>+0.1</td>
+<td>+0.3</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.5 dB)</td></tr>
+<tr><td class=l><a href='#vvcre2'>vvcre2.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-10.19</td><td>-10.17</td><td class=''>+0.02</td><td class=''>-0.39</td><td>0.061</td><td>0.195</td>
+<td>+12.4</td>
+<td>+8.9</td>
+<td>+1.8</td>
+<td>+0.0</td>
+<td>-0.3</td>
+<td>-0.4</td>
+<td>-0.7</td>
+<td>-0.8</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.7 dB)</td></tr>
+<tr><td class=l><a href='#vvcre3'>vvcre3.gpw</a></td><td class=l>vehicle_collision/transient</td><td></td><td>22050</td><td>-11.83</td><td>-11.75</td><td class=''>+0.07</td><td class=''>-0.59</td><td>0.353</td><td>0.457</td>
+<td>+3.3</td>
+<td>+0.1</td>
+<td>+1.2</td>
+<td>-0.9</td>
+<td>-0.4</td>
+<td>-0.6</td>
+<td>-0.4</td>
+<td>-0.8</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.3 dB)</td></tr>
+<tr><td class=l><a href='#wbalflam'>wbalflam.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-8.30</td><td>-8.32</td><td class=''>-0.02</td><td class=''>-0.73</td><td>0.234</td><td>0.288</td>
+<td>+0.0</td>
+<td>-1.2</td>
+<td>+0.3</td>
+<td>-0.4</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td>-0.7</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.0 dB)</td></tr>
+<tr><td class=l><a href='#wcbl'>wcbl.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-16.36</td><td>-16.50</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.246</td><td>0.419</td>
+<td>+10.4</td>
+<td>+5.2</td>
+<td>+0.1</td>
+<td>-0.1</td>
+<td>+2.5</td>
+<td>+5.9</td>
+<td>+4.6</td>
+<td>+1.0</td>
+<td></td>
+<td class=l>limiter (GR 1.5 dB)</td></tr>
+<tr><td class=l><a href='#wchem'>wchem.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-14.61</td><td>-14.75</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.537</td><td>0.540</td>
+<td>+1.7</td>
+<td>-0.9</td>
+<td>-1.0</td>
+<td>+0.8</td>
+<td>+3.1</td>
+<td>+4.3</td>
+<td>+3.0</td>
+<td>+2.1</td>
+<td></td>
+<td class=l>limiter (GR 2.1 dB)</td></tr>
+<tr><td class=l><a href='#wcherub'>wcherub.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-9.34</td><td>-9.44</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.228</td><td>0.203</td>
+<td>+1.1</td>
+<td>-1.9</td>
+<td>+0.8</td>
+<td>-0.5</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 3.1 dB)</td></tr>
+<tr><td class=l><a href='#wclick'>wclick.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-21.81</td><td>-21.81</td><td class=''>-0.00</td><td class=''>-12.66</td><td>0.225</td><td>0.324</td>
+<td>-0.9</td>
+<td>+7.8</td>
+<td>+1.0</td>
+<td>-0.2</td>
+<td>-0.5</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#wcvr'>wcvr.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-15.31</td><td>-15.43</td><td class=''>-0.11</td><td class=''>-0.55</td><td>0.369</td><td>0.477</td>
+<td>+1.7</td>
+<td>-1.1</td>
+<td>-0.3</td>
+<td>-0.7</td>
+<td>-0.8</td>
+<td>-0.4</td>
+<td>-0.2</td>
+<td>+0.1</td>
+<td></td>
+<td class=l>limiter (GR 2.2 dB)</td></tr>
+<tr><td class=l><a href='#wezk'>wezk.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-12.37</td><td>-12.47</td><td class=''>-0.10</td><td class=''>-0.67</td><td>0.060</td><td>0.199</td>
+<td>+5.6</td>
+<td>+7.2</td>
+<td>-0.3</td>
+<td>-0.7</td>
+<td>+2.0</td>
+<td>+3.7</td>
+<td>+1.8</td>
+<td>+2.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.6 dB)</td></tr>
+<tr><td class=l><a href='#wgl'>wgl.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-12.58</td><td>-12.72</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.168</td><td>0.255</td>
+<td>+8.8</td>
+<td>-1.3</td>
+<td>-2.7</td>
+<td>-2.7</td>
+<td>-2.7</td>
+<td>+0.8</td>
+<td>+0.6</td>
+<td>+1.1</td>
+<td></td>
+<td class=l>limiter (GR 3.0 dB)</td></tr>
+<tr><td class=l><a href='#whades'>whades.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-13.76</td><td>-13.89</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.586</td><td>0.592</td>
+<td>+3.7</td>
+<td>-0.4</td>
+<td>-0.2</td>
+<td>+0.4</td>
+<td>+0.9</td>
+<td>+0.9</td>
+<td>+1.1</td>
+<td>+0.1</td>
+<td></td>
+<td class=l>limiter (GR 3.8 dB)</td></tr>
+<tr><td class=l><a href='#whcan'>whcan.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-9.73</td><td>-9.79</td><td class=''>-0.06</td><td class=''>-0.51</td><td>0.862</td><td>0.868</td>
+<td>-0.1</td>
+<td>-1.1</td>
+<td>+1.7</td>
+<td>+5.0</td>
+<td>+5.0</td>
+<td>+2.0</td>
+<td>+1.6</td>
+<td>+3.6</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.5 dB)</td></tr>
+<tr><td class=l><a href='#whflame'>whflame.gpw</a></td><td class=l>weapon_fire/transient</td><td>yes</td><td>22050</td><td>-8.57</td><td>-8.60</td><td class=''>-0.03</td><td class=''>-0.64</td><td>0.179</td><td>0.277</td>
+<td>+4.3</td>
+<td>+1.9</td>
+<td>+0.5</td>
+<td>-0.4</td>
+<td>+0.1</td>
+<td>+0.4</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.0 dB)</td></tr>
+<tr><td class=l><a href='#whmgun'>whmgun.gpw</a></td><td class=l>weapon_fire/transient</td><td>yes</td><td>22050</td><td>-6.77</td><td>-6.83</td><td class=''>-0.06</td><td class=''>-0.55</td><td>0.189</td><td>0.310</td>
+<td>+4.1</td>
+<td>+2.9</td>
+<td>+1.9</td>
+<td>-0.2</td>
+<td>-0.7</td>
+<td>-0.5</td>
+<td>-0.7</td>
+<td>-0.8</td>
+<td></td>
+<td class=l>softclip+limiter (GR 5.2 dB)</td></tr>
+<tr><td class=l><a href='#whowitz'>whowitz.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-10.39</td><td>-10.53</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.602</td><td>0.624</td>
+<td>-0.1</td>
+<td>-1.0</td>
+<td>-0.4</td>
+<td>-0.7</td>
+<td>+1.0</td>
+<td>+0.6</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 1.9 dB)</td></tr>
+<tr><td class=l><a href='#whsm'>whsm.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-8.45</td><td>-8.50</td><td class=''>-0.04</td><td class=''>-0.55</td><td>0.175</td><td>0.177</td>
+<td>+1.5</td>
+<td>-1.8</td>
+<td>+1.8</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.6</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.9 dB)</td></tr>
+<tr><td class=l><a href='#wlcan'>wlcan.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-10.56</td><td>-10.77</td><td class=''>-0.22</td><td class=''>-0.55</td><td>0.581</td><td>0.578</td>
+<td>+3.8</td>
+<td>-0.1</td>
+<td>-1.3</td>
+<td>+0.1</td>
+<td>+0.5</td>
+<td>+0.8</td>
+<td>+0.1</td>
+<td>+0.1</td>
+<td></td>
+<td class=l>limiter (GR 3.9 dB)</td></tr>
+<tr><td class=l><a href='#wlflame'>wlflame.gpw</a></td><td class=l>weapon_fire/transient</td><td>yes</td><td>22050</td><td>-10.89</td><td>-10.99</td><td class=''>-0.09</td><td class=''>-0.55</td><td>0.196</td><td>0.347</td>
+<td>+7.7</td>
+<td>+3.7</td>
+<td>+0.7</td>
+<td>-0.8</td>
+<td>-0.3</td>
+<td>-0.3</td>
+<td>-0.3</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>limiter (GR 3.1 dB)</td></tr>
+<tr><td class=l><a href='#wlmgun'>wlmgun.gpw</a></td><td class=l>weapon_fire/none</td><td>yes</td><td>22050</td><td>-7.74</td><td>-7.77</td><td class=''>-0.03</td><td class=''>-0.37</td><td>0.565</td><td>0.566</td>
+<td>+0.0</td>
+<td>-0.2</td>
+<td>+0.1</td>
+<td>+0.2</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.9 dB)</td></tr>
+<tr><td class=l><a href='#wmcan'>wmcan.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-9.96</td><td>-10.00</td><td class=''>-0.05</td><td class=''>-0.42</td><td>0.541</td><td>0.530</td>
+<td>+1.6</td>
+<td>+0.1</td>
+<td>+1.0</td>
+<td>+0.8</td>
+<td>+0.4</td>
+<td>-0.3</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.8 dB)</td></tr>
+<tr><td class=l><a href='#wmflame'>wmflame.gpw</a></td><td class=l>weapon_fire/none</td><td>yes</td><td>22050</td><td>-10.41</td><td>-10.56</td><td class=''>-0.15</td><td class=''>-0.55</td><td>0.465</td><td>0.463</td>
+<td>+2.2</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 1.8 dB)</td></tr>
+<tr><td class=l><a href='#wmgr1'>wmgr1.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-12.85</td><td>-12.92</td><td class=''>-0.07</td><td class=''>-0.55</td><td>0.330</td><td>0.341</td>
+<td>+7.4</td>
+<td>+1.6</td>
+<td>+2.2</td>
+<td>+2.4</td>
+<td>+2.4</td>
+<td>+2.4</td>
+<td>+2.0</td>
+<td>+2.2</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.0 dB)</td></tr>
+<tr><td class=l><a href='#wmgr2'>wmgr2.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-27.60</td><td>-27.65</td><td class=''>-0.05</td><td class=''>-12.16</td><td>0.001</td><td>0.027</td>
+<td>+24.1</td>
+<td>+23.9</td>
+<td>+5.4</td>
+<td>+4.3</td>
+<td>-0.1</td>
+<td>-1.3</td>
+<td>+1.0</td>
+<td>+3.0</td>
+<td></td>
+<td class=l>limiter</td></tr>
+<tr><td class=l><a href='#wmiss'>wmiss.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-9.63</td><td>-9.68</td><td class=''>-0.06</td><td class=''>-0.68</td><td>0.001</td><td>0.030</td>
+<td>+38.0</td>
+<td>+41.7</td>
+<td>+4.0</td>
+<td>+6.9</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.4 dB)</td></tr>
+<tr><td class=l><a href='#wmmgun'>wmmgun.gpw</a></td><td class=l>weapon_fire/none</td><td>yes</td><td>22050</td><td>-9.83</td><td>-9.85</td><td class=''>-0.03</td><td class=''>-0.38</td><td>0.559</td><td>0.560</td>
+<td>+0.2</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>-0.3</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.2 dB)</td></tr>
+<tr><td class=l><a href='#wrhm'>wrhm.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-11.39</td><td>-11.49</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.120</td><td>0.131</td>
+<td>-0.2</td>
+<td>-1.1</td>
+<td>+1.7</td>
+<td>-0.2</td>
+<td>+0.2</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 2.9 dB)</td></tr>
+<tr><td class=l><a href='#wrock'>wrock.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-7.86</td><td>-8.00</td><td class=''>-0.14</td><td class=''>-0.42</td><td>0.033</td><td>0.045</td>
+<td>-0.5</td>
+<td>-0.6</td>
+<td>+1.0</td>
+<td>-0.7</td>
+<td>-0.4</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td>-0.5</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.5 dB)</td></tr>
+<tr><td class=l><a href='#wtank'>wtank.gpw</a></td><td class=l>weapon_fire/none</td><td></td><td>22050</td><td>-10.39</td><td>-10.53</td><td class=''>-0.14</td><td class=''>-0.55</td><td>0.602</td><td>0.624</td>
+<td>-0.1</td>
+<td>-1.0</td>
+<td>-0.4</td>
+<td>-0.7</td>
+<td>+1.0</td>
+<td>+0.6</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>limiter (GR 1.9 dB)</td></tr>
+<tr><td class=l><a href='#wwpgl'>wwpgl.gpw</a></td><td class=l>weapon_fire/transient</td><td></td><td>22050</td><td>-13.70</td><td>-13.83</td><td class=''>-0.13</td><td class=''>-0.55</td><td>0.108</td><td>0.194</td>
+<td>+9.4</td>
+<td>+0.5</td>
+<td>-2.9</td>
+<td>-3.2</td>
+<td>-2.0</td>
+<td>-0.2</td>
+<td>-0.8</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>limiter (GR 2.7 dB)</td></tr>
+<tr><td class=l><a href='#xbridge'>xbridge.gpw</a></td><td class=l>explosion_impact/none</td><td></td><td>22050</td><td>-8.70</td><td>-8.75</td><td class=''>-0.05</td><td class=''>-0.80</td><td>0.505</td><td>0.488</td>
+<td>-0.7</td>
+<td>-0.9</td>
+<td>-0.3</td>
+<td>+0.0</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td>-0.2</td>
+<td>-0.7</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.7 dB)</td></tr>
+<tr><td class=l><a href='#xbuild'>xbuild.gpw</a></td><td class=l>explosion_impact/transient</td><td></td><td>22050</td><td>-8.90</td><td>-8.99</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.269</td><td>0.312</td>
+<td>+0.4</td>
+<td>-0.3</td>
+<td>+2.1</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.1 dB)</td></tr>
+<tr><td class=l><a href='#xcar'>xcar.gpw</a></td><td class=l>explosion_impact/none</td><td></td><td>22050</td><td>-10.77</td><td>-10.84</td><td class=''>-0.06</td><td class=''>-0.80</td><td>0.701</td><td>0.706</td>
+<td>+0.4</td>
+<td>-0.7</td>
+<td>-0.1</td>
+<td>+0.2</td>
+<td>+0.2</td>
+<td>+0.3</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 1.6 dB)</td></tr>
+<tr><td class=l><a href='#xemt1'>xemt1.gpw</a></td><td class=l>explosion_impact/transient</td><td></td><td>22050</td><td>-11.38</td><td>-11.35</td><td class=''>+0.04</td><td class=''>-0.62</td><td>0.454</td><td>0.594</td>
+<td>+2.4</td>
+<td>+1.2</td>
+<td>+1.1</td>
+<td>-0.9</td>
+<td>-0.5</td>
+<td>-0.5</td>
+<td>-0.6</td>
+<td>-0.7</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.8 dB)</td></tr>
+<tr><td class=l><a href='#xemt2'>xemt2.gpw</a></td><td class=l>explosion_impact/none</td><td></td><td>22050</td><td>-9.76</td><td>-9.86</td><td class=''>-0.10</td><td class=''>-0.55</td><td>0.778</td><td>0.787</td>
+<td>-0.5</td>
+<td>-1.0</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>+0.2</td>
+<td>+0.8</td>
+<td>+0.2</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.7 dB)</td></tr>
+<tr><td class=l><a href='#xfire1'>xfire1.gpw</a></td><td class=l>explosion_impact/transient</td><td>yes</td><td>22050</td><td>-8.91</td><td>-8.89</td><td class=''>+0.03</td><td class=''>-0.39</td><td>0.385</td><td>0.617</td>
+<td>+24.3</td>
+<td>+11.1</td>
+<td>+0.5</td>
+<td>-1.3</td>
+<td>-0.9</td>
+<td>-1.0</td>
+<td>-1.1</td>
+<td>-1.0</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.3 dB)</td></tr>
+<tr><td class=l><a href='#xgas'>xgas.gpw</a></td><td class=l>explosion_impact/none</td><td></td><td>22050</td><td>-10.01</td><td>-10.24</td><td class=''>-0.22</td><td class=''>-0.55</td><td>0.619</td><td>0.607</td>
+<td>+0.1</td>
+<td>-0.7</td>
+<td>+0.2</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>+0.1</td>
+<td>+0.0</td>
+<td>+0.3</td>
+<td></td>
+<td class=l>limiter (GR 3.2 dB)</td></tr>
+<tr><td class=l><a href='#xms2'>xms2.gpw</a></td><td class=l>explosion_impact/none</td><td></td><td>22050</td><td>-12.45</td><td>-12.60</td><td class=''>-0.15</td><td class=''>-0.67</td><td>0.526</td><td>0.513</td>
+<td>-0.3</td>
+<td>-1.0</td>
+<td>-0.8</td>
+<td>-0.2</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.1 dB)</td></tr>
+<tr><td class=l><a href='#xmv1'>xmv1.gpw</a></td><td class=l>explosion_impact/transient</td><td></td><td>22050</td><td>-7.96</td><td>-7.99</td><td class=''>-0.03</td><td class=''>-0.34</td><td>0.404</td><td>0.436</td>
+<td>+4.7</td>
+<td>-1.5</td>
+<td>+1.0</td>
+<td>-0.6</td>
+<td>-0.4</td>
+<td>-0.3</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 4.5 dB)</td></tr>
+<tr><td class=l><a href='#xmv2'>xmv2.gpw</a></td><td class=l>explosion_impact/none</td><td></td><td>22050</td><td>-9.24</td><td>-9.27</td><td class=''>-0.03</td><td class=''>-0.44</td><td>0.627</td><td>0.617</td>
+<td>-0.8</td>
+<td>-0.5</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>+0.0</td>
+<td>-0.1</td>
+<td>-0.2</td>
+<td>-0.3</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.3 dB)</td></tr>
+<tr><td class=l><a href='#xsv1'>xsv1.gpw</a></td><td class=l>explosion_impact/transient</td><td></td><td>22050</td><td>-11.26</td><td>-11.18</td><td class=''>+0.07</td><td class=''>-0.63</td><td>0.454</td><td>0.596</td>
+<td>+4.8</td>
+<td>+0.5</td>
+<td>+0.9</td>
+<td>-0.9</td>
+<td>+0.1</td>
+<td>-0.2</td>
+<td>-0.2</td>
+<td>-0.1</td>
+<td></td>
+<td class=l>softclip+limiter (GR 3.0 dB)</td></tr>
+<tr><td class=l><a href='#xsv2'>xsv2.gpw</a></td><td class=l>explosion_impact/transient</td><td></td><td>22050</td><td>-8.68</td><td>-8.80</td><td class=''>-0.12</td><td class=''>-0.62</td><td>0.280</td><td>0.325</td>
+<td>+1.6</td>
+<td>-1.2</td>
+<td>+0.5</td>
+<td>-1.0</td>
+<td>-0.6</td>
+<td>-0.4</td>
+<td>-0.5</td>
+<td>-0.4</td>
+<td></td>
+<td class=l>softclip+limiter (GR 2.3 dB)</td></tr>
+</tbody></table></div><h2>Per sound</h2>
+<details id='adwind'><summary>adwind.gpw (ambient/none)</summary><p>not in the design table: clean 16-bit only</p><p></p><img loading=lazy src='adwind.png' alt='adwind.gpw spectrograms'></details>
+<details id='afworks'><summary>afworks.gpw (ambient/none)</summary><p>not in the design table: clean 16-bit only</p><p></p><img loading=lazy src='afworks.png' alt='afworks.gpw spectrograms'></details>
+<details id='aheli'><summary>aheli.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 59.59 Hz, divisor 1, sub 59.59 Hz, 73 whole cycles per loop</p><img loading=lazy src='aheli.png' alt='aheli.gpw spectrograms'></details>
+<details id='aps2'><summary>aps2.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 315.0 Hz, divisor 4, sub 78.75 Hz, 25 whole cycles per loop</p><img loading=lazy src='aps2.png' alt='aps2.gpw spectrograms'></details>
+<details id='bnitro'><summary>bnitro.gpw (nitro/transient)</summary><p>sub on the burst onset</p><p>1 onsets</p><img loading=lazy src='bnitro.png' alt='bnitro.gpw spectrograms'></details>
+<details id='cammo'><summary>cammo.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cammo.png' alt='cammo.gpw spectrograms'></details>
+<details id='cgrowl'><summary>cgrowl.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cgrowl.png' alt='cgrowl.gpw spectrograms'></details>
+<details id='cjamm'><summary>cjamm.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cjamm.png' alt='cjamm.gpw spectrograms'></details>
+<details id='clockon'><summary>clockon.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='clockon.png' alt='clockon.gpw spectrograms'></details>
+<details id='cmap2'><summary>cmap2.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cmap2.png' alt='cmap2.gpw spectrograms'></details>
+<details id='cmike'><summary>cmike.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cmike.png' alt='cmike.gpw spectrograms'></details>
+<details id='cnote'><summary>cnote.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cnote.png' alt='cnote.gpw spectrograms'></details>
+<details id='cradar'><summary>cradar.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cradar.png' alt='cradar.gpw spectrograms'></details>
+<details id='croger'><summary>croger.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='croger.png' alt='croger.gpw spectrograms'></details>
+<details id='cwstat'><summary>cwstat.gpw (cockpit_ui/none)</summary><p>UI chirps: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='cwstat.png' alt='cwstat.gpw spectrograms'></details>
+<details id='dblox'><summary>dblox.gpw (dropper/transient)</summary><p>sub on the drop</p><p>13 onsets</p><img loading=lazy src='dblox.png' alt='dblox.gpw spectrograms'></details>
+<details id='dcaltrop'><summary>dcaltrop.gpw (dropper/transient)</summary><p>sub on the drop</p><p>7 onsets</p><img loading=lazy src='dcaltrop.png' alt='dcaltrop.gpw spectrograms'></details>
+<details id='derase'><summary>derase.gpw (dropper/transient)</summary><p>sub on the drop</p><p>2 onsets</p><img loading=lazy src='derase.png' alt='derase.gpw spectrograms'></details>
+<details id='dfire'><summary>dfire.gpw (dropper/transient)</summary><p>sub on the drop</p><p>1 onsets</p><img loading=lazy src='dfire.png' alt='dfire.gpw spectrograms'></details>
+<details id='dmines1'><summary>dmines1.gpw (dropper/none)</summary><p>sub on the drop</p><p>sub skipped: stock E&lt;120 0.55 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='dmines1.png' alt='dmines1.gpw spectrograms'></details>
+<details id='doil'><summary>doil.gpw (dropper/transient)</summary><p>sub on the drop</p><p>3 onsets</p><img loading=lazy src='doil.png' alt='doil.gpw spectrograms'></details>
+<details id='eihp'><summary>eihp.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 59.59 Hz, divisor 1, sub 59.59 Hz, 59 whole cycles per loop</p><img loading=lazy src='eihp.png' alt='eihp.gpw spectrograms'></details>
+<details id='eimarx'><summary>eimarx.gpw (engine_loop/none)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>sub skipped: stock E&lt;120 0.60 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='eimarx.png' alt='eimarx.gpw spectrograms'></details>
+<details id='einp1'><summary>einp1.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 55.96 Hz, divisor 1, sub 55.96 Hz, 95 whole cycles per loop</p><img loading=lazy src='einp1.png' alt='einp1.gpw spectrograms'></details>
+<details id='eishp'><summary>eishp.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 51.04 Hz, divisor 1, sub 51.04 Hz, 144 whole cycles per loop</p><img loading=lazy src='eishp.png' alt='eishp.gpw spectrograms'></details>
+<details id='eisv'><summary>eisv.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 159.78 Hz, divisor 2, sub 79.89 Hz, 195 whole cycles per loop</p><img loading=lazy src='eisv.png' alt='eisv.gpw spectrograms'></details>
+<details id='eitank'><summary>eitank.gpw (engine_loop/none)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>sub skipped: stock E&lt;120 0.53 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='eitank.png' alt='eitank.gpw spectrograms'></details>
+<details id='eshp1'><summary>eshp1.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 204.17 Hz, divisor 4, sub 51.04 Hz; 3 onsets</p><img loading=lazy src='eshp1.png' alt='eshp1.gpw spectrograms'></details>
+<details id='eshp2'><summary>eshp2.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 373.73 Hz, divisor 8, sub 46.72 Hz; 11 onsets</p><img loading=lazy src='eshp2.png' alt='eshp2.gpw spectrograms'></details>
+<details id='eshp3'><summary>eshp3.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 204.17 Hz, divisor 4, sub 51.04 Hz; 9 onsets</p><img loading=lazy src='eshp3.png' alt='eshp3.gpw spectrograms'></details>
+<details id='esmarx'><summary>esmarx.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: fallback-45Hz, f0 median None Hz, divisor None, sub 45.0 Hz; 11 onsets</p><img loading=lazy src='esmarx.png' alt='esmarx.gpw spectrograms'></details>
+<details id='esnp1'><summary>esnp1.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 304.15 Hz, divisor 4, sub 76.04 Hz; 3 onsets</p><img loading=lazy src='esnp1.png' alt='esnp1.gpw spectrograms'></details>
+<details id='esnp2'><summary>esnp2.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 261.4 Hz, divisor 4, sub 65.35 Hz; 4 onsets</p><img loading=lazy src='esnp2.png' alt='esnp2.gpw spectrograms'></details>
+<details id='esnp3'><summary>esnp3.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 250.57 Hz, divisor 4, sub 62.64 Hz; 2 onsets</p><img loading=lazy src='esnp3.png' alt='esnp3.gpw spectrograms'></details>
+<details id='esshp1'><summary>esshp1.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 76.08 Hz, divisor 2, sub 38.04 Hz; 4 onsets</p><img loading=lazy src='esshp1.png' alt='esshp1.gpw spectrograms'></details>
+<details id='esshp2'><summary>esshp2.gpw (engine_start/none)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>sub skipped: stock E&lt;120 0.83 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='esshp2.png' alt='esshp2.gpw spectrograms'></details>
+<details id='esshp3'><summary>esshp3.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 85.47 Hz, divisor 2, sub 42.73 Hz; 10 onsets</p><img loading=lazy src='esshp3.png' alt='esshp3.gpw spectrograms'></details>
+<details id='essv'><summary>essv.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: autocorr, f0 median 318.07 Hz, divisor 4, sub 79.52 Hz; 3 onsets</p><img loading=lazy src='essv.png' alt='essv.gpw spectrograms'></details>
+<details id='estank'><summary>estank.gpw (engine_start/transient+octave)</summary><p>sub on the ignition hits + octave-down on the catch (voiced frames only)</p><p>f0 tracker: fallback-45Hz, f0 median None Hz, divisor None, sub 45.0 Hz; 24 onsets</p><img loading=lazy src='estank.png' alt='estank.gpw spectrograms'></details>
+<details id='fdmg1'><summary>fdmg1.gpw (damage/transient)</summary><p>sub on the hit</p><p>2 onsets</p><img loading=lazy src='fdmg1.png' alt='fdmg1.gpw spectrograms'></details>
+<details id='h45ch'><summary>h45ch.gpw (handgun/transient)</summary><p>sub thump per shot</p><p>1 onsets</p><img loading=lazy src='h45ch.png' alt='h45ch.gpw spectrograms'></details>
+<details id='hssr1'><summary>hssr1.gpw (handgun/transient)</summary><p>sub thump per shot</p><p>1 onsets</p><img loading=lazy src='hssr1.png' alt='hssr1.gpw spectrograms'></details>
+<details id='hssr2'><summary>hssr2.gpw (handgun/transient)</summary><p>sub thump per shot</p><p>1 onsets</p><img loading=lazy src='hssr2.png' alt='hssr2.gpw spectrograms'></details>
+<details id='msllock1'><summary>msllock1.gpw (missile_lock/none)</summary><p>lock tones: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='msllock1.png' alt='msllock1.gpw spectrograms'></details>
+<details id='msllock2'><summary>msllock2.gpw (missile_lock/none)</summary><p>lock tones: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='msllock2.png' alt='msllock2.gpw spectrograms'></details>
+<details id='msllock3'><summary>msllock3.gpw (missile_lock/none)</summary><p>lock tones: 16-bit at the stock rate, no bass</p><p></p><img loading=lazy src='msllock3.png' alt='msllock3.gpw spectrograms'></details>
+<details id='tblow'><summary>tblow.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tblow.png' alt='tblow.gpw spectrograms'></details>
+<details id='tcaltrop'><summary>tcaltrop.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tcaltrop.png' alt='tcaltrop.gpw spectrograms'></details>
+<details id='tflat'><summary>tflat.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tflat.png' alt='tflat.gpw spectrograms'></details>
+<details id='tskid1'><summary>tskid1.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tskid1.png' alt='tskid1.gpw spectrograms'></details>
+<details id='tskid2'><summary>tskid2.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tskid2.png' alt='tskid2.gpw spectrograms'></details>
+<details id='tskid3'><summary>tskid3.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tskid3.png' alt='tskid3.gpw spectrograms'></details>
+<details id='tskid4'><summary>tskid4.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tskid4.png' alt='tskid4.gpw spectrograms'></details>
+<details id='tturn1'><summary>tturn1.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tturn1.png' alt='tturn1.gpw spectrograms'></details>
+<details id='tturn2'><summary>tturn2.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tturn2.png' alt='tturn2.gpw spectrograms'></details>
+<details id='tturn3'><summary>tturn3.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tturn3.png' alt='tturn3.gpw spectrograms'></details>
+<details id='tturn4'><summary>tturn4.gpw (tyre_surface/none)</summary><p>skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub</p><p></p><img loading=lazy src='tturn4.png' alt='tturn4.gpw spectrograms'></details>
+<details id='vballoon'><summary>vballoon.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 262.5 Hz, divisor 4, sub 65.62 Hz, 340 whole cycles per loop</p><img loading=lazy src='vballoon.png' alt='vballoon.gpw spectrograms'></details>
+<details id='vcddirt'><summary>vcddirt.gpw (surface_loop/none)</summary><p>as tyres: clean 16-bit only</p><p></p><img loading=lazy src='vcddirt.png' alt='vcddirt.gpw spectrograms'></details>
+<details id='vcdgrav'><summary>vcdgrav.gpw (surface_loop/none)</summary><p>as tyres: clean 16-bit only</p><p></p><img loading=lazy src='vcdgrav.png' alt='vcdgrav.gpw spectrograms'></details>
+<details id='vcdoil'><summary>vcdoil.gpw (surface_loop/none)</summary><p>as tyres: clean 16-bit only</p><p></p><img loading=lazy src='vcdoil.png' alt='vcdoil.gpw spectrograms'></details>
+<details id='vcdsand'><summary>vcdsand.gpw (surface_loop/none)</summary><p>as tyres: clean 16-bit only</p><p></p><img loading=lazy src='vcdsand.png' alt='vcdsand.gpw spectrograms'></details>
+<details id='vexplode'><summary>vexplode.gpw (vehicle_collision/none)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>sub skipped: stock E&lt;120 0.74 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='vexplode.png' alt='vexplode.gpw spectrograms'></details>
+<details id='vhorn1'><summary>vhorn1.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 93.83 Hz, divisor 2, sub 46.91 Hz</p><img loading=lazy src='vhorn1.png' alt='vhorn1.gpw spectrograms'></details>
+<details id='vhorn2'><summary>vhorn2.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 160.95 Hz, divisor 2, sub 80.47 Hz</p><img loading=lazy src='vhorn2.png' alt='vhorn2.gpw spectrograms'></details>
+<details id='vhorn3'><summary>vhorn3.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 200.45 Hz, divisor 4, sub 50.11 Hz</p><img loading=lazy src='vhorn3.png' alt='vhorn3.gpw spectrograms'></details>
+<details id='vhorn4'><summary>vhorn4.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 91.49 Hz, divisor 2, sub 45.75 Hz</p><img loading=lazy src='vhorn4.png' alt='vhorn4.gpw spectrograms'></details>
+<details id='vhorn5'><summary>vhorn5.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 191.74 Hz, divisor 4, sub 47.93 Hz</p><img loading=lazy src='vhorn5.png' alt='vhorn5.gpw spectrograms'></details>
+<details id='vhorn6'><summary>vhorn6.gpw (horn_siren/octave)</summary><p>light octave-down</p><p>f0 tracker: autocorr, f0 median 191.74 Hz, divisor 4, sub 47.93 Hz</p><img loading=lazy src='vhorn6.png' alt='vhorn6.gpw spectrograms'></details>
+<details id='vland'><summary>vland.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>1 onsets</p><img loading=lazy src='vland.png' alt='vland.gpw spectrograms'></details>
+<details id='vlanding'><summary>vlanding.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>3 onsets</p><img loading=lazy src='vlanding.png' alt='vlanding.gpw spectrograms'></details>
+<details id='vnvco3'><summary>vnvco3.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>2 onsets</p><img loading=lazy src='vnvco3.png' alt='vnvco3.gpw spectrograms'></details>
+<details id='vnvcs1'><summary>vnvcs1.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>4 onsets</p><img loading=lazy src='vnvcs1.png' alt='vnvcs1.gpw spectrograms'></details>
+<details id='vnvcs3'><summary>vnvcs3.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>4 onsets</p><img loading=lazy src='vnvcs3.png' alt='vnvcs3.gpw spectrograms'></details>
+<details id='vnvcs5'><summary>vnvcs5.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>4 onsets</p><img loading=lazy src='vnvcs5.png' alt='vnvcs5.gpw spectrograms'></details>
+<details id='vshif1a'><summary>vshif1a.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>5 onsets</p><img loading=lazy src='vshif1a.png' alt='vshif1a.gpw spectrograms'></details>
+<details id='vskid'><summary>vskid.gpw (vehicle_collision/none)</summary><p>skid loop filed under vehicle_collision by name: treated like tyre_surface (clean 16-bit, no sub)</p><p></p><img loading=lazy src='vskid.png' alt='vskid.gpw spectrograms'></details>
+<details id='vtcoll'><summary>vtcoll.gpw (vehicle_collision/none)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>sub skipped: stock E&lt;120 0.56 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='vtcoll.png' alt='vtcoll.gpw spectrograms'></details>
+<details id='vufo'><summary>vufo.gpw (engine_loop/octave)</summary><p>P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop</p><p>f0 tracker: autocorr, f0 median 386.96 Hz, divisor 8, sub 48.37 Hz, 86 whole cycles per loop</p><img loading=lazy src='vufo.png' alt='vufo.gpw spectrograms'></details>
+<details id='vvbo1'><summary>vvbo1.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>3 onsets</p><img loading=lazy src='vvbo1.png' alt='vvbo1.gpw spectrograms'></details>
+<details id='vvcbb3'><summary>vvcbb3.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>3 onsets</p><img loading=lazy src='vvcbb3.png' alt='vvcbb3.gpw spectrograms'></details>
+<details id='vvch2'><summary>vvch2.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>2 onsets</p><img loading=lazy src='vvch2.png' alt='vvch2.gpw spectrograms'></details>
+<details id='vvcre2'><summary>vvcre2.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>3 onsets</p><img loading=lazy src='vvcre2.png' alt='vvcre2.gpw spectrograms'></details>
+<details id='vvcre3'><summary>vvcre3.gpw (vehicle_collision/transient)</summary><p>transient-triggered 90-&gt;35 Hz sub drop</p><p>4 onsets</p><img loading=lazy src='vvcre3.png' alt='vvcre3.gpw spectrograms'></details>
+<details id='wbalflam'><summary>wbalflam.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='wbalflam.png' alt='wbalflam.gpw spectrograms'></details>
+<details id='wcbl'><summary>wcbl.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>7 onsets</p><img loading=lazy src='wcbl.png' alt='wcbl.gpw spectrograms'></details>
+<details id='wchem'><summary>wchem.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.55 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wchem.png' alt='wchem.gpw spectrograms'></details>
+<details id='wcherub'><summary>wcherub.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>2 onsets</p><img loading=lazy src='wcherub.png' alt='wcherub.gpw spectrograms'></details>
+<details id='wclick'><summary>wclick.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='wclick.png' alt='wclick.gpw spectrograms'></details>
+<details id='wcvr'><summary>wcvr.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>3 onsets</p><img loading=lazy src='wcvr.png' alt='wcvr.gpw spectrograms'></details>
+<details id='wezk'><summary>wezk.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>5 onsets</p><img loading=lazy src='wezk.png' alt='wezk.gpw spectrograms'></details>
+<details id='wgl'><summary>wgl.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>3 onsets</p><img loading=lazy src='wgl.png' alt='wgl.gpw spectrograms'></details>
+<details id='whades'><summary>whades.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.59 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='whades.png' alt='whades.gpw spectrograms'></details>
+<details id='whcan'><summary>whcan.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.89 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='whcan.png' alt='whcan.gpw spectrograms'></details>
+<details id='whflame'><summary>whflame.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>22 onsets</p><img loading=lazy src='whflame.png' alt='whflame.gpw spectrograms'></details>
+<details id='whmgun'><summary>whmgun.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>12 onsets</p><img loading=lazy src='whmgun.png' alt='whmgun.gpw spectrograms'></details>
+<details id='whowitz'><summary>whowitz.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.63 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='whowitz.png' alt='whowitz.gpw spectrograms'></details>
+<details id='whsm'><summary>whsm.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='whsm.png' alt='whsm.gpw spectrograms'></details>
+<details id='wlcan'><summary>wlcan.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.58 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wlcan.png' alt='wlcan.gpw spectrograms'></details>
+<details id='wlflame'><summary>wlflame.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>25 onsets</p><img loading=lazy src='wlflame.png' alt='wlflame.gpw spectrograms'></details>
+<details id='wlmgun'><summary>wlmgun.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.57 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wlmgun.png' alt='wlmgun.gpw spectrograms'></details>
+<details id='wmcan'><summary>wmcan.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.54 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wmcan.png' alt='wmcan.gpw spectrograms'></details>
+<details id='wmflame'><summary>wmflame.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.61 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wmflame.png' alt='wmflame.gpw spectrograms'></details>
+<details id='wmgr1'><summary>wmgr1.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='wmgr1.png' alt='wmgr1.gpw spectrograms'></details>
+<details id='wmgr2'><summary>wmgr2.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='wmgr2.png' alt='wmgr2.gpw spectrograms'></details>
+<details id='wmiss'><summary>wmiss.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>4 onsets</p><img loading=lazy src='wmiss.png' alt='wmiss.gpw spectrograms'></details>
+<details id='wmmgun'><summary>wmmgun.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.56 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wmmgun.png' alt='wmmgun.gpw spectrograms'></details>
+<details id='wrhm'><summary>wrhm.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='wrhm.png' alt='wrhm.gpw spectrograms'></details>
+<details id='wrock'><summary>wrock.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>1 onsets</p><img loading=lazy src='wrock.png' alt='wrock.gpw spectrograms'></details>
+<details id='wtank'><summary>wtank.gpw (weapon_fire/none)</summary><p>sub thump per shot; loops processed circularly</p><p>sub skipped: stock E&lt;120 0.63 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='wtank.png' alt='wtank.gpw spectrograms'></details>
+<details id='wwpgl'><summary>wwpgl.gpw (weapon_fire/transient)</summary><p>sub thump per shot; loops processed circularly</p><p>4 onsets</p><img loading=lazy src='wwpgl.png' alt='wwpgl.gpw spectrograms'></details>
+<details id='xbridge'><summary>xbridge.gpw (explosion_impact/none)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>sub skipped: stock E&lt;120 0.53 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='xbridge.png' alt='xbridge.gpw spectrograms'></details>
+<details id='xbuild'><summary>xbuild.gpw (explosion_impact/transient)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>7 onsets</p><img loading=lazy src='xbuild.png' alt='xbuild.gpw spectrograms'></details>
+<details id='xcar'><summary>xcar.gpw (explosion_impact/none)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>sub skipped: stock E&lt;120 0.74 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='xcar.png' alt='xcar.gpw spectrograms'></details>
+<details id='xemt1'><summary>xemt1.gpw (explosion_impact/transient)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>9 onsets</p><img loading=lazy src='xemt1.png' alt='xemt1.gpw spectrograms'></details>
+<details id='xemt2'><summary>xemt2.gpw (explosion_impact/none)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>sub skipped: stock E&lt;120 0.84 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='xemt2.png' alt='xemt2.gpw spectrograms'></details>
+<details id='xfire1'><summary>xfire1.gpw (explosion_impact/transient)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>13 onsets</p><img loading=lazy src='xfire1.png' alt='xfire1.gpw spectrograms'></details>
+<details id='xgas'><summary>xgas.gpw (explosion_impact/none)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>sub skipped: stock E&lt;120 0.62 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='xgas.png' alt='xgas.gpw spectrograms'></details>
+<details id='xms2'><summary>xms2.gpw (explosion_impact/none)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>sub skipped: stock E&lt;120 0.54 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='xms2.png' alt='xms2.gpw spectrograms'></details>
+<details id='xmv1'><summary>xmv1.gpw (explosion_impact/transient)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>1 onsets</p><img loading=lazy src='xmv1.png' alt='xmv1.gpw spectrograms'></details>
+<details id='xmv2'><summary>xmv2.gpw (explosion_impact/none)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>sub skipped: stock E&lt;120 0.65 &gt;= 0.50 (already bass-heavy)</p><img loading=lazy src='xmv2.png' alt='xmv2.gpw spectrograms'></details>
+<details id='xsv1'><summary>xsv1.gpw (explosion_impact/transient)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>3 onsets</p><img loading=lazy src='xsv1.png' alt='xsv1.gpw spectrograms'></details>
+<details id='xsv2'><summary>xsv2.gpw (explosion_impact/transient)</summary><p>transient-triggered sub drop; bass-heavy stems left alone</p><p>2 onsets</p><img loading=lazy src='xsv2.png' alt='xsv2.gpw spectrograms'></details>
+</body></html>

@@ -1,0 +1,4882 @@
+{
+ "pack_version": "sound-hd v1 (2026-10-10)",
+ "created_utc": "2026-10-10T14:00:41Z",
+ "categories": {
+  "engine_loop": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop"
+  },
+  "engine_start": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)"
+  },
+  "vehicle_collision": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop"
+  },
+  "explosion_impact": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone"
+  },
+  "weapon_fire": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly"
+  },
+  "handgun": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub thump per shot"
+  },
+  "nitro": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.2,
+    "sweep_s": 0.15,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the burst onset"
+  },
+  "dropper": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the drop"
+  },
+  "damage": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the hit"
+  },
+  "tyre_surface": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub"
+  },
+  "surface_loop": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "as tyres: clean 16-bit only"
+  },
+  "horn_siren": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down"
+  },
+  "ambient": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "not in the design table: clean 16-bit only"
+  },
+  "cockpit_ui": {
+   "rate": null,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass"
+  },
+  "missile_lock": {
+   "rate": null,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "lock tones: 16-bit at the stock rate, no bass"
+  }
+ },
+ "untouched": {
+  "01sbu01.wav": "CB/dialogue untouched in v1",
+  "01sgc06.wav": "CB/dialogue untouched in v1",
+  "01sgc07.wav": "CB/dialogue untouched in v1",
+  "01sgc08.wav": "CB/dialogue untouched in v1",
+  "01sgc09.wav": "CB/dialogue untouched in v1",
+  "01sgc10.wav": "CB/dialogue untouched in v1",
+  "01sgc11.wav": "CB/dialogue untouched in v1",
+  "01sgc12.wav": "CB/dialogue untouched in v1",
+  "01sgc15.wav": "CB/dialogue untouched in v1",
+  "01sir01.wav": "CB/dialogue untouched in v1",
+  "01sir03.wav": "CB/dialogue untouched in v1",
+  "01ssk01.wav": "CB/dialogue untouched in v1",
+  "01sta09.wav": "CB/dialogue untouched in v1",
+  "01sta10.wav": "CB/dialogue untouched in v1",
+  "01sta12.wav": "CB/dialogue untouched in v1",
+  "01sta13.wav": "CB/dialogue untouched in v1",
+  "01sta14.wav": "CB/dialogue untouched in v1",
+  "01sta15.wav": "CB/dialogue untouched in v1",
+  "01sta16.wav": "CB/dialogue untouched in v1",
+  "01sta17.wav": "CB/dialogue untouched in v1",
+  "01sta18.wav": "CB/dialogue untouched in v1",
+  "01sta19.wav": "CB/dialogue untouched in v1",
+  "01sta20.wav": "CB/dialogue untouched in v1",
+  "01sta21.wav": "CB/dialogue untouched in v1",
+  "01sta22.wav": "CB/dialogue untouched in v1",
+  "01sta23.wav": "CB/dialogue untouched in v1",
+  "01sta24.wav": "CB/dialogue untouched in v1",
+  "01sta25.wav": "CB/dialogue untouched in v1",
+  "01sta26.wav": "CB/dialogue untouched in v1",
+  "01sta28.wav": "CB/dialogue untouched in v1",
+  "01sta29.wav": "CB/dialogue untouched in v1",
+  "01sta30.wav": "CB/dialogue untouched in v1",
+  "01sta60.wav": "CB/dialogue untouched in v1",
+  "01sta61.wav": "CB/dialogue untouched in v1",
+  "01sta62.wav": "CB/dialogue untouched in v1",
+  "01sta63.wav": "CB/dialogue untouched in v1",
+  "01sta65.wav": "CB/dialogue untouched in v1",
+  "01sta66.wav": "CB/dialogue untouched in v1",
+  "02agc09.wav": "CB/dialogue untouched in v1",
+  "02sgc05.wav": "CB/dialogue untouched in v1",
+  "02sgc06.wav": "CB/dialogue untouched in v1",
+  "02sgc07.wav": "CB/dialogue untouched in v1",
+  "02sgc10.wav": "CB/dialogue untouched in v1",
+  "02sgc11.wav": "CB/dialogue untouched in v1",
+  "02sgc12.wav": "CB/dialogue untouched in v1",
+  "02sgc13.wav": "CB/dialogue untouched in v1",
+  "02sgc14.wav": "CB/dialogue untouched in v1",
+  "02sgc15.wav": "CB/dialogue untouched in v1",
+  "02sgc16.wav": "CB/dialogue untouched in v1",
+  "02sgc17.wav": "CB/dialogue untouched in v1",
+  "02sgc19.wav": "CB/dialogue untouched in v1",
+  "02sgc20.wav": "CB/dialogue untouched in v1",
+  "02sgc21.wav": "CB/dialogue untouched in v1",
+  "02ssk05.wav": "CB/dialogue untouched in v1",
+  "02ssk06.wav": "CB/dialogue untouched in v1",
+  "02sta02.wav": "CB/dialogue untouched in v1",
+  "02sta03.wav": "CB/dialogue untouched in v1",
+  "02sta04.wav": "CB/dialogue untouched in v1",
+  "02sta06.wav": "CB/dialogue untouched in v1",
+  "02sta07.wav": "CB/dialogue untouched in v1",
+  "02sta08.wav": "CB/dialogue untouched in v1",
+  "02sta09.wav": "CB/dialogue untouched in v1",
+  "02sta10.wav": "CB/dialogue untouched in v1",
+  "02sta11.wav": "CB/dialogue untouched in v1",
+  "02sta12.wav": "CB/dialogue untouched in v1",
+  "02sta13.wav": "CB/dialogue untouched in v1",
+  "02sta14.wav": "CB/dialogue untouched in v1",
+  "02sta15.wav": "CB/dialogue untouched in v1",
+  "02sta16.wav": "CB/dialogue untouched in v1",
+  "02sta17.wav": "CB/dialogue untouched in v1",
+  "02sta20.wav": "CB/dialogue untouched in v1",
+  "02sta23.wav": "CB/dialogue untouched in v1",
+  "02sta24.wav": "CB/dialogue untouched in v1",
+  "02sta25.wav": "CB/dialogue untouched in v1",
+  "02sta29.wav": "CB/dialogue untouched in v1",
+  "02sta30.wav": "CB/dialogue untouched in v1",
+  "02sta33.wav": "CB/dialogue untouched in v1",
+  "02sta35.wav": "CB/dialogue untouched in v1",
+  "03sgc03.wav": "CB/dialogue untouched in v1",
+  "03sgc04.wav": "CB/dialogue untouched in v1",
+  "03sgc05.wav": "CB/dialogue untouched in v1",
+  "03sta07.wav": "CB/dialogue untouched in v1",
+  "03sta08.wav": "CB/dialogue untouched in v1",
+  "03sta09.wav": "CB/dialogue untouched in v1",
+  "03sta10.wav": "CB/dialogue untouched in v1",
+  "03sta11.wav": "CB/dialogue untouched in v1",
+  "03sta13.wav": "CB/dialogue untouched in v1",
+  "04sgb01.wav": "CB/dialogue untouched in v1",
+  "04sgb02.wav": "CB/dialogue untouched in v1",
+  "04sgc02.wav": "CB/dialogue untouched in v1",
+  "04sgc03.wav": "CB/dialogue untouched in v1",
+  "04sgc04.wav": "CB/dialogue untouched in v1",
+  "04sgc07.wav": "CB/dialogue untouched in v1",
+  "04sgc08.wav": "CB/dialogue untouched in v1",
+  "04sgc09.wav": "CB/dialogue untouched in v1",
+  "04sgc10.wav": "CB/dialogue untouched in v1",
+  "04spa03.wav": "CB/dialogue untouched in v1",
+  "04spa04.wav": "CB/dialogue untouched in v1",
+  "04spa05.wav": "CB/dialogue untouched in v1",
+  "04spa06.wav": "CB/dialogue untouched in v1",
+  "04spa07.wav": "CB/dialogue untouched in v1",
+  "04spa08.wav": "CB/dialogue untouched in v1",
+  "04spa09.wav": "CB/dialogue untouched in v1",
+  "04spa10.wav": "CB/dialogue untouched in v1",
+  "04srk01.wav": "CB/dialogue untouched in v1",
+  "04srk02.wav": "CB/dialogue untouched in v1",
+  "04srk03.wav": "CB/dialogue untouched in v1",
+  "05sba01.wav": "CB/dialogue untouched in v1",
+  "05sba02.wav": "CB/dialogue untouched in v1",
+  "05sba03.wav": "CB/dialogue untouched in v1",
+  "05sdc01.wav": "CB/dialogue untouched in v1",
+  "05sdc02.wav": "CB/dialogue untouched in v1",
+  "05sgc02.wav": "CB/dialogue untouched in v1",
+  "05sgc05.wav": "CB/dialogue untouched in v1",
+  "05sgc06.wav": "CB/dialogue untouched in v1",
+  "05sgc07.wav": "CB/dialogue untouched in v1",
+  "05sgc08.wav": "CB/dialogue untouched in v1",
+  "05sgc09.wav": "CB/dialogue untouched in v1",
+  "05sgc10.wav": "CB/dialogue untouched in v1",
+  "05sgc11.wav": "CB/dialogue untouched in v1",
+  "05sgc13.wav": "CB/dialogue untouched in v1",
+  "05sgc15.wav": "CB/dialogue untouched in v1",
+  "05ssk01.wav": "CB/dialogue untouched in v1",
+  "05ssk02.wav": "CB/dialogue untouched in v1",
+  "05ssk03.wav": "CB/dialogue untouched in v1",
+  "05ssk04.wav": "CB/dialogue untouched in v1",
+  "05ssk05.wav": "CB/dialogue untouched in v1",
+  "05ssk06.wav": "CB/dialogue untouched in v1",
+  "05sta03.wav": "CB/dialogue untouched in v1",
+  "05sta04.wav": "CB/dialogue untouched in v1",
+  "06sgc05.wav": "CB/dialogue untouched in v1",
+  "06sgc06.wav": "CB/dialogue untouched in v1",
+  "06sgc07.wav": "CB/dialogue untouched in v1",
+  "06sgc09.wav": "CB/dialogue untouched in v1",
+  "06sgc14.wav": "CB/dialogue untouched in v1",
+  "06sgc15.wav": "CB/dialogue untouched in v1",
+  "06sgc16.wav": "CB/dialogue untouched in v1",
+  "06sgc17.wav": "CB/dialogue untouched in v1",
+  "06sin01.wav": "CB/dialogue untouched in v1",
+  "06sin02.wav": "CB/dialogue untouched in v1",
+  "06sin03.wav": "CB/dialogue untouched in v1",
+  "06sin04.wav": "CB/dialogue untouched in v1",
+  "06sin05.wav": "CB/dialogue untouched in v1",
+  "06ssk05.wav": "CB/dialogue untouched in v1",
+  "06ssk06.wav": "CB/dialogue untouched in v1",
+  "07sgc11.wav": "CB/dialogue untouched in v1",
+  "07sgc14.wav": "CB/dialogue untouched in v1",
+  "07sgc15.wav": "CB/dialogue untouched in v1",
+  "07sgc16.wav": "CB/dialogue untouched in v1",
+  "07sgc17.wav": "CB/dialogue untouched in v1",
+  "07sgc18.wav": "CB/dialogue untouched in v1",
+  "07sgc19.wav": "CB/dialogue untouched in v1",
+  "07sgc20.wav": "CB/dialogue untouched in v1",
+  "07sgc21.wav": "CB/dialogue untouched in v1",
+  "07sgc22.wav": "CB/dialogue untouched in v1",
+  "07sgc23.wav": "CB/dialogue untouched in v1",
+  "07sgc24.wav": "CB/dialogue untouched in v1",
+  "07sgc25.wav": "CB/dialogue untouched in v1",
+  "07sgc26.wav": "CB/dialogue untouched in v1",
+  "07shf02.wav": "CB/dialogue untouched in v1",
+  "07shf03.wav": "CB/dialogue untouched in v1",
+  "07som01.wav": "CB/dialogue untouched in v1",
+  "07som07.wav": "CB/dialogue untouched in v1",
+  "07sse01.wav": "CB/dialogue untouched in v1",
+  "07sse07.wav": "CB/dialogue untouched in v1",
+  "07sse08.wav": "CB/dialogue untouched in v1",
+  "07sse09.wav": "CB/dialogue untouched in v1",
+  "07sse10.wav": "CB/dialogue untouched in v1",
+  "07sta06.wav": "CB/dialogue untouched in v1",
+  "07sta10.wav": "CB/dialogue untouched in v1",
+  "07sta13.wav": "CB/dialogue untouched in v1",
+  "07sta14.wav": "CB/dialogue untouched in v1",
+  "07sta15.wav": "CB/dialogue untouched in v1",
+  "08sgc01.wav": "CB/dialogue untouched in v1",
+  "08sgc02.wav": "CB/dialogue untouched in v1",
+  "08sgc03.wav": "CB/dialogue untouched in v1",
+  "08sgc04.wav": "CB/dialogue untouched in v1",
+  "08sgc05.wav": "CB/dialogue untouched in v1",
+  "08sgc06.wav": "CB/dialogue untouched in v1",
+  "08sgc07.wav": "CB/dialogue untouched in v1",
+  "08sta02.wav": "CB/dialogue untouched in v1",
+  "08sta03.wav": "CB/dialogue untouched in v1",
+  "08sta04.wav": "CB/dialogue untouched in v1",
+  "08sta05.wav": "CB/dialogue untouched in v1",
+  "08sta06.wav": "CB/dialogue untouched in v1",
+  "08sta07.wav": "CB/dialogue untouched in v1",
+  "09sca01.wav": "CB/dialogue untouched in v1",
+  "09sca02.wav": "CB/dialogue untouched in v1",
+  "09sca03.wav": "CB/dialogue untouched in v1",
+  "09sca04.wav": "CB/dialogue untouched in v1",
+  "09sca05.wav": "CB/dialogue untouched in v1",
+  "09sca06.wav": "CB/dialogue untouched in v1",
+  "09sdc01.wav": "CB/dialogue untouched in v1",
+  "09sdc02.wav": "CB/dialogue untouched in v1",
+  "09sgc07.wav": "CB/dialogue untouched in v1",
+  "09sgc08.wav": "CB/dialogue untouched in v1",
+  "09sgc09.wav": "CB/dialogue untouched in v1",
+  "09sta01.wav": "CB/dialogue untouched in v1",
+  "09sta02.wav": "CB/dialogue untouched in v1",
+  "10sgc02.wav": "CB/dialogue untouched in v1",
+  "10sgc03.wav": "CB/dialogue untouched in v1",
+  "10sgc04.wav": "CB/dialogue untouched in v1",
+  "10sgc05.wav": "CB/dialogue untouched in v1",
+  "10sof01.wav": "CB/dialogue untouched in v1",
+  "10sof02.wav": "CB/dialogue untouched in v1",
+  "10sof03.wav": "CB/dialogue untouched in v1",
+  "10ssn01.wav": "CB/dialogue untouched in v1",
+  "10ssn02.wav": "CB/dialogue untouched in v1",
+  "10sta02.wav": "CB/dialogue untouched in v1",
+  "10sta03.wav": "CB/dialogue untouched in v1",
+  "10sta04.wav": "CB/dialogue untouched in v1",
+  "10sta05.wav": "CB/dialogue untouched in v1",
+  "10sta06.wav": "CB/dialogue untouched in v1",
+  "10sta07.wav": "CB/dialogue untouched in v1",
+  "11sgc06.wav": "CB/dialogue untouched in v1",
+  "11sgc07.wav": "CB/dialogue untouched in v1",
+  "11sta06.wav": "CB/dialogue untouched in v1",
+  "11sta07.wav": "CB/dialogue untouched in v1",
+  "11sta08.wav": "CB/dialogue untouched in v1",
+  "12sdc01.wav": "CB/dialogue untouched in v1",
+  "12sgc03.wav": "CB/dialogue untouched in v1",
+  "12sgc04.wav": "CB/dialogue untouched in v1",
+  "12sgc05.wav": "CB/dialogue untouched in v1",
+  "12sgc06.wav": "CB/dialogue untouched in v1",
+  "12sgc08.wav": "CB/dialogue untouched in v1",
+  "12sgc09.wav": "CB/dialogue untouched in v1",
+  "12sgc11.wav": "CB/dialogue untouched in v1",
+  "12sgc12.wav": "CB/dialogue untouched in v1",
+  "12sgc13.wav": "CB/dialogue untouched in v1",
+  "12sgc14.wav": "CB/dialogue untouched in v1",
+  "12sgc15.wav": "CB/dialogue untouched in v1",
+  "12sns01.wav": "CB/dialogue untouched in v1",
+  "12sns02.wav": "CB/dialogue untouched in v1",
+  "12sns04.wav": "CB/dialogue untouched in v1",
+  "12sns05.wav": "CB/dialogue untouched in v1",
+  "12sok01.wav": "CB/dialogue untouched in v1",
+  "12sok02.wav": "CB/dialogue untouched in v1",
+  "12sok03.wav": "CB/dialogue untouched in v1",
+  "12sta03.wav": "CB/dialogue untouched in v1",
+  "12sta04.wav": "CB/dialogue untouched in v1",
+  "12sta05.wav": "CB/dialogue untouched in v1",
+  "12sta06.wav": "CB/dialogue untouched in v1",
+  "12sta07.wav": "CB/dialogue untouched in v1",
+  "13sgc07.wav": "CB/dialogue untouched in v1",
+  "13sgc09.wav": "CB/dialogue untouched in v1",
+  "13sgc10.wav": "CB/dialogue untouched in v1",
+  "13sgc11.wav": "CB/dialogue untouched in v1",
+  "13sgc13.wav": "CB/dialogue untouched in v1",
+  "13sgc14.wav": "CB/dialogue untouched in v1",
+  "13sta06.wav": "CB/dialogue untouched in v1",
+  "13sta08.wav": "CB/dialogue untouched in v1",
+  "13sta09.wav": "CB/dialogue untouched in v1",
+  "13sta12.wav": "CB/dialogue untouched in v1",
+  "13sta13.wav": "CB/dialogue untouched in v1",
+  "14sfu01.wav": "CB/dialogue untouched in v1",
+  "14sfu02.wav": "CB/dialogue untouched in v1",
+  "14sfu03.wav": "CB/dialogue untouched in v1",
+  "14sfu04.wav": "CB/dialogue untouched in v1",
+  "14sgc03.wav": "CB/dialogue untouched in v1",
+  "14sgc04.wav": "CB/dialogue untouched in v1",
+  "14sgc05.wav": "CB/dialogue untouched in v1",
+  "14sgc06.wav": "CB/dialogue untouched in v1",
+  "14ssk02.wav": "CB/dialogue untouched in v1",
+  "14ssk04.wav": "CB/dialogue untouched in v1",
+  "14sta04.wav": "CB/dialogue untouched in v1",
+  "14sta05.wav": "CB/dialogue untouched in v1",
+  "14sta06.wav": "CB/dialogue untouched in v1",
+  "14sta07.wav": "CB/dialogue untouched in v1",
+  "14sta08.wav": "CB/dialogue untouched in v1",
+  "14sta09.wav": "CB/dialogue untouched in v1",
+  "14sta10.wav": "CB/dialogue untouched in v1",
+  "15sgc02.wav": "CB/dialogue untouched in v1",
+  "15sgc04.wav": "CB/dialogue untouched in v1",
+  "15sgc05.wav": "CB/dialogue untouched in v1",
+  "16sgc04.wav": "CB/dialogue untouched in v1",
+  "16sgc05.wav": "CB/dialogue untouched in v1",
+  "16sgc06.wav": "CB/dialogue untouched in v1",
+  "16sta06.wav": "CB/dialogue untouched in v1",
+  "16sta07.wav": "CB/dialogue untouched in v1",
+  "17sam01.wav": "CB/dialogue untouched in v1",
+  "17sam02.wav": "CB/dialogue untouched in v1",
+  "17sam03.wav": "CB/dialogue untouched in v1",
+  "17sam04.wav": "CB/dialogue untouched in v1",
+  "17sam05.wav": "CB/dialogue untouched in v1",
+  "17sam06.wav": "CB/dialogue untouched in v1",
+  "17sam07.wav": "CB/dialogue untouched in v1",
+  "17scl01.wav": "CB/dialogue untouched in v1",
+  "17scl02.wav": "CB/dialogue untouched in v1",
+  "17sgc02.wav": "CB/dialogue untouched in v1",
+  "gadv.wav": "shell/map UI untouched in v1",
+  "gback.wav": "shell/map UI untouched in v1",
+  "gdsgc01.wav": "CB/dialogue untouched in v1",
+  "gdsgc02.wav": "CB/dialogue untouched in v1",
+  "gdsgc03.wav": "CB/dialogue untouched in v1",
+  "gdsgc04.wav": "CB/dialogue untouched in v1",
+  "gdsgc05.wav": "CB/dialogue untouched in v1",
+  "gdsgc06.wav": "CB/dialogue untouched in v1",
+  "gdsgc07.wav": "CB/dialogue untouched in v1",
+  "gdsgc08.wav": "CB/dialogue untouched in v1",
+  "gdsgc09.wav": "CB/dialogue untouched in v1",
+  "gdsgc10.wav": "CB/dialogue untouched in v1",
+  "gdsgc11.wav": "CB/dialogue untouched in v1",
+  "gdsgc12.wav": "CB/dialogue untouched in v1",
+  "gdsgc13.wav": "CB/dialogue untouched in v1",
+  "gdsgc14.wav": "CB/dialogue untouched in v1",
+  "gdsgc15.wav": "CB/dialogue untouched in v1",
+  "gdsgc16.wav": "CB/dialogue untouched in v1",
+  "gdsgc17.wav": "CB/dialogue untouched in v1",
+  "gdsgc18.wav": "CB/dialogue untouched in v1",
+  "gdsgc19.wav": "CB/dialogue untouched in v1",
+  "gdsgc20.wav": "CB/dialogue untouched in v1",
+  "gdsgc21.wav": "CB/dialogue untouched in v1",
+  "gdsgc22.wav": "CB/dialogue untouched in v1",
+  "gdsgc23.wav": "CB/dialogue untouched in v1",
+  "gdsgc24.wav": "CB/dialogue untouched in v1",
+  "gdsgc25.wav": "CB/dialogue untouched in v1",
+  "gdsgc26.wav": "CB/dialogue untouched in v1",
+  "gdsgc28.wav": "CB/dialogue untouched in v1",
+  "gdsgc29.wav": "CB/dialogue untouched in v1",
+  "gdsgc32.wav": "CB/dialogue untouched in v1",
+  "gdsgc33.wav": "CB/dialogue untouched in v1",
+  "gdsgc34.wav": "CB/dialogue untouched in v1",
+  "gdsgc35.wav": "CB/dialogue untouched in v1",
+  "gdsgc36.wav": "CB/dialogue untouched in v1",
+  "gdsgc37.wav": "CB/dialogue untouched in v1",
+  "gdsgc40.wav": "CB/dialogue untouched in v1",
+  "gdsgc41.wav": "CB/dialogue untouched in v1",
+  "gdsgc42.wav": "CB/dialogue untouched in v1",
+  "gdsgc43.wav": "CB/dialogue untouched in v1",
+  "gdsgc44.wav": "CB/dialogue untouched in v1",
+  "gdsgc45.wav": "CB/dialogue untouched in v1",
+  "gdsgc46.wav": "CB/dialogue untouched in v1",
+  "gdsgc47.wav": "CB/dialogue untouched in v1",
+  "gdsgc48.wav": "CB/dialogue untouched in v1",
+  "gdsgc49.wav": "CB/dialogue untouched in v1",
+  "gdsgc50.wav": "CB/dialogue untouched in v1",
+  "gdsgc52.wav": "CB/dialogue untouched in v1",
+  "gdsgc53.wav": "CB/dialogue untouched in v1",
+  "gdsgc55.wav": "CB/dialogue untouched in v1",
+  "gdsgc65.wav": "CB/dialogue untouched in v1",
+  "gdsgc67.wav": "CB/dialogue untouched in v1",
+  "gdsgc68.wav": "CB/dialogue untouched in v1",
+  "gdsgc69.wav": "CB/dialogue untouched in v1",
+  "gdsgc74.wav": "CB/dialogue untouched in v1",
+  "gdsgc75.wav": "CB/dialogue untouched in v1",
+  "gdsgc77.wav": "CB/dialogue untouched in v1",
+  "gdsgc78.wav": "CB/dialogue untouched in v1",
+  "gdsge01.wav": "CB/dialogue untouched in v1",
+  "gdsge02.wav": "CB/dialogue untouched in v1",
+  "gdsge03.wav": "CB/dialogue untouched in v1",
+  "gdsge04.wav": "CB/dialogue untouched in v1",
+  "gdsge05.wav": "CB/dialogue untouched in v1",
+  "gdsge06.wav": "CB/dialogue untouched in v1",
+  "gdsge07.wav": "CB/dialogue untouched in v1",
+  "gdssk01.wav": "CB/dialogue untouched in v1",
+  "gdssk02.wav": "CB/dialogue untouched in v1",
+  "gdssk03.wav": "CB/dialogue untouched in v1",
+  "gdssk04.wav": "CB/dialogue untouched in v1",
+  "gdssk05.wav": "CB/dialogue untouched in v1",
+  "gdssk06.wav": "CB/dialogue untouched in v1",
+  "gdssk07.wav": "CB/dialogue untouched in v1",
+  "gdsta02.wav": "CB/dialogue untouched in v1",
+  "gdsta03.wav": "CB/dialogue untouched in v1",
+  "gdsta05.wav": "CB/dialogue untouched in v1",
+  "gdsta06.wav": "CB/dialogue untouched in v1",
+  "gdsta07.wav": "CB/dialogue untouched in v1",
+  "gdsta08.wav": "CB/dialogue untouched in v1",
+  "gdsta09.wav": "CB/dialogue untouched in v1",
+  "gdsta10.wav": "CB/dialogue untouched in v1",
+  "gdsta12.wav": "CB/dialogue untouched in v1",
+  "gdsta13.wav": "CB/dialogue untouched in v1",
+  "gdsta14.wav": "CB/dialogue untouched in v1",
+  "gdsta15.wav": "CB/dialogue untouched in v1",
+  "gdsta16.wav": "CB/dialogue untouched in v1",
+  "gdsta19.wav": "CB/dialogue untouched in v1",
+  "gdsta23.wav": "CB/dialogue untouched in v1",
+  "gdsta24.wav": "CB/dialogue untouched in v1",
+  "gdsta25.wav": "CB/dialogue untouched in v1",
+  "gic.wav": "shell/map UI untouched in v1",
+  "gpage.wav": "shell/map UI untouched in v1",
+  "gpencil.wav": "shell/map UI untouched in v1",
+  "gquit.wav": "shell/map UI untouched in v1",
+  "grp.wav": "shell/map UI untouched in v1",
+  "gsml.wav": "shell/map UI untouched in v1",
+  "gsms.wav": "shell/map UI untouched in v1",
+  "gsr.wav": "shell/map UI untouched in v1",
+  "gsws.wav": "shell/map UI untouched in v1",
+  "gtext.wav": "shell/map UI untouched in v1",
+  "music.wav": "loose music.wav untouched (the GOG mp3 soundtrack plays through the music proxy)",
+  "posta01.wav": "CB/dialogue untouched in v1",
+  "posta02.wav": "CB/dialogue untouched in v1",
+  "posta03.wav": "CB/dialogue untouched in v1",
+  "posta04.wav": "CB/dialogue untouched in v1",
+  "posta05.wav": "CB/dialogue untouched in v1",
+  "posta06.wav": "CB/dialogue untouched in v1",
+  "posta07.wav": "CB/dialogue untouched in v1",
+  "posta08.wav": "CB/dialogue untouched in v1",
+  "posta09.wav": "CB/dialogue untouched in v1",
+  "posta10.wav": "CB/dialogue untouched in v1",
+  "posta11.wav": "CB/dialogue untouched in v1",
+  "posta12.wav": "CB/dialogue untouched in v1",
+  "posta13.wav": "CB/dialogue untouched in v1",
+  "posta14.wav": "CB/dialogue untouched in v1",
+  "posta15.wav": "CB/dialogue untouched in v1",
+  "s1sba01.wav": "CB/dialogue untouched in v1",
+  "s1sgc01.wav": "CB/dialogue untouched in v1",
+  "s1sgc02.wav": "CB/dialogue untouched in v1",
+  "s1sgc03.wav": "CB/dialogue untouched in v1",
+  "s1sta01.wav": "CB/dialogue untouched in v1",
+  "s1sta02.wav": "CB/dialogue untouched in v1",
+  "s1sta03.wav": "CB/dialogue untouched in v1",
+  "s1sta04.wav": "CB/dialogue untouched in v1",
+  "s1sta05.wav": "CB/dialogue untouched in v1",
+  "s1sta06.wav": "CB/dialogue untouched in v1",
+  "s1sta07.wav": "CB/dialogue untouched in v1",
+  "s1sta08.wav": "CB/dialogue untouched in v1",
+  "s2sgc03.wav": "CB/dialogue untouched in v1",
+  "s2sgc04.wav": "CB/dialogue untouched in v1",
+  "s2smg01.wav": "CB/dialogue untouched in v1",
+  "s2soc01.wav": "CB/dialogue untouched in v1",
+  "s2soc02.wav": "CB/dialogue untouched in v1",
+  "s2sta01.wav": "CB/dialogue untouched in v1",
+  "s2sta02.wav": "CB/dialogue untouched in v1",
+  "s2sta03.wav": "CB/dialogue untouched in v1",
+  "s2sta04.wav": "CB/dialogue untouched in v1",
+  "s2sta05.wav": "CB/dialogue untouched in v1",
+  "s2sta06.wav": "CB/dialogue untouched in v1",
+  "s3sbx01.wav": "CB/dialogue untouched in v1",
+  "s3sbx02.wav": "CB/dialogue untouched in v1",
+  "s3sgc01.wav": "CB/dialogue untouched in v1",
+  "s3sgc02.wav": "CB/dialogue untouched in v1",
+  "s3sgc03.wav": "CB/dialogue untouched in v1",
+  "s3sta02.wav": "CB/dialogue untouched in v1",
+  "s3sta03.wav": "CB/dialogue untouched in v1",
+  "s3sta04.wav": "CB/dialogue untouched in v1",
+  "s3sta06.wav": "CB/dialogue untouched in v1",
+  "s3sta07.wav": "CB/dialogue untouched in v1",
+  "s4sgc01.wav": "CB/dialogue untouched in v1",
+  "s4sgc02.wav": "CB/dialogue untouched in v1",
+  "s4sgc03.wav": "CB/dialogue untouched in v1",
+  "s4sma01.wav": "CB/dialogue untouched in v1",
+  "s4sma02.wav": "CB/dialogue untouched in v1",
+  "s4sma03.wav": "CB/dialogue untouched in v1",
+  "s4sma04.wav": "CB/dialogue untouched in v1",
+  "s4snl01.wav": "CB/dialogue untouched in v1",
+  "s4sta01.wav": "CB/dialogue untouched in v1",
+  "s4sta02.wav": "CB/dialogue untouched in v1",
+  "s4sta03.wav": "CB/dialogue untouched in v1",
+  "s4sta04.wav": "CB/dialogue untouched in v1",
+  "s4sta05.wav": "CB/dialogue untouched in v1",
+  "s5sbd01.wav": "CB/dialogue untouched in v1",
+  "s5sbd02.wav": "CB/dialogue untouched in v1",
+  "s5scd01.wav": "CB/dialogue untouched in v1",
+  "s5scd02.wav": "CB/dialogue untouched in v1",
+  "s5scd03.wav": "CB/dialogue untouched in v1",
+  "s5sgc01.wav": "CB/dialogue untouched in v1",
+  "s5sgc02.wav": "CB/dialogue untouched in v1",
+  "s5sgc03.wav": "CB/dialogue untouched in v1",
+  "s5sgc04.wav": "CB/dialogue untouched in v1",
+  "s5sgc05.wav": "CB/dialogue untouched in v1",
+  "s5sgc06.wav": "CB/dialogue untouched in v1",
+  "s5sps01.wav": "CB/dialogue untouched in v1",
+  "s5sps02.wav": "CB/dialogue untouched in v1",
+  "s5sta01.wav": "CB/dialogue untouched in v1",
+  "s5sta02.wav": "CB/dialogue untouched in v1",
+  "s6sfz01.wav": "CB/dialogue untouched in v1",
+  "s6sgc01.wav": "CB/dialogue untouched in v1",
+  "s6sgc02.wav": "CB/dialogue untouched in v1",
+  "s6sgc03.wav": "CB/dialogue untouched in v1",
+  "s6sgc05.wav": "CB/dialogue untouched in v1",
+  "s6sta01.wav": "CB/dialogue untouched in v1",
+  "s7sgc01.wav": "CB/dialogue untouched in v1",
+  "s7sgc02.wav": "CB/dialogue untouched in v1",
+  "s7sgc03.wav": "CB/dialogue untouched in v1",
+  "s7sgc04.wav": "CB/dialogue untouched in v1",
+  "s7sta01.wav": "CB/dialogue untouched in v1",
+  "s8sgc01.wav": "CB/dialogue untouched in v1",
+  "s8sgc02.wav": "CB/dialogue untouched in v1",
+  "s8sn201.wav": "CB/dialogue untouched in v1",
+  "tmsgc01.wav": "CB/dialogue untouched in v1",
+  "tmsgc02.wav": "CB/dialogue untouched in v1",
+  "tmsgc03.wav": "CB/dialogue untouched in v1",
+  "tmsgc04.wav": "CB/dialogue untouched in v1",
+  "tmsjc01.wav": "CB/dialogue untouched in v1",
+  "tmsjc02.wav": "CB/dialogue untouched in v1",
+  "tmsjc03.wav": "CB/dialogue untouched in v1",
+  "tmsjc04.wav": "CB/dialogue untouched in v1",
+  "tmsjc05.wav": "CB/dialogue untouched in v1",
+  "tmsjc06.wav": "CB/dialogue untouched in v1",
+  "tmsjc07.wav": "CB/dialogue untouched in v1",
+  "tmsjc08.wav": "CB/dialogue untouched in v1",
+  "tmsjc09.wav": "CB/dialogue untouched in v1",
+  "tmsjc10.wav": "CB/dialogue untouched in v1",
+  "tmsjc11.wav": "CB/dialogue untouched in v1",
+  "tmsjc12.wav": "CB/dialogue untouched in v1",
+  "tmsjc13.wav": "CB/dialogue untouched in v1",
+  "tmsjc14.wav": "CB/dialogue untouched in v1",
+  "tmsjc15.wav": "CB/dialogue untouched in v1",
+  "tmsjc16.wav": "CB/dialogue untouched in v1",
+  "tmsjc17.wav": "CB/dialogue untouched in v1",
+  "tmsjc18.wav": "CB/dialogue untouched in v1",
+  "tmsjc19.wav": "CB/dialogue untouched in v1",
+  "tmsjc20.wav": "CB/dialogue untouched in v1",
+  "tmsjc21.wav": "CB/dialogue untouched in v1",
+  "tmsjc22.wav": "CB/dialogue untouched in v1",
+  "tmsjc23.wav": "CB/dialogue untouched in v1",
+  "tmsjc24.wav": "CB/dialogue untouched in v1"
+ },
+ "sounds": {
+  "adwind": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "not in the design table: clean 16-bit only",
+   "category": "ambient",
+   "file": "adwind.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0993,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "ambient/none"
+  },
+  "afworks": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "not in the design table: clean 16-bit only",
+   "category": "ambient",
+   "file": "afworks.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1863,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "ambient/none"
+  },
+  "aheli": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "aheli.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.3161,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "aps2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "aps2.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "bnitro": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.2,
+    "sweep_s": 0.15,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the burst onset",
+   "category": "nitro",
+   "file": "bnitro.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2906,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "nitro/transient"
+  },
+  "cammo": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cammo.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0041,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cgrowl": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cgrowl.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cjamm": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cjamm.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.8001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "clockon": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "clockon.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0004,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cmap2": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cmap2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0149,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cmike": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cmike.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0041,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cnote": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cnote.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cradar": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cradar.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0003,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "croger": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "croger.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "cwstat": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "UI chirps: 16-bit at the stock rate, no bass",
+   "category": "cockpit_ui",
+   "file": "cwstat.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0003,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "cockpit_ui/none"
+  },
+  "dblox": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the drop",
+   "category": "dropper",
+   "file": "dblox.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1214,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "dropper/transient"
+  },
+  "dcaltrop": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the drop",
+   "category": "dropper",
+   "file": "dcaltrop.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 22050,
+   "gas_mode": "-1",
+   "stock_e120": 0.0059,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "dropper/transient"
+  },
+  "derase": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the drop",
+   "category": "dropper",
+   "file": "derase.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1393,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "dropper/transient"
+  },
+  "dfire": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the drop",
+   "category": "dropper",
+   "file": "dfire.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2537,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "dropper/transient"
+  },
+  "dmines1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.55 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub on the drop",
+   "category": "dropper",
+   "file": "dmines1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5481,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "dropper/none"
+  },
+  "doil": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the drop",
+   "category": "dropper",
+   "file": "doil.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "dropper/transient"
+  },
+  "eihp": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "eihp.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0988,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "eimarx": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.60 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "eimarx.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.5981,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "engine_loop/none"
+  },
+  "einp1": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "einp1.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0469,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "eishp": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "eishp.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1091,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "eisv": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "eisv.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0435,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "eitank": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.53 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "eitank.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.5286,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "engine_loop/none"
+  },
+  "eshp1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "eshp1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0283,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "eshp2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "eshp2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.344,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "eshp3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "eshp3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2691,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "esmarx": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esmarx.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0427,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "esnp1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esnp1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0559,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "esnp2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esnp2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0127,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "esnp3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esnp3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.093,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "esshp1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esshp1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2855,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "esshp2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.83 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esshp2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.828,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "engine_start/none"
+  },
+  "esshp3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "esshp3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1046,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "essv": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "essv.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3459,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "estank": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient+octave",
+    "level_db": -6.0,
+    "band": [
+     35,
+     90
+    ],
+    "tau_s": 0.25,
+    "sweep_s": 0.25,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub on the ignition hits + octave-down on the catch (voiced frames only)",
+   "category": "engine_start",
+   "file": "estank.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.145,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_start/transient+octave"
+  },
+  "fdmg1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub on the hit",
+   "category": "damage",
+   "file": "fdmg1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.397,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "damage/transient"
+  },
+  "h45ch": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub thump per shot",
+   "category": "handgun",
+   "file": "h45ch.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0549,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "handgun/transient"
+  },
+  "hssr1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub thump per shot",
+   "category": "handgun",
+   "file": "hssr1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3628,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "handgun/transient"
+  },
+  "hssr2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "sub thump per shot",
+   "category": "handgun",
+   "file": "hssr2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2862,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "handgun/transient"
+  },
+  "msllock1": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "lock tones: 16-bit at the stock rate, no bass",
+   "category": "missile_lock",
+   "file": "msllock1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0038,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "missile_lock/none"
+  },
+  "msllock2": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "lock tones: 16-bit at the stock rate, no bass",
+   "category": "missile_lock",
+   "file": "msllock2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0046,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "missile_lock/none"
+  },
+  "msllock3": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "lock tones: 16-bit at the stock rate, no bass",
+   "category": "missile_lock",
+   "file": "msllock3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0024,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "missile_lock/none"
+  },
+  "tblow": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tblow.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5791,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tcaltrop": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tcaltrop.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 22050,
+   "gas_mode": "-1",
+   "stock_e120": 0.0258,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tflat": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tflat.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.111,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tskid1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tskid1.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0018,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tskid2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tskid2.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0002,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tskid3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tskid3.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tskid4": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tskid4.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tturn1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tturn1.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0018,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tturn2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tturn2.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0002,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tturn3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tturn3.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "tturn4": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skids live at 150-400 Hz and the shaker already makes road texture from telemetry: no sub",
+   "category": "tyre_surface",
+   "file": "tturn4.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "tyre_surface/none"
+  },
+  "vballoon": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "vballoon.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1206,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "vcddirt": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "as tyres: clean 16-bit only",
+   "category": "surface_loop",
+   "file": "vcddirt.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0341,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "surface_loop/none"
+  },
+  "vcdgrav": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "as tyres: clean 16-bit only",
+   "category": "surface_loop",
+   "file": "vcdgrav.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0546,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "surface_loop/none"
+  },
+  "vcdoil": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "as tyres: clean 16-bit only",
+   "category": "surface_loop",
+   "file": "vcdoil.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0022,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "surface_loop/none"
+  },
+  "vcdsand": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "as tyres: clean 16-bit only",
+   "category": "surface_loop",
+   "file": "vcdsand.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.0349,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "surface_loop/none"
+  },
+  "vexplode": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.74 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vexplode.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.745,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "vehicle_collision/none"
+  },
+  "vhorn1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "vhorn1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "vhorn2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "vhorn2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "vhorn3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "vhorn3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "vhorn4": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "vhorn4.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "vhorn5": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "vhorn5.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "vhorn6": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -12.0,
+    "band": [
+     45,
+     90
+    ]
+   },
+   "harmonics_db": -10.0,
+   "lfe": false,
+   "why": "light octave-down",
+   "category": "horn_siren",
+   "file": "vhorn6.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0001,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "horn_siren/octave"
+  },
+  "vland": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vland.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3872,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vlanding": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vlanding.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2017,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vnvco3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vnvco3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.4852,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vnvcs1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vnvcs1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1417,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vnvcs3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vnvcs3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.051,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vnvcs5": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vnvcs5.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0161,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vshif1a": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vshif1a.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0191,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vskid": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none"
+   },
+   "harmonics_db": null,
+   "lfe": false,
+   "why": "skid loop filed under vehicle_collision by name: treated like tyre_surface (clean 16-bit, no sub)",
+   "category": "vehicle_collision",
+   "file": "vskid.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 22050,
+   "gas_mode": "1",
+   "stock_e120": 0.003,
+   "shadowed_twins": [],
+   "override": {
+    "sub": {
+     "method": "none"
+    },
+    "harmonics_db": false,
+    "lfe": false,
+    "why": "skid loop filed under vehicle_collision by name: treated like tyre_surface (clean 16-bit, no sub)"
+   },
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "vehicle_collision/none"
+  },
+  "vtcoll": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.56 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vtcoll.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5559,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "vehicle_collision/none"
+  },
+  "vufo": {
+   "rate": 11025,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "octave",
+    "level_db": -8.0,
+    "band": [
+     30,
+     90
+    ],
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -10.0,
+   "lfe": true,
+   "why": "P5 constraint: engine pitch callback 0x424ca0 writes absolute Hz, so the loop stays 11,025 Hz; octave-down sub period-matched to the loop",
+   "category": "engine_loop",
+   "file": "vufo.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0022,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "engine_loop/octave"
+  },
+  "vvbo1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vvbo1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2908,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vvcbb3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vvcbb3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.4257,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vvch2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vvch2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3114,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vvcre2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vvcre2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0622,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "vvcre3": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered 90->35 Hz sub drop",
+   "category": "vehicle_collision",
+   "file": "vvcre3.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3544,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "vehicle_collision/transient"
+  },
+  "wbalflam": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wbalflam.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2401,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wcbl": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wcbl.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2506,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wchem": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.55 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wchem.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5458,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wcherub": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wcherub.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2282,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wclick": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wclick.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2256,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wcvr": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wcvr.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3774,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wezk": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wezk.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0652,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wgl": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wgl.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1685,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "whades": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.59 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "whades.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5885,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "whcan": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.89 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "whcan.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.8885,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "whflame": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "whflame.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.1846,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "whmgun": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "whmgun.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.1942,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "whowitz": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.63 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "whowitz.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.626,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "whsm": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "whsm.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1831,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wlcan": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.58 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wlcan.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5822,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wlflame": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wlflame.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.1956,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wlmgun": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.57 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wlmgun.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.5699,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wmcan": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.54 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wmcan.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5433,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wmflame": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.61 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wmflame.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.6051,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wmgr1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wmgr1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.3306,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wmgr2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wmgr2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0016,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wmiss": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wmiss.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0012,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wmmgun": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.56 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wmmgun.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.5636,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wrhm": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wrhm.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1244,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wrock": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wrock.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.0355,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "wtank": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.63 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wtank.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.626,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "weapon_fire/none"
+  },
+  "wwpgl": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "dc",
+    "declick"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -8.0,
+    "band": [
+     40,
+     90
+    ],
+    "f_lo": 40.0,
+    "tau_s": 0.12,
+    "sweep_s": 0.1,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "sub thump per shot; loops processed circularly",
+   "category": "weapon_fire",
+   "file": "wwpgl.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.1081,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "weapon_fire/transient"
+  },
+  "xbridge": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.53 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xbridge.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.526,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "explosion_impact/none"
+  },
+  "xbuild": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xbuild.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2702,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "explosion_impact/transient"
+  },
+  "xcar": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.74 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xcar.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.745,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "explosion_impact/none"
+  },
+  "xemt1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xemt1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.4698,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "explosion_impact/transient"
+  },
+  "xemt2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.84 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xemt2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.8404,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "explosion_impact/none"
+  },
+  "xfire1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xfire1.gpw",
+   "ext": "gpw",
+   "loop": true,
+   "stock_rate": 11025,
+   "gas_mode": "1",
+   "stock_e120": 0.3856,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "explosion_impact/transient"
+  },
+  "xgas": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.62 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xgas.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.6202,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "explosion_impact/none"
+  },
+  "xms2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.54 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xms2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.5353,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "explosion_impact/none"
+  },
+  "xmv1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xmv1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.4052,
+   "shadowed_twins": [
+    "xmv1.wav"
+   ],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "explosion_impact/transient"
+  },
+  "xmv2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "none",
+    "skipped": "stock E<120 0.65 >= 0.50 (already bass-heavy)"
+   },
+   "harmonics_db": null,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xmv2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.6504,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": null,
+    "max_delta": 0.05
+   },
+   "id": "explosion_impact/none"
+  },
+  "xsv1": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xsv1.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.4543,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "explosion_impact/transient"
+  },
+  "xsv2": {
+   "rate": 22050,
+   "bits": 16,
+   "clean": [
+    "declip",
+    "dc",
+    "denoise"
+   ],
+   "sub": {
+    "method": "transient",
+    "level_db": -5.0,
+    "band": [
+     30,
+     90
+    ],
+    "tau_s": 0.3,
+    "sweep_s": 0.3,
+    "skip_if_e120": 0.5
+   },
+   "harmonics_db": -8.0,
+   "lfe": true,
+   "why": "transient-triggered sub drop; bass-heavy stems left alone",
+   "category": "explosion_impact",
+   "file": "xsv2.gpw",
+   "ext": "gpw",
+   "loop": false,
+   "stock_rate": 11025,
+   "gas_mode": "-1",
+   "stock_e120": 0.2802,
+   "shadowed_twins": [],
+   "e20_120_rule": {
+    "min_delta": -0.03,
+    "max_abs": 0.75,
+    "max_delta": 0.02
+   },
+   "id": "explosion_impact/transient"
+  }
+ },
+ "global": {
+  "loudness": "BS.1770-4 integrated, matched to stock within +/-0.5 LU",
+  "true_peak_dbtp": -0.3,
+  "lfe": {
+   "rate": 16000,
+   "bits": 16,
+   "band": [
+    25,
+    90
+   ]
+  },
+  "dither": "TPDF, seeded by sound name"
+ }
+}
