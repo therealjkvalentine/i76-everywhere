@@ -1,5 +1,14 @@
 # I'76 telemetry export (`I76_TELEMETRY`)
 
+> **i76tel v3 (2026-10-10), built and static-verified, NOT run:** the event grew to 56 bytes (`f[6]`, `i[5]`), the
+> frame to 664 bytes (fields appended after `event_count`; every v2 offset unchanged), and two opt-in event groups
+> arrived, `I76_SOUND_EVENTS=1` (SOUND_START / SOUND_STOP / WEAPON_UI) and `I76_DAMAGE_EVENTS=1` (DAMAGE_SIDE), both only
+> with `I76_TELEMETRY` on. The committed `music-fix/Strlkup.dll` is still v2; the v3 build is `music-fix/out/Strlkup-tel3.dll`
+> until a live test passes (docs/OWNER-TEST-LIST.md). Readers: `i76tel.py` picks the layout per frame from its
+> `version` field (v2 through the frozen `i76tel_v2.h`), so it reads either proxy; a reader still on the v2 header reads a
+> v3 frame's fields but not its events. `tests/test_i76tel_v3.py` packs and decodes both offline;
+> `verify_v3_sites.py` checks every patched site's bytes in the pristine and the lab exe.
+
 > **Verified live 2026-10-01 (sandbox, i76.exe, t01):** 1,067 of 1,067 frames decoded with the player present, frame counter monotonic, gear / rpm / ammo / weapon name matching the live tables; a 3-second burst produced SHOT events whose `ammo left` stepped 699, 698, ... in lock with the weapon instance table, one IMPACT and one EXPLOSION (`X1_BULC1`, 8 m) - see `verification-2026-10-01.txt`. The telemetry stops while the game is outside its play loop (menus, mission over); that is by design. The rest of this file is the static reading it was written from.
 > through the i76-map specs, compiled and size-checked but never run against the game. Field sources are cited so a
 > live check can go straight to the instruction when a value looks wrong. First checks to make: the frame counter
@@ -13,7 +22,9 @@ rendered frame, plus an event stream, so FFB / motion / logging tools stop scann
 | file | role |
 |---|---|
 | `i76tel.h` | the layout: `i76tel_frame_t`, `i76tel_event_t`, `i76tel_shm_t`, constants. The proxy `#include`s it; `i76tel.py` parses it at start-up. One source, nothing to keep in sync by hand |
-| `i76tel.py` | listener: UDP or shared memory, status line, events, CSV, `--check`, and the `--layout` table generator for this README |
+| `i76tel.py` | listener: UDP or shared memory, status line, events, CSV, `--check`, and the `--layout` table generator for this README; `decode_datagram`, `open_shm`, `shm_layout`, `decode_event` for other readers (v2 and v3) |
+| `i76tel_v2.h` | the frozen v2 layout, for decoding a pre-v3 proxy |
+| `verify_v3_sites.py`, `exedis.py`, `callers.py` | read-only static checks: the v3 patch sites' bytes and disassembly in given exes, direct-caller scan |
 | `music-fix/strlkproxy.c` | the writer (`apply_telemetry`, `tel_frame`, the three event hooks) |
 
 ## Enabling
@@ -43,11 +54,12 @@ substeps), the post-ticks (`ffb_WriteSimState` among them), the script VM, the c
 two candidate points were not used because both are conditional: `call 0x446110` at 0x445e83 runs only while
 0x52bbd0 == 1 (a wheel driver or the shim present), and `render_wrap` exists only under `I76_RENDER_INTERP`.
 
-**UDP.** One datagram per rendered frame: `i76tel_frame_t` (608 bytes) followed by `event_count` x `i76tel_event_t`
-(36 bytes each), the events recorded since the previous datagram. At most 64 events fit; if more happened in one
-frame the oldest are dropped and the reader sees a gap in `event.seq`. Maximum datagram 608 + 64 x 36 = 2912 bytes.
+**UDP.** One datagram per rendered frame: `i76tel_frame_t` (664 bytes in v3, 628 in v2) followed by `event_count` x
+`i76tel_event_t` (56 bytes each in v3, 36 in v2), the events recorded since the previous datagram. At most 64 events
+fit; if more happened in one frame the oldest are dropped and the reader sees a gap in `event.seq`. Maximum datagram
+664 + 64 x 56 = 4248 bytes (loopback does not fragment).
 
-**Shared memory.** `Local\I76Telemetry`, 2920 bytes = `i76tel_shm_t`: `seq`, `size`, the same frame struct
+**Shared memory.** `Local\I76Telemetry`, 4256 bytes in v3 (2940 in v2) = `i76tel_shm_t`: `seq`, `size`, the same frame struct
 (`event_count` = 0 there), then the whole 64-entry ring with `ring[event.seq % 64]`. The writer sets `seq` odd before
 writing and even after; a reader copies the block, re-reads `seq`, and accepts the copy only if `seq` is even and
 unchanged. New events are those with `event.seq` in `(last seen, frame.event_seq]`. Whoever maps the section first
@@ -67,7 +79,19 @@ The snapshot runs under SEH; a stale record between missions costs one frame (`p
 | 2 `EXPLOSION` | `entity_SpawnExplosion` 0x49ead0 (name lo, name hi, p3, x, y, z, owner) | 21 call sites in 14 functions, so the entry is detoured like `cam_set_hook` does 0x472990: the 8 prologue bytes `mov eax,[esp+4]; mov ecx,[esp+8]` run in a trampoline; every explosion in the world, any owner | `f` = {x, y, z, distance to the player, -1 without one}; `i` = the 8-byte template name as two dwords (`struct.pack('<ii')` gives the bytes; the exe upper-cases its own copy, so case follows the caller) |
 | 3 `IMPACT` | `physics_ApplyCollisionDamage` 0x4a7c80 (target, source, normal, impact vector, direction) | 7 call sites, entry detoured (6 bytes `sub esp, 0xd0`); every damaging contact on any object | `f` = {impact vector x, y, z, hp the **player** lost in the call}; `i` = {target is the player, source class: 0 terrain / none, 1 car, 0x33 ordnance, 0x34 explosion}. The amount is measured as armour + chassis + engine / suspension / brake / wheel hp before minus after, because the exe's own figure is computed inside and reaches the FFB lists only while 0x52bbd0 == 1 (and a node lives one frame) |
 
-`event.frame` is the proxy frame counter (`frame.proxy_frame`) of the frame the event happened in.
+| 4 `SOUND_START` (v3, `I76_SOUND_EVENTS=1`) | `sound_StartVoice` 0x4220c0 (voice, k), entry detoured (6 bytes `mov eax,[0x4ed7e8]; push ebx`) | every voice that really plays: the request wrappers only queue, the DirectSound Play is here (callers: the per-frame update 0x4214e0 and the un-park path 0x422422); reported when it returns 1 with the sound system up | `f` = {Hz (voice+0x18, after random pitch and the start callback, e.g. the engine-loop formula), volume % (+0x1c), x, y, z (world position of the voice object's root, read before the start since detached one-shots drop their object), pan (+0x20)}; `i` = {name bytes 0-3, 4-7 (voice+4), bits: mode 0 one-shot / 1 loop / 2 sustained, 0x100 player, 0x200 has position, 0x400 detached, 0x800 voice level, priority << 16, object, voice address} |
+| 5 `SOUND_STOP` (v3, `I76_SOUND_EVENTS=1`) | voice release 0x425ef0 (entry, 6 bytes), `sound_StopVoice` 0x422d20 (entry, 5 bytes), the update loop's `call 0x422540` at 0x42150b / 0x4215a2 (repointed) | once per voice that had a SOUND_START (a table of up to 128 live voices; stops of unknown voices are dropped). The update-loop path is where an unrefreshed sustained loop (skid, tyre, damage) ends | `f` = {sim seconds since the start}; `i` = {name, name, reason: 1 released, 2 ended, else the StopVoice argument (0x40 parked, 0x20 / 0x80 / 0x100 stopped) \| 0x10000 player, object recorded at the start, voice address} |
+| 6 `DAMAGE_SIDE` (v3, `I76_DAMAGE_EVENTS=1`) | `entity_DamageAndKill` 0x463a80 (object, record, hit point in the target's frame), entry detoured (6 bytes `sub esp,0xc0`); reached through the class damage-handler slot 0x4f77a4 | hits on a live vehicle with a record (the exe's own guards); side and zone recomputed with the exe's rule and constants (damage.md C8; 0.8 / +-0.707 at 0x4be1c8..d0) | `f` = {incoming damage (record amounts with their type bit set), hp the target lost (armour + chassis + components, before minus after), hit x, y, z}; `i` = {side 0 front 1 left 2 right 3 back 4 top (-1 zero vector), zone 0..6, bits 1 player / 2 by player / 4 killed, type mask \| record flags << 16, shooter class} |
+| 7 `WEAPON_UI` (v3, `I76_SOUND_EVENTS=1`) | the three click calls `call 0x4250f0` at 0x4a5dff (cycle), 0x4a6333 (link), 0x4a6021 (unlink), repointed | the stock WPNCYCLE / WPNLINK / WPNUNLNK moments; they play the same click sound, so the call site tells them apart | `i` = {0 cycle, 1 link, 2 unlink} |
+
+`event.frame` is the proxy frame counter (`frame.proxy_frame`) of the frame the event happened in. Unused `f` / `i`
+slots are 0. Types 1-3 fill `f[0..3]` / `i[0..1]` exactly as in v2. `frame.event_hooks` says which hooks are in
+(I76TEL_HOOK_* bits), so "no sound events" and "not tapped" can be told apart.
+
+Not done in v3, and why: `WEAPON_UI` from the FFB block one-shots 0x4f234c/50/54 (the design's idea) would only be
+cleared by the FFB writer while a wheel driver is present, so the click call sites are used instead. A sound held by a
+start callback that returns nonzero after its buffer stopped is not seen as stopped until it is released or restarted
+(not traced live).
 
 ## How FFB and motion tools consume it
 
@@ -133,17 +157,17 @@ everything is little-endian and naturally aligned.
 | 28 | 4 | `int32_t` | `flat` | wheel+0x44 flat tyre |
 | 32 | 4 | `int32_t` | `skid_active` | wheel+0x48 |
 
-### `i76tel_event_t` (36 bytes)
+### `i76tel_event_t` (56 bytes)
 
 | offset | size | type | field | source / meaning |
 |---:|---:|---|---|---|
 | 0 | 4 | `uint32_t` | `seq` | 1, 2, 3 ... over the whole session; a gap in a stream means the ring wrapped before a send |
 | 4 | 4 | `uint32_t` | `frame` | proxy frame counter the event happened in (= i76tel_frame_t.proxy_frame of the frame that carries it) |
 | 8 | 4 | `uint32_t` | `type` | I76TEL_EV_* |
-| 12 | 16 | `float[4]` | `f` | per type, see the I76TEL_EV_* comments |
-| 28 | 8 | `int32_t[2]` | `i` |  |
+| 12 | 24 | `float[6]` | `f` | per type, see the I76TEL_EV_* comments; types 1-3 use f[0..3] exactly as in v2 |
+| 36 | 20 | `int32_t[5]` | `i` | per type; types 1-3 use i[0..1] exactly as in v2 |
 
-### `i76tel_frame_t` (628 bytes)
+### `i76tel_frame_t` (664 bytes)
 
 | offset | size | type | field | source / meaning |
 |---:|---:|---|---|---|
@@ -218,15 +242,24 @@ everything is little-endian and naturally aligned.
 | 616 | 4 | `float` | `health_pct` |  |
 | 620 | 4 | `uint32_t` | `event_seq` | total events recorded so far (the last event's seq) |
 | 624 | 4 | `uint32_t` | `event_count` | events appended to this datagram after the struct (0 in shared memory) |
+| 628 | 4 | `float` | `wheelbase` | ent+0x118 \|P(slot1) - P(slot5)\| (physics_InitEntity, fst at 0x438c64), m |
+| 632 | 4 | `float` | `front_track` | ent+0x114 \|P(slot1) - P(slot0)\| (fstp at 0x438c01), m |
+| 636 | 4 | `float` | `steer_gain` | ent+0x110 = 1 / (2 x wheelbase) (0x438c72); yaw rate = steer x speed x steer_gain below the cap (0x43cfdb) |
+| 640 | 4 | `float` | `grip_sum` | wheel+0x0c of slots 0, 1, 4, 5 (ent+0x3a8/0x3ac/0x3b8/0x3bc, the four reads in 0x43ce10) |
+| 644 | 4 | `float` | `grip_cap` |  |
+| 648 | 4 | `float` | `ground_g` | ent+0x46c = 9.8 x n.y^3 (gravity along the ground normal; read at 0x43ceab) |
+| 652 | 4 | `int32_t` | `music_track` | the proxy's own state: CD track playing now (g_playingTrack), 0 none (lets a loopback LFE tap duck under music) |
+| 656 | 4 | `uint32_t` | `event_hooks` | I76TEL_HOOK_* bits of the event hooks installed this session |
+| 660 | 4 | `uint32_t` | `sound_voices` | voices with a SOUND_START and no SOUND_STOP yet (I76_SOUND_EVENTS), 0 otherwise |
 
-### `i76tel_shm_t` (2940 bytes)
+### `i76tel_shm_t` (4256 bytes)
 
 | offset | size | type | field | source / meaning |
 |---:|---:|---|---|---|
 | 0 | 4 | `uint32_t` | `seq` | odd while the writer is inside, even when the block is consistent: read seq, copy, re-read seq, accept if equal and even |
 | 4 | 4 | `uint32_t` | `size` | sizeof(i76tel_shm_t) |
-| 8 | 628 | `i76tel_frame_t` | `frame` |  |
-| 636 | 2304 | `i76tel_event_t[64]` | `ring` | I76TEL_RING entries, slot = event seq % 64 |
+| 8 | 664 | `i76tel_frame_t` | `frame` |  |
+| 672 | 3584 | `i76tel_event_t[64]` | `ring` | I76TEL_RING entries, slot = event seq % 64 |
 
 <!-- layout:end -->
 

@@ -52,10 +52,11 @@ class TelemetryRecorder(threading.Thread):
             for data in i76tel.source_udp(self.port):
                 if self.stop_flag.is_set():
                     break
-                if data is None or len(data) < self.h.frame_size:
+                if data is None:
                     continue
-                fr = i76tel.decode_frame(self.h, data)
-                evs = i76tel.decode_events(self.h, data, self.h.frame_size, fr["event_count"])
+                fr, evs = i76tel.decode_datagram(self.h, data)     # v2 or v3 proxy, by the frame's version field
+                if fr is None:
+                    continue
                 self.csv.frame(fr)
                 for ev in evs:
                     self.csv.event(ev)

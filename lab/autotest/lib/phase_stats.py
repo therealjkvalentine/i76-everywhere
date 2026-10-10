@@ -41,9 +41,9 @@ def alive():
 
 
 h = i76tel.Header()
-size = h.structs["i76tel_shm_t"][1]; off = h.offset("i76tel_shm_t", "frame")
+off = h.offset("i76tel_shm_t", "frame")
 try:
-    m = mmap.mmap(-1, size, tagname=h.consts["I76TEL_SHM_NAME"])
+    m, size = i76tel.open_shm(h)                         # v3 size, or v2 when a v2 proxy made the section
 except Exception:
     m = None
 last = None; dts = []; vpeak = 0; cams = {}; died = False; f0 = f1 = None

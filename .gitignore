@@ -107,3 +107,5 @@ diff-*.tsv
 
 # trainer GUI runtime state (saved waypoint slots), not source
 tools/trainer/waypoints.json
+# i76tel v3 side builds (never over the committed Strlkup.dll)
+music-fix/out/

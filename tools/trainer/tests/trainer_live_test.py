@@ -33,9 +33,8 @@ CMD_REPAIR, CMD_TELEPORT = 1, 2
 UNLIMITED = 0x0FFFFFFF
 
 h = i76tel.Header()
-shm_size = h.structs["i76tel_shm_t"][1]
 frame_off = h.offset("i76tel_shm_t", "frame")
-tel = mmap.mmap(-1, shm_size, tagname=h.consts["I76TEL_SHM_NAME"])
+tel, shm_size = i76tel.open_shm(h)                   # v3 size, or v2 when a v2 proxy made the section
 trn = mmap.mmap(-1, struct.calcsize(TRN_FMT), tagname="Local\\I76Trainer")
 fails = 0
 
