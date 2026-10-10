@@ -106,7 +106,8 @@ stronger than a tick. To use one:
 3. Play `sounds[stem].file`.
 4. Loop it while the voice lives when `loop` is true.
 
-The event tap (P4 in `docs/records/SOUND-INTERPOSER-REVIEW.md`) is not built yet.
+The consumer is the haptics host's `Lfe.Stems` source ([`tools/haptics/README.md`](../haptics/README.md), "Lfe.Stems"),
+keyed by the i76tel v3 `SOUND_START` / `SOUND_STOP` events (static-verified, not yet run in the game: owner tests 6 and 16).
 
 ## Deviations from the design, and why
 
