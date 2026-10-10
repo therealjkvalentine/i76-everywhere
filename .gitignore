@@ -132,3 +132,5 @@ tools/haptics/tests/out/
 tools/haptics/design/out/
 tools/haptics/design/__pycache__/
 tools/haptics/out/
+tools/haptics/replays/synth-*
+tools/haptics/motion/__pycache__/
