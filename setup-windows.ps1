@@ -10,12 +10,15 @@
 #      daily driver (proven ACCEPTED by dgVoodoo 2.87.3; FPSLimit 0, 16:10 picture, 2x internal
 #      resolution, 4x MSAA). With -Preset stock, and always for the Nitro Pack:
 #      dgVoodoo.windows.conf as before (19.2 FPS physics cap, 8x MSAA).
-#      -Preset best-wide (widescreen, opt-in): the same daily-driver conf is kept as
+#      A preset that sets I76_ZGLIDE_TMUFIX = 1 (best-120, best-wide, best-wide-balanced) gets
+#      [Glide] MemorySizeOfTMU = 8192 in that conf, as the daily driver since promotion 11.
+#      -Preset best-wide / best-wide-balanced (widescreen, opt-in): the same daily-driver conf is kept as
 #      dgVoodoo.16x10.conf, and tools\Make-Wide-Conf.ps1 derives dgVoodoo.wide.conf from it for
-#      THIS display ([General] ScalingMode = stretched, [Glide] Resolution = display aspect at 2160
-#      lines) and writes this display's W x H into the installed presets\best-wide.psd1
-#      (I76_ASPECT, I76_U32X_MENU_ASPECT; the repo copy says 3440x1440). PLAY-i76.bat copies the
-#      wide conf in before each start; PLAY-16x10.bat copies the 16:10 one back and runs best-120.
+#      THIS display ([General] ScalingMode = stretched, CaptureMouse = false, [Glide] Resolution =
+#      display aspect at 2160 lines) and writes this display's W x H into the installed
+#      presets\best-wide.psd1 and best-wide-balanced.psd1 (I76_ASPECT, I76_U32X_MENU_ASPECT; the repo
+#      copies say 3440x1440). PLAY-i76.bat and PLAY-balanced.bat copy the wide conf in before each
+#      start; PLAY-16x10.bat copies the 16:10 one back and runs best-120.
 #      Widescreen has been played only on a 3440x1440 panel; menus and cutscenes stay stretched.
 #   5. input.map, by -Controls (since 2026-10-03):
 #        i76e (default)  writes controls\input.map wholesale: this project's own WASD-style map
@@ -77,6 +80,7 @@ param(
     # date: the 19.2 fps dgVoodoo cap, I76PATCH.DLL left active, no engine switches.
     # "best-wide" = the daily driver's widescreen set (Hor+, detail farther out); opt-in, because
     # widescreen has only been played on one display (3440x1440). Needs a display wider than 4:3.
+    # "best-wide-balanced" = the same with the far clip at 1200 m (the driver's PLAY-balanced.bat).
     [string]$Preset = 'best-120',
     # Do not create the desktop shortcut (the only thing this script writes outside -GameDir).
     [switch]$NoShortcut,
@@ -100,7 +104,7 @@ if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "pr
     exit 1
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
-$widePreset = ($Preset -eq 'best-wide')
+$widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced')   # both need dgVoodoo.wide.conf
 $wideTool = Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1'
 if ($widePreset -and -not $ControlsOnly) {
     # refuse before anything is written: best-wide needs a display wider than 4:3 and the generator
@@ -111,10 +115,10 @@ if ($widePreset -and -not $ControlsOnly) {
     } catch { }
     if ($env:I76_WIDE_DISPLAY -match '^(\d+)x(\d+)$') { $dispW = [int]$Matches[1]; $dispH = [int]$Matches[2] }   # override, e.g. for an offline test
     if (-not (Test-Path $wideTool)) {
-        Write-Host "-Preset best-wide needs $wideTool (missing)." -ForegroundColor Red; exit 1
+        Write-Host "-Preset $Preset needs $wideTool (missing)." -ForegroundColor Red; exit 1
     }
     if ($dispW -le 0 -or ($dispW / $dispH) -le (4.0 / 3.0 + 0.01)) {
-        Write-Host "-Preset best-wide needs a display wider than 4:3 (read: ${dispW}x${dispH}). Use the default best-120." -ForegroundColor Red; exit 1
+        Write-Host "-Preset $Preset needs a display wider than 4:3 (read: ${dispW}x${dispH}). Use the default best-120." -ForegroundColor Red; exit 1
     }
     if ($dispW -ne 3440 -or $dispH -ne 1440) {
         Write-Host "Widescreen has only been played on 3440x1440; ${dispW}x${dispH} gets computed values (not tested). PLAY-16x10.bat will start the tested 16:10 picture." -ForegroundColor Yellow
@@ -226,6 +230,20 @@ if ($fastPreset -and (Test-Path $driverConf)) {
     #                         1080 lines -> 3456x2160.
     # Only the 1440-line result (the unchanged file) has been run. The others are computed.
     $proven = [IO.File]::ReadAllText($driverConf, [Text.Encoding]::ASCII)
+    # [Glide] MemorySizeOfTMU 2048 -> 8192 when the preset sets I76_ZGLIDE_TMUFIX = 1 (best-120, best-wide,
+    # best-wide-balanced), as promotion 11 did on the daily driver (golden PROMOTIONS.md; its 16:10 conf 299a6811
+    # is this file with that one line changed). 4096+ WITHOUT the TMUFIX switch corrupts textures (promotion 5R),
+    # so presets without it keep 2048. One line, read back.
+    $presetEnv = @{}
+    try { $presetEnv = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoGameDir "presets\$Preset.psd1")).Env } catch { }
+    if ($presetEnv -and "$($presetEnv['I76_ZGLIDE_TMUFIX'])" -eq '1') {
+        $tmuRx = New-Object regex '(?m)^(MemorySizeOfTMU\s*=\s*)2048(\s*)$'
+        if ($tmuRx.Matches($proven).Count -ne 1) { Write-Host "$driverConf : expected exactly one 'MemorySizeOfTMU = 2048' line; conf left as it is." -ForegroundColor Yellow }
+        else {
+            $proven = $tmuRx.Replace($proven, '${1}8192${2}', 1)
+            Write-Host "dgVoodoo [Glide] MemorySizeOfTMU = 8192 (preset $Preset sets I76_ZGLIDE_TMUFIX = 1; promotion 11)."
+        }
+    }
     $conf = $proven
     $dx = $null; $gl = $null
     try {
@@ -655,7 +673,7 @@ if (Test-Path $presetSrc) {
     Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $GameDir 'presets') -Force
 }
 if ($widePreset) {
-    # dgVoodoo.wide.conf + this display's W x H in the installed presets\best-wide.psd1
+    # dgVoodoo.wide.conf + this display's W x H in the installed presets\best-wide.psd1 and best-wide-balanced.psd1
     $global:LASTEXITCODE = 0
     & $wideTool -GameDir $GameDir -Width $dispW -Height $dispH | ForEach-Object { Write-Host "  wide: $_" }
     if ($LASTEXITCODE -or -not (Test-Path (Join-Path $GameDir 'dgVoodoo.wide.conf'))) {
@@ -683,15 +701,21 @@ if ($fastPreset) {
     # itself, so frame generation is not started ("none" is not a path; an empty string would be
     # swallowed by powershell.exe -File).
     Set-Content $bat "@echo off`r`nREM Interstate '76, preset $Preset (see presets\$Preset.psd1). PLAY-stock.bat = no engine switches.`r`nREM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.`r`n$useWide$launch -Preset $Preset -LosslessScaling none" -Encoding ascii
+    $playBal = Join-Path $GameDir 'PLAY-balanced.bat'
     if ($widePreset) {
         Set-Content $play16 "@echo off`r`nREM The same folder with the 16:10 picture (dgVoodoo.16x10.conf) and preset best-120: the tested setup.`r`nREM Run at the physical console, never over Remote Desktop.`r`n$use16$launch -Preset best-120 -LosslessScaling none" -Encoding ascii
-    } elseif (Test-Path $play16) {
-        Remove-Item $play16 -Force   # left by an earlier best-wide setup
+        # the daily driver's extra widescreen option (promotion 13): best-wide with the far clip at 1200 m
+        Set-Content $playBal "@echo off`r`nREM Widescreen, preset best-wide-balanced: best-wide with the draw distance at 1200 m (binoculars faster).`r`nREM Run at the physical console, never over Remote Desktop.`r`n$useWide$launch -Preset best-wide-balanced -LosslessScaling none" -Encoding ascii
+    } else {
+        if (Test-Path $play16) { Remove-Item $play16 -Force }   # left by an earlier best-wide setup
+        if (Test-Path $playBal) { Remove-Item $playBal -Force }
     }
     Set-Content (Join-Path $GameDir 'PLAY-stock.bat') "@echo off`r`nREM The same folder with NO engine switches (preset stock). This is NOT the 20 fps game: this`r`nREM install has GOG's 20 fps cap off (I76PATCH.DLL.disabled, where GOG shipped one) and FPSLimit 0, so`r`nREM the frame rate is whatever dgVoodoo paces (60) and the physics are not corrected for it.`r`nREM For the game as GOG ships it (20 fps), re-run the setup with -Preset stock:`r`nREM   setup-windows.ps1 -GameDir <this folder> -Preset stock`r`n$use16$launch -Preset stock -LosslessScaling none" -Encoding ascii
 } else {
     Set-Content $bat "@echo off`r`n$launch`r`n" -Encoding ascii
     if (Test-Path $play16) { Remove-Item $play16 -Force }   # left by an earlier best-wide setup
+    $playBal = Join-Path $GameDir 'PLAY-balanced.bat'
+    if (Test-Path $playBal) { Remove-Item $playBal -Force }
     # a PLAY-stock.bat left by an earlier best-120 setup would describe a state that is gone
     $staleStock = Join-Path $GameDir 'PLAY-stock.bat'
     if (-not $isNitro -and (Test-Path $staleStock)) { Remove-Item $staleStock -Force }
@@ -731,7 +755,7 @@ Write-Host ""
 Write-Host "DONE. Boot takes 60-75s of 'PLEASE STAND BY' - ESC skips the intro." -ForegroundColor Green
 if ($fastPreset) {
     Write-Host "$batName starts preset $Preset (120 fps, physics stepped as at 20); PLAY-stock.bat starts the same folder with no engine switches."
-    if ($widePreset) { Write-Host "Widescreen: $batName copies dgVoodoo.wide.conf in first; PLAY-16x10.bat goes back to the tested 16:10 picture (best-120). Menus and cutscenes are stretched to the display's shape (known)." }
+    if ($widePreset) { Write-Host "Widescreen: $batName copies dgVoodoo.wide.conf in first (CaptureMouse = false: the preset's cursor map moves the menu pointer); PLAY-balanced.bat = best-wide-balanced; PLAY-16x10.bat goes back to the tested 16:10 picture (best-120). Menus and cutscenes are stretched to the display's shape (known)." }
     Write-Host "Check in Instant Melee: smooth picture, no flips on bumps; then Mission 5's ramp jump."
 } else {
     Write-Host "Verify the cap in Instant Melee (no flips on bumps; AI cars exceed 35 mph),"
