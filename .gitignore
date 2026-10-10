@@ -104,3 +104,6 @@ lab/captures/
 *.pcode
 strings.tsv
 diff-*.tsv
+
+# trainer GUI runtime state (saved waypoint slots), not source
+tools/trainer/waypoints.json
