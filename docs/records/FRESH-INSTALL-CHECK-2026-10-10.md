@@ -142,7 +142,7 @@ Differences worth the owner's attention (not errors in the installer, but a fres
 | - | Setup-From-GOG's summary names `PLAY-16x10.bat` for `best-wide-balanced` too (it is written for both wide presets). | `dd9a249` |
 | (2) | Found re-running B2 byte for byte: `Make-Wide-Conf.ps1` rewrote `best-wide*.psd1` with a UTF-8 BOM, so off 3440x1440 they differed from the repo by the BOM as well as the two aspect values (the original line compare missed it). It now keeps the file's own BOM state. | `fbfe01f` |
 
-**Re-run** (repo at `fbfe01f` for the variants marked *, else `c3b4e73`; same source, switches, `-ToolsDir` scratch copy and dummy
+**Re-run** (repo at `fbfe01f` for the variants marked *, else `5c82535` (the same code apart from the order of the last two summary lines and the BOM fix, which only acts off 3440x1440); same source, switches, `-ToolsDir` scratch copy and dummy
 `-GogExe` as above; scratch `%TEMP%\i76-followup-20261010`, deleted afterwards), RDP session 1726x1011 again:
 
 | folder | switches | checks | result |
