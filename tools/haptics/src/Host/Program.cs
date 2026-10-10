@@ -42,7 +42,7 @@ namespace Haptics.Host
 
         static int Main(string[] argv)
         {
-            if (argv.Length == 0 || argv[0] == "help" || argv[0] == "--help") { Console.Write(Help); return 0; }
+            if (argv.Length == 0 || argv[0] == "help" || argv[0] == "--help") { Console.Write(Help); Console.Write(StemsCommand.HelpText); return 0; }
             var a = new Args(argv.Skip(1).ToArray());
             try
             {
@@ -59,6 +59,7 @@ namespace Haptics.Host
                     case "tune": return TuneCmd(a);
                     case "devices": foreach (var (d, i) in LfeLiveOut.Devices().Select((d, i) => (d, i))) Console.WriteLine("{0,3}  {1}", i, d); return 0;
                     case "loopback-probe": return LoopbackProbe(a);
+                    case "stems": return StemsCommand.Run(argv.Skip(1).ToArray());   // HD sound pack LFE stems (StemsCommand.cs)
                     default: Console.Error.WriteLine("unknown command " + argv[0]); Console.Write(Help); return 2;
                 }
             }

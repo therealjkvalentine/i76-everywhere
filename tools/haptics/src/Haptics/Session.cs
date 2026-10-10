@@ -16,6 +16,7 @@ namespace Haptics
             ["wheel-file"] = "wheel", ["wheel"] = "wheel", ["pad-file"] = "pad", ["pad"] = "pad", ["lfe-wav"] = "lfe", ["lfe"] = "lfe",
             ["loopback"] = "loopback", ["loopback-wav"] = "loopback", ["motion-file"] = "motion", ["motion"] = "motion",
             ["motion-udp"] = "motion_udp",
+            ["stems"] = "stems", ["stems-wav"] = "stems",   // Lfe.Stems (HD sound pack LFE stems)
         };
 
         public static Pipeline Build(EffectSet set, IEnumerable<string> sinks, string outDir, string tag, bool live,
@@ -24,7 +25,7 @@ namespace Haptics
             var core = new HapticCore(set);
             var p = new Pipeline { Core = core, CoreHz = coreHz };
             var tune = core.Mixer.Tune;
-            LfeSynthRenderer synth = null; LfeLoopbackRenderer loop = null;
+            LfeSynthRenderer synth = null; LfeLoopbackRenderer loop = null; LfeStemsRenderer stems = null;
             foreach (var sink in sinks.Where(x => !string.IsNullOrWhiteSpace(x)))
             {
                 if (!SinkOutput.TryGetValue(sink.Trim(), out var output)) throw new ArgumentException("unknown sink '" + sink + "' (known: " + string.Join(", ", SinkOutput.Keys) + ")");
@@ -41,8 +42,14 @@ namespace Haptics
                 p.Renderers.Add(r);
                 if (r is LfeSynthRenderer s) synth = s;
                 if (r is LfeLoopbackRenderer l) loop = l;
+                if (r is LfeStemsRenderer st) stems = st;
             }
-            if (synth != null && loop != null) synth.Bed = loop.Bed;
+            // shaker beds: loopback + Lfe.Stems (auto-opened when the rig enables it; Renderers/LfeStems.cs)
+            LfeStemsRenderer.Wire(p, set.Rig, synth, loop, stems, () => new RendererContext
+            {
+                OutputName = "stems", Config = set.Rig.Output("stems"), Rig = set.Rig, Tune = tune, Effects = set, Live = live, OutDir = outDir, Tag = tag,
+                CoreHz = coreHz > 0 ? coreHz : frameHz, Log = log ?? Console.Out,
+            });
             return p;
         }
     }

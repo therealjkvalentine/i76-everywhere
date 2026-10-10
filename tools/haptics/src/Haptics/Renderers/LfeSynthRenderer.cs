@@ -31,6 +31,7 @@ namespace Haptics.Renderers
         int _rate, _perUpdate; double _drive, _master;
         readonly List<short> _pcm = new List<short>();
         public ILfeBed Bed;
+        public double SynthGain = 1.0;      // rig lfe.sources.synth (Renderers/LfeStems.cs LfeSources): 0 = stems / bed only
         LfeLiveOut _live;
         public string WavPath;
         public LfeCore Core => _core;
@@ -51,6 +52,7 @@ namespace Haptics.Renderers
             _ctx = ctx;
             _rate = (int)ctx.Num("rate", 16000);
             _drive = ctx.Num("drive", 1.5); _master = ctx.Num("master", 0.9);
+            SynthGain = LfeSources.Read(ctx.Rig).synth;
             _perUpdate = _rate / Math.Max(1, ctx.CoreHz);
             _core = MakeCore(ctx, ctx.Tune);
             _sm = new LfeSmoother(_rate);
@@ -80,6 +82,7 @@ namespace Haptics.Renderers
                 foreach (var v in step.Bus.Voices) if (v.Transient) tr = Math.Max(tr, v.LfeAmp);
                 Bed.SetDuck(Math.Max(0, 1.0 - _ctx.Rig.Num("loopback", "duck_on_transient", 0.6) * Math.Min(1, tr)));
             }
+            (Bed as ILfeStepBed)?.OnStep(step);              // Lfe.Stems: this step's SOUND_START / STOP before its samples
             if (_live != null) return;                       // the audio thread renders
             _bank.SetTargets(pVoices);
             for (int k = 0; k < _perUpdate; k++) _pcm.Add(NextSample());
@@ -88,9 +91,10 @@ namespace Haptics.Renderers
         internal short NextSample()
         {
             _sm.Advance(pEF, pEA, pRF, pRA, pIA, pWA, pHA, pSA, pXA);
-            double extra = _bank.Count > 0 ? _bank.Sample(_core) : 0.0;
+            double g = SynthGain;                           // x 1.0 is exact: the default leaves the output sample-identical
+            double extra = (_bank.Count > 0 ? _bank.Sample(_core) : 0.0) * g;
             if (Bed != null) extra += Bed.Next();
-            double v = _core.Step(_sm.sEngF, _sm.sEngA, _sm.sRoadF, _sm.sRoadA, _sm.sImpA, _sm.sWpnA, _sm.sHvA, _sm.sScrA, _sm.sExpA, extra);
+            double v = _core.Step(_sm.sEngF, _sm.sEngA * g, _sm.sRoadF, _sm.sRoadA * g, _sm.sImpA * g, _sm.sWpnA * g, _sm.sHvA * g, _sm.sScrA * g, _sm.sExpA * g, extra);
             v = _core.Limit(v * _drive) * _master;
             return (short)(v * 32767);
         }

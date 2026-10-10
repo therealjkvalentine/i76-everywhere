@@ -162,5 +162,8 @@ class Report(unittest.TestCase):
         self.assertNotIn("<pre>error", page)
 
 
+from test_stems_view import StemsViewEndToEnd, StemsViewUnits  # noqa: E402,F401  (HD sound pack LFE stems view)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -44,8 +44,7 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    - Skids, gravel, CB voices, menu sounds: should be **unchanged**.
    - Eyes closed: is the balance of CB vs engine vs weapons the same as stock?
    Report per sound if you can (the names are in `tools\soundhd\out\pack-v1\report\index.html`, with a spectrogram for each).
-   Transducer stem test (later, once the haptics host plays `pack-v1\lfe\` on SOUND_START): your own hits heavy, AI hits lighter,
-   engine rumble follows the revs, and nothing felt late compared with the sound.
+   Transducer stem test: the haptics host now plays `pack-v1\lfe\` on SOUND_START; see item 16.
 
 ## Haptics host (tools/haptics, Phase C of docs/HAPTICS-ARCHITECTURE.md; lab copy, A/A before A/B, report n)
 
@@ -124,3 +123,15 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
 25. **T7 - real rig, later (hardware not chosen).** Only once a rig and controller exist: Mover's output module for it,
     the host still only sending UDP, the controller's E-stop in reach. Kill the host mid-drive (Ctrl+C, then end the
     process): the rig must ramp to neutral over about 1 s, not drop. Also pause the game: same ramp after 250 ms.
+26. **Transducer: HD pack stems vs Lfe.Synth (`tools/haptics` Lfe.Stems).** Needs item 6 (v3 sound events) and the stems built
+    (`tools\soundhd\soundhd.py build`; `haptics.ps1 stems status` says 85 on disk). Shaker only, game sound as usual, lab copy, same
+    mission and route each run (t01). A/A first: two runs with the shipped rig, note whether you can tell them apart. Then three runs,
+    switched with `$env:I76_LFE_SOURCES` before `haptics.ps1 live --source udp --live` (the start line prints the gains in force):
+    **synth only** `synth=1,stems=0`, **stems only** `synth=0,stems=1`, **both** `synth=1,stems=1`. Compare these events:
+    - your own MG (hold the trigger) and cannon: one thump per shot, loop seamless (whmgun, wlcan/whcan);
+    - an AI car firing at you from near (under 30 m) and far (100 m+): lighter with distance, gone beyond ~150 m;
+    - ramming a car and a wall at speed (vvcre2, vnvcs3/5) and an AI car exploding near you (vexplode, xcar);
+    - your engine at idle, then revving to the limiter: rumble follows the revs (stems track rpm), no tick at the loop point;
+    - ignition (eshp1, esnp1/2): the catch, not the cranking; droppers (mines, oil, caltrops: stems only, no synth effect).
+    For each: which run felt more like the sound, anything late against the speakers (say which event), anything doubled or muddy in
+    "both". Before the session, `python tools\haptics\design\stems_view.py` shows each stem next to the synth for the same event.

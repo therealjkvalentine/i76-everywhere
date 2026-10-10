@@ -76,6 +76,11 @@
       "comp_max": 1.6,
       "channels": 1,
       "max_voices": 3,
+      "sources": {
+        "synth": 1.0,
+        "stems": 1.0,
+        "note": "Shaker source gains, summed before the HP/LP and limiter: synth = Lfe.Synth (the bus), stems = Lfe.Stems (HD sound pack LFE stems). synth 0 = stems only, stems 0 = synth only. One run can override with I76_LFE_SOURCES=synth=0,stems=1."
+      },
       "hp_lp_note": "11/85 Hz are what ffb-lfe-live.ps1 / ffb-lfe-probe.ps1 ship (the LP corner is raised x1.35 inside LfeCore); HAPTICS-ARCHITECTURE's 'HP 22 / LP 90' describes intent, not the shipped constants",
       "resp_source": "ffb-lfe-sweep.ps1, 21 steps, perceived by body, n = 1 rater (2026-08)"
     },
@@ -88,6 +93,42 @@
       "duck_on_transient": 0.6,
       "gate": "player_present",
       "endpoint": "default-render"
+    },
+    "stems": {
+      "renderer": "Lfe.Stems",
+      "enabled": true,
+      "manifest": "../soundhd/out/pack-v1/lfe/lfe-manifest.json",
+      "gain": 1.0,
+      "max_voices": 6,
+      "near_m": 30.0,
+      "distance": {
+        "curve": "inverse",
+        "ref_m": 10.0,
+        "max_m": 150.0,
+        "rolloff": 1.0
+      },
+      "rate_scale": {
+        "categories": [
+          "engine_loop"
+        ],
+        "min": 0.25,
+        "max": 4.0,
+        "follow_rpm": true,
+        "rpm_idle": 1050,
+        "rpm_span": 4950,
+        "pitch_base_hz": 8268.75
+      },
+      "default_nominal_hz": 11025,
+      "fade_ms": 15.0,
+      "loop_max_s": 0,
+      "min_gain": 0.002,
+      "vol_max": 1.5,
+      "limiter": {
+        "knee": 0.7,
+        "ceiling": 0.95
+      },
+      "category_gain": {},
+      "note": "HD sound pack LFE stems (tools/soundhd, gitignored audio: run tools\\soundhd\\soundhd.py build). Played on SOUND_START, looped for modes 1/2 until the SOUND_STOP with the same voice; the player's own and 2D sounds at full level, others by distance. Mixed into the lfe output by lfe.sources.stems. No stems on disk = Lfe.Synth only."
     },
     "motion": {
       "renderer": "Motion.FileSink",

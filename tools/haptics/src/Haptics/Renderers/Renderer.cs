@@ -52,6 +52,7 @@ namespace Haptics.Renderers
             ["Pad.XInput"] = () => new PadXInput(),
             ["Lfe.Synth"] = () => new LfeSynthRenderer(),
             ["Lfe.Loopback"] = () => new LfeLoopbackRenderer(),
+            ["Lfe.Stems"] = () => new LfeStemsRenderer(),        // HD sound pack LFE stems (Renderers/LfeStems.cs)
             ["Motion.FileSink"] = () => new MotionFileSink(),
             // the motion renderer (docs/MOTION-OUTPUT.md): LFS OutSim / OutGauge, Forza Data Out, i76motion over UDP or to packet logs
             ["Motion.Udp"] = () => new MotionUdpRenderer(),

@@ -17,6 +17,7 @@ namespace Haptics.Tests
             if (Want("transport")) TransportTests.Run();
             if (Want("renderer")) RendererTests.Run();
             if (Want("motion")) MotionTests.Run();
+            if (Want("stems")) StemsTests.Run();          // Lfe.Stems: HD sound pack LFE stems
 
             Console.WriteLine();
             Console.ForegroundColor = T.Fail == 0 ? ConsoleColor.Green : ConsoleColor.Red;

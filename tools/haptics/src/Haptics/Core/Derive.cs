@@ -198,12 +198,13 @@ namespace Haptics.Core
                             h["hz"] = e.F[0]; h["vol"] = e.F[1]; h["x"] = e.F[2]; h["y"] = e.F[3]; h["z"] = e.F[4]; h["pan"] = e.F[5];
                             h["mode"] = bits & 0xff; h["is_player"] = (bits & 0x100) != 0 ? 1 : 0; h["has_pos"] = (bits & 0x200) != 0 ? 1 : 0;
                             h["detached"] = (bits & 0x400) != 0 ? 1 : 0; h["prio"] = (bits >> 16) & 0xffff; h["obj"] = e.I[3];
+                            h["voice"] = (uint)e.I[4];   // voice address: pairs a SOUND_START with its SOUND_STOP (Lfe.Stems)
                             h["dist"] = (bits & 0x200) != 0 && present ? (new Vec3(e.F[2], e.F[3], e.F[4]) - me).Length : 0.0;
                             break;
                         }
                         case TelEvent.SoundStop:
                             h.Type = "SOUND_STOP"; h.Name = e.Name8; h["seconds"] = e.F[0];
-                            h["reason"] = e.I[2] & 0xffff; h["is_player"] = (e.I[2] & 0x10000) != 0 ? 1 : 0; h["obj"] = e.I[3];
+                            h["reason"] = e.I[2] & 0xffff; h["is_player"] = (e.I[2] & 0x10000) != 0 ? 1 : 0; h["obj"] = e.I[3]; h["voice"] = (uint)e.I[4];
                             break;
                         case TelEvent.DamageSide:
                             h.Type = "DAMAGE_SIDE"; h["amount"] = e.F[0]; h["hp_lost"] = e.F[1]; h["hit_x"] = e.F[2]; h["hit_y"] = e.F[3]; h["hit_z"] = e.F[4];
