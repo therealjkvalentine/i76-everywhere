@@ -115,7 +115,11 @@ if (-not $NoPreset) {
         Write-Host "  presets\${presetName}: I76_ASPECT = '${Width}x${Height}', I76_U32X_MENU_ASPECT = '${Width}:${Height}'"
         if (-not $WhatIf) {
             if ($p2 -cne $p) {
-                [IO.File]::WriteAllText($presetFile, $p2, (New-Object Text.UTF8Encoding($true)))
+                # keep the file's own form: a BOM only if it had one (the repo's presets are ASCII
+                # without BOM, so the installed copy differs from the repo only in the two values)
+                $raw = [IO.File]::ReadAllBytes($presetFile)
+                $hadBom = ($raw.Length -ge 3 -and $raw[0] -eq 0xEF -and $raw[1] -eq 0xBB -and $raw[2] -eq 0xBF)
+                [IO.File]::WriteAllText($presetFile, $p2, (New-Object Text.UTF8Encoding($hadBom)))
             }
             $d = Import-PowerShellDataFile -LiteralPath $presetFile   # read back: must still parse
             if ($d.Env.I76_ASPECT -ne "${Width}x${Height}") { Die "read-back of $presetFile gave I76_ASPECT '$($d.Env.I76_ASPECT)'" }
