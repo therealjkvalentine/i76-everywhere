@@ -127,7 +127,7 @@ Say "  $GameDir  (i76.exe MD5 $((Get-FileHash $exePath -Algorithm MD5).Hash.ToLo
 #   dgVoodoo config, music-fix proxy, u32x, I76PATCH.DLL rename, input.map (-Controls),
 #   saves, PLAY-i76.bat (-Preset best-120) + PLAY-stock.bat + desktop shortcut.
 Say "`nApplying i76-everywhere improvements ..." 'Cyan'
-$installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir; Preset = $Preset }
+$installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir; Preset = $Preset; Nested = $true }   # Nested: one DONE block, this script's
 if ($Yes)            { $installArgs['Yes'] = $true }
 if ($NoShortcut)     { $installArgs['NoShortcut'] = $true }
 if ($Controls)       { $installArgs['Controls'] = $Controls }
@@ -153,5 +153,6 @@ if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
 else             { Say "Play from the desktop shortcut `"Interstate '76`" (or PLAY-i76.bat in the game folder)." }
 if ($Preset -ne 'stock') { Say "PLAY-i76.bat = preset $Preset; PLAY-stock.bat = the same folder with no engine switches." }
 if ($Preset -eq 'best-wide') { Say "PLAY-16x10.bat = the tested 16:10 picture (best-120), if widescreen does not suit this display." }
+if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\CONTROLS.md; printable: docs\Interstate76-Controls-Quick-Reference.pdf)." }
 Say "First boot: ~60-75s of 'PLEASE STAND BY' - ESC skips the intro."
 Say "To move this working install to another PC, run:  ./Make-Portable-Zip.ps1"

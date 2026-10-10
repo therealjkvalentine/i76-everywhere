@@ -49,6 +49,7 @@ param(
     [switch]$SkipNitro,             # do not look for / configure an installed Nitro Pack
     [string]$Display = '',          # WxH of the monitor the game runs on (e.g. 3440x1440), handed to
                                     # setup-windows.ps1; needed over Remote Desktop (else the RDP desktop's size)
+    [switch]$Nested,                # set by Setup-From-GOG.ps1, which prints the closing summary itself
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
@@ -146,6 +147,7 @@ if ($NitroDir) {
     & (Join-Path $repo 'setup-windows.ps1') -GameDir $NitroDir -DgVoodooDir $dgv -AhkDir $ahk -Exe nitro.exe -NoShortcut:$NoShortcut @ctl
 }
 
+if ($Nested) { exit 0 }   # Setup-From-GOG.ps1 prints the one closing summary (no second DONE block)
 Say "`n=== DONE ===" 'Green'
 if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
 else             { Say "Play from the desktop shortcut 'Interstate '76' (or PLAY-i76.bat in the game folder)." }
