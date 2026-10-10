@@ -43,6 +43,7 @@
 #endif
 #include <tlhelp32.h>
 #include "../tools/telemetry/i76tel.h"   /* telemetry export layout, shared with tools/telemetry/i76tel.py */
+typedef char i76tel_v3_size_check[(sizeof(i76tel_frame_t) == 664 && sizeof(i76tel_event_t) == 56) ? 1 : -1];   /* i76tel.h v3: README layout */
 #include "../tools/trainer/i76trn.h"     /* trainer control block layout, shared with tools/trainer/i76trainer_gui.py */
 
 #define FAKE_CD_ID 0xC0DE
@@ -4149,7 +4150,15 @@ static void apply_render_interp(void) {
  *       hp before minus after the call.
  * Zero cost when I76_TELEMETRY is unset: nothing is patched and the frame hook
  * is not installed on its account.
- * Static reading only - NOT yet verified live.
+ * Verified live 2026-10-01 (tools/telemetry/verification-2026-10-01.txt).
+ *
+ * i76tel v3 (2026-10-10, docs/HAPTICS-ARCHITECTURE.md 4.1): the event grew to
+ * 56 bytes, the frame gained wheelbase / track / steer gain / grip cap / ground
+ * g / music track / hook mask (appended, v2 offsets unchanged), and two opt-in
+ * event groups, each only with I76_TELEMETRY on (see "SOUND / DAMAGE EVENTS"
+ * below): I76_SOUND_EVENTS=1 (SOUND_START / SOUND_STOP / WEAPON_UI) and
+ * I76_DAMAGE_EVENTS=1 (DAMAGE_SIDE). Unset, neither patches anything. The v3
+ * additions are static-verified only (tools/telemetry/verify_v3_sites.py).
  */
 static i76tel_event_t g_tel_ring[I76TEL_RING];
 static DWORD g_tel_ev_seq, g_tel_ev_sent, g_tel_pub_seq, g_tel_faults;
@@ -4161,11 +4170,20 @@ static HANDLE g_tel_map;
 static i76tel_shm_t *g_tel_shm;
 static BYTE *g_tel_tramp, *g_tel_expl_tramp, *g_tel_coll_tramp;
 static int g_tel_tramp_used;
+static DWORD g_tel_hooks;                                    /* I76TEL_HOOK_* bits installed (frame.event_hooks) */
+static DWORD g_snd_live;                                     /* I76_SOUND_EVENTS: tracked voices (frame.sound_voices) */
 
-static void tel_event(DWORD type, float f0, float f1, float f2, float f3, int i0, int i1) {
+/* one ring slot, zeroed, stamped; the caller fills f / i */
+static i76tel_event_t *tel_event_new(DWORD type) {
     DWORD seq = ++g_tel_ev_seq;
     i76tel_event_t *e = &g_tel_ring[seq % I76TEL_RING];
+    memset(e, 0, sizeof *e);
     e->seq = seq; e->frame = g_frame; e->type = type;
+    return e;
+}
+
+static void tel_event(DWORD type, float f0, float f1, float f2, float f3, int i0, int i1) {
+    i76tel_event_t *e = tel_event_new(type);
     e->f[0] = f0; e->f[1] = f1; e->f[2] = f2; e->f[3] = f3;
     e->i[0] = i0; e->i[1] = i1;
 }
@@ -4222,6 +4240,9 @@ static void tel_header(i76tel_frame_t *t) {                   /* fixed globals o
     t->ffb_list_collision = *(DWORD *)0x004f2484;
     t->ffb_dt = *(float *)0x004f2488;
     t->event_seq = g_tel_ev_seq;
+    t->music_track = g_playingTrack;                         /* v3: the proxy's own state */
+    t->event_hooks = g_tel_hooks;
+    t->sound_voices = g_snd_live;
 }
 
 static void tel_player_fill(i76tel_frame_t *t) {
@@ -4252,6 +4273,18 @@ static void tel_player_fill(i76tel_frame_t *t) {
     t->clearance = *(float *)(ent + 0x470); t->state_timer = *(float *)(ent + 0x450);
     memcpy(t->armour, ent + 0x138, 16); memcpy(t->armour_max, ent + 0x158, 16);
     memcpy(t->chassis, ent + 0x148, 16); memcpy(t->chassis_max, ent + 0x168, 16);
+    t->wheelbase = *(float *)(ent + 0x118); t->front_track = *(float *)(ent + 0x114);    /* v3 fields (physics.md, 0x438c64 / 0x438c01 / 0x438c72) */
+    t->steer_gain = *(float *)(ent + 0x110); t->ground_g = *(float *)(ent + 0x46c);
+    {                                                        /* the four grip reads of physics_ComputeSteerYawRate 0x43ce10: slots 0 1 4 5,
+                                                                no class test there either (the accessors 0x467450..0x467480) */
+        static const int gs[4] = { 0, 1, 4, 5 };
+        float sum = 0.0f;
+        for (i = 0; i < 4; i++) {
+            BYTE *o = *(BYTE **)(ent + 0x3a8 + 4 * gs[i]), *wd = o ? *(BYTE **)(o + 0x70) : 0;
+            if (wd) sum += *(float *)(wd + 0xc);
+        }
+        t->grip_sum = sum; t->grip_cap = 7.84f * sum;        /* 0x4bd1e0 */
+    }
     for (i = 0; i < 6; i++) {
         i76tel_wheel_t *w = &t->wheel[i];
         if ((c = tel_comp(ent, i, 30)) == 0) continue;       /* I76_WheelData */
@@ -4395,8 +4428,8 @@ static int __cdecl tel_coll_hook(BYTE *target, BYTE *source, float *normal, floa
 static BYTE *tel_detour(DWORD entry, const BYTE *expect, int n, void *hook, const char *what) {
     BYTE patch[16], *tr;
     LONG rel;
-    if (!g_tel_tramp) g_tel_tramp = (BYTE *)VirtualAlloc(NULL, 64, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    if (!g_tel_tramp || g_tel_tramp_used + n + 5 > 64 || n > 11 || memcmp((void *)entry, expect, n) != 0) {
+    if (!g_tel_tramp) g_tel_tramp = (BYTE *)VirtualAlloc(NULL, 128, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!g_tel_tramp || g_tel_tramp_used + n + 5 > 128 || n > 11 || memcmp((void *)entry, expect, n) != 0) {
         mlog("  patch: %s at 0x%08lX has UNEXPECTED bytes (or no trampoline room) - not patching", what, (unsigned long)entry);
         return 0;
     }
@@ -4410,13 +4443,259 @@ static BYTE *tel_detour(DWORD entry, const BYTE *expect, int n, void *hook, cons
     return tr;
 }
 
+/* --- SOUND / DAMAGE EVENTS (i76tel v3; opt-in on top of I76_TELEMETRY) ---------------------------------------
+ * I76_SOUND_EVENTS=1: one SOUND_START per voice that really starts, one SOUND_STOP when it stops, WEAPON_UI clicks.
+ * The request wrappers (0x421b40 and its 22+23+9+14+35+4 callers) only queue; the DirectSound Play happens in
+ * sound_StartVoice 0x4220c0(voice, k), called by the per-frame update 0x421400 (0x4214e0) and the un-park path
+ * (0x422422). It returns 1 when it played (it also returns 1 with the sound system off, [0x4ed7e8] == 0, which is
+ * tested first). A voice stops on four paths, all tapped, and a voice is reported stopped once, only if it was
+ * reported started (the table below; extra stops of an unknown voice are dropped):
+ *   0x425ef0(voice)  release: explicit stops 0x421e70 (horn, engine loop, CB, siren: 19 callers), finished one-shots
+ *                    and dead-object voices in 0x421400, voice stealing; entry detoured (6 bytes sub esp,0x214)
+ *   0x422d20(voice, reason)  stop / park, reason 0x20 / 0x40 / 0x80 / 0x100 by caller; entry detoured (5 bytes)
+ *   call 0x422540(voice, 0) at 0x42150b / 0x4215a2  the per-frame update keeps an ended voice (failed restart /
+ *                    buffer no longer playing, including a sustained loop nobody refreshed: skid, tyre, damage)
+ * The voice record (sound.md "Instance"): name +4, flags +0x14 (4 voice level, 0x200 detached 100 m one-shot),
+ * frequency +0x18, volume % +0x1c, pan +0x20, priority +0x34, mode +0x3c, object +0x5c. The object is read BEFORE
+ * the start because 0x4217e0 drops a detached one-shot's object after its one positioning; the position is the
+ * object's root (+0x68 chain, as 0x458c90 walks it) world position +0x40; is-player is the root's flag 0x10.
+ * WEAPON_UI: the cycle / link / unlink handlers each play their click through call 0x4250f0 at 0x4a5dff / 0x4a6333 /
+ * 0x4a6021, next to the FFB one-shot stores 0x4f234c / 0x4f2350 / 0x4f2354; those three call sites are repointed.
+ *
+ * I76_DAMAGE_EVENTS=1: entity_DamageAndKill 0x463a80(object, record, hit point in the target's frame), reached
+ * through the class damage-handler slot 0x4f77a4 (and the one direct call 0x4652f9, record 0: no event). Entry
+ * detoured (6 bytes sub esp,0xc0). The side / zone are recomputed here with the exe's own rule and constants
+ * (damage.md C8: top when u.y > 0.8 (0x4be1c8); else side and zone from the renormalised (hx, hz) against
+ * +-0.707 (0x4be1cc / 0x4be1d0) and 0) - the exe keeps them in locals. Its rsqrt 0x495000 is a table approximation,
+ * so a hit within rounding of a boundary may classify differently. The amount is the record's incoming total and
+ * the hp the target lost in the call (armour + chassis + components, before minus after). Events only where the exe
+ * does damage: a record, a live object (+0x10 bit 0x20 clear) and entity (+0x454 bit 0x20 clear).
+ * Static-verified only (tools/telemetry/verify_v3_sites.py: every site's bytes in the pristine and the twin exe). */
+#define SND_TRACK 128
+typedef struct { BYTE *voice, *obj; DWORD name[2]; float t0; int player; } snd_track_t;
+static snd_track_t g_snd[SND_TRACK];
+static DWORD g_snd_overflow, g_snd_starts, g_snd_stops, g_dmg_events;
+static BYTE *g_snd_start_tramp, *g_snd_stop_tramp, *g_snd_rel_tramp, *g_dmg_tramp;
+
+static BYTE *snd_root(BYTE *o) {                             /* 0x458c90: follow +0x68 to the topmost object */
+    int k;
+    for (k = 0; o && *(BYTE **)(o + 0x68) && k < 16; k++) o = *(BYTE **)(o + 0x68);
+    return o;
+}
+
+static void snd_started(BYTE *voice, BYTE *obj, const double *pos, int has_pos, int player) {
+    i76tel_event_t *e;
+    snd_track_t *t = 0, *fr = 0;
+    DWORD mode = 0, prio = 0, fl = 0;
+    int j;
+    for (j = 0; j < SND_TRACK; j++) {
+        if (g_snd[j].voice == voice) { t = &g_snd[j]; break; }   /* restarted without a stop we saw: one entry */
+        if (!fr && !g_snd[j].voice) fr = &g_snd[j];
+    }
+    if (!t) { t = fr; if (t) g_snd_live++; else g_snd_overflow++; }
+    e = tel_event_new(I76TEL_EV_SOUND_START);
+    g_snd_starts++;
+#ifdef _MSC_VER
+    __try {
+#endif
+        e->f[0] = *(float *)(voice + 0x18); e->f[1] = *(float *)(voice + 0x1c); e->f[5] = *(float *)(voice + 0x20);
+        memcpy(e->i, voice + 4, 8);
+        mode = *(DWORD *)(voice + 0x3c); prio = *(DWORD *)(voice + 0x34); fl = *(DWORD *)(voice + 0x14);
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; }
+#endif
+    if (has_pos) { e->f[2] = (float)pos[0]; e->f[3] = (float)pos[1]; e->f[4] = (float)pos[2]; }
+    if (prio > 0xffff) prio = 0xffff;
+    e->i[2] = (int)((mode & I76TEL_SND_MODE) | (player ? I76TEL_SND_PLAYER : 0) | (has_pos ? I76TEL_SND_HAS_POS : 0) |
+                    ((fl & 0x200) ? I76TEL_SND_DETACHED : 0) | ((fl & 4) ? I76TEL_SND_VOICE_LVL : 0) | (prio << I76TEL_SND_PRIO_SHIFT));
+    e->i[3] = (int)(DWORD_PTR)obj; e->i[4] = (int)(DWORD_PTR)voice;
+    if (t) {
+        t->voice = voice; t->obj = obj; t->player = player; t->t0 = *(float *)0x005a7e74;     /* simclock_time */
+        t->name[0] = (DWORD)e->i[0]; t->name[1] = (DWORD)e->i[1];
+    }
+}
+
+static void snd_ended(BYTE *voice, int reason) {
+    i76tel_event_t *e;
+    snd_track_t *t = 0;
+    int j;
+    if (!voice) return;
+    for (j = 0; j < SND_TRACK; j++) if (g_snd[j].voice == voice) { t = &g_snd[j]; break; }
+    if (!t) return;                                          /* never reported started (culled, failed, or before the hook) */
+    e = tel_event_new(I76TEL_EV_SOUND_STOP);
+    g_snd_stops++;
+    e->f[0] = *(float *)0x005a7e74 - t->t0;
+    e->i[0] = (int)t->name[0]; e->i[1] = (int)t->name[1];
+    e->i[2] = reason | (t->player ? I76TEL_STOP_PLAYER : 0);
+    e->i[3] = (int)(DWORD_PTR)t->obj; e->i[4] = (int)(DWORD_PTR)voice;
+    t->voice = 0;
+    if (g_snd_live) g_snd_live--;
+}
+
+static int __cdecl snd_start_hook(BYTE *voice, int k) {
+    BYTE *obj = 0, *root;
+    double pos[3] = { 0.0, 0.0, 0.0 };
+    int has_pos = 0, player = 0, on = *(DWORD *)0x004ed7e8 != 0, r;   /* sound system up (StartVoice returns 1 without it) */
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (voice && on && (obj = *(BYTE **)(voice + 0x5c)) != 0 && (root = snd_root(obj)) != 0) {
+            memcpy(pos, root + 0x40, sizeof pos); has_pos = 1;
+            player = (*(DWORD *)(root + 0x10) & 0x10) != 0;
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; has_pos = player = 0; }
+#endif
+    r = ((int (__cdecl *)(BYTE *, int))g_snd_start_tramp)(voice, k);
+    if (r && voice && on) snd_started(voice, obj, pos, has_pos, player);
+    return r;
+}
+
+static int __cdecl snd_stop_hook(BYTE *voice, int reason) {   /* 0x422d20 */
+    snd_ended(voice, reason & 0xffff);
+    return ((int (__cdecl *)(BYTE *, int))g_snd_stop_tramp)(voice, reason);
+}
+
+static int __cdecl snd_rel_hook(BYTE *voice) {               /* 0x425ef0 */
+    snd_ended(voice, I76TEL_STOP_RELEASED);
+    return ((int (__cdecl *)(BYTE *))g_snd_rel_tramp)(voice);
+}
+
+static int __cdecl snd_end_wrap(BYTE *voice, int to_active) { /* call 0x422540 at 0x42150b / 0x4215a2 */
+    snd_ended(voice, I76TEL_STOP_ENDED);
+    return ((int (__cdecl *)(BYTE *, int))0x00422540)(voice, to_active);
+}
+
+static int __cdecl wui_click(int which, const char *name, BYTE *obj, int flag) {
+    i76tel_event_t *e = tel_event_new(I76TEL_EV_WEAPON_UI);
+    e->i[0] = which;
+    return ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(name, obj, flag);
+}
+static int __cdecl wui_cycle_wrap(const char *n, BYTE *o, int f)  { return wui_click(0, n, o, f); }
+static int __cdecl wui_link_wrap(const char *n, BYTE *o, int f)   { return wui_click(1, n, o, f); }
+static int __cdecl wui_unlink_wrap(const char *n, BYTE *o, int f) { return wui_click(2, n, o, f); }
+
+/* side / zone of a hit point in the target's frame, the 0x463b4a..0x463d1e rule; -1 / -1 for a zero vector */
+static void dmg_classify(const float *p, int *side, int *zone) {
+    double l2 = (double)p[0] * p[0] + (double)p[1] * p[1] + (double)p[2] * p[2], h2, r, hx, hz;
+    *side = *zone = -1;
+    if (!(l2 > 1e-12)) return;
+    r = 1.0 / sqrt(l2);
+    if ((float)(p[1] * r) > 0.8f) { *side = 4; *zone = 6; return; }
+    hx = p[0] * r; hz = p[2] * r;
+    h2 = hx * hx + hz * hz;
+    if (!(h2 > 1e-12)) return;
+    r = 1.0 / sqrt(h2);
+    hx = (float)(hx * r); hz = (float)(hz * r);
+    if (hx > 0.707f) *side = 2; else if (hx < -0.707f) *side = 1; else if (hz > 0.707f) *side = 0; else *side = 3;
+    if (hz > 0.707f) *zone = 0;
+    else if (hz < -0.707f) *zone = 5;
+    else if (hz > 0.0) *zone = hx > 0.0 ? 3 : 1;
+    else *zone = hx > 0.0 ? 4 : 2;
+}
+
+static int __cdecl dmg_hook(BYTE *obj, BYTE *rec, float *pt) {
+    int ok = 0, before = 0, after = 0, side = -1, zone = -1, bits = 0, mask = 0, scls = 0, k, r;
+    float amt = 0.0f, p[3] = { 0.0f, 0.0f, 0.0f };
+    BYTE *ent = 0;
+#ifdef _MSC_VER
+    __try {
+#endif
+        ent = obj ? *(BYTE **)(obj + 0x70) : 0;
+        if (rec && pt && ent && !(*(BYTE *)(obj + 0x10) & 0x20) && !(*(DWORD *)(ent + 0x454) & 0x20)) {   /* the exe's own guards */
+            WORD m = *(WORD *)(rec + 4), fl = *(WORD *)(rec + 6);
+            BYTE *shooter = *(BYTE **)rec;
+            for (k = 0; k < 4; k++) if (m & (1 << k)) amt += (float)*(int *)(rec + 8 + 4 * k);
+            p[0] = pt[0]; p[1] = pt[1]; p[2] = pt[2];
+            dmg_classify(p, &side, &zone);
+            if (*(DWORD *)(obj + 0x10) & 0x10) bits |= I76TEL_DMG_PLAYER;          /* object_IsPlayer's test */
+            if (shooter) { scls = *(int *)(shooter + 0x6c); if (*(DWORD *)(shooter + 0x10) & 0x10) bits |= I76TEL_DMG_BY_PLAYER; }
+            mask = (int)(m | ((DWORD)fl << 16));
+            before = tel_health_sum(obj);
+            ok = 1;
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; ok = 0; }
+#endif
+    r = ((int (__cdecl *)(BYTE *, BYTE *, float *))g_dmg_tramp)(obj, rec, pt);
+    if (ok) {
+        i76tel_event_t *e;
+#ifdef _MSC_VER
+        __try {
+#endif
+            after = tel_health_sum(obj);
+            if (*(DWORD *)(ent + 0x454) & 0x20) bits |= I76TEL_DMG_KILLED;
+#ifdef _MSC_VER
+        } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; after = before; }
+#endif
+        e = tel_event_new(I76TEL_EV_DAMAGE_SIDE);
+        g_dmg_events++;
+        e->f[0] = amt; e->f[1] = (float)(before - after); e->f[2] = p[0]; e->f[3] = p[1]; e->f[4] = p[2];
+        e->i[0] = side; e->i[1] = zone; e->i[2] = bits; e->i[3] = mask; e->i[4] = scls;
+    }
+    return r;
+}
+
+/* repoint one `call rel32` site from `target` to `wrap` (verify-first) */
+static int tel_repoint_call(DWORD site, DWORD target, void *wrap, const char *what) {
+    BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+    LONG rel = (LONG)(target - (site + 5));
+    memcpy(o + 1, &rel, 4);
+    rel = (LONG)((DWORD_PTR)wrap - (site + 5)); memcpy(w + 1, &rel, 4);
+    return patch_bytes(site, o, w, 5, what);
+}
+
+static int env_is_1(const char *name) {
+    char v[8];
+    DWORD n = GetEnvironmentVariableA(name, v, sizeof(v));
+    return n && n < sizeof(v) && v[0] == '1' && v[1] == 0;
+}
+
+static void apply_sound_events(void) {
+    static const BYTE start_old[6] = { 0xA1, 0xE8, 0xD7, 0x4E, 0x00, 0x53 };   /* 0x4220c0: mov eax,[0x4ed7e8]; push ebx */
+    static const BYTE stop_old[5]  = { 0x56, 0x8B, 0x74, 0x24, 0x08 };         /* 0x422d20: push esi; mov esi,[esp+8] */
+    static const BYTE rel_old[6]   = { 0x81, 0xEC, 0x14, 0x02, 0x00, 0x00 };   /* 0x425ef0: sub esp,0x214 */
+    int stops = 0, ui = 0;
+    if (!env_is_1("I76_SOUND_EVENTS")) return;
+    /* stop paths first: a start reported with no stop tap would leave the voice in the table forever */
+    g_snd_rel_tramp = tel_detour(0x00425ef0, rel_old, 6, (void *)snd_rel_hook, "sound voice release entry (sound events)");
+    g_snd_stop_tramp = tel_detour(0x00422d20, stop_old, 5, (void *)snd_stop_hook, "sound_StopVoice entry (sound events)");
+    stops = (g_snd_rel_tramp != 0) + (g_snd_stop_tramp != 0);
+    stops += tel_repoint_call(0x0042150b, 0x00422540, (void *)snd_end_wrap, "sound update: ended voice kept (failed restart) (sound events)");
+    stops += tel_repoint_call(0x004215a2, 0x00422540, (void *)snd_end_wrap, "sound update: ended voice kept (sound events)");
+    if (stops == 4) {
+        g_snd_start_tramp = tel_detour(0x004220c0, start_old, 6, (void *)snd_start_hook, "sound_StartVoice entry (sound events)");
+        if (g_snd_start_tramp) g_tel_hooks |= I76TEL_HOOK_SOUND_START | I76TEL_HOOK_SOUND_STOP;
+    }
+    ui += tel_repoint_call(0x004a5dff, 0x004250f0, (void *)wui_cycle_wrap, "weapon cycle click call (sound events)");
+    ui += tel_repoint_call(0x004a6333, 0x004250f0, (void *)wui_link_wrap, "weapon link click call (sound events)");
+    ui += tel_repoint_call(0x004a6021, 0x004250f0, (void *)wui_unlink_wrap, "weapon unlink click call (sound events)");
+    if (ui) g_tel_hooks |= I76TEL_HOOK_WEAPON_UI;
+    mlog("  sound-events: %s - stop taps %d/4 (release 0x425ef0, StopVoice 0x422d20, update 0x42150b / 0x4215a2), start tap %s (StartVoice 0x4220c0), weapon-UI clicks %d/3, event %u B",
+         (g_tel_hooks & I76TEL_HOOK_SOUND_START) ? "on" : "NOT on", stops, g_snd_start_tramp ? "on" : "NOT installed (needs all 4 stop taps)",
+         ui, (unsigned)sizeof(i76tel_event_t));
+}
+
+static void apply_damage_events(void) {
+    static const BYTE dmg_old[6] = { 0x81, 0xEC, 0xC0, 0x00, 0x00, 0x00 };     /* 0x463a80: sub esp,0xc0 */
+    if (!env_is_1("I76_DAMAGE_EVENTS")) return;
+    g_dmg_tramp = tel_detour(0x00463a80, dmg_old, 6, (void *)dmg_hook, "entity_DamageAndKill entry (damage events)");
+    if (g_dmg_tramp) g_tel_hooks |= I76TEL_HOOK_DAMAGE_SIDE;
+    mlog("  damage-events: %s - entity_DamageAndKill 0x463a80 entry %s",
+         g_dmg_tramp ? "on" : "NOT on", g_dmg_tramp ? "detoured" : "NOT detoured");
+}
+
 static void apply_telemetry(void) {
     static const BYTE expl_old[8] = { 0x8B, 0x44, 0x24, 0x04, 0x8B, 0x4C, 0x24, 0x08 };   /* 0x49ead0: mov eax,[esp+4]; mov ecx,[esp+8] */
     static const BYTE coll_old[6] = { 0x81, 0xEC, 0xD0, 0x00, 0x00, 0x00 };               /* 0x4a7c80: sub esp, 0xd0 */
     static const DWORD fire_sites[2] = { 0x004a6b16, 0x004a6d43 };                          /* call 0x4a6e90 in weapon_UpdateInstanceFiring */
     char v[16]; int port, hooks = 0, i;
     DWORD n = GetEnvironmentVariableA("I76_TELEMETRY", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v)) return;
+    if (n == 0 || n >= sizeof(v)) {
+        if (env_is_1("I76_SOUND_EVENTS") || env_is_1("I76_DAMAGE_EVENTS"))
+            mlog("  telemetry: off - I76_SOUND_EVENTS / I76_DAMAGE_EVENTS need I76_TELEMETRY, nothing patched");
+        return;
+    }
     port = atoi(v);
     if (port == 1) port = I76TEL_PORT;
     if (port < 1 || port > 65535) { mlog("  telemetry: '%s' is not a port - off", v); return; }
@@ -4445,6 +4724,8 @@ static void apply_telemetry(void) {
     if (g_tel_map) {
         g_tel_shm = (i76tel_shm_t *)MapViewOfFile(g_tel_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76tel_shm_t));
         if (g_tel_shm) { memset(g_tel_shm, 0, sizeof *g_tel_shm); g_tel_shm->size = sizeof(i76tel_shm_t); }
+        else mlog("  telemetry: shm view refused - a reader built on an older i76tel.h created %s smaller than %u B; start it after the game or update it (UDP is unaffected)",
+                  I76TEL_SHM_NAME, (unsigned)sizeof(i76tel_shm_t));
     }
     /* events */
     for (i = 0; i < 2; i++) {
@@ -4454,13 +4735,18 @@ static void apply_telemetry(void) {
         rel = (LONG)((DWORD_PTR)tel_fire_wrap - (fire_sites[i] + 5)); memcpy(w + 1, &rel, 4);
         hooks += patch_bytes(fire_sites[i], o, w, 5, "weapon_FireShot call (telemetry)");
     }
+    if (hooks) g_tel_hooks |= I76TEL_HOOK_SHOT;
     g_tel_expl_tramp = tel_detour(0x0049ead0, expl_old, 8, (void *)tel_expl_hook, "entity_SpawnExplosion entry (telemetry)");
     g_tel_coll_tramp = tel_detour(0x004a7c80, coll_old, 6, (void *)tel_coll_hook, "physics_ApplyCollisionDamage entry (telemetry)");
     hooks += (g_tel_expl_tramp != 0) + (g_tel_coll_tramp != 0);
+    if (g_tel_expl_tramp) g_tel_hooks |= I76TEL_HOOK_EXPLOSION;
+    if (g_tel_coll_tramp) g_tel_hooks |= I76TEL_HOOK_IMPACT;
     g_tel_on = 1;
     mlog("  telemetry: on - udp 127.0.0.1:%d %s, shm %s %s, %d/4 event hooks (FireShot call sites x2, SpawnExplosion entry, ApplyCollisionDamage entry), frame %u B + events %u B, ring %d",
          port, g_tel_sock != INVALID_SOCKET ? "open" : "FAILED", I76TEL_SHM_NAME, g_tel_shm ? "mapped" : "FAILED",
          hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
+    apply_sound_events();     /* opt-in: I76_SOUND_EVENTS=1 (i76tel v3) */
+    apply_damage_events();    /* opt-in: I76_DAMAGE_EVENTS=1 (i76tel v3) */
 }
 
 /* ===========================================================================

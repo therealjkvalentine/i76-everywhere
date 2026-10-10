@@ -104,3 +104,6 @@ lab/captures/
 *.pcode
 strings.tsv
 diff-*.tsv
+
+# i76tel v3 side builds (never over the committed Strlkup.dll)
+music-fix/out/
