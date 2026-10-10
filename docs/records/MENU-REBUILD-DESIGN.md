@@ -374,7 +374,7 @@ palette, so an HD renderer has to apply the equivalent tint and fade to its true
 
 **Legitimacy.** Upscaled derivatives of the game's art are game data: keep them out of the public repo like the
 existing `work\png\` (git-ignored); ship the *pipeline* (extract, upscale, pack on the user's machine), as
-`docs\HD-TEXTURES-RESEARCH.md` and `LEGITIMACY-AND-SCOPE.md` already do for textures.
+`docs\HD-TEXTURES-RESEARCH.md` and `SCOPE-AND-LEGITIMACY.md` already do for textures.
 
 **Order of work** [proposed]: a contact sheet of three backgrounds (main menu 0x1a, garage 0x01, a notepad 0x06)
 through two models each at 3x, viewed on the panel, before anything is built around them. It costs one sitting and

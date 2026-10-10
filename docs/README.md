@@ -216,7 +216,6 @@ repo since 2026-10-03 (section 12): [`../lab/docs/ENGINE-REFERENCE.md`](../lab/d
 | | Doc | What it is |
 |---|---|---|
 | living | [SCOPE-AND-LEGITIMACY.md](SCOPE-AND-LEGITIMACY.md) | What the project is and why modifying an owned copy is legitimate |
-| living | [LEGITIMACY-AND-SCOPE.md](LEGITIMACY-AND-SCOPE.md) | The shorter scope statement (overlaps the one above; backlog P3-08 proposes folding them) |
 
 ## 12. The lab and the RE map (public snapshots, 2026-10-03)
 

@@ -82,7 +82,7 @@ Open76 is a Unity recreation.)*
 - **Upshot for this repo:** inspecting your own legally-owned, **DRM-free** game's
   process memory defeats no access control, so §1201 isn't even triggered; the
   interoperability/preservation purpose sits squarely in the protected zone.
-  (See docs/LEGITIMACY-AND-SCOPE.md.)
+  (See docs/SCOPE-AND-LEGITIMACY.md.)
 
 ## The memory-first roadmap for I'76 (what this maps to for us)
 1. **Cheat Engine + the CE wiki** for value discovery and unknown-value /

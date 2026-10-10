@@ -8,7 +8,8 @@ text, so the integrator can apply them verbatim. Line numbers are from a read on
 
 Pair numbers are the backlog's.
 
-> **Applied 2026-10-03 (evening): the two "Pending since 2026-10-03" sections below.**
+> **Applied 2026-10-03 (evening): the two sections below headed "Applied 2026-10-03 (was: pending since 2026-10-03)".**
+> What is still open from this file (2026-10-10): `docs/BACKLOG-2026-10-10.md` row R-09.
 > - `i76-uncap-lab` commit `a664306`: the rejected-conf notes. `CONFIG-OPTIONS.md` got a header note, and its
 >   `EnableInactiveAppState` row now says `[Glide]` only. `framerate/README.md` section 6 and its `FPSLimit`
 >   warning, the `uncap-vsync.ps1` header, and `MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` were annotated. The
@@ -27,7 +28,7 @@ Pair numbers are the backlog's.
 >   - lab `autotest/lib/memlib.ps1:48` (code; see the code table).
 
 > **Added 2026-10-03: a new set of pending lab corrections, the rejected `dgVoodoo.conf`.** Not applied (this
-> repo's passes do not edit the lab). Section ["Pending since 2026-10-03"](#pending-since-2026-10-03-the-rejected-dgvoodooconf-lab-docs)
+> repo's passes do not edit the lab). Section ["Applied 2026-10-03 (was: pending since 2026-10-03)"](#applied-2026-10-03-was-pending-since-2026-10-03-the-rejected-dgvoodooconf-lab-docs)
 > at the end of this file.
 
 > **Applied 2026-10-02.** Every replacement below was applied as written: the `i76-uncap-lab` ones in lab commit
@@ -248,7 +249,7 @@ written); `../i76-uncap-lab/autotest/lib/memlib.ps1:48` still open.
 | `tools/ffb/Telemetry.ps1` `TEL_FIRE_ADDR` | `0x5367d0` as fire | `0x5367d0` is `throttle_up`; `weapon_fire` is `0x5367db` (type 1 byte), `hardpoint1_fire` `0x5367de` (L031) | P3-24 |
 | `../i76-uncap-lab/autotest/lib/memlib.ps1:48` | `InFire` = 0x5367D0 | same as above | P3-24 |
 
-## Pending since 2026-10-03: the rejected dgVoodoo.conf (lab docs)
+## Applied 2026-10-03 (was: pending since 2026-10-03): the rejected dgVoodoo.conf (lab docs)
 
 Fact (lab `docs/DGVOODOO-CONF-REJECTED.md`): dgVoodoo 2.87.3 rejected `game\dgVoodoo.conf` as a whole from
 2026-08-09 (when `EnableInactiveAppState = true` was added to `[General]` and `[DirectX]`; also
@@ -268,7 +269,7 @@ carries the correction in its own section 9.8, the others do not. Line numbers w
 | `tools/framerate/uncap-vsync.ps1` header | says the swap interval "is the 60fps cap" | already listed as wrong in i76-everywhere `docs/records/FPS-120.md` section 1 point 2; the cap is the refresh code |
 | i76-map capture 014 README line 12 | "FPSLimit=21 did not cap this build (it ran at 60 fps, vsync)" | "Void as a statement about `FPSLimit`: the conf was rejected. The 60 was the Glide refresh code." |
 
-## Pending since 2026-10-03: paths in this repo that moved (sibling repos still name the old path)
+## Applied 2026-10-03 (was: pending since 2026-10-03): paths in this repo that moved (sibling repos still name the old path)
 
 The repo tidy of 2026-10-03 (`docs/REPO-ORGANIZATION-PROPOSAL.md`, done / deferred table) moved files. The sibling
 repos were searched read-only (`git grep` over tracked files) for every moved name; these are the hits that name a

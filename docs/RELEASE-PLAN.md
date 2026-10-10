@@ -287,7 +287,7 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 
 | keep | fold in / retire | why |
 |---|---|---|
-| `docs/LEGITIMACY-AND-SCOPE.md` | `docs/SCOPE-AND-LEGITIMACY.md` | same content, written a day apart; `docs/README.md` links both |
+| `docs/LEGITIMACY-AND-SCOPE.md` | `docs/SCOPE-AND-LEGITIMACY.md` | same content, written a day apart; `docs/README.md` links both. **Done 2026-10-10** the other way round: folded into `SCOPE-AND-LEGITIMACY.md` (the longer, more-linked one); `LEGITIMACY-AND-SCOPE.md` is a pointer |
 | `docs/MAC-BUILD.md` | `docs/records/MAC-SETUP.md` (handoff brief, 2026-07-04) | MAC-SETUP describes a package (`i76-stable-gog.zip`, `I76_CD1.ISO`) that must not be referenced publicly |
 | `docs/WINDOWS-PLAYBOOK.md` | `docs/records/MODERN-SETUP.md`, `docs/records/WHAT-THIS-IS-dgvoodoo.txt`, `docs/records/i76-research-full.txt` | pre-July notes; the playbook supersedes them |
 | `music-fix/README.md` (switch table) + `docs/MUSIC.md` (diagnosis) | the "NOT YET BUILT", "needs 32-bit gcc", "Not yet observed: MCI_PLAY" paragraphs inside `music-fix/README.md` | the DLL has been built and `MCI_PLAY` was observed (MUSIC.md); the README now contradicts itself top to bottom. Rewrite as: what it does, switches, build, history link |
@@ -309,7 +309,7 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | `tools/i76-music.ps1` (external MP3 player stopgap) vs `music-fix/` | PLAY-i76 already skips the stopgap when the proxy is deployed; retire `i76-music.ps1`, `tools/winmm-cdaudio/` (the winmm-proxy attempt that dgVoodoo's search-path hardening defeated) and `tools/cdaudio-image/` |
 | `i76-with-remap.bat` vs `PLAY-i76.ps1` | PLAY-i76 starts AHK itself; delete the .bat |
 | `tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`, `i76-worldscan.ahk`, `i76-chaindiff.ahk`, `i76-mem-*.ahk`, `i76-findval.ahk`, `tools/i76-mem-scan.py`, `find-regen-*.py`, `diffscan.sh`, `chaindiff.sh`, `findval.sh`, `exe-disasm.py`, `exe-xref.py`, `tools/i76-addresses.json` | 2026-07 generation of the trainer and RE instruments; `tools/trainer/i76trainer.py` + i76-map supersede them. Move to `tools/archive/` or the private tree |
-| `swap-renderer.ps1`, `test-drive.ps1`, `tools/grab-screen.ps1`, `tools/slow_t*.png`, `0x501918/`, `drive5.csv` (5.8 MB), `fx.csv`, `lfe-sweep.wav` (1.3 MB), `grep.exe.stackdump`, untracked `james` and `tools/rdp-to-console.cmd` | lab residue. 2026-10-03: `swap-renderer.ps1`, `test-drive.ps1`, `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav` moved to `lab-residue/`; `grep.exe.stackdump` untracked; the rest still to delete or move to the lab |
+| `swap-renderer.ps1`, `test-drive.ps1`, `tools/grab-screen.ps1`, `tools/slow_t*.png`, `0x501918/`, `drive5.csv` (5.8 MB), `fx.csv`, `lfe-sweep.wav` (1.3 MB), `grep.exe.stackdump`, untracked `james` and `tools/rdp-to-console.cmd` | lab residue. 2026-10-03: `swap-renderer.ps1`, `test-drive.ps1`, `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav` moved to `lab-residue/`; `grep.exe.stackdump` untracked; the rest still to delete or move to the lab. **Done 2026-10-10** (`docs/CLEANUP-PLAN-2026-10-10.md` 2.1): `james` and `grep.exe.stackdump` deleted, `tools/rdp-to-console.cmd` committed (a real tool); `tools/slow_t*.png` (ignored) and `tools/grab-screen.ps1` unchanged |
 | `tools/ffb/*.csv`, `drive2.graph.html`, `probe/`, `trace/` | gitignored patterns exist but several CSVs are still listed; verify `git ls-files tools/ffb` is scripts only |
 | `deck/build-controller-config.py` vs `build-controller-config-opt2.py`, `controller_neptune_i76.vdf` vs `_opt2.vdf` | pick one; DECK-CONTROLS.md explains the two options, the installer should ship one |
 | `i76-calibration-saves.py`, `saves/rescue-20260718/` | rescue folder is a one-off recovery; keep `saves/` only |
@@ -376,8 +376,8 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
 
 Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSession` False):
 
-1. `git status` clean; commit or revert `tools/ffb/FfbMixer.ps1`; delete/ignore `james`, `tools/rdp-to-console.cmd`,
-   `tools/ffb/ffb-lfe-demo.ps1` or commit them deliberately.
+1. `git status` clean. (Done 2026-10-10: `FfbMixer.ps1` + `ffb-lfe-demo.ps1` committed in `560dcd2`; `james` deleted;
+   `tools/rdp-to-console.cmd` committed. Re-check `git status` before the release.)
 2. Diff the daily driver against pristine (`i76-map tools/which_build.py`): confirm `i76.exe` `6319abf7` = AiO + u32x,
    `Strlkup.dll` = the build being released (today it is **not**: `b910850f` vs `fe82a0ee`).
 3. Fresh-install test on a clean folder: `Setup-From-GOG.ps1 -GameDir C:\Games\I76-test` -> `PLAY-i76.ps1 -GameDir ...`

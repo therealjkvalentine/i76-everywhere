@@ -165,7 +165,7 @@ doing only together with a Mac and a Deck test session, and stage 5 only when no
 
 ## 7. Other clutter noticed (no action taken)
 
-- `LEGITIMACY-AND-SCOPE.md` and `SCOPE-AND-LEGITIMACY.md` overlap (backlog P3-08 already proposes folding them, with
+- (Done 2026-10-10: folded into `SCOPE-AND-LEGITIMACY.md`; the other file is a pointer.) `LEGITIMACY-AND-SCOPE.md` and `SCOPE-AND-LEGITIMACY.md` overlap (backlog P3-08 already proposes folding them, with
   MAC-SETUP, MODERN-SETUP, WHAT-THIS-IS and `i76-research-full.txt`).
 - `docs/READY-TO-TEST.md` is a 2026-08-16 snapshot that RELEASE-PLAN wants folded into VERIFIED-FIXES.
 - `tools/` has about 40 loose scripts from the 2026-07 memory-RE push (`i76-*.ahk`, `find-regen-*.py`, `*.sh`
@@ -380,7 +380,7 @@ Proposed folder per doc (the grouping of `docs/README.md`), and how many places 
 | `ASSET-BIBLE.md` | `docs/community/` | 5 ; code: `tools/parse-asset-bible.py` | 8 |
 | `asset-bible` | `docs/community/` | 3 | 6 |
 | `SCOPE-AND-LEGITIMACY.md` | `docs/scope/` | 2 | 3 |
-| `LEGITIMACY-AND-SCOPE.md` | `docs/scope/` | 3 | 3 |
+| `LEGITIMACY-AND-SCOPE.md` (pointer since 2026-10-10, folded into `SCOPE-AND-LEGITIMACY.md`) | `docs/scope/` | 3 | 3 |
 
 Total: 1417 hits to re-path, plus every row of `docs/README.md`. `index.html` (the public GitHub Pages front page) links six docs by absolute GitHub URL: `docs/MAC-BUILD.md`, `docs/STEAMDECK.md`, `docs/WINDOWS-PLAYBOOK.md`, `docs/PHONE-PORTS.md`, `docs/VERIFIED-FIXES.md`, `docs/README.md`.
 
