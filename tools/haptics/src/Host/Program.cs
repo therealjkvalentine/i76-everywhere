@@ -24,7 +24,7 @@ namespace Haptics.Host
          [--loopback-wav FILE] [--effects DIR] [--rig FILE] [--live]
          <input> = a .i76rec recording | a tools/ffb drive*.csv | synthetic | synthetic:v2 | synthetic:v3
   motion <input> [--targets flypt,native] [--send] [--fast] [--repeat N] [--hz 100] [--resample interp|hold]
-         [--targets-file FILE] [--startup-neutral S] [--out DIR] [--tag NAME] [--rig FILE]
+         [--targets-file FILE] [--startup-neutral S] [--core-hz 1000] [--out DIR] [--tag NAME] [--rig FILE]
          replay -> the motion renderer (docs/MOTION-OUTPUT.md): packet logs per target in --out; with --send also UDP
          to the targets' loopback ports, paced in real time (--fast: as fast as possible). Default targets: the
          enabled ones in motion/targets.json. <input> as for replay.
@@ -154,9 +154,12 @@ namespace Haptics.Host
             if (a.Get("--resample") != null) cfg["resample"] = a.Get("--resample");
             if (a.Get("--startup-neutral") != null) cfg["startup_neutral_s"] = a.Num("--startup-neutral", 2.0);
             cfg["send"] = send;
-            var p = Session.Build(set, new string[0], outDir, tag, false, 250);
+            // 1 kHz core grid: output ticks (100 Hz) are emitted when a core step crosses them, so the grid sets the send
+            // jitter (250 Hz would send at 8 / 12 ms alternately in real time); packet contents do not depend on it
+            int coreHz = (int)a.Num("--core-hz", 1000);
+            var p = Session.Build(set, new string[0], outDir, tag, false, coreHz);
             var mr = new MotionUdpRenderer();
-            mr.Open(new RendererContext { OutputName = "motion_udp", Config = cfg, Rig = set.Rig, Effects = set, Tune = p.Core.Mixer.Tune, OutDir = outDir, Tag = tag, CoreHz = 250 });
+            mr.Open(new RendererContext { OutputName = "motion_udp", Config = cfg, Rig = set.Rig, Effects = set, Tune = p.Core.Mixer.Tune, OutDir = outDir, Tag = tag, CoreHz = coreHz });
             p.Renderers.Add(mr);
             p.RealTime = (send && !a.Has("--fast")) || a.Has("--realtime");
             var derive = new Derive(); p.Core.Configure(derive);

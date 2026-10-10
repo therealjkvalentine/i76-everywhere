@@ -16,6 +16,7 @@ namespace Haptics.Tests
             if (Want("core")) CoreTests.Run();
             if (Want("transport")) TransportTests.Run();
             if (Want("renderer")) RendererTests.Run();
+            if (Want("motion")) MotionTests.Run();
 
             Console.WriteLine();
             Console.ForegroundColor = T.Fail == 0 ? ConsoleColor.Green : ConsoleColor.Red;
