@@ -18,6 +18,9 @@
 # compares it against music-fix\Strlkup.dll and warns (it copies nothing: run setup-windows.ps1).
 # Nothing in a preset is deployed to the playable install by default; see presets\*.psd1 headers
 # for what is verified where.
+# Preset guard (2026-10-10, -DryRun included): I76_TERRAIN_LOD > 1 without I76_FAR_CLIP is refused (exit 3:
+# binoculars overrun the stock terrain vertex pool); I76_COLL_WINDOW without I76_FIXED_STEP gets a warning
+# (it does nothing then). tests\test_presets.py checks every shipped preset against the same rules.
 #
 # Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe] [-Preset smooth-60] [-DryRun]
 param(
