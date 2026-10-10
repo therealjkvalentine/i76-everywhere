@@ -100,9 +100,19 @@ if ((Test-Path $exePath) -and -not $Force) {
     }
 }
 
-# Nitro Pack installs into the SAME game folder (adds expansion assets to ADDON/, etc.)
+# The Nitro Pack is a standalone GOG game (its own nitro.exe), so it gets its OWN folder beside the
+# base game: "<parent>\Interstate 76 Nitro Pack", which is where install.ps1 looks for it. Installed into
+# $GameDir it would overwrite the base game's ZGLIDE.DLL (05c1dde4 -> f28fe42b) and win32.dll
+# (4b6b5b3d -> 2573c81c) - both differ in the 2.1.0.17 offline installers - and install.ps1 would
+# never find nitro.exe to configure it (found 2026-10-10, docs\records\FRESH-INSTALL-CHECK-2026-10-10.md).
+$NitroDir = Join-Path (Split-Path $GameDir -Parent) 'Interstate 76 Nitro Pack'
 if ($NitroExe -and (Test-Path $NitroExe)) {
-    Invoke-GogInstaller $NitroExe $GameDir 'Nitro Pack'
+    if ((Test-Path (Join-Path $NitroDir 'nitro.exe')) -and -not $Force) {
+        Say "`nnitro.exe already present in `"$NitroDir`" - skipping the Nitro Pack install (use -Force to reinstall)." 'Yellow'
+    } else {
+        if (-not (Test-Path $NitroDir)) { New-Item -ItemType Directory -Force $NitroDir | Out-Null }
+        Invoke-GogInstaller $NitroExe $NitroDir 'Nitro Pack'
+    }
 }
 
 Say "`nGame installed:" 'Green'
@@ -117,6 +127,7 @@ $installArgs = @{ GameDir = $GameDir; ToolsDir = $ToolsDir; Preset = $Preset }
 if ($Yes)            { $installArgs['Yes'] = $true }
 if ($NoShortcut)     { $installArgs['NoShortcut'] = $true }
 if ($Controls)       { $installArgs['Controls'] = $Controls }
+if ($SkipNitro)      { $installArgs['SkipNitro'] = $true }   # base game only: install.ps1 must not configure a Nitro Pack found elsewhere either
 $global:LASTEXITCODE = 0
 & (Join-Path $repo 'install.ps1') @installArgs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }

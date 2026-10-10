@@ -52,7 +52,8 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
 ([docs/records/NEW-DAILY-DRIVER-RECIPE.md](docs/records/NEW-DAILY-DRIVER-RECIPE.md)). What was tested and what was not is in
 [Evidence](#evidence-what-was-tested) below: **the result has not been started on a fresh install yet.**
 
-1. **Silent-installs** the game (and Nitro Pack) from your GOG `.exe` — no wizard
+1. **Silent-installs** the game (and the Nitro Pack, into its own folder `Interstate 76 Nitro Pack` beside the
+   game's) from your GOG `.exe` — no wizard
    clicking. (GOG installers are Inno Setup; it drives them with
    `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOICONS /DIR=…`.) Windows shows
    **one UAC prompt** for the GOG installer — click **Yes** (that's normal; it's
