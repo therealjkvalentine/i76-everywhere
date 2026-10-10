@@ -289,7 +289,7 @@ namespace Haptics.Renderers
             if (!j.Start)
             {
                 var v = _voices.FirstOrDefault(x => x.Key == j.Key && !x.Releasing);
-                if (v == null) { UnmatchedStops++; return; }
+                if (v == null) { if (Manifest.Resolve(j.Name) != null) UnmatchedStops++; return; }   // a stem-less sound's stop is expected
                 Release(v); Stopped++;
                 return;
             }
@@ -483,6 +483,9 @@ namespace Haptics.Renderers
                 bed = bed == null ? (ILfeBed)stems.Bank : new LfeBedMix(bed, stems.Bank);
             }
             if (synth != null) synth.Bed = bed;
+            if (synth != null)
+                ctxForStems().Log.WriteLine(string.Format(CultureInfo.InvariantCulture, "lfe sources: synth {0:0.##}, stems {1:0.##} ({2}){3}", src.synth, src.stems, src.from,
+                    stems?.Bank != null ? ", " + stems.Bank.Manifest.Stems.Count + " stems" : stems != null ? ", stems off: " + stems.Fallback : src.stems > 0 ? ", no stems output in the rig" : ""));
         }
     }
 }
