@@ -21,8 +21,8 @@ import i76tel, i76trainer
 variant = sys.argv[1] if len(sys.argv) > 1 else "1"
 EXPECT = {"stock": (49.6, 0.99, 0.20), "2": (49.6, 99.0, 20.0), "1": (49.6, 49.6, 20.0)}[variant]
 h = i76tel.Header()
-shm_size = h.structs["i76tel_shm_t"][1]; frame_off = h.offset("i76tel_shm_t", "frame")
-tel = mmap.mmap(-1, shm_size, tagname=h.consts["I76TEL_SHM_NAME"])
+frame_off = h.offset("i76tel_shm_t", "frame")
+tel, shm_size = i76tel.open_shm(h)                   # v3 size, or v2 when a v2 proxy made the section
 trn = mmap.mmap(-1, 168, tagname="Local\\I76Trainer")
 fails = 0
 

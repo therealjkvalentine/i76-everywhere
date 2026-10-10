@@ -15,12 +15,16 @@ Usage:
   python i76tel.py --layout            # print the struct layout table (offsets from the header)
   python i76tel.py --layout --readme README.md   # rewrite the table between the layout markers in README.md
 
-Nothing here has been verified against a running game yet (2026-10-01).
+Versions: the live layout is i76tel.h (v3, 2026-10-10); a v2 proxy (any Strlkup.dll built before v3) is still
+decoded through the frozen i76tel_v2.h, chosen per datagram / per shared-memory copy by the frame's version field.
+Decoded frames and events always carry the v3 keys (v3-only fields 0 for v2 input), so CSV columns do not change.
+v2 verified live 2026-10-01; the v3 fields and events are static-verified only (tests/test_i76tel_v3.py offline).
 """
 import argparse, mmap, os, re, socket, struct, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HEADER = os.path.join(HERE, "i76tel.h")
+HEADER_V2 = os.path.join(HERE, "i76tel_v2.h")    # frozen: what every pre-v3 proxy writes
 
 SCALARS = {"uint8_t": "B", "int8_t": "b", "char": "c", "uint16_t": "H", "int16_t": "h",
            "uint32_t": "I", "int32_t": "i", "uint64_t": "Q", "int64_t": "q", "float": "f", "double": "d"}
@@ -107,17 +111,103 @@ class Header:
         return "\n".join(out)
 
 
+_LAYOUTS = {}
+
+
+def layout(h, version):
+    """The Header that describes data written with this version: h itself for its own version, the frozen v2 header
+    for 2 (cached), else None."""
+    if version == h.consts["I76TEL_VERSION"]:
+        return h
+    if version == 2:
+        if 2 not in _LAYOUTS:
+            _LAYOUTS[2] = Header(HEADER_V2)
+        return _LAYOUTS[2]
+    return None
+
+
+def frame_version(data, offset=0):
+    """the frame's version field (uint16 after the magic), 0 when the buffer is too short"""
+    return struct.unpack_from("<H", data, offset + 4)[0] if len(data) >= offset + 6 else 0
+
+
+def _widen(h, lay, names, values, fmt_names):
+    d = dict(zip(names, values))
+    if lay is h:
+        return d
+    return {n: d.get(n, 0) for n in fmt_names}          # h's keys, in h's order; fields the old layout lacks are 0
+
+
 def decode_frame(h, data):
-    return dict(zip(h.frame_names, struct.unpack_from(h.frame_fmt, data, 0)))
+    """One frame as a dict with h's field names. The layout follows the frame's own version field (a v2 frame decodes
+    through i76tel_v2.h, its v3-only fields 0); an unknown version is decoded with h as it stands."""
+    lay = layout(h, frame_version(data)) or h
+    return _widen(h, lay, lay.frame_names, struct.unpack_from(lay.frame_fmt, data, 0), h.frame_names)
 
 
-def decode_events(h, data, offset, count):
+def decode_event(h, data, offset, lay=None):
+    lay = lay or h
+    return _widen(h, lay, lay.event_names, struct.unpack_from(lay.event_fmt, data, offset), h.event_names)
+
+
+def decode_events(h, data, offset, count, version=None):
+    """count events from offset. version = the frame's version (the event size changed in v3); default h's."""
+    lay = (layout(h, version) if version is not None else None) or h
     evs = []
     for k in range(count):
-        if offset + (k + 1) * h.event_size > len(data):
+        if offset + (k + 1) * lay.event_size > len(data):
             break
-        evs.append(dict(zip(h.event_names, struct.unpack_from(h.event_fmt, data, offset + k * h.event_size))))
+        evs.append(decode_event(h, data, offset + k * lay.event_size, lay))
     return evs
+
+
+def decode_datagram(h, data):
+    """(frame, events) from one UDP datagram of any known version, or (None, []) when it is shorter than its frame."""
+    lay = layout(h, frame_version(data)) or h
+    if len(data) < lay.frame_size:
+        return None, []
+    fr = decode_frame(h, data)
+    return fr, decode_events(h, data, lay.frame_size, fr["event_count"], lay.consts["I76TEL_VERSION"])
+
+
+def open_shm(h, suffix=""):
+    """Map Local\\I76Telemetry<suffix>: h's size first; if a v2 proxy (or a v2 reader) created the section smaller,
+    Windows refuses the larger view, so fall back to the v2 size. Returns (mmap, size)."""
+    name = h.consts["I76TEL_SHM_NAME"] + suffix
+    size = h.structs["i76tel_shm_t"][1]
+    try:
+        return mmap.mmap(-1, size, tagname=name), size
+    except OSError:
+        size2 = layout(h, 2).structs["i76tel_shm_t"][1]
+        return mmap.mmap(-1, size2, tagname=name), size2
+
+
+def shm_layout(h, buf):
+    """The Header that describes a copied i76tel_shm_t block (by its frame's version; h when unknown)"""
+    return layout(h, frame_version(buf, h.offset("i76tel_shm_t", "frame"))) or h
+
+
+SND_MODE = {0: "one-shot", 1: "loop", 2: "sustained"}
+STOP_REASON = {1: "released", 2: "ended", 0x20: "stop 0x20", 0x40: "parked", 0x80: "stop 0x80", 0x100: "stop 0x100"}
+SIDES = {0: "front", 1: "left", 2: "right", 3: "back", 4: "top", -1: "?"}
+WEAPON_UI = {0: "cycle", 1: "link", 2: "unlink"}
+
+
+def ev_name(ev):
+    """the 8-byte name packed into i_0 / i_1 (EXPLOSION template, SOUND_* sample name)"""
+    return struct.pack("<ii", ev["i_0"], ev["i_1"]).split(b"\0")[0].decode("ascii", "replace")
+
+
+def sound_fields(h, ev):
+    """SOUND_START / SOUND_STOP i_2 unpacked: a dict of mode / is_player / has_pos / detached / voice_level / prio
+    (start) or reason / is_player (stop)."""
+    b = ev["i_2"] & 0xffffffff
+    c = h.consts
+    if ev["type"] == c.get("I76TEL_EV_SOUND_STOP"):
+        return {"reason": b & 0xffff, "is_player": int(bool(b & c["I76TEL_STOP_PLAYER"]))}
+    return {"mode": b & c["I76TEL_SND_MODE"], "is_player": int(bool(b & c["I76TEL_SND_PLAYER"])),
+            "has_pos": int(bool(b & c["I76TEL_SND_HAS_POS"])), "detached": int(bool(b & c["I76TEL_SND_DETACHED"])),
+            "voice_level": int(bool(b & c["I76TEL_SND_VOICE_LVL"])), "prio": b >> c["I76TEL_SND_PRIO_SHIFT"]}
 
 
 FLAG_LETTERS = ((0x1, "E"), (0x2, "S"), (0x4, "A"), (0x8, "s"), (0x20, "D"), (0x400, "O"), (0x800, "N"), (0x2000, "G"), (0x4000, "K"), (0x8000, "W"))
@@ -157,14 +247,36 @@ def event_line(h, ev):
         mag = (f[0] ** 2 + f[1] ** 2 + f[2] ** 2) ** 0.5
         return head + "IMPACT    %s source class %d  impact (%.1f, %.1f, %.1f) |%.1f|  lost %d hp" % (
             "PLAYER" if i[0] else "other ", i[1], f[0], f[1], f[2], mag, int(f[3]))
-    return head + "type %d f=%s i=%s" % (t, f, i)
+    fx = [ev.get("f_%d" % k, 0.0) for k in range(6)]
+    ix = [ev.get("i_%d" % k, 0) for k in range(5)]
+    if t == h.consts.get("I76TEL_EV_SOUND_START"):
+        s = sound_fields(h, ev)
+        where = "at (%.1f, %.1f, %.1f)" % (fx[2], fx[3], fx[4]) if s["has_pos"] else "2D"
+        return head + "SOUND+    %-8s %s %-9s %5.0f Hz vol %3.0f%% pan %+.0f prio %d %s%s%s obj 0x%08x voice 0x%08x" % (
+            ev_name(ev), "PLAYER" if s["is_player"] else "other ", SND_MODE.get(s["mode"], str(s["mode"])), fx[0], fx[1], fx[5],
+            s["prio"], where, " detached" if s["detached"] else "", " voice-level" if s["voice_level"] else "",
+            ix[3] & 0xffffffff, ix[4] & 0xffffffff)
+    if t == h.consts.get("I76TEL_EV_SOUND_STOP"):
+        s = sound_fields(h, ev)
+        return head + "SOUND-    %-8s %s %-10s after %.2f s  obj 0x%08x voice 0x%08x" % (
+            ev_name(ev), "PLAYER" if s["is_player"] else "other ", STOP_REASON.get(s["reason"], hex(s["reason"])), fx[0],
+            ix[3] & 0xffffffff, ix[4] & 0xffffffff)
+    if t == h.consts.get("I76TEL_EV_DAMAGE_SIDE"):
+        c = h.consts
+        return head + "DAMAGE    %s side %-5s zone %d  in %.0f lost %.0f hp  hit (%.2f, %.2f, %.2f)  type 0x%x flags 0x%x  by class %d%s%s" % (
+            "PLAYER" if ix[2] & c["I76TEL_DMG_PLAYER"] else "other ", SIDES.get(ix[0], str(ix[0])), ix[1], fx[0], fx[1],
+            fx[2], fx[3], fx[4], ix[3] & 0xffff, (ix[3] >> 16) & 0xffff, ix[4],
+            " (player's)" if ix[2] & c["I76TEL_DMG_BY_PLAYER"] else "", " KILLED" if ix[2] & c["I76TEL_DMG_KILLED"] else "")
+    if t == h.consts.get("I76TEL_EV_WEAPON_UI"):
+        return head + "WEAPON-UI %s" % WEAPON_UI.get(ix[0], str(ix[0]))
+    return head + "type %d f=%s i=%s" % (t, fx, ix)
 
 
 class Checker:
     """--check: header validity, the frame counter and the sequences."""
 
     def __init__(self, h):
-        self.h, self.n, self.bad, self.last = h, 0, 0, None
+        self.h, self.n, self.bad, self.last, self.n_old = h, 0, 0, None, 0
         self.seq_gaps = self.frame_still = self.frame_back = self.frame_skip = self.ev_gaps = 0
         self.last_ev = None
         self.t0 = time.time()
@@ -174,10 +286,16 @@ class Checker:
         err = []
         if fr["magic"] != self.h.consts["I76TEL_MAGIC"]:
             err.append("magic 0x%08x" % fr["magic"])
-        if fr["version"] != self.h.consts["I76TEL_VERSION"]:
+        lay = layout(self.h, fr["version"])
+        if lay is None:
             err.append("version %d" % fr["version"])
-        if fr["size"] != self.h.frame_size or size < self.h.frame_size:
-            err.append("size %d (header says %d, datagram %d)" % (fr["size"], self.h.frame_size, size))
+        else:
+            if lay is not self.h and not self.n_old:
+                print("note: a version %d proxy (this header is v%d) - decoding through %s" % (
+                    fr["version"], self.h.consts["I76TEL_VERSION"], os.path.basename(HEADER_V2)))
+            self.n_old += lay is not self.h
+            if fr["size"] != lay.frame_size or size < lay.frame_size:
+                err.append("size %d (header says %d, datagram %d)" % (fr["size"], lay.frame_size, size))
         if self.last is not None:
             if fr["seq"] != self.last["seq"] + 1:
                 self.seq_gaps += 1
@@ -246,12 +364,9 @@ def source_udp(port):
 
 def source_shm(h):
     """Poll Local\\I76Telemetry. A copy is accepted when seq is even and unchanged across the read; only new frames yield."""
-    size = h.structs["i76tel_shm_t"][1]
     name = h.consts["I76TEL_SHM_NAME"]
-    m = mmap.mmap(-1, size, tagname=name)
+    m, size = open_shm(h)
     print("reading shared memory %s (%d bytes) - a frame appears once the game publishes" % (name, size))
-    frame_off, ring_off = h.offset("i76tel_shm_t", "frame"), h.offset("i76tel_shm_t", "ring")
-    ev_seq_off, ev_count_off = h.offset("i76tel_frame_t", "event_seq"), h.offset("i76tel_frame_t", "event_count")
     last_seq, last_ev, idle = None, 0, 0.0
     while True:
         seq0 = struct.unpack_from("<I", m, 0)[0]
@@ -267,14 +382,19 @@ def source_shm(h):
         if seq1 != seq0:
             continue                                    # torn: the writer was inside during the copy
         last_seq, idle = seq0, 0.0
-        frame = bytearray(buf[frame_off:frame_off + h.frame_size])
+        lay = shm_layout(h, buf)                        # the writer's version decides every offset below
+        if lay.structs["i76tel_shm_t"][1] > size:
+            continue                                    # a v3 proxy behind a v2-sized view cannot be read whole
+        frame_off, ring_off = lay.offset("i76tel_shm_t", "frame"), lay.offset("i76tel_shm_t", "ring")
+        ev_seq_off, ev_count_off = lay.offset("i76tel_frame_t", "event_seq"), lay.offset("i76tel_frame_t", "event_count")
+        frame = bytearray(buf[frame_off:frame_off + lay.frame_size])
         # splice the new ring entries in after the frame, as a datagram would carry them
         ev_seq = struct.unpack_from("<I", frame, ev_seq_off)[0]
         n = min(ev_seq - last_ev, h.consts["I76TEL_RING"]) if ev_seq >= last_ev else 0
         evs = b""
         for s in range(ev_seq - n + 1, ev_seq + 1):
-            o = ring_off + (s % h.consts["I76TEL_RING"]) * h.event_size
-            evs += buf[o:o + h.event_size]
+            o = ring_off + (s % h.consts["I76TEL_RING"]) * lay.event_size
+            evs += buf[o:o + lay.event_size]
         last_ev = ev_seq
         struct.pack_into("<I", frame, ev_count_off, n)
         yield bytes(frame) + evs
@@ -316,11 +436,10 @@ def main():
                 if frames == 0:
                     print("...nothing yet (is I76_TELEMETRY set for the game, and is it in a mission?)")
                 continue
-            if len(data) < h.frame_size:
-                print("short datagram: %d bytes (frame struct is %d)" % (len(data), h.frame_size))
+            fr, evs = decode_datagram(h, data)
+            if fr is None:
+                print("short datagram: %d bytes (version %d)" % (len(data), frame_version(data)))
                 continue
-            fr = decode_frame(h, data)
-            evs = decode_events(h, data, h.frame_size, fr["event_count"])
             frames += 1
             if chk:
                 chk.frame(fr, len(data))

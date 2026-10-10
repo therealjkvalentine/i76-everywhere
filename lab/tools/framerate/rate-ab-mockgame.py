@@ -148,6 +148,7 @@ def main():
         foff[name] = (o, cnt + code); o += struct.calcsize("<" + cnt + code)
     shm_size = h.structs["i76tel_shm_t"][1]
     frame_off, ring_off = h.offset("i76tel_shm_t", "frame"), h.offset("i76tel_shm_t", "ring")
+    EV_NF = sum(n.startswith("f_") for n in h.event_names); EV_NI = sum(n.startswith("i_") for n in h.event_names)
     tel = mmap.mmap(-1, shm_size, tagname=h.consts["I76TEL_SHM_NAME"] + a.suffix)
     T, tsize = struct_offsets(os.path.join(TOOLS, "trainer", "i76trn.h"), "i76trn_ctl_t")
     trn = mmap.mmap(-1, tsize, tagname="Local\\I76Trainer" + a.suffix)
@@ -334,6 +335,7 @@ def main():
         struct.pack_into("<I", tel, 0, seq * 2 - 1)
         for typ, f, i in events:
             ev_seq += 1
+            f = list(f) + [0.0] * (EV_NF - len(f)); i = list(i) + [0] * (EV_NI - len(i))   # v3 events are wider; unused slots 0
             struct.pack_into(h.event_fmt, tel, ring_off + (ev_seq % 64) * h.event_size, ev_seq, frame, typ, *f, *i)
         buf = bytearray(h.frame_size)
 

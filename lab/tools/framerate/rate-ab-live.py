@@ -233,6 +233,7 @@ class Tel:
         import i76tel
         self.h = h = i76tel.Header()
         self.decode = i76tel.decode_frame
+        self.tel = i76tel
         self.size = h.structs["i76tel_shm_t"][1]
         self.frame_off, self.ring_off = h.offset("i76tel_shm_t", "frame"), h.offset("i76tel_shm_t", "ring")
         self.ring = h.consts["I76TEL_RING"]
@@ -241,7 +242,7 @@ class Tel:
         self.lost = 0                                       # events that left the 64-entry ring between two reads
 
     def open(self, suffix=""):
-        self.m = mmap.mmap(-1, self.size, tagname=self.h.consts["I76TEL_SHM_NAME"] + suffix)
+        self.m, self.size = self.tel.open_shm(self.h, suffix)   # v3 size, or v2 when a v2 proxy made the section
 
     def next(self, timeout=1.0):
         """The next newly published frame and the events recorded since the previous call: (frame, [events]) or None."""
@@ -260,9 +261,11 @@ class Tel:
             if self.last_ev is None:
                 self.last_ev = ev_seq                       # history before the first read is not ours
             self.lost += max(0, ev_seq - self.ring - self.last_ev)
+            lay = self.tel.shm_layout(self.h, buf)              # the writer's version: ring offset and event size
+            ring_off = lay.offset("i76tel_shm_t", "ring")
             for s in range(max(self.last_ev + 1, ev_seq - self.ring + 1), ev_seq + 1):
-                o = self.ring_off + (s % self.ring) * self.h.event_size
-                ev = dict(zip(self.h.event_names, struct.unpack_from(self.h.event_fmt, buf, o)))
+                o = ring_off + (s % self.ring) * lay.event_size
+                ev = self.tel.decode_event(self.h, buf, o, lay)
                 if ev["seq"] == s:
                     evs.append(ev)
             self.last_ev = ev_seq

@@ -101,9 +101,8 @@ class Telemetry:
 
     def __init__(self, h):
         self.h = h
-        self.size = h.structs["i76tel_shm_t"][1]
         self.tagname = h.consts["I76TEL_SHM_NAME"] + SHM_SUFFIX
-        self.m = mmap.mmap(-1, self.size, tagname=self.tagname)
+        self.m, self.size = i76tel.open_shm(h, SHM_SUFFIX)  # falls back to the v2 size when a v2 proxy made the section
         self.frame_off = h.offset("i76tel_shm_t", "frame")
         self.last_seq, self.frame, self.changed_at = 0, None, 0.0
 
@@ -911,8 +910,8 @@ def selftest():
     if ctl_size != 168:                                      # sizeof(i76trn_ctl_t) in the built proxy (its log line says 168 B)
         print("WARNING: i76trn_ctl_t parses as %d bytes, the proxy was built with 168; the GUI refuses a block whose "
               "'size' field differs from the parsed header, so re-check i76trn.h against strlkproxy.c" % ctl_size); ok = False
-    if tel_h.frame_size != 628:
-        print("WARNING: i76tel_frame_t is %d bytes, expected 628" % tel_h.frame_size); ok = False
+    if tel_h.frame_size != 664:                              # i76tel v3 (a v2 proxy's 628-byte frame is decoded through i76tel_v2.h)
+        print("WARNING: i76tel_frame_t is %d bytes, expected 664 (v3)" % tel_h.frame_size); ok = False
     if ctl_h.consts["I76TRN_MAGIC"] != 0x43363749:
         print("WARNING: I76TRN_MAGIC parsed as 0x%x" % ctl_h.consts["I76TRN_MAGIC"]); ok = False
 
