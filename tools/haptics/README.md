@@ -131,7 +131,7 @@ implement `IRenderer`, read `CoreStep.State` (`Core/VehicleState.cs` documents f
 * Golden real drives: `drive2.csv` / `drive3.csv` are gitignored, so a fresh checkout has none. Set
   `I76_REAL_DRIVES=<folder>` (for example the main checkout's `tools\ffb`) before `haptics.ps1 test`, or the two real-drive checks are skipped.
 * **Motion**: M4 (SimHub .simdef, Open Game Telemetry), M5 (proxy motion fields) and M6 (washout, direct actuator path) are
-  not built; no desk bench (FlyPT / SimHub) was run by an agent (nothing may be installed): owner tests 16-24. Details in
+  not built; no desk bench (FlyPT / SimHub) was run by an agent (nothing may be installed): owner tests 17-25. Details in
   [motion/README.md](motion/README.md).
 * `i76tel.py --record` (design A1) was not added: the proxy agent owns `i76tel.py`; recording is `haptics.ps1 record`.
 

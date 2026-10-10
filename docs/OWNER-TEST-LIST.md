@@ -99,7 +99,7 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
     and repeat. Report which one gave pure nose-down pitch.
 19. **SimHub desk bench.** Install SimHub (free), game **Live for Speed** (OutSim 63393 / OutGauge 63392), then
     `tools\haptics\haptics.ps1 motion all --targets simhub --send`. Check: speed / rpm / gear read sensibly (gear 2 on
-    the wire = 1st), the motion add-on's **3D preview** does what item 16 lists, ShakeIt preview with no audio device
+    the wire = 1st), the motion add-on's **3D preview** does what item 17 lists, ShakeIt preview with no audio device
     (or the EVO 4 only while you are at the desk). SimTools only if you own a licence (the free DIY licence ended
     May 2026): Network interface 127.0.0.1:6123, Default axis profile, `--targets simtools`, close Mover first (both use 4123).
 20. **T3 - Forza in SimHub.** Game **Forza Motorsport 7**, note the UDP port SimHub shows (5300 assumed; change
@@ -114,9 +114,9 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
     positive, heave cue only at the landing, a surge cue at the wall, physics channels flat in the air. Anything with the
     opposite sign (especially surge or yaw) = the engine's accel_body / yaw_rate convention differs: report which.
 22. **T4 - interp vs hold.** Two identical braking runs first (A/A), then `resample` `interp` vs `hold` in targets.json,
-    same bench (item 16 or 18): does Mover's / SimHub's graph show a 24 Hz staircase with `hold`, and how much later does
+    same bench (item 17 or 19): does Mover's / SimHub's graph show a 24 Hz staircase with `hold`, and how much later does
     the pitch start with `interp` (one physics step, ~42 ms, expected)?
-23. **T5 - motion latency.** Item 20's live command with `--record tools\haptics\replays\t5.i76rec` added; fire one
+23. **T5 - motion latency.** Item 21's live command with `--record tools\haptics\replays\t5.i76rec` added; fire one
     shot / ram one wall; compare the IMPACT event's frame time with the first packet carrying the cue (cue_surge) in the
     native log. Report the milliseconds (n runs).
 24. **T6 - explosion reach.** An AI car blows up near you and far away (shares the sitting with item 13): cue_heave vs the

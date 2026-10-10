@@ -10,7 +10,7 @@ module from, inside the haptics host of `docs/HAPTICS-ARCHITECTURE.md`. It is no
 `.i76rec` (the host's recording container), not `.i76tel`; the cue list adds the a_diff residual as an "impulse" cue
 and an `impact_peak` gain; i76motion rotations are pinned to the aerospace body convention (the "right-handed" wording
 in 3.3 is not self-consistent for forward / right / up); the M0 result is recorded in the 3.1 note below. Owner tests
-are items 16-24 of docs/OWNER-TEST-LIST.md.*
+are items 17-25 of docs/OWNER-TEST-LIST.md.*
 
 **Owner's request.** "Add motion simulator output to the force feedback stuff, and a way to test it with whatever
 motion simulator software people use." Owner context: sim cockpit first, four actuators later; D-BOX and Sigma are
