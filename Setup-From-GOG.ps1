@@ -155,4 +155,10 @@ if ($Preset -ne 'stock') { Say "PLAY-i76.bat = preset $Preset; PLAY-stock.bat = 
 if ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced') { Say "PLAY-16x10.bat = the tested 16:10 picture (best-120), if widescreen does not suit this display." }
 if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\CONTROLS.md; printable: docs\Interstate76-Controls-Quick-Reference.pdf)." }
 Say "First boot: ~60-75s of 'PLEASE STAND BY' - ESC skips the intro."
+$rdp = ($env:SESSIONNAME -like 'RDP-*')
+try { Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop; if ([System.Windows.Forms.SystemInformation]::TerminalServerSession) { $rdp = $true } } catch { }
+if ($rdp -and -not $Display -and $env:I76_WIDE_DISPLAY -notmatch '^\d+x\d+$') {
+    Say "`n!!! Installed over REMOTE DESKTOP: the dgVoodoo confs are sized to the RDP desktop, not this PC's monitor." 'Red'
+    Say "!!! Re-run at the PC itself, or with the monitor's size:  INSTALL.bat -Display 3440x1440  (your WxH)" 'Red'
+}
 Say "To move this working install to another PC, run:  ./Make-Portable-Zip.ps1"
