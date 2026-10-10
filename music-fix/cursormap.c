@@ -28,6 +28,8 @@
  * unless I76_CURSOR_MAP_U32X=1: then the four slots the exe and the shell import FROM u32x.dll are taken as well,
  * so this map replaces u32x's (its other work - the DWM ghosting fix, the key routing - stays). That is the test
  * of whether u32x's mapping is still needed once dgVoodoo's CaptureMouse is off (lab twin, 2026-10-07).
+ * I76_CURSOR_MAP_U32X=exe takes only i76.exe's u32x slots: the shell keeps u32x (its modal pointer in the OK
+ * popups needs its own GetCursorPos / PeekMessageA), mapped stretched by I76_U32X_SHELL_STRETCH=1 (2026-10-08).
  * Only the game's own modules are repointed; dgVoodoo, Wine and AutoHotkey keep the real calls.
  */
 static int  g_cm_mode;                 /* 0 off, 1 stretched, 2 ar */
@@ -130,13 +132,18 @@ static BOOL WINAPI cm_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm
 }
 
 /* Repoint one module's USER32 slots. Returns the number of slots taken (0..4). */
-static int g_cm_over_u32x;             /* I76_CURSOR_MAP_U32X=1 */
+static int g_cm_over_u32x;             /* I76_CURSOR_MAP_U32X: 1 = the exe's and the shell's u32x slots, 2 (=exe) = the exe's only */
 static int cm_patch_module(HMODULE mod, const char *what) {
     static const char *dlls[2] = { "USER32.dll", "u32x.dll" };
     int n = 0, i;
     /* The p_cm_* pointers are the REAL user32 functions (apply_cursor_map), so a slot that pointed at u32x is
        bypassed rather than chained: mapping twice would be wrong. */
-    for (i = 0; i < (g_cm_over_u32x ? 2 : 1); i++) {
+    /* =exe (2026-10-08): i76shell keeps u32x. Its modal pointer (the arrow in the garage / reminder OK popups,
+       which present nothing while they poll) runs inside u32x's GetCursorPos and keys on a shell return address and
+       on ShellMain's PeekMessageA, so taking the shell's slots left the pencil frozen there (owner, lab twin).
+       Pair with I76_U32X_SHELL_STRETCH=1 so u32x maps the shell over the stretched picture, as this map would. */
+    int take_u32x = g_cm_over_u32x == 1 || (g_cm_over_u32x == 2 && mod == GetModuleHandleA(NULL));
+    for (i = 0; i < (take_u32x ? 2 : 1); i++) {
         int k = 0;
         if (patch_iat(mod, dlls[i], "GetCursorPos", cm_GetCursorPos)) k++;
         if (patch_iat(mod, dlls[i], "SetCursorPos", cm_SetCursorPos)) k++;
@@ -208,7 +215,8 @@ static void apply_cursor_map(void) {
     char v[16]; DWORD n = GetEnvironmentVariableA("I76_CURSOR_MAP", v, sizeof(v));
     HMODULE exe = GetModuleHandleA(NULL), sh;
     if (n == 0 || n >= sizeof(v) || v[0] == '0') return;
-    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_MAP_U32X", c, sizeof(c)); g_cm_over_u32x = (k && k < sizeof(c) && c[0] == '1'); }
+    {   char c[8]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_MAP_U32X", c, sizeof(c));
+        g_cm_over_u32x = (k && k < sizeof(c)) ? (c[0] == '1' ? 1 : lstrcmpiA(c, "exe") == 0 ? 2 : 0) : 0; }
     if (!g_cm_over_u32x && (GetModuleHandleA("u32x.dll") || patch_iat_has_dll(exe, "u32x.dll"))) {
         mlog("  cursor-map: u32x.dll present (it maps the cursor already) - not applied (I76_CURSOR_MAP_U32X=1 takes its slots)");
         return;

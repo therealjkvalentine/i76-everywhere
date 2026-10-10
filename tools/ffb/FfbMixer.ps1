@@ -420,11 +420,26 @@ function Mix-DefaultTune {
         # Deeper and far longer than a gunshot, because that is what separates a
         # detonation from a shot in the body: 22 Hz is at the bottom of what this
         # rig can deliver, and the tail is what makes it read as a blast.
-        LfeExplodeHz    = 22.0
-        # Budgeted like everything else: at 22 Hz the measured curve asks for the
-        # full 1.6x compensation, so amp * 1.6 * drive 1.5 * master 0.9 must land
-        # near 0.95 - the biggest thing in the mix, without going through the knee.
-        LfeExplodeAmp   = 0.44
+        # 25 Hz, not 22. Below about 25 the compensation hits its 1.6x cap and
+        # stops being able to cancel the rig, so felt output starts falling away
+        # with depth: at 22 Hz a unit of amplitude returns 0.90 of a unit felt, at
+        # 20 Hz only 0.70. At 25 and above, felt == amp exactly. 25 Hz is therefore
+        # the DEEPEST a blast can sit while still costing nothing to be there -
+        # deeper than the impact at 30, and with nothing given away for it.
+        LfeExplodeHz    = 25.0
+        # Sized to be the biggest FELT event in the mix, which is not the same as
+        # the biggest number: an impact at 30 Hz returns 0.602 felt, so a blast
+        # needs to clear that. 0.64 felt costs 0.64 * 1.49 = 0.95 of digital
+        # headroom - the whole budget, which is correct for the loudest event
+        # there is.
+        LfeExplodeAmp   = 0.58
+        # DUCKING. A 25 Hz blast can never out-punch a 30 Hz impact at equal
+        # headroom - deeper costs more on this rig, and no amount of gain changes
+        # that. So the blast is given room instead of volume: while one is
+        # sounding, the continuous beds are pulled down and it has the band to
+        # itself. That is free, and subjectively far larger than the 2 dB more
+        # amplitude would have been.
+        LfeExplodeDuck  = 0.75  # how far the beds drop at full blast
         LfeExplodeMag   = 40.0  # effect-table magnitude at or above which it is a blast
         LfeCarrierHz    = 35.0  # the measured peak. Heave gets it because heave is
                                 # the subtlest content here and needs the most help;
@@ -757,11 +772,18 @@ function Mix-Update {
             if ($wScale -lt 0.35) { $wScale = 0.35 }
         }
     }
-    if ($firing -and -not $Mix.LastFiring) {
-        if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
+    # EVERY FRAME, not just firing frames. This sat inside the firing-edge branch
+    # below, so it ran once per shot: the blast level never decayed (it stayed
+    # pinned at its trigger value forever) and $duck was $null on every other
+    # frame - and $null * a number is 0 in PowerShell, so the engine and road beds
+    # were silently zeroed the entire time rather than ducked during a blast.
     if ($blast -gt $Mix.BlastEnv) { $Mix.BlastEnv = $blast } else { $Mix.BlastEnv *= 0.90 }
     if ($Mix.BlastEnv -lt 0.001) { $Mix.BlastEnv = 0.0 }
+    # What the continuous beds are multiplied by while a blast sounds.
+    $duck = 1.0 - ($Tune.LfeExplodeDuck * $Mix.BlastEnv)
 
+    if ($firing -and -not $Mix.LastFiring) {
+        if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
             Mix-Trigger $Mix 'buzz' ($Tune.WeaponGain * $wScale) ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
             $Mix.LastFireT = $t
             $notes += "FIRE"
@@ -923,9 +945,9 @@ function Mix-Update {
             # Throttle floor 0.12 -> a 0.35 + 0.65t curve. At 0.12 the engine bed
             # all but vanished off-throttle and at part throttle - which is most
             # of driving - so the rig felt weak except when being thrashed.
-            EngineAmp  = [math]::Round($Tune.LfeEngineAmp * (0.35 + 0.65 * [math]::Abs($Sample.Throttle)) *
+            EngineAmp  = [math]::Round($duck * $Tune.LfeEngineAmp * (0.35 + 0.65 * [math]::Abs($Sample.Throttle)) *
                            $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
-            RoadAmp    = [math]::Round([math]::Min(1.0, $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
+            RoadAmp    = [math]::Round([math]::Min(1.0, $duck * $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
             RoadFreq   = [math]::Round($Tune.LfeRoadLoHz + ($Tune.LfeRoadHiHz - $Tune.LfeRoadLoHz) * $rough, 1)
             ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact + $transShift) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
             HeaveAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeHeaveAmp *
@@ -937,7 +959,7 @@ function Mix-Update {
             # fire the gunshot channel at full as well both doubled the headroom it
             # asked for and blurred what should be a distinct character.
             WeaponAmp  = [math]::Round([math]::Min(1.0, (1.0 - $Mix.BlastEnv) * $Tune.LfeWeaponAmp * [math]::Abs($transWeapon) / [math]::Max(1,$Tune.WeaponGain)), 3)
-            ScrubAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeScrubAmp * $scrubAmp / [math]::Max(1,$Tune.ScrubGain)), 3)
+            ScrubAmp   = [math]::Round([math]::Min(1.0, $duck * $Tune.LfeScrubAmp * $scrubAmp / [math]::Max(1,$Tune.ScrubGain)), 3)
             ExplodeAmp = [math]::Round([math]::Min(1.0, $Tune.LfeExplodeAmp * $Mix.BlastEnv), 3)
             WeaponFreq = $Tune.LfeWeaponHz
         }

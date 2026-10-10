@@ -3582,6 +3582,23 @@ static float __cdecl coll_dt(void) {
     float sim_dt = *(volatile float *)0x004fe420;          /* simclock_sim_dt */
     return (g_fixed_step > sim_dt) ? g_fixed_step : sim_dt;
 }
+/* I76_COLL_WINDOW=2 (2026-10-08, owner: ~1 in 3 roadblocks hit in T05 at 120 fps): =1 widens only the three sweep
+ * extents above; the two FINAL accept tests still compare the time of impact with the frame dt - the slab test
+ * 0x43df10 (box-box points, sphere) at 0x43e1c8 and the mesh test 0x43ebc0 at 0x43ec6a, both `t <= GetSimDt()`
+ * (lab docs/COLLISION-MISS-2026-10-08.md s.3) - so a contact past the first frame of the step is still dropped and the
+ * car is inside / past the object on the next step (a start-inside point is ignored). Those two routines are shared
+ * with the AI's look-ahead colliders (0x43d770 / 0x43d9e0), so they read the window only while physics_CollideObjects
+ * runs: its one call (WinMain 0x403a12; no arguments, plain ret, ebx is callee-saved) is wrapped to set a flag.
+ * Repeated contacts on frames with no step: pair with I76_COLL_DEDUPE=1. */
+static volatile int g_in_coll_pass;
+static void __cdecl coll_pass_wrap(void) {
+    g_in_coll_pass = 1;
+    ((void (__cdecl *)(void))0x004349c0)();
+    g_in_coll_pass = 0;
+}
+static float __cdecl coll_dt_gated(void) {
+    return g_in_coll_pass ? coll_dt() : *(volatile float *)0x004fe420;
+}
 static void apply_coll_window(void) {
     static const struct { DWORD site; BYTE old[5]; const char *what; } s[3] = {
         { 0x004349da, { 0xE8, 0xC1, 0x7D, 0x06, 0x00 }, "collision sweep dt (driver 0x4349c0)" },        /* -> [esp+0x10], the xz AABB sweep extent */
@@ -3597,6 +3614,26 @@ static void apply_coll_window(void) {
         n += patch_bytes(s[i].site, s[i].old, w, 5, s[i].what);
     }
     mlog("  coll-window: %d/3 sweep dt reads -> max(sim_dt, fixed step %.1f ms)", n, g_fixed_step * 1000.0f);
+    {   char v[4]; DWORD k = GetEnvironmentVariableA("I76_COLL_WINDOW", v, sizeof(v));
+        if (k == 1 && v[0] == '2') {
+            static const struct { DWORD site; BYTE old[5]; void *fn; const char *what; } t[3] = {
+                { 0x00403a12, { 0xE8, 0xA9, 0x0F, 0x03, 0x00 }, (void *)coll_pass_wrap, "collision pass flag (WinMain -> 0x4349c0)" },
+                { 0x0043e1c8, { 0xE8, 0xD3, 0xE5, 0x05, 0x00 }, (void *)coll_dt_gated,  "collision accept dt (slab test 0x43df10)" },
+                { 0x0043ec6a, { 0xE8, 0x31, 0xDB, 0x05, 0x00 }, (void *)coll_dt_gated,  "collision accept dt (mesh test 0x43ebc0)" },
+            };
+            int m = 0, mask = 3;
+            char mv[8]; DWORD mk = GetEnvironmentVariableA("I76_COLL_WINDOW_SITES", mv, sizeof(mv));
+            if (mk && mk < sizeof(mv)) mask = atoi(mv) & 3;  /* 1 = slab test 0x43e1c8, 2 = mesh test 0x43ec6a (2026-10-09: both = the car sank into the terrain on t04 drives) */
+            for (i = 0; i < 3; i++) {
+                BYTE w[5] = { 0xE8 };
+                LONG rel = (LONG)((DWORD_PTR)t[i].fn - (t[i].site + 5)); memcpy(w + 1, &rel, 4);
+                if (i > 0 && m == 0) break;                 /* no flag, no gated reads: the AI would see the window */
+                if (i > 0 && !(mask & (1 << (i - 1)))) continue;
+                m += patch_bytes(t[i].site, t[i].old, w, 5, t[i].what);
+            }
+            mlog("  coll-window v2: %d patched (pass flag + accept tests, sites mask %d: 1 slab 0x43e1c8, 2 mesh 0x43ec6a)", m, mask);
+        }
+    }
 }
 
 /* ===========================================================================
@@ -4660,8 +4697,14 @@ static int __cdecl cam_ground_setup_wrap(BYTE *cam) {
             g_cg_lifts++;
             if (!r) g_cg_fail++;
             if (g_cg_lifts <= 20 || !r)
-                mlog("  cam-ground-fix: lift #%lu (camera %p, %s): eye %.3f m under the terrain height %.2f; setup %s",
-                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)0x004c2730 ? "main" : "other", h - y0, h, r ? "ok, terrain queued" : "STILL refused");
+                mlog("  cam-ground-fix: lift #%lu (camera %p, %s, mode %d): eye %.3f m under the terrain height %.2f; setup %s",
+                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)0x004c2730 ? "main" : "other", *(int *)0x004c2728, h - y0, h, r ? "ok, terrain queued" : "STILL refused");
+            /* 2026-10-09: the main camera under the ground IN COCKPIT VIEW (camera_mode 0x4c2728 == 0) means the car
+               body is under it too (orbit / chase views put the eye near the ground on their own). Counted apart. */
+            if (cam == (BYTE *)0x004c2730 && *(int *)0x004c2728 == 0) {
+                static unsigned long n_ck;
+                if (++n_ck <= 200) mlog("  cam-ground-fix: COCKPIT-UNDER #%lu: eye %.3f m under the terrain height %.2f", n_ck, h - y0, h);
+            }
         }
     }
     return r;
