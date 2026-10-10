@@ -29,6 +29,13 @@ It contains no Activision bytes: it is our own code plus forwarders by name.
 > under the pointer, the bookmark route reached the mission and the in-mission Esc menu's items and Exit answered,
 > all by pointer at drawn positions. So this DLL's mapping, its `I76_U32X_MENU*` Esc-menu code and the corner
 > regime are no longer needed for the pointer; not yet promoted (daily driver unchanged, needs an owner play).
+>
+> **2026-10-08: promoted (driver promotion 15).** The daily driver's widescreen launchers (PLAY.bat, PLAY-balanced.bat)
+> run `dgVoodoo.wide.conf` with `CaptureMouse = false`, the proxy's `I76_CURSOR_MAP=1` + `I76_CURSOR_MAP_U32X=exe`
+> + `I76_CURSOR_MAP_DGV=1`, and this folder's build `06467bd2` with `I76_U32X_SHELL_STRETCH=1` (section "Shell
+> stretch" below). `=exe` instead of `=1`: with `=1` the shell's u32x slots went to user32, this DLL's modal
+> pointer never ran and the pointer froze on the garage OK popups (`614d38f`). PLAY-16x10.bat keeps the 16:10 conf
+> (`CaptureMouse = true`) and best-120, i.e. the corner regime above (backlog U-02).
 
 ## What is here, and where it came from
 
@@ -41,9 +48,9 @@ asked for it: a deployed, load-bearing DLL whose source sat only in the private 
 | `u32x.def` | export list: 4 intercepts + 49 forwarders = 53 names, the union of the USER32 imports of `i76shell.dll` and `i76.exe` | `9188eca53eb351a0c664ca2f2c222dfc` | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.def` |
 | `u32x.dll` | **the verified binary**, 75,264 B, x86 | `a5927cea02697657ce2102be766b5616` (sha256 `140990d8…cb952ab`) | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.dll`, built there 2026-09-07 15:56 by `src\build-min.ps1` (MSVC 2019 x86, `cl /O2 /LD u32x_min.c /link /DEF:u32x_min.def user32.lib`) |
 | `build.ps1` | rebuilds from the two source files to `u32x.build.dll` (never over `u32x.dll` unless `-Replace`) | | port of the lab's `src\build-min.ps1` |
-| `u32x_full.c` | the source of the **full build** (added 2026-10-03) | `c7b6fe5f31b9ada3d3f5a1d77f56378a` | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19") **and the modal pointer** (section "Modal pointer"; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` has neither |
+| `u32x_full.c` | the source of the **full build** (added 2026-10-03; `I76_U32X_SHELL_STRETCH` added 2026-10-08, `614d38f`) | `d956a07c8065c35012888c7e8fcefcdd` (was `c7b6fe5f31b9ada3d3f5a1d77f56378a` before `614d38f`) | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19") **and the modal pointer** (section "Modal pointer"; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` has neither |
 | `u32x_full.def` | its export list: the same 53 names, with `GetAsyncKeyState` and `GetKeyState` also pointed at our code (6 intercepts + 47 forwarders) | `2902622b28ab4ed5f79a59b54c50176d` | byte-identical to the lab's `src\u32x.def` at the same commit (blob `4b94a933`) |
-| `u32x_full.dll` | **the gated full binary: P1-19 fix + modal pointer + Win32 message boxes (b2)**, 116,736 B, x86, built 2026-10-03 by `build-full.ps1` from the `u32x_full.c` above | `602bfbc559f383b0e4a2641578ec9b1f` (sha256 `91fd7943…02158c9a1c`) | sandbox- and twin-gated 2026-10-03 night (section "Win32 message boxes"). Previous binaries: `19ab8dd1` (modal pointer; sandbox `game\u32x.dll.19ab8dd1`, twin `u32x.dll.pre-msgbox-19ab8dd1`), `696577dc` (P1-19 only; sandbox `game\u32x.dll.696577dc`, twin `u32x.dll.pre-f7-696577dc`) and `054fb411` (lab `src\u32x_gated_054fb411.dll`); both stay on `$KnownGood` |
+| `u32x_full.dll` | **the gated full binary: P1-19 fix + modal pointer + Win32 message boxes (b2) + shell stretch**, 116,736 B, x86, built 2026-10-08 with MSVC on the PC from the `u32x_full.c` above (`614d38f`); committed in `4d6dfe9` | `06467bd28e060b2889c9ef26b43ee152` (sha256 `03efc35c…a765b06540`) | twin-gated 2026-10-08 with the proxy cursor map, daily driver since promotion 15 (section "Shell stretch"). Before it: `602bfbc5` (sha256 `91fd7943…02158c9a1c`; P1-19 + modal pointer + message boxes, sandbox- and twin-gated 2026-10-03 night, section "Win32 message boxes"; promotions 7-14). Older binaries: `19ab8dd1` (modal pointer; sandbox `game\u32x.dll.19ab8dd1`, twin `u32x.dll.pre-msgbox-19ab8dd1`), `696577dc` (P1-19 only; sandbox `game\u32x.dll.696577dc`, twin `u32x.dll.pre-f7-696577dc`) and `054fb411` (lab `src\u32x_gated_054fb411.dll`); both stay on `$KnownGood` |
 | `build-full.ps1` | rebuilds the full build to `u32x_full.build.dll` and reports which bytes differ from `u32x_full.dll` | | port of the lab's `src\build-u32x.ps1` (same compiler line) |
 | `deploy-u32x.ps1` | installs / removes the proxy in a game folder | | port of the lab's `tools\instruments\deploy-shellfix.ps1`, with import/export and md5 guards |
 
@@ -59,7 +66,10 @@ Save Bookmark screen after 10 s idle: row click, SAVE twice, overwrite prompt. T
 work stays in the lab until it passes the same route, and then moves here as a new recorded build. Not verified
 by this build: the fullscreen Esc menu's Exit button (use the keyboard there).
 
-## The full build (`u32x_full`, md5 `054fb411`): what the daily driver runs
+## The full build (`u32x_full`, first gated as md5 `054fb411`)
+
+(The daily driver ran `054fb411` from 2026-10-03; it has run `06467bd2` since promotion 15, 2026-10-08: golden
+PROMOTIONS.md rows 0, 4, 6, 7, 15. This section describes the first build and how it was pinned.)
 
 Added to this repo on 2026-10-03. Until then this folder held only the minimal build, and the daily driver
 (`C:\Users\james\Games\Interstate76-2026-10-03`, [docs/records/NEW-DAILY-DRIVER-RECIPE.md](../docs/records/NEW-DAILY-DRIVER-RECIPE.md))
@@ -109,8 +119,10 @@ import/export guard, changes 10 bytes in each file, `-Status` reads it back, `-R
 **Where it is installed.** `setup-windows.ps1` installs `u32x_full.dll` by default since 2026-10-03 (it hands
 the DLL to `deploy-u32x.ps1`, which accepts only an md5 on its `$KnownGood` list; both builds are on it).
 `-U32xDll u32x\u32x.dll` installs the minimal build. `Make-Portable-Zip.ps1` and `tools\Make-Daily-Driver.ps1`
-still default to `u32x.dll`: pass `-U32xDll u32x\u32x_full.dll` to them (a portable zip made without it puts
-the minimal build into the staged copy).
+default to `u32x_full.dll` too since `21b1676` (2026-10-03 12:41; both check it against `$KnownGood`); pass
+`-U32xDll u32x\u32x.dll` to them for the minimal build. (Until 2026-10-10 this paragraph said they defaulted to
+`u32x.dll`, which was true only before `21b1676`.) Whatever md5 `u32x_full.dll` has at the time is what they
+install: `06467bd2` since `4d6dfe9`.
 
 ## P1-19: no keep-alive pump inside the shell's modal loops (build `696577dc`, 2026-10-03)
 
@@ -224,6 +236,33 @@ sat 25 px low, but in this single-instance case it was already in front and answ
 reproduce the "behind the picture" failure itself (that was two stacked instances). Gate: sandbox rows 2 (leg-b 3/3),
 3 (2/2 at 120 fps), 4 (save screen NO / YES, and K3 keys N / Esc / Y), 6 (melee) PASS; twin `game-dd-20261003` rows
 2, 3 (PLAY.bat, 120 fps), 4, 6, S, D all PASS (lab `autotest\runs\gate\20261003-212415`).
+
+## Shell stretch: the shell mapped over a stretched picture (build `06467bd2`, 2026-10-08, promotion 15)
+
+**Problem (owner, lab twin, 2026-10-08).** With the proxy's cursor map (`CaptureMouse = false`,
+`I76_CURSOR_MAP_U32X=1`) the menus worked, but the pointer froze or vanished on the garage Build & Repair popups.
+This DLL's modal pointer (section "Modal pointer", `19ab8dd1`) runs inside its own `GetCursorPos` for a shell
+return address and keys on ShellMain's `PeekMessageA`; `=1` had repointed the shell's u32x slots to user32, so it
+never ran and only dgVoodoo's frozen pencil was left (`614d38f`).
+
+**Change.** Proxy side: `I76_CURSOR_MAP_U32X=exe` takes only i76.exe's u32x slots; i76shell keeps this DLL (modal
+arrow, the P1-19 modal-pump rule, the name-entry keep-alive). This DLL: **`I76_U32X_SHELL_STRETCH=1`** (default
+off) maps the shell over the stretched picture (`shell_picture_map`) when the folder's `dgVoodoo.conf` says
+`ScalingMode = stretched`, the same arithmetic as the proxy's map. Without the switch the shell keeps its 4:3 map.
+
+**Binary.** `06467bd28e060b2889c9ef26b43ee152`, 116,736 B, built with MSVC on the PC from `614d38f`'s source. It
+differs from `602bfbc5` beyond the link stamps (another compiler; `614d38f`), so the "4 bytes differ, all
+link-time stamps" rebuild result above belongs to the 2026-10-03 builds, not to this one. On `deploy-u32x.ps1`'s `$KnownGood` list since `4d6dfe9`.
+
+**Measured / gated** (from `614d38f`, `4d6dfe9` and golden PROMOTIONS.md row 15): lab twin `game-dd-20261003`,
+owner n=1 with both switches: garage popup arrow follows and OK closes, menus fine; `mciproxy.log` i76.exe 4/4
+u32x slots, I76SHELL.DLL 0/4. Gate with the staged promotion set (proxy `c11f7f7d`, this DLL, wide conf
+`CaptureMouse = false`, best-wide `8de71421` / best-wide-balanced `a2191719`), every click verified by the shell
+mouse: gate-folder via PLAY.bat **23 PASS 0 FAIL** (lab `autotest\runs\gate\20261008-204529`: bookmark route 3/3,
+trip 2/2 at 120 fps, save screen NO/YES with the modal arrow up, Esc-menu Exit where drawn, melee, lint, saves
+identical); PLAY-16x10.bat and PLAY-balanced.bat row 3 2/2 at 120 fps each (only row D, the launchers copy their
+conf in); garage popup repro arrow on the mapped point 5/5 (delta 0), closed 4/4. **Not run:** force feedback
+(no wheel at launch; backlog H-01), the owner on the daily driver itself (backlog U-01), a fresh GOG install.
 
 ## The minimal build: notes
 

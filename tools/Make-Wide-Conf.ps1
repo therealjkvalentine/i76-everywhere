@@ -6,23 +6,33 @@
   per display, and this script writes both into the game folder:
 
     1. <GameDir>\dgVoodoo.wide.conf, derived from the folder's own accepted conf
-       (dgVoodoo.16x10.conf if present, else dgVoodoo.conf). Exactly two lines change:
-         [General] ScalingMode = stretched              (was stretched_ar: keep the app's 4:3)
-         [Glide]   Resolution  = <Wi>x<Hi>              (display aspect, Hi = -InternalHeight, default 2160)
+       (dgVoodoo.16x10.conf if present, else dgVoodoo.conf). At most three lines change:
+         [General] ScalingMode  = stretched             (was stretched_ar: keep the app's 4:3)
+         [General] CaptureMouse = false                 (since promotion 15, 2026-10-08; the 16:10 conf keeps true)
+         [Glide]   Resolution   = <Wi>x<Hi>             (display aspect, Hi = -InternalHeight, default 2160)
        Every other byte is kept: dgVoodoo 2.87.3 REJECTS the whole file over one line it does not like and
        silently falls back to %APPDATA%\dgVoodoo\dgVoodoo.conf (lab docs\DGVOODOO-CONF-REJECTED.md), so the
-       output is checked to equal the source apart from those two values.
+       output is checked to equal the source apart from those three values.
+       Why CaptureMouse = false, for this stretched wide conf ONLY: the wide presets (best-wide,
+       best-wide-balanced) map the menu pointer themselves since promotion 15 - the proxy's I76_CURSOR_MAP
+       (+ I76_CURSOR_MAP_U32X=exe, I76_CURSOR_MAP_DGV) and u32x 06467bd2's I76_U32X_SHELL_STRETCH translate the
+       real pointer through the stretched picture. With CaptureMouse = true dgVoodoo clips the OS pointer to a
+       640x480 box at the screen's top left and draws an emulated arrow, so the drawn pointer and the real one
+       disagree (u32x/README.md, 2026-10-07 note; golden PROMOTIONS.md row 15: dgVoodoo.wide.conf 907a31a4 ->
+       ac0ecdeb). The 16:10 conf is not touched: PLAY-16x10.bat runs best-120, which sets no cursor map.
+       On a 16:10 source equal to the driver's dgVoodoo.16x10.conf (299a6811) and a 3440x1440 display the
+       output is byte-equal to the driver's dgVoodoo.wide.conf (ac0ecdeb).
        2160 internal lines is what the daily driver runs on its 3440x1440 panel (5160x2160, 1.5x the panel,
        measured 120 fps on a GTX 1080 Ti); on a 1080-line display it is 2x. Nothing else has been run.
-    2. <GameDir>\presets\best-wide.psd1 with I76_ASPECT = '<W>x<H>' and I76_U32X_MENU_ASPECT = '<W>:<H>'
-       for this display. The repo copy hard-codes the owner's 3440x1440; PLAY-i76.ps1 applies a preset's
+    2. <GameDir>\presets\best-wide.psd1 and best-wide-balanced.psd1 (each one present) with
+       I76_ASPECT = '<W>x<H>' and I76_U32X_MENU_ASPECT = '<W>:<H>' for this display. The repo copy hard-codes the owner's 3440x1440; PLAY-i76.ps1 applies a preset's
        values over the environment, so the per-install copy is the way to change them.
 
   It does NOT copy the wide conf over dgVoodoo.conf: the launcher .bat does that before each start
   (setup-windows.ps1 -Preset best-wide writes PLAY-i76.bat that way, as on the daily driver).
 
   Status: offline only. The generated files were checked on a scratch copy (parse, two-line diff, preset
-  loads); widescreen has been PLAYED only on 3440x1440. Menus, cutscenes and 2D text stay stretched to the
+  loads; 2026-10-10 with the CaptureMouse line: three-line diff, output md5 = the driver's ac0ecdeb); widescreen has been PLAYED only on 3440x1440. Menus, cutscenes and 2D text stay stretched to the
   display's shape (dgVoodoo applies one presentation config per process; lab docs\WIDESCREEN-2D.md).
 
   Usage:
@@ -65,38 +75,44 @@ $hi = $InternalHeight
 $wi = [int]([Math]::Round($hi * $aspect / 2.0) * 2)
 
 $scRx = New-Object regex '(?ms)(^\[General\]\s.*?^ScalingMode\s*= )[A-Za-z_]+'
+$cmRx = New-Object regex '(?ms)(^\[General\]\s.*?^CaptureMouse\s*= )[A-Za-z]+'
 $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
 if (-not $scRx.IsMatch($src)) { Die "$SourceConf has no [General] ScalingMode line" }
+if (-not $cmRx.IsMatch($src)) { Die "$SourceConf has no [General] CaptureMouse line" }
 if (-not $glRx.IsMatch($src)) { Die "$SourceConf has no [Glide] Resolution = WxH line" }
 $out = $scRx.Replace($src, '${1}stretched', 1)
+$out = $cmRx.Replace($out, '${1}false', 1)    # the wide presets' cursor map needs a free pointer (header)
 $out = $glRx.Replace($out, ('${1}' + "${wi}x${hi}"), 1)
 
-# Same shape or nothing: masking the two values must give back the source text exactly.
-$mask = { param($t) ($t -replace '(?m)^(ScalingMode\s*= )[A-Za-z_]+', '$1') -replace '(?m)^(Resolution\s*= )\d+x\d+', '$1' }
-if ((& $mask $out) -cne (& $mask $src)) { Die "internal error: the output differs from $SourceConf in more than the two values" }
+# Same shape or nothing: masking the three values must give back the source text exactly.
+$mask = { param($t) (($t -replace '(?m)^(ScalingMode\s*= )[A-Za-z_]+', '$1') -replace '(?m)^(CaptureMouse\s*= )[A-Za-z]+', '$1') -replace '(?m)^(Resolution\s*= )\d+x\d+', '$1' }
+if ((& $mask $out) -cne (& $mask $src)) { Die "internal error: the output differs from $SourceConf in more than the three values" }
 $changed = @(Compare-Object ($src -split "`n") ($out -split "`n") | Where-Object SideIndicator -eq '=>').Count
-if ($changed -gt 2) { Die "internal error: $changed lines changed (expected at most 2)" }
+if ($changed -gt 3) { Die "internal error: $changed lines changed (expected at most 3)" }
 
 $confOut = Join-Path $GameDir 'dgVoodoo.wide.conf'
-$presetFile = Join-Path $GameDir 'presets\best-wide.psd1'
 Write-Host ("display {0}x{1} (aspect {2:N3}); source {3}" -f $Width, $Height, $aspect, $SourceConf)
-Write-Host "  dgVoodoo.wide.conf: ScalingMode = stretched, [Glide] Resolution = ${wi}x${hi}"
+Write-Host "  dgVoodoo.wide.conf: ScalingMode = stretched, CaptureMouse = false, [Glide] Resolution = ${wi}x${hi}"
 if ($WhatIf) { Write-Host "  -WhatIf: nothing written." } else {
     [IO.File]::WriteAllText($confOut, $out, [Text.Encoding]::ASCII)
     Write-Host "  written: $confOut"
 }
 
 if (-not $NoPreset) {
-    if (-not (Test-Path -LiteralPath $presetFile)) {
-        Write-Host "  presets\best-wide.psd1 not in the game folder: preset not adjusted (setup-windows.ps1 copies it)." -ForegroundColor Yellow
-    } else {
+    $widePresets = @(@('best-wide', 'best-wide-balanced') | ForEach-Object { Join-Path $GameDir "presets\$_.psd1" } |
+        Where-Object { Test-Path -LiteralPath $_ })
+    if (-not $widePresets.Count) {
+        Write-Host "  presets\best-wide.psd1 / best-wide-balanced.psd1 not in the game folder: no preset adjusted (setup-windows.ps1 copies them)." -ForegroundColor Yellow
+    }
+    foreach ($presetFile in $widePresets) {
+        $presetName = Split-Path -Leaf $presetFile
         $p = [IO.File]::ReadAllText($presetFile)
         $aRx = New-Object regex "(?m)^(\s*I76_ASPECT\s*=\s*)'[^']*'"
         $mRx = New-Object regex "(?m)^(\s*I76_U32X_MENU_ASPECT\s*=\s*)'[^']*'"
         if (-not $aRx.IsMatch($p)) { Die "$presetFile has no I76_ASPECT line" }
         $p2 = $aRx.Replace($p, ('${1}' + "'${Width}x${Height}'"), 1)
         if ($mRx.IsMatch($p2)) { $p2 = $mRx.Replace($p2, ('${1}' + "'${Width}:${Height}'"), 1) }
-        Write-Host "  presets\best-wide.psd1: I76_ASPECT = '${Width}x${Height}', I76_U32X_MENU_ASPECT = '${Width}:${Height}'"
+        Write-Host "  presets\${presetName}: I76_ASPECT = '${Width}x${Height}', I76_U32X_MENU_ASPECT = '${Width}:${Height}'"
         if (-not $WhatIf) {
             if ($p2 -cne $p) {
                 [IO.File]::WriteAllText($presetFile, $p2, (New-Object Text.UTF8Encoding($true)))

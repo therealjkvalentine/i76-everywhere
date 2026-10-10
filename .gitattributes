@@ -31,3 +31,14 @@ controls/input.map -text
 # Windows batch files: cmd mis-handles labels and goto in LF-only files (TEST-FRAMERATE.bat skipped a menu, 2026-10-03)
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# The three promoted presets and the daily driver's launch confs are copied into game folders and compared by
+# md5 against the golden copy's PROMOTIONS.md (best-wide 8de71421, best-wide-balanced a2191719, best-120 3c12c8d0,
+# dgVoodoo.wide.conf ac0ecdeb, dgVoodoo.16x10.conf 299a6811). The driver's files have mixed line endings
+# (best-wide / best-120 LF, best-wide-balanced CRLF, the confs CRLF), so the presets are stored byte for byte
+# with no conversion and the confs are pinned CRLF: a checkout is byte-equal whatever core.autocrlf says.
+presets/best-wide.psd1                  -text
+presets/best-wide-balanced.psd1         -text
+presets/best-120.psd1                   -text
+tools/conf/*.conf                       text eol=crlf
+dgVoodoo.daily-driver-2026-10-03.conf   text eol=crlf

@@ -17,12 +17,16 @@
         I76_FIX_HEALTH_PCT  = '1'
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1800'
-        I76_CAM_GROUND_FIX  = '1'   # terrain kept when the eye dips under the ground (stock skips ALL terrain that frame = the terrain-to-sky flash; lab RENDER-FREEZE-2026-10-04.md s.9; promotion 14)
-        I76_ZGLIDE_TMUFIX   = '1'   # needs dgVoodoo [Glide] MemorySizeOfTMU 8192 (promotion 12): no ZGLIDE flush freezes, no 2 MB boundary rewind (lab RENDER-FREEZE-2026-10-04.md; gate + soak 2026-10-04)
-        I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) survive frames without a physics step: 50/50 each at 120 fps vs 13/50 and 7/50 without (lab 2026-10-04, consolidated proxy 89a97d25)
-        I76_AI_BACKAWAY_GRID = '1'  # AI back_away stuck test on the 20 Hz grid, not 4 rendered frames: T12 opening cut 6.6 s 5/5 + 3/3 as vanilla 7/7 (was 0/5); route gate rows 2-4 PLAY.bat + PLAY-16x10.bat 14/15 each, only D (lab 2026-10-05, proxy 89a97d25)
+        I76_CAM_GROUND_FIX  = '1'   # terrain kept when the eye dips under the ground (stock skips ALL terrain that frame = the terrain-to-sky flash; lab RENDER-FREEZE-2026-10-04.md s.9)
+        I76_AI_BACKAWAY_GRID = '1'   # AI back_away stuck test on the 20 Hz grid, not 4 rendered frames: T12 opening 5/5 as vanilla (lab 2026-10-04 milk-truck doc s7-9)
+        I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) presses survive frames without a physics step (lab 2026-10-04: 50/50 vs 13/50)
+        I76_ZGLIDE_TMUFIX   = '1'   # with dgVoodoo MemorySizeOfTMU 8192: no ZGLIDE flush freezes, no 2 MB boundary rewind (lab RENDER-FREEZE-2026-10-04.md)
         I76_GLIDE_REFRESH   = '120'
         I76_ASPECT          = '3440x1440'
+        I76_CURSOR_MAP      = '1'     # the proxy maps the menu pointer through the window (dgVoodoo.wide.conf CaptureMouse = false)
+        I76_CURSOR_MAP_U32X = 'exe'   # ... taking i76.exe's u32x slots; i76shell keeps u32x (its arrow in the garage / reminder OK popups)
+        I76_U32X_SHELL_STRETCH = '1'  # u32x maps the shell over the stretched picture (ScalingMode = stretched)
+        I76_CURSOR_MAP_DGV  = '1'     # dgVoodoo draws its cursor where the pointer really is
         I76_U32X_MENU_ASPECT = '3440:1440'   # the mouse DLL maps the in-mission Esc menu to the full panel (verified: Exit answers where drawn)
         I76_TERRAIN_LOD     = '8'
         I76_TERRAIN_TEX     = '8'

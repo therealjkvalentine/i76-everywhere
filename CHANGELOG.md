@@ -3,7 +3,78 @@
 All notable milestones for **i76-everywhere**. Dates are ISO. This project follows
 ["bring your own game"](THIRD-PARTY.md) — it ships no copyrighted content.
 
-## Unreleased
+## v1.1.0 (DRAFT, unreleased - not tagged; the release call and the tag are the owner's)
+
+Everything since `v1.0.0` (`99863f5`, 2026-07-14): 640 commits to 2026-10-10. This block summarises the
+2026-10-03 evening to 2026-10-10 work by area; the dated sections below it are the detailed log of the earlier
+part. Status brackets as before: `[measured, lab]` = lab twin or sandbox, `[driver]` = promoted into the daily
+driver (golden `PROMOTIONS.md` row), `[built, untested]`, `[owner test pending]`. **Blocking the release:** a
+fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD-PARTY dgVoodoo sentence (R-12).
+
+### Frame rate and physics (music-fix proxy switches, all opt-in)
+- **Input latch** `I76_INPUT_LATCH=1` (`f71392f`): ignition / lights presses survive frames without a physics
+  step, 50/50 each at 120 fps vs 13/50 and 7/50 without `[measured, lab]` `[driver: promotion 11]`.
+- **AI back-away on the 20 Hz grid** `I76_AI_BACKAWAY_GRID=1` (`e93bc49`, presets `4334e70`): T12 opening as
+  vanilla, 6.6 s cut 3/3 (0/5 without) `[driver: promotion 12]`.
+- **Collision window v2** `I76_COLL_WINDOW=2` (`4822bcb`) + `I76_COLL_WINDOW_SITES` (`7f6cb8e`): T05 barricades
+  contacted 36/36 vs 8/28 off at 120 fps; car under the terrain 0/8 vs 3/8 off `[measured, lab]`
+  `[owner test pending]`; not in the committed `Strlkup.dll` and in no preset. `=1` measured 3/14: no effect.
+- **Co-op campaign** over IPX (`34a1fe4`..`13b5455`; `I76_COOP_DAMAGE`, `I76_COOP_AI`, `I76_COOP_CHAIN`, CB radio,
+  objectives, joiner respawn, Windows reload crash fix): PC host + Mac joiner in campaign missions; gaps in
+  [docs/COOP.md](docs/COOP.md) `[measured, two machines]`.
+- `I76_JOY_MAP` / `I76_JOY_SYNTH` (`6f28a3b`), `I76_NO_MINIMIZE` (`ef8564c`) for two copies on one PC (Nucleus)
+  `[built; used in the first Nucleus runs, no-minimize A/B n=1]` (`65d4a39`, `5e20b2d`, `c81181f`); `I76_MUSIC_THREAD` (`fa031d2`) MCI calls off the game thread `[built, untested]`.
+
+### Graphics
+- **Widescreen 21:9 (Hor+)** `I76_ASPECT` (`70c33ba`, `6b2ed70`), HUD sprite squeeze (`8c9678f`), detail
+  switches `I76_TERRAIN_LOD/TEX`, `I76_OBJECT_LOD`, `I76_SHADOW_DIST`, `I76_ROAD_TEX`, `I76_CLUTTER_DIST`,
+  `I76_MIRROR_FAR` in preset `best-wide` (`3fe6258`) `[driver: promotion 2]`; road pool fix `I76_ROAD_POOL`
+  (`e2e1685`) `[driver: promotion 8]`. Menus, cutscenes and 2D text stay stretched (backlog G-02).
+- **Render freezes**: `I76_ZGLIDE_TMUFIX` (`bfd99f0`) with dgVoodoo `MemorySizeOfTMU = 8192`: 0 flushes / 0
+  spikes / 0 rewinds in the soak `[driver: promotion 11]`. Diagnostics `I76_FRAME_SPIKES`, `I76_TEX_CENSUS`.
+- **Terrain-to-sky flash** `I76_CAM_GROUND_FIX` (`7ab2a01`): 0 zero-terrain frames in the underground hold
+  (n=3) `[driver: promotion 14]`; `COCKPIT-UNDER` log line (`552dcb4`).
+- `best-wide-balanced` preset, far clip 1200 m (`0c91cde`) `[driver: promotion 13]`. `I76_GLIDE_GAMMA`
+  (`d35b29f`) `[measured, Steam Deck]`.
+
+### Menus and pointer
+- **Pointer follows the mouse in widescreen**: proxy `I76_CURSOR_MAP` (`1ccca2d`, `086c7aa`), `_DGV`
+  (`820d816`), `_U32X=exe` + u32x `I76_U32X_SHELL_STRETCH` (`614d38f`); dgVoodoo `CaptureMouse = false` in the
+  wide conf. Gate 23/0 on the twin, owner n=1 there `[driver: promotion 15]` `[owner test pending on the driver]`.
+  Committed binaries: `music-fix/Strlkup.dll` `c11f7f7d`, `u32x/u32x_full.dll` `06467bd2` (`4d6dfe9`).
+- u32x `696577dc` garage popup lock, `19ab8dd1` modal arrow, `602bfbc5` message boxes in front; shell F7 and
+  modal keys (`eadd7bb`, `2cac38d`, `f05842f`, `1a490b1`) `[driver: promotions 4, 6, 7]`.
+
+### Install, launcher, presets (2026-10-10)
+- Repo presets `best-wide` / `best-wide-balanced` / `best-120` and `tools/conf` launch confs md5-equal to the
+  daily driver (`c1f1fcf`). `setup-windows.ps1` writes TMU 8192 for presets with `I76_ZGLIDE_TMUFIX`,
+  `-Preset best-wide-balanced` is a widescreen preset, a widescreen install gets `PLAY-balanced.bat`;
+  `tools/Make-Wide-Conf.ps1` writes `CaptureMouse = false` into the wide conf only (`51cbf6b`) `[tested offline:
+  output md5 = driver]`.
+- `PLAY-i76.ps1` refuses `I76_TERRAIN_LOD` > 1 without `I76_FAR_CLIP` (binocular crash 3/3) and warns on
+  `I76_COLL_WINDOW` without `I76_FIXED_STEP`; `tests/test_presets.py` (`8a3f3c8`). Head tracking opt-in
+  `-HeadTrack` (`f6bad59`).
+- TRAINER.bat + SAVE-EDITOR.bat in the driver (`20fca82`) `[driver: promotion 9]`; trainer campaign-safe holds and
+  cheat-marker guard, save editor `--clear-cheat-options` (`3bbbb8a`, `f71392f`) `[driver: promotion 11]`.
+
+### Music
+- Run end exclusive (the game's `MCI_TO` is a track start; 15.mp3 no longer appended), `I76_MUSIC_DISC_ORDER`,
+  `I76_MUSIC_SHELL=1997` (`2006051`) `[measured, lab n=2]`; run-end fix `[driver: promotion 11]`, the two options
+  in no preset (owner's taste).
+
+### Mac and Steam Deck
+- Mac: proxy switches under Wine (`b1ea880`); real OpenGLide 65-105 fps, 120 with Terrain Resolution Medium
+  (`96314e2`, `cd6a945`); OpenGLide under DxWnd is the Mac install (`9d9f357`); mic-prompt-free test clones
+  (`3a3bfc2`).
+- Steam Deck: wide build with the proxy, fake fullscreen, 60.0 fps in T01 (`2ebbbb7`, `eacb405`), cursor map with
+  `CaptureMouse` off (`1ccca2d`), far clip 1800 (`c201304`), one pad layout (`07a5aad`) `[measured on the Deck]`.
+
+### Controls and haptics
+- Pad layer: Y cycles chase / cockpit / cockpit with dash (`a7d61c0`), right stick orbits the external camera
+  (`401743a`) `[built; not in a promotion]`; controls PDF with wheel and stick pages (`4766bb0`)
+  `[driver: promotion 10]`. FFB mixer blast-decay fix (`560dcd2`) `[built, untested]`.
+
+## Unreleased (detailed log, 2026-10-02 / 10-03)
 
 ### 2026-10-03
 
