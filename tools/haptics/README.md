@@ -118,6 +118,12 @@ orientation, body rates, plus `CoreStep.Events`), `RendererRegistry.Register("Mo
   transient" headroom above 0.95.
 * **HP/LP**: the shipped shaker chain is HP 11 Hz / LP 85 Hz (x1.35 inside LfeCore), not the "22/90" the design text
   says; the rig file carries the shipped values.
+* **B4 real-time loop: exit criterion NOT met.** A 600 s replay at 250 Hz (`replay out\b4\synthetic-600s.i76rec --realtime`,
+  all four file sinks, 2026-10-10, n = 1, on a desktop doing other work) gave 149,997 updates: p50 0.00 ms, p99 0.44 ms,
+  p99.9 0.58 ms, max 13.6 ms. 3 updates were more than 8 ms late (target: none). Still to do: rule out file-sink I/O and GC
+  (rerun with no sinks, `GCSettings.LatencyMode = SustainedLowLatency`, a multimedia timer), then repeat for n >= 3.
+* Golden real drives: `drive2.csv` / `drive3.csv` are gitignored, so a fresh checkout has none. Set
+  `I76_REAL_DRIVES=<folder>` (for example the main checkout's `tools\ffb`) before `haptics.ps1 test`, or the two real-drive checks are skipped.
 * `i76tel.py --record` (design A1) was not added: the proxy agent owns `i76tel.py`; recording is `haptics.ps1 record`.
 
 ## Owner-console tests (Phase C)

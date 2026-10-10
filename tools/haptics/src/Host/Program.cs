@@ -204,7 +204,7 @@ namespace Haptics.Host
             var sw = System.Diagnostics.Stopwatch.StartNew();
             Derive.Result last = null; double lastSim = 0, lastArrive = 0; var pending = new List<HapticEvent>();
             var effectsDir = set.EffectsDir; DateTime stamp = Directory.GetFiles(effectsDir, "*.json").Max(f => File.GetLastWriteTimeUtc(f));
-            var late = new List<double>(); double next = 0; int frames = 0;
+            var late = new List<double>(); double next = 0, lastReloadCheck = 0; int frames = 0;
             Console.WriteLine("live: waiting for telemetry on " + (shm ? "shm" : "udp :" + udp.Port) + (a.Has("--live") ? " (devices LIVE)" : " (file sinks only - add --live for devices)"));
             while (!cts.IsCancellationRequested && (secs <= 0 || sw.Elapsed.TotalSeconds < secs))
             {
@@ -230,8 +230,9 @@ namespace Haptics.Host
                     if (s.Shift != 0 || last.Sample.FxFired != null) { last.Sample.Shift = 0; last.Sample.FxFired = null; }
                 }
                 // hot reload of effects/*.json
-                if (frames % 250 == 0)
+                if (sw.Elapsed.TotalSeconds - lastReloadCheck >= 1.0)
                 {
+                    lastReloadCheck = sw.Elapsed.TotalSeconds;
                     var st = Directory.GetFiles(effectsDir, "*.json").Max(f => File.GetLastWriteTimeUtc(f));
                     if (st != stamp) { stamp = st; try { var ns = EffectSet.Load(a.Get("--effects"), a.Get("--rig")); p.Core.Load(ns); Console.WriteLine("reloaded effects"); } catch (Exception ex) { Console.WriteLine("reload failed: " + ex.Message); } }
                 }
@@ -242,7 +243,8 @@ namespace Haptics.Host
                 late.Add((sw.Elapsed.TotalSeconds - next) * 1000);
             }
             foreach (var r in p.Renderers) r.Close();
-            Console.WriteLine("live: {0} frames", frames);
+            var lp = new Pipeline(); lp.LatenessMs.AddRange(late);
+            Console.WriteLine("live: {0} frames; loop deadline {1}", frames, lp.LatenessHistogram());
             foreach (var r in p.Renderers) Console.WriteLine("  " + r.Summary());
             return 0;
         }

@@ -31,8 +31,11 @@ switch ($cmd) {
     'test' {
         Build-All
         $real = Join-Path (Resolve-Path (Join-Path $here '..\..')) 'tools\ffb'
+        # drive2.csv / drive3.csv are gitignored captures: a worktree has none. I76_REAL_DRIVES points at a folder that does
+        # (e.g. the main checkout's tools\ffb); without them the two real-drive golden checks are simply not generated.
+        $drives = if ($env:I76_REAL_DRIVES) { $env:I76_REAL_DRIVES } else { $real }
         Write-Host "--- golden: running tools/ffb/FfbMixer.ps1 over the synthetic drives ---" -ForegroundColor Cyan
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here 'tests\golden\make-golden.ps1') -RealDrives $real
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here 'tests\golden\make-golden.ps1') -RealDrives $drives
         if ($LASTEXITCODE -ne 0) { throw "make-golden failed" }
         Write-Host "--- probe WAVs: tools/ffb/ffb-lfe-probe.ps1 renders the reference shaker signal (files only, nothing plays) ---" -ForegroundColor Cyan
         & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $real 'ffb-lfe-probe.ps1') -OutDir (Join-Path $here 'tests\out\probe') | Out-Null
