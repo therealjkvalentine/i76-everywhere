@@ -23,6 +23,11 @@ namespace Haptics.Host
          [--core-hz 250 | --core-hz frame --frame-hz 60] [--realtime] [--solo id,..] [--mute id,..]
          [--loopback-wav FILE] [--effects DIR] [--rig FILE] [--live]
          <input> = a .i76rec recording | a tools/ffb drive*.csv | synthetic | synthetic:v2 | synthetic:v3
+  motion <input> [--targets flypt,native] [--send] [--fast] [--repeat N] [--hz 100] [--resample interp|hold]
+         [--targets-file FILE] [--startup-neutral S] [--out DIR] [--tag NAME] [--rig FILE]
+         replay -> the motion renderer (docs/MOTION-OUTPUT.md): packet logs per target in --out; with --send also UDP
+         to the targets' loopback ports, paced in real time (--fast: as fast as possible). Default targets: the
+         enabled ones in motion/targets.json. <input> as for replay.
   preview --effect ID [--out DIR] [--sinks ...]   render one effect alone (its stimulus, soloed) to all sinks
   synth --out FILE.i76rec [--version 2|3] [--repeats N]     write a scripted session as real datagrams
   record --udp [PORT] | --shm   --out FILE.i76rec [--seconds N]   capture telemetry (no device involved)
@@ -45,6 +50,7 @@ namespace Haptics.Host
                 {
                     case "replay": return Replay(argv.Length > 1 ? argv[1] : null, a);
                     case "preview": return PreviewCmd(a);
+                    case "motion": return MotionCmd(argv.Length > 1 ? argv[1] : null, a);
                     case "synth": return Synth(a);
                     case "record": return Record(a);
                     case "live": return Live(a);
@@ -131,6 +137,76 @@ namespace Haptics.Host
             return 0;
         }
 
+        /// <summary>
+        /// haptics motion: a recording / synthetic session through the core into Motion.Udp only. Files always; UDP only with
+        /// --send (loopback targets only: the config lint refuses anything else without allow_remote).
+        /// </summary>
+        static int MotionCmd(string input, Args a)
+        {
+            var set = LoadSet(a);
+            string tag = a.Get("--tag") ?? (input == null ? "motion" : Path.GetFileNameWithoutExtension(input.Replace(':', '_')));
+            var outDir = OutDir(a, "motion");
+            bool send = a.Has("--send");
+            var cfg = (set.Rig.Output("motion_udp")?.DeepClone() as System.Text.Json.Nodes.JsonObject) ?? new System.Text.Json.Nodes.JsonObject { ["renderer"] = "Motion.Udp" };
+            if (a.Get("--targets") != null) cfg["select"] = a.Get("--targets");
+            if (a.Get("--targets-file") != null) cfg["targets_file"] = Path.GetFullPath(a.Get("--targets-file"));
+            if (a.Get("--hz") != null) cfg["output_hz"] = a.Num("--hz", 100);
+            if (a.Get("--resample") != null) cfg["resample"] = a.Get("--resample");
+            if (a.Get("--startup-neutral") != null) cfg["startup_neutral_s"] = a.Num("--startup-neutral", 2.0);
+            cfg["send"] = send;
+            var p = Session.Build(set, new string[0], outDir, tag, false, 250);
+            var mr = new MotionUdpRenderer();
+            mr.Open(new RendererContext { OutputName = "motion_udp", Config = cfg, Rig = set.Rig, Effects = set, Tune = p.Core.Mixer.Tune, OutDir = outDir, Tag = tag, CoreHz = 250 });
+            p.Renderers.Add(mr);
+            p.RealTime = (send && !a.Has("--fast")) || a.Has("--realtime");
+            var derive = new Derive(); p.Core.Configure(derive);
+            int repeat = Math.Max(1, (int)a.Num("--repeat", 1));
+            var cts = new CancellationTokenSource(); Console.CancelKeyPress += (o, e) => { e.Cancel = true; cts.Cancel(); };
+            if (p.RealTime) Console.WriteLine("motion: real-time playback" + (repeat > 1 ? ", " + repeat + " passes" : "") + "; Ctrl+C stops (the targets then get the shutdown packet)");
+            var t0 = DateTime.UtcNow;
+            p.Run(MotionInput(input, derive, repeat, w => Console.WriteLine("  decoder: " + w)), cts.Token);
+            foreach (var r in p.Renderers) r.Close();
+            Console.WriteLine("motion {0}: {1} frames, {2:0.0} s wall", input, p.Frames, (DateTime.UtcNow - t0).TotalSeconds);
+            Console.WriteLine("  " + mr.Summary());
+            foreach (var (tg, kind, path) in mr.Logs) Console.WriteLine("  log {0} {1} -> {2}", tg, kind, path);
+            return 0;
+        }
+
+        /// <summary>Datagrams of a recording / synthetic session, optionally looped: each pass shifts sim_time / frame / seq so time keeps running forward.</summary>
+        static IEnumerable<FrameIn> MotionInput(string input, Derive derive, int repeat, Action<string> warn)
+        {
+            if (input == null) throw new ArgumentException("motion needs an input (a .i76rec, a drive*.csv, or synthetic[:v2|v3])");
+            if (input.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)) return Sources.FromDriveCsv(input);
+            List<(double t, byte[] data)> recs = input.StartsWith("synthetic", StringComparison.OrdinalIgnoreCase)
+                ? Synthetic.Session(input.EndsWith(":v2") ? 2 : 3).ToList()
+                : RecordingReader.Load(input).Records;
+            return Sources.FromDatagrams(Loop(recs, repeat), derive, TelCodec.Default(), warn);
+        }
+
+        static IEnumerable<(double t, byte[] data)> Loop(List<(double t, byte[] data)> recs, int repeat)
+        {
+            foreach (var r in recs) yield return r;
+            if (repeat <= 1 || recs.Count < 2) yield break;
+            var codec = TelCodec.Default();
+            var first = codec.Decode(recs[0].data); var last = codec.Decode(recs[recs.Count - 1].data);
+            if (first?.Frame == null || last?.Frame == null) yield break;
+            double hostSpan = recs[recs.Count - 1].t - recs[0].t + (recs[1].t - recs[0].t);
+            double simSpan = last.Frame.SimTime - first.Frame.SimTime + Math.Max(0.001, last.Frame.SimDt);
+            double frameSpan = last.Frame.SimFrame - first.Frame.SimFrame + 1, seqSpan = last.Frame.Seq - first.Frame.Seq + 1;
+            double pfSpan = last.Frame.ProxyFrame - first.Frame.ProxyFrame + 1, evSpan = last.Frame.EventSeq;
+            for (int k = 1; k < repeat; k++)
+                foreach (var (t, d) in recs)
+                {
+                    var dg = codec.Decode(d);
+                    if (dg?.Frame == null) continue;
+                    var f = dg.Frame;
+                    f["sim_time"] = f.SimTime + k * simSpan; f["frame"] = f.SimFrame + k * frameSpan; f["seq"] = f.Seq + k * seqSpan;
+                    f["proxy_frame"] = f.ProxyFrame + k * pfSpan; f["event_seq"] = f.EventSeq + k * evSpan;
+                    foreach (var e in dg.Events) { e.Seq += (uint)(k * evSpan); e.Frame += (uint)(k * pfSpan); }
+                    yield return (t + k * hostSpan, TelCodec.Encode(f, dg.Events, dg.Layout, f.Size));
+                }
+        }
+
         static int PreviewCmd(Args a)
         {
             Guard(a);
@@ -192,7 +268,7 @@ namespace Haptics.Host
             Guard(a);
             var set = LoadSet(a);
             var outDir = OutDir(a, "live");
-            var p = Session.Build(set, a.List("--sinks", "wheel-file,pad-file,lfe-wav,motion-file"), outDir, "live", a.Has("--live"), 250);
+            var p = Session.Build(set, a.List("--sinks", "wheel-file,pad-file,lfe-wav,motion-file"), outDir, "live", a.Has("--live"), 250, hostClock: true);
             var derive = new Derive(); p.Core.Configure(derive);
             var codec = TelCodec.Default();
             bool shm = a.Get("--source", "udp") == "shm";

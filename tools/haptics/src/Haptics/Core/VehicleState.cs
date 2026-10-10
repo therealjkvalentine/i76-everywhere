@@ -49,6 +49,14 @@ namespace Haptics.Core
         public Vec3 GroundNormal;
         public double[] SuspOffset = new double[6];
         public bool[] WheelOnGround = new bool[6];
+        // motion workstream additions (docs/MOTION-OUTPUT.md 4.1): physics-step detection and the dash / wheel fields
+        public int StepCount = -1;         // i76tel step_count: physics substeps this frame (0 = repeated pose under I76_FIXED_STEP; -1 unknown)
+        public bool[] WheelSkid = new bool[6];
+        public double[] WheelGroundSpeed = new double[6];
+        public bool Handbrake;
+        public double EngineHealth = 1.0;  // engine_hp / engine_hp_max (1 when unknown)
+        public double Mass;
+        public string WeaponName = "";
 
         public bool Airborne => (Flags & TelFrame.FlagAirborne) != 0;
 
@@ -61,6 +69,7 @@ namespace Haptics.Core
         {
             var v = (VehicleState)MemberwiseClone();
             v.Rot = (double[])Rot.Clone(); v.SuspOffset = (double[])SuspOffset.Clone(); v.WheelOnGround = (bool[])WheelOnGround.Clone();
+            v.WheelSkid = (bool[])WheelSkid.Clone(); v.WheelGroundSpeed = (double[])WheelGroundSpeed.Clone();
             return v;
         }
     }

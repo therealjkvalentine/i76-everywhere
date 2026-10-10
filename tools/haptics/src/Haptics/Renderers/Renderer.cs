@@ -16,6 +16,7 @@ namespace Haptics.Renderers
         public Tune Tune;
         public EffectSet Effects;
         public bool Live;                  // false = file sink (dry run); true = open the real device. Only --live sets it.
+        public bool HostClock;             // the live loop: renderers that keep their own time (Motion.Udp stale detection) use the host stopwatch
         public string OutDir;              // where file sinks write
         public string Tag = "session";     // file name stem
         public int CoreHz = 250;           // core updates per second (sub-frame updates in replay)
@@ -52,8 +53,9 @@ namespace Haptics.Renderers
             ["Lfe.Synth"] = () => new LfeSynthRenderer(),
             ["Lfe.Loopback"] = () => new LfeLoopbackRenderer(),
             ["Motion.FileSink"] = () => new MotionFileSink(),
-            // Kept as a name so older rig files resolve; the OutSim/OutGauge packet work moved to docs/MOTION-OUTPUT.md.
-            ["Udp.OutSim"] = () => new MotionFileSink(),
+            // the motion renderer (docs/MOTION-OUTPUT.md): LFS OutSim / OutGauge, Forza Data Out, i76motion over UDP or to packet logs
+            ["Motion.Udp"] = () => new MotionUdpRenderer(),
+            ["Udp.OutSim"] = () => new MotionUdpRenderer(),
         };
         public static void Register(string type, Func<IRenderer> factory) => _f[type] = factory;
         public static IEnumerable<string> Types => _f.Keys;

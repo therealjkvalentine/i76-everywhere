@@ -22,7 +22,21 @@
         "lfe": {"properties": {"device_name_match": {"type": "string"}, "rate": {"type": "integer"}, "hp_hz": {"type": "number"}, "lp_hz": {"type": "number"}, "drive": {"type": "number"}, "master": {"type": "number"},
                 "resp_hz": {"type": "array", "items": {"type": "number"}}, "resp_rel": {"type": "array", "items": {"type": "number"}}, "comp_max": {"type": "number"}, "channels": {"type": "integer"}, "max_voices": {"type": "integer"}}},
         "loopback": {"properties": {"gain": {"type": "number"}, "hp_hz": {"type": "number"}, "lp_hz": {"type": "number"}, "duck_on_transient": {"type": "number"}, "gate": {"enum": ["player_present", "none"]}, "input_wav": {"type": "string"}}},
-        "motion": {"description": "plug-in point for docs/MOTION-OUTPUT.md"}
+        "motion": {"description": "Motion.FileSink: the raw VehicleState as CSV"},
+        "motion_udp": {"description": "Motion.Udp (docs/MOTION-OUTPUT.md)", "properties": {"targets_file": {"type": "string"}, "select": {"type": "string"}, "send": {"type": "boolean"}, "output_hz": {"type": "number"}, "resample": {"enum": ["interp", "hold"]}}}
+      }
+    },
+    "motion": {
+      "description": "Motion cueing / safety parameters for Motion.Udp (docs/MOTION-OUTPUT.md 7)",
+      "type": "object",
+      "properties": {
+        "accel_source": {"enum": ["integrator", "differentiated", "blend"]},
+        "airborne_zero_physics": {"type": "boolean"},
+        "hold_lp_hz": {"type": "number"},
+        "cues": {"type": "object"},
+        "surfaces": {"type": "object", "additionalProperties": {"type": "number"}},
+        "safety": {"type": "object", "properties": {"clamp_udp": {"type": "boolean"}, "stale_ms": {"type": "number", "minimum": 1, "maximum": 1000}, "neutral_ramp_ms": {"type": "number"}, "startup_neutral_s": {"type": "number"}}},
+        "washout": {"type": "object", "properties": {"enabled": {"const": false}}}
       }
     }
   }
