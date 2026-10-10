@@ -207,6 +207,12 @@ class EndToEnd(unittest.TestCase):
     def test_dropout(self):
         self.scenario("dropout", "native")
 
+    def test_repeat_seam_is_a_dropout_not_an_impulse(self):
+        rec = os.path.join(self.tmp, "synth-braking.i76rec")
+        r = subprocess.run([EXE, "motion", rec, "--targets", "native", "--repeat", "3", "--out", os.path.join(self.tmp, "rep")], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("cues none", r.stdout)            # stopped at the end, 25 m/s at the start: must not read as a 600 m/s^2 hit
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
