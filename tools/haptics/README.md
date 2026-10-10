@@ -1,4 +1,4 @@
-# tools/haptics - one host for wheel FFB, pad rumble, bass shakers (and later motion)
+# tools/haptics - one host for wheel FFB, pad rumble, bass shakers and motion simulator output
 
 The implementation of [docs/HAPTICS-ARCHITECTURE.md](../../docs/HAPTICS-ARCHITECTURE.md), phases A and B: everything
 that can be built and verified without the game. Nothing here launches `i76.exe`, touches a game folder, or opens a
@@ -10,7 +10,8 @@ device unless you pass `--live`.
   scripted synthetic session)      ReferenceMixer  = tools/ffb/FfbMixer.ps1, ported    -> Pad.XInput         (L heavy / R texture)
                                    EffectEngine    = effects/*.json "chain" effects    -> Lfe.Synth          (LfeSynth.ps1 DSP -> WAV / EVO 4)
                                    duck, shaker voice budget, lints                     -> Lfe.Loopback       (WASAPI game-audio bed)
-                                   -> Bus (+ Voices) + VehicleState (motion interface)  -> Motion.FileSink    (plug-in point, see below)
+                                   -> Bus (+ Voices) + VehicleState (motion interface)  -> Motion.FileSink    (the raw VehicleState as CSV)
+                                                                                        -> Motion.Udp         (LFS OutSim / OutGauge, Forza, i76motion: motion/README.md)
 ```
 
 ## Quick start
@@ -23,6 +24,8 @@ tools\haptics\haptics.ps1 replay session.i76rec --sinks lfe-wav --solo impact.co
 tools\haptics\haptics.ps1 preview --effect landing               # one effect alone, all devices, to files
 tools\haptics\haptics.ps1 lint                                   # the design-rule lints
 tools\haptics\haptics.ps1 synth --out replays\s.i76rec           # write the scripted session as real datagrams
+tools\haptics\haptics.ps1 motion all --check                      # motion output: 7 synthetic scenarios -> packet logs, checked
+tools\haptics\haptics.ps1 motion braking --targets flypt --send   # ... to FlyPT Mover on 127.0.0.1:4123 in real time (motion/README.md)
 python tools\haptics\design\report.py                            # the design facility report (design/out/report/index.html)
 ```
 
@@ -45,6 +48,7 @@ no NuGet packages). `haptics.ps1 help` lists every command.
 | `stock/stock-ffb-reference.json` | what the stock `i7_sfrce.dll` did per event (generated) |
 | `design/` | Python design facility: `migrate_tune.py`, `stock_reference.py`, `gpw_spectra.py`, `report.py`, `i76rec.py`, tests |
 | `tests/` | `golden/make-golden.ps1` (runs the real FfbMixer.ps1), `Haptics.Tests` (C# runner) |
+| `src/Haptics/Core/Motion/`, `motion/` | the motion output: MotionCore, `targets.json`, the validator `i76motion.py`, `make_synthetic.py`, `motion_preview.html` ([motion/README.md](motion/README.md)) |
 
 Gitignored: `bin/ obj/`, `tests/golden/out`, `tests/out`, `design/out` (everything derived from the owner's game files:
 analyses, spectrograms, the report), `out/`.
@@ -91,12 +95,14 @@ FfbMixer.ps1 by design, so update `Tune.Defaults` only when FfbMixer.ps1 itself 
 | `lfe-wav` | Lfe.Synth | `<tag>.lfe.wav` (16 kHz mono) | waveOut to the device whose name matches `device_name_match` (EVO4) |
 | `loopback-wav` | Lfe.Loopback | mixed into the shaker WAV from `--loopback-wav FILE` | WASAPI loopback of the default render endpoint, mixed under the synth |
 | `motion-file` | Motion.FileSink | `<tag>.motion.csv` (the VehicleState) | - |
+| `motion-udp` | Motion.Udp | `<tag>.<target>.<format>.i76rec` packet logs + `<tag>.motionout.csv` | UDP to the enabled `motion/targets.json` targets, loopback only (third-party software, no actuator) |
 
-**Motion.** Cueing, washout and packet formats (Forza Data Out, LFS OutSim/OutGauge, FlyPT) belong to the motion
-workstream, [docs/MOTION-OUTPUT.md](../../docs/MOTION-OUTPUT.md). Its plug-in point: implement `IRenderer`, read
-`CoreStep.State` (`Core/VehicleState.cs` documents frames, axes, units: world/body position, velocity, acceleration,
-orientation, body rates, plus `CoreStep.Events`), `RendererRegistry.Register("Motion.<name>", ...)`, and name it in
-`rigs/*.json` `outputs.motion.renderer`.
+**Motion.** [docs/MOTION-OUTPUT.md](../../docs/MOTION-OUTPUT.md) phases M0-M3 are built: `Motion.Udp` (sink `motion-udp`,
+command `haptics.ps1 motion`) runs MotionCore on `CoreStep.State` / `Events` and writes LFS OutSim classic / OutSimPack2 /
+OutGauge, Forza Sled / Dash and our own i76motion v1; setup of FlyPT Mover / SimHub / SimTools, sign conventions, the
+validator and what is stubbed: [motion/README.md](motion/README.md). Another motion renderer still plugs in the same way:
+implement `IRenderer`, read `CoreStep.State` (`Core/VehicleState.cs` documents frames, axes, units),
+`RendererRegistry.Register("Motion.<name>", ...)`, and name it in `rigs/*.json`.
 
 ## Stubbed, unverified, or left open (honest list)
 
@@ -124,6 +130,9 @@ orientation, body rates, plus `CoreStep.Events`), `RendererRegistry.Register("Mo
   (rerun with no sinks, `GCSettings.LatencyMode = SustainedLowLatency`, a multimedia timer), then repeat for n >= 3.
 * Golden real drives: `drive2.csv` / `drive3.csv` are gitignored, so a fresh checkout has none. Set
   `I76_REAL_DRIVES=<folder>` (for example the main checkout's `tools\ffb`) before `haptics.ps1 test`, or the two real-drive checks are skipped.
+* **Motion**: M4 (SimHub .simdef, Open Game Telemetry), M5 (proxy motion fields) and M6 (washout, direct actuator path) are
+  not built; no desk bench (FlyPT / SimHub) was run by an agent (nothing may be installed): owner tests 16-24. Details in
+  [motion/README.md](motion/README.md).
 * `i76tel.py --record` (design A1) was not added: the proxy agent owns `i76tel.py`; recording is `haptics.ps1 record`.
 
 ## Owner-console tests (Phase C)
