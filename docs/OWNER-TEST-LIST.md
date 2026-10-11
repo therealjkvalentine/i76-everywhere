@@ -135,3 +135,17 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
     - ignition (eshp1, esnp1/2): the catch, not the cranking; droppers (mines, oil, caltrops: stems only, no synth effect).
     For each: which run felt more like the sound, anything late against the speakers (say which event), anything doubled or muddy in
     "both". Before the session, `python tools\haptics\design\stems_view.py` shows each stem next to the synth for the same event.
+
+## Proxy cleanup side DLLs (lab twin only; docs/records/PROXY-CLEANUP-2026-10-10.md)
+
+27. **Gate the 2026-10-10 proxy cleanup builds on the lab twin before any promotion.** Physical console, nobody playing
+    (the gate takes the mouse, the keyboard and the screen for about 10 minutes). Put the side builds into the twin
+    `..\i76-uncap-lab\game-dd-20261003` only, keeping its current files beside them: `music-fix\out\Strlkup.dll`
+    (md5 `8b904e53`) over the twin's `Strlkup.dll`, and `u32x\u32x_full.build.dll` (md5 `188e0c07`) through
+    `u32x\deploy-u32x.ps1 -GameDir <twin> -U32xDll u32x\u32x_full.build.dll -AllowUnverified`. Then
+    `powershell -ExecutionPolicy Bypass -File ..\i76-uncap-lab\autotest\gate-folder.ps1 -GameDir ..\i76-uncap-lab\game-dd-20261003`.
+    Expected: the same 23 rows as `autotest\runs\gate\20261008-204529`, with no new FAIL. Watch row 4: the u32x
+    modal-pointer arrow on the save screen's prompt now draws without the removed VPTR code. Watch row 3 too: the frame
+    rate through the launcher. `mciproxy.log` should show the usual switch lines and no `glide-dir` line. Report the
+    run folder. Only after a clean gate may either DLL replace the committed `music-fix\Strlkup.dll` (`c11f7f7d`) or
+    `u32x\u32x_full.dll` (`06467bd2`), or go to the daily driver.
