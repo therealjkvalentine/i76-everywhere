@@ -44,6 +44,18 @@ namespace Haptics.Renderers
         string Summary();
     }
 
+    /// <summary>
+    /// Optional: a renderer with its own real-time schedule (Motion.Udp sends at output_hz from its own thread instead of
+    /// on whichever core update crosses a tick). The real-time loops (Pipeline.Run with RealTime, the live command) call
+    /// StartRealTime before the first update and StopRealTime after the last, before Close. Offline runs never call them,
+    /// so file output stays deterministic.
+    /// </summary>
+    public interface IRealTimeRenderer
+    {
+        void StartRealTime();
+        void StopRealTime();
+    }
+
     public static class RendererRegistry
     {
         static readonly Dictionary<string, Func<IRenderer>> _f = new Dictionary<string, Func<IRenderer>>(StringComparer.OrdinalIgnoreCase)

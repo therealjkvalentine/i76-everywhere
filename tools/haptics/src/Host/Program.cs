@@ -33,6 +33,8 @@ namespace Haptics.Host
   record --udp [PORT] | --shm   --out FILE.i76rec [--seconds N]   capture telemetry (no device involved)
   live --source udp|shm [--port 7676] [--sinks ...] [--out DIR] [--seconds N] [--live]
          250 Hz loop against the running game; WITHOUT --live every output is a file sink (dry run)
+  play <FILE.i76rec | synthetic> [--port 7676] [--repeats N]   send a recording's datagrams to 127.0.0.1:PORT at their
+         recorded times (stands in for the game when testing `live`; loopback only, prints the sender's own pacing)
   decode <FILE.i76rec> [--events]                 summary of a recording: versions, frames, events
   lint                                            effect/rig lints (HAPTICS-ARCHITECTURE 2.2)
   tune                                            the reference model's tune as read from effects/ + rigs/
@@ -54,6 +56,7 @@ namespace Haptics.Host
                     case "synth": return Synth(a);
                     case "record": return Record(a);
                     case "live": return Live(a);
+                    case "play": return Play(argv.Length > 1 ? argv[1] : null, a);
                     case "decode": return Decode(argv.Length > 1 ? argv[1] : null, a);
                     case "lint": return Lint(a);
                     case "tune": return TuneCmd(a);
@@ -116,6 +119,7 @@ namespace Haptics.Host
             foreach (var s in a.List("--solo")) p.Core.Solo.Add(s);
             foreach (var s in a.List("--mute")) p.Core.Mute.Add(s);
             p.RealTime = a.Has("--realtime");
+            p.Rt = RtOptions.Parse(a.Get("--rt"));
             var derive = new Derive(); p.Core.Configure(derive);
             var evLog = new StreamWriter(Path.Combine(outDir, tag + ".events.log"));
             int nev = 0;
@@ -131,9 +135,9 @@ namespace Haptics.Host
             Console.WriteLine("  events -> " + Path.Combine(outDir, tag + ".events.log"));
             if (p.RealTime)
             {
-                var h = p.LatenessHistogram();
-                Console.WriteLine("  deadline: " + h);
-                File.WriteAllText(Path.Combine(outDir, tag + ".deadlines.txt"), h + Environment.NewLine);
+                var h = p.Stats.Report();
+                Console.Write("  " + h.Replace(Environment.NewLine, Environment.NewLine + "  ").TrimEnd() + Environment.NewLine);
+                File.WriteAllText(Path.Combine(outDir, tag + ".deadlines.txt"), h);
             }
             return 0;
         }
@@ -163,6 +167,7 @@ namespace Haptics.Host
             mr.Open(new RendererContext { OutputName = "motion_udp", Config = cfg, Rig = set.Rig, Effects = set, Tune = p.Core.Mixer.Tune, OutDir = outDir, Tag = tag, CoreHz = coreHz });
             p.Renderers.Add(mr);
             p.RealTime = (send && !a.Has("--fast")) || a.Has("--realtime");
+            p.Rt = RtOptions.Parse(a.Get("--rt"));
             var derive = new Derive(); p.Core.Configure(derive);
             int repeat = Math.Max(1, (int)a.Num("--repeat", 1));
             var cts = new CancellationTokenSource(); Console.CancelKeyPress += (o, e) => { e.Cancel = true; cts.Cancel(); };
@@ -270,7 +275,16 @@ namespace Haptics.Host
             return 0;
         }
 
-        /// <summary>The live 250 Hz loop: newest frame from UDP or shm, core updates on the host clock between frames.</summary>
+        /// <summary>One decoded telemetry frame handed from the source thread to the tick thread.</summary>
+        sealed class LiveFrame { public Derive.Result D; public double Sim, Arrive; }
+
+        /// <summary>
+        /// The live 250 Hz loop. Three threads so no I/O sits on the tick: a SOURCE thread (blocking UDP receive, or a 1 ms shm
+        /// poll) that also records, decodes and derives, and hands frames over a queue; a RELOAD thread that checks effects/*.json
+        /// once a second and loads a changed set; and the TICK thread (this one: RtWaiter, high-resolution timer + spin,
+        /// priority Highest + MMCSS) that runs the core and the renderers on an absolute 4 ms schedule. Motion.Udp sends from
+        /// its own output thread at output_hz (IRealTimeRenderer). --rt legacy restores the old wait for A/B.
+        /// </summary>
         static int Live(Args a)
         {
             Guard(a);
@@ -281,55 +295,134 @@ namespace Haptics.Host
             var codec = TelCodec.Default();
             bool shm = a.Get("--source", "udp") == "shm";
             double secs = a.Num("--seconds", 0);
+            var rtOpt = RtOptions.Parse(a.Get("--rt"));
             using var udp = shm ? null : new UdpListener((int)a.Num("--port", 7676));
             using var sh = shm ? new ShmReader() : null;
             using var rec = a.Get("--record") != null ? new RecordingWriter(a.Get("--record")) : null;
             var cts = new CancellationTokenSource(); Console.CancelKeyPress += (o, e) => { e.Cancel = true; cts.Cancel(); };
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            Derive.Result last = null; double lastSim = 0, lastArrive = 0; var pending = new List<HapticEvent>();
-            var effectsDir = set.EffectsDir; DateTime stamp = Directory.GetFiles(effectsDir, "*.json").Max(f => File.GetLastWriteTimeUtc(f));
-            var late = new List<double>(); double next = 0, lastReloadCheck = 0; int frames = 0;
-            Console.WriteLine("live: waiting for telemetry on " + (shm ? "shm" : "udp :" + udp.Port) + (a.Has("--live") ? " (devices LIVE)" : " (file sinks only - add --live for devices)"));
-            while (!cts.IsCancellationRequested && (secs <= 0 || sw.Elapsed.TotalSeconds < secs))
+            var queue = new System.Collections.Concurrent.ConcurrentQueue<LiveFrame>();
+            int frames = 0;
+
+            // source thread: receive (blocking), record, decode, derive -> queue
+            var source = new Thread(() =>
             {
-                // drain the source: keep the newest frame, accumulate events
-                while (true)
+                while (!cts.IsCancellationRequested)
                 {
-                    byte[] d = shm ? sh.Poll() : udp.Receive(0);
-                    if (d == null) break;
-                    rec?.Add(sw.Elapsed.TotalSeconds, d);
+                    byte[] d = shm ? sh.Poll() : udp.Receive(50);
+                    if (d == null) { if (shm) Thread.Sleep(1); continue; }
+                    double arrive = sw.Elapsed.TotalSeconds;
+                    rec?.Add(arrive, d);
                     var dg = codec.Decode(d);
                     if (dg?.Frame == null) continue;
-                    last = derive.Step(dg.Frame, dg.Events, 0.0); pending.AddRange(last.Events);
-                    lastSim = dg.Frame.SimTime; lastArrive = sw.Elapsed.TotalSeconds; frames++;
+                    queue.Enqueue(new LiveFrame { D = derive.Step(dg.Frame, dg.Events, 0.0), Sim = dg.Frame.SimTime, Arrive = arrive });
                 }
-                if (last != null)
+            }) { IsBackground = true, Name = "live source", Priority = ThreadPriority.AboveNormal };
+
+            // reload thread: hot reload of effects/*.json, applied by the tick thread between updates
+            var effectsDir = set.EffectsDir; EffectSet reloaded = null;
+            var reloader = new Thread(() =>
+            {
+                DateTime stamp = Directory.GetFiles(effectsDir, "*.json").Max(f => File.GetLastWriteTimeUtc(f));
+                while (!cts.Token.WaitHandle.WaitOne(1000))
                 {
-                    double t = lastSim + Math.Min(0.25, sw.Elapsed.TotalSeconds - lastArrive);
-                    var s = last.Sample.Clone(); s.SinceTick = sw.Elapsed.TotalSeconds - lastArrive;
-                    if (pending.Count == 0) { s.Shift = 0; s.FxFired = null; }
-                    var step = p.Core.Step(new Derive.Result { Sample = s, State = last.State, Vars = last.Vars }, pending, t);
-                    foreach (var r in p.Renderers) r.Render(step);
-                    pending = new List<HapticEvent>();
-                    if (s.Shift != 0 || last.Sample.FxFired != null) { last.Sample.Shift = 0; last.Sample.FxFired = null; }
+                    try
+                    {
+                        var st = Directory.GetFiles(effectsDir, "*.json").Max(f => File.GetLastWriteTimeUtc(f));
+                        if (st == stamp) continue;
+                        stamp = st;
+                        Volatile.Write(ref reloaded, EffectSet.Load(a.Get("--effects"), a.Get("--rig")));
+                    }
+                    catch (Exception ex) { Console.WriteLine("reload failed: " + ex.Message); }
                 }
-                // hot reload of effects/*.json
-                if (sw.Elapsed.TotalSeconds - lastReloadCheck >= 1.0)
+            }) { IsBackground = true, Name = "live reload" };
+
+            Console.WriteLine("live: waiting for telemetry on " + (shm ? "shm" : "udp :" + udp.Port) + (a.Has("--live") ? " (devices LIVE)" : " (file sinks only - add --live for devices)"));
+            var stages = new[] { "drain", "core" }.Concat(p.Renderers.Select(r => r.Type)).Concat(new[] { "reload" }).ToArray();
+            LoopStats stats;
+            Derive.Result last = null; double lastSim = 0, lastArrive = 0; var pending = new List<HapticEvent>();
+            source.Start(); reloader.Start();
+            string jit = rtOpt.Prejit ? RtWarmup.Prejit(typeof(Program).Assembly) : "";
+            using (var rt = new RtWaiter(rtOpt, sw))
+            {
+                stats = new LoopStats(stages) { Mode = rtOpt + (rt.Notes != "" ? "; " + rt.Notes : "") + (jit != "" ? "; " + jit : "") };
+                if (rtOpt.OwnOutputThreads) foreach (var r in p.Renderers) (r as IRealTimeRenderer)?.StartRealTime();
+                const double Period = 0.004;
+                double t0 = rt.Now; long k = 0;
+                while (!cts.IsCancellationRequested && (secs <= 0 || rt.Now < secs))
                 {
-                    lastReloadCheck = sw.Elapsed.TotalSeconds;
-                    var st = Directory.GetFiles(effectsDir, "*.json").Max(f => File.GetLastWriteTimeUtc(f));
-                    if (st != stamp) { stamp = st; try { var ns = EffectSet.Load(a.Get("--effects"), a.Get("--rig")); p.Core.Load(ns); Console.WriteLine("reloaded effects"); } catch (Exception ex) { Console.WriteLine("reload failed: " + ex.Message); } }
+                    // deadline k on an absolute schedule (no drift); more than 100 ms behind (suspend, debugger): resync
+                    double due = t0 + k * Period;
+                    if (rt.Now - due > 0.1) { k = (long)Math.Ceiling((rt.Now - t0) / Period); due = t0 + k * Period; }
+                    k++;
+                    double slack = (due - rt.Now) * 1000.0;
+                    rt.WaitUntil(due);
+                    stats.Update(slack, (rt.Now - due) * 1000.0);
+
+                    // drain: keep the newest frame, accumulate events
+                    while (queue.TryDequeue(out var lf))
+                    {
+                        last = lf.D; pending.AddRange(lf.D.Events); lastSim = lf.Sim; lastArrive = lf.Arrive; frames++;
+                    }
+                    stats.Mark(0);
+                    if (last != null)
+                    {
+                        double now = sw.Elapsed.TotalSeconds;
+                        double t = lastSim + Math.Min(0.25, now - lastArrive);
+                        var s = last.Sample.Clone(); s.SinceTick = now - lastArrive;
+                        if (pending.Count == 0) { s.Shift = 0; s.FxFired = null; }
+                        var step = p.Core.Step(new Derive.Result { Sample = s, State = last.State, Vars = last.Vars }, pending, t);
+                        stats.Mark(1);
+                        for (int i = 0; i < p.Renderers.Count; i++) { p.Renderers[i].Render(step); stats.Mark(2 + i); }
+                        pending = new List<HapticEvent>();
+                        if (s.Shift != 0 || last.Sample.FxFired != null) { last.Sample.Shift = 0; last.Sample.FxFired = null; }
+                    }
+                    var ns = Interlocked.Exchange(ref reloaded, null);
+                    if (ns != null) { p.Core.Load(ns); Console.WriteLine("reloaded effects"); }
+                    stats.Mark(2 + p.Renderers.Count);
                 }
-                next += 0.004;
-                double now = sw.Elapsed.TotalSeconds;
-                if (next > now) { while (sw.Elapsed.TotalSeconds < next - 0.0015) Thread.Sleep(1); while (sw.Elapsed.TotalSeconds < next) Thread.SpinWait(50); }
-                else if (now - next > 0.1) next = now;
-                late.Add((sw.Elapsed.TotalSeconds - next) * 1000);
+                foreach (var r in p.Renderers) (r as IRealTimeRenderer)?.StopRealTime();
             }
+            cts.Cancel();
+            source.Join(500); reloader.Join(1500);
             foreach (var r in p.Renderers) r.Close();
-            var lp = new Pipeline(); lp.LatenessMs.AddRange(late);
-            Console.WriteLine("live: {0} frames; loop deadline {1}", frames, lp.LatenessHistogram());
+            var report = stats.Report();
+            Console.WriteLine("live: {0} frames; loop {1}", frames, report.Replace(Environment.NewLine, Environment.NewLine + "  ").TrimEnd());
+            File.WriteAllText(Path.Combine(outDir, "live.deadlines.txt"), report);
             foreach (var r in p.Renderers) Console.WriteLine("  " + r.Summary());
+            return 0;
+        }
+
+        /// <summary>
+        /// haptics play: a recording (or the scripted session) as UDP datagrams to 127.0.0.1, each at its recorded time on the
+        /// same high-resolution waiter the loops use, so a `live` test sees the real telemetry rate. Loopback only.
+        /// </summary>
+        static int Play(string input, Args a)
+        {
+            if (input == null) throw new ArgumentException("play needs a .i76rec or synthetic");
+            int port = (int)a.Num("--port", 7676), reps = Math.Max(1, (int)a.Num("--repeats", 1));
+            var recs = input.StartsWith("synthetic", StringComparison.OrdinalIgnoreCase)
+                ? Synthetic.Session(input.EndsWith(":v2") ? 2 : 3, 60, reps).ToList()
+                : RecordingReader.Load(input).Records;
+            if (recs.Count == 0) { Console.WriteLine("play: nothing to send"); return 1; }
+            var cts = new CancellationTokenSource(); Console.CancelKeyPress += (o, e) => { e.Cancel = true; cts.Cancel(); };
+            var ep = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, port);
+            var late = new ChunkedDoubles(); int sent = 0;
+            using (var u = new System.Net.Sockets.UdpClient(System.Net.Sockets.AddressFamily.InterNetwork))
+            using (var rt = new RtWaiter(new RtOptions()))
+            {
+                double t0 = recs[0].t;
+                foreach (var (t, d) in recs)
+                {
+                    if (cts.IsCancellationRequested) break;
+                    double due = t - t0;
+                    rt.WaitUntil(due);
+                    late.Add((rt.Now - due) * 1000.0);
+                    u.Send(d, d.Length, ep); sent++;
+                }
+            }
+            Console.WriteLine("play: {0} datagrams to 127.0.0.1:{1} over {2:0.0} s ({3:0.0} /s); sender pacing {4}", sent, port,
+                recs[Math.Min(sent, recs.Count) - 1].t - recs[0].t, sent / Math.Max(1e-9, recs[Math.Min(sent, recs.Count) - 1].t - recs[0].t), LoopStats.Histogram(late.ToArray()));
             return 0;
         }
 
