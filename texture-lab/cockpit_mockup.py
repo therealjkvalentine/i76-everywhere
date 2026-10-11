@@ -293,7 +293,7 @@ Offline render, nothing run in game. Upscaler: {html.escape(up)}. Derived game a
 <ul>
 <li>Tiles decoded index-exact from the M16 pack (texel 0xFF drawn black: ZGLIDE converts it to ARGB1555 0x0000 and these faces have no colour key bit). Stored rows are bottom-up (v = 0 is the bottom of the panel), flipped here for viewing.</li>
 <li>Faces drawn from the .geo with bilinear sampling and clamp, Glide's s = u x 255 convention, 2x2 supersampling (dgVoodoo renders 5160x2160 and scales to 3440x1440).</li>
-<li>Fit: a plane homography from the dash panel to the screen, Nelder-Mead on the strip right of x = 2000 (affine start, loss {f['loss_affine_only']:.5f} -> {f['loss']:.5f} with perspective). Only the top ~12 % of the panel is visible, so the fit says nothing reliable about the lower panel's on-screen size; section 2 uses the top edge's horizontal scale.</li>
+<li>Fit: a plane homography from the dash panel to the screen, Nelder-Mead on the strip right of x = 2000 (affine start, loss {f['loss_affine_only']:.5f} -> {f['loss']:.5f} with perspective). Only the top ~12 % of the panel is visible, so the fit says nothing reliable about the lower panel's on-screen size; section 2 uses the top edge's horizontal scale. Known misfit: the right-hand knob tab leans in the capture and stands upright in the re-render (the perspective is not fully recovered), so compare texture sharpness, not exact edge positions.</li>
 <li>Tool: <code>texture-lab/cockpit_mockup.py</code>; the 2x tiles it writes (tiles/*.png) feed <code>texture-lab/cockpit_split.py --png-dir</code>.</li>
 </ul>
 </body></html>"""

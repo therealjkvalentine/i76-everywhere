@@ -158,3 +158,34 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
     rate through the launcher. `mciproxy.log` should show the usual switch lines and no `glide-dir` line. Report the
     run folder. Only after a clean gate may either DLL replace the committed `music-fix\Strlkup.dll` (`c11f7f7d`) or
     `u32x\u32x_full.dll` (`06467bd2`), or go to the daily driver.
+
+## Cockpit dash at 2x: tile-split first boots (lab copy game-tex only; docs/COCKPIT-HIRES-FEASIBILITY.md stage 2)
+
+Before these, look at the offline mock-up (`texture-lab\out\cockpit-mockup\index.html`, built by
+`texture-lab\cockpit_mockup.py`) and decide whether a sharper dash shell around unchanged gauges is worth a session.
+Three boots of t01 in the Piranha on `..\i76-uncap-lab\game-tex`, same conf and same `ZGLIDE` for all three (start with
+the copy's normal conf; if the proxy log's `tex-census` shows NO-SLOT, repeat all three with
+`-Conf ..\i76-uncap-lab\game-tex\dgVoodoo.tmu16.conf -ZglideFix`). Build each pair from game-tex's own archive into a
+staging folder, then copy the four files (`vppirnag.pak/.pix`, `zdash106.pak/.pix`) into `game-tex\ADDON`; between
+runs delete them again (nothing else in ADDON changes; the pirana*6 paint packs already there stay for all three).
+Each run: capture the start view (F1 cockpit is the default), then press F1 once and capture the 2D dash; record the
+`tex-census` lines (downloads, NO-SLOT, flushes) and the telemetry fps.
+
+28. **control.** No dash files in ADDON. The reference capture and census.
+29. **marker2x-split.** `python texture-lab\cockpit_split.py --game ..\i76-uncap-lab\game-tex --out texture-lab\out\cockpit-split\gt-marker2x --marker`
+    (prints `self-check: PASS`; `preview-as-seen.png` there shows the expected panel). In the start view only the top
+    edge of the dash is on screen: pass = blue and yellow frame lines along it and, left to right from the PRND plate,
+    the small labels `101-11` (yellow), `102-01` (blue), `102-11` (yellow; `101-01` is further left, near the N plate),
+    each with a fine magenta checker beside it that is crisp, not a mush (a 1-texel checker only a 2x tile can show).
+    The mock-up page's "What the stage-2 marker boot should show" strip is the expected picture.
+    Kill criteria: stock dash art = the overrides did not load (new member names not accepted from an ADDON .pix, the
+    doc's first unknown: report it, the fallback is re-using existing names); a label mirrored or upside down, or the
+    quarters' halves swapped = the v orientation is wrong (report which); one quarter magnified across the face = UV remap
+    wrong; white, black or wrong textures elsewhere = TMU allocator (look at NO-SLOT); a crash = read the proxy `CRASH`
+    line. A thin line along a quarter border is a seam: report it (the tool's `--seam clamp` build is the A/B).
+    The 2D dash after F1 must look exactly like the control.
+30. **art2x-split.** `python texture-lab\cockpit_split.py --game ..\i76-uncap-lab\game-tex --out texture-lab\out\cockpit-split\gt-art2x --png-dir texture-lab\out\cockpit-mockup\tiles`
+    (the 2x tiles the mock-up wrote). Same captures. Judge crops of the dash strip against run 28 blind
+    (`tools\upscale\ab_viewer.py`): sharper, same, or worse, and anything that changed colour. Kill criteria as run 29,
+    plus colour banding on the dash (each quarter has its own 255-colour palette). If the dash only matters when you look
+    down, say so: that decides whether stage 3 (the owner's route, the Leprechaun, a night mission) is worth doing.

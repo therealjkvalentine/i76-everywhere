@@ -364,7 +364,10 @@ compute and a few sessions.
 
 ---
 
-## 6. Corrections this research surfaces (proposals, not applied)
+## 6. Corrections this research surfaces
+
+Applied 2026-10-11 after re-verifying against the archive: item 1 (HD-TEXTURES-RESEARCH.md) and item 3 (i76-map
+`data/FORMATS.md` 7, made explicit; its parser already used 3 bytes). Items 2 and 4 need no edit.
 
 1. HD-TEXTURES-RESEARCH.md "Cockpit/dashboard art = zdash101..601 (day, VQM ...) + zdash106..606 (night, M16)":
    the 01/06 suffix is software/hardware (census 1.2; same as zcbh and the car paks). The texture-lab README's
@@ -389,6 +392,54 @@ compute and a few sessions.
   same for the mirror); the conf's forced bilinear makes it moot under dgVoodoo.
 - dgVoodoo's behaviour on a non-Glide-2 LOD code (never exercised; ZGLIDE cannot emit one).
 - First-hand text of the VOGONS dgVoodoo texture-injection thread (403 today).
+
+## 8. Stages 0 and 1 done offline (2026-10-11)
+
+Built from the pristine archive (`i76-map\sandbox-gog\main\app\I76.ZFS`, ADDON ignored); nothing launched, nothing
+written to a game folder. Outputs are derived game data under `texture-lab\out\` (gitignored).
+
+**Stage 0, mock-up:** `texture-lab\cockpit_mockup.py` -> `texture-lab\out\cockpit-mockup\index.html`. ZDASH101/102
+from `zdash106.pak`, upscaled with U2's dash recipe (Manga109Attempt x RRDB_PSNR 50/50 at 4x, 2x = Lanczos of the 4x;
+weights from `i76-upscale-work\models\interp`, recipe redistributable per section 5) plus a classical 2x for
+comparison. Three views: the stock start-line capture (`hudsq2-on-a-target.png`) with the visible dash strip
+re-rendered at 1x/2x/4x (plane mapping fitted to the capture; 1x reproduction error 5.4/255); the whole panel front-on
+at the in-game horizontal magnification with crops (speedo, lamps, radio, small gauges); and the painted faces that do
+not change. Findings that change the picture in section 1:
+- In the default F1 view only the top ~90 of 1440 rows of the dash are on screen (the top ~12 % of the panel). The
+  "dash spans most of the view width" in 1.3 is true, but as a strip; the speedo/tach art and the radio are only seen
+  when looking down. Magnification at 1x: ~4.9 px/texel on ZDASH101, ~7.7 on ZDASH102 at 3440 wide.
+- ZDASH101 is the speedo/tach cluster art (needles are separate), ZDASH102 the radio, glovebox and small gauges.
+- Stored rows are bottom-up: v = 0 is the panel's bottom edge (PP51DASH: y = -0.163 has v = 0; the stock capture shows
+  ZDASH102's last rows, the knob tabs, on the top edge). ZGLIDE does not flip.
+- 14,473 (ZDASH101) and 8,945 (ZDASH102) texels are index 0xFF; the faces have no colour-key bit (surface 04 01 00),
+  so they render black (ZGLIDE 1555 0x0000). The art build treats them as opaque black; `--keep-key` restores them.
+
+**Stage 1, generator:** `texture-lab\cockpit_split.py` (the plan's provisional `tools\upscale\` name became
+texture-lab, next to the mock-up). Piranha result, all three modes: PP51DASH 4 faces / 12 vertices -> 11 faces /
+23 vertices (+2 collinear corners closing T-junctions); the 5-corner face splits into four (one piece keeps 5
+corners), the tiny ZDASH101 corner filler stays whole in one quarter, the sloped ZDASH102 triangle splits in two.
+UV is affine over every face to <= 6.4e-4 (about 0.16 texel). The split is at u = v = 256/510, not 0.5, because
+ZGLIDE maps u 0..1 to texels 0..255 (s = u x 255). `zdash106.pak` keeps ZDASH101/102 byte-identical and adds
+`ZD101Q00..ZD102Q11.M16` (8.3-name, 256x128, flags 0x80). Self-checks, all PASS: both paks and .pix re-decode and
+re-encode byte-identically with the i76-map data-track parsers; 86 of 87 car-pak members byte-identical (only
+PP51DASH.GEO changed); per-face UV and 3D area of the pieces equal the original to < 1e-7; pieces inside their
+quadrants and on the face plane; remapped texel coordinates inside 1..255 / 1..127 with `--seam overlap` (default)
+and 0..256 / 0..128 with `--seam clamp`; overlap borders equal the neighbour exactly (index builds) and within 9/255
+(art build, per-quarter 255-colour palettes, quantisation RMSE 2.0-2.6/255). Render equivalence (split geo +
+quarters vs original geo + whole 2x texture, 2400 px wide): replicate mean 0.18/255 (p99 2.1), art mean 2.25/255
+(p99 5.8, the quantisation); the residual is spread over all edges from the sub-texel non-affinity, the seam band is
+no worse than elsewhere. Tests: `tests\test_cockpit_split.py` (20, synthetic fixtures; the live test re-parses all
+1073 LOD-4 .geo members in the 48 `v*g.pak` to exact length, matching the census in 1.2).
+
+Still unknown (the marker boot answers the first three): new member names from an ADDON `.pix`; ZGLIDE's clamp vs
+wrap on these faces (`--seam overlap` is safe under both); the v orientation of the label as seen in game (the art
+build does not depend on it); TMU behaviour with 8 extra 64 KB tiles.
+
+**For the overnight runner (stage 2):** owner tests 28-30 in docs/OWNER-TEST-LIST.md are the three t01 boots on
+`game-tex` (control / marker2x-split / art2x-split) with the build commands and kill criteria. Build from game-tex's
+own archive into `texture-lab\out\cockpit-split\gt-*`, copy the four files into `game-tex\ADDON`, remove them after
+each run; same conf for all three; record `tex-census`, fps, the start-view and F1 2D-dash captures. The expected
+marker picture is on the mock-up page.
 
 ## Sources
 

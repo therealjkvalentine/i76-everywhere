@@ -78,8 +78,13 @@ see "Ceilings" and "For future research".
     round-trip encoder now in `tools/i76img.py` (`decode_m16`/`encode_m16`).
     Per-tile palettes mean M16 replacements have FULL color freedom (no level-.ACT
     quantization) - strictly richer than what VQM repaints can carry.
-- **Cockpit/dashboard art** = `zdash101..601` (day, VQM tiles in PAK/PIX, 256x128 each, codebook
-  `vpit.cbk`) + `zdash106..606` (night, M16). Menu shell = loose 8-bit BMPs in `SP256/`
+- **Cockpit/dashboard art** = `zdash101..601` (VQM tiles in PAK/PIX, 256x128 each, codebook
+  `vpit.cbk`: the **software** set) + `zdash106..606` (the same tiles as M16: the **hardware** set that `-glide`
+  loads). *Corrected 2026-10-11:* this line said "day" / "night"; the 01/06 suffix is software/hardware, the same
+  pairing as `zcbh3101.pak` (.vqm) / `zcbh3106.pak` (.M16) and `pirana1m` / `pirana16` (verified against the
+  archive: each zdashN01 pak holds `ZDASHN0x.vqm`, each zdashN06 the same names as `.M16`, and no third set
+  exists). Night is a palette swap, which M16's own palettes ignore. So the zdash101 recipe below edits the tile
+  the `-glide` cockpit never loads (docs/COCKPIT-HIRES-FEASIBILITY.md section 3.A1). Menu shell = loose 8-bit BMPs in `SP256/`
   (trivially editable). Loading screens = 640x480 PCX.
 
 ## Observed: night-mission palette mismatch (2026-07-12, Mac software path)
