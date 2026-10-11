@@ -29,7 +29,7 @@ namespace Haptics.Renderers
         RendererContext _ctx;
         LfeCore _core; LfeSmoother _sm; LfeVoiceBank _bank;
         int _rate, _perUpdate; double _drive, _master;
-        readonly List<short> _pcm = new List<short>();
+        readonly ChunkedList<short> _pcm = new ChunkedList<short>();   // chunked: a List<short> regrow stalled the 250 Hz loop (RealTime.cs)
         public ILfeBed Bed;
         public double SynthGain = 1.0;      // rig lfe.sources.synth (Renderers/LfeStems.cs LfeSources): 0 = stems / bed only
         LfeLiveOut _live;

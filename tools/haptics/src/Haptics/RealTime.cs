@@ -165,22 +165,32 @@ namespace Haptics
         }
     }
 
-    /// <summary>A growable list of doubles in fixed 64 K chunks: Add never copies, so it never stalls a real-time loop.</summary>
-    public sealed class ChunkedDoubles
+    /// <summary>
+    /// A growable list in fixed 64 K-element chunks: Add never copies, so it never stalls a real-time loop. (List&lt;T&gt; doubles
+    /// and copies: the shaker WAV buffer's 8 M -> 16 M sample step took 6.8 ms on update 131,073 of the 600 s B4 replay.)
+    /// </summary>
+    public class ChunkedList<T>
     {
         const int Chunk = 1 << 16;
-        readonly List<double[]> _c = new List<double[]>();
+        readonly List<T[]> _c = new List<T[]>();
         public int Count { get; private set; }
-        public ChunkedDoubles() { _c.Add(new double[Chunk]); }
-        public void Add(double v)
+        public ChunkedList() { _c.Add(new T[Chunk]); }
+        public void Add(T v)
         {
             int i = Count & (Chunk - 1);
-            if (i == 0 && Count > 0) _c.Add(new double[Chunk]);
+            if (i == 0 && Count > 0) _c.Add(new T[Chunk]);
             _c[_c.Count - 1][i] = v; Count++;
         }
-        public double this[int i] => _c[i >> 16][i & (Chunk - 1)];
-        public double[] ToArray() { var a = new double[Count]; for (int i = 0; i < Count; i++) a[i] = this[i]; return a; }
+        public T this[int i] => _c[i >> 16][i & (Chunk - 1)];
+        public T[] ToArray()
+        {
+            var a = new T[Count];
+            for (int k = 0, o = 0; o < Count; k++) { int n = Math.Min(Chunk, Count - o); Array.Copy(_c[k], 0, a, o, n); o += n; }
+            return a;
+        }
     }
+
+    public sealed class ChunkedDoubles : ChunkedList<double> { }
 
     /// <summary>
     /// Per-update timing of a real-time loop (B4 instrumentation). Each update records its lateness (wake time - deadline),
