@@ -35,12 +35,11 @@
  * the engine's rescale. I76_U32X_MENU=0 turns it all off; I76_U32X_MENU_BOX=0 keeps the
  * pointer-under-the-drawn-item mapping instead (which cannot reach the right edge here).
  *
- * ONE POINTER (2026-10-02, opt-in: I76_U32X_VPTR=1; i76-everywhere docs/MENU-REBUILD-DESIGN.md
- * section 7, milestone A1; docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md section 9): the "vptr" block
- * maps the box the pointer can reach linearly onto 640x480 for the SHELL's calls, and shows a
- * click-through topmost layered arrow where the mapped point lands in the drawn picture (shell
- * screens and the exe's Esc menu; hidden in the mission), hiding the OS arrow only while it is
- * up. It pumps nothing and patches nothing; with the switch unset none of it runs.
+ * ONE POINTER (2026-10-02..2026-10-10): the opt-in I76_U32X_VPTR* "vptr" block (a linear map of
+ * the reachable box onto 640x480 for the shell, plus a click-through arrow over the picture) was
+ * removed on 2026-10-10 (i76-everywhere docs/records/PROXY-CLEANUP-2026-10-10.md): off by default,
+ * in no preset, superseded for the pointer by the Strlkup proxy's I76_CURSOR_MAP. Its cursor
+ * window stays: the modal pointer (I76_U32X_MODAL_PTR) draws with it.
  *
  * Build (x86 REQUIRED - the game is 32-bit):
  *   vcvars32 && cl /O2 /LD u32x.c /link /DEF:u32x.def user32.lib /OUT:u32x.dll
@@ -53,7 +52,7 @@
 #include <string.h>
 #include <intrin.h>
 #pragma intrinsic(_ReturnAddress)
-#pragma comment(lib, "gdi32.lib")       /* the vptr cursor window's DIB (build scripts link user32 only) */
+#pragma comment(lib, "gdi32.lib")       /* the cursor window's DIB (modal pointer; build scripts link user32 only) */
 
 /* ---- diagnostic log (define U32X_LOG at build time to enable) -------------------------- */
 #ifdef U32X_LOG
@@ -130,16 +129,7 @@ static void log_caller(const char *tag, void *ra)
  *   I76_U32X_CLIPMAP=0       ClipCursor passes through unmapped (the Aug-16 v4 behaviour)
  *   I76_U32X_MENU=0          the exe Esc-menu block off (exists since e99b4e1)
  *   I76_U32X_MENU_BOX=0      the reachable-box mapping off (exists since 53a8cae)
- * A1 "one pointer" (the vptr block, all of it OFF unless the first is 1):
- *   I76_U32X_VPTR=1              master switch (default 0 = none of the block runs)
- *   I76_U32X_VPTR_MAP=0          no shell box mapping (the regime rule as without VPTR)
- *   I76_U32X_VPTR_CURSOR=0       no cursor window anywhere (and so no ShowCursor call)
- *   I76_U32X_VPTR_CURSOR_SHELL=0 cursor window in the exe's Esc menu only
- *   I76_U32X_VPTR_HIDEOS=0       never touch ShowCursor (the OS arrow stays as the game left it)
- *   I76_U32X_VPTR_WIDEN=0        leave a UI-sized corner clip where it is (default: move it onto
- *                                the picture rect, so the hand is on the drawn item)
- *   I76_U32X_VPTR_CURSOR_ALWAYS=1 show the cursor window even where the OS arrow already is
- *   I76_U32X_VPTR_WINDOW=1       experiment: put the window's client on the 4:3 picture rect */
+ *   (the A1 "one pointer" I76_U32X_VPTR* family was removed 2026-10-10: see the file header) */
 static int env_switch(const char *name, int *cache, int def)
 {
     if (*cache < 0) {
@@ -158,14 +148,6 @@ static int sw_keys(void)         { static int c = -1; return env_switch("I76_U32
 static int sw_iat(void)          { static int c = -1; return env_switch("I76_U32X_IAT",          &c, 1); }
 static int sw_dialog(void)       { static int c = -1; return env_switch("I76_U32X_DIALOG",       &c, 1); }
 static int sw_clipmap(void)      { static int c = -1; return env_switch("I76_U32X_CLIPMAP",      &c, 1); }
-static int sw_vptr(void)         { static int c = -1; return env_switch("I76_U32X_VPTR",         &c, 0); }
-static int sw_vptr_map(void)     { static int c = -1; return env_switch("I76_U32X_VPTR_MAP",     &c, 1); }
-static int sw_vptr_cursor(void)  { static int c = -1; return env_switch("I76_U32X_VPTR_CURSOR",  &c, 1); }
-static int sw_vptr_shellcur(void){ static int c = -1; return env_switch("I76_U32X_VPTR_CURSOR_SHELL", &c, 1); }
-static int sw_vptr_hideos(void)  { static int c = -1; return env_switch("I76_U32X_VPTR_HIDEOS",  &c, 1); }
-static int sw_vptr_widen(void)   { static int c = -1; return env_switch("I76_U32X_VPTR_WIDEN",   &c, 1); }
-static int sw_vptr_always(void)  { static int c = -1; return env_switch("I76_U32X_VPTR_CURSOR_ALWAYS", &c, 0); }
-static int sw_vptr_window(void)  { static int c = -1; return env_switch("I76_U32X_VPTR_WINDOW",  &c, 0); }
 static int sw_shell_stretch(void){ static int c = -1; return env_switch("I76_U32X_SHELL_STRETCH", &c, 0); }
 
 /* ---- locate the game window ------------------------------------------------------------
@@ -176,7 +158,7 @@ static int sw_shell_stretch(void){ static int c = -1; return env_switch("I76_U32
  * left the shell reading raw screen coordinates. Enumerate our OWN process's top-level
  * visible windows instead - no string matching, cannot fail this way. */
 static HWND g_hwnd = NULL;
-static HWND g_vp_hwnd;                  /* the vptr cursor window (below) - never "the game window" */
+static HWND g_vp_hwnd;                  /* the cursor window (below; modal pointer) - never "the game window" */
 static HWND game_window(void);
 
 static BOOL CALLBACK find_own_window(HWND h, LPARAM lp)
@@ -624,45 +606,17 @@ static void menu_free_pointer(void)
     ClipCursor(&s);
 }
 
-/* ==== A1 "ONE POINTER" (2026-10-02) =====================================================
- * i76-everywhere docs/MENU-REBUILD-DESIGN.md section 7; docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md
- * section 9. Everything below is dead unless I76_U32X_VPTR=1.
+/* ==== THE CURSOR WINDOW (2026-10-02; drawn by the modal pointer below) =====================
+ * Built for the A1 "one pointer" block (i76-everywhere docs/MENU-REBUILD-DESIGN.md section 7;
+ * docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md section 9), whose mapping and regime branches
+ * (I76_U32X_VPTR*) were removed on 2026-10-10; the window code is shared with, and now used
+ * only by, the modal pointer (I76_U32X_MODAL_PTR).
  *
- * Measured (same doc, sections 5a and 7; the integrator's gate run of 2026-10-02): dgVoodoo
- * confines the OS pointer to the app's 640x480 scaled by a factor, anchored at the client
- * origin - 1920x1440 in the Glide mission and Esc menu, and the plain 640x480 corner while the
- * shell's DirectDraw screens are up (there the shell reads the OS position 1:1). The 4:3
- * picture is drawn at 760..2680. So the hand is never over what it points at, and in the Esc
- * menu nothing is drawn at the point that will be hit.
- *
- * Two things, each with its own kill switch:
- *
- * 1. THE SHELL MAP (I76_U32X_VPTR_MAP). For callers inside i76shell.dll the box the pointer can
- *    reach is read from GetClipCursor on every call and mapped LINEARLY onto 640x480:
- *      - a UI-sized box (640x480 +-1): UI = position - box origin. Exactly the 1:1 the shell has
- *        today (the harness's SetCursorPos(ux,uy) clicks keep working unchanged);
- *      - any other box smaller than the client (dgVoodoo's scaled 1920x1440 box, or a clip that
- *        was put on the picture rect): UI = (position - box origin) * 640 / box width. Pointer
- *        travel is then 1 picture pixel per pixel of hand on this geometry;
- *      - no clip (free pointer): the regime rule that exists (the 4:3 picture map), untouched.
- *    The value handed back is client origin + UI, because Mouse_Update 0x1001fbf0 runs
- *    ScreenToClient on it. Mouse-message lParams and the shell's SetCursorPos follow the same box.
- *    In a corner box the map is the identity, so the 3x hand-vs-picture speed stays: 640 px of
- *    reach cannot cover 640 UI units any slower. So the default is to MOVE that box onto the
- *    picture rect (vptr_try_widen; I76_U32X_VPTR_WIDEN=0 keeps the corner).
- *
- * 2. THE CURSOR WINDOW (I76_U32X_VPTR_CURSOR). A 24x38 arrow in a WS_EX_LAYERED |
- *    WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_TOOLWINDOW popup, OWNED by the
- *    game window, created lazily on the thread that owns the game window, drawn once with
- *    UpdateLayeredWindow and from then on only moved. Its top-left (the hot spot) is put where
- *    the mapped point lands in the PICTURE: picture origin + scale * UI, from the live client
- *    rect (760 + 3*ux, 3*uy here). Shown while the shell polls the mouse (a shell GetCursorPos in
- *    the last 500 ms) and while the exe's Esc menu is up ([0x4fe534] == 0x10); hidden in the
- *    mission, during loads, when the game is not the foreground window, while one of its
- *    dialogs is, AND WHEREVER THE OS ARROW IS ALREADY WITHIN ~1 UI UNIT OF THAT POINT (free
- *    pointer, or the clip moved onto the picture): then the real arrow is the one pointer
- *    (I76_U32X_VPTR_CURSOR_ALWAYS=1 shows ours regardless). The OS arrow is hidden by exactly one ShowCursor(FALSE) when ours appears and
- *    given back by exactly one ShowCursor(TRUE) when ours goes (I76_U32X_VPTR_HIDEOS=0: never).
+ * A 24x38 arrow in a WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOPMOST |
+ * WS_EX_TOOLWINDOW popup, OWNED by the game window, created lazily on the thread that owns the
+ * game window, drawn once with UpdateLayeredWindow and from then on only moved. The OS arrow is
+ * hidden by exactly one ShowCursor(FALSE) when ours appears and given back by exactly one
+ * ShowCursor(TRUE) when ours goes.
  *
  * THE WM_QUIT LESSON, applied: nothing here calls PeekMessage, GetMessage, DispatchMessage,
  * SendMessage or PostMessage, and no IAT is patched. The window needs no WM_PAINT (layered,
@@ -690,113 +644,6 @@ static int caller_is_shell(const void *ra)
            (ULONG_PTR)ra <  (ULONG_PTR)sh + nt->OptionalHeader.SizeOfImage;
 }
 
-/* what kind of box the pointer lives in right now (a direct GetClipCursor measurement) */
-#define VB_NONE 0       /* no window / no answer: fall back to the existing regime rule      */
-#define VB_UI   1       /* 640x480 +-1: the 1:1 corner box                                   */
-#define VB_BOX  2       /* some other box smaller than the client: map it linearly           */
-#define VB_FREE 3       /* the clip covers the client (or the screen): existing picture map  */
-static int vptr_shell_box(RECT *box)
-{
-    HWND h = game_window();
-    RECT rc, c;
-    LONG w, hh;
-
-    if (!h || !GetClientRect(h, &rc) || rc.right <= 0 || rc.bottom <= 0 || !GetClipCursor(&c))
-        return VB_NONE;
-    w = c.right - c.left; hh = c.bottom - c.top;
-    if (w < 64 || hh < 64)
-        return VB_NONE;
-    if (w >= rc.right && hh >= rc.bottom)
-        return VB_FREE;
-    *box = c;
-    if (w >= UI_W - 1 && w <= UI_W + 1 && hh >= UI_H - 1 && hh <= UI_H + 1)
-        return VB_UI;
-    return VB_BOX;
-}
-
-static void vptr_box_to_ui(const RECT *b, int kind, LONG sx, LONG sy, LONG *ux, LONG *uy)
-{
-    LONG w = b->right - b->left, h = b->bottom - b->top;
-    LONG dx = sx - b->left, dy = sy - b->top;
-    if (dx < 0) dx = 0;
-    if (dy < 0) dy = 0;
-    if (kind != VB_UI && w > 0 && h > 0) {      /* floor: x 0..2 -> 0, 3..5 -> 1 at 3.0x */
-        dx = (dx * UI_W) / w;
-        dy = (dy * UI_H) / h;
-    }
-    *ux = clampl(dx, 0, UI_W - 1);
-    *uy = clampl(dy, 0, UI_H - 1);
-}
-
-/* the shell hands SetCursorPos a screen point = client origin + UI; put the pointer on the
- * middle of that UI cell inside the box, so the floor above reads the same UI point back */
-static void vptr_ui_to_box(const RECT *b, int x, int y, POINT *out)
-{
-    HWND h = game_window();
-    POINT org = { 0, 0 };
-    LONG w = b->right - b->left, hh = b->bottom - b->top;
-    LONG ux, uy;
-    if (h) ClientToScreen(h, &org);
-    ux = clampl(x - org.x, 0, UI_W - 1);
-    uy = clampl(y - org.y, 0, UI_H - 1);
-    out->x = b->left + (ux * w + w / 2) / UI_W;
-    out->y = b->top  + (uy * hh + hh / 2) / UI_H;
-}
-
-/* HAND ON THE DRAWN ITEM (default under VPTR; I76_U32X_VPTR_WIDEN=0 turns it off): when the
- * shell sits in the UI-sized corner box, put the clip on the drawn 4:3 picture rect instead -
- * what My_ClipCursor has done since Sep-5 for a clip the game itself asks for. Every cursor
- * import of i76.exe and i76shell.dll goes through this proxy and My_ClipCursor never passes a
- * UI-sized rect on, so a 640x480 clip that is live in the shell (leg-b: OS (217,311) -> shell
- * mouse (217,311)) was set by something else - dgVoodoo's CaptureMouse in the shell's 640x480
- * DirectDraw mode [inferred from the import tables; not observed]. If our clip holds, the box
- * becomes VB_BOX == the picture, the hand is over the picture at picture speed and the real
- * arrow is right, so vptr_tick shows no cursor window.
- * If something (dgVoodoo's CaptureMouse) puts the corner box back, that is counted, and after
- * three reverts this stands down for the rest of the process - the mapping always follows the
- * box that is actually measured, so a revert costs nothing but the attempt. What this cannot
- * see: a pin that is NOT a clip (what the old global conf did in the Esc menu). If the pointer
- * then stops short while the clip reads wide, the pencil cannot reach the whole form: set
- * I76_U32X_VPTR_WIDEN=0 (1:1 corner + the cursor window) and report it. */
-static void vptr_try_widen(void)
-{
-    static int   reverted, armed;
-    static DWORD last, armed_tick;
-    DWORD now;
-    Map pm;
-    RECT s;
-
-    if (!sw_vptr_widen() || reverted >= 3)
-        return;
-    now = GetTickCount();
-    if (armed) {                            /* we widened, and the box is UI-sized again */
-        armed = 0;
-        if (now - armed_tick > 2000) {
-            reverted = 0;                   /* it held for a while: somebody's legitimate re-clip */
-        } else {
-            reverted++;
-            LOG("[%lu] VPTR widen: the corner box came back after %lu ms (%d of 3)%s\n",
-                (unsigned long)now, (unsigned long)(now - armed_tick), reverted,
-                reverted >= 3 ? " - giving up, the box is not ours to move" : "");
-        }
-    }
-    if (reverted >= 3 || now - last < 250)
-        return;
-    last = now;
-    pm = get_map();
-    if (!pm.valid)
-        return;
-    s.left   = pm.sx;
-    s.top    = pm.sy;
-    s.right  = pm.sx + (LONG)(UI_W * pm.scale_x + 0.5);
-    s.bottom = pm.sy + (LONG)(UI_H * pm.scale   + 0.5);
-    if (ClipCursor(&s)) {
-        armed = 1; armed_tick = now;
-        LOG("[%lu] VPTR widen: clip -> picture rect (%ld,%ld)-(%ld,%ld)\n",
-            (unsigned long)now, s.left, s.top, s.right, s.bottom);
-    }
-}
-
 /* ---- the cursor window ---- */
 static int   g_vp_tries;        /* CreateWindowEx attempts (max 3 per process)               */
 static int   g_vp_k;            /* arrow magnification currently painted (0 = none)          */
@@ -804,43 +651,6 @@ static int   g_vp_shown;
 static int   g_vp_oshidden;     /* we owe the thread exactly one ShowCursor(TRUE)            */
 static DWORD g_vp_tid;          /* the UI thread that shows / hides                          */
 static POINT g_vp_at;           /* last screen position of the hot spot                      */
-static POINT g_vp_ui;           /* last UI point handed to the shell                         */
-static DWORD g_vp_shell_tick;   /* when                                                      */
-static int   g_vp_shell_seen;
-
-static void vptr_note_shell(LONG ux, LONG uy)
-{
-    g_vp_ui.x = ux; g_vp_ui.y = uy;
-    g_vp_shell_tick = GetTickCount();
-    g_vp_shell_seen = 1;
-}
-
-/* GetCursorPos for a shell caller under VPTR. 1 = *p rewritten (client origin + UI). */
-static int vptr_shell_getpos(POINT *p)
-{
-    RECT b;
-    HWND h;
-    POINT org = { 0, 0 };
-    LONG ux, uy;
-    int kind;
-
-    if (!sw_vptr_map())
-        return 0;
-    kind = vptr_shell_box(&b);
-    if (kind != VB_UI && kind != VB_BOX)
-        return 0;                           /* free / unknown: the existing regime rule */
-    if (kind == VB_UI)
-        vptr_try_widen();
-    vptr_box_to_ui(&b, kind, p->x, p->y, &ux, &uy);
-    h = game_window();
-    if (h) ClientToScreen(h, &org);
-    LOG_V("VPTR GetCursorPos shell raw=(%ld,%ld) box (%ld,%ld)-(%ld,%ld) %s -> UI=(%ld,%ld)\n",
-          p->x, p->y, b.left, b.top, b.right, b.bottom, kind == VB_UI ? "1:1" : "linear", ux, uy);
-    p->x = org.x + ux;
-    p->y = org.y + uy;
-    vptr_note_shell(ux, uy);
-    return 1;
-}
 
 static LRESULT CALLBACK VptrWndProc(HWND h, UINT m, WPARAM w, LPARAM l)
 {
@@ -987,151 +797,12 @@ static void vptr_show(HWND gw, LONG x, LONG y, double scale)
     if (!g_vp_shown) {
         g_vp_shown = 1;
         g_vp_tid = GetCurrentThreadId();
-        if (sw_vptr_hideos() && !g_vp_oshidden) {
+        if (!g_vp_oshidden) {
             ShowCursor(FALSE);              /* exactly one; vptr_hide gives exactly one back */
             g_vp_oshidden = 1;
         }
         LOG("[%lu] VPTR cursor shown at (%ld,%ld) x%d\n", (unsigned long)GetTickCount(), x, y, k);
     }
-}
-
-/* EXPERIMENT (I76_U32X_VPTR_WINDOW=1, default off; MENU-REBUILD-DESIGN section 7 step 3): put
- * the game window's CLIENT on the 4:3 picture rectangle (1920x1440 at x 760 here). If
- * dgVoodoo's box is anchored at the client origin it then coincides with the picture and the
- * real arrow is right everywhere; if dgVoodoo sizes the window back or the box stays at the
- * screen origin, the log build's 1 Hz "VPTR state" line records that. At most 3 attempts, 1 s
- * apart, only from the top of the application's own message loop (My_PeekMessageA), and only
- * while the client is wider than 4:3. SetWindowPos SENDS WM_WINDOWPOSCHANGED / WM_SIZE to the
- * game's WndProc synchronously; it does not touch the queue. No backdrop is drawn: the desktop
- * shows either side for the length of the experiment. */
-static void vptr_window_experiment(HWND gw)
-{
-    static int   tries;
-    static DWORD last;
-    DWORD now;
-    RECT rc, wr, after;
-    POINT org = { 0, 0 };
-    LONG pw;
-
-    if (!sw_vptr_window() || tries >= 3)
-        return;
-    now = GetTickCount();
-    if (now - last < 1000)
-        return;
-    last = now;
-    if (!GetClientRect(gw, &rc) || rc.bottom < 240)
-        return;
-    pw = (LONG)((double)rc.bottom * 4.0 / 3.0 + 0.5);
-    if (rc.right <= pw + 2)
-        return;                             /* already 4:3 (or narrower): nothing to do */
-    ClientToScreen(gw, &org);
-    wr.left   = org.x + (rc.right - pw) / 2;
-    wr.top    = org.y;
-    wr.right  = wr.left + pw;
-    wr.bottom = org.y + rc.bottom;
-    AdjustWindowRectEx(&wr, (DWORD)GetWindowLongA(gw, GWL_STYLE), FALSE,
-                       (DWORD)GetWindowLongA(gw, GWL_EXSTYLE));
-    tries++;
-    SetWindowPos(gw, NULL, wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top,
-                 SWP_NOZORDER | SWP_NOACTIVATE);
-    org.x = org.y = 0;
-    ClientToScreen(gw, &org);
-    GetClientRect(gw, &after);
-    LOG("[%lu] VPTR window experiment %d: client %ldx%ld -> asked %ldx%ld at x %ld, now %ldx%ld at (%ld,%ld)\n",
-        (unsigned long)now, tries, rc.right, rc.bottom, pw, rc.bottom, wr.left,
-        after.right, after.bottom, org.x, org.y);
-}
-
-/* Called from My_GetCursorPos and from the top of My_PeekMessageA (from_loop). Decides whether
- * our cursor is up and where, and moves it. Reads state, moves one window; nothing else. */
-static void vptr_tick(int from_loop)
-{
-    HWND gw, fg;
-    DWORD now;
-    int want = 0;
-    LONG ax = 0, ay = 0;
-    double sc = 1.0;
-    const char *mode = "none";
-
-    if (!sw_vptr())
-        return;
-    gw = game_window();
-    if (!gw || GetWindowThreadProcessId(gw, NULL) != GetCurrentThreadId())
-        return;                             /* the game's UI thread only */
-    if (from_loop)
-        vptr_window_experiment(gw);
-    if (!sw_vptr_cursor())
-        return;
-
-    now = GetTickCount();
-    fg  = GetForegroundWindow();
-    if (fg && (fg == gw || IsChild(gw, fg)) && !IsIconic(gw)) {
-        if (g_vp_shell_seen && now - g_vp_shell_tick < 500) {
-            /* a shell screen is polling the mouse: the point it was just handed */
-            mode = "shell";
-            if (sw_vptr_shellcur()) {
-                Map pm = get_map();
-                if (pm.valid) {
-                    ax = pm.sx + (LONG)(g_vp_ui.x * pm.scale_x + 0.5);
-                    ay = pm.sy + (LONG)(g_vp_ui.y * pm.scale   + 0.5);
-                    sc = pm.scale; want = 1;
-                }
-            }
-        } else if (exe_in_menu()) {
-            /* the exe's Esc menu: the frame point a click would be given (the same map and
-             * rounding as My_PeekMessageA), drawn where that point is in the presented frame */
-            POINT p;
-            mode = "menu";
-            if (GetCursorPos(&p)) {
-                Map hit = get_menu_map(), pic;
-                double aw, ah;
-                int fw, fh;
-                LONG lx, ly;
-                exe_frame(&fw, &fh);
-                menu_aspect(&aw, &ah);
-                pic = map_for(aw, ah, fw, fh);
-                if (hit.valid && pic.valid) {
-                    screen_to_logical(&hit, p.x, p.y, &lx, &ly);
-                    ax = pic.sx + (LONG)(lx * pic.scale_x + 0.5);
-                    ay = pic.sy + (LONG)(ly * pic.scale   + 0.5);
-                    sc = pic.scale; want = 1;
-                }
-            }
-        }
-    }
-    if (want && !sw_vptr_always()) {
-        /* ONE pointer: where the OS arrow already sits on the point that will be hit (a free
-         * pointer through the picture / frame map, or a clip that was moved onto the picture)
-         * the real arrow is the pointer and ours stays away. */
-        POINT raw;
-        LONG tol = (LONG)(sc + 1.5);
-        if (GetCursorPos(&raw) &&
-            raw.x >= ax - tol && raw.x <= ax + tol && raw.y >= ay - tol && raw.y <= ay + tol)
-            want = 0;
-    }
-    if (want) vptr_show(gw, ax, ay, sc);
-    else      vptr_hide();
-
-#ifdef U32X_LOG
-    {   static DWORD last_;
-        if (now - last_ >= 1000) {          /* the record for the WIDEN / WINDOW experiments */
-            RECT c, rc;
-            POINT org = { 0, 0 }, raw = { 0, 0 };
-            CURSORINFO ci;
-            last_ = now;
-            SetRectEmpty(&c); SetRectEmpty(&rc);
-            GetClipCursor(&c); GetClientRect(gw, &rc); ClientToScreen(gw, &org); GetCursorPos(&raw);
-            ZeroMemory(&ci, sizeof ci); ci.cbSize = sizeof ci; GetCursorInfo(&ci);
-            LOG("[%lu] VPTR state mode=%s clip (%ld,%ld)-(%ld,%ld) client %ldx%ld at (%ld,%ld) raw=(%ld,%ld) "
-                "ui=(%ld,%ld) shown=%d at=(%ld,%ld) os_hidden_by_us=%d os_showing=%d\n",
-                (unsigned long)now, mode, c.left, c.top, c.right, c.bottom, rc.right, rc.bottom,
-                org.x, org.y, raw.x, raw.y, g_vp_ui.x, g_vp_ui.y, g_vp_shown, g_vp_at.x, g_vp_at.y,
-                g_vp_oshidden, (int)(ci.flags & CURSOR_SHOWING));
-        }
-    }
-#else
-    (void)mode;
-#endif
 }
 
 /* WHY THE EARLIER VERSIONS WERE WRONG (kept so nobody re-derives them):
@@ -1297,13 +968,13 @@ static void pump_from_poll(const void *ra)
  * (500,350) while the captures show the pencil still on DONE). So while a shell caller polls the
  * pointer outside ShellMain's loop (the same 250 ms rule as pump_from_poll) AND nothing has been
  * presented for 250 ms (screens that draw their own pencil - the save screen - keep presenting),
- * the vptr cursor window (the click-through layered arrow below; no message is retrieved or sent
+ * the cursor window (the click-through layered arrow above; no message is retrieved or sent
  * to the game window) is put where the point the shell was just handed lies in the PICTURE:
  * picture origin + scale * UI. The picture is the 4:3 fit of the client (dgVoodoo stretched_ar /
  * stretched_4_3), or the whole client when dgVoodoo.conf next to the exe says ScalingMode =
  * stretched (I76_U32X_SHELL_FILL=0/1 overrides the conf). Hidden again when ShellMain peeks, when
  * the game is not foreground, and when the shell has stopped polling for 300 ms (its input gate
- * closed). Under I76_U32X_VPTR=1 the vptr block owns the window and this stands down. */
+ * closed). */
 static int sw_modalptr(void)     { static int c = -1; return env_switch("I76_U32X_MODAL_PTR",    &c, 1); }
 static volatile DWORD g_present_tick;   /* last present that went through us (grBufferSwap / SetDIBitsToDevice) */
 static DWORD g_mp_tick;                 /* last shell pointer poll inside a modal */
@@ -1362,8 +1033,8 @@ static void modal_ptr_tick(void)
     int want = 0;
     Map pm;
 
-    if (sw_vptr() || (!g_mp_on && !g_mp_tick))
-        return;                             /* VPTR owns the window / never needed */
+    if (!g_mp_on && !g_mp_tick)
+        return;                             /* never needed */
     gw = game_window();
     if (!gw || GetWindowThreadProcessId(gw, NULL) != GetCurrentThreadId())
         return;                             /* the game's UI thread only (ShowCursor is per thread) */
@@ -1396,7 +1067,7 @@ static void modal_ptr_note(const POINT *p)
 {
     HWND gw;
     POINT q;
-    if (sw_vptr() || !sw_modalptr() || GetTickCount() - g_shell_loop_tick <= 250)
+    if (!sw_modalptr() || GetTickCount() - g_shell_loop_tick <= 250)
         return;
     gw = game_window();
     if (!gw)
@@ -1575,15 +1246,9 @@ BOOL WINAPI My_GetCursorPos(LPPOINT p)
 
     if (ok && p) {
         Map m;
-        int shell = sw_vptr() && caller_is_shell(ra);
         if (dialog_owns_input()) {
             /* real screen coordinates, and deliberately NOT clamped */
             LOG_V("GetCursorPos dialog focused raw=(%d,%d) - pass through\n", p->x, p->y);
-            vptr_tick(0);                   /* a dialog is foreground: our cursor stands down */
-            return ok;
-        }
-        if (shell && vptr_shell_getpos(p)) {    /* A1: the reachable box -> 640x480, linearly */
-            vptr_tick(0);
             return ok;
         }
         m = map_for_caller(ra);
@@ -1601,12 +1266,9 @@ BOOL WINAPI My_GetCursorPos(LPPOINT p)
          * can always terminate - this is what makes the freeze structurally impossible */
         p->x = clampl(p->x, 0, m.lw - 1);
         p->y = clampl(p->y, 0, m.lh - 1);
-        if (shell)
-            vptr_note_shell(p->x, p->y);    /* VPTR_MAP=0 / free pointer: today's value, still shown */
-        else if (caller_is_shell(ra))
+        if (caller_is_shell(ra))
             modal_ptr_note(p);              /* inside a shell modal: our arrow on the picture */
     }
-    vptr_tick(0);
     return ok;
 }
 
@@ -1614,15 +1276,6 @@ BOOL WINAPI My_SetCursorPos(int x, int y)
 {
     const void *ra = _ReturnAddress();
     Map m;
-    if (sw_vptr() && sw_vptr_map() && caller_is_shell(ra)) {
-        RECT b;
-        if (vptr_shell_box(&b) == VB_BOX) { /* A1: the inverse of vptr_shell_getpos */
-            POINT s;
-            vptr_ui_to_box(&b, x, y, &s);
-            LOG_V("VPTR SetCursorPos shell (%d,%d) -> box (%ld,%ld)\n", x, y, s.x, s.y);
-            return SetCursorPos(s.x, s.y);
-        }
-    }
     if (pointer_is_confined())
         return SetCursorPos(x, y);          /* dgVoodoo owns the mapping - do not remap */
     m = map_for_caller(ra);
@@ -1857,7 +1510,6 @@ BOOL WINAPI My_PeekMessageA(LPMSG msg, HWND hWnd, UINT lo, UINT hi, UINT remove)
     BUMP(c_peek);
     menu_box_record();                      /* the engine's loop comes through here every frame */
     menu_free_pointer();
-    vptr_tick(1);                           /* A1: place / hide our cursor; touches no message */
 
     /* KEEP THE WINDOW ALIVE DURING TEXT ENTRY.  (2026-09-05)
      *
@@ -1925,7 +1577,6 @@ BOOL WINAPI My_PeekMessageA(LPMSG msg, HWND hWnd, UINT lo, UINT hi, UINT remove)
         LONG cx = (short)LOWORD(msg->lParam);     /* client coords of msg->hwnd */
         LONG cy = (short)HIWORD(msg->lParam);
         HWND gw = game_window();
-        RECT vb;
 
         /* Only the GAME's own window speaks 640x480. A modal dialog's mouse
          * messages carry ITS client coordinates and its buttons hit-test in that
@@ -1933,17 +1584,6 @@ BOOL WINAPI My_PeekMessageA(LPMSG msg, HWND hWnd, UINT lo, UINT hi, UINT remove)
          * be hit - the overwrite prompt could be seen but never answered. */
         if (gw && msg->hwnd != gw && !IsChild(gw, msg->hwnd)) {
             LOG_V("PeekMsg 0x%04X for a non-game window - untouched\n", msg->message);
-        } else if (sw_vptr() && sw_vptr_map() && caller_is_shell(ra) &&
-                   vptr_shell_box(&vb) == VB_BOX) {
-            /* A1: the shell's message coordinates follow the same box map as its GetCursorPos.
-             * (A UI-sized box and a free pointer keep the two branches below, unchanged.) */
-            POINT pt; LONG lx, ly;
-            pt.x = cx; pt.y = cy;
-            ClientToScreen(msg->hwnd, &pt);
-            vptr_box_to_ui(&vb, VB_BOX, pt.x, pt.y, &lx, &ly);
-            LOG_V("VPTR PeekMsg 0x%04X client=(%ld,%ld) -> UI=(%ld,%ld) via box (%ld,%ld)-(%ld,%ld)\n",
-                  msg->message, cx, cy, lx, ly, vb.left, vb.top, vb.right, vb.bottom);
-            msg->lParam = MAKELPARAM((WORD)lx, (WORD)ly);
         } else if (!pointer_is_confined()) {
             /* THE EXE MENU'S CLICK PATH (2026-10-02). WinMain's loops dispatch this message to
              * the WndProc, which in mode 0x10 hands the lParam to shell_MenuHandleMouse 0x4972d0
