@@ -20,7 +20,7 @@ namespace Haptics.Host
         const string Help = @"haptics <command> [options]
 
   replay <input> [--sinks wheel-file,pad-file,lfe-wav,motion-file,loopback-wav] [--out DIR] [--tag NAME]
-         [--core-hz 250 | --core-hz frame --frame-hz 60] [--realtime] [--solo id,..] [--mute id,..]
+         [--core-hz 250 | --core-hz frame --frame-hz 60] [--realtime [--rt hires|legacy]] [--solo id,..] [--mute id,..]
          [--loopback-wav FILE] [--effects DIR] [--rig FILE] [--live]
          <input> = a .i76rec recording | a tools/ffb drive*.csv | synthetic | synthetic:v2 | synthetic:v3
   motion <input> [--targets flypt,native] [--send] [--fast] [--repeat N] [--hz 100] [--resample interp|hold]
@@ -31,7 +31,7 @@ namespace Haptics.Host
   preview --effect ID [--out DIR] [--sinks ...]   render one effect alone (its stimulus, soloed) to all sinks
   synth --out FILE.i76rec [--version 2|3] [--repeats N]     write a scripted session as real datagrams
   record --udp [PORT] | --shm   --out FILE.i76rec [--seconds N]   capture telemetry (no device involved)
-  live --source udp|shm [--port 7676] [--sinks ...] [--out DIR] [--seconds N] [--live]
+  live --source udp|shm [--port 7676] [--sinks ...] [--out DIR] [--seconds N] [--rt hires|legacy] [--live]
          250 Hz loop against the running game; WITHOUT --live every output is a file sink (dry run)
   play <FILE.i76rec | synthetic> [--port 7676] [--repeats N]   send a recording's datagrams to 127.0.0.1:PORT at their
          recorded times (stands in for the game when testing `live`; loopback only, prints the sender's own pacing)
