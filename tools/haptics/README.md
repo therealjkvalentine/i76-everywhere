@@ -24,6 +24,7 @@ tools\haptics\haptics.ps1 replay session.i76rec --sinks lfe-wav --solo impact.co
 tools\haptics\haptics.ps1 preview --effect landing               # one effect alone, all devices, to files
 tools\haptics\haptics.ps1 lint                                   # the design-rule lints
 tools\haptics\haptics.ps1 synth --out replays\s.i76rec           # write the scripted session as real datagrams
+tools\haptics\haptics.ps1 play replays\s.i76rec --port 17676      # send it to 127.0.0.1:17676 in real time (a stand-in game for `live`)
 tools\haptics\haptics.ps1 motion all --check                      # motion output: 7 synthetic scenarios -> packet logs, checked
 tools\haptics\haptics.ps1 motion braking --targets flypt --send   # ... to FlyPT Mover on 127.0.0.1:4123 in real time (motion/README.md)
 python tools\haptics\design\report.py                            # the design facility report (design/out/report/index.html)
@@ -41,6 +42,7 @@ no NuGet packages). `haptics.ps1 help` lists every command.
 | `src/Haptics/Transport/` | i76tel layouts (frozen v2 + v3 headers embedded, live header parsed at run time), codec, `ShmReader` (seqlock, open-existing read-only), `UdpListener`, `.i76rec` recorder/reader, `Synthetic` sessions |
 | `src/Haptics/Renderers/` | the five renderers and `RendererRegistry` |
 | `src/Haptics/Pipeline.cs` | the host loop (250 Hz core grid on the engine clock; real-time pacing with a lateness histogram) |
+| `src/Haptics/RealTime.cs` | the real-time wait (high-resolution timer + spin, boosted thread), pre-JIT, per-update LoopStats, ChunkedList (B4 section) |
 | `src/Host/` | the CLI |
 | `effects/*.json` | one file per effect (schema: `schema/effect.schema.json`) |
 | `rigs/*.json` | outputs, renderer per output, device facts (schema: `schema/rig.schema.json`) |
@@ -173,16 +175,83 @@ synth's plus one core update at most.
   transient" headroom above 0.95.
 * **HP/LP**: the shipped shaker chain is HP 11 Hz / LP 85 Hz (x1.35 inside LfeCore), not the "22/90" the design text
   says; the rig file carries the shipped values.
-* **B4 real-time loop: exit criterion NOT met.** A 600 s replay at 250 Hz (`replay out\b4\synthetic-600s.i76rec --realtime`,
-  all four file sinks, 2026-10-10, n = 1, on a desktop doing other work) gave 149,997 updates: p50 0.00 ms, p99 0.44 ms,
-  p99.9 0.58 ms, max 13.6 ms. 3 updates were more than 8 ms late (target: none). Still to do: rule out file-sink I/O and GC
-  (rerun with no sinks, `GCSettings.LatencyMode = SustainedLowLatency`, a multimedia timer), then repeat for n >= 3.
+* **B4 real-time loop: exit criterion met on replay (n = 2 x 600 s), see "B4 real-time loop" below.** Not yet run against
+  the game or with `--live` devices; the live loop was measured fed by `haptics.ps1 play` on loopback.
 * Golden real drives: `drive2.csv` / `drive3.csv` are gitignored, so a fresh checkout has none. Set
   `I76_REAL_DRIVES=<folder>` (for example the main checkout's `tools\ffb`) before `haptics.ps1 test`, or the two real-drive checks are skipped.
 * **Motion**: M4 (SimHub .simdef, Open Game Telemetry), M5 (proxy motion fields) and M6 (washout, direct actuator path) are
   not built; no desk bench (FlyPT / SimHub) was run by an agent (nothing may be installed): owner tests 17-25. Details in
   [motion/README.md](motion/README.md).
 * `i76tel.py --record` (design A1) was not added: the proxy agent owns `i76tel.py`; recording is `haptics.ps1 record`.
+
+## B4 real-time loop: timing, diagnosis and results
+
+Code: `src/Haptics/RealTime.cs` (RtWaiter, RtWarmup, LoopStats, ChunkedList), `Pipeline.Run` (replay `--realtime`),
+`Program.Live` (the `live` command), `MotionUdpRenderer.OutputLoop`. Every real-time run writes `<tag>.deadlines.txt`
+(`live.deadlines.txt` for live): the histogram, the wait mode, why each update over 1 ms was late (the work before the
+wait overran, or the wake-up was late; was there a GC), GC counts and pause, per-stage times (p50 / p99 / p99.9 / max
+for input, core, every renderer) and the ten worst updates with their stage breakdown. Motion.Udp's summary line adds
+its send timing (gaps between ticks, tick lateness).
+
+* **Tick thread.** `RtWaiter`: `timeBeginPeriod(1)`, a `CREATE_WAITABLE_TIMER_HIGH_RESOLUTION` waitable timer to 0.6 ms
+  before the deadline, then a spin on the stopwatch; thread priority Highest + MMCSS "Games";
+  `GCSettings.LatencyMode = SustainedLowLatency` for the run; every host method JIT-compiled before the clock starts
+  (update #1 otherwise compiled the hot path for 6-8 ms). Deadlines are absolute (k x 4 ms), not "previous + 4 ms".
+* **live is three threads.** A source thread (blocking UDP receive or 1 ms shm poll, `--record`, decode, Derive) hands
+  frames to the tick over a queue; a reload thread checks `effects/*.json` once a second (that directory scan used to
+  run on the tick); the tick drains the queue, steps the core and renders.
+* **Motion on its own schedule.** In real-time runs `Motion.Udp` only feeds MotionCore from the core update; its own
+  boosted thread wakes at every output tick (1 / `output_hz` on the wall clock) and sends. Offline replays are unchanged
+  (byte-identical packet logs, tested).
+* **No regrowing buffers.** Lfe.Synth's WAV buffer is a `ChunkedList<short>` (64 K chunks). Lfe.Stems' `Recorded`
+  is still a `List<short>` (same regrow, only when stems are built; not touched here).
+* `--rt legacy` (or `I76_RT=legacy`) brings back the old wait (Thread.Sleep(1) + 1.5 ms spin, no boost, no pre-JIT,
+  motion sent from the core update) for A/B; `--rt hires` is the default.
+* `haptics.ps1 play <rec> --port N` sends a recording to 127.0.0.1:N at its recorded times (its own pacing is printed),
+  which stands in for the game: `play out\b4\synthetic-120s.i76rec --port 17676` beside
+  `live --source udp --port 17676 --sinks wheel-file,pad-file,lfe-wav,motion-file,motion-udp --seconds 124`.
+
+**Diagnosis (what the instrumentation showed).**
+1. **live: the timer resolution.** The old live loop slept with `Thread.Sleep(1)` but never called `timeBeginPeriod`;
+   since Windows 10 2004 the timer resolution is per process, so each sleep lasted ~15.6 ms and the loop ran in bursts
+   of four updates: p50 6 ms late, 38 % of updates over 8 ms. Motion ticks rode on those updates, so they left at
+   8 / 12 ms spacing even when the loop was on time (100 Hz ticks on a 250 Hz grid).
+2. **replay: wake-up and preemption.** In a 120 s `--rt legacy` replay, 64 of the 68 updates later than 1 ms woke late
+   from Sleep(1) with slack in hand; none had a GC since the previous update. Two more were update #1 (JIT, 6 ms).
+3. **The 600 s maximum: a List regrow.** With the timer fixed, the one late update in 600 s (#131,073, 2.9 ms) spent
+   6.8 ms in Lfe.Synth: 131,072 x 64 samples = 2^23, the WAV buffer's List doubling from 8 M to 16 M samples. That is the
+   mechanism of the original 13.6 ms. Fixed with the chunked buffer.
+4. **GC is not a problem at this rate**: 473 gen0 / 42 gen1 / 6 gen2 collections in 600 s, 55-61 ms total pause,
+   none behind a missed deadline; the worst was a gen1 at about 1.8 s that made one core step take 5.7 ms (1.8 ms late).
+   So no NoGC region and no pooling: the hot path still allocates (sample clones, CoreStep, event lists).
+
+**Results (2026-10-11, this desktop doing other work, file sinks only, no device opened).** Lateness = wake time minus
+deadline, per 4 ms core update.
+
+| run | n updates | p50 | p99 | p99.9 | max | > 8 ms |
+|---|---|---|---|---|---|---|
+| before: 600 s replay, old loop (2026-10-10) | 149,997 | 0.00 | 0.44 | 0.58 | 13.6 | 3 |
+| before: 120 s replay, old loop | 29,997 | 0.00 | 0.47 | 2.18 | 12.08 | 4 |
+| before: 120 s replay, `--rt legacy` (instrumented) | 29,997 | 0.00 | 0.46 | 1.76 | 5.75 | 0 |
+| after: 120 s replay | 29,997 | 0.00 | 0.40 | 0.45 | 7.87 (update #1, JIT; pre-JIT added after) | 0 |
+| after: 600 s replay (pre-JIT, List regrow still in) | 149,997 | 0.00 | 0.39 | 0.44 | 2.90 | 0 |
+| **after: 600 s replay (B4 run)** | **149,997** | **0.00** | **0.41** | **0.47** | **2.24** | **0** |
+| before: live, old loop, 64 s, play at 60 Hz | 15,997 | 6.13 | 13.74 | 14.19 | 24.53 | 6,081 |
+| live, new threads but `--rt legacy`, 124 s | 31,000 | 0.00 | 0.41 | 0.70 | 22.32 | 7 |
+| after: live, 64 s | 15,984 | 0.00 | 0.41 | 0.71 | 1.58 | 0 |
+| **after: live, 124 s** | **30,951** | **0.00** | **0.40** | **0.52** | **1.23** | **0** |
+
+Motion.Udp send timing in the same live runs (100 Hz, 10 ms period):
+
+| run | gaps | p1 / p50 / p99 / max gap (ms) | gaps > 1 ms off 10 ms | tick lateness p50 / p99 / max |
+|---|---|---|---|---|
+| `--rt legacy` (sent from the core update) | 12,187 | 7.83 / 10.40 / 12.18 / 30.20 | 12,173 | 2.16 / 3.46 / 25.27 ms |
+| after (own output thread), 64 s | 6,225 | 9.61 / 10.00 / 10.39 / 11.50 | 2 | 0.01 / 0.40 / 2.03 ms |
+| **after, 124 s** | **12,192** | **9.60 / 10.00 / 10.40 / 10.71** | **0** | **0.01 / 0.40 / 0.79 ms** |
+
+The `play` sender itself kept p99 0.41 ms, max 1.8-2.3 ms in every run. Open: n is 2 for the 600 s replay and 2 for
+live; nothing here ran with the game rendering on the same machine (owner test C2 / C3), where CPU contention is what
+MMCSS and the Highest priority are for.
 
 ## Owner-console tests (Phase C)
 

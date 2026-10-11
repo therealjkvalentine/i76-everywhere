@@ -93,6 +93,38 @@ namespace Haptics.Tests
             CuesAndSafety();
             Lints();
             RendererEndToEnd();
+            RealTimeOutput();
+        }
+
+        // ------------------------------------------------------------------------------------------------ real time
+        static void RealTimeOutput()
+        {
+            T.Section("Real-time loop (B4): Motion.Udp on its own output thread, LoopStats, ChunkedDoubles (2 s of wall clock)");
+            var cd = new ChunkedDoubles();
+            for (int i = 0; i < 200000; i++) cd.Add(i * 0.5);
+            T.Check("ChunkedDoubles: 200,000 values across chunks read back in order", cd.Count == 200000 && cd[0] == 0 && cd[65535] == 65535 * 0.5 && cd[65536] == 65536 * 0.5 && cd[199999] == 199999 * 0.5, "");
+            var h = LoopStats.Histogram(new[] { 0.1, 0.2, 9.0, 0.3 });
+            T.Check("LoopStats.Histogram counts the misses over 8 ms", h.StartsWith("4 updates") && h.EndsWith("missed (>8 ms): 1"), h);
+
+            var dir = T.TempDir("motion-rt");
+            var set = EffectSet.Load();
+            var p = Session.Build(set, new string[0], dir, "rt", false, 250);
+            var mr = Open(dir, "rt", new JsonObject { ["select"] = "native" });
+            p.Renderers.Add(mr);
+            p.RealTime = true;
+            var d = new Derive(); p.Core.Configure(d);
+            p.Run(Sources.FromDatagrams(Synthetic.Session(3).Take(120), d, TelCodec.Default()));   // 2 s at 60 fps, paced
+            mr.Close();
+            var nat = RecordingReader.Load(mr.Logs.First(l => l.kind == "i76motion").path).Records;
+            var seq = nat.Select(x => BitConverter.ToUInt32(x.data, 8)).ToList();
+            T.Check("about 100 ticks per second of wall clock, seq contiguous, shutdown packet last",
+                nat.Count >= 180 && nat.Count <= 215 && seq.Zip(seq.Skip(1), (x, y) => y == x + 1).All(b => b) && (BitConverter.ToUInt32(nat.Last().data, 12) & 0x80000000u) != 0,
+                nat.Count + " packets");
+            var g = mr.SendGapsMs; Array.Sort(g);
+            double med = g.Length > 0 ? g[g.Length / 2] : 0;
+            T.Check("ticks are sent from the output thread on a 10 ms schedule (median gap 10 +- 1 ms; the core grid gave 8 / 12)",
+                g.Length > 150 && Math.Abs(med - 10.0) < 1.0 && mr.Summary().Contains("own output thread"), "median " + med.ToString("0.00") + " ms over " + g.Length + " gaps");
+            T.Check("the pipeline logged a lateness sample per core update", p.Stats != null && p.Stats.Count == p.Updates && p.Stats.Report().Contains("stage ms per update"), p.Stats?.Histogram() ?? "no stats");
         }
 
         // ------------------------------------------------------------------------------------------------ layouts

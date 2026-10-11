@@ -69,7 +69,8 @@ namespace Haptics
     /// The host loop. Replay: each input frame is followed by core updates at CoreHz until the next frame's time
     /// (deterministic: a replay at max speed produces the same files as a real-time one). Events and the one-shot
     /// sample fields (Shift, FxFired) go to the first update of their frame only. Real time: the same schedule paced
-    /// by a 1 ms timer, with every update's lateness logged (B4 histogram).
+    /// by RtWaiter (RealTime.cs: high-resolution timer + spin on a boosted thread), with every update's lateness,
+    /// slack, stage times and GCs logged (LoopStats, the B4 histogram).
     /// </summary>
     public sealed class Pipeline
     {
@@ -77,19 +78,33 @@ namespace Haptics
         public readonly List<IRenderer> Renderers = new List<IRenderer>();
         public int CoreHz = 250;            // 0 = one update per input frame
         public bool RealTime;
+        public RtOptions Rt = new RtOptions();     // real-time wait strategy (RealTime.cs); --rt legacy|hires
         public long Updates, Frames;
-        public readonly List<double> LatenessMs = new List<double>();
+        /// <summary>Real-time runs: per-update lateness, slack, stage times and GCs (B4 instrumentation).</summary>
+        public LoopStats Stats;
         public Action<CoreStep> OnStep;
 
-        [DllImport("winmm.dll")] static extern uint timeBeginPeriod(uint p);
-        [DllImport("winmm.dll")] static extern uint timeEndPeriod(uint p);
+        void Emit(CoreStep s)
+        {
+            Updates++;
+            if (Stats == null) { foreach (var r in Renderers) r.Render(s); OnStep?.Invoke(s); return; }
+            for (int i = 0; i < Renderers.Count; i++) { Renderers[i].Render(s); Stats.Mark(2 + i); }
+            OnStep?.Invoke(s); Stats.Mark(2 + Renderers.Count);
+        }
 
-        void Emit(CoreStep s) { Updates++; foreach (var r in Renderers) r.Render(s); OnStep?.Invoke(s); }
+        /// <summary>Stage names for <see cref="Stats"/>: input, core, one per renderer, onstep.</summary>
+        public string[] StageNames() => new[] { "input", "core" }.Concat(Renderers.Select(r => r.Type)).Concat(new[] { "onstep" }).ToArray();
 
         public void Run(IEnumerable<FrameIn> frames, CancellationToken ct = default)
         {
-            var sw = Stopwatch.StartNew();
-            if (RealTime) timeBeginPeriod(1);
+            RtWaiter rt = null;
+            if (RealTime)
+            {
+                string jit = Rt.Prejit ? RtWarmup.Prejit(System.Reflection.Assembly.GetEntryAssembly()) : "";
+                rt = new RtWaiter(Rt);
+                Stats = new LoopStats(StageNames()) { Mode = Rt + (rt.Notes != "" ? "; " + rt.Notes : "") + (jit != "" ? "; " + jit : "") };
+                if (Rt.OwnOutputThreads) foreach (var r in Renderers) (r as IRealTimeRenderer)?.StartRealTime();
+            }
             try
             {
                 // Core time = engine sim time + every stalled (paused / menu) interval measured on the source clock,
@@ -136,11 +151,12 @@ namespace Haptics
                         double t = times[j];
                         if (RealTime)
                         {
-                            if (double.IsNaN(rt0)) rt0 = t;
+                            if (double.IsNaN(rt0)) rt0 = t - rt.Now;
                             double due = t - rt0;
-                            while (sw.Elapsed.TotalSeconds < due - 0.0015) Thread.Sleep(1);
-                            while (sw.Elapsed.TotalSeconds < due) Thread.SpinWait(50);
-                            LatenessMs.Add((sw.Elapsed.TotalSeconds - due) * 1000.0);
+                            Stats.Mark(0);
+                            double slack = (due - rt.Now) * 1000.0;
+                            rt.WaitUntil(due);
+                            Stats.Update(slack, (rt.Now - due) * 1000.0);
                         }
                         var s = cur.D.Sample;
                         if (CoreHz > 0 || !advanced)
@@ -154,31 +170,19 @@ namespace Haptics
                         var evs = pendEv; pendEv = new List<HapticEvent>(); pendShift = null; pendFx = null;
                         var step = Core.Step(d, evs, t);
                         step.NewFrame = j == 0;
+                        Stats?.Mark(1);
                         Emit(step);
                     }
                     cur = next;
                 }
             }
-            finally { if (RealTime) timeEndPeriod(1); }
+            finally
+            {
+                if (rt != null) foreach (var r in Renderers) (r as IRealTimeRenderer)?.StopRealTime();
+                rt?.Dispose();
+            }
         }
 
-        public string LatenessHistogram()
-        {
-            if (LatenessMs.Count == 0) return "(no real-time samples)";
-            var a = LatenessMs.OrderBy(x => x).ToArray();
-            double P(double p) => a[Math.Min(a.Length - 1, (int)(a.Length * p))];
-            var bins = new[] { 1.0, 2, 4, 8, 16, double.MaxValue };
-            var sb = new System.Text.StringBuilder();
-            sb.AppendFormat(CultureInfo.InvariantCulture, "{0} updates: p50 {1:0.00} ms, p99 {2:0.00} ms, p99.9 {3:0.00} ms, max {4:0.00} ms; ", a.Length, P(0.5), P(0.99), P(0.999), a[a.Length - 1]);
-            double lo = double.MinValue;
-            foreach (var b in bins)
-            {
-                int c = a.Count(x => x > lo && x <= b);
-                sb.AppendFormat(CultureInfo.InvariantCulture, "{0}{1}: {2}  ", lo == double.MinValue ? "<=" : ">" + lo + "..", b == double.MaxValue ? "inf" : b.ToString(CultureInfo.InvariantCulture), c);
-                lo = b;
-            }
-            sb.AppendFormat("missed (>8 ms): {0}", a.Count(x => x > 8));
-            return sb.ToString();
-        }
+        public string LatenessHistogram() => Stats == null ? "(no real-time samples)" : Stats.Histogram();
     }
 }

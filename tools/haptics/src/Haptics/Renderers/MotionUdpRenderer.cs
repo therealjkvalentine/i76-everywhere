@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
+using System.Threading;
 using Haptics.Core;
 using Haptics.Core.Motion;
 using Haptics.Transport;
@@ -27,7 +28,7 @@ namespace Haptics.Renderers
     ///   targets_file (default motion/targets.json), select ("flypt,native"; default = the file's enabled targets),
     ///   send (bool), output_hz, resample, log (bool, default true), csv (bool, default true).
     /// </summary>
-    public sealed class MotionUdpRenderer : IRenderer
+    public sealed class MotionUdpRenderer : IRenderer, IRealTimeRenderer
     {
         public string Type => "Motion.Udp";
         public MotionCore Core;
@@ -116,22 +117,100 @@ namespace Haptics.Renderers
                 Params.OutputHz, Params.Resample, Params.AccelSource, Send ? "SENDING UDP" : "files only (no UDP)");
         }
 
+        // the wall clock behind the motion clock (live, or a real-time run): started at the first Render, motion clock =
+        // _clock0 + elapsed. Offline replays never start it.
+        bool WallMapped => HostClock || _rtThread != null;
+        double WallClock() => _sw == null ? double.NaN : _clock0 + _sw.Elapsed.TotalSeconds;
+
         double Clock(CoreStep step)
         {
+            if (_sw == null && WallMapped) { _sw = Stopwatch.StartNew(); _clock0 = step.T; }
             if (!HostClock) return step.T;
-            if (_sw == null) { _sw = Stopwatch.StartNew(); _clock0 = step.T; }
             return _clock0 + _sw.Elapsed.TotalSeconds;
         }
 
         public void Render(CoreStep step)
         {
             if (Core == null) return;
+            if (_rtThread != null)
+            {
+                // real time: the core update only feeds; the output thread sends each tick at its own time (OutputLoop)
+                lock (_lk) { double cc = Clock(step); _lastClock = Math.Max(_lastClock, cc); Core.Feed(step.State, step.Events, cc); }
+                return;
+            }
             double c = Clock(step); _lastClock = c;
             // ticks before this step's time belong to the previous state (after a telemetry gap the replay clock jumps:
             // those ticks must see the stale stream and ramp to neutral, not the new frame)
-            foreach (var f in Core.Pump(c - 1e-7)) Emit(f);
+            foreach (var f in Core.Pump(c - 1e-7)) { Timing(f); Emit(f); }
             Core.Feed(step.State, step.Events, c);
-            foreach (var f in Core.Pump(c)) Emit(f);
+            foreach (var f in Core.Pump(c)) { Timing(f); Emit(f); }
+        }
+
+        // ---- real-time output schedule (IRealTimeRenderer): one boosted thread, a tick every 1 / output_hz on the wall clock,
+        // independent of the core grid (which sent at 8 / 12 ms spacing when 100 Hz ticks rode on 250 Hz updates) ----
+        readonly object _lk = new object();
+        Thread _rtThread; volatile bool _rtRun; bool _everRt;
+        public RtOptions Rt = new RtOptions();
+        readonly ChunkedDoubles _sendGap = new ChunkedDoubles(), _sendLate = new ChunkedDoubles();
+        long _lastSendTs;
+
+        public void StartRealTime()
+        {
+            if (Core == null || _rtThread != null) return;
+            _rtRun = true; _everRt = true;
+            _rtThread = new Thread(OutputLoop) { IsBackground = true, Name = "Motion.Udp output" };
+            _rtThread.Start();
+        }
+
+        public void StopRealTime()
+        {
+            var th = _rtThread; if (th == null) return;
+            _rtRun = false; th.Join(2000);
+            _rtThread = null;
+        }
+
+        void OutputLoop()
+        {
+            // the GC latency mode is process-wide: the loop that owns the run sets and restores it, not this thread
+            using (var w = new RtWaiter(new RtOptions { HiResTimer = Rt.HiResTimer, Boost = Rt.Boost, SpinMs = Rt.SpinMs, LowLatencyGc = false }))
+            {
+                var buf = new List<MotionFrame>();
+                while (_rtRun)
+                {
+                    double next = double.NaN, now = 0;
+                    lock (_lk) if (_sw != null) { next = Core.NextTick - _clock0; now = _sw.Elapsed.TotalSeconds; }   // next tick on the wall clock
+                    if (double.IsNaN(next)) { w.WaitUntil(w.Now + 0.001); continue; }
+                    if (next > now + 0.25) next = now + 0.001;                   // no tick due soon (before the first state): poll
+                    w.WaitUntil(w.Now + (next - now));                           // the waiter's stopwatch and _sw differ by a constant
+                    buf.Clear();
+                    lock (_lk) { double c = WallClock(); _lastClock = Math.Max(_lastClock, c); buf.AddRange(Core.Pump(c)); }
+                    foreach (var f in buf) { Timing(f); Emit(f); }
+                }
+            }
+        }
+
+        void Timing(MotionFrame f)
+        {
+            if (!WallMapped || _sw == null) return;
+            long ts = Stopwatch.GetTimestamp();
+            if (_lastSendTs != 0) _sendGap.Add((ts - _lastSendTs) * 1000.0 / Stopwatch.Frequency);
+            _lastSendTs = ts;
+            _sendLate.Add((_sw.Elapsed.TotalSeconds - (f.Clock - _clock0)) * 1000.0);
+        }
+
+        /// <summary>Wall-clock gaps between consecutive output ticks (ms), live / real-time runs only.</summary>
+        public double[] SendGapsMs => _sendGap.ToArray();
+
+        /// <summary>Wall-clock send timing of the output ticks (live / real-time runs): gaps between consecutive ticks, each tick's lateness.</summary>
+        public string SendTiming()
+        {
+            if (_sendGap.Count == 0) return null;
+            var g = _sendGap.ToArray(); Array.Sort(g);
+            double per = 1000.0 / Math.Max(1.0, Params.OutputHz);
+            double P(double[] a, double p) => a[Math.Min(a.Length - 1, (int)(a.Length * p))];
+            int off = g.Count(x => Math.Abs(x - per) > 1.0);
+            return string.Format(CultureInfo.InvariantCulture, "send timing ({0}): {1} gaps p1 {2:0.00} / p50 {3:0.00} / p99 {4:0.00} / max {5:0.00} ms, {6} more than 1 ms off the {7:0.##} ms period; tick lateness {8}",
+                _everRt ? "own output thread" : "sent from the core update", g.Length, P(g, 0.01), P(g, 0.5), P(g, 0.99), g[g.Length - 1], off, per, LoopStats.Histogram(_sendLate.ToArray()));
         }
 
         void Emit(MotionFrame f)
@@ -144,13 +223,13 @@ namespace Haptics.Renderers
                 foreach (var (kind, port, log, _) in rt.Streams)
                 {
                     var pkt = Encode(kind, g, rt.Def, Params);
-                    log?.Add(f.Clock, pkt);
-                    rt.Packets++; rt.Bytes += pkt.Length;
                     if (rt.Udp != null)
                     {
                         try { rt.Udp.Send(pkt, pkt.Length, rt.Def.Host, port); }
                         catch (Exception ex) { rt.SendErrors++; rt.LastError = ex.Message; }
                     }
+                    log?.Add(f.Clock, pkt);
+                    rt.Packets++; rt.Bytes += pkt.Length;
                 }
             }
             if (_csv != null)
@@ -180,6 +259,7 @@ namespace Haptics.Renderers
         public void Close()
         {
             if (Core == null) return;
+            StopRealTime();
             if (Core.PhysicsStates > 0) Emit(Core.ShutdownFrame(_lastClock + Core.Period));
             foreach (var rt in Targets)
             {
@@ -205,6 +285,7 @@ namespace Haptics.Renderers
                 sb.AppendFormat(CultureInfo.InvariantCulture, "{0}    {1}: {2} packets, {3} B{4}{5}", Environment.NewLine, rt.Def, rt.Packets, rt.Bytes,
                     rt.Lim.Active ? ", limiter clamped " + rt.Lim.Clamped + " / slewed " + rt.Lim.Slewed : "",
                     rt.SendErrors > 0 ? ", " + rt.SendErrors + " send errors (" + rt.LastError + ")" : "");
+            var st = SendTiming(); if (st != null) sb.Append(Environment.NewLine + "    " + st);
             if (_csvPath != null) sb.Append(Environment.NewLine + "    csv -> " + _csvPath);
             return sb.ToString();
         }
