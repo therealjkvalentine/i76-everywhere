@@ -4785,7 +4785,7 @@ static void glide_apply_gamma(void) {
 
 static DWORD __stdcall hook_grSstWinOpen(DWORD hwnd, DWORD res, DWORD refresh, DWORD cfmt, DWORD origin, int ncol, int naux) {
     DWORD r;
-    /* only I76_GLIDE_REFRESH substitutes the refresh; under I76_GLIDE_DIR / I76_GLIDE_GAMMA alone the renderer's own
+    /* only I76_GLIDE_REFRESH substitutes the refresh; under I76_GLIDE_GAMMA alone (or the removed I76_GLIDE_DIR) the renderer's own
        code goes through (before 2026-10-07 the unset 0xffffffff was passed and rescued by the fallback reopen below) */
     DWORD code = (g_glide_refresh_code != 0xffffffff) ? g_glide_refresh_code : refresh;
     mlog("  glide-refresh: grSstWinOpen(res %lu, refresh %lu -> %lu (%lu Hz), cfmt %lu, origin %lu, %d/%d buffers)",
@@ -5175,23 +5175,12 @@ static void tex_census_attach(HMODULE m) {
 
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
 
-/* I76_GLIDE_DIR=<subfolder> (EXPERIMENT, lab docs/WIDESCREEN-2D.md): menus and cutscenes are 640x480 DirectDraw (dgVoodoo's
- * DDraw.dll), missions are Glide (its Glide2x.dll), and each dgVoodoo DLL looks for dgVoodoo.conf in its own folder
- * first. Loading <game>\<subfolder>\Glide2x.dll before ZGLIDE binds ZGLIDE's glide2x.dll import to that copy, so the
- * mission can take that folder's conf (widescreen, stretched) while the shell keeps the game folder's (4:3). */
-static char g_glide_dir[MAX_PATH];
+/* (I76_GLIDE_DIR, the 2026-10-03 experiment that loaded <game>\<subfolder>\Glide2x.dll before ZGLIDE so the mission
+ * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
+ * them 4:3 (lab docs/WIDESCREEN-2D.md, "Live result, route (a)"; docs/records/PROXY-CLEANUP-2026-10-10.md).) */
 static int g_zg_tmufix;                     /* I76_ZGLIDE_TMUFIX=1 */
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     HMODULE m;
-    if (name && g_glide_dir[0]) {
-        const char *b0 = strrchr(name, '\\'); b0 = b0 ? b0 + 1 : name;
-        if (_strnicmp(b0, "zglide", 6) == 0 && !GetModuleHandleA("glide2x.dll")) {
-            char path[MAX_PATH]; HMODULE g;
-            wsprintfA(path, "%s\\%s\\Glide2x.dll", g_dir, g_glide_dir);
-            g = p_LoadLibraryA(path);
-            mlog("  glide-dir: %s %s", path, g ? "loaded before ZGLIDE" : "FAILED to load - the game folder's Glide2x.dll will be used");
-        }
-    }
     m = p_LoadLibraryA(name);
     if (m && name) {
         const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
@@ -5209,8 +5198,8 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
             } else mlog("  zglide-tmufix: ZGLIDE+0x1a93 = %02x %02x, not the stock 75 24 - not applied", p[0], p[1]);
         }
         if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on) tex_census_attach(m);
-        /* (the census alone hooks LoadLibraryA too: the refresh wrapper is only for the two switches that did before) */
-        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_dir[0] || g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
+        /* (the census and TMUFIX hook LoadLibraryA too: the refresh wrapper is only for I76_GLIDE_REFRESH / I76_GLIDE_GAMMA) */
+        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
             p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
             mlog("  glide-refresh: %s loaded at %p, grSstWinOpen slot %s", b, (void *)m, p_grSstWinOpen ? "repointed" : "NOT found");
         }
@@ -5234,13 +5223,6 @@ static void apply_glide_refresh(void) {
             g_zg_tmufix = 1;
             if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
             mlog("  zglide-tmufix: armed, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
-        }
-    }
-    {   DWORD k = GetEnvironmentVariableA("I76_GLIDE_DIR", g_glide_dir, sizeof(g_glide_dir));
-        if (k == 0 || k >= sizeof(g_glide_dir)) g_glide_dir[0] = 0;
-        else if (!p_LoadLibraryA) {
-            p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
-            mlog("  glide-dir: %s, LoadLibraryA %s", g_glide_dir, p_LoadLibraryA ? "hooked" : "NOT hooked");
         }
     }
     {   char gv[16]; DWORD k = GetEnvironmentVariableA("I76_GLIDE_GAMMA", gv, sizeof(gv));
