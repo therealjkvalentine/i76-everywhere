@@ -212,17 +212,17 @@ static void cursor_map_attach(HMODULE m, const char *b) {
     if (g_cm_mode && !shell_done && _strnicmp(b, "i76shell", 8) == 0) { shell_done = 1; cm_patch_module(m, b); }
 }
 static void apply_cursor_map(void) {
-    char v[16]; DWORD n = GetEnvironmentVariableA("I76_CURSOR_MAP", v, sizeof(v));
+    char v[16]; DWORD n = env_str("I76_CURSOR_MAP", v, sizeof(v));
     HMODULE exe = GetModuleHandleA(NULL), sh;
-    if (n == 0 || n >= sizeof(v) || v[0] == '0') return;
-    {   char c[8]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_MAP_U32X", c, sizeof(c));
-        g_cm_over_u32x = (k && k < sizeof(c)) ? (c[0] == '1' ? 1 : lstrcmpiA(c, "exe") == 0 ? 2 : 0) : 0; }
+    if (n == 0 || v[0] == '0') return;
+    {   char c[8]; DWORD k = env_str("I76_CURSOR_MAP_U32X", c, sizeof(c));
+        g_cm_over_u32x = k ? (c[0] == '1' ? 1 : lstrcmpiA(c, "exe") == 0 ? 2 : 0) : 0; }
     if (!g_cm_over_u32x && (GetModuleHandleA("u32x.dll") || patch_iat_has_dll(exe, "u32x.dll"))) {
         mlog("  cursor-map: u32x.dll present (it maps the cursor already) - not applied (I76_CURSOR_MAP_U32X=1 takes its slots)");
         return;
     }
     g_cm_mode = (lstrcmpiA(v, "ar") == 0) ? 2 : 1;
-    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_LOG", c, sizeof(c)); g_cm_log = (k && k < sizeof(c) && c[0] == '1'); }
+    g_cm_log = env_flag("I76_CURSOR_LOG", 4, 0) == 1;
     {   /* the real functions, so a hook never calls itself even if a slot was already taken by someone else */
         HMODULE u = GetModuleHandleA("user32.dll");
         p_cm_GetCursorPos = (BOOL (WINAPI *)(LPPOINT))GetProcAddress(u, "GetCursorPos");
@@ -231,8 +231,8 @@ static void apply_cursor_map(void) {
         p_cm_PeekMessageA = (BOOL (WINAPI *)(LPMSG, HWND, UINT, UINT, UINT))GetProcAddress(u, "PeekMessageA");
     }
     p_cm_GetCursorInfo = (BOOL (WINAPI *)(PCURSORINFO))GetProcAddress(GetModuleHandleA("user32.dll"), "GetCursorInfo");
-    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_CURSOR_MAP_DGV", c, sizeof(c));
-        if (k && k < sizeof(c) && c[0] == '1') {
+    {
+        if (env_flag("I76_CURSOR_MAP_DGV", 4, 0) == 1) {
             HANDLE th;
             g_cm_dgv = 1;
             th = CreateThread(NULL, 0, cm_dgv_thread, NULL, 0, NULL);

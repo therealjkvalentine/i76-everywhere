@@ -100,7 +100,7 @@ says so when it does.
 |---|---|---|
 | The exe's own Esc menu: maps `WM_LBUTTONDOWN/UP` from the box the pointer can reach onto the 640x480 page and undoes the engine's per-mode rescale, so Exit and the other items can be clicked. It reads engine globals at fixed addresses, guarded by a byte signature of `0x4972d0`: an exe it does not recognise gets none of it | `I76_U32X_MENU`, `I76_U32X_MENU_BOX`, `I76_U32X_MENU_ASPECT` | on |
 | `GetAsyncKeyState` / `GetKeyState` routed through our code, the shell key-path instruments, and the keep-alive pump with its WM_QUIT guard (lab commit `b0cdf7f`: the pump had been taking ShellMain's WM_QUIT, which was the garage DONE regression of build `037fcb3a`) | the switch comments in the source | see the source |
-| "One pointer" (milestone A1 of [MENU-REBUILD-DESIGN.md](../docs/records/MENU-REBUILD-DESIGN.md)): a click-through arrow window over the drawn picture | `I76_U32X_VPTR=1` | **off**. In this revision, switching it on also moves the shell's clip, which broke leg-b 2 of 3 in the lab's first live run; the lab changed that one commit later. Leave it unset with this binary |
+| "One pointer" (milestone A1 of [MENU-REBUILD-DESIGN.md](../docs/records/MENU-REBUILD-DESIGN.md)): a click-through arrow window over the drawn picture | `I76_U32X_VPTR=1` (+ 7 `I76_U32X_VPTR_*` sub-switches) | **off**. In this revision, switching it on also moves the shell's clip, which broke leg-b 2 of 3 in the lab's first live run; the lab changed that one commit later. Leave it unset with this binary. **Removed from `u32x_full.c` on 2026-10-10** ([PROXY-CLEANUP-2026-10-10.md](../docs/records/PROXY-CLEANUP-2026-10-10.md)): the mapping and regime branches went, the cursor window stays for the modal pointer. The committed `u32x_full.dll` `06467bd2` still carries the switches (off) until a rebuild passes the gate |
 | A per-call census and log (`cl /DU32X_LOG`) | build time | not built here: it writes to a hard-coded lab path |
 
 It also imports `gdi32.dll` (a pragma in the source). The comments in `u32x_full.c` name lab paths and
@@ -182,8 +182,8 @@ cursor window (24x38 click-through layered arrow, owned by the game window; it r
 put where the point the shell was just handed lies in the picture: picture origin + scale x UI. The picture is the
 4:3 fit of the client, or the whole client when the folder's `dgVoodoo.conf` says `ScalingMode = stretched`
 (`I76_U32X_SHELL_FILL=0/1` overrides). It goes away when ShellMain peeks again, when the game is not foreground and
-when the shell stops polling for 300 ms. Under `I76_U32X_VPTR=1` the vptr block owns the window and this stands
-down. **Kill switch: `I76_U32X_MODAL_PTR=0`.** The shell's own pencil still freezes; the arrow is the pointer.
+when the shell stops polling for 300 ms. (Under `I76_U32X_VPTR=1` the vptr block owned the window and this stood
+down; that block was removed from the source on 2026-10-10.) **Kill switch: `I76_U32X_MODAL_PTR=0`.** The shell's own pencil still freezes; the arrow is the pointer.
 
 The keyboard half (Enter / Space close the popup) is a shell patch, F7: `tools\patch-shell-f7.py` (section 9 of the
 lab doc). With F7 the modal loop peeks the keyboard, so a focus change now does close the input gate while away

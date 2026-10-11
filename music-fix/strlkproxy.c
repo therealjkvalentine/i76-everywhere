@@ -53,6 +53,31 @@ static char     g_alias[16] = "i76cd";
 static int      g_open = 0;
 static int      g_logging = 0;
 
+/* ENVIRONMENT READS (2026-10-10, docs/records/PROXY-CLEANUP-2026-10-10.md). Every switch read goes through env_str: a
+ * value that is unset, empty, or too long for the caller's buffer (cap - 1 characters) reads as unset (0, buf[0] = 0),
+ * which is exactly what the hand-rolled `n && n < sizeof(v)` reads it replaced did. cap is the buffer size each site
+ * always used, kept so that an over-long value is rejected exactly as before. */
+static DWORD env_str(const char *name, char *buf, DWORD cap) {
+    DWORD n = GetEnvironmentVariableA(name, buf, cap);
+    if (n == 0 || n >= cap) { if (cap) buf[0] = 0; return 0; }
+    return n;
+}
+/* presence only, whatever the value (the `GetEnvironmentVariableA(name, NULL, 0)` switches) */
+static int env_present(const char *name) { return GetEnvironmentVariableA(name, NULL, 0) > 0; }
+/* first character '1' -> 1, '0' -> 0; unset, empty, too long for cap, or any other character -> dflt */
+static int env_flag(const char *name, DWORD cap, int dflt) {
+    char v[32];
+    if (cap > sizeof(v)) cap = sizeof(v);
+    if (!env_str(name, v, cap)) return dflt;
+    return v[0] == '1' ? 1 : v[0] == '0' ? 0 : dflt;
+}
+/* atoi of the value; unset, empty or too long for cap -> dflt */
+static int env_int(const char *name, DWORD cap, int dflt) {
+    char v[32];
+    if (cap > sizeof(v)) cap = sizeof(v);
+    return env_str(name, v, cap) ? atoi(v) : dflt;
+}
+
 typedef MCIERROR (WINAPI *mciStrFn)(LPCSTR, LPSTR, UINT, HWND);
 typedef MCIERROR (WINAPI *mciCmdFn)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 static mciStrFn real_mciSendStringA;
@@ -312,9 +337,9 @@ static int g_runForce = 0, g_playingForce = 0, g_pausedForce = 0;   /* 1 = the r
 static void music_opts(void) {
     char v[16]; DWORD n;
     if (g_toIncl >= 0) return;
-    n = GetEnvironmentVariableA("I76_MUSIC_TO_INCLUSIVE", v, sizeof(v)); g_toIncl  = (n && n < sizeof(v) && v[0] == '1');
-    n = GetEnvironmentVariableA("I76_MUSIC_DISC_ORDER", v, sizeof(v));   g_discOrder = (n && n < sizeof(v) && v[0] == '1');
-    n = GetEnvironmentVariableA("I76_MUSIC_SHELL", v, sizeof(v));        g_shell1997 = (n && n < sizeof(v) && lstrcmpA(v, "1997") == 0);
+    g_toIncl    = env_flag("I76_MUSIC_TO_INCLUSIVE", sizeof(v), 0);
+    g_discOrder = env_flag("I76_MUSIC_DISC_ORDER", sizeof(v), 0);
+    n = env_str("I76_MUSIC_SHELL", v, sizeof(v));        g_shell1997 = (n && lstrcmpA(v, "1997") == 0);
     mlog("  music: run end %s, disc order %s, shell %s, resume %s",
          g_toIncl ? "INCLUSIVE (I76_MUSIC_TO_INCLUSIVE=1, old)" : "exclusive",
          g_discOrder ? "ON {3:16,15:17,16:15,17:3}" : "off (N -> N.mp3)",
@@ -938,13 +963,13 @@ static int patch_bytes(DWORD_PTR va, const BYTE *expect, const BYTE *want, SIZE_
 
 static void apply_mission_launch(void) {
     char mission[32];
-    DWORD n = GetEnvironmentVariableA("I76_MISSION", mission, sizeof(mission));
+    DWORD n = env_str("I76_MISSION", mission, sizeof(mission));
     static const BYTE clr1_old[6] = { 0x88, 0x0D, 0xF0, 0x49, 0x50, 0x00 };
     static const BYTE clr1_nop[6] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
     static const BYTE clr2_old[3] = { 0xC6, 0x00, 0x00 };
     static const BYTE clr2_nop[3] = { 0x90, 0x90, 0x90 };
     int ok1, ok2;
-    if (n == 0 || n >= sizeof(mission)) return;      /* not requested */
+    if (n == 0) return;                               /* not requested */
 
     ok1 = patch_bytes(0x00402d33, clr1_old, clr1_nop, 6, "pre-parse clear");
     ok2 = patch_bytes(0x0049d1e0, clr2_old, clr2_nop, 3, "parser clear");
@@ -979,7 +1004,7 @@ static void apply_mission_launch(void) {
      * corrupt the first character of each filename so the file cannot be found.
      * Same effect, entirely inside behaviour the engine was written to expect.
      */
-    if (GetEnvironmentVariableA("I76_SKIP_MOVIES", NULL, 0) > 0) {
+    if (env_present("I76_SKIP_MOVIES")) {
         static const BYTE intro_old[1] = { 'i' };   /* 'introf01.smk' @ 0x4c25b0 */
         static const BYTE intro_new[1] = { 'X' };
         static const BYTE cred_old[1]  = { 'c' };   /* 'credf01.smk'  @ 0x4c25a4 */
@@ -1035,7 +1060,7 @@ static void apply_hires_clock(void) {
     BYTE new_call[6] = { 0xFF, 0x15, 0, 0, 0, 0 };
     DWORD a = (DWORD)(DWORD_PTR)&g_hires_clock_ptr;
     int n1, n2;
-    if (GetEnvironmentVariableA("I76_HIRES_CLOCK", NULL, 0) == 0) return;
+    if (!env_present("I76_HIRES_CLOCK")) return;
     if (!QueryPerformanceFrequency(&g_qpf) || g_qpf.QuadPart == 0) { mlog("  hires-clock: no QPC - not patching"); return; }
     QueryPerformanceCounter(&g_qp0);
     memcpy(new_call + 2, &a, 4);
@@ -1098,7 +1123,7 @@ static void apply_engine_dt_fix(void) {
     static const BYTE old_call[5] = { 0xE8, 0x78, 0x25, 0x03, 0x00 };   /* call 0x49c8b0 (simclock_GetDt) at 0x46a333 */
     BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
     LONG rel = (LONG)((DWORD_PTR)engine_substep_dt - (0x0046a333 + 5));
-    if (GetEnvironmentVariableA("I76_ENGINE_DT_FIX", NULL, 0) == 0) return;
+    if (!env_present("I76_ENGINE_DT_FIX")) return;
     memcpy(new_call + 1, &rel, 4);
     g_engine_dt_on = patch_bytes(0x0046a333, old_call, new_call, 5, "engine update simclock_GetDt call");
     mlog("  engine-dt-fix: %d/1 call site repointed (0x46a333 -> %p)", g_engine_dt_on, (void *)engine_substep_dt);
@@ -1126,7 +1151,7 @@ static void apply_far_engine_dt(void) {
     static const BYTE old_call[5] = { 0xE8, 0x6D, 0x6B, 0xFD, 0xFF };   /* call 0x43a3c0 (physics_StepVehicleFar) at 0x46384e */
     BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
     LONG rel = (LONG)((DWORD_PTR)far_step_wrap - (0x0046384e + 5));
-    if (GetEnvironmentVariableA("I76_FAR_ENGINE_DT", NULL, 0) == 0) return;
+    if (!env_present("I76_FAR_ENGINE_DT")) return;
     if (!g_engine_dt_on) { mlog("  far-engine-dt: needs I76_ENGINE_DT_FIX - not applied"); return; }
     memcpy(new_call + 1, &rel, 4);
     mlog("  far-engine-dt: %d/1 far vehicle step call repointed (0x46384e -> %p): stock whole-frame dt for the far engine update",
@@ -1278,8 +1303,8 @@ static void install_frame_hook(void) {
 }
 
 static void apply_volume_test(void) {
-    char v[32]; DWORD n = GetEnvironmentVariableA("I76_VOLUME_TEST", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v)) return;
+    char v[32]; DWORD n = env_str("I76_VOLUME_TEST", v, sizeof(v));
+    if (n == 0) return;
     g_voltest_level = atoi(v); g_voltest_frame = (DWORD)atol(strchr(v, ',') ? strchr(v, ',') + 1 : "600");
     install_frame_hook();
     mlog("  volume-test: armed - level %d at proxy frame %lu", g_voltest_level, (unsigned long)g_voltest_frame);
@@ -1432,8 +1457,8 @@ static DWORD WINAPI prof_thread(LPVOID arg) {
     }
 }
 static void apply_fps_log(void) {
-    char v[16]; DWORD n = GetEnvironmentVariableA("I76_FPS_LOG", v, sizeof(v)); int sec;
-    if (n == 0 || n >= sizeof(v) || (sec = atoi(v)) < 1 || sec > 600) return;
+    char v[16]; DWORD n = env_str("I76_FPS_LOG", v, sizeof(v)); int sec;
+    if (n == 0 || (sec = atoi(v)) < 1 || sec > 600) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     g_fl_period = g_qpf.QuadPart * sec;
     install_frame_hook();
@@ -1450,8 +1475,8 @@ static void apply_frame_cap(void) {
     BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
     char v[16]; int fps;
     LONG rel = (LONG)((DWORD_PTR)frame_cap_then_clock - (0x004039b8 + 5));
-    DWORD n = GetEnvironmentVariableA("I76_FPS_CAP", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v) || (fps = atoi(v)) < 5 || fps > 1000) return;
+    DWORD n = env_str("I76_FPS_CAP", v, sizeof(v));
+    if (n == 0 || (fps = atoi(v)) < 5 || fps > 1000) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     g_cap_period.QuadPart = g_qpf.QuadPart / fps;
     {   /* The cap sleeps (left - 2) ms and spins the rest. With the default 15.6 ms timer tick a 3 ms sleep takes a
@@ -1672,7 +1697,7 @@ static void apply_framerate_fixes(void) {
     static const DWORD fl_sites[4] = { 0x00405bd0, 0x00405c1c, 0x004061e7, 0x00406233 };
     BYTE cu_new[6] = { 0xD9, 0x05 }, cv_new[6] = { 0xD9, 0x05 }, fl_new[6] = { 0xD8, 0x0D };
     DWORD a; int i, n = 0;
-    if (GetEnvironmentVariableA("I76_FRAMERATE_FIXES", NULL, 0) == 0) return;
+    if (!env_present("I76_FRAMERATE_FIXES")) return;
     install_frame_hook();
     if (!g_frame_hook) { mlog("  framerate-fixes: frame hook missing - not applied"); return; }
     a = (DWORD)(DWORD_PTR)&g_cloud_u; memcpy(cu_new + 2, &a, 4);
@@ -1767,7 +1792,7 @@ static void apply_framerate_fixes(void) {
             n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
         }
     }
-    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_FIRE_CACHE", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_aifire_cache = 0; }
+    if (env_flag("I76_AI_FIRE_CACHE", 8, 1) == 0) g_aifire_cache = 0;
     g_ratefix = 1;
     mlog("  framerate-fixes: %d/36 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails, AI fire decisions, ammo digits)", n);
 }
@@ -1947,7 +1972,7 @@ static void apply_perframe_fixes(void) {
         memcpy(w + 1, &rel, 4);
         n += patch_bytes(rs[i].site, rand_old, w, 6, rs[i].what);
     }
-    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_ROLL_HOLD", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_ai_roll_hold = 0; }
+    if (env_flag("I76_AI_ROLL_HOLD", 8, 1) == 0) g_ai_roll_hold = 0;
     mlog("  perframe-fixes: %d/5 sites repointed (radar missile turn x2 scaled by dt x 20, WMISS click on the 20 Hz grid, AI skid-turn and horn rolls %s)",
          n, g_ai_roll_hold ? "held to the 20 Hz grid" : "counted, every frame");
 }
@@ -1969,7 +1994,7 @@ static void apply_ai_fixes(void) {
         { 0x0041a047, 0x0049c7a0, (void *)ai_dt20,       "AI collider probe dt" },           /* E8 54 27 08 00 */
     };
     int i, n = 0, first = 0;
-    if (GetEnvironmentVariableA("I76_AI_FIXES", NULL, 0) == 0) return;
+    if (!env_present("I76_AI_FIXES")) return;
     if (!g_ratefix) { mlog("  ai-fixes: dodge hold needs I76_FRAMERATE_FIXES (the 20 Hz grid) - horizon pins only"); first = 1; }
     for (i = first; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
         BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
@@ -1978,7 +2003,7 @@ static void apply_ai_fixes(void) {
         rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
         n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
     }
-    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_DODGE_HOLD", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_dodge_hold = 0; }
+    if (env_flag("I76_AI_DODGE_HOLD", 8, 1) == 0) g_dodge_hold = 0;
     mlog("  ai-fixes: %d/6 sites repointed (dodge check %s, avoidance horizon pinned to 50 ms: prediction dt, rate x2, probe dt x2)",
          n, first ? "skipped" : g_dodge_hold ? "held to the 20 Hz grid" : "counted, passed through");
 }
@@ -2020,8 +2045,8 @@ static void apply_ai_backaway_grid(void) {
     static const BYTE old[5] = { 0xE8, 0x75, 0x83, 0xFF, 0xFF };   /* call 0x415600 at 0x41d286 */
     BYTE w[5] = { 0xE8 };
     LONG rel;
-    char v[8]; DWORD k = GetEnvironmentVariableA("I76_AI_BACKAWAY_GRID", v, sizeof(v));
-    if (k == 0 || k >= sizeof(v) || v[0] == '0') return;
+    char v[8]; DWORD k = env_str("I76_AI_BACKAWAY_GRID", v, sizeof(v));
+    if (k == 0 || v[0] == '0') return;
     rel = (LONG)((DWORD_PTR)ai_backaway_grid_stub - (0x0041d286 + 5)); memcpy(w + 1, &rel, 4);
     if (patch_bytes(0x0041d286, old, w, 5, "AI back_away ring index")) {
         mlog("  ai-backaway-grid: back_away ring on the 20 Hz grid (0x41d286 -> sim time x 20; read back %s)",
@@ -2095,8 +2120,8 @@ static void apply_coop_damage(void) {
         { 0x0044439f, 0x00452d20, (void *)coop_net_flame_stub,  "flamer: network factor" },
     };
     char v[16]; float f; int i, n = 0;
-    DWORD k = GetEnvironmentVariableA("I76_COOP_DAMAGE", v, sizeof(v));
-    if (k == 0 || k >= sizeof(v)) return;
+    DWORD k = env_str("I76_COOP_DAMAGE", v, sizeof(v));
+    if (k == 0) return;
     f = (float)atof(v);
     if (!(f > 0.0f && f <= 4.0f)) { mlog("  coop-damage: '%s' is not a factor in (0, 4] - off", v); return; }
     memcpy(&g_coop_dmg_bits, &f, 4);
@@ -3039,16 +3064,14 @@ static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_
 }
 static void apply_coop_ai(HMODULE exe) {
     BYTE old[5] = { 0xE8 }, w[5] = { 0xE8 }; LONG r0, r1;
-    char v[8]; DWORD k = GetEnvironmentVariableA("I76_COOP_AI", v, sizeof(v));
-    if (k == 0 || k >= sizeof(v) || v[0] != '1') return;
+    char v[8]; DWORD k = env_str("I76_COOP_AI", v, sizeof(v));
+    if (k == 0 || v[0] != '1') return;
     real_dpReceive = (dprecv_fn)patch_iat(exe, "anetdll.dll", "dpReceive", (void *)coop_dpReceive);
-    {   char hv[8]; DWORD hk = GetEnvironmentVariableA("I76_COOP_HEAPWATCH", hv, sizeof(hv)), lk;
-        if (hk && hk < sizeof(hv) && hv[0] == '1') g_hp_watch = 1;
-        lk = GetEnvironmentVariableA("I76_COOP_HEAPLOCK", hv, sizeof(hv));
-        if (lk && lk < sizeof(hv) && hv[0] == '1') { g_hp_watch = 1; g_hp_lock_on = 1; }
-        {   DWORD sk = GetEnvironmentVariableA("I76_COOP_SHIMLOCK", hv, sizeof(hv)); if (sk && sk < sizeof(hv) && hv[0] == '0') g_hs_want = 0; }
-        lk = GetEnvironmentVariableA("I76_COOP_HEAPGUARD", hv, sizeof(hv));
-        if (!(lk && lk < sizeof(hv) && hv[0] == '0') && GetModuleHandleA("AcGenral.dll")) {
+    {
+        if (env_flag("I76_COOP_HEAPWATCH", 8, 0) == 1) g_hp_watch = 1;
+        if (env_flag("I76_COOP_HEAPLOCK", 8, 0) == 1) { g_hp_watch = 1; g_hp_lock_on = 1; }
+        if (env_flag("I76_COOP_SHIMLOCK", 8, 1) == 0) g_hs_want = 0;
+        if (env_flag("I76_COOP_HEAPGUARD", 8, 1) != 0 && GetModuleHandleA("AcGenral.dll")) {
             g_hp_guard = 1;
             if (!g_hp_watch) { g_hp_watch = 1; g_hp_only_exe = 1; }   /* guard alone: i76.exe's imports only */
             hp_find_list();                                  /* at load: the shim lock covers the whole session */
@@ -3082,10 +3105,9 @@ static void apply_coop_ai(HMODULE exe) {
         static const struct { DWORD site; void *stub; } dg[9] = { { 0x40a232, (void *)coop_sb_0 }, { 0x412dac, (void *)coop_sb_1 },
             { 0x412def, (void *)coop_sb_2 }, { 0x412e32, (void *)coop_sb_3 }, { 0x412e9c, (void *)coop_sb_4 }, { 0x412f11, (void *)coop_sb_5 },
             { 0x412fad, (void *)coop_sb_6 }, { 0x413049, (void *)coop_sb_7 }, { 0x414046, (void *)coop_sb_8 } };
-        char dv[8]; DWORD dk = GetEnvironmentVariableA("I76_COOP_AI_DIAG", dv, sizeof(dv));
+        char dv[8]; DWORD dk = env_str("I76_COOP_AI_DIAG", dv, sizeof(dv));
         int i, n = 0;
-        char cbv[8]; DWORD cbk = GetEnvironmentVariableA("I76_COOP_CB", cbv, sizeof(cbv));
-        int nsites = (cbk && cbk < sizeof(cbv) && cbv[0] == '0') ? 18 : 27;   /* I76_COOP_CB=0: no radio / objective forwarding */
+        int nsites = env_flag("I76_COOP_CB", 8, 1) == 0 ? 18 : 27;   /* I76_COOP_CB=0: no radio / objective forwarding */
         for (i = 0; i < nsites; i++) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
@@ -3093,7 +3115,7 @@ static void apply_coop_ai(HMODULE exe) {
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
         mlog("  coop-ai: %d/%d trigger + damage + SetBehaviour + score + mirror + radio + objective sites repointed", n, nsites);
-        if (dk && dk < sizeof(dv) && dv[0] == '1') {
+        if (dk && dv[0] == '1') {
             int m = 0;
             for (i = 0; i < 9; i++) {
                 BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 }, cur[5];
@@ -3104,8 +3126,8 @@ static void apply_coop_ai(HMODULE exe) {
             g_coop_diag = 1; mlog("  coop-ai diag: %d/9 SetBehaviour sites instrumented", m);
         }
     }
-    {   char c8[8]; DWORD kk = GetEnvironmentVariableA("I76_COOP_CHAIN", c8, sizeof(c8));
-        if (kk && kk < sizeof(c8) && c8[0] == '1') {
+    {
+        if (env_flag("I76_COOP_CHAIN", 8, 0) == 1) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(0x00461810 - (0x00404110 + 5)), a1 = (LONG)((DWORD_PTR)coop_chain_stub - (0x00404110 + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
@@ -3126,8 +3148,8 @@ static void apply_coop_ai(HMODULE exe) {
                     memcpy(cl + 1, &ac, 4);
                     patch_bytes(0x004ad750, pu, cl, 5, "coop-chain: mission player car (host's model on the joiner)");
                 }
-                { char av[8]; DWORD ak = GetEnvironmentVariableA("I76_COOP_ADOPT", av, sizeof(av)); if (ak && ak < sizeof(av) && av[0] == '0') { g_coop_adopt = 0; mlog("  coop-chain: adoption OFF (I76_COOP_ADOPT=0)"); } }
-                { char hv[8]; DWORD hk = GetEnvironmentVariableA("I76_COOP_HOSTMODEL", hv, sizeof(hv)); if (hk && hk < sizeof(hv) && hv[0] == '0') { g_coop_hostmodel = 0; mlog("  coop-chain: host model on the joiner OFF (I76_COOP_HOSTMODEL=0)"); } }
+                { if (env_flag("I76_COOP_ADOPT", 8, 1) == 0) { g_coop_adopt = 0; mlog("  coop-chain: adoption OFF (I76_COOP_ADOPT=0)"); } }
+                { if (env_flag("I76_COOP_HOSTMODEL", 8, 1) == 0) { g_coop_hostmodel = 0; mlog("  coop-chain: host model on the joiner OFF (I76_COOP_HOSTMODEL=0)"); } }
             }
             mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
         }
@@ -3175,8 +3197,8 @@ static void apply_mirror_rate(void) {
     static const BYTE cloud_old[5]   = { 0xE8, 0x5A, 0xF8, 0xFB, 0xFF };   /* call 0x405200 renderer_DrawClouds at 0x4459a1 */
     BYTE gate_new[5] = { 0xE8 }, cloud_new[5] = { 0xE8 };
     LONG rel; int n = 0; const char *layout;
-    {   char mv[4]; DWORD mk = GetEnvironmentVariableA("I76_MIRROR_RATE", mv, sizeof(mv));
-        if (mk == 0 || mk >= sizeof(mv) || mv[0] == '0') return;
+    {   char mv[4]; DWORD mk = env_str("I76_MIRROR_RATE", mv, sizeof(mv));
+        if (mk == 0 || mv[0] == '0') return;
         g_mirror_rate_mode = mv[0] == '2' ? 2 : 1; }   /* =2: the gate's "next = count + 2" passes on every grid tick (20/s) */
     if (!g_ratefix) { mlog("  mirror-rate: needs I76_FRAMERATE_FIXES (the 20 Hz grid) - not applied"); return; }
     rel = (LONG)((DWORD_PTR)mirror_frame_count - (0x004457b4 + 5)); memcpy(gate_new + 1, &rel, 4);
@@ -3310,7 +3332,7 @@ static void apply_fix_label_table(void) {
                                       0x05, 0x00, 0x10, 0x00, 0x00, 0x50, 0x8B, 0x06, 0x52, 0x6A, 0x08, 0x50, 0xFF, 0x15, 0xE4, 0xC0,
                                       0x4B, 0x00, 0x85, 0xC0, 0x74, 0x0A };
     BYTE blk[38]; LONG rel; int ok;
-    if (GetEnvironmentVariableA("I76_FIX_LABEL_TABLE", NULL, 0) == 0) return;
+    if (!env_present("I76_FIX_LABEL_TABLE")) return;
     memset(blk, 0x90, sizeof(blk));
     blk[0] = 0x56;                                          /* push esi (the table record) */
     blk[1] = 0xE8; rel = (LONG)((DWORD_PTR)label_grow - (0x004ad466 + 5)); memcpy(blk + 2, &rel, 4);
@@ -3320,7 +3342,7 @@ static void apply_fix_label_table(void) {
     blk[13] = 0xEB; blk[14] = 0x33;                         /* jmp 0x4ad4a7 (insert) */
     ok = patch_bytes(0x004ad465, old_blk, blk, sizeof(blk), "label table grow");
     mlog("  fix-label-table: %s", ok ? "on" : "NOT applied");
-    if (ok && GetEnvironmentVariableA("I76_LABEL_TEST", NULL, 0)) {
+    if (ok && env_present("I76_LABEL_TEST")) {
         static const BYTE cap_old[7] = { 0xC7, 0x46, 0x0C, 0x00, 0x08, 0x00, 0x00 };   /* mov [esi+0xc], 0x800 at 0x4ad43b */
         static const BYTE cap_new[7] = { 0xC7, 0x46, 0x0C, 0x10, 0x00, 0x00, 0x00 };   /* ... 0x10 */
         mlog("  label-test: start capacity 16 %s", patch_bytes(0x004ad43b, cap_old, cap_new, 7, "label table start capacity") ? "(grows on every mission load)" : "NOT applied");
@@ -3344,8 +3366,8 @@ static void apply_far_clip(void) {
     static const struct { DWORD va; DWORD old; } pool[5] = {
         { 0x00402f99, 0x40000 }, { 0x00402f9e, 0x1a5e0 }, { 0x00402fc6, 0xd2f0 }, { 0x00402fcb, 0x80000 }, { 0x00402fd0, 0x80000 } };
     char v[16]; DWORD n; float far_m; BYTE rd_new[5] = { 0xA1 }; DWORD a; int i, ok = 0, filepatched = 0;
-    n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v)) return;
+    n = env_str("I76_FAR_CLIP", v, sizeof(v));
+    if (n == 0) return;
     far_m = (float)atof(v);
     /* Third ceiling (docs/records/FARCLIP-CAMERA-CRASH.md, 2026-10-02): the terrain tessellator stores vertex indices as int16
      * (renderer_SplitTerrainEdge 0x4918f0); past ~32,767 terrain vertices in a frame the index wraps and the game dies.
@@ -3454,8 +3476,8 @@ static void apply_phys_rate(void) {
     static const BYTE old_push[5] = { 0x68, 0xCD, 0xCC, 0x4C, 0x3D };   /* push 0.05f at 0x46312b */
     BYTE new_push[5] = { 0x68, 0, 0, 0, 0 };
     char v[16]; int rate; float step;
-    DWORD n = GetEnvironmentVariableA("I76_PHYS_RATE", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v) || (rate = atoi(v)) < 10 || rate > 2000) return;
+    DWORD n = env_str("I76_PHYS_RATE", v, sizeof(v));
+    if (n == 0 || (rate = atoi(v)) < 10 || rate > 2000) return;
     step = 1.0f / (float)rate;
     memcpy(new_push + 1, &step, 4);
     /* three pushes of the 0.05 max step: entity_InitVehicle, entity_TickVehicle's re-seed branch (0x46385c,
@@ -3539,7 +3561,7 @@ static void apply_input_latch(void) {
     static const BYTE lgt_old[6] = { 0x89, 0x97, 0x00, 0x01, 0x00, 0x00 };   /* 0x44f4dc mov [edi+0x100], edx */
     static const BYTE lgt_new[6] = { 0x09, 0x97, 0x00, 0x01, 0x00, 0x00 };   /*          or  [edi+0x100], edx */
     int n;
-    if (GetEnvironmentVariableA("I76_INPUT_LATCH", NULL, 0) == 0) {
+    if (!env_present("I76_INPUT_LATCH")) {
         if (g_fixed_step > 0.0f)
             mlog("  input-latch: off - with I76_FIXED_STEP the ignition (I) and lights keys are lost on frames without a physics step; I76_INPUT_LATCH=1 keeps them");
         return;
@@ -3555,8 +3577,8 @@ static void apply_fixed_step(void) {
     BYTE jmp[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
     char v[16]; double rate;
     LONG rel = (LONG)((DWORD_PTR)fixed_stepper_begin - (0x0049cc20 + 5));
-    DWORD n = GetEnvironmentVariableA("I76_FIXED_STEP", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v) || (rate = atof(v)) < 10.0 || rate > 1000.0) return;   /* fractional rates allowed */
+    DWORD n = env_str("I76_FIXED_STEP", v, sizeof(v));
+    if (n == 0 || (rate = atof(v)) < 10.0 || rate > 1000.0) return;   /* fractional rates allowed */
     g_fixed_step = (float)(1.0 / rate);
     memcpy(jmp + 1, &rel, 4);
     if (!patch_bytes(0x0049cc20, old_entry, jmp, 6, "simclock_StepperBegin entry")) g_fixed_step = 0.0f;
@@ -3607,7 +3629,7 @@ static void apply_coll_window(void) {
         { 0x0043f9e1, { 0xE8, 0xBA, 0xCD, 0x05, 0x00 }, "collision sweep dt (scenery tree 0x43f8c0)" },  /* pushed to the node sweep */
     };
     int i, n = 0;
-    if (GetEnvironmentVariableA("I76_COLL_WINDOW", NULL, 0) == 0) return;
+    if (!env_present("I76_COLL_WINDOW")) return;
     if (g_fixed_step <= 0.0f) { mlog("  coll-window: needs I76_FIXED_STEP - not applied"); return; }
     for (i = 0; i < 3; i++) {
         BYTE w[5] = { 0xE8 };
@@ -3615,16 +3637,14 @@ static void apply_coll_window(void) {
         n += patch_bytes(s[i].site, s[i].old, w, 5, s[i].what);
     }
     mlog("  coll-window: %d/3 sweep dt reads -> max(sim_dt, fixed step %.1f ms)", n, g_fixed_step * 1000.0f);
-    {   char v[4]; DWORD k = GetEnvironmentVariableA("I76_COLL_WINDOW", v, sizeof(v));
+    {   char v[4]; DWORD k = env_str("I76_COLL_WINDOW", v, sizeof(v));
         if (k == 1 && v[0] == '2') {
             static const struct { DWORD site; BYTE old[5]; void *fn; const char *what; } t[3] = {
                 { 0x00403a12, { 0xE8, 0xA9, 0x0F, 0x03, 0x00 }, (void *)coll_pass_wrap, "collision pass flag (WinMain -> 0x4349c0)" },
                 { 0x0043e1c8, { 0xE8, 0xD3, 0xE5, 0x05, 0x00 }, (void *)coll_dt_gated,  "collision accept dt (slab test 0x43df10)" },
                 { 0x0043ec6a, { 0xE8, 0x31, 0xDB, 0x05, 0x00 }, (void *)coll_dt_gated,  "collision accept dt (mesh test 0x43ebc0)" },
             };
-            int m = 0, mask = 3;
-            char mv[8]; DWORD mk = GetEnvironmentVariableA("I76_COLL_WINDOW_SITES", mv, sizeof(mv));
-            if (mk && mk < sizeof(mv)) mask = atoi(mv) & 3;  /* 1 = slab test 0x43e1c8, 2 = mesh test 0x43ec6a (2026-10-09: both = the car sank into the terrain on t04 drives) */
+            int m = 0, mask = env_int("I76_COLL_WINDOW_SITES", 8, 3) & 3;  /* 1 = slab test 0x43e1c8, 2 = mesh test 0x43ec6a (2026-10-09: both = the car sank into the terrain on t04 drives) */
             for (i = 0; i < 3; i++) {
                 BYTE w[5] = { 0xE8 };
                 LONG rel = (LONG)((DWORD_PTR)t[i].fn - (t[i].site + 5)); memcpy(w + 1, &rel, 4);
@@ -3721,7 +3741,7 @@ static void apply_coll_dedupe(void) {
         rel = (LONG)((DWORD_PTR)cs[i].wrap - (cs[i].site + 5)); memcpy(w + 1, &rel, 4);
         n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
     }
-    { char v[8]; DWORD k = GetEnvironmentVariableA("I76_COLL_DEDUPE", v, sizeof(v)); if (k && k < sizeof(v) && v[0] == '0') g_coll_dedupe = 0; }
+    if (env_flag("I76_COLL_DEDUPE", 8, 1) == 0) g_coll_dedupe = 0;
     mlog("  coll-dedupe: %d/6 sites repointed (contact repeats on frames without a physics step: sound + damage %s)",
          n, g_coll_dedupe ? "applied once per step" : "counted, passed through");
 }
@@ -4051,12 +4071,8 @@ static void apply_render_interp(void) {
     BYTE camu_new[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
     BYTE tick_new[4], rend_new[5] = { 0xE8 }, cam_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
     DWORD a; LONG rel; int ok = 0;
-    if (GetEnvironmentVariableA("I76_RENDER_INTERP", NULL, 0) == 0) return;
-    {
-        char sv[8];
-        DWORD k = GetEnvironmentVariableA("I76_INTERP_SMOOTH", sv, sizeof(sv));
-        if (k > 0 && k < sizeof(sv)) g_smooth = atoi(sv);
-    }
+    if (!env_present("I76_RENDER_INTERP")) return;
+    g_smooth = env_int("I76_INTERP_SMOOTH", 8, g_smooth);
     if (g_fixed_step <= 0.0f) { mlog("  render-interp: needs I76_FIXED_STEP - not applied"); return; }
     install_frame_hook();
     if (!g_frame_hook) { mlog("  render-interp: frame hook missing - not applied"); return; }
@@ -4647,8 +4663,7 @@ static int tel_repoint_call(DWORD site, DWORD target, void *wrap, const char *wh
 
 static int env_is_1(const char *name) {
     char v[8];
-    DWORD n = GetEnvironmentVariableA(name, v, sizeof(v));
-    return n && n < sizeof(v) && v[0] == '1' && v[1] == 0;
+    return env_str(name, v, sizeof(v)) && v[0] == '1' && v[1] == 0;
 }
 
 static void apply_sound_events(void) {
@@ -4690,8 +4705,8 @@ static void apply_telemetry(void) {
     static const BYTE coll_old[6] = { 0x81, 0xEC, 0xD0, 0x00, 0x00, 0x00 };               /* 0x4a7c80: sub esp, 0xd0 */
     static const DWORD fire_sites[2] = { 0x004a6b16, 0x004a6d43 };                          /* call 0x4a6e90 in weapon_UpdateInstanceFiring */
     char v[16]; int port, hooks = 0, i;
-    DWORD n = GetEnvironmentVariableA("I76_TELEMETRY", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v)) {
+    DWORD n = env_str("I76_TELEMETRY", v, sizeof(v));
+    if (n == 0) {
         if (env_is_1("I76_SOUND_EVENTS") || env_is_1("I76_DAMAGE_EVENTS"))
             mlog("  telemetry: off - I76_SOUND_EVENTS / I76_DAMAGE_EVENTS need I76_TELEMETRY, nothing patched");
         return;
@@ -4785,7 +4800,7 @@ static void glide_apply_gamma(void) {
 
 static DWORD __stdcall hook_grSstWinOpen(DWORD hwnd, DWORD res, DWORD refresh, DWORD cfmt, DWORD origin, int ncol, int naux) {
     DWORD r;
-    /* only I76_GLIDE_REFRESH substitutes the refresh; under I76_GLIDE_DIR / I76_GLIDE_GAMMA alone the renderer's own
+    /* only I76_GLIDE_REFRESH substitutes the refresh; under I76_GLIDE_GAMMA alone (or the removed I76_GLIDE_DIR) the renderer's own
        code goes through (before 2026-10-07 the unset 0xffffffff was passed and rescued by the fallback reopen below) */
     DWORD code = (g_glide_refresh_code != 0xffffffff) ? g_glide_refresh_code : refresh;
     mlog("  glide-refresh: grSstWinOpen(res %lu, refresh %lu -> %lu (%lu Hz), cfmt %lu, origin %lu, %d/%d buffers)",
@@ -4997,8 +5012,8 @@ static int __cdecl cam_ground_setup_wrap(BYTE *cam) {
 }
 static void apply_cam_ground_fix(void) {
     static const BYTE old[5] = { 0xe8, 0x8d, 0x1e, 0x00, 0x00 };   /* call 0x4929b0 at 0x490b1e */
-    BYTE w[5] = { 0xe8 }; LONG rel; char c[4]; DWORD k = GetEnvironmentVariableA("I76_CAM_GROUND_FIX", c, sizeof(c));
-    if (!(k && k < sizeof(c) && c[0] == '1')) return;
+    BYTE w[5] = { 0xe8 }; LONG rel;
+    if (env_flag("I76_CAM_GROUND_FIX", 4, 0) != 1) return;
     rel = (LONG)((DWORD_PTR)cam_ground_setup_wrap - (0x00490b1e + 5)); memcpy(w + 1, &rel, 4);
     g_cg_on = patch_bytes(0x00490b1e, old, w, 5, "terrain setup call (camera-under-ground lift)");
     mlog("  cam-ground-fix: %s (QueueTerrain 0x490b1e -> lift the camera 0.05 m above the terrain for the terrain setup when it is under it)",
@@ -5175,23 +5190,12 @@ static void tex_census_attach(HMODULE m) {
 
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
 
-/* I76_GLIDE_DIR=<subfolder> (EXPERIMENT, lab docs/WIDESCREEN-2D.md): menus and cutscenes are 640x480 DirectDraw (dgVoodoo's
- * DDraw.dll), missions are Glide (its Glide2x.dll), and each dgVoodoo DLL looks for dgVoodoo.conf in its own folder
- * first. Loading <game>\<subfolder>\Glide2x.dll before ZGLIDE binds ZGLIDE's glide2x.dll import to that copy, so the
- * mission can take that folder's conf (widescreen, stretched) while the shell keeps the game folder's (4:3). */
-static char g_glide_dir[MAX_PATH];
+/* (I76_GLIDE_DIR, the 2026-10-03 experiment that loaded <game>\<subfolder>\Glide2x.dll before ZGLIDE so the mission
+ * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
+ * them 4:3 (lab docs/WIDESCREEN-2D.md, "Live result, route (a)"; docs/records/PROXY-CLEANUP-2026-10-10.md).) */
 static int g_zg_tmufix;                     /* I76_ZGLIDE_TMUFIX=1 */
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     HMODULE m;
-    if (name && g_glide_dir[0]) {
-        const char *b0 = strrchr(name, '\\'); b0 = b0 ? b0 + 1 : name;
-        if (_strnicmp(b0, "zglide", 6) == 0 && !GetModuleHandleA("glide2x.dll")) {
-            char path[MAX_PATH]; HMODULE g;
-            wsprintfA(path, "%s\\%s\\Glide2x.dll", g_dir, g_glide_dir);
-            g = p_LoadLibraryA(path);
-            mlog("  glide-dir: %s %s", path, g ? "loaded before ZGLIDE" : "FAILED to load - the game folder's Glide2x.dll will be used");
-        }
-    }
     m = p_LoadLibraryA(name);
     if (m && name) {
         const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
@@ -5209,8 +5213,8 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
             } else mlog("  zglide-tmufix: ZGLIDE+0x1a93 = %02x %02x, not the stock 75 24 - not applied", p[0], p[1]);
         }
         if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on) tex_census_attach(m);
-        /* (the census alone hooks LoadLibraryA too: the refresh wrapper is only for the two switches that did before) */
-        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_dir[0] || g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
+        /* (the census and TMUFIX hook LoadLibraryA too: the refresh wrapper is only for I76_GLIDE_REFRESH / I76_GLIDE_GAMMA) */
+        if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
             p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
             mlog("  glide-refresh: %s loaded at %p, grSstWinOpen slot %s", b, (void *)m, p_grSstWinOpen ? "repointed" : "NOT found");
         }
@@ -5221,30 +5225,23 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
 static void apply_glide_refresh(void) {
     static const struct { DWORD hz, code; } tab[] = { {60, 0}, {70, 1}, {72, 2}, {75, 3}, {80, 4}, {90, 5}, {100, 6}, {85, 7}, {120, 8}, {0, 0xff} };
     char v[8]; DWORD n; int i;
-    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_TEX_CENSUS", c, sizeof(c));
-        if ((k && k < sizeof(c) && (c[0] == '1' || c[0] == '2')) || g_fs_ms) {   /* I76_FRAME_SPIKES needs the census hooks */
-            g_tc_on = (k && k < sizeof(c) && c[0] == '2') ? 2 : 1;
+    {   char c[4]; DWORD k = env_str("I76_TEX_CENSUS", c, sizeof(c));
+        if ((k && (c[0] == '1' || c[0] == '2')) || g_fs_ms) {   /* I76_FRAME_SPIKES needs the census hooks */
+            g_tc_on = (k && c[0] == '2') ? 2 : 1;
             if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
             if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
             mlog("  tex-census: on, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
         }
     }
-    {   char c[4]; DWORD k = GetEnvironmentVariableA("I76_ZGLIDE_TMUFIX", c, sizeof(c));
-        if (k && k < sizeof(c) && c[0] == '1') {
+    {
+        if (env_flag("I76_ZGLIDE_TMUFIX", 4, 0) == 1) {
             g_zg_tmufix = 1;
             if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
             mlog("  zglide-tmufix: armed, LoadLibraryA %s", p_LoadLibraryA ? "hooked" : "NOT hooked");
         }
     }
-    {   DWORD k = GetEnvironmentVariableA("I76_GLIDE_DIR", g_glide_dir, sizeof(g_glide_dir));
-        if (k == 0 || k >= sizeof(g_glide_dir)) g_glide_dir[0] = 0;
-        else if (!p_LoadLibraryA) {
-            p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
-            mlog("  glide-dir: %s, LoadLibraryA %s", g_glide_dir, p_LoadLibraryA ? "hooked" : "NOT hooked");
-        }
-    }
-    {   char gv[16]; DWORD k = GetEnvironmentVariableA("I76_GLIDE_GAMMA", gv, sizeof(gv));
-        if (k && k < sizeof(gv)) {
+    {   char gv[16];
+        if (env_str("I76_GLIDE_GAMMA", gv, sizeof(gv))) {
             double gd = atof(gv);
             if (gd >= 0.5 && gd <= 3.0) {
                 g_glide_gamma = (float)gd;
@@ -5253,13 +5250,13 @@ static void apply_glide_refresh(void) {
             } else mlog("  glide-gamma: %s is outside 0.5..3.0 - not applied", gv);
         }
     }
-    n = GetEnvironmentVariableA("I76_GLIDE_REFRESH", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v)) return;
+    n = env_str("I76_GLIDE_REFRESH", v, sizeof(v));
+    if (n == 0) return;
     g_glide_refresh_hz = (DWORD)atoi(v);
     for (i = 0; i < (int)(sizeof tab / sizeof tab[0]); i++) if (tab[i].hz == g_glide_refresh_hz) g_glide_refresh_code = tab[i].code;
     {   /* probe knob: I76_GLIDE_REFRESH_CODE=<n> passes a raw GrScreenRefresh_t code (Glide 2.x defines 0..8) */
-        char c[8]; DWORD kc = GetEnvironmentVariableA("I76_GLIDE_REFRESH_CODE", c, sizeof(c));
-        if (kc && kc < sizeof(c)) g_glide_refresh_code = (DWORD)strtoul(c, NULL, 0);
+        char c[8];
+        if (env_str("I76_GLIDE_REFRESH_CODE", c, sizeof(c))) g_glide_refresh_code = (DWORD)strtoul(c, NULL, 0);
     }
     if (g_glide_refresh_code == 0xffffffff) { mlog("  glide-refresh: %s is not a Glide refresh (60 70 72 75 80 85 90 100 120, 0 = none) - not applied", v); return; }
     if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
@@ -5466,9 +5463,7 @@ static int trn_install_guard(void) {
 }
 
 static void apply_trainer(void) {
-    char v[8];
-    DWORD k = GetEnvironmentVariableA("I76_TRAINER", v, sizeof(v));
-    if (k && k < sizeof(v) && v[0] == '0') { mlog("  trainer: disabled (I76_TRAINER=0)"); return; }
+    if (env_flag("I76_TRAINER", 8, 1) == 0) { mlog("  trainer: disabled (I76_TRAINER=0)"); return; }
     g_trn_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76trn_ctl_t), I76TRN_SHM_NAME);
     if (g_trn_map) g_trn = (i76trn_ctl_t *)MapViewOfFile(g_trn_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76trn_ctl_t));
     if (!g_trn) { mlog("  trainer: shared memory %s NOT created (%lu)", I76TRN_SHM_NAME, GetLastError()); return; }
@@ -5798,8 +5793,8 @@ static void apply_terrain_lod(void) {
         { 0x4930a5 + 6, 0x4930af + 6, 40.0f, 0.0017342f },       /* High */
     };
     char v[16]; DWORD n; float f; int i, ok = 0;
-    n = GetEnvironmentVariableA("I76_TERRAIN_LOD", v, sizeof(v));
-    if (n == 0 || n >= sizeof(v)) return;
+    n = env_str("I76_TERRAIN_LOD", v, sizeof(v));
+    if (n == 0) return;
     f = (float)atof(v);
     if (f < 1.0f || f > 16.0f) { mlog("  terrain-lod: %s out of range (1..16) - not applied", v); return; }
     for (i = 0; i < 3; i++) {
@@ -5823,8 +5818,8 @@ static void apply_terrain_lod(void) {
  * (and the un-reduced vehicle) f times farther. More faces through the pools and the 2 MB texture unit: cost unmeasured. */
 static void apply_detail_distance(void) {
     char v[16]; DWORD n; float f;
-    n = GetEnvironmentVariableA("I76_TERRAIN_TEX", v, sizeof(v));
-    if (n && n < sizeof(v)) {
+    n = env_str("I76_TERRAIN_TEX", v, sizeof(v));
+    if (n) {
         f = (float)atof(v);
         if (f < 1.0f || f > 16.0f) mlog("  terrain-tex: %s out of range (1..16) - not applied", v);
         else {
@@ -5835,8 +5830,8 @@ static void apply_detail_distance(void) {
             if (patch_bytes(0x492458, expect, want, 6, "terrain-tex")) mlog("  terrain-tex: x%.2f (texture level boundaries at %lu/40 x stock distance)", f, (unsigned long)k);
         }
     }
-    n = GetEnvironmentVariableA("I76_OBJECT_LOD", v, sizeof(v));
-    if (n && n < sizeof(v)) {
+    n = env_str("I76_OBJECT_LOD", v, sizeof(v));
+    if (n) {
         f = (float)atof(v);
         if (f < 1.0f || f > 16.0f) mlog("  object-lod: %s out of range (1..16) - not applied", v);
         else {
@@ -5852,8 +5847,8 @@ static void apply_detail_distance(void) {
  * 0x4584a1); 60.0 at 0x4be7bc = near road texture set (0x48ec16); 450.0 at 0x4be7b8 = road segments stop being queued
  * past this midpoint depth whatever the far clip (0x48ead7). */
 static void patch_rdata_float(const char *env, DWORD_PTR va, float stock, float lo, float hi, int is_factor, const char *what) {
-    char v[16]; DWORD n = GetEnvironmentVariableA(env, v, sizeof(v)); float f, val;
-    if (n == 0 || n >= sizeof(v)) return;
+    char v[16]; DWORD n = env_str(env, v, sizeof(v)); float f, val;
+    if (n == 0) return;
     f = (float)atof(v);
     if (f < lo || f > hi) { mlog("  %s: %s out of range (%g..%g) - not applied", what, v, lo, hi); return; }
     val = is_factor ? stock * f : f;
@@ -5930,17 +5925,17 @@ static void apply_road_pool(void) {
     static const BYTE exit_old[10] = { 0x5b, 0x5e, 0xc7, 0x05, 0x98, 0xc4, 0x59, 0x00, 0x01, 0x00 }; /* 0x490578 */
     char v[16]; DWORD n; int factor = 16, want = 0, ok = 0; float road = 450.0f; DWORD pool; LONG rel;
     BYTE pool_new[5] = { 0x68 }, w[5] = { 0xe8 };
-    n = GetEnvironmentVariableA("I76_ROAD_POOL", v, sizeof(v));
-    if (n && n < sizeof(v)) {
+    n = env_str("I76_ROAD_POOL", v, sizeof(v));
+    if (n) {
         factor = atoi(v);
         if (factor == 0) { mlog("  road-pool: off (I76_ROAD_POOL=0)"); return; }
         if (factor < 1 || factor > 64) { mlog("  road-pool: I76_ROAD_POOL=%s out of range (0 off, 1..64) - using 16", v); factor = 16; }
         want = 1;
     }
-    n = GetEnvironmentVariableA("I76_ROAD_DIST", v, sizeof(v));
-    if (n && n < sizeof(v)) { road = (float)atof(v); if (road > 450.0f) want = 1; }
-    n = GetEnvironmentVariableA("I76_FAR_CLIP", v, sizeof(v));
-    if (n && n < sizeof(v)) want = 1;
+    n = env_str("I76_ROAD_DIST", v, sizeof(v));
+    if (n) { road = (float)atof(v); if (road > 450.0f) want = 1; }
+    n = env_str("I76_FAR_CLIP", v, sizeof(v));
+    if (n) want = 1;
     if (!want) return;
     if (memcmp((void *)0x0048f9d6, pool_old, 5) || memcmp((void *)0x004904cd, head_old, 5) ||
         memcmp((void *)0x00490578, exit_old, 10)) { mlog("  road-pool: sites differ - not applied"); return; }
@@ -5965,8 +5960,8 @@ static void apply_road_pool(void) {
 static void apply_frame_spikes(void) {
     static const BYTE fl1_old[5] = { 0xe8, 0x2e, 0xdc, 0x08, 0x00 };   /* call 0x48fac0 (0x401e8d) */
     static const BYTE fl2_old[5] = { 0xe8, 0x4e, 0xd9, 0x08, 0x00 };   /* call 0x48fac0 (0x40216d) */
-    char v[16]; DWORD n = GetEnvironmentVariableA("I76_FRAME_SPIKES", v, sizeof(v)); int ms, k = 0; BYTE w[5] = { 0xe8 }; LONG rel;
-    if (n == 0 || n >= sizeof(v)) return;
+    char v[16]; DWORD n = env_str("I76_FRAME_SPIKES", v, sizeof(v)); int ms, k = 0; BYTE w[5] = { 0xe8 }; LONG rel;
+    if (n == 0) return;
     ms = atoi(v);
     if (ms <= 1) ms = 250;
     g_fs_ms = (DWORD)ms;
@@ -5977,11 +5972,11 @@ static void apply_frame_spikes(void) {
         rel = (LONG)((DWORD_PTR)road_flush_wrap - (0x0040216d + 5)); memcpy(w + 1, &rel, 4);
         k += patch_bytes(0x0040216d, fl2_old, w, 5, "frame-spikes scene sample (hw)");
     }
-    {   char f[8]; DWORD k2 = GetEnvironmentVariableA("I76_FLASH_PROBE", f, sizeof(f));
-        if (k2 && k2 < sizeof(f) && (f[0] == '1' || f[0] == '2')) {
-            char r[32]; DWORD kr = GetEnvironmentVariableA("I76_FLASH_ROWS", r, sizeof(r)); int a, b, c;
+    {   char f[8]; DWORD k2 = env_str("I76_FLASH_PROBE", f, sizeof(f));
+        if (k2 && (f[0] == '1' || f[0] == '2')) {
+            char r[32]; DWORD kr = env_str("I76_FLASH_ROWS", r, sizeof(r)); int a, b, c;
             g_fp_on = f[0] - '0';
-            if (kr && kr < sizeof(r) && sscanf(r, "%d,%d,%d", &a, &b, &c) == 3 && a > 0 && a < 100 && b > 0 && b < 100 && c > 0 && c < 100) { g_fp_rows[0] = a; g_fp_rows[1] = b; g_fp_rows[2] = c; }
+            if (kr && sscanf(r, "%d,%d,%d", &a, &b, &c) == 3 && a > 0 && a < 100 && b > 0 && b < 100 && c > 0 && c < 100) { g_fp_rows[0] = a; g_fp_rows[1] = b; g_fp_rows[2] = c; }
             mlog("  flash-probe: on (level %d: terrain counters%s)", g_fp_on, g_fp_on == 2 ? " + pixel rows" : "");
         }
     }
@@ -6088,16 +6083,16 @@ static void apply_clutter_dist(void) {
     static const BYTE *olds[5] = { tab_old, end_old, cull_old, frm1_old, frm2_old };
     void *targets[5];
     BYTE pool_new[5] = { 0x68 }, tab2_new[5] = { 0xb8 }, w[5];
-    char v[16]; DWORD n = GetEnvironmentVariableA("I76_CLUTTER_DIST", v, sizeof(v));
+    char v[16]; DWORD n = env_str("I76_CLUTTER_DIST", v, sizeof(v));
     float d, rise, five = 5.0f; double rise_old = 5.0, rise_new, stock_z; float z_old, z_new;
     DWORD pool = 0x5a550 * 8, a; int i, j, R, ok = 0;
     LARGE_INTEGER f;
-    if (n == 0 || n >= sizeof(v)) return;
+    if (n == 0) return;
     d = (float)atof(v);
     if (d < 120.0f || d > 600.0f) { mlog("  clutter-dist: %s out of range (120..600 m) - not applied", v); return; }
     rise = five * d / 120.0f;
-    n = GetEnvironmentVariableA("I76_CLUTTER_RISE", v, sizeof(v));
-    if (n && n < sizeof(v)) {
+    n = env_str("I76_CLUTTER_RISE", v, sizeof(v));
+    if (n) {
         float r = (float)atof(v);
         if (r < 0.0f || r > 100.0f) mlog("  clutter-dist: I76_CLUTTER_RISE %s out of range (0..100 m) - using %.1f", v, rise);
         else rise = r;
@@ -6148,8 +6143,8 @@ static void apply_clutter_dist(void) {
  * camera_Create 0x472220 clamps far to 100..100000), so nothing past 100 m shows behind you. */
 static void apply_mirror_far(void) {
     static const BYTE old[5] = { 0x68, 0x00, 0x00, 0xc8, 0x42 };
-    BYTE want[5] = { 0x68 }; char v[16]; DWORD n = GetEnvironmentVariableA("I76_MIRROR_FAR", v, sizeof(v)); float f;
-    if (n == 0 || n >= sizeof(v)) return;
+    BYTE want[5] = { 0x68 }; char v[16]; DWORD n = env_str("I76_MIRROR_FAR", v, sizeof(v)); float f;
+    if (n == 0) return;
     f = (float)atof(v);
     if (f < 100.0f || f > 600.0f) { mlog("  mirror-far: %s out of range (100..600 m) - not applied", v); return; }
     memcpy(want + 1, &f, 4);
@@ -6209,8 +6204,8 @@ static void apply_hud_squeeze(double k) {
         { 0x0045b87a, 0x004260d0, (void *)hud_quad_wrap,  "HUD sprite quad draw" },
         { 0x0045c0d1, 0x0045b450, (void *)hud_gauge_wrap, "HUD gauge loop sprite call" },
     };
-    char v[8]; DWORD m = GetEnvironmentVariableA("I76_HUD_SQUEEZE", v, sizeof(v)); int i, n = 0;
-    if (m && m < sizeof(v) && v[0] == '0') { mlog("  hud-squeeze: off (I76_HUD_SQUEEZE=0): HUD sprites stay stretched x%.2f", k); return; }
+    int i, n = 0;
+    if (env_flag("I76_HUD_SQUEEZE", 8, 1) == 0) { mlog("  hud-squeeze: off (I76_HUD_SQUEEZE=0): HUD sprites stay stretched x%.2f", k); return; }
     if (!(k > 1.0)) return;
     for (i = 0; i < 2; i++) {
         BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
@@ -6230,9 +6225,9 @@ static void apply_hud_squeeze(double k) {
 static void apply_aspect(void) {
     static const DWORD push_sites[17] = { 0x405a00, 0x4069e3, 0x406eb8, 0x406faf, 0x4070d5, 0x4079f6, 0x407f46,
         0x4080cb, 0x4083f6, 0x408546, 0x408696, 0x408816, 0x4089a0, 0x408bf0, 0x4090d0, 0x409316, 0x4094e7 };
-    char v[24], *sep; DWORD n = GetEnvironmentVariableA("I76_ASPECT", v, sizeof(v));
+    char v[24], *sep; DWORD n = env_str("I76_ASPECT", v, sizeof(v));
     double D, k; float three = 3.0f, cst, f90, w90, wcock, f120, w120, clamp0, clamp1; int i, ok = 0;
-    if (n == 0 || n >= sizeof(v)) return;
+    if (n == 0) return;
     sep = strchr(v, ':'); if (!sep) sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X');
     D = sep ? atof(v) / atof(sep + 1) : atof(v);
     if (!(D >= 1.34 && D <= 3.6)) { mlog("  aspect: %s out of range (1.34..3.6) - not applied", v); return; }
@@ -6249,8 +6244,8 @@ static void apply_aspect(void) {
      * 90 deg and its right side ends inside the full Hor+ view (owner, 2026-10-03). I76_ASPECT_COCKPIT_FOV=<deg>
      * (default 0 = full Hor+; e.g. 105 narrows it; 90 = stock width) gives those four sites their own horizontal fov. */
     {
-        char c[16]; DWORD m = GetEnvironmentVariableA("I76_ASPECT_COCKPIT_FOV", c, sizeof(c)); double deg = 0.0;
-        if (m && m < sizeof(c)) deg = atof(c);
+        char c[16]; double deg = 0.0;
+        if (env_str("I76_ASPECT_COCKPIT_FOV", c, sizeof(c))) deg = atof(c);
         wcock = (deg <= 0.0) ? w90 : (float)(deg / 57.29578);
         if (wcock < f90) wcock = f90;
         if (wcock > w90) wcock = w90;
@@ -6286,8 +6281,8 @@ static char g_swres_label[16];
 static void apply_sw_res(void) {
     static const DWORD lim_w_stock = 0x400, lim_h_stock = 0x300, lim_w_new = 0x800, lim_h_new = 0x400;
     static const DWORD slot1_stock[4] = { 1600, 1200, 1600, 1200 };
-    char v[24], *sep; DWORD n = GetEnvironmentVariableA("I76_SW_RES", v, sizeof(v)); int ok = 0;
-    if (n == 0 || n >= sizeof(v) || v[0] == '0') return;
+    char v[24], *sep; DWORD n = env_str("I76_SW_RES", v, sizeof(v)); int ok = 0;
+    if (n == 0 || v[0] == '0') return;
     ok += patch_bytes(0x47535d, (const BYTE *)&lim_w_stock, (const BYTE *)&lim_w_new, 4, "sw-res: enum width limit");
     ok += patch_bytes(0x475368, (const BYTE *)&lim_h_stock, (const BYTE *)&lim_h_new, 4, "sw-res: enum height limit");
     sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X'); if (!sep) sep = strchr(v, ':');
@@ -6318,7 +6313,7 @@ static void apply_sw_res(void) {
  * (found nothing -> carry on) into `jmp`, for two copies on one PC (local multiplayer tests). */
 static void apply_multi_instance(void) {
     static const BYTE expect[2] = { 0x74, 0x1c }, want[2] = { 0xeb, 0x1c };
-    if (GetEnvironmentVariableA("I76_MULTI_INSTANCE", NULL, 0) == 0) return;
+    if (!env_present("I76_MULTI_INSTANCE")) return;
     if (patch_bytes(0x402caf, expect, want, 2, "multi-instance"))   /* patch_bytes logs only a mismatch */
         mlog("  multi-instance: single-instance check skipped (0x402caf je -> jmp; read back %s)",
              *(const BYTE *)0x402caf == 0xeb ? "ok" : "FAILED");
@@ -6336,8 +6331,8 @@ static void apply_multi_instance(void) {
 static void apply_no_minimize(void) {
     static const BYTE expect[9] = { 0x6a, 0x06, 0x51, 0xff, 0x15, 0x40, 0xc3, 0x4b, 0x00 };
     static const BYTE want[9]   = { 0x6a, 0x08, 0x51, 0xff, 0x15, 0x40, 0xc3, 0x4b, 0x00 };
-    char v[8]; DWORD k = GetEnvironmentVariableA("I76_NO_MINIMIZE", v, sizeof(v));
-    if (k == 0 || k >= sizeof(v) || v[0] == '0') return;
+    char v[8]; DWORD k = env_str("I76_NO_MINIMIZE", v, sizeof(v));
+    if (k == 0 || v[0] == '0') return;
     if (patch_bytes(0x404acc, expect, want, 9, "no-minimize"))
         mlog("  no-minimize: WM_ACTIVATEAPP 0 no longer minimises the window (0x404acc push 6 -> push %d; read back %s)",
              *(const BYTE *)0x404acd, *(const BYTE *)0x404acd == 0x08 ? "ok" : "FAILED");
@@ -6402,14 +6397,14 @@ static MMRESULT WINAPI hook_joyGetPosEx(UINT id, LPJOYINFOEX j) {
 static void apply_joy_routing(HMODULE exe) {
     char v[128]; DWORD n; int i, any = 0; char *p;
     for (i = 0; i < 16; i++) { g_joy_map[i] = i; g_joy_synth[i] = -1; g_joy_lastrc[0][i] = g_joy_lastrc[1][i] = -1; }
-    n = GetEnvironmentVariableA("I76_JOY_MAP", v, sizeof(v));
-    if (n && n < sizeof(v)) for (p = v; *p; ) {
+    n = env_str("I76_JOY_MAP", v, sizeof(v));
+    if (n) for (p = v; *p; ) {
         int a = atoi(p), b; char *eq = strchr(p, '='); if (!eq) break; b = atoi(eq + 1);
         if (a >= 0 && a < 16 && b >= 0 && b < 16) { g_joy_map[a] = b; any = 1; mlog("  joy-map: engine id %d (joystick%d) -> winmm id %d", a, a + 1, b); }
         p = strchr(eq, ','); if (!p) break; p++;
     }
-    n = GetEnvironmentVariableA("I76_JOY_SYNTH", v, sizeof(v));
-    if (n && n < sizeof(v)) for (p = v; *p; ) {
+    n = env_str("I76_JOY_SYNTH", v, sizeof(v));
+    if (n) for (p = v; *p; ) {
         int a = atoi(p), x = 0; char *c = p; while (*c && *c != ',' && *c != ':') c++;
         if (*c == ':') x = atoi(c + 1);
         if (a >= 0 && a < 16) { g_joy_synth[a] = x < 0 ? 0 : (x > 65535 ? 65535 : x); any = 1; mlog("  joy-synth: winmm id %d is a synthetic pad, X = %d (TEST ONLY)", a, g_joy_synth[a]); }
@@ -6428,7 +6423,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         DisableThreadLibraryCalls(h);
         GetModuleFileNameA(h, g_dir, sizeof(g_dir));
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
-        g_logging = GetEnvironmentVariableA("I76MUSIC_LOG", NULL, 0) > 0;
+        g_logging = env_present("I76MUSIC_LOG");
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_crash_log();        /* always on: fault address + registers to the log */
         /* WORKING DIRECTORY (always on; I76_CWD_FIX=0 disables). The exe resolves its data relative to the current
@@ -6438,8 +6433,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
          * pristine exe from C:\Windows. Launchers set the cwd; a bare double-click or Start-Process does not. The DLL
          * knows the game folder (it lives there), so make the cwd right before the exe's entry point runs. */
         {
-            char v[8], cwd[MAX_PATH]; DWORD k = GetEnvironmentVariableA("I76_CWD_FIX", v, sizeof(v));
-            if (!(k && k < sizeof(v) && v[0] == '0')) {
+            char cwd[MAX_PATH];
+            if (env_flag("I76_CWD_FIX", 8, 1) != 0) {
                 GetCurrentDirectoryA(sizeof(cwd), cwd);
                 if (lstrcmpiA(cwd, g_dir) != 0) {
                     BOOL ok = SetCurrentDirectoryA(g_dir);
