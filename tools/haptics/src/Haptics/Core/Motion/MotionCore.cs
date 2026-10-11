@@ -37,6 +37,8 @@ namespace Haptics.Core.Motion
         }
 
         public double Period => 1.0 / Math.Max(1.0, P.OutputHz);
+        /// <summary>The clock of the next output tick Pump will produce (NaN until the first physics state has been fed).</summary>
+        public double NextTick => double.IsNaN(_firstData) ? double.NaN : double.IsNaN(_nextTick) ? Math.Ceiling(_firstData / Period - 1e-9) * Period : _nextTick;
 
         /// <summary>One core step's input. Cheap when nothing changed (the same VehicleState is handed over at 250 Hz).</summary>
         public void Feed(VehicleState st, IList<HapticEvent> events, double clock)
