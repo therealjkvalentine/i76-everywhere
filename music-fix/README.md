@@ -138,9 +138,14 @@ original as `strlkup_orig.dll` and drops the proxy in as `Strlkup.dll`.
 
 A prebuilt 32-bit `Strlkup.dll` is committed here (it is our own code and contains no Activision bytes — it
 loads the GOG `strlkup_orig.dll` by name, so it works on any GOG install). Its size and md5 change with every
-rebuild, so they are not quoted as a constant here: as of commit `4d6dfe9` (2026-10-08, driver promotion 15) it is
-274,944 B, md5 `c11f7f7d51b1e1ddc1fcaf191a7a4675` (MSVC, built from `614d38f`; the source has moved on since:
-`4822bcb`, `7f6cb8e`, `552dcb4` are not in it). Earlier: `7c998bf` (2026-10-02) 172,032 B, md5
+rebuild, so they are not quoted as a constant here: since 2026-10-12 (driver promotion 16) it is 292,864 B, md5
+`509c6df029b5361a4c72221613d6607e`, the daily driver's `STRLKUP.DLL` byte for byte: the lab build
+`i76-uncap-lab\builds\terrain-probe-20261012\STRLKUP-drawprobe-v2tel.dll` (MSVC x86; source snapshot beside it in `src\`:
+the sign-fix source `a6d621fd` + the opt-in `I76_DRAW_PROBE` census, v2 telemetry so the trainer keeps working). It
+is NOT a build of this folder's `strlkproxy.c` (which has the v3 telemetry, the `env_*` cleanup and later switches such
+as `I76_BREAKABLE_BOX=3`); everything new in it is off unless a preset sets it (tools\promote-17-collision-g.ps1
+header). Before that, `4d6dfe9` (2026-10-08, promotion 15): 274,944 B, md5 `c11f7f7d51b1e1ddc1fcaf191a7a4675` (MSVC,
+built from `614d38f`). Earlier: `7c998bf` (2026-10-02) 172,032 B, md5
 `cf7329ea89660faa0d9299c754463c7b`; `git log -1 -- music-fix/Strlkup.dll` and the CHANGELOG entry of a release
 give the current one (corrected 2026-10-02: this said 148,480 B, the 2026-09-27 build). To rebuild after editing
 `strlkproxy.c`, run `build.ps1`:
