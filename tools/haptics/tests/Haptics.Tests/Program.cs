@@ -18,6 +18,7 @@ namespace Haptics.Tests
             if (Want("renderer")) RendererTests.Run();
             if (Want("motion")) MotionTests.Run();
             if (Want("stems")) StemsTests.Run();          // Lfe.Stems: HD sound pack LFE stems
+            if (Want("debug")) DebugTests.Run();          // --debug-udp publisher (tools/debug, I76 Debug)
 
             Console.WriteLine();
             Console.ForegroundColor = T.Fail == 0 ? ConsoleColor.Green : ConsoleColor.Red;

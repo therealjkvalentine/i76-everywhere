@@ -35,6 +35,9 @@ namespace Haptics.Renderers
         LfeLiveOut _live;
         public string WavPath;
         public LfeCore Core => _core;
+        public int Rate => _rate;
+        /// <summary>--debug-udp only (DebugPublisher): every output sample is copied here; null (the default) costs one test.</summary>
+        public SampleTap Tap;
 
         public static LfeCore MakeCore(RendererContext ctx, Tune t)
         {
@@ -96,7 +99,9 @@ namespace Haptics.Renderers
             if (Bed != null) extra += Bed.Next();
             double v = _core.Step(_sm.sEngF, _sm.sEngA * g, _sm.sRoadF, _sm.sRoadA * g, _sm.sImpA * g, _sm.sWpnA * g, _sm.sHvA * g, _sm.sScrA * g, _sm.sExpA * g, extra);
             v = _core.Limit(v * _drive) * _master;
-            return (short)(v * 32767);
+            short o = (short)(v * 32767);
+            Tap?.Add(o);
+            return o;
         }
         internal void LiveRefreshVoices() => _bank.SetTargets(pVoices);
 
