@@ -138,7 +138,7 @@ headless Edge captures of every tab during development.
 * The trainer tab's writes are the trainer window's code, but this front end has not been clicked against a game.
 * `accel_body` in the telemetry is the FFB block's copy, 0 when `ffb_present` is 0 (the whole overnight t05 run): the
   Telemetry tab then shows rot x `accel` (the engine's ent+0xd4, gravity convention unverified live).
-* Owner test item 31 in `docs/OWNER-TEST-LIST.md`.
+* Owner test item 33 in `docs/OWNER-TEST-LIST.md`.
 * Deployment: the daily driver's `TRAINER.bat` still starts `_tools\trainer\i76trainer_gui.py`. Promoting this means
   copying `tools\debug` to `_tools\debug` and pointing that `TRAINER.bat` at `_tools\debug\i76debug.py --any --tab
   trainer` - a later, gated promotion.

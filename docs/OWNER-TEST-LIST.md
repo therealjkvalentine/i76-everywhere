@@ -48,6 +48,22 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    Why it can never be fully "on time" without G: every barricade bar collides as a 3 m ball around its middle, in stock too, so
    it flies when your nose is 3 m short. The timing part is about 1.3 m at 60 mph in B and 0.6 m in C.
    Lab docs/COLL-TIMING-2026-10-12.md. *(Built and checked offline only; not run before handing over.)*
+   *(2026-10-12, owner: **G accepted** - "G is fantastic ... we should keep G if it doesn't break anything"; only a few signs, e.g.
+   "the highway 360 one", took about 10 rams.)*
+   **3c. Sign fix - try `TEST-hill-H-signfix.bat` (new 2026-10-12).** = G + `I76_BREAKABLE_BOX=2`. The "360" sign is almost certainly
+   a US 380 shield (the 380 reads as 360 in that font); its post is the same shape as every other shield. A sign is knocked down by
+   the score of the ram measured only along the side of the car the post touched first: rammed straight on it falls, but when you
+   swerve off the road at it the post comes in along the car's side and scores a few % (the US 380 shields in T05 stand 8-10 m out,
+   further than most signs). H scores every ram on your full speed. Ram the US 380 shields (and anything G would not drop) from the
+   road at an angle at normal speed: each should go down at the first ram (very slow nudges still do nothing, as in stock). Also
+   check the barricades still behave as in G. Proof: `mciproxy.log` lines `breakable-speed: 1/1` and `breakable-speed: class-4 hit ...`
+   ("glancing" marks a ram stock would have scored low). Lab docs/SIGN-FIX-2026-10-12.md (also the whole-game audit of the bar box:
+   only the T05/T06/T15/S03 barricade bars and one T08 sign panel are affected). *(Built and checked offline; not run.)*
+   **3d. Promotion of G to the daily driver: pending the console gate.** `tools\promote-17-collision-g.ps1` (proxy `a6d621fd`, best-wide /
+   best-wide-balanced / best-120 + the four G keys, launcher `009c9742` with head tracking opt-in) refuses until the gate has run:
+   lab `autotest\overnight\run-overnight.ps1 -Phase P8` when the console is free (about 3 h: gate 23 rows + row 3 via PLAY-16x10 and
+   PLAY-balanced, T05 barricade rams G vs control n>=21, 8+8 t04 drives, hill-top start). Dry run 2026-10-12: 15 DRY / 3 PASS / 0 FAIL.
+   If you try H and like it better, say so before the gate: the promotion would then carry `I76_BREAKABLE_BOX=2` instead of `=1`.
 4. **Terrain drop-out watch.** `TEST-terrain-watch.bat` = PLAY.bat + drop detector. Play where you saw it (open desert, road bend). If the
    ground vanishes, note the time; the log (`Interstate 76\mciproxy.log`, lines `TERRAIN-DROP`) and a saved frame tell us the rest.
    Expected: never (the lab copy lacked I76_CAM_GROUND_FIX when you saw it; your driver has it).
@@ -231,9 +247,48 @@ Each run: capture the start view (F1 cockpit is the default), then press F1 once
     plus colour banding on the dash (each quarter has its own 255-colour palette). If the dash only matters when you look
     down, say so: that decides whether stage 3 (the owner's route, the Leprechaun, a night mission) is worth doing.
 
+## Texture shimmer: supersampling for real (lab twin game-dd-20261003; docs/records/TEXTURE-SHIMMER-2026-10-12.md)
+
+The offline read says the wide preset gets 4x MSAA but not its 5160x2160 supersampling. The window is a borderless
+*windowed* mode, and dgVoodoo renders at the window size, 3440x1440. On top of that, `I76_TERRAIN_TEX=8` stretches the
+sharpest ground texture to 400 m, past what 1440 lines can show without crawling. Each bat below boots T05 at the hill
+top, standing, facing down the hill. Close the game between bats.
+
+31. **Shimmer A/B from the T05 hill top.** In order: `TEST-shimmer-A-current` (= PLAY.bat), `-C-fullscreen-ss15`
+    (fake fullscreen, so the 1.5x target is really used), `-B-ss2x` (6880x2880 + 4x MSAA), `-E-ss2x-noaa` (6880x2880,
+    no MSAA), `-D-terrain-tex-1` (A with stock terrain texture distances), `-F-ss15-terrain-tex-4` (C with terrain x4).
+    In each: sit 5 s and look at the far ground and the road at the bottom of the hill (crawling, sparkling, moire),
+    then drive down the hill in cockpit view and watch the same ground and road go past. Note: (a) crawl less / same /
+    more than A, (b) the fps counter top-left (does B stay at 120?), (c) for D and F, whether the far ground got
+    blurrier in a way you mind. In C, also click one menu item after Esc and use the Esc-menu Exit once: fake
+    fullscreen must not move the pointer. Expected: C less crawl than A, B/E least, D shows whether x8 is the main
+    cause, F is the candidate new default. Kill criteria: a black or 4:3 picture, the window not full screen, or
+    the pointer off target in C/B/E = fake fullscreen does not suit this setup (report which bat).
+    `TEST-shimmer-Z-native-msaa4` is for the console agent's pixel check, not for you.
+
+## Terrain drop-out on the T05 hill descent (lab twin game-dd-20261003; lab docs/TERRAIN-DROPOUT-HILL-2026-10-12.md)
+
+The lab read shows the terrain setup cannot refuse on the hill. Your probe runs showed that the ground's vertices were
+built every frame. What is left is a stage after that: the per-polygon clip, the depth buckets, the draw, or
+dgVoodoo's presentation. The twin's proxy now counts every one of those stages per frame (`I76_DRAW_PROBE`).
+
+32. **Catch the drop-out with the draw census.** Play `TEST-hill-G-drawwatch.bat` (= hill-G plus the detectors; the
+    proxy must be `509c6df0`, see the twin's TEST-CURSOR.txt). Drive down the hill in cockpit view, as when you saw it.
+    Do 3-5 runs, closing the game between them.
+    - If the ground vanishes, **note the clock time** (to the minute) and whether it was cockpit or an outside view.
+    - Leave the game normally.
+    - The twin's `Interstate 76\mciproxy.log` then shows at that moment either a `draw-probe: TERRAIN-LOSS` line,
+      which names the stage that dropped the ground, or nothing. Nothing means the game drew the ground and the loss is
+      in dgVoodoo's presentation.
+    - `TEST-hill-G-pixelwatch` is not needed: its frame read comes back black on this setup, so its one PIXEL-FLASH was
+      that, not a sighting.
+    - The green crosshair you saw is the launcher's pointer overlay (`_ahk\i76-cursor-overlay.ahk`), not the detector.
+      Ctrl+Alt+C hides it.
+    - Kill criteria: a crash or a `draw-probe: NOT applied` line in the log (report it), or the fps clearly lower than
+      in `TEST-hill-G-stepframe-barbox` (the census adds a call per ground polygon).
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
-31. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
+33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
     old size). Start the lab game with `I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76_DAMAGE_EVENTS=1`, then `tools\debug\DEBUG.bat --tee 17676`
     and, in a second console, `tools\haptics\haptics.ps1 live --source udp --port 17676 --debug-udp` (files only; add `--live` only
     if you want the devices). Drive t01 or t05 for a few minutes: shoot, ram something, get shot, jump. Look at each tab once:
