@@ -318,7 +318,8 @@ function renderCollision() {
 function renderTerrain() {
   const L = S.log || {}, fl = L.flash, tx = L.tex;
   $("te-tiles").innerHTML = [tile("camera lifts", L.lift_count || 0, fl ? fl.refused + " refused" : ""), tile("COCKPIT-UNDER", L.cockpit_count || 0, "cockpit eye under terrain"),
-    tile("TERRAIN-DROP", (L.terrain_drops || []).length, fl ? "probe totals " + fl.events : "flash probe off?"), tile("tex flushes", (L.flushes || []).length, tx ? "resident " + tx.resident_kb + " KB" : ""),
+    tile("TERRAIN-DROP", (L.terrain_drops || []).length, fl ? "probe totals " + fl.events : "flash probe off?"),
+    tile("draw losses", (L.draw_losses || []).length, L.draw ? "terrain " + L.draw.terrain_losses + ", triangles " + L.draw.triangle_losses : "draw probe off?"), tile("tex flushes", (L.flushes || []).length, tx ? "resident " + tx.resident_kb + " KB" : ""),
     tile("NO-SLOT", (L.tex_noslot || []).length, ""), tile("render interp", L.render_interp ? (/not applied|off/.test(L.render_interp) ? "off" : "on") : "-", esc((L.render_interp || "").slice(0, 40)))].join("");
   $("te-drops").innerHTML = (L.terrain_drops || []).length ? table(["#", "#frame", "#vertices", "#prev", "#eye above terrain m", "#terrain h", "#moved m", "cam mode", "camera"],
     L.terrain_drops.slice().reverse().map(d => [d.n, d.frame, d.vertices, d.prev, fmt(d.eye_above, 3), fmt(d.terrain, 2), fmt(d.moved, 2), d.cam_mode, d.camera.map(x => fmt(x, 1)).join(", ")]))
@@ -330,6 +331,11 @@ function renderTerrain() {
       `<div class="note">totals: ${tx.total_dl} downloads, ${tx.total_flushes} flushes, ${tx.total_noslot} no-slot (swap ${tx.swaps})</div>` : `<div class="note">no tex-census summary (I76_TEX_CENSUS off?)</div>`) +
     ((L.flushes || []).length ? `<h3>Flushes</h3>` + table(["#", "#swap", "#frame", "#downloads", "#KB", "#resident before KB"], L.flushes.slice(-10).reverse().map(f => [f.n, f.swap, f.frame, f.downloads, f.kb, f.resident_kb])) : "") +
     ((L.tex_noslot || []).length ? `<h3>NO-SLOT</h3>` + L.tex_noslot.slice(-5).map(s => `<div class="mono bad">${esc(s)}</div>`).join("") : "");
+  const dw = L.draw, dl = L.draw_losses || [];
+  $("te-draw").innerHTML = (dw ? `<div class="note">last 600 swaps (at swap ${dw.swaps}): main terrain polygons drawn min ${dw.drawn_min}, triangles min ${dw.tris_min}, LFB locks ${dw.lfb}, clipped away ${dw.clipped}, below the floor ${dw.below_floor}, past 4096 ${dw.past_4096}; totals ${dw.terrain_losses} terrain losses, ${dw.triangle_losses} triangle losses, ${dw.textures} terrain textures</div>`
+      : `<div class="note">no draw-probe summary (I76_DRAW_PROBE off?)</div>`) +
+    (dl.length ? table(["kind", "#", "#frame", "cam", "#drawn", "#previous", "detail"], dl.slice().reverse().slice(0, 15).map(d => [esc(d.kind), d.n, d.frame, d.cam_mode, d.drawn, d.prev,
+      esc(d.kind === "TERRAIN-LOSS" ? `emitted ${d.emitted}, clipped ${d.clipped}, below floor ${d.below_floor} (floor ${d.floor}), past 4096 ${d.past_4096}, queued ${d.queued}` : `triangles ${d.triangles} (previous ${d.prev_triangles}), LFB locks ${d.lfb}`)]), "wrap") : "");
   const r = L.road, cl = L.clutter;
   $("te-pools").innerHTML = table(["", "value"], [
     ["road pool", r ? `${r.refused} polygons refused / ${r.frames} frames, node high water ${r.high_kb} of ${r.pool_kb} KB, refusals since start ${r.refusals_total}` : "-"],
@@ -418,7 +424,7 @@ function renderTrainer() {
 }
 
 // ------------------------------------------------------------------ log
-const QUICK = ["fps:", "coll-window", "breakable", "cam-ground", "TERRAIN-DROP", "tex-census", "start-pos", "not applied", "telemetry", "trainer", "CRASH"];
+const QUICK = ["fps:", "coll-window", "breakable", "cam-ground", "TERRAIN-DROP", "draw-probe", "tex-census", "start-pos", "not applied", "telemetry", "trainer", "CRASH"];
 $("log-quick").innerHTML = QUICK.map(q => `<button data-q="${esc(q)}">${esc(q)}</button>`).join("") + `<button data-q="">all</button>`;
 $("log-quick").onclick = e => { const b = e.target.closest("button"); if (b) { $("log-q").value = b.dataset.q; renderLog(true); } };
 $("log-q").oninput = () => renderLog(true);

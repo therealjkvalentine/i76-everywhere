@@ -102,6 +102,29 @@ class LogParser(unittest.TestCase):
             self.assertIsNone(L.fixed_step)
 
 
+class DrawProbeLines(unittest.TestCase):
+    """I76_DRAW_PROBE (proxy 17baaab) has not run yet, so no real line exists: these are its three mlog formats
+    (strlkproxy.c draw-probe) filled with made-up numbers, to pin the parser to the format strings."""
+
+    def test_draw_probe(self):
+        L = ProxyLog(None)
+        for line in (
+            "  draw-probe: TERRAIN-LOSS #1 at swap 900 (proxy frame 901, t 123 ms, cam mode 0): main terrain polygons emitted 410, clipped away 3, "
+            "below the bucket floor 0 (floor 1.5, span 1800.0), past bucket 4096 0, > 32 vertices 0, queued 407, drawn 12 (previous swap 398); all polygons drawn 50 | "
+            "other cameras: emitted 0 queued 0 drawn 0 | triangles 900 (previous 5000), LFB locks 0, state 5",
+            "  draw-probe: TRIANGLE-LOSS #2 at swap 950 (proxy frame 951, t 130 ms, cam mode 0): triangles 800 (previous 5100) with main terrain polygons drawn 400 (previous 401), LFB locks 1",
+            "  draw-probe: swaps 1200: last 600: main terrain polygons drawn min 12, triangles min 800, LFB locks 1, main terrain clipped away 30, below the floor 0, past 4096 0 | "
+            "totals 1 terrain losses, 1 triangle losses | 14 terrain textures seen",
+            "  draw-probe: on (3/3 sites: terrain clip 0x4925a8, insert 0x4925bc, hardware draw 0x48fb7e; ZGLIDE grDrawTriangle / grLfbLock counted when ZGLIDE loads)"):
+            L.add(line)
+        st = L.state()
+        self.assertEqual([d["kind"] for d in st["draw_losses"]], ["TERRAIN-LOSS", "TRIANGLE-LOSS"])
+        self.assertEqual((st["draw_losses"][0]["drawn"], st["draw_losses"][0]["prev"]), (12, 398))
+        self.assertEqual(st["draw_losses"][1]["triangles"], 800)
+        self.assertEqual((st["draw"]["drawn_min"], st["draw"]["terrain_losses"], st["draw"]["textures"]), (12, 1, 14))
+        self.assertIn("I76_DRAW_PROBE", st["switches_from_log"])
+
+
 class HubDecode(unittest.TestCase):
     def test_recording_through_the_hub(self):
         if not os.path.exists(REC):

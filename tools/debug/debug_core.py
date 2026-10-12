@@ -253,14 +253,15 @@ I76_MUSIC_GUARD I76_MIRROR_RATE I76_MIRROR_FAR I76_JOY_SYNTH I76_JOY_MAP I76_INT
 I76_HIRES_CLOCK I76_GLIDE_REFRESH I76_GLIDE_GAMMA I76_FRAME_SPIKES I76_FRAMERATE_FIXES I76_FPS_PROF I76_FPS_LOG I76_FPS_CAP
 I76_FLASH_PROBE I76_FIX_LABEL_TABLE I76_FIX_HEALTH_PCT I76_FIXED_STEP I76_FAR_ENGINE_DT I76_ENGINE_DT_FIX I76_CWD_FIX
 I76_CRASH_LOG I76_COOP_AI I76_COOP_CHAIN I76_COOP_HEAPWATCH I76_COLL_WINDOW_WHEN I76_COLL_WINDOW_SCALE I76_COLL_DEDUPE
-I76_CLUTTER_DIST I76_CAM_GROUND_FIX I76_ASPECT I76_AI_FIXES I76_AI_BACKAWAY_GRID I76_HAZARD_CONTACT I76_PERFRAME_FIXES""".split())
+I76_CLUTTER_DIST I76_CAM_GROUND_FIX I76_ASPECT I76_AI_FIXES I76_AI_BACKAWAY_GRID I76_HAZARD_CONTACT I76_PERFRAME_FIXES I76_DRAW_PROBE""".split())
 # log prefix -> switch, where the generic rule (I76_ + prefix upper-cased, '-' -> '_') does not give a known name
 PREFIX_SWITCH = {"fix-health-pct": "I76_FIX_HEALTH_PCT", "fix-label-table": "I76_FIX_LABEL_TABLE", "sound-events": "I76_SOUND_EVENTS",
                  "damage-events": "I76_DAMAGE_EVENTS", "coll-window": "I76_COLL_WINDOW", "breakable-box": "I76_BREAKABLE_BOX",
                  "zglide-tmufix": "I76_ZGLIDE_TMUFIX", "mission-launch": "I76_MISSION", "start-pos": "I76_START_POS",
                  "fps-cap": "I76_FPS_CAP", "fps-log": "I76_FPS_LOG", "clutter-dist": "I76_CLUTTER_DIST", "flash-probe": "I76_FLASH_PROBE",
                  "cam-ground-fix": "I76_CAM_GROUND_FIX", "glide-refresh": "I76_GLIDE_REFRESH", "glide-gamma": "I76_GLIDE_GAMMA",
-                 "music-guard": "I76_MUSIC_GUARD", "trainer": "I76_TRAINER", "tex-census": "I76_TEX_CENSUS", "aspect": "I76_ASPECT"}
+                 "music-guard": "I76_MUSIC_GUARD", "trainer": "I76_TRAINER", "tex-census": "I76_TEX_CENSUS", "aspect": "I76_ASPECT",
+                 "draw-probe": "I76_DRAW_PROBE", "breakable-speed": "I76_BREAKABLE_BOX"}
 PERIODIC = ("fps", "clutter", "road-pool", "coop-ai", "coop-heap", "coop-chain", "coop-dmg", "hud-squeeze", "str ok", "PLAY", "run")
 FEATURE_WORDS = (" on", "repointed", "patched", "installed", "not applied", " off", "hooked", "armed", "enabled", ": x", " -> ")
 
@@ -282,6 +283,14 @@ RX = {
                          r"totals (\d+) dl, (\d+) flushes, (\d+) no-slot"),
     "road": re.compile(r"road-pool: (\d+) frames: refused (\d+) polygons \((\d+) past the pool, (\d+) past bucket \d+\), (\d+) bucket links dropped; node high water (\d+) KB of (\d+) KB; refusals since start (\d+)"),
     "clutter": re.compile(r"clutter: (\d+) frames: (\d+) us avg, (\d+) us max; cells ([\d.]+) avg, (\d+) max; instances tested (\d+)/frame; refused \(pool\) (\d+); record pool high water (\d+) KB"),
+    # I76_DRAW_PROBE (2026-10-12): per-swap terrain draw census, loss events and a 600-swap summary
+    "tloss": re.compile(r"draw-probe: TERRAIN-LOSS #(\d+) at swap (\d+) \(proxy frame (\d+), t (\d+) ms, cam mode (\d+)\): main terrain polygons emitted (\d+), "
+                        r"clipped away (\d+), below the bucket floor (\d+) \(floor (-?[\d.]+), span (-?[\d.]+)\), past bucket 4096 (\d+), > 32 vertices (\d+), "
+                        r"queued (\d+), drawn (\d+) \(previous swap (\d+)\)"),
+    "triloss": re.compile(r"draw-probe: TRIANGLE-LOSS #(\d+) at swap (\d+) \(proxy frame (\d+), t (\d+) ms, cam mode (\d+)\): triangles (\d+) \(previous (\d+)\) "
+                          r"with main terrain polygons drawn (\d+) \(previous (\d+)\), LFB locks (\d+)"),
+    "dsum": re.compile(r"draw-probe: swaps (\d+): last 600: main terrain polygons drawn min (\d+), triangles min (\d+), LFB locks (\d+), main terrain clipped away (\d+), "
+                       r"below the floor (\d+), past 4096 (\d+) \| totals (\d+) terrain losses, (\d+) triangle losses \| (\d+) terrain textures seen"),
     "prefix": re.compile(r"^  ([A-Za-z][\w-]*(?: [\w=.-]+)?): (.*)$"),
 }
 
@@ -312,6 +321,8 @@ class ProxyLog:
         self.tex = None
         self.tex_noslot = collections.deque(maxlen=100)
         self.road = self.clutter = None
+        self.draw_losses = collections.deque(maxlen=200)
+        self.draw = None
         self.start_pos = collections.deque(maxlen=20)
         self.render_interp = None
         self.not_applied = collections.deque(maxlen=100)
@@ -415,6 +426,24 @@ class ProxyLog:
             k = ("swaps", "scenes", "vmin", "zero", "drops", "pix", "events", "events_zero", "pix_total", "lifts", "refused")
             self.flash = dict(zip(k, map(int, m.groups())))
             return
+        m = RX["tloss"].search(line)
+        if m:
+            g = list(map(float, m.groups()))
+            self.draw_losses.append({"kind": "TERRAIN-LOSS", "n": int(g[0]), "swap": int(g[1]), "frame": int(g[2]), "cam_mode": int(g[4]),
+                                     "emitted": int(g[5]), "clipped": int(g[6]), "below_floor": int(g[7]), "floor": g[8], "span": g[9],
+                                     "past_4096": int(g[10]), "big": int(g[11]), "queued": int(g[12]), "drawn": int(g[13]), "prev": int(g[14])})
+            return
+        m = RX["triloss"].search(line)
+        if m:
+            g = list(map(int, m.groups()))
+            self.draw_losses.append({"kind": "TRIANGLE-LOSS", "n": g[0], "swap": g[1], "frame": g[2], "cam_mode": g[4], "triangles": g[5],
+                                     "prev_triangles": g[6], "drawn": g[7], "prev": g[8], "lfb": g[9]})
+            return
+        m = RX["dsum"].search(line)
+        if m:
+            k = ("swaps", "drawn_min", "tris_min", "lfb", "clipped", "below_floor", "past_4096", "terrain_losses", "triangle_losses", "textures")
+            self.draw = dict(zip(k, map(int, m.groups())))
+            return
         m = RX["flush"].search(line)
         if m:
             k = ("n", "swap", "frame", "t_ms", "downloads", "kb", "resident_kb", "noslot")
@@ -491,7 +520,7 @@ class ProxyLog:
             "bbox": self.bbox, "lift_count": self.lift_count, "lifts": list(self.lifts)[-40:], "cockpit_count": self.cockpit_count,
             "cockpit_under": list(self.cockpit_under)[-40:], "terrain_drops": list(self.terrain_drops)[-40:], "flash": self.flash,
             "flushes": list(self.flushes)[-40:], "tex": self.tex, "tex_noslot": list(self.tex_noslot)[-20:], "road": self.road,
-            "clutter": self.clutter, "start_pos": list(self.start_pos), "crashes": list(self.crashes),
+            "clutter": self.clutter, "draw": self.draw, "draw_losses": list(self.draw_losses)[-40:], "start_pos": list(self.start_pos), "crashes": list(self.crashes),
         }
 
     def tail(self, n=500, q=None, after=0):
