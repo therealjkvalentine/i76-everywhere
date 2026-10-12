@@ -230,3 +230,22 @@ Each run: capture the start view (F1 cockpit is the default), then press F1 once
     (`tools\upscale\ab_viewer.py`): sharper, same, or worse, and anything that changed colour. Kill criteria as run 29,
     plus colour banding on the dash (each quarter has its own 255-colour palette). If the dash only matters when you look
     down, say so: that decides whether stage 3 (the owner's route, the Leprechaun, a night mission) is worth doing.
+
+## Texture shimmer: supersampling for real (lab twin game-dd-20261003; docs/records/TEXTURE-SHIMMER-2026-10-12.md)
+
+The offline read says the wide preset gets 4x MSAA but not its 5160x2160 supersampling. The window is a borderless
+*windowed* mode, and dgVoodoo renders at the window size, 3440x1440. On top of that, `I76_TERRAIN_TEX=8` stretches the
+sharpest ground texture to 400 m, past what 1440 lines can show without crawling. Each bat below boots T05 at the hill
+top, standing, facing down the hill. Close the game between bats.
+
+31. **Shimmer A/B from the T05 hill top.** In order: `TEST-shimmer-A-current` (= PLAY.bat), `-C-fullscreen-ss15`
+    (fake fullscreen, so the 1.5x target is really used), `-B-ss2x` (6880x2880 + 4x MSAA), `-E-ss2x-noaa` (6880x2880,
+    no MSAA), `-D-terrain-tex-1` (A with stock terrain texture distances), `-F-ss15-terrain-tex-4` (C with terrain x4).
+    In each: sit 5 s and look at the far ground and the road at the bottom of the hill (crawling, sparkling, moire),
+    then drive down the hill in cockpit view and watch the same ground and road go past. Note: (a) crawl less / same /
+    more than A, (b) the fps counter top-left (does B stay at 120?), (c) for D and F, whether the far ground got
+    blurrier in a way you mind. In C, also click one menu item after Esc and use the Esc-menu Exit once: fake
+    fullscreen must not move the pointer. Expected: C less crawl than A, B/E least, D shows whether x8 is the main
+    cause, F is the candidate new default. Kill criteria: a black or 4:3 picture, the window not full screen, or
+    the pointer off target in C/B/E = fake fullscreen does not suit this setup (report which bat).
+    `TEST-shimmer-Z-native-msaa4` is for the console agent's pixel check, not for you.
