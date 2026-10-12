@@ -1188,6 +1188,8 @@ static int g_tel_on;                                         /* I76_TELEMETRY: p
 static void tel_frame(void);
 static i76trn_ctl_t *g_trn;                                  /* trainer control block (below, with apply_trainer) */
 static void trn_frame(void);
+static int g_start_on;                                       /* I76_START_POS (below, after the trainer) */
+static void start_pos_frame(void);
 /* I76_FPS_LOG=<seconds> (off by default): every period, log the frame rate and where each frame's time went -
  * "work" is hook return to the next hook entry (sim, render, Flip / present, anything the frame blocks on), "cap"
  * is the I76_FPS_CAP wait. Work near the frame time with the process far below a full core means the frame is
@@ -1245,6 +1247,7 @@ clock:
         ((void (__cdecl *)(int))0x00424b60)(g_voltest_level);
     }
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
+    if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
     if (g_hires_on) {
         /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
@@ -3616,14 +3619,85 @@ static float __cdecl coll_dt(void) {
 static volatile int g_in_coll_pass;
 static int g_coll_v3;
 static void coll_v3_report(void);
+static int g_cw_when;
+static void coll_when_report(void);
 static void __cdecl coll_pass_wrap(void) {
     g_in_coll_pass = 1;
     ((void (__cdecl *)(void))0x004349c0)();
     g_in_coll_pass = 0;
     if (g_coll_v3) coll_v3_report();
+    if (g_cw_when) coll_when_report();
+}
+/* I76_COLL_WINDOW_WHEN / I76_COLL_WINDOW_SCALE (2026-10-12, owner: with =2 "many of the obstacles are hit before you run
+ * into them ... could it be triggered a step later / on time?"; lab docs/COLL-TIMING-2026-10-12.md). Under =2 the pass
+ * of EVERY frame accepts a contact up to one whole step (41.7 ms) ahead of the current pose. The pose only moves on step
+ * frames, so a contact in the coming step is accepted - and a breakable knocked off - in the first pass after the
+ * previous step: at 120 fps up to 4 frames before the tick that carries the car there (and I76_RENDER_INTERP draws the
+ * car a further step behind the physics pose).
+ *   WHEN=stepframe: widen only for a pair whose body will step in THIS frame's tick. The window is the motion that tick
+ *     will make, n x step, with n predicted exactly as fixed_stepper_begin computes it: (the stepper's carried
+ *     accumulator + this frame's sim_dt, already set by the frame clock before 0x403a12) / step, at most 20. Other
+ *     frames keep the stock window (sim_dt). Per body, through the pair-test wrapper around 0x43f510 (coll_shapes_wrap,
+ *     installed with the fixed step): a class-1 vehicle that went through the fixed stepper last frame uses its own
+ *     prediction; a class-1 vehicle that did not (far / wrecked: whole-frame motion) uses sim_dt; other movers (classes
+ *     7 / 9, layout not read) keep the =2 window; statics add nothing. No pair window (wrapper missing) = the =2 window,
+ *     counted as a fallback in the 30 s line.
+ *   SCALE=<0.05..1>: the widened window is scale x the step (x n under stepframe), never below sim_dt. Below 1 the
+ *     window no longer covers the whole step, so some contacts are missed again (an entry plane is found with
+ *     probability about scale under the every-frame mode).
+ * Default (neither set): exactly =2 as before (max(sim_dt, step) on every frame). */
+static int g_cw_when;                                        /* 0: every frame (=2 as built), 1: stepframe */
+static float g_cw_scale = 1.0f;
+static float g_pair_win = -1.0f;                             /* stepframe: the pair's window, set around 0x43f510; < 0 unset */
+static volatile DWORD g_cw_pairs, g_cw_wide, g_cw_stock, g_cw_fallback;
+static float coll_wide(void) {                               /* the =2 window, scaled: max(sim_dt, scale x step) */
+    float sim_dt = *(volatile float *)0x004fe420, w = g_cw_scale * g_fixed_step;
+    return w > sim_dt ? w : sim_dt;
 }
 static float __cdecl coll_dt_gated(void) {
-    return g_in_coll_pass ? coll_dt() : *(volatile float *)0x004fe420;
+    if (!g_in_coll_pass) return *(volatile float *)0x004fe420;
+    if (g_cw_when) {
+        if (g_pair_win >= 0.0f) return g_pair_win;
+        g_cw_fallback++;
+    }
+    return coll_wide();
+}
+/* the motion a body's coming tick makes: n x step as fixed_stepper_begin will compute it; 0 = a static; -1 = a mover
+ * whose stepper is unknown (keep =2); -2 = a vehicle not on the fixed stepper last frame (whole-frame motion = sim_dt) */
+static float body_coming_motion(BYTE *obj, float sim_dt) {
+    int cls, s, n;
+    BYTE *ent;
+    volatile float a;
+    if (!obj) return 0.0f;
+    cls = *(int *)(obj + 0x6c);
+    if (cls != 1 && cls != 7 && cls != 9) return 0.0f;     /* movers are classes 1, 7, 9 (0x458c10) */
+    ent = *(BYTE **)(obj + 0x70);
+    if (cls != 1 || !ent) return -1.0f;
+    s = step_slot(ent + 0x444, 0);
+    if (s < 0 || g_step_acc[s].frame != g_frame - 1) return -2.0f;
+    a = g_step_acc[s].acc + sim_dt;                          /* the same float sum the stepper stores */
+    n = (int)(a / g_fixed_step);
+    if (n > 20) n = 20;
+    return (float)n * g_fixed_step;
+}
+static float coll_pair_window(BYTE *a, BYTE *b) {
+    float sim_dt = *(volatile float *)0x004fe420, w = sim_dt, m[2];
+    int i;
+    m[0] = body_coming_motion(a, sim_dt); m[1] = body_coming_motion(b, sim_dt);
+    for (i = 0; i < 2; i++) {
+        float x = m[i] == -1.0f ? coll_wide() : m[i] > 0.0f ? g_cw_scale * m[i] : 0.0f;
+        if (x > w) w = x;
+    }
+    g_cw_pairs++;
+    if (w > sim_dt) g_cw_wide++; else g_cw_stock++;
+    return w;
+}
+static void coll_when_report(void) {                         /* from the pass wrapper: one line per 30 s while it changes */
+    static DWORD last_frame, last_pairs;
+    if (g_frame - last_frame < 3600 || g_cw_pairs == last_pairs) return;
+    last_frame = g_frame; last_pairs = g_cw_pairs;
+    mlog("  coll-window when=stepframe: pair tests %lu, widened (a body steps this frame) %lu, stock window %lu, no pair window (=2 used) %lu",
+         g_cw_pairs, g_cw_wide, g_cw_stock, g_cw_fallback);
 }
 /* I76_COLL_WINDOW=3 (2026-10-11, lab docs/COLL-WINDOW-DEATH-SPOT-2026-10-11.md; proposal: COLLISION-MISS-2026-10-08.md
  * s.6.5): =2 widened every slab-test accept (box-box points, scenery boxes, spheres) and the mesh accept. =3 widens ONLY
@@ -3709,7 +3783,22 @@ static void apply_coll_window(void) {
                 if (i > 0 && !(mask & (1 << (i - 1)))) continue;
                 m += patch_bytes(t[i].site, t[i].old, w, 5, t[i].what);
             }
-            mlog("  coll-window v2: %d patched (pass flag + accept tests, sites mask %d: 1 slab 0x43e1c8, 2 mesh 0x43ec6a)", m, mask);
+            {   char wv[16], sv[16];
+                DWORD wk = GetEnvironmentVariableA("I76_COLL_WINDOW_WHEN", wv, sizeof(wv));
+                DWORD sk = GetEnvironmentVariableA("I76_COLL_WINDOW_SCALE", sv, sizeof(sv));
+                if (sk && sk < sizeof(sv)) {
+                    double f = atof(sv);
+                    if (f >= 0.05 && f <= 1.0) g_cw_scale = (float)f;
+                    else mlog("  coll-window: I76_COLL_WINDOW_SCALE=%s outside 0.05..1 - ignored", sv);
+                }
+                if (wk && wk < sizeof(wv)) {
+                    if (lstrcmpiA(wv, "stepframe") == 0) g_cw_when = (m > 0);
+                    else if (lstrcmpiA(wv, "always") != 0) mlog("  coll-window: I76_COLL_WINDOW_WHEN=%s unknown (always | stepframe) - every frame", wv);
+                }
+            }
+            mlog("  coll-window v2: %d patched (pass flag + accept tests, sites mask %d: 1 slab 0x43e1c8, 2 mesh 0x43ec6a); when %s, scale %.2f (window %.1f ms of the %.1f ms step)",
+                 m, mask, g_cw_when ? "stepframe (only for a body whose tick steps this frame, n x step)" : "every frame",
+                 g_cw_scale, g_cw_scale * g_fixed_step * 1000.0f, g_fixed_step * 1000.0f);
         }
 #ifdef _MSC_VER
         else if (k == 1 && v[0] == '3') {
@@ -3768,9 +3857,12 @@ static int coll_body_unmoved(BYTE *obj, const double *snap) {
     return memcmp(obj + 0x40, snap, 24) == 0;
 }
 static int __cdecl coll_shapes_wrap(BYTE **ra, BYTE **rb, void *ca, void *cb) {
-    int r = ((int (__cdecl *)(BYTE **, BYTE **, void *, void *))0x0043f510)(ra, rb, ca, cb), i, slot = 0;
+    int r, i, slot = 0;
     BYTE *a, *b;
     DWORD oldest = 0xffffffff;
+    if (g_cw_when) g_pair_win = (ra && rb) ? coll_pair_window(*ra, *rb) : -1.0f;   /* I76_COLL_WINDOW_WHEN=stepframe */
+    r = ((int (__cdecl *)(BYTE **, BYTE **, void *, void *))0x0043f510)(ra, rb, ca, cb);
+    g_pair_win = -1.0f;
     g_coll_dup = 0;
     if (!r) return r;
     a = *ra; b = *rb;                                                          /* record +0: the object */
@@ -5558,6 +5650,172 @@ static void apply_trainer(void) {
 }
 
 /* ===========================================================================
+ * BREAKABLE BARS AS BOXES  (I76_BREAKABLE_BOX=1; off by default; MSVC build only)
+ * ===========================================================================
+ * 2026-10-12, lab docs/COLL-TIMING-2026-10-12.md s.1. A class-4 breakable's parts with collision kind 0 get the class
+ * default 0x5000 (0x4367e0: class 4 -> 0x43689c `mov [0x52b92c], 0x5000`): a SPHERE of 0.75 x the part radius about
+ * the part centre, tested against the car box grown by that radius on every side (0x440d90). For the T05 road-closed
+ * barricade swend_1 the bar is 8.04 m wide and 0 m thick (SGEO half 4.02 x 0.32 x 0.00, radius 4.04): its sphere is
+ * 3.03 m, so the bar is knocked off when the car's nose is still 3.03 m short of it, at any frame rate (stock too).
+ * This makes only LONG, THIN, LOW default parts of breakables boxes (0x2000, the part's own mesh AABB, the 8-point
+ * box-box test 0x43ff80 both ways round): horizontal length >= 2 m, horizontal thickness <= 0.25 m, and a height
+ * range that overlaps 0.3..1.3 m above the part's parent origin (the car's sample points are at y 0.81 on a
+ * Piranha). Sign posts (0.1 m wide) and panels (<= 1.6 m wide, 2+ m up) keep their spheres: as boxes the 8 sample
+ * points (about 1 m apart) would slip past a post. The per-part read of the default, 0x436cbd `mov esi, [0x52b92c]`
+ * (8B 35 2C B9 52 00, ebp = the part node; node+0x94..+0xa8 = the mesh AABB in part space, set by 0x4369c0 just
+ * before the builder; node+0x40/+0x48/+0x50 = the part position doubles in its parent), goes to a thunk that keeps
+ * the stock value unless all of the above hold. */
+static volatile DWORD g_bbox_parts, g_bbox_box;
+static float g_bbox_logged[8][3]; static int g_bbox_nlog;
+static DWORD __cdecl bbox_pick(BYTE *node) {
+    float ex, ey, ez, lo, hi, len, thin;
+    double py = 0.0;
+#ifdef _MSC_VER
+    __try {
+#endif
+        g_bbox_parts++;
+        ex = *(float *)(node + 0xa0) - *(float *)(node + 0x94);
+        ey = *(float *)(node + 0xa4) - *(float *)(node + 0x98);
+        ez = *(float *)(node + 0xa8) - *(float *)(node + 0x9c);
+        py = *(double *)(node + 0x48);
+        lo = (float)py + *(float *)(node + 0x98); hi = (float)py + *(float *)(node + 0xa4);
+        len = ex > ez ? ex : ez; thin = ex > ez ? ez : ex;
+        if (len >= 2.0f && thin <= 0.25f && ey >= 0.0f && lo < 1.3f && hi > 0.3f) {
+            g_bbox_box++;
+            if (g_bbox_nlog < 8) { g_bbox_logged[g_bbox_nlog][0] = len; g_bbox_logged[g_bbox_nlog][1] = thin; g_bbox_logged[g_bbox_nlog][2] = (lo + hi) * 0.5f; g_bbox_nlog++; }
+            return 0x2000;
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+    return 0x5000;
+}
+#ifdef _MSC_VER
+static __declspec(naked) void bbox_thunk(void) {              /* replaces `mov esi, [0x52b92c]` at 0x436cbd (+1 nop) */
+    __asm {
+        mov  esi, dword ptr ds:[0x0052b92c]
+        cmp  esi, 0x5000                        /* only the class-4 default (0x4367e0 sets 0x5000 for class 4 only) */
+        jne  done
+        pushad
+        push ebp                                /* the part node */
+        call bbox_pick
+        add  esp, 4
+        mov  dword ptr [esp + 4], eax           /* pushad frame: [esp] edi, [esp+4] esi */
+        popad
+    done:
+        ret                                     /* flags are recomputed by the `cmp esi, 0x1000` that follows */
+    }
+}
+#endif
+static void apply_breakable_box(void) {
+#ifdef _MSC_VER
+    static const BYTE old6[6] = { 0x8B, 0x35, 0x2C, 0xB9, 0x52, 0x00 };   /* 0x436cbd mov esi, [0x52b92c] */
+    BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
+    LONG rel = (LONG)((DWORD_PTR)bbox_thunk - (0x00436cbd + 5));
+    char v[4];
+    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || v[0] != '1') return;
+    memcpy(w + 1, &rel, 4);
+    mlog("  breakable-box: %d/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)",
+         patch_bytes(0x00436cbd, old6, w, 6, "collision tree default part kind read"));
+#else
+    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", NULL, 0)) mlog("  breakable-box: MSVC build only - not applied");
+#endif
+}
+static void breakable_box_report(void) {                     /* with the start-pos read-back and at mission load lines */
+    char b[200]; int i, n = 0;
+    for (i = 0; i < g_bbox_nlog && n < 160; i++)
+        n += wsprintfA(b + n, " %dx%dcm@%dcm", (int)(g_bbox_logged[i][0] * 100), (int)(g_bbox_logged[i][1] * 100), (int)(g_bbox_logged[i][2] * 100));
+    b[n] = 0;
+    mlog("  breakable-box: %lu class-4 default parts seen, %lu made boxes (length x thickness @ centre height):%s",
+         g_bbox_parts, g_bbox_box, n ? b : " -");
+}
+
+/* ===========================================================================
+ * START POSITION  (I76_START_POS=x,y,z,yaw_deg[,delay_s]; needs I76_MISSION; off by default)
+ * ===========================================================================
+ * Owner request 2026-10-12: start T05 at the top of the hill before the barricades, standing still, facing down the
+ * road (lab docs/COLL-TIMING-2026-10-12.md s.2). Once per game process, when the local player's vehicle has been live
+ * in a mission (0x4c2164 == 5, tel_player) for delay_s (default 1.0) of wall time, the frame hook - top of the frame,
+ * before simclock and the tick, where the trainer's TELEPORT runs - writes for 0.3 s: the rotation rows right / up /
+ * forward at obj+0x18 for a yaw about +y (yaw 0 = facing +z, 90 = +x, -90 = -x; the write rate-ab-live.py face()
+ * makes), the position doubles at obj+0x40, and zero velocity (ent+0xbc) and body rates (ent+0xc8): the trainer's
+ * TELEPORT + STOP held. Then the car is released and drops onto the ground (give y as the ground height + 0.5).
+ * The pose is read back and logged 1 s later. I76_RENDER_INTERP sees the jump (> 8 m) and resets its history.
+ * Mission scripts keyed to the normal route are not re-run. A retry from the in-mission menu starts at the stock spawn
+ * (once per process, so another mission picked later is never moved). */
+static double g_start_p[3];
+static float g_start_yaw, g_start_delay = 1.0f;
+static int g_start_state;                                    /* 0 waiting, 1 holding, 2 released, 3 done */
+static DWORD g_start_t0, g_start_until;
+static BYTE *g_start_obj;
+static void start_pos_inner(void) {
+    BYTE *ent = 0, *obj = 0;
+    DWORD now = GetTickCount();
+    if (*(volatile int *)0x004c2164 == 5) obj = tel_player(&ent);
+    if (g_start_state == 0) {
+        if (!obj) { g_start_t0 = 0; return; }
+        if (!g_start_t0) { g_start_t0 = now ? now : 1; return; }
+        if (now - g_start_t0 < (DWORD)(g_start_delay * 1000.0f)) return;
+        g_start_state = 1; g_start_obj = obj; g_start_until = now + 300;
+        mlog("  start-pos: placing the player (obj %p) at (%.1f, %.1f, %.1f) yaw %.1f, frame %lu, was at (%.1f, %.1f, %.1f)",
+             (void *)obj, g_start_p[0], g_start_p[1], g_start_p[2], g_start_yaw, (unsigned long)g_frame,
+             *(double *)(obj + 0x40), *(double *)(obj + 0x48), *(double *)(obj + 0x50));
+    }
+    if (g_start_state == 1 || g_start_state == 2) {
+        if (obj != g_start_obj) { mlog("  start-pos: the player changed during the placement - stopped"); g_start_state = 3; return; }
+    }
+    if (g_start_state == 1) {
+        float yr = g_start_yaw * 0.017453292f, sy = sinf(yr), cy = cosf(yr);
+        float r[9];
+        r[0] = cy; r[1] = 0.0f; r[2] = -sy;                  /* right */
+        r[3] = 0.0f; r[4] = 1.0f; r[5] = 0.0f;               /* up */
+        r[6] = sy; r[7] = 0.0f; r[8] = cy;                   /* forward */
+        memcpy(obj + 0x18, r, sizeof r);
+        memcpy(obj + 0x40, g_start_p, sizeof g_start_p);
+        memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12);
+        if ((LONG)(now - g_start_until) >= 0) { g_start_state = 2; g_start_until = now + 1000; }
+    } else if (g_start_state == 2 && (LONG)(now - g_start_until) >= 0) {
+        double dx = *(double *)(obj + 0x40) - g_start_p[0], dz = *(double *)(obj + 0x50) - g_start_p[2];
+        mlog("  start-pos: read back 1 s after release: (%.1f, %.2f, %.1f), forward (%.3f, %.3f, %.3f), %.2f m from the target in x/z, speed %.2f m/s - %s",
+             *(double *)(obj + 0x40), *(double *)(obj + 0x48), *(double *)(obj + 0x50),
+             *(float *)(obj + 0x30), *(float *)(obj + 0x34), *(float *)(obj + 0x38), sqrt(dx * dx + dz * dz),
+             *(float *)(ent + 0xac), dx * dx + dz * dz < 25.0 ? "OK" : "MOVED AWAY");
+        if (g_bbox_parts) breakable_box_report();
+        g_start_state = 3;
+    }
+}
+static void start_pos_frame(void) {
+    if (g_start_state >= 3) return;
+#ifdef _MSC_VER
+    __try { start_pos_inner(); }
+    __except (EXCEPTION_EXECUTE_HANDLER) { g_start_state = 3; }
+#else
+    start_pos_inner();
+#endif
+}
+static void apply_start_pos(void) {
+    char v[96], *p;
+    double f[5];
+    int n = 0;
+    DWORD k = GetEnvironmentVariableA("I76_START_POS", v, sizeof(v));
+    if (k == 0) return;
+    if (k >= sizeof(v)) { mlog("  start-pos: I76_START_POS too long - not applied"); return; }
+    if (GetEnvironmentVariableA("I76_MISSION", NULL, 0) == 0) { mlog("  start-pos: needs I76_MISSION (the mission it belongs to) - not applied"); return; }
+    for (p = v; n < 5 && *p; ) {
+        f[n++] = atof(p);
+        while (*p && *p != ',') p++;
+        if (*p == ',') p++;
+    }
+    if (n < 4) { mlog("  start-pos: I76_START_POS=%s needs x,y,z,yaw_deg[,delay_s] - not applied", v); return; }
+    g_start_p[0] = f[0]; g_start_p[1] = f[1]; g_start_p[2] = f[2]; g_start_yaw = (float)f[3];
+    if (n == 5 && f[4] >= 0.0 && f[4] <= 60.0) g_start_delay = (float)f[4];
+    install_frame_hook();
+    g_start_on = g_frame_hook != 0;
+    mlog("  start-pos: %s - (%.1f, %.1f, %.1f) yaw %.1f deg, %.1f s after the player is live in the mission, once",
+         g_start_on ? "armed" : "NOT armed (frame hook missing)", f[0], f[1], f[2], f[3], g_start_delay);
+}
+
+/* ===========================================================================
  * THE "PLEASE INSERT CD 'Interstate '76 CD 2'" PROMPT: INSTRUMENT (opt-in: I76_CD_LOG=1)
  * and I76_CD_FAKE=1 (EXPERIMENTAL mitigation)
  * ===========================================================================
@@ -6539,6 +6797,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
         apply_input_latch();      /* opt-in: I76_INPUT_LATCH=1 (after apply_fixed_step: ignition / lights keys survive step-less frames) */
+        apply_breakable_box();    /* opt-in: I76_BREAKABLE_BOX=1 (long thin breakable bars as boxes, not 0.75 r spheres) */
         apply_coll_window();      /* opt-in: I76_COLL_WINDOW=1 (after apply_fixed_step: needs g_fixed_step) */
         apply_coll_dedupe();      /* with I76_FIXED_STEP: collision sound + damage once per physics step (I76_COLL_DEDUPE=0 counts only) */
         apply_far_engine_dt();    /* opt-in: I76_FAR_ENGINE_DT=1 (after apply_engine_dt_fix: needs its site) */
@@ -6554,6 +6813,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
         apply_far_clip();         /* opt-in: I76_FAR_CLIP=<metres> (+ render pools x16) */
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
+        apply_start_pos();        /* opt-in: I76_START_POS=x,y,z,yaw[,delay] with I76_MISSION (one placement after the start) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */

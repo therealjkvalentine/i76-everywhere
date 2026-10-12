@@ -36,6 +36,18 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    in t04 god-mode circle drives B destroys the car at one spot about 9.5 s / 250 m along the circle (5 of 23 passes; A 0 of 21,
    p 0.05; elsewhere deaths are equal). While playing B, watch for being killed by something you barely touched; t04's start area
    is where the drives found it. Details: records/OVERNIGHT-2026-10-11.md, P1.)
+   *(2026-10-12, the t04 deaths are a stock terrain rollover, not B: lab docs/COLL-WINDOW-DEATH-SPOT-2026-10-11.md.)*
+   **3b. Barricade timing from the T05 hill top (new 2026-10-12, your "hit before you run into them" report).** Seven bats, each
+   boots T05 straight in and drops the car on the crest of the road down to the barricades, standing, facing down the hill
+   (about 1 s after the mission appears; if it does not move you, the log says why):
+   `TEST-hill-A-control` (window off) / `-B-window2` (as TEST-coll-B) / `-C-stepframe` (B, but the check only on the frame the
+   car actually moves) / `-D-scale075` / `-E-scale050` (B with a shorter window) / `-F-window2-nointerp` (B without render
+   interpolation: choppy on purpose) / `-G-stepframe-barbox` (C + the bar collides as the real bar; experimental, never run).
+   Compare: does the barricade fly before the bumper touches it (expect B worst, C and F better, G on time)? Any barricade
+   driven through (expect A most, D/E some, B/C/F/G none)? Signs: with B/C, a sign you pass within about 1 m of should fly.
+   Why it can never be fully "on time" without G: every barricade bar collides as a 3 m ball around its middle, in stock too, so
+   it flies when your nose is 3 m short. The timing part is about 1.3 m at 60 mph in B and 0.6 m in C.
+   Lab docs/COLL-TIMING-2026-10-12.md. *(Built and checked offline only; not run before handing over.)*
 4. **Terrain drop-out watch.** `TEST-terrain-watch.bat` = PLAY.bat + drop detector. Play where you saw it (open desert, road bend). If the
    ground vanishes, note the time; the log (`Interstate 76\mciproxy.log`, lines `TERRAIN-DROP`) and a saved frame tell us the rest.
    Expected: never (the lab copy lacked I76_CAM_GROUND_FIX when you saw it; your driver has it).
