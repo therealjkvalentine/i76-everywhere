@@ -2,7 +2,7 @@
 #   1. proxy a6d621fd (lab builds\sign-fix-20261012\STRLKUP-signfix-v2tel.dll: the twin's source line 552dcb4 + =3 +
 #      the coll-timing patch (I76_COLL_WINDOW_WHEN / _SCALE, I76_BREAKABLE_BOX, I76_START_POS) + the sign-fix patch
 #      (I76_BREAKABLE_BOX=2); v2 telemetry, so the trainer GUI keeps working). Everything new is off unless a preset sets it.
-#   2. PLAY-i76.ps1 009c9742 from the repo (head tracking OPT-IN with -HeadTrack; owner 2026-10-12: "we don't want
+#   2. PLAY-i76.ps1 2020e2bf from the repo (head tracking OPT-IN with -HeadTrack, cursor overlay OPT-IN with -CursorOverlay; owner 2026-10-12: "we don't want
 #      opentrack for experiments or even by default anywhere right now"; HEADTRACK.bat is its own AHK launcher).
 #   3. presets best-wide, best-wide-balanced AND best-120, staged from the DRIVER's own files: I76_COLL_DEDUPE '0' -> '1'
 #      and + I76_COLL_WINDOW = '2', I76_COLL_WINDOW_WHEN = 'stepframe', I76_BREAKABLE_BOX = '1' (G as the owner played it,
@@ -36,7 +36,7 @@ $GateText = 'PENDING: lab autotest\overnight\phases\P8-promote17.ps1 (run-overni
 
 $bins = [ordered]@{
     'Interstate 76\STRLKUP.DLL'  = @('C:\Users\james\i76-uncap-lab\builds\sign-fix-20261012\STRLKUP-signfix-v2tel.dll', 'a6d621fd')
-    'Interstate 76\PLAY-i76.ps1' = @((Join-Path $repo 'PLAY-i76.ps1'), '009c9742')
+    'Interstate 76\PLAY-i76.ps1' = @((Join-Path $repo 'PLAY-i76.ps1'), '2020e2bf')
 }
 $files = [ordered]@{}
 foreach ($rel in $bins.Keys) {
@@ -86,7 +86,7 @@ if ($pending.Count -or $GateText -like 'PENDING*') {
     Write-Host "plan only - $msg" -ForegroundColor Yellow
 }
 & (Join-Path $PSScriptRoot 'Promote-To-Driver.ps1') -Plan:$Plan `
-    -What 'collision G (PLAY.bat, PLAY-balanced.bat, PLAY-16x10.bat): proxy a6d621fd (I76_COLL_WINDOW_WHEN, I76_BREAKABLE_BOX, I76_START_POS, all opt-in) + best-wide, best-wide-balanced, best-120 with I76_COLL_DEDUPE=1, I76_COLL_WINDOW=2, I76_COLL_WINDOW_WHEN=stepframe, I76_BREAKABLE_BOX=1; launcher PLAY-i76.ps1 009c9742 (head tracking opt-in)' `
+    -What 'collision G (PLAY.bat, PLAY-balanced.bat, PLAY-16x10.bat): proxy a6d621fd (I76_COLL_WINDOW_WHEN, I76_BREAKABLE_BOX, I76_START_POS, all opt-in) + best-wide, best-wide-balanced, best-120 with I76_COLL_DEDUPE=1, I76_COLL_WINDOW=2, I76_COLL_WINDOW_WHEN=stepframe, I76_BREAKABLE_BOX=1; launcher PLAY-i76.ps1 2020e2bf (head tracking and the cursor overlay opt-in)' `
     -Gate $GateText `
     -Files $files
 Write-Host "staged: $stageDir"

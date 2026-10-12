@@ -93,7 +93,11 @@ param(
     # is in the background - so a click-through overlay draws one that the game cannot hide.
     # This is not cosmetic: the shell's modal prompts ("CAN'T GET VERY FAR WITHOUT AN ENGINE",
     # "Overwrite an existing bookmark?") spin at 100% CPU until they are answered, so a
-    # pointer you cannot see reads exactly like a frozen game. -NoCursorOverlay skips it.
+    # pointer you cannot see reads exactly like a frozen game.
+    # OPT-IN since 2026-10-12 (-CursorOverlay): the proxy cursor map (I76_CURSOR_MAP, driver promotion 15) and
+    # u32x's modal arrow show the pointer in the menus and the OK popups, and the overlay's green crosshair
+    # showed up mid-mission (owner report). -NoCursorOverlay is still accepted and does nothing.
+    [switch]$CursorOverlay,
     [switch]$NoCursorOverlay
 )
 $ErrorActionPreference = 'SilentlyContinue'
@@ -292,7 +296,7 @@ $stick = $null
 # The on-screen pointer. Started before the stick so it is up by the time the menus are, and
 # it hides itself whenever the game is not the active window (see the script).
 $cursorCfg = Join-Path $GameDir '_ahk\i76-cursor-overlay.ahk'
-if (-not $NoCursorOverlay -and (Test-Path $ahkExe) -and (Test-Path $cursorCfg)) {
+if ($CursorOverlay -and -not $NoCursorOverlay -and (Test-Path $ahkExe) -and (Test-Path $cursorCfg)) {
     $cursor = Start-Process -FilePath $ahkExe -ArgumentList "`"$cursorCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
