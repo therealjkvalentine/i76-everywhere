@@ -1,5 +1,11 @@
 # Interstate '76 trainer window (`i76trainer_gui.py`)
 
+**2026-10-12: `TRAINER.bat` now opens I76 Debug (`tools\debug`, README there) on its Trainer tab** - the same controls and
+memory writes (its `debug_trainer.py` imports this file's helpers and `i76trainer.py`), in a dashboard that also shows
+telemetry, events, FFB, rumble, LFE, motion and the proxy log, and that never creates the telemetry shared memory (this window
+maps it at the v2 size, which stops a v3 proxy from using it when the window starts first). `TRAINER.bat --classic` still
+starts this window. Everything below applies to both.
+
 A player-facing front end over the trainer pieces that already exist in this folder: the pokes of
 `i76trainer.py`, the Strlkup proxy's control block (`i76trn.h`), and the telemetry export
 (`..\telemetry\i76tel.h`). Stdlib Python 3 with tkinter, nothing to install. Double-click `TRAINER.bat`,

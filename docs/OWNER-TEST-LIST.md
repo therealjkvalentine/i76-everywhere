@@ -230,3 +230,19 @@ Each run: capture the start view (F1 cockpit is the default), then press F1 once
     (`tools\upscale\ab_viewer.py`): sharper, same, or worse, and anything that changed colour. Kill criteria as run 29,
     plus colour banding on the dash (each quarter has its own 255-colour palette). If the dash only matters when you look
     down, say so: that decides whether stage 3 (the owner's route, the Leprechaun, a night mission) is worth doing.
+
+## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
+
+31. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
+    old size). Start the lab game with `I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76_DAMAGE_EVENTS=1`, then `tools\debug\DEBUG.bat --tee 17676`
+    and, in a second console, `tools\haptics\haptics.ps1 live --source udp --port 17676 --debug-udp` (files only; add `--live` only
+    if you want the devices). Drive t01 or t05 for a few minutes: shoot, ram something, get shot, jump. Look at each tab once:
+    Overview (fps, steps per frame, proxy DLL md5, the switch list matches the bat you launched), Telemetry (charts move with the
+    car, the map trail follows you), Events (your shots per weapon, damage on the right side of the car diagram), Force feedback /
+    Rumble / LFE / Motion (move with the haptics host running, say "No haptics host data" without it), Collision and Terrain (the
+    30 s coll-window counters and any TERRAIN-DROP / camera-lift lines appear within a minute when the bat sets those switches),
+    Log (filters). Trainer tab (sandbox): Repair now and the **T05 hill top** preset in t05 (lands on the crest above the
+    barricades; turn west yourself, the teleport keeps your heading), one hold on and off. `TRAINER.bat` must open the same page
+    on the Trainer tab; `TRAINER.bat --classic` is the old window. Report: anything empty that should not be, anything wrong,
+    anything slow (the page redraws at about 15 Hz; the game's fps must not drop with the dashboard open - compare the Overview
+    fps with the tab closed vs open, n = 2 each). Offline-tested only: tools\debug\README.md "Not verified yet".
