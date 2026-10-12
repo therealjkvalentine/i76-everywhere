@@ -5431,13 +5431,131 @@ static void dp_swap(void) {                 /* from tc_Swap, before the present:
         g_dp_win_min_tdraw = g_dp_win_min_tris = 0xffffffff; g_dp_win_lfb = g_dp_win_clip0 = g_dp_win_lowz = g_dp_win_far = 0;
     }
 }
+/* TERRAIN PASS RECORD  (I76_DRAW_PROBE=2 / 3, lab docs/TERRAIN-DROPOUT-HILL-2026-10-12.md s.9)
+ * The census above showed the main camera's terrain polygons falling at the EMIT stage (0x4924b0 offered 113-388
+ * instead of ~1000-1500) with the quadtree's vertex count normal. =2 wraps renderer_QueueTerrain 0x490a00 at its main
+ * hardware call 0x4020a4 and at the rear mirror's 0x44594e and records each pass: leaves made by the quadtree 0x4911e0
+ * ([0x59c56c], counted in 0x491810), nodes it culled against the footprint hull ([0x5a45c0], 0x49179b), edges
+ * [0x59c568], vertices [0x6442ec], hull planes [0x6442f0] / 0x644308, root square [0x6442e0..e8], the LOD scales
+ * [0x6442c8] / [0x6442cc], polygons offered to the clip in that pass, the FPU control word at entry, whether the mirror
+ * pass ran since the previous main pass, and the camera (eye +0x160, far corners +0x178, view rotation +0x40 and
+ * position +0x68). A main pass offering < 30 % of the previous main pass's polygons (previous >= 300) is logged as
+ * PASS-LOSS with this pass, the previous one and the last mirror pass. =3 also re-runs QueueTerrain once on such a pass
+ * and logs what the re-run offered (deterministic in the camera = same count; a transient = a normal count). */
+typedef struct {
+    DWORD seq, leaves, culled, edges, verts, hulln, emit, clip0, root[3];
+    DWORD wl, wfront, wback, wbehind, wnear;            /* the leaf list walked again after the pass (view space) */
+    float near_dmin, near_dmax, zmin;
+    WORD cw; BYTE mirror_before, valid;
+    float lod_c8, lod_cc, rot[9];
+    double eye[3], corner[4][3], pos[3], hull[6][3];
+    double t_ms;
+} dpp_t;
+static int g_dpp_level;
+static DWORD g_dpp_seq, g_dpp_loss, g_dpp_rerun_ok, g_dpp_mirror_since;
+static dpp_t g_dpp_cur, g_dpp_prev, g_dpp_mirror;
+static void dpp_fill(dpp_t *p, const BYTE *cam, DWORD emit0, DWORD clip00, int k, WORD cw) {
+    int i, j, n = *(volatile int *)0x006442f0;
+    p->seq = ++g_dpp_seq; p->t_ms = tc_ms(); p->cw = cw; p->valid = 1;
+    p->leaves = *(volatile DWORD *)0x0059c56c; p->culled = *(volatile DWORD *)0x005a45c0; p->edges = *(volatile DWORD *)0x0059c568;
+    p->verts = *(volatile DWORD *)0x006442ec; p->hulln = (DWORD)n;
+    p->root[0] = *(volatile DWORD *)0x006442e0; p->root[1] = *(volatile DWORD *)0x006442e4; p->root[2] = *(volatile DWORD *)0x006442e8;
+    p->lod_c8 = *(volatile float *)0x006442c8; p->lod_cc = *(volatile float *)0x006442cc;
+    p->emit = g_dp_emit[k] - emit0; p->clip0 = g_dp_clip0[k] - clip00;
+    for (i = 0; i < 3; i++) { p->eye[i] = *(const double *)(cam + 0x160 + 8 * i); p->pos[i] = *(const double *)(cam + 0x68 + 8 * i); }
+    for (i = 0; i < 4; i++) for (j = 0; j < 3; j++) p->corner[i][j] = *(const double *)(cam + 0x178 + 0x18 * i + 8 * j);
+    for (i = 0; i < 9; i++) p->rot[i] = *(const float *)(cam + 0x40 + 4 * i);
+    for (i = 0; i < 6; i++) {                           /* plane i: float a (x) at +0, float c (z) at +8, double d at +0x10 */
+        const BYTE *pl = (const BYTE *)0x00644308 + 0x18 * i;
+        p->hull[i][0] = i < n ? *(const float *)pl : 0.0; p->hull[i][1] = i < n ? *(const float *)(pl + 8) : 0.0;
+        p->hull[i][2] = i < n ? *(const double *)(pl + 0x10) : 0.0;
+    }
+}
+/* After the pass [0x5dd320] holds the vertices in view space (0x4937c0). Walk the leaf list ([0x59c560], next at +8;
+ * edges at +0xc/+0x10/+0x14/+0x18, edge = word v0, word v1) and repeat the emit walk's facing test on the leaf's two
+ * corner triangles (c0 = e2.v0, c1 = e1.v0, c2 = e3.v1, c3 = e0.v1: the order 0x491a30 collects them in): plane
+ * n = (c1 - c0) x (c2 - c0), d = -n.c0 / |n| (the signed distance of the eye from the leaf's plane). wfront / wback =
+ * leaves whose first triangle has d < 0 / >= 0 (the walk needs d < 0); wbehind = all four corners at view z < 1;
+ * near_dmin / dmax = the range of d over leaves with a corner within 60 m (view z). */
+static void dpp_walk(dpp_t *p) {
+    const BYTE *leaf = *(BYTE * volatile *)0x0059c560; const float *V = *(float * volatile *)0x005dd320;
+    DWORD guard = 0;
+    p->wl = p->wfront = p->wback = p->wbehind = p->wnear = 0; p->near_dmin = 1e30f; p->near_dmax = -1e30f; p->zmin = 1e30f;
+    if (!V) return;
+    while (leaf && guard++ < 200000) {
+        const BYTE *e0 = *(BYTE **)(leaf + 0xc), *e1 = *(BYTE **)(leaf + 0x10), *e2 = *(BYTE **)(leaf + 0x14), *e3 = *(BYTE **)(leaf + 0x18);
+        const float *c[4]; float u[3], w[3], n[3], len, d, zm; int i;
+        if (!e0 || !e1 || !e2 || !e3) break;
+        c[0] = V + 3 * *(const short *)e2; c[1] = V + 3 * *(const short *)e1; c[2] = V + 3 * *(const short *)(e3 + 2); c[3] = V + 3 * *(const short *)(e0 + 2);
+        for (i = 0; i < 3; i++) { u[i] = c[1][i] - c[0][i]; w[i] = c[2][i] - c[0][i]; }
+        n[0] = u[1] * w[2] - u[2] * w[1]; n[1] = u[2] * w[0] - u[0] * w[2]; n[2] = u[0] * w[1] - u[1] * w[0];
+        len = sqrtf(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+        d = len > 0.0f ? -(n[0] * c[0][0] + n[1] * c[0][1] + n[2] * c[0][2]) / len : 0.0f;
+        p->wl++; if (d < 0.0f) p->wfront++; else p->wback++;
+        zm = c[0][2]; for (i = 1; i < 4; i++) if (c[i][2] < zm) zm = c[i][2];
+        if (zm < p->zmin) p->zmin = zm;
+        if (c[0][2] < 1.0f && c[1][2] < 1.0f && c[2][2] < 1.0f && c[3][2] < 1.0f) p->wbehind++;
+        if (zm < 60.0f) { p->wnear++; if (d < p->near_dmin) p->near_dmin = d; if (d > p->near_dmax) p->near_dmax = d; }
+        leaf = *(BYTE **)(leaf + 8);
+    }
+}
+static void dpp_log(const char *tag, const dpp_t *p) {
+    if (!p->valid) { mlog("    %s: none", tag); return; }
+    mlog("    %s: pass %lu t %.0f: leaves %lu, hull-culled nodes %lu, edges %lu, vertices %lu, offered %lu (clip0 %lu), hull %lu planes, root (%ld, %ld, bits %lu), lod %.5g / %.5g, fpu cw %04x, mirror ran before it %d",
+         tag, (unsigned long)p->seq, p->t_ms, (unsigned long)p->leaves, (unsigned long)p->culled, (unsigned long)p->edges, (unsigned long)p->verts,
+         (unsigned long)p->emit, (unsigned long)p->clip0, (unsigned long)p->hulln, (long)p->root[0], (long)p->root[1], (unsigned long)p->root[2],
+         p->lod_c8, p->lod_cc, (unsigned)p->cw, (int)p->mirror_before);
+    mlog("    %s: leaf walk: %lu leaves, facing %lu, back-facing %lu, all corners behind %lu; %lu leaves within 60 m, eye-to-plane d %.3f .. %.3f; min view z %.2f",
+         tag, (unsigned long)p->wl, (unsigned long)p->wfront, (unsigned long)p->wback, (unsigned long)p->wbehind, (unsigned long)p->wnear,
+         p->near_dmin, p->near_dmax, p->zmin);
+    mlog("    %s: eye (%.3f %.3f %.3f) pos (%.3f %.3f %.3f) rot [%.4f %.4f %.4f | %.4f %.4f %.4f | %.4f %.4f %.4f]",
+         tag, p->eye[0], p->eye[1], p->eye[2], p->pos[0], p->pos[1], p->pos[2],
+         p->rot[0], p->rot[1], p->rot[2], p->rot[3], p->rot[4], p->rot[5], p->rot[6], p->rot[7], p->rot[8]);
+    mlog("    %s: far corners (%.1f %.1f %.1f) (%.1f %.1f %.1f) (%.1f %.1f %.1f) (%.1f %.1f %.1f); hull a c d: (%.4f %.4f %.2f) (%.4f %.4f %.2f) (%.4f %.4f %.2f) (%.4f %.4f %.2f) (%.4f %.4f %.2f) (%.4f %.4f %.2f)",
+         tag, p->corner[0][0], p->corner[0][1], p->corner[0][2], p->corner[1][0], p->corner[1][1], p->corner[1][2],
+         p->corner[2][0], p->corner[2][1], p->corner[2][2], p->corner[3][0], p->corner[3][1], p->corner[3][2],
+         p->hull[0][0], p->hull[0][1], p->hull[0][2], p->hull[1][0], p->hull[1][1], p->hull[1][2], p->hull[2][0], p->hull[2][1], p->hull[2][2],
+         p->hull[3][0], p->hull[3][1], p->hull[3][2], p->hull[4][0], p->hull[4][1], p->hull[4][2], p->hull[5][0], p->hull[5][1], p->hull[5][2]);
+}
+static WORD dpp_cw(void) { WORD cw; __asm { fnstcw cw } return cw; }
+static void __cdecl dpp_qt_mirror(BYTE *cam) {
+    DWORD e0 = g_dp_emit[1], c0 = g_dp_clip0[1]; WORD cw = dpp_cw();
+    ((void (__cdecl *)(BYTE *))0x00490a00)(cam);
+    dpp_fill(&g_dpp_mirror, cam, e0, c0, 1, cw); dpp_walk(&g_dpp_mirror);
+    g_dpp_mirror_since = 1;
+}
+static void __cdecl dpp_qt_main(BYTE *cam) {
+    DWORD e0 = g_dp_emit[0], c0 = g_dp_clip0[0]; WORD cw = dpp_cw();
+    ((void (__cdecl *)(BYTE *))0x00490a00)(cam);
+    dpp_fill(&g_dpp_cur, cam, e0, c0, 0, cw); dpp_walk(&g_dpp_cur);
+    g_dpp_cur.mirror_before = (BYTE)g_dpp_mirror_since; g_dpp_mirror_since = 0;
+    if (g_dpp_prev.valid && g_dpp_prev.emit >= 300 && g_dpp_cur.emit * 10 < g_dpp_prev.emit * 3 && *(volatile DWORD *)0x004c2164 == 5) {
+        g_dpp_loss++;
+        if (g_dpp_loss <= 60) {
+            mlog("  draw-probe: PASS-LOSS #%lu (swap %lu, cam mode %d): main pass offered %lu polygons, previous main pass %lu",
+                 (unsigned long)g_dpp_loss, (unsigned long)g_tc_swaps, *(int *)0x004c2728, (unsigned long)g_dpp_cur.emit, (unsigned long)g_dpp_prev.emit);
+            dpp_log("this  ", &g_dpp_cur); dpp_log("prev  ", &g_dpp_prev); dpp_log("mirror", &g_dpp_mirror);
+        }
+        if (g_dpp_level >= 3) {                          /* experiment: the same camera, once more */
+            dpp_t r; DWORD e1 = g_dp_emit[0], c1 = g_dp_clip0[0];
+            ((void (__cdecl *)(BYTE *))0x00490a00)(cam);
+            dpp_fill(&r, cam, e1, c1, 0, dpp_cw()); dpp_walk(&r);
+            if (r.emit * 10 >= g_dpp_prev.emit * 7) g_dpp_rerun_ok++;
+            if (g_dpp_loss <= 60) { mlog("    re-run of the same pass offered %lu polygons (re-runs that came back >= 70 %%: %lu of %lu)",
+                                         (unsigned long)r.emit, (unsigned long)g_dpp_rerun_ok, (unsigned long)g_dpp_loss); dpp_log("re-run", &r); }
+        }
+    }
+    g_dpp_prev = g_dpp_cur;
+}
+static int g_mtf_on;
 static void apply_draw_probe(void) {
     static const BYTE clip_old[7] = { 0xff, 0x14, 0x85, 0x38, 0x95, 0x4f, 0x00 };   /* call [eax*4+0x4f9538] at 0x4925a8 */
     static const BYTE ins_old[5]  = { 0xe8, 0x4f, 0xd8, 0xff, 0xff };               /* call 0x48fe10 at 0x4925bc */
     static const BYTE draw_old[5] = { 0xe8, 0x4d, 0x65, 0xf9, 0xff };               /* call 0x4260d0 at 0x48fb7e */
     BYTE w7[7] = { 0xe8, 0, 0, 0, 0, 0x90, 0x90 }, w5[5] = { 0xe8 }; LONG rel; int k = 0;
     char c[4]; DWORD n = GetEnvironmentVariableA("I76_DRAW_PROBE", c, sizeof(c));
-    if (!(n && n < sizeof(c) && c[0] == '1')) return;
+    if (!(n && n < sizeof(c) && c[0] >= '1' && c[0] <= '3')) return;
+    g_dpp_level = c[0] - '0';
     rel = (LONG)((DWORD_PTR)dp_clip_wrap - (0x004925a8 + 5)); memcpy(w7 + 1, &rel, 4);
     k += patch_bytes(0x004925a8, clip_old, w7, 7, "draw-probe terrain clip call");
     rel = (LONG)((DWORD_PTR)dp_insert_wrap - (0x004925bc + 5)); memcpy(w5 + 1, &rel, 4);
@@ -5445,6 +5563,20 @@ static void apply_draw_probe(void) {
     rel = (LONG)((DWORD_PTR)dp_draw_wrap - (0x0048fb7e + 5)); memcpy(w5 + 1, &rel, 4);
     k += patch_bytes(0x0048fb7e, draw_old, w5, 5, "draw-probe hardware polygon draw call");
     g_dp_on = (k == 3);
+    if (g_dp_on && g_dpp_level >= 2) {          /* I76_DRAW_PROBE=2/3: per-pass record around renderer_QueueTerrain */
+        static const BYTE qtm_old[5] = { 0xe8, 0x57, 0xe9, 0x08, 0x00 };          /* call 0x490a00 at 0x4020a4 (main, hardware) */
+        static const BYTE qtr_old[5] = { 0xe8, 0xad, 0xb0, 0x04, 0x00 };          /* call 0x490a00 at 0x44594e (rear mirror) */
+        int q = 0;
+        if (g_mtf_on) mlog("  draw-probe: pass record skipped - I76_MIRROR_TERRAIN_FIX owns the QueueTerrain call sites");
+        else {
+            rel = (LONG)((DWORD_PTR)dpp_qt_main - (0x004020a4 + 5)); memcpy(w5 + 1, &rel, 4);
+            q += patch_bytes(0x004020a4, qtm_old, w5, 5, "draw-probe main QueueTerrain call");
+            rel = (LONG)((DWORD_PTR)dpp_qt_mirror - (0x0044594e + 5)); memcpy(w5 + 1, &rel, 4);
+            q += patch_bytes(0x0044594e, qtr_old, w5, 5, "draw-probe mirror QueueTerrain call");
+            mlog("  draw-probe: pass record level %d (%d/2 QueueTerrain calls wrapped: main 0x4020a4, mirror 0x44594e)%s",
+                 g_dpp_level, q, g_dpp_level >= 3 ? "; a collapsed main pass is re-run once (experiment)" : "");
+        }
+    }
     mlog("  draw-probe: %s (%d/3 sites: terrain clip 0x4925a8, insert 0x4925bc, hardware draw 0x48fb7e; ZGLIDE grDrawTriangle / grLfbLock counted when ZGLIDE loads)",
          g_dp_on ? "on" : "NOT applied", k);
 }
