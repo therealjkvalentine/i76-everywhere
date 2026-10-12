@@ -5340,10 +5340,120 @@ static void fp_log_download(DWORD addr, tc_texinfo_t *i, DWORD bytes, DWORD *sp)
          i ? i->format : -1, (unsigned long)ra[0], (unsigned long)ra[1], (unsigned long)ra[2]);
 }
 
+/* ===========================================================================
+ * TERRAIN DRAW CENSUS  (I76_DRAW_PROBE=1, with I76_FRAME_SPIKES; off by default; lab docs/TERRAIN-DROPOUT-HILL-2026-10-12.md)
+ * ===========================================================================
+ * The owner's cockpit-only terrain drop-out on the T05 descent happened while I76_FLASH_PROBE saw normal terrain VERTEX
+ * counts every scene. That counter [0x6442ec] is the quadtree's vertex count; it says nothing about the polygons after
+ * it. This counts every later stage, per swap, for the main camera 0x4c2730 apart from the others (mirror):
+ *   emit   the textured terrain emitter 0x4924b0 calls the mode's clip function [0x4f9538 + mode*4] at 0x4925a8
+ *          (wrapped): polygons offered; clip0 = the clip returned 0 vertices (the polygon is dropped before queueing);
+ *   insert the bucket insert 0x48fe10 at 0x4925bc (wrapped; its silent refusals replayed from 0x48fe17..0x48fe76):
+ *          lowz = sort z below the bucket floor [0x6543ac], far = bucket > 4096, big = more than 32 vertices,
+ *          ins = accepted;
+ *   drawn  the hardware flush's polygon draw 0x4260d0 at 0x48fb7e (wrapped): polygons handed over for this camera,
+ *          and those with a terrain texture (the handles the emitter used, [0x59c558]);
+ *   tris   ZGLIDE's grDrawTriangle calls in the swap (all passes, HUD included); lfb = its grLfbLock calls.
+ * A swap whose main-camera terrain draws fall under 30 % of the previous swap's (previous >= 200) is logged as
+ * TERRAIN-LOSS with every stage, so the stage that lost the terrain is named; a swap whose triangles fall under 50 %
+ * with terrain draws normal is TRIANGLE-LOSS. If the owner sees the ground vanish and neither fires, the polygons
+ * reached Glide: the loss is in the presentation (dgVoodoo), not in the game. Summary every 600 swaps. Counting only. */
+static int g_dp_on;
+static DWORD g_dp_emit[2], g_dp_clip0[2], g_dp_ins[2], g_dp_lowz[2], g_dp_far[2], g_dp_big[2], g_dp_draw[2], g_dp_tdraw[2];
+static DWORD g_dp_tris, g_dp_lfb, g_dp_prev_tdraw, g_dp_prev_tris, g_dp_loss, g_dp_tloss;
+static DWORD g_dp_win_min_tdraw = 0xffffffff, g_dp_win_min_tris = 0xffffffff, g_dp_win_lfb, g_dp_win_clip0, g_dp_win_lowz, g_dp_win_far;
+static DWORD g_dp_ttex[16]; static int g_dp_nttex;
+static float g_dp_zmin_seen, g_dp_span_seen;
+static void (__stdcall *p_dp_DrawTriangle)(const void *, const void *, const void *);
+static int (__stdcall *p_dp_LfbLock)(int, int, int, int, int, void *);
+static void __stdcall dp_DrawTriangle(const void *a, const void *b, const void *c) { g_dp_tris++; p_dp_DrawTriangle(a, b, c); }
+static int __stdcall dp_LfbLock(int t, int buf, int wm, int org, int pp, void *info) { g_dp_lfb++; return p_dp_LfbLock(t, buf, wm, org, pp, info); }
+static int dp_cam(const void *cam) { return cam == (const void *)0x004c2730 ? 0 : 1; }
+static int __cdecl dp_clip_wrap(void *cam, void *vin, void *vout, int n, DWORD mode) {
+    int (__cdecl *fn)(void *, void *, void *, int, DWORD) = *(int (__cdecl **)(void *, void *, void *, int, DWORD))(0x004f9538 + mode * 4);
+    int r = fn(cam, vin, vout, n, mode), k = dp_cam(cam), i;
+    DWORD tex = *(volatile DWORD *)0x0059c558;
+    g_dp_emit[k]++; if (r == 0) g_dp_clip0[k]++;
+    for (i = 0; i < g_dp_nttex && g_dp_ttex[i] != tex; i++) {}
+    if (i == g_dp_nttex && g_dp_nttex < 16 && tex) g_dp_ttex[g_dp_nttex++] = tex;
+    return r;
+}
+static void *__cdecl dp_insert_wrap(float z) {
+    BYTE *rec = *(BYTE **)0x006543c0; int k = dp_cam(*(void **)0x006442d4);
+    float zmin = *(volatile float *)0x006543ac;
+    if (k == 0) { g_dp_zmin_seen = zmin; g_dp_span_seen = *(volatile float *)0x006543a4; }
+    if (z < zmin) g_dp_lowz[k]++;
+    else if ((double)z - (double)zmin > 4096.5) g_dp_far[k]++;
+    else if (rec && *(int *)rec > 0x20) g_dp_big[k]++;
+    else g_dp_ins[k]++;
+    return ((void *(__cdecl *)(float))0x0048fe10)(z);
+}
+static void *__cdecl dp_draw_wrap(void *cam, void *v, int n, DWORD tex, DWORD mode) {
+    int k = dp_cam(cam), i;
+    g_dp_draw[k]++;
+    for (i = 0; i < g_dp_nttex; i++) if (g_dp_ttex[i] == tex) { g_dp_tdraw[k]++; break; }
+    return ((void *(__cdecl *)(void *, void *, int, DWORD, DWORD))0x004260d0)(cam, v, n, tex, mode);
+}
+static void dp_swap(void) {                 /* from tc_Swap, before the present: this swap's census */
+    int inm = *(volatile DWORD *)0x004c2164 == 5, j;
+    DWORD mode = *(volatile DWORD *)0x004c2728;
+    if (inm && g_dp_emit[0]) {
+        if (g_dp_tdraw[0] < g_dp_win_min_tdraw) g_dp_win_min_tdraw = g_dp_tdraw[0];
+        if (g_dp_tris < g_dp_win_min_tris) g_dp_win_min_tris = g_dp_tris;
+    }
+    g_dp_win_lfb += g_dp_lfb; g_dp_win_clip0 += g_dp_clip0[0]; g_dp_win_lowz += g_dp_lowz[0]; g_dp_win_far += g_dp_far[0];
+    if (inm && g_dp_prev_tdraw >= 200 && g_dp_tdraw[0] * 10 < g_dp_prev_tdraw * 3) {
+        g_dp_loss++;
+        if (g_dp_loss <= 100)
+            mlog("  draw-probe: TERRAIN-LOSS #%lu at swap %lu (proxy frame %lu, t %.0f ms, cam mode %lu): main terrain polygons emitted %lu, clipped away %lu, below the bucket floor %lu (floor %.1f, span %.1f), past bucket 4096 %lu, > 32 vertices %lu, queued %lu, drawn %lu (previous swap %lu); all polygons drawn %lu | other cameras: emitted %lu queued %lu drawn %lu | triangles %lu (previous %lu), LFB locks %lu | terrain vertices %lu",
+                 (unsigned long)g_dp_loss, (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)mode,
+                 (unsigned long)g_dp_emit[0], (unsigned long)g_dp_clip0[0], (unsigned long)g_dp_lowz[0], g_dp_zmin_seen, g_dp_span_seen,
+                 (unsigned long)g_dp_far[0], (unsigned long)g_dp_big[0], (unsigned long)g_dp_ins[0], (unsigned long)g_dp_tdraw[0],
+                 (unsigned long)g_dp_prev_tdraw, (unsigned long)g_dp_draw[0], (unsigned long)g_dp_emit[1], (unsigned long)g_dp_ins[1],
+                 (unsigned long)g_dp_draw[1], (unsigned long)g_dp_tris, (unsigned long)g_dp_prev_tris, (unsigned long)g_dp_lfb,
+                 (unsigned long)*(volatile DWORD *)0x006442ec);
+    } else if (inm && g_dp_prev_tris >= 2000 && g_dp_tris * 2 < g_dp_prev_tris && g_dp_tdraw[0] * 10 >= g_dp_prev_tdraw * 7) {
+        g_dp_tloss++;
+        if (g_dp_tloss <= 100)
+            mlog("  draw-probe: TRIANGLE-LOSS #%lu at swap %lu (proxy frame %lu, t %.0f ms, cam mode %lu): triangles %lu (previous %lu) with main terrain polygons drawn %lu (previous %lu), LFB locks %lu",
+                 (unsigned long)g_dp_tloss, (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)mode,
+                 (unsigned long)g_dp_tris, (unsigned long)g_dp_prev_tris, (unsigned long)g_dp_tdraw[0], (unsigned long)g_dp_prev_tdraw, (unsigned long)g_dp_lfb);
+    }
+    g_dp_prev_tdraw = inm ? g_dp_tdraw[0] : 0; g_dp_prev_tris = inm ? g_dp_tris : 0;
+    for (j = 0; j < 2; j++) g_dp_emit[j] = g_dp_clip0[j] = g_dp_ins[j] = g_dp_lowz[j] = g_dp_far[j] = g_dp_big[j] = g_dp_draw[j] = g_dp_tdraw[j] = 0;
+    g_dp_tris = g_dp_lfb = 0;
+    if (g_tc_swaps % 600 == 0) {
+        mlog("  draw-probe: swaps %lu: last 600: main terrain polygons drawn min %lu, triangles min %lu, LFB locks %lu, main terrain clipped away %lu, below the floor %lu, past 4096 %lu | totals %lu terrain losses, %lu triangle losses | %d terrain textures seen",
+             (unsigned long)g_tc_swaps, (unsigned long)(g_dp_win_min_tdraw == 0xffffffff ? 0 : g_dp_win_min_tdraw),
+             (unsigned long)(g_dp_win_min_tris == 0xffffffff ? 0 : g_dp_win_min_tris), (unsigned long)g_dp_win_lfb,
+             (unsigned long)g_dp_win_clip0, (unsigned long)g_dp_win_lowz, (unsigned long)g_dp_win_far,
+             (unsigned long)g_dp_loss, (unsigned long)g_dp_tloss, g_dp_nttex);
+        g_dp_win_min_tdraw = g_dp_win_min_tris = 0xffffffff; g_dp_win_lfb = g_dp_win_clip0 = g_dp_win_lowz = g_dp_win_far = 0;
+    }
+}
+static void apply_draw_probe(void) {
+    static const BYTE clip_old[7] = { 0xff, 0x14, 0x85, 0x38, 0x95, 0x4f, 0x00 };   /* call [eax*4+0x4f9538] at 0x4925a8 */
+    static const BYTE ins_old[5]  = { 0xe8, 0x4f, 0xd8, 0xff, 0xff };               /* call 0x48fe10 at 0x4925bc */
+    static const BYTE draw_old[5] = { 0xe8, 0x4d, 0x65, 0xf9, 0xff };               /* call 0x4260d0 at 0x48fb7e */
+    BYTE w7[7] = { 0xe8, 0, 0, 0, 0, 0x90, 0x90 }, w5[5] = { 0xe8 }; LONG rel; int k = 0;
+    char c[4]; DWORD n = GetEnvironmentVariableA("I76_DRAW_PROBE", c, sizeof(c));
+    if (!(n && n < sizeof(c) && c[0] == '1')) return;
+    rel = (LONG)((DWORD_PTR)dp_clip_wrap - (0x004925a8 + 5)); memcpy(w7 + 1, &rel, 4);
+    k += patch_bytes(0x004925a8, clip_old, w7, 7, "draw-probe terrain clip call");
+    rel = (LONG)((DWORD_PTR)dp_insert_wrap - (0x004925bc + 5)); memcpy(w5 + 1, &rel, 4);
+    k += patch_bytes(0x004925bc, ins_old, w5, 5, "draw-probe terrain insert call");
+    rel = (LONG)((DWORD_PTR)dp_draw_wrap - (0x0048fb7e + 5)); memcpy(w5 + 1, &rel, 4);
+    k += patch_bytes(0x0048fb7e, draw_old, w5, 5, "draw-probe hardware polygon draw call");
+    g_dp_on = (k == 3);
+    mlog("  draw-probe: %s (%d/3 sites: terrain clip 0x4925a8, insert 0x4925bc, hardware draw 0x48fb7e; ZGLIDE grDrawTriangle / grLfbLock counted when ZGLIDE loads)",
+         g_dp_on ? "on" : "NOT applied", k);
+}
+
 static void __stdcall tc_Swap(int interval) {
     DWORD flag = tc_zg(0x10178ea0), res = tc_zg(0x1001fd20) - g_tc_minaddr;
     double t0;
     if (g_fp_on) fp_before_swap();
+    if (g_dp_on) dp_swap();                 /* I76_DRAW_PROBE: this swap's terrain draw census */
     if (g_tc_on == 2) {
         if (g_tc_shot_at && g_tc_swaps + 1 >= g_tc_shot_at) { g_tc_shot_at = 0; tc_dump("flush-back", 1); g_tc_ctl_at = g_tc_swaps + 30; }
         else if (g_tc_ctl_at && g_tc_swaps >= g_tc_ctl_at) { g_tc_ctl_at = 0; tc_dump("ctl-back", 1); }
@@ -5390,6 +5500,11 @@ static void tex_census_attach(HMODULE m) {
     TC_HOOK("_grTexMinAddress@4", tc_MinAddress, p_tc_MinAddress)
     TC_HOOK("_grTexDownloadMipMap@16", tc_Download, p_tc_Download)
     TC_HOOK("_grBufferSwap@4", tc_Swap, p_tc_Swap)
+    if (g_dp_on) {
+        TC_HOOK("_grDrawTriangle@12", dp_DrawTriangle, p_dp_DrawTriangle)
+        TC_HOOK("_grLfbLock@24", dp_LfbLock, p_dp_LfbLock)
+        mlog("  draw-probe: ZGLIDE grDrawTriangle %s, grLfbLock %s", p_dp_DrawTriangle ? "hooked" : "NOT hooked", p_dp_LfbLock ? "hooked" : "NOT hooked");
+    }
 #undef TC_HOOK
     mlog("  tex-census: ZGLIDE at %p: max %s, min %s, download %s, swap %s, calcmem %s; ZGLIDE 0x1a93 = %02x %02x (75 = stock boundary rule, eb = tmufix)",
          (void *)m, p_tc_MaxAddress ? "hooked" : "NOT", p_tc_MinAddress ? "hooked" : "NOT", p_tc_Download ? "hooked" : "NOT",
@@ -6369,6 +6484,7 @@ static void apply_frame_spikes(void) {
             mlog("  flash-probe: on (level %d: terrain counters%s)", g_fp_on, g_fp_on == 2 ? " + pixel rows" : "");
         }
     }
+    apply_draw_probe();                       /* I76_DRAW_PROBE=1: terrain clip / insert / draw / triangle census */
     mlog("  frame-spikes: on, threshold %lu ms; scene counters %s; census hooks follow (glide-refresh / tex-census lines)",
          (unsigned long)g_fs_ms, g_rp_on ? "via the road-pool flush wrap" : (k == 2 ? "via its own flush wrap" : "NOT sampled (flush sites differ)"));
 }

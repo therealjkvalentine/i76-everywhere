@@ -265,3 +265,24 @@ top, standing, facing down the hill. Close the game between bats.
     cause, F is the candidate new default. Kill criteria: a black or 4:3 picture, the window not full screen, or
     the pointer off target in C/B/E = fake fullscreen does not suit this setup (report which bat).
     `TEST-shimmer-Z-native-msaa4` is for the console agent's pixel check, not for you.
+
+## Terrain drop-out on the T05 hill descent (lab twin game-dd-20261003; lab docs/TERRAIN-DROPOUT-HILL-2026-10-12.md)
+
+The lab read shows the terrain setup cannot refuse on the hill. Your probe runs showed that the ground's vertices were
+built every frame. What is left is a stage after that: the per-polygon clip, the depth buckets, the draw, or
+dgVoodoo's presentation. The twin's proxy now counts every one of those stages per frame (`I76_DRAW_PROBE`).
+
+32. **Catch the drop-out with the draw census.** Play `TEST-hill-G-drawwatch.bat` (= hill-G plus the detectors; the
+    proxy must be `509c6df0`, see the twin's TEST-CURSOR.txt). Drive down the hill in cockpit view, as when you saw it.
+    Do 3-5 runs, closing the game between them.
+    - If the ground vanishes, **note the clock time** (to the minute) and whether it was cockpit or an outside view.
+    - Leave the game normally.
+    - The twin's `Interstate 76\mciproxy.log` then shows at that moment either a `draw-probe: TERRAIN-LOSS` line,
+      which names the stage that dropped the ground, or nothing. Nothing means the game drew the ground and the loss is
+      in dgVoodoo's presentation.
+    - `TEST-hill-G-pixelwatch` is not needed: its frame read comes back black on this setup, so its one PIXEL-FLASH was
+      that, not a sighting.
+    - The green crosshair you saw is the launcher's pointer overlay (`_ahk\i76-cursor-overlay.ahk`), not the detector.
+      Ctrl+Alt+C hides it.
+    - Kill criteria: a crash or a `draw-probe: NOT applied` line in the log (report it), or the fps clearly lower than
+      in `TEST-hill-G-stepframe-barbox` (the census adds a call per ground polygon).
