@@ -3886,8 +3886,48 @@ static int __cdecl coll_sound_wrap(const char *name, BYTE *obj, int flag) {
     if (g_coll_dup) return 0;
     return ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)(name, obj, flag);
 }
+/* I76_BREAKABLE_BOX=2 (2026-10-12, owner: "a few signs like the highway 360 one that you can run into like 10 times
+ * before anything happens"; lab docs/SIGN-FIX-2026-10-12.md). 0x4a7c80 scores mass x (v . n)^2 x 6.67e-5, truncated,
+ * against the part's hit points (5 for every sign); n is the contact normal. For a sphere contact (every sign post)
+ * that is the car-box face the post's centre crossed, so a post entering through the TOP face (sign on a bank above
+ * the road: 32 posts game-wide, e.g. the US 380 shields in T02 / T07) or a SIDE face (a swerve or slide into it)
+ * scores ~0 and the sign stays up. Under =2, for a class-4 victim, n becomes the unit vector along the impact
+ * velocity (same hemisphere as the stock n), so the score is mass x |v|^2 x 6.67e-5: any ram above the stock
+ * threshold speed (about 6.3 m/s for a 1900 kg car) knocks it off, whatever face it came through. Vehicles, classes
+ * 2 / 7 / 10 and every other damage path keep the stock normal. */
+static int g_bbox_speed;
+static volatile DWORD g_bbox_speed_hits, g_bbox_speed_glance;
+static int bbox_speed_normal(BYTE *victim, const float *v, const float *n, float *out) {
+    BYTE *root = victim;
+    double vv, d, k;
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (!victim || !v || !n) return 0;
+        while (*(BYTE **)(root + 0x68)) root = *(BYTE **)(root + 0x68);     /* 0x458c90: the tree root (the ODEF object) */
+        if (*(int *)(victim + 0x6c) != 4 && *(int *)(root + 0x6c) != 4) return 0;
+        vv = (double)v[0] * v[0] + (double)v[1] * v[1] + (double)v[2] * v[2];
+        if (vv < 1e-4) return 0;
+        vv = sqrt(vv);
+        d = ((double)v[0] * n[0] + (double)v[1] * n[1] + (double)v[2] * n[2]) / vv;   /* cos(impact, normal) */
+        k = (d < 0.0 ? -1.0 : 1.0) / vv;
+        out[0] = (float)(v[0] * k); out[1] = (float)(v[1] * k); out[2] = (float)(v[2] * k);
+        g_bbox_speed_hits++;
+        if (d > -0.7 && d < 0.7) g_bbox_speed_glance++;
+        if (g_bbox_speed_hits <= 40)
+            mlog("  breakable-speed: class-4 hit %lu, closing %.1f m/s, along the stock normal %.1f m/s (score x%.1f)%s",
+                 g_bbox_speed_hits, vv, vv * (d < 0.0 ? -d : d), d * d > 1e-6 ? 1.0 / (d * d) : 999.0,
+                 d > -0.7 && d < 0.7 ? " - glancing: stock would have scored it low" : "");
+        return 1;
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+    return 0;
+}
 static DWORD __cdecl coll_damage_wrap(DWORD victim, DWORD source, DWORD v, DWORD n, DWORD p) {
+    float nn[3];
     if (g_coll_dup) return 1;                                                  /* "victim still there"; both callers ignore it */
+    if (g_bbox_speed && bbox_speed_normal((BYTE *)victim, (const float *)v, (const float *)n, nn)) n = (DWORD)(DWORD_PTR)nn;
     return ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
 }
 static void apply_coll_dedupe(void) {
@@ -5666,6 +5706,7 @@ static void apply_trainer(void) {
  * before the builder; node+0x40/+0x48/+0x50 = the part position doubles in its parent), goes to a thunk that keeps
  * the stock value unless all of the above hold. */
 static volatile DWORD g_bbox_parts, g_bbox_box;
+static int g_bbox_mode;                                      /* 1 or 2 (I76_BREAKABLE_BOX) */
 static float g_bbox_logged[8][3]; static int g_bbox_nlog;
 static DWORD __cdecl bbox_pick(BYTE *node) {
     float ex, ey, ez, lo, hi, len, thin;
@@ -5680,7 +5721,8 @@ static DWORD __cdecl bbox_pick(BYTE *node) {
         py = *(double *)(node + 0x48);
         lo = (float)py + *(float *)(node + 0x98); hi = (float)py + *(float *)(node + 0xa4);
         len = ex > ez ? ex : ez; thin = ex > ez ? ez : ex;
-        if (len >= 2.0f && thin <= 0.25f && ey >= 0.0f && lo < 1.3f && hi > 0.3f) {
+        if (len >= 2.0f && thin <= 0.25f && ey >= 0.0f && lo < 1.3f && hi > 0.3f
+            && (g_bbox_mode < 2 || ((lo + hi) * 0.5f >= 0.3f && (lo + hi) * 0.5f <= 1.3f))) {   /* =2: mid-height in the car band */
             g_bbox_box++;
             if (g_bbox_nlog < 8) { g_bbox_logged[g_bbox_nlog][0] = len; g_bbox_logged[g_bbox_nlog][1] = thin; g_bbox_logged[g_bbox_nlog][2] = (lo + hi) * 0.5f; g_bbox_nlog++; }
             return 0x2000;
@@ -5713,13 +5755,26 @@ static void apply_breakable_box(void) {
     BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
     LONG rel = (LONG)((DWORD_PTR)bbox_thunk - (0x00436cbd + 5));
     char v[4];
-    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || v[0] != '1') return;
+    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || (v[0] != '1' && v[0] != '2')) return;
+    g_bbox_mode = v[0] - '0';
+    g_bbox_speed = g_bbox_mode == 2;
     memcpy(w + 1, &rel, 4);
-    mlog("  breakable-box: %d/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)",
-         patch_bytes(0x00436cbd, old6, w, 6, "collision tree default part kind read"));
+    mlog("  breakable-box: %d/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)%s",
+         patch_bytes(0x00436cbd, old6, w, 6, "collision tree default part kind read"),
+         g_bbox_mode == 2 ? "; =2: mid-height 0.3..1.3 m only, class-4 knock-off scored on the closing speed" : "");
 #else
     if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", NULL, 0)) mlog("  breakable-box: MSVC build only - not applied");
 #endif
+}
+static void apply_breakable_speed(void) {                   /* after apply_coll_dedupe: =2 needs the 0x46f8d4 wrapper */
+    static const BYTE call_damage[5] = { 0xE8, 0xA7, 0x83, 0x03, 0x00 };  /* 0x46f8d4 call 0x4a7c80 */
+    BYTE w[5] = { 0xE8 };
+    LONG rel = (LONG)((DWORD_PTR)coll_damage_wrap - (0x0046f8d4 + 5));
+    if (!g_bbox_speed) return;
+    memcpy(w + 1, &rel, 4);
+    if (memcmp((void *)0x0046f8d4, w, 5) == 0) { mlog("  breakable-speed: 1/1 (0x46f8d4 already on the collision damage wrapper)"); return; }
+    mlog("  breakable-speed: %d/1 (0x46f8d4 object collision damage -> wrapper: class-4 victims scored on the closing speed)",
+         patch_bytes(0x0046f8d4, call_damage, w, 5, "collision damage (objects), breakable speed"));
 }
 static void breakable_box_report(void) {                     /* with the start-pos read-back and at mission load lines */
     char b[200]; int i, n = 0;
@@ -6800,6 +6855,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_breakable_box();    /* opt-in: I76_BREAKABLE_BOX=1 (long thin breakable bars as boxes, not 0.75 r spheres) */
         apply_coll_window();      /* opt-in: I76_COLL_WINDOW=1 (after apply_fixed_step: needs g_fixed_step) */
         apply_coll_dedupe();      /* with I76_FIXED_STEP: collision sound + damage once per physics step (I76_COLL_DEDUPE=0 counts only) */
+        apply_breakable_speed();  /* I76_BREAKABLE_BOX=2: class-4 knock-off scored on the closing speed (after apply_coll_dedupe) */
         apply_far_engine_dt();    /* opt-in: I76_FAR_ENGINE_DT=1 (after apply_engine_dt_fix: needs its site) */
         apply_framerate_fixes();  /* opt-in: I76_FRAMERATE_FIXES=1 */
         apply_hazard_fix();       /* with I76_FRAMERATE_FIXES: stationary hazards (oil slick, fire patch, ...) step on the 20 Hz grid */
