@@ -39,8 +39,33 @@ $stageDir = if ($Stage) { $Stage } else { Join-Path $env:TEMP "promote-17-$(Get-
 New-Item -ItemType Directory -Force $stageDir | Out-Null
 
 # the gate fills these in (md5 prefix of every staged file it ran with); 'PENDING' = not gated yet -> apply refuses
-$GatedStage = [ordered]@{ '*' = 'PENDING' }
-$GateText = 'PENDING: lab autotest\overnight\phases\P8-promote17.ps1 (run-overnight.ps1 -Phase P8) on the twin with this staged set'
+$GatedStage = [ordered]@{
+    'Interstate 76\STRLKUP.DLL' = '509c6df0'
+    'Interstate 76\PLAY-i76.ps1' = '2020e2bf'
+    'Interstate 76\dgVoodoo.wide.conf' = 'dccd379a'
+    '_tools\debug\i76debug.py' = '4c1ee273'
+    '_tools\debug\debug_core.py' = 'c4c46755'
+    '_tools\debug\debug_trainer.py' = '9a905e3b'
+    '_tools\debug\README.md' = '5d2e57e2'
+    '_tools\debug\static\index.html' = 'b2eb3f5d'
+    '_tools\debug\static\app.js' = '9abcff53'
+    '_tools\debug\static\app.css' = 'b299c2f2'
+    '_tools\debug\static\charts.js' = '15773263'
+    '_tools\telemetry\i76tel.py' = '4887b31a'
+    '_tools\telemetry\i76tel.h' = '6a62b92d'
+    '_tools\telemetry\i76tel_v2.h' = '94165e67'
+    '_tools\trainer\i76trainer.py' = '0077c65b'
+    '_tools\trainer\i76trainer_gui.py' = 'f60f3116'
+    '_tools\trainer\i76trn.h' = '2ffc4712'
+    '_tools\trainer\README-GUI.md' = '58839784'
+    '_tools\trainer\waypoints.json' = 'fe242bfc'
+    'DEBUG.bat' = '5edbe1b9'
+    'TRAINER.bat' = 'c5708eed'
+    'Interstate 76\presets\best-wide.psd1' = 'e1a9bd26'
+    'Interstate 76\presets\best-wide-balanced.psd1' = '75881df4'
+    'Interstate 76\presets\best-120.psd1' = 'df936278'
+}
+$GateText = 'lab twin game-dd-20261003 with this staged set, P8 2026-10-12 (runs overnight-20261012-161045 / -172308 / -174112): t04 god-mode circle drives 8 G-off + 8 G, car under terrain 0/8 both, 0 crash, 120 fps; T05 swend_1 barricade rams G 21/22 contacted (95%) vs control 6/22 + 1/21 (16% pooled), Fisher p 3.6e-10, A/A p 0.09; T05 hill-top start n=2: breakable-box 1/1, 10 boxes, coll-window stepframe, road-dist 1800, 0 CRASH; t11 (the 2026-10-03 roads crash) best-wide n=2 / best-120 16x10 n=1 / balanced (1200) n=1: in mission, road-pool refusals 0, high water 333 KB of 2000, 0 CRASH; gate-folder via PLAY.bat (2x SS stretched_ar conf, LAB_CURSOR_FREE, clicks placed in the 4:3 fit and verified by the shell mouse) 21 PASS 0 FAIL 2 INFO (runs\gate\20261012-172842: conf accepted, bookmark route, trip 2/2 at 113-115 fps, save screen, Esc-menu Exit where drawn, melee); row 3 PLAY-16x10.bat 2/2 120 fps (only D, the launcher copies its conf in) and PLAY-balanced.bat 2/2 119 fps 5/0; garage OK popup: u32x arrow on the mapped point 4/4 delta 0, closed baseline + after a focus change by click and by Enter'
 
 # ---- fixed sources (md5 pinned)
 $bins = [ordered]@{
