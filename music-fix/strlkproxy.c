@@ -5564,7 +5564,103 @@ static void __cdecl dpp_qt_main(BYTE *cam) {
     }
     g_dpp_prev = g_dpp_cur;
 }
-static int g_mtf_on;
+/* ===========================================================================
+ * TERRAIN FOOTPRINT HULL  (I76_TERRAIN_HULL_FIX=1; off by default; lab docs/TERRAIN-DROPOUT-HILL-2026-10-12.md s.10)
+ * ===========================================================================
+ * The owner's cockpit-only "ground vanishes for a frame" on the T05 descent. The terrain setup 0x4929b0 builds the
+ * view's footprint on the ground as the convex hull of five points in sample space (s = [0x6442c4]): the eye and the
+ * four far-plane corners (raw x/z, or moved along the eye ray to y = 0 when all four are at or below it). The hull is
+ * an angle-sorted gift wrap (0x492da1..0x492f38: fpatan at 0x492eaf, "smallest angle strictly above the previous
+ * edge's" at 0x492eee..0x492f08), its edges become side planes in 0x644308 (0x18 each: float a, b, c, pad, double d;
+ * inside = a x + c z + d >= 0) with the count in [0x6442f0], and the quadtree 0x4911e0 culls every node with half-size
+ * < 32 samples whose bounding circle lies outside one plane (0x49124d..0x4912a0). In some cockpit poses (a near-
+ * degenerate point set: each top far corner almost straight above its bottom one, seen from the eye) the wrap drops
+ * a hull vertex, the eye among them, and returns a polygon that misses the ground around the car: every near node is
+ * culled, the frame keeps only terrain more than 0.5-1.4 km away. Measured with I76_DRAW_PROBE=2/3 (s.9-10): 42
+ * collapsed passes in 10 cockpit runs, each one with the eye outside its own hull, a re-run of the same camera
+ * collapsing the same way (deterministic), the mirror pass not involved (same rate with it at 10/s).
+ * Fix: after a successful setup, rebuild the hull from the same five points with a monotone chain in doubles and write
+ * the planes in the exe's format (normals facing the centroid, as 0x493026 does). The same wrapper sits on the setup
+ * call 0x490b1e that I76_CAM_GROUND_FIX uses, and chains to it. Passes where the exe's hull left out a point of the
+ * true hull by more than half a sample are counted and the first 20 logged ("terrain-hull-fix: event"). */
+static int g_hf_on; static DWORD g_hf_events, g_hf_passes, g_hf_skip;
+static double hf_cross(const double *o, const double *a, const double *b) {
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+}
+static void hf_rebuild(BYTE *cam) {
+    double s = (double)*(volatile float *)0x006442c4, P[5][2], H[12][2], ex, ey, ez, cx, cy, cz, gx = 0.0, gz = 0.0, worst = 0.0;
+    int i, j, n = 0, k = 0, below = 1, ng = *(volatile int *)0x006442f0, t;
+    BYTE *pl = (BYTE *)0x00644308;
+    ex = *(double *)(cam + 0x160); ey = *(double *)(cam + 0x168); ez = *(double *)(cam + 0x170);
+    for (i = 0; i < 4; i++) if (*(double *)(cam + 0x178 + 0x18 * i + 8) > 0.0) below = 0;
+    P[n][0] = s * ex; P[n][1] = s * ez; n++;
+    for (i = 0; i < 4; i++) {
+        cx = *(double *)(cam + 0x178 + 0x18 * i); cy = *(double *)(cam + 0x178 + 0x18 * i + 8); cz = *(double *)(cam + 0x178 + 0x18 * i + 16);
+        if (below) {                                   /* the setup's projection branch 0x492b77: onto y = 0 along the eye ray */
+            double dn = ey - cy, f;
+            if (dn == 0.0) { g_hf_skip++; return; }
+            f = cy / dn; cx = cx + f * (cx - ex); cz = cz + f * (cz - ez);
+        }
+        P[n][0] = s * cx; P[n][1] = s * cz; n++;
+    }
+    for (i = 0; i < n; i++) if (!(P[i][0] == P[i][0]) || !(P[i][1] == P[i][1]) || P[i][0] > 1e7 || P[i][0] < -1e7 || P[i][1] > 1e7 || P[i][1] < -1e7) { g_hf_skip++; return; }
+    for (i = 1; i < n; i++) {                          /* sort by x, then z (5 points: insertion sort) */
+        double a = P[i][0], b = P[i][1];
+        for (j = i - 1; j >= 0 && (P[j][0] > a || (P[j][0] == a && P[j][1] > b)); j--) { P[j + 1][0] = P[j][0]; P[j + 1][1] = P[j][1]; }
+        P[j + 1][0] = a; P[j + 1][1] = b;
+    }
+    for (i = 0; i < n; i++) {                          /* Andrew's monotone chain, collinear points dropped */
+        while (k >= 2 && hf_cross(H[k - 2], H[k - 1], P[i]) <= 1e-9) k--;
+        H[k][0] = P[i][0]; H[k][1] = P[i][1]; k++;
+    }
+    for (i = n - 2, t = k + 1; i >= 0; i--) {
+        while (k >= t && hf_cross(H[k - 2], H[k - 1], P[i]) <= 1e-9) k--;
+        H[k][0] = P[i][0]; H[k][1] = P[i][1]; k++;
+    }
+    k--;                                               /* the last point repeats the first */
+    if (k < 3 || k > 5) { g_hf_skip++; return; }
+    /* did the exe's planes leave out a vertex of the true hull? */
+    for (i = 0; i < k; i++) for (j = 0; j < ng && j < 5; j++) {
+        const BYTE *q = pl + 0x18 * j;
+        double v = *(const float *)q * H[i][0] + *(const float *)(q + 8) * H[i][1] + *(const double *)(q + 0x10);
+        if (v < worst) worst = v;
+    }
+    g_hf_passes++;
+    if (worst < -0.5) {
+        g_hf_events++;
+        if (g_hf_events <= 20)
+            mlog("  terrain-hull-fix: event #%lu (camera %s, mode %d): the exe's footprint hull (%d planes) left a hull point %.1f samples outside; rebuilt with %d planes; eye (%.1f %.1f) samples",
+                 (unsigned long)g_hf_events, cam == (BYTE *)0x004c2730 ? "main" : "other", *(int *)0x004c2728, ng, -worst, k, s * ex, s * ez);
+    }
+    for (i = 0; i < k; i++) { gx += H[i][0]; gz += H[i][1]; }
+    gx /= k; gz /= k;
+    for (i = 0; i < k; i++) {
+        const double *a = H[i], *b = H[(i + 1) % k];
+        double nx = -(b[1] - a[1]), nz = b[0] - a[0], len = sqrt(nx * nx + nz * nz), d;
+        BYTE *q = pl + 0x18 * i;
+        if (len <= 0.0) { g_hf_skip++; return; }      /* cannot happen after the chain; leave the exe's planes */
+        nx /= len; nz /= len; d = -(nx * a[0] + nz * a[1]);
+        if (nx * gx + nz * gz + d < 0.0) { nx = -nx; nz = -nz; d = -d; }
+        *(float *)q = (float)nx; *(float *)(q + 4) = 0.0f; *(float *)(q + 8) = (float)nz; *(double *)(q + 0x10) = d;
+    }
+    *(volatile int *)0x006442f0 = k;
+}
+static int __cdecl hull_setup_wrap(BYTE *cam) {
+    int r = cam_ground_setup_wrap(cam);                /* the original setup, plus the camera-under-ground lift if on */
+    if (r && cam) hf_rebuild(cam);
+    return r;
+}
+static void apply_terrain_hull_fix(void) {
+    static const BYTE old[5] = { 0xe8, 0x8d, 0x1e, 0x00, 0x00 };   /* call 0x4929b0 at 0x490b1e (stock) */
+    BYTE cg[5] = { 0xe8 }, w[5] = { 0xe8 }; LONG rel;
+    char v[4]; DWORD n = GetEnvironmentVariableA("I76_TERRAIN_HULL_FIX", v, sizeof(v));
+    if (!(n && n < sizeof(v) && v[0] == '1')) return;
+    rel = (LONG)((DWORD_PTR)cam_ground_setup_wrap - (0x00490b1e + 5)); memcpy(cg + 1, &rel, 4);
+    rel = (LONG)((DWORD_PTR)hull_setup_wrap - (0x00490b1e + 5)); memcpy(w + 1, &rel, 4);
+    g_hf_on = patch_bytes(0x00490b1e, memcmp((void *)0x00490b1e, cg, 5) == 0 ? cg : old, w, 5, "terrain setup call (footprint hull rebuild)");
+    mlog("  terrain-hull-fix: %s (QueueTerrain 0x490b1e: after the setup 0x4929b0 the footprint hull 0x644308 / [0x6442f0] is rebuilt from the eye and the four far corners; camera-under-ground lift %s)",
+         g_hf_on ? "on" : "NOT applied (bytes differ)", g_cg_on ? "kept (chained)" : "off");
+}
 static void apply_draw_probe(void) {
     static const BYTE clip_old[7] = { 0xff, 0x14, 0x85, 0x38, 0x95, 0x4f, 0x00 };   /* call [eax*4+0x4f9538] at 0x4925a8 */
     static const BYTE ins_old[5]  = { 0xe8, 0x4f, 0xd8, 0xff, 0xff };               /* call 0x48fe10 at 0x4925bc */
@@ -5584,15 +5680,12 @@ static void apply_draw_probe(void) {
         static const BYTE qtm_old[5] = { 0xe8, 0x57, 0xe9, 0x08, 0x00 };          /* call 0x490a00 at 0x4020a4 (main, hardware) */
         static const BYTE qtr_old[5] = { 0xe8, 0xad, 0xb0, 0x04, 0x00 };          /* call 0x490a00 at 0x44594e (rear mirror) */
         int q = 0;
-        if (g_mtf_on) mlog("  draw-probe: pass record skipped - I76_MIRROR_TERRAIN_FIX owns the QueueTerrain call sites");
-        else {
-            rel = (LONG)((DWORD_PTR)dpp_qt_main - (0x004020a4 + 5)); memcpy(w5 + 1, &rel, 4);
-            q += patch_bytes(0x004020a4, qtm_old, w5, 5, "draw-probe main QueueTerrain call");
-            rel = (LONG)((DWORD_PTR)dpp_qt_mirror - (0x0044594e + 5)); memcpy(w5 + 1, &rel, 4);
-            q += patch_bytes(0x0044594e, qtr_old, w5, 5, "draw-probe mirror QueueTerrain call");
-            mlog("  draw-probe: pass record level %d (%d/2 QueueTerrain calls wrapped: main 0x4020a4, mirror 0x44594e)%s",
-                 g_dpp_level, q, g_dpp_level >= 3 ? "; a collapsed main pass is re-run once (experiment)" : "");
-        }
+        rel = (LONG)((DWORD_PTR)dpp_qt_main - (0x004020a4 + 5)); memcpy(w5 + 1, &rel, 4);
+        q += patch_bytes(0x004020a4, qtm_old, w5, 5, "draw-probe main QueueTerrain call");
+        rel = (LONG)((DWORD_PTR)dpp_qt_mirror - (0x0044594e + 5)); memcpy(w5 + 1, &rel, 4);
+        q += patch_bytes(0x0044594e, qtr_old, w5, 5, "draw-probe mirror QueueTerrain call");
+        mlog("  draw-probe: pass record level %d (%d/2 QueueTerrain calls wrapped: main 0x4020a4, mirror 0x44594e)%s",
+             g_dpp_level, q, g_dpp_level >= 3 ? "; a collapsed main pass is re-run once (experiment)" : "");
     }
     mlog("  draw-probe: %s (%d/3 sites: terrain clip 0x4925a8, insert 0x4925bc, hardware draw 0x48fb7e; ZGLIDE grDrawTriangle / grLfbLock counted when ZGLIDE loads)",
          g_dp_on ? "on" : "NOT applied", k);
@@ -7234,6 +7327,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
         apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
         apply_cam_ground_fix();   /* opt-in: I76_CAM_GROUND_FIX=1 (terrain kept when the eye dips under the ground) */
+        apply_terrain_hull_fix(); /* opt-in: I76_TERRAIN_HULL_FIX=1 (terrain footprint hull rebuilt; after cam-ground, chains to it) */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
         apply_sw_res();           /* experiment: I76_SW_RES=<W>x<H> or 1 (software renderer above 1024x768) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
