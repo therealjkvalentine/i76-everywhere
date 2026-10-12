@@ -187,3 +187,81 @@ and read the client size) before an owner session.
 - Whether fake fullscreen changes anything for the 2D shell's pointer (`I76_CURSOR_MAP*`, u32x): owner test 31 asks for
   one menu click and one Esc-menu Exit in C.
 - The ZGLIDE mipmap flip (section 3), if B/C/F still crawl.
+
+## Measured 2026-10-12 (live, console agent)
+
+Sections 1 and 5 were read from files. This one is measured, and **it corrects item 1 of the short answer**: dgVoodoo
+does render the `[Glide] Resolution` in every conf, windowed included. What loses it is the downscale. With
+`ScalingMode = stretched` the downscale to the window **point-samples** the big target, in windowed and in fake
+fullscreen alike. That keeps one rendered pixel per presented pixel and throws the other samples away. With
+`ScalingMode = stretched_ar` the real filter runs. Because the forced 6880x2880 has the panel's own 2.389 shape, the
+picture stays full width (no side bars in the mission or the Esc menu).
+
+**Method.** Lab `tools\graphics\ss-measure.ps1` (new). Each boot installs the conf on the twin and runs proxy-run with the
+twin's own STRLKUP.DLL (509c6df0) and the best-wide preset switches. It boots straight into T05, waits until the car is
+placed at the hill top (`I76_START_POS`), then measures: nvidia-smi memory and utilisation at 1 Hz for 6 s, proxy fps
+from telemetry (`phase_stats.py`), the client rect, and two full-screen captures. The captures come from a DPI-aware
+process and were checked to be 3440x1440 (not DPI-virtualised). It restores `dgVoodoo.conf` = `dgVoodoo.wide.conf` in a
+`finally`. Edges: lab `tools\graphics\pillar-edge.ps1` (new). It walks the right edge of the cockpit A-pillar (a 3D
+polygon, near-black against terrain, rows 450..1250) and anchors on the pillar's flat side, so the terrain texture does
+not fake coverage levels. For each row it takes the first pixel brighter than the pillar and computes its coverage. "AA
+rows" = rows whose edge pixel is partial. The old `edge-aa-probe.ps1` read this region noisily: the 1-sample E captures
+came out "8+ samples".
+Captures and `results.txt`: lab `captures\ss-measure-20261012`.
+
+| conf (bat) | mode, scaling | Glide target, AA | GPU mem MiB | GPU util % | fps | AA rows (per capture) | edge coverage levels | n |
+|---|---|---|---|---|---|---|---|---|
+| `wide-native` (Z) | windowed, stretched | 3440x1440, 4x | 1587 | 19 | 120.2 | 87 / 79 % | quarters (2/8, 6/8 most) | 1 |
+| `wide` (A = PLAY.bat) | windowed, stretched | 5160x2160, 4x | 1985 | 32 | 120.2 | 57 / 55 % | 2/8, 6/8 | 1 |
+| `wide-fs15` (C) | fake fullscreen, stretched | 5160x2160, 4x | 1985 | 35 | 120.2 | 60 / 56 % | 2/8, 6/8 | 1 |
+| `wide-ss2x` (B) | fake fullscreen, stretched | 6880x2880, 4x | 2547 | 62 | 120.3 | 49 / 49 % | quarters | 1 |
+| `wide-ss2x-noaa` (E) | fake fullscreen, stretched | 6880x2880, off | 1604 | 44 | 120.2 | 2 / 0 % | **none: hard edges** | 1 |
+| win2x | windowed, stretched | 6880x2880, 4x | 2547, 2546 | 62, 62 | 120.8, 120.2 | 49 / 56, 49 / 40 % | quarters | 2 |
+| win2x-noaa | windowed, stretched | 6880x2880, off | 1604, 1604 | 44, 44 | 120.0, 120.1 | 0 / 0, 1 / 7 % | **none: hard edges** | 2 |
+| win2x-noaa + `Resampling = bicubic` | windowed, stretched | 6880x2880, off | (1861)* | 49* | 98.1* | 0 / 0 % | none | 1 |
+| win2x-noaa + `Resampling = lanczos-3` | windowed, stretched | 6880x2880, off | (1858)* | 52* | 101.0* | 0 / 1 % | none | 1 |
+| win2x-noaa + `ScalingMode = stretched_ar` (Y) | windowed, **stretched_ar** | 6880x2880, off | (1878, 1871)* | 49*, 46* | 115.7*, 120.2 | 64 / 68, 66 / 67 % | **exact quarter steps (2/8 4/8 6/8) = 2x2 box** | 2 |
+| **`wide-win2x-ar` (S)** | windowed, **stretched_ar** | 6880x2880, 4x | (2813, 2813)* | 62*, 64* | 121.0*, 120.5* | **86 / 91, 85 / 71 %** | **all eighths incl. 1/8 3/8 5/8 = 2x2 SS x 4x MSAA** | 2 |
+
+\* Another program (DOOM II, not started by the agent) was launched partway through the session. The idle GPU baseline
+rose from 1214 to 1468 MiB, so the starred memory figures are about 255 MiB high. Subtract that and S is 2558 MiB (= B
+and win2x) and Y is about 1620 MiB (= E). The bicubic and lanczos-3 fps dips coincide with it. A fourth variant
+(`Resampling = pointsampled`) came up in an external camera view with no pillar in frame, so it gives no reading. Spread
+of repeated runs: at most 1 MiB, 2 % utilisation and 0.8 fps (win2x, win2x-noaa, S). The rows with n = 1 lack a repeat
+for lack of console time.
+
+**What the numbers say.**
+1. **The target is rendered in every conf.** Over native, memory rises +398 MiB for 5160x2160 + 4x, with A (windowed)
+   and C (fake fullscreen) identical, and +960 MiB for 6880x2880 + 4x. 6880x2880 without AA (19.8 M samples) costs the
+   same memory as native + 4x (19.8 M). GPU load follows the same order: 19 / 32-35 / 44 / 62 %. So "windowed renders at
+   the window size" (short answer item 1, section 1) was **wrong**. Fake fullscreen changes nothing (A = C, win2x = B).
+2. **The `stretched` downscale throws the samples away.** 2x without MSAA presents perfectly hard edges, in windowed (0-7 %)
+   and in fake fullscreen (0-2 %). A 2x2 box would give quarter steps on most rows. With 4x MSAA added, the 2x target
+   presents *fewer* partial edge pixels than native + 4x (49 % vs 79-87 %). Each presented pixel is one rendered pixel's
+   4x resolve, from a target whose edge pixels are half as wide. That is what the owner saw: B and C look like A, hard
+   edges, and the cost is hidden under the 120 cap. It also explains the 4-level signature in section 1: A's 1.5x target
+   is point-sampled down to one 4x-MSAA pixel. `Resampling = bicubic / lanczos-3` changes nothing under `stretched`.
+3. **`stretched_ar` runs the filter.** The same 2x no-AA target then presents exact 2x2-box quarter steps, and 2x + 4x
+   presents every eighth with 71-91 % partial rows. That is 16 samples at edges and 4 shaded samples per pixel for the
+   texture crawl. The picture stays full width in the mission and in the Esc menu. The client is 3440x1440, as with
+   `stretched`, because the forced 6880x2880 has the window's aspect. The conf comment ("_ar just pillarboxes 4:3")
+   described the old 4:3-shaped targets, not this one.
+4. **Cost:** 62-64 % GPU on the GTX 1080 Ti against 32 % for PLAY.bat. Every conf holds 120.0-121.0 fps (the proxy's
+   120 pacing), so the cost shows only as GPU load and memory.
+5. **Mouse (n = 1):** with S installed, Esc in the T05 mission opened Spanner's Cafe at full width. One click on the
+   drawn "Exit" (screen 2318,1330, cursor-map preset switches on) closed the menu back to the mission, so the click
+   landed where it was drawn. **Not tested:** the DirectDraw main menu (MELEE / bookmarks) under `stretched_ar`. That
+   is the 2D shell at 640x480, where `_ar` could pillarbox or shift the cursor map. The owner check below covers it.
+
+Why `stretched` point-samples and `stretched_ar` does not: no dgVoodoo ReadMe was at hand (none on disk, and none
+fetched). This is an empirical result for 2.87.3 on this machine, not a documented rule.
+
+**Working conf:** `dgVoodoo.wide-win2x-ar.conf` (md5 `9c1ac5bc`). It is `dgVoodoo.wide.conf` with
+`[General] ScalingMode = stretched_ar`, `[Glide] Resolution = 6880x2880` and `Antialiasing = 4x`, and is still windowed
+(FullScreenMode false, borderless). Launcher: `game-dd-20261003\TEST-shimmer-S-win2x-ar.bat` (T05 hill top, best-wide
+preset). Instrument twin: `TEST-shimmer-Y-win2x-ar-noaa.bat`. Both are generated by `tools\make-test-variants.ps1`.
+Variants B, C and E do not supersample anything visible and can be retired. The old S-win2x / Y-win2x-noaa files
+(stretched) were removed. **Owner check for S:** (a) the main menu and the bookmark / melee route: clicks land, no side
+bars; (b) Esc menu Exit; (c) the hill drive: crawl vs A. Then promote, after the route test
+(option6-trip-test / leg-b), before the daily driver.
+TERRAIN_TEX 8 -> 4 (section 3) still stands as a second step if S alone leaves too much crawl.
