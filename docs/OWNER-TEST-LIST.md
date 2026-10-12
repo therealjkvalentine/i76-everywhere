@@ -11,6 +11,9 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    all on lab copies; results in `autotest\runs\overnight-<ts>\summary.md`. Close the trainer GUI (`_tools\trainer\i76trainer_gui.py`)
    and anything else reading telemetry first: it holds the shared memory at the old size and the new proxy cannot use it. The run leaves
    the audio muted (`i76-uncap-lab\tools\mute.ps1 -Off`).
+   **First run 2026-10-11 + same-evening follow-up: [records/OVERNIGHT-2026-10-11.md](records/OVERNIGHT-2026-10-11.md)** (per-phase
+   verdicts, the harness bugs it exposed and fixed, what is still yours). Items marked *(automated 2026-10-11)* below were covered
+   by it; only the parts that need eyes, ears or hands remain.
 
 ## Daily driver (already promoted, confirm in normal play)
 
@@ -20,12 +23,19 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    Anything odd -> rollback is `_rollback\15` (five files).
 2. **Force feedback after promotion 15.** The gate had no wheel plugged in. Plug the wheel in before `PLAY.bat` and confirm FFB feels as before.
 
+2b. *(Promotion regression automated 2026-10-11, P7: best-wide / best-wide-balanced / best-120 on the twin each boot and drive t04
+   90 s at 120 fps, no CRASH line; the twin's presets are byte-equal to the driver's.)*
+
 ## Lab copy (candidates, not in the daily driver)
 
 3. **Collision fix A/B.** `TEST-coll-A-control.bat` (= your PLAY.bat) vs `TEST-coll-B-window2.bat` (I76_COLL_WINDOW=2 + dedupe).
    T05 (Taurus jump mission) roadblocks, cars, buildings: does B hit what A drives through? Anything new and wrong in B (snagging on
    scenery, odd bumps, getting stuck, doubled crash sounds)? `TEST-coll-C-24fps.bat` = 24 fps reference (choppy on purpose; stock-like collisions).
    Measured offline: barricades contacted 36/36 with B vs 8/28 with A.
+   *(automated 2026-10-11, P1:* rams w2 21/21 vs control 10/43 (A/A p 0.49); gate with B staged on the twin 21/0. **New finding:**
+   in t04 god-mode circle drives B destroys the car at one spot about 9.5 s / 250 m along the circle (5 of 23 passes; A 0 of 21,
+   p 0.05; elsewhere deaths are equal). While playing B, watch for being killed by something you barely touched; t04's start area
+   is where the drives found it. Details: records/OVERNIGHT-2026-10-11.md, P1.)
 4. **Terrain drop-out watch.** `TEST-terrain-watch.bat` = PLAY.bat + drop detector. Play where you saw it (open desert, road bend). If the
    ground vanishes, note the time; the log (`Interstate 76\mciproxy.log`, lines `TERRAIN-DROP`) and a saved frame tell us the rest.
    Expected: never (the lab copy lacked I76_CAM_GROUND_FIX when you saw it; your driver has it).
@@ -33,6 +43,9 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    I76_ZGLIDE_TMUFIX) on `dgVoodoo.16x10.conf`, which has MemorySizeOfTMU 8192 since promotion 11; 4096+ without TMUFIX gave
    "texture exchange issues" in promotion 5R. Launch it briefly: wrong / swapped textures on terrain or cars = confirmed (fix: give
    PLAY-stock its own conf at 2048, a small promotion). Low priority if you never use PLAY-stock.
+   *(automated 2026-10-11, P5: no signal.* 4 interleaved t01 runs on the twin, TMU 8192 vs 2048 proven by the census (8,191 vs
+   2,047 KB usable); FLUSH / rewinds / downloads equal, image A/B difference within A/A. Captures in lab
+   `autotest\runs\overnight-20261011-204548\P5\tmu*`. A 36 s throttle run is thin: a few minutes of real PLAY-stock play still decides.)
 6. **Haptics telemetry v3 (sound / damage events), not installed yet.** Built 2026-10-10 as `music-fix\out\Strlkup-tel3.dll`
    (static-verified only). A console agent installs it in the lab copy first (keep the old `Strlkup.dll` beside it), then runs it with
    `I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76_DAMAGE_EVENTS=1 I76MUSIC_LOG=1` and `python tools\telemetry\i76tel.py --check` alongside.
@@ -40,10 +53,16 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    and `damage-events: on`; the listener prints one `SOUND+` per sound you hear (own guns `PLAYER`, an AI car's `other` with a position),
    a `SOUND-` when a skid ends, `WEAPON-UI cycle/link/unlink` on those keys, and `DAMAGE` with the side you were hit on (rammed from the
    left = `side left`). Anything wrong in the game itself (missing or doubled sounds, stutter, a crash) = fail; revert to the old DLL.
+   *(automated 2026-10-11, P2: PASS 24/24* on a copy of the twin, t01 + t05 scripted: all three log lines, clean v3 `--check`
+   (2,904 / 2,906 frames, 0 gaps), SOUND_START PLAYER + other with positions, SOUND_STOP, WEAPON_UI cycle, DAMAGE_SIDE, no CRASH.
+   Left for you: the in-game half - does anything sound missing or doubled, any stutter - since the run was muted.)
 7. **HD sound pack A/B (`tools/soundhd`, pack v1, NOT installed anywhere yet).** An agent installs it into the lab copy first
    (`soundhd.py install --game <lab copy>` dry run, then `--apply`; it refuses anything outside `i76-uncap-lab\game*`, never overwrites
    your ADDON mods, and `uninstall --apply` removes exactly its 123 `.gpw`). Step 1 is the loader proof: blow up a car, and the
    explosion should play from the pack (16-bit 22 kHz). If it sounds exactly like stock, say so: that means loose ADDON `.gpw` are ignored.
+   *(Step 1 automated 2026-10-11, P4: PASS, twice.* A marked `wmflame.gpw` in ADDON (header priority +7, tone at 1.5x rate): all 42
+   flamer SOUND_START moved from priority 89 to 96 and from 11,025 to 16,538 Hz, controls unchanged; uninstall restored ADDON by
+   md5. Loose ADDON `.gpw` are loaded. Skip step 1; the A/B by ear below is still yours.)
    Then A/B the same mission with the pack on and off (t01 or t04), on the speakers you normally play on:
    - Ram cars and buildings at speed: the hit has weight (a low drop under it) but is **not louder** than stock. Any pumping or crunch?
    - Fire the MGs (hold the trigger), a cannon and rockets: a thump per shot, and the MG loop stays seamless (no tick, no drone).
@@ -61,6 +80,10 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
    `tools\haptics\haptics.ps1 record --udp --out tools\haptics\replays\t01-c1.i76rec --seconds 300`; drive t01, shoot, hit a wall,
    jump, get shot. Then `haptics.ps1 decode <file> --events`. Expected: v3 frames; SOUND_START is_player 1 for your weapons, 0 for an
    AI car's; DAMAGE_SIDE on hits. The file replaces the scripted session as every offline test's input - keep it.
+   *(automated 2026-10-11, P2 + P3: two scripted v3 recordings* (lab `autotest\runs\overnight-20261011-203304\P2\t01.i76rec`,
+   `t05.i76rec`, 2 MB each, decode clean) and P3 replayed the first run's t01 through every file sink with the motion validator
+   14/14. Not committed here: copy one to `tools\haptics\replays\` if a scripted drive is good enough as the reference; a
+   5-minute session of your own driving is still the better input.)
 9. **Wheel + pad + shakers together.** `haptics.ps1 live --source udp` (files only) for one drive, then the same with `--live` and all
    three devices connected. Only question: interference or dropouts (feel comes later).
 10. **Latency.** `--live --record` run: fire one shot, ram one wall, phone microphone on the shaker; event frame vs shaker onset.
@@ -85,6 +108,12 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
     menu. Afterwards `mciproxy.log` in the game folder should list the switches as applied, not skipped. Optional: the same with
     `-Preset best-wide` (`PLAY-i76.bat`, `PLAY-balanced.bat`, `PLAY-16x10.bat`). Fail = skipped patches, a watermark, the mouse off in
     the menus, or no music; `install.ps1 -GameDir "C:\GOG Games\Interstate 76" -Preset stock` is the way back.
+    *(boot automated 2026-10-11, P6: PASS 7/7* - offline setup at the console, PLAY-i76.bat -> TRIP -> bookmark -> mission at 120 fps
+    on `9a232dcc` with best-120, no switch skipped, PLAY-stock control up too; records/FRESH-INSTALL-CHECK-2026-10-10.md, last section.
+    Expect two log lines on this exe that are not faults: `CRASH: code 0xC0000096 at ... exe+0x99997` (the 1997 CPU-speed probe,
+    handled by the game) and `NOTE: this exe has no WINMM.dll import` (GOG's own WIN32.dll plays the music, the proxy's music fix
+    cannot attach). Still yours: the real `INSTALL.bat` with GOG's installer and UAC, **whether music plays in a mission** on this
+    build, best-wide on it, a Save Bookmark.)
 
 ## Motion simulator output (tools/haptics/motion, docs/MOTION-OUTPUT.md; desk benches need no hardware and no game; A/A before A/B, report n)
 

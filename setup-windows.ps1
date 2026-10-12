@@ -582,6 +582,17 @@ if (-not $isNitro -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {
     } else {
         Write-Host "In-mission music fix already installed - skipping."
     }
+    # GOG 2.1.0.17's i76.exe (9a232dcc) imports mciSendCommandA / aux* from GOG's WIN32.dll (its CD-audio shim over
+    # audiere.dll + music\), not from WINMM.dll, so the proxy's music redirect has nothing to hook there (mciproxy.log:
+    # "this exe has no WINMM.dll import"). Every other proxy switch still applies (overnight P6 2026-10-11: 38 lines,
+    # none skipped, 120 fps). Say so instead of promising the music fix.
+    $exeBytes = [IO.File]::ReadAllBytes($exePath)
+    $exeText = [Text.Encoding]::ASCII.GetString($exeBytes)
+    if ($exeText.IndexOf('WINMM.dll', [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+        Write-Host "  note: this i76.exe has no WINMM.dll import (GOG 2.1.0.17 routes CD audio through its own WIN32.dll):" -ForegroundColor Yellow
+        Write-Host "        the proxy's music redirect cannot attach; in-mission music is GOG's shim's job here. The proxy's" -ForegroundColor Yellow
+        Write-Host "        frame-rate and fix switches are unaffected." -ForegroundColor Yellow
+    }
     # The build deployed here, for the installed PLAY-i76.ps1: it has no music-fix\ beside it to
     # compare Strlkup.dll against, so it checks against this record instead (fresh-install check
     # 2026-10-10, gap 5). Line 1: md5 (lower case) and size in bytes. music-fix\build.ps1 -Install

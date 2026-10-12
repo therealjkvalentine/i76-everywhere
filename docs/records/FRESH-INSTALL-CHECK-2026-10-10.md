@@ -165,3 +165,27 @@ gives silence; `-Display 3440by1440` exits 1 before writing anything. Idempotenc
 (422 + the record), only `i76e-controls.txt`'s time stamp changed. `tests\test_presets.py`: 20 passed. Source tree unchanged
 (371 files, `i76.exe` `9a232dcc`, `i76shell.dll` `deb41008`), `C:\Games\_tools` and the desktop unchanged, no GOG installer log.
 Not checked: an install at the console (no RDP), where the warning must stay silent; the boot (owner test 16) as before.
+
+## The boot, at the console (overnight runner P6, 2026-10-11)
+
+Gap 1 closed for best-120. `i76-uncap-lab\autotest\overnight\phases\P6-fresh-install.ps1`: the same GOG 2.1.0.17 tree and
+offline switches as above, into `i76-uncap-lab\game-fresh-<ts>`, setup at the physical console (real 3440x1440 display, no
+RDP warning), then `option6-trip-test.ps1 -Launcher <folder>\PLAY-i76.bat` (TRIP -> LOAD BOOKMARK -> row -> LOAD -> ACCEPT
+SALVAGE -> DONE). Lab run `autotest\runs\overnight-20261011-204548\P6`, 7/7 PASS: engine up in the mission at **120.0 fps**
+(proxy heartbeat; exe counter 120.1) on `9a232dcc` with preset best-120, u32x `06467bd2`, proxy `c11f7f7d`; mciproxy.log 38
+switch lines, none skipped or not applied; the same route through `PLAY-stock.bat`: up, 60 fps; desktop, `C:\Games\_tools`,
+GOG logs and the source tree unchanged. Repeated twice by hand on the previous scratch folder (`overnight-20261011-202103\P6\row1-hint-check`).
+
+Expected on this build, not faults:
+- `CRASH: code 0xC0000096 at 0x00499997 (exe+0x99997)` at every boot, frame 0. That is the 1997 PIT CPU-speed routine
+  (0x499950: `cli`, `out 43h`, `in 61h` ...), which `9a232dcc` still calls (0x499b25) and the AiO build `60abf7bc` does not;
+  the bytes are identical in both builds and no patch of ours touches them. The proxy's crash log is a first-chance
+  vectored handler; the game's own handler takes the privileged-instruction fault and the boot continues.
+- `NOTE: this exe has no WINMM.dll import`: GOG 2.1.0.17 routes CD audio through its own `WIN32.dll` (+ `audiere.dll`,
+  `music\`), so the proxy's music redirect cannot attach; music is GOG's shim's job (not heard: the run was muted).
+  `setup-windows.ps1` now prints this at install time instead of only "In-mission music fix installed".
+
+The first attempt (`overnight-20261011-182933\P6`) "failed" on two harness choices, not the install: its bookmark
+(`save014` 'OOOH SHIT', a car with no parts) loads straight into "YOU ARE UNCONCIOUS", and a fresh profile shows a
+"REMEMBER, USE THE SAVE BOOKMARK BUTTON" dialog after ACCEPT SALVAGE. Details: [OVERNIGHT-2026-10-11.md](OVERNIGHT-2026-10-11.md).
+Still not covered: best-wide / balanced on this exe, the real GOG installer run (UAC, registry), Nitro, music by ear, a save.
