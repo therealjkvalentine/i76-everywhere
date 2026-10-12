@@ -1190,6 +1190,9 @@ static i76trn_ctl_t *g_trn;                                  /* trainer control 
 static void trn_frame(void);
 static int g_start_on;                                       /* I76_START_POS (below, after the trainer) */
 static void start_pos_frame(void);
+static int g_bbox_sweep;                                     /* I76_BREAKABLE_BOX=3: sign-post sweep (below, with the breakable box) */
+static volatile DWORD g_sweep_entries, g_sweep_scored, g_sweep_engine, g_sweep_frames;
+static void sign_sweep(void);
 /* I76_FPS_LOG=<seconds> (off by default): every period, log the frame rate and where each frame's time went -
  * "work" is hook return to the next hook entry (sim, render, Flip / present, anything the frame blocks on), "cap"
  * is the I76_FPS_CAP wait. Work near the frame time with the process far below a full core means the frame is
@@ -1248,6 +1251,7 @@ clock:
     }
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
+    if (g_bbox_sweep) sign_sweep();                         /* I76_BREAKABLE_BOX=3: posts the last tick drove through */
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
     if (g_hires_on) {
         /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
@@ -3897,6 +3901,18 @@ static int __cdecl coll_sound_wrap(const char *name, BYTE *obj, int flag) {
  * 2 / 7 / 10 and every other damage path keep the stock normal. */
 static int g_bbox_speed;
 static volatile DWORD g_bbox_speed_hits, g_bbox_speed_glance;
+static struct { BYTE *root; DWORD frame; } g_sweep_hit[32];        /* =3: recent engine class-4 contacts (root, frame) */
+static int g_sweep_hit_i;
+static void sweep_note_engine_hit(BYTE *root) {
+    int i;
+    for (i = 0; i < 32; i++) if (g_sweep_hit[i].root == root) { g_sweep_hit[i].frame = g_frame; return; }
+    g_sweep_hit[g_sweep_hit_i].root = root; g_sweep_hit[g_sweep_hit_i].frame = g_frame; g_sweep_hit_i = (g_sweep_hit_i + 1) & 31;
+}
+static int sweep_engine_hit_since(BYTE *root, DWORD frames) {
+    int i;
+    for (i = 0; i < 32; i++) if (g_sweep_hit[i].root == root) return g_frame - g_sweep_hit[i].frame <= frames;
+    return 0;
+}
 static int bbox_speed_normal(BYTE *victim, const float *v, const float *n, float *out) {
     BYTE *root = victim;
     double vv, d, k;
@@ -3906,6 +3922,7 @@ static int bbox_speed_normal(BYTE *victim, const float *v, const float *n, float
         if (!victim || !v || !n) return 0;
         while (*(BYTE **)(root + 0x68)) root = *(BYTE **)(root + 0x68);     /* 0x458c90: the tree root (the ODEF object) */
         if (*(int *)(victim + 0x6c) != 4 && *(int *)(root + 0x6c) != 4) return 0;
+        sweep_note_engine_hit(root);                                          /* =3: the sweep leaves this one alone */
         vv = (double)v[0] * v[0] + (double)v[1] * v[1] + (double)v[2] * v[2];
         if (vv < 1e-4) return 0;
         vv = sqrt(vv);
@@ -6002,13 +6019,16 @@ static void apply_breakable_box(void) {
     BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
     LONG rel = (LONG)((DWORD_PTR)bbox_thunk - (0x00436cbd + 5));
     char v[4];
-    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || (v[0] != '1' && v[0] != '2')) return;
+    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || (v[0] != '1' && v[0] != '2' && v[0] != '3')) return;
     g_bbox_mode = v[0] - '0';
-    g_bbox_speed = g_bbox_mode == 2;
+    g_bbox_speed = g_bbox_mode >= 2;                        /* =3 keeps =2 (closing-speed score, bar box at car height) */
+    if (g_bbox_mode == 3) { install_frame_hook(); g_bbox_sweep = g_frame_hook; }
     memcpy(w + 1, &rel, 4);
     mlog("  breakable-box: %d/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)%s",
          patch_bytes(0x00436cbd, old6, w, 6, "collision tree default part kind read"),
-         g_bbox_mode == 2 ? "; =2: mid-height 0.3..1.3 m only, class-4 knock-off scored on the closing speed" : "");
+         g_bbox_mode == 2 ? "; =2: mid-height 0.3..1.3 m only, class-4 knock-off scored on the closing speed"
+         : g_bbox_mode == 3 ? (g_bbox_sweep ? "; =3: =2 + sign-post sweep (a post the player's car box drove through that the engine never touched is scored by 0x4a7c80)"
+                                            : "; =3: =2, sign-post sweep NOT applied (no frame hook)") : "");
 #else
     if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", NULL, 0)) mlog("  breakable-box: MSVC build only - not applied");
 #endif
@@ -6030,6 +6050,130 @@ static void breakable_box_report(void) {                     /* with the start-p
     b[n] = 0;
     mlog("  breakable-box: %lu class-4 default parts seen, %lu made boxes (length x thickness @ centre height):%s",
          g_bbox_parts, g_bbox_box, n ? b : " -");
+    if (g_bbox_mode == 3)
+        mlog("  sign-sweep: %lu frames swept, %lu post entries into the car box, %lu the engine had hit, %lu scored by the sweep",
+             g_sweep_frames, g_sweep_entries, g_sweep_engine, g_sweep_scored);
+}
+
+/* I76_BREAKABLE_BOX=3 (2026-10-12, sign-fix-2; owner on =2: "it's different signs when you teleport me to the top of
+ * the hill, they are texas state road signs, but they don't respond to collisions with the fix"; lab
+ * docs/SIGN-FIX-2-2026-10-12.md). =2 changes only what a contact the ENGINE found scores; a ram the engine never turns
+ * into a contact (0x4349c0 -> 0x434bb0 -> 0x43f8c0 -> 0x440d90 never accepting it, for whatever reason) reaches no
+ * damage call, so =2 cannot help it: the owner's =2 session logged 9 class-4 hits, all at the barricade bars, none at
+ * a Texas sign. The sweep is an independent check of what the player SEES: once per frame (frame hook, after the last
+ * tick and its collision pass), for every class-4 object within 40 m of the player's car, every post-like part (a
+ * direct child of the root with a mesh AABB at most 0.7 m across horizontally and at least 1 m tall: sign posts, not
+ * panels or bars) is tested as a vertical column against the car's own COLP box (body record +0x18 extents) swept
+ * from the car's pose at the previous frame to its pose now, in the car's frame: 2-D slab entry of the column's
+ * axis into the box grown by the column's half width, plus overlap of the column's height range with the box's. A
+ * post that ENTERS the box and that the engine has not hit within the last 3 frames (sweep_note_engine_hit, fed by
+ * the =2 wrapper on 0x46f8d4) is scored the way the engine scores a contact: 0x4a7c80(part node, car, car velocity,
+ * unit velocity, contact point) - mass x |v|^2 x 6.67e-5 against the part's hit points, so a ram above ~6.3 m/s
+ * knocks it off (slot 9 0x46f9a0, the stock knock-off) and a slow nudge stays a nudge. Only the player's car; AI cars
+ * and every other object class are untouched; teleports (> 25 m between frames) and frames without motion skip. */
+static BYTE *g_sweep_obj; static double g_sweep_prev[3]; static DWORD g_sweep_prev_frame;
+static BYTE *sweep_player_box(BYTE *obj) {                  /* the player's mover record (0x52b930 list) */
+    BYTE **node = *(BYTE ***)0x0052b930; int n = 0;
+    while (node && n++ < 512) {
+        BYTE *body = node[2];
+        if (body && *(BYTE **)body == obj) return body;
+        node = (BYTE **)node[0];
+    }
+    return 0;
+}
+static void sign_sweep(void) {
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0, *body, **node;
+        double P0[3], P1[3], dx, dz;
+        float *R, ext[6];
+        int *bx, n = 0;
+        if (!obj) { g_sweep_obj = 0; return; }
+        memcpy(P1, obj + 0x40, 24);
+        if (obj != g_sweep_obj || g_frame - g_sweep_prev_frame != 1) {   /* new car / gap: re-arm */
+            g_sweep_obj = obj; memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_frame; return;
+        }
+        memcpy(P0, g_sweep_prev, 24); memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_frame;
+        dx = P1[0] - P0[0]; dz = P1[2] - P0[2];
+        if (dx * dx + dz * dz < 1e-8 || dx * dx + dz * dz > 625.0) return;   /* no motion (no step this frame) / teleport */
+        R = (float *)(obj + 0x18);                          /* rows right / up / forward */
+        if (R[4] < 0.7f) return;                            /* on its side or roof: the column test assumes upright */
+        body = sweep_player_box(obj);
+        if (!body || *(int *)(body + 0x14) != 1 || !(bx = *(int **)(body + 0x18))) return;   /* kind 1 = the COLP box */
+        ext[0] = *(float *)&bx[3]; ext[1] = *(float *)&bx[8]; ext[2] = *(float *)&bx[0xb];     /* as 0x43f510 reads it */
+        ext[3] = *(float *)&bx[bx[0] + 2]; ext[4] = *(float *)&bx[bx[1] + 6]; ext[5] = *(float *)&bx[bx[2] + 10];
+        if (!(ext[3] > ext[0] && ext[4] > ext[1] && ext[5] > ext[2])) return;
+        g_sweep_frames++;
+        {   static DWORD logged = 0, logframe = 0;               /* a summary when something changed, at most every 600 frames */
+            if (g_sweep_entries != logged && g_frame - logframe > 600) {
+                logged = g_sweep_entries; logframe = g_frame;
+                mlog("  sign-sweep: %lu frames swept, %lu post entries into the car box, %lu the engine had hit, %lu scored by the sweep",
+                     g_sweep_frames, g_sweep_entries, g_sweep_engine, g_sweep_scored);
+            }
+        }
+        for (node = *(BYTE ***)0x0052b934; node && n < 8000; node = (BYTE **)node[0], n++) {
+            BYTE *sb = node[2], *root = sb ? *(BYTE **)sb : 0, *part;
+            double ox, oz;
+            float *RR;
+            if (!root || *(int *)(root + 0x6c) != 4) continue;
+            ox = *(double *)(root + 0x40) - P1[0]; oz = *(double *)(root + 0x50) - P1[2];
+            if (ox * ox + oz * oz > 1600.0) continue;
+            RR = (float *)(root + 0x18);
+            for (part = *(BYTE **)(root + 0x64); part; part = *(BYTE **)(part + 0x60)) {
+                float *a = (float *)(part + 0x94);          /* mesh AABB in part space: min xyz, max xyz */
+                float hx = (a[3] - a[0]) * 0.5f, hz = (a[5] - a[2]) * 0.5f, hr = hx > hz ? hx : hz, y0, y1;
+                double lx = *(double *)(part + 0x40) + (a[0] + a[3]) * 0.5, lz = *(double *)(part + 0x50) + (a[2] + a[5]) * 0.5;
+                double ly = *(double *)(part + 0x48), qx, qy, qz, x0, z0, x1, z1, t0 = 0.0, t1 = 1.0, cy0, cy1, tc;
+                double mnx = ext[0] - hr, mxx = ext[3] + hr, mnz = ext[2] - hr, mxz = ext[5] + hr, sx, sz;
+                int k;
+                if (hx > 0.35f || hz > 0.35f || a[4] - a[1] < 1.0f) continue;   /* post-like parts only */
+                qx = *(double *)(root + 0x40) + lx * RR[0] + ly * RR[3] + lz * RR[6];
+                qy = *(double *)(root + 0x48) + lx * RR[1] + ly * RR[4] + lz * RR[7];
+                qz = *(double *)(root + 0x50) + lx * RR[2] + ly * RR[5] + lz * RR[8];
+                y0 = (float)(qy + a[1]); y1 = (float)(qy + a[4]);
+                /* the column axis in the car's frame (current rows) at the previous and the current pose */
+                x0 = (qx - P0[0]) * R[0] + (qz - P0[2]) * R[2]; z0 = (qx - P0[0]) * R[6] + (qz - P0[2]) * R[8];
+                x1 = (qx - P1[0]) * R[0] + (qz - P1[2]) * R[2]; z1 = (qx - P1[0]) * R[6] + (qz - P1[2]) * R[8];
+                if (x0 >= mnx && x0 <= mxx && z0 >= mnz && z0 <= mxz) continue;   /* already inside: entered earlier */
+                for (k = 0; k < 2; k++) {                   /* slab entry, x then z */
+                    double p0 = k ? z0 : x0, d = k ? z1 - z0 : x1 - x0, lo = k ? mnz : mnx, hi = k ? mxz : mxx, ta, tb;
+                    if (d > -1e-9 && d < 1e-9) { if (p0 < lo || p0 > hi) { t0 = 2.0; break; } continue; }
+                    ta = (lo - p0) / d; tb = (hi - p0) / d;
+                    if (ta > tb) { double t = ta; ta = tb; tb = t; }
+                    if (ta > t0) t0 = ta;
+                    if (tb < t1) t1 = tb;
+                }
+                if (t0 > t1 || t0 > 1.0) continue;
+                tc = t0;
+                cy0 = P0[1] + (P1[1] - P0[1]) * tc + ext[1]; cy1 = P0[1] + (P1[1] - P0[1]) * tc + ext[4];
+                if (y1 < cy0 || y0 > cy1) continue;         /* the post is above / below the car box */
+                g_sweep_entries++;
+                if (sweep_engine_hit_since(root, 3)) { g_sweep_engine++; continue; }
+                {
+                    float st[15], *s0, v[3], nn[3], pt[3], vv;
+                    char nm[9];
+                    s0 = ((float *(__cdecl *)(float *, BYTE *))0x00461ed0)(st, obj);   /* the car's state: velocity at +0x18 */
+                    v[0] = s0[6]; v[1] = s0[7]; v[2] = s0[8];
+                    vv = (float)sqrt((double)v[0] * v[0] + (double)v[1] * v[1] + (double)v[2] * v[2]);
+                    if (vv < 0.5f) continue;
+                    nn[0] = v[0] / vv; nn[1] = v[1] / vv; nn[2] = v[2] / vv;
+                    sx = P0[0] + dx * tc; sz = P0[2] + dz * tc;
+                    pt[0] = (float)qx; pt[1] = (float)(cy0 > y0 ? cy0 : y0); pt[2] = (float)qz;
+                    memcpy(nm, root, 8); nm[8] = 0;
+                    g_sweep_scored++;
+                    sweep_note_engine_hit(root);
+                    ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(part, obj, v, nn, pt);
+                    if (g_sweep_scored <= 40)
+                        mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - scored at %.1f m/s "
+                             "(car at %.1f, %.1f; post y %.2f..%.2f, box y %.2f..%.2f)", nm, qx, qz, vv, sx, sz, y0, y1, cy0, cy1);
+                    return;                                 /* a knock-off may unregister / free the object: done this frame */
+                }
+            }
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_bbox_sweep = 0; mlog("  sign-sweep: fault - turned off"); }
+#endif
 }
 
 /* ===========================================================================
