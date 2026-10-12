@@ -1,0 +1,78 @@
+/* I76 Debug - dark dashboard. Palette: the dataviz reference instance, dark steps (categorical order fixed). */
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242423; --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--ring); padding: 6px 16px;
+         display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.brand { font-weight: 600; font-size: 15px; }
+nav { display: flex; flex-wrap: wrap; gap: 2px; }
+nav button { background: none; border: 0; color: var(--text-2); padding: 5px 9px; border-radius: 6px; cursor: pointer; font: inherit; }
+nav button:hover { background: var(--surface-2); color: var(--text); }
+nav button.on { background: var(--surface-2); color: var(--text); box-shadow: inset 0 -2px 0 var(--s1); }
+.srcs { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--ring); color: var(--muted); }
+.pill.live { color: var(--text); border-color: var(--good); }
+.pill.live::before { content: "\25CF  "; color: var(--good); }
+.pill.stale::before { content: "\25CB  "; color: var(--warning); }
+.pausebox { color: var(--text-2); font-size: 12px; }
+main { padding: 12px 16px 40px; max-width: 1700px; margin: 0 auto; }
+.tab { display: none; }
+.tab.on { display: block; }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; min-width: 0; }
+.card h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.card h3 + h3, .card div + h3 { margin-top: 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 0 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 12px; }
+@media (max-width: 520px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; }
+.tile .k { color: var(--muted); font-size: 11px; }
+.tile .v { font-size: 20px; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .s { color: var(--text-2); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+canvas.chart { width: 100%; height: 150px; display: block; }
+canvas.chart.tall { height: 230px; }
+canvas.map, canvas.rig { width: 100%; height: 330px; display: block; background: var(--surface-2); border-radius: 6px; }
+canvas.car { width: 100%; height: 170px; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 11px; color: var(--text-2); margin-bottom: 4px; min-height: 16px; }
+.legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0; }
+.note { color: var(--muted); font-size: 12px; }
+.need-hap { margin-bottom: 8px; }
+.warnline { color: var(--serious); margin-top: 6px; }
+button, input, select { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--ring); border-radius: 6px; padding: 3px 8px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--s1); }
+button.danger:hover { border-color: var(--critical); }
+input[type=checkbox] { padding: 0; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 2px 6px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; font-size: 11px; }
+td.num, th.num { text-align: right; }
+.wrap td { white-space: normal; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+pre.mono { margin: 0; white-space: pre-wrap; color: var(--text-2); }
+.feed { max-height: 320px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: var(--text-2); }
+.feed.short { max-height: 200px; }
+.feed.tall { max-height: calc(100vh - 170px); }
+.feed div { padding: 1px 0; border-bottom: 1px solid var(--grid); white-space: pre-wrap; overflow-wrap: anywhere; }
+.feed .ty { display: inline-block; min-width: 92px; color: var(--text); }
+.ok { color: var(--good); } .bad { color: var(--critical); } .warn { color: var(--warning); }
+.ok::before { content: "\2713  "; } .bad::before { content: "\2715  "; } .warn::before { content: "\26A0  "; }
+.meter { margin: 4px 0 8px; }
+.meter .lab { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-2); }
+.meter .track { height: 10px; background: var(--grid); border-radius: 5px; position: relative; overflow: hidden; }
+.meter .fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--s1); border-radius: 5px; }
+.meter .pk { position: absolute; top: -1px; bottom: -1px; width: 2px; background: var(--text); }
+.meter.signed .fill { border-radius: 0; }
+.meter.signed .zero { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--surface-2); border: 1px solid var(--ring); border-radius: 6px;
+       padding: 5px 8px; font-size: 11.5px; color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.5); font-variant-numeric: tabular-nums; }
+.tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.flagrow span { display: inline-block; padding: 1px 6px; margin: 1px; border-radius: 4px; border: 1px solid var(--ring); color: var(--muted); font-size: 11px; }
+.flagrow span.on { color: var(--text); border-color: var(--s1); }

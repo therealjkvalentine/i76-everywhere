@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I76 Debug</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">I76 Debug</div>
+  <nav id="tabs">
+    <button data-tab="overview">Overview</button>
+    <button data-tab="telemetry">Telemetry</button>
+    <button data-tab="events">Events</button>
+    <button data-tab="ffb">Force feedback</button>
+    <button data-tab="rumble">Rumble</button>
+    <button data-tab="lfe">LFE / transducers</button>
+    <button data-tab="motion">Motion</button>
+    <button data-tab="collision">Collision</button>
+    <button data-tab="terrain">Terrain / render</button>
+    <button data-tab="trainer">Trainer</button>
+    <button data-tab="log">Log</button>
+  </nav>
+  <div class="srcs">
+    <span class="pill" id="pill-tel" title="proxy telemetry">telemetry</span>
+    <span class="pill" id="pill-hap" title="haptics host --debug-udp">haptics</span>
+    <span class="pill" id="pill-log" title="mciproxy.log">log</span>
+    <span class="pill" id="pill-trn" title="trainer">trainer</span>
+    <label class="pausebox"><input type="checkbox" id="pause"> freeze charts</label>
+  </div>
+</header>
+
+<main>
+<!-- ============================================================ OVERVIEW -->
+<section id="tab-overview" class="tab">
+  <div class="tiles" id="ov-tiles"></div>
+  <div class="grid2">
+    <div class="card"><h3>Vehicle</h3><div id="ov-vehicle"></div></div>
+    <div class="card"><h3>Sources</h3><div id="ov-sources"></div></div>
+  </div>
+  <div class="card"><h3>Frame time (ms)</h3><div class="legend" id="lg-ov-dt"></div><canvas class="chart" id="ch-ov-dt"></canvas></div>
+  <div class="card"><h3>Proxy switches (from mciproxy.log, this proxy start)</h3><div id="ov-switches"></div></div>
+</section>
+
+<!-- ============================================================ TELEMETRY -->
+<section id="tab-telemetry" class="tab">
+  <div class="bar">window <select id="win"><option value="10">10 s</option><option value="30" selected>30 s</option><option value="60">60 s</option><option value="120">120 s</option></select>
+    <span class="note">Charts are per rendered frame (decimated to 60 Hz). Hover a chart for values.</span></div>
+  <div class="grid2">
+    <div class="card"><h3>Speed (km/h)</h3><div class="legend" id="lg-speed"></div><canvas class="chart" id="ch-speed"></canvas></div>
+    <div class="card"><h3>Engine rpm</h3><div class="legend" id="lg-rpm"></div><canvas class="chart" id="ch-rpm"></canvas></div>
+    <div class="card"><h3>Driver inputs</h3><div class="legend" id="lg-inputs"></div><canvas class="chart" id="ch-inputs"></canvas></div>
+    <div class="card"><h3>Body-frame acceleration (m/s², x right, y up, z forward; the FFB block copy when present, else rot × the engine's ent+0xd4)</h3><div class="legend" id="lg-accel"></div><canvas class="chart" id="ch-accel"></canvas></div>
+    <div class="card"><h3>Pitch / roll (deg)</h3><div class="legend" id="lg-angles"></div><canvas class="chart" id="ch-angles"></canvas></div>
+    <div class="card"><h3>Body rates (deg/s)</h3><div class="legend" id="lg-rates"></div><canvas class="chart" id="ch-rates"></canvas></div>
+    <div class="card"><h3>Suspension offset per wheel (m)</h3><div class="legend" id="lg-susp"></div><canvas class="chart" id="ch-susp"></canvas></div>
+    <div class="card"><h3>Grip / ground</h3><div class="legend" id="lg-grip"></div><canvas class="chart" id="ch-grip"></canvas></div>
+    <div class="card"><h3>Physics steps per frame and sim dt (ms)</h3><div class="legend" id="lg-steps"></div><canvas class="chart" id="ch-steps"></canvas></div>
+    <div class="card"><h3>Top-down map (trail, heading; recent explosions and positioned sounds)</h3><canvas class="map" id="map"></canvas><div class="note" id="map-note"></div></div>
+  </div>
+  <div class="card"><h3>Car facts</h3><div id="tel-facts"></div></div>
+</section>
+
+<!-- ============================================================ EVENTS -->
+<section id="tab-events" class="tab">
+  <div class="tiles" id="ev-tiles"></div>
+  <div class="grid3">
+    <div class="card"><h3>Damage to the player by side</h3><canvas class="car" id="ev-car"></canvas><div id="ev-sides"></div></div>
+    <div class="card"><h3>Impacts (collision damage calls)</h3><div id="ev-impacts"></div></div>
+    <div class="card"><h3>Shots per weapon row</h3><div id="ev-shots"></div></div>
+    <div class="card"><h3>Explosions (distance to the player)</h3><div id="ev-expl"></div></div>
+    <div class="card"><h3>Sounds started (top names)</h3><div id="ev-sounds"></div></div>
+    <div class="card"><h3>Sounds playing now (start without stop)</h3><div id="ev-active"></div></div>
+  </div>
+  <div class="card"><h3>Live feed</h3>
+    <div class="bar" id="ev-filter"></div>
+    <div class="feed" id="ev-feed"></div></div>
+  <div class="card"><h3>Haptics host events (derived: LANDING, TAKEOFF, SKID, GEAR, SURFACE ... plus the game's)</h3><div class="feed short" id="hev-feed"></div></div>
+</section>
+
+<!-- ============================================================ FFB -->
+<section id="tab-ffb" class="tab">
+  <div class="need-hap note"></div>
+  <div class="tiles" id="ffb-tiles"></div>
+  <div class="card"><h3>Wheel force (device units, ±10000)</h3><div class="legend" id="lg-ffb"></div><canvas class="chart tall" id="ch-ffb"></canvas></div>
+  <div class="card"><h3>Effect contributions, stacked (reference model channels + effect-file voices)</h3><div class="legend" id="lg-ffbstack"></div><canvas class="chart tall" id="ch-ffbstack"></canvas></div>
+  <div class="grid2">
+    <div class="card"><h3>Now</h3><div id="ffb-now"></div></div>
+    <div class="card"><h3>Effect voices sounding (wheel share)</h3><div id="ffb-voices"></div></div>
+  </div>
+</section>
+
+<!-- ============================================================ RUMBLE -->
+<section id="tab-rumble" class="tab">
+  <div class="need-hap note"></div>
+  <div class="grid2">
+    <div class="card"><h3>Pad motors now</h3><div id="rb-meters"></div></div>
+    <div class="card"><h3>What drives them</h3><div id="rb-drivers"></div></div>
+  </div>
+  <div class="card"><h3>Pad motor level (0..1; L = heavy, R = texture)</h3><div class="legend" id="lg-rumble"></div><canvas class="chart tall" id="ch-rumble"></canvas></div>
+</section>
+
+<!-- ============================================================ LFE -->
+<section id="tab-lfe" class="tab">
+  <div class="need-hap note"></div>
+  <div class="grid2">
+    <div class="card"><h3>Shaker output level</h3><div id="lfe-meter"></div></div>
+    <div class="card"><h3>Spectrum 10-120 Hz (last 256 ms of output)</h3><canvas class="chart" id="lfe-spec"></canvas></div>
+    <div class="card"><h3>Synth sources (Lfe.Synth voices, amplitude 0..1)</h3><div id="lfe-src"></div></div>
+    <div class="card"><h3>HD-pack stems playing (Lfe.Stems)</h3><div id="lfe-stems"></div></div>
+  </div>
+  <div class="card"><h3>Output RMS / peak</h3><div class="legend" id="lg-lfe"></div><canvas class="chart" id="ch-lfe"></canvas></div>
+</section>
+
+<!-- ============================================================ MOTION -->
+<section id="tab-motion" class="tab">
+  <div class="need-hap note"></div>
+  <div class="grid2">
+    <div class="card"><h3>Rig preview (pose from roll / pitch, heave and surge from the accelerations; a preview, not the rig software's washout)</h3><canvas class="rig" id="rig"></canvas></div>
+    <div class="card"><h3>Channels now</h3><div id="mo-dof"></div><h3>Status word</h3><div id="mo-status"></div></div>
+  </div>
+  <div class="card"><h3>Accelerations sent (m/s², physics + cues)</h3><div class="legend" id="lg-motion"></div><canvas class="chart" id="ch-motion"></canvas></div>
+  <div class="card"><h3>Body rates sent (rad/s)</h3><div class="legend" id="lg-motionr"></div><canvas class="chart" id="ch-motionr"></canvas></div>
+  <div class="card"><h3>Targets</h3><div id="mo-targets"></div></div>
+</section>
+
+<!-- ============================================================ COLLISION -->
+<section id="tab-collision" class="tab">
+  <div class="tiles" id="co-tiles"></div>
+  <div class="grid2">
+    <div class="card"><h3>Collision window (I76_COLL_WINDOW, every 30 s)</h3><div id="co-window"></div></div>
+    <div class="card"><h3>Breakable box (I76_BREAKABLE_BOX)</h3><div id="co-bbox"></div></div>
+  </div>
+  <div class="card"><h3>Widened vs stock-window pair tests per 30 s report</h3><div class="legend" id="lg-coll"></div><canvas class="chart" id="ch-coll"></canvas></div>
+  <div class="card"><h3>Recent contacts (IMPACT events)</h3><div class="feed short" id="co-contacts"></div></div>
+</section>
+
+<!-- ============================================================ TERRAIN -->
+<section id="tab-terrain" class="tab">
+  <div class="tiles" id="te-tiles"></div>
+  <div class="grid2">
+    <div class="card"><h3>TERRAIN-DROP (flash probe)</h3><div id="te-drops"></div></div>
+    <div class="card"><h3>Camera lifts (I76_CAM_GROUND_FIX) and COCKPIT-UNDER</h3><div id="te-lifts"></div></div>
+    <div class="card"><h3>Texture census</h3><div id="te-tex"></div></div>
+    <div class="card"><h3>Road pool / clutter / render</h3><div id="te-pools"></div></div>
+  </div>
+</section>
+
+<!-- ============================================================ TRAINER -->
+<section id="tab-trainer" class="tab">
+  <div class="card"><div id="tr-attach"></div></div>
+  <div class="grid2">
+    <div class="card"><h3>Status</h3><pre id="tr-status" class="mono"></pre><div id="tr-campaign" class="warnline"></div></div>
+    <div class="card">
+      <h3>Holds (held every frame)</h3><div id="tr-holds"></div>
+      <h3>One-shots</h3>
+      <div class="bar"><button data-act="repair">Repair now</button><button data-act="stop">Stop car</button></div>
+      <div class="bar"><button data-act="ammo">Refill ammo (all slots)</button><input id="tr-ammo" value="unlimited" size="10"></div>
+      <div class="bar">slot <select id="tr-slot"></select><input id="tr-slot-ammo" value="unlimited" size="9"><button data-act="slot_ammo">Set slot ammo</button></div>
+      <h3>Teleport (x, y up, z - keep y above the ground)</h3>
+      <div class="bar"><input id="tr-x" size="9"><input id="tr-y" size="7"><input id="tr-z" size="9"><button data-act="use_current">Use current</button><button data-act="teleport">Teleport</button></div>
+      <div id="tr-presets"></div>
+      <div id="tr-wps"></div>
+      <h3>Play Options bits 0x654b98 (the game's own switches; offline only)</h3>
+      <div class="bar" id="tr-play"></div>
+      <div class="bar"><button data-act="play_set">Set ticked bits</button><button data-act="play_clear">Clear ticked bits</button><button data-act="uncheat">Turn off cheater options (campaign fix)</button></div>
+      <div class="note">ammo / armour / chassis set here are the game's cheater options: the game marks itself cheated (0x535f78) at the next Esc-menu close or mission end, and from then on no won mission advances the campaign.</div>
+    </div>
+  </div>
+  <div class="card"><h3>Trainer log (every direct write is read back)</h3><div class="feed" id="tr-log"></div></div>
+</section>
+
+<!-- ============================================================ LOG -->
+<section id="tab-log" class="tab">
+  <div class="card">
+    <div class="bar"><input id="log-q" placeholder="filter (text)" size="30">
+      <span id="log-quick"></span>
+      <label><input type="checkbox" id="log-follow" checked> follow</label>
+      <span class="note" id="log-path"></span></div>
+    <div class="feed tall mono" id="log-lines"></div>
+  </div>
+</section>
+</main>
+<div id="tip" class="tip" hidden></div>
+<script src="/static/charts.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

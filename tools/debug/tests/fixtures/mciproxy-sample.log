@@ -1,0 +1,65 @@
+  strlkup_orig: Create=00971000 Destroy=00971A40 Find=00971AA0 Format=00971AF0 GlobalObj=0097C030 val=00000000
+  mission-launch: movie names invalidated 2/2 (open will fail -> engine skips)
+  mission-launch: booting directly into 't05.msn'
+  road-pool: span-node pool x16 (2000 KB), end guard on, stats every 600 frames (roads 450 m)
+  hires-clock: 2/2 simclock call sites repointed to QPC ms (ptr 67D32028)
+  frame hook at 0x4039b8: installed
+  hires-clock: exact frame dt on
+  engine-dt-fix: 1/1 call site repointed (0x46a333 -> 67CFD270)
+  fixed-step: 24.00 steps/s (41.67 ms) on
+  input-latch: off - with I76_FIXED_STEP the ignition (I) and lights keys are lost on frames without a physics step; I76_INPUT_LATCH=1 keeps them
+  coll-dedupe: 6/6 sites repointed (contact repeats on frames without a physics step: sound + damage applied once per step)
+  framerate-fixes: 36/36 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails, AI fire decisions, ammo digits)
+  hazard-contact: 6/6 sites repointed (oil slick / fire patch / wheel hazard / landed canister: contact test, damage, effect and sound on the 20 Hz grid)
+  perframe-fixes: 5/5 sites repointed (radar missile turn x2 scaled by dt x 20, WMISS click on the 20 Hz grid, AI skid-turn and horn rolls held to the 20 Hz grid)
+  render-interp: 11/11 hooks, on, smoothing 1 (debug block 67D43798)
+  fix-health-pct: on (health = min(28 + 72 x worst side ratio, 100 x worst core ratio); sites 0x40b7b8, 0x40b6f0)
+  fix-label-table: on
+  far-clip: on (1800 m, pools x16, 6/6 sites)
+  telemetry: shm view refused - a reader built on an older i76tel.h created Local\I76Telemetry smaller than 4256 B; start it after the game or update it (UDP is unaffected)
+  telemetry: on - udp 127.0.0.1:7676 open, shm Local\I76Telemetry FAILED, 4/4 event hooks (FireShot call sites x2, SpawnExplosion entry, ApplyCollisionDamage entry), frame 664 B + events 56 B, ring 64
+  sound-events: on - stop taps 4/4 (release 0x425ef0, StopVoice 0x422d20, update 0x42150b / 0x4215a2), start tap on (StartVoice 0x4220c0), weapon-UI clicks 3/3, event 56 B
+  damage-events: on - entity_DamageAndKill 0x463a80 entry detoured
+  trainer: on (Local\I76Trainer, 168 B, frame hook ok)
+  trainer: cheat-marker guard 4/4 sites (SaveDef x2, options-menu close x2)
+  StrLookup_Global_Object import repointed: slot was 67D32990, now -> 0097C030
+  music-guard: on
+  music: run end exclusive, disc order off (N -> N.mp3), shell as asked, resume on
+  str ok: open "C:\Users\james\i76-uncap-lab\game-dd-tel3\music\6.mp3" type mpegvideo alias i76cd
+  str ok: setaudio i76cd volume to 600
+  str ok: play i76cd
+  PLAY track 6 (t=1242427062)
+  road-pool: 600 frames: refused 0 polygons (0 past the pool, 0 past bucket 4095), 0 bucket links dropped; node high water 18 KB of 2000 KB; refusals since start 0
+  road-pool: 600 frames: refused 0 polygons (0 past the pool, 0 past bucket 4095), 0 bucket links dropped; node high water 13 KB of 2000 KB; refusals since start 0
+  road-pool: 600 frames: refused 0 polygons (0 past the pool, 0 past bucket 4095), 0 bucket links dropped; node high water 8 KB of 2000 KB; refusals since start 0
+  road-pool: 600 frames: refused 0 polygons (0 past the pool, 0 past bucket 4095), 0 bucket links dropped; node high water 28 KB of 2000 KB; refusals since start 0
+  road-pool: 600 frames: refused 0 polygons (0 past the pool, 0 past bucket 4095), 0 bucket links dropped; node high water 35 KB of 2000 KB; refusals since start 0
+  coll-window v2: 2 patched (pass flag + accept tests, sites mask 1: 1 slab 0x43e1c8, 2 mesh 0x43ec6a)
+  coll-window v3: sphere->slab tests 2, widened (class 4/5a/5b, in the pass) 2; part classes seen: 4:2 other 0
+  coll-window when=stepframe: pair tests 303, widened (a body steps this frame) 60, stock window 243, no pair window (=2 used) 0
+  coll-window when=stepframe: pair tests 354, widened (a body steps this frame) 70, stock window 284, no pair window (=2 used) 0
+  coll-window when=stepframe: pair tests 525, widened (a body steps this frame) 104, stock window 421, no pair window (=2 used) 0
+  breakable-box: 1/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)
+  breakable-box: 149 class-4 default parts seen, 10 made boxes (length x thickness @ centre height): 804x0cm@70cm 804x0cm@70cm 804x0cm@70cm 804x0cm@70cm 804x0cm@70cm 804x0cm@70cm 804x0cm@70cm 804x0cm@70cm
+  cam-ground-fix: on (QueueTerrain 0x490b1e -> lift the camera 0.05 m above the terrain for the terrain setup when it is under it)
+  cam-ground-fix: lift #1 (camera 00608C80, other): eye 8.003 m under the terrain height 50.00; setup ok, terrain queued
+  cam-ground-fix: lift #2 (camera 004C2730, main): eye 8.003 m under the terrain height 50.00; setup ok, terrain queued
+  cam-ground-fix: lift #3 (camera 00608C80, other): eye 8.003 m under the terrain height 50.00; setup ok, terrain queued
+  cam-ground-fix: COCKPIT-UNDER #1: eye 0.248 m under the terrain height 9.82
+  cam-ground-fix: COCKPIT-UNDER #2: eye 0.684 m under the terrain height 10.26
+  cam-ground-fix: COCKPIT-UNDER #1: eye 2.110 m under the terrain height 14.31
+  flash-probe: TERRAIN-DROP #1 at swap 10621 (proxy frame 10622, t 1027523858 ms, state 5, cam mode 0): terrain vertices 731 (previous scene 6171) | camera (1309.35, 31.22, 49737.54), 2.577 m above the terrain height 28.64, moved 0.16 m since the previous scene | player (981.7, 12.6, 50004.6) | records 2058
+  flash-probe: TERRAIN-DROP #1 at swap 6121 (proxy frame 6122, t 1027591151 ms, state 5, cam mode 0): terrain vertices 419 (previous scene 5537) | camera (760.97, 12.88, 50350.91), 3.673 m above the terrain height 9.20, moved 0.06 m since the previous scene | player (1211.7, 8.2, 50348.0) | records 1161
+  flash-probe: TERRAIN-DROP #1 at swap 7183 (proxy frame 7184, t 1028017405 ms, state 5, cam mode 0): terrain vertices 681 (previous scene 6510) | camera (938.39, 23.13, 50465.29), 3.193 m above the terrain height 19.94, moved 0.16 m since the previous scene | player (1060.2, 11.3, 50547.5) | records 1931
+  flash-probe: swaps 600: last 600: 600 main scenes, terrain vertices min 1871, 0 zero-terrain scenes, 0 drops < 30 %, 0 pixel flashes | totals 0 terrain events (0 zero), 0 pixel flashes | cam-ground lifts 0 (0 refused)
+  tex-census: FLUSH #1 at swap 0 (proxy frame 0, t 639366853 ms): 0 downloads / 0 KB since start, resident before 0 KB, no-slot flag 0
+  tex-census: swaps 600 (proxy frame 600): last 600: 86 downloads 953 KB, 1 flushes, 0 no-slot; resident 953 KB (peak 953 KB), TMU 1; totals 86 dl, 1 flushes, 0 no-slot (0 flagged frames)
+  road-pool: 600 frames: refused 0 polygons (0 past the pool, 0 past bucket 4095), 0 bucket links dropped; node high water 20 KB of 2000 KB; refusals since start 0
+  clutter: 600 frames: 266 us avg, 664 us max; cells 45.7 avg, 48 max; instances tested 240/frame; refused (pool) 0; record pool high water 115 KB
+  start-pos: armed - (7972.0, 101.8, 44035.0) yaw -90.0 deg, 1.0 s after the player is live in the mission, once
+  start-pos: placing the player (obj 12A2F034) at (7972.0, 101.8, 44035.0) yaw -90.0, frame 127, was at (8443.1, 27.9, 44520.0)
+  start-pos: read back 1 s after release: (7945.4, 98.75, 44035.0), forward (-0.997, -0.075, -0.000), 26.57 m from the target in x/z, speed 28.72 m/s - MOVED AWAY
+  fps: 61.5 (308 frames / 5.0 s); work 16.27 ms avg, 18.74 ms max; cap wait 0.00 ms avg
+  fps: 60.0 (301 frames / 5.0 s); work 16.67 ms avg, 16.82 ms max; cap wait 0.00 ms avg
+  fps: 60.0 (301 frames / 5.0 s); work 16.67 ms avg, 18.56 ms max; cap wait 0.00 ms avg
+  render-interp: needs I76_FIXED_STEP - not applied
