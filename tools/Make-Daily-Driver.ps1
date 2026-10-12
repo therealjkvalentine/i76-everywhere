@@ -266,10 +266,12 @@ foreach ($n in 'i76-save-editor.html', 'i76-save-editor.py', 'i76-save-editor-se
     $p = Join-Path $repo $n
     if (Test-Path -LiteralPath $p) { CopyVerified $p (Join-Path $Dest $n) 'repo: save editor' }
 }
-# root launchers for the save editor and the trainer (trainer code in _tools; the GUI reads ..\telemetry\i76tel.h)
-foreach ($n in 'TRAINER.bat', 'SAVE-EDITOR.bat') { CopyVerified (Join-Path $repo "tools\driver\$n") (Join-Path $Dest $n) 'repo: tools\driver' }
-foreach ($n in 'i76trainer_gui.py', 'i76trainer.py', 'i76trn.h', 'README-GUI.md') { CopyVerified (Join-Path $repo "tools\trainer\$n") (Join-Path $Dest "_tools\trainer\$n") 'repo: tools\trainer' }
-foreach ($n in 'i76tel.py', 'i76tel.h') { CopyVerified (Join-Path $repo "tools\telemetry\$n") (Join-Path $Dest "_tools\telemetry\$n") 'repo: tools\telemetry' }
+# root launchers for the save editor, I76 Debug and the trainer (code in _tools; debug imports ..\trainer and ..\telemetry;
+# since promotion 16, 2026-10-12, TRAINER.bat opens I76 Debug on its Trainer tab, --classic = the old tkinter window)
+foreach ($n in 'TRAINER.bat', 'DEBUG.bat', 'SAVE-EDITOR.bat') { CopyVerified (Join-Path $repo "tools\driver\$n") (Join-Path $Dest $n) 'repo: tools\driver' }
+foreach ($n in 'i76debug.py', 'debug_core.py', 'debug_trainer.py', 'README.md', 'static\index.html', 'static\app.js', 'static\app.css', 'static\charts.js') { CopyVerified (Join-Path $repo "tools\debug\$n") (Join-Path $Dest "_tools\debug\$n") 'repo: tools\debug' }
+foreach ($n in 'i76trainer_gui.py', 'i76trainer.py', 'i76trn.h', 'README-GUI.md', 'waypoints.json') { CopyVerified (Join-Path $repo "tools\trainer\$n") (Join-Path $Dest "_tools\trainer\$n") 'repo: tools\trainer' }
+foreach ($n in 'i76tel.py', 'i76tel.h', 'i76tel_v2.h') { CopyVerified (Join-Path $repo "tools\telemetry\$n") (Join-Path $Dest "_tools\telemetry\$n") 'repo: tools\telemetry' }
 $lint = Join-Path $repo 'tools\lint-input-map.py'
 if (Test-Path -LiteralPath $lint) { CopyVerified $lint (Join-Path $Dest '_tools\lint-input-map.py') 'repo: input.map linter' }
 

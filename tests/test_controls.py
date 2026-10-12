@@ -76,8 +76,8 @@ def test_checker_fails_loudly():
 
 
 def _exe():
-    for p in (os.environ.get("I76_EXE"), os.path.join(REPO, "..", "i76-uncap-lab", "game", "i76.exe"),
-              os.path.join(REPO, "..", "i76-uncap-lab", "game-gogtest", "gog-extract", "app", "i76.exe")):
+    # (game-gogtest went to i76-archive on 2026-10-12; it held no i76.exe by then)
+    for p in (os.environ.get("I76_EXE"), os.path.join(REPO, "..", "i76-uncap-lab", "game", "i76.exe")):
         if p and os.path.isfile(p):
             return p
 
