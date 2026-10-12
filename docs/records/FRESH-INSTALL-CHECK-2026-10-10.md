@@ -189,3 +189,65 @@ The first attempt (`overnight-20261011-182933\P6`) "failed" on two harness choic
 (`save014` 'OOOH SHIT', a car with no parts) loads straight into "YOU ARE UNCONCIOUS", and a fresh profile shows a
 "REMEMBER, USE THE SAVE BOOKMARK BUTTON" dialog after ACCEPT SALVAGE. Details: [OVERNIGHT-2026-10-11.md](OVERNIGHT-2026-10-11.md).
 Still not covered: best-wide / balanced on this exe, the real GOG installer run (UAC, registry), Nitro, music by ear, a save.
+
+## Promotion 16 parity (2026-10-12, offline, game not started)
+
+Goal: a fresh install (`Setup-From-GOG.ps1` -> `install.ps1` -> `setup-windows.ps1`) gives the daily driver's state after
+promotion 16 (golden `PROMOTIONS.md` row 16; the 24 files of `tools\promote-17-collision-g.ps1`), except for the
+display-dependent digits and the driver's portable layout (its launchers sit one level up).
+
+### Changes
+
+| what | before | now |
+|---|---|---|
+| `music-fix\Strlkup.dll` (what every install deploys) | `c11f7f7d` (274,944 B, promotion 15) | **`509c6df0`** (292,864 B) = lab `builds\terrain-probe-20261012\STRLKUP-drawprobe-v2tel.dll`, verified byte-equal (md5 and `cmp`) to the driver's `STRLKUP.DLL` before the copy. No installer pins the proxy's md5: `setup-windows.ps1` hashes the repo file and writes `strlkup-proxy-build.txt` from it; only the historical `tools\promote-16-cursor-map.ps1` still names `c11f7f7d` (applied, not re-run). `music-fix\README.md` says which source it is (not this folder's `strlkproxy.c`). |
+| `presets\best-wide.psd1` / `best-wide-balanced.psd1` / `best-120.psd1` | `8de71421` / `a2191719` / `3c12c8d0` | the driver's `e1a9bd26` / `75881df4` / `df936278` (collision G: `I76_COLL_DEDUPE=1`, `I76_COLL_WINDOW=2`, `_WHEN=stepframe`, `I76_BREAKABLE_BOX=1`; `I76_ROAD_DIST` 1800 / 1200 / 1800; stretched_ar comments) |
+| `tools\Make-Wide-Conf.ps1` | derived the wide conf from the installed 16:10 conf: `ScalingMode = stretched`, `CaptureMouse = false`, `[Glide]` = display shape at 2160 lines (5160x2160 = `ac0ecdeb`) | writes **`tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf`** (`dccd379a`: borderless windowed, `stretched_ar`, 4x, TMU 8192) with only the Resolution digits changed: `[Glide]` = **2x the display per axis**, each side capped at 8192 (one smaller factor on both axes when the cap bites, so the target keeps the window's shape), even; `[DirectX]` = the folder's `dgVoodoo.16x10.conf` line (template's 1680x1050 if none). `-Scale` / `-MaxSide` / `-Template` override. Output checked to equal the template apart from those digits. |
+| `setup-windows.ps1` | no debug tool | base game: `_tools\debug` (8 files), `_tools\trainer` (5), `_tools\telemetry` (3) and `DEBUG.bat` + `TRAINER.bat` (`tools\driver`) into the game folder, in the driver's relative layout, so the two .bat files are the driver's byte for byte. Header and closing summary: stretched_ar 2x, menus 4:3. The 16:10 conf path is unchanged. |
+| `tools\Make-Daily-Driver.ps1` | no wide layout; `-File` launch died | `-WideConf <conf>`: `dgVoodoo.wide.conf` + `-DgVoodooConf` kept as `dgVoodoo.16x10.conf`, the driver's `PLAY.bat` (wide conf first), `PLAY-16x10.bat`, `PLAY-stock.bat` (16:10 conf first) and `PLAY-balanced.bat` (`tools\driver`). Found while testing: in Windows PowerShell 5.1 an advanced script started with `powershell -File` sees an empty `$PSScriptRoot` in its param block, so `Make-Daily-Driver.ps1` (and the new `Make-Wide-Conf.ps1` default) died in `Join-Path` before doing anything; the defaults are now set in the body. (`setup-windows.ps1` calls `Make-Wide-Conf.ps1` with `&`, which was never affected.) |
+| `Setup-From-GOG.ps1`, `install.ps1`, `INSTALL.md` | "menus stay stretched" | 2x the display, stretched_ar, menus and movies 4:3; INSTALL.md step 9 + widescreen paragraph list the debug tool |
+
+### Run
+
+Same input and offline switches as above (copy of `i76-map\sandbox-gog\main\app`, 371 files, `i76.exe` `9a232dcc`; zero-byte
+dummy `-GogExe`; `-ToolsDir` = scratch copy of `C:\Games\_tools\dgVoodoo2_87_3` + `AutoHotkey_1.1.37.02`; `-SkipNitro -NoShortcut -Yes`),
+scratch `%TEMP%\i76-p16-parity-20261012` (deleted afterwards). Run twice: once before two summary-line edits and the
+`Make-Daily-Driver.ps1` fixes, then again on clean copies with the committed code; the numbers below are the second run.
+
+| folder | switches | verifier | wide conf `[Glide]` / `[DirectX]` |
+|---|---|---|---|
+| W-wide | `-Preset best-wide -Display 3440x1440` | 35/35 | 6880x2880 / 1680x1050 = driver `dccd379a` |
+| D-balanced | `-Preset best-wide-balanced -Display 3440x1440` | 35/35 | same |
+| A-default | `-Display 3440x1440` (best-120) | 31/31 | none (16:10 only) |
+| X-5120 | `-Preset best-wide -Display 5120x1440` | 34/34 | **8192x2304** (cap: factor 1.6 both axes) / 1680x1050 |
+| Y-2560 | `-Preset best-wide -Display 2560x1080` | 34/34 | 5120x2160 / 1680x1050 (16:10 conf 3456x2160) |
+| E-stock | `-Preset stock -Display 3440x1440` | 30/30 | none; `dgVoodoo.windows.conf` |
+
+Byte-equal to the driver's files (read only) at 3440x1440 (W, D): `dgVoodoo.wide.conf` (`dccd379a`, and `dgVoodoo.conf` = it),
+`dgVoodoo.16x10.conf` (`299a6811`), the three presets (`e1a9bd26` / `75881df4` / `df936278`), `PLAY-i76.ps1` (`2020e2bf`),
+`Strlkup.dll` (`509c6df0`; `strlkup-proxy-build.txt` = `509c6df0... 292864`), `DEBUG.bat` (`5edbe1b9`), `TRAINER.bat`
+(`c5708eed`) and all 16 `_tools\debug|trainer|telemetry` files. A: the same minus the wide conf. X and Y: the wide conf equals the
+driver's except the Resolution digits, the two wide presets equal the driver's except `I76_ASPECT` / `I76_U32X_MENU_ASPECT`, the
+16:10 conf (Y) except Resolution. Every folder: 13 presets = repo (aspect values aside), `strlkup_orig.dll` GOG's `e5951e0f`, u32x
+`06467bd2`, GOG files changed only where intended (`i76.exe`, `i76shell.dll`, `STRLKUP.DLL`, `input.map`, `glide.dll`,
+`glide2x.dll`; `glide2x.ovl` moved), PLAY*.bat set as before, lint OK. All six exited 0 with one `=== DONE ===`.
+
+`-DryRun` of every installed PLAY*.bat (its own preset), all exit 0, no REFUSED / WARNING / "not found":
+best-wide 32 `I76_*` variables with `I76_ROAD_DIST=1800` and `I76_COLL_WINDOW=2`; balanced 32 with 1200; best-120 (PLAY-16x10.bat,
+A's PLAY-i76.bat) 19 with 1800; stock 0. Each preset run printed `Strlkup.dll is the build the setup deployed (292864 B md5 509c6df0)`.
+
+Idempotence: setup run again on W: 444 files before and after, only `i76e-controls.txt` (time stamp) changed.
+`Make-Wide-Conf.ps1` alone (`powershell -File`, `-WhatIf`): 3840x2160 -> 7680x4320; 1600x1200 refused (exit 1, not wider than 4:3).
+
+`Make-Daily-Driver.ps1 -Source <W's root> -Dest <scratch> -DgVoodooConf tools\conf\dgVoodoo.daily-16x10-2026-10-03.conf
+-WideConf tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf -Preset best-wide -NoLosslessScaling`: exit 0, source unchanged, and
+`PLAY.bat` (`a9fb79e5`), `PLAY-16x10.bat` (`f7654ea1`), `PLAY-balanced.bat`, `PLAY-stock.bat` (`deb32cb2`), `DEBUG.bat`, `TRAINER.bat`,
+`SAVE-EDITOR.bat`, both confs, the proxy, the launcher, the three presets and the 16 `_tools` files are the driver's byte for byte.
+(The driver's `_tools\lint-input-map.py` is an older copy than the repo's; not part of promotion 16.)
+
+`python -m pytest tests`: 241 passed, 4 skipped; `tests\test_presets.py`: 20 passed. Unchanged before/after (file count, bytes,
+newest time): the source tree (`i76.exe` `9a232dcc`), `C:\Games\_tools`, the daily driver, the golden copy; no desktop shortcut, no
+GOG installer log. No game process was started.
+
+Not covered: a boot of any of this (the promotion 16 gate ran on the lab twin, the AiO exe); `9a232dcc` with the 2x stretched_ar
+conf and collision G; any display other than 3440x1440 in play (X / Y digits are computed); the Nitro Pack path (unchanged).
