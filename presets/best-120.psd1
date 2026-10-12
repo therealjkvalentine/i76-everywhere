@@ -31,6 +31,7 @@
         I76_FIX_HEALTH_PCT  = '1'
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1800'
+        I76_ROAD_DIST       = '1800'   # road segments drawn to 1800 m like the far clip (stock 450; owner 2026-10-12: 'road at 1800 seems to run fine'; the 2026-10-03 t11 crash was the node pool, fixed by I76_ROAD_POOL since promotion 8)
         I76_CAM_GROUND_FIX  = '1'   # terrain kept when the eye dips under the ground (stock skips ALL terrain that frame = the terrain-to-sky flash; lab RENDER-FREEZE-2026-10-04.md s.9)
         I76_AI_BACKAWAY_GRID = '1'   # AI back_away stuck test on the 20 Hz grid, not 4 rendered frames: T12 opening 5/5 as vanilla (lab 2026-10-04 milk-truck doc s7-9)
         I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) presses survive frames without a physics step (lab 2026-10-04: 50/50 vs 13/50)
@@ -38,7 +39,10 @@
         I76_GLIDE_REFRESH   = '120'
         # no data yet (2026-10-03: the ram test could not stage its rams; no AI car entered the roll behaviour):
         # count only, behave as played on 2026-10-02
-        I76_COLL_DEDUPE     = '0'
+        I76_COLL_DEDUPE     = '1'   # one impact = one sound / damage per physics step (collision G, lab COLL-TIMING-2026-10-12.md)
+        I76_COLL_WINDOW     = '2'   # contacts accepted over the whole physics step: barricades and signs hit at 120 fps (control: about 1 in 3)
+        I76_COLL_WINDOW_WHEN = 'stepframe'   # ... only on the frame whose step moves the car: no fly-off before the bumper gets there
+        I76_BREAKABLE_BOX   = '1'   # the 8 m barricade bar collides as the bar, not as a 3 m sphere reaching out in front of it
         I76_AI_ROLL_HOLD    = '0'
     }
 }
