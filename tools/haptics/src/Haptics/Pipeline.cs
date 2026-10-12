@@ -83,12 +83,15 @@ namespace Haptics
         /// <summary>Real-time runs: per-update lateness, slack, stage times and GCs (B4 instrumentation).</summary>
         public LoopStats Stats;
         public Action<CoreStep> OnStep;
+        /// <summary>--debug-udp: the debug publisher (DebugPublisher.Attach sets it); null = off, one test per update.</summary>
+        public DebugPublisher Debug;
 
         void Emit(CoreStep s)
         {
             Updates++;
-            if (Stats == null) { foreach (var r in Renderers) r.Render(s); OnStep?.Invoke(s); return; }
+            if (Stats == null) { foreach (var r in Renderers) r.Render(s); Debug?.Observe(s); OnStep?.Invoke(s); return; }
             for (int i = 0; i < Renderers.Count; i++) { Renderers[i].Render(s); Stats.Mark(2 + i); }
+            Debug?.Observe(s);
             OnStep?.Invoke(s); Stats.Mark(2 + Renderers.Count);
         }
 

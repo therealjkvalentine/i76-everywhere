@@ -30,6 +30,11 @@ tools\haptics\haptics.ps1 motion braking --targets flypt --send   # ... to FlyPT
 python tools\haptics\design\report.py                            # the design facility report (design/out/report/index.html)
 ```
 
+**Watching it run:** add `--debug-udp` to `live`, `replay` or `motion` and open I76 Debug (`tools\debug\DEBUG.bat --tee 17676`,
+then `live --source udp --port 17676 --debug-udp`): the bus, every effect's wheel / pad / shaker contribution, the pad motors,
+the shaker level and spectrum, the stems playing and the motion channels, status word and packet rates, live in a browser
+(`src/Haptics/DebugPublisher.cs`; loopback 127.0.0.1:17680, at most 60 datagrams per second; off by default, zero cost when off).
+
 The host binary is `src\Host\bin\Release\net8.0\i76haptics.exe` (`haptics.ps1` builds it on first use; .NET 8 SDK,
 no NuGet packages). `haptics.ps1 help` lists every command.
 

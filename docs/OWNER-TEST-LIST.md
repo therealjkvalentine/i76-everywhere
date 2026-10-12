@@ -286,3 +286,18 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       Ctrl+Alt+C hides it.
     - Kill criteria: a crash or a `draw-probe: NOT applied` line in the log (report it), or the fps clearly lower than
       in `TEST-hill-G-stepframe-barbox` (the census adds a call per ground polygon).
+## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
+
+33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
+    old size). Start the lab game with `I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76_DAMAGE_EVENTS=1`, then `tools\debug\DEBUG.bat --tee 17676`
+    and, in a second console, `tools\haptics\haptics.ps1 live --source udp --port 17676 --debug-udp` (files only; add `--live` only
+    if you want the devices). Drive t01 or t05 for a few minutes: shoot, ram something, get shot, jump. Look at each tab once:
+    Overview (fps, steps per frame, proxy DLL md5, the switch list matches the bat you launched), Telemetry (charts move with the
+    car, the map trail follows you), Events (your shots per weapon, damage on the right side of the car diagram), Force feedback /
+    Rumble / LFE / Motion (move with the haptics host running, say "No haptics host data" without it), Collision and Terrain (the
+    30 s coll-window counters and any TERRAIN-DROP / camera-lift lines appear within a minute when the bat sets those switches),
+    Log (filters). Trainer tab (sandbox): Repair now and the **T05 hill top** preset in t05 (lands on the crest above the
+    barricades; turn west yourself, the teleport keeps your heading), one hold on and off. `TRAINER.bat` must open the same page
+    on the Trainer tab; `TRAINER.bat --classic` is the old window. Report: anything empty that should not be, anything wrong,
+    anything slow (the page redraws at about 15 Hz; the game's fps must not drop with the dashboard open - compare the Overview
+    fps with the tab closed vs open, n = 2 each). Offline-tested only: tools\debug\README.md "Not verified yet".

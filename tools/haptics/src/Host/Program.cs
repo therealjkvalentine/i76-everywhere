@@ -36,6 +36,10 @@ namespace Haptics.Host
   play <FILE.i76rec | synthetic> [--port 7676] [--repeats N]   send a recording's datagrams to 127.0.0.1:PORT at their
          recorded times (stands in for the game when testing `live`; loopback only, prints the sender's own pacing)
   decode <FILE.i76rec> [--events]                 summary of a recording: versions, frames, events
+
+  --debug-udp [PORT | 127.0.0.1:PORT] [--debug-hz 60]   (replay, live, motion) also publish the bus, every effect
+         contribution and the wheel / pad / shaker / motion outputs as compact JSON datagrams to loopback (default
+         127.0.0.1:17680, <= 60 per second of core time) for tools/debug (I76 Debug). Off = nothing created.
   lint                                            effect/rig lints (HAPTICS-ARCHITECTURE 2.2)
   tune                                            the reference model's tune as read from effects/ + rigs/
   devices                                         audio output names (enumeration only, nothing is opened)
@@ -105,6 +109,17 @@ namespace Haptics.Host
             if (a.Has("--live")) Console.WriteLine("--live: real devices WILL be opened (wheel force, pad motors, shaker audio).");
         }
 
+        /// <summary>--debug-udp: the debug publisher on a built pipeline (null when the flag is absent: zero cost).</summary>
+        static DebugPublisher DebugPub(Args a, Pipeline p, string src)
+        {
+            if (!a.Has("--debug-udp")) return null;
+            var d = DebugPublisher.FromSpec(a.Get("--debug-udp"), a.Num("--debug-hz", 60));
+            d.Source = src;
+            d.Attach(p);
+            Console.WriteLine("  debug-udp: publishing to " + d.Endpoint + " (I76 Debug, tools/debug)");
+            return d;
+        }
+
         static int Replay(string input, Args a)
         {
             Guard(a);
@@ -120,6 +135,7 @@ namespace Haptics.Host
             foreach (var s in a.List("--mute")) p.Core.Mute.Add(s);
             p.RealTime = a.Has("--realtime");
             p.Rt = RtOptions.Parse(a.Get("--rt"));
+            using var dbg = DebugPub(a, p, "replay");
             var derive = new Derive(); p.Core.Configure(derive);
             var evLog = new StreamWriter(Path.Combine(outDir, tag + ".events.log"));
             int nev = 0;
@@ -132,6 +148,7 @@ namespace Haptics.Host
             Console.WriteLine("replayed {0}: {1} frames, {2} core updates ({3}), {4} events, {5:0.0} s wall",
                 input, p.Frames, p.Updates, coreHz > 0 ? coreHz + " Hz" : "one per frame", nev, (DateTime.UtcNow - t0).TotalSeconds);
             foreach (var r in p.Renderers) Console.WriteLine("  " + r.Summary());
+            if (dbg != null) Console.WriteLine("  " + dbg.Summary());
             Console.WriteLine("  events -> " + Path.Combine(outDir, tag + ".events.log"));
             if (p.RealTime)
             {
@@ -166,6 +183,7 @@ namespace Haptics.Host
             var mr = new MotionUdpRenderer();
             mr.Open(new RendererContext { OutputName = "motion_udp", Config = cfg, Rig = set.Rig, Effects = set, Tune = p.Core.Mixer.Tune, OutDir = outDir, Tag = tag, CoreHz = coreHz });
             p.Renderers.Add(mr);
+            using var dbg = DebugPub(a, p, "motion");
             p.RealTime = (send && !a.Has("--fast")) || a.Has("--realtime");
             p.Rt = RtOptions.Parse(a.Get("--rt"));
             var derive = new Derive(); p.Core.Configure(derive);
@@ -177,6 +195,7 @@ namespace Haptics.Host
             foreach (var r in p.Renderers) r.Close();
             Console.WriteLine("motion {0}: {1} frames, {2:0.0} s wall", input, p.Frames, (DateTime.UtcNow - t0).TotalSeconds);
             Console.WriteLine("  " + mr.Summary());
+            if (dbg != null) Console.WriteLine("  " + dbg.Summary());
             foreach (var (tg, kind, path) in mr.Logs) Console.WriteLine("  log {0} {1} -> {2}", tg, kind, path);
             return 0;
         }
@@ -291,6 +310,7 @@ namespace Haptics.Host
             var set = LoadSet(a);
             var outDir = OutDir(a, "live");
             var p = Session.Build(set, a.List("--sinks", "wheel-file,pad-file,lfe-wav,motion-file"), outDir, "live", a.Has("--live"), 250, hostClock: true);
+            using var dbg = DebugPub(a, p, "live");
             var derive = new Derive(); p.Core.Configure(derive);
             var codec = TelCodec.Default();
             bool shm = a.Get("--source", "udp") == "shm";
@@ -374,6 +394,7 @@ namespace Haptics.Host
                         var step = p.Core.Step(new Derive.Result { Sample = s, State = last.State, Vars = last.Vars }, pending, t);
                         stats.Mark(1);
                         for (int i = 0; i < p.Renderers.Count; i++) { p.Renderers[i].Render(step); stats.Mark(2 + i); }
+                        dbg?.Observe(step);
                         pending = new List<HapticEvent>();
                         if (s.Shift != 0 || last.Sample.FxFired != null) { last.Sample.Shift = 0; last.Sample.FxFired = null; }
                     }
@@ -390,6 +411,7 @@ namespace Haptics.Host
             Console.WriteLine("live: {0} frames; loop {1}", frames, report.Replace(Environment.NewLine, Environment.NewLine + "  ").TrimEnd());
             File.WriteAllText(Path.Combine(outDir, "live.deadlines.txt"), report);
             foreach (var r in p.Renderers) Console.WriteLine("  " + r.Summary());
+            if (dbg != null) Console.WriteLine("  " + dbg.Summary());
             return 0;
         }
 
