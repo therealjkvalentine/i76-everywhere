@@ -310,6 +310,38 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       - `terrain-hull-fix: NOT applied` in the log;
       - ground missing in a place where it showed before (a patch culled that should not be).
     - **Verdict.** If it holds, the fix is a candidate for the next promotion, as one key in best-wide.
+
+## Signs that won't fall: the Texas 13 shields (lab twin game-dd-20261003; lab docs/SIGN-FIX-2-2026-10-12.md)
+
+35. **Sign fix 2: does every sign go down at the first ram? (new 2026-10-12, replaces the H test.)**
+    - **Which signs.** The Texas state shields are `sh13n` / `sh13s` ("13", NORTH / SOUTH). Two stand at the crossroads
+      at the foot of the hill: 65 m up the north road and 70 m down the south road. Two more are further up the north
+      road. They are the same sign as the US 380 shields in every number.
+    - **Why H did nothing for them.** H changed only how hard a hit the game *notices* counts. Your H session logged
+      9 noticed hits (one sign at the foot of the hill and 8 barricade bars), none at a Texas sign. The game had not
+      registered those rams at all.
+    - **Console result** (lab twin, straight rams at 20 m/s with a few degrees and up to 0.6 m of aim jitter;
+      n = 12 Texas + 21 US 380 per condition):
+      - 24 fps stock-like: 5 of 33 knocked over;
+      - G: 5 of 33;
+      - H: 4 of 33;
+      - the fix: **33 of 33** (12/12 Texas, 21/21 US 380; p < 1e-12 against 24 fps).
+    - **The fix.** `I76_BREAKABLE_BOX=3` is G plus a check of what you see. A sign post that your car's body drives
+      through without the game having hit it is scored the game's own way: above walking pace it falls, a nudge stays
+      a nudge. Only your car, only breakable posts (barricade bars, buildings, cars unchanged).
+    - **Twin proxy.** The twin's proxy is now `df7b3b0b` (the terrain-fix build plus this). Every launcher except the
+      new one behaves as before, `TEST-hill-terrainfix*` included.
+    - **What to do.** Play `TEST-hill-signs2.bat`. Drive down the hill, turn at the crossroads, ram the two Texas 13
+      shields, then any other signs (the US 380 shields on the road to the north, the speed-limit and construction
+      signs). Try straight rams and sliding ones.
+    - **Normal log lines.** In the twin's `Interstate 76\mciproxy.log`, `sign-sweep: ... scored` lines name each post
+      the game itself missed. The summary line counts post entries against the ones the game hit.
+    - **Kill criteria:**
+      - a crash;
+      - `sign-sweep: fault` in the log;
+      - a sign falling when you clearly passed beside it (more than about a car's width away);
+      - anything that is not a sign post breaking or behaving differently from PLAY.bat.
+    - **Verdict.** If it holds, `I76_BREAKABLE_BOX=3` replaces `=1` in best-wide at the next promotion.
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
