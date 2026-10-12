@@ -286,6 +286,30 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       Ctrl+Alt+C hides it.
     - Kill criteria: a crash or a `draw-probe: NOT applied` line in the log (report it), or the fps clearly lower than
       in `TEST-hill-G-stepframe-barbox` (the census adds a call per ground polygon).
+34. **The terrain fix: does the ground stay? (new 2026-10-12, replaces item 32.)**
+    - **Cause, found at the console.** In some cockpit poses the game builds the outline of the ground the view can
+      see without the eye inside it. Every terrain patch near the car is then culled for that frame, and the sky
+      shows through. It happened 4-5 times per descent in cockpit view and never in chase view.
+    - **The fix.** `I76_TERRAIN_HULL_FIX=1` rebuilds that outline correctly.
+    - **Console result** (n = 5 each, lab doc s.10-11):
+      - cockpit without the fix: 16 losses in 5 descents;
+      - with the fix: 0;
+      - regression boots t01 and t11: in mission, no crash, frame times as before.
+    - **Twin proxy.** The twin's proxy is now `a6a35e52`. The other launchers are unaffected, because both switches are
+      off unless a launcher sets them.
+    - **What to do.** Play `TEST-hill-terrainfix-play.bat` (the fix only, full speed). Drive down the hill in cockpit
+      view, 3-5 runs, as when you saw the drop-out. Then one run of `TEST-hill-terrainfix.bat` (the same with the
+      counters).
+    - **If the ground still vanishes:**
+      - note the clock time;
+      - the twin's `Interstate 76\mciproxy.log` then shows a `draw-probe: TERRAIN-LOSS` line, which means something
+        else is dropping it; report that line.
+    - **Normal log lines.** `terrain-hull-fix: event` lines are frames the fix repaired.
+    - **Kill criteria:**
+      - a crash;
+      - `terrain-hull-fix: NOT applied` in the log;
+      - ground missing in a place where it showed before (a patch culled that should not be).
+    - **Verdict.** If it holds, the fix is a candidate for the next promotion, as one key in best-wide.
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
