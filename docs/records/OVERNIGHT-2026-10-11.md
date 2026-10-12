@@ -191,3 +191,43 @@ inside an aside / md5 restore), `lib\end-shot.py` (screenshots when a drive's mi
 5. Not changed tonight: the daily driver, the golden copy, committed binaries (`music-fix\Strlkup.dll` read back
    `c11f7f7d` after every phase), the owner's running programs. Every lab folder a phase touched was restored
    (manifest diffs PASS; the sandbox's `mciproxy.log` only grows and is no longer counted as a difference).
+
+## Follow-up 2026-10-12: the t04 "death spot" is a stock terrain rollover, not the window
+
+Lab report: `i76-uncap-lab\docs\COLL-WINDOW-DEATH-SPOT-2026-10-11.md`. Unattended console work under the lock; audio
+muted; the twin restored after every job (manifest, 0 differences, `STRLKUP.DLL` still `a5b46fb8`); `music-fix\Strlkup.dll`
+read back `c11f7f7d` after the rams.
+
+**What is at the spot.** No object: the nearest ODEF is a race-track wall (`bcstrak6`) 38 m away, and no collision-pass
+partner appears in the player's contact record in any of the 48 drive passes or the repro rollovers. The circle's line
+crosses the end of a flattened 9.70 m strip at z ~50355. Past it the ground rises to the left and falls to the right,
+about 2.4 m across 4 m (~30 degrees). The car either lifts on the left wheels (vy +8 to 9) or strikes the bank with its
+front-left hull corner (a terrain record, speed -7.5 m/s). It then rolls right; on its roof, the game destroys it once it
+stops (god mode does not prevent that).
+
+**Repro** (trainer-placed standing starts on the same line, full throttle, 27.0-27.7 m/s at the lip; a car past its side
+is counted and set upright):
+
+| condition | rolled past the side |
+|---|---|
+| control | 4/18 |
+| `I76_FPS_CAP=24` (stock-like collision) | 5/18 |
+| w2 | 2/16 |
+| w2 slab-only | 5/18 |
+| w2 mesh-only | 3/15 |
+
+- Every condition against control: Fisher p >= 0.66.
+- None of the flips had a collision-pass contact.
+- A crossing 0.5 m or more right of the line rolls 14 times in 26; the 24 fps reference rolls 5 of 6 there.
+
+The overnight 5/24 vs 0/24 fits chance at a roughly 1-in-10 hazard, with the spot chosen after the fact.
+
+**`I76_COLL_WINDOW=3`** (proxy source, this commit series) is COLLISION-MISS s.6.5: the slab accept is widened only for
+sphere parts of class 4 / 0x5a / 0x5b, the classes a vehicle discards.
+- Side build `1ac71b1c`: T05 rams 21/21 vs pooled control 9/43 (p 3.5e-10, A/A p 1.0).
+- t04 repro: rolls like the control.
+- Not staged and not recommended. It gives up the car-vs-car / scenery widening, and there is nothing at the spot to fix.
+
+**Recommendation.** The t04 spot no longer blocks promoting `I76_COLL_WINDOW=2` + `I76_COLL_DEDUPE=1` (rams 21/21, gate
+21/0). Owner item 3 stands as written. Expect the rollover at the end of the flat strip about 250 m along t04's first
+circle with or without the window.

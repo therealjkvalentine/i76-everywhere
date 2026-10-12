@@ -3614,13 +3614,70 @@ static float __cdecl coll_dt(void) {
  * runs: its one call (WinMain 0x403a12; no arguments, plain ret, ebx is callee-saved) is wrapped to set a flag.
  * Repeated contacts on frames with no step: pair with I76_COLL_DEDUPE=1. */
 static volatile int g_in_coll_pass;
+static int g_coll_v3;
+static void coll_v3_report(void);
 static void __cdecl coll_pass_wrap(void) {
     g_in_coll_pass = 1;
     ((void (__cdecl *)(void))0x004349c0)();
     g_in_coll_pass = 0;
+    if (g_coll_v3) coll_v3_report();
 }
 static float __cdecl coll_dt_gated(void) {
     return g_in_coll_pass ? coll_dt() : *(volatile float *)0x004fe420;
+}
+/* I76_COLL_WINDOW=3 (2026-10-11, lab docs/COLL-WINDOW-DEATH-SPOT-2026-10-11.md; proposal: COLLISION-MISS-2026-10-08.md
+ * s.6.5): =2 widened every slab-test accept (box-box points, scenery boxes, spheres) and the mesh accept. =3 widens ONLY
+ * the slab accept reached from the sphere test 0x440d90 (call 0x43df10 at 0x440f37) when the sphere's part node is of
+ * class 4 / 0x5a / 0x5b - the set entity_CollideStoreContact 0x4643c0 discards (0x458c30): a vehicle never copies such
+ * a contact into entity+0x38 and takes no damage or impulse from it, so a widened contact cannot change any vehicle's
+ * motion; what remains is the knock-off of the breakable (swend_1 barricades: class 4, default part kind 0x5000 =
+ * sphere 0.75 r). Box-box (car vs car, scenery boxes), scenery meshes and non-breakable spheres keep the stock accept.
+ * Patches: the =1 sweep reads (the pair must still pass the broadphase and the prefilters), the 0x403a12 pass flag, the
+ * 0x440f37 call (thunk: node = 0x440d90's arg 2 = [esp+0x124] at the call - 0x440ded reads arg 2 as [esp+0xe8] in a
+ * 0xe0 frame, plus 0x3c of pushes; the walker 0x43f8c0 passes ebp = the node, ebp+0x64 its first child), and 0x43e1c8. */
+static volatile int g_sph_discard;
+static DWORD g_sph_ret, g_sph_slab = 0x0043df10;
+static volatile DWORD g_sph_calls, g_sph_wide, g_sph_cls[128], g_sph_cls_other;
+static void __cdecl sph_classify(BYTE *node) {
+    int c = -1;
+#ifdef _MSC_VER
+    __try { if (node) c = *(int *)(node + 0x6c); } __except (EXCEPTION_EXECUTE_HANDLER) { c = -2; }
+#else
+    if (node) c = *(int *)(node + 0x6c);
+#endif
+    g_sph_calls++;
+    if (c >= 0 && c < 128) g_sph_cls[c]++; else g_sph_cls_other++;
+    g_sph_discard = g_in_coll_pass && (c == 4 || c == 0x5a || c == 0x5b);
+    if (g_sph_discard) g_sph_wide++;
+}
+#ifdef _MSC_VER
+static __declspec(naked) void sph_slab_thunk(void) {          /* replaces `call 0x43df10` at 0x440f37 (cdecl, 0x3c of args) */
+    __asm {
+        pop  g_sph_ret                          /* 0x440f3c; esp is now the call's: the slab test's arguments at [esp] */
+        pushad
+        push dword ptr [esp + 0x144]            /* 0x440d90's arg 2 (the part node): [esp+0x124] + 0x20 of pushad */
+        call sph_classify
+        add  esp, 4
+        popad
+        call dword ptr [g_sph_slab]             /* the slab test, same arguments, same registers */
+        mov  g_sph_discard, 0
+        push g_sph_ret
+        ret
+    }
+}
+#endif
+static float __cdecl coll_dt_v3(void) {                      /* the slab accept 0x43e1c8 under =3 */
+    return (g_in_coll_pass && g_sph_discard) ? coll_dt() : *(volatile float *)0x004fe420;
+}
+static void coll_v3_report(void) {                           /* from the pass wrapper: one line per 30 s while it changes */
+    static DWORD last_frame, last_calls;
+    if (g_frame - last_frame < 3600 || g_sph_calls == last_calls) return;
+    {   char b[256]; int i, n = 0;
+        last_frame = g_frame; last_calls = g_sph_calls;
+        for (i = 0; i < 128 && n < 200; i++) if (g_sph_cls[i]) n += wsprintfA(b + n, " %x:%lu", i, g_sph_cls[i]);
+        mlog("  coll-window v3: sphere->slab tests %lu, widened (class 4/5a/5b, in the pass) %lu; part classes seen:%s other %lu",
+             g_sph_calls, g_sph_wide, n ? b : " -", g_sph_cls_other);
+    }
 }
 static void apply_coll_window(void) {
     static const struct { DWORD site; BYTE old[5]; const char *what; } s[3] = {
@@ -3654,6 +3711,25 @@ static void apply_coll_window(void) {
             }
             mlog("  coll-window v2: %d patched (pass flag + accept tests, sites mask %d: 1 slab 0x43e1c8, 2 mesh 0x43ec6a)", m, mask);
         }
+#ifdef _MSC_VER
+        else if (k == 1 && v[0] == '3') {
+            static const struct { DWORD site; BYTE old[5]; void *fn; const char *what; } t3[3] = {
+                { 0x00403a12, { 0xE8, 0xA9, 0x0F, 0x03, 0x00 }, (void *)coll_pass_wrap, "collision pass flag (WinMain -> 0x4349c0)" },
+                { 0x00440f37, { 0xE8, 0xD4, 0xCF, 0xFF, 0xFF }, (void *)sph_slab_thunk, "sphere test -> slab test (part class probe)" },
+                { 0x0043e1c8, { 0xE8, 0xD3, 0xE5, 0x05, 0x00 }, (void *)coll_dt_v3,     "collision accept dt (slab test, breakable spheres only)" },
+            };
+            int m = 0;
+            for (i = 0; i < 3; i++) {
+                BYTE w[5] = { 0xE8 };
+                LONG rel = (LONG)((DWORD_PTR)t3[i].fn - (t3[i].site + 5)); memcpy(w + 1, &rel, 4);
+                if (i > 0 && m == 0) break;                 /* no flag: nothing is gated, leave the rest stock */
+                m += patch_bytes(t3[i].site, t3[i].old, w, 5, t3[i].what);
+            }
+            g_coll_v3 = (m == 3);
+            mlog("  coll-window v3: %d/3 patched (pass flag, sphere->slab probe 0x440f37, slab accept 0x43e1c8 widened only for "
+                 "sphere parts of class 4 / 0x5a / 0x5b; mesh 0x43ec6a and box-box stock)", m);
+        }
+#endif
     }
 }
 
