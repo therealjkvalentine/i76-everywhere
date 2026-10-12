@@ -89,7 +89,8 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    mouse-wheel helper (wheel up = cycle weapon, wheel down = hardpoint 5).
 9. Copies the launcher (`PLAY-i76.ps1`) and `presets\*.psd1`, writes **`PLAY-i76.bat`**
    (`-Preset best-120`) and **`PLAY-stock.bat`** (`-Preset stock`) in the game folder, and makes a
-   **desktop shortcut** ("Interstate '76") to `PLAY-i76.bat`.
+   **desktop shortcut** ("Interstate '76") to `PLAY-i76.bat`. Base game: also **`DEBUG.bat`** /
+   **`TRAINER.bat`** and I76 Debug in `_tools\` (the daily driver's, promotion 16; Python 3 needed).
 10. Copies the repo's **mission bookmarks** (`saves\save*.cmp` + `savegame.dir`: 13 bookmarks of a Mac campaign
    run, [saves/README.md](saves/README.md)) into the game folder, **only if it has no `save*.cmp` yet**.
 
@@ -123,19 +124,25 @@ no other preset has been tested between two machines.
 **Widescreen (opt-in): `-Preset best-wide`.** The owner's daily driver has run this since 2026-10-03: the
 camera widened to the display's shape (Hor+, `I76_ASPECT`), plus terrain, texture, object, shadow, road,
 bush and mirror detail farther out ([presets/best-wide.psd1](presets/best-wide.psd1)). It is not the
-default because it has only been played on one display, a 3440x1440 panel. On that run the setup
-derives `dgVoodoo.wide.conf` from the installed 16:10 conf with
-[tools/Make-Wide-Conf.ps1](tools/Make-Wide-Conf.ps1). Two lines change: `[General] ScalingMode = stretched`
-and `[Glide] Resolution` = the display's shape at 2160 lines (5160x2160 on 3440x1440, byte-identical to
-the daily driver's conf). The script also writes the display's width x height into the installed copy of
-`presets\best-wide.psd1`: `I76_ASPECT` and the Esc-menu mouse map `I76_U32X_MENU_ASPECT`, which the repo
-copy sets to 3440x1440. `PLAY-i76.bat` copies the wide conf in before each start. **`PLAY-16x10.bat`**
-copies the 16:10 conf back and starts `best-120`. Known cost: the menus, cutscenes and in-mission text stay
-stretched to the display's shape ([docs/ENHANCEMENTS.md](docs/ENHANCEMENTS.md#5-graphics)). The setup
-refuses `best-wide` on a display that is not wider than 4:3. For another display later, run
-`tools\Make-Wide-Conf.ps1 -GameDir <game>` again. Tested offline only (2026-10-03, scratch copy, game not
-started): 3440x1440 gave the daily driver's conf and preset byte for byte; 2560x1080 gave 5120x2160 and
-`2560x1080` / `2560:1080`, both read back by `PLAY-i76.ps1 -DryRun`; a 4:3 display was refused.
+default because it has only been played on one display, a 3440x1440 panel. The setup writes
+`dgVoodoo.wide.conf` with [tools/Make-Wide-Conf.ps1](tools/Make-Wide-Conf.ps1): since promotion 16 (2026-10-12)
+that is the daily driver's wide conf, `tools/conf/dgVoodoo.daily-wide-ss2x-2026-10-12.conf` (windowed borderless,
+`[General] ScalingMode = stretched_ar`, `CaptureMouse = false`, 4x MSAA, TMU 8192), with only the digits of
+`[Glide] Resolution` = **2x the display per axis** (a real 2x2 supersample; each side capped at 8192, the same
+smaller factor on both axes if the cap bites) and `[DirectX] Resolution` = the 16:10 conf's. On 3440x1440 that is
+6880x2880 / 1680x1050, the daily driver's conf byte for byte. The script also writes the display's width x height
+into the installed copies of `presetsest-wide.psd1` and `best-wide-balanced.psd1`: `I76_ASPECT` and the Esc-menu
+mouse map `I76_U32X_MENU_ASPECT`, which the repo copies set to 3440x1440. `PLAY-i76.bat` (and `PLAY-balanced.bat`)
+copy the wide conf in before each start. **`PLAY-16x10.bat`** copies the 16:10 conf back and starts `best-120`.
+The 640x480 menus, garage, save screen and movies are shown 4:3 with side bars (stretched_ar), not stretched
+sideways as before 2026-10-12. The setup refuses `best-wide` on a display that is not wider than 4:3. For another
+display later, run `tools\Make-Wide-Conf.ps1 -GameDir <game>` again (`-Scale 1.5` for a lighter render target:
+2x of a 4K panel, 7680x4320, has never been measured). Offline checks: [docs/records/FRESH-INSTALL-CHECK-2026-10-10.md](docs/records/FRESH-INSTALL-CHECK-2026-10-10.md),
+section "Promotion 16 parity".
+
+Every base-game install also gets **I76 Debug** (`_tools\debug` with the `_tools	rainer` / `_tools	elemetry`
+modules it imports) and the daily driver's **`DEBUG.bat`** (a dashboard in the browser) and **`TRAINER.bat`** (its
+Trainer tab; `--classic` = the old window) in the game folder. Start the game first; both need Python 3.
 
 ### Evidence: what was tested
 

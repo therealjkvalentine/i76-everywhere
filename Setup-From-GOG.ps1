@@ -22,7 +22,8 @@
     ./Setup-From-GOG.ps1 -Preset stock       # the pre-2026-10-03 recipe: 20 fps, no engine switches
     ./Setup-From-GOG.ps1 -Preset best-wide   # opt-in widescreen (Hor+) + detail farther out; needs a display
                                              # wider than 4:3; played only on 3440x1440 (others computed by
-                                             # tools\Make-Wide-Conf.ps1); menus stay stretched
+                                             # tools\Make-Wide-Conf.ps1: 2x the display per axis, stretched_ar,
+                                             # so menus and movies are 4:3 with side bars)
     ./Setup-From-GOG.ps1 -NoShortcut         # no desktop shortcut
     ./Setup-From-GOG.ps1 -Controls stock     # keep GOG's 1997 keys (docs\CONTROLS.md)
     ./Setup-From-GOG.ps1 -Display 3440x1440  # size the dgVoodoo confs for this monitor; needed when

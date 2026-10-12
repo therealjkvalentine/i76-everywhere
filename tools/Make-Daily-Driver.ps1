@@ -37,12 +37,19 @@ param(
     # the driver's conf is the same file family. The integrator supplies the conf that parses.
     [string]$DgVoodooConf = '',
     [switch]$KeepSourceConf,      # explicit opt-out: carry the driver's conf unchanged (NOT independent)
+    # Widescreen layout of the driver since promotion 16 (2026-10-12): the wide conf the folder gets as
+    # dgVoodoo.wide.conf, e.g. tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf (stretched_ar, 2x supersampled,
+    # sized for 3440x1440; tools\Make-Wide-Conf.ps1 -GameDir <new>\Interstate 76 re-sizes it for another display).
+    # With it: -DgVoodooConf is also kept as dgVoodoo.16x10.conf, PLAY.bat copies the wide conf in before each start,
+    # PLAY-16x10.bat (16:10 conf + best-120) and PLAY-balanced.bat (tools\driver, best-wide-balanced) are written.
+    # Pass -Preset best-wide with it for the driver's PLAY.bat.
+    [string]$WideConf = '',
 
-    [string]$StrlkupDll = (Join-Path $PSScriptRoot '..\music-fix\Strlkup.dll'),
+    [string]$StrlkupDll = '',     # default: this repo's music-fix\Strlkup.dll
     # Default since 2026-10-03: the gated full build, u32x\u32x_full.dll (the 2026-10-03 daily driver runs its
     # 054fb411 build; later rebuilds are gated and recorded before they are committed). Its md5 must be on
     # deploy-u32x.ps1's KnownGood list, which is checked below. Minimal build: -U32xDll u32x\u32x.dll.
-    [string]$U32xDll    = (Join-Path $PSScriptRoot '..\u32x\u32x_full.dll'),
+    [string]$U32xDll    = '',     # default: this repo's u32x\u32x_full.dll
     [switch]$AllowUnrecordedU32x, # accept a u32x build whose md5 is not in u32x\deploy-u32x.ps1's $KnownGood
     [string]$GameExe    = '',     # optional replacement i76.exe (must already import u32x.dll)
 
@@ -54,6 +61,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+# the two DLL defaults are set here, not in the param block: in Windows PowerShell 5.1 an advanced script started with
+# -File sees an empty $PSScriptRoot there (powershell -File tools\Make-Daily-Driver.ps1 ... died in Join-Path; 2026-10-12)
+if (-not $StrlkupDll) { $StrlkupDll = Join-Path $repo 'music-fix\Strlkup.dll' }
+if (-not $U32xDll)    { $U32xDll    = Join-Path $repo 'u32x\u32x_full.dll' }
 
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
 function Die([string]$m) { Write-Host "REFUSED: $m" -ForegroundColor Red; exit 1 }
@@ -87,6 +98,17 @@ if (-not $KeepSourceConf) {
     $confText = [Text.Encoding]::ASCII.GetString($confBytes)
     if ($confText -notmatch '(?m)^\s*Version\s*=\s*0x[0-9A-Fa-f]+') { Die "-DgVoodooConf has no 'Version = 0x...' line" }
     foreach ($sec in 'General', 'Glide', 'DirectX') { if ($confText -notmatch "(?m)^\s*\[$sec\]") { Die "-DgVoodooConf has no [$sec] section" } }
+}
+if ($WideConf) {
+    if ($KeepSourceConf) { Die "-WideConf needs -DgVoodooConf (the 16:10 conf PLAY-16x10.bat copies back), not -KeepSourceConf" }
+    if (-not (Test-Path -LiteralPath $WideConf)) { Die "-WideConf not found: $WideConf" }
+    $WideConf = (Resolve-Path -LiteralPath $WideConf).Path
+    $wb = [IO.File]::ReadAllBytes($WideConf)
+    foreach ($b in $wb) { if ($b -gt 127) { Die "-WideConf contains non-ASCII bytes" } }
+    $wt = [Text.Encoding]::ASCII.GetString($wb)
+    if ($wt -notmatch '(?m)^\s*Version\s*=\s*0x[0-9A-Fa-f]+') { Die "-WideConf has no 'Version = 0x...' line" }
+    foreach ($sec in 'General', 'Glide', 'DirectX') { if ($wt -notmatch "(?m)^\s*\[$sec\]") { Die "-WideConf has no [$sec] section" } }
+    if ($wt -notmatch '(?m)^ScalingMode\s*= stretched(_ar)?\s*$') { Die "-WideConf has no ScalingMode = stretched / stretched_ar line" }
 }
 foreach ($f in @($StrlkupDll, $U32xDll)) { if (-not (Test-Path -LiteralPath $f)) { Die "not found: $f" } }
 $StrlkupDll = (Resolve-Path -LiteralPath $StrlkupDll).Path
@@ -185,6 +207,10 @@ $overlays = New-Object System.Collections.ArrayList
 if ($GameExe)            { [void]$overlays.Add(@{ From = $GameExe; Name = 'i76.exe'; Label = 'overlay: game exe' }) }
 if (-not $KeepSourceConf) { [void]$overlays.Add(@{ From = (Resolve-Path -LiteralPath $DgVoodooConf).Path; Name = 'dgVoodoo.conf'; Label = 'overlay: dgVoodoo conf' }) }
 [void]$overlays.Add(@{ From = (Join-Path $repo 'PLAY-i76.ps1'); Name = 'PLAY-i76.ps1'; Label = 'overlay: launcher (repo)' })
+if ($WideConf) {
+    [void]$overlays.Add(@{ From = $WideConf; Name = 'dgVoodoo.wide.conf'; Label = 'overlay: widescreen dgVoodoo conf' })
+    [void]$overlays.Add(@{ From = (Resolve-Path -LiteralPath $DgVoodooConf).Path; Name = 'dgVoodoo.16x10.conf'; Label = 'overlay: 16:10 dgVoodoo conf (PLAY-16x10.bat)' })
+}
 
 $disablePatch = (-not $KeepI76Patch) -and ($Preset -ne 'stock')
 
@@ -198,6 +224,7 @@ Say ("Game files  : {0} to 'Interstate 76\', {1} residue files to '_carried-over
 Say ("Lossless Scaling : {0}" -f $(if ($haveLS) { 'carried' } else { 'not carried' }))
 foreach ($o in $overlays) { Say ("Overlay     : {0,-14} <- {1}  (md5 {2})" -f $o.Name, $o.From, (Md5 $o.From)) }
 Say ("Presets     : {0}\presets\*.psd1 -> 'Interstate 76\presets\'; PLAY.bat uses -Preset {1}" -f $repo, $Preset)
+if ($WideConf) { Say "Widescreen  : dgVoodoo.wide.conf + dgVoodoo.16x10.conf; PLAY.bat (wide conf, -Preset $Preset), PLAY-16x10.bat (16:10, best-120), PLAY-balanced.bat (wide, best-wide-balanced)" }
 Say ("I76PATCH.DLL: {0}" -f $(if ($disablePatch) { 'renamed to I76PATCH.DLL.disabled in the NEW folder (20 fps cap off)' } else { 'left active' }))
 if ($KeepSourceConf) { Say "dgVoodoo.conf: the DRIVER'S conf is carried unchanged. If dgVoodoo rejects it, the new folder depends on %APPDATA%\dgVoodoo\dgVoodoo.conf and is not independent." 'Yellow' }
 if ($Plan) { Say "`n-Plan: nothing written." 'Yellow'; exit 0 }
@@ -286,17 +313,41 @@ function WriteAscii([string]$path, [string]$text) {
     [IO.File]::WriteAllText($path, ($text -replace "`r?`n", "`r`n"), [Text.Encoding]::ASCII)
     NoteWritten $path 'generated by Make-Daily-Driver.ps1'
 }
+if ($WideConf) {
+    # the driver's widescreen launchers (promotions 2, 13, 16): each .bat puts its own conf in place first
+    $what = if ($Preset -eq 'best-wide') { 'widescreen 21:9, 120 fps, detail farther out (preset best-wide' } else { "widescreen (preset $Preset" }
+    WriteAscii (Join-Path $Dest 'PLAY.bat') @"
+@echo off
+REM Interstate '76 daily driver: $what, see "Interstate 76\presets").
+REM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.
+copy /y "%~dp0Interstate 76\dgVoodoo.wide.conf" "%~dp0Interstate 76\dgVoodoo.conf" >nul
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe -Preset $Preset -LosslessScaling none
+
+"@
+    WriteAscii (Join-Path $Dest 'PLAY-16x10.bat') @"
+@echo off
+REM Interstate '76 daily driver, the 2026-10-03 morning setup: 16:10 picture, 120 fps (preset best-120).
+REM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.
+copy /y "%~dp0Interstate 76\dgVoodoo.16x10.conf" "%~dp0Interstate 76\dgVoodoo.conf" >nul
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe -Preset best-120 -LosslessScaling none
+
+"@
+    CopyVerified (Join-Path $repo 'tools\driver\PLAY-balanced.bat') (Join-Path $Dest 'PLAY-balanced.bat') 'repo: tools\driver'
+} else {
 WriteAscii (Join-Path $Dest 'PLAY.bat') @"
 @echo off
 REM Interstate '76 daily driver. Preset: $Preset (see "Interstate 76\presets").
 REM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.
 start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe -Preset $Preset -LosslessScaling none
 "@
+}
+# with -WideConf the stock launcher puts the 16:10 conf back first, as the driver's PLAY-stock.bat does
+$stock16 = if ($WideConf) { 'copy /y "%~dp0Interstate 76\dgVoodoo.16x10.conf" "%~dp0Interstate 76\dgVoodoo.conf" >nul' + "`n" } else { '' }
 WriteAscii (Join-Path $Dest 'PLAY-stock.bat') @"
 @echo off
 REM The same folder with NO engine switches (preset stock). Frame rate is whatever dgVoodoo paces
 REM (60) unless I76PATCH.DLL.disabled is renamed back to I76PATCH.DLL (GOG's 20 fps cap).
-start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe -Preset stock -LosslessScaling none
+${stock16}start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe -Preset stock -LosslessScaling none
 "@
 if ($haveLS) {
     WriteAscii (Join-Path $Dest 'PLAY-with-FrameGen.bat') @"

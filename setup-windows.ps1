@@ -13,13 +13,16 @@
 #      A preset that sets I76_ZGLIDE_TMUFIX = 1 (best-120, best-wide, best-wide-balanced) gets
 #      [Glide] MemorySizeOfTMU = 8192 in that conf, as the daily driver since promotion 11.
 #      -Preset best-wide / best-wide-balanced (widescreen, opt-in): the same daily-driver conf is kept as
-#      dgVoodoo.16x10.conf, and tools\Make-Wide-Conf.ps1 derives dgVoodoo.wide.conf from it for
-#      THIS display ([General] ScalingMode = stretched, CaptureMouse = false, [Glide] Resolution =
-#      display aspect at 2160 lines) and writes this display's W x H into the installed
-#      presets\best-wide.psd1 and best-wide-balanced.psd1 (I76_ASPECT, I76_U32X_MENU_ASPECT; the repo
-#      copies say 3440x1440). PLAY-i76.bat and PLAY-balanced.bat copy the wide conf in before each
-#      start; PLAY-16x10.bat copies the 16:10 one back and runs best-120.
-#      Widescreen has been played only on a 3440x1440 panel; menus and cutscenes stay stretched.
+#      dgVoodoo.16x10.conf, and tools\Make-Wide-Conf.ps1 writes dgVoodoo.wide.conf for THIS display:
+#      the daily driver's wide conf since promotion 16 (tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf:
+#      windowed borderless, [General] ScalingMode = stretched_ar, CaptureMouse = false, 4x MSAA, TMU 8192)
+#      with [Glide] Resolution = 2x the display per axis (a real 2x2 supersample; each side capped at
+#      8192, same factor on both axes) and [DirectX] Resolution = the 16:10 conf's. It also writes this
+#      display's W x H into the installed presets\best-wide.psd1 and best-wide-balanced.psd1
+#      (I76_ASPECT, I76_U32X_MENU_ASPECT; the repo copies say 3440x1440). PLAY-i76.bat and
+#      PLAY-balanced.bat copy the wide conf in before each start; PLAY-16x10.bat copies the 16:10 one
+#      back and runs best-120. Widescreen has been played only on a 3440x1440 panel (6880x2880); the
+#      640x480 menus and movies are shown 4:3 with side bars (stretched_ar), not stretched.
 #   5. input.map, by -Controls (since 2026-10-03):
 #        i76e (default)  writes controls\input.map wholesale: this project's own WASD-style map
 #                        (the owner's daily-driver map), NOT the 1997 key layout. The map that
@@ -41,6 +44,9 @@
 #      PLAY-stock.bat (the same folder with -Preset stock: no engine switches) and a desktop
 #      shortcut to PLAY-i76.bat (-NoShortcut skips the shortcut; nothing is then written
 #      outside the game folder).
+#      Base game: also I76 Debug (tools\debug -> <game>\_tools\debug, with the _tools\trainer and
+#      _tools\telemetry modules it imports) and DEBUG.bat + TRAINER.bat (tools\driver, the daily
+#      driver's launchers since promotion 16: a browser dashboard + the trainer tab; Python 3 needed).
 #   Also (5a2b, base game, preset other than stock): renames GOG's I76PATCH.DLL (the 20 fps
 #      cap of the 2019 offline build) to I76PATCH.DLL.disabled, as on the daily driver; with it
 #      loaded every 60/120 preset runs at 20. -Preset stock renames it back.
@@ -744,6 +750,33 @@ if (Test-Path $wheelExe) {
 } else {
     Write-Host "tools\i76wheel.exe not built - wheel targeting disabled (see tools\i76wheel.c)." -ForegroundColor Yellow
 }
+# I76 Debug + trainer (base game; their memory addresses are i76.exe's): the files and launchers the daily driver got in
+# promotion 16 (tools\promote-17-collision-g.ps1), in the same layout relative to the .bat files (DEBUG.bat and TRAINER.bat
+# run %~dp0_tools\debug\i76debug.py, which imports ..\trainer and ..\telemetry), so the two .bat files are the driver's
+# byte for byte. The tool finds the game folder from the running process, not from where it sits.
+if (-not $isNitro) {
+    $dbgFiles = [ordered]@{
+        'tools\debug'     = 'i76debug.py', 'debug_core.py', 'debug_trainer.py', 'README.md', 'static\index.html', 'static\app.js', 'static\app.css', 'static\charts.js'
+        'tools\trainer'   = 'i76trainer_gui.py', 'i76trainer.py', 'i76trn.h', 'README-GUI.md', 'waypoints.json'
+        'tools\telemetry' = 'i76tel.py', 'i76tel.h', 'i76tel_v2.h'
+    }
+    $dbgMissing = @()
+    foreach ($dir in $dbgFiles.Keys) {
+        foreach ($n in $dbgFiles[$dir]) {
+            $from = Join-Path $repoGameDir "$dir\$n"
+            if (-not (Test-Path -LiteralPath $from)) { $dbgMissing += "$dir\$n"; continue }
+            $to = Join-Path $GameDir ('_tools\' + (Split-Path $dir -Leaf) + "\$n")
+            New-Item -ItemType Directory -Force (Split-Path $to) | Out-Null
+            Copy-Item -LiteralPath $from -Destination $to -Force
+        }
+    }
+    foreach ($n in 'DEBUG.bat', 'TRAINER.bat') {
+        $from = Join-Path $repoGameDir "tools\driver\$n"
+        if (Test-Path -LiteralPath $from) { Copy-Item -LiteralPath $from -Destination (Join-Path $GameDir $n) -Force } else { $dbgMissing += "tools\driver\$n" }
+    }
+    if ($dbgMissing.Count) { Write-Host "I76 Debug: not found in the repo, not installed: $($dbgMissing -join ', ')" -ForegroundColor Yellow }
+    else { Write-Host "I76 Debug deployed (_tools\debug, _tools\trainer, _tools\telemetry; DEBUG.bat = dashboard, TRAINER.bat = its Trainer tab; needs Python 3)." }
+}
 $batName = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY-i76.bat' }
 $bat = Join-Path $GameDir $batName
 $launch = "start `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe $Exe"
@@ -810,12 +843,13 @@ Write-Host ""
 Write-Host "DONE. Boot takes 60-75s of 'PLEASE STAND BY' - ESC skips the intro." -ForegroundColor Green
 if ($fastPreset) {
     Write-Host "$batName starts preset $Preset (120 fps, physics stepped as at 20); PLAY-stock.bat starts the same folder with no engine switches."
-    if ($widePreset) { Write-Host "Widescreen: $batName copies dgVoodoo.wide.conf in first (CaptureMouse = false: the preset's cursor map moves the menu pointer); PLAY-balanced.bat = best-wide-balanced; PLAY-16x10.bat goes back to the tested 16:10 picture (best-120). Menus and cutscenes are stretched to the display's shape (known)." }
+    if ($widePreset) { Write-Host "Widescreen: $batName copies dgVoodoo.wide.conf in first (CaptureMouse = false: the preset's cursor map moves the menu pointer); PLAY-balanced.bat = best-wide-balanced; PLAY-16x10.bat goes back to the 16:10 picture (best-120). The wide conf renders 2x the display per axis (stretched_ar): the 3D picture fills the window, the 640x480 menus and movies are 4:3 with side bars." }
     Write-Host "Check in Instant Melee: smooth picture, no flips on bumps; then Mission 5's ramp jump."
 } else {
     Write-Host "Verify the cap in Instant Melee (no flips on bumps; AI cars exceed 35 mph),"
     Write-Host "then the canonical test: Mission 5's ramp jump."
 }
+if (-not $isNitro) { Write-Host "DEBUG.bat (I76 Debug, a browser dashboard) and TRAINER.bat (its Trainer tab) attach to the running game; they need Python 3." }
 if ($Controls -eq 'i76e') {
     Write-Host "Controls: i76e - this project's WASD-style map, not the 1997 keys. Sheet: docs\Interstate76-Controls-Quick-Reference.pdf. The 1997 keys: -Controls stock -ControlsOnly"
 } else {

@@ -25,7 +25,8 @@
     ./install.ps1 -Preset best-wide     # opt-in widescreen (Hor+) + detail farther out, as the owner's
                                         # daily driver since 2026-10-03; needs a display wider than 4:3.
                                         # Played only on 3440x1440: other displays get computed values
-                                        # (tools\Make-Wide-Conf.ps1); menus stay stretched. PLAY-16x10.bat
+                                        # (tools\Make-Wide-Conf.ps1: 2x the display per axis, stretched_ar;
+                                        # menus and movies 4:3 with side bars). PLAY-16x10.bat
                                         # beside it starts the tested 16:10 picture (best-120).
     ./install.ps1 -Controls stock       # keep GOG's 1997 keys (default: this project's WASD-style
                                         # map, controls\input.map; see docs\CONTROLS.md)
