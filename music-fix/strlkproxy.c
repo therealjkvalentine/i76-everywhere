@@ -1549,6 +1549,33 @@ static float __cdecl ai_rate20(void) { return 20.0f; }
  * heading error in one frame (i76-map subsystems/ai.md). The sim_dt read at 0x40fed9 is used only as that divisor, so it
  * gets the 20 fps value. */
 static float __cdecl ai_dt20(void) { return 0.05f; }
+/* AI GAINS ON THE 1997 FRAME CLOCK  (I76_AI_STOCK_CLOCK=1, needs I76_FRAMERATE_FIXES + I76_FIXED_STEP; off by default)
+ * Lab doc AI-PACE-2026-10-12.md (T04 racers). Both gains above are dead-beat: the command is sized to close the error over
+ * ONE frame of the dt the AI reads (k = this frame), but the physics applies it over the NEXT frame (k + 1): the yaw
+ * (speed) change a command makes is skill x error x dt[k+1] / dt[k]. The 1997 game reads its clock from GetTickCount,
+ * 15.625 ms quanta on this hardware, so at a nominal 24 fps the frame dts run 46.9, 46.9, 31.2 ms (3, 3, 2 ticks) and
+ * the ratio cycles 1, 0.67, 1.5: every third command overshoots by half and the next one undershoots. The racers
+ * weave a little through every bend and lap T04 ~5 % slower than with an exact clock (measured: stock24 with only
+ * I76_HIRES_CLOCK, or only I76_FRAMERATE_FIXES, runs at best-wide's pace; the AI pass rate is not it - best-wide
+ * capped at 24 fps, one AI pass per step, is as quick as at 120). Under I76_FIXED_STEP every step is exactly
+ * 1/rate, so the pinned gains give a ratio of 1 every time: smoother, and quicker than 1997.
+ * With this switch the three gain reads return the stock clock's ratio for the step the command will drive:
+ * dt_used = step x dt[k] / dt[k+1], dt[k] = 15.625 ms x (floor(k x step / 15.625 ms) - floor((k - 1) x step / 15.625 ms)),
+ * k = the physics step index from sim time [0x5a7e70] x rate (every AI pass between two steps reads the same k, and
+ * the last one before step k+1 is the one that drives it). Throttle sites get 1 / dt_used, the steering site dt_used.
+ * I76_AI_STOCK_CLOCK=1 uses the 15.625 ms tick; a value of 1.5..40 is taken as the tick in ms (e.g. 10 = a 100 Hz timer).
+ * Measured T04 (lab doc): best-wide + this switch laps at stock24 pace. */
+static int g_ai_stockclk;
+static double g_ai_tick = 0.015625;
+static float ai_stock_dt_used(void) {
+    double S = (double)g_fixed_step, t = (double)*(volatile float *)0x005a7e70, q = S / g_ai_tick;
+    double k = floor(t / S + 1e-3), a, b, c;
+    a = floor((k - 1.0) * q); b = floor(k * q); c = floor((k + 1.0) * q);
+    if (b - a < 1.0 || c - b < 1.0) return (float)S;        /* tick longer than a step: no defined ratio */
+    return (float)(S * (b - a) / (c - b));
+}
+static float __cdecl ai_gain_rate(void) { return g_ai_stockclk == 1 ? 1.0f / ai_stock_dt_used() : 20.0f; }
+static float __cdecl ai_gain_dt(void) { return g_ai_stockclk ? ai_stock_dt_used() : 0.05f; }
 
 /* Radar ping (CRADAR.WAV, radar blip routine 0x460310, played through 0x4250f0 at 0x4605ee / 0x4608f1). Unlocked,
  * the sweep advances on game time (one of 30 positions per 0.2 s) and a blip pings when the window [previous,
@@ -1745,14 +1772,14 @@ static void apply_framerate_fixes(void) {
         static const BYTE a1_old[5] = { 0xE8, 0x96, 0xCD, 0x08, 0x00 };   /* call simclock_GetSimRate at 0x40fa15 */
         static const BYTE a2_old[5] = { 0xE8, 0x1E, 0xCD, 0x08, 0x00 };   /* call simclock_GetSimRate at 0x40fa8d */
         BYTE a_new[5] = { 0xE8 };
-        LONG rel = (LONG)((DWORD_PTR)ai_rate20 - (0x0040fa15 + 5)); memcpy(a_new + 1, &rel, 4);
+        LONG rel = (LONG)((DWORD_PTR)ai_gain_rate - (0x0040fa15 + 5)); memcpy(a_new + 1, &rel, 4);
         n += patch_bytes(0x0040fa15, a1_old, a_new, 5, "AI throttle gain (type 9)");
-        rel = (LONG)((DWORD_PTR)ai_rate20 - (0x0040fa8d + 5)); memcpy(a_new + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)ai_gain_rate - (0x0040fa8d + 5)); memcpy(a_new + 1, &rel, 4);
         n += patch_bytes(0x0040fa8d, a2_old, a_new, 5, "AI throttle gain (vehicles)");
         {
             static const BYTE s_old[5] = { 0xE8, 0xC2, 0xC8, 0x08, 0x00 };  /* call simclock_GetSimDt at 0x40fed9 */
             BYTE s_new[5] = { 0xE8 };
-            rel = (LONG)((DWORD_PTR)ai_dt20 - (0x0040fed9 + 5)); memcpy(s_new + 1, &rel, 4);
+            rel = (LONG)((DWORD_PTR)ai_gain_dt - (0x0040fed9 + 5)); memcpy(s_new + 1, &rel, 4);
             n += patch_bytes(0x0040fed9, s_old, s_new, 5, "AI steering gain");
         }
     }
@@ -1805,6 +1832,18 @@ static void apply_framerate_fixes(void) {
     }
     if (env_flag("I76_AI_FIRE_CACHE", 8, 1) == 0) g_aifire_cache = 0;
     g_ratefix = 1;
+    {   /* I76_AI_STOCK_CLOCK (above ai_gain_rate): the gain sites see the 1997 GetTickCount frame clock's dt ratio */
+        char v[16];
+        if (env_str("I76_AI_STOCK_CLOCK", v, sizeof(v)) && v[0] != '0') {
+            double ms = atof(v);
+            if (ms >= 1.5 && ms <= 40.0) g_ai_tick = ms / 1000.0;
+            if (g_fixed_step > 0.0f) {
+                g_ai_stockclk = (v[0] == 's' || v[0] == 'S') ? 2 : 1;   /* "steer": the steering site only (lab A/B) */
+                mlog("  ai-stock-clock: AI throttle / steering gains on the stock frame clock (tick %.3f ms, step %.2f ms: dt ratio cycle as a GetTickCount game at %.1f fps)",
+                     g_ai_tick * 1000.0, g_fixed_step * 1000.0f, 1.0f / g_fixed_step);
+            } else mlog("  ai-stock-clock: needs I76_FIXED_STEP - not applied");
+        }
+    }
     mlog("  framerate-fixes: %d/36 sites repointed (clouds, free-look keys, zoom key, throttle keys, lock tones, radar ping, vehicle sounds, AI throttle + steering gain, flamers, smoke puffs, missile trails, AI fire decisions, ammo digits)", n);
 }
 

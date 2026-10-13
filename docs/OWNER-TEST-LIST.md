@@ -383,6 +383,21 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **If you play it again,** tell me which bat you used and which failure line you saw: the "they won" line or the
       Confucius line. If you want the racers at their 1997 pace, say so; that is a proxy change with its own A/B.
 
+38. **The dream race at 1997 pace (new 2026-10-13; lab docs/AI-PACE-2026-10-12.md).**
+    - **Why.** Our racers were ~2 s a lap quicker than in the 1997 game (item 37). Cause found: the AI steers with a
+      controller sized to the frame time, and the 1997 clock ticks in 15.6 ms steps, so every third steering command
+      overshoots and the AI weaves a little. Our exact clock removed that, so the AI drives a cleaner, quicker line.
+      `I76_AI_STOCK_CLOCK=1` puts the 1997 overshoot back. Measured on the twin: Patriot 47.7 s a lap with it, 44.8
+      without, 46.7 in the 1997 game (24 fps); the other racers alike.
+    - **Test.** In the lab copy, `TEST-dream-1997pace.bat` (PLAY.bat + the switch, straight into T04; Esc skips the
+      opening) and `TEST-dream-control.bat` (PLAY.bat, straight into T04). Race both once or twice. Does the 1997-pace
+      race feel like the race you remember (the racers a bit slower and a bit less tidy in the bends)? Can you win it?
+    - **Also in `TEST-next.bat` and the other TEST-next* launchers** - it changes every AI car, not only racers. Play a
+      combat mission with TEST-next: do the AI cars still chase, shoot and handbrake-turn as before (checked on the twin
+      in t05: they do), or does their driving look clumsy?
+    - **Proxy 4c9be840** in the lab copy (855b08d7 + this switch only; rollback `STRLKUP.DLL.855b08d7-pre-stockclk`).
+      Not in the daily driver; say if you want it in PLAY.bat.
+
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
