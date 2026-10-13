@@ -1061,6 +1061,7 @@ static void apply_hires_clock(void) {
     DWORD a = (DWORD)(DWORD_PTR)&g_hires_clock_ptr;
     int n1, n2;
     if (!env_present("I76_HIRES_CLOCK")) return;
+    if (env_present("I76_TICK_MS")) { mlog("  hires-clock: I76_TICK_MS is set - the coarse tick clock wins, hires not applied"); return; }
     if (!QueryPerformanceFrequency(&g_qpf) || g_qpf.QuadPart == 0) { mlog("  hires-clock: no QPC - not patching"); return; }
     QueryPerformanceCounter(&g_qp0);
     memcpy(new_call + 2, &a, 4);
@@ -1084,6 +1085,47 @@ static void apply_hires_clock(void) {
 }
 
 /* ===========================================================================
+ * COARSE TICK CLOCK  (I76_TICK_MS=<ms>, e.g. 55 or 15.625; off by default; lab tool for reference profiles)
+ * ===========================================================================
+ * Lab doc AI-COMBAT-PARITY-2026-10-13.md (what "stock" is). The 1997 engine's whole sim clock is GetTickCount at
+ * simclock's two call sites (above), so its frame dt is quantised to whatever tick the OS gave that call: 15.625 ms on
+ * this Windows 10 PC, other values on other machines and OSes. To reproduce another machine's clock on this PC both
+ * sites are repointed (as I76_HIRES_CLOCK does) at a clock that returns QPC milliseconds rounded DOWN to multiples of
+ * the given tick (a fractional tick is kept exactly: the n-th tick reads floor(n x tick) ms). Combine with
+ * I76_FPS_CAP for the frame rate. I76_TICK_MS=15.625 is the control (it must behave like the real GetTickCount here).
+ * Excludes I76_HIRES_CLOCK. Nothing else in the exe that reads GetTickCount is touched. */
+static double g_tick_emu_ms;
+static DWORD WINAPI tick_emu_ms(void) {
+    LARGE_INTEGER n;
+    double ms, k;
+    QueryPerformanceCounter(&n);
+    ms = (double)(n.QuadPart - g_qp0.QuadPart) * 1000.0 / (double)g_qpf.QuadPart;
+    k = floor(ms / g_tick_emu_ms);
+    return (DWORD)floor(k * g_tick_emu_ms) + 1000;          /* +1 s: never 0 at the first read */
+}
+static void *g_tick_emu_ptr = (void *)tick_emu_ms;
+static void apply_tick_emu(void) {
+    static const BYTE old_call[6] = { 0xFF, 0x15, 0x00, 0xC1, 0x4B, 0x00 };  /* call [0x4bc100] GetTickCount */
+    BYTE new_call[6] = { 0xFF, 0x15, 0, 0, 0, 0 };
+    DWORD a = (DWORD)(DWORD_PTR)&g_tick_emu_ptr;
+    char v[24]; int n1, n2;
+    if (!env_str("I76_TICK_MS", v, sizeof(v))) return;
+    g_tick_emu_ms = atof(v);
+    if (g_tick_emu_ms < 1.0 || g_tick_emu_ms > 200.0) { mlog("  tick-ms: '%s' is not 1..200 ms - off", v); return; }
+    if (!QueryPerformanceFrequency(&g_qpf) || g_qpf.QuadPart == 0) { mlog("  tick-ms: no QPC - not patching"); return; }
+    QueryPerformanceCounter(&g_qp0);
+    memcpy(new_call + 2, &a, 4);
+    if (memcmp((void *)0x0049c85f, old_call, 6) == 0) {
+        n1 = patch_bytes(0x0049c85f, old_call, new_call, 6, "simclock_Init GetTickCount call (Galaxy, tick-ms)");
+        n2 = patch_bytes(0x0049c929, old_call, new_call, 6, "simclock_Update GetTickCount call (Galaxy, tick-ms)");
+    } else {
+        n1 = patch_bytes(0x0049c85d, old_call, new_call, 6, "simclock_Init GetTickCount call (AiO, tick-ms)");
+        n2 = patch_bytes(0x0049c927, old_call, new_call, 6, "simclock_Update GetTickCount call (AiO, tick-ms)");
+    }
+    mlog("  tick-ms: sim clock on a %.3f ms tick (%d/2 simclock GetTickCount sites repointed)", g_tick_emu_ms, n1 + n2);
+}
+
+/* ===========================================================================
  * FRAME-RATE-INDEPENDENT ENGINE RESPONSE  (I76_ENGINE_DT_FIX=1; off by default)
  * ===========================================================================
  * Vehicle physics runs in substeps: entity_TickVehicle 0x463800 splits the frame's
@@ -1104,6 +1146,7 @@ static void apply_hires_clock(void) {
  * Static reading only - NOT yet measured in game.
  */
 static float g_fixed_step;
+static DWORD g_stepframes, g_stepframe_last;               /* frames on which a fixed step ran (I76_AI_SKID_HOLD) */
 static int g_in_far;                                        /* inside physics_StepVehicleFar (I76_FAR_ENGINE_DT, below) */
 static int g_engine_dt_on;
 static float __cdecl engine_substep_dt(void) {
@@ -1178,6 +1221,12 @@ static LARGE_INTEGER g_prev_q;
 static float g_acc20;                                        /* 20 Hz grid: g_tick20 is set on frames that cross it */
 static int g_tick20 = 1;
 static DWORD g_tick20_n;                                     /* grid frames so far */
+/* AI decision grid (I76_AI_GRID_HZ=<hz>, default 20 = the 20 Hz grid above, unchanged): the held AI decisions (fire, dodge,
+ * skid / horn rolls) are made on frames that cross this grid. Lab doc AI-COMBAT-PARITY-2026-10-13.md: the 1997 game as
+ * played makes one decision per FRAME, ~24 per second at the frame rate its physics step was taken from (I76_FIXED_STEP=24). */
+static float g_ai_hz = 20.0f, g_accai;
+static int g_tickai = 1;
+static DWORD g_tickai_n;
 static float g_grid_acc, g_grid_win = 0.05f;                 /* time since the last grid frame; on a grid frame, the window it closes */
 static float g_turn_k = 1.0f, g_turn_g = 1.0f;               /* per-step turn scales (radar missiles): min(dt x 20, 1) and its gain form */
 static int g_coll_dup;                                       /* collision pass: the contact just found repeats last frame's (below) */
@@ -1186,6 +1235,11 @@ static DWORD g_frame;                                        /* proxy frame coun
 static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
 static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
 static void tel_frame(void);
+static int g_cbt_on;                                         /* I76_COMBAT_LOG (below, after the telemetry export) */
+static void cbt_frame(void);
+static void cbt_shot(BYTE *inst);
+static void cbt_coll(BYTE *target, BYTE *source);
+static void cbt_damage(BYTE *obj, BYTE *shooter, float amt, int lost, int killed);
 static i76trn_ctl_t *g_trn;                                  /* trainer control block (below, with apply_trainer) */
 static void trn_frame(void);
 static int g_start_on;                                       /* I76_START_POS (below, after the trainer) */
@@ -1232,6 +1286,7 @@ static void __cdecl frame_cap_then_clock(void) {
     /* The frame just rendered is complete here (ticks, post-ticks, camera, render, Flip): publish it before any cap
      * wait, so the datagram leaves as soon as the frame is on screen. */
     if (g_tel_on) tel_frame();
+    if (g_cbt_on) cbt_frame();
     if (!g_cap_period.QuadPart) goto clock;
     QueryPerformanceCounter(&now);
     if (!g_cap_started) {
@@ -1285,6 +1340,13 @@ clock:
         if (g_tick20) {
             g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; g_tick20_n++; radar_ping_flush();
             g_grid_win = g_grid_acc; g_grid_acc = 0.0f;      /* what a per-frame step skipped since the last grid frame has to cover */
+        }
+        if (g_ai_hz == 20.0f) { g_tickai = g_tick20; g_tickai_n = g_tick20_n; }
+        else {                                               /* I76_AI_GRID_HZ: same accumulator form at another rate */
+            float per = 1.0f / g_ai_hz;
+            g_accai += *(volatile float *)0x004fe428;
+            g_tickai = g_accai >= per - 0.001f;
+            if (g_tickai) { g_accai -= per; if (g_accai > per || g_accai < -0.01f) g_accai = 0.0f; g_tickai_n++; }
         }
         /* a turn of `a` per 50 ms step, spread over frames: a rate limit scales by k; a proportional step that removes
          * 0.75 of the error scales to 1 - 0.25^k of it, so 1/k frames remove 0.75 again (radar_turn_wrap) */
@@ -1563,16 +1625,23 @@ static float __cdecl ai_dt20(void) { return 0.05f; }
  * dt_used = step x dt[k] / dt[k+1], dt[k] = 15.625 ms x (floor(k x step / 15.625 ms) - floor((k - 1) x step / 15.625 ms)),
  * k = the physics step index from sim time [0x5a7e70] x rate (every AI pass between two steps reads the same k, and
  * the last one before step k+1 is the one that drives it). Throttle sites get 1 / dt_used, the steering site dt_used.
- * I76_AI_STOCK_CLOCK=1 uses the 15.625 ms tick; a value of 1.5..40 is taken as the tick in ms (e.g. 10 = a 100 Hz timer).
+ * I76_AI_STOCK_CLOCK=1 uses the 15.625 ms tick; a value of 1.5..100 is taken as the tick in ms (e.g. 10 = a 100 Hz timer).
+ * I76_AI_STOCK_CLOCK_FPS=<fps> emulates a game at that frame rate (e.g. 20) instead of one frame per fixed step; frames
+ * that read 0 ticks get simclock's 1 ms floor, as a 55 ms tick at 20+ fps does (2026-10-13, AI-COMBAT-PARITY).
  * Measured T04 (lab doc): best-wide + this switch laps at stock24 pace. */
 static int g_ai_stockclk;
 static double g_ai_tick = 0.015625;
+static double g_ai_frame;                                    /* I76_AI_STOCK_CLOCK_FPS: the emulated 1997 frame (s); 0 = the fixed step */
+static double ai_stock_frame_dt(double j, double F) {       /* the 1997 frame j's dt: whole ticks, simclock's clamp [1, 200] ms */
+    double d = g_ai_tick * (floor(j * F / g_ai_tick + 1e-9) - floor((j - 1.0) * F / g_ai_tick + 1e-9));
+    return d < 0.001 ? 0.001 : d > 0.2 ? 0.2 : d;
+}
 static float ai_stock_dt_used(void) {
-    double S = (double)g_fixed_step, t = (double)*(volatile float *)0x005a7e70, q = S / g_ai_tick;
-    double k = floor(t / S + 1e-3), a, b, c;
-    a = floor((k - 1.0) * q); b = floor(k * q); c = floor((k + 1.0) * q);
-    if (b - a < 1.0 || c - b < 1.0) return (float)S;        /* tick longer than a step: no defined ratio */
-    return (float)(S * (b - a) / (c - b));
+    double S = (double)g_fixed_step, t = (double)*(volatile float *)0x005a7e70, F = g_ai_frame > 0.0 ? g_ai_frame : S;
+    double j = floor(t / F + 1e-3);
+    /* the command sized with frame j's dt, applied over frame j+1: per-command correction dt[j+1] / dt[j]; one fixed
+     * step S carries the same fraction when the gain reads S x dt[j] / dt[j+1] */
+    return (float)(S * ai_stock_frame_dt(j, F) / ai_stock_frame_dt(j + 1.0, F));
 }
 static float __cdecl ai_gain_rate(void) { return g_ai_stockclk == 1 ? 1.0f / ai_stock_dt_used() : 20.0f; }
 static float __cdecl ai_gain_dt(void) { return g_ai_stockclk ? ai_stock_dt_used() : 0.05f; }
@@ -1660,9 +1729,9 @@ static DWORD g_idbg_aifire_calls, g_idbg_aifire_yes;
 static int __cdecl ai_fire_wrap(DWORD a, DWORD b, float c, float d, DWORD e, DWORD f, int *rec, DWORD h) {
     unsigned i = (unsigned)(((DWORD)(DWORD_PTR)rec >> 2) & 1023), n;
     int r;
-    if (g_aifire_cache && !g_tick20) {
+    if (g_aifire_cache && !g_tickai) {
         for (n = 0; n < 1024; n++, i = (i + 1) & 1023) {
-            if (g_aifire[i].key == rec) return g_aifire[i].tick == g_tick20_n ? g_aifire[i].res : 0;
+            if (g_aifire[i].key == rec) return g_aifire[i].tick == g_tickai_n ? g_aifire[i].res : 0;
             if (!g_aifire[i].key) break;
         }
         return 0;                                           /* not decided in this window */
@@ -1671,7 +1740,7 @@ static int __cdecl ai_fire_wrap(DWORD a, DWORD b, float c, float d, DWORD e, DWO
     g_idbg_aifire_calls++; if (r) g_idbg_aifire_yes++;
     if (g_aifire_cache) {
         for (n = 0; n < 1024; n++, i = (i + 1) & 1023)
-            if (g_aifire[i].key == rec || !g_aifire[i].key) { g_aifire[i].key = rec; g_aifire[i].tick = g_tick20_n; g_aifire[i].res = r; break; }
+            if (g_aifire[i].key == rec || !g_aifire[i].key) { g_aifire[i].key = rec; g_aifire[i].tick = g_tickai_n; g_aifire[i].res = r; break; }
     }
     return r;
 }
@@ -1831,14 +1900,29 @@ static void apply_framerate_fixes(void) {
         }
     }
     if (env_flag("I76_AI_FIRE_CACHE", 8, 1) == 0) g_aifire_cache = 0;
+    {   /* I76_AI_GRID_HZ (beside g_tick20_n): the held AI decisions on another grid rate */
+        char v[16];
+        if (env_str("I76_AI_GRID_HZ", v, sizeof(v))) {
+            float hz = (float)atof(v);
+            if (hz >= 5.0f && hz <= 200.0f) { g_ai_hz = hz; mlog("  ai-grid-hz: held AI decisions (fire, dodge, skid / horn rolls) on a %.1f Hz grid (default 20)", hz); }
+            else mlog("  ai-grid-hz: '%s' is not 5..200 - the 20 Hz grid kept", v);
+        }
+    }
     g_ratefix = 1;
     {   /* I76_AI_STOCK_CLOCK (above ai_gain_rate): the gain sites see the 1997 GetTickCount frame clock's dt ratio */
         char v[16];
         if (env_str("I76_AI_STOCK_CLOCK", v, sizeof(v)) && v[0] != '0') {
             double ms = atof(v);
-            if (ms >= 1.5 && ms <= 40.0) g_ai_tick = ms / 1000.0;
+            if (ms >= 1.5 && ms <= 100.0) g_ai_tick = ms / 1000.0;
             if (g_fixed_step > 0.0f) {
                 g_ai_stockclk = (v[0] == 's' || v[0] == 'S') ? 2 : 1;   /* "steer": the steering site only (lab A/B) */
+                {   /* I76_AI_STOCK_CLOCK_FPS=<fps>: the 1997 frame rate whose clock is emulated (default: the fixed step rate) */
+                    char f[16];
+                    if (env_str("I76_AI_STOCK_CLOCK_FPS", f, sizeof(f)) && atof(f) >= 5.0 && atof(f) <= 200.0) {
+                        g_ai_frame = 1.0 / atof(f);
+                        mlog("  ai-stock-clock: emulated frame %.2f ms (%.1f fps)", g_ai_frame * 1000.0, atof(f));
+                    }
+                }
                 mlog("  ai-stock-clock: AI throttle / steering gains on the stock frame clock (tick %.3f ms, step %.2f ms: dt ratio cycle as a GetTickCount game at %.1f fps)",
                      g_ai_tick * 1000.0, g_fixed_step * 1000.0f, 1.0f / g_fixed_step);
             } else mlog("  ai-stock-clock: needs I76_FIXED_STEP - not applied");
@@ -1989,12 +2073,12 @@ static int __cdecl wmiss_wrap(const char *name, BYTE *obj, int flag) {
 }
 static int g_ai_roll_hold = 1;
 static int __cdecl ai_skid_rand(void) {
-    if (g_ai_roll_hold && !g_tick20) return 1;
+    if (g_ai_roll_hold && !g_tickai) return 1;
     g_idbg_skid_rolls++;
     return (*(int (__cdecl **)(void))0x004bc20c)();         /* the exe's own rand (MSVCRT import) */
 }
 static int __cdecl ai_horn_rand(void) {
-    if (g_ai_roll_hold && !g_tick20) return 1;
+    if (g_ai_roll_hold && !g_tickai) return 1;
     g_idbg_horn_rolls++;
     return (*(int (__cdecl **)(void))0x004bc20c)();
 }
@@ -2029,7 +2113,7 @@ static void apply_perframe_fixes(void) {
 
 static int __cdecl ai_dodge_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
     int r;
-    if (g_dodge_hold && !g_tick20) return 0;
+    if (g_dodge_hold && !g_tickai) return 0;
     r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD))0x0041abf0)(a, b, c, d);
     g_idbg_dodge_calls++; if (r) g_idbg_dodge_yes++;
     return r;
@@ -2043,10 +2127,15 @@ static void apply_ai_fixes(void) {
         { 0x0041a54e, 0x0049c7a0, (void *)ai_dt20,       "AI car probe dt" },                /* E8 4D 22 08 00 */
         { 0x0041a047, 0x0049c7a0, (void *)ai_dt20,       "AI collider probe dt" },           /* E8 54 27 08 00 */
     };
-    int i, n = 0, first = 0;
+    int i, n = 0, first = 0, last = (int)(sizeof(cs) / sizeof(cs[0]));
+    char v[16];
     if (!env_present("I76_AI_FIXES")) return;
-    if (!g_ratefix) { mlog("  ai-fixes: dodge hold needs I76_FRAMERATE_FIXES (the 20 Hz grid) - horizon pins only"); first = 1; }
-    for (i = first; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
+    /* 2026-10-13 (AI-COMBAT-PARITY): I76_AI_FIXES=dodge = the dodge hold only, =horizon = the five horizon pins only */
+    env_str("I76_AI_FIXES", v, sizeof(v));
+    if (v[0] == 'd' || v[0] == 'D') last = 1;
+    if (v[0] == 'h' || v[0] == 'H') first = 1;
+    if (!g_ratefix && first == 0) { mlog("  ai-fixes: dodge hold needs I76_FRAMERATE_FIXES (the 20 Hz grid) - horizon pins only"); first = 1; }
+    for (i = first; i < last; i++) {
         BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
         LONG rel = (LONG)(cs[i].target - (cs[i].site + 5));
         memcpy(o + 1, &rel, 4);
@@ -2054,8 +2143,9 @@ static void apply_ai_fixes(void) {
         n += patch_bytes(cs[i].site, o, w, 5, cs[i].what);
     }
     if (env_flag("I76_AI_DODGE_HOLD", 8, 1) == 0) g_dodge_hold = 0;
-    mlog("  ai-fixes: %d/6 sites repointed (dodge check %s, avoidance horizon pinned to 50 ms: prediction dt, rate x2, probe dt x2)",
-         n, first ? "skipped" : g_dodge_hold ? "held to the 20 Hz grid" : "counted, passed through");
+    mlog("  ai-fixes: %d/%d sites repointed (dodge check %s, avoidance horizon %s)",
+         n, last - first, first ? "skipped" : g_dodge_hold ? "held to the AI decision grid" : "counted, passed through",
+         last > 1 ? "pinned to 50 ms: prediction dt, rate x2, probe dt x2" : "not pinned");
 }
 
 /* ===========================================================================
@@ -2091,6 +2181,79 @@ static __declspec(naked) void ai_backaway_grid_stub(void) {      /* replaces `ca
         ret
     }
 }
+/* ===========================================================================
+ * AI TURRET FIRE ROLL ON THE DECISION GRID  (I76_AI_TURRET_HOLD=1, needs I76_FRAMERATE_FIXES; off by default)
+ * ===========================================================================
+ * entity_TickTurretFire 0x462a90: a turret with N > 1 (rec+0x50) first rolls rand() % (2N - 2) == 0 (0x462c0f) and
+ * only then asks ai_ShouldFireWeapon (0x462c3e), whose answer I76_FRAMERATE_FIXES holds for the grid window. The outer
+ * roll is not held: between grid frames a failed roll skips the held "yes", so the trigger is pulled for only part of
+ * the window (N = 2: about 58 % of stock). The roll is made on decision-grid frames only and returns 0 (= pass)
+ * between them, so the held decision (or "not decided in this window") stands for the whole window, as one stock
+ * frame does. Static reading (lab doc AI-COMBAT-PARITY-2026-10-13.md). */
+static DWORD g_idbg_turret_rolls;
+static int __cdecl ai_turret_rand(void) {
+    if (!g_tickai) return 0;
+    g_idbg_turret_rolls++;
+    return (*(int (__cdecl **)(void))0x004bc20c)();
+}
+static void apply_ai_turret_hold(void) {
+    static const BYTE rand_old[6] = { 0xFF, 0x15, 0x0C, 0xC2, 0x4B, 0x00 };
+    BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
+    LONG rel = (LONG)((DWORD_PTR)ai_turret_rand - (0x00462c0f + 5));
+    if (!env_present("I76_AI_TURRET_HOLD")) return;
+    if (!g_ratefix) { mlog("  ai-turret-hold: needs I76_FRAMERATE_FIXES - not applied"); return; }
+    memcpy(w + 1, &rel, 4);
+    mlog("  ai-turret-hold: %d/1 turret outer fire roll on the AI decision grid",
+         patch_bytes(0x00462c0f, rand_old, w, 6, "turret outer fire roll (turret hold)"));
+}
+
+/* ===========================================================================
+ * AI HANDBRAKE TURN HELD TO A PHYSICS STEP  (I76_AI_SKID_HOLD=1, needs I76_FIXED_STEP; off by default)
+ * ===========================================================================
+ * Lab doc AI-COMBAT-PARITY-2026-10-13.md. tactic_skid (behaviour 7, the AI's handbrake turn, pushed by ai_ShouldSkid
+ * 0x41f590): its enter 0x41f750 sets full lock and the handbrake (0x41f7b7 `mov [edx+0xf0], 1`) and a one-pass flag
+ * ai+0xa97c; the update 0x41f7f0 clears the flag on the pass that entered and releases the handbrake on the NEXT AI
+ * pass (0x41f839 `mov [ecx+0xf0], 0`). The physics reads +0xf0 only inside its substeps, and the AI pass runs after the
+ * frame's steps, so the handbrake is seen by the steps of exactly one frame: one step in the 1997 game (every frame
+ * steps), but at 120 fps under I76_FIXED_STEP=24 only one frame in five has a step: about 80 % of the AI's handbrake
+ * turns never reach the physics and become a 0.5 s full-lock lunge on rolling wheels. Both writes are repointed at
+ * stubs: the enter stamps the car with the count of frames that ran a fixed step; the release is skipped until a
+ * step has run since then (so the handbrake is held for exactly one physics step, as stock). Without a fixed step
+ * every frame steps and the stubs do what the instructions did. */
+static struct { BYTE *e; DWORD stamp; } g_skid_hb[64];
+static DWORD g_skid_hb_enter, g_skid_hb_deferred;
+static void __cdecl skid_hb_enter(BYTE *e) {
+    int k, fr = -1;
+    *(DWORD *)(e + 0xf0) = 1;
+    g_skid_hb_enter++;
+    for (k = 0; k < 64; k++) { if (g_skid_hb[k].e == e) { fr = k; break; } if (fr < 0 && !g_skid_hb[k].e) fr = k; }
+    if (fr < 0) fr = (int)(((DWORD_PTR)e >> 4) & 63);
+    g_skid_hb[fr].e = e; g_skid_hb[fr].stamp = g_stepframes;
+}
+static void __cdecl skid_hb_release(BYTE *e) {
+    int k;
+    for (k = 0; k < 64; k++) if (g_skid_hb[k].e == e) break;
+    if (k < 64) {
+        if (g_skid_hb[k].stamp == g_stepframes && g_fixed_step > 0.0f) { g_skid_hb_deferred++; return; }   /* no step yet */
+        g_skid_hb[k].e = 0;
+    }
+    *(DWORD *)(e + 0xf0) = 0;
+}
+static void apply_ai_skid_hold(void) {
+    static const BYTE en_old[10] = { 0xC7, 0x82, 0xF0, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };   /* 0x41f7b7 mov [edx+0xf0],1 */
+    static const BYTE re_old[10] = { 0xC7, 0x81, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };   /* 0x41f839 mov [ecx+0xf0],0 */
+    BYTE en_new[10] = { 0x52, 0xE8, 0, 0, 0, 0, 0x83, 0xC4, 0x04, 0x90 };   /* push edx; call stub; add esp,4; nop */
+    BYTE re_new[10] = { 0x51, 0xE8, 0, 0, 0, 0, 0x83, 0xC4, 0x04, 0x90 };   /* push ecx; call stub; add esp,4; nop */
+    LONG rel; int n;
+    if (!env_present("I76_AI_SKID_HOLD")) return;
+    if (g_fixed_step <= 0.0f) { mlog("  ai-skid-hold: needs I76_FIXED_STEP - not applied"); return; }
+    rel = (LONG)((DWORD_PTR)skid_hb_enter - (0x0041f7b8 + 5)); memcpy(en_new + 2, &rel, 4);
+    rel = (LONG)((DWORD_PTR)skid_hb_release - (0x0041f83a + 5)); memcpy(re_new + 2, &rel, 4);
+    n = patch_bytes(0x0041f7b7, en_old, en_new, 10, "tactic_skid handbrake on (skid hold)")
+      + patch_bytes(0x0041f839, re_old, re_new, 10, "tactic_skid handbrake off (skid hold)");
+    mlog("  ai-skid-hold: %d/2 sites (the AI handbrake turn's handbrake held until a physics step has seen it)", n);
+}
+
 static void apply_ai_backaway_grid(void) {
     static const BYTE old[5] = { 0xE8, 0x75, 0x83, 0xFF, 0xFF };   /* call 0x415600 at 0x41d286 */
     BYTE w[5] = { 0xE8 };
@@ -3582,6 +3745,7 @@ static void __cdecl fixed_stepper_begin(float *stepper) {
     n = (int)(g_step_acc[slot].acc / g_fixed_step);
     if (n > 20) { n = 20; g_step_acc[slot].acc = 0.0f; } else g_step_acc[slot].acc -= (float)n * g_fixed_step;
     g_step_acc[slot].n = n; g_step_acc[slot].frame = g_frame;   /* for render interpolation */
+    if (n > 0 && g_stepframe_last != g_frame) { g_stepframe_last = g_frame; g_stepframes++; }
     stepper[1] = g_fixed_step;                               /* +4 step */
     ((int *)stepper)[2] = n;                                 /* +8 count */
 }
@@ -4670,6 +4834,7 @@ static void __cdecl tel_fire_wrap(BYTE *inst, BYTE *wdef, int count, float dt_le
     BYTE **vrec, *veh;
     ((void (__cdecl *)(BYTE *, BYTE *, int, float))0x004a6e90)(inst, wdef, count, dt_left);   /* weapon_FireShot */
     if (!inst) return;
+    if (g_cbt_on) cbt_shot(inst);
     vrec = *(BYTE ***)(inst + 0x18);                         /* I76_WeaponInstance.vrec -> +0 vehicle object */
     veh = vrec ? *vrec : 0;
     if (veh && ((int (__cdecl *)(BYTE *))0x00458bf0)(veh))   /* object_IsPlayer */
@@ -4707,6 +4872,7 @@ static int __cdecl tel_coll_hook(BYTE *target, BYTE *source, float *normal, floa
     float v[3] = { 0.0f, 0.0f, 0.0f };
     if (impact) { v[0] = impact[0]; v[1] = impact[1]; v[2] = impact[2]; }
     r = ((int (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))g_tel_coll_tramp)(target, source, normal, impact, dir);
+    if (g_cbt_on) cbt_coll(target, source);
     tel_event(I76TEL_EV_IMPACT, v[0], v[1], v[2], is_player ? (float)(before - tel_health_sum(target)) : 0.0f,
               is_player, source ? *(int *)(source + 0x6c) : 0);
     return r;                                                /* the exe's bool result, in al; eax passes through untouched */
@@ -4887,7 +5053,7 @@ static void dmg_classify(const float *p, int *side, int *zone) {
 static int __cdecl dmg_hook(BYTE *obj, BYTE *rec, float *pt) {
     int ok = 0, before = 0, after = 0, side = -1, zone = -1, bits = 0, mask = 0, scls = 0, k, r;
     float amt = 0.0f, p[3] = { 0.0f, 0.0f, 0.0f };
-    BYTE *ent = 0;
+    BYTE *ent = 0, *cshooter = 0;
 #ifdef _MSC_VER
     __try {
 #endif
@@ -4895,6 +5061,7 @@ static int __cdecl dmg_hook(BYTE *obj, BYTE *rec, float *pt) {
         if (rec && pt && ent && !(*(BYTE *)(obj + 0x10) & 0x20) && !(*(DWORD *)(ent + 0x454) & 0x20)) {   /* the exe's own guards */
             WORD m = *(WORD *)(rec + 4), fl = *(WORD *)(rec + 6);
             BYTE *shooter = *(BYTE **)rec;
+            cshooter = shooter;
             for (k = 0; k < 4; k++) if (m & (1 << k)) amt += (float)*(int *)(rec + 8 + 4 * k);
             p[0] = pt[0]; p[1] = pt[1]; p[2] = pt[2];
             dmg_classify(p, &side, &zone);
@@ -4922,6 +5089,7 @@ static int __cdecl dmg_hook(BYTE *obj, BYTE *rec, float *pt) {
         g_dmg_events++;
         e->f[0] = amt; e->f[1] = (float)(before - after); e->f[2] = p[0]; e->f[3] = p[1]; e->f[4] = p[2];
         e->i[0] = side; e->i[1] = zone; e->i[2] = bits; e->i[3] = mask; e->i[4] = scls;
+        if (g_cbt_on) cbt_damage(obj, cshooter, amt, before - after, (bits & I76TEL_DMG_KILLED) != 0);
     }
     return r;
 }
@@ -5036,6 +5204,232 @@ static void apply_telemetry(void) {
          hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
     apply_sound_events();     /* opt-in: I76_SOUND_EVENTS=1 (i76tel v3) */
     apply_damage_events();    /* opt-in: I76_DAMAGE_EVENTS=1 (i76tel v3) */
+}
+
+/* ===========================================================================
+ * COMBAT INSTRUMENT  (I76_COMBAT_LOG=<file>; needs I76_TELEMETRY + I76_DAMAGE_EVENTS; off by default; lab tool)
+ * ===========================================================================
+ * Lab doc AI-COMBAT-PARITY-2026-10-13.md. Counts only - nothing the game computes is changed: per car on the 8 team
+ * lists (0x507da0, counts 0x51f5d0; slot -> object, entity obj+0x70, AI block entity+0x108) it samples once per
+ * rendered frame, weighted by the simclock time that frame advanced: distance to the player (ground plane), speed,
+ * the top of the behaviour stack (ai+0xa874[ai+0xa93c], ids 0..33 of table 0x4c3e00: time in each and entries), the
+ * target (ai+0xa9b4 == player), steer sign reversals (+0xe0, |steer| > 0.2), handbrake (+0xf0) entries, alive/dead.
+ * Events from the telemetry wrappers: every weapon_FireShot by shooter and weapon definition (instance +0x30), every
+ * entity_DamageAndKill with its shooter (requested amount = the record's damage sum, which the god flag does not
+ * zero; health lost; kill), every physics_ApplyCollisionDamage between an AI car and the player (raw calls and
+ * contacts = calls more than 0.5 s apart). The decision gates are counted by the same pass-through wrappers the
+ * frame-rate fixes use (ai_fire_wrap, ai_dodge_wrap, ai_skid_rand, ai_horn_rand), installed here when no switch has
+ * installed them, so every condition (stock included) reports the same counters. The file is rewritten about once a
+ * second of real time, so a run that is killed still leaves its last snapshot. */
+#define CBT_CARS 64
+#define CBT_BEH 35                                           /* 0..33 + 34 = out of range */
+#define CBT_WPN 8
+typedef struct {
+    BYTE *obj; int g, i, player, alive; char name[9];
+    double t_seen, t_dead, t_tgt, dsum, dmin, dbin[5], vsum;
+    double bt[CBT_BEH]; DWORD be[CBT_BEH]; int beh;
+    float steer_last; DWORD steer_rev, hb_on; int hb;
+    float pend_steer; int pend_hb, pend_ok; float c_steer_last; DWORD c_rev, c_hb_on, c_steps; int c_hb;   /* commands a physics step consumed */
+    int wdef[CBT_WPN]; DWORD wshots[CBT_WPN]; DWORD shots_other;
+    double dmg_req_player, dmg_req_taken, dmg_req_by_player, lost_taken; DWORD hits_player, hits_taken, hits_by_player;
+    DWORD coll_calls, coll_contacts; double coll_last;
+} cbt_car_t;
+static cbt_car_t g_cbt[CBT_CARS];
+static char g_cbt_path[MAX_PATH];
+static float g_cbt_last_t; static int g_cbt_have_t;
+static DWORD g_cbt_prev_frame, g_cbt_prev_steps;
+static double g_cbt_t; static DWORD g_cbt_frames, g_cbt_flush_tick;
+static BYTE *g_cbt_player;
+static int g_cbt_stepped;
+static double g_cbt_player_dmg_req; static DWORD g_cbt_player_hits;
+static cbt_car_t *cbt_find(BYTE *obj, int add) {
+    int k, fr = -1;
+    if (!obj) return 0;
+    for (k = 0; k < CBT_CARS; k++) { if (g_cbt[k].obj == obj) return &g_cbt[k]; if (fr < 0 && !g_cbt[k].obj) fr = k; }
+    if (!add || fr < 0) return 0;
+    memset(&g_cbt[fr], 0, sizeof g_cbt[fr]);
+    g_cbt[fr].obj = obj; g_cbt[fr].dmin = 1e9; g_cbt[fr].beh = -1; g_cbt[fr].t_dead = -1.0; g_cbt[fr].t_seen = -1.0;
+    lstrcpynA(g_cbt[fr].name, (const char *)obj, 9);
+    return &g_cbt[fr];
+}
+static void cbt_shot(BYTE *inst) {
+    BYTE **vrec = *(BYTE ***)(inst + 0x18), *veh = vrec ? *vrec : 0;
+    cbt_car_t *c = cbt_find(veh, 0);
+    int d = *(int *)(inst + 0x30), k;
+    if (!c) return;
+    for (k = 0; k < CBT_WPN; k++) {
+        if (c->wshots[k] && c->wdef[k] == d) { c->wshots[k]++; return; }
+        if (!c->wshots[k]) { c->wdef[k] = d; c->wshots[k] = 1; return; }
+    }
+    c->shots_other++;
+}
+static void cbt_coll(BYTE *target, BYTE *source) {
+    cbt_car_t *c = 0;
+    if (!g_cbt_player || !target || !source) return;
+    if (target == g_cbt_player) c = cbt_find(source, 0);
+    else if (source == g_cbt_player) c = cbt_find(target, 0);
+    if (!c || c->player) return;
+    c->coll_calls++;
+    if (g_cbt_t - c->coll_last > 0.5) c->coll_contacts++;
+    c->coll_last = g_cbt_t;
+}
+static void cbt_damage(BYTE *obj, BYTE *shooter, float amt, int lost, int killed) {
+    cbt_car_t *t = cbt_find(obj, 0), *s = shooter ? cbt_find(shooter, 0) : 0;
+    int to_player = obj && (*(DWORD *)(obj + 0x10) & 0x10);
+    int by_player = shooter && (*(DWORD *)(shooter + 0x10) & 0x10);
+    if (to_player) { g_cbt_player_dmg_req += amt; g_cbt_player_hits++; }
+    if (s && to_player && s != t) { s->dmg_req_player += amt; s->hits_player++; }
+    if (t && !t->player) {
+        t->dmg_req_taken += amt; t->hits_taken++; t->lost_taken += lost;
+        if (by_player) { t->dmg_req_by_player += amt; t->hits_by_player++; }
+        if (killed && t->t_dead < 0.0) t->t_dead = g_cbt_t;
+    }
+}
+static void cbt_flush(void) {
+    char tmp[MAX_PATH + 8], line[2400];
+    HANDLE h; DWORD w; int k, j, n;
+    wsprintfA(tmp, "%s.tmp", g_cbt_path);
+    h = CreateFileA(tmp, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return;
+    n = sprintf(line, "T sim=%.3f frames=%lu aifire_calls=%lu aifire_yes=%lu dodge_calls=%lu dodge_yes=%lu skid_rolls=%lu horn_rolls=%lu player_hits=%lu player_dmg_req=%.0f stepframes=%lu skidhb_enter=%lu skidhb_deferred=%lu turret_rolls=%lu\n",
+                g_cbt_t, (unsigned long)g_cbt_frames, (unsigned long)g_idbg_aifire_calls, (unsigned long)g_idbg_aifire_yes,
+                (unsigned long)g_idbg_dodge_calls, (unsigned long)g_idbg_dodge_yes, (unsigned long)g_idbg_skid_rolls,
+                (unsigned long)g_idbg_horn_rolls, (unsigned long)g_cbt_player_hits, g_cbt_player_dmg_req,
+                (unsigned long)g_stepframes, (unsigned long)g_skid_hb_enter, (unsigned long)g_skid_hb_deferred, (unsigned long)g_idbg_turret_rolls);
+    WriteFile(h, line, n, &w, NULL);
+    for (k = 0; k < CBT_CARS; k++) {
+        cbt_car_t *c = &g_cbt[k];
+        if (!c->obj) continue;
+        n = sprintf(line, "C g=%d i=%d name=%s player=%d alive=%d t_seen=%.2f t_dead=%.2f t_tgt=%.2f dsum=%.1f dmin=%.1f d25=%.2f d50=%.2f d100=%.2f d200=%.2f dfar=%.2f vsum=%.1f steer_rev=%lu hb_on=%lu shots_other=%lu dmg_req_player=%.0f hits_player=%lu dmg_req_taken=%.0f hits_taken=%lu lost_taken=%.0f dmg_req_by_player=%.0f hits_by_player=%lu coll_calls=%lu coll_contacts=%lu c_steps=%lu c_rev=%lu c_hb_on=%lu shots=",
+                    c->g, c->i, c->name, c->player, c->alive, c->t_seen, c->t_dead, c->t_tgt, c->dsum, c->dmin < 1e8 ? c->dmin : -1.0,
+                    c->dbin[0], c->dbin[1], c->dbin[2], c->dbin[3], c->dbin[4], c->vsum, (unsigned long)c->steer_rev, (unsigned long)c->hb_on,
+                    (unsigned long)c->shots_other, c->dmg_req_player, (unsigned long)c->hits_player, c->dmg_req_taken, (unsigned long)c->hits_taken,
+                    c->lost_taken, c->dmg_req_by_player, (unsigned long)c->hits_by_player, (unsigned long)c->coll_calls, (unsigned long)c->coll_contacts,
+                    (unsigned long)c->c_steps, (unsigned long)c->c_rev, (unsigned long)c->c_hb_on);
+        for (j = 0; j < CBT_WPN && c->wshots[j]; j++) {
+            char nm[9] = "?";
+            BYTE *d = (BYTE *)0x005d88d8 + c->wdef[j] * 0xd8;
+            int q;
+            if (c->wdef[j] >= 0 && c->wdef[j] < 64 && !IsBadReadPtr(d, 8)) {
+                for (q = 0; q < 8 && d[q] > 0x20 && d[q] < 0x7f; q++) nm[q] = (char)d[q];
+                nm[q] = 0;
+            }
+            n += sprintf(line + n, "%d:%s:%lu,", c->wdef[j], nm, (unsigned long)c->wshots[j]);
+        }
+        n += sprintf(line + n, " bt=");
+        for (j = 0; j < CBT_BEH; j++) if (c->be[j]) n += sprintf(line + n, "%d:%.2f:%lu,", j, c->bt[j], (unsigned long)c->be[j]);
+        line[n++] = '\n';
+        WriteFile(h, line, n, &w, NULL);
+    }
+    CloseHandle(h);
+    MoveFileExA(tmp, g_cbt_path, MOVEFILE_REPLACE_EXISTING);
+}
+static void cbt_sample(void) {
+    float now = *(volatile float *)0x005a7e74, dt;
+    double px = 0.0, pz = 0.0; int g, i, have_p = 0;
+    BYTE *pobj = tel_player(0);
+    if (!g_cbt_have_t) { g_cbt_last_t = now; g_cbt_have_t = 1; return; }
+    dt = now - g_cbt_last_t; g_cbt_last_t = now;
+    if (dt < 0.0f || dt > 0.5f) return;                     /* a mission change or a pause */
+    g_cbt_t += dt; g_cbt_frames++;
+    {   /* did the frame since the last sample run a physics step? (always, without a fixed step) */
+        int stepped = g_fixed_step <= 0.0f || g_stepframes != g_cbt_prev_steps;
+        g_cbt_prev_steps = g_stepframes; g_cbt_stepped = stepped;
+    }
+    g_cbt_player = pobj;
+    if (pobj) { px = *(double *)(pobj + 0x40); pz = *(double *)(pobj + 0x50); have_p = 1; }
+    for (g = 0; g < 8; g++) {
+        int n = ((volatile int *)0x0051f5d0)[g];
+        BYTE **list = (BYTE **)(DWORD_PTR)(0x00507da0 + 0x100 * g);
+        if (n < 0 || n > 64) continue;
+        for (i = 0; i < n; i++) {
+            BYTE *w = list[i], *obj, *e, *ai; cbt_car_t *c; int dead, b, depth;
+            if (!w || IsBadReadPtr(w, 4)) continue;
+            obj = *(BYTE **)w;
+            if (!obj || IsBadReadPtr(obj, 0x74)) continue;
+            e = *(BYTE **)(obj + 0x70);
+            if (!e || IsBadReadPtr(e, 0x458)) continue;
+            c = cbt_find(obj, 1);
+            if (!c) continue;
+            c->g = g; c->i = i;
+            c->player = (*(DWORD *)(obj + 0x10) & 0x10) != 0;
+            dead = (*(BYTE *)(obj + 0x10) & 0x20) || (*(DWORD *)(e + 0x454) & 0x20);
+            c->alive = !dead;
+            if (c->t_seen < 0.0) c->t_seen = g_cbt_t;
+            if (dead) { if (c->t_dead < 0.0) c->t_dead = g_cbt_t; continue; }
+            if (c->player) continue;
+            if (have_p) {
+                double dx = *(double *)(obj + 0x40) - px, dz = *(double *)(obj + 0x50) - pz, d = sqrt(dx * dx + dz * dz);
+                c->dsum += d * dt; if (d < c->dmin) c->dmin = d;
+                c->dbin[d < 25.0 ? 0 : d < 50.0 ? 1 : d < 100.0 ? 2 : d < 200.0 ? 3 : 4] += dt;
+            }
+            c->vsum += (double)*(float *)(e + 0xac) * dt;
+            {
+                float st = *(float *)(e + 0xe0);
+                if ((st > 0.2f && c->steer_last < -0.2f) || (st < -0.2f && c->steer_last > 0.2f)) c->steer_rev++;
+                if (st > 0.2f || st < -0.2f) c->steer_last = st;
+            }
+            { int hb = *(DWORD *)(e + 0xf0) != 0; if (hb && !c->hb) c->hb_on++; c->hb = hb; }
+            if (c->pend_ok && g_cbt_stepped) {              /* the values sampled last frame were consumed by its step(s) */
+                float st = c->pend_steer;
+                c->c_steps++;
+                if ((st > 0.2f && c->c_steer_last < -0.2f) || (st < -0.2f && c->c_steer_last > 0.2f)) c->c_rev++;
+                if (st > 0.2f || st < -0.2f) c->c_steer_last = st;
+                if (c->pend_hb && !c->c_hb) c->c_hb_on++;
+                c->c_hb = c->pend_hb;
+            }
+            c->pend_steer = *(float *)(e + 0xe0); c->pend_hb = *(DWORD *)(e + 0xf0) != 0; c->pend_ok = 1;
+            ai = *(BYTE **)(e + 0x108);
+            if (!ai || IsBadReadPtr(ai + 0xa874, 0x150)) continue;
+            depth = *(int *)(ai + 0xa93c);
+            b = (depth >= 0 && depth < 50) ? *(int *)(ai + 0xa874 + 4 * depth) : -1;
+            if (b < 0 || b > 33) b = 34;
+            c->bt[b] += dt;
+            if (b != c->beh) { c->be[b]++; c->beh = b; }
+            if (pobj && *(BYTE **)(ai + 0xa9b4) == pobj) c->t_tgt += dt;
+        }
+    }
+}
+static void cbt_frame(void) {
+#ifdef _MSC_VER
+    __try { cbt_sample(); } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; }
+#else
+    cbt_sample();
+#endif
+    if (GetTickCount() - g_cbt_flush_tick > 1000) { g_cbt_flush_tick = GetTickCount(); cbt_flush(); }
+}
+static int cbt_wrap_if_stock(DWORD site, DWORD target, void *wrap, const char *what) {
+    BYTE o[5] = { 0xE8 };
+    LONG rel = (LONG)(target - (site + 5));
+    memcpy(o + 1, &rel, 4);
+    if (memcmp((void *)(DWORD_PTR)site, o, 5) != 0) return 0;  /* a switch already wrapped it */
+    return tel_repoint_call(site, target, wrap, what);
+}
+static void apply_combat_log(void) {
+    static const BYTE rand_old[6] = { 0xFF, 0x15, 0x0C, 0xC2, 0x4B, 0x00 };
+    int nf = 0, nd = 0, nr = 0, i;
+    if (!env_str("I76_COMBAT_LOG", g_cbt_path, sizeof(g_cbt_path))) return;
+    if (!g_tel_on || !g_dmg_tramp) { mlog("  combat-log: needs I76_TELEMETRY=1 and I76_DAMAGE_EVENTS=1 - off"); return; }
+    /* pass-through counters where no switch holds the site: g_tick20 stays 1 without the frame-rate fixes, and the
+     * holds are off for sites installed here, so every call goes to the game's own function */
+    if (!g_ratefix) g_aifire_cache = 0;
+    nf += cbt_wrap_if_stock(0x00414f75, 0x00418200, (void *)ai_fire_wrap, "AI fire decision (vehicles, combat-log)");
+    nf += cbt_wrap_if_stock(0x00462bfb, 0x00418200, (void *)ai_fire_wrap, "AI fire decision (turrets, combat-log)");
+    nf += cbt_wrap_if_stock(0x00462c3e, 0x00418200, (void *)ai_fire_wrap, "AI fire decision (turrets 2, combat-log)");
+    if (cbt_wrap_if_stock(0x0041b698, 0x0041abf0, (void *)ai_dodge_wrap, "AI dodge check (combat-log)")) { g_dodge_hold = 0; nd = 1; }
+    if (!g_ratefix) {
+        static const struct { DWORD site; void *wrap; } rs[2] = { { 0x0041f5d4, (void *)ai_skid_rand }, { 0x0041dacc, (void *)ai_horn_rand } };
+        for (i = 0; i < 2; i++) {
+            BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
+            LONG rel = (LONG)((DWORD_PTR)rs[i].wrap - (rs[i].site + 5));
+            memcpy(w + 1, &rel, 4);
+            nr += patch_bytes(rs[i].site, rand_old, w, 6, "AI skid / horn roll (combat-log)");
+        }
+    }
+    install_frame_hook();
+    g_cbt_on = g_frame_hook;
+    mlog("  combat-log: %s -> %s (pass-through counters added: fire %d/3, dodge %d/1, skid+horn %d/2)",
+         g_cbt_on ? "on" : "NOT on (frame hook)", g_cbt_path, nf, nd, nr);
 }
 
 /* ===========================================================================
@@ -7647,6 +8041,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
         apply_sw_res();           /* experiment: I76_SW_RES=<W>x<H> or 1 (software renderer above 1024x768) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
+        apply_tick_emu();         /* lab: I76_TICK_MS=<ms> (sim clock on a coarse tick; excludes I76_HIRES_CLOCK) */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
         apply_fps_log();          /* opt-in: I76_FPS_LOG=<seconds> */
@@ -7664,6 +8059,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_perframe_fixes();   /* with I76_FRAMERATE_FIXES: radar missile turn, WMISS click, AI skid + horn rolls */
         apply_ai_fixes();         /* opt-in: I76_AI_FIXES=1 (after apply_framerate_fixes: the dodge hold needs the 20 Hz grid) */
         apply_ai_backaway_grid(); /* opt-in: I76_AI_BACKAWAY_GRID=1 (back_away ring indexed by sim time x 20, not frames) */
+        apply_ai_skid_hold();     /* opt-in: I76_AI_SKID_HOLD=1 (AI handbrake turn held to one physics step; needs I76_FIXED_STEP) */
+        apply_ai_turret_hold();   /* opt-in: I76_AI_TURRET_HOLD=1 (turret outer fire roll on the AI decision grid) */
         apply_coop_damage();      /* opt-in: I76_COOP_DAMAGE=<factor> (humans' weapon damage in network games) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
@@ -7671,6 +8068,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_fix_label_table();  /* opt-in: I76_FIX_LABEL_TABLE=1 (stock bug fix) */
         apply_far_clip();         /* opt-in: I76_FAR_CLIP=<metres> (+ render pools x16) */
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
+        apply_combat_log();       /* lab: I76_COMBAT_LOG=<file> (after apply_telemetry + the AI switches: counts only) */
         apply_start_pos();        /* opt-in: I76_START_POS=x,y,z,yaw[,delay] with I76_MISSION (one placement after the start) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
