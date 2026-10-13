@@ -342,6 +342,28 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       - a sign falling when you clearly passed beside it (more than about a car's width away);
       - anything that is not a sign post breaking or behaving differently from PLAY.bat.
     - **Verdict.** If it holds, `I76_BREAKABLE_BOX=3` replaces `=1` in best-wide at the next promotion.
+## Next candidate: bushes and terrain as far as the roads, signs on time (lab twin game-dd-20261003; lab docs/DRAW-DISTANCE-2026-10-12.md, SIGN-FIX-3-2026-10-12.md)
+
+36. **TEST-next.bat / TEST-hill-next.bat, updated 2026-10-12 evening.** Your TEST-next session: "looks really great. can the brush/bush draw distance and the terrain draw distance be as far as the road draw distance? ... the collision with the signs happens a little early again but it happens 100% of the time".
+    - **What "terrain draw distance" was.** The ground itself is drawn to 1800 m already. What stopped short is its *detail*: the terrain is rebuilt each frame with fewer, bigger triangles farther out, so small mounds and ridges a kilometre away were flattened and popped up as you came closer. `I76_TERRAIN_LOD` sets how far the detail reaches. It was 8, and now it is 32. The detail distance grows with the square root, so 32 reaches twice as far as 8. Captures from the hill top show the mounds around the barricade end of the valley at 32 that are missing at 8.
+    - **Bushes.** They were drawn to 300 m. Now they go to 1800 m. Drawing every bush that far ran at 38 fps on the hill top, so past 200 m they thin out with distance, about as fast as they shrink on screen.
+    - **Cost.** Measured on the console from the T05 hill top looking down the valley, the worst cockpit view, n = 4 each:
+      - TEST-next: 120 fps, slowest 1 % of frames at 107 fps;
+      - today's PLAY.bat: 120 fps, slowest 1 % at 96-101 fps;
+      - the drive down the hill and the t04 desert drive: no difference;
+      - binoculars: about 60 fps on the hill as before.
+    - **Signs.** `I76_BREAKABLE_BOX=4` keeps every hit of =3 (33 of 33 shields knocked over again). The sign now falls when your car *on screen* reaches the post, not when the physics, which runs up to one step ahead, does. The bumper-to-post gap at the moment a sign fell:
+      - before: median +0.44 m, up to 2.7 m early;
+      - now: median -0.11 m, never early (n = 33 each).
+    - **Alternative.** `TEST-next-dense.bat` / `TEST-hill-next-dense.bat` keep today's full bush density out to 300 m, with terrain x24 instead of x32. It costs the same on the hill top. Tell me which you prefer.
+    - **Twin proxy.** The twin's proxy is `855b08d7`, built from the repo source. Every other launcher behaves as before.
+    - **Kill criteria:**
+      - a crash;
+      - `sign-sweep: fault` or `terrain-vguard:` lines in `Interstate 76\mciproxy.log`;
+      - a sign falling before the bumper touches it, or after you are clearly through it;
+      - stutter in the hill-top view that PLAY.bat does not have.
+    - **Not promoted yet.** Promotion 18 is on hold until the dream-mission report ("expecting you to stay on the road") is explained.
+
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
