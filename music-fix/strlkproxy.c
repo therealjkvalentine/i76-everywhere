@@ -1193,6 +1193,10 @@ static void start_pos_frame(void);
 static int g_bbox_sweep;                                     /* I76_BREAKABLE_BOX=3: sign-post sweep (below, with the breakable box) */
 static volatile DWORD g_sweep_entries, g_sweep_scored, g_sweep_engine, g_sweep_frames;
 static void sign_sweep(void);
+static int g_bbox_defer;                                     /* I76_BREAKABLE_BOX=4: post knock-offs wait for the DRAWN car (below) */
+static int sign_defer_engine(BYTE *victim, BYTE *source, const float *v, const float *n, const float *p);
+static void sign_gap_log_engine(BYTE *victim, BYTE *source);
+static double g_pld_p[3], g_pld_prev[3]; static float g_pld_r[9]; static BYTE *g_pld_obj; static DWORD g_pld_frame;   /* the player as last DRAWN (render-interp) */
 /* I76_FPS_LOG=<seconds> (off by default): every period, log the frame rate and where each frame's time went -
  * "work" is hook return to the next hook entry (sim, render, Flip / present, anything the frame blocks on), "cap"
  * is the I76_FPS_CAP wait. Work near the frame time with the process far below a full core means the frame is
@@ -3945,6 +3949,8 @@ static DWORD __cdecl coll_damage_wrap(DWORD victim, DWORD source, DWORD v, DWORD
     float nn[3];
     if (g_coll_dup) return 1;                                                  /* "victim still there"; both callers ignore it */
     if (g_bbox_speed && bbox_speed_normal((BYTE *)victim, (const float *)v, (const float *)n, nn)) n = (DWORD)(DWORD_PTR)nn;
+    if (g_bbox_defer && sign_defer_engine((BYTE *)victim, (BYTE *)source, (const float *)v, (const float *)n, (const float *)p)) return 1;
+    if (g_bbox_sweep && !g_bbox_defer) sign_gap_log_engine((BYTE *)victim, (BYTE *)source);
     return ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
 }
 static void apply_coll_dedupe(void) {
@@ -4234,6 +4240,10 @@ static void __cdecl render_wrap(void *cam) {
             *(xform_t *)(e->obj + 0x18) = e->disp;
             if (e->player) pl = e;
             n++;
+        }
+        if (pl) {                                           /* I76_BREAKABLE_BOX=4 (and its =3 gap log): the pose on screen */
+            if (g_pld_frame == g_frame - 1 && g_pld_obj == pl->obj) memcpy(g_pld_prev, g_pld_p, 24); else memcpy(g_pld_prev, pl->disp.p, 24);
+            memcpy(g_pld_p, pl->disp.p, 24); memcpy(g_pld_r, pl->disp.r, 36); g_pld_obj = pl->obj; g_pld_frame = g_frame;
         }
         if (pl && g_cam_stamp == g_frame && g_cam_interp_frame != g_frame &&
             g_cam_caller >= 0x00405b90 && g_cam_caller < 0x00409700) {
@@ -6112,16 +6122,19 @@ static void apply_breakable_box(void) {
     BYTE w[6] = { 0xE8, 0, 0, 0, 0, 0x90 };
     LONG rel = (LONG)((DWORD_PTR)bbox_thunk - (0x00436cbd + 5));
     char v[4];
-    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || (v[0] != '1' && v[0] != '2' && v[0] != '3')) return;
+    if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", v, sizeof(v)) != 1 || (v[0] != '1' && v[0] != '2' && v[0] != '3' && v[0] != '4')) return;
     g_bbox_mode = v[0] - '0';
     g_bbox_speed = g_bbox_mode >= 2;                        /* =3 keeps =2 (closing-speed score, bar box at car height) */
-    if (g_bbox_mode == 3) { install_frame_hook(); g_bbox_sweep = g_frame_hook; }
+    if (g_bbox_mode >= 3) { install_frame_hook(); g_bbox_sweep = g_frame_hook; }
+    if (g_bbox_mode == 4 && g_bbox_sweep) g_bbox_defer = 1;  /* =4 = =3 + the knock-off waits for the drawn car */
     memcpy(w + 1, &rel, 4);
     mlog("  breakable-box: %d/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)%s",
          patch_bytes(0x00436cbd, old6, w, 6, "collision tree default part kind read"),
          g_bbox_mode == 2 ? "; =2: mid-height 0.3..1.3 m only, class-4 knock-off scored on the closing speed"
          : g_bbox_mode == 3 ? (g_bbox_sweep ? "; =3: =2 + sign-post sweep (a post the player's car box drove through that the engine never touched is scored by 0x4a7c80)"
-                                            : "; =3: =2, sign-post sweep NOT applied (no frame hook)") : "");
+                                            : "; =3: =2, sign-post sweep NOT applied (no frame hook)")
+         : g_bbox_mode == 4 ? (g_bbox_sweep ? "; =4: =3 + every post knock-off (sweep or engine contact) waits until the DRAWN car box reaches the post (render-interp pose)"
+                                            : "; =4: =2, sign-post sweep NOT applied (no frame hook)") : "");
 #else
     if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", NULL, 0)) mlog("  breakable-box: MSVC build only - not applied");
 #endif
@@ -6143,7 +6156,7 @@ static void breakable_box_report(void) {                     /* with the start-p
     b[n] = 0;
     mlog("  breakable-box: %lu class-4 default parts seen, %lu made boxes (length x thickness @ centre height):%s",
          g_bbox_parts, g_bbox_box, n ? b : " -");
-    if (g_bbox_mode == 3)
+    if (g_bbox_mode >= 3)
         mlog("  sign-sweep: %lu frames swept, %lu post entries into the car box, %lu the engine had hit, %lu scored by the sweep",
              g_sweep_frames, g_sweep_entries, g_sweep_engine, g_sweep_scored);
 }
@@ -6174,6 +6187,130 @@ static BYTE *sweep_player_box(BYTE *obj) {                  /* the player's move
     }
     return 0;
 }
+/* I76_BREAKABLE_BOX=4 (2026-10-12; owner on =3: "seems like the collision with the signs happens a little early again but
+ * it happens 100% of the time"). Under I76_FIXED_STEP + I76_RENDER_INTERP the physics pose leads the drawn car by up to
+ * one 41.7 ms step (~0.8 m at 20 m/s): =3's sweep scores the post when the PHYSICS box enters it, and an engine contact
+ * (collision G accepts it over the step) is no later, so the sign falls while the car on screen is still short of it.
+ * =4 keeps every detection of =3 (sweep + engine contacts, so the same 100 %) but queues the knock-off of a post-like
+ * part (the sweep's criterion) by the player's car, with the arguments of the moment, and fires it in the frame hook
+ * once the drawn car box - the render-interp pose of the frame just shown, advanced by its last frame-to-frame step,
+ * i.e. the box the NEXT frame will show - touches the post (gap <= 0), or after 30 frames whatever happens. A queued
+ * post the game has unregistered meanwhile is dropped. Logs `sign-defer:` per knock-off (first 40): frames waited,
+ * the drawn gap at the knock-off (the bumper-to-post distance of the first frame drawn without the post; <= 0 = touching)
+ * and the gap =3 would have had at detection. =3 logs the same drawn gap for its own knock-offs (`sign-gap:`). */
+typedef struct { BYTE *root, *part; float v[3], n[3], p[3]; DWORD frame0; int src; float gap0; } sign_pend_t;
+static sign_pend_t g_spend[8]; static int g_nspend;
+static DWORD g_sdefer_fired, g_sdefer_timeout, g_sdefer_dropped, g_sgap_logged;
+static BYTE *post_root(BYTE *part) {                        /* the class-4 tree root of a post-like part, else 0 */
+    BYTE *root = part; float *a; int k = 0;
+    if (!part) return 0;
+    while (*(BYTE **)(root + 0x68) && k++ < 16) root = *(BYTE **)(root + 0x68);
+    if (root == part || *(int *)(root + 0x6c) != 4) return 0;
+    a = (float *)(part + 0x94);
+    if ((a[3] - a[0]) * 0.5f > 0.35f || (a[5] - a[2]) * 0.5f > 0.35f || a[4] - a[1] < 1.0f) return 0;
+    return root;
+}
+static void post_axis(BYTE *root, BYTE *part, double *q, float *hr) {   /* world x / z of the post's axis (the sweep's formula) */
+    float *a = (float *)(part + 0x94), *RR = (float *)(root + 0x18), hx = (a[3] - a[0]) * 0.5f, hz = (a[5] - a[2]) * 0.5f;
+    double lx = *(double *)(part + 0x40) + (a[0] + a[3]) * 0.5, lz = *(double *)(part + 0x50) + (a[2] + a[5]) * 0.5, ly = *(double *)(part + 0x48);
+    q[0] = *(double *)(root + 0x40) + lx * RR[0] + ly * RR[3] + lz * RR[6];
+    q[1] = *(double *)(root + 0x50) + lx * RR[2] + ly * RR[5] + lz * RR[8];
+    *hr = hx > hz ? hx : hz;
+}
+static int car_box_ext(BYTE *obj, float *ext) {             /* the player's COLP box, as 0x43f510 reads it */
+    BYTE *body = sweep_player_box(obj); int *bx;
+    if (!body || *(int *)(body + 0x14) != 1 || !(bx = *(int **)(body + 0x18))) return 0;
+    ext[0] = *(float *)&bx[3]; ext[1] = *(float *)&bx[8]; ext[2] = *(float *)&bx[0xb];
+    ext[3] = *(float *)&bx[bx[0] + 2]; ext[4] = *(float *)&bx[bx[1] + 6]; ext[5] = *(float *)&bx[bx[2] + 10];
+    return ext[3] > ext[0] && ext[4] > ext[1] && ext[5] > ext[2];
+}
+/* the gap between the post and the car box in the pose the NEXT frame will draw (render-interp pose of the frame just
+ * shown + its last step; the physics pose when nothing was drawn interpolated): > 0 short of it, <= 0 touching / inside */
+static float post_gap_drawn(BYTE *obj, BYTE *root, BYTE *part) {
+    double q[2], C[3], x, z, lo_x, hi_x, lo_z, hi_z, ox, oz;
+    float ext[6], hr, *R;
+    if (!car_box_ext(obj, ext)) return 99.0f;
+    post_axis(root, part, q, &hr);
+    if (g_pld_obj == obj && g_pld_frame == g_frame - 1) {
+        int k; for (k = 0; k < 3; k++) C[k] = g_pld_p[k] + (g_pld_p[k] - g_pld_prev[k]);
+        R = g_pld_r;
+    } else { memcpy(C, obj + 0x40, 24); R = (float *)(obj + 0x18); }
+    x = (q[0] - C[0]) * R[0] + (q[1] - C[2]) * R[2]; z = (q[0] - C[0]) * R[6] + (q[1] - C[2]) * R[8];
+    lo_x = ext[0] - hr; hi_x = ext[3] + hr; lo_z = ext[2] - hr; hi_z = ext[5] + hr;
+    ox = x < lo_x ? lo_x - x : x > hi_x ? x - hi_x : 0.0; oz = z < lo_z ? lo_z - z : z > hi_z ? z - hi_z : 0.0;
+    if (ox == 0.0 && oz == 0.0) {                           /* inside: minus the depth to the nearest face */
+        double m = x - lo_x; if (hi_x - x < m) m = hi_x - x; if (z - lo_z < m) m = z - lo_z; if (hi_z - z < m) m = hi_z - z;
+        return (float)-m;
+    }
+    return (float)sqrt(ox * ox + oz * oz);
+}
+static int post_registered(BYTE *root, BYTE *part) {        /* still on the collision static list, part still its child */
+    BYTE **node; BYTE *pt; int n = 0, k = 0;
+    for (node = *(BYTE ***)0x0052b934; node && n < 8000; node = (BYTE **)node[0], n++) {
+        BYTE *sb = node[2];
+        if (sb && *(BYTE **)sb == root) {
+            for (pt = *(BYTE **)(root + 0x64); pt && k++ < 64; pt = *(BYTE **)(pt + 0x60)) if (pt == part) return 1;
+            return 0;
+        }
+    }
+    return 0;
+}
+static int sign_pend_add(BYTE *root, BYTE *part, const float *v, const float *n, const float *p, int src, float gap0) {
+    int i;
+    for (i = 0; i < g_nspend; i++) if (g_spend[i].root == root) return 1;   /* already queued: this contact is the same ram */
+    if (g_nspend >= 8) return 0;                                          /* full: let it score now */
+    g_spend[g_nspend].root = root; g_spend[g_nspend].part = part;
+    memcpy(g_spend[g_nspend].v, v, 12); memcpy(g_spend[g_nspend].n, n, 12); memcpy(g_spend[g_nspend].p, p, 12);
+    g_spend[g_nspend].frame0 = g_frame; g_spend[g_nspend].src = src; g_spend[g_nspend].gap0 = gap0;
+    g_nspend++;
+    return 1;
+}
+static int sign_defer_engine(BYTE *victim, BYTE *source, const float *v, const float *n, const float *p) {
+    BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0, *root;
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (!obj || source != obj || !v || !n || !p || !(root = post_root(victim))) return 0;
+        return sign_pend_add(root, victim, v, n, p, 1, post_gap_drawn(obj, root, victim));
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_bbox_defer = 0; mlog("  sign-defer: fault (engine contact) - turned off"); }
+#endif
+    return 0;
+}
+static void sign_gap_log_engine(BYTE *victim, BYTE *source) {   /* =3: an engine contact knocks a post off now */
+    BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0, *root;
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (!obj || source != obj || !(root = post_root(victim)) || g_sgap_logged >= 40) return;
+        { char nm[9]; memcpy(nm, root, 8); nm[8] = 0; g_sgap_logged++;
+          mlog("  sign-gap: %s post knocked by an engine contact, drawn gap %.2f m", nm, post_gap_drawn(obj, root, victim)); }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+}
+static int sign_pend_run(BYTE *obj) {                       /* 1 = fired one (the caller stops for this frame) */
+    int i;
+    for (i = 0; i < g_nspend; i++) {
+        sign_pend_t *e = &g_spend[i];
+        float gap; DWORD waited = g_frame - e->frame0; char nm[9];
+        if (!post_registered(e->root, e->part)) {           /* knocked off / freed meanwhile */
+            g_sdefer_dropped++; g_spend[i] = g_spend[--g_nspend]; i--; continue;
+        }
+        gap = post_gap_drawn(obj, e->root, e->part);
+        if (gap > 0.0f && waited < 30) continue;
+        { sign_pend_t f = *e; g_spend[i] = g_spend[--g_nspend];
+          memcpy(nm, f.root, 8); nm[8] = 0;
+          g_sdefer_fired++; if (gap > 0.0f) g_sdefer_timeout++;
+          sweep_note_engine_hit(f.root);
+          if (g_sdefer_fired <= 40)
+              mlog("  sign-defer: %s post knocked off after %lu frames (%s contact): drawn gap %.2f m at the knock-off (=3 would have knocked it at a drawn gap of %.2f m)%s",
+                   nm, (unsigned long)waited, f.src ? "engine" : "sweep", gap, f.gap0, gap > 0.0f ? " - TIMEOUT" : "");
+          ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(f.part, obj, f.v, f.n, f.p); }
+        return 1;
+    }
+    return 0;
+}
 static void sign_sweep(void) {
 #ifdef _MSC_VER
     __try {
@@ -6182,7 +6319,8 @@ static void sign_sweep(void) {
         double P0[3], P1[3], dx, dz;
         float *R, ext[6];
         int *bx, n = 0;
-        if (!obj) { g_sweep_obj = 0; return; }
+        if (!obj) { g_sweep_obj = 0; g_nspend = 0; return; }
+        if (g_nspend && sign_pend_run(obj)) return;         /* =4: a queued post reached by the drawn car (one per frame) */
         memcpy(P1, obj + 0x40, 24);
         if (obj != g_sweep_obj || g_frame - g_sweep_prev_frame != 1) {   /* new car / gap: re-arm */
             g_sweep_obj = obj; memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_frame; return;
@@ -6203,6 +6341,7 @@ static void sign_sweep(void) {
                 logged = g_sweep_entries; logframe = g_frame;
                 mlog("  sign-sweep: %lu frames swept, %lu post entries into the car box, %lu the engine had hit, %lu scored by the sweep",
                      g_sweep_frames, g_sweep_entries, g_sweep_engine, g_sweep_scored);
+                if (g_bbox_defer) mlog("  sign-defer: %lu knock-offs fired at the drawn car (%lu by timeout), %lu queued posts gone before", (unsigned long)g_sdefer_fired, (unsigned long)g_sdefer_timeout, (unsigned long)g_sdefer_dropped);
             }
         }
         for (node = *(BYTE ***)0x0052b934; node && n < 8000; node = (BYTE **)node[0], n++) {
@@ -6256,16 +6395,26 @@ static void sign_sweep(void) {
                     memcpy(nm, root, 8); nm[8] = 0;
                     g_sweep_scored++;
                     sweep_note_engine_hit(root);
-                    ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(part, obj, v, nn, pt);
+                    if (g_bbox_defer) {                     /* =4: queue it for the drawn car */
+                        float g0 = post_gap_drawn(obj, root, part);
+                        if (sign_pend_add(root, part, v, nn, pt, 0, g0)) {
+                            if (g_sweep_scored <= 40)
+                                mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - queued at %.1f m/s for the drawn car (drawn gap now %.2f m)",
+                                     nm, qx, qz, vv, g0);
+                            continue;
+                        }
+                    }
                     if (g_sweep_scored <= 40)
                         mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - scored at %.1f m/s "
-                             "(car at %.1f, %.1f; post y %.2f..%.2f, box y %.2f..%.2f)", nm, qx, qz, vv, sx, sz, y0, y1, cy0, cy1);
+                             "(car at %.1f, %.1f; post y %.2f..%.2f, box y %.2f..%.2f; drawn gap %.2f m)", nm, qx, qz, vv, sx, sz, y0, y1, cy0, cy1,
+                             post_gap_drawn(obj, root, part));
+                    ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(part, obj, v, nn, pt);
                     return;                                 /* a knock-off may unregister / free the object: done this frame */
                 }
             }
         }
 #ifdef _MSC_VER
-    } __except (EXCEPTION_EXECUTE_HANDLER) { g_bbox_sweep = 0; mlog("  sign-sweep: fault - turned off"); }
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_bbox_sweep = 0; g_bbox_defer = 0; mlog("  sign-sweep: fault - turned off"); }
 #endif
 }
 
@@ -6652,13 +6801,58 @@ static void apply_cd_instrument(HMODULE exe) {
          g_cd_fake ? " | I76_CD_FAKE=1: a Minimum answer becomes 0 when <game>\\miss8 is a directory (EXPERIMENTAL)" : "");
 }
 
-/* TERRAIN DETAIL DISTANCE  (I76_TERRAIN_LOD=<factor 1..16>; off by default; EXPERIMENT, sandbox only)
+/* TERRAIN DETAIL DISTANCE  (I76_TERRAIN_LOD=<factor 1..256>; off by default; EXPERIMENT, sandbox only)
  * The terrain is a quadtree rebuilt every frame (i76-map subsystems/renderer.md, 0x491341): a node becomes a leaf when
  * d2 > (2h)^2 * K, K ~ A, and otherwise splits when a midpoint height error exceeds a threshold ~ B. Nothing blends
  * between levels, so vertices snap as the camera approaches. renderer_SetTerrainResolution 0x493080 loads A [0x4fad20]
  * and B [0x4fad24] from immediates: Low 6.4 / 1/256, Medium 16 / 1/384, High 40 / 1/576.7. The switch multiplies A and
  * divides B in all three, so every split happens `factor` (A) / sqrt-ish (B) farther out. More vertices per frame:
  * the int16 vertex-index ceiling (32,767 per frame, FARCLIP-CAMERA-CRASH.md) comes closer, so soak with the far clip. */
+/* TERRAIN VERTEX GUARD (2026-10-12; installed with I76_TERRAIN_LOD; I76_TERRAIN_VLIMIT=<1000..32000>, default 28000).
+ * Every terrain vertex index is stored as an int16 (renderer_SplitTerrainEdge 0x4918f0 takes [0x6442ec], the frame's
+ * vertex count, as the new index); past 32,767 the index wraps and the game dies (docs/records/FARCLIP-CAMERA-CRASH.md).
+ * Each split of a node below size 32 passes `test ebx, ebx; je 0x4917b0` (0x4912f6, leaf when the half size is 0)
+ * before its distance and height-error tests; the guard turns that into "leaf when the half size is 0 OR the frame
+ * already holds more than the limit": nodes stop splitting (a coarser far patch) instead of wrapping the index. The
+ * forced splits of nodes of size >= 32 (0x4912d3) are a few hundred vertices per frame and stay as they were. With the
+ * stock / x8 detail the count peaks near 17,000 (binoculars at 1800 m), so the guard never fires there; it is what
+ * makes a higher I76_TERRAIN_LOD safe. Counted; logged on the clutter 600-frame line when it fired. */
+static DWORD g_tv_limit = 28000, g_tv_hits, g_tv_hits_logged, g_tv_on;
+static DWORD g_tv_ret_split = 0x004912fe, g_tv_ret_leaf = 0x004917b0;
+static __declspec(naked) void terrain_vguard_stub(void) {        /* jmp from 0x4912f6 (replaces test ebx,ebx; je 0x4917b0) */
+    __asm {
+        test ebx, ebx
+        jz leaf
+        push eax
+        mov eax, dword ptr ds:[0x006442ec]
+        cmp eax, g_tv_limit
+        pop eax
+        jg guard
+        jmp dword ptr [g_tv_ret_split]
+    guard:
+        inc g_tv_hits
+    leaf:
+        jmp dword ptr [g_tv_ret_leaf]
+    }
+}
+static void terrain_vguard_report(void) {
+    if (g_tv_on && g_tv_hits != g_tv_hits_logged) {
+        mlog("  terrain-vguard: %lu node splits refused so far (frame terrain vertices past %lu; int16 index ceiling 32767)",
+             (unsigned long)g_tv_hits, (unsigned long)g_tv_limit);
+        g_tv_hits_logged = g_tv_hits;
+    }
+}
+static void apply_terrain_vguard(void) {
+    static const BYTE old[8] = { 0x85, 0xdb, 0x0f, 0x84, 0xb2, 0x04, 0x00, 0x00 };   /* test ebx,ebx; je 0x4917b0 */
+    BYTE w[8] = { 0xe9, 0, 0, 0, 0, 0x90, 0x90, 0x90 };
+    LONG rel = (LONG)((DWORD_PTR)terrain_vguard_stub - (0x004912f6 + 5));
+    int lim = env_int("I76_TERRAIN_VLIMIT", 8, 28000);
+    if (lim < 1000 || lim > 32000) { mlog("  terrain-vguard: I76_TERRAIN_VLIMIT %d out of range (1000..32000) - using 28000", lim); lim = 28000; }
+    g_tv_limit = (DWORD)lim;
+    memcpy(w + 1, &rel, 4);
+    g_tv_on = patch_bytes(0x004912f6, old, w, 8, "terrain vertex guard");
+    mlog("  terrain-vguard: %s (no node splits past %lu terrain vertices in a frame)", g_tv_on ? "on" : "NOT applied", (unsigned long)g_tv_limit);
+}
 static void apply_terrain_lod(void) {
     static const struct { DWORD_PTR a_site, b_site; float a, b; } lv[3] = {
         { 0x4930bb + 6, 0x4930c5 + 6, 6.4f,  0.00390625f },      /* Low */
@@ -6669,7 +6863,7 @@ static void apply_terrain_lod(void) {
     n = env_str("I76_TERRAIN_LOD", v, sizeof(v));
     if (n == 0) return;
     f = (float)atof(v);
-    if (f < 1.0f || f > 16.0f) { mlog("  terrain-lod: %s out of range (1..16) - not applied", v); return; }
+    if (f < 1.0f || f > 256.0f) { mlog("  terrain-lod: %s out of range (1..256) - not applied", v); return; }
     for (i = 0; i < 3; i++) {
         float a0, b0, a1, b1;
         memcpy(&a0, (const void *)lv[i].a_site, 4); memcpy(&b0, (const void *)lv[i].b_site, 4);   /* the exe's own bits */
@@ -6679,6 +6873,7 @@ static void apply_terrain_lod(void) {
         ok += patch_bytes(lv[i].b_site, (const BYTE *)&b0, (const BYTE *)&b1, 4, "terrain-lod B");
     }
     mlog("  terrain-lod: x%.2f, %d/6 constants patched (split distance up, height-error threshold down)", f, ok);
+    apply_terrain_vguard();
 }
 
 /* TERRAIN TEXTURE AND OBJECT DETAIL DISTANCE  (I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16>; off by default;
@@ -6858,7 +7053,7 @@ static void apply_frame_spikes(void) {
          (unsigned long)g_fs_ms, g_rp_on ? "via the road-pool flush wrap" : (k == 2 ? "via its own flush wrap" : "NOT sampled (flush sites differ)"));
 }
 
-/* GROUND CLUTTER DISTANCE  (I76_CLUTTER_DIST=<metres 120..600>, I76_CLUTTER_RISE=<metres 0..100>; off by default;
+/* GROUND CLUTTER DISTANCE  (I76_CLUTTER_DIST=<metres 120..2500>, I76_CLUTTER_RISE=<metres 0..100>; off by default;
  * EXPERIMENT, static findings in i76-uncap-lab docs/CLUTTER-AND-MIRROR.md, 2026-10-03)
  * renderer_QueueTerrainClutter 0x45c380 (only with Terrain Detail on): the camera's 100 m cell is snapped to the lower
  * corner (0x4f7180 x, 0x4f7188 z; re-snapped only when the camera leaves it), and every template in list 0x54ac70 is
@@ -6886,9 +7081,24 @@ static float g_cl_dist = 120.0f, g_cl_margin = 100.0f;
 static DWORD g_cl_limit;                    /* record-pool bytes in use beyond which instances are refused */
 static DWORD g_cl_frames, g_cl_cells, g_cl_cells_max, g_cl_tests, g_cl_capped, g_cl_pool_max;
 static LONGLONG g_cl_ticks, g_cl_ticks_max, g_cl_qpf;
+/* I76_CLUTTER_FADE=<metres> (2026-10-12, with I76_CLUTTER_DIST past 600 m): full density out to the fade distance, then
+ * each (template, cell) pair is kept with probability (fade / cell distance)^2, picked by a hash of the template's index
+ * and the cell's ABSOLUTE 100 m index (a given bush is either always there or never, whatever the camera does; a pair
+ * appears or goes only as its cell crosses the distance that keeps it). Screen-space density stays about constant with
+ * distance, like a mesh LOD; the engine's whole per-instance path (two terrain lookups, the transform, the frustum, the
+ * mesh transform and lighting, one draw record per face) runs only for kept pairs. The engine loops templates outside,
+ * cells inside (0x45c4fa first template, 0x45c507 each next one; 0x45c825 the cell loop end), so each template gets
+ * its own filtered copy of the frame's cell table, built when its loop starts. Unset = the table as before. */
+static int g_cl_fade_on, g_cl_k, g_cl_ntab;
+static float g_cl_fade = 0.0f;
+static float g_cl_tabT[2 * (2 * CL_RMAX + 1) * (2 * CL_RMAX + 1) + 2];
+static int g_cl_ix[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)], g_cl_iz[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
+static WORD g_cl_thr[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
+static DWORD g_cl_kept, g_cl_pairs;
 static void __cdecl clutter_build(BYTE *cam, double ground) {
     float cx = *(float *)0x004f7180, cz = *(float *)0x004f7188, v[3];
-    int k, n = 0;
+    int k, n = 0, ix0 = (int)floor(cx / 100.0 + 0.5), iz0 = (int)floor(cz / 100.0 + 0.5);
+    double camx = *(double *)(cam + 0x160), camz = *(double *)(cam + 0x170);
     for (k = 0; k < g_cl_ncand; k++) {
         int i = g_cl_cand[k][0], j = g_cl_cand[k][1];
         float *p = ((float *(__cdecl *)(float *, void *, double, double, double))0x00472d30)
@@ -6896,11 +7106,59 @@ static void __cdecl clutter_build(BYTE *cam, double ground) {
         if (p[2] - g_cl_margin > g_cl_dist) continue;
         p[1] = 0.0f;                        /* vertical planes ignored: bushes can sit far below the camera */
         if (((int (__cdecl *)(void *, float *, float))0x00472c10)(cam, p, 81.0f) > 0 && (i || j)) continue;
-        g_cl_tab[2 * n] = 100.0f * i; g_cl_tab[2 * n + 1] = 100.0f * j; n++;
+        g_cl_tab[2 * n] = 100.0f * i; g_cl_tab[2 * n + 1] = 100.0f * j;
+        if (g_cl_fade_on) {
+            double dx = cx + 100.0 * i + 50.0 - camx, dz = cz + 100.0 * j + 50.0 - camz, d = sqrt(dx * dx + dz * dz);
+            g_cl_ix[n] = ix0 + i; g_cl_iz[n] = iz0 + j;
+            g_cl_thr[n] = (WORD)(d <= g_cl_fade ? 65535 : (int)(65535.0 * (g_cl_fade / d) * (g_cl_fade / d)));
+        }
+        n++;
     }
-    if (n == 0) { g_cl_tab[0] = 0.0f; g_cl_tab[1] = 0.0f; n = 1; }   /* the loop is do-while: one entry minimum */
+    if (n == 0) { g_cl_tab[0] = 0.0f; g_cl_tab[1] = 0.0f; g_cl_ix[0] = ix0; g_cl_iz[0] = iz0; g_cl_thr[0] = 65535; n = 1; }   /* the loop is do-while: one entry minimum */
+    g_cl_ntab = n;
     g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tab[1] + 8 * n;
     g_cl_cells += n; if ((DWORD)n > g_cl_cells_max) g_cl_cells_max = n;
+}
+static void __cdecl clutter_template_table(void) {           /* I76_CLUTTER_FADE: this template's share of the cell table */
+    int c, m = 0;
+    DWORD kk = (DWORD)g_cl_k * 83492791u;
+    for (c = 0; c < g_cl_ntab; c++) {
+        DWORD h;
+        if (g_cl_thr[c] != 65535) {
+            h = ((DWORD)g_cl_ix[c] * 73856093u) ^ ((DWORD)g_cl_iz[c] * 19349663u) ^ kk;
+            h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+            if ((h & 0xffff) >= g_cl_thr[c]) continue;
+        }
+        g_cl_tabT[2 * m] = g_cl_tab[2 * c]; g_cl_tabT[2 * m + 1] = g_cl_tab[2 * c + 1]; m++;
+    }
+    if (m == 0) { g_cl_tabT[0] = g_cl_tab[0]; g_cl_tabT[1] = g_cl_tab[1]; m = 1; }   /* entry 0 is the camera's cell: never faded */
+    g_cl_pairs += g_cl_ntab; g_cl_kept += m;
+    g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tabT[1] + 8 * m;
+    g_cl_k++;
+}
+static __declspec(naked) void clutter_build_fade_stub(void) {   /* replaces `mov eax, 0x4f7194` at 0x45c4fa (fade on) */
+    __asm {
+        push dword ptr [ebp - 0x30]
+        push dword ptr [ebp - 0x34]
+        push edi
+        call clutter_build
+        add esp, 12
+        mov g_cl_k, 0
+        call clutter_template_table
+        mov eax, offset g_cl_tabT
+        add eax, 4
+        ret
+    }
+}
+static __declspec(naked) void clutter_next_fade_stub(void) {    /* replaces `mov eax, 0x4f7194` at 0x45c507 (fade on) */
+    __asm {
+        pushad
+        call clutter_template_table
+        popad
+        mov eax, offset g_cl_tabT
+        add eax, 4
+        ret
+    }
 }
 static __declspec(naked) void clutter_build_stub(void) {        /* replaces `mov eax, 0x4f7194` at 0x45c4fa */
     __asm {
@@ -6926,6 +7184,8 @@ static int __cdecl clutter_cull_wrap(void *cam, float *v, float r) {   /* the ca
     if (used > g_cl_limit) { g_cl_capped++; return 1; }
     return ((int (__cdecl *)(void *, float *, float))0x00472c10)(cam, v, r);
 }
+static char g_cl_fadetxt[64];
+static void terrain_vguard_report(void);
 static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls at 0x401e47 / 0x402111 */
     LARGE_INTEGER a, b; DWORD used;
     QueryPerformanceCounter(&a);
@@ -6936,10 +7196,12 @@ static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls a
     g_cl_ticks += b.QuadPart - a.QuadPart; if (b.QuadPart - a.QuadPart > g_cl_ticks_max) g_cl_ticks_max = b.QuadPart - a.QuadPart;
     if (++g_cl_frames >= 600) {
         if (g_logging && g_cl_qpf)
-            mlog("  clutter: 600 frames: %.0f us avg, %.0f us max; cells %.1f avg, %lu max; instances tested %lu/frame; refused (pool) %lu; record pool high water %lu KB",
+            mlog("  clutter: 600 frames: %.0f us avg, %.0f us max; cells %.1f avg, %lu max; instances tested %lu/frame; refused (pool) %lu; record pool high water %lu KB%s",
                  g_cl_ticks * 1e6 / g_cl_qpf / 600.0, g_cl_ticks_max * 1e6 / g_cl_qpf, g_cl_cells / 600.0,
-                 (unsigned long)g_cl_cells_max, (unsigned long)(g_cl_tests / 600), (unsigned long)g_cl_capped, (unsigned long)(g_cl_pool_max >> 10));
-        g_cl_frames = g_cl_cells = g_cl_cells_max = g_cl_tests = g_cl_capped = g_cl_pool_max = 0; g_cl_ticks = g_cl_ticks_max = 0;
+                 (unsigned long)g_cl_cells_max, (unsigned long)(g_cl_tests / 600), (unsigned long)g_cl_capped, (unsigned long)(g_cl_pool_max >> 10),
+                 g_cl_fade_on && g_cl_pairs ? (sprintf(g_cl_fadetxt, "; fade kept %.1f%% of template x cell pairs", 100.0 * g_cl_kept / g_cl_pairs), g_cl_fadetxt) : "");
+        terrain_vguard_report();
+        g_cl_frames = g_cl_cells = g_cl_cells_max = g_cl_tests = g_cl_capped = g_cl_pool_max = 0; g_cl_ticks = g_cl_ticks_max = 0; g_cl_kept = g_cl_pairs = 0;
     }
 }
 static int cl_cmp(const void *a, const void *b) {
@@ -6963,8 +7225,19 @@ static void apply_clutter_dist(void) {
     LARGE_INTEGER f;
     if (n == 0) return;
     d = (float)atof(v);
-    if (d < 120.0f || d > 600.0f) { mlog("  clutter-dist: %s out of range (120..600 m) - not applied", v); return; }
+    /* 2026-10-12 (owner: "can the brush/bush draw distance ... be as far as the road draw distance"): the cap was 600 m;
+     * now the far clip's own cap (2500 m). Past 600 m the record pool grows with the visible area (x8 up to 600 m,
+     * x16 to 1200 m, x32 beyond: 2.9 / 5.9 / 11.8 MB, allocated once), so the refusal guard keeps its stock-pool
+     * headroom; the candidate block stays capped at 49 x 49 cells (2400 m each way). */
+    if (d < 120.0f || d > 2500.0f) { mlog("  clutter-dist: %s out of range (120..2500 m) - not applied", v); return; }
+    if (d > 1200.0f) pool = 0x5a550 * 32; else if (d > 600.0f) pool = 0x5a550 * 16;
     rise = five * d / 120.0f;
+    n = env_str("I76_CLUTTER_FADE", v, sizeof(v));
+    if (n) {
+        float fd = (float)atof(v);
+        if (fd < 50.0f || fd > 2500.0f) mlog("  clutter-dist: I76_CLUTTER_FADE %s out of range (50..2500 m) - full density everywhere", v);
+        else if (fd < d) { g_cl_fade = fd; g_cl_fade_on = 1; }
+    }
     n = env_str("I76_CLUTTER_RISE", v, sizeof(v));
     if (n) {
         float r = (float)atof(v);
@@ -6992,22 +7265,26 @@ static void apply_clutter_dist(void) {
     if (QueryPerformanceFrequency(&f)) g_cl_qpf = f.QuadPart;
     /* record pool first: if this fails nothing else is touched */
     memcpy(pool_new + 1, &pool, 4);
-    if (!patch_bytes(0x0048f9b5, pool_old, pool_new, 5, "clutter record pool x8")) { mlog("  clutter-dist: record pool not enlarged - not applied"); return; }
-    targets[0] = (void *)clutter_build_stub; targets[1] = (void *)clutter_end_stub; targets[2] = (void *)clutter_cull_wrap;
+    if (!patch_bytes(0x0048f9b5, pool_old, pool_new, 5, "clutter record pool")) { mlog("  clutter-dist: record pool not enlarged - not applied"); return; }
+    targets[0] = g_cl_fade_on ? (void *)clutter_build_fade_stub : (void *)clutter_build_stub; targets[1] = (void *)clutter_end_stub; targets[2] = (void *)clutter_cull_wrap;
     targets[3] = (void *)clutter_frame_wrap; targets[4] = (void *)clutter_frame_wrap;
     for (i = 0; i < 5; i++) {
         LONG rel = (LONG)((DWORD_PTR)targets[i] - (sites[i] + 5));
         w[0] = 0xe8; memcpy(w + 1, &rel, 4);
         ok += patch_bytes(sites[i], olds[i], w, 5, "clutter call");
     }
-    a = (DWORD)(DWORD_PTR)&g_cl_tab[1]; memcpy(tab2_new + 1, &a, 4);
+    if (g_cl_fade_on) {                                     /* each next template: call its filtered table builder */
+        LONG rel = (LONG)((DWORD_PTR)clutter_next_fade_stub - (0x0045c507 + 5));
+        tab2_new[0] = 0xe8; memcpy(tab2_new + 1, &rel, 4);
+    } else { a = (DWORD)(DWORD_PTR)&g_cl_tab[1]; memcpy(tab2_new + 1, &a, 4); }
     ok += patch_bytes(0x0045c507, tab_old, tab2_new, 5, "clutter table (later templates)");
     rise_new = rise;
     ok += patch_bytes(0x004be0c8, (const BYTE *)&rise_old, (const BYTE *)&rise_new, 8, "clutter rise limit");
     z_new = d;
     ok += patch_bytes(0x004be0d0, (const BYTE *)&z_old, (const BYTE *)&z_new, 4, "clutter view z limit");
-    mlog("  clutter-dist: %s, %d/8 sites; view z 120 -> %.0f m, rise limit 5 -> %.1f m, cells from a %dx%d block culled per frame, record pool %lu KB (instances refused past %lu KB)",
-         ok == 8 ? "on" : "PARTIAL", ok, d, rise, 2 * R + 1, 2 * R + 1, (unsigned long)(pool >> 10), (unsigned long)(g_cl_limit >> 10));
+    mlog("  clutter-dist: %s, %d/8 sites; view z 120 -> %.0f m, rise limit 5 -> %.1f m, cells from a %dx%d block culled per frame, record pool %lu KB (instances refused past %lu KB)%s",
+         ok == 8 ? "on" : "PARTIAL", ok, d, rise, 2 * R + 1, 2 * R + 1, (unsigned long)(pool >> 10), (unsigned long)(g_cl_limit >> 10),
+         g_cl_fade_on ? (sprintf(g_cl_fadetxt, "; fade: full density to %.0f m, then x (%.0f / d)^2", g_cl_fade, g_cl_fade), g_cl_fadetxt) : "");
 }
 
 /* MIRROR RANGE  (I76_MIRROR_FAR=<metres 100..600>; off by default; EXPERIMENT, lab docs/CLUTTER-AND-MIRROR.md)
@@ -7324,7 +7601,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
         apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP: span-node pool x16 + end guard (I76_ROAD_POOL=0 off) */
         apply_frame_spikes();     /* opt-in: I76_FRAME_SPIKES=<ms> (after apply_road_pool: shares its flush wrap; before apply_glide_refresh) */
-        apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..600 m> (+ I76_CLUTTER_RISE) */
+        apply_clutter_dist();     /* experiment: I76_CLUTTER_DIST=<120..2500 m> (+ I76_CLUTTER_RISE) */
         apply_mirror_far();       /* experiment: I76_MIRROR_FAR=<100..600 m> */
         apply_cam_ground_fix();   /* opt-in: I76_CAM_GROUND_FIX=1 (terrain kept when the eye dips under the ground) */
         apply_terrain_hull_fix(); /* opt-in: I76_TERRAIN_HULL_FIX=1 (terrain footprint hull rebuilt; after cam-ground, chains to it) */
