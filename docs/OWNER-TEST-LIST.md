@@ -364,6 +364,25 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       - stutter in the hill-top view that PLAY.bat does not have.
     - **Not promoted yet.** Promotion 18 is on hold until the dream-mission report ("expecting you to stay on the road") is explained.
 
+## The dream mission (T04, the 4-lap race; lab docs/DREAM-MISSION-2026-10-12.md)
+
+37. **Your report "the dream mission fails because it expects you to stay on the road" (answered 2026-10-12).**
+    - **What it is.** Stock 1997 behaviour, not one of our switches. The race script counts a lap only when your car
+      passes within 25 m of eight points on the track, in order. Cut a corner or run wide past one of them and that
+      whole lap silently does not count. The AI then finishes 4 laps first, and you get "They won the race...because
+      you let them!". The game never says a checkpoint was missed.
+    - **The eight points**, in driving order from the grid: about 60 m up the start straight, the end of that
+      straight, two on the first big curve, two down the far side, two at the far corner. The long run home to the line
+      has none, so the risky places are the curves and the far corner: no cutting across the infield there.
+    - **Checked on the twin.** The counter worked the same in all 19 runs: PLAY.bat's set, without the road distance,
+      stock and the 1997 24 fps reference (lab doc s.4a).
+    - **What our build does change.** The AI racers lap about 2 s quicker than in the 1997 game, so they finish about
+      8-9 s sooner. One lost lap is now harder to make up. This comes from the frame-rate fixes every preset has had
+      since promotion 2, not from promotion 16's road distance or collision fix.
+    - **Also fails the race:** ramming or shooting a racer before your 4th lap ("Win the race; then kill").
+    - **If you play it again,** tell me which bat you used and which failure line you saw: the "they won" line or the
+      Confucius line. If you want the racers at their 1997 pace, say so; that is a proxy change with its own A/B.
+
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
