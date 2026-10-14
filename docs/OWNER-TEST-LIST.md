@@ -398,6 +398,29 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Proxy 4c9be840** in the lab copy (855b08d7 + this switch only; rollback `STRLKUP.DLL.855b08d7-pre-stockclk`).
       Not in the daily driver; say if you want it in PLAY.bat.
 
+
+40. **AI combat at the stock game's rates (new 2026-10-13 evening; lab docs/AI-COMBAT-PARITY-2026-10-13.md, docs/records/WHAT-IS-STOCK.md).**
+    - **Why.** Your question: "any other AI differences to iron out so combat behaves the same in other missions?" Measured on
+      the twin against the stock game capped at 20 fps (what you played before 10-03; now the lab's "stock"), in t05, t13,
+      t15 and t17, five runs per setting:
+      - at 120 fps the AI checks the ground for your oil / mines / fire 5-8x as often per second;
+      - it starts 2-4x as many handbrake turns, and in most of them the handbrake never reaches the car;
+      - it steers without the stock clock's overshoot.
+      Shots, hits and damage on you were already about the same.
+    - **What changed.** `TEST-combat-parity.bat` = PLAY.bat plus the parity set: the AI's decisions, handbrake turns, throttle
+      ease and route search at the stock 20 fps rates, and its steering on the stock 20 fps clock. Measured with it, those
+      rates match stock.
+    - **Correction to item 38.** "1997 pace" was tuned to 24 fps, which was the wrong reference: it ran 1.3-1.9 s a lap
+      slower than the 20 fps game. `TEST-dream-1997pace.bat` now carries the parity set and laps within 0.7 s of the 20 fps
+      game. The TEST-next* launchers carry it too.
+    - **Test.**
+      - Play a combat mission or two with `TEST-combat-parity.bat`, then with `PLAY.bat`. t13 and t17 have chasing,
+        shooting, handbrake-turning attackers; t05 the attacker on the road.
+      - Do the attackers handbrake-turn and slide the way you remember?
+      - If you drop oil, mines or fire, do they drive into it more often than in PLAY.bat? They should: at 120 fps today
+        they see it coming 5x sooner.
+    - **Proxy f6d0c668** in the lab copy (rollback `STRLKUP.DLL.4c9be840-pre-combat`). Not in the daily driver; say if you
+      want it in PLAY.bat.
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the

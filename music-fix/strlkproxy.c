@@ -1146,7 +1146,8 @@ static void apply_tick_emu(void) {
  * Static reading only - NOT yet measured in game.
  */
 static float g_fixed_step;
-static DWORD g_stepframes, g_stepframe_last;               /* frames on which a fixed step ran (I76_AI_SKID_HOLD) */
+static DWORD g_stepframes, g_stepframe_last;               /* frames on which a fixed step ran (instrument) */
+static DWORD vehicle_steps(BYTE *e);                         /* the vehicle's own fixed steps so far (below, with the fixed step) */
 static int g_in_far;                                        /* inside physics_StepVehicleFar (I76_FAR_ENGINE_DT, below) */
 static int g_engine_dt_on;
 static float __cdecl engine_substep_dt(void) {
@@ -1924,7 +1925,7 @@ static void apply_framerate_fixes(void) {
                     }
                 }
                 mlog("  ai-stock-clock: AI throttle / steering gains on the stock frame clock (tick %.3f ms, step %.2f ms: dt ratio cycle as a GetTickCount game at %.1f fps)",
-                     g_ai_tick * 1000.0, g_fixed_step * 1000.0f, 1.0f / g_fixed_step);
+                     g_ai_tick * 1000.0, g_fixed_step * 1000.0f, g_ai_frame > 0.0 ? 1.0 / g_ai_frame : 1.0 / (double)g_fixed_step);
             } else mlog("  ai-stock-clock: needs I76_FIXED_STEP - not applied");
         }
     }
@@ -2208,6 +2209,79 @@ static void apply_ai_turret_hold(void) {
 }
 
 /* ===========================================================================
+ * AI THROTTLE EASE PER SECOND, NOT PER PASS  (I76_AI_THROTTLE_EASE=1; off by default)
+ * ===========================================================================
+ * ai_ThrottleUpBySkill 0x410170 (tactic_skid, dirt_standoff phase 1, avoid clsn below 10 m/s, rockford): every AI pass
+ * eases the throttle toward the grip-limited full throttle, thr += s x (G - thr), s = ai+0xa81c, then caps it. Per
+ * pass, not per second: at 120 fps under I76_FIXED_STEP=24 five passes compound before each step (1 - (1 - s)^5 of the
+ * gap instead of s). The eight call sites (all `push obj; call 0x410170`) are repointed at a wrapper that lets the
+ * function run and then scales the change it made by s_eff / s, s_eff = 1 - (1 - s)^(dt / T), dt = this frame's dt,
+ * T = one decision-grid period (1 / I76_AI_GRID_HZ, 50 ms by default = stock 20 fps): the ease per second of the
+ * reference frame rate. The result lies between the old and the new value, so the function's own cap still holds.
+ * At the reference frame rate (dt = T) it is the stock function. Static reading (lab doc AI-COMBAT-PARITY-2026-10-13.md). */
+static DWORD g_ease_calls;
+static double pow01(double b, double x) {                   /* b^x for b in (0, 1], x in [0, 1]: binary digits of x by square roots (no CRT pow) */
+    double r = 1.0, f = b; int k;
+    for (k = 0; k < 24; k++) { f = sqrt(f); x *= 2.0; if (x >= 1.0) { r *= f; x -= 1.0; } }
+    return r;
+}
+static void __cdecl ai_ease_wrap(BYTE *obj) {
+    BYTE *e = obj ? *(BYTE **)(obj + 0x70) : 0, *ai;
+    float before = 0.0f, s = 0.0f, dt, T;
+    if (e) { before = *(float *)(e + 0xe4); ai = *(BYTE **)(e + 0x108); if (ai) s = *(float *)(ai + 0xa81c); }
+    ((void (__cdecl *)(BYTE *))0x00410170)(obj);
+    g_ease_calls++;
+    dt = *(volatile float *)0x004fe428; T = 1.0f / g_ai_hz;
+    if (e && s > 0.0f && s < 1.0f && dt > 0.0f && dt < T) {
+        double se = 1.0 - pow01(1.0 - (double)s, (double)dt / (double)T);
+        float after = *(float *)(e + 0xe4);
+        *(float *)(e + 0xe4) = before + (after - before) * (float)(se / (double)s);
+    }
+}
+static void apply_ai_throttle_ease(void) {
+    static const DWORD site[8] = { 0x0041c733, 0x0041dbfe, 0x0041dcac, 0x0041de96, 0x0041df44, 0x0041e9e8, 0x0041ea79, 0x0041f847 };
+    int i, n = 0;
+    if (!env_present("I76_AI_THROTTLE_EASE")) return;
+    for (i = 0; i < 8; i++) {
+        BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+        LONG rel = (LONG)(0x00410170 - (site[i] + 5)); memcpy(o + 1, &rel, 4);
+        rel = (LONG)((DWORD_PTR)ai_ease_wrap - (site[i] + 5)); memcpy(w + 1, &rel, 4);
+        n += patch_bytes(site[i], o, w, 5, "ai_ThrottleUpBySkill call (throttle ease)");
+    }
+    mlog("  ai-throttle-ease: %d/8 ai_ThrottleUpBySkill calls eased per %.1f ms of frame time, not per pass", n, 1000.0f / g_ai_hz);
+}
+
+static int tel_repoint_call_early(DWORD site, DWORD target, void *wrap, const char *what) {   /* verify-first `call rel32` repoint */
+    BYTE o[5] = { 0xE8 }, w[5] = { 0xE8 };
+    LONG rel = (LONG)(target - (site + 5));
+    memcpy(o + 1, &rel, 4);
+    rel = (LONG)((DWORD_PTR)wrap - (site + 5)); memcpy(w + 1, &rel, 4);
+    return patch_bytes(site, o, w, 5, what);
+}
+/* ===========================================================================
+ * AI PATH SEARCH SLICES ON THE DECISION GRID  (I76_AI_SEARCH_HOLD=1, needs I76_FRAMERATE_FIXES; off by default)
+ * ===========================================================================
+ * The route search (do search / evade / race and the 'handle too far search' a car enters when it is > 180 m from its
+ * target) is time-sliced: ai_PathSearchStep 0x40f1e0, called once per AI pass from the search update 0x420d30
+ * (0x420dd0, result -> ai+0x84, 1 = still searching), expands up to 100 nodes per call. Per pass, not per second: at
+ * 120 fps a search completes in a sixth of the sim time it took at 20 fps, so cars re-engage from far away sooner.
+ * The call is repointed at a wrapper that, on frames off the decision grid and while a search is in progress
+ * (ai+0x84 == 1), skips the slice and reports "still searching"; on grid frames, or in any other state, it runs the
+ * step. Static reading (audit item 6, lab doc AI-COMBAT-PARITY-2026-10-13.md). */
+static DWORD g_search_steps, g_search_skips;
+static int __cdecl ai_search_wrap(BYTE *ai, void *out, void *arg) {
+    if (!g_tickai && ai && *(int *)(ai + 0x84) == 1) { g_search_skips++; return 1; }
+    g_search_steps++;
+    return ((int (__cdecl *)(BYTE *, void *, void *))0x0040f1e0)(ai, out, arg);
+}
+static void apply_ai_search_hold(void) {
+    if (!env_present("I76_AI_SEARCH_HOLD")) return;
+    if (!g_ratefix) { mlog("  ai-search-hold: needs I76_FRAMERATE_FIXES - not applied"); return; }
+    mlog("  ai-search-hold: %d/1 path search slice on the AI decision grid",
+         tel_repoint_call_early(0x00420dd0, 0x0040f1e0, (void *)ai_search_wrap, "path search step call (search hold)"));
+}
+
+/* ===========================================================================
  * AI HANDBRAKE TURN HELD TO A PHYSICS STEP  (I76_AI_SKID_HOLD=1, needs I76_FIXED_STEP; off by default)
  * ===========================================================================
  * Lab doc AI-COMBAT-PARITY-2026-10-13.md. tactic_skid (behaviour 7, the AI's handbrake turn, pushed by ai_ShouldSkid
@@ -2220,7 +2294,7 @@ static void apply_ai_turret_hold(void) {
  * stubs: the enter stamps the car with the count of frames that ran a fixed step; the release is skipped until a
  * step has run since then (so the handbrake is held for exactly one physics step, as stock). Without a fixed step
  * every frame steps and the stubs do what the instructions did. */
-static struct { BYTE *e; DWORD stamp; } g_skid_hb[64];
+static struct { BYTE *e; DWORD stamp; float t; } g_skid_hb[64];   /* stamp = the car's own step count at the enter, t = sim time */
 static DWORD g_skid_hb_enter, g_skid_hb_deferred;
 static void __cdecl skid_hb_enter(BYTE *e) {
     int k, fr = -1;
@@ -2228,13 +2302,14 @@ static void __cdecl skid_hb_enter(BYTE *e) {
     g_skid_hb_enter++;
     for (k = 0; k < 64; k++) { if (g_skid_hb[k].e == e) { fr = k; break; } if (fr < 0 && !g_skid_hb[k].e) fr = k; }
     if (fr < 0) fr = (int)(((DWORD_PTR)e >> 4) & 63);
-    g_skid_hb[fr].e = e; g_skid_hb[fr].stamp = g_stepframes;
+    g_skid_hb[fr].e = e; g_skid_hb[fr].stamp = vehicle_steps(e); g_skid_hb[fr].t = *(volatile float *)0x005a7e74;
 }
 static void __cdecl skid_hb_release(BYTE *e) {
     int k;
     for (k = 0; k < 64; k++) if (g_skid_hb[k].e == e) break;
     if (k < 64) {
-        if (g_skid_hb[k].stamp == g_stepframes && g_fixed_step > 0.0f) { g_skid_hb_deferred++; return; }   /* no step yet */
+        if (g_skid_hb[k].stamp == vehicle_steps(e) && g_fixed_step > 0.0f &&
+            *(volatile float *)0x005a7e74 - g_skid_hb[k].t < 0.2f) { g_skid_hb_deferred++; return; }   /* this car has not stepped yet (bounded: a far car steps outside the stepper) */
         g_skid_hb[k].e = 0;
     }
     *(DWORD *)(e + 0xf0) = 0;
@@ -3724,8 +3799,13 @@ static void apply_phys_rate(void) {
  * the body motion quick in play, because the contact model is step-size dependent.
  * I76_RENDER_INTERP hides the low physics cadence.
  */
-static struct { void *s; float acc; int n; DWORD frame; } g_step_acc[64];
+static struct { void *s; float acc; int n; DWORD frame; DWORD steps; } g_step_acc[64];
 
+static int step_slot(void *stepper, int add);
+static DWORD vehicle_steps(BYTE *e) {                       /* entity_TickVehicle passes &entity+0x444 to the stepper (0x463881) */
+    int k = step_slot(e + 0x444, 0);
+    return k < 0 ? g_stepframes : g_step_acc[k].steps;      /* not stepped yet / far path: the global count */
+}
 static int step_slot(void *stepper, int add) {
     int i, slot = -1;
     for (i = 0; i < 64; i++) {
@@ -3734,7 +3814,7 @@ static int step_slot(void *stepper, int add) {
     }
     if (!add) return -1;
     if (slot < 0) slot = (int)(((DWORD_PTR)stepper >> 4) & 63);   /* table full: reuse a slot */
-    g_step_acc[slot].s = stepper; g_step_acc[slot].acc = 0.0f;
+    g_step_acc[slot].s = stepper; g_step_acc[slot].acc = 0.0f; g_step_acc[slot].steps = 0;
     return slot;
 }
 
@@ -3745,6 +3825,7 @@ static void __cdecl fixed_stepper_begin(float *stepper) {
     n = (int)(g_step_acc[slot].acc / g_fixed_step);
     if (n > 20) { n = 20; g_step_acc[slot].acc = 0.0f; } else g_step_acc[slot].acc -= (float)n * g_fixed_step;
     g_step_acc[slot].n = n; g_step_acc[slot].frame = g_frame;   /* for render interpolation */
+    g_step_acc[slot].steps += (DWORD)n;                      /* cumulative, per vehicle (I76_AI_SKID_HOLD) */
     if (n > 0 && g_stepframe_last != g_frame) { g_stepframe_last = g_frame; g_stepframes++; }
     stepper[1] = g_fixed_step;                               /* +4 step */
     ((int *)stepper)[2] = n;                                 /* +8 count */
@@ -5291,11 +5372,12 @@ static void cbt_flush(void) {
     wsprintfA(tmp, "%s.tmp", g_cbt_path);
     h = CreateFileA(tmp, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) return;
-    n = sprintf(line, "T sim=%.3f frames=%lu aifire_calls=%lu aifire_yes=%lu dodge_calls=%lu dodge_yes=%lu skid_rolls=%lu horn_rolls=%lu player_hits=%lu player_dmg_req=%.0f stepframes=%lu skidhb_enter=%lu skidhb_deferred=%lu turret_rolls=%lu\n",
+    n = sprintf(line, "T sim=%.3f frames=%lu aifire_calls=%lu aifire_yes=%lu dodge_calls=%lu dodge_yes=%lu skid_rolls=%lu horn_rolls=%lu player_hits=%lu player_dmg_req=%.0f stepframes=%lu skidhb_enter=%lu skidhb_deferred=%lu turret_rolls=%lu ease_calls=%lu search_steps=%lu search_skips=%lu\n",
                 g_cbt_t, (unsigned long)g_cbt_frames, (unsigned long)g_idbg_aifire_calls, (unsigned long)g_idbg_aifire_yes,
                 (unsigned long)g_idbg_dodge_calls, (unsigned long)g_idbg_dodge_yes, (unsigned long)g_idbg_skid_rolls,
                 (unsigned long)g_idbg_horn_rolls, (unsigned long)g_cbt_player_hits, g_cbt_player_dmg_req,
-                (unsigned long)g_stepframes, (unsigned long)g_skid_hb_enter, (unsigned long)g_skid_hb_deferred, (unsigned long)g_idbg_turret_rolls);
+                (unsigned long)g_stepframes, (unsigned long)g_skid_hb_enter, (unsigned long)g_skid_hb_deferred, (unsigned long)g_idbg_turret_rolls,
+                (unsigned long)g_ease_calls, (unsigned long)g_search_steps, (unsigned long)g_search_skips);
     WriteFile(h, line, n, &w, NULL);
     for (k = 0; k < CBT_CARS; k++) {
         cbt_car_t *c = &g_cbt[k];
@@ -8063,6 +8145,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_ai_backaway_grid(); /* opt-in: I76_AI_BACKAWAY_GRID=1 (back_away ring indexed by sim time x 20, not frames) */
         apply_ai_skid_hold();     /* opt-in: I76_AI_SKID_HOLD=1 (AI handbrake turn held to one physics step; needs I76_FIXED_STEP) */
         apply_ai_turret_hold();   /* opt-in: I76_AI_TURRET_HOLD=1 (turret outer fire roll on the AI decision grid) */
+        apply_ai_throttle_ease(); /* opt-in: I76_AI_THROTTLE_EASE=1 (ai_ThrottleUpBySkill eased per second of the reference frame rate) */
+        apply_ai_search_hold();   /* opt-in: I76_AI_SEARCH_HOLD=1 (path search slices on the AI decision grid) */
         apply_coop_damage();      /* opt-in: I76_COOP_DAMAGE=<factor> (humans' weapon damage in network games) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
