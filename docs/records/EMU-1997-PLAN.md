@@ -87,11 +87,21 @@ In `../i76-uncap-lab/emu/images/`:
 
 1. `WIN95.ISO`, the Windows 95 CD (OSR2 4.00.950B preferred; RTM / OSR1 work), and its CD key.
 2. `W95BOOT.IMG`, a Windows 95 boot floppy with CD-ROM support. Needed only if the CD is not bootable.
-3. A 3dfx Voodoo Graphics (Voodoo 1) Windows 95 driver package that installs `glide2x.dll`, built into a CD with
-   `emu/tools/mkiso.py`. Needed for the Glide runs only.
-4. Optional: `WIN98.ISO` (+ boot floppy) for the Windows 98 clock comparison.
+3. Optional: `WIN98.ISO` (+ boot floppy) for the Windows 98 clock comparison.
 
 Nothing licensed is downloaded by us, and nothing licensed is committed (`emu/.gitignore`).
+
+**The Voodoo driver is done (2026-10-14).** `emu/images/VOODOO.ISO` holds 3dfx's own free reference drivers,
+fetched from Wayback captures of www.3dfx.com/software/ (1998-04-22):
+
+- the **Glide 2.43 Runtime** (`grtvgr.exe`, posted 10/24/97; `glide2x.dll` 1997-10-08, md5 `1dcb1619...`, plus
+  `fxmemmap.vxd`);
+- the **Voodoo Graphics Direct3D 2.15** package (`d3rtvg.exe`, 1998-03-03, with `VOODOO.INF`).
+
+All 39 `glide2x.dll` functions that the Gold `ZGLIDE.DLL` imports are exported by Glide 2.43 (static check). The D3D
+package also carries a 1997 `MSVCRT.DLL`, a fallback if the Gold exe finds none on Windows 95.
+
+Source URLs, hashes and the file list are in `emu/README.md`, "The Voodoo driver CD".
 
 ## Measurement design
 
