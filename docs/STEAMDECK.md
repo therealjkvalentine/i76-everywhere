@@ -97,6 +97,92 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > the July prefix's registry; a fresh prefix pillarboxed. `i76-env.sh` now sets them in `WINEDLLOVERRIDES`. Its `ADDON\valepre4.vcf` is the non-stock
 > 4ed297ca, as on the Mac: pick a car other than Jade's for LAN games against a stock PC.
 
+## Docked to a TV (2026-10-13)
+
+Owner report, Deck docked to a TV: *"the screen renders in a non 16:9 aspect ratio and the controller can't be used to
+navigate the menu. Screen looks a little darker too."* Deploy: `./deck/deck-push-tv.sh` (from a PC with `ssh deck`;
+runs [`deck/setup-deck-tv.sh`](../deck/setup-deck-tv.sh) on the Deck, which refuses while `i76.exe` runs, backs up
+`game/Strlkup.dll`, `game/dgVoodoo.conf`, `i76-env.sh` and `i76-deck-launch.sh` to `backups/pre-tv-<date>/` with a
+`NOTE.txt`, and has `--revert`).
+
+**1. Aspect: the game draws the size Steam gives it, not the TV's.** In Game Mode gamescope runs the game in its own
+Xwayland screen whose size is Steam's per-game **Game Resolution**. On *Default* the Deck gives games 1280x800 even
+when docked, and gamescope scales that 16:10 picture onto the 16:9 TV with bars. Nothing inside the game can fix that
+(dgVoodoo fake fullscreen presents at the screen it is given), so:
+
+- **Owner, once:** in Game Mode, docked: *Interstate 76 > gear > Properties > General > Game Resolution* = **Native**
+  (a 1080p TV) or **1920x1080** (a 4K TV: 3840x2160 with 4x MSAA is a lot for the Deck). If your SteamOS version
+  shows the setting only while an external display is connected, set it docked. Handheld it changes nothing (native
+  there is 1280x800).
+- **The launcher follows it.** [`i76-deck-launch.sh`](../deck/i76-deck-launch.sh) reads the size of the game's own X
+  screen (`xrandr` on `$DISPLAY`, else `xdpyinfo`, else libX11 through python3) and the connected HDMI/DP connector
+  (`/sys/class/drm/card*-*/status`, not eDP), and per launch sets `I76_ASPECT=<W>x<H>` (Hor+ camera, HUD squeeze) and
+  dgVoodoo's `[Glide] Resolution` (2x the panel = 2560x1600 handheld as before; 1x on the TV, halved while above
+  1920x1080 so a 4K screen renders 1920x1080). Only the values of existing keys change, never keys
+  ([GeneralExt] stays fake fullscreen, ScalingMode stretched). `deck-launch.log` gets a `display:` line with what was
+  read, including any `GAMESCOPE*` variables, and a **WARNING** when a TV is connected but the game got 1280x800 (=
+  Game Resolution still on Default).
+- **Override:** `I76_DECK_DISPLAY=handheld|tv|auto|off` in `i76-env.sh` or in front of the wrapper in the launch
+  options. `off` = the old behaviour (env's `I76_ASPECT`, conf untouched).
+- **Not yet read on the Deck itself:** the Deck was offline when this was built (no mDNS answer, tailscale node offline
+  since May), so which of xrandr / xdpyinfo exist on this SteamOS and what gamescope reports were not observed. The
+  first docked launch's `deck-launch.log` answers it; the fallback without any reading is the panel's 1280x800.
+
+**2. Controller in the menus: `I76_PAD_MENU=1`** (proxy, [`music-fix/padmenu.c`](../music-fix/padmenu.c)). Only while
+the shell is up (game state `[0x4c2164] == 6`) or the in-mission Esc menu (`[0x4fe534] == 0x10`): **left stick** and
+**D-pad** move the pointer (accelerating; a D-pad tap is a 2-pixel nudge), **A** clicks (the pad layer's own A click
+does it when AHK runs; the proxy then does not click twice), **B** = Esc, **Start** = Enter. All XInput slots are read
+and merged (docked, the Deck's controller and the TV pad are both connected). In a mission the thread does nothing;
+unset, there is no thread. The pad layer's keys for those buttons (D-pad = H/I/N/M, Start = M, B = Tab) are dropped
+on their way into the game while the button is held, so they no longer type into the bookmark name. Side build
+`deck/Strlkup.deck-padmenu.dll` md5 `03bcb589` = the deployed `509c6df0`'s own source (lab
+`builds\terrain-probe-20261012\src`) + `padmenu.c`, MSVC x86 (lab `builds\pad-menu-20261013`); static checks only
+(exports identical to 509c6df0, imports SendInput / FindWindowA / GetForegroundWindow, the state reads verified
+against the exe: `0x404b30 cmp [0x4fe534],0x10`, one `cmp [0x4c2164],6`). **The OK popups** (garage refusals, the
+save reminder) do not present frames, so the pencil freezes there; the pointer still moves and A on OK still works,
+and **Start (Enter) closes them only with the F7 shell patch** ([`tools/patch-shell-f7.py`](../tools/patch-shell-f7.py))
+- the Deck's `i76shell.dll` was not checked (offline); the launch log's md5 line or `md5sum game/i76shell.dll`
+tells. **Esc in the garage opens Control Configuration**: back out of it with its own button and never rebind there
+(the launcher restores `input.map` on every launch anyway).
+
+*Alternative without the proxy, for an external pad:* Steam Input is per controller type, so the TV pad has its own
+layout for this shortcut. Steam button > Controller settings with the pad selected: put the **right stick on "Mouse"
+(or Joystick Mouse) in a second action set** "Menus" and switch to it with a held/long-pressed button, with A = left
+click there. It works without any game change but is a mode the player must remember to switch (the right stick is
+the glance in the driving set) and it does nothing for the Deck's own controller; the proxy switch follows the game's
+own menu state instead. The Deck's built-in right trackpad stays a mouse in both.
+
+**3. Darker on the TV.** The launcher now has a brightness profile per display. Handheld unchanged (gamma 1.3,
+dgVoodoo Brightness 100). TV: `I76_TV_GAMMA=1.45` (3D picture only; higher = brighter mid-tones without clipping),
+`I76_TV_BRIGHTNESS` / `I76_TV_CONTRAST` / `I76_TV_COLOR` (dgVoodoo [General], 100 = neutral, also reach the menus and
+movies; Brightness is linear and clips highlights above ~115). Edit them in `~/Games/Interstate76/i76-env.sh` (the
+block at the end) and relaunch. Before tuning the game, check the TV chain, which is the usual cause:
+
+- **HDMI range.** PCs send full-range RGB (0-255); many TVs expect limited (16-235) on HDMI. Full sent into a TV set to
+  limited crushes the shadows: darker, details lost in black - exactly "a little darker". Set the TV's HDMI black
+  level / RGB range to **Auto** or **Full/High** for that input (Samsung "HDMI Black Level", LG "Black Level", Sony
+  "HDMI video range"). The opposite mismatch looks washed out, not darker. A SteamOS-side range switch was not
+  verified here.
+- **HDR.** If the TV is HDR and SteamOS runs the external display in HDR (Settings > Display), an SDR game like this
+  one is mapped into HDR and often looks dim; turn HDR off for the TV, or raise the SDR brightness setting if your
+  SteamOS version shows one.
+- **Picture mode.** Game/PC mode, not Cinema/Filmmaker (those target a dark room). The Deck's own brightness slider
+  does not change an external display.
+
+### Owner test: docked to the TV (2026-10-13; OWNER-TEST-LIST item 39)
+
+1. **Set Game Resolution** (above) to Native, docked. Launch Interstate 76 from Game Mode.
+2. **Aspect.** The main menu and the mission picture fill the 16:9 TV, no black bars left/right. In a mission (T01 or
+   Instant Melee): round wheels, round radar, the 3D not stretched sideways (a wider view, not fatter cars).
+3. **Menus with the controller.** Left stick moves the pencil, D-pad nudges it; A on TRIP, then LOAD BOOKMARK, pick a
+   bookmark, LOAD, into the garage, DONE into the mission. B goes back a screen. On a garage OK popup: A on OK (the
+   pencil may look frozen - the pointer still moves), then Start: does Enter close it? In the mission: Esc menu (Select),
+   move to Graphic Detail with the stick, A opens it, Exit with A, B closes the menu. Driving afterwards unchanged.
+4. **Brightness.** Compared with handheld: still darker? Try the TV's HDMI black level first, then
+   `I76_TV_GAMMA=1.6` in i76-env.sh. Report the values you like.
+5. **Handheld again** (undocked): unchanged - fills the panel, same brightness, the stick also moves the menu pointer now.
+6. Send `~/Games/Interstate76/deck-launch.log` and `game/mciproxy.log` (the `display:` and `pad-menu:` lines).
+
 ## Controller layout (installed as a template — apply once)
 
 Every I76 control is mapped to a Deck input in the conventional driving/vehicular-combat idiom.

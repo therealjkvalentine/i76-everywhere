@@ -413,3 +413,24 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     on the Trainer tab; `TRAINER.bat --classic` is the old window. Report: anything empty that should not be, anything wrong,
     anything slow (the page redraws at about 15 Hz; the game's fps must not drop with the dashboard open - compare the Overview
     fps with the tab closed vs open, n = 2 each). Offline-tested only: tools\debug\README.md "Not verified yet".
+
+## Steam Deck docked to a TV (docs/STEAMDECK.md "Docked to a TV")
+
+39. **Docked to the TV: 16:9 picture, menus with the controller, brightness (new 2026-10-13).** Your report: "the screen
+    renders in a non 16:9 aspect ratio and the controller can't be used to navigate the menu. Screen looks a little darker too."
+    - **Once, docked, in Game Mode:** Interstate 76 > gear > Properties > General > **Game Resolution = Native** (1080p TV) or
+      **1920x1080** (4K TV). On Default the Deck hands the game 1280x800 even on a TV, and that is the 16:10 picture with bars.
+    - **Aspect.** Launch from Game Mode. Main menu and mission fill the TV with no side bars; in T01 or Instant Melee the wheels
+      and the radar are round and the 3D is wider, not stretched.
+    - **Menus with the controller.** Left stick moves the pencil, D-pad nudges it. A on TRIP > LOAD BOOKMARK > a bookmark >
+      LOAD > garage > DONE into the mission. B goes back one screen. On a garage OK popup: A on OK (the pencil may look frozen
+      there; the pointer still moves), and try Start (= Enter). In the mission: Select (Esc menu), stick to Graphic Detail, A
+      opens it, A on Exit, B closes the menu. Driving afterwards: unchanged.
+    - **Brightness.** Still darker than handheld? First the TV: HDMI black level / RGB range on Auto or Full, HDR off for this
+      input, Game or PC picture mode. Then the game: `I76_TV_GAMMA` (now 1.45; try 1.6) or `I76_TV_BRIGHTNESS` (105-110) in
+      `~/Games/Interstate76/i76-env.sh`, last block. Tell me the values you keep.
+    - **Undocked afterwards:** handheld looks as before (fills the panel, same brightness); the left stick now also moves the
+      menu pointer there.
+    - **Send** `~/Games/Interstate76/deck-launch.log` and `game/mciproxy.log` (lines `display:`, `md5`, `pad-menu:`).
+    - **Installed by** `deck/deck-push-tv.sh` (proxy 03bcb589 = 509c6df0's source + I76_PAD_MENU, launcher display profile,
+      env block); rollback `bash ~/i76-deploy/deck/setup-deck-tv.sh --revert` on the Deck.
