@@ -43,6 +43,20 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name);
 
 typedef struct { double kx, ky; int ox, oy, on; } CmMap;
 
+/* I76_PAD_MENU (padmenu.c, v3 2026-10-14): while the controller drives the menu pointer, the game's own reads (the
+   GetCursorPos / GetCursorInfo / PeekMessageA mouse lParam slots below) return the pad's position in 640x480 UI units
+   instead of the mapped OS pointer, so the hit-test is where the pad put it even when the compositor does not honour
+   the OS pointer warp (gamescope). The OS pointer is still warped there for the visible arrow. Any other pointer move
+   (trackpad, mouse, the game's own SetCursorPos) hands the pointer back: padmenu.c clears g_cm_pad_own. */
+static volatile LONG g_cm_pad_own;     /* 1 = the pad owns the pointer */
+static volatile LONG g_cm_pad_xy;      /* MAKELONG(ui x, ui y) */
+static int cm_pad_pos(POINT *p) {
+    LONG v;
+    if (!g_cm_pad_own) return 0;
+    v = g_cm_pad_xy; p->x = (short)LOWORD(v); p->y = (short)HIWORD(v);
+    return 1;
+}
+
 static HWND cm_window(void) {
     if (g_cm_hwnd && IsWindow(g_cm_hwnd)) return g_cm_hwnd;
     g_cm_hwnd = FindWindowA("Interstate '76 Gold Edition", NULL);
@@ -84,7 +98,9 @@ static void cm_to_ui(const CmMap *m, POINT *p) {
 static BOOL WINAPI cm_GetCursorPos(LPPOINT p) {
     BOOL ok = p_cm_GetCursorPos(p);
     if (ok && p) {
-        POINT raw = *p; CmMap m = cm_map();
+        POINT raw = *p; CmMap m;
+        if (cm_pad_pos(p)) return ok;                       /* the pad owns the pointer (padmenu.c) */
+        m = cm_map();
         if (m.on) cm_to_ui(&m, p);
         if (g_cm_log) {
             static int n; static LONG px = -1, py = -1;
@@ -98,6 +114,7 @@ static BOOL WINAPI cm_GetCursorPos(LPPOINT p) {
 }
 static BOOL WINAPI cm_SetCursorPos(int x, int y) {
     CmMap m = cm_map();
+    InterlockedExchange(&g_cm_pad_own, 0);                  /* the game places the pointer itself: it reads the OS one again */
     if (m.on) return p_cm_SetCursorPos(m.ox + (int)(x * m.kx + 0.5), m.oy + (int)(y * m.ky + 0.5));
     return p_cm_SetCursorPos(x, y);
 }
@@ -121,7 +138,9 @@ static BOOL WINAPI cm_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm
     if (ok && msg && msg->hwnd && msg->message >= WM_MOUSEFIRST && msg->message <= WM_MOUSELAST
         && msg->message != WM_MOUSEWHEEL) {                 /* the wheel's lParam is screen coordinates already */
         CmMap m = cm_map();
-        if (m.on) {
+        POINT pp;
+        if (cm_pad_pos(&pp)) msg->lParam = MAKELPARAM((WORD)pp.x, (WORD)pp.y);   /* the pad owns the pointer */
+        else if (m.on) {
             POINT p; p.x = (short)LOWORD(msg->lParam); p.y = (short)HIWORD(msg->lParam);
             ClientToScreen(msg->hwnd, &p);
             cm_to_ui(&m, &p);
@@ -168,7 +187,7 @@ static int cm_patch_module(HMODULE mod, const char *what) {
 static BOOL (WINAPI *p_cm_GetCursorInfo)(PCURSORINFO);
 static BOOL WINAPI cm_GetCursorInfo(PCURSORINFO ci) {
     BOOL ok = p_cm_GetCursorInfo(ci);
-    if (ok && ci) { CmMap m = cm_map(); if (m.on) cm_to_ui(&m, &ci->ptScreenPos); }
+    if (ok && ci && !cm_pad_pos(&ci->ptScreenPos)) { CmMap m = cm_map(); if (m.on) cm_to_ui(&m, &ci->ptScreenPos); }
     return ok;
 }
 static int cm_swap_ptrs(HMODULE mod) {

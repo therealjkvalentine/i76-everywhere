@@ -457,3 +457,31 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Send** `~/Games/Interstate76/deck-launch.log` and `game/mciproxy.log` (lines `display:`, `md5`, `pad-menu:`).
     - **Installed by** `deck/deck-push-tv.sh` (proxy 2f2b8170 = 509c6df0's source + I76_PAD_MENU, launcher display profile,
       env block); rollback `bash ~/i76-deploy/deck/setup-deck-tv.sh --revert` on the Deck.
+    - **2026-10-14 follow-up (your report: "the left stick as mouse in menus isn't working consistently. Sometimes it doesn't
+      move the cursor and it doesn't seem to move it right over the correct mouse coordinates"; "the night mission on the
+      steam deck is messed up, the textures seem wrong").** Pad menu v3, proxy **8bc52939** (docs/STEAMDECK.md "Pad menu
+      v3"): the game now reads the pad's own pointer position while the stick drives, so what it highlights and clicks is
+      where the stick put it even if the Deck's compositor does not move the visible arrow; v2 pulled the pointer back to
+      the old spot whenever a pointer warp had not landed yet. The pencil also works in the Esc menu's Exit dialog now.
+      **Re-test, docked and handheld:**
+      1. Main menu: push the stick slowly, then fast, in all four directions. Does the pencil move every time? Does the
+         button under the pencil light up (TRIP / MELEE / OPTIONS / EXIT), and does A open the one that is lit?
+      2. TRIP > LOAD BOOKMARK > a bookmark > LOAD > garage > DONE, using only the stick and A.
+      3. Mix: move with the stick, then touch the right trackpad, then the stick again. The pencil should keep following
+         whichever one you used last, without jumping.
+      4. In a mission: Select (Esc menu) > Exit > the Yes / No dialog: the stick moves the pencil there too; pick No.
+      5. If the pencil still does not move but the buttons light up as you push: say so - that is the Deck's compositor
+         ignoring the arrow warp (the game side is right), and the next step is on the Steam Input side.
+      6. **Steam Input:** the left stick must stay a plain stick ("Joystick", as in the I76 gamepad layout) - not
+         "Joystick Mouse" / "As Mouse". On a TV pad with its own layout, check the same.
+      - **Night (T06, T12 are the night trip missions; M04, M12 the night melees):** which mission, docked or handheld, and
+        a screenshot (Steam + R1) of what looks wrong: magenta/purple patches on the ground, textures swapping to the wrong
+        image, blocky shimmer far away, or just very dark / crushed blacks. The Deck was offline when this was looked at, so
+        the cause is not found yet; each launch now writes a `conf:` line to deck-launch.log with every texture-relevant
+        dgVoodoo value and a WARNING for the two known causes (texture memory above 2048 without the TMU fix: wrong
+        textures; 16-bit dithering: purple night ground). Docked with Game Resolution still on Default now renders at 2x
+        like handheld (it was 1x, the shimmer-prone picture).
+      - **Send** deck-launch.log and game/mciproxy.log again (lines `conf:`, `display:`, `pad-menu:` - v3 logs each warp
+        that did not land and what turned the pad off).
+      - **Installed by** `deck/deck-push-tv.sh` (it now saves the previous session's logs and conf to the PC first);
+        backups in `~/Games/Interstate76/backups/pre-tv-<date>/`; `--revert` restores the state before the first TV install.

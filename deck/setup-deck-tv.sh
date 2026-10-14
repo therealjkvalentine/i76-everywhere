@@ -20,8 +20,8 @@ INSTALL="${I76_INSTALL:-$HOME/Games/Interstate76}"
 GAME="${I76_GAMEDIR:-$INSTALL/game}"
 BACKUPS="$INSTALL/backups"
 LAST="$BACKUPS/LAST-TV"
-PROXY="$HERE/Strlkup.deck-padmenu.dll"     # lab snapshot of 509c6df0's source + padmenu.c (MSVC x86)
-PROXY_MD5="2f2b8170cfabaacff235ff8bb0eb9dc3"
+PROXY="$HERE/Strlkup.deck-padmenu.dll"     # lab snapshot of 509c6df0's source + padmenu.c v3 + cursormap pad slots (MSVC x86)
+PROXY_MD5="8bc529393386b712440f77ba0f5bd426" # v3 2026-10-14 (lab builds\pad-menu-v3-20261014); v2 was 2f2b8170
 
 say() { echo "  $*"; }
 die() { echo "FATAL: $*"; exit 1; }

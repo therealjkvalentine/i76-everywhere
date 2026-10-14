@@ -145,6 +145,51 @@ and **Start (Enter) closes them only with the F7 shell patch** ([`tools/patch-sh
 tells. **Esc in the garage opens Control Configuration**: back out of it with its own button and never rebind there
 (the launcher restores `input.map` on every launch anyway).
 
+**Pad menu v3 (2026-10-14).** Owner, after v2: *"the left stick as mouse in menus isn't working consistently. Sometimes it
+doesn't move the cursor and it doesn't seem to move it right over the correct mouse coordinates."* The Deck was offline
+(no mDNS, tailscale node offline), so no Deck log was read; the cause below is from the code. v2 moved only the OS
+pointer (SetCursorPos) and let the game read it back through the cursor map, and every poll it resynchronised its own
+position from GetCursorPos whenever that differed from its last warp target by more than 2 px. Under gamescope a warp
+from the app can land late or not at all, so a warp that had not landed by the next poll (8 ms) dragged the pad position
+back to where the pointer still was: the stick "did nothing", and between polls the game's read-back and the pad's
+target disagreed ("not over the right coordinates"). v3 ([`music-fix/padmenu.c`](../music-fix/padmenu.c) +
+[`cursormap.c`](../music-fix/cursormap.c)):
+
+- **The pad is the source of truth while it drives.** Its position (640x480 UI units) goes to the cursor map, whose
+  GetCursorPos / GetCursorInfo / PeekMessageA mouse-lParam slots in i76.exe and i76shell.dll return it. The hit-test and
+  the clicks (ours, or the pad layer's AHK `Click`) land on the pad position whether or not the OS pointer followed.
+- The OS pointer is still warped there for the visible arrow; each warp is read back on the next poll and counted.
+  `mciproxy.log`: `pad-menu: warp to (x,y) read back (x,y) - not landed` (first 6), and every on/off line carries the
+  totals (warps, landed, not landed, moved by something else) plus state, mode and the foreground owner.
+- The pointer goes back to the OS when something else moves it (read-back changed between two polls without a warp of
+  ours: trackpad, mouse) or the game calls SetCursorPos.
+- **Gating:** also the exe's other non-driving pages (state 5, mode not 1 / 0x20 / 0): the Esc menu's Exit dialog takes
+  the mode out of 0x10, so v2 stopped exactly there. Pointer and A only on those pages. Another process's window in
+  front stops it only after 400 ms.
+- Switches: `I76_PAD_MENU_VIRTUAL=0` (v2 behaviour, for an A/B), `I76_PAD_MENU_PAGES=0` (v2 gate). Needs `I76_CURSOR_MAP`
+  (the Deck has it); without it v3 falls back to warping only and says so.
+- **Steam Input:** the left stick must be a plain stick (`joystick_move`, as in `controller_neptune_i76_pad.vdf`), not
+  Joystick Mouse / As Mouse: a stick that is also a Steam mouse moves the OS pointer at the same time, which v3 reads as
+  "something else moved it". The right trackpad stays a mouse; v3 hands over cleanly between the two.
+- **Open:** whether gamescope draws its arrow at the warped position. If the owner sees buttons light up under a pencil
+  that does not move, the game side is right and the arrow is the compositor's; the log's warp counts tell which.
+- Build: lab `builds\pad-menu-v3-20261014` (509c6df0's source, = 2f2b8170's, + padmenu.c v3 + the cursormap pad slots),
+  MSVC x86, `deck/Strlkup.deck-padmenu.dll` md5 **8bc52939**; static checks: the five exports equal 509c6df0's, imports
+  add GetClassNameA; the repo source compiles too. Not run on a Deck yet: owner test 39, 2026-10-14 follow-up.
+
+**Night missions (T06, T12; melee M04, M12), owner 2026-10-14: "the textures seem wrong".** Not diagnosed: no Deck log or
+picture was available. What was ruled out from the files: the launcher changes only `[Glide] Resolution` and
+`[General] Brightness / Contrast / Color` (all 100), nothing texture-related, and rewrites them on every launch, so no
+stale TV value survives into handheld. Known causes of wrong textures in this setup, now checked on every launch (a
+`conf:` line in deck-launch.log with every texture-relevant dgVoodoo value, and a WARNING for each): `MemorySizeOfTMU`
+above 2048 without `I76_ZGLIDE_TMUFIX=1` (textures overwritten in play, "texture exchange"), and `[GlideExt]
+DitheringEffect` other than `pure32bit` (16-bit rendering: magenta/purple night ground, CHANGELOG / HD-TEXTURES-RESEARCH).
+Remaining differences from the PC: dgVoodoo 2.78.2 (PC 2.87.3) under DXVK, `ForceEmulatingTruePCIAccess` false (PC true;
+LFB timing, not textures), the Glide gamma lift (1.3 handheld, 1.45 TV) on a very dark night palette, and on a TV the
+HDMI range (limited/full mismatch crushes exactly the night shadows). Also fixed: docked with Game Resolution on Default,
+the TV profile rendered at 1x 1280x800 (shimmer on far textures); it now renders 2x like handheld (`I76_TV_SS_800`).
+Next step: the owner's screenshot + the `conf:` line.
+
 *Alternative without the proxy, for an external pad:* Steam Input is per controller type, so the TV pad has its own
 layout for this shortcut. Steam button > Controller settings with the pad selected: put the **right stick on "Mouse"
 (or Joystick Mouse) in a second action set** "Menus" and switch to it with a held/long-pressed button, with A = left

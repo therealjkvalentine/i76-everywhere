@@ -56,6 +56,7 @@ fi
 #   I76_DECK_DISPLAY = auto (default) | handheld | tv | off (off = leave I76_ASPECT and dgVoodoo.conf alone)
 #   I76_HANDHELD_GAMMA (1.3)  I76_HANDHELD_BRIGHTNESS (100)  I76_HANDHELD_SS (2 = render at 2x, averaged down)
 #   I76_TV_GAMMA (1.45)       I76_TV_BRIGHTNESS (100)        I76_TV_SS (1)     I76_TV_REFRESH (60)
+#   I76_TV_SS_800 (2 = docked but the game gets 1280x800, i.e. Game Resolution on Default: 2x like handheld)
 #   I76_TV_CONTRAST / I76_TV_COLOR, I76_HANDHELD_CONTRAST / I76_HANDHELD_COLOR (100 = dgVoodoo neutral)
 #   I76_DECK_MAXPIX (2073600 = 1920x1080): the render size is halved while it is above this (4K TVs)
 # Gamma lifts the 3D mission picture only (glide2x gamma ramp; higher = brighter mid-tones, no clipping);
@@ -96,7 +97,7 @@ external_display() {   # "<connector> <preferred mode>" of a connected HDMI / DP
     done
 }
 for f in "$GAMEDIR_D"/*; do    # which proxy / shell / exe this launch runs (any case: GOG writes some upper case)
-    case "$(basename "$f" | tr 'A-Z' 'a-z')" in strlkup.dll|i76shell.dll|i76.exe) log "md5 $(md5sum "$f" 2>/dev/null)" ;; esac
+    case "$(basename "$f" | tr 'A-Z' 'a-z')" in strlkup.dll|i76shell.dll|i76.exe|glide2x.dll|zglide.dll|ddraw.dll) log "md5 $(md5sum "$f" 2>/dev/null)" ;; esac
 done
 if [ "$DISP_PROFILE" != off ]; then
     SCR="$(screen_size)"; EXT="$(external_display)"
@@ -127,6 +128,11 @@ if [ "$DISP_PROFILE" != off ]; then
     # the handheld 2x (2560x1600) is above MAXPIX on purpose: measured 60.0 fps on the LCD (2026-10-07)
     if [ "$DISP_PROFILE" = handheld ] && [ "$SW" -eq 1280 ] && [ "$SH" -eq 800 ]; then
         SS="${I76_HANDHELD_SS:-2}"; RW=$((SW * SS)); RH=$((SH * SS))
+    fi
+    # docked but Game Resolution still on Default (the game gets 1280x800): the same 2x as handheld - same GPU load,
+    # and without it the TV got a 1x 1280x800 picture (no supersampling: shimmer on every far texture) (2026-10-14)
+    if [ "$DISP_PROFILE" = tv ] && [ "$SW" -eq 1280 ] && [ "$SH" -eq 800 ]; then
+        SS="${I76_TV_SS_800:-2}"; RW=$((SW * SS)); RH=$((SH * SS))
     fi
     export I76_ASPECT="${SW}x${SH}" I76_GLIDE_GAMMA="$GAMMA"
     log "display: profile $DISP_PROFILE - I76_ASPECT=$I76_ASPECT, render ${RW}x${RH}, gamma $GAMMA, brightness $BRIGHT, contrast $CONTR, color $COLR, refresh ${I76_GLIDE_REFRESH:-?}"
@@ -160,6 +166,33 @@ tmp = p + ".tmp"
 open(tmp, "w", encoding="latin-1", newline="").write(t)
 os.replace(tmp, p)
 print("[i76-launch] display: dgVoodoo.conf " + ", ".join(out))
+# audit (2026-10-14, owner: "the night mission ... textures seem wrong"): the texture-relevant values this launch runs
+# with, so a picture report can be matched to its conf. MemorySizeOfTMU above 2048 corrupts textures ("texture
+# exchange") unless the proxy's I76_ZGLIDE_TMUFIX=1 is on; DitheringEffect other than pure32bit brings back the
+# 16-bit magenta/purple night terrain (docs/HD-TEXTURES-RESEARCH.md, dgVoodoo.windows.conf [GlideExt]).
+def val_of(sec, key):
+    hs = list(re.finditer(r'(?m)^\[([^\]]+)\][ \t]*\r?$', t))
+    for i, m in enumerate(hs):
+        if m.group(1) != sec: continue
+        b = hs[i + 1].start() if i + 1 < len(hs) else len(t)
+        f = re.findall(r'(?m)^%s[ \t]*=[ \t]*([^;\r\n]*)' % re.escape(key), t[m.end():b])
+        return f[0].strip() if len(f) == 1 else ("x%d" % len(f))
+    return "no [%s]" % sec
+aud = [(s, k, val_of(s, k)) for s, k in [
+    ("General", "ScalingMode"), ("General", "Brightness"), ("General", "Contrast"), ("General", "Color"),
+    ("GeneralExt", "FullscreenAttributes"), ("GeneralExt", "Resampling"), ("Glide", "VideoCard"), ("Glide", "MemorySizeOfTMU"),
+    ("Glide", "NumberOfTMUs"), ("Glide", "TMUFiltering"), ("Glide", "Resolution"), ("Glide", "Antialiasing"),
+    ("Glide", "EnableGlideGammaRamp"), ("Glide", "ForceEmulatingTruePCIAccess"), ("Glide", "PointcastPalette"),
+    ("GlideExt", "DitheringEffect"), ("GlideExt", "Dithering")]]
+print("[i76-launch] conf: " + ", ".join("%s=%s" % (k, v) for s, k, v in aud))
+d = dict((k, v) for s, k, v in aud)
+try:
+    if int(d["MemorySizeOfTMU"]) > 2048 and os.environ.get("I76_ZGLIDE_TMUFIX") != "1":
+        print("[i76-launch] conf: WARNING - MemorySizeOfTMU %s without I76_ZGLIDE_TMUFIX=1: textures get overwritten in play" % d["MemorySizeOfTMU"])
+except ValueError:
+    pass
+if d["DitheringEffect"] not in ("pure32bit",):
+    print("[i76-launch] conf: WARNING - [GlideExt] DitheringEffect=%s: 16-bit rendering, magenta/purple patches on night terrain" % d["DitheringEffect"])
 PY
     else
         log "display: no $CONF or no python3 - dgVoodoo.conf not changed"
