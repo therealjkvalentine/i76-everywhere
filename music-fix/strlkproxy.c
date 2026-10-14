@@ -1146,6 +1146,14 @@ static void apply_tick_emu(void) {
  * Static reading only - NOT yet measured in game.
  */
 static float g_fixed_step;
+/* I76_REF_FPS=<fps> (default 20; 2026-10-14, lab docs\BOX-SPEC-BASELINE-2026-10-14.md): the reference frame rate every
+ * frame-rate fix reproduces. Stock behaviour is per frame; the fixes give each per-frame effect its per-SECOND value at
+ * this rate: the per-frame constants (x dt x rate), the grid that holds per-frame rolls / decisions / hazard steps /
+ * flamer ageing / smoke (1 / rate), the AI gain pins (dt = 1 / rate), the flamer dt floor, the back_away stamp, and the
+ * whole-frame dt the engine update reads per substep under I76_FIXED_STEP (1 / rate). 20 = stock20 (the I76PATCH 20 fps
+ * cap on Windows 10, unchanged default); 18.2 = R-BOX, the box spec (Windows 95 GetTickCount 55 ms, one tick per frame at
+ * the PC timer's 18.2 Hz). I76_AI_GRID_HZ defaults to this rate. */
+static float g_ref_rate = 20.0f, g_ref_dt = 0.05f;
 static DWORD g_stepframes, g_stepframe_last;               /* frames on which a fixed step ran (instrument) */
 static DWORD vehicle_steps(BYTE *e);                         /* the vehicle's own fixed steps so far (below, with the fixed step) */
 static int g_in_far;                                        /* inside physics_StepVehicleFar (I76_FAR_ENGINE_DT, below) */
@@ -1155,7 +1163,7 @@ static float __cdecl engine_substep_dt(void) {
     /* I76_FAR_ENGINE_DT: the far path applies the engine update once per frame, where the stock whole-frame dt is right */
     if (g_in_far) return *(volatile float *)0x004fe428;    /* simclock_dt, what simclock_GetDt returns */
     /* I76_FIXED_STEP: stock at 20 fps hands the engine the whole frame's dt (~50 ms) on every substep; keep that */
-    if (g_fixed_step > 0.0f) return 0.05f;
+    if (g_fixed_step > 0.0f) return g_ref_dt;               /* I76_REF_FPS: 0.055 = R-BOX's 55 ms frame */
     sim_dt = *(volatile float *)0x004fe420;                 /* simclock_sim_dt */
     rate = 1.0f / 0.05f;                                    /* stepper rate set by entity_InitVehicle */
     count = (int)(sim_dt * rate) + 1;                       /* truncation, as _ftol at 0x49cc2d */
@@ -1281,6 +1289,44 @@ static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
         coop_ai_log();
     }
 }
+/* I76_FRAME_LOG=<file> (lab instrument, off by default; 2026-10-14, lab docs\BOX-SPEC-BASELINE-2026-10-14.md): one line per
+ * mission frame, written where the sim clock is about to be read (after any I76_FPS_CAP wait), so the wall period is
+ * what GetTickCount / the tick emulation sees:
+ *   proxy frame, wall period since the previous line (ms, QPC), sim_dt and dt of the frame just completed (ms), and the
+ *   local player's physics stepper (entity + 0x444, as simclock_StepperBegin 0x49cc20 left it in that frame:
+ *   +4 step size in ms, +8 step count) - the engine's own substep pattern, stock or fixed-step.
+ * Buffered, flushed every 32 lines (the harness kills the game). Counts and changes nothing. */
+static FILE *g_frlog;
+static LARGE_INTEGER g_frlog_prev;
+static DWORD g_frlog_n;
+/* I76_KEEP_ACTIVE=1 (lab harness, off by default; 2026-10-14): the game minimises itself on WM_ACTIVATEAPP 0 and clears
+ * its active flag [0x504c1c]; the main loop then skips the mission tick (0x4039e4 -> 0x40402f) while the frame hook and
+ * the sim clock keep running, so an unattended run that loses the foreground for a moment freezes every car while sim time
+ * goes on (measured: T04 racers stopped mid-lap, a 120 fps run spinning at 30 kfps). This sets the flag again on every
+ * frame (and applies I76_NO_MINIMIZE's push 8), and counts the frames it had to. */
+static int g_keep_active, g_frlog_inact;
+static DWORD g_keep_active_n;
+static void frame_log_line(void) {
+    LARGE_INTEGER q; double per = 0.0; float step = -1.0f; int cnt = -1, fg = 0;
+    BYTE **rec, *obj, *ent;
+    {   DWORD pid = 0; HWND w = GetForegroundWindow(); if (w) GetWindowThreadProcessId(w, &pid); fg = pid == GetCurrentProcessId(); }
+    QueryPerformanceCounter(&q);
+    if (g_frlog_prev.QuadPart) per = (double)(q.QuadPart - g_frlog_prev.QuadPart) * 1000.0 / (double)g_qpf.QuadPart;
+    g_frlog_prev = q;
+#ifdef _MSC_VER
+    __try {
+#endif
+        rec = *(BYTE ***)0x0054a264; obj = rec ? *rec : 0;
+        if (obj && (*(DWORD *)(obj + 0x10) & 0x10) && (ent = *(BYTE **)(obj + 0x70)) != 0) {
+            step = *(float *)(ent + 0x444 + 4); cnt = *(int *)(ent + 0x444 + 8);
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { step = -2.0f; cnt = -2; }
+#endif
+    fprintf(g_frlog, "%lu,%.3f,%.3f,%.3f,%.3f,%d,%d,%d\n", (unsigned long)g_frame, per, *(volatile float *)0x004fe420 * 1000.0f,
+            *(volatile float *)0x004fe428 * 1000.0f, step * 1000.0f, cnt, fg, g_frlog_inact);
+    if ((++g_frlog_n & 31) == 0) fflush(g_frlog);
+}
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now, fl_in = {0}, fl_cap = {0};
     if (g_fl_period) QueryPerformanceCounter(&fl_in);
@@ -1303,6 +1349,9 @@ static void __cdecl frame_cap_then_clock(void) {
     if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
 clock:
     if (g_fl_period) QueryPerformanceCounter(&fl_cap);
+    g_frlog_inact = *(volatile DWORD *)0x00504c1c == 0;     /* the game's active flag (WM_ACTIVATEAPP) */
+    if (g_keep_active && g_frlog_inact) { *(volatile DWORD *)0x00504c1c = 1; g_keep_active_n++; }
+    if (g_frlog) frame_log_line();
     g_frame++;
     if (g_voltest_frame && g_frame == g_voltest_frame) {    /* I76_VOLUME_TEST=<level>,<frame>: call sound_SetCdVolume on the
                                                                game's own thread, as the Options slider does (test knob) */
@@ -1332,17 +1381,17 @@ clock:
     if (g_ratefix) {
         /* constants the engine applies once per frame / per render pass, rescaled so their effect per SECOND is
          * what it was at 20 fps: value x (frame dt / 0.05). simclock_dt 0x4fe428 is this frame's clamped dt. */
-        float k = *(volatile float *)0x004fe428 * 20.0f;
+        float k = *(volatile float *)0x004fe428 * g_ref_rate;   /* I76_REF_FPS (default 20) */
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
         g_thr_up = -0.4f * k; g_thr_dn = 0.5f * k;
         g_acc20 += *(volatile float *)0x004fe428;
         g_grid_acc += *(volatile float *)0x004fe428;
-        g_tick20 = g_acc20 >= 0.049f;                        /* 1 ms tolerance: n x dt lands a hair under 0.05 */
+        g_tick20 = g_acc20 >= g_ref_dt - 0.001f;             /* 1 ms tolerance: n x dt lands a hair under 0.05 (I76_REF_FPS: 1 / rate) */
         if (g_tick20) {
-            g_acc20 -= 0.05f; if (g_acc20 > 0.05f || g_acc20 < -0.01f) g_acc20 = 0.0f; g_tick20_n++; radar_ping_flush();
+            g_acc20 -= g_ref_dt; if (g_acc20 > g_ref_dt || g_acc20 < -0.01f) g_acc20 = 0.0f; g_tick20_n++; radar_ping_flush();
             g_grid_win = g_grid_acc; g_grid_acc = 0.0f;      /* what a per-frame step skipped since the last grid frame has to cover */
         }
-        if (g_ai_hz == 20.0f) { g_tickai = g_tick20; g_tickai_n = g_tick20_n; }
+        if (g_ai_hz == g_ref_rate) { g_tickai = g_tick20; g_tickai_n = g_tick20_n; }
         else {                                               /* I76_AI_GRID_HZ: same accumulator form at another rate */
             float per = 1.0f / g_ai_hz;
             g_accai += *(volatile float *)0x004fe428;
@@ -1530,6 +1579,17 @@ static DWORD WINAPI prof_thread(LPVOID arg) {
         if (GetTickCount() - t0 >= period_ms) { prof_log(); t0 = GetTickCount(); }
     }
 }
+static void apply_frame_log(void) {
+    char v[MAX_PATH];
+    if (!env_str("I76_FRAME_LOG", v, sizeof(v))) return;
+    if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
+    g_frlog = fopen(v, "w");
+    if (!g_frlog) { mlog("  frame-log: cannot open '%s' - off", v); return; }
+    fprintf(g_frlog, "frame,wall_ms,sim_dt_ms,dt_ms,step_ms,step_count,fg,inactive\n");
+    install_frame_hook();
+    mlog("  frame-log: one line per mission frame to %s (wall period, sim dt, player stepper step / count)%s", v,
+         g_frame_hook ? "" : " (hook failed: no log)");
+}
 static void apply_fps_log(void) {
     char v[16]; DWORD n = env_str("I76_FPS_LOG", v, sizeof(v)); int sec;
     if (n == 0 || (sec = atoi(v)) < 1 || sec > 600) return;
@@ -1547,12 +1607,14 @@ static void apply_fps_log(void) {
 static void apply_frame_cap(void) {
     static const BYTE old_call[5] = { 0xE8, 0x63, 0x8F, 0x09, 0x00 };   /* call 0x49c920 at 0x4039b8 */
     BYTE new_call[5] = { 0xE8, 0, 0, 0, 0 };
-    char v[16]; int fps;
+    char v[16]; double fps;
     LONG rel = (LONG)((DWORD_PTR)frame_cap_then_clock - (0x004039b8 + 5));
     DWORD n = env_str("I76_FPS_CAP", v, sizeof(v));
-    if (n == 0 || (fps = atoi(v)) < 5 || fps > 1000) return;
+    /* fractional rates allowed (2026-10-14, lab BOX-SPEC-BASELINE: 18.2 = the PC timer's 18.2 Hz, one 55 ms Windows 95
+     * GetTickCount tick per frame); the period is rounded to the nearest QPC count */
+    if (n == 0 || (fps = atof(v)) < 5.0 || fps > 1000.0) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
-    g_cap_period.QuadPart = g_qpf.QuadPart / fps;
+    g_cap_period.QuadPart = (LONGLONG)((double)g_qpf.QuadPart / fps + 0.5);
     {   /* The cap sleeps (left - 2) ms and spins the rest. With the default 15.6 ms timer tick a 3 ms sleep takes a
          * whole tick, so any cap above ~64 fps delivered ~62 (measured 2026-10-03: I76_FPS_CAP=179 -> 62.6 fps under
          * nGlide). Ask for 1 ms timer resolution for the life of the process (winmm resolved at run time: the fix
@@ -1563,7 +1625,8 @@ static void apply_frame_cap(void) {
     }
     (void)old_call; (void)new_call; (void)rel;
     install_frame_hook();
-    mlog("  fps-cap: %d fps%s", fps, g_frame_hook ? "" : " (hook failed: no cap)");
+    mlog("  fps-cap: %.3f fps (period %.4f ms)%s", fps, (double)g_cap_period.QuadPart * 1000.0 / (double)g_qpf.QuadPart,
+         g_frame_hook ? "" : " (hook failed: no cap)");
 }
 
 /* ===========================================================================
@@ -1607,11 +1670,11 @@ static int __cdecl frame_sound_wrap(const char *name, BYTE *obj, int flag) {
  * derivative of a measured change, so at 60 fps it asks for 3x the correction, saturates and chatters (capture 014:
  * total variation 26.2 /s at 60 fps vs 1.56 at 20; 5.33 even with the hires clock and fixed step). Both reads
  * (0x40fa15 type-9 branch, 0x40fa8d vehicles) get the 20 fps rate. */
-static float __cdecl ai_rate20(void) { return 20.0f; }
+static float __cdecl ai_rate20(void) { return g_ref_rate; }   /* I76_REF_FPS (default 20) */
 /* AI steering (ai_SteerToHeading 0x40fe80): steer = skill x heading error / (sim_dt x k x v), the yaw rate that closes the
  * heading error in one frame (i76-map subsystems/ai.md). The sim_dt read at 0x40fed9 is used only as that divisor, so it
  * gets the 20 fps value. */
-static float __cdecl ai_dt20(void) { return 0.05f; }
+static float __cdecl ai_dt20(void) { return g_ref_dt; }       /* I76_REF_FPS (default 0.05) */
 /* AI GAINS ON THE 1997 FRAME CLOCK  (I76_AI_STOCK_CLOCK=1, needs I76_FRAMERATE_FIXES + I76_FIXED_STEP; off by default)
  * Lab doc AI-PACE-2026-10-12.md (T04 racers). Both gains above are dead-beat: the command is sized to close the error over
  * ONE frame of the dt the AI reads (k = this frame), but the physics applies it over the NEXT frame (k + 1): the yaw
@@ -1644,8 +1707,8 @@ static float ai_stock_dt_used(void) {
      * step S carries the same fraction when the gain reads S x dt[j] / dt[j+1] */
     return (float)(S * ai_stock_frame_dt(j, F) / ai_stock_frame_dt(j + 1.0, F));
 }
-static float __cdecl ai_gain_rate(void) { return g_ai_stockclk == 1 ? 1.0f / ai_stock_dt_used() : 20.0f; }
-static float __cdecl ai_gain_dt(void) { return g_ai_stockclk ? ai_stock_dt_used() : 0.05f; }
+static float __cdecl ai_gain_rate(void) { return g_ai_stockclk == 1 ? 1.0f / ai_stock_dt_used() : g_ref_rate; }
+static float __cdecl ai_gain_dt(void) { return g_ai_stockclk ? ai_stock_dt_used() : g_ref_dt; }
 
 /* Radar ping (CRADAR.WAV, radar blip routine 0x460310, played through 0x4250f0 at 0x4605ee / 0x4608f1). Unlocked,
  * the sweep advances on game time (one of 30 positions per 0.2 s) and a blip pings when the window [previous,
@@ -1692,7 +1755,7 @@ static void radar_ping_flush(void) {                        /* from the frame ho
  * render pass on grid frames, i.e. 20 times a second, as at stock 20 fps with the mirror off. */
 static DWORD g_idbg_flame_hits, g_idbg_flame_dmg;           /* copied into the debug block by the render wrapper */
 static int g_flame_dmg_ok;
-static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > 0.05f ? dt : 0.05f; }
+static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > g_ref_dt ? dt : g_ref_dt; }
 static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))0x00443e90)(); }
 static void __cdecl flame_update_main(BYTE *cam) {
     g_flame_dmg_ok = g_tick20;
@@ -1763,8 +1826,8 @@ static void __cdecl smoke_update_wrap(BYTE *cam) {
     BYTE *p; double save[3]; float t; int k;
     if (g_tick20) { ((void (__cdecl *)(BYTE *))0x004414a0)(cam); return; }
     if (!*(volatile int *)0x0052ba34) return;
-    t = g_acc20 - 0.05f;                                    /* the update draws before it moves: last tick drew P0 */
-    if (t > 0.0f) t = 0.0f; if (t < -0.05f) t = -0.05f;
+    t = g_acc20 - g_ref_dt;                                 /* the update draws before it moves: last tick drew P0 */
+    if (t > 0.0f) t = 0.0f; if (t < -g_ref_dt) t = -g_ref_dt;
     for (p = *(BYTE **)0x0052ba30; p; p = *(BYTE **)(p + 0x40)) {
         if (*(int *)(p + 4) >= 20) continue;                /* expired: freed on the next grid frame, not drawn */
         memcpy(save, p + 0x28, sizeof(save));
@@ -3867,6 +3930,16 @@ static void apply_input_latch(void) {
          g_fixed_step > 0.0f ? "" : " - note: without I76_FIXED_STEP every frame steps, so this changes nothing");
 }
 
+static void apply_ref_fps(void) {
+    char v[16]; double r;
+    if (!env_str("I76_REF_FPS", v, sizeof(v))) return;
+    r = atof(v);
+    if (r < 10.0 || r > 60.0) { mlog("  ref-fps: '%s' is not 10..60 - the 20 fps reference kept", v); return; }
+    g_ref_rate = (float)r; g_ref_dt = (float)(1.0 / r);
+    g_grid_win = g_ref_dt; g_ai_hz = g_ref_rate; g_bag_k20 = g_ref_rate;
+    mlog("  ref-fps: frame-rate fixes reproduce a %.2f fps game (grid / gain pins / engine substep dt %.2f ms; AI grid default %.2f Hz)",
+         r, 1000.0 * g_ref_dt, r);
+}
 static void apply_fixed_step(void) {
     static const BYTE old_entry[6] = { 0xD9, 0x05, 0x20, 0xE4, 0x4F, 0x00 };   /* fld [0x4fe420] at 0x49cc20 */
     BYTE jmp[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
@@ -6475,8 +6548,14 @@ static void trn_apply_inner(void) {
         } else if (!obj) { c->cmd_result = 1; trn_msg("no player vehicle (not in a mission?)"); }
         else switch (cmd) {
         case I76TRN_CMD_REPAIR:   trn_repair(ent); trn_weapons(obj, -1, 1); trn_msg("repaired"); break;
-        case I76TRN_CMD_TELEPORT: memcpy(obj + 0x40, c->pos, 24); memcpy(ent + 0xbc, c->vel, 12); memset(ent + 0xc8, 0, 12);
-                                  trn_msg("teleported"); break;
+        case I76TRN_CMD_TELEPORT: {
+            /* 2026-10-14 (box-spec harness): the speed +0xac (and 1/speed +0xb0) too. In grip the physics snaps the velocity
+             * to forward x the speed it kept from the last step (i76-map physics.md "Grip vs slide"), so a velocity written
+             * alone was thrown away whenever the car had been slow (the "velocity writes do not stick" of capture 014). */
+            float sp = (float)sqrt((double)c->vel[0] * c->vel[0] + (double)c->vel[1] * c->vel[1] + (double)c->vel[2] * c->vel[2]);
+            memcpy(obj + 0x40, c->pos, 24); memcpy(ent + 0xbc, c->vel, 12); memset(ent + 0xc8, 0, 12);
+            *(float *)(ent + 0xac) = sp; *(float *)(ent + 0xb0) = sp > 0.001f ? 1.0f / sp : 0.0f;
+            trn_msg("teleported"); break; }
         case I76TRN_CMD_AMMO:     { char b[64]; wsprintfA(b, "ammo set on %d weapons", trn_weapons(obj, c->ammo_value, 0)); trn_msg(b); } break;
         case I76TRN_CMD_SLOT_AMMO: {
             int n = *(int *)0x005da750, i = c->slot_index;
@@ -6484,7 +6563,8 @@ static void trn_apply_inner(void) {
             if (i < 0 || i >= n || i >= 150 || !*(DWORD *)(inst + 4)) { c->cmd_result = 3; trn_msg("bad weapon slot"); }
             else { *(int *)(inst + 0x20) = c->ammo_value; trn_msg("slot ammo set"); }
             break; }
-        case I76TRN_CMD_STOP:     memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12); trn_msg("stopped"); break;
+        case I76TRN_CMD_STOP:     memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12); *(float *)(ent + 0xac) = 0.0f; *(float *)(ent + 0xb0) = 0.0f;
+                                  trn_msg("stopped"); break;
         default:                  c->cmd_result = 2; trn_msg("unknown command"); break;
         }
         c->ack_seq = c->req_seq;
@@ -8000,6 +8080,11 @@ static void apply_no_minimize(void) {
     static const BYTE expect[9] = { 0x6a, 0x06, 0x51, 0xff, 0x15, 0x40, 0xc3, 0x4b, 0x00 };
     static const BYTE want[9]   = { 0x6a, 0x08, 0x51, 0xff, 0x15, 0x40, 0xc3, 0x4b, 0x00 };
     char v[8]; DWORD k = env_str("I76_NO_MINIMIZE", v, sizeof(v));
+    if (env_str("I76_KEEP_ACTIVE", v, sizeof(v)) && v[0] != '0') {
+        g_keep_active = 1; install_frame_hook();
+        mlog("  keep-active: the active flag is set again on every frame (an unattended run keeps ticking without the foreground)");
+        k = 1; v[0] = '1';
+    }
     if (k == 0 || v[0] == '0') return;
     if (patch_bytes(0x404acc, expect, want, 9, "no-minimize"))
         mlog("  no-minimize: WM_ACTIVATEAPP 0 no longer minimises the window (0x404acc push 6 -> push %d; read back %s)",
@@ -8124,11 +8209,13 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_terrain_hull_fix(); /* opt-in: I76_TERRAIN_HULL_FIX=1 (terrain footprint hull rebuilt; after cam-ground, chains to it) */
         apply_aspect();           /* experiment: I76_ASPECT=<display aspect> (Hor+ widescreen, stage A) */
         apply_sw_res();           /* experiment: I76_SW_RES=<W>x<H> or 1 (software renderer above 1024x768) */
+        apply_ref_fps();          /* opt-in: I76_REF_FPS=<fps> (default 20; before every frame-rate fix) */
         apply_hires_clock();      /* opt-in: I76_HIRES_CLOCK=1 */
         apply_tick_emu();         /* lab: I76_TICK_MS=<ms> (sim clock on a coarse tick; excludes I76_HIRES_CLOCK) */
         apply_engine_dt_fix();    /* opt-in: I76_ENGINE_DT_FIX=1 */
         apply_frame_cap();        /* opt-in: I76_FPS_CAP=n */
         apply_fps_log();          /* opt-in: I76_FPS_LOG=<seconds> */
+        apply_frame_log();        /* lab: I76_FRAME_LOG=<file> (per-frame wall period, sim dt, player stepper) */
         apply_volume_test();      /* test knob: I76_VOLUME_TEST=<level>,<frame> */
         apply_phys_rate();        /* experiment: I76_PHYS_RATE=n */
         apply_fixed_step();       /* opt-in: I76_FIXED_STEP=n */
