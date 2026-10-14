@@ -15,7 +15,7 @@
  *
  *    game state [0x4c2164] == 6            the shell
  *    game state 5 and [0x4fe534] == 0x10   the exe's Esc / mission-over menu (mouse via WndProc -> 0x4972d0)
- *    and the game window is the foreground window
+ *    and no other application's window is in front
  *
  * it moves the real pointer, exactly as a mouse or the trackpad would:
  *
@@ -141,7 +141,8 @@ static DWORD WINAPI pm_thread(LPVOID arg) {
         h = cm_window();
         {   DWORD pid = 0; HWND fg = GetForegroundWindow();
             if (fg) GetWindowThreadProcessId(fg, &pid);
-            up = connected && h && pid == GetCurrentProcessId() ? pm_menu_up() : 0; }
+            /* no foreground window known (can happen under a compositor) counts as ours: only another app in front stops it */
+            up = connected && h && (!fg || pid == GetCurrentProcessId()) ? pm_menu_up() : 0; }
         if (up != was) {
             if (g_pm_log) mlog("  pad-menu: %s (game state %d, mode 0x%x, %d pad(s))",
                                up == 1 ? "shell - pointer on the pad" : up == 2 ? "Esc menu - pointer on the pad" : "off (no menu)",
@@ -154,8 +155,10 @@ static DWORD WINAPI pm_thread(LPVOID arg) {
         if (up) {
             POINT cur; int moved = 0;
             /* resync when something else moved the pointer (trackpad, mouse, the game's own SetCursorPos) */
-            if (p_pm_GetCursorPos(&cur) && (cur.x - last.x > 2 || last.x - cur.x > 2 || cur.y - last.y > 2 || last.y - cur.y > 2))
+            if (p_pm_GetCursorPos(&cur) && (cur.x - last.x > 2 || last.x - cur.x > 2 || cur.y - last.y > 2 || last.y - cur.y > 2)) {
                 pm_screen_to_ui(cur, &ux, &uy);
+                last = cur;      /* else a slow push (< 1 screen px per poll) is reset to the pixel every poll and never moves */
+            }
             lx = pm_axis((SHORT)sx); ly = pm_axis((SHORT)sy);
             if (lx != 0.0f || ly != 0.0f) {
                 ramp += dt / 0.6f; if (ramp > 1.0f) ramp = 1.0f;
@@ -213,7 +216,7 @@ static void pm_filter(LPMSG msg) {
 #define PM_WIN(k) ((LONG)(g_pm_held_until[k] - now) > 0)
     if (vk == 'H' || vk == 'I' || vk == 'N') hit = PM_WIN(0);           /* D-pad up / down / left */
     else if (vk == 'M') hit = PM_WIN(0) || PM_WIN(1);                     /* D-pad right, Start */
-    else if (vk == VK_TAB) hit = PM_WIN(2);                               /* B (VK_TAB == '	', also the WM_CHAR) */
+    else if (vk == VK_TAB) hit = PM_WIN(2);                               /* B (VK_TAB is also Tab's WM_CHAR) */
 #undef PM_WIN
     if (hit && pm_ahk()) msg->message = WM_NULL;
 }

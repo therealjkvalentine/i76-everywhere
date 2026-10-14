@@ -432,5 +432,5 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Undocked afterwards:** handheld looks as before (fills the panel, same brightness); the left stick now also moves the
       menu pointer there.
     - **Send** `~/Games/Interstate76/deck-launch.log` and `game/mciproxy.log` (lines `display:`, `md5`, `pad-menu:`).
-    - **Installed by** `deck/deck-push-tv.sh` (proxy 03bcb589 = 509c6df0's source + I76_PAD_MENU, launcher display profile,
+    - **Installed by** `deck/deck-push-tv.sh` (proxy 2f2b8170 = 509c6df0's source + I76_PAD_MENU, launcher display profile,
       env block); rollback `bash ~/i76-deploy/deck/setup-deck-tv.sh --revert` on the Deck.

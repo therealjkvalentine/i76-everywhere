@@ -135,7 +135,7 @@ does it when AHK runs; the proxy then does not click twice), **B** = Esc, **Star
 and merged (docked, the Deck's controller and the TV pad are both connected). In a mission the thread does nothing;
 unset, there is no thread. The pad layer's keys for those buttons (D-pad = H/I/N/M, Start = M, B = Tab) are dropped
 on their way into the game while the button is held, so they no longer type into the bookmark name. Side build
-`deck/Strlkup.deck-padmenu.dll` md5 `03bcb589` = the deployed `509c6df0`'s own source (lab
+`deck/Strlkup.deck-padmenu.dll` md5 `2f2b8170` = the deployed `509c6df0`'s own source (lab
 `builds\terrain-probe-20261012\src`) + `padmenu.c`, MSVC x86 (lab `builds\pad-menu-20261013`); static checks only
 (exports identical to 509c6df0, imports SendInput / FindWindowA / GetForegroundWindow, the state reads verified
 against the exe: `0x404b30 cmp [0x4fe534],0x10`, one `cmp [0x4c2164],6`). **The OK popups** (garage refusals, the

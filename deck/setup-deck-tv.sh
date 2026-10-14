@@ -21,7 +21,7 @@ GAME="${I76_GAMEDIR:-$INSTALL/game}"
 BACKUPS="$INSTALL/backups"
 LAST="$BACKUPS/LAST-TV"
 PROXY="$HERE/Strlkup.deck-padmenu.dll"     # lab snapshot of 509c6df0's source + padmenu.c (MSVC x86)
-PROXY_MD5="03bcb58916c4a29b14f28389a2cb2fab"
+PROXY_MD5="2f2b8170cfabaacff235ff8bb0eb9dc3"
 
 say() { echo "  $*"; }
 die() { echo "FATAL: $*"; exit 1; }
