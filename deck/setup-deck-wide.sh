@@ -1,4 +1,7 @@
 #!/bin/bash
+# RETIRED 2026-10-13: installs the old Strlkup.deck.dll (b8948d90) and would DOWNGRADE the proxy.
+# Use deck/deck-push-tv.sh (proxy + TV/handheld profiles). Set I76_FORCE_OLD_SETUP=1 to run anyway.
+if [ "${I76_FORCE_OLD_SETUP:-0}" != "1" ]; then echo "setup-deck-wide.sh is retired (would downgrade the proxy); use deck/deck-push-tv.sh" >&2; exit 1; fi
 # Interstate '76 - bring the Deck up to the current graphics build. RUNS ON THE DECK.
 #
 # What the Windows daily driver runs (preset best-wide), adapted to the Deck's
