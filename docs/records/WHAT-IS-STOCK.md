@@ -180,3 +180,22 @@ Not found, after looking: a 3Dfx or Activision press release naming I'76 (3dfx.c
 
 Working files for this research (BBS captures, OCR text, decoded help topics) are in `C:\Users\james\AppData\Local\Temp\i76research` on this PC (a temp folder; copy out anything worth keeping);
 the CD image itself was read from archive.org item `interstate-76-activision-1997` and was not installed or run.
+
+## Box requirements (Arsenal box, photo from the owner, 2026-10-15)
+
+The *Interstate '76 Arsenal* box (the later bundle; it requires "the latest Windows 95 drivers that can fully support
+Microsoft's DirectX 5", so it describes the Gold-era game) lists, under Minimum System Requirements
+([photo](img/arsenal-box-sysreq.jpg)):
+
+- 100% IBM PC-compatible Pentium 90 MHz computer (**Pentium 133 or higher for 3-D acceleration**)
+- U.S. Windows 95; 16 MB RAM (32 MB or higher recommended); 135 MB for a full install, 80 MB minimum
+- VESA local bus or PCI video card with 2 MB RAM; 16-bit High Color; double-speed CD-ROM; Sound Blaster-compatible
+  sound card; Microsoft-compatible mouse; joystick or gamepad optional
+- Optional Direct3D acceleration ("some of these cards may require a processor faster than a Pentium 90"); the 3D
+  partner badges include 3Dfx, Rendition and Matrox.
+
+Read against the 86Box measurements of the Gold exe (emu `results\RESULTS.md`, 2026-10-15; Windows 95 RTM
+GetTickCount step measured at 1 ms, not 55 ms): the box's 3-D spec (P133 + Voodoo) ran about 26 fps in Instant Melee
+(25.7 / 26.4), and P133 software about 10 fps (9.7 / 10.1). The box minimum (P90, software) was not measured; it is
+slower than P133 software. These are emulator numbers for one melee arena; mission runs and the gameplay check are
+pending.
