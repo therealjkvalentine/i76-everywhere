@@ -248,3 +248,53 @@ Details, every log and the per-run numbers are in lab `emu/results/RESULTS.md` (
 - The box-spec frame rate is ~26 fps on a P133 + Voodoo and ~32 fps on a P166 + Voodoo, but only ~10 fps (P133) and
   ~13 fps (P166) in software.
 - 18.2 fps sits between the two renderer paths.
+
+## Headless parallel runs, 2026-10-15: no host input, no console lock
+
+The 86Box VMs can now run whole sessions with no host keyboard, mouse or focus, several at once. Details, commands
+and every run are in lab `emu/README.md` ("Headless parallel runs") and `emu/results/par/`. Code: lab
+`emu/probe/i76drv.c`, `emu/tools/par/`.
+
+**Why.** Until now, input reached the guest through host SendInput. 86Box reads raw input, so its window had to be in
+front, which took over the console (hence the console lock).
+
+**How.**
+
+- **Input inside the guest.** I76DRV.EXE is a Windows 95 input player (no CRT, PE 4.00, imports checked against the
+  real Win95 RTM KERNEL32 / USER32). WIN.INI `run=` starts it. It plays a text script of waits, program starts, window
+  and process waits, keys (keybd_event with real scan codes), clicks (mouse_event) and the final shutdown, and logs to
+  `D:` and COM1.
+- **The host runner.** `parrun.py` gives each run a plain copy of a par base disk (the Gold snapshot with the WIN.INI
+  hook and the low-detail `I76PLYR.DEF` patched in; the snapshots are only read), a fresh data disk and its own cfg.
+- **Out of sight.** 86Box starts on a private desktop that is never shown, so it can never take the foreground.
+- **Live readings.** COM1 comes back over a named pipe, carrying the guest log and a GetTickCount heartbeat. The
+  runner also takes PrintWindow screenshots.
+- **Shutdown and collection.** The runner waits for the guest to shut down, closes 86Box with WM_CLOSE and copies the
+  logs out with `fat.py`.
+
+**The game's input path.** Neither the retail 1.0 exe nor the Gold exe uses DirectInput (no DINPUT import or string).
+Both read the keyboard from window messages and `GetAsyncKeyState`, and their key tokens follow scan-code order. In
+the VM:
+
+- keypad 8 (the stock `UpArrow` throttle, not extended) drives the car;
+- the grey left arrow (extended) glances;
+- every menu click lands.
+
+**Results.** Gold exe, software renderer at the watcher's low detail (320x200), P166, Instant Melee, 20 s throttle.
+The full session (boot to shutdown) ran without host input while the watcher's VM held the foreground.
+
+| VMs on the host (incl. the watcher's) | in-mission speed vs real time | fps (parked / throttle) |
+|---|---|---|
+| 2 (one scripted run, n = 2) | 1.000 / 1.003 | 34.3 / 34.2, 34.5 / 34.4 |
+| 3 (two parallel) | 0.974 / 0.979 | 34.1 / 34.6, 33.7 / 33.5 |
+| 4 (three parallel) | 0.832 / 0.830 / 0.856 | 33.4 / 33.8, 31.3 / 33.0, 33.9 / 34.4 |
+
+- **The fps agree with the watcher's.** Its own P166 low-detail runs gave 33.2 / 33.9 fps parked.
+- **Falling behind costs real time, not validity.** Frame rates hold in guest time when a VM falls behind real time.
+- **Capacity.** Each VM takes one host core. On this 4-core PC, one extra VM beside the watcher's stays real-time;
+  three fall to about 0.83.
+- **Menus are slow even alone.** Boot and the game's 640x480 shell menus run at 70 to 80 % in 86Box even for a lone
+  VM. Only the mission segments are reported as the speed check.
+- **Screenshots.** Every capture had content. A minimized 86Box window gives only a 160x28 caption.
+
+Not covered: the Glide path and the retail exe (it needs disc 2).
