@@ -64,7 +64,7 @@ First-hand numbers from the lab's 86Box rig. Details: `EMU-1997-PLAN.md` (run of
   Both paths scale with the CPU clock, so they are CPU-bound.
 - **Reference (owner's spec: software renderer, 320x200, lowest detail; Glide is not a reference because 86Box does
   not model the Voodoo fill rate):**
-  - Frame rates: P133 28-29 fps in Instant Melee, 24-25 fps in T05 / T13. P166 33-34 fps in Instant Melee, 28-30 fps
+  - Frame rates: P133 28-29 fps in Instant Melee, 24-25 fps in T04 / T05 / T13. P166 33-34 fps in Instant Melee, 28-30 fps
     in T04 / T05 / T13.
   - Physics: one substep per frame on both, so the step is the frame time (~30-42 ms) on a 1 ms clock.
 - **Not yet measured:**

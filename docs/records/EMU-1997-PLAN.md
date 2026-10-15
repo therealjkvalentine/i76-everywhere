@@ -307,10 +307,10 @@ is 60 s, starting 10 s into the mission. Full tables: lab `emu/results/RESULTS.m
 
 | scene | P133 | P166 |
 |---|---|---|
-| Instant Melee | 28.1 / 29.3 fps | 33.2 / 32.6 / 33.9 fps |
+| Instant Melee | 28.1 / 29.3 / 28.6 fps | 33.2 / 32.6 / 33.9 fps |
 | T05 | 24.8 | 29.4 |
 | T13 | 23.7 | 28.5 |
-| T04 | - | 29.8 |
+| T04 | 25.3 | 29.8 |
 
 - **Physics substeps** (`floor(dt*20)+1`, Gold `0x49cc20`): one step per frame on both CPUs.
   - The share of 2-4-step frames is 0.1-1 % on the P166 and up to 4 % on the P133 in T13.
