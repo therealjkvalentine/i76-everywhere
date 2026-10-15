@@ -298,3 +298,30 @@ The full session (boot to shutdown) ran without host input while the watcher's V
 - **Screenshots.** Every capture had content. A minimized 86Box window gives only a 160x28 caption.
 
 Not covered: the Glide path and the retail exe (it needs disc 2).
+
+### Morning 2026-10-15: software renderer at the owner's low-detail configuration (the reference)
+
+Owner's spec: software only (the emulated Voodoo's fill rate is not modelled, so the Glide numbers are not a
+reference) at 320x200 / lowest detail. Gold exe; I76FPS at 20 ms (the real period is ~30 ms on Windows 95). The window
+is 60 s, starting 10 s into the mission. Full tables: lab `emu/results/RESULTS.md` sections 3-4.
+
+| scene | P133 | P166 |
+|---|---|---|
+| Instant Melee | 28.1 / 29.3 fps | 33.2 / 32.6 / 33.9 fps |
+| T05 | 24.8 | 29.4 |
+| T13 | 23.7 | 28.5 |
+| T04 | - | 29.8 |
+
+- **Physics substeps** (`floor(dt*20)+1`, Gold `0x49cc20`): one step per frame on both CPUs.
+  - The share of 2-4-step frames is 0.1-1 % on the P166 and up to 4 % on the P133 in T13.
+  - The step length is the frame time: ~30 ms (P166) and 35-42 ms (P133).
+  - At the game's default detail (10-13 fps) the same rule gives 2-3 steps per frame.
+- **Gameplay check, P133 vs P166:**
+  - Observed on both: menus, bookmarks, cutscenes and missions run without a crash.
+  - Observed on both: the AI closes in, fires and damages a parked player in T13. It destroyed the car at ~45 s on
+    the P166; on the P133 the car was heavily damaged and still alive at 69 s (n=1 each).
+  - Melee kills of a parked player happen at every frame rate tested (6 of 18 runs, 7-33 fps).
+  - **Not tested:** the T05 jump (the route to the ramp is not known in the guest; straight full throttle leaves the
+    road) and AI dodging. Sound was not tested either: the guest has no sound driver.
+- **Saves for the owner:** bookmarks before T04 / T05 / T13 are in lab `emu/results/saves/`, with disk snapshot
+  `emu/images/w95pb-hdd-saves-20261015.img`.
