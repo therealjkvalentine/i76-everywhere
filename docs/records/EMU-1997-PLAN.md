@@ -172,6 +172,9 @@ WHAT-IS-STOCK is unchanged.
   - No generic or published key was tried.
 - **Next step: the owner's COA number** from the Windows 95 sticker or CD sleeve. A retail Windows 95 CD with its
   `xxx-xxxxxxx` key would also do, as would an OSR2 OEM CD with its COA.
+- **Update, later the same evening.** The owner then supplied three OEM-format numbers (COA-1 to COA-3). They
+  were tried in order, and setup rejected all three with the same "Invalid Product Identification Number" dialog.
+  A screenshot confirmed the typing. The VM is paused on the page again.
 
 **Everything up to that page runs unattended, and the VM is kept paused there.** Details are in lab `emu/README.md`,
 "Status":
