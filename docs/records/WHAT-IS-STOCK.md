@@ -42,6 +42,30 @@ Full write-up, sources and data: lab `docs/AI-COMBAT-PARITY-2026-10-13.md` (sect
    - With a 55 ms tick, a 20 fps game reads most frames as 55 ms and some as 0 ms (which the engine turns into 1 ms). That
      is a very different clock from ours.
 
+## Measured on an emulated 1997 PC (86Box, 2026-10-15)
+
+First-hand numbers from the lab's 86Box rig. Details: `EMU-1997-PLAN.md` (run of 2026-10-14/15) and lab
+`emu/results/RESULTS.md`. The rig: Windows 95 RTM 4.00.950, ASUS P/I-P55T2P4, 32 MB, S3 Trio64 + Voodoo Graphics,
+86Box 6.0.
+
+- **Windows 95's GetTickCount ticks in 1 ms steps, not 55 ms.**
+  - Measured with TICKPRB, n = 3 on each of P90, P133 and P166, under both of 86Box's PIT models.
+  - The step is 1 ms with and without `timeBeginPeriod`. `Sleep(1)` is the coarse part: about 13 ms without a period.
+  - So item 5's "about 55 ms" and the R-1997a/b profiles' 55 ms tick are not what this Windows 95 does.
+  - This is still an emulator: a real 1997 board would make it final.
+- **Frame rate, Gold exe, Instant Melee (60 s starting 10 s into the mission, n = 3 unless noted):**
+
+  | machine | Glide (Voodoo Graphics) | software renderer |
+  |---|---|---|
+  | P90 | 16.7 fps | 7.1 fps (n=2) |
+  | P133 | 26.2 fps | 10.0 fps |
+  | P166 | 31.7 fps | 13.3 fps (n=1) |
+
+  Both paths scale with the CPU clock, so they are CPU-bound.
+- **Not yet measured:**
+  - the March 1997 retail exe in a mission (it asks for disc 2, which is not here);
+  - T04 / T13 / T05.
+
 ## Reference profiles the lab can now reproduce on this PC
 
 `I76_FPS_CAP` sets the frame rate. The new lab switch `I76_TICK_MS` sets the clock tick: the proxy rounds the sim clock

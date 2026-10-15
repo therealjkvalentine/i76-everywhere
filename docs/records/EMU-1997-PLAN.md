@@ -193,3 +193,58 @@ WHAT-IS-STOCK is unchanged.
 
 **For W95-18: no change recommended yet.** Its 55 ms / 18.2 fps assumption is neither confirmed nor contradicted until
 the VM runs.
+
+## Run, night of 2026-10-14 / 15: Windows 95 installed, clock and frame rates measured
+
+Details, every log and the per-run numbers are in lab `emu/results/RESULTS.md` (raw logs: `emu/results/20261014-night/`).
+
+**The install.** The owner put five more images on his Mac. Only one installed:
+
+- **Installed:** the **Packard Bell master CD** (Windows 95 RTM 4.00.950, 1995-09-19). Its `SETUPPP.INF` carries a
+  preset product ID, so setup asks for no key.
+- **Rejected:** the RTM OEM CD and an OSR2 (950B) OEM CD. Every owner COA number was rejected, and so were the
+  per-build keys.
+- **Rejected:** a Greek Windows 98 first edition. Its owner key was rejected.
+- **Not installable:** a Japanese PC-9800 Windows 95.
+- At the owner's request, the failed images are being deleted.
+- The installed disk was snapshotted in three states: clean; with DirectX 3 and the retail game; with Gold and Glide 2.43.
+
+**1. The Windows 95 clock (TICKPRB, n = 3 on each of P90, P133 and P166, plus P133 with 86Box's classic PIT):**
+
+- **GetTickCount advances in 1 ms steps, not 55 ms.** That held in every phase (no `timeBeginPeriod`, under it, after
+  it), on every CPU and under both PIT models. Each step's true length is 0.999 ms against QueryPerformanceCounter.
+- What is coarse is the scheduler. `Sleep(1)` lasts about 12.5-13 ms (max 13.9) without a period, and 1 ms with
+  `timeBeginPeriod(1)`.
+- So the "55 ms" of the old MSDN table does not describe Windows 95 RTM's GetTickCount on this emulated board.
+- This is an emulator result. A real 1997 board would confirm it.
+
+**2. Frame rates (Gold exe; Instant Melee, The Crater, 1 AI; 60 s starting 10 s into the mission; n = 3 unless noted):**
+
+| machine | Glide (Voodoo Graphics) | software renderer |
+|---|---|---|
+| P90 | 16.7 fps (15.9-17.3) | 7.1 fps (n=2) |
+| P133 | 26.2 fps (25.1-26.9) | 10.0 fps (9.4-10.5) |
+| P166 | 31.7 fps (29.9-32.8) | 13.3 fps (n=1) |
+
+- Both paths scale with the CPU clock, so they are CPU-bound. The Glide numbers are therefore valid even though 86Box
+  does not time the Voodoo fill rate.
+- **Retail 1.0 was not measured in a mission.** The retail exe (CD 1, 1997-03-15) installs and starts on Windows 95
+  RTM + DirectX 3, but only with 86Box's classic PIT. Under the default PIT its CPU-speed probe (`0x44E063`) reads 0
+  ticks and dies of a divide error at `0x44E0C1`, which is an emulator artefact.
+- Every retail game mode then asks for **disc 2** (volume label `I76_CD2`), and only disc 1 is here.
+- **The Gold exe** needs a `MSVCRT.DLL` on Windows 95 RTM. 3dfx's period copy from VOODOO.ISO fixes that; IMM32 did
+  not complain.
+
+**Measured route to these numbers:**
+
+- 86Box mouse capture with relative SendInput moves (2 counts per guest pixel in the I'76 menus).
+- The retail exe's frame counter `0x55F744` was confirmed live by I76FPS: it stands still in the menus.
+- The Gold counter is `0x5A7E1C`.
+
+**For W95-18 (proposal; the W95-18 doc is not edited):** see the recommendation in this run's report and lab
+`emu/results/RESULTS.md`. In short:
+
+- The 55 ms tick is not what this Windows 95 does. A 1 ms tick (or this PC's 15.6 ms) is the measured case.
+- The box-spec frame rate is ~26 fps on a P133 + Voodoo and ~32 fps on a P166 + Voodoo, but only ~10 fps (P133) and
+  ~13 fps (P166) in software.
+- 18.2 fps sits between the two renderer paths.
