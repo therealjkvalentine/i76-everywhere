@@ -1,5 +1,9 @@
 # W95-18 baseline: the box-spec profile, measured (2026-10-14 / 15)
 
+> **Superseded (2026-10-15) by [ERA-ENVELOPE.md](ERA-ENVELOPE.md).** Windows 95 GetTickCount is 1 ms (86Box), so stock is now the
+> behaviour invariant across era configs (1 ms tick, 10-33 fps), not one 55 ms profile. The canyon "landing destruction" below is
+> the stock rollover rule: its rate grows with the physics step, and era profiles lose the car too (E13 / E25 4/5 boots).
+
 The full write-up is in lab `docs\W95-18-BASELINE-2026-10-14.md` (i76-uncap-lab), and the raw data is in
 `captures\w95-18-20261014\`. Everything was measured on the lab twin; the daily driver was not touched.
 

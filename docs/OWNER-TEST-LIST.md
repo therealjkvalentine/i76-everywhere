@@ -435,6 +435,21 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       - Any combat mission: does the reference's choppiness change how the AI feels to you?
     - **Proxy 33211f11** in the lab copy (rollback `STRLKUP.DLL.f6d0c668-pre-w95-18`). Not launched by hand yet. Not in the daily
       driver.
+42. **Era envelope candidate: the canyon landing (new 2026-10-15; docs/records/ERA-ENVELOPE.md, lab docs/ERA-ENVELOPE-2026-10-15.md).**
+    - **Why.** The car destroyed after the T05 canyon landing in PLAY.bat / TEST-next is the game's own rollover rule. The car
+      bounces, ends up on its roof and is wrecked, god mode or not. It gets more likely with bigger physics steps. PLAY.bat's
+      41.7 ms step turned the car over on 9 of 10 hill-top descents. A P166 at low detail (30 ms steps) never did.
+    - **What's there.** `TEST-envelope-candidate.bat` in the lab copy: TEST-next with 30 ms physics steps and its frame-rate
+      fixes / AI clock on a 30 fps reference.
+    - **Test.**
+      - T05 from the hill top: full throttle down the road and over the canyon ramp, a few times. You should land and drive on,
+        with no roll-over and no wreck. Then try PLAY.bat the same way for comparison.
+      - Drive a straight flat road: is the body calm (no fast side-to-side shimmy)?
+      - Does the car still feel like the game: jumps (about 200 m over the canyon, 72 m on T06's first ramp), acceleration,
+        steering?
+    - **Known.** Barricades knock a little less often than in the stock game (6.6 of 10 vs 7.8). That comes from the
+      bar-as-box switch shared with PLAY.bat and TEST-next, not from this change.
+    - **Proxy 33211f11** in the lab copy (unchanged). Not booted by hand yet. Not in the daily driver.
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
