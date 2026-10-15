@@ -157,3 +157,36 @@ Conventions for every condition:
 - It is still an emulator: 86Box times the CPU per instruction with a pairing model, not the real Pentium pipeline
   and caches. For that reason the p133-interp cross-check, and agreement with the few period reports (P133 + Millennium
   "jerky", P90 / 16 MB "choke"), are part of reading the numbers.
+
+## Run attempt, 2026-10-14 evening: Windows 95 install blocked at the Product ID
+
+**Result: nothing measured yet.** There is no tick figure and no fps figure. The plan's numbers are still open, and
+WHAT-IS-STOCK is unchanged.
+
+- **The owner's CD.** `WIN95.ISO` is Windows 95 **RTM 4.00.950, OEM**: files dated 1995-07-11, `SETUPPP.INF`
+  ProductType=9, the OEM ("PC Manufacturer") EULA. It is not bootable.
+- **What setup asks for.** The 20-digit Certificate of Authenticity number, `xxxxx-OEM-xxxxxxx-xxxxx`.
+- **The supplied keys do not fit.** All six keys supplied are 25-character `xxxxx-xxxxx-xxxxx-xxxxx-xxxxx` keys, the
+  XP-and-later format, and setup rejects every one.
+  - The input was checked: the field shows the typed characters, cut off at 23.
+  - No generic or published key was tried.
+- **Next step: the owner's COA number** from the Windows 95 sticker or CD sleeve. A retail Windows 95 CD with its
+  `xxx-xxxxxxx` key would also do, as would an OSR2 OEM CD with its COA.
+
+**Everything up to that page runs unattended, and the VM is kept paused there.** Details are in lab `emu/README.md`,
+"Status":
+
+- **Boot floppy.** The CD is not bootable and has no DOS CD-ROM driver, so the floppy is built on the host from the
+  CD's own files: `IO.SYS` (WINBOOT.SYS), `COMMAND.COM`, `FDISK`, `FORMAT`, and the boot sector from the CD's
+  `FORMAT.COM`.
+- **Setup files.** They reach DOS on a second, untranslated 100 MiB IDE disk (`emu-data.img`, built by
+  `tools/mkfat.py`), together with an `MSBATCH.INF`.
+- **Install stages so far:** `FDISK 1 /PRI`, then `FORMAT C: /AUTOTEST` (1,998.25 MB), then `SETUP ... MSBATCH.INF /IS`.
+  This reached the setup wizard with no manual steps except the BIOS (boot order `A,CDROM,C`, CMOS saved) and the EULA.
+- **Host-side driving.**
+  - Screenshots come from 86Box's own screenshot button, through UI Automation (no input, no focus change).
+  - Keys are scan codes through SendInput, gated on the console lock.
+  - About 15 minutes of console time were used in two lock stretches.
+
+**For W95-18: no change recommended yet.** Its 55 ms / 18.2 fps assumption is neither confirmed nor contradicted until
+the VM runs.
