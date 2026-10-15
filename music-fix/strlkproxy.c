@@ -1146,12 +1146,12 @@ static void apply_tick_emu(void) {
  * Static reading only - NOT yet measured in game.
  */
 static float g_fixed_step;
-/* I76_REF_FPS=<fps> (default 20; 2026-10-14, lab docs\BOX-SPEC-BASELINE-2026-10-14.md): the reference frame rate every
+/* I76_REF_FPS=<fps> (default 20; 2026-10-14, lab docs\W95-18-BASELINE-2026-10-14.md): the reference frame rate every
  * frame-rate fix reproduces. Stock behaviour is per frame; the fixes give each per-frame effect its per-SECOND value at
  * this rate: the per-frame constants (x dt x rate), the grid that holds per-frame rolls / decisions / hazard steps /
  * flamer ageing / smoke (1 / rate), the AI gain pins (dt = 1 / rate), the flamer dt floor, the back_away stamp, and the
  * whole-frame dt the engine update reads per substep under I76_FIXED_STEP (1 / rate). 20 = stock20 (the I76PATCH 20 fps
- * cap on Windows 10, unchanged default); 18.2 = R-BOX, the box spec (Windows 95 GetTickCount 55 ms, one tick per frame at
+ * cap on Windows 10, unchanged default); 18.2 = W95-18, the box spec (Windows 95 GetTickCount 55 ms, one tick per frame at
  * the PC timer's 18.2 Hz). I76_AI_GRID_HZ defaults to this rate. */
 static float g_ref_rate = 20.0f, g_ref_dt = 0.05f;
 static DWORD g_stepframes, g_stepframe_last;               /* frames on which a fixed step ran (instrument) */
@@ -1163,7 +1163,7 @@ static float __cdecl engine_substep_dt(void) {
     /* I76_FAR_ENGINE_DT: the far path applies the engine update once per frame, where the stock whole-frame dt is right */
     if (g_in_far) return *(volatile float *)0x004fe428;    /* simclock_dt, what simclock_GetDt returns */
     /* I76_FIXED_STEP: stock at 20 fps hands the engine the whole frame's dt (~50 ms) on every substep; keep that */
-    if (g_fixed_step > 0.0f) return g_ref_dt;               /* I76_REF_FPS: 0.055 = R-BOX's 55 ms frame */
+    if (g_fixed_step > 0.0f) return g_ref_dt;               /* I76_REF_FPS: 0.055 = W95-18's 55 ms frame */
     sim_dt = *(volatile float *)0x004fe420;                 /* simclock_sim_dt */
     rate = 1.0f / 0.05f;                                    /* stepper rate set by entity_InitVehicle */
     count = (int)(sim_dt * rate) + 1;                       /* truncation, as _ftol at 0x49cc2d */
@@ -1289,7 +1289,7 @@ static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
         coop_ai_log();
     }
 }
-/* I76_FRAME_LOG=<file> (lab instrument, off by default; 2026-10-14, lab docs\BOX-SPEC-BASELINE-2026-10-14.md): one line per
+/* I76_FRAME_LOG=<file> (lab instrument, off by default; 2026-10-14, lab docs\W95-18-BASELINE-2026-10-14.md): one line per
  * mission frame, written where the sim clock is about to be read (after any I76_FPS_CAP wait), so the wall period is
  * what GetTickCount / the tick emulation sees:
  *   proxy frame, wall period since the previous line (ms, QPC), sim_dt and dt of the frame just completed (ms), and the
@@ -1610,7 +1610,7 @@ static void apply_frame_cap(void) {
     char v[16]; double fps;
     LONG rel = (LONG)((DWORD_PTR)frame_cap_then_clock - (0x004039b8 + 5));
     DWORD n = env_str("I76_FPS_CAP", v, sizeof(v));
-    /* fractional rates allowed (2026-10-14, lab BOX-SPEC-BASELINE: 18.2 = the PC timer's 18.2 Hz, one 55 ms Windows 95
+    /* fractional rates allowed (2026-10-14, lab W95-18-BASELINE: 18.2 = the PC timer's 18.2 Hz, one 55 ms Windows 95
      * GetTickCount tick per frame); the period is rounded to the nearest QPC count */
     if (n == 0 || (fps = atof(v)) < 5.0 || fps > 1000.0) return;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);

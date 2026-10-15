@@ -421,6 +421,20 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
         they see it coming 5x sooner.
     - **Proxy f6d0c668** in the lab copy (rollback `STRLKUP.DLL.4c9be840-pre-combat`). Not in the daily driver; say if you
       want it in PLAY.bat.
+
+41. **W95-18: the box-spec feel test (new 2026-10-15; lab docs/W95-18-BASELINE-2026-10-14.md, docs/records/W95-18-BASELINE.md).**
+    - **Why.** You asked to treat the 55 ms tick at 18.2 fps as the 1997 baseline. It was measured. Since then the 86Box rig has
+      found Windows 95's tick to be 1 ms, so W95-18 is one era-like profile, not "the" 1997 machine.
+    - **What's there.**
+      - `TEST-w95-18-reference.bat`: the unmodified game at 18.2 fps on a 55 ms tick, choppy on purpose.
+      - `TEST-w95-18-parity.bat`: TEST-next at 120 fps, tuned so its physics and frame-rate fixes run like W95-18.
+    - **Test.**
+      - T05 (the canyon, mission 5): from the hill top, full throttle down the road and over the ramp, once with each
+        launcher. Both should clear, and the parity car should fly about as far as the reference (about 220 m) and land intact.
+      - T06's first ramp, the same.
+      - Any combat mission: does the reference's choppiness change how the AI feels to you?
+    - **Proxy 33211f11** in the lab copy (rollback `STRLKUP.DLL.f6d0c668-pre-w95-18`). Not launched by hand yet. Not in the daily
+      driver.
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
