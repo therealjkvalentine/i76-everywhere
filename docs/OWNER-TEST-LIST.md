@@ -474,14 +474,20 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
          ignoring the arrow warp (the game side is right), and the next step is on the Steam Input side.
       6. **Steam Input:** the left stick must stay a plain stick ("Joystick", as in the I76 gamepad layout) - not
          "Joystick Mouse" / "As Mouse". On a TV pad with its own layout, check the same.
-      - **Night (T06, T12 are the night trip missions; M04, M12 the night melees):** which mission, docked or handheld, and
-        a screenshot (Steam + R1) of what looks wrong: magenta/purple patches on the ground, textures swapping to the wrong
-        image, blocky shimmer far away, or just very dark / crushed blacks. The Deck was offline when this was looked at, so
-        the cause is not found yet; each launch now writes a `conf:` line to deck-launch.log with every texture-relevant
-        dgVoodoo value and a WARNING for the two known causes (texture memory above 2048 without the TMU fix: wrong
-        textures; 16-bit dithering: purple night ground). Docked with Game Resolution still on Default now renders at 2x
-        like handheld (it was 1x, the shimmer-prone picture).
-      - **Send** deck-launch.log and game/mciproxy.log again (lines `conf:`, `display:`, `pad-menu:` - v3 logs each warp
+      - **Night (T06, T12 are the night trip missions; M04, M12 the night melees) - FOUND AND FIXED 2026-10-14 20:19
+        (deployed on the Deck).** The Deck's `game/ADDON` still held the July HD texture pack (3,322 files, retired in July,
+        never on your PC). Its cockpit gauges, reticles, road, terrain, light and cloud tiles were re-coloured against a
+        daytime palette; the game does night by swapping the palette under the same tiles, so exactly those came out in
+        wrong colours at night (measured: up to 21% of the pixels of a road tile re-indexed, gauges going from 2 to 13
+        colours). The pack is moved to `~/Games/Interstate76/backups/hd-pack-20261014-201947/` (nothing deleted); ADDON
+        now has the same GOG stock files as the PC plus your `.vcf`/`.vsf`. dgVoodoo, the conf and the switches were fine
+        and are unchanged. **Re-test:** play T06 (or M04) handheld, then docked: cockpit gauges, reticle, roads, ground
+        and sky look like the PC's night (dark, but the right images and colours). Day missions now use the stock art
+        too (the pack's day gain was marginal). Still wrong? Then a screenshot (Steam + R1) of the bad spot, and say
+        handheld or docked. Each launch now also logs an `addon:` line (a WARNING if texture files reappear in ADDON).
+        Undo: `bash ~/i76-deploy/deck/setup-deck-stock-textures.sh --revert` on the Deck. Separately, on a TV: if night is
+        only too dark (not wrong), it is the TV's HDMI black level / `I76_TV_GAMMA`, as under Brightness above.
+      - **Send** deck-launch.log and game/mciproxy.log again (lines `conf:`, `addon:`, `display:`, `pad-menu:` - v3 logs each warp
         that did not land and what turned the pad off).
       - **Installed by** `deck/deck-push-tv.sh` (it now saves the previous session's logs and conf to the PC first);
         backups in `~/Games/Interstate76/backups/pre-tv-<date>/`; `--revert` restores the state before the first TV install.

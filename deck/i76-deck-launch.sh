@@ -199,6 +199,22 @@ PY
     fi
 fi
 
+# --- ADDON audit (2026-10-14) -------------------------------------------------
+# The engine reads loose files in game/ADDON before I76.ZFS. GOG stock there is DUMMY.TXT, fullres.lst,
+# i2ayj_13.map, two .pcx and a few .vcf/.vsf. The Deck carried the retired July HD texture pack (3,300+
+# files): its palette-indexed .map tiles were re-quantized against a day palette and come out in wrong
+# colours on night missions (docs/HD-TEXTURES-RESEARCH.md). deck/setup-deck-stock-textures.sh moves it aside.
+ADDON_DIR="${I76_GAMEDIR:-$HOME/Games/Interstate76/game}/ADDON"
+if [ -d "$ADDON_DIR" ]; then
+    A_ALL="$(ls -1A "$ADDON_DIR" | wc -l | tr -d ' ')"
+    A_MAP="$(ls -1A "$ADDON_DIR" | grep -ci '\.map$' || true)"
+    A_PAK="$(ls -1A "$ADDON_DIR" | grep -ciE '\.(pak|pix|cbk|m16)$' || true)"
+    log "addon: $A_ALL files in game/ADDON ($A_MAP .map, $A_PAK pak/pix/cbk/m16; GOG stock: 1 .map, 0 pak)"
+    if [ "${A_MAP:-0}" -gt 1 ] || [ "${A_PAK:-0}" -gt 0 ]; then
+        log "addon: WARNING - texture replacements in game/ADDON (the retired HD pack?): palette-indexed .map tiles show wrong colours at night; deck/setup-deck-stock-textures.sh moves them aside"
+    fi
+fi
+
 # --- control profile (deck/setup-deck-pad.sh) ---------------------------------
 # One layout since 2026-10-08 (owner: the Deck plays exactly the gamepad layout): Steam layout
 # controller_neptune_i76_pad.vdf presents a plain pad, the shared i76-remap.ahk (the Windows/Mac

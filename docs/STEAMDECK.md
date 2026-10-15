@@ -177,18 +177,38 @@ target disagreed ("not over the right coordinates"). v3 ([`music-fix/padmenu.c`]
   MSVC x86, `deck/Strlkup.deck-padmenu.dll` md5 **8bc52939**; static checks: the five exports equal 509c6df0's, imports
   add GetClassNameA; the repo source compiles too. Not run on a Deck yet: owner test 39, 2026-10-14 follow-up.
 
-**Night missions (T06, T12; melee M04, M12), owner 2026-10-14: "the textures seem wrong".** Not diagnosed: no Deck log or
-picture was available. What was ruled out from the files: the launcher changes only `[Glide] Resolution` and
-`[General] Brightness / Contrast / Color` (all 100), nothing texture-related, and rewrites them on every launch, so no
-stale TV value survives into handheld. Known causes of wrong textures in this setup, now checked on every launch (a
-`conf:` line in deck-launch.log with every texture-relevant dgVoodoo value, and a WARNING for each): `MemorySizeOfTMU`
-above 2048 without `I76_ZGLIDE_TMUFIX=1` (textures overwritten in play, "texture exchange"), and `[GlideExt]
-DitheringEffect` other than `pure32bit` (16-bit rendering: magenta/purple night ground, CHANGELOG / HD-TEXTURES-RESEARCH).
-Remaining differences from the PC: dgVoodoo 2.78.2 (PC 2.87.3) under DXVK, `ForceEmulatingTruePCIAccess` false (PC true;
-LFB timing, not textures), the Glide gamma lift (1.3 handheld, 1.45 TV) on a very dark night palette, and on a TV the
-HDMI range (limited/full mismatch crushes exactly the night shadows). Also fixed: docked with Game Resolution on Default,
-the TV profile rendered at 1x 1280x800 (shimmer on far textures); it now renders 2x like handheld (`I76_TV_SS_800`).
-Next step: the owner's screenshot + the `conf:` line.
+**Night missions (T06, T12; melee M04, M12), owner 2026-10-14: "the textures seem wrong". FOUND AND FIXED (deployed
+2026-10-14 20:19).** Cause: the Deck's `game/ADDON` still held the **July HD texture pack** (3,331 files, written
+2026-07-10; the pack was retired project-wide on 2026-07-27 for exactly this, and the Windows daily driver's ADDON is
+GOG stock, 11 files). Its palette-indexed `.map` tiles (154: cockpit gauges / reticles / targeting `z*.map`, roads
+`r4r*`, terrain `i2*`, lights `*_1lt_*`, clouds and sun `nk_*`) were re-quantized against one day palette (t01). I76 does
+night by keeping the indices and swapping the level palette, so the pack's new indices resolve to unrelated colours at
+night only (docs/HD-TEXTURES-RESEARCH.md). Measured against the stock tiles in `I76.ZFS` (`tools/zfs_extract.py` with
+anaconda's lzo2.dll): `r4rer_11` 21% of pixels re-indexed (38 -> 71 distinct indices), `i2anc_11` 17% (13 -> 26),
+`zretc_6` 12%, `ax_1lt_1` 10% (9 -> 25), `zspeedo6` / `ztach6` 3.5% (2 -> 13 / 9), `nk_1cld1` 3.4%; only `i2ayj_13.map`
+was byte-identical to GOG's. The M16 hardware tiles in the pack carry their own palettes (immune) and the VQM ones are
+software-renderer only, so the `.map` tiles are what `-glide` showed wrong.
+
+What the captured logs (`C:\Users\james\i76-deck-captures\20261014-201217`, saved by deck-push-tv.sh before pad menu
+v3) showed: `mciproxy.log` is appended across 11 sessions with no timestamps; the last one (the only TV session:
+`display: profile tv`, DP-1 3840x2160 connected, game screen 1280x720 so Game Resolution was set, aspect 1.778, gamma
+1.45, dgVoodoo 1280x720) stayed in the shell (pad-menu lines, no mission frames, no `road-pool` lines). The sessions
+with missions were handheld (aspect 1.600, gamma 1.3, 2560x1600), so which one held the night mission cannot be told
+from the files. Every session: TMU fix applied (`ZGLIDE+0x1a93 75 24 -> eb 24`), `grGammaCorrectionValue` called,
+conf `MemorySizeOfTMU 8192` + `DitheringEffect pure32bit` + `VideoCard voodoo_graphics` (no 16-bit fallback, no
+texture-exchange risk). No census / flush / NO-SLOT lines (`I76_TEX_CENSUS` was off). So the conf, TMU and dithering
+suspects were clean, and the remaining difference from the PC was the ADDON folder.
+
+Fix: [`deck/setup-deck-stock-textures.sh`](../deck/setup-deck-stock-textures.sh) (run by
+[`deck/deck-push-stock-textures.sh`](../deck/deck-push-stock-textures.sh); refuses while `i76.exe` runs) moves every
+ADDON file that is not GOG stock (DUMMY.TXT, fullres.lst, i2ayj_13.map, loadgame/loadscr.pcx) or a `.vcf` / `.vsf` into
+`backups/hd-pack-<date>/ADDON` with `addon-before.txt` and a `NOTE.txt`; `--revert` moves them back. On the Deck:
+3331 -> 9 files, 3322 moved to `backups/hd-pack-20261014-201947`, i2ayj_13.map md5 815380fe = GOG/PC, read back. The
+launcher now logs `addon: N files (.map, pak/pix/cbk/m16)` per launch and a WARNING when texture files are back.
+`game/ADDON.pre-hd-pack` (2026-07-04) is the older pre-pack copy; it also held the July zdash101 experiment, which was
+not restored. Not changed: dgVoodoo stays 2.78.2 (nothing here needs the PC's 2.87.3; an upgrade under DXVK is
+untested on the Deck and would be its own step), the conf, the switches. Day missions now show stock art like the PC.
+The Mac install may carry the same pack (its setup only stashed `nightm.*`). Not yet played: owner test 39.
 
 *Alternative without the proxy, for an external pad:* Steam Input is per controller type, so the TV pad has its own
 layout for this shortcut. Steam button > Controller settings with the pad selected: put the **right stick on "Mouse"
