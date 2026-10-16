@@ -222,12 +222,13 @@ Details, every log and the per-run numbers are in lab `emu/results/RESULTS.md` (
 | P90 | 16.7 fps (15.9-17.3) | 7.1 fps (n=2) |
 | P166 | 31.7 fps (29.9-32.8) | 13.3 fps (n=1) |
 
-- Both paths scale with the CPU clock, so they are CPU-bound. The Glide numbers are therefore valid even though 86Box
-  does not time the Voodoo fill rate.
-- **Retail 1.0 was not measured in a mission.** The retail exe (CD 1, 1997-03-15) installs and starts on Windows 95
-  RTM + DirectX 3, but only with 86Box's classic PIT. Under the default PIT its CPU-speed probe (`0x44E063`) reads 0
-  ticks and dies of a divide error at `0x44E0C1`, which is an emulator artefact.
-- Every retail game mode then asks for **disc 2** (volume label `I76_CD2`), and only disc 1 is here.
+- Both paths scale with the CPU clock. The Glide numbers are still not a reference (owner's ruling, 2026-10-15):
+  86Box does not time the Voodoo fill rate.
+- **Retail 1.0** (CD 1, 1997-03-15) installs and starts on Windows 95 RTM + DirectX 3, but only with 86Box's classic
+  PIT. Under the default PIT its CPU-speed probe (`0x44E063`) reads 0 ticks and dies of a divide error at `0x44E0C1`,
+  which is an emulator artefact.
+- Every retail game mode asks for **disc 2** (volume label `I76_CD2`). With the owner's ripped disc 2 it plays
+  missions; it is now the reference exe (EMU-MEMTRACE.md: P166 low detail, T04 35.7 / T05 33.4 / T13 31.3 fps).
 - **The Gold exe** needs a `MSVCRT.DLL` on Windows 95 RTM. 3dfx's period copy from VOODOO.ISO fixes that; IMM32 did
   not complain.
 
