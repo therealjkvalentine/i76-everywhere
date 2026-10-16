@@ -49,7 +49,7 @@ First-hand numbers from the lab's 86Box rig. Details: `EMU-1997-PLAN.md` (run of
 86Box 6.0.
 
 - **Windows 95's GetTickCount ticks in 1 ms steps, not 55 ms.**
-  - Measured with TICKPRB, n = 3 on each of P90, P133 and P166, under both of 86Box's PIT models.
+  - Measured with TICKPRB, n = 3 on each of P90 and P166.
   - The step is 1 ms with and without `timeBeginPeriod`. `Sleep(1)` is the coarse part: about 13 ms without a period.
   - So item 5's "about 55 ms" and the R-1997a/b profiles' 55 ms tick are not what this Windows 95 does.
   - This is still an emulator: a real 1997 board would make it final.
@@ -58,15 +58,13 @@ First-hand numbers from the lab's 86Box rig. Details: `EMU-1997-PLAN.md` (run of
   | machine | Glide (Voodoo Graphics) | software renderer |
   |---|---|---|
   | P90 | 16.7 fps | 7.1 fps (n=2) |
-  | P133 | 26.2 fps | 10.0 fps |
   | P166 | 31.7 fps | 13.3 fps (n=1) |
 
   Both paths scale with the CPU clock, so they are CPU-bound.
 - **Reference (owner's spec: software renderer, 320x200, lowest detail; Glide is not a reference because 86Box does
   not model the Voodoo fill rate):**
-  - Frame rates: P133 28-29 fps in Instant Melee, 24-25 fps in T04 / T05 / T13. P166 33-34 fps in Instant Melee, 28-30 fps
-    in T04 / T05 / T13.
-  - Physics: one substep per frame on both, so the step is the frame time (~30-42 ms) on a 1 ms clock.
+  - Frame rates on the P166: 33-34 fps in Instant Melee, 28-30 fps in T04 / T05 / T13.
+  - Physics: one substep per frame, so the step is the frame time (~30-35 ms) on a 1 ms clock.
 - **Not yet measured:**
   - the March 1997 retail exe in a mission (it asks for disc 2, which is not here);
   - T04 / T13 / T05.
@@ -191,11 +189,11 @@ Not found, after looking: a 3Dfx or Activision press release naming I'76 (3dfx.c
 
 1. **Keep stock20 as the parity reference.** Nothing from 1997 pins a frame rate, so a measured, reproducible profile
    beats a reconstructed one; and stock20 is what James played.
-2. **Period bracket to emulate, if one is wanted:** Intel **Pentium 133-166**, 32 MB, **software renderer** (the game as
+2. **Period bracket to emulate, if one is wanted:** Intel **Pentium 166**, 32 MB, **software renderer** (the game as
    reviewed and sold March-June 1997), Windows 95. A 3Dfx Voodoo Graphics (Monster 3D) profile is a *second* bracket
    representing the game from July 1997 (1.08 beta) and Gold onward, not the launch game.
-3. **Expected fps for that bracket: not found.** Treat it as a range to sweep, roughly the teens on P133 up to the low
-   twenties on P166 in software mode, with the explicit note that these are inferences from "jerky" vs "smooth" reports,
+3. **Expected fps for that bracket: not found.** Treat it as a range to sweep, roughly the low twenties on a P166 in
+   software mode, with the explicit note that these are inferences from "jerky" vs "smooth" reports,
    not measurements. Do not quote 22-24 fps for I'76; that number belongs to Jedi Knight.
 4. **Clock tick:** run `I76_TICK_MS=55` only as a sensitivity test, not as "the 1997 clock". The lab already measured
    that 55 ms steps break the AI above about 18 fps, while CGW's June 1997 reviewer called the AI "unusually smart and
@@ -224,7 +222,6 @@ Microsoft's DirectX 5", so it describes the Gold-era game) lists, under Minimum 
   partner badges include 3Dfx, Rendition and Matrox.
 
 Read against the 86Box measurements of the Gold exe (emu `results\RESULTS.md`, 2026-10-15; Windows 95 RTM
-GetTickCount step measured at 1 ms, not 55 ms): the box's 3-D spec (P133 + Voodoo) ran about 26 fps in Instant Melee
-(25.7 / 26.4), and P133 software about 10 fps (9.7 / 10.1). The box minimum (P90, software) was not measured; it is
-slower than P133 software. These are emulator numbers for one melee arena; mission runs and the gameplay check are
-pending.
+GetTickCount step measured at 1 ms, not 55 ms): the reference P166 with the software renderer ran about 13 fps in
+Instant Melee at default detail and 33-34 fps at 320x200 lowest detail. Glide numbers are not a reference, because
+86Box does not model the Voodoo fill rate. These are emulator numbers.

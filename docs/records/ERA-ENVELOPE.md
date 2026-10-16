@@ -9,8 +9,8 @@ This replaces the single W95-18 reference ([W95-18-BASELINE.md](W95-18-BASELINE.
 - **Owner's ruling:** stock = behaviour that is invariant across valid era configs.
 - **The configs:** the unmodified exe on Windows 95's measured **1 ms** GetTickCount at the 86Box software-renderer frame
   rates:
-  - E10 / E13 for default detail on the P133 / P166;
-  - E25, E29 (29.5) and E33 for low detail.
+  - E13 = 13.3 fps, the P166's default-detail rate; E10 = 10 fps, below it;
+  - E25, E29 (29.5) and E33 = 25-33 fps, around the P166 low-detail reference (29-34 fps).
 - The Glide/Voodoo emulator numbers are not used.
 - **Stepper rule:** one physics step per frame from 25 fps up (40 / 34 / 30 ms); 2 × 37.6 ms at E13; 2-3 steps at E10.
 - **Check:** every run's frame log was read back. The fps held to ±0.01, sim dt came in whole ms, and the step pattern was

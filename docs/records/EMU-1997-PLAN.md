@@ -3,8 +3,8 @@
 [WHAT-IS-STOCK.md](WHAT-IS-STOCK.md) ends on two numbers that no source pins down:
 
 - **The Windows 95 `GetTickCount` step.** "55 ms" is second-hand only.
-- **I'76's real frame rate on its target box.** Release spec: P90 minimum, P133 + 32 MB recommended, software
-  renderer only. The 3dfx Glide path came later, with the patches and Gold.
+- **I'76's real frame rate on its target box.** Release spec: P90 minimum, 32 MB recommended, software renderer
+  only. The 3dfx Glide path came later, with the patches and Gold.
 
 Every lab profile that claims to be "1997" (`I76_TICK_MS`, `I76_FPS_CAP`, the R-1997 rows, the W95-18 pilot) rests on
 those two numbers. This plan measures them on an emulated box-spec PC instead of inferring them.
@@ -17,10 +17,10 @@ technical reference). The Windows 95 install is the only step that waits on the 
 | part | choice | why |
 |---|---|---|
 | emulator | 86Box v6.0 build 9001 (2026-05-31), sha256 checked against GitHub's digest; ROM set tag v6.0 | cycle-timed PC emulator with a Voodoo 1 model |
-| board | ASUS P/I-P55T2P4, Intel 430HX, Award 4.51PG | 1996 Socket 7; takes all three CPUs at their real bus speeds |
-| CPU | Pentium 90 (60 MHz x 1.5), 133 (66 x 2), 166 (66 x 2.5) | min spec, recommended spec, the "P166 + Voodoo" anecdote |
+| board | ASUS P/I-P55T2P4, Intel 430HX, Award 4.51PG | 1996 Socket 7; takes the CPUs at their real bus speeds |
+| CPU | Pentium 166 (66 MHz x 2.5); Pentium 90 (60 x 1.5) | the P166 is the reference machine; the P90 is the min spec |
 | RAM | 32 MB | recommended spec (a 16 MB P90 run is a one-line edit) |
-| 2D | S3 Trio64 PCI 2 MB; variant: Matrox Millennium | commonest 1996 card; the Millennium matches a June 1997 report: "P133 with a Millenium ... jerky and slow" |
+| 2D | S3 Trio64 PCI 2 MB | commonest 1996 card |
 | 3D | 3Dfx Voodoo Graphics, 2 + 2 MB | Monster 3D class |
 | sound, disk, CD | SB16; 2 GB IDE (one FAT16 partition); 8x ATAPI | period parts |
 | OS | Windows 95 (OSR2 preferred); optional Windows 98 VM on the same hardware | the clock question is per OS |
@@ -36,7 +36,6 @@ recompiler off. For a Pentium in 86Box it is the reverse:
 - The Pentium timing model (U/V pairing, AGI stalls) exists only in the recompiler, so 86Box marks P54C CPUs
   "requires dynarec".
 - The interpreter would use flat per-instruction-class costs.
-- An interpreter variant (`p133-interp`) is kept only as a cross-check.
 
 ## The two instruments (built and self-tested, no game involved)
 
@@ -111,19 +110,18 @@ Conventions for every condition:
 - 60 s of measurement after a 10 s settle.
 - Log names carry `<cpu>-<renderer>-<scene>-<n>`.
 - The game's own video mode and detail defaults on each machine are recorded. A first run uses those defaults
-  (what a 1997 owner got); a second set uses fixed settings, so the CPUs are compared like for like.
+  (what a 1997 owner got); a second set uses fixed settings.
 
 | # | measure | where | answers |
 |---|---|---|---|
-| 1 | TICKPRB, 30 s | p133, p90, p166 (Windows 95); p133-w98 if media exists | the Windows 95 (and 98) `GetTickCount` step and its true length; whether `timeBeginPeriod(1)` changes it; real `Sleep(1)` |
-| 2 | I76FPS, software renderer, retail 1.0 exe | p90, p133, p166, p133-mill | the March 1997 frame rate per CPU and 2D card, in Instant Melee (quick menu path), T04 race, T13 combat, T05 canyon jump |
-| 3 | I76FPS, Glide, Gold exe + Voodoo | p90, p133, p166 | the later Voodoo frame rate. 86Box does not time the Voodoo's fill rate, so a scene counts only if its fps scales with the CPU clock (CPU-bound); otherwise it is reported as an upper bound |
-| 4 | controls | p133, one scene | I76FPS period 250 vs 1000 ms (sampler overhead); p133-interp vs p133 (CPU timing model) |
+| 1 | TICKPRB, 30 s | p166 (Windows 95) | the Windows 95 `GetTickCount` step and its true length; whether `timeBeginPeriod(1)` changes it; real `Sleep(1)` |
+| 2 | I76FPS, software renderer, retail 1.0 exe | p166 | the March 1997 frame rate, in Instant Melee (quick menu path), T04 race, T13 combat, T05 canyon jump |
+| 3 | I76FPS, Glide, Gold exe + Voodoo | p166 | the later Voodoo frame rate. 86Box does not time the Voodoo's fill rate, so Glide numbers are not a reference |
+| 4 | controls | p166, one scene | I76FPS period 250 vs 1000 ms (sampler overhead) |
 
 **Getting to T04 / T13 / T05 without the proxy's direct boot.** The plan is campaign bookmarks:
 
-- Play to each mission once in the VM (on p166, the fastest), save, and reuse the save for every CPU. One disk image
-  serves all three CPU variants.
+- Play to each mission once in the VM (on p166), save, and reuse the save for every run.
 - The lab's Gold saves can go in on the tools CD (`make-cds.py tools --saves <dir>`). Whether retail 1.0 reads Gold
   saves is untested.
 - The 1997 `GAMEKEY.MAP` lists a `TOGGLE_FRAMERATE` (Alt+F) debug key, but marks that block "Don't function in release
@@ -135,8 +133,8 @@ Conventions for every condition:
   WHAT-IS-STOCK then use the measured value. If it is about 55 ms, the R-1997a/b findings stand and the question
   becomes which fps went with it. If it is finer, the 55 ms profiles drop to a sensitivity test, as WHAT-IS-STOCK
   already recommends.
-- **Frame rate.** I76FPS's P133 software numbers become the "1997 recommended box" fps. P90 gives the floor. P166 +
-  Voodoo, if CPU-bound, gives the anecdote's real number. They set `I76_FPS_CAP` for the box-spec profiles.
+- **Frame rate.** I76FPS's P166 software numbers become the "1997 box" fps. They set `I76_FPS_CAP` for the box-spec
+  profiles.
 - **W95-18.** Another agent is running the W95-18 pilot. Its doc,
   `../i76-uncap-lab/docs/W95-18-BASELINE-2026-10-14.md`, did not exist when this plan was written. Once it does,
   read its tick and fps assumptions and set the measured values against them, as a proposal in this doc or in the
@@ -155,8 +153,7 @@ Conventions for every condition:
 - Two Gold-exe imports (IMM32.DLL, MSVCRT.DLL) are verified only by running the exe on Windows 95. The fallback is
   the Windows 98 VM.
 - It is still an emulator: 86Box times the CPU per instruction with a pairing model, not the real Pentium pipeline
-  and caches. For that reason the p133-interp cross-check, and agreement with the few period reports (P133 + Millennium
-  "jerky", P90 / 16 MB "choke"), are part of reading the numbers.
+  and caches. For that reason, agreement with the few period reports is part of reading the numbers.
 
 ## Run attempt, 2026-10-14 evening: Windows 95 install blocked at the Product ID
 
@@ -209,10 +206,10 @@ Details, every log and the per-run numbers are in lab `emu/results/RESULTS.md` (
 - At the owner's request, the failed images are being deleted.
 - The installed disk was snapshotted in three states: clean; with DirectX 3 and the retail game; with Gold and Glide 2.43.
 
-**1. The Windows 95 clock (TICKPRB, n = 3 on each of P90, P133 and P166, plus P133 with 86Box's classic PIT):**
+**1. The Windows 95 clock (TICKPRB, n = 3 on each of P90 and P166):**
 
 - **GetTickCount advances in 1 ms steps, not 55 ms.** That held in every phase (no `timeBeginPeriod`, under it, after
-  it), on every CPU and under both PIT models. Each step's true length is 0.999 ms against QueryPerformanceCounter.
+  it) and on both CPUs. Each step's true length is 0.999 ms against QueryPerformanceCounter.
 - What is coarse is the scheduler. `Sleep(1)` lasts about 12.5-13 ms (max 13.9) without a period, and 1 ms with
   `timeBeginPeriod(1)`.
 - So the "55 ms" of the old MSDN table does not describe Windows 95 RTM's GetTickCount on this emulated board.
@@ -223,7 +220,6 @@ Details, every log and the per-run numbers are in lab `emu/results/RESULTS.md` (
 | machine | Glide (Voodoo Graphics) | software renderer |
 |---|---|---|
 | P90 | 16.7 fps (15.9-17.3) | 7.1 fps (n=2) |
-| P133 | 26.2 fps (25.1-26.9) | 10.0 fps (9.4-10.5) |
 | P166 | 31.7 fps (29.9-32.8) | 13.3 fps (n=1) |
 
 - Both paths scale with the CPU clock, so they are CPU-bound. The Glide numbers are therefore valid even though 86Box
@@ -245,8 +241,7 @@ Details, every log and the per-run numbers are in lab `emu/results/RESULTS.md` (
 `emu/results/RESULTS.md`. In short:
 
 - The 55 ms tick is not what this Windows 95 does. A 1 ms tick (or this PC's 15.6 ms) is the measured case.
-- The box-spec frame rate is ~26 fps on a P133 + Voodoo and ~32 fps on a P166 + Voodoo, but only ~10 fps (P133) and
-  ~13 fps (P166) in software.
+- The box-spec frame rate on the P166 is ~32 fps with the Voodoo, but only ~13 fps in software.
 - 18.2 fps sits between the two renderer paths.
 
 ## Headless parallel runs, 2026-10-15: no host input, no console lock
@@ -305,22 +300,21 @@ Owner's spec: software only (the emulated Voodoo's fill rate is not modelled, so
 reference) at 320x200 / lowest detail. Gold exe; I76FPS at 20 ms (the real period is ~30 ms on Windows 95). The window
 is 60 s, starting 10 s into the mission. Full tables: lab `emu/results/RESULTS.md` sections 3-4.
 
-| scene | P133 | P166 |
-|---|---|---|
-| Instant Melee | 28.1 / 29.3 / 28.6 fps | 33.2 / 32.6 / 33.9 fps |
-| T05 | 24.8 | 29.4 |
-| T13 | 23.7 | 28.5 |
-| T04 | 25.3 | 29.8 |
+| scene | P166 |
+|---|---|
+| Instant Melee | 33.2 / 32.6 / 33.9 fps |
+| T05 | 29.4 |
+| T13 | 28.5 |
+| T04 | 29.8 |
 
-- **Physics substeps** (`floor(dt*20)+1`, Gold `0x49cc20`): one step per frame on both CPUs.
-  - The share of 2-4-step frames is 0.1-1 % on the P166 and up to 4 % on the P133 in T13.
-  - The step length is the frame time: ~30 ms (P166) and 35-42 ms (P133).
-  - At the game's default detail (10-13 fps) the same rule gives 2-3 steps per frame.
-- **Gameplay check, P133 vs P166:**
-  - Observed on both: menus, bookmarks, cutscenes and missions run without a crash.
-  - Observed on both: the AI closes in, fires and damages a parked player in T13. It destroyed the car at ~45 s on
-    the P166; on the P133 the car was heavily damaged and still alive at 69 s (n=1 each).
-  - Melee kills of a parked player happen at every frame rate tested (6 of 18 runs, 7-33 fps).
+- **Physics substeps** (`floor(dt*20)+1`, Gold `0x49cc20`): one step per frame.
+  - The share of 2-step frames is 0.1-1 %.
+  - The step length is the frame time: ~30-35 ms.
+  - At the game's default detail (~13 fps) the same rule gives 2-3 steps per frame.
+- **Gameplay check on the P166:**
+  - Observed: menus, bookmarks, cutscenes and missions run without a crash.
+  - Observed: the AI closes in, fires and damages a parked player in T13. It destroyed the car at ~45 s (n=1).
+  - In melee the AI killed the parked player in 1 of 3 runs (at 56 s).
   - **Not tested:** the T05 jump (the route to the ramp is not known in the guest; straight full throttle leaves the
     road) and AI dodging. Sound was not tested either: the guest has no sound driver.
 - **Saves for the owner:** bookmarks before T04 / T05 / T13 are in lab `emu/results/saves/`, with disk snapshot
