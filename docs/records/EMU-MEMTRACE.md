@@ -121,6 +121,11 @@ constants and call graph, then checked live.
 
 ### Static physics difference, retail 1.0 vs Gold
 
+> **Corrected 2026-10-16 (RETAIL-HANDLING-DIFF.md):** the three differences below are artefacts of the float-constant
+> scan. Retail has the guard, the clamp and the 7.65 terrain damage as integer compares. The measured yaw / slide gap
+> is the "Arcade Phys." option: it was on in every retail run (the Gold-layout I76PLYR.DEF misread by retail) and off
+> in every Gold run.
+
 `physics_StepVehicle` is not the same code. CheckImpact and the per-substep entity update are identical.
 
 - **Gold** guards a lateral factor `1 - 0.75 (x / speed)^2` with `speed > 0.0001` and clamps it to [0.25, 1].
@@ -295,7 +300,7 @@ The scripts are `ref-t05-*` and `ref-t05-loop-*` (3 repeats through Replay).
 | T06 ramp | not run | not run | needs a route (notes) |
 | AI | AI summary off (no team lists found) | nearest AI logged | the Gold vs AiO `ai_RecordDamageEvent` difference is static only |
 
-**The yaw difference is the key finding.** Retail and Gold use the same keys (the steer ramp is identical) at the
+**The yaw difference is the key finding** (cause: Arcade Phys. on in the retail runs only; see RETAIL-HANDLING-DIFF.md). Retail and Gold use the same keys (the steer ramp is identical) at the
 same held speed. Gold's yaw rate is about 45 % higher, and Gold is in the skid state (flag 0x2) for 14-100 % of the
 window, against 0-22 % in retail.
 
