@@ -783,6 +783,10 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       was read back 2026-10-17 as 33211f11 (the replay build that sat there at 22:40 is gone). No P9 gate exists yet: an agent
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
       writes it after a yes. About 20 min.)*
+    - **PROMOTED 2026-10-17 17:17 (PROMOTIONS row 17), 09 variant: proxy 33211f11, hull fix, signs =4, bushes 1800 m dense
+      to 300 m, terrain x24 in best-wide / balanced / best-120; AI parity set NOT included.** Gate P9 on the twin: signs 22/22,
+      hill descents 0 terrain losses (n 5), barricades 7/7 vs 3/15, owner's route 21/0, rollback `_rollback\17`.
+      Feel-check list: records/PROMOTION-18-2026-10-17.md section 5.
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
 
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**

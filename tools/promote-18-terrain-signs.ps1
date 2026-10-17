@@ -16,6 +16,7 @@
 #   Lab evidence: docs\DRAW-DISTANCE-2026-10-12.md (the cost matrix), docs\SIGN-FIX-3-2026-10-12.md (sign timing).
 # HELD 2026-10-12 21:30 by the lead (owner: "the dream mission is failing because it is expecting you to stay on the road"; I76_ROAD_DIST
 # is the suspect): do not stage, gate or apply until that cause is confirmed. Not gated (P9 not run); $GatedStage PENDING.
+# HOLD LIFTED 2026-10-17 by the owner (09 variant); gated by P9 the same day; $GatedStage / $GateText filled; applied as row 17.
 # Run with the game closed. -Plan previews; -Stage <dir> only writes the staged set there (the console gate P9 stages it
 # into the lab twin). Applying refuses until $GatedStage holds the md5 of every staged file the gate passed with.
 param([switch]$Plan, [string]$Stage)
@@ -25,25 +26,30 @@ $repo   = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $stageDir = if ($Stage) { $Stage } else { Join-Path $env:TEMP "promote-18-$(Get-Date -Format yyyyMMdd-HHmmss)" }
 New-Item -ItemType Directory -Force $stageDir | Out-Null
 
-$CandDll = 'C:\Users\james\i76-uncap-lab\builds\draw-dist-20261012\STRLKUP-dd-final.dll'
-$CandMd5 = '855b08d7'   # = lab STRLKUP-dd-v3.dll, built from i76-everywhere f2ffd7c music-fix\strlkproxy.c
+# 2026-10-17: the owner chose the 09 / TEST-next-dense variant (bushes at full density to 300 m, terrain x24) over the
+# 08 thin variant (fade 200, x32), and the proxy is the twin's standing build 33211f11 (lab builds\box-spec-20261014
+# STRLKUP-box-b3.dll, MSVC side build of i76-everywhere 2721d68 music-fix; = 855b08d7 + opt-in AI parity / W95-18
+# instruments / pad menu) on which the owner played 08 / 09. The AI parity set the TEST-next* bats carry is NOT part
+# of this promotion (OWNER-TEST-LIST item 36). Record: docs\records\PROMOTION-18-2026-10-17.md.
+$CandDll = 'C:\Users\james\i76-uncap-lab\builds\box-spec-20261014\STRLKUP-box-b3.dll'
+$CandMd5 = '33211f11'   # built from i76-everywhere 2721d68 music-fix (strlkproxy.c blob 03097a39)
 $Dist = @{
-    'best-wide.psd1'          = [ordered]@{ I76_CLUTTER_DIST = '1800'; I76_CLUTTER_FADE = '200'; I76_TERRAIN_LOD = '32' }
-    'best-wide-balanced.psd1' = [ordered]@{ I76_CLUTTER_DIST = '1200'; I76_CLUTTER_FADE = '200'; I76_TERRAIN_LOD = '32' }
-    'best-120.psd1'           = [ordered]@{ I76_CLUTTER_DIST = '1800'; I76_CLUTTER_FADE = '200'; I76_TERRAIN_LOD = '32' }
+    'best-wide.psd1'          = [ordered]@{ I76_CLUTTER_DIST = '1800'; I76_CLUTTER_FADE = '300'; I76_TERRAIN_LOD = '24' }
+    'best-wide-balanced.psd1' = [ordered]@{ I76_CLUTTER_DIST = '1200'; I76_CLUTTER_FADE = '300'; I76_TERRAIN_LOD = '24' }
+    'best-120.psd1'           = [ordered]@{ I76_CLUTTER_DIST = '1800'; I76_CLUTTER_FADE = '300'; I76_TERRAIN_LOD = '24' }
 }
 $Why = @{
     I76_CLUTTER_DIST = "bushes drawn to {0} m (was {1}; owner 2026-10-12: 'brush ... as far as the road draw distance')"
-    I76_CLUTTER_FADE = "... at full density to 200 m, then thinned as (200 / d)^2 per bush (about constant density on screen): with terrain x32 the T05 hill-top view holds 120 fps (p1 107 vs 97-101 today), lab DRAW-DISTANCE-2026-10-12.md"
-    I76_TERRAIN_LOD  = "terrain detail split distance x{0} (was {1}; the split distance grows with the square root: x32 = twice x8): distant mounds and ridges keep their shape; the vertex guard stops splits past 28,000 vertices a frame"
+    I76_CLUTTER_FADE = "... at full density to 300 m like before, then thinned as (300 / d)^2 per bush (owner 2026-10-17 chose this dense variant, TEST-next-dense, over fade 200); with terrain x24 the T05 hill-top view costs the same as the fade-200 / x32 variant, lab DRAW-DISTANCE-2026-10-12.md"
+    I76_TERRAIN_LOD  = "terrain detail split distance x{0} (was {1}; the split distance grows with the square root: x24 = about 1.7 x x8): distant mounds and ridges keep their shape; the vertex guard stops splits past 28,000 vertices a frame"
 }
 $GatedStage = [ordered]@{
-    'Interstate 76\STRLKUP.DLL' = 'PENDING'
-    'Interstate 76\presets\best-wide.psd1' = 'PENDING'
-    'Interstate 76\presets\best-wide-balanced.psd1' = 'PENDING'
-    'Interstate 76\presets\best-120.psd1' = 'PENDING'
+    'Interstate 76\STRLKUP.DLL' = '33211f11'
+    'Interstate 76\presets\best-wide.psd1' = '3922146a'
+    'Interstate 76\presets\best-wide-balanced.psd1' = '0bca8b31'
+    'Interstate 76\presets\best-120.psd1' = '9b53c141'
 }
-$GateText = 'PENDING'
+$GateText = 'lab twin game-dd-20261003 with this staged set, P9 2026-10-17 (lab autotest runs overnight-20261017-164128 / -164935 / -170258): T05 Texas 13 + US 380 shield rams =4 22/22 knocked over (2 rounds), drawn bumper-to-post gap at the fall median -0.08 m, range -0.28..-0.01 (never early), 21 by the sweep / 1 engine, 0 timeouts; T05 hill-top cockpit descents n=5: TERRAIN-LOSS 0, TRIANGLE-LOSS 0, start-pos 5/5; hill feature boot: hull fix on, breakable-box =4, 10 boxes, clutter 1800 fade 300, terrain-lod x24, vertex guard on; T05 swend_1 barricade rams G + BOX=4 7/7 contacted vs pooled control 3/15, Fisher p 0.0007, A/A p 0.57 (n short of the target 10 per condition); t11 roads soak best-wide n=2 / best-120 16x10 n=1 / balanced n=1: road-pool refusals 0, in mission; gate-folder via PLAY.bat (2x SS stretched_ar conf, LAB_CURSOR_FREE) 21 PASS 0 FAIL 2 INFO (runs\gate\20261017-165008: bookmark route, trip 2/2 at 120 fps, save screen, Esc-menu Exit, melee); row 3 PLAY-16x10.bat 2/2 120 fps and PLAY-balanced.bat 2/2 120 fps; garage OK popup closed 5/5, u32x arrow on the mapped point 4/4; kill lines (sign-sweep: fault, terrain-vguard refusals) 0 over 24 boots; 1 CRASH line, at quit: AcGenral.DLL+0x98AD3 in the exe HeapDestroy teardown, the known exit fault (lab RENDER-FREEZE-2026-10-04.md s.5; 3x in the driver log under older proxies), not in play. Owner played this variant (09 = TEST-next-dense) on the twin 2026-10-17 and chose it; the AI parity set it also carried is not included'
 
 $files = [ordered]@{}
 if ($CandMd5 -ne 'PENDING') { [void](Assert-BinaryMd5 -Path $CandDll -Want $CandMd5) }
@@ -124,7 +130,7 @@ if ($pending.Count -or $GateText -like 'PENDING*' -or $CandMd5 -eq 'PENDING') {
 }
 $ht = @{}; foreach ($rel in $files.Keys) { $ht[$rel] = $files[$rel] }
 & (Join-Path $PSScriptRoot 'Promote-To-Driver.ps1') -Plan:$Plan `
-    -What 'TEST-next + the owner''s two requests (2026-10-12): I76_TERRAIN_HULL_FIX=1; I76_BREAKABLE_BOX 1 -> 4 (sign posts fall at the first ram when the drawn car reaches them); bushes to the road distance (I76_CLUTTER_DIST 1800 / balanced 1200 + I76_CLUTTER_FADE 200); terrain detail I76_TERRAIN_LOD 8 -> 32 (best-120: new); proxy built from i76-everywhere HEAD strlkproxy.c' `
+    -What 'TEST-next + the owner''s two requests (2026-10-12): I76_TERRAIN_HULL_FIX=1; I76_BREAKABLE_BOX 1 -> 4 (sign posts fall at the first ram when the drawn car reaches them); bushes to the road distance, dense variant chosen by the owner 2026-10-17 (I76_CLUTTER_DIST 1800 / balanced 1200 + I76_CLUTTER_FADE 300); terrain detail I76_TERRAIN_LOD 8 -> 24 (best-120: new); proxy 33211f11 (i76-everywhere 2721d68); the AI parity set is not included' `
     -Gate $GateText `
     -Files $ht
 Write-Host "staged: $stageDir"

@@ -32,7 +32,11 @@
         I76_FIX_LABEL_TABLE = '1'
         I76_FAR_CLIP        = '1800'
         I76_ROAD_DIST       = '1800'   # road segments drawn to 1800 m like the far clip (stock 450; owner 2026-10-12: 'road at 1800 seems to run fine'; the 2026-10-03 t11 crash was the node pool, fixed by I76_ROAD_POOL since promotion 8)
+        I76_CLUTTER_DIST    = '1800'   # bushes drawn to 1800 m (was stock 120 m; owner 2026-10-12: 'brush ... as far as the road draw distance')
+        I76_CLUTTER_FADE    = '300'   # ... at full density to 300 m like before, then thinned as (300 / d)^2 per bush (owner 2026-10-17 chose this dense variant, TEST-next-dense, over fade 200); with terrain x24 the T05 hill-top view costs the same as the fade-200 / x32 variant, lab DRAW-DISTANCE-2026-10-12.md
+        I76_TERRAIN_LOD     = '24'   # terrain detail split distance x24 (was stock x1; the split distance grows with the square root: x24 = about 1.7 x x8): distant mounds and ridges keep their shape; the vertex guard stops splits past 28,000 vertices a frame
         I76_CAM_GROUND_FIX  = '1'   # terrain kept when the eye dips under the ground (stock skips ALL terrain that frame = the terrain-to-sky flash; lab RENDER-FREEZE-2026-10-04.md s.9)
+        I76_TERRAIN_HULL_FIX = '1'   # the near ground no longer vanishes for a frame in cockpit view (footprint hull rebuilt; lab TERRAIN-DROPOUT-HILL-2026-10-12.md s.10-11)
         I76_AI_BACKAWAY_GRID = '1'   # AI back_away stuck test on the 20 Hz grid, not 4 rendered frames: T12 opening 5/5 as vanilla (lab 2026-10-04 milk-truck doc s7-9)
         I76_INPUT_LATCH     = '1'   # ignition (I) / lights (H) presses survive frames without a physics step (lab 2026-10-04: 50/50 vs 13/50)
         I76_ZGLIDE_TMUFIX   = '1'   # with dgVoodoo MemorySizeOfTMU 8192: no ZGLIDE flush freezes, no 2 MB boundary rewind (lab RENDER-FREEZE-2026-10-04.md)
@@ -42,7 +46,7 @@
         I76_COLL_DEDUPE     = '1'   # one impact = one sound / damage per physics step (collision G, lab COLL-TIMING-2026-10-12.md)
         I76_COLL_WINDOW     = '2'   # contacts accepted over the whole physics step: barricades and signs hit at 120 fps (control: about 1 in 3)
         I76_COLL_WINDOW_WHEN = 'stepframe'   # ... only on the frame whose step moves the car: no fly-off before the bumper gets there
-        I76_BREAKABLE_BOX   = '1'   # the 8 m barricade bar collides as the bar, not as a 3 m sphere reaching out in front of it
+        I76_BREAKABLE_BOX   = '4'   # bar as a box (=1) + sign posts fall at the first ram, when the drawn car reaches them (sign-post sweep + render-interp timing; lab SIGN-FIX-3-2026-10-12.md)
         I76_AI_ROLL_HOLD    = '0'
     }
 }
