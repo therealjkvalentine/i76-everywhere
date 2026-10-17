@@ -59,7 +59,7 @@ The slope dependence is a second, independent signature that retail ran the grip
   switch only: the replay code another lane is writing in the same file (I76_REPLAY, `replay.c`) is not in it.
   Not committed as a binary. `rh1` (73eb2cfd) was the first build; same code, a wrong log text ("1997 retail default").
 - **Verified:** loads in the twin's i76.exe, logs the switch line with every other switch as before (two boots).
-  **Not verified:** any mission frame. See section 5.
+  **Not verified by this lane:** any mission frame. See section 5.
 
 ## 4. A/B launchers for the owner (lab twin, read back, not promoted; owner test 44)
 
@@ -75,8 +75,10 @@ is the u32x default and still needs one Esc-menu click check.
 
 ## 5. Why nothing ran live
 
-- `query session` all night: the user session (1) **Disc**onnected, the console session at the logon screen, no RDP
-  connection. The game cannot initialise its display there:
+- `query session` from 22:33 to 23:15: the user session (1) **Disc**onnected, the console session at the logon screen, no
+  RDP connection. At 23:16 session 1 became **Active over RDP** (`rdp-tcp#11`) and another agent (`.console-owner`
+  "lab-retail-handling") started proxy-run boots of the twin; this lane stopped live work there, as its brief says for
+  RDP. In the disconnected state the game cannot initialise its display:
   - autotest\proxy-run.ps1 (t06): Glide context created, never reached the mission in 120 s (its Esc goes through
     SendInput, which reaches nothing in a disconnected session);
   - `tools\retail-handling\run-twin.ps1` (keys by PostMessage instead): crash in the DirectDraw mode set,
