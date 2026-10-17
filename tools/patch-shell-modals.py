@@ -1,6 +1,6 @@
 """patch-shell-modals.py - keyboard exits and two 1997 defects in the shell's other modal popups.
 
-    python tools/patch-shell-modals.py <in i76shell.dll> <out i76shell.dll> [--only M1,K2,...] [--emulate]
+    python tools/patch-shell-modals.py <in i76shell.dll> <out i76shell.dll> [--only M1,K2,...|--with-f2] [--emulate]
     python tools/patch-shell-modals.py <i76shell.dll> --emulate          (emulate an already patched file)
     python tools/patch-shell-modals.py <i76shell.dll> --check            (report which patches are present)
 
@@ -24,6 +24,14 @@ docs\\DIALOG-AND-CLICK-AUDIT.md.
       when the file already carries F3 (the hook then holds a jmp).
   K4  Modal_OneButton 0x1000bdd0 = the CHOOSE A TEAM picker of the melee/net entry forms: Enter = DONE (keeps the
       current team), Esc = CANCEL.
+  F2  (opt-in: --with-f2 or --only ...,F2; not in the default set, which stays the promoted M1..K4) the orphaned
+      bookmark, i76-map shell\\FIXES.md F2 / SAVE.md s.4: SaveMenu_Edit 0x100147a0 resets the slot variable
+      [0x10057f80] to -1 on EVERY entry (0x10014866, mov dword [0x10057f80],-1). Re-entered (click the name field,
+      or NO to the overwrite prompt) after the static edit record 0x10057f38 was already appended with slot S, the
+      list lookup finds it, skips the slot assignment and the save writes slot -1: savegame.dir names saveS, the
+      disk gets save-001.cmp, the bookmark vanishes from the load list. Patch: the 10 bytes -> nop; the HIGHLOW
+      relocation of the disp32 at 0x10014868 is neutralised (else a rebased load would add the delta to the nops).
+      Same bytes as i76-map tools\\patch_shell.py --fixes F2. Static + emulated; live test = i76-map LIVE-TESTS T3.
 
 Every K cave: cmp eax,1 / je HIT (the unchanged mouse path), then KeyInput_Poll 0x1001c110 on the KeyInput object
 [0x100cc50c] (position-independent: call $+5 / pop), key compares, else back to the loop top. KeyInput_Poll peeks
@@ -58,8 +66,12 @@ KSITES = [
 BYTE_PATCHES = [  # name, VA, original hex, new hex
     ('M1', 0x1000b9a0, '6a22', '6a11'),
     ('M2', 0x1000b6d7, 'e8d4de0200', '83c4149090'),
+    ('F2', 0x10014866, 'c705807f0510ffffffff', '90' * 10),
 ]
-ALL = ['M1', 'M2', 'K1', 'K2', 'K3', 'K4']
+RELOC_KILL = {'F2': [0x10014868]}   # HIGHLOW relocations inside a byte patch, set to type 0 with it
+DEFAULT = ['M1', 'M2', 'K1', 'K2', 'K3', 'K4']   # the promoted set (promotion 7, shell a300db63)
+ALL = DEFAULT + ['F2']
+SLOTVAR = 0x10057f80
 
 
 def rel32(src_next, dst):
@@ -144,12 +156,21 @@ def plan(data, sel):
     if struct.unpack_from('<I', data, sections(data)[0] + 52)[0] != BASE:
         raise SystemExit('ImageBase is not 0x10000000 - not an i76shell.dll')
     edits, notes = [], []
+    relocs = reloc_entries(data)
     for name, va, old, new in BYTE_PATCHES:
         if name not in sel: continue
         o = file_off(data, va); cur = data[o:o + len(bytes.fromhex(old))].hex()
         if cur == old: edits.append((o, bytes.fromhex(old), bytes.fromhex(new), '%s %#x' % (name, va)))
         elif cur == new: notes.append('%s already applied' % name)
         else: raise SystemExit('%s: bytes at %#x are %s, expected %s - NOTHING written' % (name, va, cur, old))
+        for rva in RELOC_KILL.get(name, []):
+            live = [(eo, typ) for eo, typ, rv in relocs if rv == rva and typ != 0]
+            if live:
+                for eo, typ in live:
+                    edits.append((eo, bytes(data[eo:eo + 2]), b'\0\0', 'reloc at %#x neutralised (%s)' % (rva, name)))
+            elif cur == old:
+                raise SystemExit('%s: expected a live relocation at %#x in the stock file, found none - NOTHING written'
+                                 % (name, rva))
     caves, img = layout(sel)
     od = file_off(data, DEAD0)
     curdead = bytes(data[od:od + DEAD_LEN])
@@ -181,8 +202,9 @@ def plan(data, sel):
             raise SystemExit('VDriver_UnusedMethod 0x10038630 is not the stock bytes (F4 or another patch uses it, md5 %s)'
                              ' - NOTHING written' % hashlib.md5(curdead).hexdigest())
     sites = [(o, len(new), label) for o, old, new, label in edits if not label.startswith(('reloc', 'cave image'))]
+    killed = {o for o, old, new, label in edits if label.startswith('reloc')}
     for eo, typ, va in reloc_entries(data):  # no live relocation (4 bytes at va) may touch any other patched range
-        if typ == 0: continue
+        if typ == 0 or eo in killed: continue
         r = file_off(data, va)
         for o, ln, label in sites:
             if r < o + ln and o < r + 4:
@@ -192,9 +214,13 @@ def plan(data, sel):
 
 def check(data):
     caves, _ = layout(ALL)
+    relocs = reloc_entries(data)
     for name, va, old, new in BYTE_PATCHES:
         o = file_off(data, va); cur = data[o:o + len(bytes.fromhex(new))].hex()
-        print('  %s %s' % (name, 'present' if cur == new else 'stock' if cur == old else 'OTHER ' + cur))
+        st = 'present' if cur == new else 'stock' if cur == old else 'OTHER ' + cur
+        live = [hex(rv) for rv in RELOC_KILL.get(name, []) for eo, typ, r in relocs if r == rv and typ != 0]
+        if live and cur == new: st += ' BUT relocation %s still live' % ','.join(live)
+        print('  %s %s' % (name, st))
     for (k, cva, code) in caves:
         o = file_off(data, k[2]); cur = data[o:o + 5]
         oc = file_off(data, cva)
@@ -249,13 +275,40 @@ def emulate(path, sel):
         ok = mu.reg_read(UC_X86_REG_ESP) == STACK + 0x8000
         bad += not ok; n += 1
         print('  M2  esp after 0x1000b6d7..0x1000b6dc %s' % ('= ret 0x14 OK' if ok else 'WRONG MISMATCH'))
+    # F2: the 10 bytes at 0x10014866 must leave the slot variable as it was (stock: -1) and fall through to 0x10014870;
+    # no live relocation may remain on them, and a rebased image must keep them as nops
+    if 'F2' in sel:
+        for pre in (7, 0, 0x7fffffff):
+            mu = Uc(UC_ARCH_X86, UC_MODE_32)
+            mu.mem_map(BASE, 0x100000); mu.mem_write(BASE, bytes(img[:0x100000]))
+            mu.mem_write(SLOTVAR, struct.pack('<I', pre))
+            mu.emu_start(0x10014866, 0x10014870)
+            got = struct.unpack('<I', bytes(mu.mem_read(SLOTVAR, 4)))[0]
+            ok = got == pre
+            bad += not ok; n += 1
+            print('  F2  slot [0x10057f80] = %#x before 0x10014866..0x10014870 -> %#x %s'
+                  % (pre, got, 'kept OK' if ok else 'RESET MISMATCH'))
+        pe = pefile.PE(path)
+        live = [e.rva for b in getattr(pe, 'DIRECTORY_ENTRY_BASERELOC', []) for e in b.entries
+                if e.type != 0 and 0x14866 - 3 <= e.rva < 0x14870]
+        ok = not live
+        bad += not ok; n += 1
+        print('  F2  live relocations on 0x10014866..0x1001486f: %s %s'
+              % ([hex(BASE + r) for r in live] or 'none', 'OK' if ok else 'MISMATCH'))
+        pe.relocate_image(0x20000000)
+        rb = pe.get_memory_mapped_image()[0x14866:0x14870]
+        ok = rb == b'\x90' * 10
+        bad += not ok; n += 1
+        print('  F2  rebased to 0x20000000: %s %s' % (rb.hex(), 'still nops OK' if ok else 'CHANGED MISMATCH'))
     print('emulation n=%d mismatches=%d' % (n, bad))
     return bad == 0
 
 
 def main():
     av = sys.argv[1:]
-    sel = ALL
+    sel = list(DEFAULT)
+    if '--with-f2' in av:
+        sel.append('F2')
     if '--only' in av:
         i = av.index('--only'); sel = av[i + 1].split(','); del av[i:i + 2]
         unknown = [s for s in sel if s not in ALL]
