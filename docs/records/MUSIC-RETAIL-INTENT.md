@@ -6,7 +6,7 @@ The reference is the retail 1.0 exe (`I76.EXE` md5 `6cc509ad`, 1997-03-15) with 
   - Ghidra export of the retail exe: `i76-map\ghidra\export-cd1997`.
   - Capstone on both shell DLLs and on our AiO exe (lab `game\i76.exe`, md5 `85de44a7`).
   - WRLD fields of the 40 retail mission files: lab `emu\work\retail-data\missions`. Sizes match the CD1 listing.
-  - The existing emu traces: lab `emu\results\memtrace\*\mem.music.csv`, 41 runs.
+  - The existing emu traces: lab `emu\results\memtrace\*\mem.music.csv`, 45 run folders (39 with music rows: 19 retail with a mission start, 18 Gold, the 2 RPLYR.DEF runs; 6 empty).
 - **Not done:** no game run, no listening. Nothing was installed in any game folder.
 - **Background:** [docs/MUSIC-TRACK-MAP.md](../MUSIC-TRACK-MAP.md) (Gold / AiO, disc tables) and
   [EMU-MEMTRACE.md](EMU-MEMTRACE.md) section 6.
@@ -131,9 +131,11 @@ After the run come 0-60 s of silence and then 2..14 (29:54), looping.
 - **Already fixed by the emu lane today** (`emu\tools\memtrace\gen_scripts.py` 2026-10-16: `retail-plyr\RPLYR.DEF` in
   retail's layout: music 3, SFX 4, flags 0). This section confirms it from the music side.
 - **Prediction, made before looking: with RPLYR.DEF the mission start reads playing = 1, loop = 0, track = WRLD.**
-  - **Confirmed, n = 1:** `20261016-224135-r166sim-mloop-1` (its SCRIPT.TXT filehex has music 03, SFX 04, flags 0)
-    reads track 9, playing 1, loop 0 at frame 8.
-  - The run just before it, `20261016-223233-r166-t05clean-smoke-1`, still copied the Gold file and reads playing 0.
+  - **Confirmed, n = 2** (every run with RPLYR.DEF; their SCRIPT.TXT filehex has music 03, SFX 04, flags 0):
+    `20261016-224135-r166sim-mloop-1` reads track 9, playing 1, loop 0 at frame 8, and
+    `20261016-224110-r166sim-t05clean-1` (T05) reads track 6, playing 1, loop 0 at frame 8 (added by the verify pass).
+  - The earlier runs `20261016-223233-r166-t05clean-smoke-1` and `20261016-224007-r166-t05clean-a-1` still copied the
+    Gold file and read playing 0.
 - **Side effect for the fps comparison:** retail ran with SFX level 0 (mixer volume 0) while Gold ran with SFX 4.
   Whether level 0 skips mixing work was not read. The "retail ~25 % faster than Gold" number may include it.
 
@@ -143,7 +145,7 @@ After the run come 0-60 s of silence and then 2..14 (29:54), looping.
 |---|---|---|---|---|
 | 1 | songs inside a mission run | continuous | the next song starts at the exe's next poll: **0-60 s of silence between songs** (lab logs 2026-10-04: changes 60.0-60.5 s apart) | **fixed, opt-in `I76_MUSIC_GAPLESS=1`** |
 | 2 | Esc menu / movie | MCI_PAUSE, then MCI_RESUME: continues | the status never reads "paused", so the unpause re-issues PLAY. `I76_MUSIC_RESUME` turns that into a resume, except during the track-2 fallback, where it restarts the mission's run | **fixed, opt-in `I76_MUSIC_TRUE_PAUSE=1`** |
-| 3 | Esc in the gap after a run ends | the toggle sends PLAY 17 -> 15 (end before start); a drive refuses it | plays 17.mp3 (the Theme on GOG's files) under the menu | **fixed with `I76_MUSIC_TRUE_PAUSE=1`**. Retail's refusal is assumed from the MCI rule, not measured |
+| 3 | Esc in the gap after a run ends | the toggle sends PLAY 17 -> 15 (end before start); a drive refuses it | plays 17.mp3 under the menu (Ovum Bisquit on GOG's files, MUSIC-TRACK-MAP; with DISC_ORDER on, 3.mp3, the Theme) | **fixed with `I76_MUSIC_TRUE_PAUSE=1`**. Retail's refusal is assumed from the MCI rule, not measured |
 | 4 | Replay, every shell entry | Stop, then Play: the track restarts from 0:00 | `I76_MUSIC_RESUME` (default on) resumes where it stopped | **taste.** `I76_MUSIC_RETAIL=1` sets RESUME off; `I76_MUSIC_RESUME=1` keeps it |
 | 5 | menu / credits | 15 alone (Ovum Bisquit) / 16 alone (Malochio Down), looping | Gold DLL: 13 -> run 13..14, 8 -> run 8..14 | existing opt-in `I76_MUSIC_SHELL=1997`; taste |
 | 6 | which song a track number is | disc order | GOG files 3/15/16/17 are disc 17/16/3/15 (length-matched, medium-high confidence) | existing opt-in `I76_MUSIC_DISC_ORDER=1`. **Needs one listen** before it becomes a default |
