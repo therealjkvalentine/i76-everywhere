@@ -33,7 +33,7 @@ memory on that run. This lane turns that into a file and a checker.
   |---|---|---|---|
   | Gold CD exe, P166 low, sim (30 traces) | 85 / 39 (31 of them step / frame rows) | yaw at 25 m/s **+19 %** (yaw3), 12 m/s +2.0 %, 18 m/s left +3.1 % (pooled +2.4 % passes); held speed +3 %; ramp-A apex at 30 m/s -1.4 % | accel, brake, gravity, drop, jump flight (take-off speed, apex, ballistic ratio 1.000), T06-strip yaw (-0.4 %), destruction rates |
   | retail 1.0 ARCADE (17 traces) | 31 / 14 | **yaw -30 %** (0.91 vs 1.30 rad/s), arcade flag rule | accel, brake, gravity |
-  | lab env30 = ERA-ENVELOPE candidate, our exe (10 captures) | 33 / 41 | T06-strip accel (t20 -34 %), yaw at the strip -20 %, run-up speed +10 %, T05 take-off speed, substep rule (fixed step) | gravity, destruction / turnover rates |
+  | lab env30 = ERA-ENVELOPE candidate, our exe (10 captures) | 33 / 41 | T06-strip accel (t20 -34 %), yaw at the strip -20 % in the checker (-29 % on clean samples: 2 rotated-start steerL samples are not rejected, section New finding 2), run-up speed +10 %, T05 take-off speed, substep rule (fixed step) | gravity, destruction / turnover rates |
 
 - **The brief expected Gold to fail yaw by about 45 %. It does not, and should not:** that 45 % was Gold against
   retail in arcade mode (EMU-MEMTRACE correction, 2026-10-16). Against the simulation-mode reference Gold is +2.4 % at
@@ -45,6 +45,9 @@ memory on that run. This lane turns that into a file and a checker.
   - Melee crater, 18 m/s held: retail 1.30 +- 0.04 (n 22, 3 boots, skid 33 % of the window), Gold 1.33 (n 15,
     6 boots, skid 66 %).
   - Melee, 25 m/s held (yaw3): retail 1.03 +- 0.17 (n 17, 3 boots, skid 42 %), Gold 1.22 (n 12, 2 boots, skid 76 %).
+    Gold also holds less speed in that window: 23.2 vs 24.1 m/s (-3.9 %, a gate FAIL not listed in the table above).
+    Part of the yaw gap is that lower speed; yaw x speed is still +16 % (verify recompute from mem.phys.csv, same
+    n: retail 0.97 / 24.2 m/s, Gold 1.17 / 23.4 m/s, window 1-2 s from phase start).
   - Earlier tonight, with 1 Gold boot and 2 retail boots, the 25 m/s gap read +26 % and the 18 m/s gap +4.6 %; one
     impacted steer sample was in each. Both shrank with the impact rejection and more boots; the 25 m/s gap held.
   - Reading: the Gold-only code (RETAIL-HANDLING-DIFF section 6) or data reaches the slide branch, not the grip-limited
@@ -56,11 +59,22 @@ memory on that run. This lane turns that into a file and a checker.
   |---|---|---|---|---|
   | 0-10 / 0-20 m/s, s | 1.17 / 4.18 | 1.17 / 4.17 | 1.06 / 2.76 | 1.04-1.05 / 2.71-2.75 |
   | distance in 10 s, m | 201.5 | 201.4 | 254.6 | 255-257 |
-  | yaw R / L at the 1-2 s window, rad/s | 1.11 / 1.13 | 1.11 / 1.12 | 0.79 / 1.00 | 0.79-0.80 / 0.79-0.93 |
-  | speed in that window, m/s | 24.0 | 24.2 | 21.4 | 26.5-28.0 |
+  | yaw R / L at the 1-2 s window, rad/s | 1.11 / 1.13 | 1.11 / 1.12 | 0.79 / 0.80 (clean, see below) | 0.79-0.80 / 0.79-0.80 (clean) |
+  | speed in that window, m/s | 24.0 | 24.2 | 27.9 (clean) | 27.8-28.2 (clean) |
   | ramp A foot speed from a 30 m/s placement | 35.3 | 35.4 | 38.7 | 38.8-39.0 |
 
-  - The retail car stays in 3rd gear to 29 m/s in 11 s; the lab car is in 4th by 30 m/s at 6 s.
+  - Verify 2026-10-17 (recomputed from the .phys.csv files): 2 of 4 env30 steerL samples (reps 1 and 3) and the
+    next-5 steerL start with the car rotated (rot6 0.98-0.99 against 0.00 in every other sample) and slow to 2.1 /
+    16.7 m/s in the window. The checker kept them (peak |dv/dt| 37 m/s2 in env30, under its 50 m/s2 impact cut), so
+    its env30 row reads yaw L 1.00, speed 21.4, `yaw.18.yaw_ss` -20 % and `yaw.18.gain` +513 %. Clean lab samples
+    (n 6 env30, n 27 e29 / bw / next): yaw 0.79-0.80 rad/s both sides at 27.8-28.2 m/s, i.e. yaw -29 % and window
+    speed +16 % against retail. The table above shows the clean values.
+  - The retail car stays in 3rd gear to 29 m/s in 11 s; the lab car is in 4th by 30 m/s at 6 s (both shift 2-3 at
+    17.2-17.8 m/s and 3-4 at 29.4-29.6 m/s; recomputed, n 6 retail, n 3 lab).
+  - The lab strip car accelerates like the retail Instant Melee car: t10 / t20 1.06 / 2.76 s (lab env30 strip, n 4)
+    against 1.06 / 2.76 (retail melee, n 12, 3 boots). The emulator's T06 car has armour max 9600 (health_max column
+    of both retail strip boots); LAB-FRAME-REPLAY found the lab's direct mission boot gives the mission's default car
+    (6080). Supports the different-car reading; the lab T06 car's armour was not read.
   - This matches LAB-FRAME-REPLAY ("the lab car accelerates ~20 % harder ... not the same car", armour maxima 9600 vs
     6080). Physics code is byte-identical between Gold CD and our exe, and Gold on the emulator matches retail, so the
     gap is lab-side.
@@ -169,6 +183,6 @@ context) and T05 placed / crest jumps, then compared; melee needs the emulator p
    Look for: a different car or engine. If they differ, the lab-vs-retail accel / yaw gap in this file is the car,
    not the exe or the step.
 2. **Feel check, retail 1.0 in simulation physics at 25 m/s in the melee crater** (10 min). In the retail VM (`emu\PLAY-P166-LOGGED.bat`),
-   Options > Arcade Phys. off, Instant Melee, hold about 25 m/s (55 mph) and full-lock steer. Then the same in Gold (`PLAY-P166-LOGGED.bat --cd gold`, if your Gold install is on that disk). Look for:
+   Options > Arcade Phys. off, Instant Melee, hold about 25 m/s (55 mph) and full-lock steer. Then the same in Gold (`PLAY-P166-LOGGED.bat --cd gold`, then run `C:\I76GOLD\I76.EXE` inside the VM: it is on the logging play disk, checked read-only 2026-10-17). Look for:
    Gold sliding out more (skid 76 % vs 42 % of the window, yaw +19 %). Tell me if the difference is noticeable to you;
    it decides whether the Gold slide branch matters for the "stock" target.
