@@ -607,7 +607,7 @@ static void menu_free_pointer(void)
 }
 
 /* ==== THE CURSOR WINDOW (2026-10-02; drawn by the modal pointer below) =====================
- * Built for the A1 "one pointer" block (i76-everywhere docs/MENU-REBUILD-DESIGN.md section 7;
+ * Built for the A1 "one pointer" block (i76-everywhere docs/records/MENU-REBUILD-DESIGN.md section 7;
  * docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md section 9), whose mapping and regime branches
  * (I76_U32X_VPTR*) were removed on 2026-10-10; the window code is shared with, and now used
  * only by, the modal pointer (I76_U32X_MODAL_PTR).

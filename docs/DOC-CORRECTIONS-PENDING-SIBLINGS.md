@@ -21,7 +21,13 @@ Pair numbers are the backlog's.
 >   the `README.md` line about old `source` paths, the `FOLDIN-REPORT.md:259` note and the capture 014 README.
 > - `i76-map` commit `8473641d`: `subsystems/physics.md:214,333,334`, the corrections listed in
 >   [PARTS-REFERENCE.md](PARTS-REFERENCE.md).
-> - **Still open:**
+> - **Closed 2026-10-16** (overnight lane `backlog-agent-items`): every item of the "Still open" list below is applied.
+>   Lab `ab03f33`: `memlib.ps1` `InFire` -> `ThrottleUp` 0x5367D0, plus `WeaponFire` 0x5367DB and `Hardpoint1Fire`
+>   0x5367DE (no caller used `InFire`); lab `ENGINE-REFERENCE.md` rows 0x5367D0 and 0x52BBD0 / 0x52BBCC (L031, L083) and
+>   `PHYSICS-60HZ.md` corrected. Lab `40c4a6e`: the two `src/u32x.c` comments (and this repo's `u32x/u32x_full.c`) name
+>   `docs/records/MENU-REBUILD-DESIGN.md`, the garage-ui `RESULTS.md` record got a dated note. i76-map `41cd310f`: the
+>   three agent briefs name `i76-everywhere docs/records/FRESH-START-METHOD.md`.
+> - **Still open (as of 2026-10-10; closed 2026-10-16, above):**
 >   - the two comments in lab `src/u32x.c`, left alone while the u32x work is in flight;
 >   - lab `autotest/saves/runs/garage-ui/RESULTS.md`, a run record;
 >   - i76-map's three agent briefs and the other prose rows of the i76-map table, which the README line now covers;
