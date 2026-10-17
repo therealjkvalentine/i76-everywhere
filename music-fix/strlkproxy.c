@@ -1357,6 +1357,9 @@ static DWORD g_frame;                                        /* proxy frame coun
 static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
 static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
 static void tel_frame(void);
+static int g_rpl_on;                                         /* I76_REPLAY (replay.c, included below): frame-dt replay of an emulator trace */
+static void rpl_pre(void);
+static void rpl_post_clock(void);
 static int g_cbt_on;                                         /* I76_COMBAT_LOG (below, after the telemetry export) */
 static void cbt_frame(void);
 static void cbt_shot(BYTE *inst);
@@ -1473,6 +1476,7 @@ clock:
         mlog("  volume-test: sound_SetCdVolume(%d) at frame %lu", g_voltest_level, (unsigned long)g_frame);
         ((void (__cdecl *)(int))0x00424b60)(g_voltest_level);
     }
+    if (g_rpl_on) rpl_pre();                                /* I76_REPLAY: log the frame just done; place the car at the start */
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
@@ -1494,6 +1498,7 @@ clock:
         }
         g_prev_q = q;
     }
+    if (g_rpl_on) rpl_post_clock();                         /* I76_REPLAY: this frame's sim_dt / dt from the trace */
     if (g_ratefix) {
         /* constants the engine applies once per frame / per render pass, rescaled so their effect per SECOND is
          * what it was at 20 fps: value x (frame dt / 0.05). simclock_dt 0x4fe428 is this frame's clamped dt. */
@@ -6469,6 +6474,7 @@ static void tex_census_attach(HMODULE m) {
 
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
 #include "padmenu.c"     /* I76_PAD_MENU: controller moves the menu pointer (shell + Esc menu only; uses cursormap) */
+#include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
 
 /* (I76_GLIDE_DIR, the 2026-10-03 experiment that loaded <game>\<subfolder>\Glide2x.dll before ZGLIDE so the mission
  * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
@@ -8405,6 +8411,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_start_pos();        /* opt-in: I76_START_POS=x,y,z,yaw[,delay] with I76_MISSION (one placement after the start) */
         apply_retail_handling();  /* opt-in: I76_RETAIL_HANDLING=1 (the player's car keeps entity flag 0x10000 = Arcade Phys., as the retail emu runs had) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
+        apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
         apply_pad_menu();         /* opt-in: I76_PAD_MENU=1 (after apply_cursor_map: chains its PeekMessageA slots) */
