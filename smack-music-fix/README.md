@@ -1,5 +1,15 @@
 # SMACKW32 proxy — stop the music when a cutscene starts
 
+> **Correction 2026-10-16 (static, [docs/records/MUSIC-RETAIL-INTENT.md](../docs/records/MUSIC-RETAIL-INTENT.md)):**
+> both retail 1.0 and the GOG exe *do* stop or pause CD music for movies.
+> - WinMain calls StopCdMusic before the mission intro movie and before the win outro movie.
+> - The movie player pauses the CD at the start of a movie and resumes it at the end (retail 0x44e6e0 / 0x44ed90;
+>   AiO 0x4234a0 / 0x4234e0).
+>
+> Music under a cutscene therefore comes from a music layer that ignores the exe's MCI_STOP / MCI_PAUSE, not from
+> the game. On Windows the Strlkup proxy answers both. The proxy below remains a belt-and-braces fix for layers that
+> ignore them (DxWnd's virtual CD, GOG's win32.dll shim). The paragraph below is kept as first written.
+
 Interstate '76 never stops CD music for FMV movies: on a 1997 CD-ROM drive, reading
 the movie data physically interrupted redbook audio, so the devs never wrote a stop.
 File-based music (GOG's `win32.dll`/audiere on Windows, DxWnd's virtual CD on our Mac

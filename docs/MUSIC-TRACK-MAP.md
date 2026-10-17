@@ -16,6 +16,15 @@ contents, and **GOG's `music\N.mp3` files are not in the original disc's order**
 for four tracks. See the next section. It supersedes the July title hypothesis and
 the "front end has no track of its own" line further down.*
 
+*Status 2026-10-16 (static, retail 1.0 = the gold standard): the complete retail table (the exe and 1997 shell DLL
+call sites, all 40 1997 mission files, gaps, pause, Replay) and the proxy mismatch list are in
+[records/MUSIC-RETAIL-INTENT.md](records/MUSIC-RETAIL-INTENT.md).
+- The 1997 CD agrees with GOG's data on 38 of 40 missions. The two that differ are T16 (1997: 14) and S01 (1997: 1;
+  only GOG's miss8 has 2).
+- Mission runs on a CD have no gap between songs. The proxy adds 0-60 s, because it waits for the exe's 60 s poll.
+- The Esc menu and movies pause and resume the CD; they do not stop it.
+- The emu's "playing 0 in missions" was the music-level option: the Gold-layout options file gave retail music 0.*
+
 ## 2026-10-04: shell music, the real disc track lists, and GOG's file order
 
 ### Who starts CD music outside missions (static, capstone)

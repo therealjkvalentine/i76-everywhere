@@ -296,8 +296,10 @@ static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
 }
 
 /* --- the fake disc -------------------------------------------------------- */
-/* Original layout: track 1 DATA, tracks 2..17 AUDIO. GOG's music\N.mp3 numbering
- * follows the CD track numbers, so no translation is needed. */
+/* Original layout: track 1 DATA, tracks 2..17 AUDIO. GOG's music\N.mp3 numbering follows the CD track numbers
+ * except four files (3/15/16/17.mp3 hold disc 17/16/3/15; I76_MUSIC_DISC_ORDER below translates them).
+ * Retail 1.0 (2026-10-16, docs/records/MUSIC-RETAIL-INTENT.md) reads this TOC with first track = 1 hard-coded and
+ * MCI_STATUS_NUMBER_OF_TRACKS as the last; it never asks for the first track. */
 #define FIRST_TRACK 2
 #define LAST_TRACK  17
 
@@ -306,18 +308,32 @@ static int   g_curTrack = 0;
 static int   g_playingTrack = 0;   /* what is REALLY on the head right now */
 /* The engine never asks for one track: every MCI_PLAY carries MCI_FROM|MCI_TO (flags 0xC in every field log), the
  * run N..15 built by 0x424190 from the TOC table (i76-map sound.md; docs/MUSIC-TRACK-MAP.md). Until 2026-10-01 the
- * proxy read only dwFrom, so the mpegvideo device stopped after one song, the exe's status poll (0x424550, every
- * 5 s in a mission) saw playing -> stopped and re-issued the same track: one song looping with gaps. g_runStart /
- * g_runEnd hold the requested run; playing_now() advances to the next track when the current one ends. */
+ * proxy read only dwFrom, so the mpegvideo device stopped after one song, the exe's status poll (0x424550; every
+ * 60 s in a mission, 5 s in the shell: 0x42341b) saw playing -> stopped and re-issued the same track: one song
+ * looping with gaps. g_runStart / g_runEnd hold the requested run; playing_now() advances to the next track when the
+ * current one ends - but only when the exe asks, i.e. at its next poll, so a mission run has 0-60 s of silence
+ * between songs (lab logs 2026-10-04: every song change 60.0-60.5 s after the last). A real CD plays the run without
+ * a gap. I76_MUSIC_GAPLESS=1 (below) advances within ~0.5 s instead. */
 static int   g_runStart = 0, g_runEnd = 0;
 /* I76_MUSIC_RESUME (default on; =0 = the old stop-and-restart): the engine STOPs / PAUSEs / CLOSEs the CD whenever it
  * leaves the driving view (the in-mission menu, a cutscene, the shell) and later re-issues MCI_PLAY for the same run,
  * which a real CD player - and this proxy until 2026-10-04 - answered by starting the song again from 0:00 (owner:
  * "music should continue, not restart, when I go back into the game from a menu"). Now a stop pauses the mp3 where it
- * is, and a PLAY of the same run resumes it; a PLAY of anything else closes it and starts the new track as before. */
+ * is, and a PLAY of the same run resumes it; a PLAY of anything else closes it and starts the new track as before.
+ * 2026-10-16 (static, retail 1.0 and AiO alike): the in-mission menu (0x44fc00 retail) and movies do not STOP the CD,
+ * they call the pause toggle (AiO 0x424190: MCI_PAUSE 0x809 when the status reads playing, MCI_RESUME 0x855 when it
+ * reads paused, a fresh MCI_PLAY when it reads stopped). The proxy never answers "paused", so the exe's unpause took
+ * the stopped branch and re-issued PLAY: that was the restart. Real STOPs come only at mission start / win / Replay
+ * and on each shell entry, where retail restarts the track. I76_MUSIC_TRUE_PAUSE=1 (below) answers the pause exactly. */
 static int   g_resumeOn = -1, g_paused = 0, g_pausedRunStart = 0, g_pausedRunEnd = 0;
-static int resume_on(void) {
-    if (g_resumeOn < 0) { char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_RESUME", v, sizeof(v)); g_resumeOn = !(n && v[0] == '0'); }
+static int   g_truePaused = 0;     /* paused by MCI_PAUSE under I76_MUSIC_TRUE_PAUSE: status reads MCI_MODE_PAUSE */
+static int music_retail(void) {    /* I76_MUSIC_RETAIL=1: every retail-1.0 music option at once (each still overridable) */
+    static int r = -1;
+    if (r < 0) r = env_flag("I76_MUSIC_RETAIL", 8, 0);
+    return r;
+}
+static int resume_on(void) {       /* default on; default off under I76_MUSIC_RETAIL (stops are stops, as on the CD) */
+    if (g_resumeOn < 0) { char v[8]; DWORD n = env_str("I76_MUSIC_RESUME", v, sizeof(v)); g_resumeOn = n ? !(v[0] == '0') : !music_retail(); }
     return g_resumeOn;
 }
 /* Three music options (2026-10-04; docs/MUSIC-TRACK-MAP.md top section, lab docs/MUSIC-RUN-END-2026-10-04.md):
@@ -332,18 +348,40 @@ static int resume_on(void) {
  *    the 1997 DLL's choices, one track each: 13 -> disc 15 (Ovum Bisquit), 8 -> disc 16 (Malochio Down). The exe's
  *    own 5 s shell poll replays the requested track when it stops, so each loops. The remapped play always uses the
  *    disc-order file (17.mp3 / 15.mp3), with or without I76_MUSIC_DISC_ORDER, since the option asks for those songs. */
+/* Retail-1.0 options (2026-10-16, docs/records/MUSIC-RETAIL-INTENT.md; all off by default, all on with
+ * I76_MUSIC_RETAIL=1, each overridable by its own variable):
+ *  - I76_MUSIC_GAPLESS=1: the exe's music watchdog (0x423400) reads GetTickCount through `call [0x4bc100]` at 0x42340d
+ *    on every call while music is marked playing. That one call site is repointed to gapless_tick(), which returns the
+ *    real tick and, at most every 500 ms, asks the mp3 whether the song ended and starts the next song of the run. Only
+ *    within a run: the end of the run is still left to the exe's own poll (0-60 s later in a mission, then its track-2
+ *    fallback), as on the CD. The sim clock's GetTickCount calls are not touched.
+ *  - I76_MUSIC_TRUE_PAUSE=1: MCI_PAUSE pauses and MCI_STATUS_MODE then reads MCI_MODE_PAUSE; MCI_RESUME (0x855)
+ *    continues. Matches the CD for the in-mission menu and movies, including during the track-2 fallback run, where
+ *    the stop-as-pause path (I76_MUSIC_RESUME) restarts the mission's own run instead.
+ *  - I76_MUSIC_MISSIONS=1997: the 1997 CD's T16.MSN has WRLD 14 (Untitled #13 alone); GOG / Gold miss8 + miss16 have
+ *    7 (run 7..14). In a mission whose name (0x5049f0, the exe's own t17 check reads it) is t16, a run that starts at
+ *    7 starts at 14 alone. (S01: 1997 = 1, GOG miss16 = 1, only GOG miss8 = 2; not remapped.) */
+static int g_gapless = 0, g_truePause = 0, g_missions1997 = 0;
 static int g_toIncl = -1, g_discOrder = 0, g_shell1997 = 0;
 static int g_runForce = 0, g_playingForce = 0, g_pausedForce = 0;   /* 1 = the run is a shell-1997 remap */
+static void apply_music_gapless(void);
 static void music_opts(void) {
-    char v[16]; DWORD n;
+    char v[16]; DWORD n; int r;
     if (g_toIncl >= 0) return;
+    r = music_retail();
     g_toIncl    = env_flag("I76_MUSIC_TO_INCLUSIVE", sizeof(v), 0);
-    g_discOrder = env_flag("I76_MUSIC_DISC_ORDER", sizeof(v), 0);
-    n = env_str("I76_MUSIC_SHELL", v, sizeof(v));        g_shell1997 = (n && lstrcmpA(v, "1997") == 0);
+    g_discOrder = env_flag("I76_MUSIC_DISC_ORDER", sizeof(v), r);
+    n = env_str("I76_MUSIC_SHELL", v, sizeof(v));        g_shell1997 = n ? (lstrcmpA(v, "1997") == 0) : r;
+    g_gapless   = env_flag("I76_MUSIC_GAPLESS", sizeof(v), r);
+    g_truePause = env_flag("I76_MUSIC_TRUE_PAUSE", sizeof(v), r);
+    n = env_str("I76_MUSIC_MISSIONS", v, sizeof(v));     g_missions1997 = n ? (lstrcmpA(v, "1997") == 0) : r;
     mlog("  music: run end %s, disc order %s, shell %s, resume %s",
          g_toIncl ? "INCLUSIVE (I76_MUSIC_TO_INCLUSIVE=1, old)" : "exclusive",
          g_discOrder ? "ON {3:16,15:17,16:15,17:3}" : "off (N -> N.mp3)",
          g_shell1997 ? "1997 (13 -> disc 15, 8 -> disc 16, one track)" : "as asked", resume_on() ? "on" : "off");
+    mlog("  music: retail set %s, gapless %s, true pause %s, missions %s", r ? "ON (I76_MUSIC_RETAIL=1)" : "off",
+         g_gapless ? "on" : "off", g_truePause ? "on" : "off", g_missions1997 ? "1997 (t16 7 -> 14 alone)" : "as the files say");
+    if (g_gapless) apply_music_gapless();
 }
 /* disc track -> music\N.mp3 number */
 static int disc_file(int trk, int force) {
@@ -422,12 +460,46 @@ static int playing_now(void) {
     ret[0] = 0;
     if (mci_call(cmd, ret, sizeof(ret)) != 0) return 0;
     if (strstr(ret, "playing") != NULL) return 1;
+    if (strstr(ret, "paused") != NULL) return 0;                                         /* paused is not ended */
     if (g_playingTrack && g_playingTrack >= g_runStart && g_playingTrack < g_runEnd) {   /* song ended: next in the run */
         int next = g_playingTrack + 1;
         mlog("  run %d..%d: track %d ended -> %d (t=%lu)", g_runStart, g_runEnd, g_playingTrack, next, (unsigned long)GetTickCount());
         return play_track(next) == 0;
     }
     return 0;
+}
+
+/* I76_MUSIC_GAPLESS: the exe's music watchdog calls this instead of GetTickCount (call site 0x42340d only; see the
+ * option block above). It runs on the game thread, the thread that opened the mp3 alias, and only while the exe has
+ * music marked playing. */
+static DWORD WINAPI gapless_tick(void) {
+    static DWORD next; static int busy;
+    DWORD t = GetTickCount();
+    if (g_gapless && !busy && g_open && !g_paused && g_playingTrack && g_playingTrack >= g_runStart
+        && g_playingTrack < g_runEnd && (LONG)(t - next) >= 0) {
+        busy = 1; next = t + 500;
+        playing_now();                 /* "playing" -> nothing; ended -> the next song of the run, logged */
+        busy = 0;
+    }
+    return t;
+}
+static void *g_gapless_ptr = (void *)gapless_tick;
+static int patch_bytes(DWORD_PTR va, const BYTE *expect, const BYTE *want, SIZE_T n, const char *what);
+static void apply_music_gapless(void) {
+    static const BYTE old_call[6] = { 0xFF, 0x15, 0x00, 0xC1, 0x4B, 0x00 };   /* call [0x4bc100] GetTickCount */
+    static int done;
+    BYTE new_call[6] = { 0xFF, 0x15, 0, 0, 0, 0 };
+    DWORD a = (DWORD)(DWORD_PTR)&g_gapless_ptr;
+    if (done) return;
+    done = 1;
+    memcpy(new_call + 2, &a, 4);
+    if (IsBadReadPtr((void *)0x0042340d, 6) || !patch_bytes(0x0042340d, old_call, new_call, 6, "music watchdog GetTickCount call")
+        || memcmp((void *)0x0042340d, new_call, 6) != 0) {
+        g_gapless = 0;
+        mlog("  music gapless: NOT applied (0x42340d is not the AiO / Galaxy watchdog call) - songs change at the exe's poll");
+        return;
+    }
+    mlog("  music gapless: watchdog call 0x42340d -> gapless_tick (read back ok); a run's next song starts within ~0.5 s");
 }
 
 /* Encode milliseconds in whatever time format the game selected via MCI_SET. */
@@ -453,6 +525,7 @@ static void mci_str(const char *cmd) {
 }
 
 static void stop_track(void) {
+    g_truePaused = 0;                  /* a closed track is not paused */
     if (!g_open) return;
     char cmd[64]; _snprintf(cmd, sizeof(cmd), "close %s", g_alias);
     mci_str(cmd); g_open = 0;
@@ -623,6 +696,14 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
             int to = track;
             if (p && (flags & MCI_TO)) {
                 DWORD t = (DWORD)p->dwTo; int tt = (t & 0xFF) ? (int)(t & 0xFF) : (int)t;
+                /* I76_MUSIC_TRUE_PAUSE: an end at or before the start is refused, as a CD drive refuses it. The exe sends
+                 * one only from its pause toggle reading "stopped" (Esc in the gap after a run ends, before its poll):
+                 * from = TOC[-1] (the track count, 17) to = the start of 15. Played, it put 17.mp3 under the menu. */
+                if (g_truePause && !g_toIncl && tt <= track) {
+                    mlog("MCI_PLAY flags=0x%lX from=%ld to=%ld: end before start - refused (out of range), nothing changed",
+                         (unsigned long)flags, (long)p->dwFrom, (long)p->dwTo);
+                    return MCIERR_OUTOFRANGE;
+                }
                 to = g_toIncl ? tt : (tt > track ? tt - 1 : track);   /* MCI_TO = end position: stops BEFORE track tt */
             }
             if (to < track) to = track;
@@ -638,11 +719,18 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
                     track = to = nt; force = 1;
                 } else mlog("  shell 1997: track %d asked in state %lu (not the shell) - unchanged", track, (unsigned long)st);
             }
+            if (g_missions1997 && track == 7 && game_state() != 6 && !IsBadReadPtr((void *)0x005049f0, 4)) {
+                const char *mn = (const char *)0x005049f0;           /* the mission basename WinMain copies in (0x403419) */
+                if ((mn[0] == 't' || mn[0] == 'T') && mn[1] == '1' && mn[2] == '6' && (mn[3] == 0 || mn[3] == '.')) {
+                    mlog("  missions 1997: t16 run %d..%d -> 14 alone (1997 CD T16.MSN WRLD 14)", track, to);
+                    track = to = 14;
+                }
+            }
             g_runStart = track; g_runEnd = to;
         }
         g_curTrack = track;
         if (g_paused) {
-            g_paused = 0;
+            g_paused = 0; g_truePaused = 0;
             if (track == g_pausedRunStart && force == g_pausedForce && g_open && g_playingTrack) {
                 char cmd[64];
                 _snprintf(cmd, sizeof(cmd), "resume %s", g_alias); mci_str(cmd);
@@ -656,7 +744,31 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
         g_runForce = force;
         return play_track(track);
     }
+#ifndef MCI_RESUME
+#define MCI_RESUME 0x0855
+#endif
+    case MCI_RESUME:                                    /* the exe's unpause when the status read "paused" */
+        if (g_truePaused && g_open && g_playingTrack) {
+            char cmd[64];
+            _snprintf(cmd, sizeof(cmd), "resume %s", g_alias); mci_str(cmd);
+            g_paused = 0; g_truePaused = 0;
+            g_runStart = g_pausedRunStart; g_runEnd = g_pausedRunEnd; g_runForce = g_pausedForce;
+            mlog("  MCI_RESUME: track %d continues (run %d..%d)", g_playingTrack, g_runStart, g_runEnd);
+        } else mlog("  MCI_RESUME with nothing truly paused - ignored");
+        return 0;
     case MCI_STOP: case MCI_PAUSE: case MCI_CLOSE:
+        music_opts();
+        if (msg == MCI_PAUSE && g_truePause && g_open && g_playingTrack) {
+            char cmd[64];
+            if (!g_paused) { g_pausedRunStart = g_runStart; g_pausedRunEnd = g_runEnd; g_pausedForce = g_runForce; }
+            _snprintf(cmd, sizeof(cmd), "pause %s", g_alias); mci_str(cmd);
+            g_paused = 1; g_truePaused = 1;
+            mlog("  MCI_PAUSE: track %d paused, status reads paused until MCI_RESUME (run %d..%d)",
+                 g_playingTrack, g_pausedRunStart, g_pausedRunEnd);
+            g_runStart = g_runEnd = 0;
+            return 0;
+        }
+        g_truePaused = 0;                               /* a STOP / CLOSE ends a true pause: status reads stopped */
         if (resume_on() && g_open && g_playingTrack) {
             char cmd[64];
             if (!g_paused) { g_pausedRunStart = g_runStart; g_pausedRunEnd = g_runEnd; g_pausedForce = g_runForce; }
@@ -687,7 +799,8 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
             int trk = (flags & MCI_TRACK) ? (int)p->dwTrack : 0;
             switch (p->dwItem) {
             case MCI_STATUS_MEDIA_PRESENT:    p->dwReturn = TRUE; break;
-            case MCI_STATUS_MODE:             p->dwReturn = playing_now() ? MCI_MODE_PLAY : MCI_MODE_STOP; break;
+            case MCI_STATUS_MODE:             p->dwReturn = (g_truePaused && g_open) ? MCI_MODE_PAUSE
+                                                          : playing_now() ? MCI_MODE_PLAY : MCI_MODE_STOP; break;
             case MCI_STATUS_NUMBER_OF_TRACKS: p->dwReturn = LAST_TRACK; break;
             case MCI_STATUS_READY:            p->dwReturn = TRUE; break;
             case MCI_STATUS_TIME_FORMAT:      p->dwReturn = g_timeFormat; break;
