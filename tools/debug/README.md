@@ -88,6 +88,30 @@ If the haptics host was started first on port 7676, the dashboard cannot bind it
 `README-GUI.md` (tools/trainer) still documents every trainer control, the proxy / direct modes and the campaign rules;
 they apply to the Trainer tab unchanged.
 
+## Physics / memory logger (`debug_logger.py`, 2026-10-17)
+
+The emulator logger I76MEM's output, for the modern port: start / stop / mark from the **Log** and **Mark** buttons in
+the header (every tab), the logger card on the Trainer tab, two global hotkeys, or automatically per mission.
+
+- **Files.** `<log-dir>\<date-time>-<label>\sNN\mem.phys.csv`, `mem.frames.csv`, `mem.music.csv` with mem2csv.py's
+  columns in mem2csv.py's order (lab `emu\tools\memtrace`), plus `marks.csv` and `meta.json`; `raw\SNN.LOG` and, after
+  each stop, `summary.md` / `summary.json` from the lab's `owner_log.py summary`. So `fingerprint.py`, `analyse.py`,
+  `owner_log.py` and `music.py` read a dashboard log as they read an 86Box I76MEM log. Three columns of our own come
+  after mem2csv's: `health_pct` (the proxy's HealthFraction call), `tel_music_track` (the proxy's playing track), `mark`.
+- **Sources.** Per frame, the proxy telemetry (needs `I76_TELEMETRY=1`): frame-consistent, taken on the game thread, so
+  `verify` is 1 on every row. At 8 Hz, a read-only `ReadProcessMemory` reader for what telemetry lacks (game state, the
+  player object's flags, AI alive / total and the nearest car, CD music intent) at I76MEM's addresses; its player object
+  is checked against the telemetry's `obj_addr` (meta.json `reader_check`). On a mismatch those columns stay 0 and
+  `game_state` is inferred from player presence (meta.json says which).
+- **Marks.** Each mark writes a `marks.csv` row and switches `phase` to `markNN` (the I76DRV `log MARK` rule).
+- **Options.** `--log-dir`, `--log-auto` (start when the player appears, stop 3 s after it is gone), `--log-start`,
+  `--log-label`, `--hotkeys` (`--hotkey-mark`, default Scroll Lock; `--hotkey-toggle`, default Shift+Scroll Lock;
+  RegisterHotKey, so they work while the game has the focus), `--log-pid`, `--no-logger`, `--no-summary`.
+  `--no-attach` also turns the reader off. API: `GET /api/logger`, `POST /api/logger {op: start|stop|toggle|mark|auto}`.
+- **One click.** `PLAY-LOGGED.bat [preset] [game folder]` starts the dashboard with `--log-auto --hotkeys` and the lab
+  twin (default) with `I76_TELEMETRY=1`; the twin's `TEST-logged-play.bat` calls it.
+- **Cost and limits:** `docs/records/TRAINER-LOGGER.md`.
+
 ## Files
 
 | file | what |
@@ -95,6 +119,9 @@ they apply to the Trainer tab unchanged.
 | `i76debug.py` | the server: sources, the trainer thread, HTTP (`/`, `/api/state`, `/api/stream` server-sent events, `/api/log`, `/api/trainer`) |
 | `debug_core.py` | telemetry source (UDP + tee, or existing shm), haptics source, the `mciproxy.log` parser, the Hub (history the panels draw from) |
 | `debug_trainer.py` | the trainer without tkinter (same writes, imported from tools/trainer) |
+| `debug_logger.py` | the physics / memory logger (I76MEM's CSV files from telemetry + an 8 Hz read-only reader), global hotkeys |
+| `PLAY-LOGGED.bat` | one click: the dashboard with the logger armed + the lab twin with telemetry |
+| `tests/test_logger.py` | the logger: mem2csv columns, gaps, marks, auto start / stop, owner_log.py + fingerprint.py read it, HTTP end to end |
 | `static/` | `index.html`, `app.js`, `charts.js` (strip / bar charts with hover tooltips), `app.css` |
 | `tests/test_debug.py` | unit tests and the end-to-end smoke test; `tests/fixtures/mciproxy-sample.log` is real proxy log lines (the overnight t05 start plus one real example of each periodic line from lab logs) |
 
@@ -122,6 +149,7 @@ with and without it.
 ```bat
 python tools\debug\tests\test_debug.py          :: unit tests + end-to-end, about 25 s
 python tools\debug\tests\test_debug.py --unit   :: unit tests only
+python tools\debug\tests\test_logger.py         :: the logger, about 10 s
 tools\haptics\haptics.ps1 test                  :: includes the publisher's C# tests
 ```
 
