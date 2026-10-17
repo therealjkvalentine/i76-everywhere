@@ -673,6 +673,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Look for:** `tools\replay\runs\melee-console-<stamp>.txt`: Gold reps with "sim_dt bit mismatches 0", "input bit mismatches 0",
       and the first frame with |dpos| over 0.1 / 1 m (late = good).
 52. **Watch one retail canyon descent (low, 5 min; new 2026-10-17; records/EMU-T05-CLEAN.md).**
+    - **PASS 2026-10-17 (owner): the re-recorded canyon clip "looks perfect".** Same day: 02/03 WASD controls good but the menu automation is too slow; 08 does not teleport to the hill top (too long to get there); daily driver: the Windows mouse pointer is drawn a little right and maybe down of the game's cursor. Fixes in progress: records/OWNER-FEEDBACK-FIXES-2026-10-17.md.
     `C:\Users\james\i76-uncap-lab\emu\results\writeup\video\retail-sim-p166-t05-clean-descent.mp4` (simulation physics, damage-free
     crest start). Optional: `...\emu\results\par\20261016-224007-r166-t05clean-a-1\video.mp4` is 8 descents in **arcade** (25 min; skim).
     - **Look for:** no pop or jitter at the placed start; does the jump look like your memory of the 1997 game?
