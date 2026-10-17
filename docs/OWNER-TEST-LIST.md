@@ -674,3 +674,24 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     `C:\Users\james\i76-uncap-lab\emu\results\writeup\video\retail-sim-p166-t05-clean-descent.mp4` (simulation physics, damage-free
     crest start). Optional: `...\emu\results\par\20261016-224007-r166-t05clean-a-1\video.mp4` is 8 descents in **arcade** (25 min; skim).
     - **Look for:** no pop or jitter at the placed start; does the jump look like your memory of the 1997 game?
+
+## Owner results 2026-10-17 (OWNER-TESTS-2026-10-17 launchers, lab `ced03f7`)
+
+- **01 clip (item 52): FAILED as a test.** `retail-sim-p166-t05-clean-descent.mp4` shows no gameplay, only a single frozen frame near
+  the end. The parrun `--video` capture failed on that run; check the other clips before trusting them, fix, re-record.
+- **02 retail logged 86Box (items 46 / 50): BLOCKED.** No WASD keys: the retail folder on the logging disk has the stock keypad
+  `INPUT.MAP`. Fix: write the owner's WASD map (lab `C:\I76GOLD\INPUT.MAP` / repo controls) into the retail folder of the throw-away
+  copy (guest filehex, read back), and print the keys in the banner.
+- **New owner preference (2026-10-17): the owner-facing 86Box play launchers default to graphics settings that give ~40 ms
+  frames (= ~40 ms physics steps, ~25 fps) on the emulated P166**, not lowest detail. Measure which detail / resolution combination
+  lands at ~40 ms (melee and T05, n >= 3), then set it in the 02 / 03 DEF writers. The reference measurement runs keep their own
+  configs; this is the play default (and the mid-bounds starting point of PHYSICS-STEP-STUDY-DESIGN).
+- **04 GOG music files by ear (item 47): PASS, all four match** (3 = Theme, 15 = Malochio Down, 16 = Skeeter Gettin' Medieval,
+  17 = Ovum Bisquit). `I76_MUSIC_DISC_ORDER` is confirmed and can become a default.
+- **05 retail music + resume (item 49): PASS, "perfect in each way"** (menu track loops alone, credits track, Replay continues).
+  `I76_MUSIC_RETAIL=1` + `I76_MUSIC_RESUME=1` is ready for the promotion gate.
+- **06 / 07 F2 bookmark (item 48): UNCLEAR.** The owner was not sure what the test asked or whether it was designed correctly.
+  Redesign: explain the bug in one sentence, make the steps unambiguous (or automate the clicks), and state the expected screen.
+- **08 / 09 promotion 18 (item 36): prefers 09 (dense to 300 m) over 08.** Signs / ground / stutter verdict and the hold decision
+  not given yet.
+- **Not run:** 03, 10 (daily driver smoke, items 1-2), 11 (item 51).
