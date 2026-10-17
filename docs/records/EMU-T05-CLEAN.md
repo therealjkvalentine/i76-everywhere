@@ -180,7 +180,7 @@ ramp. To compare the exes with nothing else in the loop, the car was placed on t
 | turned over (up.y < -0.5) | 0 | 3 |
 | **destroyed** (0x80000020; 0x8000 wreck flag with it) | **0 / 7** | **3 / 7** (x 6603, 6700, 6540) |
 | sim_dt p50 / p95 ms | 30.2 / 42.8 | 33.4 / 43.7 |
-| frames with 1 step | 96 % | 97 % |
+| frames with 1 step | 97 % | 98 % |
 
 - **The flight is the same.** Take-off speed, apex height and the far-side landing spot match: retail lands at
   x 6629-6648, Gold at 6627-6642 apart from two long ones. Each exe had one face landing out of 7.
@@ -193,7 +193,7 @@ ramp. To compare the exes with nothing else in the loop, the car was placed on t
     - one on the face landing;
     - one at the end of the 314 m flight.
   - No retail car was destroyed.
-- **Not significant at this n.** 0/7 vs 3/7 destroyed gives Fisher exact p = 0.19 (two-sided). It agrees in
+- **Not significant at this n.** 0/7 vs 3/7 destroyed gives Fisher exact p = 0.19 (two-sided). It does not agree in
   direction with the crest descents (retail 1/9 vs Gold 0/6 there, the other way round), so the safe reading is: no
   exe difference shown.
 - **Rate is a confounder:** retail steps about 30 ms, Gold about 33-37 ms at the same settings. ERA-ENVELOPE found
