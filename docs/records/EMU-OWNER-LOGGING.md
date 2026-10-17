@@ -63,7 +63,7 @@ The I76MEM build was `2026-10-16a`, sha256 `74F3C23C...`, frozen for all runs; i
 - after the game exited, I76LOG armed session 2;
 - the files were collected and converted, and `analyse.py` read the CSV.
 
-Per run: 2,303-2,391 in-mission frames, 99.6-99.7 % of frames with one step, every record post-physics, 11-16
+Per run: 2,275-2,391 in-mission frames, 99.6-99.7 % of frames with one step, every record post-physics, 11-16
 frames missed by the logger (0.5-0.7 %), and speed = |velocity| to 1e-5.
 
 **Arcade flag check.** The first run copied the Gold-layout `I76PLYR.DEF` into the retail folder. Its summary flagged
@@ -83,8 +83,10 @@ off in 0 / ~2,350 frames each. This confirms the other lane's finding, and shows
   0.55-0.69 of real time. The guest-time fps should not depend on that, but the off spread is larger than in the
   earlier quiet runs (sd 0.3-0.6).
 - **Melee spawn points are random,** so throttle segments cross different ground.
-- **Failed runs:** two off runs exited early and were excluded. One exited because I deleted its disk copy while
-  86Box started. One exited because `probe\out\I76MEM.EXE` was missing while another lane rebuilt it (FileNotFoundError).
+- **Failed runs:** three off runs failed and were excluded (verified from run.json): 231120 and 232632
+  `86box-exited-early` (one of them because I deleted its disk copy while 86Box started; the other's cause was not
+  recorded), and 232721 `FileNotFoundError` (`probe\out\I76MEM.EXE` missing while another lane rebuilt it). The
+  included off run 224433 has status `shutdown-not-confirmed`; its three fps segments are complete.
 
 **Raw data** is in lab `emu\results\par\20261016-*-ownlog-ab-*` and `emu\results\memtrace\owner-test-*`.
 
@@ -97,5 +99,9 @@ off in 0 / ~2,350 frames each. This confirms the other lane's finding, and shows
   frames and reports larger gaps separately.
 - **Copies from probe\out.** The launcher takes `I76MEM.EXE` / `I76LOG.EXE` from `probe\out` at launch, and records
   their sha256 in `session.json`. A lane rebuilding at that moment breaks the launch; run it again.
+  Verifier check (2026-10-16 night): `probe\out\I76MEM.EXE` is now build `2026-10-16b` (sha256 `D477D781...`, built
+  23:29, from an uncommitted `i76mem.c` that adds the AI-list addresses and a FlushFileBuffers every 64 writes; record
+  layout unchanged). The self-test ran `2026-10-16a` (`74F3C23C...`). The owner's first launch will use the `b` build,
+  which has not run through this chain.
 - **Retail options file.** Never copy the Gold 96-byte file into the retail folder: retail reads its +0x54 as Arcade
   Phys. on. The owner's disk has no retail `I76PLYR.DEF` (retail defaults); the summary shows the flag either way.
