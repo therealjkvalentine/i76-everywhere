@@ -620,6 +620,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       fast corners and a roof landing; **untick it afterwards** (the game saves it to the twin's `I76PLYR.DEF`).
     - **Say:** "arcade off" or "arcade on".
 46. **Logged P166 play session in 86Box, retail 1.0 (high, 30 min; new 2026-10-17; records/EMU-OWNER-LOGGING.md).**
+    - **Owner's 1997 settings (2026-10-17):** software renderer (no 3D card), 640x480, rear-view mirror on, sound effects and music on at defaults, detail as high as the frame rate allowed. He no longer wants feel-from-memory used as evidence for the physics step; the step is decided by the study in records/PHYSICS-STEP-STUDY-DESIGN.md.
     Your own pbs-p166 machine on a logging copy of your disk; your `w95pb-hdd.img` is untouched (sha256 re-checked). The launcher
     refuses to start if the logging disk is already in use, so no pre-check is needed.
     - Double-click `C:\Users\james\i76-uncap-lab\emu\PLAY-P166-LOGGED.bat` (disc 2 in the drive). If the game asks for disc 1 for
@@ -646,6 +647,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Look for:** control prints ORPHAN, F2 prints OK; ORPHAND is in the load list, ORPHANB is not. Control printing OK = the stock
       trace is wrong; say so.
 49. **Retail-intent music: the taste calls (medium, 15 min; new 2026-10-17; records/MUSIC-RETAIL-INTENT.md).** The gapless / pause log
+    - **ANSWERED 2026-10-17 (owner): retail music across the board EXCEPT resume: `I76_MUSIC_RETAIL=1` + `I76_MUSIC_RESUME=1` (music continues where it stopped on Replay / shell entry).** The listen test is now optional (confirm the shell tracks sound right).
     checks are agent work; only your ears are needed for the choices. Unmute the PC yourself.
     - `C:\Users\james\i76-uncap-lab\builds\music-retail-20261016\MUSIC-RETAIL-TEST.bat` (retail mode; plays lab `game\`, swaps its
       proxy for the run and puts it back). Main menu 1 min (one short track looping), Options > Credits (another short one), back.
