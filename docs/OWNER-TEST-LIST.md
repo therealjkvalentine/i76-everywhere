@@ -2,6 +2,8 @@
 
 Kept current by the agents; newest additions at the bottom of each section. Lab copy = `C:\Users\james\i76-uncap-lab\game-dd-20261003`.
 Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be muted by the agents: `i76-uncap-lab\tools\mute.ps1 -Off`.
+**Morning summary 2026-10-16: [OWNER-MORNING-2026-10-16.md](OWNER-MORNING-2026-10-16.md)** (what is still untested, ready-to-promote
+candidates, your open decisions; ordered by value, each with its launcher and time).
 
 ## Before bed (the overnight agent run)
 
