@@ -67,6 +67,9 @@ This page follows that order.
   3. Dev Game Club episodes 422 / 424 / 427 (2025) list "physics implementation details from an implementer!" and
      "deterministic physics" as topics. They are audio only and were not listened to. This is the best open lead for
      a first-hand step statement.
+     **Update (W1 done): [DEV-GAME-CLUB-I76.md](DEV-GAME-CLUB-I76.md).** Julio Jerez (via a listener's email, ep 424):
+     the suspension is his second-order digital filter (= P1), the game was "designed to run at 15 frames per
+     second", the filter is "OK in between 10 and maybe 30 hertz", the step was "not regulated". Testimony, medium.
 - **Reading for the study.**
   - Bounds: 25-27 ms to <50 ms.
   - The clues bracket the middle (30 vs 44-50), so the grid must cover the whole band. 40 ms is the neutral start
@@ -330,7 +333,7 @@ Research subagent, 2026-10-17. Sources are cited as it reported them; only the c
 
 ### Nulls
 
-- No transcript or captions for DGC 422-427.
+- No transcript or captions for DGC 422-427 (since transcribed locally: DEV-GAME-CLUB-I76.md).
 - No I'76 physics statement by Julio Jerez (newtondynamics.com, GitHub) or by Stanfill, Morel and the other
   programmers.
 - The Prima strategy guide (Knight & Boyle 1997) exists but has no online text.

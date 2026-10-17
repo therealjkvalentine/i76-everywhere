@@ -8,6 +8,9 @@ fixed here, **before the data**.
 
 - **Evidence base:** [DEV-INTENT-EVIDENCE.md](DEV-INTENT-EVIDENCE.md), with code clues C1-C7 and per-step terms
   P1-P10.
+  - Developer testimony (added after pre-registration, design unchanged): [DEV-GAME-CLUB-I76.md](DEV-GAME-CLUB-I76.md).
+    Jerez: designed for 15 fps; the P1 suspension filter is "OK in between 10 and maybe 30 hertz" (33-100 ms per
+    call). With the < 50 ms ceiling that favours 33.3-49 ms; proposals in its s.5.
 - **Inputs from the running workflow** "versions-and-physics-2026-10-17", consumed here and not duplicated:
   - I76-VERSIONS.md (landed);
   - EXE-DIFF-MAP.md (landed);
@@ -387,7 +390,7 @@ on today's build, recorded blind.
 | id | task | tool | note |
 |---|---|---|---|
 | E1 | retail step distribution and fps at P133 / P166 x lowest / default / owner's 1997 settings, plus **the developers' first-launch preset** (Gold manual: P90/P100 320x200 all on; P133 / P166 640x480 all on). Read back the `I76PLYR.DEF` a fresh first launch writes on each emulated CPU | I76FPS, I76MEM, I76DRV `filehex` read | **[WF hardware-matrix]** for the step rows; the first-launch DEF read is new |
-| W1 | with the owner's OK: download and transcribe Dev Game Club 422 / 424 / 427 (physics "from an implementer") and read Krager's 1997-04-02 Usenet thread | - | new; the best open lead for a first-hand step statement |
+| W1 | with the owner's OK: download and transcribe Dev Game Club 422 / 424 / 427 (physics "from an implementer") and read Krager's 1997-04-02 Usenet thread | - | **DGC done** (DEV-GAME-CLUB-I76.md; 423 added); Krager thread still open |
 | E2 | retail placed56 jumps with perturbation, one per boot, at P166 low and at the longest-step config from E1, n >= 20 each, with the local-step record | `gen_t05jump.py` + perturbation list | new. The step-response curve of the original exe |
 | E3 | retail T05 speed sweep (46-58 m/s, n 4 per speed) at P166 low | `place SPEED` | new. Retail v50 and margin |
 | E4 | retail drop and strip ride-frequency phases | new `gen_drop.py` (`place` with y + 0.3 m) | new |
