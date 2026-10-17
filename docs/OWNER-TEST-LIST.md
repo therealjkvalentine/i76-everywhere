@@ -663,6 +663,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - Again with `PLAY-P166-LOGGED.bat --cd gold`, starting `C:\I76GOLD\I76.EXE` from Start > Run (the Start menu may only list retail).
     - **Look for:** does Gold visibly slide out or spin more at the same speed and lock? Does it matter to you for "stock"?
 51. **Instant Melee frame replays on the twin, first run (medium, 10 min smoke, then 20-40 min; new 2026-10-17; records/LAB-FRAME-REPLAY.md).**
+    - **Ran 2026-10-17 at the console (agent, owner handed it over): FAILED before measuring.** Both Gold replays (g166-mloop-rep1, -N 2) printed "Did not reach mission (menu nav may have drifted)" and "no common frames"; the game booted, took the lock, muted, exited 0. Summary: lab toolseplayunsmelee-console-20261017-145313.txt. Needs agent debugging of the melee menu navigation (no owner action); not done, to save credits.
     The only clean frame-by-frame exe vs emulator comparison (same default car), but the menus do not work headless. The script has
     never run: expect to debug it, not to measure.
     - Session connected, no other game running. From a cmd window:
