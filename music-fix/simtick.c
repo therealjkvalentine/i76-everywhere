@@ -65,6 +65,7 @@ typedef struct {
     DWORD cam_moved, cam_stall, simcam_interp, cam_disp_sets;
     DWORD flame_hits, flame_dmg, ping_req, ping_play;
     DWORD census_frames, objs_seen, proj_seen, pad2;
+    DWORD early_ticks, early_kb, early_lab, early_blocked;   /* I76_SIM_TICK_INPUT=1 (version 2) */
 } wst_shm_t;
 static volatile wst_shm_t *g_wst;
 static wst_shm_t g_wst_local;
@@ -78,6 +79,32 @@ static int g_st_in_disp;             /* inside the display window (camera + rend
 static int g_st_cosmetic = 1;
 static DWORD g_st_logper, g_st_lastlog;
 static DWORD g_stc[12];              /* chained call targets of the gated sites */
+
+/* ---- I76_SIM_TICK_INPUT=1: input-triggered early tick (lab variant, 2026-10-17 tick-latency lane) ------------------
+ * The tick's input latency is the wait for the next tick (uniform 0..T). Sampling the controls every display frame and
+ * applying the latest sample at the next tick does not shorten it: the engine already keeps the latest state for the
+ * tick (keyboard: input_KeyboardUpdateKeyState 0x44eab0 holds a key's down bit until input_KeyboardPoll 0x44e670 has
+ * reported it once, typed keys queue in a 64-entry ring 0x608e60; analog sinks are read at use; key-driven axes ramp
+ * by GetDt inside input_UpdateKeyAnalogSink 0x44d780, so running input_UpdateControls per display frame would change
+ * the ramp rate). What does shorten it is running the tick when the input arrives: a display frame that sees the
+ * player's controls changed since the last tick runs the tick now, borrowing it from the accumulator (acc goes
+ * negative, at most one tick outstanding), so the tick grid and the long-run rate are unchanged and every tick is
+ * still exactly T of simulation. Drawing: alpha = acc / T is allowed down to -1 (the newest tick's motion
+ * extrapolated backwards), which is continuous with the pose drawn before the early tick for steady motion.
+ * Change detection, per display frame, no game code run: the keyboard driver's down bits 0x6092d0[16] differ from the
+ * snapshot taken after the last tick's input_UpdateControls, or a release is pending in 0x6092e0[16]; plus a lab hook
+ * (the side build's drive block: a new drive-key sequence). DirectInput devices (wheel, pad) are not watched. */
+static int g_st_input;
+static BYTE g_st_kb_snap[16];
+static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the harness posted new keys */
+static int st_input_changed(void) {
+    const BYTE *d0 = (const BYTE *)0x006092d0, *e0 = (const BYTE *)0x006092e0;
+    int i;
+    if (g_st_input_peek_fn && g_st_input_peek_fn()) { g_wst_local.early_lab++; return 1; }
+    if (memcmp(d0, g_st_kb_snap, 16) != 0) { g_wst_local.early_kb++; return 1; }
+    for (i = 0; i < 16; i++) if (e0[i]) { g_wst_local.early_kb++; return 1; }
+    return 0;
+}
 
 /* ---- objects ------------------------------------------------------------------------------------------------- */
 #define WST_N 2048
@@ -319,6 +346,7 @@ static void simtick_top(void) {
 static void simtick_clock(void) {
     LARGE_INTEGER q;
     double d;
+    int early = 0;
     int gameplay = *(volatile DWORD *)0x00504c1c != 0 && (*(volatile BYTE *)0x004fe534 & 0x3e) == 0;
     QueryPerformanceCounter(&q);
     d = g_st_q.QuadPart ? (double)(q.QuadPart - g_st_q.QuadPart) / (double)g_qpf.QuadPart : 0.0;
@@ -338,7 +366,10 @@ static void simtick_clock(void) {
     g_wst_local.wall_s += d > 0.25 ? 0.25 : d;
     g_st_acc += d > 0.25 ? 0.25 : d;
     g_st_since += d;
-    if (g_st_acc >= (double)g_st_T) {
+    if (g_st_input && g_st_acc < (double)g_st_T && st_input_changed()) {   /* I76_SIM_TICK_INPUT: run the tick now (borrowed) */
+        if (g_st_acc >= 0.0) { early = 1; g_wst_local.early_ticks++; } else g_wst_local.early_blocked++;   /* one outstanding at most */
+    }
+    if (g_st_acc >= (double)g_st_T || early) {
         volatile float *acc = (volatile float *)0x005a7e14, *tm = (volatile float *)0x005a7e74, *stm = (volatile float *)0x005a7e70;
         float acc0 = *acc, tm0 = *tm, stm0 = *stm;
         int warm = *(volatile int *)0x005a7e18 >= *(volatile int *)0x004be990;   /* accum_dt counts from the 4th frame */
@@ -366,6 +397,7 @@ static void simtick_clock(void) {
     }
     g_wst_local.alpha = (float)(g_st_acc / (double)g_st_T);
     if (g_wst_local.alpha > 1.0f) g_wst_local.alpha = 1.0f;
+    if (g_wst_local.alpha < -1.0f) g_wst_local.alpha = -1.0f;   /* negative only after an early tick (I76_SIM_TICK_INPUT) */
     if (g_st_cosmetic) {                                     /* per-call cosmetics at the tick's per-second rate */
         float k = g_st_disp_dt / g_st_T;
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
@@ -387,7 +419,13 @@ static void simtick_clock(void) {
 
 /* ---- gates --------------------------------------------------------------------------------------------------------- */
 #define ST_GATE0(i) static void __cdecl st_gate##i(void) { if (g_st_now) { g_wst_local.gate[i]++; ((void (__cdecl *)(void))g_stc[i])(); } }
-ST_GATE0(0) ST_GATE0(1) ST_GATE0(2) ST_GATE0(6) ST_GATE0(8) ST_GATE0(9) ST_GATE0(10) ST_GATE0(11)
+static void __cdecl st_gate0(void) {                       /* input_UpdateControls, then the keyboard snapshot */
+    if (!g_st_now) return;
+    g_wst_local.gate[0]++;
+    ((void (__cdecl *)(void))g_stc[0])();
+    memcpy(g_st_kb_snap, (const void *)0x006092d0, 16);
+}
+ST_GATE0(1) ST_GATE0(2) ST_GATE0(6) ST_GATE0(8) ST_GATE0(9) ST_GATE0(10) ST_GATE0(11)
 static void __cdecl st_gate3(void) {                       /* entity_TickAll */
     if (!g_st_now) return;
     g_wst_local.gate[3]++;
@@ -513,6 +551,7 @@ static void apply_simtick(void) {
     g_ref_dt = g_st_T; g_ref_rate = 1.0f / g_st_T;           /* the reused draw-side wrappers: flamer dt floor, smoke */
     g_st_cosmetic = env_flag("I76_SIM_TICK_COSMETIC", 8, 1);
     g_st_logper = (DWORD)env_int("I76_SIM_TICK_LOG", 8, 0) * 1000u;
+    g_st_input = env_flag("I76_SIM_TICK_INPUT", 8, 0) == 1;
     {   /* the sim block's call sites */
         static const struct { DWORD site, stock; int gi; const char *what; } gs[12] = {
             { 0x004039bd, 0x0044d9e0, 0, "input_UpdateControls call" }, { 0x00403a12, 0x004349c0, 1, "physics_CollideAll call" },
@@ -593,15 +632,15 @@ static void apply_simtick(void) {
     {
         HANDLE m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(wst_shm_t), "Local\\I76SimTick");
         if (m) g_wst = (volatile wst_shm_t *)MapViewOfFile(m, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(wst_shm_t));
-        g_wst_local.magic = 0x31545357u; g_wst_local.version = 1; g_wst_local.tick_s = g_st_T;
+        g_wst_local.magic = 0x31545357u; g_wst_local.version = 2; g_wst_local.tick_s = g_st_T;
         wst_publish();
     }
     g_simtick = 1; g_st_now = 1;
     g_jc_on = 1;
     mlog("  sim-tick: ON - whole sim every %.3f ms (%.3f ticks/s; vehicle stepper count %d x %.2f ms); %d/12 sim gates, %d/4 display hooks, "
-         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); shm Local\\I76SimTick %s",
+         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; shm Local\\I76SimTick %s",
          ms, 1000.0 / ms, (int)(g_st_T * 20.0f) + 1, ms / (double)((int)(g_st_T * 20.0f) + 1), g, h, n, c, g_st_cosmetic,
-         g_wst ? "mapped" : "MISSING");
+         g_st_input ? "ON (I76_SIM_TICK_INPUT=1)" : "off", g_wst ? "mapped" : "MISSING");
 }
 
 /* I76_JUDDER_CENSUS=1 without the tick (under I76_RENDER_INTERP: render_wrap calls judder_census): the same counters */
