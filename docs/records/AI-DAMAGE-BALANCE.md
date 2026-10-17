@@ -1,5 +1,11 @@
 # AI and damage balance across exes and step lengths (2026-10-17)
 
+**Status: closed out 2026-10-17 (owner cut), data as gathered.** The measured cells below stand (retail 1.0 sim P166 n 10 and P133 n 8,
+Gold Champ P166 n 6, our exe at 30 / 8 ms and best-wide, melee2). Everything not yet run, including the host 40 ms
+cells e40 / f40 (section 6) and the next steps in section 10, is **deferred until the whole-sim tick exists**
+([WHOLE-SIM-TICK-2026-10-17.md](WHOLE-SIM-TICK-2026-10-17.md)): on today's exe AI fire is rolled per rendered frame,
+so a 40 ms cell measured now would describe the patch scheme the tick replaces.
+
 Lane `ai-damage-runs` (started 2026-10-17 morning, paused when the owner took his CPU back, resumed the same day).
 Goal: AI and damage balance on retail 1.0 (simulation physics) at the emulated P166 and P133, Gold at the P166, and
 our exe at several step lengths, with the logger from AI-DAMAGE-METRICS.md (I76AIM build 2026-10-17c).
@@ -285,6 +291,11 @@ any run.
   to each other, so they are not compared.
 
 ## 10. Next
+
+**Close-out 2026-10-17 (owner cut):** all items below are deferred until the whole-sim tick exists; item 0 is
+dropped as a standalone run and folds into item 3. The retail / Gold reference cells already measured are the
+baseline for that comparison.
+
 
 0. Run the host 40 ms cells e40 / f40 (n 4 each, about 25 min of console; section 6) when the lock is free.
 1. Choose a B4 form (section 8) and size the retail reference accordingly.
