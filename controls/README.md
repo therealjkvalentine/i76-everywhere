@@ -10,8 +10,8 @@ WASD layout, **not** the 1997 key layout; how to keep the original keys is at th
 
 | File | md5 |
 |---|---|
-| `controls/input.map` (this repo) | `b1f352caf5f6da3525497d6ca3151b01` |
-| the daily driver's `input.map` | `a937f36dba46644d2b0f421097aede2f` |
+| `controls/input.map` (this repo, 2026-10-17) | `a66a37f764633aba1cfd9e3fa280c31a` |
+| the daily driver's `input.map` (since promotion 2) | `90122d370333b545d27070f3f94b1265` |
 
 The difference is added bindings and a corrected header comment; nothing was removed or moved:
 
@@ -27,11 +27,13 @@ The difference is added bindings and a corrected header comment; nothing was rem
 The daily driver gets this map **by promotion after a pad test** (`tools\Promote-To-Driver.ps1`), together with
 the changed `i76-remap.ahk`. Until then the driver has the old map and the old pad layer.
 
-**Hardpoint 2 is on `L`, not `K`: the owner can flip it.** The owner said "maybe K" for hardpoint 2. `K` is the
-radar camera in his map, and the wheel layer types `K` for it (L3 with shift, `gWheelAlt` 11 in `i76-remap.ahk`);
-`L` was unbound. So `L` fires hardpoint 2 and `K` stays the radar camera. The alternative, in one line: change the
-second `hardpoint2_fire` block to `K` and `RADAR_CAMERA_TOGGLE` to `L`, change `11: "k"` to `11: "l"` in
-`gWheelAlt`, then run `tools\controls-sheet\build.ps1`.
+**2026-10-17: one map for every machine (game night, docs/GAME-NIGHT.md).** The Mac's live map has had the
+home-row hardpoints on `J` `K` `L` `;` (1-4) since 2026-10-03; this file now does the same, so a keyboard plays
+identically on the PC and the Macs. To free the keys: `RADAR_CAMERA_TOGGLE` `K` -> `O` (and `gWheelAlt` 11 `"k"`
+-> `"o"` in `i76-remap.ahk`), `show_team_scores` `;` -> `Shift+'` (`show_player_scores` stays on `'` without
+Shift). `C` is added as a second `weapon_cycle` key because the Mac pad layer types `C`. Nothing else moved.
+The 2026-10-03 layout (`J` = hardpoint 1, `L` = hardpoint 2, `K` radar camera) is what the Windows daily driver
+still has; giving it this map is the owner's promotion (with the changed `i76-remap.ahk`).
 
 - **Printable sheet:** [docs/Interstate76-Controls-Quick-Reference.pdf](../docs/Interstate76-Controls-Quick-Reference.pdf),
   generated from this file by [tools/controls-sheet](../tools/controls-sheet/README.md).

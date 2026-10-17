@@ -124,7 +124,7 @@ gWheelShiftBtn := 6
 gWheelBase := {1: "h", 2: "Enter", 3: "Tab", 4: "Space", 5: "6"
              , 7: "3", 8: "t", 9: "g", 10: "g", 11: "h", 12: "i", 13: "g"}
 gWheelAlt  := {1: "LButton", 2: "q", 3: "v", 4: "x", 5: "7"
-             , 7: "4", 8: "u", 9: "e", 10: "r", 11: "k", 12: "b", 13: "p"}
+             , 7: "4", 8: "u", 9: "e", 10: "r", 11: "o", 12: "b", 13: "p"}
 ; NEVER fire two hardpoints from one button. Doing so (left paddle = "LButton|2",
 ; SE = "3|4") CRASHED the game 2026-08-01 inside I7_SFRCE.DLL - the Nitro Pack
 ; force-feedback module - at the weapon-effect path (it loads force\*.frc per

@@ -66,12 +66,12 @@ Shift move the outside camera and the map instead of glancing.
 | Reverse (toggle) | `Tab` | `X` | changed |
 | Ignition (start engine) | `S` | `I` | changed |
 | Fire selected weapon | `Space` | `Enter`<br>`Left mouse button` | changed |
-| Cycle weapon | `Enter` | `Tab` | changed |
+| Cycle weapon | `Enter` | `Tab`<br>`C` | changed |
 | Link weapons | `L` | `F` | changed |
 | Fire hardpoint 1 | `1` | `1`<br>`J` | changed |
-| Fire hardpoint 2 | `2` | `2`<br>`Right mouse button`<br>`L` | changed |
-| Fire hardpoint 3 | `3` | `3` |  |
-| Fire hardpoint 4 | `4` | `4` |  |
+| Fire hardpoint 2 | `2` | `2`<br>`Right mouse button`<br>`K` | changed |
+| Fire hardpoint 3 | `3` | `3`<br>`L` | changed |
+| Fire hardpoint 4 | `4` | `4`<br>`; (semicolon)` | changed |
 | Fire hardpoint 5 | `5` | `5` |  |
 | Special 1 (nitrous slot) | `6` | `6` |  |
 | Special 2 | `7` | `7` |  |
@@ -81,7 +81,7 @@ Shift move the outside camera and the map instead of glancing.
 | Target nearest enemy | `T` | `T` |  |
 | Clear target | `Y` | `U` | changed |
 | Radar range | `R` | `R` |  |
-| Radar camera | `W` | `K` | changed |
+| Radar camera | `W` | `O` | changed |
 | Look up | `Down arrow` | `Up arrow` | changed |
 | Look down | `Up arrow` | `Down arrow` | changed |
 | Look left | `Left arrow` | `Left arrow`<br>`Middle mouse button` | changed |
@@ -99,9 +99,9 @@ Shift move the outside camera and the map instead of glancing.
 | Horn | `G` | `G` |  |
 | Poetry | `C` | `P` | changed |
 | Player scores (multiplayer) | `' (quote)` | `' (quote)` |  |
-| Team scores (multiplayer) | `; (semicolon)` | `; (semicolon)` |  |
+| Team scores (multiplayer) | `; (semicolon)` | `Shift + ' (quote)` | changed |
 
-Generated from `controls/input.map` (md5 `b1f352caf5f6da3525497d6ca3151b01`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
+Generated from `controls/input.map` (md5 `a66a37f764633aba1cfd9e3fa280c31a`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
 
 <!-- END generated: stock-vs-ours -->
 
@@ -114,11 +114,11 @@ Not in `input.map` at all (engine keys, from the comments in [`i76-remap.ahk`](.
 
 What to know about our map:
 
-- **Hardpoints 1 to 5 are on `1` to `5`.** `1` was unbound until 2026-10-03. The right hand also has `J`
-  (hardpoint 1) and `L` (hardpoint 2) on the home row; `K` between them is the radar camera
-  ([controls/README.md](../controls/README.md) has the one-line swap to `K`). Fire the selected weapon with
-  `Enter` or the left mouse button, pick it with `Tab`, fire linked groups with `F`. The daily driver gets
-  `1`, `J` and `L` by promotion after a pad test.
+- **Hardpoints 1 to 5 are on `1` to `5`, and 1 to 4 also on the home row `J` `K` `L` `;`** (since 2026-10-17, one
+  map for Windows and the Macs: the Mac's home-row layout merged in). The radar camera moved `K` -> `O` and team
+  scores `;` -> `Shift+'`. Fire the selected weapon with `Enter` or the left mouse button, pick it with `Tab` (or
+  `C`), fire linked groups with `F`. The Windows daily driver still has the 2026-10-03 map (`J` = 1, `L` = 2, `K`
+  radar camera) until the owner promotes this one (docs/records/GAME-NIGHT-ROLLOUT-2026-10-17.md).
 - **Looking up and down is the right way round.** Stock binds "glance down" to the up arrow; ours does not.
 - **No native pad or wheel buttons.** `joystick1` appears only on `steer` and `throttle`. Buttons come from the
   AutoHotkey layers (sections 4 and 5), which type the keys in this table.
@@ -230,7 +230,7 @@ the same keys do this (a comparison of files):
 | `Y` | next target (pad X, stick castle right) | clear target |
 | `E` | look at target (pad R3, stick pinky, wheel shift+9) | next target |
 | `I` | ignition (pad D-pad down, wheel 12 and hat down) | unbound (engine is `S`) |
-| `U` / `K` / `P` | untarget / radar camera / poetry (wheel shift layer) | unbound / unbound / unbound |
+| `U` / `O` / `P` | untarget / radar camera / poetry (wheel shift layer) | unbound / unbound / unbound |
 
 So in that mode a pad uses the native bindings of the minimal patch (left stick, A fire, X cycle weapon,
 Y handbrake, D-pad glance), and a wheel has steering and pedals but no buttons.
