@@ -1,10 +1,26 @@
 # Behaviour vs physics step length on our exe (lane modern-fps-sweep, 2026-10-17)
 
-Status: **partial.** Round 1 of the stock-stepper sweep (n = 1 boot per cell) is measured. Rounds 2-3, the new study-grid
-cells (27 / 36.7 / 43.3 / 46.7 / 49 ms), the 40 ms A/A, the render-independence pair and the dgVoodoo cell are built
-and queued but **not run**: the owner held the lab console lock (his own F2 test, `OWNER-TESTS f2-control`, pid 11876)
-from 08:05 for the rest of this lane's window. Every number below is labelled with its n. Nothing here is a decision;
-it feeds [PHYSICS-STEP-STUDY-DESIGN.md](PHYSICS-STEP-STUDY-DESIGN.md) (task L4 and the H1 / H3 / H4 / H5 checks).
+**Status: closed out 2026-10-17 (owner cut), data as gathered.**
+
+**Superseded direction.** This lane measured our exe as it stands: the AiO + u32x build with the per-frame patch pile
+and the per-stepper `I76_FIXED_STEP` scheme available. The port is moving to a whole-sim fixed tick
+([WHOLE-SIM-TICK-2026-10-17.md](WHOLE-SIM-TICK-2026-10-17.md); design s.7.2, task L1), which retires most of that patch
+pile, and the owner cut the modern frame-rate sweep of the old scheme. So:
+- the numbers below are kept as measured and labelled with their n; they are **not** a basis for choosing a step
+  under the new tick;
+- round 1 covers only the `sNN` stock-stepper cells (step = frame time, whole sim once per step: the 1997 coupling, but
+  through the old patch pile). **No `fNN` cell of the per-stepper fixed step was ever run**, so this record says nothing
+  measured about that scheme;
+- the baseline step is now 33.3 ms (owner ruling, PHYSICS-STEP-STUDY-DESIGN amendment), not the 40 ms that the queued
+  cells (s25aa, f40 / f40r60, s25dgv) were built around;
+- rounds 2-3, campaign C, the grid cells, the A/A, the H5 pair and the dgVoodoo cell are **cancelled**, not pending.
+  The runner fixes in section 2 (private desktop, renderer read-back) are reusable for tick-era runs.
+
+Original status (kept): round 1 of the stock-stepper sweep (n = 1 boot per cell) is measured. Rounds 2-3, the new
+study-grid cells (27 / 36.7 / 43.3 / 46.7 / 49 ms), the 40 ms A/A, the render-independence pair and the dgVoodoo cell
+were built and queued but not run: the owner held the lab console lock (his own F2 test, `OWNER-TESTS f2-control`,
+pid 11876) from 08:05 for the rest of this lane's window. Nothing here is a decision; it fed
+[PHYSICS-STEP-STUDY-DESIGN.md](PHYSICS-STEP-STUDY-DESIGN.md) (task L4 and the H1 / H3 / H4 / H5 checks).
 
 Lab commits: f55c084 (sweep tools, before the pause), 2213920 (resumed: private-desktop runner, grid cells, metric
 fixes). Captures: lab `captures\step-curve-20261017\` (`<measure>-<cond>-<round>.{phys.csv,frames.txt,env.txt,txt,log}`).
@@ -163,6 +179,10 @@ their write-up (HARDWARE-MATRIX.md, not landed at the time of writing).
 | wrapper = same physics | static yes; live cell queued |
 
 ## 7. Open / next
+
+**Close-out 2026-10-17 (owner cut):** campaign C is cancelled. The items below are kept as notes; the fingerprint
+regression and the turned-over-not-destroyed question still apply to tick-era analysis, the campaign does not.
+
 
 - **Run campaign C** (`tools\step-curve\run-c.ps1`). It takes the lock per boot, skips done cells and stops on a `STOP`
   file. About 70 boots of about 3.5 min. First a single smoke boot (`sc-run.ps1 -Cond s25 -Measure t05p -Tag smoke2`)
