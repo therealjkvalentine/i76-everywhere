@@ -163,7 +163,7 @@ After the run come 0-60 s of silence and then 2..14 (29:54), looping.
 - The data-track comment ("playing it produced SILENCE") stays as written, but it is unverified.
 
 **Build:** lab `i76-uncap-lab\builds\music-retail-20261016\`.
-- `Strlkup-mr1.dll`, md5 `c271ae80`, MSVC x86, 0 warnings, the same 5 exports.
+- `Strlkup-mr2.dll`, md5 `1b32e557`, built from commit e025739 (MSVC x86, 0 warnings, the same 5 exports). One-click test: `MUSIC-RETAIL-TEST.bat`. (`Strlkup-mr1.dll` c271ae80 was the same hunks on 6779088.)
 - Built from HEAD + `music-retail-mr1.patch` only, not from the working tree, which carries another lane's
   uncommitted edits.
 - **Not run in game; the build only proves that it compiles.** All switches are off unless set, so with none set
