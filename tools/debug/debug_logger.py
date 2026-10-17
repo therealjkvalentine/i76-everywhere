@@ -34,7 +34,10 @@ Where the numbers come from.
     addresses do not fit the exe, and those columns are then left at their defaults.
   * tick = the host's millisecond clock when the datagram arrived (I76MEM: the guest's GetTickCount at the frame's start).
     wall_ms = its difference. Use the proxy's I76_FRAME_LOG for exact frame periods; this one includes the UDP hop.
-  * step_ms = sim_dt / step_count (mem2csv.py's frames rule); under I76_FIXED_STEP that is the accumulator's mean step.
+  * step_ms = the player's stepper step (ent+0x444 +4, I76MEM's 'step') when the reader has seen the same value on its last
+    8 reads (I76_FIXED_STEP: the proxy writes its fixed step there, strlkproxy.c "stepper[1] = g_fixed_step"); otherwise sim_dt /
+    step_count, which is what simclock_StepperBegin computes for the stock stepper. step_count 0 (a frame with no
+    physics step under I76_FIXED_STEP) is kept as 0.
   * skipped = frames missing between two datagrams by the frame counter (UDP drops, or shared-memory polling).
   * phase = 'play' from the start, 'markNN' after mark NN (the I76DRV 'log MARK' rule: analysis tools split on it).
 
@@ -241,6 +244,9 @@ class SlowReader(threading.Thread):
                 px, pz = (fr["pos_0"], fr["pos_2"]) if fr and fr["player_present"] else (None, None)
                 try:
                     s = read_slow(self.r, px, pz)
+                    if fr and fr["player_present"] and fr["ent_addr"]:
+                        b = self.r.rd(fr["ent_addr"] + 0x448, 4)           # ENT_STEPPER + 4: step (s)
+                        s["stepper_step"] = struct.unpack("<f", b)[0] if b else 0.0
                 except Exception as e:                       # a torn list between missions: keep the last values
                     self.note = "read error %r" % e
                 else:
@@ -343,6 +349,7 @@ class PhysLogger:
         self.auto_hold = False        # a stop by hand under --log-auto: no new log until the player has gone (next mission)
         self.reader = SlowReader(self, pid=reader_pid, pid_hint=pid_hint) if reader else None
         self.cost_s, self.cost_n = 0.0, 0
+        self.steps_seen = collections.deque(maxlen=8)
         self.exe_md5_cache = {}
 
     def start_threads(self):
@@ -413,6 +420,7 @@ class PhysLogger:
                      reader_check=dict(self.reader_check), reader=self.reader.note if self.reader else "off",
                      reader_reads=self.reader.reads if self.reader else 0,
                      reader_ms_per_read=round(1000 * self.reader.read_s / self.reader.reads, 3) if self.reader and self.reader.reads else None,
+                     fixed_step_ms=round(self.fixed_step_s() * 1000.0, 4) if self.fixed_step_s() else None,
                      logger_us_per_frame=round(1e6 * self.cost_s / self.cost_n, 2) if self.cost_n else None,
                      game_state_source="reader (0x4c2164)" if self.reader_check.get("match") else "inferred: 5 with the player present, else 6",
                      exe=self.exe_info())
@@ -469,6 +477,13 @@ class PhysLogger:
     def on_slow(self, s):
         with self.lock:
             self.slow, self.slow_fresh = s, True
+            if s.get("stepper_step"):
+                self.steps_seen.append(round(s["stepper_step"], 7))
+
+    def fixed_step_s(self):
+        """the stepper step when the last 8 reads all saw one value (a fixed step), else None"""
+        v = self.steps_seen
+        return v[-1] if len(v) == v.maxlen and v[-1] > 0 and min(v) == max(v) else None
 
     def exe_info(self):
         r = self.reader.r if self.reader else None
@@ -532,8 +547,9 @@ class PhysLogger:
         reader_ok = self.reader_check.get("match", 0) > 0 and not self.reader_check.get("mismatch", 0)
         gs = s["game_state"] if reader_ok and s["game_state"] != "" else (5 if present else 6)
         sim_dt, dt = fr["sim_dt"], fr["dt"]
-        cnt = fr["step_count"] if fr["step_count"] > 0 else stepcount(sim_dt)
-        step_ms = sim_dt * 1000.0 / cnt if cnt else 0.0
+        cnt = fr["step_count"] if fr["step_count"] >= 0 else stepcount(sim_dt)     # 0 is real under I76_FIXED_STEP; -1 = unknown
+        fs = self.fixed_step_s()
+        step_ms = fs * 1000.0 if fs else (sim_dt * 1000.0 / cnt if cnt else 0.0)
         c["frames"] += 1
         c["skipped"] += skipped
         if gs == 5 and 0 < sim_dt < 1.0:
