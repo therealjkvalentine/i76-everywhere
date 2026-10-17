@@ -4,6 +4,8 @@ Kept current by the agents; newest additions at the bottom of each section. Lab 
 Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be muted by the agents: `i76-uncap-lab\tools\mute.ps1 -Off`.
 **Morning summary 2026-10-16: [OWNER-MORNING-2026-10-16.md](OWNER-MORNING-2026-10-16.md)** (what is still untested, ready-to-promote
 candidates, your open decisions; ordered by value, each with its launcher and time).
+**Status marks 2026-10-16** ([BACKLOG-2026-10-16.md](BACKLOG-2026-10-16.md)): items closed or replaced carry a `[DONE ...]`,
+`[OBSOLETE ...]` or `[RETIRED ...]` tag with the evidence; numbers are unchanged. Untagged items are still open.
 
 ## Before bed (the overnight agent run)
 
@@ -16,6 +18,8 @@ candidates, your open decisions; ordered by value, each with its launcher and ti
    **First run 2026-10-11 + same-evening follow-up: [records/OVERNIGHT-2026-10-11.md](records/OVERNIGHT-2026-10-11.md)** (per-phase
    verdicts, the harness bugs it exposed and fixed, what is still yours). Items marked *(automated 2026-10-11)* below were covered
    by it; only the parts that need eyes, ears or hands remain.
+   *(2026-10-16: phases P1-P8 exist (P8 was the promotion-16 gate, 2026-10-12). Promotion 18 has no gate phase yet: P9 is
+   not written.)*
 
 ## Daily driver (already promoted, confirm in normal play)
 
@@ -25,12 +29,16 @@ candidates, your open decisions; ordered by value, each with its launcher and ti
    Anything odd -> rollback is `_rollback\15` (five files).
 2. **Force feedback after promotion 15.** The gate had no wheel plugged in. Plug the wheel in before `PLAY.bat` and confirm FFB feels as before.
 
+   *(Items 1-2 still open 2026-10-16: the driver's `mciproxy.log` was last written 2026-10-08 07:43, so promotion 16 (collision G,
+   roads 1800, 2x SS, I76 Debug; rollback `_rollback\16`) is also unplayed there. The promotion-16 gate also ran with no wheel.)*
+
 2b. *(Promotion regression automated 2026-10-11, P7: best-wide / best-wide-balanced / best-120 on the twin each boot and drive t04
    90 s at 120 fps, no CRASH line; the twin's presets are byte-equal to the driver's.)*
 
 ## Lab copy (candidates, not in the daily driver)
 
-3. **Collision fix A/B.** `TEST-coll-A-control.bat` (= your PLAY.bat) vs `TEST-coll-B-window2.bat` (I76_COLL_WINDOW=2 + dedupe).
+3. **[DONE 2026-10-12: promoted as collision G in promotion 16, PROMOTIONS row 16 / `7bfdf68`; the TEST-coll bats are in the
+   twin's `_archive-2026-10-12`.]** **Collision fix A/B.** `TEST-coll-A-control.bat` (= your PLAY.bat) vs `TEST-coll-B-window2.bat` (I76_COLL_WINDOW=2 + dedupe).
    T05 (Taurus jump mission) roadblocks, cars, buildings: does B hit what A drives through? Anything new and wrong in B (snagging on
    scenery, odd bumps, getting stuck, doubled crash sounds)? `TEST-coll-C-24fps.bat` = 24 fps reference (choppy on purpose; stock-like collisions).
    Measured offline: barricades contacted 36/36 with B vs 8/28 with A.
@@ -39,7 +47,7 @@ candidates, your open decisions; ordered by value, each with its launcher and ti
    p 0.05; elsewhere deaths are equal). While playing B, watch for being killed by something you barely touched; t04's start area
    is where the drives found it. Details: records/OVERNIGHT-2026-10-11.md, P1.)
    *(2026-10-12, the t04 deaths are a stock terrain rollover, not B: lab docs/COLL-WINDOW-DEATH-SPOT-2026-10-11.md.)*
-   **3b. Barricade timing from the T05 hill top (new 2026-10-12, your "hit before you run into them" report).** Seven bats, each
+   **3b. [DONE 2026-10-12: owner chose G; bats archived.]** **Barricade timing from the T05 hill top (new 2026-10-12, your "hit before you run into them" report).** Seven bats, each
    boots T05 straight in and drops the car on the crest of the road down to the barricades, standing, facing down the hill
    (about 1 s after the mission appears; if it does not move you, the log says why):
    `TEST-hill-A-control` (window off) / `-B-window2` (as TEST-coll-B) / `-C-stepframe` (B, but the check only on the frame the
@@ -52,7 +60,7 @@ candidates, your open decisions; ordered by value, each with its launcher and ti
    Lab docs/COLL-TIMING-2026-10-12.md. *(Built and checked offline only; not run before handing over.)*
    *(2026-10-12, owner: **G accepted** - "G is fantastic ... we should keep G if it doesn't break anything"; only a few signs, e.g.
    "the highway 360 one", took about 10 rams.)*
-   **3c. Sign fix - try `TEST-hill-H-signfix.bat` (new 2026-10-12).** = G + `I76_BREAKABLE_BOX=2`. The "360" sign is almost certainly
+   **3c. [OBSOLETE: H never chosen; replaced by items 35-36 (`I76_BREAKABLE_BOX=3`, then `=4`); bat archived.]** **Sign fix - try `TEST-hill-H-signfix.bat` (new 2026-10-12).** = G + `I76_BREAKABLE_BOX=2`. The "360" sign is almost certainly
    a US 380 shield (the 380 reads as 360 in that font); its post is the same shape as every other shield. A sign is knocked down by
    the score of the ram measured only along the side of the car the post touched first: rammed straight on it falls, but when you
    swerve off the road at it the post comes in along the car's side and scores a few % (the US 380 shields in T05 stand 8-10 m out,
@@ -61,12 +69,14 @@ candidates, your open decisions; ordered by value, each with its launcher and ti
    check the barricades still behave as in G. Proof: `mciproxy.log` lines `breakable-speed: 1/1` and `breakable-speed: class-4 hit ...`
    ("glancing" marks a ram stock would have scored low). Lab docs/SIGN-FIX-2026-10-12.md (also the whole-game audit of the bar box:
    only the T05/T06/T15/S03 barricade bars and one T08 sign panel are affected). *(Built and checked offline; not run.)*
-   **3d. Promotion of G to the daily driver: pending the console gate.** `tools\promote-17-collision-g.ps1` (proxy `a6d621fd`, best-wide /
+   **3d. [DONE 2026-10-12 17:45: gate P8 run, applied as promotion 16 (the widened owner-verified set, proxy `509c6df0`), `7bfdf68`.]**
+   **Promotion of G to the daily driver: pending the console gate.** `tools\promote-17-collision-g.ps1` (proxy `a6d621fd`, best-wide /
    best-wide-balanced / best-120 + the four G keys, launcher `009c9742` with head tracking opt-in) refuses until the gate has run:
    lab `autotest\overnight\run-overnight.ps1 -Phase P8` when the console is free (about 3 h: gate 23 rows + row 3 via PLAY-16x10 and
    PLAY-balanced, T05 barricade rams G vs control n>=21, 8+8 t04 drives, hill-top start). Dry run 2026-10-12: 15 DRY / 3 PASS / 0 FAIL.
    If you try H and like it better, say so before the gate: the promotion would then carry `I76_BREAKABLE_BOX=2` instead of `=1`.
-4. **Terrain drop-out watch.** `TEST-terrain-watch.bat` = PLAY.bat + drop detector. Play where you saw it (open desert, road bend). If the
+4. **[OBSOLETE: replaced by item 34 (the hull mechanism and `I76_TERRAIN_HULL_FIX`); `TEST-terrain-watch.bat` is in the twin's
+   `_archive-2026-10-12`.]** **Terrain drop-out watch.** `TEST-terrain-watch.bat` = PLAY.bat + drop detector. Play where you saw it (open desert, road bend). If the
    ground vanishes, note the time; the log (`Interstate 76\mciproxy.log`, lines `TERRAIN-DROP`) and a saved frame tell us the rest.
    Expected: never (the lab copy lacked I76_CAM_GROUND_FIX when you saw it; your driver has it).
 5. **`PLAY-stock.bat` textures (daily driver).** Flagged 2026-10-10 by the preset-sync agent: it runs preset `stock` (no
@@ -206,7 +216,9 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
 
 ## Proxy cleanup side DLLs (lab twin only; docs/records/PROXY-CLEANUP-2026-10-10.md)
 
-27. **Gate the 2026-10-10 proxy cleanup builds on the lab twin before any promotion.** Physical console, nobody playing
+27. *(2026-10-16: the proxy half (`8b904e53`) is superseded - the env cleanup rides in promotion 18's `855b08d7`. The u32x half
+    (`188e0c07`) is still open, and it is an agent gate at a free console, not a playtest.)*
+    **Gate the 2026-10-10 proxy cleanup builds on the lab twin before any promotion.** Physical console, nobody playing
     (the gate takes the mouse, the keyboard and the screen for about 10 minutes). Put the side builds into the twin
     `..\i76-uncap-lab\game-dd-20261003` only, keeping its current files beside them: `music-fix\out\Strlkup.dll`
     (md5 `8b904e53`) over the twin's `Strlkup.dll`, and `u32x\u32x_full.build.dll` (md5 `188e0c07`) through
@@ -256,7 +268,9 @@ The offline read says the wide preset gets 4x MSAA but not its 5160x2160 supersa
 sharpest ground texture to 400 m, past what 1440 lines can show without crawling. Each bat below boots T05 at the hill
 top, standing, facing down the hill. Close the game between bats.
 
-31. **Shimmer A/B from the T05 hill top.** In order: `TEST-shimmer-A-current` (= PLAY.bat), `-C-fullscreen-ss15`
+31. **[DONE 2026-10-12: real 2x SS (`stretched_ar`, 6880x2880 + 4x) promoted in promotion 16; the shimmer bats are in the twin's
+    `_archive-2026-10-12`. Only `I76_TERRAIN_TEX` 1 / 4 vs 8 by eye is left; ask for a fresh pair (OWNER-MORNING B7).]**
+    **Shimmer A/B from the T05 hill top.** In order: `TEST-shimmer-A-current` (= PLAY.bat), `-C-fullscreen-ss15`
     (fake fullscreen, so the 1.5x target is really used), `-B-ss2x` (6880x2880 + 4x MSAA), `-E-ss2x-noaa` (6880x2880,
     no MSAA), `-D-terrain-tex-1` (A with stock terrain texture distances), `-F-ss15-terrain-tex-4` (C with terrain x4).
     In each: sit 5 s and look at the far ground and the road at the bottom of the hill (crawling, sparkling, moire),
@@ -274,7 +288,7 @@ The lab read shows the terrain setup cannot refuse on the hill. Your probe runs 
 built every frame. What is left is a stage after that: the per-polygon clip, the depth buckets, the draw, or
 dgVoodoo's presentation. The twin's proxy now counts every one of those stages per frame (`I76_DRAW_PROBE`).
 
-32. **Catch the drop-out with the draw census.** Play `TEST-hill-G-drawwatch.bat` (= hill-G plus the detectors; the
+32. **[OBSOLETE: replaced by item 34; `TEST-hill-G-drawwatch.bat` is archived.]** **Catch the drop-out with the draw census.** Play `TEST-hill-G-drawwatch.bat` (= hill-G plus the detectors; the
     proxy must be `509c6df0`, see the twin's TEST-CURSOR.txt). Drive down the hill in cockpit view, as when you saw it.
     Do 3-5 runs, closing the game between them.
     - If the ground vanishes, **note the clock time** (to the minute) and whether it was cockpit or an outside view.
@@ -315,7 +329,8 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
 
 ## Signs that won't fall: the Texas 13 shields (lab twin game-dd-20261003; lab docs/SIGN-FIX-2-2026-10-12.md)
 
-35. **Sign fix 2: does every sign go down at the first ram? (new 2026-10-12, replaces the H test.)**
+35. **[OBSOLETE: =3 was played inside TEST-next ("100% of the time", "a little early"); =4 (item 36) replaces it in promotion 18.
+    `TEST-hill-signs2.bat` is still in the twin but is not needed.]** **Sign fix 2: does every sign go down at the first ram? (new 2026-10-12, replaces the H test.)**
     - **Which signs.** The Texas state shields are `sh13n` / `sh13s` ("13", NORTH / SOUTH). Two stand at the crossroads
       at the foot of the hill: 65 m up the north road and 70 m down the south road. Two more are further up the north
       road. They are the same sign as the US 380 shields in every number.
@@ -365,10 +380,14 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       - a sign falling before the bumper touches it, or after you are clearly through it;
       - stutter in the hill-top view that PLAY.bat does not have.
     - **Not promoted yet.** Promotion 18 is on hold until the dream-mission report ("expecting you to stay on the road") is explained.
+    - *(2026-10-16: still open. The hold's reason is answered by item 37 (the stock lap counter), but nobody has lifted the hold, and
+      the gate phase P9 is not written. Since 2026-10-13 the TEST-next* bats also carry the AI parity set (item 40), which promotion
+      18 does not.)*
 
 ## The dream mission (T04, the 4-lap race; lab docs/DREAM-MISSION-2026-10-12.md)
 
-37. **Your report "the dream mission fails because it expects you to stay on the road" (answered 2026-10-12).**
+37. **[DONE 2026-10-12: answered (stock 8-checkpoint lap counter, 19/19 twin runs); the pace part continues in item 40.]**
+    **Your report "the dream mission fails because it expects you to stay on the road" (answered 2026-10-12).**
     - **What it is.** Stock 1997 behaviour, not one of our switches. The race script counts a lap only when your car
       passes within 25 m of eight points on the track, in order. Cut a corner or run wide past one of them and that
       whole lap silently does not count. The AI then finishes 4 laps first, and you get "They won the race...because
@@ -385,7 +404,8 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **If you play it again,** tell me which bat you used and which failure line you saw: the "they won" line or the
       Confucius line. If you want the racers at their 1997 pace, say so; that is a proxy change with its own A/B.
 
-38. **The dream race at 1997 pace (new 2026-10-13; lab docs/AI-PACE-2026-10-12.md).**
+38. **[OBSOLETE: item 40 corrects its reference (24 fps was wrong; stock20) and `TEST-dream-1997pace.bat` now carries the parity
+    set. Test it under item 40.]** **The dream race at 1997 pace (new 2026-10-13; lab docs/AI-PACE-2026-10-12.md).**
     - **Why.** Our racers were ~2 s a lap quicker than in the 1997 game (item 37). Cause found: the AI steers with a
       controller sized to the frame time, and the 1997 clock ticks in 15.6 ms steps, so every third steering command
       overshoots and the AI weaves a little. Our exact clock removed that, so the AI drives a cleaner, quicker line.
@@ -424,7 +444,9 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Proxy f6d0c668** in the lab copy (rollback `STRLKUP.DLL.4c9be840-pre-combat`). Not in the daily driver; say if you
       want it in PLAY.bat.
 
-41. **W95-18: the box-spec feel test (new 2026-10-15; lab docs/W95-18-BASELINE-2026-10-14.md, docs/records/W95-18-BASELINE.md).**
+41. **[RETIRED 2026-10-15: W95-18 is superseded by the era envelope (records/ERA-ENVELOPE.md) and the gold standard (retail 1.0 on
+    the emulated P166, records/EMU-MEMTRACE.md). Windows 95's tick is 1 ms, not 55. The two bats are still in the twin; optional.]**
+    **W95-18: the box-spec feel test (new 2026-10-15; lab docs/W95-18-BASELINE-2026-10-14.md, docs/records/W95-18-BASELINE.md).**
     - **Why.** You asked to treat the 55 ms tick at 18.2 fps as the 1997 baseline. It was measured. Since then the 86Box rig has
       found Windows 95's tick to be 1 ms, so W95-18 is one era-like profile, not "the" 1997 machine.
     - **What's there.**
@@ -452,6 +474,9 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Known.** Barricades knock a little less often than in the stock game (6.6 of 10 vs 7.8). That comes from the
       bar-as-box switch shared with PLAY.bat and TEST-next, not from this change.
     - **Proxy 33211f11** in the lab copy (unchanged). Not booted by hand yet. Not in the daily driver.
+    - *(2026-10-16: still open. The 30 ms step came from Gold-exe profiles. Retail 1.0 on the P166 at low detail runs 26-30 ms steps,
+      so the candidate is still to be re-checked against retail (EMU-MEMTRACE s.7.4). `TEST-p166-retail-step.bat` (31.75 ms) has no
+      measurement recorded yet.)*
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the
