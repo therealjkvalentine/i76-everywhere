@@ -38,7 +38,7 @@ update)
     n=0
     for f in "$BAK"/savegame.dir "$BAK"/save[0-9][0-9][0-9].cmp; do [ -f "$f" ] && cp -p "$f" "$G/" && n=$((n+1)); done
     echo "game folder replaced; old one kept as $BAK; $n save files carried over"
-    cp -p "$P/user.reg" "$P/user.reg.pre-mp-$(date +%Y%m%d)"
+    [ -e "$P/user.reg.pre-mp-$(date +%Y%m%d)" ] || cp -p "$P/user.reg" "$P/user.reg.pre-mp-$(date +%Y%m%d)"   # first backup of the day is kept
     python3 - "$P/user.reg" <<'PY'
 import sys
 p = sys.argv[1]; s = open(p, encoding='utf-8').read()

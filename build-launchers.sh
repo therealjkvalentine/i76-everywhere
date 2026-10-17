@@ -13,9 +13,12 @@ SIK="$HOME/Applications/Sikarugir"
 APP="$SIK/Interstate 76.app"
 [ -d "$APP" ] || { echo "wrapper not found: $APP"; exit 1; }
 TMP="$(mktemp -d)"
+# Deployment target: without it swiftc stamps the BUILD Mac's macOS as the minimum, and the app will not open on an
+# older Mac (LaunchServices error -10825; found 2026-10-17: a stub built on macOS 26 refused macOS 15.5).
+SWIFT_TARGET="${SWIFT_TARGET:-$(uname -m)-apple-macos11.0}"
 
 # --- 1. main stub -> replaces the wrapper's executable (orig kept as Sikarugir.orig)
-swiftc -O -o "$TMP/main-stub" "$HERE/i76-launch-stub.swift"
+swiftc -O -target "$SWIFT_TARGET" -o "$TMP/main-stub" "$HERE/i76-launch-stub.swift"
 MACOS="$APP/Contents/MacOS"
 [ -f "$MACOS/Sikarugir.orig" ] || cp "$MACOS/Sikarugir" "$MACOS/Sikarugir.orig"
 cp "$TMP/main-stub" "$MACOS/Sikarugir"
@@ -45,7 +48,7 @@ ICON="$ICNS"
 make_app() { # $1=dir-name $2=bundle-id $3=swift-src $4=display-name
     B="$SIK/$1.app/Contents"
     mkdir -p "$B/MacOS" "$B/Resources"
-    swiftc -O -o "$B/MacOS/$1" "$HERE/$3"
+    swiftc -O -target "$SWIFT_TARGET" -o "$B/MacOS/$1" "$HERE/$3"
     [ -n "$ICON" ] && cp "$ICON" "$B/Resources/app.icns"
     cat > "$B/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
