@@ -123,6 +123,12 @@ class Recording(unittest.TestCase):
         lg.tick()
         self.assertFalse(lg.recording)
         self.assertEqual(lg.history[-1]["frames"], 200)
+        # a stop by hand under --log-auto holds until the player has gone (no immediate restart)
+        run_recording(lg, self.recs[200:210])
+        self.assertTrue(lg.recording)
+        lg.stop("button")
+        run_recording(lg, self.recs[210:220])
+        self.assertFalse(lg.recording)
 
     def test_lab_tools_read_it(self):
         if not os.path.exists(os.path.join(MEMTRACE, "owner_log.py")):

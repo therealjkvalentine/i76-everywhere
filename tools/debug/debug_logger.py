@@ -339,6 +339,8 @@ class PhysLogger:
         self.history = collections.deque(maxlen=20)                 # finished sessions (status)
         self.marks_total, self.note = 0, ""
         self.summary_state = ""
+        self.summary_thread = None
+        self.auto_hold = False        # a stop by hand under --log-auto: no new log until the player has gone (next mission)
         self.reader = SlowReader(self, pid=reader_pid, pid_hint=pid_hint) if reader else None
         self.cost_s, self.cost_n = 0.0, 0
         self.exe_md5_cache = {}
@@ -351,10 +353,14 @@ class PhysLogger:
         self.stop("dashboard closing")
         if self.reader:
             self.reader.stop_ev.set()
+        t = self.summary_thread
+        if t is not None and t.is_alive():                      # let the summary of the last log finish (up to 30 s)
+            t.join(30.0)
 
     # ---- control
     def start(self, label="", by="button"):
         with self.lock:
+            self.auto_hold = False
             if self.recording:
                 return False, "already recording %s" % self.sdir
             if self.rundir is None:
@@ -390,6 +396,8 @@ class PhysLogger:
             if not self.recording:
                 return False, "not recording"
             self.recording = False
+            if self.auto and self.last_frame is not None and self.last_frame["player_present"] and not why.startswith("auto"):
+                self.auto_hold = True
             for f in self.files.values():
                 f.close()
             self.files = {}
@@ -422,7 +430,8 @@ class PhysLogger:
                                  "missed": m["frames_missed"], "marks": m["marks"]})
             self.note = "stopped (%s): %s, %d frames, %d rows, %d missed" % (why, self.sdir, m["frames"], m["phys_rows"], m["frames_missed"])
             if self.summary:
-                threading.Thread(target=self.run_summary, args=(self.rundir,), daemon=True).start()
+                self.summary_thread = threading.Thread(target=self.run_summary, args=(self.rundir,), daemon=True)
+                self.summary_thread.start()
             return True, self.note
 
     def toggle(self, by="hotkey"):
@@ -489,8 +498,10 @@ class PhysLogger:
             present = bool(fr["player_present"])
             if present:
                 self.present_at = now
+            else:
+                self.auto_hold = False
             if not self.recording:
-                if self.auto and present:
+                if self.auto and present and not self.auto_hold:
                     self.start(by="auto")
                 else:
                     return
