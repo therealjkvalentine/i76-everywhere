@@ -208,6 +208,25 @@ turns about a quarter less than Gold" was the Arcade Phys. option, not code.
   **`setup\equip-weapon.ps1` broke (MoveTo-UI not loaded); found and fixed by the verifier (lab 391c18e)**.
 - pytest 241 -> 244 passed, 4 skipped (re-run by the verifier).
 
+### Added after the synthesis: placed 56 m/s T05 jumps, Gold vs retail sim (duplicate emu-t05-clean instance; not verified)
+A second instance of emu-t05-clean (started by accident when the coordinator relayed the Arcade finding) ran placed jumps
+that the synthesizer never saw. Data: lab `emu\results\t05jump56-summary.json` (lab ae5a2c9), scripts
+`emu\tools\par\scripts\ref-t05jump56-*`. Car placed on the canyon road at ~56 m/s, take-off x 6875 every run, placement
+error 1.7-8.7 m, arcade flag 0 in every retail run.
+
+| exe | n | foot m/s | air s | jump m | peak pitch deg | peak roll deg | wrecked |
+|---|---|---|---|---|---|---|---|
+| Gold P166 | 7 | 56.1 +- 1.2 | 5.2 +- 1.1 | 248 +- 48 | 80.1 +- 8.3 | 66.5 +- 30.1 | 3 |
+| retail 1.0 sim P166 | 7 | 55.2 +- 1.6 | 4.6 +- 0.5 | 228 +- 28 | 53.4 +- 17.6 | 47.2 +- 19.2 | 0 |
+
+- Pitch gap Welch t ~3.6; wrecks 3/7 vs 0/7, one-sided Fisher p 0.096 (suggestive only). Step p50 33.4 +- 2.8 (Gold) vs
+  30.2 +- 0.4 ms (retail).
+- **Caveat:** the Gold reps are in-session repeats; the ENVELOPE-RETAIL-REBASE verifier found that in-session placed jumps can
+  replay identical jumps (b3c325e), so the effective n may be smaller. The versions-and-physics workflow (2026-10-17)
+  re-measures this in its arcade-vs-sim and hardware-matrix lanes.
+- The owner's own 2026-10-15 evening playtest ran on the Gold-CD VM (`vm\pbs-p166g`, config and disk written 19:26); his
+  "too likely to flip nose down" matches the Gold column.
+
 ## Retracted (verifier: wrong or unsupported; not findings)
 - emu-t05-clean: "1-step frames 96 / 97 %" (97 / 98 %); "placed kills agree in direction with the crest descents" (they do not);
   "queue ran 3 VMs at once" (evidence shows at most 2; the queue fix stands).
