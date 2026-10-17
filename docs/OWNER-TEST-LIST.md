@@ -1453,4 +1453,10 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
   not given yet.
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
 - **Not run:** 03, 10 (daily driver smoke, items 1-2), 11 (item 51).
+- **Second-pass feedback, fixed the same evening** ([records/OWNER-FEEDBACK-FIXES-2026-10-17.md](records/OWNER-FEEDBACK-FIXES-2026-10-17.md)):
+  02 / 03 click through about twice as fast (retail T05 hand-over 108 -> 53 s guest, Gold melee 90 -> 35 s; n 1 each);
+  08 / 09 also start on the hill top after a Replay (the placement was once per process); the daily-driver pointer
+  offset is a scale error (pencil up to 242 px off the pointer at the sides, menus drawn 16:10), fixed on the twin
+  (pencil within 8 px). **Re-test:** 02, 08 with a Replay, and the new `12-cursor-fix.bat`, then say promote yes / no
+  (proposal and gate in the record).
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**

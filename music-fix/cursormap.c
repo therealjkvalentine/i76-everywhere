@@ -63,8 +63,9 @@ static HWND cm_window(void) {
     if (!g_cm_hwnd) g_cm_hwnd = FindWindowA(NULL, "Interstate '76 Gold Edition");
     return g_cm_hwnd;
 }
-/* UI unit -> screen pixel. on = 0: pass through untranslated (no window yet, or a real 640x480 client). */
-static CmMap cm_map(void) {
+/* UI unit -> screen pixel. on = 0: pass through untranslated (no window yet, or a real 640x480 client).
+   mode: 1 stretched over the client, 2 the 4:3 fit (ar). */
+static CmMap cm_map_mode(int mode) {
     CmMap m = { 1.0, 1.0, 0, 0, 0 };
     HWND h = cm_window(); RECT rc; POINT org = { 0, 0 };
     if (!h || !GetClientRect(h, &rc) || rc.right <= 0 || rc.bottom <= 0) return m;
@@ -81,7 +82,7 @@ static CmMap cm_map(void) {
     }
     m.kx = rc.right / 640.0; m.ky = rc.bottom / 480.0;
     m.ox = org.x; m.oy = org.y;
-    if (g_cm_mode == 2) {
+    if (mode == 2) {
         double k = m.kx < m.ky ? m.kx : m.ky;
         m.ox += (int)((rc.right - 640.0 * k) / 2.0); m.oy += (int)((rc.bottom - 480.0 * k) / 2.0);
         m.kx = m.ky = k;
@@ -89,6 +90,7 @@ static CmMap cm_map(void) {
     m.on = 1;
     return m;
 }
+static CmMap cm_map(void) { return cm_map_mode(g_cm_mode); }
 static LONG cm_clamp(LONG v, LONG hi) { return v < 0 ? 0 : (v > hi ? hi : v); }
 static void cm_to_ui(const CmMap *m, POINT *p) {
     p->x = cm_clamp((LONG)((p->x - m->ox) / m->kx + 0.5), 639);
@@ -190,6 +192,34 @@ static BOOL WINAPI cm_GetCursorInfo(PCURSORINFO ci) {
     if (ok && ci && !cm_pad_pos(&ci->ptScreenPos)) { CmMap m = cm_map(); if (m.on) cm_to_ui(&m, &ci->ptScreenPos); }
     return ok;
 }
+/* 2026-10-17 (owner: "the mouse pointer is shown a little to the right and maybe down of where the cursor appears to be
+ * in the game"): dgVoodoo draws its cursor in ITS picture of the 640x480 page. With the wide conf's ScalingMode
+ * stretched_ar that picture is the 4:3 fit of the client (once [DirectX] Resolution is a 4:3 mode; with 1680x1050 it
+ * was a 16:10 fit), while the game's own slots keep I76_CURSOR_MAP's stretched map (the in-mission Esc menu is drawn
+ * over the full-width Glide frame). Fed the stretched value, the pencil sat at 760 + 0.558 x instead of x on a
+ * 3440x1440 panel (measured: 0 at the centre, ~240 px towards the centre at the 12 % insets).
+ * I76_CURSOR_MAP_DGV=ar gives dgVoodoo's slots the 4:3 fit; =1 keeps the map's own mode (as before). */
+static int g_cm_dgv_mode;              /* 0 = as I76_CURSOR_MAP, 2 = ar */
+static BOOL WINAPI cm_GetCursorPos_dgv(LPPOINT p) {
+    BOOL ok = p_cm_GetCursorPos(p);
+    if (ok && p) {
+        CmMap m;
+        if (cm_pad_pos(p)) return ok;                   /* the pad owns the pointer (padmenu.c) */
+        m = cm_map_mode(g_cm_dgv_mode ? g_cm_dgv_mode : g_cm_mode);
+        if (m.on) cm_to_ui(&m, p);
+    }
+    return ok;
+}
+static BOOL WINAPI cm_GetCursorInfo_dgv(PCURSORINFO ci) {
+    BOOL ok = p_cm_GetCursorInfo(ci);
+    if (ok && ci) {
+        CmMap m;
+        if (cm_pad_pos(&ci->ptScreenPos)) return ok;
+        m = cm_map_mode(g_cm_dgv_mode ? g_cm_dgv_mode : g_cm_mode);
+        if (m.on) cm_to_ui(&m, &ci->ptScreenPos);
+    }
+    return ok;
+}
 static int cm_swap_ptrs(HMODULE mod) {
     BYTE *base = (BYTE *)mod; IMAGE_NT_HEADERS *nt; IMAGE_SECTION_HEADER *s; int i, n = 0;
     if (!mod) return 0;
@@ -199,8 +229,8 @@ static int cm_swap_ptrs(HMODULE mod) {
         DWORD_PTR *p = (DWORD_PTR *)(base + s->VirtualAddress), *e = (DWORD_PTR *)(base + s->VirtualAddress + (s->Misc.VirtualSize & ~3u));
         for (; p < e; p++) {
             void *to = NULL;
-            if (*p == (DWORD_PTR)p_cm_GetCursorPos) to = (void *)cm_GetCursorPos;
-            else if (*p == (DWORD_PTR)p_cm_GetCursorInfo) to = (void *)cm_GetCursorInfo;
+            if (*p == (DWORD_PTR)p_cm_GetCursorPos) to = (void *)cm_GetCursorPos_dgv;
+            else if (*p == (DWORD_PTR)p_cm_GetCursorInfo) to = (void *)cm_GetCursorInfo_dgv;
             if (to) { DWORD op; if (VirtualProtect(p, sizeof *p, PAGE_READWRITE, &op)) { *p = (DWORD_PTR)to; VirtualProtect(p, sizeof *p, op, &op); n++; } }
         }
     }
@@ -251,12 +281,14 @@ static void apply_cursor_map(void) {
     }
     p_cm_GetCursorInfo = (BOOL (WINAPI *)(PCURSORINFO))GetProcAddress(GetModuleHandleA("user32.dll"), "GetCursorInfo");
     {
-        if (env_flag("I76_CURSOR_MAP_DGV", 4, 0) == 1) {
+        char c[4];
+        if (env_str("I76_CURSOR_MAP_DGV", c, sizeof(c)) && (c[0] == '1' || lstrcmpiA(c, "ar") == 0)) {
             HANDLE th;
-            g_cm_dgv = 1;
+            g_cm_dgv = 1; g_cm_dgv_mode = lstrcmpiA(c, "ar") == 0 ? 2 : 0;
             th = CreateThread(NULL, 0, cm_dgv_thread, NULL, 0, NULL);
             if (th) CloseHandle(th);
-            mlog("  cursor-map: dgVoodoo cursor (I76_CURSOR_MAP_DGV): scanning ddraw.dll / glide2x.dll for 120 s and when ZGLIDE loads");
+            mlog("  cursor-map: dgVoodoo cursor (I76_CURSOR_MAP_DGV=%s: %s): scanning ddraw.dll / glide2x.dll for 120 s and when ZGLIDE loads",
+                 c, g_cm_dgv_mode == 2 ? "4:3 fit" : "as the map");
         }
     }
     mlog("  cursor-map: on (%s: the 640x480 UI %s the game window's client rect)",

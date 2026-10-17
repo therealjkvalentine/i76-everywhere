@@ -7155,20 +7155,29 @@ static void sign_sweep(void) {
  * START POSITION  (I76_START_POS=x,y,z,yaw_deg[,delay_s]; needs I76_MISSION; off by default)
  * ===========================================================================
  * Owner request 2026-10-12: start T05 at the top of the hill before the barricades, standing still, facing down the
- * road (lab docs/COLL-TIMING-2026-10-12.md s.2). Once per game process, when the local player's vehicle has been live
+ * road (lab docs/COLL-TIMING-2026-10-12.md s.2). At every start of that mission, when the local player's vehicle has been live
  * in a mission (0x4c2164 == 5, tel_player) for delay_s (default 1.0) of wall time, the frame hook - top of the frame,
  * before simclock and the tick, where the trainer's TELEPORT runs - writes for 0.3 s: the rotation rows right / up /
  * forward at obj+0x18 for a yaw about +y (yaw 0 = facing +z, 90 = +x, -90 = -x; the write rate-ab-live.py face()
- * makes), the position doubles at obj+0x40, and zero velocity (ent+0xbc) and body rates (ent+0xc8): the trainer's
- * TELEPORT + STOP held. Then the car is released and drops onto the ground (give y as the ground height + 0.5).
+ * makes), the position doubles at obj+0x40, and zero velocity (ent+0xbc), body rates (ent+0xc8) and speed / 1/speed
+ * (ent+0xac / +0xb0): the trainer's TELEPORT + STOP held. Then the car is released and drops onto the ground (give y as
+ * the ground height + 0.5). 2026-10-17: the speed is now held at 0 too (the player is placed at 25 m/s: T05's opening
+ * drives it). That alone does not keep the car on the mark: 1 s after the release it still reads ~10.7 m/s, turned,
+ * 5 m off and ~16 m off after 3 s (lab twin, n 2; 86 of 88 earlier read-backs said MOVED AWAY at ~13 m/s). Open:
+ * the T05 opening sequence still driving the player when the hold ends is the suspect, not yet measured.
  * The pose is read back and logged 1 s later. I76_RENDER_INTERP sees the jump (> 8 m) and resets its history.
- * Mission scripts keyed to the normal route are not re-run. A retry from the in-mission menu starts at the stock spawn
- * (once per process, so another mission picked later is never moved). */
+ * Mission scripts keyed to the normal route are not re-run. 2026-10-17 (owner: "08 does not teleport"): it was once per
+ * process, so Replay from the in-mission menu started at the stock spawn. Now it re-arms when a new mission load is
+ * seen - simclock_Init zeroes simclock_frame_count 0x5a7e1c at the top of every mission, and this hook runs before
+ * simclock_Update, so the count drops - and the loaded name 0x5049f0 is still I76_MISSION. With I76_MISSION the shell
+ * is skipped (0x504c10), and every mission end except Replay exits the game, so only a replay of the same mission
+ * can follow; the name check guards the rest. The Esc menu does not reload (0x4fe534 = 0x10, state stays 5). */
 static double g_start_p[3];
 static float g_start_yaw, g_start_delay = 1.0f;
 static int g_start_state;                                    /* 0 waiting, 1 holding, 2 released, 3 done */
-static DWORD g_start_t0, g_start_until;
+static DWORD g_start_t0, g_start_until, g_start_fc, g_start_n;
 static BYTE *g_start_obj;
+static char g_start_mission[32];
 static void start_pos_inner(void) {
     BYTE *ent = 0, *obj = 0;
     DWORD now = GetTickCount();
@@ -7177,10 +7186,11 @@ static void start_pos_inner(void) {
         if (!obj) { g_start_t0 = 0; return; }
         if (!g_start_t0) { g_start_t0 = now ? now : 1; return; }
         if (now - g_start_t0 < (DWORD)(g_start_delay * 1000.0f)) return;
-        g_start_state = 1; g_start_obj = obj; g_start_until = now + 300;
-        mlog("  start-pos: placing the player (obj %p) at (%.1f, %.1f, %.1f) yaw %.1f, frame %lu, was at (%.1f, %.1f, %.1f)",
+        g_start_state = 1; g_start_obj = obj; g_start_until = now + 300; g_start_n++;
+        mlog("  start-pos: placing the player (obj %p) at (%.1f, %.1f, %.1f) yaw %.1f, frame %lu, was at (%.1f, %.1f, %.1f) speed %.2f m/s, placement %lu",
              (void *)obj, g_start_p[0], g_start_p[1], g_start_p[2], g_start_yaw, (unsigned long)g_frame,
-             *(double *)(obj + 0x40), *(double *)(obj + 0x48), *(double *)(obj + 0x50));
+             *(double *)(obj + 0x40), *(double *)(obj + 0x48), *(double *)(obj + 0x50), *(float *)(ent + 0xac),
+             (unsigned long)g_start_n);
     }
     if (g_start_state == 1 || g_start_state == 2) {
         if (obj != g_start_obj) { mlog("  start-pos: the player changed during the placement - stopped"); g_start_state = 3; return; }
@@ -7194,6 +7204,7 @@ static void start_pos_inner(void) {
         memcpy(obj + 0x18, r, sizeof r);
         memcpy(obj + 0x40, g_start_p, sizeof g_start_p);
         memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12);
+        *(float *)(ent + 0xac) = 0.0f; *(float *)(ent + 0xb0) = 0.0f;   /* the speed too, as the trainer's STOP */
         if ((LONG)(now - g_start_until) >= 0) { g_start_state = 2; g_start_until = now + 1000; }
     } else if (g_start_state == 2 && (LONG)(now - g_start_until) >= 0) {
         double dx = *(double *)(obj + 0x40) - g_start_p[0], dz = *(double *)(obj + 0x50) - g_start_p[2];
@@ -7206,6 +7217,19 @@ static void start_pos_inner(void) {
     }
 }
 static void start_pos_frame(void) {
+    DWORD fc = *(volatile DWORD *)0x005a7e1c;               /* simclock_frame_count: zeroed by simclock_Init per mission */
+    int reload = fc < g_start_fc;
+    g_start_fc = fc;
+    if (reload) {
+        if (lstrcmpiA((const char *)0x005049f0, g_start_mission) == 0) {
+            if (g_start_state != 0) mlog("  start-pos: mission '%s' loaded again (Replay) - armed again", g_start_mission);
+            g_start_state = 0; g_start_t0 = 0; g_start_obj = 0;
+        } else if (g_start_state < 4) {
+            mlog("  start-pos: another mission loaded ('%.15s', not '%s') - off for the rest of the process",
+                 (const char *)0x005049f0, g_start_mission);
+            g_start_state = 4;
+        }
+    }
     if (g_start_state >= 3) return;
 #ifdef _MSC_VER
     __try { start_pos_inner(); }
@@ -7221,7 +7245,8 @@ static void apply_start_pos(void) {
     DWORD k = GetEnvironmentVariableA("I76_START_POS", v, sizeof(v));
     if (k == 0) return;
     if (k >= sizeof(v)) { mlog("  start-pos: I76_START_POS too long - not applied"); return; }
-    if (GetEnvironmentVariableA("I76_MISSION", NULL, 0) == 0) { mlog("  start-pos: needs I76_MISSION (the mission it belongs to) - not applied"); return; }
+    if (GetEnvironmentVariableA("I76_MISSION", g_start_mission, sizeof(g_start_mission)) == 0) { mlog("  start-pos: needs I76_MISSION (the mission it belongs to) - not applied"); return; }
+    g_start_mission[15] = 0;                                 /* the exe holds 16 bytes at 0x5049f0 (lstrcpynA in mission-launch) */
     for (p = v; n < 5 && *p; ) {
         f[n++] = atof(p);
         while (*p && *p != ',') p++;
@@ -7232,7 +7257,7 @@ static void apply_start_pos(void) {
     if (n == 5 && f[4] >= 0.0 && f[4] <= 60.0) g_start_delay = (float)f[4];
     install_frame_hook();
     g_start_on = g_frame_hook != 0;
-    mlog("  start-pos: %s - (%.1f, %.1f, %.1f) yaw %.1f deg, %.1f s after the player is live in the mission, once",
+    mlog("  start-pos: %s - (%.1f, %.1f, %.1f) yaw %.1f deg, %.1f s after the player is live in the mission, at every start of it (also Replay), speed held 0",
          g_start_on ? "armed" : "NOT armed (frame hook missing)", f[0], f[1], f[2], f[3], g_start_delay);
 }
 
