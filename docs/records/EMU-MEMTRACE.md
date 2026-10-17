@@ -22,6 +22,19 @@ decision). It runs with the owner's ripped discs. The GOG-built Gold CD exe is k
 
 ## Summary
 
+> **Correction (2026-10-16 night): every retail 1.0 number below the address maps was measured in ARCADE physics.**
+> The retail scripts copied the Gold-layout I76PLYR.DEF into the retail folder. Retail read its option flags from
+> Gold bytes `01 00 00 00`: Arcade Phys. on. Player entity flag 0x10000 was set on every retail frame (T05 run 180103:
+> 13,638 / 13,638; melee loop 185645: 13,703 / 13,703), and on no Gold frame. Gold numbers stay valid.
+> Re-measured with a retail-layout file (option flags 0, flag 0x10000 on 0 frames in all 11 runs),
+> EMU-T05-CLEAN.md:
+> - **steady yaw, simulation physics:** retail 1.28 / 1.30 rad/s (n 8) vs Gold 1.34 / 1.41 (n 4), arcade retail
+>   0.94 / 0.97 (n 4). The "Gold turns 45 % faster" finding was arcade mode; the remaining gap is 5-8 %.
+> - **accel / brake unchanged:** t10 / t20 / t30 1.06 / 2.76 / 5.65 s, brake 84 m (sim, n 8).
+> - **T05 from a repaired crest start:** retail sim n 9: foot speed 55.1 +- 1.8 m/s, jump 154 +- 48 m, 1 car
+>   destroyed (fell short, inverted, CheckImpact rollover kill); Gold n 6: 56.9 +- 1.4 m/s, 191 +- 36 m, 0
+>   destroyed. Arcade flips an inverted car upright instead, which is why no retail car was destroyed before.
+
 - **Address maps.**
   - **Ours -> Gold CD exe:** high confidence. Same link, and every physics function is byte-identical.
   - **Gold -> retail 1.0:** matched function by function and validated live: g = 9.800, speed = |velocity|, parked
@@ -357,8 +370,8 @@ Clips are in lab `emu\results\writeup\video\`:
 
 ## 7. What the lab replay needs next
 
-1. **A damage-free T05 start at the crest.** Save a retail bookmark there (or play to there once), so the descents
-   compare the exes and the lab, not the approach. Then n >= 5 descents per exe, in a loop.
+1. **A damage-free T05 start at the crest.** Done 2026-10-16 (EMU-T05-CLEAN.md): I76DRV `place` + `repair` at the
+   lab's crest start, retail sim n 9, Gold n 6. Still open: more retail n for the destruction rate (1 / 9).
 2. **A frame-dt replay mode in the proxy.** Feed the logged per-frame `sim_dt` (whole ms, from `mem.frames.csv`) and
    the applied steer / throttle per frame, so the lab twin steps through the same dt sequence.
 3. **The same start state.** Position, rotation, velocity and rates from the trace's first frame of a phase. This is
