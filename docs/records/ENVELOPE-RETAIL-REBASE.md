@@ -49,6 +49,10 @@ and ran the fingerprint compare on our exe at those profiles.
     - `seqt05nc` (the same with the collision-window and barricade switches off): 3 / 18 (p 0.04);
     - `seqpool`: 2 / 33, 1 destroyed;
     - retail: 0 / 7 (p 0.30 / 0.53: retail's n is too small to call).
+    - *(verify 2026-10-17: the jumps are not independent. Every boot replays the list from index 0, and boots repeat:
+      `t05p-seqt05-r1` and `-r2` flew the same six take-offs (to 0.05 m/s) with the same two turn-overs, `-r3` and `-r4`
+      the same two jumps with the same destroyed car. The 6 turn-overs are 4 distinct trajectories. Per boot it is
+      5 / 7 boots with a turn-over vs env30's 0 / 7, Fisher p 0.02, not 0.004. The direction stands; the p is overstated.)*
     - Fixed steps did not turn over: 0 / 33 at 30 ms, 0 / 27 at 32 ms.
     - Reading: the long steps in the list (p95 39-42 ms, up to 50) land on the touch-down at random. Retail's long
       steps come with what is on screen, so they need not fall there. ERA-ENVELOPE showed turn-over grows with the step.
@@ -63,6 +67,9 @@ and ran the fingerprint compare on our exe at those profiles.
   listed step size.
   - Under a step list, the fingerprint's `g` row reads 9.77-9.78 (FAIL, -0.2 %). That is the metric: it measures slope
     against frame time, while the physics clock runs on the list.
+  - *(verify: the bisect profiles without `I76_HIRES_CLOCK` (fs31bare / edt / hull / interp) read 9.52 (FAIL, -2.9 %).
+    Also the metric: in `t05p-fs31bare-r1` the per-step vy change in flight is -0.314 m/s = 9.8 x 32 ms on 438 of 442
+    steps (the other 4 are double steps).)*
 - **Candidate decision: unchanged (fixed 30 ms).** Owner test 42 keeps its launcher. The reasoning changes (section 5):
   - 30 ms is not retail's step in any context. It sits inside retail's range everywhere (T05 p5-p95 22-38 ms).
   - The profiles that match retail's step distribution make the T05 landing worse.
@@ -97,7 +104,8 @@ and ran the fingerprint compare on our exe at those profiles.
   - `t05`: 3 descents + 3 placed 56 m/s jumps;
   - `t05p`: 6 placed; `t05d`: 6 descents.
 - **Check of the headless path:** headless env30 on the strip gave t20 2.75-2.77 s, d10 254 m and yaw 0.795. Console
-  env30 (2026-10-15) gave 2.76 s, 254.6 m and 0.79.
+  env30 (2026-10-15) gave 2.76 s, 254.6 m and 0.79. *(verify: the console yaw is bimodal. Runs 2 and 4 put the window
+  at 27.8 m/s and read 0.793 / 0.794. Runs 1 and 3 put it at 15 m/s and read 1.00. Headless matches the 27.8 m/s runs.)*
 
 ## 2. Pacing
 
@@ -133,7 +141,8 @@ Measured, our exe (main campaign, n 3 boots per profile):
 - env30: 30.00 on every row. It fails p5 and p95 everywhere, and p50 on the strip (-3.0 ms, tolerance 0.5).
 
 **Caveat (n 11).** With the 8 extra descent-only and placed-only boots added, seqt05's T05 p50 reads 32.36 and fails
-(tolerance 0.85). Every boot starts the list at index 0, so a short boot replays only the start of it. Next build: a
+(tolerance 0.85). *(verify: the mean (31.90 vs 30.93, tol 0.80) and steps/s (31.35 vs 32.36, tol 0.85) fail too, so
+it is 2 / 5 at n 11, `results\compare\compare-t05-seqt05.md`.)* Every boot starts the list at index 0, so a short boot replays only the start of it. Next build: a
 per-boot random `I76_STEP_SEQ_START`.
 
 ## 3. Handling (the T06 strip, n 3 boots per profile; the fingerprint's `t06strip` rows)
@@ -171,11 +180,11 @@ per-boot random `I76_STEP_SEQ_START`.
   55 m/s (OUT in every profile). Only the lab-vs-lab differences mean anything there. Turn-over: seqpool 3 / 28 vs env30
   0 / 33 (p 0.09).
 - **Missing jumps:** a destroyed car ends the mission, so the later phases of that boot have 0 frames. seqt05 placed
-  lost 6 jumps that way and seqpool's descents lost 4. Rates count only the jumps flown.
+  lost 8 jumps that way (33 planned, 25 flown) and seqpool's descents lost 5 (33 planned, 28 flown). Rates count only the jumps flown.
 - **Take-off speed (clean jumps)** goes with the step and the switches:
   - 30 ms: 50.1;
   - 32 ms, fixed step alone: 51.4;
-  - 32 ms with the frame-rate fixes: 52.2-53.4;
+  - 32 ms with the frame-rate fixes: 52.1-53.4;
   - stock at 31.3 fps: 51.4;
   - retail: 51.6.
 
@@ -199,6 +208,10 @@ per-boot random `I76_STEP_SEQ_START`.
 - Not separated: `I76_FRAMERATE_FIXES` from `I76_HIRES_CLOCK`, or which of the frame-rate fixes it is. The player-side
   parts are the throttle-up / throttle-down ramps, and the hazard and per-frame sub-fixes.
 - Not 120 fps decoupling: `fs31cap` steps once per frame and still fails.
+- *(verify: 17 of the 19 failures are the same jump to the printed digit, take-off 47.72 m/s / vy -0.63, in six
+  profiles (the other 2: 47.69-47.70 / -0.31); the clean jumps also fall on a few repeated values (53.42 / 48.24 / 50.28). The placement lands on a few
+  discrete states, so the jumps are not independent trials and Fisher p 0.0002 overstates. Which state comes up varies
+  by jump slot and boot.)*
 - The failing jumps leave the centre line on the ramp: by 8.0-10 m before the lip (n 23 by a 'lands below y 5 short of x 6800' rule). Clean ones: p95 3.4 m, max 9.3 (n 295). So the drift is necessary, but it is not enough to explain the failures.
 - **It bears on `TEST-p166-retail-step.bat`** (31.75 ms with the frame-rate fixes, owner test 44). That launcher was not
   measured. Owner check below.
