@@ -248,6 +248,63 @@ block at the end) and relaunch. Before tuning the game, check the TV chain, whic
 5. **Handheld again** (undocked): unchanged - fills the panel, same brightness, the stick also moves the menu pointer now.
 6. Send `~/Games/Interstate76/deck-launch.log` and `game/mciproxy.log` (the `display:` and `pad-menu:` lines).
 
+## Rumble silent, menu pointer "a little off" (owner, 2026-10-16)
+
+Owner, after pad menu v3: *"rumble does not work"*, *"the mouse pointer coordinates are a little off"* (and once the
+sound went out; not chased until it repeats). **The Deck was offline for this pass** (`steamdeck.local` does not
+resolve; tailscale node `steamdeck` last seen 145 days ago), so no log of a v3 session was read. The newest evidence is
+`C:\Users\james\i76-deck-captures\20261014-201217` (saved before v3 was deployed): proxy `2f2b8170` (v2), TV session
+`screen=1280x720 external=DP-1 3840x2160`, `I76_ASPECT=1280x720`, dgVoodoo `[Glide] Resolution 1280x720`,
+`ScalingMode = stretched`, `FullscreenAttributes = fake`, `CaptureMouse = false`; `profile pad`, AHK started; 3 XInput
+pads connected; no `cursor-map: client` lines because `I76_CURSOR_LOG` was never set on the Deck. No audio, DirectSound
+or Wine error lines in that session's logs.
+
+**1. Rumble: found from the code, fixed by config (not deployed: Deck offline).** On the Deck the only rumble source is
+the pad layer (`i76-remap.ahk`, started by the launcher in the game's prefix). Its mixer (nitrous kick, handbrake thud,
+gear click, mine thud, ignition crank, fire buzz, engine growl) has been **gated off since 2026-07-19**
+(`gShimOwnsRumble := true`) because on the Mac the ffb-shim (`ffb-shim/`, a replacement `i7_sfrce.dll`) drives the motor
+from the game's own FFB stream. **No Deck script installs the shim** (setup-deck-wide / -pad / -tv / -baseline,
+deck-install.sh: none touch `i7_sfrce.dll`), and the stock `i7_sfrce.dll` speaks only DirectInput force feedback
+(FFB-DEEP-DIVE.md), which Proton offers for FFB wheels; for the rumble-only Steam Input pad it is not expected to find a
+device (inference, not observed on the Deck). So nothing on the Deck ever called `XInputSetState`. (The pad menu thread in the proxy only reads XInput; it never writes vibration.) Fix:
+
+- `i76-remap.ahk`: `I76_AHK_RUMBLE` = `1` (the layer drives the pad it reads), `all` (every connected pad: docked, the
+  Deck's own controller and a TV pad), `0` (the shim owns it). Unset = as before, so Windows and Mac are unchanged.
+  Parse-checked with AutoHotkeyU32 `/iLib NUL` (exit 0).
+- `i76-deck-launch.sh`: `I76_AHK_RUMBLE=auto` picks `0` when the game folder's `i7_sfrce.dll` is the shim (it carries the
+  string `ffb-state`), else `all` when an external display is connected, else `1`; it logs a `rumble:` line with the
+  DLL's md5 and verdict, and `i7_sfrce.dll` joins the `md5` audit lines. Dry-run with fake folders: stock -> `1`, shim
+  -> `0`, override `all` kept.
+- The richer path (the ffb-shim on the Deck: slip, impacts, terrain from the game's real force block) needs a mingw
+  build (`ffb-shim/build.sh`; this PC has no mingw) and is a separate step once the AHK rumble is confirmed to reach
+  the Deck's motors (`XInputSetState` from a Proton prefix to the Deck's haptics is still unverified on this setup:
+  DECK-BASELINE.md "Rumble - the headline unknown").
+
+**2. Pointer "a little off": cause not yet measured; instrumentation prepared.** What the code says (v3, proxy
+`8bc52939`): while the stick drives, the game hit-tests the pad's own position (640x480 UI units) and the OS pointer
+is warped to `client origin + ui * (client / 640x480)` for the arrow; the arrow on the Deck is the OS pointer (2026-10-07:
+the fault then was the game acting *away from* the arrow, i.e. the arrow sat at the OS pointer). Pencil.cur's hotspot is
+(0,0) at the tip (decoded from the file), so a hotspot shift is ruled out. A *constant* scale error is ruled out for the
+proxy itself: the map is recomputed from the live client rect on every call (1280x800 -> x2 / x1.667, 1280x720 -> x2 /
+x1.5). What remains, and what each looks like:
+
+| candidate | signature | read in |
+|---|---|---|
+| the window whose client rect the map uses is not where the picture is (Wine window smaller / offset on the gamescope X screen, or a second shell window) | offset ~0 at one spot, growing toward the edges | `xprobe` lines vs `cursor-map: client WxH at (x,y)` |
+| arrow warps that do not land under gamescope (the game uses the pad position, the arrow stays where it was) | arrow lags or sits still while buttons light elsewhere | `pad-menu: warp ... not landed` + the totals on every on/off line |
+| the pad layer clicks on A *release* (AHK `Click` then Enter), the proxy logs A at press | only if the stick still moves while A is held | `pad-menu: A:` lines |
+| Enter after the click activates the shell's keyboard-highlighted button, not the one under the pointer | the "wrong" button is always the last highlighted one | owner observation |
+
+Prepared (same deploy): `I76_CURSOR_LOG=1` (client rect, window rect and the first 40 pointer translations in
+mciproxy.log) and the launcher's `xprobe` (`I76_DECK_XPROBE=1`): at +25 s and +70 s it lists the mapped X windows of the
+game's display with size, root position and name, plus the X screen size and the X pointer, in deck-launch.log. Neither
+changes behaviour. The fix follows from the first such session.
+
+**Deploy (when the Deck is on the network):** from the PC `bash deck/deck-push-tv.sh` (refuses while i76.exe runs, saves
+the last session's logs + conf + `game-files.txt` (i7_sfrce / Strlkup md5s) to `i76-deck-captures/<ts>` first, backs up
+`Strlkup.dll`, `dgVoodoo.conf`, `i76-env.sh`, the launcher and `ahk/i76-remap.ahk` to `backups/pre-tv-<ts>/` with a
+NOTE). The proxy stays `8bc52939`. Owner test 43.
+
 ## Controller layout (installed as a template — apply once)
 
 Every I76 control is mapped to a Deck input in the conventional driving/vehicular-combat idiom.

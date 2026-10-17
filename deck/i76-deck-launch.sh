@@ -97,7 +97,7 @@ external_display() {   # "<connector> <preferred mode>" of a connected HDMI / DP
     done
 }
 for f in "$GAMEDIR_D"/*; do    # which proxy / shell / exe this launch runs (any case: GOG writes some upper case)
-    case "$(basename "$f" | tr 'A-Z' 'a-z')" in strlkup.dll|i76shell.dll|i76.exe|glide2x.dll|zglide.dll|ddraw.dll) log "md5 $(md5sum "$f" 2>/dev/null)" ;; esac
+    case "$(basename "$f" | tr 'A-Z' 'a-z')" in strlkup.dll|i76shell.dll|i76.exe|glide2x.dll|zglide.dll|ddraw.dll|i7_sfrce.dll) log "md5 $(md5sum "$f" 2>/dev/null)" ;; esac
 done
 if [ "$DISP_PROFILE" != off ]; then
     SCR="$(screen_size)"; EXT="$(external_display)"
@@ -234,6 +234,95 @@ else
     log "profile ${I76_PROFILE:-pad}: $MAPSRC missing - input.map left as it is"
 fi
 
+# --- rumble (2026-10-16) --------------------------------------------------------
+# Owner: "rumble does not work". The shared pad layer ships with its vibration writes OFF (gShimOwnsRumble:
+# on the Mac the ffb-shim, a replacement i7_sfrce.dll, drives the motors from the game's FFB stream). No Deck
+# script installs that shim, and the stock i7_sfrce.dll only talks DirectInput FFB, which Proton offers for
+# FFB wheels, not for the Steam Input pad - so nothing ever wrote XInput vibration on the Deck. Here: the pad
+# layer owns the motor unless the shim is in the game folder (its DLL carries the string "ffb-state").
+# I76_AHK_RUMBLE = auto (default) | 1 (the pad the layer reads) | all (every connected pad) | 0 (off / shim)
+SFRCE=""
+for f in "$GAMEDIR_W"/*; do case "$(basename "$f" | tr 'A-Z' 'a-z')" in i7_sfrce.dll) SFRCE="$f" ;; esac; done
+RUM="${I76_AHK_RUMBLE:-auto}"
+if [ "$RUM" = auto ]; then
+    if [ -n "$SFRCE" ] && grep -qa "ffb-state" "$SFRCE" 2>/dev/null; then RUM=0
+    elif [ -n "${EXT:-}" ]; then RUM=all     # docked: the Deck and a TV pad may both be connected
+    else RUM=1; fi
+fi
+export I76_AHK_RUMBLE="$RUM"
+if [ -n "$SFRCE" ]; then
+    SFD="$(basename "$SFRCE") $(md5sum "$SFRCE" | cut -c1-8)"
+    if grep -qa "ffb-state" "$SFRCE"; then SFD="$SFD = the ffb-shim"; else SFD="$SFD = not the shim (stock: DirectInput FFB only)"; fi
+else
+    SFD="none"
+fi
+log "rumble: I76_AHK_RUMBLE=$RUM (i7_sfrce.dll: $SFD; pad layer ${I76_DECK_AHK:-1}, payload in the game prefix's C:\\AutoHotkey)"
+
+# --- X window probe (2026-10-16, owner: "the mouse pointer coordinates are a little off") -----------------
+# Where the game's X windows really sit on the X screen gamescope gives it, and where the X pointer is, read
+# twice after start (shell up). Compare with mciproxy.log's "cursor-map: client WxH at (x,y)" (I76_CURSOR_LOG=1):
+# a window that does not cover the screen, or a client rect that differs from the window the picture is in,
+# shifts the pointer by a scale + offset that is zero near one spot and grows toward the edges.
+xprobe() {
+    command -v python3 >/dev/null 2>&1 || { log "xprobe: no python3"; return 0; }
+    timeout 10 python3 - "$1" >>"$LOG" 2>&1 <<'PY' || log "xprobe: failed"
+import ctypes, sys
+from ctypes import c_int, c_uint, c_long, c_ulong, c_void_p, c_char_p, POINTER, byref
+tag = sys.argv[1]
+try:
+    x = ctypes.CDLL("libX11.so.6")
+except OSError:
+    print("[i76-launch] xprobe %s: no libX11" % tag); sys.exit(0)
+x.XOpenDisplay.restype = c_void_p; x.XOpenDisplay.argtypes = [c_char_p]
+d = x.XOpenDisplay(None)
+if not d:
+    print("[i76-launch] xprobe %s: cannot open the display" % tag); sys.exit(0)
+d = c_void_p(d)
+x.XDefaultRootWindow.restype = c_ulong; x.XDefaultRootWindow.argtypes = [c_void_p]
+x.XDisplayWidth.argtypes = [c_void_p, c_int]; x.XDisplayHeight.argtypes = [c_void_p, c_int]
+class XWA(ctypes.Structure):
+    _fields_ = [("x", c_int), ("y", c_int), ("width", c_int), ("height", c_int), ("border_width", c_int),
+                ("depth", c_int), ("visual", c_void_p), ("root", c_ulong), ("c_class", c_int),
+                ("bit_gravity", c_int), ("win_gravity", c_int), ("backing_store", c_int),
+                ("backing_planes", c_ulong), ("backing_pixel", c_ulong), ("save_under", c_int),
+                ("colormap", c_ulong), ("map_installed", c_int), ("map_state", c_int),
+                ("all_event_masks", c_long), ("your_event_mask", c_long), ("do_not_propagate_mask", c_long),
+                ("override_redirect", c_int), ("screen", c_void_p)]
+x.XGetWindowAttributes.argtypes = [c_void_p, c_ulong, POINTER(XWA)]
+x.XQueryTree.argtypes = [c_void_p, c_ulong, POINTER(c_ulong), POINTER(c_ulong), POINTER(POINTER(c_ulong)), POINTER(c_uint)]
+x.XFetchName.argtypes = [c_void_p, c_ulong, POINTER(c_char_p)]
+x.XTranslateCoordinates.argtypes = [c_void_p, c_ulong, c_ulong, c_int, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_ulong)]
+x.XQueryPointer.argtypes = [c_void_p, c_ulong, POINTER(c_ulong), POINTER(c_ulong), POINTER(c_int), POINTER(c_int),
+                            POINTER(c_int), POINTER(c_int), POINTER(c_uint)]
+root = x.XDefaultRootWindow(d)
+rr, ch = c_ulong(), c_ulong(); rx, ry, wx, wy = c_int(), c_int(), c_int(), c_int(); mask = c_uint()
+x.XQueryPointer(d, root, byref(rr), byref(ch), byref(rx), byref(ry), byref(wx), byref(wy), byref(mask))
+print("[i76-launch] xprobe %s: screen %dx%d, X pointer at (%d,%d)" % (tag, x.XDisplayWidth(d, 0), x.XDisplayHeight(d, 0), rx.value, ry.value))
+out = []
+def walk(w, depth):
+    r, p = c_ulong(), c_ulong(); kids = POINTER(c_ulong)(); n = c_uint()
+    if not x.XQueryTree(d, w, byref(r), byref(p), byref(kids), byref(n)):
+        return
+    for i in range(n.value):
+        k = kids[i]; a = XWA()
+        if not x.XGetWindowAttributes(d, k, byref(a)):
+            continue
+        if a.map_state == 2 and a.width >= 200 and a.height >= 150:
+            tx, ty, cw = c_int(), c_int(), c_ulong()
+            x.XTranslateCoordinates(d, k, root, 0, 0, byref(tx), byref(ty), byref(cw))
+            nm = c_char_p()
+            x.XFetchName(d, k, byref(nm))
+            name = nm.value.decode("latin-1", "replace") if nm.value else ""
+            out.append("%s%dx%d at (%d,%d)%s%s" % ("  " * depth, a.width, a.height, tx.value, ty.value,
+                       " override-redirect" if a.override_redirect else "", (" '%s'" % name) if name else ""))
+        if depth < 3 and len(out) < 24:
+            walk(k, depth + 1)
+walk(root, 0)
+for line in out[:24]:
+    print("[i76-launch] xprobe %s:   %s" % (tag, line))
+PY
+}
+
 # --- locate Proton in the expanded %command% -------------------------------
 PROTON=""
 for a in "$@"; do
@@ -264,6 +353,9 @@ fi
 "$@" &
 GAME_PID=$!
 log "game pid $GAME_PID"
+if [ "${I76_DECK_XPROBE:-1}" != 0 ]; then
+    ( for t in 25 70; do sleep "$((t == 25 ? 25 : 45))"; kill -0 "$GAME_PID" 2>/dev/null || exit 0; xprobe "+${t}s"; done ) &
+fi
 
 AHK_PID=""
 cleanup() {

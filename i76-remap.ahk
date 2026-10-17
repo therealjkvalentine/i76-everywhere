@@ -231,6 +231,17 @@ gTL := 0, gTR := 0, gTTicks := 0, gGrowl := 0
 ; vibration WRITE is gated. Set gShimOwnsRumble := false to hand rumble back
 ; to this layer (e.g. on a platform where the shim isn't installed).
 gShimOwnsRumble := true
+; I76_AHK_RUMBLE (2026-10-16, Steam Deck owner: "rumble does not work"): the Deck has no ffb-shim (no Deck
+; script installs it; the stock i7_sfrce.dll finds no DirectInput FFB device under Proton), so with the gate
+; above nothing ever wrote XInput vibration there. The Deck launcher sets it per launch: 1 = this layer owns
+; the motor (the pad it reads), all = every connected pad (docked: the Deck and a TV pad), 0 = the shim owns
+; it. Unset = the line above (Windows and Mac unchanged).
+EnvGet, gRumbleEnv, I76_AHK_RUMBLE
+gRumbleAll := (gRumbleEnv = "all")
+if (gRumbleEnv = "1" || gRumbleAll)
+    gShimOwnsRumble := false
+else if (gRumbleEnv = "0")
+    gShimOwnsRumble := true
 gNitroPrev := false, gRBPrev := false, gGearUPrev := false, gGearDPrev := false, gMinePrev := false, gIgnPrev := false, gLookBack := false, gL3Nitro := false, gL3Prev := false, gXIVibLast := -1
 if (gXIDll != "")
     SetTimer, XIPoll, 15
@@ -398,8 +409,12 @@ RSGSet2(i) {
 
 RSGExit:
 VarSetCapacity(xiVib0, 4, 0)
-if (gXIDll != "")
+if (gXIDll != "") {
     DllCall(gXIDll . "\XInputSetState", "UInt", gXIPad, "Ptr", &xiVib0)
+    if (gRumbleAll)
+        Loop, 4
+            DllCall(gXIDll . "\XInputSetState", "UInt", A_Index - 1, "Ptr", &xiVib0)
+}
 RSGSet("Right", false), RSGSet("Left", false), RSGSet("Up", false), RSGSet("Down", false)
 RSGSet("1", false), RSGSet("2", false), RSGSet("3", false), RSGSet("4", false), RSGSet("5", false), RSGSet("6", false)
 RSGSet("h", false), RSGSet("i", false), RSGSet("n", false), RSGSet("m", false), RSGSet("LButton", false)
@@ -648,7 +663,11 @@ vibPair := (cl << 16) | cr
 if (vibPair != gXIVibLast) {
     VarSetCapacity(xiVib, 4, 0)
     NumPut(cl, xiVib, 0, "UShort"), NumPut(cr, xiVib, 2, "UShort")
-    DllCall(gXIDll . "\XInputSetState", "UInt", gXIPad, "Ptr", &xiVib)
+    if (gRumbleAll) {
+        Loop, 4
+            DllCall(gXIDll . "\XInputSetState", "UInt", A_Index - 1, "Ptr", &xiVib)
+    } else
+        DllCall(gXIDll . "\XInputSetState", "UInt", gXIPad, "Ptr", &xiVib)
     gXIVibLast := vibPair
 }
 gXIPrevBtns := btns

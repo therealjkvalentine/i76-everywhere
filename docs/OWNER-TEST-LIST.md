@@ -522,3 +522,26 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
         that did not land and what turned the pad off).
       - **Installed by** `deck/deck-push-tv.sh` (it now saves the previous session's logs and conf to the PC first);
         backups in `~/Games/Interstate76/backups/pre-tv-<date>/`; `--revert` restores the state before the first TV install.
+
+43. **Deck: rumble, and the menu pointer offset (new 2026-10-16; docs/STEAMDECK.md "Rumble silent, menu pointer").** Your
+    report: "rumble does not work", "the mouse pointer coordinates are a little off". **Rumble cause found:** the pad layer's
+    rumble has been switched off since July for the Mac's FFB shim, and the Deck never had that shim, so nothing drove the
+    motors. Now the Deck launcher turns the pad layer's rumble on (`I76_AHK_RUMBLE`). **The pointer cause is not measured
+    yet**: the Deck was offline, so this deploy also turns on two logs that show where the game window and the pointer
+    really are.
+    - **First, get it installed** (not done yet - the Deck was offline): wake the Deck on Wi-Fi and say so (the agent runs
+      `deck/deck-push-tv.sh`), or run that from the PC yourself. It keeps the old files in `~/Games/Interstate76/backups/`.
+    - **Steam side, once:** Steam > Settings > Controller: rumble / haptics not switched off. The I76 layout stays the
+      gamepad layout (v10).
+    - **Rumble, handheld:** in T01 or Instant Melee: hold A (or L3) for nitrous -> a kick then a buzz; RB handbrake -> one
+      thud; LB + D-pad left/right (gears) -> a light click; D-pad down (ignition) -> a ~0.3 s crank; RT fire -> a light buzz;
+      stick pinned forward -> a low growl. Say which ones you feel. **Docked with a TV pad:** the same; rumble is sent to every
+      connected pad (`all`); say which pad shakes.
+    - **Pointer, handheld then docked:** main menu; put the pencil tip on the left edge of TRIP, the centre of MELEE and the
+      right edge of EXIT, first with the stick, then with the right trackpad. Each time: which button lights, and is the
+      offset the same everywhere or bigger toward the edges? Then A on each. A photo of the screen with the pencil on a
+      button edge helps.
+    - **Send** `~/Games/Interstate76/deck-launch.log` (lines `rumble:`, `xprobe`, `display:`) and `game/mciproxy.log` (lines
+      `cursor-map:`, `pad-menu:`), or leave the Deck on Wi-Fi and the agent collects them.
+    - Rumble off again: `I76_AHK_RUMBLE=0` in `~/Games/Interstate76/i76-env.sh` (last block). Undo everything:
+      `bash ~/i76-deploy/deck/setup-deck-tv.sh --revert`.
