@@ -27,6 +27,9 @@
     <span class="pill" id="pill-hap" title="haptics host --debug-udp">haptics</span>
     <span class="pill" id="pill-log" title="mciproxy.log">log</span>
     <span class="pill" id="pill-trn" title="trainer">trainer</span>
+    <span class="pill" id="pill-lg" title="physics / memory logger">logger</span>
+    <button id="lg-toggle" class="small" title="start / stop the physics / memory logger">Log</button>
+    <button id="lg-mark" class="small" title="mark an event in the log">Mark</button>
     <label class="pausebox"><input type="checkbox" id="pause"> freeze charts</label>
   </div>
 </header>
@@ -151,6 +154,13 @@
 <!-- ============================================================ TRAINER -->
 <section id="tab-trainer" class="tab">
   <div class="card"><div id="tr-attach"></div></div>
+  <div class="card"><h3>Physics / memory logger (I76MEM columns, mem.phys.csv / mem.frames.csv / mem.music.csv)</h3>
+    <div class="bar"><button id="lg-start">Start</button><button id="lg-stop">Stop</button>
+      <input id="lg-label" placeholder="mark label (optional)" size="24"><button id="lg-mark2">Mark</button>
+      <label><input type="checkbox" id="lg-auto"> auto: a new log at every mission start</label></div>
+    <pre id="lg-status" class="mono"></pre>
+    <div class="note">Needs the game started with I76_TELEMETRY=1 (PLAY-LOGGED.bat does it). Hotkeys, when the dashboard was started with --hotkeys: see the status above.</div>
+  </div>
   <div class="grid2">
     <div class="card"><h3>Status</h3><pre id="tr-status" class="mono"></pre><div id="tr-campaign" class="warnline"></div></div>
     <div class="card">

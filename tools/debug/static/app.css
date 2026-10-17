@@ -76,3 +76,5 @@ pre.mono { margin: 0; white-space: pre-wrap; color: var(--text-2); }
 .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .flagrow span { display: inline-block; padding: 1px 6px; margin: 1px; border-radius: 4px; border: 1px solid var(--ring); color: var(--muted); font-size: 11px; }
 .flagrow span.on { color: var(--text); border-color: var(--s1); }
+
+button.small { font-size: 11px; padding: 2px 8px; }

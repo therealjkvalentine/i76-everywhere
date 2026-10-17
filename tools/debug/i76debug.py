@@ -16,6 +16,11 @@ Inputs, all optional - a panel without its source says so:
   --game-dir DIR         where the log and STRLKUP.DLL are (instead of guessing)
 Trainer: --any (allow a non-sandbox game, as TRAINER.bat --any), --no-attach (never open the game process: read-only
 panels only), --no-trainer.
+Logger (debug_logger.py; Trainer tab card + header pill): the physics / memory logger, I76MEM's CSV columns from the
+telemetry plus an 8 Hz read-only reader. --log-dir DIR (default lab captures	rainer-log), --log-auto (start at every
+mission start, stop 3 s after the player is gone), --log-start (start at once), --log-label NAME, --hotkeys (global
+hotkeys: --hotkey-mark, default Scroll Lock = mark; --hotkey-toggle, default Shift+Scroll Lock = start / stop),
+--log-pid PID (read that process), --no-logger, --no-summary (skip owner_log.py summary after a stop).
 Server: --http-port 17690, --no-browser, --tab trainer (the tab to open), --seconds N (exit after N s; tests).
 
 Nothing here creates a named shared-memory section, opens a device, plays audio, or sends anywhere but 127.0.0.1.
@@ -29,6 +34,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "trainer"))
 import debug_core
 from debug_core import Hub, TelemetrySource, HapticsSource, LAB_GAME, file_md5
+import debug_logger
 
 STATIC = os.path.join(HERE, "static")
 CTYPES = {".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -72,6 +78,13 @@ class Server:
             from debug_trainer import TrainerCore
             self.trainer = TrainerCore(self.hub, allow_any=args.any, attach=not args.no_attach)
             self.hub.trainer = LockedTrainer(self.trainer, self.tlock)
+        self.logger, self.hotkeys = None, None
+        if not getattr(args, "no_logger", False):
+            hint = (lambda: self.trainer.pid) if self.trainer else None
+            self.logger = debug_logger.PhysLogger(root=args.log_dir or debug_logger.DEFAULT_ROOT, auto=args.log_auto,
+                                                  label=args.log_label, summary=not args.no_summary,
+                                                  reader=not args.no_attach, reader_pid=args.log_pid or None, pid_hint=hint)
+            self.hub.logger = self.logger
         self.game_dir, self.game_dir_from, self.dll_md5, self.dll_path = None, None, None, None
         self.next_game_check = 0.0
 
@@ -113,6 +126,11 @@ class Server:
                     print("game check:", e)
             with self.hub.lock:
                 self.hub.log.poll()
+            if self.logger:
+                try:
+                    self.logger.tick()
+                except Exception as e:
+                    print("logger tick:", e)
             self.stop_ev.wait(0.25)
 
     def trainer_loop(self):
@@ -136,6 +154,17 @@ class Server:
         threading.Thread(target=self.log_loop, daemon=True, name="log").start()
         if self.trainer:
             threading.Thread(target=self.trainer_loop, daemon=True, name="trainer").start()
+        if self.logger:
+            self.logger.start_threads()
+            if self.args.log_start:
+                print("  logger:", self.logger.start(by="--log-start")[1], flush=True)
+            if self.args.hotkeys:
+                lg = self.logger
+                self.hotkeys = debug_logger.Hotkeys({"mark": (self.args.hotkey_mark, lambda: lg.mark(source="hotkey")),
+                                                     "toggle": (self.args.hotkey_toggle, lambda: lg.toggle(by="hotkey"))})
+                self.hotkeys.start()
+                self.hotkeys.ready.wait(2.0)
+                lg.hotkeys_view = {"registered": self.hotkeys.registered, "errors": self.hotkeys.errors}
 
     def stop(self):
         self.stop_ev.set()
@@ -145,6 +174,10 @@ class Server:
         if self.trainer:
             with self.tlock:
                 self.trainer.close()
+        if self.hotkeys:
+            self.hotkeys.stop()
+        if self.logger:
+            self.logger.close()
 
 
 class LockedTrainer:
@@ -188,6 +221,8 @@ def make_handler(srv):
             if u.path == "/api/log":
                 with hub.lock:
                     return self.send_json({"lines": hub.log.tail(int(q.get("n", ["500"])[0]), q.get("q", [None])[0]), "path": hub.log.path})
+            if u.path == "/api/logger":
+                return self.send_json(srv.logger.status() if srv.logger else {"error": "logger disabled"})
             if u.path == "/api/health":
                 return self.send_json({"ok": True, "tel": srv.tel.mode if srv.tel else "off", "hap": srv.hap.mode if srv.hap else "off",
                                        "trainer": bool(srv.trainer)})
@@ -202,6 +237,23 @@ def make_handler(srv):
                 req = json.loads(self.rfile.read(n) or b"{}")
             except ValueError:
                 return self.send_json({"ok": False, "error": "bad json"}, 400)
+            if u.path == "/api/logger":
+                if not srv.logger:
+                    return self.send_json({"ok": False, "error": "logger disabled (--no-logger)"}, 409)
+                lg, op = srv.logger, req.get("op")
+                if op == "start":
+                    ok, msg = lg.start(req.get("label", ""), by=req.get("by", "button"))
+                elif op == "stop":
+                    ok, msg = lg.stop(req.get("by", "button"))
+                elif op == "toggle":
+                    ok, msg = lg.toggle(by=req.get("by", "button"))
+                elif op == "mark":
+                    ok, msg = lg.mark(req.get("label", ""), source=req.get("by", "button"))
+                elif op == "auto":
+                    ok, msg = lg.set_auto(req.get("on"))
+                else:
+                    return self.send_json({"ok": False, "error": "op: start | stop | toggle | mark | auto"}, 400)
+                return self.send_json({"ok": ok, "msg": msg, "logger": lg.status()})
             if u.path == "/api/trainer":
                 if not srv.trainer:
                     return self.send_json({"ok": False, "error": "trainer disabled (--no-trainer)"}, 409)
@@ -265,6 +317,16 @@ def main(argv=None):
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--tab", default="", help="tab to open (overview, telemetry, ..., trainer, log)")
     ap.add_argument("--seconds", type=float, default=0, help="exit after N seconds (tests)")
+    ap.add_argument("--log-dir", default="", help="logger: root folder (default %s)" % debug_logger.DEFAULT_ROOT)
+    ap.add_argument("--log-auto", action="store_true", help="logger: start at every mission start, stop when the player is gone 3 s")
+    ap.add_argument("--log-start", action="store_true", help="logger: start recording at once")
+    ap.add_argument("--log-label", default="", help="logger: a name added to the run folder")
+    ap.add_argument("--log-pid", type=int, default=0, help="logger: read this game process (default: the trainer's, else a lab i76*.exe)")
+    ap.add_argument("--no-logger", action="store_true")
+    ap.add_argument("--no-summary", action="store_true", help="logger: no owner_log.py summary after a stop")
+    ap.add_argument("--hotkeys", action="store_true", help="logger: register the global mark / start-stop hotkeys")
+    ap.add_argument("--hotkey-mark", default="scroll", help="default Scroll Lock")
+    ap.add_argument("--hotkey-toggle", default="shift+scroll", help="default Shift+Scroll Lock")
     args = ap.parse_args(argv)
 
     srv = Server(args)
@@ -277,6 +339,9 @@ def main(argv=None):
     print("  telemetry: %s%s" % ("udp 127.0.0.1:%d" % args.tel_port if args.tel_port and args.tel_port > 0 else ("shm only" if args.tel_port == 0 else "off"),
                                  (" (tee -> %s)" % args.tee) if args.tee else ""), flush=True)
     print("  haptics debug: %s" % ("udp 127.0.0.1:%d" % args.haptics_port if args.haptics_port else "off"), flush=True)
+    if srv.logger:
+        print("  logger: %s%s -> %s%s" % ("auto per mission" if args.log_auto else "manual", " + hotkeys" if args.hotkeys else "",
+                                          srv.logger.root, "" if srv.logger.reader else " (no reader: --no-attach)"), flush=True)
     print("  trainer: %s" % ("off" if args.no_trainer else ("no attach" if args.no_attach else ("any game" if args.any else "sandbox only"))), flush=True)
     print("  Ctrl+C stops.", flush=True)
     if not args.no_browser:

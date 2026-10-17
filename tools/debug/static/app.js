@@ -436,6 +436,41 @@ function renderLog(full) {
   $("log-path").textContent = S.log ? (S.log.path || "") : "";
 }
 
+// ------------------------------------------------------------------ logger (header pill + buttons on every tab, card on Trainer)
+async function lgPost(body) {
+  try {
+    const r = await fetch("/api/logger", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json(); if (j.logger) S.logger = j.logger; if (j.msg) S.lgMsg = j.msg; renderLogger();
+  } catch (e) { console.error(e); }
+}
+function renderLogger() {
+  const l = S.logger, p = $("pill-lg");
+  if (!l) { p.className = "pill"; p.textContent = "logger off"; return; }
+  p.className = "pill " + (l.recording ? "live" : "");
+  p.textContent = l.recording ? `logging ${fmt(l.seconds, 0)} s, ${l.rows} rows${l.missed ? ", " + l.missed + " missed" : ""}${l.marks ? ", " + l.marks + " marks" : ""}` : (l.auto ? "logger: auto (armed)" : "logger: idle");
+  $("lg-toggle").textContent = l.recording ? "Stop log" : "Log";
+  const a = $("lg-auto"); if (a && document.activeElement !== a) a.checked = !!l.auto;
+  const hk = l.hotkeys && l.hotkeys.registered ? Object.entries(l.hotkeys.registered).map(([k, v]) => k + " = " + v).join(", ") : "off (start with --hotkeys)";
+  const he = l.hotkeys && l.hotkeys.errors && Object.keys(l.hotkeys.errors).length ? "\nhotkey errors: " + Object.values(l.hotkeys.errors).join("; ") : "";
+  const last = (l.history || []).slice(-3).map(h => `  ${h.dir}  ${h.seconds} s, ${h.frames} frames, ${h.rows} rows, ${h.missed} missed, ${h.marks} marks`).join("\n");
+  const el = $("lg-status");
+  if (el) el.textContent = `${l.recording ? "RECORDING " + l.dir + "  (" + l.started_by + ", phase " + l.phase + ")" : "idle"}${S.lgMsg ? "\nlast: " + S.lgMsg : ""}
+${l.note || ""}
+reader (slow fields, read-only): ${l.reader}${l.reader_check ? "  check " + JSON.stringify(l.reader_check) : ""}${l.arcade ? "\nARCADE PHYS. flag 0x10000 on " + l.arcade + " rows" : ""}
+hotkeys: ${hk}${he}
+folder: ${l.rundir || l.root}
+${l.summary || ""}${last ? "\nfinished:\n" + last : ""}`;
+}
+document.addEventListener("click", e => {
+  const id = e.target && e.target.id;
+  if (id === "lg-toggle") lgPost({ op: "toggle" });
+  else if (id === "lg-start") lgPost({ op: "start" });
+  else if (id === "lg-stop") lgPost({ op: "stop" });
+  else if (id === "lg-mark") lgPost({ op: "mark", label: ($("lg-label") || {}).value || "" });
+  else if (id === "lg-mark2") lgPost({ op: "mark", label: $("lg-label").value || "" });
+  else if (id === "lg-auto") lgPost({ op: "auto", on: e.target.checked });
+});
+
 // ------------------------------------------------------------------ store + stream
 function apply(d, snap) {
   if (snap) { S.samples = d.samples || []; S.hsamples = d.hsamples || []; S.events = d.events || []; S.hap_events = d.hap_events || []; S.log_tail = d.log_tail || []; }
@@ -446,7 +481,7 @@ function apply(d, snap) {
     if (d.hap_events && d.hap_events.length) S.hap_events = S.hap_events.concat(d.hap_events).slice(-300);
     if (d.log_tail && d.log_tail.length) { S.log_tail = S.log_tail.concat(d.log_tail).slice(-4000); if (TAB === "log") renderLog(); }
   }
-  for (const k of ["overview", "ev", "hap", "log", "trainer", "trail", "markers"]) if (d[k] !== undefined) S[k] = d[k];
+  for (const k of ["overview", "ev", "hap", "log", "trainer", "trail", "markers", "logger"]) if (d[k] !== undefined) S[k] = d[k];
   if ((d.events && d.events.length) || (d.hap_events && d.hap_events.length) || snap) S.feedDirty = true;
   dirty = true;
 }
@@ -473,6 +508,7 @@ function frame(ts) {
   lastDraw = ts; dirty = false;
   pills();
   try {
+    renderLogger();
     RENDER[TAB] && RENDER[TAB]();
     if (TAB === "events" && S.feedDirty) { renderFeed(); S.feedDirty = false; }
     if (TAB !== "trainer" && S.trainer) { const p = $("pill-trn"); p.className = "pill " + (S.trainer.mode === "none" ? "" : "live"); p.textContent = "trainer: " + S.trainer.mode; }

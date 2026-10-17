@@ -586,6 +586,7 @@ class Hub:
         self.tel_source = self.hap_source = None
         self.log = ProxyLog()
         self.trainer = None
+        self.logger = None                                    # debug_logger.PhysLogger (fed every frame, outside the lock)
         self.game_info = {}
 
     # ---- telemetry
@@ -613,6 +614,9 @@ class Hub:
                 self.samples.append(self.compact(fr, now))
             for ev in evs:
                 self.add_event(ev, fr, now)
+        lg = self.logger
+        if lg is not None:
+            lg.on_frame(fr)
 
     def compact(self, fr, now):
         p, r, hd = angles(fr)
@@ -772,7 +776,8 @@ class Hub:
                     "ev": self.events_view(), "trail": list(self.trail)[-800:], "markers": list(self.markers)[-100:],
                     "hap": self.hap, "hsamples": list(self.hsamples)[-history:], "hap_events": list(self.hap_events)[-200:],
                     "log": self.log.state(), "log_tail": self.log.tail(400),
-                    "trainer": self.trainer.status() if self.trainer else None}
+                    "trainer": self.trainer.status() if self.trainer else None,
+                    "logger": self.logger.status() if self.logger else None}
 
     def delta(self, cur):
         """what a stream client has not seen yet (cur = its cursors dict, updated in place)"""
@@ -800,4 +805,6 @@ class Hub:
                 cur["slow_due"] = time.time() + 1.0
             if self.trainer:
                 out["trainer"] = self.trainer.status()
+            if self.logger:
+                out["logger"] = self.logger.status()
             return out
