@@ -18,8 +18,8 @@ retail and 1.34-1.59 rad/s in Gold (n = 8 retail / 7 Gold), and Gold also slid m
   - **Why that switches it on:** that file is in the Gold layout (96 bytes). Retail reads 88 bytes with its own,
     shorter layout. Retail's option-flag dword therefore lands on Gold bytes `01 00 8e 00`, and bit 0 of that dword
     is "Arcade Phys.".
-  - **Measured:** the arcade entity flag 0x10000 is set in 100 % of retail steer frames (2,129 of 2,129, 7 runs) and
-    in 0 % of Gold steer frames (0 of 1,203, 5 runs).
+  - **Measured:** the arcade entity flag 0x10000 is set in 100 % of retail steer frames (2,129 of 2,129, 6 runs;
+    verify: was "7 runs", the six runs sum to 2,129) and in 0 % of Gold steer frames (0 of 1,203, 5 runs).
   - **In the T05 traces:** it is set in every retail frame (8 runs, including tonight's `t05clean-smoke`) and in no
     Gold frame.
 - **What arcade does to steering.** Both exes run the same code for this. The lateral function caps the yaw target
@@ -31,7 +31,7 @@ retail and 1.34-1.59 rad/s in Gold (n = 8 retail / 7 Gold), and Gold also slid m
   With arcade on, the car also never passes the grip limit, so the slide branch never runs.
 - **Prediction against the traces.**
   - The fitted gain `K = |yaw| v / |steer|` (frames not sliding, steer >= 0.3, v >= 8) is:
-    - retail **23.1-23.4** (median per run, 6 of 7 runs; the first run is 21.2);
+    - retail **23.1-23.4** (median per run, 5 of 6 runs; the first run is 21.2);
     - Gold **31.5-31.7** (5 runs).
   - The ratio is **1.35**.
   - The window-mean form of this prediction reproduces `yaw_ss` (see section 4):
@@ -40,7 +40,7 @@ retail and 1.34-1.59 rad/s in Gold (n = 8 retail / 7 Gold), and Gold also slid m
   - What remains of the 1.48x gap is speed. Gold slides, so it is slower in the 1-2 s window (16.4 vs 16.9 m/s).
 - **What arcade does in CheckImpact.** An inverted car at rest is flipped upright instead of being destroyed by
   `object_Destroy`. This happened in 2 of the 3 retail T05 turn-overs (runs 183450 and 183650): up.y went from -0.98
-  to +0.98 in one frame. That is why "no car was destroyed".
+  to +0.98 (183450, frame 13252) and -0.95 to +0.95 (183650, frame 13359) in one frame. That is why "no car was destroyed".
 - **`physics_StepVehicle` is the same algorithm in retail and Gold.** The three differences listed in EMU-MEMTRACE /
   addrmap-retail were artefacts of the float-constant scan. Retail has the guard, the clamp and the > 7.65 terrain
   damage too, but writes them as integer compares (`cmp dword [x], 0x38d1b717 / 0x3f800000 / 0x3e800000 /
@@ -191,6 +191,9 @@ the first retail run, 1.3 % (retail).
   - ERA-ENVELOPE's canyon landing kill (CheckImpact, arcade off) is unaffected.
 - **Tonight's retail runs** (`t05clean`, `t05v2`) carry the same confound until the retail launch copies a
   retail-layout file.
+  - verify (2026-10-16): the emu lane already switched it at 22:42 (lab `0e2f16c`, `gen_scripts.py` writes
+    `tools\memtrace\retail-plyr\RPLYR.DEF`, flags 0). Runs from `r166sim-*` on are arcade off; `r166-t05clean-smoke`
+    and `r166-t05clean-a` (22:32 / 22:40) still copied the Gold file (arcade frames 4,135 / 4,135 and 18,776 / 18,776).
 - **Section 7 item 4 (re-baseline the envelope on retail):** the handling part needs no change of target. Retail with
   stock options steers like ours.
 
@@ -262,6 +265,10 @@ retail AI summary can be turned on.
 
 - **No VM run.** The decisive A/A + A/B was not run here. It is retail with the arcade-off file twice, and Gold with
   arcade on twice, n >= 2 each, melee loop.
+  - verify (2026-10-16): one retail arcade-off run already exists from the emu lane, `20261016-224135-r166sim-mloop-1`
+    (RPLYR.DEF, flags 0): arcade flag in 0 of 819 steer frames, K median 31.59 (p5-p95 30.84-31.75, n = 398 frames),
+    flag 0x2000 from |ay| 22.95. That matches the prediction above (K about 31.5), n = 1 run; no A/A yet, and no
+    Gold-with-arcade-on run.
 - **Vehicle data:** `grip` (vehicle +0x14) and `mu` were not read from either exe's data. A_gold is about A_retail
   from the 0x2000 threshold only.
 - **Not aligned instruction by instruction:** the longitudinal tyre function (0x43c310 / 0x474bf0), the per-wheel
