@@ -477,6 +477,24 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - *(2026-10-16: still open. The 30 ms step came from Gold-exe profiles. Retail 1.0 on the P166 at low detail runs 26-30 ms steps,
       so the candidate is still to be re-checked against retail (EMU-MEMTRACE s.7.4). `TEST-p166-retail-step.bat` (31.75 ms) has no
       measurement recorded yet.)*
+44. **"A little too fast and bumpy" on TEST-p166-retail-step: the view, and the emulator's handling (new 2026-10-16; docs/records/RETAIL-HANDLING-DIFF.md,
+    lab game-dd-20261003\README-TESTS.txt).** Your note on `TEST-p166-retail-step`: every jump hard but possible (31.75 ms is now
+    logged as the minimum step = the fastest 1997 machine), it played like the emulator, but a little too fast and bumpy / jittery,
+    maybe the big screen. Two A/B launchers in the lab copy, next to `TEST-p166-retail-step.bat`; nothing else changed:
+    - **`TEST-p166-retail-step-43.bat`: the same game with a 4:3 picture** (90 degrees across like 1997, side bars; widescreen
+      shows 122). A wider view streams more ground past the edges, so the same speed looks faster.
+      - **Test:** the T05 hill road and a T06 straight, once with each launcher. Too fast? Too bumpy? If 4:3 feels right, it is the
+        view, not the physics.
+      - Open the Esc menu once: does the pointer hit the buttons where they are drawn?
+    - **`TEST-p166-retail-handling.bat`: the handling the emulator had.** The emulated retail 1.0 turned about a quarter less at
+      speed than our exe because its **Arcade Phys.** option was on by accident: a Gold options file read by the 1997 exe. The physics
+      code is the same in both exes. So if "played like the emulator" included the steering, the emulator you saw was arcade.
+      - **Not installed yet:** it needs proxy `0406e909` (built, not live-checked: the console was not usable overnight) and says so
+        when it is missing. **The same thing today:** `TEST-p166-retail-step`, Esc > Options > Play Options > tick **Arcade Phys.**
+        (the game remembers it, so untick it afterwards).
+      - **Test:** fast corners (arcade turns less and hardly slides), and land the canyon jump on the roof once if you can (arcade
+        flips the car back over; the 1997 default, arcade off, wrecks it).
+    - **Say:** which of the three feels like your 1997 memory.
 ## I76 Debug dashboard (tools/debug, replaces the trainer window; lab copy first)
 
 33. **I76 Debug on a real drive (new 2026-10-12).** Close the old trainer window first (it maps the telemetry shared memory at the

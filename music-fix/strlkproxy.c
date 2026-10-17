@@ -1253,6 +1253,8 @@ static i76trn_ctl_t *g_trn;                                  /* trainer control 
 static void trn_frame(void);
 static int g_start_on;                                       /* I76_START_POS (below, after the trainer) */
 static void start_pos_frame(void);
+static int g_rh_on;                                          /* I76_RETAIL_HANDLING (below, after the start position) */
+static void retail_handling_frame(void);
 static int g_bbox_sweep;                                     /* I76_BREAKABLE_BOX=3: sign-post sweep (below, with the breakable box) */
 static volatile DWORD g_sweep_entries, g_sweep_scored, g_sweep_engine, g_sweep_frames;
 static void sign_sweep(void);
@@ -1360,6 +1362,7 @@ clock:
     }
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
+    if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
     if (g_bbox_sweep) sign_sweep();                         /* I76_BREAKABLE_BOX=3: posts the last tick drove through */
     ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
     if (g_hires_on) {
@@ -7101,6 +7104,50 @@ static void apply_start_pos(void) {
 }
 
 /* ===========================================================================
+ * RETAIL HANDLING  (I76_RETAIL_HANDLING=1; off by default; lab 2026-10-16, i76-everywhere docs\records\RETAIL-HANDLING-SWITCH.md)
+ * ===========================================================================
+ * The emulated retail 1.0 exe (March 1997) turns about 30 % less than the Gold / GOG exe at a held 18 m/s on full
+ * keyboard steer (86Box memtrace 2026-10-15: 0.94-1.00 vs 1.34-1.59 rad/s). physics_StepVehicle and its callees are the
+ * SAME algorithm in both builds (every branch and constant matched, retail 0x472360 / 0x472890 / 0x473600 / 0x474bf0 /
+ * 0x4759b0 / 0x475100 / 0x4754a0 against Gold 0x438fd0 / 0x43a5d0 / 0x43c310 / 0x43ce10 / 0x43c850). What differs is
+ * one bit: every retail trace has entity flag 0x10000 on the player's car (20 of 20 runs), no Gold trace has it (0 of
+ * 21). That is the "Arcade Phys." play option: physics_InitEntity 0x438a90 (retail 0x471df0, the same rule) sets it on
+ * the player's car when options_play_flags bit 0 is on, and physics_SetPlayerArcadeMode 0x43d1a0 does when the
+ * in-game options page is applied. The retail runs had it on BY ACCIDENT: their launch copied the Gold-layout
+ * I76PLYR.DEF (96 B) into the retail folder, retail reads 88 B with its own layout and its option dword lands on Gold
+ * bytes 01 00 8e 00 (docs\records\RETAIL-HANDLING-DIFF.md s.3). Both exes default the option to off. So this switch
+ * reproduces "retail as measured on 2026-10-15", which equals our exe with Arcade Phys. ticked; it is not a 1997 default.
+ * With the bit the engine:
+ *   - limits the steering by grip instead of a constant: yaw = steer x min(k v, a / v) with a = 9.8 n.y^3 x suspension
+ *     handling x surface grip x (sum of wheel sizes) / 4 instead of 7.84 x (sum of wheel sizes) (0x43ce10; retail traces:
+ *     a = 23.4 vs Gold 31.7 m/s2 from yaw x v / steer while not sliding), and slides less;
+ *   - turns a car at rest on its roof back over instead of destroying it, offline only (physics_CheckImpact 0x436ff0).
+ * This switch sets the bit on the local player's car on every frame (top of the frame, before the tick: the trainer's
+ * place), so a respawned car gets it too, without touching options_play_flags or I76PLYR.DEF (nothing is saved, the
+ * options page is unchanged; applying the page clears the bit for one frame). AI cars are left alone (Gold and retail
+ * both give it only to the player and the "taurus" script car). */
+static DWORD g_rh_sets, g_rh_frames;
+static void retail_handling_frame(void) {
+    BYTE *ent = 0;
+    if (*(volatile int *)0x004c2164 != 5 || !tel_player(&ent)) return;
+    g_rh_frames++;
+    if (!(*(volatile DWORD *)(ent + 0x454) & 0x10000)) {
+        *(volatile DWORD *)(ent + 0x454) |= 0x10000;
+        g_rh_sets++;
+        if (g_rh_sets <= 4 || (g_rh_sets & (g_rh_sets - 1)) == 0)
+            mlog("  retail-handling: flag 0x10000 set on the player's car (set #%lu, frame %lu, flags now 0x%08lX)",
+                 (unsigned long)g_rh_sets, (unsigned long)g_frame, (unsigned long)*(volatile DWORD *)(ent + 0x454));
+    }
+}
+static void apply_retail_handling(void) {
+    if (env_flag("I76_RETAIL_HANDLING", 8, 0) != 1) return;
+    install_frame_hook();
+    g_rh_on = g_frame_hook != 0;
+    mlog("  retail-handling: %s - the player's car drives as the 2026-10-15 retail emulator runs did (Arcade Phys., entity flag 0x10000): "
+         "grip-based steering limit, roof-rest flip instead of destruction (offline)", g_rh_on ? "on" : "NOT on (frame hook missing)");
+}
+
+/* ===========================================================================
  * THE "PLEASE INSERT CD 'Interstate '76 CD 2'" PROMPT: INSTRUMENT (opt-in: I76_CD_LOG=1)
  * and I76_CD_FAKE=1 (EXPERIMENTAL mitigation)
  * ===========================================================================
@@ -8243,6 +8290,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_telemetry();        /* opt-in: I76_TELEMETRY=<port> (after apply_fixed_step: reads g_fixed_step) */
         apply_combat_log();       /* lab: I76_COMBAT_LOG=<file> (after apply_telemetry + the AI switches: counts only) */
         apply_start_pos();        /* opt-in: I76_START_POS=x,y,z,yaw[,delay] with I76_MISSION (one placement after the start) */
+        apply_retail_handling();  /* opt-in: I76_RETAIL_HANDLING=1 (the player's car keeps entity flag 0x10000 = Arcade Phys., as the retail emu runs had) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
