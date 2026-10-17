@@ -1357,6 +1357,13 @@ static DWORD g_frame;                                        /* proxy frame coun
 static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
 static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
 static void tel_frame(void);
+static int g_simtick, g_st_now = 1;                          /* I76_SIM_TICK_MS (simtick.c): whole-sim tick on; this display frame runs the sim */
+static void simtick_top(void);
+static void simtick_clock(void);
+static int g_jc_on;                                          /* judder census (simtick.c; I76_JUDDER_CENSUS under I76_RENDER_INTERP) */
+static void judder_census(void);
+static void judder_census_publish(void);
+static void (*g_lat_step_fn)(void), (*g_lat_draw_fn)(void); /* lab latency probe (side build drive block): end of the sim block / draw */
 static int g_rpl_on;                                         /* I76_REPLAY (replay.c, included below): frame-dt replay of an emulator trace */
 static void rpl_pre(void);
 static void rpl_post_clock(void);
@@ -1448,9 +1455,11 @@ static void frame_log_line(void) {
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now, fl_in = {0}, fl_cap = {0};
     if (g_fl_period) QueryPerformanceCounter(&fl_in);
+    if (g_simtick) simtick_top();                           /* I76_SIM_TICK_MS: the sim clock back to the tick's values */
     /* The frame just rendered is complete here (ticks, post-ticks, camera, render, Flip): publish it before any cap
-     * wait, so the datagram leaves as soon as the frame is on screen. */
-    if (g_tel_on) tel_frame();
+     * wait, so the datagram leaves as soon as the frame is on screen. Under I76_SIM_TICK_MS only frames that ran a
+     * tick are published (the others repeat the same sim state). */
+    if (g_tel_on && (!g_simtick || g_st_now)) tel_frame();
     if (g_cbt_on) cbt_frame();
     if (!g_cap_period.QuadPart) goto clock;
     QueryPerformanceCounter(&now);
@@ -1481,8 +1490,9 @@ clock:
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
     if (g_bbox_sweep) sign_sweep();                         /* I76_BREAKABLE_BOX=3: posts the last tick drove through */
-    ((void (__cdecl *)(void))0x0049c920)();                /* simclock_Update */
-    if (g_hires_on) {
+    if (g_simtick) simtick_clock();                         /* I76_SIM_TICK_MS: simclock_Update on tick frames only, dt = the tick */
+    else ((void (__cdecl *)(void))0x0049c920)();           /* simclock_Update */
+    if (g_hires_on && !g_simtick) {
         /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
          * frame dt reads 16 or 17 ms while the display shows 16.67: everything drawn advances 1 ms too little or too
          * much, alternately. Measured as 0.024 m/frame^2 of jitter on a car at 28 m/s under a static script camera
@@ -4670,6 +4680,7 @@ static void __cdecl cam_update_wrap(void) {
     (void)i;
     if (g_interp && !obj) {                                             /* the frame loop's camera update (0x403e16) */
         DWORD sets = g_cam_sets;
+        if (g_lat_step_fn) g_lat_step_fn();                             /* lab latency probe: the sim block is done */
         int sw = swap_all_in();                                         /* every car on its drawn pose */
         if (mode) mode();
         if (sw) { swap_all_out(); if (g_cam_sets != sets) g_cam_interp_frame = g_frame; }
@@ -4769,6 +4780,8 @@ static void __cdecl render_wrap(void *cam) {
             *(volatile DWORD *)&g_idbg.ring[r].frame = g_frame;
         }
     }
+    if (g_jc_on && !g_simtick) { judder_census(); judder_census_publish(); }   /* I76_JUDDER_CENSUS (simtick.c) */
+    if (g_lat_draw_fn) g_lat_draw_fn();                     /* lab latency probe: this frame draws the result */
     ((void (__cdecl *)(void *))0x00401c90)(cam);
     if (g_interp) {
         for (i = 0; i < 64; i++) if (g_ie[i].live) *(xform_t *)(g_ie[i].obj + 0x18) = g_ie[i].save;
@@ -6475,6 +6488,7 @@ static void tex_census_attach(HMODULE m) {
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
 #include "padmenu.c"     /* I76_PAD_MENU: controller moves the menu pointer (shell + Esc menu only; uses cursormap) */
 #include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
+#include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 
 /* (I76_GLIDE_DIR, the 2026-10-03 experiment that loaded <game>\<subfolder>\Glide2x.dll before ZGLIDE so the mission
  * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
@@ -8412,6 +8426,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_retail_handling();  /* opt-in: I76_RETAIL_HANDLING=1 (the player's car keeps entity flag 0x10000 = Arcade Phys., as the retail emu runs had) */
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
+        apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
+        apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
         apply_pad_menu();         /* opt-in: I76_PAD_MENU=1 (after apply_cursor_map: chains its PeekMessageA slots) */
