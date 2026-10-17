@@ -94,7 +94,8 @@ static DWORD g_stc[12];              /* chained call targets of the gated sites 
  * Change detection, per display frame, no game code run: the keyboard driver's down bits 0x6092d0[16] differ from the
  * snapshot taken after the last tick's input_UpdateControls, or a release is pending in 0x6092e0[16]; plus a lab hook
  * (the side build's drive block: a new drive-key sequence). DirectInput devices (wheel, pad) are not watched. */
-static int g_st_input;
+static int g_st_input, g_st_early_now;
+static FILE *g_st_dlog;                      /* I76_SIM_TICK_DRAWLOG=<path>: the player's drawn pose per display frame (lab) */
 static BYTE g_st_kb_snap[16];
 static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the harness posted new keys */
 static int st_input_changed(void) {
@@ -369,6 +370,7 @@ static void simtick_clock(void) {
     if (g_st_input && g_st_acc < (double)g_st_T && st_input_changed()) {   /* I76_SIM_TICK_INPUT: run the tick now (borrowed) */
         if (g_st_acc >= 0.0) { early = 1; g_wst_local.early_ticks++; } else g_wst_local.early_blocked++;   /* one outstanding at most */
     }
+    g_st_early_now = early;
     if (g_st_acc >= (double)g_st_T || early) {
         volatile float *acc = (volatile float *)0x005a7e14, *tm = (volatile float *)0x005a7e74, *stm = (volatile float *)0x005a7e70;
         float acc0 = *acc, tm0 = *tm, stm0 = *stm;
@@ -492,6 +494,16 @@ static void __cdecl st_render_wrap(void *cam) {
         }
     }
     judder_census();
+    if (g_st_dlog) {   /* wall s, tick frame, early tick, alpha, drawn player position and forward row */
+        int i;
+        for (i = 0; i < g_wm_n; i++) if (g_wm[i].kind == 0) {
+            xform_t *x = (xform_t *)(g_wm[i].obj + 0x18);
+            LARGE_INTEGER q; QueryPerformanceCounter(&q);
+            fprintf(g_st_dlog, "%.6f,%d,%d,%.4f,%.4f,%.4f,%.4f,%.5f,%.5f,%.5f\n", (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart,
+                    g_st_now, g_st_early_now, g_wst_local.alpha, x->p[0], x->p[1], x->p[2], x->r[6], x->r[7], x->r[8]);
+            break;
+        }
+    }
     if (g_lat_draw_fn) g_lat_draw_fn();
     g_idbg.flame_hits = g_idbg_flame_hits; g_idbg.flame_dmg = g_idbg_flame_dmg;
     g_wst_local.flame_hits = g_idbg_flame_hits; g_wst_local.flame_dmg = g_idbg_flame_dmg;
@@ -552,6 +564,12 @@ static void apply_simtick(void) {
     g_st_cosmetic = env_flag("I76_SIM_TICK_COSMETIC", 8, 1);
     g_st_logper = (DWORD)env_int("I76_SIM_TICK_LOG", 8, 0) * 1000u;
     g_st_input = env_flag("I76_SIM_TICK_INPUT", 8, 0) == 1;
+    {   char dp[MAX_PATH];
+        if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
+            setvbuf(g_st_dlog, NULL, _IOFBF, 1 << 13);   /* the process is killed at the end: at most 8 KB lost */
+            fprintf(g_st_dlog, "t,tick,early,alpha,x,y,z,fx,fy,fz\n");
+        }
+    }
     {   /* the sim block's call sites */
         static const struct { DWORD site, stock; int gi; const char *what; } gs[12] = {
             { 0x004039bd, 0x0044d9e0, 0, "input_UpdateControls call" }, { 0x00403a12, 0x004349c0, 1, "physics_CollideAll call" },
