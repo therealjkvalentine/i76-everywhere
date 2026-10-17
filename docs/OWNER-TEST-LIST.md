@@ -674,6 +674,29 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     `C:\Users\james\i76-uncap-lab\emu\results\writeup\video\retail-sim-p166-t05-clean-descent.mp4` (simulation physics, damage-free
     crest start). Optional: `...\emu\results\par\20261016-224007-r166-t05clean-a-1\video.mp4` is 8 descents in **arcade** (25 min; skim).
     - **Look for:** no pop or jitter at the placed start; does the jump look like your memory of the 1997 game?
+53. **Rule on the base decision (decision, medium, 10 min; new 2026-10-17; records/BASE-DECISION-1.0-vs-GOG.md,
+    summary in records/VERSIONS-AND-PHYSICS-2026-10-17.md s.7).** Paper recommendation: keep the GOG Gold exe as the code
+    base, play it with retail 1.0's rules (difficulty 1, retail health %, AI damage-stamp revert, retail turret slew and
+    heat-seeker cone, arcade off) on the whole-sim tick at 33.3 ms; no 1.0 rebuild.
+    - **Read:** the Recommendation and sections 5-6 of BASE-DECISION.
+    - **Say:** agree or not with the hybrid, and which retail-rules items you want on by default (especially the Gold
+      data retunes: bus mass, Gas blast, armour / loadouts).
+54. **Trainer logger, one logged mission on the twin (medium, 10 min; new 2026-10-17; records/TRAINER-LOGGER.md s.7).**
+    Never run on the twin's own proxy. At the physical console:
+    `C:\Users\james\i76-uncap-lab\game-dd-20261003\Interstate 76\TEST-logged-play.bat`. Play one mission, press Scroll
+    Lock twice at moments you want to remember, quit the mission, close the dashboard window.
+    - **Look for:** a new folder under `C:\Users\james\i76-uncap-lab\captures\trainer-log\` with `s01\`; `marks.csv` with
+      2 rows; `summary.md` naming the mission, 0 missed frames, Arcade Phys. off. No stutter you can feel compared with
+      `PLAY-i76.bat` (your feel is the measurement).
+55. **Which P133 cell is the hardware reference (decision, medium, 5 min; new 2026-10-17; records/HARDWARE-MATRIX.md,
+    records/VERSIONS-AND-PHYSICS-2026-10-17.md s.3-4).** You asked for the P133 reference only; the matrix measured two:
+    - **P133 lowest detail:** one physics step per frame, 32.0 ms melee (n 5) / 31.9 ms T05 (n 10), close to the 33.3 ms
+      baseline; handles like the existing P166 reference.
+    - **P133 developer default (preset 2, 640x480):** about 11 fps, 2 physics substeps of 41.5 ms per frame (the
+      mixed-rate shape of the 15 fps design); accelerates faster (0-10 m/s 0.93 vs 1.04 s, n 3 vs 5) and jumps higher
+      (apex 11.8 vs 10.9 m, n 5 vs 10).
+    - **Say:** lowest detail, developer default, or both as references. Optional: whether to spend about 10 more boots per
+      arm to settle the P133 jump wreck rate (6/10 vs 0/7, p 0.035).
 
 ## Owner results 2026-10-17 (OWNER-TESTS-2026-10-17 launchers, lab `ced03f7`)
 
