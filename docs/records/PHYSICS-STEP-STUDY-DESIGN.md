@@ -75,7 +75,7 @@ fixed here, **before the data**.
 |---|---|---|---|
 | lower L | **27 ms** | retail emu P166 lowest detail, melee p50 26.8 (missions 31-35). Also the code's slow-machine floor of 25 ms (C2) and the measured buzz onset below about 25 ms (P4) | high for the number. The real P166 would be 15-20 % longer (emu calibration). Faster 1997-98 machines (P200 MMX, PII) could step shorter; HARDWARE-MATRIX may extend L downward, which owner rule 1 then decides |
 | upper U | **< 50 ms** | `StepperInit(0.05)` at all three vehicle-stepper sites (C1). floor + 1 means a step never equals 50 ms | high |
-| era as played | 30-47 ms typical | P90 software 3 x 47; P90 Glide 2 x 30; P166 default detail 2 x 37.6; P166 low 27-35 (emu), about 32-42 real | medium (emulator, n 1-3 per config) |
+| era as played | 30-47 ms typical | P90 software 3 x 47; P90 Glide 2 x 30; P166 default detail 2 x 37.6; P166 low 27-35 (emu), about 32-42 real. The developers' own first-launch preset for a P166 was 640x480 with all features on (Gold manual), so likely the 2 x 37 regime | medium (emulator, n 1-3 per config; the preset step is not yet measured, E1) |
 
 ## 2. Candidate grid and search order
 
@@ -377,7 +377,7 @@ on today's build, recorded blind.
 
 | id | task | tool |
 |---|---|---|
-| S1 | grounded probe clearance (veh+0x470) on flat ground from existing traces, to quantify P6 | `mem.phys.csv` clearance column |
+| S1 | **done:** grounded probe clearance is about 0 (p50 -0.003 m, n 5,068 frames, one retail strip trace), so P6's 0.5 m band sits above the resting probe | `mem.phys.csv` clearance column |
 | S2 | trace any handler of `TOGGLE_FRAMERATE` (id 0x54) outside 0x44eb50 | capstone / Ghidra export |
 | S3 | route census: FSM paths and AI routes vs class-11 ramps, canyons and drops > 3 m, all missions | `data\out\fsm`, ODEF + TER parsers in i76-map `data` |
 | S4 | **done:** SFX in the retail sim runs = 4 (section 0) | `SCRIPT.TXT` filehex |
@@ -386,7 +386,8 @@ on today's build, recorded blind.
 
 | id | task | tool | note |
 |---|---|---|---|
-| E1 | retail step distribution and fps at P133 / P166 x lowest / default / owner's 1997 settings | I76FPS, I76MEM | **[WF hardware-matrix]**; add the owner's settings row if it is missing |
+| E1 | retail step distribution and fps at P133 / P166 x lowest / default / owner's 1997 settings, plus **the developers' first-launch preset** (Gold manual: P90/P100 320x200 all on; P133 / P166 640x480 all on). Read back the `I76PLYR.DEF` a fresh first launch writes on each emulated CPU | I76FPS, I76MEM, I76DRV `filehex` read | **[WF hardware-matrix]** for the step rows; the first-launch DEF read is new |
+| W1 | with the owner's OK: download and transcribe Dev Game Club 422 / 424 / 427 (physics "from an implementer") and read Krager's 1997-04-02 Usenet thread | - | new; the best open lead for a first-hand step statement |
 | E2 | retail placed56 jumps with perturbation, one per boot, at P166 low and at the longest-step config from E1, n >= 20 each, with the local-step record | `gen_t05jump.py` + perturbation list | new. The step-response curve of the original exe |
 | E3 | retail T05 speed sweep (46-58 m/s, n 4 per speed) at P166 low | `place SPEED` | new. Retail v50 and margin |
 | E4 | retail drop and strip ride-frequency phases | new `gen_drop.py` (`place` with y + 0.3 m) | new |

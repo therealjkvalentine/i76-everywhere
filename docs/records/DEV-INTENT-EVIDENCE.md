@@ -55,10 +55,18 @@ This page follows that order.
   - So jumps are designed content and must work.
   - **No script tests an AI car for being airborne.** AI jumps are not scripted content [fact, high].
   - T05's camera holds **4 s** over the canyon. The measured retail flights are 2.9-5.9 s.
-- **The written record names no frame rate or physics step** (WHAT-IS-STOCK s.Development hardware, 33 sources).
+- **The written record names no frame rate or physics step** (WHAT-IS-STOCK s.Development hardware, 33 sources, plus
+  this session's search, section 5).
   - The only target statement is the producer's: "an acceptable frame rate for the minimum platform", a Pentium 90.
-  - The box minimum on the measured emulator gives 7-17 fps, i.e. 47-60 ms frames and 2-3 substeps (section 4).
-  - New web searches this session: section 5.
+  - The box minimum on the measured emulator gives 7-17 fps, i.e. 47-60 ms frames and 2-3 substeps (section 3.3).
+- **New this session:**
+  1. The in-game credits name the **Vehicle Dynamics Programmer: Dan Stanfill**, who was also the lead programmer.
+  2. The **Gold manual's first-launch defaults by CPU** put a P166 at 640x480 with all features on, not at lowest
+     detail. On the emulator that class of setting runs about 13 fps (Gold exe), so the **developers' own P166 default
+     ran 2 substeps of about 37 ms**, not one of about 30 [fact for the table; inference for the step].
+  3. Dev Game Club episodes 422 / 424 / 427 (2025) list "physics implementation details from an implementer!" and
+     "deterministic physics" as topics. They are audio only and were not listened to. This is the best open lead for
+     a first-hand step statement.
 - **Reading for the study.**
   - Bounds: 25-27 ms to <50 ms.
   - The clues bracket the middle (30 vs 44-50), so the grid must cover the whole band. 40 ms is the neutral start
@@ -140,7 +148,7 @@ not pick a step.
 | P3 | **push-out by the deepest wheel** | 0x437230 (0x43792f) | full penetration removed in one step, position only | penetration per step grows with v_n x T; acts like a very stiff spring sampled at the step | none on its own; with P5 it makes the body motion step-shaped | high (mechanism) |
 | P4 | **overshoot snap and rate zeroing** | 0x437230 (0x437f73) | when a rotation step would pass the wheel plane, snap the up row and set pitch and roll rates to 0 | share of frames at rest: 62 % at 25 ms, 11-40 % at 16.7 ms, 0-4 % at 5.7 ms. Body-rate reversals ("buzz") about 3x at 60 fps vs 20 (capture 014, n 4 per condition) | **calm from ~25 ms up**; the lower edge matches C2's 25 ms floor | medium (measured on our exe, n 4) |
 | P5 | wheel-lift rate targets | 0x437230 table | +-pi pitch, +-pi/2 roll per lifted wheel, eased at 2 / s | one lifted substep at take-off gives a pitch kick of 2T x (-2 pi) = -4 pi T rad/s: -0.31 (25 ms), -0.42 (33), -0.50 (40), -0.63 (50). The chance that the lip falls inside a step is about d_f / (v T) (physics.md M34b, model) | sets the nose-down tumble on jumps. Gold (33-37 ms) peaked at 80 +- 8 deg vs retail (30 ms) 53 +- 18 deg (n 7 each, EMU-T05-CLEAN s.5) | high (rule), medium (probability) |
-| P6 | **landing capture** | 0x43a779 (0.5 at 0x4bd138), landing snap in 0x43a5d0 | airborne while clearance > 0.5 m or growing, else snap the origin to the ground, keep v | the snap distance is uniform on (0.5 - \|vy\| T, 0.5]. **It is always downward iff \|vy\| x T <= 0.5 m.** Limits: vy 10 m/s -> T <= 50 ms; 14.45 (T05 take-off vy) -> 34.6; 19 (T05 face landing) -> 26.3 | the 0.5 m band fits one step of fall at T05-size landings only for T <= 26-35 ms | low-medium (the grounded clearance of the probe was not read; to check, S2 in the design) |
+| P6 | **landing capture** | 0x43a779 (0.5 at 0x4bd138), landing snap in 0x43a5d0 | airborne while clearance > 0.5 m or growing, else snap the origin to the ground, keep v | the snap distance is uniform on (0.5 - \|vy\| T, 0.5]. **It is always downward iff \|vy\| x T <= 0.5 m.** Limits: vy 10 m/s -> T <= 50 ms; 14.45 (T05 take-off vy) -> 34.6; 19 (T05 face landing) -> 26.3. Grounded clearance is about 0, so the band is 0.5 m above the resting probe: the retail T06-strip trace `20261017-004107-r166sim-fpt06strip-1` reads grounded p5 / p50 / p95 -0.028 / -0.003 / 0.222 m (5,068 frames) and airborne min 0.477 m (1,290 frames) | the 0.5 m band fits one step of fall at T05-size landings only for T <= 26-35 ms | medium for the rule and the band (S1 done); low for intent |
 | P7 | grip rebuild + projection | 0x43a5d0 end | v := forward x \|v\|, then projected onto the previous step's probe normal | a per-step cos(delta) loss. Ramp-lag loss grows with steps per second: lip speed about 45-47 m/s from 50 m/s foot speed at 21-24 steps/s, 41 at 60 (model). Brake-dive loss \|v\|(1 - cos p) per step: extra decel 0.00164 v / T (0.035 v at 46.9 ms; matched live, n 4). Coasting loss -0.063 m/s per 100 m per step/s (n 16) | content-coupled (T05 margin, braking distance); no internal optimum | high (rule and live) |
 | P8 | one-step lags | 0x437230 weight transfer from the previous step's acceleration (0.008 m per m/s^2); probe normal from the previous step | lag = T | none | - |
 | P9 | contact latch | flag 0x10, 0x43901e | persistent terrain contact answered on alternate substeps | impulse events per second follow the step rate | none | medium |
@@ -215,6 +223,7 @@ EMU-MEMTRACE s.3, GOLD-STANDARD-FINGERPRINT):
 | P90, Glide | 16.7 (3) | 60 | 2 x 30 |
 | P166, software, default detail (Gold exe) | 13.3 (1) | 75 | 2 x 37.6 |
 | P166, Glide | 31.7 (3) | 31.5 | 1 x 31.5 |
+| **developers' first-launch default for a P166** (Gold manual: 640x480, all features on) | not measured; the default-detail row above is the nearest | about 75 if it matches that row | about 2 x 37 (to verify, E1) |
 | P166, software, lowest detail, retail 1.0 sim | melee 36-37; missions 28-33 | melee p50 26.8 +- 0.9 (12 traces / 3 boots); T05 31.1 +- 1.0 (16 / 16); T06 strip 33.0 (6 / 2); T06 route 35 | 1 x same |
 | same, Gold exe | 11-16 % slower | melee 31.5, T05 34.5, strip 38.0 | 1 x same |
 
@@ -243,9 +252,16 @@ Already collected, 33 sources (WHAT-IS-STOCK s.Development hardware and targets;
   Software renderer at 320x240 / 480x360 / 640x480 at launch. "Designed for use on a Intel Pentium processor"; the
   performance knob is Graphic Detail (README.HLP, CD 1).
 - **[fact]** Team: directed by Sean Vesce; produced by Scott Krager; lead design Zachary Norman; **lead programmer
-  Dan Stanfill**; programmers Kurt Arnlund, Scott T. Etherton, Patrick Griffith, Julio Jerez, Karl Meissner,
-  Jean-Marc Morel, John Northan, Marshall Robin, David White, Henry Yu (MobyGames credits, via Wayback). **Who wrote
-  the vehicle physics is not documented** in anything found.
+  Dan Stanfill** (MobyGames credits, via Wayback).
+- **[fact, new]** Roles from the in-game credits: `DATABASE.MW2` entry 0x53, decoded at
+  `i76-map\data\out\mw2db\083_0x53_credits.txt` (Gold era), lines 16-65, checked this session:
+  - **Vehicle Dynamics Programmer: Dan Stanfill.** The physics owner was the lead programmer.
+  - 3D Programmer: Julio Jerez. He was the renderer programmer, not the physics one.
+  - Engine Programmers: Kurt Arnlund, Scott T. Etherton, Marshall Robin, Henry Yu.
+  - Engine Optimizations: Jean-Marc Morel.
+  - AI Programmer: Karl Meissner.
+
+  The printed manuals give only a flat list. No interview with Stanfill or Morel was found.
 - **[fact]** The engine is the MechWarrior 2 engine extended (Games Domain 1997-02; Vesce, Gamasutra 1999). No
   physics-rate statement.
 - **[fact]** Every 1997 patch keeps the stepper byte-identical. 1.05 adds only a landing-wreck guard (I76-VERSIONS
@@ -257,9 +273,78 @@ Already collected, 33 sources (WHAT-IS-STOCK s.Development hardware and targets;
 
 ## 5. Web search this session (new leads only)
 
-Pending: filled in from the research agent's report when it lands (Dev Game Club ep. 427, Julio Jerez and other
-programmers, Next Generation Nov 1996 p.147, PC Gamer US June 1997, Usenet 1997, strategy-guide text on the T05
-jump).
+Research subagent, 2026-10-17. Sources are cited as it reported them; only the credits file was re-read by me.
+
+### Documented fact
+
+- **Gold Edition manual, "Performance"** (OCR, https://archive.org/stream/INTERSTATE_76/INTERSTATE_76_djvu.txt; the
+  text names DirectX 5, 3Dfx and Rendition, so it is the 1998 manual):
+  > "When you launch Interstate '76 the first time, the game will automatically configure default settings optimized
+  > for your system. ... P90/P100: 320x200 resolution with all features enabled. P133 with 16 MB of RAM: 640x480
+  > resolution with terrain textures disabled. P133 with more than 16 MB of RAM: 640x480 resolution with all features
+  > enabled. P166 and above: 640x480 resolution with all features enabled."
+
+  - The text is not in the GOG `Manual.pdf` text (`recon-2026-09-04\recon\human-record\manual_text.txt`).
+  - It is the likely use of Gold's start-up CPU-speed probe (I76-VERSIONS 4.2 left this open). Not traced.
+  - Both manuals: Visibility Range "Near provides for better performance while Far provides for better graphics
+    **and gameplay**".
+  - [inference] The developers chose these presets as acceptable. On a P166 that preset is far heavier than the
+    owner's lowest-detail reference: about 13 fps on the emulator at default detail, i.e. 2 substeps of about 37 ms.
+- **In-game credits:** see section 4. Vehicle Dynamics Programmer: Dan Stanfill.
+- **Dev Game Club** (podcast RSS https://devgameclub.libsyn.com/rss; audio only, no transcript), topics as listed:
+  - ep 422 (2025-03-12): "jitteriness and physics, compounding errors, deterministic physics";
+  - ep 423: "broken physics world, compounded errors";
+  - ep 424: "**physics implementation details from an implementer!**", "PC compatibility testing", "acceleration and
+    turning", with "Julio Jerez, Daniel Stanfield" named;
+  - ep 427 (Vesce and Norman, 2025-04-23): "a 28-year scoop on engine work", "the few basic bits in a vehicle sim".
+
+  Not listened to: downloading needs the owner's OK. MP3s:
+  - https://traffic.libsyn.com/secure/devgameclub/424-DGC-I76.mp3
+  - https://traffic.libsyn.com/secure/devgameclub/427-DGC-I76.mp3
+  - https://traffic.libsyn.com/secure/devgameclub/422-DGC-I76.mp3
+- **Usenet**, comp.sys.ibm.pc.games.action, "Interstate 76 Framerate Woes / Cyrix Owners Beware!", April 1997
+  (https://groups.google.com/g/comp.sys.ibm.pc.games.action/c/mkvoHdimpSw):
+  - a Cyrix 166+ "drops to around 6-7 [fps] in the second to lowest resolution with all variables set to low or off".
+    This is the only 1997 fps figure found;
+  - a P200 (overclocked 150): "Runs smooth as silk with all options on".
+- **Threads found but unread** (Google Groups rate-limited):
+  - Scott Krager, "Interstate '76 in stores tomorrow!!!!!!!", 1997-04-02
+    (https://groups.google.com/g/comp.sys.ibm.pc.games.action/c/0MicfbB-q-M). The snippet quotes "Choppy frame rate
+    on a P200 w/Mystique". A **developer post on frame-rate complaints**.
+  - "I76 crwls on P200MMX" (1997-04-02).
+  - "Interstate 76 - How NOT to program a game?" (1997-09-17; a patch "improved frame-rate").
+- **Other:**
+  - PCGamingWiki: "Frame rates higher than 30 FPS (24 FPS in some cases) cause stuttering, physics and enemy AI
+    problems". This is lore about modern PCs.
+  - archive.org `Interstate_76_STB_Velocity_128_Pack-In_Activision_CD1`: a second card bundle, with the Riva 128.
+
+### Community lore
+
+- VOGONS "What are the most demanding games of their respective eras?", page 3
+  (https://www.vogons.org/viewtopic.php?t=91807&start=40; from a search snippet, the page returns 403). This is the
+  traceable origin of the old "P166 + Voodoo 1 playable with slowdowns" line, a recollection decades later:
+  - "Pentium MMX 166MHz, Rendition 2100 and Voodoo 1. It had its slowdown moments ... but it was definitely playable";
+  - "a slideshow on our 200 MHz MMX PC" (Cirrus 2D card).
+- Local Ditch "FPS Jumping" (2013, https://www.localditch.com/posts/fps-jumping/): at modern frame rates the mission 5
+  jump fails "even with nitro"; it works at 30 fps.
+
+### Nulls
+
+- No transcript or captions for DGC 422-427.
+- No I'76 physics statement by Julio Jerez (newtondynamics.com, GitHub) or by Stanfill, Morel and the other
+  programmers.
+- The Prima strategy guide (Knight & Boyle 1997) exists but has no online text.
+- No walkthrough gives a mission 5 jump speed.
+- Next Generation p.147, PC Gamer US June 1997 and GameSpot Arsenal: unavailable.
+
+### What it changes for the study
+
+- The developers' recommended-class default was a multi-substep, about 37 ms regime on the emulator, and longer on a
+  real P166. The P166 lowest-detail reference is the lightest configuration the authors offered, not their default.
+  This supports the owner's reading that it is a lower bound. It weakly favours the middle of the band over the
+  bottom.
+- Tasks added to the study: E1 (first-launch defaults on the emulated P90 / P133 / P166) and W1 (DGC audio, with the
+  owner's OK).
 
 ## 6. Sources for the plausibility ranges
 
@@ -276,8 +361,7 @@ jump).
 
 ## 7. Open static checks (cheap, no console)
 
-- **S1.** Read the probe's grounded clearance (veh+0x470 on flat ground) from an existing trace. This turns P6 into a
-  number: the 0.5 m band against ride height.
+- **S1, done.** The probe's grounded clearance is about 0 (P6 row). The 0.5 m band sits above the resting probe.
 - **S2.** Trace who reads `TOGGLE_FRAMERATE` (id 0x54) outside 0x44eb50, e.g. a table-driven handler. An on-screen
   fps display with a colour threshold would be a direct target.
 - **S3.** Route-geometry census: for every FSM path and AI route, the segments that cross a class-11 ramp, a canyon or
