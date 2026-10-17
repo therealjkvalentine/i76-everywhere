@@ -24,7 +24,7 @@ Lane `cross-exe-code-diff`. Static only: no game was run and no VM was started. 
      - Nitro Pack (March 1998).
    - Every other I'76 exe here is the Gold build plus a few bytes. That covers GOG 2017, GOG 2019 AiO, ours, the lab
      sandbox, i76fix and pristine_fix.
-   - **The summer 1997 patches (1.05, 1.08b D3D beta) are not on this PC.** Section 1 lists them. Nothing below
+   - **The 1997 patches (1.05, 1.08b D3D beta) were not on this PC when this map was built** (see the "Not done / open" note). Section 1 lists them. Nothing below
      describes them.
 2. **The vehicle physics is the same code in retail 1.0 and Gold.**
    - **The call tree:** from `physics_StepVehicle` the tree is 118 Gold / 87 retail functions to depth 2. Both use
@@ -475,6 +475,8 @@ These are proposals. Nothing was changed.
 ## Not done / open
 
 - **Patches 1.05 / 1.08 / 1.08b:** no exe on this PC, so not diffed.
+  [verify 2026-10-17: I76-VERSIONS has since fetched the 1.05 (linked 1997-03-28, not summer), 1.06, 1.081 and 1.083
+  exes and the demo into lab `emu/images/versions/extracted/`; they are still not in this map. Only 1.08b is missing.]
 - **Instruction-level alignment:** the lateral function and the suspension were aligned instruction by instruction;
   the integrator `physics_IntegrateVehicleMotion` and the longitudinal tyre code were not. They match only on
   constants and call order, which was the same.

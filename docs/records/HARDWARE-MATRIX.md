@@ -102,7 +102,8 @@ Values are mean +- sd (n traces).
   - |q| < 0.1: 12 survived, 0 destroyed.
   - |q| 0.1-0.49: 22 survived, 0 destroyed.
   - |q| >= 0.49: 3 survived, 20 destroyed.
-- In P133 low, 5 of 10 take-offs were at |q| 0.85-0.91 and 4 of those 5 were destroyed. The batch matters:
+- In P133 low, 4 of 10 take-offs were at |q| 0.85-0.91 and all 4 were destroyed (lab report.md "Every jump"; corrected
+  by the verifier from "5 of 10 ... 4 of those 5"). The batch matters:
   - The steep take-offs are all in the 06:26-06:50 batch: 4/5 destroyed, generated before the retail SFX 5 change.
   - The 10:54-11:23 batch: 2/5 destroyed.
   - Batch vs batch: Fisher p 0.52.
