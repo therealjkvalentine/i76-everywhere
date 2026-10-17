@@ -18,9 +18,9 @@ Tests: `python -m pytest tests` before **241 passed, 4 skipped**; after **244 pa
 | R-09 | the rest of DOC-CORRECTIONS | **done**: `src/u32x.c` 2 comments and e:`u32x/u32x_full.c` 1 comment re-pathed to `docs/records/` (same line count, binary unaffected); garage-ui `RESULTS.md` dated note; i76-map three agent briefs re-pathed; file marked closed | l:`40c4a6e`, m:`41cd310f`, e:`45df600` |
 | U-05 | F2 orphaned bookmark | **built, emulated, staged on the twin** (below); live test is owner test T3 | e:`6779088`, m:`c2f76e9e` |
 | U-13 | gate row D always FAIL | **fixed** (below) | l:`41d9abe` |
-| U-12 | Click-UI free-pointer audit | **fixed in 6 scripts**, the rest listed (below) | l:`38f86a7` |
+| U-12 | Click-UI free-pointer audit | **fixed in 6 scripts**, the rest listed (below) | l:`38f86a7`, verify `391c18e` |
 | X-16 / C.3 | README rows for proxy switches | `I76_REF_FPS`, `I76_KEEP_ACTIVE`, `I76_FRAME_LOG` added; all 117 `"I76..."` names in the committed `music-fix` sources now appear in the README (3 missing before, 0 after) | e:`ac156cf` |
-| R-16 | lab loose ends | stale lock `game\.console-test.lock.stale-20261006` moved to `autotest\runs\stale-locks\`; the 11 untracked 2026-10-12 `autotest\saves\runs` folders committed (131 files, 415 KB, PNGs stay ignored); `builds/**/*.exp, *.lib` ignored (68 files on disk; the commit message says 46, which was not counted - 68 is the count) | l:`568c3c5`, `f85c8ca`, `7533529` |
+| R-16 | lab loose ends | stale lock `game\.console-test.lock.stale-20261006` moved to `autotest\runs\stale-locks\`; the 11 untracked 2026-10-12 `autotest\saves\runs` folders committed (131 files, 417,557 bytes = 408 KiB, PNGs stay ignored); `builds/**/*.exp, *.lib` ignored (68 files on disk; the commit message says 46, which was not counted - 68 is the count) | l:`568c3c5`, `f85c8ca`, `7533529` |
 
 ## U-05: F2 in detail
 
@@ -64,6 +64,9 @@ Tests: `python -m pytest tests` before **241 passed, 4 skipped**; after **244 pa
   `setup\enum-weapon-picker` (1): raw `SetCursorPos(ux, uy)` -> `MoveTo-UI ux uy`, which is the same call in the default
   regime and the drawn position with `LAB_CURSOR_FREE=1`. `enter-melee`: ENTER AREA `Click-Screen 1648 1385` ->
   `Click-UI 296 462` (= the same point on the 3440x1440 map; `WEAPONS-MEMORY.md` lists 299,461). All parse; not run live.
+- Verify (2026-10-16): `setup\equip-weapon` did not load `maplib.ps1`, so `MoveTo-UI` was undefined there and the script
+  would have thrown on the first click (parse checks do not catch it). Fixed in lab `391c18e` (dot-sources maplib;
+  `Get-Command MoveTo-UI` resolves). The other 5 scripts already load maplib.
 - Already right: the gate rows' scripts (`option6-trip-test`, `garage-ui`, `test-escmenu` through Click-UI; `leg-b`
   handles the regime itself; `gate-folder` places and reads back).
 - Left raw on purpose (listed, not changed): `calibrate\*` and `setup\find-weapon-ui` (sweeps), `saves\leg-a` (mode
