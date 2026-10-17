@@ -638,6 +638,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Expected:** 3 = Interstate '76 Theme, 15 = Malochio Down, 16 = Skeeter Gettin' Medieval, 17 = Ovum Bisquit. Note any that differ
       (`I76_MUSIC_DISC_ORDER` rests on length matching only until you confirm).
 48. **F2 orphaned bookmark: stock control vs the F2 shell (medium, 12 min; new 2026-10-17; records/BACKLOG-AGENT-ITEMS-2026-10-16.md U-05).**
+    - **DONE 2026-10-17 by agent at the console (owner handed it over): PASS.** Control (stock shell a300db63): slot reset to -1 on re-entry, new bookmark names save015.cmp which was never written = ORPHAN (bug reproduced). F2 shell (2ab4ca90) from the same restored saves: slot 15 kept on re-entry, file written, VERDICT OK. Extra check of the plain type-and-Enter save: F2 opens the Save screen at slot 0 (stock -1) but still appends a new bookmark with its file; no existing bookmark changed. n 1 per path; saves restored to the pre-test backup (md5 read back). Driver fix lab 6cb7bae.
     Twin `C:\Users\james\i76-uncap-lab\game-dd-20261003`; saves are backed up and the shell restored automatically (md5 read back).
     1. `TEST-F2-bookmark-control.bat`: load any bookmark > garage > Options > Save Bookmark, type ORPHANA, click once on the empty
        paper right of the list (not a row or button), click the name field, type ORPHANB, SAVE, quit. Read the VERDICT.
