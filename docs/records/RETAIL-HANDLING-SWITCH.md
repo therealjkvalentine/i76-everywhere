@@ -103,3 +103,57 @@ is the u32x default and still needs one Esc-menu click check.
    CheckImpact and the AI's model of its own car).
 4. Then install rh2 in the twin (backup `STRLKUP.DLL.33211f11-pre-rh2`) and run the owner's routes before leaving it
    there (memory: test the owner's route before installing).
+
+## 7. Second lane, 23:05-00:00: live attempts, an input instrument, one-click A/B (lab-retail-handling, run 2)
+
+A second agent with the same brief worked in parallel from 23:05 (the `.console-owner` the first lane saw at 23:16 was
+this one). It did not change the switch source; it reused rh2 and added what the first lane listed as blockers.
+
+- **Arcade bit read back in a mission: yes, n = 1 run.** 23:16, lab twin copy, T06, rh2, `I76_RETAIL_HANDLING=1`,
+  `I76_FPS_CAP=20`: the proxy logged `flag 0x10000 set on the player's car (set #1, frame 1, flags now 0x00091041)`,
+  and the telemetry flags dword (the proxy's per-frame copy of entity +0x454) carried 0x10000 in **158 of 158** mission
+  frames. That run was during the RDP-active window (section 5), so it says nothing about rendering; it is the only boot
+  that reached a mission. The external ReadProcessMemory read-back in that run read the wrong pointer level (fixed
+  since: `[[[0x54a264]]+0x70]+0x454`), so the in-process telemetry copy is the only read-back so far.
+- **Steering was not measured in it:** `keybd_event` reached nothing (applied steer 0 and throttle 0.002 in every
+  frame, 77 + 81 frames), so the yaw numbers of the brief (12 / 18 / 25 m/s, n >= 5, A/A) do not exist yet.
+- **Boots after 23:20: 0 of 8 reached the mission** (session 1 disconnected again; `quser` idle 31 min at 23:48; the
+  only display is `WinDisc` 800x600):
+  - the boot stops on a modal `#32770` "Running software emulation mode" / "Failed to initialize 3D hardware
+    acceleration" (window enumeration, n = 2); its only button "OK" has control id **2**;
+  - dismissing it (`dismiss-swemu.ps1`, WM_COMMAND 2) leads to `CRASH 0xC0000005 at 0x00475C36`, frame 0, n = 2 (`-glide`
+    and `-d3d` the same): the crash the first lane saw is the software-emulation fallback after the 3D init failed;
+  - dgVoodoo `OutputAPI = d3d11warp` (own copy only): `CRASH 0xC0000094` (integer divide by zero) in
+    `glide2x.dll+0x49836`, n = 1. Not chased further.
+  - So a live run needs the owner's session at the console (or RDP with a 3D path). Not done: `tscon` (would unlock
+    the owner's desktop on the monitor).
+- **Input without a keyboard: `I76_RH_DRIVE=1`** (lab build rh3 only: `builds\retail-handling-20261016\drive-block.c`,
+  inserted into a copy of the rh2 source by `insert-drive.py`; md5 `b35547d1`; not in this repo). It wraps the one call
+  of `input_ApplyToEntity` 0x44f1c0 at 0x44df61 and, before the stock code, sets the held-key bytes from
+  `Local\I76RhDrive` (throttle_up 0x5367d0, throttle_down 0x5367d1, steer_left 0x5367d9, steer_right 0x5367da). The
+  stock code then runs its own keyboard ramp (steer = sqrt(hold / 3), so 0.9 after 2.43 s, matching the emulator's
+  2.41 s, EMU-MEMTRACE s.3). Loaded and logged `rh-drive: on` (n = 2 boots); **never exercised in a mission** (no boot
+  after it was built reached one). The same call site is patched by `I76_REPLAY`; do not set both.
+- **Measurement scripts** (lab `tools\retail-handling\`, commit lab `efe6687`):
+  - `steerhold.py`: per speed 12 / 18 / 25 m/s and side, TELEPORT onto the T06 flat strip with that speed, throttle
+    governor, 1 s later full keyboard steer for 3 s; then accel from rest and full brake; arcade bit read from outside
+    the process before and after;
+  - `run-rh.ps1`: one boot per run on `game-rh` (a gitignored copy of the twin's files, so the twin is untouched),
+    conditions `off` / `offaa` / `on` (stock exe behaviour + `I76_FPS_CAP=20`, `on` adds `I76_RETAIL_HANDLING=1`),
+    plus `phys-suite.py --phases drop` for g; console lock per run;
+  - `steerhold-analyse.py`: yaw_ss (1-2 s after key-on, the EMU-MEMTRACE window), K = |r| v / |steer| on non-skid
+    frames, skid / 0x2000 / arcade shares, 0-10/20/30 m/s, brake distance, drop g; mean +- sd (n) per condition.
+  - `run-rh-night.ps1`: retries boots; ran 23:50-00:00, 0 good runs; stopped so it cannot take the console when the
+    owner is back.
+- **Expected numbers** (from the traces, RETAIL-HANDLING-DIFF s.4 and section 2 here; not measured on our exe yet):
+  off K 31.4-31.7, on K 23.2-23.5 on level ground; at 18 m/s yaw_ss about 1.35-1.43 off and 0.95-1.0 on; accel,
+  brake and drop g unchanged (the bit is read only by the lateral function, CheckImpact and the AI's own-car model).
+  The retail fingerprint file `emu\results\gold-standard\retail-p166-low.json` does not exist yet; the comparison
+  targets are the EMU-MEMTRACE retail numbers (arcade on, as measured) and, for the gold standard proper (retail,
+  arcade off), our exe with the switch **off**.
+- **Owner one-click files (lab root):**
+  - `PLAY-RETAIL-HANDLING-ON.bat` / `PLAY-RETAIL-HANDLING-OFF.bat`: game-rh with rh2 (md5 checked / installed), presets
+    `lab-p166-retail-handling` / `lab-p166-retail` (dry-run checked: the only difference is `I76_RETAIL_HANDLING=1`).
+    Unlike the twin's `TEST-p166-retail-handling.bat` these work today (rh2 is installed in game-rh, not in the twin).
+  - `MEASURE-RETAIL-HANDLING.bat`: the whole off / offaa / on campaign, n 5 each, about 45 min unattended at the
+    console, writes `captures\retail-handling-<ts>\owner\RESULTS.md`.
