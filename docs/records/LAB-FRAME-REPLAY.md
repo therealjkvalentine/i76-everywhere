@@ -23,10 +23,12 @@ the same per-frame dt, the same applied inputs and the same start state, and dif
 - **The lab side is deterministic (A/A).** The same replay run twice gives bit-identical states (position, rotation,
   velocity, rates) on every frame up to the frame the car is destroyed: 6 of 6 pairs; one pair without a destruction
   (retail trace + Arcade bit) is bit-identical for all 1,346 frames.
-- **Emulator vs lab, T05 descent: the first ~1.5 s agree, then the lab car pulls away.**
-  - Yaw rate is **bit-identical** to the emulator's for the first 47-51 frames of every clean crest start (n 10, Gold
-    and retail sim alike; up to a trace speed of 11.4-11.9 m/s, about 1.7 s) and for the first 49-61 frames of the
-    approach-run replays (n 6).
+- **Emulator vs lab, T05 descent: the lab car pulls away from the start.**
+  - Yaw rate equals the emulator's for the first 47-51 frames of every clean crest start (n 10), but only because
+    both are exactly 0 until the trace's first steer input (47-51 frames in); on the first steered frame the lab's
+    yaw rate is already 3-12 % higher (verify 2026-10-17, recomputed from MEM.BIN and the lab logs). In the
+    approach-run replays (n 6 distinct, 49-61 equal frames) 6-14 of the equal frames are steered, non-zero yaw rates
+    (g05a 11, g05b 14, r05a 6, r05c 0).
   - Position: over 0.1 m after 19-37 frames, over 1 m after 48-52 frames, over 10 m after 106-120 frames (clean starts).
   - **The lab car accelerates about 20 % harder**, in every run and the same against Gold and retail traces (n 10
     clean starts): when the emulator car reaches 10 / 20 / 30 m/s the lab car is at 11.7-11.9 / 24.8-25.2 / 37.0-37.6.
@@ -91,8 +93,8 @@ the same per-frame dt, the same applied inputs and the same start state, and dif
 | lab sim_dt == trace sim_dt (float bits) | 0 mismatches | 23,960 frames, 12 runs (+ 11 clean-start runs: 0) |
 | applied steer / throttle / handbrake == trace (bits), before any destruction | 0 mismatches | 12 runs + 11 clean runs |
 | input_ApplyToEntity calls per replayed frame | 1 | every run (`#end` line) |
-| A/A, lab vs lab, same replay file | bit-identical until the car is destroyed (frames 372 / 331 / 515 / 489 / 499; first difference at the destruction frame itself); r05a+Arcade 1,346 / 1,346 | 6 pairs |
-| placement read-back | first logged frame 0.08 m from the trace (the trace car moved by its own physics in that frame; dspeed -0.015 m/s constant over the first 30 frames) | 12 runs |
+| A/A, lab vs lab, same replay file | bit-identical until the car is destroyed (373 / 331 / 519 / 493 / 503 identical frames from the start, rpl_aa; first difference at the destruction frame itself); r05a+Arcade 1,346 / 1,346 | 6 pairs |
+| placement read-back | first logged frame 0.08 m from the trace (the trace car moved by its own physics in that frame; dspeed -0.007 to -0.015 m/s, constant within a run, over the first 30 frames) | 12 runs (clean starts: 0.076-0.078 m, n 10) |
 
 - **After a destruction the twins differ.** First difference exactly at the destruction frame (y, vy, speed) in all 5
   pairs that had one. Not looked into (wreck / explosion code; possibly a time-seeded random number).
@@ -112,7 +114,8 @@ The retail approach runs are arcade mode (EMU-T05-CLEAN.md: every retail trace b
 
 **Agreement window (clean starts, n 10):**
 
-- yaw rate bit-identical from the start for 47-51 frames (trace speed up to 11.4-11.9 m/s);
+- yaw rate equal for the first 47-51 frames, all of them 0 on both sides (no steering yet); the first steered frame
+  differs (lab 3-12 % higher; trace speed there 11.4-11.9 m/s, lab 13.6-14.2);
 - |dpos| over 0.1 m after 19-37 frames, over 1 m after 48-52 frames, over 10 m after 106-120 frames;
 - lab speed when the emulator car reaches 2 / 5 / 10 / 20 / 30 / 40 m/s:
 
