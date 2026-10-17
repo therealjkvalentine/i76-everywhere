@@ -6,6 +6,8 @@ Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be mute
 candidates, your open decisions; ordered by value, each with its launcher and time).
 **Status marks 2026-10-16** ([BACKLOG-2026-10-16.md](BACKLOG-2026-10-16.md)): items closed or replaced carry a `[DONE ...]`,
 `[OBSOLETE ...]` or `[RETIRED ...]` tag with the evidence; numbers are unchanged. Untagged items are still open.
+**Overnight 2026-10-16 / 17: [records/OVERNIGHT-2026-10-16.md](records/OVERNIGHT-2026-10-16.md)** (the morning list in one
+place: new items 45-52 at the bottom, plus items 1-2 and 36; the headline on how close our exe is to the gold standard).
 
 ## Before bed (the overnight agent run)
 
@@ -31,6 +33,8 @@ candidates, your open decisions; ordered by value, each with its launcher and ti
 
    *(Items 1-2 still open 2026-10-16: the driver's `mciproxy.log` was last written 2026-10-08 07:43, so promotion 16 (collision G,
    roads 1800, 2x SS, I76 Debug; rollback `_rollback\16`) is also unplayed there. The promotion-16 gate also ran with no wheel.)*
+   *(2026-10-17 morning list: cut to a ~10 min smoke - wheel in, `PLAY.bat`, bookmark > garage > DONE, one popup, T05 barricades,
+   a few seconds of T01 fire / ram for FFB; the long menu checks already ran on the twin. records/OVERNIGHT-2026-10-16.md.)*
 
 2b. *(Promotion regression automated 2026-10-11, P7: best-wide / best-wide-balanced / best-120 on the twin each boot and drive t04
    90 s at 120 fps, no CRASH line; the twin's presets are byte-equal to the driver's.)*
@@ -383,6 +387,10 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - *(2026-10-16: still open. The hold's reason is answered by item 37 (the stock lap counter), but nobody has lifted the hold, and
       the gate phase P9 is not written. Since 2026-10-13 the TEST-next* bats also carry the AI parity set (item 40), which promotion
       18 does not.)*
+    - *(2026-10-17 morning list: this is the promotion-18 hold decision (C4). Play `TEST-hill-next.bat` then `TEST-next-dense.bat`
+      (both also carry the AI parity set); say lift the hold yes / no and bushes thin to 1800 m or dense to 300 m. The twin proxy
+      was read back 2026-10-17 as 33211f11 (the replay build that sat there at 22:40 is gone). No P9 gate exists yet: an agent
+      writes it after a yes. About 20 min.)*
 
 ## The dream mission (T04, the 4-lap race; lab docs/DREAM-MISSION-2026-10-12.md)
 
@@ -599,3 +607,67 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
       `cursor-map:`, `pad-menu:`), or leave the Deck on Wi-Fi and the agent collects them.
     - Rumble off again: `I76_AHK_RUMBLE=0` in `~/Games/Interstate76/i76-env.sh` (last block). Undo everything:
       `bash ~/i76-deploy/deck/setup-deck-tv.sh --revert`.
+
+## Overnight 2026-10-16 / 17 (records/OVERNIGHT-2026-10-16.md; ordered by priority, then minutes; also do items 1-2 and 36 there)
+
+45. **Arcade Phys.: which setting is the gold standard? (decision, high, 5 min; new 2026-10-17; records/RETAIL-HANDLING-DIFF.md).**
+    Every retail 1.0 emulator run before 2026-10-16 22:42 had Arcade Phys. **on** by accident (a Gold-layout `I76PLYR.DEF` read by the
+    1997 exe). The stock default is off in both exes, and the emu runs since lab 0e2f16c are already off - nothing to switch.
+    - **Read:** `C:\Users\james\i76-everywhere\docs\records\RETAIL-HANDLING-DIFF.md`, the Answer and section 5.
+    - **Decide:** gold standard = retail 1.0 with stock options (arcade off), or do you remember playing 1997 with Arcade Phys. on?
+    - **Feel it (optional, part of item 44):** lab twin `TEST-p166-retail-step.bat`, Esc > Options > Play Options > tick Arcade Phys.,
+      fast corners and a roof landing; **untick it afterwards** (the game saves it to the twin's `I76PLYR.DEF`).
+    - **Say:** "arcade off" or "arcade on".
+46. **Logged P166 play session in 86Box, retail 1.0 (high, 30 min; new 2026-10-17; records/EMU-OWNER-LOGGING.md).**
+    Your own pbs-p166 machine on a logging copy of your disk; your `w95pb-hdd.img` is untouched (sha256 re-checked). The launcher
+    refuses to start if the logging disk is already in use, so no pre-check is needed.
+    - Double-click `C:\Users\james\i76-uncap-lab\emu\PLAY-P166-LOGGED.bat` (disc 2 in the drive). If the game asks for disc 1 for
+      a mission, close 86Box and relaunch with `PLAY-P166-LOGGED.bat --cd disc1`.
+    - Start Interstate '76 from Start > Programs; 320x200, lowest detail; Options: **Arcade Phys. off**.
+    - Play T05 to the canyon jump (or any mission). Exiting and restarting the game is fine (each start = one session).
+    - Exit the game, Start > Shut Down, wait for "safe to turn off", close 86Box.
+    - **Look for:** `C:\Users\james\i76-uncap-lab\emu\results\memtrace\owner-<date>-<time>\summary.md` lists your session(s): retail 1.0,
+      in-mission fps around 33-38, Arcade Phys. off, a "T05 canyon descent" line, the mission's music track. Report any "Cannot find
+      file" dialog, an empty summary, or a game that feels slower than `run-vm.ps1 pbs-p166`.
+    - **Caveat:** the launcher copies the logger from `emu\probe\out`, which is now I76MEM 2026-10-16b (commits the file every
+      64 writes), not the 2026-10-16a build the self-test ran. Saves made here stay on the logging disk.
+47. **GOG music file order by ear (medium, 5 min; new 2026-10-17; records/MUSIC-RETAIL-INTENT.md).** Any player:
+    `C:\Users\james\i76-uncap-lab\game\music\3.mp3`, `15.mp3`, `16.mp3`, `17.mp3` (the opening seconds are enough).
+    - **Expected:** 3 = Interstate '76 Theme, 15 = Malochio Down, 16 = Skeeter Gettin' Medieval, 17 = Ovum Bisquit. Note any that differ
+      (`I76_MUSIC_DISC_ORDER` rests on length matching only until you confirm).
+48. **F2 orphaned bookmark: stock control vs the F2 shell (medium, 12 min; new 2026-10-17; records/BACKLOG-AGENT-ITEMS-2026-10-16.md U-05).**
+    Twin `C:\Users\james\i76-uncap-lab\game-dd-20261003`; saves are backed up and the shell restored automatically (md5 read back).
+    1. `TEST-F2-bookmark-control.bat`: load any bookmark > garage > Options > Save Bookmark, type ORPHANA, click once on the empty
+       paper right of the list (not a row or button), click the name field, type ORPHANB, SAVE, quit. Read the VERDICT.
+    2. `TEST-F2-bookmark.bat`: the same with **ORPHANC / ORPHAND** - use these names even though the console text says ORPHANA / B
+       (reusing ORPHANA brings up the overwrite prompt and muddies the comparison).
+    3. `PLAY.bat` in the twin > Load Bookmark.
+    - **Look for:** control prints ORPHAN, F2 prints OK; ORPHAND is in the load list, ORPHANB is not. Control printing OK = the stock
+      trace is wrong; say so.
+49. **Retail-intent music: the taste calls (medium, 15 min; new 2026-10-17; records/MUSIC-RETAIL-INTENT.md).** The gapless / pause log
+    checks are agent work; only your ears are needed for the choices. Unmute the PC yourself.
+    - `C:\Users\james\i76-uncap-lab\builds\music-retail-20261016\MUSIC-RETAIL-TEST.bat` (retail mode; plays lab `game\`, swaps its
+      proxy for the run and puts it back). Main menu 1 min (one short track looping), Options > Credits (another short one), back.
+      Start a mission, choose Replay once (retail restarts the track from 0:00).
+    - Then `MUSIC-RETAIL-TEST.bat control` and the same.
+    - **Say:** which menu / credits music you prefer (1997 shell tracks vs today's run), and restart vs continue on Replay.
+50. **Gold vs retail sliding at 25 m/s, in the emulator (medium, 15 min; new 2026-10-17; records/GOLD-STANDARD-FINGERPRINT.md).**
+    The only behaviour where Gold misses retail: yaw while sliding +19 % at 25 m/s (n 12 vs 17), with Gold's held speed 3.9 % lower.
+    Our exe has Gold's physics bytes, so this is the open handling question for our exe. Can share the sitting with item 46.
+    - `C:\Users\james\i76-uncap-lab\emu\PLAY-P166-LOGGED.bat`, Arcade Phys. off, Instant Melee: hold about 55 mph, full lock left
+      and right a few times.
+    - Again with `PLAY-P166-LOGGED.bat --cd gold`, starting `C:\I76GOLD\I76.EXE` from Start > Run (the Start menu may only list retail).
+    - **Look for:** does Gold visibly slide out or spin more at the same speed and lock? Does it matter to you for "stock"?
+51. **Instant Melee frame replays on the twin, first run (medium, 10 min smoke, then 20-40 min; new 2026-10-17; records/LAB-FRAME-REPLAY.md).**
+    The only clean frame-by-frame exe vs emulator comparison (same default car), but the menus do not work headless. The script has
+    never run: expect to debug it, not to measure.
+    - Session connected, no other game running. From a cmd window:
+      `C:\Users\james\i76-uncap-lab\tools\replay\REPLAY-MELEE.bat -Conds g166-mloop-rep1 -N 2` (2 Gold replays). It takes over mouse
+      and keyboard; hands off. If it stalls at a menu, note which one and stop it (Ctrl+C in the window) instead of waiting out 240 s timeouts.
+    - If both finish: run `REPLAY-MELEE.bat` with no arguments (10 replays; the 6 retail ones replay arcade traces and do not count yet).
+    - **Look for:** `tools\replay\runs\melee-console-<stamp>.txt`: Gold reps with "sim_dt bit mismatches 0", "input bit mismatches 0",
+      and the first frame with |dpos| over 0.1 / 1 m (late = good).
+52. **Watch one retail canyon descent (low, 5 min; new 2026-10-17; records/EMU-T05-CLEAN.md).**
+    `C:\Users\james\i76-uncap-lab\emu\results\writeup\video\retail-sim-p166-t05-clean-descent.mp4` (simulation physics, damage-free
+    crest start). Optional: `...\emu\results\par\20261016-224007-r166-t05clean-a-1\video.mp4` is 8 descents in **arcade** (25 min; skim).
+    - **Look for:** no pop or jitter at the placed start; does the jump look like your memory of the 1997 game?
