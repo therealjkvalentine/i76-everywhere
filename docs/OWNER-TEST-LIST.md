@@ -611,6 +611,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
 ## Overnight 2026-10-16 / 17 (records/OVERNIGHT-2026-10-16.md; ordered by priority, then minutes; also do items 1-2 and 36 there)
 
 45. **Arcade Phys.: which setting is the gold standard? (decision, high, 5 min; new 2026-10-17; records/RETAIL-HANDLING-DIFF.md).**
+    - **ANSWERED 2026-10-17 (owner): simulation physics (Arcade Phys. off).** The gold standard is retail 1.0 with stock options; arcade runs are kept only as the arcade reference.
     Every retail 1.0 emulator run before 2026-10-16 22:42 had Arcade Phys. **on** by accident (a Gold-layout `I76PLYR.DEF` read by the
     1997 exe). The stock default is off in both exes, and the emu runs since lab 0e2f16c are already off - nothing to switch.
     - **Read:** `C:\Users\james\i76-everywhere\docs\records\RETAIL-HANDLING-DIFF.md`, the Answer and section 5.
