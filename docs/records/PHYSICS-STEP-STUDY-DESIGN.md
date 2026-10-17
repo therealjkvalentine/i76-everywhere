@@ -38,8 +38,8 @@ fixed here, **before the data**.
     contact model buzzes below about 25 ms (P4).
   - **Upper:** the engine's maximum substep, `StepperInit(0.05)` on every vehicle (C1). No 1997 machine ever ran a
     substep of 50 ms or more.
-- **Candidate grid:** 27, 30, 33.3, 36.7, **40**, 43.3, 46.7, 49 ms (37.0 / 33.3 / 30 / 27.3 / 25 / 23.1 / 21.4 /
-  20.4 steps/s). The 40 ms cell runs first (owner rule 3).
+- **Candidate grid:** 27, 30, **33.3**, 36.7, 40, 43.3, 46.7, 49 ms (37.0 / 33.3 / 30 / 27.3 / 25 / 23.1 / 21.4 /
+  20.4 steps/s). The 33.3 ms cell runs first (owner amendment 2026-10-17, below; it was 40 ms under owner rule 3).
   - Then the two code-clue points: 30 ms (C3, P6) and 46.7 ms (P1).
   - Then the rest.
   - Then a refinement at +-1.7 ms around the leader.
@@ -54,7 +54,7 @@ fixed here, **before the data**.
   - Then playability (the T05 margin and survival).
   - Then realism (body frequency, momentum).
   - Then the blind taste A/B. Each later stage only breaks ties the earlier one leaves (95 % intervals overlap).
-  - If nothing discriminates: 40 ms.
+  - If nothing discriminates: 33.3 ms (owner amendment 2026-10-17; was 40 ms).
 - **Implementation (section 7):** a whole-simulation fixed tick. Every per-frame sim system runs once per tick with
   sim_dt = T, and only rendering runs per display frame, with interpolation.
   - This restores the 1997 coupling (one frame = one step) without the rescaling patches.
@@ -86,9 +86,9 @@ fixed here, **before the data**.
 |---|---|---|---|
 | 27.0 | 37.0 | L: retail melee at P166 low | 4 |
 | 30.0 | 33.3 | C3 (the 60 ms preset frame splits to 2 x 30); P6 at T05 take-off vy; the current lab candidate env30 | 2 |
-| 33.3 | 30.0 | retail T05 / T06 p50 (31-35) | 4 |
+| **33.3** | 30.0 | **owner baseline (amendment 2026-10-17)**: developer-stated 15 fps design target as the engine runs it, 2 x 33.3 (DEV-GAME-CLUB-I76.md); bottom of Jerez's 10-30 Hz filter range; retail T05 / T06 p50 (31-35) | **1** |
 | 36.7 | 27.3 | real-P166-low estimate (missions); P166 default detail 2 x 37.6 | 4 |
-| **40.0** | 25.0 | middle of [27, 50) (owner rule 3) | **1** |
+| 40.0 | 25.0 | middle of [27, 50) (owner rule 3; was the first cell before the amendment) | 2 |
 | 43.3 | 23.1 | P1's 2 Hz edge (43.8) | 4 |
 | 46.7 | 21.4 | P1 (fn 1.87 Hz); P90 software substeps (47); our stock20 average (41.7-46.9) | 3 |
 | 49.0 | 20.4 | U probe: the longest step the engine allows | 4 |
@@ -179,7 +179,7 @@ No band is used for roll gradient or slide until a source is found. Those metric
   - In-session repeats are allowed only when the A/A between repeat 1 and repeats 2+ holds; EMU-MEMTRACE s.3 showed
     it for melee.
 - **Controls:**
-  - Every campaign runs an A/A cell (40 ms twice, under two codes) to measure the noise floor.
+  - Every campaign runs an A/A cell (33.3 ms twice, under two codes) to measure the noise floor.
   - The order of cells is randomised and reversed on alternate rounds (envrb-campaign's pattern).
 
 ### 5.3 Contexts
@@ -232,14 +232,14 @@ No band is used for roll gradient or slide until a source is found. Those metric
 
 **Stage 4, taste (blind A/B, section 8).**
 - Among the remaining <= 4 cells, the Bradley-Terry leader wins.
-- If it is not separated from the runner-up (its 95 % interval includes 0.5 for that pair), the cell nearer 40 ms
+- If it is not separated from the runner-up (its 95 % interval includes 0.5 for that pair), the cell nearer 33.3 ms
   wins.
 
 **Fallbacks, applied in this order, each recorded in the paper:**
 1. No cell passes Stage 1: relax B4 to +-50 %.
 2. Then relax B3 to <= 20 %.
 3. B1 and B2 are never relaxed.
-4. Still none: the cell that passes the most Stage 1 rows; ties go to the cell nearer 40 ms.
+4. Still none: the cell that passes the most Stage 1 rows; ties go to the cell nearer 33.3 ms.
 
 A metric that cannot be measured for a cell counts as a fail for that cell. It is reported, not imputed.
 
@@ -428,3 +428,17 @@ on today's build, recorded blind.
 - **Taste** is one or a few people and only breaks ties.
 - **The code clues are interpretations of round constants** (15 calls, 0.5 m, 0.06 s). The study tests their
   consequences. It does not assume the authors aimed at them.
+
+## Amendment 2026-10-17 (owner, before any study data)
+
+- **Baseline / default step = 33.3 ms, replacing the 40 ms neutral start.** Basis: Julio Jerez (Dev Game Club 424, second-hand,
+  medium confidence): "designed to run at 15 frames per second"; the shipped engine splits a 66.7 ms frame into 2 x 33.3 ms
+  vehicle substeps (0.05 s substep cap, count = floor(20 dt) + 1); 33.3 ms is also the bottom of his 10-30 Hz filter range.
+- Every rule that defaulted to 40 ms (first cell, A/A cell, nothing-discriminates winner, tie-breaks) now uses 33.3 ms.
+  Nothing else in the pre-registration changed; no study data existed when this was amended.
+- **Open caveat for the design:** at a true 15 fps frame only the vehicle stepper runs twice; collision, AI and the script VM
+  run once per 66.7 ms frame. A whole-sim fixed tick at 33.3 ms runs them twice as often. Add a mixed-rate arm (vehicle 33.3 ms,
+  rest of the sim 66.7 ms) to the measurement plan so the difference is measured, not assumed.
+- Lab launcher for the modern port at the baseline: `i76-uncap-lab\game-dd-20261003\TEST-step-33.bat` (`I76_FIXED_STEP=30`,
+  120 fps render, interpolated).
+

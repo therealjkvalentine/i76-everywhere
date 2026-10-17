@@ -682,6 +682,11 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
 - **02 retail logged 86Box (items 46 / 50): BLOCKED.** No WASD keys: the retail folder on the logging disk has the stock keypad
   `INPUT.MAP`. Fix: write the owner's WASD map (lab `C:\I76GOLD\INPUT.MAP` / repo controls) into the retail folder of the throw-away
   copy (guest filehex, read back), and print the keys in the banner.
+- **SUPERSEDED the same day (owner ruling 2026-10-17, later): the baseline / default step is 33.3 ms, not 40 ms.** It is the
+  developer-stated 15 fps design target as the engine runs it (2 x 33.3 ms substeps; docs/records/DEV-GAME-CLUB-I76.md). This
+  overrides every "~40 ms" in agent briefs: the owner-facing 86Box play launchers use the graphics settings that give ~33.3 ms
+  median frames on the emulated P166 (melee and T05, n >= 3), and the physics-step study starts at 33.3 ms. Lab launcher for the
+  modern port: game-dd-20261003\TEST-step-33.bat (I76_FIXED_STEP=30).
 - **New owner preference (2026-10-17): the owner-facing 86Box play launchers default to graphics settings that give ~40 ms
   frames (= ~40 ms physics steps, ~25 fps) on the emulated P166**, not lowest detail. Measure which detail / resolution combination
   lands at ~40 ms (melee and T05, n >= 3), then set it in the 02 / 03 DEF writers. The reference measurement runs keep their own
