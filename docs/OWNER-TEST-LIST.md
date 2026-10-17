@@ -477,6 +477,17 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - *(2026-10-16: still open. The 30 ms step came from Gold-exe profiles. Retail 1.0 on the P166 at low detail runs 26-30 ms steps,
       so the candidate is still to be re-checked against retail (EMU-MEMTRACE s.7.4). `TEST-p166-retail-step.bat` (31.75 ms) has no
       measurement recorded yet.)*
+    - *(2026-10-17: re-checked against retail, headless, n 100 boots: [ENVELOPE-RETAIL-REBASE.md](records/ENVELOPE-RETAIL-REBASE.md).
+      **Launcher unchanged, test unchanged.**
+      - Retail's step follows the scene: 27 ms in melee, 32-35 ms in missions. A matching step list turned the car over
+        on the T05 landing (6 of 25), so the candidate keeps 30 ms.
+      - New check, about 10 min:
+        - Launch `TEST-p166-retail-step.bat` (31.75 ms).
+        - T05: from the hill top, full throttle over the canyon ramp, about 8 times.
+        - Does the car ever clip the ramp's lip, swing sideways and drop into the canyon instead of flying?
+        - Then the same on `TEST-envelope-candidate.bat`.
+        - Where the lab saw it: in jumps placed at 56 m/s, 7 of 27 at 32 ms with the frame-rate fixes, 0 of 33 at 30 ms.
+          It never saw it on a hill-top descent (0 of 9 at 32 ms), so it may not show on your route.)*
 44. **"A little too fast and bumpy" on TEST-p166-retail-step: the view, and the emulator's handling (new 2026-10-16; docs/records/RETAIL-HANDLING-DIFF.md,
     lab game-dd-20261003\README-TESTS.txt).** Your note on `TEST-p166-retail-step`: every jump hard but possible (31.75 ms is now
     logged as the minimum step = the fastest 1997 machine), it played like the emulator, but a little too fast and bumpy / jittery,

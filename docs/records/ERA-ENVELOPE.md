@@ -44,6 +44,15 @@ This replaces the single W95-18 reference ([W95-18-BASELINE.md](W95-18-BASELINE.
   (40 ms, E25). best-wide's 41.7 ms is past the worst era machine.
 
 ## Candidate
+- **Re-baselined on retail (2026-10-17, [ENVELOPE-RETAIL-REBASE.md](ENVELOPE-RETAIL-REBASE.md)): unchanged.**
+  - "30 ms = a P166 at low detail" came from the Gold exe. Retail 1.0's median step there is 27 ms in melee and
+    32-35 ms in missions. Retail's step follows the scene; ours does not.
+  - A retail step list (side build, `I76_STEP_SEQ`) matches the step rows of its own context (5 / 5). But it turned the
+    car over on the placed T05 landing 6 / 25 times, against 0 / 33 at 30 ms.
+  - A fixed 32 ms with the frame-rate fixes hit the ramp lip 7 / 27 times.
+  - So 30 ms stays, now as "the step at which the fix set lands T05 cleanly". It is 3 % short on take-off speed against
+    retail (50.1 vs 51.6 m/s, n 33 vs 7).
+  - The handling rows (accel, yaw, ramp foot speed) fail the same in every profile. That is the lab car, not the pacing.
 - **Launcher:** lab twin `TEST-envelope-candidate.bat` (owner test 42).
 - **What it is:** TEST-next with
   - `I76_FIXED_STEP=33.3333` (30 ms: the P166 low-detail end of the envelope);

@@ -390,6 +390,9 @@ Clips are in lab `emu\results\writeup\video\`:
 4. **Re-baseline the envelope candidate on retail.** Retail's P166 low-detail steps are about 26-30 ms (37-38 fps in
    melee, 33-36 fps in missions), shorter than the Gold-based e29 / e33 profiles. Gold's yaw (and slide) is about 45 %
    above retail. Our exe (AiO = Gold physics) carries that too, so "stock" handling should be decided against retail.
+   *Done 2026-10-17 (ENVELOPE-RETAIL-REBASE.md).* Retail's steps: 27 ms in melee, 32-35 ms in missions. The candidate
+   stays at 30 ms. The handling gap on the T06 strip is the lab car, not the step.
+   Melee was not run, because it cannot run headless.
 5. **T06 ramp and flat-road runs on retail.**
    - T06: route design from the 'leap' point after the opening skip.
    - Flat road: a straight on the T05 canyon road (z 43910, x 7380-6900) or the T06 DRIVE strip.
