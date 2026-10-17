@@ -1,5 +1,7 @@
 # Arcade Phys. vs simulation physics: measured on the gold-standard rig, tied to the code (2026-10-17)
 
+**Status: closed out 2026-10-17 (owner cut), data as gathered.** No new arcade runs; the cells not measured are listed in section 9.
+
 Lane arcade-vs-sim. The question: what exactly does the "Arcade Phys." option change, in retail 1.0 and Gold?
 - **Rig:** 86Box P166, Windows 95, software renderer, lowest detail (320x200), I76MEM memory traces. Retail exe
   `6cc509ad` (1.0), Gold exe `e1dca993` (Gold CD = GOG `9a232dcc` with the WINMM import restored). Every run read back
@@ -339,3 +341,32 @@ So Arcade Phys. is the same option in both exes. Whatever separates retail from 
   - Gold arcade has 2 boots per cell (n 6-10 samples); several Gold cells are at n < 5 in the gated table.
   - The CTRL+A key (`TOGGLE_ARCADE_MODE` in GAMEKEY.DEF) was not tested.
   - The Taurus claim (1.1) is static plus a null live check; not traced.
+
+## 9. Close-out (2026-10-17, owner cut)
+
+The owner cut new arcade runs to save cost. Everything above stands as measured; nothing was re-run for the close-out.
+
+**What arcade changes, exactly (code: EXE-DIFF-MAP s4, the same five sites in retail 1.0, Gold, GOG and ours):**
+
+| site | what the Arcade bit (entity flag 0x10000) does | measured here |
+|---|---|---|
+| 1 init / 2 checkbox | sets the bit from I76PLYR.DEF (retail +0x54 bit 0, Gold +0x58 bit 0) or the options checkbox | yes: DEF read back on every boot, flag share > 99 % arcade / 0 sim |
+| 3 lateral cap | yaw target uses C = A (about 23.4 for the melee car) instead of 7.84 x wheels = 31.36; the cap never enters its slip state | yes: K -23 to -28 %, steady yaw -19 to -30 % at 12-18 m/s, slip state 0 % of frames, retail and Gold |
+| 4 inverted at rest | offline, upside down with pitch / roll rates < pi/5: flip upright instead of `object_Destroy` | yes offline: 9 / 9 retail, 5 / 5 Gold flipped; sim 5 / 5 + 5 / 5 destroyed |
+| 5 AI turn model | the AI's predicted turn rate A x 0.25 instead of 7.84 x wheels | **no** (not traced; only matters for an AI car carrying the bit) |
+
+Not changed by the bit (code and measured): engine, brakes, suspension / jounce, flight, jump take-off pitch,
+frame time.
+
+**Cells not measured (left open, not scheduled):**
+- the multiplayer branch of site 4 (an arcade car on its roof is destroyed online): static only, no network rig;
+- site 5 (AI turn model under arcade) and the Taurus always-arcade claim (1.1): static plus a null check, no trace;
+- the CTRL+A toggle (`TOGGLE_ARCADE_MODE`);
+- steady yaw at 25 m/s: -10 %, not resolved at 16 / 3 boots (the sim car is already sliding there);
+- retail arcade yaw3 boots c / d (lost to the pause; the set is n 3 boots) and a matched retail arcade melee-loop set
+  (the 16 / 6 set is pre-fix boots);
+- Gold arcade beyond 2 boots per cell (several gated cells at n < 5);
+- arcade on our exe under the whole-sim tick: not run; static prediction is no change, because sites 3 and 4 contain
+  no dt term (section 7).
+
+Lab files of this lane are committed (11a99be, 77f929c); no uncommitted arcade-lane files remain.
