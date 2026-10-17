@@ -19,7 +19,7 @@ Lane arcade-vs-sim. The question: what exactly does the "Arcade Phys." option ch
 - **Not touched:** daily driver, golden copy, portable install, owner disk images (parrun boots from a copy-on-write
   copy of the par bases). Read-only: the golden copy's Manual.pdf, one Gold exe copy for disassembly.
 - **Lab commits:** 11a99be (tools, scripts, I76DRV `place ... INV`), 77f929c (gated-yaw analysis, run logs). The
-  run queue (`emu\workrcade\queue.ps1`, git-ignored work folder) now holds the 3-VM host cap and starts its runs
+  run queue (`emu\work\arcade\queue.ps1`, git-ignored work folder) now holds the 3-VM host cap and starts its runs
   at BelowNormal priority.
 - **Sound-volume bytes:** the retail DEF these runs wrote is retail-plyr\RPLYR.DEF with the Arcade bit, so it carries
   SFX 4 (Gold's value), not retail's own default SFX 5. Kept on purpose: the simulation references were run with the
