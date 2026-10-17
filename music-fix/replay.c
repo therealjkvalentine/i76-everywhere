@@ -32,6 +32,19 @@ static DWORD g_rpl_seen_tick, g_rpl_delay_ms = 3000, g_rpl_skips;
 static int g_rpl_skip = 1;                                  /* I76_REPLAY_SKIP=0: do not press MAIN_MENU through the opening */
 static DWORD g_rpl_eflags, g_rpl_eflags_mask;                /* I76_REPLAY_EFLAGS=<hex mask>: entity +0x454 bits taken from the trace */
 static int g_rpl_have_eflags;
+/* I76_REPLAY_PREROLL=<frames> (2026-10-17, item 51; 0 = off, the wall-clock I76_REPLAY_DELAY as before): count the wait
+ * before the placement in frames, and run those frames at the trace's first sim_dt / dt instead of the real frame time.
+ * The placement sets position, rotation, velocity, rates and acceleration only; everything else (wheels, suspension,
+ * drivetrain) comes from the frames before it. With a wall-clock wait those frames had real (jittering) times and the
+ * Instant Melee A/A pair differed 3 frames into the throttle (frame 709, 1e-9 m). */
+static DWORD g_rpl_preroll, g_rpl_pre_n;
+static int g_rpl_pre_on;
+/* I76_REPLAY_SRAND=<seed> (2026-10-17, item 51): the exe seeds MSVCRT rand() with time(NULL) at every mission start
+ * (i76-map functions/004a9020, 004ad260); under this switch every srand() call of i76.exe gets <seed> instead, so two
+ * replays draw the same random numbers. Test of whether the A/A divergence comes from rand(). */
+static unsigned g_rpl_seed; static int g_rpl_seed_on; static volatile LONG g_rpl_srand_n;
+static void (__cdecl *p_rpl_srand)(unsigned);
+static void __cdecl rpl_srand(unsigned s) { (void)s; InterlockedIncrement(&g_rpl_srand_n); if (p_rpl_srand) p_rpl_srand(g_rpl_seed); }
 static char g_rpl_src[160];
 
 static float rpl_hexf(const char *s) { DWORD u = strtoul(s, 0, 16); float f; memcpy(&f, &u, 4); return f; }
@@ -170,14 +183,19 @@ static void rpl_pre(void) {
             if (sc < 256) { *(volatile DWORD *)0x005367c8 = (DWORD)sc; g_rpl_skips++; }
         }
         if (!obj || *(volatile DWORD *)0x004c2164 != 5 || (*(volatile BYTE *)0x004fe534 & 0x3e) || *(volatile DWORD *)0x005244c0) {
-            g_rpl_seen_tick = 0; return;
+            g_rpl_seen_tick = 0; g_rpl_pre_n = 0; g_rpl_pre_on = 0; return;
         }
-        if (!g_rpl_seen_tick) { g_rpl_seen_tick = GetTickCount(); return; }
-        if (GetTickCount() - g_rpl_seen_tick < g_rpl_delay_ms) return;
+        if (g_rpl_preroll) {
+            if (g_rpl_pre_n < g_rpl_preroll) { g_rpl_pre_n++; g_rpl_pre_on = 1; return; }
+            g_rpl_pre_on = 0;
+        } else {
+            if (!g_rpl_seen_tick) { g_rpl_seen_tick = GetTickCount(); return; }
+            if (GetTickCount() - g_rpl_seen_tick < g_rpl_delay_ms) return;
+        }
         rpl_place(obj, ent);
         g_rpl_state = 1; g_rpl_i = 0; g_rpl_start_frame = g_frame; g_rpl_in_calls = 0;
-        mlog("  replay: started at lab frame %lu, placed at %.3f %.3f %.3f, %lu rows from trace frame %lu (%lu MAIN_MENU presses through the opening)",
-             (unsigned long)g_frame, g_rpl_pos[0], g_rpl_pos[1], g_rpl_pos[2], (unsigned long)g_rpl_n, (unsigned long)g_rpl_rows[0].frame,
+        mlog("  replay: started at lab frame %lu (pre-roll %lu fixed-dt frames, srand calls %ld), placed at %.3f %.3f %.3f, %lu rows from trace frame %lu (%lu MAIN_MENU presses through the opening)",
+             (unsigned long)g_frame, (unsigned long)g_rpl_pre_n, g_rpl_srand_n, g_rpl_pos[0], g_rpl_pos[1], g_rpl_pos[2], (unsigned long)g_rpl_n, (unsigned long)g_rpl_rows[0].frame,
              (unsigned long)g_rpl_skips);
 #ifdef _MSC_VER
     } __except (EXCEPTION_EXECUTE_HANDLER) { mlog("  replay: fault in the frame hook - stopped"); g_rpl_state = 2; }
@@ -188,8 +206,11 @@ static void rpl_pre(void) {
 static void rpl_post_clock(void) {
     rpl_row_t *r;
     float d;
-    if (g_rpl_state != 1 || g_rpl_i >= g_rpl_n) { g_rpl_cur = 0; return; }
-    r = g_rpl_cur = &g_rpl_rows[g_rpl_i++];
+    if (g_rpl_state == 0 && g_rpl_pre_on) r = &g_rpl_rows[0];   /* pre-roll: the trace's first frame times, no row consumed */
+    else {
+        if (g_rpl_state != 1 || g_rpl_i >= g_rpl_n) { g_rpl_cur = 0; return; }
+        r = g_rpl_cur = &g_rpl_rows[g_rpl_i++];
+    }
     d = r->sim_dt - *(volatile float *)0x004fe420;
     *(volatile float *)0x005a7e70 += d;                       /* simclock_sim_time: as if it had added the trace's dt */
     *(volatile float *)0x005a7e74 += r->dt - *(volatile float *)0x004fe428;
@@ -294,6 +315,13 @@ static void apply_replay(void) {
     if (!rpl_load(path)) return;
     if (env_str("I76_REPLAY_DELAY", v, sizeof v)) g_rpl_delay_ms = (DWORD)(atof(v) * 1000.0);
     if (env_str("I76_REPLAY_EFLAGS", v, sizeof v)) g_rpl_eflags_mask = strtoul(v, 0, 16);
+    if (env_str("I76_REPLAY_PREROLL", v, sizeof v)) g_rpl_preroll = strtoul(v, 0, 10);
+    if (env_str("I76_REPLAY_SRAND", v, sizeof v)) {
+        void *o = patch_iat(GetModuleHandleA(NULL), "MSVCRT.dll", "srand", rpl_srand);
+        g_rpl_seed = (unsigned)strtoul(v, 0, 10);
+        if (o) { p_rpl_srand = (void (__cdecl *)(unsigned))o; g_rpl_seed_on = 1; }
+        mlog("  replay: srand %s (seed %u)", o ? "fixed" : "NOT hooked (no MSVCRT.dll srand import)", g_rpl_seed);
+    }
     g_rpl_skip = env_flag("I76_REPLAY_SKIP", 8, 1) != 0;
     if (!env_str("I76_REPLAY_LOG", logp, sizeof logp)) { lstrcpynA(logp, path, MAX_PATH - 9); lstrcatA(logp, ".lab.csv"); }
     rel = (LONG)(0x0044f1c0 - (0x0044df61 + 5)); memcpy(o + 1, &rel, 4);
@@ -308,8 +336,8 @@ static void apply_replay(void) {
     g_rpl_on = 1;
     if (env_flag("I76_REPLAY_ACTIVE", 8, 1)) CloseHandle(CreateThread(0, 0, rpl_active_thread, 0, 0, 0));
     if (env_str("I76_REPLAY_CLICKS", g_rpl_clicks, sizeof g_rpl_clicks)) CloseHandle(CreateThread(0, 0, rpl_click_thread, 0, 0, 0));
-    mlog("  replay: on - %lu rows (trace frames %lu..%lu, src %s), start %.0f ms after the player exists, log %s; "
+    mlog("  replay: on - %lu rows (trace frames %lu..%lu, src %s), start %.0f ms (pre-roll %lu frames, 0 = wall clock) after the player exists, log %s; "
          "entity flag bits from the trace: mask 0x%lX (trace start flags %s0x%lX)",
          (unsigned long)g_rpl_n, (unsigned long)g_rpl_rows[0].frame, (unsigned long)g_rpl_rows[g_rpl_n - 1].frame, g_rpl_src,
-         (double)g_rpl_delay_ms, logp, (unsigned long)g_rpl_eflags_mask, g_rpl_have_eflags ? "" : "none, ", (unsigned long)g_rpl_eflags);
+         (double)g_rpl_delay_ms, (unsigned long)g_rpl_preroll, logp, (unsigned long)g_rpl_eflags_mask, g_rpl_have_eflags ? "" : "none, ", (unsigned long)g_rpl_eflags);
 }
