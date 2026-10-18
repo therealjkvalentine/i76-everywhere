@@ -8663,6 +8663,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
+        apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
         apply_flame_census();     /* lab: I76_FLAME_CENSUS=1 (after apply_simtick / apply_framerate_fixes: counts flamer damage) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */

@@ -77,6 +77,7 @@ typedef struct {
 static volatile wst_shm_t *g_wst;
 static wst_shm_t g_wst_local;
 
+static int st_call_site(DWORD site, DWORD stock, void *wrap, DWORD *chain, const char *what);
 static float g_st_T;                 /* tick, s */
 static double g_st_acc = 1.0, g_st_since;   /* acc starts high: the first gameplay frame ticks */  /* wall s since the last tick boundary / since the last tick frame */
 static LARGE_INTEGER g_st_q;
@@ -532,6 +533,184 @@ static void st_plog_cb(BYTE *o, DWORD h, int kind) {
     g_st_plog_n++;
 }
 
+/* ---- tracers (2026-10-18 tick-fix; I76_SIM_TICK_TRACER, default 1; owner playtest: "the gun tracers don't go out from the
+ * car, just the first moment is visible") -------------------------------------------------------------------------------
+ * A tracer is not drawn from its round's pose. The engine keeps a fixed ring of tracer records (0x64 bytes, created at
+ * mission load by 0x441be0; [0x52ba48] = the next record to hand out, +0 = next): +4 the round (projectile object),
+ * +8 "updated since the last draw", +0xc / +0x10 the older / newer slot of a 2-entry ring (next-index table 0x52ba38 =
+ * {1, 0}), +0x14 type (table 0x4f1c38), +0x18 colour, +0x1c two slots of 3 world points (36 bytes each; type 2 uses the
+ * first point only). weapon_FireProjectile 0x49fb40 -> 0x441d10 takes the next record (older = newer = 0, slot 0 = the
+ * muzzle, +8 = 1); every weapon_StepBullet 0x4abe60 -> 0x441ef0(round, type) finds the record owned by the round, sets +8,
+ * advances the newer index and writes the round's position there. renderer_QueueTracers 0x442480 (and the mirror's
+ * 0x4420b0) draws the segment older -> newer and then CLEARS +8; a record whose +8 is already 0 when it is drawn is
+ * RESET: older = newer = 0 and owner +4 = 0. In stock every drawn frame ran a step first, so that only fired for a dead
+ * round. Under the tick the round steps once per tick and is drawn 4 times (120 fps / 30 ticks): the 2nd drawn frame
+ * after a tick reset the record and dropped its owner, so 0x441ef0 never found it again - the round's tracer showed for
+ * one or two frames at the muzzle and never again (both the 33.3 and the 66.7 ms tick). The segment also lay one tick
+ * ahead of the drawn (interpolated) world.
+ * Fix (drawing only): at the end of each tick the records updated in it are listed; around each render they are marked
+ * updated (+8 = 1, so the renderer does not reset them), and their two slots are swapped for the drawn segment: the
+ * newer end at lerp(older, newer, alpha) (where the round is drawn), the older end one tick of motion behind it (the
+ * stock streak length at a 30 fps frame), or at the muzzle while the round is in its first tick (no streak behind the
+ * gun). After the render the slots and indices are put back and +8 = 0 (as the stock render leaves it), so the next
+ * tick's step and the reset of a dead round work as in stock: a record not updated in a tick is reset by the first
+ * render after it. I76_SIM_TICK_TRACER=0 = the old behaviour. */
+typedef struct { BYTE *t, *owner; int first, draw; DWORD f8, fc, f10, saved; float s[18]; } wtrc_t;
+static wtrc_t g_trc[512]; static int g_trc_n;
+static struct { BYTE *t, *owner; DWORD touched; } g_trcp[512]; static int g_trcp_n;   /* the last tick's view (first-tick test) */
+static int g_st_trc = 1;
+static DWORD g_trc_drawn, g_trc_resets_saved, g_trc_first;
+static FILE *g_st_tlog; static DWORD g_st_tlog_n;
+static int st_trc_ok(BYTE *t) { return t && (DWORD_PTR)t > 0x10000; }
+static void st_trc_tick_end(void) {                          /* after the sim block of a tick */
+    BYTE *t0 = *(BYTE **)0x0052ba48, *t;
+    int guard = 0, n = 0, i, np = 0;
+    static struct { BYTE *t, *owner; DWORD touched; } nw[512];
+    g_trc_n = 0;
+    if (!st_trc_ok(t0)) { g_trcp_n = 0; return; }
+    t = t0;
+    do {
+        DWORD touched = *(DWORD *)(t + 8), h = *(DWORD *)(t + 0xc), tl = *(DWORD *)(t + 0x10);
+        BYTE *owner = *(BYTE **)(t + 4);
+        int first = 1;
+        for (i = 0; i < g_trcp_n; i++) if (g_trcp[i].t == t) { first = !(g_trcp[i].touched && g_trcp[i].owner == owner); break; }
+        if (touched && owner && n < 512) {
+            wtrc_t *e = &g_trc[n++];
+            e->t = t; e->owner = owner; e->first = first; e->draw = h < 2 && tl < 2 && h != tl; e->saved = 0;
+            if (first && e->draw) g_trc_first++;
+        }
+        if (np < 512) { nw[np].t = t; nw[np].owner = owner; nw[np].touched = touched; np++; }
+        t = *(BYTE **)t;
+    } while (st_trc_ok(t) && t != t0 && ++guard < 4096);
+    g_trc_n = n;
+    memcpy(g_trcp, nw, sizeof(nw[0]) * np); g_trcp_n = np;
+}
+static void st_trc_in(float a) {                             /* before a render: the drawn segment, record kept alive */
+    int i, k;
+    for (i = 0; i < g_trc_n; i++) {
+        wtrc_t *e = &g_trc[i];
+        BYTE *t = e->t;
+        float *s = (float *)(t + 0x1c);
+        if (*(BYTE **)(t + 4) != e->owner) continue;        /* handed to a new round meanwhile (not expected between ticks) */
+        e->f8 = *(DWORD *)(t + 8); e->fc = *(DWORD *)(t + 0xc); e->f10 = *(DWORD *)(t + 0x10);
+        memcpy(e->s, s, sizeof(e->s)); e->saved = 1;
+        if (!e->f8) g_trc_resets_saved++;                    /* the stock render would have reset this record now */
+        *(DWORD *)(t + 8) = 1;
+        if (e->draw && e->fc < 2 && e->f10 < 2 && e->fc != e->f10) {
+            float *o = e->s + 9 * e->fc, *nn = e->s + 9 * e->f10, *wo = s + 9 * e->fc, *wn = s + 9 * e->f10;
+            for (k = 0; k < 9; k++) {
+                float d = nn[k] - o[k], head = o[k] + a * d;
+                wn[k] = head;
+                wo[k] = e->first ? o[k] : head - d;
+            }
+            g_trc_drawn++;
+        }
+    }
+}
+static void st_trc_out(void) {                               /* after the render: the sim's record back, +8 as a stock render leaves it */
+    int i;
+    for (i = 0; i < g_trc_n; i++) {
+        wtrc_t *e = &g_trc[i];
+        BYTE *t = e->t;
+        if (!e->saved) continue;
+        e->saved = 0;
+        if (*(BYTE **)(t + 4) != e->owner) continue;
+        memcpy(t + 0x1c, e->s, sizeof(e->s));
+        *(DWORD *)(t + 0xc) = e->fc; *(DWORD *)(t + 0x10) = e->f10; *(DWORD *)(t + 8) = 0;
+    }
+}
+/* I76_SIM_TICK_TRCLOG=<path> (lab instrument): every drawable tracer record per drawn frame, as the renderer sees it -
+ * wall s, display frame, tick frame, record, round, first tick, older x y z, newer x y z (slot point 0) */
+static void st_trc_log(void) {
+    BYTE *t0 = *(BYTE **)0x0052ba48, *t;
+    int guard = 0;
+    LARGE_INTEGER q;
+    if (!st_trc_ok(t0)) return;
+    QueryPerformanceCounter(&q);
+    t = t0;
+    do {
+        DWORD h = *(DWORD *)(t + 0xc), tl = *(DWORD *)(t + 0x10);
+        if (*(DWORD *)(t + 8) && h < 2 && tl < 2 && h != tl) {
+            const float *o = (const float *)(t + 0x1c) + 9 * h, *nn = (const float *)(t + 0x1c) + 9 * tl;
+            int i, first = 0;
+            for (i = 0; i < g_trc_n; i++) if (g_trc[i].t == t) { first = g_trc[i].first; break; }
+            fprintf(g_st_tlog, "%.6f,%lu,%d,%08lx,%08lx,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart,
+                    (unsigned long)g_wst_local.dframes, g_st_now, (unsigned long)(DWORD_PTR)t, (unsigned long)(DWORD_PTR)*(BYTE **)(t + 4), first,
+                    o[0], o[1], o[2], nn[0], nn[1], nn[2]);
+            g_st_tlog_n++;
+        }
+        t = *(BYTE **)t;
+    } while (st_trc_ok(t) && t != t0 && ++guard < 4096);
+}
+
+/* ---- sustained sounds between ticks (2026-10-18 tick-fix; I76_SIM_TICK_SOUND, default 1; owner playtest: "sound effects
+ * aren't playing quite right, seems like they are being restarted fast") ------------------------------------------------
+ * Sustained loops (voice mode +0x3c == 2: tyre skid / turn / dust from physics_PlayTyreSounds 0x43d500 at the end of the
+ * player's vehicle tick, tflat, fdmg1, the missile-lock tones of weapon_Update 0x4a3760; requested through
+ * sound_PlayOnObjectSustained 0x423230) live while they are requested: each request adds 1 to the voice's keep-alive
+ * byte +0x74 (0x421c8b), and the per-frame sound update shell_cb_10 0x421400 (call 0x403e27, every DISPLAY frame) stops a
+ * mode-2 voice whose keep-alive is 0 and clears it otherwise (0x42151e / 0x42155f). In stock every frame ran the sim, so a
+ * held state requested its loop on every frame. Under the tick the request comes once per tick and the next display
+ * frame's update stops the loop: the road / skid noise was stopped and started again at every tick (30 / 15 times a
+ * second). Fix: the tick frame (camera wrapper, after the sim block, before the sound update) lists the mode-2 voices
+ * the tick requested (keep-alive > 0); on the following non-tick frames each listed voice that is still in the active
+ * list (manager [0x524564] +0x1c, next +0) and still mode 2 gets keep-alive 1 before the update, as if the sim had
+ * requested it on that frame too. A loop the next tick does not request is stopped by that tick frame's update, as in
+ * stock (at most one tick late). */
+static BYTE *g_snd_keep[256]; static int g_snd_keep_n, g_st_snd = 1;
+static DWORD g_snd_held;
+static void st_snd_keep(int tickframe) {
+    BYTE *mgr = *(BYTE **)0x00524564, *e;
+    int i, guard = 0;
+    if (!mgr || *(DWORD *)0x004ed7e8 == 0) { g_snd_keep_n = 0; return; }
+    if (tickframe) {
+        g_snd_keep_n = 0;
+        for (e = *(BYTE **)(mgr + 0x1c); e && guard++ < 512; e = *(BYTE **)e)
+            if (*(int *)(e + 0x3c) == 2 && *(BYTE *)(e + 0x74) && g_snd_keep_n < 256) g_snd_keep[g_snd_keep_n++] = e;
+        return;
+    }
+    for (e = *(BYTE **)(mgr + 0x1c); e && guard++ < 512; e = *(BYTE **)e) {
+        if (*(int *)(e + 0x3c) != 2 || *(BYTE *)(e + 0x74)) continue;
+        for (i = 0; i < g_snd_keep_n; i++) if (g_snd_keep[i] == e) { *(BYTE *)(e + 0x74) = 1; g_snd_held++; break; }
+    }
+}
+
+/* I76_SOUND_CENSUS=1 (lab instrument, any frame loop): every voice start (sound_StartVoice 0x4220c0 from the per-frame
+ * update 0x4214e0 and the un-park path 0x422422, call sites repointed) that played, split by mode and by sample name,
+ * with the sim time (0x5a7e70): starts per sim second, so the tick, promotion 18 and the stock loop can be compared. A
+ * `sound-census:` line every 5 s of wall time. */
+static DWORD g_scn_starts, g_scn_loops, g_scn_last; static float g_scn_t0 = -1.0f;
+static struct { char name[16]; DWORD n, loop; } g_scn[48]; static int g_scn_n;
+static int __cdecl st_snd_start_count(BYTE *voice, int k) {
+    int r = ((int (__cdecl *)(BYTE *, int))0x004220c0)(voice, k);
+    if (r && voice && *(DWORD *)0x004ed7e8) {
+        const char *nm = (const char *)(voice + 4);
+        int i, loop = *(int *)(voice + 0x3c) == 2;
+        float t = *(volatile float *)0x005a7e70;
+        g_scn_starts++; if (loop) g_scn_loops++;
+        if (g_scn_t0 < 0.0f) g_scn_t0 = t;
+        for (i = 0; i < g_scn_n; i++) if (strncmp(g_scn[i].name, nm, 15) == 0) break;
+        if (i == g_scn_n && g_scn_n < 48) { lstrcpynA(g_scn[i].name, nm, 16); g_scn[i].n = 0; g_scn[i].loop = 0; g_scn_n++; }
+        if (i < g_scn_n) { g_scn[i].n++; if (loop) g_scn[i].loop++; }
+        if (GetTickCount() - g_scn_last >= 5000) {
+            char buf[1200]; int o = 0, j;
+            g_scn_last = GetTickCount();
+            for (j = 0; j < g_scn_n && o < 1100; j++) o += _snprintf(buf + o, sizeof(buf) - o, " %s=%lu%s", g_scn[j].name, (unsigned long)g_scn[j].n, g_scn[j].loop ? "L" : "");
+            buf[o < (int)sizeof(buf) ? o : (int)sizeof(buf) - 1] = 0;
+            mlog("  sound-census: sim %.3f..%.3f s, starts %lu (sustained loops %lu), loop keep-alives held between ticks %lu;%s",
+                 g_scn_t0, t, (unsigned long)g_scn_starts, (unsigned long)g_scn_loops, (unsigned long)g_snd_held, buf);
+        }
+    }
+    return r;
+}
+static void apply_sound_census(void) {
+    int n = 0;
+    if (!env_present("I76_SOUND_CENSUS")) return;
+    n += st_call_site(0x004214e0, 0x004220c0, (void *)st_snd_start_count, 0, "sound_StartVoice call in the sound update (sound census)");
+    n += st_call_site(0x00422422, 0x004220c0, (void *)st_snd_start_count, 0, "sound_StartVoice call in the un-park path (sound census)");
+    mlog("  sound-census: %d/2 call sites", n);
+}
+
 /* ---- camera ------------------------------------------------------------------------------------------------------ */
 static BYTE *g_st_cam_tramp;
 static xform_t g_st_simcam[2]; static DWORD g_st_simcam_tick[2];   /* [1] = newest sim-window camera set */
@@ -599,7 +778,7 @@ static void simtick_clock(void) {
     g_wst_local.dframes++;
     if (!gameplay) {                                         /* shell / pause: stock, every frame */
         ((void (__cdecl *)(void))0x0049c920)();
-        g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0;
+        g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0; g_trc_n = 0; g_trcp_n = 0;
         g_st_clk[0] = 0.0f;
         g_tick20 = 1; g_st_fage_due = 1;
         wst_publish();
@@ -716,6 +895,8 @@ static void __cdecl st_vehicle_tick(BYTE *obj) {
 static void __cdecl st_cam_wrap(void) {
     void (__cdecl *mode)(void) = *(void (__cdecl **)(void))0x004c2720;
     if (g_st_now && g_st_clk[0] > 0.0f) wst_tick_end();     /* the sim block is done: poses after the tick */
+    if (g_st_now && g_st_clk[0] > 0.0f && g_st_trc) st_trc_tick_end();   /* tracer records updated in this tick */
+    if (g_st_snd && g_st_clk[0] > 0.0f) st_snd_keep(g_st_now);   /* sustained sounds: list (tick frame) / keep alive (between ticks) */
     if (g_st_now && g_st_clk[0] > 0.0f && g_bbox_sweep) sign_sweep_tick();   /* signs: this tick's motion, before its first drawn frame */
     if (g_st_now && g_lat_step_fn) g_lat_step_fn();
     g_st_in_disp = 1;
@@ -765,7 +946,10 @@ static void __cdecl st_render_wrap(void *cam) {
     g_wst_local.ping_req = g_idbg_ping_req; g_wst_local.ping_play = g_idbg_ping_play;
     g_wst_local.flame_amt = g_flc_amt_pl + g_flc_amt_ot; g_wst_local.flame_upd = g_flc_frames_app;
     g_wst_local.flame_seg_sum = g_flc_seg_sum; g_wst_local.flame_seg_n = g_flc_seg_n; g_wst_local.flame_hit_s = g_flc_t0 >= 0.0f ? g_flc_t1 - g_flc_t0 : 0.0f;
+    if (g_st_trc) st_trc_in(g_wst_local.alpha);
+    if (g_st_tlog && g_st_tlog_n < 3000000) st_trc_log();
     ((void (__cdecl *)(void *))0x00401c90)(cam);
+    if (g_st_trc) st_trc_out();
     if (camx) ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)0x004c2730, &g_st_simcam[1]);
     wst_swap_out(g_st_now);
     g_st_in_disp = 1;
@@ -826,11 +1010,18 @@ static void apply_simtick(void) {
     g_st_joy_pm = env_int("I76_SIM_TICK_JOY_DB", 8, 10); if (g_st_joy_pm < 0) g_st_joy_pm = 0; if (g_st_joy_pm > 500) g_st_joy_pm = 500;
     g_st_proj = env_flag("I76_SIM_TICK_PROJ", 8, g_st_proj) == 1;
     g_st_proj_vsel = env_int("I76_SIM_TICK_PROJ_V", 8, g_st_proj_vsel); if (g_st_proj_vsel < 0 || g_st_proj_vsel > 2) g_st_proj_vsel = 0;
+    g_st_trc = env_flag("I76_SIM_TICK_TRACER", 8, g_st_trc) == 1;
+    g_st_snd = env_flag("I76_SIM_TICK_SOUND", 8, g_st_snd) == 1;
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_dlog, NULL, _IOFBF, 1 << 13);   /* the process is killed at the end: at most 8 KB lost */
             fprintf(g_st_dlog, "t,tick,early,alpha,x,y,z,fx,fy,fz\n");
+        }
+        if (env_str("I76_SIM_TICK_TRCLOG", dp, sizeof(dp)) && (g_st_tlog = fopen(dp, "w")) != 0) {
+            setvbuf(g_st_tlog, NULL, _IOFBF, 1 << 13);
+            fprintf(g_st_tlog, "t,dframe,tick,rec,round,first,ox,oy,oz,nx,ny,nz
+");
         }
         if (env_str("I76_SIM_TICK_PROJLOG", dp, sizeof(dp)) && (g_st_plog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_plog, NULL, _IOFBF, 1 << 13);
@@ -923,10 +1114,10 @@ static void apply_simtick(void) {
     g_simtick = 1; g_st_now = 1;
     g_jc_on = 1;
     mlog("  sim-tick: ON - whole sim every %.3f ms (%.3f ticks/s; vehicle stepper count %d x %.2f ms); %d/12 sim gates, %d/4 display hooks, "
-         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; flamer streams aged at %d Hz%s; shm Local\\I76SimTick %s",
+         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; tracers kept and drawn between ticks %s; sustained sounds kept between ticks %s; flamer streams aged at %d Hz%s; shm Local\\I76SimTick %s",
          ms, 1000.0 / ms, (int)(g_st_T * 20.0f) + 1, ms / (double)((int)(g_st_T * 20.0f) + 1), g, h, n, c, g_st_cosmetic,
          g_st_input ? (g_st_joy_on ? "ON (I76_SIM_TICK_INPUT=1: keyboard + joystick)" : "ON (I76_SIM_TICK_INPUT=1: keyboard; I76_SIM_TICK_JOY=0)") : "off",
-         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
+         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
          g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
