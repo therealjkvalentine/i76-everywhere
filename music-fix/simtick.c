@@ -957,6 +957,47 @@ static void __cdecl st_render_wrap(void *cam) {
 }
 /* the flamer's main-pass update on a tick frame: the tick's clock (its hit test reads the sim rate), damage allowed */
 static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLAME_CLK=1 (lab): the tick's clock on every display frame's flamer update */
+/* Flamer stream state between ticks (2026-10-18 tick-fix; I76_SIM_TICK_FLAME_STATE, default 1; owner playtest: "the impact
+ * animation is messed up, a hall of mirrors of duplicates; doesn't seem to be damaging the other car").
+ * weapon_UpdateFlamerStreams 0x443fc0 is draw code that also carries sim state in the stream record (0x360 bytes, ring
+ * [0x52bb90], +0 next): at the end of every call it stores the muzzle's transform of THIS call in +0x48..+0x87 (+0x88 = 1)
+ * as the start of the next call's stream (0x444810), and steps the flame's animation counters +0x28..+0x34 (0x444846);
+ * the per-segment points +0x8c are rebuilt per call. Stock ran it once per frame (twice with the mirror), so each call
+ * saw one frame of history. Under the tick it ran on every display frame (main pass, plus the mirror's), with the hit
+ * test and damage allowed only on tick frames: the tick frame's hit test then worked on a stream rebuilt from the
+ * previous DISPLAY frame's state. Measured (T05 hand-over, the player's Gas Launcher at a barricade 8 m behind the car,
+ * hit-test probe I76_FLAME_PROBE_AT): stock 30 fps tested segments 2.8 m long and hit on 94 % of the calls; the tick and
+ * promotion 18 (the same draw-side hold at 120 fps) tested segments 9.8 / 6.1 m long, 116 000 calls with a segment within
+ * 2 m of the barricade and 0 hits - no flame damage, no hit explosion. Fix (drawing only between ticks): the record of
+ * every stream is saved before each non-tick main-pass call and each mirror call and put back after it (unless the call
+ * released the stream's objects, +4 / +8 / +0xc changed), so the stream advances once per tick, on the tick frame's main
+ * pass, from the state the last tick left - one tick of history, as one stock frame at 30 fps. The flame is still drawn
+ * every display frame. */
+static int g_st_flame_state = 1;
+static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
+static void st_flame_snap(void) {
+    BYTE *r0 = *(BYTE **)0x0052bb90, *r = r0;
+    g_fs_n = 0;
+    while (r && g_fs_n < 64) {
+        memcpy(g_fs_save[g_fs_n], r, 0x360); g_fs_rec[g_fs_n++] = r;
+        r = *(BYTE **)r; if (r == r0) break;
+    }
+}
+static void st_flame_restore(void) {
+    int i;
+    for (i = 0; i < g_fs_n; i++) {
+        BYTE *r = g_fs_rec[i], *sv = g_fs_save[i];
+        if (memcmp(r + 4, sv + 4, 12) != 0) { g_fs_kept++; continue; }   /* the call released or replaced the stream's objects: keep it */
+        memcpy(r + 4, sv + 4, 0x360 - 4); g_fs_restored++;
+    }
+    g_fs_n = 0;
+}
+static void __cdecl st_flame_mirror(BYTE *cam) {             /* the rear mirror's update: drawing only under the tick */
+    flc_count_update(0, 1);
+    if (g_st_flame_state) st_flame_snap();
+    ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
+    if (g_st_flame_state) st_flame_restore();
+}
 static void __cdecl st_flame_main(BYTE *cam) {
     float save[4];
     int tick = (g_tick20 || g_st_flame_clk) && g_st_clk[0] > 0.0f;
@@ -965,7 +1006,9 @@ static void __cdecl st_flame_main(BYTE *cam) {
     if (tick) st_clock_tick();
     flc_count_update(g_tick20, 0);
     g_flame_dmg_ok = g_tick20;
+    if (!g_tick20 && g_st_flame_state) st_flame_snap();
     ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
+    if (!g_tick20 && g_st_flame_state) st_flame_restore();
     g_flame_dmg_ok = 0;
     if (tick) {
         *(volatile float *)0x004fe420 = save[0]; *(volatile float *)0x004fe424 = save[1];
@@ -1014,6 +1057,7 @@ static void apply_simtick(void) {
     g_st_trc = env_flag("I76_SIM_TICK_TRACER", 8, g_st_trc) == 1;
     g_st_snd = env_flag("I76_SIM_TICK_SOUND", 8, g_st_snd) == 1;
     g_st_flame_clk = env_flag("I76_SIM_TICK_FLAME_CLK", 8, 0) == 1;
+    g_st_flame_state = env_flag("I76_SIM_TICK_FLAME_STATE", 8, g_st_flame_state) == 1;
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
@@ -1084,6 +1128,8 @@ static void apply_simtick(void) {
             { 0x00401e50, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (software)" },
             { 0x0040211a, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (hardware)" },
             { 0x004414b9, 0x0049c8b0, (void *)step20_dt,         "smoke puff dt" },
+            { 0x004458fe, 0x00443fc0, (void *)st_flame_mirror,   "flamer update, rear mirror (1)" },
+            { 0x00445968, 0x00443fc0, (void *)st_flame_mirror,   "flamer update, rear mirror (2)" },
             { 0x00401e35, 0x00442ba0, (void *)trails_wrap,       "missile trails (software)" },
             { 0x004020ff, 0x00442ba0, (void *)trails_wrap,       "missile trails (hardware)" },
             { 0x004605ee, 0x004250f0, (void *)radar_ping_wrap,   "radar ping" },
@@ -1115,10 +1161,10 @@ static void apply_simtick(void) {
     g_simtick = 1; g_st_now = 1;
     g_jc_on = 1;
     mlog("  sim-tick: ON - whole sim every %.3f ms (%.3f ticks/s; vehicle stepper count %d x %.2f ms); %d/12 sim gates, %d/4 display hooks, "
-         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; tracers kept and drawn between ticks %s; sustained sounds kept between ticks %s; flamer streams aged at %d Hz%s; shm Local\\I76SimTick %s",
+         "%d/16 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; tracers kept and drawn between ticks %s; flamer streams advanced once per tick %s; sustained sounds kept between ticks %s; flamer streams aged at %d Hz%s; shm Local\\I76SimTick %s",
          ms, 1000.0 / ms, (int)(g_st_T * 20.0f) + 1, ms / (double)((int)(g_st_T * 20.0f) + 1), g, h, n, c, g_st_cosmetic,
          g_st_input ? (g_st_joy_on ? "ON (I76_SIM_TICK_INPUT=1: keyboard + joystick)" : "ON (I76_SIM_TICK_INPUT=1: keyboard; I76_SIM_TICK_JOY=0)") : "off",
-         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
+         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_flame_state ? "ON (I76_SIM_TICK_FLAME_STATE=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
          g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
