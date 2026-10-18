@@ -975,6 +975,8 @@ static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLA
  * every display frame. RESULT (3 boots tick33 / tick66, same probe): tested segments still 9.8 / 10.2 m, still 0 hits - the
  * per-call state is not the cause; the switch stays off until the cause is found (TICK-FINISH s.10). */
 static int g_st_flame_state = 0;
+static float g_st_flame_dt;                                  /* I76_SIM_TICK_FLAME_DT=<s> (lab): the flamer update's dt floor instead of the tick */
+static float __cdecl st_flame_dt(void) { float dt = *(volatile float *)0x004fe428, f = g_st_flame_dt > 0.0f ? g_st_flame_dt : g_ref_dt; return dt > f ? dt : f; }
 static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
 static void st_flame_snap(void) {
     BYTE *r0 = *(BYTE **)0x0052bb90, *r = r0;
@@ -1059,6 +1061,7 @@ static void apply_simtick(void) {
     g_st_snd = env_flag("I76_SIM_TICK_SOUND", 8, g_st_snd) == 1;
     g_st_flame_clk = env_flag("I76_SIM_TICK_FLAME_CLK", 8, 0) == 1;
     g_st_flame_state = env_flag("I76_SIM_TICK_FLAME_STATE", 8, g_st_flame_state) == 1;
+    {   char fv[16]; if (env_str("I76_SIM_TICK_FLAME_DT", fv, sizeof(fv))) g_st_flame_dt = (float)atof(fv); }
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
@@ -1123,7 +1126,7 @@ static void apply_simtick(void) {
             { 0x00401fcc, 0x00443e90, (void *)st_flame_age_wrap, "flamer ageing (hardware)" },
             { 0x00401e23, 0x00443fc0, (void *)st_flame_main,     "flamer update, main pass (software)" },
             { 0x004020e8, 0x00443fc0, (void *)st_flame_main,     "flamer update, main pass (hardware)" },
-            { 0x00443fca, 0x0049c8b0, (void *)step20_dt,         "flamer update dt" },
+            { 0x00443fca, 0x0049c8b0, (void *)st_flame_dt,       "flamer update dt" },
             { 0x004357c3, 0x004a8240, (void *)flame_damage_wrap, "flamer damage" },
             { 0x0044471d, 0x0049ead0, (void *)flame_expl_wrap,   "flamer hit explosion" },
             { 0x00401e50, 0x004414a0, (void *)smoke_update_wrap, "smoke puffs (software)" },
