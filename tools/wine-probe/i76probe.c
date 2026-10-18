@@ -302,15 +302,21 @@ int main(int argc, char **argv) {
             WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(a + 4 * (i - 3)), &v, 4, &wr);
             printf("0x%08lx <- %08lx, reads %08lx\n", (unsigned long)(a + 4 * (i - 3)), (unsigned long)v, (unsigned long)ri(a + 4 * (i - 3))); }
     }
-    else if (!strcmp(argv[1], "mclick") && argc > 3) { /* mclick x y: put the shell's mouse object at UI x,y, then press */
-        DWORD b = shell_base(), mo; int x = atoi(argv[2]), y = atoi(argv[3]), k; SIZE_T wr; INPUT in; int hold = 150;
+    else if (!strcmp(argv[1], "mclick") && argc > 3) { /* mclick x y: hold the shell's mouse object at UI x,y (rewritten
+                                                          every ~1 ms, the game rewrites it every frame), press, release */
+        DWORD b = shell_base(), mo; int x = atoi(argv[2]), y = atoi(argv[3]), k; SIZE_T wr; INPUT in;
+        int hold = getenv("I76PROBE_MCLICK_HOLD") ? atoi(getenv("I76PROBE_MCLICK_HOLD")) : 300;
+        DWORD t0;
         if (!b) { printf("no shell\n"); return 1; }
         mo = (DWORD)ri(0x100cc514 + b - 0x10000000);
-        for (k = 0; k < 6; k++) { WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x2c), &x, 4, &wr); WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x30), &y, 4, &wr); Sleep(20); }
-        fg(); memset(&in, 0, sizeof(in)); in.type = INPUT_MOUSE; in.mi.dwFlags = MOUSEEVENTF_LEFTDOWN; SendInput(1, &in, sizeof(INPUT));
-        for (k = 0; k < hold / 15; k++) { WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x2c), &x, 4, &wr); WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x30), &y, 4, &wr); Sleep(15); }
+#define MHOLD(ms) for (t0 = GetTickCount(); GetTickCount() - t0 < (DWORD)(ms);) { WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x2c), &x, 4, &wr); \
+            WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x30), &y, 4, &wr); Sleep(1); }
+        fg(); MHOLD(150);
+        memset(&in, 0, sizeof(in)); in.type = INPUT_MOUSE; in.mi.dwFlags = MOUSEEVENTF_LEFTDOWN; SendInput(1, &in, sizeof(INPUT));
+        MHOLD(hold);
         in.mi.dwFlags = MOUSEEVENTF_LEFTUP; SendInput(1, &in, sizeof(INPUT));
-        for (k = 0; k < 6; k++) { WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x2c), &x, 4, &wr); WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x30), &y, 4, &wr); Sleep(20); }
+        MHOLD(150);
+#undef MHOLD
         printf("mclick %d,%d: mouse object now %d,%d\n", x, y, ri(mo + 0x2c), ri(mo + 0x30));
     }
     else if (!strcmp(argv[1], "mods")) {               /* loaded modules: base, size, name */
