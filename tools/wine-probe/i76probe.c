@@ -9,9 +9,13 @@
  *   i76probe wins                  every visible top-level window (the game's marked); I76PROBE_HWND=<hex> picks one
  *   i76probe state                 game state, network flag, own/host ANet id, player table, position table
  *   i76probe shot <file.bmp>       the game window's client area as a 24-bit BMP (+ its rects on stdout)
+ *   i76probe deskshot <file.bmp>   the same rectangle copied from the SCREEN DC (BitBlt): on a Mac the game's GL surface
+ *                                  reads back black through PrintWindow, the composited desktop does not
  *   i76probe click <x> <y>         click at a 640x480 UI coordinate (mapped into the 4:3 picture in the client area)
  *   i76probe key <vk-hex> [ms]     press a virtual key (hex, e.g. 1B Esc, 0D Enter), held ms (default 80)
  *   i76probe type <text>           type letters/digits/space
+ *   i76probe find <text>           every address in the game's committed readable memory holding the ASCII text,
+ *                                  with 48 bytes of context (e.g. a session name to see whether a join list filled)
  *   i76probe throttle <n> <ms>     write the input block's throttle (memlib InThrottle 0x5367CC) for ms, then 0
  *
  * Addresses: lab autotest/lib/memlib.ps1 and music-fix/strlkproxy.c (coop_ai_role, coop_ai_log). Build (x86):
@@ -26,6 +30,7 @@
 static DWORD g_pid;
 static HANDLE g_proc;
 static HWND g_wnd;
+static int g_desk;
 
 static DWORD find_pid(void) {
     PROCESSENTRY32 pe; HANDLE s = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); DWORD pid = 0;
@@ -142,7 +147,8 @@ static void cmd_shot(const char *path) {
     memset(&bi, 0, sizeof(bi)); bi.biSize = sizeof(bi); bi.biWidth = w; bi.biHeight = h; bi.biPlanes = 1; bi.biBitCount = 24;
     bm = CreateDIBSection(wdc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, (void **)&bits, NULL, 0);
     SelectObject(mdc, bm);
-    if (!PrintWindow(g_wnd, mdc, 1)) BitBlt(mdc, 0, 0, w, h, wdc, 0, 0, SRCCOPY);
+    if (g_desk) { HDC sdc = GetDC(NULL); POINT o = {0, 0}; ClientToScreen(g_wnd, &o); BitBlt(mdc, 0, 0, w, h, sdc, o.x, o.y, SRCCOPY); ReleaseDC(NULL, sdc); }
+    else if (!PrintWindow(g_wnd, mdc, 1)) BitBlt(mdc, 0, 0, w, h, wdc, 0, 0, SRCCOPY);
     GdiFlush();
     stride = (w * 3 + 3) & ~3;
     for (i = 0; i < stride * h; i += 97) sum += bits[i];
@@ -150,6 +156,26 @@ static void cmd_shot(const char *path) {
     f = fopen(path, "wb"); if (f) { fwrite(&bf, sizeof(bf), 1, f); fwrite(&bi, sizeof(bi), 1, f); fwrite(bits, stride * h, 1, f); fclose(f); }
     { POINT o = {0, 0}; ClientToScreen(g_wnd, &o); printf("shot %dx%d at screen %ld,%ld -> %s (sample sum %ld)\n", w, h, o.x, o.y, path, sum); }
     DeleteObject(bm); DeleteDC(mdc); ReleaseDC(g_wnd, wdc);
+}
+
+static void cmd_find(const char *t) {
+    MEMORY_BASIC_INFORMATION mi; ULONG_PTR a = 0x10000; size_t tl = strlen(t); int hits = 0;
+    while (a < 0x7fff0000 && VirtualQueryEx(g_proc, (LPCVOID)a, &mi, sizeof(mi)) == sizeof(mi)) {
+        if (mi.State == MEM_COMMIT && !(mi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) && mi.RegionSize < (64u << 20)) {
+            BYTE *buf = (BYTE *)malloc(mi.RegionSize); SIZE_T got = 0;
+            if (buf && ReadProcessMemory(g_proc, mi.BaseAddress, buf, mi.RegionSize, &got)) {
+                SIZE_T i, j;
+                for (i = 0; i + tl <= got && hits < 40; i++) if (!memcmp(buf + i, t, tl)) {
+                    printf("0x%08lx: ", (unsigned long)((ULONG_PTR)mi.BaseAddress + i));
+                    for (j = i; j < i + 48 && j < got; j++) putchar(buf[j] >= 32 && buf[j] < 127 ? buf[j] : '.');
+                    putchar('\n'); hits++;
+                }
+            }
+            free(buf);
+        }
+        a = (ULONG_PTR)mi.BaseAddress + mi.RegionSize;
+    }
+    printf("%d hits\n", hits);
 }
 
 int main(int argc, char **argv) {
@@ -160,6 +186,8 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[1], "shell")) cmd_shell();
     else if (!strcmp(argv[1], "move") && argc > 3) { POINT pt; client_map(atoi(argv[2]), atoi(argv[3]), &pt); fg(); SetCursorPos(pt.x, pt.y); printf("cursor -> %ld,%ld\n", pt.x, pt.y); }
     else if (!strcmp(argv[1], "shot") && argc > 2) cmd_shot(argv[2]);
+    else if (!strcmp(argv[1], "find") && argc > 2) cmd_find(argv[2]);
+    else if (!strcmp(argv[1], "deskshot") && argc > 2) { g_desk = 1; cmd_shot(argv[2]); }
     else if (!strcmp(argv[1], "click") && argc > 3) cmd_click(atoi(argv[2]), atoi(argv[3]));
     else if (!strcmp(argv[1], "key") && argc > 2) { fg(); key((WORD)strtol(argv[2], NULL, 16), argc > 3 ? atoi(argv[3]) : 80); printf("key %s\n", argv[2]); }
     else if (!strcmp(argv[1], "type") && argc > 2) { const char *p; fg(); for (p = argv[2]; *p; p++) { SHORT v = VkKeyScanA(*p); key((WORD)(v & 0xff), 60); } printf("typed\n"); }
