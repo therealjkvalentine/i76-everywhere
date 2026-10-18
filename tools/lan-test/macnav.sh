@@ -65,8 +65,15 @@ joingo() { local t i; for t in 1 2 3; do $CLICK 80 157 >/dev/null; sleep 2; $CLI
     for i in $(seq 1 10); do sleep 2; P state | grep -q "net 1" && { P state | head -4; return 0; }; done; echo "join try $t: $(P state | sed -n 2p)"; done; return 1; }
 # On a Mac every click warps the real pointer first (rclick); the Deck's proxy maps its own pointer (plain click).
 if [ "$A" = deck ] || [ ! -x /tmp/i76mp/cur ] || [ ! -f "$MAPF" ]; then CLICK="P click"; else CLICK=rclick; fi
+joinname() {  # select the join-list row whose session name is $1 (record address = a 'find' hit), then JOIN GAME
+  local l n arr i e hits t
+  hits=$(P find "$1" | awk -F: '/^0x/{print tolower($1)}'); l=$(P peek shell+f21a0 1); set -- $(P peek $l 3); n=$((16#$2)); arr=$3
+  for i in $(seq 0 $((n-1))); do e=$(P peek $(printf %x $((16#$arr + 4*i))) 1)
+    if echo "$hits" | grep -q "0x$e"; then echo "row $i of $n"; for t in 1 2 3; do $CLICK 80 $((157 + 17*i)) >/dev/null; sleep 2; $CLICK 298 461 >/dev/null
+        for e in $(seq 1 10); do sleep 2; P state | grep -q "net 1" && { P state | sed -n 2,6p; return 0; }; done; done; return 1; fi; done
+  echo "no row named $1 ($n rows)"; return 1; }
 cmd=$1; shift
 case $cmd in
-  calib) calib;; calib2) calib2;; rclick) rclick "$@";; top) top && echo top;; nav) nav "$@";; st) st;; drive) drive "$@";; hostgo) hostgo "$@";; joingo) joingo;;
+  calib) calib;; calib2) calib2;; rclick) rclick "$@";; top) top && echo top;; nav) nav "$@";; st) st;; drive) drive "$@";; hostgo) hostgo "$@";; joingo) joingo;; joinname) joinname "$@";;
   *) P $cmd "$@";;
 esac

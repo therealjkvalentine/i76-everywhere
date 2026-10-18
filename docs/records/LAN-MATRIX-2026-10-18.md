@@ -263,3 +263,61 @@ PC: LAN copy on the 2026-10-18 pack (ba2b45c1), not running, console free. Lapto
 pack; the game processes are the ones I started at 13:24/13:43 and the owner is now playing in them - left running
 as asked; none of my helpers (caffeinate, pollers, probe) running. Andrew's Mac: offline; pack delta copied to
 `/tmp/i76mp/delta` there (staged, not applied: his own game was running). Deck: asleep, old pack, no co-op files.
+
+## 9. Sixth attempt (14:00-14:50): Andrew updated and fixed, Deck co-op files, 4 players, respawn-fix proxy deployed
+
+**Updates in place**
+- Andrew's Mac: `apply-pack-delta.sh` -> 2026-10-18 pack (deleted 70, added 37; 4 game-written files differ:
+  ADDON/vehscn.vcf, ADDON/vehscn.vsf, NVCL/nvcl0.vcf, user.mel). Pointer fix: DxWnd `sizx0/sizy0` 1728x1117 ->
+  1440x900 and `OGL_VIEWPORT` 1392x900 -> 1440x900 (backups in `~/Games/Interstate76-MP/pointer-fix-pre-20261018/`);
+  the window is now 1440x900 at x 0 and calib2 reads `UI x = (client x - 2.2) / 2.247` - offset 54 px -> 2 px (under
+  1 UI pixel). n 1.
+- Deck: the 34 `ADDON/coop*` files added (17 `coopNN.lvl` lower case, coop01 c6294f55; list of added files in
+  `~/Games/Interstate76/coop-files-added-20261018.txt`); exe, proxy (8bc52939) and env otherwise its own. The Deck has
+  no I76_COOP_AI / I76_COOP_CHAIN in `i76-env.sh`, so in a co-op scene it joins the mission but without the AI sync /
+  chain (not changed: "keep its own pack").
+- Michael's Mac firewall: both `wine` and `wineserver` listed "Allow incoming connections" (14:01).
+- **Respawn-fix proxy ac44e2c2** (`i76-uncap-lab\builds\coop-list-20261018\STRLKUP-ac44e2c2.dll`, from HEAD f2598f0):
+  short check on the PC LAN copy with Andrew's Mac as joiner: melee Hope Springs join PASS (n 1, both tables agree),
+  Co-op Scene 1 join PASS (n 1: PC host `coop01.lvl`, CRC e1dcaa33; Andrew `coop01.lvl`, both cars). **Deaths were not
+  triggered** (no way to kill a car remotely without memory writes on a Mac) - the death behaviour rests on the co-op
+  lane's 5035857f tests (same source change). Deployed in place (temp file + rename, the running games keep the old
+  one until restarted): PC LAN copy, laptop gate clone, Michael's Mac, Andrew's Mac = **ac44e2c2**; the replaced
+  ba2b45c1 kept as `lan-pack-pre-20261018/STRLKUP.DLL.ba2b45c1` on each Mac (the PC copy: the pack folder). Deck: own
+  proxy 8bc52939, not changed.
+
+**Cells**
+
+| cell | result | n | evidence |
+|---|---|---|---|
+| Deck hosts Hope Springs (m07) -> Andrew joins | **PASS** | 1 | both tables agree at rest; both drove 25 s (Andrew's car 1394.7 / 1394.5 on both ends) |
+| **4 players**: laptop hosts Suburbia ("lapmelee", the owner's running session), Michael + Deck + Andrew in it | **PASS** | 1 | all four player tables list ids 3, 6, 12, 14 with the same positions (6 at 4732.5, 49427.5; 12 at 4862.5, 49427.5; 14 at 4862.5, 49317.5); Deck and Andrew drove 20 s, all four tables followed (id 12 4869.2 / 4868.3 / 4867.4 / 4866.7 sampled in sequence). Andrew and the Deck had joined the first list row, which was the owner's game, not the PC's - they left again |
+| PC joins that 4-player session as the 5th | **FAIL (by design)** | 1 | box "Game full! - The game is full." The host's NO. DRIVERS was the default 4 |
+| PC hosts Hope Springs (ac44e2c2, NO. DRIVERS raised by 4 clicks on +, value not read back) -> Andrew joins | **PASS** | 1 | Andrew row picked by name (`macnav.sh joinname`), net 1, both tables agree |
+| PC hosts Co-op Scene 1 (ac44e2c2) -> Andrew joins | **PASS** | 1 | see above |
+| **5 players** | not run | 0 | needs a host with NO. DRIVERS >= 5 and the laptop and Michael's Mac to join it (owner's running game; no clicks / warps on those Macs while he uses them); the Deck suspended again at ~14:30 |
+| co-op win, late join, 3-human Co-op Scene 17 | not run | 0 | needs the laptop and Michael's Mac (owner) and driving to a win |
+
+**Stock arenas for daylight + hills** (read from the 15 `miss8\Mnn.MSN` WRLD hour byte +0x93 and `Mnn.TER` heights; titles
+from i76shell's table; hour 0 = night: Night Driver is 0):
+
+| # | arena | hour | area km2 | height range m | mean slope m/5 m | road segs |
+|---|---|---|---|---|---|---|
+| 0 | The Crater | 15 | 3.7 | 118 | 0.61 | 2 |
+| 1 | Dunes | 15 | 4.9 | 27 | 0.32 | 0 |
+| 2 | Air Base | 15 | 3.7 | 31 | 0.25 | 23 |
+| 3 | Suburbia | 0 (night) | 1.6 | 10 | 0.12 | 22 |
+| 4 | Slick Track | 6 (dawn) | 2.0 | 24 | 0.32 | 6 |
+| 5 | Tombstone | 15 | 6.6 | 97 | 0.75 | 20 |
+| 6 | Hope Springs | 15 | 4.9 | 125 | 0.87 | 21 |
+| 7 | Creeper Canyon | 15 | 4.5 | 93 | 0.91 | 8 |
+| 8 | Mesa Maze | 6 (dawn) | 3.3 | 90 | 1.20 | 40 |
+| 9 | Salt Flats | 9 | 4.1 | 89 | 0.80 | 1 |
+| 10 | Vigilantes' Paradise | 15 | 3.7 | 147 | 1.06 | 16 |
+| 11 | Night Driver | 0 (night) | 11.1 | 70 | 0.42 | 15 |
+| 12 | Dodge | 21 (night) | 10.6 | 299 | 0.78 | 22 |
+| 13 | Jorczak's Peak | 9 | 3.7 | 100 | 1.04 | 1 |
+| 14 | A Lot of Asphalt | 21 (night) | 3.7 | 409 | 2.04 | 0 |
+
+Daylight with hills and roads: **Hope Springs**, **Vigilantes' Paradise**, **Tombstone** (largest), then Creeper
+Canyon and Jorczak's Peak (hilly, few roads). Stock melee has no AI cars (every Mnn.MSN has 0 vehicle objects).

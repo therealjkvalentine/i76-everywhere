@@ -241,3 +241,13 @@ before a co-op night. No co-op cell has been run across machines yet (records/LA
   `I76_COOP_CHAIN` gives only joiners an automatic respawn). The host respawns from the replay. Fix pending.
 - **Menu pointer off on Andrew's Mac** (~14 px left): his window is narrower than the screen (DxWnd size made on a
   1728x1117 laptop). Fix staged: DxWnd size and OGL_VIEWPORT = his screen, 1440x900.
+
+### Update 2026-10-18 14:50
+
+- **4 players measured** (laptop host + Michael + Deck + Andrew, n 1). The host form's **NO. DRIVERS defaults to 4**: a
+  5th player gets "Game full!". For 5, the host raises NO. DRIVERS (the + beside it) before BROADCAST GAME.
+- With several games on the network, pick the row by its name (the first row is not always yours).
+- Proxy **ac44e2c2** (melee respawn stock for host and joiner; automatic respawn only in Co-op Scenes) on the PC LAN copy,
+  the laptop copy, Michael's and Andrew's Macs. The Deck keeps its own pack (+ the co-op files, no co-op switches).
+- Andrew's pointer fixed (window = his 1440x900 screen).
+- Daylight arenas with hills and roads: Hope Springs, Vigilantes' Paradise, Tombstone (records/LAN-MATRIX section 9).
