@@ -319,6 +319,15 @@ int main(int argc, char **argv) {
 #undef MHOLD
         printf("mclick %d,%d: mouse object now %d,%d\n", x, y, ri(mo + 0x2c), ri(mo + 0x30));
     }
+    else if (!strcmp(argv[1], "boxtext")) {            /* every dialog (#32770) of the game: title and its controls' text */
+        HWND h = NULL; char t[512];
+        while ((h = FindWindowExA(NULL, h, "#32770", NULL)) != NULL) {
+            DWORD pid; HWND c = NULL; GetWindowThreadProcessId(h, &pid); if (pid != g_pid) continue;
+            GetWindowTextA(h, t, sizeof(t)); printf("box %p '%s':", (void *)h, t);
+            while ((c = FindWindowExA(h, c, NULL, NULL)) != NULL) { GetWindowTextA(c, t, sizeof(t)); if (*t) printf(" [%s]", t); }
+            printf("\n");
+        }
+    }
     else if (!strcmp(argv[1], "mods")) {               /* loaded modules: base, size, name */
         MODULEENTRY32 me; HANDLE s = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, g_pid);
         me.dwSize = sizeof(me);

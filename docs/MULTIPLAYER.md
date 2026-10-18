@@ -231,3 +231,13 @@ The Crater back; proxy ba2b45c1 with the co-op reload crash fixed) is on the PC 
 gate clone (in place, verified). **Andrew's Mac and the Deck still carry the old pack** (unreachable / asleep during the
 update): bring them up and run `tools/lan-test/apply-pack-delta.sh` (Macs) or copy the 34 `ADDON/coop*` files (Deck)
 before a co-op night. No co-op cell has been run across machines yet (records/LAN-MATRIX-2026-10-18.md section 7).
+
+### Update 2026-10-18 14:10
+
+- Mac to Mac works both ways (Michael <-> laptop, melee and Co-op Scene 1, n 1 each); a co-op loss reloads on both
+  without a crash (n 2); a machine without `coop01.lvl` gets "You don't have mission coop01.lvl!" (n 1). Not yet: a
+  co-op win / late join, the PC-hosted cells of the new pack, 5 players.
+- **After a death in melee the host stays in the death view, joiners respawn by themselves** (our co-op switch
+  `I76_COOP_CHAIN` gives only joiners an automatic respawn). The host respawns from the replay. Fix pending.
+- **Menu pointer off on Andrew's Mac** (~14 px left): his window is narrower than the screen (DxWnd size made on a
+  1728x1117 laptop). Fix staged: DxWnd size and OGL_VIEWPORT = his screen, 1440x900.

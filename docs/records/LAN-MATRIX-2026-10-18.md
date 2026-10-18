@@ -210,3 +210,56 @@ his IPX start should now work; it is not measured (his screen stayed locked: no 
   reverse in coop01.lvl with CRC slot e1dcaa33, a loss and a win with a cross-machine joiner, a late join after a win,
   the "You don't have mission coop01.lvl!" box on a machine without the files, stock melee incl. the Deck hosting The
   Crater): **all not run** (no second machine available). The file-level checks are done (table above).
+
+## 8. Fifth attempt (13:24-14:10, owner at the laptop and Michael's Mac): Mac-to-Mac cells, co-op across Macs
+
+Both Macs unlocked from 13:29 (the laptop locked once at ~13:26 and was unlocked by the owner). The laptop's window was
+now on its built-in display (1728x1117). calib2 (real-pointer warp, no clicks): laptop map 2.7027 0.0 2.3256 2.3,
+Michael 2.3641 1.4 2.0408 4.1 (both = the whole client stretched, no offset).
+
+| cell | result | n | evidence |
+|---|---|---|---|
+| Michael hosts Suburbia (m04) -> laptop joins | **PASS** | 1 | at rest both player tables 4862.5, 49427.5 (host) / 4732.5, 49317.5; both drove 30 s, tables agree within 0.6 m afterwards; the laptop's car later respawned at the spawn point on both ends |
+| laptop hosts Suburbia (m04) -> Michael joins | **PASS** | 1 | at rest identical (4732.5, 49427.5 / 4172.5, 49327.5); both drove 25 s, afterwards 5022.4 / 5021.9 and 5023.1 / 5023.0 |
+| co-op list on the new pack | **PASS** | 2 machines | Michael: arena count `[shell+0x4b2f8]` = 0x20 (15 + 17), "Co-op Scene 1/2/3" strings loaded; laptop: list scrolled to top 12, row 4 = index 15 selected |
+| laptop hosts **Co-op Scene 1** -> Michael joins | **PASS** | 1 | host: mission name `coop01.lvl`, CRC slot `0x504a04` = **e1dcaa33**, host adopts `vppirna4`; Michael: net 1, me 6, `coop01.lvl`, both cars in both tables (joined on the 2nd JOIN GAME try) |
+| co-op **loss** (sit still) with the cross-machine joiner | **PASS** | 2 reloads | host log: "coop-chain: host lost 'coop01.lvl' -> loading 'coop01.lvl' in the same session" x2 (13:34, 13:36); both processes alive, both back in coop01 with both cars, tables agree (3373.8 / 3374.4) - the ba2b45c1 fix holds across machines |
+| Michael hosts **Co-op Scene 1** -> laptop joins | **PASS** | 1 | host coop01.lvl, CRC e1dcaa33; laptop net 1 me 6 coop01.lvl; a reload with the joiner on, no crash |
+| joiner **without** coop01.lvl (laptop, file renamed for the test, put back after, md5 c6294f55) | **PASS** | 1 | Wine box "Error": *You don't have mission coop01.lvl! Check Activision's web page for additional missions!*, net stays 0 |
+| co-op **win** -> both in coop02; **late join** after a win | not run | 0 | needs the mission actually won (driving), not done remotely |
+| PC-hosted cells, 3-5 players, Deck, Andrew | not run in this window | 0 | PC console was the owner's (OWNER lock 13:24-~13:57); Andrew's Mac busy (his own game running) then offline; Deck asleep |
+
+### Respawn asymmetry the owner saw (host stays in the death view, the joiner respawns)
+
+Cause found, by reading the logs and the source (no game touched): it is **our proxy, not the network**. Since commit
+08ba553 ("proxy co-op: the joiner respawns by itself after death") `I76_COOP_CHAIN=1` makes the **joiner** call the
+game's RAISE_DEAD request (0x451570) 5 s after its car dies, in **any** mission, melee included
+(`coop_ai_in_mission()` only checks game state 5 + a world). The host gets no such call, so it shows stock behaviour:
+the death view until the player goes to the replay / respawn. Michael's log (joiner): "coop-ai: role joiner ...
+respawns 1" and "coop-chain: joiner dead - respawn requested" x2; the laptop's (host): "role host ... respawns 0".
+The old pack's proxy (33211f11) carries the same code (its strings include "joiner dead - respawn requested"), so it
+behaved the same. Both machines run the same switches (I76_COOP_AI=1, I76_COOP_CHAIN=1; logs identical in the
+switch lines). Fix options, for the co-op lane (strlkproxy.c, not changed here): (a) give the host the same 5 s
+respawn in melee, or (b) restrict the joiner's auto-respawn to `coopNN.lvl` so melee is stock on every machine. Until
+then: in a melee, the host respawns from the replay after a death.
+
+### Menu pointer misalignment on the Macs
+
+Measured mapping of the shell's pointer (real macOS pointer -> UI, `calib2`): Michael 1512x978 window at x 0 and the
+laptop 1728x1117 at x 0: stretched over the whole client, **offset 0** (aligned). Andrew's Mac: window 1392x900 at
+x 24 on a 1440x900 screen, **offset +54 px** in client x (UI x = (client x - 54.3) / 2.174) - the hit point sits about
+14 UI pixels left of the drawn arrow, the "+14 px" seen at the start of the night. The pack's Mac settings were made on
+James's laptop: DxWnd `sizx0/sizy0 = 1728x1117`, `posx0/posy0 = 50,50` on every Mac, `OGL_VIEWPORT` per machine (laptop
+1728x1117, Michael 1512x977, Andrew 1392x900). Where the window fills the screen width (laptop, Michael) the map has no
+offset; on Andrew's narrower screen DxWnd keeps the 1728:1117 shape, the window is centred and the mapping is off by the
+centring. **Proposed (staged, not applied; Andrew was playing and then offline):** on Andrew's Mac set DxWnd
+`sizx0=1440`, `sizy0=900` and `OGL_VIEWPORT=1440x900` so the window fills the screen; then re-run `calib2` (pass =
+offset under 2 px). The Mac copies have no I76_CURSOR_MAP / u32x shell stretch / dgVoodoo involvement (no dgVoodoo on
+the Macs; DxWnd does the mapping), so the Windows cursor-fix switches (records/CURSOR-FIX-ON-18*) do not apply.
+
+### Machine state at 14:10 (for the owner's playtest)
+
+PC: LAN copy on the 2026-10-18 pack (ba2b45c1), not running, console free. Laptop and Michael's Mac: on the 2026-10-18
+pack; the game processes are the ones I started at 13:24/13:43 and the owner is now playing in them - left running
+as asked; none of my helpers (caffeinate, pollers, probe) running. Andrew's Mac: offline; pack delta copied to
+`/tmp/i76mp/delta` there (staged, not applied: his own game was running). Deck: asleep, old pack, no co-op files.
