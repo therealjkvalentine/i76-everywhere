@@ -291,9 +291,9 @@ retail loops (arcade) were not replayed.
    These two runs were queued and then withdrawn, so they never took over the mouse:
    - (a) the `rand()` caller census: which return addresses draw on the frames where the car starts to move;
    - (b) a srand-only control with no pre-roll, n 2: is the pre-roll needed at all, or the seed alone?
-   - The script is ready: lab `toolseplay\with-lock.ps1 -Who frame-replay-fix -WaitMinutes 30 -Command "& '<batch>'"`.
+   - The script is ready: lab `tools\replay\with-lock.ps1 -Who frame-replay-fix -WaitMinutes 30 -Command "& '<batch>'"`.
    - The batch is two calls of `replay-melee-console.ps1 -InLock -Conds g166-mloop-rep1`:
-     - (a) with `-Dll buildseplay-randlog\Strlkup.dll -Preroll 150 -Srand 1 -RandLog`; the census goes to the twin's
+     - (a) with `-Dll builds\replay-randlog\Strlkup.dll -Preroll 150 -Srand 1 -RandLog`; the census goes to the twin's
        mciproxy.log, lines `replay: rand frame`;
-     - (b) with `-N 2 -Dll buildseplay-preroll\Strlkup.dll -Srand 1`, then `rpl_aa`.
+     - (b) with `-N 2 -Dll builds\replay-preroll\Strlkup.dll -Srand 1`, then `rpl_aa`.
 3. Steering: replay files that start at steerprep / steerR from the trace's state.
