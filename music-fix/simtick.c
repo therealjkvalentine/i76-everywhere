@@ -1020,8 +1020,7 @@ static void apply_simtick(void) {
         }
         if (env_str("I76_SIM_TICK_TRCLOG", dp, sizeof(dp)) && (g_st_tlog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_tlog, NULL, _IOFBF, 1 << 13);
-            fprintf(g_st_tlog, "t,dframe,tick,rec,round,first,ox,oy,oz,nx,ny,nz
-");
+            fprintf(g_st_tlog, "t,dframe,tick,rec,round,first,ox,oy,oz,nx,ny,nz\n");
         }
         if (env_str("I76_SIM_TICK_PROJLOG", dp, sizeof(dp)) && (g_st_plog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_plog, NULL, _IOFBF, 1 << 13);
