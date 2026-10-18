@@ -43,7 +43,7 @@ multiplayer menu, starting beside the host.
 | Joining late | nothing special: the movies are out of the mission files | buddy joined ~50 s into T01 and played on |
 | Next mission / retry | won -> both reload the next co-op mission in the same session; lost -> both reload the same one ('AM' + the game's Replay path, network kept up) | forced win T01 -> T02 on both; script-engine win -> T02; natural losses (host killed, objective failed) retried, several times in a row |
 | The whole campaign loads | wins forced through the script engine's success path, one mission after another | all 17 co-op missions (T01..T17) on both machines, 0 crashes; T17's win ends the game normally; the whole chain at 30 s per mission, both machines in step at every mission, one reload each (16/16) |
-| Buddy respawns | the buddy requests a respawn by itself 5 s after dying | two self-destructs, a new car each time |
+| Buddy respawns | the buddy requests a respawn by itself 5 s after dying, in co-op missions only (`coopNN.lvl`; since 2026-10-18 stock melee is stock). The host does not: its death fails the mission and the chain reloads it for both | two self-destructs, a new car each time; 2026-10-18: joiner n 2, host death -> both reloaded n 2, melee host / joiner stay dead n 2 each (records/COOP-LIST-ENTRIES-2026-10-18.md section 5) |
 | Difficulty | co-op damage factor | 25 -> 12 per hit at 0.5, for the host's and the buddy's shots |
 
 ## Not done / known gaps

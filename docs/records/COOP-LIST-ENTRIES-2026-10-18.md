@@ -169,3 +169,63 @@ Sources: https://www.localditch.com/interstate-76/maps/ ,
 https://route380.stars.ne.jp/i76/resource_i76/ , http://interstate76.com/download/ , http://interstate76.com/lsm/index.htm ,
 https://www.gog.com/forum/interstate_series/addon_maps_not_being_found_by_interstate_76_original ,
 https://inbetweennames.net/projects/interstate76anet/ , https://www.moddb.com/mods/interstate-76-mod (archived, no maps).
+
+## 5. Follow-up (14:00): auto-respawn only in co-op missions
+
+Owner's playtest (laptop host + Michael joiner, Suburbia, pack proxy ba2b45c1): after a death the joiner came back 5 s
+later, the host stayed in the death view. Cause: the joiner auto-respawn (08ba553) ran in every network game with
+`I76_COOP_CHAIN`, melee included; the host never had one. Fix (commit f2598f0): the auto-respawn runs only when the
+loaded mission is a `coopNN.lvl`. Stock melee is stock for both.
+
+The host stays stock in co-op on purpose: it drives the story's player object, the scripts watch that object, so the
+host's death fails the mission and the chain reloads it for both (measured below, back alive ~10-15 s later). A host
+auto-respawn would race that teardown and adds nothing.
+
+PC, two lab copies, build 5035857f (/Brepro; two builds md5-identical), CTRL+ALT+X self-destruct, dead bit = entity
++0x454 & 0x20:
+
+| case | result | n |
+|---|---|---|
+| melee (Suburbia, The Crater), host dies | still dead 25 s later, no respawn line: stock | 2 |
+| melee, joiner dies | still dead 25 s later, no respawn line: stock | 2 |
+| Co-op Scene 1, joiner dies | "joiner dead - respawn requested", new car alive at +14 s | 2 |
+| Co-op Scene 1, host dies | "host lost 'coop01.lvl'" -> both reload coop01, both alive at +15 s, no crash | 2 |
+
+Build note: 5035857f was compiled from f2598f0's strlkproxy.c with a simtick.c that another session was editing at the
+time (its committed parent does not compile). HEAD f2598f0 (clean tree, simtick.c of 0614391, a lab experiment off by
+default) builds deterministically to **ac44e2c2**; it differs only in that file and has not been run in game. Both are
+in `i76-uncap-lab\builds\coop-list-20261018\`.
+
+## 6. Owner's questions for tonight (static, from the files and the code)
+
+**3 on 3 against the computer?** Not in stock multiplayer. The net host form has driver, arena, game name, number of
+drivers, TEAM PLAY, INVITE ONLY and MAX SCORE, and no computer-player setting; the stock arenas carry no AI cars
+(the proxy's mission-car count in Suburbia: 0). TEAM PLAY is real (exe strings "Team %s has reached the maximum
+score", `show_team_scores`, team rows in the standings 0x1003fb40), but the teams are humans. The computer opponents
+are in the single-player scenarios (S01-S07, "Oil Well Well" etc., table 0x1004b7e0), which the net host list does not
+offer. The closest is a co-op scene: the humans together against the mission's AI cars (`I76_COOP_AI`, every AI
+behaviour aimed at a human retargets to the nearest human, any of 16 player slots).
+
+**How many humans in a co-op scene?** Measured: 2. In the code nothing is limited to 2 (the 'AT' / 'AM' / 'AC' / 'AO'
+packets go to the whole session group, the joiner role is per machine, retargeting scans 16 slots). Each co-op file has
+2 spawn points beside the hero, and the host takes the mission's own player object, not a spawn point (host at the
+player start 3337.5, 35872.5; joiner at +30 m x = spawn 1), so a third human would take spawn 2 [inferred, 3 players
+never run]. A 4th would need `coop-mission.py --count 3`.
+
+**Are the scenarios multiplayer?** The "Co-op Scene N" entries are the 17 campaign trip missions (T01-T17), playable
+by host + joiners as above. The single-player melee scenarios S01-S07 are not in the multiplayer list.
+
+**Which scene for 3 humans, daylight, hills, ~3 enemies?** From the mission files (WRLD hour, mission .ter height
+spread, non-player vehicle objects; which of them are hostile is decided by the script and was not read):
+
+| scene | hour | terrain height spread (sd / range m) | non-player vehicles |
+|---|---|---|---|
+| 1 | 15 | 16.6 / 0-100 (flat) | 5 (Taurus is an ally, one parked tractor) |
+| 9 | 15 | 17.2 / 0-100 | 2 |
+| 17 | 15 | 33.3 / 0-120 | 4 (2 are trailers: t17cm01, t17mx01 + vfratlr2/3) |
+| 13 | 15 | 34.4 / 0-135 | 10 |
+| 8 | 15 | 28.7 / 1-110 | 8 |
+| 4 | 6 (dawn) | 21.6 / 0-409 (canyon) | 3 |
+
+Best fit to "daylight, curves and hills, about 3 enemies": **Co-op Scene 17** (afternoon, hilly, two cars plus two
+trailers), but it is the story's last mission; **Scene 8** if more cars are wanted. Untested with 3 humans.
