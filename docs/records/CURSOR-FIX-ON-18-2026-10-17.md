@@ -121,7 +121,7 @@ lines.
 | launcher | result |
 |---|---|
 | PLAY-balanced.bat (best-wide-balanced `0c95b996`, wide conf `aa6414e4`) | **PASS 2/2, 120 / 120 fps** (gate `20261017-182954`) |
-| PLAY-16x10.bat (best-120 `9b53c141` + 16x10 conf: neither is changed by the fix; only the DLL is new) | **PASS 2/2, 120 / 120 fps** (gate `20261017-194209`, lab `tools\cursor-offsetow3-16x10-c18.ps1` under `with-console.ps1`) |
+| PLAY-16x10.bat (best-120 `9b53c141` + 16x10 conf: neither is changed by the fix; only the DLL is new) | **PASS 2/2, 120 / 120 fps** (gate `20261017-194209`, lab `tools\cursor-offset\row3-16x10-c18.ps1` under `with-console.ps1`) |
 
 A first 16x10 attempt inside P10 failed 0/2 (gate `20261017-182725`), but the cause was the harness, not the game:
 - P10's environment set `LAB_CURSOR_FREE=1` for every run;
