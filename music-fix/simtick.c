@@ -279,7 +279,7 @@ static double wst_d2(const xform_t *a, const xform_t *b) {
  * end-of-tick pose E for the whole next display window (a one-tick freeze at the muzzle, which the census counts as a
  * stall whenever the pool hands out a recently moving projectile's address), then moved on from E one tick late like
  * everything else. Its velocity is known at spawn (projectile data, object +0x70: +0x14 velocity in the projectile's
- * own frame, +0x38 the ORDF speed), so I76_SIM_TICK_PROJ=1 draws it moving from E along that velocity during its first
+ * own frame, +0x38 the ORDF speed), so I76_SIM_TICK_PROJ=1 (default; 0 = off) draws it moving from E along that velocity during its first
  * window (E -> E + f v T, f = 0.5) and starts the next tick's segment from that drawn pose (E + f v T -> the next
  * tick's pose), so the round leaves the muzzle at once, never moves backwards and catches the one-tick-late timeline
  * of everything else over two windows (half speed for 2 x T, then normal). The sim pose is never changed (drawing
@@ -287,7 +287,7 @@ static double wst_d2(const xform_t *a, const xform_t *b) {
  * and a check of three velocity readings against the motion of the next tick. */
 typedef struct { BYTE *obj; xform_t e; float v[3][3]; int vok; int drawn; double d[3]; } wspawn_t;
 static wspawn_t g_wsp[2][512]; static int g_wsp_n[2], g_wsp_cur;   /* [cur] = this tick's spawns, [cur ^ 1] = the last tick's */
-static int g_st_proj = 0;                                     /* I76_SIM_TICK_PROJ (default set in apply_simtick) */
+static int g_st_proj = 1;                                     /* I76_SIM_TICK_PROJ (default on since 2026-10-18 tick-gaps: 0 = last night's freeze) */
 static float g_st_proj_f = 0.5f;
 static int g_st_proj_vsel = 0;                               /* which velocity reading the drawing uses (0 rows, 1 fwd x |v|, 2 fwd x speed) */
 static int st_proj_vel(BYTE *o, float v[3][3]) {             /* 1 = read; v[0] rows . local v, v[1] forward x |v|, v[2] forward x speed */
@@ -630,7 +630,7 @@ static void simtick_clock(void) {
         *tm = tm0 + g_st_T; *stm = stm0 + g_st_T;
         if (warm) *acc = acc0 + g_st_T;
         g_st_clk[0] = g_st_T; g_st_clk[1] = 1.0f / g_st_T; g_st_clk[2] = g_st_T; g_st_clk[3] = 1.0f / g_st_T;
-        g_wst_local.ticks++;
+        g_wst_local.ticks++; g_st_tickno++;
         g_st_since = 0.0;
         g_tick20 = 1; g_tick20_n++; g_acc20 = 0.0f;
         st_flame_age_tick();
@@ -714,6 +714,7 @@ static void __cdecl st_vehicle_tick(BYTE *obj) {
 static void __cdecl st_cam_wrap(void) {
     void (__cdecl *mode)(void) = *(void (__cdecl **)(void))0x004c2720;
     if (g_st_now && g_st_clk[0] > 0.0f) wst_tick_end();     /* the sim block is done: poses after the tick */
+    if (g_st_now && g_st_clk[0] > 0.0f && g_bbox_sweep) sign_sweep_tick();   /* signs: this tick's motion, before its first drawn frame */
     if (g_st_now && g_lat_step_fn) g_lat_step_fn();
     g_st_in_disp = 1;
     if (g_st_clk[0] > 0.0f) st_clock_set(g_st_disp_dt, g_st_disp_dt);   /* camera code: the display frame's dt */

@@ -1382,6 +1382,9 @@ static void retail_handling_frame(void);
 static int g_bbox_sweep;                                     /* I76_BREAKABLE_BOX=3: sign-post sweep (below, with the breakable box) */
 static volatile DWORD g_sweep_entries, g_sweep_scored, g_sweep_engine, g_sweep_frames;
 static void sign_sweep(void);
+static void sign_sweep_tick(void);                           /* I76_SIM_TICK_MS: the sweep once per tick, at the end of the sim block */
+static void sign_pend_frame(void);                           /* ... and the queued knock-offs every display frame */
+static DWORD g_st_tickno;                                    /* ticks run (simtick.c), the sweep's clock under the tick */
 static int g_bbox_defer;                                     /* I76_BREAKABLE_BOX=4: post knock-offs wait for the DRAWN car (below) */
 static int sign_defer_engine(BYTE *victim, BYTE *source, const float *v, const float *n, const float *p);
 static void sign_gap_log_engine(BYTE *victim, BYTE *source);
@@ -1490,7 +1493,7 @@ clock:
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
-    if (g_bbox_sweep) sign_sweep();                         /* I76_BREAKABLE_BOX=3: posts the last tick drove through */
+    if (g_bbox_sweep) { if (g_simtick) sign_pend_frame(); else sign_sweep(); }   /* I76_BREAKABLE_BOX=3: posts the last step drove through (tick: sweep at the tick's end, simtick.c) */
     if (g_flc_on) flame_census_frame();                     /* I76_FLAME_CENSUS: stream lengths, log line */
     if (g_simtick) simtick_clock();                         /* I76_SIM_TICK_MS: simclock_Update on tick frames only, dt = the tick */
     else ((void (__cdecl *)(void))0x0049c920)();           /* simclock_Update */
@@ -7102,6 +7105,7 @@ static int sign_pend_run(BYTE *obj) {                       /* 1 = fired one (th
     }
     return 0;
 }
+static int g_sweep_tick;                                     /* sign_sweep_tick is running: the clock is the tick count */
 static void sign_sweep(void) {
 #ifdef _MSC_VER
     __try {
@@ -7111,12 +7115,12 @@ static void sign_sweep(void) {
         float *R, ext[6];
         int *bx, n = 0;
         if (!obj) { g_sweep_obj = 0; g_nspend = 0; return; }
-        if (g_nspend && sign_pend_run(obj)) return;         /* =4: a queued post reached by the drawn car (one per frame) */
+        if (!g_sweep_tick && g_nspend && sign_pend_run(obj)) return;   /* =4: a queued post reached by the drawn car (one per frame) */
         memcpy(P1, obj + 0x40, 24);
-        if (obj != g_sweep_obj || g_frame - g_sweep_prev_frame != 1) {   /* new car / gap: re-arm */
-            g_sweep_obj = obj; memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_frame; return;
+        if (obj != g_sweep_obj || (g_sweep_tick ? g_st_tickno : g_frame) - g_sweep_prev_frame != 1) {   /* new car / gap: re-arm */
+            g_sweep_obj = obj; memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_sweep_tick ? g_st_tickno : g_frame; return;
         }
-        memcpy(P0, g_sweep_prev, 24); memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_frame;
+        memcpy(P0, g_sweep_prev, 24); memcpy(g_sweep_prev, P1, 24); g_sweep_prev_frame = g_sweep_tick ? g_st_tickno : g_frame;
         dx = P1[0] - P0[0]; dz = P1[2] - P0[2];
         if (dx * dx + dz * dz < 1e-8 || dx * dx + dz * dz > 625.0) return;   /* no motion (no step this frame) / teleport */
         R = (float *)(obj + 0x18);                          /* rows right / up / forward */
@@ -7207,6 +7211,30 @@ static void sign_sweep(void) {
         }
 #ifdef _MSC_VER
     } __except (EXCEPTION_EXECUTE_HANDLER) { g_bbox_sweep = 0; g_bbox_defer = 0; mlog("  sign-sweep: fault - turned off"); }
+#endif
+}
+
+/* Under the whole-sim tick (2026-10-18 tick-gaps): the frame hook sweep saw a tick's motion one display frame after the
+ * tick ran, and the drawn car starts down that tick's segment in the tick's own frame, so a post the step entered early
+ * was already behind the drawn bumper when it was queued (T05 signs, n 2 + 2 boots, 22 knock-offs each: drawn gap at the
+ * knock-off median -0.31 m vs -0.11 m under promotion 18; entry point in the step vs gap at detection: gap = 0.67 x
+ * entry - 0.24 m). So under the tick the sweep runs once per tick at the end of the sim block (st_cam_wrap, before
+ * that frame is drawn; P0 / P1 = the poses at the last two tick ends) and a queued knock-off is tried right away and on
+ * every display frame after (frame hook), as =4 intends. */
+static void sign_sweep_tick(void) {
+    BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0;
+    g_sweep_tick = 1; sign_sweep(); g_sweep_tick = 0;
+    if (obj && g_nspend && g_bbox_defer) sign_pend_run(obj);
+}
+static void sign_pend_frame(void) {
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0;
+        if (!obj) { g_nspend = 0; return; }
+        if (g_nspend) sign_pend_run(obj);
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_bbox_sweep = 0; g_bbox_defer = 0; mlog("  sign-sweep: fault (queued knock-off) - turned off"); }
 #endif
 }
 
