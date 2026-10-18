@@ -6,25 +6,32 @@ every machine joining and hosting, with evidence, plus stable instructions (docs
 stationary car at the same coordinates on both ends, the far table following a car while it drives; IPXWrapper debug
 logs; shell framebuffer pictures where useful. n = number of joins.
 
-## 0. Result
+## 0. Result (updated 07:30 after the morning resume)
 
-Rows host, columns joiner. PASS = joined, both cars in both tables, each machine's driving seen on the other.
+Rows host, columns joiner. PASS = joined, every car in every table, each machine's driving seen on the others.
 
 | host \ joiner | PC | Andrew's Mac | Michael's Mac | laptop | Deck |
 |---|---|---|---|---|---|
-| **PC** | - | **PASS n 1** (cell 2) | not run: screen locked | not run: screen locked | not run: Deck suspended |
-| **Andrew's Mac** | **PASS n 1** tonight (cell 3; n 2 more earlier in the night, brief) | - | not run: locked | not run: locked | **PASS n 1** (cell 1) |
-| **Michael's Mac** | not run: locked | not run: locked | - | not run: locked | not run |
-| **laptop** | not run: locked | not run: locked | not run: locked | - | not run |
-| **Deck** | not run: suspended | **partial** (cell 4: join request sent and answered, then the Deck suspended) | not run | not run | - |
+| **PC** | - | **PASS n 2** (cells 2, 6) | blocked: firewall box not answered | blocked: game window not frontmost | **PASS n 1** (cell 6) |
+| **Andrew's Mac** | **PASS n 1** tonight (cell 3; n 2 more earlier in the night) | - | blocked (firewall) | blocked (front) | **PASS n 1** (cell 1) |
+| **Michael's Mac** | blocked: its IPX start fails until the firewall box is answered | blocked | - | blocked | blocked |
+| **laptop** | blocked: no click reaches the game (cell 7) | blocked | blocked | - | blocked |
+| **Deck** | not run | **FAIL n 1** in The Crater (cell 5: mission files differ); melee not run | blocked | blocked | - |
 
-- **Every Mac-join failure from earlier in the night is explained and gone:** it was our remote clicking (section 3).
-  With the real macOS pointer moved onto the button, Andrew's Mac joined the PC's game and drove in it (cell 2).
-- **3 or more players: not run.** Only two clickable machines stayed available (PC, Andrew's Mac): Michael's Mac and the
-  laptop sat at the lock screen all night (no click reaches the game there, section 4), and the Deck suspended.
-- **Owner clicks still needed:** Michael's Mac firewall box *"wine" ... accept incoming network connections* -> Allow
-  (no wine entry yet), and his first microphone box. Both need someone at the Mac; they stick to the same app bundle.
-- Crashes: none in these cells (n 4 sessions). Host handover: seen once, caused by the host quitting (section 4).
+- **3 players: PASS n 1** (cell 6: PC host, Deck and Andrew's Mac join, all three drove, all three tables agree).
+- **5 players: not run** - Michael's Mac and the laptop could not join (below).
+- **Clicks the owner still has to do:**
+  1. **Michael's Mac:** the box *Do you want the application "wine" to accept incoming network connections?* is on his
+     screen now (UserNotificationCenter window, 260x282 at 626,189, up since 07:15). Click **Allow**. Until then the
+     game's IPX start fails (Wine "Error" box; IPXWrapper log "Router thread didn't exit"). It cannot be pressed
+     remotely: osascript / System Events needs Accessibility for sshd and only hung (killed after 12 s; a second box
+     appeared meanwhile and was gone by 07:25 - if a box asks to let "sshd-keygen-wrapper" control "System Events",
+     click **Don't Allow**). No microphone box appeared in his launch (07:15, window list checked).
+  2. **James's laptop:** Terminal is the front app, and macOS 26 refuses to bring wine forward from SSH
+     (`NSRunningApplication.activate` returned true, the front app stayed Terminal; a restart via `open` the same).
+     While wine is not frontmost the game's pointer stays frozen (mouse object 2,240 whatever the pointer does), so no
+     click lands. Click once into the I76 MP GATE window, then the laptop cells can run.
+- Crashes: none (n 7 sessions). Host handover: section 4.
 
 ## 1. Builds on each machine (md5, read 2026-10-18 00:40-01:05)
 
@@ -70,6 +77,26 @@ for remote cars. Andrew kept receiving the PC car the whole time.
 (session record and the framebuffer picture, section 3); with the real pointer on JOIN GAME the Mac sent the join
 (17 + 54 bytes) and the Deck answered (91 ... 255 bytes) at 01:27; the Deck then suspended, so arena entry was not
 measured here (it was in cell 2).
+
+**Cell 5 - the Deck hosts, Andrew's Mac joins (07:20). FAIL n 1, cause found.** The Deck's host form row at y 208
+started **The Crater (m01)**, not Suburbia (its arena list differs). Andrew joined (net 1, me 6, host 3) but his own car
+never spawned: player table `nan,nan` on both ends; Andrew's proxy log "coop-ai: role joiner ... mission m01.msn ...
+mission cars alive 5". The LAN pack's `miss8\M01.MSN` is the co-op T01 mission (000869bb); the Deck runs its own pack
+with the stock m01, so host and joiner loaded different missions. Fix: give the Deck the LAN pack (common part), or
+never pick The Crater when the Deck is in the game. A Deck-hosted melee was not run.
+
+**Cell 6 - 3 players: the PC hosts Suburbia ("pchost"), the Deck and Andrew's Mac join (07:22-07:27). PASS n 1.**
+Deck: net 1, me 6; Andrew: net 1, me 8; the PC's table lists ids 3, 6, 8. At rest all three player tables identical:
+3 at 4272.5, 49437.5; 6 at 4862.5, 49542.5; 8 at 4172.5, 49327.5. All three drove 25 s at once; afterwards the three
+tables agreed within the motion between the sequential samples (id 6: 3981.5 / 3982.8 / 3984.3; 15 s later
+4011.8 / 4012.6 / 4012.6, cars still coasting).
+
+**Cell 7 - the laptop (unlocked) as host.** Started, main menu reached by Esc; every click missed (main menu, n 9
+tries; calib2 read the mouse object frozen at 2,240). Front app: Terminal. Section 0, click 2.
+
+**Cell 8 - Michael's Mac (unlocked) as host.** Started 07:15 (audio muted first, restored to unmuted after), main menu,
+calib2 worked (map 2.364 1.4 2.041 4.1), MELEE > MULTI MELEE > HOST > IPX reached; the firewall box appeared at once
+and the game showed a Wine "Error" box (IPX could not start). Section 0, click 1.
 
 ## 3. Why the Mac joins "failed" earlier in the night: the automation, not the game
 
@@ -134,3 +161,10 @@ firewall and microphone prompts on Michael's Mac (locked screen all night).
   `tools/lan-test/deck-revert.sh` on the Deck as soon as it answers: stops our game, restores its own valepre4.vcf
   (4ed297ca), removes the ini and the test folder. If the log has no DONE line, run that script on the Deck by hand.
 
+
+Morning resume (07:13-07:30): the Deck revert loop had run at 07:12 (log DONE: valepre4 4ed297ca back, ini removed).
+For cells 5-6 the Deck's valepre4.vcf was swapped to stock again and reverted at 07:27 with `deck-revert.sh` (game
+stopped, 4ed297ca back, test folder removed; Deck audio was muted before and stays muted). `caffeinate -d -i -u` on the
+three Macs (ours, stopped); `systemd-inhibit` on the Deck was refused (block mode needs authorisation). Games we started
+on the PC, Andrew's, Michael's and the laptop stopped (`wineserver -k` per prefix; our PC pid only); Andrew's and
+Michael's audio back to unmuted (their prior state). PC console lock 07:22-07:27, released.
