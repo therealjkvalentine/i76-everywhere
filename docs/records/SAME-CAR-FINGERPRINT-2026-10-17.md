@@ -28,7 +28,7 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
   - The emulator's mass is not logged, so on that side it is a prediction from the same loadout, not a measurement.
 - **With the same car, our exe matches retail on the T06 strip accel / brake / yaw within 3 %** (largest: tick66 0-10 m/s -3.0 %, step33 left yaw -2.4 %; verify 2026-10-17, recomputed from the compare JSONs).
   - The earlier gaps (0-20 m/s -34 %, steady yaw -29 %) were the car, not the exe or the step.
-  - Verify: the same harness with the old car (lab `captures\whole-sim-tick-20261017	06-step33-r1`, n 1 boot) reads 0-20 m/s 2.73 s and yaw 0.795 rad/s; with `game-samecar` (t06-step33-s1) 4.20 s and 1.10. The car change alone moves both numbers.
+  - Verify: the same harness with the old car (lab `captures\whole-sim-tick-20261017\t06-step33-r1`, n 1 boot) reads 0-20 m/s 2.73 s and yaw 0.795 rad/s; with `game-samecar` (t06-step33-s1) 4.20 s and 1.10. The car change alone moves both numbers.
   - Every arm now: 0-20 m/s 4.13-4.21 s vs 4.18; brake 11.75-11.77 vs 11.88 m/s2; steady yaw 1.099-1.116 vs 1.117 rad/s.
 - **What still fails** (the same in step and tick arms unless noted):
   - **Left-key yaw:** -0.6 to -2.4 %. step33 and tick33 fail; tick66 passes.
