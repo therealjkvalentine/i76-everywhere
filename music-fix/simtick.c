@@ -956,9 +956,10 @@ static void __cdecl st_render_wrap(void *cam) {
     wst_publish();
 }
 /* the flamer's main-pass update on a tick frame: the tick's clock (its hit test reads the sim rate), damage allowed */
+static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLAME_CLK=1 (lab): the tick's clock on every display frame's flamer update */
 static void __cdecl st_flame_main(BYTE *cam) {
     float save[4];
-    int tick = g_tick20 && g_st_clk[0] > 0.0f;
+    int tick = (g_tick20 || g_st_flame_clk) && g_st_clk[0] > 0.0f;
     save[0] = *(volatile float *)0x004fe420; save[1] = *(volatile float *)0x004fe424;
     save[2] = *(volatile float *)0x004fe428; save[3] = *(volatile float *)0x004fe42c;
     if (tick) st_clock_tick();
@@ -1012,6 +1013,7 @@ static void apply_simtick(void) {
     g_st_proj_vsel = env_int("I76_SIM_TICK_PROJ_V", 8, g_st_proj_vsel); if (g_st_proj_vsel < 0 || g_st_proj_vsel > 2) g_st_proj_vsel = 0;
     g_st_trc = env_flag("I76_SIM_TICK_TRACER", 8, g_st_trc) == 1;
     g_st_snd = env_flag("I76_SIM_TICK_SOUND", 8, g_st_snd) == 1;
+    g_st_flame_clk = env_flag("I76_SIM_TICK_FLAME_CLK", 8, 0) == 1;
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
