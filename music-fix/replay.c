@@ -45,6 +45,27 @@ static int g_rpl_pre_on;
 static unsigned g_rpl_seed; static int g_rpl_seed_on; static volatile LONG g_rpl_srand_n;
 static void (__cdecl *p_rpl_srand)(unsigned);
 static void __cdecl rpl_srand(unsigned s) { (void)s; InterlockedIncrement(&g_rpl_srand_n); if (p_rpl_srand) p_rpl_srand(g_rpl_seed); }
+/* I76_REPLAY_RANDLOG=1 (2026-10-17): census of i76.exe's rand() callers while replaying: per replayed frame, one mlog line
+ * '  replay: rand frame <trace frame> n <calls> <return address>x<count> ...' (main thread only, up to 16 callers). */
+static int g_rpl_randlog; static int (__cdecl *p_rpl_rand)(void);
+static DWORD g_rpl_rc_ra[16], g_rpl_rc_n[16], g_rpl_rc_k, g_rpl_rc_total, g_rpl_main_tid;
+static int __cdecl rpl_rand(void) {
+    if (g_rpl_state == 1 && GetCurrentThreadId() == g_rpl_main_tid) {
+        DWORD ra = (DWORD)(DWORD_PTR)_ReturnAddress(), i;
+        for (i = 0; i < g_rpl_rc_k && g_rpl_rc_ra[i] != ra; i++) ;
+        if (i < 16) { if (i == g_rpl_rc_k) { g_rpl_rc_ra[i] = ra; g_rpl_rc_n[i] = 0; g_rpl_rc_k++; } g_rpl_rc_n[i]++; }
+        g_rpl_rc_total++;
+    }
+    return p_rpl_rand ? p_rpl_rand() : 0;
+}
+static void rpl_rand_flush(DWORD frame) {
+    char b[600]; int o; DWORD i;
+    if (!g_rpl_randlog || !g_rpl_rc_total) return;
+    o = wsprintfA(b, "  replay: rand frame %lu n %lu", (unsigned long)frame, (unsigned long)g_rpl_rc_total);
+    for (i = 0; i < g_rpl_rc_k && o < 560; i++) o += wsprintfA(b + o, " %08lx x%lu", (unsigned long)g_rpl_rc_ra[i], (unsigned long)g_rpl_rc_n[i]);
+    mlog("%s", b);
+    g_rpl_rc_k = 0; g_rpl_rc_total = 0;
+}
 static char g_rpl_src[160];
 
 static float rpl_hexf(const char *s) { DWORD u = strtoul(s, 0, 16); float f; memcpy(&f, &u, 4); return f; }
@@ -160,7 +181,7 @@ static void rpl_pre(void) {
     __try {
 #endif
         if (g_rpl_state == 1) {
-            if (g_rpl_cur) rpl_log_frame(g_rpl_cur);
+            if (g_rpl_cur) { rpl_log_frame(g_rpl_cur); rpl_rand_flush(g_rpl_cur->frame); }
             g_rpl_in_calls = 0;
             if (g_rpl_i < g_rpl_n && tel_player(&ent)) rpl_hold_flags(ent);
             if (g_rpl_i >= g_rpl_n) {
@@ -193,6 +214,7 @@ static void rpl_pre(void) {
             if (GetTickCount() - g_rpl_seen_tick < g_rpl_delay_ms) return;
         }
         rpl_place(obj, ent);
+        g_rpl_main_tid = GetCurrentThreadId();
         g_rpl_state = 1; g_rpl_i = 0; g_rpl_start_frame = g_frame; g_rpl_in_calls = 0;
         mlog("  replay: started at lab frame %lu (pre-roll %lu fixed-dt frames, srand calls %ld), placed at %.3f %.3f %.3f, %lu rows from trace frame %lu (%lu MAIN_MENU presses through the opening)",
              (unsigned long)g_frame, (unsigned long)g_rpl_pre_n, g_rpl_srand_n, g_rpl_pos[0], g_rpl_pos[1], g_rpl_pos[2], (unsigned long)g_rpl_n, (unsigned long)g_rpl_rows[0].frame,
@@ -321,6 +343,11 @@ static void apply_replay(void) {
         g_rpl_seed = (unsigned)strtoul(v, 0, 10);
         if (o) { p_rpl_srand = (void (__cdecl *)(unsigned))o; g_rpl_seed_on = 1; }
         mlog("  replay: srand %s (seed %u)", o ? "fixed" : "NOT hooked (no MSVCRT.dll srand import)", g_rpl_seed);
+    }
+    if (env_flag("I76_REPLAY_RANDLOG", 8, 0)) {
+        void *o = patch_iat(GetModuleHandleA(NULL), "MSVCRT.dll", "rand", rpl_rand);
+        if (o) { p_rpl_rand = (int (__cdecl *)(void))o; g_rpl_randlog = 1; }
+        mlog("  replay: rand census %s", o ? "on" : "NOT hooked");
     }
     g_rpl_skip = env_flag("I76_REPLAY_SKIP", 8, 1) != 0;
     if (!env_str("I76_REPLAY_LOG", logp, sizeof logp)) { lstrcpynA(logp, path, MAX_PATH - 9); lstrcatA(logp, ".lab.csv"); }
