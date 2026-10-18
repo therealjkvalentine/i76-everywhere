@@ -8,12 +8,16 @@
 Builds the co-op missions from THIS folder's own campaign files (miss16\\T01..T17.MSN, nothing is downloaded or
 shipped) with tools/coop-mission.py and installs them as their own multiplayer arenas:
 
-  ADDON\\COOP01.LVL .. COOP17.LVL = co-op T01..T17, titled "Co-op Scene 1" .. "Co-op Scene 17".
+  ADDON\\coop01.lvl .. coop17.lvl = co-op T01..T17, titled "Co-op Scene 1" .. "Co-op Scene 17".
+
+The names are LOWER CASE on purpose: both shells test the extension with a case-sensitive compare against ".lvl"
+(host 0x1004c6ec, joiner 0x1004c7dc); "COOP01.LVL" skipped the file and CRC check on both ends (measured 2026-10-18:
+host CRC slot 0, a join went through unchecked).
 
 The shell lists every ADDON\\*.lvl after the 15 stock arenas (i76shell 0x10027c80, the builder's documented addon-map
 route), so the co-op missions appear in MULTI MELEE > HOST under their own names and no stock arena changes. A joiner
 loads the mission file the HOST names; for an addon .lvl its shell checks that it has the file and that the CRC-32
-matches the host's, and says so if not ("You don't have mission COOP01.LVL!"), instead of quietly loading another
+matches the host's, and says so if not ("You don't have mission coop01.lvl!"), instead of quietly loading another
 mission (docs/records/COOP-LIST-ENTRIES-2026-10-18.md). The campaign chain (I76_COOP_CHAIN) loads coop02 .. coop17.
 
 The miss16 variants are used (sky / palette / horizon files of the 16-bit hardware renderers every pack machine runs);
@@ -80,14 +84,19 @@ def install(game):
         src = find(src_dir, 'T%02d.MSN' % n)
         if not src:
             sys.exit('missing %s/T%02d.MSN' % (SRC_SUB, n))
-        dst = os.path.join(addon, 'COOP%02d.LVL' % n)
-        if os.path.exists(dst) and not os.path.exists(dst + '.coop'):
-            sys.exit('%s exists and is not ours - refusing' % dst)
+        dst = os.path.join(addon, 'coop%02d.lvl' % n)
+        old = find(addon, 'coop%02d.lvl' % n)
+        mark = find(addon, 'coop%02d.lvl.coop' % n)
+        if old and not mark:
+            sys.exit('%s exists and is not ours - refusing' % old)
+        if old:                                      # ours: delete first, NTFS keeps an old name's case on overwrite
+            os.remove(old)
+            os.remove(mark)
         subprocess.run([sys.executable, os.path.join(HERE, 'coop-mission.py'), src, dst,
                         '--title', 'Co-op Scene %d' % n], check=True, stdout=subprocess.DEVNULL)
         open(dst + '.coop', 'w').write('installed by tools/coop-install.py\n')
-    print('ADDON: COOP01..COOP%02d.LVL built from %s ("Co-op Scene 1".."Co-op Scene %d"); COOP01 %s' %
-          (COUNT, SRC_SUB, COUNT, md5(os.path.join(addon, 'COOP01.LVL'))))
+    print('ADDON: coop01..coop%02d.lvl built from %s ("Co-op Scene 1".."Co-op Scene %d"); coop01 %s' %
+          (COUNT, SRC_SUB, COUNT, md5(os.path.join(addon, 'coop01.lvl'))))
     print('Start the game with I76_COOP_AI=1 I76_COOP_CHAIN=1 on every machine and host "Co-op Scene N".')
 
 

@@ -11,7 +11,8 @@ This script writes:
   common\\   the files every machine gets byte-identical: the daily driver's exe, shell, u32x.dll, STRLKUP.DLL proxy,
             I76.ZFS, missions, ADDON (stock valepre4.vcf de680a86), NVCL, ...; the repo's controls\\input.map;
             IPXWrapper 0.7.2 (ipxwrapper.dll, wsock32.dll, mswsock.dll); the co-op campaign (tools/coop-install.py:
-            M41..M57 + M01 "The Crater" = co-op T01).
+            ADDON\\coop01..coop17.lvl (lower case: the shells' .lvl test is case-sensitive), listed as their own arenas "Co-op Scene 1".."Co-op Scene 17"; the stock
+            arenas, The Crater included, stay stock).
   win\\      Windows-only: dgVoodoo DLLs + confs, launcher PLAY-i76.ps1 + presets, AutoHotkey layers (repo
             i76-remap.ahk), music, I76PLYR.DEF, SMACKW32.DLL, i7_sfrce.dll, ...; and PLAY-LAN.bat.
   MANIFEST.md + common.md5 / win.md5 / mac.md5 (md5 of every file; common.md5 is what each machine is checked
@@ -100,8 +101,9 @@ def main():
     with open(os.path.join(win, "PLAY-LAN.bat"), "w", newline="\r\n") as f:
         f.write("@echo off\n"
                 "REM Interstate '76 LAN / co-op (docs/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"
-                "REM PLAY.bat (preset best-wide), plus the co-op switches: The Crater = 2-player co-op campaign,\n"
-                "REM every other arena = normal melee. IPX through IPXWrapper (the three DLLs beside i76.exe).\n"
+                "REM PLAY.bat (preset best-wide), plus the co-op switches: the arenas \"Co-op Scene 1..17\" (after\n"
+                "REM the 15 stock ones) = 2-player co-op campaign, every stock arena = normal melee.\n"
+                "REM IPX through IPXWrapper (the three DLLs beside i76.exe).\n"
                 "set I76_COOP_AI=1\n"
                 "set I76_COOP_CHAIN=1\n"
                 "copy /y \"%~dp0dgVoodoo.wide.conf\" \"%~dp0dgVoodoo.conf\" >nul\n"

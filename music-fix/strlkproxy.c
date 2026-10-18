@@ -2745,6 +2745,12 @@ static void apply_coop_damage(void) {
  * 'AC' / 'AO', coop_ai_score_set.) */
 typedef int (__cdecl *dprecv_fn)(void *, void *, void *, int, void *, void *);
 typedef int (__cdecl *dpsend_fn)(void *, int, int, int, void *, int);
+/* ANet's dpSend writes 4 bytes PAST the payload it is given (the from / to ids, in place: 03 00 04 00 = id 3 to
+ * group 4, read from a host crash dump 2026-10-18). A send buffer on the stack with nothing after it lets that tail
+ * overwrite the next local; in coop_chain_at_end (coop_chain_send inlined) it was the /GS cookie, and every host chain
+ * reload (win or loss) ended in 0xC0000409 (LAN proxy 33211f11 too, n 5, COOP-LIST-ENTRIES-2026-10-18.md). Every
+ * buffer handed to dpSend keeps COOP_DP_SLACK spare bytes after the payload. */
+#define COOP_DP_SLACK 16
 static dprecv_fn real_dpReceive;
 static volatile LONG g_coop_ai_sent, g_coop_ai_applied, g_coop_ai_role, g_coop_ai_senderr, g_coop_ai_rx;
 static DWORD g_coop_ai_last;
@@ -3380,13 +3386,13 @@ static void coop_chain_crc(const char *cur, const char *next) {
 }
 static BYTE g_coop_am_seq;                                  /* host: number of the reload; joiner: last one applied */
 static void coop_chain_send(int kind, const char *name) {
-    BYTE pkt[20]; int i;
+    BYTE pkt[20 + COOP_DP_SLACK]; int i;
     memset(pkt, 0, sizeof(pkt));
     if (++g_coop_am_seq == 0) g_coop_am_seq = 1;
     *(WORD *)pkt = COOP_AM_PKT; pkt[2] = g_coop_am_seq; pkt[3] = (BYTE)kind; strncpy((char *)pkt + 4, name, 15);
     for (i = 0; i < 3; i++)
         if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
-                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, sizeof(pkt)) == 0) g_coop_chain_sent++;
+                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, 20) == 0) g_coop_chain_sent++;
 }
 static void __cdecl coop_chain_at_end(char *winmain_esp) {
     volatile int *state = (volatile int *)0x004c2164;
@@ -3580,7 +3586,7 @@ static int coop_label_index(BYTE *o) {
     for (i = 0; i < count; i++) if (*(BYTE **)(tab + i * 16 + 8) == o) return i;
     return -1;
 }
-static BYTE g_coop_cb_q[8][40];                             /* queued here, sent from the pump */
+static BYTE g_coop_cb_q[8][40 + COOP_DP_SLACK];                             /* queued here, sent from the pump */
 static int __cdecl coop_cb_play(char *file, BYTE *speaker, int prio) {
     /* Sending from here (inside the script / AI frame) crashed the host in the script dispatcher's epilogue
      * (0x4144d1, esi corrupt; 1 of 1 runs with it, 0 of 1 without); the line is queued and sent from the pump. */
@@ -3622,9 +3628,9 @@ static void __cdecl coop_obj_reveal(int *p) { if (p) coop_obj_queue(3, *p); ((vo
 static void coop_obj_flush(void) {
     LONG i, n = g_coop_obj_qn;
     for (i = 0; i < n; i++) {
-        BYTE pkt[8]; *(WORD *)pkt = COOP_AO_PKT; pkt[2] = 0; pkt[3] = (BYTE)g_coop_obj_q[i][0]; *(int *)(pkt + 4) = g_coop_obj_q[i][1];
+        BYTE pkt[8 + COOP_DP_SLACK]; *(WORD *)pkt = COOP_AO_PKT; pkt[2] = 0; pkt[3] = (BYTE)g_coop_obj_q[i][0]; *(int *)(pkt + 4) = g_coop_obj_q[i][1];
         if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
-                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, sizeof(pkt)) == 0) g_coop_obj_sent++;
+                                                ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, 8) == 0) g_coop_obj_sent++;
     }
     g_coop_obj_qn = 0;
 }
