@@ -66,3 +66,5 @@ the driver's own files: installed input.map 12a6357e, `_ahk\i76-remap.ahk` 62ba0
 lacks the `track_yaw_*` / `track_pitch_*` orbit blocks (401743a), and its ahk lacks the Y view cycle and
 `I76_AHK_RUMBLE` (a7d61c0, 9401aaf). Those are separate, unpromoted changes. Patched files and the twin-boot
 screenshot: lab `tools/controls-promo-18/`.
+
+Addendum 2026-10-18 01:55: the driver and golden now carry the full repo `controls/input.map` (md5 a66a37f7, orbit blocks included); `_ahk/i76-remap.ahk` stays the driver's own file with the ad0ebd0 one-character change (62ba0883). Rollback: `_rollback\18\`.
