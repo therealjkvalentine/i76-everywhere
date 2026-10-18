@@ -1138,8 +1138,12 @@ static void apply_simtick(void) {
             { 0x004020ff, 0x00442ba0, (void *)trails_wrap,       "missile trails (hardware)" },
             { 0x004605ee, 0x004250f0, (void *)radar_ping_wrap,   "radar ping" },
             { 0x004608f1, 0x004250f0, (void *)radar_ping_wrap,   "radar ping (2)" } };
-        int i;
-        for (i = 0; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) n += st_call_site(cs[i].site, cs[i].stock, cs[i].wrap, 0, cs[i].what);
+        int i, fstock = env_int("I76_SIM_TICK_FLAME_STOCK", 8, 0);   /* lab bisect: 1 = flamer update / dt / damage / hit explosion / mirror left stock (every display frame), 2 = the ageing too */
+        for (i = 0; i < (int)(sizeof(cs) / sizeof(cs[0])); i++) {
+            int fl = cs[i].stock == 0x00443fc0 || cs[i].site == 0x00443fca || cs[i].site == 0x004357c3 || cs[i].site == 0x0044471d;
+            if ((fstock >= 1 && fl) || (fstock >= 2 && cs[i].stock == 0x00443e90)) { mlog("  sim-tick: %s left stock (I76_SIM_TICK_FLAME_STOCK=%d, lab)", cs[i].what, fstock); continue; }
+            n += st_call_site(cs[i].site, cs[i].stock, cs[i].wrap, 0, cs[i].what);
+        }
     }
     if (g_st_cosmetic) {   /* display-rate cosmetics: per-call constants at the tick's per-second rate */
         static const BYTE cu_old[6] = { 0xD9, 0x05, 0xC4, 0xC4, 0x4B, 0x00 }, cv_old[6] = { 0xD9, 0x05, 0x00, 0xC5, 0x4B, 0x00 };

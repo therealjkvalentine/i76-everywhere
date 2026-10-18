@@ -1986,6 +1986,57 @@ static int __cdecl flame_hit_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD
         return r;
     }
 }
+/* ... and (2026-10-18 tick-fix 2) the narrow test call inside weapon_FlameHitTest (site 0x435691 -> 0x43d770, reached only
+ * when the tested point A is inside the record's bound sphere + 1 m): per world record that reaches it (up to 16), the
+ * record type (+0x14), its object's class (+0x6c), bound radius and world centre, narrow calls and narrow hits split by
+ * frame kind, the ray (A, d) as passed, d x sim_dt (the swept length the narrow test covers) and the clock at the call. */
+typedef struct { DWORD rec, obj, cls, type; float rad, c[3]; DWORD n[2], h[2]; double sweep[2], dmin; float sdt[2], A[3], d[3]; } fnp_t;
+static fnp_t g_fnp[16]; static int g_fnp_n; static DWORD g_fnp_over;
+static int __cdecl flame_narrow_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD a4, DWORD a5, DWORD rec, DWORD out, DWORD tp, DWORD pp, DWORD z, DWORD one) {
+    int r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0043d770)(a0, a1, a2, a3, a4, a5, rec, out, tp, pp, z, one);
+    int i, c = g_tick20 ? 1 : 0; fnp_t *e = 0; float A[3], d[3], ctr[4], sdt = *(volatile float *)0x004fe420; double q = 0.0;
+    memcpy(&A[0], &a0, 4); memcpy(&A[1], &a1, 4); memcpy(&A[2], &a2, 4); memcpy(&d[0], &a3, 4); memcpy(&d[1], &a4, 4); memcpy(&d[2], &a5, 4);
+    for (i = 0; i < g_fnp_n; i++) if (g_fnp[i].rec == rec) { e = &g_fnp[i]; break; }
+    if (!e) {
+        if (g_fnp_n >= 16) { g_fnp_over++; return r; }
+        e = &g_fnp[g_fnp_n++]; memset(e, 0, sizeof(*e)); e->rec = rec; e->dmin = 1e30;
+#ifdef _MSC_VER
+        __try {
+#endif
+            e->obj = *(DWORD *)(DWORD_PTR)rec; e->type = *(DWORD *)(DWORD_PTR)(rec + 0x14); e->rad = *(float *)(DWORD_PTR)(rec + 0x10);
+            if (e->obj) e->cls = *(DWORD *)(DWORD_PTR)(e->obj + 0x6c);
+#ifdef _MSC_VER
+        } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+    }
+#ifdef _MSC_VER
+    __try {
+#endif
+        ((float *(__cdecl *)(float *, DWORD))0x00457650)(ctr, rec);
+        e->c[0] = ctr[0]; e->c[1] = ctr[1]; e->c[2] = ctr[2];
+        for (i = 0; i < 3; i++) q += (double)(A[i] - ctr[i]) * (A[i] - ctr[i]);
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+    e->n[c]++; if (r) e->h[c]++;
+    e->sweep[c] += sqrt((double)d[0] * d[0] + (double)d[1] * d[1] + (double)d[2] * d[2]) * sdt;
+    e->sdt[c] = sdt;
+    if (q < e->dmin) { e->dmin = q; memcpy(e->A, A, sizeof(A)); memcpy(e->d, d, sizeof(d)); }
+    return r;
+}
+static void flame_narrow_log(void) {
+    int i;
+    for (i = 0; i < g_fnp_n; i++) {
+        fnp_t *e = &g_fnp[i];
+        mlog("  flame-narrow: rec %08lx obj %08lx class %lu type %lu radius %.2f centre %.2f,%.2f,%.2f; narrow calls (other / grid-or-tick) %lu / %lu, hits %lu / %lu; "
+             "mean |d| x sim_dt %.3f / %.3f m, last sim_dt %.4f / %.4f; closest A %.2f m: A %.2f,%.2f,%.2f d %.2f,%.2f,%.2f",
+             (unsigned long)e->rec, (unsigned long)e->obj, (unsigned long)e->cls, (unsigned long)e->type, e->rad, e->c[0], e->c[1], e->c[2],
+             (unsigned long)e->n[0], (unsigned long)e->n[1], (unsigned long)e->h[0], (unsigned long)e->h[1],
+             e->n[0] ? e->sweep[0] / e->n[0] : 0.0, e->n[1] ? e->sweep[1] / e->n[1] : 0.0, e->sdt[0], e->sdt[1], sqrt(e->dmin),
+             e->A[0], e->A[1], e->A[2], e->d[0], e->d[1], e->d[2]);
+    }
+    if (g_fnp_over) mlog("  flame-narrow: %lu calls on records past the 16 kept", (unsigned long)g_fnp_over);
+}
 static void flame_census_frame(void) {                      /* frame hook: stream lengths + the log line */
     if (!g_flc_on) return;
 #ifdef _MSC_VER
@@ -2017,6 +2068,7 @@ static void flame_census_frame(void) {                      /* frame hook: strea
                  g_fhp_snap[3], g_fhp_snap[4], g_fhp_snap[5], g_fhp_snap[6], g_fhp_snap[7],
                  (unsigned long)g_fhp_c[0], (unsigned long)g_fhp_c[1], (unsigned long)g_fhp_n[0], (unsigned long)g_fhp_n[1],
                  (unsigned long)g_fhp_h[0], (unsigned long)g_fhp_h[1], g_fhp_c[0] ? g_fhp_seg[0] / g_fhp_c[0] : 0.0, g_fhp_c[1] ? g_fhp_seg[1] / g_fhp_c[1] : 0.0);
+            {   static DWORD nl; if (g_fhp_on && ++nl % 5 == 0) flame_narrow_log(); }
         }
     }
 }
@@ -8609,6 +8661,13 @@ static void apply_flame_census(void) {
             if (0x004444a0 + (DWORD)r2 == 0x004354c0) {
                 memcpy(o, q, 5); r2 = (LONG)((DWORD_PTR)flame_hit_probe - 0x004444a0); memcpy(w2 + 1, &r2, 4);
                 g_fhp_on = patch_bytes(0x0044449b, o, w2, 5, "flamer hit test call (probe)");
+                {   BYTE *q2 = (BYTE *)0x00435691, o2[5], w3[5] = { 0xE8 }; LONG r3;   /* the narrow test inside the hit test */
+                    memcpy(&r3, q2 + 1, 4);
+                    if (q2[0] == 0xE8 && 0x00435696 + (DWORD)r3 == 0x0043d770) {
+                        memcpy(o2, q2, 5); r3 = (LONG)((DWORD_PTR)flame_narrow_probe - 0x00435696); memcpy(w3 + 1, &r3, 4);
+                        mlog("  flame-census: narrow-test probe at 0x435691: %s", patch_bytes(0x00435691, o2, w3, 5, "flamer narrow test call (probe)") ? "on" : "NOT patched");
+                    }
+                }
                 mlog("  flame-census: probe at %.1f,%.1f,%.1f: %s", g_fhp_at[0], g_fhp_at[1], g_fhp_at[2], g_fhp_on ? "on" : "NOT patched");
             }
         }
