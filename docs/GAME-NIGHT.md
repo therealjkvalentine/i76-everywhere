@@ -68,6 +68,11 @@ On a Mac keyboard the F-keys (camera views F1, F3...) need `fn`.
 
 ## Honest status
 
+- **2026-10-18 (records/LAN-MATRIX-2026-10-18.md):** PC hosts / Andrew's Mac joins, Andrew hosts / PC joins and
+  Andrew hosts / Steam Deck joins all worked (n 1 each), both cars seen and driven on both screens. Michael's Mac and
+  James's laptop were locked all night and could not be tested; 3+ players still untested. Michael must click
+  **Allow** on the "wine ... accept incoming network connections" box the first time.
+
 - **Two players** (one PC + one Mac) were measured over IPX on 2026-10-06 with older builds. With this pack a Mac
   hosting reached its arena, but the PC-Mac join itself is still the owner's 2-minute test (the record, section 5).
   **Three or four players have not been tested.**

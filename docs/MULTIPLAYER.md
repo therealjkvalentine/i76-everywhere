@@ -46,6 +46,7 @@ with the existing community, use Nitro Pack with the bz911 lobby and the Discord
 | IPX between two game copies on one PC, IPXWrapper 0.7.2 | **works** (2026-10-05, n = 1): host BROADCAST GAME went into The Crater, the joiner listed "THE CRATER (1/4)", JOIN GAME, and each copy then held both cars at the same coordinates (within 0.1 m). Stock car data (Jade's Car `valepre4.vcf` de680a86) |
 | IPX between two machines on 192.168.1.0/24 | **works** (2026-10-06, n = 1): Windows 11 PC host, Mac (Wine) joiner |
 | The daily driver's cars pass the anti-cheat check | its `valepre4.vcf` is byte-identical to the file that passed the host and joiner checks live in row 1; the other 67 variants: static read (MULTIPLAYER-CAR-CHECK.md section 0) |
+| LAN pack (2026-10-17), measured 2026-10-18 | PC host + Andrew's Mac join **works** (n 1); Andrew host + PC join works (n 1, plus n 2 earlier that night); Andrew host + Deck join works (n 1). Michael's Mac, the laptop, 3+ players: not run (locked screens, Deck suspended). [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
 | Mac (Wine) running IPXWrapper | **works** (2026-10-06, n = 1): the Mac joined a Windows-hosted IPX game, see the top of this page and section 6 |
 
 ## 1. Why IPX, and what the other buttons do
@@ -159,3 +160,58 @@ the proxy's `I76_JOY_MAP` (each copy binds `joystick1`; the switch routes it to 
 Joystick slots, measured 2026-10-05 with a synthetic pad (lab doc section 9): the engine opens `joystick1` and
 `joystick2` normally, but opens every higher slot with winmm id 1's caps and first poll, so `joystick3`+ work only
 while a device sits at winmm id 1. `I76_JOY_MAP=0=<id>` with `joystick1` in input.map avoids that for any pad id.
+
+## 8. Family game night (stable setup, 2026-10-18)
+
+Measured results behind this section: [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md). One-page
+sheet for the players: [GAME-NIGHT.md](GAME-NIGHT.md). Re-run the matrix from the PC: `tools/lan-test/README.md`.
+
+### Which app on which machine (never a new copy)
+
+| machine | open this | game folder (updated in place) |
+|---|---|---|
+| Michael's Mac | Desktop: **Interstate 76 LAN** (a link to `~/Games/Interstate76-MP/Interstate 76.app`) | inside that app |
+| Andrew's Mac | Desktop: **Interstate 76 LAN** (same layout) | inside that app |
+| James's laptop | `~/Applications/Sikarugir/I76 MP GATE.app` until the pack is swapped into his own `Interstate 76.app` (rollout record section 5) | inside that app |
+| Steam Deck | Steam (Game Mode) > **Interstate 76** (non-Steam shortcut, launches `~/Games/Interstate76/i76-deck-launch.sh`) | `~/Games/Interstate76/game` |
+| Windows PC | `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76\PLAY-LAN.bat` (not the daily driver) | that folder |
+
+Keep **one app bundle per Mac** and update only its game folder (`tools/mp-mac-install.sh update` touches
+`drive_c/GOG Games/Interstate 76` and `user.reg`, never `Contents/SharedSupport/wine`). macOS ties the firewall and
+microphone answers to the app's `wine` binary (ad-hoc signed, `org.winehq.wine`); a new copy or a rebuilt wine asks
+again, the same bundle never does.
+
+### One-time approvals (a person at each machine, once)
+
+1. **Michael's Mac (firewall on):** the first time the game opens its network socket (HOST > IPX or JOIN > IPX),
+   macOS asks *Do you want the application "wine" to accept incoming network connections?* Click **Allow**. Checked
+   2026-10-18: `socketfilterfw --listapps` has no wine entry yet, so this box is still to come. It cannot be clicked
+   remotely (no sudo, no Accessibility), so Michael (or James) clicks it on game night, before the first join.
+   Andrew's Mac and James's laptop have the firewall off: no box.
+2. **Microphone (each Mac, first real-audio launch):** *"wine" would like to access the microphone*. Either answer
+   is fine; answer it, because the game waits behind it. Andrew's Mac reached the main menu in all 4 launches on
+   2026-10-18 (no box in the way); Michael's has not been launched with the screen unlocked yet.
+3. **Windows PC:** the Windows Defender Firewall box for the LAN copy's `i76.exe` is already answered (inbound Allow
+   rules exist, Private profile).
+4. **Deck:** nothing (Linux, no firewall prompt).
+
+### Order on the night
+
+1. Everyone on the home Wi-Fi / wired network (not guest, no VPN). Macs **unlocked and awake**: plug them in.
+2. One host (any machine; a Mac host and a PC host are both measured): MELEE > MULTI MELEE > HOST > IPX, pick an
+   arena (**not The Crater** for melee: The Crater is the 2-player co-op campaign), RENAME the game to something
+   recognisable, **BROADCAST GAME**. The host drives straight into the arena.
+3. The others: MELEE > MULTI MELEE > JOIN > IPX, click the game's row, **JOIN GAME**. Joining while the host drives
+   is fine.
+4. How to tell it worked: each screen shows the other cars (radar / view); a joiner that stays on the ENTRY ROSTER
+   after JOIN GAME did not join.
+
+### Known failures and their fix
+
+| symptom | cause | fix |
+|---|---|---|
+| list says "No games found" | host not in the arena yet / firewall box waiting / different network | host first; answer the box; same network |
+| the host quits and the game carries on | ANet hands the session to another player (seen 2026-10-18: Andrew left, the Deck became host 6) | normal; the new host keeps it alive |
+| a Mac joiner sits on ENTRY ROSTER after JOIN GAME | seen only with remote automation (2026-10-17/18): the forms act where the **real** pointer is, and the SSH probe moved only Wine's. With the pointer on the button the Mac joined (PC host, n 1). A player clicking with the mouse is not affected | click JOIN GAME again with the mouse |
+| Deck drops out mid-game | Game Mode suspends after ~10 min without touching the Deck | touch it now and then, or plug it in and raise the suspend timeout in Steam settings |
+| "vehicle rejected" | that machine's car file is not stock (the Deck's own `ADDON\valepre4.vcf` is 4ed297ca, not de680a86) | pick another car, or use the LAN pack's stock files |
