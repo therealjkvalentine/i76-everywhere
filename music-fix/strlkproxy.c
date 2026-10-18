@@ -3320,8 +3320,10 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
 /* CO-OP CAMPAIGN CHAIN (I76_COOP_CHAIN=1 with I76_COOP_AI=1, both machines). A network game tears its in-game network
  * state down at mission end and goes back to the shell, which owns the connection. The Replay path (game state 7)
  * reloads WITHOUT the shell, and the reload runs net setup 0x452d40 again with the same session handle, so a mission
- * can be swapped in place. The co-op missions are installed as m41..m57 (= T01..T17, tools/coop-mission.py) and
- * m01 ("The Crater") is T01 as the entry point. At `call 0x461810` 0x404110 (first call after the mission loop,
+ * can be swapped in place. The co-op missions are installed as their own multiplayer arenas, ADDON\coop01.lvl ..
+ * coop17.lvl (= T01..T17, tools/coop-install.py; the shell lists every addon\*.lvl after the 15 stock arenas, titled
+ * "Co-op Scene N", docs/records/COOP-LIST-ENTRIES-2026-10-18.md). No stock arena is replaced, and the chain only acts
+ * in a coopNN mission (a melee ends as the game decides). At `call 0x461810` 0x404110 (first call after the mission loop,
  * WinMain's stack balanced, before the outcome is read at 0x404123):
  *   - host, game state 1 (won): the next mission's name goes to the setup block WinMain copies from on every load
  *     ([esp+0x2b9] in WinMain = stub esp + 4 + 0x2b9; copied to 0x5049f0 at 0x403419) and to 0x5049f0, state 7, and an
@@ -3339,13 +3341,42 @@ static void __cdecl coop_netflag(int v) {                   /* replaces `call 0x
     if (g_coop_reload_pending) { v = 1; g_coop_reload_pending = 0; mlog("  coop-chain: teardown keeps the network flag for the reload"); }
     ((void (__cdecl *)(int))0x00452d30)(v);
 }
-static int coop_chain_next(const char *cur, char *out) {    /* m01 -> m42, m41..m56 -> +1, m57 -> none */
+static int coop_chain_num(const char *cur) {                /* "coopNN.lvl" (any case) -> NN 1..17, else 0 */
     int n;
-    if ((cur[0] | 0x20) != 'm' || cur[1] < '0' || cur[1] > '9' || cur[2] < '0' || cur[2] > '9') return 0;
-    n = (cur[1] - '0') * 10 + (cur[2] - '0');
-    if (n == 1) n = 42; else if (n >= 41 && n < 57) n++; else return 0;
-    sprintf(out, "m%02d.msn", n);
+    if (_strnicmp(cur, "coop", 4) != 0 || cur[4] < '0' || cur[4] > '9' || cur[5] < '0' || cur[5] > '9') return 0;
+    if (_stricmp(cur + 6, ".lvl") != 0) return 0;
+    n = (cur[4] - '0') * 10 + (cur[5] - '0');
+    return n >= 1 && n <= 17 ? n : 0;
+}
+static int coop_chain_next(const char *cur, char *out) {    /* coop01..coop16 -> +1, coop17 -> none */
+    int n = coop_chain_num(cur);
+    if (!n || n >= 17) return 0;
+    sprintf(out, "coop%02d.lvl", n + 1);
     return 1;
+}
+/* The join reply ('JO', net_SendJoinAccept 0x455fa0) carries the mission name (0x5049f0, at +0x32) and [0x504a04] (at
+ * +0x44), which the shell set ONCE at the network start (0x40253e, from its setup +0x6c) to the CRC-32 of addon\<name>
+ * when the arena is an addon .lvl (Crc32_File 0x10022bc0 in i76shell, poly 0x04C11DB7, MSB first, init/xorout ~0).
+ * A joiner's shell (0x1002fcd8) compares it with the CRC of its own addon\<name> and refuses the join on a mismatch.
+ * After a chain reload the name changes, so the host puts the new file's CRC there too, or a late joiner would be
+ * refused with "Your mission file coop02.lvl does not match the host's". Only when the slot holds the old file's CRC. */
+static int coop_addon_crc(const char *name, DWORD *out) {
+    static DWORD tab[256]; static int built; char path[64]; BYTE buf[4096]; DWORD got, c = 0xffffffff; HANDLE h;
+    if (!built) { DWORD i, k, v; for (i = 0; i < 256; i++) { v = i << 24; for (k = 0; k < 8; k++) v = (v & 0x80000000) ? (v << 1) ^ 0x04c11db7 : v << 1; tab[i] = v; } built = 1; }
+    _snprintf(path, sizeof(path) - 1, "addon\\%s", name); path[sizeof(path) - 1] = 0;
+    h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    while (ReadFile(h, buf, sizeof(buf), &got, NULL) && got) { DWORD i; for (i = 0; i < got; i++) c = (c << 8) ^ tab[(c >> 24) ^ buf[i]]; }
+    CloseHandle(h);
+    *out = ~c;
+    return 1;
+}
+static void coop_chain_crc(const char *cur, const char *next) {
+    volatile DWORD *slot = (volatile DWORD *)0x00504a04; DWORD a, b;
+    if (!coop_addon_crc(cur, &a) || !coop_addon_crc(next, &b)) { mlog("  coop-chain: join CRC not updated (addon\\%s or addon\\%s unreadable)", cur, next); return; }
+    if (*slot != a) { mlog("  coop-chain: join CRC slot %08lx is not addon\\%s's %08lx - left alone", (unsigned long)*slot, cur, (unsigned long)a); return; }
+    *slot = b;
+    mlog("  coop-chain: join CRC %08lx (%s) -> %08lx (%s)", (unsigned long)a, cur, (unsigned long)b, next);
 }
 static BYTE g_coop_am_seq;                                  /* host: number of the reload; joiner: last one applied */
 static void coop_chain_send(int kind, const char *name) {
@@ -3361,12 +3392,13 @@ static void __cdecl coop_chain_at_end(char *winmain_esp) {
     volatile int *state = (volatile int *)0x004c2164;
     char *setup_name = winmain_esp + 0x2b9, *cur = (char *)0x005049f0;
     int role = coop_ai_role();
-    if (role == 1 && (*state == 1 || *state == 0 || *state == 0xb)) {
+    if (role == 1 && (*state == 1 || *state == 0 || *state == 0xb) && coop_chain_num(cur)) {   /* co-op entries only */
         char next[16];
         int won = *state == 1;
         if (won && !coop_chain_next(cur, next)) { mlog("  coop-chain: '%s' won and it is the last mission - normal end", cur); return; }
         if (!won) { strncpy(next, cur, 15); next[15] = 0; }
         coop_chain_send(won, next);
+        if (won) coop_chain_crc(cur, next);
         strncpy(g_coop_next, next, 15); g_coop_next[15] = 0;
         *state = 7;
         mlog("  coop-chain: host %s '%s' -> loading '%s' in the same session (AM sent x%ld)", won ? "won" : "lost", cur, next, g_coop_chain_sent);
