@@ -225,13 +225,20 @@ Gold `g166-mloop-rep1` (1,304 frames, accel:-60..park), lab vs lab (`rpl_aa`):
 
 | proxy switches | pair | bit-identical frames | first difference |
 |---|---|---|---|
-| as built 2026-10-16 (3 s wall-clock wait before the placement) | 173353 / 173458 | 63 of 1,304 | frame 709, x y z, 1e-9 m (3 frames into the throttle) |
+| as built 2026-10-16 (3 s wall-clock wait before the placement) | 173353 / 173458 | 63 of 1,304 | frame 709, x y z, 1e-9 m (the 2nd frame with throttle applied; 3 frames after the accel phase starts at 706) |
 | `I76_REPLAY_PREROLL=150` | 173805 / 174548 | 63 of 1,304 | frame 709 (sim_time now equal too) |
 | `I76_REPLAY_PREROLL=150` + `I76_REPLAY_SRAND=1` | 174759 / 175845 / 192448 | **1,304 of 1,304** (3 runs, all pairs) | none |
 
 - The exe seeds MSVCRT `rand()` with `time(NULL)` at mission start (i76-map functions/004a9020, 004ad260; 4 srand calls
   before the placement). The melee car's own motion draws from `rand()` once it moves: same inputs and dt bits, a
   different seed, and positions split at the first moving frames.
+  - *verify:* that the car's motion reads `rand()` is an inference from the A/A table; the census that would show it
+    (7.4 a) has not run. The 173805 / 174548 row compares a pair, not every run: on its own, 173805 (pre-roll only, no
+    `srand fixed` line in the twin's mciproxy.log) is **1,304 of 1,304 identical to the srand-1 runs**. The four runs
+    without the srand switch (173353, 173458, 173805, 174548) give four different trajectories, and one of them is the
+    seed-1 trajectory. A clock seed would almost never reproduce seed 1's whole stream, so the car's path depends on
+    only part of what the seed sets (how, unknown), and a run without srand can land on the seed-1 path by chance (1 of 4
+    here). That makes 3 of 3 under srand 1 good evidence, not proof; control 7.4 (b) still matters.
   - The T05 A/A pairs were identical because the canyon run did not draw from `rand()` before the destruction. The
     after-destruction divergence there (section 2) is most likely the same seed.
 - **New proxy switches** (i76-everywhere d072513, `music-fix/replay.c`, opt-in, lab only):
@@ -253,7 +260,7 @@ Gold = the Gold CD exe's traces (20261015-191227 g166-mloop, reps 1-4). Retail s
 physics (20261016-232325 r166sim-mloop, reps 1-4, replay files `rpl\rsim-repK.rpl`, made tonight). The 2026-10-15
 retail loops (arcade) were not replayed.
 
-| replay | sim_dt / input bit mismatches | throttle on (frame) | \|dspeed\| > 0.01 / 0.1 / 1 m/s (frames after throttle on) | horizontal d > 0.1 / 1 / 10 m (frame) | speed at end of accel, trace / lab (m/s) |
+| replay | sim_dt / input bit mismatches | accel phase starts (frame) | \|dspeed\| > 0.01 / 0.1 / 1 m/s (frames after the accel phase starts) | horizontal d > 0.1 / 1 / 10 m (frame) | speed at end of accel, trace / lab (m/s) |
 |---|---|---|---|---|---|
 | Gold rep1 | 0 / 0 | 706 | +38 / +113 / +173 | 802 / 914 / 1143 | 54.75 / 55.45 |
 | Gold rep2 | 0 / 0 | 946 | +19 / +120 / +241 | 1050 / 1196 / 1259 | 52.02 / 55.52 |
@@ -267,7 +274,10 @@ retail loops (arcade) were not replayed.
 **How to read the table:**
 
 - **Divergence is late in the sense that matters.** For the first 19-47 throttle frames the lab car's speed matches
-  the emulator's to within 0.01 m/s. The divergence starts at trace speed 5.3-5.6 m/s (n 4) or 11.4-12.1 m/s (n 4).
+  the emulator's to within 0.01 m/s. The divergence starts at trace speed 5.3-5.6 m/s (n 3) or 11.4-12.1 m/s (n 5).
+  - *verify:* the "throttle frames" here and in the table count from the start of the accel phase. The first frame
+    with throttle applied (lab log `throttle` > 0) is 2-6 frames later: 708, 948, 969, 998, 1131, 1148, 1155, 1176. Counted
+    from there, the 0.01 m/s threshold falls 17-43 frames in.
   - Over the first 30 throttle frames the largest gap is 0.004-0.018 m/s (n 8).
   - At frame 708 (Gold rep1, first frame with throttle) the gap is 3e-10 m/s; at 709 it is 1e-6.
 - **rpl_diff's "first |dpos| > 0.01 m" misleads for melee.** In Gold rep1 it fires at 708, but that is vertical:
