@@ -25,9 +25,11 @@ Everyone must be on the **home network** (same Wi-Fi or wired). Tailscale does n
 **MELEE > MULTI MELEE > HOST > IPX.** Pick your car and the arena, then **BROADCAST GAME**. You go straight into
 the arena (there is no lobby). The others can join while you drive.
 
-- **The Crater = the co-op campaign** (mission 1 of the story, then the next mission on a win; retry on a loss).
-  Two players only.
-- **Every other arena = a normal melee.**
+- **Co-op Scene 1 .. Co-op Scene 17** (scroll the arena list down, after A Lot of Asphalt) = the co-op campaign:
+  pick the scene to start from, then the next one loads on a win, the same one on a loss. Two players only.
+- **The 15 stock arenas (The Crater too) = normal melee.**
+- Pick a co-op scene and the GAME NAME may go blank or show another name: RENAME it.
+- A joiner who gets *"You don't have mission coop01.lvl!"* has an old copy of the pack: update that machine.
 - Leave MAX SCORE off, and leave the weapon restrictions at their defaults.
 
 ## Join (everyone else)

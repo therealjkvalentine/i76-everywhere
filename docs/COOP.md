@@ -10,8 +10,9 @@ On **every** machine (each needs the same game data: stock GOG files, stock car)
 
 1. IPX for LAN play: IPXWrapper, [MULTIPLAYER.md](MULTIPLAYER.md) sections 2-6.
 2. With the game closed: `python3 tools/coop-install.py "<game folder>"`. It builds the 17 co-op missions from your own
-   campaign files and makes the arena "The Crater" start the campaign (the original is kept;
-   `--remove` puts it back).
+   campaign files and installs them as their own multiplayer arenas, `ADDON\coop01.lvl .. coop17.lvl`, listed as
+   "Co-op Scene 1" .. "Co-op Scene 17" after the stock arenas (`--remove` takes them out; the older layout that
+   replaced The Crater is undone by both). Since 2026-10-18, records/COOP-LIST-ENTRIES-2026-10-18.md.
 3. Start the game with these environment switches (Windows: `PLAY-i76.ps1` / a .bat `set`; Mac: the wrapper's
    `HKCU\Environment`, as for the other `I76_*` switches):
 
@@ -21,7 +22,8 @@ On **every** machine (each needs the same game data: stock GOG files, stock car)
    | `I76_COOP_CHAIN=1` | won -> both go to the next mission; lost -> both retry; the host plays as the story's hero |
    | `I76_COOP_DAMAGE=0.5` *(optional)* | difficulty for two: each player's weapon damage x 0.5 (0.6 = a bit stronger) |
 
-Then the **host**: MELEE > MULTI MELEE > HOST > IPX, pick **The Crater**, BROADCAST GAME. The **buddy**: MELEE > MULTI
+Then the **host**: MELEE > MULTI MELEE > HOST > IPX, pick **Co-op Scene 1** (or the scene to resume from), RENAME
+the game, BROADCAST GAME. The **buddy**: MELEE > MULTI
 MELEE > JOIN > IPX, select the game, JOIN GAME. Joining a mission already in progress works (measured: joined ~50 s
 in); the buddy gets the objectives' current state on arrival, but radio lines spoken before it joined are not replayed. The host drives the story's car; the buddy drives the car picked in the
 multiplayer menu, starting beside the host.
@@ -107,7 +109,8 @@ All in `music-fix/strlkproxy.c`, sections "CO-OP DAMAGE FACTOR", "CO-OP SHARED E
   auto-respawn through 0x451570.
 - both: the teardown's network-flag clear (0x404662) passes 1 for a chain reload, so the reload re-initialises the
   network from the open session (0x452d40).
-- tools: `tools/coop-mission.py` (one mission), `tools/coop-install.py` (all 17 + The Crater, reversible).
+- tools: `tools/coop-mission.py` (one mission, `--title`), `tools/coop-install.py` (all 17 as ADDON arenas,
+  reversible). The chain keys on `coopNN.lvl` and leaves every other network mission alone.
 - diagnostics: `I76_FPS_LOG=5` adds a `coop-ai:` line every 5 s (role, packets, applied, retargets, chain, radio, the
   first two mission cars and the local armour); `I76_COOP_AI_DIAG=1` counts AI behaviours per call site;
   `I76_COOP_CB=0` turns radio forwarding off; `I76_COOP_HOSTMODEL=0` keeps the buddy's model for the host's car;
