@@ -58,7 +58,7 @@ On a Mac keyboard the F-keys (camera views F1, F3...) need `fn`.
 
 1. **The host must already be in its arena.** Join after the host has pressed BROADCAST GAME.
 2. **Same network.** All machines on the home Wi-Fi or wired network, not a guest network, no VPN.
-3. **A permission box is waiting.** The first time, a Mac may ask whether **"wine" may accept incoming network
+3. **A permission box is waiting.** The first time, a Mac may ask whether **"wineserver" (or "wine") may accept incoming network
    connections**: click **Allow** (Michael's Mac has the firewall on, so it will ask). The first launch may also ask
    about the **microphone**: either answer is fine, but answer it, because the game waits. On the PC, the Windows
    Firewall box can open *behind* the game: Alt-Tab, tick Private networks, Allow.
@@ -70,8 +70,8 @@ On a Mac keyboard the F-keys (camera views F1, F3...) need `fn`.
 
 - **2026-10-18 (records/LAN-MATRIX-2026-10-18.md):** PC hosts / Andrew's Mac joins, Andrew hosts / PC joins and
   Andrew hosts / Steam Deck joins all worked (n 1 each), both cars seen and driven on both screens. Michael's Mac and
-  James's laptop were locked all night and could not be tested; 3+ players still untested. Michael must click
-  **Allow** on the "wine ... accept incoming network connections" box the first time.
+  James's laptop were locked during every test window and are untested. 3 players (PC + Deck + Andrew) worked.
+  Michael's firewall box was answered (Allow) on 2026-10-18.
 
 - **Two players** (one PC + one Mac) were measured over IPX on 2026-10-06 with older builds. With this pack a Mac
   hosting reached its arena, but the PC-Mac join itself is still the owner's 2-minute test (the record, section 5).

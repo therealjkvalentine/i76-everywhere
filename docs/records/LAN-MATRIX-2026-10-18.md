@@ -12,26 +12,28 @@ Rows host, columns joiner. PASS = joined, every car in every table, each machine
 
 | host \ joiner | PC | Andrew's Mac | Michael's Mac | laptop | Deck |
 |---|---|---|---|---|---|
-| **PC** | - | **PASS n 2** (cells 2, 6) | blocked: firewall box not answered | blocked: game window not frontmost | **PASS n 1** (cell 6) |
+| **PC** | - | **PASS n 2** (cells 2, 6) | not run: screen locked (firewall answered 09:25) | not run: laptop locked / game not frontmost | **PASS n 1** (cell 6) |
 | **Andrew's Mac** | **PASS n 1** tonight (cell 3; n 2 more earlier in the night) | - | blocked (firewall) | blocked (front) | **PASS n 1** (cell 1) |
-| **Michael's Mac** | blocked: its IPX start fails until the firewall box is answered | blocked | - | blocked | blocked |
+| **Michael's Mac** | not run: screen locked (IPX failed before the 09:25 Allow) | blocked | - | blocked | blocked |
 | **laptop** | blocked: no click reaches the game (cell 7) | blocked | blocked | - | blocked |
 | **Deck** | not run | **FAIL n 1** in The Crater (cell 5: mission files differ); melee not run | blocked | blocked | - |
 
 - **3 players: PASS n 1** (cell 6: PC host, Deck and Andrew's Mac join, all three drove, all three tables agree).
 - **5 players: not run** - Michael's Mac and the laptop could not join (below).
-- **Clicks the owner still has to do:**
-  1. **Michael's Mac:** the box *Do you want the application "wine" to accept incoming network connections?* is on his
-     screen now (UserNotificationCenter window, 260x282 at 626,189, up since 07:15). Click **Allow**. Until then the
-     game's IPX start fails (Wine "Error" box; IPXWrapper log "Router thread didn't exit"). It cannot be pressed
-     remotely: osascript / System Events needs Accessibility for sshd and only hung (killed after 12 s; a second box
-     appeared meanwhile and was gone by 07:25 - if a box asks to let "sshd-keygen-wrapper" control "System Events",
-     click **Don't Allow**). No microphone box appeared in his launch (07:15, window list checked).
-  2. **James's laptop:** Terminal is the front app, and macOS 26 refuses to bring wine forward from SSH
-     (`NSRunningApplication.activate` returned true, the front app stayed Terminal; a restart via `open` the same).
-     While wine is not frontmost the game's pointer stays frozen (mouse object 2,240 whatever the pointer does), so no
-     click lands. Click once into the I76 MP GATE window, then the laptop cells can run.
-- Crashes: none (n 7 sessions). Host handover: section 4.
+- **Third attempt, 09:15-10:10: no new cells could run.** Both Macs sat at the lock screen the whole time
+  (`CGSSessionScreenIsLocked` = Yes, front app loginwindow, polled every 3 s for 45 min by `tools/lan-test/wait-unlock.sh`).
+  The laptop's own log: display on 09:12:59, off 09:14:30, on 09:21:23, off 09:21:44; HID idle 31 min at 09:45. So no
+  screenshot exists: `screencapture -x` over SSH answered "could not create image from display" (locked), and the probe's
+  deskshot is black on these Macs. Michael's Mac was unlocked once (09:17, front app Finder) and locked again before the
+  next check. On a locked Mac no click reaches the game (section 4), so activation tricks were not tried again.
+- **Michael's firewall box is answered:** at 09:25 `socketfilterfw --listapps` lists
+  `.../Interstate 76.app/Contents/SharedSupport/wine/bin/wineserver` - **Allow incoming connections**, and the box is
+  gone. (The box names **wineserver**, not wine.) His IPX start should work now; not yet measured.
+- **Still needed from the owner:** Michael's Mac and the laptop **unlocked and left awake** while the cells run (about
+  15 minutes; the test starts `caffeinate -d -i -u` so they do not lock again by themselves, but a manual lock or a
+  closed lid stops it). On the laptop also click once into the I76 MP GATE window if Terminal is in front (cell 7).
+- Crashes: none (n 7 sessions). Not run, still: laptop host -> Michael / Andrew / Deck, Michael host -> laptop, PC host ->
+  laptop / Michael, 5 players. Host handover: section 4.
 
 ## 1. Builds on each machine (md5, read 2026-10-18 00:40-01:05)
 

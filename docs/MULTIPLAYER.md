@@ -46,7 +46,7 @@ with the existing community, use Nitro Pack with the bz911 lobby and the Discord
 | IPX between two game copies on one PC, IPXWrapper 0.7.2 | **works** (2026-10-05, n = 1): host BROADCAST GAME went into The Crater, the joiner listed "THE CRATER (1/4)", JOIN GAME, and each copy then held both cars at the same coordinates (within 0.1 m). Stock car data (Jade's Car `valepre4.vcf` de680a86) |
 | IPX between two machines on 192.168.1.0/24 | **works** (2026-10-06, n = 1): Windows 11 PC host, Mac (Wine) joiner |
 | The daily driver's cars pass the anti-cheat check | its `valepre4.vcf` is byte-identical to the file that passed the host and joiner checks live in row 1; the other 67 variants: static read (MULTIPLAYER-CAR-CHECK.md section 0) |
-| LAN pack (2026-10-17), measured 2026-10-18 | PC host + Andrew's Mac join **works** (n 2); Andrew host + PC join (n 1, plus n 2 earlier that night); Andrew host + Deck join (n 1); PC host + Deck join (n 1); **3 players** PC + Deck + Andrew (n 1). Deck host in The Crater fails (mission files differ). Michael's Mac waits for its firewall click, the laptop for a click into the game window; 5 players not run. [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
+| LAN pack (2026-10-17), measured 2026-10-18 | PC host + Andrew's Mac join **works** (n 2); Andrew host + PC join (n 1, plus n 2 earlier that night); Andrew host + Deck join (n 1); PC host + Deck join (n 1); **3 players** PC + Deck + Andrew (n 1). Deck host in The Crater fails (mission files differ). Michael's firewall box answered (09:25), his cells and the laptop's still unrun (both screens locked during the tests); 5 players not run. [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
 | Mac (Wine) running IPXWrapper | **works** (2026-10-06, n = 1): the Mac joined a Windows-hosted IPX game, see the top of this page and section 6 |
 
 ## 1. Why IPX, and what the other buttons do
@@ -184,12 +184,13 @@ again, the same bundle never does.
 ### One-time approvals (a person at each machine, once)
 
 1. **Michael's Mac (firewall on):** the first time the game opens its network socket (HOST > IPX or JOIN > IPX),
-   macOS asks *Do you want the application "wine" to accept incoming network connections?* Click **Allow**. Checked
+   macOS asks *Do you want the application "wineserver" to accept incoming network connections?* (the record of
+   2026-10-18: the allowed entry is `.../Interstate 76.app/Contents/SharedSupport/wine/bin/wineserver`). Click **Allow**. Checked
    2026-10-18: `socketfilterfw --listapps` has no wine entry yet, so this box is still to come. It cannot be clicked
    remotely (no sudo, no Accessibility), so Michael (or James) clicks it on game night, before the first join.
    Andrew's Mac and James's laptop have the firewall off: no box.
-   **2026-10-18 07:15 the box is up on Michael's screen** (game started for the test); until Allow is clicked his IPX
-   start fails with an "Error" box.
+   **Michael's Mac: answered 2026-10-18 (wineserver: Allow, seen 09:25).** Before that his IPX start failed with an
+   "Error" box.
 2. **Microphone (each Mac, first real-audio launch):** *"wine" would like to access the microphone*. Either answer
    is fine; answer it, because the game waits behind it. Andrew's Mac reached the main menu in all 4 launches on
    2026-10-18 (no box in the way); Michael's has not been launched with the screen unlocked yet.
