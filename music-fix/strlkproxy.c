@@ -1974,8 +1974,8 @@ static int __cdecl flame_hit_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD
     {
         int r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x004354c0)
                 (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
-        if (e2 < 4.0f) {
-            g_fhp_near++; if (r) g_fhp_nearhit++;
+        if (e2 < 4.0f || r) {
+            if (e2 < 4.0f) { g_fhp_near++; if (r) g_fhp_nearhit++; }
             memcpy(&g_fhp_snap[0], &a3, 4);
             g_fhp_snap[1] = *(volatile float *)0x004fe420; g_fhp_snap[2] = *(volatile float *)0x004fe424;
             g_fhp_snap[3] = *(volatile float *)0x004fe428; g_fhp_snap[4] = *(volatile float *)0x004fe42c;
@@ -2004,7 +2004,7 @@ static void flame_census_frame(void) {                      /* frame hook: strea
             mlog("  flame-census: sim %.3f s, hit calls %lu, applied %lu on %lu frames (player %lu, amount %lu, sim %.3f..%.3f s; others amount %lu), "
                  "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx; "
                  "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s; hit explosions spawned %lu, held back %lu; "
-                 "probe: hit-test calls %lu, within 2 m of the point %lu (returned nonzero %lu), closest %.2f m; last near call: radius %.3f sim_dt %.4f rate %.2f dt %.4f rate %.2f |seg| %.3f r %.0f grid/tick %.0f",
+                 "probe: hit-test calls %lu, within 2 m of the point %lu (returned nonzero %lu), closest %.2f m; last near-or-hitting call: radius %.3f sim_dt %.4f rate %.2f dt %.4f rate %.2f |seg| %.3f r %.0f grid/tick %.0f",
                  *(volatile float *)0x005a7e70, (unsigned long)g_flc_hits, (unsigned long)g_flc_app, (unsigned long)g_flc_frames_app,
                  (unsigned long)g_flc_app_pl, (unsigned long)g_flc_amt_pl, g_flc_tpl0, g_flc_tpl1, (unsigned long)g_flc_amt_ot,
                  g_flc_t0, g_flc_t1, g_flc_seg_n ? (double)g_flc_seg_sum / g_flc_seg_n : 0.0, (unsigned long)g_flc_seg_n,
