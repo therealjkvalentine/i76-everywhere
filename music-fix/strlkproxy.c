@@ -1361,6 +1361,7 @@ static int g_simtick, g_st_now = 1;                          /* I76_SIM_TICK_MS 
 static void simtick_top(void);
 static void simtick_clock(void);
 static int g_jc_on;                                          /* judder census (simtick.c; I76_JUDDER_CENSUS under I76_RENDER_INTERP) */
+static int g_flc_on; static void flame_census_frame(void);    /* I76_FLAME_CENSUS (below, with the flamers) */
 static void judder_census(void);
 static void judder_census_publish(void);
 static void (*g_lat_step_fn)(void), (*g_lat_draw_fn)(void); /* lab latency probe (side build drive block): end of the sim block / draw */
@@ -1490,6 +1491,7 @@ clock:
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
     if (g_bbox_sweep) sign_sweep();                         /* I76_BREAKABLE_BOX=3: posts the last tick drove through */
+    if (g_flc_on) flame_census_frame();                     /* I76_FLAME_CENSUS: stream lengths, log line */
     if (g_simtick) simtick_clock();                         /* I76_SIM_TICK_MS: simclock_Update on tick frames only, dt = the tick */
     else ((void (__cdecl *)(void))0x0049c920)();           /* simclock_Update */
     if (g_hires_on && !g_simtick) {
@@ -1894,10 +1896,66 @@ static void __cdecl flame_update_main(BYTE *cam) {
     g_flame_dmg_ok = 0;
 }
 typedef struct { DWORD d[6]; } dmgrec_t;                    /* passed by value: owner, kind 4, ..., amount at d[4] */
+/* FLAMER CENSUS (I76_FLAME_CENSUS=1, lab instrument, 2026-10-18 tick-gaps; counts only, changes nothing): every flamer
+ * damage application (weapon_FlameHitTest -> weapon_ApplyFlameDamage, site 0x4357c3) with its amount (record d[4]),
+ * split by owner (record d[0] = the player's object or not), the sim time (simclock 0x5a7e70) of the first and last
+ * application and the mean segment count of the live streams (ring 0x52bb90, +0x14) sampled each display frame while a
+ * stream exists. Under I76_FRAMERATE_FIXES / I76_SIM_TICK_MS the counts come from their damage wrapper (applied
+ * calls only); without either, the census puts a pass-through counting wrapper on the site. A `flame-census:` line is
+ * logged at most once a second of wall time when something changed. */
+static DWORD g_flc_hits, g_flc_app, g_flc_amt_pl, g_flc_amt_ot, g_flc_app_pl, g_flc_raw[4], g_flc_nraw, g_flc_seg_sum, g_flc_seg_n, g_flc_last_log;
+static DWORD g_flc_frames_app, g_flc_frame_last;
+static float g_flc_t0 = -1.0f, g_flc_t1, g_flc_tpl0 = -1.0f, g_flc_tpl1;
+static void flame_census_note(const dmgrec_t *rec) {
+    BYTE **pp = *(BYTE ***)0x0054a264, *pl = pp ? *pp : 0;
+    float t = *(volatile float *)0x005a7e70;
+    DWORD a = rec->d[4];
+    g_flc_app++;
+    if (g_flc_nraw < 4) g_flc_raw[g_flc_nraw++] = a;
+    if (a > 100000) a = 0;                                   /* not an integer amount: counted, not summed */
+    if (pl && rec->d[0] == (DWORD)(DWORD_PTR)pl) { g_flc_amt_pl += a; g_flc_app_pl++; if (g_flc_tpl0 < 0.0f) g_flc_tpl0 = t; g_flc_tpl1 = t; }
+    else g_flc_amt_ot += a;
+    if (g_flc_t0 < 0.0f) g_flc_t0 = t;
+    g_flc_t1 = t;
+    if (g_flc_frame_last != g_frame) { g_flc_frame_last = g_frame; g_flc_frames_app++; }
+}
+static void flame_census_frame(void) {                      /* frame hook: stream lengths + the log line */
+    if (!g_flc_on) return;
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE *s0 = *(BYTE **)0x0052bb90, *st = s0; int k = 0;
+        while (st && k++ < 64) {
+            if (*(DWORD *)(st + 4)) { g_flc_seg_sum += *(DWORD *)(st + 0x14); g_flc_seg_n++; }
+            st = *(BYTE **)st; if (st == s0) break;
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+    if (g_flc_hits && GetTickCount() - g_flc_last_log >= 1000) {
+        static DWORD logged_app = 0xFFFFFFFFu, logged_seg = 0xFFFFFFFFu;
+        if (logged_app != g_flc_app || logged_seg != g_flc_seg_n) {
+            logged_app = g_flc_app; logged_seg = g_flc_seg_n; g_flc_last_log = GetTickCount();
+            mlog("  flame-census: sim %.3f s, hit calls %lu, applied %lu on %lu frames (player %lu, amount %lu, sim %.3f..%.3f s; others amount %lu), "
+                 "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx",
+                 *(volatile float *)0x005a7e70, (unsigned long)g_flc_hits, (unsigned long)g_flc_app, (unsigned long)g_flc_frames_app,
+                 (unsigned long)g_flc_app_pl, (unsigned long)g_flc_amt_pl, g_flc_tpl0, g_flc_tpl1, (unsigned long)g_flc_amt_ot,
+                 g_flc_t0, g_flc_t1, g_flc_seg_n ? (double)g_flc_seg_sum / g_flc_seg_n : 0.0, (unsigned long)g_flc_seg_n,
+                 (unsigned long)g_flc_raw[0], (unsigned long)g_flc_raw[1], (unsigned long)g_flc_raw[2], (unsigned long)g_flc_raw[3]);
+        }
+    }
+}
 static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
     g_idbg_flame_hits++;
+    if (g_flc_on) g_flc_hits++;
     if (!g_flame_dmg_ok) return;
     g_idbg_flame_dmg++;
+    if (g_flc_on) flame_census_note(&rec);
+    ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
+}
+static void __cdecl flame_census_wrap(DWORD target, dmgrec_t rec, DWORD extra) {   /* stock frame loop: count, then apply as stock */
+    g_flc_hits++;
+    flame_census_note(&rec);
     ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
 }
 
@@ -8366,6 +8424,7 @@ static MMRESULT WINAPI hook_joyGetPosEx(UINT id, LPJOYINFOEX j) {
         }
     } else rc = real_joyGetPosEx ? real_joyGetPosEx(real, j) : MMSYSERR_NODRIVER;
     joy_note(1, id, real, rc);
+    if (g_st_joy_rec) st_joy_note(id, j, rc);                /* I76_SIM_TICK_INPUT: what the tick's input_UpdateControls read (simtick.c) */
     return rc;
 }
 static void apply_joy_routing(HMODULE exe) {
@@ -8384,11 +8443,29 @@ static void apply_joy_routing(HMODULE exe) {
         if (a >= 0 && a < 16) { g_joy_synth[a] = x < 0 ? 0 : (x > 65535 ? 65535 : x); any = 1; mlog("  joy-synth: winmm id %d is a synthetic pad, X = %d (TEST ONLY)", a, g_joy_synth[a]); }
         p = strchr(p, ','); if (!p) break; p++;
     }
-    if (!any) return;
+    if (!any && !g_st_joy_on) return;                        /* the hooks also serve the whole-sim tick's joystick watch (simtick.c) */
     real_joyGetDevCapsA = (joyCapsFn)patch_iat(exe, "WINMM.dll", "joyGetDevCapsA", hook_joyGetDevCapsA);
     real_joyGetPosEx    = (joyPosFn)patch_iat(exe, "WINMM.dll", "joyGetPosEx", hook_joyGetPosEx);
-    mlog("  joy-routing: IAT joyGetDevCapsA old=%p joyGetPosEx old=%p%s", (void *)real_joyGetDevCapsA, (void *)real_joyGetPosEx,
-         (real_joyGetDevCapsA && real_joyGetPosEx) ? "" : " - NOT HOOKED (no WINMM import: i76fix exe?)");
+    mlog("  joy-routing: IAT joyGetDevCapsA old=%p joyGetPosEx old=%p%s%s", (void *)real_joyGetDevCapsA, (void *)real_joyGetPosEx,
+         (real_joyGetDevCapsA && real_joyGetPosEx) ? "" : " - NOT HOOKED (no WINMM import: i76fix exe?)", any ? "" : " (for the sim-tick joystick watch; ids unrouted)");
+    simtick_joy_ready(real_joyGetPosEx ? hook_joyGetPosEx : 0, real_joyGetDevCapsA ? hook_joyGetDevCapsA : 0);
+}
+
+static void apply_flame_census(void) {
+    BYTE *p = (BYTE *)0x004357c3, w[5] = { 0xE8 };
+    LONG rel; DWORD tgt;
+    if (env_flag("I76_FLAME_CENSUS", 8, 0) != 1) return;
+    if (p[0] != 0xE8) { mlog("  flame-census: 0x4357c3 is not a call - off"); return; }
+    memcpy(&rel, p + 1, 4); tgt = 0x004357c8 + (DWORD)rel;
+    if (tgt == (DWORD)(DWORD_PTR)flame_damage_wrap) { g_flc_on = 1; install_frame_hook(); mlog("  flame-census: on (counted in the flamer damage wrapper of the 20 Hz grid / sim tick)"); return; }
+    if (tgt != 0x004a8240) { mlog("  flame-census: 0x4357c3 calls 0x%08lX (not stock, not ours) - off", (unsigned long)tgt); return; }
+    rel = (LONG)((DWORD_PTR)flame_census_wrap - 0x004357c8); memcpy(w + 1, &rel, 4);
+    {   BYTE o[5]; memcpy(o, p, 5);
+    if (patch_bytes(0x004357c3, o, w, 5, "flamer damage (census)") && memcmp(p, w, 5) == 0) {
+        g_flc_on = 1; install_frame_hook();
+        mlog("  flame-census: on (pass-through counting wrapper at 0x4357c3, read back; stock frame loop)");
+    } else mlog("  flame-census: patch did not verify - off");
+    }
 }
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
@@ -8469,6 +8546,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
+        apply_flame_census();     /* lab: I76_FLAME_CENSUS=1 (after apply_simtick / apply_framerate_fixes: counts flamer damage) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
         apply_pad_menu();         /* opt-in: I76_PAD_MENU=1 (after apply_cursor_map: chains its PeekMessageA slots) */

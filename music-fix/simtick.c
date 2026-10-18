@@ -66,6 +66,13 @@ typedef struct {
     DWORD flame_hits, flame_dmg, ping_req, ping_play;
     DWORD census_frames, objs_seen, proj_seen, pad2;
     DWORD early_ticks, early_kb, early_lab, early_blocked;   /* I76_SIM_TICK_INPUT=1 (version 2) */
+    /* version 3 (2026-10-18 tick-gaps): joystick watch, projectile spawn census / drawing, flamer census */
+    DWORD early_joy, joy_watch_calls, joy_watch_ids, joy_watch_us;   /* early ticks from a joystick change; watcher joyGetPosEx calls, ids watched last, QPC us spent */
+    DWORD jud_stall_pnew, proj_spawned, proj_spawn_drawn, proj_vchk_n;   /* stalls of projectiles spawned in the last tick; spawns; spawns drawn moving; velocity checks */
+    float proj_verr[3]; DWORD proj_age0;                     /* sum of |v_est - v_next| / |v_next| per candidate (rows / fwd x |v| / fwd x speed); spawns with age 0 */
+    DWORD proj_vok[3], proj_vskip;                           /* checks within 10 % per candidate; spawns without a usable velocity */
+    DWORD flame_amt, flame_upd, flame_seg_sum, flame_seg_n;  /* flamer census (strlkproxy.c flame_census_*) */
+    float flame_hit_s, pad3;
 } wst_shm_t;
 static volatile wst_shm_t *g_wst;
 static wst_shm_t g_wst_local;
@@ -92,8 +99,69 @@ static DWORD g_stc[12];              /* chained call targets of the gated sites 
  * still exactly T of simulation. Drawing: see g_st_seg_early below (blend from the pose about to be drawn).
  * Change detection, per display frame, no game code run: the keyboard driver's down bits 0x6092d0[16] differ from the
  * snapshot taken after the last tick's input_UpdateControls, or a release is pending in 0x6092e0[16]; plus a lab hook
- * (the side build's drive block: a new drive-key sequence). DirectInput devices (wheel, pad) are not watched. */
+ * (the side build's drive block: a new drive-key sequence).
+ * Joysticks (2026-10-18 tick-gaps; I76_SIM_TICK_JOY=0 turns this part off): the engine reads a wheel or pad through
+ * winmm, joyGetPosEx (input_JoystickPoll 0x450870, IAT 0x4bc384, only while GetFocus() is its window) from the driver's
+ * poll inside input_UpdateControls; DirectInput is used for force feedback only. The proxy's IAT hook on joyGetPosEx
+ * (strlkproxy.c, joy routing) records what the engine got for each joystick id during the tick's input_UpdateControls
+ * (id, its JOYINFOEX flags, axes, buttons, POV). On a non-tick display frame the watcher calls the same hooked
+ * joyGetPosEx (same id and flags; routing and the test pad apply) for each id the engine polled in the last tick and
+ * fires the early tick when a button or the POV changed or an axis moved more than a dead band from the engine's
+ * reading: I76_SIM_TICK_JOY_DB permille of that axis's range from joyGetDevCapsA (default 10 = 1 %, at least 1 count),
+ * so axis noise does not borrow ticks. No game code runs for this; the borrow rule is the keyboard's. */
 static int g_st_input, g_st_early_now;
+static MMRESULT (WINAPI *g_st_joy_call)(UINT, LPJOYINFOEX);     /* the hooked joyGetPosEx (set by apply_joy_routing) */
+static MMRESULT (WINAPI *g_st_joy_caps)(UINT_PTR, LPJOYCAPSA, UINT);
+static int g_st_joy_on, g_st_joy_rec, g_st_joy_pm = 10;
+static struct { int valid, polled, dbset; DWORD flags, ax[6], buttons, pov, db[6]; } g_sj[16];
+static void st_joy_note(UINT id, const JOYINFOEX *j, MMRESULT rc) {   /* from hook_joyGetPosEx while the tick's input runs */
+    if (id >= 16 || !j || rc != JOYERR_NOERROR) return;
+    g_sj[id].polled = 1; g_sj[id].flags = j->dwFlags;
+    g_sj[id].ax[0] = j->dwXpos; g_sj[id].ax[1] = j->dwYpos; g_sj[id].ax[2] = j->dwZpos;
+    g_sj[id].ax[3] = j->dwRpos; g_sj[id].ax[4] = j->dwUpos; g_sj[id].ax[5] = j->dwVpos;
+    g_sj[id].buttons = j->dwButtons; g_sj[id].pov = j->dwPOV;
+}
+static void st_joy_db(UINT id) {
+    JOYCAPSA c; int k;
+    DWORD lo[6], hi[6];
+    for (k = 0; k < 6; k++) { lo[k] = 0; hi[k] = 65535; }
+    memset(&c, 0, sizeof(c));
+    if (g_st_joy_caps && g_st_joy_caps(id, &c, sizeof(c)) == JOYERR_NOERROR) {
+        lo[0] = c.wXmin; hi[0] = c.wXmax; lo[1] = c.wYmin; hi[1] = c.wYmax; lo[2] = c.wZmin; hi[2] = c.wZmax;
+        lo[3] = c.wRmin; hi[3] = c.wRmax; lo[4] = c.wUmin; hi[4] = c.wUmax; lo[5] = c.wVmin; hi[5] = c.wVmax;
+    }
+    for (k = 0; k < 6; k++) {
+        DWORD r = hi[k] > lo[k] ? hi[k] - lo[k] : 65535, d = (DWORD)(((double)r * g_st_joy_pm) / 1000.0);
+        g_sj[id].db[k] = d < 1 ? 1 : d;
+    }
+    g_sj[id].dbset = 1;
+}
+static int st_joy_changed(void) {
+    static const DWORD axbit[6] = { JOY_RETURNX, JOY_RETURNY, JOY_RETURNZ, JOY_RETURNR, JOY_RETURNU, JOY_RETURNV };
+    UINT id; int k, n = 0, hit = 0;
+    LARGE_INTEGER q0, q1;
+    if (!g_st_joy_on || !g_st_joy_call) return 0;
+    QueryPerformanceCounter(&q0);
+    for (id = 0; id < 16 && !hit; id++) {
+        JOYINFOEX j;
+        if (!g_sj[id].valid) continue;
+        if (!g_sj[id].dbset) st_joy_db(id);
+        memset(&j, 0, sizeof(j)); j.dwSize = sizeof(j); j.dwFlags = g_sj[id].flags;
+        n++; g_wst_local.joy_watch_calls++;
+        if (g_st_joy_call(id, &j) != JOYERR_NOERROR) continue;
+        if ((g_sj[id].flags & JOY_RETURNBUTTONS) && j.dwButtons != g_sj[id].buttons) hit = 1;
+        if ((g_sj[id].flags & (JOY_RETURNPOV | JOY_RETURNPOVCTS)) && j.dwPOV != g_sj[id].pov) hit = 1;
+        for (k = 0; k < 6 && !hit; k++) {
+            DWORD a = (&j.dwXpos)[k], b = g_sj[id].ax[k];
+            if ((g_sj[id].flags & axbit[k]) && (a > b ? a - b : b - a) > g_sj[id].db[k]) hit = 1;
+        }
+    }
+    QueryPerformanceCounter(&q1);
+    g_wst_local.joy_watch_ids = (DWORD)n;
+    g_wst_local.joy_watch_us += (DWORD)((q1.QuadPart - q0.QuadPart) * 1000000 / g_qpf.QuadPart);
+    if (hit) g_wst_local.early_joy++;
+    return hit;
+}
 /* Drawing after an early tick (2nd form, after the first boots showed a heading kink of 0.4 deg median, up to 1.5 deg,
  * on the early-tick frame with alpha extrapolated backwards): each moving object is drawn from the pose this frame
  * would have drawn without the early tick (D) to the new tick's pose, with beta = (acc - acc0) / (T - acc0) running
@@ -112,13 +180,13 @@ static int st_input_changed(void) {
     if (g_st_input_peek_fn && g_st_input_peek_fn()) { g_wst_local.early_lab++; return 1; }
     if (memcmp(d0, g_st_kb_snap, 16) != 0) { g_wst_local.early_kb++; return 1; }
     for (i = 0; i < 16; i++) if (e0[i]) { g_wst_local.early_kb++; return 1; }
-    return 0;
+    return st_joy_changed();
 }
 
 /* ---- objects ------------------------------------------------------------------------------------------------- */
 #define WST_N 2048
 #define WST_H 8192
-typedef struct { BYTE *obj; DWORD handle; xform_t prev, cur, save, disp; int kind, live, swapped; } wmov_t;
+typedef struct { BYTE *obj; DWORD handle; xform_t prev, cur, save, disp, dend; int kind, live, swapped, spawn; } wmov_t;
 typedef struct { BYTE *obj; DWORD stamp; int idx; } whent_t;
 static whent_t g_wh[WST_H], g_wh2[WST_H];          /* tick-start poses / moving-set dedupe + liveness */
 static struct { BYTE *obj; xform_t pose; } g_wa[WST_N];
@@ -205,6 +273,66 @@ static double wst_d2(const xform_t *a, const xform_t *b) {
     double x = a->p[0] - b->p[0], y = a->p[1] - b->p[1], z = a->p[2] - b->p[2];
     return x * x + y * y + z * z;
 }
+
+/* ---- projectiles spawned inside a tick (2026-10-18 tick-gaps; I76_SIM_TICK_PROJ) ----------------------------------
+ * A projectile fired during a tick has no tick-start pose, so the interpolation cannot place it: it was drawn at its
+ * end-of-tick pose E for the whole next display window (a one-tick freeze at the muzzle, which the census counts as a
+ * stall whenever the pool hands out a recently moving projectile's address), then moved on from E one tick late like
+ * everything else. Its velocity is known at spawn (projectile data, object +0x70: +0x14 velocity in the projectile's
+ * own frame, +0x38 the ORDF speed), so I76_SIM_TICK_PROJ=1 draws it moving from E along that velocity during its first
+ * window (E -> E + f v T, f = 0.5) and starts the next tick's segment from that drawn pose (E + f v T -> the next
+ * tick's pose), so the round leaves the muzzle at once, never moves backwards and catches the one-tick-late timeline
+ * of everything else over two windows (half speed for 2 x T, then normal). The sim pose is never changed (drawing
+ * only, swapped in and out like every other pose). Census (always on with the tick): spawns, stalls of last-tick spawns,
+ * and a check of three velocity readings against the motion of the next tick. */
+typedef struct { BYTE *obj; xform_t e; float v[3][3]; int vok; int drawn; double d[3]; } wspawn_t;
+static wspawn_t g_wsp[2][512]; static int g_wsp_n[2], g_wsp_cur;   /* [cur] = this tick's spawns, [cur ^ 1] = the last tick's */
+static int g_st_proj = 0;                                     /* I76_SIM_TICK_PROJ (default set in apply_simtick) */
+static float g_st_proj_f = 0.5f;
+static int g_st_proj_vsel = 0;                               /* which velocity reading the drawing uses (0 rows, 1 fwd x |v|, 2 fwd x speed) */
+static int st_proj_vel(BYTE *o, float v[3][3]) {             /* 1 = read; v[0] rows . local v, v[1] forward x |v|, v[2] forward x speed */
+    int ok = 0;
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE *pd = *(BYTE **)(o + 0x70);
+        const float *r = (const float *)(o + 0x18), *lv;
+        float n[3], f[3], sp, lvn;
+        int k, i;
+        if (pd && (DWORD_PTR)pd > 0x10000) {
+            lv = (const float *)(pd + 0x14); sp = *(const float *)(pd + 0x38);
+            for (k = 0; k < 3; k++) { n[k] = sqrtf(v3dot(r + 3 * k, r + 3 * k)); if (n[k] < 1e-6f) n[k] = 1.0f; }
+            for (i = 0; i < 3; i++) {
+                v[0][i] = lv[0] * r[i] / n[0] + lv[1] * r[3 + i] / n[1] + lv[2] * r[6 + i] / n[2];
+                f[i] = r[6 + i] / n[2];
+            }
+            lvn = sqrtf(v3dot(lv, lv));
+            for (i = 0; i < 3; i++) { v[1][i] = f[i] * lvn; v[2][i] = f[i] * sp; }
+            ok = lvn > 0.01f && lvn < 5000.0f;   /* also false for NaN */
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { ok = 0; }
+#endif
+    return ok;
+}
+static int st_proj_age0(BYTE *o) {
+    int z = 0;
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE *pd = *(BYTE **)(o + 0x70);
+        if (pd && (DWORD_PTR)pd > 0x10000) z = *(const float *)(pd + 0x08) - *(const float *)(pd + 0x04) <= 0.0f;
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { z = 0; }
+#endif
+    return z;
+}
+static wspawn_t *st_spawn_last(BYTE *o) {
+    int i, c = g_wsp_cur ^ 1;
+    for (i = 0; i < g_wsp_n[c]; i++) if (g_wsp[c][i].obj == o) return &g_wsp[c][i];
+    return 0;
+}
+
 static void wm_cb(BYTE *o, DWORD h, int kind) {
     int idx;
     xform_t *now = (xform_t *)(o + 0x18);
@@ -212,12 +340,53 @@ static void wm_cb(BYTE *o, DWORD h, int kind) {
     if (g_wm_n >= WST_N) return;
     if (!wh_put(g_wh2, o, g_wh2_stamp, 0)) return;         /* already in this tick's moving set */
     idx = wh_find(g_wh, o, g_wh_stamp);
-    if (idx < 0) return;                                     /* spawned during the tick: drawn where it is */
+    if (idx < 0) {                                           /* spawned during the tick */
+        wspawn_t *s;
+        if (kind != 2 || g_wsp_n[g_wsp_cur] >= 512) return;   /* (vehicles / objects: drawn where they are) */
+        s = &g_wsp[g_wsp_cur][g_wsp_n[g_wsp_cur]++];
+        s->obj = o; s->e = *now; s->drawn = 0;
+        s->vok = st_proj_vel(o, s->v);
+        g_wst_local.proj_spawned++;
+        if (st_proj_age0(o)) g_wst_local.proj_age0++;
+        if (!s->vok) { g_wst_local.proj_vskip++; return; }
+        if (g_st_proj) {                                     /* drawn moving from E during its first window */
+            wmov_t *m = &g_wm[g_wm_n];
+            int i;
+            m->obj = o; m->handle = 0; m->kind = 2; m->prev = *now; m->cur = *now; m->dend = *now;
+            for (i = 0; i < 3; i++) m->dend.p[i] += (double)s->v[g_st_proj_vsel][i] * (double)g_st_T * (double)g_st_proj_f;
+            for (i = 0; i < 3; i++) s->d[i] = m->dend.p[i];
+            m->live = 1; m->swapped = 0; m->spawn = 1; s->drawn = 1;
+            g_wst_local.proj_spawn_drawn++;
+            g_wm_n++;
+        }
+        return;
+    }
     if (memcmp(&g_wa[idx].pose, now, sizeof(xform_t)) == 0) return;   /* did not move */
     lim = kind <= 1 ? 12.0 * 12.0 : 150.0 * 150.0;           /* a respawn / teleport, not motion */
     if (wst_d2(&g_wa[idx].pose, now) > lim) return;
     g_wm[g_wm_n].obj = o; g_wm[g_wm_n].handle = h; g_wm[g_wm_n].kind = kind;
-    g_wm[g_wm_n].prev = g_wa[idx].pose; g_wm[g_wm_n].cur = *now;
+    g_wm[g_wm_n].prev = g_wa[idx].pose; g_wm[g_wm_n].cur = *now; g_wm[g_wm_n].spawn = 0;
+    if (kind == 2) {                                         /* spawned in the last tick: check its velocity; continue from its drawn pose */
+        wspawn_t *s = st_spawn_last(o);
+        if (s && s->vok && memcmp(&s->e, &g_wa[idx].pose, sizeof(xform_t)) == 0) {
+            double m3[3], mm, e3[3], ee;
+            int c, i;
+            for (i = 0; i < 3; i++) m3[i] = (now->p[i] - s->e.p[i]) / (double)g_st_T;
+            mm = sqrt(m3[0] * m3[0] + m3[1] * m3[1] + m3[2] * m3[2]);
+            if (mm > 0.01) {
+                g_wst_local.proj_vchk_n++;
+                for (c = 0; c < 3; c++) {
+                    for (i = 0; i < 3; i++) e3[i] = (double)s->v[c][i] - m3[i];
+                    ee = sqrt(e3[0] * e3[0] + e3[1] * e3[1] + e3[2] * e3[2]) / mm;
+                    g_wst_local.proj_verr[c] += (float)(ee > 10.0 ? 10.0 : ee);
+                    if (ee < 0.1) g_wst_local.proj_vok[c]++;
+                }
+                for (i = 0; i < 3; i++) e3[i] = (double)s->v[g_st_proj_vsel][i] - m3[i];
+                ee = sqrt(e3[0] * e3[0] + e3[1] * e3[1] + e3[2] * e3[2]) / mm;
+                if (s->drawn && ee < 0.5) for (i = 0; i < 3; i++) g_wm[g_wm_n].prev.p[i] = s->d[i];   /* same round: go on from where it was drawn */
+            }
+        }
+    }
     if (g_we_on) {                                           /* after an early tick: blend from what was about to be drawn */
         int j;
         for (j = 0; j < g_we_n; j++) if (g_we[j].obj == o) { g_wm[g_wm_n].prev = g_we[j].pose; break; }
@@ -228,6 +397,7 @@ static void wm_cb(BYTE *o, DWORD h, int kind) {
 static void wst_tick_end(void) {
     g_wm_n = 0;
     if (++g_wh2_stamp == 0) g_wh2_stamp = 1;
+    g_wsp_cur ^= 1; g_wsp_n[g_wsp_cur] = 0;                  /* the last tick's spawns stay readable in [cur ^ 1] */
     wst_walk(wm_cb);
     g_we_on = 0; g_we_n = 0;
     g_wst_local.moving_last = (DWORD)g_wm_n;
@@ -269,7 +439,8 @@ static void st_early_from(void) {
         wmov_t *m = &g_wm[i];
         if (!m->live || memcmp((xform_t *)(m->obj + 0x18), &m->cur, sizeof(xform_t)) != 0) continue;   /* written outside the sim */
         g_we[g_we_n].obj = m->obj;
-        if (m->kind <= 1) xf_lerp(&g_we[g_we_n].pose, &m->prev, &m->cur, a); else wst_lerp(&g_we[g_we_n].pose, &m->prev, &m->cur, a);
+        if (m->kind <= 1) xf_lerp(&g_we[g_we_n].pose, &m->prev, &m->cur, a);
+        else wst_lerp(&g_we[g_we_n].pose, &m->prev, m->spawn ? &m->dend : &m->cur, a);
         g_we_n++;
     }
     g_we_on = 1;
@@ -288,7 +459,7 @@ static void wst_swap_in(void) {
         if (memcmp(p, &m->cur, sizeof(xform_t)) != 0) { g_wst_local.ext_writes++; m->live = 0; continue; }   /* written outside the sim */
         m->save = *p;
         if (m->kind <= 1) xf_lerp(&d, &m->prev, &m->cur, g_wst_local.alpha);
-        else wst_lerp(&d, &m->prev, &m->cur, g_wst_local.alpha);
+        else wst_lerp(&d, &m->prev, m->spawn ? &m->dend : &m->cur, g_wst_local.alpha);
         *p = d; m->disp = d; m->swapped = 1;
     }
     g_st_swapped = 1;
@@ -332,7 +503,13 @@ static void jc_cb(BYTE *o, DWORD h, int kind) {
     if (g_jc[i].obj != o) { g_jc[i].obj = o; memcpy(g_jc[i].p, p, 24); g_jc[i].moved = 0; g_jc[i].kind = kind; return; }
     if (kind == 2) g_wst_local.proj_seen++; else g_wst_local.objs_seen++;
     if (memcmp(g_jc[i].p, p, 24) != 0) { g_wst_local.jud_moved[kind]++; g_jc[i].moved = g_jc_frame; memcpy(g_jc[i].p, p, 24); }
-    else if (g_jc[i].moved && g_jc_frame - g_jc[i].moved <= 12) g_wst_local.jud_stall[kind]++;
+    else if (g_jc[i].moved && g_jc_frame - g_jc[i].moved <= 12) {
+        g_wst_local.jud_stall[kind]++;
+        if (kind == 2 && g_simtick) {                        /* a round spawned in the newest tick? */
+            int k, c = g_wsp_cur;
+            for (k = 0; k < g_wsp_n[c]; k++) if (g_wsp[c][k].obj == o) { g_wst_local.jud_stall_pnew++; break; }
+        }
+    }
 }
 static void judder_census(void) {
     double *c = (double *)0x004c2890;                       /* camera +0x160: eye position (sound_UpdateListener) */
@@ -341,6 +518,18 @@ static void judder_census(void) {
     wst_walk(jc_cb);
     if (memcmp(g_jc_cam, c, 24) != 0) { g_wst_local.cam_moved++; g_jc_cam_moved = g_jc_frame; memcpy(g_jc_cam, c, 24); }
     else if (g_jc_cam_moved && g_jc_frame - g_jc_cam_moved <= 12) g_wst_local.cam_stall++;
+}
+
+/* I76_SIM_TICK_PROJLOG=<path> (lab instrument, 2026-10-18): one line per projectile per drawn frame - wall s, display
+ * frame, tick frame, early tick, object, drawn x y z - for the continuity check of tracers and missiles */
+static FILE *g_st_plog; static DWORD g_st_plog_n; static LARGE_INTEGER g_st_plog_q;
+static void st_plog_cb(BYTE *o, DWORD h, int kind) {
+    double *p = (double *)(o + 0x40);
+    (void)h;
+    if (kind != 2) return;
+    fprintf(g_st_plog, "%.6f,%lu,%d,%d,%08lx,%.3f,%.3f,%.3f\n", (double)(g_st_plog_q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart,
+            (unsigned long)g_wst_local.dframes, g_st_now, g_st_early_now, (unsigned long)(DWORD_PTR)o, p[0], p[1], p[2]);
+    g_st_plog_n++;
 }
 
 /* ---- camera ------------------------------------------------------------------------------------------------------ */
@@ -456,9 +645,14 @@ static void simtick_clock(void) {
 /* ---- gates --------------------------------------------------------------------------------------------------------- */
 #define ST_GATE0(i) static void __cdecl st_gate##i(void) { if (g_st_now) { g_wst_local.gate[i]++; ((void (__cdecl *)(void))g_stc[i])(); } }
 static void __cdecl st_gate0(void) {                       /* input_UpdateControls, then the keyboard snapshot */
+    int i;
     if (!g_st_now) return;
     g_wst_local.gate[0]++;
+    for (i = 0; i < 16; i++) g_sj[i].polled = 0;
+    g_st_joy_rec = 1;                                        /* the joystick hook records what the engine reads (st_joy_note) */
     ((void (__cdecl *)(void))g_stc[0])();
+    g_st_joy_rec = 0;
+    for (i = 0; i < 16; i++) g_sj[i].valid = g_sj[i].polled;
     memcpy(g_st_kb_snap, (const void *)0x006092d0, 16);
 }
 ST_GATE0(1) ST_GATE0(2) ST_GATE0(6) ST_GATE0(8) ST_GATE0(9) ST_GATE0(10) ST_GATE0(11)
@@ -538,10 +732,16 @@ static void __cdecl st_render_wrap(void *cam) {
             break;
         }
     }
+    if (g_st_plog && g_st_plog_n < 3000000) {                /* I76_SIM_TICK_PROJLOG: every projectile's drawn position this frame */
+        QueryPerformanceCounter(&g_st_plog_q);
+        wst_walk(st_plog_cb);
+    }
     if (g_lat_draw_fn) g_lat_draw_fn();
     g_idbg.flame_hits = g_idbg_flame_hits; g_idbg.flame_dmg = g_idbg_flame_dmg;
     g_wst_local.flame_hits = g_idbg_flame_hits; g_wst_local.flame_dmg = g_idbg_flame_dmg;
     g_wst_local.ping_req = g_idbg_ping_req; g_wst_local.ping_play = g_idbg_ping_play;
+    g_wst_local.flame_amt = g_flc_amt_pl + g_flc_amt_ot; g_wst_local.flame_upd = g_flc_frames_app;
+    g_wst_local.flame_seg_sum = g_flc_seg_sum; g_wst_local.flame_seg_n = g_flc_seg_n; g_wst_local.flame_hit_s = g_flc_t0 >= 0.0f ? g_flc_t1 - g_flc_t0 : 0.0f;
     ((void (__cdecl *)(void *))0x00401c90)(cam);
     if (camx) ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)0x004c2730, &g_st_simcam[1]);
     wst_swap_out(g_st_now);
@@ -598,10 +798,18 @@ static void apply_simtick(void) {
     g_st_cosmetic = env_flag("I76_SIM_TICK_COSMETIC", 8, 1);
     g_st_logper = (DWORD)env_int("I76_SIM_TICK_LOG", 8, 0) * 1000u;
     g_st_input = env_flag("I76_SIM_TICK_INPUT", 8, 0) == 1;
+    g_st_joy_on = g_st_input && env_flag("I76_SIM_TICK_JOY", 8, 1) == 1;   /* the joystick part of the early tick (hook: apply_joy_routing) */
+    g_st_joy_pm = env_int("I76_SIM_TICK_JOY_DB", 8, 10); if (g_st_joy_pm < 0) g_st_joy_pm = 0; if (g_st_joy_pm > 500) g_st_joy_pm = 500;
+    g_st_proj = env_flag("I76_SIM_TICK_PROJ", 8, g_st_proj) == 1;
+    g_st_proj_vsel = env_int("I76_SIM_TICK_PROJ_V", 8, g_st_proj_vsel); if (g_st_proj_vsel < 0 || g_st_proj_vsel > 2) g_st_proj_vsel = 0;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_dlog, NULL, _IOFBF, 1 << 13);   /* the process is killed at the end: at most 8 KB lost */
             fprintf(g_st_dlog, "t,tick,early,alpha,x,y,z,fx,fy,fz\n");
+        }
+        if (env_str("I76_SIM_TICK_PROJLOG", dp, sizeof(dp)) && (g_st_plog = fopen(dp, "w")) != 0) {
+            setvbuf(g_st_plog, NULL, _IOFBF, 1 << 13);
+            fprintf(g_st_plog, "t,dframe,tick,early,obj,x,y,z\n");
         }
     }
     {   /* the sim block's call sites */
@@ -684,15 +892,23 @@ static void apply_simtick(void) {
     {
         HANDLE m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(wst_shm_t), "Local\\I76SimTick");
         if (m) g_wst = (volatile wst_shm_t *)MapViewOfFile(m, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(wst_shm_t));
-        g_wst_local.magic = 0x31545357u; g_wst_local.version = 2; g_wst_local.tick_s = g_st_T;
+        g_wst_local.magic = 0x31545357u; g_wst_local.version = 3; g_wst_local.tick_s = g_st_T;
         wst_publish();
     }
     g_simtick = 1; g_st_now = 1;
     g_jc_on = 1;
     mlog("  sim-tick: ON - whole sim every %.3f ms (%.3f ticks/s; vehicle stepper count %d x %.2f ms); %d/12 sim gates, %d/4 display hooks, "
-         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; shm Local\\I76SimTick %s",
+         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; shm Local\\I76SimTick %s",
          ms, 1000.0 / ms, (int)(g_st_T * 20.0f) + 1, ms / (double)((int)(g_st_T * 20.0f) + 1), g, h, n, c, g_st_cosmetic,
-         g_st_input ? "ON (I76_SIM_TICK_INPUT=1)" : "off", g_wst ? "mapped" : "MISSING");
+         g_st_input ? (g_st_joy_on ? "ON (I76_SIM_TICK_INPUT=1: keyboard + joystick)" : "ON (I76_SIM_TICK_INPUT=1: keyboard; I76_SIM_TICK_JOY=0)") : "off",
+         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_wst ? "mapped" : "MISSING");
+}
+/* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
+static void simtick_joy_ready(MMRESULT (WINAPI *pos)(UINT, LPJOYINFOEX), MMRESULT (WINAPI *caps)(UINT_PTR, LPJOYCAPSA, UINT)) {
+    if (!g_st_joy_on) return;
+    g_st_joy_call = pos; g_st_joy_caps = caps;
+    if (pos) mlog("  sim-tick: early tick watches the joysticks the engine polls (joyGetPosEx hook in; dead band %d permille of the axis range)", g_st_joy_pm);
+    else { g_st_joy_on = 0; mlog("  sim-tick: joystick watch OFF - no joyGetPosEx hook (no WINMM import?): a wheel / pad waits for the next tick"); }
 }
 
 /* I76_JUDDER_CENSUS=1 without the tick (under I76_RENDER_INTERP: render_wrap calls judder_census): the same counters */
