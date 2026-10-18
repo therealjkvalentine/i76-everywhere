@@ -957,7 +957,7 @@ static void __cdecl st_render_wrap(void *cam) {
 }
 /* the flamer's main-pass update on a tick frame: the tick's clock (its hit test reads the sim rate), damage allowed */
 static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLAME_CLK=1 (lab): the tick's clock on every display frame's flamer update */
-/* Flamer stream state between ticks (2026-10-18 tick-fix; I76_SIM_TICK_FLAME_STATE, default 1; owner playtest: "the impact
+/* Flamer stream state between ticks (2026-10-18 tick-fix; I76_SIM_TICK_FLAME_STATE=1, lab switch, default 0 - it did NOT bring the hits back; owner playtest: "the impact
  * animation is messed up, a hall of mirrors of duplicates; doesn't seem to be damaging the other car").
  * weapon_UpdateFlamerStreams 0x443fc0 is draw code that also carries sim state in the stream record (0x360 bytes, ring
  * [0x52bb90], +0 next): at the end of every call it stores the muzzle's transform of THIS call in +0x48..+0x87 (+0x88 = 1)
@@ -972,8 +972,9 @@ static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLA
  * every stream is saved before each non-tick main-pass call and each mirror call and put back after it (unless the call
  * released the stream's objects, +4 / +8 / +0xc changed), so the stream advances once per tick, on the tick frame's main
  * pass, from the state the last tick left - one tick of history, as one stock frame at 30 fps. The flame is still drawn
- * every display frame. */
-static int g_st_flame_state = 1;
+ * every display frame. RESULT (3 boots tick33 / tick66, same probe): tested segments still 9.8 / 10.2 m, still 0 hits - the
+ * per-call state is not the cause; the switch stays off until the cause is found (TICK-FINISH s.10). */
+static int g_st_flame_state = 0;
 static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
 static void st_flame_snap(void) {
     BYTE *r0 = *(BYTE **)0x0052bb90, *r = r0;
