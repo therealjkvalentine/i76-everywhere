@@ -1953,6 +1953,27 @@ static void flame_census_note(const dmgrec_t *rec) {
     g_flc_t1 = t;
     if (g_flc_frame_last != g_frame) { g_flc_frame_last = g_frame; g_flc_frames_app++; }
 }
+/* I76_FLAME_PROBE_AT=x,y,z (lab instrument, tick-fix 2026-10-18; with I76_FLAME_CENSUS): every weapon_FlameHitTest call from
+ * the flamer update (site 0x44449b; args 0..2 = one end of the tested segment, 4..6 = the other, as floats) is counted and
+ * the closest any tested segment came to the point is kept per log line: does the stream reach the target at all, and is
+ * the hit test called while it does. */
+static float g_fhp_at[3], g_fhp_min = 1e30f; static DWORD g_fhp_calls, g_fhp_near; static int g_fhp_on;
+static int __cdecl flame_hit_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD a4, DWORD a5, DWORD a6, DWORD a7,
+                                   DWORD a8, DWORD a9, DWORD a10, DWORD a11, DWORD a12, DWORD a13, DWORD a14) {
+    float A[3], B[3], d[3], w[3], t, dd, e2; int k;
+    memcpy(&A[0], &a0, 4); memcpy(&A[1], &a1, 4); memcpy(&A[2], &a2, 4);
+    memcpy(&B[0], &a4, 4); memcpy(&B[1], &a5, 4); memcpy(&B[2], &a6, 4);
+    for (k = 0; k < 3; k++) { d[k] = B[k] - A[k]; w[k] = g_fhp_at[k] - A[k]; }
+    dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    t = dd > 1e-9f ? (w[0] * d[0] + w[1] * d[1] + w[2] * d[2]) / dd : 0.0f;
+    if (t < 0.0f) t = 0.0f; if (t > 1.0f) t = 1.0f;
+    for (k = 0, e2 = 0.0f; k < 3; k++) { float q = A[k] + t * d[k] - g_fhp_at[k]; e2 += q * q; }
+    g_fhp_calls++;
+    if (e2 == e2 && e2 < g_fhp_min) g_fhp_min = e2;
+    if (e2 < 4.0f) g_fhp_near++;
+    return ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x004354c0)
+           (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
+}
 static void flame_census_frame(void) {                      /* frame hook: stream lengths + the log line */
     if (!g_flc_on) return;
 #ifdef _MSC_VER
@@ -1972,13 +1993,15 @@ static void flame_census_frame(void) {                      /* frame hook: strea
             logged_app = g_flc_app; logged_seg = g_flc_seg_n; g_flc_last_log = GetTickCount();
             mlog("  flame-census: sim %.3f s, hit calls %lu, applied %lu on %lu frames (player %lu, amount %lu, sim %.3f..%.3f s; others amount %lu), "
                  "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx; "
-                 "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s; hit explosions spawned %lu, held back %lu",
+                 "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s; hit explosions spawned %lu, held back %lu; "
+                 "probe: hit-test calls %lu, within 2 m of the point %lu, closest %.2f m",
                  *(volatile float *)0x005a7e70, (unsigned long)g_flc_hits, (unsigned long)g_flc_app, (unsigned long)g_flc_frames_app,
                  (unsigned long)g_flc_app_pl, (unsigned long)g_flc_amt_pl, g_flc_tpl0, g_flc_tpl1, (unsigned long)g_flc_amt_ot,
                  g_flc_t0, g_flc_t1, g_flc_seg_n ? (double)g_flc_seg_sum / g_flc_seg_n : 0.0, (unsigned long)g_flc_seg_n,
                  (unsigned long)g_flc_raw[0], (unsigned long)g_flc_raw[1], (unsigned long)g_flc_raw[2], (unsigned long)g_flc_raw[3],
                  (unsigned long)g_flc_upd_dmg, (unsigned long)g_flc_upd_mirror, (unsigned long)g_flc_upd_nodmg, g_flc_u0, g_flc_u1,
-                 (unsigned long)g_flc_expl, (unsigned long)g_flc_expl_blk);
+                 (unsigned long)g_flc_expl, (unsigned long)g_flc_expl_blk, (unsigned long)g_fhp_calls, (unsigned long)g_fhp_near,
+                 g_fhp_min < 1e29f ? sqrt((double)g_fhp_min) : -1.0);
         }
     }
 }
@@ -8565,6 +8588,16 @@ static void apply_flame_census(void) {
     BYTE *p = (BYTE *)0x004357c3, w[5] = { 0xE8 };
     LONG rel; DWORD tgt;
     if (env_flag("I76_FLAME_CENSUS", 8, 0) != 1) return;
+    {   char v[96]; BYTE *q = (BYTE *)0x0044449b, o[5], w2[5] = { 0xE8 }; LONG r2;
+        if (env_str("I76_FLAME_PROBE_AT", v, sizeof(v)) && sscanf(v, "%f,%f,%f", &g_fhp_at[0], &g_fhp_at[1], &g_fhp_at[2]) == 3 && q[0] == 0xE8) {
+            memcpy(&r2, q + 1, 4);
+            if (0x004444a0 + (DWORD)r2 == 0x004354c0) {
+                memcpy(o, q, 5); r2 = (LONG)((DWORD_PTR)flame_hit_probe - 0x004444a0); memcpy(w2 + 1, &r2, 4);
+                g_fhp_on = patch_bytes(0x0044449b, o, w2, 5, "flamer hit test call (probe)");
+                mlog("  flame-census: probe at %.1f,%.1f,%.1f: %s", g_fhp_at[0], g_fhp_at[1], g_fhp_at[2], g_fhp_on ? "on" : "NOT patched");
+            }
+        }
+    }
     {   /* hit explosions in the stock loop: a pass-through counter at 0x44471d (the grid / tick wrapper counts its own) */
         BYTE *q = (BYTE *)0x0044471d, o[5], w2[5] = { 0xE8 }; LONG r2;
         if (q[0] == 0xE8) {
