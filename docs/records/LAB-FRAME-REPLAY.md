@@ -186,3 +186,106 @@ the emulator's car.
    callbacks); that would make melee and bookmark loads headless.
 4. **Retail sim melee replay files** (section 4) and steady-yaw comparison in the replay (rpl_diff prints it).
 5. **After-destruction divergence** in the A/A (time-seeded randomness?) if replays past a destruction matter.
+
+## 7. 2026-10-17 evening: Instant Melee replays on the console (item 51)
+
+Lane frame-replay-fix. Every live run on the lab twin `game-dd-20261003`, under the console lock, audio muted; the
+twin's `STRLKUP.DLL` was swapped for the side-built replay proxy per run and put back (md5 read back `33211f11`).
+
+### 7.1 Why REPLAY-MELEE.bat "did not reach mission"
+
+- **Cause: the clicks were placed 1:1 and missed.** `autotest\enter-melee.ps1 -NoLaunch` does
+  `SetCursorPos(ux, uy)` and assumes the OS cursor is the shell's 640x480 point. On the twin (3440x1440 client) the
+  shell's own mouse (`[0x100cc514]+0x2c/+0x30`, as f2-drive reads it) read **(0,104) for MELEE (447,311)**: every menu
+  click landed off the buttons. It also pressed Esc / Enter six times blind and never checked a screen. The failure was
+  n 2 at 14:53 (owner test 11) and once more at 16:27.
+- **Fix: `tools\replay\melee-nav.ps1`** (lab f597ced), now called by `replay-melee-console.ps1`:
+  - Esc / Enter only until the main menu is up (screen 0xC00E, sfn 0x10025a50);
+  - each click is placed 1:1 first, then by the window's 4:3 fit (uiclick `Get-UiMap`), and pressed only when the shell's
+    mouse reads the target;
+  - the route is MELEE (447,311), AUTO MELEE (490,351), INSTANT MELEE (531,379), then the gate on the driver entry form
+    (sfn 0x10028610);
+  - on the form: AREA = **The Crater** (UI 80,157), A.I. DRIVERS - x3, ENTER AREA (296,462);
+  - the last gate is the player entity; a screenshot is taken at every step.
+- **Arena:** the form keeps the last arena used. The twin came up on **Air Base** (screenshot nav-debug-173311), while
+  the Instant Melee traces are on M01 The Crater. The script now always picks The Crater.
+- **Result:** reached Instant Melee in 16 of 16 runs since the click fix (15 of them with the arena pick), 16 s from
+  launch. The three earlier debug runs failed on the script's own bugs: an `Rd` helper that PowerShell resolves to
+  its `rd` alias (Remove-Item; the paths did not exist, nothing was removed), and a widget gate.
+- **Unrelated finding:** the per-step "last widget" read (0x10055d90) stayed 0 while the sub-menus visibly opened.
+  It is logged only.
+- **Also fixed:**
+  - `-Conds a,b,c` through `powershell -File` arrived as one string; it is split now, and missing replay files are refused.
+  - With several lanes queued, a per-replay lock wait timed out after 30 min. `-InLock` runs a whole set under one
+    with-lock hold: 8 replays in about 7 min.
+
+### 7.2 A/A: the melee replay was not deterministic, and why
+
+Gold `g166-mloop-rep1` (1,304 frames, accel:-60..park), lab vs lab (`rpl_aa`):
+
+| proxy switches | pair | bit-identical frames | first difference |
+|---|---|---|---|
+| as built 2026-10-16 (3 s wall-clock wait before the placement) | 173353 / 173458 | 63 of 1,304 | frame 709, x y z, 1e-9 m (3 frames into the throttle) |
+| `I76_REPLAY_PREROLL=150` | 173805 / 174548 | 63 of 1,304 | frame 709 (sim_time now equal too) |
+| `I76_REPLAY_PREROLL=150` + `I76_REPLAY_SRAND=1` | 174759 / 175845 / 192448 | **1,304 of 1,304** (3 runs, all pairs) | none |
+
+- The exe seeds MSVCRT `rand()` with `time(NULL)` at mission start (i76-map functions/004a9020, 004ad260; 4 srand calls
+  before the placement). The melee car's own motion draws from `rand()` once it moves: same inputs and dt bits, a
+  different seed, and positions split at the first moving frames.
+  - The T05 A/A pairs were identical because the canyon run did not draw from `rand()` before the destruction. The
+    after-destruction divergence there (section 2) is most likely the same seed.
+- **New proxy switches** (i76-everywhere d072513, `music-fix/replay.c`, opt-in, lab only):
+  - `I76_REPLAY_PREROLL=<frames>`: the wait before the placement is counted in frames, and those frames run at the
+    trace's first sim_dt / dt;
+  - `I76_REPLAY_SRAND=<seed>`: every `srand()` of i76.exe (IAT, MSVCRT.dll) gets the seed;
+  - `I76_REPLAY_RANDLOG=1`: a per-frame census of `rand()` callers (return addresses), written to mciproxy.log.
+  - They are built from a HEAD export, because `strlkproxy.c` has another lane's open edits:
+    - lab `builds\replay-preroll\Strlkup.dll` f10b5cc5 (PREROLL + SRAND);
+    - `builds\replay-randlog\Strlkup.dll` 8526ed31 (+ RANDLOG).
+  - `music-fix/Strlkup.dll` is unchanged.
+- **Consequence for the emulator comparison:** the emulator's run had its own time seed. Lab vs emulator therefore
+  cannot be bit-identical once the car moves, even with an identical exe and car. The question becomes how far apart
+  the two runs drift, not whether they match bit for bit.
+
+### 7.3 Emulator vs lab, Instant Melee (pre-roll 150, srand 1; each replay once)
+
+Gold = the Gold CD exe's traces (20261015-191227 g166-mloop, reps 1-4). Retail sim = retail 1.0 with simulation
+physics (20261016-232325 r166sim-mloop, reps 1-4, replay files `rpl\rsim-repK.rpl`, made tonight). The 2026-10-15
+retail loops (arcade) were not replayed.
+
+| replay | sim_dt / input bit mismatches | throttle on (frame) | \|dspeed\| > 0.01 / 0.1 / 1 m/s (frames after throttle on) | horizontal d > 0.1 / 1 / 10 m (frame) | speed at end of accel, trace / lab (m/s) |
+|---|---|---|---|---|---|
+| Gold rep1 | 0 / 0 | 706 | +38 / +113 / +173 | 802 / 914 / 1143 | 54.75 / 55.45 |
+| Gold rep2 | 0 / 0 | 946 | +19 / +120 / +241 | 1050 / 1196 / 1259 | 52.02 / 55.52 |
+| Gold rep3 | 0 / 0 | 967 | +42 / +131 / +401 | 1078 / 1271 / 1441 | 54.60 / 54.87 |
+| Gold rep4 | 0 / 0 | 992 | +44 / +118 / +250 | 1090 / 1268 / 1427 | 54.56 / 55.27 |
+| retail sim rep1 | 0 / 0 | 1127 | +47 / +48 / +500 | 1211 / 1460 / 1724 | 54.47 / 53.56 |
+| retail sim rep2 | 0 / 0 | 1146 | +45 / +47 / +260 | 1243 / 1388 / 1661 | 53.67 / 52.99 |
+| retail sim rep3 | 0 / 0 | 1153 | +23 / +168 / +173 | 1329 / 1354 / 1549 | 51.00 / 53.06 |
+| retail sim rep4 | 0 / 0 | 1173 | +23 / +191 / +455 | 1385 / 1442 / 1697 | 53.21 / 54.19 |
+
+**How to read the table:**
+
+- **Divergence is late in the sense that matters.** For the first 19-47 throttle frames the lab car's speed matches
+  the emulator's to within 0.01 m/s. The divergence starts at trace speed 5.3-5.6 m/s (n 4) or 11.4-12.1 m/s (n 4).
+  - Over the first 30 throttle frames the largest gap is 0.004-0.018 m/s (n 8).
+  - At frame 708 (Gold rep1, first frame with throttle) the gap is 3e-10 m/s; at 709 it is 1e-6.
+- **rpl_diff's "first |dpos| > 0.01 m" misleads for melee.** In Gold rep1 it fires at 708, but that is vertical:
+  dy 0.014 m against dh 8e-5 m. Over 708-713 dy swings between +0.014 and -0.056 m while dh stays under 0.0013 m.
+  - rpl_diff now writes `dh` / `dy` columns; `rpl_hdiff.py` reports the horizontal and |dspeed| thresholds above.
+- **Speed at the end of the 12 s throttle:**
+  - Gold: the lab is faster in 4 of 4, by 0.27-3.50 m/s;
+  - retail sim: the lab is slower in 2 and faster in 2, from -0.91 to +2.06 m/s;
+  - the per-frame sign of dspeed in accel is mixed in every replay.
+  - No constant exe-wide bias is visible at this n. The seed alone gives each side a different path.
+- **Steering phases are not comparable.** By then the cars are 30-190 m and several m/s apart, so steady yaw
+  (lab 0.56-2.10 rad/s, trace 1.44-2.02) compares different states. A steering comparison needs a replay that starts
+  at steer-prep from the trace's state (`rpl_make --from`).
+
+### 7.4 Next
+
+1. **Match the emulator's seed.** Either log `holdrand` in the VM at mission start (I76MEM: msvcrt's per-thread data),
+   or run the emulator with srand pinned too (I76MEM poke on the srand IAT). Then lab vs emulator can be bit-compared;
+   any remaining difference is the exe / car / FPU.
+2. The rand census (section 7.5, if it ran) names the callers that feed the car.
+3. Steering: replay files that start at steerprep / steerR from the trace's state.
