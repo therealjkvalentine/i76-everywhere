@@ -26,20 +26,22 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
 
   - The mass 1846 equals the loader formula's prediction for the save's loadout (VEHICLES.md section 7; Jade's car predicts 1951, also read live).
   - The emulator's mass is not logged, so on that side it is a prediction from the same loadout, not a measurement.
-- **With the same car, our exe matches retail on the T06 strip within 0-2.5 %.**
+- **With the same car, our exe matches retail on the T06 strip accel / brake / yaw within 3 %** (largest: tick66 0-10 m/s -3.0 %, step33 left yaw -2.4 %; verify 2026-10-17, recomputed from the compare JSONs).
   - The earlier gaps (0-20 m/s -34 %, steady yaw -29 %) were the car, not the exe or the step.
+  - Verify: the same harness with the old car (lab `captures\whole-sim-tick-20261017	06-step33-r1`, n 1 boot) reads 0-20 m/s 2.73 s and yaw 0.795 rad/s; with `game-samecar` (t06-step33-s1) 4.20 s and 1.10. The car change alone moves both numbers.
   - Every arm now: 0-20 m/s 4.13-4.21 s vs 4.18; brake 11.75-11.77 vs 11.88 m/s2; steady yaw 1.099-1.116 vs 1.117 rad/s.
 - **What still fails** (the same in step and tick arms unless noted):
   - **Left-key yaw:** -0.6 to -2.4 %. step33 and tick33 fail; tick66 passes.
-  - **T06 ramp A flight:** 0.33-0.47 s shorter in the air, landing 9-15 m short, at the same apex and foot speed. Every arm, both references.
+  - **T06 ramp A flight:** 0.33-0.47 s shorter in the air, landing 9-18 m short (26 m/s: 9-12 m; 30 m/s: 14-18 m), at the same apex and foot speed within +1.4 % at 30 / 34 m/s (at 26 m/s the foot speed is +1.7-1.9 %, a FAIL). Every arm, both references. At 26 m/s no lab jump clears (lands beyond z 42800) against 5 of 5 retail (Fisher p 0.008).
   - **T05 placed 56 m/s jump:** take-off -2 to -3 % (50.1-50.6 vs 51.6 m/s).
   - **step33 lip clips:** 4 of 24 jumps clipped the lip (vy -0.7 m/s, the car never took off). The tick arms clipped 0 of 30 (Fisher p 0.034).
+    - Verify: the clips fall on 4 of 8 step boots against 0 of 10 tick boots (Fisher p 0.023 per boot; jumps within a boot are not independent). tick33 had 2 other failed jumps (take-off 47.6 m/s, 103 m, turned over; boots s4 and s5), the same failure step33 shows after a clip; its other 13 jumps are identical to tick66's.
   - **Platform rows** (substep mix): fail by design.
-- **P133 vs P166:** our arms land with P166 on wrecks and launch jounce.
+- **P133 vs P166:** our arms land with P166 on wrecks. On the launch pitch and steer roll peaks, step33 / tick33 sit on P166 and tick66 sits on P133.
   - T05 wrecks: the P133 reference wrecks 6 of 10 placed jumps, P166 0 of 7, and every lab arm 0 of 15 (or 0 of 9).
   - The two references also disagree with each other on jounce: P133's launch pitch peak is -15 %.
-- **A/A:** step33 against its twin step33aa agrees to the printed digit on every T06 row. The lab boots are deterministic: tick arms repeat bit-for-bit (sd 0.000).
-  - So "n 5 independent boots" measures the harness's spread (zero), not a physical spread.
+- **A/A:** step33 against its twin step33aa agrees within the arms' own spread on every T06 row, not to the printed digit (verify: 0-10 m/s 1.176 vs 1.192 s, +1.4 %; brake distance 38.94 vs 38.90; ramp apex 28.22 vs 28.21, PASS vs FAIL at the band edge). The lab boots are close to deterministic: most tick-arm rows read sd 0.000, but not all (tick66 right yaw sd 0.004, brake distance sd 0.16; tick66 state count 165 / 166 per boot).
+  - So "n 5 independent boots" measures the harness's spread (near zero), not a physical spread.
   - The pass bands come from the retail spread.
 
 ## 1. Which car, and why it differed
@@ -80,11 +82,11 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
     - Plus **new P133 T06 strip runs** from tonight: `ref-t06strip-retail.txt --cpu 133`, the same script, base and discs as the P166 strip.
     - 3 boots, 5 reps. Boots 2-3 lost reps 2-3 when the Abort > Replay restart timed out.
   - The P133 strip step is 38.6 +- 0.5 ms against P166's 33.0.
-  - On the strip, P133 agrees with P166 on accel / brake / yaw within 1.4 %.
+  - On the strip, P133 agrees with P166 on accel / brake / yaw within 1.8 % (0-10 m/s -1.8 %, 0-20 m/s -1.1 %, brake -1.2 %, yaw +0.1 %; verify-corrected from 1.4 %).
 - Checker fix (lab 306dba8, 926d9bb):
   - `fingerprint.py`'s impact rejection now differences distinct sim states.
   - Before the fix, lab captures at 120 fps repeat each state with an interpolated sim_time. A clean 33 ms speed step then read as 165 m/s2, which dropped every lab brake sample. Steer samples could be dropped the same way.
-  - Emulator rows are one per state. The self-test is identical with and without the fix (A/A 55/5 and 66/0).
+  - Emulator rows are one per state. The self-test gate counts are identical with and without the fix (A/A 55/5 and 66/0, Gold 85/39, arcade 31/14). Verify: the steer change (926d9bb) does change 9 rows of the arcade-physics section (melee yaw samples n 16 -> 18; verdicts unchanged), so emulator rows are not untouched in every case.
   - Note: that is not the 58/2 printed in GOLD-STANDARD-FINGERPRINT; the drift predates this lane.
 
 ## 3. Pass / fail per metric
@@ -115,10 +117,10 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
 | T05 placed 56 | take-off vy, m/s | 14.45 +- 0.28 | 12.26 +- 5.26 **FAIL** (lip clips) | 10.96 **FAIL** (lip clips) | 14.05 **FAIL** | 14.16 PASS |
 | T05 placed 56 | apex above take-off, m | 10.66 +- 0.41 | 8.97 **FAIL** | 8.09 **FAIL** | 10.08 **FAIL** | 10.23 PASS |
 | T05 placed 56 | ballistic ratio | 1.000 | 1.000 PASS | 1.000 PASS | 1.000 PASS | 1.000 PASS |
-| T05 placed 56 | distance, m (watch) | 228 +- 28 | 202 ok | 190 OUT | 213 ok | 235 ok |
+| T05 placed 56 | distance, m (watch) | 228 +- 28 | 202 ok | 190 OUT | 217 ok | 235 ok |
 | T05 placed 56 | destroyed / turned over | 0/7, 0/7 | 0/15, 2/15 PASS | 0/9, 1/9 PASS | 0/15, 2/15 PASS | 0/15, 0/15 PASS |
 
-- The T06 ramp at 26 m/s is like 30. Air time is 1.33 vs 1.67 s and the landing is 9-12 m short (FAIL in every arm).
+- The T06 ramp at 26 m/s is like 30. Air time is 1.33 vs 1.67 s and the landing is 9-12 m short (FAIL in every arm). No lab jump at 26 m/s clears z 42800 (0/5 per arm vs 5/5, p 0.008), and the foot speed is +1.7-1.9 % (FAIL).
 - At 34 m/s the same rows pass (2.25-2.27 vs 2.50 s, inside a wide band).
 - Body motion (lab `tools\same-car\jounce.py`, `jounce-vs-r166.md`):
   - Measured as the launch squat (accel from rest) and the roll into the 18 m/s steer step, per distinct physics state.
@@ -133,7 +135,7 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
   | steer roll mean, first 2 s, deg/s | 3.3 +- 1.1 | 2.4 +- 0.2 | 2.8 PASS | 2.8 PASS | 2.9 PASS | 2.6 PASS |
 
   - The launch has no roll on any platform: roll reads 0.
-  - Against P133, the step33 / tick33 rows fail the same peaks that P166 fails; tick66 passes them.
+  - Against P133 (`jounce-vs-r133.md`), step33 / tick33 fail the steer roll peak (as P166 does) but pass the launch pitch peak; tick66 passes both peaks. Every arm fails the squat-settle time against P133, and step33 / tick33 / tick66 fail the launch pitch reversals (verify-corrected).
 - **Platform rows** (substep share, step mix): every arm fails, by design. The lab steps are fixed; retail's follow the frame.
 
 ### Against retail P133 low
@@ -157,7 +159,7 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
    - Every lab-vs-retail comparison before tonight (ERA-ENVELOPE, retail-handling, LAB-FRAME-REPLAY's T05) carried the SHO V8 car. Those behaviour deltas should be re-read with `game-samecar` before any of them is acted on.
 2. **Step vs tick, same car.**
    - On the gold standard (P166), tick66 passes every behaviour gate on accel / brake / yaw / T05 jump, and its foot speed passes too.
-   - tick33 fails left yaw (-1.7 %) and the T05 take-off (-2.8 %, vy -2.8 %).
+   - tick33 fails left yaw (-1.7 %) and the T05 take-off (-2.8 %, vy -2.8 %). Verify: the take-off fail is 2 of 15 failed jumps (47.6 m/s, turned over); its other 13 read 50.57 m/s like tick66.
    - step33 fails yaw (pooled -1.6 %, left -2.4 %) and clips the T05 lip in 4 of 24 jumps. The tick arms clipped 0 of 30 (p 0.034). n is small: report it as a candidate, not settled.
    - On body motion, tick66 drops the launch and steer peaks by 7-15 % (the 2 x 33.3 ms step), toward P133. step33 / tick33 sit on P166.
 3. **The two references disagree.** P133 differs from P166 on:
@@ -167,12 +169,12 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
 
    No arm passes both everywhere. Which reference governs is the owner's ruling (gold standard = P166 low; hardware reference = P133).
 4. **T06 ramp flight is short in every arm and does not move with the step.**
-   - Same apex, foot speed within +1.3 %, but 0.3-0.5 s less air and 9-15 m shorter.
+   - Same apex, foot speed within +1.4 % (+1.9 % at 26 m/s), but 0.3-0.5 s less air and 9-18 m shorter.
    - Not traced tonight. It is not the car and not the step. Candidates (unverified):
      - the airborne / landing detection on the lab's interpolated 120 fps rows vs the emulator's 30 fps rows;
      - the landing surface (`I76_TERRAIN_HULL_FIX` is in the lab-step-33 preset).
    - Next: the same comparison with the hull fix off, and the landing frame read from clearance on distinct states.
-5. **n.** The lab boots repeat bit-for-bit within a tick arm (sd 0.000 on most rows; step33 varies in the 3rd digit).
+5. **n.** The lab boots nearly repeat within a tick arm (sd 0.000 on most rows, not bit-for-bit: e.g. tick66 right yaw sd 0.004; step33 varies in the 3rd digit).
    - Independent boots therefore do not add physical spread. The bands come from the retail references (P166: 2 boots on the strip, 7 on T05; P133: 3 strip boots, 10 T05 boots).
    - More retail strip boots would tighten the strip bands more than more lab boots.
 
