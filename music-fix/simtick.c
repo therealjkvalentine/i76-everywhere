@@ -551,9 +551,11 @@ static int __cdecl st_cam_set(BYTE *cam, xform_t *t) {
  * weapon_AgeFlamerStreams 0x443e90 retracts a stream by 2 segments on every call that saw no shot since the last one;
  * flamers shoot 20 times a second, so a stream only grows when it is aged at most 20 times a second (stock 20 fps: full
  * length, 19 segments; stock 30 fps and the 33.3 ms tick: 2 calls in 3 have a shot, +1 +1 -2, about 2 segments - the
- * same frame-rate bug I76_FRAMERATE_FIXES holds to its 20 Hz grid). Here the ageing runs on the tick frames whose sim
- * time crossed a 1/hz boundary (2 ticks in 3 at 33.3 ms, every tick at 66.7 ms), so the fired flag collects one
- * shot window per call as at 20 fps. The update / damage still run once per tick (30 a second at 33.3 ms, the
+ * same frame-rate bug I76_FRAMERATE_FIXES holds to its 20 Hz grid). Here the ageing runs on a tick frame only when
+ * at least 1/hz of sim time has passed since the last ageing (every 2nd tick at 33.3 ms = 15 a second, every tick at
+ * 66.7 ms), so each call's fired flag covers a whole shot interval or more and a held trigger never retracts the stream.
+ * (A first form aged on the ticks that crossed a 50 ms grid line, 2 in 3: windows of 33 and 67 ms, and whether the
+ * 33 ms window held a shot depended on the phase of the weapon timer - 18.7 segments in 3 boots, 2.5 in the next.) The update / damage still run once per tick (30 a second at 33.3 ms, the
  * 1997 design value D x f per second per hitting segment: max(1, int(30 x 1 x T)) = 1). */
 static int g_st_fage_hz = 20, g_st_fage_due = 1;
 static double g_st_fage_acc;
@@ -563,7 +565,7 @@ static void st_flame_age_tick(void) {                         /* on each tick fr
     if (g_st_fage_hz <= 0) { g_st_fage_due = 1; return; }
     per = 1.0 / (double)g_st_fage_hz;
     g_st_fage_acc += (double)g_st_T;
-    if (g_st_fage_acc >= per - 1e-6) { g_st_fage_due = 1; g_st_fage_acc -= per; if (g_st_fage_acc > per) g_st_fage_acc = 0.0; }
+    if (g_st_fage_acc >= per - 1e-6) { g_st_fage_due = 1; g_st_fage_acc = 0.0; }
     else g_st_fage_due = 0;
 }
 /* ---- clock -------------------------------------------------------------------------------------------------------- */
