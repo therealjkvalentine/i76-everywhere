@@ -89,12 +89,20 @@ static DWORD g_stc[12];              /* chained call targets of the gated sites 
  * the ramp rate). What does shorten it is running the tick when the input arrives: a display frame that sees the
  * player's controls changed since the last tick runs the tick now, borrowing it from the accumulator (acc goes
  * negative, at most one tick outstanding), so the tick grid and the long-run rate are unchanged and every tick is
- * still exactly T of simulation. Drawing: alpha = acc / T is allowed down to -1 (the newest tick's motion
- * extrapolated backwards), which is continuous with the pose drawn before the early tick for steady motion.
+ * still exactly T of simulation. Drawing: see g_st_seg_early below (blend from the pose about to be drawn).
  * Change detection, per display frame, no game code run: the keyboard driver's down bits 0x6092d0[16] differ from the
  * snapshot taken after the last tick's input_UpdateControls, or a release is pending in 0x6092e0[16]; plus a lab hook
  * (the side build's drive block: a new drive-key sequence). DirectInput devices (wheel, pad) are not watched. */
 static int g_st_input, g_st_early_now;
+/* Drawing after an early tick (2nd form, after the first boots showed a heading kink of 0.4 deg median, up to 1.5 deg,
+ * on the early-tick frame with alpha extrapolated backwards): each moving object is drawn from the pose this frame
+ * would have drawn without the early tick (D) to the new tick's pose, with beta = (acc - acc0) / (T - acc0) running
+ * 0 -> 1 until the next regular tick (acc0 = the accumulator right after the borrow, negative). That segment is
+ * (2 - a) T long and covers (1 - a) of the old tick's motion plus the new one, so steady motion keeps its drawn speed
+ * and the drawn pose is continuous on the early frame. */
+static int g_st_seg_early, g_we_n, g_we_on;
+static double g_st_acc0;
+static struct { BYTE *obj; xform_t pose; } g_we[2048];   /* D per object, filled on the early frame (linear search: early ticks only) */
 static FILE *g_st_dlog;                      /* I76_SIM_TICK_DRAWLOG=<path>: the player's drawn pose per display frame (lab) */
 static BYTE g_st_kb_snap[16];
 static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the harness posted new keys */
@@ -210,6 +218,10 @@ static void wm_cb(BYTE *o, DWORD h, int kind) {
     if (wst_d2(&g_wa[idx].pose, now) > lim) return;
     g_wm[g_wm_n].obj = o; g_wm[g_wm_n].handle = h; g_wm[g_wm_n].kind = kind;
     g_wm[g_wm_n].prev = g_wa[idx].pose; g_wm[g_wm_n].cur = *now;
+    if (g_we_on) {                                           /* after an early tick: blend from what was about to be drawn */
+        int j;
+        for (j = 0; j < g_we_n; j++) if (g_we[j].obj == o) { g_wm[g_wm_n].prev = g_we[j].pose; break; }
+    }
     g_wm[g_wm_n].live = 1; g_wm[g_wm_n].swapped = 0;
     g_wm_n++;
 }
@@ -217,6 +229,7 @@ static void wst_tick_end(void) {
     g_wm_n = 0;
     if (++g_wh2_stamp == 0) g_wh2_stamp = 1;
     wst_walk(wm_cb);
+    g_we_on = 0; g_we_n = 0;
     g_wst_local.moving_last = (DWORD)g_wm_n;
     if ((DWORD)g_wm_n > g_wst_local.moving_max) g_wst_local.moving_max = (DWORD)g_wm_n;
 }
@@ -240,6 +253,26 @@ static void wst_lerp(xform_t *o, const xform_t *a, const xform_t *b, float t) {
         xf_lerp(&w, &u, &v, t);
         for (k = 0; k < 3; k++) for (i = 0; i < 3; i++) o->r[3 * k + i] = w.r[3 * k + i] * l[k];
     }
+}
+
+/* the drawing blend factor of this display frame: acc / T, or beta inside an early segment (I76_SIM_TICK_INPUT) */
+static float st_alpha(void) {
+    double a = g_st_seg_early ? (g_st_acc - g_st_acc0) / ((double)g_st_T - g_st_acc0) : g_st_acc / (double)g_st_T;
+    return (float)(a < 0.0 ? 0.0 : a > 1.0 ? 1.0 : a);
+}
+/* on the early frame, before the tick: the pose each moving object would have been drawn at this frame */
+static void st_early_from(void) {
+    float a = st_alpha();
+    int i;
+    g_we_n = 0;
+    for (i = 0; i < g_wm_n && g_we_n < 2048; i++) {
+        wmov_t *m = &g_wm[i];
+        if (!m->live || memcmp((xform_t *)(m->obj + 0x18), &m->cur, sizeof(xform_t)) != 0) continue;   /* written outside the sim */
+        g_we[g_we_n].obj = m->obj;
+        if (m->kind <= 1) xf_lerp(&g_we[g_we_n].pose, &m->prev, &m->cur, a); else wst_lerp(&g_we[g_we_n].pose, &m->prev, &m->cur, a);
+        g_we_n++;
+    }
+    g_we_on = 1;
 }
 
 static int g_st_swapped;
@@ -356,7 +389,7 @@ static void simtick_clock(void) {
     g_wst_local.dframes++;
     if (!gameplay) {                                         /* shell / pause: stock, every frame */
         ((void (__cdecl *)(void))0x0049c920)();
-        g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0;
+        g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0;
         g_st_clk[0] = 0.0f;
         g_tick20 = 1;
         wst_publish();
@@ -375,7 +408,9 @@ static void simtick_clock(void) {
         volatile float *acc = (volatile float *)0x005a7e14, *tm = (volatile float *)0x005a7e74, *stm = (volatile float *)0x005a7e70;
         float acc0 = *acc, tm0 = *tm, stm0 = *stm;
         int warm = *(volatile int *)0x005a7e18 >= *(volatile int *)0x004be990;   /* accum_dt counts from the 4th frame */
+        if (early) st_early_from();                          /* what this frame would have drawn: the blend's start */
         g_st_acc -= (double)g_st_T;
+        if (early) { g_st_acc0 = g_st_acc; g_st_seg_early = 1; }
         if (g_st_acc >= (double)g_st_T) {                    /* fell behind (a hitch): one tick per display frame */
             double k = floor(g_st_acc / (double)g_st_T);
             g_wst_local.multi_due++; g_wst_local.dropped_s += k * (double)g_st_T; g_st_acc -= k * (double)g_st_T;
@@ -397,9 +432,8 @@ static void simtick_clock(void) {
         g_wst_local.nontick++;
         g_tick20 = 0; g_acc20 = (float)g_st_since;
     }
-    g_wst_local.alpha = (float)(g_st_acc / (double)g_st_T);
-    if (g_wst_local.alpha > 1.0f) g_wst_local.alpha = 1.0f;
-    if (g_wst_local.alpha < -1.0f) g_wst_local.alpha = -1.0f;   /* negative only after an early tick (I76_SIM_TICK_INPUT) */
+    if (g_st_now && !early) g_st_seg_early = 0;              /* a regular tick ends an early segment */
+    g_wst_local.alpha = st_alpha();
     if (g_st_cosmetic) {                                     /* per-call cosmetics at the tick's per-second rate */
         float k = g_st_disp_dt / g_st_T;
         g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
