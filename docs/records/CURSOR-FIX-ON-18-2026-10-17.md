@@ -71,13 +71,14 @@ The figures are pointer minus drawn pencil in screen px on the 3440x1440 panel, 
 | 75 % | (+161, 0) | (-4, -7) |
 | **max** | **242 px** | **8 px** |
 | click (shell mouse on screen) minus pointer | max 1 px | max 1 px |
-| intro movie: union box of non-black pixels, x | 0..2870: the 16:10 picture (568..2871) | **760..2678: the 4:3 fit (760..2679)** |
+| intro movie: union box of non-black pixels, x | 1..2870 (raw; picture right edge 2870 = the 16:10 picture 568..2871) | **1..2678 (raw; picture 760..2678 by eye = the 4:3 fit 760..2679)** |
 
 - **Repeatability.** Both repeats of each set gave the same numbers to the pixel (n 2 + 2).
 - **Reproduction.** The "before" column reproduces the owner's report and the first measurement (OWNER-FEEDBACK-FIXES
   item 3) on the promotion-18 driver: the offset is 0 at the centre and up to 242 px at the sides.
-- **The x = 0 edge of the movie box** is dgVoodoo's frame counter in the top-left corner. It is in both pictures. The
-  right edge is what tells 16:10 and 4:3 apart.
+- **The x = 1 edge of the movie box** is dgVoodoo's frame counter in the top-left corner. It is in both pictures (so the
+  JSON's `within_43` reads false for the after set too). The right edge is what tells 16:10 and 4:3 apart; the after
+  picture's left edge 760 is read from `movie-c18-after-1.png`, not from the union box.
 - **A measuring bug, fixed.** At the 12 % / 12 % point the pointer is on OPTIONS. Its highlight and the tooltip at the
   bottom are larger than the pencil, so the phase's first tally (largest blob) reported 1219 / 321 px there.
   - The capture shows the pencil on the pointer tip (lab `tools\cursor-offset\runs\p10-c18\cap-c18-after-1-1.png`).
@@ -185,7 +186,8 @@ T05's opening drives the player's car with the AI. i76-map `subsystems/ai.md` M4
 - the T05 opening keeps a behaviour stack on the player.
 
 The proxy placed the car 6 s after it went live, while the opening was still running:
-- the first start was placed at frame 412, from (8579.7, 28.0, 44517.4) at 24.25 m/s;
+- with hs1 (run `tools\hill-start\runs\20261017-162948.json`) the first start was placed at frame 725, from (8368.1, 27.7,
+  44517.4) at 25.00 m/s (frame 412 / (8579.7, 28.0, 44517.4) / 24.25 m/s are hs2's placement, after the opening);
 - the opening's AI kept throttling and steering after the hold ended;
 - 1 s after the release the car was at 10.7 m/s, turned towards +z, and 16 m off after 3 s.
 
@@ -222,6 +224,10 @@ placements: the first start and one Replay.
   this only matters for the hill tests, and patch 2 does not touch any promoted file.
 
 Run JSON: lab `tools\hill-start\runs\20261017-185459.json`.
+
+(verify) A second hs2 run on disk, `tools\hill-start\runs\20261017-191530.json` (uncommitted, same DLL a091142d), agrees:
+read-back 0.29 / 0.27 m at 0.61 / 0.59 m/s with the latch 0, 3.56 / 2.66 m off after 3 s, latch held 242 / 240 frames.
+With it, hs2 is n 2 runs, 4 placements: 2.66-3.56 m after 3 s.
 
 ## Files
 
