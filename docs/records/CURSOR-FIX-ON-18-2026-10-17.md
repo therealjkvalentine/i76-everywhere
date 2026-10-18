@@ -121,7 +121,14 @@ lines.
 | launcher | result |
 |---|---|
 | PLAY-balanced.bat (best-wide-balanced `0c95b996`, wide conf `aa6414e4`) | **PASS 2/2, 120 / 120 fps** (gate `20261017-182954`) |
-| PLAY-16x10.bat (best-120 `9b53c141` + 16x10 conf: neither is changed by the fix; only the DLL is new) | ROW3-16X10 |
+| PLAY-16x10.bat (best-120 `9b53c141` + 16x10 conf: neither is changed by the fix; only the DLL is new) | **PASS 2/2, 120 / 120 fps** (gate `20261017-194209`, lab `tools\cursor-offsetow3-16x10-c18.ps1` under `with-console.ps1`) |
+
+A first 16x10 attempt inside P10 failed 0/2 (gate `20261017-182725`), but the cause was the harness, not the game:
+- P10's environment set `LAB_CURSOR_FREE=1` for every run;
+- the 16x10 conf captures the mouse (`CaptureMouse = true`), so the harness clicked the free-map point and missed TRIP.
+  The capture shows the main menu, still waiting;
+- P9 sets the variable only for a `CaptureMouse = false` conf, and P10 now does the same;
+- the re-run, with the variable unset as P9 does there, passed.
 
 **The in-mission Esc menu: what the player sees** (same run, t01 + Esc, `test-escmenu.ps1 -Stage open` +
 `measure-cursor.ps1 -Where escmenu`, n 2 per set):
