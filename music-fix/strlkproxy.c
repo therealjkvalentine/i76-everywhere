@@ -1958,7 +1958,8 @@ static void flame_census_note(const dmgrec_t *rec) {
  * the closest any tested segment came to the point is kept per log line: does the stream reach the target at all, and is
  * the hit test called while it does. */
 static float g_fhp_at[3], g_fhp_min = 1e30f; static DWORD g_fhp_calls, g_fhp_near, g_fhp_nearhit; static int g_fhp_on;
-static float g_fhp_snap[8];   /* the last near call: arg3 (segment radius), sim_dt, sim rate, dt, rate, |A-B|, result, the tick flag */
+static float g_fhp_snap[8];
+static DWORD g_fhp_c[2], g_fhp_n[2], g_fhp_h[2]; static double g_fhp_seg[2];   /* [0] non-grid / non-tick frames, [1] grid / tick frames: calls, near calls, hits, sum |seg| */   /* the last near call: arg3 (segment radius), sim_dt, sim rate, dt, rate, |A-B|, result, the tick flag */
 static int __cdecl flame_hit_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD a4, DWORD a5, DWORD a6, DWORD a7,
                                    DWORD a8, DWORD a9, DWORD a10, DWORD a11, DWORD a12, DWORD a13, DWORD a14) {
     float A[3], B[3], d[3], w[3], t, dd, e2; int k;
@@ -1974,6 +1975,7 @@ static int __cdecl flame_hit_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD
     {
         int r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x004354c0)
                 (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
+        { int c = g_tick20 ? 1 : 0; g_fhp_c[c]++; g_fhp_seg[c] += sqrt((double)dd); if (e2 < 4.0f) g_fhp_n[c]++; if (r) g_fhp_h[c]++; }
         if (e2 < 4.0f || r) {
             if (e2 < 4.0f) { g_fhp_near++; if (r) g_fhp_nearhit++; }
             memcpy(&g_fhp_snap[0], &a3, 4);
@@ -2004,7 +2006,7 @@ static void flame_census_frame(void) {                      /* frame hook: strea
             mlog("  flame-census: sim %.3f s, hit calls %lu, applied %lu on %lu frames (player %lu, amount %lu, sim %.3f..%.3f s; others amount %lu), "
                  "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx; "
                  "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s; hit explosions spawned %lu, held back %lu; "
-                 "probe: hit-test calls %lu, within 2 m of the point %lu (returned nonzero %lu), closest %.2f m; last near-or-hitting call: radius %.3f sim_dt %.4f rate %.2f dt %.4f rate %.2f |seg| %.3f r %.0f grid/tick %.0f",
+                 "probe: hit-test calls %lu, within 2 m of the point %lu (returned nonzero %lu), closest %.2f m; last near-or-hitting call: radius %.3f sim_dt %.4f rate %.2f dt %.4f rate %.2f |seg| %.3f r %.0f grid/tick %.0f; by frame (other / grid-or-tick): calls %lu / %lu, near %lu / %lu, hits %lu / %lu, mean |seg| %.2f / %.2f m",
                  *(volatile float *)0x005a7e70, (unsigned long)g_flc_hits, (unsigned long)g_flc_app, (unsigned long)g_flc_frames_app,
                  (unsigned long)g_flc_app_pl, (unsigned long)g_flc_amt_pl, g_flc_tpl0, g_flc_tpl1, (unsigned long)g_flc_amt_ot,
                  g_flc_t0, g_flc_t1, g_flc_seg_n ? (double)g_flc_seg_sum / g_flc_seg_n : 0.0, (unsigned long)g_flc_seg_n,
@@ -2012,7 +2014,9 @@ static void flame_census_frame(void) {                      /* frame hook: strea
                  (unsigned long)g_flc_upd_dmg, (unsigned long)g_flc_upd_mirror, (unsigned long)g_flc_upd_nodmg, g_flc_u0, g_flc_u1,
                  (unsigned long)g_flc_expl, (unsigned long)g_flc_expl_blk, (unsigned long)g_fhp_calls, (unsigned long)g_fhp_near,
                  (unsigned long)g_fhp_nearhit, g_fhp_min < 1e29f ? sqrt((double)g_fhp_min) : -1.0, g_fhp_snap[0], g_fhp_snap[1], g_fhp_snap[2],
-                 g_fhp_snap[3], g_fhp_snap[4], g_fhp_snap[5], g_fhp_snap[6], g_fhp_snap[7]);
+                 g_fhp_snap[3], g_fhp_snap[4], g_fhp_snap[5], g_fhp_snap[6], g_fhp_snap[7],
+                 (unsigned long)g_fhp_c[0], (unsigned long)g_fhp_c[1], (unsigned long)g_fhp_n[0], (unsigned long)g_fhp_n[1],
+                 (unsigned long)g_fhp_h[0], (unsigned long)g_fhp_h[1], g_fhp_c[0] ? g_fhp_seg[0] / g_fhp_c[0] : 0.0, g_fhp_c[1] ? g_fhp_seg[1] / g_fhp_c[1] : 0.0);
         }
     }
 }
