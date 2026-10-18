@@ -1464,3 +1464,19 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
   (pencil within 8 px). **Re-test:** 02, 08 with a Replay, and the new `12-cursor-fix.bat`, then say promote yes / no
   (proposal and gate in the record).
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
+
+## Console session 2026-10-18 (tick candidate 19, controls 18, co-op list, LAN cells; ~45 min)
+
+Everything here is read-only for the daily driver: the tick build lives in the lab twin, promotion 19 happens only on your word.
+
+| # | minutes | what | where | look for |
+|---|---|---|---|---|
+| 1 | 10 | **Wheel and pad feel on the tick.** Drive one lap of the T06 strip or a melee on `PLAY-TICK.bat`, then the same on `PLAY-balanced.bat` | `C:\Users\james\i76-uncap-lab\game-dd-20261003\` (PLAY-TICK launches game-tick, proxy 7e2caf32) | steering response with the wheel and the pad: same or better than balanced? Any lag or notchiness? (records/TICK-FINISH-2026-10-18.md s.9: measured 4.2 ms with a synthetic pad; no real wheel was attached) |
+| 2 | 8 | **Flamers.** A fight with a flamer car (melee loadout with the Gas Launcher, or a mission with AI flamers) on PLAY-TICK and on PLAY-balanced | same | does the flame burn an enemy car at all, and is the stream long (18 segments on both in the lab, but 0 hits landed on the lab's barricade target under either build) |
+| 3 | 5 | **T05 signs and barricades** on PLAY-TICK | same | signs fall as the bumper touches them (lab: 0.09 m into the post), barricades knock off about 2 in 3 rams at 20 m/s |
+| 4 | 5 | **Tracers and missiles at 120 fps** on PLAY-TICK (PLAY-16x10 style conf) | same | continuous from the muzzle, no freeze on the first frame |
+| 5 | 3 | **Controls 18 in a mission** on the daily driver | `PLAY.bat` | J K L ; fire hardpoints 1-4, O radar camera, Shift+' team scores, C cycles weapons, grey arrows orbit the chase camera |
+| 6 | 5 | **Co-op list** on the PC LAN copy | `C:\Users\james\Games\Interstate76-LAN-2026-10-17\PLAY-LAN.bat` > MULTIPLAYER > HOST > IPX | 15 stock arenas then Co-op Scene 1-17; The Crater loads the stock Crater |
+| 7 | 10 | **LAN cells that need a person at the Macs** (records/LAN-MATRIX-2026-10-18.md s.7): unlock the laptop (click once into the I76 MP GATE window) and Michael's Mac, wake Andrew's Mac and the Deck, then tell the session to resume | laptop, Michael, Andrew, Deck | the agent runs laptop/Michael cells, the 5-player session and the co-op cells; Andrew's Mac and the Deck still carry the old pack until they are reachable |
+
+Verdict wanted: promote 19 (tick) yes / no / after fixes; anything in 1-4 that feels worse than balanced, say which.
