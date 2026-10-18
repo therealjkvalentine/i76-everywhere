@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-18 morning (s.9): the four unmeasured items were measured; three needed a patch (wheel / pad early tick, sign timing, new rounds frozen for a tick) and the flamer a fourth (stream ~2.5 segments under the tick); new candidate STRLKUP-tick19b 7e2caf32, gate 21 PASS 0 FAIL 2 INFO. Flame hits on a target remain unmeasured.**
+
 **Better than promotion 18 on what was measured, with two gaps that are not measured.** Recommended: the **33.3 ms
 tick** (`tick19-33`, launcher `PLAY-TICK.bat`).
 
@@ -241,3 +243,164 @@ keys blanked, and the proxy log confirms the tick on in every boot. `game-tick`'
   test 3.
 - Melee contexts on the same-car fingerprint (as SAME-CAR s.5).
 - `tf66aa` T13 boots (A/A for tf66 is the latency boot only).
+
+## 9. The four gaps, measured and patched (2026-10-18 morning, tick-gaps lane)
+
+The owner: "What is the status and next steps of the tick fix? Playtesting? Everything else measured? Surely one or two
+things still need a patch here and there?" Three of the four unmeasured items needed a patch, and the fourth (flamers)
+needed one too once it could be measured; flame HITS are still not measured. Lab only; the daily driver, the golden copy
+and the Downloads portable were not touched.
+
+**New candidate proxy `STRLKUP-tick19b.dll` md5 `7e2caf329346828de8507d080e3e3924`** (i76-everywhere `a3befe1`
+music-fix, lab `builds\tick-gaps-20261018\make.ps1`, the MSVC recipe of s.1; a second build is section-identical, pecmp
+SAME). Staged in `builds\tick-finish-20261018\promotion-19-candidate\` (README row text and MD5SUMS rewritten) and in
+`game-tick` (read back). The presets `tick19-33` / `tick19-66` are unchanged (the new behaviour is the default under the
+tick); the PLAY-TICK / PLAY-TICK-66 launcher comments name the new md5 (candidate folder, game-tick, lab twin).
+
+Harness: lab copy `game-wst` (headless, private desktop, audio muted), lab twin builds `Strlkup-tg1..tg6-lab.dll` (the
+same source + the drive block; tg6 = `a3befe1`), tools `tools\tick-gaps\` (tables: `tg_analyse.py` ->
+`emu\results\tick-gaps-20261018\tg-tables.md`), captures `captures\tick-gaps-20261018` (gitignored). Every tick boot's
+probe read the 30 hook sites back live (30 / 30), 0 interpolation leaks, 0 CRASH, 0 NOT applied. Arms: **tg33** =
+tick19-33 on the patched build; **tg33nj / tg33p0 / tg33fa0** = the same with one patch switched off (= last night's
+behaviour); **p18** = promotion 18's PLAY-balanced preset; **e30k** = the stock loop at 30 fps (retail stand-in);
+*aa = A/A twins.
+
+### 9.1 Wheel / pad latency - PATCHED
+
+- **Path (static).** The engine reads a wheel or pad through winmm `joyGetPosEx` (input_JoystickPoll 0x450870, IAT
+  0x4bc384, only while GetFocus() is the game window) inside input_UpdateControls. DirectInput is only the force
+  feedback. Last night's early tick watched only the keyboard's down bits.
+- **Patch (simtick.c + the joy routing in strlkproxy.c).** With I76_SIM_TICK_INPUT=1 the proxy hooks joyGetPosEx /
+  joyGetDevCapsA (the existing routing hooks, ids unrouted), records what the tick's input_UpdateControls read per
+  joystick id, and on every non-tick display frame calls the same hooked joyGetPosEx for the ids the engine polled (no
+  game code). A button, the POV or an axis move of more than 1 % of its caps range (I76_SIM_TICK_JOY_DB permille,
+  default 10) runs the early tick, borrowed as for keys (one outstanding at most). I76_SIM_TICK_JOY=0 turns it off.
+- **Probe.** No wheel is plugged in and vJoy has no device configured, so a synthetic pad at the proxy's winmm hook
+  (I76_JOY_SYNTH, winmm id 0 = joystick1 = the map's steer axis): the harness sets its X (centre <-> +20000) with a QPC
+  stamp, the proxy's probe times device change -> first sim step -> first drawn frame; 40 events per boot, T06.
+
+| arm (side build) | boots | events | -> first drawn frame ms: median, p90, max | boot medians | early ticks from the pad per boot |
+|---|---|---|---|---|---|
+| **tg33** (tg1 x 2, tg6 x 1) | 3 | 120 | **4.2, 7.7, 8.8** | 5.5, 3.6, 3.5 | 33, 32, 28 |
+| tg33aa (A/A) | 1 | 40 | 5.1, 8.5, 8.6 | 5.1 | 33 |
+| tg33nj (keyboard-only early tick = last night) | 2 | 80 | 13.3, 30.8, 34.0 | 15.8, 11.1 | 0 |
+| p18 / p18aa | 2 / 1 | 80 / 40 | 11.2, 28.3, 33.0 / 7.0, 20.2, 24.0 | 11.6, 10.3 / 7.0 | - |
+
+- The pad now answers like the keyboard (max 8.8 ms, one display frame at 120 fps). Without the watch it waited for the
+  tick (0..33 ms); promotion 18 waits for its 41.7 ms step (its boot medians spread 7-12 ms A/A).
+- **No false early ticks:** pad centred with +-300 counts of noise on every read (0.46 % of the range), no input, 60 s:
+  0 early ticks in 3 boots (about 2 500 watcher calls each); no pad at all: 0 watcher calls.
+- **Keyboard unchanged:** tg33 key -> drawn frame 4.7 / 7.9 / 9.1 ms (2 boots) and 3.8 / 7.7 / 8.5 (1 boot, final
+  source); last night 4.4 / 7.8 / 8.7.
+- Not measured: a real device's joyGetPosEx cost per display frame (the synthetic pad costs ~0 us) and its axis noise
+  (the 1 % dead band is chosen on the safe side).
+
+### 9.2 Flamers - PATCHED (stream length); hits not measured
+
+- **Why last night's Gas Launcher never fired:** in T13 the AI drives the player car for the whole boot
+  (ai_WasPlayerAutopiloted 0x5244c4 = 1 in 185 of 190 samples, `tools\tick-gaps\flame_diag.py`), and weapon_Update
+  0x4a4130 skips weapon_ReadPlayerTrigger 0x4a5870 while it is set; the drive block's fire byte was fine. T05 hands the
+  car over at ~10 s; there the key fires (ammo 700 -> 0 in 40 s in every boot). That car's Gas Launcher (hardpoint 3)
+  fires backwards (stream forward row . nose = -0.996).
+- **Found: under the tick the flame stayed ~2.5 segments long.** weapon_AgeFlamerStreams retracts a stream by 2
+  segments on each call that saw no shot; 20 shots a second against 30 ageing calls nets nothing (the stock 30 fps loop
+  has the same frame-rate bug). Promotion 18 holds ageing to its 20 Hz grid: 18.5 segments.
+- **Patch (simtick.c, I76_SIM_TICK_FLAME_AGE=<hz>, default 20, 0 = every tick):** under the tick a stream is aged only
+  once a whole 50 ms of sim time has passed since the last ageing (every 2nd tick at 33.3 ms, every tick at 66.7 ms), so
+  each call covers a full shot interval. (A first form aged on 50 ms grid lines, 33 / 67 ms windows: 18.7 segments in 3
+  boots and 2.5 in a 4th, depending on the weapon timer's phase; replaced by a3befe1.)
+- **Measured** (T05, player Gas Launcher held 40 s, barricade 8 / 14 m behind the car; proxy I76_FLAME_CENSUS):
+
+| arm | boots | stream segments, mean while firing | damage-capable flamer updates per sim s (stream live) |
+|---|---|---|---|
+| **tg33, final source** | 4 | **18.6** (all 4) | **30** (main pass, tick frames) |
+| tg33fa0 (ageing every tick = last night) | 4 | 2.5 | 20 (the stream is empty 1 tick in 3) |
+| p18 | 4 | 18.5 | 20 (20 Hz grid) |
+| e30k (stock 30 fps) | 4 | 2.5 | 20 main pass + 20 rear-mirror pass |
+
+  Every application is max(1, int(D x f x dt)) = 1 in all arms (raw amount 1 read in the stock boots), so per hitting
+  segment the tick deals 30 a second (the 15 fps design value D x f of the Gas Launcher, as s.5 predicted),
+  promotion 18 20, the stock 30 fps loop 20 plus the mirror's.
+- **Not measured: hits.** Only the stock loop landed flame on the barricade (2 of 4 boots with the muzzle on it, 20.1
+  damage per sim s); the tick (0 of 13 boots) and promotion 18 (0 of 5, with an 18.5-segment stream) registered no hit
+  there, and the T05 cars within reach of the hand-over are dormant (0 hits). Whether the grid / tick flamer paths miss
+  targets in play or only this low static bar is open: owner check 2. AI flamer cars against the player: T05's never
+  engaged (as last night).
+
+### 9.3 Signs and barricades (I76_BREAKABLE_BOX=4) - PATCHED (sign timing)
+
+T05 Texas 13 / US 380 posts, 11 rams per boot at 20 m/s, +-4 deg / +-0.6 m jitter (signs3-measure's rams); barricades
+10 rams per boot (rate-ab-live ram --direct).
+
+| arm | boots | posts knocked off | drawn gap at the knock-off m: median (min..max) | gap when queued, median |
+|---|---|---|---|---|
+| p18 | 2 | 22 / 22 | -0.11 (-0.34..0.00) | +0.50 |
+| tg33 before the patch (tg1, tg2) | 3 | 33 / 33 | -0.31 (-0.42..-0.02) | -0.13 |
+| **tg33 patched (tg5 x 2, tg6 x 1)** | 3 | **33 / 33** | **-0.09 (-0.16..-0.01)** | -0.02 |
+
+- Cause: the sweep ran in the frame hook and saw a tick's motion one display frame after the tick, while the drawn car
+  starts down that tick's segment in the tick's own frame; the entry point within the step predicted the gap (gap =
+  0.67 x entry - 0.24 m, 0.67 m = one tick at 20 m/s). **Patch (strlkproxy.c sign_sweep_tick / sign_pend_frame, called
+  from simtick.c):** under the tick the sweep runs once per tick at the end of the sim block, before that frame is drawn,
+  and a queued knock-off is tried at once and on every display frame after. Every post still falls (100 %), 0 timeouts,
+  now within 0.16 m of the drawn bumper, as under promotion 18.
+- Barricades: 13 / 20 knocked off in both arms (n 2 boots each): unchanged by the tick.
+
+### 9.4 Projectile stalls - PATCHED
+
+- **Cause** (census split by spawn tick): 99-100 % of the stalls were rounds spawned inside the tick. They have no
+  tick-start pose, so they sat at their end-of-tick pose for the whole next window (a one-tick freeze at the muzzle) and
+  then moved on one tick late.
+- **Patch (simtick.c, I76_SIM_TICK_PROJ, default 1):** a round spawned in a tick is drawn moving from its end pose E along
+  its velocity (projectile data +0x14, in its own frame) to E + 0.5 v T during its first window, and the next tick's
+  segment starts from that drawn pose; drawing only, the sim pose is never touched. The velocity reading matched the next
+  tick's motion within 10 % in 100 % of 1 466 checks (mean error 6-7 %).
+- **Measured** (T13 idle + god 60 s, I76_SIM_TICK_PROJLOG: every round's drawn position per frame at 120 fps):
+
+| arm | boots | census stall % | drawn tracks | zero-length frame steps | steps > 3 x the track median | reversed steps |
+|---|---|---|---|---|---|---|
+| tg33p0 (last night) / aa | 3 / 1 | 1.8 +- 0.8 / 2.2 | 512 / 146 | **3.4 % / 3.7 %** (all in a track's first 4 frames) | 0 / 0.08 % | 0 |
+| **tg33 patched / aa / final** | 3 / 1 / 1 | 0.24 +- 0.66 / 0 / 0 | 448 / 184 / 163 | **0** | 0 / 0 / 0.04 % | 0 |
+
+  Tracers and missiles now leave the muzzle on their first drawn frame and never step backwards.
+
+### 9.5 Gate and physics rows (final candidate)
+
+- **Gate on game-tick (dgVoodoo, physical console, 09:26-09:41, `tools\tick-gaps\run-gate.ps1`), proxy 7e2caf32 read
+  back:** PLAY-TICK.bat all rows **21 PASS 0 FAIL 2 INFO** (route 3/3, trip 2/2 at 120 fps, save screen, Esc-menu Exit
+  HIT, melee; INFO = watermark by eye, no wheel); PLAY-TICK-66 rows 2, 3, 5, 6 **8 PASS 0 FAIL**; PLAY-balanced's preset
+  on the new proxy rows 3, 6 **6 PASS 0 FAIL**. Proxy log: tick ON in 10 + 7 boots with joystick watch ON, new rounds
+  drawn moving ON and flamer ageing 20 Hz in every one; 0 CRASH, 0 NOT applied. Runs `autotest\runs\gate\20261018-092638`,
+  `-093403`, `-093847`.
+- **T06 strip on game-samecar (n 3, patched source tg5):** all 54 fingerprint rows against retail P166 keep last night's
+  tf33 verdict (19 PASS, 13 FAIL, 1 OUT, 9 ok, 12 INFO; the 13-row gate as s.4.4); values equal to the printed digit
+  except the 33 m/s ramp rows, which differ inside their boot sd (air 2.100 vs 2.133 s, sd 0.03 / 0.06). The patches
+  change no physics row.
+
+### 9.6 Patch list (i76-everywhere music-fix)
+
+| commit | change |
+|---|---|
+| 91c959f | joystick watch for the early tick; projectile spawn census and drawing switch; PROJLOG; FLAME_CENSUS; shm v3 |
+| 5f7f3f0 | flamer stream ageing on a 20 Hz sim-time grid under the tick; sign-sweep log detail |
+| 6c71b6b | new rounds drawn moving by default; the sign sweep once per tick at the sim block's end |
+| 1d3577b, 0d6c3dc | flame census logs stream lengths and the update cadence (lab instrument, off by default) |
+| a3befe1 | flamer ageing after a whole 50 ms (phase-independent) - the candidate source |
+
+### 9.7 Owner checks (revised)
+
+1. **Wheel and pad feel**: PLAY-TICK vs PLAY-balanced. The early tick now watches them (lab: synthetic pad, 4.2 ms
+   median). If steering feels twitchy or the game stutters with the wheel in, say so (a real device's read cost and
+   noise are not measured).
+2. **Flamers, on PLAY-TICK and on PLAY-balanced**: does a Gas Launcher or FlameThrower burn an enemy car, and is the flame
+   long? The lab could not land flame on a target under either.
+3. **T05 signs**: do they fall as the bumper touches them?
+4. **Tracers and missiles at 120 fps**: smooth from the muzzle?
+
+### 9.8 Still not measured, and why
+
+- Flame hits and damage on a target under the tick and under promotion 18 (9.2: the harness's targets took 0 hits).
+- AI flamer cars against the player (T05's never engaged; no other mission tried).
+- A real wheel or pad (none plugged in; vJoy has no device configured, and enabling one needs admin and adds a
+  system-wide device).
+- tick66 arms beyond the gate rows (the patches apply to it), and the same-car T05 jumps (no physics code changed).
