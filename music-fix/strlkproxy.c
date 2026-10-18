@@ -1935,7 +1935,7 @@ static void flame_census_frame(void) {                      /* frame hook: strea
 #ifdef _MSC_VER
     } __except (EXCEPTION_EXECUTE_HANDLER) { }
 #endif
-    if (g_flc_hits && GetTickCount() - g_flc_last_log >= 1000) {
+    if ((g_flc_hits || g_flc_seg_n) && GetTickCount() - g_flc_last_log >= 1000) {
         static DWORD logged_app = 0xFFFFFFFFu, logged_seg = 0xFFFFFFFFu;
         if (logged_app != g_flc_app || logged_seg != g_flc_seg_n) {
             logged_app = g_flc_app; logged_seg = g_flc_seg_n; g_flc_last_log = GetTickCount();
