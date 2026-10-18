@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-18 afternoon (s.10): the owner's first playtest found four real problems. Fixed and measured: tracers (drawn for 1 frame, now every frame), sound loops restarted every tick (15.4 starts / sim s, now 0.86 like promotion 18), the lab copy not being the driver (keys, music switch, menu pointer). NOT fixed: flame hits never register under the tick (nor under promotion 18). New candidate STRLKUP-tick19c 6846c2d4, gate 21 PASS 0 FAIL 2 INFO.**
+
 **Update 2026-10-18 morning (s.9): the four unmeasured items were measured; three needed a patch (wheel / pad early tick, sign timing, new rounds frozen for a tick) and the flamer a fourth (stream ~2.5 segments under the tick); new candidate STRLKUP-tick19b 7e2caf32, gate 21 PASS 0 FAIL 2 INFO. Flame hits on a target remain unmeasured.**
 
 **Better than promotion 18 on what was measured, with two gaps that are not measured.** Recommended: the **33.3 ms
@@ -404,3 +406,164 @@ T05 Texas 13 / US 380 posts, 11 rams per boot at 20 m/s, +-4 deg / +-0.6 m jitte
 - A real wheel or pad (none plugged in; vJoy has no device configured, and enabling one needs admin and adds a
   system-wide device).
 - tick66 arms beyond the gate rows (the patches apply to it), and the same-car T05 jumps (no physics code changed).
+
+## 10. The owner's first playtest of PLAY-TICK, and what changed (2026-10-18 afternoon, tick-fix lane)
+
+The owner played PLAY-TICK / PLAY-TICK-66 (game-tick, proxy 7e2caf32) and wrote seven notes. Lab only: the daily driver,
+the golden copy and the Downloads portable were only read. Captures: lab `captures\tick-fix-20261018` (gitignored); side
+builds `builds\tick-fix-20261018` (tx1..tx8, `make.ps1`); queues `queue-tickfix\q1..q8`; tools `tools\tick-fix`.
+
+**New candidate `STRLKUP-tick19c.dll` md5 `6846c2d42dcd9ad7ed2503956c19d522`** (i76-everywhere `3e7e0c5` music-fix, the
+MSVC recipe of s.1; a second build `run2\` is section-identical, pecmp SAME). Installed in game-tick (read back) and staged
+in `builds\tick-finish-20261018\promotion-19-candidate\` (tick19b's set kept in `_superseded-tick19b\`). `3e7e0c5` also
+carries the co-op commits made on music-fix since `a3befe1` (d444c9b, f2598f0: network games only).
+
+| owner note | cause | fix | evidence (n) |
+|---|---|---|---|
+| cursor still not aligned | the driver itself has the 242 px offset; the fix (CURSOR-FIX-ON-18) was gated, never promoted | game-tick tick presets `I76_CURSOR_MAP_DGV='ar'` + `dgVoodoo.tick.conf` aa6414e4 | pointer minus drawn pencil max 8 px vs 242 px with the driver's settings (n 2 + 1) |
+| music not like the best | `I76_MUSIC_RETAIL` / `_RESUME` are not in the driver | both in the tick presets | proxy log: retail set ON in 11 / 11 tick boots of the gate (not listened to) |
+| keys | old game-tick had the pre-18 input.map 90122d37 | game-tick rebased on the driver (input.map a66a37f7) | md5, 449 / 449 files |
+| signs | - | - | owner: correct |
+| sounds restarted fast | sustained loops stopped every display frame between ticks | keep-alive held between ticks | 15.4 -> 0.86 starts / sim s (n 3 + 3) |
+| tracers only the first moment (33 and 66) | the renderer resets a tracer not stepped since its last draw | records kept alive, drawn segment between ticks | 1 drawn frame -> every frame of 0.72 s (n 2 + 5) |
+| flamer impact / damage | under the tick (and promotion 18) a stream never registers a hit | NOT FIXED (3 hypotheses ruled out) | 0 hits in 116 000 near calls vs 94 % in stock (n 4 + 3) |
+
+### 10.1 The lab copy was not the daily driver ("the lab isn't up to date with the best stuff in the daily driver")
+
+| file | daily driver (promotion 18 + controls 18) | old game-tick | lab twin game-dd-20261003 |
+|---|---|---|---|
+| input.map | a66a37f7 | **90122d37 (pre-18)** | **12a6357e** (18 without the orbit blocks) |
+| _ahk\i76-remap.ahk | 62ba0883 | **14367db9 (pre-18)** | 62ba0883 |
+| presets best-wide / -balanced / best-120 | 3922146a / 0bca8b31 / 9b53c141 | **e1a9bd26 / 75881df4 / df936278 (pre-17)** | the same pre-17 files |
+| I76PLYR.DEF, NSCR.DAT, NVCL\nvcl0.vcf, multicar.def, user.mel | the driver's | differ | differ (also ADDON\vehscn.vcf, i76car.def, saves) |
+| i76.exe, u32x, i76shell, dgVoodoo confs, PLAY-i76.ps1, music\*.mp3, music.wav | 6319abf7, 06467bd2, a300db63, dccd379a, ... | same | same |
+
+So game-tick played the pre-promotion-18 keys (no J K L ; hardpoints, K radar). The tick presets themselves were made from
+the driver's 0bca8b31 and were right. The twin does not mirror the driver either (input.map, presets, saves); it was not
+changed here (other lanes stage into it).
+
+**Rebase.** The old game-tick is kept as `game-tick-old` (a copy: the folder could not be renamed, a handle was open in it).
+game-tick\Interstate 76 was mirrored from the DRIVER (robocopy /MIR, the driver only read): md5 manifests of the two (449
+files) identical. Then only these were added; an md5 diff against the driver shows nothing else:
+`STRLKUP.DLL` 33211f11 -> **6846c2d4**; `presets\tick19-33.psd1` **b8bb9b1b**, `tick19-66.psd1` **8715387b**, `tick19w-33 / -66`
+(b2d30f14 / f5a2e2a8), `p18-best-wide(-balanced).psd1` (verbatim copies of the driver's); `dgVoodoo.tick.conf` **aa6414e4**
+(new file). Outside the game folder: `PLAY-TICK.bat`, `PLAY-TICK-66.bat`, `PLAY-P18-BALANCED.bat`.
+
+**Presets** (`tools\tick-finish\make-presets.ps1 -OwnerBest`, from the driver's best-wide-balanced 0bca8b31): promotion 18's
+switch set minus the 10 per-frame timing keys of s.2, plus the tick keys, plus the two finished items the owner approved that
+are NOT in the driver yet:
+- **music**: `I76_MUSIC_RETAIL=1` + `I76_MUSIC_RESUME=1` (OWNER-TEST-LIST item 49, owner test 05 "perfect in each way"). The
+  music files were identical everywhere; what differed was the switch (the driver plays today's non-retail rules).
+- **menu pointer**: `I76_CURSOR_MAP_DGV='ar'` + `dgVoodoo.tick.conf` = the CURSOR-FIX-ON-18 conf aa6414e4 ([DirectX] Resolution
+  1920x1440), copied in by PLAY-TICK / PLAY-TICK-66 (PLAY-P18-BALANCED keeps the driver's wide conf). The driver still has DGV
+  '1' and conf dccd379a, the 242 px offset CURSOR-FIX-ON-18 s.3a measured; the fix was gated on the twin but never promoted,
+  so "still not aligned" was the driver's own state carried into game-tick. The candidate proxy has the 'ar' code (s.1).
+
+### 10.2 Tracers ("don't go out from the car, just the first moment is visible"; 66: "only the second part, not the travel")
+
+- **Cause (static, i76-map disassembly).** A tracer is not drawn from its round's pose. The engine keeps a ring of tracer
+  records (0x64 B, `[0x52ba48]`): +4 the round, +8 "updated since the last draw", +0xc / +0x10 the older / newer slot of a
+  2-slot ring (next table 0x52ba38), +0x1c the slots' world points. weapon_StepBullet 0x4abe60 -> 0x441ef0 writes the round's
+  position into the next slot and sets +8; renderer_QueueTracers 0x442480 draws older -> newer and clears +8, and a record
+  whose +8 is already 0 when drawn is **reset and loses its round** (+4 = 0). Stock stepped before every draw. Under the tick
+  the second drawn frame after a tick reset every record and 0x441ef0 never found it again: each tracer was drawn for one
+  frame. At 66.7 ms the one drawn segment is the round's second step ("only the second part").
+- **Fix (simtick.c, I76_SIM_TICK_TRACER, default 1).** Records updated in a tick are kept marked around each render; the drawn
+  segment ends at lerp(older, newer, alpha) (where the round is drawn) and is one tick long, starting at the muzzle during the
+  round's first tick; after the render the record and +8 = 0 are put back, so a dead round's record is still reset by the
+  first render after its last tick, as in stock. Lab log I76_SIM_TICK_TRCLOG (`tools\tick-fix\trc_analyse.py`).
+- **Measured** (T13 idle + god 60 s, the AI firing at the player, headless, every tracer record the renderer drew per frame
+  at 120 fps):
+
+| arm | boots | tracers | drawn frames per tracer (median) | shown / alive | life median | segment | head step per drawn frame |
+|---|---|---|---|---|---|---|---|
+| tick33, tracer fix off (= 7e2caf32) | 1 | 91 | **1** | - | 1 frame | 1.9 m | - |
+| tick66, fix off | 1 | 91 | **1** | - | 1 frame | 6.7 m (the 2nd step) | - |
+| **tick33** (+ A/A) | 3 | 141 / 151 / 176 | **88** | **1.00** (p10 1.00) | 0.72 s | grows from the muzzle over the first tick, then 6.67 m (one tick at 200 m/s) | 1.67 m every frame; 0 zero, 0 reversed in 38 372 steps |
+| **tick66** | 2 | 87 / 86 | 80 / 176 | **1.00** | 0.66 / 1.46 s | 13.3 m (one 66.7 ms tick) | 0 zero, 0 reversed in 23 205 steps |
+
+  The stock game at 30 fps draws the same streak (one frame of travel). Not judged by eye (s.10.6).
+
+### 10.3 Sound effects ("being restarted fast")
+
+- **Cause.** Sustained loops (voice mode 2: road dirt / sand, wind, tyre skid / turn, tflat, damage, missile-lock tones) live
+  while requested: each request adds 1 to the voice's keep-alive byte +0x74, and the per-frame sound update shell_cb_10
+  0x421400 (call 0x403e27, every DISPLAY frame) stops a mode-2 voice whose keep-alive is 0. Under the tick the sim requests once
+  per tick, so the next display frame stopped the loop and the next tick started it again.
+- **Fix (simtick.c, I76_SIM_TICK_SOUND, default 1).** The tick frame lists the mode-2 voices the tick requested; on the display
+  frames until the next tick those voices get keep-alive 1 before the update. A loop the next tick does not request stops on
+  that tick frame, as in stock. Count instrument I76_SOUND_CENSUS=1 (the sound_StartVoice call sites 0x4214e0 / 0x422422:
+  every start that played, by sample; `tools\tick-fix\snd_analyse.py`).
+- **Measured** (T06 strip: accel, steer, jumps; headless; voice starts per sim second over ~86 sim s per boot):
+
+| arm | boots | starts / sim s | sustained-loop starts / sim s | top restarts |
+|---|---|---|---|---|
+| tick33, keep-alive fix off (= 7e2caf32) | 3 | **15.42, 15.42, 15.48** | 14.90, 14.88, 14.87 | vcddirt 8.0 /s, vcdsand 2.9, ADWIND 2.3, tskid3 0.75, tturn3 0.46, tskid2 0.44 |
+| **tick33** (+ A/A) | 3 | **0.85, 0.90, 0.82** | 0.30, 0.28, 0.22 | none (keep-alives held 3 428-3 950 per boot) |
+| promotion 18 (PLAY-balanced preset) | 3 | 0.79, 0.91, 0.80 | 0.28, 0.31, 0.31 | - |
+| stock loop at 30 fps | 2 | 0.89, 0.91 | 0.32, 0.28 | - |
+
+### 10.4 Flamers ("go out the right distance, but the impact animation is a hall of mirrors; doesn't seem to damage") - NOT FIXED
+
+- **Found: under the tick a flame stream never registers a hit.** Probe I76_FLAME_PROBE_AT (strlkproxy.c, lab: every
+  weapon_FlameHitTest call from the flamer update at 0x44449b, the closest tested segment to a point, the clock at the call)
+  with the player's Gas Launcher held 40 s at the T05 barricade 8 m behind the car (`flamep`):
+
+| arm | boots | hit-test calls | calls with the tested segment within 2 m of the barricade | hits | mean tested segment |
+|---|---|---|---|---|---|
+| stock loop 30 fps, headless / real renderer (25 fps) | 3 / 1 | 2 100 / 30 294 | 0 / 0 (closest 3.9 / 2.2 m) | **700 / 28 464** (33 % / 94 % of the calls) | 1.3 m (2.5 segments) / 2.8 m (17.5 segments) |
+| tick33, headless / real renderer | 3 / 1 | 150 700 / 37 674 | 116 648 / 29 162 | **0 / 0** | **9.8 m** (18.6 segments) |
+| tick66 | 1 | 150 624 | 116 592 | **0** | 10.2 m |
+| promotion 18, headless / real renderer | 2 / 1 | 162 742 | 125 678 | **0** | 6.1 m |
+
+  So no flame damage and no hit explosion on that target under the tick AND under promotion 18 (both hold the flamer update
+  the same way, s.9.2); the stock loop hits. The 0-hit census of s.9.2 was this, not the harness. With no hit there is no hit
+  explosion, so the lab could not reproduce the "hall of mirrors" on this target; the owner's impressions (impacts, no clear
+  damage) need his eyes again once hits work.
+- **Ruled out** (each 1-3 boots; still 0 hits, tested segment unchanged): the flamer update's per-call record state (it stores
+  the muzzle transform and animation counters in the stream record on every call, 0x444810 / 0x444846; saved and restored
+  around every non-tick and mirror call: I76_SIM_TICK_FLAME_STATE=1, 3 boots); the clock at the call (the tick's clock on every
+  display frame: I76_SIM_TICK_FLAME_CLK=1); the flamer dt floor (0.001 s and 0.1 s instead of the tick: I76_SIM_TICK_FLAME_DT).
+  All three stay as lab switches, off. The lead is the tested segment (9.8 m here against 2.8 m in the hitting stock run):
+  what sets it in weapon_UpdateFlamerStreams 0x443fc0 is not traced.
+- Also measured: the stock loop spawns one hit explosion per hitting segment per update (28 464 in 36 s, ~780 a second with a
+  17-segment stream on the barricade), i.e. the stock game itself stacks many impact sprites.
+- The headless T05 ally-van target (`flamepn`, 10 boots) was a dud: the nearest car was 518 m away and dormant in every boot.
+
+### 10.5 Gate, pointer, physics rows (physical console, lock held, audio muted; the owner away)
+
+- **Gate on game-tick (proxy 6846c2d4 read back; `tools\tick-gaps\run-gate.ps1`, 16:09-16:24):** PLAY-TICK.bat all rows **21 PASS
+  0 FAIL 2 INFO** (conf accepted, bookmark route 3/3, trip 2/2 at 120.1 / 119.5 fps, save screen NO / YES, Esc-menu Exit hit
+  where drawn, melee 121 fps, input.map a66a37f7 lint OK and unchanged, saves byte-identical; INFO = watermark by eye, no
+  wheel); PLAY-TICK-66 rows 2, 3, 5, 6 **8 PASS 0 FAIL**; PLAY-P18-BALANCED (promotion 18's preset, the driver's conf) rows 3, 6
+  **6 PASS 0 FAIL**. Proxy log: tick ON 33.333 ms x 10 and 66.667 ms x 7, early tick ON in each, NOT applied 0, CRASH 0; the
+  tick boots logged `I76_CURSOR_MAP_DGV=ar` and `music: retail set ON` (11 boots), the control `=1` / `retail set off`. Runs
+  lab `autotest\runs\gate\20261018-160859`, `-161627`, `-162113`.
+- **Menu pointer on game-tick** (`tools\tick-fix\cursor-tick.ps1` -> `tools\cursor-offset\measure-cursor.ps1`, main menu, 7
+  points, screen px on 3440x1440): PLAY-TICK's set (tick19-33 + dgVoodoo.tick.conf): pointer minus drawn pencil **max 8 px**
+  in both runs (identical to the pixel: centre (-4,-7), corners (-3..-4, -6..-8)), the click lands within 1 px of the pencil;
+  the same copy with the driver's settings (p18 preset + wide conf): **242 px** at the sides (-242 / +241), as CURSOR-FIX-ON-18
+  s.3a. Lab `tools\cursor-offset\runs\cursor-tick19c-a / -b / -p18ctl.json`.
+- **T06 strip on game-samecar, candidate source** (n 3, lab twin tx8 = `3e7e0c5` + drive block): **54 / 54 fingerprint rows keep
+  tg33's verdict** (19 PASS, 13 FAIL, 1 OUT, 9 ok, 12 INFO); values within boot noise (accel t20 4.20 s, brake v0 29.51 m/s).
+  No physics row moved (lab `emu\results\tick-fix-20261018\tx-t06-vs-p166.md`).
+
+### 10.6 Still needs the owner's eyes (and ears)
+
+1. **Tracers** on PLAY-TICK and PLAY-TICK-66: do rounds now leave the car and streak all the way? (Lab: drawn every frame, one
+   tick long; not seen by eye, see below.)
+2. **Sound**: tyre / road / wind loops steady, no stutter.
+3. **Music**: the menu track loops on its own, mission music continues after Replay / Esc (test 05's retail + resume set).
+4. **Keys**: promotion 18's map (J K L ; hardpoints, O radar camera): game-tick now has the driver's input.map.
+5. **Menu pointer** on PLAY-TICK: the arrow on the pencil (lab: within 8 px).
+6. **Flamers: still broken under the tick and, by the same measurement, under promotion 18**: no hit registers on the T05
+   barricade. Please say whether a flamer burns a car on PLAY-balanced (the driver): that tells whether cars behave like the
+   barricade.
+
+Not run, and why:
+- The screenshot bursts of visible 3D runs (`wst-run.ps1 -Visible -Shots`, `tools\tick-fix\shots.py`, PIL ImageGrab; also a
+  PrintWindow test) came back entirely black for the dgVoodoo window (on lab copy game-tickvis), while the gate's own captures
+  (Capture-UI) of game-tick show the picture. Not resolved, so there is no frame sequence of tracers or flames.
+- Flame damage on a car: the headless T05 ally-van target (`flamepn`, 10 boots) picked a dormant car 518 m away every time, and
+  the barricade takes no hit under the tick anyway (10.4).
+- The twin game-dd-20261003 is still not the driver (10.1); not changed here.
