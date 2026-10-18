@@ -170,3 +170,43 @@ stopped, 4ed297ca back, test folder removed; Deck audio was muted before and sta
 three Macs (ours, stopped); `systemd-inhibit` on the Deck was refused (block mode needs authorisation). Games we started
 on the PC, Andrew's, Michael's and the laptop stopped (`wineserver -k` per prefix; our PC pid only); Andrew's and
 Michael's audio back to unmuted (their prior state). PC console lock 07:22-07:27, released.
+
+## 7. Fourth attempt (10:11-11:02): Michael's cells and the co-op pack 2026-10-18
+
+**Availability, polled the whole time** (`wait-unlock.sh` on both Macs, pings to the others): Michael's Mac and the
+laptop stayed at the lock screen from 10:11 to 11:02 (Michael's HID idle 39 min at 10:11, the laptop's 57 min); Andrew's
+Mac stopped answering at about 10:40 (SSH and ping time out: asleep or lid closed); the Deck did not answer at all
+(asleep since our 07:27 revert). So **no cross-machine cell could run** in this window: Michael host -> laptop, laptop
+host -> Michael, PC host -> Michael, the 5-player session, and every co-op cell below are **not run**. The PC alone
+cannot test across machines.
+
+**Michael's firewall answer is in place** (seen 09:25 and again at 10:11: `wineserver` - Allow incoming connections), so
+his IPX start should now work; it is not measured (his screen stayed locked: no click reaches the game).
+
+**The co-op pack (docs/records/COOP-LIST-ENTRIES-2026-10-18.md section 3.4) is built and deployed where reachable:**
+
+- Pack `C:\Users\james\Games\Interstate76-MP-pack-2026-10-18` by `tools/mp-pack.py <pack> --proxy
+  i76-uncap-lab\builds\coop-list-20261018\STRLKUP-ba2b45c1.dll` (the `--proxy` option is new; mac part copied from the
+  2026-10-17 pack unchanged). Against the 2026-10-17 pack, common changed only as intended: STRLKUP.DLL 33211f11 ->
+  **ba2b45c1**; miss8/miss16 `M01.MSN` back to stock (f00bad90 / abb41681); the old co-op layout (M41..M57 + `.coop`,
+  `M01.MSN.pre-coop`) removed (71 files); `ADDON/coop01.lvl .. coop17.lvl` + 17 `.coop` markers added, lower case
+  (coop01 c6294f55); i76.exe 6319abf7, i76shell a300db63, u32x 06467bd2 unchanged. common 393 files; win.md5 changed by
+  PLAY-LAN.bat's comment only.
+- Applied IN PLACE (no new bundle; the wine / wineserver binaries untouched, so the macOS answers stay) with
+  `tools/lan-test/apply-pack-delta.sh` (backs up every replaced / deleted file to `lan-pack-pre-20261018/` beside the
+  game folder, then verifies against common.md5):
+
+  | machine | result | proxy | coopNN.lvl (lower case) | verify vs common.md5 |
+  |---|---|---|---|---|
+  | PC LAN copy | done 10:33 (+ new PLAY-LAN.bat 4546dcf4) | ba2b45c1 (STRLKUP.DLL = Strlkup.dll) | 17 | 3 game-written files differ (NSCR.DAT, NVCL/nvcl0.vcf, user.mel) |
+  | Michael's Mac | done 10:36 | ba2b45c1 | 17 | 0 mismatches |
+  | laptop gate clone | done 10:36 | ba2b45c1 | 17 | 1 (user.mel, game-written) |
+  | Andrew's Mac | **not done**: unreachable from 10:36 | still 33211f11 (old layout) | 0 | - |
+  | Deck | **not done**: asleep | its own 8bc52939 | 0 | - (plan: add only the 34 `ADDON/coop*` files, `coopaddon` tar; the Deck's exe and proxy are its own pack) |
+
+  Until Andrew's Mac is updated it holds the OLD layout: if it hosts The Crater it runs the co-op T01, and its 33211f11
+  host crashes at a co-op reload. Do not mix it with the updated machines for co-op.
+- Co-op cells requested (lower-case files and the Co-op Scene 1-17 list on each machine, Mac host + PC joiner and the
+  reverse in coop01.lvl with CRC slot e1dcaa33, a loss and a win with a cross-machine joiner, a late join after a win,
+  the "You don't have mission coop01.lvl!" box on a machine without the files, stock melee incl. the Deck hosting The
+  Crater): **all not run** (no second machine available). The file-level checks are done (table above).

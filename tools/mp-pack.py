@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the LAN multiplayer pack (game night, docs/GAME-NIGHT.md) from the Windows daily driver, READ-ONLY.
 
-    python tools/mp-pack.py <pack dir> [--driver "<driver game folder>"]
+    python tools/mp-pack.py <pack dir> [--driver "<driver game folder>"] [--proxy <STRLKUP.DLL to ship instead>]
 
 <pack dir>/mac must already hold the Mac-only files (pulled from James's Mac game folder: OpenGLide Glide2x.dll,
 glide.dll, glide2x.ovl, OpenGLid.INI, I76PLYR.DEF, the cutscene-music SMACKW32.DLL + smackorg.dll, the rumble
@@ -98,6 +98,10 @@ def main():
         bad = [f for f in fs if f.lower().endswith((".vdf", ".wdf", ".gdf", ".cdf"))]
         assert not bad, "car data in ADDON: %s" % bad
     subprocess.run([sys.executable, os.path.join(HERE, "coop-install.py"), common], check=True)
+    if "--proxy" in sys.argv:   # e.g. the co-op fix build ba2b45c1 before it reaches the daily driver
+        for n in os.listdir(common):
+            if n.lower() == "strlkup.dll":
+                shutil.copy2(sys.argv[sys.argv.index("--proxy") + 1], os.path.join(common, n))
     with open(os.path.join(win, "PLAY-LAN.bat"), "w", newline="\r\n") as f:
         f.write("@echo off\n"
                 "REM Interstate '76 LAN / co-op (docs/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"

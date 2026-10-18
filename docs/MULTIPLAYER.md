@@ -223,3 +223,11 @@ again, the same bundle never does.
 | a co-op host's game closes when the mission is lost or won | the proxy's chain packet overflow (ANet writes 4 bytes past it), in the pack's proxy 33211f11 | fixed in the proxy source (COOP-LIST-ENTRIES-2026-10-18 section 3.3); until the pack carries a rebuilt proxy, a lost or won co-op mission ends the host's game |
 | clicks do nothing on a Mac while another app is in front (laptop, 2026-10-18) | the game reads the pointer only while its window is frontmost | click once into the game window |
 | "vehicle rejected" | that machine's car file is not stock (the Deck's own `ADDON\valepre4.vcf` is 4ed297ca, not de680a86) | pick another car, or use the LAN pack's stock files |
+
+### Pack status (2026-10-18 11:00)
+
+The co-op pack of 2026-10-18 (co-op missions as arenas "Co-op Scene 1..17" = `ADDON/coop01..17.lvl`, lower case; stock
+The Crater back; proxy ba2b45c1 with the co-op reload crash fixed) is on the PC LAN copy, Michael's Mac and the laptop
+gate clone (in place, verified). **Andrew's Mac and the Deck still carry the old pack** (unreachable / asleep during the
+update): bring them up and run `tools/lan-test/apply-pack-delta.sh` (Macs) or copy the 34 `ADDON/coop*` files (Deck)
+before a co-op night. No co-op cell has been run across machines yet (records/LAN-MATRIX-2026-10-18.md section 7).
