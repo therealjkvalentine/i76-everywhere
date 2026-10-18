@@ -2745,6 +2745,7 @@ static void apply_coop_damage(void) {
  * 'AC' / 'AO', coop_ai_score_set.) */
 typedef int (__cdecl *dprecv_fn)(void *, void *, void *, int, void *, void *);
 typedef int (__cdecl *dpsend_fn)(void *, int, int, int, void *, int);
+static int coop_chain_num(const char *cur);                  /* "coopNN.lvl" -> NN, else 0 (CO-OP CAMPAIGN CHAIN) */
 /* ANet's dpSend writes 4 bytes PAST the payload it is given (the from / to ids, in place: 03 00 04 00 = id 3 to
  * group 4, read from a host crash dump 2026-10-18). A send buffer on the stack with nothing after it lets that tail
  * overwrite the next local; in coop_chain_at_end (coop_chain_send inlined) it was the /GS cookie, and every host chain
@@ -3303,7 +3304,10 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     if (role == 1) { coop_ai_host_send(); coop_obj_catchup(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
     else if (role == 2) {
         coop_ai_joiner_fire();
-        if (g_coop_chain && coop_ai_in_mission()) {          /* the joiner respawns by itself (RAISE_DEAD has no key) */
+        /* the joiner respawns by itself (RAISE_DEAD has no key) - in a co-op mission (coopNN.lvl) only. Until 2026-10-18
+         * this ran in every network game with I76_COOP_CHAIN, melee included, so in a melee the joiner came back 5 s
+         * after a death and the host did not (owner's playtest, laptop host + Michael, Suburbia). Stock melee is stock. */
+        if (g_coop_chain && coop_ai_in_mission() && coop_chain_num((const char *)0x005049f0)) {
             static DWORD last; DWORD now = GetTickCount();
             if (now - last > 1000) {
                 BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();
