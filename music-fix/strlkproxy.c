@@ -1938,6 +1938,7 @@ typedef struct { DWORD d[6]; } dmgrec_t;                    /* passed by value: 
  * logged at most once a second of wall time when something changed. */
 static DWORD g_flc_hits, g_flc_app, g_flc_amt_pl, g_flc_amt_ot, g_flc_app_pl, g_flc_raw[4], g_flc_nraw, g_flc_seg_sum, g_flc_seg_n, g_flc_last_log;
 static DWORD g_flc_frames_app, g_flc_frame_last;
+static DWORD g_flc_expl, g_flc_expl_blk;                   /* flame census: hit explosions spawned / held back (tick-fix 2026-10-18) */
 static float g_flc_t0 = -1.0f, g_flc_t1, g_flc_tpl0 = -1.0f, g_flc_tpl1;
 static void flame_census_note(const dmgrec_t *rec) {
     BYTE **pp = *(BYTE ***)0x0054a264, *pl = pp ? *pp : 0;
@@ -1971,12 +1972,13 @@ static void flame_census_frame(void) {                      /* frame hook: strea
             logged_app = g_flc_app; logged_seg = g_flc_seg_n; g_flc_last_log = GetTickCount();
             mlog("  flame-census: sim %.3f s, hit calls %lu, applied %lu on %lu frames (player %lu, amount %lu, sim %.3f..%.3f s; others amount %lu), "
                  "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx; "
-                 "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s",
+                 "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s; hit explosions spawned %lu, held back %lu",
                  *(volatile float *)0x005a7e70, (unsigned long)g_flc_hits, (unsigned long)g_flc_app, (unsigned long)g_flc_frames_app,
                  (unsigned long)g_flc_app_pl, (unsigned long)g_flc_amt_pl, g_flc_tpl0, g_flc_tpl1, (unsigned long)g_flc_amt_ot,
                  g_flc_t0, g_flc_t1, g_flc_seg_n ? (double)g_flc_seg_sum / g_flc_seg_n : 0.0, (unsigned long)g_flc_seg_n,
                  (unsigned long)g_flc_raw[0], (unsigned long)g_flc_raw[1], (unsigned long)g_flc_raw[2], (unsigned long)g_flc_raw[3],
-                 (unsigned long)g_flc_upd_dmg, (unsigned long)g_flc_upd_mirror, (unsigned long)g_flc_upd_nodmg, g_flc_u0, g_flc_u1);
+                 (unsigned long)g_flc_upd_dmg, (unsigned long)g_flc_upd_mirror, (unsigned long)g_flc_upd_nodmg, g_flc_u0, g_flc_u1,
+                 (unsigned long)g_flc_expl, (unsigned long)g_flc_expl_blk);
         }
     }
 }
@@ -1988,6 +1990,10 @@ static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
     if (g_flc_on) flame_census_note(&rec);
     ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
 }
+static void __cdecl flame_expl_count(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {   /* stock loop: count, spawn as stock */
+    g_flc_expl++;
+    ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0049ead0)(a, b, c, d, e, f, g);
+}
 static void __cdecl flame_census_wrap(DWORD target, dmgrec_t rec, DWORD extra) {   /* stock frame loop: count, then apply as stock */
     g_flc_hits++;
     flame_census_note(&rec);
@@ -1998,6 +2004,7 @@ static void __cdecl flame_census_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
  * flamers, blast damage 0) is spawned on every update call that has a contact, the mirror pass included: held to the
  * same main-pass grid frames as the damage. 7 dword arguments, result unused. */
 static void __cdecl flame_expl_wrap(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {
+    if (g_flame_dmg_ok) g_flc_expl++; else g_flc_expl_blk++;
     if (g_flame_dmg_ok)
         ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0049ead0)(a, b, c, d, e, f, g);
 }
@@ -8558,6 +8565,16 @@ static void apply_flame_census(void) {
     BYTE *p = (BYTE *)0x004357c3, w[5] = { 0xE8 };
     LONG rel; DWORD tgt;
     if (env_flag("I76_FLAME_CENSUS", 8, 0) != 1) return;
+    {   /* hit explosions in the stock loop: a pass-through counter at 0x44471d (the grid / tick wrapper counts its own) */
+        BYTE *q = (BYTE *)0x0044471d, o[5], w2[5] = { 0xE8 }; LONG r2;
+        if (q[0] == 0xE8) {
+            memcpy(&r2, q + 1, 4);
+            if (0x00444722 + (DWORD)r2 == 0x0049ead0) {
+                memcpy(o, q, 5); r2 = (LONG)((DWORD_PTR)flame_expl_count - 0x00444722); memcpy(w2 + 1, &r2, 4);
+                mlog("  flame-census: hit explosions counted at 0x44471d (stock): %s", patch_bytes(0x0044471d, o, w2, 5, "flamer hit explosion (census)") ? "on" : "NOT patched");
+            }
+        }
+    }
     if (p[0] != 0xE8) { mlog("  flame-census: 0x4357c3 is not a call - off"); return; }
     memcpy(&rel, p + 1, 4); tgt = 0x004357c8 + (DWORD)rel;
     {   /* update cadence: the mirror pass's two calls always, the main pass's two when nothing else wraps them */
