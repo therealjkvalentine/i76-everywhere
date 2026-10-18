@@ -547,6 +547,25 @@ static int __cdecl st_cam_set(BYTE *cam, xform_t *t) {
     return ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)(cam, t);
 }
 
+/* Flamer stream ageing (2026-10-18 tick-gaps; I76_SIM_TICK_FLAME_AGE=<hz>, default 20, 0 = every tick).
+ * weapon_AgeFlamerStreams 0x443e90 retracts a stream by 2 segments on every call that saw no shot since the last one;
+ * flamers shoot 20 times a second, so a stream only grows when it is aged at most 20 times a second (stock 20 fps: full
+ * length, 19 segments; stock 30 fps and the 33.3 ms tick: 2 calls in 3 have a shot, +1 +1 -2, about 2 segments - the
+ * same frame-rate bug I76_FRAMERATE_FIXES holds to its 20 Hz grid). Here the ageing runs on the tick frames whose sim
+ * time crossed a 1/hz boundary (2 ticks in 3 at 33.3 ms, every tick at 66.7 ms), so the fired flag collects one
+ * shot window per call as at 20 fps. The update / damage still run once per tick (30 a second at 33.3 ms, the
+ * 1997 design value D x f per second per hitting segment: max(1, int(30 x 1 x T)) = 1). */
+static int g_st_fage_hz = 20, g_st_fage_due = 1;
+static double g_st_fage_acc;
+static void __cdecl st_flame_age_wrap(void) { if (g_tick20 && g_st_fage_due) ((void (__cdecl *)(void))0x00443e90)(); }
+static void st_flame_age_tick(void) {                         /* on each tick frame */
+    double per;
+    if (g_st_fage_hz <= 0) { g_st_fage_due = 1; return; }
+    per = 1.0 / (double)g_st_fage_hz;
+    g_st_fage_acc += (double)g_st_T;
+    if (g_st_fage_acc >= per - 1e-6) { g_st_fage_due = 1; g_st_fage_acc -= per; if (g_st_fage_acc > per) g_st_fage_acc = 0.0; }
+    else g_st_fage_due = 0;
+}
 /* ---- clock -------------------------------------------------------------------------------------------------------- */
 static void st_clock_set(float sdt, float dt) {
     *(volatile float *)0x004fe420 = sdt; *(volatile float *)0x004fe424 = 1.0f / sdt;
@@ -580,7 +599,7 @@ static void simtick_clock(void) {
         ((void (__cdecl *)(void))0x0049c920)();
         g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0;
         g_st_clk[0] = 0.0f;
-        g_tick20 = 1;
+        g_tick20 = 1; g_st_fage_due = 1;
         wst_publish();
         return;
     }
@@ -614,6 +633,7 @@ static void simtick_clock(void) {
         g_wst_local.ticks++;
         g_st_since = 0.0;
         g_tick20 = 1; g_tick20_n++; g_acc20 = 0.0f;
+        st_flame_age_tick();
         radar_ping_flush();
     } else {
         g_st_now = 0;
@@ -802,6 +822,7 @@ static void apply_simtick(void) {
     g_st_joy_pm = env_int("I76_SIM_TICK_JOY_DB", 8, 10); if (g_st_joy_pm < 0) g_st_joy_pm = 0; if (g_st_joy_pm > 500) g_st_joy_pm = 500;
     g_st_proj = env_flag("I76_SIM_TICK_PROJ", 8, g_st_proj) == 1;
     g_st_proj_vsel = env_int("I76_SIM_TICK_PROJ_V", 8, g_st_proj_vsel); if (g_st_proj_vsel < 0 || g_st_proj_vsel > 2) g_st_proj_vsel = 0;
+    g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_dlog, NULL, _IOFBF, 1 << 13);   /* the process is killed at the end: at most 8 KB lost */
@@ -857,8 +878,8 @@ static void apply_simtick(void) {
     }
     {   /* sim logic inside draw code, held to the tick (wrappers shared with I76_FRAMERATE_FIXES) */
         static const struct { DWORD site, stock; void *wrap; const char *what; } cs[] = {
-            { 0x00401cec, 0x00443e90, (void *)flame_age_wrap,    "flamer ageing (software)" },
-            { 0x00401fcc, 0x00443e90, (void *)flame_age_wrap,    "flamer ageing (hardware)" },
+            { 0x00401cec, 0x00443e90, (void *)st_flame_age_wrap, "flamer ageing (software)" },
+            { 0x00401fcc, 0x00443e90, (void *)st_flame_age_wrap, "flamer ageing (hardware)" },
             { 0x00401e23, 0x00443fc0, (void *)st_flame_main,     "flamer update, main pass (software)" },
             { 0x004020e8, 0x00443fc0, (void *)st_flame_main,     "flamer update, main pass (hardware)" },
             { 0x00443fca, 0x0049c8b0, (void *)step20_dt,         "flamer update dt" },
@@ -898,10 +919,11 @@ static void apply_simtick(void) {
     g_simtick = 1; g_st_now = 1;
     g_jc_on = 1;
     mlog("  sim-tick: ON - whole sim every %.3f ms (%.3f ticks/s; vehicle stepper count %d x %.2f ms); %d/12 sim gates, %d/4 display hooks, "
-         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; shm Local\\I76SimTick %s",
+         "%d/14 draw-side holds, %d/7 cosmetic sites (I76_SIM_TICK_COSMETIC=%d); early tick on input %s; new rounds drawn moving %s; flamer streams aged at %d Hz%s; shm Local\\I76SimTick %s",
          ms, 1000.0 / ms, (int)(g_st_T * 20.0f) + 1, ms / (double)((int)(g_st_T * 20.0f) + 1), g, h, n, c, g_st_cosmetic,
          g_st_input ? (g_st_joy_on ? "ON (I76_SIM_TICK_INPUT=1: keyboard + joystick)" : "ON (I76_SIM_TICK_INPUT=1: keyboard; I76_SIM_TICK_JOY=0)") : "off",
-         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_wst ? "mapped" : "MISSING");
+         g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
+         g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
 static void simtick_joy_ready(MMRESULT (WINAPI *pos)(UINT, LPJOYINFOEX), MMRESULT (WINAPI *caps)(UINT_PTR, LPJOYCAPSA, UINT)) {

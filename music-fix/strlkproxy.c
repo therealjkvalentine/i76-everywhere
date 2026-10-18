@@ -7190,8 +7190,9 @@ static void sign_sweep(void) {
                         float g0 = post_gap_drawn(obj, root, part);
                         if (sign_pend_add(root, part, v, nn, pt, 0, g0)) {
                             if (g_sweep_scored <= 40)
-                                mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - queued at %.1f m/s for the drawn car (drawn gap now %.2f m)",
-                                     nm, qx, qz, vv, g0);
+                                mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - queued at %.1f m/s for the drawn car (drawn gap now %.2f m; "
+                                     "entry at %.2f of the last step of %.2f m, gap from the %s pose)",
+                                     nm, qx, qz, vv, g0, tc, sqrt(dx * dx + dz * dz), (g_pld_obj == obj && g_pld_frame == g_frame - 1) ? "drawn" : "PHYSICS");
                             continue;
                         }
                     }
