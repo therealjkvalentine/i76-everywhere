@@ -56,3 +56,13 @@ What is specific to the owner's machine, checked 2026-10-03:
 
 `docs/input.map.reference` is a different file: the map the Mac installer copies (2026-09-06). The Mac
 layout has not been compared with this one; converging the two is open work (docs/README.md, section 4).
+
+## Installed on the Windows daily driver: promotion 18 (2026-10-18)
+
+The ad0ebd0 change (J K L ; hardpoints, radar camera on O, team scores Shift+', C cycle weapon) was promoted to the
+daily driver and the golden copy as PROMOTIONS row 18, rollback `_rollback\18`. Only the ad0ebd0 hunks went in, onto
+the driver's own files: installed input.map 12a6357e, `_ahk\i76-remap.ahk` 62ba0883, root quick-reference PDF
+45481b82 (the repo's docs PDF). The installed map is NOT byte-equal to `controls/input.map` (a66a37f7): the driver
+lacks the `track_yaw_*` / `track_pitch_*` orbit blocks (401743a), and its ahk lacks the Y view cycle and
+`I76_AHK_RUMBLE` (a7d61c0, 9401aaf). Those are separate, unpromoted changes. Patched files and the twin-boot
+screenshot: lab `tools/controls-promo-18/`.
