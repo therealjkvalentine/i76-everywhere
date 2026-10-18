@@ -28,7 +28,7 @@ calib2() { local wx wy mo a b c d
   mo=$(P peek shell+cc514 1)
   P move 0 0 >/dev/null; I76PROBE_MAP= I76PROBE_RAW=1 P move 1200 300 >/dev/null; sleep 0.8; set -- $(P peek $mo 13 | tail -1); a=$((16#$4)); b=$((16#$5))
   I76PROBE_MAP= I76PROBE_RAW=1 P move 2200 1100 >/dev/null; sleep 0.8; set -- $(P peek $mo 13 | tail -1); c=$((16#$4)); d=$((16#$5))
-  python -c "kx=1000/($c-$a); ky=800/($d-$b); print("%.4f %.1f %.4f %.1f" % (kx, 1200-kx*$a, ky, 300-ky*$b))" > "$MAPF"
+  python -c "kx=1000/($c-$a); ky=800/($d-$b); print('%.4f %.1f %.4f %.1f' % (kx, 1200-kx*$a, ky, 300-ky*$b))" > "$MAPF"
   echo "calib2 (points inside the 3440x1440 4:3 picture; measured map 3.0 760 3.0 0): client 1200,300 -> UI $a,$b; 2200,1100 -> UI $c,$d; map $(cat "$MAPF")"; }
 drive() { local end=$(( $(date +%s) + $1 )) i=0
   while [ $(date +%s) -lt $end ]; do P key 57 4800 >/dev/null &
