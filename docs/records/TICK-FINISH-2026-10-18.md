@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-18 evening (s.11): the flame finding of s.10 was wrong. The tick does not stop flame hits. The T05 bar is a flat box under `I76_BREAKABLE_BOX=4` (both the tick presets and promotion 18), and the flame never hits it, even in the stock loop. With the bar's stock shape the tick hits it on 94 % of the tests. A T05 car is burned and killed under the tick: ~40 s, against ~25 s for the 1997 20 fps coupling; promotion 18 does not kill it in 38 s. No tick fix, so tick19c 6846c2d4 stays the candidate.**
+
 **Update 2026-10-18 afternoon (s.10): the owner's first playtest found four real problems. Fixed and measured: tracers (drawn for 1 frame, now every frame), sound loops restarted every tick (15.4 starts / sim s, now 0.86 like promotion 18), the lab copy not being the driver (keys, music switch, menu pointer). NOT fixed: flame hits never register under the tick (nor under promotion 18). New candidate STRLKUP-tick19c 6846c2d4, gate 21 PASS 0 FAIL 2 INFO.**
 
 **Update 2026-10-18 morning (s.9): the four unmeasured items were measured; three needed a patch (wheel / pad early tick, sign timing, new rounds frozen for a tick) and the flamer a fourth (stream ~2.5 segments under the tick); new candidate STRLKUP-tick19b 7e2caf32, gate 21 PASS 0 FAIL 2 INFO. Flame hits on a target remain unmeasured.**
@@ -567,3 +569,151 @@ Not run, and why:
 - Flame damage on a car: the headless T05 ally-van target (`flamepn`, 10 boots) picked a dormant car 518 m away every time, and
   the barricade takes no hit under the tick anyway (10.4).
 - The twin game-dd-20261003 is still not the driver (10.1); not changed here.
+
+## 11. Flame hits: the cause was the barricade's shape, not the tick (2026-10-18 evening, tick-fix2 lane)
+
+**Correction to 10.4.** The tick does not stop flame hits. The T05 bar took 0 hits under the tick and under promotion 18
+because both presets set `I76_BREAKABLE_BOX=4`, which turns that bar into a flat box. The flame never hits the flat bar,
+not even in the stock loop. With the bar's stock shape the tick hits it on 94 % of the hit tests. A car is hit and killed
+under the tick (lab n 6, real renderer n 1). Nothing in the tick needed a fix, so there is **no tick19d**.
+`STRLKUP-tick19c` 6846c2d4 stays the candidate, and game-tick was read back as 6846c2d4.
+
+Lab only. The daily driver, the golden copy and the Downloads portable were not touched. Lab twin
+`builds\tick-fix2-20261018\Strlkup-fx1-lab.dll` 435cc5be (i76-everywhere `2743ceb` + drive block). Captures: lab
+`captures\tick-fix2-20261018` (gitignored). Queues: `queue-fix2\b1`, `b2`. Table tool: `tools\tick-fix2\flame_tab.py`.
+Every boot is headless T05 with the player's Gas Launcher held 40 s, unless a row says otherwise. Headless boots repeat to the digit
+(e.g. e30ks n 3: 700 / 700 / 700 hits), so the same-condition spread is 0 on the barricade and small on the car.
+
+### 11.1 What a hit needs (static, i76-map disassembly of 0x443fc0 / 0x4354c0 / 0x43d770 / 0x43d9e0 / 0x434f00 / 0x43df10)
+
+- weapon_UpdateFlamerStreams 0x443fc0 walks the stream's points P1..Pn, which it rebuilds on every call. For each point
+  after the first it calls weapon_FlameHitTest 0x4354c0 (site 0x44449b) with these arguments:
+  - A = the point Pi;
+  - a radius of 1.0;
+  - B = P1, the first point (stored at i == 1, 0x444732);
+  - the damage record (owner [stream+8], kind 4, amount max(1, int(D x f x dt)));
+  - an out-pointer for the object that was hit.
+- The hit test casts a moving point: A with velocity (A - B) x sim_rate [0x4fe424]. It walks every world record, movers
+  0x52b930 then statics 0x52b934, and skips the shooter's own. A record goes on to the narrow test 0x43d770 (site 0x435691)
+  only when A lies inside its bound sphere + 1.0.
+- The narrow test sweeps over sim_dt [0x4fe420] (0x49c7a0). So the tested segment is A -> A + (A - B), whatever the clock.
+  The clock cancels out, which is why FLAME_CLK and FLAME_DT changed nothing (10.4).
+  - A part with a sphere (0x4000 / 0x5000) uses the swept sphere test 0x434f00: within radius + 1 at any point of the
+    segment, the start included.
+  - A box part (0x2000) uses the slab test 0x43df10, padded by the radius. It **rejects a segment that starts inside the
+    padded box** (entry t < 0).
+- After the first hitting point, every later point of the same update spawns a hit explosion. The stream is shortened to
+  1/8 steps from there, which is why a hitting stream's mean |A - B| is short (2.9 m against 9.8 m). The short segment
+  in 10.4 was a consequence of hitting, not the cause.
+- **Inputs the tick changes:** the stream length (ageing, s.9.2) and which frames may apply damage. The clock it changes
+  cancels out. The record lists, the radius and the sweep are the same. The tick does not touch the input that decided
+  this test, the bar's part shape.
+
+### 11.2 Bisect and the differing input (T05 bar, player's car 8 m off along x; narrow-test probe on every boot)
+
+| arm | boots | hit tests that hit | damage applications / sim s | hit explosions / sim s | stream segments | narrow tests on the bar / hits |
+|---|---|---|---|---|---|---|
+| tick33 preset (bar = box) | 2 | 0 % | 0 | 0 | 18.65 | 73 000 / 0 |
+| tick33, flamer update left stock every display frame (`I76_SIM_TICK_FLAME_STOCK=1`) | 2 | 0 % | 0 | 0 | 18.65 | 81 080 / 0 |
+| tick33, flamer and ageing stock (`=2`) | 2 | 0 % | 0 | 0 | 2.0 | 1 360 / 0 |
+| stock loop 30 fps, bar = stock sphere (e30ks) | 3 | 33 % | 20 | 20 | 2.5 | 2 038 / 680 |
+| **stock loop 30 fps, bar = box (`I76_BREAKABLE_BOX=4`, e30kb)** | 2 | **0 %** | 0 | 0 | 2.5 | 2 038 / 0 |
+| **tick33, bar = stock sphere (preset minus `I76_BREAKABLE_BOX`, fx33nb)** | 3 | **94 %** | **500** | **500** (124 000 held back on non-tick frames) | 18.65 | 145 000 / 136 900 |
+
+- **The differing input is the bar's part shape.** The tick33 preset, promotion 18's PLAY-balanced preset and the stock
+  arm with the box all miss. Every arm with the stock sphere hits. The bisect (rows 2 and 3) had already shown the
+  tick's flamer hold was not the cause.
+- **Why the bar misses.** The probe puts the 18.6-segment stream 1.7 m above the bar (A y 21.7 against the bar's 20.0).
+  The 3.03 m stock sphere catches that; the flat box (8.04 x 0.64 x 0 m) does not. Aimed into the bar it still misses:
+  - the car pitched 10 / 20 deg nose up (rear muzzle down), n 1 each, tick and stock + box: 0;
+  - approached across the bar along z, the stream through two bars within 0.6 / 0.8 m of their centres, n 1 each:
+    tick33, promotion 18 and stock + box all 0, stock without the box 680 hits.
+
+  The likely reason is the slab test's inside-start rejection: the points are about 1 m apart, so a point always lands
+  inside the 2 m padded slab. That reason is not instrumented further.
+- **Consequence (daily driver included):** under `I76_BREAKABLE_BOX=4` the flame **cannot burn the long thin low bars of
+  class-4 breakables** (the T05 road-closed barricade bars). This holds in promotion 18 (the driver), in PLAY-TICK and in
+  any loop. Rams, signs and posts are unaffected (posts keep their spheres). Cars are not class 4 and are unaffected.
+  Owner decision, not changed here: accept it, or patch the flame's box test (e.g. hit when the segment starts inside the
+  padded box).
+
+### 11.3 Flame on a car, and the rate against 1997
+
+Target: the nearest T05 car (t05cm03, a parked AI car, class 1, box record). The player's car is frozen 4 m from it with
+the Gas Launcher held 40 s. Unpitched, the rear stream rises about 5 deg and passes over the car's roof: 0 hits in every
+arm, stock included (n 1 x 3). Pitched 20 deg it goes under: 0 in both arms. So the car runs hold the player's car
+**10 deg nose up** (`flamepn4p10`). The damage log is I76_DAMAGE_EVENTS (entity_DamageAndKill 0x463a80); "lost" is the
+target's health lost.
+
+| arm | boots | damage applications / sim s | hit explosions / sim s | target car | target health lost |
+|---|---|---|---|---|---|
+| stock loop 20 fps (e20ks, the 1997 coupling: 18.7 segments, mirror pass) | 3 | 142-147 | 481-501 | **killed at 23.8 / 25.8 / 24.4 s** | 900-954 |
+| stock loop 30 fps (e30ks: the 2.5-segment ageing bug, s.9.2) | 3 | 20 | 20 | alive after 35 s | 427-436 |
+| **tick33** (fx33 = tick19-33 preset) | 3 | 30-51 | 444-499 | **killed at 38.3 / 41.8 / 39.1 s** | 854-919 |
+| **tick66** (fx66) | 3 | 17-30 (amount 2 each) | 226-250 | **killed at 43.7 / 33.5 / 43.6 s** | 848-931 |
+| promotion 18 (p18s, the driver's preset) | 3 | 27-38 | 288-311 | alive after 38 s | 417-462 |
+| **tick33 on game-tick, real dgVoodoo renderer, visible on the console** (PLAY-TICK's preset, lab twin; game-tick's DLL restored to 6846c2d4 after and read back) | 1 | 117 | 307 | **killed at 17.6 s** | 723 |
+
+The barricade with the stock sphere (n 3 each) gives the cleanest rate, in damage per sim s per target:
+
+| arm | damage / sim s |
+|---|---|
+| 1997 coupling (stock 20 fps) | **668** |
+| tick33 | **500** |
+| tick66 | **500** (250 applications x 2) |
+| promotion 18 | **328** |
+| stock 30 fps | 20 |
+
+- **Flamers damage and kill cars under the tick.** On the car the tick deals about 60 % of the 1997 rate (killed at
+  ~40 s against ~25 s). On the bar it deals 75 %. The gap is by design (s.9.2): damage is applied once per tick (30 a
+  second), while 1997 at 20 fps applied it 20 times a second in the main pass plus 20 in the rear-mirror pass.
+- **Promotion 18 (the driver) burns cars too, but at about half the tick's rate** (car not dead after 38 s, ~440 health
+  lost; 328 against 500 on the bar). Its 20 Hz grid applies damage 20 times a second with no mirror pass. **So the game
+  the owner plays does not have broken flamers against cars.** They are weaker than 1997 (about 1/3 of the 1997 car
+  rate), and the T05-type bars cannot be burned at all (11.2).
+
+### 11.4 "Hall of mirrors" (impact sprites)
+
+- **Rates.** Under the tick the hit explosion (entity_SpawnExplosion 0x49ead0, the xflht1 sprite) is spawned once per
+  hitting point per tick update. The non-tick frames' spawns are held back (flame_expl_wrap: 124 000 held back per boot
+  on the bar). Spawns per sim s with a full stream:
+
+  | arm | bar | car |
+  |---|---|---|
+  | tick33 | 500 | 444-499 |
+  | tick66 | 250 | 226-250 |
+  | promotion 18 | 328 | 288-311 |
+  | stock 20 fps (1997) | **668** | **481-501** |
+
+  The tick spawns no more impact sprites per second than the 1997 coupling, so the stacked sprites the owner saw are
+  the stock game's own look with a full-length stream (stock 30 fps hides it only because its stream is 2.5 segments
+  long).
+- **Ageing (static, not instrumented).** The sprite object is pooled per template. 0x49ead0 stamps it with simclock time
+  (0x49c8c0) and starts its texture animation (0x44b240, 0.1 s per frame). Texture animations advance in
+  image_UpdateTexAnims 0x44af80, one of the 12 sim gates (tick frames only, the tick clock). The object's class tick runs
+  in entity_TickAll (gated). So under the tick the sprites are spawned and aged per tick, which is consistent. No fix
+  needed. Not done: a per-frame count of live sprite objects.
+
+### 11.5 Build, gate, staging
+
+- **No new candidate.** The two proxy commits are lab instruments, off by default:
+  - 2743ceb: the narrow-test probe inside I76_FLAME_PROBE_AT, and `I76_SIM_TICK_FLAME_STOCK` (1 = flamer update / dt /
+    damage / hit explosion / mirror left stock under the tick, 2 = the ageing too).
+
+  No default-path code changed, so tick19c 6846c2d4 stays in game-tick and in
+  `promotion-19-candidate`. The gate (s.10.5) and the T06 strip were not re-run, because the shipped DLL and the physics
+  path did not change. The visible run installed the lab twin in game-tick for one boot; the script put 6846c2d4 back and
+  read it back.
+- `promotion-19-candidate\README.md`: the flame text in the row ("KNOWN OPEN") and owner check 6 were rewritten to these results. MD5SUMS is unchanged.
+- The 10.4 conclusion ("flame hits never register under the tick or promotion 18") and its owner check 6 in s.10.6 are
+  superseded by 11.2-11.3.
+
+### 11.6 Still needs the owner's eyes
+
+1. **Flamers on a car, PLAY-TICK vs PLAY-balanced:** the lab kills the T05 car in ~40 s under the tick. The driver deals
+   about half that, and the 1997 coupling kills in ~25 s. Does the flame feel strong enough? A per-tick damage multiplier
+   to restore the 1997 (main + mirror) rate is possible; it is not done, because it is an owner choice.
+2. **The impact sprites:** the tick spawns them at or below the 1997 rate. If they still look wrong, say whether it is
+   the number (the stock game's own stacking) or how they move.
+3. **Barricade bars and `I76_BREAKABLE_BOX=4`:** on the driver and PLAY-TICK the flame cannot burn the T05 road-closed
+   bars (11.2). Keep it, or patch it?
