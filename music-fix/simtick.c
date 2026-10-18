@@ -776,6 +776,7 @@ static void __cdecl st_flame_main(BYTE *cam) {
     save[0] = *(volatile float *)0x004fe420; save[1] = *(volatile float *)0x004fe424;
     save[2] = *(volatile float *)0x004fe428; save[3] = *(volatile float *)0x004fe42c;
     if (tick) st_clock_tick();
+    flc_count_update(g_tick20, 0);
     g_flame_dmg_ok = g_tick20;
     ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
     g_flame_dmg_ok = 0;

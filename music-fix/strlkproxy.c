@@ -1361,7 +1361,7 @@ static int g_simtick, g_st_now = 1;                          /* I76_SIM_TICK_MS 
 static void simtick_top(void);
 static void simtick_clock(void);
 static int g_jc_on;                                          /* judder census (simtick.c; I76_JUDDER_CENSUS under I76_RENDER_INTERP) */
-static int g_flc_on; static void flame_census_frame(void);    /* I76_FLAME_CENSUS (below, with the flamers) */
+static int g_flc_on, g_flame_wrapped; static void flame_census_frame(void);    /* I76_FLAME_CENSUS (below, with the flamers) */
 static void judder_census(void);
 static void judder_census_publish(void);
 static void (*g_lat_step_fn)(void), (*g_lat_draw_fn)(void); /* lab latency probe (side build drive block): end of the sim block / draw */
@@ -1893,7 +1893,37 @@ static DWORD g_idbg_flame_hits, g_idbg_flame_dmg;           /* copied into the d
 static int g_flame_dmg_ok;
 static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > g_ref_dt ? dt : g_ref_dt; }
 static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))0x00443e90)(); }
+/* flamer census, update cadence: every weapon_UpdateFlamerStreams call while a stream is live, split into calls whose
+ * hits would apply damage (stock: every call, main pass and mirror; the 20 Hz grid / the tick: main-pass calls on grid
+ * frames / tick frames) and calls that cannot, with the sim time span - the damage per second per hitting segment is
+ * these calls per sim second x max(1, int(D x f x dt)) whether or not the harness gets a segment onto a target. */
+static DWORD g_flc_upd_dmg, g_flc_upd_nodmg, g_flc_upd_mirror;
+static float g_flc_u0 = -1.0f, g_flc_u1;
+static int flc_stream_live(void) {
+    int live = 0;
+#ifdef _MSC_VER
+    __try {
+#endif
+        BYTE *s0 = *(BYTE **)0x0052bb90, *st = s0; int k = 0;
+        while (st && k++ < 64) { if (*(DWORD *)(st + 4) && *(int *)(st + 0x14) > 0) { live = 1; break; } st = *(BYTE **)st; if (st == s0) break; }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { live = 0; }
+#endif
+    return live;
+}
+static void flc_count_update(int dmg, int mirror) {
+    float t;
+    if (!g_flc_on || !flc_stream_live()) return;
+    t = *(volatile float *)0x005a7e70;
+    if (dmg) g_flc_upd_dmg++; else g_flc_upd_nodmg++;
+    if (mirror) g_flc_upd_mirror++;
+    if (g_flc_u0 < 0.0f) g_flc_u0 = t;
+    g_flc_u1 = t;
+}
+static void __cdecl flame_census_main(BYTE *cam) { flc_count_update(1, 0); ((void (__cdecl *)(BYTE *))0x00443fc0)(cam); }   /* stock frame loop */
+static void __cdecl flame_census_mirror(BYTE *cam) { flc_count_update(!g_flame_wrapped, 1); ((void (__cdecl *)(BYTE *))0x00443fc0)(cam); }
 static void __cdecl flame_update_main(BYTE *cam) {
+    flc_count_update(g_tick20, 0);
     g_flame_dmg_ok = g_tick20;
     ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
     g_flame_dmg_ok = 0;
@@ -1940,11 +1970,13 @@ static void flame_census_frame(void) {                      /* frame hook: strea
         if (logged_app != g_flc_app || logged_seg != g_flc_seg_n) {
             logged_app = g_flc_app; logged_seg = g_flc_seg_n; g_flc_last_log = GetTickCount();
             mlog("  flame-census: sim %.3f s, hit calls %lu, applied %lu on %lu frames (player %lu, amount %lu, sim %.3f..%.3f s; others amount %lu), "
-                 "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx",
+                 "sim %.3f..%.3f s, stream segments mean %.2f (n %lu), raw amounts %08lx %08lx %08lx %08lx; "
+                 "updates with a live stream: %lu damage-capable (%lu mirror) + %lu not, sim %.3f..%.3f s",
                  *(volatile float *)0x005a7e70, (unsigned long)g_flc_hits, (unsigned long)g_flc_app, (unsigned long)g_flc_frames_app,
                  (unsigned long)g_flc_app_pl, (unsigned long)g_flc_amt_pl, g_flc_tpl0, g_flc_tpl1, (unsigned long)g_flc_amt_ot,
                  g_flc_t0, g_flc_t1, g_flc_seg_n ? (double)g_flc_seg_sum / g_flc_seg_n : 0.0, (unsigned long)g_flc_seg_n,
-                 (unsigned long)g_flc_raw[0], (unsigned long)g_flc_raw[1], (unsigned long)g_flc_raw[2], (unsigned long)g_flc_raw[3]);
+                 (unsigned long)g_flc_raw[0], (unsigned long)g_flc_raw[1], (unsigned long)g_flc_raw[2], (unsigned long)g_flc_raw[3],
+                 (unsigned long)g_flc_upd_dmg, (unsigned long)g_flc_upd_mirror, (unsigned long)g_flc_upd_nodmg, g_flc_u0, g_flc_u1);
         }
     }
 }
@@ -8486,6 +8518,25 @@ static void apply_flame_census(void) {
     if (env_flag("I76_FLAME_CENSUS", 8, 0) != 1) return;
     if (p[0] != 0xE8) { mlog("  flame-census: 0x4357c3 is not a call - off"); return; }
     memcpy(&rel, p + 1, 4); tgt = 0x004357c8 + (DWORD)rel;
+    {   /* update cadence: the mirror pass's two calls always, the main pass's two when nothing else wraps them */
+        static const DWORD ms[2] = { 0x004458fe, 0x00445968 }, mn[2] = { 0x00401e23, 0x004020e8 };
+        int i, nm = 0, nn = 0;
+        for (i = 0; i < 2; i++) {
+            BYTE *q = (BYTE *)(DWORD_PTR)ms[i], o[5], w2[5] = { 0xE8 }; LONG r2;
+            if (q[0] != 0xE8) continue;
+            memcpy(&r2, q + 1, 4); if (ms[i] + 5 + (DWORD)r2 != 0x00443fc0) continue;
+            memcpy(o, q, 5); r2 = (LONG)((DWORD_PTR)flame_census_mirror - (ms[i] + 5)); memcpy(w2 + 1, &r2, 4);
+            nm += patch_bytes(ms[i], o, w2, 5, "flamer update, mirror (census)") && memcmp(q, w2, 5) == 0;
+        }
+        for (i = 0; i < 2; i++) {
+            BYTE *q = (BYTE *)(DWORD_PTR)mn[i], o[5], w2[5] = { 0xE8 }; LONG r2;
+            if (q[0] != 0xE8) continue;
+            memcpy(&r2, q + 1, 4); if (mn[i] + 5 + (DWORD)r2 != 0x00443fc0) { g_flame_wrapped = 1; continue; }   /* the grid / tick wrapper counts */
+            memcpy(o, q, 5); r2 = (LONG)((DWORD_PTR)flame_census_main - (mn[i] + 5)); memcpy(w2 + 1, &r2, 4);
+            nn += patch_bytes(mn[i], o, w2, 5, "flamer update, main (census)") && memcmp(q, w2, 5) == 0;
+        }
+        mlog("  flame-census: update cadence counted at %d/2 mirror and %d/2 main-pass calls (%s)", nm, nn, g_flame_wrapped ? "main pass wrapped by the 20 Hz grid / tick" : "stock");
+    }
     if (tgt == (DWORD)(DWORD_PTR)flame_damage_wrap) { g_flc_on = 1; install_frame_hook(); mlog("  flame-census: on (counted in the flamer damage wrapper of the 20 Hz grid / sim tick)"); return; }
     if (tgt != 0x004a8240) { mlog("  flame-census: 0x4357c3 calls 0x%08lX (not stock, not ours) - off", (unsigned long)tgt); return; }
     rel = (LONG)((DWORD_PTR)flame_census_wrap - 0x004357c8); memcpy(w + 1, &rel, 4);
