@@ -7165,6 +7165,11 @@ static void sign_sweep(void) {
  * drives it). That alone does not keep the car on the mark: 1 s after the release it still reads ~10.7 m/s, turned,
  * 5 m off and ~16 m off after 3 s (lab twin, n 2; 86 of 88 earlier read-backs said MOVED AWAY at ~13 m/s). Open:
  * the T05 opening sequence still driving the player when the hold ends is the suspect, not yet measured.
+ * 2026-10-17 (patch 2): the delay now counts only from the end of the mission's opening: the player must be live AND
+ * not driven by the opening - play mode 0x4fe534 & 0x3e clear and the AI-drove-the-player latch 0x5244c0 = 0
+ * (i76-map subsystems/ai.md M49a; the same test as replay.c). Placed during T05's opening, the opening's AI drive kept
+ * steering and throttling the car after the release. If the latch never clears, the car is placed 60 s after it went
+ * live anyway (logged).
  * The pose is read back and logged 1 s later. I76_RENDER_INTERP sees the jump (> 8 m) and resets its history.
  * Mission scripts keyed to the normal route are not re-run. 2026-10-17 (owner: "08 does not teleport"): it was once per
  * process, so Replay from the in-mission menu started at the stock spawn. Now it re-arms when a new mission load is
@@ -7175,7 +7180,7 @@ static void sign_sweep(void) {
 static double g_start_p[3];
 static float g_start_yaw, g_start_delay = 1.0f;
 static int g_start_state;                                    /* 0 waiting, 1 holding, 2 released, 3 done */
-static DWORD g_start_t0, g_start_until, g_start_fc, g_start_n;
+static DWORD g_start_t0, g_start_until, g_start_fc, g_start_n, g_start_live0, g_start_busy;
 static BYTE *g_start_obj;
 static char g_start_mission[32];
 static void start_pos_inner(void) {
@@ -7183,8 +7188,18 @@ static void start_pos_inner(void) {
     DWORD now = GetTickCount();
     if (*(volatile int *)0x004c2164 == 5) obj = tel_player(&ent);
     if (g_start_state == 0) {
-        if (!obj) { g_start_t0 = 0; return; }
-        if (!g_start_t0) { g_start_t0 = now ? now : 1; return; }
+        int busy;
+        if (!obj) { g_start_t0 = 0; g_start_live0 = 0; g_start_busy = 0; return; }
+        if (!g_start_live0) g_start_live0 = now ? now : 1;
+        busy = (*(volatile BYTE *)0x004fe534 & 0x3e) || *(volatile DWORD *)0x005244c0;   /* the opening still drives the player */
+        if (busy && now - g_start_live0 < 60000) { g_start_busy++; g_start_t0 = 0; return; }
+        if (!g_start_t0) {
+            g_start_t0 = now ? now : 1;
+            mlog("  start-pos: player live and not driven by the opening (waited %lu frames, %.1f s since live%s) - placing in %.1f s",
+                 (unsigned long)g_start_busy, (now - g_start_live0) / 1000.0, busy ? "; latch still set after 60 s, placing anyway" : "",
+                 g_start_delay);
+            return;
+        }
         if (now - g_start_t0 < (DWORD)(g_start_delay * 1000.0f)) return;
         g_start_state = 1; g_start_obj = obj; g_start_until = now + 300; g_start_n++;
         mlog("  start-pos: placing the player (obj %p) at (%.1f, %.1f, %.1f) yaw %.1f, frame %lu, was at (%.1f, %.1f, %.1f) speed %.2f m/s, placement %lu",
@@ -7208,10 +7223,11 @@ static void start_pos_inner(void) {
         if ((LONG)(now - g_start_until) >= 0) { g_start_state = 2; g_start_until = now + 1000; }
     } else if (g_start_state == 2 && (LONG)(now - g_start_until) >= 0) {
         double dx = *(double *)(obj + 0x40) - g_start_p[0], dz = *(double *)(obj + 0x50) - g_start_p[2];
-        mlog("  start-pos: read back 1 s after release: (%.1f, %.2f, %.1f), forward (%.3f, %.3f, %.3f), %.2f m from the target in x/z, speed %.2f m/s - %s",
+        mlog("  start-pos: read back 1 s after release: (%.1f, %.2f, %.1f), forward (%.3f, %.3f, %.3f), %.2f m from the target in x/z, speed %.2f m/s, AI latch %lu, play mode 0x%02x - %s",
              *(double *)(obj + 0x40), *(double *)(obj + 0x48), *(double *)(obj + 0x50),
              *(float *)(obj + 0x30), *(float *)(obj + 0x34), *(float *)(obj + 0x38), sqrt(dx * dx + dz * dz),
-             *(float *)(ent + 0xac), dx * dx + dz * dz < 25.0 ? "OK" : "MOVED AWAY");
+             *(float *)(ent + 0xac), (unsigned long)*(volatile DWORD *)0x005244c0, (unsigned)*(volatile BYTE *)0x004fe534,
+             dx * dx + dz * dz < 25.0 ? "OK" : "MOVED AWAY");
         if (g_bbox_parts) breakable_box_report();
         g_start_state = 3;
     }
@@ -7223,7 +7239,7 @@ static void start_pos_frame(void) {
     if (reload) {
         if (lstrcmpiA((const char *)0x005049f0, g_start_mission) == 0) {
             if (g_start_state != 0) mlog("  start-pos: mission '%s' loaded again (Replay) - armed again", g_start_mission);
-            g_start_state = 0; g_start_t0 = 0; g_start_obj = 0;
+            g_start_state = 0; g_start_t0 = 0; g_start_obj = 0; g_start_live0 = 0; g_start_busy = 0;
         } else if (g_start_state < 4) {
             mlog("  start-pos: another mission loaded ('%.15s', not '%s') - off for the rest of the process",
                  (const char *)0x005049f0, g_start_mission);
