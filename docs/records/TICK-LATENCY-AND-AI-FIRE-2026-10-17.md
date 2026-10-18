@@ -1,4 +1,4 @@
-STATUS: this lane was stopped unfinished on 2026-10-18 (00:35, blocked on a wait file that vanished); the physics rows and the AI-fire section were never written, and it is continued in TICK-FINISH-2026-10-18.md.
+STATUS: this lane was stopped unfinished on 2026-10-18 (00:35, blocked on a wait file that vanished). Completed 2026-10-18 by the tick-finish lane: s.1.5 (physics rows) and s.2 (AI fire) below come from this lane's own captures (its queues kept running); the verdict and the finished build are in TICK-FINISH-2026-10-18.md, which supersedes this record for decisions.
 
 # Whole-sim tick: input latency and AI fire rate (2026-10-17, overnight lane)
 
@@ -96,4 +96,48 @@ Heading second difference per display frame (deg; a kink is a sudden change of t
   interpolation); the early tick removes the WAIT, not that lag. Its blend starts at once, so the response begins to
   show on the next frame and is fully shown when the next regular tick arrives.
 
-PHYSICS_ROWS
+### 1.5 Does the early tick change the physics? (L boots, side build lat1, the lab's old SHO-V8 T05/T06 car)
+
+Completed 2026-10-18 by the tick-finish lane from this lane's own captures (`tl_analyse.py`; the queue `lat.txt` kept
+running after the lane stopped and finished these boots).
+
+| condition | T05 placed jumps (boots) | take-off m/s | vy m/s | distance m | turned over / destroyed |
+|---|---|---|---|---|---|
+| tick33 | 6 (1) | 52.49 | 14.70 | 210.9 | 0 / 0 |
+| tick33 + input | 12 (2) | 52.05 +- 0.68 | 14.57 +- 0.19 | 213.6 +- 67.9 | 0 / 0 |
+| tick66 | 6 (1) | 53.17 | 14.89 | 203.1 | 0 / 0 |
+| tick66 + input | 12 (2) | 52.40 +- 5.46 | 14.67 +- 1.53 | 221.1 +- 116.0 | 0 / 0 |
+
+T06 strip (1 boot each): accel 0-20 m/s tick33 2.733 s / tick33 + input 2.733 s / tick66 + input 2.667 s; brake
+distance 112.406 / 112.409 m; steady yaw 0.800 / 0.821 / 0.803 rad/s (n 2 each); ramp A 30 air time 2.167 / 2.133 /
+2.200 s. **No row moves with the early tick** beyond the boot-to-boot spread: every tick is still exactly T of
+simulation, only its start is pulled forward. (The absolute values are the old car's; TICK-FINISH-2026-10-18.md has the
+same-car rows against retail.)
+
+## 2. AI fire rate (T13, idle + god; side build lat1)
+
+The question from WHOLE-SIM-TICK s.4: hostile fire decisions per sim second 3.5 x higher under lab-step-33 than under
+the 33.3 ms tick (n 1 boot each). Answered here and in TICK-FINISH-2026-10-18.md s.4 (which adds the stock-30 fps
+reference on the same harness).
+
+**90 s boots (F, n 3-4 per arm) cannot be compared per minute.** Under lab-step-33 and best-wide the god-held player
+dies and the mission ends early in every boot (sim time logged 48.9 s step33 4/4, 58.1 s bestwide 4/4), while the tick
+arms run the full 91-94 s. Rates over such different windows mix the quiet approach (no AI fire before about 19 s) with
+the fight; the per-minute figures (step33 43, tick33 200, tick66 149, bestwide 57 hostile shots /min) are mostly that.
+The big per-car difference is the truck `vfratlr1` (turret 30cal): 6 /min under step33, 122 under tick33.
+
+**A 40 s window, before any death (W, n 2-3 per arm):** hostile shots /min step33 36 +- 9, tick33 36 +- 21, tick66
+27 (n 2), bestwide 34 (n 2), step33noai 34 (n 2); hits and damage asked equal within the spread. **No difference.** The
+3.5 x of WHOLE-SIM-TICK s.3.1 was a window artefact plus the mission diverging, not a fire-rate effect. Fire decisions
+ROLLED follow the call rate as designed (tick66 half of tick33; best-wide on its 20 Hz grid), the share that passes
+does not.
+
+**Which switches make the per-frame scheme diverge (bisection, 90 s boots, n 3 each):** the early end is present in
+step33, step33nobag (minus I76_AI_BACKAWAY_GRID), step33ref20 (minus I76_REF_FPS), bestwide, bestwidenobag; absent in
+step33noai and step33onlybag (lab-step-33 minus the AI parity set), fixonly (I76_FIXED_STEP 30 + RENDER_INTERP alone),
+fixff (+ FRAMERATE_FIXES, REF_FPS 30, ENGINE_DT_FIX) and fixffbag (+ the back-away grid). So within lab-step-33 the AI
+parity set triggers it, and best-wide (no AI parity set) triggers it through something fixffbag lacks (its 41.7 ms step,
+collision G, the input latch, the breakable box or AI_ROLL_HOLD=0). Not narrowed further.
+
+Weapon split: the arms differ in the 30cal turret (the truck) and 50cal; missiles (DrRadar 5-10 /min) are the same in
+every arm (bound by refire / range, as AI-DAMAGE-BALANCE s.5 found). Flamers: none in T13 (0 flame hits).
