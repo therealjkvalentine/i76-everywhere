@@ -225,7 +225,7 @@ Gold `g166-mloop-rep1` (1,304 frames, accel:-60..park), lab vs lab (`rpl_aa`):
 
 | proxy switches | pair | bit-identical frames | first difference |
 |---|---|---|---|
-| as built 2026-10-16 (3 s wall-clock wait before the placement) | 173353 / 173458 | 63 of 1,304 | frame 709, x y z, 1e-9 m (the 2nd frame with throttle applied; 3 frames after the accel phase starts at 706) |
+| as built 2026-10-16 (3 s wall-clock wait before the placement) | 173353 / 173458 | 63 of 1,304 | frame 709, x y z (dx 9e-9 m, dy 1e-6 m; the 2nd frame with throttle applied; 3 frames after the accel phase starts at 706) |
 | `I76_REPLAY_PREROLL=150` | 173805 / 174548 | 63 of 1,304 | frame 709 (sim_time now equal too) |
 | `I76_REPLAY_PREROLL=150` + `I76_REPLAY_SRAND=1` | 174759 / 175845 / 192448 | **1,304 of 1,304** (3 runs, all pairs) | none |
 
