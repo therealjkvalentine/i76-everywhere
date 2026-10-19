@@ -320,14 +320,29 @@ right border, and because the list clears only its box (0x10038fd0, x 11 w 206) 
 glyphs (`a-list-strip.png`). The proxy (mpmenu.c, `I76_ARENA_FIT`, default on) repoints the two text calls of
 EntryForm_DrawArenaList (0x1002b3af the chosen arena, 0x1002b421 the rows) to a stub that measures the title with the
 shell's own glyph width (0x1003e42c) and, when it is too wide, shortens the **name** with a "." and keeps the kind
-suffix whole. As drawn (`b-list-strip.png`): Oil Well. (Scenario), Mondo Bu. (Scenario), Seminole (Scenario), Pretty Bu.
-(Scenario), Race No S. (Scenario), Trailer P. (Scenario), Milk Toas. (Scenario); Scene 1 (Co-op) .. Scene 17 (Co-op)
-fit whole.
+suffix whole. First version (efa108d, form font at x 0x22, `b-list-strip.png`): Oil Well. (Scenario), Mondo Bu.
+(Scenario), Seminole (Scenario), Pretty Bu. (Scenario), Race No S. (Scenario), Trailer P. (Scenario), Milk Toas.
+(Scenario). That lost the names, the wrong trade for the owner's "the name is most important".
 
-The files keep the full titles. **Open question for the owner:** at this width "(Scenario)" takes about half the line;
-the full names would fit with a shorter kind tag (e.g. "Oil Well Well (S)"), which the 2026-10-19 rule ("never abbreviate
-the suffix") excludes. It is one constant (`SCEN_TITLE` in coop-install.py) if he prefers that. A machine without the
-pack proxy (the Deck) draws the full titles with the overflow.
+**Second version (fdb1b06, proxy 3125197a), a smaller font and the left margin.** The shell has 5 font objects
+(`0x100cc520` + 4 n, glyph table at +0x408; the list uses `[0x100cc52c]`). Measured in the log (the stub measures each
+once with the shell's glyph width 0x1003e42c and height 0x1003e419), "The Crater":
+
+| font object | height | width | look |
+|---|---|---|---|
+| 0x100cc520 (0) | 10 | 57 px | plain sans |
+| 0x100cc524 (1) | 12 | 78 px | the same handwriting, smaller |
+| 0x100cc528 (2) | 15 | 95 px | |
+| 0x100cc52c (3) | 15 | 95 px | the list's own |
+| 0x100cc530 (4) | 15 | 100 px | |
+
+The stub now draws the list (rows and the chosen arena) in font 1 from x 18 (`I76_ARENA_FONT`, default 1;
+`I76_ARENA_X`, default 18; the box border is at x 11), a right limit of x 0xd4 (194 px), and shortens a name only past
+that. As drawn (`c-list-strip.png`, all 39 rows, n 1): **every title whole except "Trailer Pk. Madn. (Scenario)"**;
+the stock arenas and "Scene N (Co-op)" whole, the same handwriting, a little smaller. Font 0 fits everything whole too,
+but is a plain sans that does not match the form (`font-strip.png`, top row). The titles in the files stay
+"<full name> (Scenario)", so neither the files nor their CRCs changed in this second step. A machine without the pack
+proxy (the Deck) draws the full titles in the big font with the overflow.
 
 ### 8.3 What a scenario needs, and the respawn rule
 
@@ -356,7 +371,9 @@ script's "user" entity becomes NULL (0x45f0f0), and `isWithinSqNav` (0x40b940), 
 of S01, S03, S04, S05 and S07, reads the position with no NULL check (a likely host crash; static reading); the wins of
 S02, S05 and S06 need the host's original car. A host melee respawn would need the proxy to point the "user" entity at
 the new car (entity record +0x58, reference 0x45ed00) plus a one-byte script edit per death check (jz -> jmp; the edit
-set is in `fsmwork\make_edits.py`, round-trip checked, not applied). Not done; a follow-up if the owner wants it.
+set is in `fsmwork\make_edits.py`, round-trip checked, not applied). Not done: an **owner option** (melee respawn for
+the host in scenarios = the entity repoint in the proxy + these script edits, then a live check of each scenario's
+win); until then the host-death reload stays.
 
 Proxy (commit efa108d): the joiner auto-respawn and the chain's loss / win handling also key on `autoNN.lvl`
 (`coop_scen_num`); a won scenario ends normally (nothing follows it).
@@ -374,16 +391,21 @@ Proxy (commit efa108d): the joiner auto-respawn and the chain's loss / win handl
 | joiner dies (CTRL+ALT+X) in Pretty Bus | "joiner dead - respawn requested", back at the start a few seconds later | 1 |
 | host dies (CTRL+ALT+X) in Pretty Bus | both reloaded auto04.lvl, 8 AI on both, no crash | 1 |
 | co-op unchanged: Scene 1 (Co-op), host + joiner | coop01.lvl on both, the host adopts the T01 player object, Taurus, the tractor and 3 more on both (5 = 5) | 1 |
+| proxy 3125197a (second fit, 10:08-10:16): list | all 39 rows drawn as in 8.2 (`c-list-strip.png`) | 1 |
+| proxy 3125197a: Mondo Burger with a joiner | auto02.lvl on both, 7 AI cars on both | 1 |
 
-Not run: a scenario win; 3 or 4 humans in a scenario; scenarios 2, 3, 5, 6, 7 with a joiner; the Macs and the Deck.
+Not run: a scenario win; 3 or 4 humans in a scenario; scenarios 3, 5, 6, 7 with a joiner; the Macs and the Deck.
 
 ### 8.5 Rollout notes (for the main session; nothing was deployed)
 
 - The co-op files change (title only, file names unchanged), so their CRCs change: every machine must get the new
   `ADDON\coop*.lvl` and `auto*.lvl` together, or joins between old and new machines stop with "Your mission file
   coop01.lvl does not match the host's".
-- Pack: `i76-uncap-lab\builds\mp-pack-20261019\` (tools/mp-pack.py with `--proxy ...\builds\mp-menu-20261019\STRLKUP-77ad2aca.dll`,
-  the mac part copied unchanged from the 2026-10-18 pack). Against the 2026-10-18 pack: common gains `ADDON\auto01..07.lvl`
-  (+ markers), the 17 `coopNN.lvl` change, STRLKUP.DLL ba2b45c1 -> 77ad2aca; win: PLAY-LAN.bat (I76_MP_MENU=1); mac: same.
+- Pack: `i76-uncap-lab\builds\mp-pack-20261019\`, rebuilt in place 10:20 with the tools of efa108d (so no AI melee
+  `ai_*.lvl`) and `--proxy ...\builds\mp-menu-20261019\STRLKUP-3125197a.dll` (fdb1b06 built from a clean worktree, two
+  builds md5-identical; it includes the AI melee lane's committed proxy code of e1f35f0, which acts only in `ai_*.lvl`);
+  the mac part copied unchanged from the 2026-10-18 pack. Against the 2026-10-18 pack: common gains `ADDON\auto01..07.lvl`
+  (+ markers), the 17 `coopNN.lvl` change (coop01 1fa5e0b8), STRLKUP.DLL ba2b45c1 -> 3125197a; win: PLAY-LAN.bat
+  (I76_MP_MENU=1); mac: same. The .lvl files are byte-identical to the first build of this pack (auto01 538ff34e).
 - A saved arena index now points at another entry (index 15 was "Co-op Scene 1", is now "Oil Well Well (Scenario)"):
   the host just picks again.
