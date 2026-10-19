@@ -799,7 +799,7 @@ static void st_sign_sound(BYTE *car) {
  * (PlayCdTrack 0x423330, StopCdMusic 0x4233d0, pause 0x4234a0, unpause 0x4234e0) with the caller, track, force, the
  * playing / paused flags and the music level; GetTickCount on each line matches the music log's t=. Not in any preset. */
 static FILE *g_av; static DWORD g_av_frames;
-static DWORD g_av_tm_n, g_av_tr_n, g_av_tm_calls, g_av_tr_calls, g_av_lw_n;
+static DWORD g_av_tm_n, g_av_tr_n, g_av_tm_calls, g_av_tr_calls, g_av_lw_n, g_av_w_n;
 static double g_av_len, g_av_wid;
 static DWORD g_av_coll_snd, g_av_coll_vnvco3;
 static volatile DWORD g_av_knock_n; static DWORD g_av_knock_next = 0x0046f9a0;
@@ -825,7 +825,8 @@ static void av_trc_count(int mirror) {
             if (mirror) g_av_tr_n++;
             else {
                 g_av_tm_n++;
-                if (*(DWORD *)(t + 0x14) != 2) { g_av_len += sqrt(dx * dx + dy * dy + dz * dz); g_av_wid += w; g_av_lw_n++; }
+                g_av_len += sqrt(dx * dx + dy * dy + dz * dz); g_av_lw_n++;   /* older -> newer slot, point 0 (type 2 draws 35 % of it as a line) */
+                if (*(DWORD *)(t + 0x14) != 2) { g_av_wid += w; g_av_w_n++; }   /* quad types: cross-section of the newer slot */
             }
         }
         t = *(BYTE **)t;
@@ -902,11 +903,11 @@ static void av_frame(int camx) {
             g_simtick ? g_st_now : 1, g_simtick ? g_st_early_now : 0, g_simtick ? g_wst_local.alpha : 1.0f,
             (unsigned long)g_wst_local.early_kb, (unsigned long)g_wst_local.early_lab, pend, eye[0], eye[1], eye[2], ex[6], ex[7], ex[8],
             *(volatile float *)0x004c291c, (unsigned long)*(volatile DWORD *)0x004c2720, *(volatile double *)0x00507cd8, *(volatile double *)0x00507c50,
-            (unsigned long)g_av_tm_n, g_av_lw_n ? g_av_len / g_av_lw_n : 0.0, g_av_lw_n ? g_av_wid / g_av_lw_n : 0.0, (unsigned long)g_av_tr_n,
+            (unsigned long)g_av_tm_n, g_av_lw_n ? g_av_len / g_av_lw_n : 0.0, g_av_w_n ? g_av_wid / g_av_w_n : 0.0, (unsigned long)g_av_tr_n,
             (unsigned long)g_av_knock_n, (unsigned long)g_av_coll_snd, (unsigned long)g_av_coll_vnvco3, (unsigned long)g_st_sign_snd_n, camx,
             pp3[0], pp3[1], pp3[2], (unsigned long)g_st_cam_early_n, (unsigned long)*(volatile DWORD *)0x005244c4,
             (unsigned long)g_av_tm_calls, (unsigned long)g_av_tr_calls);
-    g_av_frames++; g_av_tm_n = 0; g_av_tr_n = 0; g_av_tm_calls = 0; g_av_tr_calls = 0; g_av_len = 0.0; g_av_wid = 0.0; g_av_lw_n = 0;
+    g_av_frames++; g_av_tm_n = 0; g_av_tr_n = 0; g_av_tm_calls = 0; g_av_tr_calls = 0; g_av_len = 0.0; g_av_wid = 0.0; g_av_lw_n = 0; g_av_w_n = 0;
     if ((g_av_frames & 7) == 0) fflush(g_av);                 /* the harness kills the game: keep at most 8 frames unwritten */
     av_view_check();
 }
