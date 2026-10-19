@@ -4975,12 +4975,26 @@ static void __cdecl tick_vehicle_wrap(BYTE *obj) {
  * before the render), and on one path from inside the player's tick (0x46391f). Run it with the player drawn where it
  * will be rendered, so a lagging chase camera follows the smooth pose instead of the 24/40 Hz physics one; the physics
  * pose is put back as soon as the camera returns. */
+/* A LIVE object behind a reference handle, WITHOUT touching its reference count (2026-10-19 sp-fix lane, TICK-FINISH s.16).
+ * 0x45f0f0 is not a lookup: it is the engine's release-if-dead. For an object still alive (word +8 != 1) it returns the
+ * object; for a dead one it drops one reference (+0xc, and its children's through 0x45f0c0) or, at the last one, frees
+ * it, and returns 0. Each holder (the live list in entity_TickAll "clasfn", the texture-animation list in
+ * image_UpdateTexAnims "texanm", ...) calls it once per pass to let go of its own reference. The proxy's walks called it
+ * as a lookup, so every walk over a dead object stole a reference: under the tick (wst_walk, several walks per tick) the
+ * live list's release then freed objects the texture-animation list still held, and image_UpdateTexAnims read the freed
+ * object (exe+0x5F103, frame 1: INSTANT MELEE on "Scene 1 (Co-op)" coop01.lvl crashed every boot under the tick).
+ * mark_live (I76_RENDER_INTERP, promotion 18) had the same call. This reads the same test 0x45f0f0 makes (null handle,
+ * word +8 == 1) and changes nothing. */
+static BYTE *obj_live_noref(DWORD h) {
+    BYTE *o = (BYTE *)(DWORD_PTR)h;
+    return o && *(WORD *)(o + 8) != 1 ? o : NULL;
+}
 static void mark_live(void) {                                /* which of this frame's vehicles are still live objects */
     BYTE *node = *(BYTE **)0x0054b204;
     int i, guard = 0;
     for (i = 0; i < 64; i++) g_ie[i].live = 0;
     while (node && guard++ < 4096) {
-        BYTE *o = ((BYTE *(__cdecl *)(DWORD, const char *))0x0045f0f0)(*(DWORD *)(node + 8), (const char *)0x004f7c5c);
+        BYTE *o = obj_live_noref(*(DWORD *)(node + 8));   /* not 0x45f0f0: that releases a reference of a dead object */
         if (o) for (i = 0; i < 64; i++) if (g_ie[i].obj == o && g_ie[i].stamp == g_frame) g_ie[i].live = 1;
         node = *(BYTE **)node;
     }

@@ -215,7 +215,7 @@ static int wh_put(whent_t *t, BYTE *o, DWORD stamp, int idx) {   /* 0 = already 
 }
 static DWORD g_wh2_stamp = 1;
 
-/* every live object: the ticked list 0x54b204 (handle at node+8, resolved as entity_TickAll does), then the projectile
+/* every live object: the ticked list 0x54b204 (handle at node+8, alive as entity_TickAll tests it, no reference released), then the projectile
  * lists. cb(obj, handle, kind): kind 0 player, 1 vehicle, 2 projectile, 3 other */
 typedef void (*wst_cb)(BYTE *obj, DWORD handle, int kind);
 static void wst_walk(wst_cb cb) {
@@ -223,7 +223,7 @@ static void wst_walk(wst_cb cb) {
     int guard = 0, i, n;
     while (node && guard++ < 8192) {
         DWORD h = *(DWORD *)(node + 8);
-        BYTE *o = ((BYTE *(__cdecl *)(DWORD, const char *))0x0045f0f0)(h, (const char *)0x004f7c5c);
+        BYTE *o = obj_live_noref(h);                         /* strlkproxy.c: no reference released (0x45f0f0 frees dead objects) */
         if (o) {
             int kind = 3;
             if (*(int *)(o + 0x6c) == 1) kind = ((int (__cdecl *)(BYTE *))0x00458bf0)(o) ? 0 : 1;
