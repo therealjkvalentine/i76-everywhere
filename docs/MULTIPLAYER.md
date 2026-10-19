@@ -210,6 +210,10 @@ again, the same bundle never does.
      host runs and that attack the nearest human; a human who kills one scores for it on every screen ("Torque Daisy
      was destroyed by ..."); everybody respawns by himself; when every computer car is dead the arena reloads with
      them back and the scores kept (records/AI-MELEE-M1-2026-10-19.md);
+   - **Hope Springs (2 AI), Hope Springs (4 AI), Hope Springs (6 AI)**: melee against 2 / 4 / 6 computer cars that the
+     host runs and that attack the nearest human; a human who kills one scores for it on every screen ("Torque Daisy
+     was destroyed by ..."); everybody respawns by himself; when every computer car is dead the arena reloads with
+     them back and the scores kept (records/AI-MELEE-M1-2026-10-19.md);
    - **Oil Well Well, Mondo Burger, Seminole, Pretty Bus, Race No Shoot, Trailer Pk. Madness, Milk Toast (Scenario)**:
      the single-player auto-melee scenarios with their computer cars, humans together against them; a joiner who dies
      comes back by itself, the host's death (or the scenario's own loss) restarts the scenario for everybody, a win
@@ -276,6 +280,21 @@ before a co-op night. No co-op cell has been run across machines yet (records/LA
   machine refuse each other's co-op games ("does not match the host's").
 - Pack: `i76-uncap-lab\builds\mp-pack-20261019\` (proxy 3125197a). Not yet on any machine. Host melee respawn in scenarios
   is an owner option, not built (records/COOP-LIST-ENTRIES-2026-10-18.md 8.3).
+
+### Update 2026-10-19: AI melee arenas (built, not deployed)
+
+- **New list entries** after A Lot of Asphalt: "Hope Springs (2 AI)", "(4 AI)", "(6 AI)" = `ADDON\ai_hs2/4/6.lvl`
+  (`tools/aimelee-mission.py`, installed by `coop-install.py` and so by `mp-pack.py`). Proxy `I76_AIMELEE` (on with
+  `I76_COOP_AI`, PLAY-LAN.bat sets it): the host sends every computer car after the nearest human, credits a human's kill
+  of one to that human on every machine, reloads the arena with the cars back when all are dead (scores kept), and dead
+  humans respawn by themselves.
+- **Measured on the PC, two lab copies** (records/AI-MELEE-M1-2026-10-19.md): 4 AI present and moving for the host (n 3),
+  the joiner sees them at the same places (median 0.2-0.4 m, n 5), the AI hit and kill both humans, the host's kills
+  score on both screens (7 kills, n 2), two wave reloads with both players through and scores kept (n 2), the host's
+  death does not end the game (n 5). **Not measured:** a joiner's kill of an AI (the scripted joiner never finished one),
+  any run between two machines. The 15 stock arenas and Scene 1 (Co-op) load as before (n 1 each).
+- Every machine needs the three `ai_hs*.lvl` files (the joiner's shell checks name and CRC). Pack:
+  `i76-uncap-lab\builds\mp-pack-aimelee-20261019\` (proxy 8e262bcf = main e9d3e0b). Not on any machine.
 
 ### Update 2026-10-19: AI melee arenas (built, not deployed)
 
