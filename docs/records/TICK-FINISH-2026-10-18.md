@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-19 (s.12): new candidate STRLKUP-tick19d 88970903, NOT gated yet (the owner was at the PC; headless only). Flame damage under the tick is x 2.8 by default (I76_SIM_TICK_FLAME_DMG): a T05 car burns to death 10.9 s after first contact under tick33 and tick66, 1997 20 fps 11.2 s (s.11's "~25 / ~40 s" were mission times; n 6 / 6). The T05 bars burn again with I76_BREAKABLE_BOX=4 (I76_BREAKABLE_BOX_FLAME, default on: the flame sees the bars' stock sphere; 94 % of tests, rams 19 / 30 vs 20 / 30, signs unchanged): the flat box missed because the flame tests it with a pad of 0 and the streams pass 1-2.7 m above it, not because of an inside-start rejection. On a bar the tick now deals ~2 x the 1997 rate (the car-calibrated factor does not fit the bar). T06 strip 54 / 54 unchanged. Promotion 18 (the driver) has neither fix.**
+
 **Update 2026-10-18 evening (s.11): the flame finding of s.10 was wrong. The tick does not stop flame hits. The T05 bar is a flat box under `I76_BREAKABLE_BOX=4` (both the tick presets and promotion 18), and the flame never hits it, even in the stock loop. With the bar's stock shape the tick hits it on 94 % of the tests. A T05 car is burned and killed under the tick: ~40 s, against ~25 s for the 1997 20 fps coupling; promotion 18 does not kill it in 38 s. No tick fix, so tick19c 6846c2d4 stays the candidate.**
 
 **Update 2026-10-18 afternoon (s.10): the owner's first playtest found four real problems. Fixed and measured: tracers (drawn for 1 frame, now every frame), sound loops restarted every tick (15.4 starts / sim s, now 0.86 like promotion 18), the lab copy not being the driver (keys, music switch, menu pointer). NOT fixed: flame hits never register under the tick (nor under promotion 18). New candidate STRLKUP-tick19c 6846c2d4, gate 21 PASS 0 FAIL 2 INFO.**
@@ -814,3 +816,156 @@ owner may simply have drawn a west spawn on both 66 ms visits. That is unproven:
 - One of the A/B pairs is a direct boot, not the owner's route. `I76_MELEE_BOOT` sets match_IsMultiMelee [0x501818] and the car
   name 0x5dd370, which the shell's play mode 3 sets at 0x40257b. Its first camera is odd in both arms. The menu boots are the
   owner's route.
+
+## 12. Flame damage at the 1997 rate, and the flame against the boxed bars (2026-10-19, flame-fix lane)
+
+The owner's two decisions on s.11 (verbatim): "yes the flamer damage should map 1997 it's hard to make contact with it so it
+should be quite punishing. i think we should patch the breakable-box switch, sure."
+
+**New candidate `STRLKUP-tick19d.dll` md5 `889709031cd60d7cc71aa15fbd71c57f`** (i76-everywhere `ee0bda6`, lab
+`builds\flame-fix-20261019\make.ps1`, the MSVC recipe of s.1; a second build `run2\` is section-identical, pecmp SAME). Installed
+in game-tick (read back; tick19c kept beside it as `STRLKUP.DLL.6846c2d4-pre-flamefix`) and staged in
+`builds\tick-finish-20261018\promotion-19-candidate\` (tick19c's set in `_superseded-tick19c\`). **The gate was not run** (12.6).
+
+Lab only: the daily driver, the golden copy and the Downloads portable were not touched. Every boot headless (private desktop;
+the real-renderer rows on the lab copy game-tickvis, also on a private desktop). Lab twins `Strlkup-ff1-lab.dll` e1a9f2d3
+(`a4f3d1e`: switches, factor default 1) and `Strlkup-ff2-lab.dll` 0a62a992 (`ee0bda6` = the candidate source) + the drive block.
+Captures `captures\flame-fix-20261019` (gitignored); queues `queue-flamefix\q0..q3`; tools `tools\flame-box\` (`ff_tab.py` tables,
+`fbdis.py` disassembly, `ff-queue.ps1` / `ff-lock.ps1` = tg-queue / with-lock without the host mute, 12.7).
+
+### 12.1 Correction to s.11: the kill times were mission times
+
+s.11.3 printed the combat log's `t_dead` as "killed at". That clock is mission time (it ends at ~53.7 s, the same base as the
+flame census, whose first application is at 13.1-13.4 s). Measured from the first flame contact, the T05 car dies after
+**~11 s at the 1997 timing** (s.11 boots: 10.5 / 12.4 / 11.0 s), and after **~27 s under the tick** (tick33 25.2 / 28.7 / 26.0,
+tick66 30.7 / 20.4 / 30.3). The car gap was 2.5 x, not 1.6 x, and the brief's "time to kill ~25 s" target is ~11 s.
+`tools\flame-box\ff_tab.py` measures from the first contact.
+
+### 12.2 Why the boxed bar rejects the flame (instrumented)
+
+- **The pad is 0, not the flame's radius (static).** weapon_FlameHitTest calls the narrow test 0x43d770 at 0x435691 with arg 10 =
+  0 (`push 0` at 0x435674). The tree test 0x43d9e0 passes that value both to the part's sphere prefilter (radius + it) and as the
+  pad of the box test 0x43df10 (`push ecx` at 0x43dccc). s.11.1's "padded by the radius" was wrong: the flame tests the boxed bar
+  as its bare mesh AABB, 8.04 x 0.64 x 0 m. 0x43df10 is a slab test in the order x, z, y (|d| < 1e-4 = parallel); it then rejects
+  tnear > tfar, tfar < 0, tnear > sim_dt and tnear < 0.
+- **Probe I76_FLAME_BOX_PROBE=1** (lab, strlkproxy.c `flame_box_probe` at 0x43dd3e; counted only inside a flame narrow test,
+  with I76_BREAKABLE_BOX_FLAME=0): it replays the slab test in C and files each call under the first comparison that rejects it.
+  The replay agreed with the real return value on **188 024 of 188 024 calls**.
+
+| boot (bar = box, fix off; n 1 each) | box tests | first failing comparison | entry < 0 ("starts inside") | closest the rejected segment came to the bar: < 1 m / 1-2 m / >= 2 m |
+|---|---|---|---|---|
+| tick33, the s.11 geometry (stream over the bar) | 64 992 | y slab behind 40 708, z slab behind 24 284 | **0** | 0 / 32 535 / 32 457 |
+| tick33, bar approached across (flamepx) | 120 994 | z parallel outside 120 980, z slab behind 14 | **0** | 2 / 72 992 / 48 000 |
+| stock loop 30 fps | 2 038 | y slab behind 2 036, slabs disjoint 2 | **0** | 0 / 0 / 2 038 |
+
+- **Cause:** the flame segments never pass through the bar's rectangle. In the s.11 geometry they cross the bar's plane 1-2.7 m
+  above its 0.64 m height and move away; in the across geometry they run along the bar, parallel to its zero-thickness plane,
+  0.44 m off it (a degenerate slab: a parallel segment can only hit at z = 0 exactly). None started inside the box, so s.11's
+  suspected reason (an inside-start rejection) was wrong. The stock 0.75 r sphere (3.03 m) catches the same streams on 94 % of
+  the tests. A thicker box or a pad of 1 m would still miss this geometry (the closest approach is >= 1 m in 188 022 of 188 024).
+- **Fix (strlkproxy.c, `I76_BREAKABLE_BOX_FLAME`, default 1 whenever I76_BREAKABLE_BOX is applied; 0 = as before):** the flame's
+  narrow-test call 0x435691 goes through a wrapper that marks "inside a flame narrow test"; the tree test's part-kind read at
+  0x43da33 (`mov ebp, [ebx+0x10]; and ebp, 0xf000`, 9 bytes) goes to a thunk that, only while that mark is set, returns the stock
+  class-4 default 0x5000 (the 0.75 r sphere) for a part bbox_pick made a box (its node pointers are kept in a ring of 128). So the
+  flame sees the stock bar; the car-vs-bar collision (0x43ff80, never inside the flame mark) keeps the box. It applies in every
+  loop: stock, the 20 Hz grid and the tick.
+
+### 12.3 The bar with the switch on: flame hits restored (T05 bar, player's Gas Launcher held 40 s, 8 m; headless)
+
+| arm | boots | hit tests that hit | damage / sim s | before (s.11, same arm with the box) |
+|---|---|---|---|---|
+| 1997 coupling (stock 20 fps) + box + fix | 2 | 94 % | **669.2** (both) | - (stock sphere 669.2, n 3) |
+| stock 30 fps + box + fix | 1 | 33 % | 20.1 | 0 (e30kb, n 2) |
+| tick33 preset (box on) + fix, factor 1 | 3 | 94 % | 500.6 (all 3) | **0** (n 2) |
+| tick66 preset + fix, factor 1 | 3 | 94 % | 500.8 (all 3) | - |
+| tick33 preset, fix off (= tick19c) | 1 | 0 % | 0 | 0 |
+
+Equal to the bar's stock sphere in every arm (s.11: 669 / 20 / 500 / 500). Stream 18.6-18.7 segments in every tick boot.
+
+**Not changed by the fix (n 3 each, tick33 preset):**
+- T05 barricade rams at 20 m/s (10 per boot): **19 / 30 knocked off with the fix, 20 / 30 without** (per boot 7, 6, 6 against 6, 7, 7;
+  s.9.3: 13 / 20). The fix-on count joins one ff1 boot (r1) and two ff2 boots (R2, R3); one ff2 boot was lost to lock contention.
+- T05 sign posts (11 + 11 rams per boot): 33 / 33 knocked off, drawn gap at the knock-off median -0.10 m (mean -0.09, -0.17..0.00),
+  0 timeouts (s.9.3: -0.09 m, 33 / 33).
+- The car (not class 4): the fix only touches class-4 box parts; the car tables below (fix on in every tick arm) match s.11's
+  factor-1 boots.
+
+### 12.4 Flame damage factor (I76_SIM_TICK_FLAME_DMG, simtick.c / strlkproxy.c `flame_damage_wrap`)
+
+- **What it does.** Under the tick only (g_simtick), each flame damage application's amount (record d[4] = max(1, int(D x f x
+  dt)): 1 at 33.3 ms, 2 at 66.7 ms) is multiplied by the factor, the fraction carried per target. So the factor scales damage per
+  unit of damage, i.e. per sim second in both tick arms. The 20 Hz grid (promotion 18) and the stock loop are not touched.
+- **AI flamers get it automatically:** every stream in the ring 0x52bb90 (the player's and every AI car's) applies its damage
+  through the same site, 0x4357c3 in weapon_FlameHitTest -> `flame_damage_wrap`. Static; no AI flamer fired at the player in the lab
+  (T05's never engage, s.9.2).
+- **Calibrated on the T05 car** (the nearest parked car, 4 m, the player's car held 10 deg nose up; health lost per second from
+  the first contact to the kill). Per boot:
+
+| arm | boots | health lost / s while burning, per boot | kill after first contact s | mean (steady boots) |
+|---|---|---|---|---|
+| 1997 coupling (stock 20 fps, mirror on): s.11 + this lane | 6 | 86.1, 76.9, 84.1, 90.6, 70.2, 84.4 | 10.5, 12.4, 11.0, 9.8, 12.8, 10.8 | **82.0 / s, 11.2 s** |
+| tick33, factor 1: s.11 + this lane | 6 | 36.4, 29.7, 34.4, 29.3, 31.1, *99.4* | 25.2, 28.7, 26.0, 33.3, 28.0, *8.2* | 32.2 / s (n 5), 28.2 s |
+| tick66, factor 1 | 6 | 30.4, 41.6, 30.4, 36.1, 32.4, *226* | 30.7, 20.4, 30.3, 25.6, 26.9, *3.7* | 34.2 / s (n 5), 26.8 s |
+| tick33, factor 1, flamer dt floor 50 ms (the 1997 stream shape, diagnostic) | 2 | 40.0, 28.9 | 24.6, 33.1 | 34.5 |
+| tick33, factor 1, stream record saved / restored around non-tick calls (I76_SIM_TICK_FLAME_STATE, diagnostic) | 2 | 35.4, 29.5 | 25.9, 29.6 | 32.5 |
+| tick33 / tick66, factor 2.5 | 3 + 3 | 60.4, 84.4, *369* / 65.8, 75.5, 77.5 | 16.1, 11.2, *2.0* / 14.3, 11.5, 11.9 | 72.7 (n 5), 13.0 s |
+| **tick33, factor 2.8 (tick19d source, default)** | 3 | 77.1, 83.1, 91.7 | 11.7, 11.3, 9.7 | **84.0 / s, 10.9 s** |
+| **tick66, factor 2.8 (default)** | 3 | 76.8, 94.5, 74.0 | 11.3, 8.8, 12.6 | **81.8 / s, 10.9 s** |
+| promotion 18 (s.11, unchanged) | 3 | 11.5, 12.0, 10.9 | alive after 38 s | 11.5 |
+
+  *Italic*: a second regime, 3 of 18 tick boots at factor 1 / 2.5 and 0 of 6 at 2.8, 0 of 6 at 1997: the car dies in 2-8 s from
+  only 58-247 hits (lost per hit 3-12 instead of ~1); not explained, left out of the means. Ratio 1997 / tick at factor 1 =
+  82.0 / 33.2 = 2.47; 2.5 measured 72.7 (-11 %), 2.8 measured **82.9 (+1 %, n 6) and a kill in 10.9 s against 11.2 s (-3 %)**:
+  **default 2.8**. Both inside the brief's ~10 %.
+- **The bar does not fit the same factor.** On the bar (stock sphere, or the box with the fix) tick33 and tick66 at 2.8 deal
+  **1401.5 / 1402.3 per sim s against 1997's 669.2 (+110 %)**; at factor 1 they deal 500.6 / 500.8, i.e. 1997 / tick = 1.337 there,
+  exactly the missing mirror pass (40 updates a second against 30). On the bar every update's contact equals 1997's (16.7 hitting
+  points per update in both); on the car the tick's updates land about half the hits per update of 1997's (1997 ~79 car hits / s =
+  2.0 per update of 40; tick ~30 / s = 1.0 per update of 30 or 15). The flamer dt (the stream shape) and the stream record state
+  were ruled out (diagnostic rows, n 2 each); the cause is not found. Calibrating on the car, as decided, therefore makes the tick
+  **about twice as strong as 1997 on a bar** (it burns down faster).
+- **Real renderer** (lab copy game-tickvis, dgVoodoo, private desktop; factor 1, n 2 each): 1997 timing 86.5 / 78.4 per s, killed
+  10.9 / 10.9 s; tick33 16.7 (alive at the end) / 33.2 (27.8 s); tick66 33.6 (27.5 s) / 47.5 (20.1 s). The same 1997 / tick gap as
+  headless (~2.5 x), so the headless calibration carries over. (s.11's one visible boot, killed in 4.7 s, was the second regime.)
+- Stream length unchanged: 18.64-18.66 segments in every tick boot (1997 18.68).
+
+### 12.5 Physics strip and build
+
+- **T06 strip on game-samecar, candidate source (ff2 twin, n 3):** **54 / 54 fingerprint rows keep tick19c's verdict** (19 PASS,
+  13 FAIL, 1 OUT, 9 ok, 12 INFO); accel t20 4.20 s, brake v0 29.51 m/s, brake dist 37.90 m, equal to the printed digit (lab
+  `emu\results\tick-fix-20261018\tick19d-t06-vs-p166.md`). Run because the box fix patches the tree narrow test, which the car's
+  collisions also use (the thunk changes nothing outside the flame mark).
+- **What else is in tick19d.** It is built from main at `ee0bda6`, which since tick19c (3e7e0c5) also carries three multiplayer
+  commits from other lanes: efa108d (MULTI MELEE HOST / JOIN go straight to IPX, `I76_MP_MENU=1` by default; AREA OF PLAY title fit),
+  e1f35f0 (AI melee, acts only in ADDON ai_*.lvl) and fdb1b06 (arena title font). This lane did not test them; the single-player
+  rows above ran on the same source.
+
+### 12.6 Not done, and why
+
+- **The owner-route gate (run-gate.ps1) was not run on tick19d.** The owner sat down at the PC during the run, and from then on
+  every run had to stay headless; the gate drives the real menus on the console. Run it before promoting: PLAY-TICK all rows,
+  PLAY-TICK-66 rows 2 3 5 6, PLAY-P18-BALANCED rows 3 6 (expected 21/0, 8/0, 6/0 as tick19c). Note that `run-gate.ps1` takes the
+  lock through `with-lock.ps1`, which mutes the host (12.7).
+- One ram boot (ff33 R1) and one 1997 + box bar boot (e20kbf b1) were lost to lock contention with other lanes; n is as printed.
+- The car's per-update contact gap (12.4) and the second regime are not explained.
+- AI flamers against the player: static evidence only.
+
+### 12.7 Audio during this lane
+
+The owner heard music from the first headless boots. The lab lock wrapper `with-lock.ps1` mutes the host per hold and every hold
+read back `muted = True` (and a read-only sampler showed the endpoint still muted while a boot ran), yet the coordinator found the
+host unmuted at that time; for one hold this lane also ran `tools\mute.ps1` before each launch. Then the owner asked for the host
+to stay unmuted: since then this lane's runs went through `tools\flame-box\ff-lock.ps1` / `ff-queue.ps1` (with-lock and tg-queue
+without the host mute) and refuse to launch unless the per-process watcher `tools\mute-proc.ps1 -Watch` (pid in
+`tools\mute-proc.watch.pid`) is running; `wst-run.ps1` / `sc-run.ps1` check the same. One hold that started before the change
+(08:26) ran with-lock's host mute once more. The host was not unmuted by this lane.
+
+### 12.8 Still needs the owner's eyes
+
+1. **Flamers on PLAY-TICK:** a T05 car now burns to death in ~11 s of contact, like 1997 at 20 fps (PLAY-balanced, the driver,
+   does not kill it in 35 s). Strong enough, too strong?
+2. **T05 road-closed bars** now burn under PLAY-TICK (and would under the driver's switch set with this proxy). Under the tick a bar
+   takes ~2 x the 1997 flame damage (12.4).
+3. **Promotion 18 (the daily driver) has neither fix:** its proxy 33211f11 has no flame factor (its 20 Hz grid applies 328 per s
+   on the bar, ~11.5 health / s on a car) and its I76_BREAKABLE_BOX=4 still makes the T05 bars flame-proof.
+4. The gate (12.6).
