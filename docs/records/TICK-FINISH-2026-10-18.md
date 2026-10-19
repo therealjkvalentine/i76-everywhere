@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-19 (s.14): new candidate STRLKUP-tick19e a08577c4, GATED 21 / 0 / 2, 8 / 0, 6 / 0 (this covers tick19d too). Under the tick, four per-pass systems now run at the 1997 rate per second, each with its own switch (I76_SIM_TICK_{HAZARD,SCRAPE,WRECK,RADAR}_FACTOR). Measured, n 3 per arm: dropper / oil contact per round 120.5 /s at 1997 against tick33 150.5 -> 120.4 and tick66 75.5 -> 120.9; the wreck blast roll 24.1 /s against 30.1 -> 23.1 / 23.9. The sustained-scrape scaling is verified per application but its rate was not resolved. The radar-missile turn is from the code only. The flame outliers are stock: the flame kill roll on a destroyed component, plus a health-lost measure that books the wreck. T06 strip 54 / 54 unchanged.**
+
 **Update 2026-10-19 (s.12): new candidate STRLKUP-tick19d 88970903, NOT gated yet (the owner was at the PC; headless only). Flame damage under the tick is x 2.8 by default (I76_SIM_TICK_FLAME_DMG): a T05 car burns to death 10.9 s after first contact under tick33 and tick66, 1997 20 fps 11.2 s (s.11's "~25 / ~40 s" were mission times; n 6 / 6). The T05 bars burn again with I76_BREAKABLE_BOX=4 (I76_BREAKABLE_BOX_FLAME, default on: the flame sees the bars' stock sphere; 94 % of tests, rams 19 / 30 vs 20 / 30, signs unchanged): the flat box missed because the flame tests it with a pad of 0 and the streams pass 1-2.7 m above it, not because of an inside-start rejection. On a bar the tick now deals ~2 x the 1997 rate (the car-calibrated factor does not fit the bar). T06 strip 54 / 54 unchanged. Promotion 18 (the driver) has neither fix.**
 
 **Update 2026-10-18 evening (s.11): the flame finding of s.10 was wrong. The tick does not stop flame hits. The T05 bar is a flat box under `I76_BREAKABLE_BOX=4` (both the tick presets and promotion 18), and the flame never hits it, even in the stock loop. With the bar's stock shape the tick hits it on 94 % of the tests. A T05 car is burned and killed under the tick: ~40 s, against ~25 s for the 1997 20 fps coupling; promotion 18 does not kill it in 38 s. No tick fix, so tick19c 6846c2d4 stays the candidate.**
@@ -969,3 +971,205 @@ without the host mute) and refuse to launch unless the per-process watcher `tool
 3. **Promotion 18 (the daily driver) has neither fix:** its proxy 33211f11 has no flame factor (its 20 Hz grid applies 328 per s
    on the bar, ~11.5 health / s on a car) and its I76_BREAKABLE_BOX=4 still makes the T05 bars flame-proof.
 4. The gate (12.6).
+
+## 14. The frame-bound factors, the flame outliers, tick19e (2026-10-19, tick-factors lane)
+
+The brief was to implement the four "too fast at 33" factors recommended in FRAME-BOUND-SYSTEMS-2026-10-19.md, under the tick only, each with
+its own switch. Then: look for the cause of the flame outliers (s.12.4, the italic rows), build and gate a new candidate, and run the T06 strip.
+
+**New candidate `STRLKUP-tick19e.dll` md5 `a08577c4d512926933b83395b5a2ba48`**
+- Source: i76-everywhere `6efb646`, built with lab `builds\tick-factors-20261019\make.ps1` (the MSVC recipe of s.1).
+- A second build, `run2\`, is section-identical (pecmp SAME), so the build is deterministic.
+- **Gated** on game-tick: 21 / 0 / 2, 8 / 0, 6 / 0 (14.6). This gate also covers tick19d, which was never gated.
+- Installed in game-tick and read back. tick19d is kept beside it as `STRLKUP.DLL.88970903-pre-factors`.
+- Staged in `promotion-19-candidate`. tick19d's set moved to `_superseded-tick19d\`.
+
+Lab only. The daily driver, the golden copy, the Downloads portable and the PC LAN copy were not touched.
+- Every measurement boot was headless: lab copy `game-tfx` (a copy of game-fbs: i76.exe 6319abf7, null renderers), private desktop.
+- Lab twin `Strlkup-tf1-lab.dll` c656976c = `6efb646` + the drive block.
+- Locks were taken through `tools\flame-box\ff-lock.ps1`: no host mute; the i76 audio sessions were muted by the `mute-proc.ps1` watcher.
+- Tools: lab `tools\tick-factors\` (`tf-run.ps1`, `tf-queue.ps1`, `tf_live.py`, `tf_tab.py`, `radar_turn_sim.py`, `outlier\`).
+- Tables: lab `emu\results\tick-factors-20261019\tf-tables.md`. Captures: lab `captures\tick-factors-20261019` (gitignored).
+
+### 14.1 What the factors do (simtick.c `st_factors_install`, strlkproxy.c hooks)
+
+The reference rate is `I76_SIM_TICK_REF_HZ`, default 24 per second (1997 as played, the census's reference). Each factor has its own
+switch: unset or `auto` = the default below, `0` / `1` / `off` = off, any other value from 0.05 to 10 = that factor.
+
+| system | switch | sites | what is scaled | 33.3 ms | 66.7 ms |
+|---|---|---|---|---|---|
+| Fire-Dropper patch, oil slick, wheel hazard, landed canister: contact damage | `I76_SIM_TICK_HAZARD_FACTOR` | steps 0x4a08ec / 0x4a0914 / 0x4a0900 / 0x4a0856; damage at the class-damage call 0x4a81d3 in physics_ApplyCollisionDamage | each application's amounts (record d[2..5]) x ref / tick rate, the fraction carried per target and field | 0.8 | 1.6 |
+| sustained scrape / pinned contact | `I76_SIM_TICK_SCRAPE_FACTOR` | 0x4644bc (vehicles) / 0x46f8d4 (objects) through `coll_damage_wrap`, then the same class-damage call | applications of a victim / source pair that already had contact on the previous collision pass x ref / tick rate. The first impact stays whole. Projectile sources (class 0x33 / 0x34) and class-4 breakables are left as stock, so the sign / bar knock-off is unchanged | 0.8 | 1.6 |
+| wreck debris / secondary-blast roll | `I76_SIM_TICK_WRECK_FACTOR` | 0x4664eb (`call ebx; and eax, 0xf` -> `call st_wreck_roll`; `cmp eax, 7` kept) | a roll is passed with probability ref x substep; otherwise it reads 15 (no action). rand() is consumed as stock | 0.8 | 0.8 (2 substeps a tick) |
+| radar-missile turn per step | `I76_SIM_TICK_RADAR_FACTOR` | 0x4aaca0 / 0x4ab400 | a clamped turn x k; a proportional turn x (1 - 0.25^k) / 0.75; k = ref / tick rate | 0.8 | 1.6 |
+
+- `I76_FACTOR_CENSUS=1` (lab) installs the same wrappers in any frame loop, counting only. It logs a `tick-factors:` line every 2 s.
+  That line is the measurement below (the 1997 arm uses it in the stock loop).
+- Co-op's stub on 0x4a81d3 (`I76_COOP_AI`) chains behind the tick-factors wrapper instead of failing its patch.
+- Proxy log line, read in every tick boot of the gate:
+  `tick-factors: under the tick; ref 24.0 / s; hazard x 0.800 (4/4 steps, class-damage call 1/1), scrape repeats x 0.800 (2/2 collision calls), wreck roll pass 0.800 (1/1), radar turn x 0.800 / proportional x 0.893 (2/2)`.
+
+### 14.2 Measured (headless T05, n 3 boots per arm; 95 % t intervals, boot = unit)
+
+The arms:
+- **1997** = e24: the stock loop at 24 fps, as in the census.
+- **before** = tick33off / tick66off: the tick with all four factors off, i.e. tick19d.
+- **after** = tick33 / tick66 at the defaults.
+
+**Hazard contact.** The T05 player's Landmines row was swapped to the Oil Slick definition (rate-ab-live's hazard staging). The slick was
+dropped for 0.06 s, wait out the 2 s shooter immunity, then the car was frozen in the slicks for 10 s with REPAIR every frame. T05 loads no
+Fire-Dropper patch. The slick has damage mask 0, so for the test it was given channel 0 and 5 damage per hit. This is the same sweep ->
+0x4a7c80 path the fire patch takes.
+
+| arm | rounds dropped | applications / sim s per round in contact | damage per application (in -> out) | damage / sim s per round in contact |
+|---|---|---|---|---|
+| 1997 | 4 | **24.1** | 5 -> 5 | **120.5** |
+| tick33 before | 4 | 30.1 | 5 -> 5 | 150.5 (x 1.25) |
+| tick33 after | 4 | 30.1 | 5 -> **4.00** | **120.4** |
+| tick66 before | 8 | 15.1 | 5 -> 5 | 75.5 (x 0.63) |
+| tick66 after | 8 | 15.1 | 5 -> **8.00** | **120.9** |
+
+How the per-round numbers were derived:
+- The rounds in contact per step are read off the integer counts per boot. In 5 of 15 boots one round lay outside the car (3 of 4, or 7 of 8),
+  so the raw applications per second differ between boots: 1997 96.4 / 72.3 / 72.3.
+- Per round in contact, every boot repeats to 0.1: 24.1, 30.1, 15.1 per s.
+- At 66.7 ms the 0.06 s tap spans two ticks, so 8 rounds are dropped instead of 4. The rate per round is still 15.1 per s: one projectile
+  step per tick, as the census said.
+
+**Wreck debris / secondary-blast roll.** The T05 car was killed with the 50cal (fb_live's guns staging). The wreck's rolls were then counted
+for its 10 s (span 10.0 s in every boot).
+
+| arm | rolls / sim s | passed / sim s | acting rolls (values 0..7) / sim s |
+|---|---|---|---|
+| 1997 | 24.1 +- 0 | **24.1** | **12.2 +- 0.7** |
+| tick33 before / after | 30.1 / 30.1 | 30.1 -> **23.1 +- 0.9** | 15.1 +- 1.9 -> **11.5 +- 2.9** |
+| tick66 before / after | 30.1 / 30.1 | 30.1 -> **23.9 +- 0.4** | 15.4 +- 1.5 -> **11.4 +- 0.4** |
+
+The 66.7 ms tick runs the roll 30 times a second (2 substeps x 15), as the census said.
+
+**Sustained scrape.** The setup was the T05 car placed 6 m in front of the parked target car, 3 m/s toward it, full throttle for 8 s.
+
+| arm | repeated-contact applications per boot | their amount in -> out | first-contact applications | collision damage on the player per boot (in -> out) |
+|---|---|---|---|---|
+| 1997 | 24, 24, 24 | 33 / 33 / 34 (unscaled) | 16, 32, 16 | 35, 68, 38 |
+| tick33 before | 18, 36, 18 | 25 / 52 / 25 | 52, 44, 50 | 45, 100, 49 |
+| tick33 after | 18, 0, 0 | 25 -> **19** | 46, 20, 32 | 48 -> 44, 21, 29 |
+| tick66 before | 2, 2, 0 | 3 / 3 / 0 | 32, 32, 30 | 43, 43, 46 |
+| tick66 after | 22, 0, 22 | 26 -> **41** | 46, 30, 46 | 61 -> 70, 46, 61 -> 70 |
+
+- **The mechanism is verified.** Repeats are scaled 0.76 / 1.58 (0.8 / 1.6 with the integer carry). First contacts are untouched.
+  1997's repeat rate while in contact was 44.4 per s for both directions of the pair (n 3).
+- **The effect on damage per second is not resolved.** The push did not hold contact: the target slides away and the car re-contacts, so
+  most records are "first" contacts. Repeats appeared in 3 of 3 1997 boots but only 1-2 of 3 boots in four of the tick arms.
+- The between-boot spread (player damage 21-100 per boot) is larger than any arm difference.
+- A pinned contact against a fixed wall was not staged. T05 has no wall the harness can place the car against without a planner.
+
+**Radar-missile turn: not measured in game, from the code only.**
+- T05's two DrRadar turrets (t05ug01, about 2.3 km from the hand-over) did not fire at the player. The player was held on a 150 m circle
+  round one of them for 30 s, n 1, and the census line logged 0 turns.
+- The player's own DrRadar (the Landmines row swapped to the DrRadar Trt definition) fired 4 missiles, but with no radar lock they never
+  turned: 0 turns. The missile's target (pd+0x10) is a referenced object, and writing it from outside is not safe.
+- `radar_turn_sim.py` replays the turn law (0x4aa9f0) in 2D: 200 m/s, a target crossing at 30 m/s at 200 m, launched 20 / 60 / 120 deg off.
+
+| arm | limit per s, 15..150 m flown (deg/s) | > 150 m | time to align, 60 deg off (s) |
+|---|---|---|---|
+| 1997 | 356 | 470 | 0.29 |
+| tick33 before / after | 445 / **356** | 588 / **470** | 0.23 / **0.30** |
+| tick66 before / after | 222 / **356** | 294 / **470** | 0.47 / **0.33** |
+
+  After the factor, the turn per second is 1997's at both ticks. At 66.7 ms the missile still moves 13.3 m per step against 8.3 m in 1997.
+  In the model it then overshoots on its first pass and comes round again: hit at 2.9-3.2 s against 1.1-1.3 s in 1997. That is the step
+  length, which no turn factor can fix. Not seen in game.
+
+### 14.3 The flame outliers (s.12.4's second regime): stock mechanisms, no proxy bug
+
+Method: log analysis of the flame lane's and tick-fix2's captures (combat logs, proxy logs) plus a static reading of the exe. The game was
+not run for this part (`tools\tick-factors\outlier\ratio.py`, `clstab.py`).
+
+| boot | hits | damage asked | health "lost" | kill after first contact |
+|---|---|---|---|---|
+| ff33f1-c2 (tick33, factor 1) | 247 | 247 | 812 | 8.2 s |
+| ff66f1-c1 (tick66, factor 1) | 58 | 116 | 843 | 3.8 s |
+| ff33x250-c3 (tick33, 2.5) | 63 | 157 | 749 | 2.1 s |
+| fx33g-v1 (s.11's visible "4.7 s") | 144 | 144 | 723 | 4.8 s |
+
+- **Ruled out:** a second damage source. Every damage event on the target in these 4 boots came from the player at the flame amount: 1 or 2
+  per hit, or the factor-2.5 amounts. There was no collision, blast or other shooter.
+- **Also ruled out:** the target moving off. Its drift was 0.1-3.4 m, the same as in normal boots.
+- **Ruled out:** a stale or doubled record. "Asked" equals hits x the amount in every outlier.
+- **"Lost per hit" is not damage dealt.** The killing call runs the stock wreck code inside the hooked entity_DamageAndKill (0x463a80 ->
+  0x466180). That code removes 50-100 % of every component's remaining health (0x46646a / 0x466471, then 0x462040 at 0x46648f), and the
+  hook books all of it on that one call. A car killed early therefore shows ~800 "lost" over a few hits.
+  Cars still alive lose 0.56-0.66 per unit asked (n 7).
+- **Why it dies early.** A flame record (kind mask bit 2) never reaches armour or chassis: in 0x465620 armour needs mask & 3 and chassis
+  mask & 8. It damages only components (0x465af0), and it kills only through that function's instant-kill roll (0x465cc3..0x465d7f). The
+  roll fires when the random pick lands on a component that is already destroyed, and kills if (current / max component health) x
+  (rand % 100) < amount x 2.5 (x 0.1 for the player).
+  - So every flame kill is that roll; an early kill is an early lucky roll after a small component in the hit zone died.
+  - The tick does not raise the odds per unit of damage. At full health it is about 3 % per unit at 1 per hit (1997 and tick33), 2.5 % at
+    2 per hit (tick66) and about 2.7 % at 3 per hit.
+- **"Never at 1997" is not evidence of a tick effect.** Early kills were 4 of 34 tick boots against 0 of 8 at 1997. P(0 of 8 | the same rate)
+  is about 0.41.
+- No fix: it is stock behaviour.
+- Instrument change for later (not made): in the combat log, book the kill call's loss as `lost_wreck` and report damage asked per second, not
+  lost per second.
+
+**The census's "god-held player dies in T13" (e24, 4 of 5): a different mechanism, only partly traced.**
+- In 2 of the 4 deaths (a3 at 43.45 s, a5 at 43.53 s) no damage event reached the player after the 42.91 s snapshot.
+- Collision damage goes through the same hooked dispatch and would have been counted. So those two deaths did not come through damage.
+- They came through object_Destroy 0x4652b0, which sets the dead flag directly, and the trainer's god flag never clears it.
+- 0x4652b0's callers are: upside-down at rest 0x436ff0, a fall of more than 35 m 0x438fd0, a script destroy, self-destruct, and the network.
+  T13's script destroys only enemy8/9 and the bridge span.
+- In the other two deaths (a2, a4) the player was hit in the window, so their cause is open.
+- A side gap in god mode: 0x465620's play-flag zeroing sits inside `if (side != 4)`, so roof hits still reach the components and the kill
+  roll (x 0.1 for the player).
+- It is not the flame mechanism. A flip or a fall is the guess (step-coupled, which fits 41.7 ms arms only), but it is not proven: the boots
+  recorded no pose.
+- Next step: hook 0x4652b0's entry and log the caller's return address. One e24 boot should name the path.
+
+### 14.4 T06 strip (game-samecar, tick33 preset, lab twin tf1 of the tick19e source, n 3)
+
+- **54 / 54 fingerprint rows keep tick19d's verdict:** 19 PASS, 13 FAIL, 1 OUT, 9 ok, 12 INFO.
+- accel t20 4.20 s, brake v0 29.52 m/s (tick19d 29.51), brake dist 37.90 m.
+- Table: lab `emu\results\tick-fix-20261018\tick19e-t06-vs-p166.md`.
+- Run because the scrape factor touches the collision pass. The strip's car never meets a second body, so no repeat is scaled there.
+
+### 14.5 Build and staging
+
+- `promotion-19-candidate`: README (row, gate evidence, owner check 7), MD5SUMS.txt (6 files), and launcher text "tick19e (md5 a08577c4)".
+  The two launchers were copied to game-tick as well: PLAY-TICK 11c7d9d6, PLAY-TICK-66 5400a386. Presets and conf are unchanged.
+- tick19d's set is kept in `_superseded-tick19d\`.
+- `tools\tick-gaps\run-gate.ps1 -NoHostMute` takes the console lock through ff-lock.ps1 (no host mute; the audio watcher is required).
+
+### 14.6 Gate (lab game-tick, dgVoodoo, physical console, owner away, 2026-10-19 13:25-13:40, `run-gate.ps1 -NoHostMute`)
+
+| launcher | rows | result | run |
+|---|---|---|---|
+| PLAY-TICK.bat (tick19-33) | all | **21 PASS 0 FAIL 2 INFO** | `autotest\runs\gate\20261019-132526` |
+| PLAY-TICK-66.bat (tick19-66) | 2 3 5 6 | **8 PASS 0 FAIL** | `-133258` |
+| PLAY-P18-BALANCED.bat (control) | 3 6 | **6 PASS 0 FAIL** | `-133748` |
+
+- Proxy log: tick ON in 17 / 17 tick boots, all at 120 fps.
+- The tick-factors line was in every tick boot, with all sites applied. 0 NOT applied.
+- **1 CRASH line set: an AcGenral.DLL access fault (AcGenral.DLL+0x98AD3) after the MCI close at exit, in one tick66 boot.**
+  - It is the compat shim's exit fault, seen in the owner's own log before (s.13.2).
+  - Its row passed. It is not in proxy code.
+
+### 14.7 Not done, and why
+
+- **The radar-missile turn is not measured in game (14.2).** The factor is implemented from the code and checked in the model only.
+- **Sustained-scrape damage per second is not resolved (14.2).** The per-application scaling is verified; the push did not hold contact.
+- **Fire-Dropper patch itself:** not loaded in T05. It was stood in for by the oil slick with a forced mask and damage, on the same code path.
+- No AI-dropper or wheel-hazard boots. The landed canister has no stock weapon.
+- The two open T13 deaths (14.3) are not traced.
+
+### 14.8 Still needs the owner's eyes
+
+1. On PLAY-TICK and PLAY-TICK-66, these should now cost what they did in 1997:
+   - standing in a Fire-Dropper patch or an oil slick;
+   - being pinned against a car;
+   - sitting next to a burning wreck (its debris / blasts);
+   - dodging a radar missile.
+
+   Say if the radar missiles feel too lazy or too sharp. That one is from the code only.
+2. Any one factor can be switched off in the preset (`I76_SIM_TICK_<HAZARD|SCRAPE|WRECK|RADAR>_FACTOR=0`).
