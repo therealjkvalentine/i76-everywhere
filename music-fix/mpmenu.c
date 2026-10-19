@@ -35,14 +35,16 @@ static int mpm_write(BYTE *p, const BYTE *expect, const BYTE *want, int n) {
 }
 
 /* I76_ARENA_FIT (default 1): the host form's AREA OF PLAY list. EntryForm_DrawArenaList 0x1002b350 clears its box
- * (0x10038fd0: x 11, w 206) and draws each title at x 0x22 with the display object's text call 0x100395b0 (thiscall:
- * x, y, font, text, 0), which does not clip: a title wider than the box ran over its right border and stayed there
- * (the box is cleared, the border strip is not), measured 2026-10-19 with "Oil Well Well (Scenario)". Both calls in
- * that function (0x1002b3af the chosen arena, 0x1002b421 the six rows) go through mpm_text_stub, which hands the text
- * call a copy that fits MPM_FIT_W pixels, measured with the shell's own glyph width 0x1003e42c(font, ch): the name
- * part is shortened with a "." and the " (...)" kind suffix is kept whole (owner, 2026-10-19: the name first, then the
- * kind). Titles that fit are passed unchanged; nothing is written to the arena records. */
-#define MPM_FIT_W 178                           /* x 0x22 .. 0xd4, inside the cleared box (11 + 206 = 217) and its border */
+ * (0x10038fd0: x 11, w 206) and draws each title at x 0x22 in the form font (font object [0x100cc52c], height 15) with
+ * the display object's text call 0x100395b0 (thiscall: x, y, font, text, 0), which does not clip: a title wider than
+ * the box (~19 characters) ran over its right border and stayed there (the box is cleared, the border strip is not),
+ * measured 2026-10-19 with "Oil Well Well (Scenario)". Both calls in that function (0x1002b3af the chosen arena,
+ * 0x1002b421 the six rows) go through mpm_text_stub, which draws the titles at x I76_ARENA_X (default 18) in font
+ * object I76_ARENA_FONT (default 1 = [0x100cc524], the same handwriting at height 12, 'The Crater' 78 px against 95;
+ * 0 = [0x100cc520] is a plain sans at height 10, -1 = the form's own) and, only if a title is still wider than the box
+ * (x .. 0xd4), shortens its name with a "." and keeps the " (...)" kind suffix. With the defaults every title fits
+ * whole except "Trailer Pk. Madn. (Scenario)" (records/COOP-LIST-ENTRIES-2026-10-18.md 8.2). Nothing is written to
+ * the arena records; the shell's 5 fonts are measured into the log once (glyph width 0x1003e42c, height 0x1003e419). */
 static int g_mpm_fit = -1;
 static DWORD g_mpm_draw, g_mpm_glyph;           /* relocated 0x100395b0 / 0x1003e42c */
 static char g_mpm_buf[64];
@@ -51,9 +53,26 @@ static int mpm_width(void *font, const char *s, int n) {
     for (; n > 0 && *s; s++, n--) w += ((int (__cdecl *)(void *, int))g_mpm_glyph)(font, (BYTE)*s);
     return w;
 }
+static BYTE *g_mpm_base;                        /* i76shell base (font globals) */
+static int g_mpm_font = 1;                      /* I76_ARENA_FONT: 0..4 = font object 0x100cc520 + 4 n, -1 = the form's own (0x100cc52c) */
+static int g_mpm_x = 18;                        /* I76_ARENA_X: left edge of the titles (stock 0x22 = 34) */
+static void *g_mpm_font_out;
+static void *mpm_font_obj(int k) {              /* the glyph table of font object k (its +0x408), or NULL */
+    BYTE *o = *(BYTE **)(g_mpm_base + (0x100cc520u - 0x10000000u) + 4 * k);
+    return o ? *(void **)(o + 0x408) : NULL;
+}
 static const char *__cdecl mpm_fit(void *font, const char *s) {
-    const char *suf; int n, ls, cut;
-    if (!s || !font || !g_mpm_glyph || mpm_width(font, s, 1 << 20) <= MPM_FIT_W) return s;
+    const char *suf; int n, ls, cut, w = 0xd4 - g_mpm_x;   /* right limit x 0xd4, inside the box and its border */
+    static int surveyed;
+    if (font && s && g_mpm_glyph && !surveyed) {           /* once: what each of the shell's 5 fonts would need */
+        int k; surveyed = 1;
+        for (k = 0; k < 5; k++) { void *f = mpm_font_obj(k);
+            if (f) mlog("  arena-fit: font %d (0x%08lX): height %d, '%s' = %d px", k, (unsigned long)(0x100cc520u + 4 * k),
+                        ((int (__cdecl *)(void *))(g_mpm_base + 0x3e419))(f), s, mpm_width(f, s, 1 << 20)); }
+    }
+    if (g_mpm_font >= 0 && mpm_font_obj(g_mpm_font)) font = mpm_font_obj(g_mpm_font);
+    g_mpm_font_out = font;
+    if (!s || !font || !g_mpm_glyph || mpm_width(font, s, 1 << 20) <= w) return s;
     n = (int)strlen(s);
     if (n >= (int)sizeof g_mpm_buf - 2) n = (int)sizeof g_mpm_buf - 2;
     suf = strstr(s, " (");
@@ -63,7 +82,7 @@ static const char *__cdecl mpm_fit(void *font, const char *s) {
         while (cut > 0 && s[cut - 1] == ' ') cut--;
         memcpy(g_mpm_buf, s, cut); g_mpm_buf[cut] = '.';
         memcpy(g_mpm_buf + cut + 1, suf, ls); g_mpm_buf[cut + 1 + ls] = 0;
-        if (mpm_width(font, g_mpm_buf, 1 << 20) <= MPM_FIT_W) return g_mpm_buf;
+        if (mpm_width(font, g_mpm_buf, 1 << 20) <= w) return g_mpm_buf;
     }
     return s;
 }
@@ -78,6 +97,10 @@ static __declspec(naked) void mpm_text_stub(void) {    /* replaces `call 0x10039
         add esp, 8
         pop ecx
         mov [esp + 0x10], eax                   /* the text argument */
+        mov eax, g_mpm_font_out
+        mov [esp + 0xc], eax                    /* the font argument */
+        mov eax, g_mpm_x
+        mov [esp + 4], eax                      /* x */
         jmp dword ptr [g_mpm_draw]
     }
 }
@@ -91,6 +114,7 @@ static void mp_menu_attach(HMODULE m, const char *b) {
     if (g_mpm_fit == 1) {
         static const DWORD site[2] = { 0x1002b3af, 0x1002b421 };
         int i, ok = 0;
+        g_mpm_base = base;
         g_mpm_draw = (DWORD)(DWORD_PTR)MPM_VA(0x100395b0); g_mpm_glyph = (DWORD)(DWORD_PTR)MPM_VA(0x1003e42c);
         for (i = 0; i < 2; i++) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 }; BYTE *p = MPM_VA(site[i]);
@@ -98,7 +122,8 @@ static void mp_menu_attach(HMODULE m, const char *b) {
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             ok += mpm_write(p, o5, w5, 5);
         }
-        mlog("  arena-fit: AREA OF PLAY titles fitted to %d px (kind suffix kept): %d / 2 text calls %s", MPM_FIT_W, ok,
+        mlog("  arena-fit: AREA OF PLAY titles at x %d fitted to %d px, font %d (-1 = the form's): %d / 2 text calls %s",
+             g_mpm_x, 0xd4 - g_mpm_x, g_mpm_font, ok,
              ok == 2 ? "repointed, read back OK" : "NOT all repointed");
     }
     if (g_mpm_mode <= 0) { shell_done = 1; return; }
@@ -137,6 +162,8 @@ static void apply_mp_menu(void) {
     g_mpm_mode = env_int("I76_MP_MENU", 8, 1);
     if (g_mpm_mode < 0 || g_mpm_mode > 2) g_mpm_mode = 1;
     g_mpm_fit = env_flag("I76_ARENA_FIT", 8, 1);
+    g_mpm_font = env_int("I76_ARENA_FONT", 8, 1); if (g_mpm_font > 4) g_mpm_font = 1;
+    g_mpm_x = env_int("I76_ARENA_X", 8, 18); if (g_mpm_x < 12 || g_mpm_x > 0x22) g_mpm_x = 18;
     if (g_mpm_mode == 0) mlog("  mp-menu: stock (I76_MP_MENU=0): MODEM / IPX / INTERNET / NULLMODEM / OTHER");
     if (g_mpm_mode == 0 && g_mpm_fit != 1) return;
     if ((sh = GetModuleHandleA("i76shell.dll")) != NULL) mp_menu_attach(sh, "i76shell.dll");
