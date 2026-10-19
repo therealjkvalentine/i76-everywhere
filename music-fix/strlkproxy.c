@@ -1891,6 +1891,8 @@ static void radar_ping_flush(void) {                        /* from the frame ho
  * render pass on grid frames, i.e. 20 times a second, as at stock 20 fps with the mirror off. */
 static DWORD g_idbg_flame_hits, g_idbg_flame_dmg;           /* copied into the debug block by the render wrapper */
 static int g_flame_dmg_ok;
+static float g_st_flame_dmg = 1.0f;                          /* I76_SIM_TICK_FLAME_DMG (simtick.c; flame_damage_wrap below) */
+static DWORD g_fdc_in, g_fdc_out;                            /* flame amounts before / after that factor (log) */
 static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > g_ref_dt ? dt : g_ref_dt; }
 static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))0x00443e90)(); }
 /* flamer census, update cadence: every weapon_UpdateFlamerStreams call while a stream is live, split into calls whose
@@ -2024,8 +2026,86 @@ static int __cdecl flame_narrow_probe(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DW
     if (q < e->dmin) { e->dmin = q; memcpy(e->A, A, sizeof(A)); memcpy(e->d, d, sizeof(d)); }
     return r;
 }
+/* The flame's narrow test as a call site of its own (2026-10-19 flame-box): weapon_FlameHitTest's call at 0x435691 goes
+ * through flame_narrow_call, which marks "inside a flame narrow test" for the breakable-box flame fix (bbox_flame_thunk)
+ * and the box-test probe, then calls 0x43d770 or, with the census probe on, flame_narrow_probe. */
+static volatile int g_in_flame_narrow;
+static DWORD g_flame_narrow_next = 0x0043d770;
+static int __cdecl flame_narrow_call(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD a4, DWORD a5, DWORD rec, DWORD out, DWORD tp, DWORD pp, DWORD z, DWORD one) {
+    int r;
+    g_in_flame_narrow = 1;
+    r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))(DWORD_PTR)g_flame_narrow_next)(a0, a1, a2, a3, a4, a5, rec, out, tp, pp, z, one);
+    g_in_flame_narrow = 0;
+    return r;
+}
+/* I76_FLAME_BOX_PROBE=1 (lab instrument, 2026-10-19 flame-box; needs I76_BREAKABLE_BOX and I76_BREAKABLE_BOX_FLAME=0 to
+ * see the box at all): the box-part call of the tree narrow test (0x43dd3e -> slab test 0x43df10; args: ray P, D in part
+ * space (6 floats), the part's box min, max (6 floats), two out pointers, the pad), counted only inside a flame narrow test.
+ * The slab test is replayed in C in the code's own order (x, z, y; |D| < 1e-4 = parallel) and each call is filed under the
+ * first comparison that rejects it; the replay's verdict is checked against the real return value. For the misses, the
+ * closest the swept segment P .. P + D x sim_dt comes to the unpadded box (16 samples). */
+enum { FBX_PAR_X, FBX_PAR_Z, FBX_PAR_Y, FBX_BEH_X, FBX_BEH_Z, FBX_BEH_Y, FBX_DISJ, FBX_BEHIND, FBX_SHORT, FBX_INSIDE, FBX_HIT, FBX_N };
+static const char *g_fbx_name[FBX_N] = { "x parallel outside", "z parallel outside", "y parallel outside", "x slab behind", "z slab behind",
+                                          "y slab behind", "slabs disjoint (passes beside)", "exit behind", "entry beyond sim_dt (too short)",
+                                          "entry < 0 (starts inside)", "HIT" };
+static DWORD g_fbx[FBX_N], g_fbx_agree, g_fbx_disagree, g_fbx_dist[5]; static int g_fbx_on;
+static float g_fbx_pad = -1.0f, g_fbx_lo[3], g_fbx_hi[3], g_fbx_lastP[3], g_fbx_lastD[3];
+static int __cdecl flame_box_probe(DWORD p0, DWORD p1, DWORD p2, DWORD d0, DWORD d1, DWORD d2, DWORD l0, DWORD l1, DWORD l2,
+                                   DWORD h0, DWORD h1, DWORD h2, DWORD o1, DWORD o2, DWORD pd) {
+    int r = ((int (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0043df10)
+            (p0, p1, p2, d0, d1, d2, l0, l1, l2, h0, h1, h2, o1, o2, pd);
+    float P[3], D[3], lo[3], hi[3], pad, tn = -1e30f, tf = 1e30f, sdt = *(volatile float *)0x004fe420; int k, ax, why = -1;
+    static const int order[3] = { 0, 2, 1 };
+    if (!g_in_flame_narrow) return r;
+    memcpy(&P[0], &p0, 4); memcpy(&P[1], &p1, 4); memcpy(&P[2], &p2, 4); memcpy(&D[0], &d0, 4); memcpy(&D[1], &d1, 4); memcpy(&D[2], &d2, 4);
+    memcpy(&lo[0], &l0, 4); memcpy(&lo[1], &l1, 4); memcpy(&lo[2], &l2, 4); memcpy(&hi[0], &h0, 4); memcpy(&hi[1], &h1, 4); memcpy(&hi[2], &h2, 4);
+    memcpy(&pad, &pd, 4);
+    g_fbx_pad = pad; memcpy(g_fbx_lo, lo, sizeof(lo)); memcpy(g_fbx_hi, hi, sizeof(hi));
+    for (k = 0; k < 3 && why < 0; k++) {
+        float l, h, t0, t1;
+        ax = order[k]; l = lo[ax] - pad; h = hi[ax] + pad;
+        if (D[ax] > -1e-4f && D[ax] < 1e-4f) {
+            if (P[ax] < l || P[ax] > h) { why = FBX_PAR_X + k; break; }
+            t0 = -1e30f; t1 = 1e30f;
+        } else {
+            t0 = (l - P[ax]) / D[ax]; t1 = (h - P[ax]) / D[ax];
+            if (t0 > t1) { float s = t0; t0 = t1; t1 = s; }
+            if (t1 < 0.0f) { why = FBX_BEH_X + k; break; }
+        }
+        if (t0 > tn) tn = t0;
+        if (t1 < tf) tf = t1;
+    }
+    if (why < 0) why = tn > tf ? FBX_DISJ : tf < 0.0f ? FBX_BEHIND : sdt < tn ? FBX_SHORT : tn < 0.0f ? FBX_INSIDE : FBX_HIT;
+    g_fbx[why]++;
+    if ((why == FBX_HIT) == (r != 0)) g_fbx_agree++; else g_fbx_disagree++;
+    memcpy(g_fbx_lastP, P, sizeof(P)); memcpy(g_fbx_lastD, D, sizeof(D));
+    if (why != FBX_HIT) {                                    /* closest approach of the swept segment to the unpadded box */
+        double best = 1e30; int s;
+        for (s = 0; s <= 16; s++) {
+            double q = 0.0; float t = sdt * s / 16.0f;
+            for (k = 0; k < 3; k++) { float x = P[k] + D[k] * t, c = x < lo[k] ? lo[k] - x : x > hi[k] ? x - hi[k] : 0.0f; q += (double)c * c; }
+            if (q < best) best = q;
+        }
+        best = sqrt(best);
+        g_fbx_dist[best < 0.25 ? 0 : best < 0.5 ? 1 : best < 1.0 ? 2 : best < 2.0 ? 3 : 4]++;
+    }
+    return r;
+}
+static void flame_box_log(void) {
+    char b[700]; int i, n = 0;
+    if (!g_fbx_on) return;
+    for (i = 0; i < FBX_N; i++) if (g_fbx[i]) n += wsprintfA(b + n, "%s%s %lu", n ? ", " : "", g_fbx_name[i], (unsigned long)g_fbx[i]);
+    b[n] = 0;
+    mlog("  flame-box: box-part slab tests in flame narrow tests: %s; replay agrees %lu / disagrees %lu; pad %.3f; box %.2f..%.2f x %.2f..%.2f x %.2f..%.2f; "
+         "misses by closest approach to the unpadded box <0.25 / <0.5 / <1 / <2 / >=2 m: %lu / %lu / %lu / %lu / %lu; last P %.2f,%.2f,%.2f D %.1f,%.1f,%.1f",
+         n ? b : "none", (unsigned long)g_fbx_agree, (unsigned long)g_fbx_disagree, g_fbx_pad, g_fbx_lo[0], g_fbx_hi[0], g_fbx_lo[1], g_fbx_hi[1], g_fbx_lo[2], g_fbx_hi[2],
+         (unsigned long)g_fbx_dist[0], (unsigned long)g_fbx_dist[1], (unsigned long)g_fbx_dist[2], (unsigned long)g_fbx_dist[3], (unsigned long)g_fbx_dist[4],
+         g_fbx_lastP[0], g_fbx_lastP[1], g_fbx_lastP[2], g_fbx_lastD[0], g_fbx_lastD[1], g_fbx_lastD[2]);
+}
 static void flame_narrow_log(void) {
     int i;
+    flame_box_log();
+    if (g_simtick) mlog("  flame-dmg: factor %.3f under the tick: amounts %lu in, %lu applied", g_st_flame_dmg, (unsigned long)g_fdc_in, (unsigned long)g_fdc_out);
     for (i = 0; i < g_fnp_n; i++) {
         fnp_t *e = &g_fnp[i];
         mlog("  flame-narrow: rec %08lx obj %08lx class %lu type %lu radius %.2f centre %.2f,%.2f,%.2f; narrow calls (other / grid-or-tick) %lu / %lu, hits %lu / %lu; "
@@ -2072,10 +2152,29 @@ static void flame_census_frame(void) {                      /* frame hook: strea
         }
     }
 }
+/* Flame damage factor under the whole-sim tick (2026-10-19 flame-dmg; I76_SIM_TICK_FLAME_DMG=<f>, parsed and defaulted in
+ * simtick.c; 1 = off). 1997 at 20 fps applied flame damage from the main pass AND the rear-mirror pass (40 updates a
+ * second); the tick applies it once per tick. Each application's amount (record d[4], max(1, int(D x f x dt)): 1 at
+ * 33.3 ms, 2 at 66.7 ms) is multiplied by the factor, the fraction carried per target (16 kept), so the factor is per unit
+ * of damage and therefore per unit of sim time in both tick arms. Every stream goes through this site (0x4357c3 in
+ * weapon_FlameHitTest), the AI's flamers included. Only under the tick (g_simtick): the 20 Hz grid and the stock loop
+ * are untouched. */
+static struct { DWORD tgt; float carry; } g_fdc[16]; static int g_fdc_next;
+static DWORD flame_dmg_scale(DWORD target, DWORD a) {
+    float x; int i; DWORD n;
+    if (a == 0 || a > 100000) return a;                     /* not an integer amount: as stock */
+    for (i = 0; i < 16; i++) if (g_fdc[i].tgt == target) break;
+    if (i == 16) { i = g_fdc_next; g_fdc_next = (g_fdc_next + 1) & 15; g_fdc[i].tgt = target; g_fdc[i].carry = 0.0f; }
+    x = (float)a * g_st_flame_dmg + g_fdc[i].carry;
+    n = (DWORD)x; g_fdc[i].carry = x - (float)n;
+    g_fdc_in += a; g_fdc_out += n;
+    return n;
+}
 static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
     g_idbg_flame_hits++;
     if (g_flc_on) g_flc_hits++;
     if (!g_flame_dmg_ok) return;
+    if (g_simtick && g_st_flame_dmg != 1.0f) { DWORD n = flame_dmg_scale(target, rec.d[4]); if (!n) return; rec.d[4] = n; }
     g_idbg_flame_dmg++;
     if (g_flc_on) flame_census_note(&rec);
     ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
@@ -7039,6 +7138,7 @@ static void apply_trainer(void) {
  * the stock value unless all of the above hold. */
 static volatile DWORD g_bbox_parts, g_bbox_box;
 static int g_bbox_mode;                                      /* 1 or 2 (I76_BREAKABLE_BOX) */
+static BYTE *g_bbox_node[128]; static DWORD g_bbox_node_n;   /* the part nodes bbox_pick made boxes (ring; the builder's node = the tree node) */
 static float g_bbox_logged[8][3]; static int g_bbox_nlog;
 static DWORD __cdecl bbox_pick(BYTE *node) {
     float ex, ey, ez, lo, hi, len, thin;
@@ -7056,6 +7156,7 @@ static DWORD __cdecl bbox_pick(BYTE *node) {
         if (len >= 2.0f && thin <= 0.25f && ey >= 0.0f && lo < 1.3f && hi > 0.3f
             && (g_bbox_mode < 2 || ((lo + hi) * 0.5f >= 0.3f && (lo + hi) * 0.5f <= 1.3f))) {   /* =2: mid-height in the car band */
             g_bbox_box++;
+            g_bbox_node[g_bbox_node_n++ & 127] = node;       /* the flame keeps this part's stock sphere (bbox_flame_thunk) */
             if (g_bbox_nlog < 8) { g_bbox_logged[g_bbox_nlog][0] = len; g_bbox_logged[g_bbox_nlog][1] = thin; g_bbox_logged[g_bbox_nlog][2] = (lo + hi) * 0.5f; g_bbox_nlog++; }
             return 0x2000;
         }
@@ -7081,6 +7182,71 @@ static __declspec(naked) void bbox_thunk(void) {              /* replaces `mov e
     }
 }
 #endif
+/* FLAME vs the boxed bars (2026-10-19 flame-box; I76_BREAKABLE_BOX_FLAME=1 default with the box switch, =0 = as before).
+ * The flame's narrow test (weapon_FlameHitTest 0x4354c0 -> 0x43d770 at 0x435691) passes a pad of 0 (the push 0 at
+ * 0x435674), so a box part is tested as its bare mesh AABB: the T05 bar's 8.04 x 0.64 x 0 m. The probe (flame_box_probe)
+ * showed why the flame never hits it: [filled in from the measurement, TICK-FINISH s.12]. Fix: inside a flame narrow test
+ * only, a part bbox_pick made a box is read back as the stock class-4 default 0x5000 (the 0.75 r sphere, as without the
+ * switch), so the flame sees the stock bar and the car / ram tests keep the box. The tree test reads the part kind at
+ * 0x43da33 (`mov ebp, [ebx+0x10]; and ebp, 0xf000`, 9 bytes, ebx = the part node); that goes to this thunk. */
+static int g_bbox_flame; static DWORD g_bbox_flame_n;
+static DWORD __cdecl bbox_flame_kind(BYTE *node, DWORD kind) {
+    DWORD i, n = g_bbox_node_n < 128 ? g_bbox_node_n : 128;
+    if (!g_bbox_flame) return kind;
+    for (i = 0; i < n; i++) if (g_bbox_node[i] == node) { g_bbox_flame_n++; return 0x5000; }
+    return kind;
+}
+#ifdef _MSC_VER
+static __declspec(naked) void bbox_flame_thunk(void) {        /* replaces 0x43da33 mov ebp, [ebx+0x10]; and ebp, 0xf000 (+4 nop) */
+    __asm {
+        mov  ebp, dword ptr [ebx + 0x10]
+        and  ebp, 0xf000
+        cmp  ebp, 0x2000
+        jne  done
+        cmp  dword ptr [g_in_flame_narrow], 0
+        je   done
+        pushad
+        push ebp                                /* the kind */
+        push ebx                                /* the part node */
+        call bbox_flame_kind
+        add  esp, 8
+        mov  dword ptr [esp + 8], eax           /* pushad frame: [esp] edi, [esp+4] esi, [esp+8] ebp */
+        popad
+    done:
+        ret                                     /* flags are recomputed by the `cmp ebp, 0x1000` that follows */
+    }
+}
+#endif
+static void apply_breakable_box_flame(void) {
+#ifdef _MSC_VER
+    static const BYTE kind_old[9] = { 0x8B, 0x6B, 0x10, 0x81, 0xE5, 0x00, 0xF0, 0x00, 0x00 };
+    BYTE w[9] = { 0xE8, 0, 0, 0, 0, 0x90, 0x90, 0x90, 0x90 }, *q = (BYTE *)0x00435691, o2[5], w2[5] = { 0xE8 };
+    LONG rel; int ok = 0, okc = 0, okp = 0;
+    g_bbox_flame = env_flag("I76_BREAKABLE_BOX_FLAME", 8, 1) == 1;
+    g_fbx_on = env_flag("I76_FLAME_BOX_PROBE", 8, 0) == 1;
+    if (!g_bbox_flame && !g_fbx_on) { mlog("  breakable-box flame: off (I76_BREAKABLE_BOX_FLAME=0): the flame tests the boxed bars as boxes"); return; }
+    memcpy(&rel, q + 1, 4);                                   /* the flame narrow-test call -> flame_narrow_call */
+    if (q[0] == 0xE8 && 0x00435696 + (DWORD)rel == 0x0043d770) {
+        memcpy(o2, q, 5); rel = (LONG)((DWORD_PTR)flame_narrow_call - 0x00435696); memcpy(w2 + 1, &rel, 4);
+        okc = patch_bytes(0x00435691, o2, w2, 5, "flamer narrow test call (breakable-box flame)") && memcmp(q, w2, 5) == 0;
+    }
+    if (okc && g_bbox_flame) {
+        rel = (LONG)((DWORD_PTR)bbox_flame_thunk - (0x0043da33 + 5)); memcpy(w + 1, &rel, 4);
+        ok = patch_bytes(0x0043da33, kind_old, w, 9, "tree narrow test part kind (breakable-box flame)") && memcmp((void *)0x0043da33, w, 9) == 0;
+    }
+    if (okc && g_fbx_on) {                                    /* lab: the box-part slab test call 0x43dd3e -> flame_box_probe */
+        BYTE *p = (BYTE *)0x0043dd3e, o3[5], w3[5] = { 0xE8 };
+        memcpy(&rel, p + 1, 4);
+        if (p[0] == 0xE8 && 0x0043dd43 + (DWORD)rel == 0x0043df10) {
+            memcpy(o3, p, 5); rel = (LONG)((DWORD_PTR)flame_box_probe - 0x0043dd43); memcpy(w3 + 1, &rel, 4);
+            okp = patch_bytes(0x0043dd3e, o3, w3, 5, "tree narrow test box call (flame box probe)");
+        }
+    }
+    mlog("  breakable-box flame: %s (0x435691 flame narrow test wrapper %d/1, 0x43da33 part kind %d/1: boxed bars keep their stock sphere for the flame only)%s",
+         g_bbox_flame && ok ? "ON" : g_bbox_flame ? "NOT applied" : "off (I76_BREAKABLE_BOX_FLAME=0)", okc, ok,
+         g_fbx_on ? (okp ? "; box probe ON at 0x43dd3e (I76_FLAME_BOX_PROBE=1, lab)" : "; box probe NOT patched") : "");
+#endif
+}
 static void apply_breakable_box(void) {
 #ifdef _MSC_VER
     static const BYTE old6[6] = { 0x8B, 0x35, 0x2C, 0xB9, 0x52, 0x00 };   /* 0x436cbd mov esi, [0x52b92c] */
@@ -7100,6 +7266,7 @@ static void apply_breakable_box(void) {
                                             : "; =3: =2, sign-post sweep NOT applied (no frame hook)")
          : g_bbox_mode == 4 ? (g_bbox_sweep ? "; =4: =3 + every post knock-off (sweep or engine contact) waits until the DRAWN car box reaches the post (render-interp pose)"
                                             : "; =4: =2, sign-post sweep NOT applied (no frame hook)") : "");
+    apply_breakable_box_flame();
 #else
     if (GetEnvironmentVariableA("I76_BREAKABLE_BOX", NULL, 0)) mlog("  breakable-box: MSVC build only - not applied");
 #endif
@@ -7119,8 +7286,8 @@ static void breakable_box_report(void) {                     /* with the start-p
     for (i = 0; i < g_bbox_nlog && n < 160; i++)
         n += wsprintfA(b + n, " %dx%dcm@%dcm", (int)(g_bbox_logged[i][0] * 100), (int)(g_bbox_logged[i][1] * 100), (int)(g_bbox_logged[i][2] * 100));
     b[n] = 0;
-    mlog("  breakable-box: %lu class-4 default parts seen, %lu made boxes (length x thickness @ centre height):%s",
-         g_bbox_parts, g_bbox_box, n ? b : " -");
+    mlog("  breakable-box: %lu class-4 default parts seen, %lu made boxes (length x thickness @ centre height):%s; flame tests that kept a box part's stock sphere %lu",
+         g_bbox_parts, g_bbox_box, n ? b : " -", (unsigned long)g_bbox_flame_n);
     if (g_bbox_mode >= 3)
         mlog("  sign-sweep: %lu frames swept, %lu post entries into the car box, %lu the engine had hit, %lu scored by the sweep",
              g_sweep_frames, g_sweep_entries, g_sweep_engine, g_sweep_scored);
@@ -8666,6 +8833,9 @@ static void apply_flame_census(void) {
                     if (q2[0] == 0xE8 && 0x00435696 + (DWORD)r3 == 0x0043d770) {
                         memcpy(o2, q2, 5); r3 = (LONG)((DWORD_PTR)flame_narrow_probe - 0x00435696); memcpy(w3 + 1, &r3, 4);
                         mlog("  flame-census: narrow-test probe at 0x435691: %s", patch_bytes(0x00435691, o2, w3, 5, "flamer narrow test call (probe)") ? "on" : "NOT patched");
+                    } else if (q2[0] == 0xE8 && 0x00435696 + (DWORD)r3 == (DWORD)(DWORD_PTR)flame_narrow_call) {   /* the breakable-box flame wrapper is in: chain */
+                        g_flame_narrow_next = (DWORD)(DWORD_PTR)flame_narrow_probe;
+                        mlog("  flame-census: narrow-test probe at 0x435691: on (chained behind the breakable-box flame wrapper)");
                     }
                 }
                 mlog("  flame-census: probe at %.1f,%.1f,%.1f: %s", g_fhp_at[0], g_fhp_at[1], g_fhp_at[2], g_fhp_on ? "on" : "NOT patched");

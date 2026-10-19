@@ -975,6 +975,11 @@ static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLA
  * every display frame. RESULT (3 boots tick33 / tick66, same probe): tested segments still 9.8 / 10.2 m, still 0 hits - the
  * per-call state is not the cause; the switch stays off until the cause is found (TICK-FINISH s.10). */
 static int g_st_flame_state = 0;
+/* Flame damage factor (2026-10-19 flame-dmg; I76_SIM_TICK_FLAME_DMG=<f>, 1 = the tick's own rate): 1997 at 20 fps applied
+ * flame damage in the main pass and again in the rear-mirror pass; the tick applies it once per tick. The default makes
+ * the tick's damage per sim second on a car equal the 1997 coupling's (stock 20 fps, mirror on), measured on the T05 car
+ * (TICK-FINISH-2026-10-18.md s.12). */
+#define ST_FLAME_DMG_DEFAULT 1.0f
 static float g_st_flame_dt;                                  /* I76_SIM_TICK_FLAME_DT=<s> (lab): the flamer update's dt floor instead of the tick */
 static float __cdecl st_flame_dt(void) { float dt = *(volatile float *)0x004fe428, f = g_st_flame_dt > 0.0f ? g_st_flame_dt : g_ref_dt; return dt > f ? dt : f; }
 static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
@@ -1062,6 +1067,9 @@ static void apply_simtick(void) {
     g_st_flame_clk = env_flag("I76_SIM_TICK_FLAME_CLK", 8, 0) == 1;
     g_st_flame_state = env_flag("I76_SIM_TICK_FLAME_STATE", 8, g_st_flame_state) == 1;
     {   char fv[16]; if (env_str("I76_SIM_TICK_FLAME_DT", fv, sizeof(fv))) g_st_flame_dt = (float)atof(fv); }
+    {   char fv[16]; g_st_flame_dmg = ST_FLAME_DMG_DEFAULT;   /* flame damage factor under the tick (strlkproxy.c flame_damage_wrap) */
+        if (env_str("I76_SIM_TICK_FLAME_DMG", fv, sizeof(fv))) g_st_flame_dmg = (float)atof(fv);
+        if (!(g_st_flame_dmg >= 0.0f && g_st_flame_dmg <= 10.0f)) g_st_flame_dmg = ST_FLAME_DMG_DEFAULT; }
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
@@ -1174,6 +1182,7 @@ static void apply_simtick(void) {
          g_st_input ? (g_st_joy_on ? "ON (I76_SIM_TICK_INPUT=1: keyboard + joystick)" : "ON (I76_SIM_TICK_INPUT=1: keyboard; I76_SIM_TICK_JOY=0)") : "off",
          g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_flame_state ? "ON (I76_SIM_TICK_FLAME_STATE=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
          g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
+    mlog("  sim-tick: flame damage x %.3f per application (I76_SIM_TICK_FLAME_DMG; default %.3f = the 1997 main + mirror rate per sim second)", g_st_flame_dmg, ST_FLAME_DMG_DEFAULT);
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
 static void simtick_joy_ready(MMRESULT (WINAPI *pos)(UINT, LPJOYINFOEX), MMRESULT (WINAPI *caps)(UINT_PTR, LPJOYCAPSA, UINT)) {
