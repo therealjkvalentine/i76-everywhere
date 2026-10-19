@@ -7205,8 +7205,12 @@ static __declspec(naked) void bbox_thunk(void) {              /* replaces `mov e
 #endif
 /* FLAME vs the boxed bars (2026-10-19 flame-box; I76_BREAKABLE_BOX_FLAME=1 default with the box switch, =0 = as before).
  * The flame's narrow test (weapon_FlameHitTest 0x4354c0 -> 0x43d770 at 0x435691) passes a pad of 0 (the push 0 at
- * 0x435674), so a box part is tested as its bare mesh AABB: the T05 bar's 8.04 x 0.64 x 0 m. The probe (flame_box_probe)
- * showed why the flame never hits it: [filled in from the measurement, TICK-FINISH s.12]. Fix: inside a flame narrow test
+ * 0x435674), so a box part is tested as its bare mesh AABB: the T05 bar's 8.04 x 0.64 x 0 m. The probe (flame_box_probe,
+ * its replay agreeing with the real slab test on every one of 232 k calls) showed why the flame never hits it: the stream
+ * never passes through that rectangle. Every rejection was "y slab behind" / "z slab behind" (the stream 1-2.7 m above
+ * the bar, moving away) or "z parallel outside" (a stream along the bar, off its zero-thickness plane); none started
+ * inside the box, and no rejected segment came within 1 m of the bar. The stock 0.75 r sphere (3.03 m) caught the same
+ * stream on 94 % of the tests (TICK-FINISH s.12). Fix: inside a flame narrow test
  * only, a part bbox_pick made a box is read back as the stock class-4 default 0x5000 (the 0.75 r sphere, as without the
  * switch), so the flame sees the stock bar and the car / ram tests keep the box. The tree test reads the part kind at
  * 0x43da33 (`mov ebp, [ebx+0x10]; and ebp, 0xf000`, 9 bytes, ebx = the part node); that goes to this thunk. */

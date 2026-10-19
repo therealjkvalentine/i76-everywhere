@@ -978,8 +978,11 @@ static int g_st_flame_state = 0;
 /* Flame damage factor (2026-10-19 flame-dmg; I76_SIM_TICK_FLAME_DMG=<f>, 1 = the tick's own rate): 1997 at 20 fps applied
  * flame damage in the main pass and again in the rear-mirror pass; the tick applies it once per tick. The default makes
  * the tick's damage per sim second on a car equal the 1997 coupling's (stock 20 fps, mirror on), measured on the T05 car
- * (TICK-FINISH-2026-10-18.md s.12). */
-#define ST_FLAME_DMG_DEFAULT 1.0f
+ * (TICK-FINISH-2026-10-18.md s.12, headless): health lost per second of burning, steady boots, 1997 82.0 (n 6), tick at
+ * factor 1 33.2 (n 10, tick33 + tick66), at 2.5 72.7 (n 5) -> 2.8. On the T05 bar (stock sphere) the same factor gives
+ * 1400 per sim s against 1997's 669: the bar's contact per update already equals 1997's (only the mirror's 40 / 30
+ * updates are missing there), the car's is about half - not explained, s.12. */
+#define ST_FLAME_DMG_DEFAULT 2.8f
 static float g_st_flame_dt;                                  /* I76_SIM_TICK_FLAME_DT=<s> (lab): the flamer update's dt floor instead of the tick */
 static float __cdecl st_flame_dt(void) { float dt = *(volatile float *)0x004fe428, f = g_st_flame_dt > 0.0f ? g_st_flame_dt : g_ref_dt; return dt > f ? dt : f; }
 static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
