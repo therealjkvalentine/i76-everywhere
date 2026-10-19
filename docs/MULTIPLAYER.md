@@ -201,11 +201,17 @@ again, the same bundle never does.
 ### Order on the night
 
 1. Everyone on the home Wi-Fi / wired network (not guest, no VPN). Macs **unlocked and awake**: plug them in.
-2. One host (any machine; a Mac host and a PC host are both measured): MELEE > MULTI MELEE > HOST > IPX, pick an
-   arena (the 15 stock arenas are normal melee; **Co-op Scene 1..17**, after A Lot of Asphalt, are the 2-player co-op
-   campaign, records/COOP-LIST-ENTRIES-2026-10-18.md), RENAME the game to something
-   recognisable, **BROADCAST GAME**. The host drives straight into the arena.
-3. The others: MELEE > MULTI MELEE > JOIN > IPX, click the game's row, **JOIN GAME**. Joining while the host drives
+2. One host (any machine; a Mac host and a PC host are both measured): MELEE > MULTI MELEE > HOST (with the pack of
+   2026-10-19 HOST goes straight to the IPX host form; on an older pack or the Deck click IPX after HOST), pick an
+   arena, RENAME the game to something recognisable, **BROADCAST GAME**. The host drives straight into the arena.
+   The list (pack of 2026-10-19; records/COOP-LIST-ENTRIES-2026-10-18.md sections 7-8):
+   - the 15 stock arenas (The Crater .. A Lot of Asphalt): normal melee;
+   - **Oil Well Well, Mondo Burger, Seminole, Pretty Bus, Race No Shoot, Trailer Pk. Madness, Milk Toast (Scenario)**:
+     the single-player auto-melee scenarios with their computer cars, humans together against them; a joiner who dies
+     comes back by itself, the host's death (or the scenario's own loss) restarts the scenario for everybody, a win
+     ends the game; long names are shortened on screen ("Oil Well. (Scenario)");
+   - **Scene 1 .. Scene 17 (Co-op)**: the co-op campaign (was "Co-op Scene N").
+3. The others: MELEE > MULTI MELEE > JOIN (straight to the game list with the 2026-10-19 pack; otherwise JOIN > IPX), click the game's row, **JOIN GAME**. Joining while the host drives
    is fine.
 4. How to tell it worked: each screen shows the other cars (radar / view); a joiner that stays on the ENTRY ROSTER
    after JOIN GAME did not join.
@@ -251,3 +257,16 @@ before a co-op night. No co-op cell has been run across machines yet (records/LA
   the laptop copy, Michael's and Andrew's Macs. The Deck keeps its own pack (+ the co-op files, no co-op switches).
 - Andrew's pointer fixed (window = his 1440x900 screen).
 - Daylight arenas with hills and roads: Hope Springs, Vigilantes' Paradise, Tombstone (records/LAN-MATRIX section 9).
+
+### Update 2026-10-19 (built, not deployed)
+
+- **The menu:** MULTI MELEE > HOST and > JOIN go straight to the IPX screens (proxy `I76_MP_MENU=1`, default; `=2` shows
+  only the IPX button, `=0` the stock MODEM / IPX / INTERNET / NULLMODEM row). PC, two lab copies: HOST n 9, JOIN n 4,
+  host and join both ways (n 3 and n 1).
+- **The list** now reads: 15 stock arenas, the 7 scenarios "<name> (Scenario)" (`ADDONuto01..07.lvl`), then
+  "Scene 1 .. 17 (Co-op)" (`coop01..17.lvl`, file names unchanged, titles changed). All 7 scenarios load for a host
+  with their computer cars (n 1 each); Oil Well Well and Pretty Bus with a joiner, computer cars on both (n 1 each);
+  Scene 1 (Co-op) unchanged (n 1). Records: COOP-LIST-ENTRIES-2026-10-18.md sections 7-8.
+- **Every machine needs the new ADDON files at once:** the co-op files' CRCs changed with their titles, so an old and a new
+  machine refuse each other's co-op games ("does not match the host's").
+- Pack: `i76-uncap-labuilds\mp-pack-20261019\` (proxy 77ad2aca). Not yet on any machine.

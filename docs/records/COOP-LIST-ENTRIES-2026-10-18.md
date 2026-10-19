@@ -229,3 +229,156 @@ spread, non-player vehicle objects; which of them are hostile is decided by the 
 
 Best fit to "daylight, curves and hills, about 3 enemies": **Co-op Scene 17** (afternoon, hilly, two cars plus two
 trailers), but it is the story's last mission; **Scene 8** if more cars are wanted. Untested with 3 humans.
+
+## 7. 2026-10-19: MULTI MELEE goes straight to IPX
+
+Owner: *"perhaps would be nice to limit the non-working multi-melee modes on the menu, or just launch the right one when
+use clicks before showing modem ipx whatever."*
+
+**How the shell builds the choice (static, i76shell a300db63; this code is byte-identical to the pristine deb41008).**
+Not a DirectPlay enumeration: a fixed row of five main-menu buttons, laid out by MainMenu_Layout (`Button_Init` sites
+0x10027334 .. 0x100273cf) and swapped into the menu list by the HOST / JOIN handlers of the main-menu dispatch (jump table
+0x1002655c):
+
+| button | record | id | handler | effect |
+|---|---|---|---|---|
+| HOST | 0x100d3be0 | 3 | 0x10025dee | `[0x100d3a54]` = 1, HOST / JOIN out, MODEM IPX INTERNET NULLMODEM added, `jmp 0x10025f39` (JOIN's tail adds OTHER, shows all five) |
+| JOIN | 0x100d3e80 | 5 | 0x10025e97 | `[0x100d3a54]` = 0, same; the tail ends at 0x10025f82 `jmp 0x10026515` (dispatch exit) |
+| MODEM | 0x100d3f60 | 6 | 0x100260a0 | provider `[0x100d217c]` = host 2 / join 6 |
+| IPX | 0x100d3dd8 | 7 | 0x100260b2 | provider = host 3 / join 7, `call 0x10027c80` (form init, arena list), message 0xc026 (network entry form) |
+| INTERNET | 0x100d3eb8 | 14 | 0x100260d7 | provider 4 / 8 |
+| NULLMODEM | 0x100d3da0 | 8 | 0x100260ff | provider 5 / 9 |
+| OTHER | 0x100d3c50 | 16 | 0x10026127 | a 0x1000b800 popup |
+
+**Change** (proxy `music-fix/mpmenu.c`, its own file, attached when the exe loads i76shell; every site is checked against
+the stock bytes and read back):
+
+| switch | what it does |
+|---|---|
+| `I76_MP_MENU=1` (**default**) | "skip": 0x10025f82 `jmp 0x10026515` -> `jmp 0x100260b2`. HOST and JOIN run their own code (the same state as stock) and fall into the IPX handler in the same click, as if IPX had been clicked next. One 5-byte relative jump |
+| `I76_MP_MENU=2` | "hide": the 11 list-add / show calls of MODEM, INTERNET, NULLMODEM, OTHER in the HOST / JOIN code become 5-byte NOPs; the row shows IPX only |
+| `I76_MP_MENU=0` | stock |
+| `I76_ARENA_FIT` (default 1) | section 8.2 |
+
+The default is on in the proxy itself, so every machine on the pack proxy (PC and Macs) gets it without a launcher
+change; `PLAY-LAN.bat` also sets `I76_MP_MENU=1`. The Deck runs its own proxy and keeps the stock row.
+
+**Measured** (PC, two lab copies `i76-uncap-lab\game-mpmenu` (A) and `game-mpmenu-b` (B) = copies of game-cooplist /
+-b, proxy 77ad2aca = commit efa108d built with `cl /Brepro`, started `i76.exe -glide` with I76_COOP_AI=1
+I76_COOP_CHAIN=1 I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1, driven by `i76-uncap-lab\tools\mpmenu\mpnav.sh` (a copy of
+`tools/lan-test/pcnav.sh` keyed on the folder) and i76probe; console lock held 08:54-09:20 and 09:41-09:45; evidence in
+`i76-uncap-lab\captures\mp-menu-20261019\`):
+
+| check | result | n |
+|---|---|---|
+| MELEE > MULTI MELEE > HOST | lands on NET MELEE HOST EVENT FORM: shell screen 0xc026, frame fn 0x10028610, provider `[0x100d217c]` = 3 (`a-host1-ui.png`) | 9 |
+| MELEE > MULTI MELEE > JOIN | lands on NET MELEE ENTRY ROSTER listing the host's game "coop1 (1/4)", provider 7 (`b-join1-ui.png`) | 4 |
+| host A, join B | joined (B: net 1, me 6, host 3, same mission) | 3 (Oil Well Well, Pretty Bus, Scene 1 (Co-op)) |
+| host B, join A | Suburbia; both copies hold both cars at the same coordinates | 1 |
+| `I76_MP_MENU=2` | HOST shows the row with IPX only (`a-hide-ui.png`, menu list = button 7); IPX opens the host form, provider 3 | 1 |
+| proxy log | "skip ... patched, read back OK" at every start | 14 |
+
+## 8. 2026-10-19: the single-player scenarios in the list, new titles
+
+Owner: *"would like to see the solo auto melee missions added to the list of options including coop multiplayer missions
+(both labeled accordingly)"*; on the names: *"start with the actual name then (Scenario) please i think the name is most
+important"* (same rule for the co-op entries: name, then " (Co-op)").
+
+### 8.1 The list as it reads now (host form, 39 entries; shell count `0x1004b2f8` = 0x27, measured)
+
+| index | title | file |
+|---|---|---|
+| 0-14 | The Crater .. A Lot of Asphalt (stock, unchanged) | m01.msn .. m15.msn |
+| 15 | Oil Well Well (Scenario) | auto01.lvl = S03 |
+| 16 | Mondo Burger (Scenario) | auto02.lvl = S02 |
+| 17 | Seminole (Scenario) | auto03.lvl = S04 |
+| 18 | Pretty Bus (Scenario) | auto04.lvl = S05 |
+| 19 | Race No Shoot (Scenario) | auto05.lvl = S06 |
+| 20 | Trailer Pk. Madness (Scenario) | auto06.lvl = S01 |
+| 21 | Milk Toast (Scenario) | auto07.lvl = S07 |
+| 22-38 | Scene 1 (Co-op) .. Scene 17 (Co-op) | coop01.lvl .. coop17.lvl (names unchanged) |
+
+Order: the scenarios follow the game's own AUTO MELEE > SCENARIO table (0x1004b7e0); the files are named `autoNN` so
+that `findfirst` (alphabetical on NTFS) lists them before `coopNN`. On a Mac (Wine) or the Deck the directory order is
+the host file system's and was not checked. The trip missions have no title of their own (the WRLD title is empty in
+all 17; the game calls them "Scene N" in the bookmarks), so the co-op entries read "Scene N (Co-op)".
+
+**Title length.** The WRLD title field is the last 16 bytes of the WRLD body (15 characters). The arena list reads it with
+a strcpy from the chunk (exe 0x4b4a10, chunk +0x143 = body +0x13b) and the shell keeps 31 characters (strncpy 0x20,
+0x10027ea0), so `coop-mission.py --title` now grows the body by 16 bytes for a longer title; the mission loader reads
+WRLD by fixed offsets up to body +0x137 (0x4b8a10), and every grown file loaded (8.4).
+
+### 8.2 The box is narrower than the titles: I76_ARENA_FIT
+
+The list box holds about 178 pixels of the handwriting font (~19 characters). "Oil Well Well (Scenario)" ran over the
+right border, and because the list clears only its box (0x10038fd0, x 11 w 206) the overflow stayed on screen as smeared
+glyphs (`a-list-strip.png`). The proxy (mpmenu.c, `I76_ARENA_FIT`, default on) repoints the two text calls of
+EntryForm_DrawArenaList (0x1002b3af the chosen arena, 0x1002b421 the rows) to a stub that measures the title with the
+shell's own glyph width (0x1003e42c) and, when it is too wide, shortens the **name** with a "." and keeps the kind
+suffix whole. As drawn (`b-list-strip.png`): Oil Well. (Scenario), Mondo Bu. (Scenario), Seminole (Scenario), Pretty Bu.
+(Scenario), Race No S. (Scenario), Trailer P. (Scenario), Milk Toas. (Scenario); Scene 1 (Co-op) .. Scene 17 (Co-op)
+fit whole.
+
+The files keep the full titles. **Open question for the owner:** at this width "(Scenario)" takes about half the line;
+the full names would fit with a shorter kind tag (e.g. "Oil Well Well (S)"), which the 2026-10-19 rule ("never abbreviate
+the suffix") excludes. It is one constant (`SCEN_TITLE` in coop-install.py) if he prefers that. A machine without the
+pack proxy (the Deck) draws the full titles with the overflow.
+
+### 8.3 What a scenario needs, and the respawn rule
+
+Static read of S01-S07 (FSM scripts, `i76-map\data\out\fsm\s0N.fsm`; helpers and an edit set in
+`i76-uncap-lab\tools\mpmenu\fsmwork\`):
+
+| scenario | objective (script) | AI vehicles (measured on the host: mission cars no human drives) |
+|---|---|---|
+| Oil Well Well (S03) | kill 5 enemies, do not lose more than 17 of 20 wells | 8 |
+| Mondo Burger (S02) | beat Taurus to the finish, then kill > 5 gang cars with Mondo intact | 7 |
+| Seminole (S04) | kill 5 enemies, protect the post office | 10 |
+| Pretty Bus (S05) | escort the bus, kill 5, be within 40 m of the bus at the end | 8 |
+| Race No Shoot (S06) | reach the finish line (cops, choppers, turrets) | 9 |
+| Trailer Pk. Madness (S01) | destroy 10 trailers, kill 5, do not let "hate" escape | 10 |
+| Milk Toast (S07) | destroy the milk truck before it reaches the garage, kill 5 | 10 |
+
+What a scenario needs beyond a co-op scene: its own AI cars (already in the file; the proxy's `I76_COOP_AI` runs them on
+the host and mirrors them to joiners in any network mission, no change needed); spawn points for joiners
+(`coop-mission.py --count 3`: 4 humans = the host form's default NO. DRIVERS); no movies to strip (the S files have none).
+
+**Respawn rule chosen: joiners respawn by themselves (melee-style); the host's death is the scenario's loss, and any
+loss reloads the same scenario for everybody; a win ends the game normally; no chain to another file.** Why not melee
+respawn for the host too: every script ends the scenario on `isDead(user)` (the host's car, resolved once at load by its
+ODEF label), and removing that loss is not enough. After a respawn the old car is torn down (0x4513c0 -> 0x45ed70), the
+script's "user" entity becomes NULL (0x45f0f0), and `isWithinSqNav` (0x40b940), polled every frame by the exit watchers
+of S01, S03, S04, S05 and S07, reads the position with no NULL check (a likely host crash; static reading); the wins of
+S02, S05 and S06 need the host's original car. A host melee respawn would need the proxy to point the "user" entity at
+the new car (entity record +0x58, reference 0x45ed00) plus a one-byte script edit per death check (jz -> jmp; the edit
+set is in `fsmwork\make_edits.py`, round-trip checked, not applied). Not done; a follow-up if the owner wants it.
+
+Proxy (commit efa108d): the joiner auto-respawn and the chain's loss / win handling also key on `autoNN.lvl`
+(`coop_scen_num`); a won scenario ends normally (nothing follows it).
+
+### 8.4 Tests (same copies and build as section 7)
+
+| check | result | n |
+|---|---|---|
+| list order and labels | 39 entries in the order of 8.1; screenshots at scroll 12 / 15 / 18 / 24 / 30 / 33 (`a-list*-ui.png` full titles without the fit, `b-list*-ui.png` with it) | 1 |
+| each scenario loads for the host | all 7: mission `autoNN.lvl`, state 5, the host drives the scenario's own car (proxy "drives the mission's player object"), AI cars 8 / 7 / 10 / 8 / 9 / 10 / 10 (auto01..07) | 1 each |
+| join CRC | the host's slot 0x504a04 = 4790f803 = the shell's CRC-32 (MSB first) of auto01.lvl | 1 |
+| Oil Well Well with a joiner | joined; 8 AI cars on both, same positions | 1 |
+| Pretty Bus with a joiner | joined; 8 AI cars on both | 1 |
+| Pretty Bus lost (the bus died, nobody defending) | host "lost 'auto04.lvl' -> loading 'auto04.lvl'", the joiner reloaded too, 8 AI on both after | 1 |
+| joiner dies (CTRL+ALT+X) in Pretty Bus | "joiner dead - respawn requested", back at the start a few seconds later | 1 |
+| host dies (CTRL+ALT+X) in Pretty Bus | both reloaded auto04.lvl, 8 AI on both, no crash | 1 |
+| co-op unchanged: Scene 1 (Co-op), host + joiner | coop01.lvl on both, the host adopts the T01 player object, Taurus, the tractor and 3 more on both (5 = 5) | 1 |
+
+Not run: a scenario win; 3 or 4 humans in a scenario; scenarios 2, 3, 5, 6, 7 with a joiner; the Macs and the Deck.
+
+### 8.5 Rollout notes (for the main session; nothing was deployed)
+
+- The co-op files change (title only, file names unchanged), so their CRCs change: every machine must get the new
+  `ADDON\coop*.lvl` and `auto*.lvl` together, or joins between old and new machines stop with "Your mission file
+  coop01.lvl does not match the host's".
+- Pack: `i76-uncap-lab\builds\mp-pack-20261019\` (tools/mp-pack.py with `--proxy ...\builds\mp-menu-20261019\STRLKUP-77ad2aca.dll`,
+  the mac part copied unchanged from the 2026-10-18 pack). Against the 2026-10-18 pack: common gains `ADDON\auto01..07.lvl`
+  (+ markers), the 17 `coopNN.lvl` change, STRLKUP.DLL ba2b45c1 -> 77ad2aca; win: PLAY-LAN.bat (I76_MP_MENU=1); mac: same.
+- A saved arena index now points at another entry (index 15 was "Co-op Scene 1", is now "Oil Well Well (Scenario)"):
+  the host just picks again.
