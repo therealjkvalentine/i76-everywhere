@@ -178,9 +178,10 @@ static BYTE g_st_kb_snap[16];
  * press w to accelerate it makes the video stutter a bit"): a pending release (0x6092e0) counts as input only when it is new
  * since the last tick's input pass (snapshot g_st_kb_esnap). The pending bit is cleared by input_KeyboardPoll; when the tick's
  * input pass does not poll the keyboard, a pending release stayed set and borrowed an early tick on every display frame that
- * could take one. 0 = the old test (any pending release). */
+ * could take one. 0 = the old test (any pending release). Default 0 since the measurement: the keyboard poll cleared every pending
+ * release within the tick (0 frames with one in 16 boots of W taps, cutscene and driving), so the guard changes nothing measured. */
 static BYTE g_st_kb_esnap[16];
-static int g_st_pend_once = 1;
+static int g_st_pend_once = 0;                                /* default OFF: no pending release was seen in 16 boots (~40 000 frames, TICK-FINISH s.17) */
 static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the harness posted new keys */
 static int st_input_changed(void) {
     const BYTE *d0 = (const BYTE *)0x006092d0, *e0 = (const BYTE *)0x006092e0;
