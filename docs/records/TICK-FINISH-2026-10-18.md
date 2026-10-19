@@ -717,3 +717,100 @@ The barricade with the stock sphere (n 3 each) gives the cleanest rate, in damag
    the number (the stock game's own stacking) or how they move.
 3. **Barricade bars and `I76_BREAKABLE_BOX=4`:** on the driver and PLAY-TICK the flame cannot burn the T05 road-closed
    bars (11.2). Keep it, or patch it?
+
+## 13. "Suburbia does not load correctly on tick 66, just a big flat expanse": not reproduced (2026-10-19, tick66-terrain lane)
+
+**Owner note (PLAY-TICK-66, game-tick, proxy tick19c 6846c2d4, preset tick19-66):** "suburbia map does not load correctly
+on tick 66 copy, just a big flat expanse." **Result: not reproduced.** Suburbia loaded with its terrain, its houses and its roads
+under the 66.7 ms tick on every boot here, by every route the lab can drive. That was 10 boots at 66.7 ms: 2 by the owner's
+menus on the real renderer, 3 direct boots on the real renderer and 5 headless. All 15 stock arenas also load their terrain at 33.3 and 66.7 ms. No
+call or value differed between the two tick lengths, so **there is no cause to fix and no simtick.c change**. tick19c / the
+coming tick19d are unaffected by this lane. Section 12 (the flame lane) is not touched.
+
+Lab only. The daily driver, the golden copy and the Downloads portable were not touched, and game-tick was only read (its STRLKUP.DLL
+is still 6846c2d4). Lane copies: `game-t66x` is headless (a copy of game-wst, null renderers, with the owner's user.mel,
+I76PLYR.DEF and multicar.def), and `game-t66v` is visible (a copy of game-tick, dgVoodoo.tick.conf). Lab twin
+`builds\tick66-terrain-20261019\Strlkup-t1-lab.dll` a0fdbfcb is i76-everywhere a4f3d1e + the drive block + a lab-only
+`I76_MELEE_BOOT` block. Tools are in lab `tools\tick66-terrain`, and the captures are in lab `captures\tick66-terrain-20261019`
+(gitignored). The visible boots ran with the console lock taken and released per run (owner away, coordinator's go-ahead,
+mute watcher on). No input reached the owner's desktop.
+
+### 13.1 What was measured
+
+The terrain is loaded once, at mission load: TDEF -> ZMAP 80x80 tile grid -> ZONE .ter -> the tile table `0x644380`. Suburbia
+(m04.msn) has 4 tiles, x 3840..5120 and z 48640..49920, so a camera outside that square would see flat zero-height ground. The
+probe (`t66_probe.py`, read-only, every 0.25 s) re-does the engine's own height lookup 0x493550 under the car and under the
+camera. It also reads:
+
+- the tile pointer;
+- the terrain vertices queued per scene `[0x6442ec]`;
+- the car pose and the camera pose;
+- the sim-tick shm counters.
+
+The visible boots also took screenshots (shots.py).
+
+| route (renderer) | arm | boots | terrain under car / camera | terrain vertices per scene (median) | houses on screen |
+|---|---|---|---|---|---|
+| shell menus MELEE > AUTO MELEE > INSTANT MELEE > Suburbia (dgVoodoo, owner's files, AI as the form had them) | tick66 | 2 (1 with throttle held) | 119.9 m tile present, every sample | 2400; 2308-1883 driving | yes: drove through the town (`menu-d1-tick19-66` b02) |
+| same | tick33 | 2 (1 with throttle held) | 119.9 m tile present, every sample | 2456; 2276-1978 driving | yes (`menu-d1-tick19-33` b02) |
+| same, Hope Springs (control) | tick66 | 1 (throttle) | 24.0-27.9 m, car within 0.0-1.3 m of it | 2760-3556 | n/a (terrain present) |
+| direct boot (I76_MELEE_BOOT, dgVoodoo); in the sp1 pair the same pose for both (I76_START_POS 4172.5, 49552.5) | 66 / 33 | 3 / 3 | 119.9 m present | 2400 / 2400 at the same pose | the direct boot's first camera looks up (boot artifact, equal in both arms); the 66 and 33 frames at the same pose differ only in the radar sweep and the HUD lamps |
+| headless direct boot, wst files and the owner's files, throttle from 4-8 s | 66 / 33 | 4 / 4 | 119.9 m present, car-terrain -0.05..+0.11 m | 1992-2069 / 1982-2035 | n/a |
+| headless sweep, all 15 stock arenas, throttle held | 66 / 33 | 15 / 15 | present on every sample of every boot (0 samples without a tile) | 1193-3004 / 1197-2713 (m08: 0 in both arms, spawn stuck, the same at 33) | n/a |
+
+The sim-tick counters were normal in every tick boot: 15.0 / 30.0 ticks a second, 2 / 1 car substeps, 12/12 gates, 0 leaks.
+No early ticks fired (no input device was connected; joyGetDevCaps rc 165 on all 16 ids, in the owner's log too).
+
+### 13.2 The owner's own log (game-tick mciproxy.log, read only)
+
+- **Two Suburbia visits at 66 ms.** Session A: a CD track 6 run (= m04's WRLD track) at t 1889360609, back in the shell 11.7 s
+  later, then Dunes (track 8). Session B: track 6 at 1889575671, the in-game menu after ~9 s, then the shell and exit. Both
+  are short visits, which fits "it looks wrong, leave".
+- **One Suburbia visit at 33 ms earlier the same morning, several minutes long.** Its mirror-pass hull events put the eye at
+  world (4812, 49427), next to the east spawns (4732-4862, 49317-49542).
+- No CRASH line, no terrain or far-clip complaint, and no proxy event of any kind during either 66 ms Suburbia visit. The one CRASH
+  in session A is AcGenral.DLL at exit (state 10), after Dunes.
+- **The log cannot tell what was on screen.** The proxy does not log terrain heights or spawn points, and the hull-fix lines
+  (mirror pass) depend on the car moving, so their absence says nothing. The lab's Suburbia boots show none either, at
+  33 or 66.
+
+### 13.3 What "a big flat expanse" probably was (not proven)
+
+Suburbia is a flat plateau at 119.9 m: every terrain sample the probe read in the town was 119.9. The night arena has 18
+houses, a school and 2 bunkers, between x 4305 and 4690. The melee spawn is picked at random among 12 points in two groups,
+x 4172-4272 (west) and x 4732-4862 (east). The two groups face each other across the town. **From a west spawn at night, the
+first view is a flat grey plain with the houses as a row of small lit windows on the horizon.** This was seen at 66 ms
+(`menu-m1-tick19-66` b00/b02); the town is 130-500 m away and dark. The houses appear only after driving toward them. An east
+spawn at 33 ms, which is what the owner's 33 ms visit had, shows the same plain looking west. The spawn draw is random per
+boot, not per tick length. The lab got a west spawn at 66 ms in 3 of 4 menu / direct boots and at 33 ms in 2 of 4. So the
+owner may simply have drawn a west spawn on both 66 ms visits. That is unproven: no screenshot of his screen exists.
+
+### 13.4 Answers to the two questions
+
+- **Does the same happen on PLAY-TICK (33.3 ms) with any arena?** Not here. All 15 stock arenas had terrain at 33.3 ms, the
+  same as at 66.7 ms (headless n 1 per arena per arm). Suburbia at 33.3 ms rendered its town on the real renderer (n 2 menu
+  boots + 3 direct).
+- **Night or size?** Neither shows a tick dependence. Suburbia (hour 0) and Night Driver m12 (hour 0) load their terrain at
+  both tick lengths. Suburbia is the smallest stock arena (4 tiles, 1.3 x 1.3 km; the others have 5-27 tiles, Hope Springs 12, Night Driver 27). The
+  terrain is loaded whole at mission load, before the first tick, so tile count cannot interact with the tick.
+
+### 13.5 Owner check (needs his eyes)
+
+1. **PLAY-TICK-66, Instant Melee, Suburbia, 3 starts.** If it looks like an empty plain, drive forward 10 s. If houses
+   appear, it was the spawn view (13.3). If it is still an empty plain with no houses after driving, take a screenshot
+   (Win+Shift+S) and quit with Esc > Abort Mission, not by closing the window. The proxy log then has the timing, and the lab
+   can probe that spawn.
+
+### 13.6 Not done, and why
+
+- **No fix, no commit to simtick.c.** There was no differing call or value to fix (rule: instrument, do not guess). The
+  candidates in the brief were ruled out:
+  - a per-frame call the streamer needs: the terrain is not streamed, it is all loaded at mission load;
+  - a load-time timeout: the tile table was complete at the first sample of every boot;
+  - the tick starting before the load finished: the first gameplay frame comes after the load (0x403598 onward).
+- The multiplayer route (MULTI MELEE > HOST) could not be driven on this copy. The IPX error box "Unable to create an IPX
+  connection" appears, because game-tick has no IPX wrapper. If the owner's "MULTIPLAYER" means a network game, that route is
+  untested here.
+- One of the A/B pairs is a direct boot, not the owner's route. `I76_MELEE_BOOT` sets match_IsMultiMelee [0x501818] and the car
+  name 0x5dd370, which the shell's play mode 3 sets at 0x40257b. Its first camera is odd in both arms. The menu boots are the
+  owner's route.
