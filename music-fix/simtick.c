@@ -1663,7 +1663,8 @@ static void apply_simtick(void) {
         c += patch_bytes(0x00408a3f, zm_old, zm_new, 6, "zoom rate (sim-tick)");
     }
     {
-        HANDLE m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(wst_shm_t), "Local\\I76SimTick");
+        char wst_nm[96];
+        HANDLE m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(wst_shm_t), shm_name(wst_nm, sizeof wst_nm, "Local\\I76SimTick"));
         if (m) g_wst = (volatile wst_shm_t *)MapViewOfFile(m, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(wst_shm_t));
         g_wst_local.magic = 0x31545357u; g_wst_local.version = 3; g_wst_local.tick_s = g_st_T;
         wst_publish();
@@ -1696,7 +1697,8 @@ static void simtick_joy_ready(MMRESULT (WINAPI *pos)(UINT, LPJOYINFOEX), MMRESUL
 static void apply_judder_census(void) {
     if (g_simtick || !env_present("I76_JUDDER_CENSUS")) return;
     {
-        HANDLE m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(wst_shm_t), "Local\\I76SimTick");
+        char wst_nm[96];
+        HANDLE m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(wst_shm_t), shm_name(wst_nm, sizeof wst_nm, "Local\\I76SimTick"));
         if (m) g_wst = (volatile wst_shm_t *)MapViewOfFile(m, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(wst_shm_t));
         g_wst_local.magic = 0x31545357u; g_wst_local.version = 1; g_wst_local.tick_s = g_fixed_step;
     }

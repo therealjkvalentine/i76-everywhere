@@ -31,7 +31,7 @@ WAYPOINTS = os.path.join(TOOLS, "trainer", "waypoints.json")     # shared with t
 STALE_AFTER, ACK_TIMEOUT = gui.STALE_AFTER, gui.ACK_TIMEOUT
 PLAY_BITS, CMD_RESULT, CHEAT_MARKER = gui.PLAY_BITS, gui.CMD_RESULT, gui.CHEAT_MARKER
 WHEEL_NAMES = gui.WHEEL_NAMES
-SHM_SUFFIX = os.environ.get("I76TRAINER_SHM_SUFFIX", "")
+SHM_SUFFIX = os.environ.get("I76TRAINER_SHM_SUFFIX", os.environ.get("I76_SHM_SUFFIX", ""))
 
 # Presets: (label, x, y, z, note). T05 hill top = the crest at the head of the straight down to the barricades
 # (lab docs/COLL-TIMING-2026-10-12.md section 4: I76_START_POS=7972,101.8,44035,-90; the ground there is 101.2-101.8 m).

@@ -118,9 +118,9 @@ class TelemetrySource(threading.Thread):
     """UDP on 127.0.0.1:port (+ tee) or, when the port is taken, the existing shared memory. Hands raw datagrams to
     hub.on_datagram. port 0 = shared memory only; port None = off."""
 
-    def __init__(self, hub, port=7676, tee=(), shm_fallback=True, shm_suffix=""):
+    def __init__(self, hub, port=7676, tee=(), shm_fallback=True, shm_suffix=None):
         super().__init__(daemon=True, name="telemetry")
-        self.hub, self.port, self.tee, self.shm_fallback, self.suffix = hub, port, list(tee), shm_fallback, shm_suffix
+        self.hub, self.port, self.tee, self.shm_fallback, self.suffix = hub, port, list(tee), shm_fallback, (os.environ.get("I76_SHM_SUFFIX", "") if shm_suffix is None else shm_suffix)
         self.mode, self.note = "off", ""
         self.forwarded = self.received = 0
         self.stop_ev = threading.Event()

@@ -6,7 +6,7 @@ Prints: frames/s, frame dt mean / sd / p99 and the two most common 1 ms bins, ph
 
     python frame_stats.py [seconds] [label]
 """
-import mmap, struct, sys, time, math
+import mmap, os, struct, sys, time, math
 sys.path.insert(0, __file__.rsplit("\\", 1)[0])
 import i76tel
 
@@ -14,7 +14,7 @@ secs = float(sys.argv[1]) if len(sys.argv) > 1 else 10.0
 label = sys.argv[2] if len(sys.argv) > 2 else ""
 h = i76tel.Header()
 size = h.structs["i76tel_shm_t"][1]; off = h.offset("i76tel_shm_t", "frame")
-m = mmap.mmap(-1, size, tagname=h.consts["I76TEL_SHM_NAME"])
+m = mmap.mmap(-1, size, tagname=h.consts["I76TEL_SHM_NAME"] + os.environ.get("I76_SHM_SUFFIX", ""))
 last = None; dts = []; steps = 0; frames = 0; still = 0; moving = 0; prev_pos = None; faults0 = None
 t0 = time.time(); deadline = t0 + secs
 while time.time() < deadline:

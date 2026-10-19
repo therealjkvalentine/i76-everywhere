@@ -170,9 +170,11 @@ def decode_datagram(h, data):
     return fr, decode_events(h, data, lay.frame_size, fr["event_count"], lay.consts["I76TEL_VERSION"])
 
 
-def open_shm(h, suffix=""):
+def open_shm(h, suffix=None):
     """Map Local\\I76Telemetry<suffix>: h's size first; if a v2 proxy (or a v2 reader) created the section smaller,
     Windows refuses the larger view, so fall back to the v2 size. Returns (mmap, size)."""
+    if suffix is None:
+        suffix = os.environ.get("I76_SHM_SUFFIX", "")   # lab runs: the proxy started with the same key names its blocks ...<suffix>
     name = h.consts["I76TEL_SHM_NAME"] + suffix
     size = h.structs["i76tel_shm_t"][1]
     try:
@@ -364,7 +366,7 @@ def source_udp(port):
 
 def source_shm(h):
     """Poll Local\\I76Telemetry. A copy is accepted when seq is even and unchanged across the read; only new frames yield."""
-    name = h.consts["I76TEL_SHM_NAME"]
+    name = h.consts["I76TEL_SHM_NAME"] + os.environ.get("I76_SHM_SUFFIX", "")
     m, size = open_shm(h)
     print("reading shared memory %s (%d bytes) - a frame appears once the game publishes" % (name, size))
     last_seq, last_ev, idle = None, 0, 0.0

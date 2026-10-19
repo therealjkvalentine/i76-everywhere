@@ -1488,6 +1488,7 @@ Built and gated today (records: TICK-FINISH-2026-10-18.md s.12-15, FRAME-BOUND-S
 AI-MELEE-M1-2026-10-19.md). Everything is in lab copies; the daily driver is untouched and still has none of it. Before you play: no
 automated run should be muting anything any more (the global watcher is retired; each run mutes only the game it started, per process, and clears
 the mute Windows remembers for that copy when it ends, so your copies start with sound).
+Lab runs can no longer touch your car: since today every automated run starts its game with `I76_SHM_SUFFIX=<its folder name>` (and its own desktop), so its trainer / telemetry blocks are separate from the ones in your game (a proxy built before this ignores the key; the launch scripts then say so and do not run it beside you).
 
 ### A. The tick candidate tick19e (a08577c4): `C:\Users\james\i76-uncap-lab\game-dd-20261003\PLAY-TICK.bat` (33) and `PLAY-TICK-66.bat`
 

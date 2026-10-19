@@ -62,6 +62,24 @@ static DWORD env_str(const char *name, char *buf, DWORD cap) {
     if (n == 0 || n >= cap) { if (cap) buf[0] = 0; return 0; }
     return n;
 }
+/* I76_SHM_SUFFIX=<text> (lab, 2026-10-19, shm-suffix lane; docs/records/TWO-CLOCKS-2026-10-19.md "safety finding"): appended to every
+ * named kernel object the proxy creates (the three file mappings Local\I76Telemetry, Local\I76Trainer, Local\I76SimTick; no events,
+ * mutexes, semaphores or pipes in the proxy are named). Unset = the default names, which every proxy instance on the machine
+ * shares - so a lab run beside the owner's game must set it. Backslashes in the value become '_' (a name cannot have them). */
+static const char *shm_suffix(void) {
+    static char s[64]; static int done;
+    if (!done) {
+        char v[64]; int i;
+        done = 1;
+        if (env_str("I76_SHM_SUFFIX", v, sizeof(v))) { for (i = 0; v[i]; i++) s[i] = v[i] == '\\' ? '_' : v[i]; s[i] = 0; }
+    }
+    return s;
+}
+/* base + suffix into out (cap bytes; the result is the pointer for CreateFileMappingA) */
+static const char *shm_name(char *out, size_t cap, const char *base) {
+    _snprintf(out, cap, "%s%s", base, shm_suffix()); out[cap - 1] = 0;
+    return out;
+}
 /* presence only, whatever the value (the `GetEnvironmentVariableA(name, NULL, 0)` switches) */
 static int env_present(const char *name) { return GetEnvironmentVariableA(name, NULL, 0) > 0; }
 /* first character '1' -> 1, '0' -> 0; unset, empty, too long for cap, or any other character -> dflt */
@@ -5836,12 +5854,13 @@ static void apply_telemetry(void) {
     }
     /* shared memory: created here, so a reader that starts later finds it; one that started earlier (and created it
      * empty) is handed the same section by name */
-    g_tel_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76tel_shm_t), I76TEL_SHM_NAME);
+    char tel_nm[96];
+    g_tel_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76tel_shm_t), shm_name(tel_nm, sizeof tel_nm, I76TEL_SHM_NAME));
     if (g_tel_map) {
         g_tel_shm = (i76tel_shm_t *)MapViewOfFile(g_tel_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76tel_shm_t));
         if (g_tel_shm) { memset(g_tel_shm, 0, sizeof *g_tel_shm); g_tel_shm->size = sizeof(i76tel_shm_t); }
         else mlog("  telemetry: shm view refused - a reader built on an older i76tel.h created %s smaller than %u B; start it after the game or update it (UDP is unaffected)",
-                  I76TEL_SHM_NAME, (unsigned)sizeof(i76tel_shm_t));
+                  tel_nm, (unsigned)sizeof(i76tel_shm_t));
     }
     /* events */
     for (i = 0; i < 2; i++) {
@@ -5859,7 +5878,7 @@ static void apply_telemetry(void) {
     if (g_tel_coll_tramp) g_tel_hooks |= I76TEL_HOOK_IMPACT;
     g_tel_on = 1;
     mlog("  telemetry: on - udp 127.0.0.1:%d %s, shm %s %s, %d/4 event hooks (FireShot call sites x2, SpawnExplosion entry, ApplyCollisionDamage entry), frame %u B + events %u B, ring %d",
-         port, g_tel_sock != INVALID_SOCKET ? "open" : "FAILED", I76TEL_SHM_NAME, g_tel_shm ? "mapped" : "FAILED",
+         port, g_tel_sock != INVALID_SOCKET ? "open" : "FAILED", tel_nm, g_tel_shm ? "mapped" : "FAILED",
          hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
     apply_sound_events();     /* opt-in: I76_SOUND_EVENTS=1 (i76tel v3) */
     apply_damage_events();    /* opt-in: I76_DAMAGE_EVENTS=1 (i76tel v3) */
@@ -7146,15 +7165,16 @@ static int trn_install_guard(void) {
 
 static void apply_trainer(void) {
     if (env_flag("I76_TRAINER", 8, 1) == 0) { mlog("  trainer: disabled (I76_TRAINER=0)"); return; }
-    g_trn_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76trn_ctl_t), I76TRN_SHM_NAME);
+    char trn_nm[96];
+    g_trn_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76trn_ctl_t), shm_name(trn_nm, sizeof trn_nm, I76TRN_SHM_NAME));
     if (g_trn_map) g_trn = (i76trn_ctl_t *)MapViewOfFile(g_trn_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76trn_ctl_t));
-    if (!g_trn) { mlog("  trainer: shared memory %s NOT created (%lu)", I76TRN_SHM_NAME, GetLastError()); return; }
+    if (!g_trn) { mlog("  trainer: shared memory %s NOT created (%lu)", trn_nm, GetLastError()); return; }
     memset(g_trn, 0, sizeof *g_trn);                          /* a front end that mapped first sees the block reset */
     g_trn->version = I76TRN_VERSION; g_trn->size = sizeof(i76trn_ctl_t);
     trn_msg("proxy ready");
     install_frame_hook();
     g_trn->magic = g_frame_hook ? I76TRN_MAGIC : 0;           /* no hook, no service: the magic stays clear */
-    mlog("  trainer: %s (%s, %u B, frame hook %s)", g_frame_hook ? "on" : "NOT applied", I76TRN_SHM_NAME,
+    mlog("  trainer: %s (%s, %u B, frame hook %s)", g_frame_hook ? "on" : "NOT applied", trn_nm,
          (unsigned)sizeof(i76trn_ctl_t), g_frame_hook ? "ok" : "missing");
     if (g_frame_hook) {
         int g = trn_install_guard();
@@ -8940,6 +8960,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         GetModuleFileNameA(h, g_dir, sizeof(g_dir));
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
         g_logging = env_present("I76MUSIC_LOG");
+        if (shm_suffix()[0]) mlog("shm: suffix=%s", shm_suffix()); else mlog("shm: default names");
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_crash_log();        /* always on: fault address + registers to the log */
         apply_mute();             /* lab: I76_MUTE=1 mutes this process's audio session (thread; COM off the loader lock) */

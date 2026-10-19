@@ -51,7 +51,7 @@ CMD_RESULT = {0: "ok", 1: "no player", 2: "unknown cmd", 3: "bad slot"}
 ACK_TIMEOUT = 1.0
 STALE_AFTER = 0.5                                           # a mapping survives the game while anyone holds it (the selftest, this window,
                                                             # a test); it keeps the last magic and frames. Only an advancing counter is live.
-SHM_SUFFIX = os.environ.get("I76TRAINER_SHM_SUFFIX", "")   # tests set this so their fake blocks never share the game's mappings
+SHM_SUFFIX = os.environ.get("I76TRAINER_SHM_SUFFIX", os.environ.get("I76_SHM_SUFFIX", ""))   # tests set this so their fake blocks never share the game's mappings
 
 
 # ---------------------------------------------------------------- headers and shared memory
