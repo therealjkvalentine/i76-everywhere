@@ -1363,6 +1363,10 @@ static void simtick_clock(void);
 static int g_jc_on;                                          /* judder census (simtick.c; I76_JUDDER_CENSUS under I76_RENDER_INTERP) */
 static int g_flc_on, g_flame_wrapped; static void flame_census_frame(void);    /* I76_FLAME_CENSUS (below, with the flamers) */
 static void judder_census(void);
+static int g_stf_on, g_stf_scrape_on;                      /* tick-factors (simtick.c): wrappers in; scrape repeats through coll_damage_wrap */
+static void st_factor_frame(void);
+static DWORD st_coll_damage_call(DWORD victim, DWORD source, DWORD v, DWORD n, DWORD p);
+static int st_dmg_chain_take(void *stub);
 static void judder_census_publish(void);
 static void (*g_lat_step_fn)(void), (*g_lat_draw_fn)(void); /* lab latency probe (side build drive block): end of the sim block / draw */
 static int g_rpl_on;                                         /* I76_REPLAY (replay.c, included below): frame-dt replay of an emulator trace */
@@ -1495,6 +1499,7 @@ clock:
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
     if (g_bbox_sweep) { if (g_simtick) sign_pend_frame(); else sign_sweep(); }   /* I76_BREAKABLE_BOX=3: posts the last step drove through (tick: sweep at the tick's end, simtick.c) */
     if (g_flc_on) flame_census_frame();                     /* I76_FLAME_CENSUS: stream lengths, log line */
+    if (g_stf_on) st_factor_frame();                        /* tick-factors census line (I76_FACTOR_CENSUS / I76_SIM_TICK_LOG) */
     if (g_simtick) simtick_clock();                         /* I76_SIM_TICK_MS: simclock_Update on tick frames only, dt = the tick */
     else ((void (__cdecl *)(void))0x0049c920)();           /* simclock_Update */
     if (g_hires_on && !g_simtick) {
@@ -3942,6 +3947,7 @@ static void apply_coop_ai(HMODULE exe) {
             BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 };
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
+            if (c[i].site == 0x004a81d3 && st_dmg_chain_take(c[i].stub)) { n++; continue; }   /* tick-factors holds the site: chain behind it */
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
         mlog("  coop-ai: %d/%d trigger + damage + SetBehaviour + score + mirror + radio + objective sites repointed", n, nsites);
@@ -4789,6 +4795,7 @@ static DWORD __cdecl coll_damage_wrap(DWORD victim, DWORD source, DWORD v, DWORD
     if (g_bbox_speed && bbox_speed_normal((BYTE *)victim, (const float *)v, (const float *)n, nn)) n = (DWORD)(DWORD_PTR)nn;
     if (g_bbox_defer && sign_defer_engine((BYTE *)victim, (BYTE *)source, (const float *)v, (const float *)n, (const float *)p)) return 1;
     if (g_bbox_sweep && !g_bbox_defer) sign_gap_log_engine((BYTE *)victim, (BYTE *)source);
+    if (g_stf_scrape_on) return st_coll_damage_call(victim, source, v, n, p);   /* tick-factors: repeats of a contact at the 1997 rate */
     return ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
 }
 static void apply_coll_dedupe(void) {
@@ -8986,6 +8993,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
+        apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
         apply_flame_census();     /* lab: I76_FLAME_CENSUS=1 (after apply_simtick / apply_framerate_fixes: counts flamer damage) */

@@ -1043,6 +1043,256 @@ static int st_call_site(DWORD site, DWORD stock, void *wrap, DWORD *chain, const
     return memcmp(p, w, 5) == 0;                             /* read back */
 }
 
+/* ---- Frame-bound factors (2026-10-19 tick-factors; docs/records/FRAME-BOUND-SYSTEMS-2026-10-19.md, TICK-FINISH s.14) -------
+ * Four systems the engine counts per pass, not per second. In 1997 (retail 1.0 as played, ~42 ms frames) they ran ~24 times a
+ * second; under the tick they run once per tick (30 / s at 33.3 ms, 15 at 66.7 ms) or once per vehicle substep (30 / s at
+ * both). Each is scaled per unit of time to the 1997 rate (I76_SIM_TICK_REF_HZ, default 24 / s), under the tick only:
+ *   HAZARD  the stationary hazards' steps (oil slick 0x4aa150, fire patch 0x4aa450, wheel hazard 0x4aa2d0, landed canister
+ *           0x4ac800; called from weapon_StepProjectileByType at 0x4a08ec / 0x4a0914 / 0x4a0900 / 0x4a0856): a vehicle in
+ *           contact takes the ordnance's full per-shot damage on every step (physics_SweepSegment 0x435830 -> 0x435c92 ->
+ *           physics_ApplyCollisionDamage 0x4a7c80). A step's damage is x ref / tick rate (0.8 at 33.3 ms, 1.6 at 66.7 ms).
+ *   SCRAPE  collision damage of a contact that repeats on the next collision pass (physics_CollideAll runs once per tick; the
+ *           class handlers' calls 0x4644bc vehicles / 0x46f8d4 objects -> 0x4a7c80): x ref / tick rate on a repeat. The first
+ *           impact of a contact (the same victim / source made no contact on the previous pass) stays whole. Projectile
+ *           sources (class 0x33 / 0x34) and breakables (root class 4: the sign / bar knock-off) are left whole.
+ *   WRECK   the wreck's debris / secondary-blast roll (entity_Wreck 0x466180: rand() & 15 at 0x4664eb, once per
+ *           entity_UpdateState call = per vehicle substep; 2 of 16 values spawn the X1_CARS1 blast): a roll is let through
+ *           with probability ref x substep (0.8 at both ticks: 1 x 33.3 ms or 2 x 33.3 ms substeps per tick), else it reads
+ *           15 (no action). rand() is consumed as stock either way; the gate uses the same draw's bits 4..14.
+ *   RADAR   the radar missile's turn per projectile step (0x4aaca0 / 0x4ab400 -> math_MatrixFromAxisAngle 0x494460, no dt):
+ *           a clamped turn (one of the three limit constants) x k, an unclamped one (0.75 of the error per step) x
+ *           (1 - 0.25^k) / 0.75, k = ref / tick rate, so the turn per second is a 1997 step's at 1 / ref (as R1 under
+ *           I76_FRAMERATE_FIXES does for 20 fps).
+ * Damage amounts are integers (the record's four amounts d[2..5], weapon_BuildImpactDamage 0x4a76a0 / 0x4a7c80): the scaled
+ * amount's fraction is carried per target and field, as the flame factor does. The scaling is done at the class damage call
+ * inside 0x4a7c80 (0x4a81d3 -> object_ClassDamage 0x462040), armed only while a hazard step or a scrape repeat runs.
+ * Switches I76_SIM_TICK_{HAZARD,SCRAPE,WRECK,RADAR}_FACTOR: unset or 'auto' = the 1997 factor above, 0 / 1 / 'off' = off (the
+ * tick's own per-pass rate), another value 0.05..10 = that factor. I76_FACTOR_CENSUS=1 (lab): the same wrappers in any frame
+ * loop, counting only (nothing is scaled outside the tick), and a `tick-factors:` log line every 2 s of wall time when
+ * something changed (with the tick also every I76_SIM_TICK_LOG seconds). */
+static float g_stf_f[4] = { 1.0f, 1.0f, 1.0f, 1.0f };       /* hazard, scrape, wreck, radar: the factor in force (1 = none) */
+static float g_stf_rk = 1.0f, g_stf_rg = 1.0f;               /* radar: clamped / proportional scale */
+static int g_stf_log_ms;                                    /* g_stf_on, g_stf_scrape_on: declared in strlkproxy.c */
+static float g_dsc_f = 1.0f; static int g_dsc_cat;           /* armed scale and census category for the class-damage call */
+static DWORD g_dsc_next = 0x00462040; static int g_dsc_site;
+static struct { DWORD tgt; float c[4]; } g_dsc[32]; static int g_dsc_i;
+static struct { DWORD n, in, out, pl_n, pl_in, pl_out; float t0, t1; } g_stfc[4];   /* 0 hazard, 1 scrape repeat, 2 scrape first, 3 other collision */
+static DWORD g_stf_hz_steps, g_stf_wr_rolls, g_stf_wr_pass, g_stf_wr_act, g_stf_rd_n, g_stf_rd_clamp;
+static double g_stf_rd_in, g_stf_rd_out, g_stf_rd_rate;
+static float g_stf_wr_t0 = -1.0f, g_stf_wr_t1, g_stf_rd_t0 = -1.0f, g_stf_rd_t1;
+static float st_simnow(void) { return *(volatile float *)0x005a7e70; }
+static DWORD __cdecl st_dmg_class_wrap(DWORD obj, DWORD *rec, DWORD pos) {
+    if (g_dsc_cat && rec) {
+        int i, k, c = g_dsc_cat - 1, pl = 0;
+        DWORD in = 0, out = 0;
+        float t = st_simnow();
+#ifdef _MSC_VER
+        __try {
+#endif
+            pl = obj && ((int (__cdecl *)(DWORD))0x00458bf0)(obj);
+#ifdef _MSC_VER
+        } __except (EXCEPTION_EXECUTE_HANDLER) { pl = 0; }
+#endif
+        for (i = 0; i < 32; i++) if (g_dsc[i].tgt == obj) break;
+        if (i == 32) { i = g_dsc_i; g_dsc_i = (g_dsc_i + 1) & 31; g_dsc[i].tgt = obj; for (k = 0; k < 4; k++) g_dsc[i].c[k] = 0.0f; }
+        for (k = 0; k < 4; k++) {
+            DWORD a = rec[2 + k];
+            if (a == 0 || a > 1000000) continue;             /* not an integer amount: as stock */
+            in += a;
+            if (g_dsc_f != 1.0f) {
+                float x = (float)a * g_dsc_f + g_dsc[i].c[k];
+                DWORD n = (DWORD)x;
+                g_dsc[i].c[k] = x - (float)n; rec[2 + k] = n;
+            }
+            out += rec[2 + k];
+        }
+        if (c >= 0 && c < 4) {
+            g_stfc[c].n++; g_stfc[c].in += in; g_stfc[c].out += out;
+            if (pl) { g_stfc[c].pl_n++; g_stfc[c].pl_in += in; g_stfc[c].pl_out += out; }
+            if (g_stfc[c].n == 1) g_stfc[c].t0 = t;
+            g_stfc[c].t1 = t;
+        }
+    }
+    return ((DWORD (__cdecl *)(DWORD, DWORD *, DWORD))g_dsc_next)(obj, rec, pos);
+}
+static int st_dmg_chain_take(void *stub) {                   /* apply_coop_ai: its 0x4a81d3 stub goes behind ours */
+    if (!g_dsc_site) return 0;
+    g_dsc_next = (DWORD)(DWORD_PTR)stub;
+    mlog("  tick-factors: class-damage call 0x4a81d3 chains to the co-op stub");
+    return 1;
+}
+static DWORD st_hz_call(DWORD fn, BYTE *proj, float dt) {
+    float f0 = g_dsc_f; int c0 = g_dsc_cat; DWORD r;
+    g_dsc_f = g_simtick ? g_stf_f[0] : 1.0f; g_dsc_cat = 1; g_stf_hz_steps++;
+    r = ((DWORD (__cdecl *)(BYTE *, float))(DWORD_PTR)fn)(proj, dt);
+    g_dsc_f = f0; g_dsc_cat = c0;
+    return r;
+}
+static DWORD __cdecl st_hz_oil(BYTE *p, float dt)   { return st_hz_call(0x004aa150, p, dt); }
+static DWORD __cdecl st_hz_wheel(BYTE *p, float dt) { return st_hz_call(0x004aa2d0, p, dt); }
+static DWORD __cdecl st_hz_fire(BYTE *p, float dt)  { return st_hz_call(0x004aa450, p, dt); }
+static DWORD __cdecl st_hz_canister(BYTE *p, float dt) {
+    BYTE *pd = *(BYTE **)(p + 0x70);
+    if (!pd || *(int *)(pd + 0x48) == 0) return ((DWORD (__cdecl *)(BYTE *, float))0x004ac800)(p, dt);   /* in flight: a moving round */
+    return st_hz_call(0x004ac800, p, dt);
+}
+static struct { DWORD v, s, pass; int rep; } g_scr[64]; static int g_scr_i;
+static int st_cls(DWORD o, int root) {
+    BYTE *r = (BYTE *)(DWORD_PTR)o; int g = 0, c = -1;
+    if (!r) return -1;
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (root) while (*(BYTE **)(r + 0x68) && g++ < 16) r = *(BYTE **)(r + 0x68);
+        c = *(int *)(r + 0x6c);
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { c = -1; }
+#endif
+    return c;
+}
+static DWORD st_coll_damage_call(DWORD victim, DWORD source, DWORD v, DWORD n, DWORD p) {
+    DWORD pass = g_simtick ? g_st_tickno : g_frame, r;
+    float f0 = g_dsc_f, f = 1.0f; int c0 = g_dsc_cat, cat, sc = st_cls(source, 0), i;
+    if (sc == 0x33 || sc == 0x34 || st_cls(victim, 1) == 4 || (source && st_cls(source, 1) == 4)) cat = 4;
+    else {
+        int rep;
+        for (i = 0; i < 64; i++) if (g_scr[i].v == victim && g_scr[i].s == source) break;
+        if (i < 64 && g_scr[i].pass == pass) rep = g_scr[i].rep;           /* another contact of the pair in this pass */
+        else {
+            rep = i < 64 && g_scr[i].pass + 1 == pass;                      /* in contact on the previous pass */
+            if (i == 64) { i = g_scr_i; g_scr_i = (g_scr_i + 1) & 63; g_scr[i].v = victim; g_scr[i].s = source; }
+            g_scr[i].rep = rep;
+        }
+        g_scr[i].pass = pass;
+        cat = rep ? 2 : 3;
+        if (rep && g_simtick) f = g_stf_f[1];
+    }
+    g_dsc_f = f; g_dsc_cat = cat;
+    r = ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
+    g_dsc_f = f0; g_dsc_cat = c0;
+    return r;
+}
+static int __cdecl st_wreck_roll(void) {                      /* replaces `call ebx (rand); and eax, 0xf` at 0x4664eb */
+    int r = (*(int (__cdecl **)(void))0x004bc20c)(), v = r & 15;
+    float t = st_simnow();
+    g_stf_wr_rolls++;
+    if (g_simtick && g_stf_f[2] < 1.0f && ((r >> 4) & 2047) >= (int)(g_stf_f[2] * 2048.0f)) v = 15;
+    else { g_stf_wr_pass++; if (v <= 7) g_stf_wr_act++; }
+    if (g_stf_wr_t0 < 0.0f) g_stf_wr_t0 = t;
+    g_stf_wr_t1 = t;
+    return v;
+}
+static void *__cdecl st_radar_turn(float *out, float angle, float x, float y, float z) {
+    float a = angle < 0.0f ? -angle : angle, s = 1.0f, dt = *(volatile float *)0x004fe420, t = st_simnow();
+    int clamped = a == *(volatile float *)0x004bec2c || a == *(volatile float *)0x004bec34 || a == *(volatile float *)0x004bec38;
+    if (g_simtick) s = clamped ? g_stf_rk : g_stf_rg;
+    g_stf_rd_n++; if (clamped) g_stf_rd_clamp++;
+    g_stf_rd_in += a; g_stf_rd_out += a * s;
+    if (dt > 0.0f) g_stf_rd_rate += a * s / dt;
+    if (g_stf_rd_t0 < 0.0f) g_stf_rd_t0 = t;
+    g_stf_rd_t1 = t;
+    return ((void *(__cdecl *)(float *, float, float, float, float))0x00494460)(out, angle * s, x, y, z);
+}
+static void st_factor_frame(void) {                           /* from the frame hook: the census line */
+    static DWORD last, sig;
+    DWORD now = GetTickCount(), s;
+    int c;
+    if (!g_stf_log_ms || now - last < (DWORD)g_stf_log_ms) return;
+    s = g_stf_hz_steps + g_stf_wr_rolls * 3 + g_stf_rd_n * 7;
+    for (c = 0; c < 4; c++) s += g_stfc[c].n * (11 + c) + g_stfc[c].out;
+    if (s == sig) return;
+    last = now; sig = s;
+    mlog("tick-factors: sim %.2f; hazard steps %lu, dmg apps %lu (player %lu) amount %lu -> %lu (player %lu -> %lu) sim %.2f..%.2f; "
+         "scrape repeats %lu (player %lu) amount %lu -> %lu (player %lu -> %lu) sim %.2f..%.2f, first %lu (player %lu) amount %lu (player %lu), other %lu amount %lu; "
+         "wreck rolls %lu passed %lu acted %lu sim %.2f..%.2f; radar turns %lu (clamped %lu) angle %.4f -> %.4f rad, mean %.1f deg/s per step, sim %.2f..%.2f",
+         st_simnow(), (unsigned long)g_stf_hz_steps, (unsigned long)g_stfc[0].n, (unsigned long)g_stfc[0].pl_n, (unsigned long)g_stfc[0].in,
+         (unsigned long)g_stfc[0].out, (unsigned long)g_stfc[0].pl_in, (unsigned long)g_stfc[0].pl_out, g_stfc[0].t0, g_stfc[0].t1,
+         (unsigned long)g_stfc[1].n, (unsigned long)g_stfc[1].pl_n, (unsigned long)g_stfc[1].in, (unsigned long)g_stfc[1].out,
+         (unsigned long)g_stfc[1].pl_in, (unsigned long)g_stfc[1].pl_out, g_stfc[1].t0, g_stfc[1].t1,
+         (unsigned long)g_stfc[2].n, (unsigned long)g_stfc[2].pl_n, (unsigned long)g_stfc[2].in, (unsigned long)g_stfc[2].pl_in,
+         (unsigned long)g_stfc[3].n, (unsigned long)g_stfc[3].in,
+         (unsigned long)g_stf_wr_rolls, (unsigned long)g_stf_wr_pass, (unsigned long)g_stf_wr_act, g_stf_wr_t0, g_stf_wr_t1,
+         (unsigned long)g_stf_rd_n, (unsigned long)g_stf_rd_clamp, g_stf_rd_in, g_stf_rd_out,
+         g_stf_rd_n ? g_stf_rd_rate / (double)g_stf_rd_n * 57.29577951 : 0.0, g_stf_rd_t0, g_stf_rd_t1);
+}
+static float st_factor_env(const char *name, float dflt) {
+    char v[16]; float f;
+    if (!env_str(name, v, sizeof(v))) return dflt;
+    if (v[0] == 'a' || v[0] == 'A') return dflt;             /* auto */
+    if (v[0] == 'o' || v[0] == 'O') return 1.0f;             /* off */
+    f = (float)atof(v);
+    if (f == 0.0f || f == 1.0f) return 1.0f;
+    if (!(f >= 0.05f && f <= 10.0f)) { mlog("  tick-factors: %s='%s' is not 0.05..10 - default %.3f", name, v, dflt); return dflt; }
+    return f;
+}
+static double st_pow025(float k) {                            /* 0.25^k, k >= 0, without the CRT pow */
+    double r = 1.0, x, term = 1.0, e = 1.0; int j, n = (int)k;
+    for (j = 0; j < n; j++) r *= 0.25;
+    x = -1.3862943611198906 * (double)(k - (float)n);
+    for (j = 1; j <= 14; j++) { term *= x / (double)j; e += term; }
+    return r * e;
+}
+/* tick: 1 = under I76_SIM_TICK_MS (factors), 0 = I76_FACTOR_CENSUS in another loop (counting only) */
+static void st_factors_install(int tick) {
+    int census = env_flag("I76_FACTOR_CENSUS", 8, 0) == 1, nd = 0, nh = 0, ns = 0, nw = 0, nr = 0, i;
+    float ref = 24.0f, base, sub;
+    char v[16];
+    if (env_str("I76_SIM_TICK_REF_HZ", v, sizeof(v))) { float r = (float)atof(v); if (r >= 10.0f && r <= 60.0f) ref = r; }
+    if (tick) {
+        int cnt = (int)(g_st_T * 20.0f) + 1;                 /* the vehicle stepper's substeps per tick */
+        base = ref * g_st_T; sub = ref * g_st_T / (float)cnt; if (sub > 1.0f) sub = 1.0f;
+        g_stf_f[0] = st_factor_env("I76_SIM_TICK_HAZARD_FACTOR", base);
+        g_stf_f[1] = st_factor_env("I76_SIM_TICK_SCRAPE_FACTOR", base);
+        g_stf_f[2] = st_factor_env("I76_SIM_TICK_WRECK_FACTOR", sub); if (g_stf_f[2] > 1.0f) g_stf_f[2] = 1.0f;
+        g_stf_f[3] = st_factor_env("I76_SIM_TICK_RADAR_FACTOR", base);
+        g_stf_rk = g_stf_f[3]; g_stf_rg = g_stf_f[3] == 1.0f ? 1.0f : (float)((1.0 - st_pow025(g_stf_f[3])) / 0.75);
+    } else if (!census) return;
+    if (census || g_stf_f[0] != 1.0f || g_stf_f[1] != 1.0f) {    /* the class-damage call in 0x4a7c80: hazard and scrape scaling */
+        DWORD ch = 0x00462040;
+        nd = st_call_site(0x004a81d3, 0x00462040, (void *)st_dmg_class_wrap, &ch, "class-damage call in physics_ApplyCollisionDamage (tick-factors)");
+        if (nd) { g_dsc_next = ch; g_dsc_site = 1; }
+    }
+    if (nd && (census || g_stf_f[0] != 1.0f)) {
+        static const struct { DWORD site, stock; void *wrap; const char *what; } hs[4] = {
+            { 0x004a08ec, 0x004aa150, (void *)st_hz_oil,      "oil slick step (tick-factors)" },
+            { 0x004a0900, 0x004aa2d0, (void *)st_hz_wheel,    "wheel hazard step (tick-factors)" },
+            { 0x004a0914, 0x004aa450, (void *)st_hz_fire,     "fire patch step (tick-factors)" },
+            { 0x004a0856, 0x004ac800, (void *)st_hz_canister, "canister step (tick-factors)" } };
+        for (i = 0; i < 4; i++) nh += st_call_site(hs[i].site, hs[i].stock, hs[i].wrap, 0, hs[i].what);
+    }
+    if (nd && (census || g_stf_f[1] != 1.0f)) {                 /* the two collision damage calls go through coll_damage_wrap */
+        static const DWORD cs[2] = { 0x004644bc, 0x0046f8d4 };
+        for (i = 0; i < 2; i++) {
+            BYTE *p = (BYTE *)(DWORD_PTR)cs[i]; LONG rel; DWORD tgt;
+            if (p[0] != 0xE8) continue;
+            memcpy(&rel, p + 1, 4); tgt = cs[i] + 5 + (DWORD)rel;
+            if (tgt == (DWORD)(DWORD_PTR)coll_damage_wrap) { ns++; continue; }   /* I76_BREAKABLE_BOX >= 2 put it there */
+            if (tgt == 0x004a7c80) ns += st_call_site(cs[i], 0x004a7c80, (void *)coll_damage_wrap, 0, "collision damage (tick-factors)");
+            else mlog("  tick-factors: collision damage call 0x%08lX already calls 0x%08lX - scrape factor not applied there", (unsigned long)cs[i], (unsigned long)tgt);
+        }
+        g_stf_scrape_on = ns > 0;
+    }
+    if (census || g_stf_f[2] != 1.0f) {
+        static const BYTE wo[8] = { 0xFF, 0xD3, 0x83, 0xE0, 0x0F, 0x83, 0xF8, 0x07 };   /* call ebx (rand); and eax, 0xf; cmp eax, 7 */
+        BYTE wn[8] = { 0xE8, 0, 0, 0, 0, 0x83, 0xF8, 0x07 };
+        LONG rel = (LONG)((DWORD_PTR)st_wreck_roll - (0x004664eb + 5)); memcpy(wn + 1, &rel, 4);
+        nw = patch_bytes(0x004664eb, wo, wn, 8, "wreck debris roll (tick-factors)") && memcmp((void *)0x004664eb, wn, 8) == 0;
+    }
+    if (census || g_stf_f[3] != 1.0f) {
+        nr += st_call_site(0x004aaca0, 0x00494460, (void *)st_radar_turn, 0, "radar missile turn (tick-factors)");
+        nr += st_call_site(0x004ab400, 0x00494460, (void *)st_radar_turn, 0, "radar missile turn, id 0x14 (tick-factors)");
+    }
+    g_stf_on = 1;
+    g_stf_log_ms = census ? 2000 : (int)g_st_logper;
+    if (census && !tick) install_frame_hook();
+    mlog("  tick-factors: %s; ref %.1f / s; hazard x %.3f (%d/4 steps, class-damage call %d/1), scrape repeats x %.3f (%d/2 collision calls), "
+         "wreck roll pass %.3f (%d/1), radar turn x %.3f / proportional x %.3f (%d/2)%s",
+         tick ? "under the tick" : "census only (no tick: nothing scaled)", ref, g_stf_f[0], nh, nd, g_stf_f[1], ns, g_stf_f[2], nw,
+         g_stf_rk, g_stf_rg, nr, census ? "; census log every 2 s (I76_FACTOR_CENSUS)" : "");
+}
+/* I76_FACTOR_CENSUS=1 without the tick (lab): the wrappers above, counting only */
+static void apply_factor_census(void) { if (!g_simtick) st_factors_install(0); }
+
 static void apply_simtick(void) {
     char v[24];
     double ms;
@@ -1186,6 +1436,7 @@ static void apply_simtick(void) {
          g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_flame_state ? "ON (I76_SIM_TICK_FLAME_STATE=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
          g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
     mlog("  sim-tick: flame damage x %.3f per application (I76_SIM_TICK_FLAME_DMG; default %.3f = the 1997 main + mirror rate per sim second)", g_st_flame_dmg, ST_FLAME_DMG_DEFAULT);
+    st_factors_install(1);                                   /* hazard / scrape / wreck / radar per second at the 1997 rate */
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
 static void simtick_joy_ready(MMRESULT (WINAPI *pos)(UINT, LPJOYINFOEX), MMRESULT (WINAPI *caps)(UINT_PTR, LPJOYCAPSA, UINT)) {
