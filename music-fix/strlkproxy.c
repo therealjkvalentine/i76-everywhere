@@ -6847,6 +6847,7 @@ static void tex_census_attach(HMODULE m) {
 #include "mpmenu.c"      /* I76_MP_MENU: MULTI MELEE HOST / JOIN straight to IPX (1, default) or IPX-only row (2) */
 #include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
+#include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
 
 /* (I76_GLIDE_DIR, the 2026-10-03 experiment that loaded <game>\<subfolder>\Glide2x.dll before ZGLIDE so the mission
  * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
@@ -8925,6 +8926,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         g_logging = env_present("I76MUSIC_LOG");
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_crash_log();        /* always on: fault address + registers to the log */
+        apply_mute();             /* lab: I76_MUTE=1 mutes this process's audio session (thread; COM off the loader lock) */
         /* WORKING DIRECTORY (always on; I76_CWD_FIX=0 disables). The exe resolves its data relative to the current
          * directory: startup_IsMinimum 0x4b2220 looks for "miss8" there and, failing, treats the mission data as a CD
          * container and WinMain raises "Please insert CD 2"; the next cwd-relative open then fails outright ("unable
