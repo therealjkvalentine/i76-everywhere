@@ -42,6 +42,7 @@ static BOOL (WINAPI *p_cm_PeekMessageA)(LPMSG, HWND, UINT, UINT, UINT);
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name);
 
 typedef struct { double kx, ky; int ox, oy, on; } CmMap;
+static void cm_aw_fit(CmMap *m, const RECT *rc, POINT org);   /* cursoraw.c: map mode 3 (I76_CURSOR_MAP_DGV=aw) */
 
 /* I76_PAD_MENU (padmenu.c, v3 2026-10-14): while the controller drives the menu pointer, the game's own reads (the
    GetCursorPos / GetCursorInfo / PeekMessageA mouse lParam slots below) return the pad's position in 640x480 UI units
@@ -64,7 +65,7 @@ static HWND cm_window(void) {
     return g_cm_hwnd;
 }
 /* UI unit -> screen pixel. on = 0: pass through untranslated (no window yet, or a real 640x480 client).
-   mode: 1 stretched over the client, 2 the 4:3 fit (ar). */
+   mode: 1 stretched over the client, 2 the 4:3 fit (ar), 3 the fit of the dgVoodoo picture aspect (aw, cursoraw.c). */
 static CmMap cm_map_mode(int mode) {
     CmMap m = { 1.0, 1.0, 0, 0, 0 };
     HWND h = cm_window(); RECT rc; POINT org = { 0, 0 };
@@ -80,6 +81,7 @@ static CmMap cm_map_mode(int mode) {
                  rc.right, rc.bottom, org.x, org.y, wr.left, wr.top, wr.right, wr.bottom, (void *)h);
         }
     }
+    if (mode == 3) { cm_aw_fit(&m, &rc, org); m.on = 1; return m; }
     m.kx = rc.right / 640.0; m.ky = rc.bottom / 480.0;
     m.ox = org.x; m.oy = org.y;
     if (mode == 2) {
@@ -199,7 +201,7 @@ static BOOL WINAPI cm_GetCursorInfo(PCURSORINFO ci) {
  * over the full-width Glide frame). Fed the stretched value, the pencil sat at 760 + 0.558 x instead of x on a
  * 3440x1440 panel (measured: 0 at the centre, ~240 px towards the centre at the 12 % insets).
  * I76_CURSOR_MAP_DGV=ar gives dgVoodoo's slots the 4:3 fit; =1 keeps the map's own mode (as before). */
-static int g_cm_dgv_mode;              /* 0 = as I76_CURSOR_MAP, 2 = ar */
+static int g_cm_dgv_mode;              /* 0 = as I76_CURSOR_MAP, 2 = ar, 3 = aw (cursoraw.c) */
 static BOOL WINAPI cm_GetCursorPos_dgv(LPPOINT p) {
     BOOL ok = p_cm_GetCursorPos(p);
     if (ok && p) {
@@ -251,6 +253,8 @@ static DWORD WINAPI cm_dgv_thread(LPVOID arg) {
     return 0;
 }
 
+#include "cursoraw.c"   /* I76_CURSOR_MAP_DGV=aw: the pointer on the driver's wide (16:10) menu picture */
+
 static int g_cm_dgv;
 static void cursor_map_attach(HMODULE m, const char *b) {
     static int shell_done;
@@ -282,13 +286,17 @@ static void apply_cursor_map(void) {
     p_cm_GetCursorInfo = (BOOL (WINAPI *)(PCURSORINFO))GetProcAddress(GetModuleHandleA("user32.dll"), "GetCursorInfo");
     {
         char c[4];
-        if (env_str("I76_CURSOR_MAP_DGV", c, sizeof(c)) && (c[0] == '1' || lstrcmpiA(c, "ar") == 0)) {
+        if (env_str("I76_CURSOR_MAP_DGV", c, sizeof(c)) && (c[0] == '1' || lstrcmpiA(c, "ar") == 0 || lstrcmpiA(c, "aw") == 0)) {
             HANDLE th;
-            g_cm_dgv = 1; g_cm_dgv_mode = lstrcmpiA(c, "ar") == 0 ? 2 : 0;
+            g_cm_dgv = 1; g_cm_dgv_mode = lstrcmpiA(c, "ar") == 0 ? 2 : lstrcmpiA(c, "aw") == 0 ? 3 : 0;
             th = CreateThread(NULL, 0, cm_dgv_thread, NULL, 0, NULL);
             if (th) CloseHandle(th);
             mlog("  cursor-map: dgVoodoo cursor (I76_CURSOR_MAP_DGV=%s: %s): scanning ddraw.dll / glide2x.dll for 120 s and when ZGLIDE loads",
-                 c, g_cm_dgv_mode == 2 ? "4:3 fit" : "as the map");
+                 c, g_cm_dgv_mode == 2 ? "4:3 fit" : g_cm_dgv_mode == 3 ? "the dgVoodoo picture's fit" : "as the map");
+            if (g_cm_dgv_mode == 3) {
+                if (g_cm_over_u32x == 2) cm_aw_u32x_install();   /* the shell's u32x map onto the same picture */
+                else mlog("  cursor-map: aw: the shell's map is not u32x's (I76_CURSOR_MAP_U32X != exe) - no adapter");
+            }
         }
     }
     mlog("  cursor-map: on (%s: the 640x480 UI %s the game window's client rect)",
