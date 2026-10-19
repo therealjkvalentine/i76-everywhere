@@ -263,10 +263,10 @@ before a co-op night. No co-op cell has been run across machines yet (records/LA
 - **The menu:** MULTI MELEE > HOST and > JOIN go straight to the IPX screens (proxy `I76_MP_MENU=1`, default; `=2` shows
   only the IPX button, `=0` the stock MODEM / IPX / INTERNET / NULLMODEM row). PC, two lab copies: HOST n 9, JOIN n 4,
   host and join both ways (n 3 and n 1).
-- **The list** now reads: 15 stock arenas, the 7 scenarios "<name> (Scenario)" (`ADDONuto01..07.lvl`), then
+- **The list** now reads: 15 stock arenas, the 7 scenarios "<name> (Scenario)" (`ADDON\auto01..07.lvl`), then
   "Scene 1 .. 17 (Co-op)" (`coop01..17.lvl`, file names unchanged, titles changed). All 7 scenarios load for a host
   with their computer cars (n 1 each); Oil Well Well and Pretty Bus with a joiner, computer cars on both (n 1 each);
   Scene 1 (Co-op) unchanged (n 1). Records: COOP-LIST-ENTRIES-2026-10-18.md sections 7-8.
 - **Every machine needs the new ADDON files at once:** the co-op files' CRCs changed with their titles, so an old and a new
   machine refuse each other's co-op games ("does not match the host's").
-- Pack: `i76-uncap-labuilds\mp-pack-20261019\` (proxy 77ad2aca). Not yet on any machine.
+- Pack: `i76-uncap-lab\builds\mp-pack-20261019\` (proxy 77ad2aca). Not yet on any machine.

@@ -298,6 +298,11 @@ important"* (same rule for the co-op entries: name, then " (Co-op)").
 | 21 | Milk Toast (Scenario) | auto07.lvl = S07 |
 | 22-38 | Scene 1 (Co-op) .. Scene 17 (Co-op) | coop01.lvl .. coop17.lvl (names unchanged) |
 
+(Measured with this lane's install. Since e1f35f0 (AI melee lane, after this lane's efa108d) coop-install.py also
+installs `ai_hs2/4/6.lvl` "Hope Springs (2 / 4 / 6 AI)"; `ai_` sorts before `auto`, so on NTFS those three come right
+after the stock 15 and the indices below shift by 3. Not measured here; the pack of 8.5 was built before e1f35f0 and has
+no AI melee files.)
+
 Order: the scenarios follow the game's own AUTO MELEE > SCENARIO table (0x1004b7e0); the files are named `autoNN` so
 that `findfirst` (alphabetical on NTFS) lists them before `coopNN`. On a Mac (Wine) or the Deck the directory order is
 the host file system's and was not checked. The trip missions have no title of their own (the WRLD title is empty in
