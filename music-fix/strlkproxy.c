@@ -7485,6 +7485,7 @@ static int sign_pend_run(BYTE *obj) {                       /* 1 = fired one (th
           if (g_sdefer_fired <= 40)
               mlog("  sign-defer: %s post knocked off after %lu frames (%s contact): drawn gap %.2f m at the knock-off (=3 would have knocked it at a drawn gap of %.2f m)%s",
                    nm, (unsigned long)waited, f.src ? "engine" : "sweep", gap, f.gap0, gap > 0.0f ? " - TIMEOUT" : "");
+          if (!f.src) st_sign_sound(obj);                    /* the sweep's knock-off: the engine's post-contact sound (simtick.c, s.17) */
           ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(f.part, obj, f.v, f.n, f.p); }
         return 1;
     }
@@ -7589,6 +7590,7 @@ static void sign_sweep(void) {
                         mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - scored at %.1f m/s "
                              "(car at %.1f, %.1f; post y %.2f..%.2f, box y %.2f..%.2f; drawn gap %.2f m)", nm, qx, qz, vv, sx, sz, y0, y1, cy0, cy1,
                              post_gap_drawn(obj, root, part));
+                    st_sign_sound(obj);                     /* no engine contact: its post-contact sound (simtick.c, s.17) */
                     ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(part, obj, v, nn, pt);
                     return;                                 /* a knock-off may unregister / free the object: done this frame */
                 }
@@ -9012,6 +9014,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
+        apply_av_log();           /* lab: I76_AV_LOG=<path> (camera / sky / tracer / sign-sound / music cue log, any frame loop; simtick.c s.17) */
         apply_flame_census();     /* lab: I76_FLAME_CENSUS=1 (after apply_simtick / apply_framerate_fixes: counts flamer damage) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */

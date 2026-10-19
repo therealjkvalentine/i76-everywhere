@@ -174,13 +174,20 @@ static double g_st_acc0;
 static struct { BYTE *obj; xform_t pose; } g_we[2048];   /* D per object, filled on the early frame (linear search: early ticks only) */
 static FILE *g_st_dlog;                      /* I76_SIM_TICK_DRAWLOG=<path>: the player's drawn pose per display frame (lab) */
 static BYTE g_st_kb_snap[16];
+/* I76_SIM_TICK_PEND_ONCE (2026-10-19 tick-av, TICK-FINISH s.17; owner: "when the camera is outside the car on cutscenes and you
+ * press w to accelerate it makes the video stutter a bit"): a pending release (0x6092e0) counts as input only when it is new
+ * since the last tick's input pass (snapshot g_st_kb_esnap). The pending bit is cleared by input_KeyboardPoll; when the tick's
+ * input pass does not poll the keyboard, a pending release stayed set and borrowed an early tick on every display frame that
+ * could take one. 0 = the old test (any pending release). */
+static BYTE g_st_kb_esnap[16];
+static int g_st_pend_once = 1;
 static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the harness posted new keys */
 static int st_input_changed(void) {
     const BYTE *d0 = (const BYTE *)0x006092d0, *e0 = (const BYTE *)0x006092e0;
     int i;
     if (g_st_input_peek_fn && g_st_input_peek_fn()) { g_wst_local.early_lab++; return 1; }
     if (memcmp(d0, g_st_kb_snap, 16) != 0) { g_wst_local.early_kb++; return 1; }
-    for (i = 0; i < 16; i++) if (e0[i]) { g_wst_local.early_kb++; return 1; }
+    for (i = 0; i < 16; i++) if (e0[i] && (!g_st_pend_once || e0[i] != g_st_kb_esnap[i])) { g_wst_local.early_kb++; return 1; }
     return st_joy_changed();
 }
 
@@ -726,6 +733,226 @@ static int __cdecl st_cam_set(BYTE *cam, xform_t *t) {
     return ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)(cam, t);
 }
 
+/* ---- owner playtest of tick19e (2026-10-19 tick-av lane; TICK-FINISH-2026-10-18.md s.17) ------------------------------------
+ * I76_SIM_TICK_EARLY_CAM (default 1; owner: "when the camera is outside the car on cutscenes and you press w to accelerate it
+ * makes the video stutter a bit"): a script (FSM) camera is drawn between its last two ticks' views (st_render_wrap). On the
+ * frame of an early tick (I76_SIM_TICK_INPUT) the blend factor restarts at 0 from the OLDER view while the objects restart from
+ * the pose they were about to be drawn at (st_early_from): the camera jumped forward by the rest of the old tick, then crawled
+ * over the long early segment. With the switch the camera's early segment starts, like the objects', from the view it was about
+ * to draw. 0 = the old blend. */
+static int g_st_early_cam = 1, g_st_cam_from_on;
+static xform_t g_st_cam_from;
+static DWORD g_st_camx_frame;                                /* the last display frame that drew a blended script camera */
+static DWORD g_st_cam_early_n;
+static void st_early_cam_from(void) {                         /* on the early frame, before the tick: the view this frame would draw */
+    float a = st_alpha();
+    xform_t c;
+    if (!g_st_early_cam || g_st_camx_frame + 1 != g_wst_local.dframes || g_st_simcam_tick[1] != g_wst_local.ticks ||
+        g_st_simcam_tick[0] + 1 != g_st_simcam_tick[1]) { g_st_cam_from_on = 0; return; }
+    if (g_st_seg_early && g_st_cam_from_on) xf_lerp(&c, &g_st_cam_from, &g_st_simcam[1], a);
+    else xf_lerp(&c, &g_st_simcam[0], &g_st_simcam[1], a);
+    g_st_cam_from = c; g_st_cam_from_on = 1; g_st_cam_early_n++;
+}
+/* I76_SIM_TICK_SKY_REF / I76_SIM_TICK_ORBIT_REF (default 1; owner: "the sky speed is wrong on tick", "feels like maybe the death
+ * camera is rotating too fast"): the cloud scroll (u -= 1 / (1001 - s) per call, 0x405461 / 0x405484) and the orbit A step
+ * (view 0xfefe: player death / end of match, 8 x 1 deg per call at 0x405c1c, pitch 0x405bd0) are per-call constants. The
+ * cosmetic patch scaled them by display dt / T, i.e. to the TICK's rate per second (30 / s at 33.3 ms: x 1.25 of 1997; 15 / s
+ * at 66.7 ms: x 0.63). Now they are scaled by display dt x I76_SIM_TICK_REF_HZ (24 / s, 1997 as played), also on the frames
+ * outside gameplay (the death orbit runs on through the mission-over frames, where the old patch kept the last value). The
+ * free-look orbit B keys (0x4061e7 / 0x406233) and the map zoom keep the tick's rate. 0 = the tick's rate (old). */
+static float g_st_ref_hz = 24.0f, g_st_orbit_rate = -0.017453292f;
+static int g_st_sky_ref = 1, g_st_orbit_ref = 1;
+static void st_cosmetic_rates(int gameplay) {
+    float kt = g_st_disp_dt / g_st_T, kr = g_st_disp_dt * g_st_ref_hz;
+    float ks = g_st_sky_ref ? kr : kt, ko = g_st_orbit_ref ? kr : kt;
+    if (!gameplay) {                                          /* outside gameplay only the two 1997-rate sites move (old: kept as they were) */
+        if (g_st_sky_ref) { g_cloud_u = 1.0f * ks; g_cloud_v = -1.0f * ks; }
+        if (g_st_orbit_ref) g_st_orbit_rate = -0.017453292f * ko;
+        return;
+    }
+    g_cloud_u = 1.0f * ks; g_cloud_v = -1.0f * ks; g_cam_rate = -0.017453292f * kt; g_zoom_rate = -0.01f * kt;
+    g_st_orbit_rate = -0.017453292f * ko;
+}
+/* I76_SIM_TICK_SIGN_SOUND (default 1; owner: "about half the time it seems that the sign running over sound does not play when
+ * it gets hit (they do always get hit and fall though)"): the post-hit sound is the ENGINE's contact sound, played in
+ * physics_CollideBodyPair (0x434e51..0x434ebc: the other body is not a vehicle and its class is 4 -> vnvco3.wav on the car,
+ * sound_PlayOnObject 0x4231f0), before the contact's damage. A post that I76_BREAKABLE_BOX=3/4's sweep knocks off had no engine
+ * contact, so it fell without a sound. Promotion 18 gets most posts through engine contacts (I76_COLL_WINDOW), the tick
+ * presets cannot carry that switch (it needs I76_FIXED_STEP). Under the tick the sweep's knock-off now plays the same sound on
+ * the car (strlkproxy.c sign_pend_run / sign_sweep call this). 0 = silent as before. */
+static int g_st_sign_snd = 1;
+static DWORD g_st_sign_snd_n;
+static void st_sign_sound(BYTE *car) {
+    if (!g_simtick || !g_st_sign_snd || !car) return;
+    ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)((const char *)0x004f1578, car, 0);   /* "vnvco3.wav", as 0x434e62 */
+    g_st_sign_snd_n++;
+}
+
+/* ---- I76_AV_LOG=<path> (lab instrument, any frame loop, off by default; tick-av lane 2026-10-19) -----------------------------
+ * One `F,` line per drawn frame (after renderer_DrawFrame): wall s, sim s, gameplay, tick / early frame, alpha, early-tick
+ * counters, pending key releases, the camera eye (0x4c2890) and the drawn eye transform's forward row (0x5fcdc4), the orbit
+ * yaw 0x4c291c, the camera mode callback, the cloud scroll u / v (0x507cd8 / 0x507c50), the tracer records each pass drew
+ * (main 0x442480 at 0x401e3e / 0x402108 with the renderer's own reset rule; mirror 0x4420b0 at 0x4458e4 / 0x445982) with
+ * their mean segment length and cross-section width, the class-4 knock-off count (slot 9 0x46f9a0 via the class table
+ * 0x4f7770), the engine's collision sounds (0x434ebc) and vnvco3 among them, the sign sounds st_sign_sound played, whether a
+ * blended script camera was drawn, and the player's drawn position. `E,` lines: music cues at the exe's own entries
+ * (PlayCdTrack 0x423330, StopCdMusic 0x4233d0, pause 0x4234a0, unpause 0x4234e0) with the caller, track, force, the
+ * playing / paused flags and the music level; GetTickCount on each line matches the music log's t=. Not in any preset. */
+static FILE *g_av; static DWORD g_av_frames;
+static DWORD g_av_tm_n, g_av_tr_n, g_av_tm_calls, g_av_tr_calls, g_av_lw_n;
+static double g_av_len, g_av_wid;
+static DWORD g_av_coll_snd, g_av_coll_vnvco3;
+static volatile DWORD g_av_knock_n; static DWORD g_av_knock_next = 0x0046f9a0;
+static DWORD g_av_render_next = 0x00401c90;
+static BYTE *g_av_tramp[4];
+static void av_view_check(void);
+static void av_trc_count(int mirror) {
+    BYTE *t0 = *(BYTE **)0x0052ba48, *t;
+    int guard = 0;
+    if (!st_trc_ok(t0)) return;
+    if (mirror) g_av_tr_calls++; else g_av_tm_calls++;
+    t = t0;
+    do {
+        DWORD h = *(DWORD *)(t + 0xc), tl = *(DWORD *)(t + 0x10);
+        if ((mirror || *(DWORD *)(t + 8)) && h < 2 && tl < 2 && h != tl) {
+            const float *o = (const float *)(t + 0x1c) + 9 * h, *n = (const float *)(t + 0x1c) + 9 * tl;
+            double dx = n[0] - o[0], dy = n[1] - o[1], dz = n[2] - o[2], w = 0.0;
+            int a, b;
+            for (a = 0; a < 3; a++) for (b = a + 1; b < 3; b++) {
+                double ex = n[3 * a] - n[3 * b], ey = n[3 * a + 1] - n[3 * b + 1], ez = n[3 * a + 2] - n[3 * b + 2], d = sqrt(ex * ex + ey * ey + ez * ez);
+                if (d > w) w = d;
+            }
+            if (mirror) g_av_tr_n++;
+            else {
+                g_av_tm_n++;
+                if (*(DWORD *)(t + 0x14) != 2) { g_av_len += sqrt(dx * dx + dy * dy + dz * dz); g_av_wid += w; g_av_lw_n++; }
+            }
+        }
+        t = *(BYTE **)t;
+    } while (st_trc_ok(t) && t != t0 && ++guard < 4096);
+}
+static void __cdecl av_trc_main(void *cam)   { av_trc_count(0); ((void (__cdecl *)(void *))0x00442480)(cam); }
+static void __cdecl av_trc_mirror(void *cam) { av_trc_count(1); ((void (__cdecl *)(void *))0x004420b0)(cam); }
+static int __cdecl av_coll_snd(const char *name, BYTE *obj, int f) {
+    g_av_coll_snd++; if (name == (const char *)0x004f1578) g_av_coll_vnvco3++;
+    return ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)(name, obj, f);
+}
+static __declspec(naked) void av_knock_thunk(void) {          /* class 4 slot 9: count, then the stock knock-off with the caller's frame */
+    __asm {
+        lock inc dword ptr [g_av_knock_n]
+        jmp dword ptr [g_av_knock_next]
+    }
+}
+static void av_event(const char *fmt, ...) {
+    LARGE_INTEGER q; va_list ap;
+    if (!g_av) return;
+    QueryPerformanceCounter(&q);
+    fprintf(g_av, "E,%.6f,%.4f,%lu,", (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart, *(volatile float *)0x005a7e70, (unsigned long)GetTickCount());
+    va_start(ap, fmt); vfprintf(g_av, fmt, ap); va_end(ap);
+    fputc('\n', g_av); fflush(g_av);
+}
+static void av_mus_state(const char *what, DWORD caller, int track, int force) {
+    av_event("%s,caller=%08lx,track=%d,force=%d,playing=%ld,paused=%ld,cur=%ld,level=%u,state=%lu,flags=%02x", what, (unsigned long)caller, track, force,
+             *(volatile long *)0x00524570, *(volatile long *)0x0052456c, *(volatile long *)0x004ed800, (unsigned)*(volatile BYTE *)0x00654b90,
+             (unsigned long)*(volatile DWORD *)0x004c2164, (unsigned)*(volatile BYTE *)0x004fe534);
+}
+static int __cdecl av_mus_play(int track, int force) {
+    int r;
+    av_mus_state("cue-play", (DWORD)(DWORD_PTR)_ReturnAddress(), track, force);
+    r = ((int (__cdecl *)(int, int))g_av_tramp[0])(track, force);
+    av_mus_state("cue-play-done", 0, track, force);
+    return r;
+}
+static void __cdecl av_mus_stop(void)    { av_mus_state("cue-stop", (DWORD)(DWORD_PTR)_ReturnAddress(), -1, 0); ((void (__cdecl *)(void))g_av_tramp[1])(); }
+static void __cdecl av_mus_pause(void)   { av_mus_state("cue-pause", (DWORD)(DWORD_PTR)_ReturnAddress(), -1, 0); ((void (__cdecl *)(void))g_av_tramp[2])(); }
+static void __cdecl av_mus_unpause(void) { av_mus_state("cue-unpause", (DWORD)(DWORD_PTR)_ReturnAddress(), -1, 0); ((void (__cdecl *)(void))g_av_tramp[3])(); av_mus_state("cue-unpause-done", 0, -1, 0); }
+static int av_entry(int i, DWORD va, const BYTE *old5, void *wrap, const char *what) {   /* jmp at a function's first 5 bytes, trampoline = those 5 bytes */
+    BYTE *tr = (BYTE *)VirtualAlloc(NULL, 16, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE), nw[5] = { 0xE9 };
+    LONG rel;
+    if (!tr || memcmp((void *)(DWORD_PTR)va, old5, 5) != 0) { mlog("  av-log: %s at 0x%08lX not stock - not hooked", what, (unsigned long)va); return 0; }
+    memcpy(tr, old5, 5);
+    if (old5[0] == 0xE8) {                                    /* call rel32: re-aim from the trampoline */
+        LONG r0; DWORD tgt; memcpy(&r0, old5 + 1, 4); tgt = va + 5 + (DWORD)r0;
+        rel = (LONG)(tgt - ((DWORD_PTR)tr + 5)); memcpy(tr + 1, &rel, 4);
+    }
+    tr[5] = 0xE9; rel = (LONG)((va + 5) - ((DWORD_PTR)tr + 10)); memcpy(tr + 6, &rel, 4);
+    g_av_tramp[i] = tr;
+    rel = (LONG)((DWORD_PTR)wrap - (va + 5)); memcpy(nw + 1, &rel, 4);
+    return patch_bytes(va, old5, nw, 5, what) && memcmp((void *)(DWORD_PTR)va, nw, 5) == 0;
+}
+static void av_frame(int camx) {
+    LARGE_INTEGER q;
+    BYTE **pp = *(BYTE ***)0x0054a264, *pl = pp ? *pp : 0;
+    const double *eye = (const double *)0x004c2890;
+    const float *ex = (const float *)0x005fcdc4;
+    double pp3[3] = { 0.0, 0.0, 0.0 };
+    int i, pend = 0, gp = *(volatile DWORD *)0x00504c1c != 0 && (*(volatile BYTE *)0x004fe534 & 0x3e) == 0;
+    if (!g_av || g_av_frames >= 4000000) return;
+    QueryPerformanceCounter(&q);
+    for (i = 0; i < 16; i++) if (((const BYTE *)0x006092e0)[i]) pend++;
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (pl) memcpy(pp3, pl + 0x40, 24);
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+    fprintf(g_av, "F,%.6f,%lu,%.4f,%d,%d,%d,%.4f,%lu,%lu,%d,%.4f,%.4f,%.4f,%.5f,%.5f,%.5f,%.6f,%08lx,%.7f,%.7f,%lu,%.3f,%.4f,%lu,%lu,%lu,%lu,%lu,%d,%.4f,%.4f,%.4f,%lu,%lu,%lu,%lu\n",
+            (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart, (unsigned long)g_av_frames, *(volatile float *)0x005a7e70, gp,
+            g_simtick ? g_st_now : 1, g_simtick ? g_st_early_now : 0, g_simtick ? g_wst_local.alpha : 1.0f,
+            (unsigned long)g_wst_local.early_kb, (unsigned long)g_wst_local.early_lab, pend, eye[0], eye[1], eye[2], ex[6], ex[7], ex[8],
+            *(volatile float *)0x004c291c, (unsigned long)*(volatile DWORD *)0x004c2720, *(volatile double *)0x00507cd8, *(volatile double *)0x00507c50,
+            (unsigned long)g_av_tm_n, g_av_lw_n ? g_av_len / g_av_lw_n : 0.0, g_av_lw_n ? g_av_wid / g_av_lw_n : 0.0, (unsigned long)g_av_tr_n,
+            (unsigned long)g_av_knock_n, (unsigned long)g_av_coll_snd, (unsigned long)g_av_coll_vnvco3, (unsigned long)g_st_sign_snd_n, camx,
+            pp3[0], pp3[1], pp3[2], (unsigned long)g_st_cam_early_n, (unsigned long)*(volatile DWORD *)0x005244c4,
+            (unsigned long)g_av_tm_calls, (unsigned long)g_av_tr_calls);
+    g_av_frames++; g_av_tm_n = 0; g_av_tr_n = 0; g_av_tm_calls = 0; g_av_tr_calls = 0; g_av_len = 0.0; g_av_wid = 0.0; g_av_lw_n = 0;
+    if ((g_av_frames & 7) == 0) fflush(g_av);                 /* the harness kills the game: keep at most 8 frames unwritten */
+    av_view_check();
+}
+/* I76_AV_VIEW=<sim s>:<view hex> (lab, with I76_AV_LOG): camera_SetView(player, view) once the sim clock passes <sim s>, as
+ * the key dispatcher would (e.g. 10 = PRESET_VIEW_3 chase, f = orbit, e = cockpit); after the drawn frame. */
+static float g_av_view_t = -1.0f; static int g_av_view;
+static void av_view_check(void) {
+    BYTE **pp;
+    if (g_av_view_t < 0.0f || *(volatile float *)0x005a7e70 < g_av_view_t) return;
+    g_av_view_t = -1.0f;
+    pp = ((BYTE **(__cdecl *)(void))0x00457530)();
+    if (!pp || !*pp) return;
+    ((void (__cdecl *)(BYTE **, int))0x004096c0)(pp, g_av_view);
+    av_event("view,0x%x", g_av_view);
+}
+static void __cdecl av_render_stock(void *cam) {             /* outside the tick: after the frame's render */
+    ((void (__cdecl *)(void *))g_av_render_next)(cam);
+    av_frame(0);
+}
+static void apply_av_log(void) {
+    char p[MAX_PATH];
+    int n = 0, m = 0, i;
+    if (!env_str("I76_AV_LOG", p, sizeof(p)) || !(g_av = fopen(p, "w"))) return;
+    setvbuf(g_av, NULL, _IOFBF, 1 << 16);
+    {   char vv[32], *c; if (env_str("I76_AV_VIEW", vv, sizeof(vv)) && (c = strchr(vv, ':')) != 0) { *c = 0; g_av_view_t = (float)atof(vv); g_av_view = (int)strtol(c + 1, 0, 16); } }
+    if (!g_qpf.QuadPart) { QueryPerformanceFrequency(&g_qpf); QueryPerformanceCounter(&g_qp0); }
+    fprintf(g_av, "F,t,frame,sim,gameplay,tick,early,alpha,early_kb,early_lab,pend,ex,ey,ez,fx,fy,fz,orbit_yaw,cam_cb,cloud_u,cloud_v,trc_main,trc_len,trc_wid,trc_mirror,knocks,coll_snd,coll_vnvco3,sign_snd,camx,px,py,pz,cam_early,autopilot,trc_main_calls,trc_mirror_calls\n");
+    fprintf(g_av, "E,t,sim,tickcount,what,...\n");
+    if (!g_simtick) n += st_call_site(0x00403e69, 0x00401c90, (void *)av_render_stock, &g_av_render_next, "renderer_DrawFrame call (av-log)");
+    else n++;                                                 /* st_render_wrap calls av_frame */
+    {   static const DWORD ms[2] = { 0x00401e3e, 0x00402108 }, rs[2] = { 0x004458e4, 0x00445982 };
+        for (i = 0; i < 2; i++) { m += st_call_site(ms[i], 0x00442480, (void *)av_trc_main, 0, "tracer queue, main pass (av-log)");
+                                  m += st_call_site(rs[i], 0x004420b0, (void *)av_trc_mirror, 0, "tracer queue, rear mirror (av-log)"); } }
+    m += st_call_site(0x00434ebc, 0x004231f0, (void *)av_coll_snd, 0, "collision sound (av-log)");
+    {   static const BYTE ko[4] = { 0xA0, 0xF9, 0x46, 0x00 };
+        BYTE kn[4]; DWORD a = (DWORD)(DWORD_PTR)av_knock_thunk; memcpy(kn, &a, 4);
+        m += patch_bytes(0x004f7770, ko, kn, 4, "class-4 knock-off slot (av-log)") && memcmp((void *)0x004f7770, kn, 4) == 0; }
+    {   static const BYTE pl[5] = { 0xA1, 0x70, 0x45, 0x52, 0x00 }, pa[5] = { 0xE8, 0x9B, 0xEE, 0xFF, 0xFF }, up[5] = { 0xE8, 0x1B, 0xEF, 0xFF, 0xFF };
+        m += av_entry(0, 0x00423330, pl, (void *)av_mus_play, "PlayCdTrack entry (av-log)");
+        m += av_entry(1, 0x004233d0, pl, (void *)av_mus_stop, "StopCdMusic entry (av-log)");
+        m += av_entry(2, 0x004234a0, pa, (void *)av_mus_pause, "music pause entry (av-log)");
+        m += av_entry(3, 0x004234e0, up, (void *)av_mus_unpause, "music unpause entry (av-log)"); }
+    if (!g_simtick) install_frame_hook();
+    mlog("  av-log: on (%s), render %d/1, %d/10 counting sites (tracer passes 4, collision sound, knock-off slot, music entries 4)", p, n, m);
+}
+
 /* Flamer stream ageing (2026-10-18 tick-gaps; I76_SIM_TICK_FLAME_AGE=<hz>, default 20, 0 = every tick).
  * weapon_AgeFlamerStreams 0x443e90 retracts a stream by 2 segments on every call that saw no shot since the last one;
  * flamers shoot 20 times a second, so a stream only grows when it is aged at most 20 times a second (stock 20 fps: full
@@ -779,8 +1006,9 @@ static void simtick_clock(void) {
     if (!gameplay) {                                         /* shell / pause: stock, every frame */
         ((void (__cdecl *)(void))0x0049c920)();
         g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0; g_trc_n = 0; g_trcp_n = 0;
-        g_st_clk[0] = 0.0f;
+        g_st_clk[0] = 0.0f; g_st_cam_from_on = 0;
         g_tick20 = 1; g_st_fage_due = 1;
+        if (g_st_cosmetic) st_cosmetic_rates(0);             /* the death orbit also runs on mission-over frames */
         wst_publish();
         return;
     }
@@ -798,6 +1026,7 @@ static void simtick_clock(void) {
         float acc0 = *acc, tm0 = *tm, stm0 = *stm;
         int warm = *(volatile int *)0x005a7e18 >= *(volatile int *)0x004be990;   /* accum_dt counts from the 4th frame */
         if (early) st_early_from();                          /* what this frame would have drawn: the blend's start */
+        if (early) st_early_cam_from();                      /* ... and the script camera's (I76_SIM_TICK_EARLY_CAM) */
         g_st_acc -= (double)g_st_T;
         if (early) { g_st_acc0 = g_st_acc; g_st_seg_early = 1; }
         if (g_st_acc >= (double)g_st_T) {                    /* fell behind (a hitch): one tick per display frame */
@@ -822,12 +1051,9 @@ static void simtick_clock(void) {
         g_wst_local.nontick++;
         g_tick20 = 0; g_acc20 = (float)g_st_since;
     }
-    if (g_st_now && !early) g_st_seg_early = 0;              /* a regular tick ends an early segment */
+    if (g_st_now && !early) { g_st_seg_early = 0; g_st_cam_from_on = 0; }   /* a regular tick ends an early segment */
     g_wst_local.alpha = st_alpha();
-    if (g_st_cosmetic) {                                     /* per-call cosmetics at the tick's per-second rate */
-        float k = g_st_disp_dt / g_st_T;
-        g_cloud_u = 1.0f * k; g_cloud_v = -1.0f * k; g_cam_rate = -0.017453292f * k; g_zoom_rate = -0.01f * k;
-    }
+    if (g_st_cosmetic) st_cosmetic_rates(1);                 /* per-call cosmetics per second (sky / death orbit: the 1997 rate) */
     if (g_st_logper && GetTickCount() - g_st_lastlog >= g_st_logper) {
         g_st_lastlog = GetTickCount();
         mlog("  sim-tick: %lu ticks / %.1f s gameplay (%.3f /s), %lu display frames; gates TickAll %lu Collide %lu AI %lu Proj %lu; "
@@ -855,6 +1081,7 @@ static void __cdecl st_gate0(void) {                       /* input_UpdateContro
     g_st_joy_rec = 0;
     for (i = 0; i < 16; i++) g_sj[i].valid = g_sj[i].polled;
     memcpy(g_st_kb_snap, (const void *)0x006092d0, 16);
+    memcpy(g_st_kb_esnap, (const void *)0x006092e0, 16);     /* I76_SIM_TICK_PEND_ONCE: pending releases already seen */
 }
 ST_GATE0(1) ST_GATE0(2) ST_GATE0(6) ST_GATE0(8) ST_GATE0(9) ST_GATE0(10) ST_GATE0(11)
 static void __cdecl st_gate3(void) {                       /* entity_TickAll */
@@ -911,10 +1138,11 @@ static void __cdecl st_render_wrap(void *cam) {
     wst_swap_in();
     if (g_st_cam_disp_frame != g_wst_local.dframes && g_st_simcam_tick[1] == g_wst_local.ticks &&
         g_st_simcam_tick[0] + 1 == g_st_simcam_tick[1] && g_st_cam_tramp) {   /* a sim-set (script) camera: between ticks */
-        xf_lerp(&cx, &g_st_simcam[0], &g_st_simcam[1], g_wst_local.alpha);
+        if (g_st_seg_early && g_st_cam_from_on) xf_lerp(&cx, &g_st_cam_from, &g_st_simcam[1], g_wst_local.alpha);   /* I76_SIM_TICK_EARLY_CAM */
+        else xf_lerp(&cx, &g_st_simcam[0], &g_st_simcam[1], g_wst_local.alpha);
         g_st_in_disp = 2;
         ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)0x004c2730, &cx);
-        camx = 1; g_wst_local.simcam_interp++;
+        camx = 1; g_wst_local.simcam_interp++; g_st_camx_frame = g_wst_local.dframes;
     }
     {   /* the player as drawn (I76_BREAKABLE_BOX=4 reads it) */
         int i;
@@ -949,6 +1177,7 @@ static void __cdecl st_render_wrap(void *cam) {
     if (g_st_trc) st_trc_in(g_wst_local.alpha);
     if (g_st_tlog && g_st_tlog_n < 3000000) st_trc_log();
     ((void (__cdecl *)(void *))0x00401c90)(cam);
+    if (g_av) av_frame(camx);                                /* I76_AV_LOG (lab): the frame as drawn */
     if (g_st_trc) st_trc_out();
     if (camx) ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)0x004c2730, &g_st_simcam[1]);
     wst_swap_out(g_st_now);
@@ -1324,6 +1553,12 @@ static void apply_simtick(void) {
         if (env_str("I76_SIM_TICK_FLAME_DMG", fv, sizeof(fv))) g_st_flame_dmg = (float)atof(fv);
         if (!(g_st_flame_dmg >= 0.0f && g_st_flame_dmg <= 10.0f)) g_st_flame_dmg = ST_FLAME_DMG_DEFAULT; }
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
+    g_st_pend_once = env_flag("I76_SIM_TICK_PEND_ONCE", 8, g_st_pend_once) == 1;   /* s.17: owner playtest of tick19e */
+    g_st_early_cam = env_flag("I76_SIM_TICK_EARLY_CAM", 8, g_st_early_cam) == 1;
+    g_st_sky_ref = env_flag("I76_SIM_TICK_SKY_REF", 8, g_st_sky_ref) == 1;
+    g_st_orbit_ref = env_flag("I76_SIM_TICK_ORBIT_REF", 8, g_st_orbit_ref) == 1;
+    g_st_sign_snd = env_flag("I76_SIM_TICK_SIGN_SOUND", 8, g_st_sign_snd) == 1;
+    {   char rv[16]; if (env_str("I76_SIM_TICK_REF_HZ", rv, sizeof(rv))) { float r = (float)atof(rv); if (r >= 10.0f && r <= 60.0f) g_st_ref_hz = r; } }
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_dlog, NULL, _IOFBF, 1 << 13);   /* the process is killed at the end: at most 8 KB lost */
@@ -1418,7 +1653,11 @@ static void apply_simtick(void) {
         a = (DWORD)(DWORD_PTR)&g_zoom_rate; memcpy(zm_new + 2, &a, 4);
         c += patch_bytes(0x00405461, cu_old, cu_new, 6, "cloud scroll u (sim-tick)");
         c += patch_bytes(0x00405484, cv_old, cv_new, 6, "cloud scroll v (sim-tick)");
-        for (i = 0; i < 4; i++) c += patch_bytes(fl_sites[i], fl_old, fl_new, 6, "free-look rate (sim-tick)");
+        for (i = 0; i < 4; i++) {                             /* sites 0, 1 = orbit A 0x405b90 (death / end-of-match spin): their own rate (s.17) */
+            BYTE ob[6] = { 0xD8, 0x0D };
+            a = (DWORD)(DWORD_PTR)&g_st_orbit_rate; memcpy(ob + 2, &a, 4);
+            c += patch_bytes(fl_sites[i], fl_old, i < 2 ? ob : fl_new, 6, i < 2 ? "orbit A rate (sim-tick)" : "free-look rate (sim-tick)");
+        }
         c += patch_bytes(0x00408a3f, zm_old, zm_new, 6, "zoom rate (sim-tick)");
     }
     {
@@ -1436,6 +1675,11 @@ static void apply_simtick(void) {
          g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_flame_state ? "ON (I76_SIM_TICK_FLAME_STATE=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
          g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
     mlog("  sim-tick: flame damage x %.3f per application (I76_SIM_TICK_FLAME_DMG; default %.3f = the 1997 main + mirror rate per sim second)", g_st_flame_dmg, ST_FLAME_DMG_DEFAULT);
+    mlog("  sim-tick: s.17 - sky scroll %s, death / end-of-match orbit %s (ref %.1f / s), script camera from the drawn view on an early tick %s, "
+         "pending key release counted once %s, sign knocked off by the sweep plays the contact sound %s",
+         g_st_sky_ref ? "at the 1997 rate (I76_SIM_TICK_SKY_REF=1)" : "at the tick's rate", g_st_orbit_ref ? "at the 1997 rate (I76_SIM_TICK_ORBIT_REF=1)" : "at the tick's rate",
+         g_st_ref_hz, g_st_early_cam ? "ON (I76_SIM_TICK_EARLY_CAM=1)" : "off", g_st_pend_once ? "ON (I76_SIM_TICK_PEND_ONCE=1)" : "off",
+         g_st_sign_snd ? "ON (I76_SIM_TICK_SIGN_SOUND=1)" : "off");
     st_factors_install(1);                                   /* hazard / scrape / wreck / radar per second at the 1997 rate */
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
