@@ -239,3 +239,108 @@ With it, hs2 is n 2 runs, 4 placements: 2.66-3.56 m after 3 s.
   - `autotest\overnight\phases\P10-cursor18.ps1` + `run-overnight.ps1 -Phase P10`;
   - `OWNER-TESTS-2026-10-17\_lib\twin-run.ps1` (test 12 -> `6850f968` + `6efc4c51`), `README.txt`;
   - `builds\hill-start-20261017\patch_startpos2.py`, `STRLKUP-hill-hs2.dll` (section 5).
+
+## 6. The driver's wide menu with the pointer on the pencil (2026-10-19, lane cursor-wide)
+
+Owner, after PLAY-TICK: "mouse is in the right place on play-tick! i like the menu aspect ratio from the daily driver in
+games 10-03 play.bat though." This section keeps the driver's menu picture and moves the pointer maps onto it.
+
+- The daily driver, the golden copy and game-tick were only read.
+- Every run was on the lab's own copy `game-cwide` (a robocopy of game-tick).
+- Every run held the console lock, with I76_MUTE=1 and the per-pid mute.
+
+### 6.1 What the driver's menu is, and why the tick conf's pointer is right
+
+- **The driver's menu is 16:10, not 21:9.**
+  - dgVoodoo.wide.conf dccd379a has `[DirectX] Resolution = 1680x1050` with `ScalingMode = stretched_ar`.
+  - dgVoodoo stretches the 640x480 page to 1680x1050 and fits that into the 3440x1440 window.
+  - The picture is therefore 2304x1440 at x 568..2871 (x scale 3.6, y scale 3).
+  - The capture (lab `runs\cap-cwide-ctl-1-1.png`) shows it; dgVoodoo's frame counter sits at x 569.
+- **Under the driver's preset (best-wide, `I76_CURSOR_MAP_DGV='1'`), three readers use three different maps:**
+  - **The OS pointer.** This is the reference.
+  - **dgVoodoo's pencil.** It is drawn at 568 + 3.6 v, where v is what dgVoodoo's GetCursorPos returns.
+    - With DGV 1, v is the stretched map v = x / 5.375, so the pencil sits at 568 + 0.67 x.
+    - Measured: 242 px off at the 12 % insets (s.3a).
+  - **The shell's hit test.** u32x maps i76shell's pointer over the 4:3 fit (760..2680), whatever the [DirectX] mode
+    (u32x_full.c get_map).
+    - The button that answers is drawn at 568 + 1.2 (x - 760), up to about 190 px from the pointer at the sides.
+    - Example: the control run reads shell UI (77, 58) at x 990, but the 16:10 picture draws UI 77 at x 845.
+- **The tick conf aa6414e4 works because its picture is the 4:3 fit.**
+  - `[DirectX] Resolution = 1920x1440` (4:3) makes dgVoodoo's picture the 4:3 fit (760..2679, scale 3).
+  - That is the picture u32x already assumes.
+  - `I76_CURSOR_MAP_DGV='ar'` feeds dgVoodoo the same 4:3-fit map.
+  - So all three readers share one map. The cost is the narrower menu.
+- **No dgVoodoo key gives both the 16:10 look and a 4:3 pointer.**
+  - The wide look comes only from a non-4:3 [DirectX] mode.
+  - u32x's shell map is fixed at 4:3 (or the whole client under `ScalingMode = stretched`).
+  - So the fix has to be in the proxy.
+  - Not tried: `CaptureMouse = true`, where dgVoodoo maps the pointer itself. It changes the confined / free regime that
+    u32x and the Esc menu depend on.
+
+### 6.2 The fix: `I76_CURSOR_MAP_DGV='aw'` (this repo `1ca6ba0`, music-fix/cursoraw.c)
+
+- **dgVoodoo's cursor slots** get map mode 3: the 640x480 page over the fit of the picture aspect, with x and y scaled
+  separately.
+- **u32x keeps the shell.** Its modal arrow in the OK popups and its pumps are unchanged.
+  - Its own USER32 imports go behind an adapter: GetCursorPos, SetCursorPos, ClipCursor, PeekMessageA mouse lParams,
+    and SetWindowPos of its u32xVptr arrow.
+  - The adapter converts between the real picture and the 4:3 picture u32x maps over.
+  - u32x's 4:3 map of the adapted point is then UI = (x - 568) / 3.6.
+- **i76.exe's slots** keep `I76_CURSOR_MAP`'s stretched map. The in-mission Esc-menu path is unchanged.
+- **The aspect** is `I76_CURSOR_MAP_ASPECT` if set. Otherwise it is read from dgVoodoo.conf next to the exe:
+  - `[DirectX] Resolution`;
+  - or the whole client under `ScalingMode = stretched`.
+- **Requires** `I76_CURSOR_MAP_U32X='exe'`. Every wide preset already sets it.
+- **Off by default.** `'1'` and `'ar'` are unchanged.
+- **Log line:** `aw picture aspect 1680:1050 ... u32x.dll 5/5 USER32 slots behind the picture adapter`.
+- **Lab build:** `builds\cursor-wide-20261019\STRLKUP-cwide-1ca6ba0.dll`, md5 `519739f61c35bbab81ed00cee7fa2d6c`, no
+  warnings.
+  - It is built from HEAD 1ca6ba0, so it also carries the mute switch and the tick factors.
+  - It is installed only in game-cwide.
+
+### 6.3 Measured (main menu, `measure-cursor.ps1`, 7 picture points, screen px on 3440x1440, n 2 per set)
+
+| set | proxy | preset (DGV) | conf | test points | pointer minus pencil, max | shell hit (land) minus pencil, max |
+|---|---|---|---|---|---|---|
+| driver as is (control) | 33211f11 | p18-best-wide = driver's best-wide 3922146a (`1`) | dccd379a | 4:3 fit | **242 px** (-242 / +241 at the insets, +-161 at 25 / 75 %) | 241 (in the 4:3 fit, wrong for this picture; see below) |
+| PLAY-TICK | tick19e a08577c4 | tick19-33 (`ar`) | aa6414e4 | 4:3 fit | **8 px** | 7 |
+| **new: wide menu + aw** | cwide 519739f6 | tick19-33-aw (`aw`) | **dccd379a** | 16:10 fit (844..2596) | **4 px** (centre (-2,-4), insets (-3..+1, -2..-3)) | **4** (in the 16:10 picture) |
+
+- **Repeatability.** Both runs of each set agree to the pixel (n 2 + 2 + 2).
+- **The aw menu is the driver's picture.** `cap-cwide-aw-1-1.png` shows the same 16:10 frame as the control capture.
+  The pencil is on OPTIONS and OPTIONS is lit.
+- **No CRASH line** in any proxy log.
+- **The control's land column is computed in the 4:3 fit.** In the real 16:10 picture its hit lands about 190 px from
+  the pointer at the insets (6.1).
+- **Files.**
+  - JSONs: lab `tools\cursor-offset\runs\cursor-cwide-{ctl,tick,aw}-1.json` and `-{ctl,tick,aw}r2-1.json`.
+  - Next to them: the `proxylog-*` and `cap-cwide-*` files.
+  - Table: `tools\cursor-offset\cwide-table.py`.
+
+**In-game HUD / 3D** (`cwide-shot.ps1`, t01 direct boot, a capture 6 s after the player is live, n 1 each):
+- `shot-tick.png` (the PLAY-TICK set) and `shot-aw.png` (the aw set + wide conf) show the same cockpit, HUD, mirror and
+  21:9 3D frame.
+- Mean absolute pixel difference: 1.0 / 255 over the HUD band, 1.8 / 255 over the frame; 0.5 % of pixels differ by more
+  than 40. That is scene motion and the fps counter.
+- The [Glide] keys of the two confs are identical.
+
+### 6.4 To fold in (the main session; nothing was installed into game-tick)
+
+The fix is a proxy change, so, per the brief, game-tick and the candidate folder were left unchanged. For the next
+candidate:
+1. a proxy built from `1ca6ba0` or later;
+2. `I76_CURSOR_MAP_DGV = 'aw'` in the tick presets;
+3. PLAY-TICK*.bat copying **dgVoodoo.wide.conf (dccd379a)** instead of dgVoodoo.tick.conf (aa6414e4).
+
+How the two settings pair with the confs:
+- `'ar'` + aa6414e4: the pointer stays right, with the 4:3 menu.
+- `'aw'` + dccd379a: the pointer is right, with the driver's 16:10 menu.
+- `'aw'` under aa6414e4 reads a 4:3 aspect and so equals `'ar'`.
+
+**Not measured with aw:**
+- the garage / reminder OK-popup arrow (u32x's u32xVptr window, through the SetWindowPos adapter);
+- the save screen;
+- the in-mission Esc menu (aw does not change the exe's slots);
+- gate-folder.
+
+All of these belong in the candidate's gate.

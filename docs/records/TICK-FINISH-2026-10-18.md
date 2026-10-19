@@ -554,6 +554,8 @@ are NOT in the driver yet:
   tg33's verdict** (19 PASS, 13 FAIL, 1 OUT, 9 ok, 12 INFO); values within boot noise (accel t20 4.20 s, brake v0 29.51 m/s).
   No physics row moved (lab `emu\results\tick-fix-20261018\tx-t06-vs-p166.md`).
 
+- **Wide menu + pointer (2026-10-19, cursor-wide lane, CURSOR-FIX-ON-18 s.6):** the driver's conf dccd379a draws the menu 16:10 (568..2871); the tick conf's 4:3 [DirectX] mode is what made u32x's 4:3 shell map and DGV `ar` right. New proxy switch `I76_CURSOR_MAP_DGV='aw'` (i76-everywhere 1ca6ba0, music-fix/cursoraw.c) with dccd379a: pointer minus pencil **max 4 px**, shell hit within 4 px (n 2), vs 242 px for the driver set and 8 px for PLAY-TICK (n 2 each, identical to the pixel); mission-start HUD / 3D unchanged (n 1). Not installed: fold `aw` + a 1ca6ba0+ proxy + PLAY-TICK copying dgVoodoo.wide.conf into the next candidate; OK-popup arrow, save screen, Esc menu and the gate not yet run with it.
+
 ### 10.6 Still needs the owner's eyes (and ears)
 
 1. **Tracers** on PLAY-TICK and PLAY-TICK-66: do rounds now leave the car and streak all the way? (Lab: drawn every frame, one
