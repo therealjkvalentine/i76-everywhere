@@ -1173,3 +1173,63 @@ not run for this part (`tools\tick-factors\outlier\ratio.py`, `clstab.py`).
 
    Say if the radar missiles feel too lazy or too sharp. That one is from the code only.
 2. Any one factor can be switched off in the preset (`I76_SIM_TICK_<HAZARD|SCRAPE|WRECK|RADAR>_FACTOR=0`).
+
+## 15. LAN merged into the candidate presets; I76_MUTE for the harness (2026-10-19 afternoon, lan-merge / mute-switch lane)
+
+Owner: *"would like to see network funcitonalities merged into the lab version"* and, on muting, *"why should we have a watcher
+process for muting instead of muting it in the kickoff script?"*
+
+### 15.1 LAN in game-tick and the candidate
+
+- `make-presets.ps1 -OwnerBest` (lab) now also writes the PLAY-LAN.bat keys `I76_COOP_AI='1'`, `I76_COOP_CHAIN='1'`, `I76_MP_MENU='1'`
+  (after the music keys). Before the edit the generator reproduced the installed presets byte for byte (4 of 4). Regenerated:
+  tick19-33 b8bb9b1b -> 1f01e781, tick19-66 8715387b -> 64d3b6f5 (tick19w-33/-66 b2d30f14 / f5a2e2a8 -> a2dccfb8 / 9ef60fe1; in
+  game-tick and the twin game-dd-20261003). The diff is exactly three added lines in each:
+
+      >         I76_COOP_AI         = '1'   # LAN (as PLAY-LAN.bat): the host runs the mission cars and mirrors them to joiners; AI melee arenas ai_*.lvl
+      >         I76_COOP_CHAIN      = '1'   # LAN: co-op scene won -> the next scene for everybody; joiners respawn; a lost scenario reloads
+      >         I76_MP_MENU         = '1'   # LAN: MULTI MELEE HOST / JOIN go straight to IPX (IPXWrapper DLLs beside i76.exe)
+
+- Files added to `game-tick\Interstate 76` (what mp-pack.py adds to a plain install; the PC LAN copy vs the driver by md5 shows
+  nothing else network-related): `ipxwrapper.dll`, `wsock32.dll`, `mswsock.dll` (IPXWrapper 0.7.2) and the 27 ADDON arenas of
+  `tools/coop-install.py` at a05a6e4 (ai_hs2/4/6, auto01..07, coop01..17 + 27 markers). Candidate folder: same presets and files,
+  README (LAN note, file rows, PROMOTIONS row text, rollback with `coop-install.py --remove`), MD5SUMS.txt 63 files; the pre-merge
+  set in `_superseded-tick19e-prelan\`. tick19e (a08577c4) unchanged.
+- Tests, PC, console lock 13:56-14:06 then the gate (joiner: lab copy `game-lanmerge-b` = game-mpmenu-b + coop-install.py, ADDON
+  byte-identical to game-tick's, proxy 24bf53c5 = a547572 lab build, I76_MUTE=1; game-tick started by PLAY-TICK.bat with only
+  I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1 added; driver `i76-uncap-lab\tools\lan-merge\lmnav.sh`, i76probe):
+
+| check | result | n |
+|---|---|---|
+| game-tick (tick 33.3 ms ON in the log) hosts Hope Springs (2 AI) (index 15, `ai_hs2.lvl`), the other copy joins | joined (me 6, host 3); 4 cars at the same coordinates on both; the 2 AI cars move and the joiner's copies follow the host's within 0.5 m (aimelee log lines, host and joiner) | 2 |
+| reverse: game-lanmerge-b hosts Hope Springs (2 AI), game-tick (PLAY-TICK.bat) joins | joined, 4 = 4 cars at the same places | 1 |
+| game-tick hosts Scene 1 (Co-op) (index 25, `coop01.lvl`), the other copy joins | joined; host drives the mission's player object; 7 = 7 cars at the same places | 1 |
+| single player on PLAY-TICK: gate rows 2-3 (run-gate.ps1 -NoHostMute -Which 33 -Only 2,3; `autotest\runs\gate\20261019-140652`) | 6 PASS 0 FAIL: bookmark route 3 of 3, trip through PLAY-TICK.bat 2 of 2 at 119.7 fps, saves byte-identical; tick ON 5 of 5 boots, CRASH 0 | 1 gate (3 + 2 runs) |
+
+  Seen in the host's log, not a failure: under the tick `coop-ai: ai_FrameTick at 0x00403DDF has UNEXPECTED bytes - not patching`
+  (the tick owns that call); the mission cars still reached the joiner in both arenas (positions above). Not run: PLAY-TICK-66
+  in a network game, scenarios, 3+ players, the family machines (they carry the 2026-10-18 pack: stock arenas only with this set
+  until they get the next pack, from the CRC rule, not tested).
+
+### 15.2 I76_MUTE
+
+- Proxy commit a547572 (`music-fix/mutesess.c`, off by default): a thread started in DllMain mutes the process's default audio
+  session through Core Audio (CoInitializeEx MTA, default render endpoint for eConsole and eMultimedia, IAudioSessionManager,
+  GetSimpleAudioVolume(NULL, 0), SetMute, GetMute) and re-checks at 3 / 15 / 60 s. **It works at attach**: the session exists from
+  that call on (seen 0.15-0.16 s after launch, state inactive, already muted) before the game opens any sound; no later hook needed.
+  Lab-only build `i76-uncap-lab\builds\mute-switch-20261019\STRLKUP-mute-a547572.dll` (24bf53c5; the worktree compile 83c736a5 has
+  the same .text); game-tick and the candidate keep tick19e.
+- Test (lab copy game-lanmerge-b, watcher stopped with tools\mute-proc.stop, `tools\lan-merge\mute-check.ps1` polling the sessions
+  every 100 ms + `mute-proc.ps1 -List`): with I76_MUTE=1 the session was muted when first seen and in every sample, -List muted
+  True, log "mute: session muted = 1 (at attach ...)" 2/2 roles, n 2 (a fresh folder, and one after clearing the stored state)
+  plus one more after a muted run; without the key: first seen unmuted and playing at t+0.98 s, no mute line, n 1.
+- **Windows remembers a session mute per exe path** (HKCU `...\Audio\PolicyConfig\PropertyStore`, value 5, per output device)
+  and applies it to that exe's next session. The first control boot came up muted only because the previous run had muted it
+  (the null read as "the switch leaks"; the store said otherwise). Consequence: every watcher-muted lab copy stays muted for the
+  next launch, whoever starts it: **game-tick, the owner's PLAY-TICK copy, was stored muted on both output devices** (from the
+  gate runs under the watcher). Cleared with the new lab `tools\unmute-persisted.ps1` (game closed; read back "not muted" 2/2);
+  tg-gate.ps1 now runs it for game-tick at its end. Not re-checked by a boot of game-tick (the mechanism was checked on
+  game-lanmerge-b, n 1).
+- Harness: I76_MUTE=1 in autotest\proxy-run.ps1, tools\tick-gaps\tg-gate.ps1 (LAB_GAME_ENV and the launcher rows' environment),
+  tools\tick-fix\cursor-tick.ps1, tools\frame-bound\fb-run.ps1; not in any owner preset or PLAY-*.bat. tick19e and older proxies
+  ignore it, so the watcher stays as the fallback (lab CONSOLE-LOCK.md).
