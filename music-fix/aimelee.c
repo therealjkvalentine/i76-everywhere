@@ -37,14 +37,15 @@
  * 4. RESPAWN (I76_AIMELEE_RESPAWN=1, default): in an ai_*.lvl a dead human (host or joiner) asks for a respawn
  *    (0x451570(1), the co-op scenes' auto respawn) - otherwise a host killed by the AI would sit in the death view.
  * I76_AIMELEE=0 turns all of it off (the AI cars then sit idle, the co-op sync still mirrors them).
- * LAB ONLY: I76_AIMELEE_TEST_HP=<1..100> cuts every AI car's armour and chassis to that % of max on the host when its
- * skill is set (so a test kill takes a few hits); off by default, never in a pack. */
+ * LAB ONLY: I76_AIMELEE_TEST_HP=<1..100> removes every AI car's armour and cuts its chassis to that % of max on the host
+ * when its skill is set (so a test kill takes a few hits); off by default, never in a pack. */
 static int g_aim_test_hp, g_aim_on, g_aim_skill = 3, g_aim_cap = 8, g_aim_teams, g_aim_wave = 1, g_aim_wave_s = 8, g_aim_respawn = 1;
 static volatile LONG g_aim_ticks, g_aim_orders, g_aim_kills, g_aim_ak_sent, g_aim_ak_got, g_aim_credited, g_aim_waves;
 #define AIM_AK_PKT 0x4b41                                    /* 'AK' */
 #define AIM_MAX 64
 static BYTE *g_aim_car[AIM_MAX], *g_aim_tgt[AIM_MAX]; static int g_aim_skilled[AIM_MAX], g_aim_n;
-static BYTE *g_aim_capped;                                   /* the host car that got the attacker cap */
+static BYTE *g_aim_capped;
+static BYTE g_aim_dead_seen[2048];                       /* label index: 1 = its death was logged (kill hook or tick) */                                   /* the host car that got the attacker cap */
 static DWORD g_aim_last_tick, g_aim_all_dead_since, g_aim_status_t;
 static void aim_save_score(void);
 static int aim_arena(void) {                                 /* "ai_*.lvl" (any case) */
@@ -87,6 +88,7 @@ static void aim_tick(void) {
     DWORD now = GetTickCount(); static BYTE *last_tab; static int last_count;
     if (now - g_aim_last_tick > 2000 || tab != last_tab || count != last_count) {   /* a new mission (or a wave reload) */
         g_aim_n = 0; g_aim_capped = NULL; g_aim_all_dead_since = 0; last_tab = tab; last_count = count;
+        memset(g_aim_dead_seen, 0, sizeof(g_aim_dead_seen));
     }
     g_aim_last_tick = now;
     g_aim_ticks++;
@@ -101,7 +103,10 @@ static void aim_tick(void) {
         BYTE *o = coop_ai_object(i, count, tab), *best = NULL, *cur; double ax, az, bd = 1e30, cd = 1e30; int j;
         if (!o) continue;
         total++;
-        if (!aim_alive(o)) continue;
+        if (!aim_alive(o)) {                                 /* a death that never reached the kill hook: no attacker record */
+            if (!g_aim_dead_seen[i]) { g_aim_dead_seen[i] = 1; mlog("  aimelee: AI #%d '%.8s' (label %d) died without an attacker record (collision, fall or no-owner damage) - no credit", aim_ordinal(i) + 1, (char *)o, i); }
+            continue;
+        }
         alive++;
         if ((j = aim_index(o)) < 0) continue;
         if (!g_aim_skilled[j] && *(BYTE **)(*(BYTE **)(o + 0x70) + 0x108)) {
@@ -112,12 +117,12 @@ static void aim_tick(void) {
             if (g_aim_test_hp) {                             /* LAB: armour and chassis to n % of max (cheats.md entity map) */
                 BYTE *e = *(BYTE **)(o + 0x70); int sd;
                 for (sd = 0; sd < 4; sd++) {
-                    int a = *(int *)(e + 0x158 + 4 * sd) * g_aim_test_hp / 100, c = *(int *)(e + 0x168 + 4 * sd) * g_aim_test_hp / 100;
-                    if (a < 1) a = 1; if (c < 1) c = 1;
+                    int a = 0, c = *(int *)(e + 0x168 + 4 * sd) * g_aim_test_hp / 100;   /* armour gone: every hit reaches the chassis */
+                    if (c < 1) c = 1;
                     *(int *)(e + 0x138 + 4 * sd) = a; *(int *)(e + 0x178 + 4 * sd) = a;
                     *(int *)(e + 0x148 + 4 * sd) = c; *(int *)(e + 0x18c + 4 * sd) = c;
                 }
-                mlog("  aimelee: LAB I76_AIMELEE_TEST_HP=%d - AI '%.8s' armour / chassis cut to %d %%", g_aim_test_hp, (char *)o, g_aim_test_hp);
+                mlog("  aimelee: LAB I76_AIMELEE_TEST_HP=%d - AI '%.8s' armour 0, chassis cut to %d %%", g_aim_test_hp, (char *)o, g_aim_test_hp);
             }
         }
         ax = *(double *)(o + 0x40); az = *(double *)(o + 0x50);
@@ -170,6 +175,7 @@ static void __cdecl aim_on_kill(BYTE *victim, BYTE *rec) {
     if (!rec || !victim || coop_ai_role() != 1 || !aim_arena() || !tab || count <= 0 || count > 2048) return;
     for (li = 0; li < count && *(BYTE **)(tab + li * 16 + 8) != victim; li++) ;
     if (li == count || !coop_ai_object(li, count, tab)) return;
+    g_aim_dead_seen[li] = 1;
     g_aim_kills++;
     killer = (WORD)((unsigned (__cdecl *)(BYTE *))0x004551f0)(*(BYTE **)rec);
     if (!killer || (k = aim_slot_of(killer)) < 0 || !(kc = aim_slot_car(k)) || !*(BYTE **)(kc + 0x70)) {
