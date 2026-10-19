@@ -2942,6 +2942,7 @@ static void apply_coop_damage(void) {
 typedef int (__cdecl *dprecv_fn)(void *, void *, void *, int, void *, void *);
 typedef int (__cdecl *dpsend_fn)(void *, int, int, int, void *, int);
 static int coop_chain_num(const char *cur);                  /* "coopNN.lvl" -> NN, else 0 (CO-OP CAMPAIGN CHAIN) */
+static int coop_scen_num(const char *cur);                   /* "autoNN.lvl" -> NN, else 0 (scenarios as arenas) */
 /* ANet's dpSend writes 4 bytes PAST the payload it is given (the from / to ids, in place: 03 00 04 00 = id 3 to
  * group 4, read from a host crash dump 2026-10-18). A send buffer on the stack with nothing after it lets that tail
  * overwrite the next local; in coop_chain_at_end (coop_chain_send inlined) it was the /GS cookie, and every host chain
@@ -3034,6 +3035,19 @@ static int g_coop_hostmodel = 1;                            /* I76_COOP_HOSTMODE
 static volatile LONG g_coop_chain_sent, g_coop_chain_got;
 static volatile LONG g_coop_retarget;                       /* enemy attacks moved to the nearer human (host) */
 static volatile LONG g_coop_adopted, g_coop_respawns, g_coop_cb_sent, g_coop_cb_played, g_coop_obj_sent, g_coop_obj_got;
+/* own car dead (entity +0x454 & 0x20) and no respawn pending (0x540d8c): ask for one, at most once a second */
+static void coop_auto_respawn(const char *who) {
+    static DWORD last; DWORD now = GetTickCount();
+    BYTE **root; BYTE *o;
+    if (now - last <= 1000) return;
+    last = now;
+    root = ((BYTE **(__cdecl *)(void))0x00457530)();
+    o = root ? *root : NULL;
+    if (o && *(BYTE **)(o + 0x70) && ((*(BYTE **)(o + 0x70))[0x454] & 0x20) && !*(volatile int *)0x00540d8c) {
+        ((int (__cdecl *)(int))0x00451570)(1);   /* waits out the 5 s itself; sets the pending flag 0x540d8c once sent */
+        if (*(volatile int *)0x00540d8c) { g_coop_respawns++; mlog("  coop-chain: %s dead - respawn requested", who); }
+    }
+}
 static int g_coop_diag; static void coop_sb_log(void);
 /* Heap shim watch (I76_COOP_HEAPWATCH=1; I76_COOP_HEAPLOCK=1 also serialises). On Windows the compatibility shim
  * AcGenral (applied to i76.exe by Windows' own database) replaces HeapCreate / HeapDestroy with a private heap whose
@@ -3500,21 +3514,12 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     if (role == 1) { coop_ai_host_send(); coop_obj_catchup(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
     else if (role == 2) {
         coop_ai_joiner_fire();
-        /* the joiner respawns by itself (RAISE_DEAD has no key) - in a co-op mission (coopNN.lvl) only. Until 2026-10-18
-         * this ran in every network game with I76_COOP_CHAIN, melee included, so in a melee the joiner came back 5 s
-         * after a death and the host did not (owner's playtest, laptop host + Michael, Suburbia). Stock melee is stock. */
-        if (g_coop_chain && coop_ai_in_mission() && coop_chain_num((const char *)0x005049f0)) {
-            static DWORD last; DWORD now = GetTickCount();
-            if (now - last > 1000) {
-                BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();
-                BYTE *o = root ? *root : NULL;
-                last = now;
-                if (o && *(BYTE **)(o + 0x70) && ((*(BYTE **)(o + 0x70))[0x454] & 0x20) && !*(volatile int *)0x00540d8c) {
-                    ((int (__cdecl *)(int))0x00451570)(1);   /* waits out the 5 s itself; sets the pending flag 0x540d8c once sent */
-                    if (*(volatile int *)0x00540d8c) { g_coop_respawns++; mlog("  coop-chain: joiner dead - respawn requested"); }
-                }
-            }
-        }
+        /* the joiner respawns by itself (RAISE_DEAD has no key) - in a co-op mission (coopNN.lvl) or a scenario
+         * (autoNN.lvl) only. Until 2026-10-18 this ran in every network game with I76_COOP_CHAIN, melee included, so in
+         * a melee the joiner came back 5 s after a death and the host did not (owner's playtest, laptop host + Michael,
+         * Suburbia). Stock melee is stock. */
+        if (g_coop_chain && coop_ai_in_mission() && (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)))
+            coop_auto_respawn("joiner");
     }
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AI_PKT) { g_coop_ai_rx++; coop_ai_apply((BYTE *)buf, *(int *)size); }
     if (role != 1 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT && *(volatile int *)0x00541030) coop_chain_receive((BYTE *)buf, *(int *)size);
@@ -3553,6 +3558,13 @@ static int coop_chain_num(const char *cur) {                /* "coopNN.lvl" (any
     if (_stricmp(cur + 6, ".lvl") != 0) return 0;
     n = (cur[4] - '0') * 10 + (cur[5] - '0');
     return n >= 1 && n <= 17 ? n : 0;
+}
+static int coop_scen_num(const char *cur) {                 /* "autoNN.lvl" (any case) -> NN 1..7, else 0 */
+    int n;
+    if (_strnicmp(cur, "auto", 4) != 0 || cur[4] < '0' || cur[4] > '9' || cur[5] < '0' || cur[5] > '9') return 0;
+    if (_stricmp(cur + 6, ".lvl") != 0) return 0;
+    n = (cur[4] - '0') * 10 + (cur[5] - '0');
+    return n >= 1 && n <= 7 ? n : 0;
 }
 static int coop_chain_next(const char *cur, char *out) {    /* coop01..coop16 -> +1, coop17 -> none */
     int n = coop_chain_num(cur);
@@ -3598,10 +3610,14 @@ static void __cdecl coop_chain_at_end(char *winmain_esp) {
     volatile int *state = (volatile int *)0x004c2164;
     char *setup_name = winmain_esp + 0x2b9, *cur = (char *)0x005049f0;
     int role = coop_ai_role();
-    if (role == 1 && (*state == 1 || *state == 0 || *state == 0xb) && coop_chain_num(cur)) {   /* co-op entries only */
+    /* co-op entries and scenarios (autoNN.lvl, 2026-10-19): a loss reloads the same file for everybody; a won co-op
+     * mission loads the next one, a won scenario (or coop17) ends normally. The scenario scripts watch the host's car
+     * (the entity "user", resolved once at load), so the host does not auto-respawn: its death is the scenario's loss
+     * (records/COOP-LIST-ENTRIES-2026-10-18.md section 8). */
+    if (role == 1 && (*state == 1 || *state == 0 || *state == 0xb) && (coop_chain_num(cur) || coop_scen_num(cur))) {
         char next[16];
         int won = *state == 1;
-        if (won && !coop_chain_next(cur, next)) { mlog("  coop-chain: '%s' won and it is the last mission - normal end", cur); return; }
+        if (won && !coop_chain_next(cur, next)) { mlog("  coop-chain: '%s' won and nothing follows it - normal end", cur); return; }
         if (!won) { strncpy(next, cur, 15); next[15] = 0; }
         coop_chain_send(won, next);
         if (won) coop_chain_crc(cur, next);
@@ -6818,6 +6834,7 @@ static void tex_census_attach(HMODULE m) {
 
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
 #include "padmenu.c"     /* I76_PAD_MENU: controller moves the menu pointer (shell + Esc menu only; uses cursormap) */
+#include "mpmenu.c"      /* I76_MP_MENU: MULTI MELEE HOST / JOIN straight to IPX (1, default) or IPX-only row (2) */
 #include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 
@@ -6832,6 +6849,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
         const char *b = strrchr(name, '\\'); b = b ? b + 1 : name;
         cursor_map_attach(m, b);
         pad_menu_attach(m, b);    /* after cursor_map_attach: the pad filter chains onto the cursor map's shell slot */
+        mp_menu_attach(m, b);     /* I76_MP_MENU: the connection row (code bytes only, no IAT slot) */
         if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix) {
             /* I76_ZGLIDE_TMUFIX=1: ZGLIDE+0x1a93 `jne +0x24` (75 24) -> `jmp +0x24` (eb 24): skip the Voodoo 1 "no texture
                across 2 MB" rule. Its rewind target is the constant 2 MB, and it runs BEFORE the grTexMaxAddress check, so
@@ -8967,6 +8985,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
         apply_pad_menu();         /* opt-in: I76_PAD_MENU=1 (after apply_cursor_map: chains its PeekMessageA slots) */
+        apply_mp_menu();          /* default on: I76_MP_MENU=1 HOST / JOIN go straight to IPX, 2 = IPX-only row, 0 = stock */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

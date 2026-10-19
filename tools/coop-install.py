@@ -1,24 +1,38 @@
 #!/usr/bin/env python3
-"""Install (or remove) the co-op campaign in an Interstate '76 game folder. docs/COOP.md.
+"""Install (or remove) the co-op campaign and the auto-melee scenarios as network arenas. docs/COOP.md.
 
     python3 tools/coop-install.py "<game folder>"            build + install
     python3 tools/coop-install.py "<game folder>" --remove   put everything back
     python3 tools/coop-install.py "<game folder>" --check    report what is installed
 
-Builds the co-op missions from THIS folder's own campaign files (miss16\\T01..T17.MSN, nothing is downloaded or
+Builds the missions from THIS folder's own files (miss16\\T01..T17.MSN and S01..S07.MSN, nothing is downloaded or
 shipped) with tools/coop-mission.py and installs them as their own multiplayer arenas:
 
-  ADDON\\coop01.lvl .. coop17.lvl = co-op T01..T17, titled "Co-op Scene 1" .. "Co-op Scene 17".
+  ADDON\\auto01.lvl .. auto07.lvl = the 7 single-player auto-melee scenarios in the game's own scenario order (the
+                                  shell's table 0x1004b7e0), titled "<stock name> (Scenario)", e.g.
+                                  "Oil Well Well (Scenario)" (SCENARIOS below)
+  ADDON\\coop01.lvl .. coop17.lvl = co-op T01..T17, titled "Scene 1 (Co-op)" .. "Scene 17 (Co-op)" (the trip missions
+                                  carry no title of their own; "Scene N" is the game's own name for them, bookmarks)
+
+Owner, 2026-10-19: the name first, then the kind in parentheses. Titles longer than 15 characters grow the WRLD body
+(coop-mission.py --title, up to 31 characters).
 
 The names are LOWER CASE on purpose: both shells test the extension with a case-sensitive compare against ".lvl"
 (host 0x1004c6ec, joiner 0x1004c7dc); "COOP01.LVL" skipped the file and CRC check on both ends (measured 2026-10-18:
 host CRC slot 0, a join went through unchecked).
 
 The shell lists every ADDON\\*.lvl after the 15 stock arenas (i76shell 0x10027c80, the builder's documented addon-map
-route), so the co-op missions appear in MULTI MELEE > HOST under their own names and no stock arena changes. A joiner
-loads the mission file the HOST names; for an addon .lvl its shell checks that it has the file and that the CRC-32
-matches the host's, and says so if not ("You don't have mission coop01.lvl!"), instead of quietly loading another
-mission (docs/records/COOP-LIST-ENTRIES-2026-10-18.md). The campaign chain (I76_COOP_CHAIN) loads coop02 .. coop17.
+route) in findfirst order, alphabetical on NTFS, so auto* comes before coop*: the host list reads the 15 stock
+arenas, the 7 scenarios, the 17 co-op scenes. A joiner loads the mission file the HOST names; for an addon .lvl its
+shell checks that it has the file and that the CRC-32 matches the host's, and says so if not ("You don't have mission
+coop01.lvl!"), instead of quietly loading another mission (docs/records/COOP-LIST-ENTRIES-2026-10-18.md). The
+campaign chain (I76_COOP_CHAIN) loads coop02 .. coop17; it never touches autoNN.lvl.
+
+A scenario is the stock mission plus SCEN_SPAWNS spawn points beside the scenario's own car (the host drives that
+car, joiners take the spawn points); its script is not changed. With I76_COOP_CHAIN=1 a joiner respawns by itself
+after a death, as in a co-op scene; the host does not: the script watches the host's car (entity "user"), so the
+host's death (or any other loss) is the scenario's loss and the proxy reloads the same scenario for everybody; a win
+ends the game normally. No chain to another file (records/COOP-LIST-ENTRIES-2026-10-18.md section 8).
 
 The miss16 variants are used (sky / palette / horizon files of the 16-bit hardware renderers every pack machine runs);
 one .lvl in ADDON serves both miss8 and miss16 modes.
@@ -27,7 +41,7 @@ The older layout (miss8\\ and miss16\\ M41..M57.MSN plus M01.MSN = co-op T01 in 
 the original M01.MSN put back, on install and on --remove. Every installed file gets a .coop marker next to it;
 --remove deletes only files with a marker. Run it with the game closed, on every machine that plays (all machines need
 identical mission files). Then start the game with I76_COOP_AI=1 and I76_COOP_CHAIN=1 (and optionally
-I76_COOP_DAMAGE=0.5) and host a "Co-op Scene N" arena over IPX.
+I76_COOP_DAMAGE=0.5) and host a "... (Co-op)" or "... (Scenario)" arena over IPX.
 """
 import hashlib, os, subprocess, sys
 
@@ -35,6 +49,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SUBS = ('miss8', 'miss16')          # where the old layout lived
 SRC_SUB = 'miss16'                  # the campaign files the .lvl files are built from
 COUNT = 17
+COOP_TITLE = 'Scene %d (Co-op)'
+# (file, source mission, stock title) in the order of the shell's scenario table 0x1004b7e0 (AUTO MELEE > SCENARIO)
+SCENARIOS = (('auto01', 'S03', 'Oil Well Well'), ('auto02', 'S02', 'Mondo Burger'), ('auto03', 'S04', 'Seminole'),
+             ('auto04', 'S05', 'Pretty Bus'), ('auto05', 'S06', 'Race No Shoot'), ('auto06', 'S01', 'Trailer Pk. Madness'),
+             ('auto07', 'S07', 'Milk Toast'))
+SCEN_TITLE = '%s (Scenario)'
+SCEN_SPAWNS = 3                     # host (the scenario's car) + 3 joiners = the host form's default NO. DRIVERS 4
 
 
 def md5(p):
@@ -73,6 +94,21 @@ def remove_old(game):
             print('%s: old layout removed (%d co-op files), M01 restored (%s)' % (sub, n, md5(m01)))
 
 
+def build(addon, name, src, args):
+    dst = os.path.join(addon, name + '.lvl')
+    old = find(addon, name + '.lvl')
+    mark = find(addon, name + '.lvl.coop')
+    if old and not mark:
+        sys.exit('%s exists and is not ours - refusing' % old)
+    if old:                                          # ours: delete first, NTFS keeps an old name's case on overwrite
+        os.remove(old)
+        os.remove(mark)
+    subprocess.run([sys.executable, os.path.join(HERE, 'coop-mission.py'), src, dst] + args, check=True,
+                   stdout=subprocess.DEVNULL)
+    open(dst + '.coop', 'w').write('installed by tools/coop-install.py\n')
+    return dst
+
+
 def install(game):
     src_dir = find(game, SRC_SUB)
     if not src_dir:
@@ -80,24 +116,20 @@ def install(game):
     addon = find(game, 'ADDON') or os.path.join(game, 'ADDON')
     os.makedirs(addon, exist_ok=True)
     remove_old(game)
+    for name, mission, title in SCENARIOS:
+        src = find(src_dir, mission + '.MSN')
+        if not src:
+            sys.exit('missing %s/%s.MSN' % (SRC_SUB, mission))
+        dst = build(addon, name, src, ['--title', SCEN_TITLE % title, '--count', str(SCEN_SPAWNS)])
+        print('ADDON: %s.lvl = %s "%s", %s' % (name, mission, SCEN_TITLE % title, md5(dst)))
     for n in range(1, COUNT + 1):
         src = find(src_dir, 'T%02d.MSN' % n)
         if not src:
             sys.exit('missing %s/T%02d.MSN' % (SRC_SUB, n))
-        dst = os.path.join(addon, 'coop%02d.lvl' % n)
-        old = find(addon, 'coop%02d.lvl' % n)
-        mark = find(addon, 'coop%02d.lvl.coop' % n)
-        if old and not mark:
-            sys.exit('%s exists and is not ours - refusing' % old)
-        if old:                                      # ours: delete first, NTFS keeps an old name's case on overwrite
-            os.remove(old)
-            os.remove(mark)
-        subprocess.run([sys.executable, os.path.join(HERE, 'coop-mission.py'), src, dst,
-                        '--title', 'Co-op Scene %d' % n], check=True, stdout=subprocess.DEVNULL)
-        open(dst + '.coop', 'w').write('installed by tools/coop-install.py\n')
-    print('ADDON: coop01..coop%02d.lvl built from %s ("Co-op Scene 1".."Co-op Scene %d"); coop01 %s' %
-          (COUNT, SRC_SUB, COUNT, md5(os.path.join(addon, 'coop01.lvl'))))
-    print('Start the game with I76_COOP_AI=1 I76_COOP_CHAIN=1 on every machine and host "Co-op Scene N".')
+        build(addon, 'coop%02d' % n, src, ['--title', COOP_TITLE % n])
+    print('ADDON: coop01..coop%02d.lvl built from %s ("%s".."%s"); coop01 %s' %
+          (COUNT, SRC_SUB, COOP_TITLE % 1, COOP_TITLE % COUNT, md5(os.path.join(addon, 'coop01.lvl'))))
+    print('Start the game with I76_COOP_AI=1 I76_COOP_CHAIN=1 on every machine and host a "(Co-op)" or "(Scenario)" arena.')
 
 
 def remove(game):
@@ -112,13 +144,13 @@ def remove(game):
                     os.remove(target)
                 os.remove(os.path.join(addon, f))
                 n += 1
-    print('ADDON: removed %d co-op files' % n)
+    print('ADDON: removed %d co-op / scenario files' % n)
 
 
 def check(game):
     addon = find(game, 'ADDON')
     ours = sorted(f[:-5] for f in os.listdir(addon) if f.endswith('.coop')) if addon else []
-    print('ADDON: %d co-op arenas %s' % (len(ours), ', '.join('%s %s' % (f, md5(os.path.join(addon, f)))
+    print('ADDON: %d co-op / scenario arenas %s' % (len(ours), ', '.join('%s %s' % (f, md5(os.path.join(addon, f)))
                                                               for f in ours if os.path.exists(os.path.join(addon, f)))))
     for sub in SUBS:
         d = find(game, sub)

@@ -8,7 +8,8 @@ Reads a mission (.msn, BWD2) and writes a copy with:
     object, `spacing` metres apart along +x and 8 m up, so each network player gets a start point;
   - the WRLD intro and outro movie names blanked (body offsets 4 and 17, 13 bytes each), because an in-mission movie
     stops the network pump and the host drops a joiner that is still watching it.
-  - with --title, the WRLD mission title (body +0x13b, 16 bytes, read only by the shell's arena list) set, so the file
+  - with --title, the WRLD mission title (body +0x13b; 16 bytes, or 32 with the body grown by 16 for a title over 15
+    characters; read only by the shell's arena list) set, so the file
     can sit in ADDON as its own multiplayer arena (the shell lists every ADDON\\*.lvl after the 15 stock arenas).
 tools/coop-install.py installs all 17 that way. Nothing else in the mission changes; the script and AI still run on
 each machine.
@@ -35,7 +36,7 @@ def main():
     ap.add_argument("--spacing", type=float, default=30.0, help="metres between spawn points (default 30)")
     ap.add_argument("--count", type=int, default=2, help="spawn points to add (default 2)")
     ap.add_argument("--keep-movies", action="store_true", help="leave the intro/outro movies in")
-    ap.add_argument("--title", help="WRLD mission title for the multiplayer arena list (at most 15 characters)")
+    ap.add_argument("--title", help="WRLD mission title for the multiplayer arena list (at most 31 characters)")
     a = ap.parse_args()
     raw = open(a.src, "rb").read()
     doc = bwd2.parse(raw)
@@ -62,13 +63,20 @@ def main():
         w.body = bytes(body)
     if a.title is not None:
         t = a.title.encode("ascii")
-        if len(t) > 15:
-            raise SystemExit("--title: at most 15 characters (16-byte field with its NUL)")
+        if len(t) > 31:
+            raise SystemExit("--title: at most 31 characters (the shell's arena record holds title[32])")
         w = [c for c in doc.find("WDEF")[0].children if c.tag_str == "WRLD"][0]
         body = bytearray(w.body)
         if len(body) != 0x14b:
             raise SystemExit("WRLD body is %d bytes, expected 331; refusing to set a title" % len(body))
-        body[0x13b:0x14b] = t.ljust(16, b"\0")
+        # The stock field is the last 16 bytes of the body. The arena list reads it with strcpy from the chunk
+        # (exe 0x4b4a10: chunk +0x143 = body +0x13b) and the shell keeps 31 characters (strncpy 0x20, 0x10027ea0),
+        # so a longer title grows the body by 16 bytes; the mission loader reads WRLD by fixed offsets up to body
+        # +0x137 (0x4b8a10) and never sees the tail (records/COOP-LIST-ENTRIES-2026-10-18.md section 8).
+        if len(t) > 15:
+            body = body[:0x13b] + t.ljust(32, b"\0")
+        else:
+            body[0x13b:0x14b] = t.ljust(16, b"\0")
         w.body = bytes(body)
     out = bwd2.serialise(doc)
     open(a.dst, "wb").write(out)

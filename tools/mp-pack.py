@@ -10,9 +10,10 @@ This script writes:
 
   common\\   the files every machine gets byte-identical: the daily driver's exe, shell, u32x.dll, STRLKUP.DLL proxy,
             I76.ZFS, missions, ADDON (stock valepre4.vcf de680a86), NVCL, ...; the repo's controls\\input.map;
-            IPXWrapper 0.7.2 (ipxwrapper.dll, wsock32.dll, mswsock.dll); the co-op campaign (tools/coop-install.py:
-            ADDON\\coop01..coop17.lvl (lower case: the shells' .lvl test is case-sensitive), listed as their own arenas "Co-op Scene 1".."Co-op Scene 17"; the stock
-            arenas, The Crater included, stay stock).
+            IPXWrapper 0.7.2 (ipxwrapper.dll, wsock32.dll, mswsock.dll); the scenarios and the co-op campaign
+            (tools/coop-install.py: ADDON\\auto01..auto07.lvl "Oil Well Well (Scenario)" .. and coop01..coop17.lvl
+            "Scene 1 (Co-op)" .. (lower case: the shells' .lvl test is case-sensitive), listed as their own arenas
+            after the 15 stock ones; the stock arenas, The Crater included, stay stock).
   win\\      Windows-only: dgVoodoo DLLs + confs, launcher PLAY-i76.ps1 + presets, AutoHotkey layers (repo
             i76-remap.ahk), music, I76PLYR.DEF, SMACKW32.DLL, i7_sfrce.dll, ...; and PLAY-LAN.bat.
   MANIFEST.md + common.md5 / win.md5 / mac.md5 (md5 of every file; common.md5 is what each machine is checked
@@ -105,11 +106,14 @@ def main():
     with open(os.path.join(win, "PLAY-LAN.bat"), "w", newline="\r\n") as f:
         f.write("@echo off\n"
                 "REM Interstate '76 LAN / co-op (docs/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"
-                "REM PLAY.bat (preset best-wide), plus the co-op switches: the arenas \"Co-op Scene 1..17\" (after\n"
-                "REM the 15 stock ones) = 2-player co-op campaign, every stock arena = normal melee.\n"
-                "REM IPX through IPXWrapper (the three DLLs beside i76.exe).\n"
+                "REM PLAY.bat (preset best-wide), plus the co-op switches. Arena list (MULTI MELEE > HOST): the 15 stock\n"
+                "REM arenas = normal melee, then \"<name> (Scenario)\" = the 7 auto-melee scenarios with their AI cars\n"
+                "REM (joiners respawn; the host's death restarts the scenario), then \"Scene 1..17 (Co-op)\" = the co-op campaign.\n"
+                "REM IPX through IPXWrapper (the three DLLs beside i76.exe). I76_MP_MENU=1: HOST / JOIN go straight\n"
+                "REM to IPX (2 = show only the IPX button, 0 = the stock MODEM / IPX / INTERNET / NULLMODEM row).\n"
                 "set I76_COOP_AI=1\n"
                 "set I76_COOP_CHAIN=1\n"
+                "set I76_MP_MENU=1\n"
                 "copy /y \"%~dp0dgVoodoo.wide.conf\" \"%~dp0dgVoodoo.conf\" >nul\n"
                 "start \"\" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "
                 "\"%~dp0PLAY-i76.ps1\" -GameDir \"%~dp0.\" -Exe i76.exe -Preset best-wide -LosslessScaling none\n")
