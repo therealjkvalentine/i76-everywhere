@@ -1481,3 +1481,50 @@ Everything here is read-only for the daily driver: the tick build lives in the l
 | 7 | 10 | **LAN cells still open** (records/LAN-MATRIX-2026-10-18.md s.7-9; the laptop, Michael, Andrew and Deck cells all ran on 2026-10-18): 5 players, a co-op win and a late join, a 3-human Co-op Scene 17. Needs the laptop, Michael's Mac and the Deck free of the family's game; then tell the session to resume | laptop, Michael, Andrew, Deck | every machine already carries the respawn-fixed pack (proxy ac44e2c2); restart the games on the laptop and Michael's Mac to load it; host from the PC LAN copy with NO. DRIVERS raised above 4 |
 
 Verdict wanted: promote 19 (tick) yes / no / after fixes; anything in 1-4 that feels worse than balanced, say which.
+
+## Console session 2026-10-19 (tick19e, flame at the 1997 rate, LAN in the lab tick copy, scenarios, AI melee; ~60 min)
+
+Built and gated today (records: TICK-FINISH-2026-10-18.md s.12-15, FRAME-BOUND-SYSTEMS-2026-10-19.md, COOP-LIST-ENTRIES-2026-10-18.md s.7-8,
+AI-MELEE-M1-2026-10-19.md). Everything is in lab copies; the daily driver is untouched and still has none of it. Before you play: no
+automated run should be muting anything any more (the global watcher is being retired; if `tools\mute-proc.watch.pid` still exists, create
+`C:\Users\james\i76-uncap-lab\tools\mute-proc.stop` first, or your game is muted live).
+
+### A. The tick candidate tick19e (a08577c4): `C:\Users\james\i76-uncap-lab\game-dd-20261003\PLAY-TICK.bat` (33) and `PLAY-TICK-66.bat`
+
+| # | min | what | look for |
+|---|---|---|---|
+| A1 | 8 | **Flamers** (s.12). Burn a car with the Gas Launcher; flame a T05 road-closed bar | a car dies after ~11 s of contact (1997 timing; the driver needs 3x that); the bar burns at all (before: never); impact sprites look right, not a hall of mirrors |
+| A2 | 8 | **Per-frame hazards at the 1997 rate** (s.14). Sit in an oil slick / dropper patch, stay pinned against a car or wall, stand near a burning wreck, dodge a radar missile (DrRadar / Cherub) | each costs about what it did in 1997; missiles not lazy, not too sharp (the missile turn is from code only, unmeasured) |
+| A3 | 5 | **Your first-playtest notes, re-checked** (s.10): tracers on 33 and 66, road / wind loops, menu and mission music, J K L ; and O keys, menu arrow on the pencil | anything still wrong, say which launcher |
+| A4 | 3 | **Suburbia on 66** (s.13, not reproduced in 10 boots): start it 3 times on PLAY-TICK-66 and drive forward 10 s | houses appear = it was the dark spawn view (half the spawns face a flat plain); still flat = screenshot |
+| A5 | 2 | **33 vs 66**: nothing to hunt; 66 steps everything 15 times a second so aim and steering feel coarser, tracers come in 13 m pieces | only say if 66 feels no worse |
+| A6 | - | **Verdict**: promote 19 yes / no / after fixes. Promotion 19 now also carries the LAN pieces (IPX files, the 27 arena files, the LAN keys) that the driver lacks | |
+
+### B. Network from the lab tick copy (PLAY-TICK now hosts and joins; records/MULTIPLAYER.md 2026-10-19 section)
+
+| # | min | what | look for |
+|---|---|---|---|
+| B1 | 3 | MELEE > MULTI MELEE > HOST | lands straight on the IPX host form (no MODEM / INTERNET / NULLMODEM page); JOIN lands on the IPX game list |
+| B2 | 3 | The AREA OF PLAY list | 15 stock arenas, Hope Springs (2 / 4 / 6 AI), the 7 scenarios as "name (Scenario)" in the smaller handwriting font (only "Trailer Pk. Madn." is shortened), Scene 1..17 (Co-op) |
+| B3 | 5 | Host Hope Springs from PLAY-TICK and have one family machine join | works today with the **stock arenas only**: the family machines still run the 2026-10-18 pack, and every addon arena's checksum changed |
+
+### C. After the pack rollout (all machines at once, when the family machines are free; I do it on your word; pack `i76-uncap-lab\builds\mp-pack-20261019-final\`)
+
+| # | min | what | look for |
+|---|---|---|---|
+| C1 | 10 | **Hope Springs (4 AI)** with 2+ humans | 4 computer cars on every screen, they attack, a kill shows "<AI name> was destroyed by <you>" and scores on every screen; when all 4 are dead the arena reloads with scores kept; **a joiner's kill of an AI was never measured** (the scripted joiner never finished one), so one of you other than the host kills one |
+| C2 | 5 | **A scenario with a joiner** (Mondo Burger, Pretty Bus) | AI cars on both screens; joiners respawn; the host's death or a loss reloads the scenario for everybody; a win ends the game |
+| C3 | 10 | **Co-op cells still open**: a co-op win and a late join after it, a 3-human Scene 17, 5 players (raise NO. DRIVERS with + first) | |
+
+### D. Daily driver, `PLAY.bat`: controls 18 keys in a mission if not done (J K L ; hardpoints, O radar camera, grey arrows orbit) | |
+
+### Decisions wanted
+1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
+respawn with scores kept, AI names only in the kill message, -500 for a death by an AI. 3. Scenarios: keep "host death reloads the scenario"
+or build melee respawn for the host (needs script edits per scenario, COOP-LIST-ENTRIES s.8.3). 4. Flame on a road bar burns about 2x the
+1997 rate under the car-calibrated factor (s.12.4): accept, or a separate bar factor. 5. The daily driver's AI skid / horn rolls run at 5x the
+1997 rate (FRAME-BOUND s. recommendations): leave, or scale in promotion 19.
+
+### Open / not measured (so you know): joiner AI kill, AI melee and scenarios across two machines, teams for AI (`_TEAMS=1` never run),
+radar-missile turn in game, sustained-scrape damage per second, two of four T13 "god-held player dies" deaths (also in the stock loop), the
+Deck joins co-op / AI arenas without the AI sync (its own proxy has no pack switches), a stuck AI car can hold up a wave (no timeout).
