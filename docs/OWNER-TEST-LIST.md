@@ -1486,8 +1486,8 @@ Verdict wanted: promote 19 (tick) yes / no / after fixes; anything in 1-4 that f
 
 Built and gated today (records: TICK-FINISH-2026-10-18.md s.12-15, FRAME-BOUND-SYSTEMS-2026-10-19.md, COOP-LIST-ENTRIES-2026-10-18.md s.7-8,
 AI-MELEE-M1-2026-10-19.md). Everything is in lab copies; the daily driver is untouched and still has none of it. Before you play: no
-automated run should be muting anything any more (the global watcher is being retired; if `tools\mute-proc.watch.pid` still exists, create
-`C:\Users\james\i76-uncap-lab\tools\mute-proc.stop` first, or your game is muted live).
+automated run should be muting anything any more (the global watcher is retired; each run mutes only the game it started, per process, and clears
+the mute Windows remembers for that copy when it ends, so your copies start with sound).
 
 ### A. The tick candidate tick19e (a08577c4): `C:\Users\james\i76-uncap-lab\game-dd-20261003\PLAY-TICK.bat` (33) and `PLAY-TICK-66.bat`
 
