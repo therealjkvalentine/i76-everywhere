@@ -3526,6 +3526,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     if (role != 1 && g_coop_chain) coop_chain_pending();
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AC_PKT) coop_cb_receive((BYTE *)buf, *(int *)size);
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AO_PKT) coop_obj_receive((BYTE *)buf, *(int *)size);
+    { void aimelee_pump(int, int, void *, void *); aimelee_pump(role, r, buf, size); }   /* I76_AIMELEE (aimelee.c) */
     return r;
 }
 /* CO-OP CAMPAIGN CHAIN (I76_COOP_CHAIN=1 with I76_COOP_AI=1, both machines). A network game tears its in-game network
@@ -3985,6 +3986,8 @@ static void apply_coop_ai(HMODULE exe) {
     }
     if (!real_dpReceive) { mlog("  coop-ai: no dpReceive import - off"); }
 }
+
+#include "aimelee.c"     /* I76_AIMELEE: AI cars in network melee arenas ai_*.lvl (host tick, kill credit, waves) */
 
 /* ===========================================================================
  * REAR MIRROR CADENCE  (I76_MIRROR_RATE=1, needs I76_FRAMERATE_FIXES; off by default)
@@ -9012,6 +9015,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         }
         apply_joy_routing(exe);   /* opt-in: I76_JOY_MAP=a=b / I76_JOY_SYNTH=id:x (test) */
         apply_coop_ai(exe);       /* opt-in: I76_COOP_AI=1 (host's mission cars mirrored to the joiner) */
+        apply_aimelee();          /* default on with I76_COOP_AI=1 (acts only in ADDON/ai_*.lvl arenas) */
         music_opts();             /* run end / I76_MUSIC_DISC_ORDER / I76_MUSIC_SHELL: one log line */
         apply_cd_instrument(exe); /* opt-in (I76_CD_LOG=1): the "insert CD 2" prompt, logged with its cause;
                                      I76_CD_FAKE=1 is the experimental mitigation (P1-09 / P8) */

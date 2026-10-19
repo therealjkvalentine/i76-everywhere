@@ -11,6 +11,9 @@ shipped) with tools/coop-mission.py and installs them as their own multiplayer a
   ADDON\\auto01.lvl .. auto07.lvl = the 7 single-player auto-melee scenarios in the game's own scenario order (the
                                   shell's table 0x1004b7e0), titled "<stock name> (Scenario)", e.g.
                                   "Oil Well Well (Scenario)" (SCENARIOS below)
+  ADDON\\ai_hs2.lvl, ai_hs4.lvl, ai_hs6.lvl = AI melee: "Hope Springs (2 AI)" / "(4 AI)" / "(6 AI)", a stock arena plus N
+                                  AI cars the host's proxy runs (tools/aimelee-mission.py, its own .aimelee markers;
+                                  records/AI-MELEE-M1-2026-10-19.md)
   ADDON\\coop01.lvl .. coop17.lvl = co-op T01..T17, titled "Scene 1 (Co-op)" .. "Scene 17 (Co-op)" (the trip missions
                                   carry no title of their own; "Scene N" is the game's own name for them, bookmarks)
 
@@ -129,7 +132,9 @@ def install(game):
         build(addon, 'coop%02d' % n, src, ['--title', COOP_TITLE % n])
     print('ADDON: coop01..coop%02d.lvl built from %s ("%s".."%s"); coop01 %s' %
           (COUNT, SRC_SUB, COOP_TITLE % 1, COOP_TITLE % COUNT, md5(os.path.join(addon, 'coop01.lvl'))))
-    print('Start the game with I76_COOP_AI=1 I76_COOP_CHAIN=1 on every machine and host a "(Co-op)" or "(Scenario)" arena.')
+    # AI melee arenas "Hope Springs (2 AI)" .. (tools/aimelee-mission.py ARENAS, records/AI-MELEE-M1-2026-10-19.md)
+    subprocess.run([sys.executable, os.path.join(HERE, 'aimelee-mission.py'), '--install', game], check=True)
+    print('Start the game with I76_COOP_AI=1 I76_COOP_CHAIN=1 on every machine and host a "(Co-op)", "(Scenario)" or "(N AI)" arena.')
 
 
 def remove(game):
@@ -145,6 +150,7 @@ def remove(game):
                 os.remove(os.path.join(addon, f))
                 n += 1
     print('ADDON: removed %d co-op / scenario files' % n)
+    subprocess.run([sys.executable, os.path.join(HERE, 'aimelee-mission.py'), '--remove', game], check=True)
 
 
 def check(game):

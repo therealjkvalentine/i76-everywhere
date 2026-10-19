@@ -13,7 +13,8 @@ This script writes:
             IPXWrapper 0.7.2 (ipxwrapper.dll, wsock32.dll, mswsock.dll); the scenarios and the co-op campaign
             (tools/coop-install.py: ADDON\\auto01..auto07.lvl "Oil Well Well (Scenario)" .. and coop01..coop17.lvl
             "Scene 1 (Co-op)" .. (lower case: the shells' .lvl test is case-sensitive), listed as their own arenas
-            after the 15 stock ones; the stock arenas, The Crater included, stay stock).
+            after the 15 stock ones; the stock arenas, The Crater included, stay stock); the AI melee arenas
+            ADDON\\ai_hs2 / ai_hs4 / ai_hs6.lvl "Hope Springs (2 AI)" .. (tools/aimelee-mission.py, run by coop-install.py).
   win\\      Windows-only: dgVoodoo DLLs + confs, launcher PLAY-i76.ps1 + presets, AutoHotkey layers (repo
             i76-remap.ahk), music, I76PLYR.DEF, SMACKW32.DLL, i7_sfrce.dll, ...; and PLAY-LAN.bat.
   MANIFEST.md + common.md5 / win.md5 / mac.md5 (md5 of every file; common.md5 is what each machine is checked
@@ -109,6 +110,8 @@ def main():
                 "REM PLAY.bat (preset best-wide), plus the co-op switches. Arena list (MULTI MELEE > HOST): the 15 stock\n"
                 "REM arenas = normal melee, then \"<name> (Scenario)\" = the 7 auto-melee scenarios with their AI cars\n"
                 "REM (joiners respawn; the host's death restarts the scenario), then \"Scene 1..17 (Co-op)\" = the co-op campaign.\n"
+                "REM \"Hope Springs (2 / 4 / 6 AI)\" (before the scenarios) = melee against computer cars the host runs\n"
+                "REM (proxy I76_AIMELEE, on with I76_COOP_AI; docs/records/AI-MELEE-M1-2026-10-19.md).\n"
                 "REM IPX through IPXWrapper (the three DLLs beside i76.exe). I76_MP_MENU=1: HOST / JOIN go straight\n"
                 "REM to IPX (2 = show only the IPX button, 0 = the stock MODEM / IPX / INTERNET / NULLMODEM row).\n"
                 "set I76_COOP_AI=1\n"
