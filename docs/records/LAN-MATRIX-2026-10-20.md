@@ -141,3 +141,98 @@ match the arena files; the teams proxy does not apply to it.
 | teams off: PC hosts Suburbia, Andrew joins | teams rule 0, no popup; stock teams: each machine itself t0, the other t1 | the same | 1 |
 
 0 crash lines. Not measured here: a third team, kills / scoring by team (as in the teams record).
+
+## 7. Polish (08:00-10:20): the Mac shortcut and the stray co-op copy fixed, pack redeployed
+
+Both leftovers of section 2 (findings 2 and 3) are fixed in proxy **cf4f81da** (i76-everywhere d249380, `music-fix/mpmenu.c`,
+`music-fix/mpfill.c`), measured, and deployed to every reachable machine as pack `i76-uncap-lab\builds\mp-pack-20261020-polish\`.
+Lab tools: `i76-uncap-lab\tools\mp-polish\` (lab commit cda2460); evidence `i76-uncap-lab\captures\mp-polish-20261020\`.
+
+### 7.1 MULTI MELEE shortcut on the Macs (finding 3)
+
+**Cause (measured, no longer inferred):** DxWnd takes i76.exe's `KERNEL32!LoadLibraryA` import slot after the proxy's DllMain,
+as it does with the WINMM slots (music-guard). The new log line on Andrew's Mac reads `the exe's LoadLibraryA slot is NOT ours,
+held by dxwnd.dll` (4 of 4 launches). So `hook_LoadLibraryA` never saw i76shell load and nothing was patched.
+
+**Fix:** a watch thread (`mpm_watch`) polls `GetModuleHandleA("i76shell.dll")` every 50 ms. Once the module has been loaded
+for 750 ms and nothing has patched it yet, the thread patches it. The patch runs once (`g_mpm_done`, interlocked). On the PC
+the LoadLibraryA hook gets there first, as before, and the thread just ends. The log says which path did the patching.
+
+| check | result | n |
+|---|---|---|
+| Andrew's Mac, test proxy aca78c93 (working-tree build of d249380): `mp-menu: skip ... patched, read back OK` + `arena-fit ... read back OK`, via the watch thread | every launch | 4 launches |
+| Andrew's Mac: MULTI MELEE > HOST lands on the IPX host form (shell sfn 0x10028610, screen 0xc026; the shell back buffer reads "NET MELEE HOST EVENT FORM", `A-host1_1.png`) | yes | 3 |
+| Andrew's Mac: MULTI MELEE > JOIN lands on the IPX join list ("NET MELEE ENTRY ROSTER", `A-join4_1.png`) | yes | 1 (+2 in the smoke, 7.3) |
+| PC lab copies (game-mpo-a..c, fixed lab twin 4528785c): patched through the LoadLibraryA hook, watch thread never used | yes | 21 launches |
+| PC LAN copy with cf4f81da: patched through the hook | yes | 1 |
+| Andrew's Mac with the deployed cf4f81da (smoke): patched via the watch thread, JOIN straight to the list | yes | 2 launches |
+
+### 7.2 The stray co-op copy after a host migration (finding 2)
+
+**Cause:** only the host moves tagged cars and keeps their state. A joiner's table keeps the file's state: co-op copies stay
+"parked" and fill cars stay "in play", while 'AT' moves the cars around. A joiner that became host therefore believed every copy
+was parked, so a copy beyond its own joiner count never got touched again. That copy was the stray. The same mismatch hit the
+AI fill: a car the old host had parked counted as "in play" for the new host, so it could field fewer AI than the rule says.
+
+**Fix (`mpf_migr_pending`, mpfill.c):** a proxy that was a joiner in the current mission load and now acts as host waits until
+its humans count is stable and 3 s have passed. Then it reconciles its table against the map once, by position (300 m from
+each car's parking spot):
+- A fill car sitting at its spot is counted as parked.
+- A live co-op copy away from its spot stays in the game (moved to its original's team, with the attack tick) if its copy
+  number is within the new joiner count.
+- Any other live copy away from its spot is re-parked (teleported to its spot, engine off, team 0).
+- Wrecks are left alone.
+
+A host that never was a joiner in the mission never runs this.
+
+Lab route: game-mpo-a..c on private desktops, isolated IPX instances (UDP 54800, wildcard off: read back before the runs),
+I76_MUTE=1 + per-pid watcher, god mode on all three. A hosts Scene 5 (Co-op), B and C join, and copies 1 and 2 of `t05fp03`
+come in. Then A exits hard (killed), and B becomes host after 42 s (the slot time-out). The first runs used the game-state-3
+exit instead, which the new host reads as a mission loss; that route was dropped.
+
+| run | new host's actions | census at the first stamp after the reconcile, new host + joiner (same 5 s stamp) | n |
+|---|---|---|---|
+| **fixed** (lab twin 4528785c) | `copy 1 ... stays in the game (1 joiner(s)), team 2`; `parked 't05fp03' (label 96) ... host migration: copy 2, 1 joiner(s) here` | away from their spots: label 83 on both screens, counted in by the host; **stray 0 on both** | 3 reconciles (stamp pair caught before the restart below in 2 of 3) |
+| **baseline** (lab twin 8dc04f03 = HEAD c82c9d2) | none | labels 83 and 96 away from their spots on both screens, the host counts **0** copies in: **2 strays** | 1 |
+| no migration, fixed: joiner B leaves, A stays host | no `host migration` line on any copy; copies in 2, both away from their spots on A and C; no park | (as before) | 2 |
+| AI fill, Hope Springs (4 AI), fixed: A + B + C (2 AI in play, 2 parked), A exits hard | `'vpjrabt2' (label 12) is at its parking spot: counted parked`, the same for label 13; then 12 brought in (2 humans, 3 of 4 wanted) | **3 AI fighting** (11, 12, 14), 1 parked = the rule | 1 |
+| AI fill, baseline | parked label 12 again (already at its spot) | table "3 in play" but only **1 AI fighting** (14 sat at its spot as "in play", 13 a wreck) | 1 |
+
+0 crash lines across all runs.
+
+**Finding (new, not fixed): when the co-op host leaves, the new host restarts the scene.** The new host logs `coop-chain: host
+lost 'coop05.lvl' -> loading 'coop05.lvl'` about 10-20 s after the old host's slot goes. This happened in every lab run
+(fixed and baseline, n 6) and on Andrew's Mac in the smoke (n 1), so it predates this fix. Likely cause: the scene's script
+watches the old host's car, the mission's player object. The matrix's c07 slice (2 min) did not show it. After the restart
+every copy is at its parking spot anyway; the reconcile covers the time before the restart, and any case where no restart
+comes. Whether a host change should restart the scene is the owner's call (proxy change if not).
+
+### 7.3 Build, deployment and cross-machine smoke
+
+**Proxy cf4f81da:** clean `git archive d249380`, MSVC x86 /MT /O2 /Brepro, built twice byte-identical
+(`builds\polish-pack-20261020\b1|b2`, `tools\mp-polish\build-final.sh`). **Pack `mp-pack-20261020-polish`** = the teams pack
+with only `common/STRLKUP.DLL` changed (`common.md5`: that one line differs). No ADDON file changed, so arena CRCs and titles
+are the same as on the teams pack.
+
+| machine | how | verify | STRLKUP.DLL now | rollback |
+|---|---|---|---|---|
+| PC LAN copy | `deploy-pc.ps1` (game stopped) | 1 file updated, 0 mismatches; 31efcf7a saved in the pack's `rollback\pc\` | **cf4f81da** | `mp-pack-20261020-polish\rollback-pc.ps1` |
+| laptop (`I76 MP GATE.app`) | `mac-deploy-polish.sh <game folder> ~/i76-overnight-20261020/polish --swap` | 408 files, 0 mismatches | **cf4f81da** | `bash ~/i76-overnight-20261020/polish/mac-rollback-polish.sh "<game folder>"` (31efcf7a folder kept as `Interstate 76-pre-polish-20261020`) |
+| Andrew's Mac | the same | 408 files, 0 mismatches | **cf4f81da** | the same |
+| Michael's Mac | the same | 408 files, 0 mismatches | **cf4f81da** | the same |
+| Steam Deck | not reached (unreachable all day) | - | its own proxy | - |
+
+Andrew's Mac carried the test proxy aca78c93 only during 7.1. The deployed 31efcf7a was put back right after, then replaced by
+the pack.
+
+**Smoke, PC LAN copy host + Andrew's Mac, both on cf4f81da** (console lock held 09:55-10:16; evidence `smoke-hs4\`, `smoke-coop05\`):
+
+| step | result | n |
+|---|---|---|
+| PC hosts Hope Springs (4 AI); Andrew: MULTI MELEE > JOIN goes straight to the IPX list (watch thread), joins | in; PC: 2 humans, 3 AI in play, 1 parked; Andrew's screen shows the parked car (label 14) at the same spot 3532.5, 41932.5 and the other three in the fight | 1 |
+| PC hosts Scene 5 (Co-op), Andrew joins via the shortcut | copy 1 of `t05fp03` comes in (1 joiner) | 1 |
+| PC (host) leaves by the Esc menu | Andrew becomes host: `parked 't05fp03' (label 83) ... host migration: copy 1, 0 joiner(s) here`, census 39 / 39 parked; **no stray**. Then the scene restart above | 1 |
+
+0 crash lines on both. Andrew's game closed cleanly once between the cells: the key-only Esc-menu leave picked Exit Game (finding
+4; no crash line), and it was restarted. All games ended by this lane were ones it had started. Persisted mutes were cleared for
+the LAN copy and game-mpo-a..c (one left on game-mpo-a was cleared by hand).

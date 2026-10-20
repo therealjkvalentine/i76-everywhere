@@ -1563,17 +1563,21 @@ co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting
 0. **Deck** (it slept through the whole run): wake it (Steam button), then on the PC in Git Bash
    `bash /c/Users/james/i76-uncap-lab/builds/mp-pack-20261020-overnight/deploy/deck/DECK-DEPLOY.sh` (the teams pack changed only
    the proxy, which the Deck does not use). Then let the Deck join one Suburbia game: it was never tested today. Everyone else
-   runs proxy 31efcf7a (teams) since 07:47.
+   runs proxy cf4f81da (teams + polish: Mac shortcut, no stray co-op copy after a host change) since 10:00.
 1. **Feel of AI fill**: PC hosts "Hope Springs (4 AI)"; with 2 / 3 / 4 of you there are 3 / 2 / 1 computer cars. Too many, too few?
    (`I76_AIMELEE_FILL` changes the total; now 5 combatants.)
 2. **Feel of the co-op extras**: "Scene 5 (Co-op)" with 1-3 joiners: each attacking enemy brings one extra car per joiner.
 3. **Kill credit**: shoot an AI car dead as a JOINER (not the host) and check that every screen shows "... was destroyed by
    <you>" and your score. Nobody could measure it this morning (no remote aiming).
 4. **Team play** (item 6 below).
-5. On a Mac: after MULTI MELEE > HOST / JOIN click **IPX** (the shortcut only works on Windows for now). To leave a game: Esc >
+5. On a Mac too, MULTI MELEE > HOST / JOIN now go straight to IPX (pack `mp-pack-20261020-polish`, proxy cf4f81da, 10:00). To leave a game: Esc >
    Abort Mission > Abort Mission > Yes.
 
 6. **Teams** (teams lane; records/MP-TEAMS-2026-10-20.md; needs the next pack, proxy 31efcf7a): PC hosts "Hope Springs (4 AI)"
    with **TEAM PLAY** ticked; everyone picks a team in the pop-up (not Men In Black: that is the AI's team). Expect: the AI go
    for other teams only; when someone quits, the AI that comes back plays on HIS team (it hunts the others, not his mates);
    when someone joins, an AI of his team steps out first. Tell me who scored for kills - the lab could not make any.
+
+7. **Host leaves a co-op scene** (records/LAN-MATRIX-2026-10-20.md section 7.2): when the host quits Scene N, another machine
+   takes over and the scene restarts from the beginning for everyone (measured in the lab and on Andrew's Mac). Keep it, or
+   should the scene go on where it was? Tell me.
