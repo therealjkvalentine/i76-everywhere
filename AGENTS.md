@@ -113,10 +113,12 @@ somewhere else.**
 
 | role | path | may an experiment touch it? |
 |---|---|---|
-| **daily driver — playable** (since 2026-10-03) | `C:\Users\james\Games\Interstate76-2026-10-03` (built by `tools\Make-Daily-Driver.ps1`, docs/records/NEW-DAILY-DRIVER-RECIPE.md) | **NO.** Only finished, verified changes, announced. |
-| golden copy | `C:\Users\james\Games\Interstate76-golden-2026-10-03` | **NO.** Never played; promotions only (`PROMOTIONS.md` inside). |
-| previous daily driver — the rollback | `~/Downloads/Interstate76-i76-everywhere-portable-*/Interstate 76` | **NO.** Kept untouched. |
-| test copy | `../i76-uncap-lab/game` | yes - this is what automation drives |
+| **daily driver — playable** (since 2026-10-03) | `C:\Users\james\Games\I76\daily-driver` (= `Games\Interstate76-2026-10-03`, junction since 2026-10-20; built by `tools\Make-Daily-Driver.ps1`, docs/records/NEW-DAILY-DRIVER-RECIPE.md; `VERSION.md` inside) | **NO.** Only finished, verified changes, announced. |
+| golden copy | `C:\Users\james\Games\I76\golden` (= `Games\Interstate76-golden-2026-10-03`) | **NO.** Never played; promotions only (`PROMOTIONS.md` in the driver). |
+| release candidate (the owner's play-test of the next promotion) | `C:\Users\james\Games\I76\release-candidate` (= lab `game-tick`; `VERSION.md` says what it waits on) | only as a complete, gated set (launchers + presets + proxy together, never a part of it); console gates run here |
+| LAN pack (the PC's copy of the family multiplayer pack) | `C:\Users\james\Games\I76\lan` (= `Games\Interstate76-LAN-2026-10-17`) | **NO.** Pack rollouts only, with backup + rollback script. |
+| previous daily driver — the rollback | `C:\Users\james\Games\I76\_archive\downloads-Interstate76-i76-everywhere-portable-20260801` | **NO.** Kept untouched. |
+| test copies | `../i76-uncap-lab/twin-driver` (= `game-dd-20261003`, the driver's gate twin), `game-sp`, `game-mpo-a..d` | yes - this is what automation drives; name a new copy after its purpose and retire it with its record (docs/LAYOUT-PROPOSAL-2026-10-20.md) |
 | pristine control | `../i76-map/sandbox-gog/main/app` | read-only reference for diffing |
 
 This was already the rule ("a sandbox copy of the install - the playable install is never
