@@ -8171,20 +8171,24 @@ static void apply_terrain_lod(void) {
         { 0x493094 + 6, 0x49308a + 6, 16.0f, 0.0026041667f },    /* Medium (the defaults) */
         { 0x4930a5 + 6, 0x4930af + 6, 40.0f, 0.0017342f },       /* High */
     };
-    char v[16]; DWORD n; float f; int i, ok = 0;
-    n = env_str("I76_TERRAIN_LOD", v, sizeof(v));
-    if (n == 0) return;
-    f = (float)atof(v);
-    if (f < 1.0f || f > 256.0f) { mlog("  terrain-lod: %s out of range (1..256) - not applied", v); return; }
+    char v[16], va[16], vb[16]; DWORD n, na, nb; float f, fa, fb; int i, ok = 0;
+    /* I76_TERRAIN_LOD_A / I76_TERRAIN_LOD_B (lab, 2026-10-19, lod-sweep lane; owner: "maybe lod isn't the right variable"): scale the
+     * split-distance constant A and the height-error constant B on their own (each defaults to I76_TERRAIN_LOD; with LOD unset the
+     * other factor is 1). I76_TERRAIN_LOD=24 alone is LOD_A=24 + LOD_B=24 as before. */
+    n = env_str("I76_TERRAIN_LOD", v, sizeof(v)); na = env_str("I76_TERRAIN_LOD_A", va, sizeof(va)); nb = env_str("I76_TERRAIN_LOD_B", vb, sizeof(vb));
+    if (n == 0 && na == 0 && nb == 0) return;
+    f = n ? (float)atof(v) : 1.0f; fa = na ? (float)atof(va) : f; fb = nb ? (float)atof(vb) : f;
+    if (f < 1.0f || f > 256.0f || fa < 1.0f || fa > 256.0f || fb < 1.0f || fb > 256.0f) { mlog("  terrain-lod: %s / %s / %s out of range (1..256) - not applied", v, va, vb); return; }
     for (i = 0; i < 3; i++) {
         float a0, b0, a1, b1;
         memcpy(&a0, (const void *)lv[i].a_site, 4); memcpy(&b0, (const void *)lv[i].b_site, 4);   /* the exe's own bits */
         if (a0 < lv[i].a * 0.99f || a0 > lv[i].a * 1.01f || b0 < lv[i].b * 0.99f || b0 > lv[i].b * 1.01f) { mlog("  terrain-lod: level %d constants are not the expected values - skipped", i); continue; }
-        a1 = a0 * f; b1 = b0 / f;
+        a1 = a0 * fa; b1 = b0 / fb;
         ok += patch_bytes(lv[i].a_site, (const BYTE *)&a0, (const BYTE *)&a1, 4, "terrain-lod A");
         ok += patch_bytes(lv[i].b_site, (const BYTE *)&b0, (const BYTE *)&b1, 4, "terrain-lod B");
     }
-    mlog("  terrain-lod: x%.2f, %d/6 constants patched (split distance up, height-error threshold down)", f, ok);
+    mlog("  terrain-lod: x%.2f, %d/6 constants patched (split distance up, height-error threshold down)%s", f, ok, (na || nb) ? "" : "");
+    if (na || nb) mlog("  terrain-lod: split A x%.2f, height-error B x%.2f", fa, fb);
     apply_terrain_vguard();
 }
 

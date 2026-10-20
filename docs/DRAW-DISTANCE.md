@@ -113,3 +113,41 @@ Found while mapping the renderer (i76-map `subsystems/renderer.md`): the softwar
 depth buckets that start at -300 m. A bucket index above 4096 is silently dropped (`cmp edi, 0x1000` at 0x48fe61), so
 nothing deeper than about 3796 m in view space is drawn, whatever the far clip says. A far-clip patch that aims past
 about 3.8 km also has to raise this limit (and the flush clamp that walks at most 4096 buckets). Not yet tested live.
+
+## 2026-10-19: terrain pop-in on the T05 canyon ridge - the split distance, not the LOD factor or the vertex guard (lab lod-sweep lane, interim)
+
+Owner: "maybe lod isn't the right variable? ... i can see the terrain changing at the high part behind the t05 intro cutscene road."
+Method (lab copy game-lod = game-tick, preset tick19-33, real renderer, 120 fps cap, tools\lod-sweep\ridge-run.ps1): T05 at the
+mission start (x 8490, z 44520, heading +x, the canyon road), the car held still 12 s with the handbrake, then driven slowly (W) 24 s;
+a PNG every 2 s, the frame's terrain vertices (ridge_sampler.py, 50 ms), fps from I76_FRAME_LOG (display frames; the telemetry dt is the
+33.3 ms tick under the tick preset), vertex-guard refusals from the proxy log. n 1 per setting except the baseline (n 3: 112.0 / 115.5 / 113.9 fps,
+so the fps spread is about +-2). Raw: lab tools\lod-sweep\ridge\<id>\ (PNGs s00..s17, verts.csv, frames.csv, summary.txt), ridge-results.txt.
+
+| setting (far clip 1200) | terrain vertices mean / peak | fps mean | p1 | guard refusals | ridge cliff face |
+|---|---|---|---|---|---|
+| LOD 24 (driver) | 2767 / 3281 | 112.0, 115.5, 113.9 | 81 | 0 | missing (smooth slope) |
+| LOD 48 | 3679 / 4445 | 115.0 | 82 | 0 | |
+| LOD 96 | 5291 / 6614 | 102.8, 106.2 | 73, 78 | 0 | |
+| LOD 256 | 8412 / 10848 | 94.8 | 65 | 0 | resolved |
+| LOD 96, VLIMIT 31000 | 5125 / 6629 | 104.1 | 71 | 0 | same as 96 |
+| LOD 256, VLIMIT 31000 | 8539 / 10867 | 96.3 | 64 | 0 | same as 256 |
+| A 96, B 24 (distance only) | 3907 / 4738 | 112.6 | 80 | 0 | resolved (near x256) |
+| A 256, B 24 | 4496 / 5529 | 110.0 | 80 | 0 | resolved |
+| A 24, B 96 (height error only) | 3450 / 4097 | 113.2 | 82 | 0 | missing, as LOD 24 |
+| A 24, B 256 | 4004 / 4856 | 109.0 | 79 | 0 | missing, as LOD 24 |
+| A 1, B 256 | 1379 / 1473 | 117.7 | 81 | 0 | coarse everywhere |
+
+- **The vertex guard is not involved**: peak 10.9k vertices at x256, the guard (28000, or 31000) never refused a split in this view.
+  VLIMIT 31000 changed nothing (verts and fps within noise); it would also leave only 1.8k under the 32,767 int16 ceiling while the leaf
+  edges add about 1.9k past the limit, so it is a risk with no gain here. Keep 28000.
+- **The ridge is the split distance (A)**: A 256 / B 24 and A 96 / B 24 show the canyon wall's terraced cliff face from the start;
+  A 24 / B 256 does not (identical to x24). The height-error constant B costs vertices (x96 -> +1.5k) without showing here. New lab switches
+  `I76_TERRAIN_LOD_A` / `I76_TERRAIN_LOD_B` (strlkproxy.c; side proxy lab builds\lod-split-20261019, source 6efb646 + the change) split them.
+  Same fps cost class as the driver (n 1) at A 96 / B 24, against about 10 fps for x96 and 17 fps for x256.
+- **Vertex budget by distance at LOD 24** (far clip 150 / 300 / 600 / 1200 / 1800 m = terrain vertices mean 661 / 1197 / 1653 / 2767 / 5619, n 1):
+  the ground within 150 m takes 24 % of the 1200 m budget, within 300 m 43 %, within 600 m 60 %; the ridge shell beyond 600 m about 40 %
+  and the 1200-1800 m shell as much again. These are all terrain in a radius, not flat vs rugged (the quadtree gives no per-node count
+  from outside); a relief-weighted split would take the distance constant per node from the height error the B test already computes at
+  the same decision point as the vertex guard (0x4912f6).
+- Baseline p1 is 81 fps at LOD 24 itself (frame-log wall periods under the tick), so no LOD can meet p1 >= 110 on this view; the earlier
+  p1 97-100 figures were per-frame telemetry dt under a per-frame preset.
