@@ -21,15 +21,18 @@
  * The wave rule (aimelee.c) counts only the cars in play.
  *
  * CO-OP SCALING (kind 2, ADDON\coopNN.lvl built with coop-mission.py --copies K, host): each enemy car has K parked
- * copies (team 0 in the file, so the script's allEnemyDead / isWithinEnemy, which walk teams 1..7, never count them:
- * the win / loss logic is the stock one over the stock cars). Copy j comes into the game when its original is first
+ * copies (team 0 in the file, so the script's allEnemyDead / isWithinEnemy, which walk teams 1..7, never count a
+ * parked one; a lone host's mission is the stock one). A copy that comes in is moved from team list 0 to its
+ * original's list with its team bits (mpf_move_team; the engine removes a dying object from the list of its flags'
+ * team - only changing the bits left a dangling handle in list 0 and crashed the next teardown, 0x4099af, n 1), so it
+ * fights as an enemy and counts like one: allEnemyDead waits for it too. Copy j comes into the game when its original is first
  * given a behaviour aimed at a human (coop_ai_attack: the original "engages") while it is alive and at least j joiners
  * are present (I76_COOP_SCALE_MAX caps j, default 3): beside the original (12 + 8 j m behind it, 6 m to a side), with
  * the original's team bits, then the same attack tick as the AI melee (nearest live human, sticky) until it dies. A
  * joiner who arrives later brings the next copy of every engaged live original; a copy in the game stays there. With
  * no joiner nothing moves: the lone host plays the stock mission (the copies sit 8 km away, engine off).
  * I76_COOP_SCALE=0 turns it off (the copies stay parked). */
-static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log;
+static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log, g_mpf_test;
 static volatile LONG g_mpf_parks, g_mpf_acts, g_mpf_copies;
 typedef struct { DWORD lo, hi, olo, ohi; BYTE kind, j; float px, pz; int li, oli; BYTE state; } mpf_tag_t;
 enum { MPF_PLAY = 0, MPF_PARKED = 1, MPF_COPY_IN = 2 };
@@ -74,6 +77,7 @@ static void mpf_load(void) {                                 /* the mission's ta
         g_mpf_n++; p += 107;
     }
     free(buf);
+    if (g_mpf_test) { int i; for (i = 0; i < g_mpf_n; i++) if (g_mpf[i].kind == 2) g_mpf_engaged[g_mpf[i].oli] = 1; }   /* LAB: every original engaged */
     if (g_mpf_n) mlog("  mpfill: '%s' - %d tagged cars (%s), role %s", m, g_mpf_n, g_mpf[0].kind == 1 ? "AI fill pool" : "co-op copies",
                       coop_ai_role() == 1 ? "host" : "joiner");
 }
@@ -109,6 +113,18 @@ static void mpf_bring(mpf_tag_t *t, double x, double z, int hdg, const char *why
     ((void (__cdecl *)(BYTE *))0x00467400)(o);               /* startCar */
     t->state = t->kind == 2 ? MPF_COPY_IN : MPF_PLAY; g_mpf_park_since[t->li] = 0; g_mpf_acts++;
     mlog("  mpfill: '%.8s' (label %d) into the game at %.1f,%.1f heading %d - %s", (char *)o, t->li, x, z, hdg, why);
+}
+static int mpf_move_team(BYTE *o, DWORD team) {             /* team lists 0x507da0 + t*0x100 (64 handles), counts 0x51f5d0 + t*4 */
+    DWORD cur = (*(DWORD *)(o + 0x10) >> 16) & 7; int *cnt0 = (int *)(0x0051f5d0 + cur * 4), *cnt1 = (int *)(0x0051f5d0 + team * 4), i;
+    BYTE ***l0 = (BYTE ***)(0x00507da0 + cur * 0x100), ***l1 = (BYTE ***)(0x00507da0 + team * 0x100);
+    if (team == cur) return 1;
+    if (*cnt1 >= 64) return 0;
+    for (i = 0; i < *cnt0 && i < 64; i++) if (l0[i] && *l0[i] == o) break;
+    if (i >= *cnt0 || i >= 64) return 0;                     /* not in its flags' list: leave everything as it is */
+    l1[(*cnt1)++] = l0[i];                                   /* the same handle, moved: entity removal looks in the list of the flags' team */
+    l0[i] = l0[*cnt0 - 1]; (*cnt0)--;
+    *(DWORD *)(o + 0x10) = (*(DWORD *)(o + 0x10) & ~0x70000u) | (team << 16);
+    return 1;
 }
 static double mpf_d2(BYTE *a, double x, double z) { double dx = *(double *)(a + 0x40) - x, dz = *(double *)(a + 0x50) - z; return dx * dx + dz * dz; }
 static double mpf_near_car(double x, double z) {             /* squared distance to the nearest live car in the game */
@@ -167,7 +183,9 @@ static void mpf_fill_tick(void) {
 /* --- co-op scaling (host, every frame from the ai_FrameTick site) ------------------------------------------------- */
 static void mpf_engaged(BYTE *a) {                           /* coop_ai_attack: a behaviour aimed at a human (host) */
     int i;
-    if (!g_mpf_scale || !g_mpf_n) return;
+    if (!g_mpf_scale) return;
+    mpf_load();                                              /* never a stale table across a reload */
+    if (!g_mpf_n) return;
     for (i = 0; i < g_mpf_n; i++) if (g_mpf[i].kind == 2 && mpf_obj(g_mpf[i].oli) == a) { g_mpf_engaged[g_mpf[i].oli] = 1; return; }
 }
 static void mpf_coop_tick(void) {
@@ -184,7 +202,7 @@ static void mpf_coop_tick(void) {
             {   int hd = mpf_heading(orig); double r = hd / 57.29578, back = 12.0 + 8.0 * t->j, side = (t->j & 1) ? 6.0 : -6.0;
                 double x = *(double *)(orig + 0x40) - sin(r) * back + cos(r) * side, z = *(double *)(orig + 0x50) - cos(r) * back - sin(r) * side;
                 char why[64];
-                *(DWORD *)(o + 0x10) = (*(DWORD *)(o + 0x10) & ~0x70000u) | (*(DWORD *)(orig + 0x10) & 0x70000u);
+                if (!mpf_move_team(o, (*(DWORD *)(orig + 0x10) >> 16) & 7)) { t->state = MPF_COPY_IN + 1; mlog("  mpfill: copy '%.8s' (label %d) not in its team list - left parked", (char *)o, t->li); break; }
                 sprintf(why, "copy %d of '%.8s' (label %d), %d joiner(s)", t->j, (char *)orig, t->oli, h - 1);
                 mpf_bring(t, x, z, hd, why); g_mpf_copies++;
             }
@@ -250,6 +268,7 @@ static void apply_mpfill(void) {
     g_mpf_scale = env_flag("I76_COOP_SCALE", 8, 1);
     g_mpf_scale_max = env_int("I76_COOP_SCALE_MAX", 8, 3); if (g_mpf_scale_max < 0) g_mpf_scale_max = 0; if (g_mpf_scale_max > 8) g_mpf_scale_max = 8;
     g_mpf_log = env_flag("I76_MPF_LOG", 8, 0);
+    g_mpf_test = env_flag("I76_COOP_SCALE_TEST", 8, 0);   /* LAB ONLY: treat every enemy original as engaged at load (copies come in at once) */
     mlog("  mpfill: AI fill %s, co-op scaling %s (copies per enemy up to %d joiners), car census log %s",
          g_mpf_fill < 0 ? "auto (pool + 1 combatants)" : g_mpf_fill == 0 ? "off" : "fixed", g_mpf_scale ? "on" : "off", g_mpf_scale_max, g_mpf_log ? "on" : "off");
     if (g_mpf_fill > 0) mlog("  mpfill: I76_AIMELEE_FILL=%d combatants", g_mpf_fill);
