@@ -1213,7 +1213,8 @@ static int g_st_flame_state = 0;
  * factor 1 33.2 (n 10, tick33 + tick66), at 2.5 72.7 (n 5) -> 2.8. On the T05 bar (stock sphere) the same factor gives
  * 1400 per sim s against 1997's 669: the bar's contact per update already equals 1997's (only the mirror's 40 / 30
  * updates are missing there), the car's is about half - not explained, s.12. */
-#define ST_FLAME_DMG_DEFAULT 2.8f
+#define ST_FLAME_DMG_DEFAULT 2.8f                            /* the fixed factor's fallback (an out-of-range I76_SIM_TICK_FLAME_DMG) */
+#define ST_FLAME_DMG_REF_DEFAULT 3.5f                        /* s.18: the rate-aware factor's G (strlkproxy.c flame_dmg_factor) */
 static float g_st_flame_dt;                                  /* I76_SIM_TICK_FLAME_DT=<s> (lab): the flamer update's dt floor instead of the tick */
 static float __cdecl st_flame_dt(void) { float dt = *(volatile float *)0x004fe428, f = g_st_flame_dt > 0.0f ? g_st_flame_dt : g_ref_dt; return dt > f ? dt : f; }
 static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
@@ -1472,6 +1473,8 @@ static void st_factors_install(int tick) {
     if (tick) {
         int cnt = (int)(g_st_T * 20.0f) + 1;                 /* the vehicle stepper's substeps per tick */
         base = ref * g_st_T; sub = ref * g_st_T / (float)cnt; if (sub > 1.0f) sub = 1.0f;
+        if (base > 0.999f && base < 1.001f) base = 1.0f;     /* s.18: the tick at the 1997 rate (41.667 ms at ref 24) - nothing to scale */
+        if (sub > 0.999f) sub = 1.0f;
         g_stf_f[0] = st_factor_env("I76_SIM_TICK_HAZARD_FACTOR", base);
         g_stf_f[1] = st_factor_env("I76_SIM_TICK_SCRAPE_FACTOR", base);
         g_stf_f[2] = st_factor_env("I76_SIM_TICK_WRECK_FACTOR", sub); if (g_stf_f[2] > 1.0f) g_stf_f[2] = 1.0f;
@@ -1551,9 +1554,11 @@ static void apply_simtick(void) {
     g_st_flame_clk = env_flag("I76_SIM_TICK_FLAME_CLK", 8, 0) == 1;
     g_st_flame_state = env_flag("I76_SIM_TICK_FLAME_STATE", 8, g_st_flame_state) == 1;
     {   char fv[16]; if (env_str("I76_SIM_TICK_FLAME_DT", fv, sizeof(fv))) g_st_flame_dt = (float)atof(fv); }
-    {   char fv[16]; g_st_flame_dmg = ST_FLAME_DMG_DEFAULT;   /* flame damage factor under the tick (strlkproxy.c flame_damage_wrap) */
-        if (env_str("I76_SIM_TICK_FLAME_DMG", fv, sizeof(fv))) g_st_flame_dmg = (float)atof(fv);
-        if (!(g_st_flame_dmg >= 0.0f && g_st_flame_dmg <= 10.0f)) g_st_flame_dmg = ST_FLAME_DMG_DEFAULT; }
+    {   char fv[16]; g_st_flame_dmg = 1.0f; g_st_flame_auto = 1; g_st_flame_ref = ST_FLAME_DMG_REF_DEFAULT;   /* flame damage factor under the tick (strlkproxy.c flame_damage_wrap) */
+        if (env_str("I76_SIM_TICK_FLAME_DMG", fv, sizeof(fv)) && fv[0] != 'a' && fv[0] != 'A') {   /* a number: the fixed factor (as before s.18) */
+            g_st_flame_auto = 0; g_st_flame_dmg = (float)atof(fv);
+            if (!(g_st_flame_dmg >= 0.0f && g_st_flame_dmg <= 10.0f)) g_st_flame_dmg = ST_FLAME_DMG_DEFAULT; }
+        if (env_str("I76_SIM_TICK_FLAME_DMG_REF", fv, sizeof(fv))) { float r = (float)atof(fv); if (r >= 0.0f && r <= 10.0f) g_st_flame_ref = r; } }
     g_st_fage_hz = env_int("I76_SIM_TICK_FLAME_AGE", 8, g_st_fage_hz); if (g_st_fage_hz < 0) g_st_fage_hz = 0; if (g_st_fage_hz > 1000) g_st_fage_hz = 1000;
     g_st_pend_once = env_flag("I76_SIM_TICK_PEND_ONCE", 8, g_st_pend_once) == 1;   /* s.17: owner playtest of tick19e */
     g_st_early_cam = env_flag("I76_SIM_TICK_EARLY_CAM", 8, g_st_early_cam) == 1;
@@ -1561,6 +1566,7 @@ static void apply_simtick(void) {
     g_st_orbit_ref = env_flag("I76_SIM_TICK_ORBIT_REF", 8, g_st_orbit_ref) == 1;
     g_st_sign_snd = env_flag("I76_SIM_TICK_SIGN_SOUND", 8, g_st_sign_snd) == 1;
     {   char rv[16]; if (env_str("I76_SIM_TICK_REF_HZ", rv, sizeof(rv))) { float r = (float)atof(rv); if (r >= 10.0f && r <= 60.0f) g_st_ref_hz = r; } }
+    g_st_flame_k = (1.0f / g_st_ref_hz) / g_st_T;            /* s.18: T_ref / T for the rate-aware flame factor */
     {   char dp[MAX_PATH];
         if (env_str("I76_SIM_TICK_DRAWLOG", dp, sizeof(dp)) && (g_st_dlog = fopen(dp, "w")) != 0) {
             setvbuf(g_st_dlog, NULL, _IOFBF, 1 << 13);   /* the process is killed at the end: at most 8 KB lost */
@@ -1677,7 +1683,11 @@ static void apply_simtick(void) {
          g_st_input ? (g_st_joy_on ? "ON (I76_SIM_TICK_INPUT=1: keyboard + joystick)" : "ON (I76_SIM_TICK_INPUT=1: keyboard; I76_SIM_TICK_JOY=0)") : "off",
          g_st_proj ? "ON (I76_SIM_TICK_PROJ=1)" : "off", g_st_trc ? "ON (I76_SIM_TICK_TRACER=1)" : "off", g_st_flame_state ? "ON (I76_SIM_TICK_FLAME_STATE=1)" : "off", g_st_snd ? "ON (I76_SIM_TICK_SOUND=1)" : "off", g_st_fage_hz > 0 ? g_st_fage_hz : (int)(1.0f / g_st_T + 0.5f),
          g_st_fage_hz > 0 ? " (I76_SIM_TICK_FLAME_AGE)" : " (every tick: I76_SIM_TICK_FLAME_AGE=0)", g_wst ? "mapped" : "MISSING");
-    mlog("  sim-tick: flame damage x %.3f per application (I76_SIM_TICK_FLAME_DMG; default %.3f = the 1997 main + mirror rate per sim second)", g_st_flame_dmg, ST_FLAME_DMG_DEFAULT);
+    if (g_st_flame_auto)
+        mlog("  sim-tick: flame damage rate-aware (I76_SIM_TICK_FLAME_DMG unset / auto): G %.3f (I76_SIM_TICK_FLAME_DMG_REF) at the 1997 pass of %.3f ms; "
+             "per application x %.3f at amount 1, x %.3f at 2, x %.3f at 3 (s.18)", g_st_flame_ref, 1000.0f / g_st_ref_hz, flame_dmg_factor(1), flame_dmg_factor(2), flame_dmg_factor(3));
+    else
+        mlog("  sim-tick: flame damage x %.3f per application (I76_SIM_TICK_FLAME_DMG fixed; unset = rate-aware, s.18)", g_st_flame_dmg);
     mlog("  sim-tick: s.17 - sky scroll %s, death / end-of-match orbit %s (ref %.1f / s), script camera from the drawn view on an early tick %s, "
          "pending key release counted once %s, sign knocked off by the sweep plays the contact sound %s",
          g_st_sky_ref ? "at the 1997 rate (I76_SIM_TICK_SKY_REF=1)" : "at the tick's rate", g_st_orbit_ref ? "at the 1997 rate (I76_SIM_TICK_ORBIT_REF=1)" : "at the tick's rate",

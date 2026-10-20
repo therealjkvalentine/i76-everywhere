@@ -1914,7 +1914,9 @@ static void radar_ping_flush(void) {                        /* from the frame ho
  * render pass on grid frames, i.e. 20 times a second, as at stock 20 fps with the mirror off. */
 static DWORD g_idbg_flame_hits, g_idbg_flame_dmg;           /* copied into the debug block by the render wrapper */
 static int g_flame_dmg_ok;
-static float g_st_flame_dmg = 1.0f;                          /* I76_SIM_TICK_FLAME_DMG (simtick.c; flame_damage_wrap below) */
+static float g_st_flame_dmg = 1.0f;                          /* I76_SIM_TICK_FLAME_DMG as a number: a fixed factor (simtick.c; flame_damage_wrap below) */
+static int g_st_flame_auto;                                  /* 1 = the rate-aware factor (I76_SIM_TICK_FLAME_DMG unset or 'auto'; TICK-FINISH s.18) */
+static float g_st_flame_ref = 3.5f, g_st_flame_k = 1.0f;     /* ... its factor at the 1997 rate (I76_SIM_TICK_FLAME_DMG_REF), and T_ref / T */
 static DWORD g_fdc_in, g_fdc_out;                            /* flame amounts before / after that factor (log) */
 static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > g_ref_dt ? dt : g_ref_dt; }
 static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))0x00443e90)(); }
@@ -2128,7 +2130,7 @@ static void flame_box_log(void) {
 static void flame_narrow_log(void) {
     int i;
     flame_box_log();
-    if (g_simtick) mlog("  flame-dmg: factor %.3f under the tick: amounts %lu in, %lu applied", g_st_flame_dmg, (unsigned long)g_fdc_in, (unsigned long)g_fdc_out);
+    if (g_simtick) mlog("  flame-dmg: factor %s under the tick: amounts %lu in, %lu applied", g_st_flame_auto ? "rate-aware" : "fixed", (unsigned long)g_fdc_in, (unsigned long)g_fdc_out);
     for (i = 0; i < g_fnp_n; i++) {
         fnp_t *e = &g_fnp[i];
         mlog("  flame-narrow: rec %08lx obj %08lx class %lu type %lu radius %.2f centre %.2f,%.2f,%.2f; narrow calls (other / grid-or-tick) %lu / %lu, hits %lu / %lu; "
@@ -2181,14 +2183,28 @@ static void flame_census_frame(void) {                      /* frame hook: strea
  * 33.3 ms, 2 at 66.7 ms) is multiplied by the factor, the fraction carried per target (16 kept), so the factor is per unit
  * of damage and therefore per unit of sim time in both tick arms. Every stream goes through this site (0x4357c3 in
  * weapon_FlameHitTest), the AI's flamers included. Only under the tick (g_simtick): the 20 Hz grid and the stock loop
- * are untouched. */
+ * are untouched.
+ * 2026-10-19 (tick42 lane, TICK-FINISH s.18): the factor is rate-aware by default (I76_SIM_TICK_FLAME_DMG unset or 'auto';
+ * a number keeps the fixed factor above). The engine's amount per application is a = max(1, int(R x T)) (R = the flamer's
+ * GDFC damage x the difficulty factor), so the tick's flame units per sim second, a / T, do not follow 1 / T: a Gas
+ * Launcher (R 30) gets 30 / s at 33.3 and at 66.7 ms (a = 1, 2) but 24 / s at 41.667 ms (a = 1). Each application is now
+ * scaled to what a 1997 pass at the reference frame (T_ref = 1 / I76_SIM_TICK_REF_HZ, 41.667 ms) computed, a_ref =
+ * max(1, int(a x T_ref / T)), per sim second: factor = G x (a_ref / T_ref) / (a / T), G = I76_SIM_TICK_FLAME_DMG_REF
+ * (default 3.5, the car calibration: = 2.8 at 33.3 and 66.7 ms for the Gas Launcher, s.12; 3.5 at 41.667 ms). a_ref from
+ * a alone equals int(R x T_ref) for every stock flamer and difficulty (R 11.25 .. 120) at 33.3, 41.667 and 66.7 ms. */
+static float flame_dmg_factor(DWORD a) {
+    int ar;
+    if (!g_st_flame_auto) return g_st_flame_dmg;
+    ar = (int)((float)a * g_st_flame_k + 0.001f); if (ar < 1) ar = 1;
+    return g_st_flame_ref * (float)ar / ((float)a * g_st_flame_k);
+}
 static struct { DWORD tgt; float carry; } g_fdc[16]; static int g_fdc_next;
 static DWORD flame_dmg_scale(DWORD target, DWORD a) {
     float x; int i; DWORD n;
     if (a == 0 || a > 100000) return a;                     /* not an integer amount: as stock */
     for (i = 0; i < 16; i++) if (g_fdc[i].tgt == target) break;
     if (i == 16) { i = g_fdc_next; g_fdc_next = (g_fdc_next + 1) & 15; g_fdc[i].tgt = target; g_fdc[i].carry = 0.0f; }
-    x = (float)a * g_st_flame_dmg + g_fdc[i].carry;
+    x = (float)a * flame_dmg_factor(a) + g_fdc[i].carry;
     n = (DWORD)x; g_fdc[i].carry = x - (float)n;
     g_fdc_in += a; g_fdc_out += n;
     return n;
@@ -2197,7 +2213,7 @@ static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
     g_idbg_flame_hits++;
     if (g_flc_on) g_flc_hits++;
     if (!g_flame_dmg_ok) return;
-    if (g_simtick && g_st_flame_dmg != 1.0f) { DWORD n = flame_dmg_scale(target, rec.d[4]); if (!n) return; rec.d[4] = n; }
+    if (g_simtick && (g_st_flame_auto || g_st_flame_dmg != 1.0f)) { DWORD n = flame_dmg_scale(target, rec.d[4]); if (!n) return; rec.d[4] = n; }
     g_idbg_flame_dmg++;
     if (g_flc_on) flame_census_note(&rec);
     ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
