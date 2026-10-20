@@ -236,3 +236,108 @@ the pack.
 0 crash lines on both. Andrew's game closed cleanly once between the cells: the key-only Esc-menu leave picked Exit Game (finding
 4; no crash line), and it was restarted. All games ended by this lane were ones it had started. Persisted mutes were cleared for
 the LAN copy and game-mpo-a..c (one left on game-mpo-a was cleared by hand).
+
+## 8. Steam Deck onto the polish pack (15:20-, Deck lane)
+
+The Deck answered at 192.168.1.155 from 15:16 (main's `DECK-DEPLOY.sh` at 15:10 put the 37 overnight arena files in place).
+This section brings its proxy and switches onto the pack the other machines run, as new files beside the old ones.
+Scripts: lab `builds\mp-pack-20261020-polish\deploy\deck\` (lab 91d62ff); Deck test helpers: lab `tools\lan-matrix\deck\`.
+Evidence: lab `captures\deck-polish-20261020\`.
+
+### 8.1 What was installed (15:25, `DECK-DEPLOY-POLISH.sh apply`, no sudo)
+
+| path on the Deck (`~/Games/Interstate76/`) | before | after |
+|---|---|---|
+| `game/Strlkup.dll` (the proxy; lower-case name kept) | 8bc52939 (pad-menu v3 build) | **cf4f81da** (= the pack's `common/STRLKUP.DLL`) |
+| `game/Strlkup.dll.8bc52939-pre-mp-20261020` | absent | 8bc52939 (the old proxy, kept) |
+| `game/ADDON/vppirna4.vcf` | absent | 0e096056 (the pack's stock GOG file; the Deck had none) |
+| `i76-env-mp.sh` | absent | 8a2d6b8a (new; 8.2) |
+| `i76-deck-launch-mp.sh` | absent | c73fc913 (new; 8.2) |
+| `i76-env.sh`, `i76-deck-launch.sh`, everything else in `game/` | - | unchanged |
+
+- **Verified against the pack's `common.md5`:** the 61 files a network game compares or loads (STRLKUP.DLL, `ipxwrapper.dll`
+  06a01d0f, `wsock32.dll` 70e4a652, `mswsock.dll` c18759b2, `ANETDLL.DLL`, `DLL/WINET.DLL`, `ADDON/ai_*`, `auto*`, `coop*`,
+  `vppirna4.vcf`): **0 mismatches**. IPXWrapper was already on the Deck, byte-identical to the pack's (since 2026-10-07), and
+  `i76-env.sh` already sets `WINEDLLOVERRIDES=ddraw,d3dimm,wsock32,mswsock=n,b`. The pack's Mac / Windows parts add nothing a
+  Wine copy needs for the network (OpenGLide, DxWnd, dgVoodoo and the pad layer are per machine; the Deck has its own).
+- **Kept as the Deck's own (not network files):** `i76.exe` f92b8a7e (AiO lineage + a 1-byte stack-reserve change; the pack's
+  6319abf7 imports `u32x.dll`, which the Deck does not have), `i76shell.dll` 8960fa16 (the pack's a300db63 is this shell + 590
+  bytes: u32x rename, text-entry, F7 / modal keys), `ADDON/valepre4.vcf` 4ed297ca (non-stock: **Jade's Car is refused by a stock
+  host; pick another car**, as since 2026-10-18), `ADDON/a2fnsg1m.cbk` not added (the Deck's ADDON was cleared of texture files on
+  2026-10-14 and its launcher warns on any `.cbk`). This exe and shell joined PC games on 2026-10-18. Static check: the 590
+  differing shell bytes lie outside every site the proxy patches (mp-menu 0x10025f82 / 0x100260b2, arena-fit 0x1002b3af /
+  0x1002b421). Live, the Deck's proxy log reads `mp-menu: skip ... patched, read back OK`, `arena-fit ... 2 / 2 text calls
+  repointed, read back OK`, `coop-ai: 27/27 ... repointed`, `coop-chain: 7/7`, `aimelee: on (2/2 sites)`, `mpfill: AI fill auto
+  ... co-op scaling on ... fill teams on`, `mute: session muted = 1` (8.3).
+- **Rollback tested (15:27):** `DECK-DEPLOY-POLISH.sh rollback` put 8bc52939 back and removed the three added files; its check
+  of `state/before.md5` (every file of `game/` except logs, plus the two launcher paths: 498 paths) found **0 differences**, the
+  only extra file being the kept backup. Re-applied at 15:28 (0 mismatches again). Rollback by hand on the Deck:
+  `bash ~/i76-overnight-20261020/polish-deck/deck-rollback-polish.sh` (refuses while i76.exe runs). Every launch, through either
+  launcher, rewrites `game/dgVoodoo.conf` (resolution per display) and `game/input.map` (from the pad profile), as before, so
+  after a game has run the rollback check lists those two as differences.
+
+### 8.2 The switches: the Deck keeps its own set and adds the three LAN switches
+
+`i76-env-mp.sh` sources `i76-env.sh` unchanged, then exports `I76_COOP_AI=1`, `I76_COOP_CHAIN=1`, `I76_MP_MENU=1` (the three
+`PLAY-LAN.bat` sets and `mp-mac-install.sh` writes into the Macs' `[Environment]`); `I76_AIMELEE_FILL`, `I76_COOP_SCALE` and
+`I76_AIMELEE_TEAMS` stay at the proxy defaults, as on every machine. `i76-deck-launch-mp.sh` runs the unchanged
+`i76-deck-launch.sh` with `I76_ENV_FILE=i76-env-mp.sh` and `I76_LAUNCH_LOG=deck-launch-mp.log` (the launcher already reads
+both). Steam launch options: `"/home/deck/Games/Interstate76/i76-deck-launch-mp.sh" %command% -glide`.
+
+**Why not the Macs' set.** The Macs run (Andrew's `user.reg`, read 15:22): `I76_HIRES_CLOCK=1 I76_FIXED_STEP=24
+I76_FRAMERATE_FIXES=1 I76_ENGINE_DT_FIX=1 I76_RENDER_INTERP=1 I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1 I76_AI_ROLL_HOLD=0
+I76_COLL_DEDUPE=0 I76_FPS_CAP=120 I76_FPS_LOG=5 I76_MUSIC_THREAD=1`, plus the LAN switches and OpenGLide `OGL_*`. The Deck's
+`i76-env.sh` already has every one of those sim switches with the same value (the step is 24 ms on all three platforms),
+except `I76_COLL_DEDUPE` (Deck 1, Macs 0). On top of that the Deck has the PC host's own preset (`best-wide`: collision G
+`I76_COLL_WINDOW=2` / `stepframe`, `I76_BREAKABLE_BOX`, `I76_INPUT_LATCH`, `I76_AI_BACKAWAY_GRID`, `I76_CAM_GROUND_FIX`, the
+draw distances) and what its renderer needs (`I76_ZGLIDE_TMUFIX` is required by its dgVoodoo `MemorySizeOfTMU 8192`;
+`I76_CURSOR_MAP` / `I76_PAD_MENU` run its menu pointer). Each machine simulates its own car (GAME-NIGHT-ROLLOUT 2026-10-17), so
+these extras change how the Deck feels, not the network game. The Macs lack them only because they were never run under Wine
+there. Taking the Macs' set would drop switches the owner plays the Deck with, and that its renderer needs, with no network
+gain: the step, the fixes and the LAN switches already match. `I76_MUSIC_THREAD` (a Mac boot-hang workaround) was not added,
+because the Deck boots without it.
+
+### 8.3 Measured
+
+| check | result | n |
+|---|---|---|
+| Deck boots through `i76-deck-launch-mp.sh` (started over SSH outside Steam, 8.4) | `deck-launch-mp.log`: switches from `i76-env-mp.sh` (all of `i76-env.sh` + the three), md5 lines Strlkup cf4f81da / i76.exe f92b8a7e / i76shell 8960fa16, display profile tv (the Deck is docked: DP-1 3840x2160, game screen 1280x720); proxy init lines as in 8.1 | 1 |
+| Deck: MULTI MELEE > JOIN with the shortcut | lands on the network entry form (shell sfn 0x10028610) straight from the main menu, no MODEM / IPX row | 1 |
+| PC LAN copy hosts headless (8.4): MULTI MELEE > HOST straight to the IPX host form, Suburbia, BROADCAST GAME | in mission `m04.msn` as host (me 3) after 20 s; `mp-menu ... patched`, `mute: session muted = 1`, 49 census lines, 0 crash lines | 1 |
+| **Deck joins the PC's Suburbia / Hope Springs (4 AI) / a co-op scene** | **not measured**: the Deck stopped answering at 15:34, two minutes after the PC began hosting (SSH refused, then ping and SSH time out; a Wake-on-LAN packet did nothing). Polled until 16:10 | 0 |
+
+### 8.4 How the live cells are driven (for whoever finishes them)
+
+- **Deck, from SSH, with no Steam change:** lab `tools\lan-matrix\deck\push.sh` copies the helpers and the probe to
+  `~/i76-overnight-20261020/polish-deck/lan/` on the Deck. `start-deck-mp.sh` starts the new launcher with the proton line
+  Steam's shortcut uses (`GE-Proton10-12/proton waitforexitandrun .../game/i76.exe -glide`, `DISPLAY=:1`), plus `I76_MUTE=1
+  I76_MPF_LOG=1 I76_SKIP_MOVIES=1`, **as a transient `systemd-run --user` unit**. SteamOS sets `KillUserProcesses=True`
+  (`/etc/systemd/logind.conf.d/killuserprocesses.conf`), so the first try, started with `setsid nohup`, was killed (rc 143) one
+  second after the SSH session closed. `decknav.sh top | jform | joingo | joinname NAME | leave | pos` drives the game through
+  the probe (stretched pointer map). `stop-deck-mp.sh` ends only the game it started.
+- **PC host without the console:** only the LAN copy's `i76.exe` has inbound allow rules in the Windows Firewall ("Interstate
+  76 LAN (i76.exe TCP/UDP)", Private). The lab `game-mpo-a..d` copies have **Block** rules for inbound, which is why another
+  machine cannot reach them. The deployed cf4f81da has no headless click path. So for the run, `deckhost.py prep` saves the whole
+  LAN copy (`captures\deck-polish-20261020\lan-copy-before`, 479 files) and `cell` puts the lab twin of the same source into it
+  (`builds\mp-polish-20261020\Strlkup-pol1lab.dll` 4528785c = d249380 + the `I76_LAB_SHELLCLICK` block, the proxy behind every
+  polish-lane measurement). It boots the copy on a private desktop through the mpo harness (`I76_MUTE=1` + per-pid mute
+  watcher, `I76_MPF_LOG=1`, `I76_SHM_SUFFIX=Interstate76-LAN-2026-10-17`) and hosts by poking the arena index. `restore` puts
+  every file back. Restored at 15:40: STRLKUP.DLL and `user.mel` copied back, `labclick.done` removed, **479 files checked, 0
+  differ** (STRLKUP.DLL cf4f81da), persisted mute cleared (it was not muted). No i76.exe of the owner's was running at the boot
+  (checked first).
+
+### 8.5 Open
+
+- **The Deck's join on the new pack** (Suburbia, Hope Springs (4 AI) with the AI count on both screens, Scene 5 (Co-op) with a
+  copy for the Deck): n 0. Either the owner's step (OWNER-TEST-LIST "Morning 2026-10-20" item 0) or 8.4 once the Deck is awake
+  and kept awake.
+- **Steam's shortcut still starts the old launcher.** Changing the launch options to `i76-deck-launch-mp.sh` (or adding a second
+  shortcut) edits Steam's config, which this lane left to the owner. Until then the Deck runs cf4f81da without the LAN switches:
+  stock arenas mix; in the AI and co-op arenas it does not mirror the host's AI cars (no `I76_COOP_AI`).
+- **The lane's test game may still be on the sleeping Deck** (started 15:32 outside Steam, unit `i76-deck-mp-153209`, muted).
+  A loop on James's laptop (`~/i76-overnight-20261020/deck-polish/deck-stop-loop.sh`, every 60 s for 14 h, log beside it) stops
+  exactly that game when the Deck answers. If the log has no DONE line, run `bash
+  ~/i76-overnight-20261020/polish-deck/lan/stop-deck-mp.sh` on the Deck before starting the game from Steam (both would share
+  one Proton prefix).
+- The Deck's exe / shell stay its own (8.1); not a network difference measured so far, but the PC's shell fixes (F7, modal keys)
+  are not on the Deck.

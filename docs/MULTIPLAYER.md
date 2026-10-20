@@ -176,7 +176,7 @@ sheet for the players: [GAME-NIGHT.md](GAME-NIGHT.md). Re-run the matrix from th
 | Michael's Mac | Desktop: **Interstate 76 LAN** (a link to `~/Games/Interstate76-MP/Interstate 76.app`) | inside that app |
 | Andrew's Mac | Desktop: **Interstate 76 LAN** (same layout) | inside that app |
 | James's laptop | `~/Applications/Sikarugir/I76 MP GATE.app` until the pack is swapped into his own `Interstate 76.app` (rollout record section 5) | inside that app |
-| Steam Deck | Steam (Game Mode) > **Interstate 76** (non-Steam shortcut, launches `~/Games/Interstate76/i76-deck-launch.sh`) | `~/Games/Interstate76/game` |
+| Steam Deck | Steam (Game Mode) > **Interstate 76** (non-Steam shortcut). **For LAN games since 2026-10-20** its launch options must name the new LAN launcher: `"/home/deck/Games/Interstate76/i76-deck-launch-mp.sh" %command% -glide` (proxy cf4f81da as on every machine + `I76_COOP_AI` / `I76_COOP_CHAIN` / `I76_MP_MENU` on top of the Deck's own `i76-env.sh`; the old `i76-deck-launch.sh` still works but has no LAN switches). Jade's Car is refused (the Deck's own `valepre4.vcf`): pick another car. Installed and booted (n 1), a cross-machine join on the new pack not yet measured: [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md) section 8 | `~/Games/Interstate76/game` |
 | Windows PC | `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76\PLAY-LAN.bat` (not the daily driver) | that folder |
 
 Keep **one app bundle per Mac** and update only its game folder (`tools/mp-mac-install.sh update` touches
@@ -353,7 +353,9 @@ laptop join (one at a time, then all four together); also Andrew hosts and the P
   the new host re-parks the copies it has no joiner for and keeps the others; in AI arenas it counts the cars the old host had
   parked as parked. New, not fixed: when the co-op host leaves, the new host restarts the scene ("host lost", record section 7.2).
 - **Steam Deck: not reached all morning** (asleep): it still has the 2026-10-18 files; stock arenas only with the others until
-  its one-command step runs.
+  its one-command step runs. **Afternoon:** arena files (15:10, main) and proxy cf4f81da + a new LAN launcher
+  `i76-deck-launch-mp.sh` (15:25, record section 8) installed, rollback tested; the Deck boots through it with every MP hook in
+  place (n 1), then went to sleep before its join could be measured.
 - **Teams pack deployed (07:47)**: proxy **31efcf7a** (teams lane, TEAM PLAY with the AI on Men In Black, a returning AI takes the
   leaver's team) on the PC LAN copy, the laptop, Andrew's and Michael's Macs; pack `i76-uncap-lab\builds\mp-pack-20261020-teams\`,
   old folders kept, rollback per machine in the record's section 6. Measured across machines: AI t7 on both screens, the

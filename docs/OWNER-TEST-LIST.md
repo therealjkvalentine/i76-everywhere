@@ -1560,10 +1560,18 @@ Deck joins co-op / AI arenas without the AI sync (its own proxy has no pack swit
 The machines did the rest this morning (PC + Andrew's Mac + Michael's Mac + laptop: joins, leaves, re-joins, AI fill counts,
 co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting; 0 crashes). Left for you:
 
-0. **Deck**: DONE 15:10 by main (the Deck woke at 192.168.1.155; DECK-DEPLOY.sh verified the 37 arena files, old folder
-   kept as `game-pre-20261020`). A lane is now putting the full pack proxy cf4f81da and the LAN switches on it as a NEW
-   launcher beside the old one (records/LAN-MATRIX-2026-10-20.md, Deck section) so it is a full peer (AI fill, co-op copies,
-   teams); until that section says PASS, the Deck joins stock arenas only. Everyone else runs proxy cf4f81da (teams + polish:
+0. **Deck**: files DONE (15:10 arena files by main; 15:25 proxy cf4f81da + a new LAN launcher by the Deck lane,
+   records/LAN-MATRIX-2026-10-20.md section 8; rollback tested, 0 differences). The Deck boots through the new launcher with
+   every multiplayer hook in place (n 1), but it went to sleep at 15:34, before its join on the new pack could be measured.
+   **Your step, once, on the Deck:** Steam (Game Mode) > Interstate 76 > gear > Properties > Launch Options: change
+   `i76-deck-launch.sh` to `i76-deck-launch-mp.sh`, so the line reads
+   `"/home/deck/Games/Interstate76/i76-deck-launch-mp.sh" %command% -glide` (it only adds network-game switches, so it is fine for
+   single player too; to go back, change the name back). Then, with the PC hosting from `PLAY-LAN.bat`: MULTI MELEE > JOIN
+   (straight to the list now) in Suburbia, then Hope Springs (4 AI) (with 2 humans the PC and the Deck should both show 3 AI
+   cars fighting, 1 parked far away), then Scene 5 (Co-op) (an extra enemy copy comes in for the Deck). Pick any car but
+   Jade's (the Deck's own Jade's Car file is refused by a stock host). Keep the Deck awake (touch it, or raise its suspend
+   timeout): Game Mode sleeps after a few minutes without input and drops out of the game. Rollback: `bash
+   ~/i76-overnight-20261020/polish-deck/deck-rollback-polish.sh` on the Deck. Everyone else runs proxy cf4f81da (teams + polish:
    Mac shortcut, no stray co-op copy after a host change) since 10:00.
 1. **Feel of AI fill**: PC hosts "Hope Springs (4 AI)"; with 2 / 3 / 4 of you there are 3 / 2 / 1 computer cars. Too many, too few?
    (`I76_AIMELEE_FILL` changes the total; now 5 combatants.)
