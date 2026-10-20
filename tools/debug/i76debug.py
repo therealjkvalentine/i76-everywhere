@@ -1,7 +1,8 @@
-r"""i76debug.py - I76 Debug: a local web dashboard of everything the I'76 tooling knows while the game runs.
+r"""i76debug.py - I76 Debug, the debug / cheat tool: a local web dashboard of everything the I'76 tooling knows while the game
+runs, and its trainer (repair, ammo, teleport, full-state store / restore, waypoints).
 
     python tools\debug\i76debug.py                  serve http://127.0.0.1:17690/ and open it in the browser
-    DEBUG.bat                                        the same (tools\debug\DEBUG.bat); TRAINER.bat opens it on the Trainer tab
+    DEBUG.bat                                        the same (tools\debug\DEBUG.bat); TRAINER.bat = DEBUG.bat --tab trainer
 
 Panels: Overview, Telemetry, Events, Force feedback, Rumble, LFE / transducers, Motion, Collision, Terrain / render,
 Trainer, Log (README.md in this folder says what each shows and where it comes from).
@@ -21,9 +22,13 @@ telemetry plus an 8 Hz read-only reader. --log-dir DIR (default lab captures	rai
 mission start, stop 3 s after the player is gone), --log-start (start at once), --log-label NAME, --hotkeys (global
 hotkeys: --hotkey-mark, default Scroll Lock = mark; --hotkey-toggle, default Shift+Scroll Lock = start / stop),
 --log-pid PID (read that process), --no-logger, --no-summary (skip owner_log.py summary after a stop).
+Haptics host (debug_haptics.py): --haptics starts it at launch (dry run: it computes and shows its outputs, drives nothing;
+only when a wheel or pad is found), --haptics-live adds --live (drives the devices), --haptics-host DIR|EXE (where it is).
+The Haptics tabs have the same Start / Stop buttons.
 Server: --http-port 17690, --no-browser, --tab trainer (the tab to open), --seconds N (exit after N s; tests).
 
-Nothing here creates a named shared-memory section, opens a device, plays audio, or sends anywhere but 127.0.0.1.
+Nothing here creates a named shared-memory section, opens a device, plays audio, or sends anywhere but 127.0.0.1; the one
+exception is a haptics host started with --haptics-live / "drive the devices" (a separate process, stopped with the dashboard).
 """
 import argparse, json, os, sys, threading, time, webbrowser
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -73,6 +78,11 @@ class Server:
         self.tel = TelemetrySource(self.hub, port=args.tel_port, tee=tee) if args.tel_port is not None and args.tel_port >= 0 else None
         self.hap = HapticsSource(self.hub, port=args.haptics_port) if args.haptics_port else None
         self.hub.tel_source, self.hub.hap_source = self.tel, self.hap
+        self.hapctl = None
+        if self.hap:
+            import debug_haptics
+            self.hapctl = debug_haptics.HapticsLauncher(self.hub, self.tel, args.haptics_port, hint=args.haptics_host)
+            self.hub.hap_ctl = self.hapctl
         self.trainer = None
         if not args.no_trainer:
             from debug_trainer import TrainerCore
@@ -168,6 +178,8 @@ class Server:
 
     def stop(self):
         self.stop_ev.set()
+        if self.hapctl and self.hapctl.running():
+            print("  haptics host:", self.hapctl.stop()[1], flush=True)
         for s in (self.tel, self.hap):
             if s:
                 s.stop_ev.set()
@@ -254,6 +266,17 @@ def make_handler(srv):
                 else:
                     return self.send_json({"ok": False, "error": "op: start | stop | toggle | mark | auto"}, 400)
                 return self.send_json({"ok": ok, "msg": msg, "logger": lg.status()})
+            if u.path == "/api/haptics":
+                if not srv.hapctl:
+                    return self.send_json({"ok": False, "error": "haptics debug port off (--haptics-port 0)"}, 409)
+                op = req.get("op")
+                if op == "start":
+                    ok, msg = srv.hapctl.start(live=bool(req.get("live")), force=bool(req.get("force")))
+                elif op == "stop":
+                    ok, msg = srv.hapctl.stop()
+                else:
+                    return self.send_json({"ok": False, "error": "op: start | stop"}, 400)
+                return self.send_json({"ok": ok, "msg": msg, "hap_ctl": srv.hapctl.status()})
             if u.path == "/api/trainer":
                 if not srv.trainer:
                     return self.send_json({"ok": False, "error": "trainer disabled (--no-trainer)"}, 409)
@@ -327,6 +350,9 @@ def main(argv=None):
     ap.add_argument("--hotkeys", action="store_true", help="logger: register the global mark / start-stop hotkeys")
     ap.add_argument("--hotkey-mark", default="scroll", help="default Scroll Lock")
     ap.add_argument("--hotkey-toggle", default="shift+scroll", help="default Shift+Scroll Lock")
+    ap.add_argument("--haptics", action="store_true", help="start the haptics host (dry run) when a wheel or pad is found")
+    ap.add_argument("--haptics-live", action="store_true", help="with --haptics: the host drives the devices (--live)")
+    ap.add_argument("--haptics-host", default="", help="the haptics host's folder (tools\\haptics) or i76haptics.exe")
     args = ap.parse_args(argv)
 
     srv = Server(args)
@@ -335,10 +361,19 @@ def main(argv=None):
     port = httpd.server_address[1]
     srv.start()
     url = "http://127.0.0.1:%d/%s" % (port, ("#" + args.tab) if args.tab else "")
-    print("I76 Debug: %s" % url, flush=True)
+    if os.name == "nt":
+        try:
+            import ctypes
+            ctypes.windll.kernel32.SetConsoleTitleW("I76 Debug: debug / cheat tool - %s" % url)
+        except (OSError, AttributeError):
+            pass
+    print("I76 Debug (debug / cheat tool): %s" % url, flush=True)
     print("  telemetry: %s%s" % ("udp 127.0.0.1:%d" % args.tel_port if args.tel_port and args.tel_port > 0 else ("shm only" if args.tel_port == 0 else "off"),
                                  (" (tee -> %s)" % args.tee) if args.tee else ""), flush=True)
     print("  haptics debug: %s" % ("udp 127.0.0.1:%d" % args.haptics_port if args.haptics_port else "off"), flush=True)
+    if (args.haptics or args.haptics_live) and srv.hapctl:
+        time.sleep(0.3)                                         # the telemetry thread binds its port first (the tee needs it)
+        print("  haptics host: %s" % srv.hapctl.start(live=args.haptics_live)[1], flush=True)
     if srv.logger:
         print("  logger: %s%s -> %s%s" % ("auto per mission" if args.log_auto else "manual", " + hotkeys" if args.hotkeys else "",
                                           srv.logger.root, "" if srv.logger.reader else " (no reader: --no-attach)"), flush=True)

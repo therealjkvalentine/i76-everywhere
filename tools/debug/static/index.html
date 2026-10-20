@@ -8,7 +8,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">I76 Debug</div>
+  <div class="brand" title="I76 Debug: debug / cheat tool">I76 Debug</div>
   <nav id="tabs">
     <button data-tab="overview">Overview</button>
     <button data-tab="telemetry">Telemetry</button>
@@ -172,6 +172,10 @@
       <h3>Teleport (x, y up, z - keep y above the ground)</h3>
       <div class="bar"><input id="tr-x" size="9"><input id="tr-y" size="7"><input id="tr-z" size="9"><button data-act="use_current">Use current</button><button data-act="teleport">Teleport</button></div>
       <div id="tr-presets"></div>
+      <h3>Store / restore the whole car (position, heading, pitch, roll, velocity, spin, suspension, engine)</h3>
+      <div class="bar"><button data-act="store">Store now</button><button data-act="restore">Restore</button><button data-act="restore_still">Restore stopped</button>
+        <label><input type="checkbox" id="tr-hk"> in-game keys: <b>Ctrl+9</b> store, <b>Ctrl+0</b> restore</label></div>
+      <div id="tr-quick" class="note"></div>
       <div id="tr-wps"></div>
       <h3>Play Options bits 0x654b98 (the game's own switches; offline only)</h3>
       <div class="bar" id="tr-play"></div>

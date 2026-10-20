@@ -126,6 +126,13 @@ class TelemetrySource(threading.Thread):
         self.stop_ev = threading.Event()
         self.sock = None
 
+    def add_tee(self, port):
+        """forward to one more loopback port from now on (the haptics starter, debug_haptics.py)"""
+        if port not in self.tee:
+            self.tee.append(port)
+            if self.mode.startswith("udp"):
+                self.mode = "udp 127.0.0.1:%d -> tee %s" % (self.port, ",".join(str(p) for p in self.tee))
+
     def bind(self):
         if not self.port:
             return False
@@ -146,7 +153,7 @@ class TelemetrySource(threading.Thread):
     def run(self):
         if self.bind():
             self.mode = "udp 127.0.0.1:%d%s" % (self.port, (" -> tee " + ",".join(str(p) for p in self.tee)) if self.tee else "")
-            out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if self.tee else None
+            out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)   # always: a tee can be added later (add_tee)
             while not self.stop_ev.is_set():
                 try:
                     data, _ = self.sock.recvfrom(65535)
@@ -155,7 +162,7 @@ class TelemetrySource(threading.Thread):
                 except OSError:
                     continue
                 self.received += 1
-                for p in self.tee:
+                for p in list(self.tee):
                     try:
                         out.sendto(data, ("127.0.0.1", p)); self.forwarded += 1
                     except OSError:
@@ -584,6 +591,7 @@ class Hub:
         self.hap_event_id = 0
         # sources (set by the server)
         self.tel_source = self.hap_source = None
+        self.hap_ctl = None                                   # debug_haptics.HapticsLauncher (the Haptics tabs' Start button)
         self.log = ProxyLog()
         self.trainer = None
         self.logger = None                                    # debug_logger.PhysLogger (fed every frame, outside the lock)
@@ -743,7 +751,8 @@ class Hub:
         o = {"now": round(now - self.t0, 3), "tel_live": bool(fr and now - self.frame_at < 0.5), "tel_frames": self.frames,
              "tel_src": self.tel_source.mode if self.tel_source else "off", "tel_version": self.tel_version, "short_dgrams": self.short_dgrams,
              "hap_live": bool(self.hap and now - self.hap_at < 0.5), "hap_count": self.hap_count,
-             "hap_src": self.hap_source.mode if self.hap_source else "off", "game": self.game_info}
+             "hap_src": self.hap_source.mode if self.hap_source else "off", "game": self.game_info,
+             "hap_ctl": self.hap_ctl.status() if self.hap_ctl else None}
         if fr:
             dts = sorted(self.dt_hist)
             p, r, hd = angles(fr)

@@ -31,13 +31,48 @@ function smeter(label, v, max, color, text) {
 function tile(k, v, s) { return `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="s">${s || "&nbsp;"}</div></div>`; }
 function status(ok, text) { return `<span class="${ok === true ? "ok" : ok === false ? "bad" : "warn"}">${esc(text)}</span>`; }
 const winSec = () => +$("win").value;
+// The haptics tabs' state line: why there is no host data and the one click that fixes it (debug_haptics.py, /api/haptics).
+let hapLive = false, hapMsg = "";
+function hapExplain(o) {
+  const c = o && o.hap_ctl;
+  if (!c) return status(null, "No haptics host data (" + (o ? o.hap_src : "?") + "): this dashboard's haptics port is off (--haptics-port 0).");
+  const telNote = o.tel_live ? "" : " Note: no telemetry from the game right now (start it with I76_TELEMETRY=1), so the host would have nothing to work on.";
+  const tail = (c.log_tail || []).length ? `<pre class="mono">${esc(c.log_tail.join("\n"))}</pre>` : "";
+  const last = hapMsg ? `<div class="note">${esc(hapMsg)}</div>` : "";
+  if (c.running) return status(null, `Haptics host started by this dashboard (pid ${c.pid}, ${c.live ? "driving the devices" : "dry run: drives nothing"}, ${c.uptime || 0} s) - waiting for its first --debug-udp datagram on ${o.hap_src}.` + telNote) +
+    ` <button data-hap="stop">Stop it</button>` + tail + last;
+  let h = "";
+  if (c.exited != null) h += status(false, `The haptics host this dashboard started has exited (code ${c.exited}).`) + tail;
+  if (!c.host) return h + status(null, "No haptics host data: the haptics host is not running, and it is not part of this folder - it is tools\\haptics in the i76-everywhere repo (.NET 8). Set I76_HAPTICS_HOST to its folder, then press Start.") + ` <button data-hap="start" data-force="1">Start</button>` + last;
+  if (!c.devices.length) return h + status(null, "No haptics host data: the haptics host is not running. No wheel or gamepad was found (winmm joysticks 0, XInput pads 0), so it has nothing to drive." + telNote) +
+    ` <button data-hap="start" data-force="1">Start anyway (dry run: computes and shows its outputs, drives nothing)</button>` + last;
+  return h + status(null, `No haptics host data: the haptics host is not running. Found: ${c.devices.join("; ")}.` + telNote) +
+    ` <button data-hap="start">Start haptics host</button> <label><input type="checkbox" id="hap-live-${Math.random().toString(36).slice(2, 7)}" class="hap-live"> drive the devices (--live: wheel force, pad motors, shaker audio - leave off while the game's own force feedback runs)</label>` +
+    `<div class="note">Same as <b>DEBUG.bat --haptics</b> (dry run) / <b>--haptics-live</b>. It runs ${esc(c.host)}${c.built ? "" : " (builds it first)"} with --debug-udp, fed by this dashboard's telemetry tee to port ${c.tee}.</div>` + last;
+}
 function needHap() {
-  const o = S.overview, live = o && o.hap_live;
-  document.querySelectorAll(".need-hap").forEach(el => el.innerHTML = live ? "" :
-    status(null, "No haptics host data" + (o ? " (" + o.hap_src + ")" : "") + ". Start it with --debug-udp: " +
-      "haptics.ps1 live --source udp --port 17676 --debug-udp (with DEBUG.bat --tee 17676), or replay a recording with --debug-udp --realtime. README.md, 'With the haptics host'."));
+  const o = S.overview, live = !!(o && o.hap_live);
+  const key = live ? "live" : JSON.stringify([o && o.hap_ctl, o && o.tel_live, hapMsg]);
+  if (key !== needHap.key) {
+    needHap.key = key;
+    const html = live ? "" : hapExplain(o);
+    document.querySelectorAll(".need-hap").forEach(el => { if (el._h !== html) { el._h = html; el.innerHTML = html; } });
+  }
+  hapLive = live;
   return live;
 }
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button[data-hap]"); if (!b) return;
+  const box = b.parentElement.querySelector(".hap-live");
+  const body = { op: b.dataset.hap, force: b.dataset.force === "1", live: !!(box && box.checked) };
+  if (body.live && !confirm("Drive the real devices (wheel force, pad motors, shaker audio)?\n\nLeave this off while the game's own force feedback is on: the wheel would get two force sources.")) return;
+  try {
+    const r = await fetch("/api/haptics", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json(); hapMsg = j.msg || j.error || "";
+    if (j.hap_ctl && S.overview) S.overview.hap_ctl = j.hap_ctl;
+  } catch (err) { hapMsg = String(err); }
+  needHap.key = null; dirty = true; needHap();
+});
 
 // ------------------------------------------------------------------ tabs
 function showTab(t) {
@@ -363,11 +398,12 @@ function buildTrainer() {
   $("tr-holds").innerHTML = holds.map(([k, l]) => `<div><label><input type="checkbox" data-hold="${k}"> ${esc(l)}</label></div>`).join("");
   $("tr-holds").addEventListener("change", e => { const k = e.target.dataset.hold; if (k) trPost({ action: "flags", flags: { [k]: e.target.checked } }); });
   $("tr-play").innerHTML = t.play_bits.map(b => `<label><input type="checkbox" data-bit="${b.bit}"> ${esc(b.name)} 0x${b.bit.toString(16).padStart(2, "0")}</label>`).join(" ");
+  $("tr-hk").onchange = e => trPost({ action: "hotkeys", on: e.target.checked });
   $("tr-presets").innerHTML = t.presets.map(p => `<div class="bar"><button data-preset="${p.key}">Teleport: ${esc(p.label)}</button><span class="note">(${p.xyz.join(", ")}) ${esc(p.note)}</span></div>`).join("");
   document.querySelector("#tab-trainer").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.preset) return trPost({ action: "preset", key: b.dataset.preset });
-    if (b.dataset.wp) return trPost({ action: b.dataset.wpact, i: +b.dataset.wp });
+    if (b.dataset.wp) return trPost({ action: b.dataset.wpact, i: +b.dataset.wp, still: b.dataset.still === "1" });
     const a = b.dataset.act; if (!a) return;
     const bits = [...document.querySelectorAll("#tr-play input:checked")].reduce((s, x) => s | +x.dataset.bit, 0);
     if (a === "ammo") return trPost({ action: "ammo", value: $("tr-ammo").value });
@@ -380,8 +416,12 @@ function buildTrainer() {
       return ok ? trPost({ action: "playflags", bits, on: true, confirmed: true }) : null;
     }
     if (a === "play_clear") return trPost({ action: "playflags", bits, on: false });
+    if (a === "restore_still") return trPost({ action: "restore", still: true });
     return trPost({ action: a });
   });
+}
+function stateLine(m) {
+  return `(${m.pos.map(x => x.toFixed(1)).join(", ")}) ${m.kmh.toFixed(0)} km/h, heading ${m.heading.toFixed(0)}, pitch ${m.pitch.toFixed(1)}, roll ${m.roll.toFixed(1)}${m.airborne ? ", airborne" : ""}`;
 }
 let xyzSeeded = false;
 function setXyz(force) {
@@ -417,8 +457,12 @@ function renderTrainer() {
   $("tr-campaign").textContent = t.campaign;
   const sel = $("tr-slot"), want = t.slots.map(s => `${s.slot}: ${s.name} (${s.ammo})`).join("|");
   if (sel.dataset.v !== want) { const cur = sel.value; sel.innerHTML = t.slots.map(s => `<option value="${s.slot}">${s.slot}: ${esc(s.name)} (${s.ammo})</option>`).join(""); if (cur) sel.value = cur; sel.dataset.v = want; }
-  H("tr-wps", t.waypoints.map((w, i) => `<div class="bar">waypoint ${i + 1} <span class="note" style="min-width:260px">${w ? `(${w.x.toFixed(1)}, ${w.y.toFixed(1)}, ${w.z.toFixed(1)}) ${esc(w.saved || "")}` : "- empty -"}</span>
-    <button data-wp="${i}" data-wpact="wp_save">Save here</button><button data-wp="${i}" data-wpact="wp_go">Go</button></div>`).join(""));
+  $("tr-hk").checked = !!t.hotkeys;
+  const q = t.quick, ex = t.ext;
+  H("tr-quick", `full state: ${esc(t.full_state)}` + (ex ? ` &middot; in-game keys ${ex.hotkeys & 1 ? "ON" : "off"} (served: ${ex.hotkey_stores} stores, ${ex.hotkey_restores} restores)` : "") +
+    `<br>quick slot: ${q ? esc(stateLine(q)) : "- empty - (Store now, or Ctrl+9 in the game)"}`);
+  H("tr-wps", t.waypoints.map((w, i) => `<div class="bar">waypoint ${i + 1} <span class="note" style="min-width:330px">${w ? esc((w.summary ? stateLine(w.summary) : `(${w.x.toFixed(1)}, ${w.y.toFixed(1)}, ${w.z.toFixed(1)}) position only`) + " " + (w.saved || "")) : "- empty -"}</span>
+    <button data-wp="${i}" data-wpact="wp_save">Save here</button><button data-wp="${i}" data-wpact="wp_go">Go</button><button data-wp="${i}" data-wpact="wp_go" data-still="1">Go stopped</button><button data-wp="${i}" data-wpact="wp_from_quick" title="copy the quick slot (Ctrl+9) into this waypoint">&larr; quick</button></div>`).join(""));
   const last = t.log.length ? t.log[t.log.length - 1].id : 0;
   if (last !== trLogId) { trLogId = last; const el = $("tr-log"); el.innerHTML = t.log.map(l => `<div>${esc(l.t)} ${esc(l.text)}</div>`).join(""); el.scrollTop = el.scrollHeight; }
 }
