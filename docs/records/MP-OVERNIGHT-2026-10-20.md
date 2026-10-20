@@ -195,3 +195,15 @@ booted: headless driving needs the lab block).
 switches, so even after the step it sees the AI arenas' computer cars standing still (not mirrored); that was already so.
 
 No game was started on any family machine; nothing outside those folders (and `~/i76-overnight-20261020/`) was written.
+
+## 9. Deck retries (04:05-04:30, once per 10 minutes)
+
+04:05 ssh time-out, 04:15 connection refused (the network answered, sshd did not: waking or suspended), 04:25 time-out.
+**The Deck still runs the 2026-10-18 files; its step is OWNER-TEST-LIST "Morning 2026-10-20" item 0.**
+
+## 10. Rollback, all machines together (the co-op and AI arena files must match everywhere)
+
+- PC: `powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\builds\mp-pack-20261020-overnight\rollback-pc.ps1`
+- Andrew / Michael: `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "$HOME/Games/Interstate76-MP/Interstate 76.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"`
+- Laptop: the same script with `"$HOME/Applications/Sikarugir/I76 MP GATE.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"`
+- Deck (only if its step ran): `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh ~/Games/Interstate76/game`
