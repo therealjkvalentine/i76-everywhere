@@ -38,8 +38,25 @@
  *    (0x451570(1), the co-op scenes' auto respawn) - otherwise a host killed by the AI would sit in the death view.
  * I76_AIMELEE=0 turns all of it off (the AI cars then sit idle, the co-op sync still mirrors them).
  * LAB ONLY: I76_AIMELEE_TEST_HP=<1..100> removes every AI car's armour and cuts its chassis to that % of max on the host
- * when its skill is set (so a test kill takes a few hits); off by default, never in a pack. */
-static int g_aim_test_hp, g_aim_on, g_aim_skill = 3, g_aim_cap = 8, g_aim_teams, g_aim_wave = 1, g_aim_wave_s = 8, g_aim_respawn = 1;
+ * when its skill is set (so a test kill takes a few hits); off by default, never in a pack.
+ * 5. TEAMS (docs/records/MP-TEAMS-2026-10-20.md). Stock team play: the host form's TEAM PLAY box (shell [0x100d4024]
+ *    & 0x8000) becomes setup bit 3 -> exe 0x541010 on every machine; each human picks a team in the shell's popup
+ *    (0x1000bdd0: 8 rows, Grey Hounds .. Men In Black = team 0..7, the exe's 3 bits); the pick travels in the ANet
+ *    player data (byte 1 = team + 1) into the player slot's flags +0x1c bits 16..18 (0x4541b0) and from there into
+ *    the car's object+0x10 bits 16..18 (0x451180). Team play off: every machine puts ITSELF on team 0 and every other
+ *    human on team 1. The AI cars are team 7 in the arena file = Men In Black, the LAST row of the popup.
+ *    I76_AIMELEE_TEAMS: unset / auto (default) = the team rule is on when the session has TEAM PLAY on; 0 = never
+ *    (AI attack every human); 1 = always. With the rule on an AI car attacks the nearest live car of ANOTHER team -
+ *    humans, and the other AI cars on another team (so an AI standing in for a human fights like him); a human who
+ *    picked Men In Black plays on the AI's side. The host carries each AI car's team to the joiners in byte 3 of its
+ *    'AT' record (0x80 | team; 0 before, ignored by older proxies), and a joiner moves its copy to that team list
+ *    (mpf_move_team), so radar colours, target lock (0x461040 skips same-team cars) and gun hold agree everywhere.
+ *    A human's kill of an AI car of HIS OWN team scores nothing (stock: 0x464890 credits only another team's victim);
+ *    the message still shows. The AI fill's team rule (who parks, which team a returning AI takes) is in mpfill.c. */
+static int g_aim_test_hp, g_aim_on, g_aim_skill = 3, g_aim_cap = 8, g_aim_teams = -1, g_aim_wave = 1, g_aim_wave_s = 8, g_aim_respawn = 1;
+#define AIM_LAST_TEAM 7                                      /* Men In Black: the popup's last row, the arena file's AI team */
+static int aim_team_rule(void) { return g_aim_teams > 0 || (g_aim_teams < 0 && *(volatile int *)0x00541010); }
+static int aim_team(BYTE *o) { return (int)((*(DWORD *)(o + 0x10) >> 16) & 7); }
 static volatile LONG g_aim_ticks, g_aim_orders, g_aim_kills, g_aim_ak_sent, g_aim_ak_got, g_aim_credited, g_aim_waves;
 #define AIM_AK_PKT 0x4b41                                    /* 'AK' */
 #define AIM_MAX 64
@@ -48,10 +65,18 @@ static BYTE *g_aim_capped;
 static BYTE g_aim_dead_seen[2048];                       /* label index: 1 = its death was logged (kill hook or tick) */                                   /* the host car that got the attacker cap */
 static DWORD g_aim_last_tick, g_aim_all_dead_since, g_aim_status_t;
 static void aim_save_score(void);
-static int mpf_parked_obj(BYTE *o); static void mpf_fill_tick(void); static void mpf_coop_tick(void); void mpfill_pump(int role);   /* mpfill.c */
+static int mpf_parked_obj(BYTE *o); static int mpf_move_team(BYTE *o, DWORD team); static void mpf_fill_tick(void); static void mpf_coop_tick(void); void mpfill_pump(int role);   /* mpfill.c */
 static int aim_arena(void) {                                 /* "ai_*.lvl" (any case) */
     const char *m = (const char *)0x005049f0; size_t L = strlen(m);
     return g_aim_on && _strnicmp(m, "ai_", 3) == 0 && L > 7 && L < 16 && _stricmp(m + L - 4, ".lvl") == 0;
+}
+/* 5. 'AT' byte 3 (strlkproxy.c coop_ai_host_send / coop_ai_apply): the host's team of an AI car, 0x80 | team */
+static BYTE aim_at_team(BYTE *o) { return (BYTE)((aim_arena() && aim_team_rule()) ? 0x80 | aim_team(o) : 0); }
+static void aim_at_team_apply(int li, BYTE *o, BYTE v) {    /* joiner */
+    static BYTE failed[2048]; int was;
+    if (!(v & 0x80) || !aim_arena() || li < 0 || li >= 2048 || (was = aim_team(o)) == (v & 7)) return;
+    if (mpf_move_team(o, v & 7)) { failed[li] = 0; mlog("  aimelee: AI '%.8s' (label %d) team %d -> %d (host's 'AT')", (char *)o, li, was, v & 7); }
+    else if (!failed[li]) { failed[li] = 1; mlog("  aimelee: AI '%.8s' (label %d) not in team list %d - team %d from the host not applied", (char *)o, li, was, v & 7); }
 }
 static int aim_alive(BYTE *o) {
     BYTE *e = o ? *(BYTE **)(o + 0x70) : NULL;
@@ -85,7 +110,8 @@ static int aim_index(BYTE *o) {                              /* per-car memory (
 }
 /* --- 1. the host tick ---------------------------------------------------------------------------------------- */
 static void aim_tick(void) {
-    BYTE *tab = *(BYTE **)(0x0054a178 + 4), **root; int count = *(int *)(0x0054a178 + 8), i, k, alive = 0, total = 0;
+    BYTE *tab = *(BYTE **)(0x0054a178 + 4), **root; int count = *(int *)(0x0054a178 + 8), i, k, alive = 0, total = 0, rule, nai = 0;
+    BYTE *ais[AIM_MAX];
     DWORD now = GetTickCount(); static BYTE *last_tab; static int last_count;
     if (now - g_aim_last_tick > 2000 || tab != last_tab || count != last_count) {   /* a new mission (or a wave reload) */
         g_aim_n = 0; g_aim_capped = NULL; g_aim_all_dead_since = 0; last_tab = tab; last_count = count;
@@ -95,6 +121,9 @@ static void aim_tick(void) {
     g_aim_ticks++;
     if (!tab || count <= 0 || count > 2048) return;
     mpf_fill_tick();                                         /* I76_AIMELEE_FILL: park / bring pool cars (mpfill.c) */
+    rule = aim_team_rule();
+    if (rule)                                                /* 5. AI cars in play are targets for an AI of another team */
+        for (i = 0; i < count && nai < AIM_MAX; i++) { BYTE *o = coop_ai_object(i, count, tab); if (o && !mpf_parked_obj(o) && aim_alive(o)) ais[nai++] = o; }
     root = ((BYTE **(__cdecl *)(void))0x00457530)();
     if (root && *root && *root != g_aim_capped && *(BYTE **)(*root + 0x70) && *(BYTE **)(*(BYTE **)(*root + 0x70) + 0x108)) {
         int cap = g_aim_cap;
@@ -129,10 +158,10 @@ static void aim_tick(void) {
         }
         ax = *(double *)(o + 0x40); az = *(double *)(o + 0x50);
         cur = g_aim_tgt[j];
-        for (k = 0; k < 16; k++) {
-            BYTE *h = aim_slot_car(k); double dx, dz, d;
+        for (k = 0; k < 16 + nai; k++) {                     /* the 16 player slots, then (team rule) the AI cars in play */
+            BYTE *h = k < 16 ? aim_slot_car(k) : ais[k - 16]; double dx, dz, d;
             if (!h || h == o || !aim_alive(h)) continue;
-            if (g_aim_teams && ((*(DWORD *)(h + 0x10) ^ *(DWORD *)(o + 0x10)) & 0x70000) == 0) continue;
+            if (rule && aim_team(h) == aim_team(o)) continue;
             dx = *(double *)(h + 0x40) - ax; dz = *(double *)(h + 0x50) - az; d = dx * dx + dz * dz;
             if (h == cur) cd = d;
             if (d < bd) { bd = d; best = h; }
@@ -173,7 +202,7 @@ static int __cdecl aim_melee_flag(void) {                    /* replaces `call 0
     return r;
 }
 /* --- 2. kill credit -------------------------------------------------------------------------------------------- */
-static struct { WORD killer; short li; int score; } g_aim_q[16]; static volatile LONG g_aim_qn;
+static struct { WORD killer; short li; int score; BYTE own; } g_aim_q[16]; static volatile LONG g_aim_qn;
 static void __cdecl aim_on_kill(BYTE *victim, BYTE *rec) {
     BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), li;
     WORD killer; int k; BYTE *kc;
@@ -189,7 +218,8 @@ static void __cdecl aim_on_kill(BYTE *victim, BYTE *rec) {
     }
     if (g_aim_qn < 16) {
         float v = *(float *)(*(BYTE **)(victim + 0x70) + 0xa4) * *(float *)(*(BYTE **)(kc + 0x70) + 0xa8) * *(float *)0x004bdf78;
-        g_aim_q[g_aim_qn].killer = killer; g_aim_q[g_aim_qn].li = (short)li; g_aim_q[g_aim_qn].score = (int)v;
+        int own = aim_team_rule() && aim_team(kc) == aim_team(victim);   /* 5. his own team's AI: no score (stock team kill) */
+        g_aim_q[g_aim_qn].killer = killer; g_aim_q[g_aim_qn].li = (short)li; g_aim_q[g_aim_qn].score = own ? 0 : (int)v; g_aim_q[g_aim_qn].own = (BYTE)own;
         g_aim_qn++;
     }
 }
@@ -204,11 +234,12 @@ static __declspec(naked) void aim_kill_stub(void) {        /* replaces `call 0x4
     }
 }
 static WORD g_aim_seq_seen[32]; static unsigned g_aim_seq_n;
-static void aim_credit(WORD killer, short li, int score) {  /* every machine: message; the killer: its own slot */
+static void aim_credit(WORD killer, short li, int score, int own) {   /* every machine: message; the killer: its own slot */
     char ai[24], who[32] = "?", msg[96]; int k;
     ((int (__cdecl *)(short, char *))0x00454620)((short)killer, who); who[24] = 0;
     sprintf(msg, "%s was destroyed by %s", aim_name(aim_ordinal(li), ai), who);
     ((void (__cdecl *)(short, const char *))0x00453df0)(0, msg);
+    if (own) { mlog("  aimelee: %s - his own team's AI car: no score (team play)", msg); return; }
     if (killer == *(volatile WORD *)0x00541028 && (k = aim_slot_of(killer)) >= 0) {
         BYTE *p = (BYTE *)0x00541070 + k * 0x48;
         ((void (__cdecl *)(int, int, int, int))0x00454ea0)(killer, *(int *)(p + 0x40) + score, *(short *)(p + 0x3c) + 1, *(short *)(p + 0x3e));
@@ -223,11 +254,11 @@ static void aim_flush(void) {                                /* host, in the pum
         if (++seq == 0) seq = 1;
         memset(pkt, 0, sizeof(pkt));
         *(WORD *)pkt = AIM_AK_PKT; pkt[2] = seq; *(WORD *)(pkt + 4) = g_aim_q[i].killer; *(short *)(pkt + 6) = g_aim_q[i].li;
-        *(int *)(pkt + 8) = g_aim_q[i].score;
+        *(int *)(pkt + 8) = g_aim_q[i].score; pkt[3] = g_aim_q[i].own;
         for (c = 0; c < 3; c++)
             if (((dpsend_fn) * (void **)0x004bc38c)(*(void **)0x00541024, *(volatile WORD *)0x00541028,
                                                     ((WORD (__cdecl *)(void))0x00454e10)(), 0, pkt, 12) == 0) g_aim_ak_sent++;
-        aim_credit(g_aim_q[i].killer, g_aim_q[i].li, g_aim_q[i].score);
+        aim_credit(g_aim_q[i].killer, g_aim_q[i].li, g_aim_q[i].score, g_aim_q[i].own);
     }
     g_aim_qn = 0;
 }
@@ -238,7 +269,7 @@ static void aim_receive(BYTE *pkt, int size) {              /* joiner */
     for (i = 0; i < 32; i++) if (g_aim_seq_seen[i] == tag) return;
     g_aim_seq_seen[g_aim_seq_n++ % 32] = tag;
     g_aim_ak_got++;
-    aim_credit(*(WORD *)(pkt + 4), *(short *)(pkt + 6), *(int *)(pkt + 8));
+    aim_credit(*(WORD *)(pkt + 4), *(short *)(pkt + 6), *(int *)(pkt + 8), pkt[3] == 1);
 }
 /* --- 3b. scores across a wave reload; 4. respawn; status line -------------------------------------------------- */
 static int g_aim_saved; static short g_aim_sk, g_aim_sd; static int g_aim_ss; static DWORD g_aim_restore_after;
@@ -251,7 +282,7 @@ static void aim_save_score(void) {
 }
 static void aim_status(int role) {
     BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i, n = 0, a = 0, len;
-    char line[900];
+    char line[1400];
     len = sprintf(line, "  aimelee: t %lu, %s, %.12s, ticks %ld orders %ld, AI kills %ld, AK sent %ld got %ld, credited here %ld, waves %ld; AI",
                   GetTickCount(), role == 1 ? "host" : "joiner", (char *)0x005049f0, g_aim_ticks, g_aim_orders, g_aim_kills, g_aim_ak_sent, g_aim_ak_got, g_aim_credited, g_aim_waves);
     if (tab && count > 0 && count <= 2048)
@@ -259,13 +290,20 @@ static void aim_status(int role) {
             BYTE *o = coop_ai_object(i, count, tab);
             if (!o) continue;
             n++; if (aim_alive(o)) a++;
-            {   int j, k, tk = -1;                           /* the host's target: player-table slot */
-                for (j = 0; j < g_aim_n; j++) if (g_aim_car[j] == o) for (k = 0; k < 16; k++) if (g_aim_tgt[j] && aim_slot_car(k) == g_aim_tgt[j]) tk = k;
-                len += sprintf(line + len, " [%d %.8s %s %.0f%% %.1f,%.1f ->%d]", i, (char *)o, aim_alive(o) ? "live" : "dead",
-                               aim_alive(o) ? ((double (__cdecl *)(BYTE *))0x0040b450)(o) : 0.0, *(double *)(o + 0x40), *(double *)(o + 0x50), tk);
+            {   int j, k, tk = -1;                           /* the host's target: player-table slot, or 100 + label of an AI car */
+                for (j = 0; j < g_aim_n; j++) if (g_aim_car[j] == o && g_aim_tgt[j]) {
+                    for (k = 0; k < 16; k++) if (aim_slot_car(k) == g_aim_tgt[j]) tk = k;
+                    for (k = 0; tk < 0 && k < count; k++) if (*(BYTE **)(tab + k * 16 + 8) == g_aim_tgt[j]) tk = 100 + k;
+                }
+                len += sprintf(line + len, " [%d %.8s %s %.0f%% %.1f,%.1f ->%d t%d]", i, (char *)o, aim_alive(o) ? "live" : "dead",
+                               aim_alive(o) ? ((double (__cdecl *)(BYTE *))0x0040b450)(o) : 0.0, *(double *)(o + 0x40), *(double *)(o + 0x50), tk, aim_team(o));
             }
         }
-    len += sprintf(line + len, " = %d/%d alive", a, n);
+    len += sprintf(line + len, " = %d/%d alive; teamplay %d rule %d; humans", a, n, *(volatile int *)0x00541010, aim_team_rule());
+    for (i = 0; i < 16; i++) {                               /* 5. each human: player id : slot team (flags +0x1c) / car team */
+        BYTE *p = (BYTE *)0x00541070 + i * 0x48, *c = aim_slot_car(i);
+        if (*(WORD *)p) len += sprintf(line + len, " %u:t%d/%d", *(WORD *)p, (int)((*(DWORD *)(p + 0x1c) >> 16) & 7), c ? aim_team(c) : -1);
+    }
     {   BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();   /* own car: health % (0x40b450) and position */
         if (root && *root && *(BYTE **)(*root + 0x70))
             sprintf(line + len, "; own car %s %.0f%% %.1f,%.1f", aim_alive(*root) ? "live" : "dead",
@@ -314,7 +352,7 @@ static void apply_aimelee(void) {
     if (env_flag("I76_AIMELEE", 8, 1) == 0) { mlog("  aimelee: off (I76_AIMELEE=0)"); return; }
     g_aim_skill = env_int("I76_AIMELEE_SKILL", 8, 3); if (g_aim_skill < 1 || g_aim_skill > 5) g_aim_skill = 3;
     g_aim_cap = env_int("I76_AIMELEE_CAP", 8, 8); if (g_aim_cap < 1) g_aim_cap = 8;
-    g_aim_teams = env_flag("I76_AIMELEE_TEAMS", 8, 0);
+    g_aim_teams = env_flag("I76_AIMELEE_TEAMS", 8, -1);     /* unset / auto: follow the session's TEAM PLAY */
     g_aim_wave = env_flag("I76_AIMELEE_WAVE", 8, 1);
     g_aim_wave_s = env_int("I76_AIMELEE_WAVE_S", 8, 8); if (g_aim_wave_s < 1) g_aim_wave_s = 8;
     g_aim_respawn = env_flag("I76_AIMELEE_RESPAWN", 8, 1);
@@ -328,6 +366,6 @@ static void apply_aimelee(void) {
     g_aim_on = ok == 2;
     if (g_aim_on) apply_mpfill();                            /* AI fill + co-op scaling ride on the same tick site (mpfill.c) */
     mlog("  aimelee: %s (%d/2 sites) - in ai_*.lvl arenas: skill %d, attacker cap %d, teams %s, waves %s (%d s, %s), respawn %s",
-         g_aim_on ? "on" : "NOT installed", ok, g_aim_skill, g_aim_cap, g_aim_teams ? "on" : "off (AI attack every human)",
+         g_aim_on ? "on" : "NOT installed", ok, g_aim_skill, g_aim_cap, g_aim_teams < 0 ? "auto (rule on with TEAM PLAY)" : g_aim_teams ? "on" : "off (AI attack every human)",
          g_aim_wave ? "on" : "off", g_aim_wave_s, g_coop_chain ? "chain on" : "NEEDS I76_COOP_CHAIN=1", g_aim_respawn ? "on" : "off");
 }

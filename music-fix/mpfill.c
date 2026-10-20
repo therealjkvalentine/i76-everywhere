@@ -19,6 +19,14 @@
  * the live AI car farthest from every human (no damage, no kill, no score); a human leaving brings a parked one back at
  * the spawn point farthest from every car. Humans = player-table slots with an id, counted after 1.5 s without change.
  * The wave rule (aimelee.c) counts only the cars in play.
+ * TEAMS (I76_AIMELEE_FILL_TEAM, default 1; acts only while aimelee.c's team rule is on, i.e. TEAM PLAY by default): the
+ * pool and every AI car the arena starts with are on team 7 (Men In Black, the last row of the team popup). A human
+ * leaving (his slot gone) queues his team; the AI that comes back for him moves to that team (mpf_move_team) and fights
+ * for it. A human joining queues his team; the car parked for him is, in this order: a live AI of his team, a wreck of
+ * his team, a live Men In Black AI, a Men In Black wreck, any other (farthest from every human within a class); a
+ * parked car goes back to team 7. g_mpf_vac[t] counts the AI standing in for team t; it survives a wave reload of the
+ * same arena (the reload brings every car back on team 7, and the host moves vac[t] of them back to team t). A leave
+ * and a join of the same team in one human-count change cancel. I76_AIMELEE_FILL_TEAM=0: every AI stays on team 7.
  *
  * CO-OP SCALING (kind 2, ADDON\coopNN.lvl built with coop-mission.py --copies K, host): each enemy car has K parked
  * copies (team 0 in the file, so the script's allEnemyDead / isWithinEnemy, which walk teams 1..7, never count a
@@ -32,7 +40,11 @@
  * joiner who arrives later brings the next copy of every engaged live original; a copy in the game stays there. With
  * no joiner nothing moves: the lone host plays the stock mission (the copies sit 8 km away, engine off).
  * I76_COOP_SCALE=0 turns it off (the copies stay parked). */
-static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log, g_mpf_test;
+static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log, g_mpf_test, g_mpf_fill_team = 1;
+static int g_mpf_vac[8];                                     /* AI cars in play standing in for a human of team t */
+static int g_mpf_leftq[16], g_mpf_leftn, g_mpf_joinq[16], g_mpf_joinn;   /* teams of humans who left / joined, not yet served */
+static WORD g_mpf_sid[16]; static BYTE g_mpf_steam[16]; static int g_mpf_snap_h = -1;   /* the humans at the last count */
+static DWORD g_mpf_last_fill;
 static volatile LONG g_mpf_parks, g_mpf_acts, g_mpf_copies;
 typedef struct { DWORD lo, hi, olo, ohi; BYTE kind, j; float px, pz; int li, oli; BYTE state; } mpf_tag_t;
 enum { MPF_PLAY = 0, MPF_PARKED = 1, MPF_COPY_IN = 2 };
@@ -52,6 +64,9 @@ static void mpf_load(void) {                                 /* the mission's ta
     const char *m = (const char *)0x005049f0; BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8);
     char path[64]; HANDLE h; DWORD sz, got = 0; BYTE *buf; DWORD p; DWORD now = GetTickCount();
     if (g_mpf_loaded && tab == g_mpf_tab && count == g_mpf_count && _strnicmp(m, g_mpf_mission, 15) == 0) return;
+    if (_strnicmp(m, g_mpf_mission, 15) != 0 || now - g_mpf_last_fill > 60000) {   /* a new arena or session: no team ledger */
+        memset(g_mpf_vac, 0, sizeof(g_mpf_vac)); g_mpf_leftn = g_mpf_joinn = 0; g_mpf_snap_h = -1;
+    }
     g_mpf_loaded = 1; g_mpf_tab = tab; g_mpf_count = (tab && count > 0 && count <= 2048) ? count : 0; strncpy(g_mpf_mission, m, 15); g_mpf_mission[15] = 0;
     g_mpf_n = 0; memset(g_mpf_engaged, 0, sizeof(g_mpf_engaged)); memset(g_mpf_tgt, 0, sizeof(g_mpf_tgt));
     memset(g_mpf_park_since, 0, sizeof(g_mpf_park_since)); g_mpf_humans = -1; g_mpf_humans_seen = -1; g_mpf_last_act = 0;
@@ -148,26 +163,65 @@ static int mpf_humans_stable(void) {                         /* humans, once unc
     return g_mpf_humans;
 }
 /* --- AI fill (host, from aim_tick) ------------------------------------------------------------------------------- */
+static int mpf_team_rule(void) { return g_mpf_fill_team && aim_team_rule(); }
+static void mpf_q_pop(int *q, int *n) { if (*n > 0) { memmove(q, q + 1, (*n - 1) * sizeof(int)); (*n)--; } }
+static void mpf_team_diff(void) {                            /* who left / joined since the last count, with their teams */
+    WORD id[16]; BYTE tm[16]; int k, j, n = 0;
+    for (k = 0; k < 16; k++) {
+        BYTE *p = (BYTE *)0x00541070 + k * 0x48;
+        if (*(WORD *)p) { id[n] = *(WORD *)p; tm[n] = (BYTE)((*(DWORD *)(p + 0x1c) >> 16) & 7); n++; }
+    }
+    if (g_mpf_snap_h >= 0) {
+        for (j = 0; j < g_mpf_snap_h; j++) {
+            for (k = 0; k < n && id[k] != g_mpf_sid[j]; k++) ;
+            if (k == n && g_mpf_leftn < 16) { g_mpf_leftq[g_mpf_leftn++] = g_mpf_steam[j]; mlog("  mpfill: teams - player %u (team %d) left", g_mpf_sid[j], g_mpf_steam[j]); }
+        }
+        for (k = 0; k < n; k++) {
+            for (j = 0; j < g_mpf_snap_h && g_mpf_sid[j] != id[k]; j++) ;
+            if (j < g_mpf_snap_h) continue;
+            for (j = 0; j < g_mpf_leftn && g_mpf_leftq[j] != tm[k]; j++) ;
+            if (j < g_mpf_leftn) {                           /* he takes the place of a leaver of his team: nothing moves */
+                memmove(g_mpf_leftq + j, g_mpf_leftq + j + 1, (g_mpf_leftn - j - 1) * sizeof(int)); g_mpf_leftn--;
+                mlog("  mpfill: teams - player %u joined team %d in place of a leaver of that team", id[k], tm[k]);
+            } else if (g_mpf_joinn < 16) { g_mpf_joinq[g_mpf_joinn++] = tm[k]; mlog("  mpfill: teams - player %u joined team %d", id[k], tm[k]); }
+        }
+    }
+    memcpy(g_mpf_sid, id, sizeof(id)); memcpy(g_mpf_steam, tm, sizeof(tm)); g_mpf_snap_h = n;
+}
 static void mpf_fill_tick(void) {
-    int i, h, pool = 0, play = 0, target, n; DWORD now = GetTickCount();
+    int i, h, pool = 0, play = 0, target, n, rule; DWORD now = GetTickCount();
     mpf_load();
     if (!g_mpf_n || g_mpf[0].kind != 1 || g_mpf_fill == 0) return;
+    g_mpf_last_fill = now;
     if ((h = mpf_humans_stable()) < 1) return;
+    rule = mpf_team_rule();
+    if (rule && h != g_mpf_snap_h) mpf_team_diff();
     if (now - g_mpf_last_act < 500) return;
     for (i = 0; i < g_mpf_n; i++) { pool++; if (g_mpf[i].state == MPF_PLAY) play++; }
     n = g_mpf_fill < 0 ? pool + 1 : g_mpf_fill;
     target = n - h; if (target < 0) target = 0; if (target > pool) target = pool;
     if (play > target) {                                     /* park the live car farthest from every human (else a wreck) */
-        int pick = -1; double fd = -1;
+        int pick = -1, best_rank = 99, want = rule && g_mpf_joinn ? g_mpf_joinq[0] : -1; double fd = -1;
         for (i = 0; i < g_mpf_n; i++) {
-            BYTE *o = mpf_obj(g_mpf[i].li); double d;
+            BYTE *o = mpf_obj(g_mpf[i].li); double d; int rank = 0;
             if (g_mpf[i].state != MPF_PLAY || !o) continue;
             d = aim_alive(o) ? mpf_near_human(o) : -0.5;
-            if (d > fd) { fd = d; pick = i; }
+            if (rule) { int t = aim_team(o); rank = (t == want ? 0 : t == AIM_LAST_TEAM ? 2 : 4) + (aim_alive(o) ? 0 : 1); }   /* teams: his team's AI first */
+            if (rank < best_rank || (rank == best_rank && d > fd)) { best_rank = rank; fd = d; pick = i; }
         }
-        if (pick >= 0) { char why[64]; sprintf(why, "%d humans, %d of %d AI wanted", h, target, pool); mpf_park(&g_mpf[pick], why); g_mpf_last_act = now; }
+        if (pick >= 0) {
+            BYTE *o = mpf_obj(g_mpf[pick].li); int t = aim_team(o); char why[96];
+            if (rule) sprintf(why, "%d humans, %d of %d AI wanted; team %d joined, this car is team %d", h, target, pool, want, t);
+            else sprintf(why, "%d humans, %d of %d AI wanted", h, target, pool);
+            mpf_park(&g_mpf[pick], why); g_mpf_last_act = now;
+            if (rule) {
+                if (t != AIM_LAST_TEAM && g_mpf_vac[t] > 0) g_mpf_vac[t]--;
+                if (t != AIM_LAST_TEAM && aim_alive(o) && mpf_move_team(o, AIM_LAST_TEAM)) mlog("  mpfill: teams - parked '%.8s' back to team %d (pool)", (char *)o, AIM_LAST_TEAM);
+                mpf_q_pop(g_mpf_joinq, &g_mpf_joinn);
+            }
+        }
     } else if (play < target) {                              /* bring a live parked car to the freest spawn point */
-        int pick = -1, s, ns = *(int *)0x00540d98, best_s = -1; double best = -1;
+        int pick = -1, s, ns = *(int *)0x00540d98, best_s = -1, team = AIM_LAST_TEAM; double best = -1;
         for (i = 0; i < g_mpf_n; i++) if (g_mpf[i].state == MPF_PARKED && aim_alive(mpf_obj(g_mpf[i].li))) { pick = i; break; }
         if (pick < 0) return;
         for (s = 0; s < ns && s < 64; s++) {
@@ -175,9 +229,32 @@ static void mpf_fill_tick(void) {
             if (d > best) { best = d; best_s = s; }
         }
         if (best_s < 0 || best < 30.0 * 30.0) return;
-        {   char why[64]; sprintf(why, "%d humans, %d of %d AI wanted (spawn point %d)", h, target, pool, best_s);
+        if (rule && g_mpf_leftn) team = g_mpf_leftq[0];      /* teams: the AI takes the leaver's team */
+        if (rule && team != AIM_LAST_TEAM) {
+            BYTE *o = mpf_obj(g_mpf[pick].li);
+            if (mpf_move_team(o, (DWORD)team)) g_mpf_vac[team]++;
+            else { mlog("  mpfill: teams - '%.8s' not in its team list, stays on team %d", (char *)o, aim_team(o)); team = aim_team(o); }
+        }
+        {   char why[96];
+            if (rule) sprintf(why, "%d humans, %d of %d AI wanted (spawn point %d), team %d", h, target, pool, best_s, team);
+            else sprintf(why, "%d humans, %d of %d AI wanted (spawn point %d)", h, target, pool, best_s);
             mpf_bring(&g_mpf[pick], *(double *)(0x0053fdb0 + best_s * 0x40), *(double *)(0x0053fdc0 + best_s * 0x40), rand() % 360, why); }
+        if (rule) mpf_q_pop(g_mpf_leftq, &g_mpf_leftn);
         g_mpf_last_act = now;
+    } else if (rule) {                                       /* settled: stale queues go; the team ledger is restored */
+        int cnt[8], t;
+        g_mpf_leftn = g_mpf_joinn = 0;
+        memset(cnt, 0, sizeof(cnt));
+        for (i = 0; i < g_mpf_n; i++) { BYTE *o = mpf_obj(g_mpf[i].li); if (g_mpf[i].state == MPF_PLAY && o) cnt[aim_team(o)]++; }
+        for (t = 0; t < 8; t++) if (t != AIM_LAST_TEAM && cnt[t] < g_mpf_vac[t]) {   /* e.g. after a wave reload: every car is back on team 7 */
+            for (i = 0; i < g_mpf_n; i++) {
+                BYTE *o = mpf_obj(g_mpf[i].li);
+                if (g_mpf[i].state != MPF_PLAY || !o || !aim_alive(o) || aim_team(o) != AIM_LAST_TEAM) continue;
+                if (mpf_move_team(o, (DWORD)t)) { mlog("  mpfill: teams - '%.8s' (label %d) back on team %d (it stands in for a team-%d human; %d of %d)", (char *)o, g_mpf[i].li, t, t, cnt[t] + 1, g_mpf_vac[t]); g_mpf_last_act = now; }
+                break;
+            }
+            if (i < g_mpf_n) break;                          /* one move per tick */
+        }
     }
 }
 /* --- co-op scaling (host, every frame from the ai_FrameTick site) ------------------------------------------------- */
@@ -231,20 +308,21 @@ static void mpf_status(int role) {
     BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8);
     mpf_load();
     for (i = 0; i < g_mpf_n; i++) { if (g_mpf[i].state == MPF_PARKED) park++; else if (g_mpf[i].state == MPF_COPY_IN) cin++; else inn++; }
-    len = sprintf(line, "  mpfill: t %lu, %s, %.12s, humans %d (stable %d), tagged %d: in play %d, copies in %d, parked %d; parks %ld acts %ld",
-                  GetTickCount(), role == 1 ? "host" : "joiner", (char *)0x005049f0, mpf_humans_now(), g_mpf_humans, g_mpf_n, inn, cin, park, g_mpf_parks, g_mpf_acts);
+    len = sprintf(line, "  mpfill: t %lu, %s, %.12s, humans %d (stable %d), tagged %d: in play %d, copies in %d, parked %d; parks %ld acts %ld; teams rule %d vac %d%d%d%d%d%d%d q %d/%d",
+                  GetTickCount(), role == 1 ? "host" : "joiner", (char *)0x005049f0, mpf_humans_now(), g_mpf_humans, g_mpf_n, inn, cin, park, g_mpf_parks, g_mpf_acts,
+                  mpf_team_rule(), g_mpf_vac[0], g_mpf_vac[1], g_mpf_vac[2], g_mpf_vac[3], g_mpf_vac[4], g_mpf_vac[5], g_mpf_vac[6], g_mpf_leftn, g_mpf_joinn);
     if (g_mpf_log && tab && count > 0 && count <= 2048) {
         len += sprintf(line + len, "; AI");
         for (i = 0; i < count && len < (int)sizeof(line) - 80; i++) {
             BYTE *o = coop_ai_object(i, count, tab);
             if (!o) continue;
-            len += sprintf(line + len, " %d:%c%.1f,%.1f", i, mpf_parked_obj(o) ? 'p' : aim_alive(o) ? 'a' : 'd', *(double *)(o + 0x40), *(double *)(o + 0x50));
+            len += sprintf(line + len, " %d:%c%.1f,%.1f/t%d", i, mpf_parked_obj(o) ? 'p' : aim_alive(o) ? 'a' : 'd', *(double *)(o + 0x40), *(double *)(o + 0x50), aim_team(o));
         }
         len += sprintf(line + len, "; H");
         for (k = 0; k < 16 && len < (int)sizeof(line) - 60; k++) {
             BYTE *p = (BYTE *)0x00541070 + k * 0x48, *o = aim_slot_car(k);
             if (!*(WORD *)p) continue;
-            if (o) len += sprintf(line + len, " %u:%c%.1f,%.1f", *(WORD *)p, aim_alive(o) ? 'a' : 'd', *(double *)(o + 0x40), *(double *)(o + 0x50));
+            if (o) len += sprintf(line + len, " %u:%c%.1f,%.1f/t%d", *(WORD *)p, aim_alive(o) ? 'a' : 'd', *(double *)(o + 0x40), *(double *)(o + 0x50), aim_team(o));
             else len += sprintf(line + len, " %u:-", *(WORD *)p);
         }
     }
@@ -268,8 +346,10 @@ static void apply_mpfill(void) {
     g_mpf_scale = env_flag("I76_COOP_SCALE", 8, 1);
     g_mpf_scale_max = env_int("I76_COOP_SCALE_MAX", 8, 3); if (g_mpf_scale_max < 0) g_mpf_scale_max = 0; if (g_mpf_scale_max > 8) g_mpf_scale_max = 8;
     g_mpf_log = env_flag("I76_MPF_LOG", 8, 0);
-    g_mpf_test = env_flag("I76_COOP_SCALE_TEST", 8, 0);   /* LAB ONLY: treat every enemy original as engaged at load (copies come in at once) */
-    mlog("  mpfill: AI fill %s, co-op scaling %s (copies per enemy up to %d joiners), car census log %s",
-         g_mpf_fill < 0 ? "auto (pool + 1 combatants)" : g_mpf_fill == 0 ? "off" : "fixed", g_mpf_scale ? "on" : "off", g_mpf_scale_max, g_mpf_log ? "on" : "off");
+    g_mpf_test = env_flag("I76_COOP_SCALE_TEST", 8, 0);
+    g_mpf_fill_team = env_flag("I76_AIMELEE_FILL_TEAM", 8, 1);   /* teams: a returning AI takes the leaver's team (with the team rule) */   /* LAB ONLY: treat every enemy original as engaged at load (copies come in at once) */
+    mlog("  mpfill: AI fill %s, co-op scaling %s (copies per enemy up to %d joiners), car census log %s, fill teams %s",
+         g_mpf_fill < 0 ? "auto (pool + 1 combatants)" : g_mpf_fill == 0 ? "off" : "fixed", g_mpf_scale ? "on" : "off", g_mpf_scale_max, g_mpf_log ? "on" : "off",
+         g_mpf_fill_team ? "on (with the team rule: a returning AI takes the leaver's team)" : "off (AI stay on team 7)");
     if (g_mpf_fill > 0) mlog("  mpfill: I76_AIMELEE_FILL=%d combatants", g_mpf_fill);
 }
