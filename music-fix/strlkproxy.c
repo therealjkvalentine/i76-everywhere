@@ -6985,7 +6985,7 @@ static void apply_glide_refresh(void) {
 /* ===========================================================================
  * TRAINER CONTROL BLOCK  (always on; I76_TRAINER=0 disables)
  * ===========================================================================
- * tools/trainer/i76trn.h is the contract: a 192-byte i76trn_ctl_t in the shared memory Local\I76Trainer that a
+ * tools/trainer/i76trn.h is the contract: a 168-byte i76trn_ctl_t (+ the i76trn_ext_t full-state extension after it) in the shared memory Local\I76Trainer that a
  * front end (tools/trainer/i76trainer_gui.py) fills and this proxy applies on the game's own thread at the top of
  * every frame, before simclock_Update, the physics tick and the render. That placement is the point: an external
  * poke (tools/trainer/i76trainer.py) can land inside the render window, where I76_RENDER_INTERP puts the physics
@@ -7000,7 +7000,7 @@ static void apply_glide_refresh(void) {
  *                                  I76TRN_F_NOFLATS    wheel flat flag +0x44 cleared, radius +0x1c / 0.688 (0x46dde1)
  *                                  I76TRN_F_COMPONENTS components at max only
  *                                  I76TRN_F_FREEZE_POS obj+0x40 = pos, velocity and body rates 0
- *   one-shots (req_seq != ack_seq) repair, teleport, ammo, slot ammo, play flags, stop
+ *   one-shots (req_seq != ack_seq) repair, teleport, ammo, slot ammo, play flags, stop, store state, set state
  *
  * Forced play-flag bits are remembered the first time they are forced and put back when the forcing flag is
  * released, so a session that only used the trainer leaves the Options as they were. Poking the dword does not set
@@ -7061,6 +7061,126 @@ static int trn_weapons(BYTE *obj, int ammo, int hp_max) {
     return hit;
 }
 
+/* FULL CAR STATE (2026-10-20, owner: "the teleport ... should also teleport 6 axis position and speed when stored").
+ * i76trn_ext_t follows the 168-byte block in the same mapping (i76trn.h). STORE copies, on the game thread at the top of
+ * the frame (before the tick), everything the vehicle step carries from one step to the next (i76-map physics.md, the
+ * veh+ / w+ table): pose (obj+0x18 rows, obj+0x40 position), motion (velocity, |v|, 1/|v|, body rates, last acceleration),
+ * contact (airborne / skid / latched bits, surface, probe normal, ground g, clearance, fall-kill reference), the wheels'
+ * suspension and spin history, and the engine's gear / power / rpm. SET_STATE writes it back and reads it back.
+ * Not carried: the camera, AI, scripts, damage, ammo, the input. A restore onto a car of another mass skips the wheels
+ * and the engine (another car's suspension history would be nonsense). Under the sim tick the restored pose differs from
+ * the recorded interpolation end, so wst_swap_in draws it as written (an outside write), as it already does a teleport. */
+static i76trn_ext_t *g_trn_ext;
+static DWORD g_trn_hk_prev;
+
+static BYTE *trn_wheel(BYTE *ent, int i, BYTE **wd) {
+    BYTE *o = *(BYTE **)(ent + 0x3a8 + 4 * i);
+    if (!o || *(int *)(o + 0x6c) != 30 || !*(BYTE **)(o + 0x70)) return 0;
+    *wd = *(BYTE **)(o + 0x70);
+    return o;
+}
+
+static void trn_capture(BYTE *obj, BYTE *ent, i76trn_state_t *s) {
+    BYTE *eng, *o, *w;
+    int i;
+    memset(s, 0, sizeof *s);
+    s->frame = g_frame; s->sim_frame = *(volatile DWORD *)0x005a7e1c;
+    s->mass = *(float *)(ent + 0xa4);
+    memcpy(s->rot, obj + 0x18, 36); memcpy(s->pos, obj + 0x40, 24);
+    memcpy(s->vel, ent + 0xbc, 12); s->speed = *(float *)(ent + 0xac); s->inv_speed = *(float *)(ent + 0xb0);
+    memcpy(s->rates, ent + 0xc8, 12); memcpy(s->accel, ent + 0xd4, 12);
+    s->ent_flags = *(DWORD *)(ent + 0x454) & I76TRN_ST_FLAG_MASK; s->surface = *(DWORD *)(ent + 0x45c);
+    memcpy(s->ground_normal, ent + 0x460, 12);
+    s->ground_g = *(float *)(ent + 0x46c); s->clearance = *(float *)(ent + 0x470); s->last_ground_y = *(float *)(ent + 0x474);
+    s->parts = I76TRN_ST_POSE | I76TRN_ST_MOTION | I76TRN_ST_CONTACT;
+    for (i = 0; i < 6; i++) {
+        i76trn_wheel_state_t *ws = &s->wheel[i];
+        if ((o = trn_wheel(ent, i, &w)) == 0) continue;
+        ws->present = 1;
+        ws->ground_speed = *(float *)(w + 0x20); ws->susp_offset = *(float *)(w + 0x24); ws->ground_height = *(float *)(w + 0x2c);
+        ws->prev_bump = *(float *)(w + 0x30); ws->prev_dbump = *(float *)(w + 0x34); ws->unloaded = *(DWORD *)(w + 0x40);
+        memcpy(ws->iir, w + 0x58, 40); memcpy(&ws->local_y, o + 0x48, 8);
+        s->wheel_mask |= 1u << i;
+    }
+    if (s->wheel_mask) s->parts |= I76TRN_ST_WHEELS;
+    if ((eng = tel_comp(ent, 7, 21)) != 0) {
+        s->gear = *(int *)(eng + 0x08); s->drive_power = *(float *)(eng + 0x10); s->rpm = *(float *)(eng + 0x1c); s->speedo = *(float *)(eng + 0x24);
+        s->parts |= I76TRN_ST_ENGINE;
+    }
+    s->valid = 1;
+}
+
+#define TRN_PUT(dst, src, n) do { memcpy((dst), (src), (n)); if (memcmp((dst), (src), (n))) bad++; } while (0)
+/* returns the parts restored; *bad_out = fields that did not read back as written */
+static DWORD trn_restore(BYTE *obj, BYTE *ent, const i76trn_state_t *s, DWORD parts, DWORD *bad_out) {
+    BYTE *eng, *o, *w;
+    DWORD bad = 0, fl;
+    float dm;
+    int i;
+    if (!s->valid) { *bad_out = 0; return 0; }
+    parts = (parts ? parts : I76TRN_ST_ALL) & s->parts;
+    dm = *(float *)(ent + 0xa4) - s->mass;
+    if (dm > 0.5f || dm < -0.5f) parts &= ~(DWORD)(I76TRN_ST_WHEELS | I76TRN_ST_ENGINE);
+    if (parts & I76TRN_ST_POSE) { TRN_PUT(obj + 0x18, s->rot, 36); TRN_PUT(obj + 0x40, s->pos, 24); }
+    if (parts & I76TRN_ST_MOTION) {
+        TRN_PUT(ent + 0xbc, s->vel, 12); TRN_PUT(ent + 0xac, &s->speed, 4); TRN_PUT(ent + 0xb0, &s->inv_speed, 4);
+        TRN_PUT(ent + 0xc8, s->rates, 12); TRN_PUT(ent + 0xd4, s->accel, 12);
+    }
+    if (parts & I76TRN_ST_CONTACT) {
+        fl = (*(DWORD *)(ent + 0x454) & ~I76TRN_ST_FLAG_MASK) | (s->ent_flags & I76TRN_ST_FLAG_MASK);
+        TRN_PUT(ent + 0x454, &fl, 4); TRN_PUT(ent + 0x45c, &s->surface, 4); TRN_PUT(ent + 0x460, s->ground_normal, 12);
+        TRN_PUT(ent + 0x46c, &s->ground_g, 4); TRN_PUT(ent + 0x470, &s->clearance, 4); TRN_PUT(ent + 0x474, &s->last_ground_y, 4);
+    }
+    if (parts & I76TRN_ST_WHEELS) {
+        for (i = 0; i < 6; i++) {
+            const i76trn_wheel_state_t *ws = &s->wheel[i];
+            if (!(s->wheel_mask & (1u << i)) || (o = trn_wheel(ent, i, &w)) == 0) continue;
+            TRN_PUT(w + 0x20, &ws->ground_speed, 4); TRN_PUT(w + 0x24, &ws->susp_offset, 4); TRN_PUT(w + 0x2c, &ws->ground_height, 4);
+            TRN_PUT(w + 0x30, &ws->prev_bump, 4); TRN_PUT(w + 0x34, &ws->prev_dbump, 4); TRN_PUT(w + 0x40, &ws->unloaded, 4);
+            TRN_PUT(w + 0x58, ws->iir, 40); TRN_PUT(o + 0x48, &ws->local_y, 8);
+        }
+    }
+    if ((parts & I76TRN_ST_ENGINE) && (eng = tel_comp(ent, 7, 21)) != 0) {
+        TRN_PUT(eng + 0x08, &s->gear, 4); TRN_PUT(eng + 0x10, &s->drive_power, 4); TRN_PUT(eng + 0x1c, &s->rpm, 4); TRN_PUT(eng + 0x24, &s->speedo, 4);
+    }
+    *bad_out = bad;
+    return parts;
+}
+#undef TRN_PUT
+
+static void trn_do_store(BYTE *obj, BYTE *ent, const char *by) {
+    i76trn_ext_t *x = g_trn_ext;
+    char b[64];
+    trn_capture(obj, ent, &x->stored);
+    x->target = x->stored;
+    x->store_seq++;
+    wsprintfA(b, "%s: stored (%d, %d, %d) %d km/h", by, (int)x->stored.pos[0], (int)x->stored.pos[1], (int)x->stored.pos[2],
+              (int)(x->stored.speed * 3.6f));
+    trn_msg(b);
+}
+
+static int trn_do_restore(BYTE *obj, BYTE *ent, const char *by) {
+    i76trn_ext_t *x = g_trn_ext;
+    DWORD bad = 0, parts;
+    char b[64];
+    if (!x->target.valid) { trn_msg("restore: nothing stored"); return 0; }
+    parts = trn_restore(obj, ent, &x->target, x->restore_parts, &bad);
+    x->readback_bad = bad; x->restore_frame = g_frame; x->restore_seq++;
+    wsprintfA(b, "%s: restored parts 0x%02x%s%s", by, (unsigned)parts,
+              ((parts & I76TRN_ST_WHEELS) || !(x->target.parts & I76TRN_ST_WHEELS)) ? "" : " (other car: no wheels/engine)",
+              bad ? " READBACK MISMATCH" : "");
+    trn_msg(b);
+    return 1;
+}
+
+static int trn_game_focused(void) {
+    HWND f = GetForegroundWindow();
+    DWORD pid = 0;
+    if (!f) return 0;
+    GetWindowThreadProcessId(f, &pid);
+    return pid == GetCurrentProcessId();
+}
+
 static void trn_apply_inner(void) {
     i76trn_ctl_t *c = g_trn;
     volatile DWORD *play = (volatile DWORD *)0x00654b98;
@@ -7091,6 +7211,16 @@ static void trn_apply_inner(void) {
             applied |= I76TRN_F_FREEZE_POS;
         }
     }
+    if (g_trn_ext && (g_trn_ext->hotkeys & I76TRN_HK_ON)) {   /* Ctrl+9 store, Ctrl+0 restore, game window focused, edge-triggered */
+        DWORD now = 0;
+        if (trn_game_focused() && (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
+            if (GetAsyncKeyState('9') & 0x8000) now |= 1;
+            if (GetAsyncKeyState('0') & 0x8000) now |= 2;
+        }
+        if (obj && (now & 1) && !(g_trn_hk_prev & 1)) { trn_do_store(obj, ent, "Ctrl+9"); g_trn_ext->hotkey_stores++; }
+        if (obj && (now & 2) && !(g_trn_hk_prev & 2) && trn_do_restore(obj, ent, "Ctrl+0")) g_trn_ext->hotkey_restores++;
+        g_trn_hk_prev = now;
+    }
     if (c->req_seq != c->ack_seq) {
         DWORD cmd = c->cmd;
         c->cmd_result = 0;
@@ -7116,6 +7246,13 @@ static void trn_apply_inner(void) {
             if (i < 0 || i >= n || i >= 150 || !*(DWORD *)(inst + 4)) { c->cmd_result = 3; trn_msg("bad weapon slot"); }
             else { *(int *)(inst + 0x20) = c->ammo_value; trn_msg("slot ammo set"); }
             break; }
+        case I76TRN_CMD_STORE_STATE:
+            if (!g_trn_ext) { c->cmd_result = 2; trn_msg("unknown command (no state extension)"); break; }
+            trn_do_store(obj, ent, "store"); break;
+        case I76TRN_CMD_SET_STATE:
+            if (!g_trn_ext) { c->cmd_result = 2; trn_msg("unknown command (no state extension)"); break; }
+            if (!trn_do_restore(obj, ent, "restore")) c->cmd_result = 4;
+            break;
         case I76TRN_CMD_STOP:     memset(ent + 0xbc, 0, 12); memset(ent + 0xc8, 0, 12); *(float *)(ent + 0xac) = 0.0f; *(float *)(ent + 0xb0) = 0.0f;
                                   trn_msg("stopped"); break;
         default:                  c->cmd_result = 2; trn_msg("unknown command"); break;
@@ -7190,16 +7327,32 @@ static int trn_install_guard(void) {
 static void apply_trainer(void) {
     if (env_flag("I76_TRAINER", 8, 1) == 0) { mlog("  trainer: disabled (I76_TRAINER=0)"); return; }
     char trn_nm[96];
-    g_trn_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(i76trn_ctl_t), shm_name(trn_nm, sizeof trn_nm, I76TRN_SHM_NAME));
-    if (g_trn_map) g_trn = (i76trn_ctl_t *)MapViewOfFile(g_trn_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76trn_ctl_t));
+    typedef char trn_ext_at_168[(I76TRN_EXT_OFFSET == sizeof(i76trn_ctl_t)) ? 1 : -1];
+    const DWORD full = I76TRN_EXT_OFFSET + sizeof(i76trn_ext_t);
+    g_trn_map = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, full, shm_name(trn_nm, sizeof trn_nm, I76TRN_SHM_NAME));
+    if (g_trn_map) {
+        g_trn = (i76trn_ctl_t *)MapViewOfFile(g_trn_map, FILE_MAP_ALL_ACCESS, 0, 0, full);
+        if (g_trn) g_trn_ext = (i76trn_ext_t *)((BYTE *)g_trn + I76TRN_EXT_OFFSET);
+        /* a front end that made the section first at the old 168 bytes (the classic window): no room for the
+         * extension, so serve the version-1 block only */
+        else g_trn = (i76trn_ctl_t *)MapViewOfFile(g_trn_map, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(i76trn_ctl_t));
+    }
     if (!g_trn) { mlog("  trainer: shared memory %s NOT created (%lu)", trn_nm, GetLastError()); return; }
     memset(g_trn, 0, sizeof *g_trn);                          /* a front end that mapped first sees the block reset */
+    if (g_trn_ext) memset(g_trn_ext, 0, sizeof *g_trn_ext);
     g_trn->version = I76TRN_VERSION; g_trn->size = sizeof(i76trn_ctl_t);
     trn_msg("proxy ready");
     install_frame_hook();
+    if (g_trn_ext && g_frame_hook) {
+        g_trn_ext->ext_version = I76TRN_EXT_VERSION; g_trn_ext->ext_size = sizeof(i76trn_ext_t);
+        g_trn_ext->ext_magic = I76TRN_EXT_MAGIC;
+    }
     g_trn->magic = g_frame_hook ? I76TRN_MAGIC : 0;           /* no hook, no service: the magic stays clear */
     mlog("  trainer: %s (%s, %u B, frame hook %s)", g_frame_hook ? "on" : "NOT applied", trn_nm,
          (unsigned)sizeof(i76trn_ctl_t), g_frame_hook ? "ok" : "missing");
+    mlog("  trainer: full-state store / restore %s (%u B extension at +%u; Ctrl+9 / Ctrl+0 when a front end enables them)",
+         g_trn_ext ? "on" : "OFF (the section was created at the old size by another program)",
+         (unsigned)sizeof(i76trn_ext_t), (unsigned)I76TRN_EXT_OFFSET);
     if (g_frame_hook) {
         int g = trn_install_guard();
         mlog("  trainer: cheat-marker guard %d/4 sites (SaveDef x2, options-menu close x2)%s", g,
