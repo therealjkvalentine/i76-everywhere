@@ -113,15 +113,15 @@ own proxy** (no co-op switches, so even after the step it does not mirror AI car
 
 Main asked for it after the matrix: the teams lane's proxy (b462a08 + 8315de9, record MP-TEAMS-2026-10-20) on every machine.
 
-**Pack `i76-uncap-labuilds\mp-pack-20261020-teams\`** = `mp-pack-20261020-overnight` with exactly one file changed:
+**Pack `i76-uncap-lab\builds\mp-pack-20261020-teams\`** = `mp-pack-20261020-overnight` with exactly one file changed:
 `common/STRLKUP.DLL` 533ab67c -> **31efcf7a**, built from i76-everywhere HEAD 5eea548 (clean `git archive`, MSVC x86 /MT /O2
-/Brepro, built twice byte-identical, `builds	eams-pack-202610201|b2`; HEAD's music-fix differs from 8315de9 in README.md only,
+/Brepro, built twice byte-identical, `builds\teams-pack-20261020\b1|b2`; HEAD's music-fix differs from 8315de9 in README.md only,
 so the hash equals the teams lane's). `common.md5` has that one hash changed; `deploy\` holds `STRLKUP.DLL`, `common.md5`,
 `mac-deploy-teams.sh`, `mac-rollback-teams.sh`. No ADDON file changed, so arena CRCs are as overnight (titles match the 533ab67c machines; only the proxy behaviour differs).
 
 | machine | how | verify | STRLKUP.DLL now | rollback |
 |---|---|---|---|---|
-| PC LAN copy | `deploy-pc.ps1` of the new pack (game stopped first) | 1 file updated, 0 mismatches; 533ab67c saved in the pack's `rollback\pc\` | **31efcf7a** | `mp-pack-20261020-teamsollback-pc.ps1` |
+| PC LAN copy | `deploy-pc.ps1` of the new pack (game stopped first) | 1 file updated, 0 mismatches; 533ab67c saved in the pack's `rollback\pc\` | **31efcf7a** | `mp-pack-20261020-teams\rollback-pc.ps1` |
 | laptop (`I76 MP GATE.app`) | `mac-deploy-teams.sh <game folder> ~/i76-overnight-20261020/teams --swap`: copy of the folder + the DLL, then swap | 408 files, 0 mismatches | **31efcf7a** | `bash ~/i76-overnight-20261020/teams/mac-rollback-teams.sh "<game folder>"` (the 533ab67c folder is kept as `Interstate 76-pre-teams-20261020`; the 2026-10-18 one still as `Interstate 76-pre-20261020`) |
 | Andrew's Mac | the same | 408 files, 0 mismatches | **31efcf7a** | the same |
 | Michael's Mac | the same | 408 files, 0 mismatches | **31efcf7a** | the same |
