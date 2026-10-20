@@ -3,13 +3,20 @@
 **2026-10-12: `TRAINER.bat` now opens I76 Debug (`tools\debug`, README there) on its Trainer tab** - the same controls and
 memory writes (its `debug_trainer.py` imports this file's helpers and `i76trainer.py`), in a dashboard that also shows
 telemetry, events, FFB, rumble, LFE, motion and the proxy log, and that never creates the telemetry shared memory (this window
-maps it at the v2 size, which stops a v3 proxy from using it when the window starts first). `TRAINER.bat --classic` still
-starts this window. Everything below applies to both.
+maps it at the v2 size, which stops a v3 proxy from using it when the window starts first). Everything below applies to both.
+
+**2026-10-20: `DEBUG.bat` is the one entry** ("I76 Debug: debug / cheat tool"); `TRAINER.bat` is a one-line shim,
+`DEBUG.bat --tab trainer`. This window is `python i76trainer_gui.py` (the shim has no `--classic` any more). The full-state
+store / restore (position, heading, pitch, roll, velocity, spin, suspension, engine; Ctrl+9 / Ctrl+0 in the game) is in
+I76 Debug only (`tools\debug\README.md`, "Full car state"); this window keeps the position-only teleport and writes
+position-only waypoints (a full-state waypoint saved by I76 Debug still loads here as its position). Note: a window started
+before the game creates `Local\I76Trainer` at the old 168 bytes; the proxy then serves the version-1 block only and its
+log says "full-state store / restore OFF" - close this window before starting the game to keep the full state.
 
 A player-facing front end over the trainer pieces that already exist in this folder: the pokes of
 `i76trainer.py`, the Strlkup proxy's control block (`i76trn.h`), and the telemetry export
-(`..\telemetry\i76tel.h`). Stdlib Python 3 with tkinter, nothing to install. Double-click `TRAINER.bat`,
-or `python i76trainer_gui.py` (`--selftest` parses the headers and round-trips a request without a game;
+(`..\telemetry\i76tel.h`). Stdlib Python 3 with tkinter, nothing to install. Start it with
+`python i76trainer_gui.py` (`--selftest` parses the headers and round-trips a request without a game;
 `--any` starts with the non-sandbox box ticked).
 
 Every address below is from `C:\Users\james\i76-map\subsystems\cheats.md` (static reading of the pristine 2017

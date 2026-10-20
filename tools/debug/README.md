@@ -1,4 +1,9 @@
-# I76 Debug (`tools/debug`)
+# I76 Debug (`tools/debug`) - the debug / cheat tool
+
+**`DEBUG.bat` is the one entry** (console title "I76 Debug: debug / cheat tool"); `TRAINER.bat` is a one-line shim that
+opens it on the Trainer tab, kept so old habits work. It ships in the daily driver as `DEBUG.bat` + `TRAINER.bat` at the
+top and the code in `_tools\debug`, `_tools\trainer`, `_tools\telemetry`, so anyone who gets a release has it as a cheat
+or debug tool.
 
 A local web dashboard of everything the I'76 tooling knows while the game runs: frame rate and physics steps, live
 telemetry charts and a map, every game event, the force-feedback wheel, pad rumble, the bass shakers (LFE), motion
@@ -13,8 +18,9 @@ offline), dark theme. It serves `http://127.0.0.1:17690/` and nothing else.
 | how | what |
 |---|---|
 | `tools\debug\DEBUG.bat` | the dashboard; opens the browser on the Overview tab |
-| `tools\trainer\TRAINER.bat` | the same dashboard, opened on the Trainer tab (the old habit still works) |
-| `TRAINER.bat --classic` | the old tkinter trainer window (`i76trainer_gui.py`), unchanged |
+| `tools\trainer\TRAINER.bat` | `DEBUG.bat --tab trainer` (since 2026-10-20 a one-line shim; the old habit still works) |
+| `DEBUG.bat --haptics` | also starts the haptics host so the Force feedback / Rumble / LFE / Motion tabs fill in (see "With the haptics host") |
+| `python tools\trainer\i76trainer_gui.py` | the old tkinter trainer window, unchanged (`TRAINER.bat --classic` until 2026-10-20) |
 | `python tools\debug\i76debug.py --help` | every option |
 
 Options worth knowing:
@@ -32,9 +38,29 @@ Options worth knowing:
 
 Start the game with telemetry on (`I76_TELEMETRY=1`; `I76_SOUND_EVENTS=1` and `I76_DAMAGE_EVENTS=1` for the sound and
 damage events), then `DEBUG.bat`. Overview, Telemetry, Events, Collision, Terrain / render, Trainer and Log fill in. The
-Force feedback, Rumble, LFE and Motion tabs say "No haptics host data" - their numbers only exist inside the host.
+Force feedback, Rumble, LFE and Motion tabs have no data of their own: their numbers only exist inside the haptics host
+(`tools\haptics`), which `PLAY.bat` does not start. Since 2026-10-20 (owner: "not sure why no haptics host data in debug")
+those tabs say exactly that and what to do (`debug_haptics.py`):
 
-### With the haptics host
+| what the tab finds | what it says / offers |
+|---|---|
+| the host is not found (a shipped folder has no `tools\haptics`; the owner's checkout `C:\Users\james\i76-everywhere` is looked for, or `I76_HAPTICS_HOST`) | where it lives; Start |
+| no wheel or pad (winmm joysticks - what the game reads - that answer `joyGetPosEx`, and XInput pads) | "nothing for the host to drive"; **Start anyway (dry run)** |
+| a wheel / pad (listed by name) | **Start haptics host**, and a "drive the devices (--live)" box (asks first) |
+| the host was started here | its pid, dry run or live, uptime, the last log lines while it waits for its first datagram; **Stop it** |
+| it exited | the exit code and the last log lines |
+| no telemetry from the game | a note: start the game with `I76_TELEMETRY=1`, else the host has nothing to work on |
+
+Start runs `i76haptics.exe live --source udp --port 17676 --debug-udp 127.0.0.1:<--haptics-port>` (or `haptics.ps1 live
+...`, which builds it, when the exe is not built), and the dashboard starts forwarding every telemetry datagram to 17676
+at that moment. **Dry run by default**: the host computes everything the tabs show and drives nothing (its file outputs
+go to `%TEMP%\i76debug-haptics`, overwritten at every start), because a wheel must not get two force sources (the game's
+own force feedback, or a host started by hand). `--live` is added only by the "drive the devices" box or
+`DEBUG.bat --haptics-live`. The host runs in a kill-on-close job: Stop, Ctrl+C or closing the dashboard's window ends it,
+and the dashboard never stops a host it did not start. `DEBUG.bat --haptics` = Start at launch (refused, with the reason
+on the console, when no wheel or pad is found).
+
+### With the haptics host started by hand
 
 Only one program can own the telemetry port, so the dashboard owns it and forwards (tees) every datagram:
 
@@ -82,11 +108,44 @@ If the haptics host was started first on port 7676, the dashboard cannot bind it
 | **Motion** | a small rig preview posed by roll / pitch with heave and surge offsets (a preview, not the rig software's washout); the six channels (surge / sway / heave with cues, roll / pitch / yaw rates and angles) and the fail-to-neutral gain; the status word decoded (live, airborne, skid, destroyed, paused, neutral, interpolated, cues, shutting down, surface, gear); cue counts; packets, packets per second and errors per target | host (Motion.Udp's MotionFrame) |
 | **Collision** | the `coll-window when=stepframe` counters of the last 30 s report (pair tests, widened, stock window, no pair window) and their history; the v3 sphere-to-slab counts; the `breakable-box` status and parts report; recent contacts (IMPACT events). Misses are not logged by the proxy: the stock-window share is the closest measure | log, telemetry |
 | **Terrain / render** | the I76_DRAW_PROBE terrain draw census (TERRAIN-LOSS / TRIANGLE-LOSS events, the 600-swap summary); TERRAIN-DROP events (frame, terrain vertices vs the previous scene, eye height above the terrain, camera mode, camera position) and the flash-probe summary; camera lifts and COCKPIT-UNDER; the texture census (downloads, flushes, NO-SLOT, resident / peak KB); road-pool and clutter stats; fixed step, render interpolation, fps; the start-position lines; CRASH lines | log |
-| **Trainer** | everything the trainer window had - attach and the non-sandbox gate, status, the five holds, repair / stop / refill / slot ammo, teleport with "use current", three waypoints (the same `tools\trainer\waypoints.json`), Play Options set / clear with the cheater-options confirmation, "Turn off cheater options", the campaign line, the log of every write and its read-back - plus a **T05 hill top** preset (7972, 102.3, 44035: the crest above the barricades, lab `docs/COLL-TIMING-2026-10-12.md` section 4; the teleport keeps your heading, turn west down the hill) | `i76trainer.py` / `i76trainer_gui.py` code, imported (`debug_trainer.py`) |
+| **Trainer** | everything the trainer window had - attach and the non-sandbox gate, status, the five holds, repair / stop / refill / slot ammo, teleport with "use current", three waypoints (the same `tools\trainer\waypoints.json`; since 2026-10-20 they hold the **full car state**, see below), the quick slot (Store now / Restore / Restore stopped; Ctrl+9 / Ctrl+0 in the game), Play Options set / clear with the cheater-options confirmation, "Turn off cheater options", the campaign line, the log of every write and its read-back - plus a **T05 hill top** preset (7972, 102.3, 44035: the crest above the barricades, lab `docs/COLL-TIMING-2026-10-12.md` section 4; the teleport keeps your heading, turn west down the hill) | `i76trainer.py` / `i76trainer_gui.py` code, imported (`debug_trainer.py`) |
 | **Log** | the tail of `mciproxy.log` from the last proxy start, with a text filter and quick filters (fps, coll-window, breakable, cam-ground, TERRAIN-DROP, tex-census, start-pos, not applied, telemetry, trainer, CRASH), follow on / off | log |
 
 `README-GUI.md` (tools/trainer) still documents every trainer control, the proxy / direct modes and the campaign rules;
 they apply to the Trainer tab unchanged.
+
+### Full car state: store and restore (2026-10-20)
+
+Owner: "the teleport capability in the trainer should also teleport 6 axis position and speed when stored". With a proxy
+built from i76-everywhere `2d6e7e8` or later (the trainer block carries `i76trn_ext_t`, `tools\trainer\i76trn.h`), a
+store captures on the game thread, at the top of a frame before the tick, everything the car step carries from one step
+to the next, and a restore writes all of it back and reads it back:
+
+| part | fields |
+|---|---|
+| pose | rotation rows right / up / forward (heading, pitch, roll) obj+0x18, position obj+0x40 |
+| motion | world velocity ent+0xbc, \|v\| and 1/\|v\| ent+0xac / +0xb0, body rates pitch / yaw / roll ent+0xc8, last acceleration ent+0xd4 |
+| contact | the skid / airborne / contact-latched bits of ent+0x454, surface, probe normal, ground g, clearance, the fall-kill reference height ent+0x474 |
+| wheels | per wheel: spin speed, suspension offset and its filter history, ground heights, unloaded flag, local y |
+| engine | gear, drive power, rpm, speedo |
+
+Not carried: the camera (it swings back in over a moment), AI cars, scripts, damage, ammo, and your input (hold the same
+throttle). A restore onto a different car (another mass) puts back pose, motion and contact only.
+
+| control | does |
+|---|---|
+| **Store now** / Ctrl+9 in the game | the quick slot; the page shows its position, km/h, heading, pitch, roll and "airborne" |
+| **Restore** / Ctrl+0 in the game | the quick slot (or the last waypoint gone to) back, moving exactly as stored - replay a jump run-up |
+| **Restore stopped** | the pose back with zero motion |
+| waypoint **Save here** | the full state into that slot of `waypoints.json` |
+| waypoint **Go** / **Go stopped** | as Restore / Restore stopped; **<- quick** copies the quick slot into the waypoint |
+| "in-game keys" box | Ctrl+9 / Ctrl+0 on (default) or off. The proxy watches them only while this tool has them on and only while the game window has the focus; 9 and 0 are bound nowhere in the game (every F key is a camera). Let go of Ctrl after a restore: Ctrl+key is not a drive key |
+
+`waypoints.json` keeps `x`, `y`, `z` and `saved` at the top (the classic window and old readers use them) and adds `how`,
+`summary` and `state`. An old position-only waypoint still loads and Go teleports the position as before; with a proxy
+older than `2d6e7e8` the page says "full state: no: this proxy predates it" and Save / Go are position-only. Without a
+proxy (direct mode) Store / Restore carry the pose and the motion through WriteProcessMemory. Measured round trip (lab,
+headless): `docs/records/DEBUG-TOOL-2026-10-20.md`.
 
 ## Physics / memory logger (`debug_logger.py`, 2026-10-17)
 
@@ -118,11 +177,13 @@ the header (every tab), the logger card on the Trainer tab, two global hotkeys, 
 |---|---|
 | `i76debug.py` | the server: sources, the trainer thread, HTTP (`/`, `/api/state`, `/api/stream` server-sent events, `/api/log`, `/api/trainer`) |
 | `debug_core.py` | telemetry source (UDP + tee, or existing shm), haptics source, the `mciproxy.log` parser, the Hub (history the panels draw from) |
-| `debug_trainer.py` | the trainer without tkinter (same writes, imported from tools/trainer) |
+| `debug_trainer.py` | the trainer without tkinter (same writes, imported from tools/trainer), the full-state store / restore |
+| `debug_haptics.py` | the haptics tabs' starter: finds the host and the wheel / pads, starts / stops its own host (dry run or `--live`) |
 | `debug_logger.py` | the physics / memory logger (I76MEM's CSV files from telemetry + an 8 Hz read-only reader), global hotkeys |
 | `PLAY-LOGGED.bat` | one click: the dashboard with the logger armed + the lab twin with telemetry |
 | `tests/test_logger.py` | the logger: mem2csv columns, gaps, marks, auto start / stop, owner_log.py + fingerprint.py read it, HTTP end to end |
 | `static/` | `index.html`, `app.js`, `charts.js` (strip / bar charts with hover tooltips), `app.css` |
+| `tests/test_fullstate.py` | the full-state layout and (de)serialisation, store / restore / waypoints against a fake proxy block, the old-proxy fallback, the haptics starter's refusal / dry-run / port paths |
 | `tests/test_debug.py` | unit tests and the end-to-end smoke test; `tests/fixtures/mciproxy-sample.log` is real proxy log lines (the overnight t05 start plus one real example of each periodic line from lab logs) |
 
 ## Haptics debug datagram (`--debug-udp`, schema 1)
@@ -150,6 +211,7 @@ with and without it.
 python tools\debug\tests\test_debug.py          :: unit tests + end-to-end, about 25 s
 python tools\debug\tests\test_debug.py --unit   :: unit tests only
 python tools\debug\tests\test_logger.py         :: the logger, about 10 s
+python tools\debug\tests\test_fullstate.py      :: full-state store / restore + the haptics starter, about 1 s
 tools\haptics\haptics.ps1 test                  :: includes the publisher's C# tests
 ```
 
@@ -167,6 +229,7 @@ headless Edge captures of every tab during development.
 * `accel_body` in the telemetry is the FFB block's copy, 0 when `ffb_present` is 0 (the whole overnight t05 run): the
   Telemetry tab then shows rot x `accel` (the engine's ent+0xd4, gravity convention unverified live).
 * Owner test item 33 in `docs/OWNER-TEST-LIST.md`.
-* Deployment: the daily driver's `TRAINER.bat` still starts `_tools\trainer\i76trainer_gui.py`. Promoting this means
-  copying `tools\debug` to `_tools\debug` and pointing that `TRAINER.bat` at `_tools\debug\i76debug.py --any --tab
-  trainer` - a later, gated promotion.
+* Deployment: promotion 16 (2026-10-12) put I76 Debug in the daily driver (`_tools\debug`, `DEBUG.bat`, `TRAINER.bat` on
+  its Trainer tab). The 2026-10-20 set (full state, haptics starter, the TRAINER.bat shim) is staged in the lab,
+  `builds\debug-tool-20261020` (record `docs/records/DEBUG-TOOL-2026-10-20.md`), not installed.
+* The in-game keys Ctrl+9 / Ctrl+0 have not been pressed at a console (the lab runs on a private desktop).
