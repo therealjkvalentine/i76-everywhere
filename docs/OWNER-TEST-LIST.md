@@ -1577,3 +1577,7 @@ new pack since 03:35; the Deck does not yet (it was asleep all night).
 
 Decisions: AI fill count (5 combatants for "(4 AI)" now, or 4 = the title's number with you counted in); whether copies should
 also come for enemies that never attack; internet play stays direct IP / ZeroTier (IPXWrapper's DOSBox mode does not work with I'76).
+6. **Teams** (teams lane; records/MP-TEAMS-2026-10-20.md; needs the next pack, proxy 31efcf7a): PC hosts "Hope Springs (4 AI)"
+   with **TEAM PLAY** ticked; everyone picks a team in the pop-up (not Men In Black: that is the AI's team). Expect: the AI go
+   for other teams only; when someone quits, the AI that comes back plays on HIS team (it hunts the others, not his mates);
+   when someone joins, an AI of his team steps out first. Tell me who scored for kills - the lab could not make any.
