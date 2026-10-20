@@ -164,6 +164,29 @@ static int mpf_humans_stable(void) {                         /* humans, once unc
 }
 /* --- AI fill (host, from aim_tick) ------------------------------------------------------------------------------- */
 static int mpf_team_rule(void) { return g_mpf_fill_team && aim_team_rule(); }
+static DWORD g_mpf_tsig, g_mpf_tsig_since;
+static DWORD mpf_team_sig(void) {                            /* every slot's id and team: a new slot can read team 0 for a moment */
+    DWORD s = 0; int k;                                      /* (measured: a joiner's slot first shows flags 0x1, team 0, then 0x2 + */
+    for (k = 0; k < 16; k++) {                               /*  his team: 0x4541b0 sets bit 1 only when it read the team from ANet) */
+        BYTE *p = (BYTE *)0x00541070 + k * 0x48; DWORD f = *(DWORD *)(p + 0x1c);
+        if (*(WORD *)p) s = s * 31 + *(WORD *)p * 16 + ((f >> 16) & 7) * 2 + ((f >> 1) & 1);
+    }
+    return s;
+}
+static int mpf_teams_read(void) {                            /* every slot's team came from its player data (flags bit 1) */
+    int k; for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && !(*(DWORD *)(p + 0x1c) & 2)) return 0; }
+    return 1;
+}
+static void mpf_team_refresh(void) {                         /* a known player's team changed (e.g. his slot read team 0 first) */
+    int k, j;
+    for (k = 0; k < 16; k++) {
+        BYTE *p = (BYTE *)0x00541070 + k * 0x48; BYTE t = (BYTE)((*(DWORD *)(p + 0x1c) >> 16) & 7);
+        if (!*(WORD *)p) continue;
+        for (j = 0; j < g_mpf_snap_h; j++) if (g_mpf_sid[j] == *(WORD *)p && g_mpf_steam[j] != t) {
+            mlog("  mpfill: teams - player %u now reads team %d (was %d)", g_mpf_sid[j], t, g_mpf_steam[j]); g_mpf_steam[j] = t;
+        }
+    }
+}
 static void mpf_q_pop(int *q, int *n) { if (*n > 0) { memmove(q, q + 1, (*n - 1) * sizeof(int)); (*n)--; } }
 static void mpf_team_diff(void) {                            /* who left / joined since the last count, with their teams */
     WORD id[16]; BYTE tm[16]; int k, j, n = 0;
@@ -195,7 +218,13 @@ static void mpf_fill_tick(void) {
     g_mpf_last_fill = now;
     if ((h = mpf_humans_stable()) < 1) return;
     rule = mpf_team_rule();
-    if (rule && h != g_mpf_snap_h) mpf_team_diff();
+    if (rule) {                                              /* act on teams only once every slot's team has held for 3 s */
+        DWORD sig = mpf_team_sig();
+        if (sig != g_mpf_tsig) { g_mpf_tsig = sig; g_mpf_tsig_since = now; }
+        if (now - g_mpf_tsig_since < 3000 || (!mpf_teams_read() && now - g_mpf_tsig_since < 15000)) return;
+        mpf_team_refresh();
+        if (h != g_mpf_snap_h) mpf_team_diff();
+    }
     if (now - g_mpf_last_act < 500) return;
     for (i = 0; i < g_mpf_n; i++) { pool++; if (g_mpf[i].state == MPF_PLAY) play++; }
     n = g_mpf_fill < 0 ? pool + 1 : g_mpf_fill;

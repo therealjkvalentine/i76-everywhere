@@ -302,7 +302,7 @@ static void aim_status(int role) {
     len += sprintf(line + len, " = %d/%d alive; teamplay %d rule %d; humans", a, n, *(volatile int *)0x00541010, aim_team_rule());
     for (i = 0; i < 16; i++) {                               /* 5. each human: player id : slot team (flags +0x1c) / car team */
         BYTE *p = (BYTE *)0x00541070 + i * 0x48, *c = aim_slot_car(i);
-        if (*(WORD *)p) len += sprintf(line + len, " %u:t%d/%d", *(WORD *)p, (int)((*(DWORD *)(p + 0x1c) >> 16) & 7), c ? aim_team(c) : -1);
+        if (*(WORD *)p) len += sprintf(line + len, " %u:t%d/%df%x", *(WORD *)p, (int)((*(DWORD *)(p + 0x1c) >> 16) & 7), c ? aim_team(c) : -1, (unsigned)(*(DWORD *)(p + 0x1c) & 0xffff));
     }
     {   BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();   /* own car: health % (0x40b450) and position */
         if (root && *root && *(BYTE **)(*root + 0x70))
