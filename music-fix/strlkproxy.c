@@ -6902,6 +6902,7 @@ static void tex_census_attach(HMODULE m) {
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
 #include "padmenu.c"     /* I76_PAD_MENU: controller moves the menu pointer (shell + Esc menu only; uses cursormap) */
 #include "mpmenu.c"      /* I76_MP_MENU: MULTI MELEE HOST / JOIN straight to IPX (1, default) or IPX-only row (2) */
+#include "escmenu.c"     /* I76_MENU_PTR: Esc-menu clicks from the exe's own pointer read under DxWnd (the Macs; auto) */
 #include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
@@ -9222,6 +9223,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */
         apply_pad_menu();         /* opt-in: I76_PAD_MENU=1 (after apply_cursor_map: chains its PeekMessageA slots) */
         apply_mp_menu();          /* default on: I76_MP_MENU=1 HOST / JOIN go straight to IPX, 2 = IPX-only row, 0 = stock */
+        apply_menu_ptr();         /* default auto: I76_MENU_PTR (on only under DxWnd: the Esc menu's clicks follow the pointer) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

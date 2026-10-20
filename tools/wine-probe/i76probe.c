@@ -197,11 +197,13 @@ static void cmd_click(int x, int y) {
     in[2].type = INPUT_MOUSE; in[2].mi.dwFlags = MOUSEEVENTF_LEFTUP; SendInput(1, &in[2], sizeof(INPUT));
     { POINT c; GetCursorPos(&c); printf("click UI %d,%d -> screen %ld,%ld (cursor now %ld,%ld)\n", x, y, pt.x, pt.y, c.x, c.y); }
 }
+static int g_xkey;   /* xkey: send as an extended key (KEYEVENTF_EXTENDEDKEY), as a real keyboard's arrow / Ins / Del block does */
 static void key(WORD vk, int ms) {
     INPUT in; memset(&in, 0, sizeof(in));
     in.type = INPUT_KEYBOARD; in.ki.wVk = vk; in.ki.wScan = (WORD)MapVirtualKeyA(vk, 0);
+    if (g_xkey) in.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
     SendInput(1, &in, sizeof(INPUT)); Sleep(ms);
-    in.ki.dwFlags = KEYEVENTF_KEYUP; SendInput(1, &in, sizeof(INPUT)); Sleep(60);
+    in.ki.dwFlags |= KEYEVENTF_KEYUP; SendInput(1, &in, sizeof(INPUT)); Sleep(60);
 }
 static void cmd_shot(const char *path) {
     RECT r; HDC wdc, mdc; HBITMAP bm; BITMAPINFOHEADER bi; BITMAPFILEHEADER bf; BYTE *bits; FILE *f; int w, h, stride, i;
@@ -345,6 +347,15 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[1], "deskshot") && argc > 2) { g_desk = 1; cmd_shot(argv[2]); }
     else if (!strcmp(argv[1], "pclick") && argc > 3) cmd_pclick(atoi(argv[2]), atoi(argv[3]));
     else if (!strcmp(argv[1], "click") && argc > 3) cmd_click(atoi(argv[2]), atoi(argv[3]));
+    else if (!strcmp(argv[1], "pmsg") && argc > 4) {   /* pmsg <msg-hex> x y: SetCursorPos there, then PostMessage one mouse
+                                                          message (e.g. 201 = button down only: hit-test a menu without the
+                                                          button-up that would activate the item) */
+        POINT pt, cl; UINT m = (UINT)strtoul(argv[2], NULL, 16); client_map(atoi(argv[3]), atoi(argv[4]), &pt); cl = pt; ScreenToClient(g_wnd, &cl);
+        SetCursorPos(pt.x, pt.y); Sleep(100);
+        PostMessageA(g_wnd, m, m == WM_LBUTTONDOWN ? MK_LBUTTON : 0, MAKELPARAM(cl.x, cl.y));
+        printf("pmsg 0x%x client %ld,%ld\n", m, cl.x, cl.y);
+    }
+    else if (!strcmp(argv[1], "xkey") && argc > 2) { g_xkey = 1; fg(); key((WORD)strtol(argv[2], NULL, 16), argc > 3 ? atoi(argv[3]) : 80); printf("xkey %s\n", argv[2]); }
     else if (!strcmp(argv[1], "key") && argc > 2) { fg(); key((WORD)strtol(argv[2], NULL, 16), argc > 3 ? atoi(argv[3]) : 80); printf("key %s\n", argv[2]); }
     else if (!strcmp(argv[1], "type") && argc > 2) { const char *p; fg(); for (p = argv[2]; *p; p++) { SHORT v = VkKeyScanA(*p); key((WORD)(v & 0xff), 60); } printf("typed\n"); }
     else if (!strcmp(argv[1], "throttle") && argc > 3) {
