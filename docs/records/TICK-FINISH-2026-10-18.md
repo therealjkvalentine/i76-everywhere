@@ -1235,3 +1235,219 @@ process for muting instead of muting it in the kickoff script?"*
 - Harness: I76_MUTE=1 in autotest\proxy-run.ps1, tools\tick-gaps\tg-gate.ps1 (LAB_GAME_ENV and the launcher rows' environment),
   tools\tick-fix\cursor-tick.ps1, tools\frame-bound\fb-run.ps1; not in any owner preset or PLAY-*.bat. tick19e and older proxies
   ignore it, so the watcher stays as the fallback (lab CONSOLE-LOCK.md).
+
+## 16. Owner regressions on tick19e: the instant-melee crash, "no AI cars", two helicopters in T05; tick19f (2026-10-19 evening, sp-fix lane)
+
+Owner (verbatim): *"crashes every time i try it enter instant melee. multi-melee opens but no ai cars are populated."* and *"not sure why
+two heilocopters spawn in t05 (on both play-tick and daily but not on stock game), that seems to be an error too."*
+
+**Results in short.**
+- **Instant melee crash: a tick bug, not a LAN-key bug. Fixed in tick19f `d805e4be995bdd1bc4ee49ae6d2d2ada` (i76-everywhere
+  `47a2b3a`, deterministic). Its gate ran but is void (16.5), so tick19f is NOT installed and NOT staged; game-tick keeps tick19e.**
+  The tick's object walks called the engine's release-if-dead function as if it were a lookup. Each walk stole a reference from every
+  dead object, so objects were freed while the texture-animation list still held them.
+- **"No AI cars" in multi melee: the owner's games never loaded Hope Springs.** His sessions on game-tick and on game-aimelee ran other
+  arenas. Hope Springs (4 AI), hosted alone, had 4 AI cars, all sent at the host (n 3). The suspected cause is the pointer on the wide
+  menu picture: the list click did not change the selection. That is not measured (16.3).
+- **Two helicopters in T05: the 1997 mission has two.** They are not doubled by any switch. The count was 2 under the stock loop,
+  promotion 18 and tick19-33 (n 2 each). There is no fix, and the daily driver is not affected by any switch.
+
+The daily driver, the golden copy, the Downloads portable and the PC LAN copy were only read (T05.MSN md5s). The owner was at the PC
+for the first part of the session, so every run before the gate was headless, on a private desktop, with the game muted per pid.
+
+### 16.1 Headless shell driving (new lab tool)
+
+The instant-melee route goes through the shell's menus. SendInput and SetCursorPos cannot reach a game on a private desktop, so the
+lab twin got a block that drives the shell from inside the game:
+- `builds\sp-fix-20261019\shellclick-block.c`, switch `I76_LAB_SHELLCLICK=1`, lab builds only.
+- The shell's MouseUpdate (0x1001fbf0) reads the pointer through three i76shell.dll imports: GetCursorPos, ScreenToClient and
+  GetAsyncKeyState(1/2/4). The block repoints those three slots.
+- It is fed by a command file, `<game>\labclick.cmd`, with `click x y [ms]`, `move x y` and `key VK` commands.
+
+The tools around it, in lab `tools\sp-fix\`:
+- `sp-run.ps1` starts one boot of a lab copy with a preset, on desktop I76Lab-sp. It sets I76_MUTE=1 and starts start-mute-watch on
+  the pid, and keeps a per-folder lock.
+- `spnav.py` reads state from memory. It drives these routes:
+  - MELEE > AUTO MELEE > INSTANT MELEE, with the form's A.I. DRIVERS -/+ (form buttons 8 / 9 at x 150..166 / 198..213, y 288..303);
+  - MELEE > MULTI MELEE > HOST / JOIN;
+  - an I76_MISSION boot.
+- `spnav.py` also takes a census of the live-object list (0x54b204), unique objects by class and name.
+
+The lab copies are `game-sp` (a robocopy of game-tick) and `game-sp-b`.
+
+**Where the crash came from in the owner's log.** game-tick's mciproxy.log has 3 crashes at about 15:21:
+- AcGenral.DLL+0x99892 once, and exe+0x5F103 (read 0x13657F08) twice;
+- all three at `frame 1 state 5`, right after the shell played track 2;
+- in each of those boots the arena list's first measured title was **'Scene 1 (Co-op)'**.
+
+The arena index of INSTANT MELEE and MULTI MELEE is shared (DAT_100d4474) and is saved in `user.mel` (its first dword). The lan-merge
+lane had hosted Scene 1 (Co-op), index 25 (`coop01.lvl`), from game-tick. The owner's instant melee therefore opened on that arena. At
+15:37 a MULTI MELEE host saved index 5 (Tombstone).
+
+### 16.2 Instant melee: reproduction, bisect, cause, fix
+
+Setup: game-sp, the tick19-33 preset (with the LAN keys), user.mel index 25, and the lab twin of tick19e plus the shell-click block.
+"Held" means the boot was still alive in the mission after 30 s.
+
+| condition (instant melee, Scene 1 (Co-op)) | result | n |
+|---|---|---|
+| tick19-33 as the owner runs it | **crash exe+0x5F103, read [esi+8], frame 1, 1.5-3 s after ENTER AREA** | 1 |
+| without I76_COOP_AI / without I76_COOP_CHAIN / without I76_MP_MENU / I76_AIMELEE=0 / all three LAN keys off | crash, same address | 1 each (5) |
+| tick 66.7 ms / I76_BREAKABLE_BOX off / tick drawing switches off (PROJ, TRACER, SOUND, COSMETIC) / the four tick factors off / I76_SIM_TICK_INPUT off | crash, same address | 1 each (5) |
+| with the texture-animation diagnostic (I76_LAB_TEXDIAG) | crash, same address | 2 |
+| **tick off** (I76_SIM_TICK_MS removed) | held | 4 |
+| promotion 18's preset / the stock preset | held / held (the stock run ended the mission by itself within 15 s) | 1 / 1 |
+| tick19-33 on other arenas: Tombstone, Crater, Hope Springs (4 AI), Oil Well Well (Scenario), Scene 2 (Co-op) | held | 1 each (+1 Tombstone) |
+
+In total the tick crashed this case 13 of 13 boots; with the tick off 0 of 4 crashed. Not bisected: tick19d against tick19e. The code
+that crashes has been in every tick build since `68d3ba2` (2026-10-17), so tick19d has it as well.
+
+**Cause** (I76_LAB_TEXDIAG logs every texture-animation add and walk, and every HeapFree / VirtualFree that frees a held handle):
+- **What image_UpdateTexAnims does.** It runs at 0x44af80, gated with the sim. It walks the list [0x535f64] and calls
+  `0x45f0f0(handle, "texanm")` on each node.
+- **What 0x45f0f0 is.** It is not a lookup but the engine's release-if-dead:
+  - for a live object (word +8 != 1) it returns the object;
+  - for a dead one it drops one reference (+0xc, and the children's through 0x45f0c0), frees the object at the last reference, and
+    returns 0.
+- **Who calls it.** Every holder calls it once per pass to give up its own reference: entity_TickAll with "clasfn", the
+  texture-animation walk with "texanm", and others.
+- **The proxy's calls.** The proxy called it as a lookup in two places:
+  - `wst_walk` (simtick.c), several walks per tick, every tick;
+  - `mark_live` (strlkproxy.c, I76_RENDER_INTERP), every rendered frame.
+- **What the stolen references did.** In the coop01 instant melee, four placeholder objects ('NULL', 176 bytes, texture-animated) die at
+  load.
+  - Stock order: entity_TickAll releases the live list's reference, then the texture-animation walk releases the last one and frees
+    them. The walk's own stack (0x44afa7) does the frees.
+  - Under the tick, with the walks' stolen references: entity_TickAll's release (stack 0x461ca1 / 0x403d8b) already freed two of them.
+    The heap decommitted the page (MEM_RESERVE at 0x..7000). The walk then read [handle+8] of handle 0x..7F00, which is the crash.
+- **With the fix** the frees come from 0x44afa7 again, as in the stock loop.
+
+**Fix (i76-everywhere `47a2b3a`):**
+- `obj_live_noref(h)` makes the same alive test (null handle, word +8 == 1) and changes nothing.
+- It is used in `wst_walk` and in `mark_live`.
+- No switch: the old call was wrong in every case.
+
+**Promotion 18 (the daily driver) has the same call in `mark_live`.** It steals one reference per rendered frame from each dead object
+until entity_TickAll unlinks it. Nothing was seen to crash from it on the driver: it has no ADDON arenas, and its preset held coop01
+instant melee n 1 here. It is a latent memory-safety bug there, not a measured one. The fix reaches the driver only with a proxy
+promotion.
+
+**Verified on the lab twin of the fix** (sp2 = 1ca6ba0 + the fix; sp3 = `47a2b3a` + the lab blocks):
+
+| check | result | n |
+|---|---|---|
+| instant melee, Scene 1 (Co-op), tick19-33, held 30 s | held; 6 other cars alive; 0 CRASH lines | 9 (3 + 5 + gate pre-run) |
+| instant melee, Tombstone, A.I. DRIVERS + twice (form drivers 4 = 3 AI), held 45 s | held; 3 AI present and alive. AI hit the player in 1 run (hp 6400 -> 5793 by 30 s); in the others the nearest AI closed from 406 -> 203 m and 176 -> 16 m | 3 |
+| T01 mission boot (I76_MISSION=t01.msn), held 30 s | held; 5 mission cars | 1 |
+| MULTI MELEE host, stock arena (Tombstone), alone | in session (net 1), held 100 s / 200 s | 2 |
+| join of that host from game-sp-b, headless | **not reached**: after JOIN the shell stayed in screen 0xc026 with no form function for 90 s while the host was up (with no host up, the join form opened in 0.3 s). Not explained; the console check with lmnav is still to run (16.5) | 2 |
+
+### 16.3 "Multi-melee opens but no AI cars are populated": the owner's games never loaded Hope Springs
+
+**What the logs show.** Neither of the owner's attempts loaded an AI arena:
+- A host writes an `aimelee: t ...` status line every 5 s while it is in an `ai_*.lvl` arena. The lab runs below logged them (n 3), as
+  did the AI lane's.
+- **game-tick, about 15:37** (tick19e): none of the owner's boots after line 44000 of its mciproxy.log has one. user.mel was saved with
+  index 5, Tombstone, session name 'Unnamed'. That is a stock arena, and stock arenas have no AI cars by design.
+- **game-aimelee, about 17:51-17:56** (PLAY-LAN.bat, no tick; the coordinator reports the owner hosted "Hope Springs (4 AI)" there):
+  - no aimelee status line;
+  - two network missions, about 5 s and 25 s long;
+  - the shell's mission music was disc track 2 and then disc track 1.
+- Hope Springs (4 AI) plays track 8 (3 of 3 lab hosts). Track 2 is Scene 1 (Co-op), coop01, which was the arena preselected in that
+  copy: its list's first measured title was 'Co-op Scene 1'. user.mel there now holds index 5 (Tombstone).
+
+So the "no AI" is not the tick, not the LAN merge and not the AI sync: **the selection never became Hope Springs.** The host form keeps
+the arena it opened with until a click lands inside the list's hit area. That area is form button 11, UI x 31..216, y 150..270, and the
+row is (y - 151) / row height + scroll.
+
+**Likely cause, not measured here:** the menu pointer on the wide pictures (the cursor-wide lane's subject, 1ca6ba0 `I76_CURSOR_MAP_DGV=aw`):
+- under dgVoodoo.wide.conf dccd379a the 640x480 shell is drawn 16:10 (screen x 568..2871 on 3440);
+- u32x hit-tests it over the 4:3 fit (x 760..2680);
+- a click on the drawn arena titles (UI x 34 and up, screen x about 690) then falls left of the list's hit area and is ignored.
+
+The owner can check this without a fix: before BROADCAST, the selected arena's title is shown at the top of the form, above the list.
+It must read "Hope Springs (4 AI)".
+
+**Hope Springs (4 AI) hosted alone** (game-sp, tick19-33, lab twin of the fix; MELEE > MULTI MELEE > HOST > arena index 16 preselected
+in user.mel > BROADCAST; no joiner, no lab AI switches):
+
+| run | AI cars present / alive | AI targets | closest approach in 40 s | host hit within 30 s |
+|---|---|---|---|---|
+| 1 | 4 / 4 | all -> slot 0 (host) from the 2nd status line on | 43 m | yes (100 % -> 74 %) |
+| 2 | 4 / 4 | all -> host | 153 m | no |
+| 3 | 4 / 4 | all -> host | 6 m | no |
+
+**Not done:** the re-check with a joiner. The headless join did not complete (16.2), and the console was not free for lmnav
+(`tools\sp-fix\lan-console.sh` is written for it: 3 lone hosts, then 2 host + join runs through PLAY-TICK.bat).
+
+### 16.4 Two helicopters in T05
+
+- The helicopters are `t05ug01`: two ODEF instances (the second has the instance bit), entities enemy14 / enemy15.
+- Each has its own script machine (m32 and m33: setSkill, setAgg, setHeliHeight 25 / 40 m). Both are switched on by the same flag
+  (g62 == 1).
+- This is the 1997 data. T05.MSN (miss8 91f0ac08, miss16 6df2e45c) is byte-identical in the pristine GOG install, the golden copy, the
+  daily driver and game-tick.
+
+Census of the live-object list 15 s into a T05 boot (I76_MISSION):
+
+| preset | t05ug01 objects (class 9) | n |
+|---|---|---|
+| stock | 2, at (5892, 135, 45178) and (6108, 135, 45268) | 2 (+1) |
+| p18-best-wide-balanced (promotion 18) | 2, same places | 2 |
+| tick19-33 | 2, same places | 2 (+1) |
+
+So no switch doubles them, and there is nothing to fix under the tick or under I76_FIXED_STEP. The daily driver shows two because the
+mission has two.
+
+Not measured: why the owner saw one on the "stock game". The flight after g62 == 1 was not staged, and the retail emulator was not run.
+- Untested guess: the stock far clip (600 m) and object LOD hide the second helicopter at some distances.
+- The promotion presets draw objects to 1200 m and keep the detailed mesh x 8 farther.
+
+### 16.5 tick19f: build, gate (void), state of game-tick
+
+**Build.** `STRLKUP-tick19f.dll` `d805e4be995bdd1bc4ee49ae6d2d2ada`:
+- i76-everywhere `47a2b3a` (= 1ca6ba0 + the fix; cursoraw.c is in it and off unless set);
+- lab `builds\sp-fix-20261019\make.ps1 -Rev 47a2b3a -Cand tick19f`, the MSVC recipe of s.1;
+- a second build from the same source directory (`run2\`, 1491b1a6) is section-identical (pecmp SAME, timestamps masked).
+
+Lab twin `Strlkup-sp3-lab.dll` = the same commit + drive block + I76_STEP_SEQ + shell-click / texdiag block. The tick-av lane had built
+no tick19f yet, so the name is tick19f. Their build must be on `47a2b3a` or later.
+
+**Gate (2026-10-19 17:47-19:12, `tg-gate.ps1 ... -TwinDll`): void, not a verdict on the build.**
+- Run with game-tick's launchers as they stood: PLAY-TICK.bat copies dgVoodoo.tick.conf `aa6414e4`, and the presets tick19-33 / -66
+  (1f01e781 / 64d3b6f5) set `I76_CURSOR_MAP_DGV='ar'`.
+- PLAY-TICK all rows: 8 PASS 6 FAIL 2 INFO.
+- **Every FAIL is the harness refusing to run with another i76.exe up** ("an i76* process is running", "the running game is
+  ...game-aimelee\i76.exe"). Behind those processes:
+  - the owner played game-aimelee during rows 3-5;
+  - other lanes' headless games ran throughout (game-av, game-tc, game-t42).
+- Row 6 (menu melee) hung for 30 min with the game in the arena behind other windows; I stopped it.
+- PLAY-TICK-66: rows 2 and 3 failed the same way; row 5 hung for 30 min.
+- I stopped the gate (only my own processes: the gate's scripts and game-tick's i76.exe). I then:
+  - put the global `%APPDATA%\dgVoodoo\dgVoodoo.conf` back (the gate's row 1 had left it as `.hidden-by-gate`);
+  - removed the stale `game-tick\Interstate 76\.console-test.lock`;
+  - cleared game-tick's stored mute (`unmute-persisted.ps1`: "not muted").
+- Rows that ran to the end: 1 (conf accepted, put back), 4 (savegame.dir put back), 7 (lint), S (player state byte-identical), D.
+- The proxy log slice of the 33 part: tick ON 5 / 5, NOT applied 0, CRASH 0.
+- The new rows M1a / M1b / M2 (`tools\sp-fix\sp-gate-rows.ps1`, headless on game-sp, twin sp3) passed 3 / 3 in a run before the gate.
+  In the gate itself they were never reached.
+
+**game-tick is back on tick19e** (a08577c4, read back). The gate had installed tick19f. tick19e is also kept as
+`STRLKUP.DLL.a08577c4-tick19e`. `promotion-19-candidate` is unchanged: tick19f is not staged, because it is not gated.
+
+**To finish:**
+1. Run the gate when no i76.exe runs anywhere on the PC, headless lanes included (gate-folder.ps1 refuses any i76 process by name):
+   `run-gate.ps1 -Dll builds\sp-fix-20261019\STRLKUP-tick19f.dll -Md5 d805e4be995bdd1bc4ee49ae6d2d2ada -NoHostMute -TwinDll builds\sp-fix-20261019\Strlkup-sp3-lab.dll`.
+2. Run the console LAN check: `tools\sp-fix\lan-console.sh` under with-lock.
+3. Install and stage: keep tick19e beside the install and move its set to `_superseded-tick19e`.
+
+If the tick-av lane's presets and launchers (`aw`, dgVoodoo.wide.conf) are in game-tick by then, the gate runs with those. Note which
+pointer mode it ran with.
+
+### 16.6 Still needs the owner
+
+1. Instant melee on PLAY-TICK once tick19f is installed, including the arena it remembers (Scene 1 (Co-op) crashed every time on
+   tick19e).
+2. MULTI MELEE > HOST: before BROADCAST, check that the title at the top of the form reads "Hope Springs (4 AI)". If clicking the list
+   row does not change it, the problem is the pointer, not the AI.
+3. T05: whether two helicopters are wrong. The 1997 mission places two; say if retail shows only one at the same place in the mission.
