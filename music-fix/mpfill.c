@@ -39,7 +39,18 @@
  * the original's team bits, then the same attack tick as the AI melee (nearest live human, sticky) until it dies. A
  * joiner who arrives later brings the next copy of every engaged live original; a copy in the game stays there. With
  * no joiner nothing moves: the lone host plays the stock mission (the copies sit 8 km away, engine off).
- * I76_COOP_SCALE=0 turns it off (the copies stay parked). */
+ * I76_COOP_SCALE=0 turns it off (the copies stay parked).
+ *
+ * HOST MIGRATION (2026-10-20, records/LAN-MATRIX-2026-10-20.md section 7). Only the host moves tagged cars and keeps
+ * their state; a joiner's table keeps the file's state (fill cars "in play", copies "parked") while 'AT' moves the cars.
+ * When the host leaves and this joiner becomes host, its table did not match the map: a copy the old host had brought
+ * in was "parked" in it, so a copy beyond the new joiner count stayed on the map as a stray (matrix c07: Scene 5, copy 3
+ * at 14382, 43598), and a fill car the old host had parked was "in play". So when a proxy that was a joiner in this
+ * mission load (g_mpf_joiner_gen) acts as host, it waits until the humans count has settled and 3 s have passed, then
+ * reconciles once, by position (300 m from the car's parking spot): a fill car at its spot is counted parked; a live
+ * copy away from its spot is adopted (its original's team, the attack tick, as if brought in here) while its copy number
+ * is within this host's joiner count (and co-op scaling is on), else parked (spot, engine off, team 0). Wrecks stay.
+ * A host that never was a joiner in the mission (every game without a migration) never runs it. */
 static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log, g_mpf_test, g_mpf_fill_team = 1;
 static int g_mpf_vac[8];                                     /* AI cars in play standing in for a human of team t */
 static int g_mpf_leftq[16], g_mpf_leftn, g_mpf_joinq[16], g_mpf_joinn;   /* teams of humans who left / joined, not yet served */
@@ -53,6 +64,7 @@ static mpf_tag_t g_mpf[MPF_MAX]; static int g_mpf_n;
 static char g_mpf_mission[16]; static BYTE *g_mpf_tab; static int g_mpf_count; static int g_mpf_loaded;
 static BYTE g_mpf_engaged[2048];
 static BYTE *g_mpf_tgt[MPF_MAX];
+static int g_mpf_gen, g_mpf_joiner_gen = -1, g_mpf_migr_done; static DWORD g_mpf_migr_at;   /* host migration (above) */
 static int g_mpf_humans = -1, g_mpf_humans_seen = -1; static DWORD g_mpf_humans_since, g_mpf_last_act;
 static int mpf_humans_now(void) { int k, n = 0; for (k = 0; k < 16; k++) if (*(WORD *)((BYTE *)0x00541070 + k * 0x48)) n++; return n; }
 static BYTE *mpf_obj(int li) { return (li >= 0 && li < g_mpf_count) ? *(BYTE **)(g_mpf_tab + li * 16 + 8) : NULL; }
@@ -68,6 +80,7 @@ static void mpf_load(void) {                                 /* the mission's ta
         memset(g_mpf_vac, 0, sizeof(g_mpf_vac)); g_mpf_leftn = g_mpf_joinn = 0; g_mpf_snap_h = -1;
     }
     g_mpf_loaded = 1; g_mpf_tab = tab; g_mpf_count = (tab && count > 0 && count <= 2048) ? count : 0; strncpy(g_mpf_mission, m, 15); g_mpf_mission[15] = 0;
+    g_mpf_gen++; g_mpf_migr_at = 0; g_mpf_migr_done = 0;    /* a new mission load: no migration in it yet */
     g_mpf_n = 0; memset(g_mpf_engaged, 0, sizeof(g_mpf_engaged)); memset(g_mpf_tgt, 0, sizeof(g_mpf_tgt));
     memset(g_mpf_park_since, 0, sizeof(g_mpf_park_since)); g_mpf_humans = -1; g_mpf_humans_seen = -1; g_mpf_last_act = 0;
     if (!g_mpf_count || _stricmp(m + (strlen(m) > 4 ? strlen(m) - 4 : 0), ".lvl") != 0) return;
@@ -162,6 +175,45 @@ static int mpf_humans_stable(void) {                         /* humans, once unc
     }
     return g_mpf_humans;
 }
+/* --- host migration: reconcile the table with the map once (header) ------------------------------------------- */
+static int mpf_migr_pending(int h) {                         /* 1 while the reconcile still waits (the caller then holds) */
+    DWORD now = GetTickCount(); int i, k, adopt = 0, park = 0, fix = 0;
+    if (g_mpf_joiner_gen != g_mpf_gen || g_mpf_migr_done || !g_mpf_n) return 0;
+    if (!g_mpf_migr_at) {
+        g_mpf_migr_at = now | 1;
+        mlog("  mpfill: host migration - this machine was a joiner in '%s' and is the host now; reconciling the %d tagged cars once the humans count has settled",
+             g_mpf_mission, g_mpf_n);
+        return 1;
+    }
+    if (now - g_mpf_migr_at < 3000 || h < 1) return 1;
+    g_mpf_migr_done = 1;
+    k = h - 1; if (k > g_mpf_scale_max) k = g_mpf_scale_max;
+    for (i = 0; i < g_mpf_n; i++) {
+        mpf_tag_t *t = &g_mpf[i]; BYTE *o = mpf_obj(t->li), *orig; double d;
+        if (!o) continue;
+        d = mpf_d2(o, t->px, t->pz);
+        if (t->kind == 1) {                                  /* fill car the old host had parked */
+            if (t->state == MPF_PLAY && d < 300.0 * 300.0) {
+                t->state = MPF_PARKED; g_mpf_park_since[t->li] = now; fix++;
+                mlog("  mpfill: host migration - '%.8s' (label %d) is at its parking spot: counted parked", (char *)o, t->li);
+            }
+            continue;
+        }
+        if (t->state != MPF_PARKED || d < 300.0 * 300.0 || !aim_alive(o)) continue;
+        orig = mpf_obj(t->oli);
+        if (g_mpf_scale && t->j <= k && orig && mpf_move_team(o, (*(DWORD *)(orig + 0x10) >> 16) & 7)) {
+            t->state = MPF_COPY_IN; g_mpf_park_since[t->li] = 0; adopt++;
+            mlog("  mpfill: host migration - copy %d '%.8s' (label %d) at %.0f,%.0f stays in the game (%d joiner(s)), team %d",
+                 t->j, (char *)o, t->li, *(double *)(o + 0x40), *(double *)(o + 0x50), h - 1, aim_team(o));
+        } else {
+            char why[96];
+            sprintf(why, "host migration: copy %d, %d joiner(s) here, was at %.0f,%.0f", t->j, h - 1, *(double *)(o + 0x40), *(double *)(o + 0x50));
+            mpf_park(t, why); mpf_move_team(o, 0); park++;
+        }
+    }
+    mlog("  mpfill: host migration - reconciled: %d fill car(s) counted parked, %d copy(ies) kept in, %d copy(ies) re-parked (%d humans)", fix, adopt, park, h);
+    return 0;
+}
 /* --- AI fill (host, from aim_tick) ------------------------------------------------------------------------------- */
 static int mpf_team_rule(void) { return g_mpf_fill_team && aim_team_rule(); }
 static DWORD g_mpf_tsig, g_mpf_tsig_since;
@@ -217,6 +269,7 @@ static void mpf_fill_tick(void) {
     if (!g_mpf_n || g_mpf[0].kind != 1 || g_mpf_fill == 0) return;
     g_mpf_last_fill = now;
     if ((h = mpf_humans_stable()) < 1) return;
+    if (mpf_migr_pending(h)) return;
     rule = mpf_team_rule();
     if (rule) {                                              /* act on teams only once every slot's team has held for 3 s */
         DWORD sig = mpf_team_sig();
@@ -299,6 +352,7 @@ static void mpf_coop_tick(void) {
     mpf_load();
     if (!g_mpf_n || g_mpf[0].kind != 2 || !g_mpf_scale) return;
     h = mpf_humans_stable();
+    if (mpf_migr_pending(h)) return;
     k = h - 1; if (k > g_mpf_scale_max) k = g_mpf_scale_max;
     if (k > 0 && now - last >= 250) {                        /* bring copies of engaged live originals */
         last = now;
@@ -361,6 +415,7 @@ void mpfill_pump(int role) {                                 /* from aimelee_pum
     static DWORD grid;
     DWORD now;
     if (!role || !coop_ai_in_mission()) return;
+    if (role == 2) { mpf_load(); g_mpf_joiner_gen = g_mpf_gen; }   /* a joiner in this load: if it turns host, reconcile */
     now = GetTickCount();
     if (now / 5000 != grid) {
         grid = now / 5000;

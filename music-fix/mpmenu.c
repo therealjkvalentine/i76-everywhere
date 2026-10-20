@@ -21,6 +21,14 @@
  *   and erase their rectangles (harmless).
  * I76_MP_MENU=0: stock menu. I76_ARENA_FIT (below) is independent of it.
  * Every site is checked against the stock bytes before writing and read back after (log line "mp-menu").
+ *
+ * TWO WAYS IN (2026-10-20, records/LAN-MATRIX-2026-10-20.md section 7): the PC sees i76shell load through the proxy's
+ * hook on i76.exe's KERNEL32!LoadLibraryA slot (hook_LoadLibraryA, unchanged). Under DxWnd (the Macs: Wine + `dxwnd.exe
+ * /R:1`) that slot is taken over after the proxy's DllMain, as DxWnd does with the WINMM slots (music-guard), so the
+ * hook never ran there: "armed" but never "patched", 9 of 9 launches on each Mac. A watch thread (mpm_watch) therefore
+ * polls GetModuleHandleA("i76shell.dll") every 50 ms; once the module has been resident for 750 ms (its load is over)
+ * and nothing patched it yet, it patches from there and logs who held the LoadLibraryA slot. The patch runs once
+ * (g_mpm_done, interlocked): on the PC the hook gets there first and the thread only ends.
  */
 static int g_mpm_mode = -1;                     /* -1 = not read yet */
 
@@ -105,11 +113,11 @@ static __declspec(naked) void mpm_text_stub(void) {    /* replaces `call 0x10039
     }
 }
 
-/* from hook_LoadLibraryA */
+/* from hook_LoadLibraryA, or from the watch thread (mpm_watch) when that hook never sees the shell load */
+static volatile LONG g_mpm_done;                /* 1 once one path has patched the shell (it is patched once) */
 static void mp_menu_attach(HMODULE m, const char *b) {
-    static int shell_done;
     BYTE *base = (BYTE *)m;
-    if (shell_done || _strnicmp(b, "i76shell", 8) != 0) return;
+    if (_strnicmp(b, "i76shell", 8) != 0 || InterlockedCompareExchange(&g_mpm_done, 1, 0) != 0) return;
 #define MPM_VA(va) (base + ((DWORD)(va) - 0x10000000u))
     if (g_mpm_fit == 1) {
         static const DWORD site[2] = { 0x1002b3af, 0x1002b421 };
@@ -126,8 +134,7 @@ static void mp_menu_attach(HMODULE m, const char *b) {
              g_mpm_x, 0xd4 - g_mpm_x, g_mpm_font, ok,
              ok == 2 ? "repointed, read back OK" : "NOT all repointed");
     }
-    if (g_mpm_mode <= 0) { shell_done = 1; return; }
-    shell_done = 1;
+    if (g_mpm_mode <= 0) return;
     if (g_mpm_mode == 1) {
         static const BYTE old_[5] = { 0xE9, 0x8E, 0x05, 0x00, 0x00 };            /* jmp 0x10026515 */
         static const BYTE new_[5] = { 0xE9, 0x2B, 0x01, 0x00, 0x00 };            /* jmp 0x100260b2 (IPX) */
@@ -157,6 +164,30 @@ static void mp_menu_attach(HMODULE m, const char *b) {
 #undef MPM_VA
 }
 
+static DWORD WINAPI mpm_watch(LPVOID arg) {    /* the DxWnd-proof way in: poll until i76shell is resident, patch once */
+    DWORD t0 = GetTickCount(), seen = 0;
+    (void)arg;
+    while (!g_mpm_done && GetTickCount() - t0 < 30u * 60u * 1000u) {
+        HMODULE sh = GetModuleHandleA("i76shell.dll");
+        if (!sh) seen = 0;
+        else if (!seen) seen = GetTickCount() | 1;
+        else if (GetTickCount() - seen >= 750) {
+            void **slot = iat_slot(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA");
+            char who[MAX_PATH] = "?", *b = who, *q; HMODULE hm = NULL;
+            if (slot && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                           (LPCSTR)*slot, &hm) && hm) GetModuleFileNameA(hm, who, sizeof(who));
+            for (q = who; *q; q++) if (*q == '\\' || *q == '/') b = q + 1;
+            if (g_mpm_done) break;              /* the hook got there while this thread waited */
+            mlog("  mp-menu: i76shell.dll resident at %p but not seen through the LoadLibraryA hook (the exe's LoadLibraryA slot is %s, held by %s) - patching from the watch thread",
+                 (void *)sh, slot && *slot == (void *)hook_LoadLibraryA ? "ours" : "NOT ours", b);
+            mp_menu_attach(sh, "i76shell.dll");
+            break;
+        }
+        Sleep(50);
+    }
+    return 0;
+}
+
 static void apply_mp_menu(void) {
     HMODULE sh;
     g_mpm_mode = env_int("I76_MP_MENU", 8, 1);
@@ -168,7 +199,10 @@ static void apply_mp_menu(void) {
     if (g_mpm_mode == 0 && g_mpm_fit != 1) return;
     if ((sh = GetModuleHandleA("i76shell.dll")) != NULL) mp_menu_attach(sh, "i76shell.dll");
     if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
-    mlog("  mp-menu: mode %d armed (%s), arena-fit %s; LoadLibraryA %s", g_mpm_mode,
-         g_mpm_mode == 1 ? "skip to IPX" : g_mpm_mode == 2 ? "IPX only" : "stock", g_mpm_fit == 1 ? "on" : "off (I76_ARENA_FIT=0)",
-         p_LoadLibraryA ? "hooked" : "NOT hooked");
+    {   HANDLE th = g_mpm_done ? NULL : CreateThread(NULL, 0, mpm_watch, NULL, 0, NULL);
+        mlog("  mp-menu: mode %d armed (%s), arena-fit %s; LoadLibraryA %s; shell watch %s", g_mpm_mode,
+             g_mpm_mode == 1 ? "skip to IPX" : g_mpm_mode == 2 ? "IPX only" : "stock", g_mpm_fit == 1 ? "on" : "off (I76_ARENA_FIT=0)",
+             p_LoadLibraryA ? "hooked" : "NOT hooked", g_mpm_done ? "not needed (shell already patched)" : th ? "on" : "NOT started");
+        if (th) CloseHandle(th);
+    }
 }
