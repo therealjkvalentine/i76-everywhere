@@ -98,7 +98,14 @@ param(
     # u32x's modal arrow show the pointer in the menus and the OK popups, and the overlay's green crosshair
     # showed up mid-mission (owner report). -NoCursorOverlay is still accepted and does nothing.
     [switch]$CursorOverlay,
-    [switch]$NoCursorOverlay
+    [switch]$NoCursorOverlay,
+    # Whole-sim tick length, ms (2026-10-20, docs/records/TICK-FINISH-2026-10-18.md s.19): replaces the tick preset's
+    # I76_SIM_TICK_MS for this launch. 16.7..66.7, a plain number (41.667 = the 1997 car step); anything else is refused
+    # (exit 4), as is a preset without the tick. PLAY-TICK.bat <ms> and its tick-ms.txt pass it. -CheckTickMs validates
+    # the value, prints it and exits (0 / 4) without starting anything (the .bat runs it in a visible window first).
+    # Single player: in a network game every player should run the same tick.
+    [string]$TickMs,
+    [switch]$CheckTickMs
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -159,6 +166,28 @@ if ($presetFile) {
 }
 # stock with no presets\ folder at all (an old portable zip) is fine: stock sets nothing.
 if ($presetData) { foreach ($k in ($presetData.Env.Keys | Sort-Object)) { $gameEnv[$k] = [string]$presetData.Env[$k] } }
+
+# ---- tick override (-TickMs; TICK-FINISH s.19) ---------------------------------
+if ($TickMs -or $CheckTickMs) {
+    # a BOM or other non-ASCII bytes in front (tick-ms.txt saved by Notepad as UTF-8) are dropped; the rest must be a plain number
+    $raw = ("$TickMs" -replace '^[^\x20-\x7E]+', '').Trim()
+    $tv = 0.0
+    $isNum = $raw -match '^\d+(\.\d+)?$' -and [double]::TryParse($raw, [Globalization.NumberStyles]::AllowDecimalPoint, [Globalization.CultureInfo]::InvariantCulture, [ref]$tv)
+    if (-not $isNum -or $tv -lt 16.7 -or $tv -gt 66.7) {
+        Write-Host ("REFUSED: tick '{0}' - give a number of milliseconds from 16.7 to 66.7, with a dot for decimals (e.g. 41.667, the 1997 car step). The game was not started." -f $TickMs) -ForegroundColor Red
+        exit 4
+    }
+    if (-not $gameEnv.Contains('I76_SIM_TICK_MS')) {
+        Write-Host ("REFUSED: preset {0} has no simulation tick (I76_SIM_TICK_MS), so there is nothing to change. Use a tick preset (PLAY-TICK.bat)." -f $Preset) -ForegroundColor Red
+        exit 4
+    }
+    $tickOld = $gameEnv['I76_SIM_TICK_MS']
+    $gameEnv['I76_SIM_TICK_MS'] = $tv.ToString('0.###', [Globalization.CultureInfo]::InvariantCulture)
+    $steps = [Math]::Floor($tv / 50.0) + 1   # the engine's car stepper: floor(dt x 20) + 1 substeps
+    $car = if ($steps -eq 1) { "the car in one {0} ms step" -f $gameEnv['I76_SIM_TICK_MS'] } else { "the car in {0} substeps of {1:0.##} ms (50 ms and over split the car step, as a slow 1997 frame did)" -f $steps, ($tv / $steps) }
+    Write-Host ("tick {0} ms: {1:0.#} ticks/s, {2} (preset value {3} ms; 41.667 = 1997)" -f $gameEnv['I76_SIM_TICK_MS'], (1000.0 / $tv), $car, $tickOld) -ForegroundColor Cyan
+    if ($CheckTickMs) { exit 0 }
+}
 
 # ---- preset guard: switch combinations with a known failure ------------------
 # Judged on what the game will actually see: the preset's value, else this shell's (the game inherits it).

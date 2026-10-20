@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-20 (s.19): the tick range. 1997 ran its car step at the PC's frame time, 35.5-48 ms on the period machines we measured, and never one step at 50 ms or more; launchers PLAY-TICK-36 / -39 / -42 / -44 / -47 (+ the outliers -33 / -66) in game-tick on the new STRLKUP-tick19g adc4fd49 (main 64d9361: + the rate-aware flame factor, so tick19-42 drops its interim 3.5 line). Measured per tick (n 24 jumps, bounce, flame n 2, keys n 40): the bounce tempo is 7 car steps at every tick (0.252 / 0.273 / 0.292 / 0.308 / 0.328 s), the jump rises slightly with the tick (paired take-off -0.56 .. +0.46 m/s across 36-47, inside retail's spread), flame ~85 / s and key response ~5 ms at every tick; 41.667 is the value that matches 1997 everywhere. User override, not in the menus: `PLAY-TICK.bat <ms>` / `tick-ms.txt` / `PLAY-TICK-CHOOSE.bat` (16.7-66.7 ms, else refused), tested headless by the proxy's own tick line. No console gate on tick19g yet.**
+
 **Update 2026-10-19 evening (s.17): new candidate STRLKUP-tick19f-av 2eb345d1 (main d664f91: tick19e + the instant-melee fix + the owner's tick19e playtest fixes + the driver's wide menu ('aw') + terrain A 96 / B 24), GATED: PLAY-TICK all rows pass (row 4 after a gate-harness fix: its clicks assumed the 4:3 picture), PLAY-TICK-42 8 / 0, PLAY-TICK-66 8 / 0, control 6 / 0, instant-melee rows 3 / 3. Under the tick, each with its own switch: sign posts knocked off by the sweep play their hit sound (0 -> 33 of 33), no camera stutter when a key is pressed in an outside cutscene (19 of 44 -> 0 of 24 stutter frames at an early tick), the death camera and the sky at the 1997 rate (240 -> 192 deg / s and 0.030 -> 0.024 / s, 1997 192 / 0.024; the driver 160 / 0.020). Music: no dropped cue (12 boots; the silences are the data-track missions and the retail run-end gap). Tracers: no double drawing; the tick's every-frame streak is a look difference. Installed in game-tick with PLAY-TICK-33 / -42 / -66; the LAN AI arena under the wide menu was not tested. s.18 (ed5c305) is not in this build.**
 
 **Update 2026-10-19 (s.14): new candidate STRLKUP-tick19e a08577c4, GATED 21 / 0 / 2, 8 / 0, 6 / 0 (this covers tick19d too). Under the tick, four per-pass systems now run at the 1997 rate per second, each with its own switch (I76_SIM_TICK_{HAZARD,SCRAPE,WRECK,RADAR}_FACTOR). Measured, n 3 per arm: dropper / oil contact per round 120.5 /s at 1997 against tick33 150.5 -> 120.4 and tick66 75.5 -> 120.9; the wreck blast roll 24.1 /s against 30.1 -> 23.1 / 23.9. The sustained-scrape scaling is verified per application but its rate was not resolved. The radar-missile turn is from the code only. The flame outliers are stock: the flame kill roll on a destroyed component, plus a health-lost measure that books the wreck. T06 strip 54 / 54 unchanged.**
@@ -1926,3 +1928,148 @@ Only 11 of the planned 22 rams ran in the sign boot. The second ram set found 4 
   follows from the code (18.4); n is 0 in game.
 - **1997's asked rate has n 2.** s.12's six 1997 boots have no asked column in this form.
 - **The sign row ran 11 rams, not 22.**
+
+## 19. The tick range: what 1997 ran, one launcher per value, the table to choose from, a user override (2026-10-20, tick-range lane)
+
+The owner (verbatim): "if we're doing only one [tick] and it's based around what original variable framerate would be on hardware, give me a
+range of tick sizes to try to select the exact perfect one that I recommend, and provide an affordance if none currently exists for end users
+to select their preferred tick in the range for their taste with an explanation of what they want (of course that breaks multiplayer so maybe
+not too prominent)."
+
+**Results in short.**
+- **The range to try is 36-47 ms, with 41.667 ms as the physics-faithful centre** (19.1). The periods we have measured put 1997 play on a P133 /
+  P166 between 35.5 ms (lowest detail, on the T05 lip) and 48.1 ms (640x480). A frame of 50 ms or more is not one car step: the stepper splits it
+  (count = floor(dt x 20) + 1), so 50 is not in the range. Launchers **PLAY-TICK-36 / -39 / -42 / -44 / -47** (47 = 46.875 ms), plus the
+  existing outliers -33 and -66.
+- **New proxy STRLKUP-tick19g `adc4fd4932e6e843277195e043a64e3b`** (main `64d9361`: tick19f-av + `ed5c305` rate-aware flame factor + the
+  overnight lane's network pools `60dce76` / `e3934e3`). Built with lab `builds\tick-range-20261020\make.ps1`; the run2 build is
+  section-identical (pecmp SAME). Installed in game-tick with tick19f-av kept beside it as `STRLKUP.DLL.2eb345d1-pre-19g`. tick19-42 no
+  longer carries the interim `I76_SIM_TICK_FLAME_DMG = 3.5`.
+- **What changes across 36-47 ms (19.3):** the bounce tempo, exactly in proportion to the tick (heave half period = 7 car steps: 0.252 s at 36,
+  0.292 at 41.667, 0.328 at 46.875; the depth does not change). The jump moves a little, monotonically: take-off -0.56 / -0.30 / +0.18 /
+  +0.46 m/s and apex -0.23 / -0.13 / +0.07 / +0.20 m at 36 / 39 / 44 / 46.875 against 41.667 (paired, n 24); that is under one sd of a
+  jump's own spread (0.7-1.0 m/s), and every value sits inside the retail cells (51.1-52.8 m/s, 10.6-11.8 m). Flame asks 84.5-87.6 per s at
+  every tick (n 2 each). Key -> drawn frame is 4.5-5.3 ms median at every tick (n 40 each; the early tick). **So the choice inside the range is
+  mostly the bounce, and 41.667 is the value that matches the 1997 coupling everywhere (s.18: the stock loop to the digit).**
+- **One thing does not scale above 41.667:** the wreck debris / blast roll can pass at most once per pass, so at 44 / 46.875 ms a wreck rolls
+  22.7 / 21.3 times a second instead of 24 (-5 / -11 %; log line `wreck roll pass 1.000`). Hazard, scrape and radar scale up (1.056 / 1.125).
+- **User override, not in the game menus (19.4):** `PLAY-TICK.bat <ms>`, or a `tick-ms.txt` beside it with one number, replaces the tick;
+  `PLAY-TICK-CHOOSE.bat` explains the tick and asks. 16.7-66.7 ms only; anything else is refused before the game starts. Tested headless by
+  reading the proxy's own tick line: argument n 2, file n 2, CHOOSE n 3, refusals n 2, plain n 1, every one-value launcher n 1.
+
+Lab only. The daily driver, the golden copy, the Downloads portable and the PC LAN copy were not touched (the LAN copy's game ran all session
+and was not touched; every game of this lane had `I76_SHM_SUFFIX=<its folder>`, its own private desktop, `I76_MUTE=1` and the per-pid mute
+watcher; the persisted mutes of the five lane copies were cleared at the end). No network game was started. No console gate was needed.
+- Copies: `game-trng-a` / `-b` (= game-t42: the emulator save's car) for jumps, bounce and latency; `game-trng-f` / `-g` (= game-t42f: the T05
+  car with the Gas Launcher) for flame; `game-trng-play` (= game-tick with tick19g, minus `_ahk` and `i76wheel.exe` so no input helper ran on
+  the private desktop) for the launcher tests.
+- Lab twin `builds\tick-range-20261020\Strlkup-tr1-lab.dll` `1cf37a6f` = 64d9361 + the drive block, with the drive block's mapping also
+  through `shm_name` (`tr-names.py`), so all four blocks take `I76_SHM_SUFFIX` and four copies ran in parallel.
+- Tools: lab `tools\tick-range\` (`tr-run.ps1`, `tr-queue.ps1`, `tr_tab.py`, `launcher-test.ps1`, `make-launchers.ps1`); `tools\tick-finish\
+  make-presets.ps1 -OwnerBest` now writes the range (`-TickRange`). Queues `queue-tickrange\`. Captures `captures\tick-range-20261020`
+  (gitignored; `tr-table.json` = the tables below).
+
+### 19.1 The range, from the records
+
+| step length | where | record |
+|---|---|---|
+| 26.8 / 31.1 ms | retail P166 lowest detail (the gold standard): melee / T05 | HARDWARE-MATRIX |
+| 31.0 / 33.0 ms | the same on the T05 lip, two cells (ref-r166low / r166low) | TWO-CLOCKS s.4.3 |
+| 31.25 / 46.875 ms (mean 41.7) | the stock 20 fps loop on Windows 10's 15.625 ms GetTickCount, the owner's 2026-10-03 daily: one 46.9 ms step (80 %) or 2 x 31.25 | FIX-INVENTORY-2026-10-17 (stock20), FFB-DATA-AUDIT |
+| 32.0 / 35.5 / 37 ms | retail P133 lowest: melee / T05 lip / T05 on the ground | HARDWARE-MATRIX |
+| 36 / 39.0 ms | retail P166 low + mirror + terrain textures (r166lmirtex): melee (n 3) / T05 lip | HARDWARE-MATRIX, TWO-CLOCKS s.4.3 |
+| 37.7 ms (2-3 substeps) | retail P166 developer default (r166p3) on the lip | TWO-CLOCKS s.4.3 |
+| 38.9 / 39.5 / 41.0 ms (mean step; sim_dt p50 41.0 / 40.0 / 42.0) | the owner's own logged retail P166 sessions in 86Box, T05, 2026-10-19 (owner-20261019-1659 / -1622 / -1652) | lab emu\results\memtrace\owner-20261019-*\summary.md |
+| 41 / 42 ms | e24: our exe's stock loop at 24 fps, the 1997 stand-in | FRAME-BOUND-SYSTEMS, s.18 |
+| 41.0 ms | Gold P133 lowest (g133low) on the lip | TWO-CLOCKS s.4.3 |
+| 41.5 ms per substep | retail P133 developer default (r133p2): 2 substeps of ~41.5 ms (frames ~90 ms) | HARDWARE-MATRIX |
+| 43.8 / 44.5 ms | r166m6 / r133p2 on the T05 lip | TWO-CLOCKS s.4.3 |
+| 45.9 / 48.1 ms (21.8 / 20.8 fps) | the cells nearest the owner's 1997 settings: r166m6mir (480x360, mirror) / r166m5 (640x480, no mirror); the owner's 640x480 + mirror is 46-48 ms by the filter maths | FRAME-BOUND-SYSTEMS, TWO-CLOCKS s.7 |
+| < 50 ms | the longest single car step: from 50 ms the stepper takes 2 substeps of dt / 2 (a 50 ms tick would be 2 x 25 ms) | TWO-CLOCKS s.1, HARDWARE-MATRIX |
+
+- Not found in our records: a P200 measurement (none was run), and a measured real-hardware (non-emulated) 1997 frame time. The emulated P166
+  runs software rendering about 20 % fast (EMU-MEMTRACE s.9.5, cited in HARDWARE-MATRIX), so real period frames may sit a little longer
+  than the emulator cells; that pushes the long end, not the centre.
+- Chosen values: **36** (the fast end of period play at playable detail), **39** (the owner's own logged sessions), **41.667** (the 1997
+  coupling; the centre), **44** (medium detail / the developer default's lip step), **46.875** (the owner's 1997 settings and the stock 20
+  fps single step; named 47). 33.3 (the P166 lowest-detail gold standard) and 66.7 (the 15 fps design) stay as the outliers.
+
+### 19.2 Build, presets, launchers
+
+- STRLKUP-tick19g as above. PLAY-TICK-NN.bat for NN = 33 / 36 / 39 / 42 / 44 / 47 / 66 (lab `tools\tick-range\make-launchers.ps1`), each
+  launching `tick19-NN.psd1` (make-presets.ps1 -OwnerBest -TickRange: tick19-33 with `I76_SIM_TICK_MS` changed and Name / Summary naming the
+  value and its 1997 evidence; the generator refuses a preset that carries `I76_SIM_TICK_FLAME_DMG`).
+- Presets (md5): 33 57d13cd5 (unchanged), 36 bee9382b, 39 b0c3ab77, 42 97f712ac, 44 f95df0a0, 47 8dff5d4d, 66 bd9e6673 (unchanged).
+- Installed in game-tick (proxy, presets, launchers, PLAY-i76.ps1; previous launchers kept as `*.pre-tick19g`, presets in
+  `presets\_pre-tick19g\`) and in the twin game-dd-20261003 (presets, launchers, PLAY-i76.ps1; the twin keeps the driver's proxy 33211f11 as
+  before, tick19g staged beside it as `STRLKUP.DLL.adc4fd49-tick19g`). Candidate folder re-staged (README, MD5SUMS 75 files), tick19f-av's
+  set in `_superseded-tick19f-av\`.
+
+### 19.3 The table (headless; T05 placed jumps with s.18's verified placement, 56 +- 0.5 m/s, tags r1-r4 = the same 24 placements at every tick)
+
+| tick | car step | jumps (boots) | lip clips | made it | take-off m/s | apex m | distance m | landing pitch deg | paired vs 41.667: take-off / apex | bounce half period s (1 m and 3 m drops, n 2 boots) | flame asked / s (n 2) | hazard / scrape / wreck / radar factor | flame factor (amount 1) | key -> drawn ms median / p90 / max (n 40) | feels vs 1997, from the numbers |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 33.3 | 1 x 33.3 | 24 (4) | 0 | 24 | 51.37 +- 1.02 | 10.58 +- 0.42 | 227 +- 21 | -5 +- 14 | -1.20 +- 1.02 / -0.48 +- 0.43 | 0.233 (x0.80) | 86.1, 84.5 | 0.800 / 0.800 / 0.800 / 0.800 | 2.800 | 5.3 / 7.7 / 8.6 | faster: bounce 1.25x quicker, jump 1.2 m/s slower, 0.5 m lower |
+| 36 | 1 x 36 | 24 (4) | 0 | 24 | 52.01 +- 1.04 | 10.82 +- 0.43 | 225 +- 27 | +8 +- 18 | -0.56 +- 0.71 / -0.23 +- 0.30 | 0.252 (x0.86) | 85.3, 84.6 | 0.864 / 0.864 / 0.864 / 0.864 | 3.024 | 5.2 / 8.7 / 20.7 | a little faster: bounce 1.16x quicker, jump 0.6 m/s slower |
+| 39 | 1 x 39 | 24 (4) | 0 | 24 | 52.27 +- 0.85 | 10.93 +- 0.36 | 200 +- 32 | +1 +- 17 | -0.30 +- 1.43 / -0.13 +- 0.61 | 0.273 (x0.93) | 86.4, 84.9 | 0.936 / 0.936 / 0.936 / 0.936 | 3.276 | 4.5 / 12.4 / 23.7 | slightly faster: bounce 1.07x quicker, jump within its spread |
+| **41.667** | 1 x 41.67 | 24 (4) | 0 | 24 | 52.57 +- 0.82 | 11.06 +- 0.35 | 225 +- 30 | +6 +- 21 | - | **0.292** | 84.7, 86.8 | 1 / 1 / 1 / 1 (not installed) | 3.500 | 4.9 / 8.2 / 8.8 | **same** (s.18: the stock 24 fps loop to the digit) |
+| 44 | 1 x 44 | 24 (4) | 0 | 24 | 52.75 +- 0.81 | 11.13 +- 0.34 | 232 +- 25 | +15 +- 20 | +0.18 +- 1.23 / +0.07 +- 0.52 | 0.308 (x1.06) | 85.4, 84.8 | 1.056 / 1.056 / **1.000** / 1.056 | 3.696 | 5.2 / 7.9 / 10.8 | slightly slower: bounce 0.95x the 1997 tempo, jump within its spread; wreck rolls -5 % |
+| 46.875 | 1 x 46.88 | 24 (4) | 0 | 24 | 53.04 +- 0.73 | 11.25 +- 0.31 | 208 +- 34 | -3 +- 10 | +0.46 +- 0.63 / +0.20 +- 0.27 | 0.328 (x1.13) | 84.7, 85.7 | 1.125 / 1.125 / **1.000** / 1.125 | 3.938 | 5.3 / 7.8 / 8.7 | slower: bounce 0.89x the 1997 tempo, jump 0.5 m/s faster, 0.2 m higher; wreck rolls -11 % |
+| 66.7 | 2 x 33.3 | 24 (4) | 0 | 24 | 51.42 +- 1.05 | 10.77 +- 0.57 | 230 +- 26 | 0 +- 7 | -1.15 +- 1.04 / -0.29 +- 0.55 | 0.267 (sampled per tick; 7 x 33.3 = 0.233) | 86.3, 87.6 | 1.600 / 1.600 / 0.800 / 1.600 | 5.600 (2.800 at amount 2) | 4.6 / 8.2 / 8.8 | car faster (as 33.3), everything else 15 / s: coarser |
+
+- **Reference.** s.18's e24 (the stock loop, 41 / 42 ms frames, quiet machine): take-off 52.68 +- 0.87, apex 11.10 +- 0.37 (n 60); on tags r1-r2
+  it equals tick42 to the digit (52.72 / 11.12), and this lane's t41.667 r1-r2 reproduce s.18's tick42 r1-r2 to the digit. Retail cells
+  (TWO-CLOCKS s.4.3): 51.06-52.82 m/s, 10.55-11.98 m.
+- **This lane's own e24 rows are not used.** They ran beside three other lab games; the stock loop's wall-clock frames then scattered
+  (5-6 ms frames among 38-44 ms: 1138 states with 95 at 42 ms, against s.18's 697 of 1155), and its jump (51.41) and bounce (6.1 steps) moved.
+  The tick rows are immune by design (fixed sim step; the t41.667 rows repeat s.18) - but **the latency rows are wall-clock**, so they were
+  re-run alone on the PC (l2, the table); the parallel l1 runs read p90 11-35 ms.
+- **Bounce.** Every arm is 7 car steps (s.3 of TWO-CLOCKS), so the tempo is 7 T; the undershoot is 6.1-6.3 mm everywhere. Settle 0.36 /
+  0.39 / 0.42 / 0.44 / 0.47 s at 36 / 39 / 41.667 / 44 / 46.875.
+- **Jump.** The take-off and apex rise with the tick (fewer per-step projection losses on the ramp face, TWO-CLOCKS s.4.4): about +0.1 m/s
+  and +0.04 m per ms. Distance and landing pitch do not separate the ticks (sd 25-35 m and 10-21 deg within each).
+- **Latency.** With the early tick a key press reaches the screen in 4.5-5.3 ms (median) at every tick; the p90 / max tails at 36 / 39
+  (12-24 ms) are single boots and come from presses that landed while an early tick was outstanding (one at a time).
+- **Flame.** The rate-aware default gives 84.5-87.6 asked per s at every tick (factor 3.5 x T / 41.667 at amount 1); the kill after first
+  contact is 8.3-12.5 s except s.14.3's early-kill roll (2.2-4.2 s in one boot of 33 / 36 / 39 / 41.667).
+- **Wreck roll.** Above 41.667 ms the per-pass probability is capped at 1, so the roll cannot keep 24 / s (proxy log `wreck roll pass
+  1.000` at 44 and 46.875; s.14.1). A second roll per pass would be needed; not built (the visible effect is fewer debris / blast rolls from a
+  burning wreck).
+
+### 19.4 The user override (not in the game menus)
+
+- `Interstate 76\PLAY-i76.ps1` (repo root PLAY-i76.ps1) takes `-TickMs <ms>`: a plain number 16.7..66.7 replaces the preset's
+  `I76_SIM_TICK_MS` for that launch; anything else (`abc`, `41,667`, `1e2`, `16.6`, `70`), or a preset without the tick, exits 4 with the
+  reason. A leading BOM (Notepad's UTF-8) is ignored. `-CheckTickMs` validates and prints `tick <T> ms: <rate> ticks/s, the car in ...`
+  without starting anything; at 50 ms and over it says the car step is split in two.
+- `PLAY-TICK.bat [ms]`: with an argument, or else with `tick-ms.txt` beside it (first line), it runs the check in its own visible window
+  (on a refusal: the reason, "The game was not started", a key to close) and then launches tick19-33 with `-TickMs`. Without either it is
+  PLAY-TICK-33 as before.
+- `PLAY-TICK-CHOOSE.bat`: what the tick is, the range (1997 PCs about 36-47 ms; 41.667 = the 1997 car step), what shorter / longer does
+  (from 19.3: bounce tempo and a slightly lower / higher jump; key response the same), 50 ms and over, the allowed range, and the multiplayer
+  caveat (every player should run the same tick; a mixed-tick game is untested and will probably feel different per player). It asks for a
+  number (Enter = 41.667), checks it, offers to save it as tick-ms.txt, and starts `PLAY-TICK.bat <ms>`.
+- **Tests** (lab `tools\tick-range\launcher-test.ps1`; cmd on a private desktop runs the .bat as a double-click would; the proxy's
+  `sim-tick: ON - whole sim every <T> ms` line in mciproxy.log is the reading):
+
+| path | values | proxy tick | n |
+|---|---|---|---|
+| `PLAY-TICK.bat <ms>` | 45, 37.5 | 45.000, 37.500 | 2 |
+| `tick-ms.txt` + `PLAY-TICK.bat` | 44, 48 | 44.000, 48.000 | 2 |
+| `PLAY-TICK-CHOOSE.bat` (answers: value, n) | 46.875, 38, 43 | 46.875, 38.000, 43.000 | 3 |
+| refused | abc, 70 | no i76.exe started; the window printed the reason | 2 |
+| `PLAY-TICK.bat` alone | - | 33.333 | 1 |
+| `PLAY-TICK-33 / -36 / -39 / -42 / -44 / -47 / -66.bat` | - | 33.333 / 36.000 / 39.000 / 41.667 / 44.000 / 46.875 / 66.667, stepper 1 x T (66: 2 x 33.33) | 1 each |
+
+- Harness note: the agent shell sets `NoDefaultCurrentDirectoryInExePath`, with which cmd does not find `PLAY-TICK.bat` in its own folder;
+  the test removes it, as an Explorer double-click has it unset.
+
+### 19.5 Not done, and why
+
+- **No console gate on tick19g** (menus, save screen, Esc menu, the trip at 120 fps). The code it adds over the gated tick19f-av is the
+  flame factor (under the tick only) and the network pools (network games only). Run the gate on the chosen PLAY-TICK before promoting.
+- **No owner feel test**: the table is the input to his choice (OWNER-TEST-LIST A0b).
+- **No crest descents (the owner's driven approach) per tick**, and no AI / combat rows per tick: the AI and weapons run once per tick, so they
+  scale like the car's rate (FRAME-BOUND-SYSTEMS); not measured here.
+- **Wreck roll above 41.667 ms** stays 5-11 % short (19.3); not patched.
+- **Mixed-tick network games**: not run (no network games in this lane; the LAN is another lane's).
