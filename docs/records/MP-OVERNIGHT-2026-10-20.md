@@ -8,7 +8,11 @@ Everything here was measured on the PC with several lab game copies on one machi
 loopback), headless on private desktops. Nothing was run between machines tonight (family asleep; no game was
 started on any family machine). "n" is the number of sessions per cell.
 
-<!-- SOAK / PACK / DEPLOY sections are filled at the end of the night (sections 6-8) -->
+**Verdict.** A (join / leave anytime) passes every cell; B (AI fill) and C (co-op scaling) are built and pass every
+cell; the soak ran 60 cycles over 3 h 40 min with **0 crashes**; the pack went to **the PC LAN copy, Andrew's Mac,
+Michael's Mac and James's laptop** (section 8). **The Steam Deck does not run it yet** (asleep all night): its step is
+one prepared command, the first item of OWNER-TEST-LIST "Morning 2026-10-20".
+
 
 ## 1. Harness (how the numbers were taken)
 
@@ -131,9 +135,35 @@ sender (predicted from dosbox-x ipxserver.cpp in lab MULTIPLAYER-LOCAL-TEST 8.4)
 never reaches the host form. MULTIPLAYER.md's answer stays: direct IP (unverified) or a virtual LAN that carries
 broadcast (ZeroTier / Radmin VPN).
 
-## 6. D - soak
+## 6. D - soak (lab `tools\mp-overnight\soak.py`, 23:48 - 03:30, proxy lab twin m4)
 
-(filled at the end of the night)
+60 cycles of about 3.7 minutes, each with fresh boots of 3 copies: host A, then B and C join late (10 s after the
+host is in), 60 s of play, C's process killed, 25 s, C restarts and re-joins, 60 s. Kinds in turn: Suburbia; Hope
+Springs (4 AI) with AI fill; a co-op scene with scaling (Scenes 1, 4, 5, 8, 13 in turn, host in god mode, natural
+engagement only); Pretty Bus (Scenario). Logged per cycle (`captures\mp-overnight-20261020\soak1\soak.jsonl`): crash
+lines, copies leaving the game, car counts on host and joiners, positions of every AI and human car on host and
+joiners at the same 5 s stamps, scores. Table from lab `soaksum.py`:
+
+| kind | arenas | cycles | first - last start | crashes | out-of-game events | AI samples | AI median / p99 / max (m) | without the first stamp after a join or a park / bring-in: p99 / max / samples > 20 m | human median / max (m) | copies in | fill parks / brings | waves |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| arena | suburbia | 10 | 23:48:39 - 03:08:30 | 0 | 0 | 0 | - / - / - | - / - / 0 of 0 | 0.0 / 0.0 | 0 | 0 / 0 | 0 |
+| fill | hs4 | 20 | 23:52:24 - 03:23:16 | 0 | 2 | 3668 | 0.0 / 705.1 / 9457.6 | 1.4 / 7.1 / 0 of 3474 | 0.0 / 0.6 | 0 | 43 / 1 | 1 |
+| coop | coop01, coop04, coop05, coop08, coop13 | 20 | 23:56:10 - 03:27:03 | 0 | 0 | 26479 | 0.0 / 1.2 / 12771.8 | 1.0 / 85.7 / 25 of 25312 | 0.0 / 7.1 | 56 | 0 / 0 | 0 |
+| scen | auto04 | 10 | 23:59:50 - 03:19:38 | 0 | 9 | 3737 | 0.0 / 176.4 / 1921.3 | 1.8 / 5.7 / 0 of 3572 | 0.0 / 7.4 | 0 | 0 / 0 | 0 |
+
+- **0 crash lines in 60 cycles (180 game sessions, 60 hard exits, 60 re-joins).** Every join of the soak succeeded.
+- "Out-of-game events" were all recoveries, not hangs: 1 AI-fill wave (both in-play AI cars dead, the arena reloaded for
+  everybody, cycle 4) and 8 lost-scenario reloads in Pretty Bus (the bus dies when nobody defends it, state 7); every
+  copy was back in the game at the end of its cycle.
+- Desync: AI cars median 0.0 m. The large values are the first status stamp after a (re)join (the joiner still shows
+  the file's start or parking positions) and the stamp of a park / bring-in on the host; each agreed within 2 m at the
+  next stamp. Without those, p99 1.0-1.8 m; in co-op 25 of 25 312 samples over 20 m (max 85.7 m). Humans: median 0.0,
+  max 7.4 m.
+- Co-op scaling in the soak: 56 copies came in by natural engagement over 20 co-op cycles.
+- After the soak, **4 humans** (A hosts Hope Springs (4 AI), B, C, D join late): all 4 listed on every copy, positions
+  within 0.27 m; AI fill 1 in play / 3 parked, joiners agree; held 30 s (n 1) / the one AI car died and the wave
+  reloaded for all 4 (n 1); 0 crashes (n 2).
+
 
 ## 7. What is not measured
 
@@ -142,4 +172,26 @@ broadcast (ZeroTier / Radmin VPN).
 - The new host's behaviour after a host migration in an AI arena or a co-op scene.
 - A joiner leaving through the in-game Esc menu (the harness used the same end-of-session exit the game uses after
   MAX SCORE).
-- 4 humans in one game (3 per session tonight; the 4th copy was used for E).
+- 5 or more humans; 4 humans in a co-op scene (4 measured in the AI arena only).
+
+## 8. F - pack and where each machine stands (2026-10-20 03:35)
+
+Pack `i76-uncap-lab\builds\mp-pack-20261020-overnight\` (README.md there): `mp-pack-20261019-final` with 21 files
+replaced (STRLKUP.DLL 07975706 -> **533ab67c** = e3934e3, clean `git archive`, built twice byte-identical; ai_hs2/4/6.lvl;
+coop01..17.lvl). Against the deployed 2026-10-18 pack: 20 changed + 20 new files. The ADDON files are byte-identical to
+the ones every test ran with; the proxy is the tested lab twin minus the lab click block (the candidate itself was not
+booted: headless driving needs the lab block).
+
+| machine | state | how | rollback |
+|---|---|---|---|
+| PC LAN copy `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76` | **new pack** | `deploy-pc.ps1`: 40 files replaced / added (md5-driven; game-written NSCR.DAT, user.mel, NVCL\, ADDON\vehscn.* left alone), each replaced file saved first to the pack's `rollback\pc\` (20 saved; 20 new ones listed in NEW.txt); verified 0 mismatches; STRLKUP 533ab67c | `rollback-pc.ps1` (one step) |
+| Andrew's Mac | **new pack** | new folder inside the same app bundle (same wine: no new firewall / microphone question): `GOG Games/Interstate 76` copied, 38 files applied, 408 files verified 0 mismatches, then the old folder renamed `Interstate 76-pre-20261020` (kept, untouched inside) and the new one named `Interstate 76`, because the bundle's launcher (i76-launch-stub) and DxWnd's dxwnd.ini have that folder name built in. Desktop link unchanged | `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "<game folder>"` (swaps the names back) |
+| Michael's Mac | **new pack** | the same | the same |
+| James's laptop (`I76 MP GATE.app`) | **new pack** | the same | the same |
+| Steam Deck | **old files (2026-10-18 + its own proxy)**: asleep all night (ssh time-out 23:52; retries in section 9) | prepared: `i76-uncap-lab\builds\mp-pack-20261020-overnight\deploy\deck\DECK-DEPLOY.sh` (copies the 37 new ADDON arena files, makes the new game folder with the old kept as `game-pre-20261020`, md5-verifies) | `mac-rollback-20261020.sh ~/Games/Interstate76/game` on the Deck |
+
+**Until the Deck step runs, the Deck cannot join the co-op scenes, scenarios or AI arenas of the other machines**
+(CRC check: "does not match the host's"); the 15 stock arenas still mix. The Deck runs its own proxy without the co-op
+switches, so even after the step it sees the AI arenas' computer cars standing still (not mirrored); that was already so.
+
+No game was started on any family machine; nothing outside those folders (and `~/i76-overnight-20261020/`) was written.

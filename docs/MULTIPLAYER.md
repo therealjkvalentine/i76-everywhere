@@ -47,6 +47,8 @@ with the existing community, use Nitro Pack with the bz911 lobby and the Discord
 | IPX between two machines on 192.168.1.0/24 | **works** (2026-10-06, n = 1): Windows 11 PC host, Mac (Wine) joiner |
 | The daily driver's cars pass the anti-cheat check | its `valepre4.vcf` is byte-identical to the file that passed the host and joiner checks live in row 1; the other 67 variants: static read (MULTIPLAYER-CAR-CHECK.md section 0) |
 | LAN pack (2026-10-17), measured 2026-10-18 | PC host + Andrew's Mac join **works** (n 2); Andrew host + PC join (n 1, plus n 2 earlier that night); Andrew host + Deck join (n 1); PC host + Deck join (n 1); **3 players** PC + Deck + Andrew (n 1). Deck host in The Crater failed (mission files differed; since COOP-LIST-ENTRIES-2026-10-18 the co-op missions are their own arenas and The Crater is stock again). Michael's firewall box answered (09:25), his cells and the laptop's still unrun (both screens locked during the tests); 5 players not run. [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
+| Join / leave anytime, host leaving, AI fill, co-op scaling (2026-10-20) | **works on one PC** (3 lab copies headless, n 2-3 per cell, soak in the record); not yet between machines. [records/MP-OVERNIGHT-2026-10-20.md](records/MP-OVERNIGHT-2026-10-20.md) |
+| IPXWrapper DOSBox-server mode (internet without a VPN) | **fails** (2026-10-20, n 2): WIPX's start-up broadcast never comes back from a DOSBox server |
 | Mac (Wine) running IPXWrapper | **works** (2026-10-06, n = 1): the Mac joined a Windows-hosted IPX game, see the top of this page and section 6 |
 
 ## 1. Why IPX, and what the other buttons do
@@ -314,3 +316,22 @@ and menu commit) now hosts and joins family games from those two launchers, no P
   the 15 stock arenas with them but its co-op, scenario and AI arenas are refused ("does not match the host's"; from the CRC rule of COOP-LIST-ENTRIES 8.5, not tested here) until they get the
   next pack from `tools/mp-pack.py` on main HEAD (same coop-install.py, same files).
 - The promotion-19 candidate (`i76-uncap-lab\builds\tick-finish-20261018\promotion-19-candidate`) carries the same presets and files.
+
+### Update 2026-10-20 (overnight lane): join / leave anytime, AI fill, more co-op enemies per joiner
+
+Record: [records/MP-OVERNIGHT-2026-10-20.md](records/MP-OVERNIGHT-2026-10-20.md) (all measured on the PC with 3 lab copies,
+headless; nothing between machines yet). Pack `i76-uncap-lab\builds\mp-pack-20261020-overnight\` (proxy 533ab67c = e3934e3);
+which machines run it: the record's section 8.
+
+- **Join and leave anytime** (stock; nothing needed fixing): a late join into a running melee or co-op scene, a joiner leaving,
+  the same player re-joining, a joiner's game dying (his slot goes after ~47 s), re-joining after that: all pass (n 2-3 each).
+  **When the host leaves, the game goes on**: ANet makes a joiner the host at once (n 2).
+- **Open slots filled by AI** (`I76_AIMELEE_FILL`, default on, AI arenas only): "Hope Springs (4 AI)" keeps 5 combatants:
+  alone 4 AI, 2 humans 3, 3 humans 2, ...; a joiner retires one AI (parked far away, no score), a leaver brings one back
+  (n 3 per step).
+- **Co-op scenes get more enemies per joiner** (`I76_COOP_SCALE`, default on): every enemy car of a scene has 3 parked copies
+  in the file; when it attacks, one copy per joiner (up to 3) comes in beside it and fights. Alone you play the stock scene
+  (n 3). The co-op scenes also get a 3rd joiner start point (4 humans).
+- **Internet without Tailscale through IPXWrapper's DOSBox-server mode: does not work** (the game's IPX start-up check never
+  hears its own broadcast back from a DOSBox server, n 2). Direct IP (UDP 21157, unverified) or ZeroTier / Radmin VPN stay
+  the answers above.

@@ -1551,3 +1551,29 @@ lane's recommendation, A0). 7. Tracers under the tick: keep the tick-long streak
 ### Open / not measured (so you know): joiner AI kill, AI melee and scenarios across two machines, teams for AI (`_TEAMS=1` never run),
 radar-missile turn in game, sustained-scrape damage per second, two of four T13 "god-held player dies" deaths (also in the stock loop), the
 Deck joins co-op / AI arenas without the AI sync (its own proxy has no pack switches), a stuck AI car can hold up a wave (no timeout).
+
+## Morning 2026-10-20 (overnight MP lane: join / leave anytime, AI fill, co-op scaling; records/MP-OVERNIGHT-2026-10-20.md)
+
+**Deck first, then the LAN cells.** The PC LAN copy, Andrew's Mac, Michael's Mac and the laptop (`I76 MP GATE.app`) run the
+new pack since 03:35; the Deck does not yet (it was asleep all night).
+
+0. **Deck:** wake it (Steam button), then on the PC in Git Bash run
+   `bash /c/Users/james/i76-uncap-lab/builds/mp-pack-20261020-overnight/deploy/deck/DECK-DEPLOY.sh`
+   It copies the 37 new arena files, keeps the old game folder as `~/Games/Interstate76/game-pre-20261020`, and must end with
+   "verified 37 files ... 0 mismatches" and "SWAPPED". Until then the Deck can only play the 15 stock arenas with the others.
+1. **Join late, leave, come back** (any two machines, e.g. PC hosts, a Mac joins): PC `PLAY-LAN.bat` > MELEE > MULTI MELEE >
+   HOST > Suburbia > BROADCAST GAME; drive a minute; the Mac: MULTI MELEE > JOIN > the game's row > JOIN GAME. Expect: in
+   at once, both cars on both screens. Mac: Esc > Abort / quit, then JOIN again: back in. Then the host quits: the Mac's game
+   should go on (it becomes the host).
+2. **AI fill** (PC hosts "Hope Springs (4 AI)" alone): 4 computer cars. A Mac joins: one disappears (3 left). A second machine
+   joins: 2 left. One machine quits: after up to ~45 s one comes back. Tell me if 4 + you feels too many or too few (the rule is
+   5 combatants for the 4-AI entry; `I76_AIMELEE_FILL` changes it).
+3. **Co-op more enemies** (PC hosts "Scene 5 (Co-op)", 1-2 Macs join): when the gang attacks, each enemy brings one extra car of
+   the same kind per joiner, appearing right behind it. Alone (no joiner) Scene 5 must play exactly as before.
+4. **4 players** (PC + laptop + Andrew + Michael) in Hope Springs (4 AI): everyone in, 1 AI car left.
+5. Anything wrong on one machine: its rollback is one command (record section 8: `rollback-pc.ps1` in the pack folder on the PC;
+   `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "<game folder>"` on a Mac) - but roll back every machine together, or
+   the co-op / AI arenas stop matching.
+
+Decisions: AI fill count (5 combatants for "(4 AI)" now, or 4 = the title's number with you counted in); whether copies should
+also come for enemies that never attack; internet play stays direct IP / ZeroTier (IPXWrapper's DOSBox mode does not work with I'76).
