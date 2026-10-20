@@ -2073,3 +2073,44 @@ watcher; the persisted mutes of the five lane copies were cleared at the end). N
   scale like the car's rate (FRAME-BOUND-SYSTEMS); not measured here.
 - **Wreck roll above 41.667 ms** stays 5-11 % short (19.3); not patched.
 - **Mixed-tick network games**: not run (no network games in this lane; the LAN is another lane's).
+
+### 19.6 Console gate on tick19g (2026-10-20 morning, gate lane; physical console, owner away, lab game-tick)
+
+Closes the first bullet of s.19.5. Proxy STRLKUP-tick19g `adc4fd49` as installed in game-tick (read back every time). Same gate set as s.17.9:
+`tools\tick-gaps\tg-gate.ps1` under `tools\replay\with-lock.ps1` (console lock, no host mute), `I76_SHM_SUFFIX=game-tick`, `I76_MUTE=1` + the per-pid
+mute watcher inside the gate rows, and `tools\tick-av\gate-watch-reaper.ps1` for the watcher / pipe hang. Lab `tools\tick-gate19g\` (run19g.ps1 = the
+stages, extras.ps1 = the one-boot rows, before-*.md5 = the folder as found); logs `queue-tickgaps\gate19g-stage*.log`.
+
+| launcher | rows | result | gate folder (`autotest\runs\gate\`) |
+|---|---|---|---|
+| PLAY-TICK.bat (tick19-33) | all | **19 PASS, 2 FAIL, 2 INFO** (watermark by eye, FFB no device). The 2 FAILs: row 3 trip run 2 never reached the mission (screenshot: Options menu; engine up False, 0 fps), "1 of 2". Row 4 (save screen) all 10 checks PASS under aw; YES wrote only save018.cmp + savegame.dir | `20261020-075210` |
+| PLAY-TICK.bat row 3 re-run (evidence, the first run is not voided) | 3 | 5 PASS 0 FAIL (2 of 2, 112.3 / 114 fps; rows 3 of the plain33 boot) | `-091059` |
+| PLAY-TICK-42.bat | 2 3 5 6 | **8 PASS 0 FAIL** | `-081539` |
+| PLAY-TICK-66.bat | 2 3 5 6 | **8 PASS 0 FAIL** | `-082427` |
+| PLAY-P18-BALANCED.bat (control) | 3 6 | **6 PASS 0 FAIL** | `-083312` |
+| PLAY-TICK-36.bat | 3 | PASS (2 of 2, 113 fps) | `-083804` |
+| PLAY-TICK-39.bat | 3 | PASS (2 of 2, 112.7 fps) | `-084203` |
+| PLAY-TICK-44.bat | 3 | engine up 2 of 2, **fps FAIL: trip 1 104.7 fps** (floor 108; trip 2 116) | `-084605` |
+| PLAY-TICK-44.bat row 3 re-run (evidence) | 3 | 5 PASS 0 FAIL (115.3 fps) | `-090657` |
+| PLAY-TICK-47.bat | 3 | PASS (112.3 fps) | `-085009` |
+| `PLAY-TICK.bat 43` | 3 | PASS (114 fps); proxy tick line 43.000 ms (n 2 boots) | `-085409` |
+| tick-ms.txt = 45 + PLAY-TICK.bat | 3 | PASS (117 fps); proxy tick line 45.000 ms (n 2 boots); tick-ms.txt removed afterwards | `-085812` |
+| instant melee (headless, game-sp, lab twin `builds\tick19g-gate-20261020\Strlkup-g19sc-lab.dll` 406e4c37 = tr1 source + shellclick block via sp-fix insert-sc.py) | M1a Scene 1 (Co-op) 30 s, M1b Tombstone 30 s, M2 Tombstone 3 AI 45 s | run 1: M1a PASS, M1b PASS, **M2 FAIL** (3 AI at the start, one AI wrecked by the others at ~35 s, so 'other 3' did not hold at 40 s; game alive, 0 CRASH). Re-run: **3 PASS** | `queue-tickgaps\gate19g-stage4-*.log` (-090217, -091418) |
+
+Totals (first runs, nothing voided): console rows 11 gate folders = every launcher listed; first-run FAIL rows: PLAY-TICK row 3 (2 lines: engine up + fps, one
+event), PLAY-TICK-44 row 3 fps (1), instant melee M2 (1). Every one passed on a single re-run. Tick 36 / 39 / 44 / 47 / 43 / 45: proxy tick line equals the
+launcher's value in every boot; the same trip boots show terrain-lod A x96 / B x24, the aw pointer map, CRASH 0 (all tick boots: 10 + 7 + 7 + 12 extras).
+
+- **Proxy log checks:** `sim-tick: ON` at 33.333 (10 boots), 41.667 (7), 66.667 (7); 36 / 39 / 44 / 46.875 / 43 / 45 (2 boots each) all as launched.
+  The flame line is now rate-aware (`G 3.500 at the 1997 pass of 41.667 ms; per application x F at amount 1 / 2 / 3`): at amount 1 F = 2.800 at 33.333,
+  3.500 at 41.667, 5.600 at 66.667 (x2.800 at amount 2, the per-sim-second 2.8 the old fixed factor was), 3.024 / 3.276 / 3.696 / 3.938 / 3.612 / 3.780 at
+  36 / 39 / 44 / 46.875 / 43 / 45. CRASH 0 in every log slice (lab `captures\tick-gaps-20261018\gate-*-20261020-*.mciproxy.log`, `tools\tick-gate19g\xtra-*`).
+- **S and D checks:** S (player state byte-identical to the backup) and D (no other top-level file changed) PASS in all 11 gate folders; save018.cmp absent
+  afterwards, savegame.dir md5 fd5f1b70 as before. A separate md5 of every top-level file of game-tick and its launchers before / after the whole
+  session: only `mciproxy.log` differs. `tick-ms.txt` removed. Persisted mutes of game-tick and game-sp: none left (unmute-persisted -List: not muted).
+- **Flakes, with the evidence:** (1) PLAY-TICK row 3 trip run 2 ended on the Options menu with the engine not up (also seen in the voided tick19f gate of
+  2026-10-19, run 2 of 2 there too; absent in the PLAY-TICK-42 / -66 / -P18 gates and in the re-run); the game was never refused by a foreign i76.exe;
+  not diagnosed, harness route (clicks). (2) PLAY-TICK-44's first trip at 104.7 fps, under 108; the other trips ran 110-117 (one more at 104.7 is the
+  lowest of the 25 trips this morning). (3) M2 depends on no AI dying in 40 s. No foreign i76.exe appeared, so no row was refused or voided.
+- Gate row text for the 2026-10-18 note "not run": see s.19.5 first bullet, now closed for the menus, save screen, Esc menu and the trip at 120 fps on
+  PLAY-TICK / -42 / -66 and the trip on -36 / -39 / -44 / -47 and the two override paths.
