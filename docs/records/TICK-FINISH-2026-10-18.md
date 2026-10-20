@@ -1731,3 +1731,198 @@ make-presets.ps1's md5 check). The owner was at the PC for part of the lane (his
 7. The driver's wide menu on PLAY-TICK ('aw'): pointer on the pencil in the menus, the garage, the save screen (save over a bookmark you do not
    need first) and the Esc menu; and a LAN AI arena (Hope Springs (4 AI)) hosted from PLAY-TICK, which the lab could not reach (17.9).
 8. Which tick PLAY-TICK should be: 33, 42 or 66 (PLAY-TICK-33 / -42 / -66.bat).
+
+## 18. tick42 before promotion: the lip clips, the flame factor at 41.667 ms (2026-10-19 evening, tick42 lane)
+
+The brief, from TWO-CLOCKS-2026-10-19 s.6: before the 41.667 ms tick is promoted, trace the "lip clips" (5 of 58 lab jumps at a
+41.7 ms step against 0 of 70 retail; tick42 3 of 3 on the 56 m/s centre line), and run the flame calibration at 41.667 ms.
+
+**Results in short.**
+- **The lip clips were the harness placement, not the tick and not the engine at 41.7 ms.**
+  - The two-clocks placement wrote the car's rotation, then sent the trainer's TELEPORT (which zeroes the body rates). When a physics
+    step ran in between, it turned the car by the rates left from the previous jump's crash. Those are clamped at pi rad/s, so the
+    error was up to pi x step: 7.5 deg at 41.7 ms (measured 7.50 deg in 9 placements, each after a crash with a yaw rate of 3.14).
+  - The velocity still pointed down the run, so the car slid 2.6-6.0 m/s sideways onto the ramp face, got 0-12 m/s of lift
+    instead of 15.4-15.7, and ran 1.9-3.9 m under the face. **12 of the 13 placements more than 2 deg off clipped; 0 of 249 within
+    2 deg did** (179 lab, 70 retail).
+  - With the placement verified (18.2), **tick42 clips 0 of 60 jumps and the stock loop at 24 fps (41 / 42 ms frames) 0 of 60**,
+    plus 0 of 6 each on the 56 m/s centre line. Take-off 52.67 +- 0.88 against 52.68 +- 0.87 m/s, apex 11.10 +- 0.37 m in both,
+    distance 222 +- 35 against 225 +- 34 m (n 60 each, 10 boots).
+  - Control: the same jumps placed 7.5 deg yawed clip in both arms (stock 24 fps 5 of 5, tick42 3 of 3; a fatal clip ends the boot).
+    An oblique, sliding car goes into the T05 ramp face in the stock loop too.
+  - **No proxy change for the lip.** The fix is in the lab harness (`tools\tick42\t42_suite.py` `place_verified`). Other lanes'
+    copies of phys-suite (two-clocks `tc_suite.py`, `box-spec\phys-suite.py`) still place the old way.
+- **Flame at 41.667 ms.** The fixed factor 2.8 under-delivers there. The engine's amount per application is max(1, int(R x T)) = 1
+  at both 33.3 and 41.7 ms (Gas Launcher, R 30), so the tick applies 24 units a second instead of 30. On the T05 car it asks
+  **67.7 per second of burning against 84-85 at 33.3 / 66.7 ms**.
+  - **The factor is now rate-aware by default** (i76-everywhere `ed5c305`). Every tick length asks the same flame damage per second:
+    **84.8 / 84.7 / 85.3 per s at 33.3 / 41.667 / 66.7 ms (n 3 each)**. The factor is 2.8 at 33.3 and 66.7 ms (s.12's calibration,
+    unchanged) and 3.5 at 41.667 ms.
+  - The T05 car dies 8.2-11.5 s after the first contact at every tick (one early kill per arm in two of the arms, s.14.3's roll),
+    against 10.4 / 11.8 s for the 1997 coupling (s.12: 11.2 s, n 6).
+- The four s.14 factors are exactly 1 at 41.667 ms. Since `ed5c305` their wrappers are not installed there at all (log line in 18.4).
+- The early tick, tracers, sustained sounds and sign knock-off behave at 42 as at 33 (18.4, n 1 each).
+- **For the candidate (18.5):** tick42 needs no preset key beyond tick19-42's, but it needs a proxy built from `ed5c305` or later
+  for the flame default. tick19f-av (2eb345d1, from d664f91) does not have it and runs tick42 at the fixed 2.8.
+
+Lab only. The daily driver, the golden copy, the Downloads portable, the PC LAN copy and game-tick were only read.
+- Every boot was headless, on a private desktop `I76Lab-t42`, with I76_MUTE=1 plus the per-pid mute watcher.
+- Lab copies: `game-t42` (= game-tc: the emulator save's car, for the jumps and the harness rows) and `game-t42f` (= game-wst: the
+  T05 car with the Gas Launcher, s.12's copy; game-t42's car has no flamer).
+- The owner's game (game-tick) ran during the session. The lab twin `builds\tick42-20261019\Strlkup-t42-lab.dll` (6652a4f3) names
+  its blocks `Local\I76TrainerT42`, `I76TelemetryT42`, `I76SimTickT42` and `I76RhDriveT42`.
+  - `t42-run.ps1` refuses a DLL without the T42 trainer name.
+  - `t42_drive.py` appends the suffix to any `Local\I76...` mapping a tool in its process opens without one. flame_live.py and
+    combat-live.py open the default names: run from wst-run they would reach the owner's trainer block.
+- Twin source: i76-everywhere `aa86ec3` + this lane's change (the code of `ed5c305`) + the two-clocks lab hunks (drive block,
+  headless-active).
+- Paused 20:27-22:03 for the candidate lane's console gate.
+- Tools: lab `tools\tick42\` (`t42-run.ps1`, `t42-queue.ps1`, `t42_suite.py`, `t42_drive.py`, `lip_scan.py`, `t42_tab.py`,
+  `flame_rate.py`).
+- Queue: `queue-tick42\q1.txt`. Captures: lab `captures\tick42-20261019` (gitignored; `v1-placement\` = the first placement
+  version, `v1-nogas\` = flame boots on the car without a flamer, not used). Tables: lab `emu\results\tick42-20261019\`.
+
+### 18.1 The clips in the two-clocks captures (re-read, lab `tools\tick42\lip_scan.py`)
+
+Clip = the car more than 1 m under the ramp face (surface y = 20.0 + 0.28 (6900 - x), from clean jumps) between x 6876 and 6898.
+`yaw0` = the heading at the first recorded state after the placement.
+
+| two-clocks set | arm | clips | heading off at placement | side slip before the foot m/s | under the face m | ramp lift vy m/s |
+|---|---|---|---|---|---|---|
+| t05sw (centre line) jump 3 | tick42 | 3 / 3 boots | +7.50 | -4.36 | 3.50 | 9.94 |
+| t05sw jump 3 | e30 | 3 / 3 | +4.43, +5.94, -6.12 | 4.4-4.9 | 3.3-3.5 | 10.3-11.0 |
+| t05sw jumps 2, 6 | p18 | 2 | +-7.50 | 4.4-6.0 | 3.5-3.9 | 0 |
+| t05j (jittered) | tick42 | 2 / 10 | -2.68, -7.50 | 2.6, 4.3 | 1.9, 3.7 | 11.9, 10.0 |
+| t05j | p18 | 2 / 12 | +-7.50 | 4.1-4.3 | 3.6-3.7 | 0, 10.0 |
+
+- **The heading error is the previous jump's yaw rate x one step.** In every case the yaw rate at the end of the previous phase times
+  the step equals the error: 3.1415 x 41.7 ms = 7.50 deg; -1.121 x 41.7 ms = -2.68; e30 2.343 x 33 ms = 4.43. The step falls
+  between the rotation write and the TELEPORT.
+- **Why tick42 was 3 of 3 on the centre line and e24 0 of 6.** tick42's jump 2 (50 m/s) ended spinning at +pi rad/s and e24's did
+  not, and the boots repeat to the digit. Jump 3 at 56 m/s was therefore always placed 7.5 deg off under tick42.
+- **The two-clocks counts, read again.** Its "5 of 58" lip clips at 41.7 ms were:
+  - 4 mis-headed placements (tick42 2, p18 2);
+  - 1 e24 record that ends 0.2 s after a normal take-off at 51.9 / 14.5 m/s (`tc_analyse.py` read the truncated flight as a clip).
+- Pitch and suspension state entering the ramp do not separate clips from clean jumps. Clipped cars entered with pitch sd 0.001-1.5
+  deg; clean ones with up to 0.4 deg and the lip's 0.52 rad/s pitch kick.
+- **What a clip is.** The yawed, sliding car's first face step rises 0.35-0.43 m instead of 0.57-0.66 m, and the side speed jumps
+  (-7.4 to -11.6 m/s). From the second face step the car is under the surface (airborne flag set, clearance 0.5 m), and it leaves
+  through the face at the lip (vy -11 m/s) into the channel.
+- **The first verified placement (v1) still clipped once in 9 tick42 jumps** (r1 #3, heading -0.38 deg). A placement right after a
+  crash carried the crash's contact into the first step: pitch / roll rates 1.36 / -0.68 rad/s on the first frame, then a nose
+  landing and a 3.5 deg, 2.5 m/s slide into the ramp. It is the same mechanism (side slip), from a different leftover. The final
+  placement holds the car still in the air first (18.2).
+
+### 18.2 The verified placement (t42_suite.py `place_verified`)
+
+1. The trainer holds the car at the spot with FREEZE_POS (position held; velocity and body rates zeroed every frame) for 0.4 s,
+   while the rotation is written. Placed 1.5 m above the road, it touches nothing.
+2. Then it is released and TELEPORTed with the speed.
+3. The first two telemetry frames must show the heading within 0.25 deg, every body rate under 0.05 rad/s and side speed under
+   0.3 m/s; otherwise steps 1-3 repeat (up to 5 times).
+
+Every placement of the final runs on a live car passed on the first try (144 of 144; the yawed controls are checked against their own 7.5 deg). The 12 that failed all 5 tries came after a fatal clip in the yawed control, with the car already dead.
+
+### 18.3 Placed jumps with the verified placement (T05 aaramp4, 150 m before the foot, throttle held; `t42_tab.py`)
+
+Jittered set (t05j: 56 +- 0.5 m/s, +- 0.5 m lateral, seeded by the tag; r1 / r2 = the two-clocks sets), the same placements in
+both arms:
+
+| arm | jumps (boots) | lip clips | made it | take-off m/s | vy m/s | apex m | distance m |
+|---|---|---|---|---|---|---|---|
+| e24 (stock loop, 24 fps: 41 / 42 ms frames) | 60 (10) | **0 / 60** | 60 / 60 | 52.68 +- 0.87 | 14.75 +- 0.24 | 11.10 +- 0.37 | 225 +- 34 |
+| **tick42** | 60 (10) | **0 / 60** | 60 / 60 | 52.67 +- 0.88 | 14.75 +- 0.25 | 11.10 +- 0.37 | 222 +- 35 |
+| e24, placed 7.5 deg yawed (control) | 5 (2) | **5 / 5** | 0 / 5 | - | - | - | - |
+| tick42, placed 7.5 deg yawed (control) | 3 (2) | **3 / 3** | 0 / 3 | - | - | - | - |
+| e24, centre line 45 / 50 / 56 x 2 | 6 (1) | 0 / 6 | 2 / 6 | 47.59 +- 3.93 | 13.32 +- 1.10 | 9.11 +- 1.51 | 131 +- 34 |
+| tick42, centre line | 6 (1) | 0 / 6 | 2 / 6 | 47.58 +- 3.94 | 13.32 +- 1.10 | 9.11 +- 1.51 | 131 +- 34 |
+
+- **Before / after at tick42.** Before, on the two-clocks harness: 5 lip clips in 20 jumps (t05j 2 / 10, t05sw 3 / 10). After, on
+  the verified harness: **0 in 66**, and 0 in 66 for the stock 24 fps loop.
+- Jump distance and apex are unchanged within the spread. The arms differ by 0.01 m/s at take-off. The jittered set takes off
+  inside the retail 41-44.5 ms cells (51.3-52.8 m/s, 10.7-11.8 m; TWO-CLOCKS s.4.3).
+- 0 of 132 verified lab jumps at a 41.7 ms step and 0 of 70 retail: **there is no lip-clip difference to explain.** A constant
+  41.667 ms step does not clip where an alternating 41 / 42 ms frame does not (the centre-line set gives the same outcome jump by
+  jump), and nothing in the tick's collision ordering or sign sweep touches the ramp contact.
+
+### 18.4 Flame damage at 41.667 ms, and the rate-aware factor (T05 car, s.12 protocol `flamepn4p10`; `tools\tick42\flame_rate.py`)
+
+The player's Gas Launcher was held at the nearest T05 car, 4 m, the car 10 deg nose up. "Asked / s" is the flame damage the target
+car was asked to take (combat log `dmg_req_taken`) divided by the time from the first application to the kill. s.14.3 showed that
+health "lost" books the wreck code's whole loss on the killing call, so asked / s is the steady measure; lost / s is printed for
+comparison with s.12.
+
+| arm | factor per application | boots | hits / s | **asked / s burning** | lost / s | kill after first contact s |
+|---|---|---|---|---|---|---|
+| 1997 coupling (stock 20 fps, mirror on) | - | 2 | 78.8, 79.4 | **79.1, 79.4** | 94.5, 76.3 | 10.4, 11.8 |
+| tick42, fixed 2.8 (s.12's default) | 2.8 | 3 | 24.2 | **67.7, 67.7, 67.7** | 85.4, 64.1, 83.8 | 10.3, 13.8, 10.3 |
+| **tick42, rate-aware (new default)** | 3.5 | 3 | 24.0-24.4 | **84.7, 84.1, 85.3** | 103.1, *301.6*, 104.2 | 9.5, *2.6*, 8.2 |
+| **tick33, rate-aware** | 2.8 | 3 | 30.2-30.6 | **84.6, 85.5, 84.4** | 105.3, *245.4*, 91.1 | 8.4, *3.5*, 10.6 |
+| **tick66, rate-aware** | 2.8 | 3 | 15.2-15.3 | **85.5, 85.5, 85.0** | 128.3, 82.9, 86.6 | 7.3, 11.5, 10.8 |
+
+*Italic*: s.14.3's early kill (the instant-kill roll on a destroyed component; stock).
+- **Every tick hits once per update.** Hits / s = 1 / T, with 1 unit per application at 33.3 and 41.7 ms and 2 at 66.7 ms. So the
+  units per sim second are 30, 24 and 30. That is why one fixed factor fitted 33.3 and 66.7 ms but not 41.667 ms (2.8 x 24.2 =
+  67.7).
+- **The rate-aware factor** (strlkproxy.c `flame_dmg_factor`, simtick.c; `I76_SIM_TICK_FLAME_DMG` unset or `auto`):
+  - Each application a = max(1, int(R x T)) is scaled to what a 1997 pass at the reference frame (T_ref = 1 / I76_SIM_TICK_REF_HZ =
+    41.667 ms) computed, per sim second.
+  - factor = G x a_ref / (a x T_ref / T), with a_ref = max(1, int(a x T_ref / T)) and G = `I76_SIM_TICK_FLAME_DMG_REF`, default 3.5.
+  - G = 2.8 / 0.8 keeps s.12's car calibration at 33.3 and 66.7 ms exactly. The factor is 3.5 at 41.667 ms, so the asked rate is
+    G x 24 = 84 per s at every tick length, measured 84.6 +- 0.5 (n 9).
+  - a_ref computed from a alone equals int(R x T_ref) for every stock flamer and difficulty (R = 15 / 30 / 45 / 60 x 0.75 / 1 / 2:
+    11.25 .. 120) at all three tick lengths (checked by hand for all 9 values). So FlameThrower, Napalm and Pyro-Tomic keep their
+    1997-at-24-fps ratios to the Gas Launcher.
+  - A number for `I76_SIM_TICK_FLAME_DMG` is still a fixed factor, as before.
+  - Log line, tick42: `sim-tick: flame damage rate-aware (I76_SIM_TICK_FLAME_DMG unset / auto): G 3.500 (I76_SIM_TICK_FLAME_DMG_REF) at the 1997 pass of 41.667 ms; per application x 3.500 at amount 1, x 3.500 at 2, x 3.500 at 3 (s.18)`.
+- **Against 1997.** The ticks ask 84.7 per s against the stock 20 fps loop's 79.1 / 79.4 (n 2, +7 %). s.12 calibrated on health lost
+  (82.0 / s, n 6), which is noisier. The car dies in about the same time: 8.2-11.5 s at the ticks without the early-kill regime,
+  10.4 / 11.8 s at 1997. Matching 79 asked / s exactly would take G = 3.3; G 3.5 is kept so that tick33 and tick66 stay as
+  calibrated and gated in s.12 / s.14.
+- **The bar** (T05 road-closed bar, `flamepp10`, 8 m, 10 deg nose up; box switch on, flame fix on): tick42 at 3.5 deals **1400.1
+  per sim s (n 2, both)**, the same as tick33 / tick66 at 2.8 in s.12 (1401.5 / 1402.3). 1997 (stock 20 fps) deals **669.2** (n 1,
+  = s.12). So the bar burns about twice as fast as in 1997 at every tick length, as s.12 found. That gap is in the contact (the car
+  gets half the hits per update that the bar gets), not in the tick length.
+- **The four s.14 factors at 41.667 ms.** They were x 1.000008, and their wrappers were installed. Since `ed5c305` a factor within
+  0.1 % of 1 is exactly 1 and installs nothing. The log line in every tick42 boot:
+  `tick-factors: under the tick; ref 24.0 / s; hazard x 1.000 (0/4 steps, class-damage call 0/1), scrape repeats x 1.000 (0/2 collision calls), wreck roll pass 1.000 (0/1), radar turn x 1.000 / proportional x 1.000 (0/2)`.
+  At 33.3 / 66.7 ms they are unchanged (0.8 / 1.6).
+
+**The s.9 / s.10 harness rows at tick42 (n 1 each, headless):**
+
+| row | measure | tick42 | reference (s.9 / s.10, tick33) |
+|---|---|---|---|
+| early tick on a key (T06, 40 steer-key toggles) | key -> first drawn frame ms: median, p90, max | **4.2, 8.2, 8.7** (40 / 40; 34 early ticks) | 4.7, 7.9, 9.1 |
+| tracers (T13 idle + god 60 s, I76_SIM_TICK_TRCLOG) | tracks, shown / alive, segment | **10 tracks, 1.00, 8.34 m** (one 41.7 ms tick at 200 m/s), first-frame segment 1.23 m | 1.00, 6.67 m (one 33.3 ms tick) |
+| sustained sounds (T06 strip, I76_SOUND_CENSUS) | starts / sim s, sustained-loop starts / sim s | **0.74, 0.23** (keep-alives held 4026) | 0.82-0.90, 0.22-0.30; stock 30 fps 0.89 / 0.91, 0.28-0.32 |
+| sign posts (T05, 20 m/s rams) | knocked off, drawn gap at the knock-off m | **11 / 11** (all by the sweep), median -0.13 (-0.16..-0.01), 0 timeouts | 33 / 33, -0.09 (-0.16..-0.01) |
+
+Only 11 of the planned 22 rams ran in the sign boot. The second ram set found 4 targets, so n is 11.
+
+### 18.5 What the candidate needs for tick42
+
+- **Proxy.** The flame default at 41.667 ms needs a build from i76-everywhere `ed5c305` or later. tick19f-av (2eb345d1, built from
+  d664f91) predates it: there, tick42 runs the fixed 2.8 and asks 67.7 per s (-20 %).
+  - Without a rebuild, the same 84.7 at 42 comes from adding `I76_SIM_TICK_FLAME_DMG = '3.5'` to tick19-42 only. A fixed factor
+    applies at that one tick length; it must not go into tick19-33 / -66.
+  - With an `ed5c305` build, leave `I76_SIM_TICK_FLAME_DMG` unset in every preset. A fixed number set there would override the
+    rate-aware default.
+- **Preset keys for tick42.** tick19-42 as made by make-presets.ps1 (`I76_SIM_TICK_MS = '41.667'`, `I76_SIM_TICK_INPUT = '1'`, the
+  rest of the tick19-33 set) needs nothing more, because every s.18 default is right at 42 with its key unset:
+  - `I76_SIM_TICK_FLAME_DMG` unset (rate-aware); `I76_SIM_TICK_FLAME_DMG_REF` unset (3.5);
+  - `I76_SIM_TICK_REF_HZ` unset (24: the four s.14 factors and the flame reference both fall on 41.667 ms);
+  - `I76_SIM_TICK_{HAZARD,SCRAPE,WRECK,RADAR}_FACTOR` unset (auto = exactly 1 at 42);
+  - `I76_SIM_TICK_FLAME_AGE` unset (20 Hz: at 41.667 ms the stream ages on every tick, stream 18.62-18.63 segments in every boot).
+- **The jump.** The physics at 42 is unchanged, and no lip-clip patch is needed or made.
+
+### 18.6 Not done, and why
+
+- **No retail or emulator run.** The retail comparison is TWO-CLOCKS s.4.3's memtrace cells (0 of 70).
+- **No crest descents (the owner's approach) at 42 with the new harness.** A descent is driven, not placed, so the placement bug
+  never applied. TWO-CLOCKS s.4.2 had tick42 1 of 1 and e24 1 of 1 cleared.
+- **The jittered set did not stress the yaw at a driven approach.** How large a slide a player needs to clip the ramp was not swept.
+  2.6 m/s of side slip (2.7 deg) clipped once and 4.3 m/s every time.
+- **The flame on other flamers, AI flamers and difficulties** was not measured. The rate-aware factor's other-weapon behaviour
+  follows from the code (18.4); n is 0 in game.
+- **1997's asked rate has n 2.** s.12's six 1997 boots have no asked column in this form.
+- **The sign row ran 11 rams, not 22.**
