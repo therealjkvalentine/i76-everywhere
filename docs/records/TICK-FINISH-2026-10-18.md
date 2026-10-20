@@ -2099,7 +2099,7 @@ stages, extras.ps1 = the one-boot rows, before-*.md5 = the folder as found); log
 
 Totals (first runs, nothing voided): console rows 11 gate folders = every launcher listed; first-run FAIL rows: PLAY-TICK row 3 (2 lines: engine up + fps, one
 event), PLAY-TICK-44 row 3 fps (1), instant melee M2 (1). Every one passed on a single re-run. Tick 36 / 39 / 44 / 47 / 43 / 45: proxy tick line equals the
-launcher's value in every boot; the same trip boots show terrain-lod A x96 / B x24, the aw pointer map, CRASH 0 (all tick boots: 10 + 7 + 7 + 12 extras).
+launcher's value in every boot; the same trip boots show terrain-lod A x96 / B x24, the aw pointer map, CRASH 0 (every tick boot of the gate and the extras).
 
 - **Proxy log checks:** `sim-tick: ON` at 33.333 (10 boots), 41.667 (7), 66.667 (7); 36 / 39 / 44 / 46.875 / 43 / 45 (2 boots each) all as launched.
   The flame line is now rate-aware (`G 3.500 at the 1997 pass of 41.667 ms; per application x F at amount 1 / 2 / 3`): at amount 1 F = 2.800 at 33.333,
@@ -2110,7 +2110,7 @@ launcher's value in every boot; the same trip boots show terrain-lod A x96 / B x
   session: only `mciproxy.log` differs. `tick-ms.txt` removed. Persisted mutes of game-tick and game-sp: none left (unmute-persisted -List: not muted).
 - **Flakes, with the evidence:** (1) PLAY-TICK row 3 trip run 2 ended on the Options menu with the engine not up (also seen in the voided tick19f gate of
   2026-10-19, run 2 of 2 there too; absent in the PLAY-TICK-42 / -66 / -P18 gates and in the re-run); the game was never refused by a foreign i76.exe;
-  not diagnosed, harness route (clicks). (2) PLAY-TICK-44's first trip at 104.7 fps, under 108; the other trips ran 110-117 (one more at 104.7 is the
-  lowest of the 25 trips this morning). (3) M2 depends on no AI dying in 40 s. No foreign i76.exe appeared, so no row was refused or voided.
+  not diagnosed, harness route (clicks). (2) PLAY-TICK-44's first trip at 104.7 fps, under 108; the other trips ran 110-117
+  (3) M2 depends on no AI dying in 40 s. No foreign i76.exe appeared, so no row was refused or voided.
 - Gate row text for the 2026-10-18 note "not run": see s.19.5 first bullet, now closed for the menus, save screen, Esc menu and the trip at 120 fps on
   PLAY-TICK / -42 / -66 and the trip on -36 / -39 / -44 / -47 and the two override paths.
