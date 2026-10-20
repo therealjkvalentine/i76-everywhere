@@ -1482,27 +1482,47 @@ Everything here is read-only for the daily driver: the tick build lives in the l
 
 Verdict wanted: promote 19 (tick) yes / no / after fixes; anything in 1-4 that feels worse than balanced, say which.
 
-## Console session 2026-10-19 (tick19e, flame at the 1997 rate, LAN in the lab tick copy, scenarios, AI melee; ~60 min)
+## Console session 2026-10-19 / morning 2026-10-20 (tick19f-av, the 41.667 ms tick, your playtest notes fixed, LAN in the lab tick copy, scenarios, AI melee; ~60 min)
 
-Built and gated today (records: TICK-FINISH-2026-10-18.md s.12-15, FRAME-BOUND-SYSTEMS-2026-10-19.md, COOP-LIST-ENTRIES-2026-10-18.md s.7-8,
-AI-MELEE-M1-2026-10-19.md). Everything is in lab copies; the daily driver is untouched and still has none of it. Before you play: no
-automated run should be muting anything any more (the global watcher is retired; each run mutes only the game it started, per process, and clears
-the mute Windows remembers for that copy when it ends, so your copies start with sound).
-Lab runs can no longer touch your car: since today every automated run starts its game with `I76_SHM_SUFFIX=<its folder name>` (and its own desktop), so its trainer / telemetry blocks are separate from the ones in your game (a proxy built before this ignores the key; the launch scripts then say so and do not run it beside you).
+Built and gated 2026-10-19 (records: TICK-FINISH-2026-10-18.md s.12-18, FRAME-BOUND-SYSTEMS-2026-10-19.md, TWO-CLOCKS-2026-10-19.md,
+DRAW-DISTANCE.md 2026-10-19, COOP-LIST-ENTRIES-2026-10-18.md s.7-8, AI-MELEE-M1-2026-10-19.md). Everything is in lab copies; the daily driver is
+untouched and still has none of it. Before you play: no automated run should be muting anything any more (the global watcher is retired; each run
+mutes only the game it started, per process, and clears the mute Windows remembers for that copy when it ends, so your copies start with sound).
+Lab runs can no longer touch your car: since 2026-10-19 every automated run starts its game with `I76_SHM_SUFFIX=<its folder name>` (and its own desktop), so its trainer / telemetry blocks are separate from the ones in your game (a proxy built before this ignores the key; the launch scripts then say so and do not run it beside you).
+The overnight multiplayer lane (2026-10-19 night: join / leave any time, AI bots fill open slots, co-op enemies per joiner) adds its own "Morning 2026-10-20" section below when it finishes; read that one before any LAN cell.
 
-### A. The tick candidate tick19e (a08577c4): `C:\Users\james\i76-uncap-lab\game-dd-20261003\PLAY-TICK.bat` (33) and `PLAY-TICK-66.bat`
+### A. The tick candidate tick19f-av (2eb345d1) in your tick copy: `C:\Users\james\i76-uncap-lab\game-tick\PLAY-TICK.bat` (= PLAY-TICK-33), `PLAY-TICK-42.bat`, `PLAY-TICK-66.bat`
+
+Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does now:
+
+| your note | finding | in this build |
+|---|---|---|
+| sign sound missing about half the time | the posts the box sweep knocks off had no engine contact, so no contact sound (0 of 33) | the sweep plays the contact sound: 33 of 33 (n 3) |
+| cutscene stutters on W with the camera outside | an early tick restarted the script camera's blend from the older view | 19 of 44 stutter frames -> 0 of 24 |
+| death camera too fast? / sky speed wrong | both scaled to the tick rate, not 1997's: 240 deg/s and 0.030/s at 33 | 192 deg/s and 0.024/s at every tick length = 1997 (driver: 160 and 0.020) |
+| music not consistent | no dropped cue in 12 boots; the silences are the data-track missions (M06 / S02 / S06 / S01) and retail's 0-60 s gap after a run ends | unchanged (rules you chose) |
+| tracers 2x thicker / denser | a look difference: the tick redraws a tick-long streak every frame (about 4x the path coverage of 1997's dashes), same line width | unchanged; a one-frame streak like the driver's is a small change if you want it (decision 7) |
+| instant melee crashes every time | the tick's object walk released references; 13 of 13 crashes on Scene 1 (Co-op) | fixed: 0 crashes in 9 + 3 + 3 rows, gate instant-melee rows 3 / 3 |
+| multi melee: no AI cars | your copy had "Scene 1 (Co-op)" remembered as the arena, Hope Springs was never loaded (the wide-menu pointer was 242 px off the pencil) | the pointer is on the pencil (within 4 px; `I76_CURSOR_MAP_DGV=aw`); pick Hope Springs (4 AI) on purpose |
+| two helicopters in T05 | the 1997 mission has two (stock / driver / tick all count 2) | nothing to fix |
+| bouncy / fast on 33, T05 jump low with the nose down | ONE clock in 1997: the car step was the frame time, capped at 50 ms; at 33 ms the bounce runs 1.25x faster and the jump sheds speed per step; 41.667 ms = the 1997 coupling (TWO-CLOCKS) | PLAY-TICK-42.bat; the "lip clips" at 42 were the harness placing the car crooked (0 of 66 jumps clip, same as the stock loop, s.18) |
+| terrain redrawn at the top of the T05 intro road | the split distance, not the height error: distance x96 / height-error x24 resolves the canyon ridge at no fps cost (112.6 vs 112-116) | all three PLAY-TICK presets carry terrain A 96 / B 24 |
+| "sometimes it seems like it spawns" | not understood: say what spawns, where | |
 
 | # | min | what | look for |
 |---|---|---|---|
-| A1 | 8 | **Flamers** (s.12). Burn a car with the Gas Launcher; flame a T05 road-closed bar | a car dies after ~11 s of contact (1997 timing; the driver needs 3x that); the bar burns at all (before: never); impact sprites look right, not a hall of mirrors |
+| A0 | 10 | **33 vs 42 vs 66, the ruling** (TWO-CLOCKS). T05 canyon jump on each; sign rams; a bounce over a ditch. The lane recommends **42 as PLAY-TICK's default** (the 1997 coupling: bounce period, jump arc and landing pitch match the stock loop; the s.14 hazard factors are exactly 1 there); 33 stays the default until you rule | the jump at 42 lands flat-ish at a sensible speed (33: low, nose down; the driver: too long / high); controls still feel right at 42; which one do you want PLAY-TICK to be? |
+| A1 | 8 | **Flamers** (s.12, s.18). Burn a car with the Gas Launcher on 33 and on 42; flame a T05 road-closed bar | a car dies after ~10 s of contact at every tick length (1997 timing; the driver needs 3x that; 42 carries an interim `I76_SIM_TICK_FLAME_DMG=3.5` in its preset until the next build, see the candidate README); the bar burns (about 2x the 1997 rate, decision 4) |
 | A2 | 8 | **Per-frame hazards at the 1997 rate** (s.14). Sit in an oil slick / dropper patch, stay pinned against a car or wall, stand near a burning wreck, dodge a radar missile (DrRadar / Cherub) | each costs about what it did in 1997; missiles not lazy, not too sharp (the missile turn is from code only, unmeasured) |
-| A3 | 5 | **Your first-playtest notes, re-checked** (s.10): tracers on 33 and 66, road / wind loops, menu and mission music, J K L ; and O keys, menu arrow on the pencil | anything still wrong, say which launcher |
+| A3 | 6 | **The notes table above, re-checked in play**: sign sound on every post, W during an outside-camera cutscene, the death camera and the sky, music, instant melee into Hope Springs (4 AI) | anything still wrong, say which launcher and which row |
+| A3b | 4 | **The pointer on the wide menu** (`aw`): main menu, Instant Melee arena list, garage and its reminder pop-up, the save screen (pick an empty slot: the gate's YES wrote only the scratch slot, 12 / 12 after a harness fix), the Esc menu in a mission | the hand and the drawn pencil agree everywhere; a wrong row picked anywhere = say where |
+| A3c | 2 | **Terrain at the T05 start**: from the canyon road at the mission start look at the ridge behind the intro road (the lane's view: facing +x from x 8490, z 44520) | the ridge keeps its shape as you drive; if that is not the spot you meant, say where you see the redraw |
 | A4 | 3 | **Suburbia on 66** (s.13, not reproduced in 10 boots): start it 3 times on PLAY-TICK-66 and drive forward 10 s | houses appear = it was the dark spawn view (half the spawns face a flat plain); still flat = screenshot |
-| A5 | 2 | **33 vs 66**: nothing to hunt; 66 steps everything 15 times a second so aim and steering feel coarser, tracers come in 13 m pieces | only say if 66 feels no worse |
+| A5 | 2 | **66**: nothing to hunt; 66 steps everything 15 times a second so aim and steering feel coarser, tracers come in 13 m pieces | only say if 66 feels no worse |
 | A5b | 30 | **86Box retail 1.0 on the emulated P166 (the 1997 reference; items 46 / 50). Fixed 2026-10-19: the game now starts by itself, home-row keys.** (1) Double-click `C:\Users\james\i76-uncap-lab\OWNER-TESTS-2026-10-17\02-86box-retail-logged.bat` (disc 2 is mounted for you); hands off for about 1.5 min while Windows boots and the game starts itself and lands in the T05 cockpit. (2) The keys are your daily-driver home-row map: W S A D drive, Enter fire, J K L ; hardpoints 1-4, O radar camera, C or Tab cycle weapon (no Shift+' team scores: retail 1.0 has none). (3) Drive T05 to the canyon jump and compare with PLAY-TICK on the hill top. (4) To exit: Esc, then arrow keys + Enter for Abort Mission > Exit Game > Yes. Then Start > Shut Down, close 86Box when it says it's safe, and the window prints `summary.md`. (5) Your desktop shortcut `i76 x86box ref` (PLAY-P166-LOGGED.bat) now also starts the game by itself, to the main menu (same keys, saves kept). | W S A D / J / O work; the jump and the landing feel like 1997; the frames in the summary (this PC measured a 41-42 ms median in T05 today, not 33: say if it feels slow); Instant Melee clicked by hand: does ENTER AREA work for you? (it would not take the agent's injected clicks) |
-| A6 | - | **Verdict**: promote 19 yes / no / after fixes. Promotion 19 now also carries the LAN pieces (IPX files, the 27 arena files, the LAN keys) that the driver lacks | |
+| A6 | - | **Verdict**: promote 19 yes / no / after fixes. Promotion 19 now also carries the LAN pieces (IPX files, the 27 arena files, the LAN keys) that the driver lacks. Candidate folder: `C:\Users\james\i76-uncap-lab\builds\tick-finish-20261018\promotion-19-candidate\` (README, MD5SUMS.txt; the next build folds in s.18's rate-aware flame default and whatever the overnight multiplayer lane lands) | |
 
-### B. Network from the lab tick copy (PLAY-TICK now hosts and joins; records/MULTIPLAYER.md 2026-10-19 section)
+### B. Network from the lab tick copy (PLAY-TICK now hosts and joins; records/MULTIPLAYER.md 2026-10-19 section; superseded by the overnight lane's "Morning 2026-10-20" section if it is there)
 
 | # | min | what | look for |
 |---|---|---|---|
@@ -1525,7 +1545,8 @@ Lab runs can no longer touch your car: since today every automated run starts it
 respawn with scores kept, AI names only in the kill message, -500 for a death by an AI. 3. Scenarios: keep "host death reloads the scenario"
 or build melee respawn for the host (needs script edits per scenario, COOP-LIST-ENTRIES s.8.3). 4. Flame on a road bar burns about 2x the
 1997 rate under the car-calibrated factor (s.12.4): accept, or a separate bar factor. 5. The daily driver's AI skid / horn rolls run at 5x the
-1997 rate (FRAME-BOUND s. recommendations): leave, or scale in promotion 19.
+1997 rate (FRAME-BOUND s. recommendations): leave, or scale in promotion 19. 6. PLAY-TICK's default tick: 33.3 (today) or 41.667 ms (the
+lane's recommendation, A0). 7. Tracers under the tick: keep the tick-long streak, or draw a one-frame streak like the driver (s.17.6).
 
 ### Open / not measured (so you know): joiner AI kill, AI melee and scenarios across two machines, teams for AI (`_TEAMS=1` never run),
 radar-missile turn in game, sustained-scrape damage per second, two of four T13 "god-held player dies" deaths (also in the stock loop), the
