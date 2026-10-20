@@ -352,4 +352,8 @@ laptop join (one at a time, then all four together); also Andrew hosts and the P
   mission); proxy fix proposed in the record.
 - **Steam Deck: not reached all morning** (asleep): it still has the 2026-10-18 files; stock arenas only with the others until
   its one-command step runs.
+- **Teams pack deployed (07:47)**: proxy **31efcf7a** (teams lane, TEAM PLAY with the AI on Men In Black, a returning AI takes the
+  leaver's team) on the PC LAN copy, the laptop, Andrew's and Michael's Macs; pack `i76-uncap-labuilds\mp-pack-20261020-teams\`,
+  old folders kept, rollback per machine in the record's section 6. Measured across machines: AI t7 on both screens, the
+  returning AI on the leaver's team (n 2), teams off unchanged (n 1). The Deck: not reached (own proxy, 2026-10-18 files).
 

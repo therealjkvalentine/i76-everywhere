@@ -101,10 +101,43 @@ own proxy** (no co-op switches, so even after the step it does not mirror AI car
 
 | machine | pack | STRLKUP.DLL | games | helpers |
 |---|---|---|---|---|
-| PC LAN copy | mp-pack-20261020-overnight | 533ab67c | ours (pid 41348) running | console lock held (released at the end) |
+| PC LAN copy | mp-pack-20261020-overnight | 533ab67c | ours (pid 41348) running | console lock held (released 07:48) |
 | Andrew's Mac | same | 533ab67c | ours running | caffeinate (ours), `~/i76-overnight-20261020/lan/` |
 | Michael's Mac | same | 533ab67c | ours running | the same |
 | laptop | same | 533ab67c | ours running | the same |
 | Deck | 2026-10-18 + own proxy | own | - | unreachable |
 
-Section 6 (redeploy of the teams pack and its smoke) follows below when it has run.
+(Superseded by section 6: every reachable machine now runs proxy 31efcf7a.)
+
+## 6. Teams pack redeployed (07:20-07:47) and its cross-machine smoke
+
+Main asked for it after the matrix: the teams lane's proxy (b462a08 + 8315de9, record MP-TEAMS-2026-10-20) on every machine.
+
+**Pack `i76-uncap-labuilds\mp-pack-20261020-teams\`** = `mp-pack-20261020-overnight` with exactly one file changed:
+`common/STRLKUP.DLL` 533ab67c -> **31efcf7a**, built from i76-everywhere HEAD 5eea548 (clean `git archive`, MSVC x86 /MT /O2
+/Brepro, built twice byte-identical, `builds	eams-pack-202610201|b2`; HEAD's music-fix differs from 8315de9 in README.md only,
+so the hash equals the teams lane's). `common.md5` has that one hash changed; `deploy\` holds `STRLKUP.DLL`, `common.md5`,
+`mac-deploy-teams.sh`, `mac-rollback-teams.sh`. No ADDON file changed, so arena CRCs are as overnight (titles match the 533ab67c machines; only the proxy behaviour differs).
+
+| machine | how | verify | STRLKUP.DLL now | rollback |
+|---|---|---|---|---|
+| PC LAN copy | `deploy-pc.ps1` of the new pack (game stopped first) | 1 file updated, 0 mismatches; 533ab67c saved in the pack's `rollback\pc\` | **31efcf7a** | `mp-pack-20261020-teamsollback-pc.ps1` |
+| laptop (`I76 MP GATE.app`) | `mac-deploy-teams.sh <game folder> ~/i76-overnight-20261020/teams --swap`: copy of the folder + the DLL, then swap | 408 files, 0 mismatches | **31efcf7a** | `bash ~/i76-overnight-20261020/teams/mac-rollback-teams.sh "<game folder>"` (the 533ab67c folder is kept as `Interstate 76-pre-teams-20261020`; the 2026-10-18 one still as `Interstate 76-pre-20261020`) |
+| Andrew's Mac | the same | 408 files, 0 mismatches | **31efcf7a** | the same |
+| Michael's Mac | the same | 408 files, 0 mismatches | **31efcf7a** | the same |
+| Steam Deck | not reached (ssh time-out / one "refused" at 07:44, then time-outs to 07:47) | - | its own proxy (2026-10-18 pack) | - |
+
+The Deck runs its own proxy in any case (no co-op / fill switches); after its overnight step (`DECK-DEPLOY.sh`) it would
+match the arena files; the teams proxy does not apply to it.
+
+**Smoke, PC host + Andrew's Mac, proxy 31efcf7a on both** (`captures\lan-matrix-20261020\c11-teams.txt`, proxy logs):
+
+| step | PC (host) census | Andrew's census | n |
+|---|---|---|---|
+| PC hosts Hope Springs (4 AI), TEAM PLAY on (form flag written on the PC), picks Grey Hounds | teams rule 1, exe team play 1; AI 11-14 all t7 (Men In Black), PC t0 | - | 1 |
+| Andrew joins, picks Puce Panthers in the popup (real-pointer clicks) | 3 in play + 1 parked, all AI t7; humans 3/t0, 6/t1 | the same teams: AI t7, 3/t0, 6/t1; the parked car at the parking spot | 2 |
+| Andrew leaves (hard exit; slot gone after 41 s) | `'vpjrabt2' (label 12) into the game ... team 1`: the returning AI plays on Andrew's team | - | **2** |
+| Andrew re-joins on Puce Panthers | his team's AI (label 12) parks first and is t7 again in the pool | agrees | 1 |
+| teams off: PC hosts Suburbia, Andrew joins | teams rule 0, no popup; stock teams: each machine itself t0, the other t1 | the same | 1 |
+
+0 crash lines. Not measured here: a third team, kills / scoring by team (as in the teams record).

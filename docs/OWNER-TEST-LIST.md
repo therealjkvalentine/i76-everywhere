@@ -1561,8 +1561,9 @@ The machines did the rest this morning (PC + Andrew's Mac + Michael's Mac + lapt
 co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting; 0 crashes). Left for you:
 
 0. **Deck** (it slept through the whole run): wake it (Steam button), then on the PC in Git Bash
-   `bash /c/Users/james/i76-uncap-lab/builds/mp-pack-20261020-overnight/deploy/deck/DECK-DEPLOY.sh` (or the newer pack's Deck
-   step if section 6 of the record names one). Then let the Deck join one Suburbia game: it was never tested today.
+   `bash /c/Users/james/i76-uncap-lab/builds/mp-pack-20261020-overnight/deploy/deck/DECK-DEPLOY.sh` (the teams pack changed only
+   the proxy, which the Deck does not use). Then let the Deck join one Suburbia game: it was never tested today. Everyone else
+   runs proxy 31efcf7a (teams) since 07:47.
 1. **Feel of AI fill**: PC hosts "Hope Springs (4 AI)"; with 2 / 3 / 4 of you there are 3 / 2 / 1 computer cars. Too many, too few?
    (`I76_AIMELEE_FILL` changes the total; now 5 combatants.)
 2. **Feel of the co-op extras**: "Scene 5 (Co-op)" with 1-3 joiners: each attacking enemy brings one extra car per joiner.
