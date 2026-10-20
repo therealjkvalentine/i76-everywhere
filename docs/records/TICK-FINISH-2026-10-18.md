@@ -2114,3 +2114,24 @@ launcher's value in every boot; the same trip boots show terrain-lod A x96 / B x
   (3) M2 depends on no AI dying in 40 s. No foreign i76.exe appeared, so no row was refused or voided.
 - Gate row text for the 2026-10-18 note "not run": see s.19.5 first bullet, now closed for the menus, save screen, Esc menu and the trip at 120 fps on
   PLAY-TICK / -42 / -66 and the trip on -36 / -39 / -44 / -47 and the two override paths.
+
+### 19.7 The twin's PLAY-TICK had no proxy (2026-10-20 15:10, main; owner report "play-tick mouse nav is broken, can't launch")
+
+The owner launched `PLAY-TICK*.bat` from the lab twin `game-dd-20261003` (where the promotion play-tests happen), not
+from `game-tick`. The tick-range lane had put the launchers, presets and `PLAY-i76.ps1` into the twin but left its proxy at
+33211f11 (promotion 17/18), with tick19g beside as `STRLKUP.DLL.adc4fd49-tick19g`. The twin's proxy log for those boots
+shows the old proxy's `cursor-map: dgVoodoo cursor (I76_CURSOR_MAP_DGV): ...` line (the value `aw` not parsed: the pointer
+mapped as if the shell were stretched over the client while `dgVoodoo.wide.conf` dccd379a draws it 4:3 fit, so clicks landed
+off the buttons) and no `sim-tick` line at all (no fixed step: the launchers' own warning). Every other file the launch
+touches is byte-identical between the twin and game-tick (u32x 06467bd2, i76shell a300db63, i76.exe 6319abf7, both dgVoodoo
+confs dccd379a, PLAY-i76.ps1 fdc5fa21, tick19-33/-42 presets); only `input.map` (twin 12a6357e, game-tick a66a37f7) and the
+unused best-wide-balanced preset differ.
+
+Fix at 15:20 with no i76 running: the twin's `STRLKUP.DLL` -> `STRLKUP.DLL.33211f11-pre-19g`, tick19g copied in (read back
+adc4fd49). One headless muted boot of the twin through `autotest\proxy-run.ps1` with the tick19-33 env (t01, hold 8 s,
+I76_SHM_SUFFIX game-dd-20261003): `sim-tick: ON - whole sim every 33.333 ms ... 12/12 sim gates, 4/4 display hooks`,
+`cursor-map: dgVoodoo cursor (I76_CURSOR_MAP_DGV=aw: the dgVoodoo picture's fit)`, terrain A x96 / B x24, in mission after
+11 s, 0 CRASH, n 1. The twin's PLAY-TICK set is now the gated game-tick set (s.19.6) except for the input map. The twin is
+no longer hash-identical to the driver (proxy); a promotion-19 gate on the twin must start from the candidate folder's
+MD5SUMS, and the lesson is in docs/LAYOUT-PROPOSAL-2026-10-20.md (rule 4: whoever puts launchers in a folder puts the whole
+set in).
