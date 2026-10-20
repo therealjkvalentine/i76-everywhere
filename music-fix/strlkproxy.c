@@ -2992,6 +2992,8 @@ static dprecv_fn real_dpReceive;
 static volatile LONG g_coop_ai_sent, g_coop_ai_applied, g_coop_ai_role, g_coop_ai_senderr, g_coop_ai_rx;
 static DWORD g_coop_ai_last;
 static float g_coop_ai_seen[2048];
+static DWORD g_mpf_park_since[2048];                         /* mpfill.c: label index parked since (0 = in play); 'AT' sends it every 2 s */
+static void mpf_engaged(BYTE *a);                            /* mpfill.c: an enemy original turned on a human (co-op scaling) */
 static BYTE g_coop_ai_fired[1024];                          /* host: weapon instances the AI triggered since the last send */
 static BYTE g_coop_ai_mask[2048];                           /* joiner: last fire mask per label index ... */
 static DWORD g_coop_ai_until[2048];                         /* ... and until when it holds (GetTickCount) */
@@ -3025,14 +3027,16 @@ static BYTE *coop_ai_object(int i, int count, BYTE *tab) {   /* a mission vehicl
     return o;
 }
 static void coop_ai_host_send(void) {
-    BYTE pkt[512]; BYTE *tab; int count, i, n = 0;
+    BYTE pkt[512]; BYTE *tab; int count, i, n = 0; static unsigned rounds;
     DWORD now = GetTickCount();
     if (now - g_coop_ai_last < 100 || !coop_ai_in_mission()) return;
     g_coop_ai_last = now;
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
     if (!tab || count <= 0 || count > 2048) return;
+    rounds++;
     for (i = 0; i <= count; i++) {
         BYTE *o = i < count ? coop_ai_object(i, count, tab) : NULL;
+        if (o && g_mpf_park_since[i] && now - g_mpf_park_since[i] > 1500 && rounds % 20) o = NULL;   /* parked: every 2 s */
         if (o) {
             BYTE *r = pkt + 8 + n * 100;
             int w8[8], m = coop_ai_weapon_mask(o, w8);
@@ -3728,6 +3732,7 @@ static int __cdecl coop_ai_attack(BYTE *a, BYTE *t, int b, int x) {
     if (t && (t[0x10] & 0x10)) human = 1;
     else if (t) for (k0 = 0; k0 < 16; k0++) { BYTE *p = (BYTE *)0x00541070 + k0 * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == t) { human = 1; break; } }
     if (b != 0x1e && a && human && coop_ai_role() == 1) {   /* every behaviour aimed at a human except follow */
+        mpf_engaged(a);                                      /* co-op scaling: this enemy has met a human (mpfill.c) */
         double ax = *(double *)(a + 0x40), az = *(double *)(a + 0x50), best = 1e30; BYTE *pick = t; int k;
         for (k = 0; k < 16; k++) {
             BYTE *p = (BYTE *)0x00541070 + k * 0x48, *o;
@@ -4028,6 +4033,7 @@ static void apply_coop_ai(HMODULE exe) {
 }
 
 #include "aimelee.c"     /* I76_AIMELEE: AI cars in network melee arenas ai_*.lvl (host tick, kill credit, waves) */
+#include "mpfill.c"      /* I76_AIMELEE_FILL / I76_COOP_SCALE: pre-spawned pools, parked and brought in by the host */
 
 /* ===========================================================================
  * REAR MIRROR CADENCE  (I76_MIRROR_RATE=1, needs I76_FRAMERATE_FIXES; off by default)

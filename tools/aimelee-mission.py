@@ -18,6 +18,8 @@ A stock melee arena (miss16\\Mnn.MSN, its spawn / regen points untouched) plus N
     (a spawn point within the vehicle radius + 20 m of a car is skipped by 0x451030), 30 m from every scenery
     object, spread out by farthest-point sampling; the yaw follows the road. y is snapped by the loader;
   - distinct instance bits (bit 7 of the label bytes) when a stem repeats;
+  - an I76P tag (tools/mp_pool.py) with a parking spot ~8 km away on an empty tile, for AI fill (the host's proxy
+    parks one AI car per human beyond the first that the arena holds, I76_AIMELEE_FILL);
   - the WRLD mission title (body +0x13b, read with strcpy by the exe's title callback 0x4b4a10 into the shell's
     32-byte arena record) set; a title longer than 15 characters grows the WRLD body (the in-game loader 0x4b8a10
     reads fixed offsets below +0x13b, the walker skips by the chunk size).
@@ -30,6 +32,8 @@ import hashlib, math, os, random, struct, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "re", "tools"))
 from i76fmt import bwd2, zfs  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mp_pool  # noqa: E402
 
 # (out file, source arena, AI count, title): the list entries, name first, the AI count in parentheses
 ARENAS = [
@@ -123,10 +127,11 @@ def build(src, dst, count, title, game):
     seen = {}
     new = []
     where = positions(doc, count)
-    for stem, (x, y, z, yaw) in zip(cars, where):
+    parks, _ = mp_pool.park_spots(doc, count)
+    for (stem, (x, y, z, yaw)), park in zip(zip(cars, where), parks):
         inst = seen.get(stem, 0); seen[stem] = inst + 1
         c, s = math.cos(yaw), math.sin(yaw)
-        b = label_bytes(stem, inst) + struct.pack("<9f", c, 0, -s, 0, 1, 0, s, 0, c) + struct.pack("<3f", x, y, z) + CAR_TAIL
+        b = label_bytes(stem, inst) + struct.pack("<9f", c, 0, -s, 0, 1, 0, s, 0, c) + struct.pack("<3f", x, y, z) + mp_pool.tag(mp_pool.KIND_POOL, 0, b"", park) + CAR_TAIL[36:]
         assert len(b) == 100
         new.append(bwd2.Chunk(b"OBJ\0", b))
     last = max(k for k, c in enumerate(odef.children) if c.tag_str == "OBJ")

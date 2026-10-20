@@ -48,6 +48,7 @@ static BYTE *g_aim_capped;
 static BYTE g_aim_dead_seen[2048];                       /* label index: 1 = its death was logged (kill hook or tick) */                                   /* the host car that got the attacker cap */
 static DWORD g_aim_last_tick, g_aim_all_dead_since, g_aim_status_t;
 static void aim_save_score(void);
+static int mpf_parked_obj(BYTE *o); static void mpf_fill_tick(void); static void mpf_coop_tick(void); void mpfill_pump(int role);   /* mpfill.c */
 static int aim_arena(void) {                                 /* "ai_*.lvl" (any case) */
     const char *m = (const char *)0x005049f0; size_t L = strlen(m);
     return g_aim_on && _strnicmp(m, "ai_", 3) == 0 && L > 7 && L < 16 && _stricmp(m + L - 4, ".lvl") == 0;
@@ -93,6 +94,7 @@ static void aim_tick(void) {
     g_aim_last_tick = now;
     g_aim_ticks++;
     if (!tab || count <= 0 || count > 2048) return;
+    mpf_fill_tick();                                         /* I76_AIMELEE_FILL: park / bring pool cars (mpfill.c) */
     root = ((BYTE **(__cdecl *)(void))0x00457530)();
     if (root && *root && *root != g_aim_capped && *(BYTE **)(*root + 0x70) && *(BYTE **)(*(BYTE **)(*root + 0x70) + 0x108)) {
         int cap = g_aim_cap;
@@ -101,7 +103,7 @@ static void aim_tick(void) {
     }
     for (i = 0; i < count; i++) {
         BYTE *o = coop_ai_object(i, count, tab), *best = NULL, *cur; double ax, az, bd = 1e30, cd = 1e30; int j;
-        if (!o) continue;
+        if (!o || mpf_parked_obj(o)) continue;               /* parked by the AI fill: out of the game, not in the wave */
         total++;
         if (!aim_alive(o)) {                                 /* a death that never reached the kill hook: no attacker record */
             if (!g_aim_dead_seen[i]) { g_aim_dead_seen[i] = 1; mlog("  aimelee: AI #%d '%.8s' (label %d) died without an attacker record (collision, fall or no-owner damage) - no credit", aim_ordinal(i) + 1, (char *)o, i); }
@@ -164,7 +166,10 @@ static void aim_tick(void) {
 }
 static int __cdecl aim_melee_flag(void) {                    /* replaces `call 0x401310` at 0x40a5d0 */
     int r = *(volatile int *)0x00501818;
-    if (!r && coop_ai_role() == 1 && aim_arena()) aim_tick();
+    if (!r && coop_ai_role() == 1) {
+        if (aim_arena()) aim_tick();
+        else if (coop_chain_num((const char *)0x005049f0)) mpf_coop_tick();   /* I76_COOP_SCALE (mpfill.c) */
+    }
     return r;
 }
 /* --- 2. kill credit -------------------------------------------------------------------------------------------- */
@@ -272,6 +277,7 @@ void aimelee_pump(int role, int r, void *buf, void *size) {         /* from coop
     DWORD now;
     if (!g_aim_on || !role) return;
     if (r == 0 && buf && size && *(WORD *)buf == AIM_AK_PKT && role == 2) aim_receive((BYTE *)buf, *(int *)size);
+    mpfill_pump(role);                                       /* mpfill.c: status line */
     if (!aim_arena()) return;
     if (role == 2 && r == 0 && buf && size && *(WORD *)buf == COOP_AM_PKT && !g_aim_saved) aim_save_score();
     if (role == 1 && g_aim_qn) aim_flush();
@@ -301,6 +307,7 @@ void aimelee_pump(int role, int r, void *buf, void *size) {         /* from coop
     }
     if (now / 5000 != g_aim_status_t) { g_aim_status_t = now / 5000; aim_status(role); }   /* on the 5 s wall-clock grid: two copies on one PC log at the same moment */
 }
+static void apply_mpfill(void);
 static void apply_aimelee(void) {
     BYTE o5[5] = { 0xE8 }, w5[5] = { 0xE8 }; LONG a0, a1; int ok = 0;
     if (!real_dpReceive) return;                              /* needs I76_COOP_AI=1 (the sync and the pump hook) */
@@ -319,6 +326,7 @@ static void apply_aimelee(void) {
     memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
     ok += patch_bytes(0x0046419d, o5, w5, 5, "aimelee: kill credit (entity_DamageAndKill)");
     g_aim_on = ok == 2;
+    if (g_aim_on) apply_mpfill();                            /* AI fill + co-op scaling ride on the same tick site (mpfill.c) */
     mlog("  aimelee: %s (%d/2 sites) - in ai_*.lvl arenas: skill %d, attacker cap %d, teams %s, waves %s (%d s, %s), respawn %s",
          g_aim_on ? "on" : "NOT installed", ok, g_aim_skill, g_aim_cap, g_aim_teams ? "on" : "off (AI attack every human)",
          g_aim_wave ? "on" : "off", g_aim_wave_s, g_coop_chain ? "chain on" : "NEEDS I76_COOP_CHAIN=1", g_aim_respawn ? "on" : "off");

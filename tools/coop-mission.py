@@ -11,6 +11,12 @@ Reads a mission (.msn, BWD2) and writes a copy with:
   - with --title, the WRLD mission title (body +0x13b; 16 bytes, or 32 with the body grown by 16 for a title over 15
     characters; read only by the shell's arena list) set, so the file
     can sit in ADDON as its own multiplayer arena (the shell lists every ADDON\\*.lvl after the 15 stock arenas).
+  - with --copies K (co-op scaling, docs/records/MP-OVERNIGHT-2026-10-20.md): K dormant copies of every enemy car
+    (class 1, team neither 0 nor the player object's, not a trailer), each with the same record but the next free
+    instance number, team 0 (so the script's allEnemyDead / isWithinEnemy, which walk teams 1..7, never see them) and
+    an I76P tag (tools/mp_pool.py: copy number j, the original's label, its parking spot), placed on a remote parking
+    tile. The host's proxy (I76_COOP_SCALE) brings copy j beside its original when the original first engages a human
+    and j joiners are present; without joiners the copies stay parked and the mission plays as before.
 tools/coop-install.py installs all 17 that way. Nothing else in the mission changes; the script and AI still run on
 each machine.
 """
@@ -18,6 +24,8 @@ import argparse, os, struct, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "re", "tools"))
 from i76fmt import bwd2  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mp_pool  # noqa: E402
 
 SPAWN_ROT = bytes.fromhex("f638f83e0000000014e75fbf000000000000803f0000000014e75f3f00000000f638f83e")   # 3x3 rotation of M01's first spawn record
 SPAWN_TAIL = bytes.fromhex("00" * 36 + "01000000" + "00" * 4)   # body+56..100 of M01's spawn records (class 1 at +92)
@@ -30,12 +38,53 @@ def player_object(odef):
     raise SystemExit("no player object (objFlags bit 0x10) in ODEF")
 
 
+def add_copies(odef, doc, pl, k):
+    """k parked copies of every enemy car (module docstring)."""
+    pteam = (struct.unpack_from("<I", pl.body, 96)[0] >> 16) & 7
+    objs = [c for c in odef.children if c.tag_str == "OBJ"]
+    used = {}
+    for c in objs:
+        stem, inst = mp_pool.label_inst(c.body)
+        used.setdefault(stem, set()).add(inst)
+    enemies = []
+    for c in objs:
+        b = c.body
+        if len(b) < 100 or struct.unpack_from("<I", b, 92)[0] != 1:
+            continue
+        fl = struct.unpack_from("<I", b, 96)[0]
+        stem, _ = mp_pool.label_inst(b)
+        team = (fl >> 16) & 7
+        if fl & 0x10 or team in (0, pteam) or stem in ("spawn", "regen") or "tlr" in stem:
+            continue
+        enemies.append(c)
+    spots, dist = mp_pool.park_spots(doc, len(enemies) * k)
+    new = []
+    for j in range(1, k + 1):
+        for e in enemies:
+            stem, _ = mp_pool.label_inst(e.body)
+            inst = max(used[stem]) + 1
+            used[stem].add(inst)
+            x, z = spots[len(new)]
+            b = bytearray(e.body[:100])
+            b[0:8] = mp_pool.label_bytes(stem, inst)
+            struct.pack_into("<3f", b, 44, x, struct.unpack_from("<f", e.body, 48)[0], z)
+            b[56:92] = mp_pool.tag(mp_pool.KIND_COPY, j, e.body[:8], (x, z))
+            fl = struct.unpack_from("<I", b, 96)[0] & ~0x70000
+            struct.pack_into("<I", b, 96, fl)
+            new.append(bwd2.Chunk(b"OBJ\0", bytes(b)))
+    last = max(i for i, c in enumerate(odef.children) if c.tag_str == "OBJ")
+    odef.children[last + 1:last + 1] = new
+    print("copies: %d enemy cars x %d = %d parked copies, %.0f m from the nearest object or road (%s)" %
+          (len(enemies), k, len(new), dist, ", ".join(mp_pool.label_inst(e.body)[0] for e in enemies)))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("src"); ap.add_argument("dst")
     ap.add_argument("--spacing", type=float, default=30.0, help="metres between spawn points (default 30)")
     ap.add_argument("--count", type=int, default=2, help="spawn points to add (default 2)")
     ap.add_argument("--keep-movies", action="store_true", help="leave the intro/outro movies in")
+    ap.add_argument("--copies", type=int, default=0, help="dormant copies per enemy car for co-op scaling (default 0)")
     ap.add_argument("--title", help="WRLD mission title for the multiplayer arena list (at most 31 characters)")
     a = ap.parse_args()
     raw = open(a.src, "rb").read()
@@ -55,6 +104,8 @@ def main():
         new.append(bwd2.Chunk(b"OBJ\0", bytes(b)))
     last = max(k for k, c in enumerate(odef.children) if c.tag_str == "OBJ")
     odef.children[last + 1:last + 1] = new
+    if a.copies > 0:
+        add_copies(odef, doc, pl, a.copies)
     if not a.keep_movies:
         w = [c for c in doc.find("WDEF")[0].children if c.tag_str == "WRLD"][0]
         body = bytearray(w.body)
