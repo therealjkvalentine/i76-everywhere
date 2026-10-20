@@ -37,10 +37,25 @@ drive() { local end=$(( $(date +%s) + $1 )) i=0
 cmd=$1; shift
 case $cmd in
   start) [ -n "$(lanpid)" ] && { echo "LAN copy already running: $(lanpid)"; exit 1; }
+         # lab CONSOLE-LOCK.md: own shm names, the game mutes its own session (I76_MUTE) + a per-pid watcher;
+         # I76_MPF_LOG=1: every AI and human car in the proxy's 5 s 'mpfill:' line (cross-machine position checks)
+         export I76_SHM_SUFFIX=$(basename "$(dirname "$LAN")") I76_MUTE=1 I76_MPF_LOG=${I76_MPF_LOG:-1}
          cmd.exe //c start "" "$(cygpath -w "$LAN/PLAY-LAN.bat")"; for i in $(seq 1 60); do sleep 1; p=$(lanpid); [ -n "$p" ] && break; done
-         echo "$p" > "$PIDF"; export I76PROBE_PID=$p; echo "pid $p after $i s"; sleep 25
+         echo "$p" > "$PIDF"; export I76PROBE_PID=$p; echo "pid $p after $i s (shm suffix $I76_SHM_SUFFIX)"
+         powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w /c/Users/james/i76-uncap-lab/tools/start-mute-watch.ps1)" -Pid $p; sleep 25
          for k in 1 2 3 4 5; do P key 1B >/dev/null; sleep 4; st | grep -q "^0x10025a50 0x00000000 13 2 0 17" && { echo "main menu ($k Esc)"; exit 0; }; done; echo "main menu NOT reached: $(st)";;
   stop) p=$(cat "$PIDF" 2>/dev/null); [ -n "$p" ] && [ "$p" = "$(lanpid)" ] && taskkill //PID $p //F && rm -f "$PIDF";;
+  arena) # arena IDX: MULTI MELEE > HOST (I76_MP_MENU=1 opens the IPX host form directly), the form's selected arena index written
+         # to [i76shell+0xd4474] (EntryForm_DrawArenaList reads it; 0-14 stock, 15-17 Hope Springs 2/4/6 AI, 18-24 the scenarios
+         # Oil Well Well .. Milk Toast, 25-41 Scene 1-17 (Co-op)), BROADCAST GAME. Writes the PC's own game only.
+         top || exit 1; P click 446 310 >/dev/null; sleep 1.5; P click 394 350 >/dev/null; sleep 1.5; P click 366 378 >/dev/null
+         for i in $(seq 1 20); do sleep 1; st | grep -q "^0x10028610" && break; done; st | grep -q "^0x10028610" || { echo "host form NOT reached: $(st)"; exit 1; }
+         sh=$(P mods | awk 'tolower($0) ~ /i76shell\.dll/{print $1; exit}'); sleep 1
+         P poke $(printf %x $(( sh + 0xd4474 ))) $(printf %08x $1) | tail -1; sleep 1; P click 298 461 >/dev/null
+         for i in $(seq 1 45); do sleep 2; P state | grep -q "net 1" && break; done; P state | head -3;;
+  jform) # MULTI MELEE > JOIN (I76_MP_MENU=1: straight to the IPX join list)
+         top || exit 1; P click 446 310 >/dev/null; sleep 1.5; P click 394 350 >/dev/null; sleep 1.5; P click 416 378 >/dev/null
+         for i in $(seq 1 20); do sleep 1; st | grep -q "^0x10028610" && { echo "join form"; exit 0; }; done; echo "join form NOT reached: $(st)"; exit 1;;
   calib2) calib2;; top) top && echo top;; nav) nav "$@";; st) st;; drive) drive "$@";; hostgo) hostgo "$@";; joingo) joingo;;
   *) P $cmd "$@";;
 esac

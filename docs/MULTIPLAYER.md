@@ -48,6 +48,7 @@ with the existing community, use Nitro Pack with the bz911 lobby and the Discord
 | The daily driver's cars pass the anti-cheat check | its `valepre4.vcf` is byte-identical to the file that passed the host and joiner checks live in row 1; the other 67 variants: static read (MULTIPLAYER-CAR-CHECK.md section 0) |
 | LAN pack (2026-10-17), measured 2026-10-18 | PC host + Andrew's Mac join **works** (n 2); Andrew host + PC join (n 1, plus n 2 earlier that night); Andrew host + Deck join (n 1); PC host + Deck join (n 1); **3 players** PC + Deck + Andrew (n 1). Deck host in The Crater failed (mission files differed; since COOP-LIST-ENTRIES-2026-10-18 the co-op missions are their own arenas and The Crater is stock again). Michael's firewall box answered (09:25), his cells and the laptop's still unrun (both screens locked during the tests); 5 players not run. [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
 | Join / leave anytime, host leaving, AI fill, co-op scaling (2026-10-20) | **works on one PC** (3 lab copies headless, n 2-3 per cell, soak in the record); not yet between machines. [records/MP-OVERNIGHT-2026-10-20.md](records/MP-OVERNIGHT-2026-10-20.md) |
+| The same between machines (2026-10-20 morning) | **works** (PC host + Andrew's, Michael's Mac and the laptop): join / hard exit / re-join in Suburbia, Hope Springs (4 AI), Pretty Bus, Scene 5 (n 2 per machine per arena), AI fill counts right on the host and the parked cars where they belong on every joiner, co-op copies 1-2-3 with the joiners, 4 players, the host quitting in melee / AI arena / co-op (a Mac takes over, AI pool and scaling move with it, n 1 each), a Mac hosting with the PC joining and leaving by the Esc menu (n 2); 0 crashes. Not measured: a joiner's kill credit, the Deck (asleep). On the Macs HOST / JOIN still show the stock IPX row (I76_MP_MENU does not attach there). [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md) |
 | IPXWrapper DOSBox-server mode (internet without a VPN) | **fails** (2026-10-20, n 2): WIPX's start-up broadcast never comes back from a DOSBox server |
 | Mac (Wine) running IPXWrapper | **works** (2026-10-06, n = 1): the Mac joined a Windows-hosted IPX game, see the top of this page and section 6 |
 
@@ -335,3 +336,20 @@ which machines run it: the record's section 8.
 - **Internet without Tailscale through IPXWrapper's DOSBox-server mode: does not work** (the game's IPX start-up check never
   hears its own broadcast back from a DOSBox server, n 2). Direct IP (UDP 21157, unverified) or ZeroTier / Radmin VPN stay
   the answers above.
+
+### Update 2026-10-20 morning: the overnight features between real machines
+
+Record: [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md). PC hosts, Andrew's Mac, Michael's Mac and the
+laptop join (one at a time, then all four together); also Andrew hosts and the PC joins.
+
+- **Everything passed, 0 crashes**: 29 joins, 12 hard exits (the slot goes after 39-43 s), 3 host quits (the game goes on, a
+  Mac becomes host; in Hope Springs (4 AI) and Scene 5 its proxy takes over the AI pool / the co-op copies).
+- **On a Mac, MULTI MELEE > HOST / JOIN shows MODEM / IPX / INTERNET / NULLMODEM: click IPX** (the proxy's skip does not attach
+  under DxWnd; the PC skips). The arena titles are not shortened there either.
+- **Leaving from the game**: Esc > Abort Mission > Abort Mission > "Are you gonna leave me, Sweetheart?" Yes. The menu lights the
+  row under the mouse.
+- After a host change in a co-op scene, one co-op copy of the old host can stay as a stray car on the map (does not affect the
+  mission); proxy fix proposed in the record.
+- **Steam Deck: not reached all morning** (asleep): it still has the 2026-10-18 files; stock arenas only with the others until
+  its one-command step runs.
+

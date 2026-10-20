@@ -1332,7 +1332,9 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
 51. **Instant Melee frame replays on the twin, first run (medium, 10 min smoke, then 20-40 min; new 2026-10-17; records/LAB-FRAME-REPLAY.md).**
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
-    - **Ran 2026-10-17 at the console (agent, owner handed it over): FAILED before measuring.** Both Gold replays (g166-mloop-rep1, -N 2) printed "Did not reach mission (menu nav may have drifted)" and "no common frames"; the game booted, took the lock, muted, exited 0. Summary: lab toolseplayunsmelee-console-20261017-145313.txt. Needs agent debugging of the melee menu navigation (no owner action); not done, to save credits.
+    - **Ran 2026-10-17 at the console (agent, owner handed it over): FAILED before measuring.** Both Gold replays (g166-mloop-rep1, -N 2) printed "Did not reach mission (menu nav may have drifted)" and "no common frames"; the game booted, took the lock, muted, exited 0. Summary: lab tools
+eplay
+unsmelee-console-20261017-145313.txt. Needs agent debugging of the melee menu navigation (no owner action); not done, to save credits.
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
     The only clean frame-by-frame exe vs emulator comparison (same default car), but the menus do not work headless. The script has
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
@@ -1553,31 +1555,23 @@ lane's recommendation, A0). 7. Tracers under the tick: keep the tick-long streak
 radar-missile turn in game, sustained-scrape damage per second, two of four T13 "god-held player dies" deaths (also in the stock loop), the
 Deck joins co-op / AI arenas without the AI sync (its own proxy has no pack switches), a stuck AI car can hold up a wave (no timeout).
 
-## Morning 2026-10-20 (overnight MP lane: join / leave anytime, AI fill, co-op scaling; records/MP-OVERNIGHT-2026-10-20.md)
+## Morning 2026-10-20 (what is left for humans after the cross-machine matrix; records/LAN-MATRIX-2026-10-20.md)
 
-**Deck first, then the LAN cells.** The PC LAN copy, Andrew's Mac, Michael's Mac and the laptop (`I76 MP GATE.app`) run the
-new pack since 03:35; the Deck does not yet (it was asleep all night).
+The machines did the rest this morning (PC + Andrew's Mac + Michael's Mac + laptop: joins, leaves, re-joins, AI fill counts,
+co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting; 0 crashes). Left for you:
 
-0. **Deck:** wake it (Steam button), then on the PC in Git Bash run
-   `bash /c/Users/james/i76-uncap-lab/builds/mp-pack-20261020-overnight/deploy/deck/DECK-DEPLOY.sh`
-   It copies the 37 new arena files, keeps the old game folder as `~/Games/Interstate76/game-pre-20261020`, and must end with
-   "verified 37 files ... 0 mismatches" and "SWAPPED". Until then the Deck can only play the 15 stock arenas with the others.
-1. **Join late, leave, come back** (any two machines, e.g. PC hosts, a Mac joins): PC `PLAY-LAN.bat` > MELEE > MULTI MELEE >
-   HOST > Suburbia > BROADCAST GAME; drive a minute; the Mac: MULTI MELEE > JOIN > the game's row > JOIN GAME. Expect: in
-   at once, both cars on both screens. Mac: Esc > Abort / quit, then JOIN again: back in. Then the host quits: the Mac's game
-   should go on (it becomes the host).
-2. **AI fill** (PC hosts "Hope Springs (4 AI)" alone): 4 computer cars. A Mac joins: one disappears (3 left). A second machine
-   joins: 2 left. One machine quits: after up to ~45 s one comes back. Tell me if 4 + you feels too many or too few (the rule is
-   5 combatants for the 4-AI entry; `I76_AIMELEE_FILL` changes it).
-3. **Co-op more enemies** (PC hosts "Scene 5 (Co-op)", 1-2 Macs join): when the gang attacks, each enemy brings one extra car of
-   the same kind per joiner, appearing right behind it. Alone (no joiner) Scene 5 must play exactly as before.
-4. **4 players** (PC + laptop + Andrew + Michael) in Hope Springs (4 AI): everyone in, 1 AI car left.
-5. Anything wrong on one machine: its rollback is one command (record section 8: `rollback-pc.ps1` in the pack folder on the PC;
-   `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "<game folder>"` on a Mac) - but roll back every machine together, or
-   the co-op / AI arenas stop matching.
+0. **Deck** (it slept through the whole run): wake it (Steam button), then on the PC in Git Bash
+   `bash /c/Users/james/i76-uncap-lab/builds/mp-pack-20261020-overnight/deploy/deck/DECK-DEPLOY.sh` (or the newer pack's Deck
+   step if section 6 of the record names one). Then let the Deck join one Suburbia game: it was never tested today.
+1. **Feel of AI fill**: PC hosts "Hope Springs (4 AI)"; with 2 / 3 / 4 of you there are 3 / 2 / 1 computer cars. Too many, too few?
+   (`I76_AIMELEE_FILL` changes the total; now 5 combatants.)
+2. **Feel of the co-op extras**: "Scene 5 (Co-op)" with 1-3 joiners: each attacking enemy brings one extra car per joiner.
+3. **Kill credit**: shoot an AI car dead as a JOINER (not the host) and check that every screen shows "... was destroyed by
+   <you>" and your score. Nobody could measure it this morning (no remote aiming).
+4. **Team play** (item 6 below).
+5. On a Mac: after MULTI MELEE > HOST / JOIN click **IPX** (the shortcut only works on Windows for now). To leave a game: Esc >
+   Abort Mission > Abort Mission > Yes.
 
-Decisions: AI fill count (5 combatants for "(4 AI)" now, or 4 = the title's number with you counted in); whether copies should
-also come for enemies that never attack; internet play stays direct IP / ZeroTier (IPXWrapper's DOSBox mode does not work with I'76).
 6. **Teams** (teams lane; records/MP-TEAMS-2026-10-20.md; needs the next pack, proxy 31efcf7a): PC hosts "Hope Springs (4 AI)"
    with **TEAM PLAY** ticked; everyone picks a team in the pop-up (not Men In Black: that is the AI's team). Expect: the AI go
    for other teams only; when someone quits, the AI that comes back plays on HIS team (it hunts the others, not his mates);
