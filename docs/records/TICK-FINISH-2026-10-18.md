@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-19 evening (s.17): new candidate STRLKUP-tick19f-av 2eb345d1 (main d664f91: tick19e + the instant-melee fix + the owner's tick19e playtest fixes + the driver's wide menu ('aw') + terrain A 96 / B 24), GATED: PLAY-TICK all rows pass (row 4 after a gate-harness fix: its clicks assumed the 4:3 picture), PLAY-TICK-42 8 / 0, PLAY-TICK-66 8 / 0, control 6 / 0, instant-melee rows 3 / 3. Under the tick, each with its own switch: sign posts knocked off by the sweep play their hit sound (0 -> 33 of 33), no camera stutter when a key is pressed in an outside cutscene (19 of 44 -> 0 of 24 stutter frames at an early tick), the death camera and the sky at the 1997 rate (240 -> 192 deg / s and 0.030 -> 0.024 / s, 1997 192 / 0.024; the driver 160 / 0.020). Music: no dropped cue (12 boots; the silences are the data-track missions and the retail run-end gap). Tracers: no double drawing; the tick's every-frame streak is a look difference. Installed in game-tick with PLAY-TICK-33 / -42 / -66; the LAN AI arena under the wide menu was not tested. s.18 (ed5c305) is not in this build.**
+
 **Update 2026-10-19 (s.14): new candidate STRLKUP-tick19e a08577c4, GATED 21 / 0 / 2, 8 / 0, 6 / 0 (this covers tick19d too). Under the tick, four per-pass systems now run at the 1997 rate per second, each with its own switch (I76_SIM_TICK_{HAZARD,SCRAPE,WRECK,RADAR}_FACTOR). Measured, n 3 per arm: dropper / oil contact per round 120.5 /s at 1997 against tick33 150.5 -> 120.4 and tick66 75.5 -> 120.9; the wreck blast roll 24.1 /s against 30.1 -> 23.1 / 23.9. The sustained-scrape scaling is verified per application but its rate was not resolved. The radar-missile turn is from the code only. The flame outliers are stock: the flame kill roll on a destroyed component, plus a health-lost measure that books the wreck. T06 strip 54 / 54 unchanged.**
 
 **Update 2026-10-19 (s.12): new candidate STRLKUP-tick19d 88970903, NOT gated yet (the owner was at the PC; headless only). Flame damage under the tick is x 2.8 by default (I76_SIM_TICK_FLAME_DMG): a T05 car burns to death 10.9 s after first contact under tick33 and tick66, 1997 20 fps 11.2 s (s.11's "~25 / ~40 s" were mission times; n 6 / 6). The T05 bars burn again with I76_BREAKABLE_BOX=4 (I76_BREAKABLE_BOX_FLAME, default on: the flame sees the bars' stock sphere; 94 % of tests, rams 19 / 30 vs 20 / 30, signs unchanged): the flat box missed because the flame tests it with a pad of 0 and the streams pass 1-2.7 m above it, not because of an inside-start rejection. On a bar the tick now deals ~2 x the 1997 rate (the car-calibrated factor does not fit the bar). T06 strip 54 / 54 unchanged. Promotion 18 (the driver) has neither fix.**
@@ -1451,3 +1453,281 @@ pointer mode it ran with.
 2. MULTI MELEE > HOST: before BROADCAST, check that the title at the top of the form reads "Hope Springs (4 AI)". If clicking the list
    row does not change it, the problem is the pointer, not the AI.
 3. T05: whether two helicopters are wrong. The 1997 mission places two; say if retail shows only one at the same place in the mission.
+
+## 17. The owner's playtest of tick19e (PLAY-TICK 33): sign sound, music, cutscene camera, death camera, sky, tracers; tick19f-av (2026-10-19 evening, tick-av lane)
+
+The owner (verbatim): "about half the time it seems that the sign running over sound does not play when it gets hit (they do always get
+hit and fall though)" / "when the camera is outside the car on cutscenes and you press w to accelerate it makes the video stutter a bit,
+not inside, not sure why" / "music doesn't seem to play consistently" / "feels like maybe the death camera is rotating too fast or no?" /
+"the sky speed is wrong on tick" / "the tracers seem wider/thicker/denser than they were before maybe 2x somehow".
+
+| owner note | cause | fix (switch, default on, under the tick only) | measured (headless T05 unless stated) |
+|---|---|---|---|
+| sign sound missing | the post-hit sound is the ENGINE's contact sound (physics_CollideBodyPair: other body class 4 -> `vnvco3.wav` on the car, 0x434e5c..0x434ebc), played before the contact's damage; a post knocked off by `I76_BREAKABLE_BOX`'s sweep had no engine contact, so it fell silently | `I76_SIM_TICK_SIGN_SOUND`: the sweep's knock-off plays that sound on the car (sound_PlayOnObject 0x4231f0) | sweep knock-offs / sounds: old tick33 33 / **0**; fixed tick33 33 / **33** (n 3 + 3); 1997 every knock-off had its sound (2 / 2) |
+| music | no tick effect: every cue requested was started in every arm; the silences come from the rules | none (proxy unchanged) | T01 / T05, stock 24 + retail rules, tick33, driver preset, n 2 each: 1 cue per boot, started in 31-172 ms; the owner's own game-tick log: 1 mission with run 1..14 = the data track, silent by design |
+| cutscene camera stutter on W | an early tick (key press) restarts the SCRIPT camera's blend from the older tick view while the objects restart from the pose about to be drawn: the camera jumps ahead, then crawls | `I76_SIM_TICK_EARLY_CAM`: the script camera's early segment starts from the view about to be drawn | stutter frames within 3 frames of an early tick: tick33 old **19 of 44**, fixed **0 of 24**; tick66 19 of 29 -> 1 of 20 (n 3-4) |
+| death camera too fast | the orbit step (8 x 1 deg per call) was scaled to the TICK's rate (30 / s at 33.3 ms, 15 at 66.7) | `I76_SIM_TICK_ORBIT_REF`: scaled to `I76_SIM_TICK_REF_HZ` (24 / s) | deg / s: 1997 192.0, tick33 old **240.0** -> **192.0**, tick66 old 120.0 -> 192.0, driver 160.0 (n 3 / 3 / 3 / 1 / 3 / 1) |
+| sky speed | the cloud scroll step was scaled to the tick's rate as well | `I76_SIM_TICK_SKY_REF`: 24 / s | cloud u / s (cutscene, cockpit): 1997 0.0240 / 0.0480, tick33 old **0.0300 / 0.0599** -> **0.0240 / 0.0480**, tick66 old 0.0150 / 0.0300 -> 0.0240 / 0.0480, driver 0.0200 / 0.0400 (n 3 / 3 / 3 / 1 / 3 / 1) |
+| tracers denser | a LOOK difference, not a bug: each tracer is drawn once per frame (no double draw), the same constant-width line, but at 120 fps every frame redraws a streak 1 tick long, so each stretch of the path is lit ~4 frames running; 1997 and the driver draw short dashes with gaps | none | main-pass calls per frame 1 / 1 in every boot; records drawn per frame 1.0-1.5; segment 50cal 1997 4.2 m, tick33 3.3 m, tick66 10.4 m, driver 1.2 m (n 3 / 3 / 1 / 1) |
+
+**New candidate `STRLKUP-tick19f-av.dll` md5 `2eb345d15c10430e1435c4e7cb596937`**
+- Source: i76-everywhere `d664f91` (main), built with lab `builds\tick-av-20261019\make.ps1 -Rev d664f91 -Cand tick19f-av` (the MSVC recipe of s.1).
+  It carries the crash lane's tick19f fix (47a2b3a, s.16), `I76_SHM_SUFFIX` (4c1b146), `I76_CURSOR_MAP_DGV=aw` (1ca6ba0),
+  `I76_TERRAIN_LOD_A` / `_B` (d664f91) and this section's commits e9d8079, 7f3060d, aa86ec3. (A first build from 3f36d2d, 309bc2b7,
+  was superseded before staging.) Not in it: the flame-factor / lip-clip lane (s.18, ed5c305), which reached main after the build.
+- A second build, `run2\`, is section-identical (pecmp SAME): deterministic.
+- Gate, install and staging: 17.9.
+
+Lab only. The daily driver, the golden copy, the Downloads portable and the PC LAN copy were only read (the driver's presets, by
+make-presets.ps1's md5 check). The owner was at the PC for part of the lane (his daily driver ran): every measurement boot was headless.
+
+### 17.1 Harness
+
+- Lab copies of this lane: `game-av` (a copy of game-tfx = game-wst: i76.exe 6319abf7, null renderers), `game-samecar-av` (a copy of
+  game-samecar, the T06 strip), `game-tick-av` (a copy of game-tick; not used for results: dgVoodoo drew no frame on the private desktop).
+- `tools\tick-av\av-run.ps1` one headless boot on the private desktop **`I76Lab-av`** (other lanes use I76Lab-wst), per-pid mute;
+  `av-queue.ps1` runs a list; `av_live.py` stages (idle, real key messages, self-destruct); `av_tab.py` makes the tables.
+- Lab twins `Strlkup-av1/av2/av3-lab.dll` (the source + the drive block; av3 = 3f36d2d). Their `Local\` blocks carry the tag `AV`
+  (`builds\tick-av-20261019\av-names.py`, lab twin only) and the drivers run through `tools\tick-av\av_shim.py`, which maps the names.
+  **Why:** four other lanes were booting headless games at the same time on the same block names and desktop. While they did,
+  ~15 % of this lane's boots lost their game a few seconds in with no fault event and no proxy CRASH line (cause not found); after the
+  isolation the loss stopped in the sign / guns / camera arms, and the queue retries a lost boot (`_lost\` keeps every one of them).
+- Instrument `I76_AV_LOG=<path>` (simtick.c, lab, off by default; e9d8079 / 7f3060d): one line per drawn frame (camera eye and drawn
+  forward row, orbit yaw 0x4c291c, camera callback, cloud u / v 0x507cd8 / 0x507c50, tracer records per pass with segment and
+  cross-section, class-4 knock-offs via the class-table slot 0x4f7770, the engine's collision sounds at 0x434ebc, the sweep's sign
+  sounds, early-tick and pending-key counters, the player's drawn position, the T05 autopilot flag) and music cue events at the exe's
+  own entries (PlayCdTrack 0x423330, StopCdMusic 0x4233d0, pause 0x4234a0, unpause 0x4234e0). `I76_AV_VIEW=<sim s>:<view>` sets a
+  camera view.
+- Arms: **1997** = `e24`, the stock loop at 24 fps on a 1 ms tick (FRAME-BOUND-SYSTEMS' reference); `e24r` = e24 + the tick presets'
+  music keys; **tick33 / tick66** = game-tick's `tick19-33` / `tick19-66` on the lab twin (every s.17 switch at its default);
+  **old** = the same with the s.17 switches off (= tick19e); **driver** = game-tick's `p18-best-wide-balanced` (promotion 18).
+- Captures: lab `captures\tick-av-20261019` (gitignored). Boots: 88 kept, 23 set aside in `_lost\` (lost games, the pre-isolation
+  runs with a short log, the real-renderer copy, the first T06 tries without telemetry).
+
+### 17.2 Sign sound ("about half the time ... does not play")
+
+- **Where the sound comes from (static).** No sign sound is played by the knock-off itself (slot 9 0x46f9a0 calls no sound). It is
+  the contact sound of physics_CollideBodyPair 0x434bb0: when the other body is not a vehicle and its class is 4 (breakables), it plays
+  `vnvco3.wav` (0x4f1578) on the car through sound_PlayOnObject 0x4231f0 (0x434e5c..0x434ebc), before 0x461f70 applies the contact.
+  So a post makes its sound only when the engine finds a contact with it.
+- `I76_BREAKABLE_BOX=4` (tick presets and promotion 18) knocks off every post the car's box sweeps through, also when the engine
+  found no contact. Promotion 18 gets most posts through engine contacts with `I76_COLL_WINDOW`, which needs a fixed step, so the tick
+  presets cannot carry it (s.2). Under the tick the sweep did the knocking, silently.
+- **Measured** (T05 Texas 13 / US 380 posts, 11 rams per boot at 20 m/s, wst-run's `signs` rams; knock-offs counted at the class-4
+  slot, sounds at 0x434ebc and at the new call, voice starts by the sound census):
+
+| arm | boots | knock-offs | by engine contact / by the sweep | engine contact sounds (vnvco3) | sweep sounds | vnvco3 voice starts logged |
+|---|---|---|---|---|---|---|
+| 1997 (e24, no breakable box) | 3 | 1, 1, 0 | engine 2 / 0 | 2 | - | 2 |
+| tick33 old | 3 | 11, 11, 11 | 0 / 33 | 0 | 0 | **0** |
+| **tick33** | 3 | 11, 11, 12 | 0 / 33 | 0 | **33** | 30 |
+| tick66 | 1 | 11 | 1 / 10 | 1 | 10 | 10 |
+| driver (p18) | 1 | 11 | 0 / 11 | 0 | (switch is tick-only) | 0 |
+
+  - The census writes its line at most every 5 s; in each tick33 boot the last post fell 1.6 s before the end, after the last line,
+    so 30 of 33 is the logging lag (every logged start matched a knock-off).
+  - The stock loop at 24 fps knocks over almost no post at 20 m/s (the sign bug the box switch fixed); the posts it does knock over
+    come with the sound, which is the 1997 behaviour the switch restores.
+  - In this harness the driver's posts all fell by the sweep, silent too (n 1). The owner's "half the time" on the tick against the
+    driver probably reflects his real driving (engine contacts with COLL_WINDOW in the driver); not measured. The switch acts under
+    the tick only, as briefed; the same call would cover promotion 18's sweep if wanted.
+- **Fix:** `I76_SIM_TICK_SIGN_SOUND` (simtick.c `st_sign_sound`, called from strlkproxy.c `sign_pend_run` for a sweep entry and
+  `sign_sweep`'s immediate score): the sweep's knock-off plays `vnvco3.wav` on the car, as the engine would at a contact. 0 = silent.
+
+### 17.3 Music ("doesn't seem to play consistently")
+
+- **Cue sources (static):** in a mission the exe asks for music only at the mission start (PlayCdTrack(-1, 0) at 0x4037e1), on
+  Replay (0x40454f), in the Options screen (0x49514b / 0x49529a) and from its watchdog (0x423400, called from the per-display-frame
+  sound update 0x421407). No mission-script music action exists in this exe. Pause / unpause come from the Esc menu, movies and
+  activation. None of these is in the gated sim block.
+- **Measured** (`idle` boots, 150 s wall from launch, I76MUSIC_LOG + the instrument's cue events; same sim window per mission):
+
+| mission | arm | boots | cues (exe entries) | track starts | started after the cue |
+|---|---|---|---|---|---|
+| T01 (run 2..14) | 1997 + retail rules (e24r) | 2 | 1, 1 (mission start) | track 2 | 31 / 47 ms |
+| T01 | tick33 (retail + resume) | 2 | 1, 1 | track 2 | 47 / 125 ms |
+| T01 | driver (non-retail rules) | 2 | 1, 1 | track 2 | 31 / 94 ms |
+| T05 (run 6..14) | e24r | 2 | 1, 1 | 6, then 7 at +145.5 / +146.0 s (gapless) | 172 / 62 ms |
+| T05 | tick33 | 2 | 1, 1 | 6, then 7 at +145.5 s | 31 / 47 ms |
+| T05 | driver | 2 | 1, 1 | 6 (7 not reached in the window: no gapless, the next song waits for the exe's 60 s poll) | 31 / 32 ms |
+
+  0 cues requested and not started in 12 boots (79-152 s of sim each).
+- **The owner's own sessions** (game-tick `mciproxy.log`, read only; the 6 sessions after the s.14 install that are not gate / LAN
+  runs): every cue was started, except one mission whose run starts at **track 1, the data track**: the proxy plays it as silence
+  ("track 1 is the DATA track - silence, as the original disc gave"). Missions with WRLD 1: M06, S02, S06, and S01 in miss16
+  (MUSIC-TRACK-MAP.md). That is the same under the driver.
+- **So the silences are rules, not drops:** the data-track missions above; under the retail rules the end of a mission's run is
+  followed by 0-60 s of silence until the exe's 60 s poll starts run 2..14 (MUSIC-RETAIL-INTENT s.1), where the driver's rules have
+  that gap between every song instead. No fix: the tick does not change music.
+
+### 17.4 Outside camera stutter when W is pressed in a cutscene
+
+- **Cause (simtick.c st_render_wrap, read):** a script (FSM) camera is set inside the sim, so the tick draws it blended between its
+  last two tick views. A key press runs an early tick (`I76_SIM_TICK_INPUT`). On that frame the objects' new segment starts from the
+  pose they were about to be drawn at (st_early_from), but the camera's blend restarted at 0 from the OLDER view: the camera jumped
+  ahead by the rest of the old tick and then crawled over the longer early segment while the car moved smoothly. The cockpit and
+  chase views are camera modes computed every display frame from the drawn poses, which is why "not inside".
+- **Measured:** T05's opening is a script-camera cutscene (the AI drives the player's car for ~8 s, 980+ blended frames per boot).
+  W key messages through the game's own window procedure (PostMessage WM_KEYDOWN / WM_KEYUP, scan code 0x11, 0.45 s down / 0.55 s
+  up from 3 s; the early tick sees the keyboard's own bits). A "stutter frame" = the eye's speed off the centred 9-frame median by
+  more than 35 %.
+
+| arm | boots | early ticks in the cutscene | stutter frames / s | stutter frames within 3 frames of an early tick |
+|---|---|---|---|---|
+| 1997 (e24, 24 fps) | 3 | - | 0.36, 0.95, 0.59 | - |
+| tick33 old | 3 | 9, 6, 8 | 1.76, 1.66, 1.77 | **19 of 44** |
+| **tick33** | 4 | 5, 6, 6, 8 | 0.47, 0.70, 0.70, 0.93 | **0 of 24** |
+| tick66 old | 3 | 6, 5, 10 | 0.84, 1.07, 1.56 | 19 of 29 |
+| **tick66** | 3 | 10, 9, 6 | 0.71, 0.60, 1.07 | 1 of 20 |
+
+- **Chase view** (`I76_AV_VIEW` PRESET_VIEW_3 after the hand-over, the same W taps; ~2 000 chase frames per boot): stutter frames
+  within 3 frames of an early tick 1 of 30, 1 of 18, 0 of 25 (tick33, n 3) and 1 of 16 (old, n 1): the chase camera already follows
+  the drawn car. 1997 chase 0.04 / s (n 3). **Inside (cockpit) view:** the fix does not act there (no blended script camera in any cockpit
+  frame); stutter frames within 3 frames of an early tick 5 of 56 (tick33, n 4) vs 0 of 42 (old, n 3), overall 0.72-2.01 vs
+  0.91-2.28 per s: the cockpit eye carries the head sway, and this difference is inside the boots' spread.
+- **Fix:** `I76_SIM_TICK_EARLY_CAM` (simtick.c `st_early_cam_from`): on the early frame the camera this frame would have drawn is kept,
+  and the early segment blends from it to the new tick's view, as the objects do. 0 = the old blend.
+- **Pending key releases:** a second suspect (a pending release that the tick's input pass never clears would borrow an early tick on
+  every frame) was not seen: 0 frames with a pending release in 16 boots (~40 000 frames). Its guard `I76_SIM_TICK_PEND_ONCE` stays as
+  a switch, **default off** (aa86ec3).
+
+### 17.5 Death camera rotation
+
+- **Cause:** the player's death (entity_Wreck 0x466180 -> 0x46638e..0x4663ab) sets view 0xfefe, orbit A 0x405b90, with
+  track_yaw_delta 8: yaw += 8 x [0x4bc528] (-1 deg) per call (0x405c1c). The tick's cosmetic patch scaled that constant by
+  display dt / T, i.e. to the TICK's per-second rate: 8 x 30 = 240 deg / s at 33.3 ms, 8 x 15 = 120 at 66.7 ms. 1997 at 24 fps: 192.
+- **Measured** (T05, self-destruct 2 s after the hand-over: input_self_destruct 0x5367f9 = 1, read back; the orbit yaw 0x4c291c per
+  drawn frame over the ~6 s orbit, all of it in gameplay frames):
+
+| arm | boots | deg / s (orbit yaw) | deg / s (drawn forward row) |
+|---|---|---|---|
+| 1997 (e24) | 3 | **192.0, 192.0, 192.0** | 212.1, 184.1, 164.2 |
+| tick33 old | 3 | **240.0, 240.0, 240.0** | 216.4, 234.0, 254.8 |
+| **tick33** | 3 | **192.0, 192.0, 192.0** | 186.3, 189.4, 208.6 |
+| tick66 old | 1 | 120.0 | 143.6 |
+| **tick66** | 3 | 192.0, 192.0, 192.0 | 188.1, 179.6, 185.7 |
+| driver (p18) | 1 | 160.0 (its 20 Hz grid) | 125.0 |
+
+  The forward-row figure moves with the wreck's own motion; the orbit variable is the camera's angle itself.
+- **Fix:** `I76_SIM_TICK_ORBIT_REF`: orbit A's two sites (0x405bd0 pitch, 0x405c1c yaw) get their own constant, display dt x
+  `I76_SIM_TICK_REF_HZ` (24 / s), also on frames outside gameplay. The free-look keys (orbit B 0x4061e7 / 0x406233) and the map zoom
+  keep the tick's rate (not reported). Against the driver the death orbit is now 1.2 x (192 vs 160): the driver's 20 Hz reference.
+
+### 17.6 Sky speed
+
+- **Cause:** the cloud scroll (u -= 1 / (1001 - s), v alike, per call of renderer_DrawClouds 0x405200) is the same kind of per-call
+  constant; the cosmetic patch scaled it to the tick's rate. In the cockpit the rear mirror draws the dome a second time per frame
+  (0x4459a1), so the cockpit rate is twice the cutscene rate in every arm.
+- **Measured** (cloud u per wall second during gameplay, by camera; n 3 per arm unless stated):
+
+| arm | cutscene (script camera) | cockpit (main + mirror) | death orbit |
+|---|---|---|---|
+| 1997 (e24) | **0.02400** | **0.04797** | - |
+| tick33 old | 0.03001 (x 1.25) | 0.05995 | - |
+| **tick33** | **0.02400** | **0.04795** | - |
+| tick66 old (n 1) | 0.01501 (x 0.63) | 0.02998 | - |
+| **tick66** | 0.0240 | 0.0480 | 0.0240 |
+| driver (p18, n 1) | 0.0200 | 0.0400 | 0.0200 |
+
+- **Fix:** `I76_SIM_TICK_SKY_REF`: the two cloud sites scaled by display dt x 24. The sky now moves at the 1997 rate; it is 1.2 x the
+  driver's (the driver uses a 20 / s reference). `I76_SIM_TICK_REF_HZ=20` would match the driver, but it also moves the four s.14
+  factors.
+
+### 17.7 Tracers ("wider / thicker / denser ... maybe 2x")
+
+- **No double drawing, no width change (measured).** In every boot of every arm the main pass (renderer_QueueTracers 0x442480) runs
+  exactly once per drawn frame, and each live round's record is drawn once by it (1.0-1.5 records per frame). The mirror pass draws
+  only into the mirror (0.6 calls per frame = the cockpit share). The 50cal's tracer is type 2: a line from the older point drawn 35 %
+  of the way to the newer one (0x4425b8..), so it has no cross-section and the same line every frame; the quad types take their
+  cross-section from constant offsets x a per-type size (0x441f48), not from the frame rate.
+- **Segment (older -> newer point), 50cal, T05 guns at a parked car 12 m away:** 1997 4.23 / 4.26 / 8.45 m (n 3), tick33 3.23 / 3.27 /
+  3.27 m (n 3), tick66 10.37 m (n 1), driver 1.23 m (n 1). The drawn line is 35 % of that: 1.5 m in 1997, 1.1 m at tick33, 3.6 m at
+  tick66, 0.4 m under the driver. (FRAME-BOUND-SYSTEMS row 22 quotes 8.3 / 6.7 m for a 200 m/s round; this 50cal flies ~100 m/s.)
+- **"Denser" is a look difference, not a bug.** 1997 (24 fps) and the driver (one 120 fps step per frame) draw a short dash that
+  moves its own length or more each frame, leaving gaps (the line covers ~35 % of the path per frame). The tick draws, on every one of
+  its 4 display frames per tick, a line 35 % of one TICK of travel long (1.1 m), whose head moves a quarter of a tick per frame
+  (0.8 m): each stretch of the path is lit on ~1.4 frames running, against ~0.35 in 1997 (a 1.5 m dash every 4.2 m) and under the
+  driver (0.4 m every 1.2 m) - about 4 x the coverage at tick33, ~4.4 frames running at tick66. That reads as a denser,
+  brighter, thicker streak. The tracer fix of s.10.2 chose the tick-long segment (the stock streak at the tick's rate). A display-frame
+  segment would give the driver's look; not built (owner's call).
+
+### 17.8 T06 strip (game-samecar-av, tick33 preset, lab twin av3 = 3f36d2d, n 3)
+
+- The 54 rows tick19e's strip had keep their verdict (0 changes). This run also produced the 8 rows of the 34 m/s ramp jump, which
+  tick19e's strip did not have: gate PASS 25, FAIL 13; watch ok 11, OUT 1; INFO 12. Lab `emu\results\tick-fix-20261018\tick19f-av-t06-vs-p166.md`.
+- Run because the camera blend changed; nothing in the sim block changed.
+
+### 17.9 Build, install, staging, gate
+
+- **Installed in game-tick** (read back 2eb345d1). tick19e is kept beside it as `STRLKUP.DLL.a08577c4-pre-19f` (the folder held tick19e: the crash
+  lane's tick19f had been taken out again after its voided gate). Presets regenerated by `make-presets.ps1 -OwnerBest` in game-tick and the twin
+  game-dd-20261003: tick19-33 57d13cd5, tick19-42 231f1534, tick19-66 bd9e6673 (the generator now writes `I76_CURSOR_MAP_DGV='aw'`,
+  `I76_TERRAIN_LOD_A='96'`, `I76_TERRAIN_LOD_B='24'`; a diff against the previous files is exactly those three lines; the previous presets are in
+  `presets\_pre-tick19f-av\`). tick19-33-lod32 and PLAY-TICK-LOD32.bat moved to `_superseded-lod32\` in game-tick and the twin. Launchers
+  PLAY-TICK.bat = PLAY-TICK-33.bat (b4ce0baf), PLAY-TICK-42.bat (ab2416a6), PLAY-TICK-66.bat (4ecc09aa) copy `dgVoodoo.wide.conf` (dccd379a);
+  the old ones are kept as `*.bat.pre-tick19f-av`. game-tick's dgVoodoo.conf = dccd379a.
+- **Gate** (lab game-tick, physical console, owner away, coordinator's GATE GO; `run-gate.ps1 -Which 33,42,66,18 -NoHostMute -TwinDll` (the
+  sp-fix rows' lab twin built from d664f91, 696ebff8); I76_SHM_SUFFIX=game-tick; per-pid mute; 60 s with no foreign i76 before each start):
+
+| launcher | rows | result | run |
+|---|---|---|---|
+| PLAY-TICK.bat (tick19-33) | all | 19 PASS, **2 FAIL (row 4)**, 2 INFO; row 4 re-run after the harness fix below: **12 PASS 0 FAIL** | `autotest\runs\gate\20261019-203325`, `-213305` |
+| PLAY-TICK-42.bat (tick19-42) | 2 3 5 6 | **8 PASS 0 FAIL** | `-210715` |
+| PLAY-TICK-66.bat (tick19-66) | 2 3 5 6 | **8 PASS 0 FAIL** | `-211553` |
+| PLAY-P18-BALANCED.bat (control) | 3 6 | **6 PASS 0 FAIL** | `-212438` |
+| sp-fix rows (headless, game-sp) | M1a instant melee Scene 1 (Co-op) 30 s, M1b Tombstone 30 s, M2 Tombstone 3 AI 45 s | **3 PASS** | `queue-tickgaps\gate-20261019-203324.log` |
+
+  - Proxy log, every tick boot (10 + 7 + 7): tick ON, `terrain-lod: split A x96.00, height-error B x24.00`, the aw cursor map, the s.17 line;
+    0 NOT applied, 0 CRASH (tg-gate.ps1 now prints this check).
+  - **Row 4 (save screen) under aw - found and fixed in the HARNESS, not the game.** The first run's YES wrote save003.cmp (slot 3) instead of
+    the scratch bookmark (slot 18), and "the shell mouse follows the hand" read (304,301) for (300,300). gate-folder.ps1's Place-Ui knew only the
+    4:3 picture (hand = 760 + 3 x UI x on 3440 x 1440), but aw with the wide conf maps the shell over the 16:10 picture (568 + 3.6 x UI x), so
+    the gate's hand was up to ~19 UI px off and its row click picked row 3. The gate's own state restore put save003.cmp back (row S
+    byte-identical, 36 files). Fix: Place-Ui tries a 4th candidate, the 16:10 picture, read back by the shell's own mouse like the others (used
+    only when the first three fail). Re-run: every click read back within 1 px, SAVE x2 -> slot = owSlot = 18, NO writes nothing, YES writes
+    save018.cmp and savegame.dir only, the modal arrow over the prompt, savegame.dir exact, S byte-identical. A player is not affected: under
+    aw the pencil is drawn where the shell reads.
+  - **Second harness bug, found in row 4:** gate-folder.ps1 `Run-Child` waits for `cmd /c`'s output pipe, and the per-pid mute watcher a child
+    starts (start-mute-watch.ps1 -> Start-Process) inherits that handle and lives until the game exits, so the gate hung in the garage (21 min).
+    For this gate `tools\tick-av\gate-watch-reaper.ps1` ended such orphaned watchers of game-tick games (16 times over the gate, the row-4 re-run and the pointer / LAN runs); the game stays muted by its
+    own I76_MUTE=1 and tg-gate clears game-tick's stored mute at its end. Not fixed in start-mute-watch.ps1 (other lanes' infrastructure).
+  - **'aw' pointer rows:** main menu (measure-cursor.ps1 -Aspect 16:10 on game-tick through PLAY-i76.ps1, presets tick19-33 and tick19-42, n 1
+    each): where the shell lands minus the drawn pencil within 4 px at the 7 picture points (the two runs identical to the pixel; outside the
+    picture the pointer clamps to its edge, as in CURSOR-FIX-ON-18 s.6); save screen and its modal prompt: row 4 above; Esc menu: row 5 HIT
+    where drawn on 33, 42 and 66 (conf frame (2326,1338), read back). The garage was reached by the gate's bookmark route (row 2, 3 of 3) and
+    row 4 (2 of 2); a separate garage reminder popup was not met by any row.
+- **LAN console check** (tools\sp-fix\lan-console.sh under with-lock, game-tick through PLAY-TICK.bat + lab copy game-lanmerge-b, I76_MUTE):
+  host + joiner n 2 (both games list both players at the same places), 3 lone hosts, 0 CRASH. Every run hosted **arena index 0** (a stock
+  arena): the probe's clicks also assume the 4:3 picture, so the list never scrolled to Hope Springs (4 AI) or Tombstone. **The AI arena
+  under aw was not tested** (owner check).
+- **Candidate folder** re-staged: tick19e's set to `_superseded-tick19e\`; STRLKUP.DLL 2eb345d1, the three presets, PLAY-TICK / -33 / -42 / -66
+  .bat; dgVoodoo.tick.conf, PLAY-TICK-LOD32.bat and tick19-33-lod32 removed; README (files, gate, row text, rollback, owner checks), MD5SUMS
+  65 files.
+
+### 17.10 Not done, and why
+
+- **Music** was not listened to. The arms ran on game-av (music level 6; the owner's copy has 7, both above the retail gate 2); the
+  real-renderer copy drew no frame on the private desktop (its 3 boots are in `_lost\real`).
+- **Signs:** the stock loop knocks over almost no post at 20 m/s, so the 1997 row has 2 knock-offs; the driver's engine contacts in
+  real driving (COLL_WINDOW) were not reproduced (its 11 harness knock-offs were all by the sweep). The switch is tick-only.
+- **Lost boots:** ~15 % of the boots before the isolation lost their game a few seconds in with no fault and no proxy CRASH line; the
+  cause was not found (the other lanes' tools stop only their own pids). None were used.
+- The camera stutter metric is a proxy for what the eye sees; not judged by eye. The tracer look was not seen either.
+- The flame-factor / lip-clip lane (s.18, ed5c305) landed in main after this build: not in tick19f-av (pending for the next build).
+- **LAN AI arena under aw** (Hope Springs (4 AI)): the LAN probe's arena pick assumes the 4:3 picture; only arena index 0 was hosted.
+- A garage reminder popup was not met by any gate row (the garage itself, the save screen and its modal prompt, and the Esc menu were).
+- The T06 strip ran on the lab twin of 3f36d2d; d664f91 adds only the terrain A / B switches (render detail), so it was not repeated.
+- The two harness bugs (Place-Ui's 4:3-only candidates in the LAN probe, the mute watcher's inherited pipe in start-mute-watch.ps1) are fixed
+  only where this lane needed it (gate-folder.ps1 Place-Ui) or worked around (the reaper, this gate only).
+
+### 17.11 Still needs the owner's eyes and ears
+
+1. Sign posts on PLAY-TICK: the hit sound every time.
+2. A cutscene (T05's opening): press and release W: no stutter. Inside and chase views as before.
+3. Death camera: should turn at the 1997 rate (192 deg / s; the driver turns at 160).
+4. Sky: 1997's speed (the driver's sky is 0.8 x that).
+5. Tracers: if the tick's streak still reads as too dense, say so: a one-display-frame streak (the driver's look) is a small change.
+6. Music: the silent missions (M06, S02, S06, S01) are the original disc's data track; after a run ends, retail waits up to 60 s.
+7. The driver's wide menu on PLAY-TICK ('aw'): pointer on the pencil in the menus, the garage, the save screen (save over a bookmark you do not
+   need first) and the Esc menu; and a LAN AI arena (Hope Springs (4 AI)) hosted from PLAY-TICK, which the lab could not reach (17.9).
+8. Which tick PLAY-TICK should be: 33, 42 or 66 (PLAY-TICK-33 / -42 / -66.bat).
