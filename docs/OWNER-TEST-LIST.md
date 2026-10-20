@@ -1543,6 +1543,20 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
 
 ### D. Daily driver, `PLAY.bat`: controls 18 keys in a mission if not done (J K L ; hardpoints, O radar camera, grey arrows orbit) | |
 
+### Rulings given 2026-10-20 evening (console play-test of the release candidate)
+- **Tick default = 41.667 ms** ("the tick length where the code scaling factors are exactly 1 seems like the 'true' tick
+  length to me and we should go with that unless it is absolutely non-performant"). PLAY-TICK.bat becomes the 41.667
+  launcher in the next staged candidate set (with the terrain / fps and jump fixes below), not by hand in the folder.
+- **Terrain: change LESS, not more detail.** The x96 split (A) was the wrong direction: the complaint is terrain that changes
+  while driving (steep edges and far things most). The RC-draw lane re-ran with churn-while-driving as the metric and fps
+  over the whole T05 route (the owner sees 99 on all of T05; the gate's trip row drives another route and read 120).
+- **Jump:** 33 ms noses down too much and misses the T05 jump; 44 makes it; the jump lane measures 33 / 41.667 / 44 / 47
+  against promotion 18 and the 1997 emulator and names the per-tick quantity; 41.667 must jump as 1997 did.
+- **Mac / laptop:** converge to ONE app per Mac where everything works (sound, hosting with AI cars, Esc menu by mouse and
+  keyboard); old Mac versions and helper folders deleted (one tarball kept per machine); no Mac daily driver to protect.
+- **Launchers:** one PLAY.bat for single player and LAN at promotion 19; `--legacy-multiplayer` flag (I76_MP_MENU=0) added.
+- **Debug tool:** DEBUG.bat (TRAINER.bat a shim), full-state teleport (pose + velocities), ships in the daily driver.
+
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
 respawn with scores kept, AI names only in the kill message, -500 for a death by an AI. 3. Scenarios: keep "host death reloads the scenario"
