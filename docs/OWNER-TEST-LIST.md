@@ -844,6 +844,10 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
   dead, but shouldn't they be respawned instead and the points tallied like they were players?" Ruling: no wave reload; dead
   AI respawn like humans, and AI kills / deaths / score are tallied and shown like players' (AI-MELEE-M1 decisions 4 and 5
   answered). A lane is building it (records/AI-MELEE-RESPAWN-2026-10-20.md).
+- **AI in every arena (same night):** "Instead of special levels for ai players, shouldn't there be ai cars for all player
+  slots not occupied by a human for all levels?" Ruling: yes. NO. DRIVERS sets the slots; humans take slots as they join;
+  every other slot is a computer car with a scoreboard row, in every melee arena; the "(2 / 4 / 6 AI)" entries go away;
+  a host switch keeps the stock behaviour. Same lane, phase 2.
 
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
