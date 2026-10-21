@@ -399,6 +399,36 @@ Run: `pair.py` (lab), N01, NO. DRIVERS 4, host leaves by the stock end-of-sessio
 The new host then runs the AI (orders, 'AT', respawn, kill credit) as a host from the start. Not measured: a third copy
 receiving the new host's hello (two lab copies only), a hard exit of the host (ANet's time-out path).
 
+### 0.5.7 Integration into the proxy (2026-10-21)
+
+Commit 4fbbba1: `strlkproxy.c` gains 5 lines and nothing else - the include of `nitro_mp.c` / `nitro_ai.c` (with
+`NMP_IN_PROXY`) after `mutesess.c`, `nmp_attach_shell()` in `hook_LoadLibraryA` for NITSHELL.DLL (Nitro only), and
+`apply_nitro_mp()` in `nitro_dllmain` (Nitro only; it installs the LoadLibraryA hook if no other switch did). Switches
+`I76_NITRO_MP` / `I76_NITRO_AI` (default on; README Nitro table). On Gold none of it is reached; on Nitro it is inert
+outside an ARENA+ session, and the shipped proxy cannot create one yet (the host-form boxes live in the lab instrument),
+so a shipped build carries the code dormant.
+
+Build **4d82427e** (MSVC /O2, the music-fix tree at 4fbbba1's content; lab `builds
+itro-mp-integ\`), base = HEAD before
+the integration built the same way, **0b17a8c8**. Smokes with the nitro-port lane's harness on this lane's own copies
+(`tools/nitro-mp/np-run-mp.ps1`, `gold-smoke-mp.ps1`, made from theirs by `mk_nprun.py`):
+- **Nitro**, P01 straight boot, n 2: "nitro-mp: ON", "nitro-ai: ON (all 12 sites)", "nitro: 11 sites patched, 0 refused",
+  nitshell hooks attached, P01 running with the player car at 20 s; crash log: only the usual first-chance 0xC0000096 at
+  0x49acb7 (the PIT read the game handles itself; every Nitro log has it, NITRO-PORT s.7).
+- **Gold**, t01 with the release-candidate tick19-42 preset, n 2: **the same 129-line set as the base, 0 CRASH lines**
+  (compare_logs.py "same line set", integ r2 + r3 against base r1 + r2). Integ r1 differed by one log line split in two by
+  two threads writing at once (the cursor-map thread's "2 cursor pointer(s) taken" line); a third run was taken.
+
+### 0.5.8 Item 7(d): lobby isolation - not run; ARENA+ is IPX / LAN-only for now
+
+No private ANet game server is reachable from the lab without an outbound change. The servers Nitro knows are GOG's
+`internet.lst` (Activision's, gone, plus stockholm.alink.fragzone.se) and the community's live lobby
+(911.alink.bz911.net, MULTIPLAYER.md). Testing on the live lobby would publish lab sessions (the stock-session control
+included) to the people who play there - the one thing the owner's ruling forbids. The code side is known (s.0.5.3:
+the lobby keeps session lists per species, a patched joiner needs a second subscription, `nmp_lobby_subscribe()` is a
+stub), so ARENA+ is IPX / LAN (and virtual-LAN) only until a private lobby server is set up or the community agrees to
+a test.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
