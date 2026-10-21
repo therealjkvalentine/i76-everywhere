@@ -115,15 +115,20 @@ def main():
                 "REM IPX through IPXWrapper (the three DLLs beside i76.exe). I76_MP_MENU=1: HOST / JOIN go straight\n"
                 "REM to IPX (2 = show only the IPX button, 0 = the stock MODEM / IPX / INTERNET / NULLMODEM row).\n"
                 "REM --legacy-multiplayer (also --legacy_multiplayer): the stock row for this launch (PLAY-i76.ps1 -LegacyMultiplayer\n"
-                "REM = I76_MP_MENU=0, whatever is set below; MENU-SOUND-POLISH-2026-10-20 item D).\n"
+                "REM = I76_MP_MENU=0, whatever is set below; MENU-SOUND-POLISH-2026-10-20 item D; it also keeps the 15 stock\n"
+                "REM arenas free of computer cars, I76_AIMELEE_ARENAS=0, so a stock joiner can play).\n"
+                "REM --ai-skill N: the computer cars' skill for this launch (the host's counts), 1 = best .. 5 = weakest,\n"
+                "REM 3 = default (PLAY-i76.ps1 -AiSkill = I76_AIMELEE_SKILL; docs/records/AI-MELEE-RESPAWN-2026-10-20.md).\n"
                 "setlocal\n"
                 "set \"HERE=%~dp0\"\n"
                 "set \"LEGACY=\"\n"
+                "set \"AISKILL=\"\n"
                 ":args\n"
                 "if \"%~1\"==\"\" goto :argsdone\n"
                 "if /i \"%~1\"==\"--legacy-multiplayer\" (set \"LEGACY= -LegacyMultiplayer\" & shift & goto :args)\n"
                 "if /i \"%~1\"==\"--legacy_multiplayer\" (set \"LEGACY= -LegacyMultiplayer\" & shift & goto :args)\n"
                 "if /i \"%~1\"==\"-LegacyMultiplayer\" (set \"LEGACY= -LegacyMultiplayer\" & shift & goto :args)\n"
+                "if /i \"%~1\"==\"--ai-skill\" (set \"AISKILL= -AiSkill %~2\" & shift & shift & goto :args)\n"
                 "shift\n"
                 "goto :args\n"
                 ":argsdone\n"
@@ -132,7 +137,7 @@ def main():
                 "set I76_MP_MENU=1\n"
                 "copy /y \"%HERE%dgVoodoo.wide.conf\" \"%HERE%dgVoodoo.conf\" >nul\n"
                 "start \"\" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "
-                "\"%HERE%PLAY-i76.ps1\" -GameDir \"%HERE%.\" -Exe i76.exe -Preset best-wide -LosslessScaling none%LEGACY%\n")
+                "\"%HERE%PLAY-i76.ps1\" -GameDir \"%HERE%.\" -Exe i76.exe -Preset best-wide -LosslessScaling none%LEGACY%%AISKILL%\n")
     lines = ["# Interstate '76 LAN pack - manifest", "",
              "Built by tools/mp-pack.py from `%s` (read-only). A machine's game folder = common + its platform part." % driver,
              ""]

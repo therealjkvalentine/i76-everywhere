@@ -110,7 +110,12 @@ param(
     # to their game can also play the old way if they have a setup that works"): I76_MP_MENU=0 for this launch, whatever
     # the preset or the shell says, so MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row
     # instead of going straight to IPX (proxy mpmenu.c). PLAY*.bat pass --legacy-multiplayer through to it.
-    [switch]$LegacyMultiplayer
+    [switch]$LegacyMultiplayer,
+    # Computer-car skill in the AI melee arenas (2026-10-20, owner: "is the difficulty of the ai cars correct ... seem to be
+    # spanking all these guys"): I76_AIMELEE_SKILL for this launch, 1..5 on the stock scale where 1 is the BEST driver and
+    # shot (aim 1.0, fire 1.0, steering / throttle 1.0) and 5 the weakest (0.2 / 0.6 / 0.4); 3 is the stock melee's start and
+    # the default. Only the host's value matters (the host runs the AI). PLAY-LAN.bat --ai-skill N passes it through.
+    [ValidateRange(0, 5)][int]$AiSkill = 0
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -197,7 +202,14 @@ if ($TickMs -or $CheckTickMs) {
 # ---- legacy multiplayer menu (-LegacyMultiplayer / PLAY*.bat --legacy-multiplayer) ---------------
 if ($LegacyMultiplayer) {
     $gameEnv['I76_MP_MENU'] = '0'
+    $gameEnv['I76_AIMELEE_ARENAS'] = '0'   # and the 15 stock arenas stay stock (no AI pool): a stock joiner can play
     Write-Host "legacy multiplayer: I76_MP_MENU=0 - MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row" -ForegroundColor Cyan
+}
+
+# ---- AI skill (-AiSkill / PLAY-LAN.bat --ai-skill N) --------------------------
+if ($AiSkill -ge 1) {
+    $gameEnv['I76_AIMELEE_SKILL'] = "$AiSkill"
+    Write-Host "AI skill: I76_AIMELEE_SKILL=$AiSkill (1 = best computer drivers, 5 = weakest; 3 = stock melee)" -ForegroundColor Cyan
 }
 
 # ---- preset guard: switch combinations with a known failure ------------------
