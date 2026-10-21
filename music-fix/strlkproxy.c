@@ -3023,7 +3023,9 @@ static BYTE *coop_ai_object(int i, int count, BYTE *tab) {   /* a mission vehicl
     BYTE *o; int k;
     if (i >= count) return NULL;
     o = *(BYTE **)(tab + i * 16 + 8);
-    if (!o || *(int *)(o + 0x6c) != 1 || !*(BYTE **)(o + 0x70) || (o[0x10] & 0x10)) return NULL;
+    /* a label can name an object the game has freed (jump lane 2026-10-21: a single-player re-placement rebuilt the car and
+     * coop_ai_log read the old one, an access violation every boot): unreadable objects are skipped */
+    if (!o || IsBadReadPtr(o, 0x74) || *(int *)(o + 0x6c) != 1 || !*(BYTE **)(o + 0x70) || IsBadReadPtr(*(BYTE **)(o + 0x70), 0x458) || (o[0x10] & 0x10)) return NULL;
     for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == o) return NULL; }
     return o;
 }
@@ -3388,6 +3390,7 @@ static void coop_ai_log(void) {                            /* after each fps lin
     BYTE *tab; int count, i, shown = 0; char buf[512]; int len;
     if (!real_dpReceive) return;
     coop_heap_log();
+    if (!*(volatile int *)0x00541030) return;                /* single player: no co-op cars to report (and nothing to read) */
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
