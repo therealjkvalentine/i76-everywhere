@@ -66,7 +66,8 @@ static BYTE g_mpf_engaged[2048];
 static BYTE *g_mpf_tgt[MPF_MAX];
 static int g_mpf_gen, g_mpf_joiner_gen = -1, g_mpf_migr_done; static DWORD g_mpf_migr_at;   /* host migration (above) */
 static int g_mpf_humans = -1, g_mpf_humans_seen = -1; static DWORD g_mpf_humans_since, g_mpf_last_act;
-static int mpf_humans_now(void) { int k, n = 0; for (k = 0; k < 16; k++) if (*(WORD *)((BYTE *)0x00541070 + k * 0x48)) n++; return n; }
+static int mpf_is_human(BYTE *p) { return *(WORD *)p && !aim_is_ai_id(*(WORD *)p); }   /* a player-table slot held by a human (aimelee.c 7: AI rows) */
+static int mpf_humans_now(void) { int k, n = 0; for (k = 0; k < 16; k++) if (mpf_is_human((BYTE *)0x00541070 + k * 0x48)) n++; return n; }
 static BYTE *mpf_obj(int li) { return (li >= 0 && li < g_mpf_count) ? *(BYTE **)(g_mpf_tab + li * 16 + 8) : NULL; }
 static int mpf_find(DWORD lo, DWORD hi) {
     int i; for (i = 0; i < g_mpf_count; i++) if (*(DWORD *)(g_mpf_tab + i * 16) == lo && *(DWORD *)(g_mpf_tab + i * 16 + 4) == hi) return i;
@@ -83,6 +84,18 @@ static void mpf_load(void) {                                 /* the mission's ta
     g_mpf_gen++; g_mpf_migr_at = 0; g_mpf_migr_done = 0;    /* a new mission load: no migration in it yet */
     g_mpf_n = 0; memset(g_mpf_engaged, 0, sizeof(g_mpf_engaged)); memset(g_mpf_tgt, 0, sizeof(g_mpf_tgt));
     memset(g_mpf_park_since, 0, sizeof(g_mpf_park_since)); g_mpf_humans = -1; g_mpf_humans_seen = -1; g_mpf_last_act = 0;
+    if (g_mpf_count && g_aim_inj && _strnicmp(m, g_aim_inj_m, 15) == 0) {   /* aimelee.c 8: the injected pool's tags, parked at load */
+        int q;
+        for (q = 0; q < g_aim_inj_cnt && g_mpf_n < MPF_MAX; q++) {
+            mpf_tag_t *t = &g_mpf[g_mpf_n]; BYTE *b = g_aim_inj_body[q];
+            t->lo = *(DWORD *)b; t->hi = *(DWORD *)(b + 4); t->kind = 1; t->j = 0; t->olo = t->ohi = 0;
+            t->px = *(float *)(b + 72); t->pz = *(float *)(b + 76); t->li = mpf_find(t->lo, t->hi); t->oli = -1;
+            if (t->li < 0) continue;
+            t->state = MPF_PARKED; g_mpf_park_since[t->li] = now; g_mpf_n++;
+        }
+        mlog("  mpfill: '%s' - %d injected pool cars (AI fill pool, parked), role %s", m, g_mpf_n, coop_ai_role() == 1 ? "host" : "joiner");
+        return;
+    }
     if (!g_mpf_count || _stricmp(m + (strlen(m) > 4 ? strlen(m) - 4 : 0), ".lvl") != 0) return;
     _snprintf(path, sizeof(path) - 1, "addon\\%s", m); path[sizeof(path) - 1] = 0;
     h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -193,7 +206,7 @@ static int mpf_migr_pending(int h) {                         /* 1 while the reco
         if (!o) continue;
         d = mpf_d2(o, t->px, t->pz);
         if (t->kind == 1) {                                  /* fill car the old host had parked */
-            if (t->state == MPF_PLAY && d < 300.0 * 300.0) {
+            if (t->state == MPF_PLAY && (d < 300.0 * 300.0 || (g_aim_at_flags[t->li] & 0xC0) == 0xC0)) {
                 t->state = MPF_PARKED; g_mpf_park_since[t->li] = now; fix++;
                 mlog("  mpfill: host migration - '%.8s' (label %d) is at its parking spot: counted parked", (char *)o, t->li);
             }
@@ -221,19 +234,19 @@ static DWORD mpf_team_sig(void) {                            /* every slot's id 
     DWORD s = 0; int k;                                      /* (measured: a joiner's slot first shows flags 0x1, team 0, then 0x2 + */
     for (k = 0; k < 16; k++) {                               /*  his team: 0x4541b0 sets bit 1 only when it read the team from ANet) */
         BYTE *p = (BYTE *)0x00541070 + k * 0x48; DWORD f = *(DWORD *)(p + 0x1c);
-        if (*(WORD *)p) s = s * 31 + *(WORD *)p * 16 + ((f >> 16) & 7) * 2 + ((f >> 1) & 1);
+        if (mpf_is_human(p)) s = s * 31 + *(WORD *)p * 16 + ((f >> 16) & 7) * 2 + ((f >> 1) & 1);
     }
     return s;
 }
 static int mpf_teams_read(void) {                            /* every slot's team came from its player data (flags bit 1) */
-    int k; for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && !(*(DWORD *)(p + 0x1c) & 2)) return 0; }
+    int k; for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (mpf_is_human(p) && !(*(DWORD *)(p + 0x1c) & 2)) return 0; }
     return 1;
 }
 static void mpf_team_refresh(void) {                         /* a known player's team changed (e.g. his slot read team 0 first) */
     int k, j;
     for (k = 0; k < 16; k++) {
         BYTE *p = (BYTE *)0x00541070 + k * 0x48; BYTE t = (BYTE)((*(DWORD *)(p + 0x1c) >> 16) & 7);
-        if (!*(WORD *)p) continue;
+        if (!mpf_is_human(p)) continue;
         for (j = 0; j < g_mpf_snap_h; j++) if (g_mpf_sid[j] == *(WORD *)p && g_mpf_steam[j] != t) {
             mlog("  mpfill: teams - player %u now reads team %d (was %d)", g_mpf_sid[j], t, g_mpf_steam[j]); g_mpf_steam[j] = t;
         }
@@ -244,7 +257,7 @@ static void mpf_team_diff(void) {                            /* who left / joine
     WORD id[16]; BYTE tm[16]; int k, j, n = 0;
     for (k = 0; k < 16; k++) {
         BYTE *p = (BYTE *)0x00541070 + k * 0x48;
-        if (*(WORD *)p) { id[n] = *(WORD *)p; tm[n] = (BYTE)((*(DWORD *)(p + 0x1c) >> 16) & 7); n++; }
+        if (mpf_is_human(p)) { id[n] = *(WORD *)p; tm[n] = (BYTE)((*(DWORD *)(p + 0x1c) >> 16) & 7); n++; }
     }
     if (g_mpf_snap_h >= 0) {
         for (j = 0; j < g_mpf_snap_h; j++) {
@@ -280,15 +293,22 @@ static void mpf_fill_tick(void) {
     }
     if (now - g_mpf_last_act < 500) return;
     for (i = 0; i < g_mpf_n; i++) { pool++; if (g_mpf[i].state == MPF_PLAY) play++; }
-    n = g_mpf_fill < 0 ? pool + 1 : g_mpf_fill;
+    n = g_mpf_fill >= 0 ? g_mpf_fill : (g_aim_inj && aim_drivers()) ? aim_drivers() : pool + 1;   /* injected arena: NO. DRIVERS */
+    {   static BYTE hid[2048]; static BYTE *hob[2048];          /* a parked car that was never hidden (the injected pool): engine off once */
+        for (i = 0; i < g_mpf_n; i++) {
+            BYTE *o = mpf_obj(g_mpf[i].li); int li = g_mpf[i].li;
+            if (g_mpf[i].state != MPF_PARKED || !o || (hid[li] && hob[li] == o) || !aim_alive(o) || !*(BYTE **)(o + 0x70) || !*(BYTE **)(*(BYTE **)(o + 0x70) + 0x108)) continue;
+            ((int (__cdecl *)(BYTE *, BYTE *, int))0x00412830)(o, NULL, 0x21); hid[li] = 1; hob[li] = o;
+        }
+    }
     target = n - h; if (target < 0) target = 0; if (target > pool) target = pool;
     if (play > target) {                                     /* park the live car farthest from every human (else a wreck) */
         int pick = -1, best_rank = 99, want = rule && g_mpf_joinn ? g_mpf_joinq[0] : -1; double fd = -1;
         for (i = 0; i < g_mpf_n; i++) {
             BYTE *o = mpf_obj(g_mpf[i].li); double d; int rank = 0;
             if (g_mpf[i].state != MPF_PLAY || !o) continue;
-            d = aim_alive(o) ? mpf_near_human(o) : -0.5;
-            if (rule) { int t = aim_team(o); rank = (t == want ? 0 : t == AIM_LAST_TEAM ? 2 : 4) + (aim_alive(o) ? 0 : 1); }   /* teams: his team's AI first */
+            d = aim_alive(o) ? mpf_near_human(o) : g_aim_respawn_ai ? 1e31 : -0.5;   /* with AI respawn a wreck goes first */
+            if (rule) { int t = aim_team(o); rank = (t == want ? 0 : t == AIM_LAST_TEAM ? 2 : 4) + ((aim_alive(o) != 0) == (g_aim_respawn_ai == 0) ? 0 : 1); }   /* teams: his team's AI first */
             if (rank < best_rank || (rank == best_rank && d > fd)) { best_rank = rank; fd = d; pick = i; }
         }
         if (pick >= 0) {
@@ -305,12 +325,19 @@ static void mpf_fill_tick(void) {
     } else if (play < target) {                              /* bring a live parked car to the freest spawn point */
         int pick = -1, s, ns = *(int *)0x00540d98, best_s = -1, team = AIM_LAST_TEAM; double best = -1;
         for (i = 0; i < g_mpf_n; i++) if (g_mpf[i].state == MPF_PARKED && aim_alive(mpf_obj(g_mpf[i].li))) { pick = i; break; }
+        if (pick < 0 && g_aim_respawn_ai) for (i = 0; i < g_mpf_n; i++) if (g_mpf[i].state == MPF_PARKED && mpf_obj(g_mpf[i].li)) { pick = i; break; }   /* a parked wreck: respawned below */
         if (pick < 0) return;
         for (s = 0; s < ns && s < 64; s++) {
             double x = *(double *)(0x0053fdb0 + s * 0x40), z = *(double *)(0x0053fdc0 + s * 0x40), d = mpf_near_car(x, z);
             if (d > best) { best = d; best_s = s; }
         }
         if (best_s < 0 || best < 30.0 * 30.0) return;
+        if (!aim_alive(mpf_obj(g_mpf[pick].li))) {           /* AI respawn: a fresh car for the parked wreck, at that spawn point */
+            if (!aim_recreate(g_mpf[pick].li, best_s, "the fill brings a parked wreck back")) return;
+            g_mpf[pick].state = MPF_PLAY; g_mpf_park_since[g_mpf[pick].li] = 0; g_mpf_acts++; g_mpf_last_act = now;
+            if (rule && g_mpf_leftn) { BYTE *o = mpf_obj(g_mpf[pick].li); if (mpf_move_team(o, (DWORD)g_mpf_leftq[0]) && g_mpf_leftq[0] != AIM_LAST_TEAM) g_mpf_vac[g_mpf_leftq[0]]++; mpf_q_pop(g_mpf_leftq, &g_mpf_leftn); }
+            return;
+        }
         if (rule && g_mpf_leftn) team = g_mpf_leftq[0];      /* teams: the AI takes the leaver's team */
         if (rule && team != AIM_LAST_TEAM) {
             BYTE *o = mpf_obj(g_mpf[pick].li);
@@ -404,7 +431,7 @@ static void mpf_status(int role) {
         len += sprintf(line + len, "; H");
         for (k = 0; k < 16 && len < (int)sizeof(line) - 60; k++) {
             BYTE *p = (BYTE *)0x00541070 + k * 0x48, *o = aim_slot_car(k);
-            if (!*(WORD *)p) continue;
+            if (!mpf_is_human(p)) continue;
             if (o) len += sprintf(line + len, " %u:%c%.1f,%.1f/t%d", *(WORD *)p, aim_alive(o) ? 'a' : 'd', *(double *)(o + 0x40), *(double *)(o + 0x50), aim_team(o));
             else len += sprintf(line + len, " %u:-", *(WORD *)p);
         }

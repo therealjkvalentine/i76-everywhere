@@ -2994,7 +2994,7 @@ static DWORD g_coop_ai_last;
 static float g_coop_ai_seen[2048];
 static DWORD g_mpf_park_since[2048];                         /* mpfill.c: label index parked since (0 = in play); 'AT' sends it every 2 s */
 static void mpf_engaged(BYTE *a);                            /* mpfill.c: an enemy original turned on a human (co-op scaling) */
-static BYTE aim_at_team(BYTE *o); static void aim_at_team_apply(int li, BYTE *o, BYTE v);   /* aimelee.c: an AI car's team in 'AT' byte 3 (team play) */
+static BYTE aim_at_team(BYTE *o); static void aim_at_team_apply(int li, BYTE *o, BYTE v); static BYTE *aim_at_revive(int li, BYTE *o, BYTE *r);   /* aimelee.c: an AI car's team in 'AT' byte 3 (team play) */
 static BYTE g_coop_ai_fired[1024];                          /* host: weapon instances the AI triggered since the last send */
 static BYTE g_coop_ai_mask[2048];                           /* joiner: last fire mask per label index ... */
 static DWORD g_coop_ai_until[2048];                         /* ... and until when it holds (GetTickCount) */
@@ -3068,6 +3068,7 @@ static void coop_ai_apply(BYTE *pkt, int size) {
         if (!o) continue;
         if (t <= g_coop_ai_seen[i] && t > g_coop_ai_seen[i] - 2.0f) continue;   /* older than the last one (time restarts on a reload) */
         g_coop_ai_seen[i] = t;
+        o = aim_at_revive(i, o, r);                          /* aimelee.c: the host respawned this AI car, ours is a wreck */
         g_coop_ai_mask[i] = r[2]; g_coop_ai_until[i] = GetTickCount() + 150;
         aim_at_team_apply(i, o, r[3]);
         ((void (__cdecl *)(BYTE *, float *))0x00464890)(o, (float *)(r + 4));
