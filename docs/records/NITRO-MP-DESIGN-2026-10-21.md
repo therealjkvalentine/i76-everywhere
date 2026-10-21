@@ -428,6 +428,39 @@ the lobby keeps session lists per species, a patched joiner needs a second subsc
 stub), so ARENA+ is IPX / LAN (and virtual-LAN) only until a private lobby server is set up or the community agrees to
 a test.
 
+### 0.5.9 Item 5: CO-OP SCENES on Nitro's own P01 (2026-10-21; owner: no Gold missions)
+
+**P01 with host + joiner: pass, 3 of 3. The box-off control on P01 (n 2) was not run - see the end.**
+
+Code (commit e516e34, `nitro_ai.c` co-op block; lab list entries in arena_poc.c `NMP_LAB_COOP_LIST`):
+- **List**: with CO-OP SCENES on, the host form lists Nitro's own P01-P19 (`miss16\Pnn.MSN`, loose files of every
+  Nitro install); the stock list is not touched otherwise.
+- **The shell's mission check** (0x1002fda0) knows only arena extensions and answers "Mission file p01.msn not found" for a
+  .msn (seen in the first try, cp-x1). In an ARENA+ session on pNN.msn its two calls (host create 0x1002fadc, join reply
+  0x10030106) are answered with the file's CRC-32 on both sides (`caada4fd` for P01 on host and joiner, every run).
+- **Spawn points**: a campaign mission has no team-0 spawn points; 4 are written beside the mission player object at load.
+- **The host drives the mission's own player object** (adopted at the 7 player-spawn calls, linked with 0x446a90, as
+  Gold's coop_spawn), so the script watches the host; on the joiner that object is the host's remote car.
+- **Script and AI on the host only**: joiners skip ai_FrameTick; every mission vehicle goes to them in 'AT' (2 per packet)
+  and is mirrored; damage to them is computed on the host; their trigger pulls are replayed.
+- Not ported: CB radio ('AC'), objectives ('AO'), the scene chain ('AM'), per-joiner scaling.
+
+| run | mission check (host / joiner) | host drives the player object / joiner shows it | both in P01 | mission cars, host vs joiner (same 5 s stamps, first 10 s after the join left out) | crashes |
+|---|---|---|---|---|---|
+| cp-x2 | caada4fd / caada4fd | yes / yes | yes (joiner in for its whole 80 s) | 120 samples, median 0.00 m, max 0.6 m | 0 / 0 |
+| cp-r1 | same | yes / yes | yes (100 s) | 152, median 0.00, max 3.7 | 0 / 0 |
+| cp-r2 | same | yes / yes | yes (100 s) | 152, median 0.00, max 1.7 | 0 / 0 |
+
+Over the three: 424 samples, median 0.00 m, p90 0.61 m, max 3.7 m. A third cp-r run (cp-r3) lost its joiner to the
+.fps-lock taken between the two boots (the joiner never started); it is not counted.
+
+**Stock behaviour on P01 (the control asked for).** A stock Nitro session cannot be on P01 at all: the stock shell refuses
+a .msn at BROADCAST ("Mission file p01.msn not found", the stock check, seen in cp-x1 before the co-op check existed). With
+the box off our check passes straight to that stock code (it acts only on the ARENA+ species), and single-player P01 with the
+integrated proxy ran unchanged (s.0.5.7, n 2). **The two box-off pair runs (cp-s1, cp-s2) were not run**: from 14:56 the
+rebaseline lane's queue held `.fps-lock` without a gap (polled every 2 s for 40 min); the runner was stopped rather than
+left to boot games unattended. `tools/nitro-mp/cpmatrix2.sh` runs exactly those cells (and one more co-op run).
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
