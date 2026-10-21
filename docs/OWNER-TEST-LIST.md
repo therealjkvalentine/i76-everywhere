@@ -849,10 +849,11 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
   every other slot is a computer car with a scoreboard row, in every melee arena; the "(2 / 4 / 6 AI)" entries go away;
   a host switch keeps the stock behaviour. Same lane, phase 2.
 - **AI difficulty (same night):** "Seem to be spanking all these guys" / "Shouldn't the game difficulty setting change it in
-  the melee mode too?" Facts: the AI run at the stock skill 3 of 1..5; retail 1.0 has no difficulty option at all (Gold's
-  Wimp / Champ / Badass only scaled the player's damage). Ruling: build a DIFFICULTY option in the game's options (Gold's
-  names, stored in I76PLYR.DEF +0x5c like Gold) that sets the melee AI skill (host's setting rules); campaign unchanged
-  by default. Lane: records/DIFFICULTY-OPTION-2026-10-20.md; the AI lane measures skill 3 / 4 / 5 and adds --ai-skill.
+  the melee mode too?" Facts: the AI run at the stock skill 3 of 1..5, untied to anything. The shipped exe 6319abf7 and
+  shell a300db63 DO have the Difficulty Level option (Wimp / Champ / Badass; the owner sees it in the pause menu; an
+  earlier record's "retail 1.0 has no difficulty option" described the emulated disc, not our build). Ruling: the
+  existing setting drives the melee AI skill (host's setting rules); the lane also measures what the setting does to
+  player damage in our exe and reports what value the owner has been playing on; campaign rule unchanged by default. Lane: records/DIFFICULTY-OPTION-2026-10-20.md; the AI lane measures skill 3 / 4 / 5 and adds --ai-skill.
 
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
