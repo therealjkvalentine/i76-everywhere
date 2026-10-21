@@ -262,7 +262,7 @@ static void cursor_map_attach(HMODULE m, const char *b) {
         int k = cm_swap_ptrs(GetModuleHandleA("glide2x.dll"));
         mlog("  cursor-map: dgVoodoo glide2x.dll at ZGLIDE load: %d cursor pointer(s) taken", k);
     }
-    if (g_cm_mode && !shell_done && _strnicmp(b, "i76shell", 8) == 0) { shell_done = 1; cm_patch_module(m, b); }
+    if (g_cm_mode && !shell_done && (_strnicmp(b, "i76shell", 8) == 0 || (g_exe == EXE_NITRO && _strnicmp(b, "nitshell", 8) == 0))) { shell_done = 1; cm_patch_module(m, b); }   /* Nitro's shell: NITSHELL.DLL */
 }
 static void apply_cursor_map(void) {
     char v[16]; DWORD n = env_str("I76_CURSOR_MAP", v, sizeof(v));
@@ -302,7 +302,7 @@ static void apply_cursor_map(void) {
     mlog("  cursor-map: on (%s: the 640x480 UI %s the game window's client rect)",
          g_cm_mode == 2 ? "ar" : "stretched", g_cm_mode == 2 ? "letterboxed 4:3 in" : "stretched over");
     cm_patch_module(exe, "i76.exe");
-    if ((sh = GetModuleHandleA("i76shell.dll")) != NULL) cursor_map_attach(sh, "i76shell.dll");
+    if ((sh = GetModuleHandleA(g_exe == EXE_NITRO ? "nitshell.dll" : "i76shell.dll")) != NULL) cursor_map_attach(sh, g_exe == EXE_NITRO ? "nitshell.dll" : "i76shell.dll");
     if (!p_LoadLibraryA) p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(exe, "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
     mlog("  cursor-map: i76shell.dll %s; LoadLibraryA %s", sh ? "already loaded" : "patched when the game loads it",
          p_LoadLibraryA ? "hooked" : "NOT hooked");

@@ -9414,6 +9414,7 @@ static void nitro_dllmain(void) {
         } else mlog("  music: I76_MUSIC_NITRO=0 - GOG's WIN32.dll plays the CD tracks");
     }
     apply_glide_refresh();    /* I76_GLIDE_REFRESH / I76_ZGLIDE_TMUFIX / I76_GLIDE_GAMMA (LoadLibraryA hook; Nitro ZGLIDE offsets) */
+    apply_cursor_map();       /* I76_CURSOR_MAP (nitro.exe's and NITSHELL.DLL's USER32 slots; Nitro has no u32x) */
     apply_joy_routing(exe);   /* Nitro's joyGetPosEx / joyGetDevCapsA are WIN32.dll imports */
     mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
     mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);

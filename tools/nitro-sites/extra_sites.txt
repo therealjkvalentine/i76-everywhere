@@ -5,3 +5,10 @@
 0x493090   # terrain-lod Medium B (0x49308a + 6)
 0x4930ab   # terrain-lod High A  (0x4930a5 + 6)
 0x4930b5   # terrain-lod High B  (0x4930af + 6)
+# lab harness reads / writes (np_physjump.py), mapped like the rest
+0x5367cc   # input throttle int (rate-ab-live IN_THROTTLE)
+0x5367d0   # drive-block key bytes (drive-lat-block.c)
+0x5367d1
+0x5367d9
+0x5367da
+0x5244c0   # scripted-control flag (nitro_probe)
