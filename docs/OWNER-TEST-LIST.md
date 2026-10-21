@@ -947,3 +947,18 @@ out), **on no machine yet**. Main deploys it to every machine at once when you s
    points, armour 2800) out-armours 54 of the 66 cars they draw from.
 3. **A stock game for a friend without the pack:** `set I76_AIMELEE_FILL=0` on the host gives the stock arenas without
    computer cars. Without it, an unpatched joiner sees no computer cars, and your message line says "<name> has no AI pack".
+
+## Menu / sound polish from your release-candidate play-test (2026-10-20 night; records/MENU-SOUND-POLISH-2026-10-20.md)
+
+Staged, not installed (main installs after a gate): lab `builds\menu-sound-polish-20261020\staged\` (proxy e61d1e3e, tick19
+presets with the two new lines, launchers with `--legacy-multiplayer`).
+
+| # | what | how to check | result |
+|---|---|---|---|
+| P1 | Esc > ABORT MISSION > the Replay / Reconfigure / Abort / Exit page: pointer visible and usable at once (your report A) | in a campaign mission from a bookmark: Esc, ABORT MISSION, move the mouse; if the pointer is gone, note whether the mouse still highlights items, then Alt-Tab back | not reproduced in the lab (direct mission boots, n 3); your route is the one left |
+| P2 | no two-frame flicker on exit (B) | Esc > ABORT MISSION > EXIT GAME > YES; also finish / abort a mission | |
+| P3 | barricade hits restart the hit sound (C) | T05: drive through the road-closed barricades near the ramps (x 7095..7280), two of them stand 5 m apart | |
+| P4 | `PLAY.bat --legacy-multiplayer` / `PLAY-LAN.bat --legacy-multiplayer` (D) | MULTI MELEE > HOST shows MODEM / IPX / INTERNET / NULLMODEM; `PLAY-TICK.bat 44 --legacy-multiplayer` keeps the 44 ms tick | headless: the flag gives mp-menu 0 |
+| P5 | the GAME NAME is the arena you clicked (E) | MULTI MELEE > HOST, click Mondo Burger (Scenario): the name reads "Mondo Burger (Scenario)", the AREA OF PLAY box too, and Mondo Burger loads; on the Mac, if the name shows the row ABOVE the one you clicked, the Mac pointer is one row off (tell us) | lab: names right 42 / 42 (stock 15 / 42) |
+| P6 | in a network game the Esc menu's keys no longer drive the car (F) | host or join, Esc, press the driving keys / arrows: the car coasts straight | |
+| P7 | the game folder can be renamed after a crash (G) | nothing to do; folders of copies that crashed no longer stay locked | lab: 0 registrations left of 3 killed boots (stock 3 of 3) |
