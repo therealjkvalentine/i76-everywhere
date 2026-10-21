@@ -1,6 +1,6 @@
 # Menu / sound polish from the owner's release-candidate play-test (2026-10-20 evening and night, lane menu-sound-polish)
 
-**Interim (2026-10-21 00:20): the RESULTS-B / C / D / E / F / G placeholders are filled when the queued lab runs finish (the lab was held by another lane's fps lock for most of the night).**
+Measurements finished 2026-10-21 01:28 (queued overnight behind another lane's fps lock) and 06:40 (D's launcher cases).
 
 Owner, play-testing `Games\I76\release-candidate` (lab game-tick: proxy tick19g adc4fd49, dgVoodoo.wide.conf, u32x
 06467bd2, `I76_U32X_MENU_ASPECT 3440:1440`, `I76_CURSOR_MAP=1 _U32X=exe _DGV=aw`), plus the items the coordinator added
@@ -18,13 +18,13 @@ work of the other lanes (their records), measured there, not here.
 
 | item | owner / coordinator | state |
 |---|---|---|
-| A | "i lose mouse visibility/use when i click "exit game" to the replay/reconfigure/abort/exit menu but it comes back if i tab away and back" | **not reproduced** (section A); no fix |
-| B | "when you click to exit the game two frames flip back and forth really fast" | cause found, fix `I76_FADE_NO_FLIP` (staged presets on) |
-| C | "i would really like the barricade hit sound to interrupt a playing barricade hit sound" | cause found and reproduced, fix `I76_SIGN_SOUND_RESTART` (staged presets on) |
-| D | `--legacy-multiplayer` for people who want the stock multiplayer row | done: PLAY-i76.ps1 `-LegacyMultiplayer`, launchers pass it |
-| E | "the game name populated with the next area name" / "I clicked on mondo burger and it said the game name was Seminole but it opened oil well well" | cause found and reproduced, fix `I76_ARENA_NAME` (default on) |
-| F | "The arrow keys in the pause menu control the car?" | cause found (network only), fix `I76_MENU_KEYS` (default on) |
-| G | Lee_____.ttf registrations pile up and lock the folder | cause confirmed, fix `I76_FONT_PRIVATE` (default on) |
+| A | "i lose mouse visibility/use when i click "exit game" to the replay/reconfigure/abort/exit menu but it comes back if i tab away and back" | **not reproduced** (n 9 boots, section A); no fix |
+| B | "when you click to exit the game two frames flip back and forth really fast" | fixed: `I76_FADE_NO_FLIP` (staged presets on); the exit fade's 32 presents -> 0 (n 3 each) |
+| C | "i would really like the barricade hit sound to interrupt a playing barricade hit sound" | fixed: `I76_SIGN_SOUND_RESTART` (staged presets on); 2nd hit 0.2 s later refused (stock n 4) -> restarted (n 3) |
+| D | `--legacy-multiplayer` for people who want the stock multiplayer row | done: mp-menu 0 with the flag (n 6), 1 without (n 3) |
+| E | "the game name populated with the next area name" / "I clicked on mondo burger and it said the game name was Seminole but it opened oil well well" | fixed: `I76_ARENA_NAME` (default on); names 15 / 42 -> 42 / 42, loads 48 / 48 the selected file |
+| F | "The arrow keys in the pause menu control the car?" | fixed: `I76_MENU_KEYS` (default on); network, menu up: steer 0.67-0.92 / throttle 1.0 -> 0 / 0 (n 3 each) |
+| G | Lee_____.ttf registrations pile up and lock the folder | fixed: `I76_FONT_PRIVATE` (default on); left 1 / 1 / 1 -> 0 / 0 / 0 per killed boot, rename OK 3 / 3 |
 
 Commits: `2a895ce` (B, C, D), `0e93834` (E, F), `747609a` (G), this record.
 
@@ -39,9 +39,9 @@ Game - Are you gonna leave me, sweetheart? Yes / No" (0x4fcec0). Probe: lab `too
 
 | run | route | Esc menu | second level | third page |
 |---|---|---|---|---|
-| a-base-2, a-base-3 (t01), k-before-1 (t05) | direct mission boot, tick19-42 preset env, staged proxy | showing (flags 1, arrow 0x10003), clip = whole client, moves land | the same: showing, arrow, not armed, relative +120/+60 and absolute moves land and stay | showing, arrow |
+| a-base-2, a-base-3 (t01), k-before-1, k2-before-1..3, k2-after-1..3 (t05) | direct mission boot, tick19-42 preset env, staged proxy (k2-before: B / C / G switches off) | showing (flags 1, arrow 0x10003), clip = whole client, moves land | the same: showing, arrow, not armed, relative +120/+60 and absolute moves land and stay | showing, arrow (k2: n 6) |
 
-n 3 boots, every reading the same: **the pointer was visible (as far as Windows reports) and usable on every page.** Not
+n 9 boots, every reading the same: **the pointer was visible (as far as Windows reports) and usable on every page.** Not
 reproduced. What differs from the owner's session: the campaign route (a bookmark, "Reconfigure" present), a real mouse,
 and possibly the moment of the click. The campaign-route probe (`probe-campaign.ps1`: leg-b's bookmark route then the same
 probe) did not reach the mission in the lane's runs (leg-b's TRIP click under the aw cursor map; then the console was held
@@ -69,7 +69,18 @@ unchanged (the fade takes as long, the screen holds the last frame); the softwar
 palette is the fade). `I76_FADE_LOG=1` (lab) logs the steps: in a-base-2 the stock path made 64 + 32 presents (mission end,
 then the exit).
 
-**Measured:** RESULTS-B.
+**Measured** (console, k2 runs: T05, Esc > ABORT MISSION > EXIT GAME > YES; the proxy's fade log, `I76_FADE_LOG` via
+`I76_SIGN_SOUND_LOG`):
+
+| | boots | presents in the exit fade |
+|---|---|---|
+| stock (switch off, k2-before-1..3) | 3 | 32 of 32 made (steps 1 / 8 / 16 / 24 / 32 logged "made") |
+| **fix (k2-after-1..3)** | 3 | **0 of 32: all SKIPPED** |
+
+The frame capture (a 430x180 centre crop, CopyFromScreen) ran at about 12 grabs a second, too slow for 10 ms steps: in
+both conditions it saw one frame until the window closed (16-25 grabs, 2 distinct = the menu and the desktop after exit,
+no A-B-A), so it neither shows the flicker before nor its absence after; the present count is the measurement. A faster
+capture (DXGI desktop duplication) would be needed for the picture itself.
 
 ## C. A barricade hit while the last one still sounds
 
@@ -91,7 +102,15 @@ and legs touch over several passes restarts it once. Both paths: the engine cont
 I76_BREAKABLE_BOX sweep's knock-off (st_sign_sound, now given the sign's root). `I76_SIGN_SOUND_LOG=1` (lab) logs every
 request (started / refused / restarted) and totals; the game is muted per process in the runs, so this log is the proof.
 
-**Measured:** RESULTS-C.
+**Measured** (console, k2 runs, the same two passes per boot; the request log):
+
+| | boots | hits that asked for the sound (bars knocked) | started | refused | restarted |
+|---|---|---|---|---|---|
+| stock (`I76_SIGN_SOUND_RESTART=0`, k-before-1, k2-before-1..3) | 4 | 3 per boot (3) | 2 per boot | **1 per boot: the second bar of the 7280 / 7275 pair, 0.20 s after the first** | 0 |
+| **fix (k2-after-1..3)** | 3 | 3 per boot (3) | **3 per boot** | 0 | **1 per boot: that second bar** |
+
+The third hit of each boot (pass 2, bar x 7120 / z 43920) came alone and started in both conditions. The game was muted
+per process; the log is the proof (no audio capture).
 
 ## D. `--legacy-multiplayer`
 
@@ -105,8 +124,21 @@ position; PLAY-TICK.bat keeps its `<ms>` (first argument that is not a flag); th
 `open --env I76_MP_MENU=0 <app>`; Deck: `export I76_MP_MENU=0` in i76-env-mp.sh (docs/MULTIPLAYER.md section 5; documented,
 not deployed).
 
-**Measured** (headless, `dtest.ps1`: the launcher on a private desktop, the proxy log's `mp-menu: mode N armed`):
-RESULTS-D.
+**Measured** (headless, `dtest.ps1`: the staged launcher in exp-polish on a private desktop, the proxy log's
+`mp-menu: mode N armed` and the tick line):
+
+| launcher, arguments | n | mp-menu | tick |
+|---|---|---|---|
+| PLAY-TICK-42.bat | 2 | 1, 1 | 41.667 ms |
+| PLAY-TICK-42.bat --legacy-multiplayer | 2 | **0, 0** | 41.667 ms |
+| PLAY-LAN.bat (the shell sets I76_MP_MENU=1) | 1 | 1 | - |
+| PLAY-LAN.bat --legacy_multiplayer | 1 | **0** | - |
+| PLAY-TICK.bat 44 --legacy-multiplayer | 1 | **0** | **44 ms** |
+| PLAY-TICK.bat --legacy-multiplayer 44 | 1 | **0** | **44 ms** |
+
+(The first attempts of the plain and LAN cases did not start the game: the harness's own argument passing through
+deskrun.py, which joins its arguments unquoted - an empty argument and a path with a space; fixed in dtest.ps1, not a
+launcher fault.)
 
 ## E. The multi-melee GAME NAME and the "wrong" scenario
 
@@ -136,7 +168,12 @@ index, the GAME NAME buffer 0x100d4050 and the entry's title / file):
 | stock (`I76_ARENA_NAME=0`, e-stock) | 42 (15 stock, 3 AI, 7 scenarios, 17 co-op) | 42 / 42 | 15 / 42: every add-on wrong (15 "", 16 "Oil Well Well", 17 "Mondo Burger", 18 "Seminole", 19 "Pretty Bus", 20 "Race No Shoot", ... 25.. "") |
 | **fix (e-fix)** | 42 | 42 / 42 | **42 / 42** |
 
-n 1 per entry each. Loads (BROADCAST, the mission file 0x5049f0, joiner): RESULTS-E.
+n 1 per entry each. **Loads** (e-load: each entry picked as above, BROADCAST, the mission file the host loaded, 0x5049f0;
+a fresh game process per load, see the crash below): **48 of 48 loaded the selected entry's own file with the entry's own
+name** = all 42 entries once (m01..m15.msn, ai_hs2/4/6.lvl, auto01..07.lvl, coop01..17.lvl) + Mondo Burger, Seminole and
+Oil Well Well (Scenario) twice more (n 3 each). **Joiner** (game-mpo-b joins the host's session, its own 0x5049f0): Mondo
+Burger auto02.lvl = host's (n 1), Suburbia m04.msn = host's (n 2, the F network runs); the co-op scene join did not come up
+headless (the lab click route stopped taking clicks on the join form after the first try; n 0 for co-op).
 
 **Found on the way (not this lane's code, not fixed): hosting a second network session in the same game process crashes.**
 e-fix's second load (leave by the stock end-of-session exit `0x4c2164 = 3`, MULTI MELEE > HOST again, BROADCAST) died at
@@ -163,8 +200,17 @@ than beside it: it does not touch the Esc menu's mouse path.
 
 **Measured** (headless `ef.py f1` / `f2`: the lab twin's shell-click block posts WM_KEYDOWN with the key's scan code; A
 (steer_left) held 1.5 s and W (throttle_up) 1.0 s with the menu up, the player entity's steer +0xe0 / throttle +0xe4
-sampled every 100 ms): single player, stock: the keys reach the control block (5-8 of the samples) and the car does not
-move (steer 0, throttle 0, n 3: the sim is paused there). RESULTS-F.
+sampled every 100 ms; first a control hold with no menu):
+
+| | rounds | menu up, A held: max steer | menu up, W held: max throttle | control (no menu): max steer |
+|---|---|---|---|---|
+| single player t01, stock (f1c-stock) | 3 | 0 (keys in the block 5-8 of 9 samples; the sim is paused) | 0 | (the control fell in the opening, 0x20) |
+| single player t01, fix (f1c-fix) | 3 | 0 | 0 | - |
+| **network** (exp-polish hosts Suburbia, game-mpo-b joined), stock (f2c-stock) | 3 | **0.68, 0.67, 0.92** | **1.0, 1.0, 1.0** | 0.68 |
+| **network, fix (f2c-fix)** | 3 | **0, 0, 0** (block empty 0 of 10) | **0, 0, 0** | 0.70 |
+
+So stock single player already pauses under the menu; stock network play let the menu's keys drive the car, and with
+`I76_MENU_KEYS` they do not, while the same key still steers with the menu closed.
 
 ## G. Lee_____.ttf registrations left behind
 
@@ -186,8 +232,10 @@ shell 45 s, the game KILLED, then: rename the folder `Interstate 76` and back, c
 
 Earlier batch (g, rename after the count, Lee_____.ttf path only): stock kill 1 / 1 / 0, stock WM_CLOSE 1 (the game did not
 close itself within 20 s at the shell), fix kill 0 / 0 / 0, fix close 0. The first stock boot of the night found 11 earlier
-registrations of exp-polish's path (the lane's own earlier boots) and the g2 batch 5. Menu text with FR_PRIVATE: the Esc
-menu captures of the console runs (before = `I76_FONT_PRIVATE=0`, after = default) RESULTS-G.
+registrations of exp-polish's path (the lane's own earlier boots) and the g2 batch 5. Menu text with FR_PRIVATE: the Esc-menu
+captures of the console runs (before = `I76_FONT_PRIVATE=0`, after = default), menu area 796x638 px: before vs after
+0.046 % / 0.116 % of pixels differ by more than 40 (n 2 pairs; the second level 0.047 %), before vs before 0.087 % (the
+order number and the 3D frame behind): the text draws the same.
 
 ## Files
 
