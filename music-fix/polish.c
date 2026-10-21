@@ -42,7 +42,7 @@ static int g_mk;                                             /* I76_MENU_KEYS (b
 static int mpm_write(BYTE *p, const BYTE *expect, const BYTE *want, int n);   /* mpmenu.c */
 
 /* ---- I76_SIGN_SOUND_RESTART ---------------------------------------------------------------------------------------- */
-#define SSR_NAME ((const char *)0x004f1578)                  /* "vnvco3.wav" (0x434e62 pushes it) */
+#define SSR_NAME ((const char *)(DWORD_PTR)NA(0x004f1578))  /* "vnvco3.wav" (0x434e62 pushes it) */
 static int g_ssr, g_ssr_log;
 static DWORD g_ssr_next = 0x004231f0;                        /* the call at 0x434ebc (chained if another hook is there) */
 static BYTE *g_ssr_other;                                    /* [edi+4] at 0x434ebc: the other body of the contact */
@@ -67,7 +67,7 @@ static int ssr_play(const char *path, BYTE *car, BYTE *other, int (__cdecl *play
 #ifdef _MSC_VER
     __try {
 #endif
-        if (car) v = ((BYTE *(__cdecl *)(const char *, BYTE *))0x004221d0)(SSR_NAME, car);   /* the voice playing it on this car */
+        if (car) v = ((BYTE *(__cdecl *)(const char *, BYTE *))(DWORD_PTR)NA(0x004221d0))(SSR_NAME, car);   /* the voice playing it on this car */
         nh = ssr_new_hit(other);
         if (v && g_ssr) {
             if (nh) { ((void (__cdecl *)(BYTE *))0x00421e70)(v); restarted = 1; g_ssr_restarted++; }
@@ -120,7 +120,7 @@ static __declspec(naked) void ssr_coll_thunk(void) {         /* at 0x434ebc: edi
     }
 }
 static int __cdecl ssr_stock_call(const char *name, BYTE *obj, int f) {
-    return ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)(name, obj, f);
+    return ((int (__cdecl *)(const char *, BYTE *, int))(DWORD_PTR)NA(0x004231f0))(name, obj, f);
 }
 /* simtick.c st_sign_sound: the sweep's knock-off (no engine contact), root = the sign whose post was knocked off */
 static void ssr_sweep_sound(BYTE *car, BYTE *root) {
