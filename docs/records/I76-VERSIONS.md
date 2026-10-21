@@ -243,6 +243,18 @@ calls itself "v.1.0.8b". 1.081 may be its re-release under a new name; that is u
   existed. Their notes were not found.
 - The Arsenal demo (archive.org `Arsenal_201610`, 1998-02-26) holds one Gold mission and one Nitro mission, run
   through `Nitro.exe` [doc].
+- **Full difference map against retail 1.0: [NITRO-VS-RETAIL-2026-10-20](NITRO-VS-RETAIL-2026-10-20.md)** [ours].
+  In short:
+  - **Engine:** Gold's engine, relinked. 1,781 of 1,997 Gold-matched functions are identical; about 60 % of Nitro's
+    functions have a located retail counterpart.
+  - **Physics:** the same physics code and car data as Gold. That is retail's algorithm plus Gold's two
+    grounded-only guards; no handling constant differs.
+  - **Combat:** Gold's changes (difficulty x2.0 at the GOG default, health %, turrets, heat cone), plus Nitro's own:
+    the dropper cadence, the specials Dashboard Mary and Tire Covers, and 7 weapons.
+  - **Data:** the same file formats and FSM. Race and CTF are ODEF label conventions handled in exe code.
+  - **Network:** ANet 2.
+  - Our exe `6319abf7` is the Gold build (section 2.8). It boots Nitro's single-player mission P01 from add-on files
+    (lab exp-nitro, 4 of 6 boots).
 
 ### 2.8 GOG and the AiO exe in our driver
 
@@ -254,6 +266,9 @@ calls itself "v.1.0.8b". 1.081 may be its re-release under a new name; that is u
 
 **Our driver's exe** (`i76.exe.u32xorig` `60abf7bc`) and the portable zip's are the AiO 2019-09-01 final.
 - MAC-BUILD.md found it byte-identical to UCyborg's AiO final.
+- The `i76.exe` we run (`6319abf7`) is this AiO file plus a 10-byte import rename, `USER32.dll` -> `u32x.dll` (file
+  offset 0xbff84). All three files (`9a232dcc`, `60abf7bc`, `6319abf7`) carry the Gold link stamp 1998-02-19
+  22:21:32. Byte-compared 2026-10-20 in NITRO-VS-RETAIL section 7a.
 - The driver folder also carries `goggame.dll` and `gfw_high.ico`, which the 2.1.0.17 installer does not have
   (FRESH-INSTALL-CHECK-2026-10-10).
 - Where that copy came from is not recorded. Two candidates: an older GOG package, or an AiO applied by hand.
