@@ -388,8 +388,7 @@ old targets and death timers are dropped, the humans are recounted - so the fill
 slot had taken. The hello's human count no longer counts AI rows (it used to keep re-sending to them every 2 s).
 
 Run: `pair.py` (lab), N01, NO. DRIVERS 4, host leaves by the stock end-of-session exit at 60 s of mission time
-(`NMP_LAB_LEAVE_AT=60`: game state 3, as the Gold overnight harness did), joiner stays 160 s. Summary `tools
-itro-mp\migsum.py`.
+(`NMP_LAB_LEAVE_AT=60`: game state 3, as the Gold overnight harness did), joiner stays 160 s. Summary `tools/nitro-mp/migsum.py` (lab).
 
 | run | migration on the survivor | reconcile (from the old host's last 'AT') | survivor, last status line | survivor in the arena at its end | crashes |
 |---|---|---|---|---|---|
