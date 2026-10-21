@@ -877,7 +877,8 @@ nitro, get the settings dialed in for gold, get nitro working as well as gold is
 nitro." Menu data edits crash Nitro (an edited SCENARIO.DAT: Unhandled Exception at the console). "the right place for
 the ai drop-in option is a checkbox inside the network play configuration, maybe a few of them for other features we've
 added (human drop-in, etc.)" -> N2 (the entry name) is superseded by checkboxes on the host form; names of the checkboxes
-still the owner's. Gold graphics: a rebaseline ladder (records/REBASELINE-2026-10-21.md) the owner drives rung by rung
+still the owner's. NAME RULED (same day): **ARENA+**, "Every arena plus the original '76 missions, with AI filling
+the open slots." (N2 answered: the label of the checkbox group / the mode). Gold graphics: a rebaseline ladder (records/REBASELINE-2026-10-21.md) the owner drives rung by rung
 after the promotion-19 gate. Future epic noted: AI-upscaled menus and fonts (lab spike only, records/UPSCALE-SPIKE).
 
 ### Decisions wanted
