@@ -8358,8 +8358,10 @@ static void apply_terrain_vguard(void) {
  *  - HYST=p: a node that was split in the previous main pass is tested with the eye moved toward it so it looks p % nearer;
  *    one that was a leaf, p % farther. A split then needs the camera p % closer than the stock threshold and the merge
  *    p % farther: no flip back and forth around a threshold. Detail is unchanged on average (the band is symmetric).
- *  - FREEZE=f,m: nodes farther than f metres keep the decision of the last snapshot until the camera has moved m metres
- *    from it; then the next pass becomes the snapshot. Far terrain changes in one step every m metres, not continuously.
+ *  - FREEZE=f,m: a node farther than f metres keeps the decision it had when it was first seen (or last tested nearer than f)
+ *    until it comes within f: the snapshot is refreshed from a pass once the camera has moved m metres, and that pass already
+ *    holds the frozen decisions, so a refresh only adds nodes that were new. Far terrain stops changing; its splits are made
+ *    up when it comes within f (measured: change beyond 300 m almost gone, near change up; RC-DRAW-FPS s.4).
  * Only the main pass is touched (the mirror's pass runs stock); after the pass the eye is put back. Counted: passes,
  * nodes biased / frozen, parent look-ups that missed (a node whose parent was not visited, expected only for size 32). */
 #define TH_SLOTS 131072u
@@ -8499,7 +8501,7 @@ static void apply_terrain_hyst(void) {
     mlog("  terrain-hyst: %s (hysteresis %.0f %%: a split node merges %.2fx, a leaf splits at %.2fx the stock distance; freeze %s)",
          ok ? "on" : "NOT applied", hp, 1.0f / g_th_up, 1.0f / g_th_dn,
          ff > 0.0f ? "beyond the far distance below" : "off");
-    if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep the snapshot decision until the camera moves %.0f m", ff, fm);
+    if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep their first decision until they come within it (snapshot of new nodes every %.0f m)", ff, fm);
 }
 
 static void apply_terrain_lod(void) {
