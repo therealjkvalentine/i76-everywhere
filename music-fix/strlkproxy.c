@@ -1889,7 +1889,7 @@ static int __cdecl radar_ping_wrap(const char *name, BYTE *obj, int flag) {
     if (!g_tick20) { g_ping_name = name; g_ping_obj = obj; g_ping_flag = flag; g_ping_pending = 1; g_ping_tick = GetTickCount(); return 0; }
     if (g_ping_frame == g_frame) return 0;                   /* one per grid frame */
     g_ping_frame = g_frame; g_ping_pending = 0; g_idbg_ping_play++;
-    return ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(name, obj, flag);
+    return ((int (__cdecl *)(const char *, BYTE *, int))(DWORD_PTR)NA(0x004250f0))(name, obj, flag);
 }
 static void radar_ping_flush(void) {                        /* from the frame hook, on grid frames */
     /* a ping held across a mission end must not play: its object is freed by then (the next mission crashed in
@@ -1898,7 +1898,7 @@ static void radar_ping_flush(void) {                        /* from the frame ho
     if (g_ping_pending && GetTickCount() - g_ping_tick > 250) g_ping_pending = 0;
     if (g_ping_pending && g_ping_frame != g_frame) {
         g_ping_pending = 0; g_ping_frame = g_frame; g_idbg_ping_play++;
-        ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(g_ping_name, g_ping_obj, g_ping_flag);
+        ((int (__cdecl *)(const char *, BYTE *, int))(DWORD_PTR)NA(0x004250f0))(g_ping_name, g_ping_obj, g_ping_flag);
     }
 }
 
@@ -1920,8 +1920,8 @@ static float g_st_flame_dmg = 1.0f;                          /* I76_SIM_TICK_FLA
 static int g_st_flame_auto;                                  /* 1 = the rate-aware factor (I76_SIM_TICK_FLAME_DMG unset or 'auto'; TICK-FINISH s.18) */
 static float g_st_flame_ref = 3.5f, g_st_flame_k = 1.0f;     /* ... its factor at the 1997 rate (I76_SIM_TICK_FLAME_DMG_REF), and T_ref / T */
 static DWORD g_fdc_in, g_fdc_out;                            /* flame amounts before / after that factor (log) */
-static float __cdecl step20_dt(void) { float dt = *(volatile float *)0x004fe428; return dt > g_ref_dt ? dt : g_ref_dt; }
-static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))0x00443e90)(); }
+static float __cdecl step20_dt(void) { float dt = *(volatile float *)(DWORD_PTR)NA(0x004fe428); return dt > g_ref_dt ? dt : g_ref_dt; }
+static void __cdecl flame_age_wrap(void) { if (g_tick20) ((void (__cdecl *)(void))(DWORD_PTR)NA(0x00443e90))(); }
 /* flamer census, update cadence: every weapon_UpdateFlamerStreams call while a stream is live, split into calls whose
  * hits would apply damage (stock: every call, main pass and mirror; the 20 Hz grid / the tick: main-pass calls on grid
  * frames / tick frames) and calls that cannot, with the sim time span - the damage per second per hitting segment is
@@ -1954,7 +1954,7 @@ static void __cdecl flame_census_mirror(BYTE *cam) { flc_count_update(!g_flame_w
 static void __cdecl flame_update_main(BYTE *cam) {
     flc_count_update(g_tick20, 0);
     g_flame_dmg_ok = g_tick20;
-    ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
+    ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00443fc0))(cam);
     g_flame_dmg_ok = 0;
 }
 typedef struct { DWORD d[6]; } dmgrec_t;                    /* passed by value: owner, kind 4, ..., amount at d[4] */
@@ -2218,7 +2218,7 @@ static void __cdecl flame_damage_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
     if (g_simtick && (g_st_flame_auto || g_st_flame_dmg != 1.0f)) { DWORD n = flame_dmg_scale(target, rec.d[4]); if (!n) return; rec.d[4] = n; }
     g_idbg_flame_dmg++;
     if (g_flc_on) flame_census_note(&rec);
-    ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))0x004a8240)(target, rec, extra);
+    ((void (__cdecl *)(DWORD, dmgrec_t, DWORD))(DWORD_PTR)NA(0x004a8240))(target, rec, extra);
 }
 static void __cdecl flame_expl_count(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {   /* stock loop: count, spawn as stock */
     g_flc_expl++;
@@ -2236,7 +2236,7 @@ static void __cdecl flame_census_wrap(DWORD target, dmgrec_t rec, DWORD extra) {
 static void __cdecl flame_expl_wrap(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {
     if (g_flame_dmg_ok) g_flc_expl++; else g_flc_expl_blk++;
     if (g_flame_dmg_ok)
-        ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0049ead0)(a, b, c, d, e, f, g);
+        ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))(DWORD_PTR)NA(0x0049ead0))(a, b, c, d, e, f, g);
 }
 
 /* AI fire decisions (i76-map subsystems/ai.md, weapons.md). Every frame each AI car's behaviour calls ai_FireWeapons
@@ -2285,15 +2285,15 @@ static void __cdecl ammo_roll_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
  * (renderer_QueueSmokePuff 0x441930) at their position extrapolated along their velocity, so motion stays smooth. */
 static void __cdecl smoke_update_wrap(BYTE *cam) {
     BYTE *p; double save[3]; float t; int k;
-    if (g_tick20) { ((void (__cdecl *)(BYTE *))0x004414a0)(cam); return; }
-    if (!*(volatile int *)0x0052ba34) return;
+    if (g_tick20) { ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x004414a0))(cam); return; }
+    if (!*(volatile int *)(DWORD_PTR)NA(0x0052ba34)) return;
     t = g_acc20 - g_ref_dt;                                 /* the update draws before it moves: last tick drew P0 */
     if (t > 0.0f) t = 0.0f; if (t < -g_ref_dt) t = -g_ref_dt;
-    for (p = *(BYTE **)0x0052ba30; p; p = *(BYTE **)(p + 0x40)) {
+    for (p = *(BYTE **)(DWORD_PTR)NA(0x0052ba30); p; p = *(BYTE **)(p + 0x40)) {
         if (*(int *)(p + 4) >= 20) continue;                /* expired: freed on the next grid frame, not drawn */
         memcpy(save, p + 0x28, sizeof(save));
         for (k = 0; k < 3; k++) ((double *)(p + 0x28))[k] = save[k] + (double)(((float *)(p + 0x10))[k] * t);
-        ((void (__cdecl *)(BYTE *, BYTE *))0x00441930)(cam, p);
+        ((void (__cdecl *)(BYTE *, BYTE *))(DWORD_PTR)NA(0x00441930))(cam, p);
         memcpy(p + 0x28, save, sizeof(save));
     }
 }
@@ -2302,10 +2302,10 @@ static void __cdecl smoke_update_wrap(BYTE *cam) {
  * to 4 tail segments (0x442bd6), so at 60 fps trails vanish 3x as fast. Between grid frames a trail inside that window
  * gets its expiry (+0xc) moved just past now + 2 for the duration of the call, then restored. */
 static void __cdecl trails_wrap(BYTE *cam) {
-    BYTE *head = *(BYTE **)0x0052bae8, *r;
+    BYTE *head = *(BYTE **)(DWORD_PTR)NA(0x0052bae8), *r;
     float saved[256]; int n = 0;
     if (!g_tick20 && head) {
-        float now = ((float (__cdecl *)(void))0x0049c8c0)(), lim = now + 2.0f;
+        float now = ((float (__cdecl *)(void))(DWORD_PTR)NA(0x0049c8c0))(), lim = now + 2.0f;
         lim += lim * 1e-6f;
         r = head;
         do {
@@ -2314,7 +2314,7 @@ static void __cdecl trails_wrap(BYTE *cam) {
             r = *(BYTE **)r;
         } while (r && r != head);
     }
-    ((void (__cdecl *)(BYTE *))0x00442ba0)(cam);
+    ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00442ba0))(cam);
     if (n) {
         int i = 0;
         r = head;
@@ -2511,7 +2511,7 @@ static void __cdecl hazard_impact_wrap(DWORD a, DWORD b, DWORD c, DWORD d) {
  * once it burns. */
 static DWORD g_idbg_hazard_steps;
 static DWORD hazard_step_call(DWORD fn, BYTE *proj, float dt) {
-    volatile float *sim_dt = (volatile float *)0x004fe420, *sim_rate = (volatile float *)0x004fe424;
+    volatile float *sim_dt = (volatile float *)(DWORD_PTR)NA(0x004fe420), *sim_rate = (volatile float *)(DWORD_PTR)NA(0x004fe424);
     float d0 = *sim_dt, r0 = *sim_rate, w = g_grid_win;
     DWORD r;
     if (w < d0) w = d0;
@@ -2528,7 +2528,7 @@ static DWORD __cdecl hazard_step_fire(BYTE *proj, float dt)  { return g_tick20 ?
 static DWORD __cdecl hazard_step_canister(BYTE *proj, float dt) {
     BYTE *pd = *(BYTE **)(proj + 0x70);
     if (!pd || *(int *)(pd + 0x48) == 0)                    /* still in flight: a moving projectile, dt-driven */
-        return ((DWORD (__cdecl *)(BYTE *, float))0x004ac800)(proj, dt);
+        return ((DWORD (__cdecl *)(BYTE *, float))(DWORD_PTR)NA(0x004ac800))(proj, dt);
     return g_tick20 ? hazard_step_call(0x004ac800, proj, dt) : 1;
 }
 static void apply_hazard_fix(void) {
@@ -4785,7 +4785,7 @@ static int __cdecl coll_shapes_wrap(BYTE **ra, BYTE **rb, void *ca, void *cb) {
 }
 static int __cdecl coll_sound_wrap(const char *name, BYTE *obj, int flag) {
     if (g_coll_dup) return 0;
-    return ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)(name, obj, flag);
+    return ((int (__cdecl *)(const char *, BYTE *, int))(DWORD_PTR)NA(0x004231f0))(name, obj, flag);
 }
 /* I76_BREAKABLE_BOX=2 (2026-10-12, owner: "a few signs like the highway 360 one that you can run into like 10 times
  * before anything happens"; lab docs/SIGN-FIX-2026-10-12.md). 0x4a7c80 scores mass x (v . n)^2 x 6.67e-5, truncated,
@@ -4845,7 +4845,7 @@ static DWORD __cdecl coll_damage_wrap(DWORD victim, DWORD source, DWORD v, DWORD
     if (g_bbox_defer && sign_defer_engine((BYTE *)victim, (BYTE *)source, (const float *)v, (const float *)n, (const float *)p)) return 1;
     if (g_bbox_sweep && !g_bbox_defer) sign_gap_log_engine((BYTE *)victim, (BYTE *)source);
     if (g_stf_scrape_on) return st_coll_damage_call(victim, source, v, n, p);   /* tick-factors: repeats of a contact at the 1997 rate */
-    return ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
+    return ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))(DWORD_PTR)NA(0x004a7c80))(victim, source, v, n, p);
 }
 static void apply_coll_dedupe(void) {
     static const struct { DWORD site, target; void *wrap; const char *what; } cs[6] = {
@@ -5352,7 +5352,7 @@ static void tel_event(DWORD type, float f0, float f1, float f2, float f3, int i0
 
 /* the local player's object and entity, or 0 */
 static BYTE *tel_player(BYTE **ent_out) {
-    BYTE **rec = *(BYTE ***)0x0054a264, *obj, *ent;
+    BYTE **rec = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *obj, *ent;
     obj = rec ? *rec : 0;
     if (!obj || !(*(DWORD *)(obj + 0x10) & 0x10)) return 0;    /* I76_OBJF_LOCAL_PLAYER, as object_IsPlayer tests */
     ent = *(BYTE **)(obj + 0x70);
@@ -5384,23 +5384,23 @@ static int tel_health_sum(BYTE *obj) {
 static void tel_header(i76tel_frame_t *t) {                   /* fixed globals only: safe whatever the player chain holds */
     memset(t, 0, sizeof *t);
     t->magic = I76TEL_MAGIC; t->version = I76TEL_VERSION; t->size = (uint16_t)sizeof *t;
-    t->frame = *(DWORD *)0x005a7e1c;                         /* simclock_frame_count */
+    t->frame = *(DWORD *)(DWORD_PTR)NA(0x005a7e1c);                         /* simclock_frame_count */
     t->proxy_frame = g_frame;
-    t->sim_time = *(float *)0x005a7e74;                      /* simclock_time */
-    t->sim_dt = *(float *)0x004fe420;                        /* simclock_sim_dt */
-    t->dt = *(float *)0x004fe428;                            /* simclock_dt */
+    t->sim_time = *(float *)(DWORD_PTR)NA(0x005a7e74);                      /* simclock_time */
+    t->sim_dt = *(float *)(DWORD_PTR)NA(0x004fe420);                        /* simclock_sim_dt */
+    t->dt = *(float *)(DWORD_PTR)NA(0x004fe428);                            /* simclock_dt */
     t->step_count = -1;
-    t->ffb_present = *(DWORD *)0x0052bbd0;
-    t->ffb_rpm = *(int *)0x004f2334;
-    t->ffb_engine_running = *(DWORD *)0x004f2338;
-    t->ffb_engine_starting = *(DWORD *)0x004f233c;
-    t->ffb_gear_changed = *(DWORD *)0x004f2340;
-    t->ffb_nitrous = *(DWORD *)0x004f2344;
-    memcpy(t->accel_body, (void *)0x004f2418, 12);
-    t->ffb_list_ordnance = *(DWORD *)0x004f2478;
-    t->ffb_list_concussion = *(DWORD *)0x004f247c;
-    t->ffb_list_collision = *(DWORD *)0x004f2484;
-    t->ffb_dt = *(float *)0x004f2488;
+    t->ffb_present = *(DWORD *)(DWORD_PTR)NA(0x0052bbd0);
+    t->ffb_rpm = *(int *)(DWORD_PTR)NA(0x004f2334);
+    t->ffb_engine_running = *(DWORD *)(DWORD_PTR)NA(0x004f2338);
+    t->ffb_engine_starting = *(DWORD *)(DWORD_PTR)NA(0x004f233c);
+    t->ffb_gear_changed = *(DWORD *)(DWORD_PTR)NA(0x004f2340);
+    t->ffb_nitrous = *(DWORD *)(DWORD_PTR)NA(0x004f2344);
+    memcpy(t->accel_body, (void *)(DWORD_PTR)NA(0x004f2418), 12);
+    t->ffb_list_ordnance = *(DWORD *)(DWORD_PTR)NA(0x004f2478);
+    t->ffb_list_concussion = *(DWORD *)(DWORD_PTR)NA(0x004f247c);
+    t->ffb_list_collision = *(DWORD *)(DWORD_PTR)NA(0x004f2484);
+    t->ffb_dt = *(float *)(DWORD_PTR)NA(0x004f2488);
     t->event_seq = g_tel_ev_seq;
     t->music_track = g_playingTrack;                         /* v3: the proxy's own state */
     t->event_hooks = g_tel_hooks;
@@ -5429,14 +5429,14 @@ static void tel_player_fill(i76tel_frame_t *t) {
     if ((c = tel_comp(ent, 9, 22)) != 0) { t->brake_hp = *(int *)(c + 4); t->brake_hp_max = *(int *)(c + 8); t->brake_effective = *(float *)(c + 0x10); }
     if ((c = tel_comp(ent, 7, 21)) != 0) t->engine_power = *(float *)(c + 0x14);          /* v2 fields */
     t->mass = *(float *)(ent + 0xa4); t->inv_mass = *(float *)(ent + 0xa8); t->drag = *(float *)(ent + 0x120);
-    t->health_pct = ((float (__cdecl *)(BYTE *))0x0040b450)(obj);                        /* object_HealthFraction, pure read */
-    t->flags = *(DWORD *)(ent + 0x454); t->surface = *(DWORD *)(ent + 0x45c);
-    memcpy(t->ground_normal, ent + 0x460, sizeof t->ground_normal);
-    t->clearance = *(float *)(ent + 0x470); t->state_timer = *(float *)(ent + 0x450);
+    t->health_pct = ((float (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x0040b450))(obj);                        /* object_HealthFraction, pure read */
+    t->flags = *(DWORD *)(ent + EF(0x454)); t->surface = *(DWORD *)(ent + EF(0x45c));
+    memcpy(t->ground_normal, ent + EF(0x460), sizeof t->ground_normal);
+    t->clearance = *(float *)(ent + EF(0x470)); t->state_timer = *(float *)(ent + EF(0x450));
     memcpy(t->armour, ent + 0x138, 16); memcpy(t->armour_max, ent + 0x158, 16);
     memcpy(t->chassis, ent + 0x148, 16); memcpy(t->chassis_max, ent + 0x168, 16);
     t->wheelbase = *(float *)(ent + 0x118); t->front_track = *(float *)(ent + 0x114);    /* v3 fields (physics.md, 0x438c64 / 0x438c01 / 0x438c72) */
-    t->steer_gain = *(float *)(ent + 0x110); t->ground_g = *(float *)(ent + 0x46c);
+    t->steer_gain = *(float *)(ent + 0x110); t->ground_g = *(float *)(ent + EF(0x46c));
     {                                                        /* the four grip reads of physics_ComputeSteerYawRate 0x43ce10: slots 0 1 4 5,
                                                                 no class test there either (the accessors 0x467450..0x467480) */
         static const int gs[4] = { 0, 1, 4, 5 };
@@ -5457,10 +5457,10 @@ static void tel_player_fill(i76tel_frame_t *t) {
     /* selected weapon: the vehicle weapon record whose +0 is this object (0x5be4d8 + i x 0x2c8, count 0x5da78c), its
      * selected row +4, the row's instance at +0x58 + row x 0x58 + 0x50 (weapons.md) */
     t->weapon_row = t->weapon_def = -1;
-    n = *(int *)0x005da78c;
+    n = *(int *)(DWORD_PTR)NA(0x005da78c);
     if (n > 150) n = 150;                                     /* 0x5be4d8..0x5d88d8 holds 151 records at most */
     for (i = 0; i < n; i++) {
-        BYTE *rec = (BYTE *)0x005be4d8 + i * 0x2c8;
+        BYTE *rec = (BYTE *)(DWORD_PTR)NA(0x005be4d8) + i * 0x2c8;
         int row;
         if (*(BYTE **)rec != obj) continue;
         row = *(int *)(rec + 4);
@@ -5468,7 +5468,7 @@ static void tel_player_fill(i76tel_frame_t *t) {
         if (row >= 0 && row < 7) {
             int idx = *(int *)(rec + 0x58 + row * 0x58 + 0x50);   /* slot+0x50 is an INDEX into the instance table
                                                                        (I76_WeaponSlot; live: 2/3/1 on the sandbox car) */
-            BYTE *inst = (idx >= 0 && idx < *(int *)0x005da750 && idx < 150) ? (BYTE *)0x005aab08 + idx * 0x4c : 0, *root;
+            BYTE *inst = (idx >= 0 && idx < *(int *)(DWORD_PTR)NA(0x005da750) && idx < 150) ? (BYTE *)(DWORD_PTR)NA(0x005aab08) + idx * 0x4c : 0, *root;
             if (inst) {
                 t->weapon_def = *(int *)(inst + 0x30); t->weapon_ammo = *(int *)(inst + 0x20); t->weapon_hp = *(int *)(inst + 0xc);
                 root = *(BYTE **)(inst + 8);
@@ -5478,7 +5478,7 @@ static void tel_player_fill(i76tel_frame_t *t) {
         break;
     }
     if (g_fixed_step > 0.0f) {                               /* substeps the fixed stepper ran in the frame just completed */
-        int st = step_slot(ent + 0x444, 0);
+        int st = step_slot(ent + EF(0x444), 0);
         if (st >= 0 && g_step_acc[st].frame == g_frame) t->step_count = g_step_acc[st].n;
     } else {
         int cnt = (int)(t->sim_dt * 20.0f) + 1;               /* simclock_StepperBegin: floor(dt x 20) + 1, at most 20 */
@@ -5540,12 +5540,12 @@ static void tel_frame(void) {
 /* --- event hooks ---------------------------------------------------------- */
 static void __cdecl tel_fire_wrap(BYTE *inst, BYTE *wdef, int count, float dt_left) {
     BYTE **vrec, *veh;
-    ((void (__cdecl *)(BYTE *, BYTE *, int, float))0x004a6e90)(inst, wdef, count, dt_left);   /* weapon_FireShot */
+    ((void (__cdecl *)(BYTE *, BYTE *, int, float))(DWORD_PTR)NA(0x004a6e90))(inst, wdef, count, dt_left);   /* weapon_FireShot */
     if (!inst) return;
     if (g_cbt_on) cbt_shot(inst);
     vrec = *(BYTE ***)(inst + 0x18);                         /* I76_WeaponInstance.vrec -> +0 vehicle object */
     veh = vrec ? *vrec : 0;
-    if (veh && ((int (__cdecl *)(BYTE *))0x00458bf0)(veh))   /* object_IsPlayer */
+    if (veh && ((int (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00458bf0))(veh))   /* object_IsPlayer */
         tel_event(I76TEL_EV_SHOT, (float)*(int *)(inst + 0x1c), (float)*(int *)(inst + 0x20), (float)*(DWORD *)(inst + 0x10), dt_left,
                   *(int *)(inst + 0x30), count);
 }
@@ -5575,7 +5575,7 @@ static DWORD * __cdecl tel_expl_hook(DWORD name_lo, DWORD name_hi, DWORD p3, flo
 }
 
 static int __cdecl tel_coll_hook(BYTE *target, BYTE *source, float *normal, float *impact, float *dir) {
-    int is_player = target && ((int (__cdecl *)(BYTE *))0x00458bf0)(target) != 0;
+    int is_player = target && ((int (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00458bf0))(target) != 0;
     int before = is_player ? tel_health_sum(target) : 0, r;
     float v[3] = { 0.0f, 0.0f, 0.0f };
     if (impact) { v[0] = impact[0]; v[1] = impact[1]; v[2] = impact[2]; }
@@ -5592,14 +5592,15 @@ static int __cdecl tel_coll_hook(BYTE *target, BYTE *source, float *normal, floa
 static BYTE *tel_detour(DWORD entry, const BYTE *expect, int n, void *hook, const char *what) {
     BYTE patch[16], *tr;
     LONG rel;
+    DWORD ea = NA(entry);                                    /* Nitro: the mapped entry; patch_bytes checks its signature */
     if (!g_tel_tramp) g_tel_tramp = (BYTE *)VirtualAlloc(NULL, 128, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    if (!g_tel_tramp || g_tel_tramp_used + n + 5 > 128 || n > 11 || memcmp((void *)entry, expect, n) != 0) {
+    if (!g_tel_tramp || g_tel_tramp_used + n + 5 > 128 || n > 11 || !ea || (g_exe != EXE_NITRO && memcmp((void *)entry, expect, n) != 0)) {
         mlog("  patch: %s at 0x%08lX has UNEXPECTED bytes (or no trampoline room) - not patching", what, (unsigned long)entry);
         return 0;
     }
     tr = g_tel_tramp + g_tel_tramp_used;
-    memcpy(tr, expect, n);
-    tr[n] = 0xE9; rel = (LONG)((entry + n) - ((DWORD_PTR)tr + n + 5)); memcpy(tr + n + 1, &rel, 4);
+    memcpy(tr, (const void *)(DWORD_PTR)ea, n);              /* = expect on Gold (checked above); Nitro's own bytes there */
+    tr[n] = 0xE9; rel = (LONG)((ea + n) - ((DWORD_PTR)tr + n + 5)); memcpy(tr + n + 1, &rel, 4);
     memset(patch, 0x90, sizeof patch);
     patch[0] = 0xE9; rel = (LONG)((DWORD_PTR)hook - (entry + 5)); memcpy(patch + 1, &rel, 4);
     if (!patch_bytes(entry, expect, patch, n, what)) return 0;
@@ -5864,6 +5865,12 @@ static void apply_telemetry(void) {
     port = atoi(v);
     if (port == 1) port = I76TEL_PORT;
     if (port < 1 || port > 65535) { mlog("  telemetry: '%s' is not a port - off", v); return; }
+    {   /* Nitro: every address the snapshot reads must be mapped (nitro.c); Gold: always true */
+        static const DWORD need[] = { 0x0054a264, 0x005a7e1c, 0x005a7e74, 0x004fe420, 0x004fe428, 0x0052bbd0, 0x004f2334, 0x004f2338,
+            0x004f233c, 0x004f2340, 0x004f2344, 0x004f2418, 0x004f2478, 0x004f247c, 0x004f2484, 0x004f2488, 0x0040b450, 0x005da78c,
+            0x005be4d8, 0x005da750, 0x005aab08, 0x004a6e90, 0x00458bf0 };
+        if (!nitro_need("telemetry", need, (int)(sizeof need / sizeof need[0]))) { mlog("  telemetry: off (site map)"); return; }
+    }
     install_frame_hook();
     if (!g_frame_hook) { mlog("  telemetry: frame hook missing - off"); return; }
 
@@ -5911,6 +5918,10 @@ static void apply_telemetry(void) {
     mlog("  telemetry: on - udp 127.0.0.1:%d %s, shm %s %s, %d/4 event hooks (FireShot call sites x2, SpawnExplosion entry, ApplyCollisionDamage entry), frame %u B + events %u B, ring %d",
          port, g_tel_sock != INVALID_SOCKET ? "open" : "FAILED", tel_nm, g_tel_shm ? "mapped" : "FAILED",
          hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
+    if (g_exe == EXE_NITRO) {
+        if (env_is_1("I76_SOUND_EVENTS") || env_is_1("I76_DAMAGE_EVENTS")) mlog("  telemetry: I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported to Nitro - off");
+        return;
+    }
     apply_sound_events();     /* opt-in: I76_SOUND_EVENTS=1 (i76tel v3) */
     apply_damage_events();    /* opt-in: I76_DAMAGE_EVENTS=1 (i76tel v3) */
 }
@@ -7058,10 +7069,10 @@ static void trn_repair(BYTE *ent) {
 
 /* the player's weapon instances: ammo = value (value < 0: leave), hp to max when hp_max is set */
 static int trn_weapons(BYTE *obj, int ammo, int hp_max) {
-    int n = *(int *)0x005da750, i, hit = 0;
+    int n = *(int *)(DWORD_PTR)NA(0x005da750), i, hit = 0;
     if (n > 150) n = 150;
     for (i = 0; i < n; i++) {
-        BYTE *inst = (BYTE *)0x005aab08 + i * 0x4c, *vrec = *(BYTE **)(inst + 0x18);
+        BYTE *inst = (BYTE *)(DWORD_PTR)NA(0x005aab08) + i * 0x4c, *vrec = *(BYTE **)(inst + 0x18);
         if (!*(DWORD *)(inst + 4) || !vrec || *(BYTE **)vrec != obj) continue;
         if (ammo >= 0) *(int *)(inst + 0x20) = ammo;
         if (hp_max && *(int *)(inst + 0x14) > 0) *(int *)(inst + 0xc) = *(int *)(inst + 0x14);
@@ -7093,14 +7104,14 @@ static void trn_capture(BYTE *obj, BYTE *ent, i76trn_state_t *s) {
     BYTE *eng, *o, *w;
     int i;
     memset(s, 0, sizeof *s);
-    s->frame = g_frame; s->sim_frame = *(volatile DWORD *)0x005a7e1c;
+    s->frame = g_frame; s->sim_frame = *(volatile DWORD *)(DWORD_PTR)NA(0x005a7e1c);
     s->mass = *(float *)(ent + 0xa4);
     memcpy(s->rot, obj + 0x18, 36); memcpy(s->pos, obj + 0x40, 24);
     memcpy(s->vel, ent + 0xbc, 12); s->speed = *(float *)(ent + 0xac); s->inv_speed = *(float *)(ent + 0xb0);
     memcpy(s->rates, ent + 0xc8, 12); memcpy(s->accel, ent + 0xd4, 12);
-    s->ent_flags = *(DWORD *)(ent + 0x454) & I76TRN_ST_FLAG_MASK; s->surface = *(DWORD *)(ent + 0x45c);
-    memcpy(s->ground_normal, ent + 0x460, 12);
-    s->ground_g = *(float *)(ent + 0x46c); s->clearance = *(float *)(ent + 0x470); s->last_ground_y = *(float *)(ent + 0x474);
+    s->ent_flags = *(DWORD *)(ent + EF(0x454)) & I76TRN_ST_FLAG_MASK; s->surface = *(DWORD *)(ent + EF(0x45c));
+    memcpy(s->ground_normal, ent + EF(0x460), 12);
+    s->ground_g = *(float *)(ent + EF(0x46c)); s->clearance = *(float *)(ent + EF(0x470)); s->last_ground_y = *(float *)(ent + EF(0x474));
     s->parts = I76TRN_ST_POSE | I76TRN_ST_MOTION | I76TRN_ST_CONTACT;
     for (i = 0; i < 6; i++) {
         i76trn_wheel_state_t *ws = &s->wheel[i];
@@ -7136,9 +7147,9 @@ static DWORD trn_restore(BYTE *obj, BYTE *ent, const i76trn_state_t *s, DWORD pa
         TRN_PUT(ent + 0xc8, s->rates, 12); TRN_PUT(ent + 0xd4, s->accel, 12);
     }
     if (parts & I76TRN_ST_CONTACT) {
-        fl = (*(DWORD *)(ent + 0x454) & ~I76TRN_ST_FLAG_MASK) | (s->ent_flags & I76TRN_ST_FLAG_MASK);
-        TRN_PUT(ent + 0x454, &fl, 4); TRN_PUT(ent + 0x45c, &s->surface, 4); TRN_PUT(ent + 0x460, s->ground_normal, 12);
-        TRN_PUT(ent + 0x46c, &s->ground_g, 4); TRN_PUT(ent + 0x470, &s->clearance, 4); TRN_PUT(ent + 0x474, &s->last_ground_y, 4);
+        fl = (*(DWORD *)(ent + EF(0x454)) & ~I76TRN_ST_FLAG_MASK) | (s->ent_flags & I76TRN_ST_FLAG_MASK);
+        TRN_PUT(ent + EF(0x454), &fl, 4); TRN_PUT(ent + EF(0x45c), &s->surface, 4); TRN_PUT(ent + EF(0x460), s->ground_normal, 12);
+        TRN_PUT(ent + EF(0x46c), &s->ground_g, 4); TRN_PUT(ent + EF(0x470), &s->clearance, 4); TRN_PUT(ent + EF(0x474), &s->last_ground_y, 4);
     }
     if (parts & I76TRN_ST_WHEELS) {
         for (i = 0; i < 6; i++) {
@@ -7192,7 +7203,7 @@ static int trn_game_focused(void) {
 
 static void trn_apply_inner(void) {
     i76trn_ctl_t *c = g_trn;
-    volatile DWORD *play = (volatile DWORD *)0x00654b98;
+    volatile DWORD *play = (volatile DWORD *)(DWORD_PTR)NA(0x00654b98);
     BYTE *ent = 0, *obj;
     DWORD fl = c->flags, force, applied = 0;
     c->heartbeat = g_frame;
@@ -7250,8 +7261,8 @@ static void trn_apply_inner(void) {
             trn_msg("teleported"); break; }
         case I76TRN_CMD_AMMO:     { char b[64]; wsprintfA(b, "ammo set on %d weapons", trn_weapons(obj, c->ammo_value, 0)); trn_msg(b); } break;
         case I76TRN_CMD_SLOT_AMMO: {
-            int n = *(int *)0x005da750, i = c->slot_index;
-            BYTE *inst = (BYTE *)0x005aab08 + i * 0x4c;
+            int n = *(int *)(DWORD_PTR)NA(0x005da750), i = c->slot_index;
+            BYTE *inst = (BYTE *)(DWORD_PTR)NA(0x005aab08) + i * 0x4c;
             if (i < 0 || i >= n || i >= 150 || !*(DWORD *)(inst + 4)) { c->cmd_result = 3; trn_msg("bad weapon slot"); }
             else { *(int *)(inst + 0x20) = c->ammo_value; trn_msg("slot ammo set"); }
             break; }
@@ -7294,21 +7305,21 @@ static void trn_frame(void) {
  * baseline before the game's code runs (the frame hook re-forces them on the next frame). Bits the user SET as a new
  * baseline (CMD_PLAYFLAGS) are not hidden: that is the Options switch itself, and the GUI warns about it. */
 static void trn_unforce(void) {
-    volatile DWORD *play = (volatile DWORD *)0x00654b98;
+    volatile DWORD *play = (volatile DWORD *)(DWORD_PTR)NA(0x00654b98);
     if (g_trn_forcing) *play = (*play & ~g_trn_forcing) | (g_trn_play_saved & g_trn_forcing);
 }
 static void trn_reforce(void) {
-    if (g_trn && g_trn->magic == I76TRN_MAGIC && g_trn_forcing) *(volatile DWORD *)0x00654b98 |= g_trn_forcing;
+    if (g_trn && g_trn->magic == I76TRN_MAGIC && g_trn_forcing) *(volatile DWORD *)(DWORD_PTR)NA(0x00654b98) |= g_trn_forcing;
 }
 static DWORD g_trn_guard_hits;
 static void __cdecl trn_savedef_wrap(void) {               /* player_SaveDef 0x497290: no args, result unused */
     trn_unforce(); g_trn_guard_hits++;
-    ((void (__cdecl *)(void))0x00497290)();
-    if (*(volatile DWORD *)0x004c2164 == 5) trn_reforce();  /* mid-mission (video-mode key) only; at mission end leave them off */
+    ((void (__cdecl *)(void))(DWORD_PTR)NA(0x00497290))();
+    if (*(volatile DWORD *)(DWORD_PTR)NA(0x004c2164) == 5) trn_reforce();  /* mid-mission (video-mode key) only; at mission end leave them off */
 }
 static void __cdecl trn_menuclose_wrap(void) {             /* 0x495170: no args (push esi / ... / pop esi; ret) */
     trn_unforce(); g_trn_guard_hits++;
-    ((void (__cdecl *)(void))0x00495170)();
+    ((void (__cdecl *)(void))(DWORD_PTR)NA(0x00495170))();
     trn_reforce();
 }
 static int trn_install_guard(void) {
@@ -7335,6 +7346,10 @@ static int trn_install_guard(void) {
 
 static void apply_trainer(void) {
     if (env_flag("I76_TRAINER", 8, 1) == 0) { mlog("  trainer: disabled (I76_TRAINER=0)"); return; }
+    {   /* Nitro: every address the trainer reads / writes must be mapped (nitro.c); Gold: always true */
+        static const DWORD need[] = { 0x0054a264, 0x005a7e1c, 0x00654b98, 0x005da750, 0x005aab08, 0x00497290, 0x00495170, 0x004c2164 };
+        if (!nitro_need("trainer", need, (int)(sizeof need / sizeof need[0]))) { mlog("  trainer: off (site map)"); return; }
+    }
     char trn_nm[96];
     typedef char trn_ext_at_168[(I76TRN_EXT_OFFSET == sizeof(i76trn_ctl_t)) ? 1 : -1];
     const DWORD full = I76TRN_EXT_OFFSET + sizeof(i76trn_ext_t);
@@ -9331,6 +9346,10 @@ static void nitro_dllmain(void) {
     apply_frame_cap();
     apply_fps_log();
     apply_frame_log();
+    apply_telemetry();        /* I76_TELEMETRY (snapshot, shot / explosion / impact events; I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported) */
+    apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
+    apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */
+    apply_joy_routing(exe);   /* Nitro imports joyGetPosEx from WIN32.dll: logs NOT HOOKED, the early tick then watches the keyboard only */
     mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
     mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);
 }

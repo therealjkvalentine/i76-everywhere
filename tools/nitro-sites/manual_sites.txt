@@ -9,3 +9,16 @@
 0x541010  0x000000  0   semantic: team play = bit 0x2000 of 0x53f228 (not a word); raw use refused
 0x452d9f  0x4486ab  7   net_Init scoreboard call: Nitro push 0 / call 0x449ef0 at 0x4486ab (the generated 0x4486b3 calls 0x449730)
 0x402caf  0x431912  2   WinMain single-instance check: FindWindowA result je -> carry on (Gold je 0x402ccd, Nitro je 0x431945, read side by side: both skip ShowWindow(9) + return 0)
+# main loop (WinMain frame body), read side by side 2026-10-21: Nitro keeps Gold's order and inserts one call, 0x444bb0 (race
+# checkpoints / laps), at 0x432e15 between net_RegenPointTick (b) and entity_PostTickAll
+0x403d86  0x432dc6  5   call entity_TickAll (Gold 0x461c80 / Nitro 0x44f9c0)
+0x403dd0  0x432e10  5   call net_RegenPointTick (b)
+0x403dd5  0x432e1a  5   call entity_PostTickAll (Gold 0x461d50 / Nitro 0x44fa90); the generator's 0x432e15 is the race tick
+0x461c80  0x44f9c0  16  entity_TickAll (exediff left it unmatched: twin of PostTickAll); same instructions, globals 0x54b204 -> 0x545d5c
+0x461d50  0x44fa90  16  entity_PostTickAll (same)
+0x4f7770  0x4f7f98  0   class table (8 entries compared: every slot holds the paired function)
+0x4f7788  0x4f7fb0  0   class table slot: vehicle tick 0x463800 / Nitro 0x462980
+# draw-side / cosmetic sites outside the Ghidra function lists, found by pattern 2026-10-21
+0x408a3f  0x437bbf  6   zoom rate fmul [0x4bc5ac] / Nitro fmul [0x4c211c] (camera zoom; function unmatched in exediff)
+0x4605ee  0x45dc20  5   radar ping call 0x4250f0 'CRADAR.WAV' (Nitro 0x41da40); Nitro has two more radar ping calls (0x45e0c5, 0x45e220: Nitro-only missiles) not in Gold
+0x4608f1  0x45df2d  5   radar ping call (2)

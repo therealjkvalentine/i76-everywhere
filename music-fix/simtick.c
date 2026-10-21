@@ -184,9 +184,9 @@ static BYTE g_st_kb_esnap[16];
 static int g_st_pend_once = 0;                                /* default OFF: no pending release was seen in 16 boots (~40 000 frames, TICK-FINISH s.17) */
 static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the harness posted new keys */
 static int st_input_changed(void) {
-    const BYTE *d0 = (const BYTE *)0x006092d0, *e0 = (const BYTE *)0x006092e0;
+    const BYTE *d0 = (const BYTE *)(DWORD_PTR)NA(0x006092d0), *e0 = (const BYTE *)(DWORD_PTR)NA(0x006092e0);
     int i;
-    if (g_mk && *(volatile DWORD *)0x004fe534 == 0x10) return 0;   /* I76_MENU_KEYS (polish.c): menu keys never run an early tick */
+    if (g_mk && *(volatile DWORD *)(DWORD_PTR)NA(0x004fe534) == 0x10) return 0;   /* I76_MENU_KEYS (polish.c): menu keys never run an early tick */
     if (g_st_input_peek_fn && g_st_input_peek_fn()) { g_wst_local.early_lab++; return 1; }
     if (memcmp(d0, g_st_kb_snap, 16) != 0) { g_wst_local.early_kb++; return 1; }
     for (i = 0; i < 16; i++) if (e0[i] && (!g_st_pend_once || e0[i] != g_st_kb_esnap[i])) { g_wst_local.early_kb++; return 1; }
@@ -228,26 +228,26 @@ static DWORD g_wh2_stamp = 1;
  * lists. cb(obj, handle, kind): kind 0 player, 1 vehicle, 2 projectile, 3 other */
 typedef void (*wst_cb)(BYTE *obj, DWORD handle, int kind);
 static void wst_walk(wst_cb cb) {
-    BYTE *node = *(BYTE **)0x0054b204;
+    BYTE *node = *(BYTE **)(DWORD_PTR)NA(0x0054b204);
     int guard = 0, i, n;
     while (node && guard++ < 8192) {
         DWORD h = *(DWORD *)(node + 8);
         BYTE *o = obj_live_noref(h);                         /* strlkproxy.c: no reference released (0x45f0f0 frees dead objects) */
         if (o) {
             int kind = 3;
-            if (*(int *)(o + 0x6c) == 1) kind = ((int (__cdecl *)(BYTE *))0x00458bf0)(o) ? 0 : 1;
+            if (*(int *)(o + 0x6c) == 1) kind = ((int (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00458bf0))(o) ? 0 : 1;
             cb(o, h, kind);
         }
         node = *(BYTE **)node;
     }
-    n = *(int *)0x005a810c;
+    n = *(int *)(DWORD_PTR)NA(0x005a810c);
     if (n < 0 || n > 64) n = 0;
     for (i = 0; i < n; i++) {
-        BYTE *par = *(BYTE **)(0x0065528c + i * 0xd0), *p;
+        BYTE *par = *(BYTE **)(NA(0x0065528c) + i * 0xd0), *p;
         BYTE *heads[2];
         int k;
         heads[0] = par ? *(BYTE **)(par + 0x64) : 0;
-        heads[1] = *(BYTE **)(0x00655290 + i * 0xd0);
+        heads[1] = *(BYTE **)(NA(0x00655290) + i * 0xd0);
         for (k = 0; k < 2; k++) {
             guard = 0;
             for (p = heads[k]; p && guard++ < 2048; p = *(BYTE **)(p + 0x60)) cb(p, 0, 2);
@@ -522,7 +522,7 @@ static void jc_cb(BYTE *o, DWORD h, int kind) {
     }
 }
 static void judder_census(void) {
-    double *c = (double *)0x004c2890;                       /* camera +0x160: eye position (sound_UpdateListener) */
+    double *c = (double *)(DWORD_PTR)NA(0x004c2890);                       /* camera +0x160: eye position (sound_UpdateListener) */
     g_jc_frame++;
     g_wst_local.census_frames++;
     wst_walk(jc_cb);
@@ -572,7 +572,7 @@ static DWORD g_trc_drawn, g_trc_resets_saved, g_trc_first;
 static FILE *g_st_tlog; static DWORD g_st_tlog_n;
 static int st_trc_ok(BYTE *t) { return t && (DWORD_PTR)t > 0x10000; }
 static void st_trc_tick_end(void) {                          /* after the sim block of a tick */
-    BYTE *t0 = *(BYTE **)0x0052ba48, *t;
+    BYTE *t0 = *(BYTE **)(DWORD_PTR)NA(0x0052ba48), *t;
     int guard = 0, n = 0, i, np = 0;
     static struct { BYTE *t, *owner; DWORD touched; } nw[512];
     g_trc_n = 0;
@@ -631,7 +631,7 @@ static void st_trc_out(void) {                               /* after the render
 /* I76_SIM_TICK_TRCLOG=<path> (lab instrument): every drawable tracer record per drawn frame, as the renderer sees it -
  * wall s, display frame, tick frame, record, round, first tick, older x y z, newer x y z (slot point 0) */
 static void st_trc_log(void) {
-    BYTE *t0 = *(BYTE **)0x0052ba48, *t;
+    BYTE *t0 = *(BYTE **)(DWORD_PTR)NA(0x0052ba48), *t;
     int guard = 0;
     LARGE_INTEGER q;
     if (!st_trc_ok(t0)) return;
@@ -669,9 +669,9 @@ static void st_trc_log(void) {
 static BYTE *g_snd_keep[256]; static int g_snd_keep_n, g_st_snd = 1;
 static DWORD g_snd_held;
 static void st_snd_keep(int tickframe) {
-    BYTE *mgr = *(BYTE **)0x00524564, *e;
+    BYTE *mgr = *(BYTE **)(DWORD_PTR)NA(0x00524564), *e;
     int i, guard = 0;
-    if (!mgr || *(DWORD *)0x004ed7e8 == 0) { g_snd_keep_n = 0; return; }
+    if (!mgr || *(DWORD *)(DWORD_PTR)NA(0x004ed7e8) == 0) { g_snd_keep_n = 0; return; }
     if (tickframe) {
         g_snd_keep_n = 0;
         for (e = *(BYTE **)(mgr + 0x1c); e && guard++ < 512; e = *(BYTE **)e)
@@ -691,11 +691,11 @@ static void st_snd_keep(int tickframe) {
 static DWORD g_scn_starts, g_scn_loops, g_scn_last; static float g_scn_t0 = -1.0f;
 static struct { char name[16]; DWORD n, loop; } g_scn[48]; static int g_scn_n;
 static int __cdecl st_snd_start_count(BYTE *voice, int k) {
-    int r = ((int (__cdecl *)(BYTE *, int))0x004220c0)(voice, k);
-    if (r && voice && *(DWORD *)0x004ed7e8) {
+    int r = ((int (__cdecl *)(BYTE *, int))(DWORD_PTR)NA(0x004220c0))(voice, k);
+    if (r && voice && *(DWORD *)(DWORD_PTR)NA(0x004ed7e8)) {
         const char *nm = (const char *)(voice + 4);
         int i, loop = *(int *)(voice + 0x3c) == 2;
-        float t = *(volatile float *)0x005a7e70;
+        float t = *(volatile float *)(DWORD_PTR)NA(0x005a7e70);
         g_scn_starts++; if (loop) g_scn_loops++;
         if (g_scn_t0 < 0.0f) g_scn_t0 = t;
         for (i = 0; i < g_scn_n; i++) if (strncmp(g_scn[i].name, nm, 15) == 0) break;
@@ -725,7 +725,7 @@ static BYTE *g_st_cam_tramp;
 static xform_t g_st_simcam[2]; static DWORD g_st_simcam_tick[2];   /* [1] = newest sim-window camera set */
 static DWORD g_st_cam_disp_frame;
 static int __cdecl st_cam_set(BYTE *cam, xform_t *t) {
-    if (cam == (BYTE *)0x004c2730 && t) {
+    if (cam == (BYTE *)(DWORD_PTR)NA(0x004c2730) && t) {
         if (g_st_in_disp) { g_st_cam_disp_frame = g_wst_local.dframes; g_wst_local.cam_disp_sets++; }
         else {
             if (g_st_simcam_tick[1] != g_wst_local.ticks) { g_st_simcam[0] = g_st_simcam[1]; g_st_simcam_tick[0] = g_st_simcam_tick[1]; }
@@ -809,7 +809,7 @@ static DWORD g_av_render_next = 0x00401c90;
 static BYTE *g_av_tramp[4];
 static void av_view_check(void);
 static void av_trc_count(int mirror) {
-    BYTE *t0 = *(BYTE **)0x0052ba48, *t;
+    BYTE *t0 = *(BYTE **)(DWORD_PTR)NA(0x0052ba48), *t;
     int guard = 0;
     if (!st_trc_ok(t0)) return;
     if (mirror) g_av_tr_calls++; else g_av_tm_calls++;
@@ -834,11 +834,11 @@ static void av_trc_count(int mirror) {
         t = *(BYTE **)t;
     } while (st_trc_ok(t) && t != t0 && ++guard < 4096);
 }
-static void __cdecl av_trc_main(void *cam)   { av_trc_count(0); ((void (__cdecl *)(void *))0x00442480)(cam); }
-static void __cdecl av_trc_mirror(void *cam) { av_trc_count(1); ((void (__cdecl *)(void *))0x004420b0)(cam); }
+static void __cdecl av_trc_main(void *cam)   { av_trc_count(0); ((void (__cdecl *)(void *))(DWORD_PTR)NA(0x00442480))(cam); }
+static void __cdecl av_trc_mirror(void *cam) { av_trc_count(1); ((void (__cdecl *)(void *))(DWORD_PTR)NA(0x004420b0))(cam); }
 static int __cdecl av_coll_snd(const char *name, BYTE *obj, int f) {
-    g_av_coll_snd++; if (name == (const char *)0x004f1578) g_av_coll_vnvco3++;
-    return ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)(name, obj, f);
+    g_av_coll_snd++; if (name == (const char *)(DWORD_PTR)NA(0x004f1578)) g_av_coll_vnvco3++;
+    return ((int (__cdecl *)(const char *, BYTE *, int))(DWORD_PTR)NA(0x004231f0))(name, obj, f);
 }
 static __declspec(naked) void av_knock_thunk(void) {          /* class 4 slot 9: count, then the stock knock-off with the caller's frame */
     __asm {
@@ -850,14 +850,14 @@ static void av_event(const char *fmt, ...) {
     LARGE_INTEGER q; va_list ap;
     if (!g_av) return;
     QueryPerformanceCounter(&q);
-    fprintf(g_av, "E,%.6f,%.4f,%lu,", (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart, *(volatile float *)0x005a7e70, (unsigned long)GetTickCount());
+    fprintf(g_av, "E,%.6f,%.4f,%lu,", (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart, *(volatile float *)(DWORD_PTR)NA(0x005a7e70), (unsigned long)GetTickCount());
     va_start(ap, fmt); vfprintf(g_av, fmt, ap); va_end(ap);
     fputc('\n', g_av); fflush(g_av);
 }
 static void av_mus_state(const char *what, DWORD caller, int track, int force) {
     av_event("%s,caller=%08lx,track=%d,force=%d,playing=%ld,paused=%ld,cur=%ld,level=%u,state=%lu,flags=%02x", what, (unsigned long)caller, track, force,
-             *(volatile long *)0x00524570, *(volatile long *)0x0052456c, *(volatile long *)0x004ed800, (unsigned)*(volatile BYTE *)0x00654b90,
-             (unsigned long)*(volatile DWORD *)0x004c2164, (unsigned)*(volatile BYTE *)0x004fe534);
+             *(volatile long *)(DWORD_PTR)NA(0x00524570), *(volatile long *)(DWORD_PTR)NA(0x0052456c), *(volatile long *)(DWORD_PTR)NA(0x004ed800), (unsigned)*(volatile BYTE *)(DWORD_PTR)NA(0x00654b90),
+             (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004c2164), (unsigned)*(volatile BYTE *)(DWORD_PTR)NA(0x004fe534));
 }
 static int __cdecl av_mus_play(int track, int force) {
     int r;
@@ -885,14 +885,14 @@ static int av_entry(int i, DWORD va, const BYTE *old5, void *wrap, const char *w
 }
 static void av_frame(int camx) {
     LARGE_INTEGER q;
-    BYTE **pp = *(BYTE ***)0x0054a264, *pl = pp ? *pp : 0;
-    const double *eye = (const double *)0x004c2890;
-    const float *ex = (const float *)0x005fcdc4;
+    BYTE **pp = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *pl = pp ? *pp : 0;
+    const double *eye = (const double *)(DWORD_PTR)NA(0x004c2890);
+    const float *ex = (const float *)(DWORD_PTR)NA(0x005fcdc4);
     double pp3[3] = { 0.0, 0.0, 0.0 };
-    int i, pend = 0, gp = *(volatile DWORD *)0x00504c1c != 0 && (*(volatile BYTE *)0x004fe534 & 0x3e) == 0;
+    int i, pend = 0, gp = *(volatile DWORD *)(DWORD_PTR)NA(0x00504c1c) != 0 && (*(volatile BYTE *)(DWORD_PTR)NA(0x004fe534) & 0x3e) == 0;
     if (!g_av || g_av_frames >= 4000000) return;
     QueryPerformanceCounter(&q);
-    for (i = 0; i < 16; i++) if (((const BYTE *)0x006092e0)[i]) pend++;
+    for (i = 0; i < 16; i++) if (((const BYTE *)(DWORD_PTR)NA(0x006092e0))[i]) pend++;
 #ifdef _MSC_VER
     __try {
 #endif
@@ -901,13 +901,13 @@ static void av_frame(int camx) {
     } __except (EXCEPTION_EXECUTE_HANDLER) { }
 #endif
     fprintf(g_av, "F,%.6f,%lu,%.4f,%d,%d,%d,%.4f,%lu,%lu,%d,%.4f,%.4f,%.4f,%.5f,%.5f,%.5f,%.6f,%08lx,%.7f,%.7f,%lu,%.3f,%.4f,%lu,%lu,%lu,%lu,%lu,%d,%.4f,%.4f,%.4f,%lu,%lu,%lu,%lu\n",
-            (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart, (unsigned long)g_av_frames, *(volatile float *)0x005a7e70, gp,
+            (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart, (unsigned long)g_av_frames, *(volatile float *)(DWORD_PTR)NA(0x005a7e70), gp,
             g_simtick ? g_st_now : 1, g_simtick ? g_st_early_now : 0, g_simtick ? g_wst_local.alpha : 1.0f,
             (unsigned long)g_wst_local.early_kb, (unsigned long)g_wst_local.early_lab, pend, eye[0], eye[1], eye[2], ex[6], ex[7], ex[8],
-            *(volatile float *)0x004c291c, (unsigned long)*(volatile DWORD *)0x004c2720, *(volatile double *)0x00507cd8, *(volatile double *)0x00507c50,
+            *(volatile float *)(DWORD_PTR)NA(0x004c291c), (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004c2720), *(volatile double *)(DWORD_PTR)NA(0x00507cd8), *(volatile double *)(DWORD_PTR)NA(0x00507c50),
             (unsigned long)g_av_tm_n, g_av_lw_n ? g_av_len / g_av_lw_n : 0.0, g_av_w_n ? g_av_wid / g_av_w_n : 0.0, (unsigned long)g_av_tr_n,
             (unsigned long)g_av_knock_n, (unsigned long)g_av_coll_snd, (unsigned long)g_av_coll_vnvco3, (unsigned long)g_st_sign_snd_n, camx,
-            pp3[0], pp3[1], pp3[2], (unsigned long)g_st_cam_early_n, (unsigned long)*(volatile DWORD *)0x005244c4,
+            pp3[0], pp3[1], pp3[2], (unsigned long)g_st_cam_early_n, (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x005244c4),
             (unsigned long)g_av_tm_calls, (unsigned long)g_av_tr_calls);
     g_av_frames++; g_av_tm_n = 0; g_av_tr_n = 0; g_av_tm_calls = 0; g_av_tr_calls = 0; g_av_len = 0.0; g_av_wid = 0.0; g_av_lw_n = 0; g_av_w_n = 0;
     if ((g_av_frames & 7) == 0) fflush(g_av);                 /* the harness kills the game: keep at most 8 frames unwritten */
@@ -918,11 +918,11 @@ static void av_frame(int camx) {
 static float g_av_view_t = -1.0f; static int g_av_view;
 static void av_view_check(void) {
     BYTE **pp;
-    if (g_av_view_t < 0.0f || *(volatile float *)0x005a7e70 < g_av_view_t) return;
+    if (g_av_view_t < 0.0f || *(volatile float *)(DWORD_PTR)NA(0x005a7e70) < g_av_view_t) return;
     g_av_view_t = -1.0f;
-    pp = ((BYTE **(__cdecl *)(void))0x00457530)();
+    pp = ((BYTE **(__cdecl *)(void))(DWORD_PTR)NA(0x00457530))();
     if (!pp || !*pp) return;
-    ((void (__cdecl *)(BYTE **, int))0x004096c0)(pp, g_av_view);
+    ((void (__cdecl *)(BYTE **, int))(DWORD_PTR)NA(0x004096c0))(pp, g_av_view);
     av_event("view,0x%x", g_av_view);
 }
 static void __cdecl av_render_stock(void *cam) {             /* outside the tick: after the frame's render */
@@ -968,7 +968,7 @@ static void apply_av_log(void) {
  * 1997 design value D x f per second per hitting segment: max(1, int(30 x 1 x T)) = 1). */
 static int g_st_fage_hz = 20, g_st_fage_due = 1;
 static double g_st_fage_acc;
-static void __cdecl st_flame_age_wrap(void) { if (g_tick20 && g_st_fage_due) ((void (__cdecl *)(void))0x00443e90)(); }
+static void __cdecl st_flame_age_wrap(void) { if (g_tick20 && g_st_fage_due) ((void (__cdecl *)(void))(DWORD_PTR)NA(0x00443e90))(); }
 static void st_flame_age_tick(void) {                         /* on each tick frame */
     double per;
     if (g_st_fage_hz <= 0) { g_st_fage_due = 1; return; }
@@ -979,8 +979,8 @@ static void st_flame_age_tick(void) {                         /* on each tick fr
 }
 /* ---- clock -------------------------------------------------------------------------------------------------------- */
 static void st_clock_set(float sdt, float dt) {
-    *(volatile float *)0x004fe420 = sdt; *(volatile float *)0x004fe424 = 1.0f / sdt;
-    *(volatile float *)0x004fe428 = dt;  *(volatile float *)0x004fe42c = 1.0f / dt;
+    *(volatile float *)(DWORD_PTR)NA(0x004fe420) = sdt; *(volatile float *)(DWORD_PTR)NA(0x004fe424) = 1.0f / sdt;
+    *(volatile float *)(DWORD_PTR)NA(0x004fe428) = dt;  *(volatile float *)(DWORD_PTR)NA(0x004fe42c) = 1.0f / dt;
 }
 static void st_clock_tick(void) { st_clock_set(g_st_clk[0], g_st_clk[2]); }
 
@@ -1000,14 +1000,14 @@ static void simtick_clock(void) {
     LARGE_INTEGER q;
     double d;
     int early = 0;
-    int gameplay = *(volatile DWORD *)0x00504c1c != 0 && (*(volatile BYTE *)0x004fe534 & 0x3e) == 0;
+    int gameplay = *(volatile DWORD *)(DWORD_PTR)NA(0x00504c1c) != 0 && (*(volatile BYTE *)(DWORD_PTR)NA(0x004fe534) & 0x3e) == 0;
     QueryPerformanceCounter(&q);
     d = g_st_q.QuadPart ? (double)(q.QuadPart - g_st_q.QuadPart) / (double)g_qpf.QuadPart : 0.0;
     g_st_q = q;
     g_st_disp_dt = (float)(d < 0.001 ? 0.001 : d > 0.2 ? 0.2 : d);
     g_wst_local.dframes++;
     if (!gameplay) {                                         /* shell / pause: stock, every frame */
-        ((void (__cdecl *)(void))0x0049c920)();
+        ((void (__cdecl *)(void))(DWORD_PTR)NA(0x0049c920))();
         g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0; g_trc_n = 0; g_trcp_n = 0;
         g_st_clk[0] = 0.0f; g_st_cam_from_on = 0;
         g_tick20 = 1; g_st_fage_due = 1;
@@ -1016,7 +1016,7 @@ static void simtick_clock(void) {
         return;
     }
     g_wst_local.gameplay_frames++;
-    if (*(volatile int *)0x005a7e18 == 0 && g_st_acc < (double)g_st_T) g_st_acc = (double)g_st_T;   /* simclock_Init ran: a new mission */
+    if (*(volatile int *)(DWORD_PTR)NA(0x005a7e18) == 0 && g_st_acc < (double)g_st_T) g_st_acc = (double)g_st_T;   /* simclock_Init ran: a new mission */
     g_wst_local.wall_s += d > 0.25 ? 0.25 : d;
     g_st_acc += d > 0.25 ? 0.25 : d;
     g_st_since += d;
@@ -1025,9 +1025,9 @@ static void simtick_clock(void) {
     }
     g_st_early_now = early;
     if (g_st_acc >= (double)g_st_T || early) {
-        volatile float *acc = (volatile float *)0x005a7e14, *tm = (volatile float *)0x005a7e74, *stm = (volatile float *)0x005a7e70;
+        volatile float *acc = (volatile float *)(DWORD_PTR)NA(0x005a7e14), *tm = (volatile float *)(DWORD_PTR)NA(0x005a7e74), *stm = (volatile float *)(DWORD_PTR)NA(0x005a7e70);
         float acc0 = *acc, tm0 = *tm, stm0 = *stm;
-        int warm = *(volatile int *)0x005a7e18 >= *(volatile int *)0x004be990;   /* accum_dt counts from the 4th frame */
+        int warm = *(volatile int *)(DWORD_PTR)NA(0x005a7e18) >= *(volatile int *)(DWORD_PTR)NA(0x004be990);   /* accum_dt counts from the 4th frame */
         if (early) st_early_from();                          /* what this frame would have drawn: the blend's start */
         if (early) st_early_cam_from();                      /* ... and the script camera's (I76_SIM_TICK_EARLY_CAM) */
         g_st_acc -= (double)g_st_T;
@@ -1038,7 +1038,7 @@ static void simtick_clock(void) {
         }
         g_st_now = 1;
         wst_tick_start();
-        ((void (__cdecl *)(void))0x0049c920)();             /* simclock_Update: frame count, last tick, first-frames latch */
+        ((void (__cdecl *)(void))(DWORD_PTR)NA(0x0049c920))();             /* simclock_Update: frame count, last tick, first-frames latch */
         st_clock_set(g_st_T, g_st_T);
         *tm = tm0 + g_st_T; *stm = stm0 + g_st_T;
         if (warm) *acc = acc0 + g_st_T;
@@ -1050,7 +1050,7 @@ static void simtick_clock(void) {
         radar_ping_flush();
     } else {
         g_st_now = 0;
-        (*(volatile DWORD *)0x005a7e1c)++;                  /* display-frame count for the render-side readers */
+        (*(volatile DWORD *)(DWORD_PTR)NA(0x005a7e1c))++;                  /* display-frame count for the render-side readers */
         g_wst_local.nontick++;
         g_tick20 = 0; g_acc20 = (float)g_st_since;
     }
@@ -1083,8 +1083,8 @@ static void __cdecl st_gate0(void) {                       /* input_UpdateContro
     ((void (__cdecl *)(void))g_stc[0])();
     g_st_joy_rec = 0;
     for (i = 0; i < 16; i++) g_sj[i].valid = g_sj[i].polled;
-    memcpy(g_st_kb_snap, (const void *)0x006092d0, 16);
-    memcpy(g_st_kb_esnap, (const void *)0x006092e0, 16);     /* I76_SIM_TICK_PEND_ONCE: pending releases already seen */
+    memcpy(g_st_kb_snap, (const void *)(DWORD_PTR)NA(0x006092d0), 16);
+    memcpy(g_st_kb_esnap, (const void *)(DWORD_PTR)NA(0x006092e0), 16);     /* I76_SIM_TICK_PEND_ONCE: pending releases already seen */
 }
 ST_GATE0(1) ST_GATE0(2) ST_GATE0(6) ST_GATE0(8) ST_GATE0(9) ST_GATE0(10) ST_GATE0(11)
 static void __cdecl st_gate3(void) {                       /* entity_TickAll */
@@ -1115,7 +1115,7 @@ static void __cdecl st_vehicle_tick(BYTE *obj) {
     if (cnt < 0) { isfar = 1; cnt = 0; }
     g_wst_local.veh_ticks++;
     g_wst_local.veh_hist[isfar ? 5 : (cnt > 4 ? 4 : cnt)]++;
-    if (((int (__cdecl *)(BYTE *))0x00458bf0)(obj)) {
+    if (((int (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00458bf0))(obj)) {
         g_wst_local.pl_hist[isfar ? 5 : (cnt > 4 ? 4 : cnt)]++;
         if (!isfar) g_wst_local.pl_step_ms = g_st_begin_step * 1000.0f;
     }
@@ -1123,7 +1123,7 @@ static void __cdecl st_vehicle_tick(BYTE *obj) {
 
 /* ---- display window ------------------------------------------------------------------------------------------------ */
 static void __cdecl st_cam_wrap(void) {
-    void (__cdecl *mode)(void) = *(void (__cdecl **)(void))0x004c2720;
+    void (__cdecl *mode)(void) = *(void (__cdecl **)(void))(DWORD_PTR)NA(0x004c2720);
     if (g_st_now && g_st_clk[0] > 0.0f) wst_tick_end();     /* the sim block is done: poses after the tick */
     if (g_st_now && g_st_clk[0] > 0.0f && g_st_trc) st_trc_tick_end();   /* tracer records updated in this tick */
     if (g_st_snd && g_st_clk[0] > 0.0f) st_snd_keep(g_st_now);   /* sustained sounds: list (tick frame) / keep alive (between ticks) */
@@ -1144,7 +1144,7 @@ static void __cdecl st_render_wrap(void *cam) {
         if (g_st_seg_early && g_st_cam_from_on) xf_lerp(&cx, &g_st_cam_from, &g_st_simcam[1], g_wst_local.alpha);   /* I76_SIM_TICK_EARLY_CAM */
         else xf_lerp(&cx, &g_st_simcam[0], &g_st_simcam[1], g_wst_local.alpha);
         g_st_in_disp = 2;
-        ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)0x004c2730, &cx);
+        ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)(DWORD_PTR)NA(0x004c2730), &cx);
         camx = 1; g_wst_local.simcam_interp++; g_st_camx_frame = g_wst_local.dframes;
     }
     {   /* the player as drawn (I76_BREAKABLE_BOX=4 reads it) */
@@ -1179,10 +1179,10 @@ static void __cdecl st_render_wrap(void *cam) {
     g_wst_local.flame_seg_sum = g_flc_seg_sum; g_wst_local.flame_seg_n = g_flc_seg_n; g_wst_local.flame_hit_s = g_flc_t0 >= 0.0f ? g_flc_t1 - g_flc_t0 : 0.0f;
     if (g_st_trc) st_trc_in(g_wst_local.alpha);
     if (g_st_tlog && g_st_tlog_n < 3000000) st_trc_log();
-    ((void (__cdecl *)(void *))0x00401c90)(cam);
+    ((void (__cdecl *)(void *))(DWORD_PTR)NA(0x00401c90))(cam);
     if (g_av) av_frame(camx);                                /* I76_AV_LOG (lab): the frame as drawn */
     if (g_st_trc) st_trc_out();
-    if (camx) ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)0x004c2730, &g_st_simcam[1]);
+    if (camx) ((int (__cdecl *)(BYTE *, xform_t *))g_st_cam_tramp)((BYTE *)(DWORD_PTR)NA(0x004c2730), &g_st_simcam[1]);
     wst_swap_out(g_st_now);
     g_st_in_disp = 1;
     wst_publish();
@@ -1217,10 +1217,10 @@ static int g_st_flame_state = 0;
 #define ST_FLAME_DMG_DEFAULT 2.8f                            /* the fixed factor's fallback (an out-of-range I76_SIM_TICK_FLAME_DMG) */
 #define ST_FLAME_DMG_REF_DEFAULT 3.5f                        /* s.18: the rate-aware factor's G (strlkproxy.c flame_dmg_factor) */
 static float g_st_flame_dt;                                  /* I76_SIM_TICK_FLAME_DT=<s> (lab): the flamer update's dt floor instead of the tick */
-static float __cdecl st_flame_dt(void) { float dt = *(volatile float *)0x004fe428, f = g_st_flame_dt > 0.0f ? g_st_flame_dt : g_ref_dt; return dt > f ? dt : f; }
+static float __cdecl st_flame_dt(void) { float dt = *(volatile float *)(DWORD_PTR)NA(0x004fe428), f = g_st_flame_dt > 0.0f ? g_st_flame_dt : g_ref_dt; return dt > f ? dt : f; }
 static BYTE g_fs_save[64][0x360]; static BYTE *g_fs_rec[64]; static int g_fs_n; static DWORD g_fs_restored, g_fs_kept;
 static void st_flame_snap(void) {
-    BYTE *r0 = *(BYTE **)0x0052bb90, *r = r0;
+    BYTE *r0 = *(BYTE **)(DWORD_PTR)NA(0x0052bb90), *r = r0;
     g_fs_n = 0;
     while (r && g_fs_n < 64) {
         memcpy(g_fs_save[g_fs_n], r, 0x360); g_fs_rec[g_fs_n++] = r;
@@ -1239,41 +1239,41 @@ static void st_flame_restore(void) {
 static void __cdecl st_flame_mirror(BYTE *cam) {             /* the rear mirror's update: drawing only under the tick */
     flc_count_update(0, 1);
     if (g_st_flame_state) st_flame_snap();
-    ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
+    ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00443fc0))(cam);
     if (g_st_flame_state) st_flame_restore();
 }
 static void __cdecl st_flame_main(BYTE *cam) {
     float save[4];
     int tick = (g_tick20 || g_st_flame_clk) && g_st_clk[0] > 0.0f;
-    save[0] = *(volatile float *)0x004fe420; save[1] = *(volatile float *)0x004fe424;
-    save[2] = *(volatile float *)0x004fe428; save[3] = *(volatile float *)0x004fe42c;
+    save[0] = *(volatile float *)(DWORD_PTR)NA(0x004fe420); save[1] = *(volatile float *)(DWORD_PTR)NA(0x004fe424);
+    save[2] = *(volatile float *)(DWORD_PTR)NA(0x004fe428); save[3] = *(volatile float *)(DWORD_PTR)NA(0x004fe42c);
     if (tick) st_clock_tick();
     flc_count_update(g_tick20, 0);
     g_flame_dmg_ok = g_tick20;
     if (!g_tick20 && g_st_flame_state) st_flame_snap();
-    ((void (__cdecl *)(BYTE *))0x00443fc0)(cam);
+    ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00443fc0))(cam);
     if (!g_tick20 && g_st_flame_state) st_flame_restore();
     g_flame_dmg_ok = 0;
     if (tick) {
-        *(volatile float *)0x004fe420 = save[0]; *(volatile float *)0x004fe424 = save[1];
-        *(volatile float *)0x004fe428 = save[2]; *(volatile float *)0x004fe42c = save[3];
+        *(volatile float *)(DWORD_PTR)NA(0x004fe420) = save[0]; *(volatile float *)(DWORD_PTR)NA(0x004fe424) = save[1];
+        *(volatile float *)(DWORD_PTR)NA(0x004fe428) = save[2]; *(volatile float *)(DWORD_PTR)NA(0x004fe42c) = save[3];
     }
 }
 
 /* repoint a `call rel32` at site to wrap, keeping whatever it called (stock target expected; another wrapper is
  * chained and logged). Returns 1 on success, 0 if the site is not a call. */
 static int st_call_site(DWORD site, DWORD stock, void *wrap, DWORD *chain, const char *what) {
-    BYTE *p = (BYTE *)(DWORD_PTR)site, o[5], w[5] = { 0xE8 };
+    BYTE *p = (BYTE *)(DWORD_PTR)NA(site), o[5] = { 0xE8 }, w[5] = { 0xE8 };   /* NA: Gold = site; Nitro = the mapped site (nitro.c) */
     LONG rel;
     DWORD tgt;
-    if (p[0] != 0xE8) { mlog("  sim-tick: %s at 0x%08lX is not a call - not patched", what, (unsigned long)site); return 0; }
-    memcpy(o, p, 5);
-    memcpy(&rel, p + 1, 4); tgt = site + 5 + (DWORD)rel;
-    if (tgt != stock) mlog("  sim-tick: %s at 0x%08lX already calls 0x%08lX (stock 0x%08lX) - chained", what, (unsigned long)site, (unsigned long)tgt, (unsigned long)stock);
+    if (!p || p[0] != 0xE8) { mlog("  sim-tick: %s at 0x%08lX is not a call - not patched", what, (unsigned long)site); return 0; }
+    memcpy(&rel, p + 1, 4); tgt = (DWORD)(DWORD_PTR)p + 5 + (DWORD)rel;   /* the running exe's target */
+    if (tgt != NA(stock)) mlog("  sim-tick: %s at 0x%08lX already calls 0x%08lX (stock 0x%08lX) - chained", what, (unsigned long)site, (unsigned long)tgt, (unsigned long)stock);
     if (chain) *chain = tgt;
+    rel = (LONG)((tgt == NA(stock) ? stock : tgt) - (site + 5)); memcpy(o + 1, &rel, 4);   /* = the bytes at p on Gold */
     rel = (LONG)((DWORD_PTR)wrap - (site + 5)); memcpy(w + 1, &rel, 4);
     if (!patch_bytes(site, o, w, 5, what)) return 0;
-    return memcmp(p, w, 5) == 0;                             /* read back */
+    return g_exe == EXE_NITRO ? 1 : memcmp(p, w, 5) == 0;    /* read back (Nitro: nitro_patch_bytes read it back) */
 }
 
 /* ---- Frame-bound factors (2026-10-19 tick-factors; docs/records/FRAME-BOUND-SYSTEMS-2026-10-19.md, TICK-FINISH s.14) -------
@@ -1313,7 +1313,7 @@ static struct { DWORD n, in, out, pl_n, pl_in, pl_out; float t0, t1; } g_stfc[4]
 static DWORD g_stf_hz_steps, g_stf_wr_rolls, g_stf_wr_pass, g_stf_wr_act, g_stf_rd_n, g_stf_rd_clamp;
 static double g_stf_rd_in, g_stf_rd_out, g_stf_rd_rate;
 static float g_stf_wr_t0 = -1.0f, g_stf_wr_t1, g_stf_rd_t0 = -1.0f, g_stf_rd_t1;
-static float st_simnow(void) { return *(volatile float *)0x005a7e70; }
+static float st_simnow(void) { return *(volatile float *)(DWORD_PTR)NA(0x005a7e70); }
 static DWORD __cdecl st_dmg_class_wrap(DWORD obj, DWORD *rec, DWORD pos) {
     if (g_dsc_cat && rec) {
         int i, k, c = g_dsc_cat - 1, pl = 0;
@@ -1322,7 +1322,7 @@ static DWORD __cdecl st_dmg_class_wrap(DWORD obj, DWORD *rec, DWORD pos) {
 #ifdef _MSC_VER
         __try {
 #endif
-            pl = obj && ((int (__cdecl *)(DWORD))0x00458bf0)(obj);
+            pl = obj && ((int (__cdecl *)(DWORD))(DWORD_PTR)NA(0x00458bf0))(obj);
 #ifdef _MSC_VER
         } __except (EXCEPTION_EXECUTE_HANDLER) { pl = 0; }
 #endif
@@ -1357,7 +1357,7 @@ static int st_dmg_chain_take(void *stub) {                   /* apply_coop_ai: i
 static DWORD st_hz_call(DWORD fn, BYTE *proj, float dt) {
     float f0 = g_dsc_f; int c0 = g_dsc_cat; DWORD r;
     g_dsc_f = g_simtick ? g_stf_f[0] : 1.0f; g_dsc_cat = 1; g_stf_hz_steps++;
-    r = ((DWORD (__cdecl *)(BYTE *, float))(DWORD_PTR)fn)(proj, dt);
+    r = ((DWORD (__cdecl *)(BYTE *, float))(DWORD_PTR)NA(fn))(proj, dt);
     g_dsc_f = f0; g_dsc_cat = c0;
     return r;
 }
@@ -1366,7 +1366,7 @@ static DWORD __cdecl st_hz_wheel(BYTE *p, float dt) { return st_hz_call(0x004aa2
 static DWORD __cdecl st_hz_fire(BYTE *p, float dt)  { return st_hz_call(0x004aa450, p, dt); }
 static DWORD __cdecl st_hz_canister(BYTE *p, float dt) {
     BYTE *pd = *(BYTE **)(p + 0x70);
-    if (!pd || *(int *)(pd + 0x48) == 0) return ((DWORD (__cdecl *)(BYTE *, float))0x004ac800)(p, dt);   /* in flight: a moving round */
+    if (!pd || *(int *)(pd + 0x48) == 0) return ((DWORD (__cdecl *)(BYTE *, float))(DWORD_PTR)NA(0x004ac800))(p, dt);   /* in flight: a moving round */
     return st_hz_call(0x004ac800, p, dt);
 }
 static struct { DWORD v, s, pass; int rep; } g_scr[64]; static int g_scr_i;
@@ -1401,12 +1401,12 @@ static DWORD st_coll_damage_call(DWORD victim, DWORD source, DWORD v, DWORD n, D
         if (rep && g_simtick) f = g_stf_f[1];
     }
     g_dsc_f = f; g_dsc_cat = cat;
-    r = ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))0x004a7c80)(victim, source, v, n, p);
+    r = ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD))(DWORD_PTR)NA(0x004a7c80))(victim, source, v, n, p);
     g_dsc_f = f0; g_dsc_cat = c0;
     return r;
 }
 static int __cdecl st_wreck_roll(void) {                      /* replaces `call ebx (rand); and eax, 0xf` at 0x4664eb */
-    int r = (*(int (__cdecl **)(void))0x004bc20c)(), v = r & 15;
+    int r = (*(int (__cdecl **)(void))(DWORD_PTR)NA(0x004bc20c))(), v = r & 15;
     float t = st_simnow();
     g_stf_wr_rolls++;
     if (g_simtick && g_stf_f[2] < 1.0f && ((r >> 4) & 2047) >= (int)(g_stf_f[2] * 2048.0f)) v = 15;
@@ -1416,15 +1416,15 @@ static int __cdecl st_wreck_roll(void) {                      /* replaces `call 
     return v;
 }
 static void *__cdecl st_radar_turn(float *out, float angle, float x, float y, float z) {
-    float a = angle < 0.0f ? -angle : angle, s = 1.0f, dt = *(volatile float *)0x004fe420, t = st_simnow();
-    int clamped = a == *(volatile float *)0x004bec2c || a == *(volatile float *)0x004bec34 || a == *(volatile float *)0x004bec38;
+    float a = angle < 0.0f ? -angle : angle, s = 1.0f, dt = *(volatile float *)(DWORD_PTR)NA(0x004fe420), t = st_simnow();
+    int clamped = a == *(volatile float *)(DWORD_PTR)NA(0x004bec2c) || a == *(volatile float *)(DWORD_PTR)NA(0x004bec34) || a == *(volatile float *)(DWORD_PTR)NA(0x004bec38);
     if (g_simtick) s = clamped ? g_stf_rk : g_stf_rg;
     g_stf_rd_n++; if (clamped) g_stf_rd_clamp++;
     g_stf_rd_in += a; g_stf_rd_out += a * s;
     if (dt > 0.0f) g_stf_rd_rate += a * s / dt;
     if (g_stf_rd_t0 < 0.0f) g_stf_rd_t0 = t;
     g_stf_rd_t1 = t;
-    return ((void *(__cdecl *)(float *, float, float, float, float))0x00494460)(out, angle * s, x, y, z);
+    return ((void *(__cdecl *)(float *, float, float, float, float))(DWORD_PTR)NA(0x00494460))(out, angle * s, x, y, z);
 }
 /* ---- s.20 (2026-10-20 jump-fix lane, TICK-FINISH s.20): the slope-follow speed loss, per grounded substep ----------------
  * physics_IntegrateVehicleMotion 0x43a5d0, grip path, once per grounded substep: the velocity is rebuilt along the body's
@@ -1447,10 +1447,10 @@ static DWORD g_ssl_calls, g_ssl_scaled, g_ssl_skipped;
 static double g_ssl_in, g_ssl_out;
 static DWORD g_ssl_next[3] = { 0x0043a5d0, 0x0043a280, 0x0043a280 };   /* chained targets of the three sites */
 static DWORD __cdecl st_slope_integ(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD a4, DWORD a5, DWORD a6, DWORD a7) {
-    BYTE *veh = ((BYTE *(__cdecl *)(DWORD))0x00467440)(a0);   /* the same getter 0x43a5d0 calls on its first argument */
+    BYTE *veh = ((BYTE *(__cdecl *)(DWORD))(DWORD_PTR)NA(0x00467440))(a0);   /* the same getter 0x43a5d0 calls on its first argument */
     int s0 = g_ssl_skip;
     DWORD r;
-    g_ssl_skip = !veh || (*(volatile DWORD *)(veh + 0x454) & 0x204) != 0;   /* airborne, or the substep after a landing */
+    g_ssl_skip = !veh || (*(volatile DWORD *)(veh + EF(0x454)) & 0x204) != 0;   /* airborne, or the substep after a landing */
     r = ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))g_ssl_next[0])(a0, a1, a2, a3, a4, a5, a6, a7);
     g_ssl_skip = s0;
     return r;
@@ -1552,11 +1552,11 @@ static void st_factors_install(int tick) {
     if (nd && (census || g_stf_f[1] != 1.0f)) {                 /* the two collision damage calls go through coll_damage_wrap */
         static const DWORD cs[2] = { 0x004644bc, 0x0046f8d4 };
         for (i = 0; i < 2; i++) {
-            BYTE *p = (BYTE *)(DWORD_PTR)cs[i]; LONG rel; DWORD tgt;
-            if (p[0] != 0xE8) continue;
-            memcpy(&rel, p + 1, 4); tgt = cs[i] + 5 + (DWORD)rel;
+            BYTE *p = (BYTE *)(DWORD_PTR)NA(cs[i]); LONG rel; DWORD tgt;
+            if (!p || p[0] != 0xE8) continue;
+            memcpy(&rel, p + 1, 4); tgt = (DWORD)(DWORD_PTR)p + 5 + (DWORD)rel;
             if (tgt == (DWORD)(DWORD_PTR)coll_damage_wrap) { ns++; continue; }   /* I76_BREAKABLE_BOX >= 2 put it there */
-            if (tgt == 0x004a7c80) ns += st_call_site(cs[i], 0x004a7c80, (void *)coll_damage_wrap, 0, "collision damage (tick-factors)");
+            if (tgt == NA(0x004a7c80)) ns += st_call_site(cs[i], 0x004a7c80, (void *)coll_damage_wrap, 0, "collision damage (tick-factors)");
             else mlog("  tick-factors: collision damage call 0x%08lX already calls 0x%08lX - scrape factor not applied there", (unsigned long)cs[i], (unsigned long)tgt);
         }
         g_stf_scrape_on = ns > 0;
@@ -1565,7 +1565,7 @@ static void st_factors_install(int tick) {
         static const BYTE wo[8] = { 0xFF, 0xD3, 0x83, 0xE0, 0x0F, 0x83, 0xF8, 0x07 };   /* call ebx (rand); and eax, 0xf; cmp eax, 7 */
         BYTE wn[8] = { 0xE8, 0, 0, 0, 0, 0x83, 0xF8, 0x07 };
         LONG rel = (LONG)((DWORD_PTR)st_wreck_roll - (0x004664eb + 5)); memcpy(wn + 1, &rel, 4);
-        nw = patch_bytes(0x004664eb, wo, wn, 8, "wreck debris roll (tick-factors)") && memcmp((void *)0x004664eb, wn, 8) == 0;
+        nw = patch_bytes(0x004664eb, wo, wn, 8, "wreck debris roll (tick-factors)") && (g_exe == EXE_NITRO || memcmp((void *)0x004664eb, wn, 8) == 0);
     }
     if (census || g_stf_f[3] != 1.0f) {
         nr += st_call_site(0x004aaca0, 0x00494460, (void *)st_radar_turn, 0, "radar missile turn (tick-factors)");
@@ -1678,17 +1678,17 @@ static void apply_simtick(void) {
         BYTE camu_new[6] = { 0xE8, 0, 0, 0, 0, 0x90 }, cam_new[6] = { 0xE9, 0, 0, 0, 0, 0x90 }, tick_new[4];
         LONG rel; DWORD a;
         rel = (LONG)((DWORD_PTR)st_cam_wrap - (0x00403e16 + 5)); memcpy(camu_new + 1, &rel, 4);
-        h += patch_bytes(0x00403e16, camu_old, camu_new, 6, "camera mode call (sim-tick)") && memcmp((void *)0x00403e16, camu_new, 6) == 0;
+        h += patch_bytes(0x00403e16, camu_old, camu_new, 6, "camera mode call (sim-tick)") && (g_exe == EXE_NITRO || memcmp((void *)0x00403e16, camu_new, 6) == 0);
         h += st_call_site(0x00403e69, 0x00401c90, (void *)st_render_wrap, 0, "renderer_DrawFrame call (sim-tick)");
         g_st_cam_tramp = (BYTE *)VirtualAlloc(NULL, 16, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-        if (g_st_cam_tramp && memcmp((void *)0x00472990, cam_old, 6) == 0) {
-            memcpy(g_st_cam_tramp, cam_old, 6); g_st_cam_tramp[6] = 0xE9;
-            rel = (LONG)(0x00472996 - ((DWORD_PTR)g_st_cam_tramp + 11)); memcpy(g_st_cam_tramp + 7, &rel, 4);
+        if (g_st_cam_tramp && NA(0x00472990) && (g_exe == EXE_NITRO || memcmp((void *)0x00472990, cam_old, 6) == 0)) {
+            memcpy(g_st_cam_tramp, (const void *)(DWORD_PTR)NA(0x00472990), 6); g_st_cam_tramp[6] = 0xE9;   /* = cam_old on Gold */
+            rel = (LONG)(NA(0x00472996) - ((DWORD_PTR)g_st_cam_tramp + 11)); memcpy(g_st_cam_tramp + 7, &rel, 4);
             rel = (LONG)((DWORD_PTR)st_cam_set - (0x00472990 + 5)); memcpy(cam_new + 1, &rel, 4);
-            h += patch_bytes(0x00472990, cam_old, cam_new, 6, "camera SetTransform entry (sim-tick)") && memcmp((void *)0x00472990, cam_new, 6) == 0;
+            h += patch_bytes(0x00472990, cam_old, cam_new, 6, "camera SetTransform entry (sim-tick)") && (g_exe == EXE_NITRO || memcmp((void *)0x00472990, cam_new, 6) == 0);
         } else { g_st_cam_tramp = 0; mlog("  sim-tick: camera SetTransform entry not stock - script cameras not interpolated"); }
-        if (memcmp((void *)0x004f7788, tick_old, 4) == 0) {
-            g_st_vtick_prev = 0x00463800;
+        if (g_exe == EXE_NITRO ? (NA(0x004f7788) && *(DWORD *)(DWORD_PTR)NA(0x004f7788) == NA(0x00463800)) : memcmp((void *)0x004f7788, tick_old, 4) == 0) {
+            g_st_vtick_prev = NA(0x00463800);
             a = (DWORD)(DWORD_PTR)st_vehicle_tick; memcpy(tick_new, &a, 4);
             h += patch_bytes(0x004f7788, tick_old, tick_new, 4, "vehicle tick class slot (sim-tick count)");
             st_call_site(0x00463888, 0x0049cc20, (void *)st_stepper_begin, &g_st_begin_prev, "StepperBegin call in entity_TickVehicle (sim-tick count)");
