@@ -185,6 +185,8 @@ def extract_sites(paths, lo, hi):
                 mm = fn.match(line)
                 if mm and not line.rstrip().endswith(';'):
                     cur = mm.group(1)
+            if 'nitro_patch_call(' in line:             # Nitro-only call sites: the literals are Nitro addresses, not Gold
+                continue
             for mm in lit.finditer(line):
                 v = int(mm.group(1), 16)
                 if lo <= v < hi:
@@ -329,7 +331,11 @@ def main():
             else:
                 r['nfunc'] = '0x%x' % pairs[f[0]]
                 hit = imap.get(ins.address)
-                if not hit and ins.address == f[0]:     # a function entry pairs with the paired function's entry
+                if ins.address == f[0] and (not hit or hit[0].address != pairs[f[0]]):
+                    # a function entry pairs with the paired function's entry, also when the aligner matched the entry
+                    # instruction to a later one (Nitro 0x44caf0 net_RequestRespawn gained a prologue: the entry
+                    # instruction aligned to 0x44cb06, mid-function; nitro-mp lane 2026-10-21). Callers need the entry;
+                    # a patch on the entry bytes is held to the entry's own signature (refused if they differ).
                     nins0 = nitro.dis(pairs[f[0]], nf_size[pairs[f[0]]])[0]
                     hit = (nins0, ins, nins0.mnemonic == ins.mnemonic)
                 if not hit:

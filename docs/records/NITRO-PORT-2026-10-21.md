@@ -295,6 +295,38 @@ saves esi, which is live in the picker.
 Staged: lab builds/nitro-port-20261021/nitshell/nitshell-f7-m2-k1234.dll (a32ffba6), installed nowhere, not booted. Not
 ported: the three-button modal 0x100228c0, which has no Gold counterpart.
 
+### 8.3 Site-table correction: function entries (nitro-mp lane report)
+
+**The defect.** Gold 0x451570 (net_RequestRespawn) was mapped to Nitro 0x44cb06, which is inside the function. The function
+starts at 0x44caf0 (the mp lane checked this with its own signature). Nitro's version gained a 0x16-byte prologue, and the
+instruction aligner matched Gold's entry instruction (call ...) to the same call 0x16 bytes in. The entry rule in
+gen_sites.py only applied when the entry was not aligned at all.
+
+**The fix (gen_sites.py).** A Gold function entry now always maps to the paired Nitro entry. The signature is taken from the
+entry, so a patch on the entry bytes is refused when they differ. One more generator fix: literals on `nitro_patch_call(`
+lines are Nitro addresses and are no longer read as Gold sites; they had added 5 spurious rows. The table is still 628 rows.
+
+**Census.** Every mapped code row was checked against both Ghidra function-start lists (export / export-nitro
+functions.csv). 430 mapped code rows; 135 of them are Gold entries.
+
+| | old table | new table |
+|---|---|---|
+| Gold entry -> Nitro not an entry | 4 | 2 |
+| Gold not an entry -> Nitro entry | 0 | 0 |
+
+The rows involved:
+- **0x451570 -> 0x44caf0** (was 0x44cb06). Used by aimelee.c and coop_auto_respawn.
+- **0x441930 -> 0x42d890** (was 0x42d895, 5 bytes in). renderer_QueueSmokePuff, which smoke_update_wrap calls. The old
+  address skipped Nitro's first instruction, `mov al,[0x5fb0f0]`, and then tested whatever was left in al: a real bug,
+  fixed by this.
+- **0x406ab0 -> 0x435c30 and 0x407ad0 -> 0x436c50** (camera-mode callbacks, voted 3/3). Both are real function starts:
+  `ret` / nop padding before them and the same prologue as Gold. Ghidra folded them into the functions before
+  (0x435aa0 / 0x436ad0). The mapping is correct; Nitro's function list is incomplete there.
+
+**Boot check.** w18 (8dd78b91) on Nitro P01: 120 sites patched, 0 refused. It ran past frame 600. The usual first-chance
+0xC0000096 at 0x49acb7 in frame 0 appears in every Nitro log since the first boot. The Gold path never reads the table, so
+the Gold smoke was not rerun.
+
 ## Files
 
 - i76-everywhere: `music-fix/nitro.c`, `music-fix/sites_nitro.h` (generated), `tools/nitro-sites/{gen_sites.py, uses.py,
