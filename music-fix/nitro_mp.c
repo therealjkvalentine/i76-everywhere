@@ -10,24 +10,26 @@
  * THE ONE SWITCH: g_nmp_mode
  *   0 (always at boot) = stock Nitro. Nothing in this file acts, and every multiplayer switch of the Gold proxy is
  *     forced off for the session (list in nmp_force_stock). A patched game in a stock session behaves stock.
- *   1 = the user clicked our entry. Set by nmp_entry_click, cleared by nmp_leave (main menu 0xc00e, session end,
+ *   1 = ARENA+: any host-form option on (F2), or a joined ARENA+ session; cleared by nmp_leave (main menu 0xc00e, session end,
  *     dpClose). The shell and the exe are one process with one proxy, so the flag needs no transport between them.
  *
- * SHELL (nitshell.dll, base 0x10000000; the proxy is loaded first: nitshell and nitro.exe both import Strlkup.dll,
- * so the patch runs from a GetModuleHandleA("nitshell.dll") watch as mpm_watch does on Gold)
- *   S1 button   : a new widget record (proxy memory), id 0x13, built with Button_Init 0x1000e410 in the melee group
- *                 (beside ids 9 / 0xc, free space x 0x1d7 y 0x170 [inferred]); drawn as text (no sprite in the shell
- *                 database) or a sprite we add. Layout fn 0x10009610 / redraw 0x10009c10 get one extra show call.
- *   S2 click    : frame handler 0x10008770, `cmp esi, 0x12; ja 0x100092e6` at 0x1000887b: the ja target -> stub
- *                 nmp_entry_click (id 0x13 -> mode 1, then the id-9 path: HOST / JOIN; else jmp 0x100092e6).
- *   S3 species  : [0x10046cb0] u16 sessionType 604 (dpOpen in 0x1002f3c0 at +0xd of the 0x5f-byte session record,
- *                 dpEnumSessions in 0x1002dfb0): NMP_SPECIES while mode 1, 604 otherwise (written on entry / leave).
- *                 Our sessions are invisible to stock JOIN lists and stock sessions to ours.
- *   S4 version  : 'JO' version check against "6.04" [0x10045810] (handler 0x1002ffd0): our host sends NMP_VERSION
- *                 in mode 1 so a stock joiner that reaches it anyway gets the stock "version does not match" box.
- *   S5 list     : arena list 0x10031320 (`*.cbt` through the VFS, then findfirst "addon\*.cbt" 0x10045338): mode 1
- *                 adds `addon\nmp\*.cbt|*.lvl` (our scenes / scenarios) through the shell's msvcrt _findfirst import;
- *                 mode 0 sees exactly the stock list. Mission name "nmp\xxx" (<= 19 chars, record +0x20).
+ * SHELL (nitshell.dll, base 0x10000000) - REVISED 2026-10-21 (record section 0): ARENA+ options on the host form.
+ * The proxy is loaded first (nitshell and nitro.exe both import Strlkup.dll); patch from a GetModuleHandleA watch.
+ *   F1 hit recs : 3 records {id 0x10..0x12, x0, x1, y0, y1} in proxy memory, appended to the form's hit list
+ *                 [0x10179ea8] with 0x1000e100(list, rec, 0) right after 0x10031e50 (stock table 0x10045a80, 16 x 0x14,
+ *                 untouched); host providers 2..5 only. Hit test 0x1000e2e0 is strict x0 < x < x1, y0 < y < y1.
+ *   F2 click    : `ja 0x10032054` at 0x1003219b (0f 87 b3 fe ff ff) -> nmp_form_click (ids 0x10..0x12 toggle
+ *                 g_arena_opt, else jmp 0x10032054). Jump table 0x1003365c (ids 0..15) unchanged.
+ *   F3 draw     : [0x10047044] = 0x10033770 (set by the constructor 0x100318e0) -> wrapper: 0x10033770, then our boxes
+ *                 with 0x10012a50 (fill) and 0x10012dc0 (text, font [[0x1013049c] + 0x408]). Left column, y ~272..310.
+ *   F4 save     : nothing in the 0xe4 form block 0x10179fa8 (player data key 5). 0x1002e4c0 (BROADCAST) wrapped: species
+ *                 [0x10046cb0] = any option ? NMP_SPECIES : 604, just before dpOpen; options to joiners by 'AH'.
+ *   F5 join list: 0x1002dfb0 enumerates species 604, then ours, same callback 0x1002e060; ours named "ARENA+ <name>".
+ *   F6 reset    : main menu (0xc00e), cancel (id 15), session end -> g_arena_opt = 0, species 604.
+ *   FALLBACK (old design, record section 2): main-menu button id 0x13 via `ja` at 0x1000887b.
+ *   Lab PoC: I76_LAB_ARENA_POC=1 (record 0.5): one box (id 0x10), drawn / toggled / read back, n 3.
+ *   Never grow a shell table in place: SCENARIO.DAT's parser 0x1001c3b0 fills fixed 4 x 20 arrays (0x10134720,
+ *   0x1013653c) without bounds - a 5th character overwrites shell globals from 0x10136520 (record 0.4).
  *
  * EXE (nitro.exe)
  *   E1 receive  : IAT ANET2.DLL!dpReceive 0x4c13cc [anetdll.dll!dpReceive, patched by name] -> nmp_dpReceive (net_Pump 0x448d80 drops
@@ -61,23 +63,26 @@
 #if 0   /* skeleton: not compiled */
 
 #define NMP_SPECIES  0x0000   /* our ANet sessionType: to be picked (not 604); see the record, risk R3 */
-#define NMP_VERSION  "6.04+"  /* host 'JO' version string in mode 1 (S4) */
+#define NMP_VERSION  "6.04+"  /* host 'JO' version string in mode 1 */
 
-static volatile LONG g_nmp_mode;   /* 0 stock, 1 our entry */
+static volatile LONG g_nmp_mode;   /* 0 stock, 1 ARENA+ (any option on) */
+static volatile LONG g_arena_opt;  /* bit 0 AI DROP-IN, bit 1 DROP-IN / DROP-OUT, bit 2 CO-OP SCENES */
 
 /* --- mode ------------------------------------------------------------------------------------------------ */
 static void nmp_force_stock(void) { /* every MP switch off while g_nmp_mode == 0: I76_COOP_AI, I76_COOP_CHAIN,
                                        I76_COOP_DAMAGE, I76_COOP_SCALE, I76_AIMELEE (+ _FILL, _RESPAWN, _RESPAWN_AI,
                                        _SCORE_ROWS, _TEAMS, _WAVE, _ARENAS), I76_DIFFICULTY_AI in network games,
                                        I76_MP_MENU (Gold shell only) */ }
-static void nmp_enter(void) { /* mode 1; S3 species, S4 version, S5 list on */ }
-static void nmp_leave(void) { /* mode 0; restore 604, "6.04", stock list; drop pool state */ }
+static void nmp_enter(void) { /* mode 1 (any ARENA+ option on): species ours (F4), "6.04+" in our host's JO */ }
+static void nmp_leave(void) { /* mode 0 (F6): species 604, "6.04"; drop pool state */ }
 
 /* --- shell ----------------------------------------------------------------------------------------------- */
-static void nmp_shell_attach(BYTE *nitshell) { /* S1 button record, S2 ja-target patch, S5 _findfirst IAT hook */ }
-static void nmp_entry_click(void) { /* S2 stub body: id 0x13 -> nmp_enter, then the id-9 HOST / JOIN path */ }
-static void nmp_button_draw(void) { /* S1: text label when no sprite */ }
-static intptr_t __cdecl nmp_findfirst(const char *spec, void *fd) { /* S5 */ return -1; }
+static void nmp_shell_attach(BYTE *nitshell) { /* F1..F6: verify bytes, patch the ja target, wrap 0x10031e50 / 0x1002e4c0 / 0x1002dfb0 */ }
+static void nmp_form_hits(void) { /* F1 */ }
+static void nmp_form_click(void) { /* F2 stub body */ }
+static void __cdecl nmp_form_redraw(void) { /* F3: 0x10033770(), then the ARENA+ boxes */ }
+static int __cdecl nmp_broadcast(int prov, void *form, int z, void *arena) { /* F4 */ return 0; }
+static void nmp_join_enum(void *ctx) { /* F5 */ }
 
 /* --- exe: network layer ------------------------------------------------------------------------------------ */
 static int __cdecl nmp_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {

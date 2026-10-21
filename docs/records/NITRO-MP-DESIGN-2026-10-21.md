@@ -14,6 +14,10 @@ b91eccee (all from `i76-map\sandbox-gog\nitro-full\app`).
 
 ## Answer in six lines
 
+**Revised the same day (section 0):** items 2 and 5 are superseded. The entry is now the owner's **ARENA+** options as
+check boxes on the host form (AI DROP-IN, DROP-IN / DROP-OUT, CO-OP SCENES on Nitro's own missions), with no Gold content.
+The separate button of item 2 is kept as the fallback.
+
 1. **Receive path:** Nitro's pump `0x448d80` calls `dpReceive` through the import slot **ANET2.DLL!dpReceive 0x4c13cc** with
    the same six arguments as Gold, and **drops any packet type it does not know** after updating "last heard". Our Gold
    method (hook the import, read our 2-letter packets after the real call) carries over unchanged. No packet types are
@@ -33,6 +37,149 @@ b91eccee (all from `i76-map\sandbox-gog\nitro-full\app`).
    arena by memory injection (no new files). The 17 co-op scenes and 7 scenarios need the Gold mission files, placed in a
    folder only our entry's list reads.
 6. **Estimate:** about **15 lane-days** in 8 pieces, the shell entry and the ANet 2 layer first.
+
+## 0. REVISION (2026-10-21, owner rulings): ARENA+ as options on the host form, not a new menu button
+
+Owner (verbatim): *"it seems like the right place for the ai drop-in option is a checkbox inside the network play
+configuration, maybe a few of them for other features we've added (human drop-in, etc). tricky though since we haven't
+done any modifications to menus successfully yet."*, *"we don't have to bend over backwards to combine them"* [original
+and Nitro content], *"looks like we get unhandled exceptions when we try to modify menus for now"*, and on the name:
+*"we should call it arena+ with that description that is good"*.
+
+**This section replaces section 2 (entry point), section 3.4 (lists) and the name table of section 4.** The separate
+button of section 2 stays as the **fallback** if the host-form route fails its proof of concept. Sections 1, 3.1-3.3 and
+5 stand, with the changes in 0.6.
+
+### 0.1 What ARENA+ is
+
+- **Group label** on the host form: **ARENA+**. Description (owner-approved, unchanged): *"Every arena plus the original
+  '76 missions, with AI filling the open slots."* What it can deliver on Nitro: every Nitro combat arena, of which
+  N51-N65 are the original '76 arenas (same terrain). **The original '76 story missions (T01-T17) and scenarios (S01-S07)
+  are not loadable under Nitro without combining Gold's files, which the owner dropped.** The text stays as approved;
+  this record states the gap here.
+- **Options under it** (each a per-session choice of the host; all off = a stock session):
+
+  | option (label) | what it turns on | Gold source |
+  |---|---|---|
+  | **AI DROP-IN** | AI cars fill every empty slot (fill N = NO. DRIVERS - humans), AI respawn, AI score rows | aimelee + mpfill pool (AI-MELEE-RESPAWN) |
+  | **DROP-IN / DROP-OUT** | humans join and leave any time; a leaving human's slot goes to an AI on his team, and back when someone joins | mpfill teams (MP-TEAMS); needs AI DROP-IN |
+  | **CO-OP SCENES** | Nitro's own campaign missions P01-P19 as co-op scenes with per-joiner scaling and the scene chain | co-op chain + COOP_SCALE; **Nitro content only** (built from nitro.zfs, not Gold's T-missions) |
+
+  Difficulty-driven AI skill stays the options-screen setting (not on the form).
+- **Session type:** any option on -> our species (sessionType, section 1.1); all off -> 604. A patched JOIN list asks
+  for both species and shows ours with the prefix "ARENA+ " in the game-name column. A stock JOIN list never sees ours.
+
+### 0.2 The host form, mapped (nitshell f804f50d)
+
+The network entry form (message 0xc026) is **not** built from button widgets like the main menu. The labels and boxes
+are in the background picture. The form is a static table of **hit rectangles**, plus code that draws the variable texts.
+
+| piece | address | detail |
+|---|---|---|
+| constructor | `0x100318e0` | background picture by provider (`0x10012780`), fill and text calls for the game name, arena title, car lines, max drivers ("%2.2d"), game-type text (`[0x10045894 + type*4]`: Combat, Racing, C.T.F. (2/3/4)); sets the frame handler `[0x10047044] = 0x10033770` (redraw) and the click handler `0x10001f40(0x10031ff0)` |
+| hit table | **`0x10045a80`, 16 records of 0x14 bytes `{id, x0, x1, y0, y1}`** (ids 0..15), copied into the list `[0x10179ea8]` by `0x10031e50` (records from 0x10045ae4 on are left out for some join providers). The list is a growable pointer list (`0x1000e000(0x10)`, append `0x1000e100`), built once per process (`if [0x10179ea8] == 0`) | hit test `0x1000e2e0(list, x, y)`: strict `x0 < x < x1`, `y0 < y < y1`, returns the record's id or -1 |
+| click handler | `0x10031ff0` | mouse object `[0x10130484]`: +0x2c x, +0x30 y, +0x10 click state (getter `0x1000ccb0`); `call 0x1000e2e0` at `0x10032140`; **`cmp ebx, 0xf; ja 0x10032054; jmp [0x1003365c + ebx*4]` at `0x10032198`** |
+| redraw | `0x10033770` (the constructor's text part again) | |
+| the form data ("save") | **`0x10179fa8`, 0xe4 bytes**: what BROADCAST passes to `0x1002e4c0(provider, form, 0, arena record)` and what the host publishes as player data key 5. [0x32] = `0x1017a070` max drivers, [0x35] = `0x1017a07c` game-type bit, [0x36] / [0x37] = `0x1017a080` / `0x1017a084` limit kind / value, **[0x38] = `0x1017a088` team game** | `0x1002f3c0` turns them into the session flags (section 1.6) |
+| BROADCAST / JOIN | id 14 (x 229-369, y 453-471), handler `0x100332e4`: a C.T.F. type or `[0x1017a088]` opens the team popup `0x10022e00`, then `0x1002e4c0(provider, 0x10179fa8, 0, arena)` | |
+
+Ids by rectangle and handler [labels inferred; the art was not seen]: 0 game-name box (170-214, 44-58); **1 game-type
+popup arrow (200-215, 68-85)**, popup descriptor `0x100459d8` (draw `0x10034250`, click `0x100341e0`, list
+`[0x1017a090]`); 2 arena list (9-215, 166-251), 3 / 4 its scroll arrows; 5, 6, 11, 12 further popups (`[0x1017a0a0]`,
+`[0x1017a0a4]` (depends on the game type), `[0x1017a094]`, `[0x1017a098]`); 7; 8; 9 / 10 max drivers up / down
+(199-212 / 152-165, y 423-436); 13; 14 BROADCAST / JOIN; 15 cancel (489-630, 453-471).
+
+**Nitro's form has no TEAM PLAY check box, and the shell has no check-box code at all**: every option is a popup list.
+"Team game" is form [0x38] (`0x1017a088`): the game-type change code sets it to 1 for C.T.F. (`0x100342e2`) and clears
+it on a type change (`0x100342ab`). Whether Combat offers a team choice inside the type popup is to be seen on screen.
+So "next to TEAM PLAY" becomes "in the left column of the form".
+
+### 0.3 How three check boxes are added without moving a stock control
+
+1. **Hit records.** Three records `{0x10, ...}`, `{0x11, ...}`, `{0x12, ...}` in proxy memory, appended to the list
+   `[0x10179ea8]` with the shell's own `0x1000e100(list, rec, 0)` right after `0x10031e50` returns (its call in the
+   constructor `0x100318e0` is wrapped), host providers only (`[0x1004701c]` 2..5). The 16 stock records and their
+   order are untouched. The hit test walks the list in order, so ours can only win where no stock rectangle is.
+2. **Click.** Only the target of the `ja 0x10032054` at `0x1003219b` (6 bytes `0f 87 rel32`) changes, to a stub: ids
+   0x10..0x12 toggle the `g_arena_opt` bits, recompute the species word, redraw our boxes, then `jmp 0x10032054` (the
+   stock "nothing hit" exit). Any other id above 15 goes to `0x10032054` as before. The jump table and ids 0..15 run
+   unchanged.
+3. **Draw.** After the constructor and after every `0x10033770` redraw: the frame-handler pointer `[0x10047044]` that
+   the constructor sets is replaced by a wrapper that calls `0x10033770` and then ours. Each box is filled with the
+   form's own `0x10012a50(display, x, y, w, h)`, and the label / an "X" is written with `0x10012dc0(display, x, y,
+   [[0x1013049c] + 0x408], text, 0)`: the two calls the form uses for every text it draws. No new picture.
+4. **Save.** Nothing is added to the 0xe4 form block (stock joiners read it as key 5). The options live in the proxy
+   (`g_arena_opt`). BROADCAST is wrapped at `0x1002e4c0` to (a) set the species word `[0x10046cb0]` (ours if any bit is
+   on, 604 if none) just before `dpOpen` and (b) start the ARENA+ session state. A joiner learns the options from the
+   host's 'AH' hello (section 3.2), not from the form. Back to the main menu, cancel (id 15) or session end -> options
+   cleared, 604 restored.
+5. **Where.** Free space by the table: the left column between the arena list's lower arrow (y 252-272) and id 5 (y
+   310-326), about 37 px, for the ARENA+ label and one row of three 12-px boxes with short labels ("AI", "DROP",
+   "CO-OP"). Full labels go on a second line only if the PoC shows the art leaves room. The exact pixels come from the
+   PoC's frame-buffer read (the art may have decoration there).
+6. **Join list.** `0x1002dfb0` (dpEnumSessions with species 604) is wrapped to enumerate a second time with our species
+   into the same callback `0x1002e060`; a callback wrapper prefixes "ARENA+ " to our sessions' names.
+
+### 0.4 Why the edited SCENARIO.DAT crashes (static, quick look), and what it says about these tables
+
+`addon\scenario.dat` is parsed by `0x1001c3b0` into **fixed arrays of 4 characters x 20 missions**. Mission records of
+0x60 bytes sit at `0x10134720 + (character * 20 + k) * 0x60` (4 x 20 x 0x60 = 0x1e00 bytes, ending exactly at
+`0x10136520`); the character records (name + count, 0x24 bytes) at `0x1013653c`. **The parser bounds neither count.** A
+fifth character ("Groove" in `nitro-plus-original`) writes its 17 mission records from `0x10136520` on: over the shell's
+own globals there (`0x10136520`, `0x10136524`, `0x10136534` with 49 references, ...) and over the character table
+itself. That is a sufficient cause for the "Unhandled Exception" [inferred from the decompilation; not run]. A
+SCENARIO.DAT with at most 4 characters and at most 20 missions each stays inside the arrays (e.g. put "Original
+Mission 1-17" under one of the four existing characters, at most 20 lines).
+
+What it says: the shell's tables are fixed-size and unchecked (the scenario arrays, the 16-record hit table, the popup
+lists), so **data-only edits that grow a table are the fragile route**. The design never grows a shell table in place:
+it appends to a growable list through the shell's own append call and keeps its records and state in proxy memory.
+
+### 0.5 Proof of concept, step 1 (defined; to run on the lab copy exp-nitro-mp)
+
+**Goal:** one check box (AI DROP-IN, id 0x10) drawn, toggled and read back by the proxy, **n 3** boots, plus 1 control.
+
+Copy: `C:\Users\james\i76-uncap-lab\exp-nitro-mp` = a copy of `i76-map\sandbox-gog\nitro-full\app` + dgVoodoo (as
+`exp-nitro-base`, which reached the shell headless) + a lab proxy build with only the PoC code behind the lab switch
+below. No IPX and no second copy: the form opens from HOST > IPX without a network session.
+
+Rules: headless only, on a private desktop (the console is held by a gate); never stop a process this lane did not
+start (check pid and exe path); no boot while `.fps-lock` exists; wait while any i76.exe / nitro.exe outside the lab
+copies runs; mute the process (`tools\mute-proc.ps1`), clear the mutes at the end.
+
+Proxy (lab build, `I76_LAB_ARENA_POC=1`):
+1. When nitshell is resident: check the bytes at `0x1003219b` (`0f 87 b3 fe ff ff`), the `call 0x10031e50` in
+   `0x100318e0`, the `[0x10047044] = 0x10033770` store, and `[0x10046cb0] == 0x025c`. Log each; refuse on any difference.
+2. Navigate by state, not by clicks: the lab block does what the provider button does (provider `[0x1004701c]` := 3,
+   `0x10031320`, message 0xc026 posted to the shell window), so the form opens without a mouse.
+3. **Drawn:** after the form's first redraw, read the shell's 640x480 8-bit frame buffer (`[[0x10130488] + 0x44]`, the
+   buffer the shell clears with 0x12c00 dwords) over the box rectangle. Pass: the pixels differ from a read of the same
+   rectangle taken just before our draw call and equal the fill colour inside the box.
+4. **Toggled:** write the mouse object (`[0x10130484]` +0x2c = box centre x, +0x30 = y, +0x10 = the click state the
+   handler waits for) for one frame, as a click would. Pass: the stock hit test returns 0x10 (logged by the stub) and
+   the stub flips the bit.
+5. **Read back:** the proxy logs `g_arena_opt`, the species word `[0x10046cb0]` (ours after the toggle, 0x025c after a
+   second toggle), the box pixels again ("X" drawn / cleared), and the list `[0x10179ea8]` count (16 stock + 1) with the
+   16 stock records unchanged (compared with the static table).
+6. Pass = steps 3-5 in 3 of 3 boots with no exception, and a control boot without the switch shows count 16, species
+   0x025c and no change in the box rectangle.
+
+Step 2 (after the pass): the other two boxes, the join-list double enumeration, and one IPX check with a stock joiner
+(the ARENA+ session must not be listed, a stock session must be).
+
+### 0.6 Changes to sections 3.4, 4 and 5
+
+- **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
+  `addon\nmp\` Gold files and the radio-voice dependency. Kept: every Nitro combat arena with AI by memory injection
+  (N51-N65 = the original arenas). Added: P01-P19 as co-op scenes behind CO-OP SCENES (Nitro's own files, listed only
+  while that box is on), built like `coop-install.py` but from nitro.zfs; until they are built and measured, CO-OP
+  SCENES stays off the form.
+- **Name (4):** **ARENA+**, the owner's pick; the five-name table is kept as history.
+- **Estimate (5):** piece 2 (shell entry, 2.5 days) becomes **host-form options + join list, 3 days, risk
+  medium-high** (the first menu change on Nitro that has to hold; PoC step 1 is 0.5 day of it). Piece 5 (Gold co-op
+  scenes + scenarios, 3 days, high) becomes **Nitro P-missions as co-op scenes, 2 days, medium**. Total **15**
+  lane-days. Order: 1 (anet2 dump) -> PoC step 1 -> 3 (ANet 2 layer) -> PoC step 2 + gate 7(a-c) -> 4 -> 6 -> 5 ->
+  7(d) -> 8.
 
 ## 1. ANet 2 map (nitro.exe + nitshell.dll)
 
@@ -138,7 +285,7 @@ limit) are therefore **not read**; the design takes them from the exe / shell si
 records = 208 B per packet arrive, 508 B did not). First item for the nitro-mp lane's first lab boot: dump the mapped
 anet2 image from a running lab nitro.exe.
 
-## 2. Nitro shell: the menu, the lists, where the entry goes
+## 2. Nitro shell: the menu, the lists, where the entry goes (FALLBACK since section 0)
 
 | piece | finding |
 |---|---|
@@ -215,7 +362,7 @@ patched game; a stock player never sees or joins one of ours. Concretely:
    (combat, race, CTF 2) - join, play, leave, migrate; (b) stock host, patched joiner; (c) our entry hosting while a
    stock copy lists: not listed; (d) the same over the bz911 lobby with our species (risk R3); n 3 per cell.
 
-### 3.4 List entries under the new entry
+### 3.4 List entries under the new entry (superseded by section 0.6)
 
 | group | count | source | how |
 |---|---|---|---|
@@ -228,7 +375,7 @@ patched game; a stock player never sees or joins one of ours. Concretely:
 The brief's "Nitro's 36 arenas" did not match a count here (the corpus has 24 `.cbt`, 17 `.cf2-4`, 13 `.rac`); the rule
 "every combat arena of the stock list" covers whatever the install holds.
 
-## 4. Names for the entry (owner picks)
+## 4. Names for the entry (owner picked ARENA+, section 0)
 
 Each name with the one-line description the shell would show beside it (on the button's hover / the form title).
 
@@ -243,7 +390,7 @@ Each name with the one-line description the shell would show beside it (on the b
 Width: the plate beside "auto melee" holds about 106 px (the id 0xc button); every name fits in the shell's 12-px hand
 font (CO-OP / AI MELEE is the longest, about 100 px [estimated from Gold's font measurement in mpmenu.c]).
 
-## 5. Estimate and order (lane-days, one lane)
+## 5. Estimate and order (lane-days, one lane; revised in section 0.6)
 
 | # | piece | days | risk | why |
 |---|---|---|---|---|
