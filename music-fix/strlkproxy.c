@@ -320,7 +320,11 @@ static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
  * Retail 1.0 (2026-10-16, docs/records/MUSIC-RETAIL-INTENT.md) reads this TOC with first track = 1 hard-coded and
  * MCI_STATUS_NUMBER_OF_TRACKS as the last; it never asks for the first track. */
 #define FIRST_TRACK 2
-#define LAST_TRACK  17
+/* the last audio track of the virtual disc: 17 (the Gold CD); on Nitro the highest music\N.mp3 present (nitro.c port: GOG's
+ * Nitro ships 2..11), set once in nitro_dllmain. A variable since 2026-10-21; 17 on Gold, as the constant was. */
+#define LAST_TRACK_MAX 32
+static int g_last_track = 17;
+#define LAST_TRACK  g_last_track
 
 static DWORD g_timeFormat = MCI_FORMAT_MSF;
 static int   g_curTrack = 0;
@@ -394,6 +398,10 @@ static void music_opts(void) {
     g_gapless   = env_flag("I76_MUSIC_GAPLESS", sizeof(v), r);
     g_truePause = env_flag("I76_MUSIC_TRUE_PAUSE", sizeof(v), r);
     n = env_str("I76_MUSIC_MISSIONS", v, sizeof(v));     g_missions1997 = n ? (lstrcmpA(v, "1997") == 0) : r;
+    if (g_exe == EXE_NITRO && (g_discOrder || g_shell1997 || g_missions1997)) {   /* facts about the Gold CD / GOG Gold's mp3s */
+        mlog("  music: Nitro - disc order, shell 1997 and missions 1997 describe the Gold CD: off");
+        g_discOrder = g_shell1997 = g_missions1997 = 0;
+    }
     mlog("  music: run end %s, disc order %s, shell %s, resume %s",
          g_toIncl ? "INCLUSIVE (I76_MUSIC_TO_INCLUSIVE=1, old)" : "exclusive",
          g_discOrder ? "ON {3:16,15:17,16:15,17:3}" : "off (N -> N.mp3)",
@@ -408,10 +416,11 @@ static int disc_file(int trk, int force) {
     return trk;
 }
 static DWORD game_state(void) {
-    return IsBadReadPtr((void *)0x004c2164, 4) ? 0xFFFFFFFFu : *(volatile DWORD *)0x004c2164;
+    DWORD a = NA(0x004c2164);
+    return (!a || IsBadReadPtr((void *)(DWORD_PTR)a, 4)) ? 0xFFFFFFFFu : *(volatile DWORD *)(DWORD_PTR)a;
 }
 static MCIERROR play_track(int track);
-static DWORD g_lenCache[LAST_TRACK + 1];   /* ms, 0 = not yet queried */
+static DWORD g_lenCache[LAST_TRACK_MAX + 1];   /* ms, 0 = not yet queried */
 
 static void mci_str(const char *cmd);
 
@@ -512,8 +521,8 @@ static void apply_music_gapless(void) {
     if (done) return;
     done = 1;
     memcpy(new_call + 2, &a, 4);
-    if (IsBadReadPtr((void *)0x0042340d, 6) || !patch_bytes(0x0042340d, old_call, new_call, 6, "music watchdog GetTickCount call")
-        || memcmp((void *)0x0042340d, new_call, 6) != 0) {
+    if (!NA(0x0042340d) || IsBadReadPtr((void *)(DWORD_PTR)NA(0x0042340d), 6) || !patch_bytes(0x0042340d, old_call, new_call, 6, "music watchdog GetTickCount call")
+        || memcmp((void *)(DWORD_PTR)NA(0x0042340d), new_call, 6) != 0) {
         g_gapless = 0;
         mlog("  music gapless: NOT applied (0x42340d is not the AiO / Galaxy watchdog call) - songs change at the exe's poll");
         return;
@@ -738,8 +747,8 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
                     track = to = nt; force = 1;
                 } else mlog("  shell 1997: track %d asked in state %lu (not the shell) - unchanged", track, (unsigned long)st);
             }
-            if (g_missions1997 && track == 7 && game_state() != 6 && !IsBadReadPtr((void *)0x005049f0, 4)) {
-                const char *mn = (const char *)0x005049f0;           /* the mission basename WinMain copies in (0x403419) */
+            if (g_missions1997 && track == 7 && game_state() != 6 && NA(0x005049f0) && !IsBadReadPtr((void *)(DWORD_PTR)NA(0x005049f0), 4)) {
+                const char *mn = (const char *)(DWORD_PTR)NA(0x005049f0);   /* the mission basename WinMain copies in (0x403419) */
                 if ((mn[0] == 't' || mn[0] == 'T') && mn[1] == '1' && mn[2] == '6' && (mn[3] == 0 || mn[3] == '.')) {
                     mlog("  missions 1997: t16 run %d..%d -> 14 alone (1997 CD T16.MSN WRLD 14)", track, to);
                     track = to = 14;
@@ -923,7 +932,7 @@ static DWORD WINAPI music_guard(LPVOID arg) {
     for (;;) {
         Sleep(500);
         for (i = 0; i < 4; i++) {
-            void **slot = iat_slot(exe, "WINMM.dll", h[i].name);
+            void **slot = iat_slot(exe, g_exe == EXE_NITRO ? "WIN32.dll" : "WINMM.dll", h[i].name);   /* Nitro: GOG's winmm stand-in */
             if (!slot || *slot == h[i].hook) continue;
             if (logged[i] < 3) {                                 /* who took it */
                 HMODULE m = NULL; char who[MAX_PATH] = "?", *b = who, *q;
@@ -933,7 +942,7 @@ static DWORD WINAPI music_guard(LPVOID arg) {
                 mlog("  music-guard: WINMM!%s slot held by %s (%p) - re-claimed", h[i].name, b, *slot);
                 logged[i]++;
             }
-            patch_iat(exe, "WINMM.dll", h[i].name, h[i].hook);
+            patch_iat(exe, g_exe == EXE_NITRO ? "WIN32.dll" : "WINMM.dll", h[i].name, h[i].hook);
         }
     }
 }
@@ -9259,8 +9268,8 @@ static void apply_joy_routing(HMODULE exe) {
         p = strchr(p, ','); if (!p) break; p++;
     }
     if (!any && !g_st_joy_on) return;                        /* the hooks also serve the whole-sim tick's joystick watch (simtick.c) */
-    real_joyGetDevCapsA = (joyCapsFn)patch_iat(exe, "WINMM.dll", "joyGetDevCapsA", hook_joyGetDevCapsA);
-    real_joyGetPosEx    = (joyPosFn)patch_iat(exe, "WINMM.dll", "joyGetPosEx", hook_joyGetPosEx);
+    real_joyGetDevCapsA = (joyCapsFn)patch_iat(exe, g_exe == EXE_NITRO ? "WIN32.dll" : "WINMM.dll", "joyGetDevCapsA", hook_joyGetDevCapsA);
+    real_joyGetPosEx    = (joyPosFn)patch_iat(exe, g_exe == EXE_NITRO ? "WIN32.dll" : "WINMM.dll", "joyGetPosEx", hook_joyGetPosEx);
     mlog("  joy-routing: IAT joyGetDevCapsA old=%p joyGetPosEx old=%p%s%s", (void *)real_joyGetDevCapsA, (void *)real_joyGetPosEx,
          (real_joyGetDevCapsA && real_joyGetPosEx) ? "" : " - NOT HOOKED (no WINMM import: i76fix exe?)", any ? "" : " (for the sim-tick joystick watch; ids unrouted)");
     simtick_joy_ready(real_joyGetPosEx ? hook_joyGetPosEx : 0, real_joyGetDevCapsA ? hook_joyGetDevCapsA : 0);
@@ -9372,7 +9381,27 @@ static void nitro_dllmain(void) {
     apply_telemetry();        /* I76_TELEMETRY (snapshot, shot / explosion / impact events; I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported) */
     apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
     apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */
-    apply_joy_routing(exe);   /* Nitro imports joyGetPosEx from WIN32.dll: logs NOT HOOKED, the early tick then watches the keyboard only */
+    {   /* MUSIC (I76_MUSIC_NITRO=0 keeps GOG's own WIN32.dll / audiere CD emulation): the same hooks as Gold, on the exe's
+         * WIN32.dll slots; playback through the system winmm's mpegvideo as on Gold; the virtual disc ends at the highest
+         * music\N.mp3 present */
+        if (env_flag("I76_MUSIC_NITRO", 8, 1) != 0) {
+            char p[MAX_PATH]; int k;
+            for (k = LAST_TRACK_MAX; k > FIRST_TRACK; k--) {
+                _snprintf(p, sizeof p, "%s\\music\\%d.mp3", g_dir, k); p[sizeof p - 1] = 0;
+                if (GetFileAttributesA(p) != INVALID_FILE_ATTRIBUTES) break;
+            }
+            g_last_track = k;
+            mlog("--- strlkproxy: IAT patch WIN32.dll!mciSendCommandA old=%p new=%p (virtual disc tracks %d..%d) ---",
+                 patch_iat(exe, "WIN32.dll", "mciSendCommandA", hook_mciSendCommandA), (void *)hook_mciSendCommandA, FIRST_TRACK, g_last_track);
+            mlog("  aux patches (WIN32.dll): auxGetNumDevs=%p auxGetDevCapsA=%p auxSetVolume=%p",
+                 patch_iat(exe, "WIN32.dll", "auxGetNumDevs",  hook_auxGetNumDevs),
+                 patch_iat(exe, "WIN32.dll", "auxGetDevCapsA", hook_auxGetDevCapsA),
+                 patch_iat(exe, "WIN32.dll", "auxSetVolume",   hook_auxSetVolume));
+            if (env_flag("I76_MUSIC_GUARD", 8, 1) != 0) { CloseHandle(CreateThread(NULL, 0, music_guard, NULL, 0, NULL)); mlog("  music-guard: on"); }
+            music_opts();
+        } else mlog("  music: I76_MUSIC_NITRO=0 - GOG's WIN32.dll plays the CD tracks");
+    }
+    apply_joy_routing(exe);   /* Nitro's joyGetPosEx / joyGetDevCapsA are WIN32.dll imports */
     mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
     mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);
 }
