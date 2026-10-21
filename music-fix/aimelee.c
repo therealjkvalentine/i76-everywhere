@@ -195,9 +195,9 @@ static void aim_tick(void) {
         alive++;
         if ((j = aim_index(o)) < 0) continue;
         if (!g_aim_skilled[j] && *(BYTE **)(*(BYTE **)(o + 0x70) + 0x108)) {
-            int s = g_aim_skill;
+            int s = difficulty_ai_skill(g_aim_skill), s0 = s;     /* DIFFICULTY HOOK (difficulty.c): Play Options byte, env overrides */
             ((void (__cdecl *)(BYTE *, int *, int *))0x0040bd90)(o, &s, &s);
-            *(int *)(*(BYTE **)(*(BYTE **)(o + 0x70) + 0x108) + 0xa818) = g_aim_skill - 1;
+            *(int *)(*(BYTE **)(*(BYTE **)(o + 0x70) + 0x108) + 0xa818) = s0 - 1;
             g_aim_skilled[j] = 1;
             if (g_aim_test_split && aim_ordinal(i) == 0 && aim_team(o) != 6 && mpf_move_team(o, 6))   /* LAB: AI #1 on team 6 (AI vs AI) */
                 mlog("  aimelee: LAB I76_AIMELEE_TEST_SPLIT - AI '%.8s' (label %d) moved to team 6", (char *)o, i);

@@ -4035,6 +4035,7 @@ static void apply_coop_ai(HMODULE exe) {
     if (!real_dpReceive) { mlog("  coop-ai: no dpReceive import - off"); }
 }
 
+#include "difficulty.c"  /* Play Options Difficulty Level -> AI skill in network AI arenas (difficulty_ai_skill, called by aimelee.c) */
 #include "aimelee.c"     /* I76_AIMELEE: AI cars in network melee arenas ai_*.lvl (host tick, kill credit, waves) */
 #include "mpfill.c"      /* I76_AIMELEE_FILL / I76_COOP_SCALE: pre-spawned pools, parked and brought in by the host */
 
