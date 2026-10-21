@@ -115,3 +115,5 @@ parent folder, game closed).
 - Stock arenas have no AI cars. Whether MULTI MELEE should offer AI in every arena is the owner's call.
 - The PC LAN copy keeps cf4f81da (the pack's other files are identical); it can take 0ce90a90 at the next PC rollout.
 - `~/i76-overnight-20261020/deck-polish/` on the laptop: delete once the Deck lane's loop has ended (14 h from 16:20).
+- Lab copy `exp-mac` deleted after its logs went to `captures\mac-converge-20261020\pc-expmac\`, except `Lee_____.ttf`
+  (held open by Windows since the game registered the font; delete the folder after the next sign-out).
