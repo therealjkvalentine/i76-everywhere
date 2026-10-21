@@ -14,15 +14,21 @@
  *     not tie it to the AI at all, and a network melee does not see it.
  *
  * WHAT THIS ADDS: in a network AI arena the host's AI skill follows that byte (I76_DIFFICULTY_AI=1, default):
- *   Wimp (0) -> skill 2, Champ (1) -> 3, Badass (2) -> 5 (g_diff_map, the one place to change the mapping; any other
- *   byte value is treated as Champ, as the exe's damage factor does). Only the host runs aimelee's skill code, so the
+ *   Wimp (0) -> skill 4, Champ (1) -> 3, Badass (2) -> 1 (g_diff_map, the one place to change the mapping; any other
+ *   byte value is treated as Champ, as the exe's damage factor does).
+ *   THE STOCK SKILL SCALE RUNS BACKWARDS: setSkill level 1 is the BEST driver and shooter, 5 the worst (and the AI block's
+ *   default). 0x40bd90 fills ai+0xa81c throttle / +0xa820 steering / +0xa824 aim / +0xa828 fire from the tables at
+ *   0x5fcb7c..: level 1 = 1.0 / 1.0 / 1.0 / 1.0, 2 = 0.8 / 0.8 / 0.8 / 0.9, 3 = 0.6 / 0.6 / 0.6 / 0.8, 4 = 0.5 / 0.5 / 0.4 / 0.7,
+ *   5 = 0.4 / 0.4 / 0.2 / 0.6 (i76-map subsystems/ai.md M23; read back live on the host 2026-10-20: level 2 -> 0.8 0.8 0.8
+ *   0.9, level 5 -> 0.4 0.4 0.2 0.6). The brief's first table (Wimp 2 / Champ 3 / Badass 5) would have made Wimp the
+ *   hardest and Badass the softest; this table keeps its steps (one easier, two harder than Champ) the right way round. Only the host runs aimelee's skill code, so the
  *   host's DEF rules; a joiner's DEF changes nothing. I76_AIMELEE_SKILL, when set, overrides the byte (lab use);
  *   I76_DIFFICULTY_AI=0 gives aimelee's own value (3, the M1 default) whatever the byte says.
  * Logged when the (mission, byte, source, skill) changes: "difficulty: <name> -> AI skill N (source: DEF | env | off)".
  * The campaign and the single-player Instant Melee are not touched (the exe already applies Gold's player factor there).
  */
 static const struct { const char *name; int skill; } g_diff_map[3] = {
-    { "Wimp", 2 }, { "Champ", 3 }, { "Badass", 5 },
+    { "Wimp", 4 }, { "Champ", 3 }, { "Badass", 1 },          /* stock levels: 1 = best, 5 = worst (see above) */
 };
 static int g_diff_on = -1;                                  /* I76_DIFFICULTY_AI, read on first use */
 
