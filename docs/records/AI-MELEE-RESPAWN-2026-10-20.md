@@ -175,8 +175,10 @@ migrate-then-rehost did not crash, n 1 each). Cause: the AI fill kept the first 
 `mpf_obj` / `mpf_near_car` read it during the second load, before the tags were reloaded. Phase 1 made it reachable on
 every 'AT' round, because the parked flag in 'AT' byte 3 asks `mpf_parked_obj`. Fix (`cdd69f7`): `mpf_obj` returns
 nothing unless the tags belong to the current table, and the free-spawn search reads the current table. Measured on the
-fixed twin before the session problem below: Suburbia -> Hope Springs (6 AI) 3 of 3 without a crash (6 AI rows after the
-second load), migrate-then-rehost 1 of 1. Every soak cycle now ends with a second hosted session (A leaves and hosts the
+fixed twin: Suburbia -> Hope Springs (6 AI) 3 of 3 without a crash (6 AI rows after the second load), migrate-then-rehost
+1 of 1. **These runs (06:26-07:11) and the reproduction itself ran while the PC's session was RDP** (reconnected 06:13, see
+below), so by AGENTS.md they are not valid launch results; the code cause stands on its own (the crash address is the
+stale-table read), the counts are repeated in `chain7.sh`. Every soak cycle now ends with a second hosted session (A leaves and hosts the
 next arena, B joins it, 20 s).
 
 **Bug 3, `I76_COOP_AI=1` crashed a single-player game on a re-placed car** (found by the jump lane, TICK-FINISH s.20.7:
@@ -185,7 +187,8 @@ the label table and read an object the game had freed when it rebuilt the car. F
 nothing outside a network game, and `coop_ai_object` skips a label whose object or entity cannot be read. **Not yet
 measured** (next paragraph).
 
-**Why the 2026-10-21 runs stopped.** From 06:42 every boot of every lab copy hung before the first mission frame. The main
+**Why the 2026-10-21 runs stopped.** The PC's session 1 was reconnected over RDP at 06:13 (TerminalServices event 25). From
+06:42 most boots of every lab copy hung before the first mission frame. The main
 thread waited in `MMDevApi.dll` / `AUDIOSES.DLL` (resolved with `tools\airespawn\mods.py`), because the PC's session was
 **RDP** (`rdp-tcp#14`, TerminalServerSession True, the only working audio endpoint "Remote Audio"). AGENTS.md: no launch
 result is valid under RDP. The harness now waits while the session is RDP. The runs after 06:42 (second sessions on the
