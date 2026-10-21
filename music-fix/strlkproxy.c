@@ -4264,18 +4264,18 @@ static void apply_far_clip(void) {
      * `mov eax, imm32 <float>` at the read site. Recognise that, report the file value, and still take over the read
      * so the environment value wins (2026-10-02: "pool constant 0 differs - not applied" hid that the 1800 m came from
      * the file, not the switch). */
-    for (i = 0; i < 5; i++) if (*(DWORD *)(DWORD_PTR)pool[i].va == pool[i].old * 16) filepatched++;
-    if (filepatched == 5 && *(BYTE *)0x004059de == 0xB8) {
+    for (i = 0; i < 5; i++) if (NA(pool[i].va) && *(DWORD *)(DWORD_PTR)NA(pool[i].va) == pool[i].old * 16) filepatched++;
+    if (filepatched == 5 && *(BYTE *)(DWORD_PTR)NA(0x004059de) == 0xB8) {
         BYTE imm_old[5]; float file_m;
-        memcpy(imm_old, (void *)0x004059de, 5); memcpy(&file_m, imm_old + 1, 4);
+        memcpy(imm_old, (void *)(DWORD_PTR)NA(0x004059de), 5); memcpy(&file_m, imm_old + 1, 4);
         g_far_clip = far_m;
         a = (DWORD)(DWORD_PTR)&g_far_clip; memcpy(rd_new + 1, &a, 4);
         ok = patch_bytes(0x004059de, imm_old, rd_new, 5, "far clip read (file-patched exe)");
         mlog("  far-clip: exe is file-patched (%g m, pools x16); %s (%g m from I76_FAR_CLIP)", file_m, ok ? "read site repointed" : "NOT repointed", far_m);
         return;
     }
-    for (i = 0; i < 5; i++) if (*(DWORD *)(DWORD_PTR)pool[i].va != pool[i].old) { mlog("  far-clip: pool constant %d differs - not applied", i); return; }
-    if (memcmp((void *)0x004059de, rd_old, 5) != 0) { mlog("  far-clip: read site differs - not applied"); return; }
+    for (i = 0; i < 5; i++) if (!NA(pool[i].va) || *(DWORD *)(DWORD_PTR)NA(pool[i].va) != pool[i].old) { mlog("  far-clip: pool constant %d differs - not applied", i); return; }
+    if (!site_is(0x004059de, rd_old, 5)) { mlog("  far-clip: read site differs - not applied"); return; }
     for (i = 0; i < 5; i++) {
         DWORD nv = pool[i].old * 16;
         ok += patch_bytes(pool[i].va, (const BYTE *)&pool[i].old, (const BYTE *)&nv, 4, "render pool x16");
@@ -6316,10 +6316,10 @@ static double g_fs_win_frame, g_fs_win_present;
 static DWORD g_fs_vcount, g_fs_arena, g_fs_recs, g_fs_nodes, g_fs_scenes;          /* last scene flush */
 static DWORD g_fs_win_vmax, g_fs_win_arena, g_fs_win_over, g_fs_over_total, g_fs_last_over;
 static void fs_sample_scene(void) {                     /* from road_flush_wrap, before the flush */
-    DWORD v = *(volatile DWORD *)0x006442ec, cur = *(volatile DWORD *)0x00654380, base = *(volatile DWORD *)0x005dd324;
-    DWORD nc = *(volatile DWORD *)0x006543b8, nb = *(volatile DWORD *)0x006543bc;
+    DWORD v = *(volatile DWORD *)(DWORD_PTR)NA(0x006442ec), cur = *(volatile DWORD *)(DWORD_PTR)NA(0x00654380), base = *(volatile DWORD *)(DWORD_PTR)NA(0x005dd324);
+    DWORD nc = *(volatile DWORD *)(DWORD_PTR)NA(0x006543b8), nb = *(volatile DWORD *)(DWORD_PTR)NA(0x006543bc);
     g_fs_scenes++;
-    g_fs_vcount = v; g_fs_recs = *(volatile DWORD *)0x0059c568;
+    g_fs_vcount = v; g_fs_recs = *(volatile DWORD *)(DWORD_PTR)NA(0x0059c568);
     g_fs_arena = (base && cur >= base) ? cur - base : 0;
     g_fs_nodes = (nb && nc >= nb) ? nc - nb : 0;
     if (v > g_fs_win_vmax) g_fs_win_vmax = v;
@@ -6342,7 +6342,7 @@ static void fs_after_swap(double t0) {
     if (g_fs_last > 0.0 && (frame >= (double)g_fs_ms || present >= (double)g_fs_ms)) {
         g_fs_spikes++; g_fs_win_spikes++;
         mlog("  frame-spikes: SPIKE #%lu at swap %lu (proxy frame %lu, t %.0f ms, state %lu): frame %.1f ms, present %.1f ms | this frame: %lu downloads %lu KB, %lu flushes, no-slot %lu, resident %lu KB | scene: terrain vertices %lu, arena %lu KB (%lu records), span nodes %lu KB",
-             (unsigned long)g_fs_spikes, (unsigned long)g_tc_swaps, (unsigned long)g_frame, t1, (unsigned long)*(volatile DWORD *)0x004c2164,
+             (unsigned long)g_fs_spikes, (unsigned long)g_tc_swaps, (unsigned long)g_frame, t1, (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004c2164),
              frame, present, (unsigned long)dl, (unsigned long)kb, (unsigned long)fl, (unsigned long)tc_zg(0x10178ea0),
              (unsigned long)((tc_zg(0x1001fd20) - g_tc_minaddr) / 1024), (unsigned long)g_fs_vcount, (unsigned long)(g_fs_arena >> 10),
              (unsigned long)g_fs_recs, (unsigned long)(g_fs_nodes >> 10));
@@ -6376,22 +6376,22 @@ static void fs_after_swap(double t0) {
  * with I76_FLASH_PROBE). The same setup serves the mirror pass, which gets the same treatment. */
 static int g_cg_on; static DWORD g_cg_lifts, g_cg_fail;
 static int __cdecl cam_ground_setup_wrap(BYTE *cam) {
-    int r = ((int (__cdecl *)(BYTE *))0x004929b0)(cam);
+    int r = ((int (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x004929b0))(cam);
     if (r == 0 && g_cg_on && cam) {
         double *py = (double *)(cam + 0x168), y0 = *py;
-        double h = ((double (__cdecl *)(double, double))0x00493550)(*(double *)(cam + 0x160), *(double *)(cam + 0x170));
+        double h = ((double (__cdecl *)(double, double))(DWORD_PTR)NA(0x00493550))(*(double *)(cam + 0x160), *(double *)(cam + 0x170));
         if (h > -1.0e6 && h < 1.0e6 && h + 0.05 > y0 && h + 0.05 - y0 < 50.0) {
             *py = h + 0.05;
-            r = ((int (__cdecl *)(BYTE *))0x004929b0)(cam);
+            r = ((int (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x004929b0))(cam);
             *py = y0;
             g_cg_lifts++;
             if (!r) g_cg_fail++;
             if (g_cg_lifts <= 20 || !r)
                 mlog("  cam-ground-fix: lift #%lu (camera %p, %s, mode %d): eye %.3f m under the terrain height %.2f; setup %s",
-                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)0x004c2730 ? "main" : "other", *(int *)0x004c2728, h - y0, h, r ? "ok, terrain queued" : "STILL refused");
+                     (unsigned long)g_cg_lifts, (void *)cam, cam == (BYTE *)(DWORD_PTR)NA(0x004c2730) ? "main" : "other", *(int *)(DWORD_PTR)NA(0x004c2728), h - y0, h, r ? "ok, terrain queued" : "STILL refused");
             /* 2026-10-09: the main camera under the ground IN COCKPIT VIEW (camera_mode 0x4c2728 == 0) means the car
                body is under it too (orbit / chase views put the eye near the ground on their own). Counted apart. */
-            if (cam == (BYTE *)0x004c2730 && *(int *)0x004c2728 == 0) {
+            if (cam == (BYTE *)(DWORD_PTR)NA(0x004c2730) && *(int *)(DWORD_PTR)NA(0x004c2728) == 0) {
                 static unsigned long n_ck;
                 if (++n_ck <= 200) mlog("  cam-ground-fix: COCKPIT-UNDER #%lu: eye %.3f m under the terrain height %.2f", n_ck, h - y0, h);
             }
@@ -6434,21 +6434,21 @@ static int g_fp_prev_flag;
 static double g_fp_win_maxlow;                      /* min distance low-vs-ref in the window (closest to sky) */
 static DWORD g_fp_seen_lifts;
 static void fp_scene(void *cam_arg) {
-    DWORD v = *(volatile DWORD *)0x006442ec; BYTE *cam = *(BYTE **)0x006442d4; double p[3] = { 0, 0, 0 }, mv = 0.0, gh = 0.0;
+    DWORD v = *(volatile DWORD *)(DWORD_PTR)NA(0x006442ec); BYTE *cam = *(BYTE **)(DWORD_PTR)NA(0x006442d4); double p[3] = { 0, 0, 0 }, mv = 0.0, gh = 0.0;
     g_fp_scenes++;
     if (!g_fp_logged_cam) { g_fp_logged_cam = 1; mlog("  flash-probe: first main scene: flush camera %p, QueueTerrain camera %p", cam_arg, (void *)cam); }
     if (cam) { memcpy(p, cam + 0x160, sizeof p); }
     { double dx = p[0] - g_fp_prev_pos[0], dy = p[1] - g_fp_prev_pos[1], dz = p[2] - g_fp_prev_pos[2]; mv = sqrt(dx * dx + dy * dy + dz * dz); }
     if (v < g_fp_win_vmin) g_fp_win_vmin = v;
     if (g_fp_prev_v > 500 && (v == 0 || (v * 10 < g_fp_prev_v * 3 && mv < 2.0))) {
-        float *pl = (float *)0x0054e11c;
+        float *pl = (float *)(DWORD_PTR)NA(0x0054e11c);
         g_fp_events++; if (v == 0) { g_fp_zero++; g_fp_win_zero++; } else { g_fp_drop++; g_fp_win_drop++; }
-        if (cam) gh = ((double (__cdecl *)(double, double))0x00493550)(p[0], p[2]);
+        if (cam) gh = ((double (__cdecl *)(double, double))(DWORD_PTR)NA(0x00493550))(p[0], p[2]);
         if (g_fp_events <= 300)
             mlog("  flash-probe: TERRAIN-DROP #%lu at swap %lu (proxy frame %lu, t %.0f ms, state %lu, cam mode %lu): terrain vertices %lu (previous scene %lu) | camera (%.2f, %.2f, %.2f), %.3f m above the terrain height %.2f, moved %.2f m since the previous scene | player (%.1f, %.1f, %.1f) | records %lu",
-                 (unsigned long)g_fp_events, (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)*(volatile DWORD *)0x004c2164,
-                 (unsigned long)*(volatile DWORD *)0x004c2728, (unsigned long)v, (unsigned long)g_fp_prev_v, p[0], p[1], p[2], p[1] - gh, gh, mv,
-                 pl[0], pl[1], pl[2], (unsigned long)*(volatile DWORD *)0x0059c568);
+                 (unsigned long)g_fp_events, (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(), (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004c2164),
+                 (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004c2728), (unsigned long)v, (unsigned long)g_fp_prev_v, p[0], p[1], p[2], p[1] - gh, gh, mv,
+                 pl[0], pl[1], pl[2], (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x0059c568));
         if (g_fp_dumps < 12 && !g_fp_dump_kind) g_fp_dump_kind = 1;
     }
     if (g_cg_lifts != g_fp_seen_lifts) {       /* a lifted (fixed) frame: dump the first few to see what it looks like */
@@ -6485,7 +6485,7 @@ static void fp_before_swap(void) {
         g_fp_row = (WORD *)HeapAlloc(GetProcessHeap(), 0, g_fp_w * 2 + 16);
         mlog("  flash-probe: pixel rows at %d/%d/%d %% of %lux%lu", g_fp_rows[0], g_fp_rows[1], g_fp_rows[2], (unsigned long)g_fp_w, (unsigned long)g_fp_h);
     }
-    if (*(volatile DWORD *)0x004c2164 != 5) { g_fp_prev_flag = 0; return; }     /* missions only */
+    if (*(volatile DWORD *)(DWORD_PTR)NA(0x004c2164) != 5) { g_fp_prev_flag = 0; return; }     /* missions only */
     {   double r[3], a[3], b[3], mr, ma, mb, da, db; int white, sky, flag;
         fp_row_stats(g_fp_h * g_fp_rows[0] / 100, r, &mr); fp_row_stats(g_fp_h * g_fp_rows[1] / 100, a, &ma); fp_row_stats(g_fp_h * g_fp_rows[2] / 100, b, &mb);
         if (mr < 0 || ma < 0 || mb < 0) return;
@@ -6498,7 +6498,7 @@ static void fp_before_swap(void) {
             if (g_fp_pix_events <= 300)
                 mlog("  flash-probe: PIXEL-FLASH #%lu (%s) at swap %lu (proxy frame %lu, t %.0f ms, cam mode %lu): ref row rgb %.0f %.0f %.0f | row %d%% rgb %.0f %.0f %.0f mad %.1f | row %d%% rgb %.0f %.0f %.0f mad %.1f | terrain vertices %lu",
                      (unsigned long)g_fp_pix_events, white ? "white" : "sky", (unsigned long)g_tc_swaps, (unsigned long)g_frame, tc_ms(),
-                     (unsigned long)*(volatile DWORD *)0x004c2728, r[0], r[1], r[2], g_fp_rows[1], a[0], a[1], a[2], ma, g_fp_rows[2], b[0], b[1], b[2], mb,
+                     (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004c2728), r[0], r[1], r[2], g_fp_rows[1], a[0], a[1], a[2], ma, g_fp_rows[2], b[0], b[1], b[2], mb,
                      (unsigned long)g_fp_prev_v);
             if (g_fp_dumps < 12) fp_dump_named("pix");
         }
@@ -6752,9 +6752,9 @@ static double hf_cross(const double *o, const double *a, const double *b) {
     return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
 }
 static void hf_rebuild(BYTE *cam) {
-    double s = (double)*(volatile float *)0x006442c4, P[5][2], H[12][2], ex, ey, ez, cx, cy, cz, gx = 0.0, gz = 0.0, worst = 0.0;
-    int i, j, n = 0, k = 0, below = 1, ng = *(volatile int *)0x006442f0, t;
-    BYTE *pl = (BYTE *)0x00644308;
+    double s = (double)*(volatile float *)(DWORD_PTR)NA(0x006442c4), P[5][2], H[12][2], ex, ey, ez, cx, cy, cz, gx = 0.0, gz = 0.0, worst = 0.0;
+    int i, j, n = 0, k = 0, below = 1, ng = *(volatile int *)(DWORD_PTR)NA(0x006442f0), t;
+    BYTE *pl = (BYTE *)(DWORD_PTR)NA(0x00644308);
     ex = *(double *)(cam + 0x160); ey = *(double *)(cam + 0x168); ez = *(double *)(cam + 0x170);
     for (i = 0; i < 4; i++) if (*(double *)(cam + 0x178 + 0x18 * i + 8) > 0.0) below = 0;
     P[n][0] = s * ex; P[n][1] = s * ez; n++;
@@ -6794,7 +6794,7 @@ static void hf_rebuild(BYTE *cam) {
         g_hf_events++;
         if (g_hf_events <= 20)
             mlog("  terrain-hull-fix: event #%lu (camera %s, mode %d): the exe's footprint hull (%d planes) left a hull point %.1f samples outside; rebuilt with %d planes; eye (%.1f %.1f) samples",
-                 (unsigned long)g_hf_events, cam == (BYTE *)0x004c2730 ? "main" : "other", *(int *)0x004c2728, ng, -worst, k, s * ex, s * ez);
+                 (unsigned long)g_hf_events, cam == (BYTE *)(DWORD_PTR)NA(0x004c2730) ? "main" : "other", *(int *)(DWORD_PTR)NA(0x004c2728), ng, -worst, k, s * ex, s * ez);
     }
     for (i = 0; i < k; i++) { gx += H[i][0]; gz += H[i][1]; }
     gx /= k; gz /= k;
@@ -6807,7 +6807,7 @@ static void hf_rebuild(BYTE *cam) {
         if (nx * gx + nz * gz + d < 0.0) { nx = -nx; nz = -nz; d = -d; }
         *(float *)q = (float)nx; *(float *)(q + 4) = 0.0f; *(float *)(q + 8) = (float)nz; *(double *)(q + 0x10) = d;
     }
-    *(volatile int *)0x006442f0 = k;
+    *(volatile int *)(DWORD_PTR)NA(0x006442f0) = k;
 }
 static int __cdecl hull_setup_wrap(BYTE *cam) {
     int r = cam_ground_setup_wrap(cam);                /* the original setup, plus the camera-under-ground lift if on */
@@ -6821,7 +6821,7 @@ static void apply_terrain_hull_fix(void) {
     if (!(n && n < sizeof(v) && v[0] == '1')) return;
     rel = (LONG)((DWORD_PTR)cam_ground_setup_wrap - (0x00490b1e + 5)); memcpy(cg + 1, &rel, 4);
     rel = (LONG)((DWORD_PTR)hull_setup_wrap - (0x00490b1e + 5)); memcpy(w + 1, &rel, 4);
-    g_hf_on = patch_bytes(0x00490b1e, memcmp((void *)0x00490b1e, cg, 5) == 0 ? cg : old, w, 5, "terrain setup call (footprint hull rebuild)");
+    g_hf_on = patch_bytes(0x00490b1e, site_is(0x00490b1e, cg, 5) ? cg : old, w, 5, "terrain setup call (footprint hull rebuild)");
     mlog("  terrain-hull-fix: %s (QueueTerrain 0x490b1e: after the setup 0x4929b0 the footprint hull 0x644308 / [0x6442f0] is rebuilt from the eye and the four far corners; camera-under-ground lift %s)",
          g_hf_on ? "on" : "NOT applied (bytes differ)", g_cg_on ? "kept (chained)" : "off");
 }
@@ -8363,6 +8363,9 @@ static void apply_terrain_vguard(void) {
     if (lim < 1000 || lim > 32000) { mlog("  terrain-vguard: I76_TERRAIN_VLIMIT %d out of range (1000..32000) - using 28000", lim); lim = 28000; }
     g_tv_limit = (DWORD)lim;
     memcpy(w + 1, &rel, 4);
+    {   static const DWORD sa[1] = { 0x006442ec };
+        if (!nitro_reloc_stub((void *)terrain_vguard_stub, sa, 1, 64, "terrain vertex guard stub")) { mlog("  terrain-vguard: NOT applied (stub)"); return; } }
+    g_tv_ret_split = NA(0x004912fe); g_tv_ret_leaf = NA(0x004917b0);   /* = the initial values on Gold */
     g_tv_on = patch_bytes(0x004912f6, old, w, 8, "terrain vertex guard");
     mlog("  terrain-vguard: %s (no node splits past %lu terrain vertices in a frame)", g_tv_on ? "on" : "NOT applied", (unsigned long)g_tv_limit);
 }
@@ -8415,7 +8418,7 @@ static void th_clear(int t) { DWORD j; for (j = 0; j < g_th_nused[t]; j++) g_th_
 static int __cdecl th_node(const float *v0, int h) {
     int x, z, s, ps; float cx, cz, dx, dz, k; BYTE was = 0;
     if (!g_th_main || !v0) return 2;
-    if (!g_th_eye_ok) { g_th_eye[0] = *(volatile float *)0x006442f8; g_th_eye[1] = *(volatile float *)0x00644300; g_th_eye_ok = 1; }
+    if (!g_th_eye_ok) { g_th_eye[0] = *(volatile float *)(DWORD_PTR)NA(0x006442f8); g_th_eye[1] = *(volatile float *)(DWORD_PTR)NA(0x00644300); g_th_eye_ok = 1; }
     x = (int)(v0[0] + 0.5f); z = (int)(v0[2] + 0.5f);
     th_put(g_th_cur, th_key(x, z, h), 1);
     s = h ? 2 * h : 1; ps = 2 * s;                       /* this node's size; the parent's (its half size is s) */
@@ -8428,13 +8431,13 @@ static int __cdecl th_node(const float *v0, int h) {
     dx = cx - g_th_eye[0]; dz = cz - g_th_eye[1];
     if (g_tf_far2 > 0.0f && g_th_snap_ok && dx * dx + dz * dz > g_tf_far2) {
         BYTE f = th_get(g_th_snap, th_key(x, z, h));
-        if (f) { g_th_frozen++; g_th_win_frozen++; *(volatile float *)0x006442f8 = g_th_eye[0]; *(volatile float *)0x00644300 = g_th_eye[1]; return f == 2 ? 1 : 0; }
+        if (f) { g_th_frozen++; g_th_win_frozen++; *(volatile float *)(DWORD_PTR)NA(0x006442f8) = g_th_eye[0]; *(volatile float *)(DWORD_PTR)NA(0x00644300) = g_th_eye[1]; return f == 2 ? 1 : 0; }
     }
     if (g_th_up != 1.0f) was = th_get(g_th_prev, th_key(x, z, h));
     k = was == 2 ? g_th_up : was == 1 ? g_th_dn : 1.0f;
     if (k != 1.0f) g_th_biased++;
-    *(volatile float *)0x006442f8 = cx - dx * k;          /* the stock tests now see the node k times as far */
-    *(volatile float *)0x00644300 = cz - dz * k;
+    *(volatile float *)(DWORD_PTR)NA(0x006442f8) = cx - dx * k;          /* the stock tests now see the node k times as far */
+    *(volatile float *)(DWORD_PTR)NA(0x00644300) = cz - dz * k;
     return 2;
 }
 static DWORD g_th_res, g_th_ret_forced = 0x00491802;   /* 0x491802: fstp st(0); jmp 0x49167c = the forced split of h >= 32 */
@@ -8475,8 +8478,8 @@ static __declspec(naked) void terrain_hyst_stub(void) {          /* jmp from 0x4
 static void __cdecl th_qt_main(BYTE *cam) {
     int t; DWORD j;
     g_th_main = 1; g_th_eye_ok = 0;
-    ((void (__cdecl *)(BYTE *))0x00490a00)(cam);
-    if (g_th_eye_ok) { *(volatile float *)0x006442f8 = g_th_eye[0]; *(volatile float *)0x00644300 = g_th_eye[1]; }
+    ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00490a00))(cam);
+    if (g_th_eye_ok) { *(volatile float *)(DWORD_PTR)NA(0x006442f8) = g_th_eye[0]; *(volatile float *)(DWORD_PTR)NA(0x00644300) = g_th_eye[1]; }
     g_th_main = 0; g_th_passes++;
     if (g_tf_far2 > 0.0f && g_th_eye_ok) {                    /* freeze snapshot: a copy of this pass, once the eye moved m metres */
         float mx = g_th_eye[0] - g_tf_eye[0], mz = g_th_eye[1] - g_tf_eye[1];
@@ -8510,11 +8513,18 @@ static void apply_terrain_hyst(void) {
     }
     g_th_up = 1.0f / (1.0f + hp / 100.0f); g_th_dn = 1.0f + hp / 100.0f;
     if (ff > 0.0f) { g_tf_far2 = (ff / 5.0f) * (ff / 5.0f); g_tf_move2 = (fm / 5.0f) * (fm / 5.0f); }
-    memcpy(cur, (const void *)0x004912f6, 8);
+    {   static const DWORD sa[1] = { 0x006442ec };
+        if (!nitro_reloc_stub((void *)terrain_hyst_stub, sa, 1, 128, "terrain hysteresis stub")) { mlog("  terrain-hyst: NOT applied (stub)"); return; } }
+    g_tv_ret_split = NA(0x004912fe); g_tv_ret_leaf = NA(0x004917b0); g_th_ret_forced = NA(0x00491802);
     rel = (LONG)((DWORD_PTR)terrain_hyst_stub - (0x004912f6 + 5)); memcpy(w + 1, &rel, 4);
-    if (memcmp(cur, old, 8) == 0) ok = patch_bytes(0x004912f6, old, w, 8, "terrain hysteresis node test");
-    else if (cur[0] == 0xe9) ok = patch_bytes(0x004912f6, cur, w, 8, "terrain hysteresis node test (over the vertex guard)");
-    else ok = 0;
+    if (site_is(0x004912f6, old, 8)) ok = patch_bytes(0x004912f6, old, w, 8, "terrain hysteresis node test");
+    else {                                                   /* over the vertex guard: the jmp it wrote (Gold-relative bytes) */
+        BYTE vg[8] = { 0xe9, 0, 0, 0, 0, 0x90, 0x90, 0x90 }; LONG r2 = (LONG)((DWORD_PTR)terrain_vguard_stub - (0x004912f6 + 5));
+        memcpy(vg + 1, &r2, 4);
+        memcpy(cur, g_exe == EXE_NITRO ? vg : (const BYTE *)0x004912f6, 8);
+        if (cur[0] == 0xe9 && site_is(0x004912f6, cur, 8)) ok = patch_bytes(0x004912f6, cur, w, 8, "terrain hysteresis node test (over the vertex guard)");
+        else ok = 0;
+    }
     rel = (LONG)((DWORD_PTR)th_qt_main - (0x004020a4 + 5)); memcpy(w5 + 1, &rel, 4);
     ok = ok && patch_bytes(0x004020a4, qtm_old, w5, 5, "terrain hysteresis main QueueTerrain call");
     g_th_on = ok;
@@ -8540,7 +8550,8 @@ static void apply_terrain_lod(void) {
     if (f < 1.0f || f > 256.0f || fa < 1.0f || fa > 256.0f || fb < 1.0f || fb > 256.0f) { mlog("  terrain-lod: %s / %s / %s out of range (1..256) - not applied", v, va, vb); return; }
     for (i = 0; i < 3; i++) {
         float a0, b0, a1, b1;
-        memcpy(&a0, (const void *)lv[i].a_site, 4); memcpy(&b0, (const void *)lv[i].b_site, 4);   /* the exe's own bits */
+        if (!NA((DWORD)lv[i].a_site) || !NA((DWORD)lv[i].b_site)) { mlog("  terrain-lod: level %d sites not mapped - skipped", i); continue; }
+        memcpy(&a0, (const void *)(DWORD_PTR)NA((DWORD)lv[i].a_site), 4); memcpy(&b0, (const void *)(DWORD_PTR)NA((DWORD)lv[i].b_site), 4);   /* the exe's own bits */
         if (a0 < lv[i].a * 0.99f || a0 > lv[i].a * 1.01f || b0 < lv[i].b * 0.99f || b0 > lv[i].b * 1.01f) { mlog("  terrain-lod: level %d constants are not the expected values - skipped", i); continue; }
         a1 = a0 * fa; b1 = b0 / fb;
         ok += patch_bytes(lv[i].a_site, (const BYTE *)&a0, (const BYTE *)&a1, 4, "terrain-lod A");
@@ -8649,7 +8660,7 @@ static int g_rp_on;                         /* the span-node pool is enlarged + 
 static void __cdecl road_flush_wrap(void *cam, int flag) {       /* the scene flush calls 0x401e8d / 0x40216d */
     if (g_fs_ms) fs_sample_scene();         /* I76_FRAME_SPIKES: this scene's queue, before the flush rewinds it */
     if (g_fp_on) fp_scene(cam);             /* I76_FLASH_PROBE: per-scene terrain drop detector */
-    ((void (__cdecl *)(void *, int))0x0048fac0)(cam, flag);
+    ((void (__cdecl *)(void *, int))(DWORD_PTR)NA(0x0048fac0))(cam, flag);
     if (!g_rp_on) return;                   /* installed by apply_frame_spikes alone (no road pool): no pool stats */
     if (++g_rp_frames >= 600) {
         g_rp_refused_total += g_rp_refused;
@@ -8681,8 +8692,10 @@ static void apply_road_pool(void) {
     n = env_str("I76_FAR_CLIP", v, sizeof(v));
     if (n) want = 1;
     if (!want) return;
-    if (memcmp((void *)0x0048f9d6, pool_old, 5) || memcmp((void *)0x004904cd, head_old, 5) ||
-        memcmp((void *)0x00490578, exit_old, 10)) { mlog("  road-pool: sites differ - not applied"); return; }
+    if (!site_is(0x0048f9d6, pool_old, 5) || !site_is(0x004904cd, head_old, 5) ||
+        !site_is(0x00490578, exit_old, 10)) { mlog("  road-pool: sites differ - not applied"); return; }
+    {   static const DWORD sa[4] = { 0x00490578, 0x00654388, 0x006543b8, 0x006543bc };
+        if (!nitro_reloc_stub((void *)road_node_stub, sa, 4, 128, "span-node guard stub")) { mlog("  road-pool: NOT applied (stub)"); return; } }
     pool = 0x1f400 * (DWORD)factor;
     memcpy(pool_new + 1, &pool, 4);
     if (!patch_bytes(0x0048f9d6, pool_old, pool_new, 5, "span-node pool")) { mlog("  road-pool: pool not enlarged - not applied"); return; }
@@ -8772,16 +8785,16 @@ static int g_cl_ix[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)], g_cl_iz[(2 * CL_RMAX 
 static WORD g_cl_thr[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
 static DWORD g_cl_kept, g_cl_pairs;
 static void __cdecl clutter_build(BYTE *cam, double ground) {
-    float cx = *(float *)0x004f7180, cz = *(float *)0x004f7188, v[3];
+    float cx = *(float *)(DWORD_PTR)NA(0x004f7180), cz = *(float *)(DWORD_PTR)NA(0x004f7188), v[3];
     int k, n = 0, ix0 = (int)floor(cx / 100.0 + 0.5), iz0 = (int)floor(cz / 100.0 + 0.5);
     double camx = *(double *)(cam + 0x160), camz = *(double *)(cam + 0x170);
     for (k = 0; k < g_cl_ncand; k++) {
         int i = g_cl_cand[k][0], j = g_cl_cand[k][1];
-        float *p = ((float *(__cdecl *)(float *, void *, double, double, double))0x00472d30)
+        float *p = ((float *(__cdecl *)(float *, void *, double, double, double))(DWORD_PTR)NA(0x00472d30))
                    (v, cam, cx + 100.0 * i + 50.0, ground, cz + 100.0 * j + 50.0);
         if (p[2] - g_cl_margin > g_cl_dist) continue;
         p[1] = 0.0f;                        /* vertical planes ignored: bushes can sit far below the camera */
-        if (((int (__cdecl *)(void *, float *, float))0x00472c10)(cam, p, 81.0f) > 0 && (i || j)) continue;
+        if (((int (__cdecl *)(void *, float *, float))(DWORD_PTR)NA(0x00472c10))(cam, p, 81.0f) > 0 && (i || j)) continue;
         g_cl_tab[2 * n] = 100.0f * i; g_cl_tab[2 * n + 1] = 100.0f * j;
         if (g_cl_fade_on) {
             double dx = cx + 100.0 * i + 50.0 - camx, dz = cz + 100.0 * j + 50.0 - camz, d = sqrt(dx * dx + dz * dz);
@@ -8855,19 +8868,19 @@ static __declspec(naked) void clutter_end_stub(void) {          /* replaces `cmp
     }
 }
 static int __cdecl clutter_cull_wrap(void *cam, float *v, float r) {   /* the call at 0x45c634 */
-    DWORD used = *(DWORD *)0x006543c0 - *(DWORD *)0x00654398;
+    DWORD used = *(DWORD *)(DWORD_PTR)NA(0x006543c0) - *(DWORD *)(DWORD_PTR)NA(0x00654398);
     g_cl_tests++;
     if (used > g_cl_limit) { g_cl_capped++; return 1; }
-    return ((int (__cdecl *)(void *, float *, float))0x00472c10)(cam, v, r);
+    return ((int (__cdecl *)(void *, float *, float))(DWORD_PTR)NA(0x00472c10))(cam, v, r);
 }
 static char g_cl_fadetxt[64];
 static void terrain_vguard_report(void);
 static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls at 0x401e47 / 0x402111 */
     LARGE_INTEGER a, b; DWORD used;
     QueryPerformanceCounter(&a);
-    ((void (__cdecl *)(void *))0x0045c380)(cam);
+    ((void (__cdecl *)(void *))(DWORD_PTR)NA(0x0045c380))(cam);
     QueryPerformanceCounter(&b);
-    used = *(DWORD *)0x006543c0 - *(DWORD *)0x00654398;
+    used = *(DWORD *)(DWORD_PTR)NA(0x006543c0) - *(DWORD *)(DWORD_PTR)NA(0x00654398);
     if (used > g_cl_pool_max) g_cl_pool_max = used;
     g_cl_ticks += b.QuadPart - a.QuadPart; if (b.QuadPart - a.QuadPart > g_cl_ticks_max) g_cl_ticks_max = b.QuadPart - a.QuadPart;
     if (++g_cl_frames >= 600) {
@@ -8922,10 +8935,11 @@ static void apply_clutter_dist(void) {
         else rise = r;
     }
     /* every site checked before anything is written: all or nothing */
-    for (i = 0; i < 5; i++) if (memcmp((void *)(DWORD_PTR)sites[i], olds[i], 5) != 0) { mlog("  clutter-dist: site 0x%06lX differs - not applied", (unsigned long)sites[i]); return; }
-    if (memcmp((void *)0x0045c507, tab_old, 5) || memcmp((void *)0x0048f9b5, pool_old, 5) ||
-        memcmp((void *)0x004be0c8, &rise_old, 8)) { mlog("  clutter-dist: pool/rise/table sites differ - not applied"); return; }
-    memcpy(&z_old, (void *)0x004be0d0, 4); stock_z = z_old;
+    for (i = 0; i < 5; i++) if (!site_is(sites[i], olds[i], 5)) { mlog("  clutter-dist: site 0x%06lX differs - not applied", (unsigned long)sites[i]); return; }
+    if (!site_is(0x0045c507, tab_old, 5) || !site_is(0x0048f9b5, pool_old, 5) ||
+        !site_is(0x004be0c8, (const BYTE *)&rise_old, 8)) { mlog("  clutter-dist: pool/rise/table sites differ - not applied"); return; }
+    if (!NA(0x004be0d0)) { mlog("  clutter-dist: view z site not mapped - not applied"); return; }
+    memcpy(&z_old, (void *)(DWORD_PTR)NA(0x004be0d0), 4); stock_z = z_old;
     if (stock_z < 119.9 || stock_z > 120.1) { mlog("  clutter-dist: view z constant is not 120 - not applied"); return; }
     /* candidate cells, nearest first; R from the widest view this exe can show (Hor+ hood ~140 deg: ~3x D radially) */
     g_cl_dist = d; g_cl_margin = 71.0f + rise + 20.0f;
@@ -9341,11 +9355,20 @@ static void nitro_dllmain(void) {
     apply_mission_launch();   /* I76_MISSION / I76_SKIP_MOVIES */
     apply_multi_instance();
     apply_no_minimize();      /* also I76_KEEP_ACTIVE */
+    apply_terrain_lod();      /* I76_TERRAIN_LOD / _A / _B (+ vertex guard, I76_TERRAIN_HYST / _FREEZE) */
+    apply_detail_distance();  /* I76_TERRAIN_TEX, I76_OBJECT_LOD */
+    apply_shadow_road_dist(); /* I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
+    apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP */
+    apply_clutter_dist();     /* I76_CLUTTER_DIST (+ _FADE, _RISE) */
+    apply_mirror_far();       /* I76_MIRROR_FAR */
+    apply_cam_ground_fix();   /* I76_CAM_GROUND_FIX */
+    apply_terrain_hull_fix(); /* I76_TERRAIN_HULL_FIX */
     apply_ref_fps();
     apply_hires_clock();
     apply_frame_cap();
     apply_fps_log();
     apply_frame_log();
+    apply_far_clip();         /* I76_FAR_CLIP (+ render pools x16) */
     apply_telemetry();        /* I76_TELEMETRY (snapshot, shot / explosion / impact events; I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported) */
     apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
     apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */

@@ -87,14 +87,12 @@ static int nitro_reloc(DWORD gold, DWORD nva, const BYTE *in, BYTE *out, SIZE_T 
         rel = (LONG)(t2 - (nva + 5)); memcpy(out + 1, &rel, 4);
         from = 5;
     }
-    for (i = from; i + 4 <= n; i++) {
-        DWORD d; memcpy(&d, in + i, 4);
-        if (d >= GOLD_IMG_LO && d < GOLD_IMG_HI) {
-            DWORD d2 = na_(d);
-            if (!d2) { *why = "patch bytes name an exe address the site map does not know (needs a hand port)"; return 0; }
-            memcpy(out + i, &d2, 4); i += 3;
-        }
+    for (i = from; i + 4 <= n; i++) {       /* only a dword that IS a mapped Gold address is translated; any other value (a
+                                               size such as 0x400000, opcode bytes run into a pointer) is a literal */
+        DWORD d, d2; memcpy(&d, in + i, 4);
+        if (d >= GOLD_IMG_LO && d < GOLD_IMG_HI && nsite_find(d) && (d2 = na_(d)) != 0) { memcpy(out + i, &d2, 4); i += 3; }
     }
+    (void)why;
     return 1;
 }
 
@@ -126,11 +124,10 @@ static int nitro_patch_bytes(DWORD gold, const BYTE *expect, const BYTE *want, S
             from = 5;
         }
         for (i = from; i < n; i++) if (want[i] == s->gsig[i]) w2[i] = s->sig[i];
-        for (i = from; i + 4 <= n; i++) {
-            DWORD d; memcpy(&d, want + i, 4);
-            if (memcmp(want + i, s->gsig + i, 4) != 0 && d >= GOLD_IMG_LO && d < GOLD_IMG_HI) {
-                DWORD d2 = na_(d);
-                if (!d2) { why = "patch bytes name an exe address the site map does not know (needs a hand port)"; goto refuse; }
+        for (i = from; i + 4 <= n; i++) {   /* a changed operand that names another mapped Gold address (e.g. a call [IAT]
+                                               re-aimed at another import); every other changed byte is the patch's own */
+            DWORD d, d2; memcpy(&d, want + i, 4);
+            if (memcmp(want + i, s->gsig + i, 4) != 0 && d >= GOLD_IMG_LO && d < GOLD_IMG_HI && nsite_find(d) && (d2 = na_(d)) != 0) {
                 memcpy(w2 + i, &d2, 4); i += 3;
             }
         }
@@ -175,4 +172,39 @@ static void nitro_table_check(void) {
         if (memcmp((void *)(DWORD_PTR)s->nitro, s->sig, s->len) == 0) match++;
     }
     mlog("nitro: site table %d rows: %d code sites, %d match memory; %d data; %d unmapped", NITRO_SITE_COUNT, code, match, data, unm);
+}
+
+/* site_is(gold, expect, n): "the running exe holds what the Gold code expects at this site". Gold / other: memcmp at the
+ * Gold address, exactly as before. Nitro: the caller's pristine Gold bytes -> memory must be the table's Nitro bytes and n
+ * within the window both exes share; anything else (an earlier patch of ours) -> the bytes relocated as patch_bytes does. */
+static int site_is(DWORD gold, const BYTE *expect, SIZE_T n) {
+    const nitro_site_t *s; BYTE e2[64]; const char *why = "";
+    if (g_exe != EXE_NITRO) return memcmp((const void *)(DWORD_PTR)gold, expect, n) == 0;
+    s = nsite_find(gold);
+    if (!s || !s->nitro || n > sizeof(e2)) return 0;
+    if (s->len && n <= s->len && memcmp(expect, s->gsig, n) == 0)
+        return n <= s->ok && memcmp((const void *)(DWORD_PTR)s->nitro, s->sig, n) == 0;
+    return nitro_reloc(gold, s->nitro, expect, e2, n, &why) && memcmp((const void *)(DWORD_PTR)s->nitro, e2, n) == 0;
+}
+
+/* Our naked asm stubs name exe addresses as immediates / displacements. On Nitro each listed Gold address found in the stub's
+ * first `span` bytes is rewritten to its Nitro address (our own code, VirtualProtect). Every listed address must be mapped and
+ * found at least once, else nothing is written and 0 is returned (the caller leaves its feature off). Gold: returns 1. */
+static int nitro_reloc_stub(void *fn, const DWORD *gold, int ng, int span, const char *what) {
+    BYTE *p = (BYTE *)fn; DWORD old; int i, k, hits[16] = {0}, total = 0;
+    if (g_exe != EXE_NITRO) return 1;
+    if (p[0] == 0xE9) { LONG r; memcpy(&r, p + 1, 4); p = p + 5 + r; }    /* an incremental-link thunk */
+    if (ng > 16) return 0;
+    for (i = 0; i < ng; i++) if (!na_(gold[i])) { mlog("  site %s (gold 0x%06lX): no Nitro address for the stub, feature off", what, (unsigned long)gold[i]); return 0; }
+    for (k = 0; k + 4 <= span; k++) for (i = 0; i < ng; i++) { DWORD d; memcpy(&d, p + k, 4); if (d == gold[i]) hits[i]++; }
+    for (i = 0; i < ng; i++) if (!hits[i]) { mlog("  site %s: stub does not hold gold 0x%06lX, feature off", what, (unsigned long)gold[i]); return 0; }
+    if (!VirtualProtect(p, span, PAGE_EXECUTE_READWRITE, &old)) return 0;
+    for (k = 0; k + 4 <= span; k++) for (i = 0; i < ng; i++) {
+        DWORD d; memcpy(&d, p + k, 4);
+        if (d == gold[i]) { DWORD n2 = na_(gold[i]); memcpy(p + k, &n2, 4); total++; k += 3; break; }
+    }
+    VirtualProtect(p, span, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, span);
+    mlog("  nitro stub %s: %d address(es) relocated", what, total);
+    return 1;
 }

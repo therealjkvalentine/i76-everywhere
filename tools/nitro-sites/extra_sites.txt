@@ -1,0 +1,7 @@
+# Sites the proxy computes (base + offset) rather than names literally; gen_sites.py maps them like the rest.
+0x4930c1   # terrain-lod Low A   (0x4930bb + 6)
+0x4930cb   # terrain-lod Low B   (0x4930c5 + 6)
+0x49309a   # terrain-lod Medium A (0x493094 + 6)
+0x493090   # terrain-lod Medium B (0x49308a + 6)
+0x4930ab   # terrain-lod High A  (0x4930a5 + 6)
+0x4930b5   # terrain-lod High B  (0x4930af + 6)

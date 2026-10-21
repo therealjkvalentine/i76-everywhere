@@ -22,3 +22,4 @@
 0x408a3f  0x437bbf  6   zoom rate fmul [0x4bc5ac] / Nitro fmul [0x4c211c] (camera zoom; function unmatched in exediff)
 0x4605ee  0x45dc20  5   radar ping call 0x4250f0 'CRADAR.WAV' (Nitro 0x41da40); Nitro has two more radar ping calls (0x45e0c5, 0x45e220: Nitro-only missiles) not in Gold
 0x4608f1  0x45df2d  5   radar ping call (2)
+0x492458  0x497438  6   terrain-tex: leaf setup lea eax,[eax+eax*4] / shl eax,3 (W*40), same bytes and context (the 0x6442d4 camera read before it)
