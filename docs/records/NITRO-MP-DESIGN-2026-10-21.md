@@ -283,6 +283,43 @@ image), turned into a loadable PE by `i76-map\nitro-net\tools\unmap_pe.py` and e
   server keeps a table for an unregistered species is the server's business (not in this client code). Risk R3 stands,
   now narrowed to that one question.
 
+### 0.5.4 Step 3: the ANet 2 layer (`music-fix/nitro_mp.c`) - a real ARENA+ join, hello and 'AT' both ways (2026-10-21, n 3 + 2 stock)
+
+**Pass: 3 of 3 ARENA+ joins and 2 of 2 stock joins.** `music-fix/nitro_mp.c` (commit 7fc8196) is the ANet 2 layer of the
+design, on the nitro-port lane's `sites_nitro.h` (read-only; every looked-up Nitro address is checked against this
+lane's own reading, plus byte signatures for the two functions it calls). It is not in `strlkproxy.c` yet (shared file;
+the integration is one `#include` after `nitro.c`, `nmp_attach_exe()` in `nitro_dllmain`, `nmp_attach_shell()` where the
+proxy sees nitshell load). For the proof it was compiled into the lab instrument nmpdrv (md5 9847690e, `NMP_NET=1`),
+which keeps the ARENA+ box of steps 1-2 (arena_poc.c) and now hands the session hooks (list, dpOpen) to nitro_mp.c.
+
+What nitro_mp.c does: hooks nitro.exe's `ANET2.DLL!dpReceive` import (real call first, then our tags, pump-driven);
+sends through a 16-byte-slack buffer capped at 249 B unreliable / 244 B reliable; mode = the species of the session
+nitshell opened (0x7676 ARENA+, 604 stock - in a stock session it reads nothing and sends nothing); 'AH' hello
+(reliable) from the host to the group until every joiner answered, each joiner answers once per seq; 'AT' in Gold's
+format, at most 2 records (here a lab self-test: after the hello each side sends one 'AT' with its OWN car, packed by
+net_PackVehicleState 0x463660, and the receiver compares the record's position with its mirror of that car); nitshell's
+list = one `dpEnumSessions` with species 0, filtered to 604 + 0x7676 (ARENA+ named "ARENA+ <name>"); the lobby
+subscription is a stub.
+
+Runs (`tools/nitro-mp/pair.py --join-role joinplay --net 1`, summary `tools/nitro-mp/joinsum.py`, lab repo): the host boots,
+ticks the box (or not), BROADCAST; 20 s later the joiner boots, JOIN > IPX, waits for the session in the list, clicks row 0
+and JOIN GAME, then both stay in the arena (host 110 s, joiner 60 s) writing a status line every 5 s (session species,
+role, ids, our packet counters, and every player-table row with its car position). IPX as in step 2 (instances L / M,
+port 54830, Hyper-V adapter; every packet in the logs went to / came from 172.30.160.1 or 172.30.175.255:54830).
+
+| run | session | joiner listed / joined | hello | 'AT' host -> joiner / joiner -> host | both tables, last common status line | n |
+|---|---|---|---|---|---|---|
+| j1-r1, r2, r3 | 7676 ("ARENA+ Evening Stroll") | yes / yes (state 5, ids 40 host, 44 joiner) | host sent 3 (reliable), joiner answered 1, host counted 1 answer | 1 / 1, each receiver: "record position AGREES" with its mirror (floats 7..9 = x, y, z) | **agree**: same 2 ids, each car within 1 m on both (e.g. 40 at 2937.5,48842.5 and 44 at 3392.5,48877.5) | 3 |
+| s1-r1, r2 | 604 ("Evening Stroll", box off) | yes / yes | **none sent, none received** (stock session: pass-through) | 0 / 0 | **agree** | 2 |
+
+No access violation or other exception from our code in any of the 10 boots (only the game's own handled ones, as
+before); every persisted mute cleared. The stock-join cells ran with nitro_mp.c present but passive; a join with the
+code absent was not run again here (step 2 c3 listed a stock session from a stock copy).
+
+Notes from the runs: the joiner opens the session with the record nitshell keeps, whose name carries our "ARENA+ "
+prefix (`dpOpen ... 'ARENA+ Evening Stroll'`); ANet 2 joins it all the same (the join does not match by name). The
+record position of an 'AT' sits at floats 7..9 (x, y, z) of net_PackVehicleState's 0x60 bytes.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
