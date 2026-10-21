@@ -1,114 +1,267 @@
-/* nitro_mp.c - SKELETON (2026-10-21, nitro-mp-design lane): our multiplayer features on nitro.exe 28b8ae27 +
- * nitshell.dll f804f50d + anet2.dll a21c2baa, behind ONE separate menu entry, stock Nitro multiplayer untouched.
- * Design and evidence: docs/records/NITRO-MP-DESIGN-2026-10-21.md; RE notes: i76-map nitro-net\README.md.
+/* nitro_mp.c - ARENA+ on Nitro: the ANet 2 layer (nitro-mp-design lane, 2026-10-21; estimate item 3).
+ * Record: docs/records/NITRO-MP-DESIGN-2026-10-21.md (section 0 = ARENA+, 0.5.x = proofs, 1 = the ANet 2 map).
+ * RE notes: i76-map nitro-net\README.md (exe, nitshell, anet2 real code).
  *
- * NOT BUILT, NOT INCLUDED from strlkproxy.c. Comments and empty functions only. Every address below is a static
- * proposal: the nitro-mp lane checks each site's bytes at run time (as sites_nitro.h does for the port) and refuses a
- * site that differs. Gold addresses in brackets.
+ * BUILT ON the nitro-port lane's site table (sites_nitro.h, read-only here): every exe address below is the Gold address
+ * looked up there, and the looked-up Nitro value must equal the one this lane read (nmp_site), else the feature is off.
+ * Addresses outside that table carry their own byte signature (nmp_sig).
  *
- * ---------------------------------------------------------------------------------------------------------------
- * THE ONE SWITCH: g_nmp_mode
- *   0 (always at boot) = stock Nitro. Nothing in this file acts, and every multiplayer switch of the Gold proxy is
- *     forced off for the session (list in nmp_force_stock). A patched game in a stock session behaves stock.
- *   1 = ARENA+: any host-form option on (F2), or a joined ARENA+ session; cleared by nmp_leave (main menu 0xc00e, session end,
- *     dpClose). The shell and the exe are one process with one proxy, so the flag needs no transport between them.
+ * HOW IT IS INCLUDED. Two hosts, one source:
+ *   - the proxy (strlkproxy.c, after nitro.c): NMP_IN_PROXY defined by the includer; logging = mlog, IAT = patch_iat.
+ *     NOT INCLUDED YET (strlkproxy.c is shared; the one #include + the two calls below are the integration step).
+ *   - the lab instrument nmpdrv (i76-uncap-lab tools\nitro-mp\nmpdrv): defines NMP_LOG / NMP_IAT and includes this file
+ *     and sites_nitro.h; that is how sections 0.5.4 of the record were measured.
+ * Entry points: nmp_attach_exe() (DllMain, nitro.exe only), nmp_attach_shell(nitshell) (when nitshell.dll is mapped),
+ * nmp_status(tag) (read-back line).
  *
- * SHELL (nitshell.dll, base 0x10000000) - REVISED 2026-10-21 (record section 0): ARENA+ options on the host form.
- * The proxy is loaded first (nitshell and nitro.exe both import Strlkup.dll); patch from a GetModuleHandleA watch.
- *   F1 hit recs : 3 records {id 0x10..0x12, x0, x1, y0, y1} in proxy memory, appended to the form's hit list
- *                 [0x10179ea8] with 0x1000e100(list, rec, 0) right after 0x10031e50 (stock table 0x10045a80, 16 x 0x14,
- *                 untouched); host providers 2..5 only. Hit test 0x1000e2e0 is strict x0 < x < x1, y0 < y < y1.
- *   F2 click    : `ja 0x10032054` at 0x1003219b (0f 87 b3 fe ff ff) -> nmp_form_click (ids 0x10..0x12 toggle
- *                 g_arena_opt, else jmp 0x10032054). Jump table 0x1003365c (ids 0..15) unchanged.
- *   F3 draw     : [0x10047044] = 0x10033770 (set by the constructor 0x100318e0) -> wrapper: 0x10033770, then our boxes
- *                 with 0x10012a50 (fill) and 0x10012dc0 (text, font [[0x1013049c] + 0x408]). Left column, y ~272..310.
- *   F4 save     : nothing in the 0xe4 form block 0x10179fa8 (player data key 5). 0x1002e4c0 (BROADCAST) wrapped: species
- *                 [0x10046cb0] = any option ? NMP_SPECIES : 604, just before dpOpen; options to joiners by 'AH'.
- *   F5 join list: 0x1002dfb0 enumerates species 604, then ours, same callback 0x1002e060; ours named "ARENA+ <name>".
- *   F6 reset    : main menu (0xc00e), cancel (id 15), session end -> g_arena_opt = 0, species 604.
- *   FALLBACK (old design, record section 2): main-menu button id 0x13 via `ja` at 0x1000887b.
- *   Lab PoC: I76_LAB_ARENA_POC=1 (record 0.5): one box (id 0x10), drawn / toggled / read back, n 3.
- *   Never grow a shell table in place: SCENARIO.DAT's parser 0x1001c3b0 fills fixed 4 x 20 arrays (0x10134720,
- *   0x1013653c) without bounds - a 5th character overwrites shell globals from 0x10136520 (record 0.4).
- *
- * EXE (nitro.exe)
- *   E1 receive  : IAT ANET2.DLL!dpReceive 0x4c13cc [anetdll.dll!dpReceive, patched by name] -> nmp_dpReceive (net_Pump 0x448d80 drops
- *                 unknown types after 0x446bb0 last-heard; the hook reads ours after the real call, as on Gold).
- *   E2 send     : through [0x4c13c0] dpSend [0x4bc38c]; every buffer keeps 16 spare bytes (ANet 1 wrote 4 past the
- *                 payload; not yet checked on ANet 2).
- *   E3 globals  : dp 0x53f258 [0x541024], me 0x53f25c [0x541028], net 0x53f264 [0x541030], host 0x53ecfc
- *                 [0x541064], group 0x53ecf8 [0x541060], players 0x53ed08 x 16 x 0x50 [0x541070 x 0x48], count
- *                 0x53ed00 [0x541068], flags 0x53f228 (team game = & 0x40 | & 0x2000, NOT a bool like [0x541010]),
- *                 mission 0x526758 [0x5049f0], join CRC 0x52676c [0x504a04], label table 0x552fd8 [0x54a178],
- *                 game state 0x4f30cc [0x4c2164]. Entity: owner +0x484 [+0x480], dead bit +0x458 [+0x454].
- *   E4 host tick: 0x4079a2 [0x40a5d0] call 0x42fee0 in ai_FrameTick 0x4076f0.
- *   E5 kill     : 0x46332e [0x46419d] call 0x42fee0 in entity_DamageAndKill 0x462c00.
- *   E6 AI fire  : 0x4064e6 [0x414f86] call weapon_SetTrigger 0x4af010.
- *   E7 joiner AI: 0x432e24 [0x403ddf] ai_FrameTick call in WinMain 0x431760 (skipped on joiners in mode 1).
- *   E8 damage   : object_ClassDamage 0x44fd80 [0x462040], its call sites (port lane's table).
- *   E9 score    : 0x464409 [0x465267] mirror -> net_SetPlayerScore 0x447050 (skip owner id 0).
- *   E10 chain   : 0x433165 [0x404110] (-> 0x44f550) and 0x433717 [0x404662] (-> net flag 0x448630).
- *   E11 box     : 0x4486ab [0x452d9f] `push 0; call 0x449ef0` scoreboard create (Nitro takes an argument;
- *                 0x4486b3 is a different call).
- *   E12 'ST'    : 0x445db8 [0x456c78] 'ST' handler -> mirror 0x463a20 (AI rows: who wrecked whom).
- *   E13 pool    : 0x4bd4bf [0x4b45bf] ODEF handler 0x4bd4b0 -> 0x4b3630: inject the parked AI records.
- *   E14 spawns  : per-team spawn tables (Nitro: "no spawn points for team %d"); count / layout to trace
- *                 [0x53fd88 / 0x540d98 single table on Gold].
- *
- * PACKETS (mode 1 only; 2-letter tags the stock pump drops): 'AT' AI state (<= 2 x 100 B per packet), 'AK' kill,
- * 'AM' reload / next scene, 'AC' CB line, 'AO' objective, 'AV' AI-pack report, + 'AH' (new) session hello
- * {u16 'AH', u8 proto, u8 flags, u32 pool CRC} sent by the host on every join and after a migration.
- * ---------------------------------------------------------------------------------------------------------------
+ * WHAT IT DOES (and nothing else; the entity features - AI fill, rows, respawn - come on top, record s.3.1):
+ *   1. RECEIVE: nitro.exe's import ANET2.DLL!dpReceive -> nmp_dpReceive: the real call first, then (pump-driven, like
+ *      Gold's coop_dpReceive) our tick and our packets. nitro's pump 0x448d80 drops unknown tags itself; anet2 hands every
+ *      packet whose first byte is not 'd' to the game (anet2 0x020fa420), so our tags ('A?') arrive.
+ *   2. SEND: nmp_send(): payload <= 249 B unreliable / 244 B reliable (anet2 0x020ff500 / 0x020ff600 refuse len+6 > 255 /
+ *      250), copied into a buffer with 16 spare bytes (dpSend writes a 6-byte trailer past the payload, in place).
+ *      Reliable (flag 1) for 'AH' hello, 'AK' kill, 'AM' reload; unreliable for 'AT' AI state, 2 records per packet max.
+ *   3. MODE: the session's ANet species decides: 0x7676 = ARENA+ (record s.0.5.2), 604 = stock. Taken from nitshell's
+ *      dpOpen (host: the record it creates; joiner: the record it joins). In a stock session nothing below sends or acts.
+ *   4. HELLO: in an ARENA+ session the host sends 'AH' {u16 'AH', u8 seq, u8 proto, u16 species, u16 sender id, u32
+ *      options} (reliable, to the game group) whenever the player count changed and until every joiner answered; a joiner
+ *      answers each new seq with its own 'AH' to the host.
+ *   5. AI STATE 'AT' {u16 'AT', u8 0, u8 n<=2, float time, n x {u16 label, u8 fire, u8 team, record[0x60]}} (Gold's
+ *      format). Lab proof only (NMP_AT_SELFTEST=1): after the hello each side sends one 'AT' with its OWN car (label
+ *      0xFFFF, packed by net_PackVehicleState) and the receiver compares it with its mirror of that car.
+ *   6. LIST (nitshell): one dpEnumSessions with species 0 (= any, anet2 0x020f8a20), the stdcall callback filtered to 604
+ *      and 0x7676, ours shown as "ARENA+ <name>".
+ *   7. LOBBY: nmp_lobby_subscribe() is a STUB (record s.0.5.3): on a game server the client subscribes to the session
+ *      table per species (anet2 0x020f6480, key {table, species}); listing ARENA+ sessions there needs the same
+ *      subscription for 0x7676. Not called.
+ * NOT HERE YET: the ARENA+ check boxes on the host form (record s.0.3, hooks F1-F6; proven in the lab instrument's
+ * arena_poc.c, record s.0.5.1) and the entity features (s.3.1).
  */
-#if 0   /* skeleton: not compiled */
+#include <math.h>
+#ifndef NMP_LOG
+#define NMP_LOG mlog
+#endif
+#ifndef NMP_IAT
+#define NMP_IAT(m, d, f, n) patch_iat((m), (d), (f), (n))
+#endif
 
-#define NMP_SPECIES  0x0000   /* our ANet sessionType: to be picked (not 604); see the record, risk R3 */
-#define NMP_VERSION  "6.04+"  /* host 'JO' version string in mode 1 */
+#define NMP_SPECIES_ARENA 0x7676
+#define NMP_SPECIES_STOCK 0x025c
+#define NMP_PROTO 1
+#define NMP_TAG_AH 0x4841      /* 'AH' (low byte first, as dppt_MAKE) */
+#define NMP_TAG_AT 0x5441      /* 'AT' */
+#define NMP_TAG_AK 0x4b41      /* 'AK' (reserved: kill credit) */
+#define NMP_TAG_AM 0x4d41      /* 'AM' (reserved: reload / next scene) */
+#define NMP_MAX_UNREL 249
+#define NMP_MAX_REL 244
+#define NMP_SLACK 16
 
-static volatile LONG g_nmp_mode;   /* 0 stock, 1 ARENA+ (any option on) */
-static volatile LONG g_arena_opt;  /* bit 0 AI DROP-IN, bit 1 DROP-IN / DROP-OUT, bit 2 CO-OP SCENES */
-
-/* --- mode ------------------------------------------------------------------------------------------------ */
-static void nmp_force_stock(void) { /* every MP switch off while g_nmp_mode == 0: I76_COOP_AI, I76_COOP_CHAIN,
-                                       I76_COOP_DAMAGE, I76_COOP_SCALE, I76_AIMELEE (+ _FILL, _RESPAWN, _RESPAWN_AI,
-                                       _SCORE_ROWS, _TEAMS, _WAVE, _ARENAS), I76_DIFFICULTY_AI in network games,
-                                       I76_MP_MENU (Gold shell only) */ }
-static void nmp_enter(void) { /* mode 1 (any ARENA+ option on): species ours (F4), "6.04+" in our host's JO */ }
-static void nmp_leave(void) { /* mode 0 (F6): species 604, "6.04"; drop pool state */ }
-
-/* --- shell ----------------------------------------------------------------------------------------------- */
-static void nmp_shell_attach(BYTE *nitshell) { /* F1..F6: verify bytes, patch the ja target, wrap 0x10031e50 / 0x1002e4c0 / 0x1002dfb0 */ }
-static void nmp_form_hits(void) { /* F1 */ }
-static void nmp_form_click(void) { /* F2 stub body */ }
-static void __cdecl nmp_form_redraw(void) { /* F3: 0x10033770(), then the ARENA+ boxes */ }
-static int __cdecl nmp_broadcast(int prov, void *form, int z, void *arena) { /* F4 */ return 0; }
-static void nmp_join_enum(void *ctx) { /* F5 */ }
-
-/* --- exe: network layer ------------------------------------------------------------------------------------ */
-static int __cdecl nmp_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
-    /* E1: r = real(...); if (!g_nmp_mode) return r;  then the Gold coop_dpReceive body, re-addressed (E3) */
+/* ---- sites (Gold -> Nitro through sites_nitro.h; the value this lane read must match) ---- */
+static DWORD nmp_lookup(DWORD gold) {
+    int lo = 0, hi = (int)(sizeof(g_nitro_sites) / sizeof(g_nitro_sites[0])) - 1;
+    while (lo <= hi) { int m = (lo + hi) / 2; if (g_nitro_sites[m].gold == gold) return g_nitro_sites[m].nitro; if (g_nitro_sites[m].gold < gold) lo = m + 1; else hi = m - 1; }
     return 0;
 }
-static int nmp_send(const void *pkt, int n) { /* E2 */ return 0; }
-static int nmp_role(void) { /* 0 none, 1 host (me 0x53f25c == host 0x53ecfc), 2 joiner */ return 0; }
-static void nmp_hello_send(void) { /* 'AH' on join / migration (host) */ }
-static void nmp_hello_receive(const BYTE *pkt, int n) { /* joiner: pool CRC equal? else 'no AI pack' line */ }
-static void nmp_migrate(void) { /* new host: adopt the AI rows / pool state every joiner already holds,
-                                    restart the co-op scene (as on Gold), re-send 'AH' */ }
+static int nmp_site(DWORD gold, DWORD want, const char *what, DWORD *out) {
+    DWORD n = nmp_lookup(gold);
+    *out = n;
+    if (n != want) { NMP_LOG("  nitro-mp: site %s gold 0x%06lx -> table 0x%06lx, expected 0x%06lx - OFF", what, gold, n, want); return 0; }
+    return 1;
+}
+static int nmp_sig(DWORD va, const BYTE *b, int n, const char *what) {
+    int ok = memcmp((void *)(DWORD_PTR)va, b, n) == 0;
+    if (!ok) NMP_LOG("  nitro-mp: signature %s at 0x%06lx differs - OFF", what, va);
+    return ok;
+}
+static DWORD a_grpfn, a_dp, a_me, a_net, a_group, a_host, a_count, a_players, a_state, a_pack, a_root;   /* resolved Nitro addresses */
+#define NMP_ROW(k) ((BYTE *)(DWORD_PTR)a_players + (k) * 0x50)       /* player table rows: 0x50 bytes on Nitro (0x48 on Gold) */
 
-/* --- exe: entity features (Gold code re-addressed; netcode-independent) ----------------------------------- */
-static void nmp_ai_sync_host(void)    { /* 'AT' sender (coop_ai_host_send) */ }
-static void nmp_ai_sync_apply(const BYTE *pkt, int n) { /* coop_ai_apply + aim_at_revive + team byte */ }
-static void nmp_host_tick(void)       { /* E4: aim_tick, difficulty skill, attacker cap */ }
-static void nmp_kill_credit(void)     { /* E5: aim_on_kill -> 'AK' */ }
-static void nmp_pool_inject(void)     { /* E13: aim_odef - 7 parked AI per stock .cbt arena */ }
-static void nmp_fill_tick(void)       { /* mpfill: park / bring, teams, per-team spawn tables (E14) */ }
-static void nmp_rows_tick(void)       { /* aim_rows_tick: AI rows in 0x53ed08, 0x50 stride, +0x44 = 1.0f, +0x48 team */ }
-static void nmp_respawn_tick(void)    { /* aim_respawn_tick: humans and AI */ }
-static void nmp_chain(void)           { /* E10: co-op chain 'AM' reload / next scene */ }
-static void nmp_box(void)             { /* E11: scoreboard lines */ }
+/* ---- state ---- */
+typedef int (__cdecl *nmp_recv_fn)(void *, void *, void *, int, void *, void *);
+typedef int (__cdecl *nmp_send_fn)(void *, int, int, int, void *, int);
+static nmp_recv_fn nmp_real_recv; static nmp_send_fn nmp_dpsend;
+static volatile LONG g_nmp_on;                       /* exe side attached */
+static volatile LONG g_nmp_species;                  /* species of the session nitshell opened (0 = none yet) */
+static volatile LONG g_nmp_opts;                     /* host's ARENA+ options (bit 0 AI DROP-IN ...), set by the shell part */
+static LONG g_nmp_sent[8], g_nmp_got[8], g_nmp_senderr, g_nmp_toobig;
+static BYTE g_hello_seq; static int g_hello_count = -1; static DWORD g_hello_last;
+static WORD g_hello_acked[16]; static int g_hello_acks;  /* host: joiners that answered the current seq */
+static BYTE g_hello_seen = 0xff;                         /* joiner: last host seq answered */
+static WORD g_hello_from;                                /* joiner: host id from the last hello */
+static int g_at_selftest, g_at_sent, g_at_recv;
 
-void apply_nitro_mp(void) { /* DllMain, nitro.exe only (exe hash): arm E1..E14 behind g_nmp_mode, start the
-                               nitshell watch; nothing is written until a site's bytes check out */ }
+static int nmp_arena(void) { return g_nmp_on && g_nmp_species == NMP_SPECIES_ARENA && *(volatile int *)(DWORD_PTR)a_net; }
+static WORD nmp_me(void) { return *(volatile WORD *)(DWORD_PTR)a_me; }
+static WORD nmp_hostid(void) { return *(volatile WORD *)(DWORD_PTR)a_host; }
+static WORD nmp_group(void) { return ((WORD (__cdecl *)(void))(DWORD_PTR)a_grpfn)(); }   /* net_GetGroupId (site 0x454e10) */
+static int nmp_role(void) { WORD me = nmp_me(), h = nmp_hostid(); if (!*(volatile int *)(DWORD_PTR)a_net || !me || !h) return 0; return me == h ? 1 : 2; }
+static int nmp_tagidx(WORD t) { return t == NMP_TAG_AH ? 0 : t == NMP_TAG_AT ? 1 : t == NMP_TAG_AK ? 2 : t == NMP_TAG_AM ? 3 : 7; }
 
-#endif
+/* ---- send ---- */
+static int nmp_send(WORD to, const void *pkt, int len, int reliable) {
+    static BYTE buf[256 + NMP_SLACK]; int r;
+    if (len > (reliable ? NMP_MAX_REL : NMP_MAX_UNREL)) { g_nmp_toobig++; NMP_LOG("  nitro-mp: %d-byte packet refused (limit %d)", len, reliable ? NMP_MAX_REL : NMP_MAX_UNREL); return -1; }
+    memcpy(buf, pkt, len); memset(buf + len, 0, NMP_SLACK);
+    r = nmp_dpsend(*(void **)(DWORD_PTR)a_dp, nmp_me(), to, reliable ? 1 : 0, buf, len);
+    if (r == 0) g_nmp_sent[nmp_tagidx(*(WORD *)pkt)]++; else g_nmp_senderr++;
+    return r;
+}
+
+/* ---- hello ---- */
+static void nmp_hello_send(WORD to, BYTE seq) {
+    BYTE p[12];
+    *(WORD *)p = NMP_TAG_AH; p[2] = seq; p[3] = NMP_PROTO; *(WORD *)(p + 4) = (WORD)g_nmp_species; *(WORD *)(p + 6) = nmp_me();
+    *(DWORD *)(p + 8) = (DWORD)g_nmp_opts;
+    nmp_send(to, p, sizeof p, 1);
+}
+static void nmp_hello_recv(WORD from, const BYTE *p, int n) {
+    if (n < 12) return;
+    if (nmp_role() == 1) {   /* host: an answer */
+        int k; if (p[2] != g_hello_seq) return;
+        for (k = 0; k < g_hello_acks; k++) if (g_hello_acked[k] == from) return;
+        if (g_hello_acks < 16) g_hello_acked[g_hello_acks++] = from;
+        NMP_LOG("  nitro-mp: hello answered by %u (seq %u, proto %u, species %04x)", from, p[2], p[3], *(WORD *)(p + 4));
+    } else {                  /* joiner: the host's hello -> answer once per seq */
+        g_hello_from = from;
+        if (p[2] != g_hello_seen) {
+            g_hello_seen = p[2];
+            NMP_LOG("  nitro-mp: hello from host %u (seq %u, proto %u, species %04x, options %08lx) - answering", from, p[2], p[3], *(WORD *)(p + 4), *(DWORD *)(p + 8));
+            nmp_hello_send(from, p[2]);
+        }
+    }
+}
+
+/* ---- 'AT' ---- */
+static BYTE *nmp_own_car(void) { BYTE **root = ((BYTE **(__cdecl *)(void))(DWORD_PTR)a_root)(); return root ? *root : 0; }
+static BYTE *nmp_row_of(WORD id) { int k; for (k = 0; k < 16; k++) if (*(WORD *)NMP_ROW(k) == id) return NMP_ROW(k); return 0; }
+static void nmp_at_self(void) {   /* lab proof: one record, our own car */
+    BYTE p[8 + 100]; BYTE *o = nmp_own_car();
+    if (!o) return;
+    *(WORD *)p = NMP_TAG_AT; p[2] = 0; p[3] = 1;
+    *(WORD *)(p + 8) = 0xFFFF; p[10] = 0; p[11] = 0;
+    ((void (__cdecl *)(BYTE *, float *))(DWORD_PTR)a_pack)(o, (float *)(p + 12));
+    *(float *)(p + 4) = *(float *)(p + 12);
+    if (nmp_send(nmp_group(), p, sizeof p, 0) == 0) {
+        g_at_sent++;
+        NMP_LOG("  nitro-mp: 'AT' sent (%d B, own car at %.1f,%.1f)", (int)sizeof p, *(double *)(o + 0x40), *(double *)(o + 0x50));
+    }
+}
+static void nmp_at_recv(WORD from, const BYTE *p, int n) {
+    int k, cnt = p[3];
+    if (n < 8 + cnt * 100 || cnt > 2) { NMP_LOG("  nitro-mp: 'AT' from %u malformed (%d B, n %d)", from, n, cnt); return; }
+    for (k = 0; k < cnt; k++) {
+        const BYTE *r = p + 8 + k * 100; const float *f = (const float *)(r + 4);
+        if (*(WORD *)r == 0xFFFF) {   /* self-test record: the sender's own car; compare with our mirror of it */
+            BYTE *row = nmp_row_of(from), *o = row ? *(BYTE **)(row + 0x28) : 0; int i, hit = -1; double x = 0, z = 0;
+            if (o) { x = *(double *)(o + 0x40); z = *(double *)(o + 0x50);
+                for (i = 0; i + 2 < 24; i++) if (fabs(f[i] - x) < 5.0 && fabs(f[i + 2] - z) < 5.0) { hit = i; break; } }
+            g_at_recv++;
+            NMP_LOG("  nitro-mp: 'AT' from %u: own-car record, our mirror of %u at %.1f,%.1f, record position %s (floats %d..%d: %.1f, %.1f, %.1f)",
+                    from, from, x, z, hit >= 0 ? "AGREES" : "not found", hit, hit + 2, hit >= 0 ? f[hit] : 0, hit >= 0 ? f[hit + 1] : 0, hit >= 0 ? f[hit + 2] : 0);
+        }
+    }
+}
+
+/* ---- tick (every pump call) ---- */
+static void nmp_tick(void) {
+    DWORD now = GetTickCount(); int role = nmp_role(), cnt;
+    if (!nmp_arena() || *(volatile int *)(DWORD_PTR)a_state != 5) return;
+    cnt = *(volatile int *)(DWORD_PTR)a_count;
+    if (role == 1) {
+        if (cnt != g_hello_count) { g_hello_count = cnt; g_hello_seq++; g_hello_acks = 0; g_hello_last = 0; }
+        if (cnt > 1 && g_hello_acks < cnt - 1 && now - g_hello_last > 2000) { g_hello_last = now; nmp_hello_send(nmp_group(), g_hello_seq); }
+    }
+    if (g_at_selftest && g_at_sent == 0 && ((role == 1 && g_hello_acks > 0) || (role == 2 && g_hello_seen != 0xff))) nmp_at_self();
+}
+
+static int __cdecl nmp_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
+    int r = nmp_real_recv(dp, from, to, flags, buf, size);
+    if (!nmp_arena()) return r;   /* stock session: pass-through, nothing read, nothing sent */
+    if (r == 0 && buf && size && from) {
+        WORD t = *(WORD *)buf, f = *(WORD *)from; int n = *(int *)size;
+        if (t == NMP_TAG_AH || t == NMP_TAG_AT || t == NMP_TAG_AK || t == NMP_TAG_AM) g_nmp_got[nmp_tagidx(t)]++;
+        if (t == NMP_TAG_AH) nmp_hello_recv(f, (const BYTE *)buf, n);
+        else if (t == NMP_TAG_AT) nmp_at_recv(f, (const BYTE *)buf, n);
+    }
+    nmp_tick();
+    return r;
+}
+
+/* ---- read-back ---- */
+static void nmp_status(const char *tag) {
+    char line[1600]; int len, k;
+    if (!g_nmp_on) return;
+    len = sprintf(line, "  nitro-mp %s: species %04lx arena %d role %d state %d net %d me %u host %u rows %d; sent AH %ld AT %ld, got AH %ld AT %ld, errors %ld, too big %ld; acks %d; at sent %d recv %d; table:",
+                  tag, g_nmp_species, nmp_arena(), nmp_role(), *(volatile int *)(DWORD_PTR)a_state, *(volatile int *)(DWORD_PTR)a_net, nmp_me(), nmp_hostid(),
+                  *(volatile int *)(DWORD_PTR)a_count, g_nmp_sent[0], g_nmp_sent[1], g_nmp_got[0], g_nmp_got[1], g_nmp_senderr, g_nmp_toobig, g_hello_acks, g_at_sent, g_at_recv);
+    for (k = 0; k < 16; k++) {
+        BYTE *row = NMP_ROW(k), *o; if (!*(WORD *)row) continue;
+        o = *(BYTE **)(row + 0x28);
+        len += sprintf(line + len, " [%u '%.12s' flags %lx%s", *(WORD *)row, (char *)row + 2, *(DWORD *)(row + 0x1c), o ? "" : " no car]");
+        if (o) len += sprintf(line + len, " at %.1f,%.1f]", *(double *)(o + 0x40), *(double *)(o + 0x50));
+    }
+    NMP_LOG("%s", line);
+}
+
+/* ---- nitshell: species of the session opened / joined, the single type-0 list ---- */
+typedef int (__stdcall *nmp_enumcb_fn)(BYTE *, long *, long, void *);
+typedef int (__cdecl *nmp_enum_fn)(void *, BYTE *, void *, long, nmp_enumcb_fn, void *);
+typedef int (__cdecl *nmp_open_fn)(void *, BYTE *, void *, void *);
+static nmp_enum_fn nmp_real_enum; static nmp_open_fn nmp_real_open; static nmp_enumcb_fn nmp_shell_cb;
+static int __stdcall nmp_enum_cb(BYTE *s, long *tmo, long fl, void *ctx) {
+    if (s) {
+        WORD sp = *(WORD *)(s + 0xd);
+        if (sp != NMP_SPECIES_STOCK && sp != NMP_SPECIES_ARENA) return 1;   /* another game's session: skip, go on */
+        if (sp == NMP_SPECIES_ARENA && memcmp(s + 0x17, "ARENA+ ", 7)) {
+            char nm[32]; memcpy(nm, s + 0x17, 32); nm[31] = 0; _snprintf((char *)s + 0x17, 31, "ARENA+ %s", nm); s[0x17 + 31] = 0;
+        }
+    }
+    return nmp_shell_cb(s, tmo, fl, ctx);
+}
+static int __cdecl nmp_enum(void *dp, BYTE *sd, void *mbz, long tmo, nmp_enumcb_fn cb, void *ctx) {
+    static BYTE sd0[0x200];
+    memset(sd0, 0, sizeof sd0); memcpy(sd0, sd, 0x5f); *(WORD *)(sd0 + 0xd) = 0;   /* species 0 = any (anet2 0x020f8a20) */
+    nmp_shell_cb = cb;
+    return nmp_real_enum(dp, sd0, mbz, tmo, nmp_enum_cb, ctx);
+}
+static int __cdecl nmp_open(void *dp, BYTE *sd, void *cb, void *ctx) {
+    int r;
+    if (sd) g_nmp_species = *(WORD *)(sd + 0xd);
+    r = nmp_real_open(dp, sd, cb, ctx);
+    NMP_LOG("  nitro-mp: dpOpen species %04lx '%.31s' -> %d (%s)", g_nmp_species, sd ? (char *)sd + 0x17 : "", r,
+            g_nmp_species == NMP_SPECIES_ARENA ? "ARENA+" : "stock");
+    return r;
+}
+static int nmp_lobby_subscribe(void) {   /* STUB (record s.0.5.3): a second {table, 0x7676} subscription on the game server */
+    return 0;
+}
+static void nmp_attach_shell(HMODULE sh) {
+    void *e, *o;
+    if (!g_nmp_on) return;
+    e = NMP_IAT(sh, "anet2.dll", "dpEnumSessions", (void *)nmp_enum); o = NMP_IAT(sh, "anet2.dll", "dpOpen", (void *)nmp_open);
+    if (e) nmp_real_enum = (nmp_enum_fn)e; if (o) nmp_real_open = (nmp_open_fn)o;
+    NMP_LOG("  nitro-mp: nitshell hooks: dpEnumSessions %s (one call, species 0, filtered to 604 + 7676), dpOpen %s; lobby subscription: stub (%d)",
+            e ? "ok" : "MISSING", o ? "ok" : "MISSING", nmp_lobby_subscribe());
+}
+
+/* ---- exe ---- */
+static void nmp_attach_exe(void) {
+    static const BYTE pack_sig[6] = { 0x83, 0xec, 0x4c, 0x53, 0x8b, 0x5c }, grp_sig[6] = { 0x66, 0xa1, 0xf8, 0xec, 0x53, 0x00 };
+    HMODULE an = GetModuleHandleA("anet2.dll"); void *r;
+    int ok = nmp_site(0x541024, 0x53f258, "dp handle", &a_dp) & nmp_site(0x541028, 0x53f25c, "my id", &a_me)
+           & nmp_site(0x541030, 0x53f264, "net flag", &a_net) & nmp_site(0x541060, 0x53ecf8, "group", &a_group)
+           & nmp_site(0x541064, 0x53ecfc, "host id", &a_host) & nmp_site(0x541068, 0x53ed00, "player count", &a_count)
+           & nmp_site(0x541070, 0x53ed08, "player table", &a_players) & nmp_site(0x4c2164, 0x4f30cc, "game state", &a_state)
+           & nmp_site(0x4644d0, 0x463660, "net_PackVehicleState", &a_pack) & nmp_site(0x457530, 0x453fd0, "world_GetRoot", &a_root)
+           & nmp_site(0x454e10, 0x446fc0, "net_GetGroupId", &a_grpfn);
+    ok = ok && nmp_sig(a_pack, pack_sig, 6, "net_PackVehicleState") && nmp_sig(a_grpfn, grp_sig, 6, "net_GetGroupId");
+    nmp_dpsend = an ? (nmp_send_fn)GetProcAddress(an, "dpSend") : 0;
+    if (!ok || !nmp_dpsend) { NMP_LOG("  nitro-mp: OFF (sites %d, dpSend %p)", ok, (void *)nmp_dpsend); return; }
+    r = NMP_IAT(GetModuleHandleA(0), "anet2.dll", "dpReceive", (void *)nmp_dpReceive);
+    if (!r) { NMP_LOG("  nitro-mp: OFF (no ANET2.DLL!dpReceive import)"); return; }
+    nmp_real_recv = (nmp_recv_fn)r;
+    { char v[8]; DWORD k = GetEnvironmentVariableA("NMP_AT_SELFTEST", v, sizeof v); g_at_selftest = k > 0 && k < sizeof v && v[0] == '1'; }
+    g_nmp_on = 1;
+    NMP_LOG("  nitro-mp: ON - dpReceive hooked, sends <= %d / %d B (+%d slack), hello reliable, 'AT' 2 records max%s", NMP_MAX_UNREL, NMP_MAX_REL, NMP_SLACK,
+            g_at_selftest ? ", 'AT' self-test armed (lab)" : "");
+}
