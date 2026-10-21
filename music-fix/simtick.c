@@ -1426,12 +1426,63 @@ static void *__cdecl st_radar_turn(float *out, float angle, float x, float y, fl
     g_stf_rd_t1 = t;
     return ((void *(__cdecl *)(float *, float, float, float, float))0x00494460)(out, angle * s, x, y, z);
 }
+/* ---- s.20 (2026-10-20 jump-fix lane, TICK-FINISH s.20): the slope-follow speed loss, per grounded substep ----------------
+ * physics_IntegrateVehicleMotion 0x43a5d0, grip path, once per grounded substep: the velocity is rebuilt along the body's
+ * forward row (v = f s + a dt) and then projected into the ground plane, v - (v.n) n, as math_Vec3Cross 0x43a280 twice:
+ * n x v at 0x43ba3a, then (n x v) x n at 0x43ba64. While the body lags a change of slope by delta, every substep removes
+ * s (1 - cos delta) of speed: a loss PER SUBSTEP (i76-map physics.md "It is a per-step loss"). The lag runs on time (the
+ * attitude eases with dt), so a shorter car step loses more speed per second on every crest, dip and ramp face: x 1.25 at
+ * 33.3 ms against the 1997 car step of 41.667 ms (the 1997 engine did the same on a fast PC; it is the step, not a tick bug).
+ * I76_SIM_TICK_SLOPE (under the tick only; unset / `auto` = the default): the speed each projection removes is x substep /
+ * T_ref (T_ref = 1 / I76_SIM_TICK_REF_HZ = 41.667 ms; 0.8 at 33.3 ms, 1.056 at 44 ms, exactly 1 at 41.667 = not installed);
+ * a number = that factor; `off` / 0 / 1 = stock. Measured (TICK-FINISH s.20, emulator car, crest descents): at 33.3 ms the
+ * take-off is 47.4 m/s and 4 of 7 clear the canyon; with the factor 50.5 and 6 of 6, as 41.667 (49.9, 10 of 10) and retail at
+ * ~42 ms (50.0, 6 of 6). The direction stays the engine's (in the ground plane); only the length changes. The substep that follows a
+ * landing (entity flag 0x200) and airborne substeps (0x4) keep the stock loss: there the projection removes the fall speed,
+ * an event, not a rate. Counters in the tick-factors log line (`slope:`). */
+static float g_ssl_f = 1.0f;
+static int g_ssl_on, g_ssl_skip, g_ssl_have;
+static float g_ssl_vlen;
+static DWORD g_ssl_calls, g_ssl_scaled, g_ssl_skipped;
+static double g_ssl_in, g_ssl_out;
+static DWORD g_ssl_next[3] = { 0x0043a5d0, 0x0043a280, 0x0043a280 };   /* chained targets of the three sites */
+static DWORD __cdecl st_slope_integ(DWORD a0, DWORD a1, DWORD a2, DWORD a3, DWORD a4, DWORD a5, DWORD a6, DWORD a7) {
+    BYTE *veh = ((BYTE *(__cdecl *)(DWORD))0x00467440)(a0);   /* the same getter 0x43a5d0 calls on its first argument */
+    int s0 = g_ssl_skip;
+    DWORD r;
+    g_ssl_skip = !veh || (*(volatile DWORD *)(veh + 0x454) & 0x204) != 0;   /* airborne, or the substep after a landing */
+    r = ((DWORD (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))g_ssl_next[0])(a0, a1, a2, a3, a4, a5, a6, a7);
+    g_ssl_skip = s0;
+    return r;
+}
+static float *__cdecl st_slope_x1(float *out, const float *a, const float *b) {      /* 0x43ba3a: n x v (a = n, b = v) */
+    g_ssl_vlen = (float)sqrt((double)b[0] * b[0] + (double)b[1] * b[1] + (double)b[2] * b[2]); g_ssl_have = 1;
+    return ((float *(__cdecl *)(float *, const float *, const float *))g_ssl_next[1])(out, a, b);
+}
+static float *__cdecl st_slope_x2(float *out, const float *a, const float *b) {      /* 0x43ba64: (n x v) x n = v - (v.n) n */
+    float *r = ((float *(__cdecl *)(float *, const float *, const float *))g_ssl_next[2])(out, a, b);
+    g_ssl_calls++;
+    if (g_ssl_have && g_simtick && g_ssl_f != 1.0f) {
+        if (g_ssl_skip) g_ssl_skipped++;
+        else {
+            float v = g_ssl_vlen, p = (float)sqrt((double)r[0] * r[0] + (double)r[1] * r[1] + (double)r[2] * r[2]);
+            if (p > 0.01f && v > p) {
+                float t = v - g_ssl_f * (v - p), k;
+                if (t < 0.0f) t = 0.0f;
+                k = t / p; r[0] *= k; r[1] *= k; r[2] *= k;
+                g_ssl_scaled++; g_ssl_in += v - p; g_ssl_out += v - t;
+            }
+        }
+    }
+    g_ssl_have = 0;
+    return r;
+}
 static void st_factor_frame(void) {                           /* from the frame hook: the census line */
     static DWORD last, sig;
     DWORD now = GetTickCount(), s;
     int c;
     if (!g_stf_log_ms || now - last < (DWORD)g_stf_log_ms) return;
-    s = g_stf_hz_steps + g_stf_wr_rolls * 3 + g_stf_rd_n * 7;
+    s = g_stf_hz_steps + g_stf_wr_rolls * 3 + g_stf_rd_n * 7 + g_ssl_scaled * 5;
     for (c = 0; c < 4; c++) s += g_stfc[c].n * (11 + c) + g_stfc[c].out;
     if (s == sig) return;
     last = now; sig = s;
@@ -1447,6 +1498,9 @@ static void st_factor_frame(void) {                           /* from the frame 
          (unsigned long)g_stf_wr_rolls, (unsigned long)g_stf_wr_pass, (unsigned long)g_stf_wr_act, g_stf_wr_t0, g_stf_wr_t1,
          (unsigned long)g_stf_rd_n, (unsigned long)g_stf_rd_clamp, g_stf_rd_in, g_stf_rd_out,
          g_stf_rd_n ? g_stf_rd_rate / (double)g_stf_rd_n * 57.29577951 : 0.0, g_stf_rd_t0, g_stf_rd_t1);
+    if (g_ssl_on)
+        mlog("tick-factors: slope: sim %.2f; projections %lu, scaled %lu, kept whole (airborne / after a landing) %lu; speed removed %.2f -> %.2f m/s (x %.3f)",
+             st_simnow(), (unsigned long)g_ssl_calls, (unsigned long)g_ssl_scaled, (unsigned long)g_ssl_skipped, g_ssl_in, g_ssl_out, (double)g_ssl_f);
 }
 static float st_factor_env(const char *name, float dflt) {
     char v[16]; float f;
@@ -1516,6 +1570,21 @@ static void st_factors_install(int tick) {
     if (census || g_stf_f[3] != 1.0f) {
         nr += st_call_site(0x004aaca0, 0x00494460, (void *)st_radar_turn, 0, "radar missile turn (tick-factors)");
         nr += st_call_site(0x004ab400, 0x00494460, (void *)st_radar_turn, 0, "radar missile turn, id 0x14 (tick-factors)");
+    }
+    if (tick) {                                                 /* s.20: the slope-follow loss (lab switch, unset = off) */
+        int cnt = (int)(g_st_T * 20.0f) + 1, ok = 0;
+        float sb = ref * g_st_T / (float)cnt;
+        if (sb > 0.999f && sb < 1.001f) sb = 1.0f;
+        g_ssl_f = st_factor_env("I76_SIM_TICK_SLOPE", sb);   /* unset / auto = substep / T_ref (s.20: default on) */
+        if (g_ssl_f != 1.0f) {
+            ok += st_call_site(0x00439c3a, 0x0043a5d0, (void *)st_slope_integ, &g_ssl_next[0], "vehicle integrator call (slope loss, s.20)");
+            ok += st_call_site(0x0043ba3a, 0x0043a280, (void *)st_slope_x1, &g_ssl_next[1], "ground projection n x v (slope loss, s.20)");
+            ok += st_call_site(0x0043ba64, 0x0043a280, (void *)st_slope_x2, &g_ssl_next[2], "ground projection (n x v) x n (slope loss, s.20)");
+            g_ssl_on = ok == 3;
+            if (!g_ssl_on) g_ssl_f = 1.0f;
+        }
+        mlog("  tick-factors: slope-follow loss x %.3f per grounded substep (I76_SIM_TICK_SLOPE %s; substep %.3f ms against the 1997 %.3f ms), %d/3 sites",
+             g_ssl_f, env_str("I76_SIM_TICK_SLOPE", v, sizeof(v)) ? v : "unset = auto", 1000.0f * g_st_T / (float)cnt, 1000.0f / ref, ok);
     }
     g_stf_on = 1;
     g_stf_log_ms = census ? 2000 : (int)g_st_logper;
