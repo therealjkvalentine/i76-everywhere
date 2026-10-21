@@ -125,16 +125,25 @@ static int aim_alive(BYTE *o) {
     return e && !(e[0x454] & 0x20) && !(*(DWORD *)(o + 0x10) & 0x200);
 }
 static BYTE *aim_slot_car(int k) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; return *(WORD *)p ? *(BYTE **)(p + 0x28) : NULL; }
-static int aim_ordinal(int li) {                             /* label index -> 0-based AI car number, -1 if none */
+/* AI car number of a label (names, row ids). Counted ONCE per mission load (label table + count), when every AI car of the
+ * file / pool is a whole car on every machine. A live count drifted: in the soak (cycle 19) a joiner's parked wreck stopped
+ * counting as a car, every later car's number moved down by one, and its row took the next car's id and name. */
+static short g_aim_ord[2048]; static BYTE *g_aim_ord_tab; static int g_aim_ord_count = -1, g_aim_ord_n;
+static void aim_ord_build(void) {
     BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i, k = 0;
-    if (!tab || count <= 0 || count > 2048 || li < 0 || li >= count) return -1;
-    for (i = 0; i < li; i++) if (coop_ai_object(i, count, tab)) k++;
-    return coop_ai_object(li, count, tab) ? k : -1;
+    if (tab == g_aim_ord_tab && count == g_aim_ord_count) return;
+    g_aim_ord_tab = tab; g_aim_ord_count = count;
+    for (i = 0; i < 2048; i++) g_aim_ord[i] = -1;
+    if (tab && count > 0 && count <= 2048) for (i = 0; i < count; i++) if (coop_ai_object(i, count, tab)) g_aim_ord[i] = (short)k++;
+    g_aim_ord_n = k;
+}
+static int aim_ordinal(int li) {                             /* label index -> 0-based AI car number, -1 if none */
+    aim_ord_build();
+    return li >= 0 && li < 2048 && li < g_aim_ord_count ? g_aim_ord[li] : -1;
 }
 static int aim_label_of(int k) {                             /* 0-based AI car number -> label index, -1 if none */
-    BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i;
-    if (!tab || count <= 0 || count > 2048 || k < 0) return -1;
-    for (i = 0; i < count; i++) if (coop_ai_object(i, count, tab) && k-- == 0) return i;
+    int i; aim_ord_build();
+    for (i = 0; i < g_aim_ord_count && i < 2048; i++) if (g_aim_ord[i] == k) return i;
     return -1;
 }
 static BYTE *aim_ai_obj(int k) { int li = aim_label_of(k); return li < 0 ? NULL : *(BYTE **)(*(BYTE **)(0x0054a178 + 4) + li * 16 + 8); }

@@ -68,7 +68,10 @@ static int g_mpf_gen, g_mpf_joiner_gen = -1, g_mpf_migr_done; static DWORD g_mpf
 static int g_mpf_humans = -1, g_mpf_humans_seen = -1; static DWORD g_mpf_humans_since, g_mpf_last_act;
 static int mpf_is_human(BYTE *p) { return *(WORD *)p && !aim_is_ai_id(*(WORD *)p); }   /* a player-table slot held by a human (aimelee.c 7: AI rows) */
 static int mpf_humans_now(void) { int k, n = 0; for (k = 0; k < 16; k++) if (mpf_is_human((BYTE *)0x00541070 + k * 0x48)) n++; return n; }
-static BYTE *mpf_obj(int li) { return (li >= 0 && li < g_mpf_count) ? *(BYTE **)(g_mpf_tab + li * 16 + 8) : NULL; }
+static BYTE *mpf_obj(int li) {                              /* NULL while the tags belong to another load: a second session in the */
+    if (g_mpf_tab != *(BYTE **)(0x0054a178 + 4) || g_mpf_count != *(int *)(0x0054a178 + 8)) return NULL;   /* same process read freed */
+    return (li >= 0 && li < g_mpf_count) ? *(BYTE **)(g_mpf_tab + li * 16 + 8) : NULL;                  /* memory here (polish lane) */
+}
 static int mpf_find(DWORD lo, DWORD hi) {
     int i; for (i = 0; i < g_mpf_count; i++) if (*(DWORD *)(g_mpf_tab + i * 16) == lo && *(DWORD *)(g_mpf_tab + i * 16 + 4) == hi) return i;
     return -1;
@@ -171,7 +174,8 @@ static double mpf_d2(BYTE *a, double x, double z) { double dx = *(double *)(a + 
 static double mpf_near_car(double x, double z) {             /* squared distance to the nearest live car in the game */
     double best = 1e30; int k, i;
     for (k = 0; k < 16; k++) { BYTE *h = aim_slot_car(k); if (h && aim_alive(h)) { double d = mpf_d2(h, x, z); if (d < best) best = d; } }
-    for (i = 0; i < g_mpf_count; i++) { BYTE *o = coop_ai_object(i, g_mpf_count, g_mpf_tab); if (o && aim_alive(o) && !mpf_parked_obj(o)) { double d = mpf_d2(o, x, z); if (d < best) best = d; } }
+    {   BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8);   /* the current table (never the tags' copy) */
+        for (i = 0; tab && count <= 2048 && i < count; i++) { BYTE *o = coop_ai_object(i, count, tab); if (o && aim_alive(o) && !mpf_parked_obj(o)) { double d = mpf_d2(o, x, z); if (d < best) best = d; } } }
     return best;
 }
 static double mpf_near_human(BYTE *o) {
