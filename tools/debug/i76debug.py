@@ -61,7 +61,7 @@ def running_game_path():
             ok = i76trainer.k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n))
             i76trainer.k32.CloseHandle(h)
             b = os.path.basename(buf.value).lower()
-            if ok and b.startswith("i76") and b.endswith(".exe") and "wheel" not in b and "haptics" not in b:
+            if ok and debug_logger.is_game_exe(b):
                 return buf.value
     except Exception:
         pass

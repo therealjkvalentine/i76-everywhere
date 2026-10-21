@@ -65,6 +65,27 @@ MARK_COLS = "n label frame tick sim_time x y z speed flags source".split()
 A_GAME_STATE, A_PAUSE_BITS, A_PLAYER_ROOT = 0x004C2164, 0x004FE534, 0x0054A264
 A_TEAM_LISTS, A_TEAM_COUNTS = 0x00507DA0, 0x0051F5D0
 A_CD_TRACK, A_CD_PAUSED, A_CD_OK = 0x004ED800, 0x0052456C, 0x00524674       # paused +0, playing +4, loop +8
+# nitro.exe 28b8ae27 (i76-everywhere music-fix/sites_nitro.h; docs/records/NITRO-PORT-2026-10-21.md): the same fields
+NITRO_ADDR = dict(A_GAME_STATE=0x004F30CC, A_PAUSE_BITS=0x00503E94, A_PLAYER_ROOT=0x005530C4, A_TEAM_LISTS=0x00506960,
+                  A_TEAM_COUNTS=0x0051E190, A_CD_TRACK=0x004F1DC8, A_CD_PAUSED=0x005230FC, A_CD_OK=0x0052320C)
+
+
+def is_game_exe(base):
+    """i76*.exe (not the helpers i76wheel / i76haptics) or the Nitro Pack's nitro.exe"""
+    b = base.lower()
+    return b.endswith(".exe") and ((b.startswith("i76") and "wheel" not in b and "haptics" not in b) or b.startswith("nitro"))
+
+
+def ent_shift(r):
+    """entity fields at and above +0x444 sit 4 bytes later in nitro.exe (NITRO-VS-RETAIL s.2.1)"""
+    return 4 if os.path.basename(getattr(r, "path", "") or "").lower().startswith("nitro") else 0
+
+
+def addr(r, name):
+    """the address of field `name` in the process r reads (Gold by default; nitro.exe: NITRO_ADDR)"""
+    if os.path.basename(getattr(r, "path", "") or "").lower().startswith("nitro"):
+        return NITRO_ADDR[name]
+    return globals()[name]
 ENT_SPEED, ENT_ARMOUR, ENT_FLAGS = 0xAC, 0x138, 0x454
 STEP_MAX = 20
 
@@ -91,7 +112,7 @@ PROCESS_VM_READ, PROCESS_QUERY_LIMITED = 0x0010, 0x1000
 
 
 def list_games():
-    """[(pid, path)] of running i76*.exe (not the helpers i76wheel / i76haptics)"""
+    """[(pid, path)] of running i76*.exe (not the helpers i76wheel / i76haptics) and nitro.exe"""
     arr = (wt.DWORD * 4096)(); got = wt.DWORD()
     psapi.EnumProcesses(arr, ctypes.sizeof(arr), ctypes.byref(got))
     out = []
@@ -103,7 +124,7 @@ def list_games():
         ok = k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n))
         k32.CloseHandle(h)
         b = os.path.basename(buf.value).lower()
-        if ok and b.startswith("i76") and b.endswith(".exe") and "wheel" not in b and "haptics" not in b:
+        if ok and is_game_exe(b):
             out.append((int(pid), buf.value))
     return out
 
@@ -148,14 +169,14 @@ def read_slow(r, px=None, pz=None):
     """one pass over I76MEM's slow fields (i76mem.c do_read: game state, cd, player oflags, AI scan + nearest).
     px / pz: the player's position (telemetry) for the nearest-car search; None = read it from the object."""
     s = dict(SLOW_DEFAULT)
-    s["game_state"] = r.u32(A_GAME_STATE)
-    s["pause_bits"] = r.u32(A_PAUSE_BITS)
-    s["cd_track"] = struct.unpack("<i", struct.pack("<I", r.u32(A_CD_TRACK)))[0]
-    cd = r.rd(A_CD_PAUSED, 12)
+    s["game_state"] = r.u32(addr(r, "A_GAME_STATE"))
+    s["pause_bits"] = r.u32(addr(r, "A_PAUSE_BITS"))
+    s["cd_track"] = struct.unpack("<i", struct.pack("<I", r.u32(addr(r, "A_CD_TRACK"))))[0]
+    cd = r.rd(addr(r, "A_CD_PAUSED"), 12)
     if cd:
         s["cd_paused"], s["cd_playing"], s["cd_loop"] = int(cd[0] != 0), int(cd[4] != 0), int(cd[8] != 0)
-    s["cd_ok"] = int(r.u32(A_CD_OK) != 0)
-    rec = r.u32(A_PLAYER_ROOT)
+    s["cd_ok"] = int(r.u32(addr(r, "A_CD_OK")) != 0)
+    rec = r.u32(addr(r, "A_PLAYER_ROOT"))
     obj = r.u32(rec) if rec else 0
     ob = r.rd(obj + 0x10, 0x48) if obj else None
     if not ob or not (struct.unpack_from("<I", ob, 0)[0] & 0x10):
@@ -164,14 +185,14 @@ def read_slow(r, px=None, pz=None):
     s["oflags"] = struct.unpack_from("<I", ob, 0)[0]
     if px is None:
         px, pz = struct.unpack_from("<d", ob, 0x30)[0], struct.unpack_from("<d", ob, 0x40)[0]
-    cnt = r.rd(A_TEAM_COUNTS, 32)
+    cnt = r.rd(addr(r, "A_TEAM_COUNTS"), 32)
     if not cnt:
         return s
     best, bd = None, 1e30
     for grp, n in enumerate(struct.unpack("<8i", cnt)):
         if n <= 0 or n > 64:
             continue
-        lst = r.rd(A_TEAM_LISTS + 0x100 * grp, 4 * n)
+        lst = r.rd(addr(r, "A_TEAM_LISTS") + 0x100 * grp, 4 * n)
         if not lst:
             continue
         for w in struct.unpack("<%dI" % n, lst):
@@ -198,7 +219,7 @@ def read_slow(r, px=None, pz=None):
             h = r.rd(e + ENT_ARMOUR, 32)
             s["n_speed"] = struct.unpack("<f", sp)[0] if sp else 0.0
             s["n_health"] = sum(struct.unpack("<8i", h)) if h else 0
-            s["n_eflags"] = r.u32(e + ENT_FLAGS)
+            s["n_eflags"] = r.u32(e + ENT_FLAGS + ent_shift(r))
     return s
 
 
@@ -245,7 +266,7 @@ class SlowReader(threading.Thread):
                 try:
                     s = read_slow(self.r, px, pz)
                     if fr and fr["player_present"] and fr["ent_addr"]:
-                        b = self.r.rd(fr["ent_addr"] + 0x448, 4)           # ENT_STEPPER + 4: step (s)
+                        b = self.r.rd(fr["ent_addr"] + 0x448 + ent_shift(self.r), 4)   # ENT_STEPPER + 4: step (s)
                         s["stepper_step"] = struct.unpack("<f", b)[0] if b else 0.0
                 except Exception as e:                       # a torn list between missions: keep the last values
                     self.note = "read error %r" % e
