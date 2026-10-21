@@ -1,0 +1,11 @@
+# Hand-read Gold -> Nitro pairs (gen_sites.py reads this; a row here overrides the generated one).
+# gold     nitro     ok  note  (ok = bytes from the site read side by side; a patch longer than ok is refused)
+0x402d33  0x43197d  6   WinMain pre-parse clear of the mission-name buffer: Gold mov [0x5049f0],cl / Nitro mov [0x526758],dl (88 15 58 67 52 00)
+0x404acc  0x433c3c  9   WndProc WM_ACTIVATEAPP 0: push 6 / push ecx / call [ShowWindow] (Gold IAT 0x4bc340, Nitro 0x4c130c); not in either Ghidra function list
+0x404acd  0x433c3d  8   the push 6 immediate of the row above
+# nitro-mp-design lane 2026-10-21 (records/NITRO-MP-DESIGN-2026-10-21.md): Gold's team-play flag 0x541010 has no
+# one-word Nitro twin: Nitro keeps team play as bit 0x2000 of the session flag word 0x53f228 (CTF 0x40; 0x8 always
+# set). Mapped to 0 (unmapped) so a raw read is refused; the multiplayer lane reads (0x53f228 & 0x2000).
+0x541010  0x000000  0   semantic: team play = bit 0x2000 of 0x53f228 (not a word); raw use refused
+0x452d9f  0x4486ab  7   net_Init scoreboard call: Nitro push 0 / call 0x449ef0 at 0x4486ab (the generated 0x4486b3 calls 0x449730)
+0x402caf  0x431912  2   WinMain single-instance check: FindWindowA result je -> carry on (Gold je 0x402ccd, Nitro je 0x431945, read side by side: both skip ShowWindow(9) + return 0)

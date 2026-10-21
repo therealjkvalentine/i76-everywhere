@@ -147,6 +147,7 @@ static void flog(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt); vmlog(fmt, ap); va_end(ap);
 }
+#include "nitro.c"       /* exe detection (Gold / Nitro / other) and the Gold -> Nitro site map (nitro-port lane, 2026-10-21) */
 
 /* resolve the real winmm entry points from the already-loaded system winmm */
 static void ensure_real(void) {
@@ -1082,6 +1083,7 @@ FWD(StrLookupFormat,  p_Format)
 static int patch_bytes(DWORD_PTR va, const BYTE *expect, const BYTE *want, SIZE_T n, const char *what) {
     DWORD old;
     BYTE *p = (BYTE *)va;
+    if (g_exe == EXE_NITRO) return nitro_patch_bytes((DWORD)va, expect, want, n, what);   /* va is a Gold address (nitro.c) */
     if (memcmp(p, expect, n) != 0) {
         mlog("  patch: %s at 0x%08lX has UNEXPECTED bytes - not patching", what, (unsigned long)va);
         return 0;
@@ -1108,12 +1110,12 @@ static void apply_mission_launch(void) {
         mlog("  mission-launch ABORTED (%d/%d patches applied) - booting to the menu", ok1 + ok2, 2);
         return;
     }
-    lstrcpynA((char *)0x005049f0, mission, 16);
+    lstrcpynA((char *)(DWORD_PTR)NA(0x005049f0), mission, 16);
     /* 2026-09-27: the name alone no longer skips the menus (six boots across both exe builds, three shell DLLs and
      * the Aug 8 proxy binary all sat in the shell with the buffer intact). WinMain runs the shell unless the dword
      * at 0x504c10 is nonzero (cmp at 0x403197, jne 0x403201 past the shell_RunAndGetChoice call at 0x4031f5); the
      * mission-name path at 0x402d82 leaves that dword alone, and nothing in the exe sets it, so set it here. */
-    *(volatile DWORD *)0x00504c10 = 1;
+    *(volatile DWORD *)(DWORD_PTR)NA(0x00504c10) = 1;
 
     /* OPTIONALLY SKIP THE INTRO MOVIES  (I76_SKIP_MOVIES=1).
      *
@@ -1467,15 +1469,15 @@ static void frame_log_line(void) {
 #ifdef _MSC_VER
     __try {
 #endif
-        rec = *(BYTE ***)0x0054a264; obj = rec ? *rec : 0;
+        rec = *(BYTE ***)(DWORD_PTR)NA(0x0054a264); obj = rec ? *rec : 0;
         if (obj && (*(DWORD *)(obj + 0x10) & 0x10) && (ent = *(BYTE **)(obj + 0x70)) != 0) {
-            step = *(float *)(ent + 0x444 + 4); cnt = *(int *)(ent + 0x444 + 8);
+            step = *(float *)(ent + EF(0x444) + 4); cnt = *(int *)(ent + EF(0x444) + 8);
         }
 #ifdef _MSC_VER
     } __except (EXCEPTION_EXECUTE_HANDLER) { step = -2.0f; cnt = -2; }
 #endif
-    fprintf(g_frlog, "%lu,%.3f,%.3f,%.3f,%.3f,%d,%d,%d\n", (unsigned long)g_frame, per, *(volatile float *)0x004fe420 * 1000.0f,
-            *(volatile float *)0x004fe428 * 1000.0f, step * 1000.0f, cnt, fg, g_frlog_inact);
+    fprintf(g_frlog, "%lu,%.3f,%.3f,%.3f,%.3f,%d,%d,%d\n", (unsigned long)g_frame, per, *(volatile float *)(DWORD_PTR)NA(0x004fe420) * 1000.0f,
+            *(volatile float *)(DWORD_PTR)NA(0x004fe428) * 1000.0f, step * 1000.0f, cnt, fg, g_frlog_inact);
     if ((++g_frlog_n & 31) == 0) fflush(g_frlog);
 }
 static void __cdecl frame_cap_then_clock(void) {
@@ -1502,8 +1504,8 @@ static void __cdecl frame_cap_then_clock(void) {
     if (now.QuadPart - g_cap_next.QuadPart > g_cap_period.QuadPart) g_cap_next.QuadPart = now.QuadPart;  /* fell behind: resync */
 clock:
     if (g_fl_period) QueryPerformanceCounter(&fl_cap);
-    g_frlog_inact = *(volatile DWORD *)0x00504c1c == 0;     /* the game's active flag (WM_ACTIVATEAPP) */
-    if (g_keep_active && g_frlog_inact) { *(volatile DWORD *)0x00504c1c = 1; g_keep_active_n++; }
+    g_frlog_inact = *(volatile DWORD *)(DWORD_PTR)NA(0x00504c1c) == 0;     /* the game's active flag (WM_ACTIVATEAPP) */
+    if (g_keep_active && g_frlog_inact) { *(volatile DWORD *)(DWORD_PTR)NA(0x00504c1c) = 1; g_keep_active_n++; }
     if (g_frlog) frame_log_line();
     g_frame++;
     if (g_voltest_frame && g_frame == g_voltest_frame) {    /* I76_VOLUME_TEST=<level>,<frame>: call sound_SetCdVolume on the
@@ -1519,7 +1521,7 @@ clock:
     if (g_flc_on) flame_census_frame();                     /* I76_FLAME_CENSUS: stream lengths, log line */
     if (g_stf_on) st_factor_frame();                        /* tick-factors census line (I76_FACTOR_CENSUS / I76_SIM_TICK_LOG) */
     if (g_simtick) simtick_clock();                         /* I76_SIM_TICK_MS: simclock_Update on tick frames only, dt = the tick */
-    else ((void (__cdecl *)(void))0x0049c920)();           /* simclock_Update */
+    else ((void (__cdecl *)(void))(DWORD_PTR)NA(0x0049c920))();           /* simclock_Update */
     if (g_hires_on && !g_simtick) {
         /* The hires clock still hands simclock whole milliseconds (it stands in for GetTickCount), so at 60 fps the
          * frame dt reads 16 or 17 ms while the display shows 16.67: everything drawn advances 1 ms too little or too
@@ -1530,8 +1532,8 @@ clock:
         QueryPerformanceCounter(&q);
         if (g_prev_q.QuadPart) {
             float dts = (float)((double)(q.QuadPart - g_prev_q.QuadPart) / (double)g_qpf.QuadPart);
-            volatile float *sim_dt = (volatile float *)0x004fe420, *sim_rate = (volatile float *)0x004fe424;
-            volatile float *dt = (volatile float *)0x004fe428, *rate = (volatile float *)0x004fe42c;
+            volatile float *sim_dt = (volatile float *)(DWORD_PTR)NA(0x004fe420), *sim_rate = (volatile float *)(DWORD_PTR)NA(0x004fe424);
+            volatile float *dt = (volatile float *)(DWORD_PTR)NA(0x004fe428), *rate = (volatile float *)(DWORD_PTR)NA(0x004fe42c);
             if (*sim_dt == *dt && dts >= 0.001f && dts <= 0.2f) { *dt = *sim_dt = dts; *rate = *sim_rate = 1.0f / dts; }
         }
         g_prev_q = q;
@@ -1600,7 +1602,7 @@ static DWORD WINAPI fps_log_watch(LPVOID arg) {
     for (;;) {
         Sleep(sec * 1000);
         if (g_frame == last) {
-            volatile BYTE *b = (volatile BYTE *)0x004039b8;           /* our call, or did something rewrite it? */
+            volatile BYTE *b = (volatile BYTE *)(DWORD_PTR)(NA(0x004039b8) ? NA(0x004039b8) : 0x004039b8);   /* our call, or did something rewrite it? */
             /* Where the main thread is parked: eip and up to 8 return addresses off the ebp chain. Read while it is
              * suspended, logged after it resumes (mlog must not run while it might hold a lock we need). */
             DWORD ret[9] = {0}; int nret = 0;
@@ -1620,7 +1622,7 @@ static DWORD WINAPI fps_log_watch(LPVOID arg) {
             }
             mlog("  fps: no mission frames; game state %ld, proxy frame %lu; hook site %02x %02x %02x %02x %02x; "
                  "main thread at %08lx < %08lx %08lx %08lx %08lx %08lx %08lx %08lx %08lx",
-                 *(volatile LONG *)0x004c2164, (unsigned long)g_frame, b[0], b[1], b[2], b[3], b[4],
+                 (LONG)nrd32(0x004c2164), (unsigned long)g_frame, b[0], b[1], b[2], b[3], b[4],
                  ret[0], ret[1], ret[2], ret[3], ret[4], ret[5], ret[6], ret[7], ret[8]);
             {   /* which module each address is in, as module+offset */
                 int k; char line[600]; int pos = 0;
@@ -4304,8 +4306,8 @@ static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
          (unsigned long)(r->NumberParameters > 1 ? r->ExceptionInformation[1] : 0),
          (unsigned long)c->Eax, (unsigned long)c->Ebx, (unsigned long)c->Ecx, (unsigned long)c->Edx, (unsigned long)c->Esi,
          (unsigned long)c->Edi, (unsigned long)c->Ebp, (unsigned long)c->Esp,
-         (unsigned long)*(volatile DWORD *)0x005a7e1c, (unsigned long)*(volatile DWORD *)0x004c2164,
-         (unsigned long)*(volatile DWORD *)0x004c2720, (unsigned long)*(volatile DWORD *)0x004c2728);
+         (unsigned long)nrd32(0x005a7e1c), (unsigned long)nrd32(0x004c2164),
+         (unsigned long)nrd32(0x004c2720), (unsigned long)nrd32(0x004c2728));
     {
         DWORD *sp = (DWORD *)(DWORD_PTR)c->Esp; char buf[400]; int i, n = 0;
         for (i = 0; i < 16; i++) {
@@ -9127,7 +9129,7 @@ static void apply_multi_instance(void) {
     if (!env_present("I76_MULTI_INSTANCE")) return;
     if (patch_bytes(0x402caf, expect, want, 2, "multi-instance"))   /* patch_bytes logs only a mismatch */
         mlog("  multi-instance: single-instance check skipped (0x402caf je -> jmp; read back %s)",
-             *(const BYTE *)0x402caf == 0xeb ? "ok" : "FAILED");
+             *(const BYTE *)(DWORD_PTR)NA(0x402caf) == 0xeb ? "ok" : "FAILED");
 }
 
 /* NO MINIMISE ON DEACTIVATION  (I76_NO_MINIMIZE=1; off by default)
@@ -9151,7 +9153,7 @@ static void apply_no_minimize(void) {
     if (k == 0 || v[0] == '0') return;
     if (patch_bytes(0x404acc, expect, want, 9, "no-minimize"))
         mlog("  no-minimize: WM_ACTIVATEAPP 0 no longer minimises the window (0x404acc push 6 -> push %d; read back %s)",
-             *(const BYTE *)0x404acd, *(const BYTE *)0x404acd == 0x08 ? "ok" : "FAILED");
+             *(const BYTE *)(DWORD_PTR)NA(0x404acd), *(const BYTE *)(DWORD_PTR)NA(0x404acd) == 0x08 ? "ok" : "FAILED");
 }
 
 /* JOYSTICK ROUTING  (I76_JOY_MAP, I76_JOY_SYNTH; both off by default; i76.exe's WINMM imports only)
@@ -9301,6 +9303,38 @@ static void apply_flame_census(void) {
     }
 }
 
+/* NITRO (nitro.exe 28b8ae27; nitro.c, docs/records/NITRO-PORT-2026-10-21.md): only the switches ported so far. Each
+ * apply_* below runs the same code as on Gold; its sites go through the site map (patch_bytes -> nitro_patch_bytes, NA)
+ * and a site that does not verify turns its feature off with a log line. Everything not listed here stays off on Nitro. */
+static void cwd_fix(void) {
+    char cwd[MAX_PATH];
+    if (env_flag("I76_CWD_FIX", 8, 1) != 0) {
+        GetCurrentDirectoryA(sizeof(cwd), cwd);
+        if (lstrcmpiA(cwd, g_dir) != 0) {
+            BOOL ok = SetCurrentDirectoryA(g_dir);
+            mlog("  cwd-fix: current directory was \"%s\", %s \"%s\"", cwd, ok ? "now" : "FAILED to set", g_dir);
+        }
+    }
+}
+static void nitro_dllmain(void) {
+    HMODULE exe = GetModuleHandleA(NULL);
+    nitro_table_check();
+    load_orig();              /* Nitro's strlkup.dll is Gold's (NITRO-VS-RETAIL s.4) */
+    apply_crash_log();
+    apply_mute();
+    cwd_fix();
+    apply_mission_launch();   /* I76_MISSION / I76_SKIP_MOVIES */
+    apply_multi_instance();
+    apply_no_minimize();      /* also I76_KEEP_ACTIVE */
+    apply_ref_fps();
+    apply_hires_clock();
+    apply_frame_cap();
+    apply_fps_log();
+    apply_frame_log();
+    mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
+    mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);
+}
+
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)r;
     if (reason == DLL_PROCESS_ATTACH) {
@@ -9308,7 +9342,10 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         GetModuleFileNameA(h, g_dir, sizeof(g_dir));
         char *s = strrchr(g_dir, '\\'); if (s) *s = 0;          /* -> game folder */
         g_logging = env_present("I76MUSIC_LOG");
+        exe_detect();
         if (shm_suffix()[0]) mlog("shm: suffix=%s", shm_suffix()); else mlog("shm: default names");
+        if (g_exe != EXE_GOLD) mlog("exe: %s", g_exe_name);
+        if (g_exe == EXE_NITRO) { nitro_dllmain(); return TRUE; }
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_crash_log();        /* always on: fault address + registers to the log */
         apply_mute();             /* lab: I76_MUTE=1 mutes this process's audio session (thread; COM off the loader lock) */
