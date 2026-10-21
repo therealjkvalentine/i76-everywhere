@@ -453,9 +453,9 @@ static void aim_respawn_tick(void) {                         /* host, from the p
         BYTE *o = coop_ai_object(i, count, tab); int sp; char why[64];
         if (!o || mpf_parked_obj(o) || aim_alive(o)) { g_aim_dead_t[i] = 0; continue; }
         if (!g_aim_dead_t[i]) { g_aim_dead_t[i] = now | 1; continue; }
-        if (now - g_aim_dead_t[i] < (DWORD)g_aim_respawn_ai_s * 1000) continue;
+        if ((LONG)(now - g_aim_dead_t[i]) < g_aim_respawn_ai_s * 1000) continue;   /* signed: dead_t = now | 1 can be 1 ms ahead */
         if ((sp = aim_free_spawn()) < 0) continue;
-        sprintf(why, "host, dead %.1f s", (now - g_aim_dead_t[i]) / 1000.0);
+        sprintf(why, "host, dead %.1f s", (LONG)(now - g_aim_dead_t[i]) / 1000.0);
         if (aim_recreate(i, sp, why)) g_aim_respawns++; else g_aim_dead_t[i] = now | 1;   /* failed: try again later */
         return;
     }
@@ -570,6 +570,11 @@ static void aim_cut(BYTE *o, int pct) {
         *(int *)(e + 0x138 + 4 * sd) = 0; *(int *)(e + 0x178 + 4 * sd) = 0; *(int *)(e + 0x148 + 4 * sd) = c; *(int *)(e + 0x18c + 4 * sd) = c;
     }
 }
+static volatile LONG g_aim_lab_fire; static SHORT (WINAPI *p_aim_gaks)(int);
+static SHORT WINAPI aim_lab_gaks(int vk) {                  /* LAB: the exe's GetAsyncKeyState (u32x.dll slot) - fire keys held during a shoot */
+    if (g_aim_lab_fire && (vk == '1' || vk == '2' || vk == '3' || vk == '4' || vk == VK_RETURN || vk == VK_LBUTTON)) return (SHORT)0x8001;
+    return p_aim_gaks ? p_aim_gaks(vk) : 0;
+}
 static void aim_lab_tick(void) {
     static BYTE *cut; static DWORD next, fire_until, lastf; BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)(), *me = root ? *root : NULL;
     DWORD now = GetTickCount();
@@ -602,6 +607,10 @@ static void aim_lab_tick(void) {
             mlog("  aimelee: LAB shoot - behind '%.8s' at %.1f,%.1f heading %d", (char *)best, *(double *)(best + 0x40), *(double *)(best + 0x50), hd);
         }
     }
+    g_aim_lab_fire = (LONG)(fire_until - now) > 0;
+    if (!p_aim_gaks) { static int tried; if (!tried++) { void *o = patch_iat(GetModuleHandleA(NULL), "u32x.dll", "GetAsyncKeyState", (void *)aim_lab_gaks);
+        if (!o) o = patch_iat(GetModuleHandleA(NULL), "USER32.dll", "GetAsyncKeyState", (void *)aim_lab_gaks);
+        p_aim_gaks = (SHORT (WINAPI *)(int))o; mlog("  aimelee: LAB fire keys through the exe's GetAsyncKeyState slot: %s", o ? "hooked" : "NOT hooked"); } }
     if ((LONG)(fire_until - now) > 0) {
         int w8[8], k; memset(w8, 0, sizeof(w8));
         if (((int (__cdecl *)(BYTE *, int *))0x004a31d0)(me, w8) == 1)

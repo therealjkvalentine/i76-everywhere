@@ -214,7 +214,9 @@ again, the same bundle never does.
    - **Hope Springs (2 AI), Hope Springs (4 AI), Hope Springs (6 AI)**: melee against 2 / 4 / 6 computer cars that the
      host runs and that attack the nearest human; a human who kills one scores for it on every screen ("Torque Daisy
      was destroyed by ..."); everybody respawns by himself; when every computer car is dead the arena reloads with
-     them back and the scores kept (records/AI-MELEE-M1-2026-10-19.md);
+     them back and the scores kept (records/AI-MELEE-M1-2026-10-19.md). **With the AI-respawn pack (staged, section
+     "Update 2026-10-20 night") these entries go away**: every stock arena gets the computer cars, they respawn like
+     humans and have their own scoreboard rows;
    - **Oil Well Well, Mondo Burger, Seminole, Pretty Bus, Race No Shoot, Trailer Pk. Madness, Milk Toast (Scenario)**:
      the single-player auto-melee scenarios with their computer cars, humans together against them; a joiner who dies
      comes back by itself, the host's death (or the scenario's own loss) restarts the scenario for everybody, a win
@@ -375,4 +377,26 @@ clicked under DxWnd). The PC LAN copy keeps cf4f81da (same behaviour on Windows)
 
 - **No sound on the laptop** was the GATE clone's switched-off Wine audio driver; the converged app has sound.
 - **AI cars only come in the AI arenas**: host **Hope Springs (2 AI) / (4 AI) / (6 AI)** (or a Scenario / Co-op scene). The
-  15 stock arenas (The Crater, Creeper Canyon, ...) are human-only.
+  15 stock arenas (The Crater, Creeper Canyon, ...) are human-only. (Until the AI-respawn pack below is deployed.)
+
+### Update 2026-10-20 night: computer cars respawn, score like players, and fill every arena (staged, not deployed)
+
+records/AI-MELEE-RESPAWN-2026-10-20.md; pack `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (proxy only + the removal of the
+three Hope Springs (N AI) files; deploy / rollback scripts for the PC, the Macs and the Deck; **every machine at once**).
+
+- **Dead computer cars come back** after 5 s at a spawn point, like a human; the arena never reloads (lab: 21 respawns, both
+  screens 0-3 m apart).
+- **Computer cars are on the scoreboard** (Tab, the standings after MAX SCORE, the message line): "Torque Daisy was killed by
+  ...", "... was killed by Torque Daisy"; their kills, deaths and score count like a player's, in the team sums, and an AI
+  can win the match (MAX SCORE). Being killed by a computer car costs a death but no longer -500.
+- **Every stock arena** (The Crater .. A Lot of Asphalt) has them: the host's **NO. DRIVERS** sets the slots, each human who
+  joins takes the place of a computer car, a human who leaves gets one back (NO. DRIVERS 4 = you + 3 AI; with a friend 2 + 2;
+  8 = up to 7 AI). The special "Hope Springs (2 / 4 / 6 AI)" entries are no longer needed.
+- **Stock game wanted?** `set I76_AIMELEE_FILL=0` in the host's PLAY-LAN.bat (or `--legacy-multiplayer`, once a launcher that has
+  that flag is on the machine; the deployed packs' PLAY-i76.ps1 predates it): stock arenas without
+  computer cars, joinable by an unpatched game. A joiner without the pack sees no computer cars, and the host's message line
+  says "<name> has no AI pack".
+- **Harder / easier:** the menu's Difficulty Level on the host (Wimp 4 / Champ 3 / Badass 1, records/DIFFICULTY-OPTION-2026-10-20.md),
+  or `PLAY-LAN.bat --ai-skill N` (1 = best .. 5 = weakest, 3 = default) once a PLAY-LAN.bat with that line is on the machine.
+- Not measured: anything between two machines; The Crater .. A Lot of Asphalt all boot with the cars on the PC except
+  Creeper Canyon (m08: the headless lab copy runs no frames there, with or without them).
