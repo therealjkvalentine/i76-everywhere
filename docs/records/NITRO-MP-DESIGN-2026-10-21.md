@@ -320,6 +320,63 @@ Notes from the runs: the joiner opens the session with the record nitshell keeps
 prefix (`dpOpen ... 'ARENA+ Evening Stroll'`); ANet 2 joins it all the same (the join does not match by name). The
 record position of an 'AT' sits at floats 7..9 (x, y, z) of net_PackVehicleState's 0x60 bytes.
 
+### 0.5.5 Item 4: AI melee in an ARENA+ session on Nitro (`music-fix/nitro_ai.c`) - measured (2026-10-21, two lab copies, headless)
+
+**Result: every asked cell passes.** `music-fix/nitro_ai.c` (commits 3296cba, 71b18da) ports the
+AI lane's aimelee.c sections 1, 2, 4, 6, 7, 8, mpfill.c's fill and the co-op AI sync of strlkproxy.c to nitro.exe,
+through the nitro-port lane's `sites_nitro.h` (read-only; 28 addresses looked up and each checked against this lane's
+reading; their files not edited). It sits on nitro_mp.c (two hook pointers added there) and is compiled into the lab
+instrument (nmpdrv md5 54a53371 for the kill runs c1-c8; a54e1108 / 275976b7 for x1, a1-a4, b1-b4, s1-s2, which differ only in the LAB shooter; `NMP_NET=1 NMP_AI=1`); not in strlkproxy.c yet. Full design notes in the file header.
+
+What runs, only in an ARENA+ session (species 0x7676) of a combat arena (*.cbt), on every machine:
+- **Pool**: 7 car records through the OBJ handler 0x4b3660 right after the ODEF walk (call 0x4bd4bf), class-1, team 7
+  (Men In Black - the 8th name in Nitro's team list too), parked at -9000,-9000; the same labels on host and joiner
+  (N01: labels 2-8 on both).
+- **Fill**: AI in play = NO. DRIVERS (host form 0x1017a070) - humans, humans counted after 1.5 s unchanged; a joining
+  human parks one (wreck first), a leaving one brings one back at the free spawn point (team-0 spawn table 0x5414f8).
+- **Sync**: 'AT' in Gold's format, **2 cars per packet (208 B, under the 249 B limit)**, 10 per second, parked cars every
+  2 s; joiner mirror 0x463a20, ai_FrameTick skipped on joiners (0x432e24), the 5 object_ClassDamage calls guarded, AI
+  trigger pulls replayed.
+- **Host tick** at 0x4079a2: attack the nearest live human (sticky), skill once per car from Nitro's DEF difficulty
+  byte 0x5fb0fc with difficulty.c's mapping (the copies are on Wimp: skill 4, logged), attacker cap 8 on the host car.
+- **Kills** at 0x46332e: 'AK' **reliable** (one copy), "<AI> was destroyed by <player>" on every screen, the killer's
+  machine credits its own row (stock formula).
+- **Respawn**: dead AI back after 5 s by the spawner 0x44c930 at the free spawn point (joiners rebuild their copy from
+  the host's 'AT'); dead humans ask for the stock respawn 0x44caf0(1).
+- **Rows**: each AI in play holds a row of the 16 x 0x50 table (id 0x7E00 + n, name, flags team 7 << 16 | 2, +0x30
+  latency -1, +0x44 1.0, +0x48 team 7), owner id entity +0x484 = row id; the host keeps the AI rows' kills / deaths.
+
+Runs: `tools\nitro-mp\aimatrix*.sh` on `pair.py` (host boots, picks the arena and NO. DRIVERS on the stock form, box on,
+BROADCAST; 20 s later the joiner boots, JOIN > IPX, joins). LAB switches for kills (never in a pack): `NMP_LAB_AI_HP=1`
+(AI armour 0, chassis 1 %), `NMP_LAB_SHOOT=<s>` (every s seconds the local car keeps 10 m behind the nearest AI for 3 s with
+Nitro's weapon_fire byte 0x53490b held - nitro.exe does not read held keys through GetAsyncKeyState, so the Gold LAB's
+key hook does nothing here), `NMP_LAB_OWN_HP=5` (local car cut, so the AI kill it). Status line every 5 s on the same
+wall-clock grid on both copies; summaries `tools\nitro-mp\aisum.py`. Evidence `captures\nitro-mp-20261021\ai-*.log`.
+
+| cell (asked) | result | n |
+|---|---|---|
+| AI count, 4 drivers | host alone: 3 in play; joiner in: 2 in play on **both** screens (every stamp after the 1.5 s settle) | 15 runs (N01 8, N51 7) |
+| AI count, 2 drivers | host alone: 1; joiner in: 0 on both screens | 2 (a3 N01, a4 N51) |
+| a joiner takes an AI's slot | "parked AI #k ... 2 humans, 2 of 7 AI wanted" on the host, the AI gone from both screens and its row given back on both | every join, 17 runs |
+| AI deaths respawned on both screens | host respawned **30** dead AI cars; the joiner rebuilt its copy from the host's 'AT' **27** times (the other 3 came back after the joiner's boot had ended) | 10 asked |
+| kill credit: host kills an AI | credited on the host, the same message and row on the joiner | **15** (c1 3, c3 3, c4 2, c6 2, c7 3, c8 2) |
+| kill credit: joiner kills an AI | the host's kill hook names the joiner (`+N to player 44`), 'AK' reaches the joiner, credited there, rows agree | **4** (c3 1, c6 1, c7 2) |
+| kill credit: AI kills a human | the AI row gets +1 kill and the stock score on the host, the joiner's mirror shows it | **17** (the host's car 7, the joiner's car 10) |
+| AI kills an AI (same team) | "X was destroyed by Y - own team: no score" (stock team-kill rule) | 2 (seen in b1, c1) |
+| rows agree at the phase end (last common 5 s stamp) | **agree** on every id, kills / deaths / score, in every run | 17 |
+| sync quality (MP-OVERNIGHT's measure) | over 1,135 AI-in-play samples (host vs joiner, same 5 s stamps, the stamp after a park / bring-in left out): **median 0.00 m, p90 1.46 m, p99 3.19 m, max 20.0 m (1 sample)** | 15 runs (4-driver runs) |
+| crashes | 0 (no access violation or other exception from our code) | 40 boots |
+| stock session (box off), same arenas | "'N01.CBT' outside an ARENA+ session - stock arena, no AI pool" on both copies, join OK, both tables agree, nothing of ours sent | 2 (s1 N01, s2 N51) |
+
+Notes:
+- 'AK' sent / received differ by one in five runs: every one of those was a kill after the joiner's boot had ended
+  (joiner hold 240 s, host 300 s) - not a loss.
+- Joiners show the AI cars at 100 % health (the mirror carries only "destroyed"), as on Gold (cosmetic).
+- The AI play on Wimp's skill 4 here (the lab copies' DEF byte is 0); `I76_AIMELEE_SKILL` overrides.
+- The ANet player names read "Unknown" in the lab (fresh DEF); names come from the player's DEF.
+- Not ported (s.3.1 list stands): co-op scenes and scaling, waves, the fill's teams ledger, host-migration reconcile,
+  the scoreboard box size (8 rows: enough for the default fill of <= 8 cars), 'AV'.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
