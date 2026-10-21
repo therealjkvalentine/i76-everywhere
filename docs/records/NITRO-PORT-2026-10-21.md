@@ -226,8 +226,12 @@ three each per boot), then a 40 m drop at (7930, 42580) without god.
 | arm | heave half period 1 m (n) | 3 m (n) | 40 m drop: health % after (n) |
 |---|---|---|---|
 | Nitro (w16, nitro-tick42) | 0.333 +- 0.000 (6) | 0.292 +- 0.000 (6) | 84.9 (3 of 3: chassis 580 / 720 / 720 / 569, = 28 + 72 x 569 / 720) |
-| Gold | (pending: Gold boots wait for the gate) | | |
+| Gold (lab twin w16-lab 0a1b35a1, tick19-42) | 0.319 +- 0.022 (6: 0.292 x2, 0.333 x4) | 0.292 +- 0.000 (6) | 84.9 (2 of 2, the same part damage: chassis 580 / 720 / 720 / 569) |
 | TICK-FINISH, Gold 41.667 | 0.292 | | |
+
+The 3 m drop and the 40 m drop's damage are identical on both exes. The 1 m half period is 7 or 8 car steps (0.292 / 0.333 s)
+on Gold depending on where in the tick the drop starts; Nitro gave 8 steps 6 of 6 - inside the same quantised set, the
+pattern of the T05 jumps' later placements (s.3.2). Bounce on Nitro's own missions was not measured.
 
 ## Files
 
