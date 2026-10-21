@@ -308,7 +308,7 @@ def main():
         gs = b''.join(bytes(i.bytes) for i in glist[:k])
         ns = b''.join(bytes(i.bytes) for i in nlist[:k])
         st = ('exact' if exact else 'reloc') if ok >= min(8, len(gs) - off) else 'differs'
-        return gs[off:], ns[off:], st, min(ok, 24)
+        return gs[off:], ns[off:], st, min(ok, 48)
 
     rows = []
     for va in sorted(sites):
@@ -434,10 +434,10 @@ def main():
         fo.write('#define NITRO_PE_STAMP 0x%08xu\n#define GOLD_PE_STAMP  0x%08xu\n' % (nitro.pe.FILE_HEADER.TimeDateStamp, gold.pe.FILE_HEADER.TimeDateStamp))
         for k, v in K.items():
             fo.write('#define SN_%s %d\n' % (k.upper().replace('-', '_'), v))
-        fo.write('typedef struct { unsigned gold, nitro; unsigned char status, ok, len, sig[24], gsig[24]; } nitro_site_t;\n')
+        fo.write('typedef struct { unsigned gold, nitro; unsigned char status, ok, len, sig[48], gsig[48]; } nitro_site_t;\n')
         fo.write('static const nitro_site_t g_nitro_sites[] = {\n')
         for r in rows:
-            sig = r["nsig"][:24] if r['kind'] == 'code' and r['nitro'] else b''
+            sig = r["nsig"][:48] if r['kind'] == 'code' and r['nitro'] else b''
             gsig = r['gsig'][:len(sig)]
             fo.write('    { 0x%06x, 0x%06x, %d, %d, %d, { %s }, { %s } },\n' % (
                 r['gold'], r['nitro'], K[r['status']], r.get('ok', 0), len(sig),

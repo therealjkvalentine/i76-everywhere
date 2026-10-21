@@ -4184,9 +4184,15 @@ static void apply_fix_health_pct(void) {
     if (n == 0) return;
     x100_only = (n < sizeof(v) && v[0] == '2');
     a = (DWORD)(DWORD_PTR)(x100_only ? hf_scale_stub : hf_comp_stub);
-    if (memcmp((void *)0x0040b6e3, old_jmp, 7) != 0 || memcmp((void *)0x004bc620, k100, 4) != 0 ||
-        memcmp((void *)0x0040b6f0, old_clamp, 6) != 0 || memcmp((void *)0x0040b5f5, old_sides, 6) != 0) {
+    if (!site_is(0x0040b6e3, old_jmp, 7) || !site_is(0x004bc620, k100, 4) ||
+        !site_is(0x0040b6f0, old_clamp, 6) || !site_is(0x0040b5f5, old_sides, 6)) {
         mlog("  fix-health-pct: bytes differ at 0x40b6e3 / 0x4bc620 / 0x40b6f0 / 0x40b5f5 - not applied"); return;
+    }
+    {   static const DWORD sa[1] = { 0x004bc620 };       /* the 100.0f the stubs multiply by (Nitro 0x4c1ab0) */
+        if (!nitro_reloc_stub((void *)hf_scale_stub, sa, 1, 32, "health percent stub (x100)") ||
+            !nitro_reloc_stub((void *)hf_comp_stub, sa, 1, 32, "health percent stub (component)") ||
+            !nitro_reloc_stub((void *)hf_min_stub, sa, 1, 48, "health percent stub (min)")) { mlog("  fix-health-pct: NOT applied (stubs)"); return; }
+        g_hf_cont = NA(0x0040b6f0); g_hf_sides = NA(0x0040b5f5); g_hf_resume = NA(0x0040b6f6);   /* = the initial values on Gold */
     }
     for (i = 0; i < 4; i++) memcpy(new_tab + 4 * i, &a, 4);
     if (!patch_bytes(0x0040b7b8, old_tab, new_tab, 16, "health percent switch table")) { mlog("  fix-health-pct: NOT applied"); return; }
@@ -4231,7 +4237,7 @@ static void apply_fix_label_table(void) {
     if (!env_present("I76_FIX_LABEL_TABLE")) return;
     memset(blk, 0x90, sizeof(blk));
     blk[0] = 0x56;                                          /* push esi (the table record) */
-    blk[1] = 0xE8; rel = (LONG)((DWORD_PTR)label_grow - (0x004ad466 + 5)); memcpy(blk + 2, &rel, 4);
+    blk[1] = 0xE8; rel = (LONG)((DWORD_PTR)label_grow - (NA(0x004ad466) + 5)); memcpy(blk + 2, &rel, 4);   /* NA: Gold = 0x4ad466 */
     blk[6] = 0x83; blk[7] = 0xC4; blk[8] = 0x04;            /* add esp, 4 */
     blk[9] = 0x85; blk[10] = 0xC0;                          /* test eax, eax */
     blk[11] = 0x74; blk[12] = 0x19;                         /* je 0x4ad48b (return 0) */
@@ -6953,13 +6959,15 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
                under MemorySizeOfTMU 4096 the first allocation that would pass the 4 MB top moves next-free back to 2 MB
                while the textures at 2..4 MB stay in the slot list: later uploads overwrite live textures (the owner's
                "texture exchange" with 4096, promotion 5R). Lab docs/RENDER-FREEZE-2026-10-04.md, TEXTURE-DELIVERY.md s.2. */
-            BYTE *p = (BYTE *)m + 0x1a93; DWORD op;
-            if (p[0] == 0x75 && p[1] == 0x24 && VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, &op)) {
+            /* Nitro's ZGLIDE (1998-02-28 rebuild, f28fe42b): the same rule at +0x2c9a, `jne +0x26` (read 2026-10-21) */
+            DWORD zo = g_exe == EXE_NITRO ? 0x2c9a : 0x1a93; BYTE zj = g_exe == EXE_NITRO ? 0x26 : 0x24;
+            BYTE *p = (BYTE *)m + zo; DWORD op;
+            if (p[0] == 0x75 && p[1] == zj && VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, &op)) {
                 p[0] = 0xEB; VirtualProtect(p, 1, op, &op); FlushInstructionCache(GetCurrentProcess(), p, 1);
-                mlog("  zglide-tmufix: ZGLIDE+0x1a93 75 24 -> %02x 24 (2 MB boundary rule skipped)", p[0]);
-            } else mlog("  zglide-tmufix: ZGLIDE+0x1a93 = %02x %02x, not the stock 75 24 - not applied", p[0], p[1]);
+                mlog("  zglide-tmufix: ZGLIDE+0x%lx 75 %02x -> %02x %02x (2 MB boundary rule skipped)", (unsigned long)zo, zj, p[0], zj);
+            } else mlog("  zglide-tmufix: ZGLIDE+0x%lx = %02x %02x, not the stock 75 %02x - not applied", (unsigned long)zo, p[0], p[1], zj);
         }
-        if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on) tex_census_attach(m);
+        if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on && g_exe != EXE_NITRO) tex_census_attach(m);   /* census offsets: Gold's ZGLIDE */
         /* (the census and TMUFIX hook LoadLibraryA too: the refresh wrapper is only for I76_GLIDE_REFRESH / I76_GLIDE_GAMMA) */
         if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
             p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
@@ -9043,11 +9051,11 @@ static float *__cdecl hud_quad_wrap(float *cam, float *v, float *n, DWORD *tex, 
         }
         for (i = 0; i < 4; i++) v[i * 6] = a + (v[i * 6] - a) * g_hud_inv_k;
     }
-    return ((float *(__cdecl *)(float *, float *, float *, DWORD *, float *))0x004260d0)(cam, v, n, tex, flags);
+    return ((float *(__cdecl *)(float *, float *, float *, DWORD *, float *))(DWORD_PTR)NA(0x004260d0))(cam, v, n, tex, flags);
 }
 static void __cdecl hud_gauge_wrap(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e, DWORD f, DWORD g) {
     g_hud_side_anchor = 1;
-    ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))0x0045b450)(a, b, c, d, e, f, g);
+    ((void (__cdecl *)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD))(DWORD_PTR)NA(0x0045b450))(a, b, c, d, e, f, g);
     g_hud_side_anchor = 0;
 }
 static void apply_hud_squeeze(double k) {
@@ -9067,9 +9075,9 @@ static void apply_hud_squeeze(double k) {
     }
     if (n) g_hud_inv_k = (float)(1.0 / k);   /* either site alone is safe: the gauge wrap only sets the anchor flag */
     {   /* read back the quad call's target */
-        LONG rel; memcpy(&rel, (const void *)(0x0045b87a + 1), 4);
+        LONG rel; memcpy(&rel, (const void *)(DWORD_PTR)(NA(0x0045b87a) + 1), 4);
         mlog("  hud-squeeze: %d/2 sites, quad call -> %s; HUD sprite quads x 1/%.3f (brackets, reticles, zcbh sprite about their centres; gauges about their screen side)",
-             n, (DWORD_PTR)(0x0045b87a + 5 + rel) == (DWORD_PTR)hud_quad_wrap ? "wrapper" : "STOCK", k);
+             n, (DWORD_PTR)(NA(0x0045b87a) + 5 + rel) == (DWORD_PTR)hud_quad_wrap ? "wrapper" : "STOCK", k);
     }
 }
 
@@ -9084,8 +9092,9 @@ static void apply_aspect(void) {
     if (!(D >= 1.34 && D <= 3.6)) { mlog("  aspect: %s out of range (1.34..3.6) - not applied", v); return; }
     k = 0.75 * D;
     { static const DWORD f90_bits = 0x3fc90fda; memcpy(&f90, &f90_bits, 4); }   /* the exe's pi/2 is one ulp below (float)(pi/2) */
-    memcpy(&f120, (const void *)0x4075a7, 4);
-    memcpy(&clamp0, (const void *)0x4be5ac, 4);
+    if (!NA(0x4075a7) || !NA(0x4be5ac)) { mlog("  aspect: hood fov / clamp sites not mapped - not applied"); return; }
+    memcpy(&f120, (const void *)(DWORD_PTR)NA(0x4075a7), 4);
+    memcpy(&clamp0, (const void *)(DWORD_PTR)NA(0x4be5ac), 4);
     cst = (float)(4.0 / D);
     w90 = (float)(2.0 * atan(k * tan(f90 / 2.0)));
     w120 = (float)(2.0 * atan(k * tan(f120 / 2.0)));
@@ -9372,11 +9381,14 @@ static void nitro_dllmain(void) {
     apply_mirror_far();       /* I76_MIRROR_FAR */
     apply_cam_ground_fix();   /* I76_CAM_GROUND_FIX */
     apply_terrain_hull_fix(); /* I76_TERRAIN_HULL_FIX */
+    apply_aspect();           /* I76_ASPECT (Hor+; + HUD squeeze) */
     apply_ref_fps();
     apply_hires_clock();
     apply_frame_cap();
     apply_fps_log();
     apply_frame_log();
+    apply_fix_health_pct();   /* I76_FIX_HEALTH_PCT */
+    apply_fix_label_table();  /* I76_FIX_LABEL_TABLE */
     apply_far_clip();         /* I76_FAR_CLIP (+ render pools x16) */
     apply_telemetry();        /* I76_TELEMETRY (snapshot, shot / explosion / impact events; I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported) */
     apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
@@ -9401,6 +9413,7 @@ static void nitro_dllmain(void) {
             music_opts();
         } else mlog("  music: I76_MUSIC_NITRO=0 - GOG's WIN32.dll plays the CD tracks");
     }
+    apply_glide_refresh();    /* I76_GLIDE_REFRESH / I76_ZGLIDE_TMUFIX / I76_GLIDE_GAMMA (LoadLibraryA hook; Nitro ZGLIDE offsets) */
     apply_joy_routing(exe);   /* Nitro's joyGetPosEx / joyGetDevCapsA are WIN32.dll imports */
     mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
     mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);
