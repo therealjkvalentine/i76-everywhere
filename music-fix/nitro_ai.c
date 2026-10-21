@@ -222,11 +222,13 @@ static void nai_bring(int q, const char *why) {
     NMP_LOG("  nitro-ai: AI #%d '%.8s' (label %d) into the game at spawn point %d (%.1f,%.1f) - %s", q + 1, (char *)o, g_nai_li[q], sp, x, z, why);
 }
 static int nai_humans(void) { int k, n = 0; for (k = 0; k < 16; k++) { WORD id = *(WORD *)NMP_ROW(k); if (id && !nai_is_ai_id(id)) n++; } return n; }
-static int nai_drivers(void) {
-    int v; if (!g_nai_shell) g_nai_shell = GetModuleHandleA("nitshell.dll");
+static int nai_drivers(void) {   /* the host's NO. DRIVERS: its own form, or (a joiner / a migrated host) the one from the host's hello */
+    int v; if (g_nmp_drivers_rx >= 1 && g_nmp_drivers_rx <= 8) return g_nmp_drivers_rx;
+    if (!g_nai_shell) g_nai_shell = GetModuleHandleA("nitshell.dll");
     if (!g_nai_shell) return 0;
     v = *(int *)((BYTE *)g_nai_shell + (0x1017a070 - 0x10000000));
-    return v >= 1 && v <= 8 ? v : 0;
+    if (v >= 1 && v <= 8) { g_nmp_host_drivers = v; return v; }
+    return 0;
 }
 static int g_nai_humans = -1, g_nai_hseen = -1; static DWORD g_nai_hsince;
 static void nai_fill_tick(void) {                    /* host */
@@ -534,6 +536,27 @@ static void nai_lab_tick(void) {
     }
 }
 
+/* ---- host migration (nitro_mp.c calls this once when this joiner became the host) [mpfill mpf_migr_pending] ----
+ * The joiner already holds everything a host needs: the pool's parked / in-play state from the old host's 'AT' byte 3,
+ * the AI rows with their numbers (g_nai_led follows the rows on a joiner), the AI cars at the old host's last positions.
+ * So the reconcile is: keep the parked / in-play split as the 'AT' said, recount the humans (the fill then brings a
+ * car back for the human who left), skill the AI cars again (their brains now run here), forget old targets and death
+ * timers (dead cars restart their 5 s). */
+static void nai_migrated(void) {
+    int q, play = 0, park = 0, dead = 0;
+    if (!nai_on()) return;
+    for (q = 0; q < g_nai_pool_n; q++) {
+        BYTE *o = g_nai_li[q] >= 0 ? nai_object(g_nai_li[q]) : NULL;
+        g_nai_skilled[q] = 0; g_nai_tgt[q] = NULL; g_nai_dead_t[q] = 0;
+        if (!o) continue;
+        if (g_nai_parked[q]) { park++; g_nai_park_since[g_nai_li[q]] = GetTickCount(); } else play++;
+        if (!nai_alive(o)) { dead++; g_nai_dead_seen[q] = 1; }
+    }
+    g_nai_humans = -1; g_nai_hseen = -1; g_nai_capped = NULL;
+    NMP_LOG("  nitro-ai: host migration - reconciled from the old host's last 'AT': %d in play (%d dead), %d parked; rows %d; NO. DRIVERS %d (from the hello)",
+            play, dead, park, *(volatile int *)(DWORD_PTR)a_count, nai_drivers());
+}
+
 /* ---- pump hooks (nitro_mp.c) ---- */
 static WORD g_nai_seq_seen[32]; static unsigned g_nai_seq_n;
 static void nai_rx(WORD from, const BYTE *p, int n) {
@@ -563,8 +586,11 @@ static void nai_status(int role) {
     NMP_LOG("%s", line);
 }
 static void nai_tick(int role) {
-    static DWORD stat; DWORD now = GetTickCount();
+    static DWORD stat, since; static int left; DWORD now = GetTickCount();
     if (!nai_on() || *(volatile int *)(DWORD_PTR)a_state != 5) return;
+    {   char v[8]; int leave = GetEnvironmentVariableA("NMP_LAB_LEAVE_AT", v, sizeof v) ? atoi(v) : 0;   /* LAB: the stock end-of-session exit */
+        if (!since) since = now;
+        if (leave > 0 && !left && role == 1 && now - since > (DWORD)leave * 1000) { left = 1; NMP_LOG("  nitro-ai: LAB host leaves (game state 3) after %d s", leave); *(volatile int *)(DWORD_PTR)a_state = 3; return; } }
     if (role == 1) { nai_at_send(); if (g_nai_qn) nai_flush(); nai_respawn_tick(); }
     else if (role == 2) nai_joiner_fire();
     nai_rows_tick(role);
@@ -616,7 +642,7 @@ static void nai_attach(void) {
        & nai_call(0x461114, 0x44fd80, (void *)nai_class_damage, "damage 1") & nai_call(0x46504b, 0x44fd80, (void *)nai_class_damage, "damage 2")
        & nai_call(0x465693, 0x44fd80, (void *)nai_class_damage, "damage 3") & nai_call(0x4a7c43, 0x44fd80, (void *)nai_class_damage, "damage 4")
        & nai_call(0x4a7cd6, 0x44fd80, (void *)nai_class_damage, "damage 5");
-    g_nmp_rx_hook = nai_rx; g_nmp_tick_hook = nai_tick;
+    g_nmp_rx_hook = nai_rx; g_nmp_tick_hook = nai_tick; g_nmp_migr_hook = nai_migrated;
     g_nai_ok = 1;
     NMP_LOG("  nitro-ai: ON (%s) - pool %d, combat arenas in ARENA+ sessions only; skill from the DEF byte (%d)", ok ? "all 12 sites" : "SOME SITES OFF", NAI_POOL,
             *(volatile BYTE *)(DWORD_PTR)n_defbyte);

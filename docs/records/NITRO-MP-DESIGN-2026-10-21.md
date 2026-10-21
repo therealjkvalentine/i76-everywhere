@@ -377,6 +377,29 @@ Notes:
 - Not ported (s.3.1 list stands): co-op scenes and scaling, waves, the fill's teams ledger, host-migration reconcile,
   the scoreboard box size (8 rows: enough for the default fill of <= 8 cars), 'AV'.
 
+### 0.5.6 Item 6: host migration in an ARENA+ AI session (2026-10-21, N01, n 3)
+
+**Pass, 3 of 3.** When the host leaves, Nitro's own election makes the joiner the host (0x446ea0, "You are now the
+host"); nitro_mp.c sees its role change from joiner to host in an ARENA+ session, starts a new hello round (the new
+host's 'AH' goes to the group; it now also carries NO. DRIVERS in options bits 8..15, which joiners keep for exactly this
+case) and calls nitro_ai.c's reconcile: the pool's parked / in-play split stays as the old host's last 'AT' said, the AI
+rows stay (a joiner already holds them with their numbers), the AI cars are skilled again (their brains now run here),
+old targets and death timers are dropped, the humans are recounted - so the fill brings back the car the leaving human's
+slot had taken. The hello's human count no longer counts AI rows (it used to keep re-sending to them every 2 s).
+
+Run: `pair.py` (lab), N01, NO. DRIVERS 4, host leaves by the stock end-of-session exit at 60 s of mission time
+(`NMP_LAB_LEAVE_AT=60`: game state 3, as the Gold overnight harness did), joiner stays 160 s. Summary `tools
+itro-mp\migsum.py`.
+
+| run | migration on the survivor | reconcile (from the old host's last 'AT') | survivor, last status line | survivor in the arena at its end | crashes |
+|---|---|---|---|---|---|
+| mg-r1 | at 57.4 s, id 44 is the host | 2 in play, 0 dead, 5 parked, rows 3, NO. DRIVERS 4 | 1 human, **3 AI in play (4 - 1)**, rows 1 human + 3 AI | state 5 at 155 s | 0 / 0 |
+| mg-r2 | 57.3 s | same | same | same | 0 / 0 |
+| mg-r3 | 57.2 s | same | same | same | 0 / 0 |
+
+The new host then runs the AI (orders, 'AT', respawn, kill credit) as a host from the start. Not measured: a third copy
+receiving the new host's hello (two lab copies only), a hard exit of the host (ANet's time-out path).
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the

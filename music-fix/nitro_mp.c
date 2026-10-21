@@ -83,6 +83,8 @@ static nmp_recv_fn nmp_real_recv; static nmp_send_fn nmp_dpsend;
 static volatile LONG g_nmp_on;                       /* exe side attached */
 static volatile LONG g_nmp_species;                  /* species of the session nitshell opened (0 = none yet) */
 static volatile LONG g_nmp_opts;                     /* host's ARENA+ options (bit 0 AI DROP-IN ...), set by the shell part */
+static volatile LONG g_nmp_host_drivers;             /* host: NO. DRIVERS, sent in the hello (options bits 8..15) */
+static volatile LONG g_nmp_drivers_rx;               /* joiner: NO. DRIVERS from the host's hello (kept for a host migration) */
 static LONG g_nmp_sent[8], g_nmp_got[8], g_nmp_senderr, g_nmp_toobig;
 static BYTE g_hello_seq; static int g_hello_count = -1; static DWORD g_hello_last;
 static WORD g_hello_acked[16]; static int g_hello_acks;  /* host: joiners that answered the current seq */
@@ -113,7 +115,7 @@ static int nmp_send(WORD to, const void *pkt, int len, int reliable) {
 static void nmp_hello_send(WORD to, BYTE seq) {
     BYTE p[12];
     *(WORD *)p = NMP_TAG_AH; p[2] = seq; p[3] = NMP_PROTO; *(WORD *)(p + 4) = (WORD)g_nmp_species; *(WORD *)(p + 6) = nmp_me();
-    *(DWORD *)(p + 8) = (DWORD)g_nmp_opts;
+    *(DWORD *)(p + 8) = (DWORD)g_nmp_opts | ((DWORD)(g_nmp_host_drivers & 0xff) << 8);
     nmp_send(to, p, sizeof p, 1);
 }
 static void nmp_hello_recv(WORD from, const BYTE *p, int n) {
@@ -125,6 +127,7 @@ static void nmp_hello_recv(WORD from, const BYTE *p, int n) {
         NMP_LOG("  nitro-mp: hello answered by %u (seq %u, proto %u, species %04x)", from, p[2], p[3], *(WORD *)(p + 4));
     } else {                  /* joiner: the host's hello -> answer once per seq */
         g_hello_from = from;
+        if ((*(DWORD *)(p + 8) >> 8) & 0xff) g_nmp_drivers_rx = (*(DWORD *)(p + 8) >> 8) & 0xff;
         if (p[2] != g_hello_seen) {
             g_hello_seen = p[2];
             NMP_LOG("  nitro-mp: hello from host %u (seq %u, proto %u, species %04x, options %08lx) - answering", from, p[2], p[3], *(WORD *)(p + 4), *(DWORD *)(p + 8));
@@ -165,11 +168,22 @@ static void nmp_at_recv(WORD from, const BYTE *p, int n) {
 }
 
 /* ---- tick (every pump call) ---- */
+static void (*g_nmp_migr_hook)(void);
+static int g_nmp_last_role;
+static int nmp_humans(void) { int k, n = 0; for (k = 0; k < 16; k++) { WORD id = *(WORD *)NMP_ROW(k); if (id && id < 0x7E00) n++; } return n; }   /* AI rows (nitro_ai.c) are 0x7E00 + n */
 static void nmp_tick(void) {
     DWORD now = GetTickCount(); int role = nmp_role(), cnt;
     if (!nmp_arena() || *(volatile int *)(DWORD_PTR)a_state != 5) return;
-    cnt = *(volatile int *)(DWORD_PTR)a_count;
+    cnt = nmp_humans();
+    if (role == 1 && g_nmp_last_role == 2) {   /* HOST MIGRATION: the game made this joiner the host (0x446ea0) */
+        NMP_LOG("  nitro-mp: host migration - this machine (%u) is the host now; %d human(s), new hello round", nmp_me(), cnt);
+        g_hello_count = -1;
+        if (g_nmp_drivers_rx) g_nmp_host_drivers = g_nmp_drivers_rx;
+        if (g_nmp_migr_hook) g_nmp_migr_hook();
+    }
+    if (role) g_nmp_last_role = role;
     if (role == 1) {
+        if (g_hello_count == -1 && cnt <= 1) { g_hello_count = cnt; g_hello_seq++; nmp_hello_send(nmp_group(), g_hello_seq); NMP_LOG("  nitro-mp: new host's hello (seq %u) sent to the group", g_hello_seq); }
         if (cnt != g_hello_count) { g_hello_count = cnt; g_hello_seq++; g_hello_acks = 0; g_hello_last = 0; }
         if (cnt > 1 && g_hello_acks < cnt - 1 && now - g_hello_last > 2000) { g_hello_last = now; nmp_hello_send(nmp_group(), g_hello_seq); }
     }
