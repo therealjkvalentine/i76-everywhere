@@ -41,6 +41,7 @@ SITES = [
 HOOK_ORIG = bytes.fromhex('83F80175E5')     # cmp eax,1 ; jne -0x1b (both loops)
 TEXT_VS_OFF = 0x1c0                          # .text VirtualSize in the section header
 TEXT_VS_OLD, TEXT_VS_NEW = 0x3f340, 0x3f400
+IMG_MAP = 0x100000                           # bytes of the image the emulator maps (patch-nitshell-f7.py: 0x180000)
 
 
 def rel32(src_next, dst):
@@ -144,7 +145,7 @@ def emulate(path, sites):
         T = {hit: 'hit-test', close: 'CLOSE', top: 'loop top'}
         def run(click, code, key):
             mu = Uc(UC_ARCH_X86, UC_MODE_32)
-            mu.mem_map(BASE, 0x100000); mu.mem_write(BASE, bytes(img[:0x100000]))
+            mu.mem_map(BASE, IMG_MAP); mu.mem_write(BASE, bytes(img[:IMG_MAP]))
             # stub: store the key at [ecx], return the poll code (0 none, 1 key, 3 Esc - 0x1001c17a..86)
             mu.mem_write(KEYPOLL, b'\xc7\x01' + struct.pack('<I', key) + b'\xb8' + struct.pack('<I', code) + b'\xc3')
             mu.mem_map(OBJ, 0x1000); mu.mem_write(KEYOBJ, struct.pack('<I', OBJ))
