@@ -220,6 +220,69 @@ position against the art (needs one look at the console), BROADCAST with the box
 Found on the way: nitshell keeps a **second species**, `[0x10046cb4]` = 0x296c (10604), which `0x1002f260` puts in place of
 604 when the setup block has bit 2. Our lab species 0x7676 avoids both; the ARENA+ species must too.
 
+### 0.5.2 Step 2: RESULT - ARENA+ sessions over IPX, both directions (2026-10-21, two lab copies, headless, n 2 per cell)
+
+**Final ARENA+ species: 0x7676 (30326).** Not 604 (`[0x10046cb0]`, anet.inf `SessionType`) and not 10604 (`[0x10046cb4]`,
+the shell's second species). It is what our host writes into the session record's sessionType (+0xd) at `dpOpen` while
+any ARENA+ box is on.
+
+**Setup.** Copies `exp-nitro-mp` (host) and `exp-nitro-mp-b` (JOIN list), identical, instrument nmpdrv (md5 fb7bf974 for
+every cell except c2-r1, 57782eb0, which differs only in the patched joiner's enumeration hook, not used in c2).
+**IPXWrapper 0.7.2 instances L and M** (`tools\nitro-mp\ipx-instances.ps1`; mutex `ipxwrapperLsocket` / `...M...`, keys
+`HKCU\Software\IPXWrappeL` / `M`; previously used instances: B, E, F, G, H, K): UDP **port 54830** (E-H use 54800, K 54810),
+only the Hyper-V Default Switch adapter enabled (00:15:5D:71:9A:4E, 172.30.160.1/20), fixed nodes 02:4C:00:00:76:01 /
+02:4D:00:00:76:02. Checked in the IPXWrapper debug logs over all cells: every send went to 172.30.175.255:54830, every
+packet came from 172.30.160.1. (An `ipxwrapper.ini` in the game folder makes IPXWrapper ignore the registry: the first
+try used port 54792 that way; the ini was removed.) Driver `tools\nitro-mp\pair.py`: host boot, BROADCAST through the
+stock form by scripted clicks (HOST > IPX; box clicked first when ON), holds 75 s in its arena; 20 s later the JOIN boot
+(JOIN > IPX) reads the shell's own session list every 2 s for 30 s (count `[0x1015b038]`, rows of 0xe4 bytes at
+`0x101593b8`: name, session record, players). `NMP_MULTI=1` answers nitro.exe's single-instance `FindWindowA` with NULL
+(the two copies also run on different private desktops).
+
+| cell | host | JOIN list (box code) | result, every read (15 per boot) | n |
+|---|---|---|---|---|
+| c1 | ARENA+ box ON: `dpOpen` species **7676**, "Evening Stroll" | patched (enumerates 604 + 7676, names ours "ARENA+ ") | **1 session: "ARENA+ Evening Stroll", species 7676, 1/4** | 2 |
+| c2 | box ON, species 7676 | **stock** (no box code, no hooks) | **0 sessions** | 2 |
+| c3 | box OFF: species **604** (stock session from the patched copy) | **stock** | **1 session: "Evening Stroll", species 025c, 1/4** | 2 |
+| c4 | box OFF, 604 | patched | 1 session "Evening Stroll", species 025c (no prefix) | 1 |
+
+Hosts stayed in their arena (state 5, net 1, own id = host id) for the whole hold, joiners stayed in the JOIN form; no
+crash or exception from our code in the counted runs. Two failed runs before the count, both from the instrument: the
+first patched JOIN list ended in **0xC0000409** both times because the enumeration callback wrapper was declared cdecl -
+the shell's callback `0x1002e060` is **stdcall (`ret 0x10`)**, ANet calls it that way; fixed, then c1 passed.
+
+What it shows: the session-type swap keeps ARENA+ and stock sessions apart in both directions on a real ANet 2 / WIPX2
+session, and a patched copy hosting a stock session is listed by a stock copy as before. Not covered: an actual JOIN
+(only the lists), the lobby route (below), the screen.
+
+### 0.5.3 anet2.dll read from a running copy (estimate item 1, done)
+
+The loader stub maps the real code **in place**: a boot of `exp-nitro-mp` with `NMP_DUMP` wrote anet2's image (loaded at
+0x020F0000; `dpReceive` 0x020FA420, `dpSend` 0x020FB1A0, `dpEnumSessions` 0x020F8A20, `dpOpen` 0x020F6BA0, all inside the
+image), turned into a loadable PE by `i76-map\nitro-net\tools\unmap_pe.py` and exported by Ghidra (343 functions,
+`i76-map\nitro-net\ghidra\export-anet2-unpacked`; addresses are for base 0x020F0000). Findings:
+
+- **Packet size limit: payload <= 249 bytes unreliable (flag 0), <= 244 reliable (flag 1)**: dpSend appends a 6-byte
+  trailer and the transport sends refuse `len + 6 > 255` (unreliable, `0x020ff500`) / `> 250` (reliable, `0x020ff600`) with
+  error 4. So 'AT' stays at 2 records (208 B); 3 (308 B) would be refused - the Gold measurement (5 records never
+  arrived) has its cause.
+- **dpSend writes 6 bytes past the payload** (`from, to, session word` in place; ANet 1 wrote 4): every send buffer needs
+  >= 6 spare bytes (the proxy's COOP_DP_SLACK 16 covers it).
+- **Reliable sends exist**: dpSend's flag 1 takes the reliable path. 'AK' / 'AM' / 'AH' can use it instead of 3 copies.
+- **dpReceive**: a packet whose first byte is 'd' is ANet's own (handled inside, mostly not returned); anything else
+  is returned to the game after the 6-byte trailer check (known sender, sender != target, session word). So any app
+  tag not starting with 'd' reaches nitro.exe's pump - ours do ('A...').
+- **Species filtering is the client's**: `dpEnumSessions` lists sessions from its tables whose species equals the
+  requested one, **0 = any species** (synchronously, then asynchronously until the timeout via the stored callback,
+  `0x020f36b0`); a new call first ends the previous enumeration with a NULL callback. Simpler than the two-pass hook of
+  the PoC: one call with species 0, filtered to {604, 7676} in the callback.
+- **Lobby (game server)**: `dpSetGameServer` logs in with the app's species from anet.inf (604) and subscribes to the
+  server's session table under the key {table, species} (`0x020f6480`). A lobby therefore serves sessions **per species**:
+  stock clients subscribed to 604 never receive 7676 sessions (the isolation holds on a lobby too); a patched joiner must
+  add a second subscription for 7676 (same call, our species) to list ARENA+ sessions there, and whether a community
+  server keeps a table for an unregistered species is the server's business (not in this client code). Risk R3 stands,
+  now narrowed to that one question.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
@@ -329,7 +392,7 @@ sets the session flags the exe reads: 0x10 combat, 0x20 race (`0x448810`), 0x40 
 every reference to 0x53f228 and the bit tests of its whole-word getter's 23 callers). This closes the open item in
 `i76-map\data\notes\nitro.md` ("which setup bit the exe reads ... not traced").
 
-### 1.7 anet2.dll itself: a loader stub (not reached)
+### 1.7 anet2.dll itself: a loader stub (read since: section 0.5.3)
 
 `anet2.dll`'s `.text` has 0xa00 file bytes for 0x15a00 in memory: an entry stub (`.dllent`) maps the real code from a
 75 KB overlay. Ghidra sees the stub only. A 32-bit LoadLibrary-and-dump tool (`i76-map\nitro-net\tools\anetdump`) gets
