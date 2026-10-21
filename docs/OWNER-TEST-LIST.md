@@ -840,6 +840,10 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
   keyboard); old Mac versions and helper folders deleted (one tarball kept per machine); no Mac daily driver to protect.
 - **Launchers:** one PLAY.bat for single player and LAN at promotion 19; `--legacy-multiplayer` flag (I76_MP_MENU=0) added.
 - **Debug tool:** DEBUG.bat (TRAINER.bat a shim), full-state teleport (pose + velocities), ships in the daily driver.
+- **AI melee (2026-10-20 night, from Andrew's Mac):** "the game restarts when I play the (6 AI) version ... and the AI players are
+  dead, but shouldn't they be respawned instead and the points tallied like they were players?" Ruling: no wave reload; dead
+  AI respawn like humans, and AI kills / deaths / score are tallied and shown like players' (AI-MELEE-M1 decisions 4 and 5
+  answered). A lane is building it (records/AI-MELEE-RESPAWN-2026-10-20.md).
 
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
