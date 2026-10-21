@@ -26,6 +26,10 @@ linked five weeks apart. So the map runs through Gold, with an independent cross
 Evidence classes: **[code]** read in disassembly or decompiler output; **[data]** measured on the files by the parsers;
 **[run]** a headless boot; **[doc]** Activision text; **[prior]** an earlier record, cited.
 
+**2026-10-21 follow-up: [NITRO-BASE-2026-10-21](NITRO-BASE-2026-10-21.md)** - the reverse direction (can Nitro play the
+original?): the GOG Nitro install ships none of the original campaign, arena or scene-movie files and its shell has no
+trip; two owner copies under `Games\I76\nitro*`.
+
 ## Answer
 
 1. **Nitro is Gold's engine five weeks later, not a new engine.** 1,997 of Nitro's 2,200 functions match a Gold

@@ -969,3 +969,9 @@ presets with the two new lines, launchers with `--legacy-multiplayer`).
 | P5 | the GAME NAME is the arena you clicked (E) | MULTI MELEE > HOST, click Mondo Burger (Scenario): the name reads "Mondo Burger (Scenario)", the AREA OF PLAY box too, and Mondo Burger loads (lab: 48 / 48 loads the selected file); on the Mac, if the name shows the row ABOVE the one you clicked, the Mac pointer is one row off (tell us) | lab: names right 42 / 42 (stock 15 / 42) |
 | P6 | in a network game the Esc menu's keys no longer drive the car (F) | host or join, Esc, press the driving keys / arrows: the car coasts straight | lab network game: stock steer up to 0.92 / throttle 1.0 with the menu up, fix 0 / 0 (n 3 each) |
 | P7 | the game folder can be renamed after a crash (G) | nothing to do; folders of copies that crashed no longer stay locked | lab: 0 registrations left of 3 killed boots (stock 3 of 3) |
+
+## Decision: base Gold or Nitro (2026-10-21; records/NITRO-BASE-2026-10-21.md)
+
+| # | what | how to check | result |
+|---|---|---|---|
+| N1 | **Ruling: keep the Gold exe as the base, or move to nitro.exe?** The GOG Nitro Pack is the expansion only: none of the original 17 scenes, 15 arenas (by file; N51-N65 are them re-laid), 27 scene movies or 492 radio voices, and its shell has no trip / garage-salvage / bookmarks. Moving means porting the trip shell, re-addressing the whole proxy, a limiter and the netcode (record, last section) | play-check both copies at the monitor: `C:\Users\james\Games\I76\nitro\PLAY.bat` (stock GOG Nitro) and `C:\Users\james\Games\I76\nitro-plus-original\PLAY.bat` (+ original files; single player > character Groove > Original Mission 1-17; host alone > arena list for M01-M15) | headless over Remote Desktop both showed "Unhandled Exception" in GOG's OpenGLide start-up (n 1 each); the same exe with dgVoodoo reached the menu (lab, n 1). Your ruling: |
