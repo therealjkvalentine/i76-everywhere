@@ -89,6 +89,8 @@ static WORD g_hello_acked[16]; static int g_hello_acks;  /* host: joiners that a
 static BYTE g_hello_seen = 0xff;                         /* joiner: last host seq answered */
 static WORD g_hello_from;                                /* joiner: host id from the last hello */
 static int g_at_selftest, g_at_sent, g_at_recv;
+/* hooks for the AI layer on top (nitro_ai.c): packets of ours other than 'AH', every pump call in an ARENA+ session */
+static void (*g_nmp_rx_hook)(WORD from, const BYTE *p, int n); static void (*g_nmp_tick_hook)(int role);
 
 static int nmp_arena(void) { return g_nmp_on && g_nmp_species == NMP_SPECIES_ARENA && *(volatile int *)(DWORD_PTR)a_net; }
 static WORD nmp_me(void) { return *(volatile WORD *)(DWORD_PTR)a_me; }
@@ -181,9 +183,11 @@ static int __cdecl nmp_dpReceive(void *dp, void *from, void *to, int flags, void
         WORD t = *(WORD *)buf, f = *(WORD *)from; int n = *(int *)size;
         if (t == NMP_TAG_AH || t == NMP_TAG_AT || t == NMP_TAG_AK || t == NMP_TAG_AM) g_nmp_got[nmp_tagidx(t)]++;
         if (t == NMP_TAG_AH) nmp_hello_recv(f, (const BYTE *)buf, n);
-        else if (t == NMP_TAG_AT) nmp_at_recv(f, (const BYTE *)buf, n);
+        else if (t == NMP_TAG_AT && n >= 8 && *(WORD *)((BYTE *)buf + 8) == 0xFFFF) nmp_at_recv(f, (const BYTE *)buf, n);
+        else if (g_nmp_rx_hook && (t == NMP_TAG_AT || t == NMP_TAG_AK || t == NMP_TAG_AM)) g_nmp_rx_hook(f, (const BYTE *)buf, n);
     }
     nmp_tick();
+    if (g_nmp_tick_hook) g_nmp_tick_hook(nmp_role());
     return r;
 }
 
