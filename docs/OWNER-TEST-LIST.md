@@ -927,3 +927,23 @@ old app is in `~/i76-archive-20261020/` as a tarball). Andrew's and Michael's Ma
    (by design). Want AI in every arena? Say so (a ruling, not built).
 4. Nitro: `Interstate 76 Nitro (DxWnd).app` and `Interstate 76 - DxWnd Settings.app` were kept (they use the same app's
    folder). Delete them if you do not want them.
+
+## AI cars respawn, score like players, and fill every arena (2026-10-20 night; records/AI-MELEE-RESPAWN-2026-10-20.md)
+
+Staged as pack `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (proxy 5e712a2f + the three "Hope Springs (N AI)" files moved
+out), **on no machine yet**. Main deploys it to every machine at once when you say so (PC LAN copy, laptop, both Macs, Deck).
+
+1. **With Andrew (the test you asked for):** you host on any machine, Andrew joins. HOST > pick any stock arena (Suburbia,
+   The Crater, Hope Springs ...) with **NO. DRIVERS 8** > BROADCAST GAME: 7 computer cars when you are alone, 6 once Andrew
+   is in. Kill every computer car you can. Each one must come back about 5 s later at a spawn point; the arena must never
+   restart. Press **Tab** (the scoreboard) now and then: the computer cars must have their own rows (their names, kills,
+   deaths, score), Andrew's screen must show the same numbers, and "... was killed by <AI name>" must show when they get one
+   of you. When Andrew leaves, a computer car must take his place. (Lab: 21 respawns, rows identical on both screens, NO.
+   DRIVERS 2 / 4 / 8 in three arenas; nothing between two machines yet.)
+2. **Too easy?** (You said you were "spanking all these guys".) The skill runs 1 = best .. 5 = weakest; it was 3. Your copies'
+   menu Difficulty Level is Wimp, which the new proxy maps to 4 (easier). Pick: Champ (3), Badass (1), or a fixed
+   `set I76_AIMELEE_SKILL=2` in PLAY-LAN.bat (`PLAY-LAN.bat --ai-skill 2` once the next launcher set is out). Measured: skill 5
+   is clearly weak; at 1-3 the cars often hold 150-190 m off, and that matters more than the number. Your Piranha (4800
+   points, armour 2800) out-armours 54 of the 66 cars they draw from.
+3. **A stock game for a friend without the pack:** `set I76_AIMELEE_FILL=0` on the host gives the stock arenas without
+   computer cars. Without it, an unpatched joiner sees no computer cars, and your message line says "<name> has no AI pack".
