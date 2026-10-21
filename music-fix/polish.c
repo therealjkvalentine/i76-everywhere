@@ -38,6 +38,8 @@
  *   (there the palette IS the fade). Log line at load; with I76_FADE_LOG=1 (lab) or I76_SIGN_SOUND_LOG=1 a line at a fade's 1st, 8th, 16th, 24th, 32nd step.
  */
 static int st_call_site(DWORD site, DWORD stock, void *wrap, DWORD *chain, const char *what);   /* simtick.c */
+static int g_mk;                                             /* I76_MENU_KEYS (below), read by simtick.c st_input_changed */
+static int mpm_write(BYTE *p, const BYTE *expect, const BYTE *want, int n);   /* mpmenu.c */
 
 /* ---- I76_SIGN_SOUND_RESTART ---------------------------------------------------------------------------------------- */
 #define SSR_NAME ((const char *)0x004f1578)                  /* "vnvco3.wav" (0x434e62 pushes it) */
@@ -165,4 +167,107 @@ static void apply_fade_no_flip(void) {
     }
     mlog("  fade: I76_FADE_NO_FLIP=%d (the palette fade's 32 presents %s under the hardware renderer)", g_fade_noflip,
          g_fade_noflip ? "skipped" : "kept, counted");
+}
+
+/* ---- I76_ARENA_NAME (default 1; 0 = stock) ------------------------------------------------------------------------
+ * Owner 2026-10-20 night: "Why is the game name populated with the next area name instead of the selected area name?"
+ * When the host has not typed a GAME NAME, picking an arena on the host form copies the default name into 0x100d4050 from
+ * the stock table `0x1004b510 + index * 0x2d` (i76shell a300db63, EntryForm 0x10028610: the two copies at 0x10029c5c and
+ * 0x1002a2c6, `lea edi, [eax + eax*8 + 0x1004b510]` with eax = index * 5, then repne scasb / rep movs). The table has the
+ * 15 stock arenas; for the add-on entries (index >= 15: AI arenas, scenarios, co-op scenes, any ADDON *.lvl) the copy read
+ * past it into the next table, so the name was another entry's (COOP-LIST-ENTRIES-2026-10-18.md s.1 "Side effect").
+ * The list and the AREA OF PLAY box already take an add-on's title from the add-on list ([[0x100f2194]+8] - 0x3c +
+ * index * 4, 0x10029bf5 / 0x1002b37e); the two copies now do the same: each lea becomes `call arena_name_stub; nop; nop`,
+ * which leaves in edi the stock entry for index < 15 and the add-on's own title for index >= 15 (index-generic: whatever
+ * the add-on list holds), copied into a 45-byte buffer (the stock entry size) so the shell's copy is never longer than
+ * before. Log line "arena-name: 2 / 2 default-name copies repointed"; the first 20 add-on names are logged. */
+static BYTE *g_an_base;
+static char g_an_buf[0x2d];
+static DWORD g_an_n;
+static const char *__cdecl arena_name_src(void) {
+    BYTE *b = g_an_base;
+    int idx = *(int *)(b + (0x100d4474u - 0x10000000u));
+    const char *s = (const char *)(b + (0x1004b510u - 0x10000000u)) + (idx >= 0 && idx < 15 ? idx : 0) * 0x2d;
+    if (idx >= 15) {
+#ifdef _MSC_VER
+        __try {
+#endif
+            BYTE *list = *(BYTE **)(b + (0x100f2194u - 0x10000000u));
+            const char *t = list ? *(const char **)(*(BYTE **)(list + 8) - 0x3c + idx * 4) : 0;
+            if (t) { lstrcpynA(g_an_buf, t, sizeof g_an_buf); s = g_an_buf; }
+#ifdef _MSC_VER
+        } __except (EXCEPTION_EXECUTE_HANDLER) { }
+#endif
+        if (++g_an_n <= 20) mlog("  arena-name: entry %d -> default game name '%s'", idx, s);
+    }
+    return s;
+}
+static __declspec(naked) void arena_name_stub(void) {        /* replaces lea edi, [eax + eax*8 + 0x1004b510] (7 bytes) */
+    __asm {
+        push eax
+        push ecx
+        push edx
+        call arena_name_src
+        mov edi, eax
+        pop edx
+        pop ecx
+        pop eax
+        ret
+    }
+}
+static void arena_name_attach(BYTE *base) {                   /* from mp_menu_attach (mpmenu.c), once, when i76shell is in */
+    static const DWORD site[2] = { 0x10029c5c, 0x1002a2c6 };
+    DWORD tbl = (DWORD)(DWORD_PTR)base + (0x1004b510u - 0x10000000u);
+    int i, ok = 0;
+    if (env_flag("I76_ARENA_NAME", 8, 1) == 0) { mlog("  arena-name: off (I76_ARENA_NAME=0): stock default game names"); return; }
+    g_an_base = base;
+    for (i = 0; i < 2; i++) {
+        BYTE *p = base + (site[i] - 0x10000000u), o[7] = { 0x8D, 0xBC, 0xC0 }, w[7] = { 0xE8, 0, 0, 0, 0, 0x90, 0x90 };
+        LONG rel = (LONG)((DWORD)(DWORD_PTR)arena_name_stub - ((DWORD)(DWORD_PTR)p + 5));
+        memcpy(o + 3, &tbl, 4); memcpy(w + 1, &rel, 4);
+        ok += mpm_write(p, o, w, 7);
+    }
+    mlog("  arena-name: %d / 2 default-name copies repointed (add-on entries name the game after their own title)%s", ok,
+         ok == 2 ? ", read back OK" : " - unknown i76shell build?");
+}
+
+/* ---- I76_MENU_KEYS (default 1; 0 = stock) -------------------------------------------------------------------------
+ * Owner 2026-10-20 night: "The arrow keys in the pause menu control the car?" Stock: the frame loop runs the sim block
+ * (0x403a02..: collisions, input_ProcessFrame 0x44dec0 -> input_ApplyToEntity, the vehicle step) when the game is active
+ * and the render-gate flags 0x4fe534 & 0x3e are clear, OR when 0x452d20 (a network game) says so (0x4039e4..0x4039fc).
+ * The Esc menu (its sub-menus and the mission-over menu too) is 0x4fe534 = 0x10: single player skips the sim (the menu
+ * pauses), a network game keeps it running - and input_UpdateControls 0x44d9e0 has already filled the control block
+ * 0x5367c8..0x536803 (15 dwords, cleared together at 0x44dd13: the gamekey word, the throttle / steer axes, the held key
+ * bytes) from the keyboard and the sticks, so the arrow keys that move the menu bar also steer the car.
+ * With the switch: while 0x4fe534 == 0x10 the call input_ProcessFrame at 0x403a1c (chained: under the tick it is the
+ * tick's gate) first clears the 15 dwords, so the player's car sees no key and zero axes: input_ApplyToEntity's analog
+ * path sets throttle and steer to 0 (the car coasts, wheels straight; the hold timers reset) and no gamekey fires. The
+ * menu's own keys come through the window procedure (WM_KEYDOWN -> 0x496e10) and are not touched; the Mac's DxWnd path
+ * reaches the same frame loop, so the same clear applies there. Under the tick, I76_SIM_TICK_INPUT's early tick ignores
+ * input while the menu is up (simtick.c st_input_changed). I76_MENU_KEYS_LOG=1 (lab): a line every 120th cleared frame. */
+static int g_mk_log;
+static DWORD g_mk_next = 0x0044dec0, g_mk_frames, g_mk_eaten;
+static void __cdecl menu_keys_wrap(void) {
+    if (g_mk && *(volatile DWORD *)0x004fe534 == 0x10) {
+        DWORD *blk = (DWORD *)0x005367c8; int i, any = 0;
+        for (i = 0; i < 15; i++) if (blk[i]) { any = 1; break; }
+        g_mk_frames++;
+        if (any) {
+            g_mk_eaten++;
+            if (g_mk_log && (g_mk_eaten % 120) == 1)
+                mlog("  menu-keys: Esc menu up, the control block held input (throttle axis %ld, steer axis %ld, keys %08lx %08lx) - cleared (%lu frames so far)",
+                     (long)(int)blk[1], (long)(int)blk[3], (unsigned long)blk[2], (unsigned long)blk[4], (unsigned long)g_mk_eaten);
+            memset(blk, 0, 60);
+        }
+    }
+    ((void (__cdecl *)(void))g_mk_next)();
+}
+static void apply_menu_keys(void) {
+    g_mk = env_flag("I76_MENU_KEYS", 8, 1) == 1;
+    g_mk_log = env_flag("I76_MENU_KEYS_LOG", 8, 0) == 1;
+    if (!g_mk) { mlog("  menu-keys: off (I76_MENU_KEYS=0): stock (in a network game the Esc menu's keys also drive the car)"); return; }
+    if (!st_call_site(0x00403a1c, 0x0044dec0, (void *)menu_keys_wrap, &g_mk_next, "input_ProcessFrame call (menu-keys)")) {
+        g_mk = 0; mlog("  menu-keys: 0x403a1c not patched - off"); return;
+    }
+    mlog("  menu-keys: on - while the Esc menu is up (0x4fe534 = 0x10) the car gets no keys / axes (coasts); no early tick from menu keys");
 }

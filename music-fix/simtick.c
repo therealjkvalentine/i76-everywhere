@@ -186,6 +186,7 @@ static int (*g_st_input_peek_fn)(void);     /* lab drive block: nonzero when the
 static int st_input_changed(void) {
     const BYTE *d0 = (const BYTE *)0x006092d0, *e0 = (const BYTE *)0x006092e0;
     int i;
+    if (g_mk && *(volatile DWORD *)0x004fe534 == 0x10) return 0;   /* I76_MENU_KEYS (polish.c): menu keys never run an early tick */
     if (g_st_input_peek_fn && g_st_input_peek_fn()) { g_wst_local.early_lab++; return 1; }
     if (memcmp(d0, g_st_kb_snap, 16) != 0) { g_wst_local.early_kb++; return 1; }
     for (i = 0; i < 16; i++) if (e0[i] && (!g_st_pend_once || e0[i] != g_st_kb_esnap[i])) { g_wst_local.early_kb++; return 1; }

@@ -31,6 +31,7 @@
  * (g_mpm_done, interlocked): on the PC the hook gets there first and the thread only ends.
  */
 static int g_mpm_mode = -1;                     /* -1 = not read yet */
+static void arena_name_attach(BYTE *base);       /* polish.c (included later) */
 
 static int mpm_write(BYTE *p, const BYTE *expect, const BYTE *want, int n) {
     DWORD op;
@@ -134,6 +135,7 @@ static void mp_menu_attach(HMODULE m, const char *b) {
              g_mpm_x, 0xd4 - g_mpm_x, g_mpm_font, ok,
              ok == 2 ? "repointed, read back OK" : "NOT all repointed");
     }
+    arena_name_attach(base);                    /* I76_ARENA_NAME (polish.c): an add-on entry's default GAME NAME = its own title */
     if (g_mpm_mode <= 0) return;
     if (g_mpm_mode == 1) {
         static const BYTE old_[5] = { 0xE9, 0x8E, 0x05, 0x00, 0x00 };            /* jmp 0x10026515 */
