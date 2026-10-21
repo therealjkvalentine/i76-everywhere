@@ -1066,6 +1066,17 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
 
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
+33b. **Full car state store / restore + the haptics button (new 2026-10-20 evening, records/DEBUG-TOOL-2026-10-20.md).** Staged, not
+    installed: needs the proxy from `i76-uncap-lab\builds\debug-tool-20261020\stage` (the main lane installs it after its gate).
+    In T05: `DEBUG.bat` (Trainer tab, "full state: proxy"). Drive up the ridge toward the canyon jump, press **Ctrl+9** just before
+    the lip (or mid-air), land or crash, press **Ctrl+0**: the car must reappear where it was, facing the same way, pitched the
+    same, moving at the same speed, and do the same jump again with the same throttle (n 3). Then Ctrl+9 parked on the ridge and
+    "Restore stopped" from the page. Waypoint 2 "Save here" at speed, drive off, "Go". Your old waypoint 1 must still "Go" (position
+    only). Haptics tabs with the wheel plugged in: "Start haptics host" fills Force feedback / Rumble / LFE / Motion (dry run, the
+    wheel is not driven); unplugged: the tab says no wheel or pad found. `TRAINER.bat` must open the same page on the Trainer tab.
+    Report: anything that does not come back as stored (which part: heading, pitch, speed, suspension), whether Ctrl+9 / Ctrl+0
+    clash with anything you use.
+
 ## Steam Deck docked to a TV (docs/STEAMDECK.md "Docked to a TV")
     - **Owner smoke test 2026-10-17 (daily driver, promotion 16, keyboard): menu pointer does not quite match the click location (being fixed: records/OWNER-FEEDBACK-FIXES-2026-10-17.md); T05: drove THROUGH the first two road signs, hit most of the others; knocked most but not all barricades; jump distance and pitch "just about perfect"; terrain still drops out when the camera gets low (G-01; promotion 18's I76_TERRAIN_HULL_FIX targets it); FFB not tried yet.**
 
