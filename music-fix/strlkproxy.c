@@ -8343,6 +8343,162 @@ static void apply_terrain_vguard(void) {
     g_tv_on = patch_bytes(0x004912f6, old, w, 8, "terrain vertex guard");
     mlog("  terrain-vguard: %s (no node splits past %lu terrain vertices in a frame)", g_tv_on ? "on" : "NOT applied", (unsigned long)g_tv_limit);
 }
+/* TERRAIN LOD HYSTERESIS AND FREEZE  (I76_TERRAIN_HYST=<percent>, I76_TERRAIN_FREEZE=<far m>,<move m>; need I76_TERRAIN_LOD;
+ * off by default; rc-draw lane 2026-10-20, docs/records/RC-DRAW-FPS-2026-10-20.md)
+ * Owner 2026-10-20: "the distracting issue with the terrain is that it CHANGES while you are driving ... steep edges change more,
+ * things further away change more." The quadtree (0x4911e0) is rebuilt every frame from the camera alone, so every node whose
+ * split test sits near its threshold flips as the eye moves, and flips back. Each node of half size h < 32 passes the vertex
+ * guard's stub at 0x4912f6 before its tests (distance d2 against (2h)^2 K, then the midpoint height errors against
+ * exp2(d2) B); the tests read the eye only from [0x6442f8] / [0x644300] (written by QueueTerrain's setup, read nowhere else).
+ * A node is named by its min corner in samples, (int)(x + 0.5) as the leaf maker 0x491810 does, and its half size. The
+ * main camera's pass (the call at 0x4020a4) records every node it visits: leaf, or split once a child of it is visited.
+ *  - HYST=p: a node that was split in the previous main pass is tested with the eye moved toward it so it looks p % nearer;
+ *    one that was a leaf, p % farther. A split then needs the camera p % closer than the stock threshold and the merge
+ *    p % farther: no flip back and forth around a threshold. Detail is unchanged on average (the band is symmetric).
+ *  - FREEZE=f,m: nodes farther than f metres keep the decision of the last snapshot until the camera has moved m metres
+ *    from it; then the next pass becomes the snapshot. Far terrain changes in one step every m metres, not continuously.
+ * Only the main pass is touched (the mirror's pass runs stock); after the pass the eye is put back. Counted: passes,
+ * nodes biased / frozen, parent look-ups that missed (a node whose parent was not visited, expected only for size 32). */
+#define TH_SLOTS 131072u
+typedef struct { unsigned __int64 k; BYTE st; } th_slot_t;
+static th_slot_t *g_th_tab[3];                       /* previous pass, this pass, freeze snapshot */
+static DWORD g_th_gen[3];
+static DWORD *g_th_used[3]; static DWORD g_th_nused[3];
+static int g_th_cur = 0, g_th_prev = 1, g_th_snap = 2, g_th_snap_ok;   /* cur / prev swap each pass; snap is a copy */
+static int g_th_on, g_th_main;                        /* switch on; inside the main camera's pass */
+static float g_th_up = 1.0f, g_th_dn = 1.0f;          /* distance scale for was-split / was-leaf nodes */
+static float g_tf_far2, g_tf_move2;                   /* in samples^2 (5 m per sample) */
+static float g_th_eye[2], g_tf_eye[2]; static int g_th_eye_ok;
+static DWORD g_th_passes, g_th_biased, g_th_frozen, g_th_pmiss, g_th_win_frozen, g_th_snaps;
+static unsigned __int64 th_key(int x, int z, int h) { return ((unsigned __int64)(DWORD)(x & 0xffffff) << 40) | ((unsigned __int64)(DWORD)(z & 0xffffff) << 16) | (DWORD)(h & 0xffff); }
+static DWORD th_hash(unsigned __int64 k) { k ^= k >> 29; k *= 0xbf58476d1ce4e5b9ull; k ^= k >> 32; return (DWORD)k & (TH_SLOTS - 1); }
+static BYTE th_get(int t, unsigned __int64 k) {
+    DWORD i = th_hash(k), n; th_slot_t *s = g_th_tab[t];
+    for (n = 0; n < 64; n++, i = (i + 1) & (TH_SLOTS - 1)) { if (!s[i].st) return 0; if (s[i].k == k) return s[i].st; }
+    return 0;
+}
+static void th_put(int t, unsigned __int64 k, BYTE st) {        /* st 1 leaf, 2 split; a split never goes back to leaf */
+    DWORD i = th_hash(k), n; th_slot_t *s = g_th_tab[t];
+    for (n = 0; n < 64; n++, i = (i + 1) & (TH_SLOTS - 1)) {
+        if (!s[i].st) { if (g_th_nused[t] < TH_SLOTS) { s[i].k = k; s[i].st = st; g_th_used[t][g_th_nused[t]++] = i; } return; }
+        if (s[i].k == k) { if (st > s[i].st) s[i].st = st; return; }
+    }
+}
+static void th_clear(int t) { DWORD j; for (j = 0; j < g_th_nused[t]; j++) g_th_tab[t][g_th_used[t][j]].st = 0; g_th_nused[t] = 0; }
+/* from the stub at 0x4912f6 (all registers saved): v0 = the node's min-corner vertex (x, y, z floats, samples), h = half size.
+ * Returns 0 leaf, 1 split, 2 run the stock tests (with the eye possibly moved for this node). */
+static int __cdecl th_node(const float *v0, int h) {
+    int x, z, s, ps; float cx, cz, dx, dz, k; BYTE was = 0;
+    if (!g_th_main || !v0) return 2;
+    if (!g_th_eye_ok) { g_th_eye[0] = *(volatile float *)0x006442f8; g_th_eye[1] = *(volatile float *)0x00644300; g_th_eye_ok = 1; }
+    x = (int)(v0[0] + 0.5f); z = (int)(v0[2] + 0.5f);
+    th_put(g_th_cur, th_key(x, z, h), 1);
+    s = h ? 2 * h : 1; ps = 2 * s;                       /* this node's size; the parent's (its half size is s) */
+    if (ps <= 32) {
+        unsigned __int64 pk = th_key(x & ~(ps - 1), z & ~(ps - 1), s);
+        if (th_get(g_th_cur, pk)) th_put(g_th_cur, pk, 2); else g_th_pmiss++;
+    }
+    if (h == 0) return 2;
+    cx = v0[0] + (float)h; cz = v0[2] + (float)h;
+    dx = cx - g_th_eye[0]; dz = cz - g_th_eye[1];
+    if (g_tf_far2 > 0.0f && g_th_snap_ok && dx * dx + dz * dz > g_tf_far2) {
+        BYTE f = th_get(g_th_snap, th_key(x, z, h));
+        if (f) { g_th_frozen++; g_th_win_frozen++; *(volatile float *)0x006442f8 = g_th_eye[0]; *(volatile float *)0x00644300 = g_th_eye[1]; return f == 2 ? 1 : 0; }
+    }
+    if (g_th_up != 1.0f) was = th_get(g_th_prev, th_key(x, z, h));
+    k = was == 2 ? g_th_up : was == 1 ? g_th_dn : 1.0f;
+    if (k != 1.0f) g_th_biased++;
+    *(volatile float *)0x006442f8 = cx - dx * k;          /* the stock tests now see the node k times as far */
+    *(volatile float *)0x00644300 = cz - dz * k;
+    return 2;
+}
+static DWORD g_th_res, g_th_ret_forced = 0x00491802;   /* 0x491802: fstp st(0); jmp 0x49167c = the forced split of h >= 32 */
+static __declspec(naked) void terrain_hyst_stub(void) {          /* jmp from 0x4912f6 (replaces test ebx,ebx; je 0x4917b0) */
+    __asm {
+        pushad
+        push ebx
+        push esi
+        call th_node
+        add esp, 8
+        mov g_th_res, eax
+        popad
+        cmp g_th_res, 1
+        je split
+        cmp g_th_res, 0
+        je leaf
+        test ebx, ebx
+        jz leaf
+        push eax
+        mov eax, dword ptr ds:[0x006442ec]
+        cmp eax, g_tv_limit
+        pop eax
+        jg guard
+        jmp dword ptr [g_tv_ret_split]
+    guard:
+        inc g_tv_hits
+    leaf:
+        jmp dword ptr [g_tv_ret_leaf]
+    split:
+        push eax
+        mov eax, dword ptr ds:[0x006442ec]
+        cmp eax, g_tv_limit
+        pop eax
+        jg guard
+        jmp dword ptr [g_th_ret_forced]
+    }
+}
+static void __cdecl th_qt_main(BYTE *cam) {
+    int t; DWORD j;
+    g_th_main = 1; g_th_eye_ok = 0;
+    ((void (__cdecl *)(BYTE *))0x00490a00)(cam);
+    if (g_th_eye_ok) { *(volatile float *)0x006442f8 = g_th_eye[0]; *(volatile float *)0x00644300 = g_th_eye[1]; }
+    g_th_main = 0; g_th_passes++;
+    if (g_tf_far2 > 0.0f && g_th_eye_ok) {                    /* freeze snapshot: a copy of this pass, once the eye moved m metres */
+        float mx = g_th_eye[0] - g_tf_eye[0], mz = g_th_eye[1] - g_tf_eye[1];
+        if (!g_th_snap_ok || mx * mx + mz * mz > g_tf_move2) {
+            th_clear(g_th_snap);
+            for (j = 0; j < g_th_nused[g_th_cur]; j++) { th_slot_t *e = &g_th_tab[g_th_cur][g_th_used[g_th_cur][j]]; th_put(g_th_snap, e->k, e->st); }
+            g_th_snap_ok = 1; g_tf_eye[0] = g_th_eye[0]; g_tf_eye[1] = g_th_eye[1]; g_th_snaps++;
+        }
+    }
+    t = g_th_prev; g_th_prev = g_th_cur; g_th_cur = t; th_clear(g_th_cur);
+}
+static void terrain_hyst_report(void) {
+    if (!g_th_on) return;
+    mlog("  terrain-hyst: %lu main passes, %lu node tests biased, %lu frozen (%lu since the last line), %lu snapshots, %lu parent look-ups missed",
+         (unsigned long)g_th_passes, (unsigned long)g_th_biased, (unsigned long)g_th_frozen, (unsigned long)g_th_win_frozen, (unsigned long)g_th_snaps, (unsigned long)g_th_pmiss);
+    g_th_win_frozen = 0;
+}
+static void apply_terrain_hyst(void) {
+    static const BYTE old[8] = { 0x85, 0xdb, 0x0f, 0x84, 0xb2, 0x04, 0x00, 0x00 };   /* test ebx,ebx; je 0x4917b0 */
+    static const BYTE qtm_old[5] = { 0xe8, 0x57, 0xe9, 0x08, 0x00 };               /* call 0x490a00 at 0x4020a4 (main camera, hardware) */
+    BYTE w[8] = { 0xe9, 0, 0, 0, 0, 0x90, 0x90, 0x90 }, w5[5] = { 0xe8 }, cur[8];
+    char v[32], *c; DWORD n = env_str("I76_TERRAIN_HYST", v, sizeof(v)); int i, ok;
+    float hp = n ? (float)atof(v) : 0.0f, ff = 0.0f, fm = 0.0f; LONG rel;
+    if (env_str("I76_TERRAIN_FREEZE", v, sizeof(v))) { ff = (float)atof(v); c = strchr(v, ','); fm = c ? (float)atof(c + 1) : 0.0f; }
+    if (hp <= 0.0f && ff <= 0.0f) return;
+    if (hp < 0.0f || hp > 50.0f || (ff > 0.0f && (ff < 100.0f || fm < 1.0f || fm > 500.0f))) { mlog("  terrain-hyst: I76_TERRAIN_HYST %.1f (0..50) / I76_TERRAIN_FREEZE %.0f,%.0f (>= 100 m, 1..500 m) out of range - not applied", hp, ff, fm); return; }
+    for (i = 0; i < 3; i++) {
+        g_th_tab[i] = (th_slot_t *)VirtualAlloc(NULL, TH_SLOTS * sizeof(th_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        g_th_used[i] = (DWORD *)VirtualAlloc(NULL, TH_SLOTS * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (!g_th_tab[i] || !g_th_used[i]) { mlog("  terrain-hyst: no memory - not applied"); return; }
+    }
+    g_th_up = 1.0f / (1.0f + hp / 100.0f); g_th_dn = 1.0f + hp / 100.0f;
+    if (ff > 0.0f) { g_tf_far2 = (ff / 5.0f) * (ff / 5.0f); g_tf_move2 = (fm / 5.0f) * (fm / 5.0f); }
+    memcpy(cur, (const void *)0x004912f6, 8);
+    rel = (LONG)((DWORD_PTR)terrain_hyst_stub - (0x004912f6 + 5)); memcpy(w + 1, &rel, 4);
+    if (memcmp(cur, old, 8) == 0) ok = patch_bytes(0x004912f6, old, w, 8, "terrain hysteresis node test");
+    else if (cur[0] == 0xe9) ok = patch_bytes(0x004912f6, cur, w, 8, "terrain hysteresis node test (over the vertex guard)");
+    else ok = 0;
+    rel = (LONG)((DWORD_PTR)th_qt_main - (0x004020a4 + 5)); memcpy(w5 + 1, &rel, 4);
+    ok = ok && patch_bytes(0x004020a4, qtm_old, w5, 5, "terrain hysteresis main QueueTerrain call");
+    g_th_on = ok;
+    mlog("  terrain-hyst: %s (hysteresis %.0f %%: a split node merges %.2fx, a leaf splits at %.2fx the stock distance; freeze %s)",
+         ok ? "on" : "NOT applied", hp, 1.0f / g_th_up, 1.0f / g_th_dn,
+         ff > 0.0f ? "beyond the far distance below" : "off");
+    if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep the snapshot decision until the camera moves %.0f m", ff, fm);
+}
+
 static void apply_terrain_lod(void) {
     static const struct { DWORD_PTR a_site, b_site; float a, b; } lv[3] = {
         { 0x4930bb + 6, 0x4930c5 + 6, 6.4f,  0.00390625f },      /* Low */
@@ -8368,6 +8524,7 @@ static void apply_terrain_lod(void) {
     mlog("  terrain-lod: x%.2f, %d/6 constants patched (split distance up, height-error threshold down)%s", f, ok, (na || nb) ? "" : "");
     if (na || nb) mlog("  terrain-lod: split A x%.2f, height-error B x%.2f", fa, fb);
     apply_terrain_vguard();
+    apply_terrain_hyst();     /* I76_TERRAIN_HYST / I76_TERRAIN_FREEZE (default off) */
 }
 
 /* TERRAIN TEXTURE AND OBJECT DETAIL DISTANCE  (I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16>; off by default;
@@ -8695,6 +8852,7 @@ static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls a
                  (unsigned long)g_cl_cells_max, (unsigned long)(g_cl_tests / 600), (unsigned long)g_cl_capped, (unsigned long)(g_cl_pool_max >> 10),
                  g_cl_fade_on && g_cl_pairs ? (sprintf(g_cl_fadetxt, "; fade kept %.1f%% of template x cell pairs", 100.0 * g_cl_kept / g_cl_pairs), g_cl_fadetxt) : "");
         terrain_vguard_report();
+        terrain_hyst_report();
         g_cl_frames = g_cl_cells = g_cl_cells_max = g_cl_tests = g_cl_capped = g_cl_pool_max = 0; g_cl_ticks = g_cl_ticks_max = 0; g_cl_kept = g_cl_pairs = 0;
     }
 }
