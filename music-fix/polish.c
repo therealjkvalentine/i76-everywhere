@@ -271,3 +271,38 @@ static void apply_menu_keys(void) {
     }
     mlog("  menu-keys: on - while the Esc menu is up (0x4fe534 = 0x10) the car gets no keys / axes (coasts); no early tick from menu keys");
 }
+
+/* ---- I76_FONT_PRIVATE (default 1; 0 = stock) ---------------------------------------------------------------------
+ * Main, measured 2026-10-20 night: the game registers its font Lee_____.ttf with Windows at every boot (i76.exe 0x4769e0:
+ * AddFontResourceA <current directory>\Lee_____.ttf, GDI32 slot 0x4bc078) and removes it only on its own orderly shutdown
+ * path (RemoveFontResourceA 0x4bc07c, 0x4769e0 / 0x476c90); every boot that ends otherwise (a crash, a harness kill, a
+ * TerminateProcess, Windows logging off) leaves one system-wide registration behind. The count grows by one per such boot
+ * (the lab twin had 1,564, a plain lab copy 770) and while any is left Windows keeps the .ttf open, so the game folder can
+ * be neither renamed nor deleted until the font is removed that many times or the PC restarts.
+ * With the switch: i76.exe's two GDI32 slots go to font_add / font_remove, which do the same with FR_PRIVATE
+ * (AddFontResourceExA / RemoveFontResourceExA): the font is this process's own, visible to its GDI text calls as before,
+ * and Windows drops it when the process ends, however it ends. Log line at load and one per call. */
+static int (WINAPI *p_font_addex)(LPCSTR, DWORD, PVOID);
+static BOOL (WINAPI *p_font_remex)(LPCSTR, DWORD, PVOID);
+static int WINAPI font_add(LPCSTR path) {
+    int r = p_font_addex(path, FR_PRIVATE, NULL);
+    mlog("  font-private: AddFontResourceA(\"%s\") -> AddFontResourceExA FR_PRIVATE = %d", path ? path : "(null)", r);
+    return r;
+}
+static BOOL WINAPI font_remove(LPCSTR path) {
+    BOOL r = p_font_remex(path, FR_PRIVATE, NULL);
+    mlog("  font-private: RemoveFontResourceA(\"%s\") -> RemoveFontResourceExA FR_PRIVATE = %d", path ? path : "(null)", r);
+    return r;
+}
+static void apply_font_private(void) {
+    HMODULE gdi = GetModuleHandleA("gdi32.dll"), exe = GetModuleHandleA(NULL);
+    int n = 0;
+    if (env_flag("I76_FONT_PRIVATE", 8, 1) == 0) { mlog("  font-private: off (I76_FONT_PRIVATE=0): the font is registered system-wide as stock"); return; }
+    if (!gdi) gdi = LoadLibraryA("gdi32.dll");
+    p_font_addex = (int (WINAPI *)(LPCSTR, DWORD, PVOID))GetProcAddress(gdi, "AddFontResourceExA");
+    p_font_remex = (BOOL (WINAPI *)(LPCSTR, DWORD, PVOID))GetProcAddress(gdi, "RemoveFontResourceExA");
+    if (!p_font_addex || !p_font_remex) { mlog("  font-private: AddFontResourceExA / RemoveFontResourceExA not found - off"); return; }
+    if (patch_iat(exe, "GDI32.dll", "AddFontResourceA", (void *)font_add)) n++;
+    if (patch_iat(exe, "GDI32.dll", "RemoveFontResourceA", (void *)font_remove)) n++;
+    mlog("  font-private: %d / 2 i76.exe GDI32 font slots -> FR_PRIVATE (the font is released when the process ends)", n);
+}
