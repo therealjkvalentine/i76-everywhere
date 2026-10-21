@@ -24,7 +24,7 @@
 # binoculars overrun the stock terrain vertex pool); I76_COLL_WINDOW without I76_FIXED_STEP gets a warning
 # (it does nothing then). tests\test_presets.py checks every shipped preset against the same rules.
 #
-# Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe] [-Preset smooth-60] [-DryRun]
+# Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe] [-Preset smooth-60] [-DryRun] [-LegacyMultiplayer]
 param(
     [string]$GameDir = "C:\Games\Interstate 76",
     [string]$Exe = "i76.exe",
@@ -105,7 +105,12 @@ param(
     # the value, prints it and exits (0 / 4) without starting anything (the .bat runs it in a visible window first).
     # Single player: in a network game every player should run the same tick.
     [string]$TickMs,
-    [switch]$CheckTickMs
+    [switch]$CheckTickMs,
+    # Multiplayer the old way (2026-10-20, owner: "a flag that supports --legacy_multiplayer so people that apply the patch
+    # to their game can also play the old way if they have a setup that works"): I76_MP_MENU=0 for this launch, whatever
+    # the preset or the shell says, so MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row
+    # instead of going straight to IPX (proxy mpmenu.c). PLAY*.bat pass --legacy-multiplayer through to it.
+    [switch]$LegacyMultiplayer
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -187,6 +192,12 @@ if ($TickMs -or $CheckTickMs) {
     $car = if ($steps -eq 1) { "the car in one {0} ms step" -f $gameEnv['I76_SIM_TICK_MS'] } else { "the car in {0} substeps of {1:0.##} ms (50 ms and over split the car step, as a slow 1997 frame did)" -f $steps, ($tv / $steps) }
     Write-Host ("tick {0} ms: {1:0.#} ticks/s, {2} (preset value {3} ms; 41.667 = 1997)" -f $gameEnv['I76_SIM_TICK_MS'], (1000.0 / $tv), $car, $tickOld) -ForegroundColor Cyan
     if ($CheckTickMs) { exit 0 }
+}
+
+# ---- legacy multiplayer menu (-LegacyMultiplayer / PLAY*.bat --legacy-multiplayer) ---------------
+if ($LegacyMultiplayer) {
+    $gameEnv['I76_MP_MENU'] = '0'
+    Write-Host "legacy multiplayer: I76_MP_MENU=0 - MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row" -ForegroundColor Cyan
 }
 
 # ---- preset guard: switch combinations with a known failure ------------------

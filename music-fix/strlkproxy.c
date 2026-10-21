@@ -6904,6 +6904,7 @@ static void tex_census_attach(HMODULE m) {
 #include "mpmenu.c"      /* I76_MP_MENU: MULTI MELEE HOST / JOIN straight to IPX (1, default) or IPX-only row (2) */
 #include "escmenu.c"     /* I76_MENU_PTR: Esc-menu clicks from the exe's own pointer read under DxWnd (the Macs; auto) */
 #include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
+#include "polish.c"      /* I76_SIGN_SOUND_RESTART / I76_FADE_NO_FLIP: owner polish 2026-10-20 (before simtick.c: st_sign_sound uses it) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
 
@@ -7683,7 +7684,7 @@ static int sign_pend_run(BYTE *obj) {                       /* 1 = fired one (th
           if (g_sdefer_fired <= 40)
               mlog("  sign-defer: %s post knocked off after %lu frames (%s contact): drawn gap %.2f m at the knock-off (=3 would have knocked it at a drawn gap of %.2f m)%s",
                    nm, (unsigned long)waited, f.src ? "engine" : "sweep", gap, f.gap0, gap > 0.0f ? " - TIMEOUT" : "");
-          if (!f.src) st_sign_sound(obj);                    /* the sweep's knock-off: the engine's post-contact sound (simtick.c, s.17) */
+          if (!f.src) st_sign_sound(obj, f.root);                  /* the sweep's knock-off: the engine's post-contact sound (simtick.c, s.17) */
           ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(f.part, obj, f.v, f.n, f.p); }
         return 1;
     }
@@ -7788,7 +7789,7 @@ static void sign_sweep(void) {
                         mlog("  sign-sweep: %s post at (%.1f, %.1f) entered the car box with no engine contact - scored at %.1f m/s "
                              "(car at %.1f, %.1f; post y %.2f..%.2f, box y %.2f..%.2f; drawn gap %.2f m)", nm, qx, qz, vv, sx, sz, y0, y1, cy0, cy1,
                              post_gap_drawn(obj, root, part));
-                    st_sign_sound(obj);                     /* no engine contact: its post-contact sound (simtick.c, s.17) */
+                    st_sign_sound(obj, root);               /* no engine contact: its post-contact sound (simtick.c, s.17) */
                     ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(part, obj, v, nn, pt);
                     return;                                 /* a knock-off may unregister / free the object: done this frame */
                 }
@@ -9376,6 +9377,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
         apply_av_log();           /* lab: I76_AV_LOG=<path> (camera / sky / tracer / sign-sound / music cue log, any frame loop; simtick.c s.17) */
+        apply_sign_sound_restart(); /* opt-in: I76_SIGN_SOUND_RESTART=1 (a new sign / barricade hit restarts vnvco3; after apply_av_log: chains its site) */
+        apply_fade_no_flip();     /* opt-in: I76_FADE_NO_FLIP=1 (the palette fade presents nothing under Glide: no two-frame flicker on exit) */
         apply_flame_census();     /* lab: I76_FLAME_CENSUS=1 (after apply_simtick / apply_framerate_fixes: counts flamer damage) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
         apply_cursor_map();       /* opt-in: I76_CURSOR_MAP=1|ar (exe + i76shell USER32 cursor slots; stands down for u32x) */

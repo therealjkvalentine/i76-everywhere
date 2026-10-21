@@ -783,9 +783,9 @@ static void st_cosmetic_rates(int gameplay) {
  * the car (strlkproxy.c sign_pend_run / sign_sweep call this). 0 = silent as before. */
 static int g_st_sign_snd = 1;
 static DWORD g_st_sign_snd_n;
-static void st_sign_sound(BYTE *car) {
+static void st_sign_sound(BYTE *car, BYTE *root) {
     if (!g_simtick || !g_st_sign_snd || !car) return;
-    ((int (__cdecl *)(const char *, BYTE *, int))0x004231f0)((const char *)0x004f1578, car, 0);   /* "vnvco3.wav", as 0x434e62 */
+    ssr_sweep_sound(car, root);   /* "vnvco3.wav" via 0x4231f0, as 0x434e62; I76_SIGN_SOUND_RESTART (polish.c) may restart it */
     g_st_sign_snd_n++;
 }
 
