@@ -11,12 +11,12 @@ Commits (i76-everywhere main): `2d6e7e8` proxy + `i76trn.h`, `0abf540` I76 Debug
 ## 0. Result
 
 * **Store / restore puts the whole car back and the run replays bit for bit.** Lab copy `exp-debug` (= the release candidate,
-  tick19-42 preset, headless), T05 crest: 7 store / teleport-away / restore cycles in one boot (5 rolling down the slope at
+  tick19-42 preset, headless), T05 crest: 7 store / teleport-away / restore cycles per boot, 2 boots (5 rolling down the slope at
   68-72 km/h, pitch -5.4 to -6.0 deg; 2 in the air at 57 km/h, airborne bit set), each restored after the car had been
   teleported ~390-410 m away and stopped. The restored run vs the stored run, tick for tick over 24 ticks (1.0 s, 16-20 m of
   travel): **position, velocity and heading / pitch / roll differences 0 (exactly; the telemetry carries the position as
-  doubles), n 7 of 7**. Every restore read back exact (`readback_bad` 0). Tolerance stated: 0 measured; any difference
-  > 1e-6 m would have shown. Second boot: section 3.
+  doubles), n 14 of 14**. Every restore read back exact (`readback_bad` 0). Tolerance stated: 0 measured; any difference
+  > 1e-6 m would have shown.
 * **DEBUG.bat is the one entry** ("I76 Debug: debug / cheat tool"); `TRAINER.bat` is a one-line shim to it on the Trainer tab.
 * **Haptics tabs explain themselves and start the host in one click** (dry run by default; refuses without a wheel or pad and
   offers "Start anyway (dry run)"). In the lab boot the forced dry run went live: host data on the dashboard within seconds.
@@ -95,7 +95,10 @@ should).
 | r3 | 6 | airborne | (7966.0, 106.3, 44035.0) 57.5 km/h, pitch -5.8, airborne | 391 m | exact | 0 / 0 / 0 |
 | r3 | 7 | airborne | (7964.7, 106.4, 44035.0) 57.4 km/h, pitch -6.1, airborne | 392 m | exact | 0 / 0 / 0 |
 
-Second boot r4: queued behind other lanes' boots at the time of writing (section 3 is updated when it has run).
+Second boot r4 (19:0x, same set, after the other lanes' boots): the same 7 cycles, stored states within 0.1 km/h and 0.1 deg
+of r3's, **24-tick max dpos / dvel / dang 0 / 0 / 0 in 7 of 7**, every restore read back exact, CRASH 0. **Total n 14 (10 slope,
+4 airborne) over 2 boots, all bit-identical.** The display-frame offset of tick 1 after the event differed by 0-2 frames
+between the stored and the restored run (the tick's wall-clock phase); the sim does not depend on it.
 
 Also in these boots: waypoint 2 Save (full state, 67 km/h on the slope) + Go: "restored parts 0x1f, read back exact" (n 2
 boots); cheats-used marker 0x535f78 = 0 and play flags 0x00 after all of it (n 2); proxy log `trainer: cheat-marker guard
