@@ -11,6 +11,8 @@ Nothing was promoted.
 
 ## Verdict
 
+**Update 2026-10-21 (s.20): the T05 jump per tick, against retail 1.0 at the same frame time and promotion 18. 41.667 ms jumps as 1997 did at ~42 ms (crest descents, the emulator car: take-off 49.9 vs retail 50.0 m/s, apex 10.0 vs 10.0 m, 10 of 10 vs 6 of 6 clear); 33.3 ms jumps 2.5 m/s slower and clears 4 of 7. The cause is one per-substep term, the slope-follow speed loss (the ground projection in 0x43a5d0); scaled to the 41.667 ms rate under the tick (I76_SIM_TICK_SLOPE, new default, exactly 1 = not installed at 41.667) 33.3 ms jumps as 41.667 (50.5 m/s, 6 of 6). 44 "made it" because a longer step loses less on the ramp face; at 41.667 there is nothing for it to compensate. Candidate staged, not installed: lab builds\jump-fix-20261020 (ed772c2).**
+
 **Update 2026-10-20 (s.19): the tick range. 1997 ran its car step at the PC's frame time, 35.5-48 ms on the period machines we measured, and never one step at 50 ms or more; launchers PLAY-TICK-36 / -39 / -42 / -44 / -47 (+ the outliers -33 / -66) in game-tick on the new STRLKUP-tick19g adc4fd49 (main 64d9361: + the rate-aware flame factor, so tick19-42 drops its interim 3.5 line). Measured per tick (n 24 jumps, bounce, flame n 2, keys n 40): the bounce tempo is 7 car steps at every tick (0.252 / 0.273 / 0.292 / 0.308 / 0.328 s), the jump rises slightly with the tick (paired take-off -0.56 .. +0.46 m/s across 36-47, inside retail's spread), flame ~85 / s and key response ~5 ms at every tick; 41.667 is the value that matches 1997 everywhere. User override, not in the menus: `PLAY-TICK.bat <ms>` / `tick-ms.txt` / `PLAY-TICK-CHOOSE.bat` (16.7-66.7 ms, else refused), tested headless by the proxy's own tick line. No console gate on tick19g yet.**
 
 **Update 2026-10-19 evening (s.17): new candidate STRLKUP-tick19f-av 2eb345d1 (main d664f91: tick19e + the instant-melee fix + the owner's tick19e playtest fixes + the driver's wide menu ('aw') + terrain A 96 / B 24), GATED: PLAY-TICK all rows pass (row 4 after a gate-harness fix: its clicks assumed the 4:3 picture), PLAY-TICK-42 8 / 0, PLAY-TICK-66 8 / 0, control 6 / 0, instant-melee rows 3 / 3. Under the tick, each with its own switch: sign posts knocked off by the sweep play their hit sound (0 -> 33 of 33), no camera stutter when a key is pressed in an outside cutscene (19 of 44 -> 0 of 24 stutter frames at an early tick), the death camera and the sky at the 1997 rate (240 -> 192 deg / s and 0.030 -> 0.024 / s, 1997 192 / 0.024; the driver 160 / 0.020). Music: no dropped cue (12 boots; the silences are the data-track missions and the retail run-end gap). Tracers: no double drawing; the tick's every-frame streak is a look difference. Installed in game-tick with PLAY-TICK-33 / -42 / -66; the LAN AI arena under the wide menu was not tested. s.18 (ed5c305) is not in this build.**
@@ -2135,3 +2137,234 @@ I76_SHM_SUFFIX game-dd-20261003): `sim-tick: ON - whole sim every 33.333 ms ... 
 no longer hash-identical to the driver (proxy); a promotion-19 gate on the twin must start from the candidate folder's
 MD5SUMS, and the lesson is in docs/LAYOUT-PROPOSAL-2026-10-20.md (rule 4: whoever puts launchers in a folder puts the whole
 set in).
+
+## 20. The T05 jump per tick against 1997 and promotion 18; the slope-follow loss (2026-10-20 evening / 10-21 night, jump-fix lane)
+
+The owner (2026-10-20 evening, verbatim): "the test-tick doesn't really make the jump" ... "seems like the jumping is worse?" ...
+"jump is more messed up somehow- not sure what changed but test-tick does too much nose down and falling and does not make the
+t05 jump; tick 44 does but i'm not sure only moving that makes sense if we broke something else". Then his ruling: "the tick
+lengths where the code scaling factors are exactly 1 seems like the 'true' tick length to me and we should go with that unless
+it is absolutely non-performant in some way" (41.667 ms). Main's question: does T05 jump at 41.667 as 1997 did, and what was
+44 compensating?
+
+**Results in short.**
+- **41.667 ms jumps as retail 1.0 did at the same frame time.** On the owner's approach (full throttle from the hill-top crest,
+  steered down the road over aaramp4), with the emulator's car:
+  - 41.667 ms: take-off 49.9 +- 1.0 m/s, apex 10.0 m, distance 193 m, 10 of 10 clear.
+  - Retail on the emulated P166 at ~42 ms frames: 50.0 +- 1.3 m/s, 10.0 m, 189 m, 6 of 6 (20.1).
+  - The stock 24 fps loop (e24): 50.0.
+- **At 33.3 ms the car leaves the lip 2.5 m/s slower:** 47.4 +- 1.1 m/s, apex 9.0 m, 123 m, 4 of 7 clear, landing pitch -16 deg.
+  - "Does not make the jump" and "nose down and falling" are this short, low flight, which lands on the face of the far lip.
+  - Retail at 32 ms (the gold standard's own frame time) also flies low: 48.4 m/s, 9.4 m, 154 m, 7 of 9. That is a little
+    better than tick33 (20.4).
+- **The per-tick quantity is the slope-follow speed loss** in the vehicle integrator (20.3).
+  - Every grounded substep, the velocity is projected into the ground plane. While the body lags a change of slope, each
+    substep removes s (1 - cos delta).
+  - The loss is per substep, so 30 substeps a second lose 1.25x what 24 do.
+  - Scaling it to the 41.667 ms rate under the tick (one variable, switch `I76_SIM_TICK_SLOPE`) moves 33.3 ms to take-off
+    50.5 +- 1.1 m/s, apex 10.2 m, 229 m, 6 of 6. That is the 41.667 jump.
+- **What 44 compensated:** the same term, from the other side. Fewer substeps lose less speed: 50.3 m/s at 44, 51.3 at 46.875.
+  - Against 41.667, 44 adds 0.4 m/s and changes nothing that decides the jump (6 of 6 and 10 of 10).
+  - Moving the default to 44 would have been splitting the difference. 41.667 is the value where this factor, like the s.14
+    ones, is exactly 1.
+- **Nothing broke between 2026-10-19 and tonight.**
+  - tick19f-av -> tick19g changed no car physics. The diff is the flame factor and the network pools.
+  - The owner's three boots tonight ran tick19g at 33.333, 44 and 33.333 ms in the twin (its proxy log).
+  - "Worse" is the 33 ms jump as it has always been (TWO-CLOCKS s.4.2: 46.9 m/s, n 2).
+- **Fix:** `I76_SIM_TICK_SLOPE` is on by default under the tick (i76-everywhere `ed772c2`).
+  - At 41.667 it installs nothing, so the owner's default is unchanged.
+  - At 33 / 36 / 39 the jump becomes the 41.667 jump.
+  - Above 41.667 the factor is x 1.056 / 1.125, inside the spread (20.2).
+  - Staged in lab `builds\jump-fix-20261020\` (`STRLKUP-jumpfix-ed772c2.dll` fafeeaf9, run2 pecmp SAME). **Not installed**
+    anywhere.
+  - The default-on build's own boots ran only under RDP and are void (20.6). Its log lines were read (20.5).
+
+Lab only.
+- **Copy `exp-jump`** = the release candidate (lab game-tick) as of 2026-10-20 17:02, with three changes:
+  - the lab twin proxy;
+  - the lab null renderers (the RC's dgVoodoo pair stalled half the headless boots beside five other lab games; it is kept in
+    `_rollback\rc-renderers`);
+  - per run, `ADDON\vppirna1.vcf`.
+- The release candidate, the daily driver, golden, the twin and the LAN copy were only read.
+- **Boots.**
+  - Every boot was headless on its own desktop (`I76Lab-exp-jump`), with `I76_SHM_SUFFIX=exp-jump`, `I76_MUTE=1` plus the
+    per-pid watcher, and `I76_MULTI_INSTANCE=1` / `I76_NO_MINIMIZE=1`.
+  - The gate before every boot waited for the owner's game (he played the twin 16:50-18:09) and for `.fps-lock` (the rc-draw
+    lane held it for about 4 h of the night).
+  - From 20:00, other lanes' `exp-*` / `game-mpo-*` games did not block the gate (main's rule).
+  - Persisted mutes of exp-jump were cleared at the end (none left).
+- **Tools:** lab `tools\jump-fix\`:
+  - `jf-run.ps1` (one boot), `jf-queue.ps1` (with retries);
+  - `jf_suite.py` = t42_suite with the crest start placed by s.18's `place_verified`;
+  - `jf_drive.py`, `jf_tab.py` (the tables);
+  - `presets\`: the three base presets, by md5: tick19-33 57d13cd5, p18-best-wide-balanced 0bca8b31, lab-step-33 4b264661;
+  - `emu-car\vppirna1.vcf` 1d636559.
+- **Captures:** lab `captures\jump-fix-20261020`.
+  - `jf-desc.json` = every jump row.
+  - `_void-*` = boots that never reached the mission, and the RDP boots.
+- **Arms:**
+  - `t<ms>` = the RC's tick19-33 preset with `I76_SIM_TICK_MS` set to that value.
+  - `p18` = promotion 18 as played (`p18-best-wide-balanced`): per-frame patches, 120 fps cap, `I76_FIXED_STEP` 24, no tick,
+    same proxy.
+  - `e24` / `e30` = the stock frame loop at 24 / 30 fps (the 1997 coupling at 41-42 / 33 ms).
+  - `I76_COOP_AI=0` in the runs with 3 descents per boot (20.7).
+
+### 20.1 The table: crest descents with the emulator's car (the car of every retail row); n = jumps (boots)
+
+| arm | step ms | n | made | v hill foot | v ramp foot | take-off m/s | vy m/s | take-off pitch rate deg/s | air pitch rate deg/s | apex m | distance m | landing pitch deg | lowest pitch in air |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| tick 33.333 | 33.3 | 7 (3) | **4/7** | 51.6 | 56.3 | **47.38 +- 1.06** | 13.27 | -10 +- 11 | -24.8 +- 22.7 | **8.98** | **123 +- 26** | **-16 +- 25** | -37 |
+| tick 36 | 36.0 | 3 (1) | 3/3 | 52.5 | 56.9 | 48.89 +- 1.42 | 13.69 | 0 | -6.3 | 9.57 | 144 +- 19 | -4 | -4 |
+| tick 39 | 39.0 | 3 (1) | 3/3 | 53.5 | 56.7 | 49.27 +- 0.12 | 13.80 | -19 | -5.3 | 9.71 | 208 +- 21 | 12 | -47 |
+| **tick 41.667** | 41.7 | 10 (4) | **10/10** | 53.0 | 56.7 | **49.90 +- 0.95** | 13.97 | -12 +- 12 | -4.7 +- 4.0 | **9.96** | **193 +- 28** | **10 +- 15** | -33 |
+| tick 44 | 44.0 | 6 (3) | 6/6 | 53.5 | 57.5 | 50.31 +- 0.20 | 14.09 | -15 +- 16 | -10.2 +- 17.3 | 10.12 | 193 +- 23 | 9 +- 12 | -33 |
+| tick 46.875 | 46.9 | 7 (3) | 7/7 | 53.2 | 57.3 | 51.29 +- 0.94 | 14.36 | -21 +- 16 | -26.4 +- 22.1 | 10.52 | 216 +- 36 | 5 +- 9 | -59 |
+| promotion 18 (as played) | 41.7 fixed | 7 (3) | 7/7 | 53.5 | 57.5 | 50.94 +- 1.43 | 14.26 | -15 +- 9 | -4.2 +- 7.0 | 10.39 | 208 +- 20 | 11 +- 14 | -38 |
+| stock loop 24 fps (e24) | 41-42 | 7 (3) | 6/7 | 53.2 | 57.0 | 50.02 +- 1.48 | 14.01 | -19 +- 14 | -16.8 +- 23.8 | 10.02 | 190 +- 46 | 2 +- 24 | -48 |
+| stock loop 30 fps (e30) | 33.1 | 6 (2) | 5/6 | 52.7 | 56.9 | 48.82 +- 1.44 | 13.67 | -14 +- 12 | -19.0 +- 19.3 | 9.54 | 155 +- 48 | -20 +- 25 | -40 |
+| **retail 1.0, P166, ~42 ms (r166lmirtex)** | 42.2 | 6 | **6/6** | 53.5 | 55.7 | **50.0 +- 1.3** | 14.0 | -9 +- 11 | -6.5 +- 5.2 | **10.0** | **189 +- 34** | **0 +- 13** | -28 |
+| retail 1.0, P166, ~37 ms (r166lmir) | 36.8 | 6 | 4/6 | 53.4 | 55.4 | 48.3 +- 0.8 | 13.5 | -24 +- 10 | -31.0 +- 21.3 | 9.3 | 155 +- 63 | -13 +- 19 | -62 |
+| retail 1.0, P166 lowest (gold standard, 2026-10-16) | 32.2 | 9 | 7/9 | 52.8 | 55.1 | 48.4 +- 1.8 | 13.5 | -15 +- 9 | -18.3 +- 15.7 | 9.4 | 154 +- 48 | -20 +- 20 | -41 |
+| retail 1.0, P166, m6 (frames ~48 ms, 39 % split into 2 steps) | 32.8 (mixed) | 6 | 6/6 | 52.3 | 53.9 | 49.1 +- 1.0 | 13.8 | -12 +- 15 | -15.0 +- 11.6 | 9.8 | 190 +- 45 | -1 +- 5 | -46 |
+
+- **The retail rows.**
+  - A sub-lane ran 22 new emulator descents and re-analysed the 9 of 2026-10-16 with the same definitions.
+  - Results: lab `emu\results\jump-fix-20261020\results.md` and `descents.json`.
+  - Scripts: `emu\tools\par\scripts\hwm-t05c1-retail-*.txt`, written by `emu\tools\memtrace\gen_t05clean_hwm.py`.
+  - Checks: the arcade flag was 0 on every frame, the DEF read back identical, every placement was within 0.03 m, crest armour
+    5600 / 5600.
+- **Limits of the emulator as a reference.**
+  - Retail splits any frame of 50 ms or more into two steps. So the owner's own 1997 settings (m6mir 52 ms, m5 55.5 ms frames)
+    step at ~28 ms most of the time.
+  - The airborne frames render at 22-27 ms in every cell, so retail flights are always stepped short.
+  - The ~42 ms cell is the closest the emulator gets to the owner's 1997. The owner's own logged sessions of 2026-10-19 never
+    reached the canyon (top speed 25 m/s).
+- **Definitions** (jf_tab.py, = tc_analyse.jump_extra).
+  - Take-off = the last row before the longest airborne stretch past the foot (x < 6900, clearance > 1 m).
+  - Pitch = asin(forward.y), + nose up. Pitch rates are + nose up.
+  - Made = landed past the far lip (x < 6745).
+  - Rows are deduplicated on sim_time.
+  - The p18 sim_time advances per display frame, so jf_tab's "step" column reads 8-9 ms there. Its car step is the fixed
+    41.667 ms.
+- **Which car.**
+  - The table above uses the emulator's car (`ADDON\vppirna1.vcf` 1d636559: engine 0, armour 2800 / chassis 2000). It is the car
+    of every retail row.
+  - The release candidate's direct T05 boot gives the mission's stock car instead ("Jade's Car", engine 2, wheels wauto_1a). It
+    is 6 m/s faster at the foot and clears at every tick (20.2).
+  - In his own play the owner drives his save's car. His twin log tonight books his sign hits at 51-53 m/s closing on the road:
+    the emulator car's speed range, not the stock car's 59. This is an inference: the twin's telemetry was not recorded (the
+    reader attached at 17:52 got no frames).
+
+### 20.2 The same descents with the stock T05 car (the RC's direct boot), and with the factor
+
+| arm | n | made | v ramp foot | take-off m/s | apex m | distance m | landing pitch deg |
+|---|---|---|---|---|---|---|---|
+| RC car, tick 33.333 | 7 (3) | 7/7 | 62.8 | 53.74 +- 1.47 | 11.56 | 229 +- 30 | 5 +- 26 |
+| RC car, tick 33.333 + factor | 7 (3) | 7/7 | 62.5 | 55.50 +- 1.14 | 12.32 | 240 +- 40 | -5 +- 27 |
+| RC car, tick 41.667 | 4 (3) | 4/4 | 63.5 | 55.85 +- 1.04 | 12.48 | 233 +- 26 | 13 +- 15 |
+| RC car, tick 44 | 7 (3) | 7/7 | 63.3 | 56.05 +- 0.88 | 12.57 | 283 +- 18 | 2 +- 17 |
+| RC car, tick 46.875 | 7 (3) | 7/7 | 63.6 | 56.82 +- 0.94 | 12.92 | 246 +- 5 | 13 +- 1 |
+| RC car, promotion 18 | 3 (3) | 3/3 | 63.5 | 56.50 +- 1.09 | 12.77 | 236 +- 27 | -5 +- 29 |
+| emulator car, tick 33.333 + factor (x 0.800) | 6 (2) | **6/6** | 57.1 | **50.53 +- 1.11** | **10.22** | **229 +- 14** | 4 +- 11 |
+| emulator car, tick 36 + factor (x 0.864) | 6 (2) | 6/6 | 57.4 | 49.53 +- 0.05 | 9.81 | 205 +- 32 | 7 +- 19 |
+| emulator car, tick 44 + factor (x 1.056) | 6 (2) | 6/6 | 57.4 | 50.25 +- 0.97 | 10.10 | 183 +- 21 | 5 +- 13 |
+| emulator car, tick 46.875 + factor (x 1.125) | 6 (2) | 6/6 | 57.5 | 50.87 +- 1.14 | 10.35 | 203 +- 44 | -1 +- 9 |
+
+- **The take-off rises with the tick for both cars.** From 33.3 to 46.875 ms: the stock car 53.7 -> 56.8 m/s, the emulator car
+  47.4 -> 51.3.
+- **The factor removes the 33 ms deficit for both cars:** +1.8 and +3.2 m/s. Above 41.667 its effect (x 1.056 / 1.125) is inside
+  the spread.
+- **The speed lost on the ramp face** (foot -> take-off), emulator car:
+
+  | arm | ramp-face loss, m/s |
+  |---|---|
+  | tick 33.3 | 8.9 |
+  | tick 33.3 + factor | 6.6 |
+  | tick 41.667 | 6.8 |
+  | e24 | 7.0 |
+  | e30 | 8.1 |
+  | retail ~42 ms | 5.7 |
+  | retail 32 ms | 6.7 |
+
+### 20.3 Why: the per-substep term
+
+Sources: the code as i76-map `subsystems/physics.md` describes it ("Speed terms while grounded on the face", "M34b"), the
+disassembly of 0x43a5d0 at 0x43ba3a / 0x43ba64 read this session, and each quantity the brief named.
+
+| candidate | runs per | scaled with the step? | effect on the jump across ticks |
+|---|---|---|---|
+| gravity, ballistic flight | dt | yes (0x43a6a1; no drag in flight) | none |
+| aero / rolling resistance | dt | yes (acceleration x dt) | none |
+| air pitch rate (ease toward -pi/20 with k = dt, held below it) | dt | yes | none in the mean |
+| take-off nose-down kick (one lifted-front substep: 2 dt x -2 pi) | substep | the kick scales x dt and its chance d_f / (v dt) scales / dt, so the mean is step-free and only the spread changes (33.3: almost every take-off gets a small kick; 41.667: a larger one some of the time) | the "air pitch rate" column; not the deficit |
+| suspension filter (period 15 calls) | substep | no (the bounce, s.19) | none on the take-off speed (TWO-CLOCKS s.3) |
+| early tick on input | tick | the tick length is unchanged | none (TICK-LATENCY s.1.5) |
+| interpolated draw | display | - | none on the state (the table reads the physics state) |
+| **slope-follow projection** (v = f s + a dt, then v - (v.n) n, with n from the previous substep) | **substep** | **no: s (1 - cos delta) is removed per substep while the body lags the slope, and the lag runs on time** | **the deficit** |
+
+- **The one-variable test.** `I76_SIM_TICK_SLOPE` scales only the speed each projection removes, by substep / 41.667 ms.
+  - The projection's direction stays the engine's.
+  - Airborne substeps and the substep after a landing stay stock.
+- **Its counters** at 33.3 ms, emulator car, 3 descents in one boot:
+  - 16,032 projections, of which 1,942 removed speed;
+  - 38.1 m/s removed in all -> 30.5 (x 0.800);
+  - 27 kept whole after landings.
+- **The result:** the take-off came up by 3.2 m/s (47.4 -> 50.5; n 7 / 6), the apex by 1.2 m, and the clear rate went from 4 of 7
+  to 6 of 6.
+- **This is the 1997 engine's own behaviour.** Retail at 32 ms flies low too (48.4 m/s), and at 42 ms it flies like 41.667.
+  - Under the tick the sim steps at a chosen length instead of the PC's frame time.
+  - So the factor makes every tick length lose speed on slopes at the 1997 rate of the owner's frame time. The s.14 factors do the
+    same for hazards, scrapes, wreck rolls and missile turns.
+
+### 20.4 Notes and smaller findings
+
+- **tick33 vs the stock loop at 33 ms:** tick 47.4 +- 1.1 (n 7), e30 48.8 +- 1.4 (n 6). They are 1.4 m/s apart, about 1.9
+  standard errors. e24 and tick 41.667 agree (50.0 / 49.9). Not traced; it does not touch the 41.667 default.
+- **The 1997 reference at the owner's settings cannot be measured on the emulator** (20.1: the 50 ms split and the fast airborne
+  frames). The ~42 ms cell is the nearest.
+- **Spread.** The crest descent is steered by keys at the harness's wall clock, so distances spread 20-45 m within an arm. Take-off
+  speed and apex are the tight measures (sd 0.1-1.5 m/s).
+
+### 20.5 The fix as default (ed772c2) and the staged proxy
+
+- **`simtick.c`.**
+  - Wrappers on the integrator call at 0x439c3a (for the substep's vehicle flags) and on the two cross products at 0x43ba3a /
+    0x43ba64.
+  - `st_factors_install` installs them when the factor is not 1.
+  - Log line in every tick boot at 33.3 ms: `tick-factors: slope-follow loss x 0.800 per grounded substep (I76_SIM_TICK_SLOPE
+    unset = auto; substep 33.333 ms against the 1997 41.667 ms), 3/3 sites`. At 41.667 it reads `x 1.000 ... 0/3 sites`. Both
+    were read in the default-on build's boots (20.6).
+  - A `tick-factors: slope:` counter line every I76_SIM_TICK_LOG seconds.
+- **Builds** (lab `builds\jump-fix-20261020\`, README there):
+  - `STRLKUP-jumpfix-ed772c2.dll` fafeeaf9 is the commit exactly. Its run2 build 3dbb048d is pecmp SAME in every section; the md5s
+    differ only in the PE timestamp.
+  - Lab twin `Strlkup-jf3-lab.dll` ceb0c98c.
+- **Not installed** in the release candidate, the daily driver, golden, the twin or the LAN copy.
+  - A gate (main) and an owner jump check at 33 and 41.667 come first.
+  - At 41.667 the build is the current tick19g physics plus whatever main committed since.
+
+### 20.6 Not done, and why
+
+- **The default-on build was not measured in game.**
+  - Its boots (06:24-07:18 on 10-21) ran after the session became an RDP session at 06:13 (LocalSessionManager event 25 from
+    100.66.69.126). They stalled with rdpendp.dll on the stack, so they are void per AGENTS.md
+    (`captures\jump-fix-20261020\_void-rdp`).
+  - The same code path was measured with the switch set to `auto` on the jf1 twin (20.2).
+  - The default build's log lines show that it installs at 33 / 44 and not at 41.667.
+  - To do: re-run `tools\jump-fix\queue5.txt` at the console.
+- **No placed-jump (56 m/s) rows with the factor.** `queue3.txt` is written but was not run; s.19.3's placed rows stand for the
+  stock loss.
+- **The early pitch-down kick at take-off** (20.3) is left as the engine has it; its mean is step-free.
+- **The owner's 1997 settings** (46-48 ms frames) have no retail row (20.1).
+
+### 20.7 Side finding: the co-op AI switch crashes a single-player game on a re-placement
+
+- **What happens.** With `I76_COOP_AI=1` (the RC presets' LAN key), the second crest placement after a landing (trainer REPAIR +
+  FREEZE_POS + TELEPORT) crashed every boot, in the proxy.
+- **Where.** `coop_ai_object` (strlkproxy.c), called from `coop_ai_log`, reads a label-table object pointer (`o + 0x6c`) and takes
+  an access violation on freed memory.
+  - Seen with jf1 and tr1, so it is in tick19g's line too.
+  - Map: `builds\jump-fix-20261020\mapcheck\jf1.map`.
+- **Control.** With `I76_COOP_AI=0`, 3 placements per boot ran in every boot.
+- **Not tested:** whether the owner can reach it without the trainer (a regen respawn also rebuilds the car).
+- Not fixed here (another lane's code); for main.
