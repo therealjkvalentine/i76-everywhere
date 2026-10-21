@@ -167,6 +167,59 @@ Proxy (lab build, `I76_LAB_ARENA_POC=1`):
 Step 2 (after the pass): the other two boxes, the join-list double enumeration, and one IPX check with a stock joiner
 (the ARENA+ session must not be listed, a stock session must be).
 
+### 0.5.1 Proof of concept, step 1: RESULT (2026-10-21, lab copy exp-nitro-mp, headless, n 3 + 1 control)
+
+**Pass, 3 of 3, and the control is clean.** The first menu change on Nitro that held: one ARENA+ / AI DROP-IN box on the
+INTERNET host form, drawn, toggled by a scripted click through the shell's own input polling, and read back.
+
+Setup: `i76-uncap-lab\exp-nitro-mp` = `sandbox-gog\nitro-full\app` unmodified + dgVoodoo files (as exp-nitro-base) + the
+stock strlkup.dll as `strlkorg.dll` + the lab instrument **nmpdrv** as `Strlkup.dll` (md5 aebf8d72; `tools\nitro-mp\nmpdrv`
+= the nitro-base lane's nbdrv, unchanged, + `arena_poc.c`; no proxy file of the repo, `sites_nitro.h` not used). Harness
+`tools\nitro-mp\nmprun.py` (nbrun on the new copy): private desktop, process mute watcher (persisted mute cleared after
+each run, log `<tag>.mute.txt`), `.fps-lock` and foreign-game checks before each boot, only its own process stopped. Env
+`NB_ACTIVE=1 NB_SKIP_MOVIES=1`, `-glide`, `NMP_POC=1` (PoC) or `2` (control: same navigation and readings, nothing added
+or patched). Evidence `i76-uncap-lab\captures\nitro-mp-20261021\{poc-r1,poc-r2,poc-r3,control-c1}.log`.
+
+What the instrument did (all signature-checked first: the `ja` bytes, six function entries, species word 0x025c; all OK
+in every boot; nitshell was mapped at 0x02FA0000, not its preferred base, so every address went through the relocation):
+1. When nitshell loads: nitshell's `GetCursorPos` / `GetAsyncKeyState` imports answer a scripted UI point / left button;
+   (PoC only) the `ja 0x10032054` at `0x1003219b` -> a stub (ids 0x10 toggle, everything else to the stock exit).
+2. Shell up 3 s -> the shell window subclassed (for main-thread work), the shell's own active flag `[0x1004067c]` held at 1
+   (a private-desktop window is never activated, and the shell only polls the mouse while active).
+3. **Navigation by clicks through the stock menu**: main menu id 1 (469,311) -> id 9 (417,351) -> HOST id 10 (389,379)
+   -> INTERNET id 15 (430,406). The shell's mouse object read every point exactly (client 640 x 480). This confirms the
+   button reading of section 2 for ids 1, 9, 10, 15.
+4. On message 0xc026: the hit list is prebuilt (`0x10031e50`) so the first-entry lobby-server popup does not open (the
+   only deviation from the stock flow, needed because no lobby is reachable headless), then the stock constructor runs.
+5. (PoC) append the record `{0x10, 10, 34, 284, 300}` with the shell's `0x1000e100`, install the redraw wrapper, draw
+   "ARENA+" and "[ ] AI DROP-IN" (erase `0x10012a50` + text `0x10012dc0`, the form's own calls) at x 12, y 273 / 286.
+6. Two scripted clicks on the box (18,292), a read-back after each (in the shell's thread).
+
+| reading | poc-r1 | poc-r2 | poc-r3 | control-c1 |
+|---|---|---|---|---|
+| form up, provider | 4 | 4 | 4 | 4 |
+| hit list count before / after | 16 / 17 | 16 / 17 | 16 / 17 | 16 / 16 |
+| 16 stock records (pointers, order, bytes) | unchanged (every read) | unchanged | unchanged | unchanged |
+| label / box text width (px) | 60 / 130 | 60 / 130 | 60 / 130 | - |
+| box pixels (checksum of the 12 x 12 box in the locked DirectDraw back surface) before draw -> after | 65719c24 -> a8e843b8 | same | same | 65719c24 throughout |
+| click 1: stock hit test returned id 0x10, stub toggled | yes: ON, species 0x7676, box -> afa33159 ("[X]") | yes, same | yes, same | no hit, nothing changed |
+| click 2 | OFF, species back to 0x025c, box back to a8e843b8 | same | same | same as click 1 |
+| redraw pointer | ours (wrapper) | ours | ours | stock 0x10033770 |
+| exceptions other than the game's own handled ones | 0 | 0 | 0 | 0 |
+
+(Every boot logs the game's own first-chance exceptions, all handled by the game and present in the control too:
+c0000096 privileged instruction at `nitro.exe+0x9acb7..` - the PIT measurement i76fix patches - and C++ e06d7363 from
+another module once a second. None came from the PoC code.)
+
+What it shows: appending to the hit list through the shell's own call and rerouting the one `ja` is enough for a new
+control to be hit-tested and dispatched by the stock click handler, without touching the 16 stock records; the species
+word follows the box. What it does not show yet: the box on a real screen (headless; the pixels were read from the back
+surface the shell presents, not seen), the redraw wrapper being called (no popup was opened over the form), the label
+position against the art (needs one look at the console), BROADCAST with the box on, the join list (step 2).
+
+Found on the way: nitshell keeps a **second species**, `[0x10046cb4]` = 0x296c (10604), which `0x1002f260` puts in place of
+604 when the setup block has bit 2. Our lab species 0x7676 avoids both; the ARENA+ species must too.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
