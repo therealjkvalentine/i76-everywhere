@@ -172,6 +172,63 @@ and the lab twins used in s.3.2. Installed nowhere.
 8. u32x for Nitro (import rename of nitro.exe / NITSHELL) only if the proxy's cursor map is not enough.
 9. Multiplayer hooks (another lane): the receive path is ANET2.DLL!dpReceive at IAT 0x4c13cc from the pump 0x448d80.
 
+## 7. Second session (2026-10-21, afternoon): the remaining list, items needing no console
+
+### 7.1 Music on Nitro (item 3)
+
+- **True pause / resume, measured.** A private desktop gets no keyboard (Esc posted to the game's windows is not read: the
+  engine's keyboard is the input desktop's), so a lab twin (`tools\nitro-port\insert-pausetest.py`, never staged) calls the
+  exe's own `sound_PauseAll` / `sound_UnpauseAll` (Gold 0x4234a0 / 0x4234e0, Nitro 0x418ff0 / 0x419030 - what the in-mission
+  menu calls) at proxy frames 600 / 1080 / 1560 / 2040 in P01: `MCI_PAUSE: track 2 paused, status reads paused until
+  MCI_RESUME` and `MCI_RESUME: track 2 continues`, twice each (n 1 boot, 2 cycles). The two functions also confirm the music
+  byte 0x654b90 -> 0x5fb0f1 (both test it `> 1` before the CD call): s.1.4's open item is closed.
+- **Nitro plays to the end of the disc.** Nitro's CD player (0x41cae0) sends MCI_PLAY with MCI_FROM alone (flags 0x4); on a CD
+  that plays to the last track. The proxy now does that on Nitro (run 2..11); Gold sends FROM|TO (0xC) and is unchanged.
+- **Gapless, measured** with music\2.mp3 cut to 250 KB in the lab copy (restored after): `run 2..11: track 2 ended -> 3`,
+  PLAY track 3 16 ms later (n 1).
+
+### 7.2 Nitro's race tick and radar pings (item 4)
+
+`nitro_patch_call()` (nitro.c) repoints a call that exists only in nitro.exe after checking it targets the expected Nitro
+function. Under I76_SIM_TICK_MS the race tick (0x432e15 -> 0x444bb0) runs once per tick, and Nitro's two extra radar pings
+(0x45e0c5 / 0x45e220 -> 0x41da40) go through the same wrapper as the two Gold ones. Log lines only (n 2 boots): the race tick
+returns at once outside race mode, and no radar missile was fired.
+
+### 7.3 NITSHELL key / popup patches (item 5)
+
+`tools/patch-nitshell-f7.py` and `tools/patch-nitshell-modals.py` (file patches, as Gold's are): F7 (Enter / Space close
+Modal_Ok and Modal_ImageOk) and M2 (Modal_Ok's stray OK label). NITSHELL f804f50d has Gold's modal loops byte for byte apart
+from addresses (Modal_Ok 0x1002257a, Modal_ImageOk 0x100226f0, Modal_VehicleRejected 0x10022847, KeyInput_Poll 0x1000ae30 on
+[0x1013047c] with the same return convention). Both scripts refuse on any unexpected byte, check relocations and read the
+output back. Emulation 22 / 22 (and still 22 / 22 on Gold's shell); the patched shell (3e1eb76c) booted once to the shell, 40
+s, no fault. Not ported: M1 (needs a frame count in Nitro's DATABASE.TVF), K1-K4 (the other modals' keys; NITSHELL's
+Modal_YesNo and team picker are there). Staged in lab `builds\nitro-port-20261021\nitshell`, installed nowhere.
+
+### 7.4 Breakable box 4, sign sweep, sound / damage events (item 6)
+
+Ported with the same helpers (runtime reads through NA, the bbox stub's 0x52b92c relocated, the flamer narrow-test chain's
+Gold-relative bytes, `site_is` for the speed wrapper). P01 with I76_BREAKABLE_BOX=4 + I76_SOUND_EVENTS + I76_DAMAGE_EVENTS:
+133 sites patched, 0 refused; breakable box 1/1, flame 1/1 + 1/1, speed 1/1; sound events 4/4 stop taps + start tap +
+weapon-UI 3/3; damage entry detoured; telemetry event_seq 38 after 40 s, event_hooks 127 (every hook). The T05 barricade ram
+test (the Gold gate's breakable row) was not run.
+
+### 7.5 The debug tool (item 7)
+
+tools/debug: the process reader lists nitro.exe and reads it with a Nitro address set (game state, pause bits, player root,
+AI lists, CD state; entity fields +4). P01: state 5, CD track 2 playing, 8 / 8 AI cars, nearest 52-308 m, entity flags 0x81001.
+Its trainer tab drives the proxy block (ported); its direct pokes stay Gold-only.
+
+### 7.6 Bounce and health % (item 2)
+
+`np_physjump.py --mode bounce` on T06 (the tick lanes' spot: (7935, 42900), identity attitude, 1 m and 3 m drops from rest,
+three each per boot), then a 40 m drop at (7930, 42580) without god.
+
+| arm | heave half period 1 m (n) | 3 m (n) | 40 m drop: health % after (n) |
+|---|---|---|---|
+| Nitro (w16, nitro-tick42) | 0.333 +- 0.000 (6) | 0.292 +- 0.000 (6) | 84.9 (3 of 3: chassis 580 / 720 / 720 / 569, = 28 + 72 x 569 / 720) |
+| Gold | (pending: Gold boots wait for the gate) | | |
+| TICK-FINISH, Gold 41.667 | 0.292 | | |
+
 ## Files
 
 - i76-everywhere: `music-fix/nitro.c`, `music-fix/sites_nitro.h` (generated), `tools/nitro-sites/{gen_sites.py, uses.py,

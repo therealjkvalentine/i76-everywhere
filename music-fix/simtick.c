@@ -1095,6 +1095,10 @@ static void __cdecl st_gate3(void) {                       /* entity_TickAll */
 static int __cdecl st_gate4(void) { if (!g_st_now) return 0; g_wst_local.gate[4]++; return ((int (__cdecl *)(void))g_stc[4])(); }
 static int __cdecl st_gate5(void) { if (!g_st_now) return 0; g_wst_local.gate[5]++; return ((int (__cdecl *)(void))g_stc[5])(); }
 static void __cdecl st_gate7(DWORD a) { if (g_st_now) { g_wst_local.gate[7]++; ((void (__cdecl *)(DWORD))g_stc[7])(a); } }
+/* Nitro only: its race tick (checkpoints / laps, 0x444bb0, called from the main loop at 0x432e15 between net_RegenPointTick and
+ * entity_PostTickAll) runs once per tick like the rest of the sim block (nitro-port 2026-10-21) */
+static DWORD g_st_race_next;
+static void __cdecl st_gate_race(void) { if (g_st_now) ((void (__cdecl *)(void))g_st_race_next)(); }
 
 /* the vehicle class tick (counting only). StepperNext counts the stepper's +8 down to 0 during the tick, so the
  * substep count is read right after simclock_StepperBegin (its one call in entity_TickVehicle, 0x463888); a tick with
@@ -1666,6 +1670,8 @@ static void apply_simtick(void) {
         w[8] = (void *)st_gate8; w[9] = (void *)st_gate9; w[10] = (void *)st_gate10; w[11] = (void *)st_gate11;
         for (i = 0; i < 12; i++) g += st_call_site(gs[i].site, gs[i].stock, w[gs[i].gi], &g_stc[gs[i].gi], gs[i].what);
     }
+    if (g == 12 && g_exe == EXE_NITRO && !nitro_patch_call(0x00432e15, 0x00444bb0, (void *)st_gate_race, &g_st_race_next, "race tick call (sim-tick)"))
+        mlog("  sim-tick: Nitro's race tick stays per display frame (race / CTF checkpoints only)");
     if (g != 12) {                                           /* all or nothing: undo is not attempted, so refuse loudly */
         mlog("  sim-tick: only %d/12 sim gates patched - the tick stays OFF (gates pass through)", g);
         g_st_now = 1;
@@ -1717,6 +1723,10 @@ static void apply_simtick(void) {
             int fl = cs[i].stock == 0x00443fc0 || cs[i].site == 0x00443fca || cs[i].site == 0x004357c3 || cs[i].site == 0x0044471d;
             if ((fstock >= 1 && fl) || (fstock >= 2 && cs[i].stock == 0x00443e90)) { mlog("  sim-tick: %s left stock (I76_SIM_TICK_FLAME_STOCK=%d, lab)", cs[i].what, fstock); continue; }
             n += st_call_site(cs[i].site, cs[i].stock, cs[i].wrap, 0, cs[i].what);
+        }
+        if (g_exe == EXE_NITRO) {                            /* Nitro's own missiles' radar pings (no Gold counterpart) */
+            nitro_patch_call(0x0045e0c5, 0x0041da40, (void *)radar_ping_wrap, 0, "radar ping (Nitro 3)");
+            nitro_patch_call(0x0045e220, 0x0041da40, (void *)radar_ping_wrap, 0, "radar ping (Nitro 4)");
         }
     }
     if (g_st_cosmetic) {   /* display-rate cosmetics: per-call constants at the tick's per-second rate */

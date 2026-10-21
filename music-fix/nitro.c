@@ -208,3 +208,21 @@ static int nitro_reloc_stub(void *fn, const DWORD *gold, int ng, int span, const
     mlog("  nitro stub %s: %d address(es) relocated", what, total);
     return 1;
 }
+
+/* A call site that exists only in nitro.exe (no Gold counterpart): `call rel32` at nitro_va must target expect_target (a Nitro
+ * address) or, chained, a wrapper of ours; it is repointed at wrap and *chain gets the target it held. Nitro only. */
+static int nitro_patch_call(DWORD nitro_va, DWORD expect_target, void *wrap, DWORD *chain, const char *what) {
+    BYTE *p = (BYTE *)(DWORD_PTR)nitro_va, w[5] = { 0xE8 }; LONG rel; DWORD tgt, old;
+    if (g_exe != EXE_NITRO) return 0;
+    if (p[0] != 0xE8) { mlog("  site %s (nitro 0x%06lX): not a call, feature off", what, (unsigned long)nitro_va); return 0; }
+    memcpy(&rel, p + 1, 4); tgt = nitro_va + 5 + (DWORD)rel;
+    if (tgt != expect_target) { mlog("  site %s (nitro 0x%06lX): calls 0x%08lX, not 0x%06lX - signature mismatch, feature off", what, (unsigned long)nitro_va, (unsigned long)tgt, (unsigned long)expect_target); return 0; }
+    if (chain) *chain = tgt;
+    rel = (LONG)((DWORD_PTR)wrap - (nitro_va + 5)); memcpy(w + 1, &rel, 4);
+    if (!VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old)) return 0;
+    memcpy(p, w, 5); VirtualProtect(p, 5, old, &old);
+    if (memcmp(p, w, 5) != 0) return 0;
+    InterlockedIncrement(&g_nsite_ok);
+    mlog("  nitro-only site %s: 0x%06lX call 0x%06lX -> wrapper, patched", what, (unsigned long)nitro_va, (unsigned long)expect_target);
+    return 1;
+}

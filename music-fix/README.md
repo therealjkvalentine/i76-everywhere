@@ -185,20 +185,21 @@ off`. Switches not listed as yes are OFF on Nitro whatever the environment says.
 | logging, crash log, I76_MUTE, I76_SHM_SUFFIX, I76_CWD_FIX | yes | |
 | I76_MISSION, I76_SKIP_MOVIES | yes | P01.., N arenas, or any .msn placed in miss16 / miss8 |
 | I76_MULTI_INSTANCE, I76_NO_MINIMIZE, I76_KEEP_ACTIVE | yes | |
-| I76_TELEMETRY | yes | I76_SOUND_EVENTS / I76_DAMAGE_EVENTS: no |
+| I76_TELEMETRY, I76_SOUND_EVENTS, I76_DAMAGE_EVENTS | yes | |
 | I76_TRAINER (block, guard) | yes | |
 | I76_HIRES_CLOCK, I76_FPS_CAP, I76_FPS_LOG, I76_FRAME_LOG, I76_REF_FPS | yes | |
-| I76_SIM_TICK_MS (+ _INPUT and the tick's sub-switches) | yes | Nitro's race tick runs per display frame (not gated) |
+| I76_SIM_TICK_MS (+ _INPUT and the tick's sub-switches) | yes | Nitro's race tick (0x444bb0) and its two extra radar pings gated too |
 | I76_FAR_CLIP, I76_ROAD_DIST, I76_ROAD_POOL, I76_ROAD_TEX, I76_SHADOW_DIST | yes | |
 | I76_TERRAIN_LOD / _A / _B, I76_TERRAIN_VLIMIT, I76_TERRAIN_HYST, I76_TERRAIN_FREEZE, I76_TERRAIN_TEX, I76_OBJECT_LOD | yes | |
 | I76_CLUTTER_DIST / _FADE / _RISE, I76_MIRROR_FAR, I76_CAM_GROUND_FIX, I76_TERRAIN_HULL_FIX | yes | |
 | I76_FIX_HEALTH_PCT, I76_FIX_LABEL_TABLE | yes | |
 | I76_ZGLIDE_TMUFIX, I76_GLIDE_REFRESH, I76_GLIDE_GAMMA | yes | Nitro's ZGLIDE has the 2 MB rule at +0x2c9a |
 | I76_ASPECT, I76_ASPECT_COCKPIT_FOV, I76_HUD_SQUEEZE | yes | |
-| music (always on; I76_MUSIC_RETAIL / _RESUME / _GAPLESS / _TRUE_PAUSE / _GUARD / _THREAD) | partial | hooks Nitro's WIN32.dll imports; I76_MUSIC_NITRO=0 keeps GOG's own; disc order / shell 1997 / missions 1997 forced off (Gold CD facts) |
+| music (always on; I76_MUSIC_RETAIL / _RESUME / _GAPLESS / _TRUE_PAUSE / _GUARD / _THREAD) | yes | hooks Nitro's WIN32.dll imports; I76_MUSIC_NITRO=0 keeps GOG's own; a FROM-only PLAY (Nitro's) plays to the end of the disc; disc order / shell 1997 / missions 1997 forced off (Gold CD facts) |
 | I76_JOY_MAP, I76_JOY_SYNTH | yes | WIN32.dll slots |
 | I76_CURSOR_MAP (+ _DGV) | partial | nitro.exe + NITSHELL.DLL slots; pointer not yet checked on screen; no u32x on Nitro |
-| I76_BREAKABLE_BOX, I76_COLL_*, I76_FIXED_STEP, I76_RENDER_INTERP, I76_FRAMERATE_FIXES, I76_ENGINE_DT_FIX, I76_AI_*, I76_INPUT_LATCH | no | |
+| I76_BREAKABLE_BOX (1..4, + sign sweep, flame sphere) | yes | |
+| I76_COLL_*, I76_FIXED_STEP, I76_RENDER_INTERP, I76_FRAMERATE_FIXES, I76_ENGINE_DT_FIX, I76_AI_*, I76_INPUT_LATCH | no | |
 | I76_COOP_*, I76_AIMELEE*, I76_MP_MENU, I76_PAD_MENU, I76_MENU_PTR, I76_MENU_KEYS, I76_FONT_PRIVATE, I76_SIGN_SOUND_RESTART, I76_FADE_NO_FLIP | no | |
 | I76_RETAIL_HANDLING, I76_START_POS, I76_REPLAY, I76_CD_LOG / _FAKE, I76_SW_RES, census / probe lab switches | no | |
 

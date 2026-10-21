@@ -733,6 +733,10 @@ static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR 
                     return MCIERR_OUTOFRANGE;
                 }
                 to = g_toIncl ? tt : (tt > track ? tt - 1 : track);   /* MCI_TO = end position: stops BEFORE track tt */
+            } else if (g_exe == EXE_NITRO && p && (flags & MCI_FROM)) {
+                /* Nitro's CD player (0x41cae0) sends MCI_FROM alone (flags 0x4): on a CD that plays to the end of the disc.
+                 * Gold always sends FROM|TO (0xC), so its path is unchanged. */
+                to = LAST_TRACK;
             }
             if (to < track) to = track;
             if (to > LAST_TRACK) to = LAST_TRACK;
@@ -4777,7 +4781,7 @@ static int __cdecl coll_shapes_wrap(BYTE **ra, BYTE **rb, void *ca, void *cb) {
     BYTE *a, *b;
     DWORD oldest = 0xffffffff;
     if (g_cw_when) g_pair_win = (ra && rb) ? coll_pair_window(*ra, *rb) : -1.0f;   /* I76_COLL_WINDOW_WHEN=stepframe */
-    r = ((int (__cdecl *)(BYTE **, BYTE **, void *, void *))0x0043f510)(ra, rb, ca, cb);
+    r = ((int (__cdecl *)(BYTE **, BYTE **, void *, void *))(DWORD_PTR)NA(0x0043f510))(ra, rb, ca, cb);
     g_pair_win = -1.0f;
     g_coll_dup = 0;
     if (!r) return r;
@@ -5704,7 +5708,7 @@ static void snd_ended(BYTE *voice, int reason) {
     if (!t) return;                                          /* never reported started (culled, failed, or before the hook) */
     e = tel_event_new(I76TEL_EV_SOUND_STOP);
     g_snd_stops++;
-    e->f[0] = *(float *)0x005a7e74 - t->t0;
+    e->f[0] = *(float *)(DWORD_PTR)NA(0x005a7e74) - t->t0;
     e->i[0] = (int)t->name[0]; e->i[1] = (int)t->name[1];
     e->i[2] = reason | (t->player ? I76TEL_STOP_PLAYER : 0);
     e->i[3] = (int)(DWORD_PTR)t->obj; e->i[4] = (int)(DWORD_PTR)voice;
@@ -5715,7 +5719,7 @@ static void snd_ended(BYTE *voice, int reason) {
 static int __cdecl snd_start_hook(BYTE *voice, int k) {
     BYTE *obj = 0, *root;
     double pos[3] = { 0.0, 0.0, 0.0 };
-    int has_pos = 0, player = 0, on = *(DWORD *)0x004ed7e8 != 0, r;   /* sound system up (StartVoice returns 1 without it) */
+    int has_pos = 0, player = 0, on = *(DWORD *)(DWORD_PTR)NA(0x004ed7e8) != 0, r;   /* sound system up (StartVoice returns 1 without it) */
 #ifdef _MSC_VER
     __try {
 #endif
@@ -5743,13 +5747,13 @@ static int __cdecl snd_rel_hook(BYTE *voice) {               /* 0x425ef0 */
 
 static int __cdecl snd_end_wrap(BYTE *voice, int to_active) { /* call 0x422540 at 0x42150b / 0x4215a2 */
     snd_ended(voice, I76TEL_STOP_ENDED);
-    return ((int (__cdecl *)(BYTE *, int))0x00422540)(voice, to_active);
+    return ((int (__cdecl *)(BYTE *, int))(DWORD_PTR)NA(0x00422540))(voice, to_active);
 }
 
 static int __cdecl wui_click(int which, const char *name, BYTE *obj, int flag) {
     i76tel_event_t *e = tel_event_new(I76TEL_EV_WEAPON_UI);
     e->i[0] = which;
-    return ((int (__cdecl *)(const char *, BYTE *, int))0x004250f0)(name, obj, flag);
+    return ((int (__cdecl *)(const char *, BYTE *, int))(DWORD_PTR)NA(0x004250f0))(name, obj, flag);
 }
 static int __cdecl wui_cycle_wrap(const char *n, BYTE *o, int f)  { return wui_click(0, n, o, f); }
 static int __cdecl wui_link_wrap(const char *n, BYTE *o, int f)   { return wui_click(1, n, o, f); }
@@ -5782,7 +5786,7 @@ static int __cdecl dmg_hook(BYTE *obj, BYTE *rec, float *pt) {
     __try {
 #endif
         ent = obj ? *(BYTE **)(obj + 0x70) : 0;
-        if (rec && pt && ent && !(*(BYTE *)(obj + 0x10) & 0x20) && !(*(DWORD *)(ent + 0x454) & 0x20)) {   /* the exe's own guards */
+        if (rec && pt && ent && !(*(BYTE *)(obj + 0x10) & 0x20) && !(*(DWORD *)(ent + EF(0x454)) & 0x20)) {   /* the exe's own guards */
             WORD m = *(WORD *)(rec + 4), fl = *(WORD *)(rec + 6);
             BYTE *shooter = *(BYTE **)rec;
             cshooter = shooter;
@@ -5805,7 +5809,7 @@ static int __cdecl dmg_hook(BYTE *obj, BYTE *rec, float *pt) {
         __try {
 #endif
             after = tel_health_sum(obj);
-            if (*(DWORD *)(ent + 0x454) & 0x20) bits |= I76TEL_DMG_KILLED;
+            if (*(DWORD *)(ent + EF(0x454)) & 0x20) bits |= I76TEL_DMG_KILLED;
 #ifdef _MSC_VER
         } __except (EXCEPTION_EXECUTE_HANDLER) { g_tel_faults++; after = before; }
 #endif
@@ -5933,10 +5937,6 @@ static void apply_telemetry(void) {
     mlog("  telemetry: on - udp 127.0.0.1:%d %s, shm %s %s, %d/4 event hooks (FireShot call sites x2, SpawnExplosion entry, ApplyCollisionDamage entry), frame %u B + events %u B, ring %d",
          port, g_tel_sock != INVALID_SOCKET ? "open" : "FAILED", tel_nm, g_tel_shm ? "mapped" : "FAILED",
          hooks, (unsigned)sizeof(i76tel_frame_t), (unsigned)sizeof(i76tel_event_t), I76TEL_RING);
-    if (g_exe == EXE_NITRO) {
-        if (env_is_1("I76_SOUND_EVENTS") || env_is_1("I76_DAMAGE_EVENTS")) mlog("  telemetry: I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported to Nitro - off");
-        return;
-    }
     apply_sound_events();     /* opt-in: I76_SOUND_EVENTS=1 (i76tel v3) */
     apply_damage_events();    /* opt-in: I76_DAMAGE_EVENTS=1 (i76tel v3) */
 }
@@ -7505,21 +7505,24 @@ static __declspec(naked) void bbox_flame_thunk(void) {        /* replaces 0x43da
 static void apply_breakable_box_flame(void) {
 #ifdef _MSC_VER
     static const BYTE kind_old[9] = { 0x8B, 0x6B, 0x10, 0x81, 0xE5, 0x00, 0xF0, 0x00, 0x00 };
-    BYTE w[9] = { 0xE8, 0, 0, 0, 0, 0x90, 0x90, 0x90, 0x90 }, *q = (BYTE *)0x00435691, o2[5], w2[5] = { 0xE8 };
+    BYTE w[9] = { 0xE8, 0, 0, 0, 0, 0x90, 0x90, 0x90, 0x90 }, *q = (BYTE *)(DWORD_PTR)NA(0x00435691), o2[5] = { 0xE8 }, w2[5] = { 0xE8 };
     LONG rel; int ok = 0, okc = 0, okp = 0;
     g_bbox_flame = env_flag("I76_BREAKABLE_BOX_FLAME", 8, 1) == 1;
     g_fbx_on = env_flag("I76_FLAME_BOX_PROBE", 8, 0) == 1;
     if (!g_bbox_flame && !g_fbx_on) { mlog("  breakable-box flame: off (I76_BREAKABLE_BOX_FLAME=0): the flame tests the boxed bars as boxes"); return; }
+    if (!q) { mlog("  breakable-box flame: site not mapped - off"); return; }
     memcpy(&rel, q + 1, 4);                                   /* the flame narrow-test call -> flame_narrow_call */
-    if (q[0] == 0xE8 && 0x00435696 + (DWORD)rel == 0x0043d770) {
-        memcpy(o2, q, 5); rel = (LONG)((DWORD_PTR)flame_narrow_call - 0x00435696); memcpy(w2 + 1, &rel, 4);
-        okc = patch_bytes(0x00435691, o2, w2, 5, "flamer narrow test call (breakable-box flame)") && memcmp(q, w2, 5) == 0;
+    if (q[0] == 0xE8 && (DWORD)(DWORD_PTR)q + 5 + (DWORD)rel == NA(0x0043d770)) {
+        LONG r0 = (LONG)(0x0043d770 - 0x00435696); memcpy(o2 + 1, &r0, 4);   /* = the bytes at q on Gold */
+        rel = (LONG)((DWORD_PTR)flame_narrow_call - 0x00435696); memcpy(w2 + 1, &rel, 4);
+        g_flame_narrow_next = NA(0x0043d770);                 /* = the initial value on Gold */
+        okc = patch_bytes(0x00435691, o2, w2, 5, "flamer narrow test call (breakable-box flame)") && (g_exe == EXE_NITRO || memcmp(q, w2, 5) == 0);
     }
     if (okc && g_bbox_flame) {
         rel = (LONG)((DWORD_PTR)bbox_flame_thunk - (0x0043da33 + 5)); memcpy(w + 1, &rel, 4);
-        ok = patch_bytes(0x0043da33, kind_old, w, 9, "tree narrow test part kind (breakable-box flame)") && memcmp((void *)0x0043da33, w, 9) == 0;
+        ok = patch_bytes(0x0043da33, kind_old, w, 9, "tree narrow test part kind (breakable-box flame)") && (g_exe == EXE_NITRO || memcmp((void *)0x0043da33, w, 9) == 0);
     }
-    if (okc && g_fbx_on) {                                    /* lab: the box-part slab test call 0x43dd3e -> flame_box_probe */
+    if (okc && g_fbx_on && g_exe != EXE_NITRO) {              /* lab: the box-part slab test call 0x43dd3e -> flame_box_probe (Gold only) */
         BYTE *p = (BYTE *)0x0043dd3e, o3[5], w3[5] = { 0xE8 };
         memcpy(&rel, p + 1, 4);
         if (p[0] == 0xE8 && 0x0043dd43 + (DWORD)rel == 0x0043df10) {
@@ -7544,6 +7547,8 @@ static void apply_breakable_box(void) {
     if (g_bbox_mode >= 3) { install_frame_hook(); g_bbox_sweep = g_frame_hook; }
     if (g_bbox_mode == 4 && g_bbox_sweep) g_bbox_defer = 1;  /* =4 = =3 + the knock-off waits for the drawn car */
     memcpy(w + 1, &rel, 4);
+    {   static const DWORD sa[1] = { 0x0052b92c };       /* the stub reads the default part kind (Nitro 0x523220) */
+        if (!nitro_reloc_stub((void *)bbox_thunk, sa, 1, 32, "breakable-box stub")) { mlog("  breakable-box: NOT applied (stub)"); g_bbox_mode = 0; g_bbox_speed = g_bbox_sweep = g_bbox_defer = 0; return; } }
     mlog("  breakable-box: %d/1 (0x436cbd: long thin low default parts of class-4 breakables -> box 0x2000 instead of the 0.75 r sphere)%s",
          patch_bytes(0x00436cbd, old6, w, 6, "collision tree default part kind read"),
          g_bbox_mode == 2 ? "; =2: mid-height 0.3..1.3 m only, class-4 knock-off scored on the closing speed"
@@ -7562,7 +7567,7 @@ static void apply_breakable_speed(void) {                   /* after apply_coll_
     LONG rel = (LONG)((DWORD_PTR)coll_damage_wrap - (0x0046f8d4 + 5));
     if (!g_bbox_speed) return;
     memcpy(w + 1, &rel, 4);
-    if (memcmp((void *)0x0046f8d4, w, 5) == 0) { mlog("  breakable-speed: 1/1 (0x46f8d4 already on the collision damage wrapper)"); return; }
+    if (site_is(0x0046f8d4, w, 5)) { mlog("  breakable-speed: 1/1 (0x46f8d4 already on the collision damage wrapper)"); return; }
     mlog("  breakable-speed: %d/1 (0x46f8d4 object collision damage -> wrapper: class-4 victims scored on the closing speed)",
          patch_bytes(0x0046f8d4, call_damage, w, 5, "collision damage (objects), breakable speed"));
 }
@@ -7596,7 +7601,7 @@ static void breakable_box_report(void) {                     /* with the start-p
  * and every other object class are untouched; teleports (> 25 m between frames) and frames without motion skip. */
 static BYTE *g_sweep_obj; static double g_sweep_prev[3]; static DWORD g_sweep_prev_frame;
 static BYTE *sweep_player_box(BYTE *obj) {                  /* the player's mover record (0x52b930 list) */
-    BYTE **node = *(BYTE ***)0x0052b930; int n = 0;
+    BYTE **node = *(BYTE ***)(DWORD_PTR)NA(0x0052b930); int n = 0;
     while (node && n++ < 512) {
         BYTE *body = node[2];
         if (body && *(BYTE **)body == obj) return body;
@@ -7663,7 +7668,7 @@ static float post_gap_drawn(BYTE *obj, BYTE *root, BYTE *part) {
 }
 static int post_registered(BYTE *root, BYTE *part) {        /* still on the collision static list, part still its child */
     BYTE **node; BYTE *pt; int n = 0, k = 0;
-    for (node = *(BYTE ***)0x0052b934; node && n < 8000; node = (BYTE **)node[0], n++) {
+    for (node = *(BYTE ***)(DWORD_PTR)NA(0x0052b934); node && n < 8000; node = (BYTE **)node[0], n++) {
         BYTE *sb = node[2];
         if (sb && *(BYTE **)sb == root) {
             for (pt = *(BYTE **)(root + 0x64); pt && k++ < 64; pt = *(BYTE **)(pt + 0x60)) if (pt == part) return 1;
@@ -7683,7 +7688,7 @@ static int sign_pend_add(BYTE *root, BYTE *part, const float *v, const float *n,
     return 1;
 }
 static int sign_defer_engine(BYTE *victim, BYTE *source, const float *v, const float *n, const float *p) {
-    BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0, *root;
+    BYTE **pp = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *obj = pp ? *pp : 0, *root;
 #ifdef _MSC_VER
     __try {
 #endif
@@ -7695,7 +7700,7 @@ static int sign_defer_engine(BYTE *victim, BYTE *source, const float *v, const f
     return 0;
 }
 static void sign_gap_log_engine(BYTE *victim, BYTE *source) {   /* =3: an engine contact knocks a post off now */
-    BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0, *root;
+    BYTE **pp = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *obj = pp ? *pp : 0, *root;
 #ifdef _MSC_VER
     __try {
 #endif
@@ -7724,7 +7729,7 @@ static int sign_pend_run(BYTE *obj) {                       /* 1 = fired one (th
               mlog("  sign-defer: %s post knocked off after %lu frames (%s contact): drawn gap %.2f m at the knock-off (=3 would have knocked it at a drawn gap of %.2f m)%s",
                    nm, (unsigned long)waited, f.src ? "engine" : "sweep", gap, f.gap0, gap > 0.0f ? " - TIMEOUT" : "");
           if (!f.src) st_sign_sound(obj, f.root);                  /* the sweep's knock-off: the engine's post-contact sound (simtick.c, s.17) */
-          ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(f.part, obj, f.v, f.n, f.p); }
+          ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))(DWORD_PTR)NA(0x004a7c80))(f.part, obj, f.v, f.n, f.p); }
         return 1;
     }
     return 0;
@@ -7734,7 +7739,7 @@ static void sign_sweep(void) {
 #ifdef _MSC_VER
     __try {
 #endif
-        BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0, *body, **node;
+        BYTE **pp = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *obj = pp ? *pp : 0, *body, **node;
         double P0[3], P1[3], dx, dz;
         float *R, ext[6];
         int *bx, n = 0;
@@ -7763,7 +7768,7 @@ static void sign_sweep(void) {
                 if (g_bbox_defer) mlog("  sign-defer: %lu knock-offs fired at the drawn car (%lu by timeout), %lu queued posts gone before", (unsigned long)g_sdefer_fired, (unsigned long)g_sdefer_timeout, (unsigned long)g_sdefer_dropped);
             }
         }
-        for (node = *(BYTE ***)0x0052b934; node && n < 8000; node = (BYTE **)node[0], n++) {
+        for (node = *(BYTE ***)(DWORD_PTR)NA(0x0052b934); node && n < 8000; node = (BYTE **)node[0], n++) {
             BYTE *sb = node[2], *root = sb ? *(BYTE **)sb : 0, *part;
             double ox, oz;
             float *RR;
@@ -7804,7 +7809,7 @@ static void sign_sweep(void) {
                 {
                     float st[15], *s0, v[3], nn[3], pt[3], vv;
                     char nm[9];
-                    s0 = ((float *(__cdecl *)(float *, BYTE *))0x00461ed0)(st, obj);   /* the car's state: velocity at +0x18 */
+                    s0 = ((float *(__cdecl *)(float *, BYTE *))(DWORD_PTR)NA(0x00461ed0))(st, obj);   /* the car's state: velocity at +0x18 */
                     v[0] = s0[6]; v[1] = s0[7]; v[2] = s0[8];
                     vv = (float)sqrt((double)v[0] * v[0] + (double)v[1] * v[1] + (double)v[2] * v[2]);
                     if (vv < 0.5f) continue;
@@ -7829,7 +7834,7 @@ static void sign_sweep(void) {
                              "(car at %.1f, %.1f; post y %.2f..%.2f, box y %.2f..%.2f; drawn gap %.2f m)", nm, qx, qz, vv, sx, sz, y0, y1, cy0, cy1,
                              post_gap_drawn(obj, root, part));
                     st_sign_sound(obj, root);               /* no engine contact: its post-contact sound (simtick.c, s.17) */
-                    ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))0x004a7c80)(part, obj, v, nn, pt);
+                    ((DWORD (__cdecl *)(BYTE *, BYTE *, float *, float *, float *))(DWORD_PTR)NA(0x004a7c80))(part, obj, v, nn, pt);
                     return;                                 /* a knock-off may unregister / free the object: done this frame */
                 }
             }
@@ -7847,7 +7852,7 @@ static void sign_sweep(void) {
  * that frame is drawn; P0 / P1 = the poses at the last two tick ends) and a queued knock-off is tried right away and on
  * every display frame after (frame hook), as =4 intends. */
 static void sign_sweep_tick(void) {
-    BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0;
+    BYTE **pp = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *obj = pp ? *pp : 0;
     g_sweep_tick = 1; sign_sweep(); g_sweep_tick = 0;
     if (obj && g_nspend && g_bbox_defer) sign_pend_run(obj);
 }
@@ -7855,7 +7860,7 @@ static void sign_pend_frame(void) {
 #ifdef _MSC_VER
     __try {
 #endif
-        BYTE **pp = *(BYTE ***)0x0054a264, *obj = pp ? *pp : 0;
+        BYTE **pp = *(BYTE ***)(DWORD_PTR)NA(0x0054a264), *obj = pp ? *pp : 0;
         if (!obj) { g_nspend = 0; return; }
         if (g_nspend) sign_pend_run(obj);
 #ifdef _MSC_VER
@@ -9384,6 +9389,8 @@ static void nitro_dllmain(void) {
     apply_aspect();           /* I76_ASPECT (Hor+; + HUD squeeze) */
     apply_ref_fps();
     apply_hires_clock();
+    apply_breakable_box();    /* I76_BREAKABLE_BOX=1..4 (+ the sign-post sweep / deferral, the flamer's sphere) */
+    apply_breakable_speed();  /* with I76_BREAKABLE_BOX >= 2 */
     apply_frame_cap();
     apply_fps_log();
     apply_frame_log();
