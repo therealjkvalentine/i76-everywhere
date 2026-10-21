@@ -57,6 +57,13 @@ Lab commits `c3d1b44`, `6a241f8`, `2c39bf8` (I76AIM build 2026-10-17c). Code pat
 
    This changes no physics. It does change every damage-balance comparison: retail vs Gold must use Champ.
    `aidmg-melee2-champ-gold.txt` sets it. The daily driver's DEF also holds 0 (FIX-INVENTORY-2026-10-17.md section 9).
+
+   **Note 2026-10-20 night (DIFFICULTY-OPTION-2026-10-20.md):** "retail 1.0" in this record means the emulated 1997 retail disc
+   (`6cc509ad`). The exe we ship (`6319abf7`, AiO) is in the Gold column of section 1.1: it has the Difficulty Level option
+   (shell a300db63 Play Options row 7, pause menu handler 0x495e40, the same byte 0x654b9c / DEF +0x5c) and the factor.
+   It was measured on T13, player damage per hit 50 / 25 / 18 at Wimp / Champ / Badass (n 3 / 2 / 2 runs). The factor is
+   offline only (`net_IsNetworkGame` 0x452d20 gates both sites). The driver, the LAN copy and the release candidate hold 0 =
+   Wimp, so the owner's offline play doubles his own damage.
 5. **pd+0x10 is identified, and retail sides with Gold CD.** This answers FIX-INVENTORY's RE-CHECK items 4 and (a).
    - **Retail's recorder** 0x40fc80 tests `[pd+0x44]` (`cmp [eax+0x44],1; sbb; neg` at 0x40fcfb), as the Gold CD exe
      does. **Our exe (AiO)** tests `[pd+0x10]`.

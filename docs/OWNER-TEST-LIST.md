@@ -854,6 +854,14 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
   earlier record's "retail 1.0 has no difficulty option" described the emulated disc, not our build). Ruling: the
   existing setting drives the melee AI skill (host's setting rules); the lane also measures what the setting does to
   player damage in our exe and reports what value the owner has been playing on; campaign rule unchanged by default. Lane: records/DIFFICULTY-OPTION-2026-10-20.md; the AI lane measures skill 3 / 4 / 5 and adds --ai-skill.
+  **Done (staged, lab `builds\difficulty-20261020`, proxy 5b003fd2, installed nowhere):**
+  - The menu's Difficulty Level now sets the host's AI in network melee: Wimp = level 4, Champ = 3 (as before), Badass =
+    1. The stock scale runs 1 = best .. 5 = worst, so the first table (Badass 5) would have made Badass the softest.
+  - Measured on the host n 1 per value; a joiner's setting changes nothing (n 1).
+  - Offline, the setting doubles / keeps / cuts to 0.75 the PLAYER's own bullet and flame damage (measured 50 / 25 / 18 per hit).
+  - **Your driver and LAN copy are on Wimp**, so x2 damage in the campaign.
+  - Wanted from you: (a) play a network AI melee at Badass and at Champ once a pack carries it; (b) set the copies to
+    Champ, or leave them at Wimp?
 
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
