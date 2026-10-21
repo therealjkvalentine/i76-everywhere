@@ -976,3 +976,9 @@ presets with the two new lines, launchers with `--legacy-multiplayer`).
 | # | what | how to check | result |
 |---|---|---|---|
 | N1 | **Ruling: keep the Gold exe as the base, or move to nitro.exe?** The GOG Nitro Pack is the expansion only: none of the original 17 scenes, 15 arenas (by file; N51-N65 are them re-laid), 27 scene movies or 492 radio voices, and its shell has no trip / garage-salvage / bookmarks. Moving means porting the trip shell, re-addressing the whole proxy, a limiter and the netcode (record, last section) | play-check both copies at the monitor: `C:\Users\james\Games\I76\nitro\PLAY.bat` (stock GOG Nitro) and `C:\Users\james\Games\I76\nitro-plus-original\PLAY.bat` (+ original files; single player > character Groove > Original Mission 1-17; host alone > arena list for M01-M15) | headless over Remote Desktop both showed "Unhandled Exception" in GOG's OpenGLide start-up (n 1 each); the same exe with dgVoodoo reached the menu (lab, n 1). Your ruling: |
+
+## Decision: the name of the new Nitro multiplayer entry (2026-10-21; records/NITRO-MP-DESIGN-2026-10-21.md)
+
+| # | what | how to check | result |
+|---|---|---|---|
+| N2 | **Name the separate Nitro multiplayer entry** (our AI fill / co-op / teams live only behind it; stock Nitro multiplayer, its JOIN list and the lobby stay untouched). Options, with the line the menu would show: (1) **AI DROP-IN** "Melee with computer drivers in every empty seat; friends drop in or out any time." (2) **CO-OP / AI MELEE** "Team up against computer cars: every arena, the '76 scenes and scenarios." (3) **ARENA+** "Every arena plus the original '76 missions, with AI filling the open slots." (4) **CONVOY** "Roll out together: co-op scenes and AI-filled arenas, join whenever you like." (5) **NET AUTO MELEE** "Auto Melee over the network: AI drivers fight beside and against your friends." | nothing to run; pick one (or your own words) | Your pick: |
