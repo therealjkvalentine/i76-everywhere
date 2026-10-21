@@ -408,8 +408,7 @@ Commit 4fbbba1: `strlkproxy.c` gains 5 lines and nothing else - the include of `
 outside an ARENA+ session, and the shipped proxy cannot create one yet (the host-form boxes live in the lab instrument),
 so a shipped build carries the code dormant.
 
-Build **4d82427e** (MSVC /O2, the music-fix tree at 4fbbba1's content; lab `builds
-itro-mp-integ\`), base = HEAD before
+Build **4d82427e** (MSVC /O2, the music-fix tree at 4fbbba1's content; lab `builds/nitro-mp-integ/`), base = HEAD before
 the integration built the same way, **0b17a8c8**. Smokes with the nitro-port lane's harness on this lane's own copies
 (`tools/nitro-mp/np-run-mp.ps1`, `gold-smoke-mp.ps1`, made from theirs by `mk_nprun.py`):
 - **Nitro**, P01 straight boot, n 2: "nitro-mp: ON", "nitro-ai: ON (all 12 sites)", "nitro: 11 sites patched, 0 refused",
