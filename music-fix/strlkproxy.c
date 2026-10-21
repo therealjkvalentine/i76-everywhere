@@ -6940,6 +6940,9 @@ static void tex_census_attach(HMODULE m) {
 #include "polish.c"      /* I76_SIGN_SOUND_RESTART / I76_FADE_NO_FLIP: owner polish 2026-10-20 (before simtick.c: st_sign_sound uses it) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
+#define NMP_IN_PROXY
+#include "nitro_mp.c"     /* Nitro only: ARENA+ ANet 2 layer (nitro-mp-design lane, docs/records/NITRO-MP-DESIGN-2026-10-21.md) */
+#include "nitro_ai.c"     /* Nitro only: ARENA+ AI melee on top of it */
 
 /* (I76_GLIDE_DIR, the 2026-10-03 experiment that loaded <game>\<subfolder>\Glide2x.dll before ZGLIDE so the mission
  * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
@@ -6953,6 +6956,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
         cursor_map_attach(m, b);
         pad_menu_attach(m, b);    /* after cursor_map_attach: the pad filter chains onto the cursor map's shell slot */
         mp_menu_attach(m, b);     /* I76_MP_MENU: the connection row (code bytes only, no IAT slot) */
+        if (g_exe == EXE_NITRO && _stricmp(b, "nitshell.dll") == 0) nmp_attach_shell(m);   /* ARENA+ (nitro_mp.c) */
         if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix) {
             /* I76_ZGLIDE_TMUFIX=1: ZGLIDE+0x1a93 `jne +0x24` (75 24) -> `jmp +0x24` (eb 24): skip the Voodoo 1 "no texture
                across 2 MB" rule. Its rewind target is the constant 2 MB, and it runs BEFORE the grTexMaxAddress check, so
@@ -9423,6 +9427,7 @@ static void nitro_dllmain(void) {
     apply_glide_refresh();    /* I76_GLIDE_REFRESH / I76_ZGLIDE_TMUFIX / I76_GLIDE_GAMMA (LoadLibraryA hook; Nitro ZGLIDE offsets) */
     apply_cursor_map();       /* I76_CURSOR_MAP (nitro.exe's and NITSHELL.DLL's USER32 slots; Nitro has no u32x) */
     apply_joy_routing(exe);   /* Nitro's joyGetPosEx / joyGetDevCapsA are WIN32.dll imports */
+    apply_nitro_mp();         /* I76_NITRO_MP (ARENA+: nitro_mp.c / nitro_ai.c; inert outside an ARENA+ session) */
     mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
     mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);
 }

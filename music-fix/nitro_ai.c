@@ -647,3 +647,19 @@ static void nai_attach(void) {
     NMP_LOG("  nitro-ai: ON (%s) - pool %d, combat arenas in ARENA+ sessions only; skill from the DEF byte (%d)", ok ? "all 12 sites" : "SOME SITES OFF", NAI_POOL,
             *(volatile BYTE *)(DWORD_PTR)n_defbyte);
 }
+
+#ifdef NMP_IN_PROXY
+/* ---- the shipped proxy's entry (strlkproxy.c: nitro_dllmain -> apply_nitro_mp; hook_LoadLibraryA -> nmp_attach_shell).
+ * Nitro only (nitro_dllmain is not reached on Gold). I76_NITRO_MP=0 leaves everything here off; I76_NITRO_AI=0 keeps the
+ * ANet 2 layer but not the AI. Inert in a stock session: the dpReceive hook passes through and every patched call site
+ * does what the stock call did unless the session is ARENA+ (species 0x7676), which only the host form's ARENA+ boxes
+ * create (record s.0.3; not in the proxy yet, so the shipped proxy never creates one). ---- */
+static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name);
+static void apply_nitro_mp(void) {
+    if (env_flag("I76_NITRO_MP", 8, 1) == 0) { mlog("  nitro-mp: I76_NITRO_MP=0 - off"); return; }
+    nmp_attach_exe();
+    if (g_nmp_on && env_flag("I76_NITRO_AI", 8, 1) != 0) nai_attach();
+    if (g_nmp_on && !p_LoadLibraryA)   /* nitshell.dll is loaded by nitro.exe through LoadLibraryA: its hooks attach there */
+        p_LoadLibraryA = (HMODULE (WINAPI *)(LPCSTR))patch_iat(GetModuleHandleA(NULL), "KERNEL32.dll", "LoadLibraryA", hook_LoadLibraryA);
+}
+#endif
