@@ -864,6 +864,12 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
   - Wanted from you: (a) play a network AI melee at Badass and at Champ once a pack carries it; (b) set the copies to
     Champ, or leave them at Wimp?
 
+### Ruling 2026-10-21 morning: ship for Arsenal (Gold AND Nitro), multiplayer on Nitro, non-destructively
+"let's do the work to understand and fix nitro same as we did for gold. we'll plan to ship for arsenal so it's complete
+... from a multiplayer perspective we'd want nitro to be the basis instead of gold ... nondestructively, so that
+community play of nitro multiplayer is unperturbed. perhaps it's a new menu item we'd add separately". Plan:
+docs/ARSENAL-PLAN-2026-10-21.md. Owner to name the new menu entry ("AI DROP-IN" / "CO-OP / AI MELEE" / "ARENA+").
+
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
 respawn with scores kept, AI names only in the kill message, -500 for a death by an AI. 3. Scenarios: keep "host death reloads the scenario"
