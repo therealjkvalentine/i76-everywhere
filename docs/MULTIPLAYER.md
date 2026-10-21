@@ -175,7 +175,7 @@ sheet for the players: [GAME-NIGHT.md](GAME-NIGHT.md). Re-run the matrix from th
 |---|---|---|
 | Michael's Mac | Desktop: **Interstate 76 LAN** (a link to `~/Games/Interstate76-MP/Interstate 76.app`) | inside that app |
 | Andrew's Mac | Desktop: **Interstate 76 LAN** (same layout) | inside that app |
-| James's laptop | `~/Applications/Sikarugir/I76 MP GATE.app` until the pack is swapped into his own `Interstate 76.app` (rollout record section 5) | inside that app |
+| James's laptop | `~/Applications/Sikarugir/Interstate 76.app` (his own app; the pack swapped in 2026-10-20 evening, [records/MAC-CONVERGE-2026-10-20.md](records/MAC-CONVERGE-2026-10-20.md); `I76 MP GATE.app` and the test apps are gone) | inside that app |
 | Steam Deck | Steam (Game Mode) > **Interstate 76** (non-Steam shortcut). **For LAN games since 2026-10-20** its launch options must name the new LAN launcher: `"/home/deck/Games/Interstate76/i76-deck-launch-mp.sh" %command% -glide` (proxy cf4f81da as on every machine + `I76_COOP_AI` / `I76_COOP_CHAIN` / `I76_MP_MENU` on top of the Deck's own `i76-env.sh`; the old `i76-deck-launch.sh` still works but has no LAN switches). Jade's Car is refused (the Deck's own `valepre4.vcf`): pick another car. Installed and booted (n 1), a cross-machine join on the new pack not yet measured: [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md) section 8 | `~/Games/Interstate76/game` |
 | Windows PC | `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76\PLAY-LAN.bat` (not the daily driver) | that folder |
 
@@ -361,3 +361,16 @@ laptop join (one at a time, then all four together); also Andrew hosts and the P
   old folders kept, rollback per machine in the record's section 6. Measured across machines: AI t7 on both screens, the
   returning AI on the leaver's team (n 2), teams off unchanged (n 1). The Deck: not reached (own proxy, 2026-10-18 files).
 
+### Update 2026-10-20 evening: one app per Mac (Mac converge lane)
+
+Record: [records/MAC-CONVERGE-2026-10-20.md](records/MAC-CONVERGE-2026-10-20.md). Every Mac now has ONE I'76 app with the pack:
+the laptop `~/Applications/Sikarugir/Interstate 76.app` (the pack in the owner's own app: CoreAudio, his saves, the Nitro and
+DxWnd Settings launchers keep working), Andrew's and Michael's `~/Games/Interstate76-MP/Interstate 76.app` (Desktop link
+**Interstate 76 LAN**). Old folders, test apps and helper folders deleted; one tarball of each app as it was before, in
+`~/i76-archive-20261020/`. Proxy **0ce90a90** on the Macs (pack `i76-uncap-lab\builds\mp-pack-20261020-macconv\`: the polish
+pack + `I76_MENU_PTR`, which makes the in-mission **Esc menu clickable on a Mac**: its lower rows, Cancel and Back could not be
+clicked under DxWnd). The PC LAN copy keeps cf4f81da (same behaviour on Windows).
+
+- **No sound on the laptop** was the GATE clone's switched-off Wine audio driver; the converged app has sound.
+- **AI cars only come in the AI arenas**: host **Hope Springs (2 AI) / (4 AI) / (6 AI)** (or a Scenario / Co-op scene). The
+  15 stock arenas (The Crater, Creeper Canyon, ...) are human-only.
