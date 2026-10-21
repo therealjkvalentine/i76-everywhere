@@ -10,8 +10,9 @@ Owner rulings (verbatim):
 3. *"Is the difficulty of the ai cars correct or is it tuned to the difficulty of the game menu setting or perhaps the dps
    of my weapons or something? Seem to be spanking all these guys."*
 
-Code: i76-everywhere `b273777` (respawn, rows, pool injection), `4341d06` (launcher `-AiSkill` / `--ai-skill`), and the
-commit carrying this record (respawn timer fix, LAB fire keys). Files: `music-fix/aimelee.c` sections 6, 7, 8 and the LAB
+Code: i76-everywhere `b273777` (respawn, rows, pool injection), `4341d06` (launcher `-AiSkill` / `--ai-skill`), `ec59784`
+(respawn timer fix, LAB fire keys), `cdd69f7` (second-session crash, AI numbers per load), `32a5b04` (`I76_COOP_AI=1` inert in
+single player). Files: `music-fix/aimelee.c` sections 6, 7, 8 and the LAB
 block, `music-fix/mpfill.c` (AI rows are not humans; wreck-first parking; the injected pool), one line in
 `music-fix/strlkproxy.c` (`coop_ai_apply` -> `aim_at_revive`). The difficulty lane's hook line in `aim_tick`
 (`difficulty_ai_skill`) is kept. Lab: `i76-uncap-lab\tools\airespawn\` (`airespawn.py` on the mpo harness, build scripts);
@@ -19,7 +20,9 @@ evidence `i76-uncap-lab\captures\airespawn-20261020\<tag>\`. Pack: section 9.
 
 **Verdict.** Phase 1 (respawn + score rows) and phase 2 (AI in every stock arena, no special files) both pass every cell
 measured on the PC (two to three headless lab copies, IPX on one machine). Nothing was run between machines and nothing was
-deployed. The AI skill question has an answer from the code and a noisy measurement (section 7).
+deployed. The AI skill question has an answer from the code and a noisy measurement (section 7). Measured on `ec59784` / `cdd69f7`;
+after the soak, three bugs were found and fixed (section 6), and the staged build `491f8db` plus the remaining runs wait for
+a console session: the PC was on RDP on 2026-10-21, where every boot hangs.
 
 ## 1. Design in five lines
 
@@ -146,9 +149,50 @@ fps measurement, and its fps runs of that window are contaminated (reported to m
 lock before every boot.
 
 
-## 6. Soak (20 cycles)
+## 6. Soak, and three bugs found after it (2026-10-21)
 
-Running (waits for the rc-draw lane's fps lock); the result follows in a later commit.
+**Soak 1** (`airespawn.py soak`, lab twin `Strlkup-f1lab.dll` = `ec59784`, 20 cycles 00:39-01:45, the harness waiting for the
+fps lock first): each cycle boots host + joiner, 60 s with the scripted shooters and both cars cut, the joiner killed hard,
+10 s, re-boot and re-join, 30 s more; arenas in turn Hope Springs (6 AI), Suburbia, The Crater, Hope Springs (stock + pool).
+
+| | result |
+|---|---|
+| boots, joins, re-joins | 20 / 20 / 20 |
+| crash lines | **0** (40 game sessions, 20 hard exits, 20 re-joins) |
+| AI respawns (host) / joiner rebuilds | 134 / 20 |
+| wave or reload lines | 0 |
+| AI rows identical on host and joiner at the end | **19 of 20.** Cycle 19 (Hope Springs with the pool, after the re-join): the joiner showed the right numbers under the next car's id |
+
+**Bug 1, found by the soak: an AI's number drifted on a joiner.** Row ids and names came from a live count of the AI cars
+in the label table. On the joiner, a parked wreck stopped counting as a car, every later car's number moved down by one,
+and its row took the next car's id (and name). Fix (`cdd69f7`): the numbers are counted once per mission load, when every
+AI car is whole on every machine.
+
+**Bug 2, a second hosted session in the same game process crashed** (found by the polish lane). Reproduced: Suburbia
+(pool), leave by the stock exit, host Hope Springs (6 AI) from the same process: `0xC0000005` at `Strlkup+0x240e7` reading
+`0x0DFC0258`, 2 s into the second session (n 1 of 1; the orders Hope Springs (6) -> Suburbia, (6) -> (4) and a
+migrate-then-rehost did not crash, n 1 each). Cause: the AI fill kept the first load's label-table pointer with its tags.
+`mpf_obj` / `mpf_near_car` read it during the second load, before the tags were reloaded. Phase 1 made it reachable on
+every 'AT' round, because the parked flag in 'AT' byte 3 asks `mpf_parked_obj`. Fix (`cdd69f7`): `mpf_obj` returns
+nothing unless the tags belong to the current table, and the free-spawn search reads the current table. Measured on the
+fixed twin before the session problem below: Suburbia -> Hope Springs (6 AI) 3 of 3 without a crash (6 AI rows after the
+second load), migrate-then-rehost 1 of 1. Every soak cycle now ends with a second hosted session (A leaves and hosts the
+next arena, B joins it, 20 s).
+
+**Bug 3, `I76_COOP_AI=1` crashed a single-player game on a re-placed car** (found by the jump lane, TICK-FINISH s.20.7:
+direct T05 boot with the RC presets, the second trainer re-placement, every boot). `coop_ai_log` (after each fps line) walked
+the label table and read an object the game had freed when it rebuilt the car. Fix (`32a5b04`): `coop_ai_log` does
+nothing outside a network game, and `coop_ai_object` skips a label whose object or entity cannot be read. **Not yet
+measured** (next paragraph).
+
+**Why the 2026-10-21 runs stopped.** From 06:42 every boot of every lab copy hung before the first mission frame. The main
+thread waited in `MMDevApi.dll` / `AUDIOSES.DLL` (resolved with `tools\airespawn\mods.py`), because the PC's session was
+**RDP** (`rdp-tcp#14`, TerminalServerSession True, the only working audio endpoint "Remote Audio"). AGENTS.md: no launch
+result is valid under RDP. The harness now waits while the session is RDP. The runs after 06:42 (second sessions on the
+fixed build, migrate-then-rehost, soak 2) did not run and are not counted. `tools\airespawn\chain7.sh` holds the rest, for a
+console session: the single-player crash on the build before the fix (n 1) and on the staged build (n 5 with the 3
+re-placements, n 3 plain mission boots), 5 second sessions, 2 migrate-then-rehost, and the 20-cycle soak with a second
+session per cycle.
 
 ## 7. AI difficulty: what the skill does, what was measured, what the owner drives
 
@@ -218,26 +262,31 @@ carries the proxy only, so on the machines today the host's Difficulty Level dec
 
 `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (README.md there), **staged, deployed nowhere**:
 
-- `payload/STRLKUP.DLL` **5e712a2f** = `ec59784` (clean `git archive`, MSVC x86 /MT /O2 /Brepro, built twice byte-identical,
-  `builds\airespawn-20261020\final\b1|b2`). It is built from current HEAD, which contains the Macs' 0ce90a90 change
-  (`I76_MENU_PTR`, ae48dd8) and every lane's later commits: the difficulty mapping (Wimp 4 / Champ 3 / Badass 1; the owner's
-  copies are on Wimp), the menu-sound-polish switches, and the rc-draw terrain switches (default off). The soak (section 6)
-  ran on its lab twin (`Strlkup-f1lab.dll` 7c93ceaa = `ec59784` + the lab click block).
+- `payload/STRLKUP.DLL` **8f8da929** = HEAD `491f8db` (clean `git archive`, MSVC x86 /MT /O2 /Brepro, built twice
+  byte-identical, `builds\airespawn-20261020\final3\b1|b2`). It holds this lane's work with the three fixes
+  of section 6, the Macs' 0ce90a90 change (`I76_MENU_PTR`), and every lane's later commits: the difficulty mapping
+  (Wimp 4 / Champ 3 / Badass 1; the owner's copies are on Wimp), the menu-sound-polish switches, the rc-draw terrain
+  switches (default off), and the nitro-port lane's stage 1 (exe detection). **This exact build is not measured
+  yet:** the lab numbers above ran on `ec59784` / `cdd69f7`; `chain7.sh` runs on its lab twins (`Strlkup-f3lab.dll` ccbe3694
+  for multiplayer, `jfstyle\Strlkup-head-lab.dll` 850e16ef for single player).
 - The ADDON files `ai_hs2/4/6.lvl` (+ markers) are moved out (no special AI entries any more).
 - `deploy-pc.ps1` / `rollback-pc.ps1` (PC LAN copy), `apply-airespawn.sh` / `rollback-airespawn.sh` (laptop, Andrew's and
   Michael's Macs, the Deck; the game folder is the argument). Everything is saved to `<game>/_rollback/airespawn-20261020/`.
   Both pairs were tested on a dummy folder: apply, apply again (verify only), rollback, and every file md5-identical
-  afterwards.
-- `MD5SUMS`: STRLKUP 5e712a2f, apply-airespawn.sh b8359999, rollback-airespawn.sh 8fcb3a91, deploy-pc.ps1 ec6b2f00,
-  rollback-pc.ps1 3cfcb828.
+  afterwards (the Deck's lower-case `Strlkup.dll` too).
+- `MD5SUMS` lists every file of the pack.
 - Every machine at once (arena list + pool). No launcher changes: `--ai-skill` and `--legacy-multiplayer` reach the machines
   with the next launcher set.
 
 ## 10. Open
 
+- **The staged build 491f8db is unmeasured**, and so are the single-player crash fix, the second-session fix beyond
+  n 3 + 1, and the soak with second sessions. `chain7.sh` covers them; it needs a console session (no RDP) and no
+  `.fps-lock`.
 - Nothing between two machines; the pack is staged, not deployed.
-- m08 (headless: no mission frames with or without the pool) is not measured.
+- m08 (Creeper Canyon; headless: no mission frames with or without the pool) is not measured.
 - Lock targets on AI cars across machines (owner id lookup gives no car).
 - AI team sum above 0 in team play not seen (no AI kill of a human in that session).
 - Skill: real-play kill times need a person; the stand-off behaviour is the bigger lever.
 - The skill-5 runs 0 and 1 had a few seconds of a stray lab joiner.
+- Boots during the rc-draw lane's fps lock (2026-10-20 23:21-00:02, section 5.1) contaminated its fps runs of that window.

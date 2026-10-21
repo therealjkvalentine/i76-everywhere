@@ -938,7 +938,7 @@ old app is in `~/i76-archive-20261020/` as a tarball). Andrew's and Michael's Ma
 
 ## AI cars respawn, score like players, and fill every arena (2026-10-20 night; records/AI-MELEE-RESPAWN-2026-10-20.md)
 
-Staged as pack `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (proxy 5e712a2f + the three "Hope Springs (N AI)" files moved
+Staged as pack `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (proxy 8f8da929 + the three "Hope Springs (N AI)" files moved
 out), **on no machine yet**. Main deploys it to every machine at once when you say so (PC LAN copy, laptop, both Macs, Deck).
 
 1. **With Andrew (the test you asked for):** you host on any machine, Andrew joins. HOST > pick any stock arena (Suburbia,
