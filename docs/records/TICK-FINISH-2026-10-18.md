@@ -2368,3 +2368,139 @@ disassembly of 0x43a5d0 at 0x43ba3a / 0x43ba64 read this session, and each quant
 - **Control.** With `I76_COOP_AI=0`, 3 placements per boot ran in every boot.
 - **Not tested:** whether the owner can reach it without the trainer (a regen respawn also rebuilds the car).
 - Not fixed here (another lane's code); for main.
+
+
+## 21. Console gate on the promotion-19 candidate (2026-10-21)
+
+Lane: gate lane (owner James). Copy `i76-uncap-lab\exp-p19` (the release candidate + the promotion-19 set, `STRLKUP.DLL` 8f8da929,
+i76.exe 6319abf7). `install-p19.ps1 -Target exp-p19` printed **"already applied: all 94 staged files match, the 6 removed files are
+absent"** before anything ran. Nothing was installed into `release-candidate`, `daily-driver`, `golden`, `lan` or `twin-driver`.
+Session: the physical console (`query session`: `>console Active`, no `rdp-tcp` Active) at every boot below.
+
+### 21.1 Table
+
+| row | what | result | n | the number |
+|---|---|---|---|---|
+| install | `install-p19.ps1` on exp-p19 | PASS | 1 | "already applied" |
+| 2 | bookmark route (leg-b b1, save007) via PLAY-TICK.bat env | PASS | 3 of 3 (+ 3 of 3 in the first pass, 08:25) | every run completed through B1.10 |
+| 3 | trip through `PLAY-TICK.bat` | PASS | 2 of 2 | 115.0 / 119.7 fps (heartbeat); proxy tick line 41.667 x 2 (and 3 of 3 at 120 fps with the 7 s skip wait, s.21.6 item 6) |
+| 3 | trip through every other launcher (table 21.2) | PASS | 2 of 2 each, 12 launcher settings | 117-121.7 fps; every proxy tick line equals the launcher's value |
+| 4 | save screen, scratch bookmark | PASS | NO session 1, YES session 1 | NO: savegame.dir and every saveNNN.cmp unchanged; YES: only `save018.cmp` + `savegame.dir` changed (scratch slot 18); both put back (`savegame.dir` md5 fd5f1b70... before = after, `save018.cmp` gone) |
+| 6 | melee by menus | PASS | 1 | in mission, 120.5 frames/s |
+| S | saves byte-identical at the end | PASS | every gate pass | 35 files; the files the runs touch (vehscn.vcf / .vsf, I76PLYR.DEF, multicar.def, reconfig.spc, user.mel, a new user.rpr) put back |
+| D | folder drift | PASS | every gate pass | only `mciproxy.log` written; no lock, no .pretest left; dgVoodoo.conf = the launcher's copy |
+| 9 | T05 route fps in the cockpit | PASS (>= 108 over >= 2000 m) | 3 per launcher | table 21.3 |
+| J | jump chain | PASS with a flag | 3 boots x 3 descents per arm | s.21.4 |
+| R | AI respawn chain7 | PASS | base 1, head 5, headplain 3, second 5, migrate-rehost 2, soak 20 | 0 CRASH in head / headplain / second / migrate-rehost / soak; the base reproduces the crash |
+| A | polish item A on the bookmark route | PASS (the owner's loss is NOT reproduced) | 3 | s.21.5 |
+| M1a / M1b / M2 | instant melee, headless | PASS | 1 each | held 30 / 30 / 45 s, game alive, 0 crash lines |
+
+Re-runs: rows 2, 3, 4, 6 ran four times (passes 1-3 failed row 3 only, for the reasons in s.21.6; rows 2, 4, 6 passed every time); the fourth pass is the one counted. Row 3's
+failures in those passes are the other lane's `nitro.exe` and the harness (s.21.6), not the candidate.
+
+### 21.2 Row 3 through every launcher (2 trips each, `autotest-p19\gate-folder.ps1 -Only 3`, 120 fps expected)
+
+| launcher | proxy tick line (2 boots) | fps run 1 / 2 |
+|---|---|---|
+| `PLAY-TICK.bat` | 41.667 | 121.7 / 120 |
+| `PLAY-LAN.bat` | 41.667 | 120 / 120 |
+| `PLAY-TICK-ALT-TERRAIN.bat` | 41.667 | 117 / 119.7 |
+| `PLAY-P18-BALANCED.bat` (control) | none (no tick, as its header says) | 120 / 120 |
+| `PLAY-TICK-36 / -39` | 36.000 / 39.000 | 120 / 120; 118.3 / 120.7 |
+| `PLAY-TICK-42` | 41.667 | 120.3 / 120.3 |
+| `PLAY-TICK-44 / -47` | 44.000 / 46.875 | 120 / 120; 120.3 / 120.3 |
+| `PLAY-TICK-33 / -66` | 33.333 / 66.667 | 121 / 121; 118 / 121.3 |
+| `PLAY-TICK.bat 44` | 44.000 | 120.7 / 120.7 |
+| `tick-ms.txt` = 45 + `PLAY-TICK.bat` (file removed after, confirmed absent) | 45.000 | 120 / 121 |
+
+### 21.3 Row 9: the T05 route in the cockpit (console, `.fps-lock` held, no other i76 / nitro running, n 3 each)
+
+`autotest\t05-route-fps.ps1` was dry-run tested only. **It did not drive the car at the console**: it sends the route keys with
+`keybd_event(vk, 0, ...)` (no scan code) and the game reads scan codes (`autotest\lib\inputlib.ps1`: `KEYEVENTF_SCANCODE`). The ridge leg only
+looked fine because the car arrives from the opening with its speed; on the hill leg the car crawled 103 m in 200 s (median 120 fps over 103 m =
+FAIL on distance, in 4 boots, void). Fix in the copy `tools\p19-gate\rcd_drive_p19.py` (`MapVirtualKeyW` scan code + `KEYEVENTF_SCANCODE`;
+launched by `autotest-p19\t05-route-fps.ps1`); the original in `tools\rc-draw` is untouched. With the fix the car drives the 2.6 km.
+
+| launcher (preset) | hill-leg median fps (3 runs) | 1 % low (3 runs, median of runs) | lowest 1 s | metres | far clip |
+|---|---|---|---|---|---|
+| `PLAY-TICK.bat` (tick19-42) | 120.0 / 120.0 / 120.0 | 90.8 / 91.1 / 92.4 (**91.1**) | 117 / 111 / 115 | 2638 / 2609 / 2611 | 1800 |
+| `PLAY-TICK-ALT-TERRAIN.bat` (tick19alt-42) | 119.9 / 119.9 / 119.9 | 84.9 / 83.0 / 82.6 (**83.0**) | 107 / 105 / 105 | 2613 / 2605 / 2609 | 1800 |
+| `PLAY-P18-BALANCED.bat` (p18, control) | 120.0 / 120.0 / 120.0 | 100.9 / 98.0 / 96.7 (**98.0**) | 119 / 116 / 119 | 2620 / 2633 / 2622 | 1200 |
+
+Reading, plainly: the **median is the 120 fps cap on all three, so the median does not separate them**; the gate row (median >= 108 over >= 2000 m) passes
+for every run. What the console measures is the **1 % low: 91 fps for PLAY-TICK.bat, 83 for the alt terrain, 98 for P18** (P18 draws 1200 m,
+the candidate 1800 m). The owner's "99 fps" matches P18's 1 % low (96.7-100.9) and the 1 % low of the candidate runs is 8 fps under it; no run in
+this gate showed a median near 99. If his 99 was read with a frame counter that averages low points, it is the 1 % low region, not the typical frame.
+The 1 % low of PLAY-TICK.bat vs the control is 91 vs 98 (n 3 each, ranges do not overlap: 90.8-92.4 vs 96.7-100.9).
+
+### 21.4 Jump chain (headless, `.fps-lock` held, exp-jump, emu car, 3 boots x 3 crest descents per arm)
+
+Queue `tools\p19-gate\queue-p19.txt` (jf-queue / jf-run copies without the `.fps-lock` wait; queue5's first two arms as written, then
+the candidate's lab twin `Strlkup-head-lab.dll` 850e16ef = 491f8db + lab blocks, once with `I76_COOP_AI=0` and once with `I76_COOP_AI=1`).
+Captures `captures\p19-gate-jump`. The jf presets are the jump lane's (tick19-33 base with `I76_SIM_TICK_MS` set), not the candidate's tick19-42 file;
+physics keys are the same, draw / terrain keys differ and the boots are on the null renderer.
+
+| arm | take-off m/s | made | CRASH |
+|---|---|---|---|
+| t41.667, jf2 twin (queue5 as written), COOP_AI 0 | 51.49 x 3 (identical) | 3 / 3 | 0 |
+| t41.667, head-lab, COOP_AI 0 | 49.45 / 51.79 / 51.47 (50.90) | 3 / 3 | 0 |
+| t41.667, head-lab, **COOP_AI 1** | 49.45 / 51.79 / 51.47 (same set) | 3 / 3 | 0 (3 re-placements per boot) |
+| t33.333 + fix, jf2 | 50.97 / 50.95 / 49.45 (50.46) | 3 / 3 | 0 |
+| t33.333 + fix, head-lab, COOP_AI 0 and 1 | 50.97 / 50.95 / 49.45 (identical to jf2) | 3 / 3 each | 0 |
+
+9 of 9 clear at each tick; 33.3 with the fix jumps as 41.667 (50.5 vs 51.1 over n 9, expected ~50.5 against ~49.9). **Flag:** the 41.667 take-off is
+50.9 (head-lab) / 51.5 (jf2), at or above the top of the s.20.1 band (49.9 +- 1.0); every jump clears, and the retail figure is 50.0, so this is
+2.5 % on the high side, not a failure of the row's clear / no-crash criteria. `I76_COOP_AI=1` changes nothing in the physics and crashes nothing.
+
+### 21.5 Polish item A on the bookmark route (console, n 3)
+
+`tools\p19-gate\msp\probe-campaign.ps1` (a copy of the polish lane's, pointed at exp-p19 and the kill-safe leg-b): bookmark (save006) -> mission ->
+Esc -> ABORT MISSION -> the second-level menu ("Abort Mission": Replay / Reconfigure / Abort Mission / Exit Game, object 0x4fc440).
+Runs a1, a2, a3 (a2, a3 also hover each item and click Exit Game).
+
+- Esc menu and second level, every run: **GetCursorInfo flags 1, cursor handle 0x10003 (the arrow)**, clip = the whole client (0,0-3440,1440).
+- Engine mouse flag **0x535f6c (armed) = 0** on both pages (it is 1 only while driving).
+- Moves landing: SetCursorPos on the second level read back exactly ((1151,459) -> (1151,459) / (1152,459)); the hand sits on the item.
+- Click on Exit Game (a2, a3): the confirmation page opens and the game leaves (mode 0x20), i.e. the clicks land on the second-level page.
+- **The owner's loss is not reproduced (n 3, a1 without clicks)**; same finding as MENU-SOUND-POLISH A on the direct boot (n 9), now on his campaign route.
+- Player state put back afterwards (reconfig.spc, I76PLYR.DEF; the game's new `user.rpr` removed).
+
+### 21.6 What was voided and why; the harness faults found
+
+1. **Kill-by-name in the gate harness** (found 09:30 on a report from the nitro-port lane: its Gold i76.exe in `exp-nitro-port-gold` ended with exit -1 after 6-37 s
+   while my gate ran, `nitro.exe` untouched). The originals stop every `i76*` process on the machine:
+   - `autotest\saves\garage-ui.ps1:52` (`-Close`, reached through gate-folder's `Close-Game` after every row and in its `finally`),
+   - `autotest\saves\leg-b.ps1:562` ("killed leftover"), `autotest\menu-route-test.ps1:67`, `autotest\test-escmenu.ps1:67`:
+     `Get-Process | Where-Object { $_.ProcessName -like "i76*" } | Stop-Process -Force`.
+   - `autotest\option6-trip-test.ps1:45` refuses to start while ANY `i76*` runs and `:77` takes the first `i76` / `nitro` anywhere as "the launcher's game"
+     (it picked the other lane's `nitro.exe` and reported "NOT in -GameDir - killed, nothing clicked": rows 3 failed 0 of 2 for that reason, the candidate was never started).
+   - **Fix, in copies only** (`autotest-p19\`, made by `tools\p19-gate\patch-autotest.py` + two hand edits; the originals untouched): every one of these is scoped to the folder
+     under test (`$_.Path.StartsWith("$G\")`; `$Game` in gate-folder), and `option6-trip-test` looks only at this folder's process. The row scripts call `autotest-p19\gate-folder.ps1`.
+   - **In effect (originals):** the first pass (run a, 08:25-08:36, rows 2, 3, 4, 6, S, D) and the second pass (run b, 08:49-09:10, and its aborted retry to 09:12).
+     Both ended their games by name. The nitro lane's complaint covers 08:30-09:30. The third pass (09:13 on, the copies) and everything after used the scoped copies.
+   - Not found: the p19 reaper (stops only `mute-proc.ps1` watchers whose game is in exp-p19 and whose parent is gone), the mute watcher, `jf-run`, `sp-run`, `chain7` (all stop a pid they started).
+2. **The other direction (contamination):** the nitro lane's `nitro.exe` / Gold `i76.exe` ran during the first two passes and during parts of the third (08:35 on). Row 3 was the only row whose
+   result they changed (above). Rows 2, 4, 6, S, D of the first pass (14 PASS, 2 FAIL = row 3 only) and of the second pass agree with the third pass, which ran with scoped scripts
+   (16 PASS, 0 FAIL: `autotest-p19\runs\gate\20261021-092126\results.md`). The fourth pass (below, 09:21) is the one this section counts.
+3. **Void runs:** (a) the first-pass row 3 run 2 and the second-pass row 3 runs 1 and 2 (nitro.exe picked up); (b) the third pass (09:13-09:21): rows 2, 4, 6 passed, row 3 failed 0 of 2
+   because my own edit left a comment in front of a closing brace in `option6-trip-test.ps1` (parser error, nothing booted); fixed and re-run as the fourth pass (16 of 16);
+   (c) the owner took the screen at 08:36 (coordinator's message): the row in progress (second pass, try 2) was abandoned, the gate waited for `.gate-resume` (08:48), re-ran; (d) the first four
+   row-9 boots (hill leg 103 m, the missing scan code, s.21.3); (e) a row-3 test with the 7 s wait that failed 0 of 3 for the same comment-brace slip (fixed, then 3 of 3).
+4. **Windows Security Alerts:** two `rundll32` "Windows Defender Firewall has blocked some features of this app" dialogs for `exp-nitro-mp\...\nitro.exe` stayed on the console from ~10:25;
+   they hold the foreground. I did not click them (a security decision for the owner / the nitro lane). I minimised both (reversible: they are in the taskbar). They were not the cause of the row-9 failure (checked: same
+   103 m with them minimised); the missing scan code was.
+5. **Boots under row 9 / the jump chain:** `.fps-lock` was held from 10:25 to 11:06 (jump chain; headless M rows ran after it) and 12:59-13:50 (row 9, n 9 + 4 diagnostic boots earlier); the
+   other lane's `nitro.exe` ran during the 10:25-10:36 row-9 diagnostics (void anyway), not during the n 3 x 3 measurements (no i76 / nitro process 12:59 until the runs, the script waits 20 s for none).
+6. **Intro-skip wait (owner's note):** the gate's trip scripts wait until the game is 12 s old before the Esc / Enter skip. In the copy `autotest-p19\option6-trip-test.ps1` it is 7 s now
+   (the original is 12 s; backup `tools\p19-gate\option6-trip-test.12s.bak`). Test: PLAY-TICK.bat row 3, 3 trips, **3 of 3 up at 120 fps** (n 3). Not applied to the originals.
+7. **M rows, twin:** the candidate binary has no headless shell input, so M1a / M1b / M2 ran on `exp-p19-twin` (a robocopy of exp-p19 without `_rollback`) with the AI lane's lab twin of the same commit,
+   `Strlkup-f3lab.dll` ccbe3694 (the one chain7 uses), tick19-42 env, through `tools\sp-fix\sp-gate-rows.ps1 -Game exp-p19-twin -Preset tick19-42`. exp-p19 itself was never given a twin DLL.
+   The jump chain ran on exp-jump (its own null renderers and twin proxy swap), not on exp-p19 (the swap would have changed the candidate's proxy).
+
+### 21.7 Clean-up and verdict
+
+Persisted mutes cleared for exp-p19, exp-jump, exp-p19-twin, game-mpo-a / b / c / d (one stored mute had to be cleared, in exp-p19). `.console-owner` and `.fps-lock` released; no
+`tick-ms.txt` left in exp-p19; saves put back (S PASS); `exp-p19\Interstate 76\STRLKUP.DLL` still 8f8da929.
+
+**Verdict: the candidate is fit to install.** Every row passes on the fourth (scoped-harness) pass or later. Two things to carry: the 41.667 jump take-off is ~1 m/s above s.20.1's number
+(clears 9 of 9), and PLAY-TICK.bat's cockpit 1 % low on T05 is 91 fps (83 on the alt terrain, 98 on P18), median at the 120 cap.

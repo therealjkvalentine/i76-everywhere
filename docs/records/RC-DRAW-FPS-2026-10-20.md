@@ -212,3 +212,21 @@ Dry-run only here (this lane may not take the console): `t05-route: folder ..., 
 - **Lab hygiene seen tonight:** while this lane held `.fps-lock`, exp-airespawn (22:51) and exp-jump (20:08) started games; the
   affected fps boots were dropped and re-run. The cleanup lane zipped `builds\tick-range-20261020` mid-run (this lane's restore
   source); the needed files were taken from the zip into `builds\rc-draw-20261020\base\`.
+
+## 8. Console figures, 2026-10-21 (gate lane: row 9 on the promotion-19 candidate, lab `exp-p19`)
+
+Physical console, `.fps-lock` held, no other i76 / nitro process during the runs, n 3 per launcher, each boot through the launcher's own preset into T05 (`autotest-p19\t05-route-fps.ps1`,
+the hill leg 2.6 km at ~22 m/s; TICK-FINISH s.21.3).
+
+| launcher | far clip | hill-leg median (n 3) | 1 % low (n 3) | lowest 1 s | metres |
+|---|---|---|---|---|---|
+| `PLAY-TICK.bat` (tick19-42) | 1800 | 120.0 / 120.0 / 120.0 | 90.8 / 91.1 / 92.4 | 117 / 111 / 115 | 2609-2638 |
+| `PLAY-TICK-ALT-TERRAIN.bat` | 1800 | 119.9 / 119.9 / 119.9 | 84.9 / 83.0 / 82.6 | 107 / 105 / 105 | 2605-2613 |
+| `PLAY-P18-BALANCED.bat` (control) | 1200 | 120.0 / 120.0 / 120.0 | 100.9 / 98.0 / 96.7 | 119 / 116 / 119 | 2620-2633 |
+
+The median is the 120 fps cap for all three: it is not the number to compare. **The 1 % low is: 91 (TICK), 83 (alt terrain), 98 (P18).** No console run read 99 as a median;
+P18's 1 % low is 96.7-100.9, which is where an owner's "99" fits, and the candidate is 8 fps under it at 1 % low (ranges do not overlap). The gate row (median >= 108 over >= 2000 m) passes for every run.
+The alt terrain (LOD 24, freeze only) has the lowest 1 % low, 8 fps under the staged set: the headless ordering of s.2 / s.5 (119.4 / 84.5 vs 116.2 / 78.0) holds at the console for the 1 % low.
+
+**Correction to s.6:** row 9's key sender (`rcd_drive.py --input keys`) sent keys without a scan code; the game reads scan codes, so at the console the car did not drive the hill leg (103 m, median over a standing car).
+The fixed sender is `tools\p19-gate\rcd_drive_p19.py` (the lab, `MapVirtualKeyW` + `KEYEVENTF_SCANCODE`); `autotest\t05-route-fps.ps1` as committed still calls the old one and would FAIL on distance at the console.
