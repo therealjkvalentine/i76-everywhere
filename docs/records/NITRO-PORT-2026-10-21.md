@@ -233,6 +233,68 @@ The 3 m drop and the 40 m drop's damage are identical on both exes. The 1 m half
 on Gold depending on where in the tick the drop starts; Nitro gave 8 steps 6 of 6 - inside the same quantised set, the
 pattern of the T05 jumps' later placements (s.3.2). Bounce on Nitro's own missions was not measured.
 
+## 8. Third session (2026-10-21, evening): T05 rams headless, NITSHELL M1 / K1-K4
+
+### 8.1 T05 sign and barricade rams (item 2)
+
+Harness: lab tools/nitro-port/np_ram.py = tools/framerate/rate-ab-live.py `ram --direct` with Nitro's addresses. Two things
+needed changing, and they apply to both exes:
+- Rotation goes through the trainer's STORE_STATE + SET_STATE. On both exes the sim tick undoes outside writes to obj+0x18
+  (np_rottest.py).
+- Keys go through a lab drive block (insert-npdrive.py, I76_NP_DRIVE=1: key bytes written before input_ApplyToEntity). A
+  private desktop gets no keyboard.
+
+Builds: w17-lab-drive (lab twin) and w17 (plain).
+
+**Finding: on Nitro the sign sweep faulted on its first knock-off.** The sweep's sign sound (polish.c, via st_sign_sound)
+called Gold's 0x4231f0 with Gold's string address 0x4f1578. The fault turned the sweep off, so no post was knocked (box 4:
+0 of 7; box 0: 0 of 7). Fix: NA() on 0x4231f0 / 0x4221d0 / 0x4f1578 (commit 6d20e40). Gold headless smoke w16 vs w17: same
+line set, 0 crash lines (n 2 each).
+
+| run (T05, 20 m/s, 40 m run-up) | Gold | Nitro |
+|---|---|---|
+| sh38 signs, BOX=4 (7 posts) | 7 / 7 knocked (n 1, w16 twin) | 7 / 7 and 7 / 7 knocked (n 2) |
+| swend barricade, BOX=4 (10 approaches) | 7 knocked, 3 "?" | 7 knocked, 3 "?" (same rams) |
+| swend barricade, no box (10 approaches) | 8 knocked, 2 "?" | 8 knocked, 2 "?" (same rams) |
+| class-4 hits scored by breakable-speed | 10 (BOX=4) / 0 | 10 (BOX=4) / 0 |
+
+What the table shows:
+- Nitro matches Gold ram for ram, including the same lateral offsets and the same outcome per approach.
+- Every sign knock-off on both exes came from the sweep, after the deferral to the drawn car. Gold's log shows the same
+  thing.
+- The harness's contact column reads 0 on both exes: the IMPACT / coll_events path does not fire for these victims in this
+  setup. So PROMOTIONS row 17's barricade numbers (G+BOX=4 7 / 7 contacted vs control 3 / 15) are not reproduced here.
+- The knocked-over count does not separate box from control at this approach set (7 vs 8 on both exes). The A/B that holds
+  is Gold = Nitro.
+
+### 8.2 NITSHELL M1 and K1-K4 (item 3)
+
+`tools/patch-nitshell-modals.py` (commit 66bdd1a) now carries M2 + K1-K4. M1 does not apply to Nitro, so it is not ported.
+
+**M1.** Nitro's Modal_VehicleRejected 0x10022770 draws frame 0x21 of its own modal art table: DATABASE.TVF item 0x1e, 48
+frames, loaded at 0x10025a45. Gold's draws frame 0x22 of MW2 item 0x24, which has only 34 frames. Frame 0x21 is the 282 x 93
+"CHEATING BASTARD ALERT! YOU CANNOT PLAY WITH A HACKED VEHICLE" panel, with OK on the hit rect (rendered:
+lab captures/nitro-port-20261021/nitshell-art).
+
+**The four K sites:**
+- K1, Modal_VehicleRejected: Enter / Space close it.
+- K2, Modal_CdRetry 0x10022ae0 ("SUGAR, PUT IN THE NITRO PACK CD NOW", the CD check at 0x1000899e): Enter = OK, Esc = CANCEL.
+  Its no-click path 0x10022c28 (a pump call) is kept.
+- K3, Modal_YesNo: Y = YES, N / Esc = NO.
+- K4, the list picker 0x10022e00 (Nitro's generalised Modal_OneButton; type 0x12 = CHOOSE A TEAM): Enter = DONE (current
+  selection), Esc = CANCEL (-1).
+
+**Caves.** They sit at 0x100396c0..0x100397df, after F7's; .text VirtualSize goes to 0x38800, so F7 must run first. Each cave
+saves esi, which is live in the picker.
+
+**Checks.**
+- Emulation 53 / 53, with stack, esi, ebx and ebp kept.
+- The script refuses a file with one hook byte flipped.
+- A second run writes nothing; --check reports all five patches present.
+
+Staged: lab builds/nitro-port-20261021/nitshell/nitshell-f7-m2-k1234.dll (a32ffba6), installed nowhere, not booted. Not
+ported: the three-button modal 0x100228c0, which has no Gold counterpart.
+
 ## Files
 
 - i76-everywhere: `music-fix/nitro.c`, `music-fix/sites_nitro.h` (generated), `tools/nitro-sites/{gen_sites.py, uses.py,
