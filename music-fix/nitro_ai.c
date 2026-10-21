@@ -486,10 +486,14 @@ static void __cdecl nai_score_set(int id, int score, int kills, int deaths) {   
  * fires for 1.5 s; NMP_LAB_OWN_HP=<n> cuts the local car to n % at each spawn (so the AI kill it). ---- */
 static volatile LONG g_nai_lab_fire; static SHORT (WINAPI *p_nai_gaks)(int); static SHORT (WINAPI *p_nai_gks)(int);
 static int nai_fire_vk(int vk) { return vk == VK_SPACE || (vk >= '1' && vk <= '5') || vk == VK_LBUTTON; }
-static SHORT WINAPI nai_lab_gaks(int vk) { if (g_nai_lab_fire && nai_fire_vk(vk)) return (SHORT)0x8001; return p_nai_gaks ? p_nai_gaks(vk) : 0; }
-static SHORT WINAPI nai_lab_gks(int vk) { if (g_nai_lab_fire && nai_fire_vk(vk)) return (SHORT)0x8000; return p_nai_gks ? p_nai_gks(vk) : 0; }
+static volatile LONG g_nai_lab_keyhits;
+static SHORT WINAPI nai_lab_gaks(int vk) { if (g_nai_lab_fire && nai_fire_vk(vk)) { g_nai_lab_keyhits++; return (SHORT)0x8001; } return p_nai_gaks ? p_nai_gaks(vk) : 0; }
+static SHORT WINAPI nai_lab_gks(int vk) { if (g_nai_lab_fire && nai_fire_vk(vk)) { g_nai_lab_keyhits++; return (SHORT)0x8000; } return p_nai_gks ? p_nai_gks(vk) : 0; }
+static DWORD WINAPI nai_lab_fire_thread(LPVOID p) {   /* LAB: the weapon_fire held byte 0x53490b (read at 0x4b14d5) while a window is open */
+    (void)p; for (;;) { if (g_nai_lab_fire) *(volatile BYTE *)0x0053490b = 1; Sleep(1); }
+}
 static void nai_lab_tick(void) {
-    static BYTE *cut; static DWORD next, fire_until; char v[8]; int shoot, own;
+    static BYTE *cut, *tgt; static DWORD next, fire_until, follow; char v[8]; int shoot, own;
     BYTE **root = ((BYTE **(__cdecl *)(void))(DWORD_PTR)a_root)(), *me = root ? *root : NULL; DWORD now = GetTickCount();
     shoot = GetEnvironmentVariableA("NMP_LAB_SHOOT", v, sizeof v) ? atoi(v) : 0;
     own = GetEnvironmentVariableA("NMP_LAB_OWN_HP", v, sizeof v) ? atoi(v) : 0;
@@ -503,14 +507,24 @@ static void nai_lab_tick(void) {
         next = now + shoot * 1000;
         for (q = 0; q < g_nai_pool_n; q++) { BYTE *o = g_nai_li[q] >= 0 ? nai_object(g_nai_li[q]) : NULL; double d; if (!o || g_nai_parked[q] || !nai_alive(o)) continue;
             d = nai_d2(o, *(double *)(me + 0x40), *(double *)(me + 0x50)); if (d < bd) { bd = d; best = o; } }
-        if (best) {
-            float fx = *(float *)(best + 0x18 + 24), fz = *(float *)(best + 0x18 + 32); int hd = (int)(atan2(fx, fz) * 57.29578); double r = hd / 57.29578;
-            nai_teleport(me, *(double *)(best + 0x40) - sin(r) * 14.0, *(double *)(best + 0x50) - cos(r) * 14.0, hd);
-            fire_until = now + 1500;
-            NMP_LOG("  nitro-ai: LAB shoot - behind '%.8s' at %.1f,%.1f", (char *)best, *(double *)(best + 0x40), *(double *)(best + 0x50));
+        if (tgt) {   /* the last window: fire keys read, weapons, the target's health */
+            int w8[8]; memset(w8, 0, sizeof w8); ((int (__cdecl *)(BYTE *, int *))(DWORD_PTR)n_wlist)(me, w8);
+            NMP_LOG("  nitro-ai: LAB window done - fire keys read %ld times, own weapons %d (%d %d %d), target %s %.0f%%", g_nai_lab_keyhits, w8[0], w8[1], w8[2], w8[3],
+                    nai_alive(tgt) ? "live" : "dead", nai_alive(tgt) ? ((double (__cdecl *)(BYTE *))(DWORD_PTR)n_health)(tgt) : 0.0);
+            g_nai_lab_keyhits = 0;
         }
+        if (best) { tgt = best; fire_until = now + 3000; follow = 0;
+            NMP_LOG("  nitro-ai: LAB shoot - behind '%.8s' at %.1f,%.1f", (char *)best, *(double *)(best + 0x40), *(double *)(best + 0x50)); }
+    }
+    if ((LONG)(fire_until - now) > 0 && tgt && nai_alive(tgt) && now - follow > 200) {   /* stay 10 m behind the target, its heading, while firing */
+        float fx = *(float *)(tgt + 0x18 + 24), fz = *(float *)(tgt + 0x18 + 32); int hd = (int)(atan2(fx, fz) * 57.29578); double r = hd / 57.29578;
+        follow = now;
+        nai_teleport(me, *(double *)(tgt + 0x40) - sin(r) * 10.0, *(double *)(tgt + 0x50) - cos(r) * 10.0, hd);
     }
     g_nai_lab_fire = (LONG)(fire_until - now) > 0;   /* the fire keys (Space, 1-5) read as held: nitro.exe's GetAsyncKeyState / GetKeyState */
+    {   static int started; static const BYTE sig[5] = { 0xa0, 0x0b, 0x49, 0x53, 0x00 };
+        if (!started++) { if (memcmp((void *)0x004b14d5, sig, 5) == 0) { CloseHandle(CreateThread(0, 0, nai_lab_fire_thread, 0, 0, 0)); NMP_LOG("  nitro-ai: LAB weapon_fire byte 0x53490b held during windows (reader 0x4b14d5 checked)"); }
+                          else NMP_LOG("  nitro-ai: LAB weapon_fire reader at 0x4b14d5 differs - byte not held"); } }
     if (!p_nai_gaks) { static int tried; if (!tried++) { p_nai_gaks = (SHORT (WINAPI *)(int))NMP_IAT(GetModuleHandleA(NULL), "USER32.dll", "GetAsyncKeyState", (void *)nai_lab_gaks);
         p_nai_gks = (SHORT (WINAPI *)(int))NMP_IAT(GetModuleHandleA(NULL), "USER32.dll", "GetKeyState", (void *)nai_lab_gks);
         NMP_LOG("  nitro-ai: LAB fire keys through nitro.exe's GetAsyncKeyState %s / GetKeyState %s", p_nai_gaks ? "hooked" : "NOT hooked", p_nai_gks ? "hooked" : "NOT hooked"); } }
