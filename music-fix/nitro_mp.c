@@ -93,6 +93,7 @@ static WORD g_hello_from;                                /* joiner: host id from
 static int g_at_selftest, g_at_sent, g_at_recv;
 /* hooks for the AI layer on top (nitro_ai.c): packets of ours other than 'AH', every pump call in an ARENA+ session */
 static void (*g_nmp_rx_hook)(WORD from, const BYTE *p, int n); static void (*g_nmp_tick_hook)(int role);
+static void (*g_nmp_shell_hook)(HMODULE sh);   /* nitro_ai.c: its nitshell sites (co-op mission check) */
 
 static int nmp_arena(void) { return g_nmp_on && g_nmp_species == NMP_SPECIES_ARENA && *(volatile int *)(DWORD_PTR)a_net; }
 static WORD nmp_me(void) { return *(volatile WORD *)(DWORD_PTR)a_me; }
@@ -260,6 +261,7 @@ static void nmp_attach_shell(HMODULE sh) {
     if (e) nmp_real_enum = (nmp_enum_fn)e; if (o) nmp_real_open = (nmp_open_fn)o;
     NMP_LOG("  nitro-mp: nitshell hooks: dpEnumSessions %s (one call, species 0, filtered to 604 + 7676), dpOpen %s; lobby subscription: stub (%d)",
             e ? "ok" : "MISSING", o ? "ok" : "MISSING", nmp_lobby_subscribe());
+    if (g_nmp_shell_hook) g_nmp_shell_hook(sh);
 }
 
 /* ---- exe ---- */

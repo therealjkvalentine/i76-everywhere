@@ -59,7 +59,11 @@ static HMODULE g_nai_shell;
 /* ---- the session / arena ---- */
 static int nai_combat_name(const char *m) { size_t L = strlen(m); return L > 4 && _stricmp(m + L - 4, ".cbt") == 0; }
 static int g_nai_inj; static char g_nai_inj_m[16];
-static int nai_on(void) { return g_nai_ok && nmp_arena() && g_nai_inj && _strnicmp((char *)(DWORD_PTR)n_mission, g_nai_inj_m, 15) == 0; }
+static int g_nai_coop; static char g_nai_coop_m[16];   /* CO-OP SCENES: an ARENA+ session on one of Nitro's own campaign missions pNN.msn */
+static int nai_coop_name(const char *m) { return (m[0] | 0x20) == 'p' && m[1] >= '0' && m[1] <= '9' && m[2] >= '0' && m[2] <= '9' && _stricmp(m + 3, ".msn") == 0; }
+static int nai_pool_on(void) { return g_nai_ok && nmp_arena() && g_nai_inj && _strnicmp((char *)(DWORD_PTR)n_mission, g_nai_inj_m, 15) == 0; }
+static int nai_coop_on(void) { return g_nai_ok && nmp_arena() && g_nai_coop && _strnicmp((char *)(DWORD_PTR)n_mission, g_nai_coop_m, 15) == 0; }
+static int nai_on(void) { return nai_pool_on() || nai_coop_on(); }
 
 /* ---- label table and cars ---- */
 static BYTE *nai_tab(void) { return *(BYTE **)(DWORD_PTR)(n_lab + 4); }
@@ -88,10 +92,12 @@ static const char *const g_nai_cars[] = { "valepre1", "valepre2", "valepre3", "v
 static int nai_pool_index(int li) { int q; for (q = 0; q < g_nai_pool_n; q++) if (g_nai_li[q] == li) return q; return -1; }
 static int nai_parked_li(int li) { int q = nai_pool_index(li); return q >= 0 && g_nai_parked[q]; }
 static int nai_ordinal(int li) { return nai_pool_index(li); }
+static void nai_coop_load(const char *m);
 static int __cdecl nai_odef(int *a, BYTE *b, int *c) {   /* replaces `call 0x4b3630` at 0x4bd4bf */
     int r = ((int (__cdecl *)(int *, BYTE *, int *))(DWORD_PTR)0x004b3630)(a, b, c), i, k, made = 0; unsigned h = 0;
     const char *m = (const char *)(DWORD_PTR)n_mission; BYTE *tab;
-    g_nai_inj = 0; g_nai_pool_n = 0;
+    g_nai_inj = 0; g_nai_pool_n = 0; g_nai_coop = 0;
+    if (g_nai_ok && nmp_arena() && nai_coop_name(m)) { nai_coop_load(m); return r; }
     if (!g_nai_ok || !nmp_arena() || !nai_combat_name(m)) {
         if (g_nai_ok && nai_combat_name(m)) NMP_LOG("  nitro-ai: '%s' outside an ARENA+ session - stock arena, no AI pool", m);
         return r;
@@ -292,7 +298,7 @@ static void nai_host_tick(void) {
 }
 static int __cdecl nai_melee_flag(void) {            /* replaces `call 0x42fee0` at 0x4079a2 */
     int r = *(volatile int *)(DWORD_PTR)n_spmelee;
-    if (!r && nai_on() && nmp_role() == 1) nai_host_tick();
+    if (!r && nai_pool_on() && nmp_role() == 1) nai_host_tick();
     return r;
 }
 static void __cdecl nai_ai_frame(void) {             /* replaces `call 0x4076f0` (ai_FrameTick) at 0x432e24: joiners mirror */
@@ -313,18 +319,21 @@ static int nai_weapon_mask(BYTE *o) {
 }
 static int nai_is_mirrored(BYTE *o) {
     int q; if (!o) return 0;
+    if (nai_coop_on()) { int i, c = nai_count(); for (i = 0; i < c; i++) if (nai_object(i) == o) return 1; return 0; }
     for (q = 0; q < g_nai_pool_n; q++) if (g_nai_li[q] >= 0 && nai_object(g_nai_li[q]) == o) return 1;
     return 0;
 }
+static int nai_sync_n(void) { return nai_coop_on() ? nai_count() : g_nai_pool_n; }   /* the cars the host owns: pool, or every mission vehicle (co-op) */
+static int nai_sync_li(int k) { return nai_coop_on() ? (nai_object(k) ? k : -1) : g_nai_li[k]; }
 static int __cdecl nai_class_damage(BYTE *o, int a, int rec) {   /* replaces `call 0x44fd80` x5 */
     if (nai_on() && nmp_role() == 2 && nai_is_mirrored(o)) return 0;
     return ((int (__cdecl *)(BYTE *, int, int))(DWORD_PTR)n_cdamage)(o, a, rec);
 }
 static void nai_joiner_fire(void) {
     int q, k, w8[8]; DWORD now = GetTickCount();
-    for (q = 0; q < g_nai_pool_n; q++) {
-        int li = g_nai_li[q], m; BYTE *o;
-        if (li < 0 || !(m = g_nai_mask[li]) || (LONG)(now - g_nai_until[li]) > 0 || !(o = nai_object(li))) continue;
+    for (q = 0; q < nai_sync_n(); q++) {
+        int li = nai_sync_li(q), m; BYTE *o;
+        if (li < 0 || li >= NAI_MAXL || !(m = g_nai_mask[li]) || (LONG)(now - g_nai_until[li]) > 0 || !(o = nai_object(li))) continue;
         memset(w8, 0, sizeof w8);
         if (((int (__cdecl *)(BYTE *, int *))(DWORD_PTR)n_wlist)(o, w8) != 1) continue;
         for (k = 0; k < w8[0] && k < 5; k++) if (m & (1 << k)) ((int (__cdecl *)(int, int))(DWORD_PTR)n_trigger)(w8[1 + k], 1);
@@ -339,16 +348,17 @@ static void nai_at_send(void) {
     static DWORD last; static unsigned rounds; BYTE pkt[8 + 2 * 100]; int n = 0, q; DWORD now = GetTickCount();
     if (now - last < 100) return;
     last = now; rounds++;
-    for (q = 0; q <= g_nai_pool_n; q++) {
-        int li = q < g_nai_pool_n ? g_nai_li[q] : -1; BYTE *o = li >= 0 ? nai_object(li) : NULL;
-        if (o && g_nai_parked[q] && now - g_nai_park_since[li] > 1500 && rounds % 20) o = NULL;
+    int sn = nai_sync_n(), coop = nai_coop_on();
+    for (q = 0; q <= sn; q++) {
+        int li = q < sn ? nai_sync_li(q) : -1; BYTE *o = li >= 0 && li < NAI_MAXL ? nai_object(li) : NULL;
+        if (o && !coop && g_nai_parked[q] && now - g_nai_park_since[li] > 1500 && rounds % 20) o = NULL;
         if (o) {
             BYTE *r = pkt + 8 + n * 100;
-            *(WORD *)r = (WORD)li; r[2] = (BYTE)nai_weapon_mask(o); r[3] = (BYTE)(0x80 | nai_team(o) | (g_nai_parked[q] ? 0x40 : 0));
+            *(WORD *)r = (WORD)li; r[2] = (BYTE)nai_weapon_mask(o); r[3] = (BYTE)(0x80 | nai_team(o) | (!coop && g_nai_parked[q] ? 0x40 : 0));
             ((void (__cdecl *)(BYTE *, float *))(DWORD_PTR)a_pack)(o, (float *)(r + 4));
             n++;
         }
-        if (n && (n == 2 || q == g_nai_pool_n)) {
+        if (n && (n == 2 || q == sn)) {
             *(WORD *)pkt = NMP_TAG_AT; pkt[2] = 0; pkt[3] = (BYTE)n; *(float *)(pkt + 4) = *(float *)(pkt + 12);
             if (nmp_send(nmp_group(), pkt, 8 + n * 100, 0) == 0) g_nai_at_sent += n;
             n = 0;
@@ -361,7 +371,13 @@ static void nai_at_apply(const BYTE *pkt, int size) {
     if (size < 8 + n * 100 || n > 2) return;
     for (j = 0; j < n; j++) {
         const BYTE *r = pkt + 8 + j * 100; int li = *(WORD *)r, q = nai_pool_index(li); float t = *(float *)(r + 4); BYTE *o;
-        if (q < 0 || li >= NAI_MAXL || !(o = nai_object(li))) continue;
+        if ((q < 0 && !nai_coop_on()) || li >= NAI_MAXL || !(o = nai_object(li))) continue;
+        if (q < 0) {   /* co-op: a mission vehicle - mirror it, no pool state */
+            if (t <= g_nai_seen_t[li] && t > g_nai_seen_t[li] - 2.0f) continue;
+            g_nai_seen_t[li] = t; g_nai_mask[li] = r[2]; g_nai_until[li] = GetTickCount() + 150;
+            ((void (__cdecl *)(BYTE *, const float *))(DWORD_PTR)n_mirror)(o, (const float *)(r + 4));
+            g_nai_at_applied++; continue;
+        }
         if (t <= g_nai_seen_t[li] && t > g_nai_seen_t[li] - 2.0f) continue;
         g_nai_seen_t[li] = t;
         g_nai_parked[q] = (r[3] & 0x40) != 0;        /* the joiner's view of the fill: rows follow it */
@@ -536,6 +552,101 @@ static void nai_lab_tick(void) {
     }
 }
 
+
+/* ---- CO-OP SCENES (item 5; owner: Nitro's own P01-P19 only, no Gold missions) [Gold: coop_ai_* + coop_spawn] ----
+ * An ARENA+ session whose mission is pNN.msn (listed only while the CO-OP SCENES box is on; lab: arena_poc's
+ * NMP_LAB_COOP_LIST). Every machine loads the mission; the HOST runs the script and the AI (ai_FrameTick is skipped on
+ * joiners), every mission vehicle goes to the joiners in 'AT' (2 per packet) and is mirrored there, damage to them is
+ * computed on the host only, their trigger pulls are replayed. The host's car is the mission's own player object
+ * (objFlags 0x10), adopted at the network spawn (7 calls of the player spawner 0x44c6f0 [0x451180]) and linked to the
+ * host's id with 0x446a90 [0x454750] - the script watches that object. Joiners need spawn points: a campaign mission has
+ * none, so 4 team-0 spawn records are written beside the player object at load (the spawner 0x44c930 / 'SP' read
+ * them). Not ported: CB radio ('AC'), objectives ('AO'), the scene chain ('AM'), per-joiner scaling. */
+static BYTE *nai_mission_player(void) {
+    BYTE *tab = nai_tab(); int i, k, c = nai_count();
+    for (i = 0; tab && i < c; i++) {
+        BYTE *o = *(BYTE **)(tab + i * 16 + 8);
+        if (!o || *(int *)(o + 0x6c) != 1 || !(o[0x10] & 0x10) || !*(BYTE **)(o + 0x70) || ((*(BYTE **)(o + 0x70))[0x458] & 0x20)) continue;
+        for (k = 0; k < 16; k++) { BYTE *p = NMP_ROW(k); if (*(WORD *)p && *(BYTE **)(p + 0x28) == o) break; }
+        if (k == 16) return o;
+    }
+    return NULL;
+}
+static volatile LONG g_nai_adopted;
+static void nai_coop_load(const char *m) {
+    BYTE *pl = nai_mission_player(); int *cnt = (int *)(DWORD_PTR)n_spcount, k, made = 0;
+    g_nai_coop = 1; strncpy(g_nai_coop_m, m, 15); g_nai_coop_m[15] = 0;
+    if (pl && *cnt == 0) {
+        for (k = 0; k < 4; k++) {
+            BYTE *rec = (BYTE *)(DWORD_PTR)(n_sptab + k * 0x40);
+            memcpy(rec, pl + 0x18, 0x40);
+            *(double *)(rec + 0x28) += 25.0 * (k + 1);
+            made++;
+        }
+        *cnt = made;
+    }
+    NMP_LOG("  nitro-ai: '%s' - CO-OP SCENE (ARENA+): mission player object %p (%.8s) at %.1f,%.1f; team-0 spawn points %d (%d written beside it); %d label(s)",
+            m, (void *)pl, pl ? (char *)pl : "-", pl ? *(double *)(pl + 0x40) : 0.0, pl ? *(double *)(pl + 0x50) : 0.0, *cnt, made, nai_count());
+}
+static char *__cdecl nai_coop_spawn(short id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x44c6f0` x7 */
+    WORD host = nmp_hostid(), me = nmp_me();
+    if (nai_coop_on() && host && (WORD)id == host) {
+        BYTE *o = nai_mission_player();
+        if (o) {
+            unsigned __int64 nm = ((unsigned __int64 (__cdecl *)(short))(DWORD_PTR)0x00446b40)(id);
+            if (!nm && data && size) nm = ((unsigned __int64 (__cdecl *)(void *, size_t))(DWORD_PTR)0x004484e0)(data, size);
+            if ((WORD)id != me) *(DWORD *)(o + 0x10) = (*(DWORD *)(o + 0x10) & ~0x10u) | 0x20;   /* the host's remote car here */
+            ((int (__cdecl *)(short, DWORD, DWORD, BYTE *))(DWORD_PTR)0x00446a90)(id, (DWORD)nm, (DWORD)(nm >> 32), o);
+            g_nai_adopted++;
+            NMP_LOG("  nitro-ai: co-op - host (id %u) %s the mission's player object %p ('%.8s')", id, (WORD)id == me ? "drives" : "is shown as", (void *)o, (char *)o);
+            return (char *)o;
+        }
+    }
+    return ((char *(__cdecl *)(short, int, int, void *, size_t))(DWORD_PTR)0x0044c6f0)(id, idx, type, data, size);
+}
+static void nai_coop_status(int role) {
+    char line[1600]; int len, i, c = nai_count(), shown = 0, alive = 0, dead = 0; BYTE **root = ((BYTE **(__cdecl *)(void))(DWORD_PTR)a_root)();
+    len = sprintf(line, "  nitro-ai: t %lu %s %.12s CO-OP adopted %ld AT sent %ld applied %ld; own car %s; mission cars", GetTickCount(), role == 1 ? "host" : "joiner",
+                  (char *)(DWORD_PTR)n_mission, g_nai_adopted, g_nai_at_sent, g_nai_at_applied, root && *root ? ((*root)[0x10] & 0x10 ? "= mission player" : "network car") : "-");
+    for (i = 0; i < c; i++) {
+        BYTE *o = nai_object(i); if (!o) continue;
+        if (nai_alive(o)) alive++; else dead++;
+        if (shown < 8 && len < 1400) { len += sprintf(line + len, " [L%d %.8s %s %.1f,%.1f]", i, (char *)o, nai_alive(o) ? "live" : "dead", *(double *)(o + 0x40), *(double *)(o + 0x50)); shown++; }
+    }
+    len += sprintf(line + len, " = %d live %d dead; humans", alive, dead);
+    for (i = 0; i < 16; i++) { BYTE *p = NMP_ROW(i), *o = *(WORD *)p ? *(BYTE **)(p + 0x28) : NULL; if (*(WORD *)p) len += sprintf(line + len, " %u%s", *(WORD *)p, o ? "" : "(no car)");
+        if (o && len < 1550) len += sprintf(line + len, "@%.1f,%.1f", *(double *)(o + 0x40), *(double *)(o + 0x50)); }
+    NMP_LOG("%s", line);
+}
+
+/* nitshell's mission-file check 0x1002fda0 (host create 0x1002fadc, join reply 0x10030106) knows only the arena
+ * extensions (.cbt .rac .cf2-4 .lvl) and answers "Mission file %s not found" for anything else. In a co-op scene
+ * (ARENA+ species, pNN.msn) it is answered here instead: CRC-32 of the loose file miss16\ (else miss8\) on both sides,
+ * so host and joiner compare the same way the shell does for arenas. Any other mission: the stock check. */
+static BYTE *g_nai_sh;
+static int nai_call(DWORD site, DWORD target, void *fn, const char *what);
+static DWORD nai_crc32_file(const char *path) {
+    HANDLE h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL); BYTE buf[4096]; DWORD n, c = 0xffffffffu, k; int b;
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    while (ReadFile(h, buf, sizeof buf, &n, NULL) && n) for (k = 0; k < n; k++) { c ^= buf[k]; for (b = 0; b < 8; b++) c = (c >> 1) ^ (0xedb88320u & (0u - (c & 1u))); }
+    CloseHandle(h);
+    return ~c;
+}
+static DWORD __cdecl nai_mission_check(char *name) {   /* replaces `call 0x1002fda0` at the two shell sites */
+    if (name && nai_coop_name(name) && g_nmp_species == NMP_SPECIES_ARENA) {
+        char p[64]; DWORD c; _snprintf(p, sizeof p - 1, "miss16\\%s", name); p[sizeof p - 1] = 0;
+        if (!(c = nai_crc32_file(p))) { _snprintf(p, sizeof p - 1, "miss8\\%s", name); c = nai_crc32_file(p); }
+        NMP_LOG("  nitro-ai: co-op mission check '%s' -> crc %08lx (%s)", name, c, c ? p : "NOT FOUND");
+        if (c) return c;
+    }
+    return ((DWORD (__cdecl *)(char *))(g_nai_sh + 0x2fda0))(name);
+}
+static void nai_attach_shell(HMODULE sh) {
+    int n = 0; g_nai_sh = (BYTE *)sh;
+    n += nai_call((DWORD)(g_nai_sh + 0x2fadc), (DWORD)(g_nai_sh + 0x2fda0), (void *)nai_mission_check, "co-op mission check (host)");
+    n += nai_call((DWORD)(g_nai_sh + 0x30106), (DWORD)(g_nai_sh + 0x2fda0), (void *)nai_mission_check, "co-op mission check (join)");
+    NMP_LOG("  nitro-ai: nitshell co-op mission check %d/2 sites", n);
+}
 /* ---- host migration (nitro_mp.c calls this once when this joiner became the host) [mpfill mpf_migr_pending] ----
  * The joiner already holds everything a host needs: the pool's parked / in-play state from the old host's 'AT' byte 3,
  * the AI rows with their numbers (g_nai_led follows the rows on a joiner), the AI cars at the old host's last positions.
@@ -591,9 +702,9 @@ static void nai_tick(int role) {
     {   char v[8]; int leave = GetEnvironmentVariableA("NMP_LAB_LEAVE_AT", v, sizeof v) ? atoi(v) : 0;   /* LAB: the stock end-of-session exit */
         if (!since) since = now;
         if (leave > 0 && !left && role == 1 && now - since > (DWORD)leave * 1000) { left = 1; NMP_LOG("  nitro-ai: LAB host leaves (game state 3) after %d s", leave); *(volatile int *)(DWORD_PTR)a_state = 3; return; } }
-    if (role == 1) { nai_at_send(); if (g_nai_qn) nai_flush(); nai_respawn_tick(); }
+    if (role == 1) { nai_at_send(); if (g_nai_qn) nai_flush(); if (nai_pool_on()) nai_respawn_tick(); }
     else if (role == 2) nai_joiner_fire();
-    nai_rows_tick(role);
+    if (nai_pool_on()) nai_rows_tick(role);
     nai_lab_tick();
     {   static DWORD last; BYTE **root; BYTE *o;   /* dead human: ask for the respawn (0x44caf0(1) waits out the 5 s itself) */
         if (now - last > 1000) { last = now; root = ((BYTE **(__cdecl *)(void))(DWORD_PTR)a_root)(); o = root ? *root : NULL;
@@ -601,7 +712,7 @@ static void nai_tick(int role) {
                 if (role == 1) { static BYTE *done; if (o != done) { done = o; nai_human_killed(o, *(WORD *)(*(BYTE **)(o + 0x70) + 0x486), "killed the host"); } }
                 ((int (__cdecl *)(int))(DWORD_PTR)n_respawn)(1);
                 if (*(volatile int *)(DWORD_PTR)n_respawn_flag) NMP_LOG("  nitro-ai: %s dead - respawn requested", role == 1 ? "host" : "joiner"); } } }
-    if (now / 5000 != stat) { stat = now / 5000; nai_status(role); }
+    if (now / 5000 != stat) { stat = now / 5000; if (nai_coop_on()) nai_coop_status(role); else nai_status(role); }
 }
 
 /* ---- attach ---- */
@@ -642,7 +753,10 @@ static void nai_attach(void) {
        & nai_call(0x461114, 0x44fd80, (void *)nai_class_damage, "damage 1") & nai_call(0x46504b, 0x44fd80, (void *)nai_class_damage, "damage 2")
        & nai_call(0x465693, 0x44fd80, (void *)nai_class_damage, "damage 3") & nai_call(0x4a7c43, 0x44fd80, (void *)nai_class_damage, "damage 4")
        & nai_call(0x4a7cd6, 0x44fd80, (void *)nai_class_damage, "damage 5");
-    g_nmp_rx_hook = nai_rx; g_nmp_tick_hook = nai_tick; g_nmp_migr_hook = nai_migrated;
+    {   static const DWORD sp[7] = { 0x432956, 0x432ce0, 0x445bb2, 0x445cfc, 0x445e2c, 0x44607d, 0x447d05 };   /* player spawner calls [Gold's 7 coop_spawn sites] */
+        int q, n = 0; for (q = 0; q < 7; q++) n += nai_call(sp[q], 0x44c6f0, (void *)nai_coop_spawn, "co-op spawn");
+        NMP_LOG("  nitro-ai: co-op: %d/7 player-spawn calls adopt the mission player object for the host (co-op scenes only)", n); }
+    g_nmp_rx_hook = nai_rx; g_nmp_tick_hook = nai_tick; g_nmp_migr_hook = nai_migrated; g_nmp_shell_hook = nai_attach_shell;
     g_nai_ok = 1;
     NMP_LOG("  nitro-ai: ON (%s) - pool %d, combat arenas in ARENA+ sessions only; skill from the DEF byte (%d)", ok ? "all 12 sites" : "SOME SITES OFF", NAI_POOL,
             *(volatile BYTE *)(DWORD_PTR)n_defbyte);
