@@ -120,10 +120,7 @@ dropped and re-run: p18 f3, tb4 f1, tf f1). Churn rows are census boots (no burs
 boot; their census boots that ran alone read the same as the fps boots of their neighbours (census on / off made no difference
 where both exist: t24 118.8 vs 117.9 mean, th20 118.2 vs 118.1, thf 117.9 vs 117.8). The ridge leg's churn is n 1 for tf3 and th40f
 (their other ridge leg started away from the canyon road under contention; the hill legs are unaffected). Per-run rows:
-`i76-uncap-lab	ools
-c-draw
-esults
-cdraw-runs.tsv`.
+`i76-uncap-lab\tools\rc-draw\results\rcdraw-runs.tsv`.
 
 ## 3. The barn and the map edge (hill top, cockpit, car held by the trainer's freeze flag)
 
