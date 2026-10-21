@@ -418,15 +418,24 @@ the integration built the same way, **0b17a8c8**. Smokes with the nitro-port lan
   (compare_logs.py "same line set", integ r2 + r3 against base r1 + r2). Integ r1 differed by one log line split in two by
   two threads writing at once (the cursor-map thread's "2 cursor pointer(s) taken" line); a third run was taken.
 
-### 0.5.8 Item 7(d): lobby isolation - not run; ARENA+ is IPX / LAN-only for now
+### 0.5.8 Item 7(d): lobby isolation - answered by prior art, without touching the live lobby
 
-No private ANet game server is reachable from the lab without an outbound change. The servers Nitro knows are GOG's
-`internet.lst` (Activision's, gone, plus stockholm.alink.fragzone.se) and the community's live lobby
-(911.alink.bz911.net, MULTIPLAYER.md). Testing on the live lobby would publish lab sessions (the stock-session control
-included) to the people who play there - the one thing the owner's ruling forbids. The code side is known (s.0.5.3:
-the lobby keeps session lists per species, a patched joiner needs a second subscription, `nmp_lobby_subscribe()` is a
-stub), so ARENA+ is IPX / LAN (and virtual-LAN) only until a private lobby server is set up or the community agrees to
-a test.
+**Answer (2026-10-21, coordinator, from prior art):** I26 (vahokif, github.com/vahokif/I26, a C# / Godot
+reimplementation of I'76 multiplayer) registers its OWN ANet species **18726 (0x4926)** on the stock lobbies
+alink.bz911.net and alink.iondriver.com, and its INTERNET list works. So the community lobby keeps and serves a session
+table for an unregistered species, per species, exactly as this lane read from anet2.dll (s.0.5.3): risk R3 is retired and
+stock Nitro clients (subscribed to 604) never receive another species' sessions. Read-only check of I26's decompiled
+client (`Downloads\i26-0.6.0\decompiled\I76.Net\I76.Net.Anet\`, AnetWire.cs / AnetClient.cs; nothing copied) agrees
+with anet2's own code: login packet `'e1'` + species (u16), session table key {1, species lo, species hi}, table
+subscription `'d^'` + key length + key (anet2 `0x020f6480`, base 0x020F0000).
+
+**Consequence for ARENA+**: the lobby route needs no server change. A patched client on a lobby subscribes a SECOND session
+table, key {1, 0x76, 0x76}, beside the stock one {1, 0x5c, 0x02}; ARENA+ hosts register their sessions under 0x7676 as
+they already do (dpOpen with our species). `nmp_lobby_subscribe()` stays a stub until it is written against the open
+source ANet 0.10 (Dan Kegel's anet, LGPL 2.1: dptab_requestSubscription, the session record, login) rather than the
+anet2.dll dump; it is not measured, and no lab session was ever put on the live lobby. Until then ARENA+ is used on IPX /
+LAN (and virtual LANs); the lobby test stays an owner-approved step (a session on the live community server is visible
+to its players).
 
 ### 0.5.9 Item 5: CO-OP SCENES on Nitro's own P01 (2026-10-21; owner: no Gold missions)
 

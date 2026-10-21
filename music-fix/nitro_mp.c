@@ -251,7 +251,11 @@ static int __cdecl nmp_open(void *dp, BYTE *sd, void *cb, void *ctx) {
             g_nmp_species == NMP_SPECIES_ARENA ? "ARENA+" : "stock");
     return r;
 }
-static int nmp_lobby_subscribe(void) {   /* STUB (record s.0.5.3): a second {table, 0x7676} subscription on the game server */
+static int nmp_lobby_subscribe(void) {   /* STUB (record s.0.5.3 / 0.5.8): on a game server, subscribe a SECOND session table
+                                         * beside the stock one: key {1, 0x76, 0x76} next to {1, 0x5c, 0x02} (anet2 0x020f6480 /
+                                         * ANet 0.10 dptab_requestSubscription; 'd^' + key length + key). The bz911 lobby serves
+                                         * unknown species per species (I26 registers 18726 there). To be written from the
+                                         * open-source ANet 0.10 (LGPL 2.1), not from the anet2.dll dump. */
     return 0;
 }
 static void nmp_attach_shell(HMODULE sh) {
