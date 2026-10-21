@@ -992,3 +992,23 @@ presets with the two new lines, launchers with `--legacy-multiplayer`).
 | # | what | how to check | result |
 |---|---|---|---|
 | N2 | **Name the separate Nitro multiplayer entry** (our AI fill / co-op / teams live only behind it; stock Nitro multiplayer, its JOIN list and the lobby stay untouched). Options, with the line the menu would show: (1) **AI DROP-IN** "Melee with computer drivers in every empty seat; friends drop in or out any time." (2) **CO-OP / AI MELEE** "Team up against computer cars: every arena, the '76 scenes and scenarios." (3) **ARENA+** "Every arena plus the original '76 missions, with AI filling the open slots." (4) **CONVOY** "Roll out together: co-op scenes and AI-filled arenas, join whenever you like." (5) **NET AUTO MELEE** "Auto Melee over the network: AI drivers fight beside and against your friends." | nothing to run; pick one (or your own words) | **Ruled 2026-10-21: ARENA+** with description (3), as check boxes on the network host form (AI DROP-IN, DROP-IN / DROP-OUT, CO-OP SCENES on Nitro's own missions); design section 0. Original '76 story missions / scenarios are not in it (Gold content not combined) |
+
+## Owner play-test 2026-10-21 evening (release candidate = promotion-19 candidate, PLAY-TICK.bat, console)
+
+Verdicts: fps full 120 on the hill (fixed); barricade hit sound restart "awesome / perfect" (C done); two-frame exit flicker gone (B done);
+the barn is drawn but not the hill behind it (far clip; X4 at 2400 m had no stability issue, owner: fine, maybe not needed that high; main: ship 2000 after a soak);
+hill edges / terrain redraw "maybe slightly better" only. Ladder drive (exp-rebase): R00 / R03 / R04 / R06 = same aggressive slope redraw; R07 (promotion 18's
+LOD 24) = first improvement, much better, flat-tile shade changes and the bad canyon ones remain; X1 (LOD 48) further / better, the bad one unchanged;
+X2 (R07 + hysteresis + freeze) no change; X3 (R07 + split A 96, log-verified) no change and same fps. Conclusion: the candidate's LOD_B 4 is the
+regression (coarser threshold = bigger snaps); hysteresis / freeze invisible; the bad patch is not distance-gated -> height-error term or the
+28,000-vertex guard. Rebaseline lane redirected: A-only / B-only rungs + a per-node trace of that patch (owner's screenshots Downloads\Screenshot 2026-10-21 1758xx.png).
+
+Open items from this session:
+- J1 **The jump falls short with the owner's car** (bookmark car, full throttle down the mountain, no nitrous: foot ~130 mph, exit 100-110 mph, barely across or short,
+  in-air pitch-down "terrible", died on landing). The harness clears it 4/4 with the stock T05 car (foot 63.5 m/s, take-off 55.9). Jump lane 2 re-runs with HIS car and run
+  (TICK-FINISH s.22 when done). He recalls tick 44 and promotion 18 made it.
+- P8 Exit-menu pointer still inconsistent with real input (lab n 12 with synthetic input never lost it); P9 a zoom / framing change while arrowing down the Esc menu
+  (screenshots Downloads\Screenshot 2026-10-21 1803xx-1804xx.png); P10 Up = look at the dash, Down = look back on Windows as on the Mac (input.map). Polish lane 2.
+- Firewall prompts for the lab Nitro copy: owner allowed both (lab copy now has allow rules).
+- Nothing drivable on Nitro yet for the owner (the port's console rows wait for the ladder).
+
