@@ -871,6 +871,15 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
 community play of nitro multiplayer is unperturbed. perhaps it's a new menu item we'd add separately". Plan:
 docs/ARSENAL-PLAN-2026-10-21.md. Owner to name the new menu entry ("AI DROP-IN" / "CO-OP / AI MELEE" / "ARENA+").
 
+### Ruling 2026-10-21 midday: priorities and the Nitro option placement
+"it's different missions entirely. we don't have to bend over backwards to combine them ... for now let's understand
+nitro, get the settings dialed in for gold, get nitro working as well as gold is, implement netplay enhancements for
+nitro." Menu data edits crash Nitro (an edited SCENARIO.DAT: Unhandled Exception at the console). "the right place for
+the ai drop-in option is a checkbox inside the network play configuration, maybe a few of them for other features we've
+added (human drop-in, etc.)" -> N2 (the entry name) is superseded by checkboxes on the host form; names of the checkboxes
+still the owner's. Gold graphics: a rebaseline ladder (records/REBASELINE-2026-10-21.md) the owner drives rung by rung
+after the promotion-19 gate. Future epic noted: AI-upscaled menus and fonts (lab spike only, records/UPSCALE-SPIKE).
+
 ### Decisions wanted
 1. Promote 19 (A6). 2. AI melee defaults (AI-MELEE-M1 s."defaults"): count from the arena file (2 / 4 / 6), AI hostile to all humans, wave
 respawn with scores kept, AI names only in the kill message, -500 for a death by an AI. 3. Scenarios: keep "host death reloads the scenario"
