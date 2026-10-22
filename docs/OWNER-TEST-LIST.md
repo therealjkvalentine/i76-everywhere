@@ -1047,3 +1047,9 @@ Open items from this session:
   our cursor map has no effect, n 1 each), so the Nitro menus are unusable by mouse at this resolution on the PC build; next step is to find what confines it
   (nitro.exe, NITSHELL or dgVoodoo) or fall back to the u32x window for Nitro. The Mac proxy ad904941 built byte for byte on the PC: Gold and Nitro P01 smokes
   match the previous build (n 2 each); nothing drivable to hand you on Nitro beyond P05 by harness yet.
+- NITRO POINTER FIXED (nitro-port lane, NITRO-PORT s.10, proxy faff357): the confinement was ours. The cursor map looked for the game window by Gold's name only, so on
+  Nitro it mapped nothing, NITSHELL read raw screen pixels, clamped them to its 640 x 480 page and wrote the clamp back as the pointer position. The map now finds the
+  Nitro window and the shell gets its own 16:10 mapping (I76_CURSOR_MAP_SHELL=aw; the first fix alone left clicks up to 288 px off at the sides). Proof n 3 boots:
+  pencil within 3 px of the pointer at the centre, corners and quarter points; MELEE > MULTI MELEE > JOIN clicked through to the transport row (captures
+  captures/nitro-port-20261021/cursor/click-e*.png). Not yet tested: the in-mission Esc menu on Nitro. The Macs do not set the cursor map and their shell mouse followed
+  the real macOS pointer, so they are probably unaffected, but JOIN on a Mac still wants one human click.
