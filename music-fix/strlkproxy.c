@@ -9521,6 +9521,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_sign_sound_restart(); /* opt-in: I76_SIGN_SOUND_RESTART=1 (a new sign / barricade hit restarts vnvco3; after apply_av_log: chains its site) */
         apply_fade_no_flip();     /* opt-in: I76_FADE_NO_FLIP=1 (the palette fade presents nothing under Glide: no two-frame flicker on exit) */
         apply_menu_keys();        /* default on: I76_MENU_KEYS (the Esc menu's keys never reach the car; after apply_simtick: chains its input gate) */
+        apply_menu_draw();        /* default on: I76_MENU_DRAW (re-activation with the menu up redraws the menu over the frame on screen, no fresh 3D frame) */
         apply_font_private();     /* default on: I76_FONT_PRIVATE (Lee_____.ttf registered FR_PRIVATE: no system-wide registration left behind) */
         apply_flame_census();     /* lab: I76_FLAME_CENSUS=1 (after apply_simtick / apply_framerate_fixes: counts flamer damage) */
         apply_glide_refresh();    /* opt-in: I76_GLIDE_REFRESH=<hz> (hooks LoadLibraryA; the exe's IAT is used below too) */
@@ -9528,6 +9529,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_pad_menu();         /* opt-in: I76_PAD_MENU=1 (after apply_cursor_map: chains its PeekMessageA slots) */
         apply_mp_menu();          /* default on: I76_MP_MENU=1 HOST / JOIN go straight to IPX, 2 = IPX-only row, 0 = stock */
         apply_menu_ptr();         /* default auto: I76_MENU_PTR (on only under DxWnd: the Esc menu's clicks follow the pointer) */
+        apply_menu_ptr_centre();  /* default on with the cursor map: I76_MENU_PTR_CENTRE (a menu opens with the pointer mid-screen, not on the bottom edge) */
         /* i76.exe's winmm IAT is already snapped by now; redirect the mci slot. */
         HMODULE exe = GetModuleHandleA(NULL);
         /* Point the game's DATA import at the ORIGINAL's variable, not our copy -

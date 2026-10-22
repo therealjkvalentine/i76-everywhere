@@ -84,3 +84,28 @@ static void apply_menu_ptr(void) {
          g_emp_mode == 1 ? "on (I76_MENU_PTR=1)" : "auto (on under DxWnd)", th ? "" : " - thread NOT started");
     if (th) CloseHandle(th);
 }
+
+/* ---- I76_MENU_PTR_CENTRE (default 1 when I76_CURSOR_MAP maps i76.exe's pointer; 0 = stock) -------------------------
+ * Owner 2026-10-20 / 10-21 (MENU-SOUND-POLISH s.A, s.H): "I lose mouse visibility/use when I click exit game" / "still
+ * can't consistently see the pointer when I use the exit menu". Measured (s.H): every time the Esc menu opens, the
+ * pointer is put on the screen's bottom edge (y 1437..1439 of 1440, the arrow drawn below the screen: 11 of 11 opens,
+ * both lanes' runs). Cause: the engine's show-pointer routine 0x44bcc0 (the menus' open, 0x4953e5) keeps x and sets
+ * y = [0x5dcf30] / 2 (0x44bd38), the client height in screen pixels (1440 -> 720), then SetCursorPos; with I76_CURSOR_MAP
+ * that SetCursorPos is the 640x480 UI -> screen map, so 720 is read as a UI y and lands at 2160 -> clamped to the bottom.
+ * In a real 640x480 mode [0x5dcf30] = 480 and the stock code centres. Fix: the load at 0x44bd38 (`mov eax, [0x5dcf30]`,
+ * A1 30 CF 5D 00) reads a 480 here instead, so the pointer opens at UI y 240 = the middle of the menu, x unchanged.
+ * The hide routine 0x44bb40 (driving) is left alone: the pointer is hidden there. Off when the cursor map does not take
+ * i76.exe's slots (the Macs' DxWnd path, u32x alone): there the stock value is in the coordinates SetCursorPos expects. */
+static DWORD g_mpc_ui_h = 480;
+static void apply_menu_ptr_centre(void) {
+    static const BYTE o[5] = { 0xA1, 0x30, 0xCF, 0x5D, 0x00 };
+    BYTE w[5] = { 0xA1 };
+    DWORD a = (DWORD)(DWORD_PTR)&g_mpc_ui_h;
+    if (env_flag("I76_MENU_PTR_CENTRE", 8, 1) == 0) { mlog("  menu-ptr-centre: off (I76_MENU_PTR_CENTRE=0): stock"); return; }
+    if (!g_cm_mode || g_exe == EXE_NITRO) { mlog("  menu-ptr-centre: the cursor map is off here - stock (nothing to correct)"); return; }
+    memcpy(w + 1, &a, 4);
+    if (!patch_bytes(0x0044bd38, o, w, 5, "show-pointer recentre height (menu-ptr-centre)") || memcmp((void *)0x0044bd38, w, 5) != 0) {
+        mlog("  menu-ptr-centre: 0x44bd38 did not verify - not applied"); return;
+    }
+    mlog("  menu-ptr-centre: on - a menu opens with the pointer at UI y 240 (the screen's middle under the cursor map), not the bottom edge");
+}

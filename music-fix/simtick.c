@@ -1191,6 +1191,38 @@ static void __cdecl st_render_wrap(void *cam) {
     g_st_in_disp = 1;
     wst_publish();
 }
+/* ---- I76_MENU_DRAW (default 1; 0 = stock) ---------------------------------------------------------------------------
+ * Owner 2026-10-21 (MENU-SOUND-POLISH s.I): "the flicker is gone / better but there is still a render change, the zoom or
+ * something changes as you arrow down the menu". With the Esc menu up in single player the frame loop draws nothing
+ * (0x4039ec -> 0x40402f); the menu redraws itself on a key or a hover (0x496870: the panel over the back buffer, then a
+ * present), so every redraw flips to the other buffer and shows the 3D picture that buffer holds: the last two frames
+ * drawn before the pause, which differ by one frame of motion (0.4 - 0.6 %% of the background, edges only). On
+ * re-activation (WM_ACTIVATEAPP with the menu up: Alt-Tab back, a screenshot tool taking the focus) the window procedure
+ * draws ONE fresh 3D frame (0x404a7d renderer_DrawFrame, then the menu and a present) outside the frame loop, without the
+ * loop's camera pass and cockpit / HUD passes, so it is a different picture (no dash; from the camera as the mirror pass
+ * left it): from then on every arrow press flips between that frame and the one that was on screen, 43.5 - 45.6 %% of the
+ * background apart (measured, stock and tick alike: p2-b1, p2-b2, p2-c1-p18; restoring the camera block alone changed
+ * nothing, p2-d1). The two buffers keep their pictures across Alt-Tab (the press after it showed the old frame, 0.02 %%).
+ * Fix: that one call draws nothing; the menu is drawn over the frame already in the buffer, so both buffers keep the two
+ * frames from before the pause. The slider redraws of the menu (0x496047 / 0x496061, the gamma control, which must show
+ * the new gamma) are left stock. I76_MENU_DRAW_LOG=1 (lab): one line per skipped draw (first 8). */
+static DWORD g_md_n;
+static int g_md_log;
+static void __cdecl md_activate_draw(void *cam) {
+    (void)cam;
+    g_md_n++;
+    if (g_md_log && g_md_n <= 8)
+        mlog("  menu-draw: re-activation with the menu up (mode 0x%lx): the fresh 3D frame skipped (%lu)",
+             (unsigned long)*(volatile DWORD *)(DWORD_PTR)NA(0x004fe534), (unsigned long)g_md_n);
+}
+static void apply_menu_draw(void) {
+    if (env_flag("I76_MENU_DRAW", 8, 1) == 0) { mlog("  menu-draw: off (I76_MENU_DRAW=0): re-activation with the menu up draws a fresh 3D frame (stock)"); return; }
+    g_md_log = env_flag("I76_MENU_DRAW_LOG", 8, 0) == 1;
+    if (!st_call_site(0x00404a7d, 0x00401c90, (void *)md_activate_draw, 0, "renderer_DrawFrame on re-activation, menu up (menu-draw)")) {
+        mlog("  menu-draw: 0x404a7d not patched - off"); return;
+    }
+    mlog("  menu-draw: on - re-activation with the menu up redraws the menu over the frame on screen (no fresh 3D frame)");
+}
 /* the flamer's main-pass update on a tick frame: the tick's clock (its hit test reads the sim rate), damage allowed */
 static int g_st_flame_clk;                                   /* I76_SIM_TICK_FLAME_CLK=1 (lab): the tick's clock on every display frame's flamer update */
 /* Flamer stream state between ticks (2026-10-18 tick-fix; I76_SIM_TICK_FLAME_STATE=1, lab switch, default 0 - it did NOT bring the hits back; owner playtest: "the impact
