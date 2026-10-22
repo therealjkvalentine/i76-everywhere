@@ -1029,3 +1029,15 @@ Open items from this session:
   start replayed. **RULING NEEDED J2:** a switch that eases every in-flight pitch spin back to the normal slow nose-drop (lands above -45 deg, survives) DEPARTS FROM 1997;
   ship it on or off? Proof plan is in s.22. No launcher changes the outcome today; staying inside the 10 m road is the only thing the driver controls.
 
+- P10 RESOLVED by your answer (Up looks at the dash on the Mac): the staged input.map ships to the Windows copies only; the Macs keep theirs.
+- ARENA+ RESULTS (nitro-mp lane, NITRO-MP-DESIGN s.0.5.10-0.5.12; host build 5cb92ac2 = source 91d2b14 staged in lab builds/nitro-mp-form with README + MD5SUMS, not installed):
+  the two boxes ([X] ARENA+, [X] CO-OP SCENES) sit in the empty middle of the host form's car panel with your description text above them (screenshot
+  captures/nitro-mp-20261021/arena-plus-hostform-shipped.png; the first placement covered the OPTIONS header and was moved). Both off = stock 604 session, nothing written;
+  ARENA+ on = session type 7676; CO-OP SCENES adds Nitro's P01-P19 to the list (24 -> 43) and turns ARENA+ on. Isolation cells c1-c4 n 2 each pass (patched / stock host x
+  patched / stock joiner: only a patched joiner sees an ARENA+ session; stock players never see it). The tick-vs-AI conflict is fixed (the AI hook now chains through the
+  tick's gate): ARENA+ with the tick on, n 3, rows agree, AI count / joins / respawns / kills credited both ways. One access violation came from a LAB-ONLY shooter switch a
+  real game never sets; it gets a guard before that instrument is used again. OPEN: the description wording ("...the original '76 missions..." vs "the Nitro missions").
+- CROSS-MACHINE ARENA+ PASS (needs you or a boy at a Mac; all three Macs carry "Interstate 76 Nitro.app" with proxy ad904941, which joins fine): on the PC I bring up the
+  host from the lab copy on the real network card (UDP 54792, net 00000001, the Macs' IPXWrapper defaults), HOST > IPX, tick ARENA+, BROADCAST GAME; on the Mac:
+  MULTIPLAYER > MELEE > JOIN > IPX, pick "ARENA+ ..." and JOIN GAME. Say when someone is at a Mac and I run it with you watching. Mac caveats still: no tick on the
+  Macs yet (24 fps cap), music unverified, EVO4 output delays startup ~40 s, Esc at the main menu quits.
