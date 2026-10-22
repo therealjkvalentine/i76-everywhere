@@ -12,3 +12,4 @@
 0x5367d9
 0x5367da
 0x5244c0   # scripted-control flag (nitro_probe)
+0x493160   # terrain height at a sample (lab leaf census, rc-draw rcd-block.c lc_h; nitro-port console rows)
