@@ -8,8 +8,7 @@ The answer is a ladder. It starts from stock graphics and adds one change per ru
 every non-graphics fix on. Each rung is measured and driven by the owner, who keeps or drops it. What he keeps becomes the final preset,
 with the reason written next to every line.
 
-**Status:** the ladder is built and dry-run. The measurements are queued behind the candidate's console gate (they start when
-`i76-uncap-lab\.gate-done` exists). The owner's verdicts are open, and so are the final values.
+**Status (2026-10-21 evening):** measured (s.4), driven by the owner (s.4), traced (s.6). Interim final values staged (s.5): R07's terrain at 1800 m, i.e. promotion 18's graphics; 2000 m after a soak.
 
 ## 1. Stock vs promotion 18 vs candidate vs final
 
@@ -107,29 +106,181 @@ The measurements:
   64d9361 5a7f83b -- music-fix` changes no far-clip / clutter / detail / terrain path except dc008e2 + 74fb9f4, which the twin carries. So
   the twin's churn numbers apply to the candidate, but its frame rate is not used.
 
-## 4. The owner's drive
+## 4. The owner's drive (2026-10-21 ~18:00-18:45, at the console; verdicts relayed by main, his words condensed)
 
-Drive each launcher on T05 (the canyon road, then over the hill top toward the barn), about 2 minutes each, at the physical console.
-Mark **keep / drop / unsure** with a note. Judge each rung against the one before it (R07 against R06, R08 against R06, R12 against R11).
-The measured columns are filled from s.3 when the queue has run.
+**How the columns were measured**
+- Console, T05 route, hill leg (2.6 km over the hill top).
+- Tool: autotest-p19 `t05-route-fps.ps1` (the p19 gate's key sender), through the rung's own launcher and 8f8da929.
+- n 3, in three rounds: R00 -> R12, R12 -> R00, R00 -> R12. Each cell is the mean [min..max].
+- Main's console anchors for the installed candidate: PLAY-TICK 120 / 91, ALT-TERRAIN 120 / 83, P18 control 120 / 98.
+- The median is 120 on every rung (the 120 fps cap), so the 1 % low is the column that moves.
+- Churn census: R00 only (n 1: 16.9 splits + merges per s, 12.8 % of frames, on-screen change 4,088 px/s within 300 m, 36 beyond). Main dropped the rest of the census in favour of the trace (s.6).
+- Hill-top shots: `i76-uncap-lab\captures\rebase-20261021\hill\Rnn-hill-s1.png` (3440x1440, same pose).
 
-| rung | launcher | what it adds | hill median / 1 % low fps | splits+merges /s | change px/s near / mid / far | barn from the hill top | verdict (keep / drop / unsure) | note |
+| rung | launcher | what it adds | hill median / 1 % low fps | lowest 1 s | terrain verts peak | barn from the hill top | verdict | his note |
 |---|---|---|---|---|---|---|---|---|
-| R00 | PLAY-R00.bat | stock graphics | (queued) | | | | | |
-| R01 | PLAY-R01.bat | + far clip 1800 | | | | | | |
-| R02 | PLAY-R02.bat | + roads 1800 | | | | | | |
-| R03 | PLAY-R03.bat | + bushes 1800 (fade 300) | | | | | | |
-| R04 | PLAY-R04.bat | + terrain threshold /4 | | | | | | |
-| R05 | PLAY-R05.bat | + hysteresis 20 | | | | | | |
-| R06 | PLAY-R06.bat | + freeze 300,40 | | | | | | |
-| R07 | PLAY-R07.bat | R03 + old x24 terrain (instead of R04-R06) | | | | | | |
-| R08 | PLAY-R08.bat | R06 + terrain textures x8 | | | | | | |
-| R09 | PLAY-R09.bat | + object detail x8 | | | | | | |
-| R10 | PLAY-R10.bat | + shadows x4 / road texture x8 | | | | | | |
-| R11 | PLAY-R11.bat | + mirror 300 | | | | | | |
-| R12 | PLAY-R12.bat | the candidate as is (= R11 + split distance x24) | | | | | | |
+| R00 | PLAY-R00.bat | stock graphics | 120.0 / 97.4 [96.7..98.5] | 118 | 621 | no (far 600) | (baseline) | "slope redraws aggressively, near terrain too, less on flatter slopes" |
+| R01 | PLAY-R01.bat | + far clip 1800 | 120.0 / 95.5 [94.7..96.5] | 119 | 4,556 | yes | (not driven separately) | |
+| R02 | PLAY-R02.bat | + roads 1800 | 120.0 / 101.8 [101.2..102.4] | 119 | 4,556 | yes | | |
+| R03 | PLAY-R03.bat | + bushes 1800 (fade 300) | 120.0 / 106.3 [106.0..106.7] | 118 | 4,557 | yes | keep (view) | "further, bushes visible, same slope redraws, almost exactly the same; terrain 1800 but objects / roads still closer" |
+| R04 | PLAY-R04.bat | + terrain threshold /4 (LOD_B 4) | 120.0 / 105.8 [104.9..106.6] | 119 | 4,595 | yes | drop | "terrain changes exactly the same" |
+| R05 | PLAY-R05.bat | + hysteresis 20 | 120.0 / 106.3 [106.0..106.8] | 118 | 4,506 | yes | (not reported) | |
+| R06 | PLAY-R06.bat | + freeze 300,40 | 120.0 / 105.5 [105.3..105.9] | 119 | 4,506 | yes | drop | "no improvement in redraw stability at all" |
+| R07 | PLAY-R07.bat | R03 + old x24 terrain (instead of R04-R06) | 120.1 / **86.3** [85.2..88.2] | 111 | **7,473** | yes | **keep** | "first one with any improvement; much improved, still minor shade changes in flat tiles, the bad canyon ones about the same" |
+| R08 | PLAY-R08.bat | R06 + terrain textures x8 | 120.0 / 105.7 [105.7..105.7] | 118 | 4,506 | yes | (not reported) | |
+| R09 | PLAY-R09.bat | + object detail x8 | 120.0 / 105.1 [104.7..105.8] | 118 | 4,506 | yes | (not reported) | |
+| R10 | PLAY-R10.bat | + shadows x4 / road texture x8 | 120.0 / 104.3 [103.7..105.1] | 118 | 4,506 | yes | (not reported) | |
+| R11 | PLAY-R11.bat | + mirror 300 | 120.0 / 103.4 [102.6..104.3] | 118 | 4,506 | yes | (not reported) | |
+| R12 | PLAY-R12.bat | the candidate as is (= R11 + split distance x24) | 120.0 / **87.1** [76.1..92.7] | 100 [69..118] | **6,018** | yes | drop (terrain) | the RC: "maybe slightly better" than stock |
+| R13 | PLAY-R13.bat | R03 + split distance x24 only (LOD_A 24) | 120.0 / 91.0 (n 1) | 111 | 5760 | yes | (added after the drive; one round, main) | |
+| R14 | PLAY-R14.bat | R03 + threshold /24 only (LOD_B 24) | (queued) |  |  |  | (added after the drive; one round, main) | |
 
-## 5. Final values
+Main's extra rungs in exp-rebase (`PLAY-X1..X4.bat`, presets rebase-x1..x4, made by main, log-verified):
 
-Open: written from the owner's verdicts, then staged in `i76-uncap-lab\builds\rebaseline-20261021\stage` (the rc-draw stage's layout,
-the seven tick19 presets).
+| rung | what | his note |
+|---|---|---|
+| X1 | R07 + LOD 48 | "further / better, the bad one still really bad". Console with the trace twin: 101 / 65, n 2. The trace itself costs about 3 fps on the median and about 12 on the 1 % low (traced R07: 117-118 / 72-76, untraced: 120 / 86) |
+| X2 | R07 + HYST 20 + FREEZE 300,40 | "no improvement at all" |
+| X3 | R07 + LOD_A 96 (split A x96, B x24) | "same behaviour, same fps at the hill top" |
+| X4 | R07 + far / roads / bushes 2400 | "no stability issues, objects not further" |
+
+What the table shows:
+- **The terrain is the only expensive switch.** Every rung with split distance x24 costs about 20 on the 1 % low: R07 86, R12 87, R13 91,
+  against 103-106 for the rest. The view switches (far 1800, roads, bushes) and the detail set (textures, objects, shadows, road
+  textures, mirror) all land within ~3 of each other.
+- **One unexplained step:** R00 -> R01 -> R03 rises from 97 to 106 while the vertex peak falls from 6.6k to 4.6k. Possible causes are the
+  stock 600 m view hitting different hitches, or run order. Treat 95-106 as one band.
+- **LOD_B 4, HYST and FREEZE are invisible to the owner** (R04, R06, X2). The trace (s.6) shows why: on this route no node flips back
+  and forth, so these switches have nothing to damp.
+- **Trip row 3**, run as the p19 gate ran it (autotest-p19 gate-folder + LAB_CURSOR_FREE): R00 FAIL 0, R01 FAIL 0, R02 FAIL 0, R03 FAIL 0, R04 FAIL 0, R05 FAIL 0, R06 FAIL 0, R07 FAIL 0, R08 FAIL 0, R09 FAIL 0, R10 FAIL 0, R11 FAIL 0, R12 FAIL 0, R13 PASS 120 (the last run per rung; fps from the trainer heartbeat). The first round's trip rows
+  used the plain autotest gate-folder without LAB_CURSOR_FREE. The clicks missed and the game sat on the main menu, so engine up was 0 of 1
+  on every rung. That was a harness fault, not a game fault. Saves were verified byte-identical after each run.
+
+## 5. Final values (interim ship, main's ruling 2026-10-21 evening)
+
+**R07's terrain at far clip 1800**, i.e. the candidate minus `I76_TERRAIN_LOD_B`, `I76_TERRAIN_HYST` and `I76_TERRAIN_FREEZE`. That is
+promotion 18's PLAY.bat graphics (best-wide), now on the tick.
+- **Far clip:** 1800 now, **2000 after a soak**. The owner ruled 2400 "fine but not needed"; main ships 2000 once it is soaked.
+- **Staged, not installed:** `i76-uncap-lab\builds\rebaseline-20261021\stage\`. It holds the seven `tick19-NN.psd1` with the reason on
+  every graphics line, plus `DIFF.txt` and `MD5SUMS.txt`.
+- **Proxy:** stays 8f8da929.
+- **ALT terrain:** `tick19alt-42` / `PLAY-TICK-ALT-TERRAIN.bat` (LOD 24 + FREEZE) are untouched. They are now nearly the same as the
+  default; drop them from the installed set.
+
+| key | final | reason |
+|---|---|---|
+| I76_FAR_CLIP | 1800 (2000 after a soak) | R01 draws the barn (1747 m) and the map edge from the hill top; owner: "further"; X4 at 2400 showed no stability issue |
+| I76_ROAD_DIST | 1800 | roads drawn to the far clip (R03 note: at stock, "roads still closer") |
+| I76_CLUTTER_DIST / _FADE | 1800 / 300 | owner: "bushes visible" (R03); promotion 17's dense variant |
+| I76_TERRAIN_LOD | 24 (A x24, B /24) | R07, the only rung the owner called an improvement. Costs ~20 on the 1 % low (86 vs 106). LOD 48 and A 96 move the pops but do not remove them (s.6) |
+| I76_TERRAIN_LOD_B | removed | R04: "exactly the same"; the RC with it was only "maybe slightly better" than stock |
+| I76_TERRAIN_HYST | removed | R05 / X2: no improvement; nothing flips back and forth (s.6) |
+| I76_TERRAIN_FREEZE | removed | R06 / X2: no improvement |
+| I76_TERRAIN_TEX / OBJECT_LOD | 8 / 8 | in since promotion 2; R08 / R09 within noise; not judged in this drive |
+| I76_SHADOW_DIST / ROAD_TEX | 4 / 8 | in since promotion 2; R10 within noise; not judged in this drive |
+| I76_MIRROR_FAR | 300 | in since promotion 2; R11 within noise; not judged in this drive |
+
+The owner drove R07 without the detail set (R07 = R03 + LOD 24). The staged set is R07 plus the detail set. That exact combination was
+not driven as a rung, but each detail switch measured within noise (R08-R11).
+
+Staged MD5SUMS (`builds\rebaseline-20261021\stage\MD5SUMS.txt`):
+
+```
+df370e446e731f228f76f5821ff93e89  DIFF.txt
+70ae169bca0831ad99c18c2507e48997  Interstate 76\presets\tick19-33.psd1
+a2416eea47bcaf32dd7a373f3a782f28  Interstate 76\presets\tick19-36.psd1
+97ad230e3a22fe7e87c810896262ef8a  Interstate 76\presets\tick19-39.psd1
+29cef1b3ceb7aa86f9919724878fbd78  Interstate 76\presets\tick19-42.psd1
+739a1470efe0a3a88d0a4a4ec4ef1ab6  Interstate 76\presets\tick19-44.psd1
+170cd8e47e7de04e52a54f59d4534d3c  Interstate 76\presets\tick19-47.psd1
+85e7cf2cbd61b6d319d51d491afa3332  Interstate 76\presets\tick19-66.psd1
+```
+
+**Stock vs promotion 18 vs candidate vs final (graphics only):**
+
+| key | stock | P18 PLAY.bat | P18 balanced | candidate | final |
+|---|---|---|---|---|---|
+| far clip / roads / bushes | 600 / 450 / 120 | 1800 / 1800 / 1800 | 1200 / 1200 / 1200 | 1800 / 1800 / 1800 | 1800 / 1800 / 1800 (2000 after a soak) |
+| bush fade | - | 300 | 300 | 300 | 300 |
+| terrain split A / threshold B | x1 / /1 | x24 / /24 | x24 / /24 | x24 / **/4** | x24 / /24 |
+| hysteresis / freeze | off / off | off / off | off / off | **20 / 300,40** | off / off |
+| textures / objects / shadows / road tex / mirror | 1 / 1 / 1 / 1 / 100 | 8 / 8 / 4 / 8 / 300 | same | same | same |
+
+The graphics drift since promotion 18 was three switches: LOD_B 4, HYST and FREEZE. Measured and driven, none of them gave anything
+visible, so the final set returns to promotion 18's graphics.
+
+## 6. What the snap is: a per-node trace (main's direction after the drive)
+
+### The instrument
+
+**Build.** The lab twin is `builds\rebaseline-20261021\trace\trace\Strlkup.dll` (dfa47d12).
+- `tools\rebaseline\trace\build-trace.sh` builds it from a `git archive 5a7f83b` of music-fix plus `insert-trace.py`.
+- The same script's plain build reproduces 8f8da929 byte for byte.
+- Source diff: `tools\rebaseline\trace\results\trace-v2.patch`.
+
+**Hook.** `I76_TERRAIN_TRACE=<file>` hooks the node test at 0x4912f6 through the hysteresis code's stub. With the trace alone, the stock
+tests run unchanged.
+
+**What it computes.** For every visited node of half size 1..16 samples (10..160 m tiles), the trace computes the stock decision itself,
+at this pass's eye (disassembly in `tools\rebaseline\trace\qt-4911e0.asm`):
+- **F** (leaf): d2 > (2h)^2 A
+- **N** (forced split): 2 d2 < (2h)^2 A
+- **E** (in between): the midpoint height error x 2h is compared with T = floor_pow2(d2) x B, using raw heights from 0x493160. The
+  stock's last tile-flag check (0x49155a) is not replicated.
+
+**What it logs.** After each main-camera pass: every node whose decision changed, with the previous and current band, the exponent of
+d2, and the guard's refusals in that pass.
+
+**v1 vs v2.** The first version (v1) inferred "split" from a visited child, so children entering or leaving the frustum read as flips
+(63 % of its flips). v2 computes the decision directly and does not depend on the frustum.
+
+**Runs.** Console, T05 route, n 2 each, in the lab copy `exp-rebase-trace`: presets rebase-t07 (= R07) and rebase-tx1 (= X1).
+- Decision logs: `tools\rebaseline\trace\results\*.v2.csv.gz`.
+- Classification: `results\kinds.txt`, from `trace_kinds.py` and `trace_view.py`.
+
+### Result (R07, n 2; the two runs agree within 0.3 %)
+
+| why the node's decision changed | share | distance by tile size 10 / 20 / 40 / 80 / 160 m |
+|---|---|---|
+| ring F -> E: the split-distance ring. Steep ground splits as soon as it is eligible, because its error is already over the threshold | 30.7 % | 183 / 366 / 732 / 1464 / 2928 m (= 18.3 x size = (2h) sqrt(A)) |
+| ring E -> N: the forced-split ring. Every tile, flat ones too | 58.7 % | 129 / 259 / 518 / 1035 / 2070 m (= 12.9 x size = (2h) sqrt(A/2)) |
+| err-step: same E band, d2 crossed a power of two, so T halved | 7.1 % | 160 / 320 / 640 / 1280 / 2560 m |
+| merges (E->F, N->E, err-step M): the eye moving away or turning | 4.1 % | |
+| vertex guard refusals | **0** | vertex peak 7,458 / 7,452 (limit 28,000) |
+
+- **No flip-flop.** In the view centre on the hill leg (±15°) there were 615 flips over 615 different nodes: every node changed once,
+  none twice. Hysteresis and freeze therefore have nothing to act on.
+- **X1 (LOD 48, n 2): every ring moves by x1.41.** 183 -> 259 m, 129 -> 183 m, err-steps 160 -> 226 m. The mix of reasons stays the
+  same (9,162 / 9,153 flips; guard 0; vertex peak 9,609).
+
+### What the owner sees
+
+- **Each pop is one quadtree level replacing a tile by four.** The stock renderer does not blend, so the shape jumps in one frame, and so
+  does the Gouraud shading on the new vertices.
+- **There is always a pop somewhere.** The rings are 2x apart in distance, one per tile size, so at any distance some tile size is
+  crossing its ring.
+- **Why LOD 48 and A 96 did not fix it.** Scaling A changes which tile size pops at a given distance, and makes each pop smaller on
+  screen. It cannot remove the pops. That matches his X1 note: "further / better, the bad one still really bad".
+- **Steep canyon faces** carry large height errors even at 10 m tiles, so their pops are big at any ring.
+- **Flat tiles** pop only at the forced ring (12.9 x size), with a small shading change. That is his "minor shade changes in flat tiles".
+
+### Inference and open points
+
+- **LOD_B 4 (inference; the candidate was not traced).** A 6x larger threshold leaves more steep tiles coarse past the F -> E ring,
+  until the closer forced ring. Larger tiles then pop nearer, which fits the owner calling the candidate barely better than stock.
+- **Not identified: the exact patch in his screenshots** (`Downloads\Screenshot 2026-10-21 1758*.png`). He drove off the road and the
+  screenshots carry no pose. A trainer pose snapshot at the spot would let the trace isolate that node.
+- **Remedy: geomorphing**, i.e. blending new vertices across the ring (RC-DRAW s.7). It applies to both rings. Main briefed a geomorph
+  lane (exp-morph) that reads these files.
+
+## 7. Status and files
+
+- **Lab copies** (both retired with this record):
+  - `exp-rebase`: the ladder, proxy 8f8da929; PLAY-R00..R14, and PLAY-X1..X4 by main.
+  - `exp-rebase-trace`: the trace twin dfa47d12; PLAY-T07 / PLAY-TX1.
+- **Scripts:** `i76-uncap-lab\tools\rebaseline\` (rungs.py, rb-queue.ps1, rb-hill.ps1, rb-census.ps1, rb_tab.py, stage.py, trace\).
+- **Raw data:** `i76-uncap-lab\captures\rebase-20261021\` (fps\Rnn, hill, trace, census\R00, queue.log). Voided runs are under `*\void`.
+- **Harness lessons:**
+  - The committed `autotest\t05-route-fps.ps1` key sender drove only 103 m at the console. The lane uses autotest-p19's copy, and any
+    hill leg under 2,000 m voids the run.
+  - Stopping the queue mid-step once left the global dgVoodoo.conf hidden by gate-folder. It was restored, and the saves were verified.
