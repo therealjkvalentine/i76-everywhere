@@ -1021,4 +1021,11 @@ Open items from this session:
   way; staged map swaps them. OWNER QUESTION: the Mac carries the identical map (same md5), so does Up look at the dash on the Mac today, or back? One key press settles
   whether the staged map ships to both or to Windows only. Tests for the owner: Esc without touching the mouse (arrow mid-screen), ABORT MISSION > EXIT GAME by keys and by
   mouse; Esc, Alt-Tab away and back, arrow up / down (picture still); Up / Down in the cockpit with the staged map.
+- J1 RESULT (jump lane 2, TICK-FINISH s.22): the owner's car and run reproduce his speedo (foot 127-129 mph, leaving the ramp 111-117; the needle drops ~5 mph per tick in the
+  air). The tick is not the cause and the car is not the cause. The 'pitch down' is the 1997 take-off kick: if a front wheel has already left the ramp on the last grounded
+  step the nose gets -15 deg/s (one wheel) or -30 deg/s (both) and the engine holds it for the whole flight; both-wheel kicks land at -85 deg and roll over (destroyed 3 of 5
+  at 41.667, 0 of 3 at 44, retail 1.0 the same: 12 both-wheel kicks in 31 descents). Phase sweeps n 25 per tick: both-wheel kicks 13 / 4 / 2 / 2 / 11 at 33 / 41.667 / P18 /
+  44 / 47 ms, not monotonic = luck of timing at the lip, not the tick. 6 m off the 10 m ramp road = no launch (1 of 12 made). The earlier harness '4 of 4' was one stored
+  start replayed. **RULING NEEDED J2:** a switch that eases every in-flight pitch spin back to the normal slow nose-drop (lands above -45 deg, survives) DEPARTS FROM 1997;
+  ship it on or off? Proof plan is in s.22. No launcher changes the outcome today; staying inside the 10 m road is the only thing the driver controls.
 
