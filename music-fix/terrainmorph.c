@@ -146,61 +146,69 @@ static void tm_acc(double px, int band, int cls) {
  * corners, the stock's own centre test 0x4913c4) is one of the node's tested errors, so d_e(own) <= the node's error-split distance:
  * D = min(ring, d_e(own)) never puts t above 0 at the split, and it is fixed per vertex (t continuous in d). A vertex whose own error
  * is small stays near its parents' line until close, by at most that small error. No reads beyond the vertex array. */
-static short *g_ep_a, *g_ep_b; static DWORD *g_ep_s, g_tm_pid = 1; static int g_tm_sl, g_tm_slhave; static LONGLONG g_tm_ticks; static float *g_ty;
+static short *g_ep_a, *g_ep_b; static DWORD *g_ep_s, g_tm_pid = 1; static int g_tm_sl, g_tm_slhave; static LONGLONG g_tm_ticks;
 static void __cdecl tm_edge_wrap(BYTE *edge) {
     int n0 = *(volatile int *)(DWORD_PTR)0x006442ec, had = edge && *(DWORD *)(edge + 4) != 0;
     ((void (__cdecl *)(BYTE *))(DWORD_PTR)0x004918f0)(edge);
     if (!had && n0 >= 0 && n0 < (int)TM_MAXV && *(volatile int *)(DWORD_PTR)0x006442ec == n0 + 1) {
         g_ep_a[n0] = *(const short *)edge; g_ep_b[n0] = *(const short *)(edge + 2); g_ep_s[n0] = g_tm_pid; }
 }
+static int *g_sl_i, *g_sl_a, *g_sl_b, g_sl_m; static float *g_sl_t;
+/* pass 1 reads only TRUE heights (nothing is blended yet) and keeps the vertices with t < 1 in a list; pass 2 blends the list in index
+ * order (parents first). Per vertex: a few multiplies and compares (squared distances); square roots only for the listed ones. */
 static void tm_stateless(const BYTE *cam, float *V, int n) {
-    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, K = *(volatile float *)(DWORD_PTR)0x006442c8, sk = K > 0.0f ? sqrtf(K) : 0.0f, ex, ez;
-    int ox = *(volatile int *)(DWORD_PTR)0x006442e0, oz = *(volatile int *)(DWORD_PTR)0x006442e4, i; DWORD pid = g_tm_pid;
-    ex = (float)(*(const double *)(cam + 0x160) * sc); ez = (float)(*(const double *)(cam + 0x170) * sc);
-    float B = *(volatile float *)(DWORD_PTR)0x006442cc;
-    for (i = 0; i < n; i++) {
-        int a, b, iS, ip, alongx, side; float ax, az, bx, bz, x, z, dx, dz, d, ring, band, t, ym, h, e, D, q;
-        g_ty[i] = V[3 * i + 1];                            /* the true height, before any blend (parents are read from here) */
-        g_tm_t[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1;
-        if (i < 4 || g_ep_s[i] != pid) continue;
+    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, K = *(volatile float *)(DWORD_PTR)0x006442c8, B = *(volatile float *)(DWORD_PTR)0x006442cc;
+    float ex = (float)(*(const double *)(cam + 0x160) * sc), ez = (float)(*(const double *)(cam + 0x170) * sc);
+    float invB = B > 0.0f ? 1.0f / B : 0.0f, om = 1.0f - g_tm_band, om2 = om * om, cut2 = g_tm_frac && g_tm_band > 0.0f ? (8.0f / g_tm_band) * (8.0f / g_tm_band) : 0.0f;
+    int ox = *(volatile int *)(DWORD_PTR)0x006442e0, oz = *(volatile int *)(DWORD_PTR)0x006442e4, i, k, m = 0; DWORD pid = g_tm_pid;
+    if (g_tm_log) for (i = 0; i < n; i++) { g_tm_t[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1; }   /* the table instrument reads every vertex */
+    for (i = 4; i < n; i++) {
+        int a, b, iS, ip, alongx; float ax, az, bx, bz, x, z, dx, dz, d2, D2, e, q, h, D, d, band, t;
+        if (g_ep_s[i] != pid) continue;
         a = g_ep_a[i]; b = g_ep_b[i];
         if (a < 0 || b < 0 || a >= i || b >= i) continue;
         ax = V[3 * a]; az = V[3 * a + 2]; bx = V[3 * b]; bz = V[3 * b + 2]; x = V[3 * i]; z = V[3 * i + 2];
         alongx = fabsf(ax - bx) >= fabsf(az - bz);
         iS = (int)((alongx ? fabsf(ax - bx) : fabsf(az - bz)) + 0.5f);
-        if (iS < 2) continue;
+        if (iS < 2 || iS >= 64) continue;                  /* nodes of 64+ samples split at any distance (0x4912f0, no test): t = 1. Their
+                                                              alignment follows the root square, so a blend there would jump as it moves. */
         ip = alongx ? (int)z - oz : (int)x - ox;
         dx = fabsf(x - ex); dz = fabsf(z - ez); h = 0.5f * (float)iS;
-        side = ip >= 0 && (ip & (iS - 1)) == 0;            /* a side midpoint (S is a power of two), else the node's centre */
-        if (side) { if (alongx) dz = dz > h ? dz - h : h - dz; else dx = dx > h ? dx - h : h - dx; }   /* the nearer node centre */
-        ring = (float)iS * sk;
-        /* the vertex's own tested error (raw units) and the distance its error step splits at */
-        if (side) e = fabsf(g_ty[i] - 0.5f * (g_ty[a] + g_ty[b]));
-        else {                                             /* centre: against the min / max corners (the ends of its parents' edges) */
-            int c[4], k, cmin = -1, cmax = -1; float smin = 1e30f, smax = -1e30f;
+        if (ip >= 0 && (ip & (iS - 1)) == 0) {             /* a side midpoint: the nearer node centre; its own error against its edge ends */
+            if (alongx) dz = dz > h ? dz - h : h - dz; else dx = dx > h ? dx - h : h - dx;
+            e = fabsf(V[3 * i + 1] - 0.5f * (V[3 * a + 1] + V[3 * b + 1]));
+        } else {                                           /* the centre: against the node's min / max corners (the stock's centre test) */
+            int c[4], cmin = -1, cmax = -1; float smin = 1e30f, smax = -1e30f;
             c[0] = g_ep_s[a] == pid ? g_ep_a[a] : -1; c[1] = g_ep_s[a] == pid ? g_ep_b[a] : -1;
             c[2] = g_ep_s[b] == pid ? g_ep_a[b] : -1; c[3] = g_ep_s[b] == pid ? g_ep_b[b] : -1;
             for (k = 0; k < 4; k++) if (c[k] >= 0 && c[k] < i) { float sxz = V[3 * c[k]] + V[3 * c[k] + 2]; if (sxz < smin) { smin = sxz; cmin = c[k]; } if (sxz > smax) { smax = sxz; cmax = c[k]; } }
-            e = (cmin >= 0 && cmax >= 0 && cmin != cmax) ? fabsf(g_ty[i] - 0.5f * (g_ty[cmin] + g_ty[cmax])) : 1e9f;
+            e = (cmin >= 0 && cmax >= 0 && cmin != cmax) ? fabsf(V[3 * i + 1] - 0.5f * (V[3 * cmin + 1] + V[3 * cmax + 1])) : 1e9f;
         }
-        D = ring;
-        if (B > 0.0f) {
-            q = e * (float)iS / B;
-            if (q <= 1e-6f) D = 0.0f;
-            else { DWORD bits; float p; memcpy(&bits, &q, 4); bits &= 0xff800000u; memcpy(&p, &bits, 4); if (p == q) p *= 0.5f;
-                   p = sqrtf(2.0f * p); if (p < D) D = p; }
+        d2 = dx * dx + dz * dz;
+        D2 = (float)(iS * iS) * K;                         /* the ring, squared */
+        q = e * (float)iS * invB;                          /* the error step: split <=> floor_pow2(d^2) < q */
+        if (invB > 0.0f) {
+            if (q <= 1e-6f) D2 = 0.0f;
+            else { DWORD bits; float p; memcpy(&bits, &q, 4); bits &= 0xff800000u; memcpy(&p, &bits, 4); if (p == q) p *= 0.5f; if (2.0f * p < D2) D2 = 2.0f * p; }
         }
-        band = g_tm_frac ? g_tm_band * D : g_tm_band;
-        if (g_tm_frac && band < 8.0f) band = 8.0f;
-        d = D - band;                                      /* most vertices sit well inside D: t = 1 without a square root */
-        if (d > 0.0f && dx * dx + dz * dz <= d * d) continue;
-        d = sqrtf(dx * dx + dz * dz);
-        t = band > 0.0f ? (D - d) / band : 1.0f;
-        if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
-        g_tm_pa[i] = a; g_tm_pb[i] = b; g_tm_t[i] = t;
-        if (t < 1.0f) { ym = 0.5f * (V[3 * a + 1] + V[3 * b + 1]); V[3 * i + 1] = ym + (V[3 * i + 1] - ym) * t; g_tm_morphing++; g_tm_win_morphing++; }
+        if (D2 <= 0.0f) t = 0.0f;                          /* no error: stays on its parents' line (where it is anyway) */
+        else {
+            if (g_tm_frac && D2 >= cut2 && d2 <= D2 * om2) continue;   /* deep inside: t = 1, no square root */
+            D = sqrtf(D2); band = g_tm_frac ? g_tm_band * D : g_tm_band; if (g_tm_frac && band < 8.0f) band = 8.0f;
+            if (D > band && d2 <= (D - band) * (D - band)) continue;
+            d = sqrtf(d2); t = band > 0.0f ? (D - d) / band : 1.0f;
+            if (t >= 1.0f) continue;
+            if (t < 0.0f) t = 0.0f;
+        }
+        g_sl_i[m] = i; g_sl_a[m] = a; g_sl_b[m] = b; g_sl_t[m] = t; m++;
+        g_tm_t[i] = t; g_tm_pa[i] = a; g_tm_pb[i] = b;
     }
-    g_tm_pid++; g_tm_n = n; g_tm_slhave = 1;
+    for (k = 0; k < m; k++) {                              /* pass 2: blend, parents first (the list is in index order) */
+        int j = g_sl_i[k], a = g_sl_a[k], b = g_sl_b[k]; float ym = 0.5f * (V[3 * a + 1] + V[3 * b + 1]);
+        V[3 * j + 1] = ym + (V[3 * j + 1] - ym) * g_sl_t[k];
+    }
+    g_tm_morphing += m; g_tm_win_morphing += m;
+    g_sl_m = m; g_tm_pid++; g_tm_n = n; g_tm_slhave = 1;
 }
 
 static void __cdecl tm_xform_wrap(void) {
@@ -237,6 +245,7 @@ static void __cdecl tm_xform_wrap(void) {
         pa = tm_vfind(g_tm_cur, tm_vkey(ax, az)); pb = tm_vfind(g_tm_cur, tm_vkey(bx, bz));
         if (!pa || !pb || pa->idx < 0 || pb->idx < 0 || pa->idx >= i || pb->idx >= i) continue;
         ia = pa->idx; ib = pb->idx; if (!g_tm_sl) { g_tm_pa[i] = ia; g_tm_pb[i] = ib; }
+        else if (g_tm_pa[i] < 0) { g_tm_pa[i] = ia; g_tm_pb[i] = ib; }   /* stateless, t = 1: the instrument still needs its parents (shade, events) */
         d = sqrtf(((float)x - ex) * ((float)x - ex) + ((float)z - ez) * ((float)z - ez));
         ps = g_tm_prev_ok ? tm_vfind(prev, s->k) : NULL;
         if (ps) { s->d0 = ps->d0; s->mx = ps->mx; s->open = ps->open; s->m = ps->m; s->shmx = ps->shmx; s->shd = ps->shd; }
@@ -287,7 +296,13 @@ done:
 }
 static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
     LARGE_INTEGER q0, q1; QueryPerformanceCounter(&q0);
-    if (g_tm_have || g_tm_slhave) {
+    if (g_tm_slhave && !g_tm_have) {                       /* stateless, no instrument: the shade of the listed vertices only */
+        float *U = *(float * volatile *)(DWORD_PTR)0x005dd2ec; int k;
+        if (U && *(volatile int *)(DWORD_PTR)0x005a4618 != 0)
+            for (k = 0; k < g_sl_m; k++) { int j = g_sl_i[k]; float sm = 0.5f * (U[3 * g_sl_a[k] + 2] + U[3 * g_sl_b[k] + 2]); U[3 * j + 2] = sm + (U[3 * j + 2] - sm) * g_sl_t[k]; }
+        g_tm_passes++; g_tm_win_passes++; g_tm_slhave = 0;
+    }
+    else if (g_tm_have || g_tm_slhave) {
         float *U = *(float * volatile *)(DWORD_PTR)0x005dd2ec; int i, lit = *(volatile int *)(DWORD_PTR)0x005a4618 != 0;
         float *V = *(float * volatile *)(DWORD_PTR)0x005dd320;
         for (i = 4; i < g_tm_n && U && lit; i++) {
@@ -409,8 +424,11 @@ static void apply_terrain_morph(void) {
         g_ep_a = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_ep_b = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_ep_s = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        g_ty = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        if (!g_ep_a || !g_ep_b || !g_ep_s || !g_ty) { mlog("  terrain-morph: no memory - not applied"); return; }
+        g_sl_i = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        g_sl_a = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        g_sl_b = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        g_sl_t = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (!g_ep_a || !g_ep_b || !g_ep_s || !g_sl_i || !g_sl_a || !g_sl_b || !g_sl_t) { mlog("  terrain-morph: no memory - not applied"); return; }
         QueryPerformanceFrequency(&g_tm_qpf);
         for (i = 0; i < 2 && (!g_tm_sl || nl); i++) {       /* the per-vertex tables: the memory form, or the instrument */
             g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_SLOTS * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
