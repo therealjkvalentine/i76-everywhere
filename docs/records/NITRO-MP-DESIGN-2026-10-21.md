@@ -563,6 +563,52 @@ third hit-tests the real macOS pointer), so the pass runs when the owner or one 
 - Measure item 4's cells, n 3: AI count on both screens, the joiner takes a slot, respawn, kills both ways, rows
   agree, 0 crashes; the PC log plus the Mac's mciproxy.log lines (`nitro-ai: t ...`) go through aisum.py.
 
+### 0.5.13 Cross-machine pass, first try (2026-10-22 05:21-06:01): PC host up and advertising, no Mac joined
+
+**Result: no joiner, because neither Mac was running Nitro.** The PC side worked as planned. The owner had been told the
+boys were waiting on JOIN > IPX, but a read-only process list over ssh (via the laptop, 100.66.69.126) at 05:23,
+05:35 and 05:52 showed no nitro.exe and no Wine game process on Andrew's Mac (.205: only a winedevice.exe left over
+from Oct 17) or on Michael's (.226: no Wine process at all); both were logged in at the console.
+
+PC host (`tools\nitro-mp\xlan.sh`, two sessions of 20 min, the second a restart as the brief allowed):
+- lab copy exp-nitro-mp, the shipped host build **5cb92ac2** (= 91d2b14, `builds\nitro-mp-form\host`) as `strlkprx.dll`
+  under the menu driver in chain mode (nmpdrv be8803c6). The driver only clicks the menus: HOST > IPX, the shipped
+  `[X] ARENA+` box (`nitro-form: click id 0x10 -> ARENA+ on, CO-OP SCENES off; species 7676`), BROADCAST GAME.
+  No LAB switches; NO. DRIVERS 6; arena N01 "Evening Stroll"; mute watcher on (the game plays on the console speakers).
+- `nitro-mp: dpOpen species 7676 'Evening Stroll' -> 0 (ARENA+)` both times; the host's hello went to the group.
+- IPXWrapper instance N on Ethernet only (B0:6E:BF:38:13:31, 192.168.1.81), UDP 54792, net 00000001, node
+  02:4E:00:00:76:03: **303 session broadcasts per session to 192.168.1.255:54792** (every 4 s), each looped back
+  from 192.168.1.81 as expected.
+- **Received from the Macs: nothing.** No packet from 192.168.1.205 / .226 / .116 and no node 52:E0:94:CB:EC:D3 or
+  AF:8D:65:E0:5D:84 in either session's IPXWrapper log. The Macs answer ARP (both present on the LAN; ping is
+  dropped, macOS stealth mode).
+- The game ran: humans 1 at every 5 s stamp (478 stamps), 5 AI in play throughout (NO. DRIVERS 6 - 1 human), the AI
+  killed each other and respawned (22 and 6 respawns), no access violation, only the PIT first-chance 0xC0000096
+  in the crash log. Both sessions ended by the driver's hold (1200 s) and the process stop; the copy went back to the
+  lab DLL (b577183c) and instance L (1ca45be0) after each.
+
+What the Macs have to see once Nitro runs there: on MULTIPLAYER > MELEE > JOIN > IPX, within a few seconds, a row
+"ARENA+ Evening Stroll" (1/6, combat). If a Mac's enumeration requests reach the PC but the row never lists there, the
+likely cause is Michael's macOS firewall (the nitro-mac lane: entries only for the Gold app's wine / wineserver, none
+for the Nitro app; macOS asks on his screen the first time the app opens UDP 54792).
+
+Next try: the same `xlan.sh` (hands at a Mac first: confirm `nitro.exe` runs there before the PC boots).
+
+**Feasibility (owner's question, no build): ARENA+ and co-op as entries of the stock GAME TYPE list.** The list is
+nitshell's own: a static table of 5 string pointers at `0x10045898` (Combat, Racing, C.T.F. (2) / (3) / (4),
+NULL-terminated at `0x100458ac`), drawn by the popup routines (`0x100341e0` draws the rows, `0x10034250` the popup) with the bound `5`
+hard-coded twice (`cmp ebx, 5`, `cmp esi, 0x100458ac`). Choosing type t sets `[0x10045860] = t`, the form's
+one-bit game-type mask `[0x1017a07c]` (`1 << cl`) (form byte 0x35: the session's player data key 5, which every joiner
+reads to show the type) and the team flag for C.T.F., then a 5-way jump table at `0x100346f8` rebuilds the arena
+list for the type (Combat 0x10035800 = *.cbt, Racing 0x10035a50 = *.rac, C.T.F. 0x10035c40(n)). Two entries
+("Arena Drop-In + AI", "Co-Op") can be added behind a switch without moving a stock widget (the popup is drawn only
+while open): our 7-entry table, the two bounds and the popup height patched, the jump table's range check widened
+to our two handlers (Combat's list + species 7676; P01-P19 + species 7676). The cost is on the joiner side: the
+type bits 0x20 / 0x40 reach every joiner in key 5, and a stock Nitro indexes its 5-entry tables with them; it never
+sees a 7676 session, but a patched joiner must carry the same table to show the type. About 2-3 days (popup geometry
+and click range, type -> list / species, joiner display, the isolation cells and item 4's cells again). The boxes
+stay as they are until the owner rules.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
