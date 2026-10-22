@@ -2515,6 +2515,10 @@ the ramp at like 130, exited at 100 ish, pitched forward and hit just a few feet
 tick 44 and promotion 18 made it. s.20.2's harness cleared 4 of 4 at 41.667 with the RC's direct-boot car (foot 63.5, take-off 55.9 m/s).
 
 **Results in short.**
+- **Owner follow-up 2026-10-22 (22.5): the length.** His jump is short only if he leaves the lip near 105 mph (46.9 m/s): the centre of mass
+  reaches the far lip exactly at 106 mph (47.5 m/s) and every road take-off measured (n 257, 48.7-54.7 m/s) carried it 2.6-10.7 m over, more than
+  any kick's nose drop. The kick costs no speed, nothing acts on the pitch in the air (no throttle / wheel / engine / aero term), lifting the
+  throttle 0.5 s early costs 0.45 m/s. The short cases measured are off the 10 m ramp road (wheels on the sand bank).
 - **His speeds are the harness's speeds; the harness's 63.5 / 55.9 were the wrong car.**
   - His car is `ADDON\vehscn.vcf` as the shell wrote it at 18:31 for the mission he played (522de647): the emulator's car (261ci 6,
     Sway Bars, Disc & Drum, 14in Rally, oil / 50cal / FireRite / 50cal, armour 900/600/600/700 x2) plus three specials (X-Aust,
@@ -2653,3 +2657,72 @@ back. A "survive the jump" build needs the switch above first.
 
 Clean-up: persisted mutes of `exp-jump2\Interstate 76\i76.exe` cleared (`tools\unmute-persisted.ps1`); no exp-jump2 process left; the
 RC's files untouched (`STRLKUP.DLL` 8f8da929, saves, vehscn.* read only).
+
+### 22.5 The owner's three questions (2026-10-22): the kick in plain words, the throttle, the length
+
+Same car (his `vehscn.vcf`), same candidate preset (PLAY-TICK, 41.667 ms), same stored states; headless twin on exp-jump2, `.fps-lock` never taken
+(waited out). New in this pass: queue6 (a throttle-lift sweep and three more line sweeps, 25 phases each) and `tools\jump-fix2\j2_len.py` (the
+centre of mass over the gap from every take-off already recorded, n 257 road take-offs incl. the 100 new).
+
+**Q1, plain language.**
+- *One-wheel kick:* on the last instant the car is still on the ramp, one front wheel has already rolled off the lip while the other has not; the
+  engine tips the nose down to bring that wheel back to the ground (about 15 deg per second at PLAY-TICK), the car leaves the ramp still turning,
+  and the engine never slows a nose-down turn in the air, so it keeps tipping all the way across (about -35 deg when it lands).
+- *Both-wheel kick:* the same, but both front wheels are off the lip on that last instant, so the nose is told to drop twice as fast (about 30 deg
+  per second) and arrives near vertical (-85 deg); the car lands on its nose, rolls over and is wrecked about half the time.
+- Code: the lifted-wheel targets (+-pi pitch per wheel, eased by rate += 2 dt (target - rate)) are `physics_ResolveGroundContact` 0x437230, which
+  runs only on grounded steps; the airborne branch of 0x43a5d0 (0x43a78a-0x43a898, read again this pass) compares the pitch rate with -pi/20 at
+  0x43a811 and calls the ease 0x43bda0 (target 0xbe20d97c = -pi/20) only when the rate is ABOVE it, so a kicked rate is left alone for the flight.
+
+**Q2, controls.**
+- **No torque acts on the body in the air.** The airborne branch 0x43a78a-0x43a898 does only: clearance store, ballistic position (gravity, no drag),
+  |v|, copy of the body rates ent+0xc8, the one-sided pitch ease above, the flag update (clear 0x2 / 0x200 / 0x2000, set 0x4), and the pose rotation by
+  the rates (0x4389f0). No read of the throttle, rpm, drive power, wheel spin or aero there; 0x437230 (wheel lift, suspension) does not run while
+  airborne. **Throttle, wheel spin and engine torque cannot change the pitch in flight.** (Yes/no: no.)
+- **Throttle on the ramp face** (the same 25-phase sweep, throttle released 0.5 s before the lip = at x 6902, the ramp foot, against held):
+
+  | throttle | n | take-off m/s | none / single / double | kick sizes deg/s | CoM over the far lip m |
+  |---|---|---|---|---|---|
+  | held (rc42 w1) | 25 | 50.14 +- 0.93 | 6 / 15 / 4 | -15 / -30 | +4.6 (3.3..7.4) |
+  | lifted 0.5 s before the lip (rc42 wt1) | 25 | 49.69 +- 0.99 | 9 / 16 / 0 | -15 | +3.9 (2.6..6.9) |
+
+  Lifting costs 0.45 m/s of exit speed (0.7 m of height at the far lip) and does not change the kick's size. It moved the 4 doubles of this grid
+  to none / single: the weight transfer (ent+0xd4, read by the next step) changes the car's roll on the face, which decides one wheel or two.
+  One grid each, so "lift to avoid the double" is a hint, not a rate.
+
+**Q3, the length.** The flight is exact ballistics (no drag): predicted from the first airborne row vs the recorded flight at the far lip x 6744,
+-0.000 +- 0.002 m (n 57, max 6 mm). Gap: take-off lip x 6875 (y 27.1 at the first airborne row) to the landing ramp's lip x 6744 (y 23.4; its back
+face 6744-6745 is a 7 m wall facing the arriving car). Launch angle 15.8 deg on the road (every road take-off), so height over the far lip depends
+on the exit speed alone:
+
+| exit speed (speedo at the take-off row = true mph) | m/s | centre of mass at the far lip | apex above take-off |
+|---|---|---|---|
+| 100 mph | 44.7 | **5.2 m below the lip** (hits the wall) | 7.3 m |
+| 103 | 46.0 | 2.6 m below | 7.8 |
+| 105 | 46.9 | 1.0 m below ("a few feet below the lip") | 8.1 |
+| **106** | **47.5** | **on the lip** | 8.2 |
+| 108 | 48.3 | +1.3 m (clears a one-wheel kick's nose) | 8.6 |
+| 110 | 49.2 | +2.7 m (clears a both-wheel kick's nose) | 8.9 |
+| 113 | 50.5 | +4.7 m | 9.4 |
+| 117 | 52.3 | +7.0 m | 10.0 |
+
+- The kick costs **no forward speed**: the airborne branch keeps the velocity; mean exit speed by level none / single / double 50.17 / 50.02 /
+  50.30 m/s (n 86 / 127 / 44). It only turns the car.
+- The nose below the centre of mass at the far lip: the hull corners span 4.66 m (MEMORY-MAP-INDEX), so the front corner sits about
+  2.33 sin|pitch| + 0.4 m below it: none (-2 deg at the lip) 0.5 m, single (-26) 1.4 m, double (-70) 2.6 m.
+- **(a) path clears, the nose strikes the face: 0 of 257** road take-offs. **(b) the centre of mass short: 0 of 257.** Every take-off on the road
+  (48.7-54.7 m/s; 105-110 mph on the speedo at the first airborne row, 111-117 at the take-off row) carried the centre of mass 2.6-10.7 m over
+  the lip (doubles: at least 2.9 m, against their 2.6 m nose drop). The (a) window exists only between 47.5 and 49.2 m/s (106-110 mph) and nothing measured flew in it.
+- **His "100-117 mph, a few feet below the lip" therefore needs an exit near 105 mph (46.9 m/s)**: (b), the centre of mass short. Not from the kick,
+  not from the throttle (-0.45 m/s), not from the tick (22.2: 49.7-50.5 m/s at every tick), not from a 3 m line. What does give it, measured:
+  - **The line, off the 10 m road.** Take-off 3.4-3.8 m off the centre line (aimed +-3 m; rc42 wla1 / wlc1, 25 each) launches as on the
+    centre: 50.26 / 49.65 m/s, CoM +4.8 / +4.0 m over the lip. At 6.6-7.8 m off (aimed 4.5 m, wlb1; and the aimed-6 m runs) the wheels are on the
+    sand bank: no launch (vy 0, 45-47 m/s, CoM about 40 m below the lip, into the channel; landed runs 1 of 12 made, 3 of 12 destroyed), or, in 8
+    of 125 bank take-offs, a half launch off the bank's edge at 54 m/s and 9.8 deg whose CoM reaches the far ramp 6 m below the lip, into the wall.
+    Between 3.8 and 6.6 m off centre was not sampled (the pure-pursuit steering overshot the 4.5 m aim).
+  - The speedo misleads by ~5 mph per tick in the air (22 Results), so a reading taken after the lip is not the exit speed.
+- **What would make the length robust** (b): exit speed (+2 m/s = +4 mph lifts the CoM ~3 m at the lip), the lip angle (15.8 deg is the ramp's;
+  aaramp4's face is data, `AA1_RMP4.geo`), or the launch point (the 10 m road). None of these is a timing switch; a steeper / longer ramp face is a
+  data mod (i76mod.py on the .geo), not a proxy key, and would change 1997's jump.
+- **J2 (ease the held nose-dive) would not lengthen anything**: it changes attitude, not the path. It fixes the double-kick wreck (22.3) for every exit
+  that clears; it does not fix a short exit.
