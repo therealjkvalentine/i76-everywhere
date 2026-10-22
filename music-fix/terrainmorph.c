@@ -1,6 +1,7 @@
 /* TERRAIN GEOMORPH AND FLAT-TILE SPLIT  (terrain-geomorph lane 2026-10-21; docs/records/TERRAIN-MORPH-2026-10-21.md)
  * Included by strlkproxy.c after the terrain LOD / hysteresis code. Gold only (refuses on Nitro). Off unless set:
  *   I76_TERRAIN_MORPH=<band>        geomorph: band <= 1 = a fraction of the distance at which a vertex appeared, > 1 = metres
+ *   I76_TERRAIN_MORPH_STATELESS=1   with I76_TERRAIN_MORPH: the stateless form (no tables; band = fraction of the vertex's split ring)
  *   I76_TERRAIN_MORPH_LOG=<csv>     lab instrument: per main terrain pass, how far vertices move on screen, near / mid / far (a
  *                                   snap = > 4 px in one pass) and by class (carried, born by a split, new at the view edge, gone) x
  *                                   size (<= 1, 1-4, 4-16, > 16 px); works with the morph off too (the same instrument on the stock)
@@ -126,13 +127,66 @@ static void tm_acc(double px, int band, int cls) {
     if (px > 4.0) { g_tm_jpx[band] += px; if (px > g_tm_maxj) g_tm_maxj = px; } else g_tm_spx[band] += px;   /* a snap: > 4 px in one pass */
 }
 
+/* ---- STATELESS MORPH (I76_TERRAIN_MORPH_STATELESS=1 with I76_TERRAIN_MORPH=<band>; 2026-10-22) ----
+ * No tables. The five calls of the edge split 0x4918f0 (0x491681 / 0x49168e / 0x491697 / 0x4916a0 / 0x4916e2, all in the quadtree's
+ * split block) go through tm_edge_wrap, which records for the vertex the split made (index = [0x6442ec] before the call) the edge's two
+ * ends (word v0, word v1 of the edge record): its parents, an array write per vertex. Before the transform, each vertex's level comes
+ * from its parent edge (length S samples, axis-aligned: a node side, or the centre line between two side midpoints), and its blend
+ * factor from the split test's own ring: the node splits when d_node^2 <= S^2 K (K = [0x6442c8]), so
+ *     t = clamp((S sqrt(K) - d_node) / band),  band = fraction x S sqrt(K) (at least 40 m), or metres,
+ * with d_node = the distance to the nearer of the vertex's nodes (a side midpoint: the two node centres S/2 off the side; the centre:
+ * itself). t = 0 when the nearer node enters its ring (the split), so a ring split starts on its parents' line; a merge leaves at the
+ * same ring with t back at 0. Splits made inside the ring by the error-threshold steps start partly blended (accepted). One vertex,
+ * one t: no cracks. Parents are blended first (lower index), so y = lerp(mean(parents), true, t) chains through levels. The shade
+ * rides the same t (tm_emit_wrap). Runs in every pass (mirror too). */
+static short *g_ep_a, *g_ep_b; static DWORD *g_ep_s, g_tm_pid = 1; static int g_tm_sl, g_tm_slhave; static LONGLONG g_tm_ticks;
+static void __cdecl tm_edge_wrap(BYTE *edge) {
+    int n0 = *(volatile int *)(DWORD_PTR)0x006442ec, had = edge && *(DWORD *)(edge + 4) != 0;
+    ((void (__cdecl *)(BYTE *))(DWORD_PTR)0x004918f0)(edge);
+    if (!had && n0 >= 0 && n0 < (int)TM_MAXV && *(volatile int *)(DWORD_PTR)0x006442ec == n0 + 1) {
+        g_ep_a[n0] = *(const short *)edge; g_ep_b[n0] = *(const short *)(edge + 2); g_ep_s[n0] = g_tm_pid; }
+}
+static void tm_stateless(const BYTE *cam, float *V, int n) {
+    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, K = *(volatile float *)(DWORD_PTR)0x006442c8, sk = K > 0.0f ? sqrtf(K) : 0.0f, ex, ez;
+    int ox = *(volatile int *)(DWORD_PTR)0x006442e0, oz = *(volatile int *)(DWORD_PTR)0x006442e4, i; DWORD pid = g_tm_pid;
+    ex = (float)(*(const double *)(cam + 0x160) * sc); ez = (float)(*(const double *)(cam + 0x170) * sc);
+    for (i = 0; i < n; i++) {
+        int a, b, iS, ip, alongx; float ax, az, bx, bz, x, z, dx, dz, d, ring, band, t, ym, h;
+        g_tm_t[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1;
+        if (i < 4 || g_ep_s[i] != pid) continue;
+        a = g_ep_a[i]; b = g_ep_b[i];
+        if (a < 0 || b < 0 || a >= i || b >= i) continue;
+        ax = V[3 * a]; az = V[3 * a + 2]; bx = V[3 * b]; bz = V[3 * b + 2]; x = V[3 * i]; z = V[3 * i + 2];
+        alongx = fabsf(ax - bx) >= fabsf(az - bz);
+        iS = (int)((alongx ? fabsf(ax - bx) : fabsf(az - bz)) + 0.5f);
+        if (iS < 2) continue;
+        ip = alongx ? (int)z - oz : (int)x - ox;
+        dx = fabsf(x - ex); dz = fabsf(z - ez); h = 0.5f * (float)iS;
+        if (ip >= 0 && ip % iS == 0) {                     /* a side midpoint: the nearer of the two node centres */
+            if (alongx) dz = dz > h ? dz - h : h - dz; else dx = dx > h ? dx - h : h - dx;
+        }
+        d = sqrtf(dx * dx + dz * dz);
+        ring = (float)iS * sk;
+        band = g_tm_frac ? g_tm_band * ring : g_tm_band;
+        if (g_tm_frac && band < 8.0f) band = 8.0f;
+        t = band > 0.0f ? (ring - d) / band : 1.0f;
+        if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
+        g_tm_pa[i] = a; g_tm_pb[i] = b; g_tm_t[i] = t;
+        if (t < 1.0f) { ym = 0.5f * (V[3 * a + 1] + V[3 * b + 1]); V[3 * i + 1] = ym + (V[3 * i + 1] - ym) * t; g_tm_morphing++; g_tm_win_morphing++; }
+    }
+    g_tm_pid++; g_tm_n = n; g_tm_slhave = 1;
+}
+
 static void __cdecl tm_xform_wrap(void) {
     BYTE *cam = *(BYTE * volatile *)(DWORD_PTR)0x006442d4;
     float *V = *(float * volatile *)(DWORD_PTR)0x005dd320;
     int n = *(volatile int *)(DWORD_PTR)0x006442ec, i, ox, oz, R, prev = 1 - g_tm_cur, teleport;
-    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, ex, ez;
-    g_tm_have = 0; g_tm_pass_main = cam && cam != (BYTE *)(DWORD_PTR)0x00608c80;
+    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, ex, ez; LARGE_INTEGER q0, q1;
+    QueryPerformanceCounter(&q0);
+    g_tm_have = 0; g_tm_slhave = 0; g_tm_pass_main = cam && cam != (BYTE *)(DWORD_PTR)0x00608c80;
+    if (g_tm_sl && cam && V && n > 4 && n <= (int)TM_MAXV && *(volatile DWORD *)(DWORD_PTR)0x0059c560 != 0) tm_stateless(cam, V, n);
     if (!g_tm_on || !g_tm_pass_main || !V || n <= 4 || n > (int)TM_MAXV || *(volatile DWORD *)(DWORD_PTR)0x0059c560 == 0) goto done;
+    if (g_tm_sl && !g_tm_log) goto done;                   /* stateless without the instrument: no tables at all */
     ex = (float)(*(const double *)(cam + 0x160) * sc); ez = (float)(*(const double *)(cam + 0x170) * sc);
     ox = *(volatile int *)(DWORD_PTR)0x006442e0; oz = *(volatile int *)(DWORD_PTR)0x006442e4; R = 1 << (*(volatile int *)(DWORD_PTR)0x006442e8 & 31);
     teleport = !g_tm_prev_ok || (ex - g_tm_eye_prev[0]) * (ex - g_tm_eye_prev[0]) + (ez - g_tm_eye_prev[1]) * (ez - g_tm_eye_prev[1]) > 64.0f;
@@ -146,7 +200,7 @@ static void __cdecl tm_xform_wrap(void) {
     for (i = 0; i < n; i++) {
         tm_slot_t *s = tm_vput(g_tm_cur, tm_vkey((int)V[3 * i], (int)V[3 * i + 2]));
         g_tm_slot[i] = s; if (s && s->idx < 0) s->idx = i;
-        g_tm_t[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1;
+        if (!g_tm_sl) { g_tm_t[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1; }   /* stateless: t / parents already set (the tables only measure) */
     }
     for (i = 4; i < n; i++) {
         int x = (int)V[3 * i], z = (int)V[3 * i + 2], ax, az, bx, bz, axis, m, ia, ib;
@@ -156,7 +210,7 @@ static void __cdecl tm_xform_wrap(void) {
         if (!m) continue;
         pa = tm_vfind(g_tm_cur, tm_vkey(ax, az)); pb = tm_vfind(g_tm_cur, tm_vkey(bx, bz));
         if (!pa || !pb || pa->idx < 0 || pb->idx < 0 || pa->idx >= i || pb->idx >= i) continue;
-        ia = pa->idx; ib = pb->idx; g_tm_pa[i] = ia; g_tm_pb[i] = ib;
+        ia = pa->idx; ib = pb->idx; if (!g_tm_sl) { g_tm_pa[i] = ia; g_tm_pb[i] = ib; }
         d = sqrtf(((float)x - ex) * ((float)x - ex) + ((float)z - ez) * ((float)z - ez));
         ps = g_tm_prev_ok ? tm_vfind(prev, s->k) : NULL;
         if (ps) { s->d0 = ps->d0; s->mx = ps->mx; s->open = ps->open; s->m = ps->m; s->shmx = ps->shmx; s->shd = ps->shd; }
@@ -165,7 +219,8 @@ static void __cdecl tm_xform_wrap(void) {
             if (g_tm_log) g_tm_new++;
         }
         yt = V[3 * i + 1]; ym = 0.5f * (V[3 * ia + 1] + V[3 * ib + 1]);
-        if (g_tm_morph && s->d0 > 0.0f) {
+        if (g_tm_sl) t = g_tm_t[i];                       /* blended already by tm_stateless */
+        else if (g_tm_morph && s->d0 > 0.0f) {
             band = g_tm_frac ? g_tm_band * s->d0 : g_tm_band;
             if (g_tm_frac && band < 8.0f) band = 8.0f;      /* at least 40 m: a vertex born close in (an error step at 40-160 m) does not race */
             t = band > 0.0f ? (s->d0 - d) / band : 1.0f;
@@ -201,15 +256,17 @@ static void __cdecl tm_xform_wrap(void) {
     }
     g_tm_eye_prev[0] = ex; g_tm_eye_prev[1] = ez; g_tm_n = n; g_tm_have = 1;
 done:
+    QueryPerformanceCounter(&q1); g_tm_ticks += q1.QuadPart - q0.QuadPart;     /* the morph's own work (the transform below excluded) */
     ((void (__cdecl *)(void))(DWORD_PTR)g_tm_ret_xform)();
 }
 static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
-    if (g_tm_have) {
+    LARGE_INTEGER q0, q1; QueryPerformanceCounter(&q0);
+    if (g_tm_have || g_tm_slhave) {
         float *U = *(float * volatile *)(DWORD_PTR)0x005dd2ec; int i, lit = *(volatile int *)(DWORD_PTR)0x005a4618 != 0;
         float *V = *(float * volatile *)(DWORD_PTR)0x005dd320;
         for (i = 4; i < g_tm_n && U && lit; i++) {
             int ia = g_tm_pa[i], ib = g_tm_pb[i]; float sm, t = g_tm_t[i];
-            tm_slot_t *s = g_tm_slot[i], *ps;
+            tm_slot_t *s = g_tm_have ? g_tm_slot[i] : NULL, *ps;
             if (ia < 0 || ib < 0) continue;
             sm = 0.5f * (U[3 * ia + 2] + U[3 * ib + 2]);
             if (s && s->idx == i && s->open && s->shd < 0.0f) s->shd = (float)fabs(U[3 * i + 2] - sm);   /* the shade step a split would show */
@@ -227,7 +284,7 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
             if (s && s->idx == i) s->sh = U[3 * i + 2];
         }
         g_tm_passes++; g_tm_win_passes++;
-        if (g_tm_log) {
+        if (g_tm_log && g_tm_have) {
             fprintf(g_tm_log, "%lu,%.3f,%d,%lu,%lu,%lu,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.1f,%.1f", (unsigned long)g_frame, tm_qms(), g_tm_n,
                     (unsigned long)g_tm_new, (unsigned long)g_tm_gone, (unsigned long)g_tm_nview,
                     g_tm_jpx[0], g_tm_jpx[1], g_tm_jpx[2], g_tm_spx[0], g_tm_spx[1], g_tm_spx[2], g_tm_maxj, g_tm_shj,
@@ -235,8 +292,10 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
             {   int c, kk; for (c = 0; c < 4; c++) for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%.1f", g_tm_bin[c][kk]); fputc('\n', g_tm_log); }
             if ((g_tm_passes & 63) == 0) { fflush(g_tm_log); if (g_tm_ev) fflush(g_tm_ev); }
         }
-        g_tm_cur = 1 - g_tm_cur; g_tm_prev_ok = 1; g_tm_have = 0;
+        if (g_tm_have) { g_tm_cur = 1 - g_tm_cur; g_tm_prev_ok = 1; }
+        g_tm_have = 0; g_tm_slhave = 0;
     }
+    QueryPerformanceCounter(&q1); g_tm_ticks += q1.QuadPart - q0.QuadPart;
     ((void (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_tm_ret_emit)(a, b);
 }
 
@@ -295,9 +354,11 @@ static __declspec(naked) void tf_stub(void) {                    /* jmp from 0x4
 
 static void terrain_morph_report(void) {
     if (g_tm_on && g_tm_win_passes)
-        mlog("  terrain-morph: %lu main passes (%lu since the last line), %lu vertices born by a split, %lu new but mature (view edge / jump), %lu camera jumps; vertex-passes morphing %lu (%.1f per pass)",
+        mlog("  terrain-morph: %lu main passes (%lu since the last line), %lu vertices born by a split, %lu new but mature (view edge / jump), %lu camera jumps; vertex-passes morphing %lu (%.1f per pass); own cost %.0f us per pass",
              (unsigned long)g_tm_passes, (unsigned long)g_tm_win_passes, (unsigned long)g_tm_born, (unsigned long)g_tm_mature_new, (unsigned long)g_tm_jumps_reset,
-             (unsigned long)g_tm_morphing, (double)g_tm_win_morphing / g_tm_win_passes);
+             (unsigned long)g_tm_morphing, (double)g_tm_win_morphing / g_tm_win_passes,
+             g_tm_qpf.QuadPart ? (double)g_tm_ticks * 1e6 / (double)g_tm_qpf.QuadPart / g_tm_win_passes : -1.0);
+    g_tm_ticks = 0;
     if (g_tf_on) mlog("  terrain-flat-split: %lu flat nodes kept coarse (%lu since the last line), %lu tests", (unsigned long)g_tf_kept, (unsigned long)g_tf_win_kept, (unsigned long)g_tf_tested);
     g_tm_win_passes = g_tm_win_morphing = 0; g_tf_win_kept = 0;
 }
@@ -317,8 +378,14 @@ static void apply_terrain_morph(void) {
     if (g_exe == EXE_NITRO) { mlog("  terrain-morph: Nitro - not applied (Gold sites only)"); return; }
     if (nm && (band <= 0.0f || (band > 1.0f && (band < 5.0f || band > 1000.0f)) || (band <= 1.0f && band < 0.02f))) {
         mlog("  terrain-morph: I76_TERRAIN_MORPH %s out of range (0.02..1 = fraction of the split distance, 5..1000 = metres) - not applied", v); nm = 0; }
+    if (nm) { char sv[8]; if (env_str("I76_TERRAIN_MORPH_STATELESS", sv, sizeof(sv)) && atoi(sv) == 1) g_tm_sl = 1; }
     if (nm || nl) {
-        for (i = 0; i < 2; i++) {
+        g_ep_a = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        g_ep_b = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        g_ep_s = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (!g_ep_a || !g_ep_b || !g_ep_s) { mlog("  terrain-morph: no memory - not applied"); return; }
+        QueryPerformanceFrequency(&g_tm_qpf);
+        for (i = 0; i < 2 && (!g_tm_sl || nl); i++) {       /* the per-vertex tables: the memory form, or the instrument */
             g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_SLOTS * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             g_tm_vu[i] = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             g_tm_l[i] = (unsigned __int64 *)VirtualAlloc(NULL, TM_SLOTS * sizeof(unsigned __int64), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -328,7 +395,7 @@ static void apply_terrain_morph(void) {
         g_tm_pa = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_tm_pb = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_tm_slot = (tm_slot_t **)VirtualAlloc(NULL, TM_MAXV * sizeof(tm_slot_t *), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        if (!g_tm_v[0] || !g_tm_v[1] || !g_tm_vu[0] || !g_tm_vu[1] || !g_tm_l[0] || !g_tm_l[1] || !g_tm_lu[0] || !g_tm_lu[1] || !g_tm_t || !g_tm_pa || !g_tm_pb || !g_tm_slot) {
+        if ((!(g_tm_sl && !nl) && (!g_tm_v[0] || !g_tm_v[1] || !g_tm_vu[0] || !g_tm_vu[1] || !g_tm_l[0] || !g_tm_l[1] || !g_tm_lu[0] || !g_tm_lu[1])) || !g_tm_t || !g_tm_pa || !g_tm_pb || !g_tm_slot) {
             mlog("  terrain-morph: no memory - not applied"); return; }
         if (nm) { g_tm_morph = 1; if (band <= 1.0f) { g_tm_frac = 1; g_tm_band = band; } else g_tm_band = band / 5.0f; }
         if (nl) { g_tm_log = fopen(lf, "w"); QueryPerformanceFrequency(&g_tm_qpf);
@@ -343,9 +410,24 @@ static void apply_terrain_morph(void) {
             ok = ok && patch_bytes(0x00490f9b, eh_old, w5, 5, "terrain morph emit call (hardware)");
             rel = (LONG)((DWORD_PTR)tm_emit_wrap - (0x00490f82 + 5)); memcpy(w5 + 1, &rel, 4);
             ok = ok && patch_bytes(0x00490f82, es_old, w5, 5, "terrain morph emit call (software)");
+            if (ok && g_tm_sl) {                           /* the five calls of the edge split 0x4918f0 in the quadtree's split block */
+                static const DWORD es[5] = { 0x00491681, 0x0049168e, 0x00491697, 0x004916a0, 0x004916e2 };
+                BYTE cur[5]; int k, good = 1;
+                for (k = 0; k < 5; k++) { LONG r0 = (LONG)(0x004918f0 - (es[k] + 5)); cur[0] = 0xe8; memcpy(cur + 1, &r0, 4); if (memcmp((const void *)(DWORD_PTR)es[k], cur, 5)) good = 0; }
+                if (!good) { mlog("  terrain-morph: stateless: an edge-split call site differs - stateless NOT applied (the table form runs)"); g_tm_sl = 0; }
+                else for (k = 0; k < 5; k++) {
+                    LONG r0 = (LONG)(0x004918f0 - (es[k] + 5)); cur[0] = 0xe8; memcpy(cur + 1, &r0, 4);
+                    rel = (LONG)((DWORD_PTR)tm_edge_wrap - (es[k] + 5)); memcpy(w5 + 1, &rel, 4);
+                    if (!patch_bytes(es[k], cur, w5, 5, "terrain morph edge-split call")) { mlog("  terrain-morph: stateless: patch %d failed", k); ok = 0; }
+                }
+                if (g_tm_sl && !ok) g_tm_sl = 0;
+            }
             g_tm_on = ok;
         }
-        if (g_tm_morph)
+        if (g_tm_morph && g_tm_sl)
+            mlog("  terrain-morph: %s, STATELESS (no tables: parents from the edge split 0x4918f0, t from the vertex's own split ring S sqrt(K); band %.2f %s; height and shade; every pass)%s",
+                 g_tm_on ? "on" : "NOT applied", band, g_tm_frac ? "x the ring distance (at least 40 m)" : "m", g_tm_log ? "; log on (its tables measure only)" : "");
+        else if (g_tm_morph)
             mlog("  terrain-morph: %s (a vertex born by a split blends from its parents' height and shade to its own over %.2f %s; render only, the ground query 0x493550 is untouched)%s",
                  g_tm_on ? "on" : "NOT applied", band, g_tm_frac ? "x the distance it appeared at" : "m", g_tm_log ? "; log on" : "");
         else mlog("  terrain-morph: %s (LOG ONLY: no blending, the jump instrument runs on the stock terrain)", g_tm_on ? "on" : "NOT applied");
