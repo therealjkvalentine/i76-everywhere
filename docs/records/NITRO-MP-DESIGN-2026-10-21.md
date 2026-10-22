@@ -654,6 +654,49 @@ session handshake does not. Fix (the owner's network, not this lane's: no admin 
 with a lower metric. Then x-mac laptop n 2 and Andrew again. Andrew's direct 192.168.1.81:61363 packets may also need
 a look at the PC firewall afterwards if they still do not arrive.
 
+### 0.5.16 Cross-machine pass after the route fix: the Mac's missing data-path key, found and fixed; first Mac joins (2026-10-22)
+
+**Route.** Main ran `tailscale set --accept-routes=false` (owner's approval); `Find-NetRoute 192.168.1.241` now answers
+Ethernet. In x-mac3 every host packet reached the laptop from 192.168.1.81 (177 / 177, none from .141), traffic both ways.
+
+**The next blocker was the Mac prefix, not the network.** The joiner's main thread sat in a USER32 modal loop called
+from NITSHELL+0x2ffab (x-mac4: `win32u / USER32 x4 / NITSHELL.DLL+2ffab`), the error box of the shell's mission-file
+check 0x1002fda0 ("Mission file %s not found."). With nitshell's file opens logged (x-mac6) the joiner looked for
+`addon\N01.CBT` and `\N01.CBT` only. The base path comes from ShellMain's interface [0x1004e840]: +0x78 = nitro.exe
+0x4be830 and +0x70 = 0x468340 (the CD drive letter byte [0x590a74]). 0x4be830 asks 0x4be700, which opens
+`HKLM\SOFTWARE\Activision` and reads `Interstate '76 Nitro Pack\Minimum`: key absent -> "use the CD" -> `Install\data\miss8`
+on drive letter 0 -> "\N01.CBT" (the driver's probe on the Mac: `+0x78 -> 1 'Install\data\miss8'; +0x70 -> 0`); value "0"
+-> local `miss8`. The PC has the key through UAC's VirtualStore (`HKCU\Software\Classes\VirtualStore\MACHINE\SOFTWARE\
+WOW6432Node\Activision\Interstate '76 Nitro Pack`, Minimum = 0); no Mac prefix has any Activision key (the shipped apps on
+the laptop and Andrew's: 0 lines). A workaround answering the check for every ARENA+ mission (build 0cf952e6, x-mac7) got
+the joiner past the box and into the arena, where it faulted at **nitro+0x9785b** `mov cx, [eax + edx*2]`, eax 0 - the
+crash the owner reported (owner-mac-join-crash-1.txt; same registers as x-mac7's CRASH line; strlkprx.dll loaded and
+Darwin 25.6.0, so it was the laptop's lab clone, not Andrew's and not a shipped app). 0x497790(x, z), called from
+0x406cf8 for an object's +0x40 / +0x50, reads the terrain cell word from the row table **0x5fb660** (16384 row pointers
+of 128 words), which the mission's terrain load fills: with the data path on a non-existent CD the terrain never loads.
+The workaround was dropped (diff kept in `builds\nitro-mp-macjoin\crc-workaround.diff`); the cause is fixed instead:
+**`"Minimum"="0"` under `[Software\\Activision\\Interstate '76 Nitro Pack]` and its Wow6432Node twin in the prefix's
+system.reg** (`tools\nitro-mp\xmac-minimum.py`), written to the lab clones on the laptop and Andrew's Mac.
+
+| run | session | proxy (both sides) | Mac | listed | joiner in the arena | host | rows | crashes |
+|---|---|---|---|---|---|---|---|---|
+| x-mac8 | **stock 604** (box off) | 5cb92ac2 | laptop + key | "Evening Stroll" 025c | **yes**: t+5 s state 5, net 1, me 44, host 40, players 2 | joined | (stock: no AI rows) | 0 / 0 |
+| x-mac9 | ARENA+ | 5cb92ac2 | laptop + key | - | no: the Mac boot faulted in wined3d (0 at wined3d+0x162430, frame 0) before the shell - the first-boot flake of NITRO-MAC s.1 | - | - | Mac 1 (boot) |
+| x-mac10 | ARENA+ | 5cb92ac2 | laptop + key | "ARENA+ Evening Stroll" 7676 1/6 | **yes**: t+5 s state 5, net 1, me 44, host 40, players 6; in play to t+115 s (its log ends there) | humans 1 -> 2, an AI parked; 2 -> 1 later | **agree**: the host's last line before the leave and the joiner's last line hold the same rows (40 0/0/0, 44 0/2/0, AI 32259 3/0/3786, 32258 0/1/0, 32257 0/0/0, 32260 0/1/0) | 0 / 0 |
+| x-mac11 | ARENA+ | 5cb92ac2 | laptop + key | same | no: JOIN GAME clicked, no dpOpen followed (not explained yet) | - | - | 0 / 0 |
+
+Laptop ARENA+ joins: 1 of 2 counted runs (x-mac10); x-mac11 to be explained. In x-mac10 the joiner took a slot, the
+AI were mirrored ('AT' applied 2004) and killed the joiner twice (its row 0/2/0 on both sides), the host's shooter
+credited one kill; the joiner's LAB shooter never fired on the Mac ("fire keys read 0 times"), so kills by the joiner
+were not measured. The time-matched sync / row stamps of aisum.py do not apply across machines (two clocks); rows were
+compared by content. **Andrew's Mac (n 2) was not run**: the lock window closed (11:50). The 5 s stamp grid, the Mac
+shooter and x-mac11 are open.
+
+**For the boys' apps** (staged, not installed: `builds\nitro-mac-update\`, README + MD5SUMS): (1) required for any join,
+stock or ARENA+: the registry key above in the app's prefix (no DLL); (2) optional: Strlkup.dll ad904941 -> 5cb92ac2 (the
+host form + the tick-safe AI skip; 91d2b14 includes the Mac fixes of 3d7c3e0). Stock 604 joins on the Macs hit the same
+box without (1) - x-mac8 confirms the key alone fixes a stock join.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
