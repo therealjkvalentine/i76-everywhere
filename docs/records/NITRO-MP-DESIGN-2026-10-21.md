@@ -417,6 +417,14 @@ the integration built the same way, **0b17a8c8**. Smokes with the nitro-port lan
 - **Gold**, t01 with the release-candidate tick19-42 preset, n 2: **the same 129-line set as the base, 0 CRASH lines**
   (compare_logs.py "same line set", integ r2 + r3 against base r1 + r2). Integ r1 differed by one log line split in two by
   two threads writing at once (the cursor-map thread's "2 cursor pointer(s) taken" line); a third run was taken.
+- **Re-run with the co-op code (e516e34 + 8e14a74, tree = HEAD ea3b250): build e4005491** (`builds/nitro-mp-integ/coop/`),
+  Nitro P01 straight boot, n 2 (coop-p01-r1, -r2): the same log lines as 4d82427e plus the two co-op lines ("co-op: 7/7
+  player-spawn calls ...", "nitshell co-op mission check 2/2 sites"); P01 running with the player car at 20 s; crash log:
+  only the PIT first-chance 0xC0000096 at 0x49acb7. The lab copy's own proxy (d167eebe) was put back after each run.
+- **Sim rate, measured on the side:** the evening runs advanced 0.856 sim-s per wall-s (11-21 s), the 12:56 runs 1.052.
+  Not the build: an interleaved control at 20:23-20:54 (4d82427e, e4005491, base 0b17a8c8; n 2 each, `ratectl.sh`)
+  gave 0.856 for all six, the base without any nitro-mp code included. nitplyr.def is byte-identical to the other Nitro
+  copies; the cause is outside this lane (machine state between 13:00 and 19:48) and is left to whoever owns Nitro timing.
 
 ### 0.5.8 Item 7(d): lobby isolation - answered by prior art, without touching the live lobby
 
@@ -439,7 +447,7 @@ to its players).
 
 ### 0.5.9 Item 5: CO-OP SCENES on Nitro's own P01 (2026-10-21; owner: no Gold missions)
 
-**P01 with host + joiner: pass, 3 of 3. The box-off control on P01 (n 2) was not run - see the end.**
+**P01 with host + joiner: pass, 4 of 4 (cp-r5 added 21:00). The box-off control on P01, n 2: the stock refusal, as expected (end of section).**
 
 Code (commit e516e34, `nitro_ai.c` co-op block; lab list entries in arena_poc.c `NMP_LAB_COOP_LIST`):
 - **List**: with CO-OP SCENES on, the host form lists Nitro's own P01-P19 (`miss16\Pnn.MSN`, loose files of every
@@ -459,16 +467,21 @@ Code (commit e516e34, `nitro_ai.c` co-op block; lab list entries in arena_poc.c 
 | cp-x2 | caada4fd / caada4fd | yes / yes | yes (joiner in for its whole 80 s) | 120 samples, median 0.00 m, max 0.6 m | 0 / 0 |
 | cp-r1 | same | yes / yes | yes (100 s) | 152, median 0.00, max 3.7 | 0 / 0 |
 | cp-r2 | same | yes / yes | yes (100 s) | 152, median 0.00, max 1.7 | 0 / 0 |
+| cp-r5 | same | yes / yes | yes (100 s) | 151, median 0.00, max 0.0 | 0 / 0 |
 
-Over the three: 424 samples, median 0.00 m, p90 0.61 m, max 3.7 m. A third cp-r run (cp-r3) lost its joiner to the
-.fps-lock taken between the two boots (the joiner never started); it is not counted.
+Over the four: 575 samples, median 0.00 m, p90 0.58 m, max 3.7 m (the first three alone: 424, 0.00, 0.61, 3.7). Two cp-r runs
+lost their joiner to an .fps-lock taken in the 2 s between the two boots (the joiner's runner waits, the host plays alone):
+cp-r3 and cp-r4; neither is counted. `cpretry.sh` counts a cell only when both logs exist. (cpsum.py's own line skips
+one 5 s stamp, not two, and so shows cp-r2 with a 969.6 m outlier at the stamp right after the join; the table uses the
+10 s rule above for every run.)
 
 **Stock behaviour on P01 (the control asked for).** A stock Nitro session cannot be on P01 at all: the stock shell refuses
 a .msn at BROADCAST ("Mission file p01.msn not found", the stock check, seen in cp-x1 before the co-op check existed). With
 the box off our check passes straight to that stock code (it acts only on the ARENA+ species), and single-player P01 with the
-integrated proxy ran unchanged (s.0.5.7, n 2). **The two box-off pair runs (cp-s1, cp-s2) were not run**: from 14:56 the
-rebaseline lane's queue held `.fps-lock` without a gap (polled every 2 s for 40 min); the runner was stopped rather than
-left to boot games unattended. `tools/nitro-mp/cpmatrix2.sh` runs exactly those cells (and one more co-op run).
+integrated proxy ran unchanged (s.0.5.7, n 2). **The box-off pair runs, cp-s1 and cp-s2 (19:09-19:25,
+`cpmatrix2.sh`):** the same host steps with the box off: the session went out as species 0x025c (604, stock), the co-op
+mission check never ran (no CRC line on either side), the stock shell answered "Mission file p01.msn not found" in both
+runs, no player object adopted, no 'AT', 0 / 0 access violations. So with the box off P01 behaves exactly as stock Nitro.
 
 ### 0.6 Changes to sections 3.4, 4 and 5
 
