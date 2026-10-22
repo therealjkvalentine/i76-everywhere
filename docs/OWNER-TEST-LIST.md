@@ -1011,4 +1011,7 @@ Open items from this session:
   (screenshots Downloads\Screenshot 2026-10-21 1803xx-1804xx.png); P10 Up = look at the dash, Down = look back on Windows as on the Mac (input.map). Polish lane 2.
 - Firewall prompts for the lab Nitro copy: owner allowed both (lab copy now has allow rules).
 - Nothing drivable on Nitro yet for the owner (the port's console rows wait for the ladder).
+- T1 **Ladder follow-up for the owner's eye:** the ladder's fps says the x24 split distance (R07 and the candidate alike) is the one expensive switch (1 % low 86-87 vs 102-106),
+  while the height-error threshold /24 alone (R14, PLAY-R14.bat in exp-rebase) is nearly free (102) and was never driven. Drive R14 against R07 on the same slope: if R14 looks
+  like R07, the interim set drops the split distance and keeps the frame rate. (REBASELINE-2026-10-21 s.4-s.7.)
 
