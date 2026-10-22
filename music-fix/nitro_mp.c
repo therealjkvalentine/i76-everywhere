@@ -8,7 +8,6 @@
  *
  * HOW IT IS INCLUDED. Two hosts, one source:
  *   - the proxy (strlkproxy.c, after nitro.c): NMP_IN_PROXY defined by the includer; logging = mlog, IAT = patch_iat.
- *     NOT INCLUDED YET (strlkproxy.c is shared; the one #include + the two calls below are the integration step).
  *   - the lab instrument nmpdrv (i76-uncap-lab tools\nitro-mp\nmpdrv): defines NMP_LOG / NMP_IAT and includes this file
  *     and sites_nitro.h; that is how sections 0.5.4 of the record were measured.
  * Entry points: nmp_attach_exe() (DllMain, nitro.exe only), nmp_attach_shell(nitshell) (when nitshell.dll is mapped),
@@ -34,8 +33,9 @@
  *   7. LOBBY: nmp_lobby_subscribe() is a STUB (record s.0.5.3): on a game server the client subscribes to the session
  *      table per species (anet2 0x020f6480, key {table, species}); listing ARENA+ sessions there needs the same
  *      subscription for 0x7676. Not called.
- * NOT HERE YET: the ARENA+ check boxes on the host form (record s.0.3, hooks F1-F6; proven in the lab instrument's
- * arena_poc.c, record s.0.5.1) and the entity features (s.3.1).
+ *   8. FORM: the ARENA+ / CO-OP SCENES check boxes on nitshell's host form (nitro_form.c, record s.0.3 / 0.5.10): the only
+ *      thing that makes this host open an ARENA+ session (species word 0x7676 while a box is on, 604 otherwise).
+ * The entity features (AI fill, rows, respawn, kills, co-op scenes) are nitro_ai.c.
  */
 #include <math.h>
 #ifndef NMP_LOG
@@ -258,6 +258,7 @@ static int nmp_lobby_subscribe(void) {   /* STUB (record s.0.5.3 / 0.5.8): on a 
                                          * open-source ANet 0.10 (LGPL 2.1), not from the anet2.dll dump. */
     return 0;
 }
+#include "nitro_form.c"   /* the host-form check boxes (nf_attach) */
 static void nmp_attach_shell(HMODULE sh) {
     void *e, *o;
     if (!g_nmp_on) return;
@@ -265,6 +266,7 @@ static void nmp_attach_shell(HMODULE sh) {
     if (e) nmp_real_enum = (nmp_enum_fn)e; if (o) nmp_real_open = (nmp_open_fn)o;
     NMP_LOG("  nitro-mp: nitshell hooks: dpEnumSessions %s (one call, species 0, filtered to 604 + 7676), dpOpen %s; lobby subscription: stub (%d)",
             e ? "ok" : "MISSING", o ? "ok" : "MISSING", nmp_lobby_subscribe());
+    nf_attach(sh);
     if (g_nmp_shell_hook) g_nmp_shell_hook(sh);
 }
 

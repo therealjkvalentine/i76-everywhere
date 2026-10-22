@@ -767,7 +767,7 @@ static void nai_attach(void) {
  * Nitro only (nitro_dllmain is not reached on Gold). I76_NITRO_MP=0 leaves everything here off; I76_NITRO_AI=0 keeps the
  * ANet 2 layer but not the AI. Inert in a stock session: the dpReceive hook passes through and every patched call site
  * does what the stock call did unless the session is ARENA+ (species 0x7676), which only the host form's ARENA+ boxes
- * create (record s.0.3; not in the proxy yet, so the shipped proxy never creates one). ---- */
+ * create (record s.0.3; nitro_form.c, the host form's ARENA+ / CO-OP SCENES boxes, both off by default). ---- */
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name);
 static void apply_nitro_mp(void) {
     if (env_flag("I76_NITRO_MP", 8, 1) == 0) { mlog("  nitro-mp: I76_NITRO_MP=0 - off"); return; }
