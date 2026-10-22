@@ -42,8 +42,7 @@
  * 0x491556 keeps such a node a leaf when it is flat (cached per node) and farther than f x its split ring.
  */
 #define TM_MAXV   32768u
-#define TM_SLOTS  65536u                                   /* the flat-split cache (tm_hash) */
-#define TM_VSLOTS 131072u                                  /* vertex / leaf tables: slot = Morton order of the sample (locality) */
+#define TM_SLOTS  65536u
 typedef struct { unsigned __int64 k; float d0, y, sh, mx, shmx, shd; int idx, open, m; } tm_slot_t;   /* mx / open / m: the per-split event (largest one-pass move) */      /* k 0 = empty (keys are offset, never 0) */
 static tm_slot_t *g_tm_v[2]; static DWORD *g_tm_vu[2], g_tm_vn[2];               /* vertex maps: this main pass / previous */
 static unsigned __int64 *g_tm_l[2]; static DWORD *g_tm_lu[2], g_tm_ln[2];        /* leaf key sets */
@@ -53,7 +52,7 @@ static float g_tm_eye_prev[2];
 static float *g_tm_t; static int *g_tm_pa, *g_tm_pb; static tm_slot_t **g_tm_slot;
 static int g_tm_n, g_tm_pass_main, g_tm_have;
 static DWORD g_tm_passes, g_tm_born, g_tm_morphing, g_tm_mature_new, g_tm_jumps_reset, g_tm_win_passes, g_tm_win_morphing;
-static FILE *g_tm_log, *g_tm_ev; static LARGE_INTEGER g_tm_qpf; static LONGLONG g_tm_ticks;
+static FILE *g_tm_log, *g_tm_ev; static LARGE_INTEGER g_tm_qpf;
 static double g_tm_fx, g_tm_fz, g_tm_px, g_tm_pz; static int g_tm_fok;
 static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj, g_tm_bin[4][4];   /* bin[class][size]: class carried / born / mature-new / gone; size <=1, 1-4, 4-16, >16 px */ static DWORD g_tm_new, g_tm_gone, g_tm_nview;
 static DWORD g_tm_ret_xform = 0x004937c0, g_tm_ret_emit = 0x00491a30;
@@ -61,17 +60,14 @@ static DWORD g_tm_ret_xform = 0x004937c0, g_tm_ret_emit = 0x00491a30;
 static unsigned __int64 tm_vkey(int x, int z) { return ((unsigned __int64)(DWORD)(x + 8192) << 32) | (DWORD)(z + 8192); }
 static unsigned __int64 tm_lkey(int x, int z, int s) { return ((unsigned __int64)(DWORD)(x + 8192) << 40) | ((unsigned __int64)(DWORD)(z + 8192) << 16) | (DWORD)(s & 0xffff); }
 static DWORD tm_hash(unsigned __int64 k) { k ^= k >> 31; k *= 0x9e3779b97f4a7c15ull; k ^= k >> 29; return (DWORD)k & (TM_SLOTS - 1); }
-static DWORD tm_spread(DWORD v) { v &= 0xffff; v = (v | (v << 8)) & 0x00ff00ff; v = (v | (v << 4)) & 0x0f0f0f0f; v = (v | (v << 2)) & 0x33333333; return (v | (v << 1)) & 0x55555555; }
-static DWORD tm_vhash(unsigned __int64 k) { return (tm_spread((DWORD)(k >> 32)) | (tm_spread((DWORD)k) << 1)) & (TM_VSLOTS - 1); }
-static DWORD tm_lhash(unsigned __int64 k) { return ((tm_spread((DWORD)(k >> 40)) | (tm_spread((DWORD)(k >> 16)) << 1)) + (DWORD)(k & 0xffff) * 7u) & (TM_VSLOTS - 1); }
 static tm_slot_t *tm_vfind(int t, unsigned __int64 k) {
-    DWORD i = tm_vhash(k), n; tm_slot_t *s = g_tm_v[t];
-    for (n = 0; n < 256; n++, i = (i + 1) & (TM_VSLOTS - 1)) { if (!s[i].k) return NULL; if (s[i].k == k) return &s[i]; }
+    DWORD i = tm_hash(k), n; tm_slot_t *s = g_tm_v[t];
+    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) { if (!s[i].k) return NULL; if (s[i].k == k) return &s[i]; }
     return NULL;
 }
 static tm_slot_t *tm_vput(int t, unsigned __int64 k) {
-    DWORD i = tm_vhash(k), n; tm_slot_t *s = g_tm_v[t];
-    for (n = 0; n < 256; n++, i = (i + 1) & (TM_VSLOTS - 1)) {
+    DWORD i = tm_hash(k), n; tm_slot_t *s = g_tm_v[t];
+    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) {
         if (!s[i].k) { if (g_tm_vn[t] >= TM_MAXV) return NULL; s[i].k = k; s[i].d0 = -1.0f; s[i].idx = -1; s[i].mx = -1.0f; s[i].open = 0; s[i].m = 0; s[i].shmx = 0.0f; s[i].shd = -1.0f; g_tm_vu[t][g_tm_vn[t]++] = i; return &s[i]; }
         if (s[i].k == k) return &s[i];
     }
@@ -79,13 +75,13 @@ static tm_slot_t *tm_vput(int t, unsigned __int64 k) {
 }
 static void tm_vclear(int t) { DWORD j; for (j = 0; j < g_tm_vn[t]; j++) g_tm_v[t][g_tm_vu[t][j]].k = 0; g_tm_vn[t] = 0; }
 static int tm_lhas(int t, unsigned __int64 k) {
-    DWORD i = tm_lhash(k), n; unsigned __int64 *s = g_tm_l[t];
-    for (n = 0; n < 256; n++, i = (i + 1) & (TM_VSLOTS - 1)) { if (!s[i]) return 0; if (s[i] == k) return 1; }
+    DWORD i = tm_hash(k), n; unsigned __int64 *s = g_tm_l[t];
+    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) { if (!s[i]) return 0; if (s[i] == k) return 1; }
     return 0;
 }
 static void tm_lput(int t, unsigned __int64 k) {
-    DWORD i = tm_lhash(k), n; unsigned __int64 *s = g_tm_l[t];
-    for (n = 0; n < 256; n++, i = (i + 1) & (TM_VSLOTS - 1)) {
+    DWORD i = tm_hash(k), n; unsigned __int64 *s = g_tm_l[t];
+    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) {
         if (!s[i]) { if (g_tm_ln[t] >= TM_MAXV) return; s[i] = k; g_tm_lu[t][g_tm_ln[t]++] = i; return; }
         if (s[i] == k) return;
     }
@@ -134,8 +130,7 @@ static void __cdecl tm_xform_wrap(void) {
     BYTE *cam = *(BYTE * volatile *)(DWORD_PTR)0x006442d4;
     float *V = *(float * volatile *)(DWORD_PTR)0x005dd320;
     int n = *(volatile int *)(DWORD_PTR)0x006442ec, i, ox, oz, R, prev = 1 - g_tm_cur, teleport;
-    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, ex, ez; LARGE_INTEGER q0, q1;
-    QueryPerformanceCounter(&q0);
+    float sc = *(volatile float *)(DWORD_PTR)0x006442c4, ex, ez;
     g_tm_have = 0; g_tm_pass_main = cam && cam != (BYTE *)(DWORD_PTR)0x00608c80;
     if (!g_tm_on || !g_tm_pass_main || !V || n <= 4 || n > (int)TM_MAXV || *(volatile DWORD *)(DWORD_PTR)0x0059c560 == 0) goto done;
     ex = (float)(*(const double *)(cam + 0x160) * sc); ez = (float)(*(const double *)(cam + 0x170) * sc);
@@ -206,11 +201,9 @@ static void __cdecl tm_xform_wrap(void) {
     }
     g_tm_eye_prev[0] = ex; g_tm_eye_prev[1] = ez; g_tm_n = n; g_tm_have = 1;
 done:
-    QueryPerformanceCounter(&q1); g_tm_ticks += q1.QuadPart - q0.QuadPart;     /* the morph's own work (the transform below excluded) */
     ((void (__cdecl *)(void))(DWORD_PTR)g_tm_ret_xform)();
 }
 static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
-    LARGE_INTEGER q0, q1; QueryPerformanceCounter(&q0);
     if (g_tm_have) {
         float *U = *(float * volatile *)(DWORD_PTR)0x005dd2ec; int i, lit = *(volatile int *)(DWORD_PTR)0x005a4618 != 0;
         float *V = *(float * volatile *)(DWORD_PTR)0x005dd320;
@@ -244,7 +237,6 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
         }
         g_tm_cur = 1 - g_tm_cur; g_tm_prev_ok = 1; g_tm_have = 0;
     }
-    QueryPerformanceCounter(&q1); g_tm_ticks += q1.QuadPart - q0.QuadPart;
     ((void (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_tm_ret_emit)(a, b);
 }
 
@@ -303,11 +295,9 @@ static __declspec(naked) void tf_stub(void) {                    /* jmp from 0x4
 
 static void terrain_morph_report(void) {
     if (g_tm_on && g_tm_win_passes)
-        mlog("  terrain-morph: %lu main passes (%lu since the last line), %lu vertices born by a split, %lu new but mature (view edge / jump), %lu camera jumps; vertex-passes morphing %lu (%.1f per pass); own cost %.0f us per main pass",
+        mlog("  terrain-morph: %lu main passes (%lu since the last line), %lu vertices born by a split, %lu new but mature (view edge / jump), %lu camera jumps; vertex-passes morphing %lu (%.1f per pass)",
              (unsigned long)g_tm_passes, (unsigned long)g_tm_win_passes, (unsigned long)g_tm_born, (unsigned long)g_tm_mature_new, (unsigned long)g_tm_jumps_reset,
-             (unsigned long)g_tm_morphing, (double)g_tm_win_morphing / g_tm_win_passes,
-             g_tm_qpf.QuadPart ? (double)g_tm_ticks * 1e6 / (double)g_tm_qpf.QuadPart / g_tm_win_passes : -1.0);
-    g_tm_ticks = 0;
+             (unsigned long)g_tm_morphing, (double)g_tm_win_morphing / g_tm_win_passes);
     if (g_tf_on) mlog("  terrain-flat-split: %lu flat nodes kept coarse (%lu since the last line), %lu tests", (unsigned long)g_tf_kept, (unsigned long)g_tf_win_kept, (unsigned long)g_tf_tested);
     g_tm_win_passes = g_tm_win_morphing = 0; g_tf_win_kept = 0;
 }
@@ -329,9 +319,9 @@ static void apply_terrain_morph(void) {
         mlog("  terrain-morph: I76_TERRAIN_MORPH %s out of range (0.02..1 = fraction of the split distance, 5..1000 = metres) - not applied", v); nm = 0; }
     if (nm || nl) {
         for (i = 0; i < 2; i++) {
-            g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_VSLOTS * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_SLOTS * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             g_tm_vu[i] = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-            g_tm_l[i] = (unsigned __int64 *)VirtualAlloc(NULL, TM_VSLOTS * sizeof(unsigned __int64), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            g_tm_l[i] = (unsigned __int64 *)VirtualAlloc(NULL, TM_SLOTS * sizeof(unsigned __int64), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             g_tm_lu[i] = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         }
         g_tm_t = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -340,7 +330,6 @@ static void apply_terrain_morph(void) {
         g_tm_slot = (tm_slot_t **)VirtualAlloc(NULL, TM_MAXV * sizeof(tm_slot_t *), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         if (!g_tm_v[0] || !g_tm_v[1] || !g_tm_vu[0] || !g_tm_vu[1] || !g_tm_l[0] || !g_tm_l[1] || !g_tm_lu[0] || !g_tm_lu[1] || !g_tm_t || !g_tm_pa || !g_tm_pb || !g_tm_slot) {
             mlog("  terrain-morph: no memory - not applied"); return; }
-        QueryPerformanceFrequency(&g_tm_qpf);
         if (nm) { g_tm_morph = 1; if (band <= 1.0f) { g_tm_frac = 1; g_tm_band = band; } else g_tm_band = band / 5.0f; }
         if (nl) { g_tm_log = fopen(lf, "w"); QueryPerformanceFrequency(&g_tm_qpf);
                   { char ef[280]; _snprintf(ef, sizeof(ef) - 1, "%s.events.csv", lf); ef[sizeof(ef) - 1] = 0; g_tm_ev = fopen(ef, "w"); if (g_tm_ev) fprintf(g_tm_ev, "t_ms,d0_m,size_m,max_move_px,max_shade_step,shade_split_delta,end\n"); }
