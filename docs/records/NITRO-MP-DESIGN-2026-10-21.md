@@ -609,6 +609,51 @@ sees a 7676 session, but a patched joiner must carry the same table to show the 
 and click range, type -> list / species, joiner display, the isolation cells and item 4's cells again). The boxes
 stay as they are until the owner rules.
 
+### 0.5.14 Michael's session (2026-10-22 07:12-07:20): the PC host never came up
+
+Nitro ran on Michael's Mac (.226) from 07:12:32 (`Interstate 76 Nitro.app`, `nitro.exe -glide`, ssh process list at
+07:14). Its IPXWrapper bound node 00:00:00:01/AF:8D:65:E0:5D:84 (port 21156). The PC host (`xlan.sh x-lan3`, 07:14:21)
+waited for `.fps-lock`, which the terrain-geomorph lane's queue held (MORPH-BASE r1, 07:18); no PC game ran, so
+nothing was advertised and nothing from .226 reached the PC. Michael's nitro.exe was gone by 07:20; his proxy log ends
+at 07:14 in the shell (state 6) with no CRASH / EXCEPTION line, and the newest macOS crash report is from 05:06, so it
+reads as a quit, not a crash. x-lan3 was stopped (this lane's processes only); the copy went back to b577183c /
+instance L. Lesson for the next live pass: hold `.fps-lock` from the moment a human is waiting, not from the boot.
+
+### 0.5.15 Headless cross-machine pass: the Mac joiner works; the join is broken by the PC's Tailscale route
+
+**The headless joiner** (owner's ruling: no person at the Mac). `tools\nitro-mp\xmac.sh <tag> [laptop | user@mac]`:
+the PC hosts through `xlan.sh` (exp-nitro-mp, instance N, shipped proxy 5cb92ac2, the ARENA+ box, N01, 6 drivers);
+once the host's `dpOpen species 7676` is logged, the Mac joiner starts over ssh (`xmac-join.sh`; a boy's Mac through
+the laptop, `xmac-hop.sh`). On the Mac: a lab clone `~/i76-nitro-mp-lab/Interstate 76 Nitro MP Lab.app`, made by the
+repo's `tools/mac-test-clone.sh` (APFS clone of the Mac's Nitro app, own bundle id, Wine null audio, movies skipped);
+its game folder holds the driver nmpdrv **a090f021** as Strlkup.dll in chain mode in front of the proxy 5cb92ac2
+(strlkprx.dll); started with `open -n --env ...` (NMP_POC=2, NMP_ROLE=joinplay, NMP_RAWPT=1, NB_ACTIVE, NB_SKIP_MOVIES).
+The shipped Nitro and Gold apps are untouched (ad904941 read back on both Macs). Driver changes for Wine + DxWnd:
+a NITSHELL watch thread (DxWnd holds the LoadLibraryA slot), the scripted point handed raw to nitshell's GetCursorPos
+with its ScreenToClient import passing it through while scripted, and a two-point calibration of the shell's mouse
+object before navigating. No macOS pointer, no AppleScript, no sudo.
+- Laptop smoke (mtest3): the shell up 4 s after start (the null audio removes the 40 s+ DirectSound wait on the EVO4),
+  calibration 1:1, every click read back exactly (469,311 / 417,351 / 439,379 / 364,406), JOIN > IPX list reached.
+
+| run | Mac | listed | JOIN GAME | joiner `dpOpen` | host saw the joiner | in game |
+|---|---|---|---|---|---|---|
+| x-mac1 | laptop (node D6:FB:E1:0B:F6:6C, 192.168.1.241) | "ARENA+ Evening Stroll" 7676 1/6 | clicked | none logged | enumeration only (Mac IPX log level 0) | no |
+| x-mac2 | laptop | same | clicked | `-> 0 (ARENA+)` | yes: "humans 1 -> 2", an AI parked for the joiner, then "2 -> 1" | no (shell, net 0) |
+| x-mac-a1 | Andrew (52:E0:94:CB:EC:D3, .205) | same | clicked | `-> 0 (ARENA+)` | enumeration only | no |
+
+**Why the join stops: the PC sends its unicasts through Tailscale.** The PC's Tailscale accepts subnet routes
+(`RouteAll: true`) and holds `192.168.1.0/24 via 100.100.100.100`, metric 0, ahead of the Ethernet on-link route
+(metric 256). `Find-NetRoute 192.168.1.241` answers Tailscale. Broadcasts leave on the Ethernet (the session lists on
+every Mac), but every PC -> Mac unicast goes out through Tailscale to the subnet router 192.168.1.141 (MAC 90:09:d0,
+a Synology) and reaches the Mac with that source address: the laptop's IPXWrapper log shows the host's replies "from
+02:4E:00:00:76:03 (192.168.1.141)", and the laptop answered 18 times to 192.168.1.141:54925 and 3 times to
+192.168.1.81:54925. Andrew's Mac never got a host unicast at all and sent its 11 join packets to 192.168.1.81:61363 (the
+host socket's source port, learned from the broadcasts), none of which the PC logged. So listing works and the
+session handshake does not. Fix (the owner's network, not this lane's: no admin here): `tailscale set
+--accept-routes=false` on the PC (at home the LAN is direct anyway), or as admin a 192.168.1.0/24 route on the Ethernet
+with a lower metric. Then x-mac laptop n 2 and Andrew again. Andrew's direct 192.168.1.81:61363 packets may also need
+a look at the PC firewall afterwards if they still do not arrive.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
