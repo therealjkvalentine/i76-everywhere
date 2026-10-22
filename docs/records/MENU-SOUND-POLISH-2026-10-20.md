@@ -25,8 +25,11 @@ work of the other lanes (their records), measured there, not here.
 | E | "the game name populated with the next area name" / "I clicked on mondo burger and it said the game name was Seminole but it opened oil well well" | fixed: `I76_ARENA_NAME` (default on); names 15 / 42 -> 42 / 42, loads 48 / 48 the selected file |
 | F | "The arrow keys in the pause menu control the car?" | fixed: `I76_MENU_KEYS` (default on); network, menu up: steer 0.67-0.92 / throttle 1.0 -> 0 / 0 (n 3 each) |
 | G | Lee_____.ttf registrations pile up and lock the folder | fixed: `I76_FONT_PRIVATE` (default on); left 1 / 1 / 1 -> 0 / 0 / 0 per killed boot, rename OK 3 / 3 |
+| H | 2026-10-21, release candidate: "still can't consistently see the pointer when I use the exit menu" | **cause found** (A's runs had recorded it): the pointer opens on the screen's bottom edge, y 1437 of 1440, 12 / 12 Esc opens. Fixed: `I76_MENU_PTR_CENTRE` (default on), y 720 in 5 / 5 opens |
+| I | 2026-10-21: "the zoom or something changes as you arrow down the menu" | **reproduced** after Alt-Tab: from then on every second arrow press changes 43.5 - 45.6 % of the background (stock n 3, tick and P18). Fixed: `I76_MENU_DRAW` (default on): 0.29 - 0.49 % (n 3) |
+| J | 2026-10-21: Up = look at the dash, Down = look back, "as on the Mac" | measured on a66a37f7: Up = look back (yaw 160), Down = look down (pitch -13 -> 6), n 3. Staged input.map 1c397955 swaps the two. Nothing installed |
 
-Commits: `2a895ce` (B, C, D), `0e93834` (E, F), `747609a` (G), this record.
+Commits: `2a895ce` (B, C, D), `0e93834` (E, F), `747609a` (G), this record. Second session (H, I, J, 2026-10-21 evening): `17bbe96` (H, I proxy), this record's sections H - J.
 
 ## A. The pointer in the Esc menu's second level
 
@@ -237,6 +240,126 @@ captures of the console runs (before = `I76_FONT_PRIVATE=0`, after = default), m
 0.046 % / 0.116 % of pixels differ by more than 40 (n 2 pairs; the second level 0.047 %), before vs before 0.087 % (the
 order number and the 3D frame behind): the text draws the same.
 
+## H. The pointer on the Esc menu, second session (2026-10-21 evening, lane 2)
+
+Owner on the release candidate (`PLAY-TICK.bat`, proxy 8f8da929, 3440x1440): "still can't consistently see the pointer when I use
+the exit menu". His three screenshots (Downloads `Screenshot 2026-10-21 180340 / 180404 / 180418.png`) are of the second-level
+page ("Abort Mission": Replay / Reconfigure / Abort Mission / Exit Game), with the rows highlighted by keyboard. A Windows
+screenshot never includes the pointer, so they cannot show where it was.
+
+**Cause (measured).** The pointer was not hidden. It was **parked on the bottom edge of the screen** every time the Esc menu
+opened:
+
+| run | proxy | pointer while driving | pointer when the Esc menu opened |
+|---|---|---|---|
+| section A's runs (a-base-2/3, k-before-1, k2-before-1..3, k2-after-1..3) | lane 1 builds | (x, 720) | **(x, 1437)**, 9 of 9 |
+| p2-b1, p2-b2 (tick19-42), p2-c1-p18 (P18 preset, no tick) | 8f8da929 (the RC) | (x, 720) | **(x, 1437)**, 3 of 3 |
+| p2-d1, p2-d2, p2-f1, p2-f2, p2-f3-p18 | with the fix below | (x, 720) | **(x, 720)**, 5 of 5 |
+
+The arrow's hotspot is its tip, so at y 1437 the whole arrow is drawn below the screen. Windows still reported it as showing
+(GetCursorInfo flags 1, arrow 0x10003), which is all section A tested. Section A's JSONs had held this y the whole time.
+The probes then moved the pointer onto a row with SetCursorPos, which hid the bug. A player sees no pointer until he moves
+the mouse up far enough, and a click before that lands on the bottom row of nothing. With the mouse already moving while
+Esc was pressed (H3), it showed at y 1308 (stock) / 591 - 595 (fix), the motion carrying it up from where it was put.
+
+Why: the show-pointer routine 0x44bcc0 (every menu open, 0x4953e5) keeps x, sets y = `[0x5dcf30] / 2` (0x44bd38) and calls
+SetCursorPos. `[0x5dcf30]` is the client height in screen pixels (read back: 1440, with `[0x5dcf2c]` = 3440), so y = 720. With
+`I76_CURSOR_MAP` that SetCursorPos is the proxy's 640x480 UI -> screen map (cursormap.c `cm_SetCursorPos`), so 720 is read as
+a UI y and goes to 720 x 3 = 2160, which Windows clamps to the last row. The proxy log of p2-b1 shows the round trip:
+`GetCursorPos (1451,720) -> (270,240)`, then `(1451,1439) -> (270,479)`. In a real 640x480 mode `[0x5dcf30]` is 480 and the
+stock code centres the pointer.
+
+**Fix.** `I76_MENU_PTR_CENTRE` (escmenu.c; default on, `0` = stock): the load at 0x44bd38 (`mov eax, [0x5dcf30]`) reads 480
+instead, so a menu opens with the pointer at UI y 240 (screen y 720), x unchanged. It applies only when the cursor map takes
+i76.exe's slots (the Windows presets). Without the map there is nothing to correct (the Macs' DxWnd path, u32x alone). The
+hide routine 0x44bb40 has the same arithmetic but runs while driving, with the pointer hidden, and is left alone.
+
+**What else was tried, with real-input paths** (probe2.ps1 H1 - H4; n 3 boots with H, 2 stock + 1 fix plus d1): the
+confirmation page reached by keys + Enter, no mouse move; one small move after it; Esc back; Alt-Tab away and back; the mouse
+moving continuously (8 ms relative moves) through Esc and the page change. On every page Windows reported the arrow showing,
+not armed (0x535f6c = 0), clip released, relative moves landing. Nothing else lost the pointer. Section A's "it comes back if I
+tab away and back" fits the bottom edge: Alt-Tab hands the pointer to the desktop, and it comes back wherever the mouse is.
+
+**What the owner should try** (once a build with H and I is installed): Esc, then look for the arrow in the middle of the screen
+without touching the mouse; ABORT MISSION -> EXIT GAME by keys and by mouse.
+
+## I. "The zoom or something changes as you arrow down the menu" (lane 2)
+
+**The owner's screenshots, measured** (3440x1440, pixels differing by more than 40 outside the menu panel): 180340 -> 180404
+(Replay -> Reconfigure highlighted) **0.01 %**; 180404 -> 180418 (-> Exit Game) **46.05 %**. In the third picture the cockpit
+is drawn from another place (the dash and mirror larger and higher, PRND21 showing). The panel itself does not move.
+
+**Ruled out first.** The arrow keys reaching the camera: the glance inputs 0x536770 / 78 / 80 stayed 0 / -13 / 0 through every
+menu tap and a 1.5 s hold (grey and plain arrows, every run). input_ProcessFrame, their only writer, does not run while the
+single-player menu is up. dgVoodoo's mode switch: the panel is identical between pictures and the client stays 3440x1440.
+
+**Cause (static + measured).** With the Esc menu up in single player the frame loop draws nothing (0x4039ec -> 0x40402f). The
+menu redraws only on a key or a hover: 0x496870 draws the panel over the back buffer and presents. Each arrow press therefore
+flips to the other buffer and shows whatever 3D picture that buffer holds. Normally that is the last two frames drawn before
+the pause, one frame of motion apart: **0.3 - 0.6 %** of the background, edges only. The window procedure's re-activation
+path (WM_ACTIVATEAPP with the menu up, mode 0x10: 0x404a78) is different. It draws **one fresh 3D frame** with
+renderer_DrawFrame (0x404a7d), outside the frame loop. That frame gets no camera pass (0x403e16), no cockpit / HUD pass
+(0x403e80..0x403eaa), and the camera block as the frame's last pass left it, so it is a different picture. After it, every
+arrow press alternates between that frame and the one that was on screen. **Alt-Tab back** triggers it, and so does anything
+that takes and returns the focus: the owner's screenshot tool, or the Alt-Tab he uses to get the pointer back (H).
+
+| run (all: t01, W held 4 s, Esc while moving, ABORT MISSION, 4 Down; Alt-Tab; 1 Down, 5 Up, 2 plain Down, a hold) | proxy | taps before Alt-Tab | taps after Alt-Tab: every other press |
+|---|---|---|---|
+| p2-b1, p2-b2 (tick19-42) | 8f8da929 (RC) | 0.02 - 0.58 % | **45.6 / 45.6 %** (n 2) |
+| p2-c1-p18 (P18 preset, no tick) | 8f8da929 | 0.02 - 0.58 % | **43.5 %** |
+| p2-d2: draw inside the tick's pose swap | e0fd672e | - | 44.8 % (no effect) |
+| p2-d1: camera block put back first | 9f44d4ef | - | 45.2 % (no effect) |
+| **p2-f1, p2-f2 (tick19-42), p2-f3-p18 (P18)** | **da6dfbb8** | 0.02 - 0.49 % | **0.29 - 0.49 %** (n 3) |
+
+(The screenshot taken right after Alt-Tab is black in every run, stock and fix alike, until the next present. That is the
+desktop capture of a just-restored flip-model window, not this fix.) The buffers keep their pictures across Alt-Tab: the first
+press after it showed the old frame, 0.02 %, in every run. So the fresh frame was not needed to repaint anything.
+
+**Fix.** `I76_MENU_DRAW` (simtick.c `apply_menu_draw`, applied with or without the tick; default on, `0` = stock): the
+re-activation call 0x404a7d draws nothing, and the menu is drawn over the frame already in the buffer.
+`I76_MENU_DRAW_LOG=1` (lab) logs each skipped draw (f1: 2, f2: 1, f3: 2). The gamma slider's redraws (0x496047 / 0x496061,
+Graphic Detail) stay stock, because they must show the new gamma. Not fixed: the residual 0.3 - 0.5 %, the last two frames
+before the pause. Making them identical needs one more 3D draw at pause entry. To the eye it is a one-pixel shimmer on edges.
+
+**What the owner should try**: Esc while driving, Alt-Tab away and back (or take a screenshot), then arrow up and down. The
+picture behind the menu should hold still.
+
+## J. Up = look at the dash, Down = look back (lane 2)
+
+**Measured** (probe2 J, cockpit, t01, n 3 boots: p2-a1, p2-f1, p2-f3-p18): on the shipped map `a66a37f7` the dedicated **Up**
+arrow (GreyUpArrow -> `pilot_glance_up`) gives glance yaw **160** = **look back**, and **Down** (GreyDownArrow ->
+`pilot_glance_down`) gives pitch **-13 -> 6** = **look down at the dash**. That is the opposite of what the owner wants.
+`pilot_glance_up` is the engine's look-back (as HEAD-TRACKING.md found: "Up is LOOK BACK"). GOG's stock map binds it to the
+Down arrow (`pilot_glance_up { + keyboard GreyDownArrow }`, `pilot_glance_down { + keyboard GreyUpArrow }`,
+tools/controls-sheet/stock-2.1.0.17.json). Our map swapped them on the theory that "glance up" means look up (CONTROLS.md
+"Looking up and down is the right way round").
+
+**Which files.** The release candidate, the daily driver and `controls/input.map` are all `a66a37f7`. **The owner's Mac is
+`a66a37f7` too** (`Interstate 76.app/.../GOG Games/Interstate 76/input.map`, 8843 bytes, dated 2026-10-17 16:22; md5 read over
+ssh, nothing changed there). Every .MAP file in that folder has the same timestamp, so the Mac was reinstalled from the shared
+map on 10-17. The "as on the Mac" he remembers is the Mac before 10-17, or the Mac answers the keys the other way under Wine
+(not checked: that needs one key press on the Mac). `docs/input.map.reference` (what the Mac installer copies) has no keyboard
+glance at all, only the hat.
+
+**Staged, not installed** (lab `builds\polish2-20261021\stage\`): `input.map` **1c3979556ea9720c45a1ed9d2dc8f38a** =
+a66a37f7 with exactly the two keys swapped plus a two-line comment (`input.map.diff`). `tools/lint-input-map.py`: OK against the
+RC's i76.exe. Shift + arrows (tracking / overview camera) and the bare-arrow orbit in the chase view are unchanged. The keys are
+free: no other block takes bare GreyUp / GreyDown in the cockpit. **Proposal:** promote it as the one map for Windows and the
+Mac (controls/input.map, then the controls sheet and CONTROLS.md rows "Look up / Look down" regenerated). If the Mac really does
+answer the other way, the swap belongs in the Windows copies only, and the Mac check decides that.
+
+**What the owner should try**: copy `stage\input.map` over the test copy's `input.map` (the launcher keeps backups), then in the
+cockpit: Up looks down at the dash, Down looks back. On the Mac: press Up in the cockpit on today's map and say which way it looks.
+
+**Staged proxy for H + I:** lab `builds\polish2-20261021\staged\STRLKUP.DLL` **da6dfbb8d7337376dc72b0aede8ceff0** = the release
+candidate's source (5a7f83b; the same recipe rebuilds 8f8da929 byte-identical) + `polish2.patch` (the two switches). MSVC x86
+/MT /O2 /Brepro, `run1` / `run2` byte-identical. A drop-in for the release candidate: no preset change, both switches default
+on. Runs: lab `tools\menu-sound-polish2\` (probe2.ps1, p2-lib.ps1, bgdiff.py; `runs\` holds every JSON, screenshot and
+proxy-log slice) on the lane's copy `exp-polish2` (a robocopy of the RC). All runs on the physical console (`query session`:
+console, not RDP), console lock held per run, I76_MUTE + the per-pid watcher, `I76_SHM_SUFFIX=exp-polish2`, the persisted mute
+cleared at the end. I stopped two of my own queued runs before they booted and one mid-boot (I stopped its game and put the DLL
+and the locks back). No other process was touched.
+
 ## Files
 
 - Repo: `music-fix/polish.c` (all four switches + I76_FADE_NO_FLIP / I76_SIGN_SOUND_*), `music-fix/simtick.c` (two lines),
@@ -246,3 +369,6 @@ order number and the 3D frame behind): the text draws the same.
 - Lab: `builds\menu-sound-polish-20261020\` (src, run1 / run2, staged, MD5SUMS.staged, presets, presets.diff, launchers,
   lab-sc = the shell-click twin, never staged), `tools\menu-sound-polish\` (probe-exit, probe-campaign, barram, ef, g-test,
   dtest, legacy_bat, the queues; `runs\` = every result), `exp-polish` (the lane's copy; VERSION.md).
+- Second session (H, I, J): repo `music-fix/escmenu.c` (I76_MENU_PTR_CENTRE), `music-fix/simtick.c` (I76_MENU_DRAW),
+  `music-fix/strlkproxy.c` (two apply calls), `music-fix/README.md` (two rows); lab `builds\polish2-20261021\` (README, src,
+  run1 / run2, staged, stage = the input.map, MD5SUMS.staged, the two superseded builds), `tools\menu-sound-polish2\`, `exp-polish2`.
