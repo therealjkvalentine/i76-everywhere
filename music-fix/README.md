@@ -199,7 +199,7 @@ off`. Switches not listed as yes are OFF on Nitro whatever the environment says.
 | I76_ASPECT, I76_ASPECT_COCKPIT_FOV, I76_HUD_SQUEEZE | yes | |
 | music (always on; I76_MUSIC_RETAIL / _RESUME / _GAPLESS / _TRUE_PAUSE / _GUARD / _THREAD) | yes | hooks Nitro's WIN32.dll imports; I76_MUSIC_NITRO=0 keeps GOG's own; a FROM-only PLAY (Nitro's) plays to the end of the disc; disc order / shell 1997 / missions 1997 forced off (Gold CD facts) |
 | I76_JOY_MAP, I76_JOY_SYNTH | yes | WIN32.dll slots |
-| I76_CURSOR_MAP (+ _DGV) | partial | nitro.exe + NITSHELL.DLL slots; pointer not yet checked on screen; no u32x on Nitro |
+| I76_CURSOR_MAP (+ _DGV, _SHELL) | yes | nitro.exe + NITSHELL.DLL slots; set I76_CURSOR_MAP=1, I76_CURSOR_MAP_DGV=aw, I76_CURSOR_MAP_SHELL=aw with the wide conf: menu pointer on the pencil and clicks land (NITRO-PORT s.10); no u32x on Nitro |
 | I76_BREAKABLE_BOX (1..4, + sign sweep, flame sphere) | yes | |
 | I76_COLL_*, I76_FIXED_STEP, I76_RENDER_INTERP, I76_FRAMERATE_FIXES, I76_ENGINE_DT_FIX, I76_AI_*, I76_INPUT_LATCH | no | |
 | I76_NITRO_MP (default 1), I76_NITRO_AI (default 1) | Nitro only | ARENA+ (nitro_mp.c / nitro_ai.c, docs/records/NITRO-MP-DESIGN-2026-10-21.md): ANet 2 hook, session species, AI melee in ARENA+ combat sessions; inert in a stock session (pass-through); the host-form boxes that create an ARENA+ session are not in the proxy yet, so it never acts in a shipped build. =0 leaves the hooks out |

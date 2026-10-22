@@ -115,7 +115,7 @@ marked RDP are log / memory checks only.
 | aspect + HUD squeeze | 17 fov pushes (manual), hood fov, clamp, constant, 2 HUD calls | 22/22 | `aspect: D 2.389, 20/20`, `hud-squeeze 2/2` (n 1) | - | **yes** (picture not looked at) |
 | CD music | WIN32.dll!mciSendCommandA / aux*; watchdog 0x42340d -> 0x418f5d | 1/1 | TOC 2..11 served; `MCI_PLAY ... run 2..2`, track 2 played (n 1) | - | **partial**: resume / gapless / true pause not exercised |
 | joystick routing / tick joystick watch | WIN32.dll!joyGetPosEx / joyGetDevCapsA | - | slots hooked, watch on (n 1) | - | **yes** |
-| cursor map | nitro.exe and NITSHELL.DLL USER32 slots | 4/4 + 4/4 | pointer read-back s.9.4: OS pointer held in screen 0..639 x 0..479, on = off | - | **no** on a 3440x1440 display (s.9.4) |
+| cursor map | nitro.exe and NITSHELL.DLL USER32 slots | 4/4 + 4/4 | pointer read-back + clicks s.10 (n 3): pencil and click point within 4 px; MELEE > MULTI MELEE > JOIN | - | **yes** with I76_CURSOR_MAP_SHELL=aw (s.10) |
 | u32x | - | - | not attached (Nitro imports USER32 directly; no import rename) | - | **no** |
 | shell key / popup patches (NITSHELL) | - | - | - | - | **no** |
 | breakable box 4 + sign sweep | 17 sites | - | not wired | - | **no** |
@@ -432,6 +432,50 @@ dgVoodoo's Glide window) and route it through the cursor map, or u32x for Nitro 
 - Not differences: the GetTickCount stamps on the music lines and the per-boot terrain-hull events.
 
 **Verdict: the PC behaviour equals the previous HEAD build's**, plus the inert Mac switches and nitro_form.
+
+## 10. The Nitro menu pointer held in 0..639 x 0..479 (2026-10-22 night): found and fixed in the proxy
+
+**Cause.**
+- The two dgVoodoo.conf files (Gold copy and Nitro copy) are identical: CaptureMouse false, [DirectX] 1680x1050,
+  stretched_ar. So the conf is not the difference.
+- A boot with I76_CURSOR_LOG=1 showed no clip rectangle: GetClipCursor read (0,0)-(3440,1440), and the only ClipCursor calls
+  were NULL.
+- Instead every GetCursorPos passed through unmapped ("(pass)"). The proxy's cursor map looked for its window by Gold's class
+  and title only (`Interstate '76 Gold Edition`). Nitro's window is `Interstate '76 Nitro Pack`, so cm_window() found
+  nothing and the map stood down.
+- NITSHELL then read raw screen pixels (1032, 720), clamped them to its 639 x 479 page and wrote the clamped position back
+  with SetCursorPos. That holds the OS pointer in the top-left 640x480 of the screen, and is what the read-back saw.
+- On Gold the same copy works because i76.exe and i76shell import USER32 through u32x.dll, which maps. Nitro imports USER32
+  directly: nitro.exe and NITSHELL both import ClipCursor, GetCursorPos and SetCursorPos, with no DirectInput.
+
+**Fix (cursormap.c, commit faff357, proxy only).**
+- Nitro-only: cm_window() also looks for `Interstate '76 Nitro Pack` when g_exe is Nitro. The Gold path is untouched.
+- New switch I76_CURSOR_MAP_SHELL=aw|ar|stretched (unset = as before) gives the shell module's four slots their own map.
+  NITSHELL's menus are dgVoodoo's [DirectX] picture, a 16:10 fit at x 568..2871 on the 3440x1440 panel. The plain
+  stretched map put clicks up to 288 px off at the sides (read-back w20). nitro.exe's own slots keep I76_CURSOR_MAP's
+  stretched map, for the in-mission Glide picture.
+- Nitro settings: I76_CURSOR_MAP=1, I76_CURSOR_MAP_DGV=aw, I76_CURSOR_MAP_SHELL=aw.
+
+**Proof (w21-cm, bce843c9, console, n 3 boots).**
+- At the centre, the four corners (12 % in) and 25 % / 75 % across the 16:10 picture:
+  - the OS pointer is where it was set;
+  - the drawn pencil is within 3 px of it;
+  - the point the shell acts on (its UI mouse mapped back to the picture) is within 4 px of the pencil.
+- All three boots are identical. A pointer in the side bar clamps to the picture's edge, as on Gold.
+- **Clicks** (screen captures in lab captures/nitro-port-20261021/cursor/click-e*.png): MELEE at (2252,936) opened MULTI
+  MELEE / INSTANT MELEE; MULTI MELEE at (2064,1056) showed HOST / JOIN; JOIN at (2144,1140) highlighted JOIN and opened the
+  transport row (MODEM / IPX / INTERNET / NULLMODEM / OTHER).
+- **Gold smoke** be3c60e vs w21-cm: same line set (n 2 each), 0 crash lines.
+- **Not tested:** the in-mission Esc menu on Nitro with the exe now mapped (stretched, as Gold's Esc menu).
+
+**Harness note.** Run from a background job, the game never got the foreground. A side process (np_cursorside.py) did. A
+click sent from that side process once hung in mouse_event for more than 60 s (not understood). The clicks above ran from a
+separate job beside a long np-run boot.
+
+**The Macs.** Not the same confinement, but a JOIN by a person there still needs this checked:
+- The Mac app does not set I76_CURSOR_MAP, and its mouse object followed the real macOS pointer (NITRO-MAC s.4).
+- DxWnd scales the mouse for a non-640x480 window.
+- The clamp-and-write-back only bites when the shell sees raw coordinates past 639 / 479.
 
 ## Files
 
