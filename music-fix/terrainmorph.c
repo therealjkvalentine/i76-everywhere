@@ -1,8 +1,9 @@
 /* TERRAIN GEOMORPH AND FLAT-TILE SPLIT  (terrain-geomorph lane 2026-10-21; docs/records/TERRAIN-MORPH-2026-10-21.md)
  * Included by strlkproxy.c after the terrain LOD / hysteresis code. Gold only (refuses on Nitro). Off unless set:
  *   I76_TERRAIN_MORPH=<band>        geomorph: band <= 1 = a fraction of the distance at which a vertex appeared, > 1 = metres
- *   I76_TERRAIN_MORPH_LOG=<csv>     lab instrument: per main terrain pass, how far vertices jump on screen (works with the
- *                                   morph off too, so the same instrument measures the stock and the morph)
+ *   I76_TERRAIN_MORPH_LOG=<csv>     lab instrument: per main terrain pass, how far vertices move on screen, near / mid / far (a
+ *                                   snap = > 4 px in one pass) and by class (carried, born by a split, new at the view edge, gone) x
+ *                                   size (<= 1, 1-4, 4-16, > 16 px); works with the morph off too (the same instrument on the stock)
  *   I76_TERRAIN_FLAT_SPLIT=<f>[,<eps m>]  a flat node (all its samples within eps of its coarse two-triangle surface, default
  *                                   0.3 m) skips the surface-type split until it is within f x the split ring (0 < f <= 1)
  *
@@ -53,7 +54,7 @@ static int g_tm_n, g_tm_pass_main, g_tm_have;
 static DWORD g_tm_passes, g_tm_born, g_tm_morphing, g_tm_mature_new, g_tm_jumps_reset, g_tm_win_passes, g_tm_win_morphing;
 static FILE *g_tm_log; static LARGE_INTEGER g_tm_qpf;
 static double g_tm_fx, g_tm_fz, g_tm_px, g_tm_pz; static int g_tm_fok;
-static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj; static DWORD g_tm_new, g_tm_gone, g_tm_nview;
+static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj, g_tm_bin[4][4];   /* bin[class][size]: class carried / born / mature-new / gone; size <=1, 1-4, 4-16, >16 px */ static DWORD g_tm_new, g_tm_gone, g_tm_nview;
 static DWORD g_tm_ret_xform = 0x004937c0, g_tm_ret_emit = 0x00491a30;
 
 static unsigned __int64 tm_vkey(int x, int z) { return ((unsigned __int64)(DWORD)(x + 8192) << 32) | (DWORD)(z + 8192); }
@@ -119,9 +120,10 @@ static double tm_px(double dy_raw, double dx, double dz, int *band) {
     *band = dm < 300.0 ? 0 : dm < 900.0 ? 1 : 2;
     return fabs(dy_raw) * 0.1 / dm * (3440.0 / 2.1240);
 }
-static void tm_acc(double px, int band) {
+static void tm_acc(double px, int band, int cls) {
     if (px < 0.0) return;
-    if (px > 1.0) { g_tm_jpx[band] += px; if (px > g_tm_maxj) g_tm_maxj = px; } else g_tm_spx[band] += px;
+    g_tm_bin[cls][px <= 1.0 ? 0 : px <= 4.0 ? 1 : px <= 16.0 ? 2 : 3] += px;
+    if (px > 4.0) { g_tm_jpx[band] += px; if (px > g_tm_maxj) g_tm_maxj = px; } else g_tm_spx[band] += px;   /* a snap: > 4 px in one pass */
 }
 
 static void __cdecl tm_xform_wrap(void) {
@@ -138,7 +140,7 @@ static void __cdecl tm_xform_wrap(void) {
     if (g_tm_log) {                                    /* direction of travel for the view cone (as the census) */
         double mx = ex - g_tm_px, mz = ez - g_tm_pz, ml = sqrt(mx * mx + mz * mz);
         if (ml > 0.4) { if (ml < 40.0 && g_tm_passes) { g_tm_fx = mx / ml; g_tm_fz = mz / ml; g_tm_fok = 1; } g_tm_px = ex; g_tm_pz = ez; }
-        g_tm_jpx[0] = g_tm_jpx[1] = g_tm_jpx[2] = g_tm_spx[0] = g_tm_spx[1] = g_tm_spx[2] = g_tm_shj = g_tm_maxj = 0.0; g_tm_new = g_tm_gone = g_tm_nview = 0;
+        g_tm_jpx[0] = g_tm_jpx[1] = g_tm_jpx[2] = g_tm_spx[0] = g_tm_spx[1] = g_tm_spx[2] = g_tm_shj = g_tm_maxj = 0.0; g_tm_new = g_tm_gone = g_tm_nview = 0; memset(g_tm_bin, 0, sizeof(g_tm_bin));
     }
     tm_vclear(g_tm_cur);
     for (i = 0; i < n; i++) {
@@ -165,6 +167,7 @@ static void __cdecl tm_xform_wrap(void) {
         yt = V[3 * i + 1]; ym = 0.5f * (V[3 * ia + 1] + V[3 * ib + 1]);
         if (g_tm_morph && s->d0 > 0.0f) {
             band = g_tm_frac ? g_tm_band * s->d0 : g_tm_band;
+            if (g_tm_frac && band < 8.0f) band = 8.0f;      /* at least 40 m: a vertex born close in (an error step at 40-160 m) does not race */
             t = band > 0.0f ? (s->d0 - d) / band : 1.0f;
             if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
             if (t < 1.0f) { V[3 * i + 1] = ym + (yt - ym) * t; g_tm_morphing++; g_tm_win_morphing++; }
@@ -173,7 +176,7 @@ static void __cdecl tm_xform_wrap(void) {
         if (g_tm_log) {                                /* on-screen jump of this vertex since the previous main pass */
             int b; double px;
             px = tm_px(ps ? V[3 * i + 1] - ps->y : V[3 * i + 1] - ym, (double)x - ex, (double)z - ez, &b);
-            if (px >= 0.0) { tm_acc(px, b); g_tm_nview++; }
+            if (px >= 0.0) { tm_acc(px, b, ps ? 0 : s->d0 > 0.0f ? 1 : 2); g_tm_nview++; }
         }
     }
     for (i = 0; i < n; i++) if (g_tm_slot[i] && g_tm_slot[i]->idx == i) g_tm_slot[i]->y = V[3 * i + 1];
@@ -187,7 +190,7 @@ static void __cdecl tm_xform_wrap(void) {
             pa = tm_vfind(g_tm_cur, tm_vkey(ax, az)); pb = tm_vfind(g_tm_cur, tm_vkey(bx, bz));
             if (!pa || !pb) continue;                  /* left the view, not merged */
             px = tm_px(q->y - 0.5 * (pa->y + pb->y), (double)x - ex, (double)z - ez, &b);
-            if (px >= 0.0) { tm_acc(px, b); g_tm_gone++; }
+            if (px >= 0.0) { tm_acc(px, b, 3); g_tm_gone++; }
         }
     }
     {   const BYTE *leaf = *(BYTE * volatile *)(DWORD_PTR)0x0059c560; DWORD guard = 0;      /* this pass's leaves, for the next */
@@ -216,10 +219,11 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
         }
         g_tm_passes++; g_tm_win_passes++;
         if (g_tm_log) {
-            fprintf(g_tm_log, "%lu,%.3f,%d,%lu,%lu,%lu,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.1f,%.1f\n", (unsigned long)g_frame, tm_qms(), g_tm_n,
+            fprintf(g_tm_log, "%lu,%.3f,%d,%lu,%lu,%lu,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.4f,%.1f,%.1f", (unsigned long)g_frame, tm_qms(), g_tm_n,
                     (unsigned long)g_tm_new, (unsigned long)g_tm_gone, (unsigned long)g_tm_nview,
                     g_tm_jpx[0], g_tm_jpx[1], g_tm_jpx[2], g_tm_spx[0], g_tm_spx[1], g_tm_spx[2], g_tm_maxj, g_tm_shj,
                     g_tm_eye_prev[0] * 5.0f, g_tm_eye_prev[1] * 5.0f);
+            {   int c, kk; for (c = 0; c < 4; c++) for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%.1f", g_tm_bin[c][kk]); fputc('\n', g_tm_log); }
             if ((g_tm_passes & 63) == 0) fflush(g_tm_log);
         }
         g_tm_cur = 1 - g_tm_cur; g_tm_prev_ok = 1; g_tm_have = 0;
@@ -319,7 +323,7 @@ static void apply_terrain_morph(void) {
             mlog("  terrain-morph: no memory - not applied"); return; }
         if (nm) { g_tm_morph = 1; if (band <= 1.0f) { g_tm_frac = 1; g_tm_band = band; } else g_tm_band = band / 5.0f; }
         if (nl) { g_tm_log = fopen(lf, "w"); QueryPerformanceFrequency(&g_tm_qpf);
-                  if (g_tm_log) fprintf(g_tm_log, "frame,t_ms,verts,new,gone,in_view,jump_px_near,jump_px_mid,jump_px_far,smooth_px_near,smooth_px_mid,smooth_px_far,max_jump_px,shade_jump_new,eye_x,eye_z\n"); }
+                  if (g_tm_log) fprintf(g_tm_log, "frame,t_ms,verts,new,gone,in_view,jump_px_near,jump_px_mid,jump_px_far,smooth_px_near,smooth_px_mid,smooth_px_far,max_jump_px,shade_jump_new,eye_x,eye_z,carried_le1,carried_1_4,carried_4_16,carried_gt16,born_le1,born_1_4,born_4_16,born_gt16,mature_le1,mature_1_4,mature_4_16,mature_gt16,gone_le1,gone_1_4,gone_4_16,gone_gt16\n"); }
         ok = !memcmp((const void *)(DWORD_PTR)0x00490eed, xf_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f9b, eh_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f82, es_old, 5);   /* Gold only (Nitro refused above) */
         if (!ok) mlog("  terrain-morph: QueueTerrain call sites differ (another patch or another exe) - not applied");
         else {
