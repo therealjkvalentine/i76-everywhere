@@ -1041,3 +1041,9 @@ Open items from this session:
   host from the lab copy on the real network card (UDP 54792, net 00000001, the Macs' IPXWrapper defaults), HOST > IPX, tick ARENA+, BROADCAST GAME; on the Mac:
   MULTIPLAYER > MELEE > JOIN > IPX, pick "ARENA+ ..." and JOIN GAME. Say when someone is at a Mac and I run it with you watching. Mac caveats still: no tick on the
   Macs yet (24 fps cap), music unverified, EVO4 output delays startup ~40 s, Esc at the main menu quits.
+- NITRO ON THE PC RESULTS (nitro-port lane, NITRO-PORT s.9): far clip on Nitro's own P05 (2 km cockpit road leg, n 5-6 per distance) = median 120 at every
+  distance, 1 % low 101.7 at 1200 m vs 90.9 at 1800 and 90.7 at 2000 (2000 costs nothing over 1800 on Nitro either); the sim clock reads 1.000 on every console
+  boot alone. PROBLEM: on the PC the Nitro menu pointer is held inside the top-left 640 x 480 of the 3440 x 1440 display (asking for mid-screen gives back 639, 479;
+  our cursor map has no effect, n 1 each), so the Nitro menus are unusable by mouse at this resolution on the PC build; next step is to find what confines it
+  (nitro.exe, NITSHELL or dgVoodoo) or fall back to the u32x window for Nitro. The Mac proxy ad904941 built byte for byte on the PC: Gold and Nitro P01 smokes
+  match the previous build (n 2 each); nothing drivable to hand you on Nitro beyond P05 by harness yet.
