@@ -1014,4 +1014,11 @@ Open items from this session:
 - T1 **Ladder follow-up for the owner's eye:** the ladder's fps says the x24 split distance (R07 and the candidate alike) is the one expensive switch (1 % low 86-87 vs 102-106),
   while the height-error threshold /24 alone (R14, PLAY-R14.bat in exp-rebase) is nearly free (102) and was never driven. Drive R14 against R07 on the same slope: if R14 looks
   like R07, the interim set drops the split distance and keeps the frame rate. (REBASELINE-2026-10-21 s.4-s.7.)
+- P8-P10 RESULTS (polish lane 2, MENU-SOUND-POLISH s.H-J, staged proxy da6dfbb8 + input.map 1c397955 in lab builds/polish2-20261021, not installed):
+  P8 the pointer was never hidden: every Esc-menu open put it on the bottom screen edge (y 1437 of 1440, 12/12) through the cursor map; fix I76_MENU_PTR_CENTRE (5/5 mid-screen).
+  P9 after an Alt-Tab (or a screenshot tool taking focus) the paused game drew one fresh frame from the wrong camera, so arrow presses alternated two pictures (44 % of the
+  background); fix I76_MENU_DRAW (0.3-0.5 % left = edge shimmer). Stock behaviour, not the tick. P10 our map had Up = look back / Down = dash, the stock GOG map the other
+  way; staged map swaps them. OWNER QUESTION: the Mac carries the identical map (same md5), so does Up look at the dash on the Mac today, or back? One key press settles
+  whether the staged map ships to both or to Windows only. Tests for the owner: Esc without touching the mouse (arrow mid-screen), ABORT MISSION > EXIT GAME by keys and by
+  mouse; Esc, Alt-Tab away and back, arrow up / down (picture still); Up / Down in the cockpit with the staged map.
 
