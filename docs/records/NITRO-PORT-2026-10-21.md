@@ -108,14 +108,14 @@ marked RDP are log / memory checks only.
 | trainer block + cheat-marker guard | 8 reads, 4 guard sites | 4/4 | heartbeat = frame; CMD_TELEPORT +5 m acked, read back dy 4.99 m (RDP, n 1); god / teleport drive s.3.2 | - | **yes** |
 | hires clock, fps cap | 0x49c85d / 0x49c927 -> 0x4a2c7f / 0x4a2d49, frame hook 0x4039b8 -> 0x432805 | 3/3 | dt 41.667 ms exact at I76_FPS_CAP=24 (RDP, n 1) | - | **yes** |
 | whole-sim tick (I76_SIM_TICK_MS) | 12 gates (3 manual), 4 display hooks, 16 draw-side holds, 7 cosmetic sites, class slot 0x4f7fb0 | 39/39 | 23.99 ticks / s, player 1 step x 41.67 ms per tick (RDP); the T05 jump s.3.2 (console, n 3) | identical (s.3.2) | **yes**; Nitro's race tick 0x444bb0 not gated |
-| far clip | 5 pool immediates + read site | 6/6 | `far-clip: on (1200 m, pools x16, 6/6)`, 60 s P01 (n 2) | - | **yes**; fps not measured |
+| far clip | 5 pool immediates + read site | 6/6 | `far-clip: on (1200 m, pools x16, 6/6)`, 60 s P01 (n 2); P05 route fps at 1200 / 1800 / 2000 m, s.9.2 | - | **yes** (s.9) |
 | terrain LOD A / B, vertex guard, hysteresis / freeze, terrain-tex, object LOD, shadow / road distances, road pool, clutter, mirror far, cam-ground, hull | 6 + 1 + 2 + ... (stubs relocated: vguard, hyst, road node) | all | every site patched, 0 refused; clutter 600-frame lines 605-873 us, 0 refused; road pool 0 refusals (n 3) | - | **yes**; churn census / T05 route fps not run |
 | health %, label table | 0x40b7b8 / 0x40b6f0 (+3 stubs), 0x4ad465 (38 B, manual) | 2/2 | `fix-health-pct: on`, `fix-label-table: on`; telemetry health 100 at start (n 1) | - | **yes** (the % values not compared yet) |
 | ZGLIDE TMU fix, Glide refresh 120 | Nitro ZGLIDE f28fe42b: +0x2c9a 75 26 (Gold +0x1a93 75 24) | 1/1 | `eb 26`, grSstWinOpen refresh 0 -> 120 Hz (n 1) | - | **yes** |
 | aspect + HUD squeeze | 17 fov pushes (manual), hood fov, clamp, constant, 2 HUD calls | 22/22 | `aspect: D 2.389, 20/20`, `hud-squeeze 2/2` (n 1) | - | **yes** (picture not looked at) |
 | CD music | WIN32.dll!mciSendCommandA / aux*; watchdog 0x42340d -> 0x418f5d | 1/1 | TOC 2..11 served; `MCI_PLAY ... run 2..2`, track 2 played (n 1) | - | **partial**: resume / gapless / true pause not exercised |
 | joystick routing / tick joystick watch | WIN32.dll!joyGetPosEx / joyGetDevCapsA | - | slots hooked, watch on (n 1) | - | **yes** |
-| cursor map | nitro.exe and NITSHELL.DLL USER32 slots | 4/4 + 4/4 | log only (n 1) | - | **partial**: pointer read-back not run |
+| cursor map | nitro.exe and NITSHELL.DLL USER32 slots | 4/4 + 4/4 | pointer read-back s.9.4: OS pointer held in screen 0..639 x 0..479, on = off | - | **no** on a 3440x1440 display (s.9.4) |
 | u32x | - | - | not attached (Nitro imports USER32 directly; no import rename) | - | **no** |
 | shell key / popup patches (NITSHELL) | - | - | - | - | **no** |
 | breakable box 4 + sign sweep | 17 sites | - | not wired | - | **no** |
@@ -326,6 +326,112 @@ The rows involved:
 **Boot check.** w18 (8dd78b91) on Nitro P01: 120 sites patched, 0 refused. It ran past frame 600. The usual first-chance
 0xC0000096 at 0x49acb7 in frame 0 appears in every Nitro log since the first boot. The Gold path never reads the table, so
 the Gold smoke was not rerun.
+
+## 9. Console rows (2026-10-21 evening / 10-22 night), Nitro's own missions
+
+The rows ran once .gate-done and .rebase-done existed.
+- **Locks.** Each boot took `.fps-lock` (np-run.ps1 -Console) and released it after. It waited while `.console-owner` existed.
+- **Load.** Three other lanes ran headless games at the same time. Every boot logged the other lab games running after it.
+- **Raw data.** Lab captures/nitro-port-20261021/route-*, cursor/; summary from tools/nitro-port/np_route_tab.py.
+- **Builds.**
+  - fps: w18-lab-drive. Its working tree held another lane's uncommitted terrainmorph.c include; that code is opt-in and never
+    applied on Nitro, and no morph line appears in any log.
+  - census: w19-lab-census, built from dda3bee plus the drive and census inserts.
+
+### 9.1 Method
+
+The route is a road leg in the cockpit, as the rc-draw lane's T05 route on Gold (RC-DRAW-FPS-2026-10-20).
+- **Placement.** A trainer TELEPORT, then STORE / SET_STATE sets the heading along the road. P05's opening script hands the car
+  over at the same spot every time.
+- **Driving.** The drive block (W / S / A / D) and rcd_drive's road follower, at 22 m/s for 90 s, along P05's RSEG 1 (5.8 km
+  paved), about 2.05 km per leg.
+- **fps.** From I76_FRAME_LOG between the leg's proxy frames, with rcd_tab.py's statistics.
+- **Churn.** The rc-draw leaf census, ported (insert-npcensus.py, every address through NA; terrain height 0x493160 -> 0x494fe0
+  added to the site map).
+- **Conditions.** I76_FAR_CLIP = I76_ROAD_DIST = I76_CLUTTER_DIST = 1200 (the preset), 1800 and 2000, interleaved; the rest is
+  nitro-tick42.psd1 with its 120 fps cap.
+
+Other Nitro missions did not give a usable leg:
+- P15 stops dead at an obstacle on every road tried (290 m on RSEG 11 and 12, 800 m on RSEG 8). Its RSEG 11 legs are a second,
+  short row.
+- On P06 and P01 the opening holds the car.
+- P19 and P03 end the mission within 15-20 s of the leg.
+
+### 9.2 Far clip / terrain fps, and the sim clock
+
+| mission, condition | fps n | median fps | 1 % low (sorted) | mean | lowest 1 s (sorted) | mean | sim s / wall s |
+|---|---|---|---|---|---|---|---|
+| P05 1200 m | 5 | 120 (cap) all | 95.2 98.0 102.8 105.6 106.8 | 101.7 | 109 118 118 119 120 | 116.8 | 1.000 |
+| P05 1800 m | 6 | 120 all | 80.4 88.4 89.2 90.9 96.6 100.1 | 90.9 | 90 105 113 115 117 117 | 109.5 | 1.000 |
+| P05 2000 m | 6 | 120 all | 84.3 85.1 90.4 92.9 93.6 97.9 | 90.7 | 92 105 111 114 116 118 | 109.3 | 1.000 |
+| P15 1200 m (290 m legs) | 2 | 120 | 105.2 109.8 | 107.5 | 120 120 | 120 | 1.000 |
+| P15 1800 m | 2 | 119.4 / 120 | 91.8 97.7 | 94.8 | 103 118 | 110.5 | 1.001 |
+| P15 2000 m | 2 | 120 | 95.3 95.7 | 95.5 | 116 118 | 117.0 | 1.000 |
+
+- **The median stays at the 120 cap at every distance.** Going from 1200 m to 1800 / 2000 m lowers the 1 % low by about
+  10 fps (101.7 -> about 91) and the worst second by about 7 frames.
+- **2000 m costs no more than 1800 m** on this route: 90.7 vs 90.9 mean 1 % low, 109.3 vs 109.5 worst second.
+- **Every boot read back the far clip it set:** 1200 / 1800 / 2000 from the pointer at Nitro 0x434b5f, which is Gold 0x4059df.
+- **Sim clock.** Every console boot advanced 0.9997-1.0006 sim seconds per wall second while it ran alone under `.fps-lock`. So the
+  MP lane's 0.856 in its evening headless runs is not the clock; it is load.
+- **How the sets were run.** The fps n combines queue q1 (20:54-21:40, which braked with a held S, a later fix) and q7 / c1 / c1b /
+  c1c (pulsed S). The pooled rows sit in the same range.
+
+**Void rows.** route-c1 1800-r1, 2000-r1 and 1200-r2 (23:17-23:24) were taken with the console panel asleep: dgVoodoo then
+presents a flat 35-36 ms frame (27 fps). 1800-r2 began asleep and woke at 23:26 mid-leg. All four are marked VOID in route-c1.tsv
+and were re-run (c1b, c1c). np-run.ps1 -Console now nudges the mouse and asserts ES_DISPLAY_REQUIRED before each boot, and
+np_route.py flags a leg whose frames sit at about 36 ms.
+
+### 9.3 Terrain churn (P05, cockpit passes, n 2 per condition)
+
+| condition | splits + merges / s | frames changing % | changed px / s (near / mid / far) | terrain verts median |
+|---|---|---|---|---|
+| 1200 m | 29.8, 29.8 | 22.0, 22.0 | 376.7, 374.6 (66.3 / 235.0 / 75.4; 65.8 / 233.5 / 75.3) | 3317, 3299 |
+| 1800 m | 31.9, 32.0 | 23.2, 23.4 | 396.6, 396.7 (65.9 / 235.2 / 95.5; 66.5 / 234.2 / 96.1) | 6705, 6709 |
+| 2000 m | 32.1, 31.4 | 23.4, 22.9 | 398.5, 395.4 (67.0 / 235.2 / 96.4; 62.7 / 239.3 / 93.5) | 6714, 6716 |
+
+- **The two boots of each condition agree within about 2 %.**
+- **Going from 1200 m to 1800 / 2000 m doubles the drawn terrain vertices** (about 3300 -> about 6700). It adds about 7 % splits /
+  merges, entirely in the far band (75 -> about 95 px/s).
+- **2000 m adds nothing over 1800 m.** P05's terrain beyond 1800 m is hull-clipped or flat.
+
+### 9.4 NITSHELL pointer read-back
+
+Method: np-measure-cursor.ps1 (measure-cursor.ps1 on nitro.exe / NITSHELL), started as np-run's side process. Launched from a
+background job, the game never got the foreground.
+
+Getting to the menu:
+- A boot with I76_SKIP_MOVIES and no mission shows a black screen that waits for a key. Esc / Enter, sent only while the game
+  is foreground, reach the main menu.
+- NITSHELL loads relocated (0x2fc0000 / 0x3090000, not 0x10000000).
+- Its mouse object [0x10130484] is 0 until the menu is up.
+
+**Result (map on, I76_CURSOR_MAP=1 + _DGV=aw, vs off; n 1 each): identical.**
+- The OS pointer itself is held inside screen (0..639, 0..479). SetCursorPos(1720, 720) reads back (639, 479).
+- The shell's UI mouse equals that screen position.
+- So on this 3440x1440 display Nitro's menu pointer is confined to the top-left 640x480 pixels, and the proxy's cursor map has
+  no effect on it.
+
+Status of the cursor-map row: **no (does not work on this display)**. Next: find who clips (a ClipCursor in nitro.exe / NITSHELL /
+dgVoodoo's Glide window) and route it through the cursor map, or u32x for Nitro (s.6 item 8).
+
+### 9.5 The nitro-mac build ad904941 on the PC (coordinator item)
+
+**Builds.** `build.ps1 -Ref 3d7c3e0` reproduces ad904941 byte for byte; the previous HEAD 610ef86 is 5caf244c. Note that
+610ef86..3d7c3e0 also carries 6760b24 (nitro_form.c, MP lane), not only the three Mac fixes.
+
+**Gold smoke (n 2 each):** same line set, 0 crash lines.
+
+**Nitro P01 smoke (n 2 each, 60 s):**
+- Both builds: 120 sites patched, 0 refused; the same first-chance 0xC0000096 in frame 0 as every Nitro boot; sim time 57.5 s in
+  59 s.
+- Differences, only on ad904941:
+  - `nitro shell watch: on`, with no attach line, so the LoadLibraryA hook saw NITSHELL / ZGLIDE itself;
+  - `pit-skip: off (Windows: the game gets past the probe)`;
+  - `nitro-form: ON - 6/6 nitshell sites` (from 6760b24).
+- Not differences: the GetTickCount stamps on the music lines and the per-boot terrain-hull events.
+
+**Verdict: the PC behaviour equals the previous HEAD build's**, plus the inert Mac switches and nitro_form.
 
 ## Files
 
