@@ -301,9 +301,10 @@ static int __cdecl nai_melee_flag(void) {            /* replaces `call 0x42fee0`
     if (!r && nai_pool_on() && nmp_role() == 1) nai_host_tick();
     return r;
 }
-static void __cdecl nai_ai_frame(void) {             /* replaces `call 0x4076f0` (ai_FrameTick) at 0x432e24: joiners mirror */
+static DWORD g_nai_frame_next = 0x004076f0;          /* ai_FrameTick, or the tick's gate when I76_SIM_TICK_MS took the site first */
+static void __cdecl nai_ai_frame(DWORD a) {          /* replaces `call 0x4076f0` (ai_FrameTick, 1 cdecl arg) at 0x432e24: joiners mirror */
     if (nai_on() && nmp_role() == 2) return;
-    ((void (__cdecl *)(void))(DWORD_PTR)0x004076f0)();
+    ((void (__cdecl *)(DWORD))(DWORD_PTR)g_nai_frame_next)(a);
 }
 
 /* ---- AI weapons: record (host), replay (joiner); damage only on the host ---- */
@@ -724,6 +725,16 @@ static int nai_call(DWORD site, DWORD target, void *fn, const char *what) {   /*
     FlushInstructionCache(GetCurrentProcess(), p, 5);
     return *(LONG *)(p + 1) == rel;
 }
+static int nai_call_chain(DWORD site, DWORD stock, void *fn, DWORD *next, const char *what) {   /* as nai_call, but a site another
+    * feature already took (simtick.c's st_call_site: the I76_SIM_TICK_MS gate of ai_FrameTick) is chained: we run first and call
+    * what was there (the gate runs ai_FrameTick on tick frames). If the tick patches after us it chains to us the same way. */
+    BYTE *p = (BYTE *)(DWORD_PTR)site; DWORD tgt;
+    if (p[0] != 0xE8) { NMP_LOG("  nitro-ai: site %s at 0x%06lx is not a call - OFF", what, site); return 0; }
+    tgt = (DWORD)(site + 5 + *(LONG *)(p + 1));
+    if (tgt != stock) NMP_LOG("  nitro-ai: site %s at 0x%06lx already calls 0x%08lx (stock 0x%06lx) - chained", what, site, tgt, stock);
+    *next = tgt;
+    return nai_call(site, tgt, fn, what);
+}
 static void nai_attach(void) {
     static const BYTE resp_sig[6] = { 0xa1, 0x38, 0x6a, 0x52, 0x00, 0x85 };
     int ok;
@@ -748,7 +759,7 @@ static void nai_attach(void) {
     if (!ok) { NMP_LOG("  nitro-ai: OFF (sites)"); return; }
     ok = nai_call(0x4bd4bf, 0x4b3630, (void *)nai_odef, "ODEF walk") & nai_call(0x4079a2, 0x42fee0, (void *)nai_melee_flag, "host tick")
        & nai_call(0x46332e, 0x42fee0, (void *)nai_kill_stub, "kill credit") & nai_call(0x4064e6, 0x4af010, (void *)nai_trigger, "AI trigger")
-       & nai_call(0x432e24, 0x4076f0, (void *)nai_ai_frame, "ai_FrameTick") & nai_call(0x464409, 0x447050, (void *)nai_score_set, "mirror score")
+       & nai_call_chain(0x432e24, 0x4076f0, (void *)nai_ai_frame, &g_nai_frame_next, "ai_FrameTick") & nai_call(0x464409, 0x447050, (void *)nai_score_set, "mirror score")
        & nai_call(0x445db8, 0x463a20, (void *)nai_st_mirror, "'ST' mirror")
        & nai_call(0x461114, 0x44fd80, (void *)nai_class_damage, "damage 1") & nai_call(0x46504b, 0x44fd80, (void *)nai_class_damage, "damage 2")
        & nai_call(0x465693, 0x44fd80, (void *)nai_class_damage, "damage 3") & nai_call(0x4a7c43, 0x44fd80, (void *)nai_class_damage, "damage 4")
