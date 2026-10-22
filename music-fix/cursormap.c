@@ -62,6 +62,13 @@ static HWND cm_window(void) {
     if (g_cm_hwnd && IsWindow(g_cm_hwnd)) return g_cm_hwnd;
     g_cm_hwnd = FindWindowA("Interstate '76 Gold Edition", NULL);
     if (!g_cm_hwnd) g_cm_hwnd = FindWindowA(NULL, "Interstate '76 Gold Edition");
+    /* nitro.exe's window is "Interstate '76 Nitro Pack" (class and title): without it the map found no window and passed
+       every call through, so NITSHELL clamped the raw screen position to 639 x 479 and put the pointer back there
+       (NITRO-PORT s.10; the read-back pinned the OS pointer in the top-left 640x480 of a 3440x1440 screen) */
+    if (!g_cm_hwnd && g_exe == EXE_NITRO) {
+        g_cm_hwnd = FindWindowA("Interstate '76 Nitro Pack", NULL);
+        if (!g_cm_hwnd) g_cm_hwnd = FindWindowA(NULL, "Interstate '76 Nitro Pack");
+    }
     return g_cm_hwnd;
 }
 /* UI unit -> screen pixel. on = 0: pass through untranslated (no window yet, or a real 640x480 client).
@@ -99,12 +106,12 @@ static void cm_to_ui(const CmMap *m, POINT *p) {
     p->y = cm_clamp((LONG)((p->y - m->oy) / m->ky + 0.5), 479);
 }
 
-static BOOL WINAPI cm_GetCursorPos(LPPOINT p) {
+static BOOL cm_GetCursorPos_m(LPPOINT p, int mode) {
     BOOL ok = p_cm_GetCursorPos(p);
     if (ok && p) {
         POINT raw = *p; CmMap m;
         if (cm_pad_pos(p)) return ok;                       /* the pad owns the pointer (padmenu.c) */
-        m = cm_map();
+        m = cm_map_mode(mode);
         if (m.on) cm_to_ui(&m, p);
         if (g_cm_log) {
             static int n; static LONG px = -1, py = -1;
@@ -116,16 +123,15 @@ static BOOL WINAPI cm_GetCursorPos(LPPOINT p) {
     }
     return ok;
 }
-static BOOL WINAPI cm_SetCursorPos(int x, int y) {
-    CmMap m = cm_map();
+static BOOL cm_SetCursorPos_m(int x, int y, int mode) {
+    CmMap m = cm_map_mode(mode);
     InterlockedExchange(&g_cm_pad_own, 0);                  /* the game places the pointer itself: it reads the OS one again */
     if (m.on) return p_cm_SetCursorPos(m.ox + (int)(x * m.kx + 0.5), m.oy + (int)(y * m.ky + 0.5));
     return p_cm_SetCursorPos(x, y);
 }
-static BOOL WINAPI cm_ClipCursor(const RECT *r) {
-    CmMap m = cm_map();
+static BOOL cm_ClipCursor_m(const RECT *r, int mode, void *ra) {
+    CmMap m = cm_map_mode(mode);
     if (g_cm_log) {
-        void *ra = __builtin_return_address(0);
         if (r) mlog("  cursor-map: ClipCursor (%ld,%ld)-(%ld,%ld) from %p", r->left, r->top, r->right, r->bottom, ra);
         else   mlog("  cursor-map: ClipCursor NULL from %p", ra);
     }
@@ -137,11 +143,11 @@ static BOOL WINAPI cm_ClipCursor(const RECT *r) {
     }
     return p_cm_ClipCursor(r);
 }
-static BOOL WINAPI cm_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm) {
+static BOOL cm_PeekMessageA_m(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm, int mode) {
     BOOL ok = p_cm_PeekMessageA(msg, hw, lo, hi, rm);
     if (ok && msg && msg->hwnd && msg->message >= WM_MOUSEFIRST && msg->message <= WM_MOUSELAST
         && msg->message != WM_MOUSEWHEEL) {                 /* the wheel's lParam is screen coordinates already */
-        CmMap m = cm_map();
+        CmMap m = cm_map_mode(mode);
         POINT pp;
         if (cm_pad_pos(&pp)) msg->lParam = MAKELPARAM((WORD)pp.x, (WORD)pp.y);   /* the pad owns the pointer */
         else if (m.on) {
@@ -153,6 +159,20 @@ static BOOL WINAPI cm_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm
     }
     return ok;
 }
+
+/* the hooks: the exe's slots map with I76_CURSOR_MAP's mode, the shell's with I76_CURSOR_MAP_SHELL's if set (nitro-port
+   s.10: NITSHELL's menus are dgVoodoo's [DirectX] picture, a 16:10 fit on the wide panel, while nitro.exe's in-mission Esc
+   menu is the Glide picture over the whole client) */
+static int g_cm_shell_mode;            /* 0 = as the exe's; 1 stretched, 2 ar, 3 aw (I76_CURSOR_MAP_SHELL) */
+static int cm_sh_mode(void) { return g_cm_shell_mode ? g_cm_shell_mode : g_cm_mode; }
+static BOOL WINAPI cm_GetCursorPos(LPPOINT p) { return cm_GetCursorPos_m(p, g_cm_mode); }
+static BOOL WINAPI cm_SetCursorPos(int x, int y) { return cm_SetCursorPos_m(x, y, g_cm_mode); }
+static BOOL WINAPI cm_ClipCursor(const RECT *r) { return cm_ClipCursor_m(r, g_cm_mode, __builtin_return_address(0)); }
+static BOOL WINAPI cm_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm) { return cm_PeekMessageA_m(msg, hw, lo, hi, rm, g_cm_mode); }
+static BOOL WINAPI cm_sh_GetCursorPos(LPPOINT p) { return cm_GetCursorPos_m(p, cm_sh_mode()); }
+static BOOL WINAPI cm_sh_SetCursorPos(int x, int y) { return cm_SetCursorPos_m(x, y, cm_sh_mode()); }
+static BOOL WINAPI cm_sh_ClipCursor(const RECT *r) { return cm_ClipCursor_m(r, cm_sh_mode(), __builtin_return_address(0)); }
+static BOOL WINAPI cm_sh_PeekMessageA(LPMSG msg, HWND hw, UINT lo, UINT hi, UINT rm) { return cm_PeekMessageA_m(msg, hw, lo, hi, rm, cm_sh_mode()); }
 
 /* Repoint one module's USER32 slots. Returns the number of slots taken (0..4). */
 static int g_cm_over_u32x;             /* I76_CURSOR_MAP_U32X: 1 = the exe's and the shell's u32x slots, 2 (=exe) = the exe's only */
@@ -168,10 +188,11 @@ static int cm_patch_module(HMODULE mod, const char *what) {
     int take_u32x = g_cm_over_u32x == 1 || (g_cm_over_u32x == 2 && mod == GetModuleHandleA(NULL));
     for (i = 0; i < (take_u32x ? 2 : 1); i++) {
         int k = 0;
-        if (patch_iat(mod, dlls[i], "GetCursorPos", cm_GetCursorPos)) k++;
-        if (patch_iat(mod, dlls[i], "SetCursorPos", cm_SetCursorPos)) k++;
-        if (patch_iat(mod, dlls[i], "ClipCursor",   cm_ClipCursor))   k++;
-        if (patch_iat(mod, dlls[i], "PeekMessageA", cm_PeekMessageA)) k++;
+        int sh = mod != GetModuleHandleA(NULL) && g_cm_shell_mode;   /* the shell, with its own mode */
+        if (patch_iat(mod, dlls[i], "GetCursorPos", sh ? (void *)cm_sh_GetCursorPos : (void *)cm_GetCursorPos)) k++;
+        if (patch_iat(mod, dlls[i], "SetCursorPos", sh ? (void *)cm_sh_SetCursorPos : (void *)cm_SetCursorPos)) k++;
+        if (patch_iat(mod, dlls[i], "ClipCursor",   sh ? (void *)cm_sh_ClipCursor   : (void *)cm_ClipCursor))   k++;
+        if (patch_iat(mod, dlls[i], "PeekMessageA", sh ? (void *)cm_sh_PeekMessageA : (void *)cm_PeekMessageA)) k++;
         if (k || i == 0) mlog("  cursor-map: %s %d/4 %s slots repointed", what, k, dlls[i]);
         n += k;
     }
@@ -275,6 +296,11 @@ static void apply_cursor_map(void) {
         return;
     }
     g_cm_mode = (lstrcmpiA(v, "ar") == 0) ? 2 : 1;
+    {   char c[12];   /* I76_CURSOR_MAP_SHELL=aw|ar|stretched: the shell module's own map (unset = as the exe's) */
+        if (env_str("I76_CURSOR_MAP_SHELL", c, sizeof(c)))
+            g_cm_shell_mode = lstrcmpiA(c, "aw") == 0 ? 3 : lstrcmpiA(c, "ar") == 0 ? 2 : lstrcmpiA(c, "stretched") == 0 || c[0] == '1' ? 1 : 0;
+        if (g_cm_shell_mode) mlog("  cursor-map: the shell's slots map with their own mode: %s (I76_CURSOR_MAP_SHELL)",
+                                  g_cm_shell_mode == 3 ? "aw, the dgVoodoo [DirectX] picture's fit" : g_cm_shell_mode == 2 ? "ar" : "stretched"); }
     g_cm_log = env_flag("I76_CURSOR_LOG", 4, 0) == 1;
     {   /* the real functions, so a hook never calls itself even if a slot was already taken by someone else */
         HMODULE u = GetModuleHandleA("user32.dll");
