@@ -139,7 +139,14 @@ static void tm_acc(double px, int band, int cls) {
  * same ring with t back at 0. Splits made inside the ring by the error-threshold steps start partly blended (accepted). One vertex,
  * one t: no cracks. Parents are blended first (lower index), so y = lerp(mean(parents), true, t) chains through levels. The shade
  * rides the same t (tm_emit_wrap). Runs in every pass (mirror too). */
-static short *g_ep_a, *g_ep_b; static DWORD *g_ep_s, g_tm_pid = 1; static int g_tm_sl, g_tm_slhave; static LONGLONG g_tm_ticks;
+/* 2026-10-22 rows: in the no-dashboard view 22-34 % of splits happen INSIDE the ring (the height-error steps: the stock splits a node in
+ * the band when err x S > floor_pow2(d^2) x B, B = [0x6442cc]; 0x491373), and the ring-only t popped them (95th 33 px). The step's
+ * distance follows from the error: split <=> floor_pow2(d^2) <= P*, P* = the largest power of two below err x S / B, i.e. d < d_e =
+ * sqrt(2 P*). The vertex's own midpoint error (|true height - mean of its true edge ends|; the centre: against the node's min / max
+ * corners, the stock's own centre test 0x4913c4) is one of the node's tested errors, so d_e(own) <= the node's error-split distance:
+ * D = min(ring, d_e(own)) never puts t above 0 at the split, and it is fixed per vertex (t continuous in d). A vertex whose own error
+ * is small stays near its parents' line until close, by at most that small error. No reads beyond the vertex array. */
+static short *g_ep_a, *g_ep_b; static DWORD *g_ep_s, g_tm_pid = 1; static int g_tm_sl, g_tm_slhave; static LONGLONG g_tm_ticks; static float *g_ty;
 static void __cdecl tm_edge_wrap(BYTE *edge) {
     int n0 = *(volatile int *)(DWORD_PTR)0x006442ec, had = edge && *(DWORD *)(edge + 4) != 0;
     ((void (__cdecl *)(BYTE *))(DWORD_PTR)0x004918f0)(edge);
@@ -150,8 +157,10 @@ static void tm_stateless(const BYTE *cam, float *V, int n) {
     float sc = *(volatile float *)(DWORD_PTR)0x006442c4, K = *(volatile float *)(DWORD_PTR)0x006442c8, sk = K > 0.0f ? sqrtf(K) : 0.0f, ex, ez;
     int ox = *(volatile int *)(DWORD_PTR)0x006442e0, oz = *(volatile int *)(DWORD_PTR)0x006442e4, i; DWORD pid = g_tm_pid;
     ex = (float)(*(const double *)(cam + 0x160) * sc); ez = (float)(*(const double *)(cam + 0x170) * sc);
+    float B = *(volatile float *)(DWORD_PTR)0x006442cc;
     for (i = 0; i < n; i++) {
-        int a, b, iS, ip, alongx; float ax, az, bx, bz, x, z, dx, dz, d, ring, band, t, ym, h;
+        int a, b, iS, ip, alongx, side; float ax, az, bx, bz, x, z, dx, dz, d, ring, band, t, ym, h, e, D, q;
+        g_ty[i] = V[3 * i + 1];                            /* the true height, before any blend (parents are read from here) */
         g_tm_t[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1;
         if (i < 4 || g_ep_s[i] != pid) continue;
         a = g_ep_a[i]; b = g_ep_b[i];
@@ -162,14 +171,31 @@ static void tm_stateless(const BYTE *cam, float *V, int n) {
         if (iS < 2) continue;
         ip = alongx ? (int)z - oz : (int)x - ox;
         dx = fabsf(x - ex); dz = fabsf(z - ez); h = 0.5f * (float)iS;
-        if (ip >= 0 && ip % iS == 0) {                     /* a side midpoint: the nearer of the two node centres */
-            if (alongx) dz = dz > h ? dz - h : h - dz; else dx = dx > h ? dx - h : h - dx;
-        }
-        d = sqrtf(dx * dx + dz * dz);
+        side = ip >= 0 && (ip & (iS - 1)) == 0;            /* a side midpoint (S is a power of two), else the node's centre */
+        if (side) { if (alongx) dz = dz > h ? dz - h : h - dz; else dx = dx > h ? dx - h : h - dx; }   /* the nearer node centre */
         ring = (float)iS * sk;
-        band = g_tm_frac ? g_tm_band * ring : g_tm_band;
+        /* the vertex's own tested error (raw units) and the distance its error step splits at */
+        if (side) e = fabsf(g_ty[i] - 0.5f * (g_ty[a] + g_ty[b]));
+        else {                                             /* centre: against the min / max corners (the ends of its parents' edges) */
+            int c[4], k, cmin = -1, cmax = -1; float smin = 1e30f, smax = -1e30f;
+            c[0] = g_ep_s[a] == pid ? g_ep_a[a] : -1; c[1] = g_ep_s[a] == pid ? g_ep_b[a] : -1;
+            c[2] = g_ep_s[b] == pid ? g_ep_a[b] : -1; c[3] = g_ep_s[b] == pid ? g_ep_b[b] : -1;
+            for (k = 0; k < 4; k++) if (c[k] >= 0 && c[k] < i) { float sxz = V[3 * c[k]] + V[3 * c[k] + 2]; if (sxz < smin) { smin = sxz; cmin = c[k]; } if (sxz > smax) { smax = sxz; cmax = c[k]; } }
+            e = (cmin >= 0 && cmax >= 0 && cmin != cmax) ? fabsf(g_ty[i] - 0.5f * (g_ty[cmin] + g_ty[cmax])) : 1e9f;
+        }
+        D = ring;
+        if (B > 0.0f) {
+            q = e * (float)iS / B;
+            if (q <= 1e-6f) D = 0.0f;
+            else { DWORD bits; float p; memcpy(&bits, &q, 4); bits &= 0xff800000u; memcpy(&p, &bits, 4); if (p == q) p *= 0.5f;
+                   p = sqrtf(2.0f * p); if (p < D) D = p; }
+        }
+        band = g_tm_frac ? g_tm_band * D : g_tm_band;
         if (g_tm_frac && band < 8.0f) band = 8.0f;
-        t = band > 0.0f ? (ring - d) / band : 1.0f;
+        d = D - band;                                      /* most vertices sit well inside D: t = 1 without a square root */
+        if (d > 0.0f && dx * dx + dz * dz <= d * d) continue;
+        d = sqrtf(dx * dx + dz * dz);
+        t = band > 0.0f ? (D - d) / band : 1.0f;
         if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
         g_tm_pa[i] = a; g_tm_pb[i] = b; g_tm_t[i] = t;
         if (t < 1.0f) { ym = 0.5f * (V[3 * a + 1] + V[3 * b + 1]); V[3 * i + 1] = ym + (V[3 * i + 1] - ym) * t; g_tm_morphing++; g_tm_win_morphing++; }
@@ -383,7 +409,8 @@ static void apply_terrain_morph(void) {
         g_ep_a = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_ep_b = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_ep_s = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        if (!g_ep_a || !g_ep_b || !g_ep_s) { mlog("  terrain-morph: no memory - not applied"); return; }
+        g_ty = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (!g_ep_a || !g_ep_b || !g_ep_s || !g_ty) { mlog("  terrain-morph: no memory - not applied"); return; }
         QueryPerformanceFrequency(&g_tm_qpf);
         for (i = 0; i < 2 && (!g_tm_sl || nl); i++) {       /* the per-vertex tables: the memory form, or the instrument */
             g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_SLOTS * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
