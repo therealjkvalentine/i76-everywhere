@@ -1053,3 +1053,9 @@ Open items from this session:
   pencil within 3 px of the pointer at the centre, corners and quarter points; MELEE > MULTI MELEE > JOIN clicked through to the transport row (captures
   captures/nitro-port-20261021/cursor/click-e*.png). Not yet tested: the in-mission Esc menu on Nitro. The Macs do not set the cursor map and their shell mouse followed
   the real macOS pointer, so they are probably unaffected, but JOIN on a Mac still wants one human click.
+- TERRAIN MORPH RESULT (geomorph lane, TERRAIN-MORPH-2026-10-21, 4f03cd7; staged, NOT a candidate): blending each split vertex's height AND shade in over 25 % of the
+  distance it appeared at (40 m minimum) removes the pop: in the no-dashboard (hood) view the 95th-percentile jump per split falls from 217 px to 2.2 px, the shade step
+  from 78 grey levels to under 1, snaps over 4 px from 3442 px/s to 0, physics unchanged over 910 tick states. Cost 27 fps median in that view (91.5 vs 118.5): the
+  per-vertex memory tables, not the blend. The lane is now building the stateless form (blend factor from the vertex's own ring distance, no tables; expected under
+  0.3 ms) and will promote it only at a cost of 1 fps or less. LOOK NOW if you want: exp-morph PLAY-TICK-MORPH.bat (expect ~90 fps in the hood view where plain gives
+  118). The forced-split ring at 12.9x in the earlier trace was a model artefact: flat ground splits at the ring because of its surface type (dirt / paved), not a force.
