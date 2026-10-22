@@ -133,7 +133,7 @@ The measurements:
 | R11 | PLAY-R11.bat | + mirror 300 | 120.0 / 103.4 [102.6..104.3] | 118 | 4,506 | yes | (not reported) | |
 | R12 | PLAY-R12.bat | the candidate as is (= R11 + split distance x24) | 120.0 / **87.1** [76.1..92.7] | 100 [69..118] | **6,018** | yes | drop (terrain) | the RC: "maybe slightly better" than stock |
 | R13 | PLAY-R13.bat | R03 + split distance x24 only (LOD_A 24) | 120.0 / 91.0 (n 1) | 111 | 5760 | yes | (added after the drive; one round, main) | |
-| R14 | PLAY-R14.bat | R03 + threshold /24 only (LOD_B 24) | (queued) |  |  |  | (added after the drive; one round, main) | |
+| R14 | PLAY-R14.bat | R03 + threshold /24 only (LOD_B 24) | 120.0 / 102.0 (n 1) | 111 | 4622 | yes | (added after the drive; one round, main) | |
 
 Main's extra rungs in exp-rebase (`PLAY-X1..X4.bat`, presets rebase-x1..x4, made by main, log-verified):
 
@@ -150,9 +150,14 @@ What the table shows:
   textures, mirror) all land within ~3 of each other.
 - **One unexplained step:** R00 -> R01 -> R03 rises from 97 to 106 while the vertex peak falls from 6.6k to 4.6k. Possible causes are the
   stock 600 m view hitting different hitches, or run order. Treat 95-106 as one band.
+- **A costs the frame rate; B is nearly free** (R13 / R14, n 1 each, one round per main's ruling):
+  - A x24 alone (R13): 1 % low 91, peak 5,760 vertices.
+  - B /24 alone (R14): 1 % low 102, peak 4,622, in the R03 band.
+  - Their sum is R07 (86, 7,473).
+  - The owner has not driven R13 / R14. Whether B /24 alone looks like R07 is the next cheap question for his eye.
 - **LOD_B 4, HYST and FREEZE are invisible to the owner** (R04, R06, X2). The trace (s.6) shows why: on this route no node flips back
   and forth, so these switches have nothing to damp.
-- **Trip row 3**, run as the p19 gate ran it (autotest-p19 gate-folder + LAB_CURSOR_FREE): R00 FAIL 0, R01 FAIL 0, R02 FAIL 0, R03 FAIL 0, R04 FAIL 0, R05 FAIL 0, R06 FAIL 0, R07 FAIL 0, R08 FAIL 0, R09 FAIL 0, R10 FAIL 0, R11 FAIL 0, R12 FAIL 0, R13 PASS 120 (the last run per rung; fps from the trainer heartbeat). The first round's trip rows
+- **Trip row 3**, run as the p19 gate ran it (autotest-p19 gate-folder + LAB_CURSOR_FREE): engine up on every rung (R00-R14, 1 of 1 each); the 3 s frame-rate row (T05's opening, outside camera; pass within 10 % of 120): R00 FAIL 98.7, R01 FAIL 94.3, R02 PASS 118, R03 PASS 119.7, R04 PASS 120, R05 PASS 120.3, R06 PASS 119.7, R07 PASS 120, R08 PASS 120, R09 PASS 120, R10 PASS 120.7, R11 PASS 120, R12 PASS 119.7, R13 PASS 120, R14 PASS 120. R00 and R01 fail it (98.7 / 94-95 fps), so the opening is slower without roads to 1800 m; neither rung ships. The first round's trip rows
   used the plain autotest gate-folder without LAB_CURSOR_FREE. The clicks missed and the game sat on the main menu, so engine up was 0 of 1
   on every rung. That was a harness fault, not a game fault. Saves were verified byte-identical after each run.
 
