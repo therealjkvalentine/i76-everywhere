@@ -8560,6 +8560,7 @@ static void apply_terrain_hyst(void) {
     if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep their first decision until they come within it (snapshot of new nodes every %.0f m)", ff, fm);
 }
 
+#include "terrainmorph.c"  /* I76_TERRAIN_MORPH / _MORPH_LOG / I76_TERRAIN_FLAT_SPLIT: geomorph + flat-tile split (TERRAIN-MORPH-2026-10-21) */
 static void apply_terrain_lod(void) {
     static const struct { DWORD_PTR a_site, b_site; float a, b; } lv[3] = {
         { 0x4930bb + 6, 0x4930c5 + 6, 6.4f,  0.00390625f },      /* Low */
@@ -8917,6 +8918,7 @@ static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls a
                  g_cl_fade_on && g_cl_pairs ? (sprintf(g_cl_fadetxt, "; fade kept %.1f%% of template x cell pairs", 100.0 * g_cl_kept / g_cl_pairs), g_cl_fadetxt) : "");
         terrain_vguard_report();
         terrain_hyst_report();
+        terrain_morph_report();
         g_cl_frames = g_cl_cells = g_cl_cells_max = g_cl_tests = g_cl_capped = g_cl_pool_max = 0; g_cl_ticks = g_cl_ticks_max = 0; g_cl_kept = g_cl_pairs = 0;
     }
 }
@@ -9466,6 +9468,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
         apply_no_minimize();      /* opt-in: I76_NO_MINIMIZE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
+        apply_terrain_morph();    /* opt-in: I76_TERRAIN_MORPH=<band> (geomorph), I76_TERRAIN_FLAT_SPLIT=<f>[,eps] (Gold only) */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
         apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP: span-node pool x16 + end guard (I76_ROAD_POOL=0 off) */
