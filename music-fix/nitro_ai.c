@@ -521,6 +521,7 @@ static void nai_lab_tick(void) {
         for (sd = 0; sd < 4; sd++) { int c = *(int *)(e + 0x168 + 4 * sd) * own / 100; if (c < 1) c = 1; *(int *)(e + 0x138 + 4 * sd) = 0; *(int *)(e + 0x178 + 4 * sd) = 0; *(int *)(e + 0x148 + 4 * sd) = c; *(int *)(e + 0x18c + 4 * sd) = c; }
         NMP_LOG("  nitro-ai: LAB own car cut to %d %%", own); }
     if (shoot <= 0) return;
+    if (!next) next = now;   /* a machine up more than 24.8 days (Andrew's Mac: 2397485012 ms) has (LONG)(now - 0) < 0: never fired */
     if ((LONG)(now - next) >= 0) {
         int q; BYTE *best = NULL; double bd = 1e30;
         next = now + shoot * 1000;
@@ -541,9 +542,17 @@ static void nai_lab_tick(void) {
         nai_teleport(me, *(double *)(tgt + 0x40) - sin(r) * 10.0, *(double *)(tgt + 0x50) - cos(r) * 10.0, hd);
     }
     g_nai_lab_fire = (LONG)(fire_until - now) > 0;   /* the fire keys (Space, 1-5) read as held: nitro.exe's GetAsyncKeyState / GetKeyState */
-    {   static int started; static const BYTE sig[5] = { 0xa0, 0x0b, 0x49, 0x53, 0x00 };
-        if (!started++) { if (memcmp((void *)0x004b14d5, sig, 5) == 0) { CloseHandle(CreateThread(0, 0, nai_lab_fire_thread, 0, 0, 0)); NMP_LOG("  nitro-ai: LAB weapon_fire byte 0x53490b held during windows (reader 0x4b14d5 checked)"); }
-                          else NMP_LOG("  nitro-ai: LAB weapon_fire reader at 0x4b14d5 differs - byte not held"); } }
+    {   /* LAB: the weapon_fire reader `mov al, [0x53490b]` at 0x4b14d5 reads `mov al, 1` during a window (patched here, on the
+         * game thread, and put back after). Was a thread holding the byte at 1 every 1 ms: the game's input pass rewrites the
+         * byte each frame, and under Wine (the Macs) Sleep(1) is too coarse to win that race - the Mac joiner never fired. */
+        static int state = -1; static const BYTE sig[5] = { 0xa0, 0x0b, 0x49, 0x53, 0x00 }, one[5] = { 0xb0, 0x01, 0x90, 0x90, 0x90 };
+        int want = g_nai_lab_fire != 0; DWORD op;
+        if (state < 0) { state = memcmp((void *)0x004b14d5, sig, 5) == 0 ? 0 : 2;
+            NMP_LOG("  nitro-ai: LAB weapon_fire reader at 0x4b14d5 %s", state == 0 ? "reads 1 during windows (patched in place, checked)" : "differs - fire not forced"); }
+        if (state != 2 && want != state && VirtualProtect((void *)0x004b14d5, 5, PAGE_EXECUTE_READWRITE, &op)) {
+            memcpy((void *)0x004b14d5, want ? one : sig, 5); VirtualProtect((void *)0x004b14d5, 5, op, &op);
+            FlushInstructionCache(GetCurrentProcess(), (void *)0x004b14d5, 5); state = want;
+        } }
     if (!p_nai_gaks) { static int tried; if (!tried++) { p_nai_gaks = (SHORT (WINAPI *)(int))NMP_IAT(GetModuleHandleA(NULL), "USER32.dll", "GetAsyncKeyState", (void *)nai_lab_gaks);
         p_nai_gks = (SHORT (WINAPI *)(int))NMP_IAT(GetModuleHandleA(NULL), "USER32.dll", "GetKeyState", (void *)nai_lab_gks);
         NMP_LOG("  nitro-ai: LAB fire keys through nitro.exe's GetAsyncKeyState %s / GetKeyState %s", p_nai_gaks ? "hooked" : "NOT hooked", p_nai_gks ? "hooked" : "NOT hooked"); } }
