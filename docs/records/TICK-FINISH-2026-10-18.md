@@ -2504,3 +2504,152 @@ Persisted mutes cleared for exp-p19, exp-jump, exp-p19-twin, game-mpo-a / b / c 
 
 **Verdict: the candidate is fit to install.** Every row passes on the fourth (scoped-harness) pass or later. Two things to carry: the 41.667 jump take-off is ~1 m/s above s.20.1's number
 (clears 9 of 9), and PLAY-TICK.bat's cockpit 1 % low on T05 is 91 fps (83 on the alt terrain, 98 on P18), median at the 120 cap.
+
+
+## 22. The owner's T05 jump with his car and his run: the take-off kick, not the car or the tick (2026-10-21 evening, jump-fix2 lane)
+
+The owner (2026-10-21 evening, PLAY-TICK.bat on the release candidate = promotion-19 candidate, tick 41.667 ms, proxy 8f8da929, his
+bookmark car): "entered the ramp at 130, exited at 110 (mph on the game's speedo); just barely made it across, full out all the way
+down the mountain, no nitrous; pitch down [in the air] was still terrible and died [on landing]". An earlier run: "hit the bottom of
+the ramp at like 130, exited at 100 ish, pitched forward and hit just a few feet below the lip of the opposite ramp". He recalls that
+tick 44 and promotion 18 made it. s.20.2's harness cleared 4 of 4 at 41.667 with the RC's direct-boot car (foot 63.5, take-off 55.9 m/s).
+
+**Results in short.**
+- **His speeds are the harness's speeds; the harness's 63.5 / 55.9 were the wrong car.**
+  - His car is `ADDON\vehscn.vcf` as the shell wrote it at 18:31 for the mission he played (522de647): the emulator's car (261ci 6,
+    Sway Bars, Disc & Drum, 14in Rally, oil / 50cal / FireRite / 50cal, armour 900/600/600/700 x2) plus three specials (X-Aust,
+    Nitrous, Structo); `vehscn.vsf` = full health at the mission start. Mass 1846 kg live. The RC's direct boot gives "Jade's Car"
+    (432 SHO), 6 m/s faster at the foot.
+  - With his car, full throttle from the crest: ramp foot 57.0-57.5 m/s = **speedo 127-129 mph** ("130"); take-off 49.4-52.6 m/s =
+    **speedo 111-117 mph at the take-off row**. In the air the needle falls about 5 mph per tick (105, 100, 96, 92 ... 50 after 1 s:
+    the stock free-rev branch shows raw m/s), so "exited at 110" and "100 ish" are the same take-off read one or two ticks late.
+- **"Pitch down terrible" is the 1997 take-off kick, held for the whole flight** (i76-map physics.md "held below -pi/20").
+  - On the last grounded step at the lip, a front wheel that has lost the face adds -pi x 2 dt to the pitch rate (one wheel:
+    **single kick**, -15 deg/s at 41.667) or both front wheels -2 pi x 2 dt (**double kick**, -30 deg/s). Any rate at or below
+    -pi/20 (-9 deg/s) is never eased in flight.
+  - Landing attitude (first touch, 2.9-3.4 s later): no kick **-7 deg**, single **-34 to -36 deg**, double **-82 to -88 deg**.
+  - Which one a jump gets is decided by where the last grounded step falls (x 6876.0-6878.1, one car step before the lip x 6875) and
+    by the car's roll on that step (roll +-0.27 deg: one wheel first = single; roll -0.02 deg = both together = double).
+- **The death is the double kick.** Full health at take-off in every jump (hp 100 %, god off from the restore in the no-god boots):
+  - no kick: landing damage 126-141 points (flat landing on the back chassis), health after 93-94 %, 0 deaths;
+  - single: 49-89 points, 96-98 %, 0 deaths;
+  - **double: the car lands on its nose at -85 deg, rolls over and is destroyed (flags 0x8020 = killed + wreck at 98 % health) in 3 of 5
+    at 41.667**, 0 of 3 at 44 (Fisher p 0.20). Not damage: the wreck rule after the roll-over. Retail 1.0 (emulator, P166, the same car)
+    did the same: 12 double kicks in 31 descents; of the 6 doubles at 36-43 ms take-off steps 3 were destroyed and 1 more rolled over.
+- **The tick is not the cause.** The kick level comes from the take-off phase, so it is luck for a player. With the take-off phase swept
+  uniformly (one stored state on the straight, moved 0..2.4 m in 0.1 m, n 25 per tick, the same 25 placements in every arm):
+
+  | tick | no kick | single | double | kick size single / double deg/s |
+  |---|---|---|---|---|
+  | 33.333 (rc33) | 3 | 9 | 13 | -12 / -24 |
+  | **41.667 (PLAY-TICK.bat)** | 6 | 15 | **4** | -15 / -30 |
+  | promotion 18 (41.667 fixed step) | 7 | 16 | 2 | -15 / -30 |
+  | 44 (PLAY-TICK-44.bat) | 13 | 10 | 2 | -15.8 / -31.7 |
+  | 46.875 (rc47) | 6 | 8 | 11 | -16.9 / -33.8 |
+
+  The double count is not monotonic in the tick (33: 13, 41.667: 4, 44: 2, 47: 11): it follows where the roll oscillation of the
+  suspension filter sits when the lip arrives, which moves with the tick in no simple way. The owner's "44 and promotion 18 made it"
+  fits the luck of a few jumps (2 of 25 doubles at both, against 4 of 25 at 41.667; not distinguishable with one sweep each).
+- **Not the car, not the line in the harness's sense.** Every take-off on the road in this lane (crest starts and sweeps, n 268) left at
+  49.1-54.8 m/s and every one cleared the far lip (first touch x 6685-6716 against the lip at 6745). The ramp-face loss is 5-7.5 m/s,
+  as s.20. The line matters in one way only: the ramp's road is 10 m wide (z 43905-43915, i76-map
+  physics.md; the rest is a 30-46 deg sand bank). With the line 6 m off centre (either side) the car runs up the bank, leaves it at 47.1-47.4 m/s
+  with no lift (vy -0.4 m/s, roll 12 deg), lands in the channel at x 6779-6782 and was **made in 1 of 12, destroyed in 3 of 12** (rc42 / rc44).
+  That is not his run 2 (a launch at 110 mph that crossed); it may be his run 1. Lines between 3 and 5 m off centre were not measured.
+- **His earlier "hit a few feet below the far lip" is not reproduced.** No take-off on the road was slower than 49.1 m/s; a car at 100 mph
+  (44.7 m/s) at the take-off row would be a different approach (a slower foot, a barricade or an off-line hit on the face). Open.
+- **The slope probe** (41.667 with `I76_SIM_TICK_SLOPE=0.8`, the 33 ms factor forced): take-off 51.23 +- 0.55 m/s against 51.14 +- 0.90
+  (n 9 each, same starts): nothing. The slope-follow term is not involved at 41.667.
+
+Lab only. Copy **`i76-uncap-lab\exp-jump2`** = robocopy of `Games\I76\release-candidate` at 18:59 (651 files, 495 MB) with
+`DDraw.dll` / `Glide2x.dll` = the lab null renderers (`tools\replay\nullglide`) and the proxy = the candidate's lab twin
+`Strlkup-head-lab.dll` 850e16ef (491f8db + lab drive block, the twin of 8f8da929); originals in `exp-jump2\_rollback\jump2-swap`;
+per run `ADDON\vppirna1.vcf` = his car (T05 names vppirna1; a loose ADDON file overrides the archive). Presets = the copy's own files
+(`tick19-42` md5 f7e589ef, `tick19-44` c96ca7f6, `p18-best-wide-balanced` 0bca8b31, `tick19-33`, `tick19-47`). Every boot headless on a
+private desktop, `I76_SHM_SUFFIX=exp-jump2`, `I76_MUTE=1` + the per-pid watcher, `I76_MISSION=t05.msn`. The release candidate,
+daily driver, golden, lan and twin were only read (his saves, `vehscn.*`, the presets). `.fps-lock`: the first boots (19:07-19:53)
+took it per boot; from 19:53 (coordinator) the runs only wait while it exists.
+
+Tools (lab `tools\jump-fix2\`): `j2-run.ps1` (one boot; jf-run.ps1 with the copy's presets and his car), `j2-queue.ps1`,
+`j2_drive.py` (jf_drive with j2_suite), **`j2_suite.py`** (the first lane's crest descent from a **stored full car state** - the debug
+tool's STORE_STATE / SET_STATE through the trainer extension, `state\crest.state` = moving 6.2 m/s at x 7955 on the crest,
+`state\straight.state` = 55.7 m/s at x 7099 on the straight - moved `--deltas` m along the road per descent; god held on the hill and
+cleared in the air (`--no-god`: off from the restore); `--to-only` stops 0.6 s after the take-off; extra columns speedo / armour /
+chassis / health_pct), `j2_tab.py` (tables), `owner-car\` (his vehscn.vcf / .vsf and the vppirna1.vcf copy), queues `queue0-4.txt`.
+Captures `captures\jump-fix2-20261021` (gitignored). The restores read back exact (`readback_bad` 0 in every descent).
+
+### 22.1 Crest descents with his car (the owner's run from a stored crest state; god cleared in the air)
+
+Kick = the pitch rate on the first airborne row; p_land = pitch at the first touch. n = jumps (boots).
+
+| arm (start: crest.state, deltas 0-0.42 m) | n (boots) | made | destroyed | v ramp foot m/s (speedo mph) | take-off m/s (speedo at the take-off row) | vy | apex m | kick none / single / double | first-touch pitch deg | landing damage pts | health after |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **41.667, PLAY-TICK.bat preset (rc42 a + mk)** | 11 (4) | 11/11 | 0/11 | 57.1 +- 0.1 (128) | 50.98 +- 1.01 (114) | 14.28 | 10.40 | 1 / 10 / 0 | -35 (single), -8 (none) | 74 +- 23 | 97 % |
+| 41.667 + `I76_SIM_TICK_SLOPE=0.8` (rc42 s) | 9 (3) | 9/9 | 0/9 | 57.4 +- 0.2 (128) | 51.23 +- 0.55 (115) | 14.34 | 10.50 | 3 / 6 / 0 | -35 / -8 | 93 +- 33 | 96 % |
+| 44, PLAY-TICK-44.bat preset (rc44 b) | 9 (3) | 9/9 | 0/9 | 57.3 +- 0.2 (128) | 50.57 +- 1.08 (113) | 14.16 | 10.23 | 7 / 2 / 0 | -36 / -7 | 116 +- 34 | 95 % |
+| promotion 18, PLAY-P18-BALANCED.bat preset (p18 c) | 8 (3) | 8/8 | 0/8 | 57.2 +- 0.9 (129) | 50.58 +- 1.24 (113) | 14.16 | 10.24 | 3 / 5 / 0 | -35 / -7 | 89 +- 37 | 96 % |
+| 41.667, god off from the restore (rc42 g) | 2 (1) | 2/2 | **1/2** | 57.0 (128) | 49.44 (111) | 13.84 | 9.78 | 1 / 0 / 1 | -85 (double), -7 | 92 | 96 % / destroyed |
+| 44, god off from the restore (rc44 h) | 3 (1) | 3/3 | 0/3 | 57.7 (129) | 51.75 +- 2.62 (116) | 14.49 | 10.73 | 1 / 1 / 1 | -82 / -36 / -7 | 85 | 96 % |
+
+- Harness link: s.20.1 (emulator car, the first lane's preset and placement): 41.667 foot 56.7, take-off 49.90 +- 0.95, apex 9.96, 10/10. With his car
+  and the candidate's preset the foot is +0.4 and the take-off +1.1 m/s (the specials add no mass: 1846 kg either way); s.21.4 saw the same +1.
+- The god-off crest boots (g, h): no damage on the way down (health at take-off 100 % in 5 of 5; one 99.9 %), so the barricades and the AI did
+  not soften the car on this run.
+
+- The crest starts give few phases per arm (the start is deterministic; deltas 0-0.4 m and the wall-clock steering move the take-off
+  over about half a car step), so the kick counts in this table are not rates; 22.2 is.
+- One descent (p18 c2 #2) stopped on a frame from before the restore landed (the car still past the foot): void, fixed in
+  `j2_suite.py` (steering and the stop armed only after the car is back up the road).
+- **The stored start replays across boots:** rc42 mk1 #2 and a1 #1 (the same state, delta 0, two boots) give the same jump to the printed
+  digit (last grounded x 6877.15, take-off 51.40 m/s, landing damage 68). So a fixed start is one sample, repeated: that is why s.20's
+  "10 of 10 at 41.667" and these crest arms say little about the kick rate, and why 22.2 sweeps the phase.
+
+### 22.2 The take-off sweep (the kick rate per tick)
+
+Table above (Results). Every take-off 49.1-54.8 m/s. Kick boundaries at 41.667 (the sweep, rc42 w1): x of the last grounded row > 6877.24
+no kick; below it single when the roll on that step is +-0.27 deg and double when it is -0.02 deg. The same boundary holds at every tick;
+the share of each family over one car step is what differs.
+
+The same sweep with the line 6 m off centre (rc42 / rc44, both sides; `--lat`): 48.2-48.4 / 47.2 m/s, no kick 10 / 8 and 20 / 14, single 15 / 17 and
+1 / 6, double 0 / 0 and 4 / 5 of 25 - but these take off the bank (roll 12 deg, no lift; 22.3), so the levels mean little there.
+
+### 22.3 The landing per kick level (deltas the sweep mapped to each level, god off in the air)
+
+| kick at take-off | n (41.667 / 44) | landing pitch deg | landing damage pts | health after | destroyed |
+|---|---|---|---|---|---|
+| none | 2 / 4 | -7 to -8 | 126-141 | 93-94 % | 0 |
+| single | 3 / 3 | -34 to -36 | 57-89 | 96-98 % | 0 |
+| double | 5 / 3 | -82 to -88 | 49-85 | 96-98 % (before the roll) | **3 of 5 / 0 of 3** |
+
+Retail 1.0 for comparison (emulator P166, the same car with its specials; `emu\results\jump-fix-20261020\descents.json` and the gold
+standard's 9): kick rate per step size read from `to_q / (360 x dt_takeoff)`: 12 doubles, 8 singles, 11 none in 31; 5 destroyed (4 after
+a double, 1 after a 86 ms frame), 2 more rolled over. So the nose-dive and the death are 1997's, at 32-48 ms frames alike.
+
+### 22.4 Verdict, and what a fix would need
+
+- **Car:** no. His car is the emulator car of every retail row plus specials; foot / take-off match his speedo exactly. The 63.5 / 55.9
+  were Jade's car (s.20.2).
+- **Line:** only off the 10 m road. On it, the take-off is 49.1-54.8 m/s whatever the line (n 268 take-offs on the centre line); 6 m off,
+  the car climbs the bank, does not launch and falls in the channel (1 of 12 made, 3 of 12 destroyed). The harness's lip clip (s.18) did not occur
+  with the verified starts (0 of 268).
+- **In-air pitch:** yes, and it is the engine's: a lifted front wheel on the last grounded step adds -pi (one wheel) or -2 pi (two) x 2 dt to
+  the pitch rate (`physics_ResolveGroundContact` 0x437230, ease rate += 2 dt (target - rate)), and the airborne branch of 0x43a5d0 never
+  eases a rate at or below -pi/20. **Tick-dependent terms:** the kick's size is 2 dt (x 1.056 at 44, x 0.8 at 33.3: single -12 / -15 /
+  -15.8 deg/s, all below -9, so all held) and which level a jump gets depends on the step's phase against the lip and the suspension roll.
+  Neither is a mean shift the tick can fix: every tick in the range kills a double-kick landing, and doubles happen at every tick (2-13 of 25).
+- **Tick:** no. 41.667 is not worse than 44 or promotion 18 in a way one sweep can show (4 / 2 / 2 doubles of 25); 33 and 47 are worse.
+- **Landing damage:** not the killer at full health (at most 141 points, 7 %); the double kick's roll-over is.
+
+A fix is a departure from 1997 (retail kills the same way), so it is the owner's call. The candidate, with the measurement that would prove it:
+- **"no held nose-dive":** in flight, ease every pitch rate toward -pi/20 with k = dt (drop the one-sided hold: the compare against the -pi/20
+  constant at 0x43a811 / 0x43a82d in the airborne branch of 0x43a5d0, ease helper 0x43bda0), under a switch. Proof: queue4's 25-placement sweep at 41.667 with the switch - every landing pitch above -45 deg, the doubles of
+  rc42 w1 (deltas 0.9 / 1.0 / 1.2 / 1.3) landed with god off and 0 destroyed (n >= 8), take-off speed / apex / distance unchanged within
+  the sweep's spread, and the T06 ramp and placed T05 rows of s.4.4 unchanged.
+- Not proposed: changing the tick (no tick removes the doubles), or a factor on the kick (a smaller kick at 33 ms is still held).
+
+**Launcher for the owner next** (lab copy, nothing installed): none changes the outcome. To see the mechanism at the console:
+`C:\Users\james\i76-uncap-lab\exp-jump2` is headless-only (null renderers); its `_rollback\jump2-swap` puts the RC's renderers and proxy
+back. A "survive the jump" build needs the switch above first.
+
+Clean-up: persisted mutes of `exp-jump2\Interstate 76\i76.exe` cleared (`tools\unmute-persisted.ps1`); no exp-jump2 process left; the
+RC's files untouched (`STRLKUP.DLL` 8f8da929, saves, vehscn.* read only).
