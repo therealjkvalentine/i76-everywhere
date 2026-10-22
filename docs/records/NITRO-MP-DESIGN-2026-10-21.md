@@ -483,6 +483,86 @@ integrated proxy ran unchanged (s.0.5.7, n 2). **The box-off pair runs, cp-s1 an
 mission check never ran (no CRC line on either side), the stock shell answered "Mission file p01.msn not found" in both
 runs, no player object adopted, no 'AT', 0 / 0 access violations. So with the box off P01 behaves exactly as stock Nitro.
 
+### 0.5.10 The host-form boxes in the shipped proxy (2026-10-21 evening, owner's request; `music-fix/nitro_form.c`, commit 6760b24)
+
+**First look at the console** (consoleshot.ps1: lab copy on the physical desktop, .fps-lock + .console-owner for the
+boot, a real screen capture): `i76-uncap-lab\captures\nitro-mp-20261021\arena-plus-hostform.png` is the lab
+instrument's box of s.0.5.1. **It sat on the art**: "ARENA+" over the arena list's lower arrow and "[X] AI DROP-IN" over
+the OPTIONS header. The strip under the list (s.0.3 item 5) is not free. The free parchment is the **middle of the car
+panel** (between the front view, ending at y ~172, and the side view, starting at y ~307, left of the WEAPONS / PARTS
+column at x 457); no stock hit rectangle lies there (s.0.2).
+
+**Shipped form** (`arena-plus-hostform-shipped.png`, the same console, both boxes ticked by the lab driver's clicks): at
+x 232, y 182-295 in form pixels: the label ARENA+, the owner's description unchanged and wrapped over four lines
+("Every arena plus the / original '76 missions, / with AI filling the / open slots."), then `[X] ARENA+` (hit id 0x10)
+and `[X] CO-OP SCENES` (0x11). Text widths measured at the first draw: 60, 174, 173, 163, 98, 90, 152 px (free width 218).
+- ARENA+ on: species word 0x7676 (the session is ARENA+, AI fill the open slots). CO-OP SCENES on: Nitro's own P01-P19
+  appended to the arena list (24 -> 43 entries on the copy), ARENA+ forced on; ARENA+ off clears both.
+- Both off (the default, and again on every new entry into the network menus, i.e. a fresh hit list): nothing is
+  written - the species word stays 604, the arena list untouched; a stock session.
+- Sites (nitshell f804f50d, each byte-checked, all or the feature is OFF): the constructor call 0x10001531 (our hit
+  records once per hit list, first draw), the click `ja` 0x1003219b (ids 0x10 / 0x11, then the stock exit), the redraw
+  0x10033770 through the constructor's frame-pointer immediate 0x100318f7 and its three direct calls 0x1002e740 /
+  0x10037a0e / 0x10037c45 (stock redraw, then ours). Drawing uses the form's own erase 0x10012a50 and text 0x10012dc0
+  with the form font. `I76_NITRO_FORM=0` leaves the form stock. Log: `nitro-form: ON - 6/6 nitshell sites ...`.
+
+**Isolation cells c1-c4 again (step 2 of s.0.5.2), n 2, on this code** (`tools\nitro-mp\isocells.sh`; the instrument as
+control, NMP_POC=2, only drives the menus; the boxes are nitro_form.c's, clicked at 240,261; nmpdrv b577183c):
+
+| cell | host | JOIN list | every read (15 per boot) | runs |
+|---|---|---|---|---|
+| f1 | box ON: `click id 0x10 -> ARENA+ on; species 7676`, `dpOpen species 7676` | patched | 1 session "ARENA+ Evening Stroll", species 7676, 1/4 | r2, r3 (r1 passed at 22:01; its logs were overwritten by a stray retry of this lane's own, so r3 was taken) |
+| f2 | box ON, 7676 | stock (no hooks) | 0 sessions | r1, r2 |
+| f3 | box OFF: `dpOpen species 025c` | stock | 1 session "Evening Stroll", species 025c, 1/4 | r1, r2 |
+| f4 | box OFF, 025c | patched | 1 session "Evening Stroll", species 025c (no prefix) | r1, r2 |
+
+0 access violations on either side in every counted run. The shipped proxy built from 6760b24, **0ea7922e**, P01 straight
+boot n 2 (form-p01-r1/-r2): `nitro-form: ON - 6/6`, nitro-mp / nitro-ai ON, P01 running at 20 s, only the PIT
+first-chance 0xC0000096.
+
+### 0.5.11 ARENA+ under the whole-sim tick (commit 91d2b14; the nitro-mac lane's finding)
+
+With `I76_SIM_TICK_MS` on, simtick.c's gate takes `call 0x4076f0` at 0x432e24 (ai_FrameTick) before nitro_ai.c, and
+nai_call refused the site ("not `call 0x4076f0` - OFF"), so a joiner would have run its own AI under the tick (the Macs
+ran a 24 fps cap instead). Fix, in nitro_ai.c only (simtick.c not touched): `nai_call_chain` keeps the site's current
+target as the next hop - the tick's gate 7, which runs ai_FrameTick on tick frames - and our wrapper runs first (joiner:
+skip; host: the next hop). If the tick patches after us, st_call_site already chains to us. The wrapper now also passes
+ai_FrameTick's one cdecl argument (it called it with none before). Log: `nitro-ai: site ai_FrameTick at 0x432e24 already
+calls 0x6d648060 (stock 0x4076f0) - chained` and `nitro-ai: ON (all 12 sites)` next to `sim-tick: ON - whole sim every
+41.667 ms ... 12/12 sim gates`.
+
+Measured on the **shipped proxy itself, 5cb92ac2** (= 91d2b14), on both lab copies: the instrument in chain mode
+(`NMP_CHAIN=strlkprx.dll`: it drives the shell and logs; the proxy runs ARENA+, AI, the form and the tick;
+`tools\nitro-mp\aitick.sh`), item 4's cell ai-c7 (N01, NO. DRIVERS 4, AI armour 1 %, host shoots every 7 s, joiner every
+5 s, host 300 s, joiner 240 s):
+
+| run | tick | AI in play (host alone / with joiner, both screens) | AI kills (host-credited / joiner-credited), respawns, joiner rebuilds | rows at the last common stamp | AI sync host vs joiner | AV host / joiner |
+|---|---|---|---|---|---|---|
+| ai-t1 | 41.667 | 3 / 2 | 41 (27 / 14), 43, 38 | agree | 55 samples, median 0.00 m, max 1.3 | 0 / 0 |
+| ai-t2 | 41.667 | 3 / 2 | 25 (7 / 18), 25, 25 | agree | 44, 0.00, 1.4 | 2 / 0 (*) |
+| ai-t3 | 41.667 | 3 / 2 | 45 (24 / 20), 46, 40 | agree | 53, 0.28, 1.4 | 0 / 0 |
+| ai-o1 | off | 3 / 2 | 15 (11 / 4), 15, 13 | agree | 79, 0.00, p90 0.00, max 401.7 (one stamp) | 0 / 0 |
+
+Every run: the joiner took an AI slot (one parked on the join, three brought back), and the AI killed a human 0-2 times.
+(*) ai-t2 host, t 218.8 s: a first-chance access violation in **`nai_lab_tick` + 0x30b** (the LAB shooter,
+`NMP_LAB_SHOOT`, never set outside the lab: it follows a target pointer that a respawn can free), then one in anet2.dll
++0x14d6; the game handled both and played to the end of the hold, rows still agreeing. A lab-switch bug, not a
+shipped path; to be guarded before the next lab run with the shooter.
+
+### 0.5.12 Cross-machine pass (PC host, Mac joiner): ready, waiting for hands at a Mac
+
+The nitro-mac lane installed Nitro + proxy ad904941 on the three Macs (same wire format as 91d2b14: the hello's option
+byte is the only new content, and joiners only log it). No Mac can be put on the JOIN list unattended (two locked, the
+third hit-tests the real macOS pointer), so the pass runs when the owner or one of the boys is at a Mac:
+- PC host: lab copy exp-nitro-mp, `builds\nitro-mp-form\host\Strlkup.dll` (5cb92ac2; README + MD5SUMS there), IPXWrapper
+  instance N on the real LAN adapter (`tools\nitro-mp\ipx-lan.ps1 -Use N`: UDP 54792, Ethernet B0:6E:BF:38:13:31 =
+  192.168.1.81 only, net 00000001, node 02:4e:00:00:76:03 - the Macs' defaults; broadcast 192.168.1.255). The firewall
+  allows the copy's nitro.exe on the Private profile, which the Ethernet network is. Host by hand (HOST > IPX, tick
+  ARENA+, BROADCAST) or by `tools\nitro-mp\xhost.sh <tag>` (the lab driver, N01, 4 drivers, 300 s).
+- Mac: open "Interstate 76 Nitro", MULTIPLAYER > MELEE > JOIN > IPX, pick "ARENA+ <name>", JOIN GAME.
+- Measure item 4's cells, n 3: AI count on both screens, the joiner takes a slot, respawn, kills both ways, rows
+  agree, 0 crashes; the PC log plus the Mac's mciproxy.log lines (`nitro-ai: t ...`) go through aisum.py.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
