@@ -6948,6 +6948,7 @@ static void tex_census_attach(HMODULE m) {
  * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
  * them 4:3 (lab docs/WIDESCREEN-2D.md, "Live result, route (a)"; docs/records/PROXY-CLEANUP-2026-10-10.md).) */
 static int g_zg_tmufix;                     /* I76_ZGLIDE_TMUFIX=1 */
+static volatile LONG g_nsw_shell, g_nsw_zglide;   /* Nitro: nitshell / ZGLIDE attach done (hook or nitro_shell_watch) */
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     HMODULE m;
     m = p_LoadLibraryA(name);
@@ -6956,8 +6957,9 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
         cursor_map_attach(m, b);
         pad_menu_attach(m, b);    /* after cursor_map_attach: the pad filter chains onto the cursor map's shell slot */
         mp_menu_attach(m, b);     /* I76_MP_MENU: the connection row (code bytes only, no IAT slot) */
-        if (g_exe == EXE_NITRO && _stricmp(b, "nitshell.dll") == 0) nmp_attach_shell(m);   /* ARENA+ (nitro_mp.c) */
-        if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix) {
+        if (g_exe == EXE_NITRO && _stricmp(b, "nitshell.dll") == 0 && InterlockedCompareExchange(&g_nsw_shell, 1, 0) == 0)
+            nmp_attach_shell(m);   /* ARENA+ (nitro_mp.c); once, here or from nitro_shell_watch */
+        if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix && InterlockedCompareExchange(&g_nsw_zglide, 1, 0) == 0) {
             /* I76_ZGLIDE_TMUFIX=1: ZGLIDE+0x1a93 `jne +0x24` (75 24) -> `jmp +0x24` (eb 24): skip the Voodoo 1 "no texture
                across 2 MB" rule. Its rewind target is the constant 2 MB, and it runs BEFORE the grTexMaxAddress check, so
                under MemorySizeOfTMU 4096 the first allocation that would pass the 4 MB top moves next-free back to 2 MB
@@ -6979,6 +6981,39 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
         }
     }
     return m;
+}
+
+/* Nitro under DxWnd (the Macs; nitro-mac lane 2026-10-21, docs/records/NITRO-MAC-2026-10-21.md): DxWnd takes over
+ * nitro.exe's KERNEL32!LoadLibraryA slot after this DllMain, as it does on Gold (mpmenu.c "TWO WAYS IN"), so the hook above
+ * never sees NITSHELL.DLL or ZGLIDE.DLL load: no ARENA+ shell hooks (join list, host-form boxes), no ZGLIDE TMU fix
+ * (Mac, n 1: "zglide-tmufix: armed" and nothing after). This thread polls both modules every 50 ms and, once one has been
+ * resident for 750 ms and the hook has not attached it, attaches it through hook_LoadLibraryA's own code path (a
+ * LoadLibraryA of the resident module: refcount + 1, same handle). On the PC the hook gets there first and nothing
+ * happens here. Ends when both are done or after 30 min. */
+static DWORD WINAPI nitro_shell_watch(LPVOID arg) {
+    DWORD t0 = GetTickCount(), seen_s = 0, seen_z = 0;
+    (void)arg;
+    while (GetTickCount() - t0 < 30u * 60u * 1000u) {
+        HMODULE sh = GetModuleHandleA("nitshell.dll"), zg = GetModuleHandleA("zglide.dll");
+        int need_z = g_zg_tmufix && !g_nsw_zglide;
+        if (g_nsw_shell && !need_z) break;
+        if (!g_nsw_shell && sh) {
+            if (!seen_s) seen_s = GetTickCount() | 1;
+            else if (GetTickCount() - seen_s >= 750) {
+                mlog("  nitro shell watch: NITSHELL.DLL resident at %p, not seen through the LoadLibraryA hook - attaching from the watch thread", (void *)sh);
+                hook_LoadLibraryA("NITSHELL.DLL");
+            }
+        }
+        if (need_z && zg) {
+            if (!seen_z) seen_z = GetTickCount() | 1;
+            else if (GetTickCount() - seen_z >= 750) {
+                mlog("  nitro shell watch: ZGLIDE.DLL resident at %p, not seen through the LoadLibraryA hook - attaching from the watch thread", (void *)zg);
+                hook_LoadLibraryA("ZGLIDE.DLL");
+            }
+        }
+        Sleep(50);
+    }
+    return 0;
 }
 
 static void apply_glide_refresh(void) {
@@ -9379,6 +9414,7 @@ static void nitro_dllmain(void) {
     nitro_table_check();
     load_orig();              /* Nitro's strlkup.dll is Gold's (NITRO-VS-RETAIL s.4) */
     apply_crash_log();
+    nitro_pit_skip();         /* Wine: the PIT CPU-speed probe's privileged instructions are fatal (nitro.c) */
     apply_mute();
     cwd_fix();
     apply_mission_launch();   /* I76_MISSION / I76_SKIP_MOVIES */
@@ -9430,6 +9466,11 @@ static void nitro_dllmain(void) {
     apply_cursor_map();       /* I76_CURSOR_MAP (nitro.exe's and NITSHELL.DLL's USER32 slots; Nitro has no u32x) */
     apply_joy_routing(exe);   /* Nitro's joyGetPosEx / joyGetDevCapsA are WIN32.dll imports */
     apply_nitro_mp();         /* I76_NITRO_MP (ARENA+: nitro_mp.c / nitro_ai.c; inert outside an ARENA+ session) */
+    if (p_LoadLibraryA) {     /* the LoadLibraryA hook is in: watch for DxWnd taking the slot (nitro_shell_watch) */
+        HANDLE th = CreateThread(NULL, 0, nitro_shell_watch, NULL, 0, NULL);
+        mlog("  nitro shell watch: %s", th ? "on (NITSHELL / ZGLIDE attach if the LoadLibraryA hook never sees them)" : "NOT started");
+        if (th) CloseHandle(th);
+    }
     mlog("  StrLookup_Global_Object import repointed: slot was %p, now -> %p", redirect_global_import(exe), (void *)p_GlobalObj);
     mlog("nitro: %ld sites patched, %ld refused; switches not ported to Nitro are off", g_nsite_ok, g_nsite_refused);
 }

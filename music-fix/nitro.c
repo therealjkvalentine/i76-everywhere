@@ -38,6 +38,54 @@ static DWORD crc32_buf(const BYTE *p, DWORD n) {
     for (k = 0; k < n; k++) { c ^= p[k]; for (b = 0; b < 8; b++) c = (c >> 1) ^ (0xedb88320u & (0u - (c & 1u))); }
     return ~c;
 }
+/* nitro-mac lane 2026-10-21 (docs/records/NITRO-MAC-2026-10-21.md): under DxWnd (the Macs' wrapper) the in-memory .text
+ * is not the file's when this DllMain runs - DxWnd's injection has already changed some bytes - so the crc above fails and
+ * the proxy took the Gold path ("nitro stamp, unknown .text"). Fallback: the crc of .text read from the exe FILE. If the
+ * file is 28b8ae27's, the exe is Nitro; the bytes that differ in memory are counted for the log, and every site keeps its
+ * own byte-signature check against memory, so a site DxWnd touched is refused as before. */
+static char g_exe_name_buf[160];
+static int nitro_text_on_disk(BYTE *base, IMAGE_NT_HEADERS *nt) {
+    IMAGE_SECTION_HEADER *sh = IMAGE_FIRST_SECTION(nt);
+    char path[MAX_PATH]; HANDLE f; BYTE *buf; DWORD got = 0, k, ndiff = 0, first = 0; int ok = 0;
+    if (nt->FileHeader.NumberOfSections < 1 || sh[0].VirtualAddress != 0x1000 || sh[0].SizeOfRawData < NITRO_TEXT_SIZE) return 0;
+    if (!GetModuleFileNameA(NULL, path, sizeof path)) return 0;
+    f = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    if (f == INVALID_HANDLE_VALUE) return 0;
+    buf = (BYTE *)HeapAlloc(GetProcessHeap(), 0, NITRO_TEXT_SIZE);
+    if (buf && SetFilePointer(f, sh[0].PointerToRawData, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+        ReadFile(f, buf, NITRO_TEXT_SIZE, &got, NULL) && got == NITRO_TEXT_SIZE && crc32_buf(buf, NITRO_TEXT_SIZE) == NITRO_TEXT_CRC32) {
+        for (k = 0; k < NITRO_TEXT_SIZE; k++) if (buf[k] != base[0x1000 + k]) { if (!ndiff++) first = 0x401000 + k; }
+        _snprintf(g_exe_name_buf, sizeof g_exe_name_buf, "nitro 28b8ae27 (file .text matches; %lu byte(s) differ in memory, "
+                  "first at 0x%06lX - another hook, e.g. DxWnd)", (unsigned long)ndiff, (unsigned long)first);
+        g_exe_name_buf[sizeof g_exe_name_buf - 1] = 0; g_exe_name = g_exe_name_buf; ok = 1;
+    }
+    if (buf) HeapFree(GetProcessHeap(), 0, buf);
+    CloseHandle(f);
+    return ok;
+}
+
+/* The PIT CPU-speed probe (nitro-mac lane 2026-10-21). nitro.exe 0x49ac70 asks GetSystemInfo for the processor type and
+ * on a Pentium (586) runs `cli; out 0x43 ...; in 0x42 ...` at 0x49acb7: privileged instructions. On Windows the game gets
+ * past it (PC logs: a first-chance 0xC0000096 there, then play); under Wine it is fatal ("Unhandled privileged
+ * instruction at address 0049ACB7", the Mac, n 2: once at boot under DxWnd, once direct). AiO's Nitro patch removes this
+ * code; our proxy needs the stock exe. Fix: the probe's first instruction becomes `jmp 0x49ad00`, the probe's own
+ * failure exit (eax = -1), for which the caller stores 200 MHz (0x49ae67). I76_NITRO_PIT_SKIP: default 1 under Wine
+ * (ntdll exports wine_get_version), 0 on Windows (the PC path is unchanged); =1 / =0 force it. */
+static void nitro_pit_skip(void) {
+    static const BYTE want_old[5] = { 0xFA, 0xB0, 0xB8, 0xE6, 0x43 };   /* cli; mov al, 0xb8; out 0x43, al */
+    static const BYTE jmp_new[5]  = { 0xE9, 0x44, 0x00, 0x00, 0x00 };   /* jmp 0x49ad00 (0x49acbc + 0x44) */
+    BYTE *p = (BYTE *)0x0049acb7; DWORD old; int wine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
+    int on = env_flag("I76_NITRO_PIT_SKIP", 8, wine ? 1 : 0);
+    if (!on) { mlog("  pit-skip: off (%s)", wine ? "I76_NITRO_PIT_SKIP=0" : "Windows: the game gets past the probe"); return; }
+    if (memcmp(p, want_old, 5) != 0 || memcmp((BYTE *)0x0049ad00, "\x83\xC8\xFF", 3) != 0) {
+        mlog("  pit-skip: bytes at 0x49acb7 / 0x49ad00 are not the stock probe - not patched"); return;
+    }
+    if (!VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old)) { mlog("  pit-skip: VirtualProtect failed"); return; }
+    memcpy(p, jmp_new, 5); VirtualProtect(p, 5, old, &old); FlushInstructionCache(GetCurrentProcess(), p, 5);
+    mlog("  pit-skip: %s - 0x49acb7 PIT probe -> jmp 0x49ad00 (CPU speed falls back to 200 MHz)%s",
+         memcmp(p, jmp_new, 5) == 0 ? "on, read back OK" : "WRITE DID NOT LAND", wine ? " (Wine)" : " (forced)");
+}
+
 static void exe_detect(void) {
     BYTE *base = (BYTE *)GetModuleHandleA(NULL);
     IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
@@ -45,6 +93,7 @@ static void exe_detect(void) {
     if (stamp == NITRO_PE_STAMP && nt->OptionalHeader.SizeOfImage >= 0x1000 + NITRO_TEXT_SIZE) {
         DWORD crc = crc32_buf(base + 0x1000, NITRO_TEXT_SIZE);
         if (crc == NITRO_TEXT_CRC32) { g_exe = EXE_NITRO; g_exe_name = "nitro 28b8ae27"; }
+        else if (nitro_text_on_disk(base, nt)) g_exe = EXE_NITRO;   /* g_exe_name set there */
         else { g_exe = EXE_OTHER; g_exe_name = "nitro stamp, unknown .text"; }
     } else if (stamp == GOLD_PE_STAMP) { g_exe = EXE_GOLD; g_exe_name = "gold"; }
 }

@@ -309,8 +309,11 @@ int main(int argc, char **argv) {
         DWORD b = shell_base(), mo; int x = atoi(argv[2]), y = atoi(argv[3]), k; SIZE_T wr; INPUT in;
         int hold = getenv("I76PROBE_MCLICK_HOLD") ? atoi(getenv("I76PROBE_MCLICK_HOLD")) : 300;
         DWORD t0;
-        if (!b) { printf("no shell\n"); return 1; }
-        mo = (DWORD)ri(0x100cc514 + b - 0x10000000);
+        /* I76PROBE_MO_PTR=<hex>: the address holding the mouse object's pointer (Nitro: NITSHELL base + 0x130484,
+         * nitro-mac lane 2026-10-21); default Gold's i76shell+0xcc514 */
+        if (getenv("I76PROBE_MO_PTR")) mo = (DWORD)ri((DWORD)strtoul(getenv("I76PROBE_MO_PTR"), NULL, 16));
+        else { if (!b) { printf("no shell\n"); return 1; } mo = (DWORD)ri(0x100cc514 + b - 0x10000000); }
+        if (!mo) { printf("no mouse object\n"); return 1; }
 #define MHOLD(ms) for (t0 = GetTickCount(); GetTickCount() - t0 < (DWORD)(ms);) { WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x2c), &x, 4, &wr); \
             WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(mo + 0x30), &y, 4, &wr); Sleep(1); }
         fg(); MHOLD(150);
