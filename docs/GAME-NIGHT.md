@@ -7,7 +7,7 @@
 
 | machine | start it with |
 |---|---|
-| Michael's Mac, Andrew's Mac | **Interstate 76 LAN** on the Desktop (the game lives in `~/Games/Interstate76-MP`) |
+| Michael's Mac, Andrew's Mac | **Interstate 76 LAN** (Michael) / **Interstate 76 Gold** (Andrew, since 2026-10-22) on the Desktop (the game lives in `~/Games/Interstate76-MP`) |
 | James's Mac | **Interstate 76** in `~/Applications/Sikarugir`, after the one-line swap in the record (section 5); until then it is not the LAN pack |
 | Windows PC (optional 4th player) | `PLAY-LAN.bat` in `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76` (not the daily driver) |
 

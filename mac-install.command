@@ -19,7 +19,7 @@
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-APP="$HOME/Applications/Sikarugir/Interstate 76.app"
+APP="$HOME/Applications/Sikarugir/Interstate 76 Gold.app"
 PFX="$APP/Contents/SharedSupport/prefix"
 GAMEDIR="$PFX/drive_c/GOG Games/Interstate 76"
 WINE="$APP/Contents/SharedSupport/wine/bin/wine"
@@ -117,7 +117,7 @@ step "build launchers" sh "$HERE/build-launchers.sh"
 # ---------- Done ----------
 printf '\n   \033[1;32mDone (BETA).\033[0m  Launch from:\n'
 cat <<EOF
-     ~/Applications/Sikarugir/Interstate 76.app
+     ~/Applications/Sikarugir/Interstate 76 Gold.app
 
    Optional next steps:
      * Restore the maintainer's shared saves:  ./setup-saves.sh

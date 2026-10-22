@@ -203,12 +203,12 @@ software-renderer install is kept untouched as `Interstate 76 - Software-rendere
 `com.jkv.i76.softwarebackup`); the CPU120 / GL120 / GL DxWnd test wrappers were removed. Saves and `input.map` were
 identical in all copies (md5-checked) before the swap. Rollback: swap the two `Contents` folders back.
 
-Same day, later: the owner renamed the wrapper to **`~/Applications/Sikarugir/Interstate 76.app`** (it is no longer the
+Same day, later: the owner renamed the wrapper to **`~/Applications/Sikarugir/Interstate 76 Gold.app`** (it is no longer the
 software renderer). Every live reference in the repo (launch stubs, setup scripts, save editor, trainer, docs) now uses
 that path; the Nitro and DxWnd Settings launchers were rebuilt from the updated stubs. Dated records under
 `docs/records/` keep the old name as history.
 
-## 10. Unattended pass, 2026-10-04 evening (owner away; promoted to `Interstate 76.app`)
+## 10. Unattended pass, 2026-10-04 evening (owner away; promoted to `Interstate 76 Gold.app`)
 
 **In-mission menu "gets brighter with every move" / hall of mirrors.** Two causes, both in the gamma pass.
 (1) The pass brightens the back buffer in place; the Esc menu redraws only its LFB page over the last frame, so every
@@ -236,7 +236,7 @@ and DxWnd's own virtual CD is off in the profile (`flagm0=65536`). Result: the m
 - Unattended testing ended when the Mac locked: input does not reach the game while the screen is locked. The replay
   black-screen fix (0005) is in the install but was not re-tested here.
 
-Promoted to `~/Applications/Sikarugir/Interstate 76.app` with every replaced file kept as `*.pre-20261004b`
+Promoted to `~/Applications/Sikarugir/Interstate 76 Gold.app` with every replaced file kept as `*.pre-20261004b`
 (Glide2x.dll, Strlkup.dll, the launcher, dxwnd.ini, I76PLYR.DEF). Boot check: render size 2228x1440 computed, the
 guard re-claimed all four slots, the CD device opened. The test clone `Interstate 76 TEST.app` stays for the next pass.
 

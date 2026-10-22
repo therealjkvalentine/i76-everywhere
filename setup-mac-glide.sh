@@ -12,14 +12,14 @@
 #   - Wine's GDI DirectDraw for the menus (the GL one raced OpenGLide and crashed ~1 launch in 6)
 #   - Terrain Resolution Medium (the frame's biggest CPU cost under Rosetta), music level raised if it was off
 #
-#   setup-mac-glide.sh [wrapper.app]     default: ~/Applications/Sikarugir/Interstate 76.app
+#   setup-mac-glide.sh [wrapper.app]     default: ~/Applications/Sikarugir/Interstate 76 Gold.app
 #
 # Needs: Xcode CLT (swiftc, clang), `brew install mingw-w64`, git (OpenGLide is cloned into ~/Library/Caches once).
 # Run with the game closed. Every file it replaces is kept beside it as *.pre-glide-<timestamp>; the wrapper must
 # already be a working DxWnd install (setup-dxwnd.sh / mac-install.command). Nitro is not touched.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-APP="${1:-$HOME/Applications/Sikarugir/Interstate 76.app}"
+APP="${1:-$HOME/Applications/Sikarugir/Interstate 76 Gold.app}"
 P="$APP/Contents/SharedSupport/prefix"
 G="$P/drive_c/GOG Games/Interstate 76"
 DX="$P/drive_c/dxwnd/dxwnd.ini"

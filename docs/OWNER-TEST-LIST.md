@@ -929,9 +929,9 @@ co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting
    takes over and the scene restarts from the beginning for everyone (measured in the lab and on Andrew's Mac). Keep it, or
    should the scene go on where it was? Tell me.
 
-## Mac converge 2026-10-20 evening (records/MAC-CONVERGE-2026-10-20.md; laptop: `~/Applications/Sikarugir/Interstate 76.app`)
+## Mac converge 2026-10-20 evening (records/MAC-CONVERGE-2026-10-20.md; laptop: `~/Applications/Sikarugir/Interstate 76 Gold.app`)
 
-Your laptop now has one I'76 app, `Interstate 76.app` (the family pack, with your saves; GATE and the test apps are gone; the
+Your laptop now has one I'76 app, `Interstate 76 Gold.app` (the family pack, with your saves; GATE and the test apps are gone; the
 old app is in `~/i76-archive-20261020/` as a tarball). Andrew's and Michael's Macs: one app each, Desktop **Interstate 76 LAN**.
 
 1. **Esc menu by mouse** (the fix, proxy 0ce90a90; measured on Andrew's Mac, not on the laptop because its screen was locked):
@@ -939,7 +939,7 @@ old app is in `~/i76-archive-20261020/` as a tarball). Andrew's and Michael's Ma
    click **Play Options**, then click the LOWEST rows there and **Back** / **Cancel**: each must react where you click. Then
    with the keyboard only: arrows up / down, Enter, Esc. Report any row that lights or acts somewhere other than under the
    pointer, and anything the keyboard does not do.
-2. **Sound**: menu music and engine sound in `Interstate 76.app` (it was the GATE app that had none).
+2. **Sound**: menu music and engine sound in `Interstate 76 Gold.app` (it was the GATE app that had none).
 3. **AI cars**: MULTI MELEE > HOST > **Hope Springs (4 AI)** (scroll the AREA OF PLAY list down; the AI arenas are after A Lot
    of Asphalt) > BROADCAST GAME: 4 computer cars attack you. The Crater, Creeper Canyon and the other stock arenas have none
    (by design). Want AI in every arena? Say so (a ruling, not built).

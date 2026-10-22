@@ -1,7 +1,7 @@
 // Interstate '76 NITRO launch stub - the main executable of the standalone "Interstate 76 Nitro.app"
 // (Contents/MacOS/Sikarugir), nitro-mac lane 2026-10-21 (docs/records/NITRO-MAC-2026-10-21.md).
 //
-// The app is a clone of the Gold wrapper ("Interstate 76.app": same Wine, DxWnd, OpenGLide-HD, CoreAudio prefix) with
+// The app is a clone of the Gold wrapper ("Interstate 76 Gold.app": same Wine, DxWnd, OpenGLide-HD, CoreAudio prefix) with
 // its OWN prefix holding only the GOG Nitro Pack at C:\GOG Games\Interstate 76 Nitro (stock nitro.exe 28b8ae27, our
 // proxy as Strlkup.dll, GOG's strlkup.dll as strlkup_orig.dll, IPXWrapper beside the exe). DxWnd profile 1 (ini index 0)
 // runs `nitro.exe -glide`. The Gold app and its prefix are never touched by this stub: every path below is derived

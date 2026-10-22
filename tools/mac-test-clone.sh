@@ -29,7 +29,7 @@
 # and any user-folder symlink that leaves the prefix (Templates -> ~/Templates) becomes a plain folder.
 set -euo pipefail
 ROOT="$HOME/Applications/Sikarugir"
-DAILY="$ROOT/Interstate 76.app"
+DAILY="$ROOT/Interstate 76 Gold.app"
 
 die() { echo "mac-test-clone: $*" >&2; exit 1; }
 app_path() { case "$1" in */*.app|*.app) [[ "$1" == /* ]] && echo "$1" || echo "$ROOT/$1" ;; *) echo "$ROOT/$1.app" ;; esac; }

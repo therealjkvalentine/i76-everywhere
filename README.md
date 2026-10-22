@@ -34,7 +34,7 @@ Options (original 1997 keys, 20 fps stock, widescreen, another folder) and undoi
 2. Double-click **`mac-install.command`**. It sets up DxWnd, the music, the controls and the launcher.
 3. Run **`setup-mac-glide.sh`** in Terminal for the 120 fps Glide renderer
    ([tools/openglide-hd/MAC-BUILD.md](tools/openglide-hd/MAC-BUILD.md) section 11). It needs `brew install mingw-w64`.
-4. Open **`~/Applications/Sikarugir/Interstate 76.app`**. The first start asks for microphone access. The game never
+4. Open **`~/Applications/Sikarugir/Interstate 76 Gold.app`**. The first start asks for microphone access. The game never
    records anything; macOS asks any app that opens an audio output unit on some Macs (section 12 of the same file).
 
 **Steam Deck**

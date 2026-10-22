@@ -24,7 +24,7 @@ through James's laptop (Tailscale), the Deck directly.
 cd tools/lan-test; . ./hosts.sh
 # host: Andrew's Mac, Suburbia
 on A <<'EOF'
-A="$HOME/Games/Interstate76-MP/Interstate 76.app"; N=/tmp/i76mp/macnav.sh
+A="$HOME/Games/Interstate76-MP/Interstate 76 Gold.app"; N=/tmp/i76mp/macnav.sh
 /tmp/i76mp/restart-mac.sh "$A"; $N "$A" calib2; $N "$A" nav host; $N "$A" hostgo 208
 EOF
 # joiner: the Deck (game started with: steam steam://rungameid/11731039888668098560)
