@@ -42,16 +42,18 @@
  * 0x491556 keeps such a node a leaf when it is flat (cached per node) and farther than f x its split ring.
  */
 #define TM_MAXV   32768u
-#define TM_SLOTS  65536u
-typedef struct { unsigned __int64 k; float d0, y, sh, mx, shmx, shd; int idx, open, m; } tm_slot_t;   /* mx / open / m: the per-split event (largest one-pass move) */      /* k 0 = empty (keys are offset, never 0) */
-static tm_slot_t *g_tm_v[2]; static DWORD *g_tm_vu[2], g_tm_vn[2];               /* vertex maps: this main pass / previous */
-static unsigned __int64 *g_tm_l[2]; static DWORD *g_tm_lu[2], g_tm_ln[2];        /* leaf key sets */
+#define TM_SLOTS  65536u                                   /* the flat-split cache's size (tm_hash) */
+#define TM_GMAX   2048                                     /* largest root square (samples) the grids hold; a larger pass is left stock */
+typedef struct { unsigned __int64 k; float d0, y, sh, mx, shmx, shd; int idx, open, m; } tm_slot_t;   /* one per vertex of a main pass; mx / shmx / shd / open / m: the per-split event */
+static tm_slot_t *g_tm_v[2]; static DWORD g_tm_vn[2];     /* vertex records: this main pass / the previous one, in creation order */
+static int *g_tm_grid[2]; static int g_tm_gox[2], g_tm_goz[2], g_tm_gR[2];   /* (x - ox) * (R + 1) + (z - oz) -> record + 1 */
+static BYTE *g_tm_lg[2]; static DWORD *g_tm_lu[2], g_tm_ln[2];               /* leaf grid: bit log2(size) at the leaf's min corner */
 static int g_tm_cur = 0, g_tm_prev_ok, g_tm_on, g_tm_morph, g_tm_frac;
 static float g_tm_band = 0.0f;                         /* fraction of d0, or samples */
 static float g_tm_eye_prev[2];
 static float *g_tm_t; static int *g_tm_pa, *g_tm_pb; static tm_slot_t **g_tm_slot;
 static int g_tm_n, g_tm_pass_main, g_tm_have;
-static DWORD g_tm_passes, g_tm_born, g_tm_morphing, g_tm_mature_new, g_tm_jumps_reset, g_tm_win_passes, g_tm_win_morphing;
+static DWORD g_tm_passes, g_tm_born, g_tm_morphing, g_tm_mature_new, g_tm_jumps_reset, g_tm_win_passes, g_tm_win_morphing, g_tm_toobig;
 static FILE *g_tm_log, *g_tm_ev; static LARGE_INTEGER g_tm_qpf;
 static double g_tm_fx, g_tm_fz, g_tm_px, g_tm_pz; static int g_tm_fok;
 static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj, g_tm_bin[4][4];   /* bin[class][size]: class carried / born / mature-new / gone; size <=1, 1-4, 4-16, >16 px */ static DWORD g_tm_new, g_tm_gone, g_tm_nview;
@@ -60,33 +62,37 @@ static DWORD g_tm_ret_xform = 0x004937c0, g_tm_ret_emit = 0x00491a30;
 static unsigned __int64 tm_vkey(int x, int z) { return ((unsigned __int64)(DWORD)(x + 8192) << 32) | (DWORD)(z + 8192); }
 static unsigned __int64 tm_lkey(int x, int z, int s) { return ((unsigned __int64)(DWORD)(x + 8192) << 40) | ((unsigned __int64)(DWORD)(z + 8192) << 16) | (DWORD)(s & 0xffff); }
 static DWORD tm_hash(unsigned __int64 k) { k ^= k >> 31; k *= 0x9e3779b97f4a7c15ull; k ^= k >> 29; return (DWORD)k & (TM_SLOTS - 1); }
+static int tm_cell(int t, int x, int z) {
+    int rx = x - g_tm_gox[t], rz = z - g_tm_goz[t];
+    return (rx < 0 || rz < 0 || rx > g_tm_gR[t] || rz > g_tm_gR[t]) ? -1 : rx * (g_tm_gR[t] + 1) + rz;
+}
 static tm_slot_t *tm_vfind(int t, unsigned __int64 k) {
-    DWORD i = tm_hash(k), n; tm_slot_t *s = g_tm_v[t];
-    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) { if (!s[i].k) return NULL; if (s[i].k == k) return &s[i]; }
-    return NULL;
+    int c = tm_cell(t, (int)(k >> 32) - 8192, (int)(DWORD)(k & 0xffffffffu) - 8192), v;
+    if (c < 0) return NULL;
+    v = g_tm_grid[t][c]; return v ? &g_tm_v[t][v - 1] : NULL;
 }
 static tm_slot_t *tm_vput(int t, unsigned __int64 k) {
-    DWORD i = tm_hash(k), n; tm_slot_t *s = g_tm_v[t];
-    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) {
-        if (!s[i].k) { if (g_tm_vn[t] >= TM_MAXV) return NULL; s[i].k = k; s[i].d0 = -1.0f; s[i].idx = -1; s[i].mx = -1.0f; s[i].open = 0; s[i].m = 0; s[i].shmx = 0.0f; s[i].shd = -1.0f; g_tm_vu[t][g_tm_vn[t]++] = i; return &s[i]; }
-        if (s[i].k == k) return &s[i];
-    }
-    return NULL;
+    int c = tm_cell(t, (int)(k >> 32) - 8192, (int)(DWORD)(k & 0xffffffffu) - 8192), v; tm_slot_t *s;
+    if (c < 0) return NULL;
+    if ((v = g_tm_grid[t][c]) != 0) return &g_tm_v[t][v - 1];
+    if (g_tm_vn[t] >= TM_MAXV) return NULL;
+    s = &g_tm_v[t][g_tm_vn[t]]; s->k = k; s->d0 = -1.0f; s->idx = -1; s->mx = -1.0f; s->open = 0; s->m = 0; s->shmx = 0.0f; s->shd = -1.0f;
+    g_tm_grid[t][c] = (int)++g_tm_vn[t]; return s;
 }
-static void tm_vclear(int t) { DWORD j; for (j = 0; j < g_tm_vn[t]; j++) g_tm_v[t][g_tm_vu[t][j]].k = 0; g_tm_vn[t] = 0; }
-static int tm_lhas(int t, unsigned __int64 k) {
-    DWORD i = tm_hash(k), n; unsigned __int64 *s = g_tm_l[t];
-    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) { if (!s[i]) return 0; if (s[i] == k) return 1; }
-    return 0;
+static void tm_vclear(int t) {                             /* with the table's own origin, before a new one is set */
+    DWORD j;
+    for (j = 0; j < g_tm_vn[t]; j++) { unsigned __int64 k = g_tm_v[t][j].k; int c = tm_cell(t, (int)(k >> 32) - 8192, (int)(DWORD)(k & 0xffffffffu) - 8192); if (c >= 0) g_tm_grid[t][c] = 0; }
+    g_tm_vn[t] = 0;
 }
-static void tm_lput(int t, unsigned __int64 k) {
-    DWORD i = tm_hash(k), n; unsigned __int64 *s = g_tm_l[t];
-    for (n = 0; n < 128; n++, i = (i + 1) & (TM_SLOTS - 1)) {
-        if (!s[i]) { if (g_tm_ln[t] >= TM_MAXV) return; s[i] = k; g_tm_lu[t][g_tm_ln[t]++] = i; return; }
-        if (s[i] == k) return;
-    }
+static int tm_lbit(int s) { int b = 0; while (s > 1 && b < 8) { s >>= 1; b++; } return b; }
+static int tm_lhas(int t, int x, int z, int s) { int c = tm_cell(t, x, z); return c >= 0 && s <= 128 && (g_tm_lg[t][c] >> tm_lbit(s) & 1); }
+static void tm_lput(int t, int x, int z, int s) {
+    int c = tm_cell(t, x, z);
+    if (c < 0 || s > 128 || g_tm_ln[t] >= TM_MAXV) return;
+    if (!g_tm_lg[t][c]) g_tm_lu[t][g_tm_ln[t]++] = (DWORD)c;
+    g_tm_lg[t][c] |= (BYTE)(1 << tm_lbit(s));
 }
-static void tm_lclear(int t) { DWORD j; for (j = 0; j < g_tm_ln[t]; j++) g_tm_l[t][g_tm_lu[t][j]] = 0; g_tm_ln[t] = 0; }
+static void tm_lclear(int t) { DWORD j; for (j = 0; j < g_tm_ln[t]; j++) g_tm_lg[t][g_tm_lu[t][j]] = 0; g_tm_ln[t] = 0; }
 static int tm_lowbit(int v, int R) { return v > 0 ? (v & -v) : R; }
 /* the vertex's level and parents from its sample position: returns m (0 = not a split vertex), parents in *a / *b */
 static int tm_parents(int x, int z, int ox, int oz, int R, int *ax, int *az, int *bx, int *bz, int *axis) {
@@ -108,7 +114,7 @@ static int tm_was_leaf(int x, int z, int m, int axis, int ox, int oz) {
     for (c = 0; c < nn; c++)
         for (k = 0, s = S; k < 3 && s <= 64; k++, s *= 2) {
             int qx = ox + ((nx[c] - ox) & ~(s - 1)), qz = oz + ((nz[c] - oz) & ~(s - 1));
-            if (tm_lhas(1 - g_tm_cur, tm_lkey(qx, qz, s))) return 1;
+            if (tm_lhas(1 - g_tm_cur, qx, qz, s)) return 1;
         }
     return 0;
 }
@@ -142,7 +148,9 @@ static void __cdecl tm_xform_wrap(void) {
         if (ml > 0.4) { if (ml < 40.0 && g_tm_passes) { g_tm_fx = mx / ml; g_tm_fz = mz / ml; g_tm_fok = 1; } g_tm_px = ex; g_tm_pz = ez; }
         g_tm_jpx[0] = g_tm_jpx[1] = g_tm_jpx[2] = g_tm_spx[0] = g_tm_spx[1] = g_tm_spx[2] = g_tm_shj = g_tm_maxj = 0.0; g_tm_new = g_tm_gone = g_tm_nview = 0; memset(g_tm_bin, 0, sizeof(g_tm_bin));
     }
-    tm_vclear(g_tm_cur);
+    if (R > TM_GMAX) { g_tm_toobig++; goto done; }        /* a root larger than the grids: this pass stays stock */
+    tm_vclear(g_tm_cur); tm_lclear(g_tm_cur);
+    g_tm_gox[g_tm_cur] = ox; g_tm_goz[g_tm_cur] = oz; g_tm_gR[g_tm_cur] = R;
     for (i = 0; i < n; i++) {
         tm_slot_t *s = tm_vput(g_tm_cur, tm_vkey((int)V[3 * i], (int)V[3 * i + 2]));
         g_tm_slot[i] = s; if (s && s->idx < 0) s->idx = i;
@@ -184,7 +192,7 @@ static void __cdecl tm_xform_wrap(void) {
     if (g_tm_log && g_tm_prev_ok) {                    /* vertices gone since the previous pass (merges): their jump to the coarse surface */
         DWORD j;
         for (j = 0; j < g_tm_vn[prev]; j++) {
-            tm_slot_t *q = &g_tm_v[prev][g_tm_vu[prev][j]], *pa, *pb; int x, z, ax, az, bx, bz, axis, b; double px;
+            tm_slot_t *q = &g_tm_v[prev][j], *pa, *pb; int x, z, ax, az, bx, bz, axis, b; double px;
             if (tm_vfind(g_tm_cur, q->k)) continue;
             x = (int)(q->k >> 32) - 8192; z = (int)(DWORD)(q->k & 0xffffffffu) - 8192;
             if (!tm_parents(x, z, ox, oz, R, &ax, &az, &bx, &bz, &axis)) continue;
@@ -196,8 +204,7 @@ static void __cdecl tm_xform_wrap(void) {
         }
     }
     {   const BYTE *leaf = *(BYTE * volatile *)(DWORD_PTR)0x0059c560; DWORD guard = 0;      /* this pass's leaves, for the next */
-        tm_lclear(g_tm_cur);
-        while (leaf && guard++ < TM_MAXV) { tm_lput(g_tm_cur, tm_lkey(*(const short *)leaf, *(const short *)(leaf + 2), *(const int *)(leaf + 4))); leaf = *(BYTE * const *)(leaf + 8); }
+        while (leaf && guard++ < TM_MAXV) { tm_lput(g_tm_cur, *(const short *)leaf, *(const short *)(leaf + 2), *(const int *)(leaf + 4)); leaf = *(BYTE * const *)(leaf + 8); }
     }
     g_tm_eye_prev[0] = ex; g_tm_eye_prev[1] = ez; g_tm_n = n; g_tm_have = 1;
 done:
@@ -295,9 +302,9 @@ static __declspec(naked) void tf_stub(void) {                    /* jmp from 0x4
 
 static void terrain_morph_report(void) {
     if (g_tm_on && g_tm_win_passes)
-        mlog("  terrain-morph: %lu main passes (%lu since the last line), %lu vertices born by a split, %lu new but mature (view edge / jump), %lu camera jumps; vertex-passes morphing %lu (%.1f per pass)",
+        mlog("  terrain-morph: %lu main passes (%lu since the last line), %lu vertices born by a split, %lu new but mature (view edge / jump), %lu camera jumps; vertex-passes morphing %lu (%.1f per pass); passes left stock (root > %d samples) %lu",
              (unsigned long)g_tm_passes, (unsigned long)g_tm_win_passes, (unsigned long)g_tm_born, (unsigned long)g_tm_mature_new, (unsigned long)g_tm_jumps_reset,
-             (unsigned long)g_tm_morphing, (double)g_tm_win_morphing / g_tm_win_passes);
+             (unsigned long)g_tm_morphing, (double)g_tm_win_morphing / g_tm_win_passes, TM_GMAX, (unsigned long)g_tm_toobig);
     if (g_tf_on) mlog("  terrain-flat-split: %lu flat nodes kept coarse (%lu since the last line), %lu tests", (unsigned long)g_tf_kept, (unsigned long)g_tf_win_kept, (unsigned long)g_tf_tested);
     g_tm_win_passes = g_tm_win_morphing = 0; g_tf_win_kept = 0;
 }
@@ -319,16 +326,16 @@ static void apply_terrain_morph(void) {
         mlog("  terrain-morph: I76_TERRAIN_MORPH %s out of range (0.02..1 = fraction of the split distance, 5..1000 = metres) - not applied", v); nm = 0; }
     if (nm || nl) {
         for (i = 0; i < 2; i++) {
-            g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_SLOTS * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-            g_tm_vu[i] = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-            g_tm_l[i] = (unsigned __int64 *)VirtualAlloc(NULL, TM_SLOTS * sizeof(unsigned __int64), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            g_tm_v[i] = (tm_slot_t *)VirtualAlloc(NULL, TM_MAXV * sizeof(tm_slot_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            g_tm_grid[i] = (int *)VirtualAlloc(NULL, (TM_GMAX + 1) * (TM_GMAX + 1) * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            g_tm_lg[i] = (BYTE *)VirtualAlloc(NULL, (TM_GMAX + 1) * (TM_GMAX + 1), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             g_tm_lu[i] = (DWORD *)VirtualAlloc(NULL, TM_MAXV * sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         }
         g_tm_t = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_tm_pa = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_tm_pb = (int *)VirtualAlloc(NULL, TM_MAXV * sizeof(int), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_tm_slot = (tm_slot_t **)VirtualAlloc(NULL, TM_MAXV * sizeof(tm_slot_t *), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        if (!g_tm_v[0] || !g_tm_v[1] || !g_tm_vu[0] || !g_tm_vu[1] || !g_tm_l[0] || !g_tm_l[1] || !g_tm_lu[0] || !g_tm_lu[1] || !g_tm_t || !g_tm_pa || !g_tm_pb || !g_tm_slot) {
+        if (!g_tm_v[0] || !g_tm_v[1] || !g_tm_grid[0] || !g_tm_grid[1] || !g_tm_lg[0] || !g_tm_lg[1] || !g_tm_lu[0] || !g_tm_lu[1] || !g_tm_t || !g_tm_pa || !g_tm_pb || !g_tm_slot) {
             mlog("  terrain-morph: no memory - not applied"); return; }
         if (nm) { g_tm_morph = 1; if (band <= 1.0f) { g_tm_frac = 1; g_tm_band = band; } else g_tm_band = band / 5.0f; }
         if (nl) { g_tm_log = fopen(lf, "w"); QueryPerformanceFrequency(&g_tm_qpf);
