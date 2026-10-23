@@ -17,8 +17,8 @@
  *   I76_HAZE_TARGET=<0..1>          the shade reached at the far clip (default 1.0 = the brightest row = the unmodulated texel).
  *   I76_GLIDE_FOG=<start>[,<colour>] hardware fog through glide2x (dgVoodoo): a 64-entry fog table (grFogTable) clear until
  *                                   start x far (default 0.85), full at the far clip, colour = the horizon strips' bottom rows
- *                                   (colour 'hzd', default: the .hzd bitmaps at 0x504850, 8-bit through the context palette
- *                                   0x5dcfa8) or 'rrggbb' hex. Fog is ON only around the hardware scene's depth-bucket flush
+ *                                   (colour 'hzd', default: the horizon strips' 8-bit textures at 0x504850, bottom rows through
+ *                                   the context palette 0x5dcfa8) or 'rrggbb' hex. Fog is ON only around the hardware scene's depth-bucket flush
  *                                   (0x48fac0(cam, 1) at 0x40216d: terrain, roads, objects, clutter, smoke, tracers) and OFF
  *                                   for everything else in the frame: the sky dome and horizon strips (drawn before it), the
  *                                   cockpit mesh, instruments, target brackets, mask and text (after it). The rear mirror is a
@@ -172,12 +172,14 @@ static int fe_hzd_colour(DWORD *rgb) {
     static int logged;
     if (ns <= 0 || ns > 64) return 0;
     for (s = 0; s < ns; s++) {
-        const DWORD *set = (const DWORD *)(DWORD_PTR)(0x00504850 + s * 0x18); const BYTE *bm = (const BYTE *)(DWORD_PTR)set[0];   /* the 8-bit bitmap ([1] is not a bitmap of this layout: probe 2026-10-23) */
-        DWORD w, h, kind, eight; const BYTE *px;
-        if (!bm || IsBadReadPtr(bm, 0x30)) continue;
-        w = *(const DWORD *)bm; h = *(const WORD *)(bm + 4); kind = *(const DWORD *)(bm + 8); px = *(const BYTE * const *)(bm + 0x14); eight = *(const DWORD *)(bm + 0x2c);
-        if (!logged) { logged = 1; mlog("  glide-fog: horizon strip 0 bitmap %lux%lu kind %lu eight %lu", (unsigned long)w, (unsigned long)h, (unsigned long)kind, (unsigned long)eight); }
-        if (!px || w == 0 || h == 0 || w > 2048 || h > 2048 || kind > 4 || eight != 1 || IsBadReadPtr(px, w * h)) continue;
+        /* a texture record (0x471c10 loader; 0x44a740 copies ((h << 3) >> 3) x w + 8 bytes): DWORD w, DWORD h | flags (bit 31 = embedded
+         * 16-bit palette, .m16), then the 8-bit texels. [0] of the pair is the 8-bit one; [1] the hardware (.m16) variant. */
+        const DWORD *set = (const DWORD *)(DWORD_PTR)(0x00504850 + s * 0x18); const BYTE *tx = (const BYTE *)(DWORD_PTR)set[0];
+        DWORD w, h, hf; const BYTE *px;
+        if (!tx || IsBadReadPtr(tx, 8)) continue;
+        w = *(const DWORD *)tx; hf = *(const DWORD *)(tx + 4); h = hf & 0x1fffffff; px = tx + 8;
+        if (!logged) { logged = 1; mlog("  glide-fog: horizon strip 0 texture %lux%lu flags %lx (8-bit)", (unsigned long)w, (unsigned long)h, (unsigned long)(hf >> 29)); }
+        if (w == 0 || h == 0 || w > 2048 || h > 2048 || (hf & 0x80000000u) || IsBadReadPtr(px, w * h)) continue;
         rows = h < 4 ? (int)h : 4;
         for (y = (int)h - rows; y < (int)h; y++) for (x = 0; x < (int)w; x++) {
             BYTE i = px[y * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
