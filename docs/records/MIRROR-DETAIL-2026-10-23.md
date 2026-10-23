@@ -164,3 +164,33 @@ after EVERY); launcher `PLAY-OWNER-2300-MIRROR.bat` text updated.
 Left: the mirror's sky is the 8-bit cloud art through the display palette (blue-grey; the main's is the .m16 sky) - the same
 .m16-copy trick would apply to the cloud texture if wanted; roads and bushes in the mirror still follow the global 2300 m;
 Nitro unported; renderer.md 0xf4 row.
+
+## 7. Third round: the daily driver's detail load, and the sky (same morning)
+
+The trial presets had lacked the daily driver's `I76_TERRAIN_TEX=8 / I76_OBJECT_LOD=8 / I76_SHADOW_DIST=4 / I76_ROAD_TEX=8`
+(now in every OWNER-*.psd1). `I76_TERRAIN_TEX` patches the picker's own `W x 40` to `W x 320` for every camera, so the stock
+mirror at that load already picks as a 2048 px view at x1 would; `I76_MIRROR_TEX` is absolute against a 640 px view at x1
+(its log now says both). Looks on t05 at the x8 load: TEX 1 (levels 34/57/63/64/111 of 329) and TEX 8 (223/77/33/0/0, the main
+view's) are indistinguishable in dumps; 8 would sample 256 px tiles over leaves a few px wide (shimmer in motion), so **TEX 2**
+is delivered (99/57/70/77/34: 10 % on the 16 px tile).
+
+**Sky.** `I76_MIRROR_M16` now also covers the sky: the sky draw fetches the cloud texture with `0x471f00(0x504c38, cam)` at
+0x4053e5 (hardware branch) and 0x405403 (software branch, the kind-0 mirror's); the latter is chained and the mirror camera gets
+the 128x128 `.m16` cloud art quantised into the display palette. Its fine texels, point-sampled into 256x64, came out as speckle
+(the main view bilinear-filters them), so the sky copy is box-blurred 3x3 in RGB before the quantisation; terrain copies keep
+their texels. The horizon strips (0x4016e0, the far-edge lane's 0x504850 pairs) are not drawn in the mirror pass at all.
+Before / after: lab `autotest\runs\mirror-detail\MIRROR-DETAIL-t05-sky-before-after.png` (8-bit cloud art: darker blue-grey;
+after: the main view's pale sky, smooth).
+
+Rows at the x8 load (OWNER-2300-ALL from exp-polish2, t05 cockpit, 5 s windows, same method):
+
+| condition | boots | fps | work ms | cost |
+|---|---|---|---|---|
+| baseline = the preset with the six mirror keys dropped | r1, r2 | 120.1 / 119.9 | 8.31 / 8.32 | - |
+| the six keys, MIRROR_TEX=2 | r1, r2 | 119.8 / 119.6 | 8.33 / 8.34 | 0.3 % |
+
+Build note: the pulled main did not compile for a while (4321e4a used `g_ss_on` before its declaration; 509ed6b fixed it), and
+`mirrorpal.h`'s generated first line carried a literal CR and FF (MSVC C4335), fixed in 239a123.
+
+Delivered: exp-polish2 `STRLKUP.DLL` = `builds\nitro-port-20261021\mirror-5006d8c` (md5 5b48d79f, repo 5006d8c), the replaced
+DLL kept by md5; `OWNER-2300-MIRROR.psd1` and `OWNER-2300-ALL.psd1` carry TEX 2 and the sky note (M16 covers both).
