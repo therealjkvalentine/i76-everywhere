@@ -26,8 +26,8 @@
  * and "Co-Op" (type 7, mask 0x40), on the IPX / internet host forms (provider 3 / 4; the modem forms show 3 stock rows).
  * The species and the options follow the selected type (6 -> ARENA+, 7 -> ARENA+ and CO-OP SCENES with P01-P19 as the
  * whole arena list, 1..5 -> stock 604). Sites, each byte-checked, all or nothing (nft_attach):
- *   G1 the popup open `call 0x10021d80` at 0x10032391 -> nft_popup: 7 visible rows on the form's 9-row list picture (6, 229 x 236,
- *      the id-11 popup's geometry and hit records; put back for every other popup open), our row draw (nft_rows).
+ *   G1 the popup open `call 0x10021d80` at 0x10032391 -> nft_popup: 7 visible rows, height + 2 rows, the popup's two hit records
+ *      moved by 2 rows (put back for every other popup open), our row draw (nft_rows), the art stretched in the surface (nft_stretch).
  *   G2 the type-change list switch: `cmp eax, 4` 0x100342f7 -> 6, `jmp [eax*4 + 0x100346f8]` 0x10034302 -> nft_list_stub.
  *   G3 the limit popup's two type switches (0x10032771 / 0x1003277a, 0x10036f36 / 0x10036f3f): 7-entry copies, 6 / 7 = Combat.
  *   G4 the six form-field reads of the type name table 0x10045894 -> our 8-entry table (field names: the long one shortened
@@ -244,26 +244,64 @@ static __declspec(naked) void nft_list_stub(void) {
         jmp dword ptr [g_nft_list_back]
     }
 }
+/* Picture 0x24 (the GAME TYPE popup's art, 172 x 152: header, 5 row boxes from +29 at 17 px, the button band from +114) is
+ * stretched to 7 rows in the 8-bit surface right after the popup module has drawn it (nft_rows runs next, 0x10021fd3): the
+ * bottom band (+114..+152, 38 rows) moves down by two rows and the band of row boxes 4-5 (+80..+114) is copied into the gap.
+ * Once per open: with 7 of 7 rows visible the module never scrolls, so the art is drawn once. The form's own 9-row list
+ * picture (6) was tried first (gt-pa1): its header reads MAKE / MODEL with a CANCEL button, so it cannot be the type popup.
+ * Surface: DirectDraw [[0x10131778] + 0x20 / + 0x24] lock / unlock, pointer **[0x10131788], pitch at [-5] (the lab
+ * instrument's rect_sum / fb_dump read the popup from there); else the display's buffer [disp + 0x44], pitch 640. */
+#define NFT_PIC_W 172
+#define NFT_PIC_H 152
+#define NFT_PIC_BOT 114
+#define NFT_PIC_WIDEN 24               /* columns added at x 30 (copies of the plain columns 20-29: bar, box interiors, left of the button):
+                                        * "Arena Drop-In + AI" is 162 px from the row's x + 8, the box border sat at +160 (gt-pc1) */
+static int g_nft_fresh;
+static void nft_stretch(int px, int py) {
+    BYTE *disp = *(BYTE **)NF_R(0x10130488), *p = 0, *vt; int pitch = 640, dd = *(int *)NF_R(0x1017a6d8), locked = 0, j, d = 2 * *(int *)NF_R(0x10138c38);
+    if (px < 0 || py < 0 || px + NFT_PIC_W + NFT_PIC_WIDEN > 640 || py + NFT_PIC_H + d > 480) return;
+    __try {
+        if (dd) {
+            vt = *(BYTE **)NF_R(0x10131778);
+            if (vt && ((int (__cdecl *)(void))*(DWORD *)(vt + 0x20))() == 0) locked = 1;
+            p = *(BYTE **)NF_R(0x10131788) ? **(BYTE ***)NF_R(0x10131788) : 0;
+            if (p) { int pt = ((int *)*(BYTE **)NF_R(0x10131788))[-5]; if (pt >= 640 && pt <= 8192) pitch = pt; }
+        } else if (disp) p = *(BYTE **)(disp + 0x44);
+        if (p) {
+            for (j = NFT_PIC_H - NFT_PIC_BOT - 1; j >= 0; j--)   /* the bottom band down by d (overlapping: last row first) */
+                memmove(p + (py + NFT_PIC_BOT + d + j) * pitch + px, p + (py + NFT_PIC_BOT + j) * pitch + px, NFT_PIC_W);
+            for (j = 0; j < d; j++)                                /* row boxes 4-5 into the gap */
+                memcpy(p + (py + NFT_PIC_BOT + j) * pitch + px, p + (py + NFT_PIC_BOT - d + j) * pitch + px, NFT_PIC_W);
+            for (j = 0; j < NFT_PIC_H + d; j++) {                  /* wider: x >= 30 right by NFT_PIC_WIDEN, the gap = the plain columns 20-29 */
+                BYTE *r = p + (py + j) * pitch + px; int k;
+                memmove(r + 30 + NFT_PIC_WIDEN, r + 30, NFT_PIC_W - 30);
+                for (k = 0; k < NFT_PIC_WIDEN; k++) r[30 + k] = r[20 + (k % 10)];
+            }
+        }
+        if (locked) ((int (__cdecl *)(void))*(DWORD *)(*(BYTE **)NF_R(0x10131778) + 0x24))();
+    } __except (EXCEPTION_EXECUTE_HANDLER) { p = 0; }
+    NMP_LOG("  nitro-types: popup art stretched by %d rows and %d columns at %d,%d (%s, pitch %d)", d, NFT_PIC_WIDEN, px, py, p ? dd ? locked ? "DirectDraw, locked here" : "DirectDraw, shell's lock" : "display buffer" : "NO surface", pitch);
+}
 static void __cdecl nft_rows(int x, int y, int first, int count) {   /* the popup's row draw for 7 rows (as 0x100341e0) */
     BYTE *disp = *(BYTE **)NF_R(0x10130488), *fp = *(BYTE **)NF_R(0x1013049c); int i, rh = *(int *)NF_R(0x10138c38);
     if (!disp || !fp) return;
+    if (g_nft_fresh) { g_nft_fresh = 0; nft_stretch(x - 0xc, y - 0x1d); }
     for (i = first < 0 ? 0 : first; i < first + count && i < 7; i++, y += rh)
         g_nft_w[i] = ((nf_text_fn)NF_R(0x10012dc0))(disp, 0, x + 8, y, *(int *)(fp + 0x408), g_nft_rows[i], 0);
     if (!g_nft_rowdraws++) NMP_LOG("  nitro-types: popup rows drawn (first %d, %d) - text widths %d %d %d %d %d %d %d (list hit area %d px wide)", first, count,
-                                   g_nft_w[0], g_nft_w[1], g_nft_w[2], g_nft_w[3], g_nft_w[4], g_nft_w[5], g_nft_w[6], 0xd6 - 0x10);
+                                   g_nft_w[0], g_nft_w[1], g_nft_w[2], g_nft_w[3], g_nft_w[4], g_nft_w[5], g_nft_w[6], 0x9f + NFT_PIC_WIDEN - 0xc);
 }
 static void __cdecl nft_popup(DWORD *desc, DWORD pic, DWORD b) {   /* the GAME TYPE popup opens (descriptor 0x100459d8, picture 0x24) */
-    /* Picture 0x24 is a fixed 172 x 152 bitmap with 5 row boxes and its button (record s.0.5.17): 7 rows do not fit it. The form's
-     * own 9-row list popup (hit id 11, 0x10032fe0) uses picture 6, 229 x 236, rows from (0x16, 0x30), list hit {2, 0x10, 0xd6, 0x2f,
-     * 0xc6}, button {3, 0x92, 0xd7, 0xd1, 0xe1}; the 7-row popup borrows that picture and geometry. */
-    static const DWORD list6[5] = { 2, 0x10, 0xd6, 0x2f, 0xc6 }, btn6[5] = { 3, 0x92, 0xd7, 0xd1, 0xe1 },
-        list24[5] = { 2, 0xc, 0x9f, 0x1c, 0x71 }, btn24[5] = { 3, 0x59, 0xa0, 0x7c, 0x8c };
+    /* Picture 0x24 (172 x 152, 5 row boxes, its button from +124): the 7-row popup keeps it and stretches it by two rows in the
+     * surface (nft_stretch, from the first row draw); the list hit record and the button record move down by the same two rows. */
+    static const DWORD list24[5] = { 2, 0xc, 0x9f, 0x1c, 0x71 }, btn24[5] = { 3, 0x59, 0xa0, 0x7c, 0x8c };
     DWORD *r2 = (DWORD *)NF_R(0x100459b0), *r3 = (DWORD *)NF_R(0x100459c4);
-    int p = *(int *)NF_R(0x1004701c), rh = *(int *)NF_R(0x10138c38), seven = 0;
+    int p = *(int *)NF_R(0x1004701c), rh = *(int *)NF_R(0x10138c38), d = 0;
+    memcpy(r2, list24, 20); memcpy(r3, btn24, 20); g_nft_fresh = 0;
     if ((p == 3 || p == 4) && desc[6] == 5 && desc[8] == 5 && rh > 0 && rh < 40 && pic == 0x24) {
-        seven = 1; pic = 6; desc[2] = 0xe5; desc[3] = 0xec; desc[4] = 0x16; desc[5] = 0x30; desc[6] = desc[8] = 7; desc[10] = (DWORD)(DWORD_PTR)nft_rows;
+        d = 2 * rh; desc[3] += d; desc[2] += NFT_PIC_WIDEN; desc[6] = desc[8] = 7; desc[10] = (DWORD)(DWORD_PTR)nft_rows; g_nft_fresh = 1;
+        r2[2] += NFT_PIC_WIDEN; r2[4] += d; r3[1] += NFT_PIC_WIDEN; r3[2] += NFT_PIC_WIDEN; r3[3] += d; r3[4] += d;
     }
-    memcpy(r2, seven ? list6 : list24, 20); memcpy(r3, seven ? btn6 : btn24, 20);
     g_nft_opens++;
     NMP_LOG("  nitro-types: GAME TYPE popup open #%ld (provider %d): picture %lu, %lu rows, %lu x %lu at %lu,%lu, rows from +%lu,+%lu, row %d px, list hit %lu-%lu / %lu-%lu, button %lu-%lu / %lu-%lu",
             g_nft_opens, p, pic, desc[6], desc[2], desc[3], desc[0], desc[1], desc[4], desc[5], rh, r2[1], r2[2], r2[3], r2[4], r3[1], r3[2], r3[3], r3[4]);
