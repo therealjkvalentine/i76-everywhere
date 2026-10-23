@@ -21,7 +21,7 @@
  *   {?, count +4, items +8} with the shell's count [0x1004585c] and selection [0x10045858]; species word [0x10046cb0].
  * I76_NITRO_FORM=0 leaves the form stock (the rest of ARENA+ then never meets an ARENA+ session from this host).
  *
- * GAME TYPE entries (owner ruling 2026-10-23, record s.0.5.17; phase 1 = host side, lab only): I76_NITRO_GAMETYPES=1
+ * GAME TYPE entries (owner ruling 2026-10-23, record s.0.5.17-19; the DEFAULT since s.0.5.19, I76_NITRO_GAMETYPES=0 restores the boxes for one release; was =1 opt-in):
  * replaces the two boxes by two rows of the stock GAME TYPE popup, "Arena Drop-In + AI" (shell type 6, form mask 0x20)
  * and "Co-Op" (type 7, mask 0x40), on the IPX / internet host forms (provider 3 / 4; the modem forms show 3 stock rows).
  * The species and the options follow the selected type (6 -> ARENA+, 7 -> ARENA+ and CO-OP SCENES with P01-P19 as the
@@ -389,7 +389,7 @@ static void nf_attach(HMODULE sh) {
     g_nf_species0 = *(WORD *)NF_R(0x10046cb0);
     if (!ok || g_nf_species0 != NMP_SPECIES_STOCK) { NMP_LOG("  nitro-form: OFF (nitshell bytes %s, species %04x)", ok ? "as f804f50d" : "NOT as f804f50d", g_nf_species0); return; }
     g_nf_ja_back = NF_R(0x10032054); g_nf_redraw0 = NF_R(0x10033770); g_nf_ctor0 = NF_R(0x100318e0);
-    if (GetEnvironmentVariableA("I76_NITRO_GAMETYPES", v, sizeof v) && v[0] == '1') {   /* the GAME TYPE entries, no boxes */
+    if (!(GetEnvironmentVariableA("I76_NITRO_GAMETYPES", v, sizeof v) && v[0] == '0')) {   /* the GAME TYPE entries (default since s.0.5.19), no boxes; =0 the boxes */
         k = nft_attach();
         if (k) k += nf_call(0x10001531, (void *)nf_ctor);
         NMP_LOG("  nitro-types: %s - %d/16 nitshell sites (field names x6, popup open, type switch x2, limit switches x4, prefs save, mode string, constructor);"
