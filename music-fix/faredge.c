@@ -64,7 +64,7 @@ static DWORD g_fe_atris, g_fe_averts_faded; static int g_fe_opaque_req, g_fe_key
  * the iterated-alpha combine lost their key (black squares, boot 112109) */
 static void fe_apply_state(void) {
     int want = g_fe_alpha && g_fe_in_flush && g_fe_opaque_req && !g_fe_keyed;
-    if (want && !g_fe_opaque) { p_fe_Blend(1, 5, 4, 0); p_fe_ACombine(1, 0, 0, 0, 0); g_fe_opaque = 1; }
+    if (want && !g_fe_opaque) { p_fe_Blend(1, 5, 4, 0); p_fe_ACombine(3, 1, 0, 1, 0); g_fe_opaque = 1; }   /* alpha = TEXTURE x ITERATED (ZGLIDE's own keyed translucent op 0x10002205): keyed texels keep alpha 0, 565 terrain has none and takes the vertex alpha */
     else if (!want && g_fe_opaque) { p_fe_Blend(4, 0, 0, 0); p_fe_ACombine(g_fe_ac_last[0], g_fe_ac_last[1], g_fe_ac_last[2], g_fe_ac_last[3], g_fe_ac_last[4]); g_fe_opaque = 0; }
 }
 static double g_fe_pw_in_min = 1e30, g_fe_pw_in_max, g_fe_pw_out_min = 1e30, g_fe_pw_out_max; static DWORD g_fe_pt_in, g_fe_pt_out, g_fe_pt_in_far, g_fe_frames;
@@ -262,7 +262,7 @@ static void __stdcall fe_Blend(int rsf, int rdf, int asf, int adf) {      /* ZGL
 }
 static void __stdcall fe_ACombine(int fn, int fac, int loc, int oth, int inv) {   /* ZGLIDE's grAlphaCombine: remembered; forced to iterated while the override is on */
     g_fe_ac_last[0] = fn; g_fe_ac_last[1] = fac; g_fe_ac_last[2] = loc; g_fe_ac_last[3] = oth; g_fe_ac_last[4] = inv;
-    if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) { p_fe_ACombine(1, 0, 0, 0, 0); return; }
+    if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) { p_fe_ACombine(3, 1, 0, 1, 0); return; }
     p_fe_ACombine(fn, fac, loc, oth, inv);
 }
 static void __stdcall fe_Chroma(int mode) {                                /* ZGLIDE's grChromakeyMode: keyed records keep their own state */
