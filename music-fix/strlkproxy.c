@@ -6982,7 +6982,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
                 mlog("  zglide-tmufix: ZGLIDE+0x%lx 75 %02x -> %02x %02x (2 MB boundary rule skipped)", (unsigned long)zo, zj, p[0], zj);
             } else mlog("  zglide-tmufix: ZGLIDE+0x%lx = %02x %02x, not the stock 75 %02x - not applied", (unsigned long)zo, p[0], p[1], zj);
         }
-        if (_strnicmp(b, "zglide", 6) == 0 && g_tc_on && g_exe != EXE_NITRO) tex_census_attach(m);   /* census offsets: Gold's ZGLIDE */
+        if (_strnicmp(b, "zglide", 6) == 0 && (g_tc_on || g_sc_on) && g_exe != EXE_NITRO) tex_census_attach(m);   /* census offsets: Gold's ZGLIDE; g_sc_on: I76_SHADE_CENSUS hooks grDrawTriangle there too */
         /* (the census and TMUFIX hook LoadLibraryA too: the refresh wrapper is only for I76_GLIDE_REFRESH / I76_GLIDE_GAMMA) */
         if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
             p_grSstWinOpen = (grSstWinOpen_t)patch_iat(m, "glide2x.dll", "_grSstWinOpen@28", hook_grSstWinOpen);
