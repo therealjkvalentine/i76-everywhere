@@ -15,6 +15,15 @@
  *                             the depth term g(z)), and the morph's shade fade walks the same steps. The switch multiplies by 255
  *                             instead and indexes a 256-entry table that interpolates the stock rows (rebuilt whenever the stock
  *                             table changes). Gold only; all 17 + 17 sites signature-checked, all or nothing.
+ *   I76_GLIDE_MIPMAP=1|2      ZGLIDE's own mip-chain path, which this exe never turns on (lab TEXTURE-AND-OBJECT-LOD.md s.1): FirstDevice
+ *                             0x10001c20 zeroes the plugin's mipmap flag [0x1001ee68] (`mov [flag], edi` at +0x1c60, edi = 0) and then calls
+ *                             grTexMipMapMode(tmu, flag ? GR_MIPMAP_NEAREST : DISABLE, FXFALSE); with the flag the texture setup 0x10001930
+ *                             gives every texture smallLod = GR_LOD_1 and 0x10005160 builds the chain at upload. 1 = the one byte changed to
+ *                             `mov [flag], ebx` (ebx = 1 there): mip chains, nearest mip. 2 = also lodBlend forced FXTRUE through ZGLIDE's
+ *                             glide2x import (trilinear under dgVoodoo): the texture levels fade into each other with distance instead of
+ *                             switching, and I76_TERRAIN_TEX can go out to 32 (one hand-made level, its mips doing the rest). Gold, ZGLIDE
+ *                             05c1dde4 (the byte is signature-checked), off by default. Terrain-pop lane 2026-10-23 (owner: "could it be
+ *                             continuously faded the same way as we continuously make the transition between textures?").
  */
 #define TP_SLOTS 65536u
 #define TP_MAXL  32768u
@@ -145,6 +154,25 @@ static void apply_shade_smooth(void) {
          g_ss_snap[32] & 0xff, g_ss_snap[33] & 0xff, g_ss_snap[34] & 0xff, g_ss_snap[35] & 0xff, g_ss_snap[36] & 0xff, g_ss_snap[37] & 0xff, g_ss_snap[38] & 0xff, g_ss_snap[39] & 0xff,
          g_ss_snap[40] & 0xff, g_ss_snap[41] & 0xff, g_ss_snap[42] & 0xff, g_ss_snap[43] & 0xff, g_ss_snap[44] & 0xff, g_ss_snap[45] & 0xff, g_ss_snap[46] & 0xff, g_ss_snap[47] & 0xff);
 }
+/* ---- I76_GLIDE_MIPMAP ---- */
+static int g_gm_mode; static DWORD g_gm_applied;
+static void (__stdcall *p_gm_MipMapMode)(int, int, int);
+static void __stdcall gm_MipMapMode(int tmu, int mode, int lodBlend) { p_gm_MipMapMode(tmu, mode ? mode : 1, g_gm_mode >= 2 ? 1 : lodBlend); }
+static void glide_mipmap_attach(HMODULE m) {                 /* from the LoadLibraryA hook when ZGLIDE.DLL comes in, before FirstDevice runs */
+    static const BYTE old[6] = { 0x89, 0x3d, 0x68, 0xee, 0x01, 0x10 }, want[6] = { 0x89, 0x1d, 0x68, 0xee, 0x01, 0x10 };   /* mov [0x1001ee68], edi -> ebx */
+    BYTE cur[6]; DWORD base = (DWORD)(DWORD_PTR)m; void *o;
+    if (!g_gm_mode) return;
+    if (base != 0x10000000) {                                /* relocated: the operand moves with the image (the mirror lane saw ZGLIDE at 046C0000) */
+        DWORD a = base + 0x1ee68; BYTE w[6]; memcpy(w, want, 6); memcpy(w + 2, &a, 4);
+        memcpy(cur, (const void *)(DWORD_PTR)(base + 0x1c60), 6);
+        if (cur[0] != 0x89 || cur[1] != 0x3d || memcmp(cur + 2, &a, 4)) { mlog("  glide-mipmap: ZGLIDE+0x1c60 is not `mov [flag], edi` (%02x %02x ...) - off", cur[0], cur[1]); g_gm_mode = 0; return; }
+        g_gm_applied = patch_bytes(base + 0x1c60, cur, w, 6, "ZGLIDE FirstDevice mipmap flag");
+    } else g_gm_applied = patch_bytes(0x10001c60, old, want, 6, "ZGLIDE FirstDevice mipmap flag");
+    if (!g_gm_applied) { g_gm_mode = 0; return; }
+    o = patch_iat(m, "glide2x.dll", "_grTexMipMapMode@12", (void *)gm_MipMapMode);
+    if (o && o != (void *)gm_MipMapMode) *(void **)&p_gm_MipMapMode = o; else if (g_gm_mode >= 2) { mlog("  glide-mipmap: grTexMipMapMode not hooked - nearest mips only"); g_gm_mode = 1; }
+    mlog("  glide-mipmap: on (ZGLIDE at %08lx: mip chains built at upload, %s)", (unsigned long)base, g_gm_mode >= 2 ? "lodBlend forced: trilinear" : "nearest mip");
+}
 static DWORD g_tp_reported;
 static void terrain_pops_report(void) {
     g_tp_reported = g_frame;
@@ -168,6 +196,9 @@ static void terrain_pops_frame(void) {                    /* from the frame hook
 static void apply_terrain_pops(void) {
     char lf[260]; int i;
     apply_shade_smooth();
+    g_gm_mode = env_int("I76_GLIDE_MIPMAP", 8, 0); if (g_gm_mode < 0 || g_gm_mode > 2) { mlog("  glide-mipmap: %d not 1 / 2 - off", g_gm_mode); g_gm_mode = 0; }
+    if (g_gm_mode && g_exe == EXE_NITRO) { mlog("  glide-mipmap: Nitro - off"); g_gm_mode = 0; }
+    if (g_gm_mode) mlog("  glide-mipmap: armed (%s; applied when ZGLIDE.DLL loads)", g_gm_mode >= 2 ? "trilinear" : "nearest mip");
     g_sc_on = env_flag("I76_SHADE_CENSUS", 8, 0) == 1;
     if (g_sc_on && g_exe == EXE_NITRO) { mlog("  shade-census: Nitro - off"); g_sc_on = 0; }
     if (g_sc_on) mlog("  shade-census: on (ZGLIDE grDrawTriangle vertex r histogram; hooked when ZGLIDE loads)");
