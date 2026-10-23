@@ -6940,6 +6940,7 @@ static void tex_census_attach(HMODULE m) {
 #include "polish.c"      /* I76_SIGN_SOUND_RESTART / I76_FADE_NO_FLIP: owner polish 2026-10-20 (before simtick.c: st_sign_sound uses it) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "skymirror.c"   /* I76_SKY_MIRROR=0: the rear-view mirror's pass does not scroll the sky (opt-in; NITRO-PORT s.11) */
+#include "mirrordetail.c" /* I76_MIRROR_DUMP (lab instrument), I76_MIRROR_TERRAIN_MODE: the mirror pass's terrain draw mode (rear-mirror lane 2026-10-23) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
 #define NMP_IN_PROXY
 #include "nitro_mp.c"     /* Nitro only: ARENA+ ANet 2 layer (nitro-mp-design lane, docs/records/NITRO-MP-DESIGN-2026-10-21.md) */
@@ -9052,7 +9053,7 @@ static void apply_mirror_far(void) {
     BYTE want[5] = { 0x68 }; char v[16]; DWORD n = env_str("I76_MIRROR_FAR", v, sizeof(v)); float f;
     if (n == 0) return;
     f = (float)atof(v);
-    if (f < 100.0f || f > 600.0f) { mlog("  mirror-far: %s out of range (100..600 m) - not applied", v); return; }
+    if (f < 100.0f || f > 2500.0f) { mlog("  mirror-far: %s out of range (100..2500 m) - not applied", v); return; }   /* 600 -> 2500 (rear-mirror lane 2026-10-23: the mirror's own terrain / road queue runs to it; the depth buckets reach 3796 m) */
     memcpy(want + 1, &f, 4);
     if (patch_bytes(0x0044553c, old, want, 5, "mirror far clip")) mlog("  mirror-far: mirror camera far clip 100 -> %.0f m", f);
 }
@@ -9444,6 +9445,7 @@ static void nitro_dllmain(void) {
     apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
     apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */
     apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick: it may share the cloud constants) */
+    apply_mirror_detail();    /* lab: I76_MIRROR_DUMP / I76_MIRROR_TERRAIN_MODE (Gold only: logs and returns here) */
     {   /* MUSIC (I76_MUSIC_NITRO=0 keeps GOG's own WIN32.dll / audiere CD emulation): the same hooks as Gold, on the exe's
          * WIN32.dll slots; playback through the system winmm's mpegvideo as on Gold; the virtual disc ends at the highest
          * music\N.mp3 present */
@@ -9561,6 +9563,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
         apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick and I76_FRAMERATE_FIXES: it may share the cloud constants) */
+        apply_mirror_detail();    /* lab: I76_MIRROR_DUMP=<N> (mirror bitmap + census), I76_MIRROR_TERRAIN_MODE=<hex> (after apply_terrain_lod: chains the main QueueTerrain call) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
