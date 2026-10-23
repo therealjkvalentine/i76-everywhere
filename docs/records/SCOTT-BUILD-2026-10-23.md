@@ -9,7 +9,7 @@ user's own files). Repo commits `6bdba60`, `e85585f`, `98d96e1`, `4b28e82` (main
 
 | what | where |
 |---|---|
-| the zip | `C:\Users\james\i76-uncap-lab\downloads\scott\Interstate76-i76-everywhere-scott-20261023.zip` (83 files, 2,881 KB; md5 in s.1) and `<zip>.MD5SUMS` |
+| the zip | `C:\Users\james\i76-uncap-lab\downloads\scott\Interstate76-i76-everywhere-scott-20261023.zip` - **2,881,558 B, 83 files, md5 `41a1b508`** (repo ce8ffc5; `<zip>.MD5SUMS` beside it). The gate ran on the zip packed from 4b28e82 (md5 c62e73d4); the final zip differs from it only in README-SCOTT.md, VERSION.txt and MD5SUMS text - every binary, script, preset and conf is byte-identical (the binaries' md5s are in s.1) |
 | GitHub | **draft pre-release** `scott-20261023` on `therealjkvalentine/i76-everywhere` (public repo), asset = the zip, body = README-SCOTT.md, target main. NOT published: `gh release view scott-20261023`; publish with `gh release edit scott-20261023 --draft=false` after the owner's go. Until then the URL reads `releases/tag/untagged-...` (GitHub creates the tag on publish). |
 | packer | `tools\package-scott.ps1 -Proxy <dll> -ProxyCommit <sha> -DgVoodooDir <unpacked dgVoodoo2_87_3.zip> -AhkDir <AutoHotkeyU32.exe folder>` (stage kept in lab `builds\scott-20261023\stage`) |
 | the launcher logic | `tools\scott\i76e-prepare.ps1` (run by every PLAY*.bat before the game), `tools\scott\Apply-Shell-Keys.ps1` + `shell-keys-patch.json`, `tools\scott\README-SCOTT.md` |
