@@ -37,8 +37,44 @@
 static DWORD g_md_dump_n, g_md_mode, g_md_on, g_md_every, g_md_calls;
 static DWORD g_md_next_upload, g_md_next_tmir, g_md_next_tmain;
 static DWORD g_md_redraws, g_md_dumps, g_md_pal_done;
-typedef struct { DWORD leaves, texnull, big, forced; DWORD modes[8], modev[8]; int verts; } md_pass_t;
+typedef struct { DWORD leaves, texnull, big, forced; DWORD modes[8], modev[8]; int verts; DWORD lvl[8]; } md_pass_t;
 static md_pass_t g_md_mir, g_md_main, g_md_main_last;
+static float g_md_tex;          /* I76_MIRROR_TEX=<f>: the mirror's leaves re-pick their texture level as a 640 x f wide view would (0 = the picker's 256) */
+static DWORD g_md_pal;          /* I76_MIRROR_PAL=1: the mirror pixels remapped from the 8-bit build's palette space to the hardware build's (md_remap_bitmap below) */
+static DWORD g_md_setrep;
+static DWORD g_md_m16;          /* I76_MIRROR_M16=1: the mirror's terrain leaves sample the main view's .m16 art, quantised into the display palette (md_m16_copy) */
+typedef struct { DWORD src; BYTE *copy; } md_m16_t;
+static md_m16_t g_m16[16]; static int g_m16_n;
+static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(0x005a4588 + 8 * l) == tex || *(DWORD *)(0x005a458c + 8 * l) == tex)) return l; for (l = 0; l < g_m16_n; l++) if ((DWORD)(DWORD_PTR)g_m16[l].copy == tex) return md_level_of(g_m16[l].src); return 7; }
+/* The .m16 terrain texture (raw file: dword w, dword 0xc0000000 | h, w x h palette indices, then dword count + count RGB565 words;
+ * 0x42ee21..0x42ee49 / 0x42ef20) becomes an 8-bit texture of the same shape (dword w, dword 0x40000000 | h, w x h display-palette
+ * indices): each embedded palette entry is mapped once to the nearest colour of the context palette 0x5dcfa8 (0xff, the colour key,
+ * never a target). The 8-bit build's own terrain art (what the mirror sampled) is a different, low-contrast drawing in another tint
+ * (t05: peach vs the .m16's tan sand with dark speckles) - the owner's "no texture, different colour" 2026-10-23. */
+static BYTE *md_m16_copy(DWORD src) {
+    int i; BYTE *m = (BYTE *)(DWORD_PTR)src, *out, *ctx = (BYTE *)0x005dcfa8; DWORD w, h, n, k, cnt; WORD *pw; BYTE map[256];
+    for (i = 0; i < g_m16_n; i++) if (g_m16[i].src == src) return g_m16[i].copy;
+    if (g_m16_n >= 16 || !m) return NULL;
+    w = *(DWORD *)m; h = *(DWORD *)(m + 4);
+    if (!(h & 0x80000000)) return NULL;                          /* no embedded palette: not an .m16 */
+    h &= 0x1fffffff; n = w * h;
+    if (w == 0 || h == 0 || w > 1024 || h > 1024) return NULL;
+    cnt = *(DWORD *)(m + 8 + n); pw = (WORD *)(m + 8 + n + 4);
+    if (cnt == 0 || cnt > 256) return NULL;
+    for (k = 0; k < 256; k++) {
+        int r, g, b, j, bj = 0; DWORD bd = 0xffffffff; WORD c = k < cnt ? pw[k] : 0;
+        r = ((c >> 11) & 31) * 255 / 31; g = ((c >> 5) & 63) * 255 / 63; b = (c & 31) * 255 / 31;
+        for (j = 0; j < 255; j++) { int dr = r - ctx[j * 3], dg = g - ctx[j * 3 + 1], db = b - ctx[j * 3 + 2]; DWORD d2 = (DWORD)(dr * dr + dg * dg + db * db); if (d2 < bd) { bd = d2; bj = j; } }
+        map[k] = (BYTE)bj;
+    }
+    out = (BYTE *)VirtualAlloc(NULL, 8 + n, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (!out) return NULL;
+    *(DWORD *)out = w; *(DWORD *)(out + 4) = 0x40000000 | h;
+    for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
+    g_m16[g_m16_n].src = src; g_m16[g_m16_n].copy = out; g_m16_n++;
+    mlog("  mirror-m16: level %d .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette -> 8-bit copy %p for the mirror pass", md_level_of(src), m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, out);
+    return out;
+}
 
 static void md_count(md_pass_t *p, DWORD mode, DWORD tex, int big) {
     int i;
@@ -48,14 +84,24 @@ static void md_count(md_pass_t *p, DWORD mode, DWORD tex, int big) {
         if (!p->modes[i]) { p->modev[i] = mode; p->modes[i] = 1; return; }
     }
 }
-static void __cdecl md_after_pick(DWORD leaf) {                /* after 0x4923f0: its globals are set, the record is not built yet */
+static void __cdecl md_after_pick(DWORD leaf, float invz) {    /* after 0x4923f0: its globals are set, the record is not built yet */
     DWORD cam = *(volatile DWORD *)0x006442d4;
     DWORD mode = *(volatile DWORD *)0x0059c548, tex = *(volatile DWORD *)0x0059c558;
     int big = leaf ? *(int *)(DWORD_PTR)(leaf + 4) > 8 : 0;
     if (cam == 0x00608c80) {
         if (g_md_mode) { *(volatile DWORD *)0x0059c548 = g_md_mode; g_md_mir.forced++; }
-        md_count(&g_md_mir, mode, tex, big);
-    } else md_count(&g_md_main, mode, tex, big);
+        if (g_md_tex > 0.0f) {                                   /* the picker's level for a 640 x f wide view: level = 0x88 - exponent(W x 40 x 1/z), clamped 0..6 */
+            float v = (640.0f * 40.0f * g_md_tex) * invz; int e = (*(int *)&v) >> 23, l = 0x88 - e; DWORD t;
+            if (l < 0) l = 0; else if (l > 6) l = 6;
+            t = *(DWORD *)(0x005a4588 + 8 * l);                  /* the 8-bit variant (the mirror bitmap is kind 0) */
+            if (t) { *(volatile DWORD *)0x0059c558 = t; tex = t; }
+        }
+        if (g_md_m16) {                                          /* the .m16 art of the level the leaf got, as an 8-bit copy */
+            int l = md_level_of(tex); DWORD m = l < 7 ? *(DWORD *)(0x005a458c + 8 * l) : 0; BYTE *c = m ? md_m16_copy(m) : NULL;
+            if (c) { *(volatile DWORD *)0x0059c558 = (DWORD)(DWORD_PTR)c; tex = (DWORD)(DWORD_PTR)c; }
+        }
+        md_count(&g_md_mir, mode, tex, big); g_md_mir.lvl[md_level_of(tex)]++;
+    } else { md_count(&g_md_main, mode, tex, big); g_md_main.lvl[md_level_of(tex)]++; }
 }
 static __declspec(naked) void md_pick_stub(void) {             /* in place of `push 0x4923f0` at 0x490f96: the fan calls this cdecl(leaf, invz); eax is dead after */
     __asm {
@@ -64,10 +110,38 @@ static __declspec(naked) void md_pick_stub(void) {             /* in place of `p
         mov  eax, 0x004923f0
         call eax
         add  esp, 8
-        push dword ptr [esp + 4]
+        push dword ptr [esp + 8]
+        push dword ptr [esp + 8]
         call md_after_pick
-        add  esp, 4
+        add  esp, 8
         ret
+    }
+}
+static void md_set_report(void) {                              /* once: the 7-level terrain texture set 0x5a4588 (8-bit variant, .m16 variant); raw files: dword w, dword flags | h, texels from +8 */
+    int l, k;
+    for (l = 0; l < 7; l++) for (k = 0; k < 2; k++) {
+        BYTE *t = *(BYTE **)(0x005a4588 + 8 * l + 4 * k); DWORD w, h, n, i, ns = 0; BYTE cnt[256];
+        if (!t) { mlog("  mirror-detail: texset level %d %s: NULL", l, k ? "m16" : "8bit"); continue; }
+        w = *(DWORD *)t; h = *(DWORD *)(t + 4);
+        if (w == 0 || w > 1024 || (h & 0x1fffffff) == 0 || (h & 0x1fffffff) > 1024) { mlog("  mirror-detail: texset level %d %s @%p: header %08lx %08lx not a texture", l, k ? "m16" : "8bit", t, (unsigned long)w, (unsigned long)h); continue; }
+        n = w * (h & 0x1fffffff); ZeroMemory(cnt, sizeof cnt);
+        for (i = 0; i < n; i++) cnt[t[8 + i]] = 1;
+        for (i = 0; i < 256; i++) ns += cnt[i];
+        mlog("  mirror-detail: texset level %d %s @%p: %lux%lu flags %08lx, %lu distinct texel values%s", l, k ? "m16" : "8bit", t, (unsigned long)w, (unsigned long)(h & 0x1fffffff), (unsigned long)(h & 0xe0000000), (unsigned long)ns,
+             (h & 0x80000000) ? " (embedded palette after the texels)" : "");
+    }
+    {   char path[MAX_PATH]; HANDLE f; DWORD wr; WORD *tab = *(WORD **)0x00608660;
+        wsprintfA(path, "%s\\mirror-uptab.bin", g_dir);
+        f = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+        if (f != INVALID_HANDLE_VALUE) { WriteFile(f, (void *)0x00608980, 512, &wr, NULL); CloseHandle(f); }
+        if (tab && !IsBadReadPtr(tab, 65536 * 2)) {
+            wsprintfA(path, "%s\\mirror-tab.bin", g_dir);
+            f = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+            if (f != INVALID_HANDLE_VALUE) { WriteFile(f, tab, 65536 * 2, &wr, NULL); CloseHandle(f); }
+        }
+        mlog("  mirror-detail: upload table 0x608980 -> mirror-uptab.bin (entry 0xea = 0x%04x, 0xef = 0x%04x); .tab %p%s; context palette 0xea = (%u,%u,%u)",
+             ((WORD *)0x00608980)[0xea], ((WORD *)0x00608980)[0xef], tab, tab ? " -> mirror-tab.bin" : " (none loaded)",
+             ((BYTE *)0x005dcfa8)[0xea * 3], ((BYTE *)0x005dcfa8)[0xea * 3 + 1], ((BYTE *)0x005dcfa8)[0xea * 3 + 2]);
     }
 }
 /* I76_MIRROR_LOD=<m> (1..256): the mirror pass's terrain LOD factor relative to the stock constants, whatever I76_TERRAIN_LOD gave the
@@ -119,15 +193,63 @@ static void md_dump(void) {
     CloseHandle(f);
     g_md_dumps++;
 }
+/* I76_MIRROR_PAL=1: the mirror's indices are 8-bit-build palette indices (X.act): the 8-bit textures, the clear 0xea, the cloud
+ * colour 0xef and the shared .lum shade tables were all made for it, while the hardware build displays everything through
+ * X_16.act (the WRLD of miss16\X.MSN names it; K1e4) - ZGLIDE converts the uploaded 8-bit mirror with that one (its
+ * SetTexturePalette export is a stub: `xor eax, eax; ret`), so where the two palettes differ (t05: 0xea sky (175,213,241) in
+ * X.act, (128,170,173) in X_16.act; the cloud texels come out peach, the sand ochre) the mirror shows the wrong colours - the
+ * owner's "orange sky" 2026-10-23. Fix: before each upload, map every pixel from X.act space to the nearest colour of X_16.act
+ * (one 256-entry table per mission, built once; the pair is found by matching the context palette 0x5dcfa8 against the 16
+ * X_16.act palettes compiled in (mirrorpal.h) - best sum of absolute differences, since the context copy carries the monitor
+ * brightness gamma 0x4797f0). A mission whose palette matches nothing well (a stem with no 8-bit twin, or a mod) is left alone. */
+#include "mirrorpal.h"
+static BYTE g_mp_map[256]; static int g_mp_pair = -1, g_mp_tried; static DWORD g_mp_ctxsum;
+static void md_remap_bitmap(void) {
+    BYTE *bm = *(BYTE **)0x00608cbc, *px, *ctx = (BYTE *)0x005dcfa8; DWORD w, h, n, i, sum = 0;
+    if (!bm) return;
+    w = *(DWORD *)bm; h = *(WORD *)(bm + 4); px = *(BYTE **)(bm + 0x14);
+    if (!px || w == 0 || h == 0 || w > 1024 || h > 1024) return;
+    for (i = 0; i < 768; i++) sum = sum * 31 + ctx[i];
+    if (sum != g_mp_ctxsum || !g_mp_tried) {                     /* a new palette (mission change): identify the pair again */
+        int best = -1, k, j; DWORD bestd = 0xffffffff;
+        g_mp_ctxsum = sum; g_mp_tried = 1; g_mp_pair = -1;
+        for (k = 0; k < MP_PAIRS; k++) {
+            DWORD dd = 0; for (i = 0; i < 768; i++) { int t = (int)ctx[i] - (int)mp_pairs[k].p16[i]; dd += (DWORD)(t < 0 ? -t : t); }
+            if (dd < bestd) { bestd = dd; best = k; }
+        }
+        if (best >= 0 && bestd < 768 * 24) {                     /* within 24/channel on average: the gamma copy of that palette */
+            const BYTE *p8 = mp_pairs[best].p8, *p16 = mp_pairs[best].p16;
+            for (i = 0; i < 256; i++) {
+                int r = p8[i * 3], g = p8[i * 3 + 1], b = p8[i * 3 + 2], bj = (int)i; DWORD bd = 0xffffffff;
+                for (j = 0; j < 255; j++) {                      /* 0xff = the texture colour key: never a target */
+                    int dr = r - p16[j * 3], dg = g - p16[j * 3 + 1], db = b - p16[j * 3 + 2]; DWORD d2 = (DWORD)(dr * dr + dg * dg + db * db);
+                    if (d2 < bd) { bd = d2; bj = j; }
+                }
+                g_mp_map[i] = (BYTE)bj;
+            }
+            g_mp_map[0xff] = 0xff;
+            g_mp_pair = best;
+            mlog("  mirror-pal: context palette matches %s_16.act (sum of differences %lu): mirror pixels remapped %s.act -> nearest %s_16.act colour (0xea -> 0x%02x, 0xef -> 0x%02x)",
+                 mp_pairs[best].stem, (unsigned long)bestd, mp_pairs[best].stem, mp_pairs[best].stem, g_mp_map[0xea], g_mp_map[0xef]);
+        } else mlog("  mirror-pal: context palette matches no compiled-in _16 palette (best %s, sum %lu) - mirror left as is", best >= 0 ? mp_pairs[best].stem : "-", (unsigned long)bestd);
+    }
+    if (g_mp_pair < 0) return;
+    n = w * h;
+    for (i = 0; i < n; i++) px[i] = g_mp_map[px[i]];
+}
 static void __cdecl md_upload(DWORD tex, const char *name) {   /* 0x42ec20 at 0x445a3c: the finished mirror (scene + frame mask) goes up as "RearView" */
     g_md_redraws++;
+    if (g_md_pal) md_remap_bitmap();                             /* before the dump: the PNGs show what is uploaded */
     if (g_md_dump_n && g_md_redraws % g_md_dump_n == 0 && g_md_dumps < 400) {
         char mm[160], mn[160]; BYTE *bm = *(BYTE **)0x00608cbc;
         md_dump();
+        if (!g_md_setrep) { g_md_setrep = 1; md_set_report(); }
         md_modes_txt(&g_md_mir, mm, sizeof mm); md_modes_txt(&g_md_main_last, mn, sizeof mn);
-        mlog("  mirror-detail: redraw %lu dumped: mirror pass %d verts, %lu leaves (big %lu, tex null %lu, forced %lu) modes {%s}; main pass %d verts, %lu leaves (big %lu, tex null %lu) modes {%s}; options terrain-detail %u textures %u mirror %u visibility %u; bitmap %lux%lu kind %lu",
+        mlog("  mirror-detail: redraw %lu dumped: mirror pass %d verts, %lu leaves (big %lu, tex null %lu, forced %lu) modes {%s} levels [%lu %lu %lu %lu %lu %lu %lu ?%lu]; main pass %d verts, %lu leaves (big %lu, tex null %lu) modes {%s} levels [%lu %lu %lu %lu %lu %lu %lu ?%lu]; options terrain-detail %u textures %u mirror %u visibility %u; bitmap %lux%lu kind %lu",
              (unsigned long)g_md_redraws, g_md_mir.verts, (unsigned long)g_md_mir.leaves, (unsigned long)g_md_mir.big, (unsigned long)g_md_mir.texnull, (unsigned long)g_md_mir.forced, mm,
+             (unsigned long)g_md_mir.lvl[0], (unsigned long)g_md_mir.lvl[1], (unsigned long)g_md_mir.lvl[2], (unsigned long)g_md_mir.lvl[3], (unsigned long)g_md_mir.lvl[4], (unsigned long)g_md_mir.lvl[5], (unsigned long)g_md_mir.lvl[6], (unsigned long)g_md_mir.lvl[7],
              g_md_main_last.verts, (unsigned long)g_md_main_last.leaves, (unsigned long)g_md_main_last.big, (unsigned long)g_md_main_last.texnull, mn,
+             (unsigned long)g_md_main_last.lvl[0], (unsigned long)g_md_main_last.lvl[1], (unsigned long)g_md_main_last.lvl[2], (unsigned long)g_md_main_last.lvl[3], (unsigned long)g_md_main_last.lvl[4], (unsigned long)g_md_main_last.lvl[5], (unsigned long)g_md_main_last.lvl[6], (unsigned long)g_md_main_last.lvl[7],
              *(BYTE *)0x654b82, *(BYTE *)0x654b8b, *(BYTE *)0x654b8d, *(BYTE *)0x654b8a,
              bm ? (unsigned long)*(DWORD *)bm : 0ul, bm ? (unsigned long)*(WORD *)(bm + 4) : 0ul, bm ? (unsigned long)*(DWORD *)(bm + 8) : 0ul);
     }
@@ -165,9 +287,12 @@ static void apply_mirror_detail(void) {
         if (g_md_fa < 1.0f || g_md_fa > 256.0f) g_md_fa = 1.0f;
         if (g_md_fb < 1.0f || g_md_fb > 256.0f) g_md_fb = 1.0f;
     }
-    if (!g_md_dump_n && !g_md_mode && g_md_lod <= 0.0f) return;
-    if (g_exe == EXE_NITRO) { mlog("  mirror-detail: not ported to Nitro - off"); g_md_dump_n = g_md_mode = 0; g_md_lod = 0.0f; return; }
-    if (g_md_dump_n || g_md_mode) {
+    if (env_str("I76_MIRROR_TEX", v, sizeof(v))) { g_md_tex = (float)atof(v); if (g_md_tex < 0.25f || g_md_tex > 16.0f) { mlog("  mirror-tex: %s out of range (0.25..16) - not applied", v); g_md_tex = 0.0f; } }
+    g_md_pal = env_flag("I76_MIRROR_PAL", 8, 0) == 1;
+    g_md_m16 = env_flag("I76_MIRROR_M16", 8, 0) == 1;
+    if (!g_md_dump_n && !g_md_mode && g_md_lod <= 0.0f && g_md_tex <= 0.0f && !g_md_pal && !g_md_m16) return;
+    if (g_exe == EXE_NITRO) { mlog("  mirror-detail: not ported to Nitro - off"); g_md_dump_n = g_md_mode = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
+    if (g_md_dump_n || g_md_mode || g_md_tex > 0.0f || g_md_pal || g_md_m16) {
         a = (DWORD)(DWORD_PTR)md_pick_stub; memcpy(push_new + 1, &a, 4);
         n += patch_bytes(0x00490f96, push_old, push_new, 5, "terrain leaf texture picker (mirror-detail)");
         n += st_call_site(0x004020a4, 0x00490a00, (void *)md_terrain_main, &g_md_next_tmain, "main QueueTerrain call (mirror-detail)");
@@ -175,10 +300,12 @@ static void apply_mirror_detail(void) {
     } else n = 3;
     n += st_call_site(0x0044594e, 0x00490a00, (void *)md_terrain_mir, &g_md_next_tmir, "mirror QueueTerrain call (mirror-detail)");
     g_md_on = n == 4;
-    if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override / mirror LOD disabled)", n); g_md_mode = 0; g_md_dump_n = 0; g_md_lod = 0.0f; return; }
-    mlog("  mirror-detail: on - %s%s%s%s%s", g_md_dump_n ? "dump every N redraws" : "", g_md_dump_n && g_md_mode ? "; " : "",
-         g_md_mode ? "mirror terrain leaves drawn in a forced mode" : "", (g_md_dump_n || g_md_mode) && g_md_lod > 0.0f ? "; " : "",
-         g_md_lod > 0.0f ? "mirror terrain LOD of its own" : "");
+    if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override / mirror LOD / tex / pal / m16 disabled)", n); g_md_mode = 0; g_md_dump_n = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
+    mlog("  mirror-detail: on -%s%s%s%s%s%s", g_md_dump_n ? " dump every N redraws;" : "", g_md_mode ? " forced terrain mode;" : "",
+         g_md_lod > 0.0f ? " mirror terrain LOD of its own;" : "", g_md_tex > 0.0f ? " mirror texture level re-picked;" : "", g_md_pal ? " pixels remapped to the _16 palette;" : "", g_md_m16 ? " terrain from the .m16 art;" : "");
+    if (g_md_tex > 0.0f) mlog("  mirror-tex: the mirror's terrain leaves take the texture level a %.0f px wide view would at the same distance (the picker used the mirror's 256)", 640.0f * g_md_tex);
+    if (g_md_m16) mlog("  mirror-m16: the mirror pass samples the main view's .m16 terrain art, quantised into the display palette once per level");
+    if (g_md_pal) mlog("  mirror-pal: the mirror's pixels are remapped from the 8-bit build's palette to the nearest colours of the hardware build's before each upload (%d palette pairs compiled in)", MP_PAIRS);
     if (g_md_lod > 0.0f) mlog("  mirror-lod: the mirror pass splits terrain at x%.2f the stock distance (height-error / %.2f); the main view keeps x%.2f / %.2f", g_md_lod, g_md_lod, g_md_fa, g_md_fb);
     if (g_md_dump_n) mlog("  mirror-detail: dump every %lu mirror redraws to %s\\mirror-<redraw>.bmp (palette 0x5dcfa8 -> mirror-pal.bin)", (unsigned long)g_md_dump_n, g_dir);
     if (g_md_mode) mlog("  mirror-detail: mirror pass terrain mode forced to 0x%lx (span drawer 0x%08lx after the queue's | 8 / & ~0x10)", (unsigned long)g_md_mode,
