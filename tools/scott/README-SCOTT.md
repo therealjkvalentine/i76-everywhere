@@ -156,9 +156,13 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
    the music play in missions? Does your controller work?
 4. **Your monitor.** Size, whether the picture fills it correctly (see above).
 
-When you report, include: your monitor size and graphics card, which launcher, and the two log files the game
-writes in its folder on every start - **`mciproxy.log`** (what our fixes did, and any crash) and **`u32x.log`**
-(the mouse mapping). Screenshots help a lot.
+When you report, include: your monitor size and graphics card, which launcher, and the log file the game writes
+in its folder on every start - **`mciproxy.log`** (what our fixes did, the display and pointer mapping, and any
+crash). Screenshots help a lot.
+
+Two things are different on the GOG Galaxy build of the game (the setup tells you which build you have): the
+music comes from GOG's own player rather than our fix, and a gamepad / wheel input can lag up to one simulation
+step (42 ms) behind a key press. Both are expected; we would still like to hear whether you notice the second.
 
 ## If something goes wrong
 
@@ -167,7 +171,7 @@ writes in its folder on every start - **`mciproxy.log`** (what our fixes did, an
 | Black window, a tiny 4:3 window, or a 3dfx logo at start | dgVoodoo (the graphics layer) ignored our settings and used a global file. Delete `%APPDATA%\dgVoodoo\dgVoodoo.conf` (press Win+R, type `%APPDATA%\dgVoodoo`, Enter) and start again. |
 | PLEASE STAND BY forever | You are on Remote Desktop (the 3D cannot start there - use the PC itself), or something else grabbed the screen. Close it from Task Manager, start again, send `mciproxy.log`. |
 | Picture stretched / off-centre / pointer misses the buttons | `PLAY.bat --display WxH` with your monitor's real size; or try `PLAY-16x10.bat`. Tell us either way. |
-| Low frame rate | `PLAY.bat --no-supersample`. Also close GOG Galaxy's overlay and any screen-recording / RGB software. |
+| Low frame rate | `PLAY.bat --no-supersample`. Also close GOG Galaxy's overlay and any screen-recording / RGB software. There is no fps counter in the game; "smooth or not" is what we want to hear. |
 | No music in missions | On the Galaxy build of the game GOG's own music player is used (our fix cannot attach there): check that the game folder has a `music` folder with `2.mp3` ... `17.mp3`, and the AUDIO slider in the game's options. On the other build our fix plays the tracks. |
 | Gamepad / wheel has no buttons | Plug it in before starting. The button layer needs our key layout (the default). |
 | The game crashes | Send `mciproxy.log` - a line starting `CRASH:` says where. (One harmless `CRASH ... exe+0x99997` line at the very start is normal on the Galaxy build: a 1997 CPU-speed probe that Windows refuses; the game handles it itself.) |
