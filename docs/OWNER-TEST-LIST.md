@@ -1073,3 +1073,22 @@ Open items from this session:
 - EMULATOR: desktop "i76 x86box ref" now runs emu\PLAY-P166-GOLD.bat (Gold to its main menu by itself, ~1.5 min hands off); the retail launcher
   PLAY-P166-LOGGED.bat is unchanged. Gold path not yet booted end to end.
 - GAME TYPES: replacing the ARENA+ / CO-OP boxes with two game-type entries is ~2-3 lane days; held for the owner's go on that cost.
+
+## 2026-10-23 morning (owner's answers; main)
+
+- SKY: owner picks ONE PASS (I76_SKY_MIRROR=0); in every new owner preset below.
+- FAR CLIP at I76_TERRAIN_LOD 24 (lab autotest\owner-farclip-crash.ps1, exp-polish2, proxy 81808610 = 7dd568c; drive 6 s, F6 hood 4 s,
+  B binoculars 4 s): **2500 m CRASHES the binoculars on t01, 2 of 2** (exe+0x91919 in the edge split, cam cb 0x4071a0, i.e. the int16
+  vertex wall; the 28000 vertex guard does not prevent it), with and without the shade switches. 2400 m: t01 ok (n 1). **2300 m: no
+  crash in 8 runs** (t01 x3, t03, t05, t09, t12, t15); binoculars 40-56 fps (2000 m: 43.5, so the binocular cost predates this). m03
+  direct boot faults at frame 0 (EIP 0, before any terrain) in this copy - unrelated to the far clip, open. PgUp x8 did not visibly
+  zoom (fps unchanged): the cockpit-zoom edge is NOT tested. Owner presets use 2300; the proxy's 2500 cap is too high at LOD 24.
+- MORPH SHADE (terrainmorph.c 7dd568c): I76_TERRAIN_MORPH_SHADE=<1..4> (the shade fades over x times the height band) and
+  I76_TERRAIN_MORPH_BIG=1|2 (the 64+ sample tiles blended: 1 = height and shade, the sliding form; 2 = shade only). Instrument, t05 direct
+  boot 25 s, 2300 m, n 2 each: per-split one-pass shade step p95 0.023-0.029 (MORPH) / 0.026-0.027 (SHADE x3 + BIG 2) / 0.020-0.021
+  (BIGBLEND); frame max jump p95 12-15 px in all three except one SHADE run (31 px, a different path). Run-to-run spread is as large as
+  any difference: the boot drive is not a fixed route, so this says "no harm, no measured gain", and the owner's eye decides.
+- TO TEST (exp-polish2): PLAY-OWNER-2300-MORPH (control) / -SHADE / -BIGBLEND, all one-pass sky + 2300 m.
+- EMULATOR: play disk images\w95pb-hdd-memlog-20261023.img (copy of 20261016 as of 06:25 today, MSDOS.SYS BootDelay=0 Logo=0;
+  owner_log.py picks the newest automatically); the 20261016 disk is no longer used. Owner: leave 86Box paused at the menu between uses.
+- GAME TYPES: lane started (phase 1, host side in a lab copy).
