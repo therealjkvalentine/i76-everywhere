@@ -98,7 +98,9 @@ static void __stdcall sc_DrawTriangle(const void *a, const void *b, const void *
     g_sc_tris++;
     p_sc_DrawTriangle(a, b, c);
 }
+static DWORD g_tp_reported;
 static void terrain_pops_report(void) {
+    g_tp_reported = g_frame;
     if (g_sc_on && g_sc_tris) {
         char line[900]; size_t n = 0; DWORD tot = 3 * g_sc_tris, i, levels = 0;
         for (i = 0; i < 256; i++) if (g_sc_hist[i] * 500 >= tot) levels++;          /* bins holding >= 0.2 % */
@@ -155,6 +157,10 @@ static void apply_shade_smooth(void) {
          g_ss_snap[24] & 0xff, g_ss_snap[25] & 0xff, g_ss_snap[26] & 0xff, g_ss_snap[27] & 0xff, g_ss_snap[28] & 0xff, g_ss_snap[29] & 0xff, g_ss_snap[30] & 0xff, g_ss_snap[31] & 0xff,
          g_ss_snap[32] & 0xff, g_ss_snap[33] & 0xff, g_ss_snap[34] & 0xff, g_ss_snap[35] & 0xff, g_ss_snap[36] & 0xff, g_ss_snap[37] & 0xff, g_ss_snap[38] & 0xff, g_ss_snap[39] & 0xff,
          g_ss_snap[40] & 0xff, g_ss_snap[41] & 0xff, g_ss_snap[42] & 0xff, g_ss_snap[43] & 0xff, g_ss_snap[44] & 0xff, g_ss_snap[45] & 0xff, g_ss_snap[46] & 0xff, g_ss_snap[47] & 0xff);
+}
+static void terrain_pops_frame(void) {                    /* from the frame hook: every frame */
+    if (g_ss_on) ss_frame();
+    if ((g_sc_on || g_tp_log) && g_frame - g_tp_reported >= 600) terrain_pops_report();   /* clutter_frame_wrap reports too when the clutter switch is on; the guard keeps one per 600 */
 }
 static void apply_terrain_pops(void) {
     char lf[260]; int i;

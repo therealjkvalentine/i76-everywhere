@@ -1387,7 +1387,7 @@ static float g_turn_k = 1.0f, g_turn_g = 1.0f;               /* per-step turn sc
 static int g_coll_dup;                                       /* collision pass: the contact just found repeats last frame's (below) */
 static void radar_ping_flush(void);
 static DWORD g_frame;                                        /* proxy frame counter, advanced by the frame hook */
-static int g_ss_on; static void ss_frame(void);              /* terrainpops.c: I76_SHADE_SMOOTH (called from the frame hook below) */
+static void terrain_pops_frame(void);                        /* terrainpops.c: I76_SHADE_SMOOTH table rebuild, its own 600-frame report (called from the frame hook below) */
 static DWORD g_voltest_frame; static int g_voltest_level;    /* I76_VOLUME_TEST */
 static int g_tel_on;                                         /* I76_TELEMETRY: publish the completed frame (below, with the telemetry export) */
 static void tel_frame(void);
@@ -1529,7 +1529,7 @@ clock:
     }
     if (g_rpl_on) rpl_pre();                                /* I76_REPLAY: log the frame just done; place the car at the start */
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
-    if (g_ss_on) ss_frame();                                /* I76_SHADE_SMOOTH: rebuild the interpolated grey table when the stock one changed (terrainpops.c) */
+    terrain_pops_frame();                                   /* terrainpops.c: I76_SHADE_SMOOTH table rebuild; the lab instruments' 600-frame report */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
     if (g_bbox_sweep) { if (g_simtick) sign_pend_frame(); else sign_sweep(); }   /* I76_BREAKABLE_BOX=3: posts the last step drove through (tick: sweep at the tick's end, simtick.c) */
