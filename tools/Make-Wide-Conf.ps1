@@ -57,6 +57,12 @@ param(
     [ValidateRange(1.0, 4.0)] [double]$Scale = 2.0,     # [Glide] Resolution = Scale x the display per axis
     [ValidateRange(1024, 16384)] [int]$MaxSide = 8192,  # cap per side (the factor then shrinks on both axes)
     [switch]$NoPreset,          # write only the conf
+    # the presets in <GameDir>\presets whose I76_ASPECT / I76_U32X_MENU_ASPECT get this display (2026-10-23, tester build:
+    # the tick presets carry the same two keys); names, or one "a,b" string from powershell -File
+    [string[]]$Presets = @('best-wide', 'best-wide-balanced'),
+    # 2026-10-23 (tester build): a display no wider than 4:3 gets the same conf at its own shape (stretched_ar at 4:3 = the
+    # stock picture; the proxy ignores a 4:3 I76_ASPECT) instead of a refusal, so one launcher serves every monitor
+    [switch]$AllowNarrow,
     [switch]$WhatIf             # print what would be written, write nothing
 )
 $ErrorActionPreference = 'Stop'
@@ -74,7 +80,11 @@ if ($Width -le 0 -or $Height -le 0) {
     } catch { Die "could not read the display size; pass -Width and -Height" }
 }
 $aspect = $Width / $Height
-if ($aspect -le (4.0 / 3.0 + 0.01)) { Die "display ${Width}x${Height} (aspect $([Math]::Round($aspect,3))) is not wider than 4:3; best-wide has nothing to widen. Use best-120." }
+if ($aspect -le (4.0 / 3.0 + 0.01)) {
+    if ($AllowNarrow) { Write-Host "display ${Width}x${Height} (aspect $([Math]::Round($aspect,3))) is not wider than 4:3: the conf takes its shape (a 4:3 picture, nothing widened; -AllowNarrow)." -ForegroundColor Yellow }
+    else { Die "display ${Width}x${Height} (aspect $([Math]::Round($aspect,3))) is not wider than 4:3; best-wide has nothing to widen. Use best-120 (or -AllowNarrow)." }
+}
+$Presets = @($Presets | ForEach-Object { "$_" -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
 
 if (-not (Test-Path -LiteralPath $Template)) { Die "template conf not found: $Template" }
 $tplBytes = [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $Template).Path)
@@ -120,10 +130,10 @@ if ($WhatIf) { Write-Host "  -WhatIf: nothing written." } else {
 }
 
 if (-not $NoPreset) {
-    $widePresets = @(@('best-wide', 'best-wide-balanced') | ForEach-Object { Join-Path $GameDir "presets\$_.psd1" } |
+    $widePresets = @($Presets | ForEach-Object { Join-Path $GameDir "presets\$_.psd1" } |
         Where-Object { Test-Path -LiteralPath $_ })
     if (-not $widePresets.Count) {
-        Write-Host "  presets\best-wide.psd1 / best-wide-balanced.psd1 not in the game folder: no preset adjusted (setup-windows.ps1 copies them)." -ForegroundColor Yellow
+        Write-Host "  none of presets\$($Presets -join ' / ') is in the game folder: no preset adjusted (setup-windows.ps1 copies them)." -ForegroundColor Yellow
     }
     foreach ($presetFile in $widePresets) {
         $presetName = Split-Path -Leaf $presetFile

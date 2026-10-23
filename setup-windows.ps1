@@ -104,7 +104,10 @@ param(
     # the environment variable I76_WIDE_DISPLAY (the older test hook), else the primary display as
     # read here. Pass it when installing over Remote Desktop, where the primary display is the RDP
     # desktop, not the PC's monitor (docs\records\FRESH-INSTALL-CHECK-2026-10-10.md, gap 4).
-    [string]$Display = ''
+    [string]$Display = '',
+    # 2026-10-23 (tester build, tools\package-scott.ps1): a widescreen preset on a display no wider than 4:3 is set up at
+    # that shape (Make-Wide-Conf.ps1 -AllowNarrow: a 4:3 picture, nothing widened) instead of being refused
+    [switch]$AllowNarrow
 )
 
 $ErrorActionPreference = 'Stop'
@@ -116,7 +119,11 @@ if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "pr
     exit 1
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
-$widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced')   # both need dgVoodoo.wide.conf
+# a preset that carries I76_ASPECT needs dgVoodoo.wide.conf sized for the display (best-wide, best-wide-balanced, and since
+# 2026-10-23 the tick presets tick19-42 / scott-preview: read from the preset itself)
+$presetHasAspect = $false
+try { $pe0 = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoGameDir "presets\$Preset.psd1")).Env; $presetHasAspect = [bool]"$($pe0['I76_ASPECT'])" } catch { }
+$widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced' -or $presetHasAspect)
 $wideTool = Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1'
 # The display every conf step below sizes for (step 4's 16:10 / stock conf, step 6's wide conf and
 # presets): -Display, else $env:I76_WIDE_DISPLAY, else the primary display. 0x0 = could not be read
@@ -159,7 +166,11 @@ if ($widePreset -and -not $ControlsOnly) {
         Write-Host "-Preset $Preset needs $wideTool (missing)." -ForegroundColor Red; exit 1
     }
     if ($dispW -le 0 -or ($dispW / $dispH) -le (4.0 / 3.0 + 0.01)) {
-        Write-Host "-Preset $Preset needs a display wider than 4:3 (read: ${dispW}x${dispH}). Use the default best-120." -ForegroundColor Red; exit 1
+        if ($AllowNarrow -and $dispW -gt 0) {
+            Write-Host "-Preset $Preset on a display no wider than 4:3 (${dispW}x${dispH}): the conf takes that shape, nothing is widened (-AllowNarrow)." -ForegroundColor Yellow
+        } else {
+            Write-Host "-Preset $Preset needs a display wider than 4:3 (read: ${dispW}x${dispH}). Use the default best-120." -ForegroundColor Red; exit 1
+        }
     }
     if ($dispW -ne 3440 -or $dispH -ne 1440) {
         Write-Host "Widescreen has only been played on 3440x1440; ${dispW}x${dispH} gets computed values (not tested). PLAY-16x10.bat will start the tested 16:10 picture." -ForegroundColor Yellow
@@ -734,9 +745,12 @@ if (Test-Path $presetSrc) {
     Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $GameDir 'presets') -Force
 }
 if ($widePreset) {
-    # dgVoodoo.wide.conf + this display's W x H in the installed presets\best-wide.psd1 and best-wide-balanced.psd1
+    # dgVoodoo.wide.conf + this display's W x H in the installed presets\best-wide.psd1, best-wide-balanced.psd1 and
+    # (2026-10-23) the preset being set up when it carries I76_ASPECT (the tick presets)
     $global:LASTEXITCODE = 0
-    & $wideTool -GameDir $GameDir -Width $dispW -Height $dispH | ForEach-Object { Write-Host "  wide: $_" }
+    $wideArgs = @{ GameDir = $GameDir; Width = $dispW; Height = $dispH; Presets = @(@('best-wide', 'best-wide-balanced', $Preset) | Select-Object -Unique) }
+    if ($AllowNarrow) { $wideArgs['AllowNarrow'] = $true }
+    & $wideTool @wideArgs | ForEach-Object { Write-Host "  wide: $_" }
     if ($LASTEXITCODE -or -not (Test-Path (Join-Path $GameDir 'dgVoodoo.wide.conf'))) {
         Write-Host "Widescreen conf NOT generated - re-run with the default -Preset best-120." -ForegroundColor Red; exit 1
     }
