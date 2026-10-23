@@ -125,7 +125,7 @@ static void apply_shade_smooth(void) {
     static const DWORD cs[17] = { 0x427edb, 0x427fc3, 0x42834b, 0x42861c, 0x4287bb, 0x428861, 0x429439, 0x42975a, 0x429b77, 0x42b86c, 0x42bb5a, 0x42beac, 0x42c19a, 0x42c509, 0x42c82d, 0x42c969, 0x42cc8d };
     static const DWORD ts[17] = { 0x427f08, 0x427fe4, 0x428378, 0x42865f, 0x4287e8, 0x4288ac, 0x429456, 0x429772, 0x429b8f, 0x42b88a, 0x42bb73, 0x42beca, 0x42c1b3, 0x42c526, 0x42c845, 0x42c986, 0x42cca5 };
     static const BYTE c_old[4] = { 0x34, 0xcd, 0x4b, 0x00 }, t_old[4] = { 0x90, 0x67, 0x52, 0x00 };
-    BYTE c_new[4], t_new[4]; DWORD a = (DWORD)(DWORD_PTR)&g_ss_m255, b = (DWORD)(DWORD_PTR)(g_ss_tab + 16); int i, ok = 1;
+    BYTE c_new[4], t_new[4]; DWORD a = (DWORD)(DWORD_PTR)&g_ss_m255, b = (DWORD)(DWORD_PTR)g_ss_tab; int i, ok = 1;   /* the emitters add 16 to k themselves: entry 16 + k (b461bf8 passed g_ss_tab + 16 as well: every vertex read 16 entries = 2 rows too bright, the census showed the modes at 51 / 200 for 38 / 185) */
     if (env_flag("I76_SHADE_SMOOTH", 8, 0) != 1) return;
     if (g_exe == EXE_NITRO) { mlog("  shade-smooth: Nitro - not applied (Gold sites only)"); return; }
     memcpy(c_new, &a, 4); memcpy(t_new, &b, 4);
