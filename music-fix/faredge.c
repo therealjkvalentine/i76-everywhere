@@ -17,8 +17,10 @@
  *   I76_HAZE_TARGET=<0..1>          the shade reached at the far clip (default 1.0 = the brightest row = the unmodulated texel).
  *   I76_GLIDE_FOG=<start>[,<colour>] hardware fog through glide2x (dgVoodoo): a 64-entry fog table (grFogTable) clear until
  *                                   start x far (default 0.85), full at the far clip, colour = the horizon strips' bottom rows
- *                                   (colour 'hzd', default: the horizon strips' 8-bit textures at 0x504850, bottom rows through
- *                                   the context palette 0x5dcfa8) or 'rrggbb' hex. Fog is ON only around the hardware scene's depth-bucket flush
+ *                                   (colour 'hzd' = 'strip', default: the horizon strips' 8-bit textures at 0x504850, bottom rows through
+ *                                   the context palette 0x5dcfa8), 'sky' (the cloud dome texture 0x504c38's mean, the dome colour
+ *                                   just above the horizon), 'mix[,f]' (strip toward sky by f, default 0.5), 'white[,f]' (strip
+ *                                   toward white by f) or 'rrggbb' hex (far-edge follow-up: T05's strip 483620 reads as darkening). Fog is ON only around the hardware scene's depth-bucket flush
  *                                   (0x48fac0(cam, 1) at 0x40216d: terrain, roads, objects, clutter, smoke, tracers) and OFF
  *                                   for everything else in the frame: the sky dome and horizon strips (drawn before it), the
  *                                   cockpit mesh, instruments, target brackets, mask and text (after it). The rear mirror is a
@@ -47,7 +49,9 @@
 static int g_tm_on;                             /* terrainmorph.c (included after this file): its emit-site wrap is live */
 static int g_fe_haze_on, g_fe_haze_mirror = 1, g_fe_chain_tm, g_fe_log, g_fe_edge_on, g_fe_far_env, g_fe_fog_on, g_fe_fog_fixed;
 static float g_fe_haze_start = 0.85f, g_fe_haze_str = 1.0f, g_fe_haze_target = 1.0f, g_fe_edge_pull = 0.4f, g_fe_edge_band = 64.0f, g_fe_mirror_far = 100.0f;   /* band in samples (5 m) */
-static float g_fe_fog_start = 0.85f, g_fe_fog_wm = 1.0f, g_fe_fog_far_built = -1.0f;
+static float g_fe_fog_start = 0.85f, g_fe_fog_wm = 1.0f, g_fe_fog_far_built = -1.0f, g_fe_fog_mixf = 0.5f;
+static int g_fe_fog_src;                        /* 0 hzd / strip, 1 sky, 2 mix (strip toward the sky), 3 white (strip toward white) */
+static DWORD g_fe_strip_rgb, g_fe_sky_rgb;
 static DWORD g_fe_ret_emit = 0x00491a30, g_fe_next_flush, g_fe_fog_rgb = 0x00c0b0a0, g_fe_fog_rgb_built = 0xffffffff, g_fe_fog_start_built;
 static BYTE *g_fe_ring, *g_fe_vmask;            /* 128x128 tiles: ring 0 void / 1 void-adjacent / 2 next / 3 open; vmask = which of the 8 neighbours are void */
 static DWORD g_fe_ring_sig, g_fe_ring_tick, g_fe_hzd_tick, g_fe_hzd_sig;
@@ -188,8 +192,29 @@ static float fe_index_to_w(int i) {
 /* the horizon colour: the mean of the bottom 4 rows of every horizon strip bitmap (0x4016e0 draws DAT_00503034 strips from the
  * texture pairs at 0x504850, 0x18 bytes each: [0] the 8-bit bitmap, [1] the hardware variant; 0x471f00 picks [1] for a kind-1
  * camera bitmap). An 8-bit bitmap (+0x2c == 1) goes through the context palette 0x5dcfa8 (as the mirror dump, 3 bytes per entry). */
+/* the sky colour (far-edge follow-up 2026-10-23, owner: "I see it getting darker ... I don't know that it looks like a fog"):
+ * the cloud dome 0x405200 textures its 6000 m dome with the texture pair at 0x504c38 ([0] the 8-bit record, the same layout as
+ * the strips; 0x4054f1 reads its first texel as the flat colour when clouds are off). The dome just above the horizon is
+ * foreshortened over the whole texture (and its UV scrolls), so the colour there is the texture's mean: all rows through the
+ * context palette (and mirror-pal's map, as the strips). */
+static int fe_sky_colour(DWORD *rgb) {
+    const BYTE *tx = *(const BYTE * volatile *)(DWORD_PTR)0x00504c38, *px, *pal = (const BYTE *)(DWORD_PTR)0x005dcfa8;
+    DWORD w, hf, h, i, cnt = 0; double r = 0, g = 0, b = 0; static int logged;
+    if (!tx || IsBadReadPtr(tx, 8)) return 0;
+    w = *(const DWORD *)tx; hf = *(const DWORD *)(tx + 4); h = hf & 0x1fffffff; px = tx + 8;
+    if (!logged) { logged = 1; mlog("  glide-fog: sky texture (0x504c38 [0]) %lux%lu flags %lx", (unsigned long)w, (unsigned long)h, (unsigned long)(hf >> 29)); }
+    if (w == 0 || h == 0 || w > 2048 || h > 2048 || (hf & 0x80000000u) || IsBadReadPtr(px, w * h)) return 0;
+    for (i = 0; i < w * h; i++) { BYTE k = px[i]; if (g_mp_pair >= 0) k = g_mp_map[k]; r += pal[k * 3]; g += pal[k * 3 + 1]; b += pal[k * 3 + 2]; cnt++; }
+    *rgb = ((DWORD)(r / cnt + 0.5) << 16) | ((DWORD)(g / cnt + 0.5) << 8) | (DWORD)(b / cnt + 0.5);
+    return 1;
+}
+static DWORD fe_lerp_rgb(DWORD a, DWORD b, float f) {
+    DWORD o = 0; int s;
+    for (s = 0; s <= 16; s += 8) { float ca = (float)((a >> s) & 255), cb = (float)((b >> s) & 255); o |= (DWORD)(ca + (cb - ca) * f + 0.5f) << s; }
+    return o;
+}
 static int fe_hzd_colour(DWORD *rgb) {
-    int ns = *(volatile int *)(DWORD_PTR)0x00503034, s, rows, y, x; double r = 0, g = 0, b = 0; DWORD cnt = 0; const BYTE *pal = (const BYTE *)(DWORD_PTR)0x005dcfa8;
+    int ns = *(volatile int *)(DWORD_PTR)0x00503034, s, y, x; double r = 0, g = 0, b = 0; DWORD cnt = 0; const BYTE *pal = (const BYTE *)(DWORD_PTR)0x005dcfa8;
     static int logged, logged2;
     if (ns <= 0 || ns > 64) return 0;
     for (s = 0; s < ns; s++) {
@@ -220,11 +245,23 @@ static int fe_hzd_colour(DWORD *rgb) {
 static void fe_fog_update(float fz) {
     DWORD rgb = g_fe_fog_rgb, t = GetTickCount();
     if (!g_fe_fog_fixed && t - g_fe_hzd_tick > 2000) {
-        DWORD c; g_fe_hzd_tick = t;
-        if (fe_hzd_colour(&c)) g_fe_fog_rgb = c;
+        DWORD c, sk = 0; int hok, sok; g_fe_hzd_tick = t;
+        hok = fe_hzd_colour(&c); sok = fe_sky_colour(&sk);                  /* read in every mode: the log names both */
+        if (hok) g_fe_strip_rgb = c;
+        if (sok) g_fe_sky_rgb = sk;
+        if (g_fe_fog_src == 0 && hok) g_fe_fog_rgb = c;
+        else if (g_fe_fog_src == 1 && sok) g_fe_fog_rgb = sk;
+        else if (g_fe_fog_src == 2 && hok && sok) g_fe_fog_rgb = fe_lerp_rgb(c, sk, g_fe_fog_mixf);
+        else if (g_fe_fog_src == 3 && hok) g_fe_fog_rgb = fe_lerp_rgb(c, 0x00ffffff, g_fe_fog_mixf);
         rgb = g_fe_fog_rgb;
     }
-    if (rgb != g_fe_fog_rgb_built) { g_fe_fog_rgb_built = rgb; p_fe_FogColor(rgb & 0x00ffffff); mlog("  glide-fog: colour %06lx (%s)", (unsigned long)rgb, g_fe_fog_fixed ? "fixed" : g_mp_pair >= 0 ? "horizon strips, base rows, through mirror-pal's 8-bit -> hardware palette map" : "horizon strips, base rows, context palette (no mirror-pal map)"); }   /* ARGB: ZGLIDE opens the SST with cformat 0 */
+    if (rgb != g_fe_fog_rgb_built) {
+        static const char *src[4] = { "horizon strips, base rows", "sky texture mean", "strip toward the sky", "strip toward white" };
+        g_fe_fog_rgb_built = rgb; p_fe_FogColor(rgb & 0x00ffffff);   /* ARGB: ZGLIDE opens the SST with cformat 0 */
+        if (g_fe_fog_fixed) mlog("  glide-fog: colour %06lx (fixed)", (unsigned long)rgb);
+        else mlog("  glide-fog: colour %06lx (%s%s; strip %06lx, sky %06lx, mix %.2f; %s)", (unsigned long)rgb, src[g_fe_fog_src & 3], g_fe_fog_src >= 2 ? " by the fraction" : "",
+                  (unsigned long)g_fe_strip_rgb, (unsigned long)g_fe_sky_rgb, g_fe_fog_mixf, g_mp_pair >= 0 ? "through mirror-pal's 8-bit -> hardware palette map" : "context palette (no mirror-pal map)");
+    }
     if (fz != g_fe_fog_far_built || g_fe_fog_start_built != (DWORD)(g_fe_fog_start * 1000.0f)) {
         int i; float z0 = fz * g_fe_fog_start, inv = fz > z0 ? 1.0f / (fz - z0) : 0.0f; char txt[200]; int n = 0;
         for (i = 0; i < 64; i++) {
@@ -377,16 +414,23 @@ static void apply_far_edge(void) {
         float st = (float)atof(fv); int good = 1;
         c = strchr(fv, ',');
         if (st < 0.5f || st > 0.98f) { mlog("  glide-fog: I76_GLIDE_FOG start %s out of range (0.5..0.98 of the far clip) - not applied", fv); good = 0; }
-        if (good && c && strlen(c + 1) == 6 && strcmp(c + 1, "hzd") != 0) { g_fe_fog_rgb = (DWORD)strtoul(c + 1, NULL, 16); g_fe_fog_fixed = 1; }
-        else if (good && c && _stricmp(c + 1, "hzd") != 0) { mlog("  glide-fog: colour '%s' is neither hzd nor rrggbb - not applied", c + 1); good = 0; }
+        if (good && c) {                                 /* <start>,<colour>[,<fraction>]: hzd | strip | sky | mix | white | rrggbb */
+            char *c2 = strchr(c + 1, ','), *e = NULL; if (c2) { float f = (float)atof(c2 + 1); *c2 = 0; if (f >= 0.0f && f <= 1.0f) g_fe_fog_mixf = f; else mlog("  glide-fog: fraction %s out of range (0..1) - 0.5", c2 + 1); }
+            if (!_stricmp(c + 1, "hzd") || !_stricmp(c + 1, "strip")) g_fe_fog_src = 0;
+            else if (!_stricmp(c + 1, "sky")) g_fe_fog_src = 1;
+            else if (!_stricmp(c + 1, "mix")) g_fe_fog_src = 2;
+            else if (!_stricmp(c + 1, "white")) g_fe_fog_src = 3;
+            else if (strlen(c + 1) == 6 && (strtoul(c + 1, &e, 16), e && *e == 0)) { g_fe_fog_rgb = (DWORD)strtoul(c + 1, NULL, 16); g_fe_fog_fixed = 1; }
+            else { mlog("  glide-fog: colour '%s' is none of hzd / strip / sky / mix / white / rrggbb - not applied", c + 1); good = 0; }
+        }
         if (good && env_flag("I76_GLIDE_FOG_ALPHA", 4, 0) == 1) g_fe_alpha = 1;
         if (good && env_str("I76_GLIDE_FOG_WM", mv, sizeof(mv))) { float wm = (float)atof(mv); if (wm > 0.001f && wm < 1000.0f) g_fe_fog_wm = wm; }
         if (good) {
             g_fe_fog_start = st;
             if (st_call_site(0x0040216d, 0x0048fac0, (void *)fe_flush_wrap, &g_fe_next_flush, "hardware scene flush (glide fog)")) {
                 g_fe_fog_on = 1;
-                mlog("  glide-fog: on - fog table clear to %.2f x far, full at the far clip, colour %s; fog on only around the depth-bucket flush (sky, horizon, cockpit, HUD, mirror untouched); metres per w %.3f",
-                     st, g_fe_fog_fixed ? "fixed" : "the horizon strips' bottom rows", g_fe_fog_wm);
+                mlog("  glide-fog: on - fog table clear to %.2f x far, full at the far clip, colour %s (fraction %.2f); fog on only around the depth-bucket flush (sky, horizon, cockpit, HUD, mirror untouched); metres per w %.3f",
+                     st, g_fe_fog_fixed ? "fixed" : g_fe_fog_src == 1 ? "the sky texture's mean" : g_fe_fog_src == 2 ? "strip toward the sky" : g_fe_fog_src == 3 ? "strip toward white" : "the horizon strips' bottom rows", g_fe_fog_mixf, g_fe_fog_wm);
                 if (g_fe_alpha) mlog("  glide-fog alpha: FADE TO TRANSPARENT - opaque ops in the flush blend by a per-vertex alpha 255 x (1 - smoothstep from %.2f x far to the far clip); no colour fog", st);
             } else mlog("  glide-fog: NOT applied (flush site)");
         }

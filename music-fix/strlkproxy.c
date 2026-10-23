@@ -8854,7 +8854,7 @@ static LONGLONG g_cl_ticks, g_cl_ticks_max, g_cl_qpf;
  * cells inside (0x45c4fa first template, 0x45c507 each next one; 0x45c825 the cell loop end), so each template gets
  * its own filtered copy of the frame's cell table, built when its loop starts. Unset = the table as before. */
 static int g_cl_fade_on, g_cl_k, g_cl_ntab;
-static float g_cl_fade = 0.0f;
+static float g_cl_fade = 0.0f, g_cl_density = 1.0f;   /* I76_CLUTTER_DENSITY: a global keep probability on every (template, cell) pair = every bush (one instance per pair: 0x45c514 places a template at its cell + the template's offset [esi+0x40/0x50]), the same hash as the fade, so the kept set is nested: a bush kept at density 0.5 beyond the fade is kept nearer too */
 static float g_cl_tabT[2 * (2 * CL_RMAX + 1) * (2 * CL_RMAX + 1) + 2];
 static int g_cl_ix[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)], g_cl_iz[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
 static WORD g_cl_thr[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
@@ -8872,9 +8872,10 @@ static void __cdecl clutter_build(BYTE *cam, double ground) {
         if (((int (__cdecl *)(void *, float *, float))(DWORD_PTR)NA(0x00472c10))(cam, p, 81.0f) > 0 && (i || j)) continue;
         g_cl_tab[2 * n] = 100.0f * i; g_cl_tab[2 * n + 1] = 100.0f * j;
         if (g_cl_fade_on) {
-            double dx = cx + 100.0 * i + 50.0 - camx, dz = cz + 100.0 * j + 50.0 - camz, d = sqrt(dx * dx + dz * dz);
+            double dx = cx + 100.0 * i + 50.0 - camx, dz = cz + 100.0 * j + 50.0 - camz, d = sqrt(dx * dx + dz * dz), p;
             g_cl_ix[n] = ix0 + i; g_cl_iz[n] = iz0 + j;
-            g_cl_thr[n] = (WORD)(d <= g_cl_fade ? 65535 : (int)(65535.0 * (g_cl_fade / d) * (g_cl_fade / d)));
+            p = (d <= g_cl_fade ? 1.0 : (g_cl_fade / d) * (g_cl_fade / d)) * g_cl_density;
+            g_cl_thr[n] = (WORD)(p >= 1.0 ? 65535 : (int)(65535.0 * p));
         }
         n++;
     }
@@ -8948,7 +8949,7 @@ static int __cdecl clutter_cull_wrap(void *cam, float *v, float r) {   /* the ca
     if (used > g_cl_limit) { g_cl_capped++; return 1; }
     return ((int (__cdecl *)(void *, float *, float))(DWORD_PTR)NA(0x00472c10))(cam, v, r);
 }
-static char g_cl_fadetxt[64];
+static char g_cl_fadetxt[128];
 static void terrain_vguard_report(void);
 static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls at 0x401e47 / 0x402111 */
     LARGE_INTEGER a, b; DWORD used;
@@ -9005,6 +9006,12 @@ static void apply_clutter_dist(void) {
         if (fd < 50.0f || fd > 2500.0f) mlog("  clutter-dist: I76_CLUTTER_FADE %s out of range (50..2500 m) - full density everywhere", v);
         else if (fd < d) { g_cl_fade = fd; g_cl_fade_on = 1; }
     }
+    n = env_str("I76_CLUTTER_DENSITY", v, sizeof(v));
+    if (n) {
+        float de = (float)atof(v);
+        if (de < 0.1f || de > 1.0f) mlog("  clutter-dist: I76_CLUTTER_DENSITY %s out of range (0.1..1.0) - stock density", v);
+        else if (de < 1.0f) { g_cl_density = de; if (!g_cl_fade_on) { g_cl_fade = 1e9f; g_cl_fade_on = 1; } }   /* the filtered-table path, no distance fade */
+    }
     n = env_str("I76_CLUTTER_RISE", v, sizeof(v));
     if (n) {
         float r = (float)atof(v);
@@ -9052,7 +9059,7 @@ static void apply_clutter_dist(void) {
     ok += patch_bytes(0x004be0d0, (const BYTE *)&z_old, (const BYTE *)&z_new, 4, "clutter view z limit");
     mlog("  clutter-dist: %s, %d/8 sites; view z 120 -> %.0f m, rise limit 5 -> %.1f m, cells from a %dx%d block culled per frame, record pool %lu KB (instances refused past %lu KB)%s",
          ok == 8 ? "on" : "PARTIAL", ok, d, rise, 2 * R + 1, 2 * R + 1, (unsigned long)(pool >> 10), (unsigned long)(g_cl_limit >> 10),
-         g_cl_fade_on ? (sprintf(g_cl_fadetxt, "; fade: full density to %.0f m, then x (%.0f / d)^2", g_cl_fade, g_cl_fade), g_cl_fadetxt) : "");
+         g_cl_fade_on ? (g_cl_fade < 1e8f ? sprintf(g_cl_fadetxt, "; fade: full density to %.0f m, then x (%.0f / d)^2; density x %.2f", g_cl_fade, g_cl_fade, g_cl_density) : sprintf(g_cl_fadetxt, "; no fade; density x %.2f", g_cl_density), g_cl_fadetxt) : "");
 }
 
 /* MIRROR RANGE  (I76_MIRROR_FAR=<metres 100..2500>; off by default; EXPERIMENT, lab docs/CLUTTER-AND-MIRROR.md; 600 -> 2500 on 2026-10-23, mirrordetail.c)
