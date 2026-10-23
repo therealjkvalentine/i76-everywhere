@@ -5,6 +5,10 @@
  *   I76_TERRAIN_MORPH_SHADE=<x>     stateless: the shade blends over x times the height's band (1..4, default 1; 2026-10-23)
  *   I76_TERRAIN_MORPH_BIG=1|2       stateless: also blend the 64+ sample levels (1 = height and shade, the 2026-10-22 form that
  *                                   slid; 2 = shade only). Unset = they stay at t = 1 (75b8888)
+ *   I76_TERRAIN_MORPH_NEAR=<m>      stateless: no blend nearer than m metres (render-finish lane 2026-10-23: a blended height moves
+ *                                   the texture print with it, UVs are per vertex). Continuous: a vertex's height and shade bands
+ *                                   are cut to end at m (t reaches 1 there); a vertex whose split distance is within m of it is not
+ *                                   blended at all (it pops as stock). Unset / 0 = unchanged
  *   I76_TERRAIN_MORPH_LOG=<csv>     lab instrument: per main terrain pass, how far vertices move on screen, near / mid / far (a
  *                                   snap = > 4 px in one pass) and by class (carried, born by a split, new at the view edge, gone) x
  *                                   size (<= 1, 1-4, 4-16, > 16 px); works with the morph off too (the same instrument on the stock)
@@ -59,6 +63,7 @@ static DWORD g_tm_passes, g_tm_born, g_tm_morphing, g_tm_mature_new, g_tm_jumps_
 static FILE *g_tm_log, *g_tm_ev; static LARGE_INTEGER g_tm_qpf;
 static double g_tm_fx, g_tm_fz, g_tm_px, g_tm_pz; static int g_tm_fok;
 static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj, g_tm_bin[4][4];   /* bin[class][size]: class carried / born / mature-new / gone; size <=1, 1-4, 4-16, >16 px */ static DWORD g_tm_new, g_tm_gone, g_tm_nview, g_tm_rc[3];   /* rc: carried vertices whose hardware shade ROW round(31 s) changed this pass, near / mid / far (terrain-pop lane 2026-10-23: the emitters quantise s to 32 rows, TERRAIN-POPS-2026-10-23) */
+static DWORD g_tm_sj[4], g_tm_sjb[4], g_tm_rootmv; static double g_tm_sjs[4], g_tm_j100, g_tm_s100, g_tm_lastdm; static int g_tm_root_prev[3];   /* render-finish 2026-10-23: carried-vertex shade jumps >= 1/32 in one pass by band < 300 / 300-900 / 900-1600 / > 1600 m (all, on 64+ edges) and their sum; snaps / carried slides within 100 m (px); root square moved this pass */
 static DWORD g_tm_ret_xform = 0x004937c0, g_tm_ret_emit = 0x00491a30;
 
 static unsigned __int64 tm_vkey(int x, int z) { return ((unsigned __int64)(DWORD)(x + 8192) << 32) | (DWORD)(z + 8192); }
@@ -121,12 +126,13 @@ static double tm_qms(void) { LARGE_INTEGER n; QueryPerformanceCounter(&n); retur
 static double tm_px(double dy_raw, double dx, double dz, int *band) {
     double dm = sqrt(dx * dx + dz * dz) * 5.0;
     if (!g_tm_fok || dm < 20.0 || (dx * g_tm_fx + dz * g_tm_fz) * 5.0 / dm < 0.487) return -1.0;
-    *band = dm < 300.0 ? 0 : dm < 900.0 ? 1 : 2;
+    *band = dm < 300.0 ? 0 : dm < 900.0 ? 1 : 2; g_tm_lastdm = dm;
     return fabs(dy_raw) * 0.1 / dm * (3440.0 / 2.1240);
 }
 static void tm_acc(double px, int band, int cls) {
     if (px < 0.0) return;
     g_tm_bin[cls][px <= 1.0 ? 0 : px <= 4.0 ? 1 : px <= 16.0 ? 2 : 3] += px;
+    if (g_tm_lastdm < 100.0) { if (px > 4.0) g_tm_j100 += px; else if (cls == 0) g_tm_s100 += px; }   /* within 100 m: snaps (any class) / carried slides */
     if (px > 4.0) { g_tm_jpx[band] += px; if (px > g_tm_maxj) g_tm_maxj = px; } else g_tm_spx[band] += px;   /* a snap: > 4 px in one pass */
 }
 
@@ -156,7 +162,8 @@ static void __cdecl tm_edge_wrap(BYTE *edge) {
     if (!had && n0 >= 0 && n0 < (int)TM_MAXV && *(volatile int *)(DWORD_PTR)0x006442ec == n0 + 1) {
         g_ep_a[n0] = *(const short *)edge; g_ep_b[n0] = *(const short *)(edge + 2); g_ep_s[n0] = g_tm_pid; }
 }
-static int *g_sl_i, *g_sl_a, *g_sl_b, g_sl_m, g_tm_big; static float *g_sl_t, *g_sl_ts, *g_tm_ts, g_tm_shmul = 1.0f;   /* ts: the shade's t */
+static int *g_sl_i, *g_sl_a, *g_sl_b, g_sl_m, g_tm_big; static float g_tm_near = 0.0f; static BYTE *g_tm_bg;   /* near: samples; bg: this pass's vertex sits on a 64+ sample edge (instrument) */
+static float *g_sl_t, *g_sl_ts, *g_tm_ts, g_tm_shmul = 1.0f;   /* ts: the shade's t */
 /* pass 1 reads only TRUE heights (nothing is blended yet) and keeps the vertices with t < 1 in a list; pass 2 blends the list in index
  * order (parents first). Per vertex: a few multiplies and compares (squared distances); square roots only for the listed ones. */
 static void tm_stateless(const BYTE *cam, float *V, int n) {
@@ -169,7 +176,7 @@ static void tm_stateless(const BYTE *cam, float *V, int n) {
      * abrupt" shade on PLAY-OWNER-2300-SHADE) */
     float invB = B > 0.0f ? 1.0f / B : 0.0f, cut2 = g_tm_frac && g_tm_band > 0.0f && fb < 1.0f ? (8.0f / g_tm_band) * (8.0f / g_tm_band) : 1e30f;
     int ox = *(volatile int *)(DWORD_PTR)0x006442e0, oz = *(volatile int *)(DWORD_PTR)0x006442e4, i, k, m = 0; DWORD pid = g_tm_pid;
-    if (g_tm_log) for (i = 0; i < n; i++) { g_tm_t[i] = g_tm_ts[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1; }   /* the table instrument reads every vertex */
+    if (g_tm_log) for (i = 0; i < n; i++) { g_tm_t[i] = g_tm_ts[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1; if (g_tm_bg) g_tm_bg[i] = 0; }   /* the table instrument reads every vertex */
     for (i = 4; i < n; i++) {
         int a, b, iS, ip, alongx, big; float ax, az, bx, bz, x, z, dx, dz, d2, D2, e, q, h, D, d, band, bandS, t, ts;
         if (g_ep_s[i] != pid) continue;
@@ -178,7 +185,7 @@ static void tm_stateless(const BYTE *cam, float *V, int n) {
         ax = V[3 * a]; az = V[3 * a + 2]; bx = V[3 * b]; bz = V[3 * b + 2]; x = V[3 * i]; z = V[3 * i + 2];
         alongx = fabsf(ax - bx) >= fabsf(az - bz);
         iS = (int)((alongx ? fabsf(ax - bx) : fabsf(az - bz)) + 0.5f);
-        big = iS >= 64;
+        big = iS >= 64; if (g_tm_bg) g_tm_bg[i] = (BYTE)big;
         if (iS < 2 || (big && !g_tm_big)) continue;        /* nodes of 64+ samples split at any distance (0x4912f0, no test): t = 1. Their
                                                               alignment follows the root square, so a blend there would jump as it moves
                                                               (I76_TERRAIN_MORPH_BIG shows it: 1 = height and shade, 2 = shade only). */
@@ -206,6 +213,12 @@ static void tm_stateless(const BYTE *cam, float *V, int n) {
             if (g_tm_frac && D2 >= cut2 && d2 <= D2 * om2) continue;   /* deep inside: t = 1, no square root */
             D = sqrtf(D2); band = g_tm_frac ? g_tm_band * D : g_tm_band; if (g_tm_frac && band < 8.0f) band = 8.0f;
             bandS = band * g_tm_shmul;                     /* the shade's band: the same start (t = 0 at the split), a longer fade */
+            if (g_tm_near > 0.0f) {                        /* I76_TERRAIN_MORPH_NEAR: both bands end at the near limit (t = 1 there) */
+                float lim = D - g_tm_near;
+                if (lim < 0.5f) continue;                  /* split within the limit: not blended (the stock pop) */
+                if (band > lim) band = lim;
+                if (bandS > lim) bandS = lim;
+            }
             if (D > bandS && d2 <= (D - bandS) * (D - bandS)) continue;
             d = sqrtf(d2); t = band > 0.0f ? (D - d) / band : 1.0f; ts = bandS > 0.0f ? (D - d) / bandS : 1.0f;
             if (ts >= 1.0f) continue;
@@ -243,6 +256,9 @@ static void __cdecl tm_xform_wrap(void) {
         double mx = ex - g_tm_px, mz = ez - g_tm_pz, ml = sqrt(mx * mx + mz * mz);
         if (ml > 0.4) { if (ml < 40.0 && g_tm_passes) { g_tm_fx = mx / ml; g_tm_fz = mz / ml; g_tm_fok = 1; } g_tm_px = ex; g_tm_pz = ez; }
         g_tm_jpx[0] = g_tm_jpx[1] = g_tm_jpx[2] = g_tm_spx[0] = g_tm_spx[1] = g_tm_spx[2] = g_tm_shj = g_tm_maxj = 0.0; g_tm_new = g_tm_gone = g_tm_nview = 0; memset(g_tm_bin, 0, sizeof(g_tm_bin)); g_tm_rc[0] = g_tm_rc[1] = g_tm_rc[2] = 0;
+        memset(g_tm_sj, 0, sizeof(g_tm_sj)); memset(g_tm_sjb, 0, sizeof(g_tm_sjb)); memset(g_tm_sjs, 0, sizeof(g_tm_sjs)); g_tm_j100 = g_tm_s100 = 0.0;
+        {   int r0 = *(volatile int *)(DWORD_PTR)0x006442e0, r1 = *(volatile int *)(DWORD_PTR)0x006442e4, r2 = *(volatile int *)(DWORD_PTR)0x006442e8;
+            g_tm_rootmv = g_tm_prev_ok && (r0 != g_tm_root_prev[0] || r1 != g_tm_root_prev[1] || r2 != g_tm_root_prev[2]); g_tm_root_prev[0] = r0; g_tm_root_prev[1] = r1; g_tm_root_prev[2] = r2; }
     }
     tm_vclear(g_tm_cur);
     for (i = 0; i < n; i++) {
@@ -337,6 +353,9 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
                 if (!ps && V[3 * i + 2] > 4.0f) g_tm_shj += fabs(U[3 * i + 2] - sm);
                 if (ps && (int)(31.0f * U[3 * i + 2] + 0.5f) != (int)(31.0f * ps->sh + 0.5f)) {   /* a carried vertex crossed a hardware shade row: a 20-23 grey step on screen */
                     float dm = s->dd * 5.0f; g_tm_rc[dm < 300.0f ? 0 : dm < 900.0f ? 1 : 2]++; }
+                if (ps) {                               /* a one-pass shade jump of a carried vertex (a stock row or more): not drift */
+                    float ds = (float)fabs(U[3 * i + 2] - ps->sh), dm = s->dd * 5.0f; int b4 = dm < 300.0f ? 0 : dm < 900.0f ? 1 : dm < 1600.0f ? 2 : 3;
+                    if (ds >= 0.03125f) { g_tm_sj[b4]++; g_tm_sjs[b4] += ds; if (g_tm_bg && g_tm_bg[i]) g_tm_sjb[b4]++; } }
             }
             if (s && s->idx == i) s->sh = U[3 * i + 2];
         }
@@ -346,7 +365,9 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
                     (unsigned long)g_tm_new, (unsigned long)g_tm_gone, (unsigned long)g_tm_nview,
                     g_tm_jpx[0], g_tm_jpx[1], g_tm_jpx[2], g_tm_spx[0], g_tm_spx[1], g_tm_spx[2], g_tm_maxj, g_tm_shj,
                     g_tm_eye_prev[0] * 5.0f, g_tm_eye_prev[1] * 5.0f);
-            {   int c, kk; for (c = 0; c < 4; c++) for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%.1f", g_tm_bin[c][kk]); fprintf(g_tm_log, ",%lu,%lu,%lu\n", (unsigned long)g_tm_rc[0], (unsigned long)g_tm_rc[1], (unsigned long)g_tm_rc[2]); }
+            {   int c, kk; for (c = 0; c < 4; c++) for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%.1f", g_tm_bin[c][kk]); fprintf(g_tm_log, ",%lu,%lu,%lu", (unsigned long)g_tm_rc[0], (unsigned long)g_tm_rc[1], (unsigned long)g_tm_rc[2]);
+                for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%lu,%lu,%.3f", (unsigned long)g_tm_sj[kk], (unsigned long)g_tm_sjb[kk], g_tm_sjs[kk]);
+                fprintf(g_tm_log, ",%.1f,%.1f,%lu\n", g_tm_j100, g_tm_s100, (unsigned long)g_tm_rootmv); }
             if ((g_tm_passes & 63) == 0) { fflush(g_tm_log); if (g_tm_ev) fflush(g_tm_ev); }
         }
         if (g_tm_have) { g_tm_cur = 1 - g_tm_cur; g_tm_prev_ok = 1; }
@@ -439,6 +460,7 @@ static void apply_terrain_morph(void) {
     if (nm) { char sv[8]; if (env_str("I76_TERRAIN_MORPH_STATELESS", sv, sizeof(sv)) && atoi(sv) == 1) g_tm_sl = 1; }
     if (nm && g_tm_sl) { char sv[16];
         if (env_str("I76_TERRAIN_MORPH_SHADE", sv, sizeof(sv))) { float x = (float)atof(sv); if (x >= 1.0f && x <= 4.0f) g_tm_shmul = x; else mlog("  terrain-morph: I76_TERRAIN_MORPH_SHADE %s out of range (1..4) - 1", sv); }
+        if (env_str("I76_TERRAIN_MORPH_NEAR", sv, sizeof(sv))) { float x = (float)atof(sv); if (x != 0.0f) { if (x >= 10.0f && x <= 500.0f) g_tm_near = x / 5.0f; else mlog("  terrain-morph: I76_TERRAIN_MORPH_NEAR %s out of range (10..500 m) - off", sv); } }
         if (env_str("I76_TERRAIN_MORPH_BIG", sv, sizeof(sv))) { int b = atoi(sv); if (b == 1 || b == 2) g_tm_big = b; else mlog("  terrain-morph: I76_TERRAIN_MORPH_BIG %s not 1 / 2 - off", sv); } }
     if (nm || nl) {
         g_ep_a = (short *)VirtualAlloc(NULL, TM_MAXV * sizeof(short), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -450,6 +472,7 @@ static void apply_terrain_morph(void) {
         g_sl_t = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_sl_ts = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         g_tm_ts = (float *)VirtualAlloc(NULL, TM_MAXV * sizeof(float), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (nl) g_tm_bg = (BYTE *)VirtualAlloc(NULL, TM_MAXV, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         if (!g_ep_a || !g_ep_b || !g_ep_s || !g_sl_i || !g_sl_a || !g_sl_b || !g_sl_t || !g_sl_ts || !g_tm_ts) { mlog("  terrain-morph: no memory - not applied"); return; }
         QueryPerformanceFrequency(&g_tm_qpf);
         for (i = 0; i < 2 && (!g_tm_sl || nl); i++) {       /* the per-vertex tables: the memory form, or the instrument */
@@ -467,7 +490,7 @@ static void apply_terrain_morph(void) {
         if (nm) { g_tm_morph = 1; if (band <= 1.0f) { g_tm_frac = 1; g_tm_band = band; } else g_tm_band = band / 5.0f; }
         if (nl) { g_tm_log = fopen(lf, "w"); QueryPerformanceFrequency(&g_tm_qpf);
                   { char ef[280]; _snprintf(ef, sizeof(ef) - 1, "%s.events.csv", lf); ef[sizeof(ef) - 1] = 0; g_tm_ev = fopen(ef, "w"); if (g_tm_ev) fprintf(g_tm_ev, "t_ms,d0_m,size_m,max_move_px,max_shade_step,shade_split_delta,end\n"); }
-                  if (g_tm_log) fprintf(g_tm_log, "frame,t_ms,verts,new,gone,in_view,jump_px_near,jump_px_mid,jump_px_far,smooth_px_near,smooth_px_mid,smooth_px_far,max_jump_px,shade_jump_new,eye_x,eye_z,carried_le1,carried_1_4,carried_4_16,carried_gt16,born_le1,born_1_4,born_4_16,born_gt16,mature_le1,mature_1_4,mature_4_16,mature_gt16,gone_le1,gone_1_4,gone_4_16,gone_gt16,rowcross_near,rowcross_mid,rowcross_far\n"); }
+                  if (g_tm_log) fprintf(g_tm_log, "frame,t_ms,verts,new,gone,in_view,jump_px_near,jump_px_mid,jump_px_far,smooth_px_near,smooth_px_mid,smooth_px_far,max_jump_px,shade_jump_new,eye_x,eye_z,carried_le1,carried_1_4,carried_4_16,carried_gt16,born_le1,born_1_4,born_4_16,born_gt16,mature_le1,mature_1_4,mature_4_16,mature_gt16,gone_le1,gone_1_4,gone_4_16,gone_gt16,rowcross_near,rowcross_mid,rowcross_far,sj_near,sjbig_near,sjsum_near,sj_mid,sjbig_mid,sjsum_mid,sj_far1,sjbig_far1,sjsum_far1,sj_far2,sjbig_far2,sjsum_far2,jump_px_100,slide_px_100,root_moved\n"); }
         ok = !memcmp((const void *)(DWORD_PTR)0x00490eed, xf_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f9b, eh_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f82, es_old, 5);   /* Gold only (Nitro refused above) */
         if (!ok) mlog("  terrain-morph: QueueTerrain call sites differ (another patch or another exe) - not applied");
         else {
@@ -492,8 +515,8 @@ static void apply_terrain_morph(void) {
             g_tm_on = ok;
         }
         if (g_tm_morph && g_tm_sl)
-            mlog("  terrain-morph: %s, STATELESS (no tables: parents from the edge split 0x4918f0, t from the vertex's own split ring S sqrt(K); band %.2f %s; height and shade, shade band x%.2f; 64+ levels %s; every pass)%s",
-                 g_tm_on ? "on" : "NOT applied", band, g_tm_frac ? "x the ring distance (at least 40 m)" : "m", g_tm_shmul,
+            mlog("  terrain-morph: %s, STATELESS (no tables: parents from the edge split 0x4918f0, t from the vertex's own split ring S sqrt(K); band %.2f %s; height and shade, shade band x%.2f; no blend nearer than %.0f m; 64+ levels %s; every pass)%s",
+                 g_tm_on ? "on" : "NOT applied", band, g_tm_frac ? "x the ring distance (at least 40 m)" : "m", g_tm_shmul, g_tm_near * 5.0f,
                  g_tm_big == 1 ? "BLENDED (height and shade)" : g_tm_big == 2 ? "shade only" : "stock (t = 1)", g_tm_log ? "; log on (its tables measure only)" : "");
         else if (g_tm_morph)
             mlog("  terrain-morph: %s (a vertex born by a split blends from its parents' height and shade to its own over %.2f %s; render only, the ground query 0x493550 is untouched)%s",
