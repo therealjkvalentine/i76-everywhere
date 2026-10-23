@@ -1120,3 +1120,8 @@ Open items from this session:
   texture levels at STOCK distances - the owner's "object detail and render distance is near". Added to all OWNER-*.psd1 in exp-polish2
   (lab commit). I76PLYR.DEF detail bytes and dgVoodoo (6880x2880, 4x AA) were already identical. Every fps row taken before this
   (far-clip edges, shade, mirror, haze/fog, pops) is at the LIGHTER load; the lanes were told to re-take the rows that matter.
+- 2026-10-23 ~16:00 (main): nitro.exe pid 48740 (exp-nitro-mp host of the game-types lane's gt-mac-c4 run, killed mid-run by its
+  own time limit) is an unkillable zombie (1 thread in a kernel wait, taskkill /F "no running instance"); it holds UDP 54792
+  (IPXWrapper instance N) and exp-nitro-mp's Strlkup.dll. REBOOT clears it. Until then no PC-hosted Nitro LAN test can run; the
+  game-types flip (co-op Mac n 2, then entries default) is prepared and waits on that. The gt_xlan.sh time limit now excludes queue
+  wait, and the teardown keeps its DLL backup (lab 3e624f8 / 2f0bc9b).
