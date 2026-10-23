@@ -42,7 +42,7 @@ static md_pass_t g_md_mir, g_md_main, g_md_main_last;
 static float g_md_tex;          /* I76_MIRROR_TEX=<f>: the mirror's leaves re-pick their texture level as a 640 x f wide view would (0 = the picker's 256) */
 static DWORD g_md_pal;          /* I76_MIRROR_PAL=1: the mirror pixels remapped from the 8-bit build's palette space to the hardware build's (md_remap_bitmap below) */
 static DWORD g_md_setrep;
-static DWORD g_md_m16;          /* I76_MIRROR_M16=1: the mirror's terrain leaves sample the main view's .m16 art, quantised into the display palette (md_m16_copy) */
+static DWORD g_md_m16;          /* I76_MIRROR_M16=1: the mirror pass samples the main view's .m16 art - terrain levels (md_m16_copy) and the sky draw's cloud texture (md_sky_tex at 0x405403) - quantised into the display palette */
 typedef struct { DWORD src; BYTE *copy; } md_m16_t;
 static md_m16_t g_m16[16]; static int g_m16_n;
 static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(0x005a4588 + 8 * l) == tex || *(DWORD *)(0x005a458c + 8 * l) == tex)) return l; for (l = 0; l < g_m16_n; l++) if ((DWORD)(DWORD_PTR)g_m16[l].copy == tex) return md_level_of(g_m16[l].src); return 7; }
@@ -51,6 +51,13 @@ static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*
  * indices): each embedded palette entry is mapped once to the nearest colour of the context palette 0x5dcfa8 (0xff, the colour key,
  * never a target). The 8-bit build's own terrain art (what the mirror sampled) is a different, low-contrast drawing in another tint
  * (t05: peach vs the .m16's tan sand with dark speckles) - the owner's "no texture, different colour" 2026-10-23. */
+static DWORD g_md_next_skytex;
+static BYTE *md_m16_copy(DWORD src);
+static DWORD __cdecl md_sky_tex(DWORD set, DWORD cam) {        /* 0x471f00(set, cam) at 0x405403: the sky draw's cloud texture (set 0x504c38), software branch */
+    DWORD r = ((DWORD (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_md_next_skytex)(set, cam);
+    if (cam == 0x00608c80 && g_md_m16 && set) { DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m) : NULL; if (c) return (DWORD)(DWORD_PTR)c; }
+    return r;
+}
 static BYTE *md_m16_copy(DWORD src) {
     int i; BYTE *m = (BYTE *)(DWORD_PTR)src, *out, *ctx = (BYTE *)0x005dcfa8; DWORD w, h, n, k, cnt; WORD *pw; BYTE map[256];
     for (i = 0; i < g_m16_n; i++) if (g_m16[i].src == src) return g_m16[i].copy;
@@ -299,12 +306,17 @@ static void apply_mirror_detail(void) {
         n += st_call_site(0x00445a3c, 0x0042ec20, (void *)md_upload, &g_md_next_upload, "mirror texture re-upload (mirror-detail)");
     } else n = 3;
     n += st_call_site(0x0044594e, 0x00490a00, (void *)md_terrain_mir, &g_md_next_tmir, "mirror QueueTerrain call (mirror-detail)");
+    if (g_md_m16) { if (!st_call_site(0x00405403, 0x00471f00, (void *)md_sky_tex, &g_md_next_skytex, "sky draw cloud texture pick, software branch (mirror-m16)")) mlog("  mirror-m16: sky site not patched - clouds stay the 8-bit art"); }
     g_md_on = n == 4;
     if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override / mirror LOD / tex / pal / m16 disabled)", n); g_md_mode = 0; g_md_dump_n = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
     mlog("  mirror-detail: on -%s%s%s%s%s%s", g_md_dump_n ? " dump every N redraws;" : "", g_md_mode ? " forced terrain mode;" : "",
          g_md_lod > 0.0f ? " mirror terrain LOD of its own;" : "", g_md_tex > 0.0f ? " mirror texture level re-picked;" : "", g_md_pal ? " pixels remapped to the _16 palette;" : "", g_md_m16 ? " terrain from the .m16 art;" : "");
-    if (g_md_tex > 0.0f) mlog("  mirror-tex: the mirror's terrain leaves take the texture level a %.0f px wide view would at the same distance (the picker used the mirror's 256)", 640.0f * g_md_tex);
-    if (g_md_m16) mlog("  mirror-m16: the mirror pass samples the main view's .m16 terrain art, quantised into the display palette once per level");
+    if (g_md_tex > 0.0f) {
+        char tv[16]; float tt = env_str("I76_TERRAIN_TEX", tv, sizeof(tv)) ? (float)atof(tv) : 1.0f;
+        mlog("  mirror-tex: the mirror's terrain leaves take the texture level a %.0f px wide view at x1 would at the same distance (absolute: I76_TERRAIN_TEX x%.0f scales the picker's own choice, which for the mirror's 256 px is a %.0f px view at x1; the main view's is %.0f)",
+             640.0f * g_md_tex, tt, 256.0f * tt, 640.0f * tt);
+    }
+    if (g_md_m16) mlog("  mirror-m16: the mirror pass samples the main view's .m16 terrain art and its .m16 cloud art, quantised into the display palette once per texture");
     if (g_md_pal) mlog("  mirror-pal: the mirror's pixels are remapped from the 8-bit build's palette to the nearest colours of the hardware build's before each upload (%d palette pairs compiled in)", MP_PAIRS);
     if (g_md_lod > 0.0f) mlog("  mirror-lod: the mirror pass splits terrain at x%.2f the stock distance (height-error / %.2f); the main view keeps x%.2f / %.2f", g_md_lod, g_md_lod, g_md_fa, g_md_fb);
     if (g_md_dump_n) mlog("  mirror-detail: dump every %lu mirror redraws to %s\\mirror-<redraw>.bmp (palette 0x5dcfa8 -> mirror-pal.bin)", (unsigned long)g_md_dump_n, g_dir);
