@@ -26,7 +26,7 @@
  * and "Co-Op" (type 7, mask 0x40), on the IPX / internet host forms (provider 3 / 4; the modem forms show 3 stock rows).
  * The species and the options follow the selected type (6 -> ARENA+, 7 -> ARENA+ and CO-OP SCENES with P01-P19 as the
  * whole arena list, 1..5 -> stock 604). Sites, each byte-checked, all or nothing (nft_attach):
- *   G1 the popup open `call 0x10021d80` at 0x10032391 -> nft_popup: 7 visible rows, height + 2 rows, the popup's two hit
+ *   G1 the popup open `call 0x10021d80` at 0x10032391 -> nft_popup: 7 visible rows, height + 2 rows, width + 16, the popup's two hit
  *      records 0x100459b0 / 0x100459c4 moved by 2 rows (put back for every other popup open), our row draw (nft_rows).
  *   G2 the type-change list switch: `cmp eax, 4` 0x100342f7 -> 6, `jmp [eax*4 + 0x100346f8]` 0x10034302 -> nft_list_stub.
  *   G3 the limit popup's two type switches (0x10032771 / 0x1003277a, 0x10036f36 / 0x10036f3f): 7-entry copies, 6 / 7 = Combat.
@@ -34,6 +34,8 @@
  *      to fit the 100-px field).
  *   G5 the prefs save `mov edx, [0x10045860]` at 0x100320aa -> type 6 / 7 saved as Combat (1): a type above 5 restored at
  *      the next boot by a stock shell (or I76_NITRO_GAMETYPES unset) would index the 5-entry tables.
+ *   G6 the mode-string lookup `call 0x10039270` at 0x1002e978 (0x1002e8b8: form mask 1 / 2 / 4 / 8 / 16 -> "Team " / "Race" /
+ *      "N Team C.T.F.", else the key "Unknown" 0x10045330): mask 0x20 / 0x40 -> our names (the form's top line read "Unknown").
  */
 #define NF_SB 0x10000000u
 static BYTE *g_nf_sh;
@@ -186,6 +188,7 @@ static int nf_call(DWORD site, void *fn) { BYTE w[5] = { 0xE8 }; LONG rel = (LON
 /* ---- GAME TYPE entries (I76_NITRO_GAMETYPES=1; header G1..G5) ---- */
 #define NFT_ARENA 6                    /* shell game type [0x10045860] (popup row 5, form mask 1 << 5 = 0x20) */
 #define NFT_COOP  7                    /* row 6, mask 0x40 */
+#define NFT_WIDEN 16                   /* popup width + 16 px for the 7-row popup (stock 0xac = 172) */
 static const char *g_nft_rows[7];      /* popup rows: [0..4] the stock names, [5] [6] ours */
 static DWORD g_nft_field[9];           /* the form-field table, index = type: [0] 0, [1..5] stock, [6] [7] ours, [8] 0 */
 static DWORD g_nft_lim1[7], g_nft_lim2[7];   /* the limit popup's type switches, [5] [6] = Combat's [0] */
@@ -248,18 +251,19 @@ static void __cdecl nft_rows(int x, int y, int first, int count) {   /* the popu
     for (i = first < 0 ? 0 : first; i < first + count && i < 7; i++, y += rh)
         g_nft_w[i] = ((nf_text_fn)NF_R(0x10012dc0))(disp, 0, x + 8, y, *(int *)(fp + 0x408), g_nft_rows[i], 0);
     if (!g_nft_rowdraws++) NMP_LOG("  nitro-types: popup rows drawn (first %d, %d) - text widths %d %d %d %d %d %d %d (list hit area %d px wide)", first, count,
-                                   g_nft_w[0], g_nft_w[1], g_nft_w[2], g_nft_w[3], g_nft_w[4], g_nft_w[5], g_nft_w[6], 0x9f - 0xc);
+                                   g_nft_w[0], g_nft_w[1], g_nft_w[2], g_nft_w[3], g_nft_w[4], g_nft_w[5], g_nft_w[6], 0x9f + NFT_WIDEN - 0xc);
 }
 static void __cdecl nft_popup(DWORD *desc, DWORD a, DWORD b) {   /* the GAME TYPE popup opens (descriptor 0x100459d8) */
     DWORD *r2 = (DWORD *)NF_R(0x100459b0), *r3 = (DWORD *)NF_R(0x100459c4);
-    int p = *(int *)NF_R(0x1004701c), rh = *(int *)NF_R(0x10138c38), d = 0;
-    if ((p == 3 || p == 4) && desc[6] == 5 && desc[8] == 5 && rh > 0 && rh < 40) {
-        d = 2 * rh; desc[6] = desc[8] = 7; desc[3] += d; desc[10] = (DWORD)(DWORD_PTR)nft_rows;
+    int p = *(int *)NF_R(0x1004701c), rh = *(int *)NF_R(0x10138c38), d = 0, dw = 0;
+    if ((p == 3 || p == 4) && desc[6] == 5 && desc[8] == 5 && rh > 0 && rh < 40) {   /* 7 rows; 16 px wider: "Arena Drop-In + AI" is
+                                                                                      * 162 px from x + 20 (measured, gt-s1 / gt-a1) */
+        d = 2 * rh; dw = NFT_WIDEN; desc[6] = desc[8] = 7; desc[3] += d; desc[2] += dw; desc[10] = (DWORD)(DWORD_PTR)nft_rows;
     }
-    r2[4] = 0x71 + d; r3[3] = 0x7c + d; r3[4] = 0x8c + d;   /* list area y1, the lower record's y0 / y1 (stock + d) */
+    r2[2] = 0x9f + dw; r2[4] = 0x71 + d; r3[3] = 0x7c + d; r3[4] = 0x8c + d;   /* list area x1 / y1, the lower record's y0 / y1 (stock + d) */
     g_nft_opens++;
-    NMP_LOG("  nitro-types: GAME TYPE popup open #%ld (provider %d): %lu rows, height %lu, row %d px, list hit y %lu-%lu, lower hit y %lu-%lu", g_nft_opens, p,
-            desc[6], desc[3], rh, r2[3], r2[4], r3[3], r3[4]);
+    NMP_LOG("  nitro-types: GAME TYPE popup open #%ld (provider %d): %lu rows, %lu x %lu, row %d px, list hit x %lu-%lu y %lu-%lu, lower hit y %lu-%lu", g_nft_opens,
+            p, desc[6], desc[2], desc[3], rh, r2[1], r2[2], r2[3], r2[4], r3[3], r3[4]);
     ((void (__cdecl *)(DWORD *, DWORD, DWORD))g_nft_popup0)(desc, a, b);
 }
 static __declspec(naked) void nft_save_type(void) {   /* G5: replaces `mov edx, [0x10045860]` (no flag is read after it) */
@@ -273,13 +277,23 @@ static __declspec(naked) void nft_save_type(void) {   /* G5: replaces `mov edx, 
         ret
     }
 }
+static DWORD g_nft_lookup0;
+static const char *__cdecl nft_lookup(void *tab, const char *key) {   /* G6: the mode-string lookup of 0x1002e8b8 (mask -> "Race" ...) */
+    const char *r = ((const char *(__cdecl *)(void *, const char *))g_nft_lookup0)(tab, key);
+    if ((DWORD)(DWORD_PTR)key == NF_R(0x10045330)) {   /* the "Unknown" default: a mask outside 1 / 2 / 4 / 8 / 16 */
+        BYTE *f = *(BYTE **)NF_R(0x1015b8dc); DWORD m = f ? *(DWORD *)(f + 0xd4) : 0;
+        if (m == (1u << (NFT_ARENA - 1))) return g_nft_rows[NFT_ARENA - 1];
+        if (m == (1u << (NFT_COOP - 1))) return g_nft_rows[NFT_COOP - 1];
+    }
+    return r;
+}
 static void nf_open_note(void) {
     if (!g_nf_sh || !(g_nf_on || g_nf_types)) return;
     NMP_LOG("  nitro-form: at dpOpen - provider %d, game type %d (%s), form mask %02lx, team %ld, options %02lx, species word %04x", *(int *)NF_R(0x1004701c),
             nft_type(), g_nf_types ? nft_name(nft_type()) : "-", *(DWORD *)NF_R(0x1017a07c), *(LONG *)NF_R(0x1017a088), g_nf_opt, *(WORD *)NF_R(0x10046cb0));
 }
 static int nft_jmptab(DWORD at, DWORD tab) { BYTE *p = (BYTE *)(DWORD_PTR)NF_R(at); return p[0] == 0xff && p[1] == 0x24 && p[2] == 0x85 && *(DWORD *)(p + 3) == NF_R(tab); }
-static int nft_attach(void) {   /* the number of sites written (14 = all) */
+static int nft_attach(void) {   /* the number of sites written (15 = all) */
     static const BYTE c4[3] = { 0x83, 0xf8, 0x04 }, sv[2] = { 0x8b, 0x15 }, hh[2] = { 0xc7, 0x05 }, rows0[3] = { 0x53, 0x8b, 0x5c };
     static const DWORD fsites[6] = { 0x10031d94, 0x10033b88, 0x100341bc, 0x100357cf, 0x10036648, 0x10036ec7 };
     static const DWORD r2s[5] = { 2, 0xc, 0x9f, 0x1c, 0x71 }, r3s[5] = { 3, 0x59, 0xa0, 0x7c, 0x8c };
@@ -290,7 +304,8 @@ static int nft_attach(void) {   /* the number of sites written (14 = all) */
       && nf_bytes(0x100342f7, c4, 3) && nft_jmptab(0x10034302, 0x100346f8)
       && nf_bytes(0x10032771, c4, 3) && nft_jmptab(0x1003277a, 0x1003369c) && nf_bytes(0x10036f36, c4, 3) && nft_jmptab(0x10036f3f, 0x10037224)
       && nf_bytes(0x100320aa, sv, 2) && *(DWORD *)NF_R(0x100320ac) == NF_R(0x10045860)
-      && t0[0] == 0 && t0[6] == 0;
+      && t0[0] == 0 && t0[6] == 0
+      && nf_is_call(0x1002e978, 0x10039270) && *(BYTE *)NF_R(0x1002e96b) == 0x68 && *(DWORD *)NF_R(0x1002e96c) == NF_R(0x10045330);
     for (k = 0; ok && k < 6; k++) ok = *(DWORD *)NF_R(fsites[k]) == NF_R(0x10045894);
     for (k = 1; ok && k <= 5; k++) ok = t0[k] != 0;
     if (!ok) { NMP_LOG("  nitro-types: nitshell bytes NOT as f804f50d - game types off (the boxes stay off too)"); return 0; }
@@ -300,6 +315,7 @@ static int nft_attach(void) {   /* the number of sites written (14 = all) */
     g_nft_field[6] = (DWORD)(DWORD_PTR)"Arena + AI"; g_nft_field[7] = (DWORD)(DWORD_PTR)"Co-Op"; g_nft_field[8] = 0;
     memcpy(g_nft_lim1, (void *)(DWORD_PTR)NF_R(0x1003369c), 20); g_nft_lim1[5] = g_nft_lim1[6] = g_nft_lim1[0];
     memcpy(g_nft_lim2, (void *)(DWORD_PTR)NF_R(0x10037224), 20); g_nft_lim2[5] = g_nft_lim2[6] = g_nft_lim2[0];
+    g_nft_lookup0 = NF_R(0x10039270);
     g_nft_list_tab = NF_R(0x100346f8); g_nft_list_back = NF_R(0x10034329); g_nft_popup0 = NF_R(0x10021d80); g_nft_type_va = NF_R(0x10045860);
     g_nf_types = 1;   /* before the writes */
     r = (DWORD)(DWORD_PTR)g_nft_field; for (k = 0; k < 6; k++) n += nf_write(NF_R(fsites[k]), &r, 4);                       /* G4 x6 */
@@ -312,6 +328,7 @@ static int nft_attach(void) {   /* the number of sites written (14 = all) */
     r = (DWORD)(DWORD_PTR)g_nft_lim2; n += nf_write(NF_R(0x10036f42), &r, 4);                                                /* G3 tables */
     { LONG rel = (LONG)((DWORD_PTR)nft_save_type - (NF_R(0x100320aa) + 5)); w[0] = 0xe8; memcpy(w + 1, &rel, 4); w[5] = 0x90; }
     n += nf_write(NF_R(0x100320aa), w, 6);                                                                                   /* G5 */
+    n += nf_call(0x1002e978, (void *)nft_lookup);                                                                           /* G6 */
     return n;
 }
 
@@ -333,8 +350,8 @@ static void nf_attach(HMODULE sh) {
     if (GetEnvironmentVariableA("I76_NITRO_GAMETYPES", v, sizeof v) && v[0] == '1') {   /* the GAME TYPE entries, no boxes */
         k = nft_attach();
         if (k) k += nf_call(0x10001531, (void *)nf_ctor);
-        NMP_LOG("  nitro-types: %s - %d/15 nitshell sites (field names x6, popup open, type switch x2, limit switches x4, prefs save, constructor);"
-                " GAME TYPE rows 6 '%s' and 7 '%s' on the IPX / internet host forms, check boxes off", k == 15 ? "ON" : k ? "PARTIAL" : "OFF", k,
+        NMP_LOG("  nitro-types: %s - %d/16 nitshell sites (field names x6, popup open, type switch x2, limit switches x4, prefs save, mode string, constructor);"
+                " GAME TYPE rows 6 '%s' and 7 '%s' on the IPX / internet host forms, check boxes off", k == 16 ? "ON" : k ? "PARTIAL" : "OFF", k,
                 g_nft_rows[5] ? g_nft_rows[5] : "-", g_nft_rows[6] ? g_nft_rows[6] : "-");
         return;
     }
