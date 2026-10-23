@@ -115,7 +115,7 @@ c0b0a0 fallback), the black top (010101), the dark peaks (110c07 / 261a0f). The 
 through the context palette: T05 reads **483620**. On screen the strips above the rim read 6d5542 (base boot, rows 815-826 of the
 hill frame): the same hue, lifted by the display's gamma ramp, which lifts the fog colour the same way - with the fog at 0.7 the
 rim's rows read 735b43 / 705a44 / 6f5b45 against the picture's 6d5542 (base: 7e664f .. 8b7761), i.e. the rim now meets the
-picture at its own colour (`runs61023-101413-fogv70-hill`, `zoom-fogv70.png`). The 8-bit strip's indices belong to the
+picture at its own colour (`runs\20261023-101413-fogv70-hill`, `zoom-fogv70.png`). The 8-bit strip's indices belong to the
 8-bit build's palette; when I76_MIRROR_PAL has found the pair, mirror-pal's 8-bit -> hardware map is applied (on T05 the two
 palettes differ by 34 in all, so the colour is the same either way). `I76_GLIDE_FOG=<start>,rrggbb` overrides.
 
@@ -124,10 +124,9 @@ palettes differ by 34 in all, so the colour is the same either way). `I76_GLIDE_
 - `PLAY-OWNER-2300-HAZE.bat` + `presets\OWNER-2300-HAZE.psd1`: OWNER-2300-ALL (as corrected 09:40: the driver's four keys, the
   mirror lane's keys, I76_JUMP_NOSE) + `I76_HAZE=0.85` + `I76_EDGE_FADE=1`.
 - `PLAY-OWNER-2300-FOG.bat` + `presets\OWNER-2300-FOG.psd1`: the same + `I76_GLIDE_FOG=0.85,hzd`.
-- Proxy f2856def (repo 9496235, built from a clean worktree of main) installed into exp-polish2 by `toolsar-edgee-install.ps1`
+- Proxy f2856def (repo 9496235, built from a clean worktree of main) installed into exp-polish2 by `tools\far-edge\fe-install.ps1`
   once no game ran, the previous DLL kept as `STRLKUP.DLL.<md5>` (the install line is in the lane report).
-- Pictures for the owner: `toolsar-edge
-uns61023-094056-fogred50-hill\s04-t16.png` (the fog mechanism, red from 0.5),
+- Pictures for the owner: `tools\far-edge\runs\20261023-094056-fogred50-hill\s04-t16.png` (the fog mechanism, red from 0.5),
   `20261023-094232-haze50-hill` (haze from 0.5), `20261023-101325-fogv-hill` / `20261023-101413-fogv70-hill` (the horizon colour at
   0.85 / 0.7), `20261023-094412-base-hill` (the base), and the `zoom-*.png` crops of the far edge.
 
@@ -155,7 +154,7 @@ Fog from 0.5 and 0.35 of the far clip in the horizon colour, two vantage points,
 | valley road (mission start, driving) | 117.7, 119.7 | 119.0, 119.1 | 119.8, 119.7 |
 | hill top (held) | 108.1, 107.9 (09:44) | 107.3, 108.0 | 108.7, 109.2 |
 
-No cost (n 2 each; the spread of the base pairs covers every fog row). Captures: `runs61023-110831-base-start`,
+No cost (n 2 each; the spread of the base pairs covers every fog row). Captures: `runs\20261023-110831-base-start`,
 `110919-fog50-start`, `111007-fog35-start`, `111055-fog50-hill`, `111142-fog35-hill` (`s04-t16.png`, 3440x1440).
 
 What they show at ground level (the owner's view): the fog lives at the far end of the canyon, where the road meets the far
@@ -180,7 +179,7 @@ are the colour the far rim is drawn against, which is right at the edge and dark
   `110831-base-start` / `110919-fog50-start` / `111007-fog35-start`: fog / base ratios 0.97-1.02 at every row, no step; the
   road's own texture steps (rows 924-936, 952-964) are identical in all three. At ground level the fog band covers only the last
   rows below the horizon, so a stair cannot come from it; the brightness steps the owner sees in ATMOS are the terrain's own
-  shade rows and texture levels (the pops lane's road profile, `tools	errain-pops`), which the fog overlays but does not
+  shade rows and texture levels (the pops lane's road profile, `tools\terrain-pops`), which the fog overlays but does not
   create. A uniform-luma table (delta per entry equal) would not change what is on screen between entries - the interpolation
   is linear in 1/w either way - so no "after" table was built.
 
@@ -235,7 +234,7 @@ colour fog. The switch stays as a lab instrument (the keyed-texture lesson is in
 
 ## 12. Transparent-fade verification with the texture x iterated combine (3d89698, `fe-batch8`)
 
-`runs61023-114128-alphat50-start\s04-t16.png` (valley road, bushes in the near field; crop `zoom-alphat50-bushes.png`):
+`runs\20261023-114128-alphat50-start\s04-t16.png` (valley road, bushes in the near field; crop `zoom-alphat50-bushes.png`):
 the bushes are keyed sprites again (no black squares), the far ground still blends, 119.7 fps (base 117.7 / 119.7). So the
 lab switch is clean; it stays unshipped for the owner's "no blue" reason (s.7). The lesson for any per-record alpha work on
 this driver: keyed textures carry their key in the TEXTURE alpha, so an alpha combine must keep SCALE_OTHER(TEXTURE).
@@ -255,7 +254,7 @@ key unset (full density to the far clip; the code also treats a value >= I76_CLU
 No pool refusals logged in any boot (record pool 11562 KB, refusal line absent). Even 600 costs ten times the ~3 % budget, so
 **300 stays** in OWNER-2300-ALL (the per-instance engine path - two terrain lookups, transform, frustum, mesh transform and
 lighting, one draw record per face - runs for every kept bush; density to 600 m quadruples the kept count). Captures:
-`runs61023-120455-cf300-start`, `120233-cf600-start`, `120320-cf1200-start`, `120408-cfoff-start` (`s04-t16.png`); the
+`runs\20261023-120455-cf300-start`, `120233-cf600-start`, `120320-cf1200-start`, `120408-cfoff-start` (`s04-t16.png`); the
 bushes the owner sees popping at ~300 m are the (300 / d)^2 admissions, and pushing that line out is a cost question, not a
 switch question - sparseness (a lower density shape) is the separate decision he named.
 
@@ -265,5 +264,5 @@ switch question - sparseness (a lower density shape) is the separate decision he
   `PLAY-OWNER-2300-HAZE.bat` (I76_HAZE 0.85 + I76_EDGE_FADE 1), `PLAY-OWNER-2300-FOG.bat` (I76_GLIDE_FOG 0.75,hzd),
   `PLAY-OWNER-2300-ATMOS.bat` (I76_GLIDE_FOG 0.675,hzd), presets regenerated from the corrected OWNER-2300-ALL (I76_CLUTTER_FADE
   300 unchanged). No transparent launcher (s.7); I76_GLIDE_FOG_ALPHA stays a lab switch.
-- Lab: `toolsar-edge\` (fe-run, fe-batch1-9, fe-install, results.txt, runs\<stamp>-<tag>-<route>\), copy `exp-faredge`,
-  build worktree `buildsaredge-20261023\wt`.
+- Lab: `tools\far-edge\` (fe-run, fe-batch1-9, fe-install, results.txt, runs\<stamp>-<tag>-<route>\), copy `exp-faredge`,
+  build worktree `builds\faredge-20261023\wt`.
