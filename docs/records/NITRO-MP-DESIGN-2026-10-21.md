@@ -878,8 +878,7 @@ The fixed teardown put the copy back to b577183c with no strlkprx.dll or backup 
 
 **Step 4 done (i76-everywhere ddceb7a):** the entries are the default, and `I76_NITRO_GAMETYPES=0` restores the boxes for one
 release. The box code (F2 / F3 sites, hit records, draw) stays so the owner can still go back. Release build:
-`builds
-itro-port-20261021\gametypes-ddceb7a\Strlkup.dll` **7941034a**. Instrument from the same tree: `drv` 9ab73ae2.
+`builds\nitro-port-20261021\gametypes-ddceb7a\Strlkup.dll` **7941034a**. Instrument from the same tree: `drv` 9ab73ae2.
 Headless host boots on exp-nitro-types with the switch unset (`gt_run.py`, n 1 each; the copy's instrument 8ba38c6a put back afterwards):
 
 | cell | env | read back at dpOpen | after 35 s | exceptions |
