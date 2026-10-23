@@ -8649,7 +8649,7 @@ static void apply_detail_distance(void) {
     n = env_str("I76_TERRAIN_TEX", v, sizeof(v));
     if (n) {
         f = (float)atof(v);
-        if (f < 1.0f || f > 16.0f) mlog("  terrain-tex: %s out of range (1..16) - not applied", v);
+        if (f < 1.0f || f > 32.0f) mlog("  terrain-tex: %s out of range (1..32) - not applied", v);   /* 32 since 2026-10-23 (terrain-pop lane sweep 8 / 12 / 16 / 24: the main camera is 1024 wide, so x24 keeps the 256 px level to 1920 m; the same resident textures, W x 40 f fits) */
         else {
             static const BYTE expect[6] = { 0x8d, 0x04, 0x80, 0xc1, 0xe0, 0x03 };
             BYTE want[6] = { 0x69, 0xc0, 0, 0, 0, 0 };
