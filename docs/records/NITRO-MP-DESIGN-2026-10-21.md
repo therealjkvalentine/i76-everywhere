@@ -835,8 +835,7 @@ checked as p7 8d4d50b6 but not committed. Left: one co-op join per Mac (`gt_xmac
 `gt_xmac.sh gt-and-c3 c andrewvalentine@192.168.1.205` after the script fix above), then the flip, then the box code can go.
 
 Lab copies: `exp-nitro-types` (host, IPXWrapper L) and `exp-nitro-types-b` (joiner, M), both with the instrument
-a3889d8f / 8ba38c6a (`builds
-itro-gametypes-20261023\drv`); proxies p1-p7 in that folder (p6 3ef77e9d = the code as
+a3889d8f / 8ba38c6a (`builds\nitro-gametypes-20261023\drv`); proxies p1-p7 in that folder (p6 3ef77e9d = the code as
 committed in 0e77d5e).
 
 ### 0.6 Changes to sections 3.4, 4 and 5
