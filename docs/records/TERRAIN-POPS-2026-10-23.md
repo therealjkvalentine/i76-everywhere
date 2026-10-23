@@ -255,6 +255,25 @@ out to 2560 m so the hand-made rings are gone and the mips do the whole transiti
 owner's boots), signature-checked, Gold, off by default. Rows (pending the console after the TEX sweep): sm (SMOOTH + BIG 2), mip1,
 mip2, mip2 + TEX 32, n 2, same route and instruments; the capture's local-step p50 is the grain / shimmer measure here.
 
+## 7. The owner's texture-distance sweep (I76_TERRAIN_TEX 8 / 12 / 16 / 24, proxy 6f5dfd4 = cap raised to 32)
+
+Same route, preset and instruments; n 2 each, the queue run as 8-12-16-24 then 8-12-16-24 again. Drive-phase fps from frames.csv.
+
+| TEX | 256 px level to | fps run 1 / run 2 (drive) | level switches / s | leaves per pass at level 0 / 1 / 2 / 3 | capture p50 (grain) | pairs >= 20 |
+|---|---|---|---|---|---|---|
+| 8 (daily driver) | 640 m | 81.7 / 78.3 | 164 / 158 | 1000 / 515 / 583 / 7 | 19.2 / 19.2 | 401 / 409 |
+| 12 | 960 m | 86.2 / 83.0 | 94 / 134 | 1245 / 552 / 271 / 0 | 20.1 / 18.8 | 454 / 411 |
+| 16 | 1280 m | 76.3 / 84.4 | 107 / 108 | 1533 / 587 / 7 / 0 | 19.4 / 19.1 | 399 / 419 |
+| 24 | 1920 m | 76.5 / 84.1 | 65 / 67 | 1845 / 270 / 0 / 0 | 19.3 / 19.1 | 389 / 414 |
+
+- **No fps knee up to x24.** The second half of the queue read ~8 fps above the first at every TEX (the console's other load, not the
+  key); within a half the four values sit within 2-3 fps of each other with no trend. A cost of x24 against x8 under 3 % cannot be
+  resolved at n 2 with that spread; nothing suggests one. The textures are all resident whatever TEX (every level is loaded at mission
+  load), so the only cost is sampling the 256 px level minified, which Glide does per pixel at the same price.
+- Level switches fall 160/s -> 66/s (x24 leaves one ring, at 1920 m, inside the 2300 m far clip). The screen grain metric does not move.
+- Delivered: exp-polish2 `OWNER-2300-TEX.psd1` + `PLAY-OWNER-2300-TEX.bat` (= OWNER-2300-ALL with TEX 24; the rows in the psd1's comments).
+  Needs the proxy at 6f5dfd4 or later (the installed 2516fb4 build would refuse 24 as out of range) - installed with the mipmap rows' DLL.
+
 ## 5. Files
 
 - Code: i76-everywhere `music-fix/terrainpops.c` (6f14a77 instruments, 1ac22b3 fix), `strlkproxy.c` (include, report, apply, frame hook, census hook).
