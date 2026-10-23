@@ -73,9 +73,10 @@ the 3D is rendered at twice your monitor's size (a real supersample, no shimmer)
 shape - 21:9, 16:9, 16:10 and 4:3 all come out right, nothing is stretched. The 640x480 menus, garage and movies
 are shown 4:3 with side bars. The game runs in a borderless window the size of the screen, so Alt-Tab works.
 
-James has only ever played this at 3440x1440. On other sizes the numbers are computed and were tested on his PC
-with the window forced to 1920x1080 and 2560x1440, not on real hardware - so **if the picture looks off-centre,
-stretched, or the mouse pointer does not land on the menu buttons, that is exactly what we want to hear about.**
+James has only ever played this at 3440x1440. On other sizes the numbers are computed; they were checked on his
+PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, nothing stretched), not on a real
+16:9 monitor - so **if the picture looks off-centre, stretched, or the mouse pointer does not land on the menu
+buttons, that is exactly what we want to hear about.**
 Tell us your monitor size and send a screenshot (Win+PrtScn saves one to Pictures\Screenshots).
 
 ## Keys

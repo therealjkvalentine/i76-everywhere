@@ -1125,3 +1125,24 @@ Open items from this session:
   (IPXWrapper instance N) and exp-nitro-mp's Strlkup.dll. REBOOT clears it. Until then no PC-hosted Nitro LAN test can run; the
   game-types flip (co-op Mac n 2, then entries default) is prepared and waits on that. The gt_xlan.sh time limit now excludes queue
   wait, and the teardown keeps its DLL backup (lab 3e624f8 / 2f0bc9b).
+
+## 2026-10-23 afternoon: the tester build for Scott (records/SCOTT-BUILD-2026-10-23.md)
+
+- **What it is:** `Interstate76-i76-everywhere-scott-20261023.zip` (2.7 MB, 83 files; lab `downloads\scott\`, and the asset of the
+  DRAFT pre-release `scott-20261023` on GitHub - not published, your call). Unzipped INTO a GOG Interstate '76 folder; nothing of
+  GOG's inside (our proxy 9bab51fe = clean build of main 8cb3da2, u32x 06467bd2, launchers, presets, controls, the shell patch as
+  our bytes only, dgVoodoo 2.87.3 unmodified per Dege's redistribution clause, AutoHotkey GPL). The first PLAY.bat runs our own
+  installer on his copy (originals kept), every PLAY.bat reads his monitor and sizes the picture. `PLAY.bat` = tick19-42 (the RC's
+  stable set), `PLAY-PREVIEW.bat` = exp-polish2's OWNER-2300-FOG as it stood at 11:40 (fog 0.75), `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat`
+  boot straight into mission 5. README-SCOTT.md in the zip: install, launchers, monitor, the home-row keys, what to test, troubleshooting.
+- **Gated on GOG's own exe (9a232dcc, the one he most likely has), lab game-scott:** conf accepted, bookmark route by memory 3/3,
+  T05 route 120 fps median over 2604 m (1 % low 96.9), input.map and player state untouched; every switch of the preset applied
+  (the only differences: the LAN co-op tick site and the pad / wheel early tick - no WINMM import on that exe). 16:9 settings
+  (1920x1080, 2560x1440) give a 16:9 picture, nothing stretched (captures in lab builds\scott-20261023\gate-20261023-155827).
+- **Not yet shown on that exe: the menu pointer by clicks (gate rows 3-6)** - void twice: the first run was my runner's missing
+  harness environment (fixed), the second the orphaned nitro.exe pid 48740 that the shared harness takes for "the game". **After
+  your reboot:** `builds\scott-20261023\run-gate.ps1 -Groups '3,7,8','4','5,6'` (one console take per group, watchdogs). If you want
+  to look yourself first: lab `game-scott\PLAY.bat` (pristine GOG + the zip) - do the menus answer where you click, save a bookmark.
+- **Your decisions:** (1) publish the draft release (`gh release edit scott-20261023 --draft=false`) or send the zip; (2) whether
+  the pad / wheel early-tick gap on the Galaxy exe matters enough to port the joystick watch to GOG's win32.dll shim; (3) the
+  repo's shipped `saves\savegame.dir` carries 92 B of zero slack (876 vs 784 B) - harmless to the game, the gate wants it exact.

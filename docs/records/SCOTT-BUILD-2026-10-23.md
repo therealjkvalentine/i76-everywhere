@@ -146,17 +146,59 @@ for this exe:
 - The frame-0 `CRASH ... exe+0x99997` first-chance line, as documented for this exe.
 - tick-factors `0/3`, `0/4` etc. are the "factor 1.000, nothing to install" lines at 41.667 ms, the same on the AiO exe.
 
-### 6.3 Second run
+### 6.3 Second run 15:58-16:34 (lab `builds\scott-20261023\gate-20261023-155827`, autotest runs 155828 / 160045 / 160526 / 160710 / 161741 / 162711)
 
-PENDING (queued 14:54; results land here from `builds\scott-20261023\gate-<ts>\run.txt`).
+One console take per row group, 30 s between takes, nothing else queued at the time. Every launch here carries the shipped preset
+(LAB_GAME_ENV for the harness boots, PLAY.bat for the launcher rows), proxy 9bab51fe, exe 9a232dcc, i76shell 64923d95, u32x 06467bd2,
+conf dccd379a.
+
+| row | result | n | detail |
+|---|---|---|---|
+| 1 conf accepted | **PASS** | 1 | client 3440x1440 ACCEPTED with the global `%APPDATA%` conf hidden; conf put back (dccd379a); watermark capture taken (`runs\gate\20261023-155828\1-conf-watermark.png`, by eye) |
+| 2 bookmark route (TRIP -> LOAD BOOKMARK -> TURRET TEST -> LOAD -> ACCEPT SALVAGE -> DONE -> mission, by memory) | **PASS** | 3 of 3 | leg-b b1 through B1.10; scene 7 up each time |
+| 3 trip route through PLAY.bat | **VOID** | 0 of 2 | `option6-trip-test.ps1` line 77 takes the first `i76`/`nitro` process on the PC as "the game the launcher started": the orphaned `nitro.exe` pid 48740 (exp-nitro-mp, 1 thread in a kernel wait, unkillable until a reboot; coordinator 2026-10-23) wins every time -> "NOT in -GameDir ... killed, nothing clicked". Not a verdict on the launcher: the launcher's own game did start each time (its sessions are in mciproxy.log) and was stopped by my watchdog afterwards |
+| 4 save screen | **VOID** | - | watchdog at 10 min right after "scratch installed" (`garage-ui.ps1` waits on a game process the same way) |
+| 5 Esc-menu Exit, 6 melee by menus | **VOID** | - | watchdog at 9 min at "=== 5 ===" (proxy-run's launch, same cause) |
+| 7 input.map | **PASS** | - | lint OK, md5 a66a37f7 unchanged |
+| 8 force feedback | no verdict | - | needs row 3's mission |
+| 9 T05 route fps (direct boot into t05.msn through the launcher's preset, the owner's route driven by keys) | **PASS** | 1 | **hill leg median 120.0 fps over 2604 m, 1 % low 96.9**; ridge 120.0 / 1 % low 108.7 (the RC's AiO-exe gate: 91 / 83 / 98 on three launchers, n 3). `t05-route-fps.ps1` filters by path + start time, so the zombie did not touch it |
+| S player state | **PASS** | 4 of 4 groups that ended | byte-identical to the backup after every finished group; the two killed groups' state was put back by hand from `runs\gate\20261023-160710\saves-before` (md5) and the scratch `save003.cmp` removed; `--check` 13 records 784 B |
+| D folder drift | **PASS** | 4 of 4 | only mciproxy.log written |
+
+The two display tests (PLAY.bat `--display 1920x1080 --no-supersample` and `--display 2560x1440 --no-supersample`, s.4): the conf
+and the four presets were rewritten as designed (`[Glide] Resolution = 1920x1080` / `2560x1440`, `I76_ASPECT = '1920x1080'` /
+`'2560x1440'`, menu aspect the same), the game's own session read **`aspect: D 1.778, 20/20 sites; fov 90 -> 106.3 deg, hood 120 ->
+133.2 deg ... present at 1.778:1`** and `hud-squeeze ... x 1/1.333` both times, and the T05 captures (`display-<WxH>\t05-cockpit.png`,
+`t05-hood.png`, F6) show a 16:9 picture with side bars on the 21:9 panel, nothing stretched (the far ridge, the road and the car
+look as they do at 21:9, narrower field). So the camera, the HUD and dgVoodoo's target agree on a 16:9 monitor's shape. Two
+corrections to s.4's expectation: dgVoodoo kept the borderless window at the full desktop (3440x1440 at 0,0) and fitted the
+16:9 target into it (stretched_ar), rather than making a 1920x1080 window - on a real 16:9 monitor both are the same thing; and the
+pointer-map half of the proof (the trip route by clicks) is VOID for the same zombie reason as row 3. The proxy's cursor map was
+up (`cursor-map: aw picture aspect 1680:1050`, `u32x.dll 5/5`), but a click landing on the drawn button was not observed.
+
+**Verdict so far:** the stable launcher boots the GOG 2.1.0.17 exe with every switch of the shipped preset applied (s.6.2), the
+bookmark route by memory and the T05 route at 120 fps PASS on it, the folder and the player state come through untouched, and the
+display derivation gives a correct 16:9 picture. **Not yet shown on this exe: the menu pointer under the cursor map (rows 3-6).**
+The RC's gate showed exactly that on the AiO exe with the same conf / preset / u32x / cursor map, and the proxy log shows the same
+cursor-map lines here, but it is an inference until rows 3-6 are re-run after the owner's reboot:
+`builds\scott-20261023\run-gate.ps1 -Groups '3,7,8','4','5,6'` (then the two display tests), one take per group, watchdogs on.
 
 ## 7. Open risks
 
-- **Non-ultrawide on real hardware: untested.** Only this PC's 3440x1440 panel exists here; 1920x1080 and 2560x1440 were proven as
-  windows of that size (s.6), which exercises the same conf, map and camera numbers but not a different GPU / driver / DPI scaling.
-  A 4:3 monitor was dry-run only (`Make-Wide-Conf -AllowNarrow`).
-- **GOG exe layout.** The stable preset on 9a232dcc: see s.6.2 for which proxy sites applied. The AiO-exe path (60abf7bc) is what the RC
-  runs and was not re-gated here; its shell chain was checked offline (s.3).
+- **Non-ultrawide on real hardware: untested.** Only this PC's 3440x1440 panel exists here; 1920x1080 and 2560x1440 were run as
+  16:9 settings on it (s.6.3: camera, HUD and target agree, picture 16:9 with bars), which exercises the same conf and camera numbers
+  but not a different GPU / driver / DPI scaling, and not the menu pointer at that size (void, zombie). A 4:3 monitor was dry-run
+  only (`Make-Wide-Conf -AllowNarrow`).
+- **The menu pointer on 9a232dcc under the shipped cursor map is inferred, not observed** (s.6.3 rows 3-6 void): re-run after the
+  reboot. If it fails there, the fallback is the RC's conf / map pair as it is (the proxy lines match the AiO run), or `PLAY-16x10.bat`.
+- **GOG exe layout.** The stable preset on 9a232dcc: s.6.2 - everything applied except the LAN-only `coop-ai` tick site and the pad /
+  wheel early tick (no WINMM import). The AiO-exe path (60abf7bc) is what the RC runs and was not re-gated here; its shell chain was
+  checked offline (s.3).
+- **Shared harness vs the zombie:** `option6-trip-test.ps1` (line 77), `garage-ui.ps1` and `proxy-run.ps1` take any `i76`/`nitro`
+  process as the game; a single-thread orphan blocks every launcher row of every lane until the reboot. Not changed here (other
+  lanes' infrastructure); my runner ignores a single-thread nitro.exe for its own busy check only.
+- **The orphaned proxy build vs HEAD:** the DLL is a clean build of `8cb3da2`; `0e01d3c` / `3d89698` (off-by-default lab switches) came
+  later. A re-pack from a newer commit needs its own gate.
 - **Program Files installs**: a Galaxy default install under `C:\Program Files (x86)\GOG Galaxy\Games` is user-writable on most PCs;
   if not, the setup fails with access denied (README: run as administrator once, or move the game).
 - **Downloaded-file blocking (Mark of the Web)**: PowerShell is started with `-ExecutionPolicy Bypass`, dgVoodoo DLLs load; README
