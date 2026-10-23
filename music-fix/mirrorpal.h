@@ -1,4 +1,4 @@
-/* mirrorpal.h - generated 2026-10-23 by the rear-mirror lane from i76-map recon-2026-09-04econormats\zfs_out (I76.ZFS):
+/* mirrorpal.h - generated 2026-10-23 by the rear-mirror lane from i76-map recon-2026-09-04/recon/formats/zfs_out (I76.ZFS):
  * every mission palette that exists in both forms: X.act (the 8-bit build's, what the software rasteriser's indices, the
  * 8-bit textures, the 0xea / 0xef constants and the shared .lum shade tables mean) and X_16.act (the hardware build's, what
  * the display shows). 768 bytes RGB each. Stems with a _16 but no 8-bit twin (the hardware build uses the same file): n17, p05, p11, p14 */
