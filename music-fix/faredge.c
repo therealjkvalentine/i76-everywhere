@@ -24,6 +24,17 @@
  *                                   cockpit mesh, instruments, target brackets, mask and text (after it). The rear mirror is a
  *                                   software render (no Glide calls). The fog w is ZGLIDE's vertex oow (= view z in metres,
  *                                   measured by the probe); I76_GLIDE_FOG_WM=<metres per w> overrides (default 1).
+ *   I76_GLIDE_FOG_ALPHA=1           with I76_GLIDE_FOG: FADE TO TRANSPARENT instead of to a colour. ZGLIDE sets, per render op,
+ *                                   grColorCombine / grAlphaCombine / grAlphaBlendFunction (its opaque ops: blend ONE / ZERO at
+ *                                   0x10001fa0 / 0x1000200b / 0x10002399 / 0x100024fa; its translucent ops use SRC_ALPHA /
+ *                                   ONE_MINUS_SRC_ALPHA with the texture or iterated alpha) over a W-buffer (LEQUAL, writes on).
+ *                                   Inside the flush bracket the two state imports are IAT-hooked: an opaque request becomes
+ *                                   SRC_ALPHA / ONE_MINUS_SRC_ALPHA with alpha = the iterated vertex alpha, and the grDrawTriangle
+ *                                   hook writes each vertex's alpha (GrVertex +28) as 255 x (1 - fade(w)) from its oow; translucent
+ *                                   requests pass through untouched (smoke, tracers keep their alpha). The sky dome and the horizon
+ *                                   strips are drawn before the flush (0x402128 / 0x402131 before 0x40216d), so the far ground
+ *                                   blends into the sky behind it; painter's order (far first) keeps nearer ground opaque over it.
+ *                                   The fog table is not set in this mode (no colour).
  *   I76_EDGE_FADE=1|<pull>[,<band m>] level-boundary tiles faded harder (through I76_HAZE): the terrain tile table 0x644380 holds
  *                                   16384 tile pointers, every tile outside the mission's zone grid = the flat static tile
  *                                   0x59c588 (terrain init 0x493080). A vertex within band m (50..640, default 320) of such a VOID
@@ -45,7 +56,10 @@ static BYTE g_fe_table[64];
 typedef void (__stdcall *fe_FogMode_t)(int); typedef void (__stdcall *fe_FogColor_t)(DWORD); typedef void (__stdcall *fe_FogTable_t)(const BYTE *);
 typedef float (__stdcall *fe_IndexToW_t)(int); typedef void (__stdcall *fe_DrawTri_t)(const void *, const void *, const void *);
 static fe_FogMode_t p_fe_FogMode; static fe_FogColor_t p_fe_FogColor; static fe_FogTable_t p_fe_FogTable; static fe_IndexToW_t p_fe_IndexToW; static fe_DrawTri_t p_fe_DrawTri;
-static int g_fe_glide_tries, g_fe_in_flush, g_fe_probe_tried;
+static int g_fe_glide_tries, g_fe_in_flush, g_fe_probe_tried, g_fe_alpha, g_fe_opaque, g_fe_ablend_tried;
+typedef void (__stdcall *fe_Blend_t)(int, int, int, int); typedef void (__stdcall *fe_ACombine_t)(int, int, int, int, int);
+static fe_Blend_t p_fe_Blend; static fe_ACombine_t p_fe_ACombine; static int g_fe_ac_last[5] = { 3, 8, 1, 1, 0 }; static float g_fe_az0, g_fe_ainv;
+static DWORD g_fe_atris, g_fe_averts_faded;
 static double g_fe_pw_in_min = 1e30, g_fe_pw_in_max, g_fe_pw_out_min = 1e30, g_fe_pw_out_max; static DWORD g_fe_pt_in, g_fe_pt_out, g_fe_pt_in_far, g_fe_frames;
 
 static float fe_main_far(void) { return g_fe_far_env ? g_far_clip : *(volatile float *)(DWORD_PTR)0x004c271c; }
@@ -222,9 +236,40 @@ static void fe_fog_update(float fz) {
 }
 static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) {   /* the probe: w = 1 / oow of vertex a (GrVertex +32) */
     float oow = *(const float *)((const BYTE *)a + 32); double w = oow > 0.0f ? 1.0 / oow : -1.0;
+    if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) {       /* fade to transparent: the vertex alpha from its own w */
+        const void *v[3]; int i; v[0] = a; v[1] = b; v[2] = c; g_fe_atris++;
+        for (i = 0; i < 3; i++) {
+            float o = *(const float *)((const BYTE *)v[i] + 32), wv = o > 0.0f ? 1.0f / o : 0.0f, f = (wv - g_fe_az0) * g_fe_ainv, al = 255.0f;
+            if (f > 0.0f) { if (f > 1.0f) f = 1.0f; f = f * f * (3.0f - 2.0f * f); al = 255.0f * (1.0f - f); g_fe_averts_faded++; }
+            *(float *)((BYTE *)v[i] + 28) = al;
+        }
+    }
     if (g_fe_in_flush) { g_fe_pt_in++; if (w > 0) { if (w < g_fe_pw_in_min) g_fe_pw_in_min = w; if (w > g_fe_pw_in_max) g_fe_pw_in_max = w; if (w > 0.9 * g_fe_fog_far_built) g_fe_pt_in_far++; } }
     else { g_fe_pt_out++; if (w > 0) { if (w < g_fe_pw_out_min) g_fe_pw_out_min = w; if (w > g_fe_pw_out_max) g_fe_pw_out_max = w; } }
     p_fe_DrawTri(a, b, c);
+}
+static void __stdcall fe_Blend(int rsf, int rdf, int asf, int adf) {      /* ZGLIDE's grAlphaBlendFunction, in the bracket */
+    if (g_fe_alpha && g_fe_in_flush && rsf == 4 && rdf == 0) {            /* an opaque op: blend by the iterated alpha instead */
+        p_fe_Blend(1, 5, 4, 0); g_fe_opaque = 1;
+        p_fe_ACombine(1, 0, 0, 0, 0);                                      /* alpha = LOCAL ITERATED */
+        return;
+    }
+    g_fe_opaque = 0; p_fe_Blend(rsf, rdf, asf, adf);
+}
+static void __stdcall fe_ACombine(int fn, int fac, int loc, int oth, int inv) {   /* ZGLIDE's grAlphaCombine: remembered; forced to iterated while an opaque op is on */
+    g_fe_ac_last[0] = fn; g_fe_ac_last[1] = fac; g_fe_ac_last[2] = loc; g_fe_ac_last[3] = oth; g_fe_ac_last[4] = inv;
+    if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) { p_fe_ACombine(1, 0, 0, 0, 0); return; }
+    p_fe_ACombine(fn, fac, loc, oth, inv);
+}
+static void fe_alpha_attach(void) {
+    HMODULE z; void *o;
+    if (g_fe_ablend_tried) return;
+    z = GetModuleHandleA("zglide.dll"); if (!z) return;
+    g_fe_ablend_tried = 1;
+    o = patch_iat(z, "glide2x.dll", "_grAlphaBlendFunction@16", (void *)fe_Blend); if (o && o != (void *)fe_Blend) p_fe_Blend = (fe_Blend_t)o;
+    o = patch_iat(z, "glide2x.dll", "_grAlphaCombine@20", (void *)fe_ACombine); if (o && o != (void *)fe_ACombine) p_fe_ACombine = (fe_ACombine_t)o;
+    mlog("  glide-fog alpha: ZGLIDE grAlphaBlendFunction %s, grAlphaCombine %s", p_fe_Blend ? "hooked" : "NOT hooked", p_fe_ACombine ? "hooked" : "NOT hooked");
+    if (!p_fe_Blend || !p_fe_ACombine) { g_fe_alpha = 0; mlog("  glide-fog alpha: OFF"); }
 }
 static void fe_probe_attach(void) {
     HMODULE z; void *o;
@@ -238,14 +283,27 @@ static void fe_probe_attach(void) {
 static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1) at 0x40216d (hardware scene) */
     int on = g_fe_fog_on && *(volatile DWORD *)(DWORD_PTR)0x00504be8 != 0 && cam != (void *)(DWORD_PTR)0x00608c80 && fe_glide_resolve();
     if (on) {
-        fe_fog_update(fe_main_far());
-        if (g_fe_log) fe_probe_attach();
-        p_fe_FogMode(2);                                     /* GR_FOG_WITH_TABLE */
-        g_fe_in_flush = 1;
+        float fz = fe_main_far();
+        if (g_fe_log || g_fe_alpha) fe_probe_attach();
+        if (g_fe_alpha) fe_alpha_attach();
+        if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {
+            g_fe_az0 = fz * g_fe_fog_start; g_fe_ainv = fz > g_fe_az0 ? 1.0f / (fz - g_fe_az0) : 0.0f;
+            g_fe_in_flush = 1;
+            p_fe_Blend(1, 5, 4, 0); p_fe_ACombine(1, 0, 0, 0, 0); g_fe_opaque = 1;   /* the first records are opaque terrain: ZGLIDE's state cache may not call */
+        } else {
+            fe_fog_update(fz);
+            p_fe_FogMode(2);                                 /* GR_FOG_WITH_TABLE */
+            g_fe_in_flush = 1;
+        }
     }
     ((void (__cdecl *)(void *, int))(DWORD_PTR)g_fe_next_flush)(cam, flag);
     if (on) {
         g_fe_in_flush = 0;
+        if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {
+            if (g_fe_opaque) { p_fe_Blend(4, 0, 0, 0); p_fe_ACombine(g_fe_ac_last[0], g_fe_ac_last[1], g_fe_ac_last[2], g_fe_ac_last[3], g_fe_ac_last[4]); g_fe_opaque = 0; }
+            if (g_fe_log && (++g_fe_frames % 300) == 0) { mlog("  glide-fog alpha: last 300 frames - %lu opaque-op triangles, %lu vertices faded (band from %.0f m)", (unsigned long)g_fe_atris, (unsigned long)g_fe_averts_faded, g_fe_az0); g_fe_atris = g_fe_averts_faded = 0; }
+            return;
+        }
         p_fe_FogMode(0);                                     /* GR_FOG_DISABLE */
         if (g_fe_log && p_fe_DrawTri && (++g_fe_frames % 300) == 0) {
             mlog("  glide-fog probe: last 300 frames - inside the flush %lu tris, w %.1f..%.1f (%lu past 0.9 x far); outside %lu tris, w %.1f..%.1f",
@@ -312,6 +370,7 @@ static void apply_far_edge(void) {
         if (st < 0.5f || st > 0.98f) { mlog("  glide-fog: I76_GLIDE_FOG start %s out of range (0.5..0.98 of the far clip) - not applied", fv); good = 0; }
         if (good && c && strlen(c + 1) == 6 && strcmp(c + 1, "hzd") != 0) { g_fe_fog_rgb = (DWORD)strtoul(c + 1, NULL, 16); g_fe_fog_fixed = 1; }
         else if (good && c && _stricmp(c + 1, "hzd") != 0) { mlog("  glide-fog: colour '%s' is neither hzd nor rrggbb - not applied", c + 1); good = 0; }
+        if (good && env_flag("I76_GLIDE_FOG_ALPHA", 4, 0) == 1) g_fe_alpha = 1;
         if (good && env_str("I76_GLIDE_FOG_WM", mv, sizeof(mv))) { float wm = (float)atof(mv); if (wm > 0.001f && wm < 1000.0f) g_fe_fog_wm = wm; }
         if (good) {
             g_fe_fog_start = st;
@@ -319,6 +378,7 @@ static void apply_far_edge(void) {
                 g_fe_fog_on = 1;
                 mlog("  glide-fog: on - fog table clear to %.2f x far, full at the far clip, colour %s; fog on only around the depth-bucket flush (sky, horizon, cockpit, HUD, mirror untouched); metres per w %.3f",
                      st, g_fe_fog_fixed ? "fixed" : "the horizon strips' bottom rows", g_fe_fog_wm);
+                if (g_fe_alpha) mlog("  glide-fog alpha: FADE TO TRANSPARENT - opaque ops in the flush blend by a per-vertex alpha 255 x (1 - smoothstep from %.2f x far to the far clip); no colour fog", st);
             } else mlog("  glide-fog: NOT applied (flush site)");
         }
     }
