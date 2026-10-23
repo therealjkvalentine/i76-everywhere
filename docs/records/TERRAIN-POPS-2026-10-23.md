@@ -252,8 +252,24 @@ DISABLE, FXFALSE); with the flag every upload gets smallLod = GR_LOD_1 and 0x100
 (`mov [flag], edi` -> `mov [flag], ebx`, ebx = 1 there): mip chains, nearest mip. 2 = lodBlend forced FXTRUE through the glide2x import:
 trilinear under dgVoodoo - the levels fade into each other with distance, and with `I76_TERRAIN_TEX=32` the picker keeps the 256 px level
 out to 2560 m so the hand-made rings are gone and the mips do the whole transition. Relocation-aware (ZGLIDE loaded at 046C0000 in the
-owner's boots), signature-checked, Gold, off by default. Rows (pending the console after the TEX sweep): sm (SMOOTH + BIG 2), mip1,
-mip2, mip2 + TEX 32, n 2, same route and instruments; the capture's local-step p50 is the grain / shimmer measure here.
+owner's boots), signature-checked, Gold, off by default.
+
+**Result: it crashes - ZGLIDE's "mipmap path" expects the host to supply the chain.** 5 / 5 boots (mip1-1, mip2-1, mip2t32-1, mip2-2,
+mip2t32-2) died on the first upload: `CRASH 0xC0000005 at ZGLIDE+0x9DF4 read 0x126AE2CE | eax 2000 ebx 126AE2D0 edi 1FFF`, from the
+format switch at +0x985f. The routine (+0x9dd0, `(dst, src, w, h)`) is the 16 -> 32 bit texel converter the builder runs before
+filtering; it walks `src` backwards from texel w x h - 1 = 0x1FFF, and `src` (0x126AA2D0 on the stack) is the exe's one-level buffer -
+the read at +0x3FFE runs off its end. So with the flag on, ZGLIDE reads every level from the caller's buffer and builds nothing: the
+exe would have to hand it the chain. The switch now refuses unless `I76_GLIDE_MIPMAP_UNSAFE=1` (RE only). The lab note's "complete
+mipmap path" was a misreading of what the path consumes.
+
+**What remains for "continuously faded textures":** build the chain ourselves in the grTexDownloadMipMap hook (box-filter the P_8 /
+RGB565 level, hand glide2x `smallLod = GR_LOD_1` with the levels contiguous) and keep ZGLIDE's TMU accounting consistent
+(grTexCalcMemRequired / the bump allocator the tex-census already watches: the texture then needs 4/3 of its size, and the 2 MB
+boundary rule is the TMUFIX's). That is a lane of its own, not a switch; not built. Until then the mitigation the owner already guessed
+is the texture distance (s.7: TEX 24 moves the only ring to 1920 m; the 256 px level is then minified 2.5-7.7 x without mips, the grain
+sparkle grows with distance but the capture's grain metric did not move).
+
+sm-1 / sm-2 (SMOOTH + BIG 2, the current SMOOTH preset): fps 84.3 / 83.1, grain p50 19.1 / 18.9 - as ALL.
 
 ## 7. The owner's texture-distance sweep (I76_TERRAIN_TEX 8 / 12 / 16 / 24, proxy 6f5dfd4 = cap raised to 32)
 

@@ -1105,6 +1105,14 @@ Open items from this session:
   sliding (their heights blend against a root square that re-aligns; carried vertices > 16 px 480-525 px/s, 0 with BIG 2 = shade only).
   LOOK: exp-polish2 PLAY-OWNER-2300-SMOOTH (= ALL + your four detail keys + I76_SHADE_SMOOTH 1 + BIG 2; DLL 1790a308 installed, the
   previous f2856def kept beside it). fps on the ridge route: 84.6-86.3 vs ALL 84.5-86.7 (n 4 / 5). Not promoted; your eyes decide.
+- TERRAIN POPS follow-up ("textures in ATMOS and SMOOTH are still coarse / distracting brightness adjustments", records/TERRAIN-POPS s.6-7):
+  SMOOTH was live in your boots (log line). The five texture levels have the same mean brightness (133.0-133.6 of 255), so a level ring is
+  not a darkness step - it is a 20 % drop in the texture's grain, and inside the first ring the 256 px texture is drawn minified with no
+  mipmaps (sparkle). ZGLIDE's own mipmap mode turned out to expect the game to supply the levels (5 / 5 crashes when switched on), so a
+  real "continuous fade between textures" means building the mip chain in the proxy - a lane of its own, not done today. What you can
+  drive now: PLAY-OWNER-2300-TEX (= ALL with I76_TERRAIN_TEX 24: the only ring at 1920 m; your sweep question: no fps knee found to x24,
+  n 2 each at 8 / 12 / 16 / 24, the rows in the psd1) and PLAY-OWNER-2300-SMOOTH (shade steps gone + BIG 2). DLL e5f4a750 installed in
+  exp-polish2 (= origin 9aaf279, the far-edge lane's latest included; ed0c246f kept beside it).
 - FAR-EDGE FADE (owner asks): options noted in the reply of 2026-10-23; no lane yet.
 - RENDER LOAD vs THE DAILY DRIVER (owner's question, 2026-10-23 10:xx): the daily driver's PLAY.bat = preset best-wide carries
   I76_TERRAIN_TEX=8, I76_OBJECT_LOD=8, I76_SHADOW_DIST=4, I76_ROAD_TEX=8 (and I76_MIRROR_FAR=300); the rebaseline lane removed every
