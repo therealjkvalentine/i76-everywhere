@@ -765,6 +765,80 @@ dumped at the open popup (`shots\gt-c4\popup-index-masks.png`, one mask per pale
 3. Mac cross-machine pass with the same cells (PC host, Mac joiner), once phase 2 passes on the PC.
 4. Then make the entries the default, delete the box code (F2 / F3 sites, hit records, draw) and update s.0.5.10.
 
+### 0.5.18 GAME TYPE entries, phase 2 (2026-10-23, game-types lane): popup art, patched joiner, Mac pass
+
+**Popup art (option (a) of s.0.5.17, built):** the 7-row popup borrows the form's own 9-row list picture (6, 229 x 236,
+the id-11 popup's geometry: rows from +22,+48, list hit 16-214 / 47-198, button 146-215 / 209-225) in place of the 5-row
+picture 0x24 (`nft_popup`, commit 2481d87). The popup module adds the popup origin into the descriptor's row origin at open
+(`0x10021fa9`), which the lab driver's first row click added twice (gt-pa1: 530,469; fixed in lab 6130732).
+
+**Joiner side, static audit of the readers of the joined type mask** (`[0x1015b8cc]` / lobby struct +0xd4): `0x100302d6`
+(mask -> session flags: 0x20 / 0x40 set no mode flag, as on the host), `0x10030b76` (team popup: only 4 / 8 / 16),
+`0x1002e216` and `0x1002ed9a` (team-name table choice: only `== 1`), `0x1002e8b8` (the lobby mode text: 1 / 2 / 4 / 8 / 16,
+else the key "Unknown" -> G6 answers our names). The JOIN list rows (0xe4 B at 0x101593b8) carry name, session record and
+player counts only, no type. So a patched joiner needs nothing beyond G4 / G6 (which `nft_attach` installs on every
+nitshell, host or joiner, under the switch).
+
+**Screenshots:** PrintWindow gives black frames on the private desktops, so the instrument dumps the shell's 8-bit back
+buffer and its palette (`0x10131790`, 256 x 8-bit RGB, the table the shell's palette routine `0x10011730` is handed; the
+PALETTEENTRY table `0x100413ac` stays zero on the DirectDraw path);
+`builds\nitro-gametypes-20261023\fb2png.py` makes the PNG.
+
+**Popup art, as shipped:** picture 6's header reads MAKE / MODEL with a CANCEL button (gt-pa1 dump), so the popup keeps
+picture 0x24 and stretches it in the 8-bit surface from the first row draw (`nft_stretch`, commit 0e77d5e): the bottom
+band (button) down by two rows, row boxes 4-5 copied into the gap, then 24 columns added at x 30 from the plain columns
+20-29 so "Arena Drop-In + AI" (162 px) ends inside its box; once per open (7 of 7 rows visible, no scroll redraw); the
+hit records and the module's drop shadow follow. Screenshot (the shell's own surface + palette, 2x):
+`captures\nitro-mp-20261021\shots\gametypes-popup-final.png` (gt-pa2 host); the host form after the choice:
+`gametypes-hostform-arena.png` / `-coop.png`; the joiner's roster screen: `gametypes-joiner-arena.png` / `-coop.png`.
+
+**PC-to-PC pairs** (`gt_pair.py`: host exp-nitro-types on IPXWrapper L, joiner exp-nitro-types-b on M, both the
+instrument with the working-tree proxy, `NMP_AI=1`, 4 drivers; the joiner JOINs row 0; `gt-p*-host/-join.log`):
+
+| pair | host chose | joiner listed | joined | after 50 s (joiner) / 90 s (host) |
+|---|---|---|---|---|
+| pa1, pa2 | "Arena Drop-In + AI" (type 6, mask 20, 7676) | 'ARENA+ Evening Stroll' 7676 | yes, hello options 0401 | state 5, **players 4** on both sides (2 humans + 2 AI) |
+| pc1, pc2 | "Co-Op" (type 7, mask 40, 7676) | 'ARENA+ Evening Stroll' 7676 | yes, options 0003, P01 CO-OP SCENE on the joiner | state 5, players 2 on both sides |
+
+0 access violations in the 8 boots (the known first-chance exceptions only). A first pa1 try was void: nmprun's own
+foreign-process wait held the joiner 20 min past the host (the owner's daily driver came back); the runner now
+re-queues a pair whose joiner saw no session.
+
+**Where an IPX joiner would show the type:** the stock shell's only session-type text for a joiner is the mode line of
+`0x1002e7c0` (called once from `0x1002f0dc` after the join reply; G6 answers "Unknown" there with our names). In these
+4 joins the host was already in the mission and the joiner went straight in ("STAND BY..." then state 5), so that line
+was never drawn; the JOIN list and the roster screen carry the game name only. G6 stays in, unobserved.
+
+**Mac pass** (`gt_xmac.sh`: PC host exp-nitro-mp on IPXWrapper N over the LAN with this lane's instrument + the proxy p6
+3ef77e9d as strlkprx.dll in chain mode, the GAME TYPE row chosen, 6 drivers, 300 s hold; Mac joiner = the lab clone
+`Interstate 76 Nitro MP Lab.app` with the same proxy and `I76_NITRO_GAMETYPES=1` (xmac-join.sh arg 6), 150 s hold, null
+audio, nobody at the Mac; Michael's Mac has no lab clone folder (`~/i76-nitro-mp-lab` absent) and was not used):
+
+| run | Mac | host chose | Mac listed / joined | after 120 s (both sides) |
+|---|---|---|---|---|
+| gt-mac-a1, a2 | laptop | Arena Drop-In + AI | 'ARENA+ Evening Stroll' 7676, joined, hello options 0601 | state 5, **players 6** (2 humans + 4 AI) |
+| gt-mac-c1 | laptop | Co-Op | joined, P01 CO-OP SCENE on the Mac | state 5, players 2 |
+| gt-and-a1, a2 | Andrew | Arena Drop-In + AI | joined | state 5, players 6 |
+| gt-and-c2 | Andrew | Co-Op | joined, P01 CO-OP SCENE on the Mac | state 5, players 2 |
+| gt-mac-c2, gt-and-c1 | laptop, Andrew | Co-Op | **void**: the Mac's game reported state 5 with an empty mission buffer 46 ms after the driver attached and never reached the shell (the x-mac9 boot flake; the host side was fine) | - |
+| gt-mac-c3 | laptop | Co-Op | **void on the PC side**: another lane took .fps-lock seconds after this script's pre-check; pair.py waited for it until gt_xlan's 900 s timeout, and the "session open" wait ran out without a failure exit, so the Mac (which reached the shell this time) listed 0 sessions. Script fix pending: a failure exit after that wait, a longer xlan timeout | - |
+| gt-and-c3 | Andrew | Co-Op | not run (queued behind the scott-build gate run from 12:08; stopped at 13:10) | - |
+
+The Mac's proxy log shows `nitro-types: ON - 16/16 nitshell sites` under Wine on every run (the same nitshell). 0 exceptions
+in every counted Mac joiner log. Tally: arena join n 2 per Mac (laptop, Andrew), co-op join n 1 per Mac; the two co-op
+misses are a Mac boot flake and a PC lock race, neither in the type code.
+
+**Step 4 (entries as the default, boxes behind `I76_NITRO_GAMETYPES=0` for one release): not done.** The owner's gate was
+(1)-(3) passing with n 2 per Mac; co-op stands at n 1 per Mac, so the switch stays opt-in (`I76_NITRO_GAMETYPES=1`) and
+the box code stays. The flip is a two-line change in `nf_attach` (test `v[0] == '0'` instead of `'1'`), built and
+checked as p7 8d4d50b6 but not committed. Left: one co-op join per Mac (`gt_xmac.sh gt-mac-c4 c laptop`,
+`gt_xmac.sh gt-and-c3 c andrewvalentine@192.168.1.205` after the script fix above), then the flip, then the box code can go.
+
+Lab copies: `exp-nitro-types` (host, IPXWrapper L) and `exp-nitro-types-b` (joiner, M), both with the instrument
+a3889d8f / 8ba38c6a (`builds
+itro-gametypes-20261023\drv`); proxies p1-p7 in that folder (p6 3ef77e9d = the code as
+committed in 0e77d5e).
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
