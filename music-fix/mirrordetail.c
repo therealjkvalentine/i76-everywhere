@@ -70,9 +70,19 @@ static __declspec(naked) void md_pick_stub(void) {             /* in place of `p
         ret
     }
 }
+/* I76_MIRROR_LOD=<m> (1..256): the mirror pass's terrain LOD factor relative to the stock constants, whatever I76_TERRAIN_LOD gave the
+ * main view (the 256x64 mirror cannot show LOD 24; measured 2026-10-23: the mirror at the main's LOD 24 over 2300 m cost 15-55 % of the
+ * frame). QueueTerrain 0x490a00 derives the pass's split constant [0x6442c8] from [0x4fad20] (x focal / half width: the mirror's own
+ * resolution is already in it) and the height-error threshold [0x6442cc] from [0x4fad24] at every pass (0x490aa1 / 0x490ac9); terrain
+ * init 0x493080 wrote both at mission load from the (patched) per-level immediates. So the mirror wrap scales the two floats by m / f
+ * (A) and f / m (B) around its call and restores them: data only, the main pass never sees it. */
+static float g_md_lod, g_md_fa = 1.0f, g_md_fb = 1.0f;   /* fa / fb = what apply_terrain_lod gave the main view */
 static void __cdecl md_terrain_mir(void *cam) {
+    float a = *(volatile float *)0x004fad20, b = *(volatile float *)0x004fad24;
     ZeroMemory(&g_md_mir, sizeof g_md_mir);
+    if (g_md_lod > 0.0f) { *(volatile float *)0x004fad20 = a * (g_md_lod / g_md_fa); *(volatile float *)0x004fad24 = b * (g_md_fb / g_md_lod); }
     ((void (__cdecl *)(void *))(DWORD_PTR)g_md_next_tmir)(cam);
+    if (g_md_lod > 0.0f) { *(volatile float *)0x004fad20 = a; *(volatile float *)0x004fad24 = b; }
     g_md_mir.verts = *(volatile int *)0x006442ec;
 }
 static void __cdecl md_terrain_main(void *cam) {
@@ -145,17 +155,31 @@ static void apply_mirror_detail(void) {
     apply_mirror_every();     /* I76_MIRROR_EVERY=<N> */
     if (env_str("I76_MIRROR_DUMP", v, sizeof(v))) g_md_dump_n = (DWORD)atoi(v);
     if (env_str("I76_MIRROR_TERRAIN_MODE", v, sizeof(v))) g_md_mode = (DWORD)strtoul(v, NULL, 16) & 0x1ff;
-    if (!g_md_dump_n && !g_md_mode) return;
-    if (g_exe == EXE_NITRO) { mlog("  mirror-detail: not ported to Nitro - off"); g_md_dump_n = g_md_mode = 0; return; }
-    a = (DWORD)(DWORD_PTR)md_pick_stub; memcpy(push_new + 1, &a, 4);
-    n += patch_bytes(0x00490f96, push_old, push_new, 5, "terrain leaf texture picker (mirror-detail)");
+    if (env_str("I76_MIRROR_LOD", v, sizeof(v))) {
+        char va[16]; float f = 1.0f;
+        g_md_lod = (float)atof(v);
+        if (g_md_lod < 1.0f || g_md_lod > 256.0f) { mlog("  mirror-lod: %s out of range (1..256) - not applied", v); g_md_lod = 0.0f; }
+        if (env_str("I76_TERRAIN_LOD", va, sizeof(va))) f = (float)atof(va);
+        g_md_fa = env_str("I76_TERRAIN_LOD_A", va, sizeof(va)) ? (float)atof(va) : f;
+        g_md_fb = env_str("I76_TERRAIN_LOD_B", va, sizeof(va)) ? (float)atof(va) : f;
+        if (g_md_fa < 1.0f || g_md_fa > 256.0f) g_md_fa = 1.0f;
+        if (g_md_fb < 1.0f || g_md_fb > 256.0f) g_md_fb = 1.0f;
+    }
+    if (!g_md_dump_n && !g_md_mode && g_md_lod <= 0.0f) return;
+    if (g_exe == EXE_NITRO) { mlog("  mirror-detail: not ported to Nitro - off"); g_md_dump_n = g_md_mode = 0; g_md_lod = 0.0f; return; }
+    if (g_md_dump_n || g_md_mode) {
+        a = (DWORD)(DWORD_PTR)md_pick_stub; memcpy(push_new + 1, &a, 4);
+        n += patch_bytes(0x00490f96, push_old, push_new, 5, "terrain leaf texture picker (mirror-detail)");
+        n += st_call_site(0x004020a4, 0x00490a00, (void *)md_terrain_main, &g_md_next_tmain, "main QueueTerrain call (mirror-detail)");
+        n += st_call_site(0x00445a3c, 0x0042ec20, (void *)md_upload, &g_md_next_upload, "mirror texture re-upload (mirror-detail)");
+    } else n = 3;
     n += st_call_site(0x0044594e, 0x00490a00, (void *)md_terrain_mir, &g_md_next_tmir, "mirror QueueTerrain call (mirror-detail)");
-    n += st_call_site(0x004020a4, 0x00490a00, (void *)md_terrain_main, &g_md_next_tmain, "main QueueTerrain call (mirror-detail)");
-    n += st_call_site(0x00445a3c, 0x0042ec20, (void *)md_upload, &g_md_next_upload, "mirror texture re-upload (mirror-detail)");
     g_md_on = n == 4;
-    if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override disabled)", n); g_md_mode = 0; g_md_dump_n = 0; return; }
-    mlog("  mirror-detail: on - %s%s%s", g_md_dump_n ? "dump every N redraws" : "", g_md_dump_n && g_md_mode ? "; " : "",
-         g_md_mode ? "mirror terrain leaves drawn in a forced mode" : "");
+    if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override / mirror LOD disabled)", n); g_md_mode = 0; g_md_dump_n = 0; g_md_lod = 0.0f; return; }
+    mlog("  mirror-detail: on - %s%s%s%s%s", g_md_dump_n ? "dump every N redraws" : "", g_md_dump_n && g_md_mode ? "; " : "",
+         g_md_mode ? "mirror terrain leaves drawn in a forced mode" : "", (g_md_dump_n || g_md_mode) && g_md_lod > 0.0f ? "; " : "",
+         g_md_lod > 0.0f ? "mirror terrain LOD of its own" : "");
+    if (g_md_lod > 0.0f) mlog("  mirror-lod: the mirror pass splits terrain at x%.2f the stock distance (height-error / %.2f); the main view keeps x%.2f / %.2f", g_md_lod, g_md_lod, g_md_fa, g_md_fb);
     if (g_md_dump_n) mlog("  mirror-detail: dump every %lu mirror redraws to %s\\mirror-<redraw>.bmp (palette 0x5dcfa8 -> mirror-pal.bin)", (unsigned long)g_md_dump_n, g_dir);
     if (g_md_mode) mlog("  mirror-detail: mirror pass terrain mode forced to 0x%lx (span drawer 0x%08lx after the queue's | 8 / & ~0x10)", (unsigned long)g_md_mode,
                         (unsigned long)*(DWORD *)(0x004f8d38 + 4 * (((g_md_mode & ~0x10u) | 8u) & 0x1ff)));
