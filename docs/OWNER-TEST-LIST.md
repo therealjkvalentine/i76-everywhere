@@ -1059,3 +1059,17 @@ Open items from this session:
   per-vertex memory tables, not the blend. The lane is now building the stateless form (blend factor from the vertex's own ring distance, no tables; expected under
   0.3 ms) and will promote it only at a cost of 1 fps or less. LOOK NOW if you want: exp-morph PLAY-TICK-MORPH.bat (expect ~90 fps in the hood view where plain gives
   118). The forced-split ring at 12.9x in the earlier trace was a model artefact: flat ground splits at the ring because of its surface type (dirt / paved), not a force.
+
+## 2026-10-22 afternoon (owner's answers; main)
+
+- JUMP: X5 has no jump tweak (same physics as PLAY-TICK, 41.667 tick; it differs only in terrain / draw distance), so the clean jump was stock 1997 behaviour
+  and the earlier misses were line / timing luck. Owner: leave it. The jump logger and J2 (a switch easing the held nose-dive) stay PARKED as plans
+  (TICK-FINISH s.22.5).
+- MAC JOINS: the Nitro data-path registry key ("Minimum"="0", NITRO-MP-DESIGN s.0.5.16) is now in the Nitro app on the laptop and Michael's Mac (backup
+  system.reg.pre-minimum-20261022); Andrew's Mac was asleep (ssh timed out): to do when it is on. No DLL change.
+- SKY A/B (exp-polish2, proxy 449237d6): PLAY-OWNER-SKY-STOCK (the mirror pass scrolls the sky too: x2 in the Gold cockpit, as the exe has always done) vs
+  PLAY-OWNER-SKY-ONEPASS (I76_SKY_MIRROR=0: the sky moves once per frame whatever the mirror). Both = X5 terrain + 2000 m.
+- MORPH LOOK: PLAY-OWNER-MORPH-STATELESS (same copy): the stateless geomorph, fps NOT measured yet; look at pops / shade on the T05 slope, hood view.
+- EMULATOR: desktop "i76 x86box ref" now runs emu\PLAY-P166-GOLD.bat (Gold to its main menu by itself, ~1.5 min hands off); the retail launcher
+  PLAY-P166-LOGGED.bat is unchanged. Gold path not yet booted end to end.
+- GAME TYPES: replacing the ARENA+ / CO-OP boxes with two game-type entries is ~2-3 lane days; held for the owner's go on that cost.
