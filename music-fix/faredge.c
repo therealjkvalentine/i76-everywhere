@@ -184,8 +184,11 @@ static int fe_hzd_colour(DWORD *rgb) {
          * peaks on T05), row 0 is the picture's base, where the far rim of the ground meets it. Take rows 0..7. */
         if (!logged2) { int yb; double lum = 0; for (yb = (int)h - 1; yb >= 0; yb--) { lum = 0; for (x = 0; x < (int)w; x++) { BYTE i = px[yb * w + x]; lum += 0.30 * pal[i * 3] + 0.59 * pal[i * 3 + 1] + 0.11 * pal[i * 3 + 2]; } if (lum / w >= 8.0) break; }
             logged2 = 1; mlog("  glide-fog: horizon strip 0: highest non-black row %d of %lu (stored bottom-up; the base rows 0..7 give the colour)", yb, (unsigned long)h); }
+        /* the 8-bit strip's indices belong to the 8-bit build's palette (t05.act); the hardware build's context holds t05_16.act. With
+         * I76_MIRROR_PAL=1 mirrordetail.c has the nearest-colour remap for the pair (g_mp_map, once the pair is found): use it. */
         for (y = 0; y < 8 && y < (int)h; y++) for (x = 0; x < (int)w; x++) {
-            BYTE i = px[y * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
+            BYTE i = px[y * w + x]; if (g_mp_pair >= 0) i = g_mp_map[i];
+            r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
             cnt++;
         }
     }
@@ -200,7 +203,7 @@ static void fe_fog_update(float fz) {
         if (fe_hzd_colour(&c)) g_fe_fog_rgb = c;
         rgb = g_fe_fog_rgb;
     }
-    if (rgb != g_fe_fog_rgb_built) { g_fe_fog_rgb_built = rgb; p_fe_FogColor(rgb & 0x00ffffff); mlog("  glide-fog: colour %06lx (%s)", (unsigned long)rgb, g_fe_fog_fixed ? "fixed" : "horizon strips, bottom rows"); }   /* ARGB: ZGLIDE opens the SST with cformat 0 */
+    if (rgb != g_fe_fog_rgb_built) { g_fe_fog_rgb_built = rgb; p_fe_FogColor(rgb & 0x00ffffff); mlog("  glide-fog: colour %06lx (%s)", (unsigned long)rgb, g_fe_fog_fixed ? "fixed" : g_mp_pair >= 0 ? "horizon strips, base rows, through mirror-pal's 8-bit -> hardware palette map" : "horizon strips, base rows, context palette (no mirror-pal map)"); }   /* ARGB: ZGLIDE opens the SST with cformat 0 */
     if (fz != g_fe_fog_far_built || g_fe_fog_start_built != (DWORD)(g_fe_fog_start * 1000.0f)) {
         int i; float z0 = fz * g_fe_fog_start, inv = fz > z0 ? 1.0f / (fz - z0) : 0.0f; char txt[200]; int n = 0;
         for (i = 0; i < 64; i++) {
