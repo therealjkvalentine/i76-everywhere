@@ -50,7 +50,9 @@ $ErrorActionPreference = 'Stop'
 
 $dll = Join-Path $GameDir 'i76shell.dll'
 if (-not (Test-Path $dll)) { throw "no i76shell.dll in $GameDir" }
-if (Get-Process i76 -EA SilentlyContinue) { throw "close the game first - the DLL is in use" }
+# only a game started from THIS folder holds the DLL (2026-10-23: another copy's i76.exe elsewhere on the PC does not)
+$gameFull = (Resolve-Path -LiteralPath $GameDir).Path.TrimEnd('\') + '\'
+if (@(Get-Process i76 -EA SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($gameFull, [StringComparison]::OrdinalIgnoreCase) }).Count) { throw "close the game first - the DLL is in use" }
 
 # file offsets; RVA = file + 0xC00 in this build's .text
 $SITES = @(

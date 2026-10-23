@@ -138,7 +138,7 @@ echo unknown option: %~1
 shift
 goto :args
 :go
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Preset $preset%ARGS%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Preset $preset %ARGS%
 if errorlevel 1 ( pause & exit /b 1 )
 if defined SETUPONLY ( pause & exit /b 0 )
 start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe i76.exe -Preset $preset -LosslessScaling none$extra
