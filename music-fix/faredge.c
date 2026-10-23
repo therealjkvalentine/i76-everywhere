@@ -169,7 +169,7 @@ static float fe_index_to_w(int i) {
  * camera bitmap). An 8-bit bitmap (+0x2c == 1) goes through the context palette 0x5dcfa8 (as the mirror dump, 3 bytes per entry). */
 static int fe_hzd_colour(DWORD *rgb) {
     int ns = *(volatile int *)(DWORD_PTR)0x00503034, s, rows, y, x; double r = 0, g = 0, b = 0; DWORD cnt = 0; const BYTE *pal = (const BYTE *)(DWORD_PTR)0x005dcfa8;
-    static int logged;
+    static int logged, logged2;
     if (ns <= 0 || ns > 64) return 0;
     for (s = 0; s < ns; s++) {
         /* a texture record (0x471c10 loader; 0x44a740 copies ((h << 3) >> 3) x w + 8 bytes): DWORD w, DWORD h | flags (bit 31 = embedded
@@ -180,9 +180,16 @@ static int fe_hzd_colour(DWORD *rgb) {
         w = *(const DWORD *)tx; hf = *(const DWORD *)(tx + 4); h = hf & 0x1fffffff; px = tx + 8;
         if (!logged) { logged = 1; mlog("  glide-fog: horizon strip 0 texture %lux%lu flags %lx (8-bit)", (unsigned long)w, (unsigned long)h, (unsigned long)(hf >> 29)); }
         if (w == 0 || h == 0 || w > 2048 || h > 2048 || (hf & 0x80000000u) || IsBadReadPtr(px, w * h)) continue;
-        rows = h < 4 ? (int)h : 4;
-        for (y = (int)h - rows; y < (int)h; y++) for (x = 0; x < (int)w; x++) {
-            BYTE i = px[y * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
+        /* the lowest rows that are not black: the strips end in black rows below the ground line (2026-10-23: the bottom 4 rows
+         * read 010101), so walk up from the bottom to the first row with mean luma >= 8 and take it and the 3 rows above */
+        for (y = (int)h - 1; y >= 0; y--) {
+            double lum = 0; for (x = 0; x < (int)w; x++) { BYTE i = px[y * w + x]; lum += 0.30 * pal[i * 3] + 0.59 * pal[i * 3 + 1] + 0.11 * pal[i * 3 + 2]; }
+            if (lum / w >= 8.0) break;
+        }
+        if (y < 0) continue;
+        if (!logged2) { logged2 = 1; mlog("  glide-fog: horizon strip 0: lowest non-black row %d of %lu", y, (unsigned long)h); }
+        for (rows = 0; rows < 4 && y - rows >= 0; rows++) for (x = 0; x < (int)w; x++) {
+            BYTE i = px[(y - rows) * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
             cnt++;
         }
     }
