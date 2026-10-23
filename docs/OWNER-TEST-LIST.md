@@ -1098,3 +1098,9 @@ Open items from this session:
   New PLAY-OWNER-2300-ALL = sky one pass + morph + BIG 1 + SHADE 3 + 2300 m. fps on the T05 mountain dipped to ~100 (owner): the
   morph's cost on the ridge climb is unmeasured - to measure (lod-sweep ridge route, n 2) before promotion.
 - FAR-EDGE FADE (owner asks): options noted in the reply of 2026-10-23; no lane yet.
+- RENDER LOAD vs THE DAILY DRIVER (owner's question, 2026-10-23 10:xx): the daily driver's PLAY.bat = preset best-wide carries
+  I76_TERRAIN_TEX=8, I76_OBJECT_LOD=8, I76_SHADOW_DIST=4, I76_ROAD_TEX=8 (and I76_MIRROR_FAR=300); the rebaseline lane removed every
+  graphics key and put back only far clip / roads / bushes / fade / terrain LOD, so every OWNER-* trial preset ran objects, shadows and
+  texture levels at STOCK distances - the owner's "object detail and render distance is near". Added to all OWNER-*.psd1 in exp-polish2
+  (lab commit). I76PLYR.DEF detail bytes and dgVoodoo (6880x2880, 4x AA) were already identical. Every fps row taken before this
+  (far-clip edges, shade, mirror, haze/fog, pops) is at the LIGHTER load; the lanes were told to re-take the rows that matter.
