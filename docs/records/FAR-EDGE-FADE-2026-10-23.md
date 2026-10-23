@@ -126,7 +126,8 @@ palettes differ by 34 in all, so the colour is the same either way). `I76_GLIDE_
 - `PLAY-OWNER-2300-FOG.bat` + `presets\OWNER-2300-FOG.psd1`: the same + `I76_GLIDE_FOG=0.85,hzd`.
 - Proxy f2856def (repo 9496235, built from a clean worktree of main) installed into exp-polish2 by `toolsar-edgee-install.ps1`
   once no game ran, the previous DLL kept as `STRLKUP.DLL.<md5>` (the install line is in the lane report).
-- Pictures for the owner: `toolsar-edgeuns61023-094056-fogred50-hill\s04-t16.png` (the fog mechanism, red from 0.5),
+- Pictures for the owner: `toolsar-edge
+uns61023-094056-fogred50-hill\s04-t16.png` (the fog mechanism, red from 0.5),
   `20261023-094232-haze50-hill` (haze from 0.5), `20261023-101325-fogv-hill` / `20261023-101413-fogv70-hill` (the horizon colour at
   0.85 / 0.7), `20261023-094412-base-hill` (the base), and the `zoom-*.png` crops of the far edge.
 
@@ -143,3 +144,126 @@ palettes differ by 34 in all, so the colour is the same either way). `I76_GLIDE_
   interpolation weights.
 - **fps**: no measurable cost in the clean set; the corrected-preset set ran beside other lanes' boots and should be re-taken on
   a quiet console if a number is needed for the promotion sheet.
+
+## 6. Atmosphere variant (owner 2026-10-23: "let's try the fade band as atmosphere rather than edge treatment"; fog from 0.7 liked)
+
+Fog from 0.5 and 0.35 of the far clip in the horizon colour, two vantage points, corrected preset load, proxy 9496235+ (lab
+`fe-batch4.ps1`, 10 boots 11:04-11:12, a quiet console held for the batch):
+
+| route | base | fog 0.5 | fog 0.35 |
+|---|---|---|---|
+| valley road (mission start, driving) | 117.7, 119.7 | 119.0, 119.1 | 119.8, 119.7 |
+| hill top (held) | 108.1, 107.9 (09:44) | 107.3, 108.0 | 108.7, 109.2 |
+
+No cost (n 2 each; the spread of the base pairs covers every fog row). Captures: `runs61023-110831-base-start`,
+`110919-fog50-start`, `111007-fog35-start`, `111055-fog50-hill`, `111142-fog35-hill` (`s04-t16.png`, 3440x1440).
+
+What they show at ground level (the owner's view): the fog lives at the far end of the canyon, where the road meets the far
+ridge. At 0.5 (from 1150 m) the far end is gently muted; at 0.35 (from 805 m) the mid-distance slopes on both sides already take
+the horizon colour, which on T05 is the mesa picture's dark base (483620) - a dusk tint at midday. From the hill top 0.5 fogs the
+plain's far half, 0.35 most of it.
+
+**Delivered: `PLAY-OWNER-2300-ATMOS.bat` + `presets\OWNER-2300-ATMOS.psd1` at `I76_GLIDE_FOG=0.5,hzd`** - the whole far half
+fades, the near ground and the mid-distance slopes keep their own colour, and it is the same colour the owner liked at 0.7, only
+starting nearer. 0.35 is one key away if he wants more; for a midday desert the colour is the thing to tune next
+(`I76_GLIDE_FOG=0.5,rrggbb`: a lighter warm grey such as 9a8a78 would read as heat haze rather than dusk; the strips' base rows
+are the colour the far rim is drawn against, which is right at the edge and dark for a wide band).
+
+## 8. Is the fog itself banded? (owner: "textures in ATMOS ... are still coarse / distracting brightness adjustments")
+
+- The Glide 2.x fog table has 64 entries at w = guFogTableIndexToW(i) = 2^(3 + i/4) / (8 - i % 4) metres (dgVoodoo exports the
+  function; the proxy uses it): 1024 / 1170 / 1365 / 1638 / 2048 / 2341 m in the band of interest. A 0.35 band (805-2300 m) has
+  six entries on the ramp, a 0.5 band four, a 0.75 band two (2048 m, 2341 m) - the proxy fills every one of them (smoothstep of
+  the entry's w), so the ramp is already the finest the table allows; the hardware (and dgVoodoo's emulation) interpolates
+  linearly in 1/w between entries, PER PIXEL (table fog, not per vertex: the vertex carries only oow).
+- Profile (luma along the road centre, columns 1690-1730, rows 880-996 = far to near, 4-row means) from the valley captures
+  `110831-base-start` / `110919-fog50-start` / `111007-fog35-start`: fog / base ratios 0.97-1.02 at every row, no step; the
+  road's own texture steps (rows 924-936, 952-964) are identical in all three. At ground level the fog band covers only the last
+  rows below the horizon, so a stair cannot come from it; the brightness steps the owner sees in ATMOS are the terrain's own
+  shade rows and texture levels (the pops lane's road profile, `tools	errain-pops`), which the fog overlays but does not
+  create. A uniform-luma table (delta per entry equal) would not change what is on screen between entries - the interpolation
+  is linear in 1/w either way - so no "after" table was built.
+
+## 9. Clutter alpha fade-in - NOT built (the owner then withdrew it: "just draw them further out"; the density sweep is s.11), the path for the record
+
+What it needs, from this lane's findings: (a) a per-record alpha reaching ZGLIDE - the exe's projected vertex record carries a
+byte ZGLIDE converts into GrVertex.a (`mov dl, [esi + 0x2f]` in Render, not yet traced to the exe's writer); (b) the bushes'
+op switched from ZGLIDE's keyed opaque state to blend SRC_ALPHA / ONE_MINUS_SRC_ALPHA with alpha combine SCALE_OTHER(TEXTURE)
+x LOCAL(ITERATED) (ZGLIDE's own translucent keyed op at 0x10002205 / 0x10002212 uses exactly that, so the key survives: the
+keyed texels' alpha is 0); (c) the age: the clutter queue 0x45c380 instances a template per cell each frame with no identity,
+so the proxy would key a table by (template, cell, index) and record the frame of admission (the (300 / d)^2 rule in
+I76_CLUTTER_FADE admits deterministically, so "admitted now" = "in the list this frame and not the previous"), alpha =
+min(1, frames since admission / N). (b) and (c) are bounded; (a) is the open piece (the writer of the record's alpha byte, or
+setting it in the grDrawTriangle hook from a per-record side table matched by screen position). Not started: the owner's
+same-day verdict on the transparent fade (s.7) took the alpha path off the shipping list for now.
+
+## 7. Fade to transparent (I76_GLIDE_FOG_ALPHA=1) - built, lab only, NOT shipped
+
+Assessment (ZGLIDE 05c1dde4, glide2x imports read with capstone): per render op ZGLIDE sets grColorCombine / grAlphaCombine /
+grAlphaBlendFunction; its opaque ops request blend ONE / ZERO (0x10001fa0, 0x1000200b, 0x10002399, 0x100024fa), its
+translucent ops SRC_ALPHA / ONE_MINUS_SRC_ALPHA with the texture alpha or texture x iterated alpha (0x10002205 / 0x10002212);
+depth is a W-buffer (mode 2, LEQUAL, writes on). The sky dome (0x405200) and the horizon strips (0x4016e0) are drawn BEFORE
+the depth-bucket flush, so a blended far ground has them behind it; the flush draws far to near, so nearer opaque ground covers.
+The vertex alpha is not supplied by the exe for terrain in any usable way, so the proxy writes it in its grDrawTriangle hook
+(GrVertex +28 = 255 x (1 - smoothstep(w))) while the blend state is overridden by IAT hooks on ZGLIDE's grAlphaBlendFunction /
+grAlphaCombine (an opaque request becomes SRC_ALPHA / ONE_MINUS_SRC_ALPHA; translucent requests pass through).
+
+Boots (`fe-batch5/6/8`, valley road + hill top, band from 0.5 x far):
+- `111757-alpha50-start` .. `112109-alpha50-start` (first form, alpha combine LOCAL ITERATED): the far plain dissolves into the
+  horizon picture and the sky behind it (`112109-alpha50-start\s04-t16.png`, `111846-alpha50-hill`), fps 116.0 / 116.8 on the
+  road vs base 117.7 / 119.7, hill 100.7 (n 1) vs 108: alpha blending over the far half of the terrain is not free. BUT the
+  bushes drew as black squares: the clutter billboards are keyed through the TEXTURE alpha, and the forced LOCAL ITERATED
+  combine replaced it (owner saw this live).
+- `112856-alphak50-start` .. (second form, override off while grChromakeyMode is on): unchanged - ZGLIDE does not toggle the
+  chroma mode per record for the bushes; their key is the texture alpha.
+- third form (8cb3da2+): alpha combine = SCALE_OTHER(TEXTURE) x LOCAL(ITERATED), ZGLIDE's own keyed translucent op: keyed
+  texels keep alpha 0, 565 terrain has no alpha channel and takes the vertex alpha. Verification boot `fe-batch8` (result in s.12).
+
+Verdict: not shipped. The owner, looking at the fades on the console: "we probably never want it to fade below the horizon
+line, so there's no blue" - a transparent far ground shows the sky dome's blue where the dome sits behind it, which is exactly
+what the colour fog avoids (its target IS the horizon strip colour). A transparent fade "toward the horizon colour" is the
+colour fog. The switch stays as a lab instrument (the keyed-texture lesson is in the code for any future per-record alpha work).
+
+## 10. Owner's band ruling (console, 2026-10-23): "the fade is too broad now ... maybe half as long"
+
+- FOG: 0.85 was too thin, 0.7 liked, halved -> **0.75** (clear to 1725 m, full at 2300 m).
+- ATMOS: shipped at 0.5; the halved band of the atmosphere candidates: 0.5 -> 0.75 would equal FOG, so ATMOS takes the halved
+  0.35 band -> **0.675** (clear to 1550 m, full at 2300 m). Both numbers are in the presets' comments.
+- Both in the horizon strip colour only (483620 on T05 through the context palette), never the sky: the colour fog by
+  construction.
+- Captures (hill top, `fe-batch7`): `runs\*-fog75-hill`, `runs\*-fog675-hill` (`s04-t16.png`).
+
+## 12. Transparent-fade verification with the texture x iterated combine (3d89698, `fe-batch8`)
+
+`runs61023-114128-alphat50-start\s04-t16.png` (valley road, bushes in the near field; crop `zoom-alphat50-bushes.png`):
+the bushes are keyed sprites again (no black squares), the far ground still blends, 119.7 fps (base 117.7 / 119.7). So the
+lab switch is clean; it stays unshipped for the owner's "no blue" reason (s.7). The lesson for any per-record alpha work on
+this driver: keyed textures carry their key in the TEXTURE alpha, so an alpha combine must keep SCALE_OTHER(TEXTURE).
+
+## 11. Clutter density sweep (owner: "just draw them further out"; preset only, `fe-batch9`, valley road, driving, corrected load)
+
+I76_CLUTTER_DIST stays 2300; I76_CLUTTER_FADE = full density to N m, then (N / d)^2 per (template, cell) pair; "off" = the
+key unset (full density to the far clip; the code also treats a value >= I76_CLUTTER_DIST as off). Render fps, n 2:
+
+| I76_CLUTTER_FADE | fps | work ms | vs 300 |
+|---|---|---|---|
+| 300 (current) | 119.1, 119.9 | 8.40, 8.34 | - |
+| 600 | 84.9, 85.9 | 11.80, 11.64 | -29 % |
+| 1200 | 48.5, 48.6 | 20.6 | -59 % |
+| off (full density to 2300 m) | 28.6, 28.6 | 35.0 | -76 % |
+
+No pool refusals logged in any boot (record pool 11562 KB, refusal line absent). Even 600 costs ten times the ~3 % budget, so
+**300 stays** in OWNER-2300-ALL (the per-instance engine path - two terrain lookups, transform, frustum, mesh transform and
+lighting, one draw record per face - runs for every kept bush; density to 600 m quadruples the kept count). Captures:
+`runs61023-120455-cf300-start`, `120233-cf600-start`, `120320-cf1200-start`, `120408-cfoff-start` (`s04-t16.png`); the
+bushes the owner sees popping at ~300 m are the (300 / d)^2 admissions, and pushing that line out is a cost question, not a
+switch question - sparseness (a lower density shape) is the separate decision he named.
+
+## 13. Final state (2026-10-23 12:06)
+
+- exp-polish2: proxy **ed0c246f** (repo 3d89698, clean worktree of main; previous bc2b0b9b and f2856def kept beside), launchers
+  `PLAY-OWNER-2300-HAZE.bat` (I76_HAZE 0.85 + I76_EDGE_FADE 1), `PLAY-OWNER-2300-FOG.bat` (I76_GLIDE_FOG 0.75,hzd),
+  `PLAY-OWNER-2300-ATMOS.bat` (I76_GLIDE_FOG 0.675,hzd), presets regenerated from the corrected OWNER-2300-ALL (I76_CLUTTER_FADE
+  300 unchanged). No transparent launcher (s.7); I76_GLIDE_FOG_ALPHA stays a lab switch.
+- Lab: `toolsar-edge\` (fe-run, fe-batch1-9, fe-install, results.txt, runs\<stamp>-<tag>-<route>\), copy `exp-faredge`,
+  build worktree `buildsaredge-20261023\wt`.
