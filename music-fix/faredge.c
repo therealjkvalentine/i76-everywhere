@@ -180,18 +180,12 @@ static int fe_hzd_colour(DWORD *rgb) {
         w = *(const DWORD *)tx; hf = *(const DWORD *)(tx + 4); h = hf & 0x1fffffff; px = tx + 8;
         if (!logged) { logged = 1; mlog("  glide-fog: horizon strip 0 texture %lux%lu flags %lx (8-bit)", (unsigned long)w, (unsigned long)h, (unsigned long)(hf >> 29)); }
         if (w == 0 || h == 0 || w > 2048 || h > 2048 || (hf & 0x80000000u) || IsBadReadPtr(px, w * h)) continue;
-        /* the lowest rows that are not black: the strips end in black rows below the ground line (2026-10-23: the bottom 4 rows
-         * read 010101), so walk up from the bottom to the first row with mean luma >= 8 and take it and the 3 rows above */
-        for (y = (int)h - 1; y >= 0; y--) {
-            double lum = 0; for (x = 0; x < (int)w; x++) { BYTE i = px[y * w + x]; lum += 0.30 * pal[i * 3] + 0.59 * pal[i * 3 + 1] + 0.11 * pal[i * 3 + 2]; }
-            if (lum / w >= 8.0) break;
-        }
-        if (y < 0) continue;
-        if (!logged2) { logged2 = 1; mlog("  glide-fog: horizon strip 0: lowest non-black row %d of %lu", y, (unsigned long)h); }
-        /* the rows just above the black base are the picture's dark foot (110c07 on T05): take the 16 rows above those 4, the
-         * body of the horizon picture that the far rim is drawn against */
-        for (rows = 4; rows < 20 && y - rows >= 0; rows++) for (x = 0; x < (int)w; x++) {
-            BYTE i = px[(y - rows) * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
+        /* the strip is stored bottom-up: rows 84..127 are black (the transparent sky above the mesa line: lowest non-black row 83 = the
+         * peaks on T05), row 0 is the picture's base, where the far rim of the ground meets it. Take rows 0..7. */
+        if (!logged2) { int yb; double lum = 0; for (yb = (int)h - 1; yb >= 0; yb--) { lum = 0; for (x = 0; x < (int)w; x++) { BYTE i = px[yb * w + x]; lum += 0.30 * pal[i * 3] + 0.59 * pal[i * 3 + 1] + 0.11 * pal[i * 3 + 2]; } if (lum / w >= 8.0) break; }
+            logged2 = 1; mlog("  glide-fog: horizon strip 0: highest non-black row %d of %lu (stored bottom-up; the base rows 0..7 give the colour)", yb, (unsigned long)h); }
+        for (y = 0; y < 8 && y < (int)h; y++) for (x = 0; x < (int)w; x++) {
+            BYTE i = px[y * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
             cnt++;
         }
     }
