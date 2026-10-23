@@ -24,10 +24,10 @@
  *                                   cockpit mesh, instruments, target brackets, mask and text (after it). The rear mirror is a
  *                                   software render (no Glide calls). The fog w is ZGLIDE's vertex oow (= view z in metres,
  *                                   measured by the probe); I76_GLIDE_FOG_WM=<metres per w> overrides (default 1).
- *   I76_EDGE_FADE=1|<pull>          level-boundary tiles faded harder (through I76_HAZE): the terrain tile table 0x644380 holds
+ *   I76_EDGE_FADE=1|<pull>[,<band m>] level-boundary tiles faded harder (through I76_HAZE): the terrain tile table 0x644380 holds
  *                                   16384 tile pointers, every tile outside the mission's zone grid = the flat static tile
- *                                   0x59c588 (terrain init 0x493080). A vertex within 128 samples (640 m) of such a VOID tile
- *                                   has its haze start pulled in: z0 = start x far x (1 - pull x (1 - d / 128)), pull 0.1..0.9
+ *                                   0x59c588 (terrain init 0x493080). A vertex within band m (50..640, default 320) of such a VOID
+ *                                   tile has its haze start pulled in: z0 = start x far x (1 - pull x (1 - d / band)), pull 0.1..0.9
  *                                   (1 = default 0.4). Continuous in d (no seams). The haze path only: the fog table is by w.
  *   I76_FAR_EDGE_LOG=1              lab: every 300 main passes a line - haze band vertices and distinct grey levels
  *                                   (round(31 s)) in the band; with the fog: ZGLIDE grDrawTriangle w (1 / oow) inside and
@@ -35,7 +35,7 @@
  */
 static int g_tm_on;                             /* terrainmorph.c (included after this file): its emit-site wrap is live */
 static int g_fe_haze_on, g_fe_haze_mirror = 1, g_fe_chain_tm, g_fe_log, g_fe_edge_on, g_fe_far_env, g_fe_fog_on, g_fe_fog_fixed;
-static float g_fe_haze_start = 0.85f, g_fe_haze_str = 1.0f, g_fe_haze_target = 1.0f, g_fe_edge_pull = 0.4f, g_fe_mirror_far = 100.0f;
+static float g_fe_haze_start = 0.85f, g_fe_haze_str = 1.0f, g_fe_haze_target = 1.0f, g_fe_edge_pull = 0.4f, g_fe_edge_band = 64.0f, g_fe_mirror_far = 100.0f;   /* band in samples (5 m) */
 static float g_fe_fog_start = 0.85f, g_fe_fog_wm = 1.0f, g_fe_fog_far_built = -1.0f;
 static DWORD g_fe_ret_emit = 0x00491a30, g_fe_next_flush, g_fe_fog_rgb = 0x00c0b0a0, g_fe_fog_rgb_built = 0xffffffff, g_fe_fog_start_built;
 static BYTE *g_fe_ring, *g_fe_vmask;            /* 128x128 tiles: ring 0 void / 1 void-adjacent / 2 next / 3 open; vmask = which of the 8 neighbours are void */
@@ -117,7 +117,7 @@ static void fe_haze_apply(void) {
         if (g_fe_edge_on && g_fe_ring_sig) {
             int sx = (int)(U[3 * i] * 8.0f + 0.5f), sz = (int)(U[3 * i + 1] * 8.0f + 0.5f);   /* the sample from its UV (0x490a00: uv = sample x 0.125) */
             float d = fe_void_dist(sx, sz);
-            if (d < 128.0f) { float w = 1.0f - d / 128.0f; zs = z0 * (1.0f - g_fe_edge_pull * w); iv = fz > zs ? 1.0f / (fz - zs) : 0.0f; if (g_fe_log && !mirror) g_fe_edge_v++; }
+            if (d < g_fe_edge_band) { float w = 1.0f - d / g_fe_edge_band; zs = z0 * (1.0f - g_fe_edge_pull * w); iv = fz > zs ? 1.0f / (fz - zs) : 0.0f; if (g_fe_log && !mirror && z > zs) g_fe_edge_v++; }
         }
         if (z <= zs) continue;
         f = (z - zs) * iv; if (f > 1.0f) f = 1.0f;
@@ -172,16 +172,15 @@ static int fe_hzd_colour(DWORD *rgb) {
     static int logged;
     if (ns <= 0 || ns > 64) return 0;
     for (s = 0; s < ns; s++) {
-        const DWORD *set = (const DWORD *)(DWORD_PTR)(0x00504850 + s * 0x18); const BYTE *bm = (const BYTE *)(DWORD_PTR)(set[1] ? set[1] : set[0]);
+        const DWORD *set = (const DWORD *)(DWORD_PTR)(0x00504850 + s * 0x18); const BYTE *bm = (const BYTE *)(DWORD_PTR)set[0];   /* the 8-bit bitmap ([1] is not a bitmap of this layout: probe 2026-10-23) */
         DWORD w, h, kind, eight; const BYTE *px;
         if (!bm || IsBadReadPtr(bm, 0x30)) continue;
         w = *(const DWORD *)bm; h = *(const WORD *)(bm + 4); kind = *(const DWORD *)(bm + 8); px = *(const BYTE * const *)(bm + 0x14); eight = *(const DWORD *)(bm + 0x2c);
-        if (!px || w == 0 || h == 0 || w > 2048 || h > 2048 || IsBadReadPtr(px, w * h * (eight == 1 ? 1 : 2))) continue;
-        if (!logged) { logged = 1; mlog("  glide-fog: horizon strip 0 bitmap %lux%lu kind %lu eight %lu (%s variant)", (unsigned long)w, (unsigned long)h, (unsigned long)kind, (unsigned long)eight, set[1] ? "hardware" : "8-bit"); }
+        if (!logged) { logged = 1; mlog("  glide-fog: horizon strip 0 bitmap %lux%lu kind %lu eight %lu", (unsigned long)w, (unsigned long)h, (unsigned long)kind, (unsigned long)eight); }
+        if (!px || w == 0 || h == 0 || w > 2048 || h > 2048 || kind > 4 || eight != 1 || IsBadReadPtr(px, w * h)) continue;
         rows = h < 4 ? (int)h : 4;
         for (y = (int)h - rows; y < (int)h; y++) for (x = 0; x < (int)w; x++) {
-            if (eight == 1) { BYTE i = px[y * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2]; }
-            else { WORD p = *(const WORD *)(px + 2 * (y * w + x)); r += ((p >> 11) & 31) * 255 / 31; g += ((p >> 5) & 63) * 255 / 63; b += (p & 31) * 255 / 31; }   /* RGB565 */
+            BYTE i = px[y * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
             cnt++;
         }
     }
@@ -279,7 +278,8 @@ static void apply_far_edge(void) {
             g_fe_ring = (BYTE *)VirtualAlloc(NULL, 16384, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             g_fe_vmask = (BYTE *)VirtualAlloc(NULL, 16384, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
             if (!g_fe_ring || !g_fe_vmask) { mlog("  far-edge: no memory for the tile map - edge fade off"); ne = 0; }
-            else { g_fe_edge_pull = p; g_fe_edge_on = 1; }
+            else { char *cb = strchr(ev, ','); if (cb) { float bm = (float)atof(cb + 1); if (bm >= 50.0f && bm <= 640.0f) g_fe_edge_band = bm / 5.0f; else mlog("  far-edge: I76_EDGE_FADE band %s out of range (50..640 m) - 320", cb + 1); }
+                   g_fe_edge_pull = p; g_fe_edge_on = 1; }
         }
     }
     if (nh) {
@@ -296,7 +296,7 @@ static void apply_far_edge(void) {
             mlog("  far-edge: haze on - terrain shade -> %.2f over the last %.0f %% of the far clip (start %.2f x far, strength %.2f, smoothstep; %s; %s)%s",
                  g_fe_haze_target, 100.0f * (1.0f - g_fe_haze_start), g_fe_haze_start, g_fe_haze_str, g_fe_haze_mirror ? "main and mirror passes" : "main pass only",
                  g_fe_chain_tm ? "chained after the morph's shade blend" : "own emit-site wrap", g_fe_edge_on ? "; edge fade on" : "");
-        if (g_fe_edge_on) mlog("  far-edge: edge fade - within 640 m of a void tile the haze start is pulled in by up to %.0f %% (continuous in the distance)", 100.0f * g_fe_edge_pull);
+        if (g_fe_edge_on) mlog("  far-edge: edge fade - within %.0f m of a void tile the haze start is pulled in by up to %.0f %% (continuous in the distance)", 5.0f * g_fe_edge_band, 100.0f * g_fe_edge_pull);
     }
     if (nf) {
         float st = (float)atof(fv); int good = 1;
