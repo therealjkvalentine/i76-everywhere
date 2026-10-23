@@ -6941,6 +6941,7 @@ static void tex_census_attach(HMODULE m) {
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "skymirror.c"   /* I76_SKY_MIRROR=0: the rear-view mirror's pass does not scroll the sky (opt-in; NITRO-PORT s.11) */
 #include "mirrordetail.c" /* I76_MIRROR_DUMP (lab instrument), I76_MIRROR_TERRAIN_MODE: the mirror pass's terrain draw mode (rear-mirror lane 2026-10-23) */
+#include "jumpnose.c"    /* I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate scaled once at take-off (jump-pitch lane 2026-10-23, TICK-FINISH s.22.6) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
 #define NMP_IN_PROXY
 #include "nitro_mp.c"     /* Nitro only: ARENA+ ANet 2 layer (nitro-mp-design lane, docs/records/NITRO-MP-DESIGN-2026-10-21.md) */
@@ -9446,6 +9447,7 @@ static void nitro_dllmain(void) {
     apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */
     apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick: it may share the cloud constants) */
     apply_mirror_detail();    /* lab: I76_MIRROR_DUMP / I76_MIRROR_TERRAIN_MODE (Gold only: logs and returns here) */
+    apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1> (one site inside 0x43a5d0, in the site map) */
     {   /* MUSIC (I76_MUSIC_NITRO=0 keeps GOG's own WIN32.dll / audiere CD emulation): the same hooks as Gold, on the exe's
          * WIN32.dll slots; playback through the system winmm's mpegvideo as on Gold; the virtual disc ends at the highest
          * music\N.mp3 present */
@@ -9564,6 +9566,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
         apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick and I76_FRAMERATE_FIXES: it may share the cloud constants) */
         apply_mirror_detail();    /* lab: I76_MIRROR_DUMP=<N> (mirror bitmap + census), I76_MIRROR_TERRAIN_MODE=<hex> (after apply_terrain_lod: chains the main QueueTerrain call) */
+        apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate x f once on the first airborne step (jumpnose.c) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
