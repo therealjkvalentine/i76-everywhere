@@ -6912,6 +6912,8 @@ static void __stdcall tc_Swap(int interval) {
     p_tc_Swap(interval);
     fs_after_swap(t0);
 }
+static int g_sc_on; static void (__stdcall *p_sc_DrawTriangle)(const void *, const void *, const void *);
+static void __stdcall sc_DrawTriangle(const void *a, const void *b, const void *c);   /* terrainpops.c: I76_SHADE_CENSUS */
 static void tex_census_attach(HMODULE m) {
     void *o;
     g_tc_zg = m; g_tc_minc = 0; g_tc_swaps = 0;
@@ -6921,6 +6923,8 @@ static void tex_census_attach(HMODULE m) {
     TC_HOOK("_grTexMinAddress@4", tc_MinAddress, p_tc_MinAddress)
     TC_HOOK("_grTexDownloadMipMap@16", tc_Download, p_tc_Download)
     TC_HOOK("_grBufferSwap@4", tc_Swap, p_tc_Swap)
+    if (g_sc_on && !g_dp_on) { TC_HOOK("_grDrawTriangle@12", sc_DrawTriangle, p_sc_DrawTriangle) mlog("  shade-census: ZGLIDE grDrawTriangle %s", p_sc_DrawTriangle ? "hooked" : "NOT hooked"); }
+    else if (g_sc_on) mlog("  shade-census: I76_DRAW_PROBE owns grDrawTriangle - census off");
     if (g_dp_on) {
         TC_HOOK("_grDrawTriangle@12", dp_DrawTriangle, p_dp_DrawTriangle)
         TC_HOOK("_grLfbLock@24", dp_LfbLock, p_dp_LfbLock)
@@ -8599,6 +8603,7 @@ static void apply_terrain_hyst(void) {
 }
 
 #include "terrainmorph.c"  /* I76_TERRAIN_MORPH / _MORPH_LOG / I76_TERRAIN_FLAT_SPLIT: geomorph + flat-tile split (TERRAIN-MORPH-2026-10-21) */
+#include "terrainpops.c"   /* lab: I76_TEX_LEVEL_LOG (texture level switches per pass), I76_SHADE_CENSUS (ZGLIDE vertex colour levels) (terrain-pop lane 2026-10-23) */
 static void apply_terrain_lod(void) {
     static const struct { DWORD_PTR a_site, b_site; float a, b; } lv[3] = {
         { 0x4930bb + 6, 0x4930c5 + 6, 6.4f,  0.00390625f },      /* Low */
@@ -8957,6 +8962,7 @@ static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls a
         terrain_vguard_report();
         terrain_hyst_report();
         terrain_morph_report();
+        terrain_pops_report();
         g_cl_frames = g_cl_cells = g_cl_cells_max = g_cl_tests = g_cl_capped = g_cl_pool_max = 0; g_cl_ticks = g_cl_ticks_max = 0; g_cl_kept = g_cl_pairs = 0;
     }
 }
@@ -9566,6 +9572,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
         apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick and I76_FRAMERATE_FIXES: it may share the cloud constants) */
         apply_mirror_detail();    /* lab: I76_MIRROR_DUMP=<N> (mirror bitmap + census), I76_MIRROR_TERRAIN_MODE=<hex> (after apply_terrain_lod: chains the main QueueTerrain call) */
+        apply_terrain_pops();     /* lab: I76_TEX_LEVEL_LOG=<csv>, I76_SHADE_CENSUS=1 (after mirror-detail: shares its picker site; terrainpops.c) */
         apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate x f once on the first airborne step (jumpnose.c) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
