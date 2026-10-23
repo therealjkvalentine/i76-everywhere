@@ -1092,3 +1092,9 @@ Open items from this session:
 - EMULATOR: play disk images\w95pb-hdd-memlog-20261023.img (copy of 20261016 as of 06:25 today, MSDOS.SYS BootDelay=0 Logo=0;
   owner_log.py picks the newest automatically); the 20261016 disk is no longer used. Owner: leave 86Box paused at the menu between uses.
 - GAME TYPES: lane started (phase 1, host side in a lab copy).
+- 2026-10-23 owner feedback on the three: BIGBLEND fine (no sliding seen) -> BIG 1 adopted; SHADE looked MORE abrupt -> a bug: the
+  stateless shortcut's threshold was taken from the shade band (8 / fb) instead of the height band's floor (8 / frac), so with
+  _SHADE 3 splits with D in 53-160 m snapped their shade from ts to 1 at d = 0.25 D. Fixed 5be4b0d, proxy 10aaf74c in exp-polish2.
+  New PLAY-OWNER-2300-ALL = sky one pass + morph + BIG 1 + SHADE 3 + 2300 m. fps on the T05 mountain dipped to ~100 (owner): the
+  morph's cost on the ridge climb is unmeasured - to measure (lod-sweep ridge route, n 2) before promotion.
+- FAR-EDGE FADE (owner asks): options noted in the reply of 2026-10-23; no lane yet.
