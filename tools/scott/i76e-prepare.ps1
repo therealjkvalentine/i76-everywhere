@@ -24,6 +24,9 @@ $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot; $game = Split-Path -Parent $here; $repo = Join-Path $here 'repo'
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
 function Fail([string]$m) { Write-Host ''; Write-Host "i76e: $m" -ForegroundColor Red; Write-Host 'The game was not started.' -ForegroundColor Red; exit 1 }
+function Running-Here { # the game started from THIS folder (another copy's i76.exe elsewhere on the PC does not lock our files)
+    return @(Get-Process i76 -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($game + '\', [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0
+}
 function Child([string]$script, [string[]]$argv) {
     # the repo scripts call exit freely: run each as its own powershell and read its exit code
     $global:LASTEXITCODE = 0
@@ -39,7 +42,7 @@ $stampFile = Join-Path $here 'installed.txt'; $dispFile = Join-Path $here 'displ
 # ---- uninstall ---------------------------------------------------------------------------------------------------
 if ($Uninstall) {
     Say "=== removing the i76-everywhere overlay ($version) from $game ===" 'Cyan'
-    if (Get-Process i76 -ErrorAction SilentlyContinue) { Fail 'close the game first' }
+    if (Running-Here) { Fail 'close the game first' }
     if (Test-Path -LiteralPath (Join-Path $game 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $game, '-Restore')) }
     [void](Child (Join-Path $repo 'tools\scott\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
     foreach ($pair in @(@('strlkup_orig.dll', 'Strlkup.dll'), @('I76PATCH.DLL.disabled', 'I76PATCH.DLL'))) {
@@ -89,7 +92,7 @@ if ($need) {
     Say "    display ${W}x${H} ($from); originals are kept beside every file that changes; nothing outside this folder is written."
     if ($DryRun) { Say '  (dry run: nothing written)' 'Yellow' }
     else {
-        if (Get-Process i76 -ErrorAction SilentlyContinue) { Fail 'close the running game first' }
+        if (Running-Here) { Fail 'close the running game first' }
         # 1. the shell patches, before u32x renames the shell's import (the patch is keyed by the stock md5)
         $rc = Child (Join-Path $repo 'tools\scott\Apply-Shell-Keys.ps1') @('-GameDir', $game)
         if ($rc -ne 0 -and $rc -ne 2) { Fail "Apply-Shell-Keys.ps1 exited $rc" }

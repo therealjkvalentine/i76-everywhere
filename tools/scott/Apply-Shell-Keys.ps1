@@ -38,7 +38,8 @@ $state = if ($bases.ContainsKey($cur)) { "stock: $($bases[$cur].name)" }
          elseif ($marker) { 'patched (and changed since, e.g. the u32x import rename)' }
          else { 'a shell build this patch does not know' }
 if ($Status) { "i76shell.dll md5 $cur - $state; backup $(if (Test-Path -LiteralPath $backup) { 'present' } else { 'none' })"; exit 0 }
-if (Get-Process i76 -ErrorAction SilentlyContinue) { throw 'close the game first - i76shell.dll is in use' }
+$gameFull = (Resolve-Path -LiteralPath $GameDir).Path.TrimEnd('\') + '\'
+if (@(Get-Process i76 -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($gameFull, [StringComparison]::OrdinalIgnoreCase) }).Count) { throw 'close the game first - i76shell.dll is in use' }
 
 if ($Revert) {
     if (-not (Test-Path -LiteralPath $backup)) { "shell keys: no $(Split-Path -Leaf $backup) - nothing to revert"; exit 0 }
