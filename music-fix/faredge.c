@@ -59,7 +59,14 @@ static fe_FogMode_t p_fe_FogMode; static fe_FogColor_t p_fe_FogColor; static fe_
 static int g_fe_glide_tries, g_fe_in_flush, g_fe_probe_tried, g_fe_alpha, g_fe_opaque, g_fe_ablend_tried;
 typedef void (__stdcall *fe_Blend_t)(int, int, int, int); typedef void (__stdcall *fe_ACombine_t)(int, int, int, int, int);
 static fe_Blend_t p_fe_Blend; static fe_ACombine_t p_fe_ACombine; static int g_fe_ac_last[5] = { 3, 8, 1, 1, 0 }; static float g_fe_az0, g_fe_ainv;
-static DWORD g_fe_atris, g_fe_averts_faded;
+static DWORD g_fe_atris, g_fe_averts_faded; static int g_fe_opaque_req, g_fe_keyed; typedef void (__stdcall *fe_Chroma_t)(int); static fe_Chroma_t p_fe_Chroma;
+/* the override is on only for an opaque (ONE / ZERO) request without a colour key: chroma-keyed records (the bushes) drawn with
+ * the iterated-alpha combine lost their key (black squares, boot 112109) */
+static void fe_apply_state(void) {
+    int want = g_fe_alpha && g_fe_in_flush && g_fe_opaque_req && !g_fe_keyed;
+    if (want && !g_fe_opaque) { p_fe_Blend(1, 5, 4, 0); p_fe_ACombine(1, 0, 0, 0, 0); g_fe_opaque = 1; }
+    else if (!want && g_fe_opaque) { p_fe_Blend(4, 0, 0, 0); p_fe_ACombine(g_fe_ac_last[0], g_fe_ac_last[1], g_fe_ac_last[2], g_fe_ac_last[3], g_fe_ac_last[4]); g_fe_opaque = 0; }
+}
 static double g_fe_pw_in_min = 1e30, g_fe_pw_in_max, g_fe_pw_out_min = 1e30, g_fe_pw_out_max; static DWORD g_fe_pt_in, g_fe_pt_out, g_fe_pt_in_far, g_fe_frames;
 
 static float fe_main_far(void) { return g_fe_far_env ? g_far_clip : *(volatile float *)(DWORD_PTR)0x004c271c; }
@@ -249,17 +256,18 @@ static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) { 
     p_fe_DrawTri(a, b, c);
 }
 static void __stdcall fe_Blend(int rsf, int rdf, int asf, int adf) {      /* ZGLIDE's grAlphaBlendFunction, in the bracket */
-    if (g_fe_alpha && g_fe_in_flush && rsf == 4 && rdf == 0) {            /* an opaque op: blend by the iterated alpha instead */
-        p_fe_Blend(1, 5, 4, 0); g_fe_opaque = 1;
-        p_fe_ACombine(1, 0, 0, 0, 0);                                      /* alpha = LOCAL ITERATED */
-        return;
-    }
-    g_fe_opaque = 0; p_fe_Blend(rsf, rdf, asf, adf);
+    g_fe_opaque_req = rsf == 4 && rdf == 0;
+    if (g_fe_alpha && g_fe_in_flush) { g_fe_opaque = 0; fe_apply_state(); if (g_fe_opaque) return; }
+    p_fe_Blend(rsf, rdf, asf, adf);
 }
-static void __stdcall fe_ACombine(int fn, int fac, int loc, int oth, int inv) {   /* ZGLIDE's grAlphaCombine: remembered; forced to iterated while an opaque op is on */
+static void __stdcall fe_ACombine(int fn, int fac, int loc, int oth, int inv) {   /* ZGLIDE's grAlphaCombine: remembered; forced to iterated while the override is on */
     g_fe_ac_last[0] = fn; g_fe_ac_last[1] = fac; g_fe_ac_last[2] = loc; g_fe_ac_last[3] = oth; g_fe_ac_last[4] = inv;
     if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) { p_fe_ACombine(1, 0, 0, 0, 0); return; }
     p_fe_ACombine(fn, fac, loc, oth, inv);
+}
+static void __stdcall fe_Chroma(int mode) {                                /* ZGLIDE's grChromakeyMode: keyed records keep their own state */
+    p_fe_Chroma(mode); g_fe_keyed = mode != 0;
+    if (g_fe_alpha && g_fe_in_flush) fe_apply_state();
 }
 static void fe_alpha_attach(void) {
     HMODULE z; void *o;
@@ -268,8 +276,9 @@ static void fe_alpha_attach(void) {
     g_fe_ablend_tried = 1;
     o = patch_iat(z, "glide2x.dll", "_grAlphaBlendFunction@16", (void *)fe_Blend); if (o && o != (void *)fe_Blend) p_fe_Blend = (fe_Blend_t)o;
     o = patch_iat(z, "glide2x.dll", "_grAlphaCombine@20", (void *)fe_ACombine); if (o && o != (void *)fe_ACombine) p_fe_ACombine = (fe_ACombine_t)o;
-    mlog("  glide-fog alpha: ZGLIDE grAlphaBlendFunction %s, grAlphaCombine %s", p_fe_Blend ? "hooked" : "NOT hooked", p_fe_ACombine ? "hooked" : "NOT hooked");
-    if (!p_fe_Blend || !p_fe_ACombine) { g_fe_alpha = 0; mlog("  glide-fog alpha: OFF"); }
+    o = patch_iat(z, "glide2x.dll", "_grChromakeyMode@4", (void *)fe_Chroma); if (o && o != (void *)fe_Chroma) p_fe_Chroma = (fe_Chroma_t)o;
+    mlog("  glide-fog alpha: ZGLIDE grAlphaBlendFunction %s, grAlphaCombine %s, grChromakeyMode %s", p_fe_Blend ? "hooked" : "NOT hooked", p_fe_ACombine ? "hooked" : "NOT hooked", p_fe_Chroma ? "hooked" : "NOT hooked");
+    if (!p_fe_Blend || !p_fe_ACombine || !p_fe_Chroma) { g_fe_alpha = 0; mlog("  glide-fog alpha: OFF"); }
 }
 static void fe_probe_attach(void) {
     HMODULE z; void *o;
@@ -288,8 +297,8 @@ static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1
         if (g_fe_alpha) fe_alpha_attach();
         if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {
             g_fe_az0 = fz * g_fe_fog_start; g_fe_ainv = fz > g_fe_az0 ? 1.0f / (fz - g_fe_az0) : 0.0f;
-            g_fe_in_flush = 1;
-            p_fe_Blend(1, 5, 4, 0); p_fe_ACombine(1, 0, 0, 0, 0); g_fe_opaque = 1;   /* the first records are opaque terrain: ZGLIDE's state cache may not call */
+            g_fe_in_flush = 1; g_fe_opaque_req = 1; g_fe_opaque = 0;         /* the first records are opaque terrain: ZGLIDE's state cache may not call */
+            fe_apply_state();
         } else {
             fe_fog_update(fz);
             p_fe_FogMode(2);                                 /* GR_FOG_WITH_TABLE */
@@ -300,7 +309,7 @@ static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1
     if (on) {
         g_fe_in_flush = 0;
         if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {
-            if (g_fe_opaque) { p_fe_Blend(4, 0, 0, 0); p_fe_ACombine(g_fe_ac_last[0], g_fe_ac_last[1], g_fe_ac_last[2], g_fe_ac_last[3], g_fe_ac_last[4]); g_fe_opaque = 0; }
+            fe_apply_state();                                /* in_flush is 0: the override comes off, ZGLIDE's own state back */
             if (g_fe_log && (++g_fe_frames % 300) == 0) { mlog("  glide-fog alpha: last 300 frames - %lu opaque-op triangles, %lu vertices faded (band from %.0f m)", (unsigned long)g_fe_atris, (unsigned long)g_fe_averts_faded, g_fe_az0); g_fe_atris = g_fe_averts_faded = 0; }
             return;
         }
