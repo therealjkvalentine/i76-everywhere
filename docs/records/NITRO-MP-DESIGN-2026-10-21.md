@@ -838,6 +838,40 @@ Lab copies: `exp-nitro-types` (host, IPXWrapper L) and `exp-nitro-types-b` (join
 a3889d8f / 8ba38c6a (`builds\nitro-gametypes-20261023\drv`); proxies p1-p7 in that folder (p6 3ef77e9d = the code as
 committed in 0e77d5e).
 
+### 0.5.19 GAME TYPE entries, the co-op Mac n 2 attempt (2026-10-23 afternoon, game-types finishing lane): not reached, flip not committed
+
+**Script fixes (lab 3e624f8, 2f0bc9b):** `gt_xmac.sh` now fails (exit 4, Mac not started) when no host session opens, and
+waits up to 2700 s. `gt_xlan.sh` sets pair.py's timeout to hold + 10800 s, waits for the copy's nitro.exe to go before
+restoring the DLL, and keeps `Strlkup.dll.xlan-bak` unless the copy back succeeded. `gt_run.py` has flip cells fa / fc / fs / fz (switch unset; fz = `I76_NITRO_GAMETYPES=0`), and `nmpdrv-build-flip.bat` builds the flipped instrument
+(`drv-flip` 2edb5173, from `flipsrc`, the music-fix tree with the two-line flip). Neither has been booted yet.
+
+| run | Mac | result |
+|---|---|---|
+| gt-mac-c4 | laptop (joiner proxy p6 3ef77e9d, host instrument 8ba38c6a + p6 chain) | **void, PC side.** The Mac listed 'ARENA+ Evening Stroll' 7676 1/6, joined, and got the P01 CO-OP SCENE. Joiner t+5..45 s: state 5, players 2. Host t+20 s: players 2 (type 7, mask 40, options 03, 7676). Then the host was killed at t+49 s: gt_xlan's `timeout` (then hold + 2400 s) also counts pair.py's queue wait (14:47-15:31), so it expired at 15:32:22. The joiner then took c0000005 in nitro.exe +0x17a85 / anet2 +0x14d6 at about t+62 s, after the host vanished. Not counted. |
+| gt-and-c3 | Andrew | not run (see below) |
+
+**Three ways the run lost time, none in the type code:**
+- (1) The scott-build gate held .fps-lock 12:08-14:47 (its i76.exe wedged at step 4).
+- (2) pair.py takes its turn only when `.fps-queue` names `nitro-mp-design`. A queue line that names another lane holds it
+  forever. This lane's line said "game-types lane" (fixed by hand at 15:31), and the same thing is a likely cause of gt-mac-c3's wait.
+- (3) The killed host, nitro.exe 48740, will not die. Stop-Process (twice) and taskkill fail, and its mute watcher is gone. It is left with 1
+  thread in a kernel wait (ExecutionDelay) and 555 handles, and it still holds **UDP 0.0.0.0:54792 (IPXWrapper instance N, the LAN port the Macs
+  join)** and the copy's Strlkup.dll. No PC LAN host can run until it is gone, which most likely means a reboot.
+
+The old gt_xlan teardown deleted the backup after its failed copy back. `exp-nitro-mp`'s own DLL was therefore restored from
+`builds
+itro-mp-form
+mpdrv-b577183c.dll`: the sibling copy exp-nitro-mp-b carries b577183c, and s.0.5.x says the copies are identical.
+The restore runs as soon as the file unlocks, then `ipx-lan.ps1 -Use L`.
+
+**Tally unchanged:** arena n 2 per Mac, co-op n 1 per Mac (laptop c1, Andrew c2). The step-4 gate is not met, so the flip
+stays uncommitted (`I76_NITRO_GAMETYPES=1` is still opt-in) and the box code stays. Left, in order:
+1. Clear pid 48740 (reboot).
+2. `gt_xmac.sh gt-mac-c5 c laptop` and `gt_xmac.sh gt-and-c3 c andrewvalentine@192.168.1.205` with `GT_PROXY=p6`, with a
+   `.fps-queue` line containing `nitro-mp-design`.
+3. The flip commit, `build.ps1 -Tag gametypes-flip -Ref <sha>`, and `gt_run.py fa1 fc1 fs1 fz1` with drv-flip in exp-nitro-types.
+4. The Mac clones' proxy (p6) still has the opt-in. The boys need an app update only when the flipped proxy ships.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
