@@ -163,7 +163,11 @@ static void tm_stateless(const BYTE *cam, float *V, int n) {
     float sc = *(volatile float *)(DWORD_PTR)0x006442c4, K = *(volatile float *)(DWORD_PTR)0x006442c8, B = *(volatile float *)(DWORD_PTR)0x006442cc;
     float ex = (float)(*(const double *)(cam + 0x160) * sc), ez = (float)(*(const double *)(cam + 0x170) * sc);
     float fb = g_tm_band * g_tm_shmul, om = 1.0f - fb, om2 = om * om;      /* the shortcut uses the wider (shade) band */
-    float invB = B > 0.0f ? 1.0f / B : 0.0f, cut2 = g_tm_frac && fb > 0.0f && fb < 1.0f ? (8.0f / fb) * (8.0f / fb) : 1e30f;
+    /* the shortcut (skip when d <= D - bandS without a square root) is exact only once band = frac x D is past its 8-sample floor,
+     * i.e. D >= 8 / frac: that threshold is the HEIGHT band's, whatever the shade multiplier (2026-10-23: it was computed from fb, so
+     * with _SHADE 3 every split with D between 8/fb and 8/frac snapped its shade from ts to 1 at d = (1 - fb) D - the owner's "more
+     * abrupt" shade on PLAY-OWNER-2300-SHADE) */
+    float invB = B > 0.0f ? 1.0f / B : 0.0f, cut2 = g_tm_frac && g_tm_band > 0.0f && fb < 1.0f ? (8.0f / g_tm_band) * (8.0f / g_tm_band) : 1e30f;
     int ox = *(volatile int *)(DWORD_PTR)0x006442e0, oz = *(volatile int *)(DWORD_PTR)0x006442e4, i, k, m = 0; DWORD pid = g_tm_pid;
     if (g_tm_log) for (i = 0; i < n; i++) { g_tm_t[i] = g_tm_ts[i] = 1.0f; g_tm_pa[i] = g_tm_pb[i] = -1; }   /* the table instrument reads every vertex */
     for (i = 4; i < n; i++) {
