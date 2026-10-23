@@ -838,7 +838,7 @@ Lab copies: `exp-nitro-types` (host, IPXWrapper L) and `exp-nitro-types-b` (join
 a3889d8f / 8ba38c6a (`builds\nitro-gametypes-20261023\drv`); proxies p1-p7 in that folder (p6 3ef77e9d = the code as
 committed in 0e77d5e).
 
-### 0.5.19 GAME TYPE entries, the co-op Mac n 2 attempt (2026-10-23 afternoon, game-types finishing lane): not reached, flip not committed
+### 0.5.19 GAME TYPE entries, co-op Mac n 2 and the flip (2026-10-23 afternoon, game-types finishing lane)
 
 **Script fixes (lab 3e624f8, 2f0bc9b):** `gt_xmac.sh` now fails (exit 4, Mac not started) when no host session opens, and
 waits up to 2700 s. `gt_xlan.sh` sets pair.py's timeout to hold + 10800 s, waits for the copy's nitro.exe to go before
@@ -864,13 +864,37 @@ itro-mp-form
 mpdrv-b577183c.dll`: the sibling copy exp-nitro-mp-b carries b577183c, and s.0.5.x says the copies are identical.
 The restore runs as soon as the file unlocks, then `ipx-lan.ps1 -Use L`.
 
-**Tally unchanged:** arena n 2 per Mac, co-op n 1 per Mac (laptop c1, Andrew c2). The step-4 gate is not met, so the flip
-stays uncommitted (`I76_NITRO_GAMETYPES=1` is still opt-in) and the box code stays. Left, in order:
-1. Clear pid 48740 (reboot).
-2. `gt_xmac.sh gt-mac-c5 c laptop` and `gt_xmac.sh gt-and-c3 c andrewvalentine@192.168.1.205` with `GT_PROXY=p6`, with a
-   `.fps-queue` line containing `nitro-mp-design`.
-3. The flip commit, `build.ps1 -Tag gametypes-flip -Ref <sha>`, and `gt_run.py fa1 fc1 fs1 fz1` with drv-flip in exp-nitro-types.
-4. The Mac clones' proxy (p6) still has the opt-in. The boys need an app update only when the flipped proxy ships.
+**After pid 48740 cleared (about 17:35, on its own):** `exp-nitro-mp` was back to b577183c on IPXWrapper instance L, with UDP 54792 free.
+
+| run | Mac | host chose | Mac listed / joined | both sides | exceptions |
+|---|---|---|---|---|---|
+| gt-and-c3 (17:35) | Andrew | Co-Op (type 7, mask 40, options 03, 7676) | 'ARENA+ Evening Stroll' 7676 1/6, joined, P01 CO-OP SCENE, the host shown as `vagrapl1` | joiner t+5..145 s state 5, players 2; host t+120 / 240 s players 2 | 0 c0000005 (host, joiner, joiner proxy) |
+| gt-mac-c5 (18:02) | laptop | Co-Op | the same | the same | 0 |
+
+The fixed teardown put the copy back to b577183c with no strlkprx.dll or backup left. The Mac clones ran their own proxy copy, p6 3ef77e9d
+(`proxy-3ef77e9d.dll` as strlkprx.dll, opt-in switch passed by xmac-join.sh). The PC host ran instrument 8ba38c6a with p6 chained.
+
+**Tally: arena n 2 per Mac, co-op n 2 per Mac (laptop c1 + c5, Andrew c2 + c3): step-4 gate met.**
+
+**Step 4 done (i76-everywhere ddceb7a):** the entries are the default, and `I76_NITRO_GAMETYPES=0` restores the boxes for one
+release. The box code (F2 / F3 sites, hit records, draw) stays so the owner can still go back. Release build:
+`builds
+itro-port-20261021\gametypes-ddceb7a\Strlkup.dll` **7941034a**. Instrument from the same tree: `drv` 9ab73ae2.
+Headless host boots on exp-nitro-types with the switch unset (`gt_run.py`, n 1 each; the copy's instrument 8ba38c6a put back afterwards):
+
+| cell | env | read back at dpOpen | after 35 s | exceptions |
+|---|---|---|---|---|
+| gt-fa1 | switch unset, row 5 | nitro-types ON 16/16; type 6, mask 20, options 01, species 7676, list 24 | state 5, players 4 (host + 3 AI) | 0 c0000005 |
+| gt-fc1 | switch unset, row 6 | type 7, mask 40, options 03, 7676, list 19; P01 CO-OP SCENE | state 5, players 1 (as c4-c7) | 0 |
+| gt-fs1 (stock-Combat control) | switch unset, row 0 | type 1, mask 01, options 00, species 025c | state 5, players 1 | 0 |
+| gt-fz1 (restore check) | `I76_NITRO_GAMETYPES=0`, row 0 | nitro-form ON 6/6 (the boxes), type 1, 025c | state 5, players 1 | 0 |
+
+**The boys' Macs:** the lab clones carry their own proxy, and p6 is still opt-in. The shipped apps keep the boxes until their
+proxy is updated to 7941034a or a later build of ddceb7a+. That update rides with the next Mac app proxy rollout, and no separate
+DLL push is needed for these tests.
+
+**Left:** remove the box code after one release (F2 / F3 sites, hit records, draw, the `=0` branch), then update s.0.5.10.
+The G6 joiner type line stays covered but unobserved.
 
 ### 0.6 Changes to sections 3.4, 4 and 5
 
