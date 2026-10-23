@@ -90,19 +90,11 @@ What each switch does (all in mirrordetail.c, Gold only, signature-checked, unse
   2017 Galaxy exe every 2nd; 60 redraws/s at 120 fps.
 - `I76_MIRROR_DUMP=<N>`, `I76_MIRROR_TERRAIN_MODE=<hex>`: lab instruments (section 1).
 
-## 4. Delivered
+## 4. Delivered (superseded by section 6 the same morning)
 
-- exp-polish2: `PLAY-OWNER-2300-MIRROR.bat` + `Interstate 76\presets\OWNER-2300-MIRROR.psd1` = OWNER-2300-SHADE + the
-  three keys (FAR 2300, LOD 1, EVERY 2), the measured cost in the psd1 comments.
-- exp-polish2 `STRLKUP.DLL`: **NOT installed** - the owner was playing exp-polish2 again when the lane reached this step
-  (i76.exe started 07:46, not ours), so the copy was not touched. Until it is, the launcher runs with the 81808610 proxy,
-  which rejects FAR 2300 (old range 100..600) and ignores the two new keys: the mirror stays stock. Install with the game
-  closed: lab `tools\mirror-detail\install-exp-polish2.ps1` (checks md5 81808610, keeps it as `STRLKUP.DLL.81808610`,
-  installs `builds
-itro-port-20261021\mirror-473c16a\Strlkup.dll` md5 9b7482b8 = repo 473c16a, reads it back, notes
-  VERSION-LAB.md; `-Rollback` restores). Difference to 81808610 besides this lane: b0a2420 (nitshell GAME TYPE entries,
-  Nitro only, behind I76_NITRO_GAMETYPES) - inert on Gold.
-- Smoke: the final DLL with the new preset booted t01 on exp-polish, the three switches logged as applied, 119 fps.
+First delivery: exp-polish2 `PLAY-OWNER-2300-MIRROR.bat` + preset = OWNER-2300-SHADE + FAR 2300 / LOD 1 / EVERY 2, proxy
+473c16a (md5 9b7482b8, installed by the coordinator; the lane had found the owner playing that copy). The owner drove it
+and reported "still not seeing terrain textures ... just big one-color polys" and a sunset-orange sky in the mirror.
 
 ## 5. Left
 
@@ -113,3 +105,62 @@ itro-port-20261021\mirror-473c16a\Strlkup.dll` md5 9b7482b8 = repo 473c16a, read
 - Nitro: none of the sites are in the site map yet (the switches log "not ported" and stay off).
 - `I76_MIRROR_RATE` (Galaxy / 20 Hz grid) and `I76_MIRROR_EVERY` share the gate site; EVERY yields to RATE.
 - renderer.md's 0xf4 row for terrain / roads needs a correction (this path emits 0x15 / 0x17).
+
+## 6. Second round: why "no texture, orange sky", and the fix (same morning)
+
+Owner's screenshot (`Downloads\Screenshot 2026-10-23 080241.png`): the mirror's ground as flat ochre / orange / tan facets, the road
+textured, the far terrain peach where the main view's is tan. The census had said "textured, Gouraud, perspective, mode 0x15" -
+true, and three things still made it look like another world:
+
+1. **The mirror sampled the 8-bit build's terrain art.** The terrain texture set 0x5a4588 holds, per level, the 8-bit `.map`
+   (dword w, dword 0x4000xxxx | h, texels from +8) and the `.m16` (0xC000xxxx | h: texels + an embedded RGB565 palette); the
+   variant picker 0x471f00(set, cam) gives a kind-0 bitmap the 8-bit one. That is a different drawing: low contrast, another
+   tint (t05: peach; the .m16 sand is tan with dark speckles). The road textures' two variants happen to match, so the road
+   looked right.
+2. **The texture level was the 256 px mirror's.** The picker reads W from the camera's own bitmap, so the mirror got the 16 px
+   tile for ~75 % of its leaves (levels 12 / 17 / 39 / 62 / 204 of 334 on t05) where the main view at the same distances uses
+   the 256..32 px tiles.
+3. **Not the palette.** Both ideas about the colours were wrong on inspection: the D3D upload path's `.tab` grade does not run
+   here (this is the Glide plugin path, 0x42ec20 -> 0x431ca0 -> ZGLIDE UpdateTexture; the table 0x608980 is all zero and no
+   `.tab` is loaded), and ZGLIDE's `SetTexturePalette` export is a stub (`xor eax, eax; ret`). The context palette 0x5dcfa8 is
+   tNN_16.act plus the monitor gamma (t05: sum of differences 34 over 768 bytes), and tNN.act (the 8-bit build's, what the
+   mirror's indices mean) is nearly the same palette, so an index remap is near-identity. The "orange sky" in his screenshot was
+   the far terrain in the 8-bit art's tint, under a real blue sky.
+
+Instrument additions (`I76_MIRROR_DUMP`): texture level histogram per pass, the raw-layout texture-set report, the upload table
+and `.tab` dumped. (The first version of that report probed a garbage pointer with IsBadReadPtr, which the proxy's crash logger
+reported as CRASH lines in six lab runs; removed.)
+
+Switches (mirrordetail.c 8326010, Gold only, unset = stock):
+
+- `I76_MIRROR_M16=1`: each level's `.m16` is quantised once into the display palette (its embedded palette -> nearest context
+  colour, 0xff excluded) into an 8-bit copy of the same shape; the mirror pass's leaves get the copy. The main view is untouched.
+- `I76_MIRROR_TEX=<f>`: the mirror's leaves re-pick the level a 640 x f px wide view would at the same distance. t05 levels with
+  f = 1: 37 / 58 / 63 / 70 / 110.
+- `I76_MIRROR_PAL=1`: pixels remapped tNN.act -> nearest tNN_16.act colour before the upload (25 pairs from I76.ZFS compiled in
+  as `mirrorpal.h`, pair chosen by best match of the context palette). Near-identity on the stock missions; kept on as a
+  safety for a mission whose two palettes differ.
+
+Evidence (lab, PNGs on disk): `autotestuns\mirror-detail\MIRROR-DETAIL-t05-before-after.png` (stock path vs the
+delivered set, dumps flipped to the screen's orientation, the on-screen mirror crop under each column) and
+`MIRROR-DETAIL-t01-before-after.png`. t05 after: tan sand with its mottling, mesas in the main view's colour, blue sky.
+
+Cost (same method as section 3, FAR 1000 per the owner's "800-1200 m is plenty"):
+
+| condition | boots | fps (mean of the windows) | work ms | cost |
+|---|---|---|---|---|
+| A baseline | r6, r7 | 120.0 / 119.2 | 8.32 / 8.38 | - (spread 0.8 fps) |
+| **N FAR 1000 + LOD 1 + EVERY 2 + M16 + TEX 1 + PAL** | r1, r2 | 118.8 / 120.0 | 8.40 / 8.32 | inside the spread |
+| deliverable 53750675 + OWNER-2300-ALL (dumps every 40) | smoke | 120.2 | 8.31 | - |
+
+Delivered: exp-polish2 `STRLKUP.DLL` = `builds
+itro-port-20261021\mirror-8326010` (md5 53750675, repo 8326010; carries every
+lane's commit up to it: jumpnose e02d64a, far-edge, terrain-pops, nitro game types), installed 09:29 with no game running; the
+DLL it replaced (99af7394 = jumpnose-e02d64a, which another lane had put there after the coordinator's 9b7482b8) is kept as
+`STRLKUP.DLL.99af7394` (`tools\mirror-detail\install-exp-polish2.ps1 -Rollback 99af7394`). Presets `OWNER-2300-MIRROR.psd1`
+(FAR 1000 + the six keys, rows in the comments) and `OWNER-2300-ALL.psd1` (FAR 2300 -> 1000 in place, M16 / TEX / PAL added
+after EVERY); launcher `PLAY-OWNER-2300-MIRROR.bat` text updated.
+
+Left: the mirror's sky is the 8-bit cloud art through the display palette (blue-grey; the main's is the .m16 sky) - the same
+.m16-copy trick would apply to the cloud texture if wanted; roads and bushes in the mirror still follow the global 2300 m;
+Nitro unported; renderer.md 0xf4 row.
