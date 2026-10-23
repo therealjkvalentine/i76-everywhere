@@ -217,6 +217,44 @@ Even the parked car (the idle shake moves the eye) makes 84 near crossings per s
 stopped on the ridge. smooth-4's census (offset fixed): `32 integer levels hold >= 0.2 %: 38 27.6 %, 143 3.0 %, 164 12.2 %, 180 23.9 %,
 185 4.6 %` and 0.2-3 % at every value 141-187 between; self-check `entries k 128 / 145 / 160 = 165 178 196`.
 
+## 6. Owner follow-up (afternoon): "textures in ATMOS and SMOOTH are still coarse / distracting brightness adjustments"
+
+**What he ran.** exp-polish2's `mciproxy.log`, last boots: `shade-smooth: on ... rows 12..18 now 186 186 165 165 165 144 144 -> entries
+k 128 / 145 / 160 = 165 178 196` - the fixed table (596a597 is an ancestor of the installed 2516fb4 / bc2b0b9b). SMOOTH was live; the
+32-row steps were gone from the vertex colours (s.4.5's census). What remains is something else.
+
+**Is a texture level ring a brightness step?** No - measured in the archive (I76.ZFS `tp08m6.pak`, the set T05 names, RGB565 palettes
+through i76fmt):
+
+| level | file | size | mean luma | luma sd (contrast) |
+|---|---|---|---|---|
+| ('1', unused by the picker) | TP081SD6.M16 | 16x16 | 133.6 | 8.1 |
+| 0 | TP082SD6.M16 | 256x256 | 133.1 | 16.2 |
+| 1 | TP083SD6.M16 | 64x64 | 133.2 | 12.8 |
+| 2 | TP084SD6.M16 | 64x64 | 133.2 | 12.8 |
+| 3 | TP085SD6.M16 | 32x32 | 133.6 | 10.2 |
+| 4-6 | TP086SD6.M16 | 16x16 | 133.0 | 8.2 |
+
+The levels differ by 0.6 grey in mean - a ring is not a darkness step and no per-level gain is needed. They differ in CONTRAST: each
+ring drops the texture's grain by ~20 %, and inside the 640 m ring (TEX x8) the 256 px level is drawn minified with no mipmaps (ZGLIDE
+uploads one level, lab TEXTURE-AND-OBJECT-LOD.md s.1): at 640 m a 40 m tile is ~100 px, 2.5 texels per pixel, bilinear only - aliasing
+grain that moves with the car. Read with the owner's own words ("continuously faded the same way as we continuously make the transition
+between textures"), the remaining "coarse brightness adjustments" are texture detail, not shade: the grain changing abruptly at the rings
+and sparkling under minification. On flat ground the rings sit 1-2 px below the horizon (h 1.2 m x focal 960 px / 640 m), so a
+luma-vs-distance profile cannot resolve them; the slopes are where he sees them.
+
+**The remaining per-vertex candidates are not it:** the depth term is float per vertex (0x490fb0, s.1.1); ZGLIDE's intensity x colour is
+8-bit (1-grey steps); dgVoodoo iterates Gouraud in float.
+
+**Fix built: `I76_GLIDE_MIPMAP=1|2`** (terrainpops.c 8907869, proxy e5f4a750). ZGLIDE has a complete mip-chain path the exe never
+switches on: FirstDevice (+0x1c20) zeroes the plugin's mipmap flag [0x1001ee68] and then calls grTexMipMapMode(tmu, flag ? NEAREST :
+DISABLE, FXFALSE); with the flag every upload gets smallLod = GR_LOD_1 and 0x10005160 builds the chain. 1 = the one byte at +0x1c60
+(`mov [flag], edi` -> `mov [flag], ebx`, ebx = 1 there): mip chains, nearest mip. 2 = lodBlend forced FXTRUE through the glide2x import:
+trilinear under dgVoodoo - the levels fade into each other with distance, and with `I76_TERRAIN_TEX=32` the picker keeps the 256 px level
+out to 2560 m so the hand-made rings are gone and the mips do the whole transition. Relocation-aware (ZGLIDE loaded at 046C0000 in the
+owner's boots), signature-checked, Gold, off by default. Rows (pending the console after the TEX sweep): sm (SMOOTH + BIG 2), mip1,
+mip2, mip2 + TEX 32, n 2, same route and instruments; the capture's local-step p50 is the grain / shimmer measure here.
+
 ## 5. Files
 
 - Code: i76-everywhere `music-fix/terrainpops.c` (6f14a77 instruments, 1ac22b3 fix), `strlkproxy.c` (include, report, apply, frame hook, census hook).
