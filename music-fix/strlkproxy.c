@@ -9043,7 +9043,7 @@ static void apply_clutter_dist(void) {
          g_cl_fade_on ? (sprintf(g_cl_fadetxt, "; fade: full density to %.0f m, then x (%.0f / d)^2", g_cl_fade, g_cl_fade), g_cl_fadetxt) : "");
 }
 
-/* MIRROR RANGE  (I76_MIRROR_FAR=<metres 100..600>; off by default; EXPERIMENT, lab docs/CLUTTER-AND-MIRROR.md)
+/* MIRROR RANGE  (I76_MIRROR_FAR=<metres 100..2500>; off by default; EXPERIMENT, lab docs/CLUTTER-AND-MIRROR.md; 600 -> 2500 on 2026-10-23, mirrordetail.c)
  * The rear mirror is a software render into a private 256x64 8-bit copy of the cockpit mirror texture (ZMIRI101.MAP),
  * re-uploaded as a Glide texture: its resolution is the texture's, not dgVoodoo's. What a constant can change is its
  * range: mirror_Init 0x445380 creates the mirror camera with far = 100 m (`push 0x42c80000` at 0x44553c; fov 30 deg,

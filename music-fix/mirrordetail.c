@@ -28,7 +28,13 @@
  * per polygon), 0x15 (0x487ea0: textured Gouraud perspective) which the queue turns into 0x0d (0x487190, the 0x05 drawer), 0x4d
  * (0x48a580, keyed Gouraud). 0xf5 / 0xd5 / 0xe5 fall to the default entry 0x47d110 (276 of 512 modes): not drawable.
  */
-static DWORD g_md_dump_n, g_md_mode, g_md_on;
+/*   I76_MIRROR_EVERY=<N>           redraw the mirror every N-th frame (2..8). The 2017 Galaxy exe gates the redraw on the frame count
+ *                                  (every 2nd frame); GOG's AiO build and our 6319abf7 removed the gate (`EB 17 90 90 90` at 0x4457b4:
+ *                                  every frame, see REAR MIRROR CADENCE). The `call simclock_GetFrameCount` is restored to a counter
+ *                                  that advances 2/N per frame, so the stock "next = count + 2" passes every N frames. Not with
+ *                                  I76_MIRROR_RATE (that owns the site under I76_FRAMERATE_FIXES).
+ */
+static DWORD g_md_dump_n, g_md_mode, g_md_on, g_md_every, g_md_calls;
 static DWORD g_md_next_upload, g_md_next_tmir, g_md_next_tmain;
 static DWORD g_md_redraws, g_md_dumps, g_md_pal_done;
 typedef struct { DWORD leaves, texnull, big, forced; DWORD modes[8], modev[8]; int verts; } md_pass_t;
@@ -117,9 +123,26 @@ static void __cdecl md_upload(DWORD tex, const char *name) {   /* 0x42ec20 at 0x
     }
     ((void (__cdecl *)(DWORD, const char *))(DWORD_PTR)g_md_next_upload)(tex, name);
 }
+static int __cdecl md_frame_count(void) { return (int)((++g_md_calls * 2) / g_md_every); }   /* in place of simclock_GetFrameCount at 0x4457b4 */
+static void apply_mirror_every(void) {
+    static const BYTE gate_galaxy[5] = { 0xE8, 0x17, 0x70, 0x05, 0x00 };   /* call 0x49c7d0 at 0x4457b4 (Galaxy: every 2nd frame) */
+    static const BYTE gate_aio[5]    = { 0xEB, 0x17, 0x90, 0x90, 0x90 };   /* jmp 0x4457cd: gate removed (AiO / 6319abf7: every frame) */
+    BYTE w[5] = { 0xE8 }; LONG rel; char v[8]; int ok; const char *layout;
+    if (!env_str("I76_MIRROR_EVERY", v, sizeof(v))) return;
+    g_md_every = (DWORD)atoi(v);
+    if (g_md_every < 2 || g_md_every > 8) { mlog("  mirror-every: %s out of range (2..8) - not applied", v); g_md_every = 0; return; }
+    if (g_exe == EXE_NITRO) { mlog("  mirror-every: not ported to Nitro - off"); g_md_every = 0; return; }
+    {   char mv[4]; if (env_str("I76_MIRROR_RATE", mv, sizeof(mv)) && mv[0] != '0' && g_ratefix) { mlog("  mirror-every: I76_MIRROR_RATE owns the gate - off"); g_md_every = 0; return; } }
+    rel = (LONG)((DWORD_PTR)md_frame_count - (0x004457b4 + 5)); memcpy(w + 1, &rel, 4);
+    if (memcmp((void *)0x004457b4, gate_aio, 5) == 0) { layout = "AiO: gate was removed, mirror every frame"; ok = patch_bytes(0x004457b4, gate_aio, w, 5, "rear mirror refresh gate (mirror-every, AiO)"); }
+    else { layout = "Galaxy: every 2nd frame"; ok = patch_bytes(0x004457b4, gate_galaxy, w, 5, "rear mirror refresh gate (mirror-every, Galaxy)"); }
+    if (!ok) { g_md_every = 0; mlog("  mirror-every: gate site not as expected - off"); return; }
+    mlog("  mirror-every: the rear mirror redraws every %lu-th frame (stock layout %s)", (unsigned long)g_md_every, layout);
+}
 static void apply_mirror_detail(void) {
     static const BYTE push_old[5] = { 0x68, 0xF0, 0x23, 0x49, 0x00 };   /* push 0x4923f0 at 0x490f96 (textured leaf callback) */
     BYTE push_new[5] = { 0x68 }; DWORD a; char v[16]; int n = 0;
+    apply_mirror_every();     /* I76_MIRROR_EVERY=<N> */
     if (env_str("I76_MIRROR_DUMP", v, sizeof(v))) g_md_dump_n = (DWORD)atoi(v);
     if (env_str("I76_MIRROR_TERRAIN_MODE", v, sizeof(v))) g_md_mode = (DWORD)strtoul(v, NULL, 16) & 0x1ff;
     if (!g_md_dump_n && !g_md_mode) return;
