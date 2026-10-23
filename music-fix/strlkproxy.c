@@ -8604,6 +8604,7 @@ static void apply_terrain_hyst(void) {
     if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep their first decision until they come within it (snapshot of new nodes every %.0f m)", ff, fm);
 }
 
+#include "faredge.c"       /* I76_HAZE / I76_GLIDE_FOG / I76_EDGE_FADE: far-edge fade (far-edge lane 2026-10-23; before terrainmorph.c: its emit wrap chains fe_haze_apply) */
 #include "terrainmorph.c"  /* I76_TERRAIN_MORPH / _MORPH_LOG / I76_TERRAIN_FLAT_SPLIT: geomorph + flat-tile split (TERRAIN-MORPH-2026-10-21) */
 #include "terrainpops.c"   /* lab: I76_TEX_LEVEL_LOG (texture level switches per pass), I76_SHADE_CENSUS (ZGLIDE vertex colour levels) (terrain-pop lane 2026-10-23) */
 static void apply_terrain_lod(void) {
@@ -9575,6 +9576,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick and I76_FRAMERATE_FIXES: it may share the cloud constants) */
         apply_mirror_detail();    /* lab: I76_MIRROR_DUMP=<N> (mirror bitmap + census), I76_MIRROR_TERRAIN_MODE=<hex> (after apply_terrain_lod: chains the main QueueTerrain call) */
         apply_terrain_pops();     /* lab: I76_TEX_LEVEL_LOG=<csv>, I76_SHADE_CENSUS=1 (after mirror-detail: shares its picker site; terrainpops.c) */
+        apply_far_edge();         /* opt-in: I76_HAZE=<start>[,<strength>], I76_GLIDE_FOG=<start>[,<colour>], I76_EDGE_FADE=1 (after the morph: chains its emit wrap; after road-pool: chains its flush wrap; faredge.c) */
         apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate x f once on the first airborne step (jumpnose.c) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
