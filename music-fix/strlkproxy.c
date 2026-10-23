@@ -6939,6 +6939,7 @@ static void tex_census_attach(HMODULE m) {
 #include "replay.c"      /* I76_REPLAY: frame-dt replay of an emulator memory trace (lab instrument) */
 #include "polish.c"      /* I76_SIGN_SOUND_RESTART / I76_FADE_NO_FLIP: owner polish 2026-10-20 (before simtick.c: st_sign_sound uses it) */
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
+#include "skymirror.c"   /* I76_SKY_MIRROR=0: the rear-view mirror's pass does not scroll the sky (opt-in; NITRO-PORT s.11) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
 #define NMP_IN_PROXY
 #include "nitro_mp.c"     /* Nitro only: ARENA+ ANet 2 layer (nitro-mp-design lane, docs/records/NITRO-MP-DESIGN-2026-10-21.md) */
@@ -9442,6 +9443,7 @@ static void nitro_dllmain(void) {
     apply_telemetry();        /* I76_TELEMETRY (snapshot, shot / explosion / impact events; I76_SOUND_EVENTS / I76_DAMAGE_EVENTS not ported) */
     apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
     apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */
+    apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick: it may share the cloud constants) */
     {   /* MUSIC (I76_MUSIC_NITRO=0 keeps GOG's own WIN32.dll / audiere CD emulation): the same hooks as Gold, on the exe's
          * WIN32.dll slots; playback through the system winmm's mpegvideo as on Gold; the virtual disc ends at the highest
          * music\N.mp3 present */
@@ -9558,6 +9560,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_trainer();          /* always on (I76_TRAINER=0 disables): Local\I76Trainer control block */
         apply_replay();           /* lab: I76_REPLAY=<file.rpl> (frame-dt replay of an emulator trace; replay.c) */
         apply_simtick();          /* lab: I76_SIM_TICK_MS=<ms> (whole-sim tick; after every switch that patches the frame loop; simtick.c) */
+        apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick and I76_FRAMERATE_FIXES: it may share the cloud constants) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
