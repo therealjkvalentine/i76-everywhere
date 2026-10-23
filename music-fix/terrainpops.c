@@ -98,41 +98,28 @@ static void __stdcall sc_DrawTriangle(const void *a, const void *b, const void *
     g_sc_tris++;
     p_sc_DrawTriangle(a, b, c);
 }
-static DWORD g_tp_reported;
-static void terrain_pops_report(void) {
-    g_tp_reported = g_frame;
-    if (g_sc_on && g_sc_tris) {
-        char line[900]; size_t n = 0; DWORD tot = 3 * g_sc_tris, i, levels = 0;
-        for (i = 0; i < 256; i++) if (g_sc_hist[i] * 500 >= tot) levels++;          /* bins holding >= 0.2 % */
-        for (i = 0; i < 256 && n < sizeof line - 24; i++) if (g_sc_hist[i] * 500 >= tot) n += (size_t)_snprintf(line + n, sizeof line - n, " %lu:%.1f%%", (unsigned long)i, 100.0 * g_sc_hist[i] / tot);
-        line[n] = 0;
-        mlog("  shade-census: %lu triangles, %lu vertices, %.2f%% non-integer r; %lu integer levels hold >= 0.2%% each:%s",
-             (unsigned long)g_sc_tris, (unsigned long)tot, 100.0 * g_sc_nonint / tot, (unsigned long)levels, line);
-        memset(g_sc_hist, 0, sizeof g_sc_hist); g_sc_nonint = g_sc_tris = 0;
-    }
-    if (g_tp_log) mlog("  tex-level-log: %lu main passes logged, %lu level switches written", (unsigned long)g_tp_passes, (unsigned long)g_tp_evn);
-    if (g_ss_on) mlog("  shade-smooth: on, table built %d time(s)", g_ss_builds);
-}
-
 /* ---- I76_SHADE_SMOOTH ---- */
 static float g_ss_m255 = -255.0f;                          /* in place of [0x4bcd34] = -31.0 (the emitters do fmul then magic-round) */
 static DWORD g_ss_tab[16 + 256 + 64];                      /* 16 guard entries below (k + 16 is the index, as the stock), 256, 64 above */
 static DWORD g_ss_snap[64]; static int g_ss_on, g_ss_builds;
-static void ss_build(void) {                               /* from the stock 64 entries (rows 31 - k at 0x526790 + 4 k, k = -16..47) */
+static void ss_build(void) {                               /* from the stock 64 entries at 0x526790: the emitters index entry k + 16 for k = round(31 s), so
+                                                              entries 16..47 hold rows 31..0 (entry 16 + k = row 31 - k), 0..15 repeat row 31, 48..63 row 0.
+                                                              (The first build, 1ac22b3, read entries 0..31 - the guard and the darkest rows: the 2026-10-23
+                                                              smooth-1..3 rows rendered the terrain at grey 38-68 instead of 143-185; the census caught it.) */
     const DWORD *T = (const DWORD *)(DWORD_PTR)0x00526790; int k, i;
-    memcpy(g_ss_snap, T - 16, sizeof g_ss_snap);
-    for (i = 0; i < 16; i++) g_ss_tab[i] = T[0] & 0xff;
+    memcpy(g_ss_snap, T, sizeof g_ss_snap);
+    for (i = 0; i < 16; i++) g_ss_tab[i] = T[16] & 0xff;
     for (k = 0; k < 256; k++) {
         float pos = 31.0f * (float)k / 255.0f; int a = (int)pos; float f = pos - (float)a; DWORD va, vb;
         if (a >= 31) { a = 31; f = 0.0f; }
-        va = T[a] & 0xff; vb = T[a + (a < 31 ? 1 : 0)] & 0xff;
+        va = T[16 + a] & 0xff; vb = T[16 + a + (a < 31 ? 1 : 0)] & 0xff;
         g_ss_tab[16 + k] = (DWORD)((float)va * (1.0f - f) + (float)vb * f + 0.5f);
     }
-    for (i = 0; i < 64; i++) g_ss_tab[16 + 256 + i] = T[31] & 0xff;
+    for (i = 0; i < 64; i++) g_ss_tab[16 + 256 + i] = T[47] & 0xff;
     g_ss_builds++;
 }
 static void ss_frame(void) {                               /* per frame: the mode slot rebuilds the stock table from the current palette / .lum */
-    if (memcmp(g_ss_snap, (const void *)(DWORD_PTR)(0x00526790 - 64), sizeof g_ss_snap)) ss_build();
+    if (memcmp(g_ss_snap, (const void *)(DWORD_PTR)0x00526790, sizeof g_ss_snap)) ss_build();
 }
 static void apply_shade_smooth(void) {
     static const DWORD cs[17] = { 0x427edb, 0x427fc3, 0x42834b, 0x42861c, 0x4287bb, 0x428861, 0x429439, 0x42975a, 0x429b77, 0x42b86c, 0x42bb5a, 0x42beac, 0x42c19a, 0x42c509, 0x42c82d, 0x42c969, 0x42cc8d };
@@ -158,6 +145,22 @@ static void apply_shade_smooth(void) {
          g_ss_snap[32] & 0xff, g_ss_snap[33] & 0xff, g_ss_snap[34] & 0xff, g_ss_snap[35] & 0xff, g_ss_snap[36] & 0xff, g_ss_snap[37] & 0xff, g_ss_snap[38] & 0xff, g_ss_snap[39] & 0xff,
          g_ss_snap[40] & 0xff, g_ss_snap[41] & 0xff, g_ss_snap[42] & 0xff, g_ss_snap[43] & 0xff, g_ss_snap[44] & 0xff, g_ss_snap[45] & 0xff, g_ss_snap[46] & 0xff, g_ss_snap[47] & 0xff);
 }
+static DWORD g_tp_reported;
+static void terrain_pops_report(void) {
+    g_tp_reported = g_frame;
+    if (g_sc_on && g_sc_tris) {
+        char line[900]; size_t n = 0; DWORD tot = 3 * g_sc_tris, i, levels = 0;
+        for (i = 0; i < 256; i++) if (g_sc_hist[i] * 500 >= tot) levels++;          /* bins holding >= 0.2 % */
+        for (i = 0; i < 256 && n < sizeof line - 24; i++) if (g_sc_hist[i] * 500 >= tot) n += (size_t)_snprintf(line + n, sizeof line - n, " %lu:%.1f%%", (unsigned long)i, 100.0 * g_sc_hist[i] / tot);
+        line[n] = 0;
+        mlog("  shade-census: %lu triangles, %lu vertices, %.2f%% non-integer r; %lu integer levels hold >= 0.2%% each:%s",
+             (unsigned long)g_sc_tris, (unsigned long)tot, 100.0 * g_sc_nonint / tot, (unsigned long)levels, line);
+        memset(g_sc_hist, 0, sizeof g_sc_hist); g_sc_nonint = g_sc_tris = 0;
+    }
+    if (g_tp_log) mlog("  tex-level-log: %lu main passes logged, %lu level switches written", (unsigned long)g_tp_passes, (unsigned long)g_tp_evn);
+    if (g_ss_on) mlog("  shade-smooth: on, table built %d time(s); rows 12..18 now %lu %lu %lu %lu %lu %lu %lu -> entries k 128 / 145 / 160 = %lu %lu %lu", g_ss_builds, g_ss_snap[16 + 19] & 0xff, g_ss_snap[16 + 18] & 0xff, g_ss_snap[16 + 17] & 0xff, g_ss_snap[16 + 16] & 0xff, g_ss_snap[16 + 15] & 0xff, g_ss_snap[16 + 14] & 0xff, g_ss_snap[16 + 13] & 0xff, g_ss_tab[16 + 128], g_ss_tab[16 + 145], g_ss_tab[16 + 160]);
+}
+
 static void terrain_pops_frame(void) {                    /* from the frame hook: every frame */
     if (g_ss_on) ss_frame();
     if ((g_sc_on || g_tp_log) && g_frame - g_tp_reported >= 600) terrain_pops_report();   /* clutter_frame_wrap reports too when the clutter switch is on; the guard keeps one per 600 */
