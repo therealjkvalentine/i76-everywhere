@@ -243,12 +243,14 @@ static int __cdecl nmp_enum(void *dp, BYTE *sd, void *mbz, long tmo, nmp_enumcb_
     nmp_shell_cb = cb;
     return nmp_real_enum(dp, sd0, mbz, tmo, nmp_enum_cb, ctx);
 }
+static void nf_open_note(void);   /* nitro_form.c: the host form's game type at dpOpen (log only) */
 static int __cdecl nmp_open(void *dp, BYTE *sd, void *cb, void *ctx) {
     int r;
     if (sd) g_nmp_species = *(WORD *)(sd + 0xd);
     r = nmp_real_open(dp, sd, cb, ctx);
     NMP_LOG("  nitro-mp: dpOpen species %04lx '%.31s' -> %d (%s)", g_nmp_species, sd ? (char *)sd + 0x17 : "", r,
             g_nmp_species == NMP_SPECIES_ARENA ? "ARENA+" : "stock");
+    nf_open_note();
     return r;
 }
 static int nmp_lobby_subscribe(void) {   /* STUB (record s.0.5.3 / 0.5.8): on a game server, subscribe a SECOND session table
