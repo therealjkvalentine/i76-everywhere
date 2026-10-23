@@ -85,6 +85,57 @@ both conditions it saw one frame until the window closed (16-25 grabs, 2 distinc
 no A-B-A), so it neither shows the flicker before nor its absence after; the present count is the measurement. A faster
 capture (DXGI desktop duplication) would be needed for the picture itself.
 
+### B2. "The two frame stutter in the menu again" (2026-10-23, menu-stutter lane) - NOT reproduced; item B's fix intact
+
+Owner (2026-10-23, exp-polish2 on the OWNER-2300-* trial presets, proxy bc2b0b9b = 2516fb4): "i'm getting the two frame stutter
+in the menu again". The brief read it as a regression of item B by the day's work (sky-mirror, morph, mirror-detail, jump-nose,
+far-edge, shade-smooth; ten DLL installs, the new preset keys).
+
+**Item B itself holds.** The owner's own log (exp-polish2 mciproxy.log, every one of the day's 25 boots) carries
+`fade: I76_FADE_NO_FLIP=1 (the palette fade's 32 presents skipped ...)`, i.e. the 0x479bdd patch verified; on the lane's copy
+with the owner's preset and the live DLL the fade log reads `present SKIPPED` for 64 of 64 steps (r5, t05 boot fades; the same
+instrument as the k2 rows above). Nothing in the day's commits touches 0x479bdd, [0x5dd2e0] or the menu draw 0x496870.
+
+**The menu's own alternation, measured** (lab `tools\menu-stutter\ms-probe.ps1`: item I's instrument on a fresh robocopy of
+exp-polish2 = `exp-menu`, one boot per row, direct mission boot, Esc > ABORT MISSION page, 6 grey Down + 6 Up taps, a 1/4
+screenshot each, `bgdiff.py` = % of the background outside the panel differing from the page's first picture by > 40; S = menu
+opened with the car standing, M = opened with W held 3 s; the taps alternate base / other buffer, the table gives the other
+buffer's value):
+
+| row | proxy | preset | map | S: other buffer | M: other buffer |
+|---|---|---|---|---|---|
+| r0 | bc2b0b9b (live) | OWNER-2300-ALL | t01 | 0.25 - 0.28 % | 0.99 - 1.03 % |
+| r1 | bc2b0b9b | tick19-42 (before the day's keys) | t01 | 0.25 - 0.28 % | 1.02 - 1.06 % |
+| r2 | da6dfbb8 (2026-10-21, lane 2's fix build; ignores the day's keys) | OWNER-2300-ALL | t01 | 0.29 - 0.32 % | 1.07 - 1.10 % |
+| r6 | da6dfbb8 | tick19-42 | t01 | 0.25 - 0.28 % | 0.99 - 1.03 % |
+| r3 | bc2b0b9b | OWNER-2300-FOG | t05 | 0.16 - 0.20 % | 0.26 - 0.30 % |
+| r4 | bc2b0b9b | OWNER-2300-SMOOTH | t05 | 0.10 - 0.12 % | 0.24 - 0.28 % |
+
+The day's DLL and the day's keys change nothing (r0 = r1 = r2 = r6 within 0.05 %; n 1 per cell, the spread between cells is the
+run-to-run spread). What differs between the two buffers is the item I residual: the last two frames before the pause, one
+frame of idle shake (S: the terrain rim, the mirror frame; `diffmap.py` pictures in `runs\r0-all-S\diff-02-04.png`) or one frame of
+motion (M: road lines, horizon, mirror; `runs\r0-all-M\diff-02-04.png`). It is the same on every redraw of the page, mouse hover
+included (0x496870: BeginFrame, panel blit, Flip, [0x5dd2e0]), and it is what the owner sees when he moves the pointer over the
+page after an Esc while driving: a one-pixel edge shimmer, not an object drawn on alternate frames. The exit route (ABORT
+MISSION click, r5, `ms-exit.ps1` with a 26 grabs/s four-crop capture): one picture held for 11.7 s after the click, no A-B-A.
+
+Not tested (what would still make this a real regression): a flip the owner sees in the SHELL (i76shell's pages, after the
+fade) - nothing in the day's code runs there, but it was not captured; the owner's wheel / i76wheel.exe as the pointer source.
+Ask the owner WHICH menu and whether it flips with the pointer still: with the pointer still nothing presents (r5).
+
+**If it is the residual**: the fix lane 2 named - one more 3D draw at pause entry so both buffers hold the paused frame.
+Concretely, at shell_BeginInGameMenu 0x4953e0 (escmenu.c names it), before the panel's first draw: the loop's render block once
+(0x401c90(0x4c2730) queue, [0x5dd2bc] BeginFrame, 0x4621e0(0x4c2730), 0x49b430, 0x49bee0, [0x5dd2c0] Flip) - the loop's own
+Flip just put frame N in front and frame N-1 in the back buffer; one more draw of the paused state replaces N-1 with N' = N,
+and every later redraw of the page shows the same picture. Under the tick the sub-tick interpolation of N' is up to one frame
+newer than N (a fraction of the present shimmer); the sky scroll is per tick (I76_SIM_TICK_SKY_REF). Not built: the target is
+unconfirmed and the budget went into the measurement. Switch name if built: I76_MENU_DRAW=2.
+
+Files: lab `tools\menu-stutter\` (ms-probe.ps1, ms-exit.ps1 = probe-exit on the lane's copy with the fast capture, diffmap.py,
+`runs\` with RESULTS.txt, the screenshots and the proxy log slices); the copy `exp-menu` retired after the run (a 1 s robocopy of
+exp-polish2 remakes it); nothing installed anywhere; `.fps-queue` taken 11:38 - 12:40 (the far-edge and nitro-mp lanes yielded
+between their boots).
+
 ## C. A barricade hit while the last one still sounds
 
 **Cause.** A car hitting a class-4 object (road-closed barricade swend_1, sign post) plays vnvco3.wav on the car
