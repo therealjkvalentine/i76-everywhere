@@ -197,6 +197,8 @@ static void apply_terrain_pops(void) {
     char lf[260]; int i;
     apply_shade_smooth();
     g_gm_mode = env_int("I76_GLIDE_MIPMAP", 8, 0); if (g_gm_mode < 0 || g_gm_mode > 2) { mlog("  glide-mipmap: %d not 1 / 2 - off", g_gm_mode); g_gm_mode = 0; }
+    if (g_gm_mode && env_flag("I76_GLIDE_MIPMAP_UNSAFE", 8, 0) != 1) {   /* 2026-10-23: 5 / 5 boots AV at ZGLIDE+0x9DF4 on the first upload - the chain builder's 16 -> 32 bit converter (0x10009dd0) reads the HOST buffer for every level (w x h texels past the one level the exe hands it): ZGLIDE's mipmap mode expects the caller to supply the chain, it generates none. A real fix builds the levels in the grTexDownloadMipMap hook with the TMU accounting to match */
+        mlog("  glide-mipmap: refused (ZGLIDE's chain path reads host-supplied levels this exe never provides: AV at ZGLIDE+0x9DF4, 5/5 boots 2026-10-23); I76_GLIDE_MIPMAP_UNSAFE=1 overrides for RE only"); g_gm_mode = 0; }
     if (g_gm_mode && g_exe == EXE_NITRO) { mlog("  glide-mipmap: Nitro - off"); g_gm_mode = 0; }
     if (g_gm_mode) mlog("  glide-mipmap: armed (%s; applied when ZGLIDE.DLL loads)", g_gm_mode >= 2 ? "trilinear" : "nearest mip");
     g_sc_on = env_flag("I76_SHADE_CENSUS", 8, 0) == 1;
