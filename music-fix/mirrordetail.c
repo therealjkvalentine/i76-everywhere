@@ -52,13 +52,13 @@ static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*
  * never a target). The 8-bit build's own terrain art (what the mirror sampled) is a different, low-contrast drawing in another tint
  * (t05: peach vs the .m16's tan sand with dark speckles) - the owner's "no texture, different colour" 2026-10-23. */
 static DWORD g_md_next_skytex;
-static BYTE *md_m16_copy(DWORD src);
+static BYTE *md_m16_copy(DWORD src, int smooth);
 static DWORD __cdecl md_sky_tex(DWORD set, DWORD cam) {        /* 0x471f00(set, cam) at 0x405403: the sky draw's cloud texture (set 0x504c38), software branch */
     DWORD r = ((DWORD (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_md_next_skytex)(set, cam);
-    if (cam == 0x00608c80 && g_md_m16 && set) { DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m) : NULL; if (c) return (DWORD)(DWORD_PTR)c; }
+    if (cam == 0x00608c80 && g_md_m16 && set) { DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m, 1) : NULL; if (c) return (DWORD)(DWORD_PTR)c; }
     return r;
 }
-static BYTE *md_m16_copy(DWORD src) {
+static BYTE *md_m16_copy(DWORD src, int smooth) {
     int i; BYTE *m = (BYTE *)(DWORD_PTR)src, *out, *ctx = (BYTE *)0x005dcfa8; DWORD w, h, n, k, cnt; WORD *pw; BYTE map[256];
     for (i = 0; i < g_m16_n; i++) if (g_m16[i].src == src) return g_m16[i].copy;
     if (g_m16_n >= 16 || !m) return NULL;
@@ -77,9 +77,25 @@ static BYTE *md_m16_copy(DWORD src) {
     out = (BYTE *)VirtualAlloc(NULL, 8 + n, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!out) return NULL;
     *(DWORD *)out = w; *(DWORD *)(out + 4) = 0x40000000 | h;
-    for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
+    if (smooth) {                                                /* the sky: a 3x3 box blur in RGB before the quantisation - the cloud art's fine texels, point-sampled
+                                                                    into 256x64, came out as speckle (the main view bilinear-filters them); terrain keeps its texels */
+        BYTE *rgb = (BYTE *)VirtualAlloc(NULL, n * 3, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE); DWORD x, y; WORD *cache = (WORD *)VirtualAlloc(NULL, 65536 * 2, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (rgb && cache) {
+            for (k = 0; k < n; k++) { WORD c = m[8 + k] < cnt ? pw[m[8 + k]] : 0; rgb[k * 3] = (BYTE)(((c >> 11) & 31) * 255 / 31); rgb[k * 3 + 1] = (BYTE)(((c >> 5) & 63) * 255 / 63); rgb[k * 3 + 2] = (BYTE)((c & 31) * 255 / 31); }
+            for (k = 0; k < 65536; k++) cache[k] = 0xffff;
+            for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+                int r = 0, g = 0, b = 0, dx, dy, j, bj = 0; DWORD bd = 0xffffffff, key;
+                for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) { DWORD xx = (x + dx + w) % w, yy = (y + dy + h) % h, q = (yy * w + xx) * 3; r += rgb[q]; g += rgb[q + 1]; b += rgb[q + 2]; }
+                r /= 9; g /= 9; b /= 9; key = ((DWORD)(r >> 3) << 11) | ((DWORD)(g >> 2) << 5) | (DWORD)(b >> 3);
+                if (cache[key] != 0xffff) { out[8 + y * w + x] = (BYTE)cache[key]; continue; }
+                for (j = 0; j < 255; j++) { int dr = r - ctx[j * 3], dg = g - ctx[j * 3 + 1], db = b - ctx[j * 3 + 2]; DWORD d2 = (DWORD)(dr * dr + dg * dg + db * db); if (d2 < bd) { bd = d2; bj = j; } }
+                cache[key] = (WORD)bj; out[8 + y * w + x] = (BYTE)bj;
+            }
+        } else for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
+        if (rgb) VirtualFree(rgb, 0, MEM_RELEASE); if (cache) VirtualFree(cache, 0, MEM_RELEASE);
+    } else for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
     g_m16[g_m16_n].src = src; g_m16[g_m16_n].copy = out; g_m16_n++;
-    mlog("  mirror-m16: level %d .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette -> 8-bit copy %p for the mirror pass", md_level_of(src), m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, out);
+    mlog("  mirror-m16: %s .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette%s -> 8-bit copy %p for the mirror pass", smooth ? "sky" : "terrain level", m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, smooth ? " after a 3x3 blur" : "", out);
     return out;
 }
 
@@ -104,7 +120,7 @@ static void __cdecl md_after_pick(DWORD leaf, float invz) {    /* after 0x4923f0
             if (t) { *(volatile DWORD *)0x0059c558 = t; tex = t; }
         }
         if (g_md_m16) {                                          /* the .m16 art of the level the leaf got, as an 8-bit copy */
-            int l = md_level_of(tex); DWORD m = l < 7 ? *(DWORD *)(0x005a458c + 8 * l) : 0; BYTE *c = m ? md_m16_copy(m) : NULL;
+            int l = md_level_of(tex); DWORD m = l < 7 ? *(DWORD *)(0x005a458c + 8 * l) : 0; BYTE *c = m ? md_m16_copy(m, 0) : NULL;
             if (c) { *(volatile DWORD *)0x0059c558 = (DWORD)(DWORD_PTR)c; tex = (DWORD)(DWORD_PTR)c; }
         }
         md_count(&g_md_mir, mode, tex, big); g_md_mir.lvl[md_level_of(tex)]++;
