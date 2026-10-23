@@ -23,6 +23,7 @@
 #>
 param(
     [Parameter(Mandatory)][string]$Proxy,
+    [string]$ProxyCommit = '',      # the commit the proxy was built from (lab builds\nitro-port-20261021\build.ps1 -Ref); default: HEAD
     [Parameter(Mandatory)][string]$DgVoodooDir,
     [Parameter(Mandatory)][string]$AhkDir,
     [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\scott',
@@ -172,7 +173,7 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
 @(
     "scott-$Stamp $sha",
     "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-scott.ps1 from repo commit $sha",
-    "proxy Strlkup.dll md5 $proxyMd5 (clean build of $sha, MSVC x86 /MT /O2)",
+    "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.3 (unmodified x86 components); AutoHotkey $ahkVer (GPL)",
     "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset scott-preview (experimental graphics)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
