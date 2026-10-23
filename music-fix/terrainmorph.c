@@ -47,7 +47,7 @@
  */
 #define TM_MAXV   32768u
 #define TM_SLOTS  65536u
-typedef struct { unsigned __int64 k; float d0, y, sh, mx, shmx, shd; int idx, open, m; } tm_slot_t;   /* mx / open / m: the per-split event (largest one-pass move) */      /* k 0 = empty (keys are offset, never 0) */
+typedef struct { unsigned __int64 k; float d0, y, sh, mx, shmx, shd, dd; int idx, open, m; } tm_slot_t;   /* dd: distance this pass, samples (row-crossing bands) */   /* mx / open / m: the per-split event (largest one-pass move) */      /* k 0 = empty (keys are offset, never 0) */
 static tm_slot_t *g_tm_v[2]; static DWORD *g_tm_vu[2], g_tm_vn[2];               /* vertex maps: this main pass / previous */
 static unsigned __int64 *g_tm_l[2]; static DWORD *g_tm_lu[2], g_tm_ln[2];        /* leaf key sets */
 static int g_tm_cur = 0, g_tm_prev_ok, g_tm_on, g_tm_morph, g_tm_frac;
@@ -58,7 +58,7 @@ static int g_tm_n, g_tm_pass_main, g_tm_have;
 static DWORD g_tm_passes, g_tm_born, g_tm_morphing, g_tm_mature_new, g_tm_jumps_reset, g_tm_win_passes, g_tm_win_morphing;
 static FILE *g_tm_log, *g_tm_ev; static LARGE_INTEGER g_tm_qpf;
 static double g_tm_fx, g_tm_fz, g_tm_px, g_tm_pz; static int g_tm_fok;
-static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj, g_tm_bin[4][4];   /* bin[class][size]: class carried / born / mature-new / gone; size <=1, 1-4, 4-16, >16 px */ static DWORD g_tm_new, g_tm_gone, g_tm_nview;
+static double g_tm_jpx[3], g_tm_spx[3], g_tm_shj, g_tm_maxj, g_tm_bin[4][4];   /* bin[class][size]: class carried / born / mature-new / gone; size <=1, 1-4, 4-16, >16 px */ static DWORD g_tm_new, g_tm_gone, g_tm_nview, g_tm_rc[3];   /* rc: carried vertices whose hardware shade ROW round(31 s) changed this pass, near / mid / far (terrain-pop lane 2026-10-23: the emitters quantise s to 32 rows, TERRAIN-POPS-2026-10-23) */
 static DWORD g_tm_ret_xform = 0x004937c0, g_tm_ret_emit = 0x00491a30;
 
 static unsigned __int64 tm_vkey(int x, int z) { return ((unsigned __int64)(DWORD)(x + 8192) << 32) | (DWORD)(z + 8192); }
@@ -242,7 +242,7 @@ static void __cdecl tm_xform_wrap(void) {
     if (g_tm_log) {                                    /* direction of travel for the view cone (as the census) */
         double mx = ex - g_tm_px, mz = ez - g_tm_pz, ml = sqrt(mx * mx + mz * mz);
         if (ml > 0.4) { if (ml < 40.0 && g_tm_passes) { g_tm_fx = mx / ml; g_tm_fz = mz / ml; g_tm_fok = 1; } g_tm_px = ex; g_tm_pz = ez; }
-        g_tm_jpx[0] = g_tm_jpx[1] = g_tm_jpx[2] = g_tm_spx[0] = g_tm_spx[1] = g_tm_spx[2] = g_tm_shj = g_tm_maxj = 0.0; g_tm_new = g_tm_gone = g_tm_nview = 0; memset(g_tm_bin, 0, sizeof(g_tm_bin));
+        g_tm_jpx[0] = g_tm_jpx[1] = g_tm_jpx[2] = g_tm_spx[0] = g_tm_spx[1] = g_tm_spx[2] = g_tm_shj = g_tm_maxj = 0.0; g_tm_new = g_tm_gone = g_tm_nview = 0; memset(g_tm_bin, 0, sizeof(g_tm_bin)); g_tm_rc[0] = g_tm_rc[1] = g_tm_rc[2] = 0;
     }
     tm_vclear(g_tm_cur);
     for (i = 0; i < n; i++) {
@@ -260,7 +260,7 @@ static void __cdecl tm_xform_wrap(void) {
         if (!pa || !pb || pa->idx < 0 || pb->idx < 0 || pa->idx >= i || pb->idx >= i) continue;
         ia = pa->idx; ib = pb->idx; if (!g_tm_sl) { g_tm_pa[i] = ia; g_tm_pb[i] = ib; }
         else if (g_tm_pa[i] < 0) { g_tm_pa[i] = ia; g_tm_pb[i] = ib; }   /* stateless, t = 1: the instrument still needs its parents (shade, events) */
-        d = sqrtf(((float)x - ex) * ((float)x - ex) + ((float)z - ez) * ((float)z - ez));
+        d = sqrtf(((float)x - ex) * ((float)x - ex) + ((float)z - ez) * ((float)z - ez)); s->dd = d;
         ps = g_tm_prev_ok ? tm_vfind(prev, s->k) : NULL;
         if (ps) { s->d0 = ps->d0; s->mx = ps->mx; s->open = ps->open; s->m = ps->m; s->shmx = ps->shmx; s->shd = ps->shd; }
         else {
@@ -335,6 +335,8 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
             if (g_tm_log && s && s->idx == i) {         /* shade jump of a vertex born this pass (vs its parents' mean) */
                 ps = g_tm_prev_ok ? tm_vfind(1 - g_tm_cur, s->k) : NULL;
                 if (!ps && V[3 * i + 2] > 4.0f) g_tm_shj += fabs(U[3 * i + 2] - sm);
+                if (ps && (int)(31.0f * U[3 * i + 2] + 0.5f) != (int)(31.0f * ps->sh + 0.5f)) {   /* a carried vertex crossed a hardware shade row: a 20-23 grey step on screen */
+                    float dm = s->dd * 5.0f; g_tm_rc[dm < 300.0f ? 0 : dm < 900.0f ? 1 : 2]++; }
             }
             if (s && s->idx == i) s->sh = U[3 * i + 2];
         }
@@ -344,7 +346,7 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
                     (unsigned long)g_tm_new, (unsigned long)g_tm_gone, (unsigned long)g_tm_nview,
                     g_tm_jpx[0], g_tm_jpx[1], g_tm_jpx[2], g_tm_spx[0], g_tm_spx[1], g_tm_spx[2], g_tm_maxj, g_tm_shj,
                     g_tm_eye_prev[0] * 5.0f, g_tm_eye_prev[1] * 5.0f);
-            {   int c, kk; for (c = 0; c < 4; c++) for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%.1f", g_tm_bin[c][kk]); fputc('\n', g_tm_log); }
+            {   int c, kk; for (c = 0; c < 4; c++) for (kk = 0; kk < 4; kk++) fprintf(g_tm_log, ",%.1f", g_tm_bin[c][kk]); fprintf(g_tm_log, ",%lu,%lu,%lu\n", (unsigned long)g_tm_rc[0], (unsigned long)g_tm_rc[1], (unsigned long)g_tm_rc[2]); }
             if ((g_tm_passes & 63) == 0) { fflush(g_tm_log); if (g_tm_ev) fflush(g_tm_ev); }
         }
         if (g_tm_have) { g_tm_cur = 1 - g_tm_cur; g_tm_prev_ok = 1; }
@@ -465,7 +467,7 @@ static void apply_terrain_morph(void) {
         if (nm) { g_tm_morph = 1; if (band <= 1.0f) { g_tm_frac = 1; g_tm_band = band; } else g_tm_band = band / 5.0f; }
         if (nl) { g_tm_log = fopen(lf, "w"); QueryPerformanceFrequency(&g_tm_qpf);
                   { char ef[280]; _snprintf(ef, sizeof(ef) - 1, "%s.events.csv", lf); ef[sizeof(ef) - 1] = 0; g_tm_ev = fopen(ef, "w"); if (g_tm_ev) fprintf(g_tm_ev, "t_ms,d0_m,size_m,max_move_px,max_shade_step,shade_split_delta,end\n"); }
-                  if (g_tm_log) fprintf(g_tm_log, "frame,t_ms,verts,new,gone,in_view,jump_px_near,jump_px_mid,jump_px_far,smooth_px_near,smooth_px_mid,smooth_px_far,max_jump_px,shade_jump_new,eye_x,eye_z,carried_le1,carried_1_4,carried_4_16,carried_gt16,born_le1,born_1_4,born_4_16,born_gt16,mature_le1,mature_1_4,mature_4_16,mature_gt16,gone_le1,gone_1_4,gone_4_16,gone_gt16\n"); }
+                  if (g_tm_log) fprintf(g_tm_log, "frame,t_ms,verts,new,gone,in_view,jump_px_near,jump_px_mid,jump_px_far,smooth_px_near,smooth_px_mid,smooth_px_far,max_jump_px,shade_jump_new,eye_x,eye_z,carried_le1,carried_1_4,carried_4_16,carried_gt16,born_le1,born_1_4,born_4_16,born_gt16,mature_le1,mature_1_4,mature_4_16,mature_gt16,gone_le1,gone_1_4,gone_4_16,gone_gt16,rowcross_near,rowcross_mid,rowcross_far\n"); }
         ok = !memcmp((const void *)(DWORD_PTR)0x00490eed, xf_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f9b, eh_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f82, es_old, 5);   /* Gold only (Nitro refused above) */
         if (!ok) mlog("  terrain-morph: QueueTerrain call sites differ (another patch or another exe) - not applied");
         else {
