@@ -266,3 +266,80 @@ switch question - sparseness (a lower density shape) is the separate decision he
   300 unchanged). No transparent launcher (s.7); I76_GLIDE_FOG_ALPHA stays a lab switch.
 - Lab: `tools\far-edge\` (fe-run, fe-batch1-9, fe-install, results.txt, runs\<stamp>-<tag>-<route>\), copy `exp-faredge`,
   build worktree `builds\faredge-20261023\wt`.
+
+## 14. Fog colour (owner: "I see it getting darker a bit but I don't know that it looks like a fog - is it working right?")
+
+It was working: T05's strip base 483620 is a dark brown-grey, so the band read as darkening. `I76_GLIDE_FOG=<start>,<colour>[,<f>]`
+now takes (f33e6c5): `hzd` / `strip` (as before), `sky` (the cloud dome texture's mean: the pair at 0x504c38, [0] the 8-bit
+128 x 128 record, all rows through the context palette - the dome near the horizon is foreshortened over the whole scrolling
+texture), `mix,<f>` (strip toward sky by f), `white,<f>` (strip toward white by f), `rrggbb`. The log names both reads in every
+mode. T05 (lab `fe-batch10`, hill top, FOG 0.75, proxy 82af7e76): strip **483620**, sky **5e7a8e**, mix 0.5 **535857**,
+white 0.5 **a49b90**. On screen at the plain's rim (centre columns, rows 862-874 of 1440):
+
+| colour | rim rows on screen | reads as |
+|---|---|---|
+| strip 483620 | 6d5a42, 746149 | darkening (the owner's report) |
+| sky 5e7a8e | 7a858a, 81898c | a cold blue-grey under the horizon line - the "blue" the owner ruled out |
+| mix 0.5 535857 | 737069, 7b756d | flat concrete grey |
+| **white 0.5 a49b90** | a3988b, a79b8d | **light warm haze against the brown mesas** |
+
+Crop of all four (plus the feather): `tools\far-edge\runs\zoom-fe2-colours-hill.png` (rows 600-1000, columns 1200-2240 of each
+`20261023-1453..1456-fog75*-hill\s03-t12.png`). The dome's mean is darker and bluer than the sky seen on screen (the screen sky
+is lifted by the gamma ramp; the texture's mean also includes its deep-blue areas), so 'sky' cannot be the haze colour on T05.
+**Delivered: `I76_GLIDE_FOG=0.75,white,0.5` in OWNER-2300-FOG and `0.675,white,0.5` in OWNER-2300-ATMOS** (exp-polish2).
+Cost: fps 103.4 / 104.0 / 105.3 / 105.0 for the four colours on the hill (n 1 each, held; the colour is one register write).
+
+## 15. Feather (owner: "couldn't just the top edge do a transparent fade - feathering the top a bit to blend it into the background?")
+
+`PLAY-OWNER-2300-FEATHER.bat` + `presets\OWNER-2300-FEATHER.psd1`: OWNER-2300-ALL + `I76_GLIDE_FOG=0.92,hzd` +
+`I76_GLIDE_FOG_ALPHA=1` (band 2116-2300 m to transparent; the keyed-bush fix of s.12 included). fps on the valley road,
+interleaved: feather 119.2, 119.3 vs base 119.6, 119.2 (n 2 each; no cost at the cap: work 8.38 / 8.38 vs 8.36 / 8.39 ms).
+Hill top: 1270 vertices a frame faded (log: 381 k per 300 frames).
+
+What shows through:
+- **Hill top** (`20261023-145628-feather92-hill`, crop `zoom-fe2-feather-hill.png`: base / strip fog / feather): the plain's
+  far rim sits in front of the horizon strips' mesa picture, so its last rows thin into the strips' brown base (rim rows
+  83705d / 927e69, the base frame's rim 7e664f .. 8b7761). **No blue below the horizon line** from the hill.
+- **Valley road** (`145715` / `145851-feather92-start` vs `145803` / `145939-base-start`, crop `zoom-fe2-feather-start.png`):
+  nothing visible changes - the canyon's far ridges are nearer than 2116 m, so no drawn ground is in the band; the pixel
+  differences against base follow the car's small drift (bushes and textures shifted), not the far edge.
+- Blue would show only where far ground in the band is silhouetted against open sky (the strips' upper texels are transparent
+  above the mesa line). The dome's lower band cannot usefully take the strip colour: static reading of the dome builder 0x404e50
+  (radius 6000 m, centre 6000 m above its origin, rings at 22.5 deg steps from the top to 7 pi / 8) puts its lowest ring about
+  11 deg above the horizon (457 m up at 2296 m out), so the band just above the horizon is the strips' picture and its
+  transparent texels, not the dome's lower band; recolouring "the dome below the horizon" would mean recolouring the sky seen
+  through the strips. (Static only; not run.)
+
+## 16. Clutter density (owner: "the brush density could be lower overall - is that a lever?")
+
+`I76_CLUTTER_DENSITY=<0.1..1.0>` (f33e6c5): each (template, cell) pair is one bush (0x45c514 places a template at its 100 m
+cell plus the template's offset; one instance per pair), so the density multiplies the keep probability of the fade's own hash:
+a bush is always or never there, the kept set is nested (a bush kept beyond the fade is kept nearer), and it applies inside the
+fade radius too. Unset = stock; without I76_CLUTTER_FADE it runs the filtered table with no distance term. Sweep (`fe-batch11`,
+valley road, driving, corrected load, interleaved, n 2; the 120 Hz cap hides fps below ~8.3 ms of work, so work ms is the
+cost column; bushes tested per frame from the proxy's 600-frame clutter line):
+
+| fade x density | fps | work ms | bushes / frame | vs 300 x 1.0 |
+|---|---|---|---|---|
+| 300 x 1.0 (OWNER-2300-ALL) | 119.5, 119.6 | 8.37, 8.36 | 870 | - |
+| 300 x 0.5 | 119.7, 120.0 | 8.35, 8.33 | 440 | 0 % |
+| **450 x 0.5** | 119.6, 119.6 | 8.36, 8.36 | 788 | **0 %** |
+| 600 x 0.5 | 113.4, 113.7 | 8.82, 8.80 | 1211 | -5 % |
+| 1200 x 0.5 | 74.4, 74.2 | 13.45, 13.48 | 3102 | -38 % |
+
+No pool refusals. Captures (`s01-t04.png`, car held): `150840-cf300d10`, `150928-cf300d05`, `151016-cf450d05`,
+`151104-cf600d05`, `151152-cf1200d05` (`-start`); crop `zoom-fe2-density-start.png`. 450 x 0.5 is half the near density with
+the bushes carried further out (the near slope no longer speckled, the mid-distance slopes keep their scatter) at the same
+bush count as today; 600 x 0.5 is over the 3 % budget. **Delivered: `PLAY-OWNER-2300-SPARSE.bat` +
+`presets\OWNER-2300-SPARSE.psd1` = OWNER-2300-ALL with I76_CLUTTER_FADE 450 + I76_CLUTTER_DENSITY 0.5** (the rows are in its
+comments).
+
+## 17. State (2026-10-23 15:20)
+
+- exp-polish2: proxy **dd53b37b** (repo fe3e340 = main with this lane's f33e6c5 and the pops lane's 5bfa496, `git archive`
+  build; smoke boot `151747-smoke-fe3e340-hill`: colour a49b90, density line logged). Kept beside it: `STRLKUP.DLL.e5f4a750` (the
+  pops lane's 15:04 install, 9aaf279 - a subset of fe3e340) and `.82af7e76` (f33e6c5, live for 1 minute). Presets FOG / ATMOS
+  regenerated from the current OWNER-2300-ALL (md5 143b5581) with the white haze; FEATHER and SPARSE new; previous files kept as
+  `*.pre-fe2`. Generator: lab `tools\far-edge\mk-presets.ps1`.
+- Lab: `fe-batch10.ps1` / `fe-batch11.ps1` (a 60 s yield before taking the console), `re\gdis.py` (capstone dump of the Gold
+  exe); exp-faredge's OWNER-2300-ALL synced to exp-polish2's (old kept as `.pre-sync-1fd8c59c`).
