@@ -1097,6 +1097,14 @@ Open items from this session:
   _SHADE 3 splits with D in 53-160 m snapped their shade from ts to 1 at d = 0.25 D. Fixed 5be4b0d, proxy 10aaf74c in exp-polish2.
   New PLAY-OWNER-2300-ALL = sky one pass + morph + BIG 1 + SHADE 3 + 2300 m. fps on the T05 mountain dipped to ~100 (owner): the
   morph's cost on the ridge climb is unmeasured - to measure (lod-sweep ridge route, n 2) before promotion.
+- TERRAIN POPS (terrain-pop lane, records/TERRAIN-POPS-2026-10-23.md): your "abruptness in the darkness of the terrain" is the hardware
+  shade itself, not the morph - every polygon emitter rounds the vertex shade to one of 32 grey rows (on T05 ~16 distinct greys, 20-23
+  apart), so a vertex's brightness jumps ~12 % whenever its shade crosses a row; driving the ridge, 200 vertices/s within 300 m do that
+  (2.4 per frame), and the morph's "slow shade fade" walked the same steps. Census of what Glide receives: 15-16 levels; with the fix 32-40
+  levels, a continuum. Texture-level switches and the morph measured nil on the screen. "Parts not morphing smoothly" = BIG 1's far tiles
+  sliding (their heights blend against a root square that re-aligns; carried vertices > 16 px 480-525 px/s, 0 with BIG 2 = shade only).
+  LOOK: exp-polish2 PLAY-OWNER-2300-SMOOTH (= ALL + your four detail keys + I76_SHADE_SMOOTH 1 + BIG 2; DLL 1790a308 installed, the
+  previous f2856def kept beside it). fps on the ridge route: 84.6-86.3 vs ALL 84.5-86.7 (n 4 / 5). Not promoted; your eyes decide.
 - FAR-EDGE FADE (owner asks): options noted in the reply of 2026-10-23; no lane yet.
 - RENDER LOAD vs THE DAILY DRIVER (owner's question, 2026-10-23 10:xx): the daily driver's PLAY.bat = preset best-wide carries
   I76_TERRAIN_TEX=8, I76_OBJECT_LOD=8, I76_SHADOW_DIST=4, I76_ROAD_TEX=8 (and I76_MIRROR_FAR=300); the rebaseline lane removed every
