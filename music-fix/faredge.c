@@ -188,7 +188,9 @@ static int fe_hzd_colour(DWORD *rgb) {
         }
         if (y < 0) continue;
         if (!logged2) { logged2 = 1; mlog("  glide-fog: horizon strip 0: lowest non-black row %d of %lu", y, (unsigned long)h); }
-        for (rows = 0; rows < 4 && y - rows >= 0; rows++) for (x = 0; x < (int)w; x++) {
+        /* the rows just above the black base are the picture's dark foot (110c07 on T05): take the 16 rows above those 4, the
+         * body of the horizon picture that the far rim is drawn against */
+        for (rows = 4; rows < 20 && y - rows >= 0; rows++) for (x = 0; x < (int)w; x++) {
             BYTE i = px[(y - rows) * w + x]; r += pal[i * 3]; g += pal[i * 3 + 1]; b += pal[i * 3 + 2];
             cnt++;
         }
