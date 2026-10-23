@@ -2726,3 +2726,64 @@ on the exit speed alone:
   data mod (i76mod.py on the .geo), not a proxy key, and would change 1997's jump.
 - **J2 (ease the held nose-dive) would not lengthen anything**: it changes attitude, not the path. It fixes the double-kick wreck (22.3) for every exit
   that clears; it does not fix a short exit.
+
+### 22.6 I76_JUMP_NOSE: the held nose-dive eased by the owner's 9 % (jump-pitch lane 2026-10-23)
+
+Owner ruling 2026-10-23: *"i think i would like the nose down pitch tweak just ever so slightly applied even though it's not stock, but baaarely
+noticible, like 9% less or something."* = J2 of s.22.4 / s.22.5 ("changes attitude, not the path"), dosed at 0.91.
+
+**Site and mechanism (re-read from the exe, 2026-10-23).** The airborne branch of physics_IntegrateVehicleMotion 0x43a5d0 (0x43a78a-0x43a898)
+copies the body rates ent+0xc8 into a local triple at **0x43a7f5** (19 bytes: `mov ecx,[edx] / add esp,0xc / mov [eax],ecx / ... / mov [eax+8],edx`,
+edx = &rates, eax = the copy, ebp = ent), compares the pitch copy with -pi/20 ([0x4bd1a4] = -0.15708) at 0x43a811, eases toward -pi/20
+(0x43bda0, target 0xbe20d97c) only when the rate is above it, then sets flag 0x4 from the OLD flags at 0x43a83d (bit 4 clear there = the
+first airborne step) and rotates the pose by the copy (0x4389f0). So the held nose-dive is one stored number, set by the grounded kick and
+never touched again in the air; nothing else (throttle, aero, gravity) acts on the pitch in flight (s.22.5 Q2). **`music-fix/jumpnose.c`
+(commit e02d64a): `I76_JUMP_NOSE=<0.5..1.0>`** replaces the copy with `call jn_copy_stub / add esp,0xc / nop x11`; the stub does the copy and,
+when flag 0x4 is clear (first airborne step) and the pitch rate is nose-down (< 0), multiplies both ent+0xc8[0] and this step's copy by the
+factor, once per take-off. Grounded steps (0x437230: the kick, suspension, handling) and later airborne steps are untouched; a nose-up rate is
+left alone. Signature-checked through patch_bytes; Nitro has the same 19 bytes at 0x4265c2 (site map row added, SN_RELOC, count 633; not
+booted on Nitro this pass). mlog: the apply line and the first 8 scalings (`jump-nose: first airborne step, pitch rate -0.2618 -> -0.2382 rad/s (x 0.91)`).
+
+**Measurement.** Harness of s.22 (lab `tools\jump-fix2`, queue7): exp-jump2 headless on a private desktop, his car, the candidate's PLAY-TICK preset
+(41.667 ms), `straight.state` moved 0.0..2.2 m in 0.2 m steps = 12 take-off phases over one car step, **the same 12 starts in every arm** (the
+stored start replays to the digit, s.22.1: paired by phase), full descents, god off in the air. Lab twin `builds\jump-nose-20261023\Strlkup-jn1-lab.dll`
+579c7922 (e02d64a + drive block), the stock arm = the same DLL with the key unset. Stock took two boots (the car was destroyed at delta 1.2 in both:
+`ended: destroyed in descent 7` / `descent 6`, counted once). `j2_nose.py` tables it; `j2_tab.py` gained `q_land1` (pitch rate on the last airborne row).
+
+| arm | jumps (boots) | kick none / single / double | made | destroyed | take-off m/s | vy | apex m | kick deg/s (first airborne row) | landing pitch deg | pitch rate at touchdown deg/s | vy at touch | landing damage pts | health after |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| stock (key unset) | 12 (2) | 3 / 7 / 2 | 12/12 | **1/12** | 50.10 +- 0.89 | 14.03 +- 0.25 | 10.04 +- 0.36 | -13.8 +- 9.9 | -36.1 +- 25.7 | -16.0 +- 7.1 | -19.2 +- 0.4 | 78 +- 34 | 96.8 +- 2.0 |
+| **0.91 (the owner's)** | 12 (1) | 3 / 7 / 2 | 12/12 | 0/12 | 50.10 +- 0.89 | 14.03 +- 0.25 | 10.04 +- 0.36 | -12.6 +- 9.0 | -32.3 +- 23.2 | -14.7 +- 6.2 | -19.3 +- 0.3 | 85 +- 31 | 96.5 +- 1.9 |
+| 0.80 (dose check) | 12 (1) | 3 / 7 / 2 | 12/12 | 0/12 | 50.10 +- 0.89 | 14.03 +- 0.25 | 10.04 +- 0.36 | -11.1 +- 7.9 | -27.4 +- 19.7 | -13.2 +- 5.2 | -19.3 +- 0.3 | 81 +- 32 | 96.8 +- 2.0 |
+
+Per phase (the paired reading; every take-off value is the same to the printed digit in the three arms):
+
+| phase delta m | take-off m/s / vy / apex (all arms) | kick level | kick deg/s stock / 0.91 / 0.80 | landing pitch deg stock / 0.91 / 0.80 | destroyed |
+|---|---|---|---|---|---|
+| 0.0, 0.2, 0.4, 0.8 | 49.53-49.55 / 13.87 / 9.81-9.82 | single | -15.0 / -13.7 / -12.0 | -34 / -30 / -24..-25 | no / no / no |
+| 0.6 | 50.64 / 14.18 / 10.26 | single | -15.0 / -13.7 / -12.0 | -35 / -30 / -26 | no / no / no |
+| 1.0 | 49.49 / 13.86 / 9.80 | double | -30.0 / -27.3 / -24.0 | **-85** / -77 / -66 | no / no / no |
+| 1.2 | 49.42 / 13.84 / 9.77 | double | -30.0 / -27.3 / -24.0 | **-85** / -77 / -66 | **stock yes (2 of 2 boots)** / no / no |
+| 1.4 | 51.47 / 14.41 / 10.60 | none | -0.4 / -0.4 / -0.4 | -8 / -8 / -8 | no / no / no |
+| 1.6, 1.8 | 51.47 / 14.41 / 10.59-10.60 | single | -15.0 / -13.7 / -12.0 | -35 / -31 / -25 | no / no / no |
+| 2.0, 2.2 | 49.51-49.52 / 13.86-13.87 / 9.81 | none | -0.4 / -0.4 / -0.4 | -7 / -7 / -7 | no / no / no |
+
+- **Untouched, as required:** the foot speed (57.1 in all 36), the take-off speed / vy / apex (identical per phase to 0.01 m/s), the fall speed at
+  touch (-19.2 / -19.3), the kick's level (3 / 7 / 2 in every arm: the grounded step is not changed) and the no-kick jumps (the switch does nothing
+  when the rate is above -9 deg/s: those land at -7 / -8 deg in every arm, same damage 130 / 139). The flight is the same ballistic arc; the
+  first-touch x per phase agrees within one sim step (2 m at 49 m/s: a flatter car touches on the step its wheels reach the ground, a steeper one
+  on the step its nose does). Ground handling: no site on a grounded step.
+- **What changes:** the kick a car carries into the air reads x 0.91 / x 0.80 on the first airborne row and stays there to the landing; landing
+  pitch -34 -> -30 -> -24 (single), -85 -> -77 -> -66 (double); pitch rate at touchdown -15 -> -13.7 -> -12 and -30 -> -27.3 -> -24. Dose-response
+  linear in the factor, as the mechanism says it must be. The double-kick wreck of s.22.3 (delta 1.2, -85 deg on the nose) did not occur at 0.91
+  (-77 deg: landed, 87 pts) or 0.80 (-66 deg, 62 pts); one phase, n 1 per arm, so "0.91 saves every double" is not claimed - the owner's dose was
+  chosen for feel, not for the wreck. Landing damage on the single kicks is 1-3 pts higher at 0.91 (58-60 vs 56-57: a flatter car lands more on its
+  wheels; within the harness spread).
+- **What the owner should feel:** at PLAY-TICK his jump arrives 4 deg flatter on a normal (one-wheel) kick (-30 instead of -34 at the touch) and
+  8 deg flatter on a both-wheel kick (-77 instead of -85); the take-off, the hang and the length are the same. "Barely noticeable" is what the
+  numbers say: 0.91 of the same dive.
+
+**Delivered:** `exp-polish2\Interstate 76\presets\OWNER-2300-ALL.psd1` gained `I76_JUMP_NOSE = '0.91'` (comment: owner ruling 2026-10-23, 9 % less);
+proxy `builds\nitro-port-20261021\jumpnose-e02d64a\Strlkup.dll` **99af7394** (= i76-everywhere e02d64a, build.ps1 -Ref) for `exp-polish2\Interstate 76\STRLKUP.DLL`
+with the replaced DLL kept as `STRLKUP.DLL.<md5>` (installed only while no owner's i76 runs; the lane's report has the final state). Not in the
+daily driver, golden or the release candidate.
