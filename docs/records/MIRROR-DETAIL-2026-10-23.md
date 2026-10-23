@@ -194,3 +194,12 @@ Build note: the pulled main did not compile for a while (4321e4a used `g_ss_on` 
 
 Delivered: exp-polish2 `STRLKUP.DLL` = `builds\nitro-port-20261021\mirror-5006d8c` (md5 5b48d79f, repo 5006d8c), the replaced
 DLL kept by md5; `OWNER-2300-MIRROR.psd1` and `OWNER-2300-ALL.psd1` carry TEX 2 and the sky note (M16 covers both).
+
+## 8. Owner's verdict on the sky (same day): stock cloud art back
+
+"I actually prefer the original mirror cloud texture to the replaced one. Let's just go back to that, and if it looks a little
+tinted, we can imagine it's because the rearview mirror has a tint to it." The terrain `.m16` copies stay. The sky part of
+`I76_MIRROR_M16` is now the opt-in `I76_MIRROR_M16_SKY=1` (default off = the stock 8-bit cloud art; the 0x405403 site is only
+chained when it is on). `OWNER-2300-MIRROR.psd1` / `OWNER-2300-ALL.psd1` carry `I76_MIRROR_M16_SKY = '0'` with the verdict.
+Proxy `builds\nitro-port-20261021\mirror-2516fb4` (md5 bc2b0b9b, repo 2516fb4, latest main 15e9eaf + this) installed in
+exp-polish2, the replaced 1790a308 kept as `STRLKUP.DLL.1790a308` (the far-edge lane's f2856def was already kept beside it).
