@@ -23,7 +23,7 @@ static tp_slot_t *g_tp_tab[2]; static DWORD *g_tp_use[2], g_tp_n[2]; static int 
 static FILE *g_tp_log, *g_tp_ev; static DWORD g_tp_frame_seen, g_tp_passes, g_tp_evn;
 static DWORD g_tp_leaves, g_tp_lvl[8], g_tp_sw, g_tp_band[6], g_tp_up, g_tp_down; static float g_tp_near;
 static DWORD g_sc_hist[256], g_sc_nonint, g_sc_tris; static int g_sc_on;
-static int g_ss_builds;                                  /* I76_SHADE_SMOOTH (below): table builds, for the report */
+static int g_ss_builds, g_ss_on; static void ss_frame(void);   /* I76_SHADE_SMOOTH (below) */
 static void (__stdcall *p_sc_DrawTriangle)(const void *, const void *, const void *);
 static DWORD g_tp_next = 0x004923f0;                      /* the picker, or whatever another switch (mirror-detail) pushed at the site before us */
 static int tp_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(0x005a4588 + 8 * l) == tex || *(DWORD *)(0x005a458c + 8 * l) == tex)) return l; return 7; }
