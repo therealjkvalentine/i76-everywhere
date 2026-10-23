@@ -697,6 +697,74 @@ stock or ARENA+: the registry key above in the app's prefix (no DLL); (2) option
 host form + the tick-safe AI skip; 91d2b14 includes the Mac fixes of 3d7c3e0). Stock 604 joins on the Macs hit the same
 box without (1) - x-mac8 confirms the key alone fixes a stock join.
 
+### 0.5.17 GAME TYPE entries instead of the boxes, phase 1: host side (2026-10-23, game-types lane; owner ruling of the day)
+
+Owner ruling: the ARENA+ / CO-OP SCENES boxes become two entries of Nitro's stock GAME TYPE popup, **"Arena Drop-In + AI"**
+and **"Co-Op"**. Phase 1 = host side, lab only. Code: `music-fix/nitro_form.c` behind **`I76_NITRO_GAMETYPES=1`** (unset =
+the boxes, unchanged), commits b0a2420, c8b6d33. Lab: copy **`exp-nitro-types`** (of exp-nitro-mp), tooling and builds in
+`i76-uncap-lab\builds\nitro-gametypes-20261023` (lab 1446ea5, b26e76f).
+
+**Design as built** (static RE of nitshell f804f50d; 16 sites, each byte-checked, all or nothing; header G1-G6 in the file):
+type 6 = "Arena Drop-In + AI" (form mask `1 << 5` = 0x20), type 7 = "Co-Op" (mask 0x40). The stock code sets both from the
+popup row by itself (`0x100342bf`). Mask 0x20 / 0x40 gives the session no mode flag (`0x1002fbff`: 1 -> 0x10, 2 -> 0x20,
+4 / 8 / 16 -> 0x40, else none), and 0x10 has no exe reader, so the exe runs a combat game. The team flag stays 0.
+- G1 the popup-open call `0x10032391` -> 7 rows on provider 3 / 4 (the modem forms keep their 3 stock rows), our row draw.
+- G2 the type-change switch (`cmp eax, 4` 0x100342f7 -> 6; `jmp [eax*4 + 0x100346f8]` -> stub): 6 = Combat's list + species
+  7676 + options ARENA+; 7 = P01-P19 as the whole list + 7676 + ARENA+ / CO-OP SCENES; 1..5 = stock, species 604.
+- G3 the limit popup's two type switches (0x10032771 / 0x1003277a, 0x10036f36 / 0x10036f3f): 7-entry copies, 6 / 7 = Combat.
+- G4 the six reads of the form-field name table 0x10045894 -> our table; field names "Arena + AI" / "Co-Op". The field is
+  100 px wide (erase 105,68,100,18) and the long name measures 162 px, so the field shows the short name.
+- G5 the prefs save `0x100320aa` stores 6 / 7 as Combat. The type is saved in the prefs block 0x1015b950 and restored at the
+  next entry (`0x10031420`), and a stock shell (or the switch unset) would then index its 5-entry tables with a 6 or 7.
+- G6 the mode-string lookup `0x1002e978` (key "Unknown" for an unrecognised mask) -> our names. This is for phase 2 and
+  has not been observed in a run yet.
+- The constructor re-derives the options and species from the type on every form construction. A new entry into the
+  network menus restores a type of 5 or below, so the species goes back to 604.
+- Bug fixed on the way (box mode too): the co-op list records now come from the shell heap `[0x1004d630]`. Every list
+  rebuild frees the items with HeapFree (`0x1000e080`), and 6760b24 had handed it static records.
+
+**Headless results** (private desktop, nmpdrv instrument as control with `NMP_POC=2` + `NMP_NET=1` + `NMP_AI=1`, 4 drivers,
+IPX host, `NMP_LAB_TYPE=<row>` clicks the stock arrow 207,76 and the row; read back from the log at dpOpen;
+`captures\nitro-mp-20261021\gt-*.log`):
+
+| cells | type chosen | read back at dpOpen | after 35 s | n |
+|---|---|---|---|---|
+| a4 a5 a6 | row 5 "Arena Drop-In + AI" | type 6, mask 20, team 0, options 01, **species 7676**, list 24 (Combat's) | state 5, net 1, **players 4** (host + 3 AI fill) | 3 |
+| c4 c5 c6 c7 | row 6 "Co-Op" | type 7, mask 40, options 03, **species 7676**, list 19 (first "Co-op P01") | state 5, P01 as a co-op scene (host drives the mission player `vagrapl1`) | 4 |
+| s2 | row 0 Combat (switch on) | type 1, mask 01, options 00, species 025c | state 5, players 1 | 1 |
+| s0 | row 0 Combat, switch unset (boxes) | species 025c; popup 5 of 5 rows, 172 x 152 | state 5 | 1 |
+| a1-a3, c1-c3, s1 (first build, no `NMP_AI`) | as above | the same type / mask / species readings | arena host in state 5; co-op host stayed in the shell (state 6). Cause: nitro_ai.c's co-op mission-file answer is not attached without `NMP_AI` (the shipped proxy always attaches it) | 3 + 3 + 1 |
+
+0 access violations in all 16 boots. Only the known first-chance exceptions occurred: PIT 0xC0000096 at boot and the
+periodic e06d7363 that the earlier lanes' logs also show. a4 / c4 / c5 ran before G6, and the rest ran on the final code
+(proxy p3 3be2c330, instrument b14f3ae7).
+
+**Seen (frame buffer, not PrintWindow: PrintWindow returns black frames on the private desktop):** the 8-bit back buffer
+dumped at the open popup (`shots\gt-c4\popup-index-masks.png`, one mask per palette index):
+- Index 15 holds all seven rows: Combat, Racing, C.T.F. (2) / (3) / (4), Arena Drop-In + AI, Co-Op.
+- The type field after the choice reads "Arena + AI" / "Co-Op" (`field-a4-c4.png`).
+- **Open: the popup art.** Index 225 shows that the popup's frame is **picture 0x24**, a fixed 172 x 152 bitmap. It holds the
+  "GAME TYPE" header, 5 row boxes and a button at the bottom (the lower hit record, y 124-140). G1's taller and wider
+  geometry only moves the drop shadow and the lower hit record, so rows 6-7 draw over the art's bottom and its button.
+  The function is right, but the popup does not look right yet. Options:
+  - (a) Borrow a taller stock list picture. Picture 6 (229 x 236, 9 rows, used by the form's id-11 popup and `0x1002b9fd`)
+    needs one look at its header art first.
+  - (b) Extend picture 0x24 in the back buffer after each art draw: copy a row band and move the button down. This needs
+    the popup module's redraw path (`0x10012000` / `0x1002211b`) mapped first, so the surgery is not applied twice.
+  - (c) Keep 5 visible rows and add scroll records (ids 0 / 1). This popup has no arrow art.
+
+  (a) is the cheapest next step: one boot that opens popup id 11 and dumps the buffer.
+
+**Phase 2 (planned, not run):**
+1. Popup art: one of (a)-(c) above, then re-run a / c / s, n 3 each.
+2. Joiner display: a patched joiner runs the same G4 / G6 tables. The joiner's lobby builds the mode text from the host's
+   key-5 mask at `0x1002e8b8` (G6, unobserved so far), and the other readers of the joined mask (`0x1015b8cc`: 0x1002e216,
+   0x100302d6, 0x10030b76) still need auditing for 5-entry indexing. Test: pair cells host type 6 / 7 x patched joiner,
+   n 3 each, checking the joiner's list row and lobby text and that it joins the 7676 session. The stock-joiner cell (never
+   lists a 7676 session) is the existing f2 cell, which stays valid because the species path is unchanged.
+3. Mac cross-machine pass with the same cells (PC host, Mac joiner), once phase 2 passes on the PC.
+4. Then make the entries the default, delete the box code (F2 / F3 sites, hit records, draw) and update s.0.5.10.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
