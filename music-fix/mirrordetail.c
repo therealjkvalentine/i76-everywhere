@@ -175,8 +175,28 @@ static void md_set_report(void) {                              /* once: the 7-le
  * init 0x493080 wrote both at mission load from the (patched) per-level immediates. So the mirror wrap scales the two floats by m / f
  * (A) and f / m (B) around its call and restores them: data only, the main pass never sees it. */
 static float g_md_lod, g_md_fa = 1.0f, g_md_fb = 1.0f;   /* fa / fb = what apply_terrain_lod gave the main view */
+/* nitro-owner lane 2026-10-24: the .m16 copies are keyed by the source texture's address. A new mission loads its own .m16 art, often
+ * at the addresses the previous mission's used (the game's heap is rebuilt per mission), so the cache handed the mirror the previous
+ * mission's copy - and on Nitro, after Abort Mission > another scenario, the WHOLE picture came up in the previous mission's colours
+ * (yellow / green, console 2026-10-24 00:40; every mirror key but M16 on: right colours; M16 off alone: right colours). The cache now
+ * belongs to one set of terrain textures and one display palette: when the 7 level pointers or the context palette change (a mission
+ * change) it is emptied and the old copies released, before the mirror pass picks any texture. */
+static DWORD g_m16_sig;
+static void md_m16_check(void) {
+    DWORD sig = 2166136261u; int i; const BYTE *ctx = (const BYTE *)(DWORD_PTR)g_ta_ctxpal;
+    for (i = 0; i < 14; i++) sig = (sig ^ *(const DWORD *)(DWORD_PTR)(g_ta_texset + 4 * i)) * 16777619u;
+    for (i = 0; i < 768; i += 4) sig = (sig ^ *(const DWORD *)(ctx + i)) * 16777619u;
+    if (sig == g_m16_sig) return;
+    if (g_m16_sig && g_m16_n) {
+        for (i = 0; i < g_m16_n; i++) if (g_m16[i].copy) VirtualFree(g_m16[i].copy, 0, MEM_RELEASE);
+        mlog("  mirror-m16: terrain textures / display palette changed (a new mission) - %d cached .m16 copies released", g_m16_n);
+        g_m16_n = 0;
+    }
+    g_m16_sig = sig;
+}
 static void __cdecl md_terrain_mir(void *cam) {
     float a = *(volatile float *)g_ta_fa, b = *(volatile float *)g_ta_fb;
+    if (g_md_m16) md_m16_check();
     ZeroMemory(&g_md_mir, sizeof g_md_mir);
     if (g_md_lod > 0.0f) { *(volatile float *)g_ta_fa = a * (g_md_lod / g_md_fa); *(volatile float *)g_ta_fb = b * (g_md_fb / g_md_lod); }
     ((void (__cdecl *)(void *))(DWORD_PTR)g_md_next_tmir)(cam);
