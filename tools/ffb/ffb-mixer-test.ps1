@@ -274,7 +274,7 @@ $busSum = ($o.Bus.Steady + $o.Bus.OscValue + $o.Bus.Transient) * 10000.0
 Check "bus sum reproduces the wheel force" ([math]::Abs($busSum - $o.Force) -le 25) `
     ("bus {0:0} vs force {1}" -f $busSum, $o.Force)
 Check "bus steady is normalized" ([math]::Abs($o.Bus.Steady) -le 1.0) "got $($o.Bus.Steady)"
-Check "tactile bank has 3 oscillators with Hz" ($o.Bus.Tactile.Count -eq 3 -and $o.Bus.Tactile[0].Freq -gt 0) ""
+Check "tactile bank has 4 oscillators with Hz (engine added 2026-10-24)" ($o.Bus.Tactile.Count -eq 4 -and $o.Bus.Tactile[0].Freq -gt 0) ""
 
 # motion passthrough: raw SI values reach the bus untouched
 $m2 = Mix-New
@@ -532,6 +532,240 @@ Check "the first frame emits nothing" ($r.Shift -eq 0 -and $r.RpmRate -eq 0) "sh
 # A zero dt must not divide by zero.
 $r = Tel-DetectShift -Rpm 3800 -LastRpm 6000 -Speed 22.0 -LastSpeed 21.7 -Dt 0 -Hold 0
 Check "a zero tick interval is safe" ($r.Shift -eq 0 -and $r.RpmRate -eq 0) "shift=$($r.Shift)"
+
+# ===========================================================================
+# 2026-10-24: the owner's first T300 drive (docs/records/FFB-WHEEL-2026-10-24.md)
+# ===========================================================================
+# A Fake with the Tel-Extras fields set. $X: hashtable of property -> value.
+function FakeX {
+    param([double]$T, [hashtable]$P = @{}, [hashtable]$X = @{})
+    $s = Fake -T $T @P
+    foreach ($k in $X.Keys) { $s | Add-Member -NotePropertyName $k -NotePropertyValue $X[$k] -Force }
+    return $s
+}
+# Run a scenario: $At = { param($t) hashtable of extras }, base fields in $P.
+# Returns per-channel peaks (abs), first-nonzero sign, frame count where nonzero.
+function RunX {
+    param([scriptblock]$At, [hashtable]$P = @{}, [double]$Seconds = 2.0, [string[]]$Watch = @(), $Tune = $null)
+    $m = Mix-New $Tune
+    $peak = @{}; $sign = @{}; $nz = @{}; $pos = @{}; $neg = @{}; $last = $null; $notes = @()
+    foreach ($w in $Watch) { $peak[$w] = 0.0; $sign[$w] = 0; $nz[$w] = 0; $pos[$w] = $false; $neg[$w] = $false }
+    for ($t = 0.0; $t -lt $Seconds; $t += 1.0/60) {
+        $x = & $At $t
+        $o = Mix-Update $m (FakeX -T $t -P $P -X $x)
+        $notes += $o.Notes
+        foreach ($w in $Watch) {
+            $v = [double]$o.Channels[$w]
+            if ([math]::Abs($v) -gt $peak[$w]) { $peak[$w] = [math]::Abs($v) }
+            if ($v -ne 0) { $nz[$w]++; if ($sign[$w] -eq 0) { $sign[$w] = [math]::Sign($v) } }
+            if ($v -gt 30) { $pos[$w] = $true }; if ($v -lt -30) { $neg[$w] = $true }
+        }
+        $last = $o
+    }
+    return [pscustomobject]@{ Peak = $peak; Sign = $sign; Nz = $nz; Pos = $pos; Neg = $neg; Last = $last; Mix = $m; Notes = $notes }
+}
+
+Write-Host "`n=== 12. surface: pavement at PavementScale, off-road unchanged, no step ===" -ForegroundColor Cyan
+$stockRoll = @(0.03, 0.10, 0.01, 0.03, 0.08, 0.20, 0.01, 0.03)
+Check "stock table: types 2 and 6 are paved" ((Tel-SurfacePaved 2 $stockRoll) -and (Tel-SurfacePaved 6 $stockRoll)) ""
+Check "stock table: dirt / sand / gravel are not" (-not (Tel-SurfacePaved 0 $stockRoll) -and -not (Tel-SurfacePaved 1 $stockRoll) -and -not (Tel-SurfacePaved 5 $stockRoll)) ""
+Check "a level that renumbers its tarmac is followed" ((Tel-SurfacePaved 4 @(0.03,0.10,0.03,0.03,0.01,0.20,0.03,0.03)) -and -not (Tel-SurfacePaved 2 @(0.03,0.10,0.03,0.03,0.01,0.20,0.03,0.03))) ""
+Check "no table: the fixed index set" ((Tel-SurfacePaved 2 $null) -and -not (Tel-SurfacePaved 3 $null)) ""
+Check "out-of-range surface is not paved" (-not (Tel-SurfacePaved 9 $stockRoll) -and -not (Tel-SurfacePaved -1 $stockRoll)) ""
+function TexAmp {
+    param($Paved, [double]$Sec = 3.0)
+    $m = Mix-New; $o = $null
+    for ($t = 0.0; $t -lt $Sec; $t += 1.0/60) {
+        $x = if ($null -eq $Paved) { @{} } else { @{ Paved = $Paved } }
+        $o = Mix-Update $m (FakeX -T $t -P @{ Speed = 20; Jolt = 5; Vy = 0.3 } -X $x)
+    }
+    return $o.Bus.Tactile[0].Amp
+}
+$aOff = TexAmp $false; $aPav = TexAmp $true; $aOld = TexAmp $null
+$tn = Mix-DefaultTune
+Check "pavement texture = PavementScale x off-road" ([math]::Abs($aPav / [math]::Max(1e-9, $aOff) - $tn.PavementScale) -lt 0.03) ("off {0} paved {1}" -f $aOff, $aPav)
+Check "a sample without the field is off-road (old behaviour kept)" ([math]::Abs($aOld - $aOff) -lt 1e-6) ("old {0} off {1}" -f $aOld, $aOff)
+# Cross onto tarmac at t = 2.0 s: the factor must glide, never step.
+$m = Mix-New; $maxJump = 0.0; $prev = $null; $at3tau = $null
+for ($t = 0.0; $t -lt 5.0; $t += 1.0/60) {
+    $o = Mix-Update $m (FakeX -T $t -P @{ Speed = 20; Jolt = 5 } -X @{ Paved = ($t -ge 2.0) })
+    $sp = [double]$o.Channels['surf%']
+    if ($null -ne $prev -and [math]::Abs($sp - $prev) -gt $maxJump) { $maxJump = [math]::Abs($sp - $prev) }
+    $prev = $sp
+    if ($null -eq $at3tau -and $t -ge (2.0 + 3 * $tn.SurfaceFadeMs / 1000.0)) { $at3tau = $sp }
+}
+Check "crossing the road edge is a crossfade (< 5 points per frame)" ($maxJump -lt 5) "largest frame step $maxJump"
+Check "the crossfade settles (within 6 points of target after 3 tau)" ([math]::Abs($at3tau - 100 * $tn.PavementScale) -le 6) "surf% $at3tau"
+Check "the LFE road bed follows the surface too" ($o.Bus.Lfe.RoadAmp -ge 0) ""
+
+Write-Host "`n=== 13. weapons from the ammo counters, per class ===" -ForegroundColor Cyan
+$prevA = @{ 3 = 350; 4 = 2000; 5 = 0x0fffffff }
+$curA = @(
+    [pscustomobject]@{ Idx = 3; Ammo = 349; Klass = 2; Damage = 45 },
+    [pscustomobject]@{ Idx = 4; Ammo = 2005; Klass = 2; Damage = 15 },
+    [pscustomobject]@{ Idx = 5; Ammo = 0x0fffffff; Klass = 4; Damage = 220 },
+    [pscustomobject]@{ Idx = 9; Ammo = 10; Klass = 3; Damage = 100 })
+$sh = Tel-DiffAmmo $prevA $curA
+Check "a spent round is a shot" ($sh.Count -eq 1 -and $sh[0].Idx -eq 3 -and $sh[0].Rounds -eq 1 -and $sh[0].Klass -eq 2) "got $($sh.Count)"
+Check "first sight of a weapon is not a shot" ((Tel-DiffAmmo $null $curA).Count -eq 0) ""
+function ShotAt { param([double]$T0, [int]$K, [int]$D) return { param($t) if ([math]::Abs($t - $T0) -lt 0.008) { @{ ShotSource = 'ammo'; Shots = @([pscustomobject]@{ Klass = $K; Damage = $D; Rounds = 1; Idx = 1 }) } } else { @{ ShotSource = 'ammo' } } }.GetNewClosure() }
+$mg  = RunX (ShotAt 1.0 2 15) @{ Speed = 10 } 2.0 @('weapon')
+$can = RunX (ShotAt 1.0 2 45) @{ Speed = 10 } 2.0 @('weapon')
+$mor = RunX (ShotAt 1.0 3 100) @{ Speed = 10 } 2.0 @('weapon')
+$rkt = RunX (ShotAt 1.0 4 220) @{ Speed = 10 } 2.0 @('weapon')
+$drp = RunX (ShotAt 1.0 6 0) @{ Speed = 10 } 2.0 @('weapon')
+Check "a gun shot kicks" ($mg.Peak['weapon'] -gt 1000) "peak $($mg.Peak['weapon'])"
+Check "the recoil pushes AND pulls (CANNON shape)" ($mg.Pos['weapon'] -and $mg.Neg['weapon']) ""
+Check "a 20mm (45) hits harder than a 30cal (15)" ($can.Peak['weapon'] -gt $mg.Peak['weapon']) ("{0} vs {1}" -f $can.Peak['weapon'], $mg.Peak['weapon'])
+Check "a mortar is the heaviest gun" ($mor.Peak['weapon'] -gt $can.Peak['weapon']) ("{0} vs {1}" -f $mor.Peak['weapon'], $can.Peak['weapon'])
+Check "a rocket fires" ($rkt.Peak['weapon'] -gt 1000) "peak $($rkt.Peak['weapon'])"
+Check "a dropper clunks" ($drp.Peak['weapon'] -gt 500) "peak $($drp.Peak['weapon'])"
+Check "a shot decays to silence" ([math]::Abs($mg.Last.Channels['weapon']) -lt 30) "end $($mg.Last.Channels['weapon'])"
+Check "under the clamp" ($mor.Peak['weapon'] -le $tn.Clamp) ""
+# flamer: continuous while the ammo keeps falling, silent 0.2 s after it stops
+$fl = RunX { param($t) if ($t -ge 0.5 -and $t -lt 1.5) { @{ ShotSource = 'ammo'; Shots = @([pscustomobject]@{ Klass = 5; Damage = 2; Rounds = 1; Idx = 1 }) } } else { @{ ShotSource = 'ammo' } } } @{ Speed = 10 } 2.2 @('weapon')
+Check "a flamer is a continuous bed while firing" ($fl.Nz['weapon'] -gt 50 -and $fl.Peak['weapon'] -le $tn.FlameGain + 1) ("frames {0} peak {1}" -f $fl.Nz['weapon'], $fl.Peak['weapon'])
+Check "and stops when firing stops" ([math]::Abs($fl.Last.Channels['weapon']) -lt 1) "end $($fl.Last.Channels['weapon'])"
+# the FFB-block slot edge must not kick a second time when the ammo path is live
+$dup = RunX { param($t) $x = (& (ShotAt 1.0 2 45) $t); if ([math]::Abs($t - 1.0) -lt 0.008) { $x['FxEvent'] = $true; $x['FxFired'] = @([pscustomobject]@{ Slot = 0; Id = 8; Param = 0.8; Mag = 10 }) } else { $x['FxEvent'] = $false }; $x } @{ Speed = 10 } 2.0 @('weapon')
+Check "ammo path + FFB-block edge = ONE kick, not two" ([math]::Abs($dup.Peak['weapon'] - $can.Peak['weapon']) -lt 5) ("{0} vs {1}" -f $dup.Peak['weapon'], $can.Peak['weapon'])
+$fxOnly = RunX { param($t) if ([math]::Abs($t - 1.0) -lt 0.008) { @{ ShotSource = 'none'; FxEvent = $true; FxFired = @([pscustomobject]@{ Slot = 0; Id = 8; Param = 0.8; Mag = 10 }) } } else { @{ ShotSource = 'none'; FxEvent = $false } } } @{ Speed = 10 } 2.0 @('weapon')
+Check "no weapon record: the FFB-block edge still fires (fallback)" ($fxOnly.Peak['weapon'] -gt 1000) "peak $($fxOnly.Peak['weapon'])"
+$cyc = RunX { param($t) @{ WeaponCycle = ([math]::Abs($t - 1.0) -lt 0.008) } } @{ Speed = 10 } 2.0 @('weapon')
+Check "weapon cycle clicks (WPNCYCLE ramp: both signs, short)" ($cyc.Pos['weapon'] -and $cyc.Neg['weapon'] -and $cyc.Nz['weapon'] -le 6) ("frames {0}" -f $cyc.Nz['weapon'])
+
+Write-Host "`n=== 14. hits taken ===" -ForegroundColor Cyan
+$hd = Tel-DiffDamage @(100, 80, 80, 60) @(100, 50, 80, 60)
+Check "a loss on the left is a left hit" ($hd.Count -eq 1 -and $hd[0].Side -eq 1 -and $hd[0].Hp -eq 30) ""
+Check "a repair is not a hit" ((Tel-DiffDamage @(100, 50, 80, 60) @(100, 80, 80, 60)).Count -eq 0) ""
+function HitAt { param([double]$T0, [int]$Side, [int]$Hp) return { param($t) if ([math]::Abs($t - $T0) -lt 0.008) { @{ Hits = @([pscustomobject]@{ Side = $Side; Hp = $Hp }) } } else { @{} } }.GetNewClosure() }
+$hl = RunX (HitAt 1.0 1 40) @{ Speed = 10 } 2.0 @('hit')
+$hr = RunX (HitAt 1.0 2 40) @{ Speed = 10 } 2.0 @('hit')
+$hf = RunX (HitAt 1.0 0 40) @{ Speed = 10 } 2.0 @('hit')
+$hBig = RunX (HitAt 1.0 1 90) @{ Speed = 10 } 2.0 @('hit')
+$hSmall = RunX (HitAt 1.0 1 5) @{ Speed = 10 } 2.0 @('hit')
+Check "a left hit kicks one way, a right hit the other" ($hl.Sign['hit'] -eq 1 -and $hr.Sign['hit'] -eq -1) ("L {0} R {1}" -f $hl.Sign['hit'], $hr.Sign['hit'])
+Check "a front hit is a buzz (both signs)" ($hf.Pos['hit'] -and $hf.Neg['hit']) ""
+Check "more damage, harder hit" ($hBig.Peak['hit'] -gt $hSmall.Peak['hit']) ("{0} vs {1}" -f $hBig.Peak['hit'], $hSmall.Peak['hit'])
+Check "a hit decays to silence" ([math]::Abs($hl.Last.Channels['hit']) -lt 30) ""
+# a flamer's 1 hp ticks: accumulate, kick at most once per refractory window
+$tr = RunX { param($t) if ($t -ge 0.5 -and $t -lt 1.5) { @{ Hits = @([pscustomobject]@{ Side = 1; Hp = 1 }) } } else { @{} } } @{ Speed = 10 } 2.0 @('hit')
+$hitNotes = @($tr.Notes | Where-Object { $_ -like 'HIT*' }).Count
+Check "small ticks accumulate, not one kick per tick" ($hitNotes -ge 1 -and $hitNotes -le [math]::Ceiling(1000 / $tn.HitRefractMs) + 1) "kicks $hitNotes for 60 ticks"
+# collision: the jolt impact and the damage in the same frame are one event
+$col = RunX { param($t) $x = (& (HitAt 1.0 1 40) $t); $x } @{ Speed = 15; YawRate = 0.2 } 2.0 @('hit', 'impact')
+$colJ = $null
+$m = Mix-New; $hitPk = 0; $impPk = 0
+for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) {
+    $j = if ([math]::Abs($t - 1.0) -lt 0.008) { 120 } else { 0 }
+    $x = if ([math]::Abs($t - 1.0) -lt 0.008) { @{ Hits = @([pscustomobject]@{ Side = 1; Hp = 40 }) } } else { @{} }
+    $o = Mix-Update $m (FakeX -T $t -P @{ Speed = 15; YawRate = 0.2; Jolt = $j } -X $x)
+    if ([math]::Abs($o.Channels['hit']) -gt $hitPk) { $hitPk = [math]::Abs($o.Channels['hit']) }
+    if ([math]::Abs($o.Channels['impact']) -gt $impPk) { $impPk = [math]::Abs($o.Channels['impact']) }
+}
+Check "a collision kicks once (impact), not twice (impact + hit)" ($impPk -gt 1000 -and $hitPk -eq 0) "impact $impPk hit $hitPk"
+
+Write-Host "`n=== 15. landing ===" -ForegroundColor Cyan
+function AirX { param([double]$Up, [double]$Down, [double]$Vy) return { param($t) @{ AirFlag = ($t -ge $Up -and $t -lt $Down) } }.GetNewClosure() }
+function LandRun {
+    param([double]$Up, [double]$Down, [double]$Vy, [double]$J = 0)
+    $m = Mix-New; $lp = 0; $ip = 0; $sg = $false
+    for ($t = 0.0; $t -lt 2.5; $t += 1.0/60) {
+        $air = ($t -ge $Up -and $t -lt $Down)
+        # NOT $vy: PowerShell names are case-insensitive, and $vy would overwrite $Vy
+        $vNow = if ($air) { $Vy } else { 0.0 }
+        $jj = if ([math]::Abs($t - $Down) -lt 0.009) { $J } else { 0 }
+        $o = Mix-Update $m (FakeX -T $t -P @{ Speed = 15; Vy = $vNow; Jolt = $jj; YawRate = 0.2 } -X @{ AirFlag = $air })
+        if ([math]::Abs($o.Channels['landing']) -gt $lp) { $lp = [math]::Abs($o.Channels['landing']) }
+        if ([math]::Abs($o.Channels['impact']) -gt $ip) { $ip = [math]::Abs($o.Channels['impact']) }
+    }
+    return @($lp, $ip)
+}
+$lHard = LandRun 1.0 1.6 -6.0
+$lSoft = LandRun 1.0 1.6 -2.0
+$lHop  = LandRun 1.0 1.05 -6.0
+$lSlow = LandRun 1.0 1.6 -0.5
+$lJolt = LandRun 1.0 1.6 -6.0 120
+Check "a landing thumps" ($lHard[0] -gt 1500) "peak $($lHard[0])"
+Check "a harder landing thumps harder" ($lHard[0] -gt $lSoft[0]) ("{0} vs {1}" -f $lHard[0], $lSoft[0])
+Check "a 50 ms hop is not a landing" ($lHop[0] -eq 0) "peak $($lHop[0])"
+Check "a slow touchdown is silent" ($lSlow[0] -eq 0) "peak $($lSlow[0])"
+Check "the touchdown jolt does not also fire an impact" ($lJolt[0] -gt 1500 -and $lJolt[1] -eq 0) ("landing {0} impact {1}" -f $lJolt[0], $lJolt[1])
+
+Write-Host "`n=== 16. ignition and engine rumble ===" -ForegroundColor Cyan
+$ig = RunX { param($t) @{ EngineStarting = ($t -ge 1.0 -and $t -lt 1.3); EngineRunning = ($t -ge 1.3) } } @{} 3.5 @('ignition')
+Check "the starting flag cranks" ($ig.Peak['ignition'] -gt 1500) "peak $($ig.Peak['ignition'])"
+Check "the crank lasts about IgnitionMs, then stops" ([math]::Abs($ig.Nz['ignition'] / 60.0 - $tn.IgnitionMs / 1000.0) -lt 0.15 -and $ig.Last.Channels['ignition'] -eq 0) ("{0:0.00} s" -f ($ig.Nz['ignition'] / 60.0))
+Check "only one crank for one start (no second from the running edge)" (@($ig.Notes | Where-Object { $_ -eq 'IGNITION' }).Count -eq 1) ""
+$igA = RunX { param($t) @{ EngineStarting = $true; EngineRunning = $false } } @{} 2.0 @('ignition')
+Check "attaching mid-start does not crank" ($igA.Peak['ignition'] -eq 0) ""
+$igR = RunX { param($t) @{ EngineStarting = $false; EngineRunning = ($t -ge 1.0) } } @{} 2.5 @('ignition')
+Check "a running edge without a starting edge still cranks (shorter)" ($igR.Peak['ignition'] -gt 1000 -and $igR.Nz['ignition'] -lt $ig.Nz['ignition']) ""
+$en = RunX { param($t) @{ EngineRunning = $true } } @{ Speed = 0.6 } 2.0 @('engine')
+$enOff = RunX { param($t) @{ EngineRunning = $false } } @{ Speed = 0.6 } 2.0 @('engine')
+$enFast = RunX { param($t) @{ EngineRunning = $true } } @{ Speed = 25 } 2.0 @('engine')
+Check "a running engine rumbles at idle" ($en.Peak['engine'] -gt 0.6 * $tn.EngineGain -and $en.Peak['engine'] -le $tn.EngineGain + 1) "peak $($en.Peak['engine'])"
+Check "a stopped engine is silent" ($enOff.Peak['engine'] -eq 0) ""
+Check "the rumble has faded by EngineFadeSpd" ($enFast.Peak['engine'] -eq 0) "peak $($enFast.Peak['engine'])"
+function Crossings { param([double]$Rpm)
+    $m = Mix-New; $n = 0; $p = 0
+    for ($t = 0.0; $t -lt 2.0; $t += 1.0/60) {
+        $s = FakeX -T $t -P @{ Speed = 1 } -X @{ EngineRunning = $true }
+        $s | Add-Member -NotePropertyName Rpm -NotePropertyValue $Rpm -Force
+        $v = (Mix-Update $m $s).Channels['engine']
+        if ($p -le 0 -and $v -gt 0) { $n++ }; $p = $v
+    }
+    return $n
+}
+Check "the rumble pitch rises with rpm" ((Crossings 6500) -gt (Crossings 900)) ("{0} vs {1}" -f (Crossings 6500), (Crossings 900))
+$nf = RunX { param($t) @{} } @{ Speed = 0.6 } 2.0 @('engine', 'ignition', 'hit', 'landing', 'weapon')
+Check "an old-format sample (no new fields) fires none of the new channels" (($nf.Peak.Values | Measure-Object -Sum).Sum -eq 0) ""
+
+Write-Host "`n=== 17. bus still sums to the wheel with every channel live ===" -ForegroundColor Cyan
+$m = Mix-New; $worst = 0.0
+for ($t = 0.0; $t -lt 3.0; $t += 1.0/60) {
+    $x = @{ EngineRunning = $true; Paved = $true; ShotSource = 'ammo' }
+    if ([math]::Abs($t - 1.0) -lt 0.008) { $x['Shots'] = @([pscustomobject]@{ Klass = 2; Damage = 45; Rounds = 1; Idx = 1 }) }
+    if ([math]::Abs($t - 1.5) -lt 0.008) { $x['Hits'] = @([pscustomobject]@{ Side = 2; Hp = 30 }) }
+    $s = FakeX -T $t -P @{ Speed = 12; Steer = 0.3; YawRate = 0.4; LatG = 0.5; Jolt = 4 } -X $x
+    $s | Add-Member -NotePropertyName Shift -NotePropertyValue $(if ([math]::Abs($t - 2.0) -lt 0.008) { 1 } else { 0 }) -Force
+    $o = Mix-Update $m $s
+    $bs = ($o.Bus.Steady + $o.Bus.OscValue + $o.Bus.Transient) * 10000.0
+    if ([math]::Abs($bs - $o.Force) -gt $worst) { $worst = [math]::Abs($bs - $o.Force) }
+}
+Check "bus sum = wheel force through shots, hits, a shift, engine and surface" ($worst -le 25) "worst gap $worst"
+
+Write-Host "`n=== 18. the steering reference is the ENGINE's law when it is known ===" -ForegroundColor Cyan
+# physics_ComputeSteerYawRate 0x43ce10: w = steer * s * K, capped at steer * lim / s.
+# The owner's car: K 0.19 (from his own drive: 2.198 rad/s at full lock, 11.58 m/s),
+# lim 37.5. A drive that follows that law exactly must read as NO loss of control,
+# and with the RC folder's fitted (a 31, lock 0.76) the same drive is the 82 % false
+# oversteer the owner felt as "the jerk".
+$K = 0.19; $lim = 37.5
+# the fallback as the RC folder had it (its ffb-calib.json), whatever this checkout's calibration says
+$savedA = $script:TEL_LAT_GAIN; $savedL = $script:TEL_STEER_LOCK
+$script:TEL_LAT_GAIN = 31.0; $script:TEL_STEER_LOCK = 0.76
+$okN = 0; $badN = 0; $n = 0
+foreach ($v in @(4.0, 8.0, 11.6, 14.0, 18.0, 25.0)) {
+    foreach ($st in @(-1.0, -0.6, -0.3, 0.3, 0.6, 1.0)) {
+        $w = $st * $v * $K
+        if ([math]::Abs($w * $v) -gt [math]::Abs($st) * $lim) { $w = $st * $lim / $v }
+        $n++
+        $e = Tel-Slip -Speed $v -Steer $st -YawRate $w -SteerK $K -LatCap $lim
+        if ($e.Oversteer -eq 0 -and $e.Understeer -eq 0) { $okN++ }
+        $f = Tel-Slip -Speed $v -Steer $st -YawRate $w
+        if ($f.Oversteer -gt 0 -or $f.Understeer -gt 0) { $badN++ }
+    }
+}
+Check "on the engine's law: zero false slip (both regimes, both ways)" ($okN -eq $n) "$okN of $n clean"
+Check "the old fitted fallback reads the same car as slipping (the reported jerk)" ($badN -gt 0) "$badN of $n flagged"
+# the owner's own operating point: full lock, 11.58 m/s, 2.198 rad/s (his calibration drive)
+$own = Tel-Slip -Speed 11.58 -Steer 1.0 -YawRate 2.198
+$ownX = Tel-Slip -Speed 11.58 -Steer 1.0 -YawRate 2.198 -SteerK $K -LatCap $lim
+Check "his steady full-lock turn: flagged by the fitted fallback, clean on the law" (($own.Oversteer + $own.Understeer) -gt 0 -and ($ownX.Oversteer + $ownX.Understeer) -eq 0) ("fallback U {0:0.00} O {1:0.00}" -f $own.Understeer, $own.Oversteer)
+$sp = Tel-Slip -Speed 15 -Steer 0.5 -YawRate (0.5 * $lim / 15 + 0.8) -SteerK $K -LatCap $lim
+Check "a real spin still reads as oversteer on the exact law" ($sp.Oversteer -gt 0.5) "over $($sp.Oversteer)"
+$script:TEL_LAT_GAIN = $savedA; $script:TEL_STEER_LOCK = $savedL
 
 Write-Host ""
 Write-Host ("=== {0} passed, {1} failed ===" -f $script:pass, $script:fail) `

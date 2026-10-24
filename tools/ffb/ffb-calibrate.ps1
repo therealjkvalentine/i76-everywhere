@@ -73,6 +73,35 @@
   tool kept nothing, so when its fit came out wrong the only way to investigate
   was to ask for another 30-second drive. Keeping the raw data means a bad fit can
   be re-analysed offline as many times as needed, with -FromLog.
+
+  ---------------------------------------------------------------------------
+  "IT SAID NO LOSS-OF-CONTROL SAMPLES WHILE THE CAR SLID" (owner, 2026-10-24)
+  ---------------------------------------------------------------------------
+  Three reasons, all fixed here (docs/records/FFB-WHEEL-2026-10-24.md):
+
+    1. THE WRONG QUANTITY. The count compared the yaw rate with the yaw the
+       steering asked for. But I'76's slide in the dirt is the DRIFT BAND of
+       physics_ComputeSteerYawRate 0x43ce10 (i76-map subsystems/physics.md): once
+       |w s| passes L = gn x handling x surface grip x tyre grip / 4 the engine sets
+       flag 0x2000, KEEPS the velocity instead of snapping it to the heading, and
+       still stores the FULL commanded yaw in +0xcc. The body turns exactly as
+       steered; only the direction of travel lags. A yaw-versus-steering test
+       cannot see that, by construction. What can: the gap between the yaw rate and
+       the rate the velocity vector turns (Telemetry.ps1's Slide), and the engine's
+       own flags (0x2000 drift, 0x2 full slide).
+    2. NOTHING TO SEE IT WITH. The samples CSV kept t, speed, steer and yaw only,
+       so even an offline refit could not compute a slide. It now keeps slide,
+       the mixer's own over/under values, the flags, the surface and the engine's
+       steering law (K, lim) per sample.
+    3. A DIFFERENT THRESHOLD FROM THE MIXER. It counted deviations above 0.5 rad/s;
+       the mixer starts reacting at 0.08. The report now counts what the MIXER
+       would have done (Tel-Slip with the slide folded in), the strong part of it,
+       and the engine flags, side by side.
+
+  Also tick-aware now: steadiness derivatives are taken between samples whose
+  values CHANGED, not between polls. Polling every ~31 ms under a 41.7 ms sim tick
+  (the 24 ticks/s build) gives repeated samples, and a naive derivative read them
+  as 0 then a spike - which let transitions pass as "steady".
 #>
 param(
     [int]$Seconds = 30,
@@ -103,8 +132,16 @@ if ($FromLog) {
     if (-not (Test-Path $FromLog)) { Write-Host "no such log: $FromLog" -ForegroundColor Red; exit 1 }
     Write-Host "reading $FromLog ..." -ForegroundColor Cyan
     foreach ($r in (Import-Csv $FromLog)) {
+        # The 2026-10-24 columns are optional, so every older capture still loads.
         $rows += [pscustomobject]@{
             T = [double]$r.t; Speed = [double]$r.speed; Steer = [double]$r.steer; Yaw = [double]$r.yaw
+            Slide = $(if ($null -ne $r.slide) { [double]$r.slide } else { $null })
+            Over  = $(if ($null -ne $r.over)  { [double]$r.over }  else { $null })
+            Under = $(if ($null -ne $r.under) { [double]$r.under } else { $null })
+            Flags = $(if ($null -ne $r.flags) { [int64]$r.flags } else { $null })
+            K     = $(if ($null -ne $r.k)     { [double]$r.k }     else { 0.0 })
+            Lim   = $(if ($null -ne $r.lim)   { [double]$r.lim }   else { 0.0 })
+            Surface = $(if ($null -ne $r.surface) { [int]$r.surface } else { -1 })
         }
     }
 } else {
@@ -122,7 +159,11 @@ if ($FromLog) {
     while ($sw.Elapsed.TotalSeconds -lt $Seconds) {
         $s = Tel-Sample $ctx
         if ($s) {
-            $rows += [pscustomobject]@{ T = $s.T; Speed = $s.Speed; Steer = $s.Steer; Yaw = $s.YawRate }
+            $rows += [pscustomobject]@{
+                T = $s.T; Speed = $s.Speed; Steer = $s.Steer; Yaw = $s.YawRate
+                Slide = $s.Slide; Over = $s.Oversteer; Under = $s.Understeer
+                Flags = [int64]$s.Flags; K = $s.SteerK; Lim = $s.LatCap; Surface = $s.Surface
+            }
             if ([math]::Abs($s.Steer) -gt $maxSteer) { $maxSteer = [math]::Abs($s.Steer) }
             if ([math]::Abs($s.YawRate) -gt $maxYaw) { $maxYaw = [math]::Abs($s.YawRate) }
             $el = [int]$sw.Elapsed.TotalSeconds
@@ -147,24 +188,32 @@ if ($rows.Count -lt 30) { Write-Host "`nonly $($rows.Count) samples - nothing to
 # ---- always keep the raw data ---------------------------------------------
 if (-not $FromLog) {
     $dump = Join-Path $here 'ffb-calib-samples.csv'
-    "t,speed,steer,yaw" | Set-Content -Path $dump -Encoding ASCII
+    $sb = New-Object System.Text.StringBuilder
+    $null = $sb.AppendLine("t,speed,steer,yaw,slide,over,under,flags,k,lim,surface")
     foreach ($r in $rows) {
-        ("{0:0.000},{1:0.000},{2:0.000},{3:0.000}" -f $r.T, $r.Speed, $r.Steer, $r.Yaw) |
-            Add-Content -Path $dump -Encoding ASCII
+        $null = $sb.AppendLine(("{0:0.000},{1:0.000},{2:0.000},{3:0.000},{4:0.000},{5:0.000},{6:0.000},{7},{8:0.00000},{9:0.000},{10}" -f `
+            $r.T, $r.Speed, $r.Steer, $r.Yaw, [double]$r.Slide, [double]$r.Over, [double]$r.Under, [int64]$r.Flags,
+            [double]$r.K, [double]$r.Lim, [int]$r.Surface))
     }
+    [System.IO.File]::WriteAllText($dump, $sb.ToString(), [System.Text.Encoding]::ASCII)
     Write-Host "raw samples -> $dump" -ForegroundColor DarkGray
 }
 
 # ---- derivatives, for the steadiness test --------------------------------
+# TICK-AWARE: differentiate against the last sample whose values CHANGED (a new sim
+# tick), and hold the derivative across repeats. Polls faster than the tick repeat a
+# sample; a poll-to-poll derivative reads those as 0 and the next change as a spike.
 $n = $rows.Count
+$ref = 0; $dS = 0.0; $dY = 0.0
 for ($i = 0; $i -lt $n; $i++) {
-    $dS = 0.0; $dY = 0.0
-    if ($i -gt 0) {
-        $dt = $rows[$i].T - $rows[$i-1].T
+    if ($i -gt 0 -and ($rows[$i].Steer -ne $rows[$ref].Steer -or $rows[$i].Yaw -ne $rows[$ref].Yaw -or
+                       $rows[$i].Speed -ne $rows[$ref].Speed)) {
+        $dt = $rows[$i].T - $rows[$ref].T
         if ($dt -gt 0.001 -and $dt -lt 0.5) {
-            $dS = ($rows[$i].Steer - $rows[$i-1].Steer) / $dt
-            $dY = ($rows[$i].Yaw   - $rows[$i-1].Yaw)   / $dt
-        }
+            $dS = ($rows[$i].Steer - $rows[$ref].Steer) / $dt
+            $dY = ($rows[$i].Yaw   - $rows[$ref].Yaw)   / $dt
+        } else { $dS = 0.0; $dY = 0.0 }
+        $ref = $i
     }
     $rows[$i] | Add-Member -NotePropertyName dSteer -NotePropertyValue $dS -Force
     $rows[$i] | Add-Member -NotePropertyName dYaw   -NotePropertyValue $dY -Force
@@ -331,18 +380,60 @@ if ($fit) {
             $latGain, ($latGain / 9.81)) -ForegroundColor Red
         $verdict = "implausible"
     }
-    # How many samples deviate enough to read as loss of control? Reported so the
-    # spin/impact channel can be sanity-checked against a real drive.
-    $devBig = 0
+    # ---- loss of control, counted the way the MIXER sees it --------------------
+    # See "IT SAID NO LOSS-OF-CONTROL SAMPLES" in the header. Three counts, side by
+    # side, because they measure different things and the old report had one of them:
+    #   yaw-only  |yaw - model| > 0.5   (the old count; blind to a drift by design)
+    #   mixer     Tel-Slip with the slide folded in, as Tel-Sample feeds the mixer
+    #   engine    flag 0x2000 (drift band) / 0x2 (full slide) - the engine's own word
+    $devBig = 0; $mixFire = 0; $mixStrong = 0; $slideSeen = 0; $fDrift = 0; $fSkid = 0; $flagRows = 0
+    $haveSlide = @($rows | Where-Object { $null -ne $_.Slide }).Count -gt 0
+    $tel = Join-Path $here 'Telemetry.ps1'
+    if (-not (Get-Command Tel-Slip -ErrorAction SilentlyContinue)) { . $tel }
+    $keepA = $script:TEL_LAT_GAIN; $keepL = $script:TEL_STEER_LOCK
+    $script:TEL_LAT_GAIN = $latGain; $script:TEL_STEER_LOCK = $lock
     foreach ($r in $rows) {
-        if ($r.Speed -lt 6) { continue }
+        if ($null -ne $r.Flags) {
+            $flagRows++
+            if (($r.Flags -band 0x2000) -ne 0) { $fDrift++ }
+            if (($r.Flags -band 0x2) -ne 0) { $fSkid++ }
+        }
+        if ($r.Speed -lt 3) { continue }
         $aS = [math]::Abs($r.Steer)
         $pred = [math]::Min((($r.Speed / $wheelbase) * [math]::Tan($aS * $lock)), ($latGain * $aS / $r.Speed))
         if ($pred -gt $yawMax) { $pred = $yawMax }
         if ($r.Steer -lt 0) { $pred = -$pred }
-        if ([math]::Abs(($r.Yaw * $sign) - $pred) -gt 0.5) { $devBig++ }
+        if ($r.Speed -ge 6 -and [math]::Abs(($r.Yaw * $sign) - $pred) -gt 0.5) { $devBig++ }
+        $sl = $(if ($null -ne $r.Slide) { [double]$r.Slide } else { 0.0 })
+        if ($sl -gt 0.12) { $slideSeen++ }
+        $e = Tel-Slip -Speed $r.Speed -Steer $r.Steer -YawRate ($r.Yaw * $sign) -Slide $sl -SteerK ([double]$r.K) -LatCap ([double]$r.Lim)
+        $o = [math]::Max($e.Oversteer, $e.Understeer)
+        if ($o -gt 0) { $mixFire++ }
+        if ($o -gt 0.35) { $mixStrong++ }
     }
-    Write-Host ("  loss-of-control samples (deviation > 0.5 rad/s): {0}" -f $devBig)
+    $script:TEL_LAT_GAIN = $keepA; $script:TEL_STEER_LOCK = $keepL
+    Write-Host ""
+    Write-Host "  --- loss of control (samples above 3 m/s) ---" -ForegroundColor Green
+    Write-Host ("  mixer reacts (Tel-Slip incl. slide):  {0,5}   strongly (> 0.35): {1}" -f $mixFire, $mixStrong)
+    if ($haveSlide) {
+        Write-Host ("  sliding (heading lags the nose > 0.12 rad/s): {0}" -f $slideSeen)
+    } else {
+        Write-Host  "  sliding: NOT RECORDED in this log (pre-2026-10-24 format: no slide column)" -ForegroundColor Yellow
+    }
+    if ($flagRows -gt 0) {
+        Write-Host ("  engine flags: drift band (0x2000) {0}   full slide (0x2) {1}   of {2} samples" -f $fDrift, $fSkid, $flagRows)
+    }
+    Write-Host ("  yaw-only deviation > 0.5 rad/s (the old count): {0}" -f $devBig) -ForegroundColor DarkGray
+    Write-Host  "  (a drift keeps the full commanded yaw - the engine only lets the velocity lag -" -ForegroundColor DarkGray
+    Write-Host  "   so the yaw-only count stays 0 through a slide; the slide and flag counts do not)" -ForegroundColor DarkGray
+    $ks = @($rows | Where-Object { $_.K -gt 0 -and $_.Lim -gt 0 })
+    if ($ks.Count -gt 0) {
+        $kMed = ($ks | ForEach-Object { $_.K } | Sort-Object)[[int]($ks.Count / 2)]
+        $lMed = ($ks | ForEach-Object { $_.Lim } | Sort-Object)[[int]($ks.Count / 2)]
+        Write-Host ("  engine steering law read live: K {0:0.0000} (wheelbase {1:0.00} m)   lim {2:0.0} m/s^2 = 7.84 x tyre grip" -f `
+            $kMed, (1.0 / (2.0 * $kMed)), $lMed)
+        Write-Host  "  the live mixer uses THIS law; the fit below is only the fallback for logs without it" -ForegroundColor DarkGray
+    }
     Write-Host ("  peak yaw observed: {0:0.00} rad/s  -> yaw ceiling {1:0.00}" -f $obsMax, $yawMax)
 }
 

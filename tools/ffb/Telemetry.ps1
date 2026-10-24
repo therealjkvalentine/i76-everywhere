@@ -271,7 +271,9 @@ $script:TEL_OFF = @{
     Steer    = 0x0E0
     Throttle = 0x0E4
 }
-$script:TEL_BLOCK = 0x100   # one ReadProcessMemory covers every field above
+$script:TEL_BLOCK = 0x480   # one ReadProcessMemory covers every field above, plus (2026-10-24) the component
+                            # slot pointers +0x3a8.., the steer gain +0x110, armour/chassis +0x138..+0x177, flags
+                            # +0x454, surface +0x45c and ground_g +0x46c (tools/telemetry/i76tel.h has the map)
 
 if (-not ('I76Tel' -as [type])) {
     Add-Type @"
@@ -336,6 +338,9 @@ function Tel-Open {
         FxPrev    = (New-Object int[] $script:TEL_FX_SLOTS)
         FxPrevId  = (New-Object int[] $script:TEL_FX_SLOTS)
         FxPrevMag = (New-Object int[] $script:TEL_FX_SLOTS)
+        # ---- 2026-10-24: surface, engine, damage and weapon state (Tel-Extras) ----
+        Obj       = 0
+        X         = $null       # Tel-Extras state, rebuilt whenever the entity changes
     }
     if (-not (Tel-Resolve $ctx)) { throw "Player entity is NULL - load a mission first." }
     Tel-Geometry $ctx
@@ -369,7 +374,9 @@ function Tel-Resolve {
     if ($sub -eq 0) { return $false }
     $ent = Tel-ReadInt $Ctx ($sub + 0x70)
     if ($ent -eq 0) { return $false }
+    if ($ent -ne $Ctx.Ent) { $Ctx.X = $null }   # new mission / respawn: no baselines carry over
     $Ctx.Ent = $ent
+    $Ctx.Obj = $sub
     return $true
 }
 
@@ -477,7 +484,20 @@ function Tel-Slip {
     #>
     param(
         [double]$Speed, [double]$Steer, [double]$YawRate,
-        [double]$Slide = 0.0)
+        [double]$Slide = 0.0,
+        # THE ENGINE'S OWN LAW, read live (2026-10-24). physics_ComputeSteerYawRate 0x43ce10
+        # (i76-map subsystems/physics.md "The steering routine"):
+        #     w = steer * s * K                 K   = entity+0x110 = 1/(2*wheelbase)
+        #     capped at w = steer * lim / s     lim = 7.84 * (grip of tyres 0,1,4,5)
+        # When both are given (Tel-Sample reads them every half second) the reference IS
+        # the engine's law for THIS car with THESE tyres, and no fitted constant is used.
+        # The fitted (lock, a) pair stays as the fallback for CSV replays without them.
+        # Why it matters, measured on the owner's 2026-10-24 calibration drive: his car's
+        # tyres sum to lim = 37.5 m/s^2 (the size-factor grip bonus before the first hit),
+        # the RC folder's calibration said 31.0, and the model therefore read 781 of 957
+        # ordinary steady-turn samples (82 %) as rotating MORE than commanded - oversteer -
+        # which is the "pronounced under/oversteer jerk" he reported.
+        [double]$SteerK = 0.0, [double]$LatCap = 0.0)
 
     # LOWERED from 0.15 so the wheel WARNS about the approach instead of only
     # REPORTING the departure. The evidence for how far it can safely come down:
@@ -498,8 +518,13 @@ function Tel-Slip {
     $expectedYaw = 0.0
     if ($Speed -gt 0.5) {
         $aSteer = [math]::Abs($Steer)
-        $kin = ($Speed / 4.662) * [math]::Tan($aSteer * $script:TEL_STEER_LOCK)
-        $lat = $script:TEL_LAT_GAIN * $aSteer / $Speed
+        if ($SteerK -gt 0.01 -and $SteerK -lt 2.0 -and $LatCap -gt 5.0 -and $LatCap -lt 200.0) {
+            $kin = $aSteer * $Speed * $SteerK
+            $lat = $LatCap * $aSteer / $Speed
+        } else {
+            $kin = ($Speed / 4.662) * [math]::Tan($aSteer * $script:TEL_STEER_LOCK)
+            $lat = $script:TEL_LAT_GAIN * $aSteer / $Speed
+        }
         $mag = [math]::Min($kin, $lat)
         if ($mag -gt $script:TEL_YAW_MAX) { $mag = $script:TEL_YAW_MAX }
         if ($Steer -lt 0) { $mag = -$mag }
@@ -549,6 +574,287 @@ function Tel-Slip {
 
     return [pscustomobject]@{
         ExpectedYaw = $expectedYaw; Understeer = $understeer; Oversteer = $oversteer
+    }
+}
+
+function Tel-ReadBuf {
+    # One ReadProcessMemory into a fresh buffer; $null unless every byte arrived.
+    param($Ctx, [int64]$Addr, [int]$Len)
+    if ($Addr -le 0x10000 -or $Len -le 0) { return $null }
+    $buf = New-Object byte[] $Len
+    $n = 0
+    if ([I76Tel]::ReadProcessMemory($Ctx.H, [IntPtr]$Addr, $buf, $Len, [ref]$n) -and $n -eq $Len) { return ,$buf }
+    return $null
+}
+
+function Tel-CompData {
+    <#
+      A vehicle component's data block: o = [ent+0x3a8+4*slot]; [o+0x6c] must be the
+      expected class; data = [o+0x70]. The proxy's tel_comp (music-fix/strlkproxy.c) does
+      the same walk in-process. Returns 0 when the slot is empty or holds another class.
+    #>
+    param($Ctx, [byte[]]$EntBuf, [int]$Slot, [int]$Class)
+    $o = [BitConverter]::ToUInt32($EntBuf, 0x3a8 + 4 * $Slot)
+    if ($o -lt 0x10000) { return 0 }
+    $h = Tel-ReadBuf $Ctx ([int64]$o + 0x6c) 8
+    if (-not $h) { return 0 }
+    if ([BitConverter]::ToInt32($h, 0) -ne $Class) { return 0 }
+    return [int64][BitConverter]::ToUInt32($h, 4)
+}
+
+function Tel-SurfacePaved {
+    <#
+      Is this surface pavement? Pure, so ffb-mixer-test.ps1 can check it.
+
+      The surface type is entity+0x45c, an index (0..7) into the level's WRLD surface
+      table at 0x644220 (8 records x 20 bytes: +0 tyre grip, +4 rolling resistance,
+      +8 bump amplitude, +0x10 damage rate; i76-map data/notes/terrain-text-sound.md).
+      Stock values by type: rolling .03 .10 .01 .03 .08 .20 .01 .03, and the skid/dust
+      sound table gives 2 and 6 no dust - tarmac. So "paved" = the low-rolling-resistance
+      records, read from THIS level's table (a mod or another map can renumber them);
+      the fixed index set {2, 6} is the fallback when the table cannot be read.
+    #>
+    param([int]$Surface, $Roll = $null, [double]$RollMax = 0.015)
+    if ($Surface -lt 0 -or $Surface -gt 7) { return $false }
+    if ($null -ne $Roll -and $Roll.Count -eq 8) {
+        $r = [double]$Roll[$Surface]
+        if ($r -gt 0.0 -and $r -lt 1.0) { return ($r -le $RollMax) }
+    }
+    return ($Surface -eq 2 -or $Surface -eq 6)
+}
+
+function Tel-DiffDamage {
+    <#
+      Hits taken, from the per-side hit points. Pure, for the test file.
+      Prev / Cur: int[4] = armour + chassis per side (entity+0x138 / +0x148, sides
+      0 front 1 left 2 right 3 back; i76tel.h). Only LOSSES are hits: a repair or a
+      respawn raises them and resets the baseline instead. Returns @(@{Side; Hp}).
+    #>
+    param($Prev, $Cur)
+    $hits = @()
+    if ($null -eq $Prev -or $null -eq $Cur) { return ,$hits }
+    for ($i = 0; $i -lt 4; $i++) {
+        $d = [int]$Prev[$i] - [int]$Cur[$i]
+        if ($d -gt 0 -and $d -lt 100000) { $hits += [pscustomobject]@{ Side = $i; Hp = $d } }
+    }
+    return ,$hits
+}
+
+function Tel-DiffAmmo {
+    <#
+      Shots fired, from the player's weapon instances' ammo counters (instance +0x20,
+      spent at 0x4a6f64; i76-map types/i76_runtime.h I76_WeaponInstance). Pure.
+      Prev: hashtable instance index -> ammo. Cur: @(@{Idx; Ammo; Klass; Damage}).
+      0x0fffffff is "unlimited" (never spent) and an INCREASE is a reload or pickup,
+      so neither is a shot. Returns @(@{Klass; Damage; Rounds; Idx}).
+    #>
+    param($Prev, $Cur)
+    $shots = @()
+    if ($null -eq $Prev) { return ,$shots }
+    foreach ($w in $Cur) {
+        if (-not $Prev.ContainsKey($w.Idx)) { continue }
+        $p = [int]$Prev[$w.Idx]
+        if ($p -eq 0x0fffffff -or $w.Ammo -eq 0x0fffffff) { continue }
+        $d = $p - [int]$w.Ammo
+        if ($d -gt 0 -and $d -lt 1000) {
+            $shots += [pscustomobject]@{ Klass = $w.Klass; Damage = $w.Damage; Rounds = $d; Idx = $w.Idx }
+        }
+    }
+    return ,$shots
+}
+
+function Tel-Extras {
+    <#
+      2026-10-24: everything the custom FFB needed that the FFB effect block could not
+      be trusted to supply. The block at 0x4f2328 is written ONLY while the engine's own
+      FFB device is present (0x52bbd0 = 1; i76tel.h ffb_present), so every channel that
+      read it - weapon kicks, rpm, gear shifts - was silent on a setup where the 1997
+      DLL did not take the wheel. These come from the entity and its components instead,
+      which exist whenever a car does:
+
+        flags      entity+0x454  0x1 engine running, 0x2 slide, 0x4 airborne, 0x8 starting,
+                                 0x400 oil, 0x2000 drift band (L < |w s| <= 2L), 0x10000 arcade
+        surface    entity+0x45c  -> Tel-SurfacePaved, against the level's WRLD table 0x644220
+        engine     [[ent+0x3c4]+0x70]: +0x08 gear (0 R, 1 N, 2..4), +0x1c rpm (float)
+        steer law  entity+0x110 K = 1/(2 wb); lim = 7.84 x grip of tyres 0, 1, 4, 5 (+0x0c)
+        damage     entity+0x138 armour[4] + +0x148 chassis[4] -> hits per side
+        weapons    the player's vehicle weapon record (0x5be4d8 + i x 0x2c8, +0 = the
+                   player object, +4 selected row) and its instances (0x5aab08 + i x 0x4c:
+                   +0x18 record, +0x20 ammo, +0x30 weapdef); weapdef 0x5d88d8 + i x 0xd8:
+                   +0x5c class (2 gun/cannon, 3 mortar, 4 rocket/missile, 5 flamer,
+                   6 dropper), +0x60 damage
+
+      Addresses are the proxy's own (music-fix/strlkproxy.c tel_player_fill) for the
+      i76.exe builds the launchers run (9a232dcc / 6319abf7; nitro shifts +0x444.. by 4
+      and is not handled here). Slow-changing reads are throttled; per poll this costs
+      two small reads plus one per weapon span.
+    #>
+    param($Ctx, [byte[]]$B, [double]$T)
+    if ($null -eq $Ctx.X) {
+        $Ctx.X = [pscustomobject]@{
+            EngData = 0; EngT = -10.0; GripT = -10.0; GripSum = 0.0; Handling = 0.0
+            SurfRoll = $null; SurfGrip = $null; SurfT = -10.0
+            WRec = 0; WInst = @(); WScanT = -10.0; PrevAmmo = $null; DefCache = @{}
+            PrevRow = -99; PrevSides = $null; LastGear = -1
+        }
+    }
+    $X = $Ctx.X
+    $objU = [uint32]([int64]$Ctx.Obj -band 0xFFFFFFFFL)
+    $flags   = [BitConverter]::ToUInt32($B, 0x454)
+    $surface = [BitConverter]::ToInt32($B, 0x45c)
+    $steerK  = [double][BitConverter]::ToSingle($B, 0x110)
+    $groundG = [double][BitConverter]::ToSingle($B, 0x46c)
+
+    # ---- surface table: once per 5 s (per level, it never changes in a mission) ----
+    if (($T - $X.SurfT) -gt 5.0) {
+        $X.SurfT = $T
+        $st = Tel-ReadBuf $Ctx 0x644220 160
+        if ($st) {
+            $roll = New-Object double[] 8; $grip = New-Object double[] 8
+            for ($i = 0; $i -lt 8; $i++) {
+                $grip[$i] = [BitConverter]::ToSingle($st, $i * 20)
+                $roll[$i] = [BitConverter]::ToSingle($st, $i * 20 + 4)
+            }
+            $X.SurfRoll = $roll; $X.SurfGrip = $grip
+        }
+    }
+    $paved = Tel-SurfacePaved -Surface $surface -Roll $X.SurfRoll
+
+    # ---- engine: gear and rpm, every poll (the data pointer is cached) ----
+    if ($X.EngData -eq 0 -and ($T - $X.EngT) -gt 1.0) {
+        $X.EngT = $T
+        $X.EngData = Tel-CompData $Ctx $B 7 21
+    }
+    $gear = -1; $rpmF = 0.0
+    if ($X.EngData -ne 0) {
+        $eb = Tel-ReadBuf $Ctx $X.EngData 0x28
+        if ($eb) {
+            $gear = [BitConverter]::ToInt32($eb, 0x08)
+            $rpmF = [double][BitConverter]::ToSingle($eb, 0x1c)
+            if ($gear -lt 0 -or $gear -gt 8 -or [double]::IsNaN($rpmF) -or $rpmF -lt 0 -or $rpmF -gt 20000) {
+                $gear = -1; $rpmF = 0.0; $X.EngData = 0
+            }
+        } else { $X.EngData = 0 }
+    }
+    $shift = 0
+    if ($gear -ge 2 -and $X.LastGear -ge 2 -and $gear -ne $X.LastGear) {
+        $shift = $(if ($gear -gt $X.LastGear) { 1 } else { -1 })
+    }
+    if ($gear -ge 0) { $X.LastGear = $gear }
+
+    # ---- tyre grip -> the engine's lateral limit, twice a second ----
+    if (($T - $X.GripT) -gt 0.5) {
+        $X.GripT = $T
+        $sum = 0.0; $got = 0
+        foreach ($sl in @(0, 1, 4, 5)) {
+            $wd = Tel-CompData $Ctx $B $sl 30
+            if ($wd -ne 0) {
+                $wb = Tel-ReadBuf $Ctx ($wd + 0x0c) 4
+                if ($wb) { $sum += [BitConverter]::ToSingle($wb, 0); $got++ }
+            }
+        }
+        $X.GripSum = $(if ($got -eq 4 -and $sum -gt 0.5 -and $sum -lt 20) { $sum } else { 0.0 })
+        $sd = Tel-CompData $Ctx $B 8 23
+        $X.Handling = 0.0
+        if ($sd -ne 0) {
+            $hb = Tel-ReadBuf $Ctx ($sd + 0x14) 4
+            if ($hb) { $X.Handling = [double][BitConverter]::ToSingle($hb, 0) }
+        }
+    }
+    $latCap = 0.0
+    if ($X.GripSum -gt 0) {
+        if (($flags -band 0x10000) -ne 0) {
+            # arcade / Taurus: lim = L = gn x handling x surface grip x sum x 0.25
+            $sg = $(if ($X.SurfGrip -and $surface -ge 0 -and $surface -le 7) { $X.SurfGrip[$surface] } else { 0.0 })
+            if ($X.Handling -gt 0 -and $sg -gt 0 -and $groundG -gt 0) { $latCap = $groundG * $X.Handling * $sg * $X.GripSum * 0.25 }
+        } else {
+            $latCap = 7.84 * $X.GripSum
+        }
+    }
+
+    # ---- damage taken, per side ----
+    $sides = New-Object int[] 4
+    for ($i = 0; $i -lt 4; $i++) {
+        $sides[$i] = [BitConverter]::ToInt32($B, 0x138 + 4 * $i) + [BitConverter]::ToInt32($B, 0x148 + 4 * $i)
+    }
+    $hits = Tel-DiffDamage $X.PrevSides $sides
+    $X.PrevSides = $sides
+
+    # ---- weapons: find the player's record and instances every 3 s ----
+    if (($X.WRec -eq 0 -or $X.WInst.Count -eq 0) -and ($T - $X.WScanT) -gt 3.0) {
+        $X.WScanT = $T
+        $X.WRec = 0; $X.WInst = @(); $X.PrevAmmo = $null
+        $nb = Tel-ReadBuf $Ctx 0x5da78c 4
+        $nrec = $(if ($nb) { [BitConverter]::ToInt32($nb, 0) } else { 0 })
+        if ($nrec -gt 150) { $nrec = 150 }
+        if ($nrec -gt 0 -and $Ctx.Obj -ne 0) {
+            $rb = Tel-ReadBuf $Ctx 0x5be4d8 ($nrec * 0x2c8)
+            if ($rb) {
+                for ($i = 0; $i -lt $nrec; $i++) {
+                    if ([BitConverter]::ToUInt32($rb, $i * 0x2c8) -eq $objU) { $X.WRec = 0x5be4d8 + $i * 0x2c8; break }
+                }
+            }
+        }
+        if ($X.WRec -ne 0) {
+            $ib = Tel-ReadBuf $Ctx 0x5da750 4
+            $ninst = $(if ($ib) { [BitConverter]::ToInt32($ib, 0) } else { 0 })
+            if ($ninst -gt 150) { $ninst = 150 }
+            if ($ninst -gt 0) {
+                $tb = Tel-ReadBuf $Ctx 0x5aab08 ($ninst * 0x4c)
+                if ($tb) {
+                    $own = @()
+                    for ($i = 0; $i -lt $ninst; $i++) {
+                        if ([BitConverter]::ToUInt32($tb, $i * 0x4c + 0x18) -eq [uint32]$X.WRec) { $own += $i }
+                    }
+                    $X.WInst = $own
+                }
+            }
+        }
+    }
+    $shots = @(); $row = -1; $cycle = $false
+    if ($X.WRec -ne 0 -and $X.WInst.Count -gt 0) {
+        $rh = Tel-ReadBuf $Ctx $X.WRec 8
+        if ($rh -and [BitConverter]::ToUInt32($rh, 0) -eq $objU) {
+            $row = [BitConverter]::ToInt32($rh, 4)
+            if ($X.PrevRow -ne -99 -and $row -ne $X.PrevRow -and $row -ge 0) { $cycle = $true }
+            $X.PrevRow = $row
+            $lo = ($X.WInst | Measure-Object -Minimum).Minimum
+            $hi = ($X.WInst | Measure-Object -Maximum).Maximum
+            $span = Tel-ReadBuf $Ctx (0x5aab08 + $lo * 0x4c) (($hi - $lo + 1) * 0x4c)
+            if ($span) {
+                $cur = @()
+                foreach ($ix in $X.WInst) {
+                    $o = ($ix - $lo) * 0x4c
+                    $def = [BitConverter]::ToInt32($span, $o + 0x30)
+                    if (-not $X.DefCache.ContainsKey($def)) {
+                        $kl = 0; $dm = 0
+                        if ($def -ge 0 -and $def -lt 400) {
+                            $db = Tel-ReadBuf $Ctx (0x5d88d8 + $def * 0xd8 + 0x5c) 8
+                            if ($db) { $kl = [BitConverter]::ToInt32($db, 0); $dm = [BitConverter]::ToInt32($db, 4) }
+                        }
+                        $X.DefCache[$def] = @($kl, $dm)
+                    }
+                    $cur += [pscustomobject]@{
+                        Idx = $ix; Ammo = [BitConverter]::ToInt32($span, $o + 0x20)
+                        Klass = $X.DefCache[$def][0]; Damage = $X.DefCache[$def][1]
+                    }
+                }
+                $shots = Tel-DiffAmmo $X.PrevAmmo $cur
+                $pa = @{}; foreach ($w in $cur) { $pa[$w.Idx] = $w.Ammo }
+                $X.PrevAmmo = $pa
+            }
+        } else {
+            $X.WRec = 0; $X.WInst = @()   # the record moved (respawn): rescan
+        }
+    }
+
+    return [pscustomobject]@{
+        Flags = $flags; Surface = $surface; Paved = $paved
+        SurfaceGrip = $(if ($X.SurfGrip -and $surface -ge 0 -and $surface -le 7) { $X.SurfGrip[$surface] } else { 0.0 })
+        Gear = $gear; RpmF = $rpmF; GearShift = $shift
+        SteerK = $steerK; LatCap = $latCap; GripSum = $X.GripSum
+        Hits = $hits; Shots = $shots; WeaponRow = $row; WeaponCycle = $cycle
+        ShotSource = $(if ($X.WRec -ne 0 -and $X.WInst.Count -gt 0) { 'ammo' } else { 'none' })
     }
 }
 
@@ -688,7 +994,9 @@ function Tel-Sample {
     # should make the wheel feel heavy in a bend.
     $latAccel = $yawRate * $speed
 
-    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate -Slide $Ctx.Slide
+    # Surface, engine, damage, weapons and the engine's own steering law (2026-10-24).
+    $xt = Tel-Extras $Ctx $b $t
+    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate -Slide $Ctx.Slide -SteerK $xt.SteerK -LatCap $xt.LatCap
     $expectedYaw = $slip.ExpectedYaw
 
     # Weapon-fire flag. A separate 1-byte read because it is a static global, not
@@ -810,6 +1118,12 @@ function Tel-Sample {
         }
     }
 
+    # The engine's own gear and rpm win over the FFB-block copy and the rpm-sawtooth
+    # detector: those need the block, which is only written while the 1997 DLL holds a
+    # device (see Tel-Extras). Gear changes are then exact (eng+0x08 2 -> 3 is an upshift).
+    if ($xt.RpmF -gt 0) { $Ctx.Rpm = [int]$xt.RpmF }
+    if ($xt.Gear -ge 0) { $Ctx.Shift = $xt.GearShift }
+
     $understeer = $slip.Understeer
     $oversteer  = $slip.Oversteer
 
@@ -874,6 +1188,25 @@ function Tel-Sample {
                           if ($r -gt 1.0) { $r = 1.0 } elseif ($r -lt -1.0) { $r = -1.0 }
                           [math]::Asin($r)
                         } else { 0.0 })
+        # ---- 2026-10-24 (Tel-Extras) ----
+        Flags          = $xt.Flags
+        EngineRunning  = (($xt.Flags -band 0x1) -ne 0)
+        EngineStarting = (($xt.Flags -band 0x8) -ne 0)
+        SkidFlag       = (($xt.Flags -band 0x2) -ne 0)      # full slide (bit 2 of +0x454)
+        DriftFlag      = (($xt.Flags -band 0x2000) -ne 0)   # the drift band: velocity kept, body yaws on
+        AirFlag        = (($xt.Flags -band 0x4) -ne 0)
+        OilFlag        = (($xt.Flags -band 0x400) -ne 0)
+        Surface        = $xt.Surface
+        Paved          = $xt.Paved
+        SurfaceGrip    = $xt.SurfaceGrip
+        Gear           = $xt.Gear
+        SteerK         = $xt.SteerK
+        LatCap         = $xt.LatCap
+        Shots          = $xt.Shots
+        ShotSource     = $xt.ShotSource
+        Hits           = $xt.Hits
+        WeaponRow      = $xt.WeaponRow
+        WeaponCycle    = $xt.WeaponCycle
         Braking     = ($throttle -lt -0.05)
         Airborne    = ([math]::Abs($vy) -gt 2.0)
         Wheelbase   = $Ctx.Wheelbase

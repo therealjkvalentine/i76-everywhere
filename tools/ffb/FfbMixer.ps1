@@ -224,6 +224,89 @@ function Mix-DefaultTune {
         # same shot, without this the wheel would kick twice per trigger pull.
         WeaponBlankMs = 70
 
+        # ===================================================================
+        # 2026-10-24, after the owner's first T300 drive (docs/records/
+        # FFB-WHEEL-2026-10-24.md). Everything below is a DEFAULT, conservative
+        # on purpose, and every channel has a panel solo / mute.
+        # ===================================================================
+
+        # --- surface: reward pavement, keep off-road -------------------------
+        # Owner: "keep current offroad, dampen pavement by 50 %". Scales the road
+        # texture (both its roughness and bump terms) and the LFE road bed. The
+        # surface is entity+0x45c, ONE value per car (the engine has no per-wheel
+        # surface), so it flips in a single tick when the car crosses the road edge;
+        # SurfaceFadeMs is the time constant of the crossfade that hides that step.
+        PavementScale = 0.50
+        OffroadScale  = 1.00
+        SurfaceFadeMs = 450
+
+        # --- engine rumble and ignition --------------------------------------
+        # The stock DLL ran an engine vibration while flag 0x1 (running) was set,
+        # frequency from rpm, gain (20 - mph/2) percent: strongest parked, gone by
+        # 40 mph (docs/records/FFB-DEEP-DIVE.md, block +0x0c / +0x10 / +0x104). Ours
+        # follows that shape at a fifth of the level, inside the 15 Hz loop limit.
+        EngineGain    = 420    # amplitude parked at idle
+        EngineIdleHz  = 8.0
+        EngineMaxHz   = 14.0
+        EngineFadeSpd = 18.0   # m/s (40 mph) at which the rumble has faded out
+        EngineRpmIdle = 850.0
+        EngineRpmMax  = 7000.0
+        # ENGSTART.FRC decoded: SquareLow 13 Hz +/-58 % for 79 ms, then SquareHigh
+        # +49/-31 % for 1246 ms under a 34 / 10 / 56 % attack / sustain / fade
+        # envelope. Played on the engine's own "starting" flag (0x8) rising edge.
+        IgnitionGain  = 2600   # about half the stock level
+        IgnitionMs    = 1300
+        IgnitionHz    = 13.0
+
+        # --- weapons, per class (weapdef +0x5c), from the ammo counters --------
+        # Shapes are the decoded stock effects (tools/ffb/parse-frc.py --decode):
+        #   2 gun/cannon  CANNON1..4: UserDefined, +100 % push then a -95 % pull
+        #                 that decays; 250..940 ms by calibre  -> 'recoil'
+        #   3 mortar      the heaviest recoil                   -> 'recoil' x MortarScale
+        #   4 rocket      MISSILE2/5: one Cosine cycle at 4-5 Hz, 200-250 ms -> 'buzz'
+        #   5 flamer      continuous while firing               -> FlameGain oscillator
+        #   6 dropper     a short clunk                         -> 'jolt'
+        #   row change    WPNCYCLE: RampDown +100 -> -100 % in 70 ms -> 'ramp'
+        # Magnitude scales with sqrt(weapdef damage / WeaponDmgRef), clamped, so a
+        # 30cal (15) is lighter than a 20mm (45) without a per-weapon table.
+        WeaponDmgRef  = 20.0
+        WeaponGunMs   = 120    # + 3 ms per point of damage, at most 330
+        MortarScale   = 1.6
+        MortarMs      = 330
+        RocketScale   = 1.3
+        RocketMs      = 240
+        RocketHz      = 6.0
+        FlameGain     = 500
+        FlameHz       = 12.0
+        DropGain      = 1300
+        DropMs        = 90
+        CycleGain     = 1500
+        CycleMs       = 70
+
+        # --- hits taken (armour + chassis lost, per side) ---------------------
+        # Stock DLL: ordnance hit magnitude (40 + 0.667 x damage) %, full at 90.
+        # Left / right hits are directional ('jolt' signed by HitSideSign: +1 sends
+        # a left-side hit toward +force; the sign is NOT yet verified on the wheel -
+        # flip it if a hit on the left pulls the rim to the left). Front / back hits
+        # have no side and are a short buzz.
+        HitGain       = 4200
+        HitMs         = 240
+        HitHz         = 11.0
+        HitDmgFull    = 90.0
+        HitMinHp      = 4      # smaller losses (flame ticks) accumulate until this
+        HitRefractMs  = 180    # one hit per this window; an impact inside it is the same event
+        HitSideSign   = 1
+
+        # --- landing ----------------------------------------------------------
+        # The engine's airborne flag (0x4) falling edge, sized by the fastest
+        # descent seen while airborne.
+        LandGain      = 3000
+        LandMs        = 200
+        LandHz        = 9.0
+        LandRef       = 6.0    # m/s of descent for a full-scale landing
+        LandMinVy     = 1.5    # m/s; slower touchdowns are silent
+        LandMinAir    = 0.15   # s airborne before a landing counts
+
         # --- LFE / bass-shaker channel (bus only - no wheel output) ---------
         # Parametric low-frequency content for a tactile transducer.
         #
@@ -515,6 +598,22 @@ function Mix-New {
         LastFiring = $false
         LastFireT  = -10.0
         StillSince = -1.0
+        # 2026-10-24 channels
+        SurfGain   = -1.0       # smoothed surface factor; -1 = take the first sample's
+        EnginePhase= 0.0
+        FlamePhase = 0.0
+        FlameUntil = -10.0
+        LastStarting = $null    # $null = not seen yet: never fire an edge on attach
+        LastRunning  = $null
+        LastCrankT = -10.0
+        AirT       = -1.0
+        AirMinVy   = 0.0
+        LastHitT   = -10.0
+        LastImpactT= -10.0
+        LastLandT  = -10.0
+        HitAccum   = 0
+        HitAccumT  = -10.0
+        HitAccumSide = 0
     }
 }
 
@@ -552,7 +651,8 @@ function Mix-Update {
     # $Channels still reports the true computed value of a muted channel, so the
     # panel can show what it would have contributed.
     $gate = @{}
-    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon','shift')) {
+    foreach ($k in @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon','shift',
+                     'engine','ignition','hit','landing')) {
         $gate[$k] = if ($null -eq $Active) { $true } else { [bool]$Active[$k] }
     }
 
@@ -676,7 +776,18 @@ function Mix-Update {
     # this term all but unreachable.
     $heave = [math]::Min(1.0, [math]::Abs($Sample.Vy) / 0.8)
     $texN  = [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)
-    $texAmp = ($Tune.TextureGain * $texN * ($Tune.TextureFloor + (1.0 - $Tune.TextureFloor) * $rough)) + ($Tune.BumpGain * $heave * $texN)
+    # SURFACE (2026-10-24): pavement at PavementScale, off-road at OffroadScale, with a
+    # first-order crossfade so the one-tick flip of entity+0x45c at a road edge is not
+    # felt as a step. A sample without the field (an old CSV) counts as off-road, which
+    # is exactly the behaviour before this existed.
+    $surfTarget = if ($null -ne $Sample.Paved -and [bool]$Sample.Paved) { [double]$Tune.PavementScale } else { [double]$Tune.OffroadScale }
+    if ($Mix.SurfGain -lt 0) { $Mix.SurfGain = $surfTarget }
+    else {
+        $kS = 1.0 - [math]::Exp(-($dt * 1000.0) / [math]::Max(1.0, [double]$Tune.SurfaceFadeMs))
+        $Mix.SurfGain += ($surfTarget - $Mix.SurfGain) * $kS
+    }
+    $ch['surf%'] = [math]::Round($Mix.SurfGain * 100)
+    $texAmp = $Mix.SurfGain * (($Tune.TextureGain * $texN * ($Tune.TextureFloor + (1.0 - $Tune.TextureFloor) * $rough)) + ($Tune.BumpGain * $heave * $texN))
     $Mix.Phase += 2 * [math]::PI * $Tune.TextureHz * $dt
     if ($Mix.Phase -gt (2 * [math]::PI)) { $Mix.Phase -= 2 * [math]::PI }
     $texture = $texAmp * [math]::Sin($Mix.Phase)
@@ -727,10 +838,14 @@ function Mix-Update {
     # residual roughness that feeds the road bed (p99 11.8), so the two do not
     # trade places; it just stops reserving the channel for head-on crashes.
     $impThresh = $Tune.ImpactRef * 0.08
-    if ($Sample.Jolt -gt $impThresh -and $Mix.LastJolt -le $impThresh) {
+    # A hit kick or a landing just now IS this jolt (the same event seen twice), so it
+    # does not kick again (2026-10-24).
+    $recentOther = ((($t - $Mix.LastHitT) * 1000.0) -lt $Tune.HitRefractMs) -or ((($t - $Mix.LastLandT) * 1000.0) -lt 200)
+    if ($Sample.Jolt -gt $impThresh -and $Mix.LastJolt -le $impThresh -and -not $recentOther) {
         $mag = [math]::Min(1.0, $Sample.Jolt / $Tune.ImpactRef)
         $dir = if ([math]::Abs($Sample.YawRate) -gt 0.05) { [math]::Sign($Sample.YawRate) } else { 1 }
         Mix-Trigger $Mix 'jolt' ($dir * $mag * $Tune.ImpactGain) $Tune.ImpactMs
+        $Mix.LastImpactT = $t
         $notes += ("IMPACT {0:0}%" -f ($mag * 100))
     }
     $Mix.LastJolt = $Sample.Jolt
@@ -782,7 +897,13 @@ function Mix-Update {
     # What the continuous beds are multiplied by while a blast sounds.
     $duck = 1.0 - ($Tune.LfeExplodeDuck * $Mix.BlastEnv)
 
-    if ($firing -and -not $Mix.LastFiring) {
+    # When the player's ammo counters are being read (Sample.ShotSource 'ammo', see
+    # Tel-Extras) every shot arrives as a per-class event below, and the FFB-block slot
+    # edge would be a second kick for the same trigger pull: it then only feeds the
+    # blast level above. The slot path stays the fallback for a car whose weapon record
+    # was not found.
+    $ammoShots = ($Sample.ShotSource -eq 'ammo')
+    if ($firing -and -not $Mix.LastFiring -and -not $ammoShots) {
         if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
             Mix-Trigger $Mix 'buzz' ($Tune.WeaponGain * $wScale) ([int]$Tune.WeaponMs) $Tune.WeaponHz 'weapon'
             $Mix.LastFireT = $t
@@ -812,10 +933,146 @@ function Mix-Update {
     }
     $Mix.LastFiring = $firing
 
+    # ---- 2026-10-24: what the stock effects covered and we did not ---------
+    # With -Ffb the interposer holds the wheel and the engine's own effects are off,
+    # so these replace them: per-class weapon kicks, the weapon-cycle click, hits
+    # taken, landings, ignition and the engine rumble. All are edges of state the
+    # engine itself keeps (Tel-Extras), so none can fire from noise.
+
+    # weapons: one kick per class per frame, the heaviest shot of that class
+    if ($Sample.Shots -and $Sample.Shots.Count) {
+        $byClass = @{}
+        foreach ($sh in $Sample.Shots) {
+            $k = [int]$sh.Klass
+            if (-not $byClass.ContainsKey($k) -or $sh.Damage -gt $byClass[$k].Damage) { $byClass[$k] = $sh }
+        }
+        foreach ($k in $byClass.Keys) {
+            $sh = $byClass[$k]
+            $ds = [math]::Sqrt([math]::Max(1.0, [double]$sh.Damage) / [math]::Max(1.0, [double]$Tune.WeaponDmgRef))
+            if ($ds -lt 0.6) { $ds = 0.6 } elseif ($ds -gt 1.6) { $ds = 1.6 }
+            switch ($k) {
+                3 { Mix-Trigger $Mix 'recoil' ($Tune.WeaponGain * $ds * $Tune.MortarScale) ([int]$Tune.MortarMs) 0 'weapon'; $notes += "FIRE mortar" }
+                4 { Mix-Trigger $Mix 'buzz' ($Tune.WeaponGain * $ds * $Tune.RocketScale) ([int]$Tune.RocketMs) $Tune.RocketHz 'weapon'; $notes += "FIRE rocket" }
+                5 { $Mix.FlameUntil = $t + 0.20 }
+                6 { Mix-Trigger $Mix 'jolt' $Tune.DropGain ([int]$Tune.DropMs) 0 'weapon'; $notes += "DROP" }
+                default {
+                    if ((($t - $Mix.LastFireT) * 1000.0) -ge $Tune.WeaponBlankMs) {
+                        $ms = [int][math]::Min(330, $Tune.WeaponGunMs + 3 * [double]$sh.Damage)
+                        Mix-Trigger $Mix 'recoil' ($Tune.WeaponGain * $ds) $ms 0 'weapon'
+                        $Mix.LastFireT = $t
+                        $notes += "FIRE"
+                    }
+                }
+            }
+        }
+    }
+    if ($Sample.WeaponCycle) {
+        Mix-Trigger $Mix 'ramp' $Tune.CycleGain ([int]$Tune.CycleMs) 0 'weapon'
+        $notes += "WEAPON CYCLE"
+    }
+
+    # hits taken, accumulated so a flamer's small ticks add up instead of each kicking
+    if ($Sample.Hits -and $Sample.Hits.Count) {
+        foreach ($h in $Sample.Hits) {
+            if ($Mix.HitAccum -eq 0) { $Mix.HitAccumT = $t }
+            $Mix.HitAccum += [int]$h.Hp
+            if ($h.Side -eq 1 -or $h.Side -eq 2) { $Mix.HitAccumSide = $h.Side }
+            elseif ($Mix.HitAccumSide -eq 0) { $Mix.HitAccumSide = -1 }   # front / back
+        }
+    }
+    if ($Mix.HitAccum -ge $Tune.HitMinHp -and (($t - $Mix.LastImpactT) * 1000.0) -lt $Tune.HitRefractMs) {
+        # a collision: the jolt impact already kicked for it; the damage is the same event
+        $Mix.LastHitT = $t
+        $Mix.HitAccum = 0; $Mix.HitAccumSide = 0
+    } elseif ($Mix.HitAccum -ge $Tune.HitMinHp -and (($t - $Mix.LastHitT) * 1000.0) -ge $Tune.HitRefractMs) {
+        $hm = [math]::Min(1.0, 0.40 + 0.60 * ([math]::Min([double]$Mix.HitAccum, $Tune.HitDmgFull) / $Tune.HitDmgFull))
+        if ($Mix.HitAccumSide -eq 1 -or $Mix.HitAccumSide -eq 2) {
+            $sg = $(if ($Mix.HitAccumSide -eq 1) { 1 } else { -1 }) * [math]::Sign([double]$Tune.HitSideSign + 0.0001)
+            Mix-Trigger $Mix 'jolt' ($sg * $hm * $Tune.HitGain) ([int]$Tune.HitMs) 0 'hit'
+            $notes += $(if ($Mix.HitAccumSide -eq 1) { "HIT left" } else { "HIT right" })
+        } else {
+            Mix-Trigger $Mix 'buzz' ($hm * $Tune.HitGain) ([int]$Tune.HitMs) $Tune.HitHz 'hit'
+            $notes += "HIT"
+        }
+        $Mix.LastHitT = $t
+        $Mix.HitAccum = 0; $Mix.HitAccumSide = 0
+    } elseif ($Mix.HitAccum -gt 0 -and $Mix.HitAccum -lt $Tune.HitMinHp -and ($t - $Mix.HitAccumT) -gt 1.5) {
+        # a trickle that never reaches HitMinHp is forgotten, not saved up for minutes
+        $Mix.HitAccum = 0; $Mix.HitAccumSide = 0
+    }
+
+    # landing: the engine's airborne flag falling edge
+    if ($null -ne $Sample.AirFlag) {
+        if ([bool]$Sample.AirFlag) {
+            if ($Mix.AirT -lt 0) { $Mix.AirT = $t; $Mix.AirMinVy = 0.0 }
+            if ($Sample.Vy -lt $Mix.AirMinVy) { $Mix.AirMinVy = [double]$Sample.Vy }
+        } elseif ($Mix.AirT -ge 0) {
+            $air = $t - $Mix.AirT
+            $drop = -$Mix.AirMinVy
+            if ($air -ge $Tune.LandMinAir -and $drop -ge $Tune.LandMinVy) {
+                $lm = [math]::Min(1.0, $drop / $Tune.LandRef)
+                # an impact the jolt detector started in the last 100 ms is this landing
+                # (the jolt and the flag edge can land a poll apart)
+                $same = @($Mix.Transients | Where-Object { $_.Kind -eq 'impact' -and $_.Start -ge ($t - 0.1) })
+                foreach ($x in $same) { $Mix.Transients.Remove($x) }
+                Mix-Trigger $Mix 'buzz' ($lm * $Tune.LandGain) ([int]$Tune.LandMs) $Tune.LandHz 'landing'
+                $Mix.LastLandT = $t
+                $notes += ("LANDING {0:0}%" -f ($lm * 100))
+            }
+            $Mix.AirT = -1.0; $Mix.AirMinVy = 0.0
+        }
+    }
+
+    # ignition: the engine's "starting" flag (0x8) rising edge; a running edge with no
+    # starting edge before it (a restart the flag did not show) gets a shorter crank
+    $starting = $(if ($null -ne $Sample.EngineStarting) { [bool]$Sample.EngineStarting } else { $null })
+    $running  = $(if ($null -ne $Sample.EngineRunning)  { [bool]$Sample.EngineRunning }  else { $null })
+    if ($null -ne $starting) {
+        if ($null -ne $Mix.LastStarting -and $starting -and -not $Mix.LastStarting) {
+            Mix-Trigger $Mix 'crank' $Tune.IgnitionGain ([int]$Tune.IgnitionMs) $Tune.IgnitionHz 'ignition'
+            $Mix.LastCrankT = $t
+            $notes += "IGNITION"
+        }
+        $Mix.LastStarting = $starting
+    }
+    if ($null -ne $running) {
+        if ($null -ne $Mix.LastRunning -and $running -and -not $Mix.LastRunning -and ($t - $Mix.LastCrankT) -gt 3.0) {
+            Mix-Trigger $Mix 'crank' $Tune.IgnitionGain ([int]($Tune.IgnitionMs * 0.6)) $Tune.IgnitionHz 'ignition'
+            $Mix.LastCrankT = $t
+            $notes += "IGNITION"
+        }
+        $Mix.LastRunning = $running
+    }
+
+    # engine rumble (oscillator) and the flamer bed
+    $engine = 0.0; $engineAmp = 0.0
+    if ($running) {
+        $rpmN = 0.0
+        if ($Sample.Rpm -gt 0) {
+            $rpmN = [math]::Max(0.0, [math]::Min(1.0, ($Sample.Rpm - $Tune.EngineRpmIdle) / ($Tune.EngineRpmMax - $Tune.EngineRpmIdle)))
+        }
+        $fadeE = [math]::Max(0.0, 1.0 - ($Sample.Speed / [math]::Max(0.1, $Tune.EngineFadeSpd)))
+        $engineAmp = $Tune.EngineGain * (0.75 + 0.25 * $rpmN) * $fadeE
+        $hzE = $Tune.EngineIdleHz + ($Tune.EngineMaxHz - $Tune.EngineIdleHz) * $rpmN
+        $Mix.EnginePhase += 2 * [math]::PI * $hzE * $dt
+        if ($Mix.EnginePhase -gt (2 * [math]::PI)) { $Mix.EnginePhase -= 2 * [math]::PI }
+        $engine = $engineAmp * [math]::Sin($Mix.EnginePhase)
+    }
+    $ch['engine'] = [int]$engine
+    $flame = 0.0
+    if ($t -lt $Mix.FlameUntil) {
+        $Mix.FlamePhase += 2 * [math]::PI * $Tune.FlameHz * $dt
+        if ($Mix.FlamePhase -gt (2 * [math]::PI)) { $Mix.FlamePhase -= 2 * [math]::PI }
+        $flame = $Tune.FlameGain * [math]::Sin($Mix.FlamePhase)
+    }
+
     # ---- transient summation ----------------------------------------------
     $transImpact = 0.0
     $transShift  = 0.0
     $transWeapon = 0.0
+    $transHit    = 0.0
+    $transLand   = 0.0
+    $transIgn    = 0.0
     $dead = @()
     foreach ($tr in $Mix.Transients) {
         $age = ($t - $tr.Start) * 1000.0
@@ -824,19 +1081,45 @@ function Mix-Update {
         $v = 0.0
         if ($tr.Shape -eq 'buzz') {
             $v = $tr.Amp * [math]::Exp(-3.0 * $u) * [math]::Sin(2 * [math]::PI * $tr.Hz * ($age / 1000.0))
+        } elseif ($tr.Shape -eq 'recoil') {
+            # CANNON1..4.FRC: a full push, a near-full pull straight after, then the pull
+            # decays to nothing (the hand-drawn UserDefined curves, 10 ms per sample)
+            $v = $(if ($u -lt 0.12) { $tr.Amp } elseif ($u -lt 0.24) { -0.95 * $tr.Amp } else { -0.95 * $tr.Amp * [math]::Exp(-3.5 * ($u - 0.24)) })
+        } elseif ($tr.Shape -eq 'ramp') {
+            # WPNCYCLE.FRC: RampDown, +100 % to -100 % across the effect
+            $v = $tr.Amp * (1.0 - 2.0 * $u)
+        } elseif ($tr.Shape -eq 'crank') {
+            # ENGSTART.FRC: SquareLow (+/-58 %, 79 ms), then SquareHigh +49 / -31 % under a
+            # 34 / 10 / 56 % attack / sustain / fade envelope. Amp = the SquareHigh peak.
+            $sq = [math]::Sign([math]::Sin(2 * [math]::PI * $tr.Hz * ($age / 1000.0)))
+            if ($age -lt 79.0) { $v = $tr.Amp * 1.18 * $sq }
+            else {
+                $w = ($age - 79.0) / [math]::Max(1.0, $tr.Ms - 79.0)
+                $env = $(if ($w -lt 0.34) { $w / 0.34 } elseif ($w -lt 0.44) { 1.0 } else { [math]::Max(0.0, 1.0 - ($w - 0.44) / 0.56) })
+                $v = $tr.Amp * $env * $(if ($sq -ge 0) { 1.0 } else { -0.63 })
+            }
         } else {
             # sharp attack (first 12%), exponential decay after
             $env = if ($u -lt 0.12) { $u / 0.12 } else { [math]::Exp(-3.5 * ($u - 0.12)) }
             $v = $tr.Amp * $env
         }
-        if ($tr.Kind -eq 'weapon')     { $transWeapon += $v }
-        elseif ($tr.Kind -eq 'shift')  { $transShift  += $v }
-        else                           { $transImpact += $v }
+        switch ($tr.Kind) {
+            'weapon'   { $transWeapon += $v }
+            'shift'    { $transShift  += $v }
+            'hit'      { $transHit    += $v }
+            'landing'  { $transLand   += $v }
+            'ignition' { $transIgn    += $v }
+            default    { $transImpact += $v }
+        }
     }
     foreach ($d in $dead) { $Mix.Transients.Remove($d) }
-    $ch['impact'] = [int]$transImpact
-    $ch['weapon'] = [int]$transWeapon
-    $ch['shift']  = [int]$transShift
+    $transWeapon += $flame      # the flamer bed is the weapon channel too
+    $ch['impact']   = [int]$transImpact
+    $ch['weapon']   = [int]$transWeapon
+    $ch['shift']    = [int]$transShift
+    $ch['hit']      = [int]$transHit
+    $ch['landing']  = [int]$transLand
+    $ch['ignition'] = [int]$transIgn
 
     # ---- combine -----------------------------------------------------------
     if (-not $gate['texture']) { $texture = 0.0 }
@@ -845,8 +1128,12 @@ function Mix-Update {
     if (-not $gate['impact'])  { $transImpact = 0.0 }
     if (-not $gate['shift'])   { $transShift  = 0.0 }
     if (-not $gate['weapon'])  { $transWeapon = 0.0 }
-    $trans = $transImpact + $transWeapon + $transShift
-    $osc = $texture + $scrub + $judder
+    if (-not $gate['hit'])     { $transHit = 0.0 }
+    if (-not $gate['landing']) { $transLand = 0.0 }
+    if (-not $gate['ignition']){ $transIgn = 0.0 }
+    if (-not $gate['engine'])  { $engine = 0.0 }
+    $trans = $transImpact + $transWeapon + $transShift + $transHit + $transLand + $transIgn
+    $osc = $texture + $scrub + $judder + $engine
 
     # Slew-limit the STEADY part only. Steady forces should never step, but a
     # rate limit on an impact would file the edge off exactly the thing that
@@ -914,10 +1201,14 @@ function Mix-Update {
             @{ Name='texture'; Freq=$Tune.TextureHz; Amp=[math]::Round([math]::Abs($texAmp*$mScale)/$N,4) }
             @{ Name='scrub';   Freq=$Tune.ScrubHz;   Amp=[math]::Round(($scrubAmp*$mScale)/$N,4) }
             @{ Name='judder';  Freq=$Tune.JudderHz;  Amp=[math]::Round(($judderAmp*$mScale)/$N,4) }
+            @{ Name='engine';  Freq=$Tune.EngineIdleHz; Amp=[math]::Round([math]::Abs($engineAmp*$mScale)/$N,4) }
         )
-        # transients: instantaneous envelope values, signed
-        Transient = [math]::Round((($transImpact + $transWeapon) * $mScale) / $N, 4)
-        TransientImpact = [math]::Round(($transImpact * $mScale) / $N, 4)
+        # transients: instantaneous envelope values, signed. Transient is EVERY transient
+        # (2026-10-24: it used to leave out shift, so the bus stopped summing to the wheel
+        # force whenever a gear change was sounding); TransientImpact carries the body
+        # events (collision, hit, landing, ignition), TransientWeapon the guns.
+        Transient = [math]::Round(($trans * $mScale) / $N, 4)
+        TransientImpact = [math]::Round((($transImpact + $transHit + $transLand + $transIgn) * $mScale) / $N, 4)
         TransientWeapon = [math]::Round(($transWeapon * $mScale) / $N, 4)
         # motion platform: raw SI quantities; washout/tilt is the RIG's job
         Motion = [pscustomobject]@{
@@ -947,9 +1238,9 @@ function Mix-Update {
             # of driving - so the rig felt weak except when being thrashed.
             EngineAmp  = [math]::Round($duck * $Tune.LfeEngineAmp * (0.35 + 0.65 * [math]::Abs($Sample.Throttle)) *
                            $(if ($Sample.Speed -gt 0.5 -or [math]::Abs($Sample.Throttle) -gt 0.05) { 1.0 } else { 0.0 }), 3)
-            RoadAmp    = [math]::Round([math]::Min(1.0, $duck * $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
+            RoadAmp    = [math]::Round([math]::Min(1.0, $duck * $Mix.SurfGain * $Tune.LfeRoadAmp * $rough * [math]::Min(1.0, $Sample.Speed / $Tune.TexRef)), 3)
             RoadFreq   = [math]::Round($Tune.LfeRoadLoHz + ($Tune.LfeRoadHiHz - $Tune.LfeRoadLoHz) * $rough, 1)
-            ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact + $transShift) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
+            ImpulseAmp = [math]::Round([math]::Min(1.0, [math]::Abs($transImpact + $transShift + $transHit + $transLand) / $N * ($Tune.LfeImpactAmp * $N / [math]::Max(1,$Tune.ImpactGain))), 3)
             HeaveAmp   = [math]::Round([math]::Min(1.0, $Tune.LfeHeaveAmp *
                            [math]::Abs($(if ($null -ne $Sample.HeaveAccel) { $Sample.HeaveAccel } else { 0.0 })) /
                            $Tune.LfeHeaveRef), 3)

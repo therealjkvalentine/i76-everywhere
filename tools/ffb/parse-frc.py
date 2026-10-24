@@ -128,6 +128,96 @@ def parse_effect(buf, off, size):
     return hdr_size, type_name, strings[1:], mid_kind, params
 
 
+# ---------------------------------------------------------------------------
+# THE PARAMETER BLOCK, decoded 2026-10-24 (docs/records/FFB-WHEEL-2026-10-24.md).
+#
+# Read across all 14 stock files plus the 14 of the SideWinder edition on the
+# 1976-auto-vigilante-compendium disc (FRC/), by what VARIES with what. Each field
+# carries how it was pinned; "inferred" fields are the ones a second effect type
+# could still contradict. p[] is the int32 run at payload+68 (params below).
+#
+#   p[0]   kind            2 = primitive, 3 = composite / user-defined      certain (by type name)
+#   p[1]   type id         101 Constant 102 Sine 103 Cosine 104 SquareLow
+#                          105 SquareHigh 107 RampDown 111 SawtoothDown
+#                          201 UserDefined 202 Sequence 203 Superimpose     certain (1:1 with the name)
+#   p[2]   axes mask       3 in every file (x and y)                        inferred
+#   p[3]   direction, deg  180 cannons / missiles, 90 ENGSTART low, 270
+#                          the tyre-blowout constant                        strong (only values 0/90/180/270)
+#   p[4]   (0 everywhere)                                                   unknown
+#   p[5]   duration, ms    CANNON1..4 = 940/500/330/250 = 10 ms x the
+#                          UserDefined sample count (94/50/33/25)           certain
+#   p[6]   gain, %         100 everywhere                                   inferred
+#   p[7]   (100 everywhere)                                                 unknown
+#   p[8]   (1 on the tyre-blowout Sine only)                                unknown
+#   p[9]   effect flags    0x20 = DIEFF_POLAR in every file                 strong
+#   p[10]  (0 everywhere)                                                   unknown
+#   p[11..13] envelope     attack / sustain / fade as PERCENT of duration;
+#                          they sum to 100 in every file (0/100/0 = none)   certain (the sums)
+#   p[14], p[15]           attack / fade level (0 = from / to zero)         inferred
+#   p[16]  sustain level % 100 everywhere                                   inferred
+#   p[17]  bytes of the type-specific record that follows, incl. itself
+#                          (20 periodic / constant / ramp, 12 user / seq)   certain (matches the sizes)
+#   periodic / constant / ramp (p[17] = 20):
+#   p[18]  frequency, Hz   Cosine 5 Hz x 200 ms and 4 Hz x 250 ms = exactly
+#                          one cycle (the missile kick); 1 on constant/ramp strong
+#   p[19]  (100; 200 on ENGSTART's SquareHigh; 0 on the silent constant)     unknown
+#   p[20], p[21]  max / min %  Sine +50/-50, SquareLow +58/-58, Sawtooth and
+#                          Ramp +100/-100 (start / end), the blowout constant
+#                          -100/-100 left and +100/+100 right               strong
+#   UserDefined (p[17] = 12): p[18] sample count, p[19] a runtime pointer (garbage
+#                          on disk), then p[18] samples in percent, one per 10 ms
+#   Sequence / Superimpose (p[17] = 12): p[18] child count, p[19] pointer,
+#                          then the child effect ids (the 'id  ' chunks)
+# ---------------------------------------------------------------------------
+TYPE_IDS = {101: "Constant", 102: "Sine", 103: "Cosine", 104: "SquareLow", 105: "SquareHigh",
+            107: "RampDown", 111: "SawtoothDown", 201: "UserDefined", 202: "Sequence", 203: "Superimpose"}
+
+
+def decode(params):
+    """The fields above, as a dict. Raises nothing: an unexpected block decodes partially."""
+    p = params
+    d = {}
+    if len(p) < 18:
+        return d
+    d["kind"] = {2: "primitive", 3: "composite"}.get(p[0], p[0])
+    d["type"] = TYPE_IDS.get(p[1], p[1])
+    d["direction_deg"] = p[3]
+    d["duration_ms"] = p[5]
+    d["gain_pct"] = p[6]
+    d["polar"] = bool(p[9] & 0x20)
+    d["envelope_pct"] = (p[11], p[12], p[13])
+    rec = p[18:]
+    if p[1] == 201 and len(rec) >= 2:
+        n = rec[0]
+        samples = rec[2:2 + n]
+        d["samples"] = samples
+        d["sample_ms"] = (p[5] / n) if n else None
+    elif p[1] in (202, 203) and len(rec) >= 2:
+        d["children"] = rec[2:2 + rec[0]]
+    elif len(rec) >= 4:
+        d["freq_hz"] = rec[0]
+        d["max_pct"] = rec[2]
+        d["min_pct"] = rec[3]
+    return d
+
+
+def describe(d):
+    if not d:
+        return "(too short to decode)"
+    out = "%s %s  %d ms  dir %d deg" % (d["kind"], d["type"], d["duration_ms"], d["direction_deg"])
+    a, s_, f = d["envelope_pct"]
+    if (a, s_, f) != (0, 100, 0):
+        out += "  envelope %d/%d/%d %%" % (a, s_, f)
+    if "freq_hz" in d:
+        out += "  %d Hz  %+d..%+d %%" % (d["freq_hz"], d["min_pct"], d["max_pct"])
+    if "samples" in d:
+        sm = d["samples"]
+        out += "  %d samples x %.0f ms, peak %+d / %+d %%" % (len(sm), d["sample_ms"] or 0, max(sm), min(sm))
+    if "children" in d:
+        out += "  children %s" % d["children"]
+    return out
+
+
 def main():
     if len(sys.argv) > 1:
         folder = sys.argv[1]
@@ -194,7 +284,8 @@ def main():
             # Printed raw. Guessing at unidentified fields and writing the guess
             # down as if it were known is exactly how the "+0x08 is a rotation
             # matrix" error in the memory map happened - so these stay raw.
-            print("   params (semantics unidentified): %s" % params)
+            print("   params: %s" % params)
+            print("   decoded: %s" % describe(decode(params)))
         print()
 
     # --- what this is actually for --------------------------------------------
@@ -217,9 +308,9 @@ def main():
     print("That is independent corroboration of the mixer's shape from the people")
     print("who tuned this game for this wheel.")
     print()
-    print("What is NOT decoded: the parameter block. Peak magnitude and duration")
-    print("are presumably in there - 100 (0x64) and +/-126 recur, suggesting")
-    print("percent - but the fields are not pinned, so no numbers are claimed.")
+    print("The parameter block is decoded since 2026-10-24 (see the table above")
+    print("decode()): duration, direction, envelope, frequency and peaks are pinned;")
+    print("a handful of constant fields stay unknown and are not used.")
     return 0
 
 

@@ -81,7 +81,8 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'FfbMixer.ps1')
 if (-not $DryRun) { . (Join-Path $here 'FfbCore.ps1') }
 
-$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon','shift')
+$ALL_CH = @('center','corner','oversteer','brake','texture','scrub','judder','impact','weapon','shift',
+            'engine','ignition','hit','landing')   # the last four: 2026-10-24
 
 # ---------------------------------------------------------------------------
 # Panel
@@ -150,9 +151,17 @@ function Build-Panel {
         # RPM is shown so it can be checked against the dashboard tachometer -
         # it was identified by a memory scan, not by a decompile, so the needle
         # is the only thing that confirms it.
-        $null = $L.Add(("   rpm: {0,5}   slide: {1,6:0.000} rad/s" -f `
+        $null = $L.Add(("   rpm {0,5}  slide {1,5:0.00}  gear {2,2}  surf {3,2} {4,-7}x{5:0.00} {6}{7}{8}{9}" -f `
             $(if ($null -ne $S.Rpm) { $S.Rpm } else { 0 }),
-            $(if ($null -ne $S.Slide) { $S.Slide } else { 0 })))
+            $(if ($null -ne $S.Slide) { $S.Slide } else { 0 }),
+            $(if ($null -ne $S.Gear) { $S.Gear } else { -1 }),
+            $(if ($null -ne $S.Surface) { $S.Surface } else { -1 }),
+            $(if ($S.Paved) { 'paved' } else { 'offroad' }),
+            $(if ($Out -and $null -ne $Out.Channels['surf%']) { $Out.Channels['surf%'] / 100.0 } else { 1.0 }),
+            $(if ($S.EngineRunning) { 'ENG ' } else { 'eng- ' }),
+            $(if ($S.DriftFlag) { 'DRIFT ' } else { '' }),
+            $(if ($S.SkidFlag) { 'SLIDE ' } else { '' }),
+            $(if ($S.ShotSource -eq 'ammo') { 'ammo' } else { 'fxblk' })))
         $null = $L.Add(("   engine fx: {0} active{1}   input fire {2}   |yaw-expect| {3,6:0.000}   tick {4,5:0.00}s{5}" -f `
             $(if ($null -ne $S.FxActive) { $S.FxActive } else { 0 }),
             $(if ($S.FxFired -and $S.FxFired.Count) { "  FIRED: " + (($S.FxFired | ForEach-Object { "id$($_.Id)" }) -join ' ') } else { "" }),
@@ -248,12 +257,22 @@ try {
         $telCtx.Ent, $telCtx.Wheelbase, $telCtx.Track) -ForegroundColor Green
 
     $tuneTable = Mix-DefaultTune
+    # THE OWNER'S TUNE PERSISTS (2026-10-24). PLAY-i76.ps1 -Ffb starts this script with
+    # no -Tune, so a tune saved with [s] used to be written and never read again.
+    # ffb-tune-owner.json next to this script now loads by default, and it holds ONLY
+    # the values that differ from the defaults, so a default improved later still
+    # reaches every key the owner never touched. Edit it by hand too, e.g.
+    #     { "PavementScale": 0.4, "EngineGain": 300 }
+    # (ffb-tune.json, the old full snapshot, is NOT auto-loaded: it predates current
+    # defaults; pass it with -Tune to use it.)
+    $ownerTune = Join-Path $here 'ffb-tune-owner.json'
+    if (-not $Tune -and (Test-Path $ownerTune)) { $Tune = $ownerTune }
     if ($Tune -and (Test-Path $Tune)) {
         $j = Get-Content $Tune -Raw | ConvertFrom-Json
         foreach ($p in $j.PSObject.Properties) { $tuneTable[$p.Name] = $p.Value }
-        Write-Host "tune loaded from $Tune" -ForegroundColor Green
+        Write-Host ("tune loaded from {0} ({1} values)" -f $Tune, @($j.PSObject.Properties).Count) -ForegroundColor Green
     }
-    $tuneTable['Master'] = $Master
+    if ($PSBoundParameters.ContainsKey('Master') -or $null -eq $tuneTable['Master']) { $tuneTable['Master'] = $Master }
     $mix = Mix-New $tuneTable
 
     # Channel gating. -Only wins over -Mute.
@@ -346,7 +365,8 @@ try {
         # cannot disagree with the writer is the only fix that stays fixed.
         $logCols = @('t','speed','mph','steer','throttle','longG','latG','yaw',
                      'expectYaw','understeer','oversteer','jolt',
-                     'angVelX','angVelZ','vy','heave','slide','headingRate','rpm','rpmRate','shift','fireRaw','fxActive','fxFired') +
+                     'angVelX','angVelZ','vy','heave','slide','headingRate','rpm','rpmRate','shift','fireRaw','fxActive','fxFired',
+                     'flags','surface','paved','surfPct','gear','steerK','latCap','shotSrc','shots','hits','wrow','gameFfb') +
                      # ch_ prefix, because 'oversteer' is BOTH a telemetry field
                      # (0..1 slip) and a force channel (scaled to OversteerGain).
                      # Emitting both under one name made every CSV reader silently
@@ -470,7 +490,13 @@ try {
                     # spaces made the CSV ambiguous enough that a strict reader
                     # merged rows (2861 parsed from 7324 written). A log that
                     # cannot be re-read is not a log.
-                    $(if ($s.FxFired -and $s.FxFired.Count) { (($s.FxFired | ForEach-Object { "id$($_.Id)m$($_.Mag)" }) -join ';') } else { '' })
+                    $(if ($s.FxFired -and $s.FxFired.Count) { (($s.FxFired | ForEach-Object { "id$($_.Id)m$($_.Mag)" }) -join ';') } else { '' }),
+                    ([string][int64]$s.Flags), ([string][int]$s.Surface), ([string][int][bool]$s.Paved),
+                    ([string][int]$out.Channels['surf%']), ([string][int]$s.Gear),
+                    ('{0:0.00000}' -f [double]$s.SteerK), ('{0:0.000}' -f [double]$s.LatCap), [string]$s.ShotSource,
+                    $(if ($s.Shots -and $s.Shots.Count) { (($s.Shots | ForEach-Object { "c$($_.Klass)d$($_.Damage)x$($_.Rounds)" }) -join ';') } else { '' }),
+                    $(if ($s.Hits -and $s.Hits.Count) { (($s.Hits | ForEach-Object { "s$($_.Side)h$($_.Hp)" }) -join ';') } else { '' }),
+                    ([string][int]$s.WeaponRow), ([string]$s.GameFfb)
                 )
                 foreach ($c in $ALL_CH) { $cols += [string][int]$out.Channels[$c] }
                 $cols += [string]$force
@@ -523,9 +549,16 @@ try {
                 '=' { $tuneTable['Master'] = [math]::Min(1.5, $tuneTable['Master'] + 0.05) }
                 '-' { $tuneTable['Master'] = [math]::Max(0.0, $tuneTable['Master'] - 0.05) }
                 's' {
-                    $p = Join-Path $here 'ffb-tune.json'
-                    ($tuneTable | ConvertTo-Json) | Set-Content -Path $p -Encoding ASCII
-                    $null = $noteHist.Insert(0, "        saved tune -> ffb-tune.json")
+                    # only what differs from the defaults (see ffb-tune-owner.json above)
+                    $p = Join-Path $here 'ffb-tune-owner.json'
+                    $def = Mix-DefaultTune; $diff = [ordered]@{}
+                    foreach ($k in ($tuneTable.Keys | Sort-Object)) {
+                        $a = $tuneTable[$k]; $b = $def[$k]
+                        if ($a -is [array] -or $b -is [array]) { continue }
+                        if ($null -eq $b -or [math]::Abs([double]$a - [double]$b) -gt 1e-9) { $diff[$k] = [math]::Round([double]$a, 4) }
+                    }
+                    ([pscustomobject]$diff | ConvertTo-Json) | Set-Content -Path $p -Encoding ASCII
+                    $null = $noteHist.Insert(0, ("        saved {0} changed value(s) -> ffb-tune-owner.json" -f $diff.Count))
                 }
                 'q' { throw [OperationCanceledException]::new("quit") }
             }

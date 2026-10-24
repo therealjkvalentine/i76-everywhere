@@ -11,11 +11,11 @@ synthesised from game state, outside the engine.
 |---|---|
 | **FFB output** (`FfbCore.ps1`) | **working** — acquires the T300, drives arbitrary force, recovers a lost device |
 | **Telemetry** (`Telemetry.ps1`) | **working** — speed, velocity, yaw rate, steer, throttle, derived slip/impact |
-| **Force model** (`FfbMixer.ps1`) | **working** — 8 channels, 28 assertions passing |
+| **Force model** (`FfbMixer.ps1`) | **working** — 14 channels, 133 assertions passing (`ffb-mixer-test.ps1`) |
 | **Interposer + panel** (`ffb-interposer.ps1`) | **working** — live panel, channel solo/mute, CSV logging |
-| **Calibration** (`ffb-calibrate.ps1`) | **working** — measures yaw sign and steering lock from one drive |
-| Feel tuning | **not started** — needs a drive; nothing here has been judged by hand yet |
-| Weapon/engine effects | not started — see "the .frc files" below |
+| **Calibration** (`ffb-calibrate.ps1`) | **working** — measures yaw sign and steering lock from one drive; counts loss of control the way the mixer sees it (2026-10-24) |
+| Feel tuning | **first owner drive 2026-10-24** (T300): terrain liked, pavement halved since, the under/oversteer jerk traced to a wrong steering reference and fixed — `docs/records/FFB-WHEEL-2026-10-24.md` |
+| Weapon / engine / hit / landing effects | **built 2026-10-24** from engine state (ammo counters, damage, flags, gear), shaped from the decoded stock `.frc` effects; not yet felt on the wheel |
 
 ## Quick start
 
@@ -34,7 +34,7 @@ tools\ffb\ffb-interposer.ps1 -Only corner
 tools\ffb\ffb-interposer.ps1 -Mute texture,scrub -Master 0.7
 ```
 
-Live keys: `[space]` mute · `[+/-]` master gain · `[s]` save tune · `[q]` quit.
+Live keys: `[space]` mute · `[+/-]` master gain · `[s]` save tune (to `ffb-tune-owner.json`) · `[q]` quit.
 
 ## The one idea that matters: slip makes the wheel go LIGHT
 
@@ -67,6 +67,25 @@ want to make anyway.
 | `scrub` | understeer | the sound of rubber, on top of the lightness |
 | `judder` | hard braking | lockup shimmy (no ABS in 1997) |
 | `impact` | velocity-vector discontinuity | collisions |
+| `weapon` | the player's ammo counters, per weapon class | recoil (gun / cannon / mortar, the CANNON curve), rocket kick, flamer bed, dropper clunk, weapon-cycle click |
+| `shift` | gear (engine +0x08) changing 2..4 | one firm hit |
+| `engine` | flag 0x1 running + rpm | idle rumble, faded out by 40 mph like the stock one |
+| `ignition` | flag 0x8 starting (rising edge) | the ENGSTART crank |
+| `hit` | armour + chassis lost, per side | directional kick (left / right), buzz (front / back) |
+| `landing` | flag 0x4 airborne, falling edge | thump sized by the descent |
+
+Road texture (and the LFE road bed) is scaled by surface: `PavementScale` 0.5 on tarmac,
+`OffroadScale` 1.0 elsewhere, crossfaded over `SurfaceFadeMs` (the surface is one value per car,
+`entity+0x45c`, so without the fade the road edge would be a step). Tarmac is read from the
+level's own WRLD surface table (low rolling resistance), not a fixed list.
+
+The steering reference behind `oversteer` / `scrub` / grip is the engine's own law, read live:
+`yaw = steer x speed x K` (K = entity+0x110) capped at `steer x lim / speed` (lim = 7.84 x the
+grip of tyres 0, 1, 4, 5). The fitted (lock, a) pair from `ffb-calib.json` is only the fallback.
+
+**Your tune persists:** `[s]` writes `ffb-tune-owner.json` (only the values that differ from the
+defaults) and the interposer loads it on the next start. Edit it by hand too, e.g.
+`{ "PavementScale": 0.4, "EngineGain": 300, "HitSideSign": -1 }`.
 
 Continuous channels are deliberately held **low** so transients read on top —
 the discipline that makes the pad rumble mixer (`i76-remap.ahk`) work. Raising
@@ -215,6 +234,14 @@ Every run now also dumps `ffb-calib-samples.csv`. The first version kept nothing
 so when its fit came out wrong the only way to investigate was another 30-second
 drive. Refit offline with `-FromLog ffb-calib-samples.csv`.
 
+**"No loss-of-control samples" while the car slid (2026-10-24).** The count compared yaw with
+the steering model, but I'76's dirt slide is the engine's drift band: flag 0x2000 set, the
+velocity kept, the body still yawing at the FULL commanded rate. A yaw-versus-steering test is
+blind to that by construction. The samples file now keeps slide (yaw rate minus the rate the
+velocity turns), the mixer's own over / under values, the engine flags, the surface and the live
+steering law, and the report counts what the mixer would do, the slide, and the flags, beside
+the old yaw-only number. Derivatives are tick-aware (24 ticks/s polls repeat samples).
+
 `ffb-calib-test.ps1` (11 assertions) synthesises drives from a **known** lock,
 including the first-order yaw lag that caused the original error, and asserts
 recovery — sustained and sinusoidal steering, a wider 0.60 rad lock to prove it
@@ -224,7 +251,7 @@ must be *rejected* rather than fitted.
 ## Testing
 
 ```powershell
-tools\ffb\ffb-mixer-test.ps1          # 28 assertions, no game or wheel needed
+tools\ffb\ffb-mixer-test.ps1          # 133 assertions, no game or wheel needed
 tools\ffb\ffb-coexist-test.ps1        # can we and the game share the device?
 tools\ffb\ffb-telemetry-probe.ps1     # rediscover struct offsets by behaviour
 ```
@@ -286,7 +313,15 @@ to a matrix that does not exist), and velocity was listed as unfound in
 Position is still unidentified, and **the force model does not need it** — every
 channel derives from velocity, angular velocity and the control inputs.
 
-## The .frc files — parsed, and they corroborate the mixer's shape
+## The .frc files — parsed, decoded (2026-10-24), and they corroborate the mixer's shape
+
+**Decoded 2026-10-24** (`parse-frc.py` prints a `decoded:` line per effect; the field table is
+in the script): duration, direction, envelope (attack / sustain / fade as percent of the
+duration), frequency and max / min percent are pinned; the UserDefined cannon curves are
+10 ms samples. The SideWinder edition's FRC folder (archive.org compendium) decodes to the
+same effects; only its cannon curves are re-sampled (1-4 % differences). The weapon,
+ignition and cycle channels take their shapes from these. The text below is kept as the
+history of how the parser got here.
 
 `parse-frc.py` reads the 14 effects in `force\`. They are RIFF `FORC` containers
 (Immersion's Force Resource layout): a DirectInput target GUID, then one or more
@@ -310,9 +345,8 @@ built feel by layering a constant force with an oscillation — which is exactly
 corroboration of the mixer's shape from the people who tuned this game for this
 class of wheel.
 
-**What is NOT decoded: the parameter block.** Peak magnitude and duration are
-presumably in it (`100` = `0x64` and `±126` recur, suggesting percent) but the
-fields are not pinned, so the tool prints them raw and claims no numbers.
+**(Superseded 2026-10-24: decoded, see above.)** The parameter block was printed raw
+until its fields were pinned across all 28 files.
 
 Two mistakes in the first version of that parser, both recorded because they are
 the same species as the `+0x08` matrix error:
@@ -328,8 +362,9 @@ the same species as the `+0x08` matrix error:
    list on Windows, where **glob is case-insensitive** — each pattern matches all
    14 files.
 
-Not a runtime dependency: nothing in the interposer needs this, and since our
-layer coexists with the game the engine still plays these itself.
+Not a runtime dependency: nothing in the interposer reads the files. With `-Ffb` the
+interposer holds the wheel and the engine's own effects are off, so the channels above
+replace them.
 
 ## The force bus - device processing is the last stage
 
@@ -390,7 +425,7 @@ Background and the numbers behind all of this: **[docs/FFB-DESIGN-LIBRARY.md](..
 | `FfbMixer.ps1` | the force model |
 | `ffb-interposer.ps1` | main loop, observability panel, logging |
 | `ffb-calibrate.ps1` | measures yaw sign + steering lock |
-| `ffb-mixer-test.ps1` | 28 assertions over synthetic drives |
+| `ffb-mixer-test.ps1` | 133 assertions over synthetic drives |
 | `ffb-coexist-test.ps1` | device-sharing measurement |
 | `ffb-telemetry-probe.ps1` | offset discovery by behaviour |
 | `ffb-graph.ps1` + template | interactive HTML drive report |
