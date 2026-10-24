@@ -160,3 +160,105 @@ clicks, SCOTT-BUILD s.6.1), not dgVoodoo. Its run `gate\20261024-100056` is void
   - `tools\dgv-compat\`: gate-dgv.ps1, bisect-keys.ps1, only-keys.ps1, dis-ret.py, auxrepro, aux-real-switch.diff.
 - One bench run (`raw-onlyMiscB-4`) lost its job process after launch and left its own i76.exe running, which I stopped (pid
   17772, path in my copy). The next run was refused because of it. Both are counted as void.
+
+## 7. The winmmbase crash: cause and the proxy fix (winmm-race lane, 2026-10-24)
+
+**Cause (measured, laptop, `I76_WINMM_TRACE=1`).** This is not a timing race inside winmmbase. The cause is Windows' own
+compatibility shim for i76.exe (AcGenral.DLL, which the same update also took to 26100.9549).
+
+- The shim replaces kernel32's Global* and Local* memory functions with its own heap. Every one of them comes back from
+  GetProcAddress as an AcGenral.DLL address (GlobalAlloc is AcGenral.DLL+0x72C40).
+- Since this update, the shim reaches the system modules' GlobalAlloc / GlobalFree import slots (api-ms-win-core-heap-l2). It does
+  not reach their GlobalLock / ReAlloc / Unlock / Size slots (api-ms-win-core-heap-obsolete-l1), which stay KERNELBASE's.
+- The census found this split in nearly every module:
+  - loaded at start-up: winmmbase, USER32, ole32, combase, gdi32full, SHELL32, SHLWAPI, urlmon, windows.storage, MSACM32;
+  - loaded later: msacm32.drv, midimap, mfplat, WMVCore, MSCTF, Oleacc, CRYPT32.
+- winmmbase builds its driver table with GlobalAlloc(GMEM_MOVEABLE), which goes to the shim and returns a plain heap pointer. It then
+  calls GlobalLock, which goes to KERNELBASE.
+  - KERNELBASE reads any value with bit 2 set as a moveable handle. It finds no such handle (err 6) and returns NULL. winmmbase then
+    reads [NULL+8] at +0x5AB3.
+  - The trace log shows both cases. Crashing boots: `test GlobalAlloc(0x42, 16) = 00A95156, GlobalLock = 00000000 (err 6)`. Surviving
+    boots: bit 2 clear (`00B13B42 -> 00B13B42`).
+  - Whether bit 2 is set depends on where the heap stands at that moment. That explains the ~50 % rate, and why the preset's
+    allocations change the odds (no preset: 0 of 8).
+- The same split also broke the mp3 player. All 3 laptop drives that survived without the fix logged `open ... type mpegvideo` FAIL
+  266 (MCIERR_CANNOT_LOAD_DRIVER). Music never played on 26100.9711.
+
+**Fix: `I76_WINMM_HEAPFIX` in the proxy** (music-fix/winmmrace.c; default auto, `=0` turns it off). Every module with a split set
+gets the shim's own function in its system slots, so each module uses one allocator again: the shim's, as the shim intends.
+
+- What it changes: only slots that are still the system's, only in modules that already have a slot pointing into the layer, and only
+  for functions the layer hooks.
+- When it runs:
+  - From DllMain.
+  - Then a thread preloads the audio / MCI modules that winmm would otherwise load inside the game's first calls: wdmaud.drv,
+    msacm32.drv, midimap, mciqtz32, quartz, mfplat, WMVCore, MMDevAPI, AudioSes, dsound. It sweeps them for 500 ms, then releases the
+    proxy's first real winmm call.
+  - Then every 50 ms for 30 s, every 1 s up to 2 min, then every 5 s.
+  - Also before the proxy's real winmm calls, at most once per 100 ms.
+- Safety: each module is pinned while it is walked, and the import walk is bounds-checked.
+- **No split means no change.** On this PC (Windows 10 19045) the log reads `winmm-heapfix: not needed so far (DllMain: no module with
+  a split Global* set)` in 4 of 4 sessions.
+
+The attempts in order. All boots use the owner preset.
+
+| build | what it did | boots | crashes |
+|---|---|---|---|
+| no fix (fc6a5960; `=0`; and the builds below where it did not take) | - | 59 | 28, all winmmbase+0x5AB3 |
+| c3ca61b / f10aa9b | winmmbase's six slots -> KERNELBASE, resolved through GetProcAddress | 40 | 16. The shim hooks GetProcAddress too, so this wrote the shim's own pointer back |
+| 6d54ad5 | the same, with KERNELBASE resolved from its export table | 5 | 1, in the mute thread's COM object. The shim re-patches GlobalAlloc after DllMain, and the mixed window corrupts the heap. Dropped |
+| e285a9f | winmmbase's four uncaught slots -> the shim's functions | 40 | 3, none in winmmbase: DSOUND, wdmaud.drv, the AcGenral heap |
+| 7861e96 / 730d455 | every split module; then the Local* set too | 20 / 20 | 2 (AcGenral) / 4 (wdmaud x2, AcGenral, the sweep's own walk). Modules loaded inside a winmm call were used before the sweep reached them |
+| 0e2d1b1 | + preload of the audio / MCI modules | 20 | 1, the sweep's own walk (a module unloaded while it was being walked) |
+| 3c86f14 | + pin each module while walking it | 25 | **0** |
+| **709466d = main 3ef108d, Strlkup.dll 53944fb2** | + the preload sweep repeats for 500 ms | table below | **0** |
+
+**Result, final build.** Proxy md5 `53944fb2f1f39c7bda31868b4922d3a6`, built from main 3ef108d with build.ps1 -Ref. It is
+byte-identical to the 709466d build that was tested.
+
+| configuration (laptop, 26100.9711, dgVoodoo 2.87.5) | n | winmmbase crashes | any crash |
+|---|---|---|---|
+| RC twin copy (`C:\i76-bench\wmr-twin`), OWNER-2300-ALL at 1080p, t05, in-proxy mute on | 20 | 0 | 0 |
+| the same with `I76_MUTE` unset (the pid watcher still mutes) | 20 | 0 | 0 |
+| the same, no preset | 8 | 0 | 0 |
+| Scott's setup through **PLAY-T05.bat** (PLAY.bat's stable preset, straight into t05) | 10 | 0 | 0 |
+| Scott's setup through **PLAY-PREVIEW-T05.bat** (the preview preset) | 10 | 0 | 0 |
+| control: Scott's setup with its shipped proxy 6208d3ad, PLAY-T05 | 6 | 0 | 0 |
+
+Scott's setup is pristine GOG 2.1.0.17 (exe 9a232dcc) + zip scott-20261023b + dgVoodoo 2.87.5.
+
+**Scott's configuration did not crash without the fix either** (0 of 6). GOG's exe imports no winmm; its CD audio goes through GOG's
+win32.dll.
+- The split is still present there. In every Scott boot the fix changed slots in 11 modules at DllMain, with no ill effect.
+- The only CRASH lines in the Scott boots are the documented frame-0 PIT probe at i76.exe+0x99997, which the game handles (20 of 20).
+  WER logged 0 application errors over those batches.
+
+**Music, checked in the log (the game is muted).**
+- In missions (t05 held 75 s), 4 of 4 boots logged `MCI_PLAY ... run 6..14`, `str ok: open ...6.mp3 type mpegvideo`,
+  `str ok: play i76cd` and `PLAY track 6`. Before the fix this was 0 of 3, because the open failed with 266.
+- Every boot reads the disc's track list (17 real mpegvideo opens) without error.
+- **Menu music was not observed.** The one menus boot (90 s) was still in the intro movie.
+
+**This PC (Windows 10 19045): gate rows 1, 3, 9** on `dgv2875-twin-20261024` with 53944fb2, run `autotest\runs\gate\20261024-175400`.
+**PASS 8, FAIL 0.**
+- Row 3: 121.3 / 122 fps.
+- Row 9: hill median 117.4 fps over 2606 m (ridge 120.7, 1 % low 77.8). The s.3 2.87.5 control read 119.8 (ridge 120.1, 1 % low
+  81.9), n 1 each. That is inside the 10 % gate, and the fix is inactive on this PC by its own log.
+- The twin's proxy was put back to fc6a5960.
+
+**Where things are.**
+- Lab:
+  - Bench scripts: `laptop-bench\bench\wmr-batch.ps1`, `wmr-scott.ps1`, `itask-lane.ps1` (its own task name, so lanes no longer
+    replace each other's `i76bench` task) and `raw-boot.ps1 -RunsDir`.
+  - PC-side runners: `laptop-bench\wmr-run.sh` and `wmr-scott-run.sh`.
+  - `tools\winmm-race\`: wdis.py and the laptop's winmmbase / dsound / AcGenral 9549.
+  - `captures\winmm-race\`: the per-boot proxy logs of every batch.
+  - `builds\nitro-port-20261021\wmr-*`.
+- Laptop:
+  - `C:\i76-bench\wmr-twin`: this lane's copy of rc-twin-dgv2875.
+  - `C:\i76-bench\scott-gog\game`: Scott's setup done, at 1920x1080.
+  - `C:\i76-bench\wmr\*.dll` and `runs\wmr\`.
+
+**Incident.** The first Scott batch started the .bat with its output piped, so it waited on the game and held the laptop lock from
+12:48 to 17:50. I stopped only my own processes: the game, its PLAY-i76.ps1, and AutoHotkey and i76wheel from that folder.
+`wmr-scott.ps1` now starts the .bat with Start-Process.
