@@ -1181,3 +1181,12 @@ Open items from this session:
 - A joiner who respawns should appear NEAR THE HOST (proximal), not at the mission's own spawn.
 - Co-op scenarios: spawn duplicate enemy cars per joiner so the challenge matches the player count (I76_COOP_* co-op
   scaling exists - "copies per enemy up to 3 joiners" - check whether it is on in the family pack and in scenarios).
+
+## 2026-10-24 afternoon: owner playing Nitro missions (exp-nitro-owner, proxy e78aedd5) - look at after 15:00
+- A dropper-like sound effect repeats / sticks again (a Gold fix exists for the stuck dropper sound - port to Nitro?).
+- Flashing a few pixels wide around the screen edges is back (Gold had an edge-flash fix - check it is on for Nitro).
+- Audio balance: voices too quiet, sound effects too loud, music about right - at equal settings the three should sound
+  equally loud (worse than Gold); measure before touching the pause-menu sliders.
+- Bus mission: can't make the bus stop (velocity) - may be player technique; check the mission's stop condition.
+- "Rename variant to save" menu: not reachable by mouse, Enter does nothing - likely the same text-entry / pointer fix
+  Gold's shell needed; port to Nitro's shell.
