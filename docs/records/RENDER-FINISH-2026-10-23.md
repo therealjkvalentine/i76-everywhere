@@ -156,3 +156,29 @@ suffix, under the console lock; `tools/render-finish/rf-zipboot.ps1`): T05 drawn
 the mission's opening camera, bushes keyed), CRASH 0, the log carries the new lines (`no blend nearer than 100 m; 64+ levels stock`,
 `clutter-alpha: on`, shade-smooth, feather, density 0.50). A first try without bringing the window to the foreground drew black (the
 game does not render inactive); the script now does what proxy-run does. The unzip was deleted afterwards (486 MB).
+
+## 6. 2026-10-24: dirt roads in the mirror (I76_MIRROR_M16_ROADS)
+
+Owner 2026-10-24: "The mirror palette match issue also applies to dirt roads - in software they are dark brown, accelerated light brown,
+so the mirror doesn't match (like the terrain didn't before)."
+
+**Where.** `renderer_QueueRoadsAndDecals` 0x48e900 picks each segment's texture at **0x48ec53**: `0x471f00(&0x59c3a0[idx], cam)`, idx
+from the segment's near slot set (midpoint z < 60 m x `I76_ROAD_TEX`) or far set (+10). Each entry is a {8-bit art, .m16 art} pair,
+the same layout as the terrain set; 0x471f00 hands the kind-0 (8-bit) mirror bitmap the 8-bit drawing. MIRROR-DETAIL s.6 had noted
+"the road textures' two variants happen to match" - true of the asphalt, not of the dirt road (8-bit dark brown, .m16 light brown with
+ruts).
+
+**Fix** (music-fix/mirrordetail.c, b38530b + 6b50fb9 + dfc456c): that call is chained; for the mirror camera the segment gets the
+.m16 road art quantised into the display palette by the same `md_m16_copy` the terrain uses (no blur; the blur stays sky-only). Key
+`I76_MIRROR_M16_ROADS`, **default on whenever `I76_MIRROR_M16=1`** (=0 keeps the 8-bit road art), so OWNER-2300-ALL needs no new key.
+Gold only: the Nitro site is not in sites_nitro.h, the proxy logs "roads stay the 8-bit art" there. The copy cache went 16 -> 64
+entries (T09 alone: 5 terrain levels + 14 road textures), and every entry now carries a fingerprint of its source (header, 32 spread
+texels, 16 palette words): the road sets are not in 69c4a54's mission signature (7 terrain pointers + palette), so a new mission's road
+art landing at an old address is caught by the fingerprint and the stale copy released. The dump census line gained
+`mirror road segments N (.m16 copy M)`.
+
+**Evidence** (lab, exp-faredge, OWNER-2300-ALL, T09 = the mostly-dirt mission: RSEG sections 2066 dirt / 249 paved; T01 925 / 1853):
+`autotest\runs\mirror-detail\RF2-t09-roads-before-after.png` (dumps 210 / 300 flipped to screen orientation; left `ROADS=0`, the dark
+brown 8-bit dirt road; right default, the light brown rutted .m16 road as in the main view), per-run montages with the main-view
+crop: `20261024-055144-rf2-t09-roads0-dump\montage.png`, `20261024-055241-rf2-t09-roads1-dump\montage.png`. Log of the on-run: 14
+`road .m16 ... (64x32 / 32x16) quantised` lines, census 120-152 mirror road segments per dumped redraw, all 100 % swapped; CRASH 0.
