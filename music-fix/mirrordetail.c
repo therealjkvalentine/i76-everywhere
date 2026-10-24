@@ -124,7 +124,7 @@ static BYTE *md_m16_copy(DWORD src, int smooth) {
         if (rgb) VirtualFree(rgb, 0, MEM_RELEASE); if (cache) VirtualFree(cache, 0, MEM_RELEASE);
     } else for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
     g_m16[g_m16_n].src = src; g_m16[g_m16_n].fp = fp; g_m16[g_m16_n].copy = out; g_m16_n++;
-    mlog("  mirror-m16: %s .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette%s -> 8-bit copy %p for the mirror pass", smooth == 1 ? "sky" : smooth == 2 ? "road" : "terrain level", m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, smooth ? " after a 3x3 blur" : "", out);
+    mlog("  mirror-m16: %s .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette%s -> 8-bit copy %p for the mirror pass", smooth == 1 ? "sky" : smooth == 2 ? "road" : "terrain level", m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, smooth == 1 ? " after a 3x3 blur" : "", out);
     return out;
 }
 
