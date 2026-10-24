@@ -405,6 +405,8 @@ if ($fit) {
         if ($r.Steer -lt 0) { $pred = -$pred }
         if ($r.Speed -ge 6 -and [math]::Abs(($r.Yaw * $sign) - $pred) -gt 0.5) { $devBig++ }
         $sl = $(if ($null -ne $r.Slide) { [double]$r.Slide } else { 0.0 })
+        # as Tel-Sample: a slide counts only under the engine's own slide / drift flags
+        if ($null -ne $r.Flags -and $r.Flags -ne 0 -and ($r.Flags -band 0x2002) -eq 0) { $sl = 0.0 }
         if ($sl -gt 0.12) { $slideSeen++ }
         $e = Tel-Slip -Speed $r.Speed -Steer $r.Steer -YawRate ($r.Yaw * $sign) -Slide $sl -SteerK ([double]$r.K) -LatCap ([double]$r.Lim)
         $o = [math]::Max($e.Oversteer, $e.Understeer)

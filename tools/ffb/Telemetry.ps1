@@ -296,7 +296,11 @@ function Tel-Open {
       Resolves the process and the player entity. Returns a context object, or
       throws with a reason a human can act on. Safe to call repeatedly.
     #>
-    $proc = Get-Process i76, nitro -ErrorAction SilentlyContinue | Select-Object -First 1
+    param([int]$GamePid = 0)
+    # -GamePid / $env:I76_FFB_PID pick one game when several run (a lab lane beside the owner's game);
+    # otherwise the first i76 / nitro process, as before.
+    if ($GamePid -le 0 -and $env:I76_FFB_PID) { $GamePid = [int]$env:I76_FFB_PID }
+    $proc = if ($GamePid -gt 0) { Get-Process -Id $GamePid -ErrorAction SilentlyContinue } else { Get-Process i76, nitro -ErrorAction SilentlyContinue | Select-Object -First 1 }
     if (-not $proc) { throw "Interstate '76 is not running." }
 
     # PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION
@@ -996,7 +1000,13 @@ function Tel-Sample {
 
     # Surface, engine, damage, weapons and the engine's own steering law (2026-10-24).
     $xt = Tel-Extras $Ctx $b $t
-    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate -Slide $Ctx.Slide -SteerK $xt.SteerK -LatCap $xt.LatCap
+    # The slide only counts while the ENGINE says the car is sliding: flag 0x2000 (the drift band, velocity
+    # kept) or 0x2 (a full slide). On the grip path the engine snaps the velocity onto the heading, so any
+    # yaw-vs-heading gap there is tick-alignment noise - and at walking pace that noise saturated the
+    # oversteer channel (live run r1, 2026-10-24: oversteer 1.0 at 4-7 m/s with neither flag set).
+    $slideUsed = $Ctx.Slide
+    if ($xt.Flags -ne 0 -and ($xt.Flags -band 0x2002) -eq 0) { $slideUsed = 0.0 }
+    $slip = Tel-Slip -Speed $speed -Steer $steer -YawRate $yawRate -Slide $slideUsed -SteerK $xt.SteerK -LatCap $xt.LatCap
     $expectedYaw = $slip.ExpectedYaw
 
     # Weapon-fire flag. A separate 1-byte read because it is a static global, not
