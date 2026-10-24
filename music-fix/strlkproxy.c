@@ -4319,6 +4319,13 @@ static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
     EXCEPTION_RECORD *r = ep->ExceptionRecord; CONTEXT *c = ep->ContextRecord;
     static int depth;
     if ((r->ExceptionCode & 0xF0000000) != 0xC0000000 || depth) return EXCEPTION_CONTINUE_SEARCH;   /* real faults only, once */
+    if (g_exe == EXE_NITRO && r->ExceptionCode == 0xC0000096 && (DWORD)(DWORD_PTR)r->ExceptionAddress >= 0x0049ac70 && (DWORD)(DWORD_PTR)r->ExceptionAddress < 0x0049ad10) {   /* cli at 0x49acb7, out at 0x49acba, ... */
+        /* nitro-owner lane 2026-10-23: Nitro's PIT CPU-speed probe (nitro.c nitro_pit_skip) faults first-chance at every boot and the
+         * game handles it; it used to take this handler's one shot, so a later real fault on Nitro (the mission-over Replay's
+         * "Unhandled Exception" box) left no record. Logged once, the shot kept. */
+        static int pit_seen; if (pit_seen++ < 4) mlog("crash-log: Nitro's PIT probe 0xC0000096 at 0x%08lX (first chance, handled by the game) - not counted", (unsigned long)(DWORD_PTR)r->ExceptionAddress);
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
     depth++;
     mlog("CRASH: code 0x%08lX at 0x%08lX (exe+0x%lX) %s addr 0x%08lX | eax %08lX ebx %08lX ecx %08lX edx %08lX esi %08lX edi %08lX ebp %08lX esp %08lX | frame %lu state %lu cam cb 0x%08lX mode %lu",
          (unsigned long)r->ExceptionCode, (unsigned long)(DWORD_PTR)r->ExceptionAddress,
@@ -4361,6 +4368,18 @@ static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
         }
         buf[n < (int)sizeof(buf) ? n : (int)sizeof(buf) - 1] = 0;
         if (m) mlog("CRASH: modules%s", buf);
+    }
+    {   /* nitro-owner lane 2026-10-23: a fault inside a system DLL (ntdll's heap) names no exe frame in the 16 dwords above; the
+           first 12 values deeper on the stack that point into the exe's code (return-address candidates, oldest last) */
+        DWORD *sp = (DWORD *)(DWORD_PTR)c->Esp; char buf[400]; int i, n = 0, k = 0;
+        for (i = 0; i < 1024 && k < 12; i++) {
+            DWORD d;
+            if (IsBadReadPtr(sp + i, 4)) break;
+            d = sp[i];
+            if (d >= 0x00401000 && d < 0x004c1000) { n += _snprintf(buf + n, sizeof(buf) - n, " +%x:%06lX", i * 4, (unsigned long)d); k++; }
+        }
+        buf[n < (int)sizeof(buf) ? n : (int)sizeof(buf) - 1] = 0;
+        if (k) mlog("CRASH: exe code addresses on the stack%s", buf);
     }
     return EXCEPTION_CONTINUE_SEARCH;
 }
