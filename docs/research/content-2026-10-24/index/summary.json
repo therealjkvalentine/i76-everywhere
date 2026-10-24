@@ -1,0 +1,150 @@
+{
+ "files": 10472,
+ "bytes": 5010217658,
+ "by_source": {
+  "ava": {
+   "files": 313,
+   "bytes": 42703317
+  },
+  "compendium-disk1/BUILDER": {
+   "files": 2,
+   "bytes": 373248
+  },
+  "compendium-disk1/FRC": {
+   "files": 15,
+   "bytes": 83992
+  },
+  "i76com-download": {
+   "files": 1522,
+   "bytes": 380809257
+  },
+  "ia/Arsenal_201610": {
+   "files": 159,
+   "bytes": 83219179
+  },
+  "ia/i-76voices": {
+   "files": 508,
+   "bytes": 42440873
+  },
+  "ia/Interstate-76-Deutsch": {
+   "files": 903,
+   "bytes": 1323287571
+  },
+  "ia/Interstate.76": {
+   "files": 1825,
+   "bytes": 423352035
+  },
+  "ia/Interstate76-Soundtrack": {
+   "files": 99,
+   "bytes": 1196452054
+  },
+  "ia/interstate76mapimages": {
+   "files": 69,
+   "bytes": 1107918
+  },
+  "ia/Interstate76_1020": {
+   "files": 71,
+   "bytes": 62496393
+  },
+  "ia/score35cd": {
+   "files": 33,
+   "bytes": 744859100
+  },
+  "kcr": {
+   "files": 531,
+   "bytes": 15961698
+  },
+  "localditch/downloads": {
+   "files": 136,
+   "bytes": 112007097
+  },
+  "localditch/maps": {
+   "files": 74,
+   "bytes": 10475517
+  },
+  "lsm/combat1": {
+   "files": 332,
+   "bytes": 63910003
+  },
+  "lsm/combat2": {
+   "files": 324,
+   "bytes": 61947820
+  },
+  "lsm/combat3": {
+   "files": 346,
+   "bytes": 32901787
+  },
+  "lsm/ctf": {
+   "files": 183,
+   "bytes": 17979400
+  },
+  "lsm/exclusive": {
+   "files": 340,
+   "bytes": 86775065
+  },
+  "lsm/exclusive2": {
+   "files": 22,
+   "bytes": 2367100
+  },
+  "lsm/i76comb1": {
+   "files": 183,
+   "bytes": 58851732
+  },
+  "lsm/i76comb2": {
+   "files": 204,
+   "bytes": 47372221
+  },
+  "lsm/i76comb3": {
+   "files": 198,
+   "bytes": 22648346
+  },
+  "lsm/i76comb4": {
+   "files": 211,
+   "bytes": 50004903
+  },
+  "lsm/i76comb5": {
+   "files": 75,
+   "bytes": 11974239
+  },
+  "lsm/i76race": {
+   "files": 81,
+   "bytes": 6442243
+  },
+  "lsm/racing1": {
+   "files": 323,
+   "bytes": 48642943
+  },
+  "lsm/racing2": {
+   "files": 152,
+   "bytes": 16758115
+  },
+  "route380-prior-mirror": {
+   "files": 1238,
+   "bytes": 42012492
+  }
+ },
+ "maps": 2360,
+ "maps_unique": 1076,
+ "maps_unique_nonstock": 926,
+ "maps_by_game_mode": {
+  "i76/melee": 265,
+  "nitro/race": 231,
+  "nitro/ctf": 53,
+  "nitro/melee": 341,
+  "i76/mission": 27,
+  "i76/ctf": 1,
+  "i76/race": 7,
+  "None/None": 1
+ },
+ "maps_by_verdict": {
+  "gold-static-ok": 669,
+  "gold-loads": 210,
+  "nitro-only": 23,
+  "broken: terrain missing": 23,
+  "": 1
+ },
+ "vcf": 116,
+ "vcf_nonstock": 109,
+ "audio": 1192,
+ "frc": 28
+}

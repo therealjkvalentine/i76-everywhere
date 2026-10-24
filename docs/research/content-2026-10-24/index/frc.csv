@@ -1,0 +1,29 @@
+source,file,size,riff,form,effects,names,sha256,path
+compendium-disk1/FRC,cannon1.FRC,820,RIFF,FORC,1,UserDefined1,5f27070a6f509458f08e91dd200b4da9e5e6fdc32ed2015603fd098a22e7d7ff,dl/compendium-disk1/FRC/cannon1.FRC
+compendium-disk1/FRC,cannon2.FRC,764,RIFF,FORC,1,UserDefined1,a85871230c32fe253bf53b4f60a8ba8e6ea4208ac73de0847b0c68fe3eb8af96,dl/compendium-disk1/FRC/cannon2.FRC
+compendium-disk1/FRC,cannon3.FRC,696,RIFF,FORC,1,UserDefined1,43c232d20306af9afd0795f563ff0dbc056b53bd039e7cc7a9df1b773309f303,dl/compendium-disk1/FRC/cannon3.FRC
+compendium-disk1/FRC,cannon4.FRC,664,RIFF,FORC,1,UserDefined1,ded1ef11e7ff6d74fc644beb7255f4403b00b287889ea831dcdc8e40e3ebfc07,dl/compendium-disk1/FRC/cannon4.FRC
+compendium-disk1/FRC,engstart.frc,664,RIFF,FORC,3,Sequence2 SquareHigh2 SquareLow1,c69e8f0cf5dc14c4048ef372a87bd97d895d5a69b67bff8af586aae0dbddb1cd,dl/compendium-disk1/FRC/engstart.frc
+compendium-disk1/FRC,explosn.FRC,288,RIFF,FORC,1,SawtoothDown1,da6cb36b5066951031a97e4cce9bfd7d0256b4fe76a8974c354b79790eab926f,dl/compendium-disk1/FRC/explosn.FRC
+compendium-disk1/FRC,missil45.FRC,288,RIFF,FORC,1,Cosine1,1068977d3b16ac6abfd8fc3b715deda7d1c12d0c930a6e2174608a5237722856,dl/compendium-disk1/FRC/missil45.FRC
+compendium-disk1/FRC,missile2.FRC,664,RIFF,FORC,3,ConstantForce1 Cosine1 Sequence6,28e53ec85c445025566d03216d5fe25d5103ac6876cac00ee71a44af01ac8a3b,dl/compendium-disk1/FRC/missile2.FRC
+compendium-disk1/FRC,missile5.FRC,664,RIFF,FORC,3,ConstantForce1 Cosine1 Sequence4,6a85457f53e42eee8bffd9171c8087c5428864bbfe47152eff1edc2b7a62d883,dl/compendium-disk1/FRC/missile5.FRC
+compendium-disk1/FRC,TireBlwL.FRC,664,RIFF,FORC,3,ConstantForce1 Sine1 Superimpose30,1593d08d7de80a371223415d83d4528d62833727810222079e59a098e752952b,dl/compendium-disk1/FRC/TireBlwL.FRC
+compendium-disk1/FRC,TireBlwR.FRC,664,RIFF,FORC,3,ConstantForce1 Sine1 Superimpose27,68e0b1f4f21263e8ecd177e1add015e30444e918d073edaec303e95e245dba80,dl/compendium-disk1/FRC/TireBlwR.FRC
+compendium-disk1/FRC,wpncycle.frc,288,RIFF,FORC,1,RampDown1,51ff519168f996d92744332ab4df3bbed9044555b0685d5fe4de1dca75e9dc57,dl/compendium-disk1/FRC/wpncycle.frc
+compendium-disk1/FRC,wpnlink.frc,288,RIFF,FORC,1,SquareHigh1,fe3e60ebf1ba7ecbc01a6f8a0d9d4d7fc0daefbb826534ad7c910d91d068ce0f,dl/compendium-disk1/FRC/wpnlink.frc
+compendium-disk1/FRC,wpnunlnk.frc,288,RIFF,FORC,1,SquareHigh1,d8f6dc5ebd9eb4a93a8a0976fc8c8b548b3549a1ffe31dd4acad1f9aaa15082a,dl/compendium-disk1/FRC/wpnunlnk.frc
+ia/Interstate.76,CANNON1.FRC,820,RIFF,FORC,1,UserDefined1,d27e159c8e9da70519749f07dee040dfeb467e78ff785a203e35a01ba28746c6,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/CANNON1.FRC
+ia/Interstate.76,CANNON2.FRC,764,RIFF,FORC,1,UserDefined1,3716dd52d1c9137ff77a6c2c5ff5cc6a17a5f32d17718972bc10a179286db88c,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/CANNON2.FRC
+ia/Interstate.76,CANNON3.FRC,696,RIFF,FORC,1,UserDefined1,ef6ce06f1fc86bc0ad1fadacf2933a380a1205a2a02d195946cab2cf5a300925,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/CANNON3.FRC
+ia/Interstate.76,CANNON4.FRC,664,RIFF,FORC,1,UserDefined1,49dba271d18a43be502cf820c5f001f0be24e205643461f685c9628c3561a6ac,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/CANNON4.FRC
+ia/Interstate.76,ENGSTART.FRC,664,RIFF,FORC,3,Sequence4 SquareHigh2 SquareLow1,10cba5353d5780f388f32cba387132a8dff90a057d18c08d84ac2c37bc3943d6,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/ENGSTART.FRC
+ia/Interstate.76,EXPLOSN.FRC,288,RIFF,FORC,1,SawtoothDown1,da6cb36b5066951031a97e4cce9bfd7d0256b4fe76a8974c354b79790eab926f,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/EXPLOSN.FRC
+ia/Interstate.76,MISSIL45.FRC,288,RIFF,FORC,1,Cosine1,1068977d3b16ac6abfd8fc3b715deda7d1c12d0c930a6e2174608a5237722856,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/MISSIL45.FRC
+ia/Interstate.76,MISSILE2.FRC,664,RIFF,FORC,3,ConstantForce1 Cosine1 Sequence5,4327a34b043d43cc34cb93544acd2fa51aaf58890faac2a0adf515a6d6a99f08,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/MISSILE2.FRC
+ia/Interstate.76,MISSILE5.FRC,664,RIFF,FORC,3,ConstantForce1 Cosine1 Sequence6,462cd913475c734fe876b3e4fbfd22492b89fad340faca6eb677fb14c1b91e48,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/MISSILE5.FRC
+ia/Interstate.76,TIREBLWL.FRC,664,RIFF,FORC,3,ConstantForce1 Sine1 Superimpose3,40327d59861906c095869e2000062f7ee94ffa8cd0028352eff87e14a1f847c3,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/TIREBLWL.FRC
+ia/Interstate.76,TIREBLWR.FRC,664,RIFF,FORC,3,ConstantForce1 Sine1 Superimpose4,8deb93415982d930c26965f26dbee35758b799bb4094e86c40a60d12bf77d670,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/TIREBLWR.FRC
+ia/Interstate.76,WPNCYCLE.FRC,288,RIFF,FORC,1,RampDown1,51ff519168f996d92744332ab4df3bbed9044555b0685d5fe4de1dca75e9dc57,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/WPNCYCLE.FRC
+ia/Interstate.76,WPNLINK.FRC,288,RIFF,FORC,1,SquareHigh1,fe3e60ebf1ba7ecbc01a6f8a0d9d4d7fc0daefbb826534ad7c910d91d068ce0f,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/WPNLINK.FRC
+ia/Interstate.76,WPNUNLNK.FRC,288,RIFF,FORC,1,SquareHigh1,d8f6dc5ebd9eb4a93a8a0976fc8c8b548b3549a1ffe31dd4acad1f9aaa15082a,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/force/WPNUNLNK.FRC

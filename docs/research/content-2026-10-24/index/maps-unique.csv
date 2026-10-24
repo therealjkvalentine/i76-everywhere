@@ -1,0 +1,529 @@
+map_key,title,game,mode,author,best_verdict,files,variants,sources,objects,spawn,regen,team_spawn,checkpoints,fsm_actions,terrain,best_path
+a01|a01.ter,,i76,ctf,,gold-loads; ctf rules are Nitro-only (Gold sees 7 plain spawn),1,1,lsm/i76comb3,108,7,0,1,0,0,A01.ter (stock),x/lsm/i76comb3/training.zip/A01.LVL
+1t&c|1t&c.ter,,i76,melee,,gold-static-ok; risk: missing art p04.act (untested); drops objects (bhesher.sdf),1,1,lsm/i76comb2,60,8,0,0,0,0,1T&c.ter,x/lsm/i76comb2/tc.zip/1T&c.LVL
+3miles|3miles.ter,,i76,melee,,gold-static-ok,1,1,route380-prior-mirror,40,8,0,0,0,0,3miles.ter,route380/maps/_all/3miles/3miles.LVL
+4pits11|4pits11.ter,,i76,melee,,gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested),2,1,ava lsm/i76comb3,86,8,0,0,0,0,4pits11.ter,x/ava/utilities/4pit.zip/4pits11.LVL
+666|666.ter,,i76,melee,Uncle Jessie,gold-static-ok; drops objects (anbunker.sdf),1,1,lsm/i76comb1,39,2,5,0,0,0,666.ter,x/lsm/i76comb1/r666.zip/666.lvl
+76prcnct|76prcnct.ter,,i76,melee,Stingray,gold-static-ok,2,1,localditch/maps lsm/i76comb1,126,10,4,0,0,0,76prcnct.ter,x/localditch/maps/76prcnct.zip/76prcnct.LVL
+8track|8track.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,4,4,0,0,0,0,8track.ter,x/lsm/i76comb3/8track.zip/8track.LVL
+ad|ad.ter,,i76,melee,VSF  Gulliver,gold-static-ok,1,1,lsm/i76comb5,44,6,1,0,0,0,Ad.ter,x/lsm/i76comb5/Appalachia Drag.zip/Ad.LVL
+aftrmth|aftrmth.ter,,i76,melee,Skull N. Bones,gold-static-ok; drops objects (ata21_1.sdf axa21_1.sdf),1,1,lsm/i76comb2,73,8,1,0,0,0,Aftrmth.ter,x/lsm/i76comb2/aftrmath.zip/Aftrmth.LVL
+all-in-1|all-in-1.ter,,i76,melee,Skull N. Bones,gold-static-ok; drops objects (bcxwhse3.sdf),1,1,localditch/maps,194,8,0,0,0,0,All-in-1.ter,x/localditch/maps/all-in-1.zip/All-in-1.LVL
+armpit|armpit.ter,,i76,melee,Rockaho,gold-static-ok,1,1,lsm/i76comb4,15,8,1,0,0,0,armpit.ter,x/lsm/i76comb4/armpit.zip/armpit.lvl
+arm|arm.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,8,8,0,0,0,0,arm.ter,x/lsm/i76comb3/arm.zip/arm.LVL
+aserally|aserally.ter,,i76,melee,,gold-static-ok; drops objects (bcxwhse3.sdf bcxwhse4.sdf),1,1,lsm/i76comb3,83,9,2,0,0,0,aserally.ter,x/lsm/i76comb3/aserally.zip/aserally.LVL
+autodrome|autodrome.ter,,i76,melee,,gold-static-ok,2,1,ava lsm/i76comb5,115,8,0,0,0,0,autodrome.ter,x/ava/utilities/auto.zip/autodrome.LVL
+autodrom|autodrom.ter,,i76,melee,unknown | Information | (auto.zip) must have,broken: terrain missing,1,1,route380-prior-mirror,115,8,0,0,0,0,autodrom.ter (MISSING),route380/maps/_all/p15autodrom/p15autodrom/for_i76/autodrom.LVL
+avma|avma.ter,,i76,melee,ization I,gold-static-ok,2,1,ava lsm/i76comb4,40,8,0,0,0,0,avma.ter,x/ava/utilities/avma.zip/avma.lvl
+b01isle|b01isle.ter,Isle,i76,melee,DIVER | Information,gold-static-ok,2,2,route380-prior-mirror,72,6,1,0,0,0,b01isle.ter,route380/maps/_all/b01isle/b01isle/for_i76/b01isle.lvl
+bathtub|bathtub.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb2,22,8,0,0,0,0,Bathtub.ter,x/lsm/i76comb2/bathtub.zip/BATHTUB.LVL
+battle|battle.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,63,8,2,0,0,0,battle.ter,x/lsm/i76comb5/Battlej.zip/battle.LVL
+beast|beast.ter,,i76,melee,,gold-static-ok; drops objects (.vcf s06vc01.sdf),1,1,lsm/i76comb1,23,19,0,0,0,0,BeAsT.ter,x/lsm/i76comb1/beast.zip/i76/ADDON/BeAsT.LVL
+berserk|berserk.ter,,i76,melee,,gold-static-ok,2,1,ava lsm/i76comb4,31,8,0,0,0,0,berserk.ter,x/ava/utilities/ber.zip/berserk.LVL
+bigramp2|bigramp2.ter,Bigger Ramp,i76,melee,WT Darkwing  [email removed] or ICQ: 23675002,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,13,8,2,0,0,0,bigramp2.ter,x/lsm/i76race/bigramp2_i76.zip/bigramp2.LVL
+bigramp|bigramp.ter,The Big Ramp,i76,melee,DarkWing,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing2,13,8,2,0,0,0,bigramp.ter,x/lsm/i76race/bigramp_i76.zip/bigramp.LVL
+bigville|bigville.ter,,i76,melee,Lt. Stinger (TBP),gold-static-ok; drops objects (bdfrez1.sdf bhtowr1.sdf),2,1,localditch/maps lsm/i76comb4,224,9,4,0,0,0,bigville.ter,x/localditch/maps/bigville.zip/bigville.LVL
+bldtrail|bldtrail.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb4,11,8,1,0,0,0,Bldtrail.ter,x/lsm/i76comb4/bldtrail.zip/Bldtrail.LVL
+bndocks|bndocks.ter,Boondocks,i76,melee,MofoFunk,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,87,5,2,0,0,0,bndocks.ter,x/lsm/i76race/bndocks-original.zip/bndocks.LVL
+bspeed|bspeed.ter,Baja Speedway,i76,melee,Skull N. Bones / Firehawk,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,71,8,2,0,0,0,bspeed.ter,x/lsm/i76race/baja.zip/bspeed.LVL
+burger|burger.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb4,16,5,2,0,0,0,burger.ter,x/lsm/i76comb4/burger.zip/burger.LVL
+bz!|bz!.ter,,i76,melee,,gold-static-ok; drops objects (.sdf),1,1,lsm/i76comb5,12,8,0,0,0,0,BZ!.ter,x/lsm/i76comb5/bz.zip/BZ!.LVL
+canyon|canyon.ter,,i76,melee,,gold-static-ok,2,2,lsm/i76comb4,27,8,2,0,0,0,canyon.ter,x/lsm/i76comb4/canyon.zip/canyon.LVL
+cfr|cfr.ter,,i76,melee,The Hunter,gold-static-ok,1,1,lsm/i76comb4,10,4,0,0,0,0,cfr.ter,x/lsm/i76comb4/cfr.zip/cfr.lvl
+chase|chase.ter,,i76,melee,Debacle,gold-static-ok; drops objects (bdfrez1.sdf),1,1,lsm/i76comb1,97,7,1,0,0,0,chase.ter,x/lsm/i76comb1/thechase.zip/chase.LVL
+china|china.ter,,i76,melee,Ahab,gold-static-ok,1,1,lsm/i76comb4,5,4,1,0,0,0,china.ter,x/lsm/i76comb4/china.zip/china.LVL
+chopper|chopper.ter,,i76,melee,Viper91 [NHRA] | 's email: [email removed],gold-static-ok; risk: missing art p05.act p05.lum p05.tbl (untested),1,1,lsm/i76comb4,8,8,0,0,0,0,chopper.ter,x/lsm/i76comb4/chopperbattles.zip/chopper.LVL
+comode|comode.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,22,8,0,0,0,0,comode.ter,x/lsm/i76comb3/comode.zip/COMODE.LVL
+compjmps|compjmps.ter,,i76,melee,Stingray,gold-static-ok,1,1,lsm/i76comb4,31,9,4,0,0,0,CompJmps.ter,x/lsm/i76comb4/compjumps.zip/CompJmps.LVL
+cprace|cprace.ter,,i76,melee,Sniper[cp],gold-static-ok,1,1,lsm/i76comb4,81,8,1,0,0,0,cprace.ter,x/lsm/i76comb4/cprace.zip/cprace.LVL
+cp|cp.ter,,i76,melee,Sniper[cp],gold-static-ok; drops objects (bdwgnwli.sdf),1,1,lsm/i76comb4,104,7,2,0,0,0,cp.ter,x/lsm/i76comb4/cp.zip/cp.LVL
+crapper|crapper.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb4,20,8,1,0,0,0,crapper.ter,x/lsm/i76comb4/Crapper.zip/crapper.LVL
+crazy|crazy.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,10,9,1,0,0,0,crazy.ter,x/lsm/i76comb5/fcrazy.zip/crazy.LVL
+creek|creek.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb2,24,10,4,0,0,0,Creek.ter,x/lsm/i76comb2/bcreek.zip/Creek.LVL
+creep009|creep009.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb1,268,9,0,0,0,0,Creep009.ter,x/lsm/i76comb1/creeparia.zip/Creep009.LVL
+cross|cross.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb4,11,8,3,0,0,0,Cross.ter,x/lsm/i76comb4/crsrd.zip/Cross.LVL
+ctd|ctd.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,32,8,0,0,0,0,ctd.ter,x/lsm/i76comb5/CTD.zip/ctd.LVL
+ctr|ctr.ter,CliffTopRacers,i76,melee,Ataraxia [DEG-L],gold-static-ok,3,3,ia/Interstate.76 lsm/i76race,30,8,1,0,0,0,ctr.ter,x/lsm/i76race/CTR.zip/ctr.LVL
+cube|cube.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,148,8,0,0,0,0,cube.ter,x/lsm/i76comb3/cube.zip/cube.LVL
+cyns126|cyns126.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,334,14,8,0,0,0,Cyns126.ter,x/lsm/i76comb5/big_canyon.zip/Cyns126.LVL
+datrac|datrac.ter,,i76,melee,,gold-static-ok; risk: missing art p05.act p05.lum p05.tbl (untested),1,1,lsm/i76comb4,10,8,1,0,0,0,datrac.ter,x/lsm/i76comb4/snorall2.zip/DATRAC.LVL
+dderby|dderby.ter,,i76,melee,WeaponX (Geoffrey Steele) | Info : none,gold-static-ok,1,1,lsm/i76comb2,133,8,1,0,0,0,DDerby.ter,x/lsm/i76comb2/demderb.zip/Dderby.lvl
+death|death.ter,,i76,melee,Andrew Wiblemo A.k.a. Virus or The Watcher,gold-static-ok; risk: missing art quarin.map (untested),1,1,lsm/i76comb4,11,8,1,0,0,0,Death.ter,x/lsm/i76comb4/Death.zip/Death.LVL
+deg4|deg4.ter,,i76,melee,Groove [DEG-L],gold-static-ok,1,1,lsm/i76comb5,127,8,0,0,0,0,DEG4.ter,x/lsm/i76comb5/Missionjane.zip/DEG4.LVL
+desplatm|desplatm.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,10,8,1,0,0,0,desplatm.ter,x/lsm/i76comb5/dsrt.zip/desplatm.LVL
+dgultch|dgultch.ter,,i76,melee,Ozone Grumpy Old Men,gold-static-ok,1,1,lsm/i76comb5,26,7,1,0,0,0,dgultch.ter,x/lsm/i76comb5/drygultch.zip/dgultch.LVL
+dmrun|dmrun.ter,,i76,melee,Skull N. Bones,gold-static-ok,1,1,lsm/i76comb1,52,8,4,0,0,0,dmrun.ter,x/lsm/i76comb1/dmrun.zip/dmrun.LVL
+doomrace|doomrace.ter,,i76,melee,"Evicerator | Info: ""Blood for the Blood God!"" | s may not use this level as a base to build additional level",gold-static-ok,1,1,lsm/i76comb2,146,9,2,0,0,0,doomrace.ter,x/lsm/i76comb2/doomrce.zip/Doomrace.lvl
+doomvlly|doomvlly.ter,,i76,melee,Beau Tunnell  -Evicerator | Info:More Blood for the Blood God! | s may NOT use this level as a base to build additional level,gold-static-ok,1,1,lsm/i76comb2,177,10,2,0,0,0,doomvlly.ter,x/lsm/i76comb2/doomvlly.zip/doomvlly.LVL
+dp|dp.ter,,i76,melee,U-C | Information,broken: terrain missing,1,1,route380-prior-mirror,77,8,8,0,0,0,dp.ter (MISSING),route380/maps/_all/drivingpark/drivingpark/for_i76/dp.lvl
+dragcomp|dragcomp.ter,,i76,melee,Chris (AKA: Hendrix),gold-static-ok,1,1,lsm/i76comb4,23,8,0,0,0,0,dragcomp.ter,x/lsm/i76comb4/drgcmp.zip/Dragcomp.lvl
+dragrace|dragrace.ter,,i76,melee,Devil,gold-static-ok; drops objects (.sdf .vcf baaramp4.sdf bhhouse3.sdf),1,1,lsm/i76comb2,67,2,2,0,0,0,Dragrace.ter,x/lsm/i76comb2/drag.zip/Dragrace.LVL
+drugb|drugb.ter,,i76,melee,CAPTAIN GRAM,gold-static-ok,2,1,localditch/maps lsm/i76comb1,89,7,6,0,0,0,drugB.ter,x/localditch/maps/drugb.zip/drugB.LVL
+dsv2|dsv2.ter,,i76,melee,Sniper[cp],gold-static-ok,1,1,lsm/i76comb4,24,8,2,0,0,0,dsv2.ter,x/lsm/i76comb4/dsv2.zip/dsv2.LVL
+ds|ds.ter,,i76,melee,,gold-static-ok; risk: missing art to7.tbl (untested),1,1,lsm/i76comb5,111,7,1,0,0,0,ds.ter,x/lsm/i76comb5/desertstorm.zip/ds.LVL
+dv8r|dv8r.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb2,52,2,2,0,0,0,dv8r.ter,x/lsm/i76comb2/dv8r.zip/dv8r.LVL
+easterx|easterx.ter,,i76,melee,Geoffrey Steele aka WeaponX,broken: terrain missing,1,1,lsm/i76comb2,18,8,2,0,0,0,EasterX.ter (MISSING),x/lsm/i76comb2/easterx.zip/Easterx.lvl
+elim1b|elim1b.ter,,i76,melee,,gold-static-ok,3,1,ava lsm/i76comb4,38,10,0,0,0,0,Elim1b.ter,x/ava/utilities/elim1b.zip/ELIM1B.LVL
+er_gp|er_gp.ter,,i76,melee,Rondude,gold-static-ok,1,1,lsm/i76comb4,14,8,1,0,0,0,Er_gp.ter,x/lsm/i76comb4/er_gp.zip/Er_gp.LVL
+figure8|figure8.ter,,i76,melee,Le Hound,gold-static-ok; risk: missing art p05.act p05.lum p05.tbl (untested),1,1,lsm/i76comb1,16,4,1,0,0,0,figure8.ter,x/lsm/i76comb1/figure8.zip/FIGURE8.LVL
+fist1_1|fist1_1.ter,,i76,melee,AxeMan808   (aka  MaxDAxe) | Info : Experienced Racing Destruction Set and Stunts track c | s MAY use this level as a base to build additional levels,gold-static-ok; risk: missing art zmap600.map (untested),1,1,lsm/i76comb2,52,8,4,0,0,0,fist1_1.ter,x/lsm/i76comb2/fotns.zip/Fist1_1.lvl
+foose3|foose3.ter,,i76,melee,Fookill [Brian Foose],gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested); drops objects (.vcf bdfrez1.sdf bfspan1.sdf),1,1,lsm/i76comb1,266,1,0,0,0,0,Foose3.ter,x/lsm/i76comb1/foose3.zip/Foose3.LVL
+frap|frap.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb2,30,6,3,0,0,0,frap.ter,x/lsm/i76comb2/frappe.zip/frap.LVL
+ftwister|ftwister.ter,,i76,melee,Ruud Mussen  (callsign usually Fat & Ugly),gold-static-ok,1,1,lsm/i76comb4,17,8,4,0,0,0,ftwister.ter,x/lsm/i76comb4/ftwister.zip/ftwister.LVL
+fugball|fugball.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb4,6,6,0,0,0,0,fugball.ter,x/lsm/i76comb4/fugballarena.zip/fugball.LVL
+funky|funky.ter,,i76,melee,Russell T Gooch,gold-static-ok; risk: missing art p05.tbl (untested); drops objects (bdsalool.sdf bhhouse3.sdf),1,1,lsm/i76comb2,87,5,0,0,0,0,Funky.ter,x/lsm/i76comb2/funky.zip/Funky.LVL
+gbasin|gbasin.ter,,i76,melee,SyknDstroy,gold-static-ok; drops objects (ahay1.sdf bngastf1.sdf),1,1,lsm/i76comb2,87,8,2,0,0,0,GBasin.ter,x/lsm/i76comb2/gbasin.zip/GBasin.LVL
+ghosttwn|ghosttwn.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb4,99,8,0,0,0,0,ghosttwn.ter,x/lsm/i76comb4/ghosttwn.zip/ghosttwn.LVL
+glad|glad.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb4,38,8,1,0,0,0,glad.ter,x/lsm/i76comb4/glad.zip/GLAD.LVL
+grinder|grinder.ter,,i76,melee,Debacle,gold-static-ok; drops objects (arpopn1.sdf),1,1,lsm/i76comb4,76,9,1,0,0,0,grinder.ter,x/lsm/i76comb4/grinder.zip/grinder.LVL
+groovec|groovec.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb1,189,8,6,0,0,0,GrooveC.ter,x/lsm/i76comb1/groovechasm.zip/GrooveC.LVL
+grooves|grooves.ter,,i76,melee,Grooverider,gold-static-ok; drops objects (s06vc01.sdf s06vu01.sdf),1,1,lsm/i76comb4,63,2,0,0,0,0,Grooves.ter,x/lsm/i76comb4/groove.zip/Grooves.LVL
+gr|gr.ter,,i76,melee,DIVER | Information,broken: terrain missing,1,1,route380-prior-mirror,20,8,0,0,0,0,Gr.ter (MISSING),route380/maps/_all/GR/GR/for_i76/Gr.LVL
+guido|guido.ter,,i76,melee,Debacle,gold-static-ok; drops objects (aaram3.sdf),1,1,lsm/i76comb1,84,4,2,0,0,0,guido.ter,x/lsm/i76comb1/guido11.zip/guido.LVL
+h_n_s|h_n_s.ter,,i76,melee,WeaponX,gold-static-ok,1,1,lsm/i76comb2,206,8,2,0,0,0,H_N_S.ter,x/lsm/i76comb2/h_n_s.zip/H_n_s.lvl
+haven|haven.ter,,i76,melee,Debacle,gold-static-ok; drops objects (bhhouse3.sdf),3,1,localditch/maps lsm/i76comb1 lsm/i76comb4,88,5,1,0,0,0,Haven.ter,x/localditch/maps/newhav.zip/Haven.LVL
+hazard|hazard.ter,,i76,melee,Debacle,gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested),1,1,lsm/i76comb2,68,9,2,0,0,0,hazard.ter,x/lsm/i76comb2/hazrdville.zip/hazard.LVL
+hide|hide.ter,,i76,melee,,gold-static-ok; drops objects (bcnofc3.sdf),1,1,lsm/i76comb2,46,8,8,0,0,0,hide.ter,x/lsm/i76comb2/hidekil.zip/hide.LVL
+indigo|indigo.ter,Indigo Raceway,i76,melee,DarkWing  (I really have to stop changing playing name all t,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing2,11,8,2,0,0,0,indigo.ter,x/lsm/i76race/indigo_i76.zip/indigo.LVL
+ird|ird.ter,,i76,melee,,gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested); drops objects (ica21_2.sdf),1,1,lsm/i76comb1,93,10,3,0,0,0,Ird.ter,x/lsm/i76comb1/ird.zip/Ird.lvl
+ironcnyn|ironcnyn.ter,,i76,melee,Kyriel (Ryan Wolfe) | s of the editor :). Good,gold-static-ok; drops objects (ngscrng6.sdf sstop_2.sdf),1,1,lsm/i76comb2,75,8,1,0,0,0,IronCnyn.ter,x/lsm/i76comb2/ironcnyn.zip/InterNet/RyanHTML/I76/Zips/IronCnyn.lvl
+ironskul|ironskul.ter,,i76,melee,,gold-static-ok,1,1,ava,28,8,0,0,0,0,ironskul.ter,x/ava/utilities/isa.zip/ironskul.LVL
+j&r|j&r.ter,,i76,melee,Henry Thibodaux,gold-static-ok; risk: missing art zmap6moo.map (untested),1,1,lsm/i76comb2,37,8,3,0,0,0,J&R.ter,x/lsm/i76comb2/jmprace.zip/J&R.lvl
+j-arena|j-arena.ter,,i76,melee,Skull N. Bones,gold-static-ok,1,1,lsm/i76comb1,14,8,0,0,0,0,j-arena.ter,x/lsm/i76comb1/j-arena.zip/j-arena.LVL
+jack|jack.ter,,i76,melee,,gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested),1,1,lsm/i76comb2,232,7,1,0,0,0,jack.ter,x/lsm/i76comb2/cacjck.zip/jack.LVL
+joad|joad.ter,,i76,melee,Thomas Grob,gold-static-ok; drops objects (bhhous1.sdf bhhous2.sdf),1,1,lsm/i76comb2,253,9,2,0,0,0,Joad.ter,x/lsm/i76comb2/joad.zip/Joad.LVL
+josh|josh.ter,,i76,melee,,gold-static-ok; drops objects (.vcf anbunk1.sdf bcbabk1.sdf bcxwhse.sdf),1,1,lsm/i76comb4,209,4,16,0,0,0,Josh.ter,x/lsm/i76comb4/josh.zip/Josh.LVL
+joust|joust.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb2,15,7,1,0,0,0,joust.ter,x/lsm/i76comb2/joust.zip/joust.LVL
+jump|jump.ter,,i76,melee,,gold-static-ok; risk: missing art p05.act p05.lum p05.tbl (untested),1,1,lsm/i76comb5,75,1,2,0,0,0,jump.ter,x/lsm/i76comb5/jump.zip/jump.LVL
+la_river|la_river.ter,,i76,melee,Stingray,gold-static-ok,1,1,lsm/i76comb3,63,10,15,0,0,0,la_river.ter,x/lsm/i76comb3/larvr.zip/la_river.LVL
+lake2|lake2.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,23,5,1,0,0,0,lake2.ter,x/lsm/i76comb5/fss.zip/lake2.LVL
+leather|leather.ter,,i76,melee,,gold-static-ok,2,1,localditch/maps lsm/i76comb1,156,8,4,0,0,0,Leather.ter,x/localditch/maps/leather.zip/Leather.LVL
+ll|ll.ter,,i76,melee,"Alan Fernando Kennedy | Info : Nickname ""Screamer"" | s (may NOT) use this level as a base to build additional lev",gold-static-ok,1,1,lsm/i76comb2,40,14,1,0,0,0,ll.ter,x/lsm/i76comb2/argent.zip/Ll.lvl
+lostmap|lostmap.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb4,170,8,3,0,0,0,lostmap.ter,x/lsm/i76comb4/lostmap.zip/lostmap.lvl
+lostmine|lostmine.ter,Lost Mines,i76,melee,raven,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,80,8,1,0,0,0,lostmine.ter,x/lsm/i76race/lostmine_original_i76.zip/Addon/lostmine.LVL
+loswypro|loswypro.ter,,i76,melee,Stinger,gold-static-ok; drops objects (sdsrp_1.sdf sl55_1.sdf),1,1,lsm/i76comb2,203,9,23,0,0,0,loswypro.ter,x/lsm/i76comb2/loswypro.zip/loswypro.LVL
+m02_n|m02.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,130,8,1,0,0,0,M02.ter (stock),x/lsm/i76comb3/collection.zip/M02_N.LVL
+m03_b|m03.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,111,11,2,0,0,0,M03.ter (stock),x/lsm/i76comb3/collection.zip/M03_B.LVL
+m03_n|m03.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,80,11,2,0,0,0,M03.ter (stock),x/lsm/i76comb3/collection.zip/M03_N.LVL
+m04_d|m04.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,60,12,2,0,0,0,M04.ter (stock),x/lsm/i76comb3/collection.zip/M04_D.LVL
+m05_n|m05.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,43,8,1,0,0,0,M05.ter (stock),x/lsm/i76comb3/collection.zip/M05_N.LVL
+m06_n|m06.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,31,8,1,0,0,0,M06.ter (stock),x/lsm/i76comb3/collection.zip/M06_N.LVL
+m07_n|m07.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,40,10,3,0,0,0,M07.ter (stock),x/lsm/i76comb3/collection.zip/M07_N.LVL
+m08_n|m08.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,22,10,2,0,0,0,M08.ter (stock),x/lsm/i76comb3/collection.zip/M08_N.LVL
+m09_n|m09.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,60,9,2,0,0,0,M09.ter (stock),x/lsm/i76comb3/collection.zip/M09_N.LVL
+m10_n|m10.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,67,15,1,0,0,0,M10.ter (stock),x/lsm/i76comb3/collection.zip/M10_N.LVL
+m11_n|m11.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,28,12,1,0,0,0,M11.ter (stock),x/lsm/i76comb3/collection.zip/M11_N.LVL
+m12_d|m12.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,81,12,1,0,0,0,M12.ter (stock),x/lsm/i76comb3/collection.zip/M12_D.LVL
+m13_d|m13.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,32,8,1,0,0,0,M13.ter (stock),x/lsm/i76comb3/collection.zip/M13_D.LVL
+m14_n|m14.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,21,8,1,0,0,0,M14.ter (stock),x/lsm/i76comb3/collection.zip/M14_N.LVL
+m15_t|m15.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,68,16,1,0,0,0,M15.ter (stock),x/lsm/i76comb3/collection.zip/M15_T.LVL
+m_ridge|m_ridge.ter,,i76,melee,Stingray,gold-static-ok,1,1,lsm/i76comb2,40,15,2,0,0,0,m_ridge.ter,x/lsm/i76comb2/miner.zip/m_ridge.LVL
+madcrat3|madcrat3.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb5,62,16,2,0,0,0,MadCrat3.ter,x/lsm/i76comb5/mad_crat3.zip/MadCrat3.LVL
+maderno|maderno.ter,,i76,melee,",",gold-static-ok,1,1,lsm/i76comb5,127,9,1,0,0,0,Maderno.ter,x/lsm/i76comb5/Maderno AZ.zip/Maderno.LVL
+mirror|mirror.ter,,i76,melee,Ruud Mussen  (callsign usually Fat & Ugly),gold-static-ok,1,1,lsm/i76comb1,2,1,0,0,0,0,mirror.ter,x/lsm/i76comb1/mirror.zip/mirror.LVL
+modland5|modland5.ter,,i76,melee,,gold-static-ok,2,1,localditch/maps lsm/i76comb1,87,7,4,0,0,0,modland5.ter,x/localditch/maps/modlnd.zip/modland5.LVL
+motorx|motorx.ter,,i76,melee,Darmok,gold-static-ok,1,1,lsm/i76comb2,29,8,1,0,0,0,motorx.ter,x/lsm/i76comb2/motorx.zip/motorx.LVL
+mount|mount.ter,,i76,melee,,gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested),1,1,lsm/i76comb1,124,7,5,0,0,0,mount.ter,x/lsm/i76comb1/mp.zip/mount.LVL
+nearly73|nearly73.ter,nearly 73km,i76,melee,"DIVER | Information | Possum [101],",gold-static-ok,3,3,route380-prior-mirror,112,7,2,0,0,0,nearly73.ter,route380/maps/_all/nearly73km/nearly73km/i76/nearly73.LVL
+nemxp001|nemxp001.ter,,i76,melee,Creeper | Creeper [CPR],gold-static-ok,1,1,lsm/i76comb3,8,8,0,0,0,0,nemxP001.ter,x/lsm/i76comb3/nemxp001.zip/nemxP001.LVL
+night|night.ter,,i76,melee,Debacle,gold-static-ok; risk: missing art nk_1cdl4.map (untested); drops objects (s06vu01.sdf),2,2,lsm/i76comb1 lsm/i76comb3,106,6,5,0,0,0,night.ter,x/lsm/i76comb1/Night.zip/Night.lvl
+nowhere|nowhere.ter,Nowhere N.M.,i76,melee,Ozone GOM 11/4/99,gold-static-ok,2,2,lsm/i76comb3 route380-prior-mirror,49,8,1,0,0,0,nowhere.ter,x/lsm/i76comb3/nowhere.zip/nowhere.LVL
+nr380_ab|nr380_ab.ter,,i76,melee,Information | is i76 dev team,gold-static-ok,1,1,route380-prior-mirror,189,6,2,0,0,0,nr380_AB.ter,route380/maps/_all/nr380/nr380/i76/nr380_AB.lvl
+oak|oak.ter,,i76,melee,The Hunter,gold-static-ok,1,1,lsm/i76comb1,150,8,0,0,0,0,Oak.ter,x/lsm/i76comb1/oak.zip/Oak.LVL
+obrace|obrace.ter,,i76,melee,Skull N. Bones,gold-static-ok,1,1,lsm/i76comb1,78,8,2,0,0,0,ObRace.ter,x/lsm/i76comb1/obrace.zip/ObRace.LVL
+otto|otto.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,73,7,1,0,0,0,Otto.ter,x/lsm/i76comb3/otto.zip/Otto.lvl
+oval|oval.ter,,i76,melee,,gold-static-ok,2,2,ava route380-prior-mirror,31,8,0,0,0,0,oval.ter,x/ava/utilities/oval.zip/oval.LVL
+pgh|pgh.ter,Pgh Mem RaceW,i76,melee,Debacle,gold-static-ok,9,3,i76com-download ia/Interstate.76 lsm/i76comb3 lsm/racing1 lsm/racing2,22,6,3,0,0,0,pgh.ter,x/lsm/i76comb3/pgmr.zip/pgh.LVL
+phght|phght.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,16,8,1,0,0,0,phght.ter,x/lsm/i76comb3/perht.zip/phght.LVL
+pike|pike.ter,Pike's Peak,i76,melee,Debacle,gold-static-ok,3,3,ia/Interstate.76 lsm/i76race,74,6,1,0,0,0,pike.ter,x/lsm/i76race/pike.zip/pike.LVL
+pitfall|pitfall.ter,,i76,melee,,gold-static-ok,1,1,route380-prior-mirror,7,4,1,0,0,0,pitfall.ter,route380/maps/_all/pitfall/pitfall.LVL
+pit|pit.ter,,i76,melee,,gold-static-ok,2,1,lsm/i76comb3 lsm/i76comb4,103,8,2,0,0,0,pit.ter,x/lsm/i76comb3/pit.zip/pit.LVL
+plateau2|plateau2.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,4,4,0,0,0,0,plateau2.ter,x/lsm/i76comb3/aceshigh.zip/plateau2.LVL
+pmrw|pmrw.ter,,i76,melee,Hustler | the Potman Cigarette Company to cash in on the Autodueling c,gold-static-ok; drops objects (nkscrngl.sdf),2,1,ava lsm/i76comb1,32,3,0,0,0,0,pmrw.ter,x/ava/utilities/pmrw.zip/pmrw.LVL
+pop|pop.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,6,5,1,0,0,0,pop.ter,x/lsm/i76comb3/pop.zip/pop.LVL
+quadplay|quadplay.ter,,i76,melee,,gold-static-ok,2,1,localditch/maps lsm/i76comb1,56,8,1,0,0,0,quadplay.ter,x/localditch/maps/quad.zip/quadplay.LVL
+r76ep4|r76ep4.ter,,i76,melee,"me,",gold-static-ok,1,1,lsm/i76comb1,2,1,0,0,0,0,r76ep4.ter,x/lsm/i76comb1/tacofinal.zip/r76ep4.LVL
+r_heaven|r_heaven.ter,,i76,melee,Jason *DRA,gold-static-ok,1,1,lsm/i76comb1,37,8,1,0,0,0,R_heaven.ter,x/lsm/i76comb1/rachv.zip/R_heaven.LVL
+raceway|raceway.ter,,i76,melee,Stew [FI*],gold-static-ok,1,1,lsm/i76comb1,53,8,10,0,0,0,raceway.ter,x/lsm/i76comb1/raceway.zip/raceway.LVL
+race|race.ter,,i76,melee,unknown | Information,gold-static-ok; drops objects (.vcf),3,2,lsm/i76comb1 lsm/i76comb4 route380-prior-mirror,20,7,6,0,0,0,race.ter,x/lsm/i76comb1/race.zip/race.LVL
+rageco|rageco.ter,,i76,melee,General Rage,gold-static-ok,2,1,localditch/maps lsm/i76comb1,208,8,2,0,0,0,Rageco.ter,x/localditch/maps/rageco.zip/Rageco.LVL
+rallyv|rallyv.ter,,i76,melee,Mad Dog,gold-static-ok,1,1,lsm/i76comb2,126,10,1,0,0,0,rallyv.ter,x/lsm/i76comb2/rallyv.zip/rallyv.LVL
+ramphq|ramphq.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,74,6,1,0,0,0,ramphq.ter,x/lsm/i76comb3/ramphq.zip/ramphq.LVL
+ramprus|ramprus.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,160,8,4,0,0,0,ramprus.ter,x/lsm/i76comb3/thrill.zip/ramprus.LVL
+ranger|ranger.ter,,i76,melee,Lone Ranger,gold-static-ok,2,1,localditch/maps lsm/i76comb3,88,8,3,0,0,0,Ranger.ter,x/localditch/maps/lonchlge.zip/Ranger.LVL
+rikirace|rikirace.ter,,i76,melee,Rikimaru [VFH],gold-static-ok; drops objects (.sdf akwrek3.sdf),1,1,lsm/i76race,21,8,0,0,0,0,rikirace.ter,x/lsm/i76race/rikiraceway.zip/rikirace.LVL
+river2|river2.ter,,i76,melee,,gold-static-ok; drops objects (akwerck2.sdf),1,1,lsm/i76comb3,162,8,1,0,0,0,river2.ter,x/lsm/i76comb3/Riverfixed3.zip/river2.LVL
+roller|roller.ter,,i76,melee,Sabotage,gold-static-ok,1,1,lsm/i76comb2,12,4,8,0,0,0,roller.ter,x/lsm/i76comb2/roller.zip/ROLLER.LVL
+roll|roll.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,8,8,0,0,0,0,roll.ter,x/lsm/i76comb3/rollfld.zip/roll.LVL
+roscoe|roscoe.ter,,i76,melee,The Hunter,gold-static-ok,1,1,lsm/i76comb3,32,8,0,0,0,0,Roscoe.ter,x/lsm/i76comb3/rr100.zip/Roscoe.LVL
+scratch|scratch.ter,,i76,melee,Information,broken: terrain missing,1,1,route380-prior-mirror,213,7,2,0,0,0,scratch.ter (MISSING),route380/maps/_all/scratch/scratch/for_i76/scratch.lvl
+semap1|semap1.ter,,i76,melee,SE Fogz | SE Kula Shaker & SE Fogz,gold-static-ok; drops objects (ashcak1.sdf),1,1,lsm/i76comb2,85,16,2,0,0,0,semap1.ter,x/lsm/i76comb2/semap.zip/semap1.LVL
+sinkholb|sinkholb.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb1,42,8,1,0,0,0,sinkholb.ter,x/lsm/i76comb1/snkhle.zip/Sinkholb.lvl
+skate|skate.ter,,i76,melee,STORM. I have also made a coplight,gold-static-ok; risk: missing art p05.lum (untested),1,1,kcr,20,2,0,0,0,0,skate.ter,x/kcr/i76/hop76_Ver3.ZIP/Hop76(v3)/Interstate76/Addon/skate.LVL
+skull|skull.ter,,i76,melee,Skull N. Bones AVA [KB],gold-static-ok,4,2,ava localditch/maps lsm/i76comb2,8,8,0,0,0,0,Skull.ter,x/ava/utilities/skull1-1.zip/Skull.LVL
+skydrag2|skydrag2.ter,,i76,melee,DIVER | Information,broken: terrain missing; drops objects (bhhouse3.sdf),1,1,route380-prior-mirror,205,8,3,0,0,0,SkyDrag2.ter (MISSING),route380/maps/_all/skydrag2/skydrag2/for_i76/SkyDrag2.LVL
+slalom|slalom.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,48,6,8,0,0,0,slalom.ter,x/lsm/i76comb3/slalom.zip/Slalom.lvl
+snake|snake.ter,Snake Rally,i76,melee,Debacle,gold-static-ok,7,4,i76com-download ia/Interstate.76 lsm/i76comb2 lsm/racing1,153,6,1,0,0,0,snake.ter,x/lsm/i76comb2/snakrly.zip/snake.LVL
+spiral|spiral.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,233,14,3,0,0,0,Spiral.ter,x/lsm/i76comb3/spiral.zip/Spiral.LVL
+sstream|sstream.ter,,i76,melee,DIVER | Information,broken: terrain missing; drops objects (sdwgw_1.sdf),1,1,route380-prior-mirror,263,8,2,0,0,0,Sstream.ter (MISSING),route380/maps/_all/slipstream12/slipstream12/for_i76/Sstream.LVL
+stadium|stadium.ter,,i76,melee,Viper91 [NHRA] | 's Email: [email removed]    PLEASE EMAIL ME WITH QUES,gold-static-ok,1,1,lsm/i76comb4,153,2,12,0,0,0,stadium.ter,x/lsm/i76comb4/nhraraceworld2.zip/stadium.LVL
+suburbs|suburbs.ter,,i76,melee,,gold-static-ok; risk: missing art suburbs.map (untested),1,1,route380-prior-mirror,99,4,2,0,0,0,suburbs.ter,route380/maps/_all/suburbs/suburbs.LVL
+supertrk|supertrk.ter,,i76,melee,[email removed],gold-static-ok,1,1,lsm/i76comb2,50,8,1,0,0,0,Supertrk.ter,x/lsm/i76comb2/supertrk.zip/Supertrk.lvl
+sville|sville.ter,,i76,melee,Hustler,gold-static-ok; drops objects (ngscrngl.sdf),2,1,ava lsm/i76comb3,28,4,0,0,0,0,sville.ter,x/ava/utilities/sville.zip/sville.LVL
+swdrag|swdrag.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,98,7,6,0,0,0,swdrag.ter,x/lsm/i76comb3/swdrag.zip/swdrag.LVL
+tda1|tda1.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,128,8,1,0,0,0,tda1.ter,x/lsm/i76comb3/townas.zip/tda1.LVL
+tda2|tda2.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,128,8,1,0,0,0,tda2.ter,x/lsm/i76comb3/niteas.zip/tda2.LVL
+tdrag|tdrag.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb3,36,7,2,0,0,0,tdrag.ter,x/lsm/i76comb3/tallahs.zip/tdrag.LVL
+tempe|tempe.ter,,i76,melee,,gold-static-ok,2,1,ava lsm/i76comb3,209,9,0,0,0,0,Tempe.ter,x/ava/utilities/tempe.zip/Tempe.LVL
+test1|test1.ter,,i76,melee,,gold-static-ok; drops objects (.sdf .vcf),1,1,lsm/i76comb5,21,3,7,0,0,0,test1.ter,x/lsm/i76comb5/lone.zip/Test1.lvl
+texas|texas,,i76,melee,,broken: terrain missing,1,1,lsm/i76comb3,108,10,3,0,0,0,Texas 2.ter (MISSING),x/lsm/i76comb3/texas.zip/Texas.LVL
+texas|texas.ter,,i76,melee,Limbo [VDU] | Information,broken: terrain missing,1,1,route380-prior-mirror,108,10,3,0,0,0,Texas.ter (MISSING),route380/maps/_all/p15texas/p15texas/for_i76/Texas.LVL
+thechasm|thechasm.ter,,i76,melee,"Calderwood Speer | Info : aka ""Bitmaster"" in Melee | a collapsed mineshaft during the quake. You play in 1976",gold-static-ok; drops objects (sobilbd1.sdf sobilbd2.sdf sobilbd7.sdf),1,1,lsm/i76comb2,43,9,1,0,0,0,thechasm.ter,x/lsm/i76comb2/thechasm.zip/thechasm.LVL
+thekeep|thekeep.ter,,i76,melee,Skull N. Bones,gold-static-ok,1,1,lsm/i76comb2,23,8,1,0,0,0,TheKeep.ter,x/lsm/i76comb2/thekeep.zip/TheKeep.LVL
+thepipe|thepipe.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb2,13,6,1,0,0,0,thepipe.ter,x/lsm/i76comb2/pipe.zip/thepipe.LVL
+thrill1|thrill1.ter,,i76,melee,Groove [DEG-L],gold-static-ok; drops objects (bbhfarm1.sdf),1,1,lsm/i76comb3,250,8,2,0,0,0,Thrill1.ter,x/lsm/i76comb3/thrill2.zip/Thrill1.LVL
+tmesas|tmesas.ter,,i76,melee,"Paul Roberts (AKA ""Disco .45"")",gold-static-ok,1,1,lsm/i76comb2,142,8,1,0,0,0,TMesas.ter,x/lsm/i76comb2/twnmes.zip/Tmesas.lvl
+tokachi|tokachi.ter,,i76,melee,,gold-static-ok,1,1,route380-prior-mirror,61,8,1,0,0,0,tokachi.ter,route380/maps/_all/tokachi/tokachi/tokachi.LVL
+trally|trally.ter,,i76,melee,Firehawk / Skull N. Bones,gold-static-ok,1,1,lsm/i76race,71,8,2,0,0,0,trally.ter,x/lsm/i76race/trippin.zip/trally.LVL
+trench|trench.ter,,i76,melee,WidowMaker,gold-static-ok,1,1,lsm/i76comb2,35,4,2,0,0,0,trench.ter,x/lsm/i76comb2/trench.zip/TRENCH.LVL
+trestle|trestle.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb1,80,7,2,0,0,0,trestle.ter,x/lsm/i76comb1/trestle.zip/trestle.LVL
+ts|ts.ter,,i76,melee,,gold-static-ok,2,1,ava lsm/i76comb3,41,8,0,0,0,0,ts.ter,x/ava/utilities/ts.zip/ts.LVL
+twist|twist.ter,,i76,melee,GeNoCiDe,gold-static-ok,1,1,lsm/i76comb4,14,14,0,0,0,0,twist.ter,x/lsm/i76comb4/datwist.zip/i76/ADDON/twist.LVL
+umtr|umtr.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb2,59,6,0,0,0,0,umtr.ter,x/lsm/i76comb2/umtr.zip/umtr.LVL
+vally|vally.ter,,i76,melee,,gold-static-ok; drops objects (.sdf akbuker1.sdf),1,1,lsm/i76comb2,21,8,1,0,0,0,vally.ter,x/lsm/i76comb2/vally.zip/vally.LVL
+valral|valral.ter,Valley Rally,i76,melee,Viper91 [NHRA],gold-static-ok,3,3,ia/Interstate.76 lsm/i76race,43,4,3,0,0,0,valral.ter,x/lsm/i76race/valleyrally.zip/valral.LVL
+vdu-map|vdu-map.ter,,i76,melee,[DN] Lone Cop -Col,gold-static-ok,1,1,lsm/i76comb3,29,4,2,0,0,0,VDU-Map.ter,x/lsm/i76comb3/vdutra.zip/VDU-Map.LVL
+voodoo|voodoo.ter,,i76,melee,Debacle,gold-static-ok; drops objects (bhhouse3.sdf),1,1,lsm/i76comb3,29,5,4,0,0,0,voodoo.ter,x/lsm/i76comb3/voodoo.zip/voodoo.LVL
+w-towne|w-towne.ter,,i76,melee,,gold-static-ok,1,1,lsm/i76comb1,74,8,2,0,0,0,w-towne.ter,x/lsm/i76comb1/wtc.zip/w-towne.LVL
+waterloo|waterloo.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb3,43,7,2,0,0,0,waterloo.ter,x/lsm/i76comb3/waterloo.zip/waterloo.LVL
+winter|winter.ter,,i76,melee,Debacle,gold-static-ok,1,1,lsm/i76comb1,41,8,2,0,0,0,winter.ter,x/lsm/i76comb1/wintlnd.zip/winter.LVL
+wolfes|wolfes.ter,,i76,melee,Lexi/WolfTeam,gold-static-ok; drops objects (bhtslip.sdf),1,1,lsm/i76comb2,116,2,0,0,0,0,wolfes.ter,x/lsm/i76comb2/wolfes.zip/wolfes.LVL
+form4x4|form4x4.ter,Formula 4x4,i76,race,WT DarkWing (and proud of it!) or ICQ: 23675002,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),3,3,ia/Interstate.76 lsm/i76race,19,8,2,0,4,0,form4x4.ter,x/lsm/i76race/form4x4c.zip/form4x4.lvl
+narrowed|narrowed.ter,narrowed road,i76,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),3,3,route380-prior-mirror,22,8,1,0,11,0,narrowed.ter,route380/maps/_all/narrowed/narrowed/i76/narrowed.lvl
+abduc|,,nitro,ctf,raven,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/abduc.cf2
+air_raid|,,nitro,ctf,raven,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/air_raid.cf2
+ambush|,,nitro,ctf,"CADman[GUN] | the escort car, but you can allways try",gold-loads; no plain spawn labels,7,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/ambush.cf2
+cargorun|,,nitro,ctf,Cadman[GUN],gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/cargorun.cf2
+d_alley|,,nitro,ctf,raven,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/d_alley.cf4
+dead_ctf|,,nitro,ctf,raven,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/dead_ctf.cf2
+dragflag|,,nitro,ctf,DarkWing  (I really,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/dragflag.cf2
+drun|,,nitro,ctf,,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/drun.cf2
+echoes|,,nitro,ctf,,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/Echoes.cf2
+elcamin|,,nitro,ctf,SHIFFS,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/elcamin.cf2
+gaswars|,,nitro,ctf,,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/gaswars.cf2
+guidoctf|,,nitro,ctf,Dustin Reinmsith aka  Debacle,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/GuidoCTF.cf2
+heist|,,nitro,ctf,Ozone GOM,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/heist.cf2
+hockey|,,nitro,ctf,Fnork n/a,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/exclusive,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/hockey.cf3
+ipctf2|,,nitro,ctf,"Debacle, AKA Middleclass Whitemale, 25-30 age group",gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/Ipctf2.cf2
+kern|,,nitro,ctf,,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/kern.cf2
+mofoctf2|,,nitro,ctf,MofoFunk,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/mofoctf2.cf2
+mothctf|,,nitro,ctf,Cadman[GUN],gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/mothctf.cf2
+pop|,,nitro,ctf,Debacle,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/pop.CF4
+rrflag|,,nitro,ctf,Cadman[GUN],gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/rrflag.cf2
+sky|,,nitro,ctf,Dustin Reinmsith aka  Debacle,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/sky.cf3
+soccer|,,nitro,ctf,Fnork n/a,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/exclusive,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/soccer.cf3
+taflagg|,,nitro,ctf,,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/taflagg.cf2
+waste|,,nitro,ctf,Cadman[GUN],gold-loads; no plain spawn labels,8,4,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/waste.cf2
+waterloo|,,nitro,ctf,Debacle,gold-loads; no plain spawn labels,6,2,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/waterloo.cf2
+zeroctf|,,nitro,ctf,ATOMIC MONKEY,gold-loads; no plain spawn labels; drops objects (ngscrng3.sdf),6,1,i76com-download ia/Interstate.76 lsm/ctf,0,0,0,0,0,0,,x/i76com-download/allnitromaps.zip/miss16/zeroctf.cf4
+aequarry|aequarry.ter,Quarry Hill,nitro,melee,AceEnglish[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,13,3,1,0,0,0,aequarry.ter,x/i76com-download/allnitromaps.zip/miss16/aequarry.cbt
+altitude|altitude.ter,Altitude Sick,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,56,3,0,0,0,0,altitude.ter,x/i76com-download/allnitromaps.zip/miss16/altitude.cbt
+b01dojo|b01dojo.ter,the Dojo,nitro,melee,DIVER | Information,nitro-only (needs 2 Nitro assets),2,1,route380-prior-mirror,83,4,3,0,0,0,b01dojo.ter,route380/maps/_all/dojo/dojo/b01dojo.cbt
+b01gr|b01gr.ter,GR 1.2,nitro,melee,DIVER | Information,gold-static-ok; risk: missing art tn101md_.map (untested),1,1,route380-prior-mirror,31,8,0,0,0,0,b01Gr.ter,route380/maps/_all/GR/GR/b01Gr.cbt
+benton|benton.ter,Benton,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,70,8,1,0,0,0,benton.ter,x/i76com-download/allnitromaps.zip/miss16/benton.cbt
+birdie|birdie.ter,"Birdie, Bar-D",nitro,melee,DIVER | Information,gold-static-ok,5,2,i76com-download ia/Interstate.76 route380-prior-mirror,25,8,3,0,0,0,birdie.ter,x/i76com-download/DIVERmappack.zip/miss16/birdie.cbt
+blachs|blachs.ter,Balch Springs,nitro,melee,DV Aquila | Ozone GOM,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,236,8,2,0,0,0,blachs.ter,x/i76com-download/allnitromaps.zip/miss16/blachs.cbt
+bldprk|bldprk.ter,Bloodstone Park,nitro,melee,INT Rockaho,gold-static-ok,8,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,14,12,1,0,0,0,Bldprk.ter,x/i76com-download/allnitromaps.zip/miss16/Bldprk.cbt
+blind|blind.ter,Snowblind,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,128,8,2,0,0,0,blind.ter,x/i76com-download/allnitromaps.zip/miss16/blind.cbt
+bl|bl.ter,Beginner's Luck,nitro,melee,,gold-static-ok,5,1,i76com-download ia/Interstate.76 lsm/combat3,55,8,1,0,0,0,bl.ter,x/i76com-download/allnitromaps.zip/miss16/bl.cbt
+bouncy|bouncy.ter,Bouncy-Bouncy,nitro,melee,,gold-static-ok,8,3,i76com-download ia/Interstate.76 localditch/maps lsm/combat1 lsm/i76comb4,37,8,0,0,0,0,Bouncy.ter,x/i76com-download/allnitromaps.zip/miss16/Bouncy.cbt
+bridges|bridges.ter,BridgePort,nitro,melee,"Debacle, AKA Guy who needs sleep",gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat1 lsm/i76comb5,57,6,0,0,0,0,bridges.ter,x/i76com-download/allnitromaps.zip/miss16/bridges.cbt
+btlgrot|btlgrot.ter,Bottle Grotto,nitro,melee,MofoFunk,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,17,8,0,0,0,0,btlgrot.ter,x/i76com-download/allnitromaps.zip/miss16/btlgrot.cbt
+bud|bud.ter,Budville,nitro,melee,,gold-static-ok; risk: missing art zmzp3m00.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat1,124,8,2,0,0,0,bud.ter,x/i76com-download/allnitromaps.zip/miss16/bud.cbt
+cannibal|cannibal.ter,Cannibal Canyon,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,93,8,3,0,0,0,cannibal.ter,x/i76com-download/allnitromaps.zip/miss16/cannibal.cbt
+cannonb|cannonb.ter,Cannon Ball Run,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,229,4,2,0,0,0,CannonB.ter,x/i76com-download/allnitromaps.zip/miss16/CannonB.CBT
+canton|canton.ter,Canton,nitro,melee,Ozone,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,55,8,1,0,0,0,canton.ter,x/i76com-download/allnitromaps.zip/miss16/canton.cbt
+captudt|captudt.ter,capture da town,nitro,melee,me. I know we can argue on what makes a fine map,gold-static-ok; drops objects (bdpost1.sdf bdpost2.sdf bhshol1.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat1,82,8,14,0,0,0,captudt.ter,x/i76com-download/allnitromaps.zip/miss16/captudt.cbt
+cemetery|cemetery.ter,Cemetery Ridge,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,113,8,2,0,0,0,cemetery.ter,x/i76com-download/allnitromaps.zip/miss16/cemetery.cbt
+chillin|chillin.ter,Chillin Feild's,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,47,7,2,0,0,0,chillin.ter,x/i76com-download/allnitromaps.zip/miss16/chillin.cbt
+city|city.ter,Regen City,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,199,8,1,0,0,0,city.ter,x/i76com-download/allnitromaps.zip/miss16/city.cbt
+clonecyn|clonecyn.ter,Clone Cyn Spdwy,nitro,melee,,nitro-only (needs 1 Nitro asset),6,2,i76com-download ia/Interstate.76 lsm/exclusive,48,8,4,0,0,0,clonecyn.ter,x/i76com-download/allnitromaps.zip/miss16/clonecyn.cbt
+cmvalley|cmvalley.ter,Combat-Valley,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,164,6,7,0,0,0,cmvalley.ter,x/i76com-download/allnitromaps.zip/miss16/cmvalley.cbt
+conrd|conrd.ter,Construction Rd,nitro,melee,Groove [DEG-L],gold-static-ok,5,3,i76com-download ia/Interstate.76 lsm/combat3,62,8,0,0,0,0,conrd.ter,x/i76com-download/allnitromaps.zip/miss16/conrd.LVL
+crossf|crossf.ter,CrossFire,nitro,melee,raven | Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,79,9,2,0,0,0,crossf.ter,x/i76com-download/allnitromaps.zip/miss16/crossf.cbt
+d_wish|d_wish.ter,Death Wish,nitro,melee,raven,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb3,51,8,0,0,0,0,d_wish.ter,x/i76com-download/allnitromaps.zip/miss16/d_wish.cbt
+dbltrbl|dbltrbl.ter,Double Trouble,nitro,melee,"is, so I could not ask permission to do this",gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb2,28,8,1,0,0,0,DblTrbl.ter,x/i76com-download/allnitromaps.zip/miss16/dbltrbl.cbt
+dead2|dead2.ter,Dead Ahead,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,107,9,2,0,0,0,dead2.ter,x/i76com-download/allnitromaps.zip/miss16/dead2.cbt
+deadwood|deadwood.ter,Deadwood,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,111,8,1,0,0,0,deadwood.ter,x/i76com-download/allnitromaps.zip/miss16/deadwood.cbt
+delirium|delirium.ter,Delirium Garden,nitro,melee,INT Rockaho,gold-static-ok,8,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,42,26,1,0,0,0,delirium.ter,x/i76com-download/allnitromaps.zip/miss16/delirium.cbt
+destiny|destiny.ter,Lost Destiny,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,105,8,2,0,0,0,destiny.ter,x/i76com-download/allnitromaps.zip/miss16/destiny.cbt
+devil|devil.ter,Devils Yard,nitro,melee,,gold-static-ok; risk: missing art zmzp3m00.map (untested),8,4,i76com-download ia/Interstate.76 lsm/combat1 lsm/i76comb2 lsm/i76comb4,10,8,1,0,0,0,devil.ter,x/i76com-download/allnitromaps.zip/miss16/devil.cbt
+dmz|dmz.ter,D.M.Z.,nitro,melee,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/combat1,68,8,0,0,0,0,dmz.ter,x/i76com-download/allnitromaps.zip/miss16/dmz.cbt
+dojo|dojo.ter,the Dojo,nitro,melee,DIVER | Information,nitro-only (needs 2 Nitro assets),6,2,i76com-download ia/Interstate.76 route380-prior-mirror,83,4,3,0,0,0,dojo.ter,x/i76com-download/DIVERmappack.zip/miss16/dojo.cbt
+dragn|dragn.ter,Drag.&Jump,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,40,3,2,0,0,0,Dragn.ter,x/i76com-download/allnitromaps.zip/miss16/DRAGN.CBT
+drome|drome.ter,TerrorDrome,nitro,melee,Dustin Reinmsith aka  Debacle,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,8,8,0,0,0,0,drome.ter,x/i76com-download/allnitromaps.zip/miss16/drome.cbt
+dvbash|dvbash.ter,[DV] BASH,nitro,melee,[DV] Vigilante,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,12,8,1,0,0,0,dvbash.ter,x/i76com-download/allnitromaps.zip/miss16/dvbash.cbt
+edsfarm|edsfarm.ter,Ed's Farm,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive,57,8,1,0,0,0,edsfarm.ter,x/i76com-download/allnitromaps.zip/miss16/edsfarm.cbt
+elim2|elim2.ter,AVA Elim. v2,nitro,melee,Skull N. Bones,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,38,8,0,0,0,0,elim2.ter,x/i76com-download/allnitromaps.zip/miss16/elim2.cbt
+exper|exper.ter,Prjct Earthworm,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,120,8,2,0,0,0,exper.ter,x/i76com-download/allnitromaps.zip/miss16/exper.cbt
+fac_89|fac_89.ter,Facility #89,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,85,8,1,0,0,0,fac_89.ter,x/i76com-download/allnitromaps.zip/miss16/fac_89.cbt
+faceoff|faceoff.ter,Face Off.,nitro,melee,Cadman[GUN],gold-static-ok; drops objects (.vcf),6,2,i76com-download ia/Interstate.76 lsm/combat1,17,6,0,0,0,0,Faceoff.ter,x/i76com-download/allnitromaps.zip/miss16/faceoff.cbt
+farm|farm.ter,NLC.farmland,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,200,2,2,0,0,0,farm.ter,x/i76com-download/allnitromaps.zip/miss16/FARM.CBT
+ffa|ffa.ter,Ultimate FFA,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,8,8,0,0,0,0,ffa.ter,x/i76com-download/allnitromaps.zip/miss16/ffa.cbt
+firestm|firestm.ter,Firestorm,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,66,8,2,0,0,0,firestm.ter,x/i76com-download/allnitromaps.zip/miss16/firestm.cbt
+fmspeedcbt|fmspeedcbt.te,FM Speedway,nitro,melee,,broken: terrain missing; drops objects (bdonut1.sdf uta21_1.sdf uxa21_1.sdf),4,2,i76com-download lsm/combat1,33,6,1,0,0,0,fmspeedcbt.te (MISSING),x/i76com-download/allnitromaps.zip/miss16/fmspeedcbt.cbt
+freedom|freedom.ter,Freedom,nitro,melee,Mustardfoot,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,2,2,0,0,0,0,freedom.ter,x/i76com-download/allnitromaps.zip/miss16/freedom.cbt
+frshwtr|frshwtr.ter,"Freshwater, NV",nitro,melee,MofoFunk,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,78,8,1,0,0,0,frshwtr.ter,x/i76com-download/allnitromaps.zip/miss16/frshwtr.cbt
+gburg|gburg.ter,Grumpyberg,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,128,8,1,0,0,0,gburg.ter,x/i76com-download/allnitromaps.zip/miss16/gburg.cbt
+getaway|getaway.ter,NHRAget away,nitro,melee,,gold-static-ok,8,1,i76com-download ia/Interstate.76 lsm/combat2 lsm/racing1,1,1,0,0,0,0,getaway.ter,x/i76com-download/allnitromaps.zip/miss16/getaway.cbt
+ghost_pk|ghost_pk.ter,Ghost Peak,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,181,8,1,0,0,0,ghost_pk.ter,x/i76com-download/allnitromaps.zip/miss16/ghost_pk.cbt
+gila|gila.ter,Gila Pass,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,44,8,1,0,0,0,gila.ter,x/i76com-download/allnitromaps.zip/miss16/gila.cbt
+gold|gold.ter,Gold Rush,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,221,7,1,0,0,0,gold.ter,x/i76com-download/allnitromaps.zip/miss16/gold.cbt
+gr4nf|gr4nf.ter,GR 1.1,nitro,melee,,gold-static-ok,4,2,i76com-download ia/Interstate.76,31,8,0,0,0,0,gr4nf.ter,x/i76com-download/DIVERmappack.zip/miss16/gr4nf.cbt
+gridlock|gridlock.ter,Gridlock,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,102,8,0,0,0,0,gridlock.ter,x/i76com-download/allnitromaps.zip/miss16/gridlock.cbt
+grumpy|grumpy.ter,New Grumpyville,nitro,melee,Any questions comments or concerns should be addressed to | Ozone,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,222,8,2,0,0,0,grumpy.ter,x/i76com-download/allnitromaps.zip/miss16/grumpy.cbt
+grump|grump.ter,Grumpyville,nitro,melee,Any questions comments or concerns should be addressed to | Ozone,gold-static-ok; drops objects (bcaik_6.sdf ija217_1.sdf),7,3,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb4,187,10,4,0,0,0,grump.ter,x/i76com-download/allnitromaps.zip/miss16/grump.cbt
+grveyrd|grveyrd.ter,The Graveyard,nitro,melee,KW GeNoCiDe,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,32,8,1,0,0,0,grveyrd.ter,x/i76com-download/allnitromaps.zip/miss16/grveyrd.cbt
+gumball|gumball.ter,Gumball Rally,nitro,melee,Stingray,gold-static-ok,12,3,i76com-download ia/Interstate.76 localditch/maps lsm/exclusive lsm/i76comb2,42,8,2,0,0,0,gumball.ter,x/i76com-download/allnitromaps.zip/miss16/gumball.cbt
+gunfire|gunfire.ter,GunFire,nitro,melee,,gold-static-ok,4,1,i76com-download ia/Interstate.76,37,4,2,0,0,0,GUNfire.ter,x/i76com-download/allnitromaps.zip/miss16/gunfire.cbt
+guntown|guntown.ter,GUN-Town,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,96,9,5,0,0,0,guntown.ter,x/i76com-download/allnitromaps.zip/miss16/GUNTOWN.CBT
+gun|gun.ter,GUN's Hideout!,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,34,2,1,0,0,0,Gun.ter,x/i76com-download/allnitromaps.zip/miss16/gun.cbt
+halfpipe|halfpipe.ter,Half-Pipe,nitro,melee,Mustardfoot,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,8,7,0,0,0,0,halfpipe.ter,x/i76com-download/allnitromaps.zip/miss16/halfpipe.cbt
+heights|heights.ter,Prospect Hts.,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,62,8,1,0,0,0,heights.ter,x/i76com-download/allnitromaps.zip/miss16/heights.cbt
+hell-n|hell-n.ter,"Hell, NM v3.01",nitro,melee,Bandit,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,58,5,1,0,0,0,hell-n.ter,x/i76com-download/allnitromaps.zip/miss16/hell-n.cbt
+highnoon|highnoon.ter,High Noon,nitro,melee,R66 Lightfoot | s consent,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive,41,4,0,0,0,0,highnoon.ter,x/i76com-download/allnitromaps.zip/miss16/highnoon.cbt
+hills|hills.ter,Black Hills,nitro,melee,raven,gold-static-ok,8,2,i76com-download ia/Interstate.76 lsm/combat1,89,8,1,0,0,0,hills.ter,x/i76com-download/allnitromaps.zip/miss16/hills.cbt
+hive|hive.ter,BeeHive,nitro,melee,Any questions comments or concerns should be addressed to | Debacle,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb1,38,9,1,0,0,0,hive.ter,x/i76com-download/allnitromaps.zip/miss16/hive.cbt
+hom|hom.ter,Hall of Mirrors,nitro,melee,Ruud Mussen  (callsign usually Fat & Ugly) | Ruud Mussen (callsign usually Fat & Ugly),gold-static-ok,4,1,i76com-download ia/Interstate.76 lsm/combat1,7,4,0,0,0,0,hom.ter,x/i76com-download/allnitromaps.zip/miss8/hom.cbt
+hom|hom16.ter,Hall of Mirrors,nitro,melee,Ruud Mussen  (callsign usually Fat & Ugly) | Ruud Mussen (callsign usually Fat & Ugly),broken: terrain missing,2,1,i76com-download lsm/combat1,7,4,0,0,0,0,hom16.ter (MISSING),x/i76com-download/allnitromaps.zip/miss16/hom.cbt
+hopewell|hopewell.ter,Hopewell,nitro,melee,raven,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat3,72,8,1,0,0,0,hopewell.ter,x/i76com-download/allnitromaps.zip/miss16/hopewell.cbt
+htlcali|htlcali.ter,Hotel Cali.,nitro,melee,MofoFunk | Joyride a LOOONG time ago,gold-static-ok; risk: missing art zmap2m00.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat1,62,7,1,0,0,0,htlcali.ter,x/i76com-download/allnitromaps.zip/miss16/htlcali.cbt
+humter|humter.ter,HummerTerritory,nitro,melee,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/combat1,59,6,5,0,0,0,humter.ter,x/i76com-download/allnitromaps.zip/miss16/humter.cbt
+hwy0|hwy0.ter,Highway Zero,nitro,melee,Any questions comments or concerns should be addressed to | Stingray,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb1,67,5,1,0,0,0,hwy0.ter,x/i76com-download/allnitromaps.zip/miss16/hwy0.cbt
+ice|ice.ter,Ice Arena,nitro,melee,WT Paul,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,11,11,0,0,0,0,ice.ter,x/i76com-download/allnitromaps.zip/miss16/ice.MSN
+intercpt|intercpt.ter,IntercptPursuit,nitro,melee,s consent | Debacle,gold-static-ok; drops objects (aobild9.sdf),8,3,i76com-download ia/Interstate.76 localditch/maps lsm/exclusive lsm/i76comb1,94,10,2,0,0,0,Intercpt.ter,x/i76com-download/allnitromaps.zip/miss16/Intercpt.cbt
+inter|inter.ter,Intersection,nitro,melee,s consent | Debacle | Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,95,11,4,0,0,0,inter.ter,x/i76com-download/allnitromaps.zip/miss16/inter.cbt
+irpgkoh|irpgkoh.ter,IRPG--KoH,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,9,9,0,0,0,0,irpgkoh.ter,x/i76com-download/allnitromaps.zip/miss16/irpgkoh.cbt
+irpg|irpg.ter,IRPG   Country,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,184,8,4,0,0,0,irpg.ter,x/i76com-download/allnitromaps.zip/miss16/irpg.cbt
+joecity|joecity.ter,Smokin joe city,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,57,8,0,0,0,0,joecity.ter,x/i76com-download/allnitromaps.zip/miss16/joecity.cbt
+judge|judge.ter,"Judgment, NM",nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,124,8,2,0,0,0,judge.ter,x/i76com-download/allnitromaps.zip/miss16/judge.cbt
+junkyard|junkyard.ter,Junk Yard,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive,15,8,1,0,0,0,junkyard.ter,x/i76com-download/allnitromaps.zip/miss16/junkyard.cbt
+katana|katana.ter,Katana,nitro,melee,WT Darkwing  [email removed] or ICQ: 23675002,gold-static-ok,9,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,27,8,2,0,0,0,katana.ter,x/i76com-download/allnitromaps.zip/miss16/katana.cbt
+kohv|kohv.ter,KingoHillville,nitro,melee,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/combat1,6,4,1,0,0,0,kohv.ter,x/i76com-download/allnitromaps.zip/miss16/kohv.cbt
+kulaho|kulaho.ter,Kula's  Hideout,nitro,melee,,gold-static-ok; risk: missing art nk_clde.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat1,64,5,0,0,0,0,kulaho.ter,x/i76com-download/allnitromaps.zip/miss16/kulaho.cbt
+kulairpg|kulairpg.ter,Kula's IRPG,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,253,5,1,0,0,0,kulairpg.ter,x/i76com-download/allnitromaps.zip/miss16/kulairpg.cbt
+lago|lago.ter,Muerto Lago,nitro,melee,INT Rockaho,gold-static-ok,8,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,33,12,1,0,0,0,lago.ter,x/i76com-download/allnitromaps.zip/miss16/lago.cbt
+lake|lake.ter,Dry Lake road,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,53,10,1,0,0,0,lake.ter,x/i76com-download/allnitromaps.zip/miss16/lake.cbt
+lethal|lethal.ter,Ballistic,nitro,melee,ATOMIC MONKEY,gold-static-ok; drops objects (ngscrng3.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat1,93,8,1,0,0,0,lethal.ter,x/i76com-download/allnitromaps.zip/miss16/lethal.cbt
+lndfll|lndfll.ter,The Land-Fill,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,11,6,0,0,0,0,lndfll.ter,x/i76com-download/allnitromaps.zip/miss16/lndfll.cbt
+longjump|longjump.ter,The Long Jump,nitro,melee,Dustin Reinmsith aka  Debacle,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat2 lsm/i76comb3,17,4,6,0,0,0,longjump.ter,x/i76com-download/allnitromaps.zip/miss16/longjump.CBT
+lovecnl|lovecnl.ter,Love Canal,nitro,melee,MofoFunk,gold-static-ok; drops objects (awreck2.sdf),7,3,i76com-download ia/Interstate.76 lsm/combat2 lsm/i76comb2,83,6,1,0,0,0,lovecnl.ter,x/i76com-download/allnitromaps.zip/miss16/lovecnl.cbt
+lumps|lumps.ter,Bowl 'O Lumps,nitro,melee,MofoFunk,gold-static-ok; risk: missing art zmap2m00.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat1,15,7,0,0,0,0,lumps.ter,x/i76com-download/allnitromaps.zip/miss16/lumps.cbt
+lynch|lynch.ter,Lynchburg,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,169,8,1,0,0,0,lynch.ter,x/i76com-download/allnitromaps.zip/miss16/lynch.cbt
+m_lode|m_lode.ter,Motherlode,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,56,8,1,0,0,0,m_lode.ter,x/i76com-download/allnitromaps.zip/miss16/m_lode.cbt
+mapleton|mapleton.ter,Mapleton,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,95,8,1,0,0,0,mapleton.ter,x/i76com-download/allnitromaps.zip/miss16/mapleton.cbt
+maze2|maze2.ter,aamaze2,nitro,melee,Any questions comments or concerns should be addressed to,gold-static-ok,8,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb3 lsm/i76comb5,29,8,2,0,0,0,Maze2.ter,x/i76com-download/allnitromaps.zip/miss16/maze2.cbt
+maze|maze.ter,Wild Maze,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,31,14,2,0,0,0,maze.ter,x/i76com-download/allnitromaps.zip/miss16/maze.cbt
+misery|misery.ter,Misery,nitro,melee,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/combat2,10,10,0,0,0,0,Misery.ter,x/i76com-download/allnitromaps.zip/miss16/Misery.cbt
+mlhlnd3|mlhlnd3.ter,Mulholland Race,nitro,melee,s consent...Please contact the above mentioned orgaization | Unknown,gold-static-ok,10,1,i76com-download ia/Interstate.76 lsm/combat3 lsm/racing2,269,9,1,0,0,0,mlhlnd3.ter,x/i76com-download/allnitromaps.zip/miss16/MLHLND3.CBT
+mofo|mofo.ter,Mofo Island,nitro,melee,MofoFunk,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,171,8,2,0,0,0,mofo.ter,x/i76com-download/allnitromaps.zip/miss16/mofo.cbt
+mojave|mojave.ter,Mojave,nitro,melee,Ozone [BC],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,160,8,1,0,0,0,mojave.ter,x/i76com-download/allnitromaps.zip/miss16/mojave.cbt
+moonshin|moonshin.ter,Moonshine,nitro,melee,R66 Lightfoot | s consent,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive,77,6,1,0,0,0,moonshin.ter,x/i76com-download/allnitromaps.zip/miss16/moonshin.cbt
+mtmyhm|mtmyhm.ter,Mount. Mayhem!,nitro,melee,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/combat2,25,6,0,0,0,0,mtmyhm.ter,x/i76com-download/allnitromaps.zip/miss16/mtmyhm.cbt
+mung|mung.ter,Mungburg,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,80,8,2,0,0,0,mung.ter,x/i76com-download/allnitromaps.zip/miss16/mung.cbt
+n00|n00.ter,Guns Only,nitro,melee,"the 15th of May, so look for it | Sid | DIVER",gold-static-ok; drops objects (bcpoat2.sdf),2,2,route380-prior-mirror,75,10,1,0,0,0,N00.ter,route380/maps/_all/GunsOnlyfixed/GunsOnlyfixed/N00.cbt
+nest|nest.ter,Vigilantes Nest,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,118,8,2,0,0,0,nest.ter,x/i76com-download/allnitromaps.zip/miss16/nest.cbt
+nextday|nextday.ter,The next day,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,85,7,6,0,0,0,nextday.ter,x/i76com-download/allnitromaps.zip/miss16/nextday.cbt
+norpac|norpac.ter,Norpac,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,49,8,2,0,0,0,norpac.ter,x/i76com-download/allnitromaps.zip/miss16/norpac.cbt
+nvs|nvs.ter,Navajo Speedway,nitro,melee,VSF Gulliver,gold-static-ok; risk: missing art p04.act p04.lum p04.tbl (untested),6,3,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb3,45,8,0,0,0,0,Nvs.ter,x/i76com-download/allnitromaps.zip/miss16/nvs.LVL
+obsid|obsid.ter,Obsidian Valley,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,83,8,2,0,0,0,obsid.ter,x/i76com-download/allnitromaps.zip/miss16/obsid.cbt
+offroad|offroad.ter,Offroad Gold,nitro,melee,Any questions comments or concerns should be addressed to | General Rage,gold-static-ok,12,4,i76com-download ia/Interstate.76 localditch/maps lsm/exclusive lsm/i76comb1 lsm/racing1,84,8,5,0,0,0,Offroad.ter,x/i76com-download/allnitromaps.zip/miss16/Offroad.cbt
+ofjuicy_8|ofjuicy.ter,Offroad: juicy,nitro,melee,,gold-static-ok; risk: missing art zmap6moo.map (untested),12,4,i76com-download ia/Interstate.76 lsm/combat1,82,8,4,0,0,0,ofjuicy.ter,x/i76com-download/allnitromaps.zip/miss16/ofjuicy_8.cbt
+ofjuicyc|ofjuicyc.ter,OR: juicy fight,nitro,melee,,gold-static-ok; risk: missing art zmap6moo.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat3,82,8,4,0,0,0,ofjuicyc.ter,x/i76com-download/allnitromaps.zip/miss16/ofjuicyc.cbt
+oil_refn|oil_refn.ter,Oil Refinery,nitro,melee,MofoFunk,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,55,8,1,0,0,0,oil_refn.ter,x/i76com-download/allnitromaps.zip/miss16/oil_refn.cbt
+oil|oil.ter,Oil dump,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,52,7,4,0,0,0,oil.ter,x/i76com-download/allnitromaps.zip/miss16/oil.cbt
+opn_dsrt|opn_dsrt.ter,Open Desert,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,37,8,1,0,0,0,opn_dsrt.ter,x/i76com-download/allnitromaps.zip/miss16/opn_dsrt.cbt
+overkill|overkill.ter,Overkill,nitro,melee,raven,gold-static-ok; drops objects (bhsher1.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat2,306,8,2,0,0,0,overkill.ter,x/i76com-download/allnitromaps.zip/miss16/overkill.cbt
+p15autod|p15autod.ter,AutoDrome,nitro,melee,unknown | Information | (auto.zip) must have,gold-static-ok,3,1,ia/Interstate.76 route380-prior-mirror,115,8,0,0,0,0,p15autod.ter,route380/maps/_all/p15autodrom/p15autodrom/p15autod.cbt
+p15sanct|p15sanct.ter,Sanctuary,nitro,melee,Mustardfoot | Information,gold-static-ok,3,1,ia/Interstate.76 route380-prior-mirror,1,1,0,0,0,0,p15sanct.ter,route380/maps/_all/p15Sanctuary/p15Sanctuary/p15sanct.cbt
+p15texas|p15texas.ter,Texas v.1.03,nitro,melee,Limbo [VDU] | Information,gold-static-ok,3,1,ia/Interstate.76 route380-prior-mirror,108,10,3,0,0,0,p15Texas.ter,route380/maps/_all/p15texas/p15texas/p15Texas.cbt
+p_valley|p_valley.ter,Pursuit Valley,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,125,9,1,0,0,0,p_valley.ter,x/i76com-download/allnitromaps.zip/miss16/p_valley.cbt
+pheaven|pheaven.ter,Pursuit Heaven,nitro,melee,Skull N. Bones | s to use for various chase scenes,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/racing1,189,8,1,0,0,0,PHeaven.ter,x/i76com-download/allnitromaps.zip/miss16/PHeaven.cbt
+pipe|pipe.ter,Pipeline,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,255,8,3,0,0,0,pipe.ter,x/i76com-download/allnitromaps.zip/miss16/pipe.cbt
+plant|plant.ter,The Plantation,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,142,8,2,0,0,0,plant.ter,x/i76com-download/allnitromaps.zip/miss16/plant.cbt
+playg|playg.ter,NLC.playground,nitro,melee,,gold-static-ok; drops objects (#2.sdf bar_d.sdf bchoyel1.sdf bctatt01.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat2,227,3,3,0,0,0,playG.ter,x/i76com-download/allnitromaps.zip/miss16/PLAYG.CBT
+please|please.ter,Pleasantville,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,116,8,1,0,0,0,please.ter,x/i76com-download/allnitromaps.zip/miss16/please.cbt
+pong|pong.ter,DV Ping Pong,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,13,8,1,0,0,0,pong.ter,x/i76com-download/allnitromaps.zip/miss16/pong.cbt
+pt_blank|pt_blank.ter,Point Blank,nitro,melee,raven,gold-static-ok; drops objects (ngscrng3.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat2,37,8,0,0,0,0,pt_blank.ter,x/i76com-download/allnitromaps.zip/miss16/pt_blank.cbt
+pvalley|pvalley.ter,Pleasant Valley,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,104,8,1,0,0,0,pvalley.ter,x/i76com-download/allnitromaps.zip/miss16/pvalley.cbt
+r66rcway|r66rcway.ter,R66 Raceway,nitro,melee,,gold-static-ok,11,3,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb2,22,6,2,0,0,0,r66rcway.ter,x/i76com-download/allnitromaps.zip/miss16/r66rcway.lvl
+rat|rat.ter,Rat Race,nitro,melee,Debacle,gold-static-ok; drops objects (.vcf),7,3,i76com-download ia/Interstate.76 lsm/combat2 lsm/i76comb3,43,6,4,0,0,0,rat.ter,x/i76com-download/allnitromaps.zip/miss16/rat.cbt
+repo|repo.ter,RepoTown USA,nitro,melee,Debacle,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb1,208,6,2,0,0,0,repo.ter,x/i76com-download/allnitromaps.zip/miss16/repo.cbt
+rfire|rfire.ter,Rapid Fire,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,88,8,1,0,0,0,rfire.ter,x/i76com-download/allnitromaps.zip/miss16/rfire.cbt
+ridroad|ridroad.ter,Ridge-Road,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,83,10,3,0,0,0,ridroad.ter,x/i76com-download/allnitromaps.zip/miss16/ridroad.cbt
+river|river.ter,River Run,nitro,melee,,gold-static-ok; risk: missing art zmap3moo.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat2,125,8,2,0,0,0,river.ter,x/i76com-download/allnitromaps.zip/miss16/river.cbt
+roach|roach.ter,Roachville,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,67,8,1,0,0,0,roach.ter,x/i76com-download/allnitromaps.zip/miss16/roach.cbt
+roadr|roadr.ter,Road Rage!,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,81,9,4,0,0,0,Roadr.ter,x/i76com-download/allnitromaps.zip/miss16/ROADR.CBT
+rod|rod.ter,City of Rod,nitro,melee,Debacle,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb1,54,6,4,0,0,0,rod.ter,x/i76com-download/allnitromaps.zip/miss16/rod.cbt
+s_ride|s_ride.ter,Slay Ride,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,90,8,1,0,0,0,s_ride.ter,x/i76com-download/allnitromaps.zip/miss16/s_ride.cbt
+sanctuary|sanctuar.ter,Sanctuary,nitro,melee,Mustardfoot,gold-static-ok,2,2,ia/Interstate.76,1,1,0,0,0,0,sanctuar.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/sanctuary.cbt
+sanctuary|sanctuary.ter,Sanctuary,nitro,melee,Mustardfoot,gold-static-ok,4,2,i76com-download lsm/combat3,1,1,0,0,0,0,sanctuary.ter,x/i76com-download/allnitromaps.zip/miss16/sanctuary.cbt
+sbk|sbk.ter,SwitchBack,nitro,melee,of GR XLT and Navajo Valley Speedway comes,gold-static-ok,5,3,i76com-download ia/Interstate.76 lsm/exclusive,61,6,1,0,0,0,sbk.ter,x/i76com-download/allnitromaps.zip/miss16/sbk.LVL
+scratvil|scratvil.ter,Scratville,nitro,melee,Info,gold-static-ok,5,3,i76com-download ia/Interstate.76 lsm/exclusive,248,1,0,0,0,0,Scratvil.ter,x/i76com-download/allnitromaps.zip/miss16/Scratvil.LVL
+skunk|skunk.ter,Skunk Works,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,20,8,0,0,0,0,skunk.ter,x/i76com-download/allnitromaps.zip/miss16/skunk.cbt
+sledge|sledge.ter,Sledge Hammer,nitro,melee,Ruud Mussen  (callsign usually Fat & Ugly) | Ruud Mussen (callsign usually Fat & Ugly),gold-static-ok; drops objects (ntree5.sdf),5,2,i76com-download ia/Interstate.76 lsm/combat2 lsm/i76comb4,31,8,2,0,0,0,sledge.ter,x/i76com-download/allnitromaps.zip/miss8/sledge.cbt
+sledge|sledge16.ter,Sledge Hammer,nitro,melee,Ruud Mussen  (callsign usually Fat & Ugly) | Ruud Mussen (callsign usually Fat & Ugly),broken: terrain missing; drops objects (ntree5.sdf),2,1,i76com-download lsm/combat2,31,8,2,0,0,0,sledge16.ter (MISSING),x/i76com-download/allnitromaps.zip/miss16/sledge.cbt
+smczone|smczone.ter,SMCZone,nitro,melee,,gold-static-ok; risk: missing art zmap3moo.map (untested),6,2,i76com-download ia/Interstate.76 lsm/combat3,13,8,1,0,0,0,SMCZone.ter,x/i76com-download/allnitromaps.zip/miss16/SMCZone.cbt
+snwb|snwb.ter,,nitro,melee,of GR XLT and Nevada Valley Speedway comes,gold-static-ok; risk: missing art p05.act p05.lum p05.tbl (untested),3,1,i76com-download lsm/exclusive,41,8,1,0,0,0,snwb.ter,x/i76com-download/allnitromaps.zip/miss16/snwb.LVL
+soccer|soccer.ter,soccer,nitro,melee,of this plan),gold-static-ok,9,3,i76com-download ia/Interstate.76 kcr route380-prior-mirror,26,8,0,0,0,0,soccer.ter,x/i76com-download/DIVERmappack.zip/miss16/soccer.cbt
+souls|souls.ter,Arena Of Souls,nitro,melee,INT Rockaho,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,29,13,15,0,0,0,souls.ter,x/i76com-download/allnitromaps.zip/miss16/souls.cbt
+spanner|spanner.ter,Spanners,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,70,8,2,0,0,0,spanner.ter,x/i76com-download/allnitromaps.zip/miss16/spanner.cbt
+sparkle|sparkle.ter,SparkleMountain,nitro,melee,ATOMIC MONKEY,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat1,123,8,2,0,0,0,sparkle.ter,x/i76com-download/allnitromaps.zip/miss16/sparkle.cbt
+spark|spark.ter,Skate-Park,nitro,melee,Mustardfoot,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,15,4,0,0,0,0,spark.ter,x/i76com-download/allnitromaps.zip/miss16/spark.cbt
+speedz|speedz.ter,Speed Zone,nitro,melee,Cadman[GUN],gold-static-ok; drops objects (sh123_1.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat3,73,9,2,0,0,0,Speedz.ter,x/i76com-download/allnitromaps.zip/miss16/speedz.cbt
+sprl|sprl.ter,The sPiRaL,nitro,melee,of SnowBlind and SwitchBack comes,gold-static-ok,5,3,i76com-download ia/Interstate.76 lsm/exclusive,22,6,1,0,0,0,sprl.ter,x/i76com-download/allnitromaps.zip/miss16/sprl.LVL
+ssyard|ssyard.ter,SS Yard,nitro,melee,Cadman[GUN],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,12,5,1,0,0,0,ssyard.ter,x/i76com-download/allnitromaps.zip/miss16/ssyard.cbt
+stones|stones.ter,Stepping Stones,nitro,melee,DarkWing,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,53,8,2,0,0,0,stones.ter,x/i76com-download/allnitromaps.zip/miss16/stones.cbt
+sync|sync.ter,Synchronica,nitro,melee,ATOMIC MONKEY,gold-static-ok,4,2,i76com-download lsm/combat3,83,12,3,0,0,0,sync.ter,x/i76com-download/allnitromaps.zip/miss16/sync.cbt
+t07a|t07a.ter,aaBowling Park,nitro,melee,Any questions comments or concerns should be addressed to,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb3,96,8,1,0,0,0,t07a.ter,x/i76com-download/allnitromaps.zip/miss16/t07a.cbt
+takeoff|takeoff.ter,Take Off,nitro,melee,,gold-static-ok,4,1,i76com-download ia/Interstate.76,93,10,4,0,0,0,takeoff.ter,x/i76com-download/allnitromaps.zip/miss16/TAKEOFF.CBT
+tatum|tatum.ter,Tatum Autodrome,nitro,melee,KW GeNoCiDe,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,17,3,0,0,0,0,tatum.ter,x/i76com-download/allnitromaps.zip/miss16/tatum.cbt
+testtown|testtow8.ter,TA's Test Town,nitro,melee,,gold-static-ok; drops objects (bcbard1.sdf gfparad1.sdf),3,1,i76com-download ia/Interstate.76 lsm/combat2,172,3,0,0,0,0,testtow8.ter,x/i76com-download/allnitromaps.zip/miss8/testtown.cbt
+testtown|testtown.ter,TA's Test Town,nitro,melee,,gold-static-ok; drops objects (bcbard1.sdf gfparad1.sdf),3,1,i76com-download ia/Interstate.76 lsm/combat2,172,3,0,0,0,0,testtown.ter,x/i76com-download/allnitromaps.zip/miss16/testtown.cbt
+test|test.ter,Biggsville,nitro,melee,Captain Stinger (TBP),gold-static-ok; drops objects (bdfrez1.sdf bhtowr1.sdf),7,2,i76com-download ia/Interstate.76 lsm/combat1 lsm/i76comb1,253,9,4,0,0,0,test.ter,x/i76com-download/allnitromaps.zip/miss16/TEST.CBT
+tex|tex.ter,BorderTown,nitro,melee,Debacle,gold-static-ok,8,3,i76com-download ia/Interstate.76 localditch/maps lsm/combat1 lsm/i76comb1,104,7,3,0,0,0,tex.ter,x/i76com-download/allnitromaps.zip/miss16/tex.cbt
+thv|thv.ter,Thunder Valley,nitro,melee,,gold-static-ok,5,3,i76com-download ia/Interstate.76 lsm/exclusive,23,8,0,0,0,0,thv.ter,x/i76com-download/allnitromaps.zip/miss16/thv.LVL
+twisted|twisted.ter,Twisted,nitro,melee,raven,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat3,118,8,2,0,0,0,twisted.ter,x/i76com-download/allnitromaps.zip/miss16/twisted.cbt
+updown|updown.ter,Up & Down,nitro,melee,DarkWing,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat3 lsm/i76comb4,27,8,1,0,0,0,updown.ter,x/i76com-download/allnitromaps.zip/miss16/updown.cbt
+v_arena|v_arena.ter,Lua-pele Arena,nitro,melee,MofoFunk,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,9,8,0,0,0,0,v_arena.ter,x/i76com-download/allnitromaps.zip/miss16/v_arena.cbt
+vanish3|vanish3.ter,Vanishing Point,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,224,3,3,0,0,0,vanish3.ter,x/i76com-download/allnitromaps.zip/miss16/vanish3.cbt
+veldt|veldt.ter,The Veldt,nitro,melee,Skull N. Bones,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat2 lsm/i76comb1,98,8,1,0,0,0,veldt.ter,x/i76com-download/allnitromaps.zip/miss16/veldt.cbt
+warzone|warzone.ter,WARZone,nitro,melee,,gold-static-ok; risk: missing art p09_19.hzd (untested),6,2,i76com-download ia/Interstate.76 lsm/combat2,87,4,5,0,0,0,WARZone.ter,x/i76com-download/allnitromaps.zip/miss16/warzone.cbt
+wild|wild.ter,Wild Combat,nitro,melee,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,60,8,1,0,0,0,wild.ter,x/i76com-download/allnitromaps.zip/miss16/wild.cbt
+wolf9|wolf9.ter,Wolfland,nitro,melee,(s)	: WT Lexi and WT Perry2,gold-static-ok; risk: missing art zmpa6m00.map (untested),6,1,i76com-download ia/Interstate.76 lsm/combat2,17,4,0,0,0,0,wolf9.ter,x/i76com-download/allnitromaps.zip/miss16/wolf9.cbt
+woofden|woofden.ter,Woofie's Den,nitro,melee,,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/combat1 lsm/i76comb1,85,6,2,0,0,0,WoofDen.ter,x/i76com-download/allnitromaps.zip/miss16/WOOFDEN.CBT
+world|world.ter,World of I-76,nitro,melee,,gold-static-ok; drops objects (bdfrez1.sdf bdfrez2.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat2,299,13,3,0,0,0,World.ter,x/i76com-download/allnitromaps.zip/miss16/WORLD.CBT
+ww2|ww2.ter,Wayne's World 2,nitro,melee,,gold-static-ok; drops objects (bcgarag.sdf bcvlivry.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat2,145,3,0,0,0,0,Ww2.ter,x/i76com-download/allnitromaps.zip/miss16/WW2.CBT
+ww|ww.ter,Wayne's World,nitro,melee,,gold-static-ok; drops objects (bcgarag.sdf bcvlivry.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat2,145,3,0,0,0,0,Ww.ter,x/i76com-download/allnitromaps.zip/miss16/WW.CBT
+xlt|xlt.ter,GR XLT,nitro,melee,,gold-static-ok,5,3,i76com-download ia/Interstate.76 lsm/exclusive,49,8,0,0,0,0,Xlt.ter,x/i76com-download/allnitromaps.zip/miss16/xlt.lvl
+yard|yard.ter,The Yard,nitro,melee,KW GeNoCiDe,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/combat2,6,6,0,0,0,0,yard.ter,x/i76com-download/allnitromaps.zip/miss16/yard.cbt
+zenm|zenm.ter,Zen Melee,nitro,melee,,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/i76comb1 lsm/racing1,38,8,4,0,0,0,zenm.ter,x/i76com-download/allnitromaps.zip/miss16/ZENM.CBT
+zenr|zenr.ter,Zen Rollerball,nitro,melee,,gold-static-ok,7,3,i76com-download ia/Interstate.76 localditch/maps lsm/racing1,36,8,2,0,0,0,zenr.ter,x/i76com-download/allnitromaps.zip/miss16/ZENR.CBT
+zero|zero.ter,Ground Zero,nitro,melee,ATOMIC MONKEY,gold-static-ok; drops objects (ngscrng3.sdf),6,2,i76com-download ia/Interstate.76 lsm/combat1,77,8,1,0,0,0,zero.ter,x/i76com-download/allnitromaps.zip/miss16/zero.cbt
+3stitch|3stitch.ter,Triple Stitch,nitro,race,MofoFunk,gold-loads; race rules are Nitro-only (Gold sees 3 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,11,3,1,0,3,0,3stitch.ter,x/i76com-download/allnitromaps.zip/miss16/3stitch.rac
+4hardway|4hardway.ter,4 The Hardway,nitro,race,"Loaded Dog | Fnork titled ""Regen Run"". Race all 4 routes (from left to ri",gold-loads; race rules are Nitro-only (Gold sees 3 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,45,3,3,0,8,0,4hardway.ter,x/i76com-download/allnitromaps.zip/miss16/4hardway.rac
+acidtrip|acidtrip.ter,Acid Trip,nitro,race,R66 Lightfoot | s consent,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),12,3,i76com-download ia/Interstate.76 lsm/exclusive,35,6,2,0,5,0,acidtrip.ter,x/i76com-download/allnitromaps.zip/miss16/acidtrip.cbt
+aeperil|aeperil.ter,Plateau O'Peril,nitro,race,AceEnglish[GUN],gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,32,4,0,0,6,0,aeperil.ter,x/i76com-download/allnitromaps.zip/miss16/aeperil.rac
+american|american.ter,American Iron,nitro,race,R66 Lightfoot | s consent,gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/exclusive,22,4,1,0,5,0,american.ter,x/i76com-download/allnitromaps.zip/miss16/american.rac
+b01bdbd1|b01bdbd1.ter,"Birdie, Bar-D 1",nitro,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 7 plain spawn); drops objects (vzpz01.vcf),3,1,ia/Interstate.76 route380-prior-mirror,35,7,2,0,2,0,b01bdbd1.ter,route380/maps/_all/b01bdbd1/b01bdbd1/b01bdbd1.rac
+b01dpark|b01dpark.ter,Driving Park,nitro,race,U-C | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); drops objects (vdrax.vcf),1,1,route380-prior-mirror,91,8,8,0,5,0,b01dpark.ter,route380/maps/_all/drivingpark/drivingpark/b01dpark.rac
+b01goval|b01goval.ter,Great Oval 1.2,nitro,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),1,1,route380-prior-mirror,60,8,3,0,5,0,b01goval.ter,route380/maps/_all/greatoval12/greatoval12/b01goval.rac
+b01ruins|b01ruins.ter,Ruins,nitro,race,DIVER | Information,nitro-only (needs 1 Nitro asset); drops objects (bczlite1.vcf c1tuur.sdf),1,1,route380-prior-mirror,101,6,1,0,10,0,b01ruins.ter,route380/maps/_all/ruins/ruins/b01ruins.rac
+b01rustb|b01rustb.ter,rust belt,nitro,race,DIVER | Information,nitro-only (needs 1 Nitro asset),1,1,route380-prior-mirror,107,8,1,0,6,0,b01rustb.ter,route380/maps/_all/rustbelt/rustbelt/b01rustb.rac
+b01scrat|b01scrat.ter,scratch,nitro,race,Information,nitro-only (needs 2 Nitro assets),3,1,ia/Interstate.76 route380-prior-mirror,224,7,2,0,9,0,b01scrat.ter,route380/maps/_all/scratch/scratch/b01scrat.rac
+b01skyd1|b01skyd1.ter,SkyDrag 1.2,nitro,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); drops objects (zzzen.vcf zzzwn.vcf zzzznkr1.sdf zzzzzkr1.sdf),1,1,route380-prior-mirror,55,8,1,0,2,0,b01skyd1.ter,route380/maps/_all/b01skyd1/b01skyd1/b01skyd1.rac
+b01snowd|b01snowd.ter,SnowDrive,nitro,race,U-C | Information,nitro-only (needs 1 Nitro asset); drops objects (anbankr1.sdf spown.vcf),1,1,route380-prior-mirror,48,8,2,0,3,0,b01Snowd.ter,route380/maps/_all/b01snowdrive/b01snowdrive/b01Snowd.rac
+b01strme|b01strme.ter,Slipstream 1.2,nitro,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); drops objects (cpnae.vcf eekop.vcf sdwgw_1.sdf sewon.vcf),1,1,route380-prior-mirror,277,8,4,0,8,0,b01strme.ter,route380/maps/_all/slipstream12/slipstream12/b01strme.rac
+b01t04|t04.ter,Circuit T04,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 5 plain spawn),2,1,ia/Interstate.76,37,5,2,0,7,0,t04.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/b01t04.rac
+b01windt|b01windt.ter,wind&trail 1.2,nitro,race,Information,nitro-only (needs 2 Nitro assets),2,2,route380-prior-mirror,269,8,3,0,14,0,b01windt.ter,route380/maps/_all/windtrail12/windtrail12/b01windt.rac
+b01yesdg|b01yesdg.ter,Yes! Dog!!,nitro,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),2,2,route380-prior-mirror,75,8,1,0,4,0,b01yesdg.ter,route380/maps/_all/b01yesdg/b01yesdg/b01yesdg.rac
+blackice|blackice.ter,Black Ice,nitro,race,Fnork n/a,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,21,8,1,0,8,0,BlackIce.ter,x/i76com-download/allnitromaps.zip/miss16/BlackIce.rac
+boondogs|boondog.ter,Boondogs!,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 5 plain spawn),2,1,ia/Interstate.76,109,5,2,0,8,0,boondog.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/boondogs.rac
+canyonlx|canyonlx.ter,canyon rally,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,70,8,11,0,8,0,canyonlx.ter,x/i76com-download/allnitromaps.zip/miss16/canyonlx.rac
+canyonni|canyonni.ter,canyon at night,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,70,8,11,0,8,0,canyonni.ter,x/i76com-download/allnitromaps.zip/miss16/canyonni.rac
+coaster|coaster.ter,Coaster,nitro,race,Fnork f/d,nitro-only (needs 1 Nitro asset),6,2,i76com-download ia/Interstate.76 lsm/exclusive2,46,8,1,0,7,0,Coaster.ter,x/i76com-download/allnitromaps.zip/miss16/Coaster.rac
+colonia|colonia.ter,ColoniaChe Beta,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 3 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,93,3,1,0,7,0,colonia.ter,x/i76com-download/allnitromaps.zip/miss16/colonia.rac
+crosscut|crosscut.ter,CrossCut,nitro,race,raven,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,105,8,1,0,6,0,crosscut.ter,x/i76com-download/allnitromaps.zip/miss16/crosscut.rac
+daylite2|daylite.ter,Day Light Two,nitro,race,,gold-static-ok,2,1,ia/Interstate.76,259,9,1,0,0,0,daylite.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/daylite2.rac
+dblback|dblback.ter,DoubleBack,nitro,race,Fnork n/a,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,23,8,3,0,5,0,dblback.ter,x/i76com-download/allnitromaps.zip/miss16/dblback.rac
+ddevil1|ddevil1.ter,DareDevils,nitro,race,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/racing1,41,4,0,0,0,0,ddevil1.ter,x/i76com-download/allnitromaps.zip/miss16/ddevil1.rac
+destruct |destruct.ter,"Destruxion, TX",nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn); drops objects (afence0.sdf akwreck0.sdf bcgarag0.sdf swend_0.sdf),2,1,ia/Interstate.76,72,6,1,0,2,0,destruct.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/destruct .rac
+dfly|dfly.ter,Drag 'n Fly,nitro,race,DarkWing  (I really,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),3,1,i76com-download ia/Interstate.76 lsm/racing2,50,8,2,0,2,0,dfly.ter,x/i76com-download/allnitromaps.zip/miss8/dfly.rac
+dfly|dragfly.ter,Drag 'n Fly,nitro,race,DarkWing  (I really,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),3,1,i76com-download ia/Interstate.76 lsm/racing2,50,8,2,0,2,0,dragfly.ter,x/lsm/racing2/dfly.zip/miss16/dfly.rac
+dmtrack3|dmtrack3.ter,DM Track III,nitro,race,Death Machine,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),6,1,i76com-download ia/Interstate.76 lsm/racing2,63,6,1,0,6,0,DMtrack3.ter,x/i76com-download/allnitromaps.zip/miss16/dmtrack3.rac
+dmtrack|dmtrack.ter,dmtrack,nitro,race,Any questions comments or concerns should be addressed to | Death Machine,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb4,24,8,2,0,0,0,dmtrack.ter,x/i76com-download/allnitromaps.zip/miss16/dmtrack.rac
+dp4n|dp4n.ter,Driving Park,nitro,race,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/racing1,77,8,8,0,0,0,Dp4n.ter,x/i76com-download/allnitromaps.zip/miss16/Dp4n.rac
+dragjump|dragn.ter,Drag & Jump,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 3 plain spawn),2,2,ia/Interstate.76,40,3,1,0,3,0,Dragn.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/dragjump.rac
+drdmdns|drdmdns.ter,Drag MaDnEsS!!,nitro,race,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/racing1,54,4,6,0,0,0,drdmdns.ter,x/i76com-download/allnitromaps.zip/miss16/drdmdns.rac
+exp05|exp05.ter,Possum Pillars,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,27,8,5,0,3,0,exp05.ter,x/i76com-download/allnitromaps.zip/miss16/exp05.rac
+exp06|exp06.ter,Dark Pillars,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,27,8,5,0,3,0,exp06.ter,x/i76com-download/allnitromaps.zip/miss16/exp06.rac
+fcircuit|fcircuit.ter,Flash! Circuit,nitro,race,WT DarkWing (and proud of it!) or ICQ: 23675002,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing2,14,8,2,0,3,0,fcircuit.ter,x/i76com-download/allnitromaps.zip/miss16/fcircuit.rac
+flatrace|flatrace.ter,Flat Tyre Race,nitro,race,Loaded Dog,gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,34,4,1,0,7,0,flatrace.ter,x/i76com-download/allnitromaps.zip/miss16/flatrace.rac
+fmspeed|fmspeed.ter,FM Speedway,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn); drops objects (bdonut1.sdf uta21_1.sdf uxa21_1.sdf),6,2,i76com-download ia/Interstate.76 lsm/racing1,35,6,1,0,2,0,fmspeed.ter,x/i76com-download/allnitromaps.zip/miss16/fmspeed.rac
+frost|lostmine.ter,Frost Mines,nitro,race,raven,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,1,i76com-download ia/Interstate.76 lsm/exclusive,79,8,1,0,7,0,lostmine.ter,x/i76com-download/allnitromaps.zip/miss16/frost.rac
+goval|goval.ter,Great Oval,nitro,race,D1VER | Lightfoot [FD] | s expressed consent. Please contact D1VER with any questions,gold-static-ok,8,4,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb4 route380-prior-mirror,34,8,1,0,0,0,goval.ter,x/i76com-download/allnitromaps.zip/miss16/goval.rac
+grandrly|grandrly.ter,Grand Rally,nitro,race,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/racing1,23,3,1,0,0,0,grandrly.ter,x/i76com-download/allnitromaps.zip/miss16/grandrly.rac
+h2h|h2h.ter,Head 2 Head,nitro,race,Ruud Mussen  (callsign usually Fat & Ugly) | Ruud Mussen (callsign usually Fat & Ugly),gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),4,1,i76com-download ia/Interstate.76 lsm/racing1,32,8,0,0,4,0,h2h.ter,x/i76com-download/allnitromaps.zip/miss8/h2h.rac
+h2h|h2h16.ter,Head 2 Head,nitro,race,Ruud Mussen  (callsign usually Fat & Ugly) | Ruud Mussen (callsign usually Fat & Ugly),broken: terrain missing,2,1,i76com-download lsm/racing1,32,8,0,0,4,0,h2h16.ter (MISSING),x/i76com-download/allnitromaps.zip/miss16/h2h.rac
+hillclmb|hillclmb.ter,Hill-Climb,nitro,race,,gold-static-ok,8,1,i76com-download ia/Interstate.76 lsm/racing1,11,5,3,0,0,0,hillclmb.ter,x/i76com-download/allnitromaps.zip/miss16/hillclmb.rac
+hollows|hollows.ter,The Hollows,nitro,race,Fnork n/a,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,15,8,2,0,2,0,hollows.ter,x/i76com-download/allnitromaps.zip/miss16/hollows.rac
+hotwire|hotwire.ter,Hot Wired,nitro,race,Strobe,gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,47,4,0,0,9,0,hotwire.ter,x/i76com-download/allnitromaps.zip/miss16/hotwire.rac
+indy500|indy500.ter,The Brickyard,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,116,6,4,0,2,0,indy500.ter,x/i76com-download/allnitromaps.zip/miss16/indy500.rac
+isle4n|isle4n.ter,Isle,nitro,race,,nitro-only (needs 1 Nitro asset),4,2,i76com-download ia/Interstate.76,71,6,1,0,5,0,isle4n.ter,x/i76com-download/DIVERmappack.zip/miss16/isle4n.rac
+knifedge|knifedge.ter,Knife Edge,nitro,race,Fnork n/a,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,16,8,0,0,3,0,knifedge.ter,x/i76com-download/allnitromaps.zip/miss16/knifedge.rac
+ktd_w|ktd_w.ter,Kanata Winter,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 3 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,27,3,1,0,6,0,Ktd_w.ter,x/i76com-download/allnitromaps.zip/miss16/Ktd_w.rac
+ktd|ktd.ter,Kanata T-Drome,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 3 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,27,3,1,0,6,0,Ktd.ter,x/i76com-download/allnitromaps.zip/miss16/Ktd.rac
+kwrcwy|kwrcwy.ter,KW Raceway,nitro,race,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/racing1,5,3,0,0,0,0,kwrcwy.ter,x/i76com-download/allnitromaps.zip/miss16/kwrcwy.rac
+line|line.ter,Pipeline,nitro,race,ATOMIC MONKEY,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,1,i76com-download ia/Interstate.76 lsm/racing1,221,8,3,0,6,0,line.ter,x/i76com-download/allnitromaps.zip/miss16/line.rac
+lostdogs|lostmine.ter,Lost Dogs,nitro,race,Lightfoot [FD],gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive2,80,8,1,0,0,0,lostmine.ter,x/i76com-download/allnitromaps.zip/miss16/lostdogs.rac
+magnum|magnum.ter,Magnum Raceway,nitro,race,R66 Lightfoot | s consent,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/exclusive,52,6,0,0,4,0,magnum.ter,x/i76com-download/allnitromaps.zip/miss16/magnum.rac
+mlhlnd4|mlhlnd3.ter,Day Light' Race,nitro,race,,gold-static-ok,4,2,i76com-download ia/Interstate.76,269,9,1,0,0,0,mlhlnd3.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/MLHLND4.RAC
+mnttwist|mnttwist.ter,Mountain Twist,nitro,race,Fnork n/a,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,16,8,1,0,5,0,MntTwist.ter,x/i76com-download/allnitromaps.zip/miss16/MntTwist.rac
+mortrace|mortrace.ter,Morton Raceway,nitro,race,KW GeNoCiDe,gold-static-ok,6,4,i76com-download ia/Interstate.76 lsm/racing1,19,1,5,0,0,0,mortrace.ter,x/i76com-download/allnitromaps.zip/miss16/mortrace.rac
+moth01h|moth01h.ter,Moth Arena b,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,16,8,2,0,5,0,moth01h.ter,x/i76com-download/allnitromaps.zip/miss16/moth01h.rac
+ncrossin|ncrossin.ter,nCrossing+,nitro,race,DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 5 plain spawn); drops objects (.sdf),1,1,route380-prior-mirror,169,5,0,0,2,0,ncrossin.ter,route380/maps/_all/ncrossing/ncrossing/ncrossin.rac
+nhra3|nhra3.ter,NHRAraceworld 3,nitro,race,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/racing1,37,5,1,0,0,0,nhra3.ter,x/i76com-download/allnitromaps.zip/miss16/nhra3.rac
+nhra|nhra.ter,NHRAraceworld 1,nitro,race,,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/i76comb4 lsm/racing1,24,1,1,0,0,0,nhra.ter,x/i76com-download/allnitromaps.zip/miss16/nhra.rac
+nightdd8|n62.ter,Night Driver D8,nitro,race,,nitro-only (needs 1 Nitro asset),3,1,ia/Interstate.76 route380-prior-mirror,89,5,1,0,6,0,n62.ter (stock),route380/maps/_all/NightDD8/NightDD8/NightDD8.rac
+nitrus2|nitrus2.ter,Nitro Rush II,nitro,race,Spawn,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/exclusive,188,8,2,0,6,0,NitRus2.ter,x/i76com-download/allnitromaps.zip/miss16/NitRus2.rac
+nitrus3a|nitrus3.ter,Nitro Rush 3A,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),2,2,ia/Interstate.76,288,4,2,0,26,0,NitRus3.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/NitRus3A.rac
+nitrus3|nitrus3.ter,Nitro Rush 3,nitro,race,Spawn | last comments: Well I hope you like the new and improved Nit,gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/exclusive,288,4,2,0,26,0,NitRus3.ter,x/i76com-download/allnitromaps.zip/miss16/NitRus3.rac
+nitrush|nitrush.ter,Nitro Rush,nitro,race,Spawn,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/exclusive,212,8,2,0,11,0,NitRush.ter,x/i76com-download/allnitromaps.zip/miss16/NitRush.rac
+nr380_a|nr380_ab.ter,nRoute380_A,nitro,race,Information | is i76 dev team,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),1,1,route380-prior-mirror,193,6,2,0,4,0,nr380_AB.ter,route380/maps/_all/nr380/nr380/nr380_A.rac
+nr380_b|nr380_ab.ter,nRoute380_B,nitro,race,Information | is i76 dev team,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),1,1,route380-prior-mirror,193,6,2,0,4,0,nr380_AB.ter,route380/maps/_all/nr380/nr380/nr380_B.rac
+nvspeed|nvspeed.ter,Nevada Speedway,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); drops objects (ngscrng.sdf),7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,63,8,2,0,3,0,NVspeed.ter,x/i76com-download/allnitromaps.zip/miss16/NVspeed.rac
+ofjuicyr|ofjuicyr.ter,OR: juicy race,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); risk: missing art zmap6moo.map (untested),6,2,i76com-download ia/Interstate.76 lsm/racing1,85,8,4,0,3,0,ofjuicyr.ter,x/i76com-download/allnitromaps.zip/miss16/ofjuicyr.RAC
+orspeed_16|orspeed.ter,Offroad: speed,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); risk: missing art zmap6moo.map (untested),1,1,lsm/racing1,78,8,0,0,49,0,orspeed.ter,x/lsm/racing1/orspeed.zip/orspeed_16.rac
+orspeed_8|orspeed.ter,Offroad: speed,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); risk: missing art zmap6moo.map (untested),1,1,lsm/racing1,78,8,0,0,49,0,orspeed.ter,x/lsm/racing1/orspeed.zip/orspeed_8.rac
+p15ad|p15ad.ter,Appalacia Drag,nitro,race,VSF  Gulliver | Gulliver [VSF] | Information,gold-loads; race rules are Nitro-only (Gold sees 7 plain spawn); drops objects (spvmn.vcf),1,1,route380-prior-mirror,53,7,1,0,3,0,p15Ad.ter,route380/maps/_all/p15AppalachiaDrag/p15AppalachiaDrag/p15Ad.rac
+p15frap|p15frap.ter,Frappe Rally,nitro,race,Debacle | Information,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn); risk: missing art one.hzd (untested),3,1,ia/Interstate.76 route380-prior-mirror,36,6,3,0,6,0,p15frap.ter,route380/maps/_all/p15frappe/p15frappe/p15frap.rac
+p15grvc|p15grvc.ter,GrooveChasm,nitro,race,unknown | Information | but he did,gold-static-ok,3,1,ia/Interstate.76 route380-prior-mirror,189,8,6,0,0,0,p15GrvC.ter,route380/maps/_all/p15groovechasm/p15groovechasm/p15GrvC.rac
+p15motrx|p15motrx.ter,MotorX,nitro,race,Darmok | Information,nitro-only (needs 1 Nitro asset); drops objects (b7furr.vcf b8furr.vcf c6furr.vcf nadillo1.vcf),1,1,route380-prior-mirror,110,8,1,0,37,0,p15motrx.ter,route380/maps/_all/p15motrx/p15motrx/p15motrx.rac
+p15race|p15race.ter,RACE,nitro,race,unknown | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); drops objects (aaram.vcf aarmn.vcf aarmp.vcf aramp.vcf),3,1,ia/Interstate.76 route380-prior-mirror,65,8,8,0,5,0,p15race.ter,route380/maps/_all/p15race/p15race/p15race.rac
+p15rangr|p15rangr.ter,Lones Challnge,nitro,race,Lone Ranger | Information,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn); drops objects (bczlite3.vcf),3,1,ia/Interstate.76 route380-prior-mirror,95,6,1,0,2,0,p15Rangr.ter,route380/maps/_all/p15lonchlge/p15lonchlge/p15Rangr.rac
+p15stunt|p15stunt.ter,Stunt Race-1,nitro,race,Admiral | Information,gold-static-ok,3,1,ia/Interstate.76 route380-prior-mirror,7,4,0,0,0,0,p15Stunt.ter,route380/maps/_all/p15stunt1/p15stunt1/p15Stunt.rac
+p15thv|p15thv.ter,Thunder Valley,nitro,race,Gulliver [VSF] | DIVER | Information,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),1,1,route380-prior-mirror,43,8,1,0,9,0,p15thv.ter,route380/maps/_all/p15ThunderValley/p15ThunderValley/p15thv.rac
+pillars2|pillars2.ter,Pillars 2,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 2 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,17,2,5,0,4,0,pillars2.ter,x/i76com-download/allnitromaps.zip/miss16/pillars2.rac
+ptd1|ptd1.ter,Paris to Dakar1,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 2 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,18,2,1,0,7,0,ptd1.ter,x/i76com-download/allnitromaps.zip/miss16/ptd1.rac
+purgator|purgator.ter,Purgatory,nitro,race,R66 Lightfoot | s consent,gold-loads; race rules are Nitro-only (Gold sees 2 plain spawn),5,1,i76com-download ia/Interstate.76 lsm/exclusive,37,2,1,0,3,0,purgator.ter,x/i76com-download/allnitromaps.zip/miss16/purgator.rac
+quadrac|quadrac.ter,Quad Race,nitro,race,Rude Dog [FD],gold-static-ok; drops objects (bhhouse3.sdf),6,2,i76com-download ia/Interstate.76 lsm/exclusive2,63,8,4,0,0,0,Quadrac.ter,x/i76com-download/allnitromaps.zip/miss16/Quadrac.rac
+racefans|racefans.ter,RaceFans,nitro,race,Lightfoot's Stolen Maps | Stingray,gold-static-ok; drops objects (.vcf),7,3,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76race,31,5,2,0,0,0,Racefans.ter,x/i76com-download/allnitromaps.zip/miss16/Racefans.rac
+ratt|ratt.ter,Ratt Race,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 2 plain spawn); drops objects (.vcf sp0wn.vcf),2,1,ia/Interstate.76,46,2,4,0,1,0,ratt.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/ratt.rac
+regenrun|regenrun.ter,Regen Run,nitro,race,Fnork n/a,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,87,8,4,0,11,0,regenrun.ter,x/i76com-download/allnitromaps.zip/miss16/regenrun.rac
+rhino|rhino.ter,Rhino Run,nitro,race,Dustin Reinmsith aka  Debacle,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,21,6,0,0,11,0,rhino.ter,x/i76com-download/allnitromaps.zip/miss16/rhino.rac
+ridge|ridge.ter,Ridge Run,nitro,race,MofoFunk,gold-loads; race rules are Nitro-only (Gold sees 4 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,68,4,1,0,11,0,ridge.ter,x/i76com-download/allnitromaps.zip/miss16/ridge.rac
+rondtrip|rondtrip.ter,Round' Trip,nitro,race,Spawn,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,135,6,2,0,29,0,RondTrip.ter,x/i76com-download/allnitromaps.zip/miss16/RondTrip.rac
+ruins|ruins.ter,Ruins,nitro,race,DIVER | Information,gold-static-ok,8,3,i76com-download ia/Interstate.76 lsm/i76comb3 lsm/racing2 route380-prior-mirror,81,5,1,0,0,0,ruins.ter,x/i76com-download/allnitromaps.zip/miss16/ruins.rac
+rustbelt|rustbelt.ter,rust belt,nitro,race,Info,nitro-only (needs 1 Nitro asset),5,2,i76com-download ia/Interstate.76 route380-prior-mirror,108,8,1,0,3,0,rustbelt.ter,x/i76com-download/DIVERmappack.zip/miss16/rustbelt.rac
+s4nf|s4nf.ter,Slipstream 1.1,nitro,race,,gold-static-ok; drops objects (sdwgw_1.sdf),4,2,i76com-download ia/Interstate.76,258,8,4,0,0,0,S4Nf.ter,x/i76com-download/DIVERmappack.zip/miss16/S4Nf.rac
+sd4nf|sd4nf.ter,SkyDrag 1.1,nitro,race,,gold-static-ok,4,2,i76com-download ia/Interstate.76,47,8,15,0,0,0,sd4nf.ter,x/i76com-download/DIVERmappack.zip/miss16/sd4nf.rac
+sd|sd.ter,Sky Drag,nitro,race,DIVER | Information,gold-static-ok,7,3,i76com-download ia/Interstate.76 lsm/racing1 route380-prior-mirror,46,8,15,0,0,0,Sd.ter,x/i76com-download/allnitromaps.zip/miss16/Sd.rac
+shrooms|shrooms.ter,Shroom Dogs,nitro,race,Lightfoot [FD] | s consent,nitro-only (needs 1 Nitro asset); drops objects (swdog_1.sfd),2,2,ia/Interstate.76,44,6,2,0,5,0,shrooms.ter,x/ia/Interstate.76/Interstate 76.7z/Interstate 76/miss16/shrooms.rac
+skyline|skyline.ter,Skyline Raceway,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing1,64,8,2,0,3,0,Skyline.ter,x/i76com-download/allnitromaps.zip/miss16/Skyline.rac
+snorally|snorally.ter,SNOW RALLY2,nitro,race,unknown,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive,10,8,1,0,0,0,snorally.ter,x/i76com-download/allnitromaps.zip/miss16/snorally.rac
+snowd|snowd.ter,SnowDrive,nitro,race,U-C | Information,gold-static-ok,6,3,i76com-download ia/Interstate.76 lsm/i76comb5 route380-prior-mirror,36,8,1,0,0,0,Snowd.ter,x/i76com-download/DIVERmappack.zip/miss16/Snowd.rac
+steeple|steeple.ter,Steeple Chase,nitro,race,Any questions comments or concerns should be addressed to | Debacle,gold-static-ok,7,2,i76com-download ia/Interstate.76 lsm/exclusive lsm/i76comb3,26,6,1,0,0,0,steeple.ter,x/i76com-download/allnitromaps.zip/miss16/steeple.rac
+stntjmp|stntjmp.ter,Stunt Jumpin',nitro,race,,gold-static-ok,6,1,i76com-download ia/Interstate.76 lsm/racing1,23,6,5,0,0,0,stntjmp.ter,x/i76com-download/allnitromaps.zip/miss16/stntjmp.rac
+struxion|struxion.ter,Struxion zone,nitro,race,Stingray,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/exclusive,72,6,1,0,0,0,struxion.ter,x/i76com-download/allnitromaps.zip/miss16/struxion.rac
+sub_cult|sub_cult.ter,Sub-Culture,nitro,race,raven,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,80,8,1,0,6,0,sub_cult.ter,x/i76com-download/allnitromaps.zip/miss16/sub_cult.rac
+synrace|synrace.ter,Synchronica,nitro,race,ATOMIC MONKEY,gold-loads; race rules are Nitro-only (Gold sees 12 plain spawn),6,3,i76com-download ia/Interstate.76 lsm/racing1,96,12,3,0,7,0,synrace.ter,x/i76com-download/allnitromaps.zip/miss16/synrace.rac
+testtrk2|testtrk2.ter,TestTrack2,nitro,race,,gold-static-ok,6,2,i76com-download ia/Interstate.76 lsm/racing1,32,8,1,0,0,0,testtrk2.ter,x/i76com-download/allnitromaps.zip/miss16/testtrk2.rac
+testtrk|testtrk.ter,Da  Test Track!,nitro,race,"Viper91 -NHRA | 'S RATING:  10/10---my very best map ever, I stand 100% behi",gold-static-ok,8,1,i76com-download ia/Interstate.76 lsm/racing1,27,8,1,0,0,0,testtrk.ter,x/i76com-download/allnitromaps.zip/miss16/testtrk.rac
+tplunge|tplunge.ter,The Plunge,nitro,race,raven,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn); drops objects (ngscrng3.sdf),6,2,i76com-download ia/Interstate.76 lsm/racing1,107,8,1,0,6,0,tplunge.ter,x/i76com-download/allnitromaps.zip/miss16/tplunge.rac
+tripknot|tripknot.ter,Trip-knot Rally,nitro,race,MofoFunk,gold-loads; race rules are Nitro-only (Gold sees 5 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,83,5,2,0,8,0,tripknot.ter,x/i76com-download/allnitromaps.zip/miss16/tripknot.rac
+wacky|wacky.ter,Wacky Race,nitro,race,WT Darkwing (and proud of it!) or ICQ: 23675002,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),7,3,i76com-download ia/Interstate.76 lsm/i76race lsm/racing2,16,8,0,0,4,0,wacky.ter,x/i76com-download/allnitromaps.zip/miss16/wacky.rac
+windtail|windtail.ter,wind&trail,nitro,race,,nitro-only (needs 2 Nitro assets),4,2,i76com-download ia/Interstate.76,287,4,1,0,17,0,windtail.ter,x/i76com-download/DIVERmappack.zip/miss16/windtail.rac
+wonder|wonder.ter,Wonderland,nitro,race,Fnork[n/a],gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing2,60,8,2,0,2,0,Wonder.ter,x/i76com-download/allnitromaps.zip/miss16/Wonder.rac
+yesdog|yesdog.ter,Yes! Dog!! -n1,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),4,2,i76com-download ia/Interstate.76,75,6,1,0,4,0,yesdog.ter,x/i76com-download/DIVERmappack.zip/miss16/yesdog.rac
+zens|zens.ter,Zen Speedway,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 6 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,44,6,4,0,7,0,zens.ter,x/i76com-download/allnitromaps.zip/miss16/ZENS.RAC
+z|z.ter,Clove o Death,nitro,race,,gold-loads; race rules are Nitro-only (Gold sees 8 plain spawn),6,2,i76com-download ia/Interstate.76 lsm/racing1,14,8,3,0,3,0,z.ter,x/i76com-download/allnitromaps.zip/miss16/z.rac
