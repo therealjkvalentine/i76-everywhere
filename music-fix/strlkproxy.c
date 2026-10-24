@@ -8859,6 +8859,18 @@ static float g_cl_tabT[2 * (2 * CL_RMAX + 1) * (2 * CL_RMAX + 1) + 2];
 static int g_cl_ix[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)], g_cl_iz[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
 static WORD g_cl_thr[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)];
 static DWORD g_cl_kept, g_cl_pairs;
+/* I76_CLUTTER_ALPHA_FADE=<metres> (render-finish lane 2026-10-23; needs I76_CLUTTER_FADE or _DENSITY): a bush's alpha ramps 0 -> 1 over
+ * the N metres after its admission distance - stateless, like the terrain morph: the pair (template, cell) is kept while the cell
+ * distance d < d_adm = fade x sqrt(65535 x density / h16) (the keep rule above solved for d; h16 its hash), capped at I76_CLUTTER_DIST,
+ * so alpha = clamp((d_adm - d) / N). The cull call 0x45c634 (per instance, its loop's entry pointer at [ebp - 8]) records, for every
+ * instance that passes, the record pool's top [0x6543c0] = where its face records start, with its alpha; the hardware flush's
+ * polygon draw 0x4260d0 at 0x48fb7e (chained) finds the current record [0x65439c] (type 4 = a mesh face) in those ranges and draws
+ * it with faredge.c's held blend (fe_cl_begin / fe_cl_end). Main camera only (the mirror is a software render). */
+#define CL_AMAX 16384
+static float g_cl_afade = 0.0f, g_cl_dd[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)], g_cl_ta[(2 * CL_RMAX + 1) * (2 * CL_RMAX + 1)], g_cla_a[CL_AMAX];
+static DWORD g_cla_p[CL_AMAX], g_cla_n, g_cl_ebp, g_cl_pend, g_cl_afr = 0xffffffff, g_cl_next_draw = 0x004260d0;
+static int g_cl_amain, g_cl_ntabT; static DWORD g_cl_hookfr;
+static DWORD g_cl_arec, g_cl_arec_faded, g_cl_ainst, g_cl_ainst_faded, g_cl_aover;
 static void __cdecl clutter_build(BYTE *cam, double ground) {
     float cx = *(float *)(DWORD_PTR)NA(0x004f7180), cz = *(float *)(DWORD_PTR)NA(0x004f7188), v[3];
     int k, n = 0, ix0 = (int)floor(cx / 100.0 + 0.5), iz0 = (int)floor(cz / 100.0 + 0.5);
@@ -8874,7 +8886,7 @@ static void __cdecl clutter_build(BYTE *cam, double ground) {
         if (g_cl_fade_on) {
             double dx = cx + 100.0 * i + 50.0 - camx, dz = cz + 100.0 * j + 50.0 - camz, d = sqrt(dx * dx + dz * dz), p;
             g_cl_ix[n] = ix0 + i; g_cl_iz[n] = iz0 + j;
-            p = (d <= g_cl_fade ? 1.0 : (g_cl_fade / d) * (g_cl_fade / d)) * g_cl_density;
+            p = (d <= g_cl_fade ? 1.0 : (g_cl_fade / d) * (g_cl_fade / d)) * g_cl_density; g_cl_dd[n] = (float)d;
             g_cl_thr[n] = (WORD)(p >= 1.0 ? 65535 : (int)(65535.0 * p));
         }
         n++;
@@ -8888,15 +8900,21 @@ static void __cdecl clutter_template_table(void) {           /* I76_CLUTTER_FADE
     int c, m = 0;
     DWORD kk = (DWORD)g_cl_k * 83492791u;
     for (c = 0; c < g_cl_ntab; c++) {
-        DWORD h;
-        if (g_cl_thr[c] != 65535) {
+        DWORD h = 0;
+        if (g_cl_thr[c] != 65535 || g_cl_afade > 0.0f) {
             h = ((DWORD)g_cl_ix[c] * 73856093u) ^ ((DWORD)g_cl_iz[c] * 19349663u) ^ kk;
             h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
-            if ((h & 0xffff) >= g_cl_thr[c]) continue;
+            if (g_cl_thr[c] != 65535 && (h & 0xffff) >= g_cl_thr[c]) continue;
+        }
+        if (g_cl_afade > 0.0f) {                              /* the pair's admission distance -> its alpha now */
+            DWORD h16 = h & 0xffff; double da = h16 ? (double)g_cl_fade * sqrt(65535.0 * g_cl_density / (double)h16) : 1e9, al;
+            if (da > g_cl_dist) da = g_cl_dist;
+            al = (da - g_cl_dd[c]) / g_cl_afade; g_cl_ta[m] = al >= 1.0 ? 1.0f : al <= 0.0 ? 0.0f : (float)al;
         }
         g_cl_tabT[2 * m] = g_cl_tab[2 * c]; g_cl_tabT[2 * m + 1] = g_cl_tab[2 * c + 1]; m++;
     }
-    if (m == 0) { g_cl_tabT[0] = g_cl_tab[0]; g_cl_tabT[1] = g_cl_tab[1]; m = 1; }   /* entry 0 is the camera's cell: never faded */
+    if (m == 0) { g_cl_tabT[0] = g_cl_tab[0]; g_cl_tabT[1] = g_cl_tab[1]; g_cl_ta[0] = 1.0f; m = 1; }   /* entry 0 is the camera's cell: never faded */
+    g_cl_ntabT = m;
     g_cl_pairs += g_cl_ntab; g_cl_kept += m;
     g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tabT[1] + 8 * m;
     g_cl_k++;
@@ -8944,17 +8962,47 @@ static __declspec(naked) void clutter_end_stub(void) {          /* replaces `cmp
     }
 }
 static int __cdecl clutter_cull_wrap(void *cam, float *v, float r) {   /* the call at 0x45c634 */
-    DWORD used = *(DWORD *)(DWORD_PTR)NA(0x006543c0) - *(DWORD *)(DWORD_PTR)NA(0x00654398);
+    DWORD used = *(DWORD *)(DWORD_PTR)NA(0x006543c0) - *(DWORD *)(DWORD_PTR)NA(0x00654398); int res;
     g_cl_tests++;
     if (used > g_cl_limit) { g_cl_capped++; return 1; }
-    return ((int (__cdecl *)(void *, float *, float))(DWORD_PTR)NA(0x00472c10))(cam, v, r);
+    res = ((int (__cdecl *)(void *, float *, float))(DWORD_PTR)NA(0x00472c10))(cam, v, r);
+    if (res <= 0 && g_cl_amain && g_cl_ebp) {                 /* I76_CLUTTER_ALPHA_FADE: this instance's records start at the pool top */
+        DWORD e = *(DWORD *)(DWORD_PTR)(g_cl_ebp - 8), b0 = (DWORD)(DWORD_PTR)&g_cl_tabT[1]; int m = e >= b0 ? (int)((e - b0) / 8) : -1;
+        if (m >= 0 && m < g_cl_ntabT) {
+            if (g_cla_n < CL_AMAX) { g_cla_p[g_cla_n] = *(DWORD *)(DWORD_PTR)NA(0x006543c0); g_cla_a[g_cla_n] = g_cl_ta[m]; g_cla_n++; g_cl_ainst++; if (g_cl_ta[m] < 0.996f) g_cl_ainst_faded++; }
+            else g_cl_aover++;
+        }
+    }
+    return res;
+}
+static __declspec(naked) void clutter_cull_stub(void) {        /* the call at 0x45c634 with the alpha fade: the loop's frame first */
+    __asm {
+        mov g_cl_ebp, ebp
+        jmp clutter_cull_wrap
+    }
+}
+static void *__cdecl clutter_draw_wrap(void *cam, void *v, int n, DWORD tex, DWORD mode) {   /* the hardware flush's polygon draw at 0x48fb7e */
+    const BYTE *rec = *(const BYTE * volatile *)(DWORD_PTR)NA(0x0065439c); DWORD r = (DWORD)(DWORD_PTR)rec; float a = 1.0f; void *res; int held = 0;
+    if (!g_cl_hookfr) { fe_probe_attach(); fe_alpha_attach(); g_cl_hookfr = g_frame + 1; }   /* hooked a frame before the first fade: ZGLIDE's later requests are seen */
+    if (g_cl_afr == g_frame && g_frame > g_cl_hookfr && g_cla_n && r >= g_cla_p[0] && r < g_cl_pend && *(const int *)(rec + 0xc) == 4) {
+        DWORD lo = 0, hi = g_cla_n - 1;
+        while (lo < hi) { DWORD mid = (lo + hi + 1) >> 1; if (g_cla_p[mid] <= r) lo = mid; else hi = mid - 1; }
+        a = g_cla_a[lo]; g_cl_arec++;
+        if (a < 0.996f) held = fe_cl_begin(255.0f * a);
+        if (held) g_cl_arec_faded++;
+    }
+    res = ((void *(__cdecl *)(void *, void *, int, DWORD, DWORD))(DWORD_PTR)g_cl_next_draw)(cam, v, n, tex, mode);
+    if (held) fe_cl_end();
+    return res;
 }
 static char g_cl_fadetxt[128];
 static void terrain_vguard_report(void);
 static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls at 0x401e47 / 0x402111 */
     LARGE_INTEGER a, b; DWORD used;
     QueryPerformanceCounter(&a);
+    if (g_cl_afade > 0.0f && cam != (void *)(DWORD_PTR)NA(0x00608c80)) { g_cla_n = 0; g_cl_amain = 1; g_cl_ebp = 0; }
     ((void (__cdecl *)(void *))(DWORD_PTR)NA(0x0045c380))(cam);
+    if (g_cl_amain) { g_cl_amain = 0; g_cl_pend = *(DWORD *)(DWORD_PTR)NA(0x006543c0); g_cl_afr = g_frame; }
     QueryPerformanceCounter(&b);
     used = *(DWORD *)(DWORD_PTR)NA(0x006543c0) - *(DWORD *)(DWORD_PTR)NA(0x00654398);
     if (used > g_cl_pool_max) g_cl_pool_max = used;
@@ -8965,6 +9013,10 @@ static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls a
                  g_cl_ticks * 1e6 / g_cl_qpf / 600.0, g_cl_ticks_max * 1e6 / g_cl_qpf, g_cl_cells / 600.0,
                  (unsigned long)g_cl_cells_max, (unsigned long)(g_cl_tests / 600), (unsigned long)g_cl_capped, (unsigned long)(g_cl_pool_max >> 10),
                  g_cl_fade_on && g_cl_pairs ? (sprintf(g_cl_fadetxt, "; fade kept %.1f%% of template x cell pairs", 100.0 * g_cl_kept / g_cl_pairs), g_cl_fadetxt) : "");
+        if (g_logging && g_cl_afade > 0.0f)
+            mlog("  clutter-alpha: 600 frames: %lu instances (%lu fading), %lu face records drawn (%lu with the held blend), %lu triangles drawn under it, %lu instances past the list",
+                 (unsigned long)g_cl_ainst, (unsigned long)g_cl_ainst_faded, (unsigned long)g_cl_arec, (unsigned long)g_cl_arec_faded, (unsigned long)g_cl_ftris, (unsigned long)g_cl_aover);
+        g_cl_ainst = g_cl_ainst_faded = g_cl_arec = g_cl_arec_faded = g_cl_ftris = g_cl_aover = 0;
         terrain_vguard_report();
         terrain_hyst_report();
         terrain_morph_report();
@@ -9012,6 +9064,15 @@ static void apply_clutter_dist(void) {
         if (de < 0.1f || de > 1.0f) mlog("  clutter-dist: I76_CLUTTER_DENSITY %s out of range (0.1..1.0) - stock density", v);
         else if (de < 1.0f) { g_cl_density = de; if (!g_cl_fade_on) { g_cl_fade = 1e9f; g_cl_fade_on = 1; } }   /* the filtered-table path, no distance fade */
     }
+    n = env_str("I76_CLUTTER_ALPHA_FADE", v, sizeof(v));
+    if (n) {
+        float af = (float)atof(v);
+        if (af == 0.0f) ;
+        else if (af < 10.0f || af > 1000.0f) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE %s out of range (10..1000 m) - off", v);
+        else if (!g_cl_fade_on) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE needs I76_CLUTTER_FADE or I76_CLUTTER_DENSITY (the admission rule it fades) - off");
+        else if (g_exe == EXE_NITRO) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE - Nitro, not applied (Gold flush site)");
+        else g_cl_afade = af;
+    }
     n = env_str("I76_CLUTTER_RISE", v, sizeof(v));
     if (n) {
         float r = (float)atof(v);
@@ -9041,7 +9102,7 @@ static void apply_clutter_dist(void) {
     /* record pool first: if this fails nothing else is touched */
     memcpy(pool_new + 1, &pool, 4);
     if (!patch_bytes(0x0048f9b5, pool_old, pool_new, 5, "clutter record pool")) { mlog("  clutter-dist: record pool not enlarged - not applied"); return; }
-    targets[0] = g_cl_fade_on ? (void *)clutter_build_fade_stub : (void *)clutter_build_stub; targets[1] = (void *)clutter_end_stub; targets[2] = (void *)clutter_cull_wrap;
+    targets[0] = g_cl_fade_on ? (void *)clutter_build_fade_stub : (void *)clutter_build_stub; targets[1] = (void *)clutter_end_stub; targets[2] = g_cl_afade > 0.0f ? (void *)clutter_cull_stub : (void *)clutter_cull_wrap;
     targets[3] = (void *)clutter_frame_wrap; targets[4] = (void *)clutter_frame_wrap;
     for (i = 0; i < 5; i++) {
         LONG rel = (LONG)((DWORD_PTR)targets[i] - (sites[i] + 5));
@@ -9057,6 +9118,11 @@ static void apply_clutter_dist(void) {
     ok += patch_bytes(0x004be0c8, (const BYTE *)&rise_old, (const BYTE *)&rise_new, 8, "clutter rise limit");
     z_new = d;
     ok += patch_bytes(0x004be0d0, (const BYTE *)&z_old, (const BYTE *)&z_new, 4, "clutter view z limit");
+    if (g_cl_afade > 0.0f) {
+        if (st_call_site(0x0048fb7e, 0x004260d0, (void *)clutter_draw_wrap, &g_cl_next_draw, "hardware flush polygon draw (clutter alpha fade)"))
+            mlog("  clutter-alpha: on - a bush's alpha ramps 0 -> 1 over the %.0f m after its admission distance (fade %.0f m x density %.2f rule, capped at %.0f m); blend SRC_ALPHA / ONE_MINUS_SRC_ALPHA, alpha TEXTURE x ITERATED while its face records draw", g_cl_afade, g_cl_fade < 1e8f ? g_cl_fade : 0.0f, g_cl_density, d);
+        else { g_cl_afade = 0.0f; mlog("  clutter-alpha: NOT applied (flush draw site)"); }
+    }
     mlog("  clutter-dist: %s, %d/8 sites; view z 120 -> %.0f m, rise limit 5 -> %.1f m, cells from a %dx%d block culled per frame, record pool %lu KB (instances refused past %lu KB)%s",
          ok == 8 ? "on" : "PARTIAL", ok, d, rise, 2 * R + 1, 2 * R + 1, (unsigned long)(pool >> 10), (unsigned long)(g_cl_limit >> 10),
          g_cl_fade_on ? (g_cl_fade < 1e8f ? sprintf(g_cl_fadetxt, "; fade: full density to %.0f m, then x (%.0f / d)^2; density x %.2f", g_cl_fade, g_cl_fade, g_cl_density) : sprintf(g_cl_fadetxt, "; no fade; density x %.2f", g_cl_density), g_cl_fadetxt) : "");
