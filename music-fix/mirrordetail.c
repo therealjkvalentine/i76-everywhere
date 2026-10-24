@@ -130,7 +130,7 @@ static BYTE *md_m16_copy(DWORD src, int smooth) {
 
 static DWORD __cdecl md_road_tex(DWORD set, DWORD cam) {       /* 0x471f00(set, cam) at 0x48ec53: a road segment's texture */
     DWORD r = ((DWORD (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_md_next_roadtex)(set, cam);
-    if (cam == g_ta_mircam && set) {
+    if (g_md_m16roads && cam == g_ta_mircam && set) {
         DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m, 2) : NULL;
         g_md_road_n++;
         if (c) { g_md_road_sw++; return (DWORD)(DWORD_PTR)c; }
