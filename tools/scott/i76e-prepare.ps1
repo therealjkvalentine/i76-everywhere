@@ -55,6 +55,8 @@ if ($Uninstall) {
         $from = Join-Path $game $pair[0]
         if (Test-Path -LiteralPath $from) { Move-Item -LiteralPath $from -Destination (Join-Path $game $pair[1]) -Force; Say "  $($pair[1]) restored" }
     }
+    $defo = Join-Path $game 'I76PLYR.DEF.pre-i76e'
+    if (Test-Path -LiteralPath $defo) { Move-Item -LiteralPath $defo -Destination (Join-Path $game 'I76PLYR.DEF') -Force; Say "  I76PLYR.DEF restored (graphic detail options as before the setup)" }
     $stock = Get-ChildItem -LiteralPath $game -Filter 'input.map.stock-*' -File | Sort-Object Name | Select-Object -First 1
     if ($stock) { Copy-Item -LiteralPath $stock.FullName -Destination (Join-Path $game 'input.map') -Force; Say "  input.map restored from $($stock.Name)" }
     foreach ($n in 'Glide.dll', 'Glide2x.dll', 'Glide3x.dll', 'DDraw.dll', 'D3DImm.dll', 'dgVoodooCpl.exe', 'dgVoodoo.conf', 'dgVoodoo.16x10.conf', 'dgVoodoo.wide.conf',
@@ -108,6 +110,23 @@ if ($need) {
         if ($narrow) { $argv += '-AllowNarrow' }
         $rc = Child (Join-Path $repo 'setup-windows.ps1') $argv
         if ($rc -ne 0) { Fail "setup-windows.ps1 exited $rc - read the lines above; nothing more was done" }
+        # 3. the graphic-detail options at the levels James plays with, ONLY when the options file still holds GOG's defaults.
+        #    I76PLYR.DEF is the exe's 96-byte options block (i76-map data\FORMATS.md s.10). A fresh GOG 2.1.0.17 install has
+        #    +0x4A / +0x4D / +0x4E = 1 / 1 / 0, the release candidate 2 / 2 / 1; at the GOG values the rear-view mirror is at its
+        #    middle level, objects only on a flat sky-coloured background (MIRROR-DETAIL-2026-10-23 s.1: the 300 m / 1000 m mirror
+        #    and the preview's mirror textures never show). Seen on lab game-scott-b 2026-10-23: flat mirror at 1/1/0, road, terrain and
+        #    clouds in it at 2/2/1. Original kept as I76PLYR.DEF.pre-i76e; the game's Options > Graphic Detail menu changes them later.
+        $def = Join-Path $game 'I76PLYR.DEF'
+        if (Test-Path -LiteralPath $def) {
+            $ob = [IO.File]::ReadAllBytes($def)
+            if ($ob.Length -eq 96 -and $ob[0x4A] -eq 1 -and $ob[0x4D] -eq 1 -and $ob[0x4E] -eq 0) {
+                if (-not (Test-Path -LiteralPath "$def.pre-i76e")) { Copy-Item -LiteralPath $def -Destination "$def.pre-i76e" }
+                $ob[0x4A] = 2; $ob[0x4D] = 2; $ob[0x4E] = 1; [IO.File]::WriteAllBytes($def, $ob)
+                $rb = [IO.File]::ReadAllBytes($def)
+                if ($rb[0x4A] -eq 2 -and $rb[0x4D] -eq 2 -and $rb[0x4E] -eq 1) { Say "  graphic detail: GOG's defaults -> the levels James plays with (rear mirror full: road + terrain in it); original I76PLYR.DEF.pre-i76e" }
+                else { Say "  graphic detail: the write did not read back - left as it was" 'Yellow'; Copy-Item -LiteralPath "$def.pre-i76e" -Destination $def -Force }
+            } else { Say "  graphic detail: your own settings kept (I76PLYR.DEF is not GOG's default)" }
+        }
         Set-Content -LiteralPath $stampFile -Value $version -Encoding ascii
         Remove-Item -LiteralPath $dispFile -Force -ErrorAction SilentlyContinue
         Say "=== setup done ===" 'Green'
