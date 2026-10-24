@@ -263,11 +263,19 @@ static void wa_cb(BYTE *o, DWORD h, int kind) {
 }
 /* tick start: everything's pose before the sim; also the leak check (a moving object must start the tick where
  * the last tick left it: anything else was written outside the sim - the trainer - or leaked from the render swap) */
+static DWORD g_st_stale_skipped;                             /* leak-check entries no longer in the live walk (logged at a new mission) */
 static void wst_tick_start(void) {
     int i;
+    /* the walk first: an entry of the last tick is read only when its object is still live (2026-10-24 stability: a
+     * mission change with no shell frame through the hook left the old mission's list here, and the next mission's first
+     * tick read its freed objects - CRASH at +0x3d3b1 reading 0x025c718c / 0x1408a18c, owner's Gold PLAY.bat, n 2) */
+    if (++g_wh_stamp == 0) g_wh_stamp = 1;
+    g_wa_n = 0;
+    wst_walk(wa_cb);
     for (i = 0; i < g_wm_n; i++) {
         xform_t *p = (xform_t *)(g_wm[i].obj + 0x18);
         if (!g_wm[i].live) continue;
+        if (wh_find(g_wh, g_wm[i].obj, g_wh_stamp) < 0) { g_st_stale_skipped++; continue; }   /* gone (or past WST_N): not read */
         g_wst_local.leak_checks++;
         if (memcmp(p, &g_wm[i].cur, sizeof(xform_t)) != 0) {
             /* the sim pose is not where the last tick left it: the drawn pose (a leak of the swap) or an outside write */
@@ -275,9 +283,6 @@ static void wst_tick_start(void) {
             else g_wst_local.ext_writes++;
         }
     }
-    if (++g_wh_stamp == 0) g_wh_stamp = 1;
-    g_wa_n = 0;
-    wst_walk(wa_cb);
 }
 static double wst_d2(const xform_t *a, const xform_t *b) {
     double x = a->p[0] - b->p[0], y = a->p[1] - b->p[1], z = a->p[2] - b->p[2];
@@ -1016,7 +1021,16 @@ static void simtick_clock(void) {
         return;
     }
     g_wst_local.gameplay_frames++;
-    if (*(volatile int *)(DWORD_PTR)NA(0x005a7e18) == 0 && g_st_acc < (double)g_st_T) g_st_acc = (double)g_st_T;   /* simclock_Init ran: a new mission */
+    if (*(volatile int *)(DWORD_PTR)NA(0x005a7e18) == 0) {  /* simclock_Init ran: a new mission (or Replay) */
+        /* the last mission's objects are freed: forget them here too, not only on shell frames (campaign win -> next
+         * mission reaches this hook with no shell frame between; 2026-10-24 stability) */
+        if (g_wm_n || g_we_n || g_wsp_n[0] || g_wsp_n[1] || g_st_stale_skipped)
+            mlog("  sim-tick: new mission - forgot %d moving objects, %d early poses, %d + %d spawns of the last one (%lu stale entries skipped before)",
+                 g_wm_n, g_we_n, g_wsp_n[0], g_wsp_n[1], (unsigned long)g_st_stale_skipped);
+        g_wm_n = 0; g_we_n = 0; g_we_on = 0; g_wsp_n[0] = g_wsp_n[1] = 0; g_trc_n = 0; g_trcp_n = 0;
+        g_st_seg_early = 0; g_st_cam_from_on = 0; g_st_stale_skipped = 0;
+        if (g_st_acc < (double)g_st_T) g_st_acc = (double)g_st_T;
+    }
     g_wst_local.wall_s += d > 0.25 ? 0.25 : d;
     g_st_acc += d > 0.25 ? 0.25 : d;
     g_st_since += d;

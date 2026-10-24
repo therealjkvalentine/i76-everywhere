@@ -342,5 +342,9 @@ static void nitro_font_guard(void) {
     if (env_flag("I76_NITRO_FONT_GUARD", 8, 1) == 0) { mlog("  nitro-font-guard: off (I76_NITRO_FONT_GUARD=0): stock (the second mission of a session faults in HeapFree)"); return; }
     n += nitro_patch_call(0x00431efc, 0x0046d650, (void *)nitro_font_free, &g_nff_next, "WinMain mission-start font free (nitro-font-guard)");
     n += nitro_patch_call(0x00433f8a, 0x0046d650, (void *)nitro_font_free, &g_nff_next, "font reload free (nitro-font-guard)");
-    mlog("  nitro-font-guard: %d/2 font free calls guarded (a free of a pointer whose memory is gone is skipped)", n);
+    /* the third free of [0x526a5c] (2026-10-24 stability lane): `mov ecx, [0x526a5c]; push ecx; call 0x46d650` at 0x433865, the leave-the-game
+     * path - the owner's "unhandled exception when I left the game" (exp-nitro-owner, proxy 0c4f109c: ntdll+0x87b71 reading 0x12310ac7,
+     * state 10, return addresses 0x499b37 / 0x46d65a / 0x433871 on the stack - the same HeapFree-at-block-1 fault as the second mission) */
+    n += nitro_patch_call(0x0043386c, 0x0046d650, (void *)nitro_font_free, &g_nff_next, "exit font free (nitro-font-guard)");
+    mlog("  nitro-font-guard: %d/3 font free calls guarded (a free of a pointer whose memory is gone is skipped)", n);
 }
