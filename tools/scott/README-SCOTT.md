@@ -37,7 +37,9 @@ What it gives you, in one line each:
    `C:\Program Files (x86)\GOG Galaxy\Games\Interstate 76`. It is the folder that contains `i76.exe`.
 2. **Unzip this file INTO that folder**, so that `PLAY.bat` ends up next to `i76.exe`. (Right-click the zip ->
    *Properties* -> tick *Unblock* if that box is shown -> OK. Then right-click -> *Extract All...* and set the
-   destination to the game folder.) The unzip itself overwrites nothing of the game.
+   destination to the game folder.) The unzip itself overwrites nothing of the game. (If you forget *Unblock*,
+   Windows asks once more when you start `PLAY.bat` - *More info* -> *Run anyway* - and the launcher then clears the
+   download mark from the folder's files itself.)
 3. **Double-click `PLAY.bat`.** The first run does a one-time setup in a black window (about ten seconds): it
    lists every file it changes and where it kept the original. A yellow line saying `i76.exe MD5 ... NOT the GOG
    2019 build` is normal on a Galaxy install. Then the game starts. Later runs skip the setup.

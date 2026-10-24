@@ -38,6 +38,11 @@ function Child([string]$script, [string[]]$argv) {
 $exe = Join-Path $game 'i76.exe'
 if (-not (Test-Path -LiteralPath $exe)) { Fail "no i76.exe next to the _i76e folder ($game). Unzip the build INTO your Interstate '76 folder, the one that holds i76.exe." }
 $version = (Get-Content (Join-Path $here 'VERSION.txt') -TotalCount 1).Trim()
+# Mark of the Web: a zip downloaded from GitHub and extracted without ticking Unblock tags every file (Zone.Identifier), and
+# Copy-Item carries the tag to the deployed copies (_ahk\AutoHotkeyU32.exe, the dgVoodoo DLLs; seen on lab game-scott-motw
+# 2026-10-23). A tagged exe started by the launcher can stop on Windows' "Open File - Security Warning" behind the game. The
+# folder is the user's own game folder; removing the tag changes no file's content.
+if (-not $DryRun) { Get-ChildItem -LiteralPath $game -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue }
 $stampFile = Join-Path $here 'installed.txt'; $dispFile = Join-Path $here 'display.txt'
 
 # ---- uninstall ---------------------------------------------------------------------------------------------------
