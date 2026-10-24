@@ -182,3 +182,59 @@ art landing at an old address is caught by the fingerprint and the stale copy re
 brown 8-bit dirt road; right default, the light brown rutted .m16 road as in the main view), per-run montages with the main-view
 crop: `20261024-055144-rf2-t09-roads0-dump\montage.png`, `20261024-055241-rf2-t09-roads1-dump\montage.png`. Log of the on-run: 14
 `road .m16 ... (64x32 / 32x16) quantised` lines, census 120-152 mirror road segments per dumped redraw, all 100 % swapped; CRASH 0.
+
+Cost (T09, OWNER-2300-ALL in exp-faredge, proxy rf2-dfc456c md5 957cf2c3, drive 15 s, proxy `fps:` 5 s windows; frame_stats counts sim
+ticks under the tick preset, so the proxy windows are the display rows): ROADS=0 119.5 / 119.8 fps, work 8.35 / 8.33 ms; default (roads
+on) 120.1 / 119.8 fps, work 8.31 / 8.33 ms (n 2 each, 120 Hz cap). Cost: none measurable.
+
+## 7. 2026-10-24: how far can I76_TERRAIN_LOD go at far clip 2300 (paused at ~07:20: owner at the console)
+
+Owner: "Is there no simple option to move the terrain detail distance further out and test when it impacts framerate?" The lever is
+`I76_TERRAIN_LOD` (split distance x N, height-error threshold / N; the preset runs 24). Sweep 24 / 32 / 48 / 64 on OWNER-2300-ALL (far
+clip 2300), proxy rf2-dfc456c (md5 957cf2c3, = main dfc456c), lab runner `tools\render-finish\rf2-run.ps1` (one boot per console hold,
+shared with the RC and Nitro-MP lanes), step list `rf2-steps-main.txt`.
+
+**Where the finest terrain reaches.** The REBASELINE s.7 trace measured the rings at LOD 24 and saw them move x1.41 at LOD 48: the rings
+scale with sqrt(LOD), not LOD (d^2 is compared with (2h)^2 x A). Finest tiles (10 m):
+
+| LOD | forced-split ring (every 10 m tile) = 12.9 x 10 m x sqrt(L/24) | split-distance ring (steep 10 m tiles) = 18.3 x 10 m x sqrt(L/24) | 160 m tiles forced |
+|---|---|---|---|
+| 24 | 129 m | 183 m | 2070 m |
+| 32 | 149 m | 211 m | 2390 m (past the far clip) |
+| 48 | 183 m | 259 m | 2928 m |
+| 64 | 211 m | 299 m | 3380 m |
+
+So doubling the cost-side knob (24 -> 48) buys 1.41x the full-detail radius (129 -> 183 m).
+
+**Rows.**
+
+| LOD | ridge route fps median (a / b) | mean | 1 % low (1000 / p99 frame) | vs 24 (median) | ridge vertex peak | crash check t01 / t05 (hood, binoculars, zoom x8) | vertex peak: drive / binoculars t01, t05 |
+|---|---|---|---|---|---|---|---|
+| 24 | 105.2 / 102.8 | 91.4 / 89.2 | 47.2 / 45.2 | - | 6,633 | none / none (t01 n 2, t05 n 2) | 7,551 / 18,805; 6,557 / 18,136 |
+| 32 | 100.2 / 91.7 | 87.1 / 81.0 | 46.9 / 40.4 | **-7.7 %** (n 2; a alone -3.6 %) | 7,074 | none / none (n 1) | 8,311 / 19,310; 6,977 / 18,338 |
+| 48 | 90.4 / 85.9 | 80.2 / 77.2 | 46.3 / 42.2 | -15 % | 8,099 | none / none (n 1) | 9,603 / 19,866; 8,052 / 18,554 |
+| 64 | 79.9 / 82.0 | 73.9 / 75.9 | 43.5 / 46.4 | -22 % | 9,283 | none / none (n 1) | 10,714 / 20,519; 9,196 / 18,861 |
+
+Ridge = the lod-sweep / terrain-pops T05 route (tp-run.ps1, exp-rebase, its 30 Hz screen capture running in every row alike), frames from
+I76_FRAME_LOG; data `captures\terrain-pops-20261023\rf2-ridge-*`, table `tools\render-finish\rf2_ridge_tab.py`. Crash checks =
+owner-farclip-crash's views via `rf2-crash.ps1` on exp-faredge with a 20 ms read of [0x6442ec] and phase marks (`rf2_vsampler.py`,
+`rf2_crash_tab.py`); data `autotest\runs\render-finish-20261024\rf2-crash-*`, lines in `tools\render-finish\rf2-results.txt`.
+
+**Findings.**
+- **The crash does not bite first.** Binoculars at 2300 m peak at 18-20.5 k terrain vertices from LOD 24 to 64 (the guard's 28,000 and
+  the int16 32,767 are far off); the binocular view's count barely moves with LOD (18.8 k -> 20.5 k on t01) while the normal view's grows
+  ~40 % (7.6 k -> 10.7 k). No CRASH line, no guard refusal in any of the 10 boots. (The binocular crash on record was at 2500 m.)
+- **Frame rate bites first.** Every step up costs more than 5 %: 32 is -7.7 % on the median at n 2 (the two 24 boots differ by 2.4 fps,
+  the two 32 boots by 8.5 - the b row may carry another lane's load; n 3 queued), 48 -15 %, 64 -22 %. The 1 % low barely moves (40-47
+  everywhere): the low frames are something else (the route's spikes), the median pays for the vertices.
+- **Chosen value: 24 stays** (the only value under the 5 % line so far). OWNER-2300-ALL is not changed. A cheaper way to reach the full
+  detail farther would be LOD_A alone (the split distance; REBASELINE R13: LOD_A 24 cost more than LOD_B 24), not a bigger LOD.
+
+**Not yet run (paused by main at 07:20 for the owner's test):** crash n 2 for 32 / 48 / 64 and t05-b of 24; the LOD 28 rows
+(`rf2-steps-28.txt`: ridge 28 a / b, a third 24 and 32 row, crash 28 t01 / t05 n 2), which decide whether 28 (forced ring 140 m,
++8 %) fits under 5 %. Resume with `rf2-run.ps1 -Steps rf2-steps-28.txt` and then the remainder of `rf2-steps-main2.txt` from
+`rf2-crash-lod24-t05-b`.
+
+**Install:** not done - main paused all console work while the owner tests; exp-polish2 still runs 0c4f109c. The proxy to install is
+rf2-dfc456c (957cf2c3) or a fresh build of latest main carrying dfc456c; the roads change is default-on under the preset's existing
+`I76_MIRROR_M16 = '1'`.
