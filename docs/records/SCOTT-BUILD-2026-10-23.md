@@ -210,3 +210,88 @@ cursor-map lines here, but it is an inference until rows 3-6 are re-run after th
 - **The preview preset** moved under this lane: OWNER-2300-FOG's fog start was 0.7 when the brief was written and 0.75 when copied
   (11:40); the copy is what was in the file then. The far-edge lane keeps changing it; this zip freezes one state.
 - `README-SCOTT.md` says the 1080p / 1440p tests were done as windows on this PC; it does not promise other hardware.
+
+## 8. Evening 2026-10-23: the ALL preview, rebuilt on main, re-gated on GOG's exe (zip 20261023b, still a DRAFT)
+
+Lane brief (owner 18:xx: "push the ALL version to github and draft scott an email ... make sure we tested everything we ask him to do");
+coordinator: do not publish, the owner decides. Same tag `scott-20261023`, new asset name `...-scott-20261023b.zip` (the old asset deleted).
+
+### 8.1 What changed
+
+| item | value |
+|---|---|
+| proxy | `Strlkup.dll` **6208d3ad** (742,912 B), clean build of main **9fe3510** (`tools\build-proxy.ps1 -Ref 9fe3510`, new in the repo, reproduces it byte for byte; lab `builds\nitro-port-20261021\scott-9fe3510`) |
+| PLAY-PREVIEW*.bat | preset `scott-preview` = lab `exp-polish2\...\presets\OWNER-2300-ALL.psd1` as of 18:16 (md5 09dd0cd3), only `Name` changed; labelled "EXPERIMENTAL GRAPHICS PREVIEW" in the .bat header and README |
+| PLAY.bat | unchanged: tick19-42 (f7e589ef) |
+| zip | `downloads\scott\Interstate76-i76-everywhere-scott-20261023b.zip` **2,886,744 B, 84 files, md5 28d99ecd6266601305bd794f68e6004e, sha256 15f82e92955b6f7e9c4a5e17fe4024d3e380e73cd8ad934665228aaf3e8e9bc8**, VERSION `scott-20261023b a8f694a`. Name guard + an independent check: 0 entries match the game-file pattern, 0 files content-identical to any of GOG's 371 |
+| GitHub | asset replaced on the **draft** pre-release `scott-20261023` (body = README-SCOTT.md); `gh release download` sha256 = the local zip. Not published (coordinator); anonymous `curl -I` therefore not possible yet |
+| fixes found by the tests | (a) **UNINSTALL-i76e.bat failed at its first step** (PS 5.1 `-File` leaves `$PSScriptRoot` empty in deploy-u32x's param default; i76e-prepare's `Stop` preference turned the child's stderr into a terminating error) - fixed 0818caa; (b) a zip extracted **without Unblock** tags 135 files and Copy-Item carries the tag to the deployed AutoHotkeyU32.exe / dgVoodoo DLLs - i76e-prepare now clears it every run (4d2e47b; lab `game-scott-motw`: setup OK while tagged, 135 -> 0); (c) **GOG's default options put the rear mirror at its middle level** (`I76PLYR.DEF` +0x4A / +0x4D / +0x4E = 1 / 1 / 0: cars on a flat sky colour, no road or terrain - seen on stable and preview alike, drives 21:21 / 21:26); at the RC's 2 / 2 / 1 the mirror shows road, terrain and clouds (drive 21:38, manual 22:16). The first-run setup now sets those three bytes only when they are GOG's defaults, keeps `I76PLYR.DEF.pre-i76e`, the uninstall puts it back (73cfd8d) |
+
+### 8.2 Every preview key on GOG's exe 9a232dcc (PLAY-PREVIEW-T05.bat as Scott starts it, game-scott-b, 20:2x; then n 3 drives)
+
+| key(s) | apply line in mciproxy.log |
+|---|---|
+| I76_SHADE_SMOOTH 1 | `shade-smooth: on (vertex shade -> ZGLIDE intensity through a 256-entry table ...)`, table built at mission load |
+| I76_TERRAIN_MORPH 0.25 + STATELESS + SHADE 3 + BIG 2 | `terrain-morph: on, STATELESS ... band 0.25 x the ring distance ... height and shade, shade band x3.00 ... 64+ levels shade only; every pass` (the same line as the owner's exp-polish2 log) |
+| I76_SKY_MIRROR 0 | `sky-mirror: ON - the rear-view mirror's sky draw does not scroll the clouds (2/2 mirror call sites)` |
+| I76_MIRROR_FAR 1000 | `mirror-far: mirror camera far clip 100 -> 1000 m` |
+| I76_MIRROR_LOD / EVERY / M16 / M16_SKY 0 / TEX 2 / PAL | `mirror-detail: on ...`, `mirror-every: ... every 2-th frame (stock layout Galaxy: every 2nd frame)`, `mirror-m16: ... (sky: the stock 8-bit cloud art ...)`, `mirror-tex: ...`, `mirror-pal: ... (25 palette pairs compiled in)`, `mirror-lod: ... x1.00 ...; the main view keeps x24.00` |
+| I76_JUMP_NOSE 0.91 | `jump-nose: factor 0.91, site 0x43a7f5 patched`; fired on the drive: `first airborne step, pitch rate -0.9234 -> -0.8403 rad/s (x 0.91)` |
+| I76_CLUTTER_DENSITY 0.5 / FADE 450 / DIST 2300 | `clutter-dist: on, 8/8 sites; view z 120 -> 2300 m ... fade: full density to 450 m ... density x 0.50` |
+| I76_GLIDE_FOG 0.75,hzd + _ALPHA 1 | `glide-fog: on - fog table clear to 0.75 x far ...`, `glide-fog alpha: FADE TO TRANSPARENT ...`, `grFogMode ok, grFogColorValue ok, grFogTable ok`, `grDrawTriangle hooked`, `grAlphaBlendFunction hooked, grAlphaCombine hooked, grChromakeyMode hooked` |
+| far clip / roads 2300, terrain LOD 24, TERRAIN_TEX / OBJECT_LOD / SHADOW_DIST / ROAD_TEX | `far-clip: on (2300 m, pools x16, 6/6 sites)`, `road-dist: 450 -> 2300 m`, `terrain-lod: x24.00, 6/6`, `terrain-tex: x8.00`, `object-lod: x8.00`, `shadow-dist: 50 -> 200 m`, `road-tex: 60 -> 480 m` |
+| not applied (expected, as for the stable preset s.6.2) | `coop-ai: ai_FrameTick ... UNEXPECTED bytes` + 2 trigger/damage sites (LAN co-op only), `joy-routing ... NOT HOOKED (no WINMM import)` |
+
+Nothing dropped: every preview key applies on 9a232dcc. No `CRASH` line in any session except the documented frame-0 PIT probe (exe+0x99997).
+Preview T05 drives (row 9 route, cockpit): hill median **116.0 / 115.3 / 115.6 fps, 1 % low 73.3 / 69.3 / 71.5**, ridge 121.2 / 117.0 / 121.0
+(n 3; stable on the same folder 120.0 / 1 % 88.0 and 120.0 / 86.8). Captures (`drive-PLAY-PREVIEW-20261023-213817\mirrors.png`, `boot-PLAY-PREVIEW-T05\*.png`):
+bushes render as bushes (no black squares), the far edge fades, the mirror shows road / terrain / clouds once the options are at 2 / 2 / 1;
+one of four mirror frames had a large white block (a near object or a PAL remap edge case; not chased).
+
+### 8.3 Gate on the stable PLAY.bat (lab game-scott-b = pristine 9a232dcc + the zip + its own first run; runner `run-gate.ps1`, lab bd81811 ff.)
+
+| row | result | n |
+|---|---|---|
+| 1 conf accepted (global conf hidden) | PASS | 1 |
+| 2 bookmark route TRIP -> ... -> mission (by memory) | PASS | 3 of 3 |
+| 3 trip route through PLAY.bat by pointer clicks, 120 fps | **PASS** (the row that was void at 15:58) | 2 of 2 |
+| 4 save screen (gate-folder) | harness hang after the garage is reached (n 2; B1.7 garage each time) -> replaced by `manual-save-esc.ps1`: SAVE BOOKMARK, typed SCOTT, SAVE x2 -> `save018.cmp` + savegame.dir written, `--check` OK, files put back | manual 1 |
+| 5 Esc-menu Exit (gate-folder) | harness hang after the menu opened (n 3; the menu capture is fine) -> manual: Esc (skips the opening), Esc (Spanner's Cafe menu up), click Exit at the drawn place -> menu closed | manual 1 |
+| 6 melee by menus | not run (README does not ask it) | - |
+| 7 input.map lint + unchanged | PASS | 1 |
+| 8 force feedback | INFO: no FF device plugged in | - |
+| 9 T05 route fps | PASS 120.0 / 1 % 88.0 (and 120.0 / 86.8 in the capture drive) | 2 |
+| launcher boots (group P: PLAY-PREVIEW-T05, PLAY-T05, PLAY-PREVIEW, PLAY-16x10, PLAY-balanced, PLAY-stock, PLAY-i76) | all 7 start, window 3440x1440, AHK layer up, 0 crash lines, 0 unapplied sites but coop-ai | 1 each |
+| display tests 1920x1080 / 2560x1440 `--no-supersample`, **both** launchers | conf `[Glide] Resolution` = the size, presets rewritten, `aspect: D 1.778, 20/20 sites`, 16:9 picture with bars; **pointer**: TRIP -> LOAD BOOKMARK -> row -> LOAD -> ACCEPT SALVAGE -> DONE all clicked through (7 step shots each) | 4 |
+| uninstall on a copy | all 371 GOG files md5-identical to pristine afterwards | 3 (each zip iteration; final on game-scott-c) |
+
+The row 4 / 5 hang: my own `manual-save-esc.ps1` hung the same way when it read garage-ui.ps1 through a pipe (the game leg-b starts inherits
+the pipe's write end); with output to a file it ran. gate-folder's rows were not changed (shared harness). Run-gate's display tests passed
+`--display` without its value until 21:09 (Start-Process joins an argument array unquoted) - the two `cmd.exe ... PLAY.bat --display`
+processes from 16:31 / 16:33 are that bug's leftovers (not stopped: not started by this session); the 20:29 pair was mine and was stopped.
+
+### 8.4 README-SCOTT instruction -> run that covers it
+
+| README asks | covered by |
+|---|---|
+| unzip into the GOG folder, Unblock | every gate folder = pristine + Expand-Archive; MOTW folder with every file tagged (8.1 b) |
+| double-click PLAY.bat: one-time setup, the yellow "NOT the GOG 2019 build" line | `PLAY.bat --setup` on game-scott-b / -c (log `setup-game-scott-*.txt`), row 3 through PLAY.bat |
+| PLEASE STAND BY, Esc skips the intro | rows 2 / 3 / display tests (intro skipped by Esc, step01 shot) |
+| PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat | group P boots; row 9 on PLAY.bat and PLAY-PREVIEW.bat presets; display tests on PLAY-PREVIEW.bat |
+| PLAY-16x10 / balanced / stock / i76 | group P boots |
+| `--no-supersample`, `--display WxH` | display tests (4) |
+| `--setup` | the setup runs above |
+| keys: W/S/A/D, I, F6, F1, Esc | row 9 drives (W / A / D keys), captures with F6 / F1, the Esc menu check; the whole table = input.map lint against the exe (row 7) and docs\CONTROLS.md (generated from the same map) |
+| menus by mouse; SAVE BOOKMARK; TRIP -> LOAD BOOKMARK | rows 2 / 3, display tests (pointer), manual save check |
+| popups Enter / Space, overwrite Y / N | **not exercised here** (the shell key patch bytes are the RC's chain, s.3; the overwrite prompt was not reached: the manual check wrote a new bookmark) |
+| music in missions (GOG's shim on this exe) | not by ear (all runs muted); the log notes "no WINMM import" as documented |
+| pad / wheel | AHK layer starts (group P); no controller connected: row 8 INFO |
+| mciproxy.log written | every session |
+| delete the global dgVoodoo.conf if the picture is wrong | row 1 runs with it hidden |
+| UNINSTALL-i76e.bat | 8.3 last row |
+
+### 8.5 Open
+
+- Overwrite prompt Y / N and the popup Enter / Space keys on 9a232dcc: not run in this pass.
+- Rows 4 / 5 through gate-folder.ps1 on this folder: the pipe-inheritance hypothesis is untested there.
+- Real 16:9 hardware: still computed + windowed tests only.
