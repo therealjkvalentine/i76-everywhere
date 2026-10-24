@@ -14,18 +14,43 @@ Test harness: [`../i76-opentrack-headlook-test.ahk`](../i76-opentrack-headlook-t
 
 ## Quick start
 
-1. **opentrack** → Output = **freetrack 2.0 Enhanced** → press **Start**.
-2. Run **`HEADTRACK.bat`** (portable copy) or `_ahk\i76-opentrack-headlook.ahk`.
-3. Focus the game. **Ctrl+Alt+H** toggles DIGITAL ⇄ ANALOG (it always starts in
-   DIGITAL).
+1. opentrack: Output = **freetrack 2.0 Enhanced** (once).
+2. Run **`PLAY-WITH-HEADLOOK.bat`** (or `PLAY-i76.ps1 ... -HeadTrack`). It starts opentrack and
+   **tracking starts on its own** when the game starts - no click (since 2026-10-24, below).
+3. Head look starts in **ANALOG** and says so over the game. **Ctrl+Alt+H** cycles
+   **ANALOG -> DIGITAL -> OFF -> ANALOG**; every change shows a toast at the top of the game window
+   (and a short beep; `I76_HEADLOOK_BEEP=0` silences it). `-HeadLookMode DIGITAL|OFF` changes the start mode.
+4. **Glance keys win.** While you hold any glance input - the arrow keys, the middle mouse button, the
+   pad's right stick, the Fighterstick's cone hat - head look stands aside completely, so a look out of
+   the side window (and the handgun, which fires on `weapon_fire` while you glance out of a side window)
+   is not fought. Let go and it eases back over 150 ms.
 
 | key | does |
 |---|---|
-| **Ctrl+Alt+H** | digital ⇄ analog |
+| **Ctrl+Alt+H** | ANALOG -> DIGITAL -> OFF -> ANALOG (shown on screen) |
 | **Ctrl+Alt+[** / **]** | yaw sensitivity down / up, live |
 | **Ctrl+Alt+−** / **=** | pitch sensitivity down / up, live |
 | **Ctrl+Alt+L** | log 6 s of telemetry to `headtrack-log.txt` |
 | **Ctrl+Alt+F** | freeze output at a fixed angle (diagnostic) |
+
+### Tracking starts by itself (2026-10-24)
+
+The old `i76-opentrack-autostart.ahk` never pressed Start: opentrack 2026.1 is a Qt 6 application and
+Qt widgets are not windows, so `ControlClick ... Start` found nothing; it waited 20 s and gave up
+(owner: "works fine after you click it"; reproduced). Two mechanisms replace it:
+
+1. **opentrack's own game detection** (Options > Game detection). `-HeadTrack` switches it on for
+   `i76.exe` -> the current profile before it starts opentrack (registry
+   `HKCU\Software\opentrack-2.3\OrganizationDefaults`: `executable-detector-enabled`, `executable-list` =
+   exe 0x1F profile, rows joined by 0x1E; existing rows are kept). opentrack then starts tracking about a
+   second after an `i76.exe` process appears and stops when it exits (it stops only what it started).
+   This stays on in opentrack: switch it off in Options > Game detection.
+2. **`_ahk\i76-opentrack-autostart.ps1`**, run hidden by the launcher: if tracking is not live a few
+   seconds after the game starts (or opentrack was already open), it presses Start through UI Automation
+   (the button's Qt object name `...groupStartStop.btnStartTracker`). Log: `_ahk\opentrack-autostart.log`.
+
+Both count tracking as live only when `FT_SharedMem`'s DataID advances - a mapping a reader still holds
+outlives opentrack, so its existence proves nothing. `tools\ft-heartbeat.ps1` prints the same check.
 
 Nothing happens unless the **game window has focus** — deliberate, so head
 movement can never type into the desktop. It also means telemetry read from
@@ -50,9 +75,17 @@ pitch**. The axes need separate scaling — see the expo section.
 
 ---
 
-## The two modes
+## The modes
 
-**DIGITAL** (default) — head angle past a threshold holds the glance arrow key.
+**ANALOG** (default since 2026-10-24) and **DIGITAL**, plus **OFF**. If this exe's input-poll sites
+do not match the bytes the layer knows (another build), ANALOG refuses to write and acts DIGITAL, and
+the toast says so.
+
+The glance keys come from `input.map` (the `pilot_glance_*` blocks without Shift), not from constants:
+the RC map 1c397955 swapped Up and Down (Up = look down at the dash, Down = look back), and a hard-coded
+Down turned a nod into a look back there.
+
+**DIGITAL** — head angle past a threshold holds the glance arrow key.
 Uses the engine's own glance, so it is smooth and free. Field verdict: "working
 great".
 

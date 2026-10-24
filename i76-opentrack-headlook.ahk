@@ -7,7 +7,26 @@
 ; risks shifting what the engine binds. Shared memory touches no joystick at all.
 ; Verified live 2026-08-01: yaw arrives in RADIANS, ~+/-0.65 (about +/-37 deg).
 ;
-; TWO MODES (Ctrl+Alt+H toggles; starts in DIGITAL):
+; THREE MODES, Ctrl+Alt+H cycles ANALOG -> DIGITAL -> OFF -> ANALOG (owner 2026-10-24: "default head
+; look should be analog not digital, and the shortcut should go between analog, digital and OFF").
+; Starts in ANALOG (I76_HEADLOOK_MODE=DIGITAL / OFF overrides). Every change is announced over the game
+; by a toast (top centre of the game window, click-through, never takes focus) plus a short beep
+; (I76_HEADLOOK_BEEP=0 silences it); the start mode is announced the first time the game has focus.
+;
+; GLANCE OVERRIDE (owner 2026-10-24: "when head tracking is on but the user presses a button to look
+; left or right out of the car to shoot, the button should override and temporarily deactivate the head
+; look"): while any glance input that is NOT ours is down - the four arrow keys (keyboard, the pad
+; layer's right stick, the Fighterstick's cone hat all arrive as arrows) or the middle mouse button
+; (pilot_glance_left) - this layer lets go: DIGITAL releases its keys, ANALOG releases its keys AND
+; restores the engine's input-poll writes so the key glance works (they are NOPed while analog drives).
+; On release it comes back eased: ANALOG blends from where the camera is to the head over EASE_MS
+; (150 ms, smoothstep), DIGITAL waits EASE_MS before pressing again.
+;
+; WHICH KEY LOOKS WHERE comes from ..\input.map (the pilot_glance_* blocks without Shift), not from
+; constants: the RC map 1c397955 swapped Up / Down (Up = look down at the dash, Down = look back), and
+; a hard-coded "Down" turned a nod into a look BACK there.
+;
+; (The two original modes, as documented before 2026-10-24:)
 ;
 ;  1. DIGITAL - head yaw past a threshold holds the glance arrow key, exactly the
 ;     mechanism the right stick already uses in i76-remap.ahk. Works in every
@@ -194,7 +213,32 @@ global PITCH_CANDIDATES := [0x4c2968, 0x4c2964, 0x4c296c, 0x4c2974, 0x4c2980]
 global gPitchSlot := 1
 global ADDR_CAM_PITCH := 0x4c2968
 
-global gMode := "DIGITAL"
+global gMode := "ANALOG"
+EnvGet, envMode, I76_HEADLOOK_MODE
+if (envMode = "DIGITAL" || envMode = "OFF" || envMode = "ANALOG")
+    StringUpper, gMode, envMode
+EnvGet, envBeep, I76_HEADLOOK_BEEP
+global BEEP := (envBeep = "0") ? 0 : 1
+; test hook: run against another window/process (the headless key-logger test). Memory writes stay
+; safe - every patch site is byte-verified first and analog only drives an exe whose sites matched.
+EnvGet, envExe, I76_HEADLOOK_EXE
+if (envExe != "")
+    GAME_EXE := envExe
+; trace of mode / override / key transitions (headless tests read it)
+EnvGet, gTrace, I76_HEADLOOK_TRACE
+global gTrace
+global EASE_MS := 150          ; ease back after a glance override
+global gOverride := 0, gEaseT0 := 0, gEaseFrom := 0
+global gAnnounced := 0
+global gWarnPid := 0
+global gAnalogOk := -1         ; -1 unknown, 0 = this exe's sites did not verify, 1 = verified
+global gInSites := []          ; the input-poll sites actually NOPed (restore exactly these)
+; the glance keys, resolved from input.map at start (defaults = the repo map)
+global KEY_LOOK_LEFT := "Left", KEY_LOOK_RIGHT := "Right", KEY_LOOK_DOWN := "Down", KEY_LOOK_UP := "Up"
+global gKeySrc := "defaults"
+; every glance source that is not this script: arrows (VK 25-28) and the middle mouse button
+global EXT_VKS := [0x25, 0x26, 0x27, 0x28, 0x04]
+global VK_OF := {Left: 0x25, Up: 0x26, Right: 0x27, Down: 0x28}
 global gHeld := {}
 global gView := 0
 global gSmY := 0, gSmP := 0
@@ -271,9 +315,11 @@ KeySet(key, want) {
     if (want && !gHeld[key]) {
         gHeld[key] := true
         SendEvent, {%key% down}
+        Trace("key " . key . " down")
     } else if (!want && gHeld[key]) {
         gHeld[key] := false
         SendEvent, {%key% up}
+        Trace("key " . key . " up")
     }
 }
 ReleaseAll() {
@@ -281,9 +327,152 @@ ReleaseAll() {
     KeySet("Up", false), KeySet("Down", false)
 }
 
+Trace(s) {
+    global gTrace
+    if (gTrace != "")
+        FileAppend, % A_TickCount . " " . s . "`n", %gTrace%
+}
+
+; ---- which arrow does what: read ..\input.map ---------------------------------
+; Returns {down:, up:, left:, right:} AHK key names for the pilot_glance_* blocks that bind a Grey*Arrow
+; WITHOUT "+ keyboard Shift" (Shift + arrow is the outside camera). Missing entries stay absent.
+ResolveGlance(path) {
+    out := {}
+    if (!FileExist(path))
+        return out
+    FileRead, txt, %path%
+    names := {GreyUpArrow: "Up", GreyDownArrow: "Down", GreyLeftArrow: "Left", GreyRightArrow: "Right"
+            , UpArrow: "Up", DownArrow: "Down", LeftArrow: "Left", RightArrow: "Right"}
+    blk := "", arrow := "", shifted := 0
+    Loop, Parse, txt, `n, `r
+    {
+        line := Trim(RegExReplace(A_LoopField, "#.*$"))
+        if (RegExMatch(line, "^(\w+)\s*\{", m)) {
+            blk := m1, arrow := "", shifted := 0
+            continue
+        }
+        if (line = "}") {
+            if (arrow != "" && !shifted && RegExMatch(blk, "i)^pilot_glance_(up|down|left|right)$", d)) {
+                StringLower, d1, d1
+                if (!out.HasKey(d1))
+                    out[d1] := arrow
+            }
+            blk := ""
+            continue
+        }
+        if (blk = "")
+            continue
+        if (RegExMatch(line, "i)^\+\s*keyboard\s+(\w+)$", k)) {
+            if (k1 = "Shift")
+                shifted := 1
+            else if (names.HasKey(k1))
+                arrow := names[k1]
+        }
+    }
+    return out
+}
+
+LoadGlanceKeys() {
+    global KEY_LOOK_LEFT, KEY_LOOK_RIGHT, KEY_LOOK_DOWN, KEY_LOOK_UP, gKeySrc
+    p := A_ScriptDir . "\..\input.map"
+    r := ResolveGlance(p)
+    if (r.HasKey("down"))
+        KEY_LOOK_DOWN := r.down
+    if (r.HasKey("up"))
+        KEY_LOOK_UP := r.up
+    if (r.HasKey("left"))
+        KEY_LOOK_LEFT := r.left
+    if (r.HasKey("right"))
+        KEY_LOOK_RIGHT := r.right
+    gKeySrc := r.Count() ? "input.map" : "defaults"
+    Trace("glance keys (" . gKeySrc . "): down=" . KEY_LOOK_DOWN . " up=" . KEY_LOOK_UP
+        . " left=" . KEY_LOOK_LEFT . " right=" . KEY_LOOK_RIGHT)
+}
+
+; ---- glance override ------------------------------------------------------------
+; Is a glance input down that this script did not press? GetAsyncKeyState is the OS's logical state,
+; so it sees the keyboard AND every other layer's injected arrows; our own holds are excluded.
+ExternalGlance() {
+    global EXT_VKS, VK_OF, gHeld
+    mine := {}
+    for k, v in gHeld
+        if (v && VK_OF.HasKey(k))
+            mine[VK_OF[k]] := 1
+    for i, vk in EXT_VKS {
+        if (mine.HasKey(vk))
+            continue
+        if (DllCall("GetAsyncKeyState", "Int", vk, "Short") & 0x8000)
+            return vk
+    }
+    return 0
+}
+
+; smoothstep 0..1 over EASE_MS since t0
+EaseK(now, t0) {
+    global EASE_MS
+    t := (now - t0) / EASE_MS
+    if (t <= 0)
+        return 0
+    if (t >= 1)
+        return 1
+    return t * t * (3 - 2 * t)
+}
+
+; ---- the mode toast ---------------------------------------------------------------
+; A click-through, no-activate window over the game (the cursor overlay's recipe, which is field-proven
+; over the borderless dgVoodoo window): it never takes focus from the game.
+Toast(msg) {
+    global GAME_EXE
+    Gui, Toast:Destroy
+    Gui, Toast:+AlwaysOnTop +ToolWindow -Caption +E0x20 +E0x08000000 +HwndToastHwnd
+    Gui, Toast:Color, 1A1A1A
+    Gui, Toast:Margin, 18, 10
+    Gui, Toast:Font, s15 bold cFFD040, Segoe UI
+    Gui, Toast:Add, Text, Center w560, %msg%
+    gx := 0, gy := 0, gw := A_ScreenWidth, gh := A_ScreenHeight
+    WinGetPos, wx, wy, ww, wh, ahk_exe %GAME_EXE%
+    if (ww > 0)
+        gx := wx, gy := wy, gw := ww, gh := wh
+    x := gx + (gw - 596) // 2
+    y := gy + gh // 9
+    Gui, Toast:Show, NoActivate x%x% y%y% AutoSize, i76headlook
+    WinSet, Transparent, 225, ahk_id %ToastHwnd%
+    Trace("toast " . msg)
+    SetTimer, ToastOff, -1800
+}
+
+ModeText(m) {
+    if (m = "ANALOG")
+        return "HEAD LOOK: ANALOG  (smooth camera)"
+    if (m = "DIGITAL")
+        return "HEAD LOOK: DIGITAL  (glance keys)"
+    return "HEAD LOOK: OFF"
+}
+
+Announce(first := 0) {
+    global gMode, BEEP, gAnalogOk
+    msg := ModeText(gMode)
+    if (gMode = "ANALOG" && gAnalogOk = 0)
+        msg := "HEAD LOOK: ANALOG unavailable on this exe - acting DIGITAL"
+    msg .= "`nCtrl+Alt+H: analog > digital > off"
+    Toast(msg)
+    if (BEEP) {
+        if (gMode = "ANALOG")
+            SoundBeep, 880, 70
+        else if (gMode = "DIGITAL")
+            SoundBeep, 660, 70
+        else
+            SoundBeep, 330, 120
+    }
+}
+
+NextMode(m) {
+    return (m = "ANALOG") ? "DIGITAL" : (m = "DIGITAL") ? "OFF" : "ANALOG"
+}
+
 ; ---- game process (analog mode only) ----------------------------------------
 OpenGame() {
-    global hProc, gPid, GAME_EXE
+    global hProc, gPid, GAME_EXE, gInPatched, gInSites, gAnalogOk, gPatched
     Process, Exist, %GAME_EXE%
     pid := ErrorLevel
     if (!pid) {
@@ -295,6 +484,8 @@ OpenGame() {
     if (pid != gPid) {
         if (hProc)
             DllCall("CloseHandle", "Ptr", hProc)
+        ; a new game process: nothing of ours is patched in it (the old one took its patches with it)
+        gInPatched := 0, gInSites := [], gAnalogOk := -1, gPatched := 0
         ; PROCESS_VM_OPERATION|VM_READ|VM_WRITE = 0x38 (same as tools/i76-trainer.ahk)
         hProc := DllCall("OpenProcess", "UInt", 0x38, "Int", 0, "UInt", pid, "Ptr")
         gPid := pid
@@ -402,22 +593,58 @@ SetPatch(on) {
 }
 
 ; ---- main loop --------------------------------------------------------------
+for i, a in A_Args
+    if (a = "-selftest") {
+        ExitApp, % SelfTest()
+    }
+LoadGlanceKeys()
 if (OpenGame())
     RestoreLeftovers()
+Trace("start mode=" . gMode . " exe=" . GAME_EXE)
 SetTimer, Tick, 8
 OnExit, Bail
 return
 
 Tick:
-    if (!OpenFT()) {
-        ReleaseAll()
-        return
-    }
     ; only ever act on the live game window - never type at the desktop
     if (!WinActive("ahk_exe " . GAME_EXE)) {
         ReleaseAll()
         return
     }
+    if (!gAnnounced) {          ; say which mode we are in, once, when the game first has focus
+        gAnnounced := 1
+        Announce(1)
+    }
+    if (gMode = "OFF") {
+        ReleaseAll()
+        return
+    }
+    if (!OpenFT()) {
+        ReleaseAll()
+        return
+    }
+    ; GLANCE OVERRIDE: a glance key / button that is not ours is down -> stand aside completely
+    ext := ExternalGlance()
+    if (ext) {
+        if (!gOverride) {
+            gOverride := 1
+            Trace("override on vk=" . Format("0x{:02X}", ext))
+        }
+        ReleaseAll()
+        if (gInPatched)
+            SetInputPatch(false)    ; give the engine its own key glance back
+        return
+    }
+    if (gOverride) {
+        gOverride := 0
+        gEaseT0 := A_TickCount
+        gEaseFrom := (gMode = "ANALOG" && OpenGame()) ? ReadFloat(ADDR_CAM_YAW) : 0
+        Trace("override off, easing " . EASE_MS . " ms from yaw " . Round(gEaseFrom, 3))
+    }
+    easeK := gEaseT0 ? EaseK(A_TickCount, gEaseT0) : 1
+    if (easeK >= 1)
+        gEaseT0 := 0
+
     yaw := FTYaw()
     if (INVERT)
         yaw := -yaw
@@ -425,28 +652,48 @@ Tick:
     if (INVERT_PITCH)
         pitch := -pitch
 
-    if (gMode = "DIGITAL") {
+    analog := (gMode = "ANALOG")
+    if (analog && OpenGame()) {
+        if (gAnalogOk != 0)
+            SetInputPatch(true)   ; verifies this exe's sites first (sets gAnalogOk)
+        if (gAnalogOk = 0) {
+            analog := false       ; unknown exe: act DIGITAL rather than write blind
+            if (gWarnPid != gPid) {
+                gWarnPid := gPid
+                Announce()        ; "ANALOG unavailable on this exe - acting DIGITAL"
+            }
+        }
+    } else if (analog) {
+        return                    ; analog, but no game process to drive
+    }
+
+    if (!analog) {
+        ; DIGITAL. After an override, wait out the ease before pressing again (no instant snap back)
+        if (easeK < 1) {
+            ReleaseAll()
+            return
+        }
         ; hysteresis: press past *_ON, release inside *_OFF, so a head hovering
         ; on the boundary can't chatter the key down/up every tick.
         if (yaw > YAW_ON)
-            KeySet("Right", true)
+            KeySet(KEY_LOOK_RIGHT, true)
         else if (yaw < YAW_OFF)
-            KeySet("Right", false)
+            KeySet(KEY_LOOK_RIGHT, false)
         if (yaw < -YAW_ON)
-            KeySet("Left", true)
+            KeySet(KEY_LOOK_LEFT, true)
         else if (yaw > -YAW_OFF)
-            KeySet("Left", false)
+            KeySet(KEY_LOOK_LEFT, false)
 
         if (PITCH_UP_KEY) {
             if (pitch > PITCH_ON)
-                KeySet("Up", true)
+                KeySet(KEY_LOOK_UP, true)
             else if (pitch < PITCH_OFF)
-                KeySet("Up", false)
+                KeySet(KEY_LOOK_UP, false)
         }
         if (pitch < -PITCH_ON)
-            KeySet("Down", true)
+            KeySet(KEY_LOOK_DOWN, true)
         else if (pitch > -PITCH_OFF)
-            KeySet("Down", false)
+            KeySet(KEY_LOOK_DOWN, false)
         return
     }
 
@@ -457,11 +704,8 @@ Tick:
     ; drawn as sky). Feeding the input instead means the engine derives every
     ; camera value itself, so it always agrees with itself.
     ; Yaw is analog (int delta); pitch rides the working arrow-key path, so we
-    ; only release the two horizontal keys here - Up/Down are driven below.
-    KeySet("Left", false), KeySet("Right", false)
-    if (!OpenGame())
-        return
-    SetInputPatch(true)   ; stop the poll clobbering the delta we push
+    ; only release the two horizontal keys here - the look-down key is driven below.
+    KeySet(KEY_LOOK_LEFT, false), KeySet(KEY_LOOK_RIGHT, false)
     gView := ReadInt(ADDR_VIEW_MODE)
     ; FREEZE TEST (Ctrl+Alt+F): hold a fixed angle, ignoring the head entirely.
     if (gFreeze) {
@@ -479,6 +723,9 @@ Tick:
 
     ; closed loop: push the engine's own delta toward the angle we want
     tgtY := gSmY * YAW_RANGE
+    ; after a glance override: blend from where the key glance left the camera to the head
+    if (easeK < 1)
+        tgtY := gEaseFrom + (tgtY - gEaseFrom) * easeK
     tgtP := gSmP * PITCH_RANGE * ANALOG_PITCH_SIGN
     dY := KP   * (tgtY - ReadFloat(ADDR_CAM_YAW))
     dP := KP_P * (tgtP - ReadFloat(ADDR_CAM_PITCH))
@@ -486,16 +733,20 @@ Tick:
     if (PITCH_VIA_KEYS) {
         ; same hysteresis the digital glance uses - press past *_ON, release
         ; inside *_OFF, so a head hovering on the edge cannot chatter the key
-        if (PITCH_UP_KEY) {
-            if (pitch > PITCH_ON)
-                KeySet("Up", true)
-            else if (pitch < PITCH_OFF)
-                KeySet("Up", false)
+        if (easeK < 1) {
+            KeySet(KEY_LOOK_DOWN, false), KeySet(KEY_LOOK_UP, false)
+        } else {
+            if (PITCH_UP_KEY) {
+                if (pitch > PITCH_ON)
+                    KeySet(KEY_LOOK_UP, true)
+                else if (pitch < PITCH_OFF)
+                    KeySet(KEY_LOOK_UP, false)
+            }
+            if (pitch < -PITCH_ON)
+                KeySet(KEY_LOOK_DOWN, true)
+            else if (pitch > -PITCH_OFF)
+                KeySet(KEY_LOOK_DOWN, false)
         }
-        if (pitch < -PITCH_ON)
-            KeySet("Down", true)
-        else if (pitch > -PITCH_OFF)
-            KeySet("Down", false)
     } else {
         WriteInt(ADDR_IN_PITCH, Round(ClampD(dP)))
     }
@@ -515,6 +766,63 @@ Tick:
     }
 return
 
+; ---- -selftest: the pure logic, no game, no opentrack ----------------------------------------
+;   AutoHotkeyU32.exe i76-opentrack-headlook.ahk -selftest [input.map ...]   exit code = failures
+SelfTest() {
+    fails := 0
+    t := A_Temp . "\i76hl-selftest-" . A_TickCount . ".map"
+    ; repo layout (Up = pilot_glance_up), with the Shift camera blocks that must be ignored
+    FileDelete, %t%
+    FileAppend, % "pilot_glance_up {`n   + keyboard   GreyUpArrow`n   - keyboard   Shift`n}`n"
+        . "track_pitch_minus {`n   + keyboard   GreyDownArrow`n   + keyboard   Shift`n}`n"
+        . "pilot_glance_down {`n   + keyboard   GreyDownArrow`n   - keyboard   Shift`n}`n"
+        . "pilot_glance_left {`n   + keyboard   GreyLeftArrow`n}`npilot_glance_left {`n   + mouse MiddleBtn`n}`n"
+        . "pilot_glance_right {`n   + keyboard   GreyRightArrow`n}`n", %t%
+    r := ResolveGlance(t)
+    fails += ST("repo map: look down = Down", r.down, "Down")
+    fails += ST("repo map: look back = Up", r.up, "Up")
+    fails += ST("repo map: left", r.left, "Left")
+    fails += ST("repo map: right", r.right, "Right")
+    ; the RC map 1c397955 (Up / Down swapped), a Shift block first that must not win
+    FileDelete, %t%
+    FileAppend, % "pilot_glance_down {`n   + keyboard   GreyDownArrow`n   + keyboard   Shift`n}`n"
+        . "pilot_glance_up {`n   + keyboard   GreyDownArrow`n   - keyboard   Shift`n}`n"
+        . "pilot_glance_down {`n   + keyboard   GreyUpArrow  # comment`n   - keyboard   Shift`n}`n", %t%
+    r := ResolveGlance(t)
+    fails += ST("RC map: look down = Up", r.down, "Up")
+    fails += ST("RC map: look back = Down", r.up, "Down")
+    FileDelete, %t%
+    fails += ST("missing file: nothing resolved", ResolveGlance(t).Count(), 0)
+    fails += ST("cycle ANALOG -> DIGITAL", NextMode("ANALOG"), "DIGITAL")
+    fails += ST("cycle DIGITAL -> OFF", NextMode("DIGITAL"), "OFF")
+    fails += ST("cycle OFF -> ANALOG", NextMode("OFF"), "ANALOG")
+    fails += ST("ease at 0 ms", EaseK(1000, 1000), 0)
+    fails += ST("ease at 75 ms", Round(EaseK(1075, 1000), 3), 0.5)
+    fails += ST("ease at 150 ms", EaseK(1150, 1000), 1)
+    prev := -1, mono := 1
+    Loop, 16 {
+        k := EaseK(1000 + (A_Index - 1) * 10, 1000)
+        if (k < prev)
+            mono := 0
+        prev := k
+    }
+    fails += ST("ease monotonic", mono, 1)
+    ; real maps given on the command line: print what they resolve to
+    for i, a in A_Args {
+        if (i = 1)
+            continue
+        r := ResolveGlance(a)
+        FileAppend, % "  " . a . ": down=" . r.down . " up=" . r.up . " left=" . r.left . " right=" . r.right . "`n", *
+    }
+    FileAppend, % (fails ? "FAIL " . fails : "PASS") . "`n", *
+    return fails
+}
+ST(what, got, want) {
+    ok := (got = want)
+    FileAppend, % (ok ? "  ok    " : "  FAIL  ") . what . "  (got " . got . ", want " . want . ")`n", *
+    return ok ? 0 : 1
+}
+
 ClampD(v) {
     global DELTA_MAX
     return (v > DELTA_MAX) ? DELTA_MAX : (v < -DELTA_MAX) ? -DELTA_MAX : v
@@ -522,13 +830,18 @@ ClampD(v) {
 
 ; NOP (or restore) the input poll's writes to the two look inputs, so the value
 ; we push actually survives until the camera code reads it.
+; 2026-10-24: restores ONLY the sites it NOPed. It used to set gInPatched and then write the "original"
+; bytes back over all seven addresses on restore, whether or not they had matched - on another exe build
+; (or any other process) that would have written Gold code bytes into the wrong place. gAnalogOk records
+; whether this exe's sites verified, so ANALOG never drives an exe it does not know.
 SetInputPatch(on) {
-    global INPUT_SITES, gInPatched, hProc
+    global INPUT_SITES, gInPatched, hProc, gInSites, gAnalogOk
     if (!hProc || gInPatched = on)
         return
-    for i, site in INPUT_SITES {
-        addr := site[1], len := site[2], want := site[3]
-        if (on) {
+    if (on) {
+        gInSites := []
+        for i, site in INPUT_SITES {
+            addr := site[1], len := site[2], want := site[3]
             VarSetCapacity(cur, len, 0)
             if (!DllCall("ReadProcessMemory", "Ptr", hProc, "Ptr", addr, "Ptr", &cur, "UPtr", len, "Ptr", 0))
                 continue
@@ -538,10 +851,23 @@ SetInputPatch(on) {
             if (s != want)          ; only ever patch the exact expected instruction
                 continue
             VarSetCapacity(nop, len, 0x90)
-            WriteCode(addr, nop, len)
-        } else {
-            WriteBytes(addr, want, len)
+            if (WriteCode(addr, nop, len))
+                gInSites.Push(site)
         }
+        gAnalogOk := (gInSites.Length() = INPUT_SITES.Length()) ? 1 : 0
+        if (!gAnalogOk) {           ; partial = unknown build: put back what we did, drive nothing
+            for i, site in gInSites
+                WriteBytes(site[1], site[3], site[2])
+            gInSites := []
+            Trace("analog: input sites did not verify on this exe - analog disabled")
+            return
+        }
+        Trace("analog: input sites patched (" . gInSites.Length() . ")")
+    } else {
+        for i, site in gInSites
+            WriteBytes(site[1], site[3], site[2])
+        Trace("analog: input sites restored (" . gInSites.Length() . ")")
+        gInSites := []
     }
     gInPatched := on
 }
@@ -649,16 +975,20 @@ return
     SetTimer, ClearTip, -1500
 return
 
-; Ctrl+Alt+H - swap modes (release everything first so nothing sticks)
+; Ctrl+Alt+H - cycle ANALOG -> DIGITAL -> OFF -> ANALOG (release everything first so nothing sticks)
 ^!h::
     ReleaseAll()
-    gMode := (gMode = "DIGITAL") ? "ANALOG" : "DIGITAL"
-    if (gMode = "DIGITAL") {
+    gMode := NextMode(gMode)
+    if (gMode != "ANALOG") {
         SetPatch(false)        ; hand the camera back to the engine
         SetInputPatch(false)   ; and give keyboard/joystick glance back
     }
-    ToolTip, % "I76 head tracking: " . gMode
-    SetTimer, ClearTip, -1200
+    gOverride := 0, gEaseT0 := 0
+    Trace("mode " . gMode)
+    Announce()
+return
+ToastOff:
+    Gui, Toast:Hide
 return
 ClearTip:
     ToolTip

@@ -221,6 +221,8 @@ if ($IncludeHeadTrack) {
 
         Copy-Item (Join-Path $repo 'i76-opentrack-headlook.ahk')      (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
         Copy-Item (Join-Path $repo 'i76-opentrack-headlook-test.ahk') (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repo 'i76-opentrack-autostart.ahk')     (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
+        Copy-Item (Join-Path $repo 'i76-opentrack-autostart.ps1')     (Join-Path $gameOut '_ahk') -Force -ErrorAction SilentlyContinue
         # Every AHK layer is enumerated BY NAME here, so one added to the repo and
         # not added to this list simply never ships. That is how _ahk\i76-remap.ahk
         # stayed three weeks stale while the repo copy grew an entire wheel layer

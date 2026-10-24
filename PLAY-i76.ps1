@@ -41,6 +41,10 @@ param(
     # Without it none of the three happens, whatever is installed.
     [switch]$HeadTrack,
     [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe",
+    # Head-look mode at start: ANALOG (default since 2026-10-24, owner), DIGITAL or OFF. In the game
+    # Ctrl+Alt+H cycles ANALOG -> DIGITAL -> OFF and shows the new mode on screen; holding any glance
+    # key / button overrides head look until released.
+    [ValidateSet('ANALOG', 'DIGITAL', 'OFF')][string]$HeadLookMode = 'ANALOG',
     # Custom force feedback (tools/ffb). OPT-IN on purpose: it synthesises real
     # slip/load/impact feel from telemetry, but the gains have not been judged by
     # hand yet, and force feedback nobody has tuned goes straight into the user's
@@ -357,25 +361,75 @@ if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg)) {
     $stick = Start-Process -FilePath $ahkExe -ArgumentList "`"$stickCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
-# Head tracking: opentrack + the freetrack->game layer. opentrack has NO
-# command-line switch to begin tracking, so i76-opentrack-autostart.ahk presses Start
-# for it (idempotent - it exits immediately if FT_SharedMem already exists, so a
-# session you started by hand is left alone).
+# Head tracking: opentrack + the freetrack->game layer. opentrack has NO command-line switch to begin
+# tracking, and the old i76-opentrack-autostart.ahk never managed to press Start (opentrack 2026.1 is
+# Qt 6: its buttons are not windows, so ControlClick found nothing - owner 2026-10-24, reproduced).
+# Now, either is enough (docs/HEAD-TRACKING.md):
+#  1. opentrack's own Options > Game detection, switched on here for i76.exe -> the current profile
+#     BEFORE opentrack starts (it reads the setting at start): opentrack starts tracking ~1 s after the
+#     game's process appears and stops when it exits. Existing rows are kept. It is a setting of the
+#     owner's opentrack, so it also applies when opentrack is opened by hand and any i76.exe runs;
+#     switch it off in opentrack's Options > Game detection.
+#  2. _ahk\i76-opentrack-autostart.ps1 (hidden): if tracking is not live a few seconds after the game
+#     starts (or opentrack was already open), it presses Start through UI Automation. Both verify that
+#     FT_SharedMem's DataID advances, not merely that it exists. Log: _ahk\opentrack-autostart.log.
+function Enable-OpentrackGameDetect {
+    # Global settings: HKCU\Software\opentrack-2.3\OrganizationDefaults (QSettings). The list is
+    # exe <0x1F> profile, records joined by <0x1E> (opentrack gui/process_detector.cpp).
+    $key = 'HKCU:\Software\opentrack-2.3\OrganizationDefaults'
+    try {
+        if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+        $US = [char]0x1F; $RS = [char]0x1E
+        $cur = (Get-ItemProperty -Path $key -Name 'executable-list' -ErrorAction SilentlyContinue).'executable-list'
+        $on  = (Get-ItemProperty -Path $key -Name 'executable-detector-enabled' -ErrorAction SilentlyContinue).'executable-detector-enabled'
+        $otProfile = 'default.ini'
+        $iniDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'opentrack-2.3'
+        if (-not (Test-Path (Join-Path $iniDir $otProfile))) {
+            $first = Get-ChildItem $iniDir -Filter *.ini -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($first) { $otProfile = $first.Name }
+        }
+        $rows = @(); if ($cur) { $rows = @($cur -split [regex]::Escape([string]$RS) | Where-Object { $_ }) }
+        $have = @($rows | ForEach-Object { ($_ -split [regex]::Escape([string]$US))[0] })
+        $changed = $false
+        # opentrack compares process names case-sensitively (as Windows reports them)
+        foreach ($exe in @('i76.exe', 'I76.EXE', 'I76.exe')) {
+            if ($have -notcontains $exe) { $rows += "$exe$US$otProfile"; $changed = $true }
+        }
+        if ($changed) { Set-ItemProperty -Path $key -Name 'executable-list' -Value ($rows -join $RS) -Type String }
+        if ("$on" -ne 'true') { Set-ItemProperty -Path $key -Name 'executable-detector-enabled' -Value 'true' -Type String; $changed = $true }
+        return @{ ok = $true; changed = $changed; profile = $otProfile }
+    } catch { return @{ ok = $false; changed = $false; error = $_.Exception.Message } }
+}
 $ot = $null
 $otHelper = $null
 $track = $null
+$otDetect = $false
 if ($HeadTrack -and $OpenTrack -and (Test-Path $OpenTrack)) {
     if (-not (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue)) {
+        $det = Enable-OpentrackGameDetect
+        if ($det.ok) {
+            $otDetect = $true
+            if ($det.changed) { Write-Host ("opentrack: game detection switched on (i76.exe -> {0}); it starts tracking when the game starts" -f $det.profile) -ForegroundColor DarkGray }
+        } else { Write-Host "opentrack: could not set game detection ($($det.error)) - the Start button will be pressed instead" -ForegroundColor Yellow }
         $ot = Start-Process -FilePath $OpenTrack -PassThru
     }
+    $autoStartPs = Join-Path $GameDir '_ahk\i76-opentrack-autostart.ps1'
     $autoStart = Join-Path $GameDir '_ahk\i76-opentrack-autostart.ahk'
-    if ((Test-Path $ahkExe) -and (Test-Path $autoStart)) {
+    if (Test-Path $autoStartPs) {
+        $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$autoStartPs`"", '-Log', "`"$(Join-Path $GameDir '_ahk\opentrack-autostart.log')`"")
+        if ($otDetect) { $a += '-WaitGame' }
+        $otHelper = Start-Process -FilePath 'powershell.exe' -ArgumentList $a -WindowStyle Hidden -PassThru
+    } elseif ((Test-Path $ahkExe) -and (Test-Path $autoStart)) {
         $otHelper = Start-Process -FilePath $ahkExe -ArgumentList "`"$autoStart`"" -PassThru
     }
 }
 $trackCfg = Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk'
 if ($HeadTrack -and (Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
+    $env:I76_HEADLOOK_MODE = $HeadLookMode
     $track = Start-Process -FilePath $ahkExe -ArgumentList "`"$trackCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
+    Remove-Item Env:\I76_HEADLOOK_MODE -ErrorAction SilentlyContinue
+    Write-Host ("head look: {0} at start.  Ctrl+Alt+H cycles ANALOG -> DIGITAL -> OFF (shown on screen)." -f $HeadLookMode) -ForegroundColor Cyan
+    Write-Host  "  Hold any glance key / button (arrows, middle mouse, pad right stick, stick hat) to override it." -ForegroundColor DarkGray
 }
 
 # Frame generation (Lossless Scaling), optional. The engine's physics are locked
@@ -410,7 +464,9 @@ if ($LosslessScaling -and (Test-Path $LosslessScaling)) {
 # is usually already up and publishing, and a flat 20 s deadline against a shared-mem
 # name that may never appear was a large part of the ~15 s the launcher took to reach
 # the game.
-if ($ot -and $OpenTrack -and (Test-Path $OpenTrack)) {
+# With game detection on, opentrack only starts tracking once the game runs, so there is nothing to
+# wait for here (the head-look layer opens FT_SharedMem whenever it appears).
+if ($ot -and -not $otDetect -and $OpenTrack -and (Test-Path $OpenTrack)) {
     $deadline = (Get-Date).AddSeconds(20)
     while ((Get-Date) -lt $deadline) {
         try {
