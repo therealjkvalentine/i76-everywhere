@@ -5,7 +5,8 @@
  * works pretty close to the limit of what is rendered but transitions a little more smoothly from the flat horizon textures";
  * and the level boundaries "sweep up so you can't drive on forever ... treating those boundaries in a special way that fades
  * them to the horizon better". Included from strlkproxy.c BEFORE terrainmorph.c (tm_emit_wrap chains fe_haze_apply when the
- * morph owns the terrain emit sites). Gold only (i76.exe 6319abf7 sites; Nitro refused). Off unless set:
+ * morph owns the terrain emit sites). Gold and Nitro (nitro-owner lane 2026-10-23: reads through nitro.c's g_ta_*, sites through
+ * the site map; I76_EDGE_FADE stays Gold-only). Off unless set:
  *
  *   I76_HAZE=<start>[,<strength>]   the game's own terrain vertex shade pushed toward the brightest row over the last part of
  *                                   the far clip: from start x far (0.5..0.98, default 0.85) to the far clip the shade s becomes
@@ -86,11 +87,11 @@ static void fe_apply_state(void) {
 }
 static double g_fe_pw_in_min = 1e30, g_fe_pw_in_max, g_fe_pw_out_min = 1e30, g_fe_pw_out_max; static DWORD g_fe_pt_in, g_fe_pt_out, g_fe_pt_in_far, g_fe_frames;
 
-static float fe_main_far(void) { return g_fe_far_env ? g_far_clip : *(volatile float *)(DWORD_PTR)0x004c271c; }
+static float fe_main_far(void) { return g_fe_far_env ? g_far_clip : *(volatile float *)(DWORD_PTR)g_ta_far; }
 
 /* ---- the level boundary: ring map over the tile table (rebuilt when the table's content changes: mission load) ---- */
 static void fe_ring_build(void) {
-    const DWORD *T = (const DWORD *)(DWORD_PTR)0x00644380; DWORD sig = 0; int i, x, z, nvoid = 0, n1 = 0, n2 = 0;
+    const DWORD *T = (const DWORD *)(DWORD_PTR)g_ta_tiles; DWORD sig = 0; int i, x, z, nvoid = 0, n1 = 0, n2 = 0;
     for (i = 0; i < 16384; i++) sig = sig * 31u + T[i];
     if (sig == g_fe_ring_sig) return;
     g_fe_ring_sig = sig;
@@ -140,10 +141,10 @@ static float fe_void_dist(int sx, int sz) {
 static void fe_haze_apply(void) {
     BYTE *cam; float *V, *U; int n, i, mirror; float fz, z0, inv, tgt = g_fe_haze_target, str = g_fe_haze_str;
     if (!g_fe_haze_on) return;
-    cam = *(BYTE * volatile *)(DWORD_PTR)0x006442d4; V = *(float * volatile *)(DWORD_PTR)0x005dd320; U = *(float * volatile *)(DWORD_PTR)0x005dd2ec;
-    n = *(volatile int *)(DWORD_PTR)0x006442ec;
-    if (!cam || !V || !U || n <= 0 || n > 32768 || *(volatile int *)(DWORD_PTR)0x005a4618 == 0) return;
-    mirror = cam == (BYTE *)(DWORD_PTR)0x00608c80;
+    cam = *(BYTE * volatile *)(DWORD_PTR)g_ta_cam; V = *(float * volatile *)(DWORD_PTR)g_ta_V; U = *(float * volatile *)(DWORD_PTR)g_ta_U;
+    n = *(volatile int *)(DWORD_PTR)g_ta_vn;
+    if (!cam || !V || !U || n <= 0 || n > 32768 || *(volatile int *)(DWORD_PTR)g_ta_lit == 0) return;
+    mirror = cam == (BYTE *)(DWORD_PTR)g_ta_mircam;
     if (mirror && !g_fe_haze_mirror) return;
     fz = mirror ? g_fe_mirror_far : fe_main_far();
     if (fz <= 0.0f) return;
@@ -211,7 +212,7 @@ static float fe_index_to_w(int i) {
  * foreshortened over the whole texture (and its UV scrolls), so the colour there is the texture's mean: all rows through the
  * context palette (and mirror-pal's map, as the strips). */
 static int fe_sky_colour(DWORD *rgb) {
-    const BYTE *tx = *(const BYTE * volatile *)(DWORD_PTR)0x00504c38, *px, *pal = (const BYTE *)(DWORD_PTR)0x005dcfa8;
+    const BYTE *tx = *(const BYTE * volatile *)(DWORD_PTR)g_ta_skytex, *px, *pal = (const BYTE *)(DWORD_PTR)g_ta_ctxpal;
     DWORD w, hf, h, i, cnt = 0; double r = 0, g = 0, b = 0; static int logged;
     if (!tx || IsBadReadPtr(tx, 8)) return 0;
     w = *(const DWORD *)tx; hf = *(const DWORD *)(tx + 4); h = hf & 0x1fffffff; px = tx + 8;
@@ -227,13 +228,13 @@ static DWORD fe_lerp_rgb(DWORD a, DWORD b, float f) {
     return o;
 }
 static int fe_hzd_colour(DWORD *rgb) {
-    int ns = *(volatile int *)(DWORD_PTR)0x00503034, s, y, x; double r = 0, g = 0, b = 0; DWORD cnt = 0; const BYTE *pal = (const BYTE *)(DWORD_PTR)0x005dcfa8;
+    int ns = *(volatile int *)(DWORD_PTR)g_ta_nstrip, s, y, x; double r = 0, g = 0, b = 0; DWORD cnt = 0; const BYTE *pal = (const BYTE *)(DWORD_PTR)g_ta_ctxpal;
     static int logged, logged2;
     if (ns <= 0 || ns > 64) return 0;
     for (s = 0; s < ns; s++) {
         /* a texture record (0x471c10 loader; 0x44a740 copies ((h << 3) >> 3) x w + 8 bytes): DWORD w, DWORD h | flags (bit 31 = embedded
          * 16-bit palette, .m16), then the 8-bit texels. [0] of the pair is the 8-bit one; [1] the hardware (.m16) variant. */
-        const DWORD *set = (const DWORD *)(DWORD_PTR)(0x00504850 + s * 0x18); const BYTE *tx = (const BYTE *)(DWORD_PTR)set[0];
+        const DWORD *set = (const DWORD *)(DWORD_PTR)(g_ta_strips + s * 0x18); const BYTE *tx = (const BYTE *)(DWORD_PTR)set[0];
         DWORD w, h, hf; const BYTE *px;
         if (!tx || IsBadReadPtr(tx, 8)) continue;
         w = *(const DWORD *)tx; hf = *(const DWORD *)(tx + 4); h = hf & 0x1fffffff; px = tx + 8;
@@ -373,7 +374,7 @@ static void fe_cl_end(void) {                                /* after it: ZGLIDE
     if (g_fe_alpha && g_fe_in_flush) fe_apply_state();
 }
 static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1) at 0x40216d (hardware scene) */
-    int on = g_fe_fog_on && *(volatile DWORD *)(DWORD_PTR)0x00504be8 != 0 && cam != (void *)(DWORD_PTR)0x00608c80 && fe_glide_resolve();
+    int on = g_fe_fog_on && *(volatile DWORD *)(DWORD_PTR)g_ta_hw != 0 && cam != (void *)(DWORD_PTR)g_ta_mircam && fe_glide_resolve();
     if (on) {
         float fz = fe_main_far();
         if (g_fe_log || g_fe_alpha) fe_probe_attach();
@@ -415,7 +416,8 @@ static void apply_far_edge(void) {
     ne = env_str("I76_EDGE_FADE", ev, sizeof(ev));
     g_fe_log = env_flag("I76_FAR_EDGE_LOG", 4, 0) == 1;
     if (!nh && !nf && !ne) return;
-    if (g_exe == EXE_NITRO) { mlog("  far-edge: Nitro - not applied (Gold sites only)"); return; }
+    if (!g_ta_ok) { mlog("  far-edge: the terrain renderer's addresses are not all mapped (Nitro) - not applied"); return; }
+    g_fe_ret_emit = g_ta_emit;                           /* Gold: 0x491a30; Nitro: mapped (nitro-owner lane 2026-10-23) */
     g_fe_far_env = env_str("I76_FAR_CLIP", mv, sizeof(mv)) != 0;
     if (env_str("I76_MIRROR_FAR", mv, sizeof(mv))) { float f = (float)atof(mv); if (f >= 100.0f && f <= 2500.0f) g_fe_mirror_far = f; }
     if (env_flag("I76_HAZE_MIRROR", 4, 1) == 0) g_fe_haze_mirror = 0;
@@ -428,6 +430,7 @@ static void apply_far_edge(void) {
         if (nh && env_str("I76_HAZE_TARGET", mv, sizeof(mv))) { float t = (float)atof(mv); if (t >= 0.0f && t <= 1.0f) g_fe_haze_target = t; else mlog("  far-edge: I76_HAZE_TARGET %s out of range (0..1) - 1", mv); }
     }
     if (ne && !nh) { mlog("  far-edge: I76_EDGE_FADE needs I76_HAZE (it pulls the haze start in at the void tiles) - off"); ne = 0; }
+    if (ne && g_exe == EXE_NITRO) { mlog("  far-edge: I76_EDGE_FADE - Nitro, not applied (the void tile 0x59c588 has no Nitro address in the site map)"); ne = 0; }
     if (ne) {
         float p = (float)atof(ev);
         if (p == 1.0f) p = 0.4f;
@@ -442,7 +445,7 @@ static void apply_far_edge(void) {
     }
     if (nh) {
         g_fe_haze_on = 1;
-        if (!memcmp((const void *)(DWORD_PTR)0x00490f9b, eh_old, 5) && !memcmp((const void *)(DWORD_PTR)0x00490f82, es_old, 5)) {
+        if (site_is(0x00490f9b, eh_old, 5) && site_is(0x00490f82, es_old, 5)) {
             rel = (LONG)((DWORD_PTR)fe_emit_wrap - (0x00490f9b + 5)); memcpy(w5 + 1, &rel, 4);
             ok = patch_bytes(0x00490f9b, eh_old, w5, 5, "terrain emit call (far-edge haze, hardware)");
             rel = (LONG)((DWORD_PTR)fe_emit_wrap - (0x00490f82 + 5)); memcpy(w5 + 1, &rel, 4);

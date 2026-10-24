@@ -42,3 +42,23 @@
 0x4090d1  0x438251  4   aspect fov push imm (push at 0x4090d0 / 0x438250)
 0x409317  0x438497  4   aspect fov push imm (push at 0x409316 / 0x438496)
 0x4094e8  0x438668  4   aspect fov push imm (push at 0x4094e7 / 0x438667)
+# nitro-owner lane 2026-10-23 (NITRO-PORT s.11): the last four of the 17 hardware polygon emitters (terrainpops.c I76_SHADE_SMOOTH).
+# Pattern-found: both exes hold exactly 17 `fmul dword ptr [-31.0]` (Gold 0x4bcd34 / Nitro 0x4c4f0c) and 17 `mov r32, [r32*4 + grey
+# table]` (Gold 0x526790 / Nitro 0x5a4c78), in the same order, each pair 0x1d / 0x18 / 0x1d / 0x18 bytes apart in both; the first 13
+# map through the function pairs (Nitro = Gold + 0x650e0 there), these four sit in functions the exediff left unpaired (same delta).
+0x42c509  0x4915e9  4   shade emitter 14: fmul operand [0x4bcd34] -> [0x4c4f0c]
+0x42c526  0x491606  4   shade emitter 14: grey table operand 0x526790 -> 0x5a4c78
+0x42c82d  0x49190d  4   shade emitter 15: fmul operand
+0x42c845  0x491925  4   shade emitter 15: grey table operand
+0x42c969  0x491a49  4   shade emitter 16: fmul operand
+0x42c986  0x491a66  4   shade emitter 16: grey table operand
+0x42cc8d  0x491d6d  4   shade emitter 17: fmul operand
+0x42cca5  0x491d85  4   shade emitter 17: grey table operand
+# rear mirror (mirrordetail.c): renderer_DrawRearMirror Gold 0x445750 / Nitro 0x42c7e0, read side by side: the "RearView" re-upload
+# `push 0x4edf74 / mov ecx,[0x52bbc4] / push ecx / call 0x42ec20` = Nitro `push 0x4f24b4 / mov ecx,[0x523324] / push ecx / call
+# 0x489c80` (0x42ec20 -> 0x489c80 is the generated pair). Gold's refresh gate 0x4457b4 (AiO: jmp, every frame) is Nitro's Galaxy
+# layout (`call 0x4a2bf0` frame count / cmp / jl at 0x42c844: every 2nd frame stock); mirrordetail.c patches that call Nitro-only.
+0x445a3c  0x42cacc  5   mirror texture re-upload call 0x42ec20 -> 0x489c80
+# WndProc WM_ACTIVATEAPP 1 with the Esc menu up (polish / simtick.c I76_MENU_DRAW), read side by side: cmp [menu mode], 0x10 / jne /
+# push <cam> / call renderer_DrawFrame (Gold 0x401c90 / Nitro 0x430860) / add esp, 4 / call 0x496870 (Nitro 0x49da10) - same order
+0x404a7d  0x433bed  5   renderer_DrawFrame call on re-activation with the menu up

@@ -70,7 +70,7 @@ static int ssr_play(const char *path, BYTE *car, BYTE *other, int (__cdecl *play
         if (car) v = ((BYTE *(__cdecl *)(const char *, BYTE *))(DWORD_PTR)NA(0x004221d0))(SSR_NAME, car);   /* the voice playing it on this car */
         nh = ssr_new_hit(other);
         if (v && g_ssr) {
-            if (nh) { ((void (__cdecl *)(BYTE *))0x00421e70)(v); restarted = 1; g_ssr_restarted++; }
+            if (nh) { ((void (__cdecl *)(BYTE *))(DWORD_PTR)NA(0x00421e70))(v); restarted = 1; g_ssr_restarted++; }   /* NA: Nitro 0x41a310 (nitro-owner lane 2026-10-23; was Gold's address on both) */
             else g_ssr_same++;
         }
 #ifdef _MSC_VER
@@ -131,7 +131,7 @@ static void apply_sign_sound_restart(void) {
     int on = env_flag("I76_SIGN_SOUND_RESTART", 8, 0) == 1, lg = env_flag("I76_SIGN_SOUND_LOG", 8, 0) == 1;
     static const BYTE nm[11] = "vnvco3.wav";
     if (!on && !lg) return;
-    if (memcmp((const void *)0x004f1578, nm, 11) != 0) { mlog("  sign-sound: 0x4f1578 is not \"vnvco3.wav\" (unknown exe) - not applied"); return; }
+    if (!NA(0x00421e70) || !NA(0x004f1578) || memcmp((const void *)(DWORD_PTR)NA(0x004f1578), nm, 11) != 0) { mlog("  sign-sound: 0x4f1578 is not \"vnvco3.wav\" (unknown exe) - not applied"); return; }
     g_ssr = on; g_ssr_log = lg;
     if (!st_call_site(0x00434ebc, 0x004231f0, (void *)ssr_coll_thunk, &g_ssr_next, "collision sound (sign-sound restart)")) {
         mlog("  sign-sound: the contact sound call 0x434ebc was not patched - the sweep path only");
@@ -143,16 +143,17 @@ static void apply_sign_sound_restart(void) {
 /* ---- I76_FADE_NO_FLIP -------------------------------------------------------------------------------------------- */
 static int g_fade_noflip, g_fade_log;
 static DWORD g_fade_steps, g_fade_skipped, g_fade_last;   /* per fade (a gap of 1 s starts a new one) */
+static DWORD g_fade_hw = 0x005dd2a8, g_fade_pres = 0x005dd2e0;   /* renderer-is-hardware flag, present slot (Nitro: NA at apply) */
 static void __cdecl fade_present(void *disp) {               /* replaces call [0x5dd2e0] at 0x479bdd (the fade loop's present) */
     DWORD now = GetTickCount();
-    int skip = g_fade_noflip && *(volatile DWORD *)0x005dd2a8 == 1;   /* hardware renderer: the palette fades nothing */
+    int skip = g_fade_noflip && *(volatile DWORD *)(DWORD_PTR)g_fade_hw == 1;   /* hardware renderer: the palette fades nothing */
     if (now - g_fade_last > 1000) { g_fade_steps = 0; g_fade_skipped = 0; }
     g_fade_last = now; g_fade_steps++; if (skip) g_fade_skipped++;
     if (g_fade_log && (g_fade_steps == 1 || g_fade_steps % 8 == 0))
         mlog("  fade: step %lu t=%lu, present %s (%lu skipped so far)", (unsigned long)g_fade_steps, (unsigned long)now,
              skip ? "SKIPPED" : "made", (unsigned long)g_fade_skipped);
     if (skip) return;
-    ((void (__cdecl *)(void *))*(DWORD *)0x005dd2e0)(disp);
+    ((void (__cdecl *)(void *))*(DWORD *)(DWORD_PTR)g_fade_pres)(disp);
 }
 static void apply_fade_no_flip(void) {
     static const BYTE o[6] = { 0xFF, 0x15, 0xE0, 0xD2, 0x5D, 0x00 };   /* call dword ptr [0x5dd2e0] */
@@ -161,8 +162,10 @@ static void apply_fade_no_flip(void) {
     g_fade_noflip = env_flag("I76_FADE_NO_FLIP", 8, 0) == 1;
     g_fade_log = env_flag("I76_FADE_LOG", 8, 0) == 1 || env_flag("I76_SIGN_SOUND_LOG", 8, 0) == 1;
     if (!g_fade_noflip && !g_fade_log) return;
+    g_fade_hw = NA(0x005dd2a8); g_fade_pres = NA(0x005dd2e0);
+    if (!g_fade_hw || !g_fade_pres) { g_fade_noflip = 0; mlog("  fade: no Nitro address for the renderer flag / present slot - not applied"); return; }
     rel = (LONG)((DWORD_PTR)fade_present - (0x00479bdd + 5)); memcpy(w + 1, &rel, 4);
-    if (!patch_bytes(0x00479bdd, o, w, 6, "palette fade present (fade-no-flip)") || memcmp((void *)0x00479bdd, w, 6) != 0) {
+    if (!patch_bytes(0x00479bdd, o, w, 6, "palette fade present (fade-no-flip)") || (g_exe != EXE_NITRO && memcmp((void *)0x00479bdd, w, 6) != 0)) {   /* Nitro: nitro_patch_bytes read it back */
         g_fade_noflip = 0; mlog("  fade: the fade present 0x479bdd did not verify - not applied"); return;
     }
     mlog("  fade: I76_FADE_NO_FLIP=%d (the palette fade's 32 presents %s under the hardware renderer)", g_fade_noflip,
@@ -246,10 +249,10 @@ static void arena_name_attach(BYTE *base) {                   /* from mp_menu_at
  * reaches the same frame loop, so the same clear applies there. Under the tick, I76_SIM_TICK_INPUT's early tick ignores
  * input while the menu is up (simtick.c st_input_changed). I76_MENU_KEYS_LOG=1 (lab): a line every 120th cleared frame. */
 static int g_mk_log;
-static DWORD g_mk_next = 0x0044dec0, g_mk_frames, g_mk_eaten;
+static DWORD g_mk_next = 0x0044dec0, g_mk_frames, g_mk_eaten, g_mk_mode = 0x004fe534, g_mk_blk = 0x005367c8;   /* Nitro: NA at apply */
 static void __cdecl menu_keys_wrap(void) {
-    if (g_mk && *(volatile DWORD *)0x004fe534 == 0x10) {
-        DWORD *blk = (DWORD *)0x005367c8; int i, any = 0;
+    if (g_mk && *(volatile DWORD *)(DWORD_PTR)g_mk_mode == 0x10) {
+        DWORD *blk = (DWORD *)(DWORD_PTR)g_mk_blk; int i, any = 0;
         for (i = 0; i < 15; i++) if (blk[i]) { any = 1; break; }
         g_mk_frames++;
         if (any) {
@@ -266,6 +269,8 @@ static void apply_menu_keys(void) {
     g_mk = env_flag("I76_MENU_KEYS", 8, 1) == 1;
     g_mk_log = env_flag("I76_MENU_KEYS_LOG", 8, 0) == 1;
     if (!g_mk) { mlog("  menu-keys: off (I76_MENU_KEYS=0): stock (in a network game the Esc menu's keys also drive the car)"); return; }
+    g_mk_mode = NA(0x004fe534); g_mk_blk = NA(0x005367c8);
+    if (!g_mk_mode || !g_mk_blk) { g_mk = 0; mlog("  menu-keys: no Nitro address for the menu mode / control block - off"); return; }
     if (!st_call_site(0x00403a1c, 0x0044dec0, (void *)menu_keys_wrap, &g_mk_next, "input_ProcessFrame call (menu-keys)")) {
         g_mk = 0; mlog("  menu-keys: 0x403a1c not patched - off"); return;
     }

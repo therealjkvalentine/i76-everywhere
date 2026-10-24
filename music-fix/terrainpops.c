@@ -14,7 +14,7 @@
  *                             grey (12 %) as its shade crosses a row boundary (flat T05 ground: at ~291 m and ~157 m from the camera,
  *                             the depth term g(z)), and the morph's shade fade walks the same steps. The switch multiplies by 255
  *                             instead and indexes a 256-entry table that interpolates the stock rows (rebuilt whenever the stock
- *                             table changes). Gold only; all 17 + 17 sites signature-checked, all or nothing.
+ *                             table changes). Gold and Nitro (the same 17 emitters, nitro-owner lane 2026-10-23); all 17 + 17 sites signature-checked, all or nothing.
  *   I76_GLIDE_MIPMAP=1|2      ZGLIDE's own mip-chain path, which this exe never turns on (lab TEXTURE-AND-OBJECT-LOD.md s.1): FirstDevice
  *                             0x10001c20 zeroes the plugin's mipmap flag [0x1001ee68] (`mov [flag], edi` at +0x1c60, edi = 0) and then calls
  *                             grTexMipMapMode(tmu, flag ? GR_MIPMAP_NEAREST : DISABLE, FXFALSE); with the flag the texture setup 0x10001930
@@ -35,7 +35,7 @@ static DWORD g_sc_hist[256], g_sc_nonint, g_sc_tris; static int g_sc_on;
 static int g_ss_builds, g_ss_on; static void ss_frame(void);   /* I76_SHADE_SMOOTH (below) */
 static void (__stdcall *p_sc_DrawTriangle)(const void *, const void *, const void *);
 static DWORD g_tp_next = 0x004923f0;                      /* the picker, or whatever another switch (mirror-detail) pushed at the site before us */
-static int tp_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(0x005a4588 + 8 * l) == tex || *(DWORD *)(0x005a458c + 8 * l) == tex)) return l; return 7; }
+static int tp_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(g_ta_texset + 8 * l) == tex || *(DWORD *)(g_ta_texset4 + 8 * l) == tex)) return l; return 7; }
 
 static unsigned __int64 tp_key(int x, int z, int s) { return ((unsigned __int64)(DWORD)(x & 0xffff) << 40) | ((unsigned __int64)(DWORD)(z & 0xffff) << 16) | (DWORD)(s & 0xffff); }
 static tp_slot_t *tp_find(int t, unsigned __int64 k) {
@@ -68,8 +68,8 @@ static void tp_close_pass(void) {                         /* the previous frame'
 }
 /* after the picker (or the chained callback) ran for this leaf: tex = [0x59c558] as it chose it; main camera only */
 static void __cdecl tp_leaf(DWORD leaf, float invz) {
-    int x, z, s, lvl; float zp; unsigned __int64 k; tp_slot_t *cur, *prev; DWORD tex = *(volatile DWORD *)0x0059c558;
-    if (!leaf || !g_tp_tab[0] || *(volatile DWORD *)0x006442d4 == 0x00608c80) return;
+    int x, z, s, lvl; float zp; unsigned __int64 k; tp_slot_t *cur, *prev; DWORD tex = *(volatile DWORD *)g_ta_tex;
+    if (!leaf || !g_tp_tab[0] || *(volatile DWORD *)g_ta_cam == g_ta_mircam) return;
     if (g_frame != g_tp_frame_seen) { tp_close_pass(); g_tp_frame_seen = g_frame; }
     x = *(const short *)(DWORD_PTR)leaf; z = *(const short *)(DWORD_PTR)(leaf + 2); s = *(const int *)(DWORD_PTR)(leaf + 4);
     lvl = tp_level_of(tex); zp = invz > 1e-9f ? 1.0f / invz : 1e9f;
@@ -111,11 +111,12 @@ static void __stdcall sc_DrawTriangle(const void *a, const void *b, const void *
 static float g_ss_m255 = -255.0f;                          /* in place of [0x4bcd34] = -31.0 (the emitters do fmul then magic-round) */
 static DWORD g_ss_tab[16 + 256 + 64];                      /* 16 guard entries below (k + 16 is the index, as the stock), 256, 64 above */
 static DWORD g_ss_snap[64]; static int g_ss_on, g_ss_builds;
+static DWORD g_ss_T = 0x00526790;                         /* the stock grey table (Nitro 0x5a4c78: NA at apply) */
 static void ss_build(void) {                               /* from the stock 64 entries at 0x526790: the emitters index entry k + 16 for k = round(31 s), so
                                                               entries 16..47 hold rows 31..0 (entry 16 + k = row 31 - k), 0..15 repeat row 31, 48..63 row 0.
                                                               (The first build, 1ac22b3, read entries 0..31 - the guard and the darkest rows: the 2026-10-23
                                                               smooth-1..3 rows rendered the terrain at grey 38-68 instead of 143-185; the census caught it.) */
-    const DWORD *T = (const DWORD *)(DWORD_PTR)0x00526790; int k, i;
+    const DWORD *T = (const DWORD *)(DWORD_PTR)g_ss_T; int k, i;
     memcpy(g_ss_snap, T, sizeof g_ss_snap);
     for (i = 0; i < 16; i++) g_ss_tab[i] = T[16] & 0xff;
     for (k = 0; k < 256; k++) {
@@ -128,22 +129,29 @@ static void ss_build(void) {                               /* from the stock 64 
     g_ss_builds++;
 }
 static void ss_frame(void) {                               /* per frame: the mode slot rebuilds the stock table from the current palette / .lum */
-    if (memcmp(g_ss_snap, (const void *)(DWORD_PTR)0x00526790, sizeof g_ss_snap)) ss_build();
+    if (memcmp(g_ss_snap, (const void *)(DWORD_PTR)g_ss_T, sizeof g_ss_snap)) ss_build();
 }
 static void apply_shade_smooth(void) {
     static const DWORD cs[17] = { 0x427edb, 0x427fc3, 0x42834b, 0x42861c, 0x4287bb, 0x428861, 0x429439, 0x42975a, 0x429b77, 0x42b86c, 0x42bb5a, 0x42beac, 0x42c19a, 0x42c509, 0x42c82d, 0x42c969, 0x42cc8d };
     static const DWORD ts[17] = { 0x427f08, 0x427fe4, 0x428378, 0x42865f, 0x4287e8, 0x4288ac, 0x429456, 0x429772, 0x429b8f, 0x42b88a, 0x42bb73, 0x42beca, 0x42c1b3, 0x42c526, 0x42c845, 0x42c986, 0x42cca5 };
     static const BYTE c_old[4] = { 0x34, 0xcd, 0x4b, 0x00 }, t_old[4] = { 0x90, 0x67, 0x52, 0x00 };
-    BYTE c_new[4], t_new[4]; DWORD a = (DWORD)(DWORD_PTR)&g_ss_m255, b = (DWORD)(DWORD_PTR)g_ss_tab; int i, ok = 1;   /* the emitters add 16 to k themselves: entry 16 + k (b461bf8 passed g_ss_tab + 16 as well: every vertex read 16 entries = 2 rows too bright, the census showed the modes at 51 / 200 for 38 / 185) */
+    BYTE c_new[4], t_new[4], c_cur[4], t_cur[4]; DWORD a = (DWORD)(DWORD_PTR)&g_ss_m255, b = (DWORD)(DWORD_PTR)g_ss_tab; int i, ok = 1;   /* the emitters add 16 to k themselves: entry 16 + k (b461bf8 passed g_ss_tab + 16 as well: every vertex read 16 entries = 2 rows too bright, the census showed the modes at 51 / 200 for 38 / 185) */
     if (env_flag("I76_SHADE_SMOOTH", 8, 0) != 1) return;
-    if (g_exe == EXE_NITRO) { mlog("  shade-smooth: Nitro - not applied (Gold sites only)"); return; }
+    /* Nitro (nitro-owner lane 2026-10-23, NITRO-PORT s.11): the same 17 emitters, pattern-found in the same order (the last four by
+     * hand, manual_sites.txt); every operand read below is checked against Nitro's own constant / table (NA) before anything is written */
+    {   DWORD cn = NA(0x004bcd34), tn = NA(0x00526790);
+        if (!cn || !tn) { mlog("  shade-smooth: the -31.0 constant / grey table has no Nitro address - not applied"); return; }
+        g_ss_T = tn; memcpy(c_cur, &cn, 4); memcpy(t_cur, &tn, 4);
+    }
     memcpy(c_new, &a, 4); memcpy(t_new, &b, 4);
     for (i = 0; i < 17 && ok; i++) {                        /* fmul dword ptr [0x4bcd34] = d8 0d <addr>; mov r32, [r32*4 + 0x526790] = 8b <modrm 0x04..0x3c> <sib scale 4> <disp> */
-        const BYTE *c = (const BYTE *)(DWORD_PTR)cs[i], *t = (const BYTE *)(DWORD_PTR)ts[i];
-        if (c[-2] != 0xd8 || c[-1] != 0x0d || memcmp(c, c_old, 4)) ok = 0;
-        if (t[-3] != 0x8b || (t[-2] & 0xc7) != 0x04 || (t[-1] & 0xc0) != 0x80 || memcmp(t, t_old, 4)) ok = 0;
+        const BYTE *c = (const BYTE *)(DWORD_PTR)NA(cs[i]), *t = (const BYTE *)(DWORD_PTR)NA(ts[i]);
+        if (!c || !t) { ok = 0; break; }
+        if (c[-2] != 0xd8 || c[-1] != 0x0d || memcmp(c, c_cur, 4)) ok = 0;
+        if (t[-3] != 0x8b || (t[-2] & 0xc7) != 0x04 || (t[-1] & 0xc0) != 0x80 || memcmp(t, t_cur, 4)) ok = 0;
     }
     if (!ok) { mlog("  shade-smooth: emitter site %d is not as expected (another exe or patch) - not applied", i); return; }
+    if (g_exe == EXE_NITRO) mlog("  shade-smooth: Nitro - the 17 emitters found at their mapped sites (constant 0x%06lX, grey table 0x%06lX)", (unsigned long)NA(0x004bcd34), (unsigned long)g_ss_T);
     ss_build();
     for (i = 0; i < 17 && ok; i++) ok = patch_bytes(cs[i], c_old, c_new, 4, "shade-smooth multiplier") && patch_bytes(ts[i], t_old, t_new, 4, "shade-smooth table");
     g_ss_on = ok;

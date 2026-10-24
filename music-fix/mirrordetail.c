@@ -2,7 +2,8 @@
  * REAR MIRROR DETAIL  (rear-mirror lane 2026-10-23; docs/records/MIRROR-DETAIL-2026-10-23.md; lab docs/CLUTTER-AND-MIRROR.md s.2)
  * ===========================================================================
  * Included from strlkproxy.c after skymirror.c; applied after apply_terrain_lod / apply_terrain_hyst (the main terrain call site
- * 0x4020a4 is chained, whoever took it first). Gold only (the Nitro site map has none of these sites yet). Off unless set:
+ * 0x4020a4 is chained, whoever took it first). Gold and Nitro (nitro-owner lane 2026-10-23: DrawRearMirror Gold 0x445750 = Nitro
+ * 0x42c7e0, the upload call by hand in manual_sites.txt; reads through nitro.c's g_ta_*). Off unless set:
  *
  *   I76_MIRROR_DUMP=<N>            lab instrument: every N mirror redraws write the finished mirror bitmap (the 256x64 8-bit private
  *                                  copy of ZMIRI101, [0x608cbc], as it is re-uploaded as the "RearView" texture at 0x445a3c) to
@@ -46,7 +47,7 @@ static DWORD g_md_m16, g_md_m16sky; /* I76_MIRROR_M16_SKY=1 (opt-in; owner 2026-
 /* I76_MIRROR_M16=1: the mirror pass samples the main view's .m16 art - terrain levels (md_m16_copy); with I76_MIRROR_M16_SKY=1 also the sky draw's cloud texture (md_sky_tex at 0x405403) - quantised into the display palette */
 typedef struct { DWORD src; BYTE *copy; } md_m16_t;
 static md_m16_t g_m16[16]; static int g_m16_n;
-static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(0x005a4588 + 8 * l) == tex || *(DWORD *)(0x005a458c + 8 * l) == tex)) return l; for (l = 0; l < g_m16_n; l++) if ((DWORD)(DWORD_PTR)g_m16[l].copy == tex) return md_level_of(g_m16[l].src); return 7; }
+static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(g_ta_texset + 8 * l) == tex || *(DWORD *)(g_ta_texset4 + 8 * l) == tex)) return l; for (l = 0; l < g_m16_n; l++) if ((DWORD)(DWORD_PTR)g_m16[l].copy == tex) return md_level_of(g_m16[l].src); return 7; }
 /* The .m16 terrain texture (raw file: dword w, dword 0xc0000000 | h, w x h palette indices, then dword count + count RGB565 words;
  * 0x42ee21..0x42ee49 / 0x42ef20) becomes an 8-bit texture of the same shape (dword w, dword 0x40000000 | h, w x h display-palette
  * indices): each embedded palette entry is mapped once to the nearest colour of the context palette 0x5dcfa8 (0xff, the colour key,
@@ -56,11 +57,11 @@ static DWORD g_md_next_skytex;
 static BYTE *md_m16_copy(DWORD src, int smooth);
 static DWORD __cdecl md_sky_tex(DWORD set, DWORD cam) {        /* 0x471f00(set, cam) at 0x405403: the sky draw's cloud texture (set 0x504c38), software branch */
     DWORD r = ((DWORD (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_md_next_skytex)(set, cam);
-    if (cam == 0x00608c80 && g_md_m16 && g_md_m16sky && set) { DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m, 1) : NULL; if (c) return (DWORD)(DWORD_PTR)c; }
+    if (cam == g_ta_mircam && g_md_m16 && g_md_m16sky && set) { DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m, 1) : NULL; if (c) return (DWORD)(DWORD_PTR)c; }
     return r;
 }
 static BYTE *md_m16_copy(DWORD src, int smooth) {
-    int i; BYTE *m = (BYTE *)(DWORD_PTR)src, *out, *ctx = (BYTE *)0x005dcfa8; DWORD w, h, n, k, cnt; WORD *pw; BYTE map[256];
+    int i; BYTE *m = (BYTE *)(DWORD_PTR)src, *out, *ctx = (BYTE *)g_ta_ctxpal; DWORD w, h, n, k, cnt; WORD *pw; BYTE map[256];
     for (i = 0; i < g_m16_n; i++) if (g_m16[i].src == src) return g_m16[i].copy;
     if (g_m16_n >= 16 || !m) return NULL;
     w = *(DWORD *)m; h = *(DWORD *)(m + 4);
@@ -109,20 +110,20 @@ static void md_count(md_pass_t *p, DWORD mode, DWORD tex, int big) {
     }
 }
 static void __cdecl md_after_pick(DWORD leaf, float invz) {    /* after 0x4923f0: its globals are set, the record is not built yet */
-    DWORD cam = *(volatile DWORD *)0x006442d4;
-    DWORD mode = *(volatile DWORD *)0x0059c548, tex = *(volatile DWORD *)0x0059c558;
+    DWORD cam = *(volatile DWORD *)g_ta_cam;
+    DWORD mode = *(volatile DWORD *)g_ta_mode, tex = *(volatile DWORD *)g_ta_tex;
     int big = leaf ? *(int *)(DWORD_PTR)(leaf + 4) > 8 : 0;
-    if (cam == 0x00608c80) {
-        if (g_md_mode) { *(volatile DWORD *)0x0059c548 = g_md_mode; g_md_mir.forced++; }
+    if (cam == g_ta_mircam) {
+        if (g_md_mode) { *(volatile DWORD *)g_ta_mode = g_md_mode; g_md_mir.forced++; }
         if (g_md_tex > 0.0f) {                                   /* the picker's level for a 640 x f wide view: level = 0x88 - exponent(W x 40 x 1/z), clamped 0..6 */
             float v = (640.0f * 40.0f * g_md_tex) * invz; int e = (*(int *)&v) >> 23, l = 0x88 - e; DWORD t;
             if (l < 0) l = 0; else if (l > 6) l = 6;
-            t = *(DWORD *)(0x005a4588 + 8 * l);                  /* the 8-bit variant (the mirror bitmap is kind 0) */
-            if (t) { *(volatile DWORD *)0x0059c558 = t; tex = t; }
+            t = *(DWORD *)(g_ta_texset + 8 * l);                  /* the 8-bit variant (the mirror bitmap is kind 0) */
+            if (t) { *(volatile DWORD *)g_ta_tex = t; tex = t; }
         }
         if (g_md_m16) {                                          /* the .m16 art of the level the leaf got, as an 8-bit copy */
-            int l = md_level_of(tex); DWORD m = l < 7 ? *(DWORD *)(0x005a458c + 8 * l) : 0; BYTE *c = m ? md_m16_copy(m, 0) : NULL;
-            if (c) { *(volatile DWORD *)0x0059c558 = (DWORD)(DWORD_PTR)c; tex = (DWORD)(DWORD_PTR)c; }
+            int l = md_level_of(tex); DWORD m = l < 7 ? *(DWORD *)(g_ta_texset4 + 8 * l) : 0; BYTE *c = m ? md_m16_copy(m, 0) : NULL;
+            if (c) { *(volatile DWORD *)g_ta_tex = (DWORD)(DWORD_PTR)c; tex = (DWORD)(DWORD_PTR)c; }
         }
         md_count(&g_md_mir, mode, tex, big); g_md_mir.lvl[md_level_of(tex)]++;
     } else { md_count(&g_md_main, mode, tex, big); g_md_main.lvl[md_level_of(tex)]++; }
@@ -131,8 +132,7 @@ static __declspec(naked) void md_pick_stub(void) {             /* in place of `p
     __asm {
         push dword ptr [esp + 8]
         push dword ptr [esp + 8]
-        mov  eax, 0x004923f0
-        call eax
+        call dword ptr [g_ta_pick]
         add  esp, 8
         push dword ptr [esp + 8]
         push dword ptr [esp + 8]
@@ -144,7 +144,7 @@ static __declspec(naked) void md_pick_stub(void) {             /* in place of `p
 static void md_set_report(void) {                              /* once: the 7-level terrain texture set 0x5a4588 (8-bit variant, .m16 variant); raw files: dword w, dword flags | h, texels from +8 */
     int l, k;
     for (l = 0; l < 7; l++) for (k = 0; k < 2; k++) {
-        BYTE *t = *(BYTE **)(0x005a4588 + 8 * l + 4 * k); DWORD w, h, n, i, ns = 0; BYTE cnt[256];
+        BYTE *t = *(BYTE **)(g_ta_texset + 8 * l + 4 * k); DWORD w, h, n, i, ns = 0; BYTE cnt[256];
         if (!t) { mlog("  mirror-detail: texset level %d %s: NULL", l, k ? "m16" : "8bit"); continue; }
         w = *(DWORD *)t; h = *(DWORD *)(t + 4);
         if (w == 0 || w > 1024 || (h & 0x1fffffff) == 0 || (h & 0x1fffffff) > 1024) { mlog("  mirror-detail: texset level %d %s @%p: header %08lx %08lx not a texture", l, k ? "m16" : "8bit", t, (unsigned long)w, (unsigned long)h); continue; }
@@ -154,18 +154,18 @@ static void md_set_report(void) {                              /* once: the 7-le
         mlog("  mirror-detail: texset level %d %s @%p: %lux%lu flags %08lx, %lu distinct texel values%s", l, k ? "m16" : "8bit", t, (unsigned long)w, (unsigned long)(h & 0x1fffffff), (unsigned long)(h & 0xe0000000), (unsigned long)ns,
              (h & 0x80000000) ? " (embedded palette after the texels)" : "");
     }
-    {   char path[MAX_PATH]; HANDLE f; DWORD wr; WORD *tab = *(WORD **)0x00608660;
+    {   char path[MAX_PATH]; HANDLE f; DWORD wr; WORD *tab = *(WORD **)g_ta_tab;
         wsprintfA(path, "%s\\mirror-uptab.bin", g_dir);
         f = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-        if (f != INVALID_HANDLE_VALUE) { WriteFile(f, (void *)0x00608980, 512, &wr, NULL); CloseHandle(f); }
+        if (f != INVALID_HANDLE_VALUE) { WriteFile(f, (void *)g_ta_uptab, 512, &wr, NULL); CloseHandle(f); }
         if (tab && !IsBadReadPtr(tab, 65536 * 2)) {
             wsprintfA(path, "%s\\mirror-tab.bin", g_dir);
             f = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
             if (f != INVALID_HANDLE_VALUE) { WriteFile(f, tab, 65536 * 2, &wr, NULL); CloseHandle(f); }
         }
         mlog("  mirror-detail: upload table 0x608980 -> mirror-uptab.bin (entry 0xea = 0x%04x, 0xef = 0x%04x); .tab %p%s; context palette 0xea = (%u,%u,%u)",
-             ((WORD *)0x00608980)[0xea], ((WORD *)0x00608980)[0xef], tab, tab ? " -> mirror-tab.bin" : " (none loaded)",
-             ((BYTE *)0x005dcfa8)[0xea * 3], ((BYTE *)0x005dcfa8)[0xea * 3 + 1], ((BYTE *)0x005dcfa8)[0xea * 3 + 2]);
+             ((WORD *)g_ta_uptab)[0xea], ((WORD *)g_ta_uptab)[0xef], tab, tab ? " -> mirror-tab.bin" : " (none loaded)",
+             ((BYTE *)g_ta_ctxpal)[0xea * 3], ((BYTE *)g_ta_ctxpal)[0xea * 3 + 1], ((BYTE *)g_ta_ctxpal)[0xea * 3 + 2]);
     }
 }
 /* I76_MIRROR_LOD=<m> (1..256): the mirror pass's terrain LOD factor relative to the stock constants, whatever I76_TERRAIN_LOD gave the
@@ -176,17 +176,17 @@ static void md_set_report(void) {                              /* once: the 7-le
  * (A) and f / m (B) around its call and restores them: data only, the main pass never sees it. */
 static float g_md_lod, g_md_fa = 1.0f, g_md_fb = 1.0f;   /* fa / fb = what apply_terrain_lod gave the main view */
 static void __cdecl md_terrain_mir(void *cam) {
-    float a = *(volatile float *)0x004fad20, b = *(volatile float *)0x004fad24;
+    float a = *(volatile float *)g_ta_fa, b = *(volatile float *)g_ta_fb;
     ZeroMemory(&g_md_mir, sizeof g_md_mir);
-    if (g_md_lod > 0.0f) { *(volatile float *)0x004fad20 = a * (g_md_lod / g_md_fa); *(volatile float *)0x004fad24 = b * (g_md_fb / g_md_lod); }
+    if (g_md_lod > 0.0f) { *(volatile float *)g_ta_fa = a * (g_md_lod / g_md_fa); *(volatile float *)g_ta_fb = b * (g_md_fb / g_md_lod); }
     ((void (__cdecl *)(void *))(DWORD_PTR)g_md_next_tmir)(cam);
-    if (g_md_lod > 0.0f) { *(volatile float *)0x004fad20 = a; *(volatile float *)0x004fad24 = b; }
-    g_md_mir.verts = *(volatile int *)0x006442ec;
+    if (g_md_lod > 0.0f) { *(volatile float *)g_ta_fa = a; *(volatile float *)g_ta_fb = b; }
+    g_md_mir.verts = *(volatile int *)g_ta_vn;
 }
 static void __cdecl md_terrain_main(void *cam) {
     ZeroMemory(&g_md_main, sizeof g_md_main);
     ((void (__cdecl *)(void *))(DWORD_PTR)g_md_next_tmain)(cam);
-    g_md_main.verts = *(volatile int *)0x006442ec;
+    g_md_main.verts = *(volatile int *)g_ta_vn;
     g_md_main_last = g_md_main;
 }
 static void md_modes_txt(const md_pass_t *p, char *out, size_t cap) {
@@ -194,7 +194,7 @@ static void md_modes_txt(const md_pass_t *p, char *out, size_t cap) {
     for (i = 0; i < 8 && p->modes[i]; i++) n += (size_t)_snprintf(out + n, cap - n, "%s0x%lx:%lu", i ? " " : "", (unsigned long)p->modev[i], (unsigned long)p->modes[i]);
 }
 static void md_dump(void) {
-    BYTE *bm = *(BYTE **)0x00608cbc; DWORD w, h, y, wr; BYTE *px, *pal = (BYTE *)0x005dcfa8;
+    BYTE *bm = *(BYTE **)g_ta_mirbm; DWORD w, h, y, wr; BYTE *px, *pal = (BYTE *)g_ta_ctxpal;
     char path[MAX_PATH]; HANDLE f; BITMAPFILEHEADER bf; BITMAPINFOHEADER bi; RGBQUAD q[256]; int i;
     if (!bm) return;
     w = *(DWORD *)bm; h = *(WORD *)(bm + 4); px = *(BYTE **)(bm + 0x14);
@@ -229,7 +229,7 @@ static void md_dump(void) {
 #include "mirrorpal.h"
 static BYTE g_mp_map[256]; static int g_mp_pair = -1, g_mp_tried; static DWORD g_mp_ctxsum;
 static void md_remap_bitmap(void) {
-    BYTE *bm = *(BYTE **)0x00608cbc, *px, *ctx = (BYTE *)0x005dcfa8; DWORD w, h, n, i, sum = 0;
+    BYTE *bm = *(BYTE **)g_ta_mirbm, *px, *ctx = (BYTE *)g_ta_ctxpal; DWORD w, h, n, i, sum = 0;
     if (!bm) return;
     w = *(DWORD *)bm; h = *(WORD *)(bm + 4); px = *(BYTE **)(bm + 0x14);
     if (!px || w == 0 || h == 0 || w > 1024 || h > 1024) return;
@@ -265,7 +265,7 @@ static void __cdecl md_upload(DWORD tex, const char *name) {   /* 0x42ec20 at 0x
     g_md_redraws++;
     if (g_md_pal) md_remap_bitmap();                             /* before the dump: the PNGs show what is uploaded */
     if (g_md_dump_n && g_md_redraws % g_md_dump_n == 0 && g_md_dumps < 400) {
-        char mm[160], mn[160]; BYTE *bm = *(BYTE **)0x00608cbc;
+        char mm[160], mn[160]; BYTE *bm = *(BYTE **)g_ta_mirbm;
         md_dump();
         if (!g_md_setrep) { g_md_setrep = 1; md_set_report(); }
         md_modes_txt(&g_md_mir, mm, sizeof mm); md_modes_txt(&g_md_main_last, mn, sizeof mn);
@@ -274,7 +274,7 @@ static void __cdecl md_upload(DWORD tex, const char *name) {   /* 0x42ec20 at 0x
              (unsigned long)g_md_mir.lvl[0], (unsigned long)g_md_mir.lvl[1], (unsigned long)g_md_mir.lvl[2], (unsigned long)g_md_mir.lvl[3], (unsigned long)g_md_mir.lvl[4], (unsigned long)g_md_mir.lvl[5], (unsigned long)g_md_mir.lvl[6], (unsigned long)g_md_mir.lvl[7],
              g_md_main_last.verts, (unsigned long)g_md_main_last.leaves, (unsigned long)g_md_main_last.big, (unsigned long)g_md_main_last.texnull, mn,
              (unsigned long)g_md_main_last.lvl[0], (unsigned long)g_md_main_last.lvl[1], (unsigned long)g_md_main_last.lvl[2], (unsigned long)g_md_main_last.lvl[3], (unsigned long)g_md_main_last.lvl[4], (unsigned long)g_md_main_last.lvl[5], (unsigned long)g_md_main_last.lvl[6], (unsigned long)g_md_main_last.lvl[7],
-             *(BYTE *)0x654b82, *(BYTE *)0x654b8b, *(BYTE *)0x654b8d, *(BYTE *)0x654b8a,
+             *(BYTE *)g_ta_o82, *(BYTE *)g_ta_o8b, *(BYTE *)g_ta_o8d, *(BYTE *)g_ta_o8a,
              bm ? (unsigned long)*(DWORD *)bm : 0ul, bm ? (unsigned long)*(WORD *)(bm + 4) : 0ul, bm ? (unsigned long)*(DWORD *)(bm + 8) : 0ul);
     }
     ((void (__cdecl *)(DWORD, const char *))(DWORD_PTR)g_md_next_upload)(tex, name);
@@ -287,8 +287,13 @@ static void apply_mirror_every(void) {
     if (!env_str("I76_MIRROR_EVERY", v, sizeof(v))) return;
     g_md_every = (DWORD)atoi(v);
     if (g_md_every < 2 || g_md_every > 8) { mlog("  mirror-every: %s out of range (2..8) - not applied", v); g_md_every = 0; return; }
-    if (g_exe == EXE_NITRO) { mlog("  mirror-every: not ported to Nitro - off"); g_md_every = 0; return; }
     {   char mv[4]; if (env_str("I76_MIRROR_RATE", mv, sizeof(mv)) && mv[0] != '0' && g_ratefix) { mlog("  mirror-every: I76_MIRROR_RATE owns the gate - off"); g_md_every = 0; return; } }
+    if (g_exe == EXE_NITRO) {                                /* Nitro keeps the Galaxy gate (DrawRearMirror 0x42c7e0, read side by side 2026-10-23):
+                                                                `call 0x4a2bf0` (frame count) / cmp [0x523328] / jl at 0x42c844 - every 2nd frame stock */
+        if (!nitro_patch_call(0x0042c844, 0x004a2bf0, (void *)md_frame_count, NULL, "rear mirror refresh gate frame count (mirror-every)")) { g_md_every = 0; mlog("  mirror-every: Nitro gate site not as expected - off"); return; }
+        mlog("  mirror-every: the rear mirror redraws every %lu-th frame (Nitro: stock gate every 2nd frame, its frame count replaced)", (unsigned long)g_md_every);
+        return;
+    }
     rel = (LONG)((DWORD_PTR)md_frame_count - (0x004457b4 + 5)); memcpy(w + 1, &rel, 4);
     if (memcmp((void *)0x004457b4, gate_aio, 5) == 0) { layout = "AiO: gate was removed, mirror every frame"; ok = patch_bytes(0x004457b4, gate_aio, w, 5, "rear mirror refresh gate (mirror-every, AiO)"); }
     else { layout = "Galaxy: every 2nd frame"; ok = patch_bytes(0x004457b4, gate_galaxy, w, 5, "rear mirror refresh gate (mirror-every, Galaxy)"); }
@@ -316,7 +321,7 @@ static void apply_mirror_detail(void) {
     g_md_m16 = env_flag("I76_MIRROR_M16", 8, 0) == 1;
     g_md_m16sky = g_md_m16 && env_flag("I76_MIRROR_M16_SKY", 8, 0) == 1;   /* default off: the stock 8-bit cloud art (the owner prefers it; "a tint to the mirror") */
     if (!g_md_dump_n && !g_md_mode && g_md_lod <= 0.0f && g_md_tex <= 0.0f && !g_md_pal && !g_md_m16) return;
-    if (g_exe == EXE_NITRO) { mlog("  mirror-detail: not ported to Nitro - off"); g_md_dump_n = g_md_mode = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
+    if (!g_ta_ok) { mlog("  mirror-detail: the terrain renderer's addresses are not all mapped (Nitro) - off"); g_md_dump_n = g_md_mode = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
     if (g_md_dump_n || g_md_mode || g_md_tex > 0.0f || g_md_pal || g_md_m16) {
         a = (DWORD)(DWORD_PTR)md_pick_stub; memcpy(push_new + 1, &a, 4);
         n += patch_bytes(0x00490f96, push_old, push_new, 5, "terrain leaf texture picker (mirror-detail)");
@@ -339,5 +344,5 @@ static void apply_mirror_detail(void) {
     if (g_md_lod > 0.0f) mlog("  mirror-lod: the mirror pass splits terrain at x%.2f the stock distance (height-error / %.2f); the main view keeps x%.2f / %.2f", g_md_lod, g_md_lod, g_md_fa, g_md_fb);
     if (g_md_dump_n) mlog("  mirror-detail: dump every %lu mirror redraws to %s\\mirror-<redraw>.bmp (palette 0x5dcfa8 -> mirror-pal.bin)", (unsigned long)g_md_dump_n, g_dir);
     if (g_md_mode) mlog("  mirror-detail: mirror pass terrain mode forced to 0x%lx (span drawer 0x%08lx after the queue's | 8 / & ~0x10)", (unsigned long)g_md_mode,
-                        (unsigned long)*(DWORD *)(0x004f8d38 + 4 * (((g_md_mode & ~0x10u) | 8u) & 0x1ff)));
+                        (unsigned long)*(DWORD *)(g_ta_span + 4 * (((g_md_mode & ~0x10u) | 8u) & 0x1ff)));
 }

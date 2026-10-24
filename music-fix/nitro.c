@@ -118,6 +118,33 @@ static DWORD nrd32(DWORD gold) { DWORD a = na_(gold); return a ? *(volatile DWOR
 /* entity field offset: +4 at and above +0x444 on Nitro */
 #define EF(off) ((g_exe == EXE_NITRO && (off) >= 0x444) ? (off) + 4 : (off))
 
+/* The terrain renderer's globals and helpers as the terrain-look features read them (terrainmorph.c, faredge.c, terrainpops.c,
+ * mirrordetail.c; nitro-owner lane 2026-10-23, NITRO-PORT s.11). Gold values here; on Nitro nitro_terrain_addrs() replaces each with
+ * its mapped address (sites_nitro.h; the renderer is Gold's code relocated: QueueTerrain 0x490a00 -> 0x4959d0, the same camera
+ * fields +0x3c / +0x160 / +0x170). g_ta_ok = every one mapped; a feature that needs them refuses when it is 0. */
+static DWORD g_ta_cam = 0x6442d4, g_ta_vn = 0x6442ec, g_ta_V = 0x5dd320, g_ta_U = 0x5dd2ec, g_ta_sc = 0x6442c4, g_ta_K = 0x6442c8,
+             g_ta_B = 0x6442cc, g_ta_ox = 0x6442e0, g_ta_oz = 0x6442e4, g_ta_lv = 0x6442e8, g_ta_ex = 0x6442f8, g_ta_ez = 0x644300,
+             g_ta_leaf = 0x59c560, g_ta_lit = 0x5a4618, g_ta_mircam = 0x608c80, g_ta_mode = 0x59c548, g_ta_tex = 0x59c558,
+             g_ta_texset = 0x5a4588, g_ta_texset4 = 0x5a458c, g_ta_fa = 0x4fad20, g_ta_fb = 0x4fad24, g_ta_mirbm = 0x608cbc,
+             g_ta_ctxpal = 0x5dcfa8, g_ta_far = 0x4c271c, g_ta_tiles = 0x644380, g_ta_skytex = 0x504c38, g_ta_nstrip = 0x503034,
+             g_ta_strips = 0x504850, g_ta_hw = 0x504be8, g_ta_tab = 0x608660, g_ta_uptab = 0x608980, g_ta_span = 0x4f8d38,
+             g_ta_o82 = 0x654b82, g_ta_o8a = 0x654b8a, g_ta_o8b = 0x654b8b, g_ta_o8d = 0x654b8d,
+             g_ta_split = 0x4918f0, g_ta_height = 0x493160, g_ta_pick = 0x4923f0, g_ta_xform = 0x4937c0, g_ta_emit = 0x491a30;
+static int g_ta_ok = 1;
+static void nitro_terrain_addrs(void) {
+    DWORD *v[] = { &g_ta_cam, &g_ta_vn, &g_ta_V, &g_ta_U, &g_ta_sc, &g_ta_K, &g_ta_B, &g_ta_ox, &g_ta_oz, &g_ta_lv, &g_ta_ex, &g_ta_ez,
+                   &g_ta_leaf, &g_ta_lit, &g_ta_mircam, &g_ta_mode, &g_ta_tex, &g_ta_texset, &g_ta_texset4, &g_ta_fa, &g_ta_fb, &g_ta_mirbm,
+                   &g_ta_ctxpal, &g_ta_far, &g_ta_tiles, &g_ta_skytex, &g_ta_nstrip, &g_ta_strips, &g_ta_hw, &g_ta_tab, &g_ta_uptab, &g_ta_span,
+                   &g_ta_o82, &g_ta_o8a, &g_ta_o8b, &g_ta_o8d, &g_ta_split, &g_ta_height, &g_ta_pick, &g_ta_xform, &g_ta_emit };
+    int i, bad = 0;
+    if (g_exe != EXE_NITRO) return;
+    for (i = 0; i < (int)(sizeof v / sizeof v[0]); i++) { DWORD n = na_(*v[i]); if (!n) bad++; else *v[i] = n; }
+    g_ta_ok = bad == 0;
+    mlog("nitro: terrain renderer addresses %s (%d of %d mapped; QueueTerrain camera 0x%06lX, vertex count 0x%06lX, mirror camera 0x%06lX)",
+         g_ta_ok ? "resolved" : "INCOMPLETE - the terrain-look features stay off", (int)(sizeof v / sizeof v[0]) - bad, (int)(sizeof v / sizeof v[0]),
+         (unsigned long)g_ta_cam, (unsigned long)g_ta_vn, (unsigned long)g_ta_mircam);
+}
+
 #define GOLD_IMG_LO 0x00400000u
 #define GOLD_IMG_HI 0x0066b000u
 
@@ -173,6 +200,19 @@ static int nitro_patch_bytes(DWORD gold, const BYTE *expect, const BYTE *want, S
             from = 5;
         }
         for (i = from; i < n; i++) if (want[i] == s->gsig[i]) w2[i] = s->sig[i];
+        {   /* nitro-owner lane 2026-10-23: a dword of the patch that points into THIS dll (a stub / table / float of ours, e.g. the
+             * shade-smooth operand pokes) is the patch's own value: copied verbatim, never "kept" byte by byte from Nitro's instruction
+             * (a byte of our address that happened to equal Gold's operand byte at that position was replaced by Nitro's byte) */
+            static DWORD self_lo, self_hi;
+            if (!self_lo) {
+                HMODULE me = NULL; IMAGE_NT_HEADERS *nt;
+                if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)nitro_patch_bytes, &me) && me) {
+                    nt = (IMAGE_NT_HEADERS *)((BYTE *)me + ((IMAGE_DOS_HEADER *)me)->e_lfanew);
+                    self_lo = (DWORD)(DWORD_PTR)me; self_hi = self_lo + nt->OptionalHeader.SizeOfImage;
+                }
+            }
+            for (i = from; i + 4 <= n; i++) { DWORD d; memcpy(&d, want + i, 4); if (self_lo && d >= self_lo && d < self_hi) { memcpy(w2 + i, want + i, 4); i += 3; } }
+        }
         for (i = from; i + 4 <= n; i++) {   /* a changed operand that names another mapped Gold address (e.g. a call [IAT]
                                                re-aimed at another import); every other changed byte is the patch's own */
             DWORD d, d2; memcpy(&d, want + i, 4);

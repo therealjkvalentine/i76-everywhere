@@ -9499,6 +9499,7 @@ static void cwd_fix(void) {
 static void nitro_dllmain(void) {
     HMODULE exe = GetModuleHandleA(NULL);
     nitro_table_check();
+    nitro_terrain_addrs();    /* nitro.c g_ta_*: the terrain renderer's globals for the terrain-look features (nitro-owner lane 2026-10-23) */
     load_orig();              /* Nitro's strlkup.dll is Gold's (NITRO-VS-RETAIL s.4) */
     apply_crash_log();
     nitro_pit_skip();         /* Wine: the PIT CPU-speed probe's privileged instructions are fatal (nitro.c) */
@@ -9508,6 +9509,7 @@ static void nitro_dllmain(void) {
     apply_multi_instance();
     apply_no_minimize();      /* also I76_KEEP_ACTIVE */
     apply_terrain_lod();      /* I76_TERRAIN_LOD / _A / _B (+ vertex guard, I76_TERRAIN_HYST / _FREEZE) */
+    apply_terrain_morph();    /* I76_TERRAIN_MORPH (+ _STATELESS / _SHADE / _BIG / _NEAR / _LOG); I76_TERRAIN_FLAT_SPLIT refused (0x491556 differs) */
     apply_detail_distance();  /* I76_TERRAIN_TEX, I76_OBJECT_LOD */
     apply_shadow_road_dist(); /* I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
     apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP */
@@ -9530,8 +9532,15 @@ static void nitro_dllmain(void) {
     apply_trainer();          /* always on (I76_TRAINER=0 off): Local\I76Trainer<suffix> */
     apply_simtick();          /* I76_SIM_TICK_MS (whole-sim tick; the 12 gates on Nitro's main loop, sites_nitro.h / manual_sites.txt) */
     apply_sky_mirror();       /* opt-in: I76_SKY_MIRROR=0 (after the tick: it may share the cloud constants) */
-    apply_mirror_detail();    /* lab: I76_MIRROR_DUMP / I76_MIRROR_TERRAIN_MODE (Gold only: logs and returns here) */
+    apply_mirror_detail();    /* I76_MIRROR_EVERY / _LOD / _TEX / _PAL / _M16 (+ the lab dump / mode); Nitro's own refresh gate (mirrordetail.c) */
+    apply_terrain_pops();     /* I76_SHADE_SMOOTH (the 17 emitters); the lab instruments stay Gold-only */
+    apply_far_edge();         /* I76_GLIDE_FOG (+ _ALPHA), I76_HAZE; I76_EDGE_FADE refused (after the morph: chains its emit wrap) */
     apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1> (one site inside 0x43a5d0, in the site map) */
+    apply_sign_sound_restart(); /* I76_SIGN_SOUND_RESTART (polish.c; the stop / name through NA) */
+    apply_fade_no_flip();     /* I76_FADE_NO_FLIP (polish.c) */
+    apply_menu_keys();        /* default on: I76_MENU_KEYS (after the tick: chains its input gate) */
+    apply_menu_draw();        /* default on: I76_MENU_DRAW (WndProc 0x404a7d -> 0x433bed, manual_sites.txt) */
+    apply_font_private();     /* default on: I76_FONT_PRIVATE (nitro.exe imports GDI32 AddFontResourceA / RemoveFontResourceA) */
     {   /* MUSIC (I76_MUSIC_NITRO=0 keeps GOG's own WIN32.dll / audiere CD emulation): the same hooks as Gold, on the exe's
          * WIN32.dll slots; playback through the system winmm's mpegvideo as on Gold; the virtual disc ends at the highest
          * music\N.mp3 present */
