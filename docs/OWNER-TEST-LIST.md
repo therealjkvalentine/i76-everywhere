@@ -1169,3 +1169,15 @@ Open items from this session:
 - **Look for:** pointer lands where you click in the menus and the Esc menu; frame rate (lab: 120 cap median in A NEW HOPE / BAD FUEL,
   P05 road 1 % low 95-101); the far terrain fade and bushes fading in; the rear mirror's terrain; music in the menus and missions and
   that it resumes after Replay; anything that crashes - the proxy log is `exp-nitro-owner\Interstate 76 Nitro Pack\mciproxy.log`.
+
+## 2026-10-24 midday: owner + Michael, Gold family LAN pack on two Macs (owner's notes)
+
+- "A ton of fun"; "playing the scenarios is super amazingly fun".
+- AI MELEE: after all AI cars are killed nothing respawns until every AI is dead, then the round restarts - owner wants
+  CONTINUOUS respawn. The family pack is proxy cf4f81da (2026-10-20); the AI-respawn pack (respawn 5 s, scoreboard rows;
+  docs/OPEN-FEATURES-2026-10-24.md s.5 "built, on no machine yet") is the likely fix - verify it is continuous, then roll it
+  to the PC + Macs as one pack (byte-compatible on all machines).
+- Some AI cars float above the ground ("flying") - new bug, to reproduce (which arena / scenario, tick vs Mac rate?).
+- A joiner who respawns should appear NEAR THE HOST (proximal), not at the mission's own spawn.
+- Co-op scenarios: spawn duplicate enemy cars per joiner so the challenge matches the player count (I76_COOP_* co-op
+  scaling exists - "copies per enemy up to 3 joiners" - check whether it is on in the family pack and in scenarios).
