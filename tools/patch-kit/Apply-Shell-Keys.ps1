@@ -15,7 +15,7 @@
   the backup is put back). Run BEFORE u32x\deploy-u32x.ps1, which renames the shell's USER32 import (another md5).
   -Revert puts the backup back. -Status only reports.
 
-      toolspatch-kit\Apply-Shell-Keys.ps1 -GameDir <game folder> [-Revert] [-Status]
+      tools\patch-kit\Apply-Shell-Keys.ps1 -GameDir <game folder> [-Revert] [-Status]
   Exit 0 = applied / already applied / reverted; 2 = a shell build the patch does not know (nothing touched).
 #>
 param([Parameter(Mandatory)][string]$GameDir, [string]$Patch = '', [switch]$Revert, [switch]$Status)

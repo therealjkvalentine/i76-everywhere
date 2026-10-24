@@ -5,7 +5,7 @@
   ONE zip, unzipped INTO a GOG Interstate '76 folder (PLAY.bat lands beside i76.exe). It carries only what we may ship:
     _i76e\repo\      the pieces of this repo the installer needs (setup-windows.ps1, PLAY-i76.ps1, presets, controls\input.map,
                      u32x, the clean-built proxy as music-fix\Strlkup.dll, Make-Wide-Conf + its conf template, the shell patch
-                     DATA (our bytes only, toolspatch-kit\shell-keys-patch.json) and patchers, i76wheel.exe, the debug tool, the
+                     DATA (our bytes only, tools\patch-kit\shell-keys-patch.json) and patchers, i76wheel.exe, the debug tool, the
                      controls sheet, the repo's bookmark saves, LICENSE / THIRD-PARTY)
     _i76e\dgVoodoo\  dgVoodoo 2.87.5's x86 components (+ _i76e\dgVoodoo-2.87.3 fallback), UNMODIFIED (md5 checked against the release zip; Dege's readme, section
                      "Redistribution rights": "You can freely ship your game or game mod with unmodified individual dgVoodoo
@@ -13,7 +13,7 @@
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
     UNINSTALL-i76e.bat, README-PATCH-KIT.md
-  The user's own i76.exe / i76shell.dll are patched IN PLACE by the first PLAY.bat (toolspatch-kit\i76e-prepare.ps1 ->
+  The user's own i76.exe / i76shell.dll are patched IN PLACE by the first PLAY.bat (tools\patch-kit\i76e-prepare.ps1 ->
   setup-windows.ps1, Apply-Shell-Keys.ps1, deploy-u32x.ps1), originals kept beside them. A name guard refuses to stage any
   game file (i76.exe, i76shell.dll, *.ZFS, *.MW2, *.DEF, strlkup_orig.dll, I76PATCH.DLL, movies, music ...).
 
@@ -39,7 +39,7 @@ function Die([string]$m) { Write-Host "package-patch-kit: $m" -ForegroundColor R
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf toolspatch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 i76-remap.ahk i76-ch-fighterstick.ahk)
+$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 i76-remap.ahk i76-ch-fighterstick.ahk)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files (commit first so VERSION.txt names what shipped):`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not (Test-Path -LiteralPath $Proxy)) { Die "proxy not found: $Proxy" }
 $proxyMd5 = Md5 $Proxy
@@ -56,7 +56,7 @@ $files = @(
     'u32x\deploy-u32x.ps1', 'u32x\u32x_full.dll', 'u32x\README.md',
     'tools\Make-Wide-Conf.ps1', 'tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf', 'tools\i76wheel.exe',
     'tools\lint-input-map.py', 'tools\fix-shell-textentry.ps1',
-    'toolspatch-kit\Apply-Shell-Keys.ps1', 'toolspatch-kit\shell-keys-patch.json',
+    'tools\patch-kit\Apply-Shell-Keys.ps1', 'tools\patch-kit\shell-keys-patch.json',
     'tools\driver\DEBUG.bat', 'tools\driver\TRAINER.bat',
     'tools\debug\i76debug.py', 'tools\debug\debug_core.py', 'tools\debug\debug_trainer.py', 'tools\debug\README.md',
     'tools\debug\static\index.html', 'tools\debug\static\app.js', 'tools\debug\static\app.css', 'tools\debug\static\charts.js',
@@ -76,7 +76,7 @@ foreach ($rel in $files) {
 }
 New-Item -ItemType Directory -Force (Join-Path $sr 'music-fix') | Out-Null
 Copy-Item -LiteralPath $Proxy -Destination (Join-Path $sr 'music-fix\Strlkup.dll') -Force
-Copy-Item -LiteralPath (Join-Path $repo 'toolspatch-kit\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
+Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
 
 # ---- dgVoodoo 2.87.3, unmodified x86 components only, checked against the release zip's hashes -------------------------
 function Ship-DgVoodoo([string]$srcDir, [hashtable]$hashes, [string]$ver, [string]$outDir, [string]$extraNote) {

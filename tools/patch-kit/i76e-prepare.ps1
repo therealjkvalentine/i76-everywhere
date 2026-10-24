@@ -50,7 +50,7 @@ if ($Uninstall) {
     Say "=== removing the i76-everywhere overlay ($version) from $game ===" 'Cyan'
     if (Running-Here) { Fail 'close the game first' }
     if (Test-Path -LiteralPath (Join-Path $game 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $game, '-U32xDll', (Join-Path $repo 'u32x\u32x_full.dll'), '-Restore')) }   # -U32xDll explicit: PS 5.1 -File leaves $PSScriptRoot empty in its param default
-    [void](Child (Join-Path $repo 'toolspatch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
+    [void](Child (Join-Path $repo 'tools\patch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
     foreach ($pair in @(@('strlkup_orig.dll', 'Strlkup.dll'), @('I76PATCH.DLL.disabled', 'I76PATCH.DLL'))) {
         $from = Join-Path $game $pair[0]
         if (Test-Path -LiteralPath $from) { Move-Item -LiteralPath $from -Destination (Join-Path $game $pair[1]) -Force; Say "  $($pair[1]) restored" }
@@ -102,7 +102,7 @@ if ($need) {
     else {
         if (Running-Here) { Fail 'close the running game first' }
         # 1. the shell patches, before u32x renames the shell's import (the patch is keyed by the stock md5)
-        $rc = Child (Join-Path $repo 'toolspatch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game)
+        $rc = Child (Join-Path $repo 'tools\patch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game)
         if ($rc -ne 0 -and $rc -ne 2) { Fail "Apply-Shell-Keys.ps1 exited $rc" }
         try { & (Join-Path $repo 'tools\fix-shell-textentry.ps1') -GameDir $game 2>&1 | ForEach-Object { Say "  $_" } } catch { Say "  text-entry check: $($_.Exception.Message)" 'Yellow' }
         # 2. the installer
