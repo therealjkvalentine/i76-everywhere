@@ -76,8 +76,8 @@ shape - 21:9, 16:9, 16:10 and 4:3 all come out right, nothing is stretched. The 
 are shown 4:3 with side bars. The game runs in a borderless window the size of the screen, so Alt-Tab works.
 
 James has only ever played this at 3440x1440. On other sizes the numbers are computed; they were checked on his
-PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, nothing stretched), not on a real
-16:9 monitor - so **if the picture looks off-centre, stretched, or the mouse pointer does not land on the menu
+PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, nothing stretched, and the mouse
+pointer landed on the menu buttons all the way from TRIP to the garage's DONE), not on a real 16:9 monitor - so **if the picture looks off-centre, stretched, or the mouse pointer does not land on the menu
 buttons, that is exactly what we want to hear about.**
 Tell us your monitor size and send a screenshot (Win+PrtScn saves one to Pictures\Screenshots).
 
@@ -140,7 +140,8 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
   ask us instead if you want a key changed.
 - Save in the garage with **SAVE BOOKMARK**; load from the main menu with **TRIP -> LOAD BOOKMARK**. If you have
   no saves of your own the setup copies in a set of ours (every campaign scene from 2 to 15) so you can jump
-  anywhere. Your existing saves are not touched.
+  anywhere. Your existing saves are not touched. Those bookmarks are real play-throughs: a few start with a part
+  missing (the garage's DONE then says e.g. *CAN'T GET VERY FAR WITHOUT BRAKES* - fit one from the parts list).
 - The mouse wheel selects the next weapon (up) and fires hardpoint 5 (down).
 - Gamepad: left stick steers and drives, right stick glances, triggers fire, LB is a shift layer (the PDF has
   the diagram). Wheels: steer and pedals work as analog axes.
