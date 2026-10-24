@@ -9089,7 +9089,8 @@ static void apply_clutter_dist(void) {
         if (af == 0.0f) ;
         else if (af < 10.0f || af > 1000.0f) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE %s out of range (10..1000 m) - off", v);
         else if (!g_cl_fade_on) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE needs I76_CLUTTER_FADE or I76_CLUTTER_DENSITY (the admission rule it fades) - off");
-        else if (g_exe == EXE_NITRO) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE - Nitro, not applied (Gold flush site)");
+        /* Nitro (nitro-owner lane 2026-10-23): the cull loop 0x45c380 = Nitro 0x45f150 (the same frame, [ebp - 8] the same slot) and the flush draw
+         * 0x48fb7e = 0x498b2e (call 0x4878a0 = Gold 0x4260d0) read side by side; every exe address through NA / st_call_site */
         else { g_cl_afade = af; n = env_str("I76_CLUTTER_ALPHA_TRACE", v, sizeof(v)); if (n) g_cl_trace = atoi(v); }
     }
     n = env_str("I76_CLUTTER_RISE", v, sizeof(v));
@@ -9560,6 +9561,7 @@ static void nitro_dllmain(void) {
     apply_menu_keys();        /* default on: I76_MENU_KEYS (after the tick: chains its input gate) */
     apply_menu_draw();        /* default on: I76_MENU_DRAW (WndProc 0x404a7d -> 0x433bed, manual_sites.txt) */
     apply_font_private();     /* default on: I76_FONT_PRIVATE (nitro.exe imports GDI32 AddFontResourceA / RemoveFontResourceA) */
+    nitro_font_guard();       /* default on: I76_NITRO_FONT_GUARD (nitro.c: the mission font free that faults on the second mission) */
     {   /* MUSIC (I76_MUSIC_NITRO=0 keeps GOG's own WIN32.dll / audiere CD emulation): the same hooks as Gold, on the exe's
          * WIN32.dll slots; playback through the system winmm's mpegvideo as on Gold; the virtual disc ends at the highest
          * music\N.mp3 present */

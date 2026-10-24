@@ -315,3 +315,32 @@ static int nitro_patch_call(DWORD nitro_va, DWORD expect_target, void *wrap, DWO
     mlog("  nitro-only site %s: 0x%06lX call 0x%06lX -> wrapper, patched", what, (unsigned long)nitro_va, (unsigned long)expect_target);
     return 1;
 }
+
+/* NITRO MISSION RELOAD: THE FONT FREE (nitro-owner lane 2026-10-23 night, NITRO-PORT s.11). Measured on the console: on Nitro the
+ * second mission of a session - Replay, or Abort Mission > a new scenario - ends in the game's "Unhandled Exception" box, a fault in
+ * ntdll's HeapFree (read at block - 1) with every optional proxy switch off too (n 5). The free is WinMain's 0x431efc (and the font
+ * reload 0x433f8a): `mov eax, [0x526a5c]; push eax; call 0x46d650` -> 0x499b20 HeapFree([0x5b0458], 0, p), p = the mission font
+ * (base6x76.fnt / base6x7.fnt / base6x74.fnt, loaded by 0x46d440 into [0x526a5c] at the previous mission start). The block named
+ * in the fault (0x0FFC05B0 etc.) lies outside the heap passed (0x12180000 etc.): the font pointer belongs to a heap that is no longer
+ * [0x5b0458]. Gold runs the same code (0x40325b, Gold 0x504c0c) without the fault. The guard: both calls go through nitro_font_free,
+ * which frees the pointer only when its memory is still committed and otherwise drops it (a few KB not returned; the game
+ * stores the new font's pointer right after). I76_NITRO_FONT_GUARD=0 = stock. */
+static DWORD g_nff_next = 0x0046d650; static LONG g_nff_skipped, g_nff_freed;
+static void __cdecl nitro_font_free(void *p) {
+    HANDLE h = *(HANDLE volatile *)(DWORD_PTR)0x005b0458; MEMORY_BASIC_INFORMATION mb;
+    /* the faulting pointers sit in memory that is no longer committed (the fault reads block - 1); a committed, readable block is
+     * freed as stock. (HeapValidate was tried first: it takes a first-chance fault of its own on such a pointer.) */
+    if (p && h && VirtualQuery((BYTE *)p - 16, &mb, sizeof mb) && mb.State == MEM_COMMIT && !(mb.Protect & (PAGE_NOACCESS | PAGE_GUARD)) && mb.Protect != 0) {
+        InterlockedIncrement(&g_nff_freed); ((void (__cdecl *)(void *))(DWORD_PTR)g_nff_next)(p); return; }
+    InterlockedIncrement(&g_nff_skipped);
+    mlog("nitro-font-guard: the mission font %p lies in memory no longer committed (game heap now %p) - not freed (the stock free faults here: mission reload / Replay); %ld skipped, %ld freed so far",
+         p, (void *)h, g_nff_skipped, g_nff_freed);
+}
+static void nitro_font_guard(void) {
+    int n = 0;
+    if (g_exe != EXE_NITRO) return;
+    if (env_flag("I76_NITRO_FONT_GUARD", 8, 1) == 0) { mlog("  nitro-font-guard: off (I76_NITRO_FONT_GUARD=0): stock (the second mission of a session faults in HeapFree)"); return; }
+    n += nitro_patch_call(0x00431efc, 0x0046d650, (void *)nitro_font_free, &g_nff_next, "WinMain mission-start font free (nitro-font-guard)");
+    n += nitro_patch_call(0x00433f8a, 0x0046d650, (void *)nitro_font_free, &g_nff_next, "font reload free (nitro-font-guard)");
+    mlog("  nitro-font-guard: %d/2 font free calls guarded (a free of a pointer whose memory is gone is skipped)", n);
+}
