@@ -147,9 +147,9 @@ start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden 
 }
 $t05 = ' -Mission t05.msn -SkipMovies'
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY.bat') (Bat 'tick19-42' '' 'STABLE - the set James plays (tick 41.667 ms, 120 fps, widescreen, 1800 m view, every promoted fix)') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW.bat') (Bat 'scott-preview' '' 'EXPERIMENTAL graphics preview (terrain morph, 2300 m, fog, mirror textures) on the same stable base') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW.bat') (Bat 'scott-preview' '' 'EXPERIMENTAL GRAPHICS PREVIEW (smoothed + morphing terrain, 2300 m view fading out at the far edge, sparser bushes, 1000 m mirror with full textures) on the same stable base') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY-T05.bat') (Bat 'tick19-42' $t05 'STABLE, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW-T05.bat') (Bat 'scott-preview' $t05 'EXPERIMENTAL preview, straight into mission 5 (the ridge road to the barn)') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW-T05.bat') (Bat 'scott-preview' $t05 'EXPERIMENTAL GRAPHICS PREVIEW, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'UNINSTALL-i76e.bat') @"
 @echo off
 REM Puts your Interstate '76 folder back the way GOG installed it (the setup kept every original). Close the game first.
@@ -175,7 +175,7 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-scott.ps1 from repo commit $sha",
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.3 (unmodified x86 components); AutoHotkey $ahkVer (GPL)",
-    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset scott-preview (experimental graphics)"
+    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset scott-preview (the experimental graphics preview)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }
 $sums | Set-Content -LiteralPath (Join-Path $i76e 'MD5SUMS') -Encoding ascii

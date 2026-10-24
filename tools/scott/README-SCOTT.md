@@ -17,7 +17,7 @@ What it gives you, in one line each:
   keyboard shortcuts for the popups (Enter / Space / Y / N).
 - **A WASD-style keyboard layout** (the full table is below) plus gamepad and wheel support.
 - A second launcher with the **graphics experiments** James is working on right now (smoother terrain, 2.3 km view
-  with fog). That one is unpolished on purpose - he wants your eyes on it.
+  fading out at the far edge). That one is unpolished on purpose - he wants your eyes on it.
 
 ## What you need
 
@@ -53,7 +53,7 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 | file | what it starts |
 |---|---|
 | **`PLAY.bat`** | **STABLE.** Exactly the set James plays every day: the 1997 timing at 120 fps, widescreen, 1.8 km view, every fix that has passed his testing. |
-| **`PLAY-PREVIEW.bat`** | **EXPERIMENTAL.** The same base plus the graphics work in progress: terrain that morphs instead of popping, a 2.3 km view with a fog band at the far edge, higher-detail mirror textures, a slightly softer nose-dive on jumps. Not finished, not gated - it exists so you can compare it with `PLAY.bat`. |
+| **`PLAY-PREVIEW.bat`** | **EXPERIMENTAL GRAPHICS PREVIEW.** The same base plus James's current graphics picks: smoother terrain shading and terrain that morphs in instead of popping, a 2.3 km view whose last quarter fades out to transparent (no fog colour), bushes at half density carried farther out, a rear-view mirror that sees 1 km with the main view's ground textures, a slightly softer nose-dive on jumps. Not finished, not gated - it exists so you can compare it with `PLAY.bat`. |
 | `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat` | The same two, but they boot **straight into mission 5** (the long ridge road down to the barn) with a stock car, skipping the menus and movies. The quickest way to look at the terrain. |
 | `PLAY-16x10.bat`, `PLAY-balanced.bat`, `PLAY-stock.bat`, `PLAY-i76.bat` | Written by the setup. `PLAY-16x10.bat` = the older tested 16:10 picture (a fallback if the widescreen one looks wrong); `PLAY-stock.bat` = the game with none of our engine changes (a control); the other two are variants of the stable set. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
@@ -149,7 +149,7 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
    the road up over the ridge and down to the barn (about two minutes; `I` starts the engine if it is off). Watch
    the ground a few hundred metres ahead: do hills change shape, "step" or pop as you approach? Does the far edge
    of the world look odd? Then do the same drive with `PLAY-PREVIEW-T05.bat`. Is it smoother? Do you see any
-   sliding or wobbling of the far ground, flicker in the shading, or does the fog band at the horizon look wrong?
+   sliding or wobbling of the far ground, flicker in the shading, or does the fade-out at the far edge look wrong?
    Which of the two would you rather play?
 2. **Smoothness and feel.** Does `PLAY.bat` feel like Interstate '76 (handling, the mission 5 canyon jump near the
    start, how fast the AI cars react, how fast damage comes)? Any stutter, especially when new terrain appears?

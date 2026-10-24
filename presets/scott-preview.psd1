@@ -1,9 +1,10 @@
-# scott-preview (tester build 2026-10-23, tools\package-scott.ps1 / PLAY-PREVIEW.bat): a verbatim copy of the owner's trial preset
-# lab exp-polish2\Interstate 76\presets\OWNER-2300-FOG.psd1 as it stood on 2026-10-23 (only the Name below differs): the promotion-19
-# candidate (tick 41.667, every non-graphics fix) + the graphics work under test - terrain morph (big-tile blend, shade fade), one-pass sky,
-# the mirror's .m16 textures at 1000 m, far clip / roads / bushes 2300 m, Glide fog from 0.7 x far, I76_JUMP_NOSE 0.91. EXPERIMENTAL: not
-# gated, not promoted; the owner's eyes decide. The aspect lines are rewritten per display by tools\Make-Wide-Conf.ps1 at install time.
-
+# scott-preview (tester build, tools\package-scott.ps1 / PLAY-PREVIEW.bat): the EXPERIMENTAL GRAPHICS PREVIEW - a verbatim copy of the
+# owner's final trial preset lab exp-polish2\Interstate 76\presets\OWNER-2300-ALL.psd1 as it stood 2026-10-23 18:16 (md5 09dd0cd3; only
+# the Name below differs): the promotion-19 candidate (tick 41.667, every non-graphics fix) + the graphics work under test - shade
+# smoothing, terrain morph 0.25 stateless (shade fade x3, big tiles blended), one-pass sky, the mirror to 1000 m with the main view's
+# .m16 terrain art (stock 8-bit sky), far clip / roads / bushes 2300 m with half-density bushes carried to 450 m, the transparent
+# (feather) fade over the last quarter of the far clip, I76_JUMP_NOSE 0.91, the daily driver's four detail keys. NOT gated, not
+# promoted; the owner's eyes decide. The aspect lines are rewritten per display by tools\Make-Wide-Conf.ps1 at install time.
 # rebase-x5 (rebaseline lane 2026-10-21, lab tools\rebaseline\rungs.py; i76-everywhere docs\records\REBASELINE-2026-10-21.md):
 # X5 = R07 + far clip / roads / bushes 2000 m (the planned ship value; owner soak) (main, owner's console A/B 2026-10-21 evening)
 # Generated from this folder's presets\tick19-42.psd1 (md5 f7e589ef0759299fc0333a78aa7a2eb6, the promotion-19 candidate: tick 41.667 and every
@@ -11,8 +12,8 @@
 # Then this rung's keys, each with the reason it exists. Launched by PLAY-R07.bat. Lab ladder only: not a release preset.
 @{
     Name        = 'scott-preview'
-    Summary     = 'ALL + Glide fog to the horizon colour over the last quarter of the 2300 m (from 1725 m); sky, cockpit, HUD, mirror untouched'
-    Verified    = '[lab 2026-10-23] far-edge lane rung on OWNER-2300-ALL; NOT promoted'
+    Summary     = 'Owner picks 2026-10-23 pm: SMOOTH + BIG 2 + SPARSE 0.5/450 + FEATHER at 0.75; Owner picks so far: one-pass sky + morph + big tiles blended (BIG 1, owner OK 2026-10-23) + slow shade fade x3 + mirror to 1000 m with the main view''s terrain art; terrain 2300 m'
+    Verified    = '[lab 2026-10-21] rebaseline ladder rung; NOT promoted'
     Env         = @{
         I76_HIRES_CLOCK     = '1'
         I76_MUSIC_RETAIL    = '1'   # the owner's music ruling (OWNER-TEST-LIST item 49, test 05 PASS): retail 1.0 music rules ...
@@ -44,7 +45,7 @@
         I76_FAR_CLIP        = '2300'   # stock 600 m (the missions set it). 1800 since promotion 2 (best-wide, PLAY.bat); RC-DRAW-FPS s.3: the T05 barn (1747 m) and the map edge from the hill top need it
         I76_ROAD_DIST       = '2300'   # stock 450 m whatever the far clip. 1800 since promotion 16 (owner-verified set 2026-10-12): roads drawn to the far clip
         I76_CLUTTER_DIST    = '2300'   # stock 120 m (bushes only within view z 120 m). 1800 since promotion 17 (owner chose the dense variant 2026-10-17)
-        I76_CLUTTER_FADE    = '300'   # ... full density to 300 m, then thinned as (300 / d)^2 per bush (promotion 17, TEST-next-dense)
+        I76_CLUTTER_FADE    = '450'   # ... full density to 300 m, then thinned as (300 / d)^2 per bush (promotion 17, TEST-next-dense)
         I76_TERRAIN_LOD     = '24'   # promotion 18's terrain: split distance x24 AND height-error threshold / 24 (promotion 17: 8 -> 24; x8 since promotion 2)
         # ---- daily-driver detail keys (PLAY.bat = best-wide; missing from every trial preset until 2026-10-23 - the owner's "object detail is near")
         I76_TERRAIN_TEX     = '8'    # terrain texture level distance x8 (daily driver)
@@ -56,7 +57,7 @@
         I76_TERRAIN_MORPH_STATELESS = '1'   # no tables (terrainmorph.c)
         I76_SKY_MIRROR      = '0'   # owner's pick 2026-10-23: one-pass sky (skymirror.c)
         I76_TERRAIN_MORPH_SHADE = '3'   # the shade fades over 3x the height band (terrainmorph.c 7dd568c)
-        I76_TERRAIN_MORPH_BIG = '1'   # the 64+ sample tiles blended, height and shade (owner saw no sliding, 2026-10-23)
+        I76_TERRAIN_MORPH_BIG = '2'   # the 64+ sample tiles blended, height and shade (owner saw no sliding, 2026-10-23)
         # ---- mirror (mirror lane 2026-10-23, MIRROR-DETAIL-2026-10-23.md; cost 1.2 % at t01, n 2)
         I76_MIRROR_FAR      = '1000'   # the mirror camera's far clip, stock 100 m (owner 2026-10-23: 800-1200 m is plenty; was 2300)
         I76_MIRROR_LOD      = '1'      # the mirror's terrain pass splits at the STOCK constants (x1), not the main view's x24
@@ -67,8 +68,9 @@
         I76_MIRROR_PAL      = '1'      # ... pixels remapped 8-bit-build palette -> hardware-build palette before the upload (near-identity on stock missions)
         # ---- jump (jump-pitch lane 2026-10-23, TICK-FINISH s.22.6)
         I76_JUMP_NOSE       = '0.91'   # owner ruling 2026-10-23, 9 % less: the nose-down pitch rate the car carries off a lip x 0.91 once at take-off (not the kick, the path or the ground); needs proxy e02d64a+
-        # ---- far edge (far-edge lane 2026-10-23, FAR-EDGE-FADE-2026-10-23.md; proxy faredge.c, needs proxy 9496235+)
-        I76_GLIDE_FOG               = '0.75,hzd'   # owner 2026-10-23: 0.85 too thin, 0.7 liked, then 'half as long' -> 0.75 (clear to 1725 m, full at 2300 m); colour = the horizon strips' base rows, never the sky
-        # cost: 0 fps within noise (FAR-EDGE-FADE-2026-10-23.md s.3, s.6)
+        I76_GLIDE_FOG_ALPHA = '1'   # the transparent (feather) fade instead of colour fog
+        I76_SHADE_SMOOTH    = '1'   # owner 2026-10-23 16:xx: SMOOTH kept (continuous shade rows; terrain-pops record)
+        I76_GLIDE_FOG       = '0.75,hzd'   # owner: FEATHER look at FOG depth: the last 25 % of the far clip fades to transparent (alpha), horizon colour only, no white
+        I76_CLUTTER_DENSITY = '0.5'   # owner: SPARSE kept (half density, carried to 450 m, same bush count)
     }
 }
