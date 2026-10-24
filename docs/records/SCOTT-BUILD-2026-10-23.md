@@ -326,3 +326,22 @@ anonymous download checked (HTTP 200, same length). The `scott-20261023` release
 URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v1.3.0-alpha.1
 Final name (owner, 18:4x): **v0.7.3** - tag v0.7.3 at the same commit, asset Interstate76-i76-everywhere-v0.7.3.zip (same bytes), v1.3.0-alpha.1 deleted. URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3
 Final (owner, 18:5x): release title "Interstate '76 Patch Kit (i76-everywhere) v0.7.3", asset Interstate76-Patch-Kit-i76-everywhere-v0.7.3-d4b765a.zip (d4b765a = the v0.7.3 tag commit; same bytes, md5 04983fde); the v1.0.0 "Vacation Build" release was deleted (its git tag kept). Only v0.7.3 is listed.
+
+## 11. Renamed to "Patch Kit" (2026-10-24 evening; tag commit f5d5ac0)
+
+Owner: user-facing text names neither the first tester nor the developer. Packaging lane (Sonnet), commits `e73ec66` + `f5d5ac0`.
+
+Rename map: `tools/scott/` -> `tools/patch-kit/`; `tools/scott/README-SCOTT.md` -> `tools/patch-kit/README.md` (shipped in the zip as `README-PATCH-KIT.md`, so it cannot clobber a game-folder README); `tools/package-scott.ps1` -> `tools/package-patch-kit.ps1` (new `-Version`, default 0.7.3; zip `Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip`); preset `presets/scott-preview.psd1` -> `presets/preview.psd1` (`Name = 'preview'`); references fixed in Build-From-GOG.ps1, setup-windows.ps1, i76e-prepare.ps1, Apply-Shell-Keys.ps1, OPEN-FEATURES, OWNER-TEST-LIST, RC-20261024, research/game-files-and-cast. The README says "the developer" for James and ends feedback with "send it to whoever gave you this kit". Launcher names unchanged. Lab output dir is now `downloads\patch-kit\`.
+
+New zip `downloads\patch-kit\Interstate76-Patch-Kit-i76-everywhere-v0.7.3-f5d5ac0.zip`: 4,187,799 B, 95 files, md5 84b977c5e5ed69a06390d2a0af41b5be, sha256 365fdd2ab74438fc525954ef6afc3574f2998b90bb083b68a3c22e525054ee5f. Inputs as s.9 (proxy 53944fb2 from wmr-3ef108d, dgVoodoo 2.87.5 + 2.87.3 fallback, AHK 1.1.37.02; the dgVoodoo/AHK dirs were taken from the d4b765a zip, md5-checked by the packer). Versus the d4b765a zip: 95 vs 95 entries; every binary md5-identical; differing: the 4 renamed files (README, preset, Apply-Shell-Keys.ps1, shell-keys-patch.json paths), and re-texted setup-windows.ps1, i76e-prepare.ps1, the four PLAY*.bat (preset name), VERSION.txt, MD5SUMS, two README-dgVoodoo.txt (date stamp).
+
+Laptop (Windows 11 26100, 1920x1080), `wmr-scott.ps1`, fresh pristine GOG copy (371 files, i76.exe 9a232dcc) + the new zip at `C:\i76-bench\kit-a\game`, setup via `PLAY-T05.bat --setup`; hold 20 s:
+
+| launcher | n | reached t05 | alive | CRASH lines | heap fix | DDraw |
+|---|---|---|---|---|---|---|
+| PLAY-T05.bat | 5 | 5 | 5 | only the frame-0 probe `exe+0x99997` (5 of 5) | applied (SHLWAPI split, 3 slots) | c70a0ee6 |
+| PLAY-PREVIEW-T05.bat | 5 | 5 | 5 | same | applied | c70a0ee6 |
+
+(i76.exe after setup 64165126, proxy 53944fb2.) Raw logs on the laptop `C:\i76-bench\runs\wmr\scott-kita-*`, `scott-kitap-*`.
+
+GitHub: tag v0.7.3 moved d4b765a -> f5d5ac0, asset `Interstate76-Patch-Kit-i76-everywhere-v0.7.3-f5d5ac0.zip` uploaded (anonymous download HTTP 200, sha256 = local zip), old d4b765a asset deleted, body = tools/patch-kit/README.md, title unchanged. https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3
