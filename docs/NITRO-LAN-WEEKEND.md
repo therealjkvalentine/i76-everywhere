@@ -17,6 +17,10 @@ network. Written 2026-10-24 early morning; how it was built and tested:
 
 Everyone must be on the **home network** (same Wi-Fi or wired). Not Tailscale.
 
+Tested overnight, with nobody at the Macs: the PC hosting and James's MacBook joining every game type, 2 of 2 each, no
+crashes. Michael's Mac could not join until someone clicks Allow there (next section). Andrew's Mac was asleep, and three
+players at once was not tried.
+
 ## Before the first game: say Allow (once per machine)
 
 - **Every Mac, the first time:** macOS asks whether *Interstate 76 Nitro* may **find and connect to devices on your local
@@ -84,7 +88,8 @@ A copy of the old files was kept on each Mac. To go back, close the game, then i
 
 **Andrew's Mac** was asleep, so it still has the old app. That app closes the game after 2-3 minutes and does not have
 the GAME TYPE choices. With his Mac awake, run this on James's MacBook in Terminal:
-`bash ~/i76-nitro-mp-lab/update-andrew.sh`. It makes the backup itself and prints the undo line. (A watcher tried it
-every 10 minutes until 09:00; the record says whether it got there.)
+`bash ~/i76-nitro-mp-lab/update-andrew.sh`. It makes the backup itself and prints the undo line. (A watcher on the PC
+tries this every 10 minutes until 09:00 on 2026-10-24, once his Mac has been idle 10 minutes with no game running. Its
+log, `C:\Users\james\i76-uncap-lab\builds\nitro-weekend-20261023\andrew-poll.out`, says whether it ran.)
 
 The PC's `Games\I76\nitro-lan` is a new folder, and deleting it undoes it. The PC's other installs were not changed.

@@ -895,6 +895,125 @@ DLL push is needed for these tests.
 **Left:** remove the box code after one release (F2 / F3 sites, hit records, draw, the `=0` branch), then update s.0.5.10.
 The G6 joiner type line stays covered but unobserved.
 
+### 0.5.20 The weekend pass (2026-10-23 21:00 - 10-24 04:00, nitro-mp-design lane): Mac app update, the join that never left the Mac, EIP-0
+
+Owner (2026-10-23 night): *"finish Nitro multiplayer"*; the family plays this weekend. How-to for the family:
+[NITRO-LAN-WEEKEND.md](../NITRO-LAN-WEEKEND.md). Lab: `i76-uncap-lab\builds\nitro-weekend-20261023` (scripts, A/B binaries, outputs;
+lab commits b703f36, 4095a9b, 6d3d84f, 14e556b), captures `captures\nitro-weekend-20261023` (on disk; the lab ignores captures). Repo: 02b77e0 (stubs), 6253bf0
+(UUID). Times CDT.
+
+**Release.** Proxy **6208d3ad** = i76-everywhere 4d2e47b (build.ps1 -Ref, twice, identical; = the Scott zip's proxy per fa50460). Since
+ddceb7a's 7941034a only 9fe3510 (terrain morph, unset = unchanged) touched music-fix. The Nitro-port lane's c349c82 / 314aff8 (22:15:
+the owner's Gold terrain look and polish on Nitro, also the menu draw / menu keys / font on Nitro) landed after this build and the
+Mac installs and has had no multiplayer pass, so it is **not** in the weekend release.
+
+**PC host pack.** `Games\I76\nitro-lan` (new; VERSION.md, `PLAY-NITRO-LAN.bat` = `nitro.exe -glide`, no switches): the files of the lab
+copy every Mac pass hosted from (exp-nitro-mp: GOG Nitro + dgVoodoo windowed 1280x960 + IPXWrapper instance N on the Ethernet only,
+key `HKCU\Software\IPXWrappeN`) with strlkup.dll = 6208d3ad, an empty `NVCL` folder, stock nitplyr.def, no game-written state. File
+check against exp-nitro-mp: equal apart from those. **Not booted from its own folder:** its nitro.exe has no Windows Firewall rule (the
+rules are per exe path) and an unanswered or cancelled prompt leaves Block rules; the owner answers it at the first host. Games\I76\README.md
+has the row.
+
+**Mac apps (shipped `Interstate 76 Nitro.app`), each with an APFS-clone backup of the game folder + launcher + system.reg / user.reg
+(`apply-update.sh`, `~/i76-nitro-mp-lab/app-backup-<stamp>`):**
+
+| Mac | before tonight (backup) | now (read back) |
+|---|---|---|
+| laptop | proxy ad904941, stub 016556bf (the 10-22 draft), Minimum x2 (`app-backup-20261023-212851`) | proxy 6208d3ad, stub **e61e4e57**, nitro.exe Direct3D renderer=gdi, Minimum x2 (intermediate backups 222845, 20261024-024551) |
+| Michael | proxy ad904941, stub 384a0f8e, Minimum x2 (`app-backup-20261023-222906`) | proxy 6208d3ad, stub e61e4e57, gdi, Minimum x2 (intermediate backup 20261024-024601) |
+| Andrew | not reached: ssh timed out from 21:07 to 03:30 while the Mac answered ping (asleep behind the sleep proxy); not woken | unchanged: per the 10-22 records proxy ad904941, stub 384a0f8e, Minimum written by this lane on 10-22 |
+
+Michael's Mac was skipped while he played Minecraft (0 s idle at 21:12) and updated at 22:29 (27 min idle, no game). His python3 is the
+Xcode licence stub, which stopped the first apply-update run after the proxy and stub and before the gdi key (finished with
+`--gdi-only`; the script and wk-clone.sh have no python dependency since). The Gold apps were not touched.
+
+**1. The launch stub (NITRO-MAC s.8).** The 10-22 draft (own processes = WINEPREFIX in `ps -E`) never saw nitro.exe: Wine's argv rewrite
+also blanks the environment ps reads. The committed stubs (02b77e0) key on the image path (`proc_pidpath` under the bundle's
+SharedSupport). stub-test.sh on two null-audio clones, n 1: the APP's game ran 613 s minimised through the CLONE's start and quit, 0
+processes left after its own quit. Then the second finding of the night (below): the stub that ships is **e61e4e57** = that code with
+384a0f8e's Mach-O UUID.
+
+**2. Why no Mac joined from 21:58 to 02:40, in two layers.** Symptom every time: the session listed on the Mac, JOIN GAME clicked,
+`dpOpen -> 0`, then the shell sat in its join loop (NITSHELL+0x30a69 in 0x100307a0, which resends 'RE' every 500 ms), and the joiner's
+IPXWrapper (log level 2 where set) never sent one unicast; the host received only the joiner's enumeration broadcasts. That is the
+x-mac11 picture of 10-22.
+- **(a) The lab host instrument.** drv 9ab73ae2 (rebuilt this afternoon from the ddceb7a tree): 0 of 6 joins (wk-s1, a1, sM1, aM1, cM1,
+  and this afternoon's own joiner wk-s2). The 10-23 instrument 8ba38c6a: this afternoon's joiner joined with p6 (wk-L1) and with the
+  release proxy 6208d3ad and no extra switches (wk-L2). Lab instrument only (the family's PC host runs no instrument); wk-host.sh now
+  defaults to 8ba38c6a. Not explained further.
+- **(b) macOS Local Network privacy, keyed on the Mach-O UUID of the launcher.** Against the 8ba38c6a host (all on the laptop, joiner
+  instrument c859e421 unless said):
+
+| cell | joiner | joined |
+|---|---|---|
+| L1, L2, B1 | the 10-22 clone (stub 384a0f8e) with p6 / 6208d3ad | 3 of 3 |
+| aL3, aL5 | the release clone (stub e7bbd4fc; instruments ab2ca747 / c859e421) | 0 of 2 |
+| B2 / B3 / B4 / B5 / B6 | release clone + p6 & GAMETYPES=1 / + empty NVCL / gdi off / IPX log 2 / the 10-22 clone's nituser.mel | 0 of 5 |
+| B7 | release clone + stub 384a0f8e | yes |
+| B8 / B9 / B10 / B13 / B15 | stub variants: no window list / pid-only play loop / no scan for 30 s / + a pgrep per second / + p.isRunning | 0 of 5 |
+| B14 | 3d7c3e0's stub source (= 384a0f8e's) rebuilt tonight, same SDK, same size and imports | no |
+| B12 | 384a0f8e with one inert byte changed and re-signed (new cdhash and identifier, **same LC_UUID**) | yes |
+| B16 | e7bbd4fc with 384a0f8e's LC_UUID 03B81E57-0956-3BBA-8D89-3C8EDF8713C4 (`tools/nitro-mac/setuuid.py`, re-signed) = **e61e4e57** | **yes**, and the game stayed up |
+
+  So the code made no difference, the binary's UUID did. This matches how Local Network privacy is understood to remember an app (by the main executable's Mach-O UUID; from memory of
+  Apple's guidance, not re-read tonight); every rebuild is a new app to it, its prompt waits on a screen nobody watches, and its unicasts to 192.168.1.x are dropped
+  (broadcasts pass, so the session lists). The laptop had allowed 03B81E57 at some point (the 10-22 joins). Andrew's Mac had too
+  (gt-and-a1..c3 ran clones with 384a0f8e). **Michael's Mac has not**: wk-mA1 / mA2 with e61e4e57 listed the session and did not join (0 of 2), the same stall; his Mac needs
+  someone to click Allow (the doc says so). Inferred, not seen: the prompt itself (no screen access).
+- Ruled out on the way: the music thread's stuck MCI opens (in 3 failures, absent in other failures and in successes), first runs of
+  fresh clones, NVCL, gdi, IPX log level, nituser.mel, the joiner instrument.
+
+**3. The join matrix as the family plays** (PC host exp-nitro-mp = the pack's files, IPXWrapper N, release proxy 6208d3ad under the host
+instrument 8ba38c6a; Mac joiner = a null-audio clone of the updated shipped app, release proxy, stub e61e4e57, joiner instrument c859e421,
+150 s hold, nobody at the Mac; AI agreement = xpos.py, host vs joiner AI positions every 5 s, clock offset fitted):
+
+| cell | Mac | GAME TYPE chosen on the PC | listed on the Mac | joined | in play | players (joiner) | AI agreement median / p90 / max (stamps) | c0000005 host / Mac |
+|---|---|---|---|---|---|---|---|---|
+| wk-lA1 | laptop | Arena Drop-In + AI (type 6, mask 20, 7676) | 'ARENA+ Evening Stroll' 1/6 | yes (state 5, net 1 at t+5 s) | to t+95 s (collected by hand: its runner was stopped, below) | 6; host "humans 2" | 8.3 / 26.4 / 56.2 (17) | 0 / 0 |
+| wk-lA2 | laptop | same | same | yes | to t+145 s | 6; host "humans 2" | 9.6 / 25.2 / 66.7 (33) | 0 / 0 |
+| wk-lC1 | laptop | Co-Op (type 7, mask 40, 7676) | same | yes, 'p01.msn' CO-OP SCENE on the Mac | to t+145 s | 2 | - (no AI rows in co-op) | 0 / 0 |
+| wk-lC2 | laptop | same | same | yes, P01 CO-OP SCENE | to t+145 s | 2 | - | 0 / 0 |
+| wk-lS1 | laptop | Combat (type 1, mask 01, 025c = stock) | 'Evening Stroll' 1/6 | yes | to t+145 s | 2 | - (stock: no AI) | 0 / 0 |
+| wk-lS2 | laptop | same | same | yes | to t+145 s | 2 | - | 0 / 0 |
+| wk-mA1, mA2 | Michael | Arena Drop-In + AI | 'ARENA+ Evening Stroll' 1/6 | **no** (the join stall of section 2; Local Network not allowed on his Mac) | - | - | - | 0 / 0 |
+| - | Andrew | not run (asleep) | | | | | | |
+| 3 humans (PC + 2 Macs) | - | not run: only the laptop could join | | | | | | |
+
+**Tally: laptop 6 of 6 (n 2 per GAME TYPE), Michael 0 of 2, Andrew not run.** The launcher kept the game up in every laptop cell (stub and
+nitro.exe alive at both checks, its own quit left 0 processes). AI agreement is in the game's world units as logged, the same order as
+the 10-23 Mac pass (gt-and-a2 3.0, gt-mac-a2 7.2 median). The runs that joined tonight before the matrix (wk-L1, L2, B1, B7, B12, B16)
+agree likewise (medians 6.3-11.7). One runner was stopped by this lane with its cell running (wk-lA1, while trimming Michael's cells);
+its host finished on its own and the Mac joiner was collected and stopped by hand.
+
+**4. EIP-0 (the Mac boot fault: call to 0 at wined3d+0x162430, frame 0).** Reproduced headless on clones. It is the crash the Gold Mac
+build fixed with `AppDefaults\i76.exe\Direct3D "renderer"="gdi"` (tools/openglide-hd/MAC-BUILD.md: wined3d's GL caps for the menus'
+DirectDraw while OpenGLide owns a GL context); the Nitro app inherited that key for i76.exe only. With the key for nitro.exe:
+
+| boots (laptop clones) | EIP-0 |
+|---|---|
+| no key: eip-loop base (release proxy, no instrument) | 1 of 12 |
+| no key: shell-loop base (instrument to the JOIN form) | 2 of 10 |
+| no key: stub-test-2 APP boot | 1 of 1 |
+| **renderer=gdi**: eip-loop gdi + gdi2 | **0 of 24** |
+| **renderer=gdi**: shell-loop gdi | **0 of 10** |
+
+4 of 23 without, 0 of 34 with (chance of 0 of 34 at 4/23: about 0.2 %). The key is in the updated apps. **A second, separate start
+failure** (no CRASH line; state 5 with an empty mission buffer, main thread parked in win32u, the shell never comes): shell-loop gdi 1 of
+10, wk-c1 (gdi), and gt-mac-c2 / gt-and-c1 (before the key): about 1 in 10 either way, not touched by gdi. Workaround in the doc: quit and
+start again. A stub-side retry was not built (the stub cannot tell this hang from the intro without the proxy's help).
+
+**5. Not done / for the owner.**
+- Andrew's Mac: not updated at 03:37. A watcher (`andrew-poll.sh`, log `andrew-poll.out` in the lab folder) tries every 10 min until
+  09:00 and runs the update once his Mac answers, has been idle 10 min and runs no game; its log says whether it did. `bash ~/i76-nitro-mp-lab/update-andrew.sh` on the laptop does it (backup, update, read back, undo line).
+- Michael's Mac: someone must answer the Local Network prompt (and the firewall prompt) once at his screen; until then he lists games and
+  cannot join.
+- Three humans at once (PC + 2 Macs): not run. Only the laptop could join tonight (Michael: Local Network; Andrew: asleep).
+- PC pack: the first host answers the Windows Firewall prompt (Private, Allow).
+- c349c82 (the Nitro port of the owner's Gold look) is not in the weekend proxy; it needs its own multiplayer pass before it rides along.
+- Gold's own Mac launcher (88934d55, the same own-process fix) was built and not installed; installing it would also need the UUID kept.
+- Lab trap worth keeping: heredocs written through this agent's Bash tool on the PC collapsed `\\` to `\` (a broken sed escape, Wine
+  registry keys written with single backslashes, caught and fixed); use the Edit tool or chr(92) for backslashes.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the
