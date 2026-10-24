@@ -304,6 +304,11 @@ int main(int argc, char **argv) {
             WriteProcessMemory(g_proc, (LPVOID)(ULONG_PTR)(a + 4 * (i - 3)), &v, 4, &wr);
             printf("0x%08lx <- %08lx, reads %08lx\n", (unsigned long)(a + 4 * (i - 3)), (unsigned long)v, (unsigned long)ri(a + 4 * (i - 3))); }
     }
+    else if (!strcmp(argv[1], "showwin") && argc > 2) {  /* showwin <SW_ n>: ShowWindow on the game window (6 = minimise,
+                                                           9 = restore); nitro-mac lane 2026-10-22, the launch stubs' quit test */
+        BOOL was = ShowWindow(g_wnd, atoi(argv[2]));
+        printf("showwin %d on %p: was visible %d, iconic now %d\n", atoi(argv[2]), (void *)g_wnd, was, IsIconic(g_wnd));
+    }
     else if (!strcmp(argv[1], "mclick") && argc > 3) { /* mclick x y: hold the shell's mouse object at UI x,y (rewritten
                                                           every ~1 ms, the game rewrites it every frame), press, release */
         DWORD b = shell_base(), mo; int x = atoi(argv[2]), y = atoi(argv[3]), k; SIZE_T wr; INPUT in;

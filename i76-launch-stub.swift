@@ -26,23 +26,6 @@
 import Foundation
 import CoreGraphics
 
-// Count large wine-owned windows on screen. During play there are TWO (the game's
-// render window + DxWnd's full-desktop "hider" backdrop); on in-game EXIT the render
-// window closes to the black hider (count drops to 1) while i76.exe often HANGS
-// mid-shutdown - so process-exit alone never fires. Owner name + bounds are readable
-// WITHOUT Screen Recording permission (window titles are not, so we key off size).
-func largeWineWindows() -> Int {
-    guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
-    else { return 99 }
-    var n = 0
-    for w in list {
-        let owner = (w[kCGWindowOwnerName as String] as? String ?? "").lowercased()
-        let b = w[kCGWindowBounds as String] as? [String: Double] ?? [:]
-        if owner.contains("wine") && (b["Width"] ?? 0) > 600 && (b["Height"] ?? 0) > 400 { n += 1 }
-    }
-    return n
-}
-
 let exe = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
 let A = exe.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path
 
@@ -77,6 +60,61 @@ func pids(_ pattern: String) -> [Int32] {
 }
 func running(_ pattern: String) -> Bool { !pids(pattern).isEmpty }
 
+// ---- THIS APP's processes and windows (nitro-mac lane 2026-10-22; corrected 2026-10-23 night, docs/records/NITRO-MAC-2026-10-21.md s.8) ----
+// Several I'76 apps can run at once on a Mac (Gold, Nitro, lab clones), and Wine rewrites every Windows process's argv to its
+// Windows command line ("nitro.exe -glide", no path), so neither a bare exe name nor an exe path tells whose game a process is.
+// The rewrite also overwrites the environment block that `ps -E` reads: on a live boot nitro.exe showed no WINEPREFIX at all,
+// only wineserver did (laptop 2026-10-23, so the 2026-10-22 environment rule never saw its own game). What does tell: the
+// executable image. Every app carries its own copy of Wine, and every Wine process of that app (nitro.exe, dxwnd.exe,
+// explorer.exe, services, wineserver) runs <bundle>/Contents/SharedSupport/wine/... (proc_pidpath, unaffected by the argv
+// rewrite; tools/nitro-mac/pidpath.swift). So "ours" = processes whose image path starts with this bundle's SharedSupport
+// folder; the quit detection counts only windows those processes own, and the reap kills only them.
+func ownProcs(_ root: String) -> [(pid: Int32, cmd: String)] {
+    let t = Process()
+    t.executableURL = URL(fileURLWithPath: "/bin/ps")
+    t.arguments = ["-A", "-ww", "-o", "pid=,command="]
+    let pipe = Pipe(); t.standardOutput = pipe; t.standardError = FileHandle.nullDevice
+    guard (try? t.run()) != nil else { return [] }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    t.waitUntilExit()
+    let me = ProcessInfo.processInfo.processIdentifier
+    var out: [(pid: Int32, cmd: String)] = []
+    var buf = [CChar](repeating: 0, count: 4096)
+    for line in (String(data: data, encoding: .utf8) ?? "").split(separator: "\n") {
+        let s = line.trimmingCharacters(in: .whitespaces)
+        guard let sp = s.firstIndex(of: " "), let pid = Int32(s[..<sp]), pid != me else { continue }
+        guard proc_pidpath(pid, &buf, UInt32(buf.count)) > 0, String(cString: buf).hasPrefix(root) else { continue }
+        out.append((pid: pid, cmd: String(s[s.index(after: sp)...])))
+    }
+    return out
+}
+// Our game process: an own process whose Windows command line names the exe (case-insensitive; the env part of the line
+// never contains ".exe" names of ours).
+func ownGameRunning(_ prefix: String, _ exe: String) -> Bool {
+    ownProcs(prefix).contains { $0.cmd.lowercased().contains(exe) }
+}
+// Large windows owned by our own processes (owner pid + bounds need no Screen Recording permission).
+func ownLargeWindows(_ prefix: String) -> Int {
+    let mine = Set(ownProcs(prefix).map { Int($0.pid) })
+    guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
+    else { return 99 }
+    var n = 0
+    for w in list {
+        guard let pid = w[kCGWindowOwnerPID as String] as? Int, mine.contains(pid) else { continue }
+        let b = w[kCGWindowBounds as String] as? [String: Double] ?? [:]
+        if (b["Width"] ?? 0) > 600 && (b["Height"] ?? 0) > 400 { n += 1 }
+    }
+    return n
+}
+func killOwn(_ prefix: String) {
+    for p in ownProcs(prefix) { kill(p.pid, SIGKILL) }
+}
+// During play the game's process owns TWO large windows (the render window + DxWnd's full-desktop "hider" backdrop);
+// on in-game EXIT the render window closes to the black hider (count drops to 1) while i76.exe often HANGS mid-shutdown,
+// so process-exit alone never fires. Since 2026-10-22 only this prefix's windows are counted (ownLargeWindows).
+let PFX = A + "/Contents/SharedSupport/"   // own processes: image under this folder (ownProcs)
+let GAME = "i76.exe"
+
 // Reap runs once - from the play-loop exit (game quit) OR the signal handler (app
 // quit / cmd-Q). Guard against double-run.
 var reaped = false
@@ -104,7 +142,7 @@ func reap(_ A: String) {
     // rather than bail early (the old bug: dxwnd mid-death read as "still up").
     for _ in 0..<8 {
         Thread.sleep(forTimeInterval: 1)
-        if !running("dxwnd\\.exe") && !running("i76\\.exe") { break }
+        if ownProcs(PFX).isEmpty { break }
     }
     // Only skip the bundle sweep for a genuine RELAUNCH - i.e. a SECOND stub (new
     // Sikarugir process) is now managing a fresh session. dxwnd being slow to die is
@@ -113,21 +151,11 @@ func reap(_ A: String) {
     let myPid = ProcessInfo.processInfo.processIdentifier
     let otherStubs = pids(rx(A + "/Contents/MacOS/Sikarugir")).filter { $0 != myPid }
     if !otherStubs.isEmpty { return }
-    let s = Process()
-    s.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-    s.arguments = ["-9", "-f", rx(A + "/Contents/SharedSupport")]
-    try? s.run(); s.waitUntilExit()
-    // Wine REWRITES its processes' argv to the WINDOWS command line
-    // ("C:\dxwnd\dxwnd.exe /R:1"), so the bundle-path sweep above can never
-    // match them - they normally die via wineserver -k, but when that wedges
-    // (observed 2026-07-14: orphaned dxwnd + AutoHotkey held the prefix and
-    // blocked relaunch) nothing killed them. Final belt: kill this game's
-    // wine processes by their distinctive Windows paths.
-    let w = Process()
-    w.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-    w.arguments = ["-9", "-f",
-        "C:\\\\dxwnd\\\\dxwnd\\.exe|C:\\\\GOG Games\\\\Interstate 76\\\\i76\\.exe|C:\\\\AutoHotkey\\\\AutoHotkeyU32\\.exe"]
-    try? w.run(); w.waitUntilExit()
+    // Wine REWRITES its processes' argv to the WINDOWS command line, so neither the bundle path nor (on a Mac with
+    // several I'76 apps) an exe path tells whose process it is. The old sweeps (pkill of this bundle's path, then of the
+    // dxwnd.exe / i76.exe / AutoHotkeyU32.exe Windows paths) killed every app's dxwnd, AutoHotkey and Gold game. Kill
+    // exactly the processes that run this bundle's Wine (the orphaned dxwnd / AutoHotkey of 2026-07-14 too).
+    killOwn(PFX)
 }
 
 // savegame.dir slack (CORRECTED 2026-10-01). A directory is exactly 4 + 60 x count bytes: u32 count, then
@@ -274,8 +302,8 @@ _ = ahkProc  // keep a reference for the process lifetime
 var booted = false
 for _ in 0..<120 {
     Thread.sleep(forTimeInterval: 1)
-    if running("i76\\.exe") { booted = true; break }
-    if !p.isRunning && !running("dxwnd\\.exe") { break }  // launch failed outright
+    if ownGameRunning(PFX, GAME) { booted = true; break }
+    if !p.isRunning && ownProcs(PFX).isEmpty { break }  // launch failed outright
 }
 // Play phase: reap when the game is DONE by either signal -
 //  (a) i76.exe fully exits (clean quit), OR
@@ -287,7 +315,7 @@ var sawTwo = false
 var lowStreak = 0
 while booted {
     Thread.sleep(forTimeInterval: 2)
-    if !running("i76\\.exe") { break }                 // (a) process gone
+    if !ownGameRunning(PFX, GAME) { break }            // (a) process gone
     padSaveDirIfQuiescent(A)                           // keep the newest bookmark loadable mid-session
     // same quiescence guard: only heal when the dir has been quiet >3s, so we never
     // interleave with the engine's own in-progress save write
@@ -296,7 +324,7 @@ while booted {
        let m = at[.modificationDate] as? Date, Date().timeIntervalSince(m) > 3 {
         rescueOrphanSave(A)                            // recover an orphan mid-session too
     }
-    let n = largeWineWindows()
+    let n = ownLargeWindows(PFX)
     if n >= 2 { sawTwo = true; lowStreak = 0 }
     else if sawTwo {                                    // (b) render window closed
         lowStreak += 1

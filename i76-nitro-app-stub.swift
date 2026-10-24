@@ -5,26 +5,15 @@
 // its OWN prefix holding only the GOG Nitro Pack at C:\GOG Games\Interstate 76 Nitro (stock nitro.exe 28b8ae27, our
 // proxy as Strlkup.dll, GOG's strlkup.dll as strlkup_orig.dll, IPXWrapper beside the exe). DxWnd profile 1 (ini index 0)
 // runs `nitro.exe -glide`. The Gold app and its prefix are never touched by this stub: every path below is derived
-// from this bundle's own location, wineserver -k acts on this bundle's WINEPREFIX only, and the final process sweep
-// names this bundle's paths and the Nitro exe's Windows path (not dxwnd.exe / AutoHotkey, which the Gold app shares).
+// from this bundle's own location, wineserver -k acts on this bundle's WINEPREFIX only, and the quit detection and the final
+// kill see only processes whose image is this bundle's own Wine (ownProcs, s.8 of the record: 2026-10-22 fix of a boot
+// loop that never saw "nitro.exe" and reaped every game after 120 s, and of a sweep that killed every Nitro app's game).
 //
 // Derived from i76-launch-stub.swift (same env, same quit detection, same bounded reap); differences: waits on
 // nitro.exe, no savegame.dir healing (Nitro has no save files), no AutoHotkey remapper.
 // Build: swiftc -O -o Sikarugir i76-nitro-app-stub.swift
 import Foundation
 import CoreGraphics
-
-func largeWineWindows() -> Int {
-    guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
-    else { return 99 }
-    var n = 0
-    for w in list {
-        let owner = (w[kCGWindowOwnerName as String] as? String ?? "").lowercased()
-        let b = w[kCGWindowBounds as String] as? [String: Double] ?? [:]
-        if owner.contains("wine") && (b["Width"] ?? 0) > 600 && (b["Height"] ?? 0) > 400 { n += 1 }
-    }
-    return n
-}
 
 let exe = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
 let A = exe.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path
@@ -55,10 +44,58 @@ func pids(_ pattern: String) -> [Int32] {
 }
 func running(_ pattern: String) -> Bool { !pids(pattern).isEmpty }
 
-// This app's game process. Wine rewrites argv to the Windows command line, so the Windows path identifies it
-// (the old satellite "Interstate 76 Nitro (DxWnd).app" runs C:\GOG Games\Interstate 76 Nitro Pack\nitro.exe, a
-// different folder name, so it never matches).
-let NITRO = "C:\\\\GOG Games\\\\Interstate 76 Nitro\\\\nitro\\.exe"
+// ---- THIS APP's processes and windows (nitro-mac lane 2026-10-22; corrected 2026-10-23 night, docs/records/NITRO-MAC-2026-10-21.md s.8) ----
+// Several I'76 apps can run at once on a Mac (Gold, Nitro, lab clones), and Wine rewrites every Windows process's argv to its
+// Windows command line ("nitro.exe -glide", no path), so neither a bare exe name nor an exe path tells whose game a process is.
+// The rewrite also overwrites the environment block that `ps -E` reads: on a live boot nitro.exe showed no WINEPREFIX at all,
+// only wineserver did (laptop 2026-10-23, so the 2026-10-22 environment rule never saw its own game). What does tell: the
+// executable image. Every app carries its own copy of Wine, and every Wine process of that app (nitro.exe, dxwnd.exe,
+// explorer.exe, services, wineserver) runs <bundle>/Contents/SharedSupport/wine/... (proc_pidpath, unaffected by the argv
+// rewrite; tools/nitro-mac/pidpath.swift). So "ours" = processes whose image path starts with this bundle's SharedSupport
+// folder; the quit detection counts only windows those processes own, and the reap kills only them.
+func ownProcs(_ root: String) -> [(pid: Int32, cmd: String)] {
+    let t = Process()
+    t.executableURL = URL(fileURLWithPath: "/bin/ps")
+    t.arguments = ["-A", "-ww", "-o", "pid=,command="]
+    let pipe = Pipe(); t.standardOutput = pipe; t.standardError = FileHandle.nullDevice
+    guard (try? t.run()) != nil else { return [] }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    t.waitUntilExit()
+    let me = ProcessInfo.processInfo.processIdentifier
+    var out: [(pid: Int32, cmd: String)] = []
+    var buf = [CChar](repeating: 0, count: 4096)
+    for line in (String(data: data, encoding: .utf8) ?? "").split(separator: "\n") {
+        let s = line.trimmingCharacters(in: .whitespaces)
+        guard let sp = s.firstIndex(of: " "), let pid = Int32(s[..<sp]), pid != me else { continue }
+        guard proc_pidpath(pid, &buf, UInt32(buf.count)) > 0, String(cString: buf).hasPrefix(root) else { continue }
+        out.append((pid: pid, cmd: String(s[s.index(after: sp)...])))
+    }
+    return out
+}
+// Our game process: an own process whose Windows command line names the exe (case-insensitive; the env part of the line
+// never contains ".exe" names of ours).
+func ownGameRunning(_ prefix: String, _ exe: String) -> Bool {
+    ownProcs(prefix).contains { $0.cmd.lowercased().contains(exe) }
+}
+// Large windows owned by our own processes (owner pid + bounds need no Screen Recording permission).
+func ownLargeWindows(_ prefix: String) -> Int {
+    let mine = Set(ownProcs(prefix).map { Int($0.pid) })
+    guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
+    else { return 99 }
+    var n = 0
+    for w in list {
+        guard let pid = w[kCGWindowOwnerPID as String] as? Int, mine.contains(pid) else { continue }
+        let b = w[kCGWindowBounds as String] as? [String: Double] ?? [:]
+        if (b["Width"] ?? 0) > 600 && (b["Height"] ?? 0) > 400 { n += 1 }
+    }
+    return n
+}
+func killOwn(_ prefix: String) {
+    for p in ownProcs(prefix) { kill(p.pid, SIGKILL) }
+}
+
+let PFX = A + "/Contents/SharedSupport/"   // own processes: image under this folder (ownProcs)
+let GAME = "nitro.exe"
 
 var reaped = false
 let reapLock = NSLock()
@@ -74,19 +111,12 @@ func reap(_ A: String) {
     if k.isRunning { k.terminate() }
     for _ in 0..<8 {
         Thread.sleep(forTimeInterval: 1)
-        if !running(NITRO) { break }
+        if !ownGameRunning(PFX, GAME) { break }
     }
     let myPid = ProcessInfo.processInfo.processIdentifier
     let otherStubs = pids(rx(A + "/Contents/MacOS/Sikarugir")).filter { $0 != myPid }
     if !otherStubs.isEmpty { return }                      // a relaunch of this app owns a new session
-    let s = Process()
-    s.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-    s.arguments = ["-9", "-f", rx(A + "/Contents/SharedSupport")]
-    try? s.run(); s.waitUntilExit()
-    let w = Process()
-    w.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-    w.arguments = ["-9", "-f", NITRO]
-    try? w.run(); w.waitUntilExit()
+    killOwn(PFX)                                           // this prefix's processes only, never another app's game
 }
 
 // OpenGLide under DxWnd: render size from the main display and the profile's shape (as i76-launch-stub.swift).
@@ -134,15 +164,15 @@ try! p.run()
 var booted = false
 for _ in 0..<120 {
     Thread.sleep(forTimeInterval: 1)
-    if running(NITRO) { booted = true; break }
-    if !p.isRunning && !running(rx(A + "/Contents/SharedSupport")) { break }
+    if ownGameRunning(PFX, GAME) { booted = true; break }
+    if !p.isRunning && ownProcs(PFX).isEmpty { break }
 }
 var sawTwo = false
 var lowStreak = 0
 while booted {
     Thread.sleep(forTimeInterval: 2)
-    if !running(NITRO) { break }
-    let n = largeWineWindows()
+    if !ownGameRunning(PFX, GAME) { break }
+    let n = ownLargeWindows(PFX)
     if n >= 2 { sawTwo = true; lowStreak = 0 }
     else if sawTwo {
         lowStreak += 1
