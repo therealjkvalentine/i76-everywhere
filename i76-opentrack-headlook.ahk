@@ -330,7 +330,7 @@ ReleaseAll() {
 Trace(s) {
     global gTrace
     if (gTrace != "")
-        FileAppend, % A_TickCount . " " . s . "`n", %gTrace%
+        FileAppend, % A_TickCount . " " . StrReplace(s, "`n", " / ") . "`n", %gTrace%
 }
 
 ; ---- which arrow does what: read ..\input.map ---------------------------------
@@ -451,6 +451,9 @@ ModeText(m) {
 
 Announce(first := 0) {
     global gMode, BEEP, gAnalogOk
+    ; not interruptible: a Tick that finds this exe's sites invalid announces too, and must not land between
+    ; this thread choosing its text and showing it (seen in the headless test: the stale text won)
+    Critical
     msg := ModeText(gMode)
     if (gMode = "ANALOG" && gAnalogOk = 0)
         msg := "HEAD LOOK: ANALOG unavailable on this exe - acting DIGITAL"

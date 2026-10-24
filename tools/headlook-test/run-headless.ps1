@@ -35,8 +35,16 @@ Add-Type -Name Kb -Namespace HlTest -MemberDefinition @'
 [DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h);
 [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();
 [DllImport("kernel32.dll")] public static extern uint GetTickCount();
+[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint pid);
 '@
+$script:klPid = 0; $script:blocked = 0
 function Key([byte]$vk, [bool]$down) {
+    # a key-DOWN goes out only while the key-logger window is in front (a shared desktop must never get typed into);
+    # key-ups always go out
+    if ($down -and $script:klPid) {
+        $fp = 0; [void][HlTest.Kb]::GetWindowThreadProcessId([HlTest.Kb]::GetForegroundWindow(), [ref]$fp)
+        if ($fp -ne $script:klPid) { $script:blocked++; Mark "BLOCKED key $vk (foreground pid $fp)"; return }
+    }
     $f = 0; if ($vk -ge 0x25 -and $vk -le 0x28) { $f = 1 }; if (-not $down) { $f = $f -bor 2 }
     [HlTest.Kb]::keybd_event($vk, 0, $f, [UIntPtr]::Zero)
 }
@@ -61,6 +69,7 @@ $kl = $null; $hl = $null
 try {
     Head 0 0
     $kl = Start-Process (Join-Path $work '_ahk\keylog.exe') -ArgumentList "`"$PSScriptRoot\keylog.ahk`"", "`"$keyLog`"" -PassThru
+    $script:klPid = $kl.Id
     Start-Sleep -Milliseconds 1200
     $env:I76_HEADLOOK_EXE = 'keylog.exe'; $env:I76_HEADLOOK_TRACE = $trace; $env:I76_HEADLOOK_BEEP = '0'; $env:I76_HEADLOOK_MODE = 'DIGITAL'
     $hl = Start-Process $Ahk -ArgumentList "`"$(Join-Path $work '_ahk\i76-opentrack-headlook.ahk')`"" -PassThru
@@ -86,7 +95,9 @@ try {
     Head -0.40 0; Hold 500
     Mark 'user MButton down'
     Add-Type -Name Ms -Namespace HlTest -MemberDefinition '[DllImport("user32.dll")] public static extern void mouse_event(uint f, int x, int y, uint d, System.UIntPtr e);' -ErrorAction SilentlyContinue
-    [HlTest.Ms]::mouse_event(0x20, 0, 0, 0, [UIntPtr]::Zero); Hold 500
+    $fp = 0; [void][HlTest.Kb]::GetWindowThreadProcessId([HlTest.Kb]::GetForegroundWindow(), [ref]$fp)
+    if ($fp -eq $script:klPid) { [HlTest.Ms]::mouse_event(0x20, 0, 0, 0, [UIntPtr]::Zero) } else { $script:blocked++; Mark 'BLOCKED MButton' }
+    Hold 500
     Mark 'user MButton up'; [HlTest.Ms]::mouse_event(0x40, 0, 0, 0, [UIntPtr]::Zero); Hold 600
     Head 0 0; Hold 300
     # E. Ctrl+Alt+H: DIGITAL -> OFF (head right must do nothing) -> ANALOG (keylog.exe is not the game:
@@ -109,8 +120,8 @@ try {
 # ---- one timeline, relative ms --------------------------------------------------------------------
 $rows = @()
 foreach ($l in $events) { $p = $l -split ' ', 2; $rows += [pscustomobject]@{ t = [int64]$p[0]; src = 'test '; s = $p[1] } }
-if (Test-Path $keyLog) { foreach ($l in Get-Content $keyLog) { $p = $l -split ' ', 2; $rows += [pscustomobject]@{ t = [int64]$p[0]; src = 'OS   '; s = $p[1] } } }
-if (Test-Path $trace)  { foreach ($l in Get-Content $trace)  { $p = $l -split ' ', 2; $rows += [pscustomobject]@{ t = [int64]$p[0]; src = 'layer'; s = $p[1] } } }
+if (Test-Path $keyLog) { foreach ($l in Get-Content $keyLog | Where-Object { $_ -match '^\d+ ' }) { $p = $l -split ' ', 2; $rows += [pscustomobject]@{ t = [int64]$p[0]; src = 'OS   '; s = $p[1] } } }
+if (Test-Path $trace)  { foreach ($l in Get-Content $trace | Where-Object { $_ -match '^\d+ ' })  { $p = $l -split ' ', 2; $rows += [pscustomobject]@{ t = [int64]$p[0]; src = 'layer'; s = $p[1] } } }
 $rows = $rows | Sort-Object t
 $t0 = ($rows | Select-Object -First 1).t
 $lines = $rows | ForEach-Object { "{0,6} {1} {2}" -f ($_.t - $t0), $_.src, $_.s }
@@ -121,7 +132,7 @@ $lines
 function T($what) { ($rows | Where-Object { $_.s -eq $what } | Select-Object -First 1).t }
 function After($t, $src, $pat) { ($rows | Where-Object { $_.t -ge $t -and $_.src -eq $src -and $_.s -match $pat } | Select-Object -First 1) }
 $fails = 0
-function Check($name, $ok, $detail) { $script:fails += [int](-not $ok); "{0}  {1}  {2}" -f ($(if ($ok) { 'ok  ' } else { 'FAIL' }), $name, $detail }
+function Check($name, $ok, $detail) { $script:fails += [int](-not $ok); $mark = if ($ok) { 'ok  ' } else { 'FAIL' }; "{0}  {1}  {2}" -f $mark, $name, $detail }
 "`nchecks:"
 $tr = Get-Content $trace -ErrorAction SilentlyContinue
 Check 'keys resolved from input.map (RC: down=Up)' ([bool]($tr -match 'glance keys \(input.map\): down=Up up=Down')) ''
@@ -150,5 +161,6 @@ Check 'E OFF: head right sends nothing' (-not $offKeys) ''
 Check 'E Ctrl+Alt+H -> ANALOG' ([bool](After $h2 'layer' '^mode ANALOG')) ''
 Check 'E toasts shown for each change' (@($rows | Where-Object { $_.src -eq 'layer' -and $_.s -match '^toast' }).Count -ge 3) ''
 Check 'E ANALOG on a non-game exe: sites refused, acts DIGITAL' ([bool](After $h2 'layer' 'did not verify') -and [bool](After $h2 'OS   ' '^Right down')) ''
+Check 'no key blocked by the foreground guard' ($script:blocked -eq 0) "$($script:blocked) blocked"
 "`n$(if ($fails) { "FAIL $fails" } else { 'PASS' })  (output $Out)"
 exit $fails
