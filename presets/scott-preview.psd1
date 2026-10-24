@@ -1,10 +1,5 @@
 # scott-preview (tester build, tools\package-scott.ps1 / PLAY-PREVIEW.bat): the EXPERIMENTAL GRAPHICS PREVIEW - a verbatim copy of the
-# owner's final trial preset lab exp-polish2\Interstate 76\presets\OWNER-2300-ALL.psd1 as it stood 2026-10-23 18:16 (md5 09dd0cd3; only
-# the Name below differs): the promotion-19 candidate (tick 41.667, every non-graphics fix) + the graphics work under test - shade
-# smoothing, terrain morph 0.25 stateless (shade fade x3, big tiles blended), one-pass sky, the mirror to 1000 m with the main view's
-# .m16 terrain art (stock 8-bit sky), far clip / roads / bushes 2300 m with half-density bushes carried to 450 m, the transparent
-# (feather) fade over the last quarter of the far clip, I76_JUMP_NOSE 0.91, the daily driver's four detail keys. NOT gated, not
-# promoted; the owner's eyes decide. The aspect lines are rewritten per display by tools\Make-Wide-Conf.ps1 at install time.
+# owner's trial preset lab exp-polish2\Interstate 76\presets\OWNER-2300-ALL.psd1 as it stood 2026-10-24 (only the Name below differs). NOT gated, not promoted.
 # rebase-x5 (rebaseline lane 2026-10-21, lab tools\rebaseline\rungs.py; i76-everywhere docs\records\REBASELINE-2026-10-21.md):
 # X5 = R07 + far clip / roads / bushes 2000 m (the planned ship value; owner soak) (main, owner's console A/B 2026-10-21 evening)
 # Generated from this folder's presets\tick19-42.psd1 (md5 f7e589ef0759299fc0333a78aa7a2eb6, the promotion-19 candidate: tick 41.667 and every
@@ -12,7 +7,7 @@
 # Then this rung's keys, each with the reason it exists. Launched by PLAY-R07.bat. Lab ladder only: not a release preset.
 @{
     Name        = 'scott-preview'
-    Summary     = 'Owner picks 2026-10-23 pm: SMOOTH + BIG 2 + SPARSE 0.5/450 + FEATHER at 0.75; Owner picks so far: one-pass sky + morph + big tiles blended (BIG 1, owner OK 2026-10-23) + slow shade fade x3 + mirror to 1000 m with the main view''s terrain art; terrain 2300 m'
+    Summary     = 'Render finish 2026-10-23 night: BIG off (far flicker), morph NEAR 100 m, bushes fade in over 150 m; Owner picks 2026-10-23 pm: SMOOTH + SPARSE 0.5/450 + FEATHER at 0.75; Owner picks so far: one-pass sky + morph + big tiles blended (BIG 1, owner OK 2026-10-23) + slow shade fade x3 + mirror to 1000 m with the main view''s terrain art; terrain 2300 m'
     Verified    = '[lab 2026-10-21] rebaseline ladder rung; NOT promoted'
     Env         = @{
         I76_HIRES_CLOCK     = '1'
@@ -57,7 +52,11 @@
         I76_TERRAIN_MORPH_STATELESS = '1'   # no tables (terrainmorph.c)
         I76_SKY_MIRROR      = '0'   # owner's pick 2026-10-23: one-pass sky (skymirror.c)
         I76_TERRAIN_MORPH_SHADE = '3'   # the shade fades over 3x the height band (terrainmorph.c 7dd568c)
-        I76_TERRAIN_MORPH_BIG = '2'   # the 64+ sample tiles blended, height and shade (owner saw no sliding, 2026-10-23)
+        # I76_TERRAIN_MORPH_BIG = '2'   # OFF since render-finish 2026-10-23 night: BIG 2 (= the 64+ sample tiles' SHADE blended; 1 = height and shade) was the owner's
+        #   "flickering between light and dark on the furthest drawn textures". The root square snaps to a 32-sample grid (0x492cb9), ~2x a second while
+        #   driving, and every 64+ level vertex then gets new parents: on that one pass ~1210 far vertices cross a shade row (BIG unset 7-8, stock 7; n 2 each)
+        I76_TERRAIN_MORPH_NEAR = '100'   # render-finish 2026-10-23: no height / shade blend nearer than 100 m (the blended height dragged the texture print = the near
+        #   "morphing"): carried slides within 100 m 0 px (was p99 8, max 14-16), snaps there as stock (p99 11 vs 10), n 2
         # ---- mirror (mirror lane 2026-10-23, MIRROR-DETAIL-2026-10-23.md; cost 1.2 % at t01, n 2)
         I76_MIRROR_FAR      = '1000'   # the mirror camera's far clip, stock 100 m (owner 2026-10-23: 800-1200 m is plenty; was 2300)
         I76_MIRROR_LOD      = '1'      # the mirror's terrain pass splits at the STOCK constants (x1), not the main view's x24
@@ -72,5 +71,7 @@
         I76_SHADE_SMOOTH    = '1'   # owner 2026-10-23 16:xx: SMOOTH kept (continuous shade rows; terrain-pops record)
         I76_GLIDE_FOG       = '0.75,hzd'   # owner: FEATHER look at FOG depth: the last 25 % of the far clip fades to transparent (alpha), horizon colour only, no white
         I76_CLUTTER_DENSITY = '0.5'   # owner: SPARSE kept (half density, carried to 450 m, same bush count)
+        I76_CLUTTER_ALPHA_FADE = '150'   # render-finish 2026-10-23: a bush fades in (alpha 0 -> 1) over the 150 m after it is admitted by the SPARSE rule
+        #   instead of popping; colour key intact (proxy a8f694a+); valley road 118.5 / 119.3 fps vs 120.0 / 120.0 (120 Hz cap), work +1 %, n 2
     }
 }

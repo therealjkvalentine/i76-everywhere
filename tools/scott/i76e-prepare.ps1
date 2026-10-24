@@ -3,7 +3,7 @@
   2026-10-23, tools\package-scott.ps1 puts this file and its payload in <game>\_i76e\, the .bat files beside i76.exe).
 
   1. First run (or an updated overlay, or -Resetup): the one-time setup = this repo's own installer, setup-windows.ps1,
-     run on the game folder the _i76e folder sits in: dgVoodoo 2.87.3 (from _i76e\dgVoodoo), the proxy Strlkup.dll,
+     run on the game folder the _i76e folder sits in: dgVoodoo 2.87.5 (from _i76e\dgVoodoo), the proxy Strlkup.dll,
      the shell keyboard patches (Apply-Shell-Keys.ps1 + fix-shell-textentry.ps1, on the user's own i76shell.dll),
      u32x (import rename of i76.exe + i76shell.dll), the control map, the presets, the launcher. Originals are kept
      beside every changed file (i76.exe.u32xorig, i76shell.dll.pre-i76e-keys / .orig, strlkup_orig.dll,

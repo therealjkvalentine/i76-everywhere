@@ -197,7 +197,7 @@ job from GOG's side if you prefer.
 
 `_i76e\VERSION.txt` names the build (the repo commit) and `_i76e\MD5SUMS` every file. In the zip: our proxy DLL
 (`Strlkup.dll`, the engine fixes), our mouse DLL (`u32x.dll`), our launchers, presets, key map and scripts; dgVoodoo
-2.87.3 (Dege's Glide-to-Direct3D layer, unmodified, shipped as its readme allows) and AutoHotkey 1.1 (GPL, for the
+2.87.5 (Dege's Glide-to-Direct3D layer, unmodified, shipped as its readme allows; needed on Windows 11 build 26100.9711 and later. 2.87.3 is kept in `_i76e\dgVoodoo-2.87.3` as a fallback: to swap back, delete `_i76e\dgVoodoo`, rename the fallback folder to `dgVoodoo`, run `UNINSTALL-i76e.bat`, then `PLAY.bat --resetup`) and AutoHotkey 1.1 (GPL, for the
 controller layer). Nothing from the game. The setup renames one import in your `i76.exe` and `i76shell.dll` (so
 the mouse DLL can sit in between), applies our keyboard patches to `i76shell.dll`, swaps GOG's Glide DLL for
 dgVoodoo's, renames GOG's 20 fps limiter DLL (`I76PATCH.DLL`, where present) to `.disabled`, replaces the key map,

@@ -7,7 +7,7 @@
                      u32x, the clean-built proxy as music-fix\Strlkup.dll, Make-Wide-Conf + its conf template, the shell patch
                      DATA (our bytes only, tools\scott\shell-keys-patch.json) and patchers, i76wheel.exe, the debug tool, the
                      controls sheet, the repo's bookmark saves, LICENSE / THIRD-PARTY)
-    _i76e\dgVoodoo\  dgVoodoo 2.87.3's x86 components, UNMODIFIED (md5 checked against the release zip; Dege's readme, section
+    _i76e\dgVoodoo\  dgVoodoo 2.87.5's x86 components (+ _i76e\dgVoodoo-2.87.3 fallback), UNMODIFIED (md5 checked against the release zip; Dege's readme, section
                      "Redistribution rights": "You can freely ship your game or game mod with unmodified individual dgVoodoo
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
@@ -17,14 +17,15 @@
   setup-windows.ps1, Apply-Shell-Keys.ps1, deploy-u32x.ps1), originals kept beside them. A name guard refuses to stage any
   game file (i76.exe, i76shell.dll, *.ZFS, *.MW2, *.DEF, strlkup_orig.dll, I76PATCH.DLL, movies, music ...).
 
-    tools\package-scott.ps1 -Proxy <clean-built Strlkup.dll> -DgVoodooDir <unpacked dgVoodoo2_87_3.zip> -AhkDir <AutoHotkeyU32.exe folder>
+    tools\package-scott.ps1 -Proxy <clean-built Strlkup.dll> -DgVoodooDir <unpacked 2.87.5> -DgVoodooFallbackDir <unpacked 2.87.3> -AhkDir <AutoHotkeyU32.exe folder>
                             [-OutDir C:\Users\james\i76-uncap-lab\downloads\scott] [-Stamp yyyymmdd] [-Stage <dir>]
   Writes <OutDir>\Interstate76-i76-everywhere-scott-<Stamp>.zip and <zip>.MD5SUMS beside it. Record: docs\records\SCOTT-BUILD-2026-10-23.md.
 #>
 param(
     [Parameter(Mandatory)][string]$Proxy,
     [string]$ProxyCommit = '',      # the commit the proxy was built from (lab builds\nitro-port-20261021\build.ps1 -Ref); default: HEAD
-    [Parameter(Mandatory)][string]$DgVoodooDir,
+    [Parameter(Mandatory)][string]$DgVoodooDir,          # dgVoodoo 2.87.5, the unpacked release (MS, 3Dfx, dgVoodooCpl.exe)
+    [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
     [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\scott',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
@@ -77,36 +78,52 @@ Copy-Item -LiteralPath $Proxy -Destination (Join-Path $sr 'music-fix\Strlkup.dll
 Copy-Item -LiteralPath (Join-Path $repo 'tools\scott\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
 
 # ---- dgVoodoo 2.87.3, unmodified x86 components only, checked against the release zip's hashes -------------------------
-$dgv = @{   # dgVoodoo2_87_3.zip (github.com/dege-diosg/dgVoodoo2/releases/tag/v2.87.3), read 2026-10-23
-    '3Dfx\x86\Glide.dll' = '259a4028d85d643608d94ee8d3b9c680'; '3Dfx\x86\Glide2x.dll' = '8af442bc7718a792c0573b34bfddca78'
-    '3Dfx\x86\Glide3x.dll' = '829f80cd63a4fa35e351d43491661996'; 'MS\x86\DDraw.dll' = 'ab19386de98e7368faf43615c417a1d1'
-    'MS\x86\D3DImm.dll' = 'c6bdfc6233d7f32b48fc5d552c96f73a'; 'dgVoodooCpl.exe' = '487da424c4180a234caa4502628ad257'
-}
-$dgOut = Join-Path $i76e 'dgVoodoo'
-foreach ($rel in $dgv.Keys) {
-    $from = Join-Path $DgVoodooDir $rel
-    if (-not (Test-Path -LiteralPath $from)) { Die "dgVoodoo file missing: $from" }
-    $m = Md5 $from
-    if ($m -ne $dgv[$rel]) { Die "$rel md5 $m is not the 2.87.3 release file ($($dgv[$rel])) - only unmodified components are shipped" }
-    $to = Join-Path $dgOut $rel
-    New-Item -ItemType Directory -Force (Split-Path -Parent $to) | Out-Null
-    Copy-Item -LiteralPath $from -Destination $to -Force
-}
-foreach ($extra in 'QuickGuide.url', 'Doc\Readme.url', 'Doc\ReadmeGlide.url', 'Doc\ReadmeDirectX.url') {
-    $from = Join-Path $DgVoodooDir $extra
-    if (Test-Path -LiteralPath $from) { $to = Join-Path $dgOut $extra; New-Item -ItemType Directory -Force (Split-Path -Parent $to) | Out-Null; Copy-Item -LiteralPath $from -Destination $to -Force }
-}
+function Ship-DgVoodoo([string]$srcDir, [hashtable]$hashes, [string]$ver, [string]$outDir, [string]$extraNote) {
+    foreach ($rel in $hashes.Keys) {
+        $from = Join-Path $srcDir $rel
+        if (-not (Test-Path -LiteralPath $from)) { Die "dgVoodoo file missing: $from" }
+        $m = Md5 $from
+        if ($m -ne $hashes[$rel]) { Die "$rel md5 $m is not the $ver release file ($($hashes[$rel])) - only unmodified components are shipped" }
+        $to = Join-Path $outDir $rel
+        New-Item -ItemType Directory -Force (Split-Path -Parent $to) | Out-Null
+        Copy-Item -LiteralPath $from -Destination $to -Force
+    }
+    foreach ($extra in 'QuickGuide.url', 'Doc\Readme.url', 'Doc\ReadmeGlide.url', 'Doc\ReadmeDirectX.url') {
+        $from = Join-Path $srcDir $extra
+        if (Test-Path -LiteralPath $from) { $to = Join-Path $outDir $extra; New-Item -ItemType Directory -Force (Split-Path -Parent $to) | Out-Null; Copy-Item -LiteralPath $from -Destination $to -Force }
+    }
+    $u = $ver.Replace('.', '_')
 @"
-dgVoodoo 2.87.3 by Dege - http://dege.freeweb.hu/dgVoodoo2/  (release: https://github.com/dege-diosg/dgVoodoo2/releases/tag/v2.87.3)
-Copyright (c) 2013-2026 Dege. The files in this folder are the UNMODIFIED x86 components of the dgVoodoo2_87_3.zip release
-package (their md5s are in ..\MD5SUMS and were checked against the release zip by tools\package-scott.ps1 on $(Get-Date -Format yyyy-MM-dd)).
+dgVoodoo $ver by Dege - http://dege.freeweb.hu/dgVoodoo2/  (release: https://github.com/dege-diosg/dgVoodoo2/releases/tag/v$ver)
+Copyright (c) 2013-2026 Dege. The files in this folder are the UNMODIFIED x86 components of the dgVoodoo2_$u.zip release
+package (their md5s are in the MD5SUMS beside _i76e and were checked against the release by tools\package-scott.ps1 on $(Get-Date -Format yyyy-MM-dd)).
 The .url files point at Dege's readmes (the package ships its documentation online).
-
+$extraNote
 Redistribution: dgVoodoo's general readme, section 1 "Redistribution rights" (http://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/,
 read 2026-10-23): "You can freely ship your game or game mod with unmodified individual dgVoodoo components (files) included."
 Standalone hosting must "provide the original, unmodified .zip package"; bundling "inside launchers or frameworks, for general
 use across multiple applications" is not allowed. This build is a game mod shipping unmodified individual components for one game.
-"@ | Set-Content -LiteralPath (Join-Path $dgOut 'README-dgVoodoo.txt') -Encoding ascii
+"@ | Set-Content -LiteralPath (Join-Path $outDir 'README-dgVoodoo.txt') -Encoding ascii
+}
+# dgVoodoo 2.87.5 (needed on Windows 11 26100.9711+: 2.87.3's DDraw fails there), md5s from docs\records\DGVOODOO-UPDATE-2026-10-24.md s.5
+$dgv5 = @{
+    '3Dfx\x86\Glide.dll' = 'ad980c1620c8bb96d66d76b387aa2a1f'; '3Dfx\x86\Glide2x.dll' = '3fbe9528e7ec331e647d39155670abd2'
+    '3Dfx\x86\Glide3x.dll' = '4788b491a3645dd3b576d57668e10851'; 'MS\x86\DDraw.dll' = 'c70a0ee641c3c349176fca39e4d78777'
+    'MS\x86\D3DImm.dll' = '71b3bf5a20fb0df63fa1b20a3030234e'; 'dgVoodooCpl.exe' = 'ce248253d7df5df240dffe48e81ed181'
+}
+# dgVoodoo 2.87.3 (the fallback), dgVoodoo2_87_3.zip read 2026-10-23
+$dgv3 = @{
+    '3Dfx\x86\Glide.dll' = '259a4028d85d643608d94ee8d3b9c680'; '3Dfx\x86\Glide2x.dll' = '8af442bc7718a792c0573b34bfddca78'
+    '3Dfx\x86\Glide3x.dll' = '829f80cd63a4fa35e351d43491661996'; 'MS\x86\DDraw.dll' = 'ab19386de98e7368faf43615c417a1d1'
+    'MS\x86\D3DImm.dll' = 'c6bdfc6233d7f32b48fc5d552c96f73a'; 'dgVoodooCpl.exe' = '487da424c4180a234caa4502628ad257'
+}
+Ship-DgVoodoo $DgVoodooDir $dgv5 '2.87.5' (Join-Path $i76e 'dgVoodoo') ''
+Ship-DgVoodoo $DgVoodooFallbackDir $dgv3 '2.87.3' (Join-Path $i76e 'dgVoodoo-2.87.3') @"
+
+THIS IS THE FALLBACK. The build uses dgVoodoo 2.87.5 (..\dgVoodoo). To swap back to 2.87.3 (for example if an antivirus flags 2.87.5):
+delete _i76e\dgVoodoo, rename this folder (_i76e\dgVoodoo-2.87.3) to _i76e\dgVoodoo, run UNINSTALL-i76e.bat, then PLAY.bat --resetup.
+2.87.3 does not start on Windows 11 build 26100.9711 or later.
+"@
 
 # ---- AutoHotkey 1.1 (GPL v2): the interpreter the pad / wheel / stick layer runs on ---------------------------------
 $ahkOut = Join-Path $i76e 'AutoHotkey'; New-Item -ItemType Directory -Force $ahkOut | Out-Null
@@ -174,7 +191,7 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "scott-$Stamp $sha",
     "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-scott.ps1 from repo commit $sha",
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
-    "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.3 (unmodified x86 components); AutoHotkey $ahkVer (GPL)",
+    "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
     "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset scott-preview (the experimental graphics preview)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }
