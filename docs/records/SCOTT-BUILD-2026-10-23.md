@@ -316,7 +316,7 @@ Laptop (LAPTOP-HPK11OMS, Windows 11 26100.9711, 1920x1080), runner `laptop-run.p
 
 Raw logs on the laptop: `C:\i76-bench\runs\wmr\scott-{a,b}-*`. Not measured: music by ear (muted), anything past 20 s in the mission, a real 16:9 monitor beyond the laptop's panel.
 
-## 10. Release renamed (2026-10-24 18:36)
+## 10. Release renamed (2026-10-24 18:36, then again 18:4x: v0.7.3)
 
 The owner named the public tester release **v1.3.0-alpha.1** (not "scott"). The draft `scott-20261023` was published, then
 replaced: new tag `v1.3.0-alpha.1` (gh created it at main's HEAD), release title "v1.3.0-alpha.1 - tester build (over
@@ -324,3 +324,4 @@ your GOG copy)", body = README-SCOTT.md with the new heading, asset renamed
 `Interstate76-i76-everywhere-v1.3.0-alpha.1.zip` (byte-identical to the 20261024 zip, md5 04983fde, 4,187,803 B);
 anonymous download checked (HTTP 200, same length). The `scott-20261023` release and tag were deleted.
 URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v1.3.0-alpha.1
+Final name (owner, 18:4x): **v0.7.3** - tag v0.7.3 at the same commit, asset Interstate76-i76-everywhere-v0.7.3.zip (same bytes), v1.3.0-alpha.1 deleted. URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3
