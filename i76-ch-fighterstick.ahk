@@ -127,7 +127,7 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ; F-16 grip convention on the left, what I'76 calls it on the right. The key is
 ; whatever input.map already binds that action to.
 ;
-;   trigger          gun                 -> weapon_fire       Enter
+;   trigger          gun                 -> weapon_fire + hardpoint1_fire   Enter + 1 (both held)
 ;   top red (pickle) weapon release      -> hardpoint2_fire   2
 ;   back-side / MODE -                   -> special1 (nitrous) 6
 ;   pinky            NWS / AR disconnect -> pilot_glance_target E   (was weapon_link F until
@@ -161,7 +161,15 @@ KEY.GreyLeftArrow := "{Left}", KEY.GreyRightArrow := "{Right}"
 ; Role assignment follows the A-10C convention by BUTTON NUMBER: 5-8 DMS,
 ; 9-12 TMS, 13-16 CMS.
 global BTN := {}
-BTN[1]  := {ctl: "trigger",              act: "weapon_fire",          key: "Enter"}
+; TRIGGER = EVERYTHING FORWARD (owner 2026-10-24: "can flightstick trigger fire linked and 1 and handgun
+; all?"). weapon_fire (Enter) fires the selected weapon group - the LINKED group once weapons are linked
+; (F, weapon_link) - and it is also the handgun: the .45 only fires on weapon_fire while you glance out
+; of a side window (docs/I76-GAMEPLAY-REFERENCE.md; there is no separate handgun action). hardpoint1_fire
+; (1) adds hardpoint 1 whatever is selected. Both are held for as long as the trigger is.
+; The "one weapon effect per control" rule below came from the 2026-08-01 I7_SFRCE.DLL crash; the crash
+; itself is the force-feedback module failing to start (the Thrustmaster panel holding the device -
+; docs/CONTROLS.md "Before you launch"), and the mouse already fires several actions from one input.
+BTN[1]  := {ctl: "trigger",              act: "weapon_fire + hardpoint1_fire", key: "Enter One"}
 ; Top red is DIRECT FIRE, not special1 - the pickle button on a real grip is
 ; weapon release, and hardpoint 2 is the one you reach for most.
 BTN[2]  := {ctl: "top red (pickle)",     act: "hardpoint2_fire",      key: "Two"}
@@ -356,6 +364,12 @@ InitGui(title) {
 
 SendKey(name, down := "") {
     global KEY, WHATIF
+    if (InStr(name, " ")) {                    ; several keys from one control ("Enter One")
+        Loop, Parse, name, %A_Space%
+            if (A_LoopField != "")
+                SendKey(A_LoopField, down)
+        return
+    }
     if (!KEY.HasKey(name)) {
         Out("  no key mapping for '" name "'")
         return
@@ -397,6 +411,7 @@ UNMAPPED.Push(["track_ (external camera)",           "arrows PgUp PgDn"])
 
 ; ============================================================================
 if (mode = "map") {
+    ResolvePovKeys(A_ScriptDir . "\..\input.map")
     Out("`nCH FIGHTERSTICK -> INTERSTATE '76")
     Out("`n  STICK (the ADC - analog deflection becomes a discrete action)")
     Out("  " Pad("control", 18) Pad("game action", 26) Pad("key", 7) "behaviour")
@@ -404,16 +419,16 @@ if (mode = "map") {
     for i, a in AXIS
         Out("  " Pad(a.ctl, 18) Pad(a.act, 26) Pad(a.key, 7) a.mode)
     Out("`n  CONE HAT (8-way POV, upper right of the top face) - GLANCE, held")
-    Out("  Works in DIGITAL head-tracking mode (the default). In ANALOG mode")
-    Out("  opentrack disables key-glance entirely - Ctrl+Alt+H toggles.")
+    Out("  Works in every head-look mode: while the hat is held the head-look layer")
+    Out("  stands aside (2026-10-24), then eases back. Keys read from input.map.")
     for i, p in POV
         Out("  " Pad(p.ctl, 18) Pad(p.act, 26) p.key)
     Out("`n  BUTTONS")
-    Out("  " Pad("#", 5) Pad("control", 18) Pad("game action", 26) "key")
+    Out("  " Pad("#", 5) Pad("control", 18) Pad("game action", 32) "key")
     Out("  " Pad("", 60, "-"))
     Loop, 32 {
         if (BTN.HasKey(A_Index))
-            Out("  " Pad(A_Index, 5) Pad(BTN[A_Index].ctl, 18) Pad(BTN[A_Index].act, 26) BTN[A_Index].key)
+            Out("  " Pad(A_Index, 5) Pad(BTN[A_Index].ctl, 18) Pad(BTN[A_Index].act, 32) BTN[A_Index].key)
         else if (A_Index = 3)
             Out("  " Pad(3, 5) Pad("back-side red", 18) "MODE SWITCH - deliberately unbound")
     }
@@ -454,8 +469,12 @@ ValidateMap() {
     global BTN, POV, AXIS, KEY
     bad := []
     Loop, 32 {
-        if (BTN.HasKey(A_Index) && !KEY.HasKey(BTN[A_Index].key))
-            bad.Push(BTN[A_Index].ctl " -> '" BTN[A_Index].key "'")
+        if (!BTN.HasKey(A_Index))
+            continue
+        b := A_Index
+        Loop, Parse, % BTN[b].key, %A_Space%
+            if (A_LoopField != "" && !KEY.HasKey(A_LoopField))
+                bad.Push(BTN[b].ctl " -> '" A_LoopField "'")
     }
     for i, p in POV
         if (!KEY.HasKey(p.key))
@@ -464,6 +483,48 @@ ValidateMap() {
         if (!KEY.HasKey(a.key))
             bad.Push(a.ctl " -> '" a.key "'")
     return bad
+}
+
+; pilot_glance_* -> the Grey*Arrow it is bound to WITHOUT "+ keyboard Shift" (Shift + arrow is the
+; outside camera); rewrites POV[i].key for every entry it resolves. Returns how many it changed.
+ResolvePovKeys(path) {
+    global POV
+    if (!FileExist(path))
+        return 0
+    FileRead, txt, %path%
+    found := {}, blk := "", arrow := "", shifted := 0
+    Loop, Parse, txt, `n, `r
+    {
+        line := Trim(RegExReplace(A_LoopField, "#.*$"))
+        if (RegExMatch(line, "^(\w+)\s*\{", m)) {
+            blk := m1, arrow := "", shifted := 0
+            continue
+        }
+        if (line = "}") {
+            if (arrow != "" && !shifted && RegExMatch(blk, "i)^pilot_glance_(up|down|left|right)$")) {
+                StringLower, b, blk
+                if (!found.HasKey(b))
+                    found[b] := arrow
+            }
+            blk := ""
+            continue
+        }
+        if (blk != "" && RegExMatch(line, "i)^\+\s*keyboard\s+(\w+)$", k)) {
+            if (k1 = "Shift")
+                shifted := 1
+            else if (RegExMatch(k1, "i)^Grey(Up|Down|Left|Right)Arrow$"))
+                arrow := k1
+        }
+    }
+    n := 0
+    for i, p in POV {
+        StringLower, a, % p.act
+        if (found.HasKey(a) && found[a] != p.key) {
+            Out("  cone hat: " p.ctl " -> " p.act " is " found[a] " in input.map (table said " p.key ")")
+            p.key := found[a], n += 1
+        }
+    }
+    return n
 }
 
 Pad(s, n, ch := " ") {
@@ -579,6 +640,10 @@ Menu, Tray, Default, Exit (releases held keys)
 ; running - a partly-working stick beats one that refuses to start mid-session -
 ; but the failure is now announced instead of being a control that quietly does
 ; nothing for an entire play session.
+; The cone hat's keys come from ..\input.map by ACTION: the RC map 1c397955 swapped Up / Down (Up = look
+; down at the dash, Down = look back), so a hard-coded GreyDownArrow for "cone UP -> pilot_glance_down"
+; looked BACK there (2026-10-24). The table above keeps the repo map's keys as the fallback.
+povSrc := ResolvePovKeys(A_ScriptDir . "\..\input.map")
 badMap := ValidateMap()
 if (badMap.Length()) {
     Out("")
@@ -616,6 +681,8 @@ Poll:
         was  := prevBtn.HasKey(b) ? prevBtn[b] : 0
         if (down != was) {
             SendKey(BTN[b].key, down ? 1 : 0)
+            Loop, Parse, % BTN[b].key, %A_Space%
+                heldKeys[A_LoopField] := down ? 1 : 0
             if (down)
                 Out("  " BTN[b].ctl "`t-> " BTN[b].act)
             prevBtn[b] := down

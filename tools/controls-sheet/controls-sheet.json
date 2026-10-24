@@ -147,6 +147,7 @@
       {"control": "A",  "layer": "shift", "at": "LB+A",              "sends": ["3"],                "expect": ["hardpoint3_fire"],   "how": "hold"},
       {"control": "B",  "layer": "shift", "at": "LB+B",              "sends": ["4"],                "expect": ["hardpoint4_fire"],   "how": "hold"},
       {"control": "X",  "layer": "shift", "at": "LB+X",              "sends": ["r"],                "expect": ["radar_range_toggle"], "how": ""},
+      {"control": "Back", "layer": "shift", "at": "LB+Select",       "sends": ["f"],                "expect": ["weapon_link"],       "how": "tap; RT then fires the linked group", "label": "Link weapons"},
       {"control": "Y",  "layer": "shift", "at": "LB+Y",              "sends": ["F1", "F2", "F3", "F7", "F8", "F9", "F10"], "expect": [null, null, null, null, null, null, null], "how": "one step per press", "label": "Cycle camera views"},
       {"control": "D-pad up",    "layer": "shift", "at": "LB+Dpad-Up",    "sends": ["b"],           "expect": ["toggle_binoculars"], "how": ""},
       {"control": "D-pad down",  "layer": "shift", "at": "LB+Dpad-Down",  "sends": ["g"],           "expect": ["honk_horn"],         "how": "hold"},
@@ -205,20 +206,23 @@
     "_readme": "Printed under each page. Each line quotes or cites a doc; nothing is marked verified that the docs do not record.",
     "keyboard": [
       "Map: the owner's daily-driver map of 2026-10-03 plus three keys added the same day (1 and J = hardpoint 1, L = hardpoint 2); the daily driver gets them by promotion after a pad test. The dedicated arrow keys look around and W A S D drive (owner, 2026-10-03).",
-      "A fresh install made by INSTALL.bat has not been started by anyone on this project (INSTALL.md, Evidence): on such an install this page is read from the files, not played."
+      "A fresh install made by INSTALL.bat has not been started by anyone on this project (INSTALL.md, Evidence): on such an install this page is read from the files, not played.",
+      "Link weapons is F (the 1997 L is hardpoint 3 here): press it to link, then Enter / the left mouse button fires the linked group. Head look (PLAY-WITH-HEADLOOK.bat, PLAY-i76.ps1 -HeadTrack): Ctrl+Alt+H cycles ANALOG (the default) > DIGITAL > OFF, each change shown on screen; holding any glance key or button (arrows, middle mouse, pad right stick, stick cone hat) overrides head look until released (2026-10-24; not yet played)."
     ],
     "mouse": [
       "Buttons 4 and 5 need the AutoHotkey layer (i76-remap.ahk); the wheel needs i76wheel.exe, started by PLAY-i76.ps1. Status of the wheel helper: not recorded (ENHANCEMENTS.md)."
     ],
     "gamepad": [
       "Pad layer: \"deployed, verified on Mac/Windows\" (RELEASE-PLAN section 1). The docs do not record a play test of the pad on this map. Changed 2026-10-03 and not yet played: LB + D-pad left / right (gears), B (cycle weapon), LB + RT (hardpoint 1), RB (handbrake).",
-      "Connect the pad before launching. Without the AutoHotkey layer a pad has the left stick only: this map binds no pad button natively."
+      "Connect the pad before launching. Without the AutoHotkey layer a pad has the left stick only: this map binds no pad button natively.",
+      "LB + Select links weapons (F); RT then fires the linked group (added 2026-10-24, not yet played)."
     ],
     "wheel": [
       "Wheel: \"STATUS 2026-08-01: WORKING AND PLAYED\" (WHEEL-T300.md). Buttons rebalanced 2026-08-08; of the rebalanced buttons the docs record only the held horn as confirmed in the game (FIGHTERSTICK.md)."
     ],
     "stick": [
-      "Stick: \"Confirmed in the game, 2026-08-08, control by control\": trigger, the three hats, special 1, cone-hat glance, stick axes (FIGHTERSTICK.md). Pickle (2) and pinky (4) are not in that table."
+      "Stick: \"Confirmed in the game, 2026-08-08, control by control\": trigger, the three hats, special 1, cone-hat glance, stick axes (FIGHTERSTICK.md). Pickle (2) and pinky (4) are not in that table.",
+      "Trigger = fire selected / linked group + hardpoint 1 together (Enter + 1, held); out of a side window it is also the handgun (2026-10-24, not yet played). The cone hat's arrow keys are read from input.map."
     ],
     "compare": [
       "1997 column: input.map of GOG's offline installer 2.1.0.17 (stock-2.1.0.17.json). Its plain arrow tokens (UpArrow ...) versus the Grey set have not been checked on a Windows keyboard by anyone on this project.",

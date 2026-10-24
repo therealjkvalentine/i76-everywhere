@@ -105,7 +105,7 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
 |---|---|
 | `Enter` or left mouse button | fire the selected weapon |
 | `Tab` (or `C`) | select the next weapon |
-| `F` | fire the linked weapon group |
+| `F` | link / unlink weapons (stock I'76 used `L`; here `L` fires hardpoint 3). Linked, `Enter` fires the group |
 | `1` `2` `3` `4` `5`, also `J` `K` `L` `;` for 1-4 | fire hardpoint 1-5 directly (right mouse button = hardpoint 2) |
 | `6` `7` `8` | special 1 / 2 / 3 (nitrous is usually `6`) |
 | `Q` | target the car in front of you |
@@ -127,6 +127,7 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
 | arrow keys (or middle mouse button = look left) | glance up / down / left / right |
 | `Page Up` / `Page Down` / `End` | zoom out / in / reset (view, map and camera) |
 | `Shift` + arrows | move the outside camera / pan the map |
+| `Ctrl`+`Alt`+`H` | head look (only with a head tracker and `PLAY-i76.ps1 -HeadTrack`, which Scott's set does not use): cycles ANALOG (start) > DIGITAL > OFF, shown on screen; holding a glance key overrides it |
 | `M` | map |
 | `N` | notepad (the mission briefing) |
 | `P` | poetry |

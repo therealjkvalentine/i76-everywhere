@@ -182,6 +182,7 @@ SetTimer, WheelPoll, 15
 ; @pad RT(looking back): fires the REAR gun (hp3) while right stick is held back
 ; @pad LT: hardpoint 2 (hold)
 ; @pad LB+X: radar zoom toggle (R)
+; @pad LB+Select: link / unlink weapons (F) - then RT fires the linked group
 ; @pad A(tap): OK/select in menus - click+Enter; in-sim a single shot
 ; @pad A(hold 400ms): NITROUS while held
 ; @pad B(tap): cycle weapon (Tab)
@@ -585,7 +586,7 @@ RSGSet("g", lbHeld && dD)     ; horn (hold to honk)
 RSGSet(",", lbHeld && dL)
 RSGSet(".", lbHeld && dR)
 
-if (lbHeld && (aHeld || bHeld || xHeld || yHeld || gRTHeld || gLTHeld || dU || dD || dL || dR))
+if (lbHeld && (aHeld || bHeld || xHeld || yHeld || selHeld || gRTHeld || gLTHeld || dU || dD || dL || dR))
     gLBUsed := true
 if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300)) {
     SendEvent, q
@@ -593,9 +594,14 @@ if (!lbHeld && gLBPrev && !gLBUsed && (A_TickCount - gLBt0 < 300)) {
 }
 gLBPrev := lbHeld
 
-; Select: Esc (pause / skip cutscene)
-if (selHeld && !gSelPrev)
-    SendEvent, {Esc}
+; Select: Esc (pause / skip cutscene); shifted (LB+Select) = weapon_link (F, 2026-10-24: the pad had
+; no way to link weapons; RT = weapon_fire then fires the linked group)
+if (selHeld && !gSelPrev) {
+    if (lbHeld)
+        SendEvent, f
+    else
+        SendEvent, {Esc}
+}
 gSelPrev := selHeld
 
 ; ---- rumble mixer (2026-07-18, field-proven path). Design per the game-feel

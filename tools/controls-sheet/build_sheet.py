@@ -420,8 +420,19 @@ def check(M):
 
     # stick (2, 4): the script's own tables carry the action; it must be what the map binds the key to
     def stick_cell(kind, e):
-        text, ok = resolve(M, "stick", "%s %s" % (kind, e.get("ctl", "")), e["key"], e["act"])
-        return {"ctl": e.get("ctl", ""), "text": text, "key": pretty(ahk_key(e["key"])[1]), "ok": ok, "mode": e.get("mode", "")}
+        # one control may send several keys at once (2026-10-24: the trigger = "Enter One", act
+        # "weapon_fire + hardpoint1_fire"); keys and actions pair up in order
+        keys = e["key"].split()
+        acts = [a.strip() for a in e["act"].split("+")]
+        if len(acts) != len(keys):
+            F.append("stick %s %s: %d keys (%s) but %d actions (%s)" % (kind, e.get("ctl", ""), len(keys), e["key"], len(acts), e["act"]))
+            acts = (acts + [None] * len(keys))[:len(keys)]
+        texts, oks = [], []
+        for k, a in zip(keys, acts):
+            t, o = resolve(M, "stick", "%s %s" % (kind, e.get("ctl", "")), k, a)
+            texts.append(t); oks.append(o)
+        return {"ctl": e.get("ctl", ""), "text": " + ".join(texts), "key": " + ".join(pretty(ahk_key(k)[1]) for k in keys),
+                "ok": all(oks), "mode": e.get("mode", "")}
     M.stick_btn = {n: stick_cell("button", e) for n, e in M.stick["btn"].items()}
     M.stick_pov = [stick_cell("POV", e) for e in M.stick["pov"]]
     M.stick_axis = [stick_cell("axis", e) for e in M.stick["axis"]]

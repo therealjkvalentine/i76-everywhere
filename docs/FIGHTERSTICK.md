@@ -173,7 +173,7 @@ CMS on 13–16.
 
 | # | control | I'76 action | key |
 |---|---|---|---|
-| 1 | trigger | `weapon_fire` | `Enter` |
+| 1 | trigger | `weapon_fire` + `hardpoint1_fire` (2026-10-24: the selected / linked group, hardpoint 1, and the handgun when you glance out of a side window) | `Enter` + `1` |
 | 2 | top red — **pickle** | `hardpoint2_fire` | `2` |
 | 3 | back-side red — **also the mode switch** | `special1` (nitrous) | `6` |
 | 4 | pinky red | `pilot_glance_target` — snap-look at the target | `E` |

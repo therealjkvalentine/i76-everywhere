@@ -117,7 +117,8 @@ What to know about our map:
 - **Hardpoints 1 to 5 are on `1` to `5`, and 1 to 4 also on the home row `J` `K` `L` `;`** (since 2026-10-17, one
   map for Windows and the Macs: the Mac's home-row layout merged in). The radar camera moved `K` -> `O` and team
   scores `;` -> `Shift+'`. Fire the selected weapon with `Enter` or the left mouse button, pick it with `Tab` (or
-  `C`), fire linked groups with `F`. The Windows daily driver still has the 2026-10-03 map (`J` = 1, `L` = 2, `K`
+  `C`), link weapons with `F` (the 1997 key was `L`, which is hardpoint 3 here); once linked, `Enter` / the left
+  mouse button fires the linked group. The Windows daily driver still has the 2026-10-03 map (`J` = 1, `L` = 2, `K`
   radar camera) until the owner promotes this one (docs/records/GAME-NIGHT-ROLLOUT-2026-10-17.md).
 - **Looking up and down is the right way round.** Stock binds "glance down" to the up arrow; ours does not.
 - **No native pad or wheel buttons.** `joystick1` appears only on `steer` and `throttle`. Buttons come from the
@@ -275,7 +276,7 @@ around a labelled picture of the device.
 
 | # | Control | Action | Key |
 |---|---|---|---|
-| 1 | trigger | fire selected weapon | `Enter` |
+| 1 | trigger | fire selected / linked group + hardpoint 1, both held (out of a side window: the handgun) | `Enter` + `1` |
 | 2 | top red (pickle) | hardpoint 2 | `2` |
 | 3 | back-side red (also the mode switch) | special 1 (nitrous) | `6` |
 | 4 | pinky red | look at target | `E` |
@@ -284,7 +285,9 @@ around a labelled picture of the device.
 | 13 to 16 | trim hat | nitrous / notepad / combat view / map | `6` `N` `V` `M` |
 | POV | cone hat: look, held (vertical inverted) | look down / right / up / left | arrow cluster |
 
-Hat directions read up, right, down, left. Weapon link is on the keyboard only (`F`).
+Hat directions read up, right, down, left. Weapon link is on the keyboard (`F`) and the pad (LB + Select). The
+cone hat's arrow keys are read from the folder's `input.map` at start (the RC map swaps Up and Down). Trigger
+changed 2026-10-24 (owner: "can flightstick trigger fire linked and 1 and handgun all?"), not yet played.
 
 **Before you launch** (the rules those docs give):
 
@@ -315,9 +318,12 @@ every key they can hold. The installer puts only the first two scripts in `_ahk\
 
 ## 6. Head look
 
-Start opentrack with Output = **freetrack 2.0 Enhanced** and press Start, then run `i76-opentrack-headlook.ahk`
-(`PLAY-i76.ps1 -OpenTrack <path>` does both when the script is in `_ahk\`; the installer does not put it there).
-Turning your head holds the glance keys; **Ctrl+Alt+H** switches to analog yaw, in which the glance keys and hats do nothing.
+Set opentrack's Output to **freetrack 2.0 Enhanced** once, then launch with `PLAY-WITH-HEADLOOK.bat` /
+`PLAY-i76.ps1 -HeadTrack`: it starts opentrack, tracking begins by itself when the game starts (opentrack's game
+detection, plus a UI-Automation press of Start as the fallback), and the head-look layer runs (when the script is in
+`_ahk\`; the installer does not put it there). It starts in **ANALOG**; **Ctrl+Alt+H** cycles ANALOG -> DIGITAL -> OFF,
+each change shown on screen. Holding any glance key or button (arrows, middle mouse, pad right stick, stick cone hat)
+overrides head look, which eases back 150 ms after you let go (2026-10-24, not yet played).
 Status: "Working and field-confirmed" on the GOG Gold build; untested at 120 fps. Details: [HEAD-TRACKING.md](HEAD-TRACKING.md).
 
 ## 7. Something is wrong
