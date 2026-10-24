@@ -230,11 +230,25 @@ owner-farclip-crash's views via `rf2-crash.ps1` on exp-faredge with a 20 ms read
 - **Chosen value: 24 stays** (the only value under the 5 % line so far). OWNER-2300-ALL is not changed. A cheaper way to reach the full
   detail farther would be LOD_A alone (the split distance; REBASELINE R13: LOD_A 24 cost more than LOD_B 24), not a bigger LOD.
 
-**Not yet run (paused by main at 07:20 for the owner's test):** crash n 2 for 32 / 48 / 64 and t05-b of 24; the LOD 28 rows
-(`rf2-steps-28.txt`: ridge 28 a / b, a third 24 and 32 row, crash 28 t01 / t05 n 2), which decide whether 28 (forced ring 140 m,
-+8 %) fits under 5 %. Resume with `rf2-run.ps1 -Steps rf2-steps-28.txt` and then the remainder of `rf2-steps-main2.txt` from
-`rf2-crash-lod24-t05-b`.
+**Resumed 08:32-10:53 (main: RESUME), then stopped by the owner's rule (keep this desktop's console free) - results as measured:**
 
-**Install:** not done - main paused all console work while the owner tests; exp-polish2 still runs 0c4f109c. The proxy to install is
-rf2-dfc456c (957cf2c3) or a fresh build of latest main carrying dfc456c; the roads change is default-on under the preset's existing
-`I76_MIRROR_M16 = '1'`.
+| LOD | crash check t01 / t05, n | binocular peak t01 / t05 | drive peak t01 / t05 | ridge fps |
+|---|---|---|---|---|
+| 24 | none / none, n 2 / 2 | 18,805 / 18,137 | 7,551 / 6,550 | as above (n 2) |
+| 28 | none / none, n 2 / 2 | 18,991 / 18,271 | 7,916 / 6,745 | **not measured** (both ridge boots failed, below) |
+| 32 | none / none, n 2 / 2 | 19,300 / 18,334 | 8,312 / 6,981 | as above (n 2) |
+| 48 | none / none, n 2 / 2 | 19,741 / 18,565 | 9,601 / 8,056 | as above (n 2) |
+| 64 | none / none, n 2 (t01) / 1 (t05) | 20,268 / 18,844 | 10,727 / 9,196 | as above (n 2) |
+
+LOD 28's finest rings: forced split 139 m, steep 198 m (+8 % over 24). Its frame rate is **unmeasured (n 0)**: the four resumed ridge boots
+(28 a / b, a third 24 and 32) each stopped ~15 s in with `god-shm.py: no trainer block (magic 00000000)` - tp-run's drive block runs
+god-shm.py inside proxy-run (ErrorActionPreference Stop), and that reader found no trainer block this time though the same script and
+DLL ran eight ridge rows at 06:00-07:10 (suspect: the shm suffix the reader does not follow; not investigated, console use ended). Their
+frames.csv hold ~220 boot frames only and are not rows. By the ring maths 28 sits between 24 and 32 (-7.7 %), so it may or may not fit
+under 5 %; **28 was not picked and OWNER-2300-ALL keeps 24.** No CRASH / EXCEPTION line and no vertex-guard refusal in any of the 19 crash
+boots; the far clip need not drop for a higher LOD (the crash never bit). Persisted mute cleared for exp-faredge and exp-rebase
+(`unmute-persisted.ps1`: not muted on both devices); keep-display and the queue line removed.
+
+**Install:** not done by this lane (main: the stability lane, fixing a Gold mission-change crash at Strlkup.dll+0x3D3B1 that may sit in
+mirrordetail.c's per-mission cache including this lane's road fingerprints, installs a combined build). The roads change is default-on
+under the preset's existing `I76_MIRROR_M16 = '1'`; the lane's own proxy was rf2-dfc456c (957cf2c3).
