@@ -315,3 +315,12 @@ Laptop (LAPTOP-HPK11OMS, Windows 11 26100.9711, 1920x1080), runner `laptop-run.p
 | B: PLAY-T05.bat (fresh unzip, display fit run on the first start) | 3 | 3 | 3 | **0** | applied | c70a0ee6 | `_fit\display.txt` = 1920x1080 x2, aspect D 1.778, 20/20 sites |
 
 Raw logs on the laptop: `C:\i76-bench\runs\wmr\scott-{a,b}-*`. Not measured: music by ear (muted), anything past 20 s in the mission, a real 16:9 monitor beyond the laptop's panel.
+
+## 10. Release renamed (2026-10-24 18:36)
+
+The owner named the public tester release **v1.3.0-alpha.1** (not "scott"). The draft `scott-20261023` was published, then
+replaced: new tag `v1.3.0-alpha.1` (gh created it at main's HEAD), release title "v1.3.0-alpha.1 - tester build (over
+your GOG copy)", body = README-SCOTT.md with the new heading, asset renamed
+`Interstate76-i76-everywhere-v1.3.0-alpha.1.zip` (byte-identical to the 20261024 zip, md5 04983fde, 4,187,803 B);
+anonymous download checked (HTTP 200, same length). The `scott-20261023` release and tag were deleted.
+URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v1.3.0-alpha.1
