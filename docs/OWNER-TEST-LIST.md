@@ -1146,3 +1146,26 @@ Open items from this session:
 - **Your decisions:** (1) publish the draft release (`gh release edit scott-20261023 --draft=false`) or send the zip; (2) whether
   the pad / wheel early-tick gap on the Galaxy exe matters enough to port the joystick watch to GOG's win32.dll shim; (3) the
   repo's shipped `saves\savegame.dir` carries 92 B of zero slack (876 vs 784 B) - harmless to the game, the gate wants it exact.
+
+## Nitro tomorrow (2026-10-24; records/NITRO-PORT-2026-10-21.md s.11)
+
+- **Launch:** the desktop shortcut **"I76 Nitro - ALL (test)"** = `i76-uncap-lab\exp-nitro-owner\PLAY-NITRO-ALL.bat` (menus). A lab
+  copy of pristine GOG Nitro (nitro.exe 28b8ae27) with dgVoodoo, the proxy built from main 6463b94 (0c4f109c), your controls
+  (input.map = the daily driver's, the pad / wheel layer `_ahk`) and `presets\OWNER-NITRO-ALL.psd1`. Physical console only.
+- **What is on:** your Gold ALL set as it stood at 22:37 last night (OWNER-2300-ALL after the render-finish changes): 24 ticks/s and
+  every gameplay fix (health %, label table, breakable box + signs on time, sign-sound restart, fade without the flicker, Esc-menu keys
+  don't steer, menu redraw, private font), terrain / roads / bushes to 2300 m with LOD 24 and the detail x8 keys, morph (no blend nearer
+  than 100 m, BIG off), SMOOTH shade, the feather fade at 0.75, SPARSE bushes fading in over 150 m, mirror to 1000 m with the main
+  view's terrain art, one-pass sky, jump nose 0.91, music retail + resume, 3440x1440 aspect, the menu pointer mapped. Most of the
+  terrain look was Gold-only until last night (ported, s.11.2).
+- **What is not, and why:** the u32x keys (Gold's mouse DLL; Nitro gets the same pointer map from the proxy) and the LAN keys
+  (Gold's LAN path; Nitro multiplayer is the MP lane's own). **No straight-into-mission launcher:** a direct mission boot draws
+  the 3D view zoomed on Nitro (not fixed) - go through the menus (SCENARIOS > a character > a scenario > ENTER AREA). **No bookmarks:**
+  Nitro's shell has no save / load.
+- **Fixed on the way (tell me if you still see them):** the second mission of a session (Replay, or Abort Mission > another scenario)
+  used to end in an "Unhandled Exception" box; and after changing scenario the whole picture came up in the previous mission's
+  colours (yellow / green). Both gone in two full lab runs of exactly this route. The colour bug is in code Gold shares (the mirror's
+  .m16 art) - if a Gold campaign mission ever came up in odd colours after the previous one, that was it (fixed in main 69c4a54).
+- **Look for:** pointer lands where you click in the menus and the Esc menu; frame rate (lab: 120 cap median in A NEW HOPE / BAD FUEL,
+  P05 road 1 % low 95-101); the far terrain fade and bushes fading in; the rear mirror's terrain; music in the menus and missions and
+  that it resumes after Replay; anything that crashes - the proxy log is `exp-nitro-owner\Interstate 76 Nitro Pack\mciproxy.log`.

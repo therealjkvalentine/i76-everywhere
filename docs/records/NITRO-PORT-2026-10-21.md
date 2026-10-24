@@ -477,6 +477,119 @@ separate job beside a long np-run boot.
 - DxWnd scales the mouse for a non-640x480 window.
 - The clamp-and-write-back only bites when the shell sees raw coordinates past 639 / 479.
 
+## 11. The owner's Gold set on Nitro (2026-10-23 night / 10-24, nitro-owner lane)
+
+Owner, 2026-10-23 night: "make sure I can play a copy of Nitro tomorrow with all of the improvements we've made to Gold. Probably
+some testing to do there." Base: the owner's Gold set exp-polish2 `presets\OWNER-2300-ALL.psd1` (read 21:07; the render-finish lane
+changed it at 22:37: BIG off, MORPH_NEAR 100, CLUTTER_ALPHA_FADE 150 - the Nitro set follows the 22:37 file).
+
+### 11.1 The matrix: every Gold key on Nitro
+
+Method: headless P05 boots of a pristine-GOG Nitro copy (exp-nitro-owner) with the full Gold preset (+ I76_CURSOR_MAP_SHELL=aw), each key's
+proxy log line read. "Before" = the proxy at main 4d2e47b (m0-base); "now" = this lane's builds (m1-w1 and the console sessions below).
+Every boot: `nitro: N sites patched, 0 refused`; the only fault records are Nitro's PIT probe (s.11.4).
+
+| Gold key(s) | before (4d2e47b) | now | evidence (now) |
+|---|---|---|---|
+| HIRES_CLOCK, SIM_TICK_MS 41.667, SIM_TICK_INPUT | applied | applied | `sim-tick: ON ... 12/12 sim gates`, `early tick on input ON` |
+| FIX_HEALTH_PCT, FIX_LABEL_TABLE, CAM_GROUND_FIX, TERRAIN_HULL_FIX, BREAKABLE_BOX 4 | applied | applied | their `on` lines |
+| ZGLIDE_TMUFIX, GLIDE_REFRESH 120, ASPECT 3440x1440 | applied | applied | `ZGLIDE+0x2c9a`, `grSstWinOpen ... 120 Hz`, `aspect: D 2.389, 20/20` |
+| CURSOR_MAP, CURSOR_MAP_DGV aw (+ Nitro's CURSOR_MAP_SHELL aw) | applied | applied | `NITSHELL.DLL 4/4`; clicks land (s.11.3) |
+| CURSOR_MAP_U32X, U32X_SHELL_STRETCH, U32X_MENU_ASPECT | n/a | n/a | u32x is Gold's mouse DLL; nitro.exe / NITSHELL import USER32 (s.10); the Esc menu answers where drawn without it |
+| COOP_AI, COOP_CHAIN, MP_MENU | n/a | n/a | Gold's LAN path (i76shell); Nitro multiplayer = the MP lane's nitro_mp / nitro_ai / nitro_form (default on) |
+| MUSIC_RETAIL, MUSIC_RESUME | applied | applied | `retail set ON`, `PLAY run 4..11 after a stop: track 4 RESUMED` (Replay, console) |
+| FAR_CLIP / ROAD_DIST / CLUTTER_DIST 2300, CLUTTER_FADE 450, CLUTTER_DENSITY 0.5, TERRAIN_LOD 24, TERRAIN_TEX / OBJECT_LOD / ROAD_TEX 8, SHADOW_DIST 4, MIRROR_FAR 1000, SKY_MIRROR 0, JUMP_NOSE 0.91 | applied | applied | their lines; jump-nose `site 0x43a7f5 patched` (Nitro 0x4265c2; first booted here) |
+| SIGN_SOUND_RESTART, FADE_NO_FLIP | **missing** (never called on Nitro) | applied | `sign-sound: I76_SIGN_SOUND_RESTART=1`, `fade: ... skipped`; fixed: the restart called Gold's 0x421e70 and read Gold's 0x4f1578 directly |
+| TERRAIN_MORPH 0.25, _STATELESS, _SHADE 3, _NEAR 100 (BIG off) | **refused** ("Gold sites only") | applied | `terrain-morph: on, STATELESS ...`, ~5000 vertex-passes morphing per pass, 110-120 us |
+| SHADE_SMOOTH | **refused** | applied | `shade-smooth: Nitro - the 17 emitters found ... (constant 0x4C4F0C, grey table 0x5A4C78)`, table rebuilt per mission |
+| GLIDE_FOG 0.75,hzd + GLIDE_FOG_ALPHA | **refused** | applied | `glide-fog: on`, `glide-fog alpha: ... hooked` |
+| MIRROR_LOD / EVERY / M16 / M16_SKY / TEX / PAL | **"not ported - off"** | applied | `mirror-detail: on`, `mirror-every ... Nitro: stock gate every 2nd frame`, `mirror-pal: context palette matches t10_16.act` (P05) |
+| CLUTTER_ALPHA_FADE 150 (new 22:37) | refused | applied | Nitro guard removed (s.11.2) |
+| default-on Gold polish: MENU_KEYS, MENU_DRAW, FONT_PRIVATE | **missing** | applied | `menu-keys: on`, `menu-draw: on`, `font-private: 2 / 2` |
+| MENU_PTR_CENTRE (default on with the cursor map) | off on Nitro | off | escmenu.c stands down on Nitro; the Esc menu opens with the pointer where it was |
+| Gold-only, not in the owner's set | - | - | I76_EDGE_FADE (no Nitro void tile 0x59c588), I76_TERRAIN_FLAT_SPLIT (0x491556 differs), the lab instruments (tex-level log, shade census, glide mipmap) |
+
+### 11.2 What was ported (i76-everywhere c349c82, 314aff8, cb890f3, 04373e6, 69c4a54, 6463b94)
+
+- **Terrain renderer globals** (nitro.c `g_ta_*`, `nitro_terrain_addrs()` at DllMain): 41 addresses the terrain-look code reads
+  (QueueTerrain camera 0x6442d4 -> 0x5fb5b4, vertex array / count, the split constants, the mirror camera 0x608c80 -> 0x654480, the
+  texture set, the context palette, ...), resolved once through the site map; Gold keeps its literal values. terrainmorph.c,
+  faredge.c, mirrordetail.c, terrainpops.c read through them (lab tool `tools\nitro-owner\port_addrs.py` did the replacement);
+  their site checks went from memcmp at Gold addresses to `site_is()`. The renderer is Gold's code relocated (QueueTerrain 0x490a00 ->
+  0x4959d0 with the same camera fields +0x3c / +0x160 / +0x170).
+- **Shade smooth's 17 emitters**: 13 map through the function pairs; the last four (0x42c509 / 0x42c82d / 0x42c969 / 0x42cc8d and their
+  table operands) sit in functions the exediff left unpaired - pattern search: both exes hold exactly 17 `fmul [-31.0]` and 17
+  `mov r, [r*4 + grey table]` in the same order and spacing (manual_sites.txt).
+- **Mirror**: DrawRearMirror Gold 0x445750 = Nitro 0x42c7e0 read side by side; the RearView upload 0x445a3c -> 0x42cacc (manual). Nitro
+  keeps the Galaxy refresh gate (`call 0x4a2bf0` frame count, every 2nd frame) where Gold's AiO exe has a jmp: I76_MIRROR_EVERY repoints
+  that call on Nitro.
+- **Menu draw**: WndProc 0x404a7d -> 0x433bed (manual; same order read side by side). **Polish**: the sign-sound stop / name and the
+  fade / menu-keys globals through NA.
+- **Clutter alpha fade** on Nitro: the cull loop 0x45c380 = 0x45f150 (same frame, the same [ebp - 8] slot), the flush draw 0x48fb7e =
+  0x498b2e.
+- **nitro_patch_bytes fix**: a dword of a patch that points into the proxy DLL is copied verbatim. The pristine path took every byte equal
+  to Gold's instruction byte from Nitro's instruction, so a stub / table address of ours with one byte equal to Gold's operand byte at
+  that position would have been corrupted (shade smooth's operand pokes would have hit it).
+- Site table re-emitted: 715 rows (the generator now sees terrainmorph / faredge / mirrordetail / terrainpops; extra_sites.txt carries the
+  41 g_ta_ addresses, which live in nitro.c and are not scanned).
+
+### 11.3 Testing as the owner plays (console, his launcher)
+
+Copy `i76-uncap-lab\exp-nitro-owner` (pristine GOG Nitro 28b8ae27 + dgVoodoo + the proxy 0c4f109c from 6463b94 + presets\OWNER-NITRO-ALL.psd1 +
+his controls); `PLAY-NITRO-ALL.bat` = the desktop shortcut "I76 Nitro - ALL (test)". Lab tools `tools\nitro-owner\ncon.ps1` (start the
+.bat under .fps-lock / .fps-queue with I76_MUTE + the per-pid mute watcher, shot / click / key / hold / stop), `swap-trial.ps1`.
+
+Found on the way, fixed, re-run:
+1. **The second mission of a session faulted** ("Unhandled Exception" box): Replay, or Abort Mission > another scenario. ntdll HeapFree
+   reading block - 1; with every optional switch off too (n 5). WinMain 0x431efc (and 0x433f8a) free the previous mission's font
+   [0x526a5c] (base6x7*.fnt; Gold 0x504c0c, the same code) whose memory is no longer committed. Proxy `I76_NITRO_FONT_GUARD` (default on,
+   nitro.c): the free is skipped when the pointer's memory is gone (VirtualQuery; HeapValidate took a first-chance fault of its own).
+   Not settled: whether stock GOG Nitro does the same - GOG's own strlkup.dll in this copy started no game from the harness (n 3), so
+   the control is missing; with the proxy and everything off it faults.
+2. **After a mission change the whole picture came up in the previous mission's colours** (yellow / green; A NEW HOPE > Abort > BAD FUEL).
+   Bisection on the console, n 1 each: all switches off right; the set without tonight's ports right; without the mirror keys right;
+   without I76_MIRROR_M16 alone right; full set wrong. The .m16 copy cache was keyed by the source address, which a new mission reuses.
+   Fix (mirrordetail.c, shared with Gold): the cache is emptied when the terrain set or the display palette changes. **Gold takes the
+   same path in its campaign with M16 on - not yet checked on Gold.**
+3. The crash log's one shot was taken by Nitro's PIT probe (four first-chance 0xC0000096 per boot at 0x49acb7..0x49acc0); now skipped,
+   and every crash record lists the exe code addresses deeper on the stack (how 0x431f01 was found).
+4. **A direct mission boot (I76_MISSION) draws the 3D view zoomed on Nitro** (the top-left part of a larger frame; menus, Esc menu and HUD
+   too) - the menus route draws right. Not fixed (nitplyr.def byte 0x40, which NITSHELL rewrites 3 -> 5, is not it). The owner's copy has
+   no straight-into-mission launcher; `_lab\PLAY-NITRO-ALL-P01/P05.bat` kept for the lab. The headless matrix boots and the P05 fps
+   route rows below are direct boots: their log lines stand, their picture was this zoomed one.
+
+The owner's route, final build 0c4f109c, n 2 (fin1 / fin2, `captures\nitro-owner-20261023\console\fin*.png`, `session-2144.log`,
+`session-21052.log`): intro skipped, main menu, SCENARIOS > TAURUS > A NEW HOPE > ENTER AREA (every click landed where drawn), 60 s
+driving, Esc menu > Abort Mission > Abort Mission > Yes, the form, BAD FUEL > ENTER AREA (right colours, mirror with terrain art), 30 s,
+Esc menu > Replay (the mission restarts, right colours). Per run: 0 fault records, 2 font-guard skips, 2 `.m16 copies released`, music
+shell 10 / mission 2 / 4 and `track 4 RESUMED` after Replay. Earlier sessions also covered 2 min of driving (e01-e07), Exit Game's
+confirm page and the Esc menu's own pages. Bookmarks: Nitro has none (NITRO-BASE: no savegame.dir / save*.cmp in Nitro's shell).
+
+### 11.4 fps
+
+| run | where | n | fps |
+|---|---|---|---|
+| Nitro, owner's set, menus route (5 s windows, I76_FPS_LOG; driving + menus) | A NEW HOPE / BAD FUEL | 2 runs, 32 windows each | median 120.0 (the 120 Hz cap) both; lowest window 102.9 / 99.5 (mission load) |
+| Nitro, owner's set, P05 road leg (np_route, 90 s, 2.05 km; direct boot, zoomed picture) | P05 | 2 | median 120 both; 1 % low 95.1 / 100.8; worst 1 s 118 / 119 frames |
+| Gold, owner's set (render-finish lane, same machine, 2026-10-23 night) | valley road / ridge route | 2 each | 120.0 (cap) / 87.1, 88.4 |
+
+The Gold T05 legs this lane tried with np_route left the road within 1-12 s (placement), no Gold row of its own. On Nitro's missions the
+owner's set sits at the cap; the Gold ridge route is the heavier scene, not a like-for-like comparison.
+
+### 11.5 Gold unchanged
+
+Gold smoke (exp-nitro-port-gold, T05 headless, the owner's Gold preset, compare_logs.py): main 4d2e47b vs this lane's first build 314aff8:
+same line set (146 lines, 0 CRASH, n 2 each). a8f694a vs 6463b94: same line set (147 lines, 0 CRASH, n 2 each).
+
+### 11.6 Files
+
+- i76-everywhere: music-fix/nitro.c (g_ta_*, the patch fix, the font guard), terrainmorph.c / faredge.c / mirrordetail.c / terrainpops.c /
+  polish.c / strlkproxy.c hunks, tools/nitro-sites/{manual,extra}_sites.txt, sites_nitro.h / .csv.
+- lab: `tools\nitro-owner\` (no-run.ps1 = np-run with -GameDir / -Preset and the .fps-queue rule, batch.ps1, ncon.ps1, swap-trial.ps1,
+  replay-trial.ps1, gog-replay-trial.ps1, abort-trial.ps1, owner-route-trial.ps1, def-trial.ps1, nodis.py, site_audit.py, port_addrs.py,
+  presets\, routes\), builds `builds\nitro-port-20261021\no-*`, captures `captures\nitro-owner-20261023\`, copy `exp-nitro-owner`
+  (WHAT-THIS-IS.txt). The Gold copy's stale `.console-test.lock` (pid 51032, 2026-10-22) was moved aside as `.console-test.lock.dead-pid51032-20261022`.
+
 ## Files
 
 - i76-everywhere: `music-fix/nitro.c`, `music-fix/sites_nitro.h` (generated), `tools/nitro-sites/{gen_sites.py, uses.py,
