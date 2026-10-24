@@ -105,7 +105,7 @@ param(
     # read here. Pass it when installing over Remote Desktop, where the primary display is the RDP
     # desktop, not the PC's monitor (docs\records\FRESH-INSTALL-CHECK-2026-10-10.md, gap 4).
     [string]$Display = '',
-    # 2026-10-23 (tester build, tools\package-scott.ps1): a widescreen preset on a display no wider than 4:3 is set up at
+    # 2026-10-23 (tester build, tools\package-patch-kit.ps1): a widescreen preset on a display no wider than 4:3 is set up at
     # that shape (Make-Wide-Conf.ps1 -AllowNarrow: a 4:3 picture, nothing widened) instead of being refused
     [switch]$AllowNarrow
 )
@@ -122,7 +122,7 @@ if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "pr
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
 # a preset that carries I76_ASPECT needs dgVoodoo.wide.conf sized for the display (best-wide, best-wide-balanced, and since
-# 2026-10-23 the tick presets tick19-42 / scott-preview: read from the preset itself)
+# 2026-10-23 the tick presets tick19-42 / preview: read from the preset itself)
 $presetHasAspect = $false
 try { $pe0 = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoGameDir "presets\$Preset.psd1")).Env; $presetHasAspect = [bool]"$($pe0['I76_ASPECT'])" } catch { }
 $widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced' -or $presetHasAspect)

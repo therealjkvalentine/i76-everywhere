@@ -5,13 +5,13 @@
 
   Gold, the steps (each is an existing repo tool, nothing forked):
     1. tools\build-proxy.ps1 -Ref <sha>       the proxy Strlkup.dll from that commit (MSVC x86, deterministic)
-    2. tools\package-scott.ps1                 the tester overlay (launchers, presets, u32x, dgVoodoo 2.87.3, AutoHotkey, the shell
+    2. tools\package-patch-kit.ps1                 the tester overlay (launchers, presets, u32x, dgVoodoo 2.87.3, AutoHotkey, the shell
                                                key patch data, controls, saves) staged from this repo + that proxy; NO game bytes
     3. copy -GogDir -> -OutDir, the stage over it (the same as unzipping the tester zip into a GOG folder)
     4. _i76e\i76e-prepare.ps1 -Preset <p>      the first-run setup (setup-windows.ps1, Apply-Shell-Keys, u32x, dgVoodoo, controls)
                                                + the display fit (Make-Wide-Conf: dgVoodoo.wide.conf + the presets' I76_ASPECT)
-    Then <OutDir>\PLAY.bat (stable, tick19-42) / PLAY-PREVIEW.bat (scott-preview) / PLAY-T05*.bat start it; UNINSTALL-i76e.bat
-    puts the GOG files back. README-SCOTT.md in the copy explains the launchers and keys.
+    Then <OutDir>\PLAY.bat (stable, tick19-42) / PLAY-PREVIEW.bat (preview) / PLAY-T05*.bat start it; UNINSTALL-i76e.bat
+    puts the GOG files back. README-PATCH-KIT.md in the copy explains the launchers and keys.
 
   Nitro Pack (nitro.exe): see -Game Nitro below (docs\records\FRESH-GOG-BUILD-2026-10-23.md).
 
@@ -72,10 +72,10 @@ Say "    $b"
 $proxy = Join-Path $pdir 'Strlkup.dll'
 
 if ($Game -eq 'Gold') {
-    # ---- 2. the overlay stage (package-scott.ps1: the guard keeps every game file out) ----------------------------------------
+    # ---- 2. the overlay stage (package-patch-kit.ps1: the guard keeps every game file out) ----------------------------------------
     $stage = Join-Path $work 'stage'
-    & (Join-Path $PSScriptRoot 'package-scott.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
-    if ($LASTEXITCODE) { Die 'package-scott.ps1 failed' }
+    & (Join-Path $PSScriptRoot 'package-patch-kit.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
+    if ($LASTEXITCODE) { Die 'package-patch-kit.ps1 failed' }
     # ---- 3. the copy, the overlay over it ------------------------------------------------------------------------------------------
     Say "    copying $GogDir -> $OutDir"
     Copy-Item -LiteralPath $GogDir -Destination $OutDir -Recurse
@@ -86,7 +86,7 @@ if ($Game -eq 'Gold') {
     if ($NoSupersample) { $pa += '-NoSupersample' }
     & powershell.exe @pa
     if ($LASTEXITCODE) { Die "i76e-prepare.ps1 exited $LASTEXITCODE - the copy is set up only partly; read the lines above" }
-    Say "=== done: $OutDir\PLAY.bat (stable) / PLAY-PREVIEW.bat (graphics preview); README-SCOTT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green'
+    Say "=== done: $OutDir\PLAY.bat (stable) / PLAY-PREVIEW.bat (graphics preview); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green'
     exit 0
 }
 
@@ -94,8 +94,8 @@ if ($Game -eq 'Gold') {
 # The same overlay stage, used here only as the repo copy at that commit's proxy (its _i76e\repo holds setup-windows.ps1, the presets,
 # u32x, the tools, and music-fix\Strlkup.dll = the proxy just built); nothing of the Gold launchers / README goes into the Nitro copy.
 $stage = Join-Path $work 'stage'
-& (Join-Path $PSScriptRoot 'package-scott.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
-if ($LASTEXITCODE) { Die 'package-scott.ps1 failed' }
+& (Join-Path $PSScriptRoot 'package-patch-kit.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
+if ($LASTEXITCODE) { Die 'package-patch-kit.ps1 failed' }
 Say "    copying $GogDir -> $OutDir"
 Copy-Item -LiteralPath $GogDir -Destination $OutDir -Recurse
 if (-not $Display) { Add-Type -AssemblyName System.Windows.Forms; $bd = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $Display = "$($bd.Width)x$($bd.Height)" }

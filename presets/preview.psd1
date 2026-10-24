@@ -1,4 +1,4 @@
-# scott-preview (tester build, tools\package-scott.ps1 / PLAY-PREVIEW.bat): the EXPERIMENTAL GRAPHICS PREVIEW - a verbatim copy of the
+# preview (tester build, tools\package-patch-kit.ps1 / PLAY-PREVIEW.bat): the EXPERIMENTAL GRAPHICS PREVIEW - a verbatim copy of the
 # owner's trial preset lab exp-polish2\Interstate 76\presets\OWNER-2300-ALL.psd1 as it stood 2026-10-24 (only the Name below differs). NOT gated, not promoted.
 # rebase-x5 (rebaseline lane 2026-10-21, lab tools\rebaseline\rungs.py; i76-everywhere docs\records\REBASELINE-2026-10-21.md):
 # X5 = R07 + far clip / roads / bushes 2000 m (the planned ship value; owner soak) (main, owner's console A/B 2026-10-21 evening)
@@ -6,7 +6,7 @@
 # non-graphics fix as the candidate has them). Graphics keys removed (= the game's stock value): I76_FAR_CLIP, I76_ROAD_DIST, I76_CLUTTER_DIST, I76_CLUTTER_FADE, I76_TERRAIN_LOD, I76_TERRAIN_LOD_A, I76_TERRAIN_LOD_B, I76_TERRAIN_HYST, I76_TERRAIN_FREEZE, I76_TERRAIN_TEX, I76_OBJECT_LOD, I76_SHADOW_DIST, I76_ROAD_TEX, I76_MIRROR_FAR.
 # Then this rung's keys, each with the reason it exists. Launched by PLAY-R07.bat. Lab ladder only: not a release preset.
 @{
-    Name        = 'scott-preview'
+    Name        = 'preview'
     Summary     = 'Render finish 2026-10-23 night: BIG off (far flicker), morph NEAR 100 m, bushes fade in over 150 m; Owner picks 2026-10-23 pm: SMOOTH + SPARSE 0.5/450 + FEATHER at 0.75; Owner picks so far: one-pass sky + morph + big tiles blended (BIG 1, owner OK 2026-10-23) + slow shade fade x3 + mirror to 1000 m with the main view''s terrain art; terrain 2300 m'
     Verified    = '[lab 2026-10-21] rebaseline ladder rung; NOT promoted'
     Env         = @{

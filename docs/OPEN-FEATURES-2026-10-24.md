@@ -19,7 +19,7 @@ are in the appendix. Where a row cites "OTL" it means [OWNER-TEST-LIST.md](OWNER
 - Haptics, FFB, LFE and motion code has not changed since 2026-10-12 (`git log -- tools/haptics tools/ffb`, last commit
   `6e69260`). Everything below in section 1 is where it stood then. None of it has run against the game with a device.
 - Promotion 19 (the 41.667 ms whole-sim tick + LAN pieces) is installed in `Games\I76\release-candidate` (2026-10-21
-  14:03) and ships in Scott's zip, but the daily driver is still promotion 18 (`33211f11`, 2026-10-17). The owner's
+  14:03) and ships in the patch kit zip, but the daily driver is still promotion 18 (`33211f11`, 2026-10-17). The owner's
   "promote 19" verdict (OTL "Decisions wanted" 1) has not been recorded.
 
 ---
@@ -135,7 +135,7 @@ Dash, `i76motion` 144 B; validator, golden tests).
 
 The owner's picks of 2026-10-23 live as `OWNER-2300-ALL` in lab `exp-polish2` (one-pass sky, stateless morph + BIG
 unset + NEAR 100, SHADE 3, shade smooth, Glide fog 0.75, feather, sparse bushes, clutter alpha fade 150, 2300 m,
-mirror detail; proxy `6e4e7c49`) and as Scott's `PLAY-PREVIEW`. None of it is in the daily driver or the RC.
+mirror detail; proxy `6e4e7c49`) and as the patch kit's `PLAY-PREVIEW`. None of it is in the daily driver or the RC.
 
 | item | status | source |
 |---|---|---|
@@ -235,7 +235,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 
 | item | status | source |
 |---|---|---|
-| F2 orphaned-bookmark fix: console test PASS (stock ORPHAN, F2 OK); in no shipped shell (the Scott patcher applies F7 + M1/M2/K1-K4 only) | built, not shipped | OTL item 48; BACKLOG-AGENT-ITEMS U-05; SCOTT-BUILD |
+| F2 orphaned-bookmark fix: console test PASS (stock ORPHAN, F2 OK); in no shipped shell (the patch kit's patcher applies F7 + M1/M2/K1-K4 only) | built, not shipped | OTL item 48; BACKLOG-AGENT-ITEMS U-05; SCOTT-BUILD |
 | Shell patches M2, K2, K4 and the garage "Overwrite the current variant?" prompt: emulated only, never live | built, not tested | B-16 U-06 |
 | Menu pointer on GOG's 9a232dcc under the shipped cursor map (gate rows 3-6 void twice); overwrite Y/N and popup Enter / Space there | not tested (agent, after the reboot) | SCOTT-BUILD s.6.3, 7, 8.5 |
 | Esc / exit-menu pointer fix (`I76_MENU_PTR_CENTRE`), Alt-Tab fresh frame (`I76_MENU_DRAW`), Windows-only Up / Down look swap (staged polish2): owner's hand check | built, owner test pending | OTL 2026-10-21 P8-P10 |
@@ -259,7 +259,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | item | status | source |
 |---|---|---|
 | v1.1.0: CHANGELOG still a DRAFT block covering to 2026-10-10; extend to 10-24; the tag is the owner's | ruling / docs | CHANGELOG.md; B-16 R-03; OWNER-MORNING C13 |
-| Scott's tester build: publish the draft release `scott-20261023` or send the zip | ruling | OTL 2026-10-23 afternoon decision 1 |
+| Patch kit (first tested by Scott): release v0.7.3 is published on GitHub; whether to announce it or send the zip | ruling | OTL 2026-10-23 afternoon decision 1 |
 | Shipped `saves\savegame.dir` carries 92 B of zero slack | ruling (trim or leave) | OTL 2026-10-23 afternoon decision 3 |
 | Fresh install by the owner: real `INSTALL.bat` with GOG's installer and UAC, music in a mission on that exe, best-wide, a Save Bookmark | owner test pending | OTL item 16; B-16 R-04 |
 | Non-ultrawide real hardware (16:9 GPU / DPI, the menu pointer at that size); a 4:3 monitor (dry run only) | not tested | SCOTT-BUILD s.7 |
@@ -268,7 +268,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | Mac: clean-machine installer (`mac-install.command` "BETA"), mic prompt | open | B-16 K-02 |
 | Michael's Mac: Gold app not renamed (firewall allow entries need sudo) | blocked (owner, sudo) | NITRO-MAC s.7 |
 | Deck: proxy switches under Proton beyond the TV / pad set; Deck baseline tier never run on hardware | open | ENHANCEMENTS 1, 9 |
-| THIRD-PARTY.md: the dgVoodoo redistribution sentence (Scott's build relies on Dege's clause), Lossless Scaling, opentrack, GE-Proton, others | partly done | B-16 R-12; RELEASE-PLAN 5 "Legal notes" |
+| THIRD-PARTY.md: the dgVoodoo redistribution sentence (the patch kit relies on Dege's clause), Lossless Scaling, opentrack, GE-Proton, others | partly done | B-16 R-12; RELEASE-PLAN 5 "Legal notes" |
 | i76-map public export (allowlist script, decompiler-residue grep, THIRD-PARTY for anet-0.10 / DX5 headers) | partly built | B-16 R-11; RELEASE-PLAN 7 |
 | CI check: no file > 2 MB, no game formats, no DLL except the proxy | designed | RELEASE-PLAN 5 "Legal notes" |
 | Outreach order: PCGamingWiki, GOG forum, interstate76.com, VOGONS, Open76 / Roanish, Reddit | designed, not started | RELEASE-PLAN 8 |

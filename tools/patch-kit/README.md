@@ -1,6 +1,8 @@
-# Interstate '76 - i76-everywhere tester build (2026-10-23)
+# Interstate '76 Patch Kit (i76-everywhere)
 
-Hi Scott. This is James's Interstate '76 project packed so it installs over **your own GOG copy** of the game.
+Tester build, first tested by one tester on 2026-10-23.
+
+This is the i76-everywhere Interstate '76 project, written by its developer, packed so it installs over **your own GOG copy** of the game.
 It contains none of the game itself - only our fixes, launchers and two helper programs - and it patches your
 copy in place, keeping the original of every file it touches. Everything stays inside the game folder.
 
@@ -16,7 +18,7 @@ What it gives you, in one line each:
 - **Menus that work with a modern mouse** (the pointer lands where you click), a save screen you can type in, and
   keyboard shortcuts for the popups (Enter / Space / Y / N).
 - **A WASD-style keyboard layout** (the full table is below) plus gamepad and wheel support.
-- A second launcher with the **graphics experiments** James is working on right now (smoother terrain, 2.3 km view
+- A second launcher with the **graphics experiments** the developer is working on right now (smoother terrain, 2.3 km view
   fading out at the far edge). That one is unpolished on purpose - he wants your eyes on it.
 
 ## What you need
@@ -24,7 +26,7 @@ What it gives you, in one line each:
 - **Interstate '76 from GOG** (the "Arsenal" / Gold Windows version), installed with GOG Galaxy or the offline
   installer. GOG has shipped two slightly different `i76.exe` builds over the years; both are handled, and the
   setup tells you which one you have.
-- Windows 10 or 11 (64-bit) and any graphics card from the last ten years. (James plays on a GTX 1080 Ti at
+- Windows 10 or 11 (64-bit) and any graphics card from the last ten years. (the developer plays on a GTX 1080 Ti at
   3440x1440 with the picture rendered at 2x; a weaker card gets the `--no-supersample` option below.)
 - Optional: an Xbox-style gamepad or a wheel - **plug it in before you start the game**, the 1997 engine only looks
   for controllers at startup. Python 3 is only needed for the debug dashboard (DEBUG.bat), which you can ignore.
@@ -54,8 +56,8 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 
 | file | what it starts |
 |---|---|
-| **`PLAY.bat`** | **STABLE.** Exactly the set James plays every day: the 1997 timing at 120 fps, widescreen, 1.8 km view, every fix that has passed his testing. |
-| **`PLAY-PREVIEW.bat`** | **EXPERIMENTAL GRAPHICS PREVIEW.** The same base plus James's current graphics picks: smoother terrain shading and terrain that morphs in instead of popping, a 2.3 km view whose last quarter fades out to transparent (no fog colour), bushes at half density carried farther out, a rear-view mirror that sees 1 km with the main view's ground textures, a slightly softer nose-dive on jumps. Not finished, not gated - it exists so you can compare it with `PLAY.bat`. |
+| **`PLAY.bat`** | **STABLE.** Exactly the set the developer plays every day: the 1997 timing at 120 fps, widescreen, 1.8 km view, every fix that has passed his testing. |
+| **`PLAY-PREVIEW.bat`** | **EXPERIMENTAL GRAPHICS PREVIEW.** The same base plus the developer's current graphics picks: smoother terrain shading and terrain that morphs in instead of popping, a 2.3 km view whose last quarter fades out to transparent (no fog colour), bushes at half density carried farther out, a rear-view mirror that sees 1 km with the main view's ground textures, a slightly softer nose-dive on jumps. Not finished, not gated - it exists so you can compare it with `PLAY.bat`. |
 | `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat` | The same two, but they boot **straight into mission 5** (the long ridge road down to the barn) with a stock car, skipping the menus and movies. The quickest way to look at the terrain. |
 | `PLAY-16x10.bat`, `PLAY-balanced.bat`, `PLAY-stock.bat`, `PLAY-i76.bat` | Written by the setup. `PLAY-16x10.bat` = the older tested 16:10 picture (a fallback if the widescreen one looks wrong); `PLAY-stock.bat` = the game with none of our engine changes (a control); the other two are variants of the stable set. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
@@ -75,7 +77,7 @@ the 3D is rendered at twice your monitor's size (a real supersample, no shimmer)
 shape - 21:9, 16:9, 16:10 and 4:3 all come out right, nothing is stretched. The 640x480 menus, garage and movies
 are shown 4:3 with side bars. The game runs in a borderless window the size of the screen, so Alt-Tab works.
 
-James has only ever played this at 3440x1440. On other sizes the numbers are computed; they were checked on his
+The developer has only ever played this at 3440x1440. On other sizes the numbers are computed; they were checked on his
 PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, nothing stretched, and the mouse
 pointer landed on the menu buttons all the way from TRIP to the garage's DONE), not on a real 16:9 monitor - so **if the picture looks off-centre, stretched, or the mouse pointer does not land on the menu
 buttons, that is exactly what we want to hear about.**
@@ -120,14 +122,14 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
 | key | does |
 |---|---|
 | `F1` | cockpit (press again: cockpit without the dashboard) |
-| `F6` | hood view - the view James uses to judge the terrain |
+| `F6` | hood view - the view the developer uses to judge the terrain |
 | `F3` | chase camera; `F2` `F7` `F8` `F9` `F10` other outside views |
 | `V` | combat view (toggle) |
 | `B` | binoculars |
 | arrow keys (or middle mouse button = look left) | glance up / down / left / right |
 | `Page Up` / `Page Down` / `End` | zoom out / in / reset (view, map and camera) |
 | `Shift` + arrows | move the outside camera / pan the map |
-| `Ctrl`+`Alt`+`H` | head look (only with a head tracker and `PLAY-i76.ps1 -HeadTrack`, which Scott's set does not use): cycles ANALOG (start) > DIGITAL > OFF, shown on screen; holding a glance key overrides it |
+| `Ctrl`+`Alt`+`H` | head look (only with a head tracker and `PLAY-i76.ps1 -HeadTrack`, which a normal set does not use): cycles ANALOG (start) > DIGITAL > OFF, shown on screen; holding a glance key overrides it |
 | `M` | map |
 | `N` | notepad (the mission briefing) |
 | `P` | poetry |
@@ -149,7 +151,9 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
 
 ## What to look at, and what to tell us
 
-1. **Terrain popping** (the thing you asked about). Start `PLAY-T05.bat`, press `F6` for the hood view and drive
+Send your answers, screenshots and `mciproxy.log` to whoever gave you this kit.
+
+1. **Terrain popping** (the main thing we want checked). Start `PLAY-T05.bat`, press `F6` for the hood view and drive
    the road up over the ridge and down to the barn (about two minutes; `I` starts the engine if it is off). Watch
    the ground a few hundred metres ahead: do hills change shape, "step" or pop as you approach? Does the far edge
    of the world look odd? Then do the same drive with `PLAY-PREVIEW-T05.bat`. Is it smoother? Do you see any
@@ -188,7 +192,7 @@ step (42 ms) behind a key press. Both are expected; we would still like to hear 
 Run `UNINSTALL-i76e.bat` (close the game first). It restores the original `i76.exe`, `i76shell.dll`, `Strlkup.dll`,
 `input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: after it,
 every one of the GOG install's 371 files is byte-identical to a fresh install). Then delete the `PLAY*.bat` files,
-`README-SCOTT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
+`README-PATCH-KIT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
 `i76shell.dll.pre-i76e-keys`, `input.map.stock-*`) are safe to delete. Bookmarks stay: if the setup copied in our
 set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG Galaxy's *verify / repair* does the same
 job from GOG's side if you prefer.
@@ -201,7 +205,7 @@ job from GOG's side if you prefer.
 controller layer). Nothing from the game. The setup renames one import in your `i76.exe` and `i76shell.dll` (so
 the mouse DLL can sit in between), applies our keyboard patches to `i76shell.dll`, swaps GOG's Glide DLL for
 dgVoodoo's, renames GOG's 20 fps limiter DLL (`I76PATCH.DLL`, where present) to `.disabled`, replaces the key map,
-sets the game's *Graphic Detail* options to the levels James plays with when they are still GOG's defaults (GOG's
-default rear-view mirror shows only cars on a plain sky colour; James's shows the road and the terrain; original kept as
+sets the game's *Graphic Detail* options to the levels the developer plays with when they are still GOG's defaults (GOG's
+default rear-view mirror shows only cars on a plain sky colour; the developer's shows the road and the terrain; original kept as
 `I76PLYR.DEF.pre-i76e`; *Options -> Graphic Detail* in the game changes them any time), and keeps every original next to
 the file it changed. The project itself: https://github.com/therealjkvalentine/i76-everywhere

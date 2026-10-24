@@ -1,6 +1,6 @@
 <#
   i76e-prepare.ps1 - what PLAY.bat / PLAY-PREVIEW.bat of the tester build run BEFORE the game starts (tester build
-  2026-10-23, tools\package-scott.ps1 puts this file and its payload in <game>\_i76e\, the .bat files beside i76.exe).
+  2026-10-23, tools\package-patch-kit.ps1 puts this file and its payload in <game>\_i76e\, the .bat files beside i76.exe).
 
   1. First run (or an updated overlay, or -Resetup): the one-time setup = this repo's own installer, setup-windows.ps1,
      run on the game folder the _i76e folder sits in: dgVoodoo 2.87.5 (from _i76e\dgVoodoo), the proxy Strlkup.dll,
@@ -12,12 +12,12 @@
      and, when it differs from the last run (or -NoSupersample changed), tools\Make-Wide-Conf.ps1 rewrites
      dgVoodoo.wide.conf ([Glide] render target = 2x the display per axis, 1x with -NoSupersample; stretched_ar at the
      display's own shape, so 21:9 / 16:9 / 16:10 / 4:3 all get a correct picture) and the presets' I76_ASPECT /
-     I76_U32X_MENU_ASPECT (tick19-42, scott-preview, best-wide*). Then dgVoodoo.wide.conf -> dgVoodoo.conf.
+     I76_U32X_MENU_ASPECT (tick19-42, preview, best-wide*). Then dgVoodoo.wide.conf -> dgVoodoo.conf.
   The .bat then starts PLAY-i76.ps1 -Preset <x> itself (exit 0 here = go; anything else = do not start).
 
     i76e-prepare.ps1 [-Preset tick19-42] [-NoSupersample] [-Display 1920x1080] [-Resetup] [-DryRun]
     i76e-prepare.ps1 -Uninstall        put the originals back and remove what the setup added (the _i76e folder,
-                                       PLAY*.bat and README-SCOTT.md are left for the user to delete)
+                                       PLAY*.bat and README-PATCH-KIT.md are left for the user to delete)
 #>
 param([string]$Preset = 'tick19-42', [switch]$NoSupersample, [string]$Display = '', [switch]$Resetup, [switch]$Uninstall, [switch]$DryRun)
 $ErrorActionPreference = 'Stop'
@@ -39,7 +39,7 @@ $exe = Join-Path $game 'i76.exe'
 if (-not (Test-Path -LiteralPath $exe)) { Fail "no i76.exe next to the _i76e folder ($game). Unzip the build INTO your Interstate '76 folder, the one that holds i76.exe." }
 $version = (Get-Content (Join-Path $here 'VERSION.txt') -TotalCount 1).Trim()
 # Mark of the Web: a zip downloaded from GitHub and extracted without ticking Unblock tags every file (Zone.Identifier), and
-# Copy-Item carries the tag to the deployed copies (_ahk\AutoHotkeyU32.exe, the dgVoodoo DLLs; seen on lab game-scott-motw
+# Copy-Item carries the tag to the deployed copies (_ahk\AutoHotkeyU32.exe, the dgVoodoo DLLs; seen on lab the lab motw copy
 # 2026-10-23). A tagged exe started by the launcher can stop on Windows' "Open File - Security Warning" behind the game. The
 # folder is the user's own game folder; removing the tag changes no file's content.
 if (-not $DryRun) { Get-ChildItem -LiteralPath $game -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue }
@@ -50,7 +50,7 @@ if ($Uninstall) {
     Say "=== removing the i76-everywhere overlay ($version) from $game ===" 'Cyan'
     if (Running-Here) { Fail 'close the game first' }
     if (Test-Path -LiteralPath (Join-Path $game 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $game, '-U32xDll', (Join-Path $repo 'u32x\u32x_full.dll'), '-Restore')) }   # -U32xDll explicit: PS 5.1 -File leaves $PSScriptRoot empty in its param default
-    [void](Child (Join-Path $repo 'tools\scott\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
+    [void](Child (Join-Path $repo 'toolspatch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
     foreach ($pair in @(@('strlkup_orig.dll', 'Strlkup.dll'), @('I76PATCH.DLL.disabled', 'I76PATCH.DLL'))) {
         $from = Join-Path $game $pair[0]
         if (Test-Path -LiteralPath $from) { Move-Item -LiteralPath $from -Destination (Join-Path $game $pair[1]) -Force; Say "  $($pair[1]) restored" }
@@ -71,7 +71,7 @@ if ($Uninstall) {
     }
     foreach ($d in 'presets', '_ahk', '_tools') { Remove-Item -LiteralPath (Join-Path $game $d) -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $stampFile, $dispFile -Force -ErrorAction SilentlyContinue
-    Say "done. Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, UNINSTALL-i76e.bat, README-SCOTT.md and the _i76e folder." 'Green'
+    Say "done. Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, UNINSTALL-i76e.bat, README-PATCH-KIT.md and the _i76e folder." 'Green'
     Say "Backups kept (safe to delete): i76.exe.u32xorig, i76shell.dll.orig, i76shell.dll.pre-i76e-keys, input.map.stock-*. GOG Galaxy's 'verify / repair' also restores everything."
     exit 0
 }
@@ -102,7 +102,7 @@ if ($need) {
     else {
         if (Running-Here) { Fail 'close the running game first' }
         # 1. the shell patches, before u32x renames the shell's import (the patch is keyed by the stock md5)
-        $rc = Child (Join-Path $repo 'tools\scott\Apply-Shell-Keys.ps1') @('-GameDir', $game)
+        $rc = Child (Join-Path $repo 'toolspatch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game)
         if ($rc -ne 0 -and $rc -ne 2) { Fail "Apply-Shell-Keys.ps1 exited $rc" }
         try { & (Join-Path $repo 'tools\fix-shell-textentry.ps1') -GameDir $game 2>&1 | ForEach-Object { Say "  $_" } } catch { Say "  text-entry check: $($_.Exception.Message)" 'Yellow' }
         # 2. the installer
@@ -114,7 +114,7 @@ if ($need) {
         #    I76PLYR.DEF is the exe's 96-byte options block (i76-map data\FORMATS.md s.10). A fresh GOG 2.1.0.17 install has
         #    +0x4A / +0x4D / +0x4E = 1 / 1 / 0, the release candidate 2 / 2 / 1; at the GOG values the rear-view mirror is at its
         #    middle level, objects only on a flat sky-coloured background (MIRROR-DETAIL-2026-10-23 s.1: the 300 m / 1000 m mirror
-        #    and the preview's mirror textures never show). Seen on lab game-scott-b 2026-10-23: flat mirror at 1/1/0, road, terrain and
+        #    and the preview's mirror textures never show). Seen on a lab test copy 2026-10-23: flat mirror at 1/1/0, road, terrain and
         #    clouds in it at 2/2/1. Original kept as I76PLYR.DEF.pre-i76e; the game's Options > Graphic Detail menu changes them later.
         $def = Join-Path $game 'I76PLYR.DEF'
         if (Test-Path -LiteralPath $def) {
@@ -139,7 +139,7 @@ $was = if (Test-Path -LiteralPath $dispFile) { (Get-Content $dispFile -TotalCoun
 if ($was -ne $dispStamp -or -not (Test-Path -LiteralPath (Join-Path $game 'dgVoodoo.wide.conf'))) {
     Say "display: ${W}x${H} ($from), render target x$scale$(if ($narrow) { ' (4:3 or narrower: nothing widened)' })" 'Cyan'
     if (-not $DryRun) {
-        $wa = @{ GameDir = $game; Width = $W; Height = $H; Scale = $scale; Presets = @('tick19-42', 'scott-preview', 'best-wide', 'best-wide-balanced') }
+        $wa = @{ GameDir = $game; Width = $W; Height = $H; Scale = $scale; Presets = @('tick19-42', 'preview', 'best-wide', 'best-wide-balanced') }
         if ($narrow) { $wa['AllowNarrow'] = $true }
         $global:LASTEXITCODE = 0
         & (Join-Path $repo 'tools\Make-Wide-Conf.ps1') @wa 2>&1 | ForEach-Object { Say "  $_" }

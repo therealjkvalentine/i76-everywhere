@@ -73,7 +73,7 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
 - **Inputs:**
   - Gold: `i76-map\sandbox-gog\main\app` (i76.exe 9a232dcc), plus the 6,116 I76.ZFS payloads in
     `recon-2026-09-04\recon\formats\zfs_out`.
-  - `game-scott` has the same I76.ZFS (md5 6dd57b16) but a different i76.exe (64165126, the patched Scott build).
+  - `game-scott` has the same I76.ZFS (md5 6dd57b16) but a different i76.exe (64165126, the patched patch-kit build).
     The data is identical.
   - Nitro: `sandbox-gog\nitro-full\app` (nitro.exe 28b8ae27, the same files as `Games\I76\nitro`) and its 6,704
     ZFS payloads.

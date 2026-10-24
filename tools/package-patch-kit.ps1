@@ -1,25 +1,25 @@
 <#
-  package-scott.ps1 - the tester build (owner 2026-10-23: "a build that Scott can run ... the latest stable copy so he can
-  give feedback"; the zips go on GitHub, so nothing of GOG's may be inside).
+  package-patch-kit.ps1 - the public tester build, "Interstate '76 Patch Kit (i76-everywhere)" (owner 2026-10-23: a build testers can run on their own GOG copy, the latest stable copy,
+  so they can give feedback; the zips go on GitHub, so nothing of GOG's may be inside).
 
   ONE zip, unzipped INTO a GOG Interstate '76 folder (PLAY.bat lands beside i76.exe). It carries only what we may ship:
     _i76e\repo\      the pieces of this repo the installer needs (setup-windows.ps1, PLAY-i76.ps1, presets, controls\input.map,
                      u32x, the clean-built proxy as music-fix\Strlkup.dll, Make-Wide-Conf + its conf template, the shell patch
-                     DATA (our bytes only, tools\scott\shell-keys-patch.json) and patchers, i76wheel.exe, the debug tool, the
+                     DATA (our bytes only, toolspatch-kit\shell-keys-patch.json) and patchers, i76wheel.exe, the debug tool, the
                      controls sheet, the repo's bookmark saves, LICENSE / THIRD-PARTY)
     _i76e\dgVoodoo\  dgVoodoo 2.87.5's x86 components (+ _i76e\dgVoodoo-2.87.3 fallback), UNMODIFIED (md5 checked against the release zip; Dege's readme, section
                      "Redistribution rights": "You can freely ship your game or game mod with unmodified individual dgVoodoo
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
-    UNINSTALL-i76e.bat, README-SCOTT.md
-  The user's own i76.exe / i76shell.dll are patched IN PLACE by the first PLAY.bat (tools\scott\i76e-prepare.ps1 ->
+    UNINSTALL-i76e.bat, README-PATCH-KIT.md
+  The user's own i76.exe / i76shell.dll are patched IN PLACE by the first PLAY.bat (toolspatch-kit\i76e-prepare.ps1 ->
   setup-windows.ps1, Apply-Shell-Keys.ps1, deploy-u32x.ps1), originals kept beside them. A name guard refuses to stage any
   game file (i76.exe, i76shell.dll, *.ZFS, *.MW2, *.DEF, strlkup_orig.dll, I76PATCH.DLL, movies, music ...).
 
-    tools\package-scott.ps1 -Proxy <clean-built Strlkup.dll> -DgVoodooDir <unpacked 2.87.5> -DgVoodooFallbackDir <unpacked 2.87.3> -AhkDir <AutoHotkeyU32.exe folder>
-                            [-OutDir C:\Users\james\i76-uncap-lab\downloads\scott] [-Stamp yyyymmdd] [-Stage <dir>]
-  Writes <OutDir>\Interstate76-i76-everywhere-scott-<Stamp>.zip and <zip>.MD5SUMS beside it. Record: docs\records\SCOTT-BUILD-2026-10-23.md.
+    tools\package-patch-kit.ps1 -Proxy <clean-built Strlkup.dll> -DgVoodooDir <unpacked 2.87.5> -DgVoodooFallbackDir <unpacked 2.87.3> -AhkDir <AutoHotkeyU32.exe folder>
+                            [-OutDir C:\Users\james\i76-uncap-lab\downloads\patch-kit] [-Version 0.7.3] [-Stamp yyyymmdd] [-Stage <dir>]
+  Writes <OutDir>\Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip and <zip>.MD5SUMS beside it. Record: docs\records\SCOTT-BUILD-2026-10-23.md (history).
 #>
 param(
     [Parameter(Mandatory)][string]$Proxy,
@@ -27,22 +27,23 @@ param(
     [Parameter(Mandatory)][string]$DgVoodooDir,          # dgVoodoo 2.87.5, the unpacked release (MS, 3Dfx, dgVoodooCpl.exe)
     [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
-    [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\scott',
+    [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\patch-kit',
+    [string]$Version = '0.7.3',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
-function Die([string]$m) { Write-Host "package-scott: $m" -ForegroundColor Red; exit 1 }
+function Die([string]$m) { Write-Host "package-patch-kit: $m" -ForegroundColor Red; exit 1 }
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools/scott tools/i76wheel.exe tools/fix-shell-textentry.ps1 i76-remap.ahk i76-ch-fighterstick.ahk)
+$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf toolspatch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 i76-remap.ahk i76-ch-fighterstick.ahk)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files (commit first so VERSION.txt names what shipped):`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not (Test-Path -LiteralPath $Proxy)) { Die "proxy not found: $Proxy" }
 $proxyMd5 = Md5 $Proxy
-if (-not $Stage) { $Stage = Join-Path $env:TEMP "scott-stage-$Stamp" }
+if (-not $Stage) { $Stage = Join-Path $env:TEMP "patch-kit-stage-$Stamp" }
 if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -Force }
 $i76e = Join-Path $Stage '_i76e'; $sr = Join-Path $i76e 'repo'
 New-Item -ItemType Directory -Force $sr | Out-Null
@@ -55,14 +56,14 @@ $files = @(
     'u32x\deploy-u32x.ps1', 'u32x\u32x_full.dll', 'u32x\README.md',
     'tools\Make-Wide-Conf.ps1', 'tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf', 'tools\i76wheel.exe',
     'tools\lint-input-map.py', 'tools\fix-shell-textentry.ps1',
-    'tools\scott\Apply-Shell-Keys.ps1', 'tools\scott\shell-keys-patch.json',
+    'toolspatch-kit\Apply-Shell-Keys.ps1', 'toolspatch-kit\shell-keys-patch.json',
     'tools\driver\DEBUG.bat', 'tools\driver\TRAINER.bat',
     'tools\debug\i76debug.py', 'tools\debug\debug_core.py', 'tools\debug\debug_trainer.py', 'tools\debug\README.md',
     'tools\debug\static\index.html', 'tools\debug\static\app.js', 'tools\debug\static\app.css', 'tools\debug\static\charts.js',
     'tools\trainer\i76trainer_gui.py', 'tools\trainer\i76trainer.py', 'tools\trainer\i76trn.h', 'tools\trainer\README-GUI.md', 'tools\trainer\waypoints.json',
     'tools\telemetry\i76tel.py', 'tools\telemetry\i76tel.h', 'tools\telemetry\i76tel_v2.h',
     'docs\Interstate76-Controls-Quick-Reference.pdf', 'docs\CONTROLS.md',
-    'presets\tick19-42.psd1', 'presets\scott-preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
+    'presets\tick19-42.psd1', 'presets\preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
     'saves\savegame.dir'
 )
 $files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
@@ -75,7 +76,7 @@ foreach ($rel in $files) {
 }
 New-Item -ItemType Directory -Force (Join-Path $sr 'music-fix') | Out-Null
 Copy-Item -LiteralPath $Proxy -Destination (Join-Path $sr 'music-fix\Strlkup.dll') -Force
-Copy-Item -LiteralPath (Join-Path $repo 'tools\scott\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
+Copy-Item -LiteralPath (Join-Path $repo 'toolspatch-kit\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
 
 # ---- dgVoodoo 2.87.3, unmodified x86 components only, checked against the release zip's hashes -------------------------
 function Ship-DgVoodoo([string]$srcDir, [hashtable]$hashes, [string]$ver, [string]$outDir, [string]$extraNote) {
@@ -96,7 +97,7 @@ function Ship-DgVoodoo([string]$srcDir, [hashtable]$hashes, [string]$ver, [strin
 @"
 dgVoodoo $ver by Dege - http://dege.freeweb.hu/dgVoodoo2/  (release: https://github.com/dege-diosg/dgVoodoo2/releases/tag/v$ver)
 Copyright (c) 2013-2026 Dege. The files in this folder are the UNMODIFIED x86 components of the dgVoodoo2_$u.zip release
-package (their md5s are in the MD5SUMS beside _i76e and were checked against the release by tools\package-scott.ps1 on $(Get-Date -Format yyyy-MM-dd)).
+package (their md5s are in the MD5SUMS beside _i76e and were checked against the release by tools\package-patch-kit.ps1 on $(Get-Date -Format yyyy-MM-dd)).
 The .url files point at Dege's readmes (the package ships its documentation online).
 $extraNote
 Redistribution: dgVoodoo's general readme, section 1 "Redistribution rights" (http://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/,
@@ -142,7 +143,7 @@ REM Interstate '76 - i76-everywhere tester build $Stamp (repo $sha): $what
 REM Options:  --no-supersample   lighter on the GPU: the 3D is rendered at the monitor's size, not 2x
 REM           --display WxH      size the picture for this monitor size instead of the one Windows reports
 REM           --setup            run the setup / display step only, do not start the game     --resetup  run the setup again
-REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-SCOTT.md explains the rest.
+REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
 setlocal
 set "ARGS="
 set "SETUPONLY="
@@ -163,10 +164,10 @@ start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden 
 "@
 }
 $t05 = ' -Mission t05.msn -SkipMovies'
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY.bat') (Bat 'tick19-42' '' 'STABLE - the set James plays (tick 41.667 ms, 120 fps, widescreen, 1800 m view, every promoted fix)') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW.bat') (Bat 'scott-preview' '' 'EXPERIMENTAL GRAPHICS PREVIEW (smoothed + morphing terrain, 2300 m view fading out at the far edge, sparser bushes, 1000 m mirror with full textures) on the same stable base') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY.bat') (Bat 'tick19-42' '' 'STABLE - the set the developer plays (tick 41.667 ms, 120 fps, widescreen, 1800 m view, every promoted fix)') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW.bat') (Bat 'preview' '' 'EXPERIMENTAL GRAPHICS PREVIEW (smoothed + morphing terrain, 2300 m view fading out at the far edge, sparser bushes, 1000 m mirror with full textures) on the same stable base') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY-T05.bat') (Bat 'tick19-42' $t05 'STABLE, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW-T05.bat') (Bat 'scott-preview' $t05 'EXPERIMENTAL GRAPHICS PREVIEW, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW-T05.bat') (Bat 'preview' $t05 'EXPERIMENTAL GRAPHICS PREVIEW, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'UNINSTALL-i76e.bat') @"
 @echo off
 REM Puts your Interstate '76 folder back the way GOG installed it (the setup kept every original). Close the game first.
@@ -175,7 +176,7 @@ pause
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Uninstall
 pause
 "@ -Encoding ascii
-Copy-Item -LiteralPath (Join-Path $repo 'tools\scott\README-SCOTT.md') -Destination (Join-Path $Stage 'README-SCOTT.md') -Force
+Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\README.md') -Destination (Join-Path $Stage 'README-PATCH-KIT.md') -Force
 
 # ---- the game-byte guard: nothing of GOG's may be in the stage --------------------------------------------------------
 $guard = '(?i)^(i76|nitro|splash|i76wheel_orig)\.exe$|^i76shell|\.(zfs|zix|mw2|def|smk|mp3|wav|pcx|fnt|ttf|cur|ovl|msn|vcf|map)$|^strlkup_orig|^i76patch|^(goggame|win32|audiere|smackw32|anetdll|zglide|zdx5draw|zredline|getinfo|detect3d|get3d|dsetup)'
@@ -188,17 +189,17 @@ if ($exes.Count) { Die "unexpected binaries in the stage: $(($exes | ForEach-Obj
 # ---- VERSION.txt + MD5SUMS, then the zip -------------------------------------------------------------------------------
 $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
 @(
-    "scott-$Stamp $sha",
-    "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-scott.ps1 from repo commit $sha",
+    "patch-kit-v$Version $sha",
+    "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-patch-kit.ps1 from repo commit $sha",
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
-    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset scott-preview (the experimental graphics preview)"
+    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }
 $sums | Set-Content -LiteralPath (Join-Path $i76e 'MD5SUMS') -Encoding ascii
 
 New-Item -ItemType Directory -Force $OutDir | Out-Null
-$zip = Join-Path $OutDir "Interstate76-i76-everywhere-scott-$Stamp.zip"
+$zip = Join-Path $OutDir "Interstate76-Patch-Kit-i76-everywhere-v$Version-$sha.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $zip -CompressionLevel Optimal
 $sums | Set-Content -LiteralPath "$zip.MD5SUMS" -Encoding ascii

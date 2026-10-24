@@ -1126,7 +1126,7 @@ Open items from this session:
   game-types flip (co-op Mac n 2, then entries default) is prepared and waits on that. The gt_xlan.sh time limit now excludes queue
   wait, and the teardown keeps its DLL backup (lab 3e624f8 / 2f0bc9b).
 
-## 2026-10-23 afternoon: the tester build for Scott (records/SCOTT-BUILD-2026-10-23.md)
+## 2026-10-23 afternoon: the patch kit, first tester Scott (records/SCOTT-BUILD-2026-10-23.md)
 
 - **What it is:** `Interstate76-i76-everywhere-scott-20261023.zip` (2.7 MB, 83 files; lab `downloads\scott\`, and the asset of the
   DRAFT pre-release `scott-20261023` on GitHub - not published, your call). Unzipped INTO a GOG Interstate '76 folder; nothing of
@@ -1134,7 +1134,7 @@ Open items from this session:
   our bytes only, dgVoodoo 2.87.3 unmodified per Dege's redistribution clause, AutoHotkey GPL). The first PLAY.bat runs our own
   installer on his copy (originals kept), every PLAY.bat reads his monitor and sizes the picture. `PLAY.bat` = tick19-42 (the RC's
   stable set), `PLAY-PREVIEW.bat` = exp-polish2's OWNER-2300-FOG as it stood at 11:40 (fog 0.75), `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat`
-  boot straight into mission 5. README-SCOTT.md in the zip: install, launchers, monitor, the home-row keys, what to test, troubleshooting.
+  boot straight into mission 5. README-PATCH-KIT.md in the zip (tools/patch-kit/README.md): install, launchers, monitor, the home-row keys, what to test, troubleshooting.
 - **Gated on GOG's own exe (9a232dcc, the one he most likely has), lab game-scott:** conf accepted, bookmark route by memory 3/3,
   T05 route 120 fps median over 2604 m (1 % low 96.9), input.map and player state untouched; every switch of the preset applied
   (the only differences: the LAN co-op tick site and the pad / wheel early tick - no WINMM import on that exe). 16:9 settings
