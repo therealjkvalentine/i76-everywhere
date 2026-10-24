@@ -182,8 +182,11 @@ step (42 ms) behind a key press. Both are expected; we would still like to hear 
 ## Uninstall
 
 Run `UNINSTALL-i76e.bat` (close the game first). It restores the original `i76.exe`, `i76shell.dll`, `Strlkup.dll`,
-`input.map` and GOG's Glide files from the copies the setup kept, and removes what the setup added. Then delete the
-`PLAY*.bat` files, `README-SCOTT.md` and the `_i76e` folder yourself. GOG Galaxy's *verify / repair* does the same
+`input.map` and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: after it,
+every one of the GOG install's 371 files is byte-identical to a fresh install). Then delete the `PLAY*.bat` files,
+`README-SCOTT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
+`i76shell.dll.pre-i76e-keys`, `input.map.stock-*`) are safe to delete. Bookmarks stay: if the setup copied in our
+set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG Galaxy's *verify / repair* does the same
 job from GOG's side if you prefer.
 
 ## What is inside, and what it does to your copy

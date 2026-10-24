@@ -29,7 +29,8 @@ function Running-Here { # the game started from THIS folder (another copy's i76.
 }
 function Child([string]$script, [string[]]$argv) {
     # the repo scripts call exit freely: run each as its own powershell and read its exit code
-    $global:LASTEXITCODE = 0
+    # Continue here: under 'Stop' the first stderr line of a child (PS 5.1 wraps it as an error record) ended THIS script (uninstall 2026-10-23)
+    $ErrorActionPreference = 'Continue'; $global:LASTEXITCODE = 0
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script @argv 2>&1 | ForEach-Object { Say "  $_" }
     return $LASTEXITCODE
 }
@@ -43,7 +44,7 @@ $stampFile = Join-Path $here 'installed.txt'; $dispFile = Join-Path $here 'displ
 if ($Uninstall) {
     Say "=== removing the i76-everywhere overlay ($version) from $game ===" 'Cyan'
     if (Running-Here) { Fail 'close the game first' }
-    if (Test-Path -LiteralPath (Join-Path $game 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $game, '-Restore')) }
+    if (Test-Path -LiteralPath (Join-Path $game 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $game, '-U32xDll', (Join-Path $repo 'u32x\u32x_full.dll'), '-Restore')) }   # -U32xDll explicit: PS 5.1 -File leaves $PSScriptRoot empty in its param default
     [void](Child (Join-Path $repo 'tools\scott\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
     foreach ($pair in @(@('strlkup_orig.dll', 'Strlkup.dll'), @('I76PATCH.DLL.disabled', 'I76PATCH.DLL'))) {
         $from = Join-Path $game $pair[0]
