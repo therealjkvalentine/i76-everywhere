@@ -295,3 +295,23 @@ processes from 16:31 / 16:33 are that bug's leftovers (not stopped: not started 
 - Overwrite prompt Y / N and the popup Enter / Space keys on 9a232dcc: not run in this pass.
 - Rows 4 / 5 through gate-folder.ps1 on this folder: the pipe-inheritance hypothesis is untested there.
 - Real 16:9 hardware: still computed + windowed tests only.
+
+## 9. 2026-10-24: both packages rebuilt with the two Windows 11 fixes, verified on the laptop (26100.9711), release still a DRAFT
+
+Packaging lane (Sonnet). Repo commit `0467282` (package-scott.ps1: new `-DgVoodooFallbackDir`; scott-preview.psd1 = current exp-polish2 OWNER-2300-ALL, md5 375425b7, only `Name` changed; README-SCOTT.md and i76e-prepare.ps1 say 2.87.5 + the swap-back line).
+
+| item | value |
+|---|---|
+| A: overlay zip | `downloads\scott\Interstate76-i76-everywhere-scott-20261024.zip` **4,187,803 B, 95 files, md5 04983fdefc577ff59c8fff8a08d22deb, sha256 4370190dffd338454826b8dcf7d61022d9e296f811f61b33dffa120c3fbb9782**, VERSION `scott-20261024 0467282`. Proxy inside = **53944fb2** (main 3ef108d), `_i76e\dgVoodoo` = 2.87.5 (six files, md5s checked by the packager; DDraw.dll c70a0ee6), `_i76e\dgVoodoo-2.87.3` = the fallback (DDraw ab19386d) with its README line, PLAY-PREVIEW preset = OWNER-2300-ALL as of 2026-10-24. Name guard passed (no GOG file; no i76.exe / i76shell / ZFS in the zip) |
+| B: private full zip | `downloads\scott-full\Interstate76-i76e-ALL-20261024b.zip` **442,940,921 B, 570 entries, md5 e34c19f6b16dde1b16a07eadc53c8417**, root folder `Interstate76-i76e-ALL-20261024` (base = last night's 20261024.zip = exp-polish2 at 23:05 + `_fit` launcher + README.txt; older zips kept). STRLKUP.DLL = 53944fb2, OWNER-2300-ALL.psd1 md5 375425b7, the eight dgVoodoo files = 2.87.5 (md5s per DGVOODOO-UPDATE s.5, all matched), the 2.87.3 files in `Interstate 76\_dgvoodoo-2.87.3`; no mciproxy.log / ipxwrapper.log / display.txt were present; README.txt got the "built 2026-10-24 ..." line. Written with Windows tar (forward-slash entries) |
+| GitHub | draft pre-release `scott-20261023` (still draft; tag untagged-98cb8fd6bc87ee730ea7), asset replaced: `...-scott-20261024.zip`, old 20261023b asset deleted, body = README-SCOTT.md; downloaded asset sha256 = the local zip |
+
+Laptop (LAPTOP-HPK11OMS, Windows 11 26100.9711, 1920x1080), runner `laptop-run.ps1 -Script wmr-scott.ps1`, muted, lock held per group. A = fresh copy of the pristine GOG game (`i76-map\sandbox-gog\main\app`, i76.exe 9a232dcc) at `C:\i76-bench\scott-a\game` + the zip + `PLAY-T05.bat --setup`; B = fresh Expand-Archive of the zip at `C:\i76-bench\scott-b`. Hold 20 s per boot.
+
+| launcher | n | reached t05 | alive at 20 s | CRASH lines | winmm-heapfix | dgVoodoo | aspect |
+|---|---|---|---|---|---|---|---|
+| A: PLAY-T05.bat | 5 | 5 | 5 | 5 of 5 boots = the one frame-0 probe `0xC0000096 at exe+0x99997`, nothing else | applied at DllMain (SHLWAPI split, 3 slots -> the layer's) | DDraw c70a0ee6 | D 1.778, 20/20 sites |
+| A: PLAY-PREVIEW-T05.bat | 5 | 5 | 5 | same (probe only) | applied | c70a0ee6 | D 1.778; `shade-smooth: on` present (the preview preset is live) |
+| B: PLAY-T05.bat (fresh unzip, display fit run on the first start) | 3 | 3 | 3 | **0** | applied | c70a0ee6 | `_fit\display.txt` = 1920x1080 x2, aspect D 1.778, 20/20 sites |
+
+Raw logs on the laptop: `C:\i76-bench\runs\wmr\scott-{a,b}-*`. Not measured: music by ear (muted), anything past 20 s in the mission, a real 16:9 monitor beyond the laptop's panel.
