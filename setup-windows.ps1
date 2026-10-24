@@ -113,7 +113,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoGameDir = $PSScriptRoot
 $isNitro = ($Exe -ieq 'nitro.exe')
-if ($isNitro) { $Preset = 'stock' }
+# Nitro: stock unless a preset is named (2026-10-23, tools\Build-From-GOG.ps1 -Game Nitro: the proxy runs on nitro.exe since the
+# nitro-port lane, docs\records\NITRO-PORT-2026-10-21.md; a Nitro preset carries only the switches ported there)
+if ($isNitro -and -not $PSBoundParameters.ContainsKey('Preset')) { $Preset = 'stock' }
 if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "presets\$Preset.psd1"))) {
     Write-Host "Unknown -Preset '$Preset' (no presets\$Preset.psd1 in $repoGameDir)." -ForegroundColor Red
     exit 1
@@ -585,7 +587,7 @@ if (-not $isNitro) {
 # instead. See music-fix/README.md. Nitro uses audiere.dll and needs none of this.
 $musicProxy = Join-Path $repoGameDir 'music-fix\Strlkup.dll'
 $strlk = Join-Path $GameDir 'Strlkup.dll'
-if (-not $isNitro -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {
+if ((-not $isNitro -or $fastPreset) -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {   # Nitro: with a preset (the engine switches; its music is audiere's)
     $orig = Join-Path $GameDir 'strlkup_orig.dll'
     # Only back up the GENUINE original once - never overwrite the backup with our
     # proxy on a re-run (same trap as the dgVoodoo DLL backup). Recognise our proxy
@@ -804,7 +806,7 @@ if ($fastPreset) {
     # swallowed by powershell.exe -File).
     Set-Content $bat "@echo off`r`nREM Interstate '76, preset $Preset (see presets\$Preset.psd1). PLAY-stock.bat = no engine switches.`r`nREM Run at the physical console, never over Remote Desktop. Plug the wheel/pad in first.`r`n$useWide$launch -Preset $Preset -LosslessScaling none" -Encoding ascii
     $playBal = Join-Path $GameDir 'PLAY-balanced.bat'
-    if ($widePreset) {
+    if ($widePreset -and -not $isNitro) {   # PLAY-16x10 / PLAY-balanced start Gold presets
         Set-Content $play16 "@echo off`r`nREM The same folder with the 16:10 picture (dgVoodoo.16x10.conf) and preset best-120: the tested setup.`r`nREM Run at the physical console, never over Remote Desktop.`r`n$use16$launch -Preset best-120 -LosslessScaling none" -Encoding ascii
         # the daily driver's extra widescreen option (promotion 13): best-wide with the far clip at 1200 m
         Set-Content $playBal "@echo off`r`nREM Widescreen, preset best-wide-balanced: best-wide with the draw distance at 1200 m (binoculars faster).`r`nREM Run at the physical console, never over Remote Desktop.`r`n$useWide$launch -Preset best-wide-balanced -LosslessScaling none" -Encoding ascii

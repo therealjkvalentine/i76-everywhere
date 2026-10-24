@@ -91,4 +91,20 @@ if ($Game -eq 'Gold') {
 }
 
 # ---- Nitro ----------------------------------------------------------------------------------------------------------------------
-Die 'Nitro: not wired yet (FRESH-GOG-BUILD-2026-10-23.md)'
+# The same overlay stage, used here only as the repo copy at that commit's proxy (its _i76e\repo holds setup-windows.ps1, the presets,
+# u32x, the tools, and music-fix\Strlkup.dll = the proxy just built); nothing of the Gold launchers / README goes into the Nitro copy.
+$stage = Join-Path $work 'stage'
+& (Join-Path $PSScriptRoot 'package-scott.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
+if ($LASTEXITCODE) { Die 'package-scott.ps1 failed' }
+Say "    copying $GogDir -> $OutDir"
+Copy-Item -LiteralPath $GogDir -Destination $OutDir -Recurse
+if (-not $Display) { Add-Type -AssemblyName System.Windows.Forms; $bd = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $Display = "$($bd.Width)x$($bd.Height)" }
+# setup-windows.ps1 -Exe nitro.exe with a preset (stock unless named): dgVoodoo's Glide for GOG's OpenGLide, the proxy, the preset,
+# the wide conf for this display, PLAY-Nitro.bat. Controls: GOG's Nitro map is kept (-Controls stock; this repo's input.map is
+# linted against i76.exe's tokens and the pad / wheel layers were made for Gold).
+$sa = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $stage '_i76e\repo\setup-windows.ps1'), '-GameDir', $OutDir, '-Exe', 'nitro.exe',
+        '-DgVoodooDir', (Join-Path $stage '_i76e\dgVoodoo'), '-Preset', $(if ($Preset) { $Preset } else { 'nitro-tick42' }), '-NoShortcut', '-Display', $Display, '-Controls', 'stock')
+& powershell.exe @sa
+if ($LASTEXITCODE) { Die "setup-windows.ps1 exited $LASTEXITCODE - read the lines above" }
+Say "=== done: $OutDir\PLAY-Nitro.bat (preset $(if ($Preset) { $Preset } else { 'nitro-tick42' })); PLAY-stock.bat = no engine switches ===" 'Green'
+exit 0

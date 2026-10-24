@@ -61,7 +61,7 @@ $files = @(
     'tools\trainer\i76trainer_gui.py', 'tools\trainer\i76trainer.py', 'tools\trainer\i76trn.h', 'tools\trainer\README-GUI.md', 'tools\trainer\waypoints.json',
     'tools\telemetry\i76tel.py', 'tools\telemetry\i76tel.h', 'tools\telemetry\i76tel_v2.h',
     'docs\Interstate76-Controls-Quick-Reference.pdf', 'docs\CONTROLS.md',
-    'presets\tick19-42.psd1', 'presets\scott-preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1',
+    'presets\tick19-42.psd1', 'presets\scott-preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
     'saves\savegame.dir'
 )
 $files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
