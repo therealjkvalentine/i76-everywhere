@@ -147,6 +147,10 @@ static void flog(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt); vmlog(fmt, ap); va_end(ap);
 }
+static void wmr_before_real(const char *what);   /* winmmrace.c */
+static void wmr_apply_fix(const char *when);
+static DWORD WINAPI wmr_census_thread(LPVOID arg);
+static int wmr_trace_on(void);
 #include "nitro.c"       /* exe detection (Gold / Nitro / other) and the Gold -> Nitro site map (nitro-port lane, 2026-10-21) */
 
 /* resolve the real winmm entry points from the already-loaded system winmm */
@@ -214,6 +218,7 @@ static MCIERROR mci_call(const char *cmd, char *ret, UINT retlen) {
     mreq *r; LONG busy; MCIERROR e;
     ensure_real();
     if (!real_mciSendStringA) return MCIERR_DEVICE_NOT_READY;
+    wmr_before_real(cmd);
     if (!music_thread_on()) return real_mciSendStringA(cmd, ret, retlen, NULL);
     busy = g_mq_busy_since;
     if (busy && GetTickCount() - (DWORD)busy > 1000) {
@@ -265,6 +270,7 @@ static UINT real_aux_devices(void) {
         foreign = m && lstrcmpiA(b, "winmm.dll") != 0;
         if (foreign) mlog("  aux devices come from %s, not winmm.dll (a layer's virtual CD): counted as none", b);
     }
+    if (!foreign) wmr_before_real("auxGetNumDevs");
     return foreign ? 0 : real_auxGetNumDevs();
 }
 
@@ -686,11 +692,13 @@ static int wants_cdaudio(DWORD_PTR flags, MCI_OPEN_PARMSA *p) {
 
 static MCIERROR WINAPI hook_mciSendCommandA(MCIDEVICEID id, UINT msg, DWORD_PTR flags, DWORD_PTR param) {
     ensure_real();
+    wmr_before_real("mciSendCommandA");
     /* Log EVERY call, including ones we pass straight through. Two rounds were lost
      * to logs that recorded only cdaudio traffic: "no lines" then means either "the
      * game never called this" or "it called about something else", and those need
      * different fixes. Now the absence of a line is real evidence. */
-    mlog("mciSendCommandA(id=%u msg=0x%X flags=0x%lX)", (unsigned)id, msg, (unsigned long)flags);
+    if (wmr_trace_on()) mlog("mciSendCommandA(id=%u msg=0x%X flags=0x%lX) tid %lu t=%lu", (unsigned)id, msg, (unsigned long)flags, GetCurrentThreadId(), GetTickCount());
+    else mlog("mciSendCommandA(id=%u msg=0x%X flags=0x%lX)", (unsigned)id, msg, (unsigned long)flags);
     if (msg == MCI_OPEN) {
         MCI_OPEN_PARMSA *p = (MCI_OPEN_PARMSA *)param;
         if (wants_cdaudio(flags, p)) { p->wDeviceID = FAKE_CD_ID; mlog("MCI_OPEN cdaudio -> virtual"); return 0; }
@@ -926,6 +934,7 @@ static void **iat_slot(HMODULE mod, const char *dll, const char *func) {
     }
     return NULL;
 }
+#include "winmmrace.c"   /* winmmbase 26100.9549 start-up crash: trace + guard (2026-10-24) */
 static DWORD WINAPI music_guard(LPVOID arg) {
     static const struct { const char *name; void *hook; } h[] = {
         { "mciSendCommandA", (void *)hook_mciSendCommandA }, { "auxGetNumDevs", (void *)hook_auxGetNumDevs },
@@ -4368,6 +4377,10 @@ static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
         }
         buf[n < (int)sizeof(buf) ? n : (int)sizeof(buf) - 1] = 0;
         if (m) mlog("CRASH: modules%s", buf);
+    }
+    {   /* winmm-race lane 2026-10-24: a fault inside winmmbase - its import owners and driver table (winmmrace.c) */
+        MEMORY_BASIC_INFORMATION mb; HMODULE wb = GetModuleHandleA("winmmbase.dll");
+        if (wb && VirtualQuery(r->ExceptionAddress, &mb, sizeof mb) && mb.AllocationBase == (void *)wb) wmr_state("crash");
     }
     {   /* nitro-owner lane 2026-10-23: a fault inside a system DLL (ntdll's heap) names no exe frame in the 16 dwords above; the
            first 12 values deeper on the stack that point into the exe's code (return-address candidates, oldest last) */
@@ -9605,6 +9618,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         exe_detect();
         if (shm_suffix()[0]) mlog("shm: suffix=%s", shm_suffix()); else mlog("shm: default names");
         if (g_exe != EXE_GOLD) mlog("exe: %s", g_exe_name);
+        if (wmr_trace_on()) { HANDLE th = CreateThread(NULL, 0, wmr_census_thread, NULL, 0, NULL); if (th) CloseHandle(th); }
+        wmr_apply_fix("DllMain");  /* winmmrace.c: winmmbase 26100.9549 Global* split (I76_WINMM_HEAPFIX), before any winmm call */
         if (g_exe == EXE_NITRO) { nitro_dllmain(); return TRUE; }
         load_orig();   /* must happen before the game calls any forwarded export */
         apply_crash_log();        /* always on: fault address + registers to the log */
