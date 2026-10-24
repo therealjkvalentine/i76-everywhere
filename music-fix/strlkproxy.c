@@ -9071,7 +9071,7 @@ static void apply_clutter_dist(void) {
         else if (af < 10.0f || af > 1000.0f) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE %s out of range (10..1000 m) - off", v);
         else if (!g_cl_fade_on) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE needs I76_CLUTTER_FADE or I76_CLUTTER_DENSITY (the admission rule it fades) - off");
         else if (g_exe == EXE_NITRO) mlog("  clutter-dist: I76_CLUTTER_ALPHA_FADE - Nitro, not applied (Gold flush site)");
-        else g_cl_afade = af;
+        else { g_cl_afade = af; n = env_str("I76_CLUTTER_ALPHA_TRACE", v, sizeof(v)); if (n) g_cl_trace = atoi(v); }
     }
     n = env_str("I76_CLUTTER_RISE", v, sizeof(v));
     if (n) {
