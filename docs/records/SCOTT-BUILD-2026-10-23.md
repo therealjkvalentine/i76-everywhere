@@ -325,3 +325,4 @@ your GOG copy)", body = README-SCOTT.md with the new heading, asset renamed
 anonymous download checked (HTTP 200, same length). The `scott-20261023` release and tag were deleted.
 URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v1.3.0-alpha.1
 Final name (owner, 18:4x): **v0.7.3** - tag v0.7.3 at the same commit, asset Interstate76-i76-everywhere-v0.7.3.zip (same bytes), v1.3.0-alpha.1 deleted. URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3
+Final (owner, 18:5x): release title "Interstate '76 Patch Kit (i76-everywhere) v0.7.3", asset Interstate76-Patch-Kit-i76-everywhere-v0.7.3-d4b765a.zip (d4b765a = the v0.7.3 tag commit; same bytes, md5 04983fde); the v1.0.0 "Vacation Build" release was deleted (its git tag kept). Only v0.7.3 is listed.
