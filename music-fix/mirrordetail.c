@@ -45,8 +45,27 @@ static DWORD g_md_pal;          /* I76_MIRROR_PAL=1: the mirror pixels remapped 
 static DWORD g_md_setrep;
 static DWORD g_md_m16, g_md_m16sky; /* I76_MIRROR_M16_SKY=1 (opt-in; owner 2026-10-23: 'I actually prefer the original mirror cloud texture'): the sky too */
 /* I76_MIRROR_M16=1: the mirror pass samples the main view's .m16 art - terrain levels (md_m16_copy); with I76_MIRROR_M16_SKY=1 also the sky draw's cloud texture (md_sky_tex at 0x405403) - quantised into the display palette */
-typedef struct { DWORD src; BYTE *copy; } md_m16_t;
-static md_m16_t g_m16[16]; static int g_m16_n;
+typedef struct { DWORD src, fp; BYTE *copy; } md_m16_t;
+#define MD_M16_MAX 64           /* 7 terrain levels + the road sets (10 near + 10 far slots per road type) + the sky */
+static md_m16_t g_m16[MD_M16_MAX]; static int g_m16_n;
+/* I76_MIRROR_M16_ROADS (default 1 = on when I76_MIRROR_M16 is; render-finish lane 2026-10-24, owner: "the mirror palette match issue also
+ * applies to dirt roads - in software they are dark brown, accelerated light brown"): the road queue renderer_QueueRoadsAndDecals
+ * 0x48e900 fetches each segment's texture with 0x471f00(&0x59c3a0[idx], cam) at 0x48ec53 (idx from the segment's near (z < 60 m x
+ * I76_ROAD_TEX) or far slot set); the pair is {8-bit art, .m16 art} like the terrain's, the mirror's kind-0 bitmap gets the 8-bit one.
+ * The asphalt's two drawings happen to agree, the dirt road's do not (8-bit dark brown, .m16 light brown). The mirror camera now gets
+ * the .m16 road art quantised into the display palette (md_m16_copy, the same cache). Gold only (the Nitro site is not mapped). */
+static DWORD g_md_m16roads, g_md_next_roadtex, g_md_road_n, g_md_road_sw;
+/* the copy cache's fingerprint of a source texture: header, 32 spread texels and the first 16 palette words (a second guard, after
+ * md_m16_check, against a new mission's art at an old address: the road sets are not in md_m16_check's signature) */
+static DWORD md_m16_fp(const BYTE *m) {
+    DWORD w = *(const DWORD *)m, h = *(const DWORD *)(m + 4), n, i, f = 2166136261u;
+    f = (f ^ w) * 16777619u; f = (f ^ h) * 16777619u;
+    h &= 0x1fffffff; n = w * h;
+    if (w == 0 || h == 0 || w > 1024 || h > 1024) return f;
+    for (i = 0; i < 32; i++) f = (f ^ m[8 + (n / 32) * i]) * 16777619u;
+    if (*(const DWORD *)(m + 4) & 0x80000000) for (i = 0; i < 16; i++) f = (f ^ *(const WORD *)(m + 8 + n + 4 + 2 * i)) * 16777619u;
+    return f;
+}
 static int md_level_of(DWORD tex) { int l; for (l = 0; l < 7; l++) if (tex && (*(DWORD *)(g_ta_texset + 8 * l) == tex || *(DWORD *)(g_ta_texset4 + 8 * l) == tex)) return l; for (l = 0; l < g_m16_n; l++) if ((DWORD)(DWORD_PTR)g_m16[l].copy == tex) return md_level_of(g_m16[l].src); return 7; }
 /* The .m16 terrain texture (raw file: dword w, dword 0xc0000000 | h, w x h palette indices, then dword count + count RGB565 words;
  * 0x42ee21..0x42ee49 / 0x42ef20) becomes an 8-bit texture of the same shape (dword w, dword 0x40000000 | h, w x h display-palette
@@ -62,8 +81,16 @@ static DWORD __cdecl md_sky_tex(DWORD set, DWORD cam) {        /* 0x471f00(set, 
 }
 static BYTE *md_m16_copy(DWORD src, int smooth) {
     int i; BYTE *m = (BYTE *)(DWORD_PTR)src, *out, *ctx = (BYTE *)g_ta_ctxpal; DWORD w, h, n, k, cnt; WORD *pw; BYTE map[256];
-    for (i = 0; i < g_m16_n; i++) if (g_m16[i].src == src) return g_m16[i].copy;
-    if (g_m16_n >= 16 || !m) return NULL;
+    DWORD fp;
+    if (!m) return NULL;
+    fp = md_m16_fp(m);
+    for (i = 0; i < g_m16_n; i++) if (g_m16[i].src == src) { if (g_m16[i].fp == fp) return g_m16[i].copy; break; }
+    if (i < g_m16_n) {                                           /* same address, other art (a new mission): drop the stale copy */
+        if (g_m16[i].copy) VirtualFree(g_m16[i].copy, 0, MEM_RELEASE);
+        g_m16[i] = g_m16[--g_m16_n];
+        mlog("  mirror-m16: texture %p changed under the cache (a new mission) - stale copy released", m);
+    }
+    if (g_m16_n >= MD_M16_MAX) return NULL;
     w = *(DWORD *)m; h = *(DWORD *)(m + 4);
     if (!(h & 0x80000000)) return NULL;                          /* no embedded palette: not an .m16 */
     h &= 0x1fffffff; n = w * h;
@@ -79,7 +106,7 @@ static BYTE *md_m16_copy(DWORD src, int smooth) {
     out = (BYTE *)VirtualAlloc(NULL, 8 + n, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!out) return NULL;
     *(DWORD *)out = w; *(DWORD *)(out + 4) = 0x40000000 | h;
-    if (smooth) {                                                /* the sky: a 3x3 box blur in RGB before the quantisation - the cloud art's fine texels, point-sampled
+    if (smooth == 1) {                                           /* the sky: a 3x3 box blur in RGB before the quantisation - the cloud art's fine texels, point-sampled
                                                                     into 256x64, came out as speckle (the main view bilinear-filters them); terrain keeps its texels */
         BYTE *rgb = (BYTE *)VirtualAlloc(NULL, n * 3, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE); DWORD x, y; WORD *cache = (WORD *)VirtualAlloc(NULL, 65536 * 2, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         if (rgb && cache) {
@@ -96,11 +123,20 @@ static BYTE *md_m16_copy(DWORD src, int smooth) {
         } else for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
         if (rgb) VirtualFree(rgb, 0, MEM_RELEASE); if (cache) VirtualFree(cache, 0, MEM_RELEASE);
     } else for (k = 0; k < n; k++) out[8 + k] = map[m[8 + k]];
-    g_m16[g_m16_n].src = src; g_m16[g_m16_n].copy = out; g_m16_n++;
-    mlog("  mirror-m16: %s .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette%s -> 8-bit copy %p for the mirror pass", smooth ? "sky" : "terrain level", m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, smooth ? " after a 3x3 blur" : "", out);
+    g_m16[g_m16_n].src = src; g_m16[g_m16_n].fp = fp; g_m16[g_m16_n].copy = out; g_m16_n++;
+    mlog("  mirror-m16: %s .m16 %p (%lux%lu, %lu palette entries) quantised into the display palette%s -> 8-bit copy %p for the mirror pass", smooth == 1 ? "sky" : smooth == 2 ? "road" : "terrain level", m, (unsigned long)w, (unsigned long)h, (unsigned long)cnt, smooth ? " after a 3x3 blur" : "", out);
     return out;
 }
 
+static DWORD __cdecl md_road_tex(DWORD set, DWORD cam) {       /* 0x471f00(set, cam) at 0x48ec53: a road segment's texture */
+    DWORD r = ((DWORD (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_md_next_roadtex)(set, cam);
+    if (cam == g_ta_mircam && set) {
+        DWORD m = *(DWORD *)(DWORD_PTR)(set + 4); BYTE *c = m ? md_m16_copy(m, 2) : NULL;
+        g_md_road_n++;
+        if (c) { g_md_road_sw++; return (DWORD)(DWORD_PTR)c; }
+    }
+    return r;
+}
 static void md_count(md_pass_t *p, DWORD mode, DWORD tex, int big) {
     int i;
     p->leaves++; if (!tex) p->texnull++; if (big) p->big++;
@@ -197,7 +233,7 @@ static void md_m16_check(void) {
 static void __cdecl md_terrain_mir(void *cam) {
     float a = *(volatile float *)g_ta_fa, b = *(volatile float *)g_ta_fb;
     if (g_md_m16) md_m16_check();
-    ZeroMemory(&g_md_mir, sizeof g_md_mir);
+    ZeroMemory(&g_md_mir, sizeof g_md_mir); g_md_road_n = g_md_road_sw = 0;
     if (g_md_lod > 0.0f) { *(volatile float *)g_ta_fa = a * (g_md_lod / g_md_fa); *(volatile float *)g_ta_fb = b * (g_md_fb / g_md_lod); }
     ((void (__cdecl *)(void *))(DWORD_PTR)g_md_next_tmir)(cam);
     if (g_md_lod > 0.0f) { *(volatile float *)g_ta_fa = a; *(volatile float *)g_ta_fb = b; }
@@ -289,13 +325,13 @@ static void __cdecl md_upload(DWORD tex, const char *name) {   /* 0x42ec20 at 0x
         md_dump();
         if (!g_md_setrep) { g_md_setrep = 1; md_set_report(); }
         md_modes_txt(&g_md_mir, mm, sizeof mm); md_modes_txt(&g_md_main_last, mn, sizeof mn);
-        mlog("  mirror-detail: redraw %lu dumped: mirror pass %d verts, %lu leaves (big %lu, tex null %lu, forced %lu) modes {%s} levels [%lu %lu %lu %lu %lu %lu %lu ?%lu]; main pass %d verts, %lu leaves (big %lu, tex null %lu) modes {%s} levels [%lu %lu %lu %lu %lu %lu %lu ?%lu]; options terrain-detail %u textures %u mirror %u visibility %u; bitmap %lux%lu kind %lu",
+        mlog("  mirror-detail: redraw %lu dumped: mirror pass %d verts, %lu leaves (big %lu, tex null %lu, forced %lu) modes {%s} levels [%lu %lu %lu %lu %lu %lu %lu ?%lu]; main pass %d verts, %lu leaves (big %lu, tex null %lu) modes {%s} levels [%lu %lu %lu %lu %lu %lu %lu ?%lu]; options terrain-detail %u textures %u mirror %u visibility %u; bitmap %lux%lu kind %lu; mirror road segments %lu (.m16 copy %lu)",
              (unsigned long)g_md_redraws, g_md_mir.verts, (unsigned long)g_md_mir.leaves, (unsigned long)g_md_mir.big, (unsigned long)g_md_mir.texnull, (unsigned long)g_md_mir.forced, mm,
              (unsigned long)g_md_mir.lvl[0], (unsigned long)g_md_mir.lvl[1], (unsigned long)g_md_mir.lvl[2], (unsigned long)g_md_mir.lvl[3], (unsigned long)g_md_mir.lvl[4], (unsigned long)g_md_mir.lvl[5], (unsigned long)g_md_mir.lvl[6], (unsigned long)g_md_mir.lvl[7],
              g_md_main_last.verts, (unsigned long)g_md_main_last.leaves, (unsigned long)g_md_main_last.big, (unsigned long)g_md_main_last.texnull, mn,
              (unsigned long)g_md_main_last.lvl[0], (unsigned long)g_md_main_last.lvl[1], (unsigned long)g_md_main_last.lvl[2], (unsigned long)g_md_main_last.lvl[3], (unsigned long)g_md_main_last.lvl[4], (unsigned long)g_md_main_last.lvl[5], (unsigned long)g_md_main_last.lvl[6], (unsigned long)g_md_main_last.lvl[7],
              *(BYTE *)g_ta_o82, *(BYTE *)g_ta_o8b, *(BYTE *)g_ta_o8d, *(BYTE *)g_ta_o8a,
-             bm ? (unsigned long)*(DWORD *)bm : 0ul, bm ? (unsigned long)*(WORD *)(bm + 4) : 0ul, bm ? (unsigned long)*(DWORD *)(bm + 8) : 0ul);
+             bm ? (unsigned long)*(DWORD *)bm : 0ul, bm ? (unsigned long)*(WORD *)(bm + 4) : 0ul, bm ? (unsigned long)*(DWORD *)(bm + 8) : 0ul, (unsigned long)g_md_road_n, (unsigned long)g_md_road_sw);
     }
     ((void (__cdecl *)(DWORD, const char *))(DWORD_PTR)g_md_next_upload)(tex, name);
 }
@@ -339,6 +375,7 @@ static void apply_mirror_detail(void) {
     if (env_str("I76_MIRROR_TEX", v, sizeof(v))) { g_md_tex = (float)atof(v); if (g_md_tex < 0.25f || g_md_tex > 16.0f) { mlog("  mirror-tex: %s out of range (0.25..16) - not applied", v); g_md_tex = 0.0f; } }
     g_md_pal = env_flag("I76_MIRROR_PAL", 8, 0) == 1;
     g_md_m16 = env_flag("I76_MIRROR_M16", 8, 0) == 1;
+    g_md_m16roads = g_md_m16 && env_flag("I76_MIRROR_M16_ROADS", 8, 1) == 1;   /* default on with M16: the dirt roads' two drawings differ (owner 2026-10-24) */
     g_md_m16sky = g_md_m16 && env_flag("I76_MIRROR_M16_SKY", 8, 0) == 1;   /* default off: the stock 8-bit cloud art (the owner prefers it; "a tint to the mirror") */
     if (!g_md_dump_n && !g_md_mode && g_md_lod <= 0.0f && g_md_tex <= 0.0f && !g_md_pal && !g_md_m16) return;
     if (!g_ta_ok) { mlog("  mirror-detail: the terrain renderer's addresses are not all mapped (Nitro) - off"); g_md_dump_n = g_md_mode = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
@@ -349,9 +386,13 @@ static void apply_mirror_detail(void) {
         n += st_call_site(0x00445a3c, 0x0042ec20, (void *)md_upload, &g_md_next_upload, "mirror texture re-upload (mirror-detail)");
     } else n = 3;
     n += st_call_site(0x0044594e, 0x00490a00, (void *)md_terrain_mir, &g_md_next_tmir, "mirror QueueTerrain call (mirror-detail)");
+    if (g_md_m16roads) {
+        if (g_exe == EXE_NITRO) { mlog("  mirror-m16: roads - the Nitro road texture site is not mapped; roads stay the 8-bit art"); g_md_m16roads = 0; }
+        else if (!st_call_site(0x0048ec53, 0x00471f00, (void *)md_road_tex, &g_md_next_roadtex, "road segment texture pick (mirror-m16 roads)")) { mlog("  mirror-m16: road site not patched - roads stay the 8-bit art"); g_md_m16roads = 0; }
+    }
     if (g_md_m16sky) { if (!st_call_site(0x00405403, 0x00471f00, (void *)md_sky_tex, &g_md_next_skytex, "sky draw cloud texture pick, software branch (mirror-m16)")) { mlog("  mirror-m16: sky site not patched - clouds stay the 8-bit art"); g_md_m16sky = 0; } }
     g_md_on = n == 4;
-    if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override / mirror LOD / tex / pal / m16 disabled)", n); g_md_mode = 0; g_md_dump_n = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = 0; return; }
+    if (!g_md_on) { mlog("  mirror-detail: %d/4 sites - OFF (mode override / mirror LOD / tex / pal / m16 disabled)", n); g_md_mode = 0; g_md_dump_n = 0; g_md_lod = g_md_tex = 0.0f; g_md_pal = g_md_m16 = g_md_m16roads = 0; return; }
     mlog("  mirror-detail: on -%s%s%s%s%s%s", g_md_dump_n ? " dump every N redraws;" : "", g_md_mode ? " forced terrain mode;" : "",
          g_md_lod > 0.0f ? " mirror terrain LOD of its own;" : "", g_md_tex > 0.0f ? " mirror texture level re-picked;" : "", g_md_pal ? " pixels remapped to the _16 palette;" : "", g_md_m16 ? " terrain from the .m16 art;" : "");
     if (g_md_tex > 0.0f) {
@@ -360,6 +401,7 @@ static void apply_mirror_detail(void) {
              640.0f * g_md_tex, tt, 256.0f * tt, 640.0f * tt);
     }
     if (g_md_m16) mlog("  mirror-m16: the mirror pass samples the main view's .m16 terrain art%s, quantised into the display palette once per texture", g_md_m16sky ? " and its .m16 cloud art (I76_MIRROR_M16_SKY=1)" : " (sky: the stock 8-bit cloud art; I76_MIRROR_M16_SKY=1 opts in)");
+    if (g_md_m16) mlog("  mirror-m16: roads %s", g_md_m16roads ? "from the .m16 road art too (I76_MIRROR_M16_ROADS=0 keeps the 8-bit road art)" : "stay the 8-bit road art");
     if (g_md_pal) mlog("  mirror-pal: the mirror's pixels are remapped from the 8-bit build's palette to the nearest colours of the hardware build's before each upload (%d palette pairs compiled in)", MP_PAIRS);
     if (g_md_lod > 0.0f) mlog("  mirror-lod: the mirror pass splits terrain at x%.2f the stock distance (height-error / %.2f); the main view keeps x%.2f / %.2f", g_md_lod, g_md_lod, g_md_fa, g_md_fb);
     if (g_md_dump_n) mlog("  mirror-detail: dump every %lu mirror redraws to %s\\mirror-<redraw>.bmp (palette 0x5dcfa8 -> mirror-pal.bin)", (unsigned long)g_md_dump_n, g_dir);
