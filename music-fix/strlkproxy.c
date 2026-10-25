@@ -1176,6 +1176,41 @@ static void apply_mission_launch(void) {
 }
 
 /* ===========================================================================
+ * SKIP THE MISSIONS' OWN CUTSCENES   (I76_SKIP_CUTSCENES=1; off by default)
+ * ===========================================================================
+ * Each trip mission's WRLD chunk names a briefing movie played before the mission (intNNf01.smk, read into 0x5dd300)
+ * and some name one after it (outNNf01.smk / preview.smk / ang16f01.smk, 0x5dd310). WinMain plays both through the
+ * movie open 0x49a070 (i76-map subsystems\mission.md, M55d):
+ *     0x403716  push 0x5dd300 / push ecx / 0x40371c call 0x49a070 / test eax,eax / je 0x4037d9   (intro)
+ *     0x40425f  push 0x5dd310 / push eax / 0x404265 call 0x49a070 / test eax,eax / je 0x404542   (outro)
+ * The open returns 0 when the file does not open, and both sites already handle that: it is the path every mission
+ * with an empty name takes (the 24 m/s/a missions, t05's outro, t17's intro). So, as for I76_SKIP_MOVIES, we only
+ * make the open "fail": each call becomes `xor eax,eax` + 3 NOPs (the caller's add esp,8 still pops the two pushes).
+ * Nothing is opened, so no Smacker handle, sound pause or palette change is left half done, and no script ever sees
+ * a movie (the sim clock is not touched: the movie mode 0x20 is never entered).
+ *
+ * I76_SKIP_CUTSCENES=2 also skips the movies a mission script queues mid-mission (FSM playMovie, the queue taken at
+ * 0x4039c2 and opened at 0x4039d7, result unused; ang05f01 / ang06f01 ...): a missing movie there costs one loop pass
+ * and play continues (M55d), the same as a missing file. Not the harness default: those freeze the sim for their
+ * length and a test that drives through one should see the game as played.
+ *
+ * Independent of I76_MISSION: it works through the menus and the campaign too (a player option). Gold addresses;
+ * on Nitro the sites are not in sites_nitro.h, so nitro_patch_bytes refuses and logs "feature off". */
+static void apply_skip_cutscenes(void) {
+    static const BYTE intro_old[5] = { 0xE8, 0x4F, 0x69, 0x09, 0x00 };   /* call 0x49a070 @ 0x40371c */
+    static const BYTE outro_old[5] = { 0xE8, 0x06, 0x5E, 0x09, 0x00 };   /* call 0x49a070 @ 0x404265 */
+    static const BYTE queue_old[5] = { 0xE8, 0x94, 0x66, 0x09, 0x00 };   /* call 0x49a070 @ 0x4039d7 */
+    static const BYTE fail[5]      = { 0x31, 0xC0, 0x90, 0x90, 0x90 };   /* xor eax,eax: "the file did not open" */
+    int lvl = env_int("I76_SKIP_CUTSCENES", 8, 0), a, b, c = 0;
+    if (lvl <= 0) return;
+    a = patch_bytes(0x0040371c, intro_old, fail, 5, "mission intro movie open");
+    b = patch_bytes(0x00404265, outro_old, fail, 5, "mission outro movie open");
+    if (lvl >= 2) c = patch_bytes(0x004039d7, queue_old, fail, 5, "in-mission movie open");
+    mlog("  skip-cutscenes=%d: intro %s, outro %s, in-mission %s", lvl, a ? "skipped" : "NOT patched",
+         b ? "skipped" : "NOT patched", lvl >= 2 ? (c ? "skipped" : "NOT patched") : "plays");
+}
+
+/* ===========================================================================
  * HIGH-RESOLUTION SIM CLOCK  (I76_HIRES_CLOCK=1; off by default)
  * ===========================================================================
  * The whole sim is dt-driven: simclock_Update 0x49c920 runs once per frame and
@@ -9856,6 +9891,7 @@ static void nitro_dllmain(void) {
     apply_mute();
     cwd_fix();
     apply_mission_launch();   /* I76_MISSION / I76_SKIP_MOVIES */
+    apply_skip_cutscenes();   /* I76_SKIP_CUTSCENES (refuses on Nitro: no sites) */
     apply_multi_instance();
     apply_no_minimize();      /* also I76_KEEP_ACTIVE */
     apply_terrain_lod();      /* I76_TERRAIN_LOD / _A / _B (+ vertex guard, I76_TERRAIN_HYST / _FREEZE) */
@@ -9964,6 +10000,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
             }
         }
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
+        apply_skip_cutscenes();   /* opt-in: I76_SKIP_CUTSCENES=1 (mission intro/outro movies), =2 (+ in-mission) */
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
         apply_no_minimize();      /* opt-in: I76_NO_MINIMIZE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */

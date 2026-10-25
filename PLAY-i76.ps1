@@ -91,6 +91,10 @@ param(
     # With -Mission, also skip the intro and credits movies. Testing convenience -
     # the game reaches the mission on its own either way, just slower.
     [switch]$SkipMovies,
+    # Skip each mission's own briefing movie (intNNf01.smk) and its closing movie, through the menus, the campaign or
+    # -Mission alike: the game goes straight to the mission (proxy I76_SKIP_CUTSCENES=1; the mission then plays exactly as
+    # one that has no movie). Movies a mission plays in the middle stay on. Needs the proxy deployed.
+    [switch]$SkipCutscenes,
     # Mouse wheel bindings (i76wheel.exe). The engine's mouse device has three
     # buttons and no wheel channels, so the wheel cannot be bound in input.map at
     # all - it is translated to a keystroke instead.
@@ -533,6 +537,11 @@ if ($Mission) {
         if ($SkipMovies) { $gameEnv['I76_SKIP_MOVIES'] = '1' }
         Write-Host "booting directly into $Mission$(if ($SkipMovies) { ' (movies skipped)' })" -ForegroundColor Cyan
     }
+}
+
+if ($SkipCutscenes) {
+    $gameEnv['I76_SKIP_CUTSCENES'] = '1'
+    Write-Host "mission briefing / closing movies skipped (I76_SKIP_CUTSCENES=1)" -ForegroundColor Cyan
 }
 
 if ($DryRun) {
