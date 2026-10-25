@@ -1,5 +1,15 @@
 # Frame profile, T05 ridge route (2026-10-25) - PARTIAL (console taken by the owner mid-lane)
 
+> **Correction (terrain-pass-opt plan lane, 2026-10-25, TERRAIN-PASS-OPT-PLAN-2026-10-25.md s.0):** two rows below are instrument
+> artefacts, found by re-mining the retained raw samples. (1) **PeekMessageA 23.6 %** is the ~50 s boot / load / shell period: all 19,042
+> PeekMessage samples have terrain vertex count 0 and the stale pre-mission player x 8078, which the x-only hill-leg filter admitted;
+> 0 of the 50,325 in-mission samples are in it (`fp_analyse.py --verts-min 1`, `fp_remine.py`). (2) **"terrain pass, proxy code 13.5 %,
+> own cost 1.6-2.0 ms"** is the profile's own `I76_TERRAIN_MORPH_LOG` (fp-run.ps1 sets it in every mode): the hot block Strlkup+4b700 is
+> the instrument's hash (`fp_hotblock.py`); the owner's stateless build measures 75-147 us per pass (laptop, n 15). The corrected
+> in-mission pie: Glide -> D3D11 translation 30.6 %, i76.exe 28.3 %, Strlkup 21.6 % (~15 the instrument), system 18.2 % (registry opens
+> under the sound update ~4 %, `image_LoadM16Variant` / `ReleaseM16Texture` CRT + kernel calls ~5 %). The counts, the GPU rows and the
+> run table stand.
+
 Question (owner): "We are CPU- not GPU-constrained? What are the specific bottlenecks?" Measure only; no fixes.
 
 ## Set and method
