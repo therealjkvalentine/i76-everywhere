@@ -133,7 +133,19 @@ param(
     # spanking all these guys"): I76_AIMELEE_SKILL for this launch, 1..5 on the stock scale where 1 is the BEST driver and
     # shot (aim 1.0, fire 1.0, steering / throttle 1.0) and 5 the weakest (0.2 / 0.6 / 0.4); 3 is the stock melee's start and
     # the default. Only the host's value matters (the host runs the AI). PLAY-LAN.bat --ai-skill N passes it through.
-    [ValidateRange(0, 5)][int]$AiSkill = 0
+    [ValidateRange(0, 5)][int]$AiSkill = 0,
+    # Windowed (2026-10-25, owner: "some way to run the game in a window if we're expecting to keep both up at the same
+    # time" - the game beside the FFB web panel). 'auto' = the screen's shape, 880 px narrower than the screen (2560x1072 on
+    # 3440x1440: room for the panel on the right); or WxH. The game window is a borderless popup at the top left of the primary
+    # screen, kept at that size for the whole session (the exe sizes its window to the screen at start and again on mode
+    # changes; a hidden keeper puts it back). dgVoodoo.conf gets [Glide] Resolution = 2 x the window (a 2x2 supersample, capped
+    # 8192 per side) for this launch only (the previous conf comes back when the game exits), and the proxy's camera / HUD /
+    # Esc-menu aspect keys (I76_ASPECT, I76_U32X_MENU_ASPECT) take the window's shape. The menu pointer map follows the live
+    # client rect by itself (proxy cursormap.c). PLAY.bat --windowed [WxH] passes it.
+    [string]$Windowed = '',
+    # The FFB / LFE tuning page (tools\ffb\ffb-panel.py, http://127.0.0.1:17691/): started with the interposer and opened in
+    # the browser. Needs Python 3. PLAY.bat --panel passes it. Without a wheel (no interposer) it says so and starts nothing.
+    [switch]$Panel
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -259,6 +271,37 @@ if ($LegacyMultiplayer) {
     $gameEnv['I76_MP_MENU'] = '0'
     $gameEnv['I76_AIMELEE_ARENAS'] = '0'   # and the 15 stock arenas stay stock (no AI pool): a stock joiner can play
     Write-Host "legacy multiplayer: I76_MP_MENU=0 - MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row" -ForegroundColor Cyan
+}
+
+# ---- windowed (-Windowed auto | WxH; PLAY.bat --windowed) -----------------------
+$winRect = $null; $winConfBak = $null
+if ($Windowed) {
+    Add-Type -AssemblyName System.Windows.Forms
+    $scr = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    if ($Windowed -match '^\s*(\d+)\s*[xX]\s*(\d+)\s*$') { $ww = [int]$Matches[1]; $wh = [int]$Matches[2] }
+    else {
+        $ww = [int]([math]::Floor(($scr.Width - 880) / 2.0) * 2)
+        $wh = [int]([math]::Floor($ww * $scr.Height / $scr.Width / 2.0) * 2)
+    }
+    $ww = [math]::Max(640, [math]::Min($ww, $scr.Width)); $wh = [math]::Max(480, [math]::Min($wh, $scr.Height))
+    $winRect = @($scr.X, $scr.Y, $ww, $wh)
+    $confPath = Join-Path $GameDir 'dgVoodoo.conf'
+    if (Test-Path $confPath) {
+        $ct = [IO.File]::ReadAllText($confPath, [Text.Encoding]::ASCII)
+        $f = [math]::Min(2.0, [math]::Min(8192.0 / $ww, 8192.0 / $wh))
+        $gw = [int]([math]::Floor($ww * $f / 2) * 2); $gh = [int]([math]::Floor($wh * $f / 2) * 2)
+        $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
+        if ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*= false') {
+            $winConfBak = "$confPath.pre-windowed"
+            Copy-Item $confPath $winConfBak -Force
+            [IO.File]::WriteAllText($confPath, $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1), [Text.Encoding]::ASCII)
+            Write-LaunchLog ("windowed {0}x{1} at the top left; dgVoodoo.conf [Glide] Resolution {2}x{3} for this launch (the previous conf is back when the game exits)" -f $ww, $wh, $gw, $gh) 'Cyan'
+        } else {
+            Write-LaunchLog ("windowed {0}x{1}: dgVoodoo.conf is not a windowed conf with a [Glide] Resolution line - the render size stays as it is" -f $ww, $wh) 'Yellow'
+        }
+    }
+    $gameEnv['I76_ASPECT'] = "${ww}x${wh}"
+    if ($gameEnv.Contains('I76_U32X_MENU_ASPECT')) { $gameEnv['I76_U32X_MENU_ASPECT'] = "${ww}:${wh}" }
 }
 
 # ---- AI skill (-AiSkill / PLAY-LAN.bat --ai-skill N) --------------------------
@@ -765,6 +808,71 @@ if ($ffbWant -and $proc) {
 }
 Write-LaunchLog $ffbStatus $(if ($ffbProc) { 'Cyan' } else { 'DarkGray' })
 
+# ---- the window keeper (-Windowed): the exe sizes its popup to the whole screen at start and on mode changes; this hidden
+# helper puts it back to the window size every time (polled 4x a second, for the life of the game). Position: the top left
+# until the window has the right size once; after that a move by the player is kept and only the size is restored.
+$winKeeper = $null
+if ($winRect -and $proc) {
+    $keeper = @'
+param([int]$GamePid, [int]$X, [int]$Y, [int]$W, [int]$H)
+Add-Type -Namespace I76W -Name U -MemberDefinition @"
+[DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);
+[DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+[DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+public delegate bool EnumProc(IntPtr h, IntPtr l);
+[DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
+public struct RECT { public int L, T, R, B; }
+"@
+$p = Get-Process -Id $GamePid -ErrorAction SilentlyContinue
+$px = $X; $py = $Y; $sized = $false
+while ($p -and -not $p.HasExited) {
+    $script:best = [IntPtr]::Zero; $script:area = 0; $script:rb = $null
+    $cb = [I76W.U+EnumProc]{ param($h, $l)
+        $o = 0; [void][I76W.U]::GetWindowThreadProcessId($h, [ref]$o)
+        if ($o -eq $GamePid -and [I76W.U]::IsWindowVisible($h)) {
+            $r = New-Object I76W.U+RECT; [void][I76W.U]::GetWindowRect($h, [ref]$r)
+            $a = ($r.R - $r.L) * ($r.B - $r.T)
+            if ($a -gt $script:area) { $script:area = $a; $script:best = $h; $script:rb = $r }
+        }
+        $true }
+    [void][I76W.U]::EnumWindows($cb, [IntPtr]::Zero)
+    $best = $script:best; $rb = $script:rb
+    if ($best -ne [IntPtr]::Zero) {
+        if (($rb.R - $rb.L) -ne $W -or ($rb.B - $rb.T) -ne $H) {
+            [void][I76W.U]::SetWindowPos($best, [IntPtr]::Zero, $px, $py, $W, $H, 0x0014)   # NOZORDER | NOACTIVATE
+        } else { $px = $rb.L; $py = $rb.T; $sized = $true }
+    }
+    Start-Sleep -Milliseconds 250
+}
+'@
+    try {
+        $kb64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes("& { $keeper } -GamePid $($proc.Id) -X $($winRect[0]) -Y $($winRect[1]) -W $($winRect[2]) -H $($winRect[3])"))
+        $winKeeper = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', $kb64 -WindowStyle Hidden -PassThru
+        Write-LaunchLog ("window keeper pid {0}: the game window stays {1}x{2}" -f $winKeeper.Id, $winRect[2], $winRect[3]) 'DarkGray'
+    } catch { Write-LaunchLog "window keeper did not start: $_ - the game stays full screen" 'Yellow' }
+}
+
+# ---- the FFB web panel (-Panel; tools\ffb\ffb-panel.py) ----------------------------
+$panelProc = $null
+if ($Panel) {
+    $panelPy = Join-Path $ffbDir 'ffb-panel.py'
+    if (-not $ffbProc) { Write-LaunchLog "FFB panel: not started - no interposer runs (no wheel, -NoFfb, or it did not start), so the page would have nothing to show" 'DarkGray' }
+    elseif (-not (Test-Path $panelPy)) { Write-LaunchLog "FFB panel: ffb-panel.py is not in $ffbDir (older _ffb) - not started" 'Yellow' }
+    else {
+        $pyExe = $null; $pyArgs = @()
+        $pyCmd = Get-Command py.exe -ErrorAction SilentlyContinue
+        if ($pyCmd) { $pyExe = $pyCmd.Source; $pyArgs = @('-3') } else { $pyCmd = Get-Command python.exe -ErrorAction SilentlyContinue; if ($pyCmd) { $pyExe = $pyCmd.Source } }
+        if (-not $pyExe) { Write-LaunchLog "FFB panel: no Python 3 (py / python) on the PATH - not started; the interposer's console panel still works" 'Yellow' }
+        else {
+            try {
+                $panelProc = Start-Process -FilePath $pyExe -ArgumentList ($pyArgs + @("`"$panelPy`"")) -WindowStyle Minimized -PassThru -ErrorAction Stop
+                Write-LaunchLog ("FFB panel: http://127.0.0.1:17691/ (pid {0}; it opens the browser)" -f $panelProc.Id) 'Cyan'
+            } catch { Write-LaunchLog "FFB panel did not start: $_" 'Yellow' }
+        }
+    }
+}
+
 # Soundtrack, AFTER the game: it finds the game by process and reads the music
 # folder next to the exe. It exits on its own when the game exits.
 $music = $null
@@ -796,6 +904,12 @@ if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Fo
 # The music helper exits on its own when the game does, but kill it if it lingers -
 # an MCI device left open holds the file and can wedge later playback.
 if ($music -and -not $music.HasExited) { Stop-Process -Id $music.Id -Force }
+if ($winKeeper -and -not $winKeeper.HasExited) { Stop-Process -Id $winKeeper.Id -Force }
+if ($panelProc -and -not $panelProc.HasExited) { Stop-Process -Id $panelProc.Id -Force }
+if ($winConfBak -and (Test-Path $winConfBak)) {
+    Copy-Item $winConfBak (Join-Path $GameDir 'dgVoodoo.conf') -Force; Remove-Item $winConfBak -Force
+    Write-LaunchLog 'windowed: dgVoodoo.conf put back' 'DarkGray'
+}
 if ($ffbProc -and -not $ffbProc.HasExited) {
     Stop-Process -Id $ffbProc.Id -Force
     # Belt and braces: if the force was latched when we killed it, the wheel would
