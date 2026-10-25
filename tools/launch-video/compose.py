@@ -203,7 +203,9 @@ def mph_check(pa, sa, pb, sb, dur, speed):
     t = 0.0
     while t < dur:
         ds.append(abs(v(ra, sa + t * speed) - v(rb, sb + t * speed))); t += 0.25
-    ALIGN_LOG.append("  mph |a - b| over %.1f s: mean %.2f, max %.2f (%d samples)" % (dur, sum(ds) / len(ds), max(ds), len(ds)))
+    e = ds[:24]
+    ALIGN_LOG.append("  mph |a - b|: first %.1f s mean %.2f max %.2f; whole %.1f s mean %.2f max %.2f (%d samples; later gaps = the two drives diverging, not the sync)"
+                     % (len(e) * 0.25, sum(e) / len(e), max(e), dur, sum(ds) / len(ds), max(ds), len(ds)))
 
 
 def clip_chain(spec, w, h, label):
