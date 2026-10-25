@@ -124,4 +124,4 @@ No fps numbers exist yet. The ALL vs PLAY-STABLE comparison and the 2x vs 1x com
    - `"-Preset OWNER-2300-ALL -Conf wide1x -Tag all-1x"`
    - add `-SyncDll` once the fixed proxy lands.
    For reference, this PC (GTX 1080 Ti, 3440x1440 2x) read a hill leg median of 120.0 fps with a 1 % low of 96.9 for the ALL set
-   (SCOTT-BUILD-2026-10-23 row 9).
+   (TESTER-BUILD-2026-10-23 row 9).

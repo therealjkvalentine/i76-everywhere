@@ -103,6 +103,6 @@ One PLAY.bat for story, LAN, wheel and head look	docs/records/LAUNCHERS-2026-10-
 PLAY-VANILLA.bat: the stock game one click away	docs/records/LAUNCHERS-2026-10-24.md s.1, s.4
 Per-machine graphics tiers for slower PCs and Macs	docs/records/LAUNCHERS-2026-10-24.md s.1 (local.psd1, tier files)
 Release candidate installed with rollback, every md5 read back	docs/RC-20261024.md s.10; docs/records/LAN-FIXES-2026-10-24.md s.11
-Tester zip ships no game files and patches your own GOG copy	docs/records/SCOTT-BUILD-2026-10-23.md s.0-1
+Tester zip ships no game files and patches your own GOG copy	docs/records/TESTER-BUILD-2026-10-23.md s.0-1
 Frame generation without Steam via Lossless Scaling	CHANGELOG.md detailed log (Frame generation without Steam)
 1997 community arenas converted so Gold loads and drives them	docs/CONTENT-FEASIBILITY-2026-10-25.md s.0, s.2 (arena-pack.py, Rage County)

@@ -23,7 +23,7 @@
 
     tools\package-patch-kit.ps1 -Proxy <clean-built Strlkup.dll> -DgVoodooDir <unpacked 2.87.5> -DgVoodooFallbackDir <unpacked 2.87.3> -AhkDir <AutoHotkeyU32.exe folder>
                             [-OutDir <lab>\downloads\patch-kit] [-Version 0.8.0] [-Stamp yyyymmdd] [-Stage <dir>]
-  Writes <OutDir>\Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip and <zip>.MD5SUMS beside it. Record: docs\records\SCOTT-BUILD-2026-10-23.md (history).
+  Writes <OutDir>\Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip and <zip>.MD5SUMS beside it. Record: docs\records\TESTER-BUILD-2026-10-23.md (history).
 #>
 param(
     [Parameter(Mandatory)][string]$Proxy,

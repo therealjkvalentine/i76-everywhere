@@ -47,7 +47,7 @@ A and B (offline host, renderers) are built in `tools/haptics/` (C# .NET 8 host,
 | Re-creating the stock effects (mode C): impact / engine / terrain families from the DLL formulas; weapon families from hardpoint +0x14; `.frc` parameter block never decoded | designed | HAPTICS-ARCH 3.3, 4.3; FFB-DEEP-DIVE 3 |
 | FFB-DEEP-DIVE runtime questions: surface-id to I7_* name order, block +0xe4..+0xec / +0x158 (written, never read), what [veh+0xe4] is | open (logging shim run) | FFB-DEEP-DIVE 6 |
 | Blown-tyre steady pull (front tyre pulls steering +-0.3) and damage-aware lateral cap from live tyre grip | partly built (`tyre.flat.json` kick + shake; the steady pull not in any effect) | FFB-DATA-AUDIT row 6 |
-| Pad / wheel early tick on GOG's Galaxy exe 9a232dcc (no WINMM import, so the joystick watch cannot attach): port the joystick watch to GOG's win32.dll shim? | ruling | SCOTT-BUILD s.6.2; OTL 2026-10-23 afternoon decision 2 |
+| Pad / wheel early tick on GOG's Galaxy exe 9a232dcc (no WINMM import, so the joystick watch cannot attach): port the joystick watch to GOG's win32.dll shim? | ruling | TESTER-BUILD s.6.2; OTL 2026-10-23 afternoon decision 2 |
 | Wheel latency of the tick: the wait for the next tick is uniform 0..T; a fix was described, not built | idea | TICK-LATENCY-AND-AI-FIRE-2026-10-17 |
 | Docked USB FFB wheel on the Steam Deck (Wine evdev backend + the game's own FFB) | designed (doc steps), never run | STEAMDECK.md "Real force feedback" |
 
@@ -235,9 +235,9 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 
 | item | status | source |
 |---|---|---|
-| F2 orphaned-bookmark fix: console test PASS (stock ORPHAN, F2 OK); in no shipped shell (the patch kit's patcher applies F7 + M1/M2/K1-K4 only) | built, not shipped | OTL item 48; BACKLOG-AGENT-ITEMS U-05; SCOTT-BUILD |
+| F2 orphaned-bookmark fix: console test PASS (stock ORPHAN, F2 OK); in no shipped shell (the patch kit's patcher applies F7 + M1/M2/K1-K4 only) | built, not shipped | OTL item 48; BACKLOG-AGENT-ITEMS U-05; TESTER-BUILD |
 | Shell patches M2, K2, K4 and the garage "Overwrite the current variant?" prompt: emulated only, never live | built, not tested | B-16 U-06 |
-| Menu pointer on GOG's 9a232dcc under the shipped cursor map (gate rows 3-6 void twice); overwrite Y/N and popup Enter / Space there | not tested (agent, after the reboot) | SCOTT-BUILD s.6.3, 7, 8.5 |
+| Menu pointer on GOG's 9a232dcc under the shipped cursor map (gate rows 3-6 void twice); overwrite Y/N and popup Enter / Space there | not tested (agent, after the reboot) | TESTER-BUILD s.6.3, 7, 8.5 |
 | Esc / exit-menu pointer fix (`I76_MENU_PTR_CENTRE`), Alt-Tab fresh frame (`I76_MENU_DRAW`), Windows-only Up / Down look swap (staged polish2): owner's hand check | built, owner test pending | OTL 2026-10-21 P8-P10 |
 | Debug tool full-state store / restore (Ctrl+9 / Ctrl+0), waypoint 2, haptics button | built, owner test pending | OTL 33b; DEBUG-TOOL-2026-10-20 |
 | I76 Debug on a real drive (fps with the page open, every tab) | owner test pending | OTL item 33 |
@@ -262,7 +262,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | Patch kit (first tested by the tester): release v0.7.3 is published on GitHub; whether to announce it or send the zip | ruling | OTL 2026-10-23 afternoon decision 1 |
 | Shipped `saves\savegame.dir` carries 92 B of zero slack | ruling (trim or leave) | OTL 2026-10-23 afternoon decision 3 |
 | Fresh install by the owner: real `INSTALL.bat` with GOG's installer and UAC, music in a mission on that exe, best-wide, a Save Bookmark | owner test pending | OTL item 16; B-16 R-04 |
-| Non-ultrawide real hardware (16:9 GPU / DPI, the menu pointer at that size); a 4:3 monitor (dry run only) | not tested | SCOTT-BUILD s.7 |
+| Non-ultrawide real hardware (16:9 GPU / DPI, the menu pointer at that size); a 4:3 monitor (dry run only) | not tested | TESTER-BUILD s.7 |
 | `Build-From-GOG.ps1 -Game Nitro`: console proof pending | built, not tested | `5cee886` |
 | Mac: no tick / 60 fps on the Macs (24 fps cap); the 60 / 120 switches untested under Wine | open | OTL 2026-10-21 Mac caveats; ENHANCEMENTS 9 |
 | Mac: clean-machine installer (`mac-install.command` "BETA"), mic prompt | open | B-16 K-02 |
@@ -296,7 +296,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | item | status | source |
 |---|---|---|
 | ENHANCEMENTS.md refresh: last touched 2026-10-10; nothing on the tick, LAN / AI fill / teams, Nitro, terrain morph, far-edge, mirror, Debug, Deck TV, "multiplayer untested" sentence stale | open | B-16 R-07, N-03 |
-| Shared harness takes any `i76` / `nitro` process as the game: a single-thread zombie blocks every lane until a reboot | open | SCOTT-BUILD s.7; OTL 2026-10-23 ~16:00 |
+| Shared harness takes any `i76` / `nitro` process as the game: a single-thread zombie blocks every lane until a reboot | open | TESTER-BUILD s.7; OTL 2026-10-23 ~16:00 |
 | Gate row 9 (fps at the console) needs the display awake: keep-display rule in every console brief | partly done | memory display-asleep-voids-fps-rows |
 | Click-UI raw-pointer scripts left on purpose (calibrate, probes, nucleus-q, mp-explore, renderer-matrix) | open (listed) | BACKLOG-AGENT-ITEMS U-12 |
 | Airborne detector on the interpolated pose; cactus2 class-4 classifier | open | BACKLOG-AGENT-ITEMS "Not done" |

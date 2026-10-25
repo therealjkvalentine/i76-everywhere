@@ -63,8 +63,8 @@ $Plan = @(
   @{Name='game-scott-uninst';Root=$Lab;Action='Archive';Junction=$true},
   @{Name='exp-mac';Root=$Lab;Action='Archive';Junction=$false}, @{Name='exp-rcdraw';Root=$Lab;Action='Archive';Junction=$false},
   # lane-held on 2026-10-24 evening
-  @{Name='game-scott';Root=$Lab;Action='Archive';Junction=$true;WaitFor='Scott kit lane (PLAY.bat cmd.exe alive)'},
-  @{Name='game-scott-b';Root=$Lab;Action='Archive';Junction=$true;WaitFor='Scott kit lane (PLAY-PREVIEW.bat alive)'},
+  @{Name='game-scott';Root=$Lab;Action='Archive';Junction=$true;WaitFor='tester kit lane (PLAY.bat cmd.exe alive)'},
+  @{Name='game-scott-b';Root=$Lab;Action='Archive';Junction=$true;WaitFor='tester kit lane (PLAY-PREVIEW.bat alive)'},
   @{Name='exp-nitro-mp';Root=$Lab;Action='Archive';Junction=$true;WaitFor='Nitro MP lane (.fps-queue nitro-mp-design)'},
   @{Name='exp-nitro-mp-b';Root=$Lab;Action='Archive';Junction=$true;WaitFor='Nitro MP lane'},
   @{Name='exp-nitro-types';Root=$Lab;Action='Archive';Junction=$true;WaitFor='Nitro MP / types lane'},

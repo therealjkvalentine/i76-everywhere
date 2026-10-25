@@ -1126,7 +1126,7 @@ Open items from this session:
   game-types flip (co-op Mac n 2, then entries default) is prepared and waits on that. The gt_xlan.sh time limit now excludes queue
   wait, and the teardown keeps its DLL backup (lab 3e624f8 / 2f0bc9b).
 
-## 2026-10-23 afternoon: the patch kit, the first tester (records/SCOTT-BUILD-2026-10-23.md)
+## 2026-10-23 afternoon: the patch kit, the first tester (records/TESTER-BUILD-2026-10-23.md)
 
 - **What it is:** `Interstate76-i76-everywhere-tester-20261023.zip` (2.7 MB, 83 files; lab `downloads\tester\`, and the asset of the
   DRAFT pre-release `tester-20261023` on GitHub - not published, your call). Unzipped INTO a GOG Interstate '76 folder; nothing of

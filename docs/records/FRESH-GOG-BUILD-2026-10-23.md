@@ -2,7 +2,7 @@
 
 Owner (overnight ask, via the coordinator): "make sure that our repo can build a working copy of the game from a new GOG install for
 Gold and Nitro." Lane: Tester-release. Repo commits fa50460 (build-proxy.ps1), b6d1e81 (Build-From-GOG.ps1, Gold), 5cee886 (Nitro),
-73cfd8d (the options bytes, see SCOTT-BUILD s.8.1 c).
+73cfd8d (the options bytes, see TESTER-BUILD s.8.1 c).
 
 ## Answer
 
@@ -20,7 +20,7 @@ GOG installs, n 2 each, console:
 | build | exit 0; proxy b45643d2 from fa50460 | exit 0; proxy b45643d2 from b6d1e81 (same music-fix tree) |
 | boot + menu pointer | gate row 3 through the built PLAY.bat: TRIP -> LOAD BOOKMARK -> row -> LOAD -> ACCEPT SALVAGE -> DONE by clicks, mission up at 120 fps, **2 of 2** | PLAY-Nitro.bat as built: title -> main menu -> click MELEE -> MULTI MELEE / INSTANT MELEE shown, **2 of 2** (identical captures) |
 | mission + drive | gate row 9 (T05, the owner's route, keys): hill **120.0 fps, 1 % low 87.9 / 89.2** over 2607 / 2615 m, n 2 | P01 direct boot (`PLAY-i76.ps1 -Exe nitro.exe -Mission P01.msn`), I + W / Up held 24 s: **419 / 424 m driven, 33.2 / 33.8 m/s** (telemetry), 120.0 fps, 1 % low 103.9 / 105.3, n 2 |
-| proxy log | every tick19-42 switch applied (as SCOTT-BUILD s.6.2) | `sim-tick: ON ... 12/12 sim gates`, aspect 20/20, cursor map (shell aw); 0 UNEXPECTED / NOT applied |
+| proxy log | every tick19-42 switch applied (as TESTER-BUILD s.6.2) | `sim-tick: ON ... 12/12 sim gates`, aspect 20/20, cursor map (shell aw); 0 UNEXPECTED / NOT applied |
 | crash lines | the frame-0 PIT probe only (exe+0x99997, handled) | the same probe at Nitro's exe+0x9ACB7 only |
 
 Evidence: lab `builds\tester-20261023\gate-20261023-213910` (+ autotest runs 214341 / 215227 / 220504), `nitro-proof-20261023-221707`

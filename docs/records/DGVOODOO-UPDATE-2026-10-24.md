@@ -83,7 +83,7 @@ The gate (rows 1, 3, 9) ran under the console lock through `tools\dgv-compat\gat
 
 **I saw no difference in behaviour (n 1 gate each).** The ridge 1 % low differs by 2 fps, which is inside the same-rate spread
 recorded elsewhere. An earlier attempt without the RC environment failed rows 3 and 9 on 2.87.5. That was the harness (raw
-clicks, SCOTT-BUILD s.6.1), not dgVoodoo. Its run `gate\20261024-100056` is void.
+clicks, TESTER-BUILD s.6.1), not dgVoodoo. Its run `gate\20261024-100056` is void.
 
 ## 4. The second break on the laptop: winmmbase.dll 26100.9549
 
