@@ -1,4 +1,4 @@
-<#
+﻿<#
   package-mac-kit.ps1 - the "I'76 Mac Kit (i76-everywhere)" zip: Mac users build Interstate 76 Gold.app / Nitro.app themselves
   from their own GOG copy (owner 2026-10-25: "What about end users building the Mac version?"; record docs\records\MAC-KIT-2026-10-25.md).
   The sibling of package-patch-kit.ps1 (Windows): nothing of the game is inside, and every third-party download (Sikarugir
@@ -14,7 +14,7 @@
 
     tools\package-mac-kit.ps1 -GoldProxy <Strlkup.dll> -NitroProxy <Strlkup.dll> -MacPayloadDir <dir> -PatchesDir <dir>
                               [-GogGold <pristine GOG Gold folder>] [-GogNitro <pristine GOG Nitro folder>]   (content guard)
-                              [-OutDir C:\Users\james\i76-uncap-lab\downloads\mac-kit] [-Version 0.1.0]
+                              [-OutDir C:\Users\james\i76-uncap-lab\downloads\mac-kit] [-Version 0.7.4]
   -MacPayloadDir holds the family Macs' own Mac-only binaries, md5-pinned below (lab builds\mac-kit-20261025\mac-payload).
   Writes <OutDir>\Interstate76-Mac-Kit-i76-everywhere-v<Version>-<sha>.zip (+ .MD5SUMS); the stage is kept for inspection.
 #>
@@ -26,7 +26,7 @@ param(
     [string]$GogGold = 'C:\Users\james\i76-map\sandbox-gog\main\app',
     [string]$GogNitro = 'C:\Users\james\i76-map\sandbox-gog\nitro-full\app',
     [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\mac-kit',
-    [string]$Version = '0.1.0',
+    [string]$Version = '0.7.4',
     [string]$Stage = ''
 )
 $ErrorActionPreference = 'Stop'
