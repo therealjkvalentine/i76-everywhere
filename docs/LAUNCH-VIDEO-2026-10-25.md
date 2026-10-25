@@ -193,3 +193,23 @@ Problems found and fixed on the way:
 unique frames per 10 s). It is not the 20 fps game, and their channel logo covers the fly-in until about 0:05. Our own stock
 take is the 20 fps GOG exe at 640x480 and lines up with ours to the sim tick. If a later cut uses their footage, the credit is
 "Original footage courtesy of Local Ditch Gaming (used with permission)", on screen and in the description.
+
+## 7. Draft v3 (2026-10-25 16:25)
+
+`captures\launch-video\draft-v3.mp4` (CC0 groove) and `draft-v3-theme.mp4` (game theme): 1920x1080, 60 fps, **88.4 s** (the jump,
+head-look and combat takes are still missing and left out by `--skip-missing`). Teaser: `launch-teaser-v3.gif` (640 px, 1.76 MB,
+from the T05 opening segment). Timeline: `timeline-v3.json`. Nothing uploaded; the README video link and the release are untouched.
+
+Owner's direction applied:
+- **Local Ditch Gaming footage for the 1997 side where we have it.** Only the T05 opening: `raw\localditch\localditch-t05-720.mp4`
+  (960x720, their channel logo gone after ~4 s) in 4.2-11.6 s, against `opening-all` capture 58.0-65.4 s. Lined up by eye on the
+  cut to the cockpit (theirs 8.1 s, ours 61.9 s); it is **not tick-locked**, so the caption no longer says "same sim moment" and
+  the 1997 side has no fps / mph counters (a "600 M" tag only).
+- **Still our `*-stock43` takes** (their footage is one T05 canyon-start run and does not cover these): route-stock43 ("same route",
+  hill start), slalom-stock43 (20 vs 120 fps weave). Replace each when the owner supplies a matching Local Ditch clip.
+- **Credit** "Original footage: Local Ditch Gaming, youtube.com/@LocalDitchGaming, used with permission" is on screen on every segment
+  using their footage (`"credit"` key in compose.py, small line at the bottom: the opening) and on the THANK YOU card (6 s now).
+  README video line carries it too; YouTube text: `tools/launch-video/youtube-description.txt`.
+- **Callouts zoomed at 0.5x**: far edge (crop 960x540 on the horizon band), terrain morph (already), mirror (crop, now 0.5x), plus the
+  smoothness weave (already 0.5x, full frame). Every slowed segment draws a "0.5x" tag (was "0.5x SPEED") and says so in the caption.
+- FFB panel segment unchanged. Owner takes stay `--skip-missing`. No new recordings.

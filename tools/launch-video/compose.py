@@ -14,6 +14,7 @@ Segment types (the "type" key):
   sbs    : a, b = two clip specs (src / in / out / crop / speed / label / counters / tag); side by side 960x540 each; title, caption
   still  : img, dur, zoom_to [cx, cy, z] (zoom from the whole picture to centre cx, cy (0..1) at zoom z), caption, title
   panel  : game = clip spec scaled 1280x720 at the left, panel = the FFB page recording (640 wide at the right), caption, title
+  (any segment: "credit" = a small line at the bottom, used for the Local Ditch Gaming footage credit; a speed != 1 draws a "0.5x" tag)
   crawl  : file (one improvement per line), dur, title
 """
 import argparse, glob, json, os, subprocess, sys
@@ -239,6 +240,8 @@ def text_layer(ass, s, dur):
         ass.add(0, dur, "Head", s["title"], pos=(960, 40))
     if s.get("caption"):
         ass.add(0.3, dur, "Cap", s["caption"])
+    if s.get("credit"):
+        ass.add(0.3, dur, "Small", s["credit"], pos=(960, 1062))
 
 
 def seg_clip(i, s):
@@ -247,7 +250,7 @@ def seg_clip(i, s):
     if s.get("counters"):
         counters(ass, overlay_for(p), s["_tin"], float(s.get("speed", 1.0)), dur, (960, 130), s.get("tag", ""))
     if s.get("speed", 1.0) != 1.0:
-        ass.add(0, dur, "Label", "%gx SPEED" % float(s["speed"]), pos=(1780, 980), fade=(0, 0))
+        ass.add(0, dur, "Label", "%gx" % float(s["speed"]), pos=(1780, 980), fade=(0, 0))
     sub = ass.write("s%02d.ass" % i)
     ff(inp + ["-vf", "%s,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2" % (chain, sub, dur - 0.2)] + ENC + ["s%02d.mp4" % i])
 
@@ -267,7 +270,7 @@ def seg_sbs(i, s):
         elif spec.get("sub"):
             ass.add(0, dur, "Mono", spec["sub"].replace(" ", "\\h"), pos=(cx, 858))
     if s["a"].get("speed", 1.0) != 1.0:
-        ass.add(0, dur, "Label", "%gx SPEED" % float(s["a"]["speed"]), pos=(1760, 222), fade=(0, 0))
+        ass.add(0, dur, "Label", "%gx" % float(s["a"]["speed"]), pos=(1760, 222), fade=(0, 0))
     sub = ass.write("s%02d.ass" % i)
     fc = "[0:v]%s[a];[1:v]%s[b];[a][b]hstack=2,pad=1920:1080:0:270:color=%s,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2[v]" % (ca, cb, BG, sub, dur - 0.2)
     ff(ia + ib + ["-filter_complex", fc, "-map", "[v]", "-t", str(dur)] + ENC + ["s%02d.mp4" % i])

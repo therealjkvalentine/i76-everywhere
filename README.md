@@ -1,7 +1,7 @@
 # i76-everywhere: Interstate '76 at 120 fps with the 1997 physics
 
 <p align="center"><a href="https://github.com/therealjkvalentine/i76-everywhere/releases/download/v0.8.0/i76-everywhere-launch-video.mp4"><img src="docs/media/launch-teaser.gif" width="640" alt="Interstate '76: the stock 1997 game beside i76-everywhere on the same route"></a><br>
-<b><a href="https://github.com/therealjkvalentine/i76-everywhere/releases/download/v0.8.0/i76-everywhere-launch-video.mp4">Watch the 83-second video</a></b> (draft, 1997 vs ours side by side)</p>
+<b><a href="https://github.com/therealjkvalentine/i76-everywhere/releases/download/v0.8.0/i76-everywhere-launch-video.mp4">Watch the 83-second video</a></b> (draft, 1997 vs ours side by side). Original 1997 footage in the video: <a href="https://www.youtube.com/@LocalDitchGaming">Local Ditch Gaming</a>, used with permission.</p>
 
 **What this is:** a free patch kit for your own GOG copy of Interstate '76 (Gold / Arsenal). The 1997 game still runs;
 we fix and extend it around the original code, so saves, add-on maps and multiplayer keep working.

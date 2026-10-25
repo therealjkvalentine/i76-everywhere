@@ -1,0 +1,14 @@
+Interstate '76 Everywhere: the 1997 game, fixed for 2026.
+
+Side by side: the original game against the i76-everywhere patch kit. Longer draw distance (600 m to 2300 m), a feathered far edge,
+terrain that morphs instead of popping, a working rear mirror, a smooth 120 fps picture on the original 41.667 ms physics tick,
+force feedback for wheels, co-op and AI cars on LAN, and 100+ other fixes.
+
+Get it: https://github.com/therealjkvalentine/i76-everywhere
+
+Credits
+Original 1997 footage: Local Ditch Gaming, https://www.youtube.com/@LocalDitchGaming (used with permission)
+Music: "Groove 76", written for this project, CC0 1.0
+Thanks to the community map authors, Dege (dgVoodoo 2), IPXWrapper, opentrack, AutoHotkey and vahokif (I26, prior art).
+
+Interstate '76 (c) 1997 Activision. Fan project, not affiliated with or endorsed by Activision.
