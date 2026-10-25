@@ -43,5 +43,7 @@
         # is overridden and has no effect. A smaller or larger render target needs an OpenGLide-HD patch (render to an FBO, scale
         # it to the window at swap) - the record says where. Mac antialiasing = the prefix's user.reg [Environment] OGL_MSAA (4).
         # I76_RENDER_WIDTH is reserved for that key; PLAY-i76.ps1 ignores it on Windows.
+        # Field of view: I76_FOV / I76_FOV_HOOD (proxy keys, stock 90 / 120) work the same on the Mac (the proxy runs there too);
+        # not set in this tier = stock.
     }
 }

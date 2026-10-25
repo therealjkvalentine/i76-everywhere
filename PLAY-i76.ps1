@@ -374,6 +374,16 @@ if (-not $sameFile) {
   }
 }
 if ($renderLine) { Write-LaunchLog $renderLine 'Cyan' }
+# the field of view this panel gets (the proxy's Hor+ maths, apply_aspect: f -> 2 atan(0.75 D tan(f/2)); I76_FOV / I76_FOV_HOOD = the
+# 4:3 base, stock 90 / 120). Said here because the launcher log is what a player reads: widescreen shows MORE, nothing is stretched.
+$asp = if ($gameEnv.Contains('I76_ASPECT')) { "$($gameEnv['I76_ASPECT'])" } else { '' }
+$fovB = 90.0; $fovH = 120.0; $tv2 = 0.0
+if ($gameEnv.Contains('I76_FOV') -and [double]::TryParse("$($gameEnv['I76_FOV'])", [Globalization.NumberStyles]::AllowDecimalPoint, $inv, [ref]$tv2) -and $tv2 -ge 60 -and $tv2 -le 120) { $fovB = $tv2 }
+if ($gameEnv.Contains('I76_FOV_HOOD') -and [double]::TryParse("$($gameEnv['I76_FOV_HOOD'])", [Globalization.NumberStyles]::AllowDecimalPoint, $inv, [ref]$tv2) -and $tv2 -ge 80 -and $tv2 -le 150) { $fovH = $tv2 }
+if ($asp -match '^\s*([\d.]+)\s*[:xX]\s*([\d.]+)\s*$') { $aspD = [double]::Parse($Matches[1], $inv) / [double]::Parse($Matches[2], $inv) } elseif ($asp -match '^\s*[\d.]+\s*$') { $aspD = [double]::Parse($asp.Trim(), $inv) } else { $aspD = 4.0 / 3.0 }
+if ($aspD -lt 1.34 -or $aspD -gt 3.6) { $aspD = 4.0 / 3.0 }
+$wid = { param($f) 2.0 * [Math]::Atan(0.75 * $aspD * [Math]::Tan($f / 2.0 * [Math]::PI / 180.0)) * 180.0 / [Math]::PI }
+Write-LaunchLog ("field of view: {0:0} deg at 4:3 -> {1:0.#} deg horizontal on this {2:0.###}:1 picture (hood view {3:0} -> {4:0.#}); widescreen shows more of the world, nothing is stretched (I76_FOV / I76_FOV_HOOD change the base)" -f $fovB, (& $wid $fovB), $aspD, $fovH, (& $wid $fovH)) 'DarkGray'
 if ($RenderOnly) { if ($renderFailed) { exit 5 } else { exit 0 } }
 
 # ---- tick override (-TickMs; TICK-FINISH s.19) ---------------------------------

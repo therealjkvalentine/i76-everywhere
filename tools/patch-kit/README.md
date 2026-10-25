@@ -95,7 +95,7 @@ checked against a pinned SHA-256 (`_i76e\extras.json`); everything it installs s
 Every start reads the size of your **main** monitor and, when it changed, rewrites the display settings for it:
 the 3D is rendered at twice your monitor's size (a real supersample, no shimmer) and shown at your monitor's own
 shape - 21:9, 16:9, 16:10 and 4:3 all come out right, nothing is stretched. The 640x480 menus, garage and movies
-are shown 4:3 with side bars. The game runs in a borderless window the size of the screen, so Alt-Tab works.
+are shown 4:3 with side bars. Widescreen shows you MORE of the world (horizontal field of view 90° on 4:3 -> about 122° on a 21:9 panel, 106° on 16:9), nothing is stretched; `I76_FOV` changes the base (Graphics settings). The game runs in a borderless window the size of the screen, so Alt-Tab works.
 
 The developer has only ever played this at 3440x1440. On other sizes the numbers are computed; they were checked on his
 PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, nothing stretched, and the mouse
@@ -131,6 +131,7 @@ UNTESTED), `graphics-mac` / `graphics-mac-fast` (Macs). The stock launchers (PLA
 | `I76_GLIDE_REFRESH` | Hz (60) | the refresh the 3D asks for (120 = 120 fps) |
 | `I76_RENDER_SCALE` | 1, 1.5, 2 (2) | Windows: the 3D is rendered at that many times the monitor's size per axis, then shown at the monitor's size (2 = a 2x2 supersample, sharpest and heaviest; 1 = the monitor's own size, lightest; `PLAY.bat --no-supersample` in the kit = 1) |
 | `I76_AA` | 0, 2, 4, 8 (4) | Windows: antialiasing (MSAA) off / 2x / 4x / 8x |
+| `I76_FOV` / `I76_FOV_HOOD` | degrees (90 / 120) | the field of view at 4:3 (cockpit and the other views / the hood view F6); widescreen widens it for your panel's shape as before (90 -> about 122° on 21:9, 106° on 16:9). 60-120 / 80-150; the proxy logs the result (`aspect: ... fov 90 -> 121.7 deg`) |
 | (Mac) | - | Macs run OpenGLide, not dgVoodoo: `I76_RENDER_SCALE` / `I76_AA` do nothing there. The Mac renders at its window's size (the launcher sets `OGL_VIEWPORT` from the display at every start; `OpenGLid.INI` `Resolution=` is overridden), so there is no Mac render-size key yet (`I76_RENDER_WIDTH` is reserved for it); Mac antialiasing is `OGL_MSAA` (4) in the app prefix's `user.reg` `[Environment]` |
 
 `I76_RENDER_SCALE` / `I76_AA` are read by PLAY-i76.ps1, not by the game: when they differ from the conf it rewrites

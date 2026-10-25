@@ -9602,22 +9602,40 @@ static void apply_hud_squeeze(double k) {
 static void apply_aspect(void) {
     static const DWORD push_sites[17] = { 0x405a00, 0x4069e3, 0x406eb8, 0x406faf, 0x4070d5, 0x4079f6, 0x407f46,
         0x4080cb, 0x4083f6, 0x408546, 0x408696, 0x408816, 0x4089a0, 0x408bf0, 0x4090d0, 0x409316, 0x4094e7 };
-    char v[24], *sep; DWORD n = env_str("I76_ASPECT", v, sizeof(v));
-    double D, k; float three = 3.0f, cst, f90, w90, wcock, f120, w120, clamp0, clamp1; int i, ok = 0;
-    if (n == 0) return;
-    sep = strchr(v, ':'); if (!sep) sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X');
-    D = sep ? atof(v) / atof(sep + 1) : atof(v);
-    if (!(D >= 1.34 && D <= 3.6)) { mlog("  aspect: %s out of range (1.34..3.6) - not applied", v); return; }
+    char v[24], fv[16], *sep; DWORD n = env_str("I76_ASPECT", v, sizeof(v));
+    double D, k, base = 90.0, hbase = 0.0; float three = 3.0f, cst, f90, w90, wcock, f120, w120, fb, fhb, clamp0, clamp1; int i, ok = 0;
+    /* BASE FOV (2026-10-25, owner: "FOV should be configurable in the graphics config too"; i76-everywhere
+     * docs/records/RENDER-KEYS-2026-10-25.md). I76_FOV=<deg> = the stock 4:3 horizontal fov of the main views (stock 90,
+     * 60..120) and I76_FOV_HOOD=<deg> the hood view's (stock 120, 80..150); the Hor+ maths below widens each for the panel
+     * as before. Without I76_ASPECT they apply at 4:3 (no aspect constant / HUD change). Neither set = exactly as before. */
+    if (env_str("I76_FOV", fv, sizeof(fv))) {
+        double d = atof(fv);
+        if (d >= 60.0 && d <= 120.0) base = d; else mlog("  fov: I76_FOV=%s out of range (60..120) - 90 kept", fv);
+    }
+    if (env_str("I76_FOV_HOOD", fv, sizeof(fv))) {
+        double d = atof(fv);
+        if (d >= 80.0 && d <= 150.0) hbase = d; else mlog("  fov: I76_FOV_HOOD=%s out of range (80..150) - 120 kept", fv);
+    }
+    if (n == 0) {
+        if (base == 90.0 && hbase == 0.0) return;
+        D = 4.0 / 3.0;
+    } else {
+        sep = strchr(v, ':'); if (!sep) sep = strchr(v, 'x'); if (!sep) sep = strchr(v, 'X');
+        D = sep ? atof(v) / atof(sep + 1) : atof(v);
+        if (!(D >= 1.34 && D <= 3.6)) { mlog("  aspect: %s out of range (1.34..3.6) - not applied", v); return; }
+    }
     k = 0.75 * D;
     { static const DWORD f90_bits = 0x3fc90fda; memcpy(&f90, &f90_bits, 4); }   /* the exe's pi/2 is one ulp below (float)(pi/2) */
     if (!NA(0x4075a7) || !NA(0x4be5ac)) { mlog("  aspect: hood fov / clamp sites not mapped - not applied"); return; }
     memcpy(&f120, (const void *)(DWORD_PTR)NA(0x4075a7), 4);
     memcpy(&clamp0, (const void *)(DWORD_PTR)NA(0x4be5ac), 4);
     cst = (float)(4.0 / D);
-    w90 = (float)(2.0 * atan(k * tan(f90 / 2.0)));
-    w120 = (float)(2.0 * atan(k * tan(f120 / 2.0)));
-    clamp1 = w120 + 0.08f > clamp0 ? w120 + 0.08f : clamp0;
-    ok += patch_bytes(0x4bc510, (const BYTE *)&three, (const BYTE *)&cst, 4, "aspect constant");
+    fb = (base == 90.0) ? f90 : (float)(base / 57.29578);          /* the base fovs at 4:3 */
+    fhb = (hbase == 0.0) ? f120 : (float)(hbase / 57.29578);
+    w90 = (float)(2.0 * atan(k * tan(fb / 2.0)));
+    w120 = (float)(2.0 * atan(k * tan(fhb / 2.0)));
+    clamp1 = (w120 > w90 ? w120 : w90) + 0.08f; if (clamp1 < clamp0) clamp1 = clamp0;
+    if (n) ok += patch_bytes(0x4bc510, (const BYTE *)&three, (const BYTE *)&cst, 4, "aspect constant"); else ok++;
     /* Cockpit view (F1 / V, level-start reset, binocular toggle back: sites 1..4): the cockpit mesh was modelled for
      * 90 deg and its right side ends inside the full Hor+ view (owner, 2026-10-03). I76_ASPECT_COCKPIT_FOV=<deg>
      * (default 0 = full Hor+; e.g. 105 narrows it; 90 = stock width) gives those four sites their own horizontal fov. */
@@ -9625,15 +9643,17 @@ static void apply_aspect(void) {
         char c[16]; double deg = 0.0;
         if (env_str("I76_ASPECT_COCKPIT_FOV", c, sizeof(c))) deg = atof(c);
         wcock = (deg <= 0.0) ? w90 : (float)(deg / 57.29578);
-        if (wcock < f90) wcock = f90;
+        if (wcock < fb) wcock = fb;
         if (wcock > w90) wcock = w90;
     }
     for (i = 0; i < 17; i++) ok += patch_bytes(push_sites[i] + 1, (const BYTE *)&f90, (const BYTE *)((i >= 1 && i <= 4) ? &wcock : &w90), 4, "aspect fov");
     ok += patch_bytes(0x4075a7, (const BYTE *)&f120, (const BYTE *)&w120, 4, "aspect hood fov");
     ok += patch_bytes(0x4be5ac, (const BYTE *)&clamp0, (const BYTE *)&clamp1, 4, "aspect fov clamp");
-    mlog("  aspect: D %.3f, %d/20 sites; fov 90 -> %.1f deg (cockpit %.1f), hood 120 -> %.1f deg, clamp %.1f deg (present at %.3f:1, stretched)",
-         D, ok, w90 * 57.29578, wcock * 57.29578, w120 * 57.29578, clamp1 * 57.29578, D);
-    apply_hud_squeeze(k);
+    mlog("  aspect: D %.3f, %d/20 sites; fov %.0f -> %.1f deg (cockpit %.1f), hood %.0f -> %.1f deg, clamp %.1f deg (present at %.3f:1, stretched)",
+         D, ok, fb * 57.29578, w90 * 57.29578, wcock * 57.29578, fhb * 57.29578, w120 * 57.29578, clamp1 * 57.29578, D);
+    if (base != 90.0 || hbase != 0.0) mlog("  fov: base I76_FOV %.0f deg, I76_FOV_HOOD %.0f deg (4:3 values; stock 90 / 120) -> cockpit %.1f, hood %.1f deg on this panel",
+                                         fb * 57.29578, fhb * 57.29578, wcock * 57.29578, w120 * 57.29578);
+    if (n) apply_hud_squeeze(k);
 }
 
 /* SOFTWARE RENDERER HIGH RESOLUTION (I76_SW_RES=<W>x<H> or 1; off by default; EXPERIMENT, lab

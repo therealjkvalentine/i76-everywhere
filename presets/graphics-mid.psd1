@@ -46,5 +46,9 @@
         # I76_AA 0 | 2 | 4 | 8 = MSAA off / 2x / 4x / 8x.
         I76_RENDER_SCALE    = '1'      # balanced: 2 (1 = the display's size, 3440x1440 on 3440x1440)
         I76_AA              = '4'
+        # Field of view (2026-10-25, owner: "FOV should be configurable in the graphics config too"): read by the proxy. The 4:3
+        # base the widescreen (Hor+) maths widens for the panel: 90 -> about 122 deg on 21:9, 106 on 16:9. Stock 90 / 120 (hood).
+        I76_FOV             = '90'
+        I76_FOV_HOOD        = '120'
     }
 }
