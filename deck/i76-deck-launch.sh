@@ -361,6 +361,24 @@ else
     log "no payload (stage=$STAGE, compat=${STEAM_COMPAT_DATA_PATH:-<unset>}) - launching bare"
 fi
 
+# --- GOG's registry keys (2026-10-25, Deck kit) ----------------------------------
+# GOG's Windows installer writes HKLM\Software\Activision\Interstate '76 Gold Edition "Minimum"="0" (= a full install, the
+# data on the hard disk) and Interstate '76 "EXE"="i76.exe"; a folder unpacked by innoextract brings none, and GOG 2.1.0.17's
+# i76.exe then stops at boot on "Please insert CD 'Interstate '76 CD 2'" (Deck kit test 2026-10-25; the Mac Kit's same finding).
+# Steam builds the prefix at the first launch, so the keys go in here, once per prefix: i76-gog-keys.reg (written by the kit)
+# imported with regedit through this Proton before the game starts. No file (the owner's Deck: its exe has no CD check) = skipped.
+REGF="$I76_HOME/i76-gog-keys.reg"
+if [ -f "$REGF" ] && [ -n "$PROTON" ] && [ -n "${STEAM_COMPAT_DATA_PATH:-}" ]; then
+    SYSREG="$STEAM_COMPAT_DATA_PATH/pfx/system.reg"
+    if grep -q "Interstate '76 Gold Edition" "$SYSREG" 2>/dev/null; then
+        log "registry: GOG keys present in the prefix"
+    else
+        "$PROTON" run regedit /S "Z:$(printf '%s' "$REGF" | sed 's#/#\#g')" >>"$LOG" 2>&1 || true
+        if grep -q "Interstate '76 Gold Edition" "$SYSREG" 2>/dev/null; then log "registry: GOG keys imported ($(grep -c '"Minimum"="0"' "$SYSREG") Minimum lines)"
+        else log "registry: WARNING - GOG keys not in $SYSREG after regedit (the game may ask for CD 2)"; fi
+    fi
+fi
+
 # --- run the game ------------------------------------------------------------
 # Backgrounded (not exec'd) so we still own the process and can clean up after.
 "$@" &

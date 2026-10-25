@@ -75,7 +75,7 @@ fetch() {
     mkdir -p "$CACHE"
     if [ -f "$f" ] && [ "$(sha256sum "$f" | cut -c1-64)" = "$sha" ]; then echo "$f"; return; fi
     note "downloading $1" >&2
-    curl -fL --retry 3 -o "$f.part" "$url" >&2 || die "download failed: $url"
+    curl -fsSL --retry 3 -o "$f.part" "$url" >&2 || die "download failed: $url"
     got="$(sha256sum "$f.part" | cut -c1-64)"
     [ "$got" = "$sha" ] || { rm -f "$f.part"; die "$1: sha256 $got is not the pinned $sha (not installed)"; }
     mv "$f.part" "$f"; echo "$f"
@@ -179,6 +179,14 @@ do_install() {
     for f in i76-deck-launch.sh i76-deck-launch-mp.sh; do cp "$PAY/deck/$f" "$DEST/$f"; chmod +x "$DEST/$f"; echo "$(md5of "$DEST/$f")  $f" >> "$LIST"; done
     for f in i76-env.sh i76-env-mp.sh; do cp "$KIT/$f" "$DEST/$f"; echo "$(md5of "$DEST/$f")  $f" >> "$LIST"; done
     [ -f "$DEST/i76-env.local.sh" ] || cp "$KIT/i76-env.local.sh.example" "$DEST/i76-env.local.sh"
+    # GOG's installer keys (full install = data on disk; the FFB product key). The launcher imports them into the game's
+    # prefix at its first start (Steam makes the prefix then); without them i76.exe asks for "Interstate '76 CD 2".
+    {   printf 'REGEDIT4\r\n'
+        for view in 'Software' 'Software\Wow6432Node'; do
+            printf '\r\n[HKEY_LOCAL_MACHINE\\%s\\Activision\\Interstate '"'"'76 Gold Edition]\r\n"Minimum"="0"\r\n' "$view"
+            printf '\r\n[HKEY_LOCAL_MACHINE\\%s\\Activision\\Interstate '"'"'76]\r\n"EXE"="i76.exe"\r\n' "$view"
+        done; } > "$DEST/i76-gog-keys.reg"
+    echo "$(md5of "$DEST/i76-gog-keys.reg")  i76-gog-keys.reg" >> "$LIST"
     mkdir -p "$DEST/ahk"; for f in AutoHotkeyU32.exe license.txt i76-remap.ahk; do cp "$PAY/ahk/$f" "$DEST/ahk/$f"; echo "$(md5of "$DEST/ahk/$f")  ahk/$f" >> "$LIST"; done
     cp "$PAY/deck/controller_neptune_i76_pad.vdf" "$DEST/"
     printf '%s\n' "$VERSION" > "$DEST/KIT-VERSION.txt"
