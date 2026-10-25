@@ -110,6 +110,8 @@ existing "let the AHK layers finish their device probe" sleep). Opentrack absent
 line: `local override: I76_MIRROR_EVERY=3 (preset 2)`, and the proxy read it back (`mirror-every: the rear mirror redraws every
 3-th frame`, both boots); local.psd1 removed afterwards. No helper processes were left after any boot.
 
+**Not run:** a repeat of the Alt-Tab boots on the fixed build (15b9862e). It queued 23:33 - 00:35 behind the content-trial / nitro / ffb-panel lanes and was stopped unrun. The fix only renames the launcher's variable, and the interposer's acquisition and Alt-Tab behaviour do not depend on it; the fixed build's interposer start and log line were confirmed live in the two 23:28 / 23:31 menu boots.
+
 ## 3. Where the files are
 
 - RC stage: lab `builds\rc-20261024\stage` (MD5SUMS / REMOVE.txt refreshed; `.pre-launchers-20261024` copies of both), the
