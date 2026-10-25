@@ -115,10 +115,10 @@ the monitor) + `tests/test_presets.py`: 32 passed.
 ### Live boots (laptop bench, 2026-10-25 07:29-07:31)
 
 The desktop console was queued behind seven lanes from 05:51 to 07:27; the coordinator moved the correctness boots to the laptop
-(LAPTOP-HPK11OMS, 1920x1080 panel). Bench copy `C:\i76-bench\rk\Interstate 76` = a copy of the bench's clean kit install with main
+(the laptop bench, 1920x1080 panel). Bench copy `<bench>\rk\Interstate 76` = a copy of the bench's clean kit install with main
 f3e51a7's PLAY-i76.ps1 (07244591), `_tools\Make-Wide-Conf.ps1` (eb53635b), the tier presets and the proxy built from f3e51a7
 (b53d1271, built twice byte-identical; it carries 93bc6ec's FOV keys). Runner lab `laptop-bench\bench\rk-job.ps1` via
-`laptop-run.ps1` (setup `rk-setup.ps1`): `C:\i76-bench\.fps-lock`, the wide conf copied to dgVoodoo.conf as PLAY.bat does, then
+`laptop-run.ps1` (setup `rk-setup.ps1`): `<bench>\.fps-lock`, the wide conf copied to dgVoodoo.conf as PLAY.bat does, then
 PLAY-i76.ps1 -Preset tick19-42 (I76_ASPECT 1920x1080) -Mission t05 -SkipMovies -NoFfb -NoHeadTrack with I76_SKIP_CUTSCENES=1,
 I76_MUTE=1, own shm suffix; screenshot 6 s after the player entity exists; only its own i76.exe stopped. n 1 per row. Captures
 and logs: lab `captures\render-keys-20261025\`.

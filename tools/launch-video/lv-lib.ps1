@@ -3,7 +3,7 @@
 #   Wait-LvConsole -Tag x   CONSOLE-LOCK.md protocol: waits (queue line in .fps-queue, poll 10 s) until no i76 / nitro runs,
 #                           .console-owner and .fps-lock are free, then takes both with an exclusive create. Returns $true / $false.
 #   Exit-LvConsole          frees what Wait-LvConsole took (call in a finally)
-$script:LvLab  = 'C:\Users\james\i76-uncap-lab'
+$script:LvLab  = (Join-Path $env:USERPROFILE 'i76-uncap-lab')
 $script:LvRepo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $script:LvCap  = Join-Path $script:LvLab 'captures\launch-video'
 $script:LvTwin = Join-Path $script:LvLab 'launchvid-20261025\Interstate 76'   # twin of test-gold (CONSOLE-LOCK.md "Copies")

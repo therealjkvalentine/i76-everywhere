@@ -40,8 +40,10 @@ if ($S.Keys) { foreach ($k in $S.Keys.Keys) { $E[$k] = "$($S.Keys[$k])" } }
 $E['I76_TELEMETRY'] = "$TelPort"; $E['I76_FPS_LOG'] = '2'; $E['I76_NO_MINIMIZE'] = '1'
 if ($S.Start) { $E['I76_START_POS'] = $S.Start }
 $dur = [int]$S.Still + [int]$S.Drive + 1
+$WW = if ($S.W) { [int]$S.W } else { 1920 }; $WH = if ($S.H) { [int]$S.H } else { 1080 }
+$Conf = if ($S.Conf) { $S.Conf } else { 'dgVoodoo.lv1080.conf' }
 if ($DryRun) {
-    "record-shot DRY RUN: shot=$Shot twin=$T mission=$($S.Mission) preset=$($S.Preset) patch20=$([bool]$S.Patch20) capture ${dur}s -> $Out"
+    "record-shot DRY RUN: shot=$Shot window=${WW}x${WH} conf=$Conf twin=$T mission=$($S.Mission) preset=$($S.Preset) patch20=$([bool]$S.Patch20) capture ${dur}s -> $Out"
     $E.Keys | ForEach-Object { "  $_=$($E[$_])" }
     "ffmpeg: $($FF.ffmpeg)"; exit 0
 }
@@ -56,7 +58,7 @@ try {
         $holdMine = $true; Start-Sleep -Seconds 2
     }
     if ($S.Patch20) { Copy-Item "$T\I76PATCH.DLL.disabled" "$T\I76PATCH.DLL" -Force; $patched = $true }
-    Copy-Item "$T\dgVoodoo.lv1080.conf" "$T\dgVoodoo.conf" -Force
+    Copy-Item "$T\$Conf" "$T\dgVoodoo.conf" -Force
     $log = Join-Path $T 'mciproxy.log'; $logLen = if (Test-Path $log) { (Get-Item $log).Length } else { 0 }
     Get-ChildItem Env: | Where-Object { $_.Name -like 'I76*' } | ForEach-Object { Remove-Item "Env:$($_.Name)" }
     $tel = Start-Process python -ArgumentList "-I `"$PSScriptRoot\tel-udp.py`" --port $TelPort --out `"$Out\tel.csv`" --seconds 900 --stop-file `"$Out\stop`"" -WindowStyle Hidden -PassThru
@@ -68,14 +70,14 @@ public struct RECT { public int L, T, R, B; }
     $drive = {
         . "$AT\lib\inputlib.ps1"; . "$AT\lib\focuslib.ps1"
         $g = Get-GamePid
-        $kp = Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSScriptRoot\lv-keeper.ps1`" -GamePid $($g.Id)" -WindowStyle Hidden -PassThru; Set-Content "$Out\keeper.pid" $kp.Id
+        $kp = Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSScriptRoot\lv-keeper.ps1`" -GamePid $($g.Id) -W $WW -H $WH" -WindowStyle Hidden -PassThru; Set-Content "$Out\keeper.pid" $kp.Id
         function Fg { try { $g.Refresh(); [void](Force-Foreground $g.MainWindowHandle) } catch {} }
         $rect = $null
         for ($i = 0; $i -lt 40; $i++) {
             Start-Sleep -Milliseconds 250; $g.Refresh(); $r = New-Object LvR.U+RECT
-            if ([LvR.U]::GetWindowRect($g.MainWindowHandle, [ref]$r) -and ($r.R - $r.L) -eq 1920 -and ($r.B - $r.T) -eq 1080) { $rect = $r; break }
+            if ([LvR.U]::GetWindowRect($g.MainWindowHandle, [ref]$r) -and ($r.R - $r.L) -eq $WW -and ($r.B - $r.T) -eq $WH) { $rect = $r; break }
         }
-        if (-not $rect) { $r = New-Object LvR.U+RECT; [void][LvR.U]::GetWindowRect($g.MainWindowHandle, [ref]$r); Write-Host "[lv] window not 1920x1080: $($r.L),$($r.T),$($r.R),$($r.B)" -ForegroundColor Yellow; $rect = $r }
+        if (-not $rect) { $r = New-Object LvR.U+RECT; [void][LvR.U]::GetWindowRect($g.MainWindowHandle, [ref]$r); Write-Host "[lv] window not ${WW}x${WH}: $($r.L),$($r.T),$($r.R),$($r.B)" -ForegroundColor Yellow; $rect = $r }
         Fg; Start-Sleep -Milliseconds 1500
         # hold the car before the capture starts so the first frame is not a lurch
         Key-Down $VK.SPACE; Key-Down $VK.S
@@ -91,16 +93,56 @@ public struct RECT { public int L, T, R, B; }
             $t = $sw.Elapsed.TotalSeconds
             if (-not $rel -and $t -ge $S.Still) { Key-Up $VK.SPACE; Key-Up $VK.S; if ($S.Drive -gt 0) { Fg; Key-Down $VK.W }; $rel = $true }
             foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3) {
-                $k = if ($st[2] -eq 'A') { $VK.A } else { $VK.D }
+                $k = $VK[[string]$st[2]]
                 $td = $t - $S.Still
                 if ($td -ge $st[0] -and $td -lt $st[1]) { Key-Down $k } elseif ($td -ge $st[1] -and $td -lt $st[1] + 0.2) { Key-Up $k } } }
             Start-Sleep -Milliseconds 50
         }
-        Key-Up $VK.W; Key-Up $VK.SPACE; Key-Up $VK.S; Key-Up $VK.A; Key-Up $VK.D
+        Key-Up $VK.W; Key-Up $VK.SPACE; Key-Up $VK.S; foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3) { Key-Up $VK[[string]$st[2]] } }
         [void]$ff.WaitForExit(15000)
     }
+    if ($S.Opening) {
+        # the mission's scripted opening (fly-in) must play: no proxy-run (it presses Esc to skip it); launch, size, capture Still s, stop
+        . "$AT\lib\focuslib.ps1"
+        $lock = Join-Path $T '.console-test.lock'; Set-Content $lock "launch-video record-shot $Shot pid $PID $(Get-Date -Format s)"
+        $p = $null
+        try {
+            foreach ($k in $E.Keys) { Set-Item "Env:$k" $E[$k] }
+            $env:I76_MISSION = "$($S.Mission).msn"; $env:I76_SKIP_MOVIES = '1'; $env:I76_MUTE = '1'; $env:I76MUSIC_LOG = '1'
+            & "$Lab\tools\set-shm-suffix.ps1" -GameDir $T | Out-Null
+            Add-Type -Name M2 -Namespace LvW2 -MemberDefinition '[DllImport("user32.dll")] public static extern void mouse_event(uint f, int x, int y, uint d, UIntPtr e);' -ErrorAction SilentlyContinue
+            [LvW2.M2]::mouse_event(1, 5, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 200; [LvW2.M2]::mouse_event(1, -5, 0, 0, [UIntPtr]::Zero)
+            $p = Start-Process (Join-Path $T 'i76.exe') -ArgumentList '-glide' -WorkingDirectory $T -PassThru
+            & "$Lab\tools\start-mute-watch.ps1" -Pid $p.Id
+            $kp = Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSScriptRoot\lv-keeper.ps1`" -GamePid $($p.Id) -W $WW -H $WH" -WindowStyle Hidden -PassThru; Set-Content "$Out\keeper.pid" $kp.Id
+            $rect = $null
+            for ($i = 0; $i -lt 240 -and -not $p.HasExited; $i++) {
+                Start-Sleep -Milliseconds 250; $p.Refresh()
+                if ($p.MainWindowHandle -ne [IntPtr]::Zero) {
+                    $r = New-Object LvR.U+RECT
+                    if ([LvR.U]::GetWindowRect($p.MainWindowHandle, [ref]$r) -and ($r.R - $r.L) -eq $WW -and ($r.B - $r.T) -eq $WH) { $rect = $r; break }
+                }
+            }
+            if ($rect) {
+                [void](Force-Foreground $p.MainWindowHandle)
+                $vf = "ddagrab=output_idx=0:framerate=60:draw_mouse=0:offset_x=$($rect.L):offset_y=$($rect.T):video_size=${WW}x${WH},hwdownload,format=bgra,format=nv12"
+                $t0 = [DateTimeOffset]::Now.ToUnixTimeMilliseconds() / 1000.0
+                $ffp = Start-Process $FF.ffmpeg -ArgumentList "-hide_banner -loglevel warning -y -f lavfi -i `"$vf`" -t $dur -c:v h264_mf -hw_encoding 1 -b:v 40M -maxrate 60M `"$Out\video.mp4`"" -WindowStyle Hidden -PassThru -RedirectStandardError "$Out\ffmpeg.err.txt"
+                @{ shot = $Shot; capture_start_host_t = $t0; rect = @($rect.L, $rect.T, $WW, $WH); still = $S.Still; drive = $S.Drive; preset = $S.Preset; opening = $true
+                   strip = @($S.Strip); keys = $S.Keys; patch20 = [bool]$S.Patch20; mission = $S.Mission } | ConvertTo-Json -Depth 4 | Set-Content "$Out\capture.json"
+                $sw = [Diagnostics.Stopwatch]::StartNew()
+                while ($sw.Elapsed.TotalSeconds -lt $dur -and -not $p.HasExited) { Start-Sleep -Milliseconds 500; if ($sw.Elapsed.TotalSeconds -lt 20) { [void](Force-Foreground $p.MainWindowHandle) } }
+                [void]$ffp.WaitForExit(15000)
+                "opening captured $dur s" | Set-Content "$Out\boot.txt"
+            } else { "window never reached ${WW}x${WH}" | Set-Content "$Out\boot.txt" }
+        } finally {
+            if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force; [void]$p.WaitForExit(10000) }
+            Remove-Item $lock -Force -ErrorAction SilentlyContinue
+        }
+    } else {
     $boot = & "$AT\proxy-run.ps1" -GameDir $T -KeepInstalledDll -Set stock -Mission $S.Mission -Hold 0 -BootTimeout 240 -Env ([hashtable]$E) -Run $drive *>&1 | Out-String
     $boot | Set-Content "$Out\boot.txt"
+    }
     Start-Sleep -Seconds 2
 } finally {
     Set-Content "$Out\stop" 'stop'

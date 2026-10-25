@@ -166,7 +166,7 @@ if ($need) {
         $rc = Child (Join-Path $repo 'setup-windows.ps1') $argv
         if ($rc -ne 0) { Fail "setup-windows.ps1 exited $rc - nothing more was done" }
         # 3. Gold: the graphic-detail options at the developer's levels, ONLY when the options file still holds GOG's defaults.
-        #    I76PLYR.DEF is the exe's 96-byte options block (i76-map data\FORMATS.md s.10). A fresh GOG 2.1.0.17 install has
+        #    I76PLYR.DEF is the exe's 96-byte options block (<re-archive> data\FORMATS.md s.10). A fresh GOG 2.1.0.17 install has
         #    +0x4A / +0x4D / +0x4E = 1 / 1 / 0, the release candidate 2 / 2 / 1; at the GOG values the rear-view mirror is at its
         #    middle level, objects only on a flat sky-coloured background (MIRROR-DETAIL-2026-10-23 s.1: the 300 m / 1000 m mirror
         #    and the preview's mirror textures never show). Seen on a lab test copy 2026-10-23: flat mirror at 1/1/0, road, terrain and

@@ -70,7 +70,7 @@ hunting an unknown field, the published number tells you what to look for.
 
 ## Before any memory hunt: read the technique note
 
-**[`../i76-uncap-lab/docs/RE-TECHNIQUES.md`](lab/docs/RE-TECHNIQUES.md)** — how to
+**[`../<lab>/docs/RE-TECHNIQUES.md`](lab/docs/RE-TECHNIQUES.md)** — how to
 find values in this game, the traps that each produced a *confidently wrong* answer here, and,
 most importantly, **when to stop hand-rolling and use Cheat Engine**.
 
@@ -87,7 +87,7 @@ happening, not merely move when something is).
 
 ## Engine reference: what we know about I'76's internals
 
-**`../i76-uncap-lab/docs/ENGINE-REFERENCE.md`** is the consolidated map of the engine — read it
+**`../<lab>/docs/ENGINE-REFERENCE.md`** is the consolidated map of the engine — read it
 before any new RE, trainer, mod, FFB or motion-sim work. It covers, with per-claim confidence
 tags and how each was established:
 
@@ -106,20 +106,20 @@ tags and how each was established:
 
 ## NEVER TEST ON THE PLAYABLE INSTALL (field-enforced 2026-09-07)
 
-**The daily driver is where James plays (until 2026-10-03 that was the portable install in Downloads; the table
+**The daily driver is where the developer plays (until 2026-10-03 that was the portable install in Downloads; the table
 has the current folder). Experiments do not go
 there - not binaries, not dgVoodoo.conf, not saves - until they are finished and verified
 somewhere else.**
 
 | role | path | may an experiment touch it? |
 |---|---|---|
-| **daily driver — playable** (since 2026-10-03) | `C:\Users\james\Games\I76\daily-driver` (= `Games\Interstate76-2026-10-03`, junction since 2026-10-20; built by `tools\Make-Daily-Driver.ps1`, docs/records/NEW-DAILY-DRIVER-RECIPE.md; `VERSION.md` inside) | **NO.** Only finished, verified changes, announced. |
-| golden copy | `C:\Users\james\Games\I76\golden` (= `Games\Interstate76-golden-2026-10-03`) | **NO.** Never played; promotions only (`PROMOTIONS.md` in the driver). |
-| release candidate (the owner's play-test of the next promotion) | `C:\Users\james\Games\I76\release-candidate` (= lab `game-tick`; `VERSION.md` says what it waits on) | only as a complete, gated set (launchers + presets + proxy together, never a part of it); console gates run here |
-| LAN pack (the PC's copy of the family multiplayer pack) | `C:\Users\james\Games\I76\lan` (= `Games\Interstate76-LAN-2026-10-17`) | **NO.** Pack rollouts only, with backup + rollback script. |
-| previous daily driver — the rollback | `C:\Users\james\Games\I76\_archive\downloads-Interstate76-i76-everywhere-portable-20260801` | **NO.** Kept untouched. |
-| test copies | `../i76-uncap-lab/twin-driver` (= `game-dd-20261003`, the driver's gate twin), `game-sp`, `game-mpo-a..d` | yes - this is what automation drives; name a new copy after its purpose and retire it with its record (docs/LAYOUT-PROPOSAL-2026-10-20.md) |
-| pristine control | `../i76-map/sandbox-gog/main/app` | read-only reference for diffing |
+| **daily driver — playable** (since 2026-10-03) | `<games>\I76\daily-driver` (= `Games\Interstate76-2026-10-03`, junction since 2026-10-20; built by `tools\Make-Daily-Driver.ps1`, docs/records/NEW-DAILY-DRIVER-RECIPE.md; `VERSION.md` inside) | **NO.** Only finished, verified changes, announced. |
+| golden copy | `<games>\I76\golden` (= `Games\Interstate76-golden-2026-10-03`) | **NO.** Never played; promotions only (`PROMOTIONS.md` in the driver). |
+| release candidate (the owner's play-test of the next promotion) | `<games>\I76\release-candidate` (= lab `game-tick`; `VERSION.md` says what it waits on) | only as a complete, gated set (launchers + presets + proxy together, never a part of it); console gates run here |
+| LAN pack (the PC's copy of the family multiplayer pack) | `<games>\I76\lan` (= `Games\Interstate76-LAN-2026-10-17`) | **NO.** Pack rollouts only, with backup + rollback script. |
+| previous daily driver — the rollback | `<games>\I76\_archive\downloads-Interstate76-i76-everywhere-portable-20260801` | **NO.** Kept untouched. |
+| test copies | `../<lab>/twin-driver` (= `game-dd-20261003`, the driver's gate twin), `game-sp`, `game-mpo-a..d` | yes - this is what automation drives; name a new copy after its purpose and retire it with its record (docs/LAYOUT-PROPOSAL-2026-10-20.md) |
+| pristine control | `../<re-archive>/sandbox-gog/main/app` | read-only reference for diffing |
 
 This was already the rule ("a sandbox copy of the install - the playable install is never
 touched") and it was ignored for two days straight. What that cost: a weekend of debugging a
@@ -156,10 +156,10 @@ anyway, being exact and ~1000x cheaper than screenshots.
 
 ## Automated testing: you can drive the game from a script
 
-**`../i76-uncap-lab/autotest/` — read its README before doing anything interactive with the
+**`../<lab>/autotest/` — read its README before doing anything interactive with the
 game.** It is a working harness for launching I'76, navigating its menus, sending control
 input, and reading game state out of memory, all unattended. Built during the 60 FPS work
-(`../i76-uncap-lab/`, a sandbox copy of the install — the playable install is never touched).
+(`../<lab>/`, a sandbox copy of the install — the playable install is never touched).
 
 What it gives you:
 
@@ -175,7 +175,7 @@ What it gives you:
   checkpoint diff, so physics claims are settled with numbers.
 
 **Check the config before reverse-engineering:
-[`../i76-uncap-lab/docs/CONFIG-OPTIONS.md`](lab/docs/CONFIG-OPTIONS.md)** indexes
+[`../<lab>/docs/CONFIG-OPTIONS.md`](lab/docs/CONFIG-OPTIONS.md)** indexes
 every `dgVoodoo.conf` knob **by symptom**, and — critically — **which section each must live in**.
 Two problems that cost hours of debugger work were one config line each. It also documents the DLL's
 runtime control file.
@@ -187,7 +187,7 @@ game). The lab sandbox ran that way from 2026-08-09 to 2026-10-02 (`EnableInacti
 sandbox is void**: `FPSLimit`, `CaptureMouse`, `FreeMouse`, forced refresh, the 1920x1440 pointer box. The
 owner's daily-driver conf was accepted. Before trusting any conf finding, **prove the file is loaded**: flip a
 visible key (`3DfxWatermark = true`) and hide the global file. Record:
-[`../i76-uncap-lab/docs/DGVOODOO-CONF-REJECTED.md`](lab/docs/DGVOODOO-CONF-REJECTED.md),
+[`../<lab>/docs/DGVOODOO-CONF-REJECTED.md`](lab/docs/DGVOODOO-CONF-REJECTED.md),
 docs/records/RENDERER-ALTERNATIVES.md section 11. CONFIG-OPTIONS.md predates this; it carries a correction
 header since 2026-10-03 (lab commit `a664306`), but its rows were not re-measured.
 

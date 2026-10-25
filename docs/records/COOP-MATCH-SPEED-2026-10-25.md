@@ -10,7 +10,7 @@ records/LAN-FIXES-2026-10-24.md s.3) but at rest, so the host drove away from it
 autoNN.lvl). At both placements near the host (the join move `coop_near_after_join` and the respawn spawn `coop_spawn_near_host`):
 
 - velocity entity+0xbc = the placement heading (= the host's heading) x the host's horizontal speed; +0xac |v|, +0xb0 1/|v|;
-  body rates +0xc8..+0xd0 = 0; every wheel's ground speed w+0x20 = |v| (i76-map subsystems/physics.md, the veh+ / w+ table).
+  body rates +0xc8..+0xd0 = 0; every wheel's ground speed w+0x20 = |v| (<re-archive> subsystems/physics.md, the veh+ / w+ table).
   The car still drops the 1.5 m from the placement height; the air step keeps the velocity and the landing snaps it to the heading.
 - The host's velocity as the joiner has it: the host car's entity+0xbc (the 'ST' mirror; every placement in the runs below
   read it), else the joiner's trail of the host (the last second).
@@ -21,11 +21,11 @@ autoNN.lvl). At both placements near the host (the join move `coop_near_after_jo
   the spawn path had left the velocity below half the target on the first pump call, it is put back (logged; never happened).
 - `I76_COOP_MATCH_SPEED=0`: at rest, as before (logged).
 
-## Test (laptop LAPTOP-HPK11OMS, both peers windowed on its console desktop)
+## Test (laptop the laptop bench, both peers windowed on its console desktop)
 
 Harness: lab `tools\coop-match\cm.py` on the lanfix / mpo harness (lab copies game-mpo-c host, game-mpo-d joiner, IPXWrapper
 G / H on UDP 54810, `I76_SKIP_MOVIES` + `I76_SKIP_CUTSCENES` + `I76_FFB_OFF`, muted), run in the laptop's console session under
-its own scheduled task (`cm-start.ps1` / `cm-job.ps1`, the bench lock `C:\i76-bench\.fps-lock`). The host drives with the lab
+its own scheduled task (`cm-start.ps1` / `cm-job.ps1`, the bench lock `<bench>\.fps-lock`). The host drives with the lab
 twin's cruise block (`I76_LAB_CRUISE`, lab only: throttle key bang-bang to 26.8 m/s, heading held). Lab twin = this source +
 shellclick + cruise (5c27a715 / 7cb17b74). Each run: the host cruises, B joins (host re-placed on the straight when B's car
 exists), B is killed by a fall, B respawns (host re-placed 2.5 s after the death). Captures: lab

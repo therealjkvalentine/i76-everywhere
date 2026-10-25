@@ -62,10 +62,10 @@ issue titled as a heads-up, not a bug, is the polite public route where no email
 | **Roanish** ("Ro", roanix.com) | `i76`, MIT C/Vulkan Nitro rewrite with format docs (pushed 2026-08-07) | https://github.com/Roanish/i76/issues ; blog field roanix.com did not answer today | verified public (GitHub) |
 | **chasseyblue** (Chassey Blue) | i76-geo-importer (Blender `.geo` importer) | https://github.com/chasseyblue/i76-geo-importer/issues ; chasseyblue.com returned 404 today | verified public (GitHub) |
 | **CahootsMalone** (Luke) | interstate-76-stuff (UNZFS, cheats, terrain notes, poems wavs; 17 stars) | https://github.com/CahootsMalone/interstate-76-stuff/issues ; no email on the profile | verified public |
-| **Greg Kennedy** | i76render (Perl -> POV-Ray maps) | kennedy.greg@gmail.com, published on https://greg-kennedy.com/ (mailto) and his GitHub profile; X @greg_p_kennedy | verified public (repo has issues off) |
-| **Jonathan Young** (jpcy) | piranha76 | young.jpc@gmail.com, public on https://github.com/jpcy | verified public |
+| **Greg Kennedy** | i76render (Perl -> POV-Ray maps) | contact via https://greg-kennedy.com/ and his GitHub profile; X @greg_p_kennedy | verified public (repo has issues off) |
+| **Jonathan Young** (jpcy) | piranha76 | contact via https://github.com/jpcy | verified public |
 | **r1sc** | Open76 (C#/Unity, 63 stars, last push 2020) | https://github.com/r1sc/Open76/issues ; no email | verified public (dormant) |
-| **Shane Peelar** ("Peelar") | the I'76 / Nitro ANet netcode patches and the RE blog | lookatyouhacker@gmail.com, mailto on https://inbetweennames.net/ (home and about pages) | verified public |
+| **Shane Peelar** ("Peelar") | the I'76 / Nitro ANet netcode patches and the RE blog | contact via https://inbetweennames.net/ (home and about pages) | verified public |
 | **teepean** | SR static recompiler, I76_64bit branch | https://github.com/teepean/SR , GOG thread above | verified public |
 | **That Tony** (hackingonspace.blogspot.com) | the 2016 level / heightmap format posts | blog comments only (no email on the page) | verified public (comments) |
 | **Dege** (dgVoodoo 2) | the Glide/DirectDraw wrapper the kit ships (2.87.5) | https://github.com/dege-diosg/dgVoodoo2/issues (issues on); dege.freeweb.hu did not answer today; Dege also posts in the VOGONS dgVoodoo thread | verified public (GitHub). **Courtesy heads-up drafted** in ANNOUNCEMENT-v0.7.md s.4 |
@@ -113,8 +113,8 @@ play, 2012), Doc Mc Coy (test video, 2017), BarryDennen12 (I'76 on Intel Mac, 20
 
 | who | what | public route | status |
 |---|---|---|---|
-| **Dev Game Club** (Brett Douville, Tim Longo) | three-plus 2025 episodes on I'76: ep. 424 (2 Apr 2025, Julio Jerez on the engine) and **ep. 427, interview with Sean Vesce and Zack Norman** (23 Apr 2025) | devgameclub@gmail.com (mailto on https://www.devgameclub.com/) | verified public; **the best press contact**: they already talk to the original developers |
-| **Jimmy Maher, The Digital Antiquarian** | "From Mechs to Mopar" (18 Aug 2023, 40 comments): the I'76 history essay Local Ditch links | maher AT filfre DOT net (sidebar of https://www.filfre.net/2023/08/from-mechs-to-mopar/) | verified public |
+| **Dev Game Club** (Brett Douville, Tim Longo) | three-plus 2025 episodes on I'76: ep. 424 (2 Apr 2025, Julio Jerez on the engine) and **ep. 427, interview with Sean Vesce and Zack Norman** (23 Apr 2025) | contact via https://www.devgameclub.com/ | verified public; **the best press contact**: they already talk to the original developers |
+| **Jimmy Maher, The Digital Antiquarian** | "From Mechs to Mopar" (18 Aug 2023, 40 comments): the I'76 history essay Local Ditch links | contact via the sidebar of https://www.filfre.net/2023/08/from-mechs-to-mopar/ | verified public |
 | **Top Gear** | "Remembering classic games: Interstate '76 (1997)" | https://www.topgear.com/car-news/gaming/remembering-classic-games-interstate-76-1997 refused the client (403); author and date not read | listed, not re-verified |
 | **LGR** | see section 3 (the largest single I'76 audience) | | |
 | PC Gamer / RPS / Eurogamer / Retro Gamer / HG101 | no I'76 retrospective found by search today | - | no public route found |
@@ -138,8 +138,7 @@ to the owner.
 | 4. press / podcasts | 4 (LGR counted in 3) | 2 by email (Dev Game Club, Digital Antiquarian) | 1 (Top Gear) | 1 (the big outlets) |
 | **total** | **57** | **51** | **2** | **4** |
 
-Published emails (all read today on the owner's own page): devgameclub@gmail.com, maher AT filfre DOT net,
-kennedy.greg@gmail.com, young.jpc@gmail.com, lookatyouhacker@gmail.com. Everything else is a contact page, GitHub issue
+Published e-mail addresses are not repeated here; use the contact page or profile link in each row. Everything else is a contact page, GitHub issue
 tracker, forum thread or Discord.
 
 ## Suggested order (owner's call)

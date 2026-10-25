@@ -8,32 +8,32 @@
 
     { "type": "sbs", "title": "SAME ROUTE. SAME CAR. SAME 1997 TICK.",
       "caption": "Draw distance 600 m -> 2300 m   |   20 fps cap -> 120 fps   |   whole sim on the 1997 41.667 ms step\\N{\\fs28}counters = this recording's own telemetry (screen capture costs ~25 % of the frame rate)",
-      "a": { "src": "shot:route-stock", "in": 2.5, "out": 16.5, "label": "STOCK (GOG, 20 FPS LIMITER)", "counters": true, "tag": "600\\hM" },
-      "b": { "src": "shot:route-all",   "in": 2.5, "out": 16.5, "label": "I'76 EVERYWHERE (PLAY.BAT)",  "counters": true, "tag": "2300\\hM" } },
+      "a": { "src": "shot:route-stock", "in": 5.0, "out": 19.0, "label": "STOCK (GOG, 20 FPS LIMITER)", "counters": true, "tag": "600\\hM" },
+      "b": { "src": "shot:route-all",   "in": 5.0, "out": 19.0, "label": "I'76 EVERYWHERE (PLAY.BAT)",  "counters": true, "tag": "2300\\hM" } },
 
     { "type": "sbs", "title": "THE FAR EDGE FADES INTO THE SKY",
       "caption": "The last 25 % of the 2300 m view feathers to transparent instead of a hard wall (cost: none measured, n 2)",
-      "a": { "src": "shot:fade-before", "in": 0.5, "out": 6.5, "label": "HARD EDGE", "sub": "fog\\hoff" },
-      "b": { "src": "shot:route-all",   "in": 0.5, "out": 6.5, "label": "FEATHERED", "sub": "I76_GLIDE_FOG\\h0.75" } },
+      "a": { "src": "shot:fade-before", "in": 5.0, "out": 11.0, "label": "HARD EDGE", "sub": "fog\\hoff" },
+      "b": { "src": "shot:route-all",   "in": 5.0, "out": 11.0, "label": "FEATHERED", "sub": "I76_GLIDE_FOG\\h0.75" } },
 
     { "type": "sbs", "title": "TERRAIN THAT MORPHS INSTEAD OF POPPING",
       "caption": "Level-of-detail splits blend in over 25 % of their ring; shading steps 16 -> 32-40 grey levels",
-      "a": { "src": "shot:morph-before", "in": 4.0, "out": 8.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "STOCK SPLITS" },
-      "b": { "src": "shot:route-all",    "in": 4.0, "out": 8.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "GEOMORPH" } },
+      "a": { "src": "shot:morph-before", "in": 6.0, "out": 10.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "STOCK SPLITS" },
+      "b": { "src": "shot:route-all",    "in": 6.0, "out": 10.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "GEOMORPH" } },
 
     { "type": "sbs", "title": "A REAR MIRROR THAT SEES",
       "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %)",
       "a": { "src": "shot:mirror-before", "in": 3.0, "out": 9.0, "crop": [1290, 262, 504, 168], "label": "STOCK MIRROR" },
       "b": { "src": "shot:mirror-after",  "in": 3.0, "out": 9.0, "crop": [1290, 262, 504, 168], "label": "OURS" } },
 
-    { "type": "still", "dur": 6.5, "img": "C:\\Users\\james\\i76-uncap-lab\\captures\\coop-list-20261018\\a-list12.png",
+    { "type": "still", "dur": 6.5, "img": "${LAB}\\captures\\coop-list-20261018\\a-list12.png",
       "zoom_to": [0.2, 0.42, 2.0], "x": 0, "title": "LAN NIGHT, FIXED",
       "notes": ["CO-OP SCENES", "AI CARS IN\\NEVERY ARENA", "JOINERS SPAWN\\N27 M FROM THE HOST", "CANCEL: 5 S -> 1.4-2.1 S"] },
 
     { "type": "panel", "title": "WHEEL FORCE FEEDBACK, REBUILT",
       "caption": "14 channels from the engine's own state  -  live tuning page beside the game",
-      "game":  { "src": "shot:route-all", "in": 4.0, "out": 13.0, "counters": true, "tag": "" },
-      "panel": { "src": "C:\\Users\\james\\i76-uncap-lab\\captures\\launch-video\\raw\\ffb-panel\\panel.mp4", "in": 0.5 } },
+      "game":  { "src": "shot:route-all", "in": 9.0, "out": 18.0, "counters": true, "tag": "" },
+      "panel": { "src": "${LAB}\\captures\\launch-video\\raw\\ffb-panel\\panel.mp4", "in": 0.5 } },
 
     { "type": "crawl", "dur": 9.0, "file": "data/improvements.txt", "title": "ALSO IN THIS BUILD",
       "aside": "(pause to read. we did.)" },

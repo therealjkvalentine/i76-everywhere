@@ -9,7 +9,7 @@ from a user-supplied German retail folder, switchable per launch.
 ## 0. Results
 
 - **All 10 maps installed on every machine** of the family LAN, byte-identical (s.1): PC main Gold + main Nitro, and the Gold and
-  Nitro apps of James's MacBook, Michael's and Andrew's Macs.
+  Nitro apps of the developer's MacBook, the M4 Max tester's and the M2 tester Macs.
 - **Patch Kit v0.7.4** with `INSTALL-EXTRAS.bat` (s.2), packed from commit 76227ce, **draft** release v0.7.4 (not published):
   https://github.com/therealjkvalentine/i76-everywhere/releases/tag/untagged-d0fc55f11e63b997d4f7 (draft URL; the tag is created on publish).
   Zip `Interstate76-Patch-Kit-i76-everywhere-v0.7.4-76227ce.zip`, 4,270,229 B, 103 files, md5 c8f3d0d850db6d79e8887064cbe30646,
@@ -29,7 +29,7 @@ from a user-supplied German retail folder, switchable per launch.
 ## 1. Family pack: what is installed where
 
 Converted / staged by `tools\patch-kit\i76e-extras.ps1 -Maps` (the same code the kit runs), from the archive's copies of the original
-zips (`-Offline D:\i76-archive\community-20261024\dl`, matched by name and sha256). Every output sha256 equals
+zips (`-Offline <archive>\community-20261024\dl`, matched by name and sha256). Every output sha256 equals
 `tools/content-archive/arena-pack.py`'s output (the pins in `tools/patch-kit/extras.json`; the Nitro files are the published files,
 unchanged). Readmes beside the maps (`ADDON\<map>.txt`, Nitro `addon\<map>.txt`), credits in `COMMUNITY-MAPS.txt` in the game folder.
 
@@ -47,12 +47,12 @@ unchanged). Readmes beside the maps (`ADDON\<map>.txt`, Nitro `addon\<map>.txt`)
 |---|---|---|---|
 | PC main Gold | `Games\I76\Interstate 76 Gold\Interstate 76` | 16 new (0 replaced) | md5 inventory of the add-on folders before: `..\_rollback\maps-20261025-054405\before.md5`; the kit ledger `_i76e\extras-installed.txt` lists every file (`i76e-extras.ps1 -GameDir <folder> -Uninstall` takes them out) |
 | PC main Nitro | `Games\I76\Interstate 76 Nitro\Interstate 76 Nitro Pack` | 20 new | same (`Interstate 76 Nitro\_rollback\maps-20261025-054405`) |
-| James's MacBook | Gold app + Nitro app (`~/Applications/Sikarugir/`) | 16 + 20, read back | `<game folder>/_rollback-maps-20261025/` (empty: nothing replaced) |
-| Michael | `~/Games/Interstate76-MP/Interstate 76.app`, `Interstate 76 Nitro.app` | 16 + 20, read back | same (holds the first credits text) |
-| Andrew | `~/Games/Interstate76-MP/Interstate 76 Gold.app`, `Interstate 76 Nitro.app` | 16 + 20, read back | same |
+| The developer's MacBook | Gold app + Nitro app (`~/Applications/Sikarugir/`) | 16 + 20, read back | `<game folder>/_rollback-maps-20261025/` (empty: nothing replaced) |
+| The M4 Max tester | `~/Games/Interstate76-MP/Interstate 76.app`, `Interstate 76 Nitro.app` | 16 + 20, read back | same (holds the first credits text) |
+| The M2 tester | `~/Games/Interstate76-MP/Interstate 76 Gold.app`, `Interstate 76 Nitro.app` | 16 + 20, read back | same |
 
 No game ran from a folder while it was written (PC: only lab copies ran; Macs: the deploy script refuses while `i76.exe` / `nitro.exe`
-runs; the MacBook and Michael's Mac each had an i76.exe of another lane's test up at 05:38 and were done when it had exited).
+runs; the MacBook and the M4 Max tester Mac each had an i76.exe of another lane's test up at 05:38 and were done when it had exited).
 Final read-back on all three Macs: credits, `rageco.lvl` and `repo.cbt` md5 = the PC's. Mac deploy pack + script: lab
 `builds\content-installer-20261025\mac\` (`deploy.sh` copies file by file into the existing game folders; not mp-mac-install.sh `update`,
 which replaces the whole folder).
@@ -147,13 +147,13 @@ n 1 each; the only non-C++ exceptions are the 9 boot-time `c0000096` PIT probes 
 Both alive 60 s, 0 crash lines, drove 844 m (= the T01 control of the content lane). Muted: "played" is the log (the file the engine
 opened), not by ear. The 495 German files are byte-identical to the archive's own extraction (`I76_CD1.ZFS-text-voice`).
 
-The owner's private music folder: `D:\i76-archive\community-20261024\private-music-extra\` (copies; README.txt): `bullmark-demo\` the 24
+The owner's private music folder: `<archive>/community/<private-music>\` (copies; README.txt): `bullmark-demo\` the 24
 Bullmark Demo mp3s, `ost-only\` the 18 OST cues not on the game disc as interstate76.com ALL.ZIP mp3s (TRACKnn = OST track nn, matched by
 duration, named after the FLAC titles). Never in any pack.
 
-### 4.4 Patch Kit on the laptop bench (LAPTOP-HPK11OMS, Windows 11 26100, 1920x1080)
+### 4.4 Patch Kit on the laptop bench (the laptop bench, Windows 11 26100, 1920x1080)
 
-Fresh pristine GOG copy (371 files, i76.exe 9a232dcc) at `C:\i76-bench\kit074b\game` + the 76227ce zip; first the 0ba5940 build at
+Fresh pristine GOG copy (371 files, i76.exe 9a232dcc) at `<bench>\kit074b\game` + the 76227ce zip; first the 0ba5940 build at
 `kit074` (same content but the download-size text and Build-From-GOG).
 
 | step | result |
@@ -176,7 +176,7 @@ Nitro half of `-Maps` through the kit (`-NitroDir`; the same code installed main
   consent"** (the same kind of note as Great Oval's); RepoTown is in by the owner's ruling. Before a public release of v0.7.4 the owner
   may want to ask Debacle (still the plan in CONTENT-FEASIBILITY s.5).
 - German voices and extra music: user-supplied only, private; nothing of either is in the kit or the repo.
-- Michael's Mac kept the first credits text in its `_rollback-maps-20261025` (the refreshed one is installed).
+- The M4 Max tester Mac kept the first credits text in its `_rollback-maps-20261025` (the refreshed one is installed).
 - Lab twins `content-inst-gold-20261025` and `content-inst-nitro-mp-20261025` deleted at lane end (runs and captures kept); one file is left, `content-inst-nitro-mp-20261025\Interstate 76 Nitro Pack\lee_____.ttf`, held open by Windows (the font a Nitro run registered); delete it after the next logoff.
 
 Commits: i76-everywhere 4ec088e (installer + proxy + packager), 3e5a268 (README), 0ba5940 (packager fix), 76227ce (Build-From-GOG

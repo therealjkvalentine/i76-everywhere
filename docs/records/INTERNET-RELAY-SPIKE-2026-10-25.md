@@ -4,8 +4,8 @@ Owner, 2026-10-25: *"Sure, you can start (1)."* = option (c) of
 [../research/INTERNET-PLAY-SPIKE-2026-10-25.md](../research/INTERNET-PLAY-SPIKE-2026-10-25.md): IPXWrapper from upstream master
 (the loopback fix e7e9883) in DOSBox mode, every player pointed at one DOSBox-protocol relay.
 
-Everything below was measured today unless marked. n = sessions per cell. Lab: `i76-uncap-lab\tools\relay-spike\` (lab commit
-7e4c113 and later), evidence `i76-uncap-lab\captures\relay-spike-20261025\<tag>\`.
+Everything below was measured today unless marked. n = sessions per cell. Lab: `<lab>\tools\relay-spike\` (lab commit
+7e4c113 and later), evidence `<lab>\captures\relay-spike-20261025\<tag>\`.
 
 ## Verdict
 
@@ -16,7 +16,7 @@ Everything below was measured today unless marked. n = sessions per cell. Lab: `
 - Same laptop, same copy, same relay, **0.7.2 DLLs swapped in: HOST never reaches the host form** (the 2026-10-20 symptom, n 1). Master: n 4.
 - Gold: laptop host + MacBook joiner, **3 of 3 sessions joined**, both copies hold both cars at the same coordinates (0.0 m, 46 pairs parked).
 - Nitro: laptop host + MacBook joiner, **2 of 2 joined** (state 5, net 1, 2 players, held 145 s, 0 CRASH).
-- **Every row here is LAN-only**: the relay ran on the MacBook on the home LAN, every peer on 192.168.1.x. No NAT was crossed. The phone-hotspot
+- **Every row here is LAN-only**: the relay ran on the MacBook on the home LAN, every peer on <LAN subnet>. No NAT was crossed. The phone-hotspot
   test needs the owner (section 6).
 - The exact desktop cell (two lab copies + DOSBox Staging on this PC) was **not run**: it sat in the desktop `.fps-queue` from 05:53 to 07:25
   behind six lanes, and the coordinator moved the peers to the laptop and the MacBook. The desktop's lab `dosbox.exe` also carries an inbound
@@ -46,7 +46,7 @@ Everything below was measured today unless marked. n = sessions per cell. Lab: `
 
 - Two copies on one PC still need their own IPXWrapper instance (the socket mutex `ipxwrapper_socket_%hu` is session-wide): the same
   2-byte patch as lab MULTIPLAYER-LOCAL-TEST 8.4, new letters R / S (Gold twins) and T / U (Nitro twins), used by no other copy (census of
-  every ipxwrapper.dll in the lab, D:\i76-archive and Games\I76). The Mac and the laptop run the unpatched master DLL.
+  every ipxwrapper.dll in the lab, <archive> and Games\I76). The Mac and the laptop run the unpatched master DLL.
 - The whole player-side change is three DLLs plus a three-line `ipxwrapper.ini` beside the exe:
 
 ```
@@ -64,14 +64,14 @@ logging = debug          (spike only)
   unregistered addresses are dropped, an optional CIDR allowlist, an idle timeout, and a stats line every 10 s.
 - Checked against DOSBox Staging 0.82.2 `ipxnet startserver 19900` on this PC with a protocol probe (`ping.py`: register, then echo to our
   own node through the server): both answer the same way (20 of 20 echoes; 0.31 ms Staging, 0.21 ms pyrelay on loopback).
-- Where it ran: **the MacBook** (192.168.1.116, macOS firewall off), a third box like a VPS would be. The desktop was not used as the relay
+- Where it ran: **the MacBook** (<LAN-IP>, macOS firewall off), a third box like a VPS would be. The desktop was not used as the relay
   host: no console slot, and the inbound Block rule above.
 - The 2026-10-20 launch line for Staging was also broken as written in the harness (`-c ipxnet startserver 19900` unquoted splits into
   three arguments; Staging then never opens the port). The record of that day still holds: IPXWrapper logged `Connected to DOSBox server`.
 
 ## 3. Cells (all on the home LAN)
 
-Peers: the laptop (LAPTOP-HPK11OMS, 192.168.1.141 on Wi-Fi, console locked for the Nitro rows and unlocked for Gold, its `.fps-lock`
+Peers: the laptop (the laptop bench, <LAN-IP> on Wi-Fi, console locked for the Nitro rows and unlocked for Gold, its `.fps-lock`
 taken per boot) and the MacBook (nobody at it, null audio, its own app clones). Every boot: movies skipped (`I76_SKIP_MOVIES` /
 `NB_SKIP_MOVIES`), no FFB interposer (direct boot, `I76_FFB_OFF=1` on Gold), muted (`I76_MUTE` + the pid watcher on Windows, null
 audio on the Mac). Only processes these scripts started were stopped.
@@ -109,7 +109,7 @@ with the same lab proxy. Nitro = nitro.exe 28b8ae27, nitshell f804f50d, instrume
   `--client_timeout` 10 min; syslog logging for public servers; keepalive pings for NAT (IPXWrapper master answers them, commit dbe9a81).
   DOSBox Staging / dosbox-x: none of those. pyrelay: a CIDR allowlist (measured above) and source-address binding.
 - **Correction to the research doc ("players see only the server's IP")**: under the DOSBox protocol a player's IPX node *is* his public
-  IP:port as the relay saw it (`node c0:a8:01:8d:...` = 192.168.1.141), and every packet carries the sender's node. Every player in a session
+  IP:port as the relay saw it (`node c0:a8:01:8d:...` = <LAN-IP>), and every packet carries the sender's node. Every player in a session
   can read every other player's address. Hiding it needs a relay that rewrites nodes (pyrelay could assign opaque nodes; not done).
 - **Trust gaps of the stock protocol**: no auth, and dosbox-x routes by the header's source field, so any registered client can spoof
   another's node. Anyone with the address can join the IPX LAN; one game per relay port.
@@ -134,7 +134,7 @@ moving-car comparison was made. A LAN baseline for the step test was not obtaine
 ## 6. Next steps
 
 1. **True NAT (needs the owner)**: put the laptop on a phone hotspot. Then either (a) the relay on this desktop with a router port forward
-   (UDP 19900 -> 192.168.1.81) and an allow rule for the relay program, both owner decisions; or (b) the relay on a small VPS (one UDP port).
+   (UDP 19900 -> <LAN-IP>) and an allow rule for the relay program, both owner decisions; or (b) the relay on a small VPS (one UDP port).
    (b) avoids touching the home router. With the hotspot alone and the relay still on the MacBook, a forward to the MacBook would be needed.
 2. Run the exact desktop cell (two lab twins + DOSBox Staging, n 2) when the desktop console is free for ~10 min, to close the 2026-10-20
    row on the machine where it failed; the twins are ready (`relay-e/f-20261025`, `exp-relay-nitro-a/b-20261025`, lab `relay.py gold` /
@@ -153,6 +153,6 @@ moving-car comparison was made. A LAN baseline for the step test was not obtaine
   clone, `out\` = the DLLs), `refs\nasm\`, `tools\relay-spike\` (pyrelay.py, ping.py, timesrv/timecli.py, relay.py + with-lock.ps1 for the
   desktop cell, npair.py, gcell.sh, x0.sh, gnav.ps1 + gnavg.py (laptop), gnav.sh + rj.sh (MacBook)), `captures\relay-spike-20261025\`.
 - Twins (delete when the lane ends): desktop `relay-e-20261025`, `relay-f-20261025`, `exp-relay-nitro-a-20261025`, `exp-relay-nitro-b-20261025`;
-  laptop `C:\i76-bench\relay-gold`, `relay-nitro`, `relay-in`; MacBook `~/i76-relay-lab` (two app clones, `Interstate 76 Gold Relay Lab.app`,
+  laptop `<bench>\relay-gold`, `relay-nitro`, `relay-in`; MacBook `~/i76-relay-lab` (two app clones, `Interstate 76 Gold Relay Lab.app`,
   `Interstate 76 Nitro Relay Lab.app`, bundle ids `com.i76everywhere.test.interstate.76.*.relay.lab`).
 - No router, firewall or main-copy change was made.

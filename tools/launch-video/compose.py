@@ -18,16 +18,24 @@ Segment types (the "type" key):
 """
 import argparse, glob, json, os, subprocess, sys
 
+LAB = os.environ.get("I76_LAB") or os.path.join(os.path.expanduser("~"), "i76-uncap-lab")  # lab folder; "${LAB}" in timeline/list paths expands to it
+
+
+def lab(s):
+    return s.replace("${LAB}", LAB)
+
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--timeline", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--music", default="")
 ap.add_argument("--theme", default="")
 ap.add_argument("--ffmpeg", default="ffmpeg")
-ap.add_argument("--raw", default=r"C:\Users\james\i76-uncap-lab\captures\launch-video\raw")
+ap.add_argument("--raw", default=os.path.join(LAB, "captures", "launch-video", "raw"))
 ap.add_argument("--only", default="", help="render only these segment numbers (comma list) - for previews")
-ap.add_argument("--teaser", default="", help="also write this GIF: segment --teaser-seg, 6 s, 960 px, 12 fps (the README clip, < 2 MB)")
+ap.add_argument("--teaser", default="", help="also write this GIF: segment --teaser-seg, 4.5 s, 720 px, 10 fps (the README clip, < 2 MB)")
 ap.add_argument("--teaser-seg", type=int, default=1)
+ap.add_argument("--skip-missing", action="store_true", help="leave out a segment whose shot has no capture yet (listed at the end)")
 a = ap.parse_args()
 HERE = os.path.dirname(os.path.abspath(__file__))
 TL = json.load(open(a.timeline, encoding="utf-8"))
@@ -46,7 +54,7 @@ def ff(args):
 
 
 def probe_dur(p):
-    r = subprocess.run([a.ffmpeg.replace("ffmpeg.exe", "ffprobe.exe").replace("ffmpeg", "ffprobe") if a.ffmpeg != "ffmpeg" else "ffprobe",
+    r = subprocess.run([os.path.join(os.path.dirname(a.ffmpeg), "ffprobe.exe") if os.path.dirname(a.ffmpeg) else "ffprobe",
                         "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", p], capture_output=True, text=True)
     return float(r.stdout.strip() or 0)
 
@@ -57,6 +65,7 @@ def src_path(s):
         if not c:
             raise SystemExit("no capture for %s" % s)
         return c[-1]
+    s = lab(s)
     return s if os.path.isabs(s) else os.path.join(HERE, s)
 
 
@@ -125,10 +134,83 @@ def counters(ass, series, t_in, speed, dur, pos, tag):
         t += step
 
 
+def tel_rows(path):
+    d = os.path.dirname(path)
+    cj = os.path.join(d, "capture.json"); tc = os.path.join(d, "tel.csv")
+    if not (os.path.exists(cj) and os.path.exists(tc)):
+        return []
+    t0 = float(json.load(open(cj, encoding="utf-8-sig"))["capture_start_host_t"])
+    rows = []
+    for ln in open(tc).read().splitlines()[1:]:
+        f = ln.split(",")
+        try:
+            rows.append((float(f[0]) - t0, float(f[4]), float(f[7])))   # capture time, sim_time, speed m/s
+        except (ValueError, IndexError):
+            pass
+    return rows
+
+
+ALIGN_LOG = []
+
+
+def shot_name(p):
+    return os.path.basename(os.path.dirname(os.path.dirname(p))) + "/" + os.path.basename(os.path.dirname(p))
+
+
+def resolve_in(spec, p):
+    """effective (in, out) in capture seconds. align 'move': in/out count from the first moment the car moves after the
+    hill placement (speed crosses 0.5 m/s after the last standstill in the first 15 s; interpolated between telemetry
+    samples). align 'sim': in/out are SIM seconds since the mission started (the sim_time stamp), mapped to capture time."""
+    tin, tout = float(spec.get("in", 0)), float(spec["out"])
+    al = spec.get("align")
+    if not al:
+        return tin, tout
+    rows = tel_rows(p)
+    if al == "move":
+        early = [r for r in rows if r[0] < 15]
+        still = [i for i, r in enumerate(early) if r[2] < 0.5]
+        if not still or still[-1] + 1 >= len(early):
+            ALIGN_LOG.append("%s: NO standstill found, in %.2f unaligned" % (shot_name(p), tin))
+            return tin, tout
+        a0, a1 = early[still[-1]], early[still[-1] + 1]
+        f = (0.5 - a0[2]) / max(1e-6, a1[2] - a0[2])
+        anchor = a0[0] + f * (a1[0] - a0[0])
+        ALIGN_LOG.append("%s: first move (0.5 m/s) at capture %.3f s -> in %.3f s" % (shot_name(p), anchor, anchor + tin))
+        return anchor + tin, anchor + tout
+
+    def at(simt):
+        for a, b in zip(rows, rows[1:]):
+            if a[1] <= simt <= b[1]:
+                return a[0] + (simt - a[1]) / max(1e-6, b[1] - a[1]) * (b[0] - a[0])
+        return None
+    ci, co = at(tin), at(tout)
+    ALIGN_LOG.append("%s: sim %.2f s at capture %s s" % (shot_name(p), tin, "%.3f" % ci if ci is not None else "NOT FOUND"))
+    if ci is None:
+        return tin, tout
+    return ci, (co if co is not None else ci + (tout - tin))
+
+
+def mph_check(pa, sa, pb, sb, dur, speed):
+    """verification for a side by side: |mph difference| between the two sides over the output window, 0.25 s steps"""
+    ra, rb = tel_rows(pa), tel_rows(pb)
+    if not ra or not rb:
+        return
+
+    def v(rows, t):
+        near = [r for r in rows if r[0] <= t]
+        return near[-1][2] * 2.23694 if near else 0
+    ds = []
+    t = 0.0
+    while t < dur:
+        ds.append(abs(v(ra, sa + t * speed) - v(rb, sb + t * speed))); t += 0.25
+    ALIGN_LOG.append("  mph |a - b| over %.1f s: mean %.2f, max %.2f (%d samples)" % (dur, sum(ds) / len(ds), max(ds), len(ds)))
+
+
 def clip_chain(spec, w, h, label):
     """filter chain for one clip input -> w x h (letterboxed), returns (input args, filter text, out duration)."""
     p = src_path(spec["src"])
-    tin, tout = float(spec.get("in", 0)), float(spec["out"])
+    tin, tout = resolve_in(spec, p)
+    spec["_tin"] = tin
     sp = float(spec.get("speed", 1.0))
     f = []
     if spec.get("crop"):
@@ -161,7 +243,7 @@ def seg_clip(i, s):
     inp, chain, dur, p = clip_chain(s, 1920, 1080, None)
     ass = Ass(); text_layer(ass, s, dur)
     if s.get("counters"):
-        counters(ass, overlay_for(p), float(s.get("in", 0)), float(s.get("speed", 1.0)), dur, (960, 130), s.get("tag", ""))
+        counters(ass, overlay_for(p), s["_tin"], float(s.get("speed", 1.0)), dur, (960, 130), s.get("tag", ""))
     if s.get("speed", 1.0) != 1.0:
         ass.add(0, dur, "Label", "%gx SPEED" % float(s["speed"]), pos=(1780, 980), fade=(0, 0))
     sub = ass.write("s%02d.ass" % i)
@@ -172,12 +254,14 @@ def seg_sbs(i, s):
     ia, ca, da, pa = clip_chain(s["a"], 960, 540, None)
     ib, cb, db, pb = clip_chain(s["b"], 960, 540, None)
     dur = min(da, db)
+    ALIGN_LOG.append("segment %02d %s" % (i, s.get("title", "")))
+    mph_check(pa, s["a"]["_tin"], pb, s["b"]["_tin"], dur, float(s["a"].get("speed", 1.0)))
     ass = Ass(); text_layer(ass, s, dur)
     for k, (spec, p) in enumerate(((s["a"], pa), (s["b"], pb))):
         cx = 480 + 960 * k
         ass.add(0, dur, "Label", spec.get("label", ""), pos=(cx, 222))
         if spec.get("counters"):
-            counters(ass, overlay_for(p), float(spec.get("in", 0)), float(spec.get("speed", 1.0)), dur, (cx, 858), spec.get("tag", ""))
+            counters(ass, overlay_for(p), spec["_tin"], float(spec.get("speed", 1.0)), dur, (cx, 858), spec.get("tag", ""))
         elif spec.get("sub"):
             ass.add(0, dur, "Mono", spec["sub"].replace(" ", "\\h"), pos=(cx, 858))
     if s["a"].get("speed", 1.0) != 1.0:
@@ -190,7 +274,7 @@ def seg_sbs(i, s):
 def seg_still(i, s):
     dur = float(s["dur"]); n = int(dur * FPS)
     cx, cy, z = s.get("zoom_to", [0.5, 0.5, 1.0])
-    img = s["img"]
+    img = lab(s["img"])
     zexp = "1+(%g-1)*min(1,on/%d)" % (z, int(n * 0.8))
     xexp = "(iw*(0.5+(%g-0.5)*min(1,on/%d)))-(iw/zoom/2)" % (cx, int(n * 0.8))
     yexp = "(ih*(0.5+(%g-0.5)*min(1,on/%d)))-(ih/zoom/2)" % (cy, int(n * 0.8))
@@ -210,7 +294,7 @@ def seg_panel(i, s):
     dur = min(dg, float(s.get("dur", dg)))
     ass = Ass(); text_layer(ass, s, dur)
     if s["game"].get("counters"):
-        counters(ass, overlay_for(pg), float(s["game"].get("in", 0)), 1.0, dur, (640, 940), s["game"].get("tag", ""))
+        counters(ass, overlay_for(pg), s["game"]["_tin"], 1.0, dur, (640, 940), s["game"].get("tag", ""))
     sub = ass.write("s%02d.ass" % i)
     fc = ("[0:v]%s[g];[1:v]scale=640:1080:force_original_aspect_ratio=decrease:flags=lanczos,pad=640:1080:0:0:color=%s,fps=%d,setpts=PTS-STARTPTS[p];"
           "color=c=%s:s=1920x1080:r=%d[bg];[bg][g]overlay=0:180[t];[t][p]overlay=1280:0:shortest=1,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2[v]"
@@ -240,6 +324,15 @@ def seg_crawl(i, s):
 R = {"card": seg_card, "clip": seg_clip, "sbs": seg_sbs, "still": seg_still, "panel": seg_panel, "crawl": seg_crawl}
 only = set(int(x) for x in a.only.split(",") if x)
 segs = TL["segments"]
+missing = []
+if a.skip_missing:
+    def has(sp):
+        return not sp.startswith("shot:") or bool(glob.glob(os.path.join(a.raw, sp[5:], "*", "video.mp4")))
+    keep = []
+    for s in segs:
+        srcs = [x.get("src", "") for x in (s, s.get("a", {}), s.get("b", {}), s.get("game", {}))]
+        (keep if all(has(x) for x in srcs if x) else missing).append(s)
+    segs = keep
 for i, s in enumerate(segs):
     if only and i not in only:
         continue
@@ -268,10 +361,15 @@ for mus, out, mi in outs:
     else:
         ff(["-i", "video.mp4", "-c", "copy", "-movflags", "+faststart", os.path.abspath(out)])
     print("compose: %s (%.1f s)" % (out, D))
+for s in missing:
+    print("left out (no capture yet): %s" % (s.get("title") or s["type"]))
+with open(os.path.splitext(os.path.abspath(a.out))[0] + ".align.txt", "w") as f:
+    f.write("\n".join(ALIGN_LOG) + "\n")
+print("\n".join(ALIGN_LOG))
 
 if a.teaser:
     seg = "s%02d.mp4" % a.teaser_seg
-    ff(["-ss", "1", "-t", "6", "-i", seg, "-vf", "fps=12,scale=960:-1:flags=lanczos,palettegen=max_colors=96:stats_mode=diff", "pal.png"])
-    ff(["-ss", "1", "-t", "6", "-i", seg, "-i", "pal.png", "-lavfi", "fps=12,scale=960:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle",
+    ff(["-ss", "2", "-t", "4.5", "-i", seg, "-vf", "fps=10,scale=720:-1:flags=lanczos,palettegen=max_colors=64:stats_mode=diff", "pal.png"])
+    ff(["-ss", "2", "-t", "4.5", "-i", seg, "-i", "pal.png", "-lavfi", "fps=10,scale=720:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
         "-loop", "0", os.path.abspath(a.teaser)])
     print("teaser: %s (%d bytes)" % (a.teaser, os.path.getsize(a.teaser)))

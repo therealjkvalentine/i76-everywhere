@@ -1,9 +1,9 @@
 # Clean-install test on the Win11 laptop, 2026-10-25
 
 Owner's ask: wipe the Windows 11 laptop's bench and rerun the install as a user would. Lane: clean-install (Sonnet). Laptop
-LAPTOP-HPK11OMS (192.168.1.77, Win11 26100.9711, 1920x1080, console unlocked after 06:40). Kit: GitHub release **v0.7.3** (the only
+the laptop bench (<LAN-IP>, Win11 26100.9711, 1920x1080, console unlocked after 06:40). Kit: GitHub release **v0.7.3** (the only
 one; no v0.7.4 draft), `Interstate76-Patch-Kit-i76-everywhere-v0.7.3-f5d5ac0.zip`, md5 84b977c5, 4,187,799 B. Evidence (screenshots,
-logs, scripts): lab `i76-uncap-lab\clean-install\` (`out\`). An earlier pass of this record stopped at 05:5x because the console was on the
+logs, scripts): lab `<lab>\clean-install\` (`out\`). An earlier pass of this record stopped at 05:5x because the console was on the
 lock screen; this is the full run.
 
 ## Verdict
@@ -17,8 +17,8 @@ know**: `Build-From-GOG.ps1` has a download bug, needs MSVC and a repo clone, an
 
 | # | step | verdict | notes |
 |---|---|---|---|
-| 1 | wipe `C:\i76-bench\` | done, one deviation | deleted controls, kit-a, rc-twin, rc-twin-dgv2875, scott-a/b/gog, scott-b.zip, wmr, wmr-twin, old job/probe scripts, `runs\` of 10-24 (list: lab `wipe-list.txt`). **Kept** the live Nitro-lane items (`nitro-a/b/gog`, `parity-nitro`, `dgv`, `dlls`, `tools`, bench scripts, lock). 45.9 GB free. |
-| 2 | pristine GOG Gold (2.1.0.17, i76.exe 9a232dcc) | PASS | copied from `i76-map\sandbox-gog\main\app` to `C:\i76-bench\clean\GOG Games\Interstate 76`: 371 files, md5 list from the same source, 0 bad. (No separate recorded md5 list exists, only the count.) |
+| 1 | wipe `<bench>\` | done, one deviation | deleted controls, kit-a, rc-twin, rc-twin-dgv2875, tester-a/b/gog, tester-b.zip, wmr, wmr-twin, old job/probe scripts, `runs\` of 10-24 (list: lab `wipe-list.txt`). **Kept** the live Nitro-lane items (`nitro-a/b/gog`, `parity-nitro`, `dgv`, `dlls`, `tools`, bench scripts, lock). 45.9 GB free. |
+| 2 | pristine GOG Gold (2.1.0.17, i76.exe 9a232dcc) | PASS | copied from `<re-archive>\sandbox-gog\main\app` to `<bench>\clean\GOG Games\Interstate 76`: 371 files, md5 list from the same source, 0 bad. (No separate recorded md5 list exists, only the count.) |
 | 3a | download v0.7.3 | PASS (deviation) | `gh release download` on the PC, scp, Zone.Identifier ZoneId=3 added by hand (no browser). |
 | 3b | Unblock + extract into the game folder | PASS | `Unblock-File` + `Expand-Archive` 1.1 s, +95 files, 0 GOG files changed, 0 files with the download mark. Zip README = repo README. |
 | 3c | `PLAY.bat` first run | **PASS** | setup + start: game process up 4.6 s after the double-click (setup 3.3 s), display read as 1920x1080, `[Glide] 3840x2160`. 15 s: intro text; 45 s: intro movie (car); after Esc at 80 s: main menu (OPTIONS / EXIT / TRIP / MELEE, pointer drawn) at 100 s and 140-160 s. `aspect: D 1.778 20/20 sites`. Log: 1 `CRASH` event (4 lines) = the frame-0 probe `exe+0x99997`, plus `coop-ai: ai_FrameTick UNEXPECTED bytes` (LAN-only, expected). Shots: `out\gold-play1.shot*.png`. Alive at the end of 160 s. |
@@ -35,7 +35,7 @@ know**: `Build-From-GOG.ps1` has a download bug, needs MSVC and a repo clone, an
 
 1. **The setup ends with "Press any key to continue . . ."** (also UNINSTALL at the start and the end). README says nothing about key
    prompts; "about ten seconds" is 3-4 s. Proposed: "A window may ask you to press a key; do."
-2. **The setup text names the developer**: `graphic detail: GOG's defaults -> the levels James plays with`. Proposed "the developer plays with".
+2. **The setup text names the developer**: `graphic detail: GOG's defaults -> the levels the developer plays with`. Proposed "the developer plays with".
 3. **Developer-speak in the user's window**: "the daily-driver conf of 2026-10-03", "promotion 11", "gated 2026-10-08 (twin, driver promotion
    15)", "`only 4608x2880 / 1680x1050 has been run`", "`-Preset tick19-42 has NOT been run on this build ... re-run with -Preset stock`",
    "`-AllowNarrow`", "Check in Instant Melee ... Mission 5's ramp jump", "PLAY-i76.bat starts preset tick19-42". `-Preset` is not a
@@ -92,7 +92,7 @@ know**: `Build-From-GOG.ps1` has a download bug, needs MSVC and a repo clone, an
 ## Top 5 fixes
 
 1. **Fix `Build-From-GOG.ps1`'s dgVoodoo URL** (B5) and add a prebuilt-proxy option or a Nitro kit, so a Nitro player needs neither MSVC nor a clone (B6).
-2. **Trim the first-run window** to a user summary; move developer-speak and "James plays with" to `_i76e\setup.log`; rewrite the MD5 line (items 2-4).
+2. **Trim the first-run window** to a user summary; move developer-speak and "the developer plays with" to `_i76e\setup.log`; rewrite the MD5 line (items 2-4).
 3. **README**: the "Press any key" prompt, the real setup time, no "PLEASE STAND BY" promise, UNINSTALL-i76e.bat and `Lee.fot` in the uninstall text (items 1, 5, 6).
 4. **Print the frame-0 probe as one handled line** so "CRASH" greps do not show 4 lines (B4); Nitro's wording already does this.
 5. **Look at the Nitro P01 start frame at 1920x1080** (B9) and click the Nitro menu through to a mission and a drive; then make the laptop stay unlocked and
@@ -100,8 +100,8 @@ know**: `Build-From-GOG.ps1` has a download bug, needs MSVC and a repo clone, an
 
 ## Fixes run, 2026-10-25 morning (lane: clean-install fixes, Opus) - Patch Kit v0.8.0 draft
 
-Evidence: lab `clean-install\fixes\` (scripts `fix-step.ps1` / `ftask.ps1` / `frun.ps1`, task `i76fix`, own folder `C:\i76-bench\clean2`;
-results and screenshots in `fixes\out\`). Laptop LAPTOP-HPK11OMS, 1920x1080, console. Kit: **`Interstate76-Patch-Kit-i76-everywhere-v0.8.0-935f897.zip`**,
+Evidence: lab `clean-install\fixes\` (scripts `fix-step.ps1` / `ftask.ps1` / `frun.ps1`, task `i76fix`, own folder `<bench>\clean2`;
+results and screenshots in `fixes\out\`). Laptop the laptop bench, 1920x1080, console. Kit: **`Interstate76-Patch-Kit-i76-everywhere-v0.8.0-935f897.zip`**,
 6,030,218 B, sha256 `639e1e859f2e2973f8a3dd59d828fe24d1eb8c7dd068417e3e4b4403b1ff417e` (= the draft asset's GitHub digest), proxy
 `c54210f8` (build of 788554a). Draft release renamed v0.7.4 -> **v0.8.0** (not published), also carrying the Mac Kit repacked as
 `Interstate76-Mac-Kit-i76-everywhere-v0.8.0-9cb3a44.zip` (the tested 9cb3a44 content; only VERSION.txt and THIRD-PARTY.md's date differ).
