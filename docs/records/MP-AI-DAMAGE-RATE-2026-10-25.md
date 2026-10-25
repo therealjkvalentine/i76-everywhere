@@ -175,3 +175,102 @@ Test for any rate change: laptop pair, n 3 x 2 min, the Step 1 numbers before / 
 - Ghidra export: `i76-map\ghidra\export\functions\004644d0.c` (packer), `00464890.c` (mirror), `00496e10.c` (menu keys),
   `00466010.c`, `0046da30.c`; `flows.csv` for the call sites quoted.
 - Lab IPXWrapper log for the unicast check: `captures\coop-host-stall-20261025\hs-ipx-c.log`.
+
+## 7. Results (Opus lane, 2026-10-25 afternoon)
+
+Rig: the lab PC pair (game-mpo-c host, game-mpo-d joiner, the RC's OWNER-2300-ALL preset, IPXWrapper G / H set to log_level 4
+for each run and put back to 2), lanfix harness + lab `tools\mp-ai-damage\mad.py` (`menu`, `dmg`, `rate`; `mad-pc.ps1` = the run
+with the IPX level, `madrun.sh` / `mad-job.ps1` = the same on the laptop bench). The laptop was held by the analog-driver,
+skip-cutscenes and terrain-pass lanes the whole afternoon, so every run here is the PC pair (the console was free; RDP checked: no).
+Every boot `I76_SKIP_MOVIES` + `I76_SKIP_CUTSCENES` + `I76_FFB_OFF`; The Crater (m01) hosted through MELEE > MULTI MELEE > HOST.
+Lab twins = main + this lane's hunks + shellclick + the cruise block + `skey` (WM_KEYDOWN / UP with the real scan code and the
+extended bit) + (dmg) the joiner-side lab shooter (`insert-jshoot.py`: the I76_AIMELEE_TEST_SHOOT shooter skipped every target on
+a joiner, whose fill census calls all mirrored cars parked). Evidence: lab `captures\mp-ai-damage-20261025\<tag>\`.
+
+### P1 Esc-menu keys: cause confirmed, fixed (57f17f4)
+
+Fix as planned in `menu_keys_wrap` (polish.c): `key = blk[0]; memset(blk, 0, 60); input_ProcessFrame(); if (!blk[0]) blk[0] = key;`.
+The order is the one the plan assumed: the kept key reaches the menu's key step in the same frame (`kept the menu's key` lines:
+0xc6 Up, 0xd Enter, 0x1b Esc, and 0x61 'A', which the menu ignores).
+
+| run (lab twin dbc1ac69) | role | Esc opens | Down, Down, Up: row | steer with the menu up ('A' tapped 1.5 s) | Enter |
+|---|---|---|---|---|---|
+| pc-m1, rounds 1-2 | joiner | 2 / 2 | 0 -> 1 -> 2 -> 1 (2 / 2) | 0.000 (2 / 2) | on row 0 "Abort Mission": its confirm page opens (2 / 2) |
+| pc-m1, rounds 1-2 | host | 2 / 2 | 0 -> 1 -> 2 -> 1 (2 / 2) | 0.000 (2 / 2) | as above (2 / 2) |
+| pc-m2, rounds 1-2 | joiner | 2 / 2 | 0-1-2-1, then 4-0-1-0 (wraps) | 0.000 (2 / 2) | on row 4 "Exit": menu left at once, mode 0x10 -> 1 (2 / 2) |
+| pc-m2, rounds 1-2 | host | 2 / 2 | 0-1-2-1, then 4-0-1-0 | 0.000 (2 / 2) | on row 4 "Exit": left (2 / 2) |
+
+- **8 / 8 key sequences moved the row, 4 / 4 Enters on Exit left the menu, 4 / 4 Enters on Abort opened its page, 8 / 8 menu-up
+  steer reads 0.** The Esc menu's rows: Abort Mission, Play Options, Graphic Detail, Audio Control, Exit (no "resume" row; Exit
+  and Esc both run 0x497a30 = close).
+- Instrument control: the same 'A' taps while driving steered in 5 of 8 rounds (max |steer| 0.20-0.24); 3 host rounds read 0.001
+  (the sampler reads after each key-up; the injection itself is shown by the 0.2+ rounds and the logged key codes).
+- Not run: the single-player t01 control (the wrap never runs in single player: the frame loop skips the sim block under the
+  menu, 0x4039e4..; that path is unchanged). Rollback: `I76_MENU_KEYS=0` or the previous proxy.
+
+### P2 AI damage visuals: the lab chain works end to end, none of A / B / C reproduces; the HUD readout fixed (66f0781)
+
+| run | who shoots | host: packed word changes (A) | joiner: word applied (C) | joiner: drawn panel rows change (B) |
+|---|---|---|---|---|
+| pc-d1 (n 2, host alone = the control) | host | yes: 0 -> 0x040 -> 0x080 -> 0x0c0 per car; rows 0 -> 1 -> 2 within the 100 ms watch | - | - |
+| pc-d3 (n 2) | joiner (lab shooter) | yes, 4 cars | yes, every change | yes: rows 0x0100, 0x0200, 0x1100, 0x2210 ... right after the mirror |
+| pc-d5 (n 2, window captures) | joiner | yes | yes | yes |
+
+- **Host's word change -> the joiner's drawn row change: median 0 ms, max 93 ms (n 22 row changes, 4 pair runs;** one PC clock;
+  the host side is sampled every 100 ms, so hit -> drawn is <= ~0.2 s). **Capture** (pc-d5 run 0, the joiner's window, grabbed
+  every ~0.7 s): `pc-d5\z-2423288937.png` (bullet sparks on the van's back, panels straight) and `z-2423289640.png` (the next grab,
+  +0.7 s; the joiner applied row 2 at +0.58 s): back and side visibly crumpled. Run 1's change came with the van at the frame's
+  edge (smoking, `r1-post.png`): log only. So **the shooter's screen shows the damage within 1 s of the hit: n 2 by log (22
+  changes), n 1 by capture.**
+- Also seen: the joiner's local hits never touch the mirrored car (its live armour stays at max: ClassDamage is skipped); the look
+  comes only from the host's word, and the mirror maps level 1 to row 0 (only the TMT frame), so a side has to be at <= 50 %
+  before the geometry changes (about 63 % health in the control).
+- **Not reproduced: the owner's "no damage change".** The lab ran main + this lane on the RC preset; the owner's machines ran
+  older proxies (PC: the RC 53944fb2 line; Macs: 5d6f9828). Next: the owner's next LAN session with `I76_COOP_DMG_LOG=1` on both
+  machines (it logs which column fails), or a lab pair on the old md5. No A / B / C fix was made: nothing failed.
+- **HUD (secondary): fixed.** `I76_COOP_AI_HEALTH` (default 1): on a joiner, object_HealthFraction 0x40b450 returns the host's
+  health for cars the host drives ('AT' record +0x5c, a 0..254 byte = health x 2.55; the mirror reads it as / 255). Joiner readout
+  vs the host's at the same moment: within 1-4 points (n 16 damaged readings, pc-d5 runs 0 and 1); control `I76_COOP_AI_HEALTH=0`
+  (pc-d6-hpoff): 100 while the host read 42-81 (n 6). Detour at 0x40b450 (5 bytes `sub esp,0x44; push ebx; push esi`), Gold only.
+
+### P3 rate: diagnostics in, measured; interpolation built and NOT shipped on (66f0781)
+
+`coop-ai-rate:` lines (every I76_FPS_LOG window; joiner: per-car inter-arrival of applied records and the snap at each apply,
+|position before the mirror - after|; host: the gap between rounds) and a per-step jump line (second difference of each moving
+mirrored car's position per sim step). PC pair, The Crater, both humans parked, 2 live AI driving at them, 60 s, n 2 per row:
+
+| runs | gap ms median | gap p90 | gaps > 250 ms | snap at apply: window medians | snap p90 (median window) | snaps > 1 m |
+|---|---|---|---|---|---|---|
+| pc-r1 (lab3, before the interp code) | 109 | 125-141 | 2 of 2186 (a car's entry) | 0.08 / 0.27 m | 1.27 / 0.68 m | 307 of 2240 (14 %) |
+| pc-r4-off (lab7, switch 0) | 109-110 | 125-219 | 15 of 2157 | 0.15 / 0.51 m | 0.80 / 1.44 m | 461 of 2224 (21 %) |
+
+Host side (all runs): one round per 109 ms, p90 110-125, none > 250 ms. A per-tick trace (pc-t1, `I76_COOP_AI_TRACE`) shows the
+mechanism: under the 41.667 ms tick a mirrored car moves by its local physics ~0.5 m a tick at 12 m/s, and each record moves it
+another 0.4-0.55 m forward or back: a ~9 Hz wobble of about one tick's travel, larger on fast cars (snap max 1.5-4 m). Arrival is
+clean on this wired pair (no clumping; the Wi-Fi hop is still unmeasured). So the branch is "gaps fine, snap > 1 m", and
+interpolation was built (`I76_COOP_AI_INTERP`: at the first pump of each sim step the car is placed between its last two records,
+spacing from the host's record times; the apply leaves the drawn position):
+
+| per-step jump of moving cars (n 2 x 60 s each) | window medians | p90 (median window) | steps > 0.5 m |
+|---|---|---|---|
+| off (pc-r4-off) | 0.053 / 0.037 m | 0.77 / 1.31 m | 24 % / 31 % |
+| on, arrival-time spacing (pc-r4-on) | 0.313 / 0.314 m | 0.86 / 0.81 m | 32 % / 29 % |
+| on, record-time spacing (pc-r5-on) | 0.188 / 0.351 m | 0.54 / 1.12 m | 16 % / 35 % |
+
+**Interpolation does not smooth it:** the median step jump gets 4-8 x worse and the tail is not reliably better (n 2): the local
+vehicle step still integrates the record's velocity after every placement and fights it. Shipped **off** (`I76_COOP_AI_INTERP`
+default 0, a lab switch), against the brief's "default on if built", because the measurement says it is worse. The next attempt
+has to own the car's motion: skip the local vehicle step for an interpolated car, or blend in the tick's draw layer. The per-frame
+'AT' cap (ea0d483, `I76_COOP_AT_PER_FRAME`) is in this build (it was already in main).
+
+### Build, install, issues
+
+- Commits: **57f17f4** (P1, polish.c), **66f0781** (P2 log + HUD health, P3 diagnostics + the interp switch, strlkproxy.c).
+- Product build `builds\nitro-port-20261021\build.ps1 -Ref 66f0781`, twice: **045f4e0562864ab60723920ce2cf0927** both times.
+- Installed in lab **test-gold** `Interstate 76\STRLKUP.DLL` (was dba46ea2 = fe7468c, kept in `_rollback\mp-ai-damage-20261025\`),
+  md5 read back; VERSION.md updated. Not in main / the daily driver, not on the Macs: the next family rollout (same md5 on every
+  machine).
+- Lab twins `builds\mp-ai-damage-20261025\Strlkup-lab1..9.dll`; lab9 (1edea828) = 66f0781 + the lab blocks, smoke pair pc-final-d:
+  damage applied and drawn, HUD on, interp off. 0 CRASH lines in the 62 proxy-log slices of this lane (18 runs; d4 died on a harness bug before its slices were saved).
+- Issues: #93 Esc menu keys (fixed, 57f17f4), #94 damage visuals (HUD fixed; the owner's report not reproduced, open for the
+  owner-session log), #95 rate (measured; interpolation tried and kept off; open for the next approach).
