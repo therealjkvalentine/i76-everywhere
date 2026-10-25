@@ -292,10 +292,42 @@ static void fe_fog_update(float fz) {
         mlog("  glide-fog: table for far %.0f m: clear to %.0f m, full at %.0f m; entries%s", fz, z0, fz, txt);
     }
 }
+/* I76_FADE_FAST (default 1; terrain-pass-opt lane 2026-10-25, TERRAIN-PASS-OPT-PLAN H2 / unit U2; =0 the old path for one build): the
+ * feather's per-vertex alpha without a divide for the vertices nearer than the band. A vertex with oow >= g_fe_oow_cut has, after
+ * float rounding, 1/oow < az0 (the cut is 1/az0 raised by 4e-7 relative: the two roundings, 1/az0 and 1/oow, are 6e-8 each), so the
+ * stock expression gives f <= 0 and alpha 255: the fast path stores 255 for it. Every other vertex (the band, the margin, oow <= 0,
+ * NaN) runs the stock expression unchanged: bit-exact by construction. The probe's w / min / max bookkeeping (the double divide per
+ * triangle) runs only when something reads it (I76_FAR_EDGE_LOG, the clutter trace).
+ * I76_FADE_VERIFY=1 (lab): also computes every fast-path vertex the stock way and counts the bit mismatches (a log line per 300 frames). */
+static int g_fe_fast = 1, g_fe_verify; static float g_fe_oow_cut; static DWORD g_fe_vf_n, g_fe_vf_bad, g_fe_vf_fast;
+static __inline float fe_alpha_stock(float o) {
+    float wv = o > 0.0f ? 1.0f / o : 0.0f, f = (wv - g_fe_az0) * g_fe_ainv, al = 255.0f;
+    if (f > 0.0f) { if (f > 1.0f) f = 1.0f; f = f * f * (3.0f - 2.0f * f); al = 255.0f * (1.0f - f); g_fe_averts_faded++; }
+    return al;
+}
 static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) {   /* the probe: w = 1 / oow of vertex a (GrVertex +32) */
     unsigned __int64 pt0 = g_pt_on ? pt_now() : 0, pt1;     /* I76_PASS_TIMERS (passtimers.c): own time / glide2x's synchronous time */
-    float oow = *(const float *)((const BYTE *)a + 32); double w = oow > 0.0f ? 1.0 / oow : -1.0;
-    int fw = 0;
+    float oow; double w; int fw = 0;
+    if (g_fe_fast && g_fe_alpha && g_fe_in_flush && g_fe_opaque && !g_fe_log && !g_cl_tron) {   /* U2: the fast path (the probe unread) */
+        const void *v[3]; int i; v[0] = a; v[1] = b; v[2] = c; g_fe_atris++;
+        for (i = 0; i < 3; i++) {
+            float o = *(const float *)((const BYTE *)v[i] + 32);
+            if (o >= g_fe_oow_cut) {                         /* nearer than the band, with margin: alpha 255 (no divide) */
+                if (g_fe_verify) { DWORD n0 = g_fe_averts_faded; float s = fe_alpha_stock(o); g_fe_averts_faded = n0; g_fe_vf_fast++; if (*(DWORD *)&s != 0x437f0000u) g_fe_vf_bad++; }
+                *(float *)((BYTE *)v[i] + 28) = 255.0f;
+            } else *(float *)((BYTE *)v[i] + 28) = fe_alpha_stock(o);
+            g_fe_vf_n++;
+        }
+        if (g_cl_force) {                                    /* a fading bush: its alpha x the feather's */
+            g_cl_ftris++;
+            for (i = 0; i < 3; i++) *(float *)((BYTE *)v[i] + 28) = *(const float *)((const BYTE *)v[i] + 28) * g_cl_cur * (1.0f / 255.0f);
+        }
+        if (g_pd_on) pd_drawtri(a, b, c);                    /* I76_PASS_DUMP: what glide2x receives */
+        if (g_pt_on) { pt1 = pt_now(); p_fe_DrawTri(a, b, c); pt_drawtri_add(1, pt1 - pt0, pt_now() - pt1); return; }
+        p_fe_DrawTri(a, b, c);
+        return;
+    }
+    oow = *(const float *)((const BYTE *)a + 32); w = oow > 0.0f && (!g_fe_fast || g_fe_log || g_cl_tron) ? 1.0 / oow : -1.0;   /* w: the probe / trace only */
     if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) {       /* fade to transparent: the vertex alpha from its own w */
         fw = 1;
         const void *v[3]; int i; v[0] = a; v[1] = b; v[2] = c; g_fe_atris++;
@@ -310,8 +342,10 @@ static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) { 
         const void *v[3]; int i; v[0] = a; v[1] = b; v[2] = c; g_cl_ftris++;
         for (i = 0; i < 3; i++) *(float *)((BYTE *)v[i] + 28) = fw ? *(const float *)((const BYTE *)v[i] + 28) * g_cl_cur * (1.0f / 255.0f) : g_cl_cur;
     }
-    if (g_fe_in_flush) { g_fe_pt_in++; if (w > 0) { if (w < g_fe_pw_in_min) g_fe_pw_in_min = w; if (w > g_fe_pw_in_max) g_fe_pw_in_max = w; if (w > 0.9 * g_fe_fog_far_built) g_fe_pt_in_far++; } }
-    else { g_fe_pt_out++; if (w > 0) { if (w < g_fe_pw_out_min) g_fe_pw_out_min = w; if (w > g_fe_pw_out_max) g_fe_pw_out_max = w; } }
+    if (!g_fe_fast || g_fe_log) {                            /* the probe's bookkeeping: read only by I76_FAR_EDGE_LOG's lines (U2) */
+        if (g_fe_in_flush) { g_fe_pt_in++; if (w > 0) { if (w < g_fe_pw_in_min) g_fe_pw_in_min = w; if (w > g_fe_pw_in_max) g_fe_pw_in_max = w; if (w > 0.9 * g_fe_fog_far_built) g_fe_pt_in_far++; } }
+        else { g_fe_pt_out++; if (w > 0) { if (w < g_fe_pw_out_min) g_fe_pw_out_min = w; if (w > g_fe_pw_out_max) g_fe_pw_out_max = w; } }
+    }
     if (g_pd_on && g_fe_in_flush) pd_drawtri(a, b, c);      /* I76_PASS_DUMP: what glide2x receives */
     if (g_pt_on) { pt1 = pt_now(); p_fe_DrawTri(a, b, c); pt_drawtri_add(g_fe_in_flush, pt1 - pt0, pt_now() - pt1); return; }
     p_fe_DrawTri(a, b, c);
@@ -384,6 +418,7 @@ static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1
         if (g_fe_alpha) fe_alpha_attach();
         if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {
             g_fe_az0 = fz * g_fe_fog_start; g_fe_ainv = fz > g_fe_az0 ? 1.0f / (fz - g_fe_az0) : 0.0f;
+            g_fe_oow_cut = g_fe_az0 > 0.0f ? (1.0f / g_fe_az0) * 1.000001f : 3.0e38f;   /* U2: oow >= cut <=> surely nearer than the band */
             g_fe_in_flush = 1; g_fe_opaque_req = 1; g_fe_opaque = 0;         /* the first records are opaque terrain: ZGLIDE's state cache may not call */
             fe_apply_state();
         } else {
@@ -401,6 +436,8 @@ static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1
         if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {
             fe_apply_state();                                /* in_flush is 0: the override comes off, ZGLIDE's own state back */
             if (g_fe_log && (++g_fe_frames % 300) == 0) { mlog("  glide-fog alpha: last 300 frames - %lu opaque-op triangles, %lu vertices faded (band from %.0f m)", (unsigned long)g_fe_atris, (unsigned long)g_fe_averts_faded, g_fe_az0); g_fe_atris = g_fe_averts_faded = 0; }
+            if (g_fe_verify) { static DWORD vf; if (++vf % 300 == 0) { mlog("  fade-fast verify: last 300 frames - %lu opaque-op vertices, %lu on the fast path, %lu bit mismatches against the stock expression (cut oow %.6g, band from %.0f m)",
+                                   (unsigned long)g_fe_vf_n, (unsigned long)g_fe_vf_fast, (unsigned long)g_fe_vf_bad, g_fe_oow_cut, g_fe_az0); g_fe_vf_n = g_fe_vf_fast = g_fe_vf_bad = 0; } }
             return;
         }
         p_fe_FogMode(0);                                     /* GR_FOG_DISABLE */
@@ -421,7 +458,10 @@ static void apply_far_edge(void) {
     nf = env_str("I76_GLIDE_FOG", fv, sizeof(fv));
     ne = env_str("I76_EDGE_FADE", ev, sizeof(ev));
     g_fe_log = env_flag("I76_FAR_EDGE_LOG", 4, 0) == 1;
+    g_fe_fast = env_flag("I76_FADE_FAST", 4, 1) != 0;       /* U2 (default on; =0 the old per-vertex divide for one build) */
+    g_fe_verify = env_flag("I76_FADE_VERIFY", 4, 0) == 1;   /* lab: every fast-path vertex also computed the stock way, bit mismatches counted */
     if (!nh && !nf && !ne) return;
+    if (nf) mlog("  fade-fast: %s (the feather's per-vertex alpha without a divide nearer than the band; bit-exact)%s", g_fe_fast ? "on" : "OFF (I76_FADE_FAST=0: the old path)", g_fe_verify ? "; VERIFY on" : "");
     if (!g_ta_ok) { mlog("  far-edge: the terrain renderer's addresses are not all mapped (Nitro) - not applied"); return; }
     g_fe_ret_emit = g_ta_emit;                           /* Gold: 0x491a30; Nitro: mapped (nitro-owner lane 2026-10-23) */
     g_fe_far_env = env_str("I76_FAR_CLIP", mv, sizeof(mv)) != 0;

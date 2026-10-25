@@ -338,3 +338,24 @@ tables 45-47), m16 variant 618-623 calls / 487-509 us per frame in the clutter c
 (texsource ~2,000), polygon entry points present (grDrawPolygonVertexList, grDrawPlanarPolygonVertexList, grDrawPolygon)." **PASS**
 on the line; the plan's "dump hashes stable run to run on the replay" **FAIL** (no deterministic route under the tick; above), replaced
 by the in-run verifiers.
+
+### U2 fe_DrawTri divide-free path (`I76_FADE_FAST`, default 1; `I76_FADE_VERIFY=1` lab; music-fix/faredge.c)
+
+The feather's band test without a divide: a vertex with oow >= cut (cut = 1/az0 raised by 1e-6 relative, more than the three float
+roundings involved) has 1/oow < az0 after rounding, so the stock expression would give alpha 255; it stores 255. Every other vertex
+(the band, the margin, oow <= 0, NaN) runs the stock expression unchanged. The probe's w (a double divide per triangle) and its min /
+max bookkeeping run only when `I76_FAR_EDGE_LOG` or the clutter trace reads them. Rollback key `I76_FADE_FAST=0`.
+
+| | U1 (n 3) | U2 (n 3) |
+|---|---|---|
+| equivalence (u2v, `I76_FADE_VERIFY=1`, the whole route) | - | **0 bit mismatches** in 80,674,795 fast-path vertices (of 93,186,117 opaque-op vertices; cut oow 0.000579711, band from 1725 m) |
+| fe_DrawTri own, inside the flush | 54.2 / 53.2 / 54.0 ns/call = 363 / 357 / 357 us | 54.0 / 54.6 / 52.4 ns/call = 361 / 367 / 351 us |
+| glide2x sync | 133.1 / 127.3 / 128.0 ns | 129.7 / 137.2 / 131.8 ns |
+| hill / ridge median fps, timers off (base / U2) | 48.2 48.2 48.6 / 51.0 51.2 51.7 | 48.9 46.6 48.6 / 51.5 51.3 51.7 |
+| CRASH | 0 | 0 (7 boots) |
+
+**U2 line:** "U2: alpha stream bit-exact over 80.7 M fast-path vertices (every frame of a 4-minute route); fe_DrawTri 357-363 -> 351-367
+us." Bit-exact **PASS**; the expected 0.05-0.15 ms saving **did not appear** (the difference is inside the boot-to-boot spread of +-8 us):
+the per-vertex divides were overlapped with the rest of the call (out-of-order), and the hook's ~150 cycles per call are the call,
+the stores and the timer pair, not the arithmetic. Landed anyway (exact, smaller code path, the probe off the hot path); fps unchanged
+within noise (46.6-48.9 vs 48.2-48.6).
