@@ -1,0 +1,8 @@
+# I'76 Mac Kit downloads: name  sha256  url  (fetched by i76-mac-kit.sh into ~/Library/Caches/i76-mac-kit, refused on any other hash)
+# Sikarugir wrapper template 1.0.11 (= the family apps' template, file for file) and Wine engine 10.0 rev 6 (= their Wine): Sikarugir-App on GitHub
+Template-1.0.11.tar.xz          9fa15479e7ff6abd99c1d07be285fb95f41fc6991586502427152b1f7d6ccb8a  https://github.com/Sikarugir-App/Template/releases/download/v1.0/Template-1.0.11.tar.xz
+WS12WineSikarugir10.0_6.tar.xz  9da7ee0cbf386522f3a9906943726d9c3c125dbbd9ab120e3cde80e88d6091b2  https://github.com/Sikarugir-App/Engines/releases/download/v1.0/WS12WineSikarugir10.0_6.tar.xz
+# DxWnd 2.06.14 (GPL v3, gho; = the family apps' DxWnd, file for file); a RAR the stock macOS tar unpacks
+dxwnd-v2_06_14_build.rar        1d439f18819bea903659677ac0a94aab5c08533a585b5473dfb656e225ee4b5c  https://downloads.sourceforge.net/project/dxwnd/Latest%20build/v2_06_14_build.rar
+# IPXWrapper 0.7.2 (GPL v2, solemnwarning; ipxwrapper.dll 06a01d0f, wsock32.dll 70e4a652, mswsock.dll c18759b2 = every LAN machine's)
+ipxwrapper-0.7.2.zip            a32255f528533be0add8eeabb0794fcbf8b025110cb4624b79dbb82698e6a404  https://github.com/solemnwarning/ipxwrapper/releases/download/ipxwrapper-0.7.2/ipxwrapper-0.7.2.zip
