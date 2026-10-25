@@ -1270,6 +1270,6 @@ Deck:
 11. **Pair an Xbox controller** to the Deck; the Deck lane needs it for the rumble instrumentation, then you judge the feel (checklist comes with its record).
 
 Laptop:
-12. Run `ssh james@192.168.1.77 C:\i76-bench\keep-awake.cmd` once (never sleep / blank / lock on mains).
+12. Run `<bench>\keep-awake.cmd on the laptop bench` once (never sleep / blank / lock on mains).
 
 Decisions still open: relay host for internet play (this desktop + router forward + firewall allow, or a VPS) before the hotspot test; Debacle's consent for the Nitro RepoTown / Intercept conversions before v0.8.0 goes public; Defender exclusion for the game + lab folders (steadies fps rows; admin); history rewrite goes ahead once scrub pass 2 lands.
