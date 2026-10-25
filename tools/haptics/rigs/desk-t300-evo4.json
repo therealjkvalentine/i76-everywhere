@@ -1,6 +1,6 @@
 {
   "name": "desk-t300-evo4",
-  "description": "James's desk: Thrustmaster T300RS (belt), Audient EVO 4 -> Aura AST-2B shaker, an XInput pad. Every output names the renderer that serves it; the host instantiates exactly the outputs listed here.",
+  "description": "The developer's desk: Thrustmaster T300RS (belt), Audient EVO 4 -> Aura AST-2B shaker, an XInput pad. Every output names the renderer that serves it; the host instantiates exactly the outputs listed here.",
   "outputs": {
     "wheel": {
       "renderer": "Wheel.DirectInput",

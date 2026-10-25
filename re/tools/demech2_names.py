@@ -7,7 +7,7 @@ matched), GLOBAL, LIBRARY (MSVC runtime; the name is on the next comment line). 
 identifier before '(' on the first code line after the annotation; of a GLOBAL, the identifier before '=' / ';' / '['.
 """
 import os, re, sys
-M = r"C:\Users\james\i76-map"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
 mod = sys.argv[sys.argv.index("--module") + 1] if "--module" in sys.argv else "MW2"
 out = os.path.join(M, sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else os.path.join(M, "external", "demech2-%s.tsv" % mod)
 root = os.path.join(M, "external", "demech2", mod)

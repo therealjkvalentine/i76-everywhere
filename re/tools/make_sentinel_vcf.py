@@ -10,7 +10,7 @@ wheel[13] then 8 x u32 armour in integer tenths at body+93 = file 0x79 (fold-in 
 vppt01.vcf and on the user's ADDON\valepre4.orig/.vcf pair whose only differing bytes are file 121..152).
 The tool refuses a source whose middle wheel field is not 'null' (the 3-wheel layout is the precondition, H5).
 
-Survey before building: C:\Users\james\i76-uncap-lab\autotest\setup\make-test-variant.py --armor-list and
+Survey before building: <lab>\autotest\setup\make-test-variant.py --armor-list and
 tools\vehicle\vcf.py set-armor do the same edit by searching the last '.wdf' string; this port uses the
 parsed chunk and adds the read-back (H3): the output is re-parsed, the armour list must read back exactly,
 the byte diff against the source must lie entirely inside the 32-byte armour block, and a JSON sidecar

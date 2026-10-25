@@ -17,7 +17,7 @@ try { $G = Resolve-LabGameDir $GameDir } catch { "$_"; exit 1 }
 $I76GameDirInUse = $G
 $conf = "$G\dgVoodoo.conf"; $bak = "$conf.pre-probe"
 $glob = "$env:APPDATA\dgVoodoo\dgVoodoo.conf"; $globHidden = "$env:APPDATA\dgVoodoo\dgVoodoo.conf.hidden-by-probe"
-$out = if ($OutFile) { $OutFile } else { "C:\Users\james\i76-uncap-lab\captures\graphics\$Tag.png" }
+$out = if ($OutFile) { $OutFile } else { "$env:USERPROFILE\i76-uncap-lab\captures\graphics\$Tag.png" }
 if ($DryRun) {
     "conf-probe DRY RUN (nothing started): game=$G conf=$conf (backup $bak) global=$glob (present: $(Test-Path $glob); would hide: $([bool]$HideGlobal)) mode=$(if ($ClientRect) { 'client rect' } else { 'watermark' }) capture=$out"
     if (-not $ClientRect) { & "$Here\..\..\autotest\proxy-run.ps1" -Mission t01 -Hold 0 -GameDir $G -KeepInstalledDll:$KeepInstalledDll -DryRun | ForEach-Object { "  | $_" } }
@@ -48,7 +48,7 @@ Copy-Item $conf $bak -Force
 if ($UseConf) { Copy-Item $UseConf $conf -Force } else { (Get-Content $conf) | ForEach-Object { if ($_ -match '^3DfxWatermark\s*=') { "3DfxWatermark                       = true" } else { $_ } } | Set-Content $conf }
 if ($HideGlobal -and (Test-Path $glob)) { Rename-Item $glob (Split-Path $globHidden -Leaf) }
 try {
-    $run = [scriptblock]::Create("python '$Here\freeze-at.py' on; Start-Sleep -Seconds 4; . 'C:\Users\james\i76-uncap-lab\autotest\lib\focuslib.ps1'; `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Start-Sleep -Milliseconds 800; & '$Here\capture-frame.ps1' -Out '$out' | Out-Null; python '$Here\freeze-at.py' off")
+    $run = [scriptblock]::Create("python '$Here\freeze-at.py' on; Start-Sleep -Seconds 4; . (Join-Path $env:USERPROFILE 'i76-uncap-lab\autotest\lib\focuslib.ps1'); `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Start-Sleep -Milliseconds 800; & '$Here\capture-frame.ps1' -Out '$out' | Out-Null; python '$Here\freeze-at.py' off")
     & "$Here\..\..\autotest\proxy-run.ps1" -Mission t01 -Hold 0 -Run $run -GameDir $G -KeepInstalledDll:$KeepInstalledDll | Select-String "in mission|CRASH|exited"
 } finally {
     Copy-Item $bak $conf -Force; Remove-Item $bak

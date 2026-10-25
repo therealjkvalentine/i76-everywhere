@@ -22,7 +22,7 @@ from ghidra.program.model.address import AddressSet
 from ghidra.util.task import ConsoleTaskMonitor
 
 args = getScriptArgs()
-M = args[0] if len(args) > 0 else "C:\\Users\\james\\i76-map"
+M = args[0] if len(args) > 0 else (__import__("os").path.expanduser("~") + "\\i76-map")
 extra = args[1] if len(args) > 1 else None
 prog = currentProgram
 fm = prog.getFunctionManager()

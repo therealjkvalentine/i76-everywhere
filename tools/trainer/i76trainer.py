@@ -9,7 +9,7 @@ r"""i76trainer.py - a small trainer for the running Interstate '76 (GOG builds),
     python i76trainer.py uncheat                  clear the cheats-used marker 0x535f78 and Play Options bits 0x1c
     python i76trainer.py --any ...                allow a game that is not the sandbox copy
 
-Every address comes from i76-map\subsystems\cheats.md (static reading of md5 9a232dcc, same link as the AiO builds
+Every address comes from <re-archive>\subsystems\cheats.md (static reading of md5 9a232dcc, same link as the AiO builds
 outside their patched clusters). Every write is read back and reported.
 
 CAMPAIGN WARNING (corrected 2026-10-04): `flags ammo|armour|chassis` (bits 0x04 / 0x08 / 0x10) DOES end up marking the
@@ -21,7 +21,7 @@ repair / ammo / teleport do not touch the Play Options and are safe for the camp
 """
 import ctypes, ctypes.wintypes as wt, struct, sys, os
 
-SANDBOX = os.path.normcase(r"C:\Users\james\i76-uncap-lab\game")
+SANDBOX = os.path.normcase((__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"))
 PLAY_FLAGS = 0x654b98
 FLAG_BITS = {"ammo": 0x04, "armour": 0x08, "armor": 0x08, "chassis": 0x10}
 AMMO_BASE, AMMO_STRIDE, AMMO_SLOTS, AMMO_OFF = 0x5AAB0C, 0x4C, 16, 0x1C

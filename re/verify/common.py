@@ -13,17 +13,17 @@ import subprocess
 import sys
 import time
 
-MAP = r"C:\Users\james\i76-map"
+MAP = (__import__("os").path.expanduser("~") + r"\i76-map")
 VERIFY = os.path.join(MAP, "verify")
 TOOLS = os.path.join(MAP, "tools")
 RUNS = os.path.join(VERIFY, "runs")
 BATCHES = os.path.join(VERIFY, "batches")
 SCENARIOS = os.path.join(VERIFY, "scenarios")
-G = r"C:\Users\james\i76-uncap-lab\game"                     # the SANDBOX. Never the Downloads portable install.
+G = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game")                     # the SANDBOX. Never the Downloads portable install.
 EXE = "i76.exe"
-NEWDLL = r"C:\Users\james\i76-everywhere\music-fix\Strlkup.dll"
-TEL_DIR = r"C:\Users\james\i76-everywhere\tools\telemetry"
-TRAINER_DIR = r"C:\Users\james\i76-everywhere\tools\trainer"       # i76trainer.py (Game.wr), i76tune.py (Tuner), tunables.json
+NEWDLL = (__import__("os").path.expanduser("~") + r"\i76-everywhere\music-fix\Strlkup.dll")
+TEL_DIR = (__import__("os").path.expanduser("~") + r"\i76-everywhere\tools\telemetry")
+TRAINER_DIR = (__import__("os").path.expanduser("~") + r"\i76-everywhere\tools\trainer")       # i76trainer.py (Game.wr), i76tune.py (Tuner), tunables.json
 FOCUS_PS1 = os.path.join(MAP, "captures", "014-framerate", "focus.ps1")   # dot-sources autotest\lib\focuslib.ps1
 FUNCTIONS_TSV = os.path.join(MAP, "symbols", "functions.tsv")
 REF_EXE = os.path.join(MAP, "ghidra", "i76_ref.exe")          # pristine image (md5 9a232dcc): functions.tsv addresses

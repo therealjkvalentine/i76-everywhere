@@ -31,7 +31,7 @@ param(
     [Parameter(Mandatory)][string]$DgVoodooDir,          # dgVoodoo 2.87.5, the unpacked release (MS, 3Dfx, dgVoodooCpl.exe)
     [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
-    [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\patch-kit',
+    [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\patch-kit'),
     [string]$Version = '0.8.0',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''

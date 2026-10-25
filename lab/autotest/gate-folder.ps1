@@ -60,7 +60,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Repo = "C:\Users\james\i76-everywhere"
+$Repo = "$env:USERPROFILE\i76-everywhere"
 . "$Here\lib\gamedir.ps1"
 $Lab = Get-LabRoot
 if ((Test-Path -LiteralPath $GameDir -PathType Container) -and -not (Test-Path -LiteralPath (Join-Path $GameDir "i76.exe")) -and (Test-Path -LiteralPath (Join-Path $GameDir "Interstate 76\i76.exe"))) {

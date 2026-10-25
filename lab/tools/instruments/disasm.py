@@ -19,7 +19,7 @@ def main():
     if "-back" in sys.argv:
         back = int(sys.argv[sys.argv.index("-back") + 1])
     va -= back
-    base, secs = load_sections(r"C:\Users\james\i76-uncap-lab\game\i76.exe")
+    base, secs = load_sections((__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe"))
     for sva, size, off, name, data in secs:
         if sva <= va < sva + size:
             md = Cs(CS_ARCH_X86, CS_MODE_32)

@@ -8,8 +8,8 @@
 param([switch]$Start, [ValidateSet("A","B")][string]$Inst = "A", [string]$Click, [string]$Shot, [string]$Key, [string]$Type, [switch]$State, [switch]$Buttons, [switch]$Close,
       [int]$Settle = 900, [switch]$OnlyA, [switch]$Full,
       # 2026-10-05: other lab pairs (game-nucleus / game-mpb for the gate-0 IPX run) and another proxy build
-      [string]$DirA = "C:\Users\james\i76-uncap-lab\game", [string]$DirB = "C:\Users\james\i76-uncap-lab\game-alt",
-      [string]$Proxy = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll",
+      [string]$DirA = "$env:USERPROFILE\i76-uncap-lab\game", [string]$DirB = "$env:USERPROFILE\i76-uncap-lab\game-alt",
+      [string]$Proxy = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll",
       # 2026-10-05 (no-minimize A/B): extra env "K=V;K=V" for the copies launched, B launched later on its own
       # (-LaunchB, after -Start -OnlyA), and -Wins: each game window's folder / iconic / foreground state
       [string]$Env, [switch]$LaunchB, [switch]$Wins)
@@ -19,7 +19,7 @@ function Set-RunEnv {
     if ($Env) { foreach ($kv in ($Env -split ";")) { $k, $v = $kv -split "=", 2; Set-Item "Env:$k" $v; "env $k=$v" } }
 }
 $ErrorActionPreference = "Continue"
-$Lab = "C:\Users\james\i76-uncap-lab"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"
 $dirs = @($DirA, $DirB)
 $Out = "$Lab\autotest\runs\mp\explore"; New-Item -ItemType Directory -Force $Out | Out-Null
 $Bak = "$Lab\autotest\runs\mp\bak"     # state files copied here at -Start (once), compared and put back at -Close; delete the folder after a clean -Close
@@ -126,7 +126,7 @@ if ($Shot) {
     "shot $Out\$Shot.png"
 }
 if ($State -or $Click -or $Key) {
-    $a = @("-ExecutionPolicy","Bypass","-File","C:\Users\james\i76-map\shell\tools\shellstate.ps1","-ProcessId",$proc.Id,"-Once"); if ($Buttons) { $a += "-Buttons" }
+    $a = @("-ExecutionPolicy","Bypass","-File","$env:USERPROFILE\i76-map\shell\tools\shellstate.ps1","-ProcessId",$proc.Id,"-Once"); if ($Buttons) { $a += "-Buttons" }
     & powershell @a 2>$null | Select-Object -Skip 1 | ForEach-Object { "[$Inst] " + ($_ -replace "\s+", " ") }
 }
 

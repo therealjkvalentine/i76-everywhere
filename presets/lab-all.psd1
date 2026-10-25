@@ -1,5 +1,5 @@
 #
-# lab-all - everything i76-uncap-lab\TEST-FRAMERATE.bat mode 5 ("all") sets. This is the set the
+# lab-all - everything <lab>\TEST-FRAMERATE.bat mode 5 ("all") sets. This is the set the
 # owner console-verified in the sandbox on 2026-10-02, so it is the exact reproduction of that
 # session, telemetry included. It is a LAB preset: the far clip and the telemetry export are
 # instruments, not play features.

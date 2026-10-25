@@ -5,7 +5,7 @@ does not publish those numbers. Until now the tabs only said "No haptics host da
 lines. This module makes the state explain itself and starts the host in one click (Haptics tabs) or with DEBUG.bat --haptics:
 
 * where the host is: --haptics-host / I76_HAPTICS_HOST, else tools\haptics beside this folder (the repo layout) or
-  _tools\haptics (a shipped folder), else the owner's checkout C:\Users\james\i76-everywhere\tools\haptics. The built
+  _tools\haptics (a shipped folder), else the owner's checkout tools\haptics. The built
   i76haptics.exe is preferred; haptics.ps1 (which builds it first, .NET 8 SDK) otherwise.
 * what it could drive: winmm joysticks (what the game itself reads: joyGetNumDevs + joyGetPosEx) and XInput pads. With
   none, the start is refused with that message unless the caller forces a dry run.
@@ -20,7 +20,7 @@ import ctypes, ctypes.wintypes as wt, os, shutil, subprocess, sys, tempfile, thr
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
-OWNER_REPO_HAPTICS = r"C:\Users\james\i76-everywhere\tools\haptics"
+OWNER_REPO_HAPTICS = (__import__("os").path.expanduser("~") + r"\i76-everywhere\tools\haptics")
 EXE_REL = os.path.join("src", "Host", "bin", "Release", "net8.0", "i76haptics.exe")
 TEE_PORT = 17676
 

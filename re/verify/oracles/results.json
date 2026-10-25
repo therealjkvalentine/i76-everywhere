@@ -1,7 +1,7 @@
 [
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 1279,
@@ -36,7 +36,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 1218,
@@ -68,7 +68,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 1201,
@@ -100,7 +100,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 3564,
@@ -130,7 +130,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 3583,
@@ -160,7 +160,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 1209,
@@ -192,7 +192,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 1219,
@@ -224,7 +224,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {},
   "frames": 1463,
   "considered": 1218,
@@ -256,7 +256,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {},
   "frames": 1463,
   "considered": 1225,
@@ -288,7 +288,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {},
   "frames": 1463,
   "considered": 1221,
@@ -320,7 +320,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {},
   "frames": 1463,
   "considered": 1194,
@@ -352,7 +352,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {},
   "frames": 1463,
   "considered": 1224,
@@ -384,7 +384,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {},
   "frames": 1463,
   "considered": 1204,
@@ -416,7 +416,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 1196,
@@ -448,7 +448,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 1198,
@@ -480,7 +480,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 1226,
@@ -512,7 +512,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {},
   "frames": 1443,
   "considered": 1204,
@@ -544,7 +544,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 1226,
@@ -576,7 +576,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {},
   "frames": 1463,
   "considered": 1219,
@@ -608,7 +608,7 @@
  },
  {
   "oracle": "engine_rpm",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1344,
@@ -641,7 +641,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 1724,
@@ -752,7 +752,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -917,7 +917,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -1082,7 +1082,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -1143,7 +1143,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -1308,7 +1308,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -1445,7 +1445,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -1610,7 +1610,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -1775,7 +1775,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -1809,7 +1809,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -1948,7 +1948,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -2059,7 +2059,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -2224,7 +2224,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -2389,7 +2389,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -2450,7 +2450,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -2563,7 +2563,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 4377,
@@ -2724,7 +2724,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -2887,7 +2887,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -3050,7 +3050,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -3109,7 +3109,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -3272,7 +3272,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 4381,
@@ -3433,7 +3433,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -3596,7 +3596,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -3759,7 +3759,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -3818,7 +3818,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -3981,7 +3981,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -4092,7 +4092,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -4257,7 +4257,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -4422,7 +4422,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -4483,7 +4483,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -4596,7 +4596,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 1442,
@@ -4759,7 +4759,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -4924,7 +4924,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -5089,7 +5089,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -5254,7 +5254,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -5419,7 +5419,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -5530,7 +5530,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -5695,7 +5695,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -5860,7 +5860,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -5921,7 +5921,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -6060,7 +6060,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -6171,7 +6171,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -6336,7 +6336,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -6501,7 +6501,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -6562,7 +6562,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -6675,7 +6675,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -6812,7 +6812,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -6977,7 +6977,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -7142,7 +7142,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -7176,7 +7176,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -7315,7 +7315,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -7426,7 +7426,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -7591,7 +7591,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -7756,7 +7756,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -7817,7 +7817,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -7930,7 +7930,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -8041,7 +8041,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -8206,7 +8206,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -8371,7 +8371,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -8432,7 +8432,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -8571,7 +8571,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -8682,7 +8682,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -8847,7 +8847,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -9012,7 +9012,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -9073,7 +9073,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -9186,7 +9186,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 1442,
@@ -9297,7 +9297,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -9462,7 +9462,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -9627,7 +9627,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -9688,7 +9688,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -9801,7 +9801,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 1442,
@@ -9912,7 +9912,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -10077,7 +10077,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -10242,7 +10242,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -10303,7 +10303,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -10416,7 +10416,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -10527,7 +10527,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -10692,7 +10692,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -10857,7 +10857,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -10918,7 +10918,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -11031,7 +11031,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {},
   "frames": 1443,
   "considered": 1442,
@@ -11142,7 +11142,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -11307,7 +11307,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -11472,7 +11472,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -11533,7 +11533,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -11646,7 +11646,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -11757,7 +11757,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -11922,7 +11922,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -12087,7 +12087,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -12148,7 +12148,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -12261,7 +12261,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {},
   "frames": 1463,
   "considered": 1462,
@@ -12398,7 +12398,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -12563,7 +12563,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -12728,7 +12728,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -12762,7 +12762,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -12901,7 +12901,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1722,
@@ -13038,7 +13038,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {
    "HOLD_IN_FREE_REV": false
   },
@@ -13203,7 +13203,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {
    "USE_PREV_INPUTS": true
   },
@@ -13368,7 +13368,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {
    "USE_PREV_THROTTLE": true
   },
@@ -13455,7 +13455,7 @@
  },
  {
   "oracle": "engine_gear",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {
    "SHIFTS_PER_FRAME": 1
   },
@@ -13620,7 +13620,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 0,
@@ -13652,7 +13652,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -13686,7 +13686,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -13718,7 +13718,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -13752,7 +13752,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -13784,7 +13784,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -13818,7 +13818,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 0,
@@ -13848,7 +13848,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -13880,7 +13880,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 0,
@@ -13910,7 +13910,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -13942,7 +13942,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -13974,7 +13974,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -14008,7 +14008,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -14040,469 +14040,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1443,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1443
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
-  "variant": {},
-  "frames": 1443,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1443
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -14536,7 +14074,403 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -14568,7 +14502,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -14602,73 +14536,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
-  "variant": {
-   "F_EVERY_FRAME": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): engine_power": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "drive_power": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "drive_power": {
-    "abs": 1.0,
-    "rel": 0.001
-   }
-  }
- },
- {
-  "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -14700,7 +14568,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -14734,7 +14602,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -14766,7 +14634,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -14800,7 +14668,73 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
+  "variant": {},
+  "frames": 1443,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1443
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1443,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1443
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -14832,7 +14766,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -14866,7 +14800,73 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
+  "variant": {
+   "F_EVERY_FRAME": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): engine_power": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "drive_power": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "drive_power": {
+    "abs": 1.0,
+    "rel": 0.001
+   }
+  }
+ },
+ {
+  "oracle": "drive_power",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1723,
@@ -14933,7 +14933,7 @@
  },
  {
   "oracle": "drive_power",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {
    "F_EVERY_FRAME": true
   },
@@ -15090,7 +15090,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 0,
@@ -15122,7 +15122,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15154,7 +15154,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15186,7 +15186,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 0,
@@ -15216,7 +15216,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 0,
@@ -15246,7 +15246,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15278,7 +15278,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -15310,7 +15310,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15342,7 +15342,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15374,7 +15374,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15406,7 +15406,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15438,7 +15438,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15470,7 +15470,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15502,7 +15502,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -15534,7 +15534,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -15566,7 +15566,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15598,7 +15598,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -15630,7 +15630,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15662,7 +15662,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15694,7 +15694,7 @@
  },
  {
   "oracle": "brake_effective",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1723,
@@ -15732,7 +15732,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 0,
@@ -15764,7 +15764,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {
    "FIX_X100": true
   },
@@ -15798,7 +15798,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15830,7 +15830,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {
    "FIX_X100": true
   },
@@ -15864,7 +15864,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -15896,7 +15896,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {
    "FIX_X100": true
   },
@@ -15930,7 +15930,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 0,
@@ -15960,7 +15960,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {
    "FIX_X100": true
   },
@@ -15992,7 +15992,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 0,
@@ -16022,7 +16022,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {
    "FIX_X100": true
   },
@@ -16054,7 +16054,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -16086,7 +16086,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {
    "FIX_X100": true
   },
@@ -16120,7 +16120,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -16152,469 +16152,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1443,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1443
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
-  "variant": {},
-  "frames": 1443,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1443
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {
    "FIX_X100": true
   },
@@ -16648,7 +16186,403 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -16680,7 +16614,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {
    "FIX_X100": true
   },
@@ -16714,73 +16648,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
-  "variant": {},
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
-  "variant": {
-   "FIX_X100": true
-  },
-  "frames": 1463,
-  "considered": 0,
-  "skipped": {
-   "columns missing (telemetry v1): health_pct": 1463
-  },
-  "matched": 0,
-  "rate": 0.0,
-  "max_abs_err": {
-   "health_pct": 0.0
-  },
-  "positives": {},
-  "worst": [],
-  "verdict": "INCONCLUSIVE",
-  "kind": "pass",
-  "fitted": null,
-  "summary": null,
-  "lag": 0,
-  "profile": "stock20",
-  "env_switches": {
-   "I76_FPS_CAP": "20"
-  },
-  "tolerances": {
-   "health_pct": {
-    "abs": 0.01,
-    "rel": 0.0001
-   }
-  }
- },
- {
-  "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -16812,7 +16680,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {
    "FIX_X100": true
   },
@@ -16846,7 +16714,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -16878,7 +16746,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {
    "FIX_X100": true
   },
@@ -16912,7 +16780,73 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
+  "variant": {},
+  "frames": 1443,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1443
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1443,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1443
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -16944,7 +16878,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {
    "FIX_X100": true
   },
@@ -16978,7 +16912,73 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
+  "variant": {},
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
+  "variant": {
+   "FIX_X100": true
+  },
+  "frames": 1463,
+  "considered": 0,
+  "skipped": {
+   "columns missing (telemetry v1): health_pct": 1463
+  },
+  "matched": 0,
+  "rate": 0.0,
+  "max_abs_err": {
+   "health_pct": 0.0
+  },
+  "positives": {},
+  "worst": [],
+  "verdict": "INCONCLUSIVE",
+  "kind": "pass",
+  "fitted": null,
+  "summary": null,
+  "lag": 0,
+  "profile": "stock20",
+  "env_switches": {
+   "I76_FPS_CAP": "20"
+  },
+  "tolerances": {
+   "health_pct": {
+    "abs": 0.01,
+    "rel": 0.0001
+   }
+  }
+ },
+ {
+  "oracle": "health_fraction",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1723,
@@ -17017,7 +17017,7 @@
  },
  {
   "oracle": "health_fraction",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {
    "FIX_X100": true
   },
@@ -17254,7 +17254,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 0,
@@ -17286,7 +17286,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17318,7 +17318,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17350,7 +17350,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 0,
@@ -17380,7 +17380,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 0,
@@ -17410,7 +17410,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17442,7 +17442,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -17474,7 +17474,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17506,7 +17506,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17538,7 +17538,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17570,7 +17570,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17602,7 +17602,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17634,7 +17634,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17666,7 +17666,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -17698,7 +17698,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -17730,7 +17730,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17762,7 +17762,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {},
   "frames": 1443,
   "considered": 0,
@@ -17794,7 +17794,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17826,7 +17826,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {},
   "frames": 1463,
   "considered": 0,
@@ -17858,7 +17858,7 @@
  },
  {
   "oracle": "damage_smoke",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1723,
@@ -17904,7 +17904,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211111",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211111",
   "variant": {},
   "frames": 1725,
   "considered": 1725,
@@ -17934,7 +17934,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-211503",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-211503",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -17964,7 +17964,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212220",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212220",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -17994,7 +17994,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212443",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212443",
   "variant": {},
   "frames": 4378,
   "considered": 4378,
@@ -18022,7 +18022,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261001-212619",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261001-212619",
   "variant": {},
   "frames": 4382,
   "considered": 4382,
@@ -18050,7 +18050,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-090752",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-090752",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18080,7 +18080,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091323",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091323",
   "variant": {},
   "frames": 1443,
   "considered": 1443,
@@ -18110,7 +18110,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-091855",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-091855",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18140,7 +18140,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-092424",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-092424",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18170,7 +18170,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-093400",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-093400",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18200,7 +18200,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-094329",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-094329",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18230,7 +18230,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-095257",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-095257",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18260,7 +18260,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-100235",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-100235",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18290,7 +18290,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-101210",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-101210",
   "variant": {},
   "frames": 1443,
   "considered": 1443,
@@ -18320,7 +18320,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-102145",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-102145",
   "variant": {},
   "frames": 1443,
   "considered": 1443,
@@ -18350,7 +18350,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103121",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103121",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18380,7 +18380,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-103651",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-103651",
   "variant": {},
   "frames": 1443,
   "considered": 1443,
@@ -18410,7 +18410,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104219",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104219",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18440,7 +18440,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\drive\\20261002-104747",
+  "run": "<re-archive>\\verify\\runs\\drive\\20261002-104747",
   "variant": {},
   "frames": 1463,
   "considered": 1463,
@@ -18470,7 +18470,7 @@
  },
  {
   "oracle": "step_count",
-  "run": "C:\\Users\\james\\i76-map\\verify\\runs\\take-damage\\20261002-120608",
+  "run": "<re-archive>\\verify\\runs\\take-damage\\20261002-120608",
   "variant": {},
   "frames": 1723,
   "considered": 1723,

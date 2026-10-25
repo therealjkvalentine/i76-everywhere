@@ -12,7 +12,7 @@
  *
  * Every field is little-endian and naturally aligned (the layout is identical with or without packing), so a C
  * reader can #include this as-is and a Python reader can use struct.unpack with '<'. Source addresses are the
- * pristine 2017 Galaxy exe (md5 9a232dcc); the field comments cite them (i76-map types/i76_runtime.h,
+ * pristine 2017 Galaxy exe (md5 9a232dcc); the field comments cite them (<re-archive> types/i76_runtime.h,
  * subsystems/*.md, docs/records/FFB-DATA-AUDIT.md). Nothing in this file has been verified live yet.
  *
  * Parser contract for i76tel.py: one field per line, `type name;` or `type name[N];`, scalar types from

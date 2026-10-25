@@ -13,7 +13,7 @@ Field (struct offset) claims are not rows here: they go to foldin\round2\fields.
 """
 import argparse, json, os, re
 
-M = r"C:\Users\james\i76-map"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
 MD5 = "9a232dcc2c164648cff20c414c1f9698"
 CONF = {"measured-live": "high", "patched-and-observed": "high", "static-disasm": "medium", "hypothesis": "low", "unclear": "low"}
 KIND = {"function": "function", "global": "global", "constant": "global", "string": "global", "iat": "global",

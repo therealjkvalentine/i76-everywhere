@@ -115,7 +115,7 @@ static void cmd_pos(void) {    /* one line: game state, net flag, own / host ANe
     }
     printf("\n");
 }
-/* shell state (i76-map/shell/tools/shellstate.ps1, SCREENS.md): VAs at i76shell.dll's preferred base 0x10000000 */
+/* shell state (<re-archive>/shell/tools/shellstate.ps1, SCREENS.md): VAs at i76shell.dll's preferred base 0x10000000 */
 static DWORD shell_base(void) {
     MODULEENTRY32 me; HANDLE s = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, g_pid); DWORD b = 0;
     me.dwSize = sizeof(me);

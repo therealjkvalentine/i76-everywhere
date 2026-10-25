@@ -103,7 +103,7 @@ $f1 = Mem-I32 $c 0x5a7e1c; $exeFps = if ($swf.Elapsed.TotalSeconds -gt 0) { (($f
 "[$tag] engine up: $ok | player 0x{0:x} | gstate {1} | exe frame {2} | proxy fps {3} | u32x {4} | exe fps {5} | game {6}" -f (Mem-PlayerEntity $c), (Mem-I32 $c 0x4c2164), (Mem-I32 $c 0x5a7e1c), $fps, (Get-FileHash "$G\u32x.dll" -Algorithm MD5).Hash.Substring(0, 8), $exeFps, $p.Path
 Mem-Close $c
 if ($CheckFfb) {
-    $ffb = "C:\Users\james\i76-everywhere\tools\check-ffb.ps1"
+    $ffb = "$env:USERPROFILE\i76-everywhere\tools\check-ffb.ps1"
     if (-not $ok) { "ffb: not run (the engine is not up; check-ffb needs a mission)" }
     elseif (-not (Test-Path $ffb)) { "ffb: not run ($ffb not found)" }
     else { & powershell -NoProfile -ExecutionPolicy Bypass -File $ffb 2>&1 | ForEach-Object { "ffb: $_" } }

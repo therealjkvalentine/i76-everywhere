@@ -69,7 +69,7 @@ $GateText = 'lab twin game-dd-20261003 with this staged set, P8 2026-10-12 (runs
 
 # ---- fixed sources (md5 pinned)
 $bins = [ordered]@{
-    'Interstate 76\STRLKUP.DLL'        = @('C:\Users\james\i76-uncap-lab\builds\terrain-probe-20261012\STRLKUP-drawprobe-v2tel.dll', '509c6df0')
+    'Interstate 76\STRLKUP.DLL'        = @((Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\terrain-probe-20261012\STRLKUP-drawprobe-v2tel.dll'), '509c6df0')
     'Interstate 76\PLAY-i76.ps1'       = @((Join-Path $repo 'PLAY-i76.ps1'), '2020e2bf')
     'Interstate 76\dgVoodoo.wide.conf' = @((Join-Path $repo 'tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf'), 'dccd379a')
 }
@@ -79,7 +79,7 @@ foreach ($rel in $bins.Keys) {
     $files[$rel] = $bins[$rel][0]
 }
 # the conf is the measured lab conf with only its header changed: check that against the lab file itself
-$labConf = 'C:\Users\james\i76-uncap-lab\game-dd-20261003\Interstate 76\dgVoodoo.wide-win2x-ar.conf'
+$labConf = (Join-Path $env:USERPROFILE 'i76-uncap-lab\game-dd-20261003\Interstate 76\dgVoodoo.wide-win2x-ar.conf')
 if (Test-Path -LiteralPath $labConf) {
     [void](Assert-BinaryMd5 -Path $labConf -Want '9c1ac5bc')
     $body = { param($p, $skip) (Get-Content -LiteralPath $p | Select-Object -Skip $skip) -join "`n" }

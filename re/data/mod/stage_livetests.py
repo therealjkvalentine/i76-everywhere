@@ -4,7 +4,7 @@ r"""stage_livetests.py - build every LIVE-TESTS.md test's files into data\out\li
     python data\mod\stage_livetests.py
 
 Nothing is installed anywhere: each manifest.json lists (file, md5, install target relative to the TEST COPY
-game folder i76-uncap-lab\game, the pristine file it replaces and that file's md5 for the rollback check),
+game folder <lab>\game, the pristine file it replaces and that file's md5 for the rollback check),
 the prediction, and the memory reads. The console owner installs, runs, and restores.
 """
 import os, sys, json, hashlib, struct, shutil
@@ -19,7 +19,7 @@ import zfspatch  # noqa: E402
 from i76fmt import zfs  # noqa: E402
 
 APP = os.path.join(MAP, "sandbox-gog", "main", "app")   # pristine source of every edit
-TEST = r"C:\Users\james\i76-uncap-lab\game"             # install target; read here only for rollback md5s
+TEST = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game")             # install target; read here only for rollback md5s
 OUT = os.path.join(DATA, "out", "livetests")
 md5 = lambda b: hashlib.md5(b).hexdigest()
 

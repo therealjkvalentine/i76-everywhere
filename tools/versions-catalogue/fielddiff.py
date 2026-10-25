@@ -1,5 +1,5 @@
 import pickle,sys,os,collections,math
-sys.path.insert(0,'C:/Users/james/i76-map/data/fmt')
+sys.path.insert(0,(__import__("os").path.expanduser("~") + '/i76-map/data/fmt'))
 import bwd2x
 ret,gold,a106,a1081=pickle.load(open('vdfs.pkl','rb'))
 r=dict(ret); r.update(a106)

@@ -1,6 +1,6 @@
 """Shared helpers for the I'76 upscaling harness (upscale_run / score / contact_sheet / ab_viewer).
 
-The work tree (images, weights, runs) lives OUTSIDE this public repo: default C:\\Users\\james\\i76-upscale-work,
+The work tree (images, weights, runs) lives OUTSIDE this public repo: default <upscale-work>,
 override with --work or the I76_UPSCALE_WORK environment variable.
 """
 import csv, os
@@ -8,7 +8,7 @@ import csv, os
 import numpy as np
 from PIL import Image
 
-DEFAULT_WORK = os.environ.get("I76_UPSCALE_WORK", r"C:\Users\james\i76-upscale-work")
+DEFAULT_WORK = os.environ.get("I76_UPSCALE_WORK", (__import__("os").path.expanduser("~") + r"\i76-upscale-work"))
 
 
 def load_manifest(work, path=None):

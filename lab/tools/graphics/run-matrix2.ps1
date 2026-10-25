@@ -20,4 +20,4 @@ $v = [ordered]@{
     "14-current-repeat"    = ""
 }
 foreach ($k in $v.Keys) { & "$Here\try-conf.ps1" -Tag $k -Set $v[$k] -NoPin 2>&1 | Where-Object { "$_" -match "^\[$k\]|BOOT PROBLEM|NOT FOUND" } | ForEach-Object { "$_" } }
-"[matrix2] captures in C:\Users\james\i76-uncap-lab\captures\graphics\try"
+"[matrix2] captures in $env:USERPROFILE\i76-uncap-lab\captures\graphics\try"

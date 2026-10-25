@@ -5,7 +5,7 @@
 Starts no game. The guard rules (PLAY-i76.ps1, "preset guard"):
   - I76_TERRAIN_LOD > 1 without I76_FAR_CLIP is REFUSED: more terrain detail overruns the stock transformed-vertex
     pool in binoculars (exe+0x919B1, 3 of 3 batches on t05; only I76_FAR_CLIP enlarges the pools;
-    ../i76-uncap-lab/docs/RENDER-FREEZE-2026-10-04.md section 4).
+    ../<lab>/docs/RENDER-FREEZE-2026-10-04.md section 4).
   - I76_COLL_WINDOW without I76_FIXED_STEP is WARNED about: the proxy's apply_coll_window() needs the fixed step and
     patches nothing without it (music-fix/strlkproxy.c, "coll-window: needs I76_FIXED_STEP").
 The first test applies both rules to every shipped preset; the launcher tests run PLAY-i76.ps1 -DryRun (exits before

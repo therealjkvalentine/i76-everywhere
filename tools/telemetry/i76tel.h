@@ -7,7 +7,7 @@
  *
  * Every field is little-endian and naturally aligned (the layout is identical with or without packing), so a C
  * reader can #include this as-is and a Python reader can use struct.unpack with '<'. Source addresses are the
- * pristine 2017 Galaxy exe (md5 9a232dcc); the field comments cite them (i76-map types/i76_runtime.h,
+ * pristine 2017 Galaxy exe (md5 9a232dcc); the field comments cite them (<re-archive> types/i76_runtime.h,
  * subsystems/*.md, docs/records/FFB-DATA-AUDIT.md). v2 was verified live 2026-10-01 (verification-2026-10-01.txt);
  * the v3 additions (2026-10-10, docs/HAPTICS-ARCHITECTURE.md 4.1) are static-verified only, not yet run.
  *

@@ -11,8 +11,8 @@ expected bytes here are the same arrays strlkproxy.c hands to patch_bytes / tel_
 import hashlib, os, struct, sys
 from exedis import PE, disasm
 
-DEFAULT = [r"C:\Users\james\i76-map\sandbox-gog\main\app\i76.exe",
-           r"C:\Users\james\i76-uncap-lab\game-dd-20261003\Interstate 76\i76.exe"]
+DEFAULT = [(__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app\i76.exe"),
+           (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game-dd-20261003\Interstate 76\i76.exe")]
 
 
 def call(site, target):

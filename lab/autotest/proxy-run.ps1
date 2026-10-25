@@ -25,7 +25,7 @@ param(
     [int]$Hold = 20,
     [int]$BootTimeout = 90,
     [switch]$KeepAlive,
-    [string]$Dll = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll",
+    [string]$Dll = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll",
     [string]$GameDir = "",          # default ..\game; any other copy must live inside the lab (memlib/focuslib filter on that path)
     [string]$GameArgs = "-glide",
     [switch]$KeepInstalledDll,      # do not install -Dll: run the folder's own STRLKUP.DLL (gate-folder.ps1 on a daily-driver twin)

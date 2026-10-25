@@ -1,7 +1,7 @@
 """RIFF WAVE and GPW (GAS0) reading/writing for the I'76 HD sound pack.
 
 GPW layout, verified 2026-10-10 against three sources before any writer was written:
-  * i76-map\\data\\fmt\\other_formats.py `GPW` struct: 'GAS0' magic + 6 x i32
+  * <re-archive>\\data\\fmt\\other_formats.py `GPW` struct: 'GAS0' magic + 6 x i32
     (priority, max_instances, play_mode, volume, random_pitch, frequency) + RIFF WAVE;
   * docs/SOUND-HD-PACK.md 1.3 item 3: the loader starts the RIFF at +0x1c and copies 7 dwords to voice
     +0x30..+0x48 -- that is the magic plus the 6 fields (frequency lands at +0x48, which 0x425753 overwrites);

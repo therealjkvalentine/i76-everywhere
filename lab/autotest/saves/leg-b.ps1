@@ -31,12 +31,12 @@ param(
     [switch]$DryRun                    # print the resolved paths and exit; touches nothing
 )
 $ErrorActionPreference = "Stop"
-$Lab  = "C:\Users\james\i76-uncap-lab"
+$Lab  = "$env:USERPROFILE\i76-uncap-lab"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$Lab\autotest\lib\gamedir.ps1"
 $G    = Resolve-LabGameDir $GameDir
 $I76GameDirInUse = $G                  # focuslib / memlib / maplib: prefer this folder's process and conf
-$NewDll = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll"
+$NewDll = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll"
 $Dll = Join-Path $G "STRLKUP.DLL"; $BakDll = "$Dll.pretest"
 $Lock = Join-Path $G ".console-test.lock"
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -322,11 +322,11 @@ function DumpVeh([string]$label) {
         $p = Join-Path $G "ADDON\$f"
         if (-not (Test-Path $p)) { Log "  $label ADDON\$f : absent"; continue }
         $chunk = if ($f -eq "vehscn.vcf") { "VCFC" } else { "VCST" }
-        $o = python "C:\Users\james\i76-map\data\mod\i76mod.py" show $p $chunk 2>&1 | Out-String
+        $o = python "$env:USERPROFILE\i76-map\data\mod\i76mod.py" show $p $chunk 2>&1 | Out-String
         $o | Set-Content (Join-Path $Run "$label-$f-$chunk.txt") -Encoding UTF8
         $one = ($o -split "`r?`n" | Where-Object { $_ -match "armour|chassis|variant|vdf" } | ForEach-Object { ($_ -replace "\s+", " ").Trim() }) -join "; "
         Log ("  {0} ADDON\{1} md5 {2}: {3}" -f $label, $f, (Get-FileHash $p -Algorithm MD5).Hash.ToLower(), $one)
-        if ($f -eq "vehscn.vcf") { python "C:\Users\james\i76-map\data\mod\i76mod.py" show $p 2>&1 | Set-Content (Join-Path $Run "$label-$f-chunks.txt") -Encoding UTF8 }
+        if ($f -eq "vehscn.vcf") { python "$env:USERPROFILE\i76-map\data\mod\i76mod.py" show $p 2>&1 | Set-Content (Join-Path $Run "$label-$f-chunks.txt") -Encoding UTF8 }
     }
 }
 
@@ -518,7 +518,7 @@ try {
     Start-Sleep -Seconds 2
     $e = PlayerEnt; $ed = EntityDump $e; $g10 = ExeGlobals
     Log "B1.10 exe in mission: $($g10.Text)"; Log "B1.10 $($ed.Text); live entities $(LiveEntities)"
-    $tr = python "C:\Users\james\i76-everywhere\tools\trainer\i76trainer.py" --any status 2>&1 | Out-String
+    $tr = python "$env:USERPROFILE\i76-everywhere\tools\trainer\i76trainer.py" --any status 2>&1 | Out-String
     $tr | Set-Content (Join-Path $Run "trainer-status.txt") -Encoding UTF8
     ($tr -split "`r?`n" | Where-Object { $_.Trim() }) | ForEach-Object { Log "    trainer: $_" }
     DumpVeh "mission"

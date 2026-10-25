@@ -4,19 +4,19 @@ r"""make-harness.py - generate tools\harness\*.ps1 from the proven autotest scri
     python tools\harness\make-harness.py            # regenerate every ported script, print the ledger
     python tools\harness\make-harness.py --check    # exit 1 if any generated file differs from what is on disk
 
-Source: C:\Users\james\i76-uncap-lab\autotest\*.ps1 (never modified). Target: this directory.
+Source: <lab>\autotest\*.ps1 (never modified). Target: this directory.
 Every edit is an exact-string replacement with an expected occurrence count; a miss is an error, never a
 silent no-op (H3: the write is read back by --check). Output is pure ASCII, no BOM, CRLF preserved from
 the source (gate G-ENC: the earlier copy in captures\002-idle-null carried a BOM and the "â€”" doubled
 encoding of the header's em dash).
 
 What changes and why (p3-harness-pause):
-  (a) lib dot-sources -> absolute C:\Users\james\i76-uncap-lab\autotest\lib paths
+  (a) lib dot-sources -> absolute <lab>\autotest\lib paths
   (b) Get-GamePid -> matches -ProcName (default i76_pristine_fix; focuslib's only matches i76/nitro)
       Mem-Open   -> same process lookup (memlib's only matches i76/nitro)  [scripts that use memlib]
   (c) -Exe (default i76_pristine_fix.exe): the launch path delegates to tools\launch.ps1 (H0 md5 gate,
       H10 session gate, which_build stamp) instead of a bare Start-Process of i76.exe
-  (d) $GameDir defaults to C:\Users\james\i76-uncap-lab\game
+  (d) $GameDir defaults to <lab>\game
   (e) Focus-Game: Test-WindowPumping (WM_NULL, SMTO_ABORTIFHUNG) before every blocking focus call
   (f) Sync-CursorMap: maplib's Init-CursorMap looks up the window with `Get-Process i76, nitro`, so under
       i76_pristine_fix it silently falls back to desktop-derived geometry; the port recomputes from the real
@@ -26,12 +26,12 @@ import argparse
 import os
 import sys
 
-SRC = r"C:\Users\james\i76-uncap-lab\autotest"
+SRC = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\autotest")
 DST = os.path.dirname(os.path.abspath(__file__))
-LIB = r"C:\Users\james\i76-uncap-lab\autotest\lib"
-GAME = r"C:\Users\james\i76-uncap-lab\game"
-LAB = r"C:\Users\james\i76-uncap-lab"
-MAPROOT = r"C:\Users\james\i76-map"
+LIB = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\autotest\lib")
+GAME = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game")
+LAB = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab")
+MAPROOT = (__import__("os").path.expanduser("~") + r"\i76-map")
 
 # ---- shared snippets (CRLF is applied at write time; write them with \n here) -----------------------
 GAMEPID = (
@@ -96,7 +96,7 @@ MEMOPEN = (
 LAUNCH = (
     '    # (c) H0/H10: the launch goes through tools\\launch.ps1 (md5 gate, session gate, which_build stamp);\n'
     '    #     exit 0 = launched and H0 PASS. Anything else stops here with the launcher\'s own reason.\n'
-    '    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\\Users\\james\\i76-map\\tools\\launch.ps1" -GameDir $GameDir -Exe $Exe -CaptureId $CaptureId -SettleSeconds $SettleSeconds\n'
+    '    & powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\\i76-map\\tools\\launch.ps1" -GameDir $GameDir -Exe $Exe -CaptureId $CaptureId -SettleSeconds $SettleSeconds\n'
     '    if ($LASTEXITCODE -ne 0) { throw "launch.ps1 exit $LASTEXITCODE (0 = launched + H0 pass; 3 md5 refused; 4 session/RDP refused; 5 exited early; 1 H0 FAIL)" }\n'
 )
 

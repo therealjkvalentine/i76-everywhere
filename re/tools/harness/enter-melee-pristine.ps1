@@ -20,14 +20,14 @@
   drag measurement (a car that wanders downhill gains speed), so physics tests should use a
   FLAT arena - 'SlickTrack' or 'AirBase' - not the default hilly Tombstone.
 #>
-param([switch]$NoLaunch, [switch]$KeepAI, [string]$GameDir = "C:\Users\james\i76-uncap-lab\game",
+param([switch]$NoLaunch, [switch]$KeepAI, [string]$GameDir = "$env:USERPROFILE\i76-uncap-lab\game",
       [string]$Exe = "i76_pristine_fix.exe", [string]$ProcName = "i76_pristine_fix",
       [string]$CaptureId = ("launch-" + (Get-Date -Format "yyyyMMdd-HHmmss")), [int]$SettleSeconds = 8,
       [ValidateSet('','Crater','Dunes','AirBase','Suburbia','SlickTrack','Tombstone')][string]$Area = '',
       # stop early so a human can take over from a known point (used by record-session.ps1)
       [switch]$StopAtMainMenu, [switch]$StopAtForm)
 $ErrorActionPreference = 'Stop'
-$AutotestLib = "C:\Users\james\i76-uncap-lab\autotest\lib"   # (a)
+$AutotestLib = "$env:USERPROFILE\i76-uncap-lab\autotest\lib"   # (a)
 . "$AutotestLib\focuslib.ps1"; . "$AutotestLib\inputlib.ps1"; . "$AutotestLib\maplib.ps1"
 # --- harness overrides (tools\harness\make-harness.py) ---------------------------------------
 # (b) focuslib's Get-GamePid matches process names i76/nitro only; the H0 build is i76_pristine_fix.exe.
@@ -93,7 +93,7 @@ if (-not $NoLaunch) {
     Start-Sleep -Seconds 1
     # (c) H0/H10: the launch goes through tools\launch.ps1 (md5 gate, session gate, which_build stamp);
     #     exit 0 = launched and H0 PASS. Anything else stops here with the launcher's own reason.
-    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\james\i76-map\tools\launch.ps1" -GameDir $GameDir -Exe $Exe -CaptureId $CaptureId -SettleSeconds $SettleSeconds
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\i76-map\tools\launch.ps1" -GameDir $GameDir -Exe $Exe -CaptureId $CaptureId -SettleSeconds $SettleSeconds
     if ($LASTEXITCODE -ne 0) { throw "launch.ps1 exit $LASTEXITCODE (0 = launched + H0 pass; 3 md5 refused; 4 session/RDP refused; 5 exited early; 1 H0 FAIL)" }
 }
 $proc = Get-GamePid; if (-not $proc) { throw "game not running ($ProcName under i76-uncap-lab; launch with tools\launch.ps1 first)" }

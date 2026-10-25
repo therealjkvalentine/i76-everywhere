@@ -31,7 +31,7 @@ New-Item -ItemType Directory -Force $stageDir | Out-Null
 # STRLKUP-box-b3.dll, MSVC side build of i76-everywhere 2721d68 music-fix; = 855b08d7 + opt-in AI parity / W95-18
 # instruments / pad menu) on which the owner played 08 / 09. The AI parity set the TEST-next* bats carry is NOT part
 # of this promotion (OWNER-TEST-LIST item 36). Record: docs\records\PROMOTION-18-2026-10-17.md.
-$CandDll = 'C:\Users\james\i76-uncap-lab\builds\box-spec-20261014\STRLKUP-box-b3.dll'
+$CandDll = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\box-spec-20261014\STRLKUP-box-b3.dll')
 $CandMd5 = '33211f11'   # built from i76-everywhere 2721d68 music-fix (strlkproxy.c blob 03097a39)
 $Dist = @{
     'best-wide.psd1'          = [ordered]@{ I76_CLUTTER_DIST = '1800'; I76_CLUTTER_FADE = '300'; I76_TERRAIN_LOD = '24' }

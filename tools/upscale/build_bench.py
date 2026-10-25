@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the 24-tile upscaling benchmark set (plan section 9) from an extracted I76.ZFS.
 
-Writes, under WORK (default C:\\Users\\james\\i76-upscale-work, never inside the repo or a game folder):
+Writes, under WORK (default <upscale-work>, never inside the repo or a game folder):
   src/<class>/<name>.png       RGB original (transparent pixels left as decoded, i.e. black)
   src/<class>/<name>.mask.png  L mask, 255 = opaque, 0 = transparent (M16/VQM index 0xFF)
   src/manifest.csv             one row per tile (columns: see FIELDS)
@@ -91,9 +91,9 @@ def decode(entry, extract, game):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--work", default=r"C:\Users\james\i76-upscale-work")
+    ap.add_argument("--work", default=(__import__("os").path.expanduser("~") + r"\i76-upscale-work"))
     ap.add_argument("--extract", default=None, help="extracted I76.ZFS (default WORK/extract)")
-    ap.add_argument("--game", default=r"C:\Users\james\i76-uncap-lab\game", help="read-only, for loose PCX")
+    ap.add_argument("--game", default=(__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"), help="read-only, for loose PCX")
     a = ap.parse_args()
     extract = a.extract or os.path.join(a.work, "extract")
     rows, thumbs = [], []

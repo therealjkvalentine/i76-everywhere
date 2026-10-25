@@ -6,7 +6,7 @@ FOUND: near the player entity, a run of values of 400 - i.e. 40.0 in the integer
 
 The gaps are the proof. Diffing full vs partially-damaged showed decreases spaced 0x34 apart
 with occasional jumps of 0x9C (= 3 x 0x34): exactly where a face was reported UNDAMAGED and so
-never appeared in a decreases-only list. James's report for that snapshot was "all armor and
+never appeared in a decreases-only list. The developer's report for that snapshot was "all armor and
 front/right chassis damaged; left and rear chassis untouched".
 
 This prints EVERY entry, changed or not, so the undamaged controls are visible too.

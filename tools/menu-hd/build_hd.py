@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""build_hd.py - HD art pipeline for the Interstate '76 shell (DATABASE.MW2), offline.
 
-Input : an mw2db extraction (i76-map\data\fmt\mw2tool.py extract -> data\out\mw2db\ with manifest.json).
+Input : an mw2db extraction (<re-archive>\data\fmt\mw2tool.py extract -> data\out\mw2db\ with manifest.json).
 Output: tools\menu-hd\out\ (git-ignored: upscaled game art is game data and stays on this machine).
 
     python tools\menu-hd\build_hd.py check                          what is installed, which upscalers are usable

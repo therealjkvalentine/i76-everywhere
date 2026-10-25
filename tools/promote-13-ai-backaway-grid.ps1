@@ -6,8 +6,8 @@
 # refuses if driver and golden differ in either. Run with the game closed; -Plan previews and writes nothing.
 param([switch]$Plan)
 $ErrorActionPreference = 'Stop'
-$driver = 'C:\Users\james\Games\Interstate76-2026-10-03'
-$golden = 'C:\Users\james\Games\Interstate76-golden-2026-10-03'
+$driver = (Join-Path $env:USERPROFILE 'Games\Interstate76-2026-10-03')
+$golden = (Join-Path $env:USERPROFILE 'Games\Interstate76-golden-2026-10-03')
 $stage  = Join-Path $env:TEMP "promote-13-$(Get-Date -Format yyyyMMdd-HHmmss)"
 New-Item -ItemType Directory -Force $stage | Out-Null
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }

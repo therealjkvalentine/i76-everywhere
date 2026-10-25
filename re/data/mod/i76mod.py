@@ -31,7 +31,7 @@ from i76fmt import zfs  # noqa: E402
 
 OUT = os.path.join(DATA, "out")
 ZFS_PATH = os.path.join(MAP, "sandbox-gog", "main", "app", "I76.ZFS")
-FORBIDDEN = [r"C:\Users\james\i76-uncap-lab\game", r"C:\Users\james\i76-bisect\game", os.path.join(MAP, "sandbox-gog"),
+FORBIDDEN = [(__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"), (__import__("os").path.expanduser("~") + r"\i76-bisect\game"), os.path.join(MAP, "sandbox-gog"),
              os.path.expanduser(r"~\Downloads")]
 
 try:

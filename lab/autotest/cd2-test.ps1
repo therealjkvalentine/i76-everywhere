@@ -8,10 +8,10 @@
 #>
 param([string]$Exe = "i76_pristine_fix.exe", [string]$Cwd = "C:\Windows", [int]$Wait = 25)
 $ErrorActionPreference = "Continue"
-$G = "C:\Users\james\i76-uncap-lab\game"; $log = "$G\mciproxy.log"
+$G = "$env:USERPROFILE\i76-uncap-lab\game"; $log = "$G\mciproxy.log"
 if (Get-Process i76* -ErrorAction SilentlyContinue) { "game running - abort"; exit 1 }
 Copy-Item "$G\STRLKUP.DLL" "$G\STRLKUP.DLL.pretest" -Force
-Copy-Item "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll" "$G\STRLKUP.DLL" -Force
+Copy-Item "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll" "$G\STRLKUP.DLL" -Force
 Set-Content "$G\.console-test.lock" "cd2 test $PID"
 try {
     foreach ($fake in "", "1") {

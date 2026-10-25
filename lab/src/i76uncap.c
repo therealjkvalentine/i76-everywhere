@@ -5,7 +5,7 @@
  * BeginFrame + render_scene + Flip. Optionally advance (extrapolate) every render-consumed
  * transform between sub-frames so the extra frames show intermediate motion (Stage 3).
  *
- * Controlled at runtime by C:\Users\james\i76-uncap-lab\captures\i76uncap.ctl :
+ * Controlled at runtime by <lab>\captures\i76uncap.ctl :
  *     extras=<0..3>   extra frames per real frame (0 = passthrough, 2 = 60fps at 20 base)
  *     interp=<0|1>    0 = identical extra frames, 1 = extrapolate transforms
  *     pace=<ms>       sleep between sub-frames (0 = none / bunched)
@@ -59,7 +59,7 @@ static volatile int g_loadstate = 0;   /* set to 1 -> restore on the next frame 
  *
  * Snapshots the game's committed private read/write regions. Same-process only: heap addresses
  * must still be valid, so a state cannot be restored after a relaunch.  */
-#define STATE_FILE "C:\\Users\\james\\i76-uncap-lab\\captures\\state.bin"
+#define STATE_FILE "<lab>\\captures\\state.bin"
 #define STATE_LO   0x00400000u
 #define STATE_HI   0x20000000u
 #define STATE_MAXREGION (16u*1024u*1024u)

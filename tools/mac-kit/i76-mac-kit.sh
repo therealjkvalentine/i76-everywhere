@@ -196,7 +196,7 @@ apply_patches() {   # apply_patches <gold|nitro>: payload/patches/patches.txt ro
 
 # DxWnd profile: the family apps' profile (payload/dxwnd-profile.ini), sized for the main display. The window keeps the
 # 1728x1117 shape (the 14" MacBook panel, measured on every family Mac incl. a 3440x1440 monitor) unless the main display
-# is 16:10 or narrower, then its own size (Andrew's 1440x900: a narrower window put the menu pointer ~14 px off).
+# is 16:10 or narrower, then its own size (the M2 tester's 1440x900: a narrower window put the menu pointer ~14 px off).
 display_size() {
     local s; s="$(system_profiler SPDisplaysDataType 2>/dev/null | awk '
         /^        [^ ].*:$/ { ui = ""; res = "" }

@@ -1,4 +1,4 @@
-$here = "C:\Users\james\i76-uncap-lab\src"
+$here = "$env:USERPROFILE\i76-uncap-lab\src"
 $vc = Get-ChildItem "C:\Program Files (x86)\Microsoft Visual Studio\2019\*\VC\Auxiliary\Build\vcvars32.bat" -EA SilentlyContinue | Select-Object -First 1
 if (-not $vc) { "no vcvars32 found"; exit 1 }
 $log = Join-Path $here 'build-u32x.log'

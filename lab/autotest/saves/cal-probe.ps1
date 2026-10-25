@@ -60,7 +60,7 @@ try {
     }
     Get-Process | Where-Object { $_.ProcessName -like "i76*" } | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
-    $G = "C:\Users\james\i76-uncap-lab\game"
+    $G = "$env:USERPROFILE\i76-uncap-lab\game"
     if (Test-Path "$G\STRLKUP.DLL.pretest") { Copy-Item "$G\STRLKUP.DLL.pretest" "$G\STRLKUP.DLL" -Force; Remove-Item "$G\STRLKUP.DLL.pretest"; Write-Host "  STRLKUP.DLL restored" }
     Remove-Item "$G\.console-test.lock" -ErrorAction SilentlyContinue
     Write-Host "[cal-probe] done: $Out"

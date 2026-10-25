@@ -23,7 +23,7 @@ Usage:
   python m16_scale_marker.py --game <game dir> --out <game dir>\\ADDON --pak pirana16 [--pak pirana26 ...]
                              [--scale 2] [--only PP11BKB1.M16 ...] [--no-marker]
 Source: the pack is read from <game>\\ADDON if a loose copy exists there, else from <game>\\I76.ZFS through
-i76-map's pure-Python ZFS reader (--i76fmt, default C:\\Users\\james\\i76-map\\tools). Writes <pak>.pak and
+<re-archive>'s pure-Python ZFS reader (--i76fmt, default <re-archive>\\tools). Writes <pak>.pak and
 <pak>.pix to --out and a <pak>.scale-marker.json manifest (names, sizes, md5). Never writes into I76.ZFS.
 Undo: delete the written .pak/.pix from ADDON.
 
@@ -120,7 +120,7 @@ def main():
     ap.add_argument("--scale", type=int, default=2, choices=(1, 2, 4))
     ap.add_argument("--only", action="append", default=[], help="entry names to touch (default: all)")
     ap.add_argument("--no-marker", action="store_true", help="scale only (memory-pressure runs)")
-    ap.add_argument("--i76fmt", default=r"C:\Users\james\i76-map\tools")
+    ap.add_argument("--i76fmt", default=(__import__("os").path.expanduser("~") + r"\i76-map\tools"))
     a = ap.parse_args()
     out_abs = os.path.abspath(a.out).lower()
     for bad in (r"\games\interstate76", "i76-everywhere-portable", r"\i76-uncap-lab\game\addon",

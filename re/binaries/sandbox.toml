@@ -3,7 +3,7 @@
 # era: original-era = PE timestamp 1995-1998 and linker <= 5.10, else modern (pe-fingerprint REPORT.md census).
 # ground_truth is set only on i76.exe / i76shell.dll rows: true for the pristine exe bytes (md5 9a232dcc2c164648cff20c414c1f9698)
 # and the GOG-shipped shell (md5 8960fa16c1581da85ad5d6085517f292); every other copy is patched, non-ground-truth, with its md5.
-# Method doc: C:\Users\james\i76-everywhere\docs\FRESH-START-METHOD.md section 2. Import counts = import-descriptor entries (pefile), not call sites.
+# Method doc: docs\FRESH-START-METHOD.md section 2. Import counts = import-descriptor entries (pefile), not call sites.
 
 [sandbox]
 game_dir = "C:\\Users\\james\\i76-uncap-lab\\game"

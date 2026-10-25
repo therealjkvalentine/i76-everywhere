@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import bwd2x
 
 problems, checked, machines = [], 0, 0
-for p in sorted(glob.glob(r"C:\Users\james\i76-map\sandbox-gog\main\app\miss16\*.MSN")):
+for p in sorted(glob.glob((__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app\miss16\*.MSN"))):
     d = bwd2x.decode(open(p, "rb").read(), ".msn")
     v = bwd2x.chunks(d, "FSM")[0][2].value
     if not v:

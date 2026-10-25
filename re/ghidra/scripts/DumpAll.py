@@ -4,14 +4,14 @@
 #   and whatever the decompiler returns), functions.json (structural inventory incl. prototype), callgraph.json
 #   (callers/callees/call sites), flows.csv (every flow reference whose destination is in .text; used by
 #   tools/hookability.py for the "no branch target in the first 5 bytes" test), summary.json.
-# Usage: -postScript DumpAll.py <outDir>      (default C:\Users\james\i76-map\ghidra\export)
+# Usage: -postScript DumpAll.py <outDir>      (default <re-archive>\ghidra\export)
 # @category Recon
 import os, time, json
 from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.util.task import ConsoleTaskMonitor
 
 args = getScriptArgs()
-outdir = args[0] if len(args) > 0 else "C:\\Users\\james\\i76-map\\ghidra\\export"
+outdir = args[0] if len(args) > 0 else (__import__("os").path.expanduser("~") + "\\i76-map\\ghidra\\export")
 if not os.path.isdir(outdir): os.makedirs(outdir)
 fdir = os.path.join(outdir, "functions")
 if not os.path.isdir(fdir): os.makedirs(fdir)

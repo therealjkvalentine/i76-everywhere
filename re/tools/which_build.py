@@ -53,8 +53,8 @@ KNOWN_MD5 = {
     "6319abf7bf96e32f994fe7609cf99a7a": "patched-build-only",   # portable install (foldin: portable-6319abf7)
 }
 H0_RUNNABLE = {PRISTINE_MD5, "58d9dec00c18a5383820e77e51850b74"}  # the only md5s H0 accepts (i76poke, launch.ps1)
-DEFAULT_REF = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
-DEFAULT_GAME = r"C:\Users\james\i76-uncap-lab\game"
+DEFAULT_REF = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
+DEFAULT_GAME = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game")
 DEFAULT_ALLOWLIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "allowlist.json")
 IMAGE_BASE = 0x400000
 MAP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,10 +63,10 @@ IMPORTS_TSV = os.path.join(MAP_ROOT, "symbols", "imports.tsv")
 # The builds whose per-section diff signature is generated into binaries\diff-9a232dcc-vs-<md5>.tsv
 # (FOLDIN-REPORT section 3, H0 revision). Tag, path; the md5 is measured, never assumed.
 DIFF_BUILDS = [
-    ("pristine+p1", r"C:\Users\james\i76-uncap-lab\game\i76_pristine_fix.exe"),
-    ("aio", r"C:\Users\james\i76-uncap-lab\game\i76.exe.camorig"),
-    ("sandbox", r"C:\Users\james\i76-uncap-lab\game\i76.exe"),
-    ("portable", r"C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76\i76.exe"),
+    ("pristine+p1", (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76_pristine_fix.exe")),
+    ("aio", (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.camorig")),
+    ("sandbox", (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe")),
+    ("portable", (__import__("os").path.expanduser("~") + r"\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76\i76.exe")),
 ]
 CLUSTER_GAP = 64  # bytes between differing runs merged into one cluster (build-shifted range)
 # dgVoodoo.conf key ownership (G-CONF). Built-in rows are the four keys the gate names; the rest of the

@@ -10,7 +10,7 @@ Self-checks (the run fails if any fails):
     that global (or, for an 'obj+off' field, whose memory operand has that displacement);
   * every instruction address cited for a FUNCTION lies inside that function's Ghidra body;
   * names are unique (gate N).
-Status vocabulary per i76-map README: anchored (G1: export, self-naming literal, table target), supported (>=2 hard
+Status vocabulary per <re-archive> README: anchored (G1: export, self-naming literal, table target), supported (>=2 hard
 kinds, >=1 primary), proposed, dead(proof). Evidence kinds: export, self-name, string-xref, import-callee,
 table-entry, constant, callee-anchored, emulated-io, db-art (the decoded DATABASE.MW2 background the constructor loads).
 """

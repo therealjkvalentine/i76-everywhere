@@ -1,10 +1,10 @@
 # Promotion 2 (2026-10-03): widescreen + detail as the daily default, controls update, current proxy.
-# Gated on the lab twin i76-uncap-lab\game-dd-20261003 (autotest\runs\gate\20261003-115416: 18 PASS; row D "dgVoodoo.conf
+# Gated on the lab twin <lab>\game-dd-20261003 (autotest\runs\gate\20261003-115416: 18 PASS; row D "dgVoodoo.conf
 # changed" is PLAY.bat selecting its conf by design; Esc-menu Exit in widescreen verified by hand with
 # I76_U32X_MENU_ASPECT). Saves are not touched. Run with the game closed. Add -Plan to preview.
 param([switch]$Plan)
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$twin = 'C:\Users\james\i76-uncap-lab\game-dd-20261003'
+$twin = (Join-Path $env:USERPROFILE 'i76-uncap-lab\game-dd-20261003')
 $files = @{
     'Interstate 76\STRLKUP.DLL'                       = (Join-Path $repo 'music-fix\Strlkup.dll')
     'Interstate 76\input.map'                         = (Join-Path $repo 'controls\input.map')

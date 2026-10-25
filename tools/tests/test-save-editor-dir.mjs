@@ -14,7 +14,7 @@ const src = [grab("function cstr(", "\n"), grab("function u32(", "\n"), grab("co
   grab("function dirRemoveSlot(", "const $=id=>")].join("\n");
 const td = new TextDecoder();
 const api = new Function("td", src + "\nreturn {parseDir,padDir,dirSetScene,dirWithSlot,dirSetName,dirRemoveSlot};")(td);
-const file = process.argv[2] || "C:/Users/james/i76-uncap-lab/game/savegame.dir";
+const file = process.argv[2] || (process.env.USERPROFILE + "/i76-uncap-lab/game/savegame.dir");
 const buf = new Uint8Array(fs.readFileSync(file)).buffer;
 const show = (label, b) => {
   const d = api.parseDir(b);

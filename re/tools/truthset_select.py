@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """truthset_select.py - Task 7: select and seal status\\truthset.json (gate G6) against ghidra\\export-frozen.
 
-    python tools\\truthset_select.py [--map C:\\Users\\james\\i76-map] [--emu-trials 6] [--seed 7] [--dry-run]
+    python tools\\truthset_select.py [--map <re-archive>] [--emu-trials 6] [--seed 7] [--dry-run]
 
 Two sealed halves, both chosen deterministically (size-quantile spread inside each stratum, no RNG in the choice;
 the emulator's inputs are seeded):
@@ -298,7 +298,7 @@ def build(M, emu_trials, seed, dry):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--map", default=r"C:\Users\james\i76-map")
+    ap.add_argument("--map", default=(__import__("os").path.expanduser("~") + r"\i76-map"))
     ap.add_argument("--emu-trials", type=int, default=6)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--dry-run", action="store_true")

@@ -8,7 +8,7 @@
 # Notes: IPXWrapper writes HKCU\Software\IPXWrapper (A) and HKCU\Software\IPXWrappeB (B) on first use (node numbers).
 #        Lab copies only. Do not run while another agent is testing in game\ (check CONSOLE-LOCK.md first).
 param([switch]$Install, [switch]$Remove)
-$Lab = "C:\Users\james\i76-uncap-lab"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"
 $Src = "$Lab\refs\ipxwrapper\bin\ipxwrapper-0.7.2"
 $files = "ipxwrapper.dll", "wsock32.dll", "mswsock.dll"
 $patch = @(@{ Off = 0x1BEAC; From = [byte][char]'_'; To = [byte][char]'B' }, @{ Off = 0x1CB7C; From = [byte][char]'r'; To = [byte][char]'B' })

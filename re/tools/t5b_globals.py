@@ -11,7 +11,7 @@ when all its sites agree on one reference VA (n_sites, n_funcs and the spread ar
 Output: status/t5b/globals-port.tsv (nitro_va name ref_va ref_class n_sites n_funcs candidates method).
 """
 import json, io, csv, sys, collections, pefile, capstone
-ROOT = "C:/Users/james/i76-map"
+ROOT = (__import__("os").path.expanduser("~") + "/i76-map")
 NITRO = ROOT + "/ghidra/nitro.exe"; REF = ROOT + "/ghidra/i76_ref.exe"
 
 class Img:

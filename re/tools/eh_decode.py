@@ -30,7 +30,7 @@ from capstone.x86 import X86_OP_IMM, X86_OP_MEM  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-DEFAULT_EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+DEFAULT_EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 EXPECTED_MD5 = "9a232dcc2c164648cff20c414c1f9698"
 MAGIC = 0x19930520
 ISLAND = (0x472000, 0x488000)  # method doc: the C++ island, 117 functions, 74,069 B

@@ -15,7 +15,7 @@
  * 2026-10-20: the full-state store / restore (I76TRN_CMD_STORE_STATE / SET_STATE, i76trn_ext_t). The mapping grew to
  * 168 + 1304 bytes; i76trn_ctl_t and its version / size stay 1 / 168, so every older front end still drives the block, and
  * a front end that finds no ext_magic (an older proxy) keeps the position-only teleport.
- * Addresses: pristine 2017 Galaxy exe md5 9a232dcc; sources cited per field (i76-map subsystems/cheats.md).
+ * Addresses: pristine 2017 Galaxy exe md5 9a232dcc; sources cited per field (<re-archive> subsystems/cheats.md).
  */
 #ifndef I76TRN_H
 #define I76TRN_H

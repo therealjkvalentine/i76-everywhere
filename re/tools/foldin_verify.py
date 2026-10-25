@@ -25,11 +25,11 @@ Per claim:
 Outputs: <out>.tsv (one row per claim), <out>.json, <out>-summary.md.
 """
 import argparse, csv, glob, json, os, re, sys
-M = r"C:\Users\james\i76-map"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
 sys.path.insert(0, os.path.join(M, "tools"))
 from gen_tables import Image  # noqa: E402
 
-PRISTINE = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+PRISTINE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 
 
 def norm(n):

@@ -24,7 +24,7 @@ param([string]$Tag = "u32x", [int]$Trials = 2, [switch]$SkipCursorProbe, [string
 $ErrorActionPreference = "Stop"
 $CloseWith = @($CloseWith | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Lab = "C:\Users\james\i76-uncap-lab"; $G = $(if ($GameDir) { $GameDir.TrimEnd([char]92) } else { Join-Path $Lab "game" })
+$Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = $(if ($GameDir) { $GameDir.TrimEnd([char]92) } else { Join-Path $Lab "game" })
 $GdArg = @(); if ($GameDir) { $GdArg = @("-GameDir", $G) }
 $I76GameDirInUse = $G
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -70,7 +70,7 @@ function St { $mo = Rd32 (0x100cc514 + $d); [pscustomobject]@{ Gate = (Rd32 (0x1
 function S([string]$tag) { $s = St; Log ("  S[{0}] gate={1} mouse=({2},{3}) btnL={4} edge={5} fg={6}" -f $tag, $s.Gate, $s.X, $s.Y, $s.BtnL, $s.Edge, $(if ([GP]::GetForegroundWindow() -eq $proc.MainWindowHandle) { "game" } else { "other" })); $s }
 function Guard { $others = @(Get-Process i76 -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $myGame }); if ($others.Count) { Log "ABORT: an i76 process this script did not start appeared (pid $($others.Id))"; throw "foreign i76" } }
 Log ("shell base 0x{0:X8}" -f $base)
-$ss = "C:\Users\james\i76-map\shell\tools\shellstate.ps1"
+$ss = "$env:USERPROFILE\i76-map\shell\tools\shellstate.ps1"
 if (Test-Path $ss) { & $ss -Once 2>$null | Select-Object -First 3 | ForEach-Object { Log "  state: $_" } }
 [void](S "garage")
 

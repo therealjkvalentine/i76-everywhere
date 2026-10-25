@@ -177,7 +177,7 @@ $script:TEL_MODEL = 2
 #
 #     0x5367D0    0x5367DE
 #
-# CORRECTED 2026-09-27 from the static map (i76-map symbols\globals.tsv, capstone over the pristine exe):
+# CORRECTED 2026-09-27 from the static map (<re-archive> symbols\globals.tsv, capstone over the pristine exe):
 #   0x5367D0  input_throttle_up  - read only by input_ApplyToEntity 0x44f1c0, beside the throttle
 #             (0x44f249 / 0x44f433). It moved in the measurement because the fire button was also
 #             bound to throttle-up (or throttle was touched); it is not a fire flag.
@@ -490,7 +490,7 @@ function Tel-Slip {
         [double]$Speed, [double]$Steer, [double]$YawRate,
         [double]$Slide = 0.0,
         # THE ENGINE'S OWN LAW, read live (2026-10-24). physics_ComputeSteerYawRate 0x43ce10
-        # (i76-map subsystems/physics.md "The steering routine"):
+        # (<re-archive> subsystems/physics.md "The steering routine"):
         #     w = steer * s * K                 K   = entity+0x110 = 1/(2*wheelbase)
         #     capped at w = steer * lim / s     lim = 7.84 * (grip of tyres 0,1,4,5)
         # When both are given (Tel-Sample reads them every half second) the reference IS

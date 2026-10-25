@@ -20,7 +20,7 @@ FLOOR = {"zfs_payloads": 6116, "msn": 80, "ter": 81, "fnt": 3, "frc": 14}
 def main():
     def extra(ap):
         ap.add_argument("--run", action="store_true", help="regenerate status/roundtrip.json first")
-        ap.add_argument("--game", default=r"C:\Users\james\i76-uncap-lab\game")
+        ap.add_argument("--game", default=(__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"))
     ctx, args = make("gateR", __doc__, extra)
     rp = ctx.path("status", "roundtrip.json")
     if args.run:

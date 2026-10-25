@@ -7,11 +7,11 @@
 
   Verified by memory (player entity non-zero), not by screenshot.
 #>
-param([switch]$NoLaunch, [string]$GameDir = "C:\Users\james\i76-uncap-lab\game",
+param([switch]$NoLaunch, [string]$GameDir = "$env:USERPROFILE\i76-uncap-lab\game",
       [string]$Exe = "i76_pristine_fix.exe", [string]$ProcName = "i76_pristine_fix",
       [string]$CaptureId = ("launch-" + (Get-Date -Format "yyyyMMdd-HHmmss")), [int]$SettleSeconds = 9)
 $ErrorActionPreference = 'Stop'
-$AutotestLib = "C:\Users\james\i76-uncap-lab\autotest\lib"   # (a)
+$AutotestLib = "$env:USERPROFILE\i76-uncap-lab\autotest\lib"   # (a)
 . "$AutotestLib\focuslib.ps1"; . "$AutotestLib\inputlib.ps1"; . "$AutotestLib\maplib.ps1"; . "$AutotestLib\memlib.ps1"
 # --- harness overrides (tools\harness\make-harness.py) ---------------------------------------
 # (b) focuslib's Get-GamePid matches process names i76/nitro only; the H0 build is i76_pristine_fix.exe.
@@ -75,7 +75,7 @@ if (-not $NoLaunch) {
     Start-Sleep -Seconds 2
     # (c) H0/H10: the launch goes through tools\launch.ps1 (md5 gate, session gate, which_build stamp);
     #     exit 0 = launched and H0 PASS. Anything else stops here with the launcher's own reason.
-    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\james\i76-map\tools\launch.ps1" -GameDir $GameDir -Exe $Exe -CaptureId $CaptureId -SettleSeconds $SettleSeconds
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\i76-map\tools\launch.ps1" -GameDir $GameDir -Exe $Exe -CaptureId $CaptureId -SettleSeconds $SettleSeconds
     if ($LASTEXITCODE -ne 0) { throw "launch.ps1 exit $LASTEXITCODE (0 = launched + H0 pass; 3 md5 refused; 4 session/RDP refused; 5 exited early; 1 H0 FAIL)" }
 }
 $proc = Get-GamePid; if (-not $proc) { throw "game not running ($ProcName under i76-uncap-lab; launch with tools\launch.ps1 first)" }

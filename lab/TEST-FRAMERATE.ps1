@@ -1,4 +1,4 @@
-# TEST-FRAMERATE.ps1 - hands-on test of the frame-rate fixes in the SANDBOX game (i76-uncap-lab\game).
+# TEST-FRAMERATE.ps1 - hands-on test of the frame-rate fixes in the SANDBOX game (<lab>\game).
 #
 #   Run at the PHYSICAL CONSOLE (Glide will not init over RDP). Never touches the playable install.
 #
@@ -38,7 +38,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "autotest\lib\gamedir.ps1")
 try { $G = Resolve-LabGameDir $GameDir } catch { Write-Host "$_" -ForegroundColor Red; exit 1 }
 $I76GameDirInUse = $G
-$NewDll = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll"
+$NewDll = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll"
 $Dll = Join-Path $G "STRLKUP.DLL"; $BakDll = "$Dll.pretest"
 $Lock = Join-Path $G ".console-test.lock"
 $ConfBak = Join-Path $G "dgVoodoo.conf.pre-shape"
@@ -79,7 +79,7 @@ try {
     if ($Mode -eq "all" -or $Mode -eq "all120") { $env:I76_FIX_HEALTH_PCT = "1"; $env:I76_FIX_LABEL_TABLE = "1"; $env:I76_FAR_CLIP = "1800"; $env:I76_TELEMETRY = "1" }
     if ($Mode -eq "stock20") { $env:I76_FPS_CAP = "20" }
     if ($Preset) {
-        $pf = "C:\Users\james\i76-everywhere\presets\$Preset.psd1"
+        $pf = "$env:USERPROFILE\i76-everywhere\presets\$Preset.psd1"
         if (-not (Test-Path $pf)) { throw "no preset $pf" }
         Get-ChildItem Env: | Where-Object { $_.Name -like "I76_*" -and $_.Name -ne "I76_ASPECT_COCKPIT_FOV" } | ForEach-Object { Remove-Item "Env:$($_.Name)" }   # the .bat's cockpit-width answer survives
         $pd = Import-PowerShellDataFile $pf
@@ -110,7 +110,7 @@ try {
         Write-Host "  launching through PLAY-i76.ps1 (pad, wheel, stick and head-look layers as in the daily driver)"
         # PLAY-i76.ps1 returns when the game has exited (it waits, then stops its helpers)
         $play = Start-Process powershell -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-            "`"C:\Users\james\i76-everywhere\PLAY-i76.ps1`"", "-GameDir", "`"$G`"", "-Exe", $Exe, "-Preset", $Preset, "-LosslessScaling", "none", "-OpenTrack", "`"`"" -PassThru -NoNewWindow
+            "`"$env:USERPROFILE\i76-everywhere\PLAY-i76.ps1`"", "-GameDir", "`"$G`"", "-Exe", $Exe, "-Preset", $Preset, "-LosslessScaling", "none", "-OpenTrack", "`"`"" -PassThru -NoNewWindow
         $p = $null
         for ($i = 0; $i -lt 40 -and -not $p; $i++) { Start-Sleep -Seconds 1; $p = Get-Process i76 -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$G\*" } | Select-Object -First 1 }
         if (-not $p) { $play.WaitForExit(); throw "the game did not start through PLAY-i76.ps1" }

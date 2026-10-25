@@ -18,17 +18,17 @@ param(
     [Parameter(Mandatory)] [string]$Preset,
     [string[]]$Missions = @(),
     [hashtable]$ExtraEnv = @{},
-    [string]$Conf = "C:\Users\james\i76-uncap-lab\game\dgVoodoo.aspect-wide.conf",
+    [string]$Conf = "$env:USERPROFILE\i76-uncap-lab\game\dgVoodoo.aspect-wide.conf",
     [string]$Agent = "preset-soak",
     [int]$BudgetMin = 25,
     [int]$Cockpit = 20, [int]$View = 5
 )
 $ErrorActionPreference = "Continue"
 $Here = $PSScriptRoot
-$Lab = "C:\Users\james\i76-uncap-lab"; $G = Join-Path $Lab "game"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = Join-Path $Lab "game"
 $Owner = Join-Path $Lab ".console-owner"
-$Dll = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll"
-$psd = if (Test-Path $Preset) { $Preset } else { "C:\Users\james\i76-everywhere\presets\$Preset.psd1" }
+$Dll = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll"
+$psd = if (Test-Path $Preset) { $Preset } else { "$env:USERPROFILE\i76-everywhere\presets\$Preset.psd1" }
 $P = Import-PowerShellDataFile $psd
 $Missions = @($Missions | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 if (-not $Missions) { $Missions = @(1..17 | ForEach-Object { "t{0:d2}" -f $_ }) }

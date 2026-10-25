@@ -1,7 +1,7 @@
 """t5b_port.py - Task 5b: turn Version Tracking results + Roanish's nitro items + That Tony's CD-era FSM addresses
 into `proposed` rows of symbols/ported.tsv (gate P). Never touches functions.tsv / globals.tsv.
 
-Inputs (all under C:/Users/james/i76-map):
+Inputs (all under <re-archive>):
   status/vt-nitro.json, status/vt-cd1997.json      RunVT_T5b.java output (accepted matches, per correlator)
   status/t5b/roanish-items.tsv                     t5b_roanish_parse.py output (nitro VAs + names)
   foldin/community/roanish-port-table.tsv          the earlier masked-signature route nitro->i76 (independent route)
@@ -10,7 +10,7 @@ Output: symbols/ported.tsv, status/t5b/port-summary.json
 Address classes: i76 (ref) VA: text 0x401000-0x4bbe55, rdata 0x4bc000-0x4c1788, init 0x4c2000-0x501800, bss 0x501800-0x669ef8.
 """
 import json, io, csv, os, sys
-ROOT = "C:/Users/james/i76-map"
+ROOT = (__import__("os").path.expanduser("~") + "/i76-map")
 REF_MD5 = "9a232dcc2c164648cff20c414c1f9698"
 def i76cls(va):
     if 0x401000 <= va < 0x4bbe55: return "text"

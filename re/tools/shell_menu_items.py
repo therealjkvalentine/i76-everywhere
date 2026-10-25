@@ -9,8 +9,8 @@ Method: capstone over the pristine file (md5 9a232dcc); every row carries the st
 """
 import csv, os, re, struct, subprocess, sys
 import pefile
-M = r"C:\Users\james\i76-map"
-EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
+EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 pe = pefile.PE(EXE)
 rd = lambda va, n: pe.__data__[pe.get_offset_from_rva(va - 0x400000):pe.get_offset_from_rva(va - 0x400000) + n]
 fn = {int(r["addr"], 16): r for r in csv.DictReader((l for l in open(os.path.join(M, "symbols", "functions.tsv"), encoding="utf-8") if not l.startswith("#")), delimiter="\t")}

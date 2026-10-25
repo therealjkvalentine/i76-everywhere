@@ -50,7 +50,7 @@ def graph(img, ckpt, denoise, seed, prefix, steps, cfg, pos, neg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--server", default="http://127.0.0.1:8199")
-    ap.add_argument("--input-dir", default=r"C:\Users\james\i76-upscale-work\comfy\input")
+    ap.add_argument("--input-dir", default=(__import__("os").path.expanduser("~") + r"\i76-upscale-work\comfy\input"))
     ap.add_argument("--image", required=True)
     ap.add_argument("--denoise", type=float, nargs="+", default=[0.2, 0.3])
     ap.add_argument("--ckpt", default="sd_xl_base_1.0.safetensors")

@@ -8,9 +8,9 @@ recorded as (site, mnemonic, operand text, access r|w|imm, size, function start)
 Method: capstone 5 linear sweep of the Ghidra function bodies (functions.tsv addr/size), md5-stamped.
 """
 import sys, os, json, csv
-M = r"C:\Users\james\i76-map"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
 CACHE = os.path.join(M, "status", "xrefs-9a232dcc.json")
-EXE = r"C:\Users\james\i76-uncap-lab\game\i76_pristine.exe"
+EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76_pristine.exe")
 
 
 def build():

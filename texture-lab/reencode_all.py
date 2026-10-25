@@ -2,13 +2,13 @@
 """Phase 3: rebuild every pak/loose-file from the manifest.
 
 Per tile, the final native-resolution pixels are a BLEND of three layers (the
-recipe James dialled in with the dashboard tuner, applied game-wide):
+recipe the developer dialled in with the dashboard tuner, applied game-wide):
     BLEND_ORIG   * original           (faithful detail: radar rings, text, dither)
   + BLEND_ESRGAN * esrgan_downscaled  (Real-ESRGAN x4 -> Lanczos to native: cleanup)
   + BLEND_SHARP  * sharpened          (esrgan + luminance-only unsharp: crisp edges,
                                        no colour fringing)
 The sharpen is a LUMINANCE box-blur unsharp mask - byte-for-byte the same math the
-HTML tuner runs (build_tuner.py lumSharpen), so the game-wide bake == what James
+HTML tuner runs (build_tuner.py lumSharpen), so the game-wide bake == what the developer
 approved in the tuner. Luminance-only => saturated edges (hazard stripes, red bars)
 don't blue-fringe. All at native w/h - the engine's hard ceiling. If STAGING_DIR is
 omitted the script falls back to pure-ESRGAN (the old behaviour).
@@ -50,7 +50,7 @@ manifest = json.load(open(manifest_path))
 pal = i76img.read_act(os.path.join(assets, "t01.act"))
 t0 = time.time()
 
-# --- the recipe (James, 2026-07-10, dialled in with build_tuner.py) ---
+# --- the recipe (the developer, 2026-07-10, dialled in with build_tuner.py) ---
 BLEND_ORIG, BLEND_ESRGAN, BLEND_SHARP = 0.47, 0.31, 0.22
 SHARP_AMOUNT, SHARP_RADIUS = 116, 0.8   # tuner units: amount %, radius (rounds to box r)
 

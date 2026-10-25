@@ -19,12 +19,12 @@ param(
     [string[]]$Conditions = @("marker", "stock", "pack", "stock-tt8", "pack-tt8"),
     [string]$Set = "tp04",
     [string]$Mission = "t01",
-    [string]$MarkerDir = "C:\Users\james\i76-upscale-work\runs\terrain1\marker",
+    [string]$MarkerDir = "$env:USERPROFILE\i76-upscale-work\runs\terrain1\marker",
     [string]$Owner = "TERRAIN1 terrain-pack",
-    [string]$ProxyDll = "C:\Users\james\i76-uncap-lab\game-tex\Strlkup.u5test.dll"
+    [string]$ProxyDll = "$env:USERPROFILE\i76-uncap-lab\game-tex\Strlkup.u5test.dll"
 )
 $ErrorActionPreference = "Stop"
-$Lab = "C:\Users\james\i76-uncap-lab"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"
 $G = Join-Path $Lab "game-tex"
 $Addon = Join-Path $G "ADDON"
 $Aside = Join-Path $Addon ".terrain-test-aside"
@@ -56,7 +56,7 @@ try {
         "[$cond] ADDON $($names[0]) md5 $md5; env $(($extra.Keys | ForEach-Object { "$_=$($extra[$_])" }) -join ' ')"
         $Tag = $cond
         $run = {
-            $cf = "C:\Users\james\i76-uncap-lab\tools\graphics\capture-frame.ps1"
+            $cf = "$env:USERPROFILE\i76-uncap-lab\tools\graphics\capture-frame.ps1"
             Start-Sleep -Seconds 5
             & $cf -Out (Join-Path $capDir "$stamp-$Tag-start.png")
             Send-Key 0x72; Start-Sleep -Seconds 2          # F3 = PRESET_VIEW_3

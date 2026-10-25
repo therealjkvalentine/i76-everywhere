@@ -2,8 +2,8 @@
  "time": "2026-10-02T23:05:24",
  "tool": "data/fmt/roundtrip.py",
  "corpus": {
-  "zfs_out": "C:\\Users\\james\\i76-map\\recon-2026-09-04\\recon\\formats\\zfs_out",
-  "sandbox": "C:\\Users\\james\\i76-map\\sandbox-gog\\main\\app"
+  "zfs_out": "<re-archive>\\recon-2026-09-04\\recon\\formats\\zfs_out",
+  "sandbox": "<re-archive>\\sandbox-gog\\main\\app"
  },
  "families": [
   {

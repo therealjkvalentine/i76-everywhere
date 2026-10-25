@@ -38,7 +38,7 @@ farengine  Lifts the player --lift m straight up with FREEZE_POS, so every AI ca
            + 25 m and takes physics_StepVehicleFar from its first metre; samples the position table (+ far_steps)
            at ~50 Hz for --seconds; puts the player back.
 ram        (colldedupe, audit F3) The cactus planner pointed at DURABLE objects. A saguaro is a class 4 breakable: the
-           first contact knocks it off and unregisters it (i76-map physics.md), so it cannot show a repeated contact.
+           first contact knocks it off and unregisters it (<re-archive> physics.md), so it cannot show a repeated contact.
            Default targets are the mission's buildings (ODEF names b*, class 2 structures, hp 400), least-used first.
            Per ram: REPAIR, TELEPORT --dist m before the target centre along the car's own heading, settle, REPAIR,
            TELEPORT in place with velocity, governor to --speed until the first contact (a collision-class IMPACT
@@ -64,7 +64,7 @@ Prints progress lines and, last, one JSON line {"status": ...} for rate-ab.ps1.
 import argparse, ctypes, importlib.util, json, math, mmap, os, struct, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEF_TOOLS = r"C:\Users\james\i76-everywhere\tools"
+DEF_TOOLS = (__import__("os").path.expanduser("~") + r"\i76-everywhere\tools")
 DEF_GAME = os.path.normpath(os.path.join(HERE, "..", "..", "game"))
 
 TRN_MAGIC = 0x43363749
@@ -97,7 +97,7 @@ DBG = {n: DBG_BASE + 4 * i for i, n in enumerate(DBG_NAMES)}
 DBG_END = DBG_BASE + 4 * len(DBG_NAMES)
 DBG_FAR_STEPS = DBG["far_steps"]            # 1956
 VK_W, VK_ENTER, VK_1 = 0x57, 0x0D, 0x31
-# weapons (i76-map types/i76_runtime.h, subsystems/weapons.md)
+# weapons (<re-archive> types/i76_runtime.h, subsystems/weapons.md)
 P_PLAYER = 0x54A264                         # [[0x54a264]] = the local player's object
 WREC, WREC_STRIDE, WREC_COUNT = 0x5BE4D8, 0x2C8, 0x5DA78C      # vehicle weapon records: +0 vehicle, +4 primary row, slots +0x58 + k x 0x58 (+0x50 instance index)
 WINST, WINST_STRIDE, WINST_COUNT = 0x5AAB08, 0x4C, 0x5DA750    # instances: +0xc hp, +0x10 damage, +0x14 hp max, +0x20 ammo, +0x30 def index

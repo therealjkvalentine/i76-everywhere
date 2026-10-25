@@ -22,7 +22,7 @@ sys.path.insert(0, DEBUG)
 sys.path.insert(0, os.path.join(TOOLS, "haptics", "design"))
 import debug_core, debug_logger, i76rec
 
-REC = r"C:\Users\james\i76-uncap-lab\autotest\runs\overnight-20261011-203304\P2\t05.i76rec"
+REC = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\autotest\runs\overnight-20261011-203304\P2\t05.i76rec")
 MEMTRACE = debug_logger.MEMTRACE
 
 

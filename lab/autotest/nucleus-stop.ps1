@@ -1,5 +1,5 @@
 # nucleus-stop.ps1 - end a Nucleus Co-op session cleanly (2026-10-05). Must run elevated (Nucleus and the games are
-# elevated): through the bridge, `nucleus-q.ps1 -Cmd "& C:\Users\james\i76-uncap-lab\autotest\nucleus-stop.ps1"`.
+# elevated): through the bridge, `nucleus-q.ps1 -Cmd "& <lab>\autotest\nucleus-stop.ps1"`.
 #
 # Why not the obvious ways (first run, 2026-10-05; Nucleus v2.4.2 source):
 #  - Ctrl+Q / Ctrl+E: HotkeyListener.WndProc drops EVERY WM_HOTKEY while input is locked (End key) and shows

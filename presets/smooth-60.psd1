@@ -12,9 +12,9 @@
 #   I76_RENDER_INTERP=1    vehicles and camera drawn between the last two physics poses
 #                          (removes the 40 Hz judder the fixed step leaves at 60 fps)
 #
-# Verification: [measured, sandbox] i76-map captures/014-framerate (dt exact, gravity dt-correct,
+# Verification: [measured, sandbox] <re-archive> captures/014-framerate (dt exact, gravity dt-correct,
 # 24 Hz body motion as calm as stock 20, 31-33% motionless frames -> 0% with interpolation);
-# [console-verified 2026-10-02, sandbox] by the owner via i76-uncap-lab\TEST-FRAMERATE.bat
+# [console-verified 2026-10-02, sandbox] by the owner via <lab>\TEST-FRAMERATE.bat
 # (feel, Mission 5 jump without nitrous, out-of-gas jumps, AI, F6/B, keyboard save; n = 1).
 # NOT deployed to the playable install. Needs music-fix/Strlkup.dll (the current build) in the
 # game folder; the launcher checks and warns. GOG's I76PATCH.DLL must be renamed (e.g.

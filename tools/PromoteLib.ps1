@@ -17,8 +17,8 @@
         Returns the staged file's path.
 #>
 
-$script:PromoteDriver = 'C:\Users\james\Games\Interstate76-2026-10-03'
-$script:PromoteGolden = 'C:\Users\james\Games\Interstate76-golden-2026-10-03'
+$script:PromoteDriver = (Join-Path $env:USERPROFILE 'Games\Interstate76-2026-10-03')
+$script:PromoteGolden = (Join-Path $env:USERPROFILE 'Games\Interstate76-golden-2026-10-03')
 
 function Get-Md5([Parameter(Mandatory = $true)][string]$Path) {
     (Get-FileHash -LiteralPath $Path -Algorithm MD5).Hash.ToLower()

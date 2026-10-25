@@ -3,7 +3,7 @@
 // to a copy of a game-written directory. Same extraction as tools/tests/test-save-editor-dir.mjs. Prints the records
 // before and after and the byte offsets that changed; exits 1 unless exactly the 4 scene bytes of that record differ.
 import fs from "node:fs";
-const html = fs.readFileSync("C:/Users/james/i76-everywhere/i76-save-editor.html", "utf8");
+const html = fs.readFileSync(process.env.USERPROFILE + "/i76-everywhere/i76-save-editor.html", "utf8");
 const grab = (start, end) => {
   const i = html.indexOf(start); const j = html.indexOf(end, i);
   if (i < 0 || j < 0) throw new Error("missing " + start);

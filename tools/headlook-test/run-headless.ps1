@@ -13,9 +13,9 @@
   Exit 0 = every check passed. Output: builds-style folder under $env:TEMP unless -Out.
 #>
 param(
-    [string]$Ahk = 'C:\Users\james\i76-uncap-lab\exp-polish2\Interstate 76\_ahk\AutoHotkeyU32.exe',
+    [string]$Ahk = (Join-Path $env:USERPROFILE 'i76-uncap-lab\exp-polish2\Interstate 76\_ahk\AutoHotkeyU32.exe'),
     [string]$Script = (Join-Path $PSScriptRoot '..\..\i76-opentrack-headlook.ahk'),
-    [string]$Map = 'C:\Users\james\i76-uncap-lab\rc-twin-20261024\Interstate 76\input.map',
+    [string]$Map = (Join-Path $env:USERPROFILE 'i76-uncap-lab\rc-twin-20261024\Interstate 76\input.map'),
     [string]$Out = ''
 )
 $ErrorActionPreference = 'Stop'

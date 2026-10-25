@@ -11,8 +11,8 @@
 param([switch]$Plan, [string]$Stage)
 $ErrorActionPreference = 'Stop'
 $repo   = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$driver = 'C:\Users\james\Games\Interstate76-2026-10-03'
-$golden = 'C:\Users\james\Games\Interstate76-golden-2026-10-03'
+$driver = (Join-Path $env:USERPROFILE 'Games\Interstate76-2026-10-03')
+$golden = (Join-Path $env:USERPROFILE 'Games\Interstate76-golden-2026-10-03')
 $stageDir = if ($Stage) { $Stage } else { Join-Path $env:TEMP "promote-16-$(Get-Date -Format yyyyMMdd-HHmmss)" }
 New-Item -ItemType Directory -Force $stageDir | Out-Null
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }

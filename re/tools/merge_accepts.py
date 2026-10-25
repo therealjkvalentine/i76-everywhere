@@ -13,7 +13,7 @@ and both proposal files move to functions\history\<key>\requeue-<time>.<view>.md
 old other view (two g1/g2 drafters had to abandon keys after a grep surfaced it).
 """
 import json, os, shutil, subprocess, sys, time
-M = r"C:\Users\james\i76-map"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
 sys.path.insert(0, os.path.join(M, "tools"))
 import wf_tokens
 

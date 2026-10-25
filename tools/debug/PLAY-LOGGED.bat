@@ -6,7 +6,7 @@ REM like the twin's PLAY.bat (widescreen, preset best-wide) plus I76_TELEMETRY=1
 REM   * Every mission is logged on its own: a new log starts when your car appears and stops 3 s after it is gone.
 REM   * Scroll Lock          = MARK (drop a numbered marker into the log: "that jump felt wrong", "flipped here").
 REM   * Shift + Scroll Lock  = stop / start the logger by hand. The Log / Mark buttons at the top of the dashboard do the same.
-REM   * Logs: C:\Users\james\i76-uncap-lab\captures\trainer-log\<date-time>-best-wide\s01, s02 ... (one per mission), with
+REM   * Logs: <lab>\captures\trainer-log\<date-time>-best-wide\s01, s02 ... (one per mission), with
 REM     summary.md beside them (jumps, landings, turn-overs, wrecks, Arcade Phys. check, frame rate and physics steps).
 REM Run at the physical console, not over Remote Desktop. Close the dashboard's console window when you are done.
 REM
@@ -17,7 +17,7 @@ setlocal
 set "PRESET=%~1"
 if "%PRESET%"=="" set "PRESET=best-wide"
 set "GAMEDIR=%~2"
-if "%GAMEDIR%"=="" set "GAMEDIR=C:\Users\james\i76-uncap-lab\game-dd-20261003\Interstate 76"
+if "%GAMEDIR%"=="" set "GAMEDIR=%USERPROFILE%\i76-uncap-lab\game-dd-20261003\Interstate 76"
 set "DBG=%~dp0i76debug.py"
 echo %GAMEDIR% | findstr /I /L /C:"Interstate76-" /C:"Downloads" >nul
 if not errorlevel 1 (echo Refusing %GAMEDIR%: that is a playable install, not a lab copy. & pause & exit /b 1)

@@ -142,14 +142,14 @@ switch ($Renderer) {
         [void]$notes.Add("nGlide's glide2x.dll also calls DirectDrawCreate (ddraw.dll): with -DDraw keep that is dgVoodoo's DDraw.dll in this folder")
     }
     "openglide-gog" {
-        $src = First-Existing @($Source, "C:\Users\james\i76-map\sandbox-gog\main\app")
+        $src = First-Existing @($Source, "$env:USERPROFILE\i76-map\sandbox-gog\main\app")
         [void](Need $src "GOG reference install (i76-map\sandbox-gog\main\app)")
         $install["Glide2x.dll"] = Need (Find-In $src @("glide2x.dll")) "glide2x.dll in $src"
         if (-not $bj.md5.'OpenGLid.ini') { $p = Find-In $src @("OpenGLid.INI"); if ($p) { $install["OpenGLid.ini"] = $p } }
         foreach ($s in "Glide.dll", "Glide3x.dll", "D3D8.dll", "D3D9.dll") { [void]$remove.Add($s) }
     }
     "openglide" {
-        $src = First-Existing @($Source, "C:\Users\james\openglide-hd", (Join-Path $Lab "refs\renderers\openglide"))
+        $src = First-Existing @($Source, "$env:USERPROFILE\openglide-hd", (Join-Path $Lab "refs\renderers\openglide"))
         [void](Need $src "OpenGLide build folder (-Source)")
         $install["Glide2x.dll"] = Need (Find-In $src @("glide2x.dll")) "glide2x.dll in $src"
         $p = Find-In $src @("glide3x.dll"); if ($p) { $install["Glide3x.dll"] = $p } else { [void]$remove.Add("Glide3x.dll") }

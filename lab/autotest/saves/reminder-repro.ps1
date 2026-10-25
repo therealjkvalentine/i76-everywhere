@@ -19,7 +19,7 @@
 param([string]$Tag = "u32x", [string]$Save = "save001", [int]$Row = 1, [switch]$FocusChange, [int]$RowUy = -1, [string]$CloseWith = "click")
 $ErrorActionPreference = "Stop"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Lab = "C:\Users\james\i76-uncap-lab"; $G = Join-Path $Lab "game"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = Join-Path $Lab "game"
 $I76GameDirInUse = $G
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
 $Out = Join-Path $Here "runs\reminder\$ts-$Tag"; New-Item -ItemType Directory -Force $Out | Out-Null

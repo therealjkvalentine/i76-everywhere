@@ -38,7 +38,7 @@ from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_ESP, X86_REG_EBP, X86_R
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-DEFAULT_EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+DEFAULT_EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 EXPECTED_MD5 = "9a232dcc2c164648cff20c414c1f9698"
 TEXT_BYTES = 765525
 UNIQUE_MAX_SITES = 3

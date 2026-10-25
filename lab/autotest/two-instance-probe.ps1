@@ -1,7 +1,7 @@
 # two-instance-probe.ps1 - can two copies of the game run at once on this PC? Starts game\i76.exe, waits, starts
 # game-alt\i76.exe, waits, reports both processes (alive, window title, responding, path) and kills them.
 # No clicks, no saves touched. -Multi: installs the repo proxy in both for the run and sets I76_MULTI_INSTANCE=1.
-param([switch]$Multi, [int]$Wait = 14, [string]$DirA = "C:\Users\james\i76-uncap-lab\game", [string]$DirB = "C:\Users\james\i76-uncap-lab\game-alt")
+param([switch]$Multi, [int]$Wait = 14, [string]$DirA = "$env:USERPROFILE\i76-uncap-lab\game", [string]$DirB = "$env:USERPROFILE\i76-uncap-lab\game-alt")
 $ErrorActionPreference = "Continue"
 $dirs = @($DirA, $DirB)
 if (Get-Process i76* -ErrorAction SilentlyContinue) { "an i76 process is running"; exit 1 }
@@ -11,7 +11,7 @@ Get-ChildItem Env: | Where-Object { $_.Name -like "I76*" } | ForEach-Object { Re
 try {
     if ($Multi) {
         $env:I76_MULTI_INSTANCE = "1"; $env:I76MUSIC_LOG = "1"
-        foreach ($d in $dirs) { Copy-Item "$d\STRLKUP.DLL" "$d\STRLKUP.DLL.pretest" -Force; Copy-Item "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll" "$d\STRLKUP.DLL" -Force }
+        foreach ($d in $dirs) { Copy-Item "$d\STRLKUP.DLL" "$d\STRLKUP.DLL.pretest" -Force; Copy-Item "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll" "$d\STRLKUP.DLL" -Force }
     }
     $procA = Start-Process "$DirA\i76.exe" -ArgumentList "-glide" -WorkingDirectory $DirA -PassThru
     Start-Sleep -Seconds $Wait
@@ -24,7 +24,7 @@ try {
     }
     Add-Type -AssemblyName System.Drawing
     $bmp = New-Object Drawing.Bitmap 3440, 1440; $gr = [Drawing.Graphics]::FromImage($bmp); $gr.CopyFromScreen(0, 0, 0, 0, $bmp.Size)
-    $out = "C:\Users\james\i76-uncap-lab\autotest\runs\two-instance"; New-Item -ItemType Directory -Force $out | Out-Null
+    $out = "$env:USERPROFILE\i76-uncap-lab\autotest\runs\two-instance"; New-Item -ItemType Directory -Force $out | Out-Null
     $small = New-Object Drawing.Bitmap $bmp, 1147, 480; $small.Save("$out\both.png"); "capture $out\both.png"
 } finally {
     Get-Process i76* -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 1

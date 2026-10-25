@@ -478,7 +478,7 @@ namespace Haptics.Tests
             T.Check("lint: 4123 shared by flypt (pack2) and simtools (classic) warns", p.Lint(all).Any(l => !l.Error && l.Message.Contains("4123")), "");
             var wide = Params(x => x.ClampAccel = 5 * 9.81);
             T.Check("lint: a rig that widens a clamp is an error", wide.Lint(new MotionTarget[0]).Any(l => l.Error && l.Message.Contains("widen")), "");
-            var remote = MotionTarget.From(new JsonObject { ["name"] = "far", ["format"] = "i76motion", ["host"] = "192.168.1.50", ["port"] = 7677 });
+            var remote = MotionTarget.From(new JsonObject { ["name"] = "far", ["format"] = "i76motion", ["host"] = "192.0.2.50", ["port"] = 7677 });
             T.Check("lint: a non-loopback host without allow_remote is an error", Params().Lint(new[] { remote }).Any(l => l.Error && l.Message.Contains("loopback")), "");
             var badFrame = MotionTarget.From(new JsonObject { ["name"] = "x", ["format"] = "lfs-classic", ["frame"] = "car" });
             T.Check("lint: unknown frame is an error", Params().Lint(new[] { badFrame }).Any(l => l.Error && l.Message.Contains("frame")), "");

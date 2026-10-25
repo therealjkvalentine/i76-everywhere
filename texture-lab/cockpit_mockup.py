@@ -20,7 +20,7 @@ Inputs are read only: the archive (I76.ZFS in --game; ADDON copies ignored) and 
 Also writes tiles/<TILE>.png (the 2x, stored orientation) for `cockpit_split.py --png-dir`.
 
 Run with the upscale venv (torch + spandrel):
-  C:\\Users\\james\\i76-upscale-work\\.venv\\Scripts\\python.exe texture-lab\\cockpit_mockup.py --game <dir>
+  <upscale-work>\\.venv\\Scripts\\python.exe texture-lab\\cockpit_mockup.py --game <dir>
 """
 import argparse, datetime, html, json, os, sys
 
@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools", "upscale"))
 import cockpit_split as cs  # noqa: E402
 
 MODEL = "interp/4x_Manga109Attempt__4x_RRDB_PSNR__w50.pth"
-CAPTURE = r"C:\Users\james\i76-uncap-lab\captures\graphics\look\hudsq2-on-a-target.png"
+CAPTURE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\captures\graphics\look\hudsq2-on-a-target.png")
 
 
 def upscale_model(work, rgb):
@@ -111,10 +111,10 @@ def colour_fit(img, cap, cov):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--game", default=r"C:\Users\james\i76-map\sandbox-gog\main\app")
+    ap.add_argument("--game", default=(__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app"))
     ap.add_argument("--car-pak", default="vppirnag")
     ap.add_argument("--capture", default=CAPTURE)
-    ap.add_argument("--work", default=os.environ.get("I76_UPSCALE_WORK", r"C:\Users\james\i76-upscale-work"))
+    ap.add_argument("--work", default=os.environ.get("I76_UPSCALE_WORK", (__import__("os").path.expanduser("~") + r"\i76-upscale-work")))
     ap.add_argument("--out", default=os.path.join(HERE, "out", "cockpit-mockup"))
     ap.add_argument("--classical", action="store_true", help="force the classical upscale")
     ap.add_argument("--marker-dir", default=os.path.join(HERE, "out", "cockpit-split", "marker2x"),

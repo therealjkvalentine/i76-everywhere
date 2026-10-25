@@ -14,7 +14,7 @@ enough to see the constant being added and the shape of the update.
 import sys, struct
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
-EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe"
+EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe")
 
 
 def load_sections(path):

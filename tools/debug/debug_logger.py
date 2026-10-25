@@ -45,7 +45,7 @@ Nothing here writes to the game. The reader opens the process with PROCESS_VM_RE
 """
 import collections, ctypes, ctypes.wintypes as wt, datetime, hashlib, json, math, os, struct, subprocess, sys, threading, time
 
-LAB = r"C:\Users\james\i76-uncap-lab"
+LAB = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab")
 MEMTRACE = os.path.join(LAB, "emu", "tools", "memtrace")
 DEFAULT_ROOT = os.path.join(LAB, "captures", "trainer-log") if os.path.isdir(LAB) else \
     os.path.join(os.path.expanduser("~"), "Documents", "I76-logs")

@@ -1,7 +1,7 @@
 """
 find-car-via-weapons.py - locate the car object through its WEAPONS, across a respawn.
 
-James's idea, and it beats every address-based approach so far: the regen heals by RESPAWNING
+The developer's idea, and it beats every address-based approach so far: the regen heals by RESPAWNING
 the car, which reallocates the vehicle object. So nothing can be tracked by address across a
 heal. But the weapons are known and identifiable - 50cal MG, 25mm Cannon, Gas Launcher,
 Landmines - and the live ammo array is STATIC:

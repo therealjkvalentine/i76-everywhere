@@ -31,8 +31,8 @@ import pefile
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 from capstone.x86 import X86_OP_MEM, X86_OP_IMM, X86_REG_ESP, X86_REG_EBP, X86_REG_INVALID
 
-M = r"C:\Users\james\i76-map"
-EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
+EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 pe = pefile.PE(EXE)
 BASE = pe.OPTIONAL_HEADER.ImageBase
 md = Cs(CS_ARCH_X86, CS_MODE_32); md.detail = True

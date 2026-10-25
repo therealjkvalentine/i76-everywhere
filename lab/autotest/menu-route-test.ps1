@@ -32,11 +32,11 @@ $u32xBak = $null
 try {
     if (-not $KeepInstalledDll) {
         if (-not (Test-Path "$G\STRLKUP.DLL.pretest")) { Copy-Item "$G\STRLKUP.DLL" "$G\STRLKUP.DLL.pretest" }
-        Copy-Item "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll" "$G\STRLKUP.DLL" -Force
+        Copy-Item "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll" "$G\STRLKUP.DLL" -Force
     }
     if ($U32x -ne "keep") {
         $u32xBak = "$G\u32x.dll.menutest"; Copy-Item "$G\u32x.dll" $u32xBak -Force
-        $src = if ($U32x -eq "aug16") { "$G\u32x.dll.aug16" } else { "C:\Users\james\i76-uncap-lab\src\u32x_new.dll" }
+        $src = if ($U32x -eq "aug16") { "$G\u32x.dll.aug16" } else { "$env:USERPROFILE\i76-uncap-lab\src\u32x_new.dll" }
         Copy-Item $src "$G\u32x.dll" -Force
     }
     foreach ($v in "I76_HIRES_CLOCK", "I76_FIXED_STEP", "I76_FRAMERATE_FIXES", "I76_ENGINE_DT_FIX", "I76_RENDER_INTERP", "I76_FPS_CAP", "I76_FIX_HEALTH_PCT",

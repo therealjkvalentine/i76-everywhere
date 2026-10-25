@@ -13,8 +13,8 @@ param(
     [Parameter(Mandatory = $true)] [string]$What,
     [Parameter(Mandatory = $true)] [string]$Gate,
     [Parameter(Mandatory = $true)] [hashtable]$Files,
-    [string]$Driver = 'C:\Users\james\Games\Interstate76-2026-10-03',
-    [string]$Golden = 'C:\Users\james\Games\Interstate76-golden-2026-10-03',
+    [string]$Driver = (Join-Path $env:USERPROFILE 'Games\Interstate76-2026-10-03'),
+    [string]$Golden = (Join-Path $env:USERPROFILE 'Games\Interstate76-golden-2026-10-03'),
     [switch]$Plan
 )
 $ErrorActionPreference = 'Stop'

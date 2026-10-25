@@ -5,15 +5,15 @@
 #   step 3  -process (re-analysis) + postScript ExportBaseline <out> + postScript DumpAll.py <out>
 # Usage: powershell -ExecutionPolicy Bypass -File build.ps1 -Proj <projdir> -Out <exportdir> [-Exe <exe>] [-Name i76map]
 param(
-    [string]$Proj = "C:\Users\james\i76-map\ghidra\proj",
-    [string]$Out  = "C:\Users\james\i76-map\ghidra\export",
-    [string]$Exe  = "C:\Users\james\i76-map\ghidra\i76_ref.exe",
+    [string]$Proj = "$env:USERPROFILE\i76-map\ghidra\proj",
+    [string]$Out  = "$env:USERPROFILE\i76-map\ghidra\export",
+    [string]$Exe  = "$env:USERPROFILE\i76-map\ghidra\i76_ref.exe",
     [string]$Name = "i76map",
-    [string]$Scripts = "C:\Users\james\i76-map\ghidra\scripts",
+    [string]$Scripts = "$env:USERPROFILE\i76-map\ghidra\scripts",
     [switch]$Clean
 )
 $ErrorActionPreference = "Continue"
-$hl = "C:\Users\james\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC\support\analyzeHeadless.bat"
+$hl = "$env:USERPROFILE\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC\support\analyzeHeadless.bat"
 $logdir = Join-Path $Out "logs"
 if ($Clean) {
     if (Test-Path $Proj) { Remove-Item -Recurse -Force $Proj }

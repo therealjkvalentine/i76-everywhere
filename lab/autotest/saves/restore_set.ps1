@@ -9,7 +9,7 @@
 #>
 param([Parameter(Mandatory = $true)][string]$Backup, [switch]$WhatIf)
 $ErrorActionPreference = "Stop"
-$G = "C:\Users\james\i76-uncap-lab\game"
+$G = "$env:USERPROFILE\i76-uncap-lab\game"
 if (-not (Test-Path (Join-Path $Backup "md5.txt"))) { throw "no md5.txt in $Backup" }
 if (Get-Process | Where-Object { $_.ProcessName -like "i76*" }) { throw "an i76* process is running" }
 $lines = Get-Content (Join-Path $Backup "md5.txt") | Where-Object { $_.Trim() }

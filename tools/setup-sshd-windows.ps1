@@ -4,7 +4,7 @@
 # What it does: installs the OpenSSH.Server capability, starts sshd and sets it to Automatic, turns password login
 # OFF (keys only), makes PowerShell the login shell, adds the given public key for this administrator account
 # (C:\ProgramData\ssh\administrators_authorized_keys, ACL Administrators + SYSTEM only), and limits the firewall rule
-# to the home LAN (192.168.1.0/24). Undo: Stop-Service sshd; Set-Service sshd -StartupType Disabled;
+# to the home LAN (<LAN subnet>). Undo: Stop-Service sshd; Set-Service sshd -StartupType Disabled;
 # Remove-NetFirewallRule -Name OpenSSH-Server-In-TCP-LAN.
 param([string]$PubKeyFile = "", [string]$Subnet = "192.168.1.0/24")
 $ErrorActionPreference = 'Stop'

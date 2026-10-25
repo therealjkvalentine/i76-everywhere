@@ -1,5 +1,5 @@
 From f55d3e5ce07f8ed39da5c20a4c531c28861911d5 Mon Sep 17 00:00:00 2001
-From: therealjkvalentine <james.k.valentine@gmail.com>
+From: therealjkvalentine <noreply@users.noreply.github.com>
 Date: Sun, 4 Oct 2026 17:41:38 -0500
 Subject: [PATCH] Gamma pass: restore the unbrightened frame after each swap;
  OGL_GAMMA_TRACE / OGL_GAMMA_RESTORE

@@ -21,7 +21,7 @@ public class FFBChk {
 }
 "@ -ErrorAction SilentlyContinue
 
-# The engine's own FFB state. Names CORRECTED 2026-10-02 from i76-map status/findings.md
+# The engine's own FFB state. Names CORRECTED 2026-10-02 from <re-archive> status/findings.md
 # (L083, L084; backlog P3-18) - this script used to call 0x52bbcc the "effect object":
 #   0x52bbd0  the detected flag this script has always read (nonzero once I7FF_InitSystem
 #             opened a device; the "module loaded but no device" tell is 0x52bbdc != 0 with
@@ -39,7 +39,7 @@ if (-not $proc) { Write-Host "Game is not running - start it, get INTO A MISSION
 Write-Host "game: $($proc.ProcessName) (PID $($proc.Id))" -ForegroundColor Cyan
 
 # 1. registry key - INFORMATIONAL ONLY. No registry key gates force feedback inside i76.exe
-#    (i76-map finding L084: the SideWinder helper reads no registry gate); this line used to
+#    (<re-archive> finding L084: the SideWinder helper reads no registry gate); this line used to
 #    be printed in red as "the registry gate". enable-force-feedback.bat writes the key and a
 #    working setup has it, so its absence is worth a glance, not a verdict.
 $key = "HKLM:\SOFTWARE\WOW6432Node\ACTIVISION\Interstate '76"

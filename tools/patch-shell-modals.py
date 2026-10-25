@@ -20,25 +20,25 @@ docs\\DIALOG-AND-CLICK-AUDIT.md.
   K1  Modal_VehicleRejected: Enter / Space close it (as F7 does for Modal_ImageOk).
   K2  Modal_CdRetry 0x1000bad0 ("SUGAR, PUT DISC 2 IN NOW", OK / CANCEL): Enter = OK, Esc = CANCEL.
   K3  Modal_YesNo 0x1000bc40 (overwrite bookmark / variant, leave salvage, exceed detail defaults): Y = YES,
-      N or Esc = NO. Same keys as F3 (i76-map shell\\FIXES.md); Enter is deliberately NOT yes. Skipped with a note
+      N or Esc = NO. Same keys as F3 (<re-archive> shell\\FIXES.md); Enter is deliberately NOT yes. Skipped with a note
       when the file already carries F3 (the hook then holds a jmp).
   K4  Modal_OneButton 0x1000bdd0 = the CHOOSE A TEAM picker of the melee/net entry forms: Enter = DONE (keeps the
       current team), Esc = CANCEL.
   F2  (opt-in: --with-f2 or --only ...,F2; not in the default set, which stays the promoted M1..K4) the orphaned
-      bookmark, i76-map shell\\FIXES.md F2 / SAVE.md s.4: SaveMenu_Edit 0x100147a0 resets the slot variable
+      bookmark, <re-archive> shell\\FIXES.md F2 / SAVE.md s.4: SaveMenu_Edit 0x100147a0 resets the slot variable
       [0x10057f80] to -1 on EVERY entry (0x10014866, mov dword [0x10057f80],-1). Re-entered (click the name field,
       or NO to the overwrite prompt) after the static edit record 0x10057f38 was already appended with slot S, the
       list lookup finds it, skips the slot assignment and the save writes slot -1: savegame.dir names saveS, the
       disk gets save-001.cmp, the bookmark vanishes from the load list. Patch: the 10 bytes -> nop; the HIGHLOW
       relocation of the disp32 at 0x10014868 is neutralised (else a rebased load would add the delta to the nops).
-      Same bytes as i76-map tools\\patch_shell.py --fixes F2. Static + emulated; live test = i76-map LIVE-TESTS T3.
+      Same bytes as <re-archive> tools\\patch_shell.py --fixes F2. Static + emulated; live test = <re-archive> LIVE-TESTS T3.
 
 Every K cave: cmp eax,1 / je HIT (the unchanged mouse path), then KeyInput_Poll 0x1001c110 on the KeyInput object
 [0x100cc50c] (position-independent: call $+5 / pop), key compares, else back to the loop top. KeyInput_Poll peeks
 WM_KEYFIRST..WM_KEYLAST, so these loops now also retrieve sent messages (a WM_ACTIVATEAPP 1 can reopen the input
 gate, GARAGE-POPUP-STUCK.md section 3). esi is free at each loop top (reloaded on the hit path; the epilogues pop it).
 Caves live in VDriver_UnusedMethod 0x10038630..0x100387cf (dead: no call, no rel32/imm32, no 4-byte value equal
-to it anywhere in the file; same cave as i76-map patch_shell.py F4, so F4 and this script exclude each other).
+to it anywhere in the file; same cave as <re-archive> patch_shell.py F4, so F4 and this script exclude each other).
 Its base relocations are neutralised (type 0), so the result is correct at any load base.
 
 Fail closed: every site must hold exactly the stock bytes (or exactly this script's bytes), the dead function must

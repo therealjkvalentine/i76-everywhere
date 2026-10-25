@@ -1,5 +1,5 @@
 r"""i76tune.py - live "spec tuner" for Interstate '76: change physics / weapon / AI constants in the running
-game from a catalogue (tunables.json) derived from the reverse-engineering specs (i76-map\subsystems\*.md).
+game from a catalogue (tunables.json) derived from the reverse-engineering specs (<re-archive>\subsystems\*.md).
 SANDBOX only by default, like i76trainer.py (which it imports for process access).
 
     python i76tune.py list [group]              id, name, live value vs default, unit ('*' = differs)

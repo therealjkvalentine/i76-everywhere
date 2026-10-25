@@ -21,7 +21,7 @@ An observation is the telemetry frames (tellib keep=True) between the probe's st
 Route: `melee` (default) = Instant Melee on i76_pristine_fix.exe with 0 AI drivers (run_scenario --nomission --exe
 i76_pristine_fix.exe --ai 0): no scripted mission end, which the ~10 minutes of probing need; t01 on i76.exe ends about
 45-60 s after the hand-over (verify/README.md), so `--route t01` only fits one or two expectations and is there for a
-spot check. Both are the sandbox copy (C:\Users\james\i76-uncap-lab\game); the exe-scope addresses are the same image
+spot check. Both are the sandbox copy (<lab>\game); the exe-scope addresses are the same image
 layout (tunables.json, md5 9a232dcc addresses; the pristine_fix build is that image plus i76fix's clusters, and every
 write prints the old value, which is checked against the catalogue default before anything is graded).
 

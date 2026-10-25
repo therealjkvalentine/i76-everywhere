@@ -5,8 +5,8 @@ and the proxy log (game\\mciproxy.log: one 'mission-launch: booting directly int
 """
 import glob, os, re, sys
 
-log = r"C:\Users\james\i76-uncap-lab\game\mciproxy.log"
-tmp = os.environ.get("TEMP", r"C:\Users\james\AppData\Local\Temp")
+log = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\mciproxy.log")
+tmp = os.environ.get("TEMP", (__import__("os").path.expanduser("~") + r"\AppData\Local\Temp"))
 since = int(sys.argv[sys.argv.index("--since-line") + 1]) if "--since-line" in sys.argv else 0
 lines = open(log, encoding="latin1").read().split("\n")[since:]
 runs = []                                                   # (mission, crash line or "")

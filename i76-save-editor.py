@@ -4,7 +4,7 @@ part for any other allowed part, set condition / location / scene, and write sav
 game accepts. Doubles as the library behind i76-calibration-saves.py and tests/.
 
 FORMAT (reconciled 2026-10-02; frame from the shell's own writer, i76shell.dll
-Cmp_Write 0x10032980 / dir_WriteAndSave 0x10032f80 - see ../i76-map/shell/SAVE.md and
+Cmp_Write 0x10032980 / dir_WriteAndSave 0x10032f80 - see ../<re-archive>/shell/SAVE.md and
 shell/work/cmp-layout.md - and checked byte-exact on every save*.cmp / .spc on this
 machine: 27 files, 1676 records, 100 % formula matches, 100 % round-trips).
 
@@ -78,7 +78,7 @@ digit), compnent.cdf (engines/susp/brakes), specials spc01..spc09 from the exe s
 (spc02 NitrousOxide, spc04 X-Aust, spc05 Structo, spc06 Curb Feelers, spc07 Mud Flaps,
 spc08 Heated Seats, spc09 Cup Holders seen in saves; spc01 prints as "Radar Jammer" in the garage
 (sandbox 2026-10-02); every pair is also code-verified: the exe builds the def as sprintf("spc%02d", type),
-0x4b1502, i76-map engine.md). What each part does: PARTS_INFO below and docs/PARTS-REFERENCE.md.
+0x4b1502, <re-archive> engine.md). What each part does: PARTS_INFO below and docs/PARTS-REFERENCE.md.
 Caps (sandbox 2026-10-02): the repair bench has none (15 queued jobs all listed, scrolling); the
 van holds >= 5 suspensions; only the weapon list's 11 is a real cap. The inventory dialog's columns
 are height-limited (ENGINES 4 rows, WEAPONS 11, WHEELS 12) - display, not storage.
@@ -239,8 +239,8 @@ def catalog_weight(name):
 # on every claim:
 #   [game data]  read from the stock I76.ZFS (md5 6dd57b16..., the lab and the pristine copy are
 #                identical; the sandbox ADDON folder overrides none of these files) through
-#                i76-map's parsers (data\mod\i76mod.py show zfs:compnent.cdf ENGN#0, ...)
-#   [RE: ...]    i76-map's static reading of i76.exe (md5 9a232dcc), doc + address
+#                <re-archive>'s parsers (data\mod\i76mod.py show zfs:compnent.cdf ENGN#0, ...)
+#   [RE: ...]    <re-archive>'s static reading of i76.exe (md5 9a232dcc), doc + address
 #   [community]  published player measurements (Local Ditch, docs/WEAPON-STATS.md)
 #   [unknown]    nothing found
 # i76-save-editor.html embeds the same table as JSON (tests/test_save_editor.py keeps them equal).
@@ -302,7 +302,7 @@ for _l, _n, _g in [("a", "13in Stock", "1.0"), ("b", "14in Rally", "1.2"),
     _info("wauto_" + _l, _n, f"grip {_g}x till the tyre is hit",
           f"Size factor {_g} [game data: WDFC +0x30; every *_N{_l}.wdf in the archive (wauto, wbtck, wctnk, ...) carries the same]." + _WHL_TAIL)
 
-# weapons: what the shot does (numbers from the stock .gdf / ORDF / .xdf; flight models from i76-map
+# weapons: what the shot does (numbers from the stock .gdf / ORDF / .xdf; flight models from <re-archive>
 # subsystems/weapons.md, weapon_StepProjectileByType 0x4a0800)
 _GUN = ("Straight-line bullets, {speed} m/s, {life} s flight (= {rng} m), bullet damage {dmg} per hit [game data: {gdf}];"
         " flight weapon_StepBullet 0x4abe60 [RE: weapons.md].")
@@ -1084,7 +1084,7 @@ def cmd_check(sdir):
 # I76PLYR.DEF: the exe's 0x60-byte options block 0x654b40 (player_SaveDef 0x497290). The Play Options dword
 # 0x654b98 sits at +0x58. Bits 0x04 / 0x08 / 0x10 (unlimited ammo / armour / chassis) are the "cheater options": when
 # the file holds any of them, the exe sets the cheats-used marker 0x535f78 after every shell return (0x497241), and a
-# mission won with the marker set becomes outcome 0xb - no salvage and NO campaign advance (i76-map subsystems
+# mission won with the marker set becomes outcome 0xb - no salvage and NO campaign advance (<re-archive> subsystems
 # cheats.md / mission.md). The campaign saves (savegame.dir, saveNNN.cmp) carry none of this.
 PLYR_FLAGS_OFF, CHEAT_BITS = 0x58, 0x1c
 PLAY_BIT_NAMES = ((0x01, "arcade"), (0x02, "no-salvage"), (0x04, "ammo"), (0x08, "armour"), (0x10, "chassis"), (0x20, "wiper"))

@@ -31,7 +31,7 @@ from terrain import open_zfs, seam_strength, repair_seam  # noqa: E402
 from terrain_h6 import load_model, upscale, area_down, to8  # noqa: E402
 from prepost import lut3d_match  # noqa: E402
 
-DEFAULT_MODEL = r"C:\Users\james\i76-upscale-work\models\interp\4x_Manga109Attempt__4x_RRDB_PSNR__w50.pth"
+DEFAULT_MODEL = (__import__("os").path.expanduser("~") + r"\i76-upscale-work\models\interp\4x_Manga109Attempt__4x_RRDB_PSNR__w50.pth")
 PROTECTED = (r"\games\\", r"\games\interstate76", "i76-everywhere-portable", r"\i76-uncap-lab\game\addon",
              r"\i76-uncap-lab\game-dd-20261003")
 

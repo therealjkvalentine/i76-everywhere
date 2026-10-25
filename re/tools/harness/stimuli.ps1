@@ -34,7 +34,7 @@
   LeftBtn; throttle_up = W (0x57); hardpoint1_fire has NO keyboard binding in the sandbox file.
 #>
 $ErrorActionPreference = 'Stop'
-$AutotestLib = "C:\Users\james\i76-uncap-lab\autotest\lib"
+$AutotestLib = "$env:USERPROFILE\i76-uncap-lab\autotest\lib"
 . "$AutotestLib\inputlib.ps1"
 . "$AutotestLib\cheatlib.ps1"
 . "$AutotestLib\focuslib.ps1"
@@ -69,7 +69,7 @@ function Get-StimMap { return $script:StimMap }
 function Open-Stim {
     param([string]$CaptureId = ("stim-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
           [string]$ProcName = 'i76_pristine_fix', [string]$RequirePath = 'i76-uncap-lab',
-          [string]$CapturesRoot = "C:\Users\james\i76-map\captures", [switch]$Write)
+          [string]$CapturesRoot = "$env:USERPROFILE\i76-map\captures", [switch]$Write)
     $proc = Get-Process -Name $ProcName -ErrorAction SilentlyContinue |
             Where-Object { -not $RequirePath -or ($_.Path -and $_.Path -like "*$RequirePath*") } | Select-Object -First 1
     if (-not $proc) { throw "game not running ($ProcName under *$RequirePath*); launch with tools\launch.ps1 first (agents never launch)" }

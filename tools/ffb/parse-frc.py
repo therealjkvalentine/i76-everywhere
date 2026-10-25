@@ -225,7 +225,7 @@ def main():
         folder = None
         # try the running game, then the usual install spots
         for cand in (
-            r"C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76\force",
+            (__import__("os").path.expanduser("~") + r"\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76\force"),
             r"C:\Games\Interstate 76\force",
             r"C:\GOG Games\Interstate 76\force",
         ):

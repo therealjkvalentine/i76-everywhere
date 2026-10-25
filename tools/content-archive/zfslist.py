@@ -1,11 +1,11 @@
 import sys, os, collections
-sys.path.insert(0, r"C:\Users\james\i76-map\tools")
+sys.path.insert(0, (__import__("os").path.expanduser("~") + r"\i76-map\tools"))
 from i76fmt import zfs
 d = open(sys.argv[1], 'rb').read()
 z = zfs.parse(d)
 ex = collections.Counter(os.path.splitext(e.name)[1].lower() for e in z.entries)
 print(len(z.entries), dict(ex.most_common(12)))
-gold = set(n.lower() for n in os.listdir(r"C:\Users\james\i76-map\recon-2026-09-04\recon\formats\zfs_out"))
+gold = set(n.lower() for n in os.listdir((__import__("os").path.expanduser("~") + r"\i76-map\recon-2026-09-04\recon\formats\zfs_out")))
 names = set(e.name.lower() for e in z.entries)
 print('only here', len(names - gold), sorted(names - gold)[:30])
 print('only gold', len(gold - names), sorted(gold - names)[:20])

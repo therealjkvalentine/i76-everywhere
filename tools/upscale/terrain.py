@@ -2,7 +2,7 @@
 """Terrain texture tools for the I'76 upscaling sprint (2026-10-03, agent U4). Code only; images stay in
 i76-upscale-work (never commit decoded art).
 
-Format facts this relies on (findings\\U4.md; renderer: i76-uncap-lab\\docs\\TEXTURE-AND-OBJECT-LOD.md):
+Format facts this relies on (findings\\U4.md; renderer: <lab>\\docs\\TEXTURE-AND-OBJECT-LOD.md):
   * A mission names ONE terrain texture in WRLD (e.g. tp041db6.map). The engine replaces character 4 with
     '2'..'6' and loads five textures: level 0 = '2' (256 px, used to 50 m), 1 = '3' (64), 2 = '4' (64),
     3 = '5' (32), 4..6 = '6' (16). The '1' member is never loaded. Under Glide the .m16 of each pair is used;

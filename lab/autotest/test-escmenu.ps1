@@ -10,7 +10,7 @@
   -RestoreDll   : put u32x.dll.aug16 back (after close)
 #>
 param([ValidateSet("open", "click", "close")] [string]$Stage = "open", [string]$Tag = "a0", [string]$Click, [string]$Dll, [switch]$RestoreDll,
-      [string]$GameDir = "C:\Users\james\i76-uncap-lab\game", [string]$GameArgs = "-glide",   # -GameDir ..\game-alt: the renderer test copy
+      [string]$GameDir = "$env:USERPROFILE\i76-uncap-lab\game", [string]$GameArgs = "-glide",   # -GameDir ..\game-alt: the renderer test copy
       [switch]$KeepInstalledDll)                                                               # -Stage open: proxy-run without the DLL swap
 $ErrorActionPreference = "Stop"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path

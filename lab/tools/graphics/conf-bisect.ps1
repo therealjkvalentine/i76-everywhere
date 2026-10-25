@@ -2,9 +2,9 @@
 # Trial: install a candidate conf, hide the global %APPDATA%\dgVoodoo\dgVoodoo.conf, start i76.exe -glide, wait for
 # the window, read its client size, kill. A rejected conf falls back to defaults and the shell window comes up at
 # raw 640x480; an accepted one gives the borderless full-screen window. ~12 s per trial. Restores everything.
-param([string]$Source = "C:\Users\james\i76-uncap-lab\game\dgVoodoo.conf", [switch]$Each)
+param([string]$Source = "$env:USERPROFILE\i76-uncap-lab\game\dgVoodoo.conf", [switch]$Each)
 $ErrorActionPreference = "Continue"
-$G = "C:\Users\james\i76-uncap-lab\game"; $conf = "$G\dgVoodoo.conf"; $bak = "$conf.pre-bisect"
+$G = "$env:USERPROFILE\i76-uncap-lab\game"; $conf = "$G\dgVoodoo.conf"; $bak = "$conf.pre-bisect"
 $glob = "$env:APPDATA\dgVoodoo\dgVoodoo.conf"; $globHidden = "$env:APPDATA\dgVoodoo\dgVoodoo.conf.hidden-by-bisect"
 Add-Type -Name B -Namespace CB -MemberDefinition '[DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out RECT r); [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }'
 if (Get-Process i76* -ErrorAction SilentlyContinue) { "game running"; exit 1 }

@@ -1,5 +1,5 @@
 From 1ba0bb111d2903bad559accb7599e0ef1c00de26 Mon Sep 17 00:00:00 2001
-From: therealjkvalentine <lab@local>
+From: therealjkvalentine <noreply@users.noreply.github.com>
 Date: Sat, 3 Oct 2026 21:11:12 -0500
 Subject: [PATCH] LFB profiler (OGL_LFB_PROF), faster write-only unlock, GL 1.2
  extension check, MSVC + mingw build scripts

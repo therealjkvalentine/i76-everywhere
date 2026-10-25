@@ -137,7 +137,7 @@ param(
     [string]$RamPrefix = 'b', [switch]$RamOnce,
     [ValidateSet('auto', 'fire', 'oil')] [string]$Hazard = 'auto',
     [switch]$NoNear,
-    [string]$ToolsDir = 'C:\Users\james\i76-everywhere\tools',
+    [string]$ToolsDir = (Join-Path $env:USERPROFILE 'i76-everywhere\tools'),
     [string]$OutDir,
     [string]$Label,
     [int]$BootTimeout = 90,

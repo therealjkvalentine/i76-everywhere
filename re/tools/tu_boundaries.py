@@ -49,7 +49,7 @@ from gen_tables import Image  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-DEFAULT_EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+DEFAULT_EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 EXPECTED_MD5 = "9a232dcc2c164648cff20c414c1f9698"
 RUN_GAP = 4  # bytes: literals closer than this (alignment padding) belong to one run (report only)
 POOL_SPAN = 65536  # a literal whose referencing functions span more .text than this is linker-pooled, not per-object

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 from xref import load_sections
 
-EXE = r"C:\Users\james\i76-uncap-lab\game\i76.exe"
+EXE = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe")
 
 
 def imports(path):

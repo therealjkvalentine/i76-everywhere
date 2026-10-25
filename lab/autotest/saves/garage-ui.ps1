@@ -43,7 +43,7 @@ if ($Click) { $xy = $Click -split ","; Click-UI ([int]$xy[0]) ([int]$xy[1]) $Set
 if ($Key) { Send-Key $VK[$Key]; Start-Sleep -Milliseconds $Settle; "key $Key" }
 if ($Shot) { Start-Sleep -Milliseconds 300; Capture-UI (Join-Path $Out "$Shot.png"); "shot $Out\$Shot.png" }
 if ($State) {
-    $ss = "C:\Users\james\i76-map\shell\tools\shellstate.ps1"
+    $ss = "$env:USERPROFILE\i76-map\shell\tools\shellstate.ps1"
     if (Test-Path $ss) { & $ss -Once 2>$null | Select-Object -First 3 } else { "shellstate.ps1 not found" }
 }
 if ($Close) {

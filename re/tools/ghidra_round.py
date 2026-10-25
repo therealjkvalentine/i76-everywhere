@@ -14,8 +14,8 @@ Never run while drafter/reviewer agents are reading ghidra\export (they read the
 """
 import argparse, json, os, subprocess, sys, time, shutil
 
-M = r"C:\Users\james\i76-map"
-HEADLESS = r"C:\Users\james\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC\support\analyzeHeadless.bat"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
+HEADLESS = (__import__("os").path.expanduser("~") + r"\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC\support\analyzeHeadless.bat")
 
 
 def run(cmd, log, cwd=M, check=True):

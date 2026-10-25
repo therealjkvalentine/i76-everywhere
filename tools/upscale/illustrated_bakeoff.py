@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 r"""illustrated_bakeoff.py - mini model bake-off for the illustrated classes (dash, shell bg, sprite, text, font).
-Sprint 2026-10-03, agent U6. Runs in the shared venv (C:\Users\james\i76-upscale-work\.venv): torch + spandrel.
+Sprint 2026-10-03, agent U6. Runs in the shared venv (<upscale-work>\.venv): torch + spandrel.
 
     python illustrated_bakeoff.py run     --src DIR --models a.pth b.pth ... --out RUN_DIR [--assets dash_a,bg_a]
     python illustrated_bakeoff.py sheets  --src DIR --out RUN_DIR [--crop-scale 2]

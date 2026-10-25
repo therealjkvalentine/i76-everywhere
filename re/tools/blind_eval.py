@@ -319,7 +319,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["render", "score", "reveal"])
     ap.add_argument("arg", nargs="?")
-    ap.add_argument("--map", default=r"C:\Users\james\i76-map")
+    ap.add_argument("--map", default=(__import__("os").path.expanduser("~") + r"\i76-map"))
     ap.add_argument("--export", default="export-frozen")
     ap.add_argument("--out", default=None)
     ap.add_argument("--context", type=int, default=5)

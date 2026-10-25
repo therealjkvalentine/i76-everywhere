@@ -4,7 +4,7 @@
 #
 #   ./deck/deck-push.sh                 # host defaults to $I76_DECK_HOST or steamdeck
 #   ./deck/deck-push.sh deck@steamdeck
-#   ./deck/deck-push.sh deck@100.106.138.71 --revert
+#   ./deck/deck-push.sh deck@<deck-host> --revert
 #
 # Uses ssh/scp only - no rsync (absent from Git Bash on Windows).
 #

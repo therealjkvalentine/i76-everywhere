@@ -22,8 +22,8 @@ param(
     [Parameter(Mandatory)][string]$Shim,
     [Parameter(Mandatory)][string]$PatchesDir,
     [Parameter(Mandatory)][string]$AhkDir,
-    [string]$GogGold = 'C:\Users\james\i76-map\sandbox-gog\main\app',
-    [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\deck-kit',
+    [string]$GogGold = (Join-Path $env:USERPROFILE 'i76-map\sandbox-gog\main\app'),
+    [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\deck-kit'),
     [string]$Version = '0.1.0',
     [string]$Stage = ''
 )

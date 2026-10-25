@@ -25,13 +25,13 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$GameDir = "C:\Users\james\i76-uncap-lab\game",
+    [string]$GameDir = "$env:USERPROFILE\i76-uncap-lab\game",
     # -Exe: file name inside -GameDir; the default is the only exe that runs on this host (H0, console-smoke)
     [string]$Exe = "i76_pristine_fix.exe",
     # -GameArgs @() is accepted (0.2): the no -glide run of item 008 no longer bypasses the launcher
     [string[]]$GameArgs = @("-glide"),
     [string]$CaptureId = ("launch-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
-    [string]$MapRoot = "C:\Users\james\i76-map",
+    [string]$MapRoot = "$env:USERPROFILE\i76-map",
     [int]$SettleSeconds = 8,
     [switch]$AllowPatched,
     [switch]$StrictPristine,

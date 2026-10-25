@@ -15,7 +15,7 @@ poke proceeds only when the main-module md5 is 58d9dec0 (pristine+i76fix-p1) or 
 h0_pass is true; anything else is refused with exit 3 unless --allow-patched (the record is then tagged
 `patched-build-only`). The stamp is written to captures\<id>\manifest.json ('build' block) when absent.
 
-H3 three horizons (ported from C:\Users\james\i76-uncap-lab\tools\instruments\verify-write.ps1, which read
+H3 three horizons (ported from <lab>\tools\instruments\verify-write.ps1, which read
 immediate / +120 ms / +620 ms and printed "WRITE WORKS" / "ENGINE OVERWROTE it" / "PERSISTED" / "WRITE DID NOT
 LAND"; here the delays are sim frames counted on 0x5a7e1c, class bss, so the horizons are tick-based per
 G-UNITS, and the time-based fallback is used only when the counter does not advance):

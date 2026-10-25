@@ -8,7 +8,7 @@ pass-4 failures 0x4b06b0 and 0x47a220, see status\\tasks\\t2-ghidra-rebuild.md).
 rename is compared on the artefact counts, never on the text. The parameter-count check is suspended for
 rows carrying call-cleanup evidence (gate K).
 
-    python tools\\g3_check.py [--map C:\\Users\\james\\i76-map] [--before ghidra\\export-frozen] [--after ghidra\\export]
+    python tools\\g3_check.py [--map <re-archive>] [--before ghidra\\export-frozen] [--after ghidra\\export]
                               [--batch status\\tasks\\t4-anchors.batch.json] [--out status\\tasks\\t4-g3.json]
 Exit 0 when no touched function regresses; 1 otherwise (the list of regressing rows is in the JSON).
 """
@@ -33,7 +33,7 @@ def counts(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--map", default=r"C:\Users\james\i76-map")
+    ap.add_argument("--map", default=(__import__("os").path.expanduser("~") + r"\i76-map"))
     ap.add_argument("--before", default=None)
     ap.add_argument("--after", default=None)
     ap.add_argument("--batch", default=None)

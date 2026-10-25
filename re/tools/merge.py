@@ -5,7 +5,7 @@ Method doc (docs\\FRESH-START-METHOD.md) section 4: every row is validated again
 before it enters a TSV. Nothing else writes those files.
 
 Usage:
-    python tools\\merge.py batch.json [--map C:\\Users\\james\\i76-map] [--dry-run] [--log path] [--gates]
+    python tools\\merge.py batch.json [--map <re-archive>] [--dry-run] [--log path] [--gates]
     python tools\\merge.py --proposal <addr> [--dry-run] [--single-view]        (Task 8: the agent-loop path)
 
 Proposal path (method doc section 6, gates G0-G4; Task 8): reads functions\\<addr>.proposal.md (view c) and
@@ -1229,7 +1229,7 @@ def _queue_result(M, key, result, reason, emit, tokens=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("batch", nargs="?", default=None, help="batch JSON (tool batches); omit with --proposal")
-    ap.add_argument("--map", default=r"C:\Users\james\i76-map")
+    ap.add_argument("--map", default=(__import__("os").path.expanduser("~") + r"\i76-map"))
     ap.add_argument("--exe", default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--log", default=None)

@@ -2,9 +2,9 @@ r"""Task 6(c): PyGhidra smoke test. Opens a scratch project (NOT ghidra\proj), i
 without analysis, prints Ghidra's version and basic program facts. Prints one JSON line."""
 import json, os, sys, time
 os.environ.setdefault("GHIDRA_INSTALL_DIR",
-    r"C:\Users\james\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC")
+    (__import__("os").path.expanduser("~") + r"\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC"))
 SCRATCH = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.environ["TEMP"], "pyghidra-smoke")
-BIN = r"C:\Users\james\i76-uncap-lab\game\i76.exe.2017galaxy"
+BIN = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe.2017galaxy")
 t0 = time.time()
 import pyghidra
 res = {"pyghidra": pyghidra.__version__, "ghidra_install_dir": os.environ["GHIDRA_INSTALL_DIR"]}

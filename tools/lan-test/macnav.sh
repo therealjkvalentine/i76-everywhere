@@ -6,7 +6,7 @@
 #   click X Y | key VK [ms] | shell | state | pos | find TEXT   (pass-through, mapped clicks)
 #   drive SECS       hold W (throttle) with a steer pulse every 5 s and print pos every 5 s
 # Every click uses the measured map (I76PROBE_MAP), never the 4:3 guess: on the Macs DxWnd's picture is not the 4:3
-# letterbox of the client (Andrew 1392x900: x' = 94 + 2.065 x, y' = 1.875 y; the letterbox guess missed HOST by 10 px).
+# letterbox of the client (the M2 tester 1392x900: x' = 94 + 2.065 x, y' = 1.875 y; the letterbox guess missed HOST by 10 px).
 # APP "deck" = the Steam Deck's Proton prefix (deckprobe.sh); the Deck's proxy maps the pointer stretched (I76_CURSOR_MAP=1).
 A="$1"; shift
 if [ "$A" = deck ]; then D=$HOME/Games/Interstate76/lan-test-20261018; P() { "$D/deckprobe.sh" "$@"; }; MAPF=$D/map.txt; export I76PROBE_STRETCH=1

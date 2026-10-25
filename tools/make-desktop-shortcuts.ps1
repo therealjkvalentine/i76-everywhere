@@ -3,7 +3,7 @@
            into Desktop\_i76-old-shortcuts. A shortcut is only created when its target exists; an old shortcut is only moved when its
            replacement exists (so the owner never loses the only way to play). Safe to re-run.
 #>
-$Desk = [Environment]::GetFolderPath('Desktop'); $Games = 'C:\Users\james\Games\I76'
+$Desk = [Environment]::GetFolderPath('Desktop'); $Games = (Join-Path $env:USERPROFILE 'Games\I76')
 $sh = New-Object -ComObject WScript.Shell
 function New-Lnk($name, $target) {
   if (-not (Test-Path $target)) { Write-Host "SKIP  $name : target missing $target"; return $false }

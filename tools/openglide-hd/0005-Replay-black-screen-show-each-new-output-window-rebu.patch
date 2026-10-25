@@ -1,5 +1,5 @@
 From 13a126d02878277b9be6b8d9a83a42b1f3715a9e Mon Sep 17 00:00:00 2001
-From: therealjkvalentine <james.k.valentine@gmail.com>
+From: therealjkvalentine <noreply@users.noreply.github.com>
 Date: Sun, 4 Oct 2026 14:17:34 -0500
 Subject: [PATCH 5/5] Replay black screen: show each new output window; rebuild
  gamma objects per context; OGL_OUTPUT=parent

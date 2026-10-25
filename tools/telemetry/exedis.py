@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """exedis.py - read-only disassembly of an i76.exe image by virtual address (capstone), for checking patch sites.
 
-  python exedis.py <exe> <va hex> [bytes]      e.g. python dis.py ..\\..\\..\\i76-map\\sandbox-gog\\main\\app\\i76.exe 0x4220c0 64
+  python exedis.py <exe> <va hex> [bytes]      e.g. python dis.py ..\\..\\..\\<re-archive>\\sandbox-gog\\main\\app\\i76.exe 0x4220c0 64
 
 Never writes anything. Used by verify_v3_sites.py.
 """

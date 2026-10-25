@@ -31,7 +31,7 @@ import prepost                     # noqa: E402
 import upscale_run as ur           # noqa: E402
 from m16_scale_marker import parse_pix   # noqa: E402
 
-WORK = os.environ.get("I76_UPSCALE_WORK", r"C:\Users\james\i76-upscale-work")
+WORK = os.environ.get("I76_UPSCALE_WORK", (__import__("os").path.expanduser("~") + r"\i76-upscale-work"))
 DEFAULT_MODEL = os.path.join(WORK, "models", "interp", "4x_Manga109Attempt__4x_RRDB_PSNR__w50.pth")
 REFUSE = (r"\games\interstate76", r"\games", "i76-everywhere-portable", r"\i76-uncap-lab\game\addon",
           r"\i76-uncap-lab\game-dd-20261003")
@@ -135,7 +135,7 @@ def main():
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--tile", type=int, default=512)
     ap.add_argument("--sheet", default=None, help="dir for <pak>-sheet.png contact sheets")
-    ap.add_argument("--i76fmt", default=r"C:\Users\james\i76-map\tools")
+    ap.add_argument("--i76fmt", default=(__import__("os").path.expanduser("~") + r"\i76-map\tools"))
     a = ap.parse_args()
     out_abs = os.path.abspath(a.out).lower()
     if any(b in out_abs for b in REFUSE):

@@ -30,7 +30,7 @@ namespace Haptics.Tests
             using (var d = DebugPublisher.FromSpec("17999")) T.Check("a bare port", d.Endpoint == "127.0.0.1:17999", d.Endpoint);
             using (var d = DebugPublisher.FromSpec("localhost:18001")) T.Check("localhost:port", d.Endpoint == "127.0.0.1:18001", d.Endpoint);
             bool refused = false;
-            try { DebugPublisher.FromSpec("192.168.1.20:17680").Dispose(); } catch (ArgumentException) { refused = true; }
+            try { DebugPublisher.FromSpec("192.0.2.20:17680").Dispose(); } catch (ArgumentException) { refused = true; }
             T.Check("a non-loopback address is refused", refused);
         }
 

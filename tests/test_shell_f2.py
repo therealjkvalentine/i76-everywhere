@@ -1,12 +1,12 @@
-"""Offline checks of tools/patch-shell-modals.py's opt-in F2 (the orphaned-bookmark fix, i76-map shell/FIXES.md F2).
+"""Offline checks of tools/patch-shell-modals.py's opt-in F2 (the orphaned-bookmark fix, <re-archive> shell/FIXES.md F2).
 
     python -m pytest tests/test_shell_f2.py -q
 
-Starts no game. Needs a stock i76shell.dll: $I76_SHELL, else the pristine GOG shell in ../i76-map/shell/bin
+Starts no game. Needs a stock i76shell.dll: $I76_SHELL, else the pristine GOG shell in ../<re-archive>/shell/bin
 (deb41008); skipped when neither exists. The emulation checks need unicorn + pefile (skipped without them).
   - the default run (no --with-f2) is unchanged: F2 is not in it, the promoted M1..K4 set is;
   - --only F2 on the pristine shell changes exactly the 10 bytes at 0x10014866 and the 2-byte relocation entry of
-    0x10014868 (md5 6cd6b51f = i76-map tools/patch_shell.py --fixes F2, cross-checked 2026-10-16);
+    0x10014868 (md5 6cd6b51f = <re-archive> tools/patch_shell.py --fixes F2, cross-checked 2026-10-16);
   - the emulation passes on the patched file and fails on the stock control (the check discriminates).
 """
 import hashlib, os, subprocess, sys, importlib.util

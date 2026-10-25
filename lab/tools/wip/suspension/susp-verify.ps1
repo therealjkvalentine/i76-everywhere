@@ -7,7 +7,7 @@
   Conditions: 20fps stock; 60fps stock; 60fps x0.333; 60fps x0.577 (=1/sqrt3).
 #>
 $ErrorActionPreference = 'Stop'
-$lab = "C:\Users\james\i76-uncap-lab"
+$lab = "$env:USERPROFILE\i76-uncap-lab"
 . "$lab\autotest\lib\focuslib.ps1"; . "$lab\autotest\lib\inputlib.ps1"
 . "$lab\autotest\lib\memlib.ps1";   . "$lab\autotest\lib\uiclick.ps1"
 Add-Type @"

@@ -7,7 +7,7 @@
 #>
 param([double]$Mult = 3.0, [string]$OutDir = "$PSScriptRoot\..\..\..\captures\suspension")
 $ErrorActionPreference = 'Stop'
-$lab = "C:\Users\james\i76-uncap-lab"
+$lab = "$env:USERPROFILE\i76-uncap-lab"
 . "$lab\autotest\lib\focuslib.ps1"; . "$lab\autotest\lib\inputlib.ps1"
 . "$lab\autotest\lib\memlib.ps1";   . "$lab\autotest\lib\uiclick.ps1"
 Add-Type @"

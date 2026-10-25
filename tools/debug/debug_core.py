@@ -18,7 +18,7 @@ TOOLS = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(TOOLS, "telemetry"))
 import i76tel                                                   # Header, decode_datagram, sound_fields, ev_name, ...
 
-LAB_GAME = r"C:\Users\james\i76-uncap-lab\game"
+LAB_GAME = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game")
 
 # ---------------------------------------------------------------- shared memory, open-existing only
 

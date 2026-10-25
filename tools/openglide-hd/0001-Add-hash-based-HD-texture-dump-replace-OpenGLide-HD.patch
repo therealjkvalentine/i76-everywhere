@@ -1,5 +1,5 @@
 From 3243a2acc5b449fc35d520b35e8c98bbe8f62c34 Mon Sep 17 00:00:00 2001
-From: James Valentine <james.k.valentine@gmail.com>
+From: therealjkvalentine <noreply@users.noreply.github.com>
 Date: Fri, 10 Jul 2026 07:33:40 -0500
 Subject: [PATCH 1/2] Add hash-based HD texture dump/replace (OpenGLide-HD)
 

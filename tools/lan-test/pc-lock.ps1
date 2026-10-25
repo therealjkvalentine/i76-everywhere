@@ -1,8 +1,8 @@
-# pc-lock.ps1 -Take | -Release : the lab console lock (i76-uncap-lab\CONSOLE-LOCK.md) for the PC cells of the LAN matrix.
+# pc-lock.ps1 -Take | -Release : the lab console lock (<lab>\CONSOLE-LOCK.md) for the PC cells of the LAN matrix.
 # -Take polls every -PollSec (3) s for up to -WaitMin minutes; it takes the lock only when .console-owner is absent, no i76.exe runs
 # and no <folder>\.console-test.lock exists in game, game-alt, game-dd-20261003.
 param([switch]$Take, [switch]$Release, [int]$WaitMin = 60, [int]$PollSec = 3, [string]$Who = "lan-test (LAN-MATRIX-2026-10-18)")
-$lab = "C:\Users\james\i76-uncap-lab"; $f = Join-Path $lab ".console-owner"
+$lab = "$env:USERPROFILE\i76-uncap-lab"; $f = Join-Path $lab ".console-owner"
 if ($Release) { if ((Test-Path $f) -and ((Get-Content $f -Raw) -like "$Who*")) { Remove-Item $f -Force; "released" } else { "not ours / absent: $(if (Test-Path $f) { Get-Content $f -Raw })" }; exit 0 }
 $end = (Get-Date).AddMinutes($WaitMin)
 while ((Get-Date) -lt $end) {

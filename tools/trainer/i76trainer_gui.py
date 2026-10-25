@@ -15,7 +15,7 @@ Two ways of applying a cheat, chosen automatically (README-GUI.md):
           (cheats.md section 2), and a hit can register in the same frame as a repair; the hold timer papers over
           both, which is why this is the fallback and not the default.
 
-Every address comes from i76-map\subsystems\cheats.md. Status comes from Local\I76Telemetry (i76tel.h) when the game
+Every address comes from <re-archive>\subsystems\cheats.md. Status comes from Local\I76Telemetry (i76tel.h) when the game
 publishes it, from direct reads otherwise.
 
 CAMPAIGN (corrected 2026-10-04, README-GUI.md "Campaign progress"): Play Options bits 0x04 / 0x08 / 0x10 in the game's

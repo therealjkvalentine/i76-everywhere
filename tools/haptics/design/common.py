@@ -12,8 +12,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)                                # tools/haptics
 REPO = os.path.dirname(os.path.dirname(ROOT))
 OUT = os.path.join(HERE, "out")                             # gitignored: derived from the owner's own game files
-PRISTINE = r"C:\Users\james\i76-map\sandbox-gog\main\app"   # AGENTS.md: "pristine control - read-only reference"
-LZO_CANDIDATES = [os.environ.get("LZO2_DLL", ""), r"C:\Users\james\anaconda3\Library\bin\lzo2.dll"]
+PRISTINE = (__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app")   # AGENTS.md: "pristine control - read-only reference"
+LZO_CANDIDATES = [os.environ.get("LZO2_DLL", ""), (__import__("os").path.expanduser("~") + r"\anaconda3\Library\bin\lzo2.dll")]
 
 sys.path.insert(0, os.path.join(REPO, "tools"))
 

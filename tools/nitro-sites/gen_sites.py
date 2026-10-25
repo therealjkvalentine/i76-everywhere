@@ -7,7 +7,7 @@ patches it.
 
 Method (static, re-runnable; docs/records/NITRO-PORT-2026-10-21.md s.1):
   1. Function pairs Gold -> Nitro: lab emu/tools/memtrace/exe_diff_map.json (Ghidra VT vt-nitro + call-graph
-     propagation, NITRO-VS-RETAIL s.1). Function bounds: i76-map ghidra/export{,-nitro}/functions.csv.
+     propagation, NITRO-VS-RETAIL s.1). Function bounds: <re-archive> ghidra/export{,-nitro}/functions.csv.
   2. Inside each pair both functions are disassembled (capstone) and aligned instruction by instruction on a
      normalised token (mnemonic + operands, in-image addresses masked, entity fields +0x444..+0x5ff folded), difflib.
   3. Code site -> the aligned Nitro instruction (+ the same offset inside the instruction when the lengths agree).
@@ -31,11 +31,11 @@ import capstone
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 D = dict(
-    gold=r'C:/Users/james/Games/I76/release-candidate/Interstate 76/i76.exe',
-    nitro=r'C:/Users/james/i76-map/ghidra/nitro.exe',
-    gold_funcs=r'C:/Users/james/i76-map/ghidra/export/functions.csv',
-    nitro_funcs=r'C:/Users/james/i76-map/ghidra/export-nitro/functions.csv',
-    pairs=r'C:/Users/james/i76-uncap-lab/emu/tools/memtrace/exe_diff_map.json',
+    gold=(__import__("os").path.expanduser("~") + r'/Games/I76/release-candidate/Interstate 76/i76.exe'),
+    nitro=(__import__("os").path.expanduser("~") + r'/i76-map/ghidra/nitro.exe'),
+    gold_funcs=(__import__("os").path.expanduser("~") + r'/i76-map/ghidra/export/functions.csv'),
+    nitro_funcs=(__import__("os").path.expanduser("~") + r'/i76-map/ghidra/export-nitro/functions.csv'),
+    pairs=(__import__("os").path.expanduser("~") + r'/i76-uncap-lab/emu/tools/memtrace/exe_diff_map.json'),
     header=os.path.join(REPO, 'music-fix', 'sites_nitro.h'),
     csv=os.path.join(HERE, 'sites_nitro.csv'),
     extra=os.path.join(HERE, 'extra_sites.txt'),

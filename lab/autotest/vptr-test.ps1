@@ -49,7 +49,7 @@
 #>
 param(
     [string[]]$Stage = @("all"),
-    [string]$Dll = "C:\Users\james\i76-uncap-lab\src\u32x_new.dll",
+    [string]$Dll = "$env:USERPROFILE\i76-uncap-lab\src\u32x_new.dll",
     [string]$Bookmark = "save003", [int]$Row = 3, [int]$RowUy = 262,
     [int]$Runs = 2, [int]$RouteRuns = 3,
     [string]$Extra = "",                       # e.g. "I76_U32X_VPTR_WIDEN=1;I76_U32X_VPTR_HIDEOS=0"
@@ -59,8 +59,8 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Lab = "C:\Users\james\i76-uncap-lab"; $G = Join-Path $Lab "game"
-$SS = "C:\Users\james\i76-map\shell\tools\shellstate.ps1"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = Join-Path $Lab "game"
+$SS = "$env:USERPROFILE\i76-map\shell\tools\shellstate.ps1"
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
 $Run = Join-Path $Here "runs\vptr\$ts"; New-Item -ItemType Directory -Force $Run | Out-Null
 $LogPath = Join-Path $Run "log.txt"

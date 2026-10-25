@@ -13,7 +13,7 @@
 #   tools/mp-mac-install.sh verify APP PACK   md5 of every pack file in APP's game folder against PACK/common.md5 and
 #                                             PACK/mac.md5; prints the mismatches and a count. Needs only md5/awk.
 #
-# Never run with the game open. update/clone use python3 (James's Mac); adopt/verify need nothing extra (kids' Macs).
+# Never run with the game open. update/clone use python3 (the developer's Mac); adopt/verify need nothing extra (kids' Macs).
 set -euo pipefail
 die() { echo "mp-mac-install: $*" >&2; exit 1; }
 cmd="${1:-}"; APP="${2:-}"
@@ -55,7 +55,7 @@ setv(dll, 'wsock32', '"native,builtin"')       # IPXWrapper (docs/MULTIPLAYER.md
 setv(dll, 'mswsock', '"native,builtin"')
 setv('[Environment]', 'I76_COOP_AI', '"1"')     # docs/COOP.md: shared enemies (only matters in the co-op missions)
 setv('[Environment]', 'I76_COOP_CHAIN', '"1"')  # won -> next co-op mission, lost -> retry; melee arenas end normally
-setv('[Environment]', 'I76_MUSIC_THREAD', '"1"')  # MP3 open off the game thread: without it the boot sat in mmdevapi for minutes (James's Mac, 2026-10-17)
+setv('[Environment]', 'I76_MUSIC_THREAD', '"1"')  # MP3 open off the game thread: without it the boot sat in mmdevapi for minutes (the developer's Mac, 2026-10-17)
 open(p, 'w', encoding='utf-8').write(s)
 print('user.reg: wsock32/mswsock native,builtin for i76.exe; I76_COOP_AI=1, I76_COOP_CHAIN=1, I76_MUSIC_THREAD=1 (backup user.reg.pre-mp-*)')
 PY
@@ -65,7 +65,7 @@ clone)
     [ -e "$DEST" ] && die "$DEST exists"
     running && die "the source is running - quit it first"
     mkdir -p "$(dirname "$DEST")"
-    # APFS clone (no extra disk until changed), then strip what is James's own
+    # APFS clone (no extra disk until changed), then strip what is the developer's own
     cp -c -R "$APP" "$DEST"
     DP="$DEST/Contents/SharedSupport/prefix"; DG="$DP/drive_c/GOG Games/Interstate 76"
     rm -rf "$DP/drive_c/GOG Games/Interstate 76.pre-"* "$DP/drive_c/GOG Games/Interstate 76.mp-"* "$DP/drive_c/GOG Games/Interstate 76 Nitro Pack" "$DP/drive_c/x64dbg" "$DP"/user.reg.pre-* "$DP"/*.bak*

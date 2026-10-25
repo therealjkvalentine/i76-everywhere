@@ -188,8 +188,8 @@ def listing(g):
 
 def test_default_roots_refuse_everything_but_lab_game_folders(tmp_path):
     _, g = make_fake_game(tmp_path)
-    for target in (str(g), r"C:\Users\james\Games\Interstate76-2026-10-03", r"C:\Users\james\i76-map\sandbox-gog\main\app",
-                   r"C:\Users\james\i76-uncap-lab", r"C:\Users\james\i76-uncap-lab\captures"):
+    for target in (str(g), (__import__("os").path.expanduser("~") + r"\Games\Interstate76-2026-10-03"), (__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app"),
+                   (__import__("os").path.expanduser("~") + r"\i76-uncap-lab"), (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\captures")):
         with pytest.raises(sh_install.InstallRefused):
             sh_install.check_target(target)
 
@@ -267,8 +267,8 @@ def test_uninstall_keeps_files_changed_since_install(tmp_path):
 
 def test_soundhd_stages_refuse_game_output_dirs():
     import soundhd
-    for p in (r"C:\Users\james\i76-uncap-lab\game\soundhd", r"C:\Users\james\i76-uncap-lab\game-dd-20261003",
-              r"C:\Users\james\Games\Interstate76-2026-10-03\x", r"C:\Users\james\i76-map\sandbox-gog\main\app\ADDON"):
+    for p in ((__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\soundhd"), (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game-dd-20261003"),
+              (__import__("os").path.expanduser("~") + r"\Games\Interstate76-2026-10-03\x"), (__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app\ADDON")):
         with pytest.raises(SystemExit):
             soundhd.guard_check(p)
 

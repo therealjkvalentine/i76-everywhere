@@ -1,0 +1,5 @@
+# copy to hosts.local.sh (git-ignored) and fill in; sourced by hosts.sh
+LAPTOP=user@laptop-address
+M2MAC=user@m2-mac-address
+M4MAC=user@m4-mac-address
+DECK=deck@deck-address

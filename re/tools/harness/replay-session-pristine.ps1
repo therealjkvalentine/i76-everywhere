@@ -24,7 +24,7 @@ param(
     [switch]$Trace
 )
 $ErrorActionPreference = 'Stop'
-$lab = 'C:\Users\james\i76-uncap-lab'   # harness lives in i76-map; the lab tree holds src\ and captures\inputs
+$lab = (Join-Path $env:USERPROFILE 'i76-uncap-lab')   # harness lives in i76-map; the lab tree holds src\ and captures\inputs
 $out = Join-Path $lab 'captures\inputs'
 $csv = Join-Path $out "$Label.csv"
 $meta= Join-Path $out "$Label.meta.txt"
@@ -52,7 +52,7 @@ Start-Sleep -Seconds 4
 Set-Content (Join-Path $lab 'captures\i76uncap.ctl') "fpscap=$Fps"
 Start-Sleep -Seconds 1
 
-. "C:\Users\james\i76-uncap-lab\autotest\lib\focuslib.ps1"
+. "$env:USERPROFILE\i76-uncap-lab\autotest\lib\focuslib.ps1"
 function Get-GamePid { Get-Process -Name i76_pristine_fix -EA SilentlyContinue | Where-Object { $_.Path -like '*i76-uncap-lab*' } | Select-Object -First 1 }
 $p2 = Get-GamePid
 if (Test-WindowPumping $p2.MainWindowHandle) { Force-Foreground $p2.MainWindowHandle | Out-Null } else { Write-Warning "game window not pumping - skipping focus" }

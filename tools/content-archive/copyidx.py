@@ -1,7 +1,7 @@
 import csv, re, os, json, shutil
 BS = chr(92)
 src = 'D:/i76-archive/community-20261024'
-out = 'C:/Users/james/i76-everywhere/docs/research/content-2026-10-24/index'
+out = (__import__("os").path.expanduser("~") + '/i76-everywhere/docs/research/content-2026-10-24/index')
 EM = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
 for name, drop in [('maps-unique.csv', []), ('maps.csv', ['email']), ('cars.csv', []), ('audio.csv', []),
                    ('frc.csv', []), ('paints.csv', [])]:

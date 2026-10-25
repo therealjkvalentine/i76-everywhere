@@ -23,7 +23,7 @@ import debug_core, i76rec
 from debug_core import ProxyLog, Hub, ShmView
 
 FIXTURE_LOG = os.path.join(HERE, "fixtures", "mciproxy-sample.log")
-LAB_REC = r"C:\Users\james\i76-uncap-lab\autotest\runs\overnight-20261011-203304\P2\t05.i76rec"
+LAB_REC = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\autotest\runs\overnight-20261011-203304\P2\t05.i76rec")
 HOST_EXE = os.path.join(TOOLS, "haptics", "src", "Host", "bin", "Release", "net8.0", "i76haptics.exe")
 OUT = os.path.join(HERE, "out")
 REC = LAB_REC

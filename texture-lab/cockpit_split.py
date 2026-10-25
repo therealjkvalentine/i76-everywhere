@@ -51,7 +51,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import i76img  # noqa: E402
 
-I76MAP = os.environ.get("I76MAP", r"C:\Users\james\i76-map")
+I76MAP = os.environ.get("I76MAP", (__import__("os").path.expanduser("~") + r"\i76-map"))
 TILE_RE = re.compile(r"^ZDASH(\d)0([12])$")
 QCOL = {(0, 0): (255, 40, 40), (1, 0): (40, 220, 40), (0, 1): (60, 110, 255), (1, 1): (255, 230, 0)}
 MAGENTA = (255, 0, 255)
@@ -62,7 +62,7 @@ PROTECTED = (r"\games\interstate76", "i76-everywhere-portable", r"\i76-uncap-lab
 # ---------------------------------------------------------------------------------------------- archive access
 class Source:
     """Read members by file name: <game>/ADDON loose copy first (unless no_addon), then <game>/I76.ZFS via
-    i76-map's pure-Python reader; or a loose extraction folder."""
+    <re-archive>'s pure-Python reader; or a loose extraction folder."""
 
     def __init__(self, game=None, extract=None, no_addon=False):
         self.game, self.extract, self.no_addon, self.z, self.used = game, extract, no_addon, None, {}
@@ -105,7 +105,7 @@ def build_pak(members):
 
 
 # ---------------------------------------------------------------------------------------------- .geo
-# Layout (geo_Parse 0x446c90; i76-map data/fmt/other_formats.py GEO; flat colour is 3 bytes):
+# Layout (geo_Parse 0x446c90; <re-archive> data/fmt/other_formats.py GEO; flat colour is 3 bytes):
 #   'OEG.' u32 w4, name[16], u32 nVerts, u32 nFaces, u32 0; nVerts x f32[3] pos; nVerts x f32[3] normal;
 #   per face: u32 index, u32 nCorners, u8[3] rgb, f32[4] plane, u32 0, u8[3] surface, char[13] texture,
 #   u32 parent, u32 side, nCorners x {u32 vertex, u32 normal, f32 u, f32 v}

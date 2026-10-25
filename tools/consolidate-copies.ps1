@@ -30,7 +30,7 @@ param(
   [string]$CruftRoot = 'D:\i76-archive\cruft-20261025'
 )
 $ErrorActionPreference = 'Stop'
-$Lab = 'C:\Users\james\i76-uncap-lab'; $Games = 'C:\Users\james\Games\I76'
+$Lab = (Join-Path $env:USERPROFILE 'i76-uncap-lab'); $Games = (Join-Path $env:USERPROFILE 'Games\I76')
 if ($ArchiveRoot -notmatch '^[Dd]:\\') { throw 'ArchiveRoot must be on D:' }
 $mode = if ($Execute) { 'EXECUTE' } else { 'DRY-RUN' }
 Write-Host "== consolidate-copies ($mode) phase=$Phase only=$Only quiet=${QuietMinutes}min"

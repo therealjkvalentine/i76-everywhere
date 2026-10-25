@@ -13,7 +13,7 @@ $Variants = @($Variants | ForEach-Object { $_ -split "," } | Where-Object { $_ }
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
 $Out = Join-Path $Here "..\..\captures\graphics\$ts"; New-Item -ItemType Directory -Force $Out | Out-Null; $Out = (Resolve-Path $Out).Path
-$fs = "C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py"
+$fs = "$env:USERPROFILE\i76-everywhere\tools\telemetry\frame_stats.py"
 $freeze = Join-Path $Here "freeze-at.py"
 "# graphics matrix $ts (t01, refresh $Refresh, car frozen at the same spot)`n`n| # | variant | frame rect | frame stats | GPU |`n|---|---|---|---|---|" | Set-Content "$Out\results.md"
 $n = 0
@@ -21,7 +21,7 @@ foreach ($v in $Variants) {
     $n++; $tag = "{0:d2}-{1}" -f $n, $v
     if ($v -ne "live") { & "$Here\apply-conf.ps1" -Variant $v 2>&1 | Select-Object -Last 1 }
     $png = "$Out\$tag.png"; $st = "$Out\$tag.stats.txt"; $cap = "$Out\$tag.cap.txt"; $gpu = "$Out\$tag.gpu.txt"
-    $run = [scriptblock]::Create("python '$freeze' on; Start-Sleep -Seconds 4; . 'C:\Users\james\i76-uncap-lab\autotest\lib\focuslib.ps1'; `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Start-Sleep -Milliseconds 800; & '$Here\capture-frame.ps1' -Out '$png' *> '$cap'; python '$fs' 10 '$tag' 2>&1 | Out-File '$st' -Encoding ascii; nvidia-smi --query-gpu=utilization.gpu,memory.used,power.draw --format=csv,noheader 2>&1 | Out-File '$gpu' -Encoding ascii; python '$freeze' off")
+    $run = [scriptblock]::Create("python '$freeze' on; Start-Sleep -Seconds 4; . (Join-Path $env:USERPROFILE 'i76-uncap-lab\autotest\lib\focuslib.ps1'); `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Start-Sleep -Milliseconds 800; & '$Here\capture-frame.ps1' -Out '$png' *> '$cap'; python '$fs' 10 '$tag' 2>&1 | Out-File '$st' -Encoding ascii; nvidia-smi --query-gpu=utilization.gpu,memory.used,power.draw --format=csv,noheader 2>&1 | Out-File '$gpu' -Encoding ascii; python '$freeze' off")
     $boot = & "$Here\..\..\autotest\proxy-run.ps1" -Mission t01 -Hold 0 -Env @{ I76_GLIDE_REFRESH = $Refresh } -Run $run 2>&1 | Out-String
     if ($v -ne "live") { & "$Here\apply-conf.ps1" -Restore 2>&1 | Select-Object -Last 1 }
     $rect = if (Test-Path $cap) { ((Get-Content $cap) -join " ") -replace ".*: (\d+x\d+ at \([\d,]+\)).*", '$1' } else { "-" }

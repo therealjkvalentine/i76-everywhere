@@ -46,7 +46,7 @@ if (-not $GameDir) { $GameDir = Join-Path $Lab "game-alt" }
 $Switch = Join-Path $PSScriptRoot "switch-renderer.ps1"
 $NgSet = Join-Path $PSScriptRoot "nglide-settings.ps1"
 $Proxy = Join-Path $Lab "autotest\proxy-run.ps1"
-$FrameStats = "C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py"
+$FrameStats = "$env:USERPROFILE\i76-everywhere\tools\telemetry\frame_stats.py"
 $Refs = Join-Path $Lab "refs\renderers"
 if (-not $Out) { $Out = Join-Path $Lab ("autotest\runs\renderers\" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
 

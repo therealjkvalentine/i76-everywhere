@@ -1,7 +1,7 @@
-"""ui_i76.py - copy of i76-map\captures\002-nav\ui.py adapted for the sandbox i76.exe (the original keys on
+"""ui_i76.py - copy of <re-archive>\captures\002-nav\ui.py adapted for the sandbox i76.exe (the original keys on
 the process name 'i76_pristine*' and is left untouched). Same commands: shot <name> | click x y | key vk |
 uclick ux uy | quit | chord mod vk | sleep s | state. The process is picked by name 'i76.exe' AND by path
-containing 'i76-uncap-lab' so the daily driver can never be the target."""
+containing '<lab>' so the daily driver can never be the target."""
 import sys, time, win32gui, win32ui, win32con, win32api, win32process, psutil, ctypes, struct
 def _pid():
     for p in psutil.process_iter(['name', 'exe']):

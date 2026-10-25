@@ -36,7 +36,7 @@ The suffix keeps it off the real game's shared memory; it never sends input.
 import argparse, ctypes, importlib.util, math, mmap, os, re, struct, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TOOLS = r"C:\Users\james\i76-everywhere\tools"
+TOOLS = (__import__("os").path.expanduser("~") + r"\i76-everywhere\tools")
 PROXY_C = os.path.normpath(os.path.join(TOOLS, "..", "music-fix", "strlkproxy.c"))
 GROUND = 25.0
 C_TYPES = {"DWORD": 4, "int": 4, "float": 4, "double": 8, "WORD": 2, "BYTE": 1, "char": 1}
@@ -164,7 +164,7 @@ def main():
 
     tset("magic", 0x43363749); tset("version", 1); tset("size", tsize)
 
-    # the player pointer chain and the weapon tables (i76-map types/i76_runtime.h)
+    # the player pointer chain and the weapon tables (<re-archive> types/i76_runtime.h)
     poke(0x54A264, "<I", PP); poke(PP, "<I", OBJ)
     DEFS = [("25mm Cannon", 2, 30, 200, 5.0, 6), ("50cal MG", 2, 8, 200, 10.0, 1), ("Gas Launcher", 5, 30, 200, 20.0, 0xA),
             ("Landmines", 6, 240, 200, 1.0, 0xF), ("Fire-Dropper", 6, 15, 200, 60.0, 0x11), ("Oil Slick", 6, 0, 200, 60.0, 0xC)]

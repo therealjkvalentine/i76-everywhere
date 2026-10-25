@@ -3,7 +3,7 @@
 pristine binary, the Ghidra export and Task 3's TSVs, re-deriving every fact it claims (nothing is copied
 from a report without being re-measured here). Output: a merge.py batch JSON plus a funnel log.
 
-    python tools\\anchors_t4.py [--map C:\\Users\\james\\i76-map] [--out status\\tasks\\t4-anchors.batch.json]
+    python tools\\anchors_t4.py [--map <re-archive>] [--out status\\tasks\\t4-anchors.batch.json]
 
 Every evidence row carries md5 (H0), and every count its method (gate C). Rows the gates cannot carry are
 emitted as `proposed` (merge.py stores them; ApplyMap never applies a proposed name).
@@ -183,7 +183,7 @@ def build(C):
         % (len(thunks), n_ext, len(thunks) - n_ext))
 
     # ---------------- 2. Smacker ordinals: names from SMACKW32.DLL's export table -----------------
-    dll = os.path.join(r"C:\Users\james\i76-uncap-lab\game", "SMACKW32.DLL")
+    dll = os.path.join((__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"), "SMACKW32.DLL")
     pe = pefile.PE(dll)
     dll_md5 = hashlib.md5(open(dll, "rb").read()).hexdigest()
     exp = {e.ordinal: e.name.decode() for e in pe.DIRECTORY_ENTRY_EXPORT.symbols if e.name}
@@ -418,7 +418,7 @@ def build(C):
     st = procaddr_stores(0x446020)
     st = [s for s in st if 0x52bbdc <= s[0] <= 0x52bbe4]
     assert len(st) == 3, st
-    sf = os.path.join(r"C:\Users\james\i76-uncap-lab\game", "i7_sfrce.dll")
+    sf = os.path.join((__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"), "i7_sfrce.dll")
     sfexp = {e.name.decode() for e in pefile.PE(sf).DIRECTORY_ENTRY_EXPORT.symbols if e.name}
     C.func(0x446020, "FFB_LoadDriver", "supported",
            [C.imp_ev(0x446020, "LoadLibraryA"), C.imp_ev(0x446020, "GetProcAddress"), C.str_ev(0x446020, 0x4f2500, claim="I7_SFRCE.DLL"),
@@ -651,7 +651,7 @@ def build(C):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--map", default=r"C:\Users\james\i76-map")
+    ap.add_argument("--map", default=(__import__("os").path.expanduser("~") + r"\i76-map"))
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
     C = Ctx(args.map)

@@ -6,7 +6,7 @@
 #   -Restore put the backups back and md5-compare against the stock md5 6edfea77.
 # Lab copies only. Never the daily driver, the golden copy or game-dd-*.
 param([switch]$Apply, [switch]$Restore)
-$Lab = "C:\Users\james\i76-uncap-lab"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"
 $Bak = "$Lab\autotest\runs\mp\bak-winet"
 $stock = "6EDFEA775E3478FE3F1234E5AA54BCDC"
 $plan = @(@{ Dir = "$Lab\game"; Off = 0xC10; Name = "A" }, @{ Dir = "$Lab\game-alt"; Off = 0x8CB; Name = "B" })

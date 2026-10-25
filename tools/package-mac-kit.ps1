@@ -23,9 +23,9 @@ param(
     [Parameter(Mandatory)][string]$NitroProxy,
     [Parameter(Mandatory)][string]$MacPayloadDir,
     [Parameter(Mandatory)][string]$PatchesDir,
-    [string]$GogGold = 'C:\Users\james\i76-map\sandbox-gog\main\app',
-    [string]$GogNitro = 'C:\Users\james\i76-map\sandbox-gog\nitro-full\app',
-    [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\mac-kit',
+    [string]$GogGold = (Join-Path $env:USERPROFILE 'i76-map\sandbox-gog\main\app'),
+    [string]$GogNitro = (Join-Path $env:USERPROFILE 'i76-map\sandbox-gog\nitro-full\app'),
+    [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\mac-kit'),
     [string]$Version = '0.8.0',
     [string]$Stage = ''
 )

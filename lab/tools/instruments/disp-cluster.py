@@ -24,7 +24,7 @@ def main():
     targets = set(int(a, 0) for a in sys.argv[1:])
     if not targets:
         print(__doc__); return
-    base, secs = load_sections(r"C:\Users\james\i76-uncap-lab\game\i76.exe")
+    base, secs = load_sections((__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game\i76.exe"))
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     md.detail = True
     for va, size, off, name, data in secs:

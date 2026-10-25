@@ -17,7 +17,7 @@ Prints one line:
 - Frames are counted only when the telemetry seq advances (a stale block left by a dead game counts nothing).
 """
 import ctypes, ctypes.wintypes as wt, math, mmap, struct, sys, time
-sys.path.insert(0, r"C:\Users\james\i76-everywhere\tools\telemetry")
+sys.path.insert(0, (__import__("os").path.expanduser("~") + r"\i76-everywhere\tools\telemetry"))
 import i76tel
 
 pid = int(sys.argv[1]); secs = float(sys.argv[2]); label = sys.argv[3] if len(sys.argv) > 3 else "phase"

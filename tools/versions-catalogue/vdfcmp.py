@@ -1,5 +1,5 @@
 import sys,os,hashlib,glob
-sys.path.insert(0,'C:/Users/james/i76-map/tools')
+sys.path.insert(0,(__import__("os").path.expanduser("~") + '/i76-map/tools'))
 from i76fmt import zfs
 def load(p):
     z=zfs.parse(open(p,'rb').read()); d={}
@@ -7,7 +7,7 @@ def load(p):
         if e.empty: continue
         d[e.name.lower()]=z.read(e)
     return d
-ret=load('cd1/I76.ZFS'); gold=load('C:/Users/james/i76-map/sandbox-gog/main/app/I76.ZFS')
+ret=load('cd1/I76.ZFS'); gold=load((__import__("os").path.expanduser("~") + '/i76-map/sandbox-gog/main/app/I76.ZFS'))
 print('retail entries',len(ret),'gold entries',len(gold))
 def addon(dirp):
     return {os.path.basename(f).lower():open(f,'rb').read() for f in glob.glob(dirp+'/*') if os.path.isfile(f)}

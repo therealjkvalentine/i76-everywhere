@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""export_public.py - stage the public-safe subset of the sibling repos (i76-uncap-lab, i76-map) for review.
+"""export_public.py - stage the public-safe subset of the sibling repos (<lab>, <re-archive>) for review.
 
 Why: the lab and the RE map have no remote. Parts of them (our own harness code, format parsers, prose RE docs)
 belong in this public repo; other parts (Ghidra decompiler exports, game screenshots, extracted game data,

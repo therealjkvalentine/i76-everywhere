@@ -24,10 +24,10 @@ param(
     [switch]$NoQuit
 )
 $ErrorActionPreference = "Stop"
-$Lab  = "C:\Users\james\i76-uncap-lab"
+$Lab  = "$env:USERPROFILE\i76-uncap-lab"
 $G    = Join-Path $Lab "game"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$NewDll = "C:\Users\james\i76-everywhere\music-fix\Strlkup.dll"
+$NewDll = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll"
 $Dll = Join-Path $G "STRLKUP.DLL"; $BakDll = "$Dll.pretest"
 $Lock = Join-Path $G ".console-test.lock"
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"

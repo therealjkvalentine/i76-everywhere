@@ -35,7 +35,7 @@ param(
     [int]$Fps = 20
 )
 $ErrorActionPreference = 'Stop'
-$lab  = 'C:\Users\james\i76-uncap-lab'   # harness lives in i76-map; the lab tree holds src\ and captures\inputs
+$lab  = (Join-Path $env:USERPROFILE 'i76-uncap-lab')   # harness lives in i76-map; the lab tree holds src\ and captures\inputs
 $out  = Join-Path $lab 'captures\inputs'
 $rec  = Join-Path $lab 'src\inputrec.exe'
 New-Item -ItemType Directory -Force $out | Out-Null

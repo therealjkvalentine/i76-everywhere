@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS  Write AGENTS.md (from docs\AGENTS-GAME-FOLDER.md, filled per folder) into the root of one kept game folder.
-.EXAMPLE   .\place-agents-md.ps1 -Dir 'C:\Users\james\Games\I76\Interstate 76 Gold' -Role 'main' -Game Gold
+.EXAMPLE   .\place-agents-md.ps1 -Dir (Join-Path $env:USERPROFILE 'Games\I76\Interstate 76 Gold') -Role 'main' -Game Gold
 #>
 param([Parameter(Mandatory)][string]$Dir, [Parameter(Mandatory)][ValidateSet('dev','test','main')][string]$Role, [Parameter(Mandatory)][ValidateSet('Gold','Nitro')][string]$Game,
       [string]$Template = (Join-Path $PSScriptRoot '..\docs\AGENTS-GAME-FOLDER.md'))
@@ -17,7 +17,7 @@ $roleText = switch ($Role) {
   'dev'  { "**dev** - the one working copy lanes build into; nothing is run from here for an owner test" }
   'test' { "**test** - the gate twin: lanes copy it (<lane>-YYYYMMDD), gate on the copy, delete the copy at lane end" }
 }
-$loc = @{ main = 'C:\Users\james\Games\I76'; dev = 'C:\Users\james\i76-uncap-lab'; test = 'C:\Users\james\i76-uncap-lab' }[$Role]
+$loc = @{ main = (Join-Path $env:USERPROFILE 'Games\I76'); dev = (Join-Path $env:USERPROFILE 'i76-uncap-lab'); test = (Join-Path $env:USERPROFILE 'i76-uncap-lab') }[$Role]
 $t = Get-Content $Template -Raw
 $tail = $t.Substring($t.IndexOf('## Troubleshooting'))
 $head = @"

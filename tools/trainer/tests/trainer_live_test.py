@@ -1,7 +1,7 @@
 """Live regression test for the proxy's trainer control block (Local\\I76Trainer, tools/trainer/i76trn.h).
 
 Run while the SANDBOX game is in a mission with the i76-everywhere Strlkup proxy loaded and I76_TELEMETRY=1
-(C:\\Users\\james\\i76-uncap-lab\\autotest\\proxy-run.ps1 -Run { python ...\\trainer_live_test.py } does all of that).
+(<lab>\\autotest\\proxy-run.ps1 -Run { python ...\\trainer_live_test.py } does all of that).
 It reads state from Local\\I76Telemetry (tools/telemetry/i76tel.py's header parser) and drives the control block.
 
 Checks, each printed PASS / FAIL:

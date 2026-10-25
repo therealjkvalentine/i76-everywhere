@@ -3,7 +3,7 @@
 
     python tools/mp-pack.py <pack dir> [--driver "<driver game folder>"] [--proxy <STRLKUP.DLL to ship instead>]
 
-<pack dir>/mac must already hold the Mac-only files (pulled from James's Mac game folder: OpenGLide Glide2x.dll,
+<pack dir>/mac must already hold the Mac-only files (pulled from the developer's Mac game folder: OpenGLide Glide2x.dll,
 glide.dll, glide2x.ovl, OpenGLid.INI, I76PLYR.DEF, the cutscene-music SMACKW32.DLL + smackorg.dll, the rumble
 i7_sfrce.dll + i7_sfrce_org.dll + rumble-envelopes.ini, music\\, AutoHotkeyU32.exe and the small .ahk/.env files).
 This script writes:
@@ -27,8 +27,8 @@ import hashlib, os, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-DRIVER = r"C:\Users\james\Games\Interstate76-2026-10-03\Interstate 76"
-IPX = r"C:\Users\james\i76-uncap-lab\refs\ipxwrapper\bin\ipxwrapper-0.7.2"
+DRIVER = (__import__("os").path.expanduser("~") + r"\Games\Interstate76-2026-10-03\Interstate 76")
+IPX = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\refs\ipxwrapper\bin\ipxwrapper-0.7.2")
 IPX_FILES = ("ipxwrapper.dll", "wsock32.dll", "mswsock.dll")
 
 # lower-case names (top level of the game folder) that are per-platform, not common

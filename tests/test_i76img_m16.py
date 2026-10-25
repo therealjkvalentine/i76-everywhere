@@ -2,7 +2,7 @@
 archive and liblzo2 are available, on every terrain M16 of the missions T01 (tp04, desert day), T06
 (tp09, night) and M14 (tp18, snow) - plus every other tp??m6.pak set while we are there.
 
-Game data is read-only and never committed: set I76_ZFS (default: ../i76-uncap-lab/game/I76.ZFS) and
+Game data is read-only and never committed: set I76_ZFS (default: ../<lab>/game/I76.ZFS) and
 LZO2_DLL (e.g. anaconda3/Library/bin/lzo2.dll) to run the live half.
 """
 import os, struct, sys, unittest

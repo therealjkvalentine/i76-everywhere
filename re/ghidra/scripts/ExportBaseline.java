@@ -30,7 +30,7 @@ public class ExportBaseline extends GhidraScript {
     @Override
     public void run() throws Exception {
         String[] args = getScriptArgs();
-        outDir = args.length > 0 ? args[0] : "C:\\Users\\james\\i76-map\\ghidra\\export";
+        outDir = args.length > 0 ? args[0] : System.getProperty("user.home") + "\\i76-map\\ghidra\\export";
         new File(outDir).mkdirs();
         new File(outDir, "decomp").mkdirs();
         listing = currentProgram.getListing(); refMgr = currentProgram.getReferenceManager(); mem = currentProgram.getMemory();

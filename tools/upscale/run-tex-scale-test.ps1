@@ -28,10 +28,10 @@ param(
     [string]$Owner = "U5 texture-scale",
     # pinned copy of the sandbox proxy (game\STRLKUP.DLL, md5 0b18d77c on 2026-10-03), which boots I76_MISSION.
     # game-alt's own STRLKUP.DLL is the August music-only proxy: -KeepInstalledDll sat in the shell 3/3 runs.
-    [string]$ProxyDll = "C:\Users\james\i76-uncap-lab\game-tex\Strlkup.u5test.dll"
+    [string]$ProxyDll = "$env:USERPROFILE\i76-uncap-lab\game-tex\Strlkup.u5test.dll"
 )
 $ErrorActionPreference = "Stop"
-$Lab = "C:\Users\james\i76-uncap-lab"
+$Lab = "$env:USERPROFILE\i76-uncap-lab"
 $G = Join-Path $Lab "game-tex"
 $Addon = Join-Path $G "ADDON"
 $Aside = Join-Path $Addon ".scale-test-aside"
@@ -70,7 +70,7 @@ try {
     $addonNow = (Get-ChildItem $Addon -File | Where-Object { $_.Name -match '^pirana' } | ForEach-Object { "$($_.Name)=$($_.Length)" }) -join ' '
     "addon pirana files this run: $(if ($addonNow) { $addonNow } else { '(none)' })"
     $run = {
-        $cf = "C:\Users\james\i76-uncap-lab\tools\graphics\capture-frame.ps1"
+        $cf = "$env:USERPROFILE\i76-uncap-lab\tools\graphics\capture-frame.ps1"
         Start-Sleep -Seconds 3
         & $cf -Out (Join-Path $capDir "$stamp-$Tag-start.png")
         Send-Key 0x72; Start-Sleep -Seconds 2          # F3 = PRESET_VIEW_3

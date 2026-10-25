@@ -1,7 +1,7 @@
 """Gated install / uninstall of the HD sound pack into a LAB game folder's ADDON\\ (docs/SOUND-HD-PACK.md 3.5).
 
 Rules, all enforced here, all unit-tested against a temporary fake game folder (tests/test_soundhd.py):
-  * the target must BE a folder matching C:\\Users\\james\\i76-uncap-lab\\game* (after resolving links), must
+  * the target must BE a folder matching <lab>\\game* (after resolving links), must
     contain I76.ZFS, and must not be under a denied root (the daily driver, the pristine GOG copy);
   * default is a dry run; --apply writes;
   * preflight refuses the whole install if any target name already exists in ADDON\\ with an md5 that is neither
@@ -13,8 +13,8 @@ The CLI never exposes `allowed_roots`; only the tests pass their own.
 """
 import fnmatch, hashlib, json, os, time
 
-ALLOWED_ROOTS = [r"C:\Users\james\i76-uncap-lab\game*"]
-DENIED_ROOTS = [r"C:\Users\james\Games", r"C:\Users\james\i76-map\sandbox-gog"]
+ALLOWED_ROOTS = [(__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game*")]
+DENIED_ROOTS = [(__import__("os").path.expanduser("~") + r"\Games"), (__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog")]
 RECORD = ".sound-hd-installed.json"
 
 

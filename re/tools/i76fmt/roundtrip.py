@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gate R: parse -> serialise -> parse over the full game-data corpus; 0 byte diffs expected.
 
-    python tools\\i76fmt\\roundtrip.py [--game C:\\Users\\james\\i76-uncap-lab\\game] [--out status\\roundtrip.json]
+    python tools\\i76fmt\\roundtrip.py [--game <lab>\\game] [--out status\\roundtrip.json]
                                      [--repack-out <path>] [--quick]
 
 Corpus (method doc gate R): I76.ZFS (6,116 payloads: archive-level byte identity + every decoded payload of a
@@ -74,7 +74,7 @@ def run_files(fam, paths, ext_of=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--game", default=r"C:\Users\james\i76-uncap-lab\game")
+    ap.add_argument("--game", default=(__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"))
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.dirname(HERE)), "status", "roundtrip.json"))
     ap.add_argument("--repack-out", default=None, help="also write the stored-mode repack to this path (never inside --game)")
     ap.add_argument("--quick", action="store_true", help="skip the archive payload loop (directory + loose files only)")

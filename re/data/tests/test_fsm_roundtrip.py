@@ -1,10 +1,10 @@
 import sys,glob,os
 sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"fmt"))
-sys.path.insert(0,r'C:\Users\james\i76-map\tools')
+sys.path.insert(0,(__import__("os").path.expanduser("~") + r'\i76-map\tools'))
 from i76fmt import bwd2
 import fsm
 ok=0;bad=0
-for p in sorted(glob.glob(r'C:\Users\james\i76-map\sandbox-gog\main\app\miss16\*.MSN')):
+for p in sorted(glob.glob((__import__("os").path.expanduser("~") + r'\i76-map\sandbox-gog\main\app\miss16\*.MSN'))):
     d=bwd2.parse(open(p,'rb').read())
     for c,_ in d.walk():
         if c.tag_str=='FSM':

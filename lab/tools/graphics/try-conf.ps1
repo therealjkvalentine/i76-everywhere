@@ -5,8 +5,8 @@
 param([string]$Tag = "A", [string]$Set = "", [string]$Refresh = "120", [switch]$Keep, [switch]$NoPin)
 $ErrorActionPreference = "Continue"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$G = "C:\Users\james\i76-uncap-lab\game"; $conf = "$G\dgVoodoo.conf"; $bak = "$conf.pre-try"
-$OutDir = "C:\Users\james\i76-uncap-lab\captures\graphics\try"; New-Item -ItemType Directory -Force $OutDir | Out-Null
+$G = "$env:USERPROFILE\i76-uncap-lab\game"; $conf = "$G\dgVoodoo.conf"; $bak = "$conf.pre-try"
+$OutDir = "$env:USERPROFILE\i76-uncap-lab\captures\graphics\try"; New-Item -ItemType Directory -Force $OutDir | Out-Null
 if (Get-Process i76* -ErrorAction SilentlyContinue) { "game running"; exit 1 }
 Copy-Item $conf $bak -Force
 $ov = @{}; foreach ($kv in ($Set -split ";" | Where-Object { $_ })) { $a = $kv -split "=", 2; $ov[$a[0].Trim()] = $a[1].Trim() }
@@ -20,7 +20,7 @@ $missing = @($ov.Keys | Where-Object { -not $seen.ContainsKey($_) }); if ($missi
 [IO.File]::WriteAllLines($conf, $lines, [Text.Encoding]::ASCII)
 try {
     $png = "$OutDir\$Tag.png"; $st = "$OutDir\$Tag.stats.txt"
-    $run = [scriptblock]::Create("python '$Here\freeze-at.py' on; Start-Sleep -Seconds 4; . 'C:\Users\james\i76-uncap-lab\autotest\lib\focuslib.ps1'; `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Start-Sleep -Milliseconds 800; Add-Type -AssemblyName System.Drawing; `$b = New-Object Drawing.Bitmap 3440,1440; `$g = [Drawing.Graphics]::FromImage(`$b); `$g.CopyFromScreen(0,0,0,0,`$b.Size); `$b.Save('$png'); python 'C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py' 8 '$Tag' 2>&1 | Out-File '$st' -Encoding ascii; nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader 2>&1 | Out-File '$st' -Append -Encoding ascii; python '$Here\freeze-at.py' off")
+    $run = [scriptblock]::Create("python '$Here\freeze-at.py' on; Start-Sleep -Seconds 4; . (Join-Path $env:USERPROFILE 'i76-uncap-lab\autotest\lib\focuslib.ps1'); `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Start-Sleep -Milliseconds 800; Add-Type -AssemblyName System.Drawing; `$b = New-Object Drawing.Bitmap 3440,1440; `$g = [Drawing.Graphics]::FromImage(`$b); `$g.CopyFromScreen(0,0,0,0,`$b.Size); `$b.Save('$png'); python (Join-Path $env:USERPROFILE 'i76-everywhere\tools\telemetry\frame_stats.py') 8 '$Tag' 2>&1 | Out-File '$st' -Encoding ascii; nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader 2>&1 | Out-File '$st' -Append -Encoding ascii; python '$Here\freeze-at.py' off")
     $boot = & "$Here\..\..\autotest\proxy-run.ps1" -Mission t01 -Hold 0 -Env @{ I76_GLIDE_REFRESH = $Refresh } -Run $run 2>&1 | Out-String
     if ($boot -match "CRASH|exited during boot|not in a mission") { "[$Tag] BOOT PROBLEM: " + (($boot -split "`n" | Select-String "CRASH|exited|not in").Line -join " | ") }
     "[$Tag] " + ((Get-Content $st -ErrorAction SilentlyContinue) -join " | " -replace " \| bins[^|]*", "")

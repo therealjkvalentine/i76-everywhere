@@ -18,13 +18,13 @@ if (-not $Missions) {
 }
 $Out = Join-Path $Here "runs\farclip-soak"; New-Item -ItemType Directory -Force $Out | Out-Null
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"; $Report = Join-Path $Out "$ts.md"
-$fs = "C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py"
-$log = "C:\Users\james\i76-uncap-lab\game\mciproxy.log"
+$fs = "$env:USERPROFILE\i76-everywhere\tools\telemetry\frame_stats.py"
+$log = "$env:USERPROFILE\i76-uncap-lab\game\mciproxy.log"
 "# far-clip soak $ts - I76_FAR_CLIP=$FarClip, full switch set, direct mission boot`n`n| mission | boot | drive | hood (F6) | binoculars (B) | crash |`n|---|---|---|---|---|---|" | Set-Content $Report
 foreach ($m in $Missions) {
     $o = "$env:TEMP\soak-$m.out"; Remove-Item $o -ErrorAction SilentlyContinue
     $logLen = if (Test-Path $log) { (Get-Item $log).Length } else { 0 }
-    $run = [scriptblock]::Create(". 'C:\Users\james\i76-uncap-lab\autotest\lib\inputlib.ps1'; . 'C:\Users\james\i76-uncap-lab\autotest\lib\focuslib.ps1'; cmd /c `"python $fs $Drive drive > $o 2>&1`"; `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Send-Key `$VK.F6; Start-Sleep 1; cmd /c `"python $fs $View hood >> $o 2>&1`"; Send-Key `$VK.F6; Start-Sleep 1; Send-Key ([byte]0x42); Start-Sleep 1; cmd /c `"python $fs $View binoc >> $o 2>&1`"; Send-Key ([byte]0x42)")
+    $run = [scriptblock]::Create(". (Join-Path $env:USERPROFILE 'i76-uncap-lab\autotest\lib\inputlib.ps1'); . (Join-Path $env:USERPROFILE 'i76-uncap-lab\autotest\lib\focuslib.ps1'); cmd /c `"python $fs $Drive drive > $o 2>&1`"; `$p = Get-GamePid; Force-Foreground `$p.MainWindowHandle | Out-Null; Send-Key `$VK.F6; Start-Sleep 1; cmd /c `"python $fs $View hood >> $o 2>&1`"; Send-Key `$VK.F6; Start-Sleep 1; Send-Key ([byte]0x42); Start-Sleep 1; cmd /c `"python $fs $View binoc >> $o 2>&1`"; Send-Key ([byte]0x42)")
     $boot = & "$Here\proxy-run.ps1" -Mission $m -Hold 1 -Env @{ I76_FAR_CLIP = $FarClip } -Run $run 2>&1 | Out-String
     $bootLine = if ($boot -match "in mission after ([\d.]+) s") { "ok $($Matches[1]) s" } elseif ($boot -match "exited during boot") { "EXITED" } else { "no mission" }
     $stats = if (Test-Path $o) { Get-Content $o } else { @() }

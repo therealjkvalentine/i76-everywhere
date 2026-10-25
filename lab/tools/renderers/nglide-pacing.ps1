@@ -3,9 +3,9 @@
 param([string]$Backend = "d3d9")
 $ErrorActionPreference = "Continue"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$alt = "C:\Users\james\i76-uncap-lab\game-alt"
-$fs = "C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py"
-& "$Here\switch-renderer.ps1" -Renderer nglide -Source "C:\Users\james\i76-uncap-lab\refs\renderers\nglide" 2>&1 | Select-Object -Last 1
+$alt = "$env:USERPROFILE\i76-uncap-lab\game-alt"
+$fs = "$env:USERPROFILE\i76-everywhere\tools\telemetry\frame_stats.py"
+& "$Here\switch-renderer.ps1" -Renderer nglide -Source "$env:USERPROFILE\i76-uncap-lab\refs\renderers\nglide" 2>&1 | Select-Object -Last 1
 try {
     $tests = @(
         @{ n = "uncapped-vsync-off"; v = "off"; e = @{} },

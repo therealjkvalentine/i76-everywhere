@@ -13,10 +13,10 @@
     soundhd.py install   --game <lab game dir> [--pack DIR] [--apply]   gated ADDON drop-in (default: dry run)
     soundhd.py uninstall --game <lab game dir> [--apply]
 
-Reads stock audio ONLY from the pristine read-only GOG copy (default C:\\Users\\james\\i76-map\\sandbox-gog\\main\\app)
-through the repo's ZFS reader re/tools/i76fmt/zfs.py (identical to i76-map\\tools\\i76fmt\\zfs.py; byte-exact
+Reads stock audio ONLY from the pristine read-only GOG copy (default <re-archive>\\sandbox-gog\\main\\app)
+through the repo's ZFS reader re/tools/i76fmt/zfs.py (identical to <re-archive>\\tools\\i76fmt\\zfs.py; byte-exact
 round-trip gate in that package). Nothing but `install` writes outside the work/pack folders, and `install`
-only into C:\\Users\\james\\i76-uncap-lab\\game* (sh_install.py).
+only into <lab>\\game* (sh_install.py).
 """
 import argparse, csv, hashlib, io, json, math, os, re, shutil, struct, sys, time
 
@@ -29,15 +29,15 @@ import numpy as np  # noqa: E402
 
 import sh_wav  # noqa: E402
 
-PRISTINE = r"C:\Users\james\i76-map\sandbox-gog\main\app"
+PRISTINE = (__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app")
 PRISTINE_ZFS_MD5 = "6dd57b1627d73e814247c0d9521f9778"
 DEFAULT_WORK = os.path.join(HERE, "out", "work")
 DEFAULT_PACK = os.path.join(HERE, "out", "pack-v1")
 PACK_VERSION = "sound-hd v1 (2026-10-10)"
-RESEARCH_CSV = r"C:\Users\james\i76-uncap-lab\captures\sound-hd-research\stock-sound-survey.csv"
+RESEARCH_CSV = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\captures\sound-hd-research\stock-sound-survey.csv")
 LFE_RATE = 16000  # tools/ffb/ffb-lfe-live.ps1 streams at 16 kHz
 # folders no soundhd stage except `install` may write into
-GAME_ROOTS = [r"C:\Users\james\i76-map\sandbox-gog", r"C:\Users\james\i76-uncap-lab\game", r"C:\Users\james\Games"]
+GAME_ROOTS = [(__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog"), (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"), (__import__("os").path.expanduser("~") + r"\Games")]
 
 
 def md5b(b):

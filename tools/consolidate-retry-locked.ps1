@@ -6,7 +6,7 @@
   trees; if they differ it only reports (a lane wrote to the stale copy), otherwise it removes the old folder and leaves a junction.
 #>
 param([switch]$Execute)
-$Lab='C:\Users\james\i76-uncap-lab'; $G='C:\Users\james\Games\I76'; $A='D:\i76-archive\consolidated-20261025'
+$Lab=(Join-Path $env:USERPROFILE 'i76-uncap-lab'); $G=(Join-Path $env:USERPROFILE 'Games\I76'); $A='D:\i76-archive\consolidated-20261025'
 $stubs = @(
  @("$G\nitro","$A\Games-I76\nitro"), @("$G\nitro-plus-original","$A\Games-I76\nitro-plus-original"),
  @("$Lab\exp-debug","$A\lab\exp-debug"), @("$Lab\exp-nitro-port","$A\lab\exp-nitro-port"), @("$Lab\game-fresh-nitro","$A\lab\game-fresh-nitro"),

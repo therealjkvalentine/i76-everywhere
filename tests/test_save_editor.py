@@ -4,7 +4,7 @@
 
 Runs over EVERY sample save: the committed sets (saves/, saves/lab-20261002 = today's player saves
 copied read-only from the lab, saves/windows-20260906, saves/rescue-20260718) and, when present, the
-live lab copy C:/Users/james/i76-uncap-lab/game (read-only; set I76_LAB_DIR to point elsewhere or to
+live lab copy <lab>/game (read-only; set I76_LAB_DIR to point elsewhere or to
 "" to skip).  Rules: parse -> serialise must equal the input for every file, not one; sizes come from
 the writer's formula; a written directory never shrinks; records stay 116 bytes.
 """
@@ -19,7 +19,7 @@ ed = importlib.util.module_from_spec(spec); spec.loader.exec_module(ed)
 
 SAMPLE_DIRS = [os.path.join(REPO, "saves"), os.path.join(REPO, "saves", "lab-20261002"),
                os.path.join(REPO, "saves", "windows-20260906"), os.path.join(REPO, "saves", "rescue-20260718")]
-LAB = os.environ.get("I76_LAB_DIR", "C:/Users/james/i76-uncap-lab/game")
+LAB = os.environ.get("I76_LAB_DIR", (__import__("os").path.expanduser("~") + "/i76-uncap-lab/game"))
 if LAB and os.path.isdir(LAB):
     SAMPLE_DIRS.append(LAB)
 

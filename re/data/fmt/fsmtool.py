@@ -13,7 +13,7 @@ import bwd2x, fsm  # noqa: E402
 
 MAP = os.path.dirname(os.path.dirname(HERE))
 MISSIONS = os.path.join(MAP, "sandbox-gog", "main", "app", "miss16")
-GAME_DIRS = [r"C:\Users\james\i76-uncap-lab\game", r"C:\Users\james\i76-bisect\game", os.path.join(MAP, "sandbox-gog"),
+GAME_DIRS = [(__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game"), (__import__("os").path.expanduser("~") + r"\i76-bisect\game"), os.path.join(MAP, "sandbox-gog"),
              os.path.expanduser(r"~\Downloads")]
 
 

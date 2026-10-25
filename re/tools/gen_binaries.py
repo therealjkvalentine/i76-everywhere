@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""gen_binaries.py - write binaries\i76-gog2017.toml and binaries\sandbox.toml (Task 1).
 
-    python tools\gen_binaries.py [--game-dir C:\Users\james\i76-uncap-lab\game] [--out binaries]
+    python tools\gen_binaries.py [--game-dir <lab>\game] [--out binaries]
 
 Every hash, size, timestamp, linker version, section row and import count is read from the file
 by pe_ident.py (pefile + hashlib). Era, role and scope are the only interpreted columns and they
@@ -22,8 +22,8 @@ PRISTINE_MD5 = "9a232dcc2c164648cff20c414c1f9698"
 PRISTINE_FIX_MD5 = "58d9dec00c18a5383820e77e51850b74"   # captures\001-smoke\allowlist.json
 PATCHED_EXE_MD5 = "4fabc30303c7a327fbe15be58cb868c5"    # pe-fingerprint: live i76.exe
 GOG_SHELL_MD5 = "8960fa16c1581da85ad5d6085517f292"      # i76shell.dll.orig (imports USER32.dll)
-DEFAULT_GAME = r"C:\Users\james\i76-uncap-lab\game"
-METHOD_DOC = r"C:\Users\james\i76-everywhere\docs\records\FRESH-START-METHOD.md"   # moved to docs\records 2026-10-03
+DEFAULT_GAME = (__import__("os").path.expanduser("~") + r"\i76-uncap-lab\game")
+METHOD_DOC = (__import__("os").path.expanduser("~") + r"\i76-everywhere\docs\records\FRESH-START-METHOD.md")   # moved to docs\records 2026-10-03
 FP_REPORT = r"recon-2026-09-04\recon\pe-fingerprint\REPORT.md"
 
 # role / scope per method doc section 2 (table) and the pe-fingerprint census; keyed by lower-case

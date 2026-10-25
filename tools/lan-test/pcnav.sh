@@ -4,7 +4,7 @@
 #   calib2           move the pointer to two points, read the shell's mouse object -> build/pc-map.txt
 #   nav host|join, hostgo [row y], joingo, drive SECS, pos, state, shell, st, find TEXT, stop (only the pid we started)
 # Needs the console lock (pc-lock.ps1 -Take) while the game is up: it takes the screen, mouse and keyboard.
-here=$(cd "$(dirname "$0")" && pwd); LAN=${LAN:-/c/Users/james/Games/Interstate76-LAN-2026-10-17/Interstate 76}
+here=$(cd "$(dirname "$0")" && pwd); LAN=${LAN:-$HOME/Games/Interstate76-LAN-2026-10-17/Interstate 76}
 PR="$here/build/i76probe.exe"; PIDF="$here/build/pc.pid"; MAPF="$here/build/pc-map.txt"
 [ -f "$PIDF" ] && export I76PROBE_PID=$(cat "$PIDF")
 P() { "$PR" "$@" | tr -d '\r'; }
@@ -42,7 +42,7 @@ case $cmd in
          export I76_SHM_SUFFIX=$(basename "$(dirname "$LAN")") I76_MUTE=1 I76_MPF_LOG=${I76_MPF_LOG:-1}
          cmd.exe //c start "" "$(cygpath -w "$LAN/PLAY-LAN.bat")"; for i in $(seq 1 60); do sleep 1; p=$(lanpid); [ -n "$p" ] && break; done
          echo "$p" > "$PIDF"; export I76PROBE_PID=$p; echo "pid $p after $i s (shm suffix $I76_SHM_SUFFIX)"
-         powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w /c/Users/james/i76-uncap-lab/tools/start-mute-watch.ps1)" -Pid $p; sleep 25
+         powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w $HOME/i76-uncap-lab/tools/start-mute-watch.ps1)" -Pid $p; sleep 25
          for k in 1 2 3 4 5; do P key 1B >/dev/null; sleep 4; st | grep -q "^0x10025a50 0x00000000 13 2 0 17" && { echo "main menu ($k Esc)"; exit 0; }; done; echo "main menu NOT reached: $(st)";;
   stop) p=$(cat "$PIDF" 2>/dev/null); [ -n "$p" ] && [ "$p" = "$(lanpid)" ] && taskkill //PID $p //F && rm -f "$PIDF";;
   arena) # arena IDX: MULTI MELEE > HOST (I76_MP_MENU=1 opens the IPX host form directly), the form's selected arena index written

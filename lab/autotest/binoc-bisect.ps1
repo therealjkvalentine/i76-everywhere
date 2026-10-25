@@ -7,10 +7,10 @@
     .\binoc-bisect.ps1 -Variants 'full','-I76_ROAD_DIST','-I76_TERRAIN_LOD'      # '-X,-Y' drops several
 #>
 param([string]$Preset = "best-wide", [string]$Mission = "t01", [string[]]$Variants = @("full"), [int]$Cycles = 3,
-      [string]$Conf = "C:\Users\james\i76-uncap-lab\game\dgVoodoo.aspect-wide.conf", [string]$Agent = "binoc-bisect")
+      [string]$Conf = "$env:USERPROFILE\i76-uncap-lab\game\dgVoodoo.aspect-wide.conf", [string]$Agent = "binoc-bisect")
 $ErrorActionPreference = "Continue"
-$Here = $PSScriptRoot; $Lab = "C:\Users\james\i76-uncap-lab"; $G = Join-Path $Lab "game"; $Owner = Join-Path $Lab ".console-owner"
-$P = Import-PowerShellDataFile "C:\Users\james\i76-everywhere\presets\$Preset.psd1"
+$Here = $PSScriptRoot; $Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = Join-Path $Lab "game"; $Owner = Join-Path $Lab ".console-owner"
+$P = Import-PowerShellDataFile "$env:USERPROFILE\i76-everywhere\presets\$Preset.psd1"
 $log = Join-Path $G "mciproxy.log"
 $Out = Join-Path $Here "runs\preset-soak\$(Get-Date -Format 'yyyyMMdd-HHmmss')-bisect-$Preset-$Mission.md"
 while ($true) {

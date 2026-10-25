@@ -1,7 +1,7 @@
 """texture-lab/cockpit_split.py: .geo layout, quadrant clipper, quarter tiles, pak writer, end-to-end on synthetic
 fixtures built here (no game data in git). The live half (every LOD-4 .geo in the archive parses to exact length and
 re-writes byte-identically) runs only when the pristine sandbox archive is present: set I76_ZFS_DIR (default
-C:\\Users\\james\\i76-map\\sandbox-gog\\main\\app)."""
+<re-archive>\\sandbox-gog\\main\\app)."""
 import os, random, re, struct, sys, tempfile, unittest, json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import cockpit_split as cs  # noqa: E402
 import i76img  # noqa: E402
 
-GAME = os.environ.get("I76_ZFS_DIR", r"C:\Users\james\i76-map\sandbox-gog\main\app")
+GAME = os.environ.get("I76_ZFS_DIR", (__import__("os").path.expanduser("~") + r"\i76-map\sandbox-gog\main\app"))
 HAVE_DATATRACK = os.path.exists(os.path.join(cs.I76MAP, "data", "fmt", "other_formats.py"))
 
 

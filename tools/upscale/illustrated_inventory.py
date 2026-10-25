@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import i76img  # noqa: E402
 
-U = r"C:\Users\james"
+U = __import__("os").path.expanduser("~")
 DEF_ZFS = U + r"\i76-map\recon-2026-09-04\recon\formats\zfs_out"
 DEF_MW2 = U + r"\i76-map\data\out\mw2db"
 DEF_SMK = U + r"\i76-uncap-lab\game\smk"

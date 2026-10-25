@@ -1,20 +1,20 @@
 """Index the community-content archive (read-only over the data; uses the data track's parsers).
 
 usage: python -I index.py <root> <outdir>
-  root   = D:\\i76-archive\\community-20261024 (holds dl\\ and x\\)
+  root   = <archive>\\community-20261024 (holds dl\\ and x\\)
   outdir = where files.csv, maps.csv, maps.json, cars.csv, audio.csv, frc.csv, paints.csv go
-The parsers (C:\\Users\\james\\i76-map\\data\\fmt) are imported, never modified; nothing here executes archive content.
+The parsers (<re-archive>\\data\\fmt) are imported, never modified; nothing here executes archive content.
 """
 import os, sys, csv, json, hashlib, re, struct, collections
 
-FMT = r"C:\Users\james\i76-map\data\fmt"
-MAP = r"C:\Users\james\i76-map"
+FMT = (__import__("os").path.expanduser("~") + r"\i76-map\data\fmt")
+MAP = (__import__("os").path.expanduser("~") + r"\i76-map")
 sys.path.insert(0, FMT)
 import bwd2x, fsm_protos  # noqa: E402
 
 root, outdir = sys.argv[1], sys.argv[2]
 os.makedirs(outdir, exist_ok=True)
-EXTRA = [(r"C:\Users\james\i76-everywhere\refs\route380", "route380-prior-mirror")]
+EXTRA = [((__import__("os").path.expanduser("~") + r"\i76-everywhere\refs\route380"), "route380-prior-mirror")]
 MSN = {'.lvl', '.msn', '.cbt', '.rac', '.cf2', '.cf3', '.cf4'}
 TXT = {'.txt', '.doc', '.nfo', '.rtf', '.wri', '.diz', '.me', '.1st', '.htm', '.html'}
 AUD = {'.wav', '.mp3', '.flac', '.ogg'}

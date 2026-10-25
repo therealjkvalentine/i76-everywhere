@@ -14,7 +14,7 @@ another drafter's proposal or review.
 """
 import argparse, csv, glob, hashlib, io, json, os, re, subprocess, sys
 
-M = r"C:\Users\james\i76-map"
+M = (__import__("os").path.expanduser("~") + r"\i76-map")
 EXP = os.path.join(M, "ghidra", "export")
 CAP_MAIN, CAP_CALLER, CAP_CALLEE, CTX_INSNS = 600, 120, 80, 12
 

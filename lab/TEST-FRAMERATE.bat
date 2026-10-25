@@ -1,5 +1,5 @@
 @echo off
-rem TEST-FRAMERATE.bat - try things in the SANDBOX game (C:\Users\james\i76-uncap-lab\game), never the daily driver.
+rem TEST-FRAMERATE.bat - try things in the SANDBOX game (%USERPROFILE%\i76-uncap-lab\game), never the daily driver.
 rem The sandbox has the daily driver's controls and its own saves. Runs 1-3 start like the daily driver's PLAY.bat
 rem (pad/wheel/stick layers; no head tracking here). The launcher prints every I76_* switch before the game starts.
 echo.
