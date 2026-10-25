@@ -306,3 +306,11 @@ is the one that does not work:
   it silently reads as "not RDP" here.
 - `query session` exits **255 even on success**; read its output, not its exit
   code.
+
+## Lanes and GitHub issues (the task layer, docs/PROCESS.md)
+
+1. Before work, find or file the issue: `gh issue list -R therealjkvalentine/i76-everywhere --search "<words>"`, else `gh issue create -R therealjkvalentine/i76-everywhere --title "<plain words>" --body-file <what/why/evidence/design/done-when/Effort> --label area/<a> --label kind/<k> --label evidence/<e> --label priority/now --milestone v0.9`.
+2. Mark it in progress: `gh issue edit <n> -R therealjkvalentine/i76-everywhere --add-label priority/now` and `gh issue comment <n> -R therealjkvalentine/i76-everywhere -b "in progress: <lane>"`; then `python -I tools/roadmap/setup-project.py` moves it on the board (Status follows the labels and state).
+3. Link the record when it lands: `gh issue comment <n> -R therealjkvalentine/i76-everywhere -b "record: docs/records/<NAME>.md (<commit>)"`.
+4. Close with the commit: put `Fixes #<n>` in the commit message, or `gh issue close <n> -R therealjkvalentine/i76-everywhere --reason completed -c "<commit>: <one line>"`; open a new issue for anything left.
+5. Public text: no personal names, private paths, machine names / addresses, copyrighted game material or exe addresses in issues (link the record instead).

@@ -221,24 +221,17 @@ achieved: both copies need UDP port 21157, and the internet transport wants a ga
 
 ## Open work
 
-There is no backlog table in this README any more (the one that stood here was a 2026-08-16 snapshot and kept
-going stale). The live lists:
+The roadmap is on GitHub: **[ROADMAP.md](ROADMAP.md)** (three tiers, milestones, how to vote), the
+[project board](https://github.com/therealjkvalentine/i76-everywhere/projects), the
+[issues](https://github.com/therealjkvalentine/i76-everywhere/issues) and
+[Discussions > Ideas](https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/ideas). How it is run:
+[docs/PROCESS.md](docs/PROCESS.md). Top five right now:
 
-- **[docs/records/BACKLOG-2026-10-02.md](docs/records/BACKLOG-2026-10-02.md)**: every open problem and unknown in one prioritised
-  table (P1 normal play, P2 the 60 fps experience, P3 release hygiene, P4 RE completeness), each row with its
-  evidence state, what resolving it needs, and the cheapest next step.
-- **[docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md)**: what the 2026-10-02 session built (with a
-  2026-10-03 section for the new daily driver), how each item was verified, and what was left open or withdrawn.
-- [docs/REPO-ORGANIZATION-PROPOSAL.md](docs/REPO-ORGANIZATION-PROPOSAL.md): a proposed tidier layout for this
-  repo (nothing moved yet).
-- [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 1 is the state table (what is deployed where);
-  [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md) is the record of what is fixed, with root causes.
-
-The topics the old table covered, and where each lives now: saving / popups / menu mouse
-([docs/SAVE-FREEZE-ROOT-CAUSE.md](docs/SAVE-FREEZE-ROOT-CAUSE.md), [u32x/README.md](u32x/README.md),
-[docs/records/SHELL-MENU-AND-SAVE-FREEZE.md](docs/records/SHELL-MENU-AND-SAVE-FREEZE.md)); force feedback with wheel and bass
-shakers ([tools/ffb/README.md](tools/ffb/README.md), backlog P3-17); draw distance and texture LOD
-([docs/DRAW-DISTANCE.md](docs/DRAW-DISTANCE.md), [docs/records/FARCLIP-CAMERA-CRASH.md](docs/records/FARCLIP-CAMERA-CRASH.md)).
+1. [#1](https://github.com/therealjkvalentine/i76-everywhere/issues/1) the host's mission stalls while a joiner is in a co-op game
+2. [#2](https://github.com/therealjkvalentine/i76-everywhere/issues/2) Nitro at 1920x1080: odd first frame and an enlarged HUD
+3. [#7](https://github.com/therealjkvalentine/i76-everywhere/issues/7) Mac: Nitro still capped at 24 fps
+4. [#8](https://github.com/therealjkvalentine/i76-everywhere/issues/8) Mac Kit: the first build by a person
+5. [#11](https://github.com/therealjkvalentine/i76-everywhere/issues/11) internet play through a hosted relay
 
 ## The gamepad layout
 
