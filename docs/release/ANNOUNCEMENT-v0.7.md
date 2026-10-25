@@ -93,3 +93,8 @@ note between two projects, not a competing announcement.
 **To Local Ditch** (contact page): "Thanks for linking i76-everywhere from your links and FAQ pages. v0.7.3 is out as a
 patch kit for the GOG copy (link). The optional maps step credits each author and downloads from your site and LSM,
 never rehosting; if you would rather it did not fetch from localditch.com, say so and I will point it elsewhere."
+
+## 5. Friends and family (text / group chat)
+
+> Remember the car-combat game I've been obsessing over? It's done enough to share. If you have a PC, the GOG version of Interstate '76 is about $6 and this kit makes it run like it should on a modern machine: 120 fps, your monitor's shape, way more draw distance, and LAN games where computer drivers fill the empty seats so two of us can play against a full field. The boys and I have been playing co-op on it all week. Download and how-to: https://github.com/therealjkvalentine/i76-everywhere (read the README; it's three steps). If you try it, tell me what broke, and if you'd rather have a build that just runs, say so and I'll send one. Thank you for your patience while every computer in the house ran tests all night.
+
