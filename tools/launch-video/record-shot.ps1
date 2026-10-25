@@ -7,8 +7,8 @@
   What one run does:
    1. waits for the lab console per CONSOLE-LOCK.md (no i76 / nitro running, .console-owner + .fps-lock free, .fps-queue order),
       takes both, starts keep-display if nobody holds the display;
-   2. boots the launch-video twin (lab launchvid-20261025, a twin of test-gold; dgVoodoo.lv1080.conf = windowed, 3840x2160 Glide
-      supersample) straight into the shot's mission through autotest\proxy-run.ps1 (-KeepInstalledDll -Set stock: only the env
+   2. boots the launch-video twin (lab launchvid-20261025, a twin of test-gold; dgVoodoo.lv1080.conf = windowed, [Glide] 1920x1080 =
+      the window, CenterAppWindow false: a 3840x2160 target made dgVoodoo resize the window every 2 s, records/WINDOWED-ALIGNMENT-2026-10-25.md) straight into the shot's mission through autotest\proxy-run.ps1 (-KeepInstalledDll -Set stock: only the env
       below; I76_MUTE + the per-pid mute watch + own I76_SHM_SUFFIX come from proxy-run);
       env = the preset's keys - Strip + Keys + I76_TELEMETRY=<port> + I76_FPS_LOG=2 + I76_NO_MINIMIZE=1 (+ I76_ASPECT 1920x1080 and
       I76_U32X_MENU_ASPECT 1920:1080 for every preset except stock: the stock game has no aspect key) + I76_START_POS;

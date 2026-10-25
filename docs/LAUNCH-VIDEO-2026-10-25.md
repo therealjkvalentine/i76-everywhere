@@ -19,7 +19,8 @@ Full 3440x1440 capture with the same chain made only 26 fps, one more reason for
 ## 1. Shot list
 
 "auto" = recorded by `record-shot.ps1 -Shot <name>` (shots.psd1): one boot of the twin in a 1920x1080 window at the top left
-(`dgVoodoo.lv1080.conf`: [Glide] 3840x2160 supersample, AppControlledScreenMode false; `I76_ASPECT 1920x1080` and
+(`dgVoodoo.lv1080.conf`: [Glide] 1920x1080 = the window since 2026-10-25 evening (the 3840x2160 supersample made dgVoodoo
+resize the window every 2 s: a zoomed flash in every clip before then, records/WINDOWED-ALIGNMENT-2026-10-25.md), AppControlledScreenMode false; `I76_ASPECT 1920x1080` and
 `I76_U32X_MENU_ASPECT 1920:1080` for every preset but stock; `lv-keeper.ps1` holds the window rect), direct mission boot through
 `autotest\proxy-run.ps1` (muted per pid, own shm suffix), handbrake + S for `Still` s then W for `Drive` s, ffmpeg ddagrab on the
 window rect at 60 fps, telemetry logged with the host clock (`tel-udp.py`, `I76_TELEMETRY=27760`) so the on-screen fps / mph
