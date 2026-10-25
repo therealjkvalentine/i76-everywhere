@@ -25,7 +25,7 @@ Nothing of the game is in this repo or the kit, and every file the kit changes i
 | frame rate | 20 fps | **120 fps**, the car still simulated 24 times a second as on a 1997 Pentium 166 (jumps and AI as tuned) |
 | draw distance | 600 m | **1.8 km**; **2.3 km** fading out at the far edge in the preview launcher |
 | terrain | hills pop as you approach | morphs in, smooth shading (preview launcher) |
-| picture | 4:3 stretched | your monitor's shape (21:9 / 16:9 / 16:10), 2x supersampled |
+| picture | 4:3, 90° field of view | your monitor's shape (21:9 / 16:9 / 16:10): you see MORE of the world, not a stretched picture (horizontal field of view about 122° on 21:9, 106° on 16:9; `I76_FOV` changes it), 2x supersampled, AA 4x (both configurable) |
 | rear-view mirror | cars on a plain sky | road and terrain, 300 m (1 km in the preview) |
 | menus | pointer misses with a modern mouse | pointer lands where you click; typing on the save screen; Enter / Y / N on popups |
 | Windows 11 (build 26100.9711) | start-up crashes | dgVoodoo 2.87.5 + our winmm fix: 0 crashes in 40 boots (28 in 59 before) |
