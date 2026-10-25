@@ -14,6 +14,10 @@
      display's own shape, so 21:9 / 16:9 / 16:10 / 4:3 all get a correct picture) and the presets' I76_ASPECT /
      I76_U32X_MENU_ASPECT (tick19-42, preview, best-wide*). Then dgVoodoo.wide.conf -> dgVoodoo.conf.
   The .bat then starts PLAY-i76.ps1 -Preset <x> itself (exit 0 here = go; anything else = do not start).
+  Since 2026-10-25 the render scale and antialiasing are also preset keys (I76_RENDER_SCALE 1 / 1.5 / 2, I76_AA 0 / 2 / 4 / 8, in
+  presets\local.psd1 like every graphics key): PLAY-i76.ps1 applies them over the conf written here (it reads this folder's
+  display.txt for the display). --no-supersample stays as the alias: this script writes the 1x conf, the .bat passes
+  PLAY-i76.ps1 -RenderScale 1 (docs\records\RENDER-KEYS-2026-10-25.md).
 
     i76e-prepare.ps1 [-Preset tick19-42] [-NoSupersample] [-Display 1920x1080] [-Resetup] [-DryRun]
     i76e-prepare.ps1 -Uninstall        put the originals back and remove what the setup added (the _i76e folder,

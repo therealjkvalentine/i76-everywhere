@@ -256,10 +256,37 @@ func setGlideViewport(_ A: String) {
     try? txt.write(toFile: reg, atomically: true, encoding: .utf8)
 }
 
+// I76_RENDER_WIDTH (2026-10-25, i76-everywhere docs/records/RENDER-KEYS-2026-10-25.md): the Mac's render-size graphics key, the
+// counterpart of the Windows I76_RENDER_SCALE (dgVoodoo). OpenGLide renders at OpenGLid.INI's Resolution= (> 16 = output width in
+// pixels, height = width x 3 / 4; 1.0-16.0 = a scale of 640x480; 0 = 640x480; tools/openglide-hd/MAC-BUILD.md). The key lives where
+// the Mac's other I76_* keys live, the prefix's user.reg [Environment] ("I76_RENDER_WIDTH"="1488"), and is written into the INI here,
+// before Wine starts (OpenGLide reads the INI at grGlideInit). Unset or not a number from 0 to 8192: the INI is left as it is.
+// Only the Resolution= line changes, line endings kept; nothing is written when it already says that value.
+// STATUS: source only. No installed Mac app carries this yet (the apps' stub is 565c4bd9, built 2026-10-04); it takes effect when the
+// stub is next rebuilt and installed.
+func setRenderWidth(_ A: String) {
+    let reg = A + "/Contents/SharedSupport/prefix/user.reg"
+    let ini = A + "/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/OpenGLid.INI"
+    guard let txt = try? String(contentsOfFile: reg, encoding: .utf8),
+          let r = txt.range(of: "\"I76_RENDER_WIDTH\"=\"[0-9.]+\"", options: .regularExpression) else { return }
+    let v = txt[r].dropFirst("\"I76_RENDER_WIDTH\"=\"".count).dropLast()
+    guard let n = Double(v), n >= 0, n <= 8192, let it = try? String(contentsOfFile: ini, encoding: .isoLatin1) else { return }
+    let want = n > 16 ? String(Int(n) & ~1) : String(v)
+    var lines = it.components(separatedBy: "\n")
+    var changed = false
+    for i in lines.indices where lines[i].hasPrefix("Resolution=") {
+        let cr = lines[i].hasSuffix("\r")
+        let line = "Resolution=" + want + (cr ? "\r" : "")
+        if lines[i] != line { lines[i] = line; changed = true }
+    }
+    if changed { try? lines.joined(separator: "\n").write(toFile: ini, atomically: true, encoding: .isoLatin1) }
+}
+
 setupEnv(A)
 padSaveDir(A)
 rescueOrphanSave(A)   // recover any save the engine orphaned as save-01.cmp last session
 setGlideViewport(A)
+setRenderWidth(A)
 
 // Reap on app-quit too (cmd-Q / Dock quit / LaunchServices logout sends SIGTERM;
 // SIGINT for good measure). Without this, quitting the .app while the game runs

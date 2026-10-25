@@ -36,5 +36,12 @@
         I76_GLIDE_FOG       = ''
         I76_GLIDE_FOG_ALPHA = ''
         I76_SKY_MIRROR      = ''
+        # Render size on the Mac (2026-10-25, docs\records\RENDER-KEYS-2026-10-25.md): the Macs run OpenGLide, not dgVoodoo, so
+        # I76_RENDER_SCALE / I76_AA (the Windows keys) do nothing there. The Mac's equivalent is I76_RENDER_WIDTH = OpenGLide's output
+        # width in pixels (OpenGLid.INI Resolution=, height = width x 3 / 4; 1488 = the MacBook's current value; MSAA there is the
+        # prefix's OGL_MSAA). It is written into OpenGLid.INI by the Mac launcher stub BEFORE Wine starts, read from the prefix's
+        # user.reg [Environment] - the stub source carries it (i76-launch-stub.swift setRenderWidth), the installed Mac apps do not yet.
+        # On Windows PLAY-i76.ps1 ignores it.
+        I76_RENDER_WIDTH    = '1488'
     }
 }

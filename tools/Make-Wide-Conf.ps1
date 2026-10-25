@@ -17,6 +17,9 @@
          [DirectX] Resolution = the [DirectX] line of the folder's own 16:10 conf (dgVoodoo.16x10.conf, which
                                 setup-windows.ps1 sizes to the largest 16:10 mode that fits), so the two confs
                                 agree on the 2D shell's mode; the template's 1680x1050 when there is none.
+         [Glide]   Antialiasing = -Antialiasing when given (2026-10-25, owner: "Supersampling and AA probably need to be in the
+                                graphics setting options"; PLAY-i76.ps1 passes the I76_AA preset key): off / 2x / 4x / 8x / 16x
+                                (0 = off). Not given = the template's value (4x).
        Every other byte is the template's: dgVoodoo 2.87.3 REJECTS the whole file over one line it does not like
        and silently falls back to %APPDATA%\dgVoodoo\dgVoodoo.conf (lab docs\DGVOODOO-CONF-REJECTED.md), so the
        output is checked to equal the template apart from those digits. On a 3440x1440 display with a 1680x1050
@@ -43,7 +46,9 @@
 
   Usage:
     tools\Make-Wide-Conf.ps1 -GameDir "C:\GOG Games\Interstate 76"                  # primary display
-    tools\Make-Wide-Conf.ps1 -GameDir <dir> -Width 2560 -Height 1080 [-Scale 2] [-MaxSide 8192] [-WhatIf]
+    tools\Make-Wide-Conf.ps1 -GameDir <dir> -Width 2560 -Height 1080 [-Scale 2] [-Antialiasing 4] [-MaxSide 8192] [-WhatIf]
+    PLAY-i76.ps1 (I76_RENDER_SCALE / I76_AA, docs\records\RENDER-KEYS-2026-10-25.md) calls it with -Template = the folder's own
+    installed wide conf (dgVoodoo.wide.conf.pre-render-keys), -SourceConf = the same file and -NoPreset.
 #>
 [CmdletBinding()]
 param(
@@ -56,6 +61,8 @@ param(
     [string]$SourceConf = '',
     [ValidateRange(1.0, 4.0)] [double]$Scale = 2.0,     # [Glide] Resolution = Scale x the display per axis
     [ValidateRange(1024, 16384)] [int]$MaxSide = 8192,  # cap per side (the factor then shrinks on both axes)
+    # [Glide] Antialiasing (MSAA): '' = the template's; 0 / off, 2 / 2x, 4 / 4x, 8 / 8x, 16 / 16x
+    [ValidateSet('', '0', 'off', '2', '2x', '4', '4x', '8', '8x', '16', '16x')] [string]$Antialiasing = '',
     [switch]$NoPreset,          # write only the conf
     # the presets in <GameDir>\presets whose I76_ASPECT / I76_U32X_MENU_ASPECT get this display (2026-10-23, tester build:
     # the tick presets carry the same two keys); names, or one "a,b" string from powershell -File
@@ -114,16 +121,26 @@ if ($SourceConf) {
 $out = $glRx.Replace($src, ('${1}' + "${wi}x${hi}"), 1)
 $out = $dxRx.Replace($out, ('${1}' + $dx), 1)
 
-# Same shape or nothing: masking the Resolution digits must give back the template text exactly.
-$mask = { param($t) $t -replace '(?m)^(Resolution\s*= )\d+x\d+', '$1' }
-if ((& $mask $out) -cne (& $mask $src)) { Die "internal error: the output differs from $Template in more than the Resolution digits" }
+# [Glide] Antialiasing: the line must be inside the [Glide] section (no section header between the two)
+$aaRx = New-Object regex '(?ms)(^\[Glide\]\s(?:(?!^\[).)*?^Antialiasing\s*= )(\S+)'
+if (-not $aaRx.IsMatch($src)) { Die "$Template has no Antialiasing line in its [Glide] section" }
+$aaWas = $aaRx.Match($src).Groups[2].Value
+$aa = $aaWas
+if ($Antialiasing) {
+    $aa = switch ($Antialiasing) { { $_ -in '0', 'off' } { 'off' } default { ($Antialiasing -replace 'x$', '') + 'x' } }
+    $out = $aaRx.Replace($out, ('${1}' + $aa), 1)
+}
+
+# Same shape or nothing: masking the Resolution digits and the Antialiasing value must give back the template text exactly.
+$mask = { param($t) ($t -replace '(?m)^(Resolution\s*= )\d+x\d+', '$1') -replace '(?m)^(Antialiasing\s*= )\S+', '$1' }
+if ((& $mask $out) -cne (& $mask $src)) { Die "internal error: the output differs from $Template in more than the Resolution digits and the Antialiasing value" }
 $changed = @(Compare-Object ($src -split "`n") ($out -split "`n") | Where-Object SideIndicator -eq '=>').Count
-if ($changed -gt 2) { Die "internal error: $changed lines changed (expected at most 2)" }
+if ($changed -gt 3) { Die "internal error: $changed lines changed (expected at most 3)" }
 
 $confOut = Join-Path $GameDir 'dgVoodoo.wide.conf'
 Write-Host ("display {0}x{1} (aspect {2:N3}); template {3}" -f $Width, $Height, $aspect, $Template)
 $capNote = if ($f -lt $Scale) { (" (capped at {0} per side: factor {1:N3} on both axes)" -f $MaxSide, $f) } else { '' }
-Write-Host "  dgVoodoo.wide.conf: ScalingMode = stretched_ar, CaptureMouse = false, [Glide] Resolution = ${wi}x${hi} = $Scale x the display$capNote, [DirectX] Resolution = $dx (from $dxFrom)"
+Write-Host "  dgVoodoo.wide.conf: ScalingMode = stretched_ar, CaptureMouse = false, [Glide] Resolution = ${wi}x${hi} = $Scale x the display$capNote, Antialiasing = $aa$(if ($aa -ne $aaWas) { " (template $aaWas)" }), [DirectX] Resolution = $dx (from $dxFrom)"
 if ($WhatIf) { Write-Host "  -WhatIf: nothing written." } else {
     [IO.File]::WriteAllText($confOut, $out, [Text.Encoding]::ASCII)
     Write-Host "  written: $confOut"

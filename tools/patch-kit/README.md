@@ -66,7 +66,8 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 Options you can add after the launcher name (open a command window in the folder, or edit a shortcut):
 
 - `PLAY.bat --no-supersample` - lighter on the graphics card: the 3D is rendered at your monitor's size instead
-  of twice that. Use it if the frame rate drops under ~60 or the card is weak / integrated.
+  of twice that. Use it if the frame rate drops under ~60 or the card is weak / integrated. It is the same as
+  `I76_RENDER_SCALE = '1'` in `presets\local.psd1` (Graphics settings, below), which keeps it for every launch.
 - `PLAY.bat --display 1920x1080` - size the picture for this monitor size instead of the one Windows reports
   (for example when the game opens on the wrong monitor).
 - `PLAY.bat --setup` - run the setup / display step only, without starting the game.
@@ -101,6 +102,41 @@ PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, noth
 pointer landed on the menu buttons all the way from TRIP to the garage's DONE), not on a real 16:9 monitor - so **if the picture looks off-centre, stretched, or the mouse pointer does not land on the menu
 buttons, that is exactly what we want to hear about.**
 Tell us your monitor size and send a screenshot (Win+PrtScn saves one to Pictures\Screenshots).
+
+## Graphics settings (`presets\local.psd1`)
+
+Every graphics setting is a key in a preset, render size and antialiasing included (since 2026-10-25). To tune this PC, copy one of the
+tier files in `presets\` to `presets\local.psd1` and edit it: its keys replace the launcher's preset, a key set to `''` goes back to the
+game's stock value, and `play-i76.log` lists every key it took (and the `render:` line). Tiers: `graphics-balanced` (= the full set as
+shipped), `graphics-mid` (the same, rendered at the monitor's own size; cost not yet measured), `graphics-high` (more detail and 8x AA,
+UNTESTED), `graphics-mac` / `graphics-mac-fast` (Macs). The stock launchers (PLAY-VANILLA / PLAY-stock) ignore local.psd1;
+`PLAY-i76.ps1 -NoLocal` skips it.
+
+| key | values (stock) | what it does |
+|---|---|---|
+| `I76_FAR_CLIP` | metres (600) | how far the terrain and objects are drawn |
+| `I76_ROAD_DIST` | 450-3000 m (450) | how far roads are drawn |
+| `I76_CLUTTER_DIST` | 120-2500 m (120) | how far the little bushes are drawn |
+| `I76_TERRAIN_LOD` | 1-256 (1) | terrain shape detail with distance; above 1 needs `I76_FAR_CLIP` (the launcher refuses otherwise) |
+| `I76_TERRAIN_TEX` | 1-16 (1) | distance multiplier for the sharp terrain textures |
+| `I76_OBJECT_LOD` | 1-16 (1) | distance multiplier before cars and buildings swap to their coarse models |
+| `I76_ROAD_TEX` | 1-16 (1) | distance multiplier for the sharp road texture |
+| `I76_SHADOW_DIST` | 1-16 (1) | distance multiplier for shadows |
+| `I76_TERRAIN_MORPH` (+ `_STATELESS`, `_SHADE`, `_NEAR`) | fraction (off) | terrain blends into shape instead of popping; `_SHADE` slows the shade fade, `_NEAR` = no morphing nearer than that many metres |
+| `I76_SHADE_SMOOTH` | 1 (off) | smooth terrain shading |
+| `I76_MIRROR_FAR` / `_LOD` / `_EVERY` / `_M16` / `_M16_SKY` / `_TEX` / `_PAL` | (100 m, stock art) | rear mirror: view distance, its terrain detail, redraw every Nth frame, the main view's ground and road art, its sky art, texture level, palette |
+| `I76_CLUTTER_DENSITY` / `_FADE` / `_ALPHA_FADE` | (1, -, -) | bushes: density (0.5 = half), carried out to metres, fade in over metres |
+| `I76_GLIDE_FOG` / `I76_GLIDE_FOG_ALPHA` | (off) | the far-edge fade (`0.75,hzd` = the last quarter of the view fades; `_ALPHA 1` = to transparent, no fog colour) |
+| `I76_SKY_MIRROR` | (stock sky) | `0` = the one-pass sky |
+| `I76_GLIDE_REFRESH` | Hz (60) | the refresh the 3D asks for (120 = 120 fps) |
+| `I76_RENDER_SCALE` | 1, 1.5, 2 (2) | Windows: the 3D is rendered at that many times the monitor's size per axis, then shown at the monitor's size (2 = a 2x2 supersample, sharpest and heaviest; 1 = the monitor's own size, lightest; `PLAY.bat --no-supersample` in the kit = 1) |
+| `I76_AA` | 0, 2, 4, 8 (4) | Windows: antialiasing (MSAA) off / 2x / 4x / 8x |
+| `I76_RENDER_WIDTH` | pixels (1488 on the MacBook) | Mac only: OpenGLide's render width (`OpenGLid.INI` `Resolution=`, height = 3/4 of it), a key in the app prefix's `user.reg` `[Environment]`; read by the Mac launcher from its next rebuild (not in the installed apps yet) |
+
+`I76_RENDER_SCALE` / `I76_AA` are read by PLAY-i76.ps1, not by the game: when they differ from the conf it rewrites
+`dgVoodoo.wide.conf` (only the `[Glide] Resolution` and `Antialiasing` lines; the installed file is kept as
+`dgVoodoo.wide.conf.pre-render-keys` and put back byte for byte when you return to 2 / 4) and logs e.g.
+`render: 1x (3440x1440), AA 4x (from local; ...)`. Launchers that use another conf (PLAY-VANILLA's 16:10) are not changed.
 
 ## Keys
 

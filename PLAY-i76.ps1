@@ -141,14 +141,20 @@ param(
     # time" - the game beside the FFB web panel). 'auto' = the screen's shape, 880 px narrower than the screen (2560x1072 on
     # 3440x1440: room for the panel on the right); or WxH. The game window is a borderless popup at the top left of the primary
     # screen, kept at that size for the whole session (the exe sizes its window to the screen at start and again on mode
-    # changes; a hidden keeper puts it back). dgVoodoo.conf gets [Glide] Resolution = 2 x the window (a 2x2 supersample, capped
+    # changes; a hidden keeper puts it back). dgVoodoo.conf gets [Glide] Resolution = I76_RENDER_SCALE (default 2) x the window (2 = a 2x2 supersample, capped
     # 8192 per side) for this launch only (the previous conf comes back when the game exits), and the proxy's camera / HUD /
     # Esc-menu aspect keys (I76_ASPECT, I76_U32X_MENU_ASPECT) take the window's shape. The menu pointer map follows the live
     # client rect by itself (proxy cursormap.c). PLAY.bat --windowed [WxH] passes it.
     [string]$Windowed = '',
     # The FFB / LFE tuning page (tools\ffb\ffb-panel.py, http://127.0.0.1:17691/): started with the interposer and opened in
     # the browser. Needs Python 3. PLAY.bat --panel passes it. Without a wheel (no interposer) it says so and starts nothing.
-    [switch]$Panel
+    [switch]$Panel,
+    # Render scale for this launch (2026-10-25): replaces the I76_RENDER_SCALE preset / local.psd1 key (1, 1.5 or 2; see
+    # "render scale + antialiasing" below). The patch kit's PLAY.bat --no-supersample passes -RenderScale 1.
+    [string]$RenderScale = '',
+    # Apply the render scale / antialiasing step (dgVoodoo.wide.conf -> dgVoodoo.conf), print it and exit 0 without starting
+    # anything (exit 5 if the step failed). For tests and for checking a local.psd1.
+    [switch]$RenderOnly
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -247,6 +253,125 @@ if ($Preset -ne 'stock' -and -not $NoLocal -and (Test-Path $localFile)) {
     $localOverride += ("local override presets\local.psd1 NOT applied ({0})" -f $(if ($NoLocal) { '-NoLocal' } else { 'preset stock stays stock' }))
 }
 
+# ---- render scale + antialiasing (I76_RENDER_SCALE / I76_AA; 2026-10-25, owner: "Supersampling and AA probably need to be in the
+# graphics setting options"; docs/records/RENDER-KEYS-2026-10-25.md). Graphics keys like the others (preset, presets\local.psd1,
+# -RenderScale), but read HERE, not by the proxy: they size dgVoodoo's [Glide] render target and MSAA.
+#   I76_RENDER_SCALE  1 | 1.5 | 2 (default 2): [Glide] Resolution = scale x the display per axis (2 = the 2x2 supersample played since
+#                     2026-10-12; 1 = the display's own size, the lightest). Each side capped at 8192 (the factor shrinks on both axes).
+#   I76_AA            0 | 2 | 4 | 8 (default 4): [Glide] Antialiasing = off / 2x / 4x / 8x.
+# Applied only when the launcher copied dgVoodoo.wide.conf to dgVoodoo.conf (PLAY.bat, PLAY-T05, PLAY-STABLE, PLAY-TICK*; not
+# PLAY-VANILLA's 16:10 conf), and only when the wanted values differ from the conf's own: tools\Make-Wide-Conf.ps1 then rewrites
+# dgVoodoo.wide.conf from the folder's installed one (kept once as dgVoodoo.wide.conf.pre-render-keys; only the [Glide] Resolution
+# digits and the Antialiasing value change) and it is copied to dgVoodoo.conf again. Neither key set and never changed = nothing
+# is touched (today's conf). Back to 2 / 4 = the installed file is put back byte for byte. The display: _i76e\display.txt (the patch
+# kit's --display) if present, else the primary monitor. The keys are not passed to the game.
+$renderLine = $null; $renderFailed = $false
+function Get-RenderKey([string]$name) {
+    if ($ld -and $ld.Env -and $ld.Env.ContainsKey($name) -and "$($ld.Env[$name])" -ne '') { return @("$($ld.Env[$name])", 'local') }
+    if ($gameEnv.Contains($name)) { return @("$($gameEnv[$name])", "preset $Preset") }
+    $e = [Environment]::GetEnvironmentVariable($name); if ($e) { return @("$e", 'environment') }
+    return @($null, 'default')
+}
+$inv = [Globalization.CultureInfo]::InvariantCulture
+$rsRaw = Get-RenderKey 'I76_RENDER_SCALE'; $aaRaw = Get-RenderKey 'I76_AA'
+if ($RenderScale) { $rsRaw = @($RenderScale, '-RenderScale') }
+# I76_RENDER_WIDTH is the Mac's key (OpenGLide's output width, the graphics-mac tiers): nothing on Windows
+foreach ($k in 'I76_RENDER_SCALE', 'I76_AA', 'I76_RENDER_WIDTH') { if ($gameEnv.Contains($k)) { $gameEnv.Remove($k) } }
+$rScale = 2.0; $rsFrom = $rsRaw[1]
+if ($null -ne $rsRaw[0]) {
+    $tv = 0.0
+    if ([double]::TryParse(("$($rsRaw[0])").Trim(), [Globalization.NumberStyles]::AllowDecimalPoint, $inv, [ref]$tv) -and @(1.0, 1.5, 2.0) -contains $tv) { $rScale = $tv }
+    else { Write-LaunchLog ("render: I76_RENDER_SCALE='{0}' ({1}) is not 1, 1.5 or 2 - using 2" -f $rsRaw[0], $rsRaw[1]) 'Yellow'; $rsFrom = 'default' }
+}
+$rAA = 4; $aaFrom = $aaRaw[1]
+if ($null -ne $aaRaw[0]) {
+    $av = ("$($aaRaw[0])").Trim().ToLowerInvariant() -replace 'x$', ''
+    if ($av -eq 'off') { $av = '0' }
+    if (@('0', '2', '4', '8') -contains $av) { $rAA = [int]$av }
+    else { Write-LaunchLog ("render: I76_AA='{0}' ({1}) is not 0, 2, 4 or 8 - using 4" -f $aaRaw[0], $aaRaw[1]) 'Yellow'; $aaFrom = 'default' }
+}
+$aaText = if ($rAA -eq 0) { 'off' } else { "${rAA}x" }
+$wideConf = Join-Path $GameDir 'dgVoodoo.wide.conf'; $liveConf = Join-Path $GameDir 'dgVoodoo.conf'
+$wideOrig = "$wideConf.pre-render-keys"
+function Read-GlideRender([string]$path) {
+    # @('WxH', 'aa') of a conf's [Glide] section, $null if it has no such lines
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    $t = [IO.File]::ReadAllText($path, [Text.Encoding]::ASCII)
+    $mr = [regex]::Match($t, '(?ms)^\[Glide\]\s(?:(?!^\[).)*?^Resolution\s*=\s*(\d+x\d+)')
+    $ma = [regex]::Match($t, '(?ms)^\[Glide\]\s(?:(?!^\[).)*?^Antialiasing\s*=\s*(\S+)')
+    if (-not $mr.Success -or -not $ma.Success) { return $null }
+    return @($mr.Groups[1].Value, $ma.Groups[1].Value)
+}
+$explicit = ($rsFrom -ne 'default') -or ($aaFrom -ne 'default')
+$sameFile = $false
+if ((Test-Path -LiteralPath $wideConf) -and (Test-Path -LiteralPath $liveConf)) {
+    $sameFile = ((Get-FileHash -LiteralPath $wideConf -Algorithm MD5).Hash -eq (Get-FileHash -LiteralPath $liveConf -Algorithm MD5).Hash)
+}
+$srcText = (@(@($rsFrom, $aaFrom) | Select-Object -Unique) -join ' / ')
+if (-not $sameFile) {
+    if ($explicit) { Write-LaunchLog ("render keys NOT applied (scale {0:0.##} from {1}, AA {2} from {3}): dgVoodoo.conf is not dgVoodoo.wide.conf - this launcher uses another conf" -f $rScale, $rsFrom, $aaText, $aaFrom) 'Yellow' }
+} else {
+    # the display the conf is for
+    $dW = 0; $dH = 0; $dFrom = 'the primary monitor'
+    $kitDisp = Join-Path $GameDir '_i76e\display.txt'
+    if ((Test-Path -LiteralPath $kitDisp) -and ((Get-Content -LiteralPath $kitDisp -TotalCount 1) -match '^\s*(\d+)x(\d+)')) { $dW = [int]$Matches[1]; $dH = [int]$Matches[2]; $dFrom = '_i76e\display.txt' }
+    else { try { Add-Type -AssemblyName System.Windows.Forms; $b0 = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $dW = $b0.Width; $dH = $b0.Height } catch { } }
+  if (-not $explicit -and -not (Test-Path -LiteralPath $wideOrig)) {
+    $cur = Read-GlideRender $liveConf
+    if ($cur) {
+        $cs = if ($dW -gt 0) { "{0:0.##}x " -f ([int]($cur[0] -split 'x')[0] / $dW) } else { '' }
+        $renderLine = "render: {0}({1}), AA {2} (default: no I76_RENDER_SCALE / I76_AA set, dgVoodoo.wide.conf as installed; display {3}x{4} from {5})" -f $cs, $cur[0], $cur[1], $dW, $dH, $dFrom
+    }
+  } elseif ($dW -lt 640 -or $dH -lt 480) {
+        Write-LaunchLog "render keys NOT applied: the display size could not be read" 'Yellow'; $renderFailed = $true
+    } else {
+        $f0 = [Math]::Min($rScale, [Math]::Min(8192.0 / $dW, 8192.0 / $dH))
+        $wantRes = "{0}x{1}" -f ([int]([Math]::Floor($dW * $f0 / 2.0) * 2)), ([int]([Math]::Floor($dH * $f0 / 2.0) * 2))
+        $cur = Read-GlideRender $wideConf
+        $how = 'unchanged'
+        if (-not $cur -or $cur[0] -ne $wantRes -or $cur[1] -ne $aaText) {
+            $orig = Read-GlideRender $wideOrig
+            if ($DryRun) { $how = 'DRY RUN: would rewrite dgVoodoo.wide.conf' }
+            elseif ($rScale -eq 2.0 -and $rAA -eq 4 -and $orig -and $orig[0] -eq $wantRes -and $orig[1] -eq $aaText) {
+                Copy-Item -LiteralPath $wideOrig -Destination $wideConf -Force
+                Remove-Item -LiteralPath $wideOrig -Force
+                $how = 'the installed dgVoodoo.wide.conf put back'
+            } else {
+                $mwc = @((Join-Path $PSScriptRoot 'tools\Make-Wide-Conf.ps1'), (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1'),
+                         (Join-Path $GameDir '_i76e\repo\tools\Make-Wide-Conf.ps1')) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+                if (-not $mwc) { Write-LaunchLog "render keys NOT applied: tools\Make-Wide-Conf.ps1 is not beside PLAY-i76.ps1, in _tools\ or in _i76e\repo\tools\" 'Yellow'; $renderFailed = $true }
+                else {
+                    if (-not (Test-Path -LiteralPath $wideOrig)) { Copy-Item -LiteralPath $wideConf -Destination $wideOrig -Force }
+                    $mwArgs = @{ GameDir = $GameDir; Width = $dW; Height = $dH; Template = $wideOrig; SourceConf = $wideOrig; Scale = $rScale
+                                 Antialiasing = "$rAA"; NoPreset = $true }
+                    if (($dW / $dH) -le (4.0 / 3.0 + 0.01)) { $mwArgs['AllowNarrow'] = $true }
+                    $global:LASTEXITCODE = 0
+                    $mwOut = @(& $mwc @mwArgs 2>&1 | ForEach-Object { "$_" })
+                    $after = Read-GlideRender $wideConf
+                    if ($LASTEXITCODE -or -not $after -or $after[0] -ne $wantRes -or $after[1] -ne $aaText) {
+                        foreach ($l in $mwOut) { Write-LaunchLog ("  Make-Wide-Conf: $l") 'Yellow' }
+                        Write-LaunchLog "render keys NOT applied: Make-Wide-Conf.ps1 failed - putting the installed dgVoodoo.wide.conf back" 'Red'
+                        Copy-Item -LiteralPath $wideOrig -Destination $wideConf -Force
+                        $renderFailed = $true
+                    } else { $how = "dgVoodoo.wide.conf rewritten (installed copy kept as dgVoodoo.wide.conf.pre-render-keys)" }
+                }
+            }
+            if (-not $DryRun) {
+                Copy-Item -LiteralPath $wideConf -Destination $liveConf -Force
+                if ((Get-FileHash -LiteralPath $wideConf -Algorithm MD5).Hash -ne (Get-FileHash -LiteralPath $liveConf -Algorithm MD5).Hash) {
+                    Write-LaunchLog "render: dgVoodoo.conf did not read back equal to dgVoodoo.wide.conf" 'Red'; $renderFailed = $true
+                }
+            }
+        }
+        $now = Read-GlideRender $liveConf
+        $shown = if ($DryRun -and $how -ne 'unchanged') { @($wantRes, $aaText) } elseif ($now) { $now } else { @('?', '?') }
+        $renderLine = "render: {0:0.##}x ({1}), AA {2} (from {3}; display {4}x{5} from {6}; {7})" -f $rScale, $shown[0], $shown[1], $srcText, $dW, $dH, $dFrom, $how
+        if ($renderFailed) { $renderLine = "render: {0} AA {1} as the conf is (the keys asked for {2:0.##}x / AA {3}, see above)" -f $shown[0], $shown[1], $rScale, $aaText }
+  }
+}
+if ($renderLine) { Write-LaunchLog $renderLine 'Cyan' }
+if ($RenderOnly) { if ($renderFailed) { exit 5 } else { exit 0 } }
+
 # ---- tick override (-TickMs; TICK-FINISH s.19) ---------------------------------
 if ($TickMs -or $CheckTickMs) {
     # a BOM or other non-ASCII bytes in front (tick-ms.txt saved by Notepad as UTF-8) are dropped; the rest must be a plain number
@@ -291,7 +416,7 @@ if ($Windowed) {
     $confPath = Join-Path $GameDir 'dgVoodoo.conf'
     if (Test-Path $confPath) {
         $ct = [IO.File]::ReadAllText($confPath, [Text.Encoding]::ASCII)
-        $f = [math]::Min(2.0, [math]::Min(8192.0 / $ww, 8192.0 / $wh))
+        $f = [math]::Min($rScale, [math]::Min(8192.0 / $ww, 8192.0 / $wh))   # I76_RENDER_SCALE (default 2)
         $gw = [int]([math]::Floor($ww * $f / 2) * 2); $gh = [int]([math]::Floor($wh * $f / 2) * 2)
         $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
         if ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*= false') {

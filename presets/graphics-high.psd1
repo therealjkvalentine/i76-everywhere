@@ -38,5 +38,11 @@
         I76_CLUTTER_FADE    = '450'
         I76_CLUTTER_DENSITY = '0.5'
         I76_CLUTTER_ALPHA_FADE = '150'
+        # Render target + MSAA (2026-10-25, owner: "Supersampling and AA probably need to be in the graphics setting options"):
+        # read by PLAY-i76.ps1, not the proxy; it rewrites dgVoodoo.wide.conf ([Glide] Resolution / Antialiasing) when they change
+        # (docs\records\RENDER-KEYS-2026-10-25.md). I76_RENDER_SCALE 1 | 1.5 | 2 = render at that many times the display per axis;
+        # I76_AA 0 | 2 | 4 | 8 = MSAA off / 2x / 4x / 8x.
+        I76_RENDER_SCALE    = '2'
+        I76_AA              = '8'      # ALL: 4 (UNTESTED: 8x MSAA on a 2x render target; SUPERSAMPLE-COST-2026-10-25.md has the cost)
     }
 }

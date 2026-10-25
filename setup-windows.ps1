@@ -739,6 +739,10 @@ if ($ControlsOnly) {
 # keys: up = cycle weapon, down = hardpoint 5; the engine has no wheel tokens - see tools/i76wheel.c;
 # build: gcc -O2 -s -mwindows -o i76wheel.exe i76wheel.c -luser32).
 Copy-Item (Join-Path $repoGameDir 'PLAY-i76.ps1') $GameDir -Force
+# The render scale / antialiasing keys (I76_RENDER_SCALE, I76_AA; docs/records/RENDER-KEYS-2026-10-25.md) make PLAY-i76.ps1 rewrite
+# dgVoodoo.wide.conf through tools\Make-Wide-Conf.ps1; the installed launcher looks for it in <game>\_tools\.
+New-Item -ItemType Directory -Force (Join-Path $GameDir '_tools') | Out-Null
+Copy-Item (Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1') (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1') -Force
 # The frame-rate presets PLAY-i76.ps1 -Preset reads (presets\*.psd1, data files). Copied beside
 # the launcher so the installed copy finds them. PLAY-i76.bat below names the one to apply.
 $presetSrc = Join-Path $repoGameDir 'presets'

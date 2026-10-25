@@ -143,7 +143,7 @@ function Bat([string]$preset, [string]$extra, [string]$what) {
     return @"
 @echo off
 REM Interstate '76 - i76-everywhere tester build $Stamp (repo $sha): $what
-REM Options:  --no-supersample   lighter on the GPU: the 3D is rendered at the monitor's size, not 2x
+REM Options:  --no-supersample   lighter on the GPU: the 3D is rendered at the monitor's size, not 2x (= I76_RENDER_SCALE 1 for this launch)
 REM           --display WxH      size the picture for this monitor size instead of the one Windows reports
 REM           --setup            run the setup / display step only, do not start the game     --resetup  run the setup again
 REM           --voices de|en     German voice lines for this launch (INSTALL-EXTRAS.bat builds them from your German disc) / English
@@ -151,12 +151,13 @@ REM           --music-extra off  this launch without your extra music (INSTALL-E
 REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
 setlocal
 set "ARGS="
+set "PLAYARGS="
 set "SETUPONLY="
 REM the defaults INSTALL-EXTRAS.bat chose (German voices, extra music): KEY=VALUE lines, overridden by the options below
 if exist "%~dp0_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%~dp0_i76e\extras.env") do set "%%a=%%b"
 :args
 if "%~1"=="" goto :go
-if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & shift & goto :args)
+if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & set "PLAYARGS=%PLAYARGS% -RenderScale 1" & shift & goto :args)
 if /i "%~1"=="--display" (set "ARGS=%ARGS% -Display %~2" & shift & shift & goto :args)
 if /i "%~1"=="--setup" (set "SETUPONLY=1" & shift & goto :args)
 if /i "%~1"=="--resetup" (set "ARGS=%ARGS% -Resetup" & shift & goto :args)
@@ -169,7 +170,7 @@ goto :args
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Preset $preset %ARGS%
 if errorlevel 1 ( pause & exit /b 1 )
 if defined SETUPONLY ( pause & exit /b 0 )
-start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe i76.exe -Preset $preset -LosslessScaling none$extra
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe i76.exe -Preset $preset -LosslessScaling none$extra%PLAYARGS%
 "@
 }
 $t05 = ' -Mission t05.msn -SkipMovies'
