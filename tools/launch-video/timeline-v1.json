@@ -7,7 +7,7 @@
     { "type": "card", "dur": 3.5, "lines": [["INTERSTATE '76", "Title"], ["EVERYWHERE", "Big"], ["the 1997 game, fixed for 2026", "Sub"]] },
 
     { "type": "sbs", "title": "SAME ROUTE. SAME CAR. SAME 1997 TICK.",
-      "caption": "Draw distance 600 m -> 2300 m   |   20 fps -> 120 fps   |   whole sim locked to the 1997 41.667 ms step",
+      "caption": "Draw distance 600 m -> 2300 m   |   20 fps cap -> 120 fps   |   whole sim on the 1997 41.667 ms step\\N{\\fs28}counters = this recording's own telemetry (screen capture costs ~25 % of the frame rate)",
       "a": { "src": "shot:route-stock", "in": 2.5, "out": 16.5, "label": "STOCK (GOG, 20 FPS LIMITER)", "counters": true, "tag": "600\\hM" },
       "b": { "src": "shot:route-all",   "in": 2.5, "out": 16.5, "label": "I'76 EVERYWHERE (PLAY.BAT)",  "counters": true, "tag": "2300\\hM" } },
 
@@ -23,8 +23,8 @@
 
     { "type": "sbs", "title": "A REAR MIRROR THAT SEES",
       "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %)",
-      "a": { "src": "shot:mirror-before", "in": 3.0, "out": 9.0, "crop": [1180, 300, 420, 190], "label": "STOCK MIRROR" },
-      "b": { "src": "shot:mirror-after",  "in": 3.0, "out": 9.0, "crop": [1180, 300, 420, 190], "label": "OURS" } },
+      "a": { "src": "shot:mirror-before", "in": 3.0, "out": 9.0, "crop": [1290, 262, 504, 168], "label": "STOCK MIRROR" },
+      "b": { "src": "shot:mirror-after",  "in": 3.0, "out": 9.0, "crop": [1290, 262, 504, 168], "label": "OURS" } },
 
     { "type": "still", "dur": 6.5, "img": "C:\\Users\\james\\i76-uncap-lab\\captures\\coop-list-20261018\\a-list12.png",
       "zoom_to": [0.2, 0.42, 2.0], "x": 0, "title": "LAN NIGHT, FIXED",

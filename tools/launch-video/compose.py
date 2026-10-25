@@ -26,6 +26,8 @@ ap.add_argument("--theme", default="")
 ap.add_argument("--ffmpeg", default="ffmpeg")
 ap.add_argument("--raw", default=r"C:\Users\james\i76-uncap-lab\captures\launch-video\raw")
 ap.add_argument("--only", default="", help="render only these segment numbers (comma list) - for previews")
+ap.add_argument("--teaser", default="", help="also write this GIF: segment --teaser-seg, 6 s, 960 px, 12 fps (the README clip, < 2 MB)")
+ap.add_argument("--teaser-seg", type=int, default=1)
 a = ap.parse_args()
 HERE = os.path.dirname(os.path.abspath(__file__))
 TL = json.load(open(a.timeline, encoding="utf-8"))
@@ -117,7 +119,8 @@ def counters(ass, series, t_in, speed, dur, pos, tag):
         st = t_in + t * speed
         smp = min(series, key=lambda s: abs(s["t"] - st))
         fps = smp["fps"]
-        txt = "%s FPS   %3d MPH   %s" % (("%3d" % fps) if fps is not None else "  -", int(round(smp["mph"])), tag)
+        stp = smp.get("steps")
+        txt = "%s FPS  %s STEPS/S  %3d MPH  %s" % (("%3d" % fps) if fps is not None else "  -", ("%2d" % stp) if stp is not None else " -", int(round(smp["mph"])), tag)
         ass.add(t, min(dur, t + step), "Mono", txt.replace(" ", "\\h"), pos=pos, fade=(0, 0))
         t += step
 
@@ -265,3 +268,10 @@ for mus, out, mi in outs:
     else:
         ff(["-i", "video.mp4", "-c", "copy", "-movflags", "+faststart", os.path.abspath(out)])
     print("compose: %s (%.1f s)" % (out, D))
+
+if a.teaser:
+    seg = "s%02d.mp4" % a.teaser_seg
+    ff(["-ss", "1", "-t", "6", "-i", seg, "-vf", "fps=12,scale=960:-1:flags=lanczos,palettegen=max_colors=96:stats_mode=diff", "pal.png"])
+    ff(["-ss", "1", "-t", "6", "-i", seg, "-i", "pal.png", "-lavfi", "fps=12,scale=960:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle",
+        "-loop", "0", os.path.abspath(a.teaser)])
+    print("teaser: %s (%d bytes)" % (a.teaser, os.path.getsize(a.teaser)))

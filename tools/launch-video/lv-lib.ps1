@@ -1,6 +1,6 @@
 # lv-lib.ps1 - shared helpers for the launch-video pipeline (docs/LAUNCH-VIDEO-2026-10-25.md). Dot-source it.
 #   Get-LvFfmpeg            ffmpeg.exe / ffprobe.exe (winget Gyan.FFmpeg 9.0.2 on this PC; PATH or the winget package folder)
-#   Wait-LvConsole -Tag x   CONSOLE-LOCK.md protocol: waits (queue line in .fps-queue, poll 60 s) until no i76 / nitro runs,
+#   Wait-LvConsole -Tag x   CONSOLE-LOCK.md protocol: waits (queue line in .fps-queue, poll 10 s) until no i76 / nitro runs,
 #                           .console-owner and .fps-lock are free, then takes both with an exclusive create. Returns $true / $false.
 #   Exit-LvConsole          frees what Wait-LvConsole took (call in a finally)
 $script:LvLab  = 'C:\Users\james\i76-uncap-lab'
@@ -44,15 +44,16 @@ function Wait-LvConsole([string]$Tag = 'launch-video', [int]$MaxWaitMin = 240) {
                     try { $fs2 = [IO.File]::Open($fps, 'CreateNew', 'Write'); $w2 = New-Object IO.StreamWriter($fs2); $w2.Write("$mark $(Get-Date -Format s)"); $w2.Close() }
                     catch { Remove-Item $owner -Force; Start-Sleep 5; continue }
                     $script:LvHeld = @($owner, $fps)
-                    if (Test-Path $queue) { $rest = @(Get-Content $queue | Where-Object { $_ -notmatch [regex]::Escape($mark) }); if ($rest) { Set-Content $queue $rest } else { Remove-Item $queue -Force } }
+                    if (Test-Path $queue) { $rest = @(Get-Content $queue | Where-Object { $_ -notmatch 'launch-video lane' }); if ($rest) { Set-Content $queue $rest } else { Remove-Item $queue -Force } }
                     return $true
                 } catch { }
             }
         }
-        if (-not $queued) { Add-Content $queue "$mark queued for $Tag $(Get-Date -Format s)"; $queued = $true }
+        if (-not $queued -or -not (Select-String -Path $queue -Pattern ([regex]::Escape($mark)) -Quiet -ErrorAction SilentlyContinue)) {
+            if (-not $queued) { $qt = Get-Date -Format s }; Add-Content $queue "$mark queued for $Tag $qt"; $queued = $true }   # re-added if another lane rewrote the file
         if (((Get-Date) - $t0).TotalMinutes -gt $MaxWaitMin) { Write-Host "[lv] gave up waiting for the console after $MaxWaitMin min: $($busy -join '; ')" -ForegroundColor Yellow; return $false }
         Write-Host ("[lv] {0:HH:mm:ss} waiting for the console: {1}" -f (Get-Date), ($busy -join '; ')) -ForegroundColor DarkGray
-        Start-Sleep -Seconds 60
+        Start-Sleep -Seconds 10
     }
 }
 function Exit-LvConsole {
