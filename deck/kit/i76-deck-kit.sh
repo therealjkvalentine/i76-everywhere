@@ -13,9 +13,9 @@
 #      IPXWrapper 0.7.2 (and GE-Proton 10-12 with --ge-proton)
 #   2. your GOG files: unpacked from the offline installer (innoextract) or copied from a GOG folder, into <dest>/game
 #   3. patched in place: i76.exe and i76shell.dll by the byte patches in payload/patches (checked against your file's md5
-#      before and the result's md5 after; the same patches the Mac Kit uses: shell keys, text entry, u32x, the Wine PIT
-#      skip), the co-op / scenario arenas built from your own mission files; every GOG file replaced is kept in game/_gog-originals
-#   4. our files: the proxy STRLKUP.DLL (GOG's kept as strlkup_orig.dll), u32x.dll, the rumble shim i7_sfrce.dll, the key map;
+#      before and the result's md5 after: the Mac Kit's shell keys, text entry and Wine PIT skip, without its u32x step, which
+#      would switch off the proxy's stick-driven menu pointer), the co-op / scenario arenas built from your own mission files; every GOG file replaced is kept in game/_gog-originals
+#   4. our files: the proxy STRLKUP.DLL (GOG's kept as strlkup_orig.dll), the rumble shim i7_sfrce.dll, the key map;
 #      dgVoodoo's Glide2x / ddraw / d3dimm + the Deck's dgVoodoo.conf; IPXWrapper; the rumble envelopes from your sound files
 #   5. <dest>: the launchers, the preset i76-env.sh, i76-env.local.sh (yours, created once), the AutoHotkey pad layer
 # =====================================================================================================================
@@ -155,10 +155,9 @@ do_install() {
     local s0; s0="$(ci "$G" STRLKUP.DLL)" || die "no STRLKUP.DLL in the game folder"
     keep "$s0"; [ -e "$G/strlkup_orig.dll" ] || cp -p "$ORIG/${s0#$G/}" "$G/strlkup_orig.dll"
     place "$PAY/gold/STRLKUP.DLL" STRLKUP.DLL
-    place "$PAY/gold/u32x.dll" u32x.dll
     place "$PAY/gold/i7_sfrce.dll" i7_sfrce.dll
     place "$PAY/gold/input.map" input.map.profile-pad; place "$PAY/gold/input.map" input.map
-    ok "proxy STRLKUP.DLL $(md5of "$G/STRLKUP.DLL" | cut -c1-8) (GOG's = strlkup_orig.dll), u32x.dll, rumble shim i7_sfrce.dll, input.map"
+    ok "proxy STRLKUP.DLL $(md5of "$G/STRLKUP.DLL" | cut -c1-8) (GOG's = strlkup_orig.dll), rumble shim i7_sfrce.dll, input.map"
     local D; D="$(mktemp -d "$DEST/.kit-dgv.XXXX")"
     unzip -q -o "$DGV" '3Dfx/x86/Glide2x.dll' 'MS/x86/DDraw.dll' 'MS/x86/D3DImm.dll' -d "$D"
     place "$D/3Dfx/x86/Glide2x.dll" Glide2x.dll; place "$D/MS/x86/DDraw.dll" ddraw.dll; place "$D/MS/x86/D3DImm.dll" d3dimm.dll

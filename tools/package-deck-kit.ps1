@@ -7,10 +7,11 @@
   ONE zip with one folder, Interstate76-Deck-Kit\:
     i76-deck-kit.sh, README.md, pins.txt, VERSION.txt, MD5SUMS, i76-env.sh (the Deck preset), i76-env-mp.sh, i76-env.local.sh.example,
     dgVoodoo.conf (the Deck's 2.78.2 conf), tools\ (bspatch.py, add-to-steam.py, gpw-envelopes.py, zfs_extract.py)
-    payload\gold\    STRLKUP.DLL (the proxy), u32x.dll, i7_sfrce.dll (the ffb-shim rumble DLL), input.map (controls\input.map)
+    payload\gold\    STRLKUP.DLL (the proxy), i7_sfrce.dll (the ffb-shim rumble DLL), input.map (controls\input.map); no u32x (see below)
     payload\deck\    i76-deck-launch.sh, i76-deck-launch-mp.sh, controller_neptune_i76_pad.vdf
     payload\ahk\     AutoHotkeyU32.exe 1.1.37.02 (GPL v2) + license.txt + i76-remap.ahk
-    payload\patches\ the Gold rows of tools\mac-kit\make-patches.py's output (BSDIFF40 against GOG 2.1.0.17 files) + patches.txt
+    payload\patches\ deck\kit\tools\make-deck-patches.py's output (BSDIFF40 against GOG 2.1.0.17 files) + patches.txt: the Mac Kit's
+                     Gold set without its u32x step (with u32x the proxy's pad menu / cursor map cannot hook: no Deck menu pointer)
 
     tools\package-deck-kit.ps1 -Proxy <STRLKUP.DLL> -Shim <I7_SFRCE.DLL> -PatchesDir <make-patches.py out> -AhkDir <AutoHotkey dir>
                                [-GogGold C:\Users\james\i76-map\sandbox-gog\main\app] [-OutDir ...\downloads\deck-kit] [-Version 0.1.0]
@@ -69,7 +70,6 @@ foreach ($n in 'capsule_p.png', 'header.png', 'hero.png', 'logo.png', 'icon.png'
 $pins = [ordered]@{
     $Proxy                                       = @('5d6f9828', 'payload\gold\STRLKUP.DLL')    # the family proxy (= main 810caf2, every Mac / the Deck)
     $Shim                                        = @('d6e9add5', 'payload\gold\i7_sfrce.dll')   # ffb-shim, MSVC build of 6853d7b (ffb-shim\build-msvc.ps1)
-    (Join-Path $repo 'u32x\u32x_full.dll')       = @('06467bd2', 'payload\gold\u32x.dll')       # the patched i76.exe imports it
     (Join-Path $AhkDir 'AutoHotkeyU32.exe')      = @('b6af97aa', 'payload\ahk\AutoHotkeyU32.exe')   # AutoHotkey 1.1.37.02, GPL v2
     (Join-Path $AhkDir 'license.txt')            = @('e3f2ad77', 'payload\ahk\license.txt')
 }

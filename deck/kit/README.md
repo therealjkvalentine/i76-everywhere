@@ -92,9 +92,9 @@ To undo: delete the library entry in Steam and the install folder; your GOG inst
 
 ## What is in the kit, and from where
 
-- Ours (this project, GPL v2 where it applies): the proxy `STRLKUP.DLL` (`music-fix/`), `u32x.dll`, the rumble shim
+- Ours (this project, GPL v2 where it applies): the proxy `STRLKUP.DLL` (`music-fix/`), the rumble shim
   `i7_sfrce.dll` (`ffb-shim/`), the byte patches (`payload/patches`, which carry only our changes and are checked against your
-  GOG file before and after; built by `tools/mac-kit/make-patches.py`), the launchers, the preset, the key map, the Steam layout,
+  GOG file before and after; built by `deck/kit/tools/make-deck-patches.py`: the Mac Kit's set without its u32x step), the launchers, the preset, the key map, the Steam layout,
   `bspatch.py` (applies the patches with Python only).
 - **AutoHotkey 1.1.37.02** (GPL v2, `payload/ahk`, with its licence): the pad layer, run inside the game's Proton prefix.
 - Downloaded on your Deck, not in the zip (addresses and fingerprints in `pins.txt`): **innoextract 1.9** (zlib), **dgVoodoo
