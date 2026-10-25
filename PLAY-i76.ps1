@@ -24,7 +24,11 @@
 # binoculars overrun the stock terrain vertex pool); I76_COLL_WINDOW without I76_FIXED_STEP gets a warning
 # (it does nothing then). tests\test_presets.py checks every shipped preset against the same rules.
 #
-# Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe] [-Preset smooth-60] [-DryRun] [-LegacyMultiplayer]
+# Head look and FFB (2026-10-24, docs/records/LAUNCHERS-2026-10-24.md): ON when their hardware / software is there,
+# skipped at once when it is not - opentrack installed -> head look; a force-feedback wheel attached -> the custom
+# interposer. -NoHeadTrack / -NoFfb switch each off. What was chosen is written to <game>\play-i76.log.
+#
+# Usage: PLAY-i76.ps1 [-GameDir "C:\Games\Interstate 76"] [-Exe i76.exe] [-Preset smooth-60] [-DryRun] [-LegacyMultiplayer] [-NoHeadTrack] [-NoFfb]
 param(
     [string]$GameDir = "C:\Games\Interstate 76",
     [string]$Exe = "i76.exe",
@@ -35,21 +39,29 @@ param(
     [switch]$DryRun,
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
     [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
-    # Head tracking, OPT-IN since 2026-10-08 (owner: remove the dependency). With -HeadTrack, opentrack
-    # ($OpenTrack) is started AND told to begin tracking (it has no auto-start switch - see
-    # i76-opentrack-autostart.ahk), the launcher waits for it to publish, and the head-look layer runs.
-    # Without it none of the three happens, whatever is installed.
+    # Head tracking, OPT-OUT and NON-BLOCKING since 2026-10-24 (owner: "no dependency on opentrack: if it's not
+    # set up or running, just skip it every time instead of the current wait"). If opentrack is installed
+    # ($OpenTrack exists) it is started (unless already running), told to begin tracking when the game starts
+    # (game detection + i76-opentrack-autostart.ps1, both in the background) and the head-look layer runs; the
+    # launcher never waits for tracking - the layer picks FT_SharedMem up whenever it appears. Not installed, or
+    # it fails to start: one line in the log and the launch goes on at once. -NoHeadTrack: none of it.
+    # -HeadTrack (the old explicit switch) is still accepted; it only adds a warning when opentrack is missing.
     [switch]$HeadTrack,
+    [switch]$NoHeadTrack,
     [string]$OpenTrack = "C:\Program Files (x86)\opentrack\opentrack.exe",
     # Head-look mode at start: ANALOG (default since 2026-10-24, owner), DIGITAL or OFF. In the game
     # Ctrl+Alt+H cycles ANALOG -> DIGITAL -> OFF and shows the new mode on screen; holding any glance
     # key / button overrides head look until released.
     [ValidateSet('ANALOG', 'DIGITAL', 'OFF')][string]$HeadLookMode = 'ANALOG',
-    # Custom force feedback (tools/ffb). OPT-IN on purpose: it synthesises real
-    # slip/load/impact feel from telemetry, but the gains have not been judged by
-    # hand yet, and force feedback nobody has tuned goes straight into the user's
-    # hands. Calibrate first (tools\ffb\ffb-calibrate.ps1), then add -Ffb.
+    # Custom force feedback (tools/ffb, the interposer). AUTOMATIC since 2026-10-24 (owner: one launcher for
+    # everything): after the game has started, FfbCore's Ffb-Probe lists the attached DirectInput force-feedback
+    # controllers (enumeration only - nothing is acquired, the game must find the wheel free); if one is a wheel
+    # (DirectInput type "driving", or a wheel-like name - the T300 reports 0x16) the interposer starts. It takes
+    # the wheel exclusively and switches the game's own effects off while it runs (tools/ffb/README.md). No wheel:
+    # nothing happens. -NoFfb: never (the game's own force feedback). -Ffb: start it whatever the probe says.
+    # Calibrate once: tools\ffb\ffb-calibrate.ps1 (in a game folder _ffb\FFB-CALIBRATE.bat).
     [switch]$Ffb,
+    [switch]$NoFfb,
     # Soundtrack. ON by default, because this restores STOCK behaviour rather than
     # adding a feature: I'76 plays its music as Red Book CD audio through MCI, and
     # on a machine with no optical drive there is no cdaudio device to open, so the
@@ -122,6 +134,20 @@ param(
     [ValidateRange(0, 5)][int]$AiSkill = 0
 )
 $ErrorActionPreference = 'SilentlyContinue'
+
+# ---- launcher log (2026-10-24): the .bat files run this script hidden, so what was switched on is also written
+# to <game>\play-i76.log (the last 400 lines are kept). Lines are "<time> <text>".
+$launchClock = [Diagnostics.Stopwatch]::StartNew()
+$launchLog = Join-Path $GameDir 'play-i76.log'
+function Write-LaunchLog([string]$text, [string]$color = 'Cyan') {
+    Write-Host $text -ForegroundColor $color
+    if ($DryRun) { return }
+    try {
+        $old = @(); if (Test-Path $launchLog) { $old = @(Get-Content $launchLog -Tail 399) }
+        $line = "{0} +{1:0.00}s {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $launchClock.Elapsed.TotalSeconds, $text
+        Set-Content -Path $launchLog -Value ($old + $line) -Encoding UTF8
+    } catch { }
+}
 
 # ---- frame-rate preset ------------------------------------------------------
 # $gameEnv is every environment variable the GAME gets that this shell does not have. It is
@@ -284,6 +310,7 @@ if ($gameEnv.Count) {
 } else {
     Write-Host "preset $presetLabel (no engine switches)" -ForegroundColor DarkGray
 }
+Write-LaunchLog ("---- PLAY-i76.ps1 {0}" -f (($MyInvocation.BoundParameters.GetEnumerator() | ForEach-Object { if ($_.Value -is [switch]) { "-$($_.Key)" } else { "-$($_.Key) $($_.Value)" } }) -join ' ')) 'DarkGray'
 
 # music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs to
 # mciproxy.log only when this is set. Set UNCONDITIONALLY: it was opt-in, which meant the
@@ -311,9 +338,9 @@ if ($DryRun) {
     foreach ($k in $gameEnv.Keys) { Write-Host ("    {0}={1}" -f $k, $gameEnv[$k]) }
     $skipped = @()
     if ($LosslessScaling -and (Test-Path $LosslessScaling)) { $skipped += 'Lossless Scaling' }
-    if ($HeadTrack -and $OpenTrack -and (Test-Path $OpenTrack)) { $skipped += 'opentrack' }
+    if (-not $NoHeadTrack -and $OpenTrack -and (Test-Path $OpenTrack) -and (Test-Path (Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk'))) { $skipped += 'opentrack + head look' }
     if (Test-Path (Join-Path $GameDir '_ahk\AutoHotkeyU32.exe')) { $skipped += 'AHK layers' }
-    if ($Ffb) { $skipped += 'FFB interposer' }
+    if ($Ffb -and -not $NoFfb) { $skipped += 'FFB interposer' } elseif (-not $NoFfb) { $skipped += 'FFB interposer if a wheel is found' }
     if ($skipped) { Write-Host ("  helpers that a real run would also start: {0}" -f ($skipped -join ', ')) -ForegroundColor DarkGray }
     exit 0
 }
@@ -404,15 +431,39 @@ $ot = $null
 $otHelper = $null
 $track = $null
 $otDetect = $false
-if ($HeadTrack -and $OpenTrack -and (Test-Path $OpenTrack)) {
+# Opt-out, never blocking (2026-10-24): decide once, say it once, move on.
+$headOn = $false
+$headStatus = ''
+if ($NoHeadTrack) {
+    $headStatus = 'head look: OFF (-NoHeadTrack)'
+} elseif (-not $OpenTrack -or -not (Test-Path $OpenTrack)) {
+    $headStatus = "head look: skipped - opentrack is not installed ($OpenTrack)"
+    if ($HeadTrack) { $headStatus += ' although -HeadTrack was given' }
+} elseif (-not ((Test-Path $ahkExe) -and (Test-Path (Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk')))) {
+    # e.g. the patch kit: no head-look layer in this folder, so starting opentrack would do nothing for the game
+    $headStatus = 'head look: skipped - this folder has no head-look layer (_ahk\i76-opentrack-headlook.ahk)'
+} else {
+    $headOn = $true
+}
+if ($headOn) {
     if (-not (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue)) {
         $det = Enable-OpentrackGameDetect
         if ($det.ok) {
             $otDetect = $true
             if ($det.changed) { Write-Host ("opentrack: game detection switched on (i76.exe -> {0}); it starts tracking when the game starts" -f $det.profile) -ForegroundColor DarkGray }
         } else { Write-Host "opentrack: could not set game detection ($($det.error)) - the Start button will be pressed instead" -ForegroundColor Yellow }
-        $ot = Start-Process -FilePath $OpenTrack -PassThru
+        try { $ot = Start-Process -FilePath $OpenTrack -PassThru -ErrorAction Stop } catch { $ot = $null }
+        if (-not $ot) {
+            $headOn = $false
+            $headStatus = "head look: skipped - opentrack did not start ($OpenTrack)"
+        } else {
+            $headStatus = 'head look: ON (opentrack started; tracking begins when the game starts)'
+        }
+    } else {
+        $headStatus = 'head look: ON (opentrack was already running)'
     }
+}
+if ($headOn) {
     $autoStartPs = Join-Path $GameDir '_ahk\i76-opentrack-autostart.ps1'
     $autoStart = Join-Path $GameDir '_ahk\i76-opentrack-autostart.ahk'
     if (Test-Path $autoStartPs) {
@@ -424,13 +475,14 @@ if ($HeadTrack -and $OpenTrack -and (Test-Path $OpenTrack)) {
     }
 }
 $trackCfg = Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk'
-if ($HeadTrack -and (Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
+if ($headOn -and (Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
     $env:I76_HEADLOOK_MODE = $HeadLookMode
     $track = Start-Process -FilePath $ahkExe -ArgumentList "`"$trackCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
     Remove-Item Env:\I76_HEADLOOK_MODE -ErrorAction SilentlyContinue
     Write-Host ("head look: {0} at start.  Ctrl+Alt+H cycles ANALOG -> DIGITAL -> OFF (shown on screen)." -f $HeadLookMode) -ForegroundColor Cyan
     Write-Host  "  Hold any glance key / button (arrows, middle mouse, pad right stick, stick hat) to override it." -ForegroundColor DarkGray
 }
+Write-LaunchLog $headStatus $(if ($headOn) { 'Cyan' } else { 'DarkGray' })
 
 # Frame generation (Lossless Scaling), optional. The engine's physics are locked
 # at 20 FPS and break above ~25 (docs/STEAMDECK.md sec 5), so the ONLY way to a
@@ -457,24 +509,10 @@ if ($LosslessScaling -and (Test-Path $LosslessScaling)) {
 #     present and settled first;
 #   * FFB is acquired once at startup too, so nothing else may be grabbing the
 #     device at that moment;
-#   * i76-remap.ahk detects the wheel by capability once when it starts, and
-#     i76-opentrack-headlook.ahk wants opentrack already publishing.
-# So: wait (briefly, bounded) for opentrack to actually publish before launching.
-# Only WAIT if WE started opentrack this run ($ot is set only then). On a relaunch it
-# is usually already up and publishing, and a flat 20 s deadline against a shared-mem
-# name that may never appear was a large part of the ~15 s the launcher took to reach
-# the game.
-# With game detection on, opentrack only starts tracking once the game runs, so there is nothing to
-# wait for here (the head-look layer opens FT_SharedMem whenever it appears).
-if ($ot -and -not $otDetect -and $OpenTrack -and (Test-Path $OpenTrack)) {
-    $deadline = (Get-Date).AddSeconds(20)
-    while ((Get-Date) -lt $deadline) {
-        try {
-            $m = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting('FT_SharedMem')
-            $m.Dispose(); break
-        } catch { Start-Sleep -Milliseconds 400 }
-    }
-}
+#   * i76-remap.ahk detects the wheel by capability once when it starts.
+# opentrack is NOT waited for (2026-10-24; it was a bounded 20 s wait for FT_SharedMem when game detection could
+# not be set): the head-look layer retries FT_SharedMem on every 8 ms tick (OpenFT in i76-opentrack-headlook.ahk)
+# and the autostart helper presses Start in the background, so head look comes up whenever tracking does.
 # ---- savegame.dir short-file guard ---------------------------------------------
 # CORRECTED 2026-10-01. This block used to say the engine writes its save index 36 bytes short on every save. It
 # does not: a directory is exactly 4 + 60 x count bytes (u32 count, then 60-byte records {u32 scene, name[32],
@@ -651,7 +689,9 @@ $psi.UseShellExecute  = $false
 foreach ($k in $gameEnv.Keys) { $psi.EnvironmentVariables[$k] = [string]$gameEnv[$k] }
 $proc = [System.Diagnostics.Process]::Start($psi)
 if (-not $proc) {
-    Write-Host ("could not start {0}" -f $psi.FileName) -ForegroundColor Red
+    Write-LaunchLog ("could not start {0}" -f $psi.FileName) 'Red'
+} else {
+    Write-LaunchLog ("game started: {0} pid {1}, preset {2}{3}" -f $Exe, $proc.Id, $presetLabel, $(if ($gameEnv.Contains('I76_MISSION')) { ", mission $($gameEnv['I76_MISSION'])" })) 'DarkGray'
 }
 
 # Custom force feedback, AFTER the game: it reads the game's own memory, so the
@@ -659,16 +699,45 @@ if (-not $proc) {
 # player entity only exists in one), so starting it here rather than making the
 # user launch it by hand mid-mission is safe. Own window so the panel is visible.
 $ffb = $null
-if ($Ffb) {
-    $ffbScript = Join-Path $PSScriptRoot 'tools\ffb\ffb-interposer.ps1'
-    if (-not (Test-Path $ffbScript)) { $ffbScript = Join-Path $GameDir '_ffb\ffb-interposer.ps1' }
-    if (Test-Path $ffbScript) {
-        $ffb = Start-Process -FilePath 'powershell.exe' `
-            -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$ffbScript`"" -PassThru
+$ffbDir = Join-Path $PSScriptRoot 'tools\ffb'
+if (-not (Test-Path (Join-Path $ffbDir 'ffb-interposer.ps1'))) { $ffbDir = Join-Path $GameDir '_ffb' }
+$ffbScript = Join-Path $ffbDir 'ffb-interposer.ps1'
+$ffbStatus = ''
+$ffbWant = $false
+if ($NoFfb) {
+    $ffbStatus = "FFB: the game's own (-NoFfb)"
+} elseif (-not (Test-Path $ffbScript)) {
+    $ffbStatus = "FFB: the game's own - the interposer (ffb-interposer.ps1) is not in this folder"
+    if ($Ffb) { $ffbStatus += ' although -Ffb was given' }
+} elseif ($Ffb) {
+    $ffbWant = $true; $ffbStatus = 'FFB: custom interposer ON (-Ffb)'
+} else {
+    # Probe AFTER the game has started, so it adds nothing to the time to the game. Enumeration only (Ffb-Probe).
+    $wheels = @()
+    try {
+        . (Join-Path $ffbDir 'FfbCore.ps1')
+        if (Get-Command Ffb-Probe -ErrorAction SilentlyContinue) { $wheels = @(Ffb-Probe) } else { $wheels = $null }
+    } catch { }
+    $pick = @($wheels | Where-Object { $_.Wheel }) | Select-Object -First 1
+    if ($null -eq $wheels) {
+        $ffbStatus = "FFB: the game's own - this folder's FfbCore.ps1 has no Ffb-Probe (older than 2026-10-24); -Ffb starts the interposer anyway"
+    } elseif ($pick) {
+        $ffbWant = $true; $ffbStatus = ("FFB: custom interposer ON - wheel found: {0}" -f $pick.Name)
+    } elseif ($wheels.Count) {
+        $ffbStatus = ("FFB: the game's own - force-feedback device(s) but no wheel: {0}" -f (($wheels | ForEach-Object { '{0} (type 0x{1:X2})' -f $_.Name, $_.DevType }) -join ', '))
     } else {
-        Write-Host "-Ffb requested but ffb-interposer.ps1 was not found." -ForegroundColor Yellow
+        $ffbStatus = "FFB: the game's own - no force-feedback wheel attached"
     }
 }
+if ($ffbWant -and $proc) {
+    try {
+        $ffb = Start-Process -FilePath 'powershell.exe' `
+            -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$ffbScript`"" -PassThru -ErrorAction Stop
+    } catch { $ffb = $null }
+    if (-not $ffb) { $ffbStatus = "FFB: the game's own - the interposer did not start" }
+    else { $ffbStatus += ' (it takes the wheel and turns the game''s own effects off while it runs; its panel is the window it opens)' }
+}
+Write-LaunchLog $ffbStatus $(if ($ffb) { 'Cyan' } else { 'DarkGray' })
 
 # Soundtrack, AFTER the game: it finds the game by process and reads the music
 # folder next to the exe. It exits on its own when the game exits.
@@ -684,7 +753,10 @@ if (-not $NoMusic) {
     }
 }
 
-$proc.WaitForExit()
+if ($proc) {
+    $proc.WaitForExit()
+    Write-LaunchLog ("game exited (code {0})" -f $proc.ExitCode) 'DarkGray'
+}
 
 if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
 if ($ahk      -and -not $ahk.HasExited)      { Stop-Process -Id $ahk.Id      -Force }
@@ -703,7 +775,7 @@ if ($ffb -and -not $ffb.HasExited) {
     # Belt and braces: if the force was latched when we killed it, the wheel would
     # keep pulling. Re-open the device briefly and zero it.
     try {
-        . (Join-Path $PSScriptRoot 'tools\ffb\FfbCore.ps1')
+        . (Join-Path $ffbDir 'FfbCore.ps1')
         $d = Ffb-Open
         $null = Ffb-Constant $d 0
         Ffb-Close $d

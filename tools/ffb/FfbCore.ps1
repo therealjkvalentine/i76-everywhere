@@ -198,6 +198,41 @@ function New-JoystickDataFormat {
     return @{ Format = $df; Mem = $mem; Guids = $guidMem }
 }
 
+# PROBE MODE (2026-10-24, launcher auto-FFB): list the attached force-feedback game controllers the same way
+# Ffb-Open finds them (DirectInput8 EnumDevices, ATTACHEDONLY | FORCEFEEDBACK), but create, format and acquire
+# NOTHING - the game must find the wheel free when it starts. Returns objects {Name, DevType (low byte of
+# dwDevType: 0x14 joystick, 0x15 gamepad, 0x16 driving, ...), Wheel (DevType 0x16 or a wheel-like name)};
+# an empty array when there is none or DirectInput fails. Never throws.
+function Ffb-Probe {
+    $out = New-Object System.Collections.ArrayList
+    try {
+        $hinst = [DI]::LoadLibraryA("dinput8.dll")
+        if ($hinst -eq [IntPtr]::Zero) { return @() }
+        $iid = [DI]::IID_IDirectInput8A
+        $di = [IntPtr]::Zero
+        $hr = [DI]::DirectInput8Create($hinst, [DI]::DIRECTINPUT_VERSION, [ref]$iid, [ref]$di, [IntPtr]::Zero)
+        if ($hr -ne 0 -or $di -eq [IntPtr]::Zero) { return @() }
+        try {
+            $cb = [DI+EnumDevicesCallback]{
+                param([ref]$ddi, $pv)
+                $t = [int]($ddi.Value.dwDevType -band 0xFF)
+                $n = $ddi.Value.tszProductName
+                $null = $out.Add([pscustomobject]@{
+                    Name = $n; DevType = $t
+                    Wheel = ($t -eq 0x16 -or $n -match '(?i)wheel|racing|T300|T150|T248|T500|TMX|T-GT|TS-XW|TS-PC|G2[579]|G9[02]|Driving Force|Momo|Fanatec|Simucube|Moza')
+                })
+                return 1
+            }
+            $enum = Get-Fn $di ([DI]::DI8_EnumDevices) ([DI+D_EnumDevices])
+            $null = $enum.Invoke($di, [DI]::DI8DEVCLASS_GAMECTRL, $cb, [IntPtr]::Zero,
+                                 ([DI]::DIEDFL_ATTACHEDONLY -bor [DI]::DIEDFL_FORCEFEEDBACK))
+        } finally {
+            $rel = Get-Fn $di ([DI]::IUnk_Release) ([DI+D_Release]); $null = $rel.Invoke($di)
+        }
+    } catch { }
+    return @($out)
+}
+
 function Ffb-Open {
     param([string]$MatchName = "")
     $hinst = [DI]::LoadLibraryA("dinput8.dll")
