@@ -3857,7 +3857,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         if (g_coop_chain) coop_near_trail();                 /* I76_COOP_NEAR_HOST: the host's path, for this joiner's next spawn */
         /* the joiner respawns by itself (RAISE_DEAD has no key) - in a co-op mission (coopNN.lvl) or a scenario
          * (autoNN.lvl) only. Until 2026-10-18 this ran in every network game with I76_COOP_CHAIN, melee included, so in
-         * a melee the joiner came back 5 s after a death and the host did not (owner's playtest, laptop host + Michael,
+         * a melee the joiner came back 5 s after a death and the host did not (owner's playtest, laptop host + the M2 tester,
          * Suburbia). Stock melee is stock. */
         if (g_coop_chain && coop_ai_in_mission() && (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)))
             coop_auto_respawn("joiner");
