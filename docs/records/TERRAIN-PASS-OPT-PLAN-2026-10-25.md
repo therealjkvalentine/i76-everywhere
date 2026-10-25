@@ -445,3 +445,22 @@ attributed to GetTerrainSampleRaw + rsqrt + ShadeTerrainVertex is mostly the loo
 Left in the source as an opt-in lab switch (off), not in any preset. Harness note: u7b2, u7b3 and u7f1 (and u3bf3) ended within 10 s of
 the boot with the game alive and no CRASH line (the route driver exited early; another lane's boots were interleaving), so they gave no
 rows; the conclusion rests on u7b1's 14 windows against the 3 off boots, all of them on the same side.
+
+### Summary of the lane
+
+| unit | equivalence | measured (laptop, n 3 unless said) | verdict | commit |
+|---|---|---|---|---|
+| U1 instrument | (dump not comparable under the tick: in-run verifiers instead) | the U1 table above | PASS (line); dump-stability FAIL | 119944c |
+| U2 fade fast path | 0 / 80.7 M vertices | fe_DrawTri 357-363 -> 351-367 us (no change) | bit-exact PASS, saving none; default on | 887995e |
+| U3 m16 memo | same pointer, 0 / ~1.1 M loads | clutter call 1,530-1,589 -> 762-816 us (-0.75 ms) | PASS; opt-in `I76_M16_MEMO=1` (mission change and crash views not yet gated) | 854d91f |
+| U4 | - | not this lane | - | - |
+| U5 batching probe | same vertices | 104-137 ns/call (< 150), polygon = triangle per vertex within 2 % | NO-GO | b56a751 |
+| U6 polygon lists | - | not built (U5 no-go) | skipped | - |
+| U7 shade table | 0 / 58 M vertices | shade loop 355-419 -> 404-471 us (slower) | bit-exact PASS, saving FAIL; lab switch, off | 2c1ab2b |
+
+Net for the owner's set: U3 (~0.75 ms of the laptop's ~20 ms frame, the clutter side); the rest of the plan's 1.2-2.3 ms did not
+materialise (the divide, the batching and the shade table were not where the time is). The laptop's hill-leg fps did not move outside
+its spread (base 48.2-48.6; U3 49.7-49.8, n 2): the laptop at 1080p is not CPU-bound at that point. The desktop owner-route rows
+(overall acceptance) were not run: the console is the owner's.
+Installed: dev-gold `Interstate 76\STRLKUP.DLL` = 29f0b3c4 (= 2c1ab2b, built without the harness patch), previous 1d22df46 kept as
+`STRLKUP.DLL.1d22df46-pre-tpo`; dev-gold's OWNER-2300-ALL preset gained `I76_M16_MEMO = '1'` (old file `.pre-tpo`).
