@@ -219,19 +219,23 @@ static __declspec(naked) void arena_name_stub(void) {        /* replaces lea edi
     }
 }
 static void arena_name_attach(BYTE *base) {                   /* from mp_menu_attach (mpmenu.c), once, when i76shell is in */
-    static const DWORD site[2] = { 0x10029c5c, 0x1002a2c6 };
+    /* 2026-10-24 (owner: "when co-op missions were broadcast, the names did not make it through"; records/LAN-FIXES-2026-10-24.md s.7):
+     * two more copies of the same lea read the stock table with an add-on index - the host form's init 0x10027c80 (0x10027d83,
+     * the form opening on the last chosen arena) and the GAME NAME box's default when the field is left as it was (0x1002d1ef);
+     * both now take the add-on's title too */
+    static const DWORD site[4] = { 0x10029c5c, 0x1002a2c6, 0x10027d83, 0x1002d1ef };
     DWORD tbl = (DWORD)(DWORD_PTR)base + (0x1004b510u - 0x10000000u);
     int i, ok = 0;
     if (env_flag("I76_ARENA_NAME", 8, 1) == 0) { mlog("  arena-name: off (I76_ARENA_NAME=0): stock default game names"); return; }
     g_an_base = base;
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < 4; i++) {
         BYTE *p = base + (site[i] - 0x10000000u), o[7] = { 0x8D, 0xBC, 0xC0 }, w[7] = { 0xE8, 0, 0, 0, 0, 0x90, 0x90 };
         LONG rel = (LONG)((DWORD)(DWORD_PTR)arena_name_stub - ((DWORD)(DWORD_PTR)p + 5));
         memcpy(o + 3, &tbl, 4); memcpy(w + 1, &rel, 4);
         ok += mpm_write(p, o, w, 7);
     }
-    mlog("  arena-name: %d / 2 default-name copies repointed (add-on entries name the game after their own title)%s", ok,
-         ok == 2 ? ", read back OK" : " - unknown i76shell build?");
+    mlog("  arena-name: %d / 4 default-name copies repointed (add-on entries name the game after their own title)%s", ok,
+         ok == 4 ? ", read back OK" : " - unknown i76shell build?");
 }
 
 /* ---- I76_MENU_KEYS (default 1; 0 = stock) -------------------------------------------------------------------------
