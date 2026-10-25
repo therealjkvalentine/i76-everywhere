@@ -91,3 +91,63 @@ the lab's privacy folder (REWRITE-NOTES.txt there). Findings from scanning all 4
 embed the profile path (two build intermediates, two Python bytecode files; none is in the current tree); no archives are
 committed; the saves and executables contain no name or address. After a force-push, GitHub still serves old commits by SHA,
 through forks and pull-request refs, and from caches until purged.
+
+## Second pass, 2026-10-25 (later the same day)
+
+Done: README, AGENTS, the 2026-10-25 records, docs/release (the five third-party e-mail addresses in COMMUNITY-CONTACTS and one in
+the research dump became contact-page or profile links), the patch-kit comment, tools/launch-video (paths now come from `I76_LAB`
+or default to `~/i76-uncap-lab`; `${LAB}` in the timeline and stills JSON expands to it), the 8 files that named SCOTT-BUILD, and
+`docs/records/SCOTT-BUILD-2026-10-23.md` is now `TESTER-BUILD-2026-10-23.md` with every reference fixed. Compiled-in log paths in
+lab/src/i76uncap.c, lab/src/u32x.c, u32x/u32x_full.c and u32x/u32x_min.c are now relative file names (the log lands in the
+process's working folder). The shipped u32x DLLs do not contain the string (the log code is behind `U32X_LOG`), so no rebuild is
+needed; a rebuild would only be needed to change the log build, with `u32xuild.ps1` / `lab\srcuild-u32x-log.ps1`.
+Config files: ReShade.ini uses `%REFS%`, filled in by renderer-matrix.ps1 when it copies the file; tunables.json uses `~` (i76tune.py
+expands it); the two re/binaries toml files and the soundhd manifest carry placeholder provenance values (documentation only).
+
+Matching lines over tracked text files after pass 2 (PRIVACY-SCRUB record excluded):
+
+| Class | After pass 1 | After pass 2 |
+|---|---|---|
+| Developer name (prose) | 8 | 0 (a third-party credit `James "moose2000" Brown` in a patch matches the rule text; the MIT line stays by design) |
+| Family testers | 14 | 1 (a comment in music-fix/strlkproxy.c, lane-owned) |
+| Outside tester | 2 | 0 |
+| User-profile paths | 23 | 0 |
+| Archive / bench / gold paths | 17 | 0 |
+| LAN addresses | 6 | 0 |
+| Host names | 7 | 0 (file names such as FFB-LAPTOP-RECON are not machine names) |
+| E-mail addresses | 0 owner, 6 third party | 0 |
+| ssh user@host | 0 | 0 |
+
+Still left, with the reason:
+
+- music-fix/* (dirty or edited today by running lanes): one family-tester name in a comment of strlkproxy.c. deck/* and tools/ffb/*
+  were committed to within the last half hour and were not touched this pass; both were already free of the profile-path classes
+  by the third pass of pass 1.
+- Folder names kept in code: `game-scott-*` entries in tools/consolidate-copies.ps1 are the real names of lab folders. The history
+  rewrite's `-scott` rule would turn them into `game-tester-*` and they would stop matching the folders on disk; rename the lab
+  folders first or accept that those archive entries no longer match.
+- Bundle identifiers `com.jkv.i76.*` (build-launchers.sh, setup-nitro.sh and docs) change the macOS app identity if renamed.
+- The GitHub account name in URLs, the MIT copyright line and third-party credits (Scott Krager / Lahman, Andrew Heckler, Eric
+  Valentine, James Brown and others) stay by rule.
+- Sibling folder names (`i76-map`, `i76-uncap-lab`) in code comments and process paths stay as folder names, as in pass 1.
+- New text keeps arriving from running lanes (docs/OWNER-TEST-LIST.md gained an ssh line while this pass ran). Run the class scan
+  again immediately before the history rewrite.
+
+Release assets: rebuilt by repacking the published or draft zips, not by running package-patch-kit.ps1 at HEAD. Reason: HEAD's
+PLAY-i76.ps1 is 425 lines ahead of 935f897 and the packaging script already adds an unreleased SETTINGS.bat, so a fresh build
+would ship untested launcher code in v0.8.0 and a different kit in v0.7.3. The repack keeps every binary byte-identical, replaces
+only the text files that carried a name, a profile path or a lab folder (14 in v0.7.3, 16 in the v0.8.0 Patch Kit, 2 in the Mac Kit;
+the four .py files that carried a profile literal are the scrubbed HEAD versions, which differ from the shipped ones only in that
+literal), and rewrites `_i76e\MD5SUMS` / VERSION.txt to match. The kit contents were grepped clean (the project's GitHub URL and the
+LICENSE copyright line remain).
+
+| Asset | New sha256 | Old sha256 |
+|---|---|---|
+| v0.7.3 Patch Kit `...v0.7.3-f5d5ac0.zip` (published pre-release) | `ddaf9c738f6878bdbf2f6fe5749bdf6cf4393ad015ae1dd9145c94fd170ad783` | `365fdd2ab74438fc525954ef6afc3574f2998b90bb083b68a3c22e525054ee5f` |
+| v0.8.0 Patch Kit `...v0.8.0-935f897.zip` (draft) | `c39a69c3daff616d83ff09cb013e38fcc17fdd44c7c93b6db379437fbfaccaa8` | `639e1e859f2e2973f8a3dd59d828fe24d1eb8c7dd068417e3e4b4403b1ff417e` |
+| v0.8.0 Mac Kit `...v0.8.0-9cb3a44.zip` (draft) | `fb1160e97908f6de3dc50d97c1c0c78ef7c649211cadd1bc0fac1ee7fbf2679e` | `0953118cefef47d0c7194dbf9d7c35e72525786f8e69009bfbb29862817e6864` |
+| v0.8.0 Mac Kit `.zip.MD5SUMS` | `ec98c244e5d88e1d8478b9e974ec266bf666a0d5a54fc289656dc6704782b7f8` | `688cae58409ba6f21e07f0f6b0f19480d2aa8c2e36719f805e751a7ee4fda03b` |
+
+The v0.8.0 release is still a draft. The v0.7.3 body gained a line with the new sha256. The history-rewrite replacement list
+(lab privacy folder) gained the third-party e-mail strings, the Deck host name, `ssh james@`, the escaped archive path and
+`192.168.1.x`.

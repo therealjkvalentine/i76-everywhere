@@ -102,7 +102,7 @@ know**: `Build-From-GOG.ps1` has a download bug, needs MSVC and a repo clone, an
 
 Evidence: lab `clean-install\fixes\` (scripts `fix-step.ps1` / `ftask.ps1` / `frun.ps1`, task `i76fix`, own folder `<bench>\clean2`;
 results and screenshots in `fixes\out\`). Laptop the laptop bench, 1920x1080, console. Kit: **`Interstate76-Patch-Kit-i76-everywhere-v0.8.0-935f897.zip`**,
-6,030,218 B, sha256 `639e1e859f2e2973f8a3dd59d828fe24d1eb8c7dd068417e3e4b4403b1ff417e` (= the draft asset's GitHub digest), proxy
+6,030,332 B, sha256 `c39a69c3daff616d83ff09cb013e38fcc17fdd44c7c93b6db379437fbfaccaa8` (= the draft asset's GitHub digest), proxy
 `c54210f8` (build of 788554a). Draft release renamed v0.7.4 -> **v0.8.0** (not published), also carrying the Mac Kit repacked as
 `Interstate76-Mac-Kit-i76-everywhere-v0.8.0-9cb3a44.zip` (the tested 9cb3a44 content; only VERSION.txt and THIRD-PARTY.md's date differ).
 
