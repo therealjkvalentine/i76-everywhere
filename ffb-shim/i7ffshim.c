@@ -99,6 +99,13 @@ typedef DWORD (WINAPI *XGetStateFn)(DWORD, void *);   /* buf big enough for XINP
 static XSetStateFn xset;
 static XGetStateFn xget;
 static int g_pad = -1;         /* the connected controller slot (0-3), -1 = none yet */
+/* I76_FFB_PADS=all (2026-10-25, Deck lane): drive EVERY connected slot, not only the first. On a docked Steam Deck the
+ * Deck's own controls and a paired Xbox pad are two Steam Input virtual pads (two XInput slots); either may be the one in
+ * the player's hands. Unset / anything else = the first connected slot, as before (the Mac). */
+static int g_allpads;
+static DWORD g_xok, g_xfail;   /* XInputSetState calls that returned ERROR_SUCCESS / failed (telemetry: xok= xfail=) */
+static int g_padmask;          /* slots written on the last tick (telemetry: pads=) */
+static DWORD g_tick;           /* sim ticks seen (forward declaration for rumble()) */
 
 /* scan XInput slots 0-3 for a connected pad; returns the slot or -1 */
 static int find_pad(void)
@@ -355,14 +362,31 @@ static void rumble(float low, float high)
 {
     XVIB v;
     if (!xset) return;
+    v.wLeftMotorSpeed  = (WORD)(clamp01(low)  * 65535.0f);
+    v.wRightMotorSpeed = (WORD)(clamp01(high) * 65535.0f);
+    if (g_allpads) {               /* every connected slot; slots re-probed every ~1 s */
+        static unsigned char conn = 0x0f;
+        DWORD i;
+        if ((g_tick % 20) == 0) {
+            unsigned char st[16];
+            conn = 0;
+            for (i = 0; i < 4; i++) if (!xget || xget(i, st) == 0) conn |= (unsigned char)(1u << i);
+        }
+        g_padmask = 0;
+        for (i = 0; i < 4; i++) if (conn & (1u << i)) {
+            if (xset(i, &v) == 0) { g_xok++; g_padmask |= (1 << i); }
+            else { g_xfail++; conn &= (unsigned char)~(1u << i); }
+        }
+        g_pad = g_padmask ? 0 : -1;
+        return;
+    }
     /* re-find the pad every ~1s if we don't have one (hot-plug / late connect) */
     if (g_pad < 0 && (g_tick % 20) == 0)
         g_pad = find_pad();
-    if (g_pad < 0) return;
-    v.wLeftMotorSpeed  = (WORD)(clamp01(low)  * 65535.0f);
-    v.wRightMotorSpeed = (WORD)(clamp01(high) * 65535.0f);
-    if (xset(g_pad, &v) != 0)   /* slot went away (unplugged) -> re-scan next time */
-        g_pad = -1;
+    if (g_pad < 0) { g_padmask = 0; return; }
+    if (xset(g_pad, &v) != 0) { /* slot went away (unplugged) -> re-scan next time */
+        g_xfail++; g_padmask = 0; g_pad = -1;
+    } else { g_xok++; g_padmask = 1 << g_pad; }
 }
 
 HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
@@ -376,6 +400,10 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
             xset = (XSetStateFn)GetProcAddress(m, "XInputSetState");
             xget = (XGetStateFn)GetProcAddress(m, "XInputGetState");
         }
+    }
+    {   char ev[8];
+        DWORD n = GetEnvironmentVariableA("I76_FFB_PADS", ev, sizeof(ev));
+        g_allpads = (n == 3 && lstrcmpiA(ev, "all") == 0);
     }
     g_pad = find_pad();        /* find the controller now (re-scanned later if absent) */
     {   /* open the UDP telemetry socket (best-effort; files still work if it fails) */
@@ -392,7 +420,8 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
     pick_road_texture();
     {   /* record how many envelopes loaded — first thing to check in telemetry */
         char m[64];
-        int n = wsprintfA(m, "i7ffshim: init ok, %d envelopes\r\n", g_nenv);
+        int n = wsprintfA(m, "i7ffshim: init ok, %d envelopes, xinput %s, pads %s, first pad %d\r\n", g_nenv,
+                          xset ? "loaded" : "MISSING", g_allpads ? "all" : "first", g_pad);
         write_file(TELEMETRY, m, n, 0);
     }
     return 0;
@@ -665,7 +694,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         "tick=%lu on=%lu pad=%d spd10=%d surf=%lu run=%lu pitch=%d air=%lu skid=%lu "
         "slide=%lu oil=%lu steer=%d fx1000=%d fy1000=%d fy2_1000=%d "
         "tires=%d,%d,%d,%d fire=%d%d%d%d%d%d f0=%lu gain=%d "
-        "eng=%d road=%d weight=%d slip=%d wpn=%d jolt=%d low100=%d high100=%d\r\n",
+        "eng=%d road=%d weight=%d slip=%d wpn=%d jolt=%d low100=%d high100=%d pads=%d xok=%lu xfail=%lu\r\n",
         g_tick, b->forces_on, g_pad, (int)(g.speed * 10), (DWORD)g.surface,
         (DWORD)g.running, g.rpm, (DWORD)g.airborne, (DWORD)g.skidding,
         (DWORD)g.sliding, (DWORD)g.oil, g.steer,
@@ -675,7 +704,7 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         (unsigned long)f0_raw, firing_gain,
         (int)(engine * 100), (int)(road * 100), (int)(weight * 100),
         (int)(slip * 100), (int)(weapon * 100),
-        (int)((g_env_low + g_env_land) * 100), (int)(low * 100), (int)(high * 100));
+        (int)((g_env_low + g_env_land) * 100), (int)(low * 100), (int)(high * 100), g_padmask, g_xok, g_xfail);
     if (g_udp != INVALID_SOCKET)                      /* every tick for the rig */
         sendto(g_udp, buf, n, 0, (struct sockaddr *)&g_dst, sizeof(g_dst));
     if (!(g_tick & 1))                                /* every other for disk */
@@ -694,7 +723,11 @@ HRESULT __stdcall shim_ExitSystem(void)
     return 0;
 }
 
+#ifdef _MSC_VER   /* MSVC build (build-msvc.ps1): the CRT supplies the real entry point and calls DllMain */
+BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID res)
+#else
 BOOL WINAPI DllMainCRTStartup(HINSTANCE h, DWORD reason, LPVOID res)
+#endif
 {
     (void)h; (void)reason; (void)res;
     return TRUE;
