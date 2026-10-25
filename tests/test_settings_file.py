@@ -156,3 +156,17 @@ def test_logs_start_with_the_feedback_line(game):
     assert m == [BANNER, "old proxy line"]
     p = (game / "play-i76.log").read_text(encoding="utf-8-sig").splitlines()
     assert p[0] == BANNER and p.count(BANNER) == 1 and len(p) > 2
+
+
+def test_sim_rate_steps_per_second(game):
+    for value, tick in (("20", "49.9"), ("classic", "49.9"), ("24", "41.667")):
+        (game / "i76-settings.txt").unlink(missing_ok=True)
+        write_settings(game, [("sim rate", value)])
+        r = ps(game, "-DryRun")
+        assert game_env(r.stdout)["I76_SIM_TICK_MS"] == tick, (value, r.stdout)
+    text = (game / "i76-settings.txt").read_text(encoding="utf-8-sig")
+    assert "# allowed: 20, 24, default." in text and "Steps per second of the game's simulation" in text
+    (game / "i76-settings.txt").unlink(missing_ok=True)
+    lines = write_settings(game, [("sim rate", "30")])
+    r = ps(game, "-DryRun")
+    assert "line %d: 'sim rate = 30'" % lineno(lines, "sim rate = 30") in r.stdout and "not one of 20, 24" in r.stdout

@@ -303,12 +303,12 @@ mgs3: + shellclick, cruise, skey, the joiner shooter; 197c0351):
 - `I76_SIM_TICK_INPUT`: on in every tick boot (the pad press is an early tick at each pull): clean.
 - Not run here: the owner's T05 drive at 120 fps for flash and tracer looks (in #119, A step 2-3).
 
-### 6.4 "Classic 20" (s.4 step 6)
+### 6.4 Sim rate 20 (s.4 step 6; renamed from "classic" 2026-10-25)
 
-`sim rate = classic` in i76-settings.txt (Advanced group; `20`, `1997`, `classic 20` are accepted spellings) sets `-TickMs 49.9`
+`sim rate = 20` (or `24`, the default; steps per second; `classic` stays a silent alias for 20) in i76-settings.txt (Advanced group) sets `-TickMs 49.9`
 through the launcher's existing tick path; a `simulation tick` line wins over it; the launcher prints and logs "single player - in a
 LAN game every player must set the same sim rate". Dry runs: `tick 49.9 ms: 20 ticks/s, the car in one 49.9 ms step`; with both
-lines: `sim rate = classic - NOT applied: the simulation tick line ... wins`. tests/test_settings_file.py + test_presets.py: 35
+lines: `sim rate = 20 - NOT applied: the simulation tick line ... wins`. tests/test_settings_file.py + test_presets.py: 35
 passed. There is no network check of the tick; the option cannot know at launch whether the player will host or join, so "single
 player" is the help text and the log line, not an enforcement.
 
