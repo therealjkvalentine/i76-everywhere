@@ -105,6 +105,55 @@ Snippet for the top of README.md (after step 2, replace the link):
 <p align="center"><a href="LINK-TO-FULL-VIDEO"><img src="docs/media/launch-teaser.gif" width="960" alt="Interstate '76 Everywhere: stock vs ours on the same route"></a></p>
 ```
 
-## 5. Draft v1 (2026-10-25)
+## 5. Draft v1 (2026-10-25 09:00)
 
-See the results section at the end of this file (filled in when the renders exist).
+`captures\launch-video\draft-v1.mp4` (CC0 groove) and `draft-v1-theme.mp4` (game theme): 1920x1080, 60 fps, AAC, **63.5 s**.
+The terrain-morph segment is not in it, because `morph-before` was still queued at render time. Teaser GIF:
+`captures\launch-video\launch-teaser.gif`. The first render was 5.8 MB, so the defaults are now 720 px, 10 fps, 4.5 s, about 2 MB.
+
+Shots, all on twin `launchvid-20261025` (proxy 5d6f9828), each 1920x1080 at 57-60 capture fps. Every summary in
+`raw\<shot>\<stamp>\summary.txt`:
+
+| shot | render fps while captured (telemetry) | steps/s | notes |
+|---|---|---|---|
+| route-stock (GOG 20 fps limiter, stretched 16:9) | 20.0 | 23 | 600 m |
+| route-all (3 takes) | 87-92 | 24 | take 1 had another lane's firewall prompts in frame; take 2 captured only 45 fps (ffmpeg at below-normal priority, reverted); take 3 (084743) is the one used |
+| mirror-before / mirror-after | 109 / 97 | 24 | canyon start |
+| fade-before | 101 | 24 | the feathered edge is hard to see in this view (stills dropped) |
+| morph-before | 90 | 24 | |
+
+Findings from these runs:
+- **The capture costs frame rate.** Uncaptured, the same preset holds 118-120 fps (RC gate row 9). While ddagrab plus the
+  CPU NV12 conversion run on the 4-core 7700K, it holds 87-109 fps. The counters show the recorded rate, and the caption says so.
+- **Telemetry is one datagram per sim tick** on the tick builds (24/s) and one per frame on stock. The overlay therefore takes
+  rendered fps from the frame counter (`frame`, simclock_frame_count) and steps/s from `step_count`.
+- **`I76_START_POS` places the car about 6 s after the player is live.** Each run lands at a slightly different capture
+  time. Fixed in v2 by aligning on telemetry (next section).
+- The stock picture with no aspect key, in a 16:9 window, is the 4:3 camera stretched. v2 shows stock at 640x480 / 4:3, pillarboxed.
+
+## 6. v2 (owner feedback on v1)
+
+Owner: (1) exact sync, (2) make draw distance and popping obvious, using the T05 opening fly-in with cutscenes not skipped,
+(3) combat with FFB / weapons, (4) smoothness at 20 vs 120 fps and head look, (5) the owner can drive what scripts cannot.
+
+- **Sync (`compose.py`, `"align"` per clip):**
+  - `move` counts in / out from the first moment the car moves after the hill placement: speed crosses 0.5 m/s after the
+    last standstill in the first 15 s, interpolated between telemetry samples.
+  - `sim` maps in / out to the mission's own `sim_time` stamp. It is used for the scripted opening.
+  - Each render writes `<out>.align.txt` with the anchors and the mph agreement of every side-by-side.
+  - Test, route-stock vs route-all: anchors at capture 4.154 / 3.892 s. The mph curves agree to within 0.1 mph over the first
+    6 s (13.1/13.0, 25.0/24.9, 53.0/52.9, 74.7/74.7). After about 7 s the two drives physically diverge (a crest at 96 mph).
+- **Opening fly-in:** `record-shot.ps1` shots with `Opening = $true` launch without proxy-run, which would press Esc and skip
+  the opening. Movies are skipped, the scripted opening is not. The window is held at size, nothing is pressed, the capture
+  runs `Still` seconds, then the run stops the game it started. Shots: `opening-stock43` and `opening-all`.
+- **Stock at 4:3:** shots `*-stock43` use `dgVoodoo.lv43-640.conf` ([Glide] 640x480) in a 1440x1080 window, with GOG's
+  I76PATCH 20 fps limiter. That is the 1997 look on this PC.
+- **Smoothness:** `slalom-stock43` vs `slalom-all` (a scripted A / D weave on the hill road), with counters.
+- **Glances:** `glance-all` (Left / Right / Down keys while driving) beside `route-all` (the fixed view). Opentrack head look is
+  an owner take.
+- **Owner takes** (`RECORD-TAKE.bat <tag> <seconds> [x,y,w,h]` = `record-window.ps1`, records the running window at 60 fps, no
+  launch, no input):
+  - combat: Instant Melee with AI, wheel + `--panel`, rect `0,0,1920,1080` with the game at 1280x720 and the page beside it;
+  - headlook: opentrack, T05;
+  - jump: the T05 canyon ramp.
+- Timeline: `timeline-v2.json`. Stills list: `stills-v1.json`, written by `make-stills.py` to `captures\launch-video\stills`.

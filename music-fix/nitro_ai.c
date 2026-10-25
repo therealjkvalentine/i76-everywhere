@@ -521,7 +521,7 @@ static void nai_lab_tick(void) {
         for (sd = 0; sd < 4; sd++) { int c = *(int *)(e + 0x168 + 4 * sd) * own / 100; if (c < 1) c = 1; *(int *)(e + 0x138 + 4 * sd) = 0; *(int *)(e + 0x178 + 4 * sd) = 0; *(int *)(e + 0x148 + 4 * sd) = c; *(int *)(e + 0x18c + 4 * sd) = c; }
         NMP_LOG("  nitro-ai: LAB own car cut to %d %%", own); }
     if (shoot <= 0) return;
-    if (!next) next = now;   /* a machine up more than 24.8 days (Andrew's Mac: 2397485012 ms) has (LONG)(now - 0) < 0: never fired */
+    if (!next) next = now;   /* a machine up more than 24.8 days (the M2 tester Mac: 2397485012 ms) has (LONG)(now - 0) < 0: never fired */
     if ((LONG)(now - next) >= 0) {
         int q; BYTE *best = NULL; double bd = 1e30;
         next = now + shoot * 1000;

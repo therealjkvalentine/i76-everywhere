@@ -956,7 +956,7 @@ x-mac11 picture of 10-22.
 | B16 | e7bbd4fc with 384a0f8e's LC_UUID 03B81E57-0956-3BBA-8D89-3C8EDF8713C4 (`tools/nitro-mac/setuuid.py`, re-signed) = **e61e4e57** | **yes**, and the game stayed up |
 
   So the code made no difference, the binary's UUID did. This matches how Local Network privacy is understood to remember an app (by the main executable's Mach-O UUID; from memory of
-  Apple's guidance, not re-read tonight); every rebuild is a new app to it, its prompt waits on a screen nobody watches, and its unicasts to 192.168.1.x are dropped
+  Apple's guidance, not re-read tonight); every rebuild is a new app to it, its prompt waits on a screen nobody watches, and its unicasts to <LAN subnet> are dropped
   (broadcasts pass, so the session lists). The laptop had allowed 03B81E57 at some point (the 10-22 joins). The M2 tester Mac had too
   (gt-and-a1..c3 ran clones with 384a0f8e). **The M4 Max tester Mac has not**: wk-mA1 / mA2 with e61e4e57 listed the session and did not join (0 of 2), the same stall; his Mac needs
   someone to click Allow (the doc says so). Inferred, not seen: the prompt itself (no screen access).

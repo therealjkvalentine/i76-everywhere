@@ -75,7 +75,7 @@ The game's multiplayer menu offers MODEM, IPX, INTERNET, NULLMODEM. Only **IPX**
 3. Network profile: the home network should be **Private** (Settings > Network > properties).
 4. More than one network adapter (WSL / Hyper-V / VPN / Tailscale)? IPXWrapper uses all of them by default; on this PC
    it broadcast on <LAN broadcast>, <WSL broadcast> (WSL) and <tailscale-ip> (Tailscale). That worked. If sessions do not
-   show up, run `ipxconfig.exe` (in the IPXWrapper zip) and set **Primary interface** to the 192.168.1.x adapter.
+   show up, run `ipxconfig.exe` (in the IPXWrapper zip) and set **Primary interface** to the <LAN subnet> adapter.
 5. Debug log when something fails: put an `ipxwrapper.ini` beside `i76.exe` with the line `logging = debug`; the log is
    `ipxwrapper.log` in the same folder.
 
