@@ -11,8 +11,8 @@ moved, then a black frame, then a frame or two 2 px off, then normal. The keeper
 simply stays 2560x1440. Issue #125 is the same rule without a keeper: a full-screen launch with `FullScreenMode = false` gets a
 window the size of the render target (3840x2160 on a 1920x1080 panel), and the panel shows its top-left quarter.
 
-**Fixes (PLAY-i76.ps1):** `26d57cc` -Windowed sets `[Glide] Resolution` = the window (render scale 1, AA kept) and
-`CenterAppWindow = false` for the launch. `92965f8` (#125): a full-screen launch whose render target is larger than the display
+**Fixes (PLAY-i76.ps1):** `ba75bdb` -Windowed sets `[Glide] Resolution` = the window (render scale 1, AA kept) and
+`CenterAppWindow = false` for the launch. `34d7b0f` (#125): a full-screen launch whose render target is larger than the display
 sets `FullScreenMode = true` for that launch (`FullscreenAttributes = fake` kept). Either way `dgVoodoo.conf` goes back when the
 game exits, and the installed confs are not changed.
 
@@ -37,8 +37,8 @@ t05 direct boot, movies skipped, FFB off, muted per process.
 | B, before, keeper stopped at 40 s | laptop | the last jump to 2560x1440 at 41.9 s **stays** | the keeper only undoes it |
 | C, `-RenderScale 1`, 1280x720 | laptop | 1280x720, one move to the centre at 6.5 s, then still for 70 s | no pops |
 | before, 1280x720 (D1, desk-head720) | desktop 3440x1440 | **2560x1440 at (440,0)** (centred) every 2.000 s, back after 50-280 ms; 54 changes | pops |
-| fix 26d57cc without CenterAppWindow, 1280x720 / 1920x1080 | desktop | one move to (1080,360) / (760,180) at ~12.6 s, then still | no pops, centred |
-| fix 26d57cc, 1280x720 / 1920x1080 (fix720-b, fix1080-b) | desktop | (0,0) from 5 s to the end, 2 rect changes in total | no pops |
+| fix ba75bdb without CenterAppWindow, 1280x720 / 1920x1080 | desktop | one move to (1080,360) / (760,180) at ~12.6 s, then still | no pops, centred |
+| fix ba75bdb, 1280x720 / 1920x1080 (fix720-b, fix1080-b) | desktop | (0,0) from 5 s to the end, 2 rect changes in total | no pops |
 | test-gold, fix, 1280x720 (tg-win720) | desktop | (0,0) 1280x720 to the end | no pops |
 | fix, 1280x720 (fit-win720) | laptop | (0,0) 1280x720 to the end | no pops |
 
@@ -65,7 +65,7 @@ brings the 2 s resize back (dgVoodoo has no separate render-target size in a win
 |---|---|---|---|
 | `FullScreenMode = false` (as installed), movie skipped | desktop | **6880x2880** at 13 s | top-left quarter (screenshot) |
 | `false`, briefing movie played | desktop | 3440x1440 | whole (how the owner usually plays) |
-| `true` (fs-rows, n 2) / launcher fix 92965f8, movie skipped | desktop | 3440x1440 | whole; fps 88-101 (false: 80-88) |
+| `true` (fs-rows, n 2) / launcher fix 34d7b0f, movie skipped | desktop | 3440x1440 | whole; fps 88-101 (false: 80-88) |
 | launcher fix, movie played | desktop | 3440x1440 | whole |
 | launcher fix, movie skipped, n 3 | laptop 1920x1080 | 1920x1080 | whole (screenshots); was 3840x2160 cropped (LAPTOP-1080P-WINDOW) |
 | launcher fix, Nitro (nitro-tick42, render 3840x2160), n 2 | laptop | 1920x1080 | whole on boot 1; boot 2 minimised at 8 s (see below) |
@@ -90,8 +90,8 @@ say so. Clips need re-recording.
 
 ## 6. Deployed
 
-- dev-gold, test-gold: `Interstate 76\PLAY-i76.ps1` = 92965f8 (previous 5ab9ccb9 kept as `PLAY-i76.ps1.5ab9ccb9-pre-walign`).
+- dev-gold, test-gold: `Interstate 76\PLAY-i76.ps1` = 34d7b0f (previous 5ab9ccb9 kept as `PLAY-i76.ps1.5ab9ccb9-pre-walign`).
   Main not touched.
-- Patch Kit 0.8.1 draft rebuilt from 92965f8 (proxy unchanged, c54210f8): `Interstate76-Patch-Kit-i76-everywhere-v0.8.1-92965f8.zip`.
+- Patch Kit 0.8.1 draft rebuilt from 34d7b0f (proxy unchanged, c54210f8): `Interstate76-Patch-Kit-i76-everywhere-v0.8.1-34d7b0f.zip`.
   Not published.
 - The laptop bench's own copies for this lane (`walign\gold`, `walign\nitro` in the bench folder; retire with this record).
