@@ -35,6 +35,8 @@ param(
     # Which presets\<name>.psd1 to hand to the game process. 'stock' = no switches (the default,
     # the pre-preset behaviour). '?' lists the presets and exits. A path to a .psd1 also works.
     [string]$Preset = "stock",
+    # Skip this machine's presets\local.psd1 override (see "per-machine override" below).
+    [switch]$NoLocal,
     # Print the game command line and its environment, then exit. Starts nothing.
     [switch]$DryRun,
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
@@ -207,6 +209,29 @@ if ($presetFile) {
 # stock with no presets\ folder at all (an old portable zip) is fine: stock sets nothing.
 if ($presetData) { foreach ($k in ($presetData.Env.Keys | Sort-Object)) { $gameEnv[$k] = [string]$presetData.Env[$k] } }
 
+# ---- per-machine override: <GameDir>\presets\local.psd1 (2026-10-24, owner: machines differ - Macs ~60 fps under Wine, a 5090,
+# this PC at 120). Same format as a preset (an Env hashtable). Its keys REPLACE the preset's; a key set to '' REMOVES the preset's
+# key (the game's stock value). Created per machine (copy presets\graphics-mac / -balanced / -high.psd1 and edit), never shipped
+# in a pack, gitignored. Not applied to preset stock (PLAY-VANILLA.bat stays the stock game) or with -NoLocal.
+$localOverride = @()
+$localFile = Join-Path $GameDir 'presets\local.psd1'
+if ($Preset -ne 'stock' -and -not $NoLocal -and (Test-Path $localFile)) {
+    $ld = Read-Preset $localFile
+    if (-not $ld) {
+        $localOverride += "local override $localFile could not be read as a data file - IGNORED"
+    } else {
+        foreach ($k in ($ld.Env.Keys | Sort-Object)) {
+            $nv = [string]$ld.Env[$k]
+            $was = if ($gameEnv.Contains($k)) { $gameEnv[$k] } else { '(unset)' }
+            if ($nv -eq '') { if ($gameEnv.Contains($k)) { $gameEnv.Remove($k) }; $nv = '(unset)' } else { $gameEnv[$k] = $nv }
+            $localOverride += ("local override: {0}={1} (preset {2})" -f $k, $nv, $was)
+        }
+        if (-not $ld.Env.Count) { $localOverride += "local override $localFile sets nothing" }
+    }
+} elseif (Test-Path $localFile) {
+    $localOverride += ("local override presets\local.psd1 NOT applied ({0})" -f $(if ($NoLocal) { '-NoLocal' } else { 'preset stock stays stock' }))
+}
+
 # ---- tick override (-TickMs; TICK-FINISH s.19) ---------------------------------
 if ($TickMs -or $CheckTickMs) {
     # a BOM or other non-ASCII bytes in front (tick-ms.txt saved by Notepad as UTF-8) are dropped; the rest must be a plain number
@@ -311,6 +336,7 @@ if ($gameEnv.Count) {
     Write-Host "preset $presetLabel (no engine switches)" -ForegroundColor DarkGray
 }
 Write-LaunchLog ("---- PLAY-i76.ps1 {0}" -f (($MyInvocation.BoundParameters.GetEnumerator() | ForEach-Object { if ($_.Value -is [switch]) { "-$($_.Key)" } else { "-$($_.Key) $($_.Value)" } }) -join ' ')) 'DarkGray'
+foreach ($lo in $localOverride) { Write-LaunchLog $lo 'Yellow' }
 
 # music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs to
 # mciproxy.log only when this is set. Set UNCONDITIONALLY: it was opt-in, which meant the

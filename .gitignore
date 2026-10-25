@@ -134,3 +134,6 @@ tools/haptics/design/__pycache__/
 tools/haptics/out/
 tools/haptics/replays/synth-*
 tools/haptics/motion/__pycache__/
+
+# per-machine launcher override (PLAY-i76.ps1; never shipped)
+presets/local.psd1
