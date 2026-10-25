@@ -4070,7 +4070,7 @@ static __declspec(naked) void coop_player_car_stub(void) {  /* replaces `push 0x
 static int g_coop_near = 1;
 static BYTE *g_coop_mp_obj;                                  /* the mission player object adopted for the host in this load (coop_spawn) */
 #define COOP_TRAIL 64
-static double g_ct_x[COOP_TRAIL], g_ct_z[COOP_TRAIL]; static int g_ct_n, g_ct_head; static BYTE *g_ct_car; static DWORD g_ct_last;
+static double g_ct_x[COOP_TRAIL], g_ct_z[COOP_TRAIL]; static DWORD g_ct_t[COOP_TRAIL]; static int g_ct_n, g_ct_head; static BYTE *g_ct_car; static DWORD g_ct_last;
 static BYTE *coop_host_car(void) {
     WORD host = *(volatile WORD *)0x00541064; int k;
     if (!host) return NULL;
@@ -4083,6 +4083,105 @@ static int coop_car_alive(BYTE *o) {
 }
 static BYTE *g_cn_placed, *g_cn_seen; static DWORD g_cn_seen_t; static int g_cn_fix;
 static int coop_near_pick(BYTE *h, double *ox, double *oz, char *how);
+/* AT THE HOST'S SPEED (I76_COOP_MATCH_SPEED, default 1 = on with I76_COOP_NEAR_HOST; owner 2026-10-25: "co-op spawn/respawn
+ * at the same speed as the host player, in addition to the position being just behind the player's path";
+ * records/COOP-MATCH-SPEED-2026-10-25.md). The car placed near the host (the respawn spawn and the join move) gets the
+ * host's horizontal speed along the placement heading (= the host's heading): entity+0xbc velocity, +0xac |v|, +0xb0 1/|v|,
+ * the body rates +0xc8..+0xd0 zero, every wheel's ground speed w+0x20 = |v| (i76-map physics.md, the veh+ / w+ table).
+ * The host's velocity on the joiner: its car's entity+0xbc (the 'ST' mirror), else the trail (the last second).
+ * At rest as before, logged, when the host is (a) below 1 m/s, (b) airborne (flag 0x4, more than 3 m over the terrain or
+ * |vy| > 4 m/s), (c) reversing or sliding sideways (more than 15 deg between its velocity and its heading), (d) faster than
+ * the joiner's car can go (min(the 3rd-gear rev limit 72.5 m/s, (P x power mult / (m x 0.1 x drag))^1/3), a loose ceiling).
+ * Every placement is then watched: "coop-match-speed: +0.5 s" and "+5 s" lines with the joiner's speed, the host's and the
+ * distance between them. */
+static int g_coop_match = 1;
+static BYTE *g_cm_obj; static float g_cm_target; static DWORD g_cm_t; static int g_cm_stage; static double g_cm_d05;
+static float coop_vlen(const float *v) { return (float)sqrt((double)v[0] * v[0] + (double)v[2] * v[2]); }
+static int coop_host_vel(BYTE *h, float *v, char *src) {    /* the host car's world velocity as this machine has it */
+    BYTE *he = *(BYTE **)(h + 0x70); int k;
+    v[0] = v[1] = v[2] = 0.0f;
+    if (he && !IsBadReadPtr(he, 0xc8)) memcpy(v, he + 0xbc, 12);
+    if (coop_vlen(v) > 0.5f) { strcpy(src, "entity"); return 1; }
+    for (k = 4; k >= 1; k--) if (g_ct_n > k && h == g_ct_car) {
+        int a = (g_ct_head + COOP_TRAIL - 1) % COOP_TRAIL, b = (g_ct_head + COOP_TRAIL - 1 - k) % COOP_TRAIL; DWORD dt = g_ct_t[a] - g_ct_t[b];
+        if (dt < 100) continue;
+        v[0] = (float)((g_ct_x[a] - g_ct_x[b]) * 1000.0 / dt); v[2] = (float)((g_ct_z[a] - g_ct_z[b]) * 1000.0 / dt);
+        sprintf(src, "trail %lu ms", dt); return 1;
+    }
+    strcpy(src, "none"); return 0;
+}
+static float coop_car_top(BYTE *o) {                        /* a loose ceiling for this car's top speed (m/s) */
+    BYTE *e = *(BYTE **)(o + 0x70), *eo, *eng; float top = 72.5f, P, m, drag, mult;
+    if (!e || IsBadReadPtr(e, 0x3d0)) return top;
+    eo = *(BYTE **)(e + 0x3a8 + 4 * 7); eng = (eo && !IsBadReadPtr(eo, 0x74) && *(int *)(eo + 0x6c) == 21) ? *(BYTE **)(eo + 0x70) : NULL;
+    if (!eng || IsBadReadPtr(eng, 0x18)) return top;
+    P = *(float *)(eng + 0x14); m = *(float *)(e + 0xa4); drag = *(float *)(e + 0x120); mult = *(float *)(e + 0x128);
+    if (P > 0.0f && m > 1.0f && drag > 1e-7f && mult > 0.0f) { double va = pow((double)P * mult / ((double)m * 0.1 * drag), 1.0 / 3.0); if (va < top) top = (float)va; }
+    return top;
+}
+static void coop_put_speed(BYTE *e, float fx, float fz, float spd) {
+    int i;
+    *(float *)(e + 0xbc) = fx * spd; *(float *)(e + 0xc0) = 0.0f; *(float *)(e + 0xc4) = fz * spd;
+    *(float *)(e + 0xac) = spd; *(float *)(e + 0xb0) = 1.0f / spd;
+    memset(e + 0xc8, 0, 12);
+    for (i = 0; i < 6; i++) {
+        BYTE *wo = *(BYTE **)(e + 0x3a8 + 4 * i), *w = (wo && !IsBadReadPtr(wo, 0x74) && *(int *)(wo + 0x6c) == 30) ? *(BYTE **)(wo + 0x70) : NULL;
+        if (w && !IsBadWritePtr(w, 0x24)) *(float *)(w + 0x20) = spd;
+    }
+}
+/* the joiner's car o was just placed facing (fx, fz): give it the host's speed, or leave it at rest (why) */
+static void coop_match_speed(BYTE *h, BYTE *o, float fx, float fz, const char *kind) {
+    float hv[3], spd, along, lat, top, cl; char src[32], why[112]; BYTE *he = *(BYTE **)(h + 0x70), *e = o ? *(BYTE **)(o + 0x70) : NULL;
+    double hx = *(double *)(h + 0x40), hy = *(double *)(h + 0x48), hz = *(double *)(h + 0x50);
+    if (!e || IsBadReadPtr(e, 0x3d0)) return;
+    g_cm_obj = o; g_cm_t = GetTickCount(); g_cm_stage = 0; g_cm_target = 0.0f;
+    if (!g_coop_match) { mlog("  coop-match-speed: %s at rest (I76_COOP_MATCH_SPEED=0)", kind); return; }
+    coop_host_vel(h, hv, src); spd = coop_vlen(hv);
+    along = hv[0] * fx + hv[2] * fz; lat = hv[0] * fz - hv[2] * fx;
+    cl = (float)(hy - ((double (__cdecl *)(double, double))0x00493550)(hx, hz));
+    top = coop_car_top(o);
+    why[0] = 0;
+    if (spd < 1.0f) sprintf(why, "the host is at rest (%.1f m/s)", spd);
+    else if ((he && (*(DWORD *)(he + 0x454) & 4)) || cl > 3.0f || hv[1] > 4.0f || hv[1] < -4.0f)
+        sprintf(why, "the host is airborne (flag %d, %.1f m over the terrain, vy %.1f)", he ? (int)((*(DWORD *)(he + 0x454) >> 2) & 1) : -1, cl, hv[1]);
+    else if (along <= 0.0f) sprintf(why, "the host is reversing (%.1f m/s against its heading)", spd);
+    else if (fabs(lat) > 0.2588f * spd) sprintf(why, "the host is sliding sideways (%.0f deg between velocity and heading)", atan2(fabs(lat), along) * 57.29578);
+    else if (spd > top) sprintf(why, "the host (%.1f m/s) is faster than the joiner's car can go (%.1f m/s)", spd, top);
+    if (why[0]) { mlog("  coop-match-speed: %s at rest - %s (host velocity from the %s)", kind, why, src); return; }
+    coop_put_speed(e, fx, fz, spd);
+    g_cm_target = spd;
+    mlog("  coop-match-speed: %s at the host's speed %.1f m/s (%.0f km/h; host velocity from the %s, slip %.0f deg, %.1f m over the terrain; joiner's ceiling %.1f m/s)",
+         kind, spd, spd * 3.6f, src, atan2(fabs(lat), along) * 57.29578, cl, top);
+}
+static void coop_match_watch(void) {                        /* joiner, every pump call: the placed car's speed after 0.5 s and 5 s */
+    BYTE **root, *o, *e, *h; DWORD now = GetTickCount(); float v, hv[3]; char src[32]; double d, dx, dz;
+    if (!g_cm_obj) return;
+    root = ((BYTE **(__cdecl *)(void))0x00457530)(); o = root ? *root : NULL;
+    if (o != g_cm_obj || !coop_car_alive(o)) { mlog("  coop-match-speed: the placed car is gone after %lu ms", now - g_cm_t); g_cm_obj = NULL; return; }
+    e = *(BYTE **)(o + 0x70); v = coop_vlen((float *)(e + 0xbc));
+    if (g_cm_stage == 0) {                                   /* the first pump call after the spawn: did the spawn path keep the velocity? */
+        g_cm_stage = 1;
+        if (g_cm_target > 0.0f && v < 0.5f * g_cm_target) {
+            float fx = *(float *)(o + 0x18 + 24), fz = *(float *)(o + 0x18 + 32), r = (float)sqrt((double)fx * fx + (double)fz * fz);
+            if (r > 1e-3f) { fx /= r; fz /= r; }
+            coop_put_speed(e, fx, fz, g_cm_target);
+            mlog("  coop-match-speed: the spawn path left %.1f m/s - the host's speed put back (%.1f m/s)", v, g_cm_target);
+        }
+        return;
+    }
+    if ((g_cm_stage == 1 && now - g_cm_t < 500) || (g_cm_stage == 2 && now - g_cm_t < 5000)) return;
+    h = coop_host_car();
+    if (!h || !coop_car_alive(h)) { mlog("  coop-match-speed: the host car is gone at +%lu ms", now - g_cm_t); g_cm_obj = NULL; return; }
+    coop_host_vel(h, hv, src);
+    dx = *(double *)(o + 0x40) - *(double *)(h + 0x40); dz = *(double *)(o + 0x50) - *(double *)(h + 0x50); d = sqrt(dx * dx + dz * dz);
+    if (g_cm_stage == 1) {
+        g_cm_d05 = d; g_cm_stage = 2;
+        mlog("  coop-match-speed: +%lu ms joiner %.1f m/s, host %.1f m/s (%s), placed at %.1f m/s; %.1f m from the host", now - g_cm_t, v, coop_vlen(hv), src, g_cm_target, d);
+    } else {
+        mlog("  coop-match-speed: +%lu ms joiner %.1f m/s, host %.1f m/s; %.1f m from the host (%+.1f m since +0.5 s)", now - g_cm_t, v, coop_vlen(hv), d, d - g_cm_d05);
+        g_cm_obj = NULL;
+    }
+}
 static void coop_near_after_join(BYTE *h) {
     /* A JOIN builds the joiner's car while the host is not known yet (host id 0 during the handshake, so the spawn above
      * cannot act; measured: 313 m from the host). The first time this joiner's car is seen in a co-op mission, not built
@@ -4108,9 +4207,11 @@ static void coop_near_after_join(BYTE *h) {
     if (e) { memset(e + 0xbc, 0, 12); memset(e + 0xc8, 0, 12); *(float *)(e + 0xac) = 0.0f; *(float *)(e + 0xb0) = 0.0f; }
     mlog("  coop-near-host: t %lu joiner's car (built at the join, %.0f m from the host) moved to %.1f,%.1f heading %d (%s)",
          now, sqrt(dx * dx + dz * dz), x, z, (int)(atan2(fx, fz) * 57.29578), how);
+    coop_match_speed(h, o, fx, fz, "join");                  /* I76_COOP_MATCH_SPEED */
 }
 static void coop_near_trail(void) {                          /* joiner, every pump call: the host car's recent path */
     DWORD now = GetTickCount(); BYTE *h;
+    if (g_coop_near) coop_match_watch();
     if (!g_coop_near || now - g_ct_last < 250) return;
     g_ct_last = now;
     h = coop_ai_in_mission() ? coop_host_car() : NULL;
@@ -4121,7 +4222,7 @@ static void coop_near_trail(void) {                          /* joiner, every pu
         int p = (g_ct_head + COOP_TRAIL - 1) % COOP_TRAIL; double dx = *(double *)(h + 0x40) - g_ct_x[p], dz = *(double *)(h + 0x50) - g_ct_z[p];
         if (dx * dx + dz * dz > 80.0 * 80.0) g_ct_n = 0;
     }
-    g_ct_x[g_ct_head] = *(double *)(h + 0x40); g_ct_z[g_ct_head] = *(double *)(h + 0x50);
+    g_ct_x[g_ct_head] = *(double *)(h + 0x40); g_ct_z[g_ct_head] = *(double *)(h + 0x50); g_ct_t[g_ct_head] = now;
     g_ct_head = (g_ct_head + 1) % COOP_TRAIL; if (g_ct_n < COOP_TRAIL) g_ct_n++;
 }
 static double coop_near_clear(double x, double z) {          /* squared distance to the nearest car or wreck (players' and mission cars) */
@@ -4184,6 +4285,7 @@ static char *coop_spawn_near_host(unsigned id, int idx, int type, void *data, si
     {   double dx = x - *(double *)(h + 0x40), dz = z - *(double *)(h + 0x50);
         mlog("  coop-near-host: t %lu joiner (id %u) spawns %.1f m from the host at %.1f,%.1f,%.1f heading %d (%s; stock spawn point %d)",
              GetTickCount(), id, sqrt(dx * dx + dz * dz), x, y, z, (int)(atan2(fx, fz) * 57.29578), how, idx); }
+    if (o) coop_match_speed(h, (BYTE *)o, fx, fz, "respawn");   /* I76_COOP_MATCH_SPEED */
     return o;
 }
 /* The HOST's respawn in a co-op scene / scenario (records/LAN-FIXES-2026-10-24.md s.6). The host's car there is the
@@ -4424,12 +4526,14 @@ static void apply_coop_ai(HMODULE exe) {
                 { if (env_flag("I76_COOP_ADOPT", 8, 1) == 0) { g_coop_adopt = 0; mlog("  coop-chain: adoption OFF (I76_COOP_ADOPT=0)"); } }
                 { if (env_flag("I76_COOP_HOSTMODEL", 8, 1) == 0) { g_coop_hostmodel = 0; mlog("  coop-chain: host model on the joiner OFF (I76_COOP_HOSTMODEL=0)"); } }
                 g_coop_near = env_flag("I76_COOP_NEAR_HOST", 8, 1) != 0;
+                g_coop_match = env_flag("I76_COOP_MATCH_SPEED", 8, 1) != 0;
                 g_coop_host_wait_ms = env_int("I76_COOP_HOST_WAIT_MS", 8, 3000); if (g_coop_host_wait_ms < 0) g_coop_host_wait_ms = 0;
                 g_coop_test_host_respawn = env_flag("I76_COOP_TEST_HOST_RESPAWN", 8, 0) == 1;
                 apply_coop_script_guard();
                 mlog("  coop-chain: host respawn request gate %s", st_call_site(0x00451570, 0x00452d20, (void *)coop_respawn_gate, &g_coop_rq_next, "coop-chain: respawn request 0x451570") ? "on" : "NOT on");
                 mlog("  coop-chain: host handshake after a chain reload: %s", g_coop_host_wait_ms ? "the quiet wait ends after I76_COOP_HOST_WAIT_MS" : "stock (I76_COOP_HOST_WAIT_MS=0)");
                 mlog("  coop-chain: joiners spawn near the host in co-op scenes and scenarios %s", g_coop_near ? "ON (I76_COOP_NEAR_HOST)" : "OFF (I76_COOP_NEAR_HOST=0)");
+                if (g_coop_near) mlog("  coop-chain: ... at the host's speed %s", g_coop_match ? "ON (I76_COOP_MATCH_SPEED)" : "OFF (I76_COOP_MATCH_SPEED=0)");
             }
             mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
         }
