@@ -3228,6 +3228,15 @@ static void coop_near_trail(void);                           /* I76_COOP_NEAR_HO
 static dprecv_fn real_dpReceive;
 static volatile LONG g_coop_ai_sent, g_coop_ai_applied, g_coop_ai_role, g_coop_ai_senderr, g_coop_ai_rx;
 static DWORD g_coop_ai_last;
+/* I76_COOP_AT_PER_FRAME (default 1; host): at most one 'AT' round per mission frame (records/COOP-HOST-STALL-2026-10-25.md).
+ * The round is sent from the dpReceive hook, i.e. from inside net_Pump's receive loop, gated only by 100 ms of WALL time.
+ * net_Pump 0x4532c0 loops dpReceive until the queue is empty, so when one round costs more than 100 ms (measured: the lab's
+ * IPXWrapper at log_level 2 writes 2 write-through log lines per send, ~16 ms each, ~13 sends a round = ~0.4 s) EVERY
+ * dpReceive call sent a round, a joiner's packet was always waiting by the time it ended, and the pump never returned: the
+ * host's mission frames stopped for 5 s to the rest of the run ("no mission frames ... dpReceive called from 0045336B").
+ * 0 = as before (wall clock only). */
+static int g_coop_at_per_frame = 1; static DWORD g_coop_at_frame = (DWORD)-1;
+static volatile LONG g_coop_at_held;                         /* rounds not sent: no mission frame since the last one */
 static float g_coop_ai_seen[2048];
 static DWORD g_mpf_park_since[2048];                         /* mpfill.c: label index parked since (0 = in play); 'AT' sends it every 2 s */
 static void mpf_engaged(BYTE *a);                            /* mpfill.c: an enemy original turned on a human (co-op scaling) */
@@ -3270,6 +3279,10 @@ static void coop_ai_host_send(void) {
     BYTE pkt[512]; BYTE *tab; int count, i, n = 0; static unsigned rounds;
     DWORD now = GetTickCount();
     if (now - g_coop_ai_last < 100 || !coop_ai_in_mission()) return;
+    if (g_coop_at_per_frame && g_frame_hook) {               /* I76_COOP_AT_PER_FRAME: one round per mission frame */
+        if (g_frame == g_coop_at_frame) { g_coop_at_held++; return; }
+        g_coop_at_frame = g_frame;
+    }
     g_coop_ai_last = now;
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
     if (!tab || count <= 0 || count > 2048) return;
@@ -3732,6 +3745,21 @@ static int coop_chain_frames_running(void);
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
+    if (__builtin_return_address(0) == (void *)0x0045336B) {   /* net_Pump's receive loop: how long one pump call ran */
+        static DWORD pf = (DWORD)-1, t0, npk, lastlog, nlong, worst;
+        DWORD now = GetTickCount();
+        if (g_frame != pf || !g_frame_hook) { pf = g_frame; t0 = now; npk = 0; }
+        if (r == 0) npk++;
+        else if (now - t0 >= 1000) {                         /* the pump call ends: one that held the frame for >= 1 s */
+            nlong++; if (now - t0 > worst) worst = now - t0;
+            if (now - lastlog > 5000) {
+                lastlog = now;
+                mlog("  net-pump: one net_Pump call took %lu ms (%lu packets; 'AT' rounds held for the next frame %ld; long pumps %lu, worst %lu ms)",
+                     now - t0, npk, g_coop_at_held, nlong, worst);
+            }
+            t0 = now; npk = 0;
+        }
+    }
     coop_heap_scan();
     if (g_coop_chain && *(volatile int *)0x00541030 && *(volatile int *)0x004c2164 != 5) {   /* diagnostics while not playing */
         static DWORD lastw; DWORD now = GetTickCount();
@@ -4474,6 +4502,10 @@ static void apply_coop_ai(HMODULE exe) {
     char v[8]; DWORD k = env_str("I76_COOP_AI", v, sizeof(v));
     if (k == 0 || v[0] != '1') return;
     real_dpReceive = (dprecv_fn)patch_iat(exe, "anetdll.dll", "dpReceive", (void *)coop_dpReceive);
+    g_coop_at_per_frame = env_flag("I76_COOP_AT_PER_FRAME", 8, 1) != 0;
+    if (g_coop_at_per_frame) install_frame_hook();           /* the round's frame gate needs the frame counter */
+    mlog("  coop-ai: host 'AT' rounds %s", g_coop_at_per_frame ? (g_frame_hook ? "at most one per mission frame (I76_COOP_AT_PER_FRAME)" : "every 100 ms (frame hook missing)")
+                                                               : "every 100 ms of wall time, also inside one pump call (I76_COOP_AT_PER_FRAME=0)");
     {
         if (env_flag("I76_COOP_HEAPWATCH", 8, 0) == 1) g_hp_watch = 1;
         if (env_flag("I76_COOP_HEAPLOCK", 8, 0) == 1) { g_hp_watch = 1; g_hp_lock_on = 1; }
