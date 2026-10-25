@@ -262,7 +262,7 @@ static int __cdecl aim_melee_flag(void) {                    /* replaces `call 0
     int r = *(volatile int *)0x00501818;
     if (!r && coop_ai_role() == 1) {
         if (aim_arena()) aim_tick();
-        else if (coop_chain_num((const char *)0x005049f0)) mpf_coop_tick();   /* I76_COOP_SCALE (mpfill.c) */
+        else if (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)) mpf_coop_tick();   /* I76_COOP_SCALE (mpfill.c): co-op scenes and (2026-10-24) scenarios */
     }
     return r;
 }

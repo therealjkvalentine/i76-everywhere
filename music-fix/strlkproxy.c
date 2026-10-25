@@ -2948,6 +2948,31 @@ static __declspec(naked) void coop_net_flame_stub(void) {   /* replaces `call 0x
         ret
     }
 }
+/* FFB GUARD (I76_FFB_GUARD; default on with I76_COOP_AI=1, the LAN preset, off otherwise until a promotion decides). ffb_PlayEffect 0x446110 calls I7FF_SIM_Effect ([0x52bbe4], resolved whenever
+ * I7_SFRCE.DLL loads) without asking whether I7FF_InitSystem opened a device ([0x52bbd0], 0 = "Failed to open FF Joystick").
+ * With no device the DLL dereferences its never-created effect object: 0xC0000005 at I7_SFRCE.DLL+0x2505 read 0 (the
+ * 2026-08-02 field case, records/FFB-LAPTOP-RECON.md; and a lab LAN host on 2026-10-24 when its car fired, stack 0x4f2328 +
+ * return 0x446130, records/LAN-FIXES-2026-10-24.md s.6). The function's first instruction `mov eax, [0x52bbe4]` becomes a
+ * call that returns that pointer only while the device flag is set, so the function's own `test eax, eax; je` skips the
+ * effect (and returns success) on a machine without a force-feedback device. With a device nothing changes. */
+static __declspec(naked) void ffb_guard_stub(void) {
+    __asm {
+        mov eax, dword ptr ds:[0x0052bbd0]
+        test eax, eax
+        jz none
+        mov eax, dword ptr ds:[0x0052bbe4]
+    none:
+        ret
+    }
+}
+static void apply_ffb_guard(void) {
+    BYTE old[5] = { 0xA1, 0xE4, 0xBB, 0x52, 0x00 }, w[5] = { 0xE8 }; LONG r = (LONG)((DWORD_PTR)ffb_guard_stub - (0x00446110 + 5));
+    char v[8]; int lan = env_str("I76_COOP_AI", v, sizeof(v)) && v[0] == '1';   /* default on in the LAN preset only (I76_COOP_AI=1) */
+    if (env_flag("I76_FFB_GUARD", 8, lan) != 1) { mlog("  ffb-guard: off (I76_FFB_GUARD=0, or not a LAN launch)"); return; }
+    memcpy(w + 1, &r, 4);
+    mlog("  ffb-guard: ffb_PlayEffect 0x446110 %s (I7FF_SIM_Effect only while I7FF_InitSystem has a device)",
+         patch_bytes(0x00446110, old, w, 5, "ffb-guard") ? "guarded" : "NOT guarded (bytes differ)");
+}
 static void apply_coop_damage(void) {
     static const struct { DWORD site, target; void *stub; const char *what; } s[4] = {
         { 0x004a76c5, 0x00458bf0, (void *)coop_is_human,        "impact: is-player" },
@@ -3008,6 +3033,7 @@ typedef int (__cdecl *dprecv_fn)(void *, void *, void *, int, void *, void *);
 typedef int (__cdecl *dpsend_fn)(void *, int, int, int, void *, int);
 static int coop_chain_num(const char *cur);                  /* "coopNN.lvl" -> NN, else 0 (CO-OP CAMPAIGN CHAIN) */
 static int coop_scen_num(const char *cur);                   /* "autoNN.lvl" -> NN, else 0 (scenarios as arenas) */
+static void coop_near_trail(void);                           /* I76_COOP_NEAR_HOST (below coop_spawn) */
 /* ANet's dpSend writes 4 bytes PAST the payload it is given (the from / to ids, in place: 03 00 04 00 = id 3 to
  * group 4, read from a host crash dump 2026-10-18). A send buffer on the stack with nothing after it lets that tail
  * overwrite the next local; in coop_chain_at_end (coop_chain_send inlined) it was the /GS cookie, and every host chain
@@ -3507,6 +3533,10 @@ static LONG g_coop_rx_run, g_coop_rx_logged;                /* diagnostics: pack
 static WORD g_coop_rx_types[64], g_coop_rx_from[64]; static int g_coop_rx_n;
 static WORD g_coop_group; static DWORD g_coop_group_wait;    /* the session's game group, kept across chain reloads */
 static char g_coop_pending_am[16];                          /* an 'AM' that arrived while this machine was loading */
+static int g_coop_reload_host;                              /* this machine was the host when the chain reloaded (handshake below) */
+static int g_coop_host_wait_ms = 3000;                      /* I76_COOP_HOST_WAIT_MS: 0 = stock (wait for 5 s of quiet) */
+static int g_coop_test_host_respawn;                         /* LAB ONLY I76_COOP_TEST_HOST_RESPAWN=1: the host asks for a respawn when dead */
+static int coop_chain_frames_running(void);
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
@@ -3536,6 +3566,17 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         if (r != 0 && now - start > 8000 && *(volatile WORD *)0x00541064 && *(volatile WORD *)0x00541064 != *(volatile WORD *)0x00541028) {
             *(volatile float *)0x00540ffc = (float)((double (__cdecl *)(void))0x0049c8c0)() - 10.0f;
             if (!told) { told = 1; mlog("  coop-chain: handshake 8 s old and the host is not quiet (it is already playing) - spawning on the game's timeout path"); }
+        }
+        /* The same wait on the HOST after a chain reload (owner 2026-10-24: after the scenario restarted, the host sat with
+         * the camera at the map's corner for about a minute; records/LAN-FIXES-2026-10-24.md s.5). Any 'XX' from any id
+         * restarts the quiet clock (0x452f20: 0x5858 -> [0x540ffc] = now), and a joiner that finished its own load first
+         * plays and sends 'XX' every 0.2 s, so the host's handshake never saw 5 s of quiet until the joiner left. Nobody
+         * sends the host an 'SP' (it is the one that sends them). So on a machine that was the host when the chain
+         * reloaded, the quiet clock is aged after I76_COOP_HOST_WAIT_MS (default 3000) of handshake: the host spawns, the
+         * session goes on with the joiners already in it. */
+        if (r != 0 && g_coop_reload_host && g_coop_host_wait_ms > 0 && now - start > (DWORD)g_coop_host_wait_ms) {
+            *(volatile float *)0x00540ffc = (float)((double (__cdecl *)(void))0x0049c8c0)() - 10.0f;
+            if (!told) { told = 1; mlog("  coop-chain: host handshake after the reload %lu ms old (%d packets meanwhile) - spawning on the game's timeout path", now - start, total); }
         }
         if (r == 0 && buf && from) {
             int k;
@@ -3586,9 +3627,13 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
         if (g_coop_rx_n >= 64) g_coop_rx_n = 0;
     }
     g_coop_ai_role = role;
+    if (g_coop_reload_host && coop_chain_frames_running()) g_coop_reload_host = 0;   /* the reload is over: mission frames run */
+    if (role == 1 && g_coop_test_host_respawn && g_coop_chain && coop_ai_in_mission() && (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)))
+        coop_auto_respawn("host (LAB I76_COOP_TEST_HOST_RESPAWN)");   /* LAB ONLY: the player asking for a respawn in the death view */
     if (role == 1) { coop_ai_host_send(); coop_obj_catchup(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
     else if (role == 2) {
         coop_ai_joiner_fire();
+        if (g_coop_chain) coop_near_trail();                 /* I76_COOP_NEAR_HOST: the host's path, for this joiner's next spawn */
         /* the joiner respawns by itself (RAISE_DEAD has no key) - in a co-op mission (coopNN.lvl) or a scenario
          * (autoNN.lvl) only. Until 2026-10-18 this ran in every network game with I76_COOP_CHAIN, melee included, so in
          * a melee the joiner came back 5 s after a death and the host did not (owner's playtest, laptop host + Michael,
@@ -3703,6 +3748,7 @@ static void __cdecl coop_chain_at_end(char *winmain_esp) {
     }
     if (*state == 7 && g_coop_next[0]) {
         g_coop_reload_pending = 1;
+        g_coop_reload_host = role == 1;                      /* the host's handshake after this reload is not left waiting (dpReceive hook) */
         g_coop_reload_frame = g_frame;
         /* exactly strlen + 1 bytes: the setup block's field size is not known, and a 16-byte strncpy zero-filled
          * whatever follows "mNN.msn" (suspect for the rare teardown heap crash, 2026-10-07) */
@@ -3763,6 +3809,9 @@ static int __cdecl coop_ai_attack(BYTE *a, BYTE *t, int b, int x) {
     int human = 0, k0;
     if (t && (t[0x10] & 0x10)) human = 1;
     else if (t) for (k0 = 0; k0 < 16; k0++) { BYTE *p = (BYTE *)0x00541070 + k0 * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == t) { human = 1; break; } }
+    if (b != 0x1e && a && t && !human && coop_ai_role() == 1 && coop_scen_num((const char *)0x005049f0))
+        mpf_engaged(a);                                      /* scenarios (2026-10-24): an enemy given ANY target is in the fight (Oil Well Well's go for the
+                                                                wells, measured: 1 of 8 originals turned on a human in 90 s); its copies come in and attack humans */
     if (b != 0x1e && a && human && coop_ai_role() == 1) {   /* every behaviour aimed at a human except follow */
         mpf_engaged(a);                                      /* co-op scaling: this enemy has met a human (mpfill.c) */
         double ax = *(double *)(a + 0x40), az = *(double *)(a + 0x50), best = 1e30; BYTE *pick = t; int k;
@@ -3847,8 +3896,144 @@ static __declspec(naked) void coop_player_car_stub(void) {  /* replaces `push 0x
         jmp ecx
     }
 }
+/* JOINER SPAWNS NEAR THE HOST (I76_COOP_NEAR_HOST, default 1; acts only with I76_COOP_CHAIN, in coopNN.lvl / autoNN.lvl,
+ * owner 2026-10-24: "a joiner who respawns should appear NEAR THE HOST, not at the mission's own spawn").
+ * The local car of every machine is built by 0x451180(own id, 0x451030() = a random free spawn point, type 0) at the
+ * WinMain / pump sites 0x403ab8, 0x403cd5, 0x456f17 (records/LAN-FIXES-2026-10-24.md s.3); 0x451180 copies the 0x40-byte
+ * spawn entry 0x53fd88 + idx * 0x40 (rotation rows right / up / forward, 9 floats; position doubles at +0x28) to the new
+ * object's +0x18. Remote machines see the car where its owner's 'ST' puts it, so only the owner's own build matters.
+ * On a joiner whose host car is alive, that entry is replaced for the one call (and put back) by a pose near the host:
+ *   - the host's TRAIL: every 250 ms the joiner keeps the host car's position (64 points, 16 s). The newest trail point
+ *     20-40 m from where the host is now, with no car or wreck within 10 m, is ground the host has just driven: on its
+ *     road, behind it. Else a point 25 / 30 / 35 m behind the host (0 / +-8 m to the side), then 25 m to either side,
+ *     with the same clearance and its ground within 5 m of the host's.
+ *   - height: the ground there (0x493550, the sim's own query) + 1.5 m (the car drops onto it);
+ *   - facing: the host's heading (yaw only).
+ * No candidate (the host is dead, gone, or boxed in): the stock spawn point. Logged as "coop-near-host". */
+static int g_coop_near = 1;
+#define COOP_TRAIL 64
+static double g_ct_x[COOP_TRAIL], g_ct_z[COOP_TRAIL]; static int g_ct_n, g_ct_head; static BYTE *g_ct_car; static DWORD g_ct_last;
+static BYTE *coop_host_car(void) {
+    WORD host = *(volatile WORD *)0x00541064; int k;
+    if (!host) return NULL;
+    for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p == host) return *(BYTE **)(p + 0x28); }
+    return NULL;
+}
+static int coop_car_alive(BYTE *o) {
+    BYTE *e = (o && !IsBadReadPtr(o, 0x74)) ? *(BYTE **)(o + 0x70) : NULL;
+    return e && !IsBadReadPtr(e, 0x458) && !(e[0x454] & 0x20);
+}
+static BYTE *g_cn_placed, *g_cn_seen; static DWORD g_cn_seen_t; static int g_cn_fix;
+static int coop_near_pick(BYTE *h, double *ox, double *oz, char *how);
+static void coop_near_after_join(BYTE *h) {
+    /* A JOIN builds the joiner's car while the host is not known yet (host id 0 during the handshake, so the spawn above
+     * cannot act; measured: 313 m from the host). The first time this joiner's car is seen in a co-op mission, not built
+     * by coop_spawn_near_host and more than 60 m from a live host, it is moved once within 10 s: the same pick, the pose
+     * written on the game thread (rotation rows, position, velocity / body rates / speed 0, as the trainer's TELEPORT +
+     * STOP). The host and the other joiners see it there from its next 'ST'. */
+    BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)(), *o = root ? *root : NULL, *e; DWORD now = GetTickCount();
+    double x, z, dx, dz; char how[96]; float fx, fz, r;
+    if (!o) return;
+    if (o != g_cn_seen) { g_cn_seen = o; g_cn_seen_t = now; g_cn_fix = o != g_cn_placed; }
+    if (!g_cn_fix || now - g_cn_seen_t > 10000 || !h || !coop_car_alive(h) || !coop_car_alive(o)) { if (now - g_cn_seen_t > 10000) g_cn_fix = 0; return; }
+    if (!coop_chain_num((const char *)0x005049f0) && !coop_scen_num((const char *)0x005049f0)) { g_cn_fix = 0; return; }
+    dx = *(double *)(o + 0x40) - *(double *)(h + 0x40); dz = *(double *)(o + 0x50) - *(double *)(h + 0x50);
+    if (dx * dx + dz * dz < 60.0 * 60.0) { g_cn_fix = 0; return; }
+    if (now - g_cn_seen_t < 1000 || !coop_near_pick(h, &x, &z, how)) return;   /* let the car settle a moment first */
+    g_cn_fix = 0;
+    fx = *(float *)(h + 0x18 + 24); fz = *(float *)(h + 0x18 + 32); r = (float)sqrt((double)fx * fx + (double)fz * fz);
+    if (r < 1e-3f) { fx = 0.0f; fz = 1.0f; r = 1.0f; }
+    fx /= r; fz /= r;
+    {   float *m = (float *)(o + 0x18); memset(m, 0, 9 * sizeof(float)); m[0] = fz; m[2] = -fx; m[4] = 1.0f; m[6] = fx; m[8] = fz; }
+    *(double *)(o + 0x40) = x; *(double *)(o + 0x50) = z; *(double *)(o + 0x48) = ((double (__cdecl *)(double, double))0x00493550)(x, z) + 1.5;
+    e = *(BYTE **)(o + 0x70);
+    if (e) { memset(e + 0xbc, 0, 12); memset(e + 0xc8, 0, 12); *(float *)(e + 0xac) = 0.0f; *(float *)(e + 0xb0) = 0.0f; }
+    mlog("  coop-near-host: t %lu joiner's car (built at the join, %.0f m from the host) moved to %.1f,%.1f heading %d (%s)",
+         now, sqrt(dx * dx + dz * dz), x, z, (int)(atan2(fx, fz) * 57.29578), how);
+}
+static void coop_near_trail(void) {                          /* joiner, every pump call: the host car's recent path */
+    DWORD now = GetTickCount(); BYTE *h;
+    if (!g_coop_near || now - g_ct_last < 250) return;
+    g_ct_last = now;
+    h = coop_ai_in_mission() ? coop_host_car() : NULL;
+    coop_near_after_join(h);
+    if (!h || !coop_car_alive(h)) { g_ct_n = 0; g_ct_car = NULL; return; }
+    if (h != g_ct_car) { g_ct_n = 0; g_ct_car = h; }         /* a new mission or a new host car: a new trail */
+    if (g_ct_n) {                                            /* a jump of > 80 m in 250 ms is a teleport / reload, not a path */
+        int p = (g_ct_head + COOP_TRAIL - 1) % COOP_TRAIL; double dx = *(double *)(h + 0x40) - g_ct_x[p], dz = *(double *)(h + 0x50) - g_ct_z[p];
+        if (dx * dx + dz * dz > 80.0 * 80.0) g_ct_n = 0;
+    }
+    g_ct_x[g_ct_head] = *(double *)(h + 0x40); g_ct_z[g_ct_head] = *(double *)(h + 0x50);
+    g_ct_head = (g_ct_head + 1) % COOP_TRAIL; if (g_ct_n < COOP_TRAIL) g_ct_n++;
+}
+static double coop_near_clear(double x, double z) {          /* squared distance to the nearest car or wreck (players' and mission cars) */
+    BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i, k; double best = 1e30;
+    for (k = 0; k < 16; k++) {
+        BYTE *p = (BYTE *)0x00541070 + k * 0x48, *o = *(WORD *)p ? *(BYTE **)(p + 0x28) : NULL;
+        if (o && !IsBadReadPtr(o, 0x58)) { double dx = *(double *)(o + 0x40) - x, dz = *(double *)(o + 0x50) - z; if (dx * dx + dz * dz < best) best = dx * dx + dz * dz; }
+    }
+    for (i = 0; tab && count > 0 && count <= 2048 && i < count; i++) {
+        BYTE *o = coop_ai_object(i, count, tab);
+        if (o) { double dx = *(double *)(o + 0x40) - x, dz = *(double *)(o + 0x50) - z; if (dx * dx + dz * dz < best) best = dx * dx + dz * dz; }
+    }
+    return best;
+}
+static int coop_near_pick(BYTE *h, double *ox, double *oz, char *how) {
+    double hx = *(double *)(h + 0x40), hz = *(double *)(h + 0x50), hg, r;
+    float fx = *(float *)(h + 0x18 + 24), fz = *(float *)(h + 0x18 + 32); int i, j;
+    static const double back[3] = { 25.0, 30.0, 35.0 }, side[3] = { 0.0, 8.0, -8.0 };
+    for (i = 1; i <= g_ct_n; i++) {                          /* newest first */
+        int p = (g_ct_head + COOP_TRAIL - i) % COOP_TRAIL; double dx = g_ct_x[p] - hx, dz = g_ct_z[p] - hz, d2 = dx * dx + dz * dz;
+        if (d2 < 20.0 * 20.0 || d2 > 40.0 * 40.0 || coop_near_clear(g_ct_x[p], g_ct_z[p]) < 10.0 * 10.0) continue;
+        *ox = g_ct_x[p]; *oz = g_ct_z[p]; sprintf(how, "the host's trail %.2f s ago, %.1f m from it", i * 0.25, sqrt(d2));
+        return 1;
+    }
+    r = sqrt((double)fx * fx + (double)fz * fz); if (r < 1e-3) { fx = 0.0f; fz = 1.0f; r = 1.0; }
+    fx = (float)(fx / r); fz = (float)(fz / r);
+    hg = ((double (__cdecl *)(double, double))0x00493550)(hx, hz);
+    for (i = 0; i < 5; i++) for (j = 0; j < 3; j++) {
+        double b = i < 3 ? back[i] : 0.0, s = i < 3 ? side[j] : (i == 3 ? 25.0 : -25.0), x, z;
+        if (i >= 3 && j) continue;
+        x = hx - fx * b + fz * s; z = hz - fz * b - fx * s;  /* right = (fz, 0, -fx) */
+        if (coop_near_clear(x, z) < 10.0 * 10.0) continue;
+        if (fabs(((double (__cdecl *)(double, double))0x00493550)(x, z) - hg) > 5.0) continue;
+        *ox = x; *oz = z; sprintf(how, "%.0f m behind the host, %.0f m to its side", b, s);
+        return 1;
+    }
+    return 0;
+}
+static char *coop_spawn_near_host(unsigned id, int idx, int type, void *data, size_t size, int *done) {
+    BYTE *h = coop_host_car(), *e, save[0x40]; double x, z, y; char how[96]; char *o; float fx, fz, r;
+    *done = 0;
+    if (!g_coop_near || type != 0 || idx < 0 || idx >= 64 || !h || !coop_car_alive(h) || !coop_ai_in_mission()) return NULL;
+    if (!coop_chain_num((const char *)0x005049f0) && !coop_scen_num((const char *)0x005049f0)) return NULL;
+    if (!coop_near_pick(h, &x, &z, how)) { mlog("  coop-near-host: no clear place near the host - stock spawn point %d", idx); return NULL; }
+    e = (BYTE *)0x0053fd88 + idx * 0x40;
+    memcpy(save, e, 0x40);
+    fx = *(float *)(h + 0x18 + 24); fz = *(float *)(h + 0x18 + 32); r = (float)sqrt((double)fx * fx + (double)fz * fz);
+    if (r < 1e-3f) { fx = 0.0f; fz = 1.0f; r = 1.0f; }
+    fx /= r; fz /= r;
+    memset(e, 0, 0x28);
+    ((float *)e)[0] = fz; ((float *)e)[2] = -fx;              /* right */
+    ((float *)e)[4] = 1.0f;                                   /* up */
+    ((float *)e)[6] = fx; ((float *)e)[8] = fz;               /* forward = the host's heading */
+    *(double *)(e + 0x28) = x; *(double *)(e + 0x38) = z;
+    y = ((double (__cdecl *)(double, double))0x00493550)(x, z) + 1.5;
+    *(double *)(e + 0x30) = y;
+    o = ((char *(__cdecl *)(unsigned, int, int, void *, size_t))0x00451180)(id, idx, type, data, size);
+    memcpy(e, save, 0x40);
+    *done = 1; g_cn_placed = (BYTE *)o;
+    {   double dx = x - *(double *)(h + 0x40), dz = z - *(double *)(h + 0x50);
+        mlog("  coop-near-host: t %lu joiner (id %u) spawns %.1f m from the host at %.1f,%.1f,%.1f heading %d (%s; stock spawn point %d)",
+             GetTickCount(), id, sqrt(dx * dx + dz * dz), x, y, z, (int)(atan2(fx, fz) * 57.29578), how, idx); }
+    return o;
+}
 static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x451180` x7 */
     WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
+    if (g_coop_chain && *(volatile int *)0x00541030 && host && me && (WORD)id == me && me != host) {
+        int done; char *o = coop_spawn_near_host(id, idx, type, data, size, &done);
+        if (done) return o;
+    }
     if (g_coop_chain && g_coop_adopt && *(volatile int *)0x00541030 && host && (WORD)id == host) {
         BYTE *o = coop_find_mission_player();
         if (o) {
@@ -4057,6 +4242,11 @@ static void apply_coop_ai(HMODULE exe) {
                 }
                 { if (env_flag("I76_COOP_ADOPT", 8, 1) == 0) { g_coop_adopt = 0; mlog("  coop-chain: adoption OFF (I76_COOP_ADOPT=0)"); } }
                 { if (env_flag("I76_COOP_HOSTMODEL", 8, 1) == 0) { g_coop_hostmodel = 0; mlog("  coop-chain: host model on the joiner OFF (I76_COOP_HOSTMODEL=0)"); } }
+                g_coop_near = env_flag("I76_COOP_NEAR_HOST", 8, 1) != 0;
+                g_coop_host_wait_ms = env_int("I76_COOP_HOST_WAIT_MS", 8, 3000); if (g_coop_host_wait_ms < 0) g_coop_host_wait_ms = 0;
+                g_coop_test_host_respawn = env_flag("I76_COOP_TEST_HOST_RESPAWN", 8, 0) == 1;
+                mlog("  coop-chain: host handshake after a chain reload: %s", g_coop_host_wait_ms ? "the quiet wait ends after I76_COOP_HOST_WAIT_MS" : "stock (I76_COOP_HOST_WAIT_MS=0)");
+                mlog("  coop-chain: joiners spawn near the host in co-op scenes and scenarios %s", g_coop_near ? "ON (I76_COOP_NEAR_HOST)" : "OFF (I76_COOP_NEAR_HOST=0)");
             }
             mlog("  coop-chain: %s (won -> next co-op mission, lost -> retry, same session)", g_coop_chain ? "on" : "NOT installed");
         }
@@ -9681,6 +9871,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_ai_throttle_ease(); /* opt-in: I76_AI_THROTTLE_EASE=1 (ai_ThrottleUpBySkill eased per second of the reference frame rate) */
         apply_ai_search_hold();   /* opt-in: I76_AI_SEARCH_HOLD=1 (path search slices on the AI decision grid) */
         apply_coop_damage();      /* opt-in: I76_COOP_DAMAGE=<factor> (humans' weapon damage in network games) */
+        apply_ffb_guard();        /* default on: I76_FFB_GUARD (no I7FF_SIM_Effect call without a force-feedback device) */
         apply_mirror_rate();      /* opt-in: I76_MIRROR_RATE=1 (after apply_framerate_fixes: grid count + cloud step) */
         apply_render_interp();    /* opt-in: I76_RENDER_INTERP=1 (after apply_fixed_step) */
         apply_fix_health_pct();   /* opt-in: I76_FIX_HEALTH_PCT=1 (stock bug fix) */

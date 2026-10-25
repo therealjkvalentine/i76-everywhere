@@ -10,7 +10,8 @@ shipped) with tools/coop-mission.py and installs them as their own multiplayer a
 
   ADDON\\auto01.lvl .. auto07.lvl = the 7 single-player auto-melee scenarios in the game's own scenario order (the
                                   shell's table 0x1004b7e0), titled "<stock name> (Scenario)", e.g.
-                                  "Oil Well Well (Scenario)" (SCENARIOS below)
+                                  "Oil Well Well (Scenario)" (SCENARIOS below); since 2026-10-24 with 3 parked copies of
+                                  every enemy car (co-op scaling, one per joiner), except Race No Shoot
   ADDON\\ai_hs2.lvl, ai_hs4.lvl, ai_hs6.lvl = AI melee: "Hope Springs (2 AI)" / "(4 AI)" / "(6 AI)", a stock arena plus N
                                   AI cars the host's proxy runs (tools/aimelee-mission.py, its own .aimelee markers;
                                   records/AI-MELEE-M1-2026-10-19.md)
@@ -63,6 +64,8 @@ SCEN_SPAWNS = 3                     # host (the scenario's car) + 3 joiners = th
 COOP_SPAWNS = 3                     # the same for the co-op scenes (was 2 until 2026-10-20: a 4th human had no start point)
 COOP_COPIES = 3                     # co-op scaling: parked copies of every enemy car, one per joiner up to 3 (coop-mission.py
                                     # --copies, proxy I76_COOP_SCALE; records/MP-OVERNIGHT-2026-10-20.md)
+SCEN_COPIES = 3                     # the same for the scenarios (owner 2026-10-24, records/LAN-FIXES-2026-10-24.md s.2) ...
+SCEN_NO_COPIES = ('auto05',)        # ... except Race No Shoot: its 9 cars are racers, a copy brought in would attack
 
 
 def md5(p):
@@ -127,7 +130,8 @@ def install(game):
         src = find(src_dir, mission + '.MSN')
         if not src:
             sys.exit('missing %s/%s.MSN' % (SRC_SUB, mission))
-        dst = build(addon, name, src, ['--title', SCEN_TITLE % title, '--count', str(SCEN_SPAWNS)])
+        extra = [] if name in SCEN_NO_COPIES else ['--copies', str(SCEN_COPIES)]
+        dst = build(addon, name, src, ['--title', SCEN_TITLE % title, '--count', str(SCEN_SPAWNS)] + extra)
         print('ADDON: %s.lvl = %s "%s", %s' % (name, mission, SCEN_TITLE % title, md5(dst)))
     for n in range(1, COUNT + 1):
         src = find(src_dir, 'T%02d.MSN' % n)

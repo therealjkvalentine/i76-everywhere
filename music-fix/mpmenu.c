@@ -190,8 +190,45 @@ static DWORD WINAPI mpm_watch(LPVOID arg) {    /* the DxWnd-proof way in: poll u
     return 0;
 }
 
+/* I76_IPX_PIN (default 1; inert without IPXWrapper): the 5 s pause after CANCEL in the multiplayer menu (owner 2026-10-24,
+ * records/LAN-FIXES-2026-10-24.md s.4). Leaving the IPX host form or the join list destroys the ANet session, and dpDestroy
+ * unloads its transport WIPX.DLL, which unloads IPXWrapper's wsock32 stub and ipxwrapper.dll. ipxwrapper's DLL_PROCESS_DETACH
+ * (0.7.2 ipxwrapper.c) stops its router thread with WaitForSingleObject(router_thread, 3000) under the loader lock, where a
+ * thread cannot finish exiting, so the wait always runs out (then TerminateThread), and WSACleanup follows: the main thread
+ * sat in ipxwrapper / mswsock waits for 4.9 s (lab sampler). The next HOST / JOIN loads and initialises it all again.
+ * A watch thread pins ipxwrapper.dll the first time it is resident (GetModuleHandleEx PIN): it is never unloaded, its
+ * DLL_PROCESS_DETACH never runs mid-game, and the next WIPX load finds it initialised, as it is after the first load. */
+static DWORD WINAPI ipx_pin_watch(LPVOID arg) {
+    DWORD t0 = GetTickCount();
+    (void)arg;
+    while (GetTickCount() - t0 < 6u * 3600u * 1000u) {
+        HMODULE m = GetModuleHandleA("ipxwrapper.dll"), pinned = NULL;
+        if (m) {
+            BOOL ok = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN, "ipxwrapper.dll", &pinned);
+            mlog("  ipx-pin: ipxwrapper.dll at %p %s - the multiplayer menu's CANCEL no longer waits for its unload", (void *)m,
+                 ok ? "pinned" : "NOT pinned");
+            return 0;
+        }
+        Sleep(100);
+    }
+    return 0;
+}
+static void apply_ipx_pin(void) {
+    char p[MAX_PATH]; DWORD n; HANDLE th;
+    if (env_flag("I76_IPX_PIN", 8, 1) == 0) { mlog("  ipx-pin: off (I76_IPX_PIN=0)"); return; }
+    n = GetModuleFileNameA(NULL, p, sizeof(p));
+    while (n && p[n - 1] != '\\' && p[n - 1] != '/') n--;
+    if (n + 16 >= sizeof(p)) return;
+    strcpy(p + n, "ipxwrapper.dll");
+    if (GetFileAttributesA(p) == INVALID_FILE_ATTRIBUTES) return;   /* no IPXWrapper beside the exe: nothing to pin */
+    th = CreateThread(NULL, 0, ipx_pin_watch, NULL, 0, NULL);
+    mlog("  ipx-pin: watch %s (ipxwrapper.dll is pinned once loaded)", th ? "on" : "NOT started");
+    if (th) CloseHandle(th);
+}
+
 static void apply_mp_menu(void) {
     HMODULE sh;
+    apply_ipx_pin();
     g_mpm_mode = env_int("I76_MP_MENU", 8, 1);
     if (g_mpm_mode < 0 || g_mpm_mode > 2) g_mpm_mode = 1;
     g_mpm_fit = env_flag("I76_ARENA_FIT", 8, 1);
