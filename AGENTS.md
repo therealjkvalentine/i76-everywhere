@@ -314,3 +314,12 @@ is the one that does not work:
 3. Link the record when it lands: `gh issue comment <n> -R therealjkvalentine/i76-everywhere -b "record: docs/records/<NAME>.md (<commit>)"`.
 4. Close with the commit: put `Fixes #<n>` in the commit message, or `gh issue close <n> -R therealjkvalentine/i76-everywhere --reason completed -c "<commit>: <one line>"`; open a new issue for anything left.
 5. Public text: no personal names, private paths, machine names / addresses, copyrighted game material or exe addresses in issues (link the record instead).
+6. **A unit that needs a person at a machine (play, feel, watch, record, rule) gets a QA issue; do not leave it in a record's "Open" list
+   only.** Start from `tools/roadmap/qa-template.md` (sections Needs / What to run / Steps / Acceptance criteria / If it fails / Context,
+   docs/PROCESS.md "QA issues"): `gh issue create -R therealjkvalentine/i76-everywhere --title "QA: <what>" --body-file <body.md> --label
+   needs-qa --label area/<a> [--label "help wanted"] [--assignee therealjkvalentine] --milestone <m>`, then
+   `python -I tools/roadmap/setup-project.py` (Status = Waiting for QA, the "QA queue" view). Assign the developer only for his own
+   hardware or a ruling (`Decide: <question>`); add `help wanted` when a kit user could do it. Acceptance criteria are checkboxes a
+   tester can observe ("no `CRASH` line in `<game folder>\mciproxy.log`"); paths are generic (`<game folder>` = the folder with
+   `i76.exe`, repo-relative tools). Before posting, grep the body for names, `C:\Users`, `D:\`, `192.168`, `100.`, host names and
+   emails. When the boxes are ticked or the ruling is in, close it with a one-line summary and the record that took the result.
