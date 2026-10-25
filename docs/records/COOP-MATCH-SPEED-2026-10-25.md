@@ -70,8 +70,7 @@ airborne, slide, reverse and top-speed branches are **not verified live**; they 
 
 ## Builds and installs
 
-- Proxy **5dca9d79e0ab3f42bf729dfed6223154** = i76-everywhere 4a57eb9 (`builds
-itro-port-20261021uild.ps1 -Tag cms-4a57eb9 -Ref 4a57eb9`,
+- Proxy **5dca9d79e0ab3f42bf729dfed6223154** = i76-everywhere 4a57eb9 (`builds\nitro-port-20261021\build.ps1 -Tag cms-4a57eb9 -Ref 4a57eb9`,
   built twice, byte-identical).
 - Installed in lab `dev-gold` (was b53d1271) and `test-gold` (was 5d6f9828), md5 read back; the old DLLs are in each folder's
   `_rollback\coop-match-20261025\`; AGENTS.md / VERSION.md there updated.
