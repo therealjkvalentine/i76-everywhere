@@ -6,7 +6,7 @@
 # Method doc: docs\FRESH-START-METHOD.md section 2. Import counts = import-descriptor entries (pefile), not call sites.
 
 [sandbox]
-game_dir = "C:\\Users\\james\\i76-uncap-lab\\game"
+game_dir = "<lab>\\game"
 generated_utc = "2026-09-04 22:19:23 UTC"
 scanned_dirs = [".", "DLL"]
 files_seen = 120

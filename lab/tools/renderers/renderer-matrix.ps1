@@ -168,7 +168,7 @@ foreach ($c in $Candidates) {
         if (-not (Wait-Free)) { $M.note = "skipped: another i76 run or the copy's lock was still there after $WaitMinutes min"; [void]$rows.Add(@{ tag = $tag; M = $M; hz = "" }); continue }
         $hz = (Get-CimInstance Win32_VideoController | Select-Object -First 1).CurrentRefreshRate
         try {
-            if ($c.ReShade) { Copy-Item "$PSScriptRoot\reshade\ReShade.ini", "$PSScriptRoot\reshade\i76-cas-smaa.ini" "$Refs\reshade\" -Force }
+            if ($c.ReShade) { (Get-Content "$PSScriptRoot\reshade\ReShade.ini" -Raw).Replace('%REFS%', $Refs) | Set-Content "$Refs\reshade\ReShade.ini" -Encoding ASCII -NoNewline; Copy-Item "$PSScriptRoot\reshade\i76-cas-smaa.ini" "$Refs\reshade\" -Force }
             $sw = $c.Switch
             (& $Switch -GameDir $GameDir @sw) | Tee-Object -FilePath $log | ForEach-Object { "  $_" }
             if ($c.NGlide) { (& $NgSet -Backend $c.NGlide) | Add-Content $log }

@@ -59,7 +59,7 @@
 #ifdef U32X_LOG
 static void logf(const char *fmt, ...)
 {
-    FILE *f = fopen("C:\\Users\\james\\i76-uncap-lab\\captures\\save\\u32x.log", "a");
+    FILE *f = fopen("u32x.log", "a");
     if (f) {
         va_list ap; va_start(ap, fmt);
         vfprintf(f, fmt, ap);

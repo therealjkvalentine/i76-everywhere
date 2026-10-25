@@ -17,7 +17,7 @@
 #>
 param([string[]]$Conds = @('a','b','c','d','f','e_pt'), [int]$Reps = 2, [switch]$Reverse, [string]$Tag = 'run', [int]$IdleSec = 120, [int]$WaitMin = 240)
 $ErrorActionPreference = 'Continue'
-$lab = 'C:\Users\james\i76-uncap-lab'; $root = "$lab\test-gold"; $g = "$root\Interstate 76"; $here = $PSScriptRoot
+$lab = Join-Path $env:USERPROFILE 'i76-uncap-lab'; $root = "$lab\test-gold"; $g = "$root\Interstate 76"; $here = $PSScriptRoot
 $ot = 'C:\Program Files (x86)\opentrack\opentrack.exe'
 $docs = [Environment]::GetFolderPath('MyDocuments'); $ini = "$docs\opentrack-2.3\default.ini"
 $out = Join-Path $here ("out-{0}-{1:yyyyMMdd-HHmmss}" -f $Tag, (Get-Date)); New-Item -ItemType Directory -Force $out | Out-Null

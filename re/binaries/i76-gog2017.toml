@@ -8,7 +8,7 @@
 [module]
 name = "i76.exe"
 build = "Interstate '76 Gold Edition, GOG 2017 Galaxy package"
-reference_file = "C:\\Users\\james\\i76-uncap-lab\\game\\i76.exe.2017galaxy"
+reference_file = "<lab>\\game\\i76.exe.2017galaxy"
 generated_utc = "2026-09-04 22:19:23 UTC"
 md5 = "9a232dcc2c164648cff20c414c1f9698"
 sha256 = "4a5fe53975b60e73d7904e12e95dd51e5ea956f7d702999456e8dabdc708f054"
@@ -198,7 +198,7 @@ wrong_tables = { 0x4f26f0 = "heap-tag strings; the gamekey table is at 0x4f3af0"
 must_pass_bss_fail_init = ["0x5a7e1c"]
 must_pass_iat = ["0x4bc100"]
 bss_slot_only = ["0x608bb8"]
-source = "C:\\Users\\james\\i76-everywhere\\docs\\FRESH-START-METHOD.md section 4.1"
+source = "docs\\FRESH-START-METHOD.md section 4.1"
 
 [[non_ground_truth]]
 file = "i76.exe"

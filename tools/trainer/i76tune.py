@@ -113,7 +113,7 @@ class Image:
 
 
 def open_image(cat, override=None):
-    path = override or cat["image"]["path"]
+    path = override or os.path.expanduser(cat["image"]["path"])   # "~" = the home folder
     if not os.path.exists(path):
         return None
     img = Image(path)

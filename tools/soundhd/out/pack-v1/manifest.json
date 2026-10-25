@@ -2,7 +2,7 @@
  "pack_version": "sound-hd v1 (2026-10-10)",
  "created_utc": "2026-10-10T14:01:11Z",
  "source": {
-  "zfs": "C:\\Users\\james\\i76-map\\sandbox-gog\\main\\app\\I76.ZFS",
+  "zfs": "<re-archive>\\sandbox-gog\\main\\app\\I76.ZFS",
   "zfs_md5": "6dd57b1627d73e814247c0d9521f9778",
   "pristine": true,
   "extractor": "re/tools/i76fmt/zfs.py (= i76-map/tools/i76fmt/zfs.py)"

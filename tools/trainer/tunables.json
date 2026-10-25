@@ -1,7 +1,7 @@
 {
   "_about": "Interstate '76 live-tunable constants, derived from i76-map\\subsystems\\*.md (static reading of md5 9a232dcc, 2026-09-27). exe-scope defaults are checked against the pristine image by `python i76tune.py --offline list`. Values marked 'imm' are instruction immediates in .text (the operand bytes of one instruction); everything else is a .rdata/.data constant. Entity and component entries are per vehicle and have no fixed default.",
   "image": {
-    "path": "C:\\Users\\james\\i76-map\\ghidra\\i76_ref.exe",
+    "path": "~\\i76-map\\ghidra\\i76_ref.exe",
     "md5": "9a232dcc2c164648cff20c414c1f9698",
     "base": "0x400000"
   },

@@ -81,9 +81,9 @@ static int g_have_prev = 0;
 static int g_owner[MAXTRACK];
 static volatile int g_needs_rescan = 0;   /* set when a tracked address faults (heap copy freed) */
 
-static const char* LOG = "C:\\Users\\james\\i76-uncap-lab\\captures\\i76uncap.log";
-static const char* CTL = "C:\\Users\\james\\i76-uncap-lab\\captures\\i76uncap.ctl";
-static const char* REC = "C:\\Users\\james\\i76-uncap-lab\\captures\\traces\\inproc.csv";
+static const char* LOG = "i76uncap.log";
+static const char* CTL = "i76uncap.ctl";
+static const char* REC = "inproc.csv";
 
 /* ---- in-process per-frame recorder -------------------------------------------------
  * External polling samples at best every ~50 ms, which cannot resolve anything that
