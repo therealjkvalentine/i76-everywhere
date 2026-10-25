@@ -187,7 +187,7 @@ pause
 "@ -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'INSTALL-EXTRAS.bat') @"
 @echo off
-REM Interstate '76 - i76-everywhere Patch Kit $Version: OPTIONAL extras. Each one says what it adds and asks first:
+REM Interstate '76 - i76-everywhere Patch Kit ${Version}: OPTIONAL extras. Each one says what it adds and asks first:
 REM   community maps (downloaded from the sites that host them), opentrack (head look), Python (for DEBUG.bat),
 REM   German voices (from your own German disc), extra music (a folder of your own songs, private).
 REM INSTALL-EXTRAS.bat --list   shows what is installed. UNINSTALL-i76e.bat removes it with the rest of the kit.
