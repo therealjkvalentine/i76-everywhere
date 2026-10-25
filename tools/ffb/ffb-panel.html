@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I76 FFB panel</title>
+<style>
+/* I76 FFB / LFE tuning page (2026-10-25). Same palette as I76 Debug (tools/debug/static/app.css). No libraries, no CDN. */
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242423; --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text); font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--ring); padding: 6px 12px;
+         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.brand { font-weight: 600; font-size: 15px; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--ring); color: var(--text-2); white-space: nowrap; }
+.pill.ok { border-color: var(--good); color: #9be29b; } .pill.warn { border-color: var(--warning); color: var(--warning); }
+.pill.bad { border-color: var(--critical); color: #ff9a9a; }
+main { padding: 10px 12px 40px; display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 1250px) { main { grid-template-columns: 1fr 1fr; } }
+section { background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+section h2 { font-size: 13px; margin: 0 0 6px; color: var(--text-2); font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+section h2 .sp { flex: 1; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.tile { background: var(--surface-2); border-radius: 6px; padding: 4px 7px; }
+.tile .l { color: var(--muted); font-size: 11px; } .tile .v { font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v small { font-size: 11px; color: var(--text-2); }
+.flag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; background: var(--grid); color: var(--muted); margin: 1px 2px 1px 0; }
+.flag.on { background: var(--s4); color: #000; }
+table { border-collapse: collapse; width: 100%; }
+td, th { padding: 2px 4px; text-align: left; font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 500; font-size: 11px; }
+tr.off td.nm { color: var(--muted); text-decoration: line-through; }
+.meter { position: relative; height: 14px; background: var(--grid); border-radius: 3px; min-width: 90px; overflow: hidden; }
+.meter .z { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--axis); }
+.meter .b { position: absolute; top: 2px; bottom: 2px; background: var(--s1); }
+.meter .pk { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warning); }
+.meter.u .z { left: 0; }
+.num { text-align: right; width: 56px; }
+button { font: inherit; background: var(--surface-2); color: var(--text); border: 1px solid var(--ring); border-radius: 5px; padding: 1px 7px; cursor: pointer; }
+button:hover { border-color: var(--s1); }
+button.on { background: var(--s1); border-color: var(--s1); }
+button.mute.on { background: var(--critical); border-color: var(--critical); }
+button.solo.on { background: var(--s4); border-color: var(--s4); color: #000; }
+button.big { padding: 4px 12px; }
+button:disabled { opacity: .45; cursor: default; }
+input[type=range] { width: 100%; min-width: 80px; accent-color: var(--s1); }
+.gain { display: grid; grid-template-columns: 112px 1fr 64px 52px; gap: 4px 6px; align-items: center; }
+.gain .k { color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gain .val { font-variant-numeric: tabular-nums; text-align: right; }
+.gain .st { font-size: 11px; color: var(--muted); }
+.gain .st.ok { color: #9be29b; } .gain .st.pend { color: var(--warning); }
+.gain .chg .k { color: var(--warning); }
+#evlog { max-height: 300px; overflow: auto; font-variant-numeric: tabular-nums; }
+#evlog div { padding: 1px 4px; border-left: 3px solid var(--axis); margin: 1px 0; }
+#evlog .t { color: var(--muted); display: inline-block; width: 64px; }
+.ek-weapon { border-color: var(--s2) !important; } .ek-hit { border-color: var(--critical) !important; } .ek-land { border-color: var(--s7) !important; }
+.ek-engine { border-color: var(--s3) !important; } .ek-surface { border-color: var(--s4) !important; } .ek-tune { border-color: var(--s1) !important; }
+.ek-slip { border-color: var(--s5) !important; } .ek-panel { border-color: var(--muted) !important; }
+.chk { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--grid); }
+.chk .lbl { font-size: 12.5px; } .chk .hint { color: var(--muted); font-size: 11px; }
+.chk .seen { font-size: 11px; color: var(--muted); } .chk .seen.fresh { color: var(--warning); font-weight: 600; }
+.chk .btns button { font-size: 11px; padding: 0 5px; }
+.chk .verdict { font-size: 11px; color: var(--s3); }
+.rule { border: 1px solid var(--warning); color: var(--warning); border-radius: 6px; padding: 5px 8px; margin: 4px 0 8px; font-size: 12px; }
+.ro { color: var(--muted); font-size: 11px; }
+canvas { width: 100%; height: 120px; display: block; background: var(--surface-2); border-radius: 4px; }
+.muted { color: var(--muted); }
+.wide { grid-column: 1 / -1; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+input[type=text] { font: inherit; background: var(--surface-2); color: var(--text); border: 1px solid var(--ring); border-radius: 4px; padding: 1px 5px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">I76 FFB panel</span>
+  <span id="conn" class="pill">connecting</span>
+  <span id="mode" class="pill">-</span>
+  <span id="loop" class="pill">-</span>
+  <span id="tunefile" class="pill" title="the file the sliders write">-</span>
+  <span style="flex:1"></span>
+  <button id="arm" class="big" title="all force on / off (the console's [space])">-</button>
+</header>
+<main>
+
+<section class="wide">
+  <h2>Telemetry <span class="sp"></span><span id="flags"></span></h2>
+  <div class="tiles" id="tel"></div>
+</section>
+
+<section>
+  <h2>FFB channels <span class="sp"></span>
+    <label class="muted"><input type="checkbox" id="scale10"> scale 10000</label>
+    <button id="allon" title="every channel on (clears solo / mute)">all on</button></h2>
+  <table id="chans"><thead><tr><th></th><th>channel</th><th class="num">now</th><th style="width:45%">output (peak hold 1.5 s)</th><th>gate</th></tr></thead><tbody></tbody></table>
+  <div style="margin-top:6px"><canvas id="strip" width="900" height="120"></canvas></div>
+  <div class="ro">Strip: the force sent to the wheel over the last 12 s (blue), the transient channels (orange), events as ticks. Muted channels still
+    show what they WOULD add (the force bar is what reaches the wheel).</div>
+</section>
+
+<section>
+  <h2>Gains <span class="sp"></span><span class="ro">a slider writes ffb-tune-owner.json on release; "applied" = the interposer re-read it</span></h2>
+  <div class="gain" id="gains"></div>
+  <h2 style="margin-top:10px">Feel shaping</h2>
+  <div class="gain" id="shape"></div>
+  <div class="row" style="margin-top:8px"><button id="resetall" title="remove every value from ffb-tune-owner.json">reset all to defaults</button>
+    <span class="ro" id="tunemsg"></span></div>
+</section>
+
+<section>
+  <h2>Event log <span class="sp"></span><input type="text" id="evfilter" placeholder="filter" size="12">
+    <label class="muted"><input type="checkbox" id="evtune" checked> tune / panel</label></h2>
+  <div id="evlog"></div>
+</section>
+
+<section>
+  <h2>Things we want noticeable <span class="sp"></span><span class="ro" id="notesfile"></span></h2>
+  <div class="ro" style="margin-bottom:4px">Do the thing, feel the wheel, press a verdict. The yellow time = the effect fired just now. Each verdict
+    is saved with the current values of the gains involved.</div>
+  <div class="row" style="margin-bottom:4px"><input type="text" id="notetext" placeholder="optional comment for the next verdict" style="flex:1"></div>
+  <div id="checks"></div>
+</section>
+
+<section class="wide">
+  <h2>LFE / bass shakers <span class="sp"></span><span id="lfeout" class="pill">-</span></h2>
+  <div class="rule"><b>Rule:</b> the shakers are driven by game EVENTS and state only - impacts, road, engine, weapons, landings.
+    Never by the game's audio, and never by boosting voice or music. Nothing on this page can change the music or voice level; the panel
+    server refuses any key that names them. The game's own levels are shown read-only below so you can check they are untouched.</div>
+  <div style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));">
+    <div><table id="lfe"><thead><tr><th>source</th><th class="num">amp</th><th style="width:50%">level 0..1 (peak hold)</th><th class="num">Hz</th></tr></thead><tbody></tbody></table></div>
+    <div><div class="gain" id="lfegains"></div></div>
+    <div>
+      <table><thead><tr><th>game audio (read-only)</th><th class="num">now</th><th class="num">saved</th></tr></thead><tbody id="audio"></tbody></table>
+      <div class="ro" style="margin-top:4px">The game's Audio Control options (0x654b90..93, read from memory once a second; the saved copy +0x60).
+        The FFB and LFE tools never write them and open no audio input: the shaker synth takes its sources from the bus above.</div>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const CH = ["center","corner","oversteer","brake","texture","scrub","judder","impact","weapon","shift","engine","ignition","hit","landing"];
+const TRANSIENT = new Set(["impact","weapon","shift","ignition","hit","landing"]);
+const CH_GAIN = {center:"SatGain", corner:"CornerGain", oversteer:"OversteerGain", brake:"BrakeGain", texture:"TextureGain", scrub:"ScrubGain",
+  judder:"JudderGain", impact:"ImpactGain", weapon:"WeaponGain", shift:"ShiftGain", engine:"EngineGain", ignition:"IgnitionGain", hit:"HitGain", landing:"LandGain"};
+const CH_HELP = {center:"self-aligning weight (steer x speed)", corner:"lateral load in a bend", oversteer:"push toward the catch in a slide",
+  brake:"weight under braking", texture:"road surface (x PavementScale on tarmac)", scrub:"tyre scrub buzz when ploughing", judder:"lock-up shimmy",
+  impact:"collisions", weapon:"recoil / rocket shove / flamer / dropper / cycle", shift:"one firm hit per gear change", engine:"idle rumble, gone by 40 mph",
+  ignition:"the starter crank", hit:"damage taken, by side", landing:"thump on touchdown"};
+const SHAPE = [["PavementScale","texture on tarmac (0.5 = half)"],["OffroadScale","texture off-road"],["SurfaceFadeMs","road-edge crossfade ms"],
+  ["UndersteerDrop","how light the wheel goes when ploughing"],["BumpGain","vertical bumps in the texture"],["KerbGain","kerb strikes"],
+  ["RocketScale","rocket shove x WeaponGain"],["MortarScale","mortar recoil x WeaponGain"],["FlameGain","flamer buzz"],["DropGain","mine / oil drop clunk"],
+  ["CycleGain","weapon-cycle click"],["HitSideSign","+1 / -1: which way a side hit kicks"],["MinForce","belt-drive floor (T300)"]];
+const LFE = [["engine","LfeEngineAmp","engine bed","engine_hz"],["road","LfeRoadAmp","road bed (x surface)","road_hz"],["impulse","LfeImpactAmp","impacts, hits, landings","impulse_hz"],
+  ["weapon","LfeWeaponAmp","weapon thumps","weapon_hz"],["heave","LfeHeaveAmp","vertical motion","heave_hz"],["scrub","LfeScrubAmp","tyre scrub",null],["explode","LfeExplodeAmp","explosions",null]];
+const CHECKS = [
+  ["pave","Pavement: smoother, about half as busy","drive onto tarmac",/SURFACE .*\(paved\)/,["PavementScale","TextureGain"]],
+  ["offroad","Off-road: the full texture","drive onto dirt / sand",/SURFACE .*off-road/,["OffroadScale","TextureGain","BumpGain"]],
+  ["edge","Road edge: glides, no step","cross the road edge",/SURFACE/,["SurfaceFadeMs"]],
+  ["under","Understeer: the wheel goes light","turn in too fast",/PLOUGHING|UNDERSTEER/,["UndersteerDrop","ScrubGain"]],
+  ["over","Oversteer / slide: pushes toward the catch","slide in the dirt",/OVERSTEER|SPIN/,["OversteerGain"]],
+  ["brake","Hard braking: weight, then judder","stand on the brake",/HARD BRAKE/,["BrakeGain","JudderGain"]],
+  ["gun","Gun / cannon: one recoil per shot","fire the gun",/FIRE gun|^FIRE$/,["WeaponGain"]],
+  ["rocket","Rocket: a shove","fire a rocket",/FIRE rocket/,["RocketScale","WeaponGain"]],
+  ["mortar","Mortar: the heaviest recoil","fire a mortar",/FIRE mortar/,["MortarScale","WeaponGain"]],
+  ["flamer","Flamer: a buzz while held","hold the flamer",/FIRE flamer/,["FlameGain"]],
+  ["drop","Mines / oil: a clunk","drop one",/DROP/,["DropGain"]],
+  ["cycle","Weapon cycle: a short click","cycle weapons",/WEAPON CYCLE/,["CycleGain"]],
+  ["hitl","Hit on the LEFT: rim kicks away from it","take a hit on the left",/HIT left/,["HitGain","HitSideSign"]],
+  ["hitr","Hit on the RIGHT: rim kicks away from it","take a hit on the right",/HIT right/,["HitGain","HitSideSign"]],
+  ["hitfb","Hit front / back: a buzz","ram / get rammed",/HIT (front|back)/,["HitGain"]],
+  ["impact","Collision: the biggest thing that happens","hit something",/IMPACT/,["ImpactGain"]],
+  ["land","Landing: one thump","jump",/LANDING/,["LandGain"]],
+  ["engine","Engine: light idle rumble, gone by ~40 mph","sit parked, then accelerate","ch:engine",["EngineGain"]],
+  ["ign","Ignition: a crank","engine off, then on",/IGNITION/,["IgnitionGain"]],
+  ["shift","Gear change: one firm hit","shift up and down",/SHIFT/,["ShiftGain"]],
+  ["lfe-engine","Shaker: engine bed","(shaker running)","lfe:engine",["LfeEngineAmp"]],
+  ["lfe-road","Shaker: road bed, rougher off-road","(shaker running)","lfe:road",["LfeRoadAmp"]],
+  ["lfe-impact","Shaker: impacts / hits / landings","(shaker running)","lfe:impulse",["LfeImpactAmp"]],
+  ["lfe-weapon","Shaker: weapon thumps","(shaker running)","lfe:weapon",["LfeWeaponAmp"]],
+];
+const CLASS = {2:"gun", 3:"mortar", 4:"rocket", 5:"flamer", 6:"dropper"};
+const GEAR = {0:"R", 1:"N", 2:"1", 3:"2", 4:"3"};
+
+let S = null, META = null, LAST = null, dragging = null;
+const peaks = {}; const lastActive = {}; const seenEv = {};
+const evs = []; const hist = [];
+const verdicts = {};
+
+function fmt(v, d) { return (v === null || v === undefined || Number.isNaN(v)) ? "-" : Number(v).toFixed(d); }
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+async function post(url, body) {
+  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) j.ok = false;
+  return j;
+}
+
+// ---------- build static parts ----------
+function buildChannels() {
+  const tb = $("chans").tBodies[0];
+  for (const c of CH) {
+    const tr = el("tr"); tr.id = "ch-" + c; tr.title = CH_HELP[c];
+    tr.append(el("td", "", TRANSIENT.has(c) ? "*" : ""), el("td", "nm", c));
+    const n = el("td", "num", "0"); n.id = "chv-" + c; tr.append(n);
+    const m = el("td"); const mm = el("div", "meter"); mm.append(el("div", "z"), el("div", "b"), el("div", "pk")); m.append(mm); tr.append(m);
+    const g = el("td");
+    const bm = el("button", "mute", "M"); bm.title = "mute / unmute " + c; bm.onclick = () => gate(c, (S && S.act && S.act[c] === false) ? "on" : "mute");
+    const bs = el("button", "solo", "S"); bs.title = "solo " + c + " (again: all on)"; bs.onclick = () => gate(c, isSolo(c) ? "all" : "solo");
+    g.append(bm, " ", bs); tr.append(g); tb.append(tr);
+  }
+  const tr = el("tr"); tr.append(el("td"), el("td", "nm", "FORCE")); const n = el("td", "num", "0"); n.id = "chv-force"; tr.append(n);
+  const m = el("td"); const mm = el("div", "meter"); mm.id = "m-force"; mm.append(el("div", "z"), el("div", "b"), el("div", "pk")); m.append(mm); tr.append(m);
+  const pk = el("td", "ro"); pk.id = "peakall"; tr.append(pk); tb.append(tr);
+}
+function isSolo(c) { if (!S || !S.act) return false; return CH.every(x => S.act[x] === (x === c)); }
+async function gate(ch, mode) { await post("/api/gate", {ch, mode}); }
+
+function gainRow(host, key, label, help) {
+  const row = el("div", "grow"); row.style.display = "contents"; row.id = "g-" + key;
+  const k = el("div", "k", label || key); k.title = (help ? help + "  - " : "") + key;
+  const r = el("input"); r.type = "range"; r.id = "r-" + key; r.disabled = true;
+  const v = el("div", "val", "-"); v.id = "v-" + key;
+  const st = el("div", "st"); st.id = "s-" + key;
+  const reset = el("button", "", "def"); reset.title = "back to the default"; reset.style.fontSize = "10px";
+  reset.onclick = () => sendTune(key, null);
+  const stx = el("span"); stx.id = "sx-" + key; st.append(reset, " ", stx);
+  r.oninput = () => { dragging = key; v.textContent = shown(key, +r.value); };
+  r.onchange = () => { dragging = null; sendTune(key, +r.value); };
+  row.append(k, r, v, st); host.append(row);
+}
+function shown(key, val) { return Math.abs(val) >= 100 ? val.toFixed(0) : val.toFixed(2); }
+function buildGains() {
+  gainRow($("gains"), "Master", "master", "everything");
+  for (const c of CH) gainRow($("gains"), CH_GAIN[c], c, CH_HELP[c]);
+  for (const [k, h] of SHAPE) gainRow($("shape"), k, k, h);
+  for (const [n, k, h] of LFE) gainRow($("lfegains"), k, "lfe " + n, h);
+  $("resetall").onclick = async () => { if (confirm("Remove every value from ffb-tune-owner.json (all back to defaults)?")) showTuneMsg(await post("/api/tune", {reset_all: true})); };
+}
+const pending = {};
+async function sendTune(key, value) {
+  const body = value === null ? {key, reset: true} : {key, value};
+  const j = await post("/api/tune", body);
+  if (j.ok) pending[key] = {value: value === null ? null : value, t: Date.now()};
+  showTuneMsg(j, key);
+}
+function showTuneMsg(j, key) {
+  $("tunemsg").textContent = j.ok ? ("written: " + (key || "all") + " -> " + (j.file || "")) : ("NOT written: " + (j.error || "?"));
+  $("tunemsg").style.color = j.ok ? "" : "var(--critical)";
+}
+function sliderRange(key, def) {
+  const lim = {Master:[0,1.5,0.01], HitSideSign:[-1,1,2], PavementScale:[0,2,0.01], OffroadScale:[0,2,0.01], UndersteerDrop:[0,1,0.01], SurfaceFadeMs:[0,3000,10]};
+  if (lim[key]) return lim[key];
+  const hi = Math.max(3 * Math.abs(def), 1);
+  const step = hi >= 300 ? 10 : (hi >= 30 ? 1 : 0.01);
+  return [0, Math.min(hi, 10000), step];
+}
+function updateGains() {
+  if (!META || !META.tune) return;
+  for (const r of document.querySelectorAll("input[type=range]")) {
+    const key = r.id.slice(2);
+    const cur = META.tune[key], def = META.defaults ? META.defaults[key] : undefined;
+    const st = $("s-" + key), v = $("v-" + key);
+    if (cur === undefined) { r.disabled = true; v.textContent = "n/a"; continue; }
+    r.disabled = false;
+    if (!r.dataset.init) { const [lo, hi, step] = sliderRange(key, def); r.min = lo; r.max = hi; r.step = step; r.dataset.init = 1; }
+    if (dragging !== key) { r.value = cur; v.textContent = shown(key, cur); }
+    const p = pending[key];
+    let txt = "", cls = "st";
+    if (p) {
+      const want = p.value === null ? def : p.value;
+      if (Math.abs(cur - want) < 1e-6) { txt = "applied"; cls = "st ok"; if (Date.now() - p.t > 4000) delete pending[key]; }
+      else { txt = "waiting"; cls = "st pend"; if (Date.now() - p.t > 5000) { txt = "NOT applied"; cls = "st pend"; } }
+    } else if (def !== undefined && Math.abs(cur - def) > 1e-9) { txt = "def " + shown(key, def); }
+    st.className = cls; $("sx-" + key).textContent = txt;
+    v.style.color = (def !== undefined && Math.abs(cur - def) > 1e-9) ? "var(--warning)" : "";
+  }
+}
+
+function buildChecks() {
+  const host = $("checks");
+  for (const [id, label, hint, src, keys] of CHECKS) {
+    const d = el("div", "chk"); d.id = "c-" + id;
+    const l = el("div"); l.append(el("div", "lbl", label));
+    const h = el("div", "hint", hint + "  "); const s = el("span", "seen", "not fired yet"); s.id = "cs-" + id; h.append(s);
+    const vd = el("span", "verdict"); vd.id = "cv-" + id; h.append("  ", vd); l.append(h);
+    const b = el("div", "btns");
+    for (const [v, t] of [["felt","felt it"],["not","not felt"],["strong","too strong"],["weak","too weak"]]) {
+      const bb = el("button", "", t); bb.onclick = () => note(id, label, v, keys); b.append(bb, " ");
+    }
+    d.append(l, b); host.append(d);
+  }
+}
+async function note(id, label, verdict, keys) {
+  const last = lastFor(id);
+  const j = await post("/api/note", {item: label, verdict, text: $("notetext").value, keys, last_event: last ? last.text + " @" + fmt(last.t, 1) + "s" : ""});
+  if (j.ok) { verdicts[id] = verdict; $("cv-" + id).textContent = "saved: " + verdict; $("notetext").value = ""; $("notesfile").textContent = j.file; }
+  else $("cv-" + id).textContent = "NOT saved: " + (j.error || "?");
+}
+function lastFor(id) {
+  const c = CHECKS.find(x => x[0] === id); const src = c[3];
+  if (src instanceof RegExp) { for (let i = evs.length - 1; i >= 0; i--) if (src.test(evs[i].text)) return evs[i]; return null; }
+  const t = lastActive[src]; return t ? {text: src, t: t.t, wall: t.wall} : null;
+}
+
+function buildLfe() {
+  const tb = $("lfe").tBodies[0];
+  for (const [n, k, h, hz] of LFE) {
+    const tr = el("tr"); tr.title = h; tr.append(el("td", "", n));
+    const a = el("td", "num", "0"); a.id = "la-" + n; tr.append(a);
+    const m = el("td"); const mm = el("div", "meter u"); mm.id = "lm-" + n; mm.append(el("div", "z"), el("div", "b"), el("div", "pk")); m.append(mm); tr.append(m);
+    const z = el("td", "num", "-"); z.id = "lh-" + n; tr.append(z); tb.append(tr);
+  }
+}
+
+// ---------- updates ----------
+function setMeter(m, v, max, key, bipolar) {
+  const b = m.children[1], pk = m.children[2];
+  const now = performance.now();
+  const p = peaks[key] || {v: 0, t: 0};
+  if (Math.abs(v) >= Math.abs(p.v) || now - p.t > 1500) { p.v = v; p.t = now; }
+  peaks[key] = p;
+  const f = Math.min(1, Math.abs(v) / max), fp = Math.min(1, Math.abs(p.v) / max);
+  if (bipolar) {
+    if (v >= 0) { b.style.left = "50%"; b.style.width = (f * 50) + "%"; } else { b.style.left = (50 - f * 50) + "%"; b.style.width = (f * 50) + "%"; }
+    pk.style.left = (p.v >= 0 ? 50 + fp * 50 : 50 - fp * 50) + "%";
+  } else { b.style.left = "0"; b.style.width = (f * 100) + "%"; pk.style.left = (fp * 100) + "%"; }
+  pk.style.display = fp > 0.01 ? "" : "none";
+}
+
+function tile(label, value, sub) { return '<div class="tile"><div class="l">' + label + '</div><div class="v">' + value + (sub ? ' <small>' + sub + '</small>' : '') + '</div></div>'; }
+function flag(name, on) { return '<span class="flag' + (on ? ' on' : '') + '">' + name + '</span>'; }
+
+function update(d) {
+  LAST = d;
+  const st = d.status;
+  const c = $("conn");
+  c.textContent = st === "live" ? "live" : st === "stopped" ? "interposer stopped" : st === "stale" ? ("no data " + fmt(d.age, 0) + " s") : "waiting for the interposer";
+  c.className = "pill " + (st === "live" ? "ok" : st === "waiting" ? "warn" : "bad");
+  if (d.meta) META = d.meta;
+  $("tunefile").textContent = d.server && d.server.tune_file ? d.server.tune_file.split(/[\\/]/).slice(-2).join("\\") : "-";
+  S = d.state;
+  if (S) {
+    $("mode").textContent = S.mode; $("mode").className = "pill " + (S.dry ? "warn" : "ok");
+    $("loop").textContent = "loop " + fmt(S.rate, 0) + " Hz  master " + fmt(S.master, 2) + (S.ctl ? "" : "  (no command port)");
+    const a = $("arm"); a.textContent = S.armed ? "FORCE ON - click to mute all" : "MUTED - click to arm"; a.className = "big" + (S.armed ? " on" : "");
+    a.disabled = !S.ctl;
+    const T = S.tel;
+    if (T) {
+      const ammo = (T.ammo || []).map(w => (CLASS[w.c] || ("c" + w.c)) + " " + (w.n >= 268435455 ? "inf" : w.n)).join(", ") || (T.shot_src === "ammo" ? "-" : "no weapon record");
+      $("tel").innerHTML = tile("speed", fmt(T.mph, 0) + " mph", fmt(T.speed, 1) + " m/s") +
+        tile("steer / throttle", fmt(T.steer, 2) + " / " + fmt(T.throttle, 2)) +
+        tile("yaw rate", fmt(T.yaw, 3), "law " + fmt(T.yaw_expect, 3)) +
+        tile("slip U / O", fmt(T.under, 2) + " / " + fmt(T.over, 2), "grip " + fmt(T.grip_pct, 0) + "%") +
+        tile("slide", fmt(T.slide, 2), "rad/s") +
+        tile("lat / long g", fmt(T.lat_g, 2) + " / " + fmt(T.long_g, 2)) +
+        tile("surface", (T.surface === null ? "-" : T.surface) + " " + (T.paved ? "paved" : "off-road"), "texture x" + fmt(T.surf_pct / 100, 2)) +
+        tile("gear / rpm", (GEAR[T.gear] !== undefined ? GEAR[T.gear] : "-") + " / " + fmt(T.rpm, 0)) +
+        tile("jolt / vy", fmt(T.jolt, 1) + " / " + fmt(T.vy, 1)) +
+        tile("ammo", ammo) +
+        tile("sim tick age", fmt(T.since_tick, 2) + " s", T.since_tick > 0.5 ? "PAUSED" : "");
+      $("flags").innerHTML = flag("ENGINE", T.engine) + flag("STARTING", T.starting) + flag("AIRBORNE", T.air) + flag("DRIFT", T.drift) +
+        flag("SLIDE", T.skid) + flag("BRAKING", T.braking) + flag("game FFB live", S.game_ffb !== 0);
+    } else { $("tel").innerHTML = '<div class="muted">no telemetry - at a menu, paused or between missions</div>'; }
+    if (S.ch) {
+      const max = $("scale10").checked ? 10000 : 5000;
+      for (const ch of CH) {
+        const v = S.ch[ch] || 0;
+        $("chv-" + ch).textContent = v;
+        setMeter($("ch-" + ch).children[3].firstChild, v, max, "ch-" + ch, true);
+        const on = !S.act || S.act[ch] !== false;
+        $("ch-" + ch).className = on ? "" : "off";
+        const bt = $("ch-" + ch).children[4].children;
+        bt[0].className = "mute" + (on ? "" : " on"); bt[1].className = "solo" + (isSolo(ch) ? " on" : "");
+        bt[0].disabled = bt[1].disabled = !S.ctl;
+        if (Math.abs(v) > 50) lastActive["ch:" + ch] = {t: S.t, wall: Date.now()};
+      }
+      $("chv-force").textContent = S.force;
+      setMeter($("m-force"), S.force, 10000, "force", true);
+      $("peakall").textContent = "peak " + fmt(S.peak, 0);
+      let tr = 0; for (const ch of TRANSIENT) tr += Math.abs(S.ch[ch] || 0);
+      hist.push({t: S.t, f: S.force, tr}); while (hist.length && S.t - hist[0].t > 12) hist.shift();
+    }
+    if (S.lfe) {
+      for (const [n, k, h, hz] of LFE) {
+        const v = S.lfe[n] || 0; $("la-" + n).textContent = fmt(v, 2);
+        setMeter($("lm-" + n), v, 1.0, "lfe-" + n, false);
+        $("lh-" + n).textContent = hz ? fmt(S.lfe[hz], 0) : "-";
+        if (v > 0.05) lastActive["lfe:" + n] = {t: S.t, wall: Date.now()};
+      }
+    }
+    const A = S.audio, ab = $("audio");
+    if (A) {
+      const sv = A.saved || [];
+      ab.innerHTML = [["music", A.music, sv[0]], ["sfx", A.sfx, sv[1]], ["voice", A.voice, sv[2]], ["channels", A.channels, sv[3]]]
+        .map(r => "<tr><td>" + r[0] + "</td><td class=num>" + r[1] + "</td><td class=num>" + (r[2] === undefined ? "-" : r[2]) + "</td></tr>").join("");
+    } else ab.innerHTML = '<tr><td colspan=3 class=muted>not read (no game / older interposer)</td></tr>';
+  }
+  const lo = d.lfe_out;
+  $("lfeout").textContent = lo ? ("shaker ON: " + lo.device + "  out peak " + fmt(lo.peak, 2) + "  limited " + fmt(lo.limited_pct, 1) + "%") : "shaker not running (ffb-lfe-live.ps1) - the levels are the bus it would play";
+  $("lfeout").className = "pill " + (lo ? "ok" : "");
+  for (const e of d.events || []) {
+    if (seenEv[e[0]]) continue; seenEv[e[0]] = 1;
+    evs.push({id: e[0], t: e[1], text: e[2], wall: e[3] * 1000});
+  }
+  while (evs.length > 400) evs.shift();
+  drawEvents(); updateGains(); updateChecks(); drawStrip();
+  if (d.server && d.server.notes_path) $("notesfile").textContent = d.server.notes_path;
+}
+
+function kindOf(t) {
+  if (/^tune|^panel|^console/.test(t)) return "tune";
+  if (/FIRE|DROP|WEAPON/.test(t)) return "weapon";
+  if (/HIT|IMPACT/.test(t)) return "hit";
+  if (/LANDING|AIRBORNE/.test(t)) return "land";
+  if (/IGNITION|ENGINE|SHIFT/.test(t)) return "engine";
+  if (/SURFACE/.test(t)) return "surface";
+  if (/OVERSTEER|SPIN|PLOUGH|UNDERSTEER|BRAKE/.test(t)) return "slip";
+  return "panel";
+}
+let evDrawn = -1;
+function drawEvents() {
+  const f = $("evfilter").value.toLowerCase(), showTune = $("evtune").checked;
+  const key = evs.length + "|" + f + "|" + showTune + "|" + (evs.length ? evs[evs.length - 1].id : 0);
+  if (key === evDrawn) return; evDrawn = key;
+  const host = $("evlog"); host.innerHTML = "";
+  for (let i = evs.length - 1; i >= 0 && host.childElementCount < 200; i--) {
+    const e = evs[i], k = kindOf(e.text);
+    if (!showTune && k === "tune") continue;
+    if (f && e.text.toLowerCase().indexOf(f) < 0) continue;
+    const d = el("div", "ek-" + k); const t = el("span", "t", fmt(e.t, 1) + " s"); d.append(t, e.text); host.append(d);
+  }
+}
+function updateChecks() {
+  for (const [id] of CHECKS) {
+    const l = lastFor(id), s = $("cs-" + id);
+    if (!l) { s.textContent = "not fired yet"; s.className = "seen"; continue; }
+    const ago = (Date.now() - l.wall) / 1000;
+    s.textContent = "last " + (ago < 90 ? fmt(ago, 1) + " s ago" : Math.round(ago / 60) + " min ago") + (l.text && l.text.indexOf(":") < 0 ? " (" + l.text + ")" : "");
+    s.className = "seen" + (ago < 2.5 ? " fresh" : "");
+  }
+}
+function drawStrip() {
+  const cv = $("strip"), g = cv.getContext("2d");
+  const W = cv.width = cv.clientWidth * (window.devicePixelRatio || 1), H = cv.height = 120 * (window.devicePixelRatio || 1);
+  g.clearRect(0, 0, W, H);
+  if (!hist.length) return;
+  const t1 = hist[hist.length - 1].t, t0 = t1 - 12, X = t => (t - t0) / 12 * W, Y = v => H / 2 - v / 10000 * (H / 2 - 4);
+  g.strokeStyle = "#383835"; g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
+  for (const e of evs) { if (e.t < t0 || kindOf(e.text) === "tune") continue; g.strokeStyle = "rgba(250,178,25,.5)"; g.beginPath(); g.moveTo(X(e.t), 0); g.lineTo(X(e.t), 10); g.stroke(); }
+  g.lineWidth = 1.5;
+  g.strokeStyle = "#d95926"; g.beginPath(); hist.forEach((p, i) => { const x = X(p.t), y = Y(p.tr); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+  g.strokeStyle = "#3987e5"; g.beginPath(); hist.forEach((p, i) => { const x = X(p.t), y = Y(p.f); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+}
+
+// ---------- transport ----------
+let es = null, pollTimer = null;
+function startPoll() {
+  if (pollTimer) return;
+  let since = 0;
+  pollTimer = setInterval(async () => {
+    try { const r = await fetch("/api/state?since=" + since); const d = await r.json(); if (d.events && d.events.length) since = d.events[d.events.length - 1][0]; update(d); }
+    catch (e) { $("conn").textContent = "panel server not answering"; $("conn").className = "pill bad"; }
+  }, 100);
+}
+function start() {
+  buildChannels(); buildGains(); buildChecks(); buildLfe();
+  $("allon").onclick = () => gate("", "all");
+  $("arm").onclick = () => { if (S) post("/api/arm", {on: !S.armed}); };
+  $("evfilter").oninput = drawEvents; $("evtune").onchange = drawEvents;
+  if (/[?&]poll=1/.test(location.search) || !window.EventSource) return startPoll();
+  es = new EventSource("/api/stream?hz=15");
+  es.onmessage = (m) => { try { update(JSON.parse(m.data)); } catch (e) { console.error(e); } };
+  es.onerror = () => { $("conn").textContent = "panel server not answering (retrying)"; $("conn").className = "pill bad"; };
+}
+start();
+</script>
+</body>
+</html>

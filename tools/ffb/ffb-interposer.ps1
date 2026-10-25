@@ -26,7 +26,16 @@
       # capture a drive for offline tuning
       tools\ffb\ffb-interposer.ps1 -Log drive.csv
 
-  Live keys: [space] mute  [+/-] master  [r] reload tune  [s] save tune  [q] quit
+  Live keys: [space] mute  [+/-] master  [s] save tune  [q] quit
+
+  WEB PANEL (2026-10-25): this loop publishes its state to 127.0.0.1:17682 (UDP JSON,
+  20 Hz; harmless when nobody listens) and takes gate / arm commands on
+  127.0.0.1:17683. ffb-panel.py (FFB-WEB-PANEL.bat) serves the page at
+  http://127.0.0.1:17691/ - telemetry, every channel as a meter with solo / mute,
+  gain sliders, the event log, the feel checklist and the LFE bus. A slider writes
+  ffb-tune-owner.json; this loop re-reads that file when it changes (twice a second)
+  and logs each changed value to the event log and to ffb-interposer.log beside it.
+  -PanelPort 0 turns the publishing and the command port off.
 
   ---------------------------------------------------------------------------
   ON EXCLUSIVITY
@@ -73,7 +82,11 @@ param(
     # the wheel, the engine's fire path faults at I7_SFRCE.DLL+0x2505 because it
     # dereferences its effect object without a null check. Use only if you want the
     # engine's weapon effects back and will not fire.
-    [switch]$KeepEngineFfb
+    [switch]$KeepEngineFfb,
+    # Web panel (ffb-panel.py): state datagrams to this loopback UDP port, commands from
+    # -ControlPort. 0 = off. Loopback only, never another address.
+    [int]$PanelPort = 17682,
+    [int]$ControlPort = 17683
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -233,9 +246,45 @@ if ($PanelDemo) {
     exit 0
 }
 
+# ---------------------------------------------------------------------------
+# Web panel plumbing (2026-10-25): publish, take commands, reload the tune file
+# ---------------------------------------------------------------------------
+$script:INV = [Globalization.CultureInfo]::InvariantCulture
+function Jn([double]$v) {
+    if ([double]::IsNaN($v) -or [double]::IsInfinity($v)) { return 'null' }
+    return $v.ToString('0.####', $script:INV)
+}
+function Js([string]$s) { return '"' + (($s -replace '\\', '\\') -replace '"', '\"') + '"' }
+function Jb($b) { if ($b) { 'true' } else { 'false' } }
+$GEAR_NAMES = @{ 0 = 'R'; 1 = 'N'; 2 = '1'; 3 = '2'; 4 = '3' }
+$SIDE_NAMES = @('front', 'left', 'right', 'back')
+
+$intLogPath = Join-Path $here 'ffb-interposer.log'
+function Write-IntLog([string]$Line) {
+    try { Add-Content -LiteralPath $intLogPath -Value ("{0}  {1}" -f (Get-Date).ToString('yyyy-MM-ddTHH:mm:ss.fff'), $Line) -Encoding ASCII } catch { }
+}
+try {
+    # keep the file small: the last 2000 lines
+    if ((Test-Path -LiteralPath $intLogPath) -and (Get-Item -LiteralPath $intLogPath).Length -gt 400000) {
+        $keep = @(Get-Content -LiteralPath $intLogPath -Tail 2000)
+        Set-Content -LiteralPath $intLogPath -Value $keep -Encoding ASCII
+    }
+} catch { }
+
+function New-LoopUdp([int]$BindPort) {
+    $u = if ($BindPort -gt 0) {
+        New-Object System.Net.Sockets.UdpClient (New-Object System.Net.IPEndPoint ([System.Net.IPAddress]::Loopback, $BindPort))
+    } else { New-Object System.Net.Sockets.UdpClient }
+    # SIO_UDP_CONNRESET off: a datagram to a port nobody listens on must not make a later call throw
+    try { $null = $u.Client.IOControl(-1744830452, [byte[]](0, 0, 0, 0), $null) } catch { }
+    return $u
+}
+
 $telCtx = $null
 $dev    = $null
 $logSw  = $null
+$pubUdp = $null
+$ctlUdp = $null
 try {
     # Wait rather than fail. Tel-Open needs the player entity, which only exists
     # inside a mission - so a bare launch at the title screen used to abort. That
@@ -274,6 +323,44 @@ try {
     }
     if ($PSBoundParameters.ContainsKey('Master') -or $null -eq $tuneTable['Master']) { $tuneTable['Master'] = $Master }
     $mix = Mix-New $tuneTable
+
+    # LIVE TUNE (2026-10-25). The web panel's sliders write ffb-tune-owner.json; the loop
+    # re-reads it when its time stamp changes. A reload rebuilds the table the way the
+    # start did (defaults, then -Master if it was given, then the file) and writes the
+    # changed values into $tuneTable IN PLACE - $mix.Tune is the same hashtable, so the
+    # next Mix-Update uses them. A key removed from the file goes back to its default.
+    # With an explicit -Tune <other file>, that file stays the base and the owner file
+    # (if edited during the session) is applied over it.
+    $masterBound = $PSBoundParameters.ContainsKey('Master')
+    $ownerFull = [IO.Path]::GetFullPath($ownerTune)
+    $explicitTune = $(if ($Tune -and (Test-Path $Tune) -and ([IO.Path]::GetFullPath($Tune) -ne $ownerFull)) { $Tune } else { '' })
+    $tuneStamp = [IO.File]::GetLastWriteTimeUtc($ownerTune)
+    function Tune-Reload {
+        $new = Mix-DefaultTune
+        if ($explicitTune) {
+            $j0 = Get-Content $explicitTune -Raw | ConvertFrom-Json
+            foreach ($p in $j0.PSObject.Properties) { $new[$p.Name] = $p.Value }
+        }
+        if ($masterBound) { $new['Master'] = $Master }
+        if (Test-Path -LiteralPath $ownerTune) {
+            $raw = Get-Content -LiteralPath $ownerTune -Raw
+            if ($raw -and $raw.Trim()) {
+                $j1 = $raw | ConvertFrom-Json
+                foreach ($p in $j1.PSObject.Properties) { $new[$p.Name] = $p.Value }
+            }
+        }
+        $chg = @()
+        foreach ($k in @($new.Keys | Sort-Object)) {
+            $b = $new[$k]; $a = $tuneTable[$k]
+            if ($a -is [array] -or $b -is [array]) { continue }
+            if ($null -eq $a -or [math]::Abs([double]$a - [double]$b) -gt 1e-9) {
+                $chg += ("{0} {1} -> {2}" -f $k, $(if ($null -eq $a) { 'unset' } else { Jn ([double]$a) }), (Jn ([double]$b)))
+                $tuneTable[$k] = [double]$b
+            }
+        }
+        return ,$chg
+    }
+    $defaultTune = Mix-DefaultTune
 
     # Channel gating. -Only wins over -Mute.
     $active = @{}
@@ -377,6 +464,16 @@ try {
         $logSw.WriteLine($logCols -join ',')
     }
 
+    if ($PanelPort -gt 0) {
+        try { $pubUdp = New-LoopUdp 0 } catch { $pubUdp = $null; Write-Host "web panel: no publish socket ($_)" -ForegroundColor DarkGray }
+        if ($ControlPort -gt 0) {
+            try { $ctlUdp = New-LoopUdp $ControlPort }
+            catch { $ctlUdp = $null; Write-Host "web panel: command port $ControlPort taken (another interposer?) - the page can watch but not mute / solo" -ForegroundColor Yellow }
+        }
+        if ($pubUdp) { Write-Host ("web panel feed -> udp 127.0.0.1:{0} (page: FFB-WEB-PANEL.bat, http://127.0.0.1:17691/)" -f $PanelPort) -ForegroundColor DarkGray }
+    }
+    Write-IntLog ("start pid {0} game pid {1} mode {2} tune {3} panel udp {4} / {5}" -f $PID, $telCtx.Proc.Id, $(if ($DryRun) { 'dry-run' } else { 'live' }), $(if ($Tune) { $Tune } else { 'defaults' }), $PanelPort, $(if ($ctlUdp) { $ControlPort } else { 'off' }))
+
     # Console capability probes, done ONCE. Both of these throw when stdin/stdout
     # are redirected (piped, launched from a .bat with output captured, run from a
     # harness), and a throw inside the loop would abandon a wheel that is holding
@@ -405,6 +502,23 @@ try {
     $lostCount = 0
     $lastReacq = -10.0
     $lastAliveCheck = 0.0
+    # web panel state
+    $evList   = New-Object System.Collections.ArrayList   # @{Id; T; X} newest last, last 60
+    $script:evId = 0
+    $nextPub  = 0.0
+    $nextMeta = 0.0
+    $nextTuneCheck = 0.0
+    $pubSeq   = 0
+    $audioOpt = $null; $audioOptSaved = $null; $nextAudio = 0.0
+    $prevSurf = $null; $prevRun = $null; $prevAir = $null
+    $lastFlameEv = -10.0
+    $recentSides = @{}   # side index -> time last seen in $s.Hits
+    $lastTuneChange = @()
+    function Add-Ev([double]$T, [string]$X) {
+        $script:evId++
+        $null = $evList.Add([pscustomobject]@{ Id = $script:evId; T = $T; X = $X })
+        while ($evList.Count -gt 60) { $evList.RemoveAt(0) }
+    }
 
     if ($canDraw) { Clear-Host }
 
@@ -452,15 +566,49 @@ try {
                         $lastReacq = $frameStart
                         if (Ffb-Reacquire $dev) {
                             $null = $noteHist.Insert(0, ("{0,7:0.0}s  device recovered" -f $frameStart))
+                            Add-Ev $frameStart 'device recovered'
                         } else {
                             $null = $noteHist.Insert(0, ("{0,7:0.0}s  DEVICE LOST hr=0x{1:X8}" -f $frameStart, $hr))
+                            Add-Ev $frameStart ("DEVICE LOST hr=0x{0:X8}" -f $hr)
                         }
                     }
                 } else { $lostCount = 0 }
             }
 
+            # Events for the web panel's log: the mixer's notes, made specific where the
+            # sample says more (which gun, which side, which gear), plus state edges the
+            # mixer does not announce (surface, engine stop, take-off, the flamer).
+            foreach ($h in @($s.Hits)) { if ($h) { $recentSides[[int]$h.Side] = $frameStart } }
             foreach ($nt in $out.Notes) {
-                $null = $noteHist.Insert(0, ("{0,7:0.0}s  {1}" -f $frameStart, $nt))
+                $x = [string]$nt
+                if ($x -eq 'FIRE' -and $s.Shots -and $s.Shots.Count) {
+                    $g = @($s.Shots | Where-Object { $_.Klass -eq 2 } | Sort-Object Damage -Descending)
+                    if ($g.Count) { $x = "FIRE gun/cannon (dmg $($g[0].Damage))" }
+                } elseif ($x -eq 'HIT') {
+                    $sd = @($recentSides.Keys | Where-Object { ($_ -eq 0 -or $_ -eq 3) -and ($frameStart - $recentSides[$_]) -lt 0.5 } | ForEach-Object { $SIDE_NAMES[$_] })
+                    $x = $(if ($sd.Count) { "HIT " + ($sd -join '/') } else { 'HIT front/back' })
+                } elseif ($x -eq 'UPSHIFT' -or $x -eq 'DOWNSHIFT') {
+                    if ($null -ne $s.Gear -and $GEAR_NAMES.ContainsKey([int]$s.Gear)) { $x = "$x -> gear $($GEAR_NAMES[[int]$s.Gear])" }
+                }
+                $null = $noteHist.Insert(0, ("{0,7:0.0}s  {1}" -f $frameStart, $x))
+                Add-Ev $frameStart $x
+            }
+            if ($s.Shots -and @($s.Shots | Where-Object { $_.Klass -eq 5 }).Count -and ($frameStart - $lastFlameEv) -gt 0.5) {
+                $lastFlameEv = $frameStart; Add-Ev $frameStart 'FIRE flamer'
+            }
+            if ($null -ne $s.Surface) {
+                if ($null -ne $prevSurf -and [int]$s.Surface -ne $prevSurf) {
+                    Add-Ev $frameStart ("SURFACE {0} -> {1} ({2})" -f $prevSurf, [int]$s.Surface, $(if ($s.Paved) { 'paved' } else { 'off-road' }))
+                }
+                $prevSurf = [int]$s.Surface
+            }
+            if ($null -ne $s.EngineRunning) {
+                if ($null -ne $prevRun -and $prevRun -and -not $s.EngineRunning) { Add-Ev $frameStart 'ENGINE stopped' }
+                $prevRun = [bool]$s.EngineRunning
+            }
+            if ($null -ne $s.AirFlag) {
+                if ($null -ne $prevAir -and -not $prevAir -and $s.AirFlag) { Add-Ev $frameStart 'AIRBORNE' }
+                $prevAir = [bool]$s.AirFlag
             }
             while ($noteHist.Count -gt 6) { $noteHist.RemoveAt($noteHist.Count - 1) }
 
@@ -523,6 +671,165 @@ try {
             $lastSec = $frameStart; $loopsAtSec = $loops
         }
 
+        # ---- live tune file (web panel sliders, a hand edit) -----------------
+        if ($frameStart -ge $nextTuneCheck) {
+            $nextTuneCheck = $frameStart + 0.5
+            $st = [IO.File]::GetLastWriteTimeUtc($ownerTune)
+            if ($st -ne $tuneStamp) {
+                $tuneStamp = $st
+                try {
+                    $chg = Tune-Reload
+                    $lastTuneChange = $chg
+                    if ($chg.Count) {
+                        foreach ($c in $chg) { Add-Ev $frameStart ("tune: " + $c) }
+                        $null = $noteHist.Insert(0, ("{0,7:0.0}s  tune reloaded: {1}" -f $frameStart, ($chg -join ', ')))
+                        Write-IntLog ("tune reloaded from {0}: {1}" -f $ownerTune, ($chg -join ', '))
+                    } else {
+                        Write-IntLog ("tune file touched, no value changed ({0})" -f $ownerTune)
+                    }
+                    $nextMeta = 0.0
+                } catch {
+                    Add-Ev $frameStart "tune file unreadable - kept the old values"
+                    Write-IntLog ("tune file unreadable, old values kept: {0}" -f $_)
+                }
+            }
+        }
+
+        # ---- web panel: commands in, state out --------------------------------
+        while ($ctlUdp -and $ctlUdp.Available -gt 0) {
+            try {
+                $ep = New-Object System.Net.IPEndPoint ([System.Net.IPAddress]::Any, 0)
+                $cb = $ctlUdp.Receive([ref]$ep)
+                $cmd = [Text.Encoding]::UTF8.GetString($cb) | ConvertFrom-Json
+                $what = ''
+                switch ([string]$cmd.op) {
+                    'gate' {
+                        $chn = [string]$cmd.ch; $md = [string]$cmd.mode
+                        if ($md -eq 'all') { foreach ($c in $ALL_CH) { $active[$c] = $true }; $what = 'all channels on' }
+                        elseif ($ALL_CH -contains $chn) {
+                            if ($md -eq 'solo') { foreach ($c in $ALL_CH) { $active[$c] = ($c -eq $chn) }; $what = "solo $chn" }
+                            elseif ($md -eq 'mute') { $active[$chn] = $false; $what = "mute $chn" }
+                            elseif ($md -eq 'on') { $active[$chn] = $true; $what = "unmute $chn" }
+                        }
+                    }
+                    'arm' {
+                        $mix.Enabled = [bool]$cmd.on
+                        if (-not $DryRun -and -not $mix.Enabled) { $null = Ffb-Constant $dev 0 }
+                        $what = $(if ($mix.Enabled) { 'armed' } else { 'muted (all force off)' })
+                    }
+                }
+                if ($what) {
+                    Add-Ev $frameStart ("panel: " + $what)
+                    $null = $noteHist.Insert(0, ("{0,7:0.0}s  panel: {1}" -f $frameStart, $what))
+                    Write-IntLog ("panel command: {0}" -f $what)
+                    $nextPub = 0.0
+                }
+            } catch { }
+        }
+        if ($pubUdp -and $frameStart -ge $nextPub) {
+            $nextPub = $frameStart + 0.05
+            $pubSeq++
+            # game audio options, read-only (0x654b90 music / sfx / voice / channels; +0x60 the saved copy)
+            if ($frameStart -ge $nextAudio) {
+                $nextAudio = $frameStart + 1.0
+                $audioOpt = Tel-ReadBuf $telCtx 0x654b90 4
+                $audioOptSaved = Tel-ReadBuf $telCtx 0x654bf0 4
+            }
+            $sb = New-Object System.Text.StringBuilder 4096
+            $null = $sb.Append('{"k":"ffb","v":1,"seq":').Append($pubSeq).Append(',"t":').Append((Jn $frameStart))
+            $null = $sb.Append(',"pid":').Append($PID).Append(',"game_pid":').Append($telCtx.Proc.Id)
+            $null = $sb.Append(',"mode":').Append((Js $(if ($DryRun) { 'DRY RUN (wheel untouched)' } else { "LIVE $($dev.Name)" })))
+            $null = $sb.Append(',"dry":').Append((Jb $DryRun)).Append(',"armed":').Append((Jb $mix.Enabled))
+            $null = $sb.Append(',"master":').Append((Jn ([double]$tuneTable['Master']))).Append(',"rate":').Append((Jn $rateNow))
+            $null = $sb.Append(',"ctl":').Append((Jb ([bool]$ctlUdp))).Append(',"lost":').Append($lostCount)
+            $null = $sb.Append(',"game_ffb":').Append((Jn ([double]$(if ($lastS) { $lastS.GameFfb } else { 0 })))).Append(',"calib":').Append((Js ([string]$script:TEL_CALIB_SOURCE)))
+            if ($lastS) {
+                $q = $lastS
+                $null = $sb.Append(',"tel":{"speed":').Append((Jn $q.Speed)).Append(',"mph":').Append((Jn $q.SpeedMph))
+                $null = $sb.Append(',"steer":').Append((Jn $q.Steer)).Append(',"throttle":').Append((Jn $q.Throttle))
+                $null = $sb.Append(',"yaw":').Append((Jn $q.YawRate)).Append(',"yaw_expect":').Append((Jn $q.ExpectedYaw))
+                $null = $sb.Append(',"under":').Append((Jn $q.Understeer)).Append(',"over":').Append((Jn $q.Oversteer))
+                $null = $sb.Append(',"slide":').Append((Jn ([double]$q.Slide))).Append(',"lat_g":').Append((Jn $q.LatG)).Append(',"long_g":').Append((Jn $q.LongG))
+                $null = $sb.Append(',"jolt":').Append((Jn $q.Jolt)).Append(',"vy":').Append((Jn $q.Vy))
+                $null = $sb.Append(',"surface":').Append($(if ($null -ne $q.Surface) { [int]$q.Surface } else { 'null' }))
+                $null = $sb.Append(',"paved":').Append((Jb $q.Paved)).Append(',"surf_pct":').Append((Jn ([double]$(if ($lastOut) { $lastOut.Channels['surf%'] } else { 100 }))))
+                $null = $sb.Append(',"grip_pct":').Append((Jn ([double]$(if ($lastOut) { $lastOut.Channels['grip%'] } else { 100 }))))
+                $null = $sb.Append(',"air":').Append((Jb $q.AirFlag)).Append(',"engine":').Append((Jb $q.EngineRunning)).Append(',"starting":').Append((Jb $q.EngineStarting))
+                $null = $sb.Append(',"drift":').Append((Jb $q.DriftFlag)).Append(',"skid":').Append((Jb $q.SkidFlag)).Append(',"braking":').Append((Jb $q.Braking))
+                $null = $sb.Append(',"gear":').Append($(if ($null -ne $q.Gear) { [int]$q.Gear } else { 'null' }))
+                $null = $sb.Append(',"rpm":').Append((Jn ([double]$q.Rpm))).Append(',"since_tick":').Append((Jn ([double]$q.SinceTick)))
+                $null = $sb.Append(',"shot_src":').Append((Js ([string]$q.ShotSource))).Append(',"row":').Append($(if ($null -ne $q.WeaponRow) { [int]$q.WeaponRow } else { 'null' }))
+                $null = $sb.Append(',"ammo":[')
+                $first = $true
+                foreach ($w in @($q.Ammo)) {
+                    if (-not $w) { continue }
+                    if (-not $first) { $null = $sb.Append(',') }; $first = $false
+                    $null = $sb.Append('{"i":').Append([int]$w.Idx).Append(',"n":').Append([int64]$w.Ammo).Append(',"c":').Append([int]$w.Klass).Append(',"d":').Append([int]$w.Damage).Append('}')
+                }
+                $null = $sb.Append(']}')
+            }
+            if ($lastOut) {
+                $null = $sb.Append(',"ch":{')
+                $first = $true
+                foreach ($c in $ALL_CH) {
+                    if (-not $first) { $null = $sb.Append(',') }; $first = $false
+                    $null = $sb.Append('"').Append($c).Append('":').Append([int]$lastOut.Channels[$c])
+                }
+                $null = $sb.Append('},"force":').Append([int]$lastForce).Append(',"model_force":').Append([int]$lastOut.Force).Append(',"peak":').Append((Jn $mix.PeakForce))
+                $L = $lastOut.Bus.Lfe
+                $null = $sb.Append(',"lfe":{"engine":').Append((Jn ([double]$L.EngineAmp))).Append(',"engine_hz":').Append((Jn ([double]$L.EngineFreq)))
+                $null = $sb.Append(',"road":').Append((Jn ([double]$L.RoadAmp))).Append(',"road_hz":').Append((Jn ([double]$L.RoadFreq)))
+                $null = $sb.Append(',"impulse":').Append((Jn ([double]$L.ImpulseAmp))).Append(',"impulse_hz":').Append((Jn ([double]$L.ImpulseFreq)))
+                $null = $sb.Append(',"heave":').Append((Jn ([double]$L.HeaveAmp))).Append(',"heave_hz":').Append((Jn ([double]$L.CarrierFreq)))
+                $null = $sb.Append(',"weapon":').Append((Jn ([double]$L.WeaponAmp))).Append(',"weapon_hz":').Append((Jn ([double]$L.WeaponFreq)))
+                $null = $sb.Append(',"scrub":').Append((Jn ([double]$L.ScrubAmp))).Append(',"explode":').Append((Jn ([double]$L.ExplodeAmp))).Append('}')
+            }
+            $null = $sb.Append(',"act":{')
+            $first = $true
+            foreach ($c in $ALL_CH) {
+                if (-not $first) { $null = $sb.Append(',') }; $first = $false
+                $null = $sb.Append('"').Append($c).Append('":').Append((Jb $active[$c]))
+            }
+            $null = $sb.Append('}')
+            if ($audioOpt) {
+                $null = $sb.Append(',"audio":{"music":').Append([int]$audioOpt[0]).Append(',"sfx":').Append([int]$audioOpt[1]).Append(',"voice":').Append([int]$audioOpt[2]).Append(',"channels":').Append([int]$audioOpt[3])
+                if ($audioOptSaved) { $null = $sb.Append(',"saved":[').Append((([int[]]$audioOptSaved) -join ',')).Append(']') }
+                $null = $sb.Append('}')
+            }
+            $null = $sb.Append(',"ev_last":').Append($script:evId).Append(',"ev":[')
+            $first = $true
+            $from = [math]::Max(0, $evList.Count - 25)
+            for ($i = $from; $i -lt $evList.Count; $i++) {
+                $e = $evList[$i]
+                if (-not $first) { $null = $sb.Append(',') }; $first = $false
+                $null = $sb.Append('[').Append($e.Id).Append(',').Append((Jn $e.T)).Append(',').Append((Js $e.X)).Append(']')
+            }
+            $null = $sb.Append(']}')
+            try { $bytes = [Text.Encoding]::UTF8.GetBytes($sb.ToString()); $null = $pubUdp.Send($bytes, $bytes.Length, '127.0.0.1', $PanelPort) } catch { }
+
+            if ($frameStart -ge $nextMeta) {
+                $nextMeta = $frameStart + 1.0
+                $mb = New-Object System.Text.StringBuilder 8192
+                $null = $mb.Append('{"k":"meta","v":1,"pid":').Append($PID).Append(',"t":').Append((Jn $frameStart))
+                $null = $mb.Append(',"tune_file":').Append((Js $ownerFull)).Append(',"tune_explicit":').Append((Js $explicitTune))
+                $null = $mb.Append(',"tune_stamp":').Append((Js ($tuneStamp.ToString('o'))))
+                $null = $mb.Append(',"channels":[').Append((($ALL_CH | ForEach-Object { '"' + $_ + '"' }) -join ',')).Append(']')
+                foreach ($pair in @(@('tune', $tuneTable), @('defaults', $defaultTune))) {
+                    $null = $mb.Append(',"').Append($pair[0]).Append('":{')
+                    $first = $true
+                    foreach ($k in ($pair[1].Keys | Sort-Object)) {
+                        $v = $pair[1][$k]
+                        if ($v -is [array] -or $null -eq $v) { continue }
+                        if (-not $first) { $null = $mb.Append(',') }; $first = $false
+                        $null = $mb.Append('"').Append($k).Append('":').Append((Jn ([double]$v)))
+                    }
+                    $null = $mb.Append('}')
+                }
+                $null = $mb.Append(',"last_change":[').Append((($lastTuneChange | ForEach-Object { Js $_ }) -join ',')).Append(']}')
+                try { $bytes = [Text.Encoding]::UTF8.GetBytes($mb.ToString()); $null = $pubUdp.Send($bytes, $bytes.Length, '127.0.0.1', $PanelPort) } catch { }
+            }
+        }
+
         # ---- panel ---------------------------------------------------------
         if ($canDraw -and $frameStart -ge $nextDraw) {
             $nextDraw = $frameStart + 0.07     # ~14 Hz; the force loop runs far faster
@@ -544,7 +851,7 @@ try {
         while ($canKeys -and [Console]::KeyAvailable) {
             $k = [Console]::ReadKey($true)
             switch ($k.KeyChar) {
-                ' ' { $mix.Enabled = -not $mix.Enabled; if (-not $DryRun -and -not $mix.Enabled) { $null = Ffb-Constant $dev 0 } }
+                ' ' { $mix.Enabled = -not $mix.Enabled; if (-not $DryRun -and -not $mix.Enabled) { $null = Ffb-Constant $dev 0 }; Add-Ev $frameStart $(if ($mix.Enabled) { 'console: armed' } else { 'console: muted' }) }
                 '+' { $tuneTable['Master'] = [math]::Min(1.5, $tuneTable['Master'] + 0.05) }
                 '=' { $tuneTable['Master'] = [math]::Min(1.5, $tuneTable['Master'] + 0.05) }
                 '-' { $tuneTable['Master'] = [math]::Max(0.0, $tuneTable['Master'] - 0.05) }
@@ -559,6 +866,7 @@ try {
                     }
                     ([pscustomobject]$diff | ConvertTo-Json) | Set-Content -Path $p -Encoding ASCII
                     $null = $noteHist.Insert(0, ("        saved {0} changed value(s) -> ffb-tune-owner.json" -f $diff.Count))
+                    Write-IntLog ("[s] saved {0} changed value(s) -> {1}" -f $diff.Count, $p)
                 }
                 'q' { throw [OperationCanceledException]::new("quit") }
             }
@@ -591,5 +899,12 @@ finally {
         Write-Host "wheel released." -ForegroundColor Cyan
     }
     if ($logSw) { $logSw.Flush(); $logSw.Close(); Write-Host "log -> $Log" -ForegroundColor Cyan }
+    if ($pubUdp) {
+        # one last datagram so the page shows "stopped" at once instead of timing out
+        try { $bytes = [Text.Encoding]::UTF8.GetBytes(('{"k":"bye","pid":' + $PID + '}')); $null = $pubUdp.Send($bytes, $bytes.Length, '127.0.0.1', $PanelPort) } catch { }
+        try { $pubUdp.Close() } catch { }
+    }
+    if ($ctlUdp) { try { $ctlUdp.Close() } catch { } }
+    Write-IntLog ("stop pid {0}" -f $PID)
     if ($telCtx) { Tel-Close $telCtx }
 }

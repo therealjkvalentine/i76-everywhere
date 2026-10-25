@@ -25,6 +25,16 @@
       powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-lfe-live.ps1 -ListDevices
       powershell -NoProfile -ExecutionPolicy Bypass -File tools\ffb\ffb-lfe-live.ps1 -Device 0
   Ctrl-C to stop, or it exits on its own when the game closes.
+
+  THE RULE (owner, 2026-10-24): the shakers play game EVENTS and state only - engine,
+  road, impacts, hits, landings, weapons, explosions, all from the force bus (FfbMixer
+  Bus.Lfe). Nothing here captures or re-plays the game's audio, and nothing may boost
+  or duck the game's voice or music: this script opens one OUTPUT device and no input.
+
+  2026-10-25: the gains come from ffb-tune-owner.json beside this script (the same file
+  the interposer and the web panel use, ffb-panel.py), re-read when it changes, and the
+  levels actually sent to the shaker are published to the panel (udp 127.0.0.1:17682,
+  -PanelPort 0 = off) so the page can show the shaker is running.
 #>
 param(
     [switch]$ListDevices,
@@ -53,7 +63,8 @@ param(
     [double]$Drive = 1.5,
 
     [int]$Hz = 60,
-    [switch]$NoCompensate
+    [switch]$NoCompensate,
+    [int]$PanelPort = 17682
 )
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -73,6 +84,28 @@ if ($ListDevices) {
 }
 
 $tune = Mix-DefaultTune
+$ownerTune = Join-Path $here 'ffb-tune-owner.json'
+function Load-OwnerTune {
+    # defaults + the owner's values; written into $tune IN PLACE (Mix-New below keeps the reference)
+    $new = Mix-DefaultTune
+    if (Test-Path -LiteralPath $ownerTune) {
+        $raw = Get-Content -LiteralPath $ownerTune -Raw
+        if ($raw -and $raw.Trim()) { foreach ($p in ($raw | ConvertFrom-Json).PSObject.Properties) { $new[$p.Name] = $p.Value } }
+    }
+    $chg = @()
+    foreach ($k in @($new.Keys)) {
+        if ($new[$k] -is [array]) { continue }
+        if ($null -eq $tune[$k] -or [math]::Abs([double]$tune[$k] - [double]$new[$k]) -gt 1e-9) { $chg += "$k $($tune[$k]) -> $($new[$k])"; $tune[$k] = $new[$k] }
+    }
+    return ,$chg
+}
+try { $c0 = Load-OwnerTune; if ($c0.Count) { Write-Host ("tune: {0} value(s) from {1}" -f $c0.Count, $ownerTune) -ForegroundColor Green } } catch { Write-Host "tune file unreadable, defaults used: $_" -ForegroundColor Yellow }
+$tuneStamp = [IO.File]::GetLastWriteTimeUtc($ownerTune)
+$pub = $null
+if ($PanelPort -gt 0) {
+    try { $pub = New-Object System.Net.Sockets.UdpClient; $null = $pub.Client.IOControl(-1744830452, [byte[]](0, 0, 0, 0), $null) } catch { }
+}
+$INV = [Globalization.CultureInfo]::InvariantCulture
 $ctx = Tel-Open
 Write-Host ("telemetry OK - entity 0x{0:X8}" -f $ctx.Ent) -ForegroundColor Green
 
@@ -110,7 +143,8 @@ Write-Host ""
 Write-Host "Ctrl-C to stop." -ForegroundColor Yellow
 Write-Host ""
 
-$mix = Mix-New
+$mix = Mix-New $tune
+$nextTuneCheck = 0.0; $nextPub = 0.0
 $sleepMs = [int](1000 / $Hz)
 $lastPrint = 0.0
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -145,6 +179,25 @@ try {
         $live.ExplodeAmp = [double]$(if ($null -ne $L.ExplodeAmp) { $L.ExplodeAmp } else { 0.0 })
 
         $now = $sw.Elapsed.TotalSeconds
+        if ($now -ge $nextTuneCheck) {
+            $nextTuneCheck = $now + 0.5
+            $st = [IO.File]::GetLastWriteTimeUtc($ownerTune)
+            if ($st -ne $tuneStamp) {
+                $tuneStamp = $st
+                try { $chg = Load-OwnerTune; if ($chg.Count) { Write-Host ("`ntune reloaded: " + ($chg -join ', ')) -ForegroundColor Cyan } } catch { }
+            }
+        }
+        if ($pub -and $now -ge $nextPub) {
+            $nextPub = $now + 0.1
+            $lim = $(if ($live.core -and $live.core.Samples -gt 0) { 100.0 * $live.core.Limited / $live.core.Samples } else { 0.0 })
+            $pk = $(if ($live.core) { [double]$live.core.PeakAbs } else { 0.0 })
+            $js = '{"k":"lfe","v":1,"pid":' + $PID + ',"device":"' + ($devName -replace '["\]', '') + '","master":' + $live.Master.ToString('0.###', $INV) +
+                  ',"drive":' + $live.Drive.ToString('0.###', $INV) + ',"peak":' + $pk.ToString('0.###', $INV) + ',"limited_pct":' + $lim.ToString('0.##', $INV) +
+                  ',"engine":' + $live.EngineAmp.ToString('0.###', $INV) + ',"road":' + $live.RoadAmp.ToString('0.###', $INV) +
+                  ',"impulse":' + $live.ImpulseAmp.ToString('0.###', $INV) + ',"weapon":' + $live.WeaponAmp.ToString('0.###', $INV) +
+                  ',"explode":' + $live.ExplodeAmp.ToString('0.###', $INV) + '}'
+            try { $b = [Text.Encoding]::UTF8.GetBytes($js); $null = $pub.Send($b, $b.Length, '127.0.0.1', $PanelPort) } catch { }
+        }
         if ($now - $lastPrint -gt 0.25) {
             $lastPrint = $now
             Write-Host ("`r  {0,5:0} mph  eng {1,4:0.0}Hz {2,4:0.00}  road {3,4:0.00}  imp {4,4:0.00}  wpn {5,4:0.00}  hv {6,4:0.00}  scr {7,4:0.00}  BOOM {8,4:0.00}  " -f `

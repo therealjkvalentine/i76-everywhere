@@ -1,2 +1,5 @@
 probe/
 trace/
+notes/
+ffb-interposer.log
+*.panel-tmp

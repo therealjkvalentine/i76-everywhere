@@ -700,6 +700,7 @@ function Tel-Extras {
             SurfRoll = $null; SurfGrip = $null; SurfT = -10.0
             WRec = 0; WInst = @(); WScanT = -10.0; PrevAmmo = $null; DefCache = @{}
             PrevRow = -99; PrevSides = $null; LastGear = -1
+            LastAmmo = @()   # 2026-10-25: the current ammo per weapon instance, for the web panel
         }
     }
     $X = $Ctx.X
@@ -787,7 +788,7 @@ function Tel-Extras {
     # ---- weapons: find the player's record and instances every 3 s ----
     if (($X.WRec -eq 0 -or $X.WInst.Count -eq 0) -and ($T - $X.WScanT) -gt 3.0) {
         $X.WScanT = $T
-        $X.WRec = 0; $X.WInst = @(); $X.PrevAmmo = $null
+        $X.WRec = 0; $X.WInst = @(); $X.PrevAmmo = $null; $X.LastAmmo = @()
         $nb = Tel-ReadBuf $Ctx 0x5da78c 4
         $nrec = $(if ($nb) { [BitConverter]::ToInt32($nb, 0) } else { 0 })
         if ($nrec -gt 150) { $nrec = 150 }
@@ -846,9 +847,10 @@ function Tel-Extras {
                 $shots = Tel-DiffAmmo $X.PrevAmmo $cur
                 $pa = @{}; foreach ($w in $cur) { $pa[$w.Idx] = $w.Ammo }
                 $X.PrevAmmo = $pa
+                $X.LastAmmo = $cur
             }
         } else {
-            $X.WRec = 0; $X.WInst = @()   # the record moved (respawn): rescan
+            $X.WRec = 0; $X.WInst = @(); $X.LastAmmo = @()   # the record moved (respawn): rescan
         }
     }
 
@@ -858,6 +860,7 @@ function Tel-Extras {
         Gear = $gear; RpmF = $rpmF; GearShift = $shift
         SteerK = $steerK; LatCap = $latCap; GripSum = $X.GripSum
         Hits = $hits; Shots = $shots; WeaponRow = $row; WeaponCycle = $cycle
+        Ammo = $X.LastAmmo   # @(@{Idx; Ammo; Klass; Damage}) per weapon instance (web panel)
         ShotSource = $(if ($X.WRec -ne 0 -and $X.WInst.Count -gt 0) { 'ammo' } else { 'none' })
     }
 }
@@ -1217,6 +1220,7 @@ function Tel-Sample {
         Hits           = $xt.Hits
         WeaponRow      = $xt.WeaponRow
         WeaponCycle    = $xt.WeaponCycle
+        Ammo           = $xt.Ammo
         Braking     = ($throttle -lt -0.05)
         Airborne    = ([math]::Abs($vy) -gt 2.0)
         Wheelbase   = $Ctx.Wheelbase
