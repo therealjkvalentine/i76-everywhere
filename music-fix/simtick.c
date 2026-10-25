@@ -1699,7 +1699,7 @@ static void *__cdecl st_radar_turn(float *out, float angle, float x, float y, fl
  * physics_IntegrateVehicleMotion 0x43a5d0, grip path, once per grounded substep: the velocity is rebuilt along the body's
  * forward row (v = f s + a dt) and then projected into the ground plane, v - (v.n) n, as math_Vec3Cross 0x43a280 twice:
  * n x v at 0x43ba3a, then (n x v) x n at 0x43ba64. While the body lags a change of slope by delta, every substep removes
- * s (1 - cos delta) of speed: a loss PER SUBSTEP (i76-map physics.md "It is a per-step loss"). The lag runs on time (the
+ * s (1 - cos delta) of speed: a loss PER SUBSTEP (<re-archive> physics.md "It is a per-step loss"). The lag runs on time (the
  * attitude eases with dt), so a shorter car step loses more speed per second on every crest, dip and ramp face: x 1.25 at
  * 33.3 ms against the 1997 car step of 41.667 ms (the 1997 engine did the same on a fast PC; it is the step, not a tick bug).
  * I76_SIM_TICK_SLOPE (under the tick only; unset / `auto` = the default): the speed each projection removes is x substep /
