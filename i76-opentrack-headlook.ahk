@@ -434,11 +434,11 @@ Toast(msg) {
     if (ww > 0)
         gx := wx, gy := wy, gw := ww, gh := wh
     x := gx + (gw - 596) // 2
-    y := gy + gh // 9
+    y := gy + (gh * 3) // 8
     Gui, Toast:Show, NoActivate x%x% y%y% AutoSize, i76headlook
     WinSet, Transparent, 225, ahk_id %ToastHwnd%
     Trace("toast " . msg)
-    SetTimer, ToastOff, -1800
+    SetTimer, ToastOff, -4000
 }
 
 ModeText(m) {
