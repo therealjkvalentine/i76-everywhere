@@ -183,3 +183,34 @@ cd C:\Users\james\i76-everywhere
 7. After the LAN-into-RC merge: retire `Games\I76\lan`. After 2026-11-20: delete `_archive` on D:. Compare the two `rc-backup-*` folders and drop one.
 
 Caveats: refs counts come from a grep over `.ps1/.py/.md/.bat/.psd1`; builds\ was not searched (too large), so a build script might still name a folder; the junctions cover that. Proxy md5s are file hashes at 21:00 and move with the lanes.
+
+## 7. Done 2026-10-25 (housekeeping lane, waited 21:24-03:35; owner rulings supersede sections 2 and 5)
+
+**Owner rulings applied:** THREE tiers per game - dev, test, main. No golden/reference copy. Main copies are `Games\I76\Interstate 76 Gold` and `Games\I76\Interstate 76 Nitro`.
+The lane polled every 10 min for a fully quiet PC; it never came (Gold LAN fixes, Nitro parity, Nitro MP, FFB, launchers/RC gate and `gold-final` lanes ran all night), so it worked per folder:
+a folder was touched only when no process used it, it was in no lock/queue line (lane aliases included) and nothing in it had been written for 30 min. Every move was copy, count+bytes compare, then remove.
+`tools\consolidate-copies.ps1` was rewritten for the three-tier mapping (Archive / Rename / Cruft, `-CruftRoot`, lane aliases, saves and one-`input.map` rules, locked-file tolerance).
+
+| old | new | state |
+|---|---|---|
+| `Games\I76\daily-driver` (promotion 18) | `D:\i76-archive\daily-driver-pre-20261025` (the rollback) | done, no junction (only comments and the old promotion scripts name it; its desktop shortcut was moved) |
+| `Games\I76\golden` | `D:\i76-archive\consolidated-20261025\Games-I76\golden` | done, junction `golden` (lab `tools\nitro-base\inventory.py` and `stage_retail.py` read it) |
+| `Games\I76\_archive`, `nitro`, `nitro-plus-original` | `D:\i76-archive\consolidated-20261025\Games-I76\...` | copied + verified; `_archive` gone; `nitro` and `nitro-plus-original` each keep ONE locked file (deferred 2) |
+| lab `game`, `exp-jump2`, `exp-morph`, `exp-nitro-mp-gold`, `exp-nitro-stockgl`, `exp-p19-twin`, `game-sp`, `game-fresh-gold`, `game-scott-c`, `-motw`, `-uninst`, `controls-twin-20261024`, `dgv2875-twin-20261024`, `stab-gold-20261024`, `stab-nitro-20261024` | `D:\i76-archive\consolidated-20261025\lab\<name>` | done, junction at each old name |
+| lab `exp-debug`, `exp-nitro-port`, `game-fresh-nitro`, `exp-nitro-mp-b`, `exp-nitro-types`, `-types-b`, `exp-mac`, `exp-rcdraw` | same D: pattern | copied + verified; the C: stub holds only the locked font file (deferred 2) |
+| lab `exp-polish2` | `i76-uncap-lab\dev-gold` | done, junction `exp-polish2`; STRLKUP 5D6F9828, i76.exe 6319ABF7, 649 files, 531812674 bytes identical before and after |
+| lab `exp-nitro-polish` | `i76-uncap-lab\test-nitro` | done, junction `exp-nitro-polish`; strlkup 9F220AC3, nitro.exe 28B8AE27, 563 files identical |
+| lab `exp-nitro-owner` | `Games\I76\Interstate 76 Nitro` (main) | **copied, not moved**: 564 files, 325082770 bytes, strlkup 9E6A2378, nitro.exe 28B8AE27 all equal; the folder rename is blocked (deferred 2) |
+| (new) | `i76-uncap-lab\dev-nitro` = fresh copy of main Nitro | done, same md5s |
+
+**Cruft** (moved, never deleted, into `D:\i76-archive\cruft-20261025\<folder>\`): dev-gold 66 files 17.7 MB (stale `PLAY-OWNER-*` / `PLAY-TICK-*` launchers, 17 `STRLKUP.DLL.<md5>` backups, `.pre-*` / `.driver-*`, logs, `_ahk` pre-controls24 files), Interstate 76 Nitro 6 files 4.4 MB, dev-nitro 6 files 4.4 MB, test-nitro 4 files 2.3 MB. The md5 of STRLKUP.DLL / strlkup.dll / i76.exe / nitro.exe / strlkup_orig.dll / input.map is unchanged in all four. Saves (`savegame*`) are never touched (the dry run first listed `savegame.dir.pre-edit`; the rule was fixed before any execute); one `input.map` backup is kept (a `known-good` one if present).
+**AGENTS.md** (template filled by `tools\place-agents-md.ps1`) is in `Interstate 76 Nitro`, `dev-gold`, `dev-nitro`, `test-nitro`.
+**Desktop:** `Interstate 76 Nitro` -> `Games\I76\Interstate 76 Nitro\PLAY-NITRO-ALL.bat` created. Moved to `Desktop\_i76-old-shortcuts`: I76 - daily driver, I76 Nitro - ALL (test), PLAY-LAB.bat - Shortcut, I76 OWNER TESTS 2026-10-17. `I76 - LAN (family)` and `I76 - release candidate (tick test)` stay until Gold main exists; `tools\make-desktop-shortcuts.ps1` finishes the job.
+**Space:** 13.3 GB moved off C: to D: (verified copies). C: free 38.6 GB at 21:24, 44.8 GB at 03:35 while the lanes kept writing; D: free 993 -> 912 GB. The two extra Nitro copies cost +0.6 GB on C:, so the net is about 12.7 GB. Cruft 28 MB.
+
+**Deferred, and why**
+1. **Gold main** (`release-candidate` -> `Interstate 76 Gold`) and **test-gold** (`rc-twin-20261024` -> `test-gold`): `rc-lane run-gate.ps1` and `gold-final` (twin-install, lan-pair) were still gating on the twin at 03:35 and will install into the RC afterwards. When they are done: `.\tools\consolidate-copies.ps1 -Execute -Phase Rename`, then `-Phase Cruft`, then `.\tools\make-desktop-shortcuts.ps1`, then `tools\place-agents-md.ps1` for both (Gold main: `-Role main -Game Gold`; test-gold: `-Role test -Game Gold`).
+2. **Windows Font Cache Service holds `lee_____.ttf` open** (the game's font; Restart Manager lists pid 4 / FontCache). A folder containing that file refuses delete and rename ("Access denied"). Effects: the 10 C: stubs above keep only that file (their data is verified on D:), and `exp-nitro-owner` could not be renamed to main, so main Nitro was copied and the old folder carries `MOVED-TO-Interstate-76-Nitro.txt` (stale; lanes must not write there). I did not restart the service (a system process I did not start). **Divergence found at 03:35:** a lane wrote a newer `strlkup.dll` into `exp-nitro-owner` after the copy (md5 3F27C797, 798720 bytes, mtime 00:40; main and dev-nitro hold 9E6A2378, 796160 bytes). I did not push it into main (an ungated proxy in the playable copy is the owner's/lane's call); `consolidate-retry-locked.ps1` refuses to junction `exp-nitro-owner` while it differs. To take it: copy that one file into `Interstate 76 Nitro` and `dev-nitro`. After a reboot, log off/on, or an admin `Restart-Service FontCache`, run `tools\consolidate-retry-locked.ps1` (dry run, then `-Execute`): it removes the stubs and leaves junctions to D:, and replaces `exp-nitro-owner` by a junction to main after checking that nothing was written to it.
+3. **`lan`** stays: `docs\records\LAN-FIXES-2026-10-24.md` is "staged, not deployed" and `release-candidate\PLAY-LAN.bat` still calls `Games\I76\lan`. **`nitro-lan`** stays until the Nitro MP lane says main Nitro is LAN-capable (`nitro-mp-design` was still running w55/w56). Then `-Execute -Phase Archive -Release lan,nitro-lan`.
+4. **Held for lanes / rulings:** `game-scott`, `game-scott-b` (cmd.exe PLAY alive), `exp-nitro-mp` (nitro.exe running), `exp-faredge`, `exp-rebase` (owner ruling).
+5. Not done in this pass: D: `rc-backup-*` compare, laptop `C:\i76-bench` deletions.

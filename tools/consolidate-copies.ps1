@@ -26,7 +26,8 @@ param(
   [string[]]$HeldOk = @(),
   [string[]]$Release = @(),
   [switch]$IncludeRcLaunchers,
-  [string]$ArchiveRoot = 'D:\i76-archive\consolidated-20261024'
+  [string]$ArchiveRoot = 'D:\i76-archive\consolidated-20261025',
+  [string]$CruftRoot = 'D:\i76-archive\cruft-20261025'
 )
 $ErrorActionPreference = 'Stop'
 $Lab = 'C:\Users\james\i76-uncap-lab'; $Games = 'C:\Users\james\Games\I76'
@@ -37,16 +38,18 @@ Write-Host "== consolidate-copies ($mode) phase=$Phase only=$Only quiet=${QuietM
 # ---- the plan. Action: Keep | Rename | Archive. WaitFor = a lane was running on the evening of 2026-10-24; the lock checks decide at run time.
 # Junction=$true: leave a junction at the OLD path pointing at the new one, because tools/docs still use the old name.
 $Plan = @(
-  @{Name='release-candidate'; Root=$Games; Action='Keep'; Role='rc'},
-  @{Name='daily-driver';      Root=$Games; Action='Keep'; Role='driver'},
-  @{Name='exp-polish2';       Root=$Lab; Action='Rename'; To="$Lab\dev";        Junction=$true},
-  @{Name='rc-twin-20261024';  Root=$Lab; Action='Rename'; To="$Lab\test";       Junction=$true},
-  @{Name='exp-nitro-owner';   Root=$Lab; Action='Rename'; To="$Lab\nitro-dev";  Junction=$true},
-  @{Name='exp-nitro-polish';  Root=$Lab; Action='Rename'; To="$Lab\nitro-test"; Junction=$true},
-  @{Name='nitro-lan';         Root=$Games; Action='Keep'; Role='nitro-rc'},
-  # the family LAN pack goes only after the merge-into-RC lane lands
-  @{Name='lan';               Root=$Games; Action='Archive'; Junction=$true; WaitFor='LAN-into-RC merge'},
-  # read-only references that docs/tools name
+  # --- OWNER RULING 2026-10-24: three tiers per game (dev / test / main); main copies are "Interstate 76 Gold" / "Interstate 76 Nitro". No golden copy.
+  # main Gold = the release candidate content; the old daily driver is archived as the rollback.
+  @{Name='daily-driver';      Root=$Games; Action='Archive'; Junction=$false; To='D:\i76-archive\daily-driver-pre-20261025'; Alt='daily-driver'},
+  @{Name='release-candidate'; Root=$Games; Action='Rename'; To="$Games\Interstate 76 Gold"; Junction=$true; After='daily-driver'},
+  @{Name='exp-polish2';       Root=$Lab; Action='Rename'; To="$Lab\dev-gold";   Junction=$true},
+  @{Name='rc-twin-20261024';  Root=$Lab; Action='Rename'; To="$Lab\test-gold";  Junction=$true},
+  @{Name='exp-nitro-owner';   Root=$Lab; Action='Rename'; To="$Games\Interstate 76 Nitro"; Junction=$true; Alt='nitro-owner|nitro-mp'},
+  @{Name='exp-nitro-polish';  Root=$Lab; Action='Rename'; To="$Lab\test-nitro"; Junction=$true; Alt='nitro-polish|nitro-parity'},
+  @{Name='nitro-lan';         Root=$Games; Action='Archive'; Junction=$true; WaitFor='after Interstate 76 Nitro is main and LAN-capable'},
+  # the family LAN pack goes only after the Gold-LAN lane has merged it into the RC stage
+  @{Name='lan';               Root=$Games; Action='Archive'; Junction=$true; WaitFor='Gold-LAN merge into RC stage'},
+  # read-only references that docs/tools name (junction only because tools still name them)
   @{Name='golden';Root=$Games;Action='Archive';Junction=$true}, @{Name='nitro';Root=$Games;Action='Archive';Junction=$true},
   @{Name='nitro-plus-original';Root=$Games;Action='Archive';Junction=$true}, @{Name='_archive';Root=$Games;Action='Archive';Junction=$false},
   @{Name='game';Root=$Lab;Action='Archive';Junction=$true},
@@ -87,7 +90,7 @@ function Resolve-Real($path) {
   if ($i -and ($i.Attributes -band 'ReparsePoint') -and $i.Target) { return @($path, ($i.Target | Select-Object -First 1)) }
   return @($path)
 }
-function Test-Held($name, $full) {
+function Test-Held($name, $full, $alt = '') {
   $why = @()
   foreach ($r in (Resolve-Real $full)) {
     $rx = [regex]::Escape($r) + '(?=[\\"''\s]|$)'
@@ -96,6 +99,7 @@ function Test-Held($name, $full) {
     if (Test-Path (Join-Path $r '.console-test.lock')) { $why += '.console-test.lock present' }
   }
   if ($lockText -and $lockText -match ("(?i)(?<![\w-])" + [regex]::Escape($name) + "(?![\w-])")) { $why += 'named in lab lock/queue file' }
+  if ($alt -and $lockText -and $lockText -match ("(?i)(?<![\w-])(" + $alt + ")(?![\w-])")) { $why += "lane alias ($alt) in lab lock/queue file" }
   $checkQuiet = $true; foreach ($m in $HeldOk) { if ($name -like $m) { $checkQuiet = $false } }
   if ($checkQuiet) {
     $new = Get-ChildItem $full -Recurse -Force -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -115,11 +119,11 @@ if ($Phase -in 'Archive','Rename','All') {
     $it = Get-Item $src -Force
     if ($it.Attributes -band 'ReparsePoint') { Write-Host "skip   $($row.Name): already a junction -> $($it.Target)"; continue }
     if ($row.WaitFor) { $rel = $false; foreach ($m in $Release) { if ($row.Name -like $m) { $rel = $true } }; if (-not $rel) { Write-Host "WAIT   $($row.Name): $($row.WaitFor) (add -Release $($row.Name) once that lane reports)"; continue } }
-    $held = @(Test-Held $row.Name $src)
+    $held = @(Test-Held $row.Name $src $row.Alt)
     if ($held.Count) { Write-Host ("HELD   {0}: {1}{2}" -f $row.Name, ($held -join '; '), $(if ($row.WaitFor) { "  [waiting for: $($row.WaitFor)]" })); continue }
     $gb = Get-GB $src
     $sub = if ($row.Root -eq $Games) { 'Games-I76' } else { 'lab' }
-    $dst = if ($row.Action -eq 'Rename') { $row.To } else { Join-Path $ArchiveRoot "$sub\$($row.Name)" }
+    $dst = if ($row.To) { $row.To } else { Join-Path $ArchiveRoot "$sub\$($row.Name)" }
     Write-Host ("{0,-8}{1} ({2} GB) -> {3}{4}" -f $row.Action.ToUpper(), $row.Name, $gb, $dst, $(if ($row.Junction) { "  + junction $src -> $dst" }))
     if ($row.Action -eq 'Archive') { $tot += $gb }
     if (-not $Execute) { continue }
@@ -133,8 +137,12 @@ if ($Phase -in 'Archive','Rename','All') {
       $a = Get-ChildItem $src -Recurse -Force -File | Measure-Object Length -Sum
       $b = Get-ChildItem $dst -Recurse -Force -File | Measure-Object Length -Sum
       if ($a.Count -ne $b.Count -or $a.Sum -ne $b.Sum) { Write-Host "  VERIFY FAILED ($($a.Count)/$($a.Sum) vs $($b.Count)/$($b.Sum)); source kept"; continue }
-      if (@(Test-Held $row.Name $src).Count) { Write-Host '  became held during the copy; source kept'; continue }
-      Remove-Item $src -Recurse -Force
+      if (@(Test-Held $row.Name $src $row.Alt).Count) { Write-Host '  became held during the copy; source kept'; continue }
+      try { Remove-Item $src -Recurse -Force -ErrorAction Stop } catch {
+        # a copy is verified on D: already; some files (e.g. an in-use .ttf) refuse deletion: remove what can go, report the rest
+        Get-ChildItem $src -Recurse -Force -File -ErrorAction SilentlyContinue | ForEach-Object { try { Remove-Item $_.FullName -Force -ErrorAction Stop } catch { Write-Host "  LEFT BEHIND (locked): $($_.Exception.Message)" } }
+        Write-Host "  REMOVE INCOMPLETE for $($row.Name): verified copy is on $dst; delete the remainder later, no junction made"; continue
+      }
     }
     if ($row.Junction) { New-Item -ItemType Junction -Path $src -Target $dst | Out-Null; Write-Host '  junction created' }
   }
@@ -144,13 +152,12 @@ if ($Phase -in 'Archive','Rename','All') {
 # ---- Cruft in the KEPT folders (moved into $ArchiveRoot\cruft, never deleted) ----
 if ($Phase -in 'Cruft','All') {
   $Kept = @(
-    @{Dir="$Games\release-candidate"; Role='rc'},  @{Dir="$Games\daily-driver"; Role='driver'},
-    @{Dir="$Lab\dev"; Role='dev'},                 @{Dir="$Lab\test"; Role='test'},
-    @{Dir="$Lab\nitro-dev"; Role='nitro-dev'},     @{Dir="$Lab\nitro-test"; Role='nitro-test'},
-    @{Dir="$Games\nitro-lan"; Role='nitro-rc'}
+    @{Dir="$Games\Interstate 76 Gold"; Role='Interstate 76 Gold'}, @{Dir="$Games\Interstate 76 Nitro"; Role='Interstate 76 Nitro'},
+    @{Dir="$Lab\dev-gold"; Role='dev-gold'},   @{Dir="$Lab\test-gold"; Role='test-gold'},
+    @{Dir="$Lab\dev-nitro"; Role='dev-nitro'}, @{Dir="$Lab\test-nitro"; Role='test-nitro'}
   )
   # before the Rename phase the new names do not exist yet: use the old ones so a dry-run lists the right folders
-  $alias = @{ "$Lab\dev"="$Lab\exp-polish2"; "$Lab\test"="$Lab\rc-twin-20261024"; "$Lab\nitro-dev"="$Lab\exp-nitro-owner"; "$Lab\nitro-test"="$Lab\exp-nitro-polish" }
+  $alias = @{ "$Games\Interstate 76 Gold"="$Games\release-candidate"; "$Games\Interstate 76 Nitro"="$Lab\exp-nitro-owner"; "$Lab\dev-gold"="$Lab\exp-polish2"; "$Lab\test-gold"="$Lab\rc-twin-20261024"; "$Lab\dev-nitro"="$Lab\exp-nitro-owner"; "$Lab\test-nitro"="$Lab\exp-nitro-polish" }
   $keepNames = '(?i)\.(u32x)?orig$|^strlkup_orig\.dll$'                       # the real originals stay (strlkup_orig.dll, i76.exe.u32xorig, i76shell.dll.orig)
   $never     = '(?i)^(savegame.*|.*\.sav|.*\.dir|SAVE.*|.*\.def)$|\\(_rollback|saves?|SAVE[^\\]*)\\'
   $staleBat  = '(?i)^PLAY-(TICK-(33|36|39|44|47|66|CHOOSE)|OWNER-(2300-(ATMOS|BIGBLEND|FEATHER|FOG|HAZE|MIRROR|MORPH|SHADE|SMOOTH|SPARSE|TEX|ALL-MENU)|MORPH-STATELESS|NEXT-2300|SKY-.*)|WITH-.*)\.bat$'
@@ -163,16 +170,16 @@ if ($Phase -in 'Cruft','All') {
     $held = @(Test-Held (Split-Path $dir -Leaf) $dir)
     if ($held.Count) { Write-Host "HELD   cruft in $($k.Role) ($dir): $($held -join '; ')"; continue }
     $ver = (Get-ChildItem $dir -Recurse -Depth 1 -Filter 'VERSION*' -File -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
-    $files = @(Get-ChildItem $dir -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName.Substring($dir.Length) -notmatch $never -and $_.Name -notmatch $keepNames })
-    $maps = @($files | Where-Object { $_.Name -like 'input.map.*' } | Sort-Object LastWriteTime -Descending)
+    $files = @(Get-ChildItem $dir -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName.Substring($dir.Length) -notmatch $never -and $_.Name -notmatch $never -and $_.Name -notmatch '(?i)^(savegame|SAVE)' -and $_.Name -notmatch $keepNames })
+    $maps = @($files | Where-Object { $_.Name -like 'input.map.*' } | Sort-Object @{e={$_.Name -match 'known-good'};Descending=$true}, @{e='LastWriteTime';Descending=$true})   # keep one: a known-good backup if there is one, else the newest
     $hit = New-Object System.Collections.ArrayList
     foreach ($f in $files) {
       $n = $f.Name; $why = $null
       if ($n -match '(?i)^strlkup\.dll\..+') { $h = [regex]::Match($n,'[0-9a-f]{8}').Value; if (-not ($h -and $ver -match $h)) { $why = 'proxy backup not named in VERSION' } }
-      elseif ($n -match '\.(pre|driver)-' -or $n -match '\.bak(-|$)') { $why = 'pre-/driver-/bak backup' }
       elseif ($n -like 'input.map.*') { if ($f.FullName -ne $maps[0].FullName) { $why = 'input.map backup beyond the newest' } }
+      elseif ($n -match '\.(pre|driver)-' -or $n -match '\.bak(-|$)') { $why = 'pre-/driver-/bak backup' }
       elseif ($n -match '^(mciproxy|ipxwrapper)\.log$|^histogram\.txt$') { $why = 'log (rotates; recreated by the next run)' }
-      elseif ($n -match $staleBat -and ($IncludeRcLaunchers -or $k.Role -in 'dev','test','nitro-dev','nitro-test')) { $why = 'stale launcher variant' }
+      elseif ($n -match $staleBat -and ($IncludeRcLaunchers -or $k.Role -like 'dev-*' -or $k.Role -like 'test-*')) { $why = 'stale launcher variant' }
       elseif ($f.DirectoryName -match '\\presets$' -and $n -match '(?i)scratch|tmp|test-|\.old') { $why = 'scratch preset' }
       elseif ($f.DirectoryName -match '\\_superseded[^\\]*') { $why = '_superseded (older than the current build)' }
       if ($why) { [void]$hit.Add([pscustomobject]@{ F=$f; Why=$why }) }
@@ -183,7 +190,7 @@ if ($Phase -in 'Cruft','All') {
     $grand += [int64]$sum
     if ($Execute) {
       foreach ($h in $hit) {
-        $rel = $h.F.FullName.Substring($dir.Length+1); $to = Join-Path $ArchiveRoot "cruft\$($k.Role)\$rel"
+        $rel = $h.F.FullName.Substring($dir.Length+1); $to = Join-Path $CruftRoot "$($k.Role)\$rel"
         New-Item -ItemType Directory -Force (Split-Path $to) | Out-Null; Move-Item $h.F.FullName $to -Force
       }
     }
