@@ -51,8 +51,7 @@ Nitro boot with the owner's presets (OWNER-2300-ALL / OWNER-NITRO-ALL).
 - `tools/nitro-sites/manual_sites.txt`: 0x404afb -> 0x433c6b (WndProc focus loss `call ffb_ForcesOff`, read side by side:
   `cmp [0x503e94], 1 / jne / call 0x42a920 / call 0x443610`). `sites_nitro.h` regenerated: 724 rows; the only rows that changed
   are the 9 new ones (column diff against the previous csv, source references aside).
-- NITSHELL.DLL: f7 + k3 `1341fee6` built (lab `builds\parity-20261024
-itshell`) and used in the twin; not installed (s.4).
+- NITSHELL.DLL: f7 + k3 `1341fee6` built (lab `builds/parity-20261024/nitshell`) and used in the twin; not installed (s.4).
 
 ## 3. Tests
 
