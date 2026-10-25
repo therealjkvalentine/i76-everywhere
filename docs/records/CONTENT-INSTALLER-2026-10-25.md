@@ -177,7 +177,7 @@ Nitro half of `-Maps` through the kit (`-NitroDir`; the same code installed main
   may want to ask Debacle (still the plan in CONTENT-FEASIBILITY s.5).
 - German voices and extra music: user-supplied only, private; nothing of either is in the kit or the repo.
 - Michael's Mac kept the first credits text in its `_rollback-maps-20261025` (the refreshed one is installed).
-- Lab twins `content-inst-gold-20261025` and `content-inst-nitro-mp-20261025` deleted at lane end (runs and captures kept); one file is left, `content-inst-nitro-mp-20261025Interstate 76 Nitro Packee_____.ttf`, held open by Windows (the font a Nitro run registered); delete it after the next logoff.
+- Lab twins `content-inst-gold-20261025` and `content-inst-nitro-mp-20261025` deleted at lane end (runs and captures kept); one file is left, `content-inst-nitro-mp-20261025\Interstate 76 Nitro Pack\lee_____.ttf`, held open by Windows (the font a Nitro run registered); delete it after the next logoff.
 
 Commits: i76-everywhere 4ec088e (installer + proxy + packager), 3e5a268 (README), 0ba5940 (packager fix), 76227ce (Build-From-GOG
 dgVoodoo 2.87.5, D3D8/9 on Nitro), this record; lab 8eaaf32 (test scripts).
