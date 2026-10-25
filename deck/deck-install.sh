@@ -1,4 +1,7 @@
 #!/bin/bash
+# SUPERSEDED 2026-10-25 by the Deck Kit (deck/kit/i76-deck-kit.sh, README there; docs/records/DECK-2026-10-25.md): this
+# script fetches unpinned files from main, installs no proxy / launcher / preset, and its dgVoodoo zip is not hash-checked.
+# Kept for reference only; do not hand it to users.
 # Interstate '76 -> Steam Deck: the "stupid easy" installer (BETA).
 # Pattern: NonSteamLaunchers/EmuDeck bootstrapper - zenity-guided, idempotent,
 # self-updating (fetches the repo fresh each run). See docs/STEAMDECK.md.

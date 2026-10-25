@@ -3,6 +3,11 @@
 *Companion to the macOS port. The Deck is Linux, so almost everything we learned on the Mac
 transfers — minus the one layer that caused us the most pain.*
 
+> **2026-10-25: users build it with the Deck Kit.** [`deck/kit/`](../deck/kit/README.md) (`i76-deck-kit.sh install --gog
+> <GOG installer>`; zip from `tools/package-deck-kit.ps1`) replaces `deck/deck-install.sh`: pinned sha256 downloads, the proxy,
+> the rumble shim, the Deck preset + `i76-env.local.sh`, LAN, tested in a fresh folder from GOG's installer. The owner's Deck
+> state, rumble evidence and the "felt it" checklist: [records/DECK-2026-10-25.md](records/DECK-2026-10-25.md).
+
 > **STATUS: INSTALLED on this user's Deck (2026-07-11).** The game (511 MB), dgVoodoo 2.78.2 +
 > our [`dgVoodoo.conf`](../dgVoodoo.conf) (gamma + 4× MSAA + 32-bit), a Deck-tuned `input.map`,
 > a full [controller config](../deck/controller_neptune_i76.vdf), and 5 pieces of
