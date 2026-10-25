@@ -51,9 +51,9 @@ players at once was not tried.
 ## Join (the Macs)
 
 **MELEE > MULTIPLAYER > JOIN > IPX.** Within a few seconds the PC's game is in the list: *Evening Stroll (1/6)* for
-Combat, *[AI Drop-In] Evening Stroll (1/6)* for Arena Drop-In + AI, *[Co-Op] P01 (1/6)* for Co-Op (a PC or Mac still on
-the older proxy 3f27c797 shows these as *ARENA+ [AI Drop-In] ...*; a newer joiner shows an older host's game as
-*[Drop-In] Evening Stroll*). Click it, then **JOIN GAME**. You are in the arena about
+Combat, *[AI] Evening Str (1/6)* for Arena Drop-In + AI (the name is shortened to fit the list; a short arena name shows as
+*[AI Drop-In] ...*), *[Co-Op] P01 (1/6)* for Co-Op. A PC or Mac still on the older proxy 3f27c797 shows these as
+*ARENA+ [AI] Evening Str*. Click it, then **JOIN GAME**. You are in the arena about
 5 seconds later.
 
 ## Keys

@@ -219,7 +219,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | Nitro crashes in HeapFree at the next mission start (after Replay or Abort > new mission), every optional switch off too: found, not fixed | open | `cb890f3`; NITRO-PORT s.11 |
 | Remove the ARENA+ / CO-OP box code (F2 / F3 sites, `=0` branch) after one release | planned | NITRO-MP-DESIGN s.0.5.19 "Left" |
 | The boys' shipped Mac apps take the GAME TYPE build at the next Mac proxy rollout | planned | NITRO-MP-DESIGN s.0.5.19 |
-| Lobby / internet: an unknown species may be hidden by the bz911 lobby; ARENA+ is IPX / LAN only until a species is agreed with the community | blocked (community) | NITRO-MP-DESIGN 5 R3, s.0.5.8 |
+| Lobby / internet: Arena Drop-In / Co-Op (species 7676) are IPX / LAN only until a species is agreed with the community; the INTERNET host form now offers the 5 stock rows only. Stock Combat on bz911 works as a client (hosts, lists); no lobby join here: GOG DLLs publish 128.127.50.1:7, the community WINETS2 drops the last digit of the public IP, no UPnP / hairpin at home; stock host on another PC does not count our joiner (open, n 2) | blocked (community) / open | NITRO-MP-DESIGN 5 R3, s.0.5.8; records/NITRO-LOBBY-2026-10-25.md |
 | Tick in community Nitro games (every player should run the same tick); Macs have no tick yet (24 fps cap) | ruling / open | memory resume 2026-10-21; OTL 2026-10-21 Mac caveats |
 | Nitro in-mission Esc menu by mouse on the PC | not tested | NITRO-PORT s.10 |
 | ARENA+ description wording ("the original '76 missions" vs "the Nitro missions") | ruling | OTL 2026-10-21 ARENA+ results |

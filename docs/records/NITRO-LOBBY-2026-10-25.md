@@ -12,19 +12,23 @@ read. Every test session was named **"i76e test - ignore"** and held 150 s or le
 
 ## Answer in eight lines
 
-1. **Naming:** the joiners now see **"[AI Drop-In] Evening Stroll"** and **"[Co-Op] P01"** (the host names its session; n 1
-   per type, below). The GAME TYPE rows stay "Arena Drop-In + AI" / "Co-Op". No user-visible "ARENA+" is left (main dfb6ef1).
+1. **Naming:** the JOIN list now shows **"[AI] Evening Str (1/4)"** and **"[Co-Op] P01 (1/4)"**: the host names its session,
+   fitted to the list ("[AI Drop-In] Evening Stroll" ran through the count and out of the box, so the long tag is used only
+   when it fits). The GAME TYPE rows stay "Arena Drop-In + AI" / "Co-Op". No user-visible "ARENA+" is left (main dfb6ef1,
+   0599b36; proxy **58df7e36**).
 2. **The community route** is: Nitro + the **interstate76.com "Grab it and Go" `nitro.zip`** set (`anet2.dll` 23160234,
    `dll\WINETS2.DLL` e0009893, `miniupnpc.dll` 510453fa) + a lobby (`911.alink.bz911.net`, `play.interstate76.com`,
    `battlezone1.com`) on UDP 21157 + **UPnP on the host's router**. Peelar's own download host is gone (NXDOMAIN).
 3. **Our build on the lobby works as a client:** it reaches bz911, hosts a stock Combat session that a second client lists
-   through the lobby, and lists sessions (n 6 hosts, n 6 listings, both DLL sets).
+   through the lobby, and lists sessions (6 of 6 valid pairs, both DLL sets, both directions with a stock client).
 4. **No join through the lobby succeeded here, for reasons outside our build:** GOG's own ANet DLLs publish the host as
    `128.127.50.1:7` (a placeholder the lobby passes on unchanged: "Cannot get info on this game", n 2); the community
    WINETS2 has an **off-by-one that drops the last character of the public address** it reads from ipinfo.io (published
    `x.x.x.25` for `x.x.x.253`, 4 of 4 starts), and our router offers **no UPnP gateway**, so a host at home is unreachable
    from outside anyway. Both clients were behind the same NAT; a phone hotspot is needed for the real cross-NAT case.
-5. **Stock compatibility (IPX, the route that works on one network):** see section 5 (matrix).
+5. **Stock compatibility (IPX):** joins work both ways on one machine (5 of 5) and stock-joins-ours across machines (n 1);
+   **open: a stock host on the PC never counted our laptop joiner (n 2) while a stock laptop joiner was counted (n 2)**
+   (section 5a). No proxy fix was made for it yet.
 6. **Fixes:** the INTERNET host form keeps the 5 stock GAME TYPE rows (an Arena / Co-Op session would register species
    7676 on a public server and be listed to nobody); the Nitro Alt-Tab crash that broke every two-window test was found to
    be the proxy's keep-on-blur call (fixed meanwhile by 788554a, proxy d738caac).
@@ -42,16 +46,20 @@ gets; "AI Drop-In" says both halves (AI fill, join any time). The bracket keeps 
 
 | where | before | now (main dfb6ef1) |
 |---|---|---|
-| JOIN list name of a hosted Arena Drop-In + AI session | `ARENA+ Evening Stroll` (prefixed by the JOINER) | `[AI Drop-In] Evening Stroll` (named by the HOST at dpOpen) |
+| JOIN list name of a hosted Arena Drop-In + AI session | `ARENA+ Evening Stroll` (prefixed by the JOINER) | `[AI] Evening Str` (named by the HOST at dpOpen; `[AI Drop-In] <name>` when that fits) |
 | JOIN list name of a hosted Co-Op session | `ARENA+ Evening Stroll` (the name box's arena title, wrong for a scene) | `[Co-Op] P01` (the scene of the selected list row) |
-| a session from an older host (3f27c797 and before) seen by a new joiner | - | `[Drop-In] <name>` |
-| a new host's session seen by an older joiner (the Macs on 3f27c797 until they update) | - | `ARENA+ [AI Drop-In] Evening St` (31 characters) |
+| a session from an older host (3f27c797 and before) seen by a new joiner | - | fitted the same way (`[AI] Evening Str`) |
+| a new host's session seen by an older joiner (the Macs on 3f27c797 until they update) | - | `ARENA+ [AI] Evening Str` |
 | box-mode labels (`I76_NITRO_GAMETYPES=0`, kept for one release) | `ARENA+`, `[ ] ARENA+` | `AI DROP-IN`, `[ ] AI DROP-IN` |
 | docs/NITRO-LAN-WEEKEND.md, music-fix/README.md | `ARENA+ Evening Stroll` | the new names; records stay historical |
 
-Code: `nitro_mp.c` (`nmp_open` calls `nf_session_name` for a 7676 session; the enum callback prefixes only names that do not
-start with `[`), `nitro_form.c` (`nf_session_name`: host form only, 31 characters + NUL in the record's 32-byte field at
-+0x17, the scene from the selected record's file `pNN.msn`). Stock 604 sessions are never renamed on either side. The
+Code: `nitro_mp.c` (`nmp_open` calls `nf_session_name` for a 7676 session; the enum callback fits only names that do not
+start with `[`), `nitro_form.c` (`nf_session_name` / `nf_fit_name` / `nf_text_px`: host form only, the record's 32-byte field
+at +0x17, the scene from the selected record's file `pNN.msn`, the width summed from the shell's own glyph table
+`0x10017e50` = `[font + [font + 0x10 + c*4]]`, budget 144 px). **The list width:** the JOIN list draws "name (n/m)" in one
+string clipped by its box; the first cut (lapN-a1 / c1, "[AI Drop-In] Evening Stroll", ~240 px) ran through the count and
+out of the box, the second (budget 182, lapN-a4) still overlapped; at 144 px "[AI] Evening Str (1/4)" sits inside
+(lapN-a6, screenshot `lapN-a6-list.png`). The old "ARENA+ Evening Stroll" was over the width too. Stock 604 sessions are never renamed on either side. The
 internal log tag stays `ARENA+` (lab parsers read it).
 
 Host boots, one per type (laptop, IPX instance N, proxy wt1 54f15652 = dfb6ef1's tree, read from the proxy log):
@@ -61,8 +69,9 @@ Host boots, one per type (laptop, IPX instance N, proxy wt1 54f15652 = dfb6ef1's
 | lapA-a1 | 5 Arena Drop-In + AI | `session name 'Evening Stroll' -> '[AI Drop-In] Evening Stroll'`, `dpOpen species 7676 '[AI Drop-In] Evening Stroll' -> 0` |
 | lapA-c1 | 6 Co-Op (P01) | `session name 'i76e test - ignore' -> '[Co-Op] P01'` (the name box held a typed name from an earlier run: a typed name is replaced for co-op), `dpOpen species 7676 '[Co-Op] P01' -> 0` |
 | lapA-s1 | 0 Combat | `dpOpen species 025c 'Evening Stroll' -> 0 (stock)`, no rename |
-
-List width as a joiner shows it: section 5 (lapN cells).
+| lapN-a6 (proxy 9aadc2f6 = 0599b36's code) | 5, joiner lists | `'Evening Stroll' -> '[AI] Evening Str' (141 px of 144)`; the joiner's list row `[AI] Evening Str` 7676 1/4 |
+| lapN-a5 (budget 182) | 5, typed name "i76e test - ignore WWWW" | `-> '[AI] i76e test - igno'` (the cut works on any typed name) |
+| lapN-c4 | 6 Co-Op | `-> '[Co-Op] P01' (95 px)`, listed `[Co-Op] P01` 7676 1/4 |
 
 ## 2. The community route (part B1)
 
@@ -125,8 +134,8 @@ list, joins only our test session):
 | lapS-os1 | ours hosts (GOG set), stock GOG lists | yes | **yes**, the stock client lists ours (20 of 20 reads) | not tried (same NAT) | - |
 | lapS-so1 | stock hosts, ours lists | stock host yes | **yes**, ours lists the stock session (20 of 20 reads) | not tried | - |
 
-So: **our build is a working lobby client** (6 hosts registered on bz911 and listed by the other client in 5 of 5 valid
-pairs, both DLL sets, in both stock / ours directions). No pair joined, and every failure is explained by the address in the
+So: **our build is a working lobby client** (hosts registered on bz911 in every cell, listed by the other client in 6 of 6
+valid pairs, both DLL sets, in both stock / ours directions). No pair joined, and every failure is explained by the address in the
 lobby's session record or by the shared NAT, none by our proxy (a stock client fails the same way: lapS cells list only;
 the GOG-set cells fail before any packet is sent).
 
@@ -160,11 +169,50 @@ node never see each other (lapR-so3): L and M got their own keys (`HKCU\Software
 
 | cell | host | joiner | listed | joined (state 5, net 1) | players host / joiner | car / version / mission complaints |
 |---|---|---|---|---|---|---|
-| lapR-so7 | stock | ours | yes | **yes** | 2 / 2 at t+20 and t+60 s | none |
-| lapR-so8 | stock | ours | yes | **yes** | 2 / 2 | none |
-| lapR-os9 | ours | stock | yes (the session listed twice: the instrument's join guard was relaxed for that) | **yes** | 2 / 2 | none |
-| lapR-os10 | ours | stock | | | | |
+| lapR-so7 | stock | ours | yes | **yes** (t+5 s) | host 2 to t+145 s; joiner 2 to t+80 s, then 1 | none |
+| lapR-so8 | stock | ours | yes | **yes** (t+5 s) | host 2 to t+145 s; joiner 2 to t+85 s, then 1 | none |
+| lapR-os9 | ours | stock | yes (listed twice) | **yes** (t+3 s) | 2 / 2 to the end (host t+145, joiner t+95) | none |
+| lapR-os12 | ours | stock | yes | **yes** | host 2 from t+15 to t+55 s, then 1; joiner 2 to the end | none |
+| lapR-os13 | ours | stock | yes | **yes after one retry** (the first JOIN stalled 20 s; CANCEL + JOIN again, as a player would) | host 2 from t+65 to t+105 s, then 1; joiner 2 to the end | none |
+| lapR-os11 | ours | stock | yes | stalled (JOIN clicked 1 s after the host's dpOpen, on a 0/4 record; no retry in that cell) | - | none |
 | lapR-os7, os8 | ours | stock | yes | not tried: the instrument's first guard refused a list with the session twice | - | - |
+| lapR-os1..3, so1..3 | - | - | - | void: one IPXWrapper instance for both processes, then equal nodes; and the Alt-Tab crash (os2, os3) | - | - |
+
+**Joins: 5 of 5 valid cells joined** (stock host / ours joiner n 2, ours host / stock joiner n 3, one after a retry).
+The version check ("6.04"), the mission CRC and the host's car check passed every time, and the proxy sends nothing of its own
+in a 604 session (no 'AH' hello: `nitro-mp` acts only on species 7676).
+
+**Open: the peer count drops on one side after 40-80 s in 4 of 5 joined cells, in both directions** (with a stock host too:
+so7 / so8, where our build is only the joiner), never with an error box. All of these ran two games on ONE desktop, where one
+window is always in the background; the family's PC <-> Mac Combat cells of s.0.5.22 (w55-s1 / s2) held 2 / 2 for 145 s on
+two machines. Cross-machine cells (laptop <-> PC over the home LAN) to settle it: section 5a.
+
+### 5a. Cross-machine (laptop <-> PC, IPXWrapper instance N on the home LAN, UDP 54792)
+
+PC side: the nitro-mp-design lane's copy `exp-nitro-mp` borrowed (GOG unmodified + dgVoodoo + the stock strlkup as
+strlkorg + the instrument, no proxy; it has the Private-network firewall rules a new folder lacks; the pristine
+`exp-nitro-lobby-stock` also needed dgVoodoo on a private desktop: OpenGLide faulted at boot, lapX-5); instrument and
+IPXWrapper N swapped in by `lobby.py` and put back (b577183c / 1ca45be0 read back). Laptop side: `lobby\nitro` (ours,
+proxy f308f8f2 = the fit code with budget 182) or `lobby\stock` on instance N. The PC lock was taken first and the laptop
+side ran inside it (`xcell.sh`, `lobby.py --pre / --post`). Session "i76e test - ignore", Combat, about 3 minutes each.
+
+| cell | host | joiner | listed | joined | host's player count / joiner's |
+|---|---|---|---|---|---|
+| lapX-10 | laptop, OURS | PC, stock | yes | **yes** | 2 from t+25 s to the end / 2 to the end |
+| lapX-7 | PC, stock | laptop, OURS | yes | joiner in the arena (state 5, net 1) | **1 for 200 s** / 2 |
+| lapX-9 | PC, stock | laptop, OURS | yes | joiner in the arena | **1 for 200 s** / 2 |
+| lapX-11 (control) | PC, stock | laptop, STOCK | yes | **yes** | 2 from t+25 to t+170 s / 2 |
+| lapX-12 (control) | PC, stock | laptop, STOCK | yes | **yes** (after one retry) | 2 from t+75 s / 2 |
+| lapX-6, X-8, X-13, X-14 | | | void: the joiner listed 0 sessions (X-6 / X-8 laptop host; X-13 / X-14 with the PC host's instrument net layer on, `NMP_NET=1`, which also showed only the host's own row) | | |
+
+**Open finding (n 2, control n 2): a stock GOG host on another machine does not take our build in as a player** (its count
+stays 1 while our joiner sits in the arena counting 2), where a stock joiner from the same laptop is taken in (2 of 2).
+The other direction works (stock joiner of our host: X-10, and os9 / os12 / os13 on one machine). On one machine a stock
+host did count our joiner (so7 / so8), so the cause is not settled: candidates are the host's car check on the joiner's
+spawn ('SR' -> 0x446120, the "hacked vehicle" path; our copy is main Nitro's twin with its own `addon\` content and the
+proxy's 604-session behaviour) or our joiner's spawn timing. Next cell: the stock PC host with an instrument that logs the
+host's car-check result and the incoming 'SR' / 'ST' packets (not the net layer that hid the session in X-13 / X-14), and
+the same join with the proxy unloaded on our side (`I76_NITRO_MP=0`, then no proxy) to split car data from proxy code.
 
 Stock Combat sessions from our build are byte-compatible with the stock client in both directions: the version check
 ("6.04"), the mission CRC and the host's car check all passed, and the proxy sends nothing of its own in a 604 session
@@ -201,7 +249,7 @@ below are the household's and are not written out.
 
   | client | its own claim in its SYN | the lobby's view (SYN reply) |
   |---|---|---|
-  | GOG anet2 / WINETS2, 12 starts | `128.127.50.1:7` every time (never corrected; also the address its session record carries) | `<public>.253 : 52254..63552` (an ephemeral port per start) |
+  | GOG anet2 / WINETS2, 13 starts (10 with the lobby's reply logged) | `128.127.50.1:7` every time (never corrected; also the address its session record carries) | `<public>.253 : 52254..63552` (an ephemeral port per start) |
   | community set, 4 starts | `<public>.25 : 21131..21207` (ipinfo.io, last digit dropped) | `<public>.253 :` **the same port** (21193 -> 21193, 21177 -> 21177, 21140, 21207: the NAT kept the local port, 4 of 4) |
 - **The session record carries one address**, the host's own claim (`'dT'` table packet: `... 5c 02` species 604, name,
   `adrMaster` 6 bytes); the lobby passes it on unchanged (GOG: `128.127.50.1:7` arrives at the joiner as sent). So the lobby is
@@ -223,10 +271,13 @@ below are the household's and are not written out.
   (owner's call; nothing was changed) and the laptop joining from the hotspot. Without that, internet play stays option (c)
   of INTERNET-PLAY-SPIKE (a relay) rather than the lobby.
 - **Decide:** whether to read the AT&T gateway's UPnP setting (192.168.1.254 > Firewall > NAT/Gaming, device access code).
-- **Installed:** nothing in main Nitro (still proxy 3f27c797, nitshell a32ffba6). The naming change is in main from dfb6ef1 and
-  in the current main proxy build d738caac (061c313, built twice, identical, = the build in lab test-gold); it reaches the
-  owner's copy and the Macs with the next Nitro proxy rollout, which also brings 788554a's Alt-Tab fix. Until the Macs update,
+- **Installed:** nothing in main Nitro (still proxy 3f27c797, nitshell a32ffba6). The naming is in main from dfb6ef1 + 0599b36;
+  the current main proxy build is **58df7e36** (0599b36, built twice, identical); it reaches the owner's copy, the Macs and
+  the kit with the next Nitro proxy rollout, which also brings 788554a's Alt-Tab fix. Not installed by this lane because that
+  build carries every lane's work since 4e40261 with no Nitro multiplayer pass, and section 5a's open finding should be
+  read first. Until the Macs update,
   a Mac joiner of a new PC host reads `ARENA+ [AI Drop-In] Evening St`; a new joiner of an old host reads `[Drop-In] ...`.
 - **Lab state left behind:** laptop `C:\i76-bench\lobby\` (copies nitro / nitro2 / stock, runs\), keys
   `HKCU\Software\IPXWrappeL / M` on the laptop (`ipxlm.ps1 -Remove` deletes them), PC lab copies `exp-nitro-lobby-ours` /
-  `exp-nitro-lobby-stock` (unused: the PC queue never came free), archive `D:\i76-archive\lobby-dl-20261025\`.
+  `exp-nitro-lobby-stock` (the twin was not booted; the stock one got dgVoodoo, its OpenGLide kept in `_gog-renderer\`),
+  archive `D:\i76-archive\lobby-dl-20261025\`. Laptop `C:\i76-bench\lobby\nitro` is on IPXWrapper L, `stock` on M.
