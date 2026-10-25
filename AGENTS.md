@@ -323,3 +323,5 @@ is the one that does not work:
    tester can observe ("no `CRASH` line in `<game folder>\mciproxy.log`"); paths are generic (`<game folder>` = the folder with
    `i76.exe`, repo-relative tools). Before posting, grep the body for names, `C:\Users`, `D:\`, `192.168`, `100.`, host names and
    emails. When the boxes are ticked or the ruling is in, close it with a one-line summary and the record that took the result.
+
+7. **Issue updates are scripted and terse.** One `gh issue comment/close/edit` per change, at most 3 lines: result, commit, record link. No narrative; the record holds the detail. Issue bookkeeping runs on Sonnet.
