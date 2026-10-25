@@ -1,0 +1,108 @@
+120 fps on modern Windows, up from the stock 20 fps cap
+Whole-sim tick locked to the 1997 41.667 ms step (24 ticks/s)
+Draw distance 600 m -> 2300 m, roads and bushes to the horizon
+T05 hill climb with a 2300 m view: 118 fps median
+Physics code untouched: every timing fix acts through the clock
+Canyon jump matches 1997: take-off 49.9 vs 50.0 m/s, 10/10 clear
+Nose-dive off the ramp lip eased 9 %: 0 of 12 wrecks vs 1 of 12
+Mission 5 jump made without nitrous above 20 fps
+Terrain splits geomorph in instead of popping as you drive
+Smooth terrain shading: 16 grey steps -> 32-40, no fps cost
+Far-terrain light/dark flicker at the horizon removed
+No morph shimmer within 100 m of the car
+Far edge feathers into the horizon instead of a hard line
+Bushes fade in over 150 m instead of popping into view
+Brush carried out to 450 m at half density, same bush count
+Rear mirror sees the same world: 100 m -> 1000 m view
+Mirror detail added for about 1 % of the frame budget
+Mirror terrain uses the main view's hi-colour textures
+Dirt roads in the mirror now match the road ahead
+One-pass sky: clouds no longer scroll double speed in cockpit
+Widescreen 21:9 Hor+ camera, HUD kept in proportion
+Terrain, object, shadow and road-texture detail pushed out x4-x8
+Texture-cache render freezes gone: 0 flushes in the soak
+Terrain-to-sky flash fixed when the eye dips under ground
+Near ground no longer drops out for a frame in cockpit view
+Interpolated drawing: 31-33 % frozen frames -> 0 %
+Exact sim clock from QPC instead of the 15.6 ms Windows tick
+Key-to-screen latency about 5 ms (was 10 ms median)
+AI fire rate back near the stock 1997 game loop
+Flame damage at the 1997 rate: car burns in 10.9 s vs 11.2 s
+Oil, dropper and wreck effects run at the 1997 rate per second
+Death camera and sky move at 1997 speed (192 deg/s)
+Sign posts play their hit sound every time: 0 -> 33 of 33
+No camera stutter on key presses during outside cutscenes
+Tracers drawn on every frame of their flight, not just one
+Engine sounds no longer restart every tick (15.4/s -> 0.86/s)
+Slope speed loss tied to the tick, so ramps behave as in 1997
+Ignition and lights never miss a press at 120 fps: 50/50
+Barricades register at 120 fps: 36/36 hits vs 8/28
+Barricade bars collide as bars, not as 3 m spheres
+AI no longer reverses at spawn in the milk-truck mission
+Health % bug fixed: a scratched car no longer reads under 1 %
+Big custom missions load: label table grows 16 -> 272
+Mission-change crash fixed: 5 of 5 transitions, 0 crashes
+Instant melee crash fixed
+Windows 11 update crash at boot (winmmbase) fixed in the proxy
+CD soundtrack plays in missions from GOG's MP3 tracks
+Music resumes where it stopped, with retail 1.0 rules
+Cutscene-music bug fixed with an exact SMACKW32 proxy (Mac)
+AI cars in all 15 stock LAN arenas
+AI cars respawn 5 s after death and score like players
+Co-op campaign over LAN: buddy in his own car, shared enemies
+Co-op scenarios scale up: 8 -> 11 enemies with a second player
+Joiners spawn 20-40 m behind the host, not across the map
+LAN menu CANCEL: 5 s wait -> about 1.4-2 s
+Host-death crash in co-op fixed: 0 crashes in 9 host deaths
+MULTI MELEE HOST / JOIN go straight to IPX LAN play
+Picked arena and broadcast name now match (15/42 -> 42/42)
+PC host and Mac joiner in the same LAN arena via IPXWrapper
+One LAN proxy deployed and read back on all three family Macs
+Pause-menu arrow keys no longer steer the car
+Esc-menu pointer opens mid-screen, not on the bottom edge
+Menu background no longer jumps after Alt-Tab
+No two-frame flicker when leaving a mission
+Barricade hit sound restarts on every new hit
+Stuck font registrations no longer lock the game folder
+Menu pointer follows the mouse on a widescreen panel
+Save screen no longer freezes; saving by mouse works
+Orphaned-bookmark fix: F2 opens the Save screen at slot 0
+Enter/Space close popups; Y, N, Esc answer yes-no prompts
+No 'Insert CD 2' prompt on a normal non-admin launch
+Save index check fixed: real saves no longer flagged truncated
+Force feedback on a modern wheel (Thrustmaster T300RS)
+Custom 14-channel wheel force model from engine telemetry
+False oversteer jerk fixed: wheel reads the engine's steer law
+Pavement smooth, off-road rough: road feel 50 % on tarmac
+Live FFB tuning web page: 14 channel sliders, meters, log
+Windowed play beside the panel: 2560x1070 on a 3440x1440 screen
+Stock wheel forces keep playing through Alt-Tab (12 of 12)
+Wheel FFB crash on firing with no device guarded
+Head tracking: opentrack turns your head in the cockpit
+A held glance key overrides head look, eases back in 150 ms
+Wheel shift layer: about 27 actions from 13 buttons
+CH Fighterstick layer: one trigger fires the linked group
+Modern WASD-style control map installed by default
+Printable 5-page controls sheet built from the live key map
+Stuck arrow-key bug that froze any wheel or stick fixed
+Trainer: god mode, ammo, repair, teleport, live in mission
+Debug tool stores and restores the whole car, bit for bit
+Browser save editor styled as the Build & Repair Form
+Save editor rebuilt on the game's own records: 156 tests pass
+Apple Silicon Mac: Glide renderer under Wine, about 100-120 fps
+One app per Mac, with the Esc menu working by mouse
+Nitro Pack app on all three family Macs beside the Gold app
+Steam Deck: 60 fps Glide, controller layout, guided installer
+Nitro Pack runs our proxy: 117 sites patched, 0 refused
+Nitro physics under the tick match Gold to the bit
+Nitro gets distance-based sound volume back (no A3D needed)
+Nitro exit crash fixed: all 3 font-free calls guarded
+Nitro rename-variant popup takes Enter and the mouse again
+Nitro Esc-menu pointer centred: 9 of 9 opens
+One PLAY.bat for story, LAN, wheel and head look
+PLAY-VANILLA.bat: the stock game one click away
+Per-machine graphics tiers for slower PCs and Macs
+Release candidate installed with rollback, every md5 read back
+Tester zip ships no game files and patches your own GOG copy
+Frame generation without Steam via Lossless Scaling
+1997 community arenas converted so Gold loads and drives them

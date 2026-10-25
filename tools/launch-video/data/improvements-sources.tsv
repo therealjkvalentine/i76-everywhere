@@ -1,0 +1,108 @@
+120 fps on modern Windows, up from the stock 20 fps cap	CHANGELOG.md 2026-10-03 (120 fps [verified in play]); docs/records/FIX-INVENTORY-2026-10-17.md s.0
+Whole-sim tick locked to the 1997 41.667 ms step (24 ticks/s)	docs/records/TICK-FINISH-2026-10-18.md s.19; RC preset OWNER-2300-ALL (I76_SIM_TICK_MS)
+Draw distance 600 m -> 2300 m, roads and bushes to the horizon	docs/RC-20261024.md s.2; RC OWNER-2300-ALL.psd1 (FAR_CLIP/ROAD_DIST/CLUTTER_DIST)
+T05 hill climb with a 2300 m view: 118 fps median	docs/RC-20261024.md s.3 row 9
+Physics code untouched: every timing fix acts through the clock	docs/records/FIX-INVENTORY-2026-10-17.md Summary item 2
+Canyon jump matches 1997: take-off 49.9 vs 50.0 m/s, 10/10 clear	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.20 update)
+Nose-dive off the ramp lip eased 9 %: 0 of 12 wrecks vs 1 of 12	docs/records/TICK-FINISH-2026-10-18.md s.22.6
+Mission 5 jump made without nitrous above 20 fps	CHANGELOG.md 2026-10-02 Added (whole switch set played)
+Terrain splits geomorph in instead of popping as you drive	docs/records/TERRAIN-MORPH-2026-10-21.md s.0; RC preset (I76_TERRAIN_MORPH 0.25 stateless)
+Smooth terrain shading: 16 grey steps -> 32-40, no fps cost	docs/records/TERRAIN-POPS-2026-10-23.md s.0 (I76_SHADE_SMOOTH)
+Far-terrain light/dark flicker at the horizon removed	docs/records/RENDER-FINISH-2026-10-23.md s.1 (BIG off)
+No morph shimmer within 100 m of the car	docs/records/RENDER-FINISH-2026-10-23.md s.2 (I76_TERRAIN_MORPH_NEAR=100)
+Far edge feathers into the horizon instead of a hard line	docs/records/FAR-EDGE-FADE-2026-10-23.md s.15; RC preset I76_GLIDE_FOG 0.75 + FOG_ALPHA
+Bushes fade in over 150 m instead of popping into view	docs/records/RENDER-FINISH-2026-10-23.md s.3 (I76_CLUTTER_ALPHA_FADE=150)
+Brush carried out to 450 m at half density, same bush count	docs/records/FAR-EDGE-FADE-2026-10-23.md s.16 (450 x 0.5)
+Rear mirror sees the same world: 100 m -> 1000 m view	docs/records/MIRROR-DETAIL-2026-10-23.md s.2-3; RC preset I76_MIRROR_FAR 1000
+Mirror detail added for about 1 % of the frame budget	docs/records/MIRROR-DETAIL-2026-10-23.md s.3 (row I 1.2 %), s.7 (0.3 %)
+Mirror terrain uses the main view's hi-colour textures	docs/records/MIRROR-DETAIL-2026-10-23.md s.6-7 (I76_MIRROR_M16)
+Dirt roads in the mirror now match the road ahead	docs/records/RENDER-FINISH-2026-10-23.md s.6 (I76_MIRROR_M16_ROADS)
+One-pass sky: clouds no longer scroll double speed in cockpit	music-fix/skymirror.c header; docs/OWNER-TEST-LIST.md 2026-10-22 pm / 10-23 am
+Widescreen 21:9 Hor+ camera, HUD kept in proportion	CHANGELOG.md v1.1.0 Graphics (I76_ASPECT, HUD squeeze; promotion 2)
+Terrain, object, shadow and road-texture detail pushed out x4-x8	docs/records/REBASELINE-2026-10-21.md s.5
+Texture-cache render freezes gone: 0 flushes in the soak	CHANGELOG.md v1.1.0 Graphics (I76_ZGLIDE_TMUFIX, promotion 11)
+Terrain-to-sky flash fixed when the eye dips under ground	CHANGELOG.md v1.1.0 Graphics (I76_CAM_GROUND_FIX, promotion 14)
+Near ground no longer drops out for a frame in cockpit view	docs/OPEN-FEATURES-2026-10-24.md Appendix G-01 (hull fix, 0 losses n 5)
+Interpolated drawing: 31-33 % frozen frames -> 0 %	CHANGELOG.md 2026-10-02 research update (I76_RENDER_INTERP, capture 014)
+Exact sim clock from QPC instead of the 15.6 ms Windows tick	docs/records/FIX-INVENTORY-2026-10-17.md s.4 (I76_HIRES_CLOCK)
+Key-to-screen latency about 5 ms (was 10 ms median)	docs/records/TICK-FINISH-2026-10-18.md Verdict table + s.19 update
+AI fire rate back near the stock 1997 game loop	docs/records/TICK-FINISH-2026-10-18.md Verdict table (T13 rows)
+Flame damage at the 1997 rate: car burns in 10.9 s vs 11.2 s	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.12 update)
+Oil, dropper and wreck effects run at the 1997 rate per second	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.14 update)
+Death camera and sky move at 1997 speed (192 deg/s)	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.17 update)
+Sign posts play their hit sound every time: 0 -> 33 of 33	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.17 update)
+No camera stutter on key presses during outside cutscenes	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.17 update, 19/44 -> 0/24)
+Tracers drawn on every frame of their flight, not just one	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.10 update)
+Engine sounds no longer restart every tick (15.4/s -> 0.86/s)	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.10 update)
+Slope speed loss tied to the tick, so ramps behave as in 1997	docs/records/TICK-FINISH-2026-10-18.md Verdict (s.20 update, I76_SIM_TICK_SLOPE)
+Ignition and lights never miss a press at 120 fps: 50/50	CHANGELOG.md v1.1.0 Frame rate (I76_INPUT_LATCH, promotion 11)
+Barricades register at 120 fps: 36/36 hits vs 8/28	CHANGELOG.md v1.1.0 Frame rate; FIX-INVENTORY s.4 (I76_COLL_WINDOW=2, promotion 16)
+Barricade bars collide as bars, not as 3 m spheres	docs/records/FIX-INVENTORY-2026-10-17.md s.4 (I76_BREAKABLE_BOX)
+AI no longer reverses at spawn in the milk-truck mission	CHANGELOG.md v1.1.0 Frame rate (I76_AI_BACKAWAY_GRID, promotion 12)
+Health % bug fixed: a scratched car no longer reads under 1 %	CHANGELOG.md 2026-10-02 Changed (I76_FIX_HEALTH_PCT)
+Big custom missions load: label table grows 16 -> 272	docs/records/FIX-INVENTORY-2026-10-17.md s.4 (I76_FIX_LABEL_TABLE)
+Mission-change crash fixed: 5 of 5 transitions, 0 crashes	docs/RC-20261024.md s.10; docs/records/STABILITY-2026-10-24.md s.1
+Instant melee crash fixed	docs/records/TICK-FINISH-2026-10-18.md s.16.2; Verdict (s.17: instant-melee rows 3/3)
+Windows 11 update crash at boot (winmmbase) fixed in the proxy	docs/records/DGVOODOO-UPDATE-2026-10-24.md s.7 (I76_WINMM_HEAPFIX)
+CD soundtrack plays in missions from GOG's MP3 tracks	CHANGELOG.md v1.0.0 (Mac); docs/records/FIX-INVENTORY-2026-10-17.md s.3 (proxy music)
+Music resumes where it stopped, with retail 1.0 rules	RC OWNER-2300-ALL.psd1 (I76_MUSIC_RETAIL / RESUME); OPEN-FEATURES s.2
+Cutscene-music bug fixed with an exact SMACKW32 proxy (Mac)	CHANGELOG.md v1.0.0 Play - Apple Silicon Mac
+AI cars in all 15 stock LAN arenas	docs/records/LAN-FIXES-2026-10-24.md s.1; docs/RC-20261024.md s.11
+AI cars respawn 5 s after death and score like players	docs/records/LAN-FIXES-2026-10-24.md s.1 (5.0 s, 4 of 4)
+Co-op campaign over LAN: buddy in his own car, shared enemies	CHANGELOG.md v1.1.0 (co-op campaign [measured, two machines]); README.md
+Co-op scenarios scale up: 8 -> 11 enemies with a second player	docs/records/LAN-FIXES-2026-10-24.md s.2
+Joiners spawn 20-40 m behind the host, not across the map	docs/records/LAN-FIXES-2026-10-24.md s.3
+LAN menu CANCEL: 5 s wait -> about 1.4-2 s	docs/records/LAN-FIXES-2026-10-24.md s.4 (I76_IPX_PIN)
+Host-death crash in co-op fixed: 0 crashes in 9 host deaths	docs/records/LAN-FIXES-2026-10-24.md s.6
+MULTI MELEE HOST / JOIN go straight to IPX LAN play	RC OWNER-2300-ALL.psd1 (I76_MP_MENU); docs/records/MENU-SOUND-POLISH-2026-10-20.md D
+Picked arena and broadcast name now match (15/42 -> 42/42)	docs/records/MENU-SOUND-POLISH-2026-10-20.md E (I76_ARENA_NAME)
+PC host and Mac joiner in the same LAN arena via IPXWrapper	README.md "Playing together at home" (2026-10-06)
+One LAN proxy deployed and read back on all three family Macs	docs/records/LAN-FIXES-2026-10-24.md s.12
+Pause-menu arrow keys no longer steer the car	docs/records/MENU-SOUND-POLISH-2026-10-20.md F (I76_MENU_KEYS)
+Esc-menu pointer opens mid-screen, not on the bottom edge	docs/records/MENU-SOUND-POLISH-2026-10-20.md H (I76_MENU_PTR_CENTRE)
+Menu background no longer jumps after Alt-Tab	docs/records/MENU-SOUND-POLISH-2026-10-20.md I (I76_MENU_DRAW)
+No two-frame flicker when leaving a mission	docs/records/MENU-SOUND-POLISH-2026-10-20.md B (I76_FADE_NO_FLIP)
+Barricade hit sound restarts on every new hit	docs/records/MENU-SOUND-POLISH-2026-10-20.md C (I76_SIGN_SOUND_RESTART)
+Stuck font registrations no longer lock the game folder	docs/records/MENU-SOUND-POLISH-2026-10-20.md G (I76_FONT_PRIVATE)
+Menu pointer follows the mouse on a widescreen panel	CHANGELOG.md v1.1.0 Menus and pointer (gate 23/0, promotion 15)
+Save screen no longer freezes; saving by mouse works	docs/VERIFIED-FIXES.md Saves (u32x ghosting call, owner-confirmed)
+Orphaned-bookmark fix: F2 opens the Save screen at slot 0	docs/RC-20261024.md s.1 (i76shell 2ab4ca90, OTL item 48)
+Enter/Space close popups; Y, N, Esc answer yes-no prompts	docs/records/FIX-INVENTORY-2026-10-17.md s.3 (i76shell F7, K3)
+No 'Insert CD 2' prompt on a normal non-admin launch	CHANGELOG.md 2026-10-02 Added (I76_CWD_FIX, I76_CD_FAKE)
+Save index check fixed: real saves no longer flagged truncated	CHANGELOG.md 2026-10-02 Fixed (LAUNCHER.ps1 savegame.dir)
+Force feedback on a modern wheel (Thrustmaster T300RS)	CHANGELOG.md detailed log (FORCE FEEDBACK WORKS)
+Custom 14-channel wheel force model from engine telemetry	docs/RC-20261024.md s.8 (ffb-interposer 14 channels)
+False oversteer jerk fixed: wheel reads the engine's steer law	docs/records/FFB-WHEEL-2026-10-24.md s.3 (82 % of samples misread before)
+Pavement smooth, off-road rough: road feel 50 % on tarmac	docs/records/FFB-WHEEL-2026-10-24.md s.2 (PavementScale 0.5)
+Live FFB tuning web page: 14 channel sliders, meters, log	docs/records/FFB-PANEL-2026-10-25.md s.1 (http://127.0.0.1:17691/)
+Windowed play beside the panel: 2560x1070 on a 3440x1440 screen	docs/records/FFB-PANEL-2026-10-25.md s.2
+Stock wheel forces keep playing through Alt-Tab (12 of 12)	docs/records/FFB-FOCUS-2026-10-24.md s.2-3 (keep-on-blur)
+Wheel FFB crash on firing with no device guarded	docs/records/LAN-FIXES-2026-10-24.md s.6 (I76_FFB_GUARD)
+Head tracking: opentrack turns your head in the cockpit	docs/RC-20261024.md s.7; docs/records/CONTROLS-2026-10-24.md
+A held glance key overrides head look, eases back in 150 ms	docs/records/CONTROLS-2026-10-24.md A1
+Wheel shift layer: about 27 actions from 13 buttons	CHANGELOG.md detailed log (wheel buttons to the AHK layer)
+CH Fighterstick layer: one trigger fires the linked group	docs/RC-20261024.md s.7 (i76-ch-fighterstick.ahk)
+Modern WASD-style control map installed by default	CHANGELOG.md 2026-10-03 (Controls: the installer writes WASD map)
+Printable 5-page controls sheet built from the live key map	README.md Start here (controls PDF); CHANGELOG 2026-10-03
+Stuck arrow-key bug that froze any wheel or stick fixed	CHANGELOG.md detailed log (RStickGlance latent AHK bug)
+Trainer: god mode, ammo, repair, teleport, live in mission	CHANGELOG.md 2026-10-02 Added (trainer_live_test 13/13)
+Debug tool stores and restores the whole car, bit for bit	docs/records/DEBUG-TOOL-2026-10-20.md s.0 (n 14 of 14 exact)
+Browser save editor styled as the Build & Repair Form	CHANGELOG.md v1.0.0 Tools; README.md
+Save editor rebuilt on the game's own records: 156 tests pass	CHANGELOG.md 2026-10-03 / 2026-10-02 Changed (46 saves byte-exact)
+Apple Silicon Mac: Glide renderer under Wine, about 100-120 fps	README.md platform table; CHANGELOG.md v1.1.0 Mac and Steam Deck
+One app per Mac, with the Esc menu working by mouse	docs/records/MAC-CONVERGE-2026-10-20.md s.0
+Nitro Pack app on all three family Macs beside the Gold app	docs/records/NITRO-MAC-2026-10-21.md s.0
+Steam Deck: 60 fps Glide, controller layout, guided installer	CHANGELOG.md v1.1.0 Mac and Steam Deck; v1.0.0 Play - Steam Deck
+Nitro Pack runs our proxy: 117 sites patched, 0 refused	docs/records/NITRO-PORT-2026-10-21.md Answer
+Nitro physics under the tick match Gold to the bit	docs/records/NITRO-PORT-2026-10-21.md Answer (T05 jump, n 3 each)
+Nitro gets distance-based sound volume back (no A3D needed)	docs/records/NITRO-POLISH-2026-10-24.md Answer #3 (I76_NITRO_DS3D)
+Nitro exit crash fixed: all 3 font-free calls guarded	docs/records/STABILITY-2026-10-24.md s.2
+Nitro rename-variant popup takes Enter and the mouse again	docs/records/NITRO-POLISH-2026-10-24.md Answer #5 (NITSHELL F7)
+Nitro Esc-menu pointer centred: 9 of 9 opens	docs/records/NITRO-PARITY-2026-10-24.md s.1 (I76_MENU_PTR_CENTRE)
+One PLAY.bat for story, LAN, wheel and head look	docs/records/LAUNCHERS-2026-10-24.md s.1 (installed s.4)
+PLAY-VANILLA.bat: the stock game one click away	docs/records/LAUNCHERS-2026-10-24.md s.1, s.4
+Per-machine graphics tiers for slower PCs and Macs	docs/records/LAUNCHERS-2026-10-24.md s.1 (local.psd1, tier files)
+Release candidate installed with rollback, every md5 read back	docs/RC-20261024.md s.10; docs/records/LAN-FIXES-2026-10-24.md s.11
+Tester zip ships no game files and patches your own GOG copy	docs/records/SCOTT-BUILD-2026-10-23.md s.0-1
+Frame generation without Steam via Lossless Scaling	CHANGELOG.md detailed log (Frame generation without Steam)
+1997 community arenas converted so Gold loads and drives them	docs/CONTENT-FEASIBILITY-2026-10-25.md s.0, s.2 (arena-pack.py, Rage County)

@@ -1,0 +1,49 @@
+{
+  "name": "draft-v1 (2026-10-25)",
+  "bg": "0x140c08",
+  "music_in": 0,
+  "theme_in": 0,
+  "segments": [
+    { "type": "card", "dur": 3.5, "lines": [["INTERSTATE '76", "Title"], ["EVERYWHERE", "Big"], ["the 1997 game, fixed for 2026", "Sub"]] },
+
+    { "type": "sbs", "title": "SAME ROUTE. SAME CAR. SAME 1997 TICK.",
+      "caption": "Draw distance 600 m -> 2300 m   |   20 fps -> 120 fps   |   whole sim locked to the 1997 41.667 ms step",
+      "a": { "src": "shot:route-stock", "in": 2.5, "out": 16.5, "label": "STOCK (GOG, 20 FPS LIMITER)", "counters": true, "tag": "600\\hM" },
+      "b": { "src": "shot:route-all",   "in": 2.5, "out": 16.5, "label": "I'76 EVERYWHERE (PLAY.BAT)",  "counters": true, "tag": "2300\\hM" } },
+
+    { "type": "sbs", "title": "THE FAR EDGE FADES INTO THE SKY",
+      "caption": "The last 25 % of the 2300 m view feathers to transparent instead of a hard wall (cost: none measured, n 2)",
+      "a": { "src": "shot:fade-before", "in": 0.5, "out": 6.5, "label": "HARD EDGE", "sub": "fog\\hoff" },
+      "b": { "src": "shot:route-all",   "in": 0.5, "out": 6.5, "label": "FEATHERED", "sub": "I76_GLIDE_FOG\\h0.75" } },
+
+    { "type": "sbs", "title": "TERRAIN THAT MORPHS INSTEAD OF POPPING",
+      "caption": "Level-of-detail splits blend in over 25 % of their ring; shading steps 16 -> 32-40 grey levels",
+      "a": { "src": "shot:morph-before", "in": 4.0, "out": 8.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "STOCK SPLITS" },
+      "b": { "src": "shot:route-all",    "in": 4.0, "out": 8.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "GEOMORPH" } },
+
+    { "type": "sbs", "title": "A REAR MIRROR THAT SEES",
+      "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %)",
+      "a": { "src": "shot:mirror-before", "in": 3.0, "out": 9.0, "crop": [1180, 300, 420, 190], "label": "STOCK MIRROR" },
+      "b": { "src": "shot:mirror-after",  "in": 3.0, "out": 9.0, "crop": [1180, 300, 420, 190], "label": "OURS" } },
+
+    { "type": "still", "dur": 6.5, "img": "C:\\Users\\james\\i76-uncap-lab\\captures\\coop-list-20261018\\a-list12.png",
+      "zoom_to": [0.2, 0.42, 2.0], "x": 0, "title": "LAN NIGHT, FIXED",
+      "notes": ["CO-OP SCENES", "AI CARS IN\\NEVERY ARENA", "JOINERS SPAWN\\N27 M FROM THE HOST", "CANCEL: 5 S -> 1.4-2.1 S"] },
+
+    { "type": "panel", "title": "WHEEL FORCE FEEDBACK, REBUILT",
+      "caption": "14 channels from the engine's own state  -  live tuning page beside the game",
+      "game":  { "src": "shot:route-all", "in": 4.0, "out": 13.0, "counters": true, "tag": "" },
+      "panel": { "src": "C:\\Users\\james\\i76-uncap-lab\\captures\\launch-video\\raw\\ffb-panel\\panel.mp4", "in": 0.5 } },
+
+    { "type": "crawl", "dur": 9.0, "file": "data/improvements.txt", "title": "ALSO IN THIS BUILD",
+      "aside": "(pause to read. we did.)" },
+
+    { "type": "card", "dur": 6.0, "lines": [
+      ["THANK YOU", "Head"],
+      ["Community map authors  -  Dege (dgVoodoo 2)  -  IPXWrapper", "Sub"],
+      ["opentrack  -  AutoHotkey  -  vahokif (I26, prior art)", "Sub"],
+      ["Interstate '76 (c) 1997 Activision. Fan project, not affiliated.", "Small"]] },
+
+    { "type": "card", "dur": 3.5, "lines": [["INTERSTATE '76 EVERYWHERE", "Big"], ["github.com/therealjkvalentine/i76-everywhere", "Sub"]] }
+  ]
+}
