@@ -60,7 +60,9 @@ static ffr_fnpd o_eff_getp, o_eff_setp;
 static ffr_fndd o_eff_start;
 static ffr_fn0 o_eff_stop, o_eff_download;
 static ffr_fnp o_eff_status;
-static int g_ffr_keep_blur;
+static int g_ffr_keep_blur, g_ffr_blurred;
+static DWORD g_ffr_n_blur;
+static void ffr_count_playing(int *playing, int *known);
 
 /* the effects the DLL holds, as far as the hooks saw them */
 #define FFR_MAXEFF 64
@@ -243,7 +245,14 @@ static __declspec(naked) void ffr_null_stub(void) {
         cmp dword ptr [eax + 8], ebp
         je skip
         jmp dword ptr [g_ffr_sfr_4bf]
-    nul:
+    nul:                                            /* count only where the stock code would have dereferenced the NULL slot */
+        mov eax, [esp + 0x38]
+        cmp dword ptr [eax + 8], ebp
+        je skip
+        mov ecx, [esp + 0x18]
+        mov eax, [esp + 0x24]
+        cmp eax, [ecx]
+        je skip
         lock inc dword ptr [g_ffr_null_skips]
     skip:
         jmp dword ptr [g_ffr_sfr_547]
@@ -311,6 +320,19 @@ static void __cdecl ffr_tick(void) {
         }
     }
     act = ffr_game_active(); frc = ffr_forces_on();
+    if (g_ffr_blurred && act) {                     /* the first FFB call after a kept-on blur: the activation's ffb_ForcesOn */
+        DWORD st = 0; HRESULT r = o_dev_ffstate(g_ffr_dev, &st); int pl, kn;
+        ffr_count_playing(&pl, &kn); g_ffr_blurred = 0; g_ffr_n_cycles++;
+        mlog("  ffb-focus: focus back #%lu (tick %lu): GetForceFeedbackState -> 0x%08lX state 0x%lX%s; effects STILL playing %d of %d known (nothing restarted yet); since the previous return Start ok %lu fail %lu, CreateEffect ok %lu fail %lu, SetParameters ok %lu, NULL slots skipped %ld",
+             (unsigned long)g_ffr_n_cycles, (unsigned long)g_ffr_tick, (unsigned long)r, (unsigned long)st,
+             r == FFR_DIERR_NOTEXCL || r == FFR_DIERR_NOTACQ ? " = NOT ACQUIRED" : "", pl, kn,
+             (unsigned long)g_ffr_cyc_start_ok, (unsigned long)g_ffr_cyc_start_fail, (unsigned long)g_ffr_cyc_create_ok,
+             (unsigned long)g_ffr_cyc_create_fail, (unsigned long)g_ffr_cyc_setp_ok, (long)(g_ffr_null_skips - (LONG)g_ffr_cyc_null));
+        g_ffr_cyc_start_ok = g_ffr_cyc_start_fail = g_ffr_cyc_create_ok = g_ffr_cyc_create_fail = g_ffr_cyc_setp_ok = 0;
+        g_ffr_cyc_null = (DWORD)g_ffr_null_skips;
+        if (r == FFR_DIERR_NOTEXCL || r == FFR_DIERR_NOTACQ) g_ffr_lost = 1;
+        g_ffr_need_check = 1;
+    }
     if (act != g_ffr_prev_active || frc != g_ffr_prev_forces) {
         DWORD st = 0; HRESULT r = o_dev_ffstate(g_ffr_dev, &st); int pl, kn;
         ffr_count_playing(&pl, &kn);
@@ -345,6 +367,15 @@ static void __cdecl ffr_tick(void) {
     }
 }
 
+/* keep-on-blur: what WM_ACTIVATEAPP 0 calls instead of ffb_ForcesOff (0x445b60). The forces stay on; this only records the
+ * focus loss (device state, effects playing), so the activation tick can say what survived the time in the background. */
+static void __cdecl ffr_on_blur(void) {
+    int pl = 0, kn = 0; DWORD st = 0; HRESULT r = 0;
+    g_ffr_blurred = 1; g_ffr_n_blur++;
+    if (g_ffr_state == 1 && g_ffr_dev) { r = o_dev_ffstate(g_ffr_dev, &st); ffr_count_playing(&pl, &kn); }
+    mlog("  ffb-focus: focus lost #%lu (tick %lu): forces kept ON; GetForceFeedbackState -> 0x%08lX state 0x%lX; effects playing %d of %d known",
+         (unsigned long)g_ffr_n_blur, (unsigned long)g_ffr_tick, (unsigned long)r, (unsigned long)st, pl, kn);
+}
 static void ffr_config(void) {
     if (g_ffr_on >= 0) return;
     g_ffr_on = env_flag("I76_FFB_REACQUIRE", 8, 1) == 1;
@@ -354,10 +385,11 @@ static void ffr_config(void) {
         /* WM_ACTIVATEAPP 0 calls ffb_ForcesOff (`call 0x445b60` at 0x404afb): the DLL then STOPALLs and releases the weapon
          * slots. Skipped: the device (DISCL_EXCLUSIVE | DISCL_BACKGROUND) and its effects stay with the game while it is in the
          * background or paused; the activation's ffb_ForcesOn (0x404aa7) then finds the forces on already. */
-        static const BYTE call_off[5] = { 0xE8, 0x60, 0x10, 0x04, 0x00 }, nop5[5] = { 0x90, 0x90, 0x90, 0x90, 0x90 };
-        g_ffr_keep_blur = patch_bytes(0x00404afb, call_off, nop5, 5, "ffb-keep-on-blur");
-        mlog("  ffb-focus: keep-on-blur: WM_ACTIVATEAPP 0 no longer turns the forces off (0x404afb call 0x445b60 -> nop): %s",
-             g_ffr_keep_blur && *(const BYTE *)(DWORD_PTR)NA(0x00404afb) == 0x90 ? "read back ok" : "NOT applied");
+        static const BYTE call_off[5] = { 0xE8, 0x60, 0x10, 0x04, 0x00 }; BYTE w[5] = { 0xE8 };
+        LONG rel = (LONG)((DWORD_PTR)ffr_on_blur - ((DWORD_PTR)NA(0x00404afb) + 5)); memcpy(w + 1, &rel, 4);
+        g_ffr_keep_blur = patch_bytes(0x00404afb, call_off, w, 5, "ffb-keep-on-blur");
+        mlog("  ffb-focus: keep-on-blur: WM_ACTIVATEAPP 0 no longer turns the forces off (0x404afb call 0x445b60 -> call ffr_on_blur, which only logs): %s",
+             g_ffr_keep_blur && memcmp((const void *)(DWORD_PTR)NA(0x00404afb), w, 5) == 0 ? "read back ok" : "NOT applied");
     }
     mlog("  ffb-focus: armed (re-acquire %s, NULL-slot guard %s, keep-on-blur %s, trace %s); hooks go in at the first ffb_PlayEffect once I7_SFRCE.DLL is loaded",
          g_ffr_on ? "on" : "off", g_ffr_on ? "on" : "off", g_ffr_keep_blur ? "on" : "off", g_ffr_trace ? "on" : "off");
