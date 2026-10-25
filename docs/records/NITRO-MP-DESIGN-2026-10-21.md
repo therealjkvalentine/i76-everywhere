@@ -1014,6 +1014,53 @@ start again. A stub-side retry was not built (the stub cannot tell this hang fro
 - Lab trap worth keeping: heredocs written through this agent's Bash tool on the PC collapsed `\\` to `\` (a broken sed escape, Wine
   registry keys written with single backslashes, caught and fixed); use the Edit tool or chr(92) for backslashes.
 
+### 0.5.22 Final proxy 3f27c797 on the PC copy and all three Macs; second-mission matrix (2026-10-25 00:00 - 02:40, nitro-mp-design test lane)
+
+Coordinator rulings of the night: one playable Nitro copy (`exp-nitro-owner`, to be renamed `Games\I76\Interstate 76 Nitro`; `nitro-lan` retires, host launcher `PLAY-NITRO-ALL.bat`);
+the FINAL Nitro proxy is a build of the latest main after the Nitro parity lane reported. Lab: `builds\nitro-rel-20261024` (lab commits 2d199e2, dfa30a5), captures `captures\nitro-rel-20261024`.
+
+**Proxy.** `Strlkup.dll` **3f27c797** = main 4e40261 (`build.ps1 -Ref`, twice, byte-identical: lab `builds\nitro-port-20261021\final-4e40261-r1`, `-r2`). It carries soundmix.c (8ba6f70), the parity
+ports (5b8e97d) and the stability / winmm fixes. 53944fb2 was superseded before any install. A first matrix with it was void for two cells (w53-a1, w53-c1): the MacBook ran the Mac-graphics lab's
+Gold games and `wk-join.sh` refuses while any i76.exe runs (nothing was stopped). w54-a1 (53944fb2, Arena) passed; none of these are counted below.
+
+**PC <-> MacBook, host exp-nitro-mp (IPXWrapper N, host instrument drv2 8d298467, proxy 3f27c797), joiner = null-audio clone of the MacBook's shipped app with proxy 3f27c797; NMP_ROUNDS=2
+(round 2 = the session's second mission: next arena n02 / next co-op scene p02), n 2 per game type:**
+
+| tag | game type | rounds reached (host / joiner) | players | CRASH lines (host / Mac) | AI agreement mission 1 / 2 (median, p90, max) |
+|---|---|---|---|---|---|
+| w55-a1 | Arena Drop-In + AI | 2 / 2 | 6 | 0 / 0 | 4.6 10.8 11.9 / 3.1 8.2 11.6 |
+| w55-a2 | Arena Drop-In + AI | 2 / 2 | 6 | 0 / 0 | 4.5 8.3 14.8 / 2.8 7.7 16.7 |
+| w55-c1 | Co-Op | 2 / 2 | 2 | 0 / 0 | - (no AI rows) |
+| w55-c2 | Co-Op | 2 / 2 | 2 | 0 / 0 | - |
+| w55-s1 | Combat | 2 / 2 | 2 | 0 / 0 | - (stock: no AI) |
+| w55-s2 | Combat | 2 / 2 | 2 | 0 / 0 | - |
+
+6 of 6 pass: both joined, the host handed over at the end of round 1 and both went back through the menus into the second mission (state 5, net 1 at t+145 s of round 2), 0 CRASH on either side.
+Positions agree in the same order as 0.5.20 (medians 2.8-4.6). The font guard fired on the second mission in the host logs (1 skip per cell).
+
+**Installed (md5 read back):**
+
+| where | proxy | nitshell | other | kept |
+|---|---|---|---|---|
+| `i76-uncap-lab\exp-nitro-owner\Interstate 76 Nitro Pack` | 3f27c797 | a32ffba6 (the polish lane's, already there) | + ipxwrapper.dll b8464944 (instance N), mswsock.dll c18759b2, wsock32.dll 70e4a652, empty NVCL; dgVoodoo.conf / input.map / nitplyr.def stay the owner's | `strlkup.dll.9e6a2378`, `.53944fb2`, `.e78aedd5-pre-53944fb2`, `.0c4f109c-pre-stab` |
+| MacBook `Applications/Sikarugir/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 (was f804f50d) | launcher e61e4e57, gdi key 1, Minimum x2 | `app-backup-20261025-020736` (was proxy 6208d3ad) |
+| Michael `Games/Interstate76-MP/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 | same | `app-backup-20261025-020751` (was 6208d3ad) |
+| Andrew `Games/Interstate76-MP/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 | launcher 384a0f8e -> e61e4e57, gdi key written, Minimum x2 | `app-backup-20261025-020752` (was proxy ad904941, stub 384a0f8e) |
+
+Mac installs by `mac/apply-update2.sh` (= apply-update.sh with the proxy and the nitshell as payload, `PXID` / `SHID`; the nitshell is in the backup clone of the game folder and `--restore` puts it back); both boys' Macs were idle
+(Michael 4315 s, Andrew 17310 s, no game). `update-andrew.sh` was not used (it carries 0c4f109c); apply-update2 does the same three changes. The PC `Games\I76\nitro-lan` was not touched (retiring).
+
+**Final check, one join per updated Mac** (w56-all: PC host, Arena Drop-In + AI, from exp-nitro-mp with nitshell a32ffba6 swapped in for the run and restored after, proxy 3f27c797; the owner's own folder was not used as the host
+because the host instrument has to replace its `strlkup.dll`; the three Macs joined at once from fresh clones of their updated apps):
+
+| Mac | joined | players seen | CRASH | notes |
+|---|---|---|---|---|
+| MacBook | yes | 6 | 0 | |
+| Andrew | yes | 6 | 0 | first run of the final proxy on his Mac |
+| Michael | **no**: "the join form never came back" | - | 0 | the known stall (Local Network not allowed on his Mac); someone must click Allow once |
+
+n 1 each. PC + MacBook + Andrew held 6 players together in the same cell.
+
 ### 0.6 Changes to sections 3.4, 4 and 5
 
 - **Lists (3.4):** dropped: the 17 Gold co-op scenes and the 7 Gold scenarios (combined content, owner ruling), the

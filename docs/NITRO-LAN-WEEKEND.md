@@ -11,11 +11,13 @@ network. Written 2026-10-24 early morning; how it was built and tested:
 
 | machine | start it with |
 |---|---|
-| Windows PC (host) | `PLAY-NITRO-LAN.bat` in `C:\Users\james\Games\I76\nitro-lan` |
+| Windows PC (host) | **`PLAY-NITRO-ALL.bat`** in the one Nitro folder (`Games\I76\Interstate 76 Nitro`, the former `exp-nitro-owner`; it does single player and LAN, the IPXWrapper DLLs are in it). `nitro-lan` is retired. |
 | Michael's Mac, Andrew's Mac | **Interstate 76 Nitro** in `Games` > `Interstate76-MP` (the folder in your home folder) |
 | James's MacBook | **Interstate 76 Nitro** in `Applications` > `Sikarugir` |
 
 Everyone must be on the **home network** (same Wi-Fi or wired). Not Tailscale.
+
+**Update 2026-10-25 02:30:** all three Macs (James's MacBook, Michael's, Andrew's) now have the final Nitro proxy `Strlkup.dll` **3f27c797** (main 4e40261) and the patched `nitshell.dll` a32ffba6, launcher e61e4e57 and the no-3D-menus setting. **Andrew's Mac is updated** (it had proxy ad904941 and launcher 384a0f8e; backup `app-backup-20261025-020752` in `~/i76-nitro-mp-lab` there). Michael's backup is `app-backup-20261025-020751`, the MacBook's `app-backup-20261025-020736`. Michael's Mac still needs the Local Network Allow click (his join stalled again in the final check).
 
 Tested overnight, with nobody at the Macs: the PC hosting and James's MacBook joining every game type, 2 of 2 each, no
 crashes. Michael's Mac could not join until someone clicks Allow there (next section). Andrew's Mac was asleep, and three
