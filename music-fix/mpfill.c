@@ -51,7 +51,7 @@
  * copy away from its spot is adopted (its original's team, the attack tick, as if brought in here) while its copy number
  * is within this host's joiner count (and co-op scaling is on), else parked (spot, engine off, team 0). Wrecks stay.
  * A host that never was a joiner in the mission (every game without a migration) never runs it. */
-static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log, g_mpf_test, g_mpf_fill_team = 1;
+static int g_mpf_fill = -1, g_mpf_scale = 1, g_mpf_scale_max = 3, g_mpf_log, g_mpf_test, g_mpf_fill_team = 1, g_mpf_scale_near = 500;
 static int g_mpf_vac[8];                                     /* AI cars in play standing in for a human of team t */
 static int g_mpf_leftq[16], g_mpf_leftn, g_mpf_joinq[16], g_mpf_joinn;   /* teams of humans who left / joined, not yet served */
 static WORD g_mpf_sid[16]; static BYTE g_mpf_steam[16]; static int g_mpf_snap_h = -1;   /* the humans at the last count */
@@ -387,6 +387,18 @@ static void mpf_coop_tick(void) {
     k = h - 1; if (k > g_mpf_scale_max) k = g_mpf_scale_max;
     if (k > 0 && now - last >= 250) {                        /* bring copies of engaged live originals */
         last = now;
+        /* 2026-10-24 (owner: extra enemies seemed to come only for some of them; lab: Oil Well Well 1 copy of 24 in 90 s,
+         * Scene 5 1 of 39): an original also counts as engaged once a live human is within I76_COOP_SCALE_NEAR m
+         * (default 500; 0 = only the behaviour rule) - an enemy the humans meet brings its copies whatever its script does */
+        if (g_mpf_scale_near > 0)
+            for (i = 0; i < g_mpf_n; i++) {
+                mpf_tag_t *t = &g_mpf[i]; BYTE *orig = t->kind == 2 ? mpf_obj(t->oli) : NULL;
+                if (!orig || g_mpf_engaged[t->oli] || !aim_alive(orig) || mpf_parked_obj(orig)) continue;
+                if (mpf_near_human(orig) < (double)g_mpf_scale_near * g_mpf_scale_near) {
+                    g_mpf_engaged[t->oli] = 1;
+                    mlog("  mpfill: '%.8s' (label %d) engaged - a human within %d m", (char *)orig, t->oli, g_mpf_scale_near);
+                }
+            }
         for (i = 0; i < g_mpf_n; i++) {
             mpf_tag_t *t = &g_mpf[i]; BYTE *o = mpf_obj(t->li), *orig = mpf_obj(t->oli);
             if (t->state != MPF_PARKED || t->j > k || !o || !orig || !g_mpf_engaged[t->oli] || !aim_alive(orig) || !aim_alive(o) || mpf_parked_obj(orig)) continue;
@@ -459,6 +471,7 @@ static void apply_mpfill(void) {
     g_mpf_fill = -1;
     if (GetEnvironmentVariableA("I76_AIMELEE_FILL", v, sizeof(v)) && v[0] && _stricmp(v, "auto") != 0) g_mpf_fill = atoi(v);
     g_mpf_scale = env_flag("I76_COOP_SCALE", 8, 1);
+    g_mpf_scale_near = env_int("I76_COOP_SCALE_NEAR", 8, 500); if (g_mpf_scale_near < 0) g_mpf_scale_near = 0;
     g_mpf_scale_max = env_int("I76_COOP_SCALE_MAX", 8, 3); if (g_mpf_scale_max < 0) g_mpf_scale_max = 0; if (g_mpf_scale_max > 8) g_mpf_scale_max = 8;
     g_mpf_log = env_flag("I76_MPF_LOG", 8, 0);
     g_mpf_test = env_flag("I76_COOP_SCALE_TEST", 8, 0);

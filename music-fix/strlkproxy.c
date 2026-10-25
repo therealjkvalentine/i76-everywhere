@@ -4117,20 +4117,28 @@ static char *coop_spawn_near_host(unsigned id, int idx, int type, void *data, si
              GetTickCount(), id, sqrt(dx * dx + dz * dz), x, y, z, (int)(atan2(fx, fz) * 57.29578), how, idx); }
     return o;
 }
+/* The HOST's respawn in a co-op scene / scenario (records/LAN-FIXES-2026-10-24.md s.6). The host's car there is the
+ * mission's player object (adopted in coop_spawn), the one the script names; a respawn builds a new car and removes it
+ * (0x451180: 0x4575d0 + 0x465310), the script's next action on "player" resolves NULL and the game dies (the owner's
+ * host crash at +0x684BD; lab: +0x9D669 in the script camera action, n 1 of 1 with a host respawn request). The host's
+ * death already fails the mission and the chain reloads it for everybody (~7 s), so the REQUEST is refused: the respawn
+ * request 0x451570 (the death view's key 0x44e0e3, 0x4654a7, 0x495a84) begins with `call 0x452d20` (network game?); that
+ * call answers 0 on the host of a co-op mission while its car is the adopted mission player object, so the request
+ * returns without setting the pending flag 0x540d8c or sending anything. (Returning the old car from 0x451180 instead
+ * left the tick's pose list on a freed object: Strlkup wst_swap_in, lab n 1.) */
+static DWORD g_coop_rq_next = 0x00452d20;
+static int __cdecl coop_respawn_gate(void) {
+    WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
+    if (g_coop_chain && g_coop_adopt && *(volatile int *)0x00541030 && host && me == host && g_coop_mp_obj && coop_host_car() == g_coop_mp_obj &&
+        (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0))) {
+        static DWORD said;
+        if (GetTickCount() - said > 3000) { said = GetTickCount(); mlog("  coop-chain: the host's respawn request is refused in a co-op mission - its car is the mission's player object; the mission's loss reloads it"); }
+        return 0;
+    }
+    return ((int (__cdecl *)(void))(DWORD_PTR)g_coop_rq_next)();
+}
 static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x451180` x7 */
     WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
-    /* The HOST's respawn in a co-op scene / scenario (records/LAN-FIXES-2026-10-24.md s.6). The host's car there is the
-     * mission's player object (adopted below), the one the script names; a respawn builds a new car and removes it
-     * (0x451180: 0x4575d0 + 0x465310), the script's next action on "player" resolves NULL and the game dies (the owner's
-     * host crash at +0x684BD). The host's death already fails the mission and the chain reloads it for everybody (~7 s),
-     * so a respawn of the host in these missions is not built, on any machine: the dead car stays until the reload. */
-    if (g_coop_chain && g_coop_adopt && *(volatile int *)0x00541030 && host && (WORD)id == host && g_coop_mp_obj &&
-        (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)) && coop_host_car() == g_coop_mp_obj &&
-        !coop_car_alive(g_coop_mp_obj)) {
-        static DWORD said;
-        if (GetTickCount() - said > 3000) { said = GetTickCount(); mlog("  coop-chain: the host's respawn (id %u) is not built in a co-op mission - its car is the mission's player object; the mission's loss reloads it", id); }
-        return (char *)g_coop_mp_obj;
-    }
     if (g_coop_chain && *(volatile int *)0x00541030 && host && me && (WORD)id == me && me != host) {
         int done; char *o = coop_spawn_near_host(id, idx, type, data, size, &done);
         if (done) return o;
@@ -4350,6 +4358,7 @@ static void apply_coop_ai(HMODULE exe) {
                 g_coop_host_wait_ms = env_int("I76_COOP_HOST_WAIT_MS", 8, 3000); if (g_coop_host_wait_ms < 0) g_coop_host_wait_ms = 0;
                 g_coop_test_host_respawn = env_flag("I76_COOP_TEST_HOST_RESPAWN", 8, 0) == 1;
                 apply_coop_script_guard();
+                mlog("  coop-chain: host respawn request gate %s", st_call_site(0x00451570, 0x00452d20, (void *)coop_respawn_gate, &g_coop_rq_next, "coop-chain: respawn request 0x451570") ? "on" : "NOT on");
                 mlog("  coop-chain: host handshake after a chain reload: %s", g_coop_host_wait_ms ? "the quiet wait ends after I76_COOP_HOST_WAIT_MS" : "stock (I76_COOP_HOST_WAIT_MS=0)");
                 mlog("  coop-chain: joiners spawn near the host in co-op scenes and scenarios %s", g_coop_near ? "ON (I76_COOP_NEAR_HOST)" : "OFF (I76_COOP_NEAR_HOST=0)");
             }
