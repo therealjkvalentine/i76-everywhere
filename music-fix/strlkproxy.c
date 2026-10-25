@@ -133,6 +133,9 @@ static DWORD g_volume = 1000;      /* MCI scale, 0..1000 */
 static void vmlog(const char *fmt, va_list ap) {
     char path[MAX_PATH]; _snprintf(path, sizeof(path), "%s\\mciproxy.log", g_dir);
     FILE *f = fopen(path, "a"); if (!f) return;
+    /* a new log starts with the feedback line (2026-10-25, settings-file lane; PLAY-i76.ps1 puts the same line on top of an older one) */
+    fseek(f, 0, SEEK_END);
+    if (ftell(f) == 0) fputs("If something went wrong, attach this file to a GitHub issue: https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose\n", f);
     vfprintf(f, fmt, ap);
     fputc('\n', f); fclose(f);
 }
