@@ -58,7 +58,7 @@ sets instances G / H to log_level N for the job and puts the old value back, rea
 | batch | proxy (lab twin) | IPXWrapper log | switch | runs with a stall | longest | host fps after the join | deaths / respawns | CRASH |
 |---|---|---|---|---|---|---|---|---|
 | hs1 (n 1, sampler) | 7cb17b74 (= 5dca9d79 source) | debug (2) | - | 1 of 1 | 25 s (15 lines) | 0.1-1.4 | fall did not kill | 0 |
-| hs2 | 7cb17b74 | info (3) | - | **0 of 3** | - | 4-11 | 3 / 3 | 0 |
+| hs2 | 7cb17b74 | info (3) | - | **0 of 3** | - | 3.8-11 | 3 / 3 | 0 |
 | fb (control) | f89adc17 (fix source) | debug (2) | **0** | **3 of 3** | 10 s (12 lines) | 0.1-2.8 | 3 / 3 | 0 |
 | fa | f89adc17 | debug (2) | 1 | **0 of 3** | - | 2.4-4.8 | 3 / 3 | 0 |
 | fc | f89adc17 | info (3) | 1 | 0 of 3 | - | 3-10 | 3 / 3 | 0 |
