@@ -21,8 +21,10 @@
       "a": { "src": "shot:slalom-stock43", "align": "move", "in": 2.5, "out": 8.5, "label": "20 FPS", "counters": true, "tag": "" },
       "b": { "src": "shot:slalom-all",     "align": "move", "in": 2.5, "out": 8.5, "label": "OURS", "counters": true, "tag": "" } },
 
-    { "type": "sbs", "title": "THE FAR EDGE FADES INTO THE SKY",
-      "caption": "The last 25 % of the 2300 m view feathers to transparent instead of a hard wall",
+    { "type": "clip", "src": "shot:owner-jump", "in": 5.0, "out": 13.0, "title": "THE JUMP, AS IN 1997",
+      "caption": "Canyon ramp: take-off 49.9 vs 50.0 m/s, apex 10.0 m as retail; the nose-dive off the lip eased 9 %" },
+
+    { "type": "sbs", "title": "THE FAR EDGE FADES INTO THE SKY",      "caption": "The last 25 % of the 2300 m view feathers to transparent instead of a hard wall",
       "a": { "src": "shot:fade-before", "align": "move", "in": 1.0, "out": 6.0, "label": "HARD EDGE", "sub": "fog\\hoff" },
       "b": { "src": "shot:route-all",   "align": "move", "in": 1.0, "out": 6.0, "label": "FEATHERED", "sub": "I76_GLIDE_FOG\\h0.75" } },
 
@@ -36,8 +38,10 @@
       "a": { "src": "shot:route-all",  "align": "move", "in": 3.5, "out": 10.5, "label": "FIXED VIEW" },
       "b": { "src": "shot:glance-all", "align": "move", "in": 3.5, "out": 10.5, "label": "GLANCES" } },
 
-    { "type": "sbs", "title": "A REAR MIRROR THAT SEES",
-      "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %)",
+    { "type": "clip", "src": "shot:owner-headlook", "in": 5.0, "out": 12.0, "title": "HEAD TRACKING",
+      "caption": "opentrack: look into the corner, check the mirror, glance back - the glance keys still win when held" },
+
+    { "type": "sbs", "title": "A REAR MIRROR THAT SEES",      "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %)",
       "a": { "src": "shot:mirror-before", "in": 3.0, "out": 8.0, "crop": [1290, 262, 504, 168], "label": "STOCK MIRROR" },
       "b": { "src": "shot:mirror-after",  "in": 3.0, "out": 8.0, "crop": [1290, 262, 504, 168], "label": "OURS" } },
 
@@ -45,8 +49,10 @@
       "zoom_to": [0.2, 0.42, 2.0], "x": 0, "title": "LAN NIGHT, FIXED",
       "notes": ["CO-OP SCENES", "AI CARS IN\\NEVERY ARENA", "JOINERS SPAWN\\N27 M FROM THE HOST", "CANCEL: 5 S -> 1.4-2.1 S"] },
 
-    { "type": "panel", "title": "WHEEL FORCE FEEDBACK, REBUILT",
-      "caption": "14 channels from the engine's own state  -  live tuning page beside the game",
+    { "type": "clip", "src": "shot:owner-combat", "in": 10.0, "out": 24.0, "title": "FIGHT",
+      "caption": "Computer cars in every arena, respawning in 5 s  -  wheel force feedback on every shot, hit and landing" },
+
+    { "type": "panel", "title": "WHEEL FORCE FEEDBACK, REBUILT",      "caption": "14 channels from the engine's own state  -  live tuning page beside the game",
       "game":  { "src": "shot:route-all", "align": "move", "in": 4.0, "out": 12.0, "counters": true, "tag": "" },
       "panel": { "src": "${LAB}\\captures\\launch-video\\raw\\ffb-panel\\panel.mp4", "in": 0.5 } },
 
