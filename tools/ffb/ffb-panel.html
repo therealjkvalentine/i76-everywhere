@@ -278,7 +278,7 @@ function updateGains() {
       const want = p.value === null ? def : p.value;
       if (Math.abs(cur - want) < 1e-6) { txt = "applied"; cls = "st ok"; if (Date.now() - p.t > 4000) delete pending[key]; }
       else { txt = "waiting"; cls = "st pend"; if (Date.now() - p.t > 5000) { txt = "NOT applied"; cls = "st pend"; } }
-    } else if (def !== undefined && Math.abs(cur - def) > 1e-9) { txt = "def " + shown(key, def); }
+    } else if (def !== undefined && Math.abs(cur - def) > 1e-9) { txt = "(" + shown(key, def) + ")"; }
     st.className = cls; $("sx-" + key).textContent = txt;
     v.style.color = (def !== undefined && Math.abs(cur - def) > 1e-9) ? "var(--warning)" : "";
   }

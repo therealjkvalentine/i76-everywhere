@@ -509,11 +509,15 @@ try {
     $nextMeta = 0.0
     $nextTuneCheck = 0.0
     $pubSeq   = 0
-    $audioOpt = $null; $audioOptSaved = $null; $nextAudio = 0.0
+    $audioOpt = $null; $nextAudio = 0.0
     $prevSurf = $null; $prevRun = $null; $prevAir = $null
     $lastFlameEv = -10.0
     $recentSides = @{}   # side index -> time last seen in $s.Hits
     $lastTuneChange = @()
+    $stateNoteT = @{}
+    $metaTuneJson = $null; $metaTuneSig = 0.0; $metaDefJson = $null
+    $pubMs = 0.0
+    $nf = '0.####'
     function Add-Ev([double]$T, [string]$X) {
         $script:evId++
         $null = $evList.Add([pscustomobject]@{ Id = $script:evId; T = $T; X = $X })
@@ -581,6 +585,12 @@ try {
             foreach ($h in @($s.Hits)) { if ($h) { $recentSides[[int]$h.Side] = $frameStart } }
             foreach ($nt in $out.Notes) {
                 $x = [string]$nt
+                # The mixer repeats a STATE note (hard braking, a slide) every frame while it holds: one event per
+                # episode, i.e. only when the same note was not seen in the last 0.6 s.
+                if ($x -match '^(HARD BRAKE|OVERSTEER|SPIN|PLOUGHING|UNDERSTEER)$') {
+                    $prevT = $stateNoteT[$x]; $stateNoteT[$x] = $frameStart
+                    if ($null -ne $prevT -and ($frameStart - $prevT) -lt 0.6) { continue }
+                }
                 if ($x -eq 'FIRE' -and $s.Shots -and $s.Shots.Count) {
                     $g = @($s.Shots | Where-Object { $_.Klass -eq 2 } | Sort-Object Damage -Descending)
                     if ($g.Count) { $x = "FIRE gun/cannon (dmg $($g[0].Damage))" }
@@ -728,36 +738,37 @@ try {
         }
         if ($pubUdp -and $frameStart -ge $nextPub) {
             $nextPub = $frameStart + 0.05
+            $pubT0 = $sw.Elapsed.TotalMilliseconds
             $pubSeq++
-            # game audio options, read-only (0x654b90 music / sfx / voice / channels; +0x60 the saved copy)
+            # game audio options, read-only (0x654b90 music / sfx / voice / channels)
             if ($frameStart -ge $nextAudio) {
                 $nextAudio = $frameStart + 1.0
                 $audioOpt = Tel-ReadBuf $telCtx 0x654b90 4
-                $audioOptSaved = Tel-ReadBuf $telCtx 0x654bf0 4
             }
             $sb = New-Object System.Text.StringBuilder 4096
-            $null = $sb.Append('{"k":"ffb","v":1,"seq":').Append($pubSeq).Append(',"t":').Append((Jn $frameStart))
+            $null = $sb.Append('{"k":"ffb","v":1,"seq":').Append($pubSeq).Append(',"t":').Append(([double]$frameStart).ToString($nf, $INV))
             $null = $sb.Append(',"pid":').Append($PID).Append(',"game_pid":').Append($telCtx.Proc.Id)
             $null = $sb.Append(',"mode":').Append((Js $(if ($DryRun) { 'DRY RUN (wheel untouched)' } else { "LIVE $($dev.Name)" })))
-            $null = $sb.Append(',"dry":').Append((Jb $DryRun)).Append(',"armed":').Append((Jb $mix.Enabled))
-            $null = $sb.Append(',"master":').Append((Jn ([double]$tuneTable['Master']))).Append(',"rate":').Append((Jn $rateNow))
-            $null = $sb.Append(',"ctl":').Append((Jb ([bool]$ctlUdp))).Append(',"lost":').Append($lostCount)
+            $null = $sb.Append(',"dry":').Append($(if ($DryRun) { 'true' } else { 'false' })).Append(',"armed":').Append($(if ($mix.Enabled) { 'true' } else { 'false' }))
+            $null = $sb.Append(',"master":').Append(([double]$tuneTable['Master']).ToString($nf, $INV)).Append(',"rate":').Append(([double]$rateNow).ToString($nf, $INV))
+            $null = $sb.Append(',"pub_ms":').Append($pubMs.ToString('0.##', $INV))
+            $null = $sb.Append(',"ctl":').Append($(if ($ctlUdp) { 'true' } else { 'false' })).Append(',"lost":').Append($lostCount)
             $null = $sb.Append(',"game_ffb":').Append((Jn ([double]$(if ($lastS) { $lastS.GameFfb } else { 0 })))).Append(',"calib":').Append((Js ([string]$script:TEL_CALIB_SOURCE)))
             if ($lastS) {
                 $q = $lastS
-                $null = $sb.Append(',"tel":{"speed":').Append((Jn $q.Speed)).Append(',"mph":').Append((Jn $q.SpeedMph))
-                $null = $sb.Append(',"steer":').Append((Jn $q.Steer)).Append(',"throttle":').Append((Jn $q.Throttle))
-                $null = $sb.Append(',"yaw":').Append((Jn $q.YawRate)).Append(',"yaw_expect":').Append((Jn $q.ExpectedYaw))
-                $null = $sb.Append(',"under":').Append((Jn $q.Understeer)).Append(',"over":').Append((Jn $q.Oversteer))
-                $null = $sb.Append(',"slide":').Append((Jn ([double]$q.Slide))).Append(',"lat_g":').Append((Jn $q.LatG)).Append(',"long_g":').Append((Jn $q.LongG))
-                $null = $sb.Append(',"jolt":').Append((Jn $q.Jolt)).Append(',"vy":').Append((Jn $q.Vy))
+                $null = $sb.Append(',"tel":{"speed":').Append(([double]$q.Speed).ToString($nf, $INV)).Append(',"mph":').Append(([double]$q.SpeedMph).ToString($nf, $INV))
+                $null = $sb.Append(',"steer":').Append(([double]$q.Steer).ToString($nf, $INV)).Append(',"throttle":').Append(([double]$q.Throttle).ToString($nf, $INV))
+                $null = $sb.Append(',"yaw":').Append(([double]$q.YawRate).ToString($nf, $INV)).Append(',"yaw_expect":').Append(([double]$q.ExpectedYaw).ToString($nf, $INV))
+                $null = $sb.Append(',"under":').Append(([double]$q.Understeer).ToString($nf, $INV)).Append(',"over":').Append(([double]$q.Oversteer).ToString($nf, $INV))
+                $null = $sb.Append(',"slide":').Append(([double]$q.Slide).ToString($nf, $INV)).Append(',"lat_g":').Append(([double]$q.LatG).ToString($nf, $INV)).Append(',"long_g":').Append(([double]$q.LongG).ToString($nf, $INV))
+                $null = $sb.Append(',"jolt":').Append(([double]$q.Jolt).ToString($nf, $INV)).Append(',"vy":').Append(([double]$q.Vy).ToString($nf, $INV))
                 $null = $sb.Append(',"surface":').Append($(if ($null -ne $q.Surface) { [int]$q.Surface } else { 'null' }))
-                $null = $sb.Append(',"paved":').Append((Jb $q.Paved)).Append(',"surf_pct":').Append((Jn ([double]$(if ($lastOut) { $lastOut.Channels['surf%'] } else { 100 }))))
+                $null = $sb.Append(',"paved":').Append($(if ($q.Paved) { 'true' } else { 'false' })).Append(',"surf_pct":').Append((Jn ([double]$(if ($lastOut) { $lastOut.Channels['surf%'] } else { 100 }))))
                 $null = $sb.Append(',"grip_pct":').Append((Jn ([double]$(if ($lastOut) { $lastOut.Channels['grip%'] } else { 100 }))))
-                $null = $sb.Append(',"air":').Append((Jb $q.AirFlag)).Append(',"engine":').Append((Jb $q.EngineRunning)).Append(',"starting":').Append((Jb $q.EngineStarting))
-                $null = $sb.Append(',"drift":').Append((Jb $q.DriftFlag)).Append(',"skid":').Append((Jb $q.SkidFlag)).Append(',"braking":').Append((Jb $q.Braking))
+                $null = $sb.Append(',"air":').Append($(if ($q.AirFlag) { 'true' } else { 'false' })).Append(',"engine":').Append($(if ($q.EngineRunning) { 'true' } else { 'false' })).Append(',"starting":').Append($(if ($q.EngineStarting) { 'true' } else { 'false' }))
+                $null = $sb.Append(',"drift":').Append($(if ($q.DriftFlag) { 'true' } else { 'false' })).Append(',"skid":').Append($(if ($q.SkidFlag) { 'true' } else { 'false' })).Append(',"braking":').Append($(if ($q.Braking) { 'true' } else { 'false' }))
                 $null = $sb.Append(',"gear":').Append($(if ($null -ne $q.Gear) { [int]$q.Gear } else { 'null' }))
-                $null = $sb.Append(',"rpm":').Append((Jn ([double]$q.Rpm))).Append(',"since_tick":').Append((Jn ([double]$q.SinceTick)))
+                $null = $sb.Append(',"rpm":').Append(([double]$q.Rpm).ToString($nf, $INV)).Append(',"since_tick":').Append(([double]$q.SinceTick).ToString($nf, $INV))
                 $null = $sb.Append(',"shot_src":').Append((Js ([string]$q.ShotSource))).Append(',"row":').Append($(if ($null -ne $q.WeaponRow) { [int]$q.WeaponRow } else { 'null' }))
                 $null = $sb.Append(',"ammo":[')
                 $first = $true
@@ -775,14 +786,14 @@ try {
                     if (-not $first) { $null = $sb.Append(',') }; $first = $false
                     $null = $sb.Append('"').Append($c).Append('":').Append([int]$lastOut.Channels[$c])
                 }
-                $null = $sb.Append('},"force":').Append([int]$lastForce).Append(',"model_force":').Append([int]$lastOut.Force).Append(',"peak":').Append((Jn $mix.PeakForce))
+                $null = $sb.Append('},"force":').Append([int]$lastForce).Append(',"model_force":').Append([int]$lastOut.Force).Append(',"peak":').Append(([double]$mix.PeakForce).ToString($nf, $INV))
                 $L = $lastOut.Bus.Lfe
-                $null = $sb.Append(',"lfe":{"engine":').Append((Jn ([double]$L.EngineAmp))).Append(',"engine_hz":').Append((Jn ([double]$L.EngineFreq)))
-                $null = $sb.Append(',"road":').Append((Jn ([double]$L.RoadAmp))).Append(',"road_hz":').Append((Jn ([double]$L.RoadFreq)))
-                $null = $sb.Append(',"impulse":').Append((Jn ([double]$L.ImpulseAmp))).Append(',"impulse_hz":').Append((Jn ([double]$L.ImpulseFreq)))
-                $null = $sb.Append(',"heave":').Append((Jn ([double]$L.HeaveAmp))).Append(',"heave_hz":').Append((Jn ([double]$L.CarrierFreq)))
-                $null = $sb.Append(',"weapon":').Append((Jn ([double]$L.WeaponAmp))).Append(',"weapon_hz":').Append((Jn ([double]$L.WeaponFreq)))
-                $null = $sb.Append(',"scrub":').Append((Jn ([double]$L.ScrubAmp))).Append(',"explode":').Append((Jn ([double]$L.ExplodeAmp))).Append('}')
+                $null = $sb.Append(',"lfe":{"engine":').Append(([double]$L.EngineAmp).ToString($nf, $INV)).Append(',"engine_hz":').Append(([double]$L.EngineFreq).ToString($nf, $INV))
+                $null = $sb.Append(',"road":').Append(([double]$L.RoadAmp).ToString($nf, $INV)).Append(',"road_hz":').Append(([double]$L.RoadFreq).ToString($nf, $INV))
+                $null = $sb.Append(',"impulse":').Append(([double]$L.ImpulseAmp).ToString($nf, $INV)).Append(',"impulse_hz":').Append(([double]$L.ImpulseFreq).ToString($nf, $INV))
+                $null = $sb.Append(',"heave":').Append(([double]$L.HeaveAmp).ToString($nf, $INV)).Append(',"heave_hz":').Append(([double]$L.CarrierFreq).ToString($nf, $INV))
+                $null = $sb.Append(',"weapon":').Append(([double]$L.WeaponAmp).ToString($nf, $INV)).Append(',"weapon_hz":').Append(([double]$L.WeaponFreq).ToString($nf, $INV))
+                $null = $sb.Append(',"scrub":').Append(([double]$L.ScrubAmp).ToString($nf, $INV)).Append(',"explode":').Append(([double]$L.ExplodeAmp).ToString($nf, $INV)).Append('}')
             }
             $null = $sb.Append(',"act":{')
             $first = $true
@@ -793,7 +804,6 @@ try {
             $null = $sb.Append('}')
             if ($audioOpt) {
                 $null = $sb.Append(',"audio":{"music":').Append([int]$audioOpt[0]).Append(',"sfx":').Append([int]$audioOpt[1]).Append(',"voice":').Append([int]$audioOpt[2]).Append(',"channels":').Append([int]$audioOpt[3])
-                if ($audioOptSaved) { $null = $sb.Append(',"saved":[').Append((([int[]]$audioOptSaved) -join ',')).Append(']') }
                 $null = $sb.Append('}')
             }
             $null = $sb.Append(',"ev_last":').Append($script:evId).Append(',"ev":[')
@@ -802,29 +812,32 @@ try {
             for ($i = $from; $i -lt $evList.Count; $i++) {
                 $e = $evList[$i]
                 if (-not $first) { $null = $sb.Append(',') }; $first = $false
-                $null = $sb.Append('[').Append($e.Id).Append(',').Append((Jn $e.T)).Append(',').Append((Js $e.X)).Append(']')
+                $null = $sb.Append('[').Append($e.Id).Append(',').Append(([double]$e.T).ToString($nf, $INV)).Append(',').Append((Js $e.X)).Append(']')
             }
             $null = $sb.Append(']}')
             try { $bytes = [Text.Encoding]::UTF8.GetBytes($sb.ToString()); $null = $pubUdp.Send($bytes, $bytes.Length, '127.0.0.1', $PanelPort) } catch { }
+            # this block's own cost, smoothed (the meta below is once a second and not counted)
+            $pubMs = 0.9 * $pubMs + 0.1 * ($sw.Elapsed.TotalMilliseconds - $pubT0)
 
             if ($frameStart -ge $nextMeta) {
                 $nextMeta = $frameStart + 1.0
                 $mb = New-Object System.Text.StringBuilder 8192
-                $null = $mb.Append('{"k":"meta","v":1,"pid":').Append($PID).Append(',"t":').Append((Jn $frameStart))
+                $null = $mb.Append('{"k":"meta","v":1,"pid":').Append($PID).Append(',"t":').Append(([double]$frameStart).ToString($nf, $INV))
                 $null = $mb.Append(',"tune_file":').Append((Js $ownerFull)).Append(',"tune_explicit":').Append((Js $explicitTune))
                 $null = $mb.Append(',"tune_stamp":').Append((Js ($tuneStamp.ToString('o'))))
                 $null = $mb.Append(',"channels":[').Append((($ALL_CH | ForEach-Object { '"' + $_ + '"' }) -join ',')).Append(']')
-                foreach ($pair in @(@('tune', $tuneTable), @('defaults', $defaultTune))) {
-                    $null = $mb.Append(',"').Append($pair[0]).Append('":{')
-                    $first = $true
-                    foreach ($k in ($pair[1].Keys | Sort-Object)) {
-                        $v = $pair[1][$k]
-                        if ($v -is [array] -or $null -eq $v) { continue }
-                        if (-not $first) { $null = $mb.Append(',') }; $first = $false
-                        $null = $mb.Append('"').Append($k).Append('":').Append((Jn ([double]$v)))
-                    }
-                    $null = $mb.Append('}')
+                # the two tables, serialised only when they changed (a reload or [+/-] changes the master sum)
+                $sig = 0.0; foreach ($v in $tuneTable.Values) { if ($v -isnot [array] -and $null -ne $v) { $sig += [double]$v } }
+                if ($null -eq $metaTuneJson -or $sig -ne $metaTuneSig) {
+                    $metaTuneSig = $sig
+                    $parts = foreach ($k in ($tuneTable.Keys | Sort-Object)) { $v = $tuneTable[$k]; if ($v -isnot [array] -and $null -ne $v) { '"' + $k + '":' + ([double]$v).ToString($nf, $INV) } }
+                    $metaTuneJson = '{' + ($parts -join ',') + '}'
                 }
+                if ($null -eq $metaDefJson) {
+                    $parts = foreach ($k in ($defaultTune.Keys | Sort-Object)) { $v = $defaultTune[$k]; if ($v -isnot [array] -and $null -ne $v) { '"' + $k + '":' + ([double]$v).ToString($nf, $INV) } }
+                    $metaDefJson = '{' + ($parts -join ',') + '}'
+                }
+                $null = $mb.Append(',"tune":').Append($metaTuneJson).Append(',"defaults":').Append($metaDefJson)
                 $null = $mb.Append(',"last_change":[').Append((($lastTuneChange | ForEach-Object { Js $_ }) -join ',')).Append(']}')
                 try { $bytes = [Text.Encoding]::UTF8.GetBytes($mb.ToString()); $null = $pubUdp.Send($bytes, $bytes.Length, '127.0.0.1', $PanelPort) } catch { }
             }

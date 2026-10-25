@@ -36,6 +36,29 @@ tools\ffb\ffb-interposer.ps1 -Mute texture,scrub -Master 0.7
 
 Live keys: `[space]` mute · `[+/-]` master gain · `[s]` save tune (to `ffb-tune-owner.json`) · `[q]` quit.
 
+## The web panel (2026-10-25): tune in the browser, not the terminal
+
+`FFB-WEB-PANEL.bat` (or `python ffb-panel.py`) serves **http://127.0.0.1:17691/** (loopback only, stdlib Python, one
+HTML file, no CDN). `PLAY.bat --panel` opens it with the game. It needs the interposer running: the interposer
+publishes its state to udp 127.0.0.1:17682 at 20 Hz and takes commands on 17683 (`-PanelPort 0` turns both off).
+
+| on the page | live-editable? |
+|---|---|
+| telemetry: speed, steer / throttle, yaw rate against the steering law, slip U / O and grip, slide, lateral / long g, surface (paved / off-road and the texture factor), gear, rpm, jolt, ammo per weapon, the engine / airborne / drift / slide flags | read-only |
+| every channel as a bipolar meter with 1.5 s peak hold, the total force, a 12 s strip chart with event ticks | read-only |
+| **solo / mute** per channel, all on, **force on / off** | yes - a command to the interposer (session only, like `-Only` / `-Mute` / `[space]`) |
+| **gains**: master, the 14 channel gains, PavementScale / OffroadScale / SurfaceFadeMs / UndersteerDrop / BumpGain / KerbGain / RocketScale / MortarScale / FlameGain / DropGain / CycleGain / HitSideSign / MinForce, and the 7 LFE source amplitudes | yes - the slider writes `ffb-tune-owner.json` (only values that differ from the defaults, the `[s]` format, read back); the interposer re-reads the file when its time stamp changes (checked twice a second), applies the changed values in place, logs each one (`tune: WeaponGain 3400 -> 2800`) to the event log and `ffb-interposer.log`, and the page shows **applied** only when the interposer's own report carries the value. Persistent: the next start loads it. Limits: 0..3 x default (Master 0..1.5, HitSideSign +/-1) |
+| event log: shots (which class and damage), hits (which side), landings, take-off, impacts, ignition, engine stop, gear changes (to which gear), surface changes, slips (one per episode), tune and panel commands | read-only |
+| "things we want noticeable": 24 items (pavement vs off-road, road edge, under / oversteer, braking, each weapon class, hits by side, collision, landing, engine, ignition, gear, four shaker sources) with when each last fired and felt it / not felt / too strong / too weak | each verdict (+ an optional comment, the gains involved and the last event) is appended to `notesfb-notes-<start time>.csv` beside the tune file |
+| LFE: the shaker sources from the force bus (engine, road, impulse, weapon, heave, scrub, explode) with Hz, their gains, whether `ffb-lfe-live.ps1` is running (it reports its output peak / limiter to the panel), and the game's own music / SFX / voice / channels option levels (0x654b90..93) | the levels are **read-only** |
+
+**The LFE rule, in the UI and the code:** the shakers are driven by game events and state only (impacts, road, engine,
+weapons, landings), never by the game's audio and never by boosting voice or music. `ffb-lfe-live.ps1` opens one output
+device and no input; `ffb-panel.py` refuses (403) any tune key naming music, voice, the mix or a loopback.
+
+Measured cost and the live test: `docs/records/FFB-PANEL-2026-10-25.md`. Tests: `python ffb-panel-test.py` (28 checks
+against a fake interposer, no game).
+
 ## The one idea that matters: slip makes the wheel go LIGHT
 
 The obvious way to signal slip is to add force — buzz the wheel when grip goes.
@@ -424,6 +447,7 @@ Background and the numbers behind all of this: **[docs/FFB-DESIGN-LIBRARY.md](..
 | `Telemetry.ps1` | vehicle dynamics reader, tick-aware |
 | `FfbMixer.ps1` | the force model |
 | `ffb-interposer.ps1` | main loop, observability panel, logging |
+| `ffb-panel.py` + `ffb-panel.html` | the web panel (server + page); `FFB-WEB-PANEL.bat` starts it; `ffb-panel-test.py` |
 | `ffb-calibrate.ps1` | measures yaw sign + steering lock |
 | `ffb-mixer-test.ps1` | 133 assertions over synthetic drives |
 | `ffb-coexist-test.ps1` | device-sharing measurement |
