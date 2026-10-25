@@ -160,8 +160,8 @@ param(
     # time" - the game beside the FFB web panel). 'auto' = the screen's shape, 880 px narrower than the screen (2560x1072 on
     # 3440x1440: room for the panel on the right); or WxH. The game window is a borderless popup at the top left of the primary
     # screen, kept at that size for the whole session (the exe sizes its window to the screen at start and again on mode
-    # changes; a hidden keeper puts it back). dgVoodoo.conf gets [Glide] Resolution = I76_RENDER_SCALE (default 2) x the window (2 = a 2x2 supersample, capped
-    # 8192 per side) for this launch only (the previous conf comes back when the game exits), and the proxy's camera / HUD /
+    # changes; a hidden keeper puts it back). dgVoodoo.conf gets [Glide] Resolution = the window (render scale 1: dgVoodoo sizes a window to its render
+    # target and re-applies that every 2 s, records/WINDOWED-ALIGNMENT-2026-10-25.md) for this launch only (the previous conf comes back when the game exits), and the proxy's camera / HUD /
     # Esc-menu aspect keys (I76_ASPECT, I76_U32X_MENU_ASPECT) take the window's shape. The menu pointer map follows the live
     # client rect by itself (proxy cursormap.c). PLAY.bat --windowed [WxH] passes it.
     [string]$Windowed = '',
@@ -1008,7 +1008,13 @@ if ($Windowed) {
     $confPath = Join-Path $GameDir 'dgVoodoo.conf'
     if (Test-Path $confPath) {
         $ct = [IO.File]::ReadAllText($confPath, [Text.Encoding]::ASCII)
-        $f = [math]::Min($rScale, [math]::Min(8192.0 / $ww, 8192.0 / $wh))   # I76_RENDER_SCALE (default 2)
+        # [Glide] Resolution = the window itself (render scale 1; the AA setting stays). In a window dgVoodoo makes the Glide
+        # resolution the window size and re-applies it every 2.0 s: with 2x the window (2560x1440 for a 1280x720 window) the
+        # window jumped to 2560x1440 every 2 s and the keeper pulled it back 30-280 ms later - the picture zoomed in and
+        # jumped for a few frames each time (records/WINDOWED-ALIGNMENT-2026-10-25.md; laptop timeline n 30 cycles, and with
+        # the keeper stopped the window stayed at 2560x1440). Equal sizes leave dgVoodoo nothing to re-apply.
+        $f = 1.0
+        if ($rScale -ne 1.0) { Write-LaunchLog ("windowed: render scale {0:0.##} not used in a window (dgVoodoo sizes the window to the render target); 1x the window, AA as set" -f $rScale) 'DarkGray' }
         $gw = [int]([math]::Floor($ww * $f / 2) * 2); $gh = [int]([math]::Floor($wh * $f / 2) * 2)
         $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
         if ($DryRun) {
@@ -1019,7 +1025,9 @@ if ($Windowed) {
             # AppControlledScreenMode = false: with the conf's own 'true' the game's exclusive full-screen request wins and dgVoodoo
             # keeps the window at the screen size, vetoing any resize (measured 2026-10-25: SetWindowPos returned TRUE and the rect
             # stayed 3440x1440); with 'false' it is a real window ([DirectX] Resolution sized, centred) that the keeper can size.
-            $ct2 = $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1) -replace '(?m)^(AppControlledScreenMode\s*=\s*)true', '${1}false'
+            # CenterAppWindow = false: with 'true' dgVoodoo moved the sized window to the screen centre ~7 s in, when the 3D
+            # window opened (desktop, 1280x720 -> (1080,360)); the window stays where the launcher put it (top left).
+            $ct2 = $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1) -replace '(?m)^(AppControlledScreenMode\s*=\s*)true', '${1}false' -replace '(?m)^(CenterAppWindow\s*=\s*)true', '${1}false'
             [IO.File]::WriteAllText($confPath, $ct2, [Text.Encoding]::ASCII)
             Write-LaunchLog ("windowed {0}x{1} at the top left; dgVoodoo.conf [Glide] Resolution {2}x{3} for this launch (the previous conf is back when the game exits)" -f $ww, $wh, $gw, $gh) 'Cyan'
         } else {
