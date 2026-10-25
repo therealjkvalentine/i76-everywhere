@@ -1,6 +1,6 @@
 # Interstate '76 Patch Kit (i76-everywhere)
 
-**Version 0.8.0** (tester build; the kit was first tested by one tester on 2026-10-23). Found a problem? Report it on GitHub Issues:
+**Version 0.8.1** (tester build; the kit was first tested by one tester on 2026-10-23). Found a problem? Report it on GitHub Issues:
 https://github.com/therealjkvalentine/i76-everywhere/issues
 
 This is the i76-everywhere Interstate '76 project, written by its developer, packed so it installs over **your own GOG copy** of the game.
@@ -68,6 +68,8 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 | `INSTALL-EXTRAS.bat` | **Optional extras** (below): community maps, head look, Python for the debug tool, German voices, your own extra music. |
 | `FIREWALL.bat` | Lets LAN games through Windows Firewall (see "Network games (LAN)"); run it once if you play on a network. |
 | **`SETTINGS.bat`** | Opens **`i76-settings.txt`** in Notepad: render scale, antialiasing, field of view, draw distance, force feedback, sound, co-op (see "Settings" below). |
+| **`CONTROLS.bat`** | Your key bindings: keep your own `input.map`, switch to the kit's layout, or restore yours from the backup (see "Your own controls" below). |
+| **`UPDATE.bat`** | Downloads and installs the newest kit from GitHub; your controls, settings and saves stay (see "Updating" below). `UPDATE.bat --check` only looks. |
 
 Options you can add after the launcher name (open a command window in the folder, or edit a shortcut):
 
@@ -189,6 +191,62 @@ UNTESTED), `graphics-mac` / `graphics-mac-fast` (Macs). The stock launchers (PLA
 `dgVoodoo.wide.conf` (only the `[Glide] Resolution` and `Antialiasing` lines; the installed file is kept as
 `dgVoodoo.wide.conf.pre-render-keys` and put back byte for byte when you return to 2 / 4) and logs e.g.
 `render: 1x (3440x1440), AA 4x (from local; ...)`. Launchers that use another conf (PLAY-VANILLA's 16:10) are not changed.
+
+## Your own controls (`CONTROLS.bat`)
+
+The game reads its key, mouse and joystick bindings from one file, **`input.map`**, in the game folder (`KEYBOARD.MAP` and
+`JOYSTICK.MAP` are not read by this version of the game; editing them changes nothing).
+
+**The kit never replaces a map you made.** The setup puts the kit's layout ("Keys", below) in only when `input.map` is still
+GOG's original, or is a kit layout you have not changed. If you already had your own bindings - or you change or copy in
+your own map later - the setup keeps yours, writes the kit's layout beside it as `input.map.i76e-default`, and says so in
+its window. Re-running the setup or updating the kit keeps it too.
+
+With a map of your own, the kit's **gamepad / wheel / flight-stick button layers stay off**: they work by typing the kit's
+keys, which would fight your bindings (a hat you bound to look around would also switch the headlights on). The launcher
+log `play-i76.log` says which it did at every start (`controls: own map ... key layers OFF` or `controls: kit's map ... key
+layers on`). With your own map and head look installed, head look starts in DIGITAL mode when your map binds the joystick
+hat, so the hat keeps working.
+
+Double-click **`CONTROLS.bat`** to choose:
+
+| choice | what happens |
+|---|---|
+| 1 keep my `input.map` | nothing changes in the file; the kit's key layers stay off |
+| 2 use the kit's layout | your map is copied into `_i76e\backup\` first, then the kit's layout goes in, with the gamepad / wheel button layer (Gold) |
+| 3 restore my own map | your newest backup goes back (`_i76e\backup\input.map.mine-*`; if there is none, the map from before the kit was installed - on a fresh GOG folder that is GOG's original 1997 keys) |
+
+`CONTROLS.bat status` shows what is in place. Before the first setup the kit copies your control and option files
+(`input.map`, `I76PLYR.DEF`, `gamekey.def`, `input.def`) into `_i76e\backup\pre-kit\`; nothing else reads that folder.
+The game's options file `I76PLYR.DEF` is changed only if it is GOG's untouched file (three graphic-detail settings, so the
+rear-view mirror shows the road); otherwise your options are left as they are.
+
+Please do not rebind keys in the game's own *Controls* menu: it rewrites `input.map` and drops the joystick steering and
+throttle lines. Edit `input.map` in Notepad instead (keep a copy), or use `CONTROLS.bat` to go back.
+
+## Updating (`UPDATE.bat`)
+
+Double-click **`UPDATE.bat`** in the game folder. It asks GitHub for the newest Patch Kit release, says which version you
+have and which is newest, and asks before it installs anything. Then it:
+
+1. downloads the kit zip (about 6 MB) into `_i76e\update\`,
+2. checks it against the release's SHA-256 checksum, and every file inside against the kit's own list (`_i76e\MD5SUMS`) -
+   a broken or changed download is not installed,
+3. replaces only the kit's own files (the `.bat` launchers, this README and `_i76e\`; the previous ones are kept in
+   `_i76e\update\previous\`), and runs the setup again,
+4. prints what changed.
+
+It keeps **your controls** (`input.map` and the rules above), **`i76-settings.txt`**, **`presets\local.psd1`**, your
+**saves**, your options and your extras. A `.bat` you edited yourself is kept beside the new one as `<name>.pre-update`.
+
+- `UPDATE.bat --check` only says whether there is a newer kit (nothing is downloaded).
+- It needs only Windows' own PowerShell and an internet connection (no git, no other tools). Close the game first.
+- If it cannot reach GitHub it says so and changes nothing; you can always download the zip from the releases page and
+  unzip it over the folder as on the first install - the same rules keep your files.
+
+Coming from **v0.8.0 or older** (which has no `UPDATE.bat`): unzip this kit over your folder once, as at the first
+install, and start `PLAY.bat` (edits you made to `input.map` under v0.8.0 are kept). If v0.8.0 had replaced a map of
+your own, that map is in `input.map.stock-*`: `CONTROLS.bat`, option 3, puts it back. After that, `UPDATE.bat` does the updating.
 
 ## Keys
 
@@ -316,12 +374,15 @@ model). For a network game, attach the files from every machine (rename them `ho
 ## Uninstall
 
 Run `UNINSTALL-i76e.bat` (close the game first). It asks you to press a key before it starts and again when it is done.
-It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`, `i76shell.dll` (Nitro: `nitshell.dll`), `Strlkup.dll`,
-`input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: right
-after it, every one of the GOG install's files is byte-identical to a fresh install). One file will differ if you have played: the game
+It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`, `i76shell.dll` (Nitro: `nitshell.dll`), `Strlkup.dll`
+and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: right after it, every one of the GOG install's
+files is byte-identical to a fresh install). Your own files: `input.map` goes back to the one you had before the kit only where the kit had
+replaced it (a map you changed meanwhile is kept as `input.map.i76e-last`; a map of your own that the kit never replaced stays as it is);
+`I76PLYR.DEF` gets back only the three detail settings the kit changed (all your other options stay); `presets\local.psd1` and any layer
+script you edited are kept in `_i76e\backup\`. One file will differ if you have played: the game
 itself rewrites `Lee.fot` as you play (Gold), so a hash check after playing shows that one difference - that is the game's, not ours.
-Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `FIREWALL.bat`, `i76-settings.txt`,
-`README-PATCH-KIT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
+Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `FIREWALL.bat`, `CONTROLS.bat`, `UPDATE.bat`, `i76-settings.txt`,
+`README-PATCH-KIT.md` and the `_i76e` folder yourself (look in `_i76e\backup\` first: your own files from before the kit are there). The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
 `i76shell.dll.pre-i76e-keys` / `nitshell.dll.pre-i76e-keys`, `input.map.stock-*` / `input.map.pre-windows-setup`) are safe to delete. Bookmarks
 stay: if the setup copied in our set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG
 Galaxy's *verify / repair* does the same job from GOG's side if you prefer.
