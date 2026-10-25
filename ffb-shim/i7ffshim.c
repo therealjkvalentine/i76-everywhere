@@ -419,7 +419,7 @@ HRESULT __stdcall shim_InitSystem(I7FF_BLOCK *b)
     pick_texture();
     pick_road_texture();
     {   /* record how many envelopes loaded — first thing to check in telemetry */
-        char m[64];
+        char m[160];   /* the init line is ~80 chars since 0aca0f4 (64 overflowed: /GS killed the game at load) */
         int n = wsprintfA(m, "i7ffshim: init ok, %d envelopes, xinput %s, pads %s, first pad %d\r\n", g_nenv,
                           xset ? "loaded" : "MISSING", g_allpads ? "all" : "first", g_pad);
         write_file(TELEMETRY, m, n, 0);
@@ -564,6 +564,10 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         float sc = g.speed / 50.0f; if (sc > 1.0f) sc = 1.0f;
         float t = R_LAND_MAX * (0.35f + 0.65f * sc);
         if (t > g_env_land) g_env_land = t;
+        {   char eb[96];   /* event line (2026-10-25): every landing, not only the 10-tick drive-log samples */
+            int en = wsprintfA(eb, "%lu land spd10=%d thump100=%d\r\n", g_tick, (int)(g.speed * 10), (int)(t * 100));
+            write_file(EVENTLOG, eb, en, 1);
+        }
     }
     g_prev_air = g.airborne;
     mask = 0;
@@ -661,7 +665,12 @@ HRESULT __stdcall shim_SIM_Effect(I7FF_BLOCK *b)
         }
     }
     if (weapon > 0) {
-        if (!g_wpn_was) g_env_wpn = 1.0f;               /* kick-start (spin the motor up fast) */
+        if (!g_wpn_was) {
+            char eb[96];   /* event line (2026-10-25): each burst's first tick */
+            int en = wsprintfA(eb, "%lu fire gain=%d fire=%d%d%d%d%d%d\r\n", g_tick, firing_gain, fb[0], fb[1], fb[2], fb[3], fb[4], fb[5]);
+            write_file(EVENTLOG, eb, en, 1);
+            g_env_wpn = 1.0f;                            /* kick-start (spin the motor up fast) */
+        }
         else            g_env_wpn = MAXF(g_env_wpn, weapon);
     }
     g_wpn_was = (weapon > 0);
