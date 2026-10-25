@@ -55,7 +55,7 @@ Three ways, pick any:
 
 1. **Play it and tell me.** Try the kit on your machine and monitor, report what breaks (`mciproxy.log` from the game folder says most of it), and if you make videos or write about old games, I'm happy to send a ready-to-run build or talk through how it was done.
 2. **Build it with me.** The next big steps need more hands: HD art and a renderer that can show it, more platforms and peripherals (wheels, pads, motion rigs), new missions and arenas, and plain code review. Issues and pull requests are open; the records in `docs/records/` show how every change was measured.
-3. **Buy my family a dinner.** This took hundreds of hours, a lot of tokens, and every computer in the house running tests overnight, Macs and Steam Deck included, while my family waited to use them. If it gave you back a game you love: <!-- BUY-ME-A-COFFEE-LINK --> *(link coming)*.
+3. **Buy my family a dinner.** This took hundreds of hours, a lot of tokens, and every computer in the house running tests overnight, Macs and Steam Deck included, while my family waited to use them. If it gave you back a game you love: [buymeacoffee.com/therealjkvalentine](https://buymeacoffee.com/therealjkvalentine).
 
 ## About this repository
 
