@@ -92,7 +92,7 @@ static void ffr_mark_restart(const char *why) {
 /* Acquire the device again. 1 = acquired (now or already), 0 = could not. */
 static int ffr_acquire(const char *why) {
     HRESULT r;
-    if (!g_ffr_dev || !o_dev_acq) return 0;
+    if (!g_ffr_dev || !o_dev_acq || g_ffr_state != 1) return 0;
     r = o_dev_acq(g_ffr_dev); g_ffr_n_acq_calls++;
     if (r == 0) {                                   /* DI_OK: it was NOT acquired, now it is */
         g_ffr_n_reacq++; g_ffr_lost = 0;
@@ -171,7 +171,7 @@ static HRESULT __stdcall h_eff_setp(void *t, void *de, DWORD f) {
         if (r >= 0) g_ffr_n_retry_ok++; else g_ffr_n_retry_fail++;
     }
     if (r >= 0) { g_ffr_n_setp_ok++; g_ffr_cyc_setp_ok++; } else g_ffr_n_setp_fail++;
-    if (g_ffr_trace) mlog("  ffb-trace: eff %p SetParameters(0x%lX) (from %s) -> 0x%08lX%s", t, (unsigned long)f,
+    if ((g_ffr_trace && (r < 0 || r0 != r || g_ffr_n_setp_ok <= 40)) || (r < 0 && g_ffr_n_setp_fail <= 20)) mlog("  ffb-trace: eff %p SetParameters(0x%lX) (from %s) -> 0x%08lX%s", t, (unsigned long)f,
                           ffr_rva(_ReturnAddress()), (unsigned long)r, r0 != r ? " (retried after a re-acquire)" : "");
     return r;
 }
@@ -297,6 +297,19 @@ static void __cdecl ffr_tick(void) {
     g_ffr_tick++;
     if (g_ffr_state == 0) ffr_init();
     if (g_ffr_state != 1) return;
+    /* I7FF_ExitSystem (game exit) releases the device and zeroes [+0x138cc] / [+0x138c8]; a WM_ACTIVATEAPP 0 during the exit still
+     * reaches ffb_PlayEffect. Never touch the device after that (the lab's observe-only run of 2026-10-24 23:38 faulted in ntdll
+     * on the freed device from here). A device the DLL opens again (its lazy re-init) is taken over as the new one. */
+    {   void *d = *(void * volatile *)(g_ffr_base + 0x138cc);
+        if (d != g_ffr_dev || !*(volatile DWORD *)(g_ffr_base + 0x138c8)) {
+            int i;
+            mlog("  ffb-focus: the DLL's device changed %p -> %p (init %lu) at tick %lu - %s", g_ffr_dev, d,
+                 (unsigned long)*(volatile DWORD *)(g_ffr_base + 0x138c8), (unsigned long)g_ffr_tick, d ? "following the new one" : "standing down");
+            for (i = 0; i < FFR_MAXEFF; i++) g_ffr_eff[i].e = 0;
+            g_ffr_dev = d;
+            if (!d || !*(volatile DWORD *)(g_ffr_base + 0x138c8)) { g_ffr_dev = 0; g_ffr_state = 4; return; }
+        }
+    }
     act = ffr_game_active(); frc = ffr_forces_on();
     if (act != g_ffr_prev_active || frc != g_ffr_prev_forces) {
         DWORD st = 0; HRESULT r = o_dev_ffstate(g_ffr_dev, &st); int pl, kn;
