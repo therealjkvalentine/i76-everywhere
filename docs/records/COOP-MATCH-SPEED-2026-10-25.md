@@ -64,7 +64,7 @@ airborne, slide, reverse and top-speed branches are **not verified live**; they 
   rendering continues): every laptop run, coop05 and coop01, the key-off control too (c1: 17 lines); the PC lanfix
   scale-n10-coop05 run had it twice (15 s). In m1 (coop05) it lasted the rest of each run and the host never answered the joiner's
   respawn request (the joiner's +5 s "host" figures were its dead reckoning). The host does not run this feature's code (joiner
-  only). Possibly the owner's "host restart freeze" family (LAN-FIXES s.5). Open; worth its own lane.
+  only). Possibly the owner's "host restart freeze" family (LAN-FIXES s.5). **Solved** in records/COOP-HOST-STALL-2026-10-25.md: the host was inside one net_Pump call (not drawing), sending an 'AT' round on every received packet while the lab's IPXWrapper debug log made each round cost ~0.4 s; `I76_COOP_AT_PER_FRAME` (ea0d483).
 - On the laptop (Windows 11 26200) the lab copies crashed at the first Glide context on a private desktop (DDRAW+0x4AB0A with
   dgVoodoo 2.87.3, MSCTF+0x2E1C8 with 2.87.5); on the console's own desktop with 2.87.5 they ran. The laptop copies carry 2.87.5.
 
