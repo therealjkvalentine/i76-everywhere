@@ -92,6 +92,7 @@ say so. Clips need re-recording.
 
 - dev-gold, test-gold: `Interstate 76\PLAY-i76.ps1` = 34d7b0f (previous 5ab9ccb9 kept as `PLAY-i76.ps1.5ab9ccb9-pre-walign`).
   Main not touched.
-- Patch Kit 0.8.1 draft rebuilt from 34d7b0f (proxy unchanged, c54210f8): `Interstate76-Patch-Kit-i76-everywhere-v0.8.1-34d7b0f.zip`.
+- Patch Kit 0.8.1 draft rebuilt from 90566f5 (carries 34d7b0f; proxy unchanged, c54210f8): `Interstate76-Patch-Kit-i76-everywhere-v0.8.1-90566f5.zip`
+  replaces the 22f36ac assets on the draft release; two lines added to its notes. QA issue #128.
   Not published.
 - The laptop bench's own copies for this lane (`walign\gold`, `walign\nitro` in the bench folder; retire with this record).
