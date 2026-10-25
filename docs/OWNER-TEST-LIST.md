@@ -1199,3 +1199,12 @@ Open items from this session:
   then eventually loads (maybe when the joiner left, maybe just slow) - looks like the host waiting on the joiner's
   reconcile / handshake with the player entity not yet placed.
 - Host DIED in a co-op scene -> the host's game crashed with an exception at the death (owner, ~19:20; which machine hosted? Mac). Get the crash line from that machine's mciproxy.log.
+
+## 2026-10-24 ~20:50: owner on the RC (Games\I76\release-candidate\PLAY.bat, proxy 53944fb2)
+- After restarting the level and Alt-Tabbing away, the wheel's FFB dropped out, came back, dropped again, then the game
+  CRASHED: mciproxy.log line 79358, 0xC0000005 in I7_SFRCE.DLL+0x2505 (the game's own force-feedback driver) reading
+  address 0 at frame 3.44M, state 5. Stock FFB loses the DirectInput device on focus loss and the driver then uses a
+  null effect handle. Needs: re-acquire on focus return + a null guard (proxy), for the stock-FFB launchers.
+- Terrain: "a little more movement than I'd like" on the RC's ALL set; menus fine. (Same preset as exp-polish2; compare
+  against PLAY-STABLE; candidates: the morph band 0.25 between 100 and 300 m, NEAR 100.)
+- Owner: consolidate the game copies to four: dev, test, rc, daily driver.
