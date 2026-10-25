@@ -1544,6 +1544,8 @@ static LONGLONG g_fl_period, g_fl_start, g_fl_out, g_fl_work, g_fl_workmax, g_fl
 static DWORD g_fl_frames;
 static volatile LONG g_coop_hits_impact, g_coop_hits_flame, g_coop_remote;   /* I76_COOP_DAMAGE counters (see below) */
 static void coop_ai_log(void);                                                   /* I76_COOP_AI status line (see below) */
+static int g_cdmg_log; static void coop_dmg_frame(void);                         /* I76_COOP_DMG_LOG (lab; with the co-op section) */
+static int g_cip_on; static void cip_frame(void);                                /* I76_COOP_AI_INTERP + its frame-jump stats (co-op section) */
 static LONG g_coop_logged = -1;
 static void fps_log_frame(LONGLONG tin, LONGLONG tcap, LONGLONG tout) {
     LONGLONG work = g_fl_out ? tin - g_fl_out : 0;
@@ -1638,6 +1640,7 @@ clock:
     }
     if (g_rpl_on) rpl_pre();                                /* I76_REPLAY: log the frame just done; place the car at the start */
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
+    if (g_cdmg_log) coop_dmg_frame();                       /* I76_COOP_DMG_LOG (lab): mission cars' damage words / drawn rows */
     terrain_pops_frame();                                   /* terrainpops.c: I76_SHADE_SMOOTH table rebuild; the lab instruments' 600-frame report */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
@@ -3244,6 +3247,7 @@ static BYTE aim_at_team(BYTE *o); static void aim_at_team_apply(int li, BYTE *o,
 static BYTE g_coop_ai_fired[1024];                          /* host: weapon instances the AI triggered since the last send */
 static BYTE g_coop_ai_mask[2048];                           /* joiner: last fire mask per label index ... */
 static DWORD g_coop_ai_until[2048];                         /* ... and until when it holds (GetTickCount) */
+static WORD g_coop_ai_hp[2048]; static BYTE *g_coop_ai_hp_obj[2048];   /* joiner: the host's health byte per label (| 0x100 = set) and the object it was for */
 static volatile LONG g_coop_ai_shots, g_coop_ai_blocked;
 static int coop_ai_weapon_mask(BYTE *o, int *w8) {          /* weapon list 0x4a31d0: count, w[5], special a, b (as 'SH') */
     int i, mask = 0;
@@ -3275,6 +3279,234 @@ static BYTE *coop_ai_object(int i, int count, BYTE *tab) {   /* a mission vehicl
     for (k = 0; k < 16; k++) { BYTE *p = (BYTE *)0x00541070 + k * 0x48; if (*(WORD *)p && *(BYTE **)(p + 0x28) == o) return NULL; }
     return o;
 }
+/* I76_COOP_DMG_LOG=1 (LAB; mp-ai-damage lane 2026-10-25, records/MP-AI-DAMAGE-RATE-2026-10-25.md P2): damage visuals of the
+ * mission cars, one line per change, stamped with GetTickCount (t):
+ *   coop-dmg: <sp|host|joiner> car ...  every 100 ms per mission car (frame hook): the level word the stock packer 0x4644d0
+ *            would write (2 bits x 5 sides f l r b t from +0x178/+0x158 vs +0x18c/+0x168, as entity_SideHealthRatio), the
+ *            DRAWN rows of the four body panels (entity+0x408+4*slot: the geometry cache 0x52bbe8 entry of the panel subtree =
+ *            the VGEO row 0x4465b0 loaded; 4 bits per slot, front / middle / back / top, f = no entry) and the live armour +
+ *            chassis sum (+0x138..+0x154: it drops on a local hit)
+ *   coop-dmg: host send ...      the word the packer really wrote into the 'AT' record (+0x58), wheel mask +0x5d, health +0x5c
+ *   coop-dmg: joiner apply ...   the word received, and the drawn rows right after the mirror 0x464890
+ * so A (the host's word stays 0), C (the word never reaches the mirror) and B (applied, not drawn) are separate columns. */
+static WORD g_cdmg_sent[2048], g_cdmg_got[2048]; static BYTE g_cdmg_sent_ok[2048], g_cdmg_got_ok[2048];
+static DWORD g_cdmg_rows_ap[2048];
+static struct { WORD word; WORD rows; LONG live; BYTE ok; } g_cdmg_w[2048];
+static int cdmg_node_row(DWORD node, char *nm) {             /* geometry cache 0x52bbe8 (0x4465b0): the row loaded for node, -1 none */
+    DWORD *q;
+    if (!node) return -1;
+    q = *(DWORD **)(DWORD_PTR)(0x0052bbe8 + 4 * ((node * 0x6cdu + 0xaabu) % 0x7edu));
+    while (q && !IsBadReadPtr(q, 0x3c)) {
+        if (q[0] == node) { if (nm) { memcpy(nm, q + 5, 15); nm[15] = 0; } return (int)q[2]; }
+        q = (DWORD *)(DWORD_PTR)q[0xe];
+    }
+    return -1;
+}
+static int cdmg_tree_row(DWORD node, char *nm, int depth) {  /* the highest row in the panel's subtree (0x4ba5f0 walks +0x64 / +0x60) */
+    int best = -1, r, k = 0; DWORD c;
+    if (!node || depth > 6 || IsBadReadPtr((void *)(DWORD_PTR)node, 0x68)) return -1;
+    r = cdmg_node_row(node, nm); if (r > best) best = r;
+    for (c = *(DWORD *)(DWORD_PTR)(node + 0x64); c && k < 32 && !IsBadReadPtr((void *)(DWORD_PTR)c, 0x68); c = *(DWORD *)(DWORD_PTR)(c + 0x60), k++) {
+        char n2[16]; r = cdmg_tree_row(c, (nm && !nm[0]) ? nm : n2, depth + 1); if (r > best) best = r;
+    }
+    return best;
+}
+static WORD cdmg_rows(BYTE *e, char *nm) {                   /* 4 bits per panel slot: front, middle (left / right), back, top */
+    WORD w = 0; int sl;
+    if (nm) nm[0] = 0;
+    for (sl = 0; sl < 4; sl++) {
+        int r = cdmg_tree_row(*(DWORD *)(e + 0x408 + 4 * sl), sl == 0 ? nm : NULL, 0);
+        w |= (WORD)((r < 0 ? 0xf : (r & 0xf)) << (4 * sl));
+    }
+    return w;
+}
+static WORD cdmg_word(BYTE *e) {                             /* the stock packer's level word (0x4644d0, the live-car branch) */
+    WORD w = 0; int k;
+    for (k = 0; k < 5; k++) {
+        int am = *(int *)(e + 0x158 + 4 * k), cm = *(int *)(e + 0x168 + 4 * k), a = *(int *)(e + 0x178 + 4 * k), c = *(int *)(e + 0x18c + 4 * k);
+        float ra = (am == 0 || k == 4) ? a * 0.01f : (float)a / (float)am, rc = (cm == 0 || k == 4) ? c * 0.01f : (float)c / (float)cm;
+        float r = ra < rc ? ra : rc; int lv = r > 0.75f ? 0 : r > 0.5f ? 1 : r > 0.25f ? 2 : 3;
+        w |= (WORD)(lv << (2 * k));
+    }
+    return w;
+}
+static LONG cdmg_live(BYTE *e) { LONG s = 0; int k; for (k = 0; k < 8; k++) s += *(int *)(e + 0x138 + 4 * k); return s; }
+static const char *cdmg_role(void) { int r = coop_ai_role(); return r == 1 ? "host" : r == 2 ? "joiner" : "sp"; }
+static void cdmg_sides(char *b, BYTE *e) {                   /* per side: armour copy/max,chassis copy/max; then live armour,chassis */
+    int k, n = 0;
+    for (k = 0; k < 5; k++)
+        n += sprintf(b + n, " %c%d/%d,%d/%d", "flrbt"[k], *(int *)(e + 0x178 + 4 * k), *(int *)(e + 0x158 + 4 * k), *(int *)(e + 0x18c + 4 * k), *(int *)(e + 0x168 + 4 * k));
+    n += sprintf(b + n, "; live");
+    for (k = 0; k < 4; k++) n += sprintf(b + n, " %d,%d", *(int *)(e + 0x138 + 4 * k), *(int *)(e + 0x148 + 4 * k));
+}
+static void coop_dmg_frame(void) {                           /* frame hook: every 100 ms, every mission car */
+    static DWORD last; DWORD now = GetTickCount(); BYTE *tab; int count, i;
+    if (now - last < 100 || !coop_ai_in_mission()) return;
+    last = now;
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (!tab || count <= 0 || count > 2048) return;
+    for (i = 0; i < count; i++) {
+        BYTE *o = coop_ai_object(i, count, tab), *e; WORD w, rows; LONG live; char nm[16], sd[200];
+        if (!o) { g_cdmg_w[i].ok = 0; continue; }
+        e = *(BYTE **)(o + 0x70);
+        w = cdmg_word(e); rows = cdmg_rows(e, nm); live = cdmg_live(e);
+        if (g_cdmg_w[i].ok && w == g_cdmg_w[i].word && rows == g_cdmg_w[i].rows && live == g_cdmg_w[i].live) continue;
+        cdmg_sides(sd, e);
+        mlog("  coop-dmg: %s car t %lu #%d %.8s%s word 0x%03x -> 0x%03x rows 0x%04x -> 0x%04x (front '%s') live %ld -> %ld health %.0f;%s",
+             cdmg_role(), (unsigned long)now, i, (char *)(tab + i * 16), e[0x454] & 0x20 ? " DEAD" : "", g_cdmg_w[i].ok ? g_cdmg_w[i].word : 0xfff, w,
+             g_cdmg_w[i].ok ? g_cdmg_w[i].rows : 0xffff, rows, nm, g_cdmg_w[i].ok ? g_cdmg_w[i].live : -1L, live,
+             ((double (__cdecl *)(BYTE *))0x0040b450)(o), sd);
+        g_cdmg_w[i].word = w; g_cdmg_w[i].rows = rows; g_cdmg_w[i].live = live; g_cdmg_w[i].ok = 1;
+    }
+}
+/* I76_COOP_AI_HEALTH (default 1, with I76_COOP_AI; joiner; P2 secondary of the record): object_HealthFraction 0x40b450 returns
+ * +0x484 (the 'ST' packet's 100 / 66 / 33) only for a remote PLAYER's car (+0x10 bit 0x20); a mirrored AI car has no such bit,
+ * so the joiner's HUD bracket read its local components, which the joiner never damages (object_ClassDamage is skipped for
+ * them): 100 % while the host's copy burned. Now, on a joiner, a car the host drives (coop_ai_is_mirrored) returns the host's
+ * own health - the 'AT' record's byte +0x5c, which the packer fills from 0x40b450 on the host (x 2.55: 254 = 100 %, the mirror
+ * reads it as byte / 255). 0 = stock. */
+static int coop_ai_is_mirrored(BYTE *o);
+static BYTE *tel_detour(DWORD entry, const BYTE *expect, int n, void *hook, const char *what);   /* telemetry section, below */
+static BYTE *g_hf_tramp; static volatile LONG g_hf_n;
+static float __cdecl coop_ai_health_hook(BYTE *o) {
+    if (o && *(int *)(o + 0x6c) == 1 && coop_ai_role() == 2) {
+        BYTE *tab = *(BYTE **)(0x0054a178 + 4); int count = *(int *)(0x0054a178 + 8), i;
+        if (tab && count > 0 && count <= 2048)
+            for (i = 0; i < count; i++) if (*(BYTE **)(tab + i * 16 + 8) == o) {
+                if ((g_coop_ai_hp[i] & 0x100) && g_coop_ai_hp_obj[i] == o && coop_ai_is_mirrored(o)) { g_hf_n++; return (float)(g_coop_ai_hp[i] & 0xff) * (100.0f / 255.0f); }
+                break;
+            }
+    }
+    return ((float (__cdecl *)(BYTE *))(DWORD_PTR)g_hf_tramp)(o);
+}
+static void apply_coop_ai_health(void) {
+    static const BYTE hf_old[5] = { 0x83, 0xEC, 0x44, 0x53, 0x56 };   /* 0x40b450: sub esp,0x44; push ebx; push esi */
+    if (env_flag("I76_COOP_AI_HEALTH", 8, 1) == 0) { mlog("  coop-ai: health of mirrored AI cars: stock (I76_COOP_AI_HEALTH=0; the joiner's HUD reads them at 100 %%)"); return; }
+    if (g_exe == EXE_NITRO) return;
+    g_hf_tramp = tel_detour(0x0040b450, hf_old, 5, (void *)coop_ai_health_hook, "object_HealthFraction entry (co-op AI health)");
+    mlog("  coop-ai: health of mirrored AI cars on a joiner = the host's ('AT' +0x5c): %s", g_hf_tramp ? "on" : "NOT installed");
+}
+/* P3 (records/MP-AI-DAMAGE-RATE-2026-10-25.md s.5): the 'AT' rate as each side sees it, one line per I76_FPS_LOG window
+ * ("coop-ai-rate:"): on the joiner the inter-arrival of APPLIED records per car and the snap at each apply (|position before
+ * the mirror - after|: how far the local between-record motion had drifted from the host's pose); on the host the gap between
+ * rounds. Always on with I76_COOP_AI (the line comes with the fps line). */
+typedef struct { WORD li; WORD gap; float snap; } crate_t;
+static crate_t g_crate[4096]; static int g_crate_n; static volatile LONG g_crate_stale;
+static DWORD g_crate_last[2048];
+static WORD g_crate_host[2048]; static int g_crate_host_n; static DWORD g_crate_host_last;
+static int crate_cmpf(const void *a, const void *b) { float x = *(const float *)a, y = *(const float *)b; return x < y ? -1 : x > y; }
+static void crate_stats(float *v, int n, float *med, float *p90, float *mx) {
+    if (n <= 0) { *med = *p90 = *mx = 0; return; }
+    qsort(v, n, sizeof(float), crate_cmpf);
+    *med = v[n / 2]; *p90 = v[(n * 9) / 10 < n ? (n * 9) / 10 : n - 1]; *mx = v[n - 1];
+}
+static float g_crate_g[4096], g_crate_s[4096], g_crate_cg[4096], g_crate_cs[4096];
+static void crate_log(void) {
+    char buf[1400]; int len, i, j, nl = 0, cars = 0, ng = 0, ns = 0, big = 0, nfar = 0, lab[64]; float a, b, c, d, e2, f;
+    int role = coop_ai_role();
+    if (role == 1 && g_crate_host_n) {
+        int k = g_crate_host_n, nb = 0;
+        for (i = 0; i < k; i++) { g_crate_g[i] = g_crate_host[i]; if (g_crate_host[i] > 250) nb++; }
+        crate_stats(g_crate_g, k, &a, &b, &c);
+        mlog("  coop-ai-rate: host rounds %d, gap ms median %.0f p90 %.0f max %.0f, > 250 ms %d", k, a, b, c, nb);
+    }
+    g_crate_host_n = 0;
+    if (role != 2 || !g_crate_n) { g_crate_n = 0; return; }
+    len = sprintf(buf, "  coop-ai-rate: joiner records %d (stale dropped %ld)", g_crate_n, g_crate_stale);
+    for (i = 0; i < g_crate_n && nl < 64; i++) { for (j = 0; j < nl && lab[j] != g_crate[i].li; j++); if (j == nl) lab[nl++] = g_crate[i].li; }
+    for (j = 0; j < nl; j++) {
+        int m = 0, q = 0, nb = 0, nf = 0;
+        for (i = 0; i < g_crate_n; i++) if (g_crate[i].li == lab[j]) {
+            if (g_crate[i].gap) { g_crate_cg[m++] = g_crate[i].gap; if (g_crate[i].gap > 250) nb++; }
+            g_crate_cs[q++] = g_crate[i].snap; if (g_crate[i].snap > 1.0f) nf++;
+        }
+        crate_stats(g_crate_cg, m, &a, &b, &c); crate_stats(g_crate_cs, q, &d, &e2, &f);
+        if (len < (int)sizeof(buf) - 120)
+            len += sprintf(buf + len, "; #%d n %d gap %.0f/%.0f/%.0f >250 %d snap %.2f/%.2f/%.2f >1m %d", lab[j], q, a, b, c, nb, d, e2, f, nf);
+        if (m && a < 1000) {                                  /* live cars only (parked ones go every 2 s) */
+            cars++;
+            for (i = 0; i < g_crate_n; i++) if (g_crate[i].li == lab[j]) {
+                if (g_crate[i].gap) { g_crate_g[ng++] = g_crate[i].gap; if (g_crate[i].gap > 250) big++; }
+                g_crate_s[ns++] = g_crate[i].snap; if (g_crate[i].snap > 1.0f) nfar++;
+            }
+        }
+    }
+    crate_stats(g_crate_g, ng, &a, &b, &c); crate_stats(g_crate_s, ns, &d, &e2, &f);
+    mlog("%s; LIVE %d cars: gap ms median %.0f p90 %.0f max %.0f, > 250 ms %d of %d; snap m median %.2f p90 %.2f max %.2f, > 1 m %d of %d",
+         buf, cars, a, b, c, big, ng, d, e2, f, nfar, ns);
+    g_crate_n = 0;
+}
+/* I76_COOP_AI_INTERP (LAB, default 0; joiner; P3 of records/MP-AI-DAMAGE-RATE-2026-10-25.md): draw the mirrored AI cars between
+ * their last two 'AT' records instead of snapping them to each one. Measured first (lab PC pair 2026-10-25, n 2 x 60 s): records
+ * every 109-110 ms (p90 125-141, <= 1 % of gaps > 250 ms), and at each record the local between-record motion of a moving car is
+ * put back by 0.4-1.5 m (p90 0.7-1.4 m). With the switch, at the first net_Pump of each frame that runs the sim step (under
+ * I76_SIM_TICK_MS once per tick, before the vehicle step) a car with two records is placed at p0 + (p1 - p0) x (now - arrival of
+ * p1) / (host record-time spacing), held at 1.2; the apply leaves the position as drawn; a record > 40 m away or after 600 ms,
+ * and a dead car, snap as before. RESULT: it did NOT smooth the drawn motion (the per-step second difference rose from a median
+ * 0.04-0.05 m to 0.19-0.35 m; > 0.5 m steps 24-31 % -> 16-35 %, n 2 runs each): the local vehicle step still integrates the
+ * record's velocity after each placement and fights it. Kept off; the next attempt has to own the car's motion (skip the local
+ * vehicle step for an interpolated car, or interpolate in the tick's draw layer). Diagnostics (always, with the coop-ai-rate
+ * line): "tick jump" = per sim step of a moving car, the second difference of its position (|d(n) - d(n-1)|, m). */
+static int g_cai_interp = 0, g_cip_trace; static volatile LONG g_cip_placed, g_cip_snapped;
+typedef struct { double p0[3], p1[3], last[3], lastd[3]; DWORD a0, a1; float t0, t1; BYTE *o; int n, haslast; } cip_t;
+static cip_t g_cip[2048];
+static float g_cjk[4096]; static int g_cjk_n;
+static void cip_record(int i, BYTE *o, int dead, const double *pre, float t) {   /* coop_ai_apply, right after the mirror: o holds the record's pose */
+    cip_t *c = &g_cip[i]; DWORD now = GetTickCount(); double *p = (double *)(o + 0x40), dx, dy, dz;
+    if (c->o != o || dead) { c->n = 0; c->o = o; c->haslast = 0; }
+    if (c->n) {
+        dx = p[0] - c->p1[0]; dy = p[1] - c->p1[1]; dz = p[2] - c->p1[2];
+        if (dx * dx + dy * dy + dz * dz > 1600.0 || now - c->a1 > 600) c->n = 0;
+    }
+    memcpy(c->p0, c->n ? c->p1 : p, sizeof(c->p0)); c->a0 = c->n ? c->a1 : now;
+    c->t0 = c->n ? c->t1 : t; c->t1 = t;
+    memcpy(c->p1, p, sizeof(c->p1)); c->a1 = now; c->n++;
+    if (g_cai_interp && c->n >= 2 && !dead) { memcpy(p, pre, 3 * sizeof(double)); g_cip_placed++; }   /* the position stays as drawn; the next sim step places it */
+    else g_cip_snapped++;
+}
+static void cip_frame(void) {                                /* first pump of a sim step (joiner): the jump stats of the last step's poses, then the placement */
+    BYTE *tab; int count, i; DWORD now = GetTickCount();
+    if (!g_st_now || coop_ai_role() != 2 || !coop_ai_in_mission()) return;   /* I76_SIM_TICK_MS: only the pump of a frame that runs the sim step */
+    tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
+    if (!tab || count <= 0 || count > 2048) return;
+    for (i = 0; i < count; i++) {
+        cip_t *c = &g_cip[i]; BYTE *o; double *p, d[3];
+        if (!c->n || !c->o || now - c->a1 > 1000) continue;
+        o = coop_ai_object(i, count, tab);
+        if (o != c->o || ((*(BYTE **)(o + 0x70))[0x454] & 0x20)) { c->n = 0; continue; }
+        p = (double *)(o + 0x40);
+        if (g_cip_trace && (now - c->a1) < 1000) {             /* LAB I76_COOP_AI_TRACE=<n>: the next n pump calls of the moving cars */
+            static DWORD tr_start; static int tr_n; if (!tr_start) tr_start = now;
+            if (now - tr_start > 25000 && tr_n < g_cip_trace && c->haslast && (fabs(p[0] - c->last[0]) + fabs(p[2] - c->last[2]) > 0.02 || tr_n)) {
+                tr_n++; mlog("  coop-ai-trace: t %lu frame %lu tick %d #%d %.3f,%.3f step %.3f m; last record +%lu ms", (unsigned long)now, (unsigned long)g_frame, g_st_now, i,
+                             p[0], p[2], sqrt((p[0] - c->last[0]) * (p[0] - c->last[0]) + (p[2] - c->last[2]) * (p[2] - c->last[2])), (unsigned long)(now - c->a1));
+            }
+        }
+        if (c->haslast) {                                     /* drawn position of the frame just shown: second difference */
+            d[0] = p[0] - c->last[0]; d[1] = p[1] - c->last[1]; d[2] = p[2] - c->last[2];
+            if (c->haslast > 1 && g_cjk_n < 4096 && d[0] * d[0] + d[2] * d[2] > 0.0025) {   /* moving cars only (> 5 cm a step) */
+                double a = d[0] - c->lastd[0], b = d[1] - c->lastd[1], e = d[2] - c->lastd[2];
+                g_cjk[g_cjk_n++] = (float)sqrt(a * a + b * b + e * e);
+            }
+            memcpy(c->lastd, d, sizeof(d));
+        }
+        memcpy(c->last, p, sizeof(c->last)); if (c->haslast < 2) c->haslast++;
+        if (g_cai_interp && c->n >= 2 && c->t1 > c->t0 && c->t1 - c->t0 < 0.6f) {   /* spacing from the host's record times, not the arrival jitter */
+            double f = (double)(now - c->a1) / (1000.0 * (double)(c->t1 - c->t0)); int k;
+            if (f > 1.2) f = 1.2;
+            for (k = 0; k < 3; k++) p[k] = c->p0[k] + (c->p1[k] - c->p0[k]) * f;
+        }
+    }
+}
+static void cip_log(void) {
+    float a, b, c; int i, big = 0;
+    if (!g_cjk_n) return;
+    for (i = 0; i < g_cjk_n; i++) if (g_cjk[i] > 0.5f) big++;
+    crate_stats(g_cjk, g_cjk_n, &a, &b, &c);
+    mlog("  coop-ai-rate: joiner tick jump m median %.3f p90 %.3f max %.2f, > 0.5 m %d of %d steps (interp %s: placed %ld, snapped %ld)",
+         a, b, c, big, g_cjk_n, g_cai_interp ? "on" : "off", g_cip_placed, g_cip_snapped);
+    g_cjk_n = 0;
+}
 static void coop_ai_host_send(void) {
     BYTE pkt[512]; BYTE *tab; int count, i, n = 0; static unsigned rounds;
     DWORD now = GetTickCount();
@@ -3284,6 +3516,8 @@ static void coop_ai_host_send(void) {
         g_coop_at_frame = g_frame;
     }
     g_coop_ai_last = now;
+    if (g_crate_host_last && now - g_crate_host_last < 60000 && g_crate_host_n < 2048) g_crate_host[g_crate_host_n++] = (WORD)(now - g_crate_host_last);
+    g_crate_host_last = now;
     tab = *(BYTE **)(0x0054a178 + 4); count = *(int *)(0x0054a178 + 8);
     if (!tab || count <= 0 || count > 2048) return;
     rounds++;
@@ -3295,6 +3529,12 @@ static void coop_ai_host_send(void) {
             int w8[8], m = coop_ai_weapon_mask(o, w8);
             *(WORD *)r = (WORD)i; r[2] = (BYTE)(m < 0 ? 0 : m); r[3] = aim_at_team(o);
             ((void (__cdecl *)(BYTE *, float *))0x004644d0)(o, (float *)(r + 4));
+            if (g_cdmg_log && (!g_cdmg_sent_ok[i] || *(WORD *)(r + 4 + 0x58) != g_cdmg_sent[i])) {
+                mlog("  coop-dmg: host send t %lu #%d %.8s word 0x%03x -> 0x%03x wheels %02x health %d flags %08lx",
+                     (unsigned long)now, i, (char *)(tab + i * 16), g_cdmg_sent_ok[i] ? g_cdmg_sent[i] : 0xfff, *(WORD *)(r + 4 + 0x58),
+                     r[4 + 0x5d], r[4 + 0x5c], (unsigned long)*(DWORD *)(r + 4 + 0x48));
+                g_cdmg_sent[i] = *(WORD *)(r + 4 + 0x58); g_cdmg_sent_ok[i] = 1;
+            }
             n++;
         }
         if (n && (n == 2 || i == count)) {
@@ -3318,12 +3558,32 @@ static void coop_ai_apply(BYTE *pkt, int size) {
         BYTE *r = pkt + 8 + j * 100; int i = *(WORD *)r; float t = *(float *)(r + 4);
         BYTE *o = coop_ai_object(i, count, tab);
         if (!o) continue;
-        if (t <= g_coop_ai_seen[i] && t > g_coop_ai_seen[i] - 2.0f) continue;   /* older than the last one (time restarts on a reload) */
+        if (t <= g_coop_ai_seen[i] && t > g_coop_ai_seen[i] - 2.0f) { g_crate_stale++; continue; }   /* older than the last one (time restarts on a reload) */
         g_coop_ai_seen[i] = t;
         o = aim_at_revive(i, o, r);                          /* aimelee.c: the host respawned this AI car, ours is a wreck */
         g_coop_ai_mask[i] = r[2]; g_coop_ai_until[i] = GetTickCount() + 150;
         aim_at_team_apply(i, o, r[3]);
-        ((void (__cdecl *)(BYTE *, float *))0x00464890)(o, (float *)(r + 4));
+        g_coop_ai_hp[i] = (WORD)(0x100 | r[4 + 0x5c]); g_coop_ai_hp_obj[i] = o;   /* the host's health (its 0x40b450 x 2.55), for the HUD */
+        {   double x0 = *(double *)(o + 0x40), y0 = *(double *)(o + 0x48), z0 = *(double *)(o + 0x50), dx, dy, dz; DWORD nw = GetTickCount();
+            ((void (__cdecl *)(BYTE *, float *))0x00464890)(o, (float *)(r + 4));
+            dx = *(double *)(o + 0x40) - x0; dy = *(double *)(o + 0x48) - y0; dz = *(double *)(o + 0x50) - z0;
+            if (g_crate_n < 4096) {
+                g_crate[g_crate_n].li = (WORD)i; g_crate[g_crate_n].gap = (WORD)(g_crate_last[i] && nw - g_crate_last[i] < 60000 ? nw - g_crate_last[i] : 0);
+                g_crate[g_crate_n].snap = (float)sqrt(dx * dx + dy * dy + dz * dz); g_crate_n++;
+            }
+            g_crate_last[i] = nw;
+            { double pre[3]; pre[0] = x0; pre[1] = y0; pre[2] = z0; cip_record(i, o, (*(DWORD *)(r + 4 + 0x48) & 8) != 0, pre, t); }   /* I76_COOP_AI_INTERP */
+        }
+        if (g_cdmg_log) {
+            WORD wr = *(WORD *)(r + 4 + 0x58), rows = cdmg_rows(*(BYTE **)(o + 0x70), NULL);
+            if (!g_cdmg_got_ok[i] || wr != g_cdmg_got[i] || rows != (WORD)g_cdmg_rows_ap[i]) {
+                char sd[200]; cdmg_sides(sd, *(BYTE **)(o + 0x70));
+                mlog("  coop-dmg: joiner apply t %lu #%d %.8s word 0x%03x -> 0x%03x wheels %02x health %d; rows after the mirror 0x%04x -> 0x%04x;%s",
+                     (unsigned long)GetTickCount(), i, (char *)(tab + i * 16), g_cdmg_got_ok[i] ? g_cdmg_got[i] : 0xfff, wr, r[4 + 0x5d], r[4 + 0x5c],
+                     g_cdmg_got_ok[i] ? (WORD)g_cdmg_rows_ap[i] : 0xffff, rows, sd);
+                g_cdmg_got[i] = wr; g_cdmg_got_ok[i] = 1; g_cdmg_rows_ap[i] = rows;
+            }
+        }
         g_coop_ai_applied++;
     }
 }
@@ -3641,6 +3901,7 @@ static void coop_ai_log(void) {                            /* after each fps lin
     if (!real_dpReceive) return;
     coop_heap_log();
     if (!*(volatile int *)0x00541030) return;                /* single player: no co-op cars to report (and nothing to read) */
+    crate_log(); cip_log();                                  /* P3: 'AT' inter-arrival, snap distance, drawn frame jumps of this window */
     len = sprintf(buf, "  coop-ai: role %s, sent %ld (send errors %ld), packets in %ld, applied %ld, fire pulls %ld, local damage blocked %ld",
                   g_coop_ai_role == 1 ? "host" : g_coop_ai_role == 2 ? "joiner" : "none", g_coop_ai_sent, g_coop_ai_senderr, g_coop_ai_rx,
                   g_coop_ai_applied, g_coop_ai_shots, g_coop_ai_blocked);
@@ -3745,6 +4006,7 @@ static int coop_chain_frames_running(void);
 static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, void *buf, void *size) {
     int r = real_dpReceive(dp, from, to, flags, buf, size);
     int role = coop_ai_role();
+    if (role == 2 && g_cip_on) { static DWORD cipf = (DWORD)-1; if (g_frame != cipf || !g_frame_hook) { cipf = g_frame; cip_frame(); } }   /* I76_COOP_AI_INTERP: once per pump = once per sim step (tick) */
     if (__builtin_return_address(0) == (void *)0x0045336B) {   /* net_Pump's receive loop: how long one pump call ran */
         static DWORD pf = (DWORD)-1, t0, npk, lastlog, nlong, worst;
         DWORD now = GetTickCount();
@@ -4504,6 +4766,11 @@ static void apply_coop_ai(HMODULE exe) {
     real_dpReceive = (dprecv_fn)patch_iat(exe, "anetdll.dll", "dpReceive", (void *)coop_dpReceive);
     g_coop_at_per_frame = env_flag("I76_COOP_AT_PER_FRAME", 8, 1) != 0;
     if (g_coop_at_per_frame) install_frame_hook();           /* the round's frame gate needs the frame counter */
+    g_cdmg_log = env_flag("I76_COOP_DMG_LOG", 8, 0) == 1;
+    if (g_cdmg_log) { install_frame_hook(); mlog("  coop-dmg: I76_COOP_DMG_LOG=1 (lab) - damage words / drawn panel rows of the mission cars logged on change"); }
+    apply_coop_ai_health();
+    g_cai_interp = env_flag("I76_COOP_AI_INTERP", 8, 0) == 1; g_cip_on = 1; g_cip_trace = env_int("I76_COOP_AI_TRACE", 8, 0);
+    mlog("  coop-ai: mirrored AI cars %s (I76_COOP_AI_INTERP)", g_cai_interp ? "drawn between their last two records (I76_COOP_AI_INTERP=1, lab)" : "snapped to each record (stock 'AT' apply)");
     mlog("  coop-ai: host 'AT' rounds %s", g_coop_at_per_frame ? (g_frame_hook ? "at most one per mission frame (I76_COOP_AT_PER_FRAME)" : "every 100 ms (frame hook missing)")
                                                                : "every 100 ms of wall time, also inside one pump call (I76_COOP_AT_PER_FRAME=0)");
     {
