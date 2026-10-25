@@ -1,84 +1,84 @@
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 1279, matched 1279, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 212, engine off (flag 0x1 clear) 139, airborne (flag 0x4): free-rev branch 94, destroyed (flag 0x20) 1
   max_abs_err rpm = 0.131256 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 1218, matched 1218, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 245
   max_abs_err rpm = 0.14374 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 1201, matched 1201, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 262
   max_abs_err rpm = 0.144752 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 3564, matched 3564, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 814
   max_abs_err rpm = 0.146819 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 3583, matched 3583, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 799
   max_abs_err rpm = 0.146455 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 1209, matched 1209, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 254
   max_abs_err rpm = 0.148576 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 1219, matched 1219, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 224
   max_abs_err rpm = 0.143286 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 1218, matched 1218, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 245
   max_abs_err rpm = 0.146064 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 1225, matched 1225, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 238
   max_abs_err rpm = 0.146311 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 1221, matched 1221, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 242
   max_abs_err rpm = 0.147056 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 1194, matched 1194, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 269
   max_abs_err rpm = 0.145959 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 1224, matched 1224, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 239
   max_abs_err rpm = 0.145182 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 1204, matched 1204, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 259
   max_abs_err rpm = 0.14549 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 1196, matched 1196, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 247
   max_abs_err rpm = 0.144525 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 1198, matched 1198, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 245
   max_abs_err rpm = 0.143457 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 1226, matched 1226, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 237
   max_abs_err rpm = 0.144657 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 1204, matched 1204, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 239
   max_abs_err rpm = 0.146272 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 1226, matched 1226, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 237
   max_abs_err rpm = 0.144657 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 1219, matched 1219, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 244
   max_abs_err rpm = 0.147772 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_rpm on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle engine_rpm on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1344, matched 1344, match rate 1.0000 -> PASS
   skipped: skidding (flag 0x2): free-rev branch 357, airborne (flag 0x4): free-rev branch 22
   max_abs_err rpm = 0.136557 (tolerance {'abs': 2.0, 'rel': 0.0})
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 1724, matched 1721, match rate 0.9983 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -90,7 +90,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (
   variant prev-frame speed/throttle    match rate 0.9948 (1715/1724)
   variant prev-frame throttle only     match rate 0.9994 (1723/1724)
   variant one shift per frame          match rate 0.9971 (1719/1724)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1458, match rate 0.9973 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -103,7 +103,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (
   variant prev-frame speed/throttle    match rate 0.9945 (1454/1462)
   variant prev-frame throttle only     match rate 1.0000 (1462/1462)
   variant one shift per frame          match rate 0.9973 (1458/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -115,7 +115,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 4377, matched 4372, match rate 0.9989 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -129,7 +129,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (
   variant prev-frame speed/throttle    match rate 0.9977 (4367/4377)
   variant prev-frame throttle only     match rate 0.9998 (4376/4377)
   variant one shift per frame          match rate 0.9989 (4372/4377)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 4381, matched 4372, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -143,7 +143,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (
   variant prev-frame speed/throttle    match rate 0.9973 (4369/4381)
   variant prev-frame throttle only     match rate 0.9998 (4380/4381)
   variant one shift per frame          match rate 0.9979 (4372/4381)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -155,7 +155,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 1442, matched 1432, match rate 0.9931 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -169,7 +169,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (
   variant prev-frame speed/throttle    match rate 0.9903 (1428/1442)
   variant prev-frame throttle only     match rate 0.9958 (1436/1442)
   variant one shift per frame          match rate 0.9924 (1431/1442)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -181,7 +181,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9973 (1458/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 2 (tolerance {'abs': 0, 'rel': 0})
@@ -193,7 +193,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1458, match rate 0.9973 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -206,7 +206,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (
   variant prev-frame speed/throttle    match rate 0.9945 (1454/1462)
   variant prev-frame throttle only     match rate 1.0000 (1462/1462)
   variant one shift per frame          match rate 0.9973 (1458/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -218,7 +218,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (
   variant prev-frame speed/throttle    match rate 0.9932 (1452/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -230,7 +230,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9973 (1458/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -242,7 +242,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 1442, matched 1439, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -254,7 +254,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (
   variant prev-frame speed/throttle    match rate 0.9938 (1433/1442)
   variant prev-frame throttle only     match rate 0.9993 (1441/1442)
   variant one shift per frame          match rate 0.9979 (1439/1442)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 1442, matched 1439, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -266,7 +266,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (
   variant prev-frame speed/throttle    match rate 0.9938 (1433/1442)
   variant prev-frame throttle only     match rate 0.9993 (1441/1442)
   variant one shift per frame          match rate 0.9979 (1439/1442)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 2 (tolerance {'abs': 0, 'rel': 0})
@@ -278,7 +278,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 1442, matched 1439, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -290,7 +290,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (
   variant prev-frame speed/throttle    match rate 0.9938 (1433/1442)
   variant prev-frame throttle only     match rate 0.9993 (1441/1442)
   variant one shift per frame          match rate 0.9979 (1439/1442)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1459, match rate 0.9979 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 2 (tolerance {'abs': 0, 'rel': 0})
@@ -302,7 +302,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (
   variant prev-frame speed/throttle    match rate 0.9938 (1453/1462)
   variant prev-frame throttle only     match rate 0.9993 (1461/1462)
   variant one shift per frame          match rate 0.9979 (1459/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 1462, matched 1458, match rate 0.9973 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -315,7 +315,7 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (
   variant prev-frame speed/throttle    match rate 0.9945 (1454/1462)
   variant prev-frame throttle only     match rate 1.0000 (1462/1462)
   variant one shift per frame          match rate 0.9973 (1458/1462)
-oracle engine_gear on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle engine_gear on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1722, matched 1718, match rate 0.9977 -> PASS
   skipped: no previous frame 1
   max_abs_err gear = 1 (tolerance {'abs': 0, 'rel': 0})
@@ -328,427 +328,427 @@ oracle engine_gear on C:\Users\james\i76-map\verify\runs\take-damage\20261002-12
   variant prev-frame speed/throttle    match rate 0.9954 (1714/1722)
   variant prev-frame throttle only     match rate 0.9988 (1720/1722)
   variant one shift per frame          match rate 0.9965 (1716/1722)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1725
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 4378
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 4382
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1443
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1443
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1443
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1443
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): engine_power 1463
   max_abs_err drive_power = 0 (tolerance {'abs': 1.0, 'rel': 0.001})
   variant f = hp/max every frame       match rate 0.0000 (0/0)
-oracle drive_power on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle drive_power on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1723, matched 1722, match rate 0.9994 -> PASS
   max_abs_err drive_power = 55022.1 (tolerance {'abs': 1.0, 'rel': 0.001})
   summary: {"engine_power (P) values": [193960], "engine_hp changes (frame, from, to, on a hit frame)": [[1067, 1200, 600, false]], "engine damage events (hp drop on a hit frame)": 0, "player impact frames": 15}
   worst 1 frames:
     frame 0 t=0 flags=0x81001 inputs={rpm=1050, engine_hp=1200, engine_hp_max=1200, engine_power=0x2f5a8, proxy_frame=0} expected={drive_power=43897.5} got={drive_power=98919.6}
   variant f = hp/max every frame       match rate 0.6187 (1066/1723)
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1725
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 4378
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 4382
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1443
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1443
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1443
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1443
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): mass 1463
   max_abs_err brake_effective = 0 (tolerance {'abs': 0.0001, 'rel': 0.0001})
-oracle brake_effective on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle brake_effective on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1723, matched 1723, match rate 1.0000 -> PASS
   max_abs_err brake_effective = 2.6243e-06 (tolerance {'abs': 0.0001, 'rel': 0.0001})
   summary: {"mass values": [1951], "distinct brake_hp/max values seen": 1, "brake_effective values": [1.17888]}
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1725
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 4378
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 4382
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err health_pct = 0 (tolerance {'abs': 0.01, 'rel': 0.0001})
   variant x100 fix reading             match rate 0.0000 (0/0)
-oracle health_fraction on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle health_fraction on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1723, matched 1723, match rate 1.0000 -> PASS
   max_abs_err health_pct = 1.42109e-14 (tolerance {'abs': 0.01, 'rel': 0.0001})
   summary: {"predicted min": 0.5, "predicted max": 100.0, "observed health_pct min": 0.5, "observed health_pct max": 100.0, "frames in the scaled branch": 1067, "frames in the unscaled branch": 656, "frames with health_pct < 75": 729, "I76_FIX_HEALTH_PCT": false}
   variant x100 fix reading             match rate 0.6193 (1067/1723)
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1725
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 4378
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 4382
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1443
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 0, matched 0, match rate 0.0000 -> INCONCLUSIVE
   skipped: columns missing (telemetry v1): health_pct 1463
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle damage_smoke on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle damage_smoke on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1723, matched 1723, match rate 1.0000 -> PASS
   max_abs_err smoke = 0 (tolerance {'abs': 0, 'rel': 0})
   smoke: expected true on 729 frames, predicted true on 729
   summary: {"frames with flag 0x100": 729, "frames with health_pct x 0.01 < 0.75": 729, "flag transitions (frame, to, health_pct)": [[994, "set", 35.2]], "health_pct min": 0.5}
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261001-211111 (profile stock20, lag 0)
   frames 1725, considered 1725, matched 1725, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261001-211503 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261001-212220 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261001-212443 (profile stock60, lag 0)
   frames 4378, considered 4378, matched 4378, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261001-212619 (profile stock60, lag 0)
   frames 4382, considered 4382, matched 4382, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-090752 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-091323 (profile stock20, lag 0)
   frames 1443, considered 1443, matched 1443, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-091855 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-092424 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-093400 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-094329 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-095257 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-100235 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-101210 (profile stock20, lag 0)
   frames 1443, considered 1443, matched 1443, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-102145 (profile stock20, lag 0)
   frames 1443, considered 1443, matched 1443, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-103121 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-103651 (profile stock20, lag 0)
   frames 1443, considered 1443, matched 1443, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-104219 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\drive\20261002-104747 (profile stock20, lag 0)
   frames 1463, considered 1463, matched 1463, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-oracle step_count on C:\Users\james\i76-map\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
+oracle step_count on <re-archive>\verify\runs\take-damage\20261002-120608 (profile stock20, lag 0)
   frames 1723, considered 1723, matched 1723, match rate 1.0000 -> PASS
   max_abs_err step_count = 0 (tolerance {'abs': 0, 'rel': 0})
-report: C:\Users\james\i76-map\verify\oracles\REPORT.md
+report: <re-archive>\verify\oracles\REPORT.md

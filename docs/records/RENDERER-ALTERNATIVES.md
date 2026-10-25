@@ -1,7 +1,7 @@
 # Renderer alternatives: other Glide wrappers, the other back ends, and frame generation
 
 *Survey and preparation, 2026-10-02. **Nothing here was run in the game** (the console was busy: an `i76.exe` from
-the lab sandbox was running the whole time). No file in `i76-uncap-lab\game` or in the playable install was changed,
+the lab sandbox was running the whole time). No file in `<lab>\game` or in the playable install was changed,
 and nothing was downloaded. Every statement is tagged by where it comes from: **[measured]** on this machine (with
 the doc that holds it), **[disk]** read from a file today, **[web]** fetched today (source in section 8),
 **[recalled]** from general knowledge and not re-verified today, **[untested]** a prediction.*
@@ -15,7 +15,7 @@ The owner's request: "try different glide wrappers or other rendering solutions"
 > wrapper passes 120. Rows L1 to L4 and every [untested] tag below are the survey's predictions.
 
 > **Update, 2026-10-02 23:45 (same night).** The owner approved the downloads. D1-D4 are fetched and unpacked
-> (hashes in section 8), the test copy `i76-uncap-lab\game-alt` exists, and one script runs the whole matrix:
+> (hashes in section 8), the test copy `<lab>\game-alt` exists, and one script runs the whole matrix:
 > **section 10**. Still **nothing was run in the game** by this work. Two things changed under this document:
 >
 > 1. **L2 (the 1920x1440 pointer box) was a symptom of a rejected conf, not a property of dgVoodoo.** dgVoodoo
@@ -73,7 +73,7 @@ test run was in progress and **179** a few minutes later [measured, n = 1 each, 
 | candidate | version / licence | could fix | compatibility with the hooks | risks | on disk? |
 |---|---|---|---|---|---|
 | **nGlide** (Zeus Software) | 2.10, freeware, closed source, 4.75 MB installer [web]. Back ends Direct3D 9 and Vulkan, chosen in `nglide_config.exe` [web]. Options: screen resolution ("By desktop" or a size), aspect ratio ("Fit to screen" / "Preserve original"), refresh rate ("By app" or the monitor's rate), vertical synchronization, gamma [web]. Frame rate "capped at 1000 FPS when V-sync is disabled" [web]. Alt+Enter toggles a window [web] | **L1 likely**: with vsync off it does not pace (1000 fps cap), so `I76_FPS_CAP=179` paces; with vsync on in exclusive fullscreen it should follow the real mode's refresh [untested]. **L2 likely**: no dgVoodoo pointer box; u32x's own map then applies [untested]. L3, L4: no (no anisotropy or replacement option known [recalled]; closed source) | Proxy: the import-slot hook attaches by name; `I76_GLIDE_REFRESH=120` would hand nGlide refresh code 8, which "By app" would honour as a 120 Hz request - leave it unset first. u32x: unknown clip box, pin test. DirectDraw: three options to try, in this order: keep dgVoodoo's `DDraw.dll` (may collide the way OpenGLide's GL window did; nGlide is D3D9/Vulkan, so it may not), DDrawCompat, or no wrapper + the 256COLOR compatibility layer | Exclusive fullscreen by default: a real mode switch, focus loss minimises, screenshots of an exclusive D3D9 surface can come back black. Settings live in **HKCU\Software\Zeus Software** [web], i.e. per user, not per folder (only an nGlide DLL reads them, and no install here has one). The installer writes into `SysWOW64` [web] - **do not run it**; open it with 7-Zip and take the DLLs. dgVoodoo's `D3D9.dll` in the game folder would be picked up by nGlide's D3D9 back end: `switch-renderer.ps1` removes it for this set | **no** - download D1 |
-| **OpenGLide 0.09rc9** (GOG's bundled build) | `glide2x.dll` 177,664 B, 2011, md5 c319a4f3 [disk]; LGPL | L1 **maybe** (an OpenGL `SwapBuffers`; pacing is the driver's swap interval, not a Glide refresh code [untested]). L2: its window is the game's 640x480 client - no pillarbox, no scaling [measured in July: "native 640x480 window"]. L3, L4: no | Known from July (laptop, FINDINGS 7.1): crashes on a TMU report above 2 MB (`TextureMemorySize=2`), needs the 256COLOR layer, and **dgVoodoo's DDraw collides with its GL window at boot**. u32x did not exist then: untested together | A 640x480 window on a 3440x1440 panel: a pacing probe, not a daily driver. The two logs in `game\` (`OpenGLid.log`, `DDrawCompat-i76.log`) are from **another machine** (GTX 1650 Ti, `C:\Games\Interstate 76`, Windows build 26200) [disk]: nothing about this PC was learned from them | **yes** - `i76-map\sandbox-gog\main\app` |
+| **OpenGLide 0.09rc9** (GOG's bundled build) | `glide2x.dll` 177,664 B, 2011, md5 c319a4f3 [disk]; LGPL | L1 **maybe** (an OpenGL `SwapBuffers`; pacing is the driver's swap interval, not a Glide refresh code [untested]). L2: its window is the game's 640x480 client - no pillarbox, no scaling [measured in July: "native 640x480 window"]. L3, L4: no | Known from July (laptop, FINDINGS 7.1): crashes on a TMU report above 2 MB (`TextureMemorySize=2`), needs the 256COLOR layer, and **dgVoodoo's DDraw collides with its GL window at boot**. u32x did not exist then: untested together | A 640x480 window on a 3440x1440 panel: a pacing probe, not a daily driver. The two logs in `game\` (`OpenGLid.log`, `DDrawCompat-i76.log`) are from **another machine** (GTX 1650 Ti, `C:\Games\Interstate 76`, Windows build 26200) [disk]: nothing about this PC was learned from them | **yes** - `<re-archive>\sandbox-gog\main\app` |
 | **OpenGLide-HD** (this repo's fork of voyageur/openglide) | patch in `tools\openglide-hd\` (381 KB); LGPL. Status 2026-07-10: builds, boots, stays alive; dump/replace loop not verified in game | **L4: the only route** (hash-based dump and replace at any resolution). L1 as OpenGLide. L2 as OpenGLide (patch 0002 adds a passthrough output window) | as OpenGLide | Needs a build (w64devkit x86, download D6). The built DLL is **not on this machine**: `%USERPROFILE%\openglide-hd` does not exist [disk] | patch only |
 | **OpenGLide, crazii fork** | github.com/crazii/openglide, LGPL-2.1, 155 commits, **no releases** [web]. Adds windowed / desktop (borderless) / app modes, desktop scaling (stretch / integer / fitted), VSync option, MSAA or FXAA, shader-based combine emulation [web] | L1 maybe (VSync option; pacing by the GL swap), L2 maybe ("fitted" scaling: who maps the pointer is unknown), L3 no, L4 no (would need the HD patch ported) | as OpenGLide; untested with I'76 by anyone we found | Build needed (mingw-w64 32-bit or MSVC6; wxWidgets 2.8.10 for the config tool) [web]; "limited game testing" | no - D7 (source) |
 | **dgVoodoo 2.87.5** (newer than installed) | 2.87.4 (Sep 2), 2.87.5 (Sep 15) [web]; freeware | Nothing: the release notes fetched list a driver-string rename and a D3D9 viewport fix, no Glide, pacing or pointer change [web] | drop-in | low value; only worth it if another reason appears | no - D5. Installed: **2.87.3** in `game\` (`Glide2x.dll` md5 8af442bc = `C:\Games\_tools\dgVoodoo2_87_3\3Dfx\x86\Glide2x.dll`) [disk] |
@@ -116,7 +116,7 @@ Order = expected gain against L1-L5, divided by cost and risk. "Tonight" = no do
 
 ## 4. Inventory: what is on this machine (2026-10-02)
 
-Searched: `C:\Games`, `C:\Users\james\Downloads`, the three repos, `C:\Program Files`, `C:\Program Files (x86)`
+Searched: `C:\Games`, `<downloads>`, the three repos, `C:\Program Files`, `C:\Program Files (x86)`
 (Steam library to depth 3), `%LOCALAPPDATA%\Programs`, Desktop, Documents; names matching nglide, glide*.dll,
 openglid*, dxvk, dxgi/d3d11.dll, reshade, losslessscaling, dxwnd, ddrawcompat, ddraw.dll, dgvoodoo, psvoodoo,
 zeckensack, cnc-ddraw.
@@ -124,19 +124,19 @@ zeckensack, cnc-ddraw.
 | item | path | version | size |
 |---|---|---|---|
 | dgVoodoo 2 full package (x86, x64, arm64; Glide, Glide2x, Glide3x, DDraw, D3DImm, D3D8, D3D9, CPL, default conf) | `C:\Games\_tools\dgVoodoo2_87_3\` | 2.87.3 | x86 `Glide2x.dll` 212,992 B (md5 8af442bc...) |
-| dgVoodoo set installed in the sandbox | `C:\Users\james\i76-uncap-lab\game\` (`Glide.dll`, `Glide2x.dll`, `Glide3x.dll`, `DDraw.dll`, `D3DImm.dll`, `D3D8.dll`, `D3D9.dll`, `dgVoodooCpl.exe`, `Glide2x.dll.dgvoodoo`) | 2.87.3, identical md5 to the package | 212,992 / 258,048 / 210,944 / 418,304 / 485,888 B |
-| same set in the playable install (**not to be touched**) | `C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76\` | 2.87.3 | - |
-| GOG's bundled OpenGLide: `glide2x.dll`, `glide2x.ovl`, `OpenGLid.INI`; plus `glide.dll` (dgVoodoo 1.x Glide 2.11 wrapper, 2007) | `C:\Users\james\i76-map\sandbox-gog\main\app\` (also `...\nitro-pack\app\`) | OpenGLide 0.09rc9 era, file version 1.0.0.0, 2011 | 177,664 B (md5 c319a4f3...); ovl 29,412; glide.dll 229,376 |
+| dgVoodoo set installed in the sandbox | `<lab>\game\` (`Glide.dll`, `Glide2x.dll`, `Glide3x.dll`, `DDraw.dll`, `D3DImm.dll`, `D3D8.dll`, `D3D9.dll`, `dgVoodooCpl.exe`, `Glide2x.dll.dgvoodoo`) | 2.87.3, identical md5 to the package | 212,992 / 258,048 / 210,944 / 418,304 / 485,888 B |
+| same set in the playable install (**not to be touched**) | `<downloads>\Interstate76-i76-everywhere-portable-20260801\Interstate 76\` | 2.87.3 | - |
+| GOG's bundled OpenGLide: `glide2x.dll`, `glide2x.ovl`, `OpenGLid.INI`; plus `glide.dll` (dgVoodoo 1.x Glide 2.11 wrapper, 2007) | `<re-archive>\sandbox-gog\main\app\` (also `...\nitro-pack\app\`) | OpenGLide 0.09rc9 era, file version 1.0.0.0, 2011 | 177,664 B (md5 c319a4f3...); ovl 29,412; glide.dll 229,376 |
 | OpenGLide settings + log from July (from the laptop, see section 2) | `game\OpenGLid.ini` (520 B, `TextureMemorySize=2`), `game\OpenGLid.log` (12,760 B) | 0.09rc9 | - |
 | DDrawCompat log from July (laptop; no DDrawCompat DLL anywhere on this PC) | `game\DDrawCompat-i76.log` | v0.7.1 | 12,286 B |
-| OpenGLide-HD patch (source only; no built DLL: `C:\Users\james\openglide-hd` is absent) | `C:\Users\james\i76-everywhere\tools\openglide-hd\0001-...patch` | - | 381,192 B |
+| OpenGLide-HD patch (source only; no built DLL: `<work>/openglide-hd` is absent) | `tools\openglide-hd\0001-...patch` | - | 381,192 B |
 | DXVK pipeline-cache patch and Mac `dxvk.conf` (no DXVK DLLs for Windows anywhere) | `i76-everywhere\tools\dxvk-pipeline-cache-persist\`, `i76-everywhere\dxvk.conf` | - | 10,791 B / 357 B |
-| Lossless Scaling | `C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801\Lossless Scaling\LosslessScaling.exe` (+ `Lossless.dll` 7.5 MB) | 3.2.2.0 | 157,696 B |
+| Lossless Scaling | `<downloads>\Interstate76-i76-everywhere-portable-20260801\Lossless Scaling\LosslessScaling.exe` (+ `Lossless.dll` 7.5 MB) | 3.2.2.0 | 157,696 B |
 | Lossless Scaling profile | `%LOCALAPPDATA%\Lossless Scaling\Settings.xml`: profile "Interstate '76 Gold Edition", `LSFG3`, mode `FIXED`, multiplier 2, target 60, flow scale 100, capture `WGC`, queue target 1, max frame latency 3 | - | - |
 | 7-Zip (to open installers without running them) | `C:\Program Files\7-Zip\7z.exe` | - | - |
 | Real-ESRGAN (texture upscaling, for an HD pack) | `C:\Games\_tools\realesrgan\` | - | - |
-| RTSS installer (frame limiter / overlay, not installed) | `C:\Users\james\Downloads\[Guru3D]-RTSSSetup737Build28314.zip` | 7.3.7 | 17,998,383 B |
-| GOG installers (a clean reference can be re-extracted) | `C:\Users\james\Downloads\setup_interstate76_2.1.0.17.exe`, `setup_interstate76_nitro_pack_2.1.0.17.exe` | 2.1.0.17 | 395 MB / 239 MB |
+| RTSS installer (frame limiter / overlay, not installed) | `<downloads>\[Guru3D]-RTSSSetup737Build28314.zip` | 7.3.7 | 17,998,383 B |
+| GOG installers (a clean reference can be re-extracted) | `<downloads>\setup_interstate76_2.1.0.17.exe`, `setup_interstate76_nitro_pack_2.1.0.17.exe` | 2.1.0.17 | 395 MB / 239 MB |
 
 **Not found anywhere:** nGlide (any file), DXVK DLLs, ReShade, DxWnd, a DDrawCompat DLL, psVoodoo, Zeckensack's
 wrapper, cnc-ddraw, any dgVoodoo zip other than the unpacked 2.87.3.
@@ -177,7 +177,7 @@ Two stale pointers found on the way:
 
 ## 6. What was prepared (lab scripts)
 
-All in `C:\Users\james\i76-uncap-lab`. Self-tested tonight on a throwaway fake game folder (copy, hard links,
+All in `<lab>`. Self-tested tonight on a throwaway fake game folder (copy, hard links,
 exclusions, baseline, switch, refusal paths, restore); **not** run on the real sandbox beyond `-Plan`, because a
 test run was using it.
 
@@ -198,7 +198,7 @@ test run was using it.
   verifies each write by md5, and appends before/after md5s to `<copy>\.renderer-switch.jsonl`. It refuses
   `<lab>\game` and any path outside the lab.
 - `autotest\proxy-run.ps1 -GameDir <copy> [-GameArgs "-d3d"]` - new parameters; defaults unchanged (`..\game`,
-  `-glide`). It refuses a folder outside `i76-uncap-lab`. `autotest\test-escmenu.ps1` passes the same two through.
+  `-glide`). It refuses a folder outside `<lab>`. `autotest\test-escmenu.ps1` passes the same two through.
 - `.gitignore`: `game-*/`.
 
 Added 2026-10-02 late: `tools\renderers\nglide-settings.ps1`, `tools\renderers\renderer-matrix.ps1`, `tools\renderers\reshade\` (section 10).
@@ -216,7 +216,7 @@ no `i76` process, `game\.console-test.lock` free, the desktop refresh read and w
 `game-alt`, never `game\`, never the playable install.
 
 ```powershell
-cd C:\Users\james\i76-uncap-lab
+cd <lab>
 .\tools\renderers\make-renderer-copy.ps1                   # once; add -HardLinkAssets to save 399 MB
 ```
 
@@ -226,7 +226,7 @@ the noise floor):
 | # | measurement | tool | pass / what to record |
 |---|---|---|---|
 | M1 | boots into a mission | `autotest\proxy-run.ps1 -GameDir ..\game-alt -Mission t01 -Hold 0 -Run {...}` | "in mission after N s"; the proxy log lines (no `CRASH`); `u32x.log` |
-| M2 | pacing at the desktop refresh | inside `-Run`: `python C:\Users\james\i76-everywhere\tools\telemetry\frame_stats.py 15 <tag>`; three conditions: no cap, `-Env @{ I76_FPS_CAP = "179" }`, `-Env @{ I76_FPS_CAP = "120" }` | fps, dt mean / sd / p99. Pass for 179: mean 5.59 ms, sd < 0.3 ms, no 8.3 or 16.7 ms mode. Uncapped mean dt = the engine + wrapper frame cost (headroom) |
+| M2 | pacing at the desktop refresh | inside `-Run`: `python tools\telemetry\frame_stats.py 15 <tag>`; three conditions: no cap, `-Env @{ I76_FPS_CAP = "179" }`, `-Env @{ I76_FPS_CAP = "120" }` | fps, dt mean / sd / p99. Pass for 179: mean 5.59 ms, sd < 0.3 ms, no 8.3 or 16.7 ms mode. Uncapped mean dt = the engine + wrapper frame cost (headroom) |
 | M3 | pointer box (**pass criterion obsolete**, see the update at the top: record the raw numbers only) | `autotest\test-escmenu.ps1 -Stage open -Tag <cand> -GameDir ..\game-alt`, then `-Stage close -GameDir ..\game-alt` | the two "cursor after SetCursorPos" lines and `osclip` / `client`: under dgVoodoo the cursor pushed to x = 3400 comes back clamped to the 1920-wide box. Pass: the pointer reaches the drawn right edge of the menu (x up to 2680 on this panel) |
 | M4 | picture | `tools\graphics\capture-frame.ps1 -Out captures\renderers\<cand>.png` inside `-Run`, same mission, parked car, 8 s after entry | the frame rectangle it prints; compare with the dgVoodoo baseline shot via `make-crops.py` (terrain edge, thin pole, HUD text, near texture). Under exclusive fullscreen the capture may be black: note it, use a phone |
 | M5 | regressions | 10 minutes by hand: Esc menu, save screen, garage DONE, hood view (F6), binoculars (B), Alt+Tab and back, quit | each of L5's known behaviours, plus sound and music |
@@ -250,7 +250,7 @@ the noise floor):
    256COLOR layer on the copy's exe only), M1, then M2 with no cap and with 179. Whatever happens,
    `switch-renderer.ps1 -Restore` afterwards (removes the layer value) and confirm with `-Status`.
 
-*After the owner approves downloads* (unpack into `C:\Users\james\i76-uncap-lab\refs\renderers\<name>\`, which is
+*After the owner approves downloads* (unpack into `<lab>\refs\renderers\<name>\`, which is
 git-ignored; never run an installer):
 
 5. **nGlide**: `& 'C:\Program Files\7-Zip\7z.exe' x nGlide210_setup.exe -orefs\renderers\nglide`, confirm
@@ -271,7 +271,7 @@ winner into `game\` and later the playable install is a separate, announced step
 
 ## 8. Downloads
 
-**Fetched 2026-10-02 23:31-23:36** with `curl.exe` into `C:\Users\james\i76-uncap-lab\refs\renderers\<name>\`
+**Fetched 2026-10-02 23:31-23:36** with `curl.exe` into `<lab>\refs\renderers\<name>\`
 (git-ignored). No installer was run: the two NSIS setups were opened with 7-Zip. No site refused the fetch (the
 direct nGlide file URL answered 200 to curl; only the zeus-software.com *pages* had refused automated reads earlier).
 
@@ -341,14 +341,14 @@ Sizes marked "not checked" are estimates; read the real figure off the release p
 
 ### 10.2 What is staged
 
-- `i76-uncap-lab\refs\renderers\{nglide,dxvk,reshade,ddrawcompat}\` - the downloads of section 8, unpacked.
-- **`i76-uncap-lab\game-alt`** - made 23:40 with `make-renderer-copy.ps1 -HardLinkAssets` while no `i76` process
+- `<lab>\refs\renderers\{nglide,dxvk,reshade,ddrawcompat}\` - the downloads of section 8, unpacked.
+- **`<lab>\game-alt`** - made 23:40 with `make-renderer-copy.ps1 -HardLinkAssets` while no `i76` process
   was running and no lock was held: 451 files, 399.1 MB hard-linked (`smk\`, `music\`, `I76.ZFS`, `DATABASE.MW2`),
   88.3 MB copied. Manifest `.renderer-copy.json` re-verified (45 of 45 md5s match the files; all match `game\` at
   that moment). It carries the **fixed** conf (md5 6be07be8..., `[Glide] Resolution = 3840x2880`,
   `Antialiasing = 4x`, `FullScreenMode = true`, `FullscreenAttributes = fake`) and the sandbox's `STRLKUP.DLL`.
   Baseline of its 10 renderer slot files saved in `game-alt\_renderer-baseline\`.
-- Lab scripts (commit in `i76-uncap-lab`):
+- Lab scripts (commit in `<lab>`):
   - `tools\renderers\nglide-settings.ps1` - sets the `nGlide2` values for a test (`-Backend vulkan|d3d9`, vsync
     off, resolution by desktop, aspect 4:3, refresh by app, splash off), saves the previous state, `-Restore`
     removes the key again if it did not exist, `-EnvOnly` returns the `NGLIDE_*` hashtable. Round-trip tested.
@@ -367,7 +367,7 @@ Sizes marked "not checked" are estimates; read the real figure off the release p
 The one command, at the physical console, no other `i76` running (it waits up to 5 minutes for one to end):
 
 ```powershell
-C:\Users\james\i76-uncap-lab\tools\renderers\renderer-matrix.ps1
+<lab>\tools\renderers\renderer-matrix.ps1
 ```
 
 About one minute per candidate, 8 candidates; add `-Repeat 2` for a noise floor, `-Only nglide-vk-cap179,dxvk` for
@@ -391,8 +391,8 @@ baseline and nGlide's registry values are removed again, also when a candidate f
 The same steps by hand (one candidate, game left for `proxy-run` to kill after 20 s):
 
 ```powershell
-cd C:\Users\james\i76-uncap-lab
-$alt = "C:\Users\james\i76-uncap-lab\game-alt"
+cd <lab>
+$alt = "<lab>\game-alt"
 # nGlide, Vulkan (for Direct3D 9: -Backend d3d9)
 .\tools\renderers\switch-renderer.ps1 -GameDir $alt -Renderer nglide -Source refs\renderers\nglide
 .\tools\renderers\nglide-settings.ps1 -Backend vulkan
@@ -440,7 +440,7 @@ the wrapper survey), `docs\HD-TEXTURES-RESEARCH.md`, `docs\VOODOO-PARKED.md`, `d
 `docs\RUNNING-I76-EVERYWHERE.md`, `docs\VERIFIED-FIXES.md`, `docs\WINDOWS-PLAYBOOK.md`, `swap-renderer.ps1`,
 `tools\openglide-hd\README.md`, `PLAY-i76.ps1`, `Setup-FrameGen.ps1`; lab `docs\MOUSE-ESC-MENU-AND-SAVE-SCREEN.md`,
 `docs\CONFIG-OPTIONS.md`, `autotest\proxy-run.ps1`, `autotest\test-escmenu.ps1`, `game\OpenGLid.log`,
-`game\DDrawCompat-i76.log`, `game\u32x.log`; i76-map `subsystems\renderer.md`.
+`game\DDrawCompat-i76.log`, `game\u32x.log`; <re-archive> `subsystems\renderer.md`.
 
 Web, fetched 2026-10-02:
 

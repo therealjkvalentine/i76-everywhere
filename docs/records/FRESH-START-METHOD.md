@@ -1,14 +1,14 @@
-<!-- Produced 2026-09-04 by the fresh-start judge-panel workflow (5 proposals, 3 judges, synthesis, 2 critics, revision). Companion overview: FRESH-START-2026-09-04.md. Path shorthand: <SCR> = the session scratchpad, now archived at C:\Users\james\i76-map\recon-2026-09-04 (so <SCR>\recon = ...\recon-2026-09-04\recon). -->
+<!-- Produced 2026-09-04 by the fresh-start judge-panel workflow (5 proposals, 3 judges, synthesis, 2 critics, revision). Companion overview: FRESH-START-2026-09-04.md. Path shorthand: <SCR> = the session scratchpad, now archived at <re-archive>\recon-2026-09-04 (so <SCR>\recon = ...\recon-2026-09-04\recon). -->
 
 # Interstate '76 (GOG 2017 Gold, i76.exe md5 9a232dcc2c164648cff20c414c1f9698): the methodology, revision 2
 
-Date: 2026-09-04. Status: revised after two adversarial reviews (critic-dead-end, critic-completeness). Evidence base: the eleven fresh recon reports and the refutation reports under `<SCR>\recon\` (`<SCR>` = `C:\Users\james\AppData\Local\Temp\claude\C--Users-james-i76-everywhere\42a6c4bf-f9e3-4332-9f8e-c9c772ecd960\scratchpad`), plus direct reads of the pass-4 export made while writing this revision. No prior project notes were read.
+Date: 2026-09-04. Status: revised after two adversarial reviews (critic-dead-end, critic-completeness). Evidence base: the eleven fresh recon reports and the refutation reports under `<SCR>\recon\` (`<SCR>` = `<local-appdata>\Temp\claude\C--Users-<user>-i76-everywhere\42a6c4bf-f9e3-4332-9f8e-c9c772ecd960\scratchpad`), plus direct reads of the pass-4 export made while writing this revision. No prior project notes were read.
 
-Shorthand: `<FP>` = `<SCR>\recon\fp-ghidra`, `<AH>` = `<SCR>\recon\agent-harness`, `<FMT>` = `<SCR>\recon\formats`, `MAP` = `C:\Users\james\i76-map`.
+Shorthand: `<FP>` = `<SCR>\recon\fp-ghidra`, `<AH>` = `<SCR>\recon\agent-harness`, `<FMT>` = `<SCR>\recon\formats`, `MAP` = `<re-archive>`.
 
 ---
 
-> **Field amendment 2026-09-04 (first console smoke test).** The pristine GOG 2017 bytes do not run on Windows 10: `FUN_00499950` measures CPU speed through 8254 PIT port I/O (`cli/out/in` at 0x499997-0x4999cb) and the process dies with STATUS_PRIVILEGED_INSTRUCTION 0.5 s after launch. Gate H0 therefore defines the reference *running* image as pristine plus exactly one allowlisted 5-byte patch (i76fix patch1: `call 0x499950` at 0x499b25 becomes `mov eax,200`; file md5 58d9dec00c18a5383820e77e51850b74), excludes the IAT (0x4bc000-0x4bc404) from the `.rdata` byte diff, and records runtime writes to initialised `.data` as data rather than tampering. Details and the live-verified renderer-slot predictions: `C:\Users\james\i76-map\status\tasks\console-smoke.md` and `captures\001-smoke\`.
+> **Field amendment 2026-09-04 (first console smoke test).** The pristine GOG 2017 bytes do not run on Windows 10: `FUN_00499950` measures CPU speed through 8254 PIT port I/O (`cli/out/in` at 0x499997-0x4999cb) and the process dies with STATUS_PRIVILEGED_INSTRUCTION 0.5 s after launch. Gate H0 therefore defines the reference *running* image as pristine plus exactly one allowlisted 5-byte patch (i76fix patch1: `call 0x499950` at 0x499b25 becomes `mov eax,200`; file md5 58d9dec00c18a5383820e77e51850b74), excludes the IAT (0x4bc000-0x4bc404) from the `.rdata` byte diff, and records runtime writes to initialised `.data` as data rather than tampering. Details and the live-verified renderer-slot predictions: `<re-archive>\status\tasks\console-smoke.md` and `captures\001-smoke\`.
 
 ## Changes from v1
 
@@ -327,7 +327,7 @@ Done means the remainder counts are zero for the exe, then for the shell; not th
 ## 6. Repository, map layout and agent loop
 
 ```
-C:\Users\james\i76-map\
+<re-archive>\
   README.md                 conventions, gates, rebuild instructions
   recon-2026-09-04\         verbatim copy of <SCR>\recon and <SCR>\design + md5 manifest (Task 0)
   binaries\                 one TOML per module: md5, sections, byte totals, scope, status
@@ -359,9 +359,9 @@ Agent loop (from `<AH>` section 4.2 with this revision's changes): lease from `q
 
 Merge command (one writer):
 ```
-"C:\Users\james\Downloads\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC\support\analyzeHeadless.bat" ^
-  C:\Users\james\i76-map\ghidra\proj i76map -process i76_ref.exe -noanalysis ^
-  -postScript ApplyMap.py -postScript DumpAll.py -scriptPath C:\Users\james\i76-map\ghidra\scripts
+"<downloads>\ghidra_11.4.1_PUBLIC_20250731\ghidra_11.4.1_PUBLIC\support\analyzeHeadless.bat" ^
+  <re-archive>\ghidra\proj i76map -process i76_ref.exe -noanalysis ^
+  -postScript ApplyMap.py -postScript DumpAll.py -scriptPath <re-archive>\ghidra\scripts
 ```
 
 ---
@@ -370,8 +370,8 @@ Merge command (one writer):
 
 Task 0 (day 1): archive the evidence base, then `git init`.
 ```
-robocopy "<SCR>\recon" C:\Users\james\i76-map\recon-2026-09-04\recon /E
-robocopy "<SCR>\design" C:\Users\james\i76-map\recon-2026-09-04\design /E
+robocopy "<SCR>\recon" <re-archive>\recon-2026-09-04\recon /E
+robocopy "<SCR>\design" <re-archive>\recon-2026-09-04\design /E
 python tools\manifest.py recon-2026-09-04 > recon-2026-09-04\MANIFEST.md5
 git init && git add -A && git commit -m "recon archive 2026-09-04"
 ```
@@ -413,7 +413,7 @@ Days 11-14: continue the grind; first blind eval; Phase 0 report with every metr
 
 ## 8. Folding in older work (later, safely)
 
-The user's own docs (`i76-everywhere\docs`, `i76-uncap-lab\docs`, AGENTS.md), the FFB tools in `tools\ffb\`, Roanish's REVERSING.md, That Tony's posts, Peelar's blog, i76fix, UCyborg's AiO, VOGONS threads, and the Sketchfab model collection are folded in from Phase 2 onward, one claim at a time, exactly as any external instance:
+The user's own docs (`i76-everywhere\docs`, `<lab>\docs`, AGENTS.md), the FFB tools in `tools\ffb\`, Roanish's REVERSING.md, That Tony's posts, Peelar's blog, i76fix, UCyborg's AiO, VOGONS threads, and the Sketchfab model collection are folded in from Phase 2 onward, one claim at a time, exactly as any external instance:
 1. Each claim becomes an `evidence\E*.json` of kind `ported` with `source_instance`, the source's build identity (Nitro, CD-era, unversioned, or this md5), and the original text quoted as data (G0).
 2. It enters `functions.tsv`/`globals.tsv` as `proposed`, never higher, and counts as one instance under H6.
 3. It reaches `supported` only with an independent GOG-side anchor (gate P); addresses are re-derived from strings/constants, never trusted (That Tony's three addresses are mid-instruction here; Peelar's 0x49C310 is not the GOG rsqrt at 0x495000; Roanish's 0x6cd cluster does not land where his map says).
@@ -440,7 +440,7 @@ Comparables (prior-art sections 2-3): solo functional decompilation of a 1 MB C 
 
 This target's specific difficulty: 717 x87 functions holding 462,513 B (64% of function bytes); 1,762 functions (476,220 B) reference no string; 103 string-less functions >= 1 KB hold 170,326 B. Agents will compress the anchored, table-driven and leaf part; the x87 core is human-led with agents on the mechanical parts.
 
-> **Method amendment 2026-09-05 (pilot batch 1, G4 naming).** Pilot 1 accepted 1 of 20 keys; 18 misses were the string-equality name rule (9 spelling-only, 9 prefix/subsystem-only) at 1.77 M tokens per accepted function. G4 now compares names after lower-casing and dropping separators, accepts two names whose words after the prefix agree when both prefixes fold to one canonical prefix in `i76-map\subsystems\VOCABULARY.md` (or the reviewer names one of the two proposed spellings in `reconcile:`), and compares param claims by index and type only. Different words still requeue: the words are the independent half of the consensus. A review whose requeue verdict was only the G4 spelling/prefix disagreement is superseded once G4 agrees (its per-claim verdicts still apply). The orchestrator runs `merge.py --proposal <key> --dry-run` before spending a review, releases review tokens through `--review-tokens`, and `completeness.py` reads the G4 rate from the queue history. Record: `i76-map\status\PILOT-1.md` (what to change) and the pilot-1 re-merge in `status	asks\sitting-1-notes.md`.
+> **Method amendment 2026-09-05 (pilot batch 1, G4 naming).** Pilot 1 accepted 1 of 20 keys; 18 misses were the string-equality name rule (9 spelling-only, 9 prefix/subsystem-only) at 1.77 M tokens per accepted function. G4 now compares names after lower-casing and dropping separators, accepts two names whose words after the prefix agree when both prefixes fold to one canonical prefix in `<re-archive>\subsystems\VOCABULARY.md` (or the reviewer names one of the two proposed spellings in `reconcile:`), and compares param claims by index and type only. Different words still requeue: the words are the independent half of the consensus. A review whose requeue verdict was only the G4 spelling/prefix disagreement is superseded once G4 agrees (its per-claim verdicts still apply). The orchestrator runs `merge.py --proposal <key> --dry-run` before spending a review, releases review tokens through `--review-tokens`, and `completeness.py` reads the G4 rate from the queue history. Record: `<re-archive>\status\PILOT-1.md` (what to change) and the pilot-1 re-merge in `status	asks\sitting-1-notes.md`.
 
 Projection, to be replaced by measurement at the end of Phase 3's first fortnight (M14):
 - Weeks 1-2: Phase 0; ~350 rows anchored/library/synthetic; first verified label.

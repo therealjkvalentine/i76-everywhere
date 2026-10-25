@@ -338,7 +338,7 @@ vehicle definitions). The melee car may differ between 1.0 and Gold data, so "ex
   - `parrun --video 30` captures the 86Box window on the private desktop with **PrintWindow** (about 5 ms per frame,
     0.03-0.4 % repeated frames).
   - It pipes the frames to the lab-local ffmpeg 9.0.2: the gyan.dev essentials build, sha256 checked
-    (`i76-uncap-lab\tools\ffmpeg\VERSION.txt`), not installed system-wide.
+    (`<lab>\tools\ffmpeg\VERSION.txt`), not installed system-wide.
   - Encoding: libx264 ultrafast, one thread, BELOW_NORMAL priority.
 - **BitBlt is not used.** The first version did a window-DC BitBlt (1 ms per frame), but on the never-shown desktop it
   returned the **owner's screen pixels** wherever other windows covered the same area. Those recordings were deleted.
@@ -400,7 +400,7 @@ Clips are in lab `emu\results\writeup\video\`:
 
 ## 8. Notes and incidents
 
-- **The saves snapshot carries the lab's `INPUT.MAP`** in `C:\I76GOLD`: throttle W, brake S, steer A / D, file dated
+- **The saves snapshot carries the lab's `INPUT.MAP`** in `<gold game folder>`: throttle W, brake S, steer A / D, file dated
   2026-10-15 04:52. The stock Gold map is the keypad.
   - The first T05 attempts drove nothing: binding 0 of the input table (0x53ae90) tested scan 0x11 (W).
   - The retail folder has the stock keypad map.

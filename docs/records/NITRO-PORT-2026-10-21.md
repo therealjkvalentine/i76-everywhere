@@ -37,7 +37,7 @@ the plan counted comments: with comments the source names 1,001 distinct exe-ran
 
 | step | what |
 |---|---|
-| function pairs | lab `emu/tools/memtrace/exe_diff_map.json` (Ghidra VT vt-nitro + call-graph propagation, NITRO-VS-RETAIL s.1), bounds from i76-map `ghidra/export{,-nitro}/functions.csv` |
+| function pairs | lab `emu/tools/memtrace/exe_diff_map.json` (Ghidra VT vt-nitro + call-graph propagation, NITRO-VS-RETAIL s.1), bounds from <re-archive> `ghidra/export{,-nitro}/functions.csv` |
 | instruction alignment | both functions disassembled (capstone), difflib on a normalised token (mnemonic + operands; in-image addresses masked, entity fields +0x444..+0x5ff folded, relative branches as `R`); a site maps to the aligned instruction (+ the same offset inside it); a function entry maps to the paired entry |
 | signature | the Gold (6319abf7) and Nitro bytes of the whole instructions from the site through >= 16 bytes; `ok` = how many bytes from the site are the same instructions up to relocation **with corresponding call / branch targets** (a call to the paired function, a branch to the aligned instruction) |
 | data | votes from token-equal aligned pairs only; IAT slots by import name (Gold WINMM -> Nitro WIN32.dll, u32x -> USER32); a global with no vote of its own takes a voted neighbour's delta when the neighbours below and above agree (`bracketed`) or the one below within 0x40 (`near`) |
@@ -90,7 +90,7 @@ proxy uses one only when its patch fits inside `ok`.
 
 ## 3. Measurements
 
-Lab copy `i76-uncap-lab\exp-nitro-port` = `i76-map\sandbox-gog\nitro-full\app` + dgVoodoo from the release candidate (GOG's
+Lab copy `<lab>\exp-nitro-port` = `<re-archive>\sandbox-gog\nitro-full\app` + dgVoodoo from the release candidate (GOG's
 OpenGLide DLLs kept in `_gog-originals`); T05's mission files added for s.3.2 only (the nitro-plus-original arrangement). Gold
 copy `exp-nitro-port-gold` = the release candidate's folder. Harness `tools\nitro-port\np-run.ps1` (private desktop, I76_MUTE +
 mute watcher, I76_SHM_SUFFIX = the copy's name, waits on `.fps-lock` and on any i76 / nitro outside lab copies, stops only its own
@@ -155,7 +155,7 @@ with exit code -1 after 6-37 s, nitro.exe never; with the gate idle the same boo
 
 ## 5. Staged
 
-`i76-uncap-lab\builds\nitro-port-20261021\` (MD5SUMS there): the candidate built from the committed tree, the Gold baseline,
+`<lab>\builds\nitro-port-20261021\` (MD5SUMS there): the candidate built from the committed tree, the Gold baseline,
 and the lab twins used in s.3.2. Installed nowhere.
 
 ## 6. What remains, in order
@@ -535,7 +535,7 @@ Every boot: `nitro: N sites patched, 0 refused`; the only fault records are Nitr
 
 ### 11.3 Testing as the owner plays (console, his launcher)
 
-Copy `i76-uncap-lab\exp-nitro-owner` (pristine GOG Nitro 28b8ae27 + dgVoodoo + the proxy 0c4f109c from 6463b94 + presets\OWNER-NITRO-ALL.psd1 +
+Copy `<lab>\exp-nitro-owner` (pristine GOG Nitro 28b8ae27 + dgVoodoo + the proxy 0c4f109c from 6463b94 + presets\OWNER-NITRO-ALL.psd1 +
 his controls); `PLAY-NITRO-ALL.bat` = the desktop shortcut "I76 Nitro - ALL (test)". Lab tools `tools\nitro-owner\ncon.ps1` (start the
 .bat under .fps-lock / .fps-queue with I76_MUTE + the per-pid mute watcher, shot / click / key / hold / stop), `swap-trial.ps1`.
 

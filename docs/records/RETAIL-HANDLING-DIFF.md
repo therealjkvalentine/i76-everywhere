@@ -132,7 +132,7 @@ Gold and retail compute the same thing. The steps:
 | option flags dword (1 arcade, 2 no salvage, 4, 8, 0x10, 0x20) | +0x54 | +0x58 |
 | (Gold only) | - | +0x5c..+0x5f |
 
-**What retail actually got from the Gold low-detail file.** The par base's `C:\I76GOLD\I76PLYR.DEF` is the same file
+**What retail actually got from the Gold low-detail file.** The par base's `<gold game folder>\I76PLYR.DEF` is the same file
 as lab `emu\work\gamefiles`.
 
 | what | value | effect |
@@ -258,8 +258,8 @@ retail AI summary can be turned on.
   - Already made (in `emu\work\retail-plyr\`, not in git): `I76PLYR.DEF` (arcade off) and `I76PLYR-arcade.DEF`.
   - Both are 88 bytes: graphics `07 00 00 01 01 01 00 00 01 00 00 00 03 00`, audio `03 04 0a 08 01 00`, flags 0 / 1.
 - **Not changed:** `gen_scripts.py` / `parrun.py` (other lanes are using them tonight).
-  - Suggested fix: put the converted file in the par base as `C:\I76GOLD\I76PLYR.R10`, and have the retail launch
-    `COPY C:\I76GOLD\I76PLYR.R10 <retail>\I76PLYR.DEF`.
+  - Suggested fix: put the converted file in the par base as `<gold game folder>\I76PLYR.R10`, and have the retail launch
+    `COPY <gold game folder>\I76PLYR.R10 <retail>\I76PLYR.DEF`.
 
 ## Not done
 

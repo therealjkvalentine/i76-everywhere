@@ -19,8 +19,8 @@ the next record's), and the open "V-vs-S rule" and colour mysteries (every 2026-
 the wrong record). The `savegame.dir` had the same disease (records at 0x28+60k instead of
 4+60k, scene read from the next record) and was already corrected on `main` on 2026-10-01; the
 `.cmp` side is corrected here. Reference: the shell's own writer in
-`../i76-map/shell/SAVE.md` and `shell/work/cmp-layout.md`, and the Leg A/B harness parser
-`../i76-uncap-lab/autotest/saves/parse_saves.py`.
+`../<re-archive>/shell/SAVE.md` and `shell/work/cmp-layout.md`, and the Leg A/B harness parser
+`../<lab>/autotest/saves/parse_saves.py`.
 
 ## Disagreements found (old editors vs the game's frame)
 
@@ -92,7 +92,7 @@ the wrong record). The `savegame.dir` had the same disease (records at 0x28+60k 
 - The lab's own `save003` carries exactly 11 car/van/bench weapons with the mounted Oil Slick (#62)
   the 11th - inside the cap, no warning; CAL COLOR's three promoted salvage guns pushed it out.
 
-## Verified in the sandbox (2026-10-02, probes 3-7; record in `i76-uncap-lab\autotest\saves\runs\garage-ui\RESULTS.md`)
+## Verified in the sandbox (2026-10-02, probes 3-7; record in `<lab>\autotest\saves\runs\garage-ui\RESULTS.md`)
 
 - **Bench: no cap.** All 15 queued jobs listed (scrolling REPAIR ORDER panel, file order) and the
   editor-rebuilt section C loaded - a `.cmp` written by the new editors loads and plays. The HTML's

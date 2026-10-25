@@ -10,7 +10,7 @@ the same per-frame dt, the same applied inputs and the same start state, and dif
 - **Not touched:** the daily driver, the golden copy (read only, for an exe diff), the portable install. No 86Box VM was
   started by this lane. Every live run took the console lock (`tools\replay\with-lock.ps1`) and stopped only its own
   game process.
-- **Session:** james was DISCONNECTED all night (query session `Disc`). There is no default playback endpoint in that
+- **Session:** <user> was DISCONNECTED all night (query session `Disc`). There is no default playback endpoint in that
   session (Core Audio `0x80070490`), so nothing the game plays can reach a speaker; the mute check accepts that case
   and refuses any other failure.
 
@@ -229,7 +229,7 @@ Gold `g166-mloop-rep1` (1,304 frames, accel:-60..park), lab vs lab (`rpl_aa`):
 | `I76_REPLAY_PREROLL=150` | 173805 / 174548 | 63 of 1,304 | frame 709 (sim_time now equal too) |
 | `I76_REPLAY_PREROLL=150` + `I76_REPLAY_SRAND=1` | 174759 / 175845 / 192448 | **1,304 of 1,304** (3 runs, all pairs) | none |
 
-- The exe seeds MSVCRT `rand()` with `time(NULL)` at mission start (i76-map functions/004a9020, 004ad260; 4 srand calls
+- The exe seeds MSVCRT `rand()` with `time(NULL)` at mission start (<re-archive> functions/004a9020, 004ad260; 4 srand calls
   before the placement). The melee car's own motion draws from `rand()` once it moves: same inputs and dt bits, a
   different seed, and positions split at the first moving frames.
   - *verify:* that the car's motion reads `rand()` is an inference from the A/A table; the census that would show it

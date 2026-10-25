@@ -113,7 +113,7 @@ fade holds the state, and the fade takes ownership at begin (g_fe_opaque = 0); f
   ~137 k fading, every fading face record drawn under the held blend, 0 past the list.
 - fps (render, 12 windows after the first three; the 120 Hz cap hides fps below 8.33 ms of work): base 120.0 / 120.0 (work 8.33 /
   8.33 ms), fade 150 **118.5 / 119.3** (work 8.45 / 8.38 ms, p10 111.8 / 114.7): about +1 % work. n 2 each, interleaved. (The first
-  sitting's rf-cbase row at 99.1 fps was the boot right after the scott-build gate's display tests; void.) CRASH 0 in every boot.
+  sitting's rf-cbase row at 99.1 fps was the boot right after the tester-build gate's display tests; void.) CRASH 0 in every boot.
 
 N = 150 m: at road speed (~30 m/s) a bush takes ~5 s to come in, and the admission line sits 450-2300 m out, where a bush is a few
 pixels; a shorter N would be a quick dissolve, a longer one keeps many far bushes half-transparent.
@@ -125,7 +125,7 @@ commented out with the reason, `I76_TERRAIN_MORPH_NEAR = '100'`, `I76_CLUTTER_AL
 the owner's afternoon picks.
 
 Build: `builds\nitro-port-20261021\build.ps1 -Tag rf-4c64917 -Ref 4c64917` (latest main at the time: this lane's a8f694a plus the
-Nitro-port lane's c349c82 / 314aff8 and the scott-build records), **md5 6e4e7c49fbea42a6e4eda6a620abac32**.
+Nitro-port lane's c349c82 / 314aff8 and the tester-build records), **md5 6e4e7c49fbea42a6e4eda6a620abac32**.
 
 | row (route, n) | result |
 |---|---|
@@ -144,15 +144,15 @@ f-run.ps1`
 follows the .fps-queue / .fps-lock rule, one boot per hold, 30 s apart. Mute: proxy-run's own (I76_MUTE + start-mute-watch on its pid;
 CONSOLE-LOCK.md retired the global `mute-proc -Watch` the brief named).
 
-## 5. Scott's full zip
+## 5. The tester's full zip
 
-All three passed, so the private zip was refreshed. Stage folder `downloads/scott-full/Interstate76-i76e-ALL-20261023` (it matched the
+All three passed, so the private zip was refreshed. Stage folder `downloads/tester-full/Interstate76-i76e-ALL-20261023` (it matched the
 old zip file for file, 543 entries): `Interstate 76/STRLKUP.DLL` -> 6e4e7c49, `Interstate 76/presets/OWNER-2300-ALL.psd1` -> the final
 preset (md5 375425b7, = exp-polish2's). New zip **`Interstate76-i76e-ALL-20261024.zip`** (543 entries, same order and top folder,
 440,767,896 bytes, md5 8535ee98e2ce34af8da3ce2dda1632ba); the old `...-20261023.zip` kept. Its README still dates the build 2026-10-23.
 
 Boot from a fresh unzip through its own `PLAY-T05.bat` (fit-and-play -> PLAY-i76.ps1 -> i76.exe; I76_MUTE + start-mute-watch, own shm
-suffix, under the console lock; `tools/render-finish/rf-zipboot.ps1`): T05 drawn after 50 s (`downloads/scott-full/test/boot-20261024/t05.png`,
+suffix, under the console lock; `tools/render-finish/rf-zipboot.ps1`): T05 drawn after 50 s (`downloads/tester-full/test/boot-20261024/t05.png`,
 the mission's opening camera, bushes keyed), CRASH 0, the log carries the new lines (`no blend nearer than 100 m; 64+ levels stock`,
 `clutter-alpha: on`, shade-smooth, feather, density 0.50). A first try without bringing the window to the foreground drew black (the
 game does not render inactive); the script now does what proxy-run does. The unzip was deleted afterwards (486 MB).

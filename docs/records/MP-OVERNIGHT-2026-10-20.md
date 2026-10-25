@@ -9,14 +9,14 @@ loopback), headless on private desktops. Nothing was run between machines tonigh
 started on any family machine). "n" is the number of sessions per cell.
 
 **Verdict.** A (join / leave anytime) passes every cell; B (AI fill) and C (co-op scaling) are built and pass every
-cell; the soak ran 60 cycles over 3 h 40 min with **0 crashes**; the pack went to **the PC LAN copy, Andrew's Mac,
-Michael's Mac and James's laptop** (section 8). **The Steam Deck does not run it yet** (asleep all night): its step is
+cell; the soak ran 60 cycles over 3 h 40 min with **0 crashes**; the pack went to **the PC LAN copy, the M2 tester Mac,
+The M4 Max tester Mac and the developer's laptop** (section 8). **The Steam Deck does not run it yet** (asleep all night): its step is
 one prepared command, the first item of OWNER-TEST-LIST "Morning 2026-10-20".
 
 
 ## 1. Harness (how the numbers were taken)
 
-- Copies `i76-uncap-lab\game-mpo-a .. -d` (copies of `game-aimelee`: LAN exe 6319abf7, i76shell a300db63) with the
+- Copies `<lab>\game-mpo-a .. -d` (copies of `game-aimelee`: LAN exe 6319abf7, i76shell a300db63) with the
   ADDON files of this night's `tools/coop-install.py`; `-e`, `-f` for the DOSBox test.
 - **Each copy has its own IPXWrapper instance**: `ipxwrapper.dll` with the mutex / registry letter changed to E, F,
   G, H (I, J for e, f), the instance-B patch of lab MULTIPLAYER-LOCAL-TEST 8.4 with other letters, so no copy shares
@@ -36,7 +36,7 @@ one prepared command, the first item of OWNER-TEST-LIST "Morning 2026-10-20".
 - Positions: the proxy's new 5 s status line (`mpfill:`, all copies on the same wall-clock grid; `I76_MPF_LOG=1` adds
   every AI and every human car) and direct reads of the player table 0x541070.
 - Proxy: lab twins `Strlkup-m2` (60dce76 + shellclick) for A and B, `m4` (e3934e3 + shellclick) for C, E and the soak.
-  Evidence: `i76-uncap-lab\captures\mp-overnight-20261020\<tag>\` (results.jsonl, run.log, each copy's log slice).
+  Evidence: `<lab>\captures\mp-overnight-20261020\<tag>\` (results.jsonl, run.log, each copy's log slice).
 
 ## 2. A - join and leave anytime (stock code + the proxy as it was; nothing needed fixing)
 
@@ -94,7 +94,7 @@ and `'vpjrabt2' (label 12) into the game at 857.5,50672.5 heading 41 - 2 humans,
 ## 4. C - co-op scenes: more enemies per joiner (`I76_COOP_SCALE`, default on)
 
 **The owner's question, answered by the code and a measurement: the mission scripts never create a car.** The FSM
-has 96 actions (i76-map data/FSM.md) and none creates an object: the "reinforcements" of the campaign are cars that
+has 96 actions (<re-archive> data/FSM.md) and none creates an object: the "reinforcements" of the campaign are cars that
 are in the mission file from the start, sitting or hidden, and the script `teleport`s / `startCar`s them (108 / 53
 uses). Every such car is in the label table from the load, so the proxy's 'AT' sync already carries it to joiners.
 Measured: in the late-join runs (section 2) and the scaling runs below, every mission car the host had was at the
@@ -176,7 +176,7 @@ joiners at the same 5 s stamps, scores. Table from lab `soaksum.py`:
 
 ## 8. F - pack and where each machine stands (2026-10-20 03:35)
 
-Pack `i76-uncap-lab\builds\mp-pack-20261020-overnight\` (README.md there): `mp-pack-20261019-final` with 21 files
+Pack `<lab>\builds\mp-pack-20261020-overnight\` (README.md there): `mp-pack-20261019-final` with 21 files
 replaced (STRLKUP.DLL 07975706 -> **533ab67c** = e3934e3, clean `git archive`, built twice byte-identical; ai_hs2/4/6.lvl;
 coop01..17.lvl). Against the deployed 2026-10-18 pack: 20 changed + 20 new files. The ADDON files are byte-identical to
 the ones every test ran with; the proxy is the tested lab twin minus the lab click block (the candidate itself was not
@@ -184,11 +184,11 @@ booted: headless driving needs the lab block).
 
 | machine | state | how | rollback |
 |---|---|---|---|
-| PC LAN copy `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76` | **new pack** | `deploy-pc.ps1`: 40 files replaced / added (md5-driven; game-written NSCR.DAT, user.mel, NVCL\, ADDON\vehscn.* left alone), each replaced file saved first to the pack's `rollback\pc\` (20 saved; 20 new ones listed in NEW.txt); verified 0 mismatches; STRLKUP 533ab67c | `rollback-pc.ps1` (one step) |
-| Andrew's Mac | **new pack** | new folder inside the same app bundle (same wine: no new firewall / microphone question): `GOG Games/Interstate 76` copied, 38 files applied, 408 files verified 0 mismatches, then the old folder renamed `Interstate 76-pre-20261020` (kept, untouched inside) and the new one named `Interstate 76`, because the bundle's launcher (i76-launch-stub) and DxWnd's dxwnd.ini have that folder name built in. Desktop link unchanged | `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "<game folder>"` (swaps the names back) |
-| Michael's Mac | **new pack** | the same | the same |
-| James's laptop (`I76 MP GATE.app`) | **new pack** | the same | the same |
-| Steam Deck | **old files (2026-10-18 + its own proxy)**: asleep all night (ssh time-out 23:52; retries in section 9) | prepared: `i76-uncap-lab\builds\mp-pack-20261020-overnight\deploy\deck\DECK-DEPLOY.sh` (copies the 37 new ADDON arena files, makes the new game folder with the old kept as `game-pre-20261020`, md5-verifies) | `mac-rollback-20261020.sh ~/Games/Interstate76/game` on the Deck |
+| PC LAN copy `<games>\Interstate76-LAN-2026-10-17\Interstate 76` | **new pack** | `deploy-pc.ps1`: 40 files replaced / added (md5-driven; game-written NSCR.DAT, user.mel, NVCL\, ADDON\vehscn.* left alone), each replaced file saved first to the pack's `rollback\pc\` (20 saved; 20 new ones listed in NEW.txt); verified 0 mismatches; STRLKUP 533ab67c | `rollback-pc.ps1` (one step) |
+| The M2 tester Mac | **new pack** | new folder inside the same app bundle (same wine: no new firewall / microphone question): `GOG Games/Interstate 76` copied, 38 files applied, 408 files verified 0 mismatches, then the old folder renamed `Interstate 76-pre-20261020` (kept, untouched inside) and the new one named `Interstate 76`, because the bundle's launcher (i76-launch-stub) and DxWnd's dxwnd.ini have that folder name built in. Desktop link unchanged | `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "<game folder>"` (swaps the names back) |
+| The M4 Max tester Mac | **new pack** | the same | the same |
+| The developer's laptop (`I76 MP GATE.app`) | **new pack** | the same | the same |
+| Steam Deck | **old files (2026-10-18 + its own proxy)**: asleep all night (ssh time-out 23:52; retries in section 9) | prepared: `<lab>\builds\mp-pack-20261020-overnight\deploy\deck\DECK-DEPLOY.sh` (copies the 37 new ADDON arena files, makes the new game folder with the old kept as `game-pre-20261020`, md5-verifies) | `mac-rollback-20261020.sh ~/Games/Interstate76/game` on the Deck |
 
 **Until the Deck step runs, the Deck cannot join the co-op scenes, scenarios or AI arenas of the other machines**
 (CRC check: "does not match the host's"); the 15 stock arenas still mix. The Deck runs its own proxy without the co-op
@@ -203,7 +203,7 @@ No game was started on any family machine; nothing outside those folders (and `~
 
 ## 10. Rollback, all machines together (the co-op and AI arena files must match everywhere)
 
-- PC: `powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\builds\mp-pack-20261020-overnight\rollback-pc.ps1`
-- Andrew / Michael: `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "$HOME/Games/Interstate76-MP/Interstate 76.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"`
+- PC: `powershell -ExecutionPolicy Bypass -File <lab>\builds\mp-pack-20261020-overnight\rollback-pc.ps1`
+- The M2 tester / the M4 Max tester: `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh "$HOME/Games/Interstate76-MP/Interstate 76.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"`
 - Laptop: the same script with `"$HOME/Applications/Sikarugir/I76 MP GATE.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"`
 - Deck (only if its step ran): `bash ~/i76-overnight-20261020/mac-rollback-20261020.sh ~/Games/Interstate76/game`

@@ -7,10 +7,10 @@ lab `nucleus-coop\README.md`, [HAPTICS-ARCHITECTURE.md](HAPTICS-ARCHITECTURE.md)
 [SOUND-HD-PACK.md](SOUND-HD-PACK.md), [STEAMDECK.md](STEAMDECK.md), the daily driver's `PROMOTIONS.md` (rows 0-16),
 the lab twin's `README-TESTS.txt`, `tools\promote-18-terrain-signs.ps1`, [records/ERA-ENVELOPE.md](records/ERA-ENVELOPE.md),
 [records/EMU-MEMTRACE.md](records/EMU-MEMTRACE.md), [records/EMU-1997-PLAN.md](records/EMU-1997-PLAN.md), lab `emu\README.md`, and
-`git log --since=2026-10-01` of i76-everywhere (381 commits) and i76-uncap-lab (147).
+`git log --since=2026-10-01` of i76-everywhere (381 commits) and <lab> (147).
 
-Paths: **driver** = `C:\Users\james\Games\Interstate76-2026-10-03`, **twin** = `C:\Users\james\i76-uncap-lab\game-dd-20261003`
-(every `TEST-*.bat` below is in the twin's root). Audio may be muted by agents: `i76-uncap-lab\tools\mute.ps1 -Off`.
+Paths: **driver** = `<games>\Interstate76-2026-10-03`, **twin** = `<lab>\game-dd-20261003`
+(every `TEST-*.bat` below is in the twin's root). Audio may be muted by agents: `<lab>\tools\mute.ps1 -Off`.
 
 ## Three facts first
 
@@ -74,7 +74,7 @@ win -> next mission / loss -> retry, late join, buddy respawn, damage factor; al
 1. Use a **copy** of the game on each machine (the twin is fine on the PC; never the driver). Stock car data: no
    `.vdf/.wdf/.gdf/.cdf` in ADDON, `valepre4.vcf` = de680a86 (the driver's and the twin's are).
 2. IPX: copy IPXWrapper 0.7.2's `ipxwrapper.dll`, `wsock32.dll`, `mswsock.dll` beside `i76.exe` (lab copy in
-   `i76-uncap-lab\refs\ipxwrapper\bin\ipxwrapper-0.7.2`). Network profile Private. MULTIPLAYER.md sections 2-3.
+   `<lab>\refs\ipxwrapper\bin\ipxwrapper-0.7.2`). Network profile Private. MULTIPLAYER.md sections 2-3.
 3. With the game closed: `python tools\coop-install.py "<game folder>\Interstate 76"` on **both** (turns "The Crater"
    into the campaign; `--remove` undoes it).
 4. Switches on both: in a cmd window `set I76_COOP_AI=1`, `set I76_COOP_CHAIN=1`, optionally `set I76_COOP_DAMAGE=0.5`,
@@ -89,7 +89,7 @@ win -> next mission / loss -> retry, late join, buddy respawn, damage factor; al
 `I76_COOP_*` switch, and `game-nucleus` runs a 10-05 proxy (`3df367d9`) older than the co-op code. An agent needs to
 update `game-nucleus` (current proxy + `coop-install.py`) and add the three switches to the handler first (decision C11).
 The two-pad melee checklist itself is ready (lab `nucleus-coop\README.md` "Owner checklist", about 15 min):
-`powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\nucleus-coop\find-pads.ps1` -> set `JOY_WINMM` in
+`powershell -ExecutionPolicy Bypass -File <lab>\nucleus-coop\find-pads.ps1` -> set `JOY_WINMM` in
 `Interstate76.js` -> copy it to `refs\nucleus\run\handlers\` -> `refs\nucleus\run\NucleusCoop.exe` (UAC) -> 2 players side by
 side -> host/join in the two windows -> End (lock) -> drive 2 minutes -> End, Ctrl+Q.
 
@@ -112,7 +112,7 @@ side -> host/join in the two windows -> End (lock) -> drive 2 minutes -> End, Ct
 
 - **Agent first:** the pack's audio is not on disk (`out\pack-v1\` holds only manifests). Build:
   `tools\soundhd\.venv\Scripts\python tools\soundhd\soundhd.py build` (about 2 min), then
-  `soundhd.py install --game C:\Users\james\i76-uncap-lab\game-dd-20261003` (dry run) and `--apply`; `uninstall --apply` undoes it.
+  `soundhd.py install --game <lab>\game-dd-20261003` (dry run) and `--apply`; `uninstall --apply` undoes it.
   The loader proof (step 1) already passed twice (overnight P4): loose ADDON `.gpw` are loaded.
 - **You (item 7, about 30 min):** the same mission (t01 or t04) with the pack on and off, on your usual speakers: rams have
   weight but are not louder, MG loop seamless, idle body, horns not distorted, skids / CB / menus unchanged, CB vs engine vs
@@ -124,7 +124,7 @@ side -> host/join in the two windows -> End (lock) -> drive 2 minutes -> End, Ct
 
 First open `texture-lab\out\cockpit-mockup\index.html` and decide whether a sharper dash is worth a session (decision C9).
 Then three t01 boots in the Piranha: control (no dash files in ADDON), marker2x
-(`python texture-lab\cockpit_split.py --game ..\i76-uncap-lab\game-tex --out texture-lab\out\cockpit-split\gt-marker2x --marker`),
+(`python texture-lab\cockpit_split.py --game ..\<lab>\game-tex --out texture-lab\out\cockpit-split\gt-marker2x --marker`),
 art2x (`... --out ...\gt-art2x --png-dir texture-lab\out\cockpit-mockup\tiles`). Look for the labels and crisp magenta checker
 (marker), sharper-same-worse blind (art), and the kill criteria in item 29.
 
@@ -170,7 +170,7 @@ Undo: `bash ~/i76-deploy/deck/setup-deck-tv.sh --revert`; textures `bash ~/i76-d
 
 ### B12. Emulator: the 1997 PC (lab `emu\`)
 
-- **Play retail 1.0 on the P166:** `powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\emu\run-vm.ps1 pbs-p166`
+- **Play retail 1.0 on the P166:** `powershell -ExecutionPolicy Bypass -File <lab>\emu\run-vm.ps1 pbs-p166`
   (retail 1.0 is installed on its Windows 95 disk; one VM at a time, they share the disk; check that no agent's 86Box runs
   first). Every retail mode asks for **disc 2**: Media > CD-ROM > Image > `emu\images\cd-rip\I76_CD2\I76_CD2.cue`. Settings:
   software renderer, 320x200, lowest detail. Mouse capture: click; release: middle button or Ctrl+End. The retail folder

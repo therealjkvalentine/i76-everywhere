@@ -9,7 +9,7 @@
 Every lab profile that claims to be "1997" (`I76_TICK_MS`, `I76_FPS_CAP`, the R-1997 rows, the W95-18 pilot) rests on
 those two numbers. This plan measures them on an emulated box-spec PC instead of inferring them.
 
-Everything is set up in the lab: `../i76-uncap-lab/emu/` (README.md there is the owner's install guide and the
+Everything is set up in the lab: `../<lab>/emu/` (README.md there is the owner's install guide and the
 technical reference). The Windows 95 install is the only step that waits on the owner.
 
 ## Setup (ready)
@@ -82,7 +82,7 @@ external sampler measures the frame rate without changing the game; the proxy ca
 
 ## What the owner must provide
 
-In `../i76-uncap-lab/emu/images/`:
+In `../<lab>/emu/images/`:
 
 1. `WIN95.ISO`, the Windows 95 CD (OSR2 4.00.950B preferred; RTM / OSR1 work), and its CD key.
 2. `W95BOOT.IMG`, a Windows 95 boot floppy with CD-ROM support. Needed only if the CD is not bootable.
@@ -136,11 +136,11 @@ Conventions for every condition:
 - **Frame rate.** I76FPS's P166 software numbers become the "1997 box" fps. They set `I76_FPS_CAP` for the box-spec
   profiles.
 - **W95-18.** Another agent is running the W95-18 pilot. Its doc,
-  `../i76-uncap-lab/docs/W95-18-BASELINE-2026-10-14.md`, did not exist when this plan was written. Once it does,
+  `../<lab>/docs/W95-18-BASELINE-2026-10-14.md`, did not exist when this plan was written. Once it does,
   read its tick and fps assumptions and set the measured values against them, as a proposal in this doc or in the
   results; never edit that doc. The same applies to the `I76_FRAME_LOG` box-spec work referenced in `strlkproxy.c`
   (lab `docs/BOX-SPEC-BASELINE-2026-10-14.md`, also not yet written).
-- Results go to `../i76-uncap-lab/emu/results/` (raw logs, copied out of the disk image with `emu/tools/fat.py`).
+- Results go to `../<lab>/emu/results/` (raw logs, copied out of the disk image with `emu/tools/fat.py`).
   The summary goes here and into WHAT-IS-STOCK.
 
 ## Known limits

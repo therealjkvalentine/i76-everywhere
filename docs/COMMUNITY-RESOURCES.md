@@ -19,7 +19,7 @@ Last swept: 2026-08-09.
 **Why this matters for memory work:** the published ammo capacities are exactly the values that
 appear in the engine's weapon definition table, so they double as a cross-check that you are
 reading the right structure. Verified against a live game — see
-[`i76-uncap-lab/docs/WEAPONS-MEMORY.md`](../lab/docs/WEAPONS-MEMORY.md).
+[`<lab>/docs/WEAPONS-MEMORY.md`](../lab/docs/WEAPONS-MEMORY.md).
 Weights are similarly useful: the CHASSIS CONFIGURATION FORM's "total weight" is a sum you can
 decompose against them.
 
@@ -59,7 +59,7 @@ in a map like any vehicle, using the class code `regen`. That makes a repair eve
 That matters because a controlled repair is the one stimulus that cracks live armor. Damage has
 been unreliable in every form tried (AI fire, wall grinding, own landmines), and nothing else in
 memory moves *upward* on cue. See the open item in
-[`i76-uncap-lab/docs/CAR-CONFIG.md`](../lab/docs/CAR-CONFIG.md).
+[`<lab>/docs/CAR-CONFIG.md`](../lab/docs/CAR-CONFIG.md).
 
 ### Top-down level maps — **found**
 
@@ -111,7 +111,7 @@ Local Ditch — `maps.html` there is a download catalogue with no pictures.
 | Local Ditch — Codes & Cheats | https://www.localditch.com/interstate-76/codes.html |
 | Local Ditch — Links (other sites) | https://www.localditch.com/interstate-76/links.html |
 | Local Ditch — Message boards | https://www.localditch.com/interstate-76/message-boards.html |
-| **CahootsMalone/interstate-76-stuff — cheat codes & easter eggs** | https://github.com/CahootsMalone/interstate-76-stuff/blob/master/cheat-codes-and-easter-eggs.md | Verified 2026-08-10. All codes held with CTRL+SHIFT during gameplay: `blflat`/`brflat`/`flflat`/`frflat` destroy one named tire, `getdown` succeeds the mission on vehicle destruction and turns every vehicle hostile, `wiggleburger` is a persistent visual effect. Separately, **CTRL+ALT+X detonates the player's vehicle** — a scriptable death on demand. `freelance` (poetry) and `thirdnostril` (radar range) are reported not to work. **Relevant to `i76-uncap-lab`:** the death-camera measurement in the frame-rate work was blocked because melee AI could not kill the player in 400s of ramming — this cheat solves that outright, no AI or terrain dependency. |
+| **CahootsMalone/interstate-76-stuff — cheat codes & easter eggs** | https://github.com/CahootsMalone/interstate-76-stuff/blob/master/cheat-codes-and-easter-eggs.md | Verified 2026-08-10. All codes held with CTRL+SHIFT during gameplay: `blflat`/`brflat`/`flflat`/`frflat` destroy one named tire, `getdown` succeeds the mission on vehicle destruction and turns every vehicle hostile, `wiggleburger` is a persistent visual effect. Separately, **CTRL+ALT+X detonates the player's vehicle** — a scriptable death on demand. `freelance` (poetry) and `thirdnostril` (radar range) are reported not to work. **Relevant to `<lab>`:** the death-camera measurement in the frame-rate work was blocked because melee AI could not kill the player in 400s of ramming — this cheat solves that outright, no AI or terrain dependency. |
 
 ## 3a. "How do people play online today?" (swept 2026-10-06)
 
@@ -152,7 +152,7 @@ accidentally break.
 
 Not I'76-specific, but this is the problem class our armor hunt is stuck in, and the community
 solved it long ago. Full write-up:
-[`../../i76-uncap-lab/docs/RE-TECHNIQUES.md`](../lab/docs/RE-TECHNIQUES.md).
+[`../../<lab>/docs/RE-TECHNIQUES.md`](../lab/docs/RE-TECHNIQUES.md).
 
 | resource | URL | why |
 |---|---|---|
@@ -197,7 +197,7 @@ walkthroughs, vehicles, weapons and codes.
   appears to have published clean overhead shots of the *campaign* levels.
 - ~~Anything on the multiplayer healing building~~ — answered by §1a (`regen` class code) and
   now moot: live armor itself is located, see
-  [`i76-uncap-lab/docs/ARMOR-INVESTIGATION.md`](../lab/docs/ARMOR-INVESTIGATION.md)
+  [`<lab>/docs/ARMOR-INVESTIGATION.md`](../lab/docs/ARMOR-INVESTIGATION.md)
   (entity `+0x138`, found offline by cross-instance offset diff, 2026-08-10).
 
 ## House rules for this index

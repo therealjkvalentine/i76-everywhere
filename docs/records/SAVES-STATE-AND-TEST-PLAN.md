@@ -1,27 +1,27 @@
 # Saves: everything known, and a sandbox test protocol
 
-*Consolidation written 2026-10-01 from the repo docs, the i76-map shell and data tracks, the i76-uncap-lab proxy and
+*Consolidation written 2026-10-01 from the repo docs, the <re-archive> shell and data tracks, the <lab> proxy and
 harness, and read-only looks at the lab game folder and the committed save sets. Nothing was run in the game and nothing
 outside this file was edited. Tags: **[fact: source]** = measured or read from code, with where; **[new]** = derived in
 this pass from the pristine bytes or the files on disk (read-only, cited); **[proposed]** = not built or not shown live.
 Status words: **solved+verified** (confirmed in the field or live), **solved+built** (bytes exist, no live run),
 **mechanism known** (traced statically, no fix built), **open**.*
 
-Rules carried over: experiments run on the lab copy `C:\Users\james\i76-uncap-lab\game`, never on the portable daily
+Rules carried over: experiments run on the lab copy `<lab>\game`, never on the portable daily
 driver (AGENTS.md; memory "never experiment on the daily driver"); launch results are invalid over RDP
 (AGENTS.md RDP section: check `[System.Windows.Forms.SystemInformation]::TerminalServerSession` is False); every
 A/B gets an A/A first (memory "same-rate control run").
 
 ## 0. The lab save set as it is today (measured, read-only)
 
-`C:\Users\james\i76-uncap-lab\game`, 2026-10-01 [new]:
+`<lab>\game`, 2026-10-01 [new]:
 
 | file | state |
 |---|---|
 | `savegame.dir` | 364 B, count 6, `4 + 60*6 = 364` exactly; records: save000 scene 1, save001 scene 2, save002 scene 3, save003 scene 5, save004 scene 6, save005 scene 6 name `s`; `+0x34` = 1,1,1,8,8,8 |
 | `save000..005.cmp` | 6196 / 7008 / 9212 / 10604 / 10604 / 10604 B; every size satisfies `(size - 0x8cc) % 0x74 == 0` (SAVE.md §2 formula) |
 | `ADDON\vehscn.vcf` | 309 B (2026-10-01); parses: Jade's Car, vppirnha.vdf, armour 711/722/733/744, chassis 755/766/777/788 (the T1 live-test edit, LIVE-TESTS data track) |
-| `ADDON\vehscn.vsf` | **absent** (the only `.vsf` on the machine is `i76-map\sandbox-gog\main\app\ADDON\vehscn.vsf`: VCST armour 600x4, chassis 600x4, velocity 0, engine 300 / brake 150 / susp 200, flags 1,1,1) |
+| `ADDON\vehscn.vsf` | **absent** (the only `.vsf` on the machine is `<re-archive>\sandbox-gog\main\app\ADDON\vehscn.vsf`: VCST armour 600x4, chassis 600x4, velocity 0, engine 300 / brake 150 / susp 200, flags 1,1,1) |
 | `reconfig.spc`, `trip4.spc`, `I76PLYR.DEF` | 10604 B (Sep 27), 9212 B (Aug 9), 96 B |
 | `i76shell.dll` | 352,256 B, Sep 6 (F1 text-entry bytes repaired; `.orig` and `.pre-toascii-fix` beside it) |
 | `u32x.dll` | 75,264 B, Aug 16: **does not carry `DisableProcessWindowsGhosting`** (MENU-USABILITY-PLAN §0); `i76.exe.u32xorig` present, so the exe's USER32 import is retargeted too |
@@ -37,11 +37,11 @@ The committed sets, re-parsed with the byte-exact layout [new]:
 
 All 26 committed `.cmp` files satisfy the size formula.
 
-## 1. Timeline of every save-related symptom James reported
+## 1. Timeline of every save-related symptom the developer reported
 
 | date | symptom (as reported) | root cause | status | evidence |
 |---|---|---|---|---|
-| 2026-07-14, 07-15, 07-19 | **Orphaned save**: `savegame.dir` names `saveNNN`, disk has `save-01.cmp`; bookmark "vanishes" | `SaveMenu_Edit` 0x100147a0 sets the slot variable `0x10057f80 = -1` on every entry (0x10014866). A second pass through the edit loop in one visit (click on the name field after leaving it, or NO on the overwrite prompt) finds the static record already appended with slot S and skips the slot assignment (0x100149d7), so the save runs with slot -1. `dir_Load` 0x10033020 then drops any record whose `.cmp` does not open (0x100330b9), which is why it vanishes instead of showing broken. `-01` is Wine's `wsprintfA`; Windows gives `-001` | **mechanism known; 10-byte fix F2 built (static), live test T3 not run**; rescue exists on the Mac stub only | i76-map shell SAVE.md §4, FIXES.md F2, LIVE-TESTS T3; SAVE-ORPHAN-INVESTIGATION.md (editor "not cleared" - now cleared by the trace); MENU-USABILITY-PLAN P5 and item 1 |
+| 2026-07-14, 07-15, 07-19 | **Orphaned save**: `savegame.dir` names `saveNNN`, disk has `save-01.cmp`; bookmark "vanishes" | `SaveMenu_Edit` 0x100147a0 sets the slot variable `0x10057f80 = -1` on every entry (0x10014866). A second pass through the edit loop in one visit (click on the name field after leaving it, or NO on the overwrite prompt) finds the static record already appended with slot S and skips the slot assignment (0x100149d7), so the save runs with slot -1. `dir_Load` 0x10033020 then drops any record whose `.cmp` does not open (0x100330b9), which is why it vanishes instead of showing broken. `-01` is Wine's `wsprintfA`; Windows gives `-001` | **mechanism known; 10-byte fix F2 built (static), live test T3 not run**; rescue exists on the Mac stub only | <re-archive> shell SAVE.md §4, FIXES.md F2, LIVE-TESTS T3; SAVE-ORPHAN-INVESTIGATION.md (editor "not cleared" - now cleared by the trace); MENU-USABILITY-PLAN P5 and item 1 |
 | 2026-07-14 | "Game drops the last dir entry" / LOAD board rows wear the previous entry's name | Our dir writer put names at the wrong offset (name precedes the file field) | **solved+verified** (retracted the same day) | SAVE-FORMAT-GAPS.md "RETRACTION" |
 | 2026-07-14 | LOAD pad shows "SCENE 2/3/4/5" for stored dwords read as [2,3,5,6] | Two errors stacked: the editor reads record k+1's scene for record k (its `+0x38` from `8+60k` is `4+60(k+1)+0`), and the shell prints **scene+1 when the record's `+0x34 == 1`** (`cmp [edi+0x34],1` 0x10013736, `inc ecx` 0x10013742, two "Scene %d." sites 0x10013744 / 0x10013753 in `LoadMenu_DrawList`). True dwords [1,2,3,5] with `+0x34` [1,1,1,8] print 2/3/4/5: 4 of 4 | **solved [new]** (static; one glance at the LOAD board confirms) | this pass: `sdis.py fn 0x10013670`; `i76-save-editor.py` `parse_dir` lines 239-258; SAVE.md §1 layout |
 | 2026-07-18 / 09-05 / 09-06 | `savegame.dir` "36 bytes short" after every save; launchers re-pad | Misframed layout: the header is 4 bytes, not 0x28; `4 + 60n` matched 15 of 15 game-written files. The re-pad is harmless (the reader stops after `count`) and unnecessary | **misdiagnosis, retire** | SAVE.md §1; MENU-USABILITY-PLAN P7; memory "misframed layout, not a game bug" |
@@ -53,10 +53,10 @@ All 26 committed `.cmp` files satisfy the size formula.
 | 2026-07-15 | "The game bumped save009's dir scene 6 -> 7 without rewriting the cmp" | A row click writes the current scene into that entry before any confirmation (`mov [esi],eax` 0x10014924) | **mechanism known** (cosmetic, left alone) | SAVE.md §4, FIXES.md F2 residual |
 | 2026-08-10 .. 09-07 | **Can type at most one character** into the bookmark name; "had to click somewhere to get it to type" | Two bytes in the pack-lineage `i76shell.dll` (`+0x1C12B` `mov ecx,0x40` / `lea edi,[esp+0xC]` vs stock `0x41` / `[esp+8]`): ToAscii's output word is never cleared, so 'a' arrives as 0xB261. Stock bounds are correct. Field-confirmed as the one fix saving needs | **solved+verified** (2026-09-07 "yep that's it"); `fix-shell-textentry.ps1`, `PLAY-i76.ps1` guard, both installs hold `41 08` | SAVE-FREEZE-ROOT-CAUSE "second cause" and 09-07; FIXES.md F1/P4; memory "diff against pristine" |
 | 2026-09-05 / 09-06 | Save Bookmark screen goes dead ~6 s after opening (one event, then nothing) | DWM ghosts the window: the modal edit loop (`TextField_Edit` inside `SaveMenu_Open`) and `Modal_YesNo` pump keyboard-only or nothing; `IsHungAppWindow` was a false instrument. Fix: `DisableProcessWindowsGhosting()` in u32x `DllMain` (uncap-lab `aff1c46`) | **solved+built, lab-shown by automation, deployed nowhere** (neither install's `u32x.dll` has the call). Not needed for prompt typing; **an unattended harness will hit it** | SAVE-FREEZE-ROOT-CAUSE 09-06 "ROOT CAUSE FOUND"; MENU-USABILITY-PLAN P4 / item 2; memory "count calls, not status flags" |
-| 2026-09-05 | `CaptureMouse=true` "traps the pointer in the black bar" | Automation finding; James saved fine with `true` on 09-07; the automation's clicks were later shown unreliable | **open: records conflict**; one hand check. Field 2026-10-02 with `true` on the sandbox: the mouse is dead on the Save Bookmark screen only, keyboard saving works — the true/false regime test is backlog P1-02 | SAVE-FREEZE 09-05 vs 09-07; MENU-USABILITY-PLAN P1 caveat; memory "verify the click landed" |
+| 2026-09-05 | `CaptureMouse=true` "traps the pointer in the black bar" | Automation finding; the developer saved fine with `true` on 09-07; the automation's clicks were later shown unreliable | **open: records conflict**; one hand check. Field 2026-10-02 with `true` on the sandbox: the mouse is dead on the Save Bookmark screen only, keyboard saving works — the true/false regime test is backlog P1-02 | SAVE-FREEZE 09-05 vs 09-07; MENU-USABILITY-PLAN P1 caveat; memory "verify the click landed" |
 | 2026-07-14 | Loaded save silently loses equipped weapons / parts | Load-time mount validation unmounts names that do not fit the chassis; the game also auto-mounts pool weapons into empty validated hardpoints | **mechanism known (field)**, exact shell site not cited | SAVE-FORMAT-GAPS.md "Load-time mount validation" |
 | 2026-07-14 / 07-15 | Garage part colours "corrupt"/inconsistent across loads | Salvage pane colours are re-rolled at load; van/car colours stable; the stable state is not the cond field and is unlocated | **open** (not a save-corruption bug: file bytes unchanged across loads, TRUTH test) | SAVE-FORMAT-GAPS.md "CONDITION COLORS" and 07-15 |
-| never reported, live lead | Car reloads with chassis 0 / height 0 / velocity 0 after a trip mission | Exe writer `bwd2_WriteVehicleStateVsf` 0x4b06b0 zero-fills VCST and never writes velocity, body+0x39 or chassis (two pointers both start at body+0xd, 0x4b082b / 0x4b082f); the in-game reader applies chassis body+0x1d to veh+0x148/+0x168 | **open** (static only; see §2.4 and H7) | i76-map subsystems\mission.md "Writer quirks"; data\notes\vcf-chain.md §3 |
+| never reported, live lead | Car reloads with chassis 0 / height 0 / velocity 0 after a trip mission | Exe writer `bwd2_WriteVehicleStateVsf` 0x4b06b0 zero-fills VCST and never writes velocity, body+0x39 or chassis (two pointers both start at body+0xd, 0x4b082b / 0x4b082f); the in-game reader applies chassis body+0x1d to veh+0x148/+0x168 | **open** (static only; see §2.4 and H7) | <re-archive> subsystems\mission.md "Writer quirks"; data\notes\vcf-chain.md §3 |
 
 Two tooling symptoms belong in this table because they look like game bugs from the outside [new]:
 
@@ -194,7 +194,7 @@ chassis, parts, weapons); (d) the save itself hangs. (d) is P1..P4 above, solved
 
 Coordinates are in the shell's 640x480 UI space, click = rectangle centre; the harness maps them to the screen
 (`autotest\lib\uiclick.ps1` measures the live client rect; for the 3440x1440 pillarbox `screen = (760 + 3*ux, 3*uy)`).
-Confirm every click by state, not by picture: `i76-map\shell\tools\shellstate.ps1` prints `screen`, `menu_fn`,
+Confirm every click by state, not by picture: `<re-archive>\shell\tools\shellstate.ps1` prints `screen`, `menu_fn`,
 `modal_fn`, `mouse`, `lastwidget` twice a second.
 
 | step | input | expected state (`shellstate.ps1`) | source of the coordinate |
@@ -220,11 +220,11 @@ Confirm every click by state, not by picture: `i76-map\shell\tools\shellstate.ps
 Parsers that exist [fact: ran today]:
 
 ```
-python C:\Users\james\i76-map\data\mod\i76mod.py show <game>\ADDON\vehscn.vsf            # chunk list: REV VCST WLST WPST#n EXIT
-python C:\Users\james\i76-map\data\mod\i76mod.py show <game>\ADDON\vehscn.vsf VCST       # armour[4] chassis[4] velocity f39 engine/brake/susp hp flags
-python C:\Users\james\i76-map\data\mod\i76mod.py show <game>\ADDON\vehscn.vsf WPST#0
-python C:\Users\james\i76-map\data\mod\i76mod.py show <game>\ADDON\vehscn.vcf VCFC       # variant vdf vtf ids wdf x3 armour chassis spare
-python C:\Users\james\i76-map\data\mod\i76mod.py show <game>\ADDON\vehscn.vcf WEPN#0
+python <re-archive>\data\mod\i76mod.py show <game>\ADDON\vehscn.vsf            # chunk list: REV VCST WLST WPST#n EXIT
+python <re-archive>\data\mod\i76mod.py show <game>\ADDON\vehscn.vsf VCST       # armour[4] chassis[4] velocity f39 engine/brake/susp hp flags
+python <re-archive>\data\mod\i76mod.py show <game>\ADDON\vehscn.vsf WPST#0
+python <re-archive>\data\mod\i76mod.py show <game>\ADDON\vehscn.vcf VCFC       # variant vdf vtf ids wdf x3 armour chassis spare
+python <re-archive>\data\mod\i76mod.py show <game>\ADDON\vehscn.vcf WEPN#0
 ```
 
 **No `.cmp` or `savegame.dir` parser exists in the data track** (FORMATS.md §10 assigns them to the shell track; `shell\tools`
@@ -276,7 +276,7 @@ game state -> 9, and read with `shellstate.ps1` which shell screen comes up (clo
   focus loss, rerun (`Force-Foreground`, `EnableInactiveAppState` is already true).
 - Report n for every measurement and the lab's `CaptureMouse` value.
 
-## 5. What is not automatable and needs James at the console
+## 5. What is not automatable and needs the developer at the console
 
 1. **Typing at human speed** into the name field, several characters, with the shipped (no-log) `u32x`: the one thing
    the harness has never reproduced (zero characters land). Also the overwrite prompt answered by mouse at its visual
@@ -285,14 +285,14 @@ game state -> 9, and read with `shellstate.ps1` which shell screen comes up (clo
    land where drawn) and the **in-mission Esc menu mouse** after the exe retarget (P11), both one launch each.
 3. **Lossless Scaling** over a shell prompt (P15): `PLAY-i76.ps1 -LosslessScaling ""`, trigger an overwrite prompt.
 4. **A won trip mission** for H7: the harness cannot reliably finish a mission (TESTING-SETPIECES: it could not even find
-   the canyon ramp). James plays t02 or t03 to success on the lab copy, stops at the first shell screen, and the
+   the canyon ramp). The developer plays t02 or t03 to success on the lab copy, stops at the first shell screen, and the
    snapshots of §3 H7 are taken then. The FSM injection `T6-fsm-inject` (data LIVE-TESTS) could force `successAll` on
    T01 unattended - **[proposed]** as the automatable substitute, untested.
 5. **Judging labels and art**: which bottom-row caption sits on garage region 7 (FIELD SALVAGE vs CATALOG), the Exit
    Game confirm layout, the Load list's first-row y. Each is one `Capture-UI` screenshot read by a person (or the F6
    coordinate readout, `01 -> 00` at file 0x45f20 on the lab shell).
 6. **Promotion to the daily driver**: F2, the ghosting-fixed u32x and any dgVoodoo change go to the portable only after
-   the lab passes and James says so (MENU-USABILITY-PLAN §5 rule).
+   the lab passes and the developer says so (MENU-USABILITY-PLAN §5 rule).
 
 ## 6. Corrections to make elsewhere (proposed, not made here)
 
@@ -312,7 +312,7 @@ game state -> 9, and read with `shellstate.ps1` which shell screen comes up (clo
 - SAVE-FORMAT-GAPS.md: the LOAD-label anomaly is closed (scene+1 when `+0x34 == 1`); `+0x34` is the exe game state
   the shell was entered with (1 success, 8 reconfigure).
 - shell SAVE.md §6: the `*arg11` naming blocker is answered by mission.md's state table (1 / 8).
-- i76-map `foldin\formats-saves-ffb-community\REPORT.md` open question 1 ("which dword is the scene and what
+- <re-archive> `foldin\formats-saves-ffb-community\REPORT.md` open question 1 ("which dword is the scene and what
   'Scene %d.' prints"): answered above.
 
 ## Sources
@@ -321,10 +321,10 @@ i76-everywhere: docs/SAVE-FREEZE-ROOT-CAUSE.md, SAVE-ORPHAN-INVESTIGATION.md, SA
 SHELL-MENU-AND-SAVE-FREEZE.md, READY-TO-TEST.md, VERIFIED-FIXES.md, MENU-USABILITY-PLAN.md, MISSION-LAUNCH.md;
 i76-save-editor.py (docstring, `parse_dir`), i76-calibration-saves.py, saves/README.md, saves/Install-Saves.ps1,
 tools/fix-shell-textentry.ps1, PLAY-i76.ps1 (re-pad and text-entry guards), AGENTS.md (invariants, RDP), CHANGELOG.md.
-i76-uncap-lab: src/u32x.c (DllMain, ghosting), TEST-FRAMERATE.ps1 header, tools/instruments/deploy-shellfix.ps1,
+<lab>: src/u32x.c (DllMain, ghosting), TEST-FRAMERATE.ps1 header, tools/instruments/deploy-shellfix.ps1,
 autotest/README.md, autotest/enter-mission5.ps1, autotest/lib/uiclick.ps1, autotest/setup/find-weapon-ui.ps1,
 docs/TESTING-SETPIECES.md; game folder listing and dgVoodoo.conf (read-only).
-i76-map: shell/SAVE.md, SCREENS.md, FIXES.md, CALLBACKS.md, LIVE-TESTS.md, INPUTMAP.md, README.md, work/cmp-layout.md,
+<re-archive>: shell/SAVE.md, SCREENS.md, FIXES.md, CALLBACKS.md, LIVE-TESTS.md, INPUTMAP.md, README.md, work/cmp-layout.md,
 work/exe-callbacks.md, symbols/functions.tsv, tools/sdis.py listings of 0x10013060, 0x10013670, 0x10013380, 0x10003e70,
 0x10002750, 0x10035930 and the tables 0x10047600 / 0x100433d8 / 0x100051f0 / 0x10013364; data/FORMATS.md,
 data/LIVE-TESTS.md, data/fmt/l_vcf.py, data/mod/i76mod.py, data/notes/vcf-chain.md; subsystems/mission.md;
@@ -339,7 +339,7 @@ control run, never experiment on the daily driver, count calls not status flags,
 - `saves/Install-Saves.ps1`, `saves/install-saves.sh`, `PLAY-i76.ps1`, `i76-launch-stub.swift` and
   `i76-calibration-saves.py` use the real frame (4 + 60 x count).
 - `saves/README.md` scene table corrected (save017 is scene 15); the rescue index was never truncated.
-- Leg A is being run by a sandbox harness under `../i76-uncap-lab/autotest/saves/`; its report is
+- Leg A is being run by a sandbox harness under `../<lab>/autotest/saves/`; its report is
   `SAVES-LEG-A-RUN-2026-10-01.md` when it lands.
 - Leg B passed (`SAVES-LEG-B-RUN-2026-10-01.md`): the Leg-A bookmark loads into t05 with the car matching its .cmp;
   an editor-modified directory (scene 5 -> 3, one byte) loads t03. State-8 records load the dword as-is; state-1

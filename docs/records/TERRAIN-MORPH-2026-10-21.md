@@ -54,7 +54,7 @@ set; Gold only; every site signature-checked.
   (2h)^2. So the stock forced ring is 0.71 node sizes, not 12.9. The trace twin's computed decision model put the N band at
   2 d2 < (2h)^2 K and called it split without the error test, so its "ring E->N" flips (58.6 % of v2) are the model's, not the game's.
   The same trace's v1 lines (actual splits, a child visited) agree: "forced" (q 0.45-0.5) is 2.9 % of v1's flips, against 12 % at
-  the real ring (band-entry). i76-map `subsystems/renderer.md` (row "terrain quadtree LOD") reads it the same way. What does split
+  the real ring (band-entry). <re-archive> `subsystems/renderer.md` (row "terrain quadtree LOD") reads it the same way. What does split
   flat ground at the ring is the **surface-type split** above: on T05 most samples are dirt / paved types, so flat ground in the band
   splits down to 20 m at 18.3 x the size.
 - **After the quadtree:** `0x4937c0` transforms every vertex IN PLACE to view space (call at 0x490eed); then, when lighting is on
@@ -220,7 +220,7 @@ pop numbers are kept (same morph logic); their fps is not used.
 the 95th percentile, and shade 78 -> 0.9 grey levels. But it costs ~27 fps in the no-dashboard view and an unmeasured ~1 ms in the
 cockpit. Next: build the stateless form (s.4) behind the same switch with the same band (0.25 of the split distance, 40 m floor),
 re-run the F6 rows here (pop per split and the clean cost against plain), and promote it only if it matches these pop numbers at
-<= 1 fps. Flat split: off (no vertex or fps gain; keep the code for the record). The staged set (`i76-uncap-lab\builds\terrain-morph-20261021\stage`)
+<= 1 fps. Flat split: off (no vertex or fps gain; keep the code for the record). The staged set (`<lab>\builds\terrain-morph-20261021\stage`)
 is the measured build. If the owner wants to judge the look now, it can be driven at lab exp-morph `PLAY-TICK-MORPH.bat` (or
 the stage copied over a release-candidate-shaped folder). Expect 90 fps where the plain build gives 118 in F6, and closer to plain in
 the cockpit.
@@ -228,9 +228,9 @@ the cockpit.
 ## 7. Files
 
 - Code: i76-everywhere `music-fix/terrainmorph.c` (610ef86, 32751d4, 992cb8f, 8107233 / 769b8e2 discarded, f613b78 = final), strlkproxy.c 3 lines (610ef86).
-- Builds, stage, MD5SUMS, README: `i76-uncap-lab\builds\terrain-morph-20261021\`. Stage: `Interstate 76\STRLKUP.DLL` d3e24caa2a7e6c9de9ba4c925607e946,
+- Builds, stage, MD5SUMS, README: `<lab>\builds\terrain-morph-20261021\`. Stage: `Interstate 76\STRLKUP.DLL` d3e24caa2a7e6c9de9ba4c925607e946,
   `Interstate 76\presets\tick19-42-morph.psd1` 8cda451c2b4affe48fef59741aaf267d, `PLAY-TICK-MORPH.bat` b841aecfc771c391d775164d133ed294.
-- Runners: `i76-uncap-lab\tools\terrain-morph\` (tm-queue.ps1, tm-route.ps1 / tm_drive.py, tm_tab.py, tm_events.py, tm-hill.ps1, tm-slope.ps1 / tm_slope.py, mk-*.py).
-- Captures: `i76-uncap-lab\captures\morph-20261021\` (`route` cockpit, `f6-final` the no-dashboard rows used above, `route-f6-d` /
+- Runners: `<lab>\tools\terrain-morph\` (tm-queue.ps1, tm-route.ps1 / tm_drive.py, tm_tab.py, tm_events.py, tm-hill.ps1, tm-slope.ps1 / tm_slope.py, mk-*.py).
+- Captures: `<lab>\captures\morph-20261021\` (`route` cockpit, `f6-final` the no-dashboard rows used above, `route-f6-d` /
   `route-f6` raw F6 queues, `phys`, `pilot-v1` = the first evening's three cockpit rows on the pre-floor build).
-- Lab copy: `i76-uncap-lab\exp-morph` (its STRLKUP.DLL = d3e24caa; the candidate's proxy kept as `STRLKUP.DLL.8f8da929-candidate`).
+- Lab copy: `<lab>\exp-morph` (its STRLKUP.DLL = d3e24caa; the candidate's proxy kept as `STRLKUP.DLL.8f8da929-candidate`).

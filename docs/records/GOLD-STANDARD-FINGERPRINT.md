@@ -79,7 +79,7 @@ memory on that run. This lane turns that into a file and a checker.
     6080). Physics code is byte-identical between Gold CD and our exe, and Gold on the emulator matches retail, so the
     gap is lab-side.
   - **Leading candidate: a different car.** In TRIP missions the car comes from the save. The emulator runs load the
-    par base's `C:\I76GOLD` saves (copied into the retail folder too), the lab copy its own. Checked read-only tonight:
+    par base's `<gold game folder>` saves (copied into the retail folder too), the lab copy its own. Checked read-only tonight:
     the lab copy's `ADDON\valepre4.vcf` is the stock file (md5 de680a86, = `.orig` = golden), and its `I76.ZFS` is the
     golden one (6dd57b16); the retail data `I76.ZFS` is 63.8 MB against GOG's 55.5 MB. The save's car (engine, tyres,
     armour) was not compared. **Not resolved tonight; next steps and owner test 1 below.**
@@ -157,7 +157,7 @@ placements).
 - **Gold side n:** Gold T06 strip is 1 boot, Gold yaw3 2 boots.
 - **T06 strip retail n:** 2 boots. A third would tighten the strip band.
 - **The cause of the lab car difference:** not traced. Next step (lab-side, no owner needed): run phys-suite's T06
-  phases on the lab copy with the emulator's T06 save (par base `C:\I76GOLD\SAVE001.CMP` + `SAVEGAME.DIR`), or read
+  phases on the lab copy with the emulator's T06 save (par base `<gold game folder>\SAVE001.CMP` + `SAVEGAME.DIR`), or read
   the player's engine / gear / armour block in both and diff. Then re-run `fingerprint.py compare` on the new capture.
 - **The cause of the Gold slide gap:** not traced statically.
 - **Rollover rule as a rule:** only the per-jump outcome rates are in; the reference holds one destruction (T05 crest).
@@ -183,6 +183,6 @@ context) and T05 placed / crest jumps, then compared; melee needs the emulator p
    Look for: a different car or engine. If they differ, the lab-vs-retail accel / yaw gap in this file is the car,
    not the exe or the step.
 2. **Feel check, retail 1.0 in simulation physics at 25 m/s in the melee crater** (10 min). In the retail VM (`emu\PLAY-P166-LOGGED.bat`),
-   Options > Arcade Phys. off, Instant Melee, hold about 25 m/s (55 mph) and full-lock steer. Then the same in Gold (`PLAY-P166-LOGGED.bat --cd gold`, then run `C:\I76GOLD\I76.EXE` inside the VM: it is on the logging play disk, checked read-only 2026-10-17). Look for:
+   Options > Arcade Phys. off, Instant Melee, hold about 25 m/s (55 mph) and full-lock steer. Then the same in Gold (`PLAY-P166-LOGGED.bat --cd gold`, then run `<gold game folder>\I76.EXE` inside the VM: it is on the logging play disk, checked read-only 2026-10-17). Look for:
    Gold sliding out more (skid 76 % vs 42 % of the window, yaw +19 %). Tell me if the difference is noticeable to you;
    it decides whether the Gold slide branch matters for the "stock" target.

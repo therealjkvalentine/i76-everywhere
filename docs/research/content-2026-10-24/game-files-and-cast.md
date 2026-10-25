@@ -28,7 +28,7 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
 
 ## 1. What was already done (not redone)
 
-- `i76-map\data\FORMATS.md`: every format parses byte-exact, 6,368 files, 0 diffs. Tools in `data\fmt`
+- `<re-archive>\data\FORMATS.md`: every format parses byte-exact, 6,368 files, 0 diffs. Tools in `data\fmt`
   (bwd2x, fsm, mw2tool, nitro_corpus). `data\out\mw2db` holds the extracted shell database, including the credits
   text.
 - `data\notes\nitro.md` and `docs\records\NITRO-BASE-2026-10-21.md`: Nitro's ZFS shares 5,624 byte-identical payloads
@@ -43,7 +43,7 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
 
 ## 2. Method (new tools, read only)
 
-- `i76-map\data\fmt\content_census.py [gold|nitro|both]` writes `data\out\census\{gold,nitro}.json` and
+- `<re-archive>\data\fmt\content_census.py [gold|nitro|both]` writes `data\out\census\{gold,nitro}.json` and
   `unused-both.json`.
   - **Nodes:** loose files, ZFS payloads and every .pak member, taken from its .pix. Gold has 29,933 nodes and
     Nitro 30,673.
@@ -56,7 +56,7 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
   - **Roots:** the exe, the shell, the fixed-name manifests and every loose mission. Gold's shell names all 40
     missions: `t%2.2d`, `s01..s07`, `m01..m15`, `a01`. Nitro's globs `*.cbt/*.rac/*.cfN` and uses `p%02d.msn`.
   - A file BFS never reaches is a **candidate**.
-- `i76-map\data\fmt\voice_audit.py` writes `data\out\census\voice-audit.json`. For every mission it compares the FSM
+- `<re-archive>\data\fmt\voice_audit.py` writes `data\out\census\voice-audit.json`. For every mission it compares the FSM
   sound table with what the scripts can play. It counts literals before cb/cbPrior/cbFromPrior/cbFrom/playMovie/
   salvage, S-kind machine parameters, and every pushed literal in a script with a sound action. That last rule
   covers the random-banter arrays (A01 ip 1474..1513 pushes indices 65..82 and plays `BP[rand]`). It also finds
@@ -71,9 +71,9 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
     model) was checked by hand for every family in the table: grep of the exe/shell strings, plus the loader
     notes.
 - **Inputs:**
-  - Gold: `i76-map\sandbox-gog\main\app` (i76.exe 9a232dcc), plus the 6,116 I76.ZFS payloads in
+  - Gold: `<re-archive>\sandbox-gog\main\app` (i76.exe 9a232dcc), plus the 6,116 I76.ZFS payloads in
     `recon-2026-09-04\recon\formats\zfs_out`.
-  - `game-scott` has the same I76.ZFS (md5 6dd57b16) but a different i76.exe (64165126, the patched patch-kit build).
+  - `game-tester` has the same I76.ZFS (md5 6dd57b16) but a different i76.exe (64165126, the patched patch-kit build).
     The data is identical.
   - Nitro: `sandbox-gog\nitro-full\app` (nitro.exe 28b8ae27, the same files as `Games\I76\nitro`) and its 6,704
     ZFS payloads.
@@ -134,7 +134,7 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
 | "hidden developer outtakes, bloopers, unused recording-session dialogue in the audio files" | claimed | - | **false as stated.** There are no bloopers or outtake reel. There is a small set of unused lines (Gold 10 clips ≈ 26 s, Nitro 74 ≈ 3 min, 8 of those Nitro clips duplicates of used lines) and one take-"b" label. |
 
 **Sources:**
-- On disk: `DATABASE.MW2` item 0x53 (`i76-map\data\out\mw2db\083_0x53_credits.txt`); `Manual.pdf` page 46;
+- On disk: `DATABASE.MW2` item 0x53 (`<re-archive>\data\out\mw2db\083_0x53_credits.txt`); `Manual.pdf` page 46;
   Nitro `database.tvf` at offset 9,375,382 ("Voices").
 - On the web, consistent with the disk credits: an archived Wikipedia article on the game (Heckler, Eagles, Kane,
   de Lancie, Picotte):
@@ -161,7 +161,7 @@ summary's claims about the voice cast and "hidden developer outtakes". Read only
 5. **Nitro content already in Gold's ZFS:** 13 novelty chassis plus the P/N mission support files. Gold needs only
    Nitro's 88 .vcf and the missions, as NITRO-BASE already found. The census confirms it at file level.
 6. **Unused voice for new missions:** 84 clean lines in-character (Groove, Taurus, Skeeter, Jade, Natty Dread). They
-   fit new CB triggers. Audition list: `i76-map\data\out\census\unused-audio.m3u`.
+   fit new CB triggers. Audition list: `<re-archive>\data\out\census\unused-audio.m3u`.
 
 **Open / next:**
 - Listen to the 5 above-p90 Nitro pairs and the 2 Gold ones to settle "alternate take or not". n = 1 listener; no

@@ -44,7 +44,7 @@ no tick).
 
 ## 1. Setup
 
-- Lab copy `i76-uncap-lab\exp-rcdraw` = a copy of `Games\I76\release-candidate` (robocopy, 17:04; the release candidate was only
+- Lab copy `<lab>\exp-rcdraw` = a copy of `Games\I76\release-candidate` (robocopy, 17:04; the release candidate was only
   read). The copy's proxy stays STRLKUP-tick19g adc4fd49 and is read back before and after every boot.
 - Every boot: private desktop (`tools\whole-sim-tick\deskrun.py`), I76_MUTE=1 + per-pid mute watcher, I76_SHM_SUFFIX=exp-rcdraw,
   the copy's `dgVoodoo.wide.conf` copied in as the launchers do, preset env exactly as PLAY-i76.ps1 passes it + I76MUSIC_LOG,
@@ -69,8 +69,8 @@ no tick).
   the coarse leaf's largest midpoint height error (heights from 0x493160) over its distance, in cockpit pixels (3440 px over
   121.7 deg), only for leaves inside the view and at least 20 m away, capped at one screen height per pass and band. Repeatability:
   the two census boots of a condition agree within about 1 %.
-- Raw: `i76-uncap-lab\captures\rcdraw-20261020\runs\` (per boot: env, frame log, phase marks, samples, leaf census, proxy log,
-  drive log), queue log, `shots\`, `pairs\`. Scripts: `i76-uncap-lab\tools\rc-draw\` (rcd-run.ps1, rcd_drive.py, rcd_tab.py,
+- Raw: `<lab>\captures\rcdraw-20261020\runs\` (per boot: env, frame log, phase marks, samples, leaf census, proxy log,
+  drive log), queue log, `shots\`, `pairs\`. Scripts: `<lab>\tools\rc-draw\` (rcd-run.ps1, rcd_drive.py, rcd_tab.py,
   rcd_agg.py, rcd_pairs.py, rcd_zoom.py, rcd-queue.ps1, stage.ps1).
 
 ## 2. Table (T05 route, headless, tick 41.667 unless P18; each cell mean [min..max] over n boots)
@@ -120,7 +120,7 @@ dropped and re-run: p18 f3, tb4 f1, tf f1). Churn rows are census boots (no burs
 boot; their census boots that ran alone read the same as the fps boots of their neighbours (census on / off made no difference
 where both exist: t24 118.8 vs 117.9 mean, th20 118.2 vs 118.1, thf 117.9 vs 117.8). The ridge leg's churn is n 1 for tf3 and th40f
 (their other ridge leg started away from the canyon road under contention; the hill legs are unaffected). Per-run rows:
-`i76-uncap-lab\tools\rc-draw\results\rcdraw-runs.tsv`.
+`<lab>\tools\rc-draw\results\rcdraw-runs.tsv`.
 
 ## 3. The barn and the map edge (hill top, cockpit, car held by the trainer's freeze flag)
 
@@ -151,7 +151,7 @@ reaches it. The RC's x96 moves the splits outward (near 1,330 -> 400 px/s, mid 5
   wall's step and the ledge above it jump (4 splits at 300-900 m). The `*-seq.gif` files are the 5 s bursts (every 2nd frame)
   from 150 m before the hill top, for LOD 24, the RC's x96 and the candidate.
 
-## 5. Recommendation (staged, not installed): `i76-uncap-lab\builds\rc-draw-20261020\stage\`
+## 5. Recommendation (staged, not installed): `<lab>\builds\rc-draw-20261020\stage\`
 
 **Recommended (`stage\`):** every `tick19-*.psd1` of the release candidate with
 

@@ -1,15 +1,15 @@
 # New daily driver: inventory of the current one, and the recipe for the next
 
-Written 2026-10-02 (late evening) from a read-only survey. Nothing under `C:\Users\james\Downloads` was written,
+Written 2026-10-02 (late evening) from a read-only survey. Nothing under `<downloads>` was written,
 no game was started, the sandbox was only read (a dgVoodoo conf bisect was running in it at the time).
 The assembly script `tools\Make-Daily-Driver.ps1` is a **draft: parsed, never run**.
 
 > **Outcome, 2026-10-03: this is no longer a plan. The driver was built.** Read the rest of this document as the
 > survey and reasoning behind it; where it says "proposed", "draft" or "to be confirmed", this box is the newer fact.
 >
-> - **Built** by `tools\Make-Daily-Driver.ps1` (first on the lab twin `i76-uncap-lab\game-dd-20261003`, then for
->   real): play from `C:\Users\james\Games\Interstate76-2026-10-03\PLAY.bat`. **Golden copy:**
->   `C:\Users\james\Games\Interstate76-golden-2026-10-03` (never played; `PROMOTIONS.md` inside). The old driver in
+> - **Built** by `tools\Make-Daily-Driver.ps1` (first on the lab twin `<lab>\game-dd-20261003`, then for
+>   real): play from `<games>\Interstate76-2026-10-03\PLAY.bat`. **Golden copy:**
+>   `<games>\Interstate76-golden-2026-10-03` (never played; `PROMOTIONS.md` inside). The old driver in
 >   Downloads is untouched and is the rollback.
 > - **What went in** (answers open questions 2, 3, 4 and 9 in section 7): preset **`best-120`** (not `smooth-120`
 >   as decision 5 says); u32x lab build md5 **`054fb411`** (not the repo's `a5927cea`; gated 2026-10-02/03: leg-b
@@ -31,12 +31,12 @@ Paths used below:
 
 | name | path |
 |---|---|
-| current driver (root) | `C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801` |
+| current driver (root) | `<downloads>\Interstate76-i76-everywhere-portable-20260801` |
 | current driver (game) | `...\Interstate76-i76-everywhere-portable-20260801\Interstate 76` |
-| pristine GOG | `C:\Users\james\i76-map\sandbox-gog\main\app` (2017 Galaxy build, `i76.exe` md5 `9a232dcc`) |
-| sandbox | `C:\Users\james\i76-uncap-lab\game` |
-| proposed new driver | `C:\Users\james\Games\Interstate76-2026-10-03` (the folder `C:\Users\james\Games` exists and is empty; to be confirmed) |
-| proposed golden copy | `C:\Users\james\Games\Interstate76-golden` |
+| pristine GOG | `<re-archive>\sandbox-gog\main\app` (2017 Galaxy build, `i76.exe` md5 `9a232dcc`) |
+| sandbox | `<lab>\game` |
+| proposed new driver | `<games>\Interstate76-2026-10-03` (the folder `<games>` exists and is empty; to be confirmed) |
+| proposed golden copy | `<games>\Interstate76-golden` |
 
 ---
 
@@ -125,7 +125,7 @@ Glide `Resolution 1680x1050` (the sandbox renders at twice that), `AppControlled
 **The second conf: `%APPDATA%\dgVoodoo\dgVoodoo.conf`** (md5 `5d3906a0`, 15,610 B, dated 2020-11-27, written by a
 dgVoodoo 2.7 control panel run for another game; `dgVoodooSetupPaths.dat` beside it names
 `Downloads\NerfArenaBlast\System`). At survey time it was renamed `dgVoodoo.conf.hidden-by-bisect` by the running
-bisect (`i76-uncap-lab\tools\graphics\conf-bisect.ps1`), which restores the name when it ends.
+bisect (`<lab>\tools\graphics\conf-bisect.ps1`), which restores the name when it ends.
 
 What tonight's finding means for the driver: dgVoodoo 2.87.3 was seen to reject the sandbox's local conf and take
 the global one. The driver's conf has the same keys and the same syntax, so **it has to be assumed rejected in the
@@ -164,7 +164,7 @@ only).
 
 - Stock path: `I7_SFRCE.DLL` (pristine) + `force\` (14 files, pristine). No shim, no config file of ours.
 - Registry on this machine: `HKLM\SOFTWARE\WOW6432Node\Activision\Interstate '76` has `EXE = i76.exe` (what
-  `enable-force-feedback.bat` writes) and `...\Interstate '76 Gold Edition` has `Minimum = 0`. Per i76-map L084 no
+  `enable-force-feedback.bat` writes) and `...\Interstate '76 Gold Edition` has `Minimum = 0`. Per <re-archive> L084 no
   registry value gates FFB in the exe, and the AiO exe returns 0 from `startup_IsMinimum` without reading the
   registry, so neither key is a dependency of a portable folder on the AiO exe. They are machine state and stay.
 - `enable-force-feedback.bat` in the game folder, identical to the repo's.
@@ -206,7 +206,7 @@ Machine state outside the folder that the current setup uses:
 | opentrack + profile (`protocol-dll=freetrack`, neuralnet tracker, Insta360 camera) | `C:\Program Files (x86)\opentrack`, `Documents\opentrack-2.3\default.ini` | only for head tracking |
 | global dgVoodoo conf | `%APPDATA%\dgVoodoo\` | **must not be** (1.2) |
 | Activision registry keys | HKLM WOW6432Node | no (1.4) |
-| AppCompat layers | none for the driver's path (entries exist for `C:\GOG Games`, `C:\I76-stable`, Program Files copies) | no |
+| AppCompat layers | none for the driver's path (entries exist for `C:\GOG Games`, `<stable folder>`, Program Files copies) | no |
 
 ### 1.6 Saves and player state
 
@@ -293,8 +293,8 @@ Preconditions: physical console (`[System.Windows.Forms.SystemInformation]::Term
 2. **Dry plan** (writes nothing):
    `tools\Make-Daily-Driver.ps1 -Source <driver root> -Dest <dest> -DgVoodooConf <fixed conf> -U32xDll <build> -Plan`
 3. **Build the gate twin inside the lab**, because the harness only drives processes whose path contains
-   `i76-uncap-lab` (section 5):
-   `-Dest C:\Users\james\i76-uncap-lab\game-dd-20261003` (the lab ignores `game-*/`). No `-GoldenDest` yet.
+   `<lab>` (section 5):
+   `-Dest <lab>\game-dd-20261003` (the lab ignores `game-*/`). No `-GoldenDest` yet.
    The script then, in this order:
    1. refuses if the dest exists, lies inside the source, or the game is running from the source;
    2. fingerprints the source (count, bytes, newest write time);
@@ -311,7 +311,7 @@ Preconditions: physical console (`[System.Windows.Forms.SystemInformation]::Term
    8. fingerprints the source again and fails loudly if anything changed.
 4. **Run the unattended checklist on the twin** (section 5.1).
 5. **Build the real folder from the same inputs**, with the golden copy:
-   `-Dest C:\Users\james\Games\Interstate76-2026-10-03 -GoldenDest C:\Users\james\Games\Interstate76-golden`.
+   `-Dest <games>\Interstate76-2026-10-03 -GoldenDest <games>\Interstate76-golden`.
    Compare the two `MANIFEST.md` file tables: every md5 must match the twin's as built (the twin's saves and logs
    will have moved on during the gate; compare against the twin's manifest, not its current files).
 6. **Hand checks at the console** on the real folder (section 5.2), then point the desktop shortcut at the new
@@ -358,14 +358,14 @@ The task brief assumed the harness takes paths. It does only partly:
 
 | script | game folder | note |
 |---|---|---|
-| `autotest\proxy-run.ps1` | `-GameDir`, but refuses anything outside `i76-uncap-lab` or under `Downloads` | installs `-Dll` (default `music-fix\Strlkup.dll`) over `STRLKUP.DLL` for the run |
+| `autotest\proxy-run.ps1` | `-GameDir`, but refuses anything outside `<lab>` or under `Downloads` | installs `-Dll` (default `music-fix\Strlkup.dll`) over `STRLKUP.DLL` for the run |
 | `autotest\test-escmenu.ps1` | `-GameDir`, same refusal | |
-| `autotest\saves\leg-b.ps1`, `leg-a.ps1` | **hard-coded** `C:\Users\james\i76-uncap-lab\game` | also scrub `I76_*`, back the saves up inside the game folder, swap `STRLKUP.DLL` and restore it |
+| `autotest\saves\leg-b.ps1`, `leg-a.ps1` | **hard-coded** `<lab>\game` | also scrub `I76_*`, back the saves up inside the game folder, swap `STRLKUP.DLL` and restore it |
 | `autotest\option6-trip-test.ps1` | hard-coded: it starts `TEST-FRAMERATE.ps1`, which uses `game\` | |
 | `autotest\menu-route-test.ps1` | hard-coded | |
-| `autotest\lib\memlib.ps1` `Mem-Open`, `focuslib.ps1` `Get-GamePid` | `-RequirePath 'i76-uncap-lab'` default | a process outside the lab is not found unless the caller passes another `-RequirePath` |
+| `autotest\lib\memlib.ps1` `Mem-Open`, `focuslib.ps1` `Get-GamePid` | `-RequirePath '<lab>'` default | a process outside the lab is not found unless the caller passes another `-RequirePath` |
 
-Hence the twin at `i76-uncap-lab\game-dd-20261003\Interstate 76` (its path satisfies the `RequirePath` filter and
+Hence the twin at `<lab>\game-dd-20261003\Interstate 76` (its path satisfies the `RequirePath` filter and
 `proxy-run`'s guard), and two small harness changes the integrator has to make before the route tests can run on
 it: a `-GameDir` parameter on `leg-b.ps1` (replacing the hard-coded `$G`), and a launch parameter on
 `option6-trip-test.ps1` so it starts the twin's `PLAY-i76.ps1 -Preset smooth-120` instead of `TEST-FRAMERATE.ps1`.
@@ -426,7 +426,7 @@ The three folders and their roles after tonight:
 
 | folder | role | who writes it |
 |---|---|---|
-| sandbox `i76-uncap-lab\game` (and `game-*` twins) | experiments and gates | harness, agents |
+| sandbox `<lab>\game` (and `game-*` twins) | experiments and gates | harness, agents |
 | golden | the last gated configuration, byte-exact; never played, never tested in | promotions only |
 | daily driver `Games\Interstate76-2026-10-03` | play | the game (saves), promotions |
 
@@ -455,7 +455,7 @@ driver can also be rebuilt from it: copy golden to a new folder and copy the dri
    the sandbox's `85de44a7` (the same exe + the far-clip file patch at 1800 m with x16 pools + the camera-rate
    constant). The proxy handles both layouts by design, but the smooth-120 set on `6319abf7` with `I76PATCH.DLL`
    renamed has not been run. Either gate the twin as built (preferred: fewer file patches), or pass
-   `-GameExe C:\Users\james\i76-uncap-lab\game\i76.exe` and say so in the manifest.
+   `-GameExe <lab>\game\i76.exe` and say so in the manifest.
 2. **Which preset is "the best new config".** The owner's option 6 (`TEST-FRAMERATE -Mode all120`) is `lab-all` +
    `I76_GLIDE_REFRESH=120`: it includes `I76_FAR_CLIP=1800` and `I76_TELEMETRY=1`. `smooth-120.psd1` has neither;
    `lab-all.psd1` has no 120. If 1800 m draw distance is part of what he liked, a new preset file is needed
@@ -479,7 +479,7 @@ driver can also be rebuilt from it: copy golden to a new folder and copy the dri
    `-NoCursorOverlay` in `PLAY.bat` restores the old behaviour.
 8. **Harness changes needed for the gate** (5.0): `-GameDir` on `leg-b.ps1`, a launch parameter on
    `option6-trip-test.ps1`. Without them only rows 1-4 and 8-11 of the checklist run unattended on the twin.
-9. **Final location**: `C:\Users\james\Games\Interstate76-2026-10-03` and `...\Interstate76-golden` are proposals.
+9. **Final location**: `<games>\Interstate76-2026-10-03` and `...\Interstate76-golden` are proposals.
 10. **Doc drift found on the way**: RELEASE-PLAN section 1 says the driver's `Strlkup.dll` is older than
     `fe82a0ee` (the repo is at `362ce032` now) and implies the deployed u32x is `a5927cea` (it is `544e34bc`).
     Not corrected here; this commit touches two paths only.

@@ -2,7 +2,7 @@
 
 Owner rulings (verbatim):
 
-1. *"On Andrew's computer the game restarts when I play the (6ai) version of multi melee and the ai players are dead, but
+1. *"On the M2 tester's computer the game restarts when I play the (6ai) version of multi melee and the ai players are dead, but
    shouldn't they be respawned instead and the points tallied like they were players?"*
 2. *"Instead of special levels for ai players, shouldn't there be ai cars for all player slots not occupied by a human for
    all levels?"* and *"I don't think the cars need to exist in the file, or at least they do not need to be triggered or
@@ -15,8 +15,8 @@ Code: i76-everywhere `b273777` (respawn, rows, pool injection), `4341d06` (launc
 single player). Files: `music-fix/aimelee.c` sections 6, 7, 8 and the LAB
 block, `music-fix/mpfill.c` (AI rows are not humans; wreck-first parking; the injected pool), one line in
 `music-fix/strlkproxy.c` (`coop_ai_apply` -> `aim_at_revive`). The difficulty lane's hook line in `aim_tick`
-(`difficulty_ai_skill`) is kept. Lab: `i76-uncap-lab\tools\airespawn\` (`airespawn.py` on the mpo harness, build scripts);
-evidence `i76-uncap-lab\captures\airespawn-20261020\<tag>\`. Pack: section 9.
+(`difficulty_ai_skill`) is kept. Lab: `<lab>\tools\airespawn\` (`airespawn.py` on the mpo harness, build scripts);
+evidence `<lab>\captures\airespawn-20261020\<tag>\`. Pack: section 9.
 
 **Verdict.** Phase 1 (respawn + score rows) and phase 2 (AI in every stock arena, no special files) both pass every cell
 measured on the PC (two to three headless lab copies, IPX on one machine). Nothing was run between machines and nothing was
@@ -76,7 +76,7 @@ shows the AI's name (`0x45bc20` reads the owner id).
 
 ## 4. Phase 1 measurements (PC, headless lab copies)
 
-**Harness.** `i76-uncap-lab\tools\airespawn\airespawn.py` on the overnight lane's `mpo.py` / `mx.py`: lab copies
+**Harness.** `<lab>\tools\airespawn\airespawn.py` on the overnight lane's `mpo.py` / `mx.py`: lab copies
 `game-mpo-c` (host), `game-mpo-d` (joiner), `exp-airespawn` (third, made for this lane from game-mpo-d with its own IPXWrapper
 instance K), private desktops, `I76_MUTE=1` + per-pid mute watcher, `I76_SHM_SUFFIX` per copy. Lab twin proxy
 `builds\airespawn-20261020\Strlkup-r5.dll` (02ebb30c = the working tree of this lane at `747609a` + the lab click block).
@@ -203,7 +203,7 @@ session per cycle.
 menu or the player's weapons. The difficulty lane (DIFFICULTY-OPTION-2026-10-20) now ties the host's Play Options difficulty
 to it: Wimp 4, Champ 3, Badass 1. `I76_AIMELEE_SKILL`, and so `--ai-skill`, overrides that.
 
-**What the scale changes** (stock tables at `0x40bc70`, read through `0x40bd90`; i76-map `subsystems/ai.md` "Skill values";
+**What the scale changes** (stock tables at `0x40bc70`, read through `0x40bd90`; <re-archive> `subsystems/ai.md` "Skill values";
 **1 is the best, 5 the weakest**):
 
 | skill | steering gain | throttle gain (cap 0.75 + 0.25 x) | aim (projectile lead jitter (1 - aim) x 1.1 x U) | fire gate (guns: 3 x rand%1000 < 6000 x fire) | aggression level (= skill - 1): flees when hurt below |
@@ -263,7 +263,7 @@ carries the proxy only, so on the machines today the host's Difficulty Level dec
 
 ## 9. Pack
 
-`i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (README.md there), **staged, deployed nowhere**:
+`<lab>\builds\mp-pack-20261020-airespawn\` (README.md there), **staged, deployed nowhere**:
 
 - `payload/STRLKUP.DLL` **8f8da929** = HEAD `491f8db` (clean `git archive`, MSVC x86 /MT /O2 /Brepro, built twice
   byte-identical, `builds\airespawn-20261020\final3\b1|b2`). It holds this lane's work with the three fixes
@@ -273,8 +273,8 @@ carries the proxy only, so on the machines today the host's Difficulty Level dec
   yet:** the lab numbers above ran on `ec59784` / `cdd69f7`; `chain7.sh` runs on its lab twins (`Strlkup-f3lab.dll` ccbe3694
   for multiplayer, `jfstyle\Strlkup-head-lab.dll` 850e16ef for single player).
 - The ADDON files `ai_hs2/4/6.lvl` (+ markers) are moved out (no special AI entries any more).
-- `deploy-pc.ps1` / `rollback-pc.ps1` (PC LAN copy), `apply-airespawn.sh` / `rollback-airespawn.sh` (laptop, Andrew's and
-  Michael's Macs, the Deck; the game folder is the argument). Everything is saved to `<game>/_rollback/airespawn-20261020/`.
+- `deploy-pc.ps1` / `rollback-pc.ps1` (PC LAN copy), `apply-airespawn.sh` / `rollback-airespawn.sh` (laptop, the M2 tester's and
+  The M4 Max tester Macs, the Deck; the game folder is the argument). Everything is saved to `<game>/_rollback/airespawn-20261020/`.
   Both pairs were tested on a dummy folder: apply, apply again (verify only), rollback, and every file md5-identical
   afterwards (the Deck's lower-case `Strlkup.dll` too).
 - `MD5SUMS` lists every file of the pack.

@@ -132,8 +132,8 @@ numbers"), so on our setup **CD track 3 plays the Theme** and 15/16/17 are rotat
 
 All three are in `music-fix\strlkproxy.c` (switch rows in music-fix/README.md). The startup line
 `music: run end exclusive, disc order ..., shell ..., resume on` names the active set. Tested on the twin
-`i76-uncap-lab\game-dd-20261003` with 5 s silent stand-ins for 2/12/13/14.mp3 (originals restored and compared
-with the driver's music folder afterwards: 16/16 identical). Logs: `i76-uncap-lab\autotest\runs\music-tmu-20261004\music-runs\*.log`.
+`<lab>\game-dd-20261003` with 5 s silent stand-ins for 2/12/13/14.mp3 (originals restored and compared
+with the driver's music folder afterwards: 16/16 identical). Logs: `<lab>\autotest\runs\music-tmu-20261004\music-runs\*.log`.
 
 - **The exe polls the CD every 60 s in a mission, not every 5 s.** A 5 s track is replaced at the next poll
   (`ended -> 13` 60.5 s after `PLAY track 12`, every run). The 5 s poll is the shell's (`[0x524574]` = state 6).
@@ -158,7 +158,7 @@ with the driver's music folder afterwards: 16/16 identical). Logs: `i76-uncap-la
 
 ### Proposed fix (proxy-side, opt-in, off by default) - BUILT 2026-10-04, see above
 
-1. Land the inclusive-end fix from `i76-uncap-lab\docs\MUSIC-RUN-END-2026-10-04.md` first (it removes the
+1. Land the inclusive-end fix from `<lab>\docs\MUSIC-RUN-END-2026-10-04.md` first (it removes the
    stray 15.mp3 at the end of every run).
 2. `I76_MUSIC_DISC_ORDER=1`: translate disc track -> file `{3:16, 15:17, 16:15, 17:3}`, identity otherwise, in
    `play_track()` **and** `track_len_ms()` (so the TOC lengths and positions the exe reads describe the disc
@@ -170,7 +170,7 @@ with the driver's music folder afterwards: 16/16 identical). Logs: `i76-uncap-la
    Alternative without a state read: patch the DLL immediates at load (0x10007b00 = 8, 0x10007bc3 = 0xd,
    0x1001e4b8 = 0xd; same bytes in deb41008 and a300db63), but the state check keeps the DLL file pristine.
 
-Lab test plan (twin `C:\Users\james\i76-uncap-lab\game-dd-20261003` only, `I76MUSIC_LOG=1`, `I76_SKIP_MOVIES=1`):
+Lab test plan (twin `<lab>\game-dd-20261003` only, `I76MUSIC_LOG=1`, `I76_SKIP_MOVIES=1`):
 1. Control, knobs off (n=2): boot to the menu, wait 70 s, Options > Credits, wait 70 s, leave. Expect
    `MCI_PLAY ... from=13 ... -> run 13..` then `from=8 ... -> run 8..`, files 13.mp3 / 8.mp3.
 2. `I76_MUSIC_SHELL=1997 I76_MUSIC_DISC_ORDER=1` (n=2): expect `shell remap 13 -> 15` playing `17.mp3`, a replay of
@@ -234,7 +234,7 @@ A watchdog re-issues playback when the run finishes (`0x423445` region):
 run; that rested on the guess "6 = in-mission", which is backwards).
 `[0x524574]` is written once, when music starts in 0x423330
 (`0x4233ae call 0x402610; cmp eax,6; sete dl; mov [0x524574],edx`), and
-`i76-map\subsystems\mission.md` has game state 6 = **shell running**, 5 =
+`<re-archive>\subsystems\mission.md` has game state 6 = **shell running**, 5 =
 mission running. A mission's music is started from WinMain at 0x4037e1 in state
 5, so the flag is 0: when the mission's run ends the exe plays **track 2 (disc 2 =
 Never Get Outta The Car; on our GOG files the run's 2nd song, 3.mp3, is the
@@ -246,7 +246,7 @@ the AiO exe (6319abf7 / 85de44a7). GOG pristine 9a232dcc has `cmp edi,1 / jge /
 mov esi,1` at 0x424688 (and 0x4241a7): `to` = track+1, the mission track alone.
 Also note `MCI_TO` is an end *position*: "to the start of track 15" stops before
 15, so the AiO run is N..14, not N..15. Details and the proxy fix (it played 15
-as an extra track): `i76-uncap-lab\docs\MUSIC-RUN-END-2026-10-04.md`.
+as an extra track): `<lab>\docs\MUSIC-RUN-END-2026-10-04.md`.
 
 ## How the engine picks a track (static RE, i76.exe GOG Gold)
 

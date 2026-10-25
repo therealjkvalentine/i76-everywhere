@@ -1,6 +1,6 @@
 # Menus and shell on a modern machine: pain points, status, fixes, plan
 
-*Survey written 2026-10-01 from the repo docs, the i76-uncap-lab proxy source, the i76-map shell track and a read-only
+*Survey written 2026-10-01 from the repo docs, the <lab> proxy source, the <re-archive> shell track and a read-only
 look at both installs. Nothing was run and nothing outside this file was edited. Every line is tagged **[fact: source]**
 (measured or read from code, with where) or **[proposed]** (not built, or built but not shown to work in a running game).
 Status words: **fixed** = confirmed in the field or live; **built, unverified** = bytes exist, no live run; **open**.*
@@ -14,19 +14,19 @@ Status words: **fixed** = confirmed in the field or live; **built, unverified** 
 
 Read first if you only have five minutes: section 1 (the catalogue), section 5 (the plan). Section 4 says which binary
 owns what, because every fix below lands in one of four places: `i76.exe`, `i76shell.dll`, the `u32x.dll` USER32 proxy
-(i76-uncap-lab), or the `Strlkup.dll` proxy (music-fix). Rule carried over from AGENTS.md: everything is tried on the
-lab copy `C:\Users\james\i76-uncap-lab\game` at the physical console first; the portable install is promoted to, never
+(<lab>), or the `Strlkup.dll` proxy (music-fix). Rule carried over from AGENTS.md: everything is tried on the
+lab copy `<lab>\game` at the physical console first; the portable install is promoted to, never
 experimented on.
 
 ## 0. What is deployed right now (measured 2026-10-01, read-only)
 
-| item | daily driver (portable 20260801) | lab copy (i76-uncap-lab\game) | note |
+| item | daily driver (portable 20260801) | lab copy (<lab>\game) | note |
 |---|---|---|---|
 | `i76shell.dll` md5 prefix | `fd96f871` | `fd96f871` | a UCyborg-pack lineage shell (FIXES.md lists `fd96f871` with `8960fa16`/`36dab830`), not pristine `deb41008` |
 | text-entry bytes 0x1B52C / 0x1B535 | `41` / `08` (stock, repaired) | `41` / `08` | F1 holds on both |
 | shell USER32 import | retargeted to `u32x.dll` | same | `i76.exe.u32xorig` present on both: deploy-shellfix retargets the exe's USER32 import too |
 | `u32x.dll` | 75,264 B, 2026-09-07 | 75,264 B, 2026-08-16 | **neither contains the string `DisableProcessWindowsGhosting`**: the ghosting fix (uncap-lab commit `aff1c46`) is on no install. `u32x.dll.ship` sits beside the daily driver's |
-| dgVoodoo cursor | `CaptureMouse=true`, `FreeMouse=false` (dgVoodoo's emulated cursor) | same | the repo's `dgVoodoo.conf` says `CaptureMouse=false`; the installs disagree with it. SAVE-FREEZE 2026-09-07: James confirmed saving works with `true` |
+| dgVoodoo cursor | `CaptureMouse=true`, `FreeMouse=false` (dgVoodoo's emulated cursor) | same | the repo's `dgVoodoo.conf` says `CaptureMouse=false`; the installs disagree with it. SAVE-FREEZE 2026-09-07: The developer confirmed saving works with `true` |
 | dgVoodoo window | `FullScreenMode=false`, `FullscreenAttributes=fake`, `WindowedAttributes=borderless`, `ScalingMode=stretched_ar`, `Resolution=1680x1050` (both sections), FPSLimit 19.2 | same but Glide `3360x2100`, `WindowedAttributes=border`, FPSLimit 21 | |
 | `Strlkup.dll` proxy | deployed (`strlkup_orig.dll`) | deployed | carries `apply_mission_launch` and the I76_* opt-ins |
 | cursor overlay | `_ahk\i76-cursor-overlay.ahk` present | absent | PLAY-i76.ps1 starts it by default |
@@ -40,22 +40,22 @@ client); the window is the game's.
 
 | # | pain point (as reported) | status | root cause, with reference |
 |---|---|---|---|
-| P1 | mouse clicks miss, "click once to wake the pointer", pointer confined to a corner | **fixed in the field**, with a caveat (below) | Shell `MouseUpdate` 0x1001fbf0 converts to client coords but never scales to 640x480 and discards every sample outside 0..639/0..479 **including button state** (i76-map shell FIXES.md F4, instructions 0x1001fca9..0x1001fcc7); exe-side `input_*` 0x44b7f0..0x44bcc0 own `ClipCursor`/`GetCursorPos` (symbols/imports.tsv). Fix in place: `u32x.dll` translating GetCursorPos/SetCursorPos/ClipCursor/PeekMessageA lParams, deployed to both binaries (deploy-shellfix.ps1). Caveat: with `CaptureMouse=true` u32x's `pointer_is_confined()` sees a 640x480 clip and passes through, so it is dgVoodoo's emulated cursor that is doing the mapping today, not u32x. 2026-09-05 automation said `CaptureMouse=true` traps the pointer in the black bar; 2026-09-07 James said saving works with it true. The two records conflict and the automation's clicks were later shown to be the unreliable instrument (memory: verify the click landed). Needs one hand check, not a patch. **Field 2026-10-02** (sandbox, `CaptureMouse=true`): the mouse is dead on the Save Bookmark screen only — every other screen clicks where the pointer is and keyboard saving works. The true/false regime test is backlog P1-02; record the winner here and in `dgVoodoo.conf` (P3-16). |
+| P1 | mouse clicks miss, "click once to wake the pointer", pointer confined to a corner | **fixed in the field**, with a caveat (below) | Shell `MouseUpdate` 0x1001fbf0 converts to client coords but never scales to 640x480 and discards every sample outside 0..639/0..479 **including button state** (<re-archive> shell FIXES.md F4, instructions 0x1001fca9..0x1001fcc7); exe-side `input_*` 0x44b7f0..0x44bcc0 own `ClipCursor`/`GetCursorPos` (symbols/imports.tsv). Fix in place: `u32x.dll` translating GetCursorPos/SetCursorPos/ClipCursor/PeekMessageA lParams, deployed to both binaries (deploy-shellfix.ps1). Caveat: with `CaptureMouse=true` u32x's `pointer_is_confined()` sees a 640x480 clip and passes through, so it is dgVoodoo's emulated cursor that is doing the mapping today, not u32x. 2026-09-05 automation said `CaptureMouse=true` traps the pointer in the black bar; 2026-09-07 the developer said saving works with it true. The two records conflict and the automation's clicks were later shown to be the unreliable instrument (memory: verify the click landed). Needs one hand check, not a patch. **Field 2026-10-02** (sandbox, `CaptureMouse=true`): the mouse is dead on the Save Bookmark screen only — every other screen clicks where the pointer is and keyboard saving works. The true/false regime test is backlog P1-02; record the winner here and in `dgVoodoo.conf` (P3-16). |
 | P2 | "Overwrite an existing bookmark?" freezes the game, 100% CPU, Windows says not responding | **fixed in the field** by P1; keyboard escape **built, unverified** | `Modal_YesNo` 0x1000bc40 loops on `MouseUpdate` + `MouseClicked` only; no key read, no pump, no timeout (FIXES.md F3, 0x1000bd2d..0x1000bd90; the 2026-08-10 stack sample `i76shell+0xBD38` is this loop). F3 adds Y/N/Esc via a 70-byte cave at 0x10040340: emulated 10/10 in `tools\emu_f3.py`, never run live (LIVE-TESTS T4). |
-| P3 | can type at most one character into the bookmark name | **fixed, live** (2026-09-07, James: "yep that's it") | two bytes in the pack shell narrowed `KeyInput_Poll` 0x1001c110's clear so ToAscii's output word kept a stale high byte (SAVE-FREEZE-ROOT-CAUSE "two bytes"; FIXES.md F1/P4). Repaired on both installs; `PLAY-i76.ps1` re-applies at launch; `tools\fix-shell-textentry.ps1`. The stock bounds are correct; the pack's "OOB fix" fixed nothing. |
+| P3 | can type at most one character into the bookmark name | **fixed, live** (2026-09-07, the developer: "yep that's it") | two bytes in the pack shell narrowed `KeyInput_Poll` 0x1001c110's clear so ToAscii's output word kept a stale high byte (SAVE-FREEZE-ROOT-CAUSE "two bytes"; FIXES.md F1/P4). Repaired on both installs; `PLAY-i76.ps1` re-applies at launch; `tools\fix-shell-textentry.ps1`. The stock bounds are correct; the pack's "OOB fix" fixed nothing. |
 | P4 | Save Bookmark screen goes dead after ~6 s idle (one event then nothing) | **fix built and lab-shown by automation, deployed nowhere** | DWM ghosts the window because the shell's modal edit loop (`TextField_Edit` 0x1001c7b0 inside `SaveMenu_Open`) and `Modal_YesNo` pump only keyboard messages or none (SAVE-FREEZE-ROOT-CAUSE 2026-09-06 census: deactivation at t+5.9 s, then a starving `PeekMessageA(WM_KEYFIRST..WM_KEYLAST)`). Fix: `DisableProcessWindowsGhosting()` in u32x `DllMain` (uncap-lab `aff1c46`). Not required to save when typing promptly (2026-09-07), but a player who pauses six seconds over a name hits it. Neither install's `u32x.dll` carries the call (section 0). Does not occur under Wine (no DWM). |
 | P5 | a bookmark "vanishes": `savegame.dir` names `saveNNN`, disk has `save-01.cmp` (Mac) / predicted `save-001.cmp` (Windows) | **root cause found statically; 10-byte fix built, unverified** | `SaveMenu_Edit` 0x100147a0 sets the slot variable `0x10057f80 = -1` on every entry (0x10014866). Re-entering the edit (click on the name field, or NO on the prompt) after the record was already appended with slot S skips the slot assignment (0x100149d7) and saves with -1 (shell SAVE.md §4). The trigger sequence was trained by P3 ("click somewhere to get it to type"). `dir_Load` 0x10033020 then drops any record whose `.cmp` does not open, which is why the bookmark disappears rather than showing broken. Fix F2: NOP the 10 bytes at file offset 0x13c66 (FIXES.md). Live test T3 not run. Rescue exists on the Mac stub (`rescueOrphanSave`), not on Windows. |
 | P6 | "it always says I am overwriting even on a new save" | **explained; not a bug; UX improvement open** | A row click takes the prompt path unconditionally; a typed name prompts only when an entry with the same scene *and* name exists (SAVE.md §4, 0x10014a78 / 0x10014d75). Field version: the name matched the loaded bookmark (SAVE-FREEZE v2). Improvement = a fresh default name (E3 below). Residual, cosmetic: a row click rewrites that entry's scene with the current scene before any confirmation (0x10014924), which is the "save009 bumped 6 to 7" report. |
 | P7 | `savegame.dir` is "truncated 36 bytes short" on every save; launcher re-pads | **misdiagnosis to retire** | The header is 4 bytes, not 0x28; `4 + 60n` matched 15 of 15 game-written files, and every "short" file was one our tools re-padded (SAVE.md §1; writer `dir_WriteAndSave` 0x10032f80, reader loop bound 0x100330f3). The re-pad in `PLAY-i76.ps1` (lines 176..210) and the `Get-Health` check in `LAUNCHER.ps1` (0x28 model) are harmless but wrong, and AGENTS.md's invariant repeats it. Proposed: retire the guard, fix the launcher model, correct AGENTS.md (owned by the main session). |
-| P8 | `Please insert CD "Interstate '76 CD 2"` modal, OK re-prompts forever, Cancel exits | **open on the pristine/lab exe; not seen on the daily driver since July** | Two owners, both exe: (a) `shell_cb_17` 0x470f90, called by the shell on message 0xC010 (go) before every mission; returns -1 (no movie, no prompt) when the MCI cdaudio open failed, otherwise scans CD-ROM drives (`GetDriveTypeA==5` table 0x609520) with `GetVolumeInformationA` for label `I76_CD2` and prompts through `startup_MessageBoxOkCancel` 0x471580 (i76-map status\tasks\m12-cd-prompt.md; shell\CALLBACKS.md slot 17); (b) the VFS fallback: `vfs_FindContainerForFile` 0x4b2e00 calls `cd_PromptLoop` 0x470d90 at 0x4b2faa after a failed local read; an empty wanted label matches any readable CD volume. Live reading: the prompt needs `cd2_drive_index` 0x58d92c == 0 after the scan, and the last candidate is a transient `GetVolumeInformationA("E:\")` failure on the mounted CD1 ISO (m12 "corrected reading"). Seen 6 times in ~21 lab launches (sitting-1-notes); the launcher-path theory was refuted. On the daily driver the Strlkup proxy's virtual cdaudio plus the AiO exe ran "with music, saves and no CD prompt" (FINDINGS-2026-07 §1). |
-| P9 | boot is 60..75 s of PLEASE STAND BY plus intro and credits movies; no obvious skip | **partly open** | Esc (sometimes twice) skips at boot (FINDINGS-2026-07). In-mission cutscenes: WndProc 0x4048b7, Esc calls 0x49a9f0 and the mode returns to 1 (i76-map mission.md, mode 0x20). `I76_SKIP_MOVIES=1` invalidates the intro/credits names (0x4c25b0, 0x4c25a4) so the engine takes its own open-failed path at 0x403056/0x403058 (MISSION-LAUNCH.md), **but the check sits inside `apply_mission_launch` after `if (n == 0) return;`, so it only works together with `I76_MISSION`** (strlkproxy.c lines 651..704). On a normal menu boot there is no movie skip switch. |
+| P8 | `Please insert CD "Interstate '76 CD 2"` modal, OK re-prompts forever, Cancel exits | **open on the pristine/lab exe; not seen on the daily driver since July** | Two owners, both exe: (a) `shell_cb_17` 0x470f90, called by the shell on message 0xC010 (go) before every mission; returns -1 (no movie, no prompt) when the MCI cdaudio open failed, otherwise scans CD-ROM drives (`GetDriveTypeA==5` table 0x609520) with `GetVolumeInformationA` for label `I76_CD2` and prompts through `startup_MessageBoxOkCancel` 0x471580 (<re-archive> status\tasks\m12-cd-prompt.md; shell\CALLBACKS.md slot 17); (b) the VFS fallback: `vfs_FindContainerForFile` 0x4b2e00 calls `cd_PromptLoop` 0x470d90 at 0x4b2faa after a failed local read; an empty wanted label matches any readable CD volume. Live reading: the prompt needs `cd2_drive_index` 0x58d92c == 0 after the scan, and the last candidate is a transient `GetVolumeInformationA("E:\")` failure on the mounted CD1 ISO (m12 "corrected reading"). Seen 6 times in ~21 lab launches (sitting-1-notes); the launcher-path theory was refuted. On the daily driver the Strlkup proxy's virtual cdaudio plus the AiO exe ran "with music, saves and no CD prompt" (FINDINGS-2026-07 §1). |
+| P9 | boot is 60..75 s of PLEASE STAND BY plus intro and credits movies; no obvious skip | **partly open** | Esc (sometimes twice) skips at boot (FINDINGS-2026-07). In-mission cutscenes: WndProc 0x4048b7, Esc calls 0x49a9f0 and the mode returns to 1 (<re-archive> mission.md, mode 0x20). `I76_SKIP_MOVIES=1` invalidates the intro/credits names (0x4c25b0, 0x4c25a4) so the engine takes its own open-failed path at 0x403056/0x403058 (MISSION-LAUNCH.md), **but the check sits inside `apply_mission_launch` after `if (n == 0) return;`, so it only works together with `I76_MISSION`** (strlkproxy.c lines 651..704). On a normal menu boot there is no movie skip switch. |
 | P10 | the shell is small / blurry / "can it be bigger" | **fact; conf-level options open** | The shell is fixed 640x480: ShellMain stores 640/480 at 0x1001e420/0x1001e42a and discards `GetClientRect`; DATABASE.MW2 backgrounds are 640x480 PCX (shell SCREENS.md, README). It is scaled by dgVoodoo's DDraw wrapper (Windows) or DxWnd (Mac). Today: `stretched_ar`, `Resampling=bilinear` (daily) / `lanczos-3` (lab conf), screen-height fit = 3.0x. Nothing makes it render at higher internal resolution. |
-| P11 | in-mission Esc menu: "mouse weirdness at forced res, navigate by keyboard"; "the Options/Abort menu mouse never worked" | **open, needs a hand check after P1** | This menu is the **exe's** (`shell_BeginInGameMenu` 0x4953e0, `shell_MenuHandleMouse` 0x4972d0, pages from `plyopt1.map`/`grxdet1.map`/`audcon1.map`/`extgme1.map`), not the DLL's (shell SCREENS.md "Not the shell"; i76-map options.md, mission.md). Its mouse comes from `mouse_Poll` 0x44b8c0 through the exe's `GetCursorPos` import, which deploy-shellfix now retargets to u32x. **Field 2026-10-02:** still broken after the retarget — in fullscreen the Esc menu's mouse cannot reach the Exit button (raw coordinates); backlog P1. |
+| P11 | in-mission Esc menu: "mouse weirdness at forced res, navigate by keyboard"; "the Options/Abort menu mouse never worked" | **open, needs a hand check after P1** | This menu is the **exe's** (`shell_BeginInGameMenu` 0x4953e0, `shell_MenuHandleMouse` 0x4972d0, pages from `plyopt1.map`/`grxdet1.map`/`audcon1.map`/`extgme1.map`), not the DLL's (shell SCREENS.md "Not the shell"; <re-archive> options.md, mission.md). Its mouse comes from `mouse_Poll` 0x44b8c0 through the exe's `GetCursorPos` import, which deploy-shellfix now retargets to u32x. **Field 2026-10-02:** still broken after the retarget — in fullscreen the Esc menu's mouse cannot reach the Exit button (raw coordinates); backlog P1. |
 | P12 | in-game Control Configuration destroys `input.map` (steer/throttle gone, every button on the last joystick) | **mechanism known; mitigated by the launcher guard; prevention is a policy call** | 12 loss mechanisms in `InputMap_Read` 0x1000f390 / `InputMap_Write` 0x1000fd30; Done writes, Esc does not (shell INPUTMAP.md). Options: make `input.map` read-only (then `fopen("w")` at 0x1000fd41 fails; whether the null handle is checked is LIVE-TESTS T7c), or a 5-byte NOP over the write call at 0x1000efe8 (view-only menu). `PLAY-i76.ps1` restores analog sinks from a backup when they are missing. |
 | P13 | the OS pointer is invisible over the game, so a waiting modal looks like a freeze | **mitigated** (overlay), cause open | `i76-cursor-overlay.ahk` draws a click-through crosshair that follows the real pointer; its header lists what was measured and ruled out (dgVoodoo, ShowCursor count, class cursor, .cur files, WM_SETCURSOR). |
 | P14 | modal Win32 dialogs ("you need brakes", CD prompt) trapped behind exclusive fullscreen: black screen, no Alt+Tab | **fixed** | `FullScreenMode=false` + `FullscreenAttributes=fake` (dgVoodoo.windows.conf, FINDINGS-2026-07). |
 | P15 | with Lossless Scaling running, "rename variant", "exit without salvage", "overwrite" prompts could not be interacted with (2026-08-08) | **open hypothesis** | LS presents through an always-on-top borderless overlay; a shell-drawn prompt waits under it (FINDINGS-2026-07 §1, "decisive test costs one launch": `PLAY.bat` without LS). Note `PLAY-i76.ps1` starts LS by default. Most of the symptom was later explained by P1..P4, so this may already be moot; untested. |
-| P16 | turning on a Play Options cheat asks "I'm a cheater / I'm a swinger", and a cheated win counts as a fail with no salvage and no scene advance | **by design; document it** | cheats marker 0x535f78 set by the exe's option handlers; WinMain turns success into 0xb, the mission-over menu turns 0xb into 0 and adds "Turn off Cheater Options" (i76-map cheats.md, mission.md). Confirm page 0x4fd018 (plyopt1.map, Esc disabled); exit dialog 0x4fcec0 (extgme1.map, "Are you gonna leave me, Sweetheart?"); the code number on menu pages is `(level+900)*1000 + rand()%992`, rerolled per level in `shell_DrawMenuPage` 0x496870 (mission.md wave 5). |
+| P16 | turning on a Play Options cheat asks "I'm a cheater / I'm a swinger", and a cheated win counts as a fail with no salvage and no scene advance | **by design; document it** | cheats marker 0x535f78 set by the exe's option handlers; WinMain turns success into 0xb, the mission-over menu turns 0xb into 0 and adds "Turn off Cheater Options" (<re-archive> cheats.md, mission.md). Confirm page 0x4fd018 (plyopt1.map, Esc disabled); exit dialog 0x4fcec0 (extgme1.map, "Are you gonna leave me, Sweetheart?"); the code number on menu pages is `(level+900)*1000 + rand()%992`, rerolled per level in `shell_DrawMenuPage` 0x496870 (mission.md wave 5). |
 | P17 | both installs run a pack-lineage shell that is not the pristine GOG DLL | **fact, decision open** | Pack diff vs pristine: P1 cursor-handle caching (benign), P2 GDI blit check removed (GDI path only), P3 palette toggle (GDI only), P4 the harmful ToAscii narrowing, already repaired (FIXES.md "Pack diff"). The pack's cave at 0x10040340 is the one F3 wants; `patch_shell.py` moves one of them. Decision: stay on pack+F1, or move to pristine+P1+F2/F3 built by `patch_shell.py`. |
 
 ## 2. Open items: concrete fix options
@@ -83,7 +83,7 @@ conf edit / launcher), effort (S under an hour, M a sitting, L several), and ris
 
 | option | site | effort | risk |
 |---|---|---|---|
-| **A. deploy the built fix** [built, lab-shown] | rebuild `u32x.dll` from `i76-uncap-lab\src\u32x.c` (ship build, no `U32X_LOG`), confirm the string `DisableProcessWindowsGhosting` is in the binary, `tools\instruments\deploy-shellfix.ps1 -GameDir <lab>` | S | low: one documented per-process switch; the shell patch route is unavailable (the DLL imports neither `GetProcAddress` nor the function, FIXES.md F5) |
+| **A. deploy the built fix** [built, lab-shown] | rebuild `u32x.dll` from `<lab>\src\u32x.c` (ship build, no `U32X_LOG`), confirm the string `DisableProcessWindowsGhosting` is in the binary, `tools\instruments\deploy-shellfix.ps1 -GameDir <lab>` | S | low: one documented per-process switch; the shell patch route is unavailable (the DLL imports neither `GetProcAddress` nor the function, FIXES.md F5) |
 
 ### P8 "insert CD 2"
 
@@ -92,7 +92,7 @@ conf edit / launcher), effort (S under an hour, M a sitting, L several), and ris
 | A. instrument first [proposed, the m12 plan] | on the next prompting instance (the dialog is modal, attaching is safe) read the file name `vfs_LoadZix` 0x4b23e0 / `vfs_FindContainerForFile` 0x4b2e00 was opening and call `GetVolumeInformationW("E:\\")` from outside at the same moment (m12-cd-prompt.md last section) | M (needs the prompt to recur) | none |
 | B. Strlkup IAT hook on `GetVolumeInformationA` [proposed] | IAT slot 0x4bc0c8 (callers 0x470d40, 0x470d90, 0x470ed0, 0x470f90, 0x471250): on failure for a CD-ROM root, return success with label `I76_CD2`. Satisfies both the movie scan and `cd_PromptLoop`'s "any readable volume". | S | medium: if the VFS then tries the "CD" for the file it could not open locally, the read fails again; the loop's retry behaviour after a label match is untraced. Needs A first |
 | C. make `shell_cb_17` never prompt [proposed] | its arg 0 path "returns 1 without prompting" (exe-callbacks.md slot 17); the DLL passes the arg at 0x1001e0fe/0x1001e118. Patch the push to 0 (u32x runtime, shell side) or patch 0x470f90's prologue (Strlkup). Only the pre-mission movie check; leaves the VFS fallback alone | S | low for the movie path; does nothing for the VFS owner |
-| D. keep the ISO mounted and let `cdaudio_probe.py` gate launches [exists for the harness] | `i76-map\tools\cdaudio_probe.py` | S | none; harness-only |
+| D. keep the ISO mounted and let `cdaudio_probe.py` gate launches [exists for the harness] | `<re-archive>\tools\cdaudio_probe.py` | S | none; harness-only |
 | **E. answer `startup_IsMinimum` 0x4b2220 with 0 when `<game>\miss8` is a directory** [built, live 2026-10-02: `I76_CD_FAKE=1` in the Strlkup proxy + the cwd fix] | the instrument (A, now in the proxy: music-fix/README.md) showed the real owner: `WinMain` 0x402ccd calls `shell_cb_17(1)` only when `startup_IsMinimum` returns 1, and that function returns 1 whenever its `RegCreateKeyExA(HKLM\..\Interstate '76 Gold Edition, KEY_ALL_ACCESS)` is denied - every non-elevated launch on this machine (the key exists in HKLM, Users = ReadKey; measured err 5) - before it reads `Minimum` or looks for miss8. Same cause makes the VFS owner (a) possible: miss8/miss16 become a CD-volume container. The AiO exe has 0x4b2220 stubbed to `xor eax,eax; ret` for exactly this. Live: `startup_IsMinimum #1 -> 1` then `shell_cb_17 #1 (arg0 1) from 0x00402CE7` then the MSGBOX; with E, three calls 1 -> 0, no box, game proceeds | S | none new on a full install; needs the cwd fix (loose `miss16\` opens are cwd-relative, else "Sorry, unable to find required files"). B and C are superseded; the drive-readiness / MCI theories in m12 are dead |
 
 ### P9 movie skip
@@ -130,7 +130,7 @@ One launch with `-LosslessScaling ""`, trigger an overwrite prompt. If it behave
 
 ### E1 Skip-to-mission / resume campaign
 
-**Where `apply_mission_launch` stands** [fact: MISSION-LAUNCH.md, strlkproxy.c 651..704, i76-map mission.md]: writes
+**Where `apply_mission_launch` stands** [fact: MISSION-LAUNCH.md, strlkproxy.c 651..704, <re-archive> mission.md]: writes
 `startup_mission_name` 0x5049f0, NOPs the two clears (0x402d33, 0x49d1e0), sets the skip-shell dword 0x504c10 = 1, and the
 mission loads with no shell at all. Three things make that far from "resume":
 
@@ -159,7 +159,7 @@ without screenshots (`tools\shellstate.ps1`).
 
 [fact] The only persisted menu state is the options block: the exe writes 0x60 bytes from 0x654b40 to `I76PLYR.DEF`
 (`player_SaveDef` 0x497290, at mission end and on the graphics-mode key) and reads it back after every shell return
-(`player_LoadPlyrDef` 0x4970f0); the shell reads the same file (`PlayerDef_Load` 0x10016f70) (i76-map mission.md,
+(`player_LoadPlyrDef` 0x4970f0); the shell reads the same file (`PlayerDef_Load` 0x10016f70) (<re-archive> mission.md,
 options.md; shell CALLBACKS.md arg 8). Main-menu branch, melee car/arena and entry-form fields are not persisted.
 [proposed] Low value for a trip player; E1 covers the one choice that matters. Skip.
 
@@ -207,7 +207,7 @@ already shows F1). `PLAY-i76.ps1`: retire the re-pad block or re-model it to `4 
 
 | area | binary / owner | anchors |
 |---|---|---|
-| game state machine; when the shell runs | `i76.exe` (i76-map main track) | state 0x4c2164: 5 running, 6 shell, 7 replay, 8 reconfigure, 9 load bookmark, 0xa exit, 0xb cheated win (mission.md); `shell_RunAndGetChoice` 0x4022e0 -> `ShellMain` at 0x4031f5; skip-shell dword 0x504c10 (cmp at 0x403197) |
+| game state machine; when the shell runs | `i76.exe` (<re-archive> main track) | state 0x4c2164: 5 running, 6 shell, 7 replay, 8 reconfigure, 9 load bookmark, 0xa exit, 0xb cheated win (mission.md); `shell_RunAndGetChoice` 0x4022e0 -> `ShellMain` at 0x4031f5; skip-shell dword 0x504c10 (cmp at 0x403197) |
 | shell loading | `i76.exe` | `LoadLibraryA("I76SHELL.DLL")` inside WinMain 0x402b30 (strings.tsv 0x4c2630). Dynamic, so Strlkup's DllMain runs before the shell exists; u32x's runs after (it is the shell's import). **Shell-side runtime patches belong in u32x; exe-side ones in Strlkup.** |
 | the in-mission Esc menu (Abort, Load Bookmark, Play Options, Graphic Detail, Audio, Exit, mission-over Replay/Reconfigure) | `i76.exe` | 0x495070 open, 0x4953e0 begin, 0x4956e0 show page, 0x496870 draw page (code number), 0x496e10 keys, 0x4972d0 mouse, 0x497760 mission-over, 0x497b20 strings; pages `plyopt1.map` etc.; dialogs 0x4fd018 cheat confirm, 0x4fcec0 exit; `foldin\shell-menu-items.tsv` for label -> handler |
 | options block and `I76PLYR.DEF` | `i76.exe` writes/reads; shell reads | 0x654b80.. (options.md); `player_SaveDef` 0x497290, `player_LoadPlyrDef` 0x4970f0; shell `PlayerDef_Load` 0x10016f70 |
@@ -215,7 +215,7 @@ already shows F1). `PLAY-i76.ps1`: retire the re-pad block or re-model it to `4 
 | CD check and prompt | `i76.exe` | `shell_cb_17` 0x470f90 (called by the shell on 0xC010), `cd_ProbeVolume` 0x470d40, `cd_PromptLoop` 0x470d90, `startup_MessageBoxOkCancel` 0x471580, VFS callers 0x4b23e0 / 0x4b2e00 |
 | movies | `i76.exe` | intro/credits at 0x403056; in-mission 0x49a070 play, 0x49a9f0 end (Esc at WndProc 0x4048b7); names 0x4c25b0 / 0x4c25a4 |
 | direct mission boot | `i76.exe` + `Strlkup.dll` | 0x5049f0, 0x402d33, 0x49d1e0, 0x504c10; `cmdline_Parse` 0x49d1d0 has no mission argument |
-| every 2D screen: title, main menu, garage, inventory, parts, mission grid, entry forms, standings, Options notepad, Save/Load Bookmark, Credits, Control Configuration | `i76shell.dll` (i76-map shell track) | ShellMain 0x1001e260, ShellWindowProc 0x1001da10, messages 0xC008..0xC026, menu index 0..11; state globals 0x100d2168 / 0x100d219c / 0x100d21a0 / 0x100d21a4 (SCREENS.md) |
+| every 2D screen: title, main menu, garage, inventory, parts, mission grid, entry forms, standings, Options notepad, Save/Load Bookmark, Credits, Control Configuration | `i76shell.dll` (<re-archive> shell track) | ShellMain 0x1001e260, ShellWindowProc 0x1001da10, messages 0xC008..0xC026, menu index 0..11; state globals 0x100d2168 / 0x100d219c / 0x100d21a0 / 0x100d21a4 (SCREENS.md) |
 | `savegame.dir`, `saveNNN.cmp`, `reconfig.spc`, `trip4.spc` | `i76shell.dll` | `dir_Load` 0x10033020, `dir_WriteAndSave` 0x10032f80, `Cmp_Write` 0x10032980, `Cmp_Read` 0x10032bf0, `SaveMenu_Open/Edit/Frame` 0x100145f0 / 0x100147a0 / 0x10014cd0, `Screen_LoadBookmark` 0x10013380 |
 | trip scene counter | both | exe dword 0x4c2160, passed as ShellMain arg 7, incremented by the DLL after a won mission (CALLBACKS.md) |
 | `vehscn.vcf` / `.vsf` | shell writes via exe callbacks 08/09/02; exe loads | `Vehicle_WriteVcf` 0x10035250, `Vehicle_WriteVehState` 0x10035930; `bwd2_LoadVcfForObject` 0x4ad6f0 |
@@ -223,10 +223,10 @@ already shows F1). `PLAY-i76.ps1`: retire the re-pad block or re-model it to `4 
 | shell mouse | `i76shell.dll` | `MouseUpdate` 0x1001fbf0 (GetCursorPos -> ScreenToClient, 640x480 constants from ShellMain 0x1001e420) |
 | Control Configuration and `input.map` | `i76shell.dll` | `InputMap_Read` 0x1000f390, `InputMap_Write` 0x1000fd30, write call at 0x1000efe8 |
 | menu art and strings | data: `DATABASE.MW2` (shell), `*.map` pages (exe menu) | `tools\mw2db.py`, `tools\mw2shape.py` |
-| coordinate translation, ghosting, keep-alive | `u32x.dll` (i76-uncap-lab\src) | retargets USER32 for both the shell and the exe (deploy-shellfix.ps1) |
+| coordinate translation, ghosting, keep-alive | `u32x.dll` (<lab>\src) | retargets USER32 for both the shell and the exe (deploy-shellfix.ps1) |
 | exe-side runtime patches (music, mission boot, frame-rate fixes, opt-in bug fixes) | `Strlkup.dll` (music-fix\strlkproxy.c) | `patch_bytes` verify-before-write; `I76_*` env gating |
 
-The exe addresses above are from the i76-map main track (md5 `9a232dcc`, the pristine 2017 build); the lab and the
+The exe addresses above are from the <re-archive> main track (md5 `9a232dcc`, the pristine 2017 build); the lab and the
 daily driver run the 2019 AiO build `60abf7bc`, which the map records as "same link outside the 45 patched clusters"
 (cheats.md header). Every shell address is for the DLL at its preferred base 0x10000000 and must be rebased live.
 
@@ -252,7 +252,7 @@ the console before it is promoted.
 ### Item 1, fully specified: F2 orphaned bookmark
 
 **Choice of vehicle.** Route B (u32x runtime patch) is recommended because both installs run the pack shell `fd96f871`
-and `patch_shell.py` refuses anything but pristine. Route A is equally valid if James decides to move the installs to
+and `patch_shell.py` refuses anything but pristine. Route A is equally valid if the developer decides to move the installs to
 pristine+P1 (section 1, P17).
 
 **Bytes.** [fact: FIXES.md F2] At RVA 0x14866 in `i76shell.dll`:
@@ -279,7 +279,7 @@ if (sh) {
 
 Gate it on `I76_SHELL_FIXES` containing `F2` (the Strlkup pattern) so a rollback is an environment change. Build x86
 (`cl /O2 /LD u32x.c /link /DEF:u32x.def user32.lib`), confirm with `strings`/grep that the new build still has
-`DisableProcessWindowsGhosting` (item 2 rides along), deploy with `deploy-shellfix.ps1 -GameDir C:\Users\james\i76-uncap-lab\game`.
+`DisableProcessWindowsGhosting` (item 2 rides along), deploy with `deploy-shellfix.ps1 -GameDir <lab>\game`.
 
 **Why the write is safe** [fact: FIXES.md F2 "Why this is sufficient"]: `0x10057f80` is written at exactly three other
 places (new-slot path 0x10014a26, row-pick sscanf 0x10014927, YES-to-overwrite 0x10014c48 / 0x10014f43), and the only read
@@ -297,13 +297,13 @@ must be False), `savegame.dir` and `save*.cmp` backed up first:
 3. Regression: a plain typed-name save and a row-pick overwrite (YES) both still work.
 
 If step 1 does not orphan, SAVE.md §4's trace is wrong at step 1 or 2; read `lastwidget` / `menu_fn` with
-`i76-map\shell\tools\shellstate.ps1` before concluding anything. Promote to the daily driver only after 2 and 3 pass,
+`<re-archive>\shell\tools\shellstate.ps1` before concluding anything. Promote to the daily driver only after 2 and 3 pass,
 keeping the previous `u32x.dll` as `u32x.dll.pre-f2`.
 
 ### Item 2, fully specified: deploy the ghosting fix
 
 **State** [fact, measured today]: `u32x.dll` on both installs lacks the `DisableProcessWindowsGhosting` string; the source
-(`i76-uncap-lab\src\u32x.c` lines 818..848) has the call; commit `aff1c46`.
+(`<lab>\src\u32x.c` lines 818..848) has the call; commit `aff1c46`.
 
 **Steps.** Build the ship binary (no `U32X_LOG`; the log build is the 90 KB+ one `LAUNCHER.ps1` warns about). Check:
 `Select-String -Path src\u32x.dll -Pattern DisableProcessWindowsGhosting -Encoding ascii` returns a hit, and size is in the
@@ -369,8 +369,8 @@ SAVE-FORMAT-GAPS.md, READY-TO-TEST.md, VERIFIED-FIXES.md, DEBUG-MENU-FIELD-TEST.
 MODERN-SETUP.md, DXWND-TUNING.md, FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md §1, FRESH-START-2026-09-04.md §11; AGENTS.md;
 tools/fix-shell-textentry.ps1, tools/bisect/README.md; PLAY-i76.ps1, LAUNCHER.ps1, dgVoodoo.conf, dgVoodoo.windows.conf;
 i76-cursor-overlay.ahk; music-fix/strlkproxy.c.
-i76-uncap-lab: src/u32x.c, tools/instruments/deploy-shellfix.ps1, docs/CONFIG-OPTIONS.md, autotest/README.md, git log.
-i76-map: shell/README.md, SCREENS.md, SAVE.md, FIXES.md, CALLBACKS.md, LIVE-TESTS.md, INPUTMAP.md, shell/work/exe-callbacks.md,
+<lab>: src/u32x.c, tools/instruments/deploy-shellfix.ps1, docs/CONFIG-OPTIONS.md, autotest/README.md, git log.
+<re-archive>: shell/README.md, SCREENS.md, SAVE.md, FIXES.md, CALLBACKS.md, LIVE-TESTS.md, INPUTMAP.md, shell/work/exe-callbacks.md,
 shell/symbols/functions.tsv; subsystems/options.md, mission.md, cheats.md, renderer.md; foldin/shell-menu-items.tsv;
 status/tasks/m12-cd-prompt.md, direct-mission-entry.md, sitting-1-notes.md; symbols/functions.tsv, globals.tsv, imports.tsv,
 strings.tsv. Live install state: directory listings and byte reads of both game folders, 2026-10-01.

@@ -37,7 +37,7 @@ entirely in REVERSING.md.
 - Full struct layouts with byte offsets (ZFS entries, VFS sources, cache nodes,
   PakEntry, OEG mesh format, .fnt format).
 - Hash constants, heap-sizing logic, call graphs, a 32-entry ShellMain callback
-  table at stack `&local_80` *(Gold fills **27** slots at 0x4022e0 — corrected 2026-10-02, i76-map finding L104)*.
+  table at stack `&local_80` *(Gold fills **27** slots at 0x4022e0 — corrected 2026-10-02, <re-archive> finding L104)*.
 
 **⚠ CRITICAL CAVEAT — wrong binary for direct address reuse.** The decompile
 targets the **Nitro Pack** executable (GOG Nitro release, Win32 MSVC), *not* our

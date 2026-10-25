@@ -13,7 +13,7 @@ in lab **`8104bf1`**. Three were verified on the emulator. The F2 driver (06 / 0
 
 ## 1. WASD keys in 02 / 03
 
-- **Source map.** `C:\I76GOLD\INPUT.MAP` on the logging disk (3754 B, md5 `03906b5b`). It is the same file on the par base.
+- **Source map.** `<gold game folder>\INPUT.MAP` on the logging disk (3754 B, md5 `03906b5b`). It is the same file on the par base.
 - **Retail map.** The source map with the two Gold-only blocks `show_player_scores` and `show_team_scores` dropped
   (they are not in the retail exe's strings), plus the stock retail `throttle` / `steer` joystick axis blocks. The
   stock `radar_camera_toggle` block is left out because it binds W. The result is 4242 B, md5 `ccb6da72`.
@@ -98,7 +98,7 @@ Values are the median sim_dt in ms: the median over runs of each run's median, w
 
 **The bug, as the banner now states it:** in Save Bookmark, typing a name, clicking off the name box, clicking back
 into it and saving makes the stock game write the bookmark under a file name it never creates, so the bookmark
-vanishes from the Load list. Sources: i76-map `shell/FIXES.md` F2 and `SAVE.md` section 4.
+vanishes from the Load list. Sources: <re-archive> `shell/FIXES.md` F2 and `SAVE.md` section 4.
 
 **Why this morning's control was inconclusive.** The control printed `OK` with the new bookmark `orphana` as
 `save014.cmp`. That is consistent with Enter being pressed after the first name, which commits the save at once, so

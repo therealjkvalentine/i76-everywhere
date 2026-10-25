@@ -56,7 +56,7 @@ WSERIAL`, Nitro `dll\WINETS2 / WIPX2 / WMODEM2 / WSERIAL2` (all different binari
 ("This upgrade is required to play in multiplayer mode") (R: records/NITRO-VS-RETAIL-2026-10-20.md). The ANet 0.10
 source has the same five Windows drivers in `src/win/`: `winets` (Winsock TCP/UDP, "Multiport Winsock TCP Protocol",
 with `winets2` and `wudplan` build variants), `wipx`, `wloop` (loopback), `wmodem`, `wserial`; Mac `minet / minets /
-mipx / mmodem / mserial` (S: `i76-uncap-lab\refs\anet\anet-master\src\win`). The box copy promised "eight-player LAN,
+mipx / mmodem / mserial` (S: `<lab>\refs\anet\anet-master\src\win`). The box copy promised "eight-player LAN,
 hood-to-hood modem and Internet combat" (W: [elisoftware.org listing](https://elisoftware.org/wiki/Interstate_%2776_(PC,_CD-ROM)_Activision_-_1997_USA,_Canada_Release)).
 Nitro's listing adds "through a LAN connection, the Internet, modem or link cable" (W: [MobyGames](https://www.mobygames.com/game/interstate-76-nitro-pack)).
 
@@ -70,7 +70,7 @@ only WSOCK32 and opens `AF_IPX` sockets itself (R: lab s.8.1), which is why IPXW
   1995 and 2001; Activision released it under the **GNU Lesser General Public License** (W: [kegel.com/anet](https://kegel.com/anet/)).
   The public mirror is [github.com/Nielk1/anet](https://github.com/Nielk1/anet), **LGPL-2.1**, README dated
   2001-09-04, "builds on Linux and Windows 95 and higher" (W). Version 0.10 is the only release (anet-0.10.tar.gz).
-  The lab holds a copy (`i76-uncap-lab\refs\anet`). The server README names the games: "Dark Reign, Battlezone, Heavy
+  The lab holds a copy (`<lab>\refs\anet`). The server README names the games: "Dark Reign, Battlezone, Heavy
   Gear, Zork, Shanghai, and other games" (S: `src/linux/server/README2.txt`, 1998-10-05); the architecture doc names
   "a game such as Interstate '76" as a game client (S: `src/doc/arch.htm`).
 - **Architecture** (S: `src/doc/arch.htm`, "Last updated: 10 Aug 1998"): sessions are **peer-to-peer**; the **game
@@ -449,8 +449,8 @@ machine runs IPXWrapper (Windows native; Macs under Wine, measured; the Deck und
 Project: `docs/MULTIPLAYER.md`, `docs/records/NITRO-MP-DESIGN-2026-10-21.md` (s.0.5.3, 0.5.8, 0.5.15-16, 1.1-1.3),
 `docs/records/MP-OVERNIGHT-2026-10-20.md` s.5, `docs/OPEN-FEATURES-2026-10-24.md` s.5, `docs/PRIOR-ART-I26-2026-10-21.md`,
 `docs/COMMUNITY-RESOURCES.md` s.3a, `docs/records/NITRO-VS-RETAIL-2026-10-20.md`; lab `docs/MULTIPLAYER-LOCAL-TEST.md`
-s.2, 8.1-8.4; local source `i76-uncap-lab\refs\anet\anet-master` (`src/doc/arch.htm`, `doc/server.htm`,
-`src/linux/server/README2.txt`, `src/win/winets/wstcpdll.c`), `i76-uncap-lab\refs\ipxwrapper`,
+s.2, 8.1-8.4; local source `<lab>\refs\anet\anet-master` (`src/doc/arch.htm`, `doc/server.htm`,
+`src/linux/server/README2.txt`, `src/win/winets/wstcpdll.c`), `<lab>\refs\ipxwrapper`,
 `Downloads\i26-0.6.0\decompiled\I76.Net\I76.Net.Anet\{HolePunch,AnetHost,AnetJoiner}.cs` (analysis only, nothing copied).
 
 Web (read 2026-10-25):

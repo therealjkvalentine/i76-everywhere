@@ -4,7 +4,7 @@ Follows [archives-and-community.md](archives-and-community.md) s.7 ("ten to fetc
 [development-and-press.md](development-and-press.md) and [game-files-and-cast.md](game-files-and-cast.md). Downloads and
 file work only: no game was started, no downloaded program was run.
 
-- **Store:** `D:\i76-archive\community-20261024\` (`dl\` = the downloads as fetched, `x\` = each archive extracted into
+- **Store:** `<archive>\community-20261024\` (`dl\` = the downloads as fetched, `x\` = each archive extracted into
   its own new folder, nested archives into `<name>.x\`, `index\` = full index incl. `files.csv` and `maps.json`).
   Nothing from it is in git.
 - **Index (in git, machine-readable):** [index/](index/) - `maps-unique.csv`, `maps.csv`, `cars.csv`, `paints.csv`,
@@ -12,7 +12,7 @@ file work only: no game was started, no downloaded program was run.
   `extract-log.csv`. Author e-mail addresses found in readmes were removed from the committed copies.
 - **Scripts:** [tools/content-archive/](../../../tools/content-archive/) (`fetch.py` polite sequential downloader,
   `extract.py` 7-Zip extraction, `index.py` indexer over the data track's parsers, `post.py` map grouping, `bin2iso.py`,
-  `zfslist.py`). The parsers in `i76-map\data\fmt` were imported read-only.
+  `zfslist.py`). The parsers in `<re-archive>\data\fmt` were imported read-only.
 
 ## 1. What we now have
 
@@ -41,7 +41,7 @@ material. Eight LSM zips are corrupt on the server (7-Zip CRC/data errors, list 
 `takeoff`, `r66scen`, `trestle`, `veldt`, `orspeed`, `pgh2`, `sstream4n`); most of them have intact copies in
 allnitromaps or the `Interstate.76` install.
 
-**Defender:** `MpCmdRun -Scan -ScanType 3 -File D:\i76-archive\community-20261024` (report-only) after extraction:
+**Defender:** `MpCmdRun -Scan -ScanType 3 -File <archive>\community-20261024` (report-only) after extraction:
 **"found no threats"** (2026-10-24). InstallShield payloads (Arsenal demo `data1.cab`, avautils `_SETUP.1`, Nitrace,
 Intertrace, PriceManager) were not unpacked further; self-extracting zips (avautils, qstart, qnitro, patches) were
 opened with 7-Zip only.
@@ -135,7 +135,7 @@ and GOG Gold; its BUILDER.DOC differs by one day between builder.zip and the Sid
 
 ### FRC force effects (`frc.csv`) - for the FFB lane
 
-**Path: `D:\i76-archive\community-20261024\dl\compendium-disk1\FRC\`** (14 `.FRC` + `I7_SFrce.dll`, 1997-05/08 dates).
+**Path: `<archive>\community-20261024\dl\compendium-disk1\FRC\`** (14 `.FRC` + `I7_SFrce.dll`, 1997-05/08 dates).
 All are DirectInput `RIFF`/`FORC` files, one effect each ("UserDefined1" custom-force samples). Against the GOG set
 (`<install>\force\*.FRC`, identical in GOG Gold, GOG Nitro, the golden copy and the archive.org Nitro install):
 

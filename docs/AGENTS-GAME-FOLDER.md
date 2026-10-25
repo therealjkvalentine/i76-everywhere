@@ -18,7 +18,7 @@ Latest information: https://github.com/therealjkvalentine/i76-everywhere (docs/,
 
 ## Rules
 - Never experiment on the daily driver or the rc. Test from a twin of `test`; delete the twin at lane end.
-- One game per console: take `C:\Users\james\i76-uncap-lab\.console-owner` (exclusive create) before a visible run; honour `.console-test.lock`, `.fps-lock` / `.fps-queue`; never kill a process you did not start.
+- One game per console: take `<lab>\.console-owner` (exclusive create) before a visible run; honour `.console-test.lock`, `.fps-lock` / `.fps-queue`; never kill a process you did not start.
 - Automated runs set `I76_SHM_SUFFIX` and their own desktop and mute only the game they launched (`I76_MUTE=1` + `tools\start-mute-watch.ps1`). Never run against default shared-memory names while the owner may be playing.
 - Check which build is live before diagnosing (docs record intent, not state); read the setting back after every write; keep the folder name, `VERSION.md` and the proxy md5 in agreement.
 - Saves (`savegame*`, `*.sav`, `*.dir`) are the owner's: never delete or "clean" them.

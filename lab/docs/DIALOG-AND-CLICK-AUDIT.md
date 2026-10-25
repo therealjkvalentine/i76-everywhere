@@ -9,7 +9,7 @@ sweep desyncs on the jump tables in `.text` and missed 20 of 22 `MessageBoxA` si
 
 | file | md5 | what it is |
 |---|---|---|
-| `i76-map\shell\bin\i76shell.dll` | `deb41008` | pristine GOG shell (same as `game-gogtest\...\app\i76shell.dll.orig`) |
+| `<re-archive>\shell\bin\i76shell.dll` | `deb41008` | pristine GOG shell (same as `game-gogtest\...\app\i76shell.dll.orig`) |
 | `game-gogtest\...\app\i76shell.dll` | `e165f348` | pristine + USER32 import renamed to `u32x.dll` |
 | `game\i76shell.dll.fd96f871` | `fd96f871` | pack lineage (P1-P3, F1 stock bytes restored, u32x rename) |
 | `game\i76shell.dll` (live lab, 20:00) | `9d6247a6` | `fd96f871` + **F7** (popup agent: Enter/Space in `Modal_ImageOk` and `Modal_Ok`, caves 0x10040380 / 0x100403c0) |
@@ -17,7 +17,7 @@ sweep desyncs on the jump tables in `.text` and missed 20 of 22 `MessageBoxA` si
 | `game\i76.exe` | `85de44a7` | lab exe; its `MessageBoxA` and the shell's `MessageBoxA`/`DialogBoxParamA` are all imported from `u32x.dll` (plain forwards in `u32x_full.def`) |
 
 Outside the F7 bytes, the lab shell's modal code is identical to pristine (scan diff empty). Art positions come
-from shape table 0x24 of `DATABASE.MW2` (`i76-map\data\out\mw2db\036_0x24_shp\fNNN.png`; lab and GOG databases
+from shape table 0x24 of `DATABASE.MW2` (`<re-archive>\data\out\mw2db\036_0x24_shp\fNNN.png`; lab and GOG databases
 have identical tables), overlaid with the hit constants (`scratchpad\hit_overlay.png`, reproduced in the rows below).
 
 Scratch tools (session scratchpad, not committed): `scan_shell.py` (callers of every input primitive), `iatscan.py`

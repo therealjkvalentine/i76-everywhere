@@ -1,16 +1,16 @@
-# i76-uncap-lab — 60 Hz for Interstate '76
+# <lab> — 60 Hz for Interstate '76
 
-> **Snapshot, not the working copy.** This folder is a public-safe snapshot of `i76-uncap-lab@ebb3907`, taken
+> **Snapshot, not the working copy.** This folder is a public-safe snapshot of `<lab>@ebb3907`, taken
 > 2026-10-03 (including two uncommitted edits to `autotest/saves/popup-repro.ps1` and `reminder-repro.ps1` as they
 > stood that evening). No history was imported. The working copy, with its private data (the sandbox game clone
-> `game/`, reference checkouts `refs/`, captures), lives outside this repo at its old path, `..\i76-uncap-lab`, and
+> `game/`, reference checkouts `refs/`, captures), lives outside this repo at its old path, `..\<lab>`, and
 > that is where the harness paths point. Three docs are held back until scrubbed (MOUSE-ESC-MENU-AND-SAVE-SCREEN,
 > WIDESCREEN-2D, WIDESCREEN-FEASIBILITY, all under `docs/`); links to them read "held back: <path>".
 >
 > **Refresh:** from the repo root run `python tools\export_public.py export` (it must print `RESULT: PASS`), then copy
 > the staged `lab\` tree over this folder. The allowlist is [`tools/export_public.toml`](../tools/export_public.toml).
 >
-> **Caveat:** the scripts still contain `C:\Users\james\...` paths and are Windows- and lab-specific; they will not run
+> **Caveat:** the scripts still contain `<home>\...` paths and are Windows- and lab-specific; they will not run
 > from here as-is. The next step is the path-convention migration (`I76_LAB_ROOT`, `I76_GAME_DIR`, `I76_MAP_ROOT`,
 > resolved by [`autotest\lib\gamedir.ps1`](autotest/lib/gamedir.ps1)).
 

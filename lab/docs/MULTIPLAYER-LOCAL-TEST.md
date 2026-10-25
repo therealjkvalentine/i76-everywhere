@@ -42,7 +42,7 @@ Typed text goes through `keybd_event` scancodes (letters, digits, `.` = VK 0xBE)
 Host form (after DONE): LOCAL DRIVER "UNNAMED" + RENAME, AREA OF PLAY list, GAME NAME "THE CRATER" + RENAME,
 NO. DRIVERS 04, TEAM PLAY / INVITE ONLY / MAX SCORE, car panel, **BROADCAST GAME 298,461**, CANCEL 562,461.
 Join form: GAME NAME list (empty), **JOIN GAME ~298,461**, CANCEL. Static reading of `EntryForm_Frame`
-(i76-map shell `10028610.c` lines 407-427): BROADCAST GAME calls `Net_StartSession` and on success posts 0xC010,
+(<re-archive> shell `10028610.c` lines 407-427): BROADCAST GAME calls `Net_StartSession` and on success posts 0xC010,
 i.e. the host goes **straight into the mission**; there is no host lobby [inferred, static].
 
 Shell play modes `[0x100d217c]` (`Net_EnsureDp` 0x1002e2f0) [measured, static]: 2/6 modem host/join, 3/7 IPX,
@@ -82,7 +82,7 @@ So, on one PC with the stock files:
 ## 4. Windows Firewall prompt (owner action)
 
 When A bound its socket, **"Windows Security Alert - Windows Defender Firewall has blocked some features of this
-app"** appeared for `C:\Users\james\i76-uncap-lab\game\i76.exe` (process `rundll32`, capture `a9.png`). It was not
+app"** appeared for `<lab>\game\i76.exe` (process `rundll32`, capture `a9.png`). It was not
 clicked and was still open when work stopped; the owner decides. No prompt for `game-alt\i76.exe` was seen (B never
 got a socket). Loopback traffic does not need the rule; LAN play would. The prompt sits over the centre of the game
 (about UI 232..408 x 175..302); the helper refuses any click whose screen point is not over the chosen game window
@@ -117,7 +117,7 @@ The main-menu logo is animated (it zooms); two captures of the same screen diffe
 ## 7. Helper and state
 
 ```powershell
-cd C:\Users\james\i76-uncap-lab\autotest
+cd <lab>\autotest
 .\mp-explore.ps1 -Start                              # locks, state backup to runs\mp\bak, proxy in, A then B
 .\mp-explore.ps1 -Inst A -Key "ESC,ENTER,ESC,ENTER"
 .\mp-explore.ps1 -Inst A -Click "447,311" -Buttons   # one click, then read the state it prints
@@ -228,7 +228,7 @@ Logs: `autotest\runs\mp\ipx\game-ipxwrapper-134955.log`, `game-alt-ipxwrapper-13
 **What IPX did (network layer: works)**
 - The IPX button **opens the form directly**; there is no server popup.
 - A: `bind(..., /21155)` gave address `00:00:00:01/92:DA:A4:AC:05:7A/21155` (UDP private port 61965). Its
-  4-byte self-echo broadcast went out on 192.168.1.255, 172.30.175.255 and 100.113.196.47 (:54792) and came
+  4-byte self-echo broadcast went out on <LAN broadcast>, <WSL broadcast> and <tailscale-ip> (:54792) and came
   back 3 times, so WIPX init succeeded (no 0x84).
 - B: the **same IPX socket 21155 bound with no WSAEADDRINUSE** (separate mutex), with its **own node**
   `2F:E4:D6:9F:90:93` (separate HKCU key). Its self-echo also came back.
@@ -270,9 +270,9 @@ one PC at the transport level. The run stopped one step earlier, at the host's v
   `Remove-Item HKCU:\Software\IPXWrapper, HKCU:\Software\IPXWrappeB -Recurse`.
 
 ### 8.7 Next step (exact)
-1. Make the host's car pass ValidateVcf. First, check which files the CRC covers: exe 0x4b35a0, i76-map
+1. Make the host's car pass ValidateVcf. First, check which files the CRC covers: exe 0x4b35a0, <re-archive>
    `shell\CALLBACKS.md` row 26. Then either use stock vehicle data from the pristine control
-   (`i76-map\sandbox-gog\main\app`) in both lab copies for the test, or pick a stock car in the host form.
+   (`<re-archive>\sandbox-gog\main\app`) in both lab copies for the test, or pick a stock car in the host form.
    If the lab has to keep modded data, a lab-only proxy switch could make slot 26 return 1. Both copies must
    carry identical car data, because the joiner runs the same check (0x1002e6f5).
 2. Rerun 8.5 with these changes: start A alone, walk it to BROADCAST GAME, then launch B and JOIN > IPX.

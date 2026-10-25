@@ -212,7 +212,7 @@ Clean stop, in order of preference:
 1. At the keyboard: press **End** to unlock input, then **Ctrl+Q** (close Nucleus; it ends the session first) or
    **Ctrl+E** (end the session, keep Nucleus open).
 2. From a script (works while locked): `autotest\nucleus-stop.ps1`, run elevated (through the bridge:
-   `nucleus-q.ps1 -Cmd "& C:\Users\james\i76-uncap-lab\autotest\nucleus-stop.ps1"`). It posts WM_CLOSE to the form titled
+   `nucleus-q.ps1 -Cmd "& <lab>\autotest\nucleus-stop.ps1"`). It posts WM_CLOSE to the form titled
    "Nucleus Co-op" (hidden or not); `MainForm_Closed` -> `End(false)`, which skips the lock check, kills the games and
    restores windows. It waits 30 s and only then falls back to Stop-Process, and says so. **Not run yet** (needs an
    elevated session).
@@ -222,7 +222,7 @@ Debug log of a clean stop: `----------------- SHUTTING DOWN -----------------` w
 Lab copies only (`game-nucleus`). About 15 minutes. You need two pads (or one pad + the keyboard) and to approve
 Nucleus's UAC prompt.
 1. **Plug the pads in**, then find their winmm ids (the only joystick API the game uses):
-   `powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\nucleus-coop\find-pads.ps1`.
+   `powershell -ExecutionPolicy Bypass -File <lab>\nucleus-coop\find-pads.ps1`.
    It lists each present id with its name, then for 30 s prints `winmm id N moved` when you press a button on one pad
    at a time. Write down which id is which pad.
 2. **Set `JOY_WINMM`** at the top of `Interstate76.js` (this folder): one entry per instance, instance 0 first.

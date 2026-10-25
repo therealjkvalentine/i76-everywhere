@@ -30,7 +30,7 @@ first row of Field Salvage WEAPONS and absent from the van. 11 of 11 C/V/R weapo
 
 CAL COLOR carries 14 C/V/R weapons. Shown: 11. Missing: the three with the highest file index - #48 (V) 7.62 Turret,
 #59 (V) 20mm Turret, #62 (C) Oil Slick. The two turrets appeared in Field Salvage; the dropper hardpoint read
-"Empty" although the +1024 label for slot 1 (dropper) is "Oil Slick" and #62 is state 1. James's own save003 has
+"Empty" although the +1024 label for slot 1 (dropper) is "Oil Slick" and #62 is state 1. The developer's own save003 has
 exactly 11 C/V/R weapons (4 C, 4 V, 3 R), so his Oil Slick is the 11th and mounts; the probe's three added van
 turrets pushed it past the cap. With 11 weapons (save010, save011, save013) all show, the Oil Slick mounts, and the
 mission HUD lists it (save013-mission.png: 50cal MG, FireRite, 50cal MG, Oil Slick). Display order: (C) records ascending by file index, then the rest

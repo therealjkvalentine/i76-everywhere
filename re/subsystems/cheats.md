@@ -82,7 +82,7 @@ write twice a frame apart.
 
 ## 3. Weapons and ammo [lab]
 
-From `i76-uncap-lab\docs\WEAPONS-MEMORY.md` (live on 60abf7bc):
+From `<lab>\docs\WEAPONS-MEMORY.md` (live on 60abf7bc):
 - live ammo: weapon instance table 0x5aab08, stride 0x4c, count 0x5da750 (`weapon_UnregisterVehicle` 0x4a3580).
   Ammo is at +0x20 (the lab's base 0x5AAB0C + 0x1C); 0x0FFFFFFF = unlimited. +0x08 -> an object whose +0x00 is the
   .gdf asset name ('gcmedium'). [live: reads, writes and read-back on the sandbox]

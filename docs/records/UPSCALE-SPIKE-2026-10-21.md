@@ -130,4 +130,4 @@ to the owner, add the HD page texture next, and only then open A2 / A3 for the s
 - Lab `captures\upscale-spike-20261021\`: 4 side-by-sides + 9 full-frame variants at 3440x1440, `demo.json`,
   `evidence\` (fit json, recovered frames, 1:1 crops, the ESRGAN text-rewrite crops), `work\` (1x inputs, ESRGAN cache).
 - Read only: the exp-p19 copy (conf, Lee_____.ttf, I76.ZFS, DATABASE.MW2), exp-nitro-base (database.tvf),
-  i76-map (mw2db extraction, Ghidra export), existing lab captures.
+  <re-archive> (mw2db extraction, Ghidra export), existing lab captures.

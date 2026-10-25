@@ -1,7 +1,7 @@
 # verify/ - the verification program's runner side (phase 0, steps 1-3)
 
 `status/VERIFICATION-PROGRAM.md` sections 2.1, 2.2 and 5. Everything here runs the **sandbox** game only
-(`C:\Users\james\i76-uncap-lab\game\i76.exe`, never the Downloads install), holds `game\.console-test.lock` while it
+(`<lab>\game\i76.exe`, never the Downloads install), holds `game\.console-test.lock` while it
 runs, installs `i76-everywhere\music-fix\Strlkup.dll` over `game\STRLKUP.DLL` (backup `.pretest`, restored afterwards)
 exactly as `TEST-FRAMERATE.ps1` does, and must run at the physical console (Glide does not start over RDP). Nothing
 outside `verify\` is written.

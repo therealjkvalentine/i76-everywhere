@@ -99,7 +99,7 @@ from one marked line (the DIFFICULTY HOOK, below) when it sets an AI car's skill
 
 **The stock skill scale runs backwards: level 1 is the best driver and shooter, and 5 is the worst.**
 - 5 is also the AI block's default.
-- The constants are at 0x40bc70, filled by 0x40bd90 into ai+0xa81c / +0xa820 / +0xa824 / +0xa828 (i76-map
+- The constants are at 0x40bc70, filled by 0x40bd90 into ai+0xa81c / +0xa820 / +0xa824 / +0xa828 (<re-archive>
   `subsystems/ai.md` M23).
 - **The brief's first table was backwards.** It said Wimp 2 / Champ 3 / Badass 5, which would have made Wimp the
   hardest and Badass the softest. It was built that way first (`0d3265f`). The host read-back showed level 2 = 0.8 0.8

@@ -194,7 +194,7 @@ anaconda's lzo2.dll): `r4rer_11` 21% of pixels re-indexed (38 -> 71 distinct ind
 was byte-identical to GOG's. The M16 hardware tiles in the pack carry their own palettes (immune) and the VQM ones are
 software-renderer only, so the `.map` tiles are what `-glide` showed wrong.
 
-What the captured logs (`C:\Users\james\i76-deck-captures\20261014-201217`, saved by deck-push-tv.sh before pad menu
+What the captured logs (`<work>/i76-deck-captures\20261014-201217`, saved by deck-push-tv.sh before pad menu
 v3) showed: `mciproxy.log` is appended across 11 sessions with no timestamps; the last one (the only TV session:
 `display: profile tv`, DP-1 3840x2160 connected, game screen 1280x720 so Game Resolution was set, aspect 1.778, gamma
 1.45, dgVoodoo 1280x720) stayed in the shell (pad-menu lines, no mission frames, no `road-pool` lines). The sessions
@@ -258,7 +258,7 @@ block at the end) and relaunch. Before tuning the game, check the TV chain, whic
 Owner, after pad menu v3: *"rumble does not work"*, *"the mouse pointer coordinates are a little off"* (and once the
 sound went out; not chased until it repeats). **The Deck was offline for this pass** (`steamdeck.local` does not
 resolve; tailscale node `steamdeck` last seen 145 days ago), so no log of a v3 session was read. The newest evidence is
-`C:\Users\james\i76-deck-captures\20261014-201217` (saved before v3 was deployed): proxy `2f2b8170` (v2), TV session
+`<work>/i76-deck-captures\20261014-201217` (saved before v3 was deployed): proxy `2f2b8170` (v2), TV session
 `screen=1280x720 external=DP-1 3840x2160`, `I76_ASPECT=1280x720`, dgVoodoo `[Glide] Resolution 1280x720`,
 `ScalingMode = stretched`, `FullscreenAttributes = fake`, `CaptureMouse = false`; `profile pad`, AHK started; 3 XInput
 pads connected; no `cursor-map: client` lines because `I76_CURSOR_LOG` was never set on the Deck. No audio, DirectSound

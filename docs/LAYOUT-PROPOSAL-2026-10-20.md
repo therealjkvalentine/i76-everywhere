@@ -29,11 +29,11 @@ Inside the game folders the same pattern repeats: backups sit beside the live fi
 
 ## 2. Proposed structure
 
-### 2.1 What the owner double-clicks: `C:\Users\james\Games\I76\`
+### 2.1 What the owner double-clicks: `<games>\I76\`
 
 ```
-C:\Users\james\Games\I76\
-  daily-driver\         what James plays (today: Interstate76-2026-10-03, promotion 18)
+<games>\I76\
+  daily-driver\         what the developer plays (today: Interstate76-2026-10-03, promotion 18)
   release-candidate\    the next promotion, staged for the owner's play-test (today: lab game-tick = tick19g, PLAY-TICK*)
   lan\                  the family multiplayer pack, byte-identical to what the Macs, laptop and Deck run (today: the LAN copy)
   golden\               the untouched reference of the daily driver (rollback source; today: Interstate76-golden-2026-10-03)
@@ -56,10 +56,10 @@ Rules that keep it readable:
   files going to `_rollback\19\`, exactly as PROMOTIONS.md rows 0-18 describe. After promotion 19 the release-candidate
   folder is empty until the next candidate is staged.
 
-### 2.2 The lab: `C:\Users\james\i76-uncap-lab\`
+### 2.2 The lab: `<lab>\`
 
 ```
-i76-uncap-lab\
+<lab>\
   twin-driver\          = game-dd-20261003   gates for promotions; must stay hash-identical to Games\I76\daily-driver (VERSION.md says so)
   twin-rc\              = game-tick          gates for the release candidate
   harness-sp\           = game-sp            headless single-player harness copy

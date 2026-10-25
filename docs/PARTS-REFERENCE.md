@@ -11,8 +11,8 @@ differ.
 
 | tag | meaning |
 |---|---|
-| **[game data]** | Read from the stock `I76.ZFS`, which is the same file (md5 `6dd57b16…`) in the lab copy and the pristine copy, using i76-map's parsers (`python data\mod\i76mod.py show zfs:compnent.cdf ENGN#0` and similar). The sandbox's `ADDON` folder replaces none of these files, so the owner's mods change nothing on this page. |
-| **[RE: doc, address]** | Taken from i76-map's static reading of `i76.exe` (md5 `9a232dcc`): `subsystems/engine.md`, `physics.md`, `damage.md` and `weapons.md`, plus `data/VEHICLES.md`. Where it says "re-read", the instructions were disassembled again for this page on 2026-10-03 (capstone, pristine exe). |
+| **[game data]** | Read from the stock `I76.ZFS`, which is the same file (md5 `6dd57b16…`) in the lab copy and the pristine copy, using <re-archive>'s parsers (`python data\mod\i76mod.py show zfs:compnent.cdf ENGN#0` and similar). The sandbox's `ADDON` folder replaces none of these files, so the owner's mods change nothing on this page. |
+| **[RE: doc, address]** | Taken from <re-archive>'s static reading of `i76.exe` (md5 `9a232dcc`): `subsystems/engine.md`, `physics.md`, `damage.md` and `weapons.md`, plus `data/VEHICLES.md`. Where it says "re-read", the instructions were disassembled again for this page on 2026-10-03 (capstone, pristine exe). |
 | **[derived]** | Arithmetic on game data, done for this page. |
 | **[community]** | Published player measurements ([WEAPON-STATS.md](WEAPON-STATS.md), Local Ditch) or the manual and FAQ ([I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)). |
 | **[unknown]** | Nothing found. |
@@ -184,7 +184,7 @@ The `t*.gdf` turret versions behave like their gun versions; they mount on the t
 
 **Your own shots can't hit you at first:** rockets and missiles for the first 70 m, mortars for 1 s, droppers
 and mines for 2 s **[RE: weapons.md]**. Each hit's damage is split evenly across the damage types its round
-carries (bullet / explosive / fire / blox) **[RE: i76-map notes, 0x4a774d]**.
+carries (bullet / explosive / fire / blox) **[RE: <re-archive> notes, 0x4a774d]**.
 
 ## Corrections this page makes to earlier data
 
@@ -197,10 +197,10 @@ carries (bullet / explosive / fire / blox) **[RE: i76-map notes, 0x4a774d]**.
     acceleration by 5 for 15 s.
   - The "minor/flavor" label for the X-Aust Brake, Curb Feelers, Mud Flaps, Heated Seats and Cup Holders is
     wrong: each has a measurable effect in the code.
-- **i76-map's physics.md** (lines 214 and 334; corrected there 2026-10-03, i76-map commit `8473641d`) said the WDFC size factor is the
+- **<re-archive>'s physics.md** (lines 214 and 334; corrected there 2026-10-03, <re-archive> commit `8473641d`) said the WDFC size factor is the
   tyre's grip base. The code puts it only into the current grip, and the base stays 1.0, so the bonus is lost on
   the first hit (engine.md has this right).
-- **i76-map's physics.md** (line 333; corrected there the same day) said suspension handling only matters on flag-0x10000 cars. That is true
+- **<re-archive>'s physics.md** (line 333; corrected there the same day) said suspension handling only matters on flag-0x10000 cars. That is true
   only of the steering limit: the slide threshold uses handling on every car (engine.md has this right).
 - **Not changed, still open:**
   - The editor's community ranges for the DrRadar (3000 m) and Cherub (4000 m) are longer than the 1000 m their

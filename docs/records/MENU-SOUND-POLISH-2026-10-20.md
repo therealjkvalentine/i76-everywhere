@@ -4,7 +4,7 @@ Measurements finished 2026-10-21 01:28 (queued overnight behind another lane's f
 
 Owner, play-testing `Games\I76\release-candidate` (lab game-tick: proxy tick19g adc4fd49, dgVoodoo.wide.conf, u32x
 06467bd2, `I76_U32X_MENU_ASPECT 3440:1440`, `I76_CURSOR_MAP=1 _U32X=exe _DGV=aw`), plus the items the coordinator added
-during the night (D..G). Every run was on the lane's own copy `i76-uncap-lab\exp-polish` (a robocopy of the release
+during the night (D..G). Every run was on the lane's own copy `<lab>\exp-polish` (a robocopy of the release
 candidate, 2026-10-20 17:04) and, for the network items, the lab peer `game-mpo-b` (its own IPXWrapper instance; exp-polish
 borrowed game-mpo-a's instance so nothing reached the LAN). The release candidate, daily driver, golden, lan and twin were
 only read. Console runs held the lab lock; headless runs used private desktops; every boot had `I76_MUTE=1`, the per-pid

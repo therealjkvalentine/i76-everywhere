@@ -8,10 +8,10 @@ listed. This pass looks for rows the spec does not have: an **event** (damage, a
 angular step) issued once per rendered frame or once per projectile step, with no dt in it and no gate in the proxy.
 Rows already in the coverage doc are not repeated.
 
-**Sources.** i76-map `ghidra/export/functions/*.c` and `callgraph.json` (exe md5 `9a232dcc`), `status/perframe.tsv`
+**Sources.** <re-archive> `ghidra/export/functions/*.c` and `callgraph.json` (exe md5 `9a232dcc`), `status/perframe.tsv`
 (695 frame-scope and 390 substep-scope functions), `subsystems/{weapons,damage,sound,ai,physics,engine,simclock}.md`;
 capstone disassembly of every patched site. Old bytes were compared programmatically in **both**
-`i76-map\ghidra\i76_ref.exe` (`9a232dcc`) and `i76-uncap-lab\game\i76.exe` (md5 `85de44a7` today, AiO-based):
+`<re-archive>\ghidra\i76_ref.exe` (`9a232dcc`) and `<lab>\game\i76.exe` (md5 `85de44a7` today, AiO-based):
 17 / 17 new sites identical, and the two existing hazard sites.
 
 **Method.** Three screens, then a hand read of every hit:
@@ -225,7 +225,7 @@ prints before trusting a sampler (`hazard_impacts` is the `7c998bf` counter, whi
 | U3 | wiggleburger cheat jitter | 0x498730 mode 0: two rand() & 15 targets per frame, eased by dt | smaller, faster jitter | cheat-only, cosmetic | - |
 | U4 | Sustained collision contact without the fixed step | 0x434bb0 | sound + damage once per frame while touching | 3x / 6x per second | not the supported configuration (the fixed step is part of the set); F3 is a no-op there | `IMPACT` events/s scraping a wall, stock 120, no fixed step |
 | U5 | Far wrecks | `entity_TickVehicle` far path -> `entity_UpdateState` once per frame | debris / secondary explosion rolls per frame | 3x / 6x | > 849 m from the camera, not visible; the explosions are spawned though (cost only) | - |
-| U6 | physics.md line 124 "or when wrecked" | - | the far path is taken on object flag 0x20, which no wreck path sets (`object_SetFlagsTree` is called with 0x200 / 1 / 0x201 only); a near wreck steps through the stepper | - | doc correction for i76-map, not a site | - |
+| U6 | physics.md line 124 "or when wrecked" | - | the far path is taken on object flag 0x20, which no wreck path sets (`object_SetFlagsTree` is called with 0x200 / 1 / 0x201 only); a near wreck steps through the stepper | - | doc correction for <re-archive>, not a site | - |
 
 ## 4. Summary
 

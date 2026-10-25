@@ -532,7 +532,7 @@ marked in FFB-DATA-AUDIT row 11), `docs/records/FFB-DATA-AUDIT.md` rows 4-5 (ori
 `docs/records/FFB-DEEP-DIVE.md` (block +0xf0 force vector), `tools/telemetry/i76tel.h`, `README.md`,
 `verification-2026-10-01.txt`, `tools/ffb/ffb-telemetry-udp.ps1` (port map, OutSim / OutGauge builders, 21
 assertions), `tools/ffb/FfbMixer.ps1` (`Motion` bus), `tools/ffb-udp-listen.py`, `music-fix/README.md`
-(`I76_FIXED_STEP`, `I76_RENDER_INTERP`). Map: `C:\Users\james\i76-map\subsystems\physics.md` (substep pipeline,
+(`I76_FIXED_STEP`, `I76_RENDER_INTERP`). Map: `<re-archive>\subsystems\physics.md` (substep pipeline,
 `ent+0xd4` integrator acceleration and the 9.51 m/s^2 brake figure, angular rates +0xc8/+0xcc/+0xd0 and the
 attitude model's lift targets and 0.5 s easing, weight-transfer 0.008 m per m/s^2 and the dive pitch, suspension
 IIR pole 0.7 / travel +-0.25 r, airborne pitch -pi/20, `veh+0x474`, `veh+0x46c`, contact record at entity+0x38),

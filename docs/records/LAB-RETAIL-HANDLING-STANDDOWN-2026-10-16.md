@@ -42,4 +42,4 @@ The switch, builds and write-up this lane was briefed for belong to the console 
 - Optional opt-in retail front-wheel-pull patch (file 0x3c341 `74 20` -> `eb 20`, only for a car with both front wheels damaged).
 - Emu A/B: Gold with Arcade Phys. on, n >= 2, to confirm K drops to about 23.4 (headless, agent work).
 - Owner test 44's `TEST-p166-retail-handling.bat` refuses to start until proxy 0406e909 is installed; an agent should install it
-  on the twin with a read-back (or James uses the Options toggle route, item 45).
+  on the twin with a read-back (or the developer uses the Options toggle route, item 45).

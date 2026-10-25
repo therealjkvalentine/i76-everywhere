@@ -1,6 +1,6 @@
 # Texture shimmer on the lab copy: is the supersampling and MSAA really on? (2026-10-12, static)
 
-Owner report (lab twin `i76-uncap-lab\game-dd-20261003`, best-wide preset, dgVoodoo 2.87.3): "we are seeing some
+Owner report (lab twin `<lab>\game-dd-20261003`, best-wide preset, dgVoodoo 2.87.3): "we are seeing some
 shimmering on textures; are we sure we're still double-rendering it and using MSAA?"
 
 Everything here was read from files on disk: confs, the proxy log, gate run folders and their captures, the 2026-10-03
@@ -42,7 +42,7 @@ So the folder conf is the one in effect. The question is what its values do.
 
 ### What the presented frame contains
 
-`i76-uncap-lab\tools\graphics\edge-aa-probe.ps1` (new, offline) walks one straight high-contrast edge per row. It
+`<lab>\tools\graphics\edge-aa-probe.ps1` (new, offline) walks one straight high-contrast edge per row. It
 reports how many intermediate pixels the edge has and which coverage fractions they take. Calibration on the
 2026-10-03 4:3 matrix (`captures\graphics\try`, the A-pillar against the sky, `-X 820 -Y 600 -W 180 -H 160`, the conf
 proven in effect there):
@@ -154,7 +154,7 @@ Use pixels and GPU memory:
 
 ## 5. Variants built (lab twin, not run)
 
-`i76-uncap-lab\tools\make-test-variants.ps1 -Only 'shimmer-*'` now writes these. A variant can name its own conf
+`<lab>\tools\make-test-variants.ps1 -Only 'shimmer-*'` now writes these. A variant can name its own conf
 (`Conf` + `ConfSet`): the script generates `dgVoodoo.wide-<x>.conf` from `dgVoodoo.wide.conf`. It replaces each key in
 place inside its section, refuses a key it cannot find, reads every key back section by section, and the bat copies
 that file over `dgVoodoo.conf`. Each one boots T05 at the hill top (the shared hill env: `I76_MISSION=t05`,

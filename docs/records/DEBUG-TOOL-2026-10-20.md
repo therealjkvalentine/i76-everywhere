@@ -20,7 +20,7 @@ Commits (i76-everywhere main): `2d6e7e8` proxy + `i76trn.h`, `0abf540` I76 Debug
 * **DEBUG.bat is the one entry** ("I76 Debug: debug / cheat tool"); `TRAINER.bat` is a one-line shim to it on the Trainer tab.
 * **Haptics tabs explain themselves and start the host in one click** (dry run by default; refuses without a wheel or pad and
   offers "Start anyway (dry run)"). In the lab boot the forced dry run went live: host data on the dashboard within seconds.
-* **Staged, not installed**: `i76-uncap-lab\builds\debug-tool-20261020\stage` + `MD5SUMS` (section 5). Nothing was copied into
+* **Staged, not installed**: `<lab>\builds\debug-tool-20261020\stage` + `MD5SUMS` (section 5). Nothing was copied into
   the release candidate, the daily driver, golden, lan or the twin.
 
 ## 1. What the full state is
@@ -31,7 +31,7 @@ bytes and `i76trn_ext_t` follows at +168 with its own magic (`'I76S'`); a front 
 position-only teleport. Commands 7 `STORE_STATE` and 8 `SET_STATE`; an older proxy answers "unknown command".
 
 `i76trn_state_t` (632 bytes), captured and written by the proxy on the game thread at the top of a frame, before the tick
-(fields from i76-map `subsystems/physics.md`, the veh+ / w+ tables):
+(fields from <re-archive> `subsystems/physics.md`, the veh+ / w+ tables):
 
 | part (`I76TRN_ST_*`) | fields |
 |---|---|
@@ -68,7 +68,7 @@ version-1 block and logs `trainer: full-state store / restore OFF (the section w
 
 ## 3. Measurements (lab copy `exp-debug`, headless)
 
-Copy: `C:\Users\james\i76-uncap-lab\exp-debug` = `Games\I76\release-candidate` (lab `game-tick`) copied 2026-10-20 17:04
+Copy: `<lab>\exp-debug` = `Games\I76\release-candidate` (lab `game-tick`) copied 2026-10-20 17:04
 (583 files, 491.7 MB), its proxy `adc4fd49` kept in `exp-debug\_lane`. Proxy in the runs: the lab twin
 `Strlkup-dbg-lab.dll` `d7a0e9d6` = the candidate's source (`2d6e7e8`) + the lab drive block / `I76_HEADLESS_ACTIVE` /
 drive-block names (the tick-range recipe, `builds\debug-tool-20261020\make.ps1`). Preset `tick19-42` + `I76_MISSION=t05.msn`,
@@ -118,7 +118,7 @@ Cause: the Force feedback / Rumble / LFE / Motion tabs only show what the haptic
 `--debug-udp`; `PLAY.bat` never starts it, and the tab only said "start it with ..." (by design, `tools\debug\README.md`).
 Now (`tools\debug\debug_haptics.py`): the tab lists the wheel / pads the host could drive (winmm joysticks that answer
 `joyGetPosEx`, XInput pads; enumeration only), where the host is (`I76_HAPTICS_HOST`, `tools\haptics` beside the tool, else
-the owner's checkout `C:\Users\james\i76-everywhere\tools\haptics`; a shipped folder has none and the tab says so), and offers
+the owner's checkout `tools\haptics`; a shipped folder has none and the tab says so), and offers
 Start. Start adds a tee 17676 to the dashboard's telemetry socket at that moment and runs `i76haptics.exe live --source udp
 --port 17676 --debug-udp 127.0.0.1:<port> --out %TEMP%\i76debug-haptics` (dry run: drives nothing). `--live` only by the
 "drive the devices" box (with a confirm) or `DEBUG.bat --haptics-live`: a wheel must not get two force sources. The child
@@ -133,7 +133,7 @@ Not measured: Start with a wheel plugged in, and `--live` (the owner's test 33b)
 
 ## 5. The staged set (not installed)
 
-`C:\Users\james\i76-uncap-lab\builds\debug-tool-20261020\stage` in the daily driver's layout, from committed sources
+`<lab>\builds\debug-tool-20261020\stage` in the daily driver's layout, from committed sources
 (`git archive`, `tools\debug-tool\stage.ps1`), `MD5SUMS` beside it:
 
 From i76-everywhere `3401323` (20 files):

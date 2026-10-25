@@ -1,6 +1,6 @@
 # Target health bar colour under I76_FIX_HEALTH_PCT: the fixed value forgot the armour
 
-**2026-10-02, static trace only** (i76-map ghidra exports of the pristine i76.exe, md5 9a232dcc; nothing was run). Field
+**2026-10-02, static trace only** (<re-archive> ghidra exports of the pristine i76.exe, md5 9a232dcc; nothing was run). Field
 report, sandbox run with every opt-in switch on including `I76_FIX_HEALTH_PCT=1`: *"when enemy health is going down and
 the bar is changing colors, the enemy health bar switches to WRONG colors as they take damage. The actual damage count
 (number) seems fine. Depends on the AI car: one was actually correct but mostly not; maybe some offset thing?"*
@@ -24,9 +24,9 @@ the x100 version (99% engine: no smoke; 50% engine: smoke) because those runs ha
 
 ### 1.1 The one HUD consumer: renderer_DrawTargetBrackets 0x45af10
 
-Called from both scene drawers (software 0x401cc0, hardware 0x401fa0; `i76-map/subsystems/renderer.md` lines 33-34) with
+Called from both scene drawers (software 0x401cc0, hardware 0x401fa0; `<re-archive>/subsystems/renderer.md` lines 33-34) with
 `(camera, mirror)`. For the player's radar target (`0x4613f0(player root)`) it projects the aim point, draws the four
-corner bitmaps (0x45b087..0x45b1d8) and then the health bar. Disassembly (`i76-map/tools/disasm.py 0x45af10`):
+corner bitmaps (0x45b087..0x45b1d8) and then the health bar. Disassembly (`<re-archive>/tools/disasm.py 0x45af10`):
 
 | site | instruction | meaning |
 |---|---|---|
@@ -67,7 +67,7 @@ it is which branch of 0x40b450 the car's damage history put it on (section 2).
 
 ### 1.2 The value: object_HealthFraction 0x40b450, vehicle case (type 1, 0x40b4e8)
 
-From `i76-map/subsystems/damage.md` ("Damage smoke") and the disassembly:
+From `<re-archive>/subsystems/damage.md` ("Damage smoke") and the disassembly:
 
 - engine / suspension / brakes ratios from entity +0x3c4 / +0x3c8 / +0x3cc (0x40b50f..0x40b5d8); a ratio < 0.02 counts
   as dead (ebx), otherwise it is clamped to 0..1 and the minimum is kept in st0 (c);
@@ -147,10 +147,10 @@ covers all four addresses so a partial apply cannot happen):
 `fix-health-pct: on (health = min(...); sites 0x40b7b8, 0x40b6f0)` / `on (component branch x100 only - A/B reading ...)` /
 `bytes differ at ... - not applied`.
 
-Consistency with the live evidence (`i76-map/captures/014-framerate`, chassis 1394/1510 on side 0 -> r = 0.923,
+Consistency with the live evidence (`<re-archive>/captures/014-framerate`, chassis 1394/1510 on side 0 -> r = 0.923,
 28 + 72 r = 94.5): `hfrac_eng99_fix` c = 0.99 -> min(94.5, 99) = 94.5, no smoke (smoke needs < 75) - matches;
 `hfrac_eng50_fix` -> min(94.5, 50) = 50, smoke - matches. Stock runs are untouched (the switch is off). The verify
-oracle `i76-map/verify/oracles/health_fraction.py` (`FIX_X100` variant) describes the x100 reading and should become
+oracle `<re-archive>/verify/oracles/health_fraction.py` (`FIX_X100` variant) describes the x100 reading and should become
 min() when its `=1` runs are taken; it is in the read-only sibling, so that is flagged, not done.
 
 Also updated: `music-fix/README.md` switch table, `docs/MODDING-GUIDE.md`, `docs/RELEASE-PLAN.md`, the
@@ -158,7 +158,7 @@ Also updated: `music-fix/README.md` switch table, `docs/MODDING-GUIDE.md`, `docs
 
 ## 4. Live verification, 5 minutes, sandbox only
 
-Sandbox `C:\Users\james\i76-uncap-lab\game`, at the console (not RDP), one game at a time, proxy rebuilt first (MSVC x86
+Sandbox `<lab>\game`, at the console (not RDP), one game at a time, proxy rebuilt first (MSVC x86
 per `music-fix/README.md` Build) and the sandbox copy restored afterwards. Three arms, same mission, same enemy:
 **A** `I76_FIX_HEALTH_PCT` unset (stock), **B** `=2` (x100 only, the reported build), **C** `=1` (this fix).
 
@@ -167,7 +167,7 @@ per `music-fix/README.md` Build) and the sandbox copy restored afterwards. Three
    0x40b7b8 is `0x0040b6f0` under A only.
 2. **Deterministic bar (1 screenshot per arm, the discriminator).** Enter a mission with an enemy (t01 via
    `I76_MISSION=t01.msn`, or a melee), target it (radar target = `0x4613f0(player)`; entity = object + 0x70). With
-   `i76-map/verify/poke.py` or `autotest/lib/memlib.ps1`, set the target's four armour sides to 30% of their max
+   `<re-archive>/verify/poke.py` or `autotest/lib/memlib.ps1`, set the target's four armour sides to 30% of their max
    (`ent+0x138[i] = 0.3 x ent+0x158[i]`) and leave the core intact; then set its engine to 99% (`*(ent+0x3c4)` -> hp at
    +0, max at +4; the same poke `captures/014-framerate` used). Expected bar at the second step:
    A red 3 px (v 0.99), B green 30 px (v 99), C **yellow 21 px (v 49.6)**. Then engine to 20%: A red 1 px, B red 13 px,

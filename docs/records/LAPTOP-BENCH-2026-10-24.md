@@ -7,29 +7,29 @@ cumulative update. I measured no fps. The owner must decide about the update (s.
 
 ## 1. The machine and what is on it
 
-- LAPTOP-HPK11OMS, LAN 192.168.1.77 (Tailscale 100.85.70.125). i7-1165G7, 16 GB, GTX 1650 Ti Max-Q (driver 27.21.14.5191) plus
+- the laptop bench, LAN <LAN-IP> (Tailscale <tailscale-ip>). i7-1165G7, 16 GB, GTX 1650 Ti Max-Q (driver 27.21.14.5191) plus
   Iris Xe (27.20.100.8729, which drives the panel). Panel 1920x1080, Windows 26100.9711. Python 3.11.9 is installed.
-- The console user is **james**, in session 1, with the desktop unlocked. The ssh login is the same account, so an `/IT`
-  scheduled task created over ssh runs in that desktop with no password (probe: `session 1 user james screen 1920x1080`). The
-  other Claude session on the laptop also runs as james in session 1. Its files and processes were not touched.
-- `C:\i76-bench\` (486 MB):
+- The console user is **<user>**, in session 1, with the desktop unlocked. The ssh login is the same account, so an `/IT`
+  scheduled task created over ssh runs in that desktop with no password (probe: `session 1 user <user> screen 1920x1080`). The
+  other Claude session on the laptop also runs as <user> in session 1. Its files and processes were not touched.
+- `<bench>\` (486 MB):
   - `rc-twin\` is the RC test twin `rc-twin-20261024`, minus logs, `STRLKUP.DLL.*` backups, `_rollback`, `_superseded*` and
     `.pre-*`. STRLKUP.DLL is fc6a5960 and i76.exe is 6319abf7, both checked against the PC.
   - `bench-run.ps1`, `raw-boot.ps1`, `itask.ps1`, `setup-bench.ps1`, `swap-dll.ps1`, `ddraw-probe-job.ps1`.
   - `tools\` holds mute-proc / unmute-persisted / start-mute-watch, focuslib, Make-Wide-Conf plus the dccd379a template,
     `rc-draw\` (rcd_tab.py, t05-route.json, rcd_drive_bench.py), set-gpu-pref, ddraw-probe, d3d11-probe and mk-conf-variants.
   - `runs\` holds the run outputs, and `.fps-lock` is the laptop's own lock while a run is up.
-- The sources live in the lab at `i76-uncap-lab\laptop-bench\` (`bench\` is what gets deployed, and `laptop-run.ps1` is the PC side).
+- The sources live in the lab at `<lab>\laptop-bench\` (`bench\` is what gets deployed, and `laptop-run.ps1` is the PC side).
 
 ## 2. How to run a test from the PC (one command)
 
 ```
-powershell -File C:\Users\james\i76-uncap-lab\laptop-bench\laptop-run.ps1 [-ArgLine "-Preset OWNER-2300-ALL -Conf wide2x -Tag all-2x"] [-Sync] [-SyncDll] [-Fetch]
+powershell -File <lab>\laptop-bench\laptop-run.ps1 [-ArgLine "-Preset OWNER-2300-ALL -Conf wide2x -Tag all-2x"] [-Sync] [-SyncDll] [-Fetch]
 ```
 
 - The script uses ssh with the PC's key and falls back to Tailscale. `itask.ps1` on the laptop checks three things: the
   console user is the ssh user, the desktop is unlocked (no LogonUI), and the job file `job.ps1` is written. It then
-  (re)creates the task `i76bench` (`schtasks /create /ru james /it`), runs it, waits for the run's `.done` file and prints its
+  (re)creates the task `i76bench` (`schtasks /create /ru <user> /it`), runs it, waits for the run's `.done` file and prints its
   `.result.txt`. Arguments travel as base64, which avoids quoting problems through ssh.
 - `bench-run.ps1` does the same measurement as the lab's gate row 9 (`autotest\t05-route-fps.ps1`). It boots directly into
   t05.msn through the folder's own `PLAY-i76.ps1 -Preset <x>` and drives the owner's T05 route: 15 s ridge, then
@@ -39,7 +39,7 @@ powershell -File C:\Users\james\i76-uncap-lab\laptop-bench\laptop-run.ps1 [-ArgL
   - the CRASH line count and the UNEXPECTED / NOT-patched lines;
   - Windows error events (WER) for i76.exe since launch;
   - the GPU in use (nvidia-smi plus the GPU-engine counters).
-- `-Conf wide2x` gives 1080p with 2x supersampling (`[Glide] 3840x2160`). `wide1x` is the Scott launcher's
+- `-Conf wide2x` gives 1080p with 2x supersampling (`[Glide] 3840x2160`). `wide1x` is the the tester launcher's
   `-NoSupersample` (`1920x1080`). `16x10` is the folder's own 16:10 conf. `setup-bench.ps1` wrote the two wide confs with
   `tools\Make-Wide-Conf.ps1 -Width 1920 -Height 1080 -Scale 2|1` (the template's bytes are kept apart from the Resolution
   digits). It also set `I76_ASPECT = '1920x1080'` and `I76_U32X_MENU_ASPECT = '1920:1080'` in OWNER-2300-ALL and tick19-42 on
@@ -117,7 +117,7 @@ No fps numbers exist yet. The ALL vs PLAY-STABLE comparison and the 2x vs 1x com
    ddraw-probe-job.ps1 -ArgLine ""` must print `hr=0x00000000` for the bench DDraw.dll before any fps row counts.
    - The alternative is a newer dgVoodoo build, if one exists that copes with 26100.9711. That needs a download and a re-gate of
      the conf (`DGVOODOO-CONF-REJECTED.md`), so it is the owner's call.
-2. Keep the laptop logged in as james with the desktop unlocked and on mains power. A locked console stops `itask.ps1` with a message.
+2. Keep the laptop logged in as <user> with the desktop unlocked and on mains power. A locked console stops `itask.ps1` with a message.
 3. Then run the queued rows, three runs each because the same-rate control spread is unknown on this machine:
    - `-ArgLine "-Preset OWNER-2300-ALL -Conf wide2x -Tag all-2x"`
    - `"-Preset tick19-42 -Conf wide2x -Tag stable-2x"`

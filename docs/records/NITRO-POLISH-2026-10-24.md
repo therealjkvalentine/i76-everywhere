@@ -1,9 +1,9 @@
 # Nitro polish: the owner's five notes from his Nitro session (2026-10-24 evening / 10-25 night)
 
 Owner's notes: docs/OWNER-TEST-LIST.md "2026-10-24 afternoon: owner playing Nitro missions". He played them in
-`i76-uncap-lab\exp-nitro-owner` (PLAY-NITRO-ALL.bat, preset OWNER-NITRO-ALL).
+`<lab>\exp-nitro-owner` (PLAY-NITRO-ALL.bat, preset OWNER-NITRO-ALL).
 
-All tests ran in a lab copy, `i76-uncap-lab\exp-nitro-polish`. Most were console boots of p01 (n per row) and the owner's
+All tests ran in a lab copy, `<lab>\exp-nitro-polish`. Most were console boots of p01 (n per row) and the owner's
 menus route. The tools are lab `tools\nitro-polish\`:
 - `np-run.ps1` and `pcon.ps1`: the nitro-owner lane's no-run / ncon, with the MP lane's headless `game-mpo-*` copies no longer
   blocking a boot;

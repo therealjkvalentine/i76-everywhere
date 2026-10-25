@@ -11,7 +11,7 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
 ## Summary
 
 - **The lab's T05/T06 car was the wrong car.** The lab now loads the emulator's car, checked from memory on both sides.
-  - The emulator runs use the save's car (bookmark SAVE001, par base `C:\I76GOLD`): a Picard Piranha with a 261ci 6 cyl, sway bars, disc & drum brakes, 14in Rally tyres, armour 900/600/600/700 and chassis 650/400/400/550.
+  - The emulator runs use the save's car (bookmark SAVE001, par base `<gold game folder>`): a Picard Piranha with a 261ci 6 cyl, sway bars, disc & drum brakes, 14in Rally tyres, armour 900/600/600/700 and chassis 650/400/400/550.
   - The lab's direct mission boot loads the mission's own car, `vppirna1.vcf` "Jade's Car": a **432ci SHO V8 (power 193,960 vs 104,440)**, coil overs, 13in stock tyres, armour 400 x4 and chassis 360 x4.
   - That explains the "+20 % acceleration" and the "6080 vs 9600" in GOLD-STANDARD-FINGERPRINT and LAB-FRAME-REPLAY.
 - **The fix is lab-only:** a loose `ADDON\vppirna1.vcf` holding the save's loadout, in a new lab copy `game-samecar` (= game-wst + that one file).
@@ -48,7 +48,7 @@ Lane same-car-and-fingerprint. This is physics-step study step L0 plus the first
 
 | | emulator (retail / Gold, P166 / P133, T05 and T06) | lab before (direct mission boot) | lab now (`game-samecar`) |
 |---|---|---|---|
-| where the car comes from | SAVE001.CMP in the par base `C:\I76GOLD` (bookmark 'emu T06 (scene 6)' / 'T05 start (emu)'; make-t06-base.py only changes the scene) | `vppirna1.vcf` from I76.ZFS, the T05/T06 mission car | loose `ADDON\vppirna1.vcf` (lab `tools\same-car\car\vppirna1.vcf`, md5 1d636559), built with `i76mod.py car` from the save's loadout |
+| where the car comes from | SAVE001.CMP in the par base `<gold game folder>` (bookmark 'emu T06 (scene 6)' / 'T05 start (emu)'; make-t06-base.py only changes the scene) | `vppirna1.vcf` from I76.ZFS, the T05/T06 mission car | loose `ADDON\vppirna1.vcf` (lab `tools\same-car\car\vppirna1.vcf`, md5 1d636559), built with `i76mod.py car` from the save's loadout |
 | engine / suspension / brakes | 261ci 6 cyl (id 0) / Sway Bars (1) / Disc & Drum (1) | 432ci SHO V8 (2) / Coil Overs (2) / Disc & Drum (1) | as the emulator |
 | tyres | 14in Rally (wauto_1b) | 13in stock (wauto_1a) | as the emulator |
 | weapons (mass only) | Oil Slick, 50cal, FireRite, 50cal | Landmines, Gas Launcher, 50cal, 25mm | as the emulator |

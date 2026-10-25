@@ -5,10 +5,10 @@ available in the game, and which would require extensive work. Level editors and
 maps: no more than the top 10 most acclaimed ones in any GUI."*
 
 Inputs: [research/content-2026-10-24/COMMUNITY-CONTENT-INDEX.md](research/content-2026-10-24/COMMUNITY-CONTENT-INDEX.md)
-(+ `index/*.csv`; archive `D:\i76-archive\community-20261024`), [game-files-and-cast.md](research/content-2026-10-24/game-files-and-cast.md),
-[development-and-press.md](research/content-2026-10-24/development-and-press.md), i76-map `data\FORMATS.md`,
+(+ `index/*.csv`; archive `<archive>\community-20261024`), [game-files-and-cast.md](research/content-2026-10-24/game-files-and-cast.md),
+[development-and-press.md](research/content-2026-10-24/development-and-press.md), <re-archive> `data\FORMATS.md`,
 [MODDING-GUIDE.md](MODDING-GUIDE.md), [LEVEL-FORMAT.md](LEVEL-FORMAT.md), [records/COOP-LIST-ENTRIES-2026-10-18.md](records/COOP-LIST-ENTRIES-2026-10-18.md).
-Lab copies only: `i76-uncap-lab\exp-content-gold` (fresh twin of `exp-polish2`) and `exp-content-nitro` (fresh twin of
+Lab copies only: `<lab>\exp-content-gold` (fresh twin of `exp-polish2`) and `exp-content-nitro` (fresh twin of
 `exp-nitro-owner`). Nothing was installed in any other copy, and nothing is in any shipped list.
 Tools: `tools/content-archive/arena-pack.py` (this repo); lab `tools\content-trial\` (trial scripts, editor driver, P20 stub).
 
@@ -191,7 +191,7 @@ Great Oval; Nitro reads them with the same callback as Gold).
 
 ### 4.2 (b) A community car and an unused shipped vehicle
 
-Route: a mission entered without the shell gives the player `vppirna1.vcf` (i76-map `subsystems/mission.md`), and the VFS
+Route: a mission entered without the shell gives the player `vppirna1.vcf` (<re-archive> `subsystems/mission.md`), and the VFS
 looks in `ADDON\` first, so `ADDON\vppirna1.vcf` decides the car (`car-swap.ps1`). Direct boot into T01, 60 s, 1 boot each:
 
 | run | `ADDON\vppirna1.vcf` | what drove | max speed | result |

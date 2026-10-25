@@ -44,9 +44,9 @@ asked for it: a deployed, load-bearing DLL whose source sat only in the private 
 
 | file | what | md5 | source note |
 |---|---|---|---|
-| `u32x_min.c` | the source of the shipped build | `9050751fac77a6666c2b7313a04dc713` | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.c` (untracked there). It is the 2026-08-16 revision of the lab's `u32x.c` (lab commit `bfbc2ba`) plus one block, the ghosting call, applied by the lab's `src\patch_min.py` on 2026-09-07 |
-| `u32x.def` | export list: 4 intercepts + 49 forwarders = 53 names, the union of the USER32 imports of `i76shell.dll` and `i76.exe` | `9188eca53eb351a0c664ca2f2c222dfc` | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.def` |
-| `u32x.dll` | **the verified binary**, 75,264 B, x86 | `a5927cea02697657ce2102be766b5616` (sha256 `140990d8…cb952ab`) | byte-identical copy of `..\i76-uncap-lab\src\u32x_min.dll`, built there 2026-09-07 15:56 by `src\build-min.ps1` (MSVC 2019 x86, `cl /O2 /LD u32x_min.c /link /DEF:u32x_min.def user32.lib`) |
+| `u32x_min.c` | the source of the shipped build | `9050751fac77a6666c2b7313a04dc713` | byte-identical copy of `..\<lab>\src\u32x_min.c` (untracked there). It is the 2026-08-16 revision of the lab's `u32x.c` (lab commit `bfbc2ba`) plus one block, the ghosting call, applied by the lab's `src\patch_min.py` on 2026-09-07 |
+| `u32x.def` | export list: 4 intercepts + 49 forwarders = 53 names, the union of the USER32 imports of `i76shell.dll` and `i76.exe` | `9188eca53eb351a0c664ca2f2c222dfc` | byte-identical copy of `..\<lab>\src\u32x_min.def` |
+| `u32x.dll` | **the verified binary**, 75,264 B, x86 | `a5927cea02697657ce2102be766b5616` (sha256 `140990d8…cb952ab`) | byte-identical copy of `..\<lab>\src\u32x_min.dll`, built there 2026-09-07 15:56 by `src\build-min.ps1` (MSVC 2019 x86, `cl /O2 /LD u32x_min.c /link /DEF:u32x_min.def user32.lib`) |
 | `build.ps1` | rebuilds from the two source files to `u32x.build.dll` (never over `u32x.dll` unless `-Replace`) | | port of the lab's `src\build-min.ps1` |
 | `u32x_full.c` | the source of the **full build** (added 2026-10-03; `I76_U32X_SHELL_STRETCH` added 2026-10-08, `614d38f`) | `d956a07c8065c35012888c7e8fcefcdd` (was `c7b6fe5f31b9ada3d3f5a1d77f56378a` before `614d38f`) | the lab's `src\u32x.c` at lab commit `68a8a39` (2026-10-02 23:37; git blob `2a6f1994`, md5 `72ecf27a`) **plus the P1-19 modal-pump fix** (section "P1-19") **and the modal pointer** (section "Modal pointer"; 2026-10-03). No longer byte-identical to any lab blob; the lab's `src\u32x.c` has neither |
 | `u32x_full.def` | its export list: the same 53 names, with `GetAsyncKeyState` and `GetKeyState` also pointed at our code (6 intercepts + 47 forwarders) | `2902622b28ab4ed5f79a59b54c50176d` | byte-identical to the lab's `src\u32x.def` at the same commit (blob `4b94a933`) |
@@ -58,10 +58,10 @@ The source files carry `-text` in `.gitattributes` so the md5s above hold on any
 
 **Why this build and not the lab's newer `u32x.c`.** The verified-safe build is this minimal one. Its live record
 ([docs/records/STATUS-2026-10-02.md](../docs/records/STATUS-2026-10-02.md), "Correction, 22:30"), all on the sandbox
-`..\i76-uncap-lab\game`: TRIP -> LOAD BOOKMARK -> garage -> DONE 2/2 (leg-b B1.9: 3 of 3 with this build and with
+`..\<lab>\game`: TRIP -> LOAD BOOKMARK -> garage -> DONE 2/2 (leg-b B1.9: 3 of 3 with this build and with
 the 2026-08-16 build); `TEST-FRAMERATE` option 6 through the trip menus 2/2 at 120.0 fps, option 5 1/1 at 60.0;
 Save Bookmark screen after 10 s idle: row click, SAVE twice, overwrite prompt. The lab's development branch
-(`..\i76-uncap-lab\src\u32x.c`: per-call census, keep-alive pump, the Esc-menu box mapping) produced md5
+(`..\<lab>\src\u32x.c`: per-call census, keep-alive pump, the Esc-menu box mapping) produced md5
 `037fcb3a`, which **broke the bookmark route** (4 of 4 failing at DONE) and was withdrawn the same evening; that
 work stays in the lab until it passes the same route, and then moves here as a new recorded build. Not verified
 by this build: the fullscreen Esc menu's Exit button (use the keyboard there).
@@ -72,7 +72,7 @@ by this build: the fullscreen Esc menu's Exit button (use the keyboard there).
 PROMOTIONS.md rows 0, 4, 6, 7, 15. This section describes the first build and how it was pinned.)
 
 Added to this repo on 2026-10-03. Until then this folder held only the minimal build, and the daily driver
-(`C:\Users\james\Games\Interstate76-2026-10-03`, [docs/records/NEW-DAILY-DRIVER-RECIPE.md](../docs/records/NEW-DAILY-DRIVER-RECIPE.md))
+(`<games>\Interstate76-2026-10-03`, [docs/records/NEW-DAILY-DRIVER-RECIPE.md](../docs/records/NEW-DAILY-DRIVER-RECIPE.md))
 ran a DLL whose source was only in the lab repo.
 
 **Which source.** Lab commit `68a8a39` ("u32x: no computed pointer box (frame map when no clip box was
@@ -128,7 +128,7 @@ install: `06467bd2` since `4d6dfe9`.
 
 **Symptom (owner, sandbox, `054fb411`).** Garage, Build & Repair, DONE with a part missing: "CAN'T GET VERY FAR
 WITHOUT AN ENGINE" comes up and neither mouse nor keyboard closes it. Static analysis:
-`..\i76-uncap-lab\docs\GARAGE-POPUP-STUCK.md`.
+`..\<lab>\docs\GARAGE-POPUP-STUCK.md`.
 
 **Cause (measured).** The popup is the shell's `Modal_ImageOk` (0x1000b800). It does one present, then loops on
 `Mouse_Update` + left-click, with no `PeekMessage` of its own. In `054fb411`, `GetCursorPos` / `GetAsyncKeyState`
@@ -152,7 +152,7 @@ the last 250 ms. Inside a modal it does not pump, which is stock semantics. Exe 
 keyboard-filter pump of the name-entry loop and the GDI/Glide present hooks are unchanged. Ghosting stays off
 (`DisableProcessWindowsGhosting`). **Kill switch: `I76_U32X_MODAL_PUMP=1`** restores the `054fb411` behaviour.
 
-**Gate (sandbox `..\i76-uncap-lab\game`, 2026-10-03; lab `autotest\runs\gate\20261003-122320` and following):**
+**Gate (sandbox `..\<lab>\game`, 2026-10-03; lab `autotest\runs\gate\20261003-122320` and following):**
 leg-b bookmark route **3 of 3**; trip route through `TEST-FRAMERATE -Mode all120` **2 of 2 at 120 fps**; Save
 Bookmark screen (gate stays 1 over 10 s idle, mouse follows, SAVE x2, NO writes nothing, YES writes only the scratch
 bookmark, savegame.dir exact) **pass**; melee by menus **pass**; widescreen Esc menu (`I76_ASPECT=3440x1440`,
@@ -227,7 +227,7 @@ the game window (clamped to that monitor's work area) and makes it `HWND_TOPMOST
 foreground goes back to the game window. **Kill switch: `I76_U32X_MSGBOX=0`** (plain forwards, the old behaviour).
 
 **Measured** (lab sandbox, shell `a300db63` = F7 + `tools\patch-shell-modals.py`; HOST > IPX without IPXWrapper gives
-the shell's Win32 box; `..\i76-uncap-lab\autotest\msgbox-test.ps1 -Case ipxerr`): in front, topmost, foreground,
+the shell's Win32 box; `..\<lab>\autotest\msgbox-test.ps1 -Case ipxerr`): in front, topmost, foreground,
 centred on the game window, OS cursor shown, clip free in 4 of 4 launches (folder fullscreen conf x2,
 `dgVoodoo.aspect-wide.conf`, `dgVoodoo.aspect-16x10.conf`); closed by Enter 2/2 and by a click on OK 2/2; the
 foreground returned to the game every time. Then, in the same process, an instant melee: speed and both steering
@@ -268,7 +268,7 @@ conf in); garage popup repro arrow on the mapped point 5/5 (delta 0), closed 4/4
 
 **Not yet done for the committed build (`a5927cea`):** a run on the daily driver, and a fresh-install run of `setup-windows.ps1` on a
 clean GOG folder (RELEASE-PLAN section 7 item 3). `deploy-u32x.ps1` was exercised offline on 2026-10-02 against
-scratch copies of the pristine GOG binaries (`..\i76-map\sandbox-gog\main\app`, `i76.exe` md5 `9a232dcc`):
+scratch copies of the pristine GOG binaries (`..\<re-archive>\sandbox-gog\main\app`, `i76.exe` md5 `9a232dcc`):
 install changes exactly 10 bytes in each of `i76.exe` and `i76shell.dll` (the import-descriptor name),
 `-Status` reads the result back, `-Restore` returns both files to their original md5. No game was started.
 
@@ -286,7 +286,7 @@ so the committed binary is reproducible from this source up to the timestamp. `L
 names the library `u32x`, the scratch output is `u32x.build.dll`) and is filtered from the summary.
 
 The diagnostic build (`cl /DU32X_LOG ...`) writes to a hard-coded lab path
-(`C:\Users\james\i76-uncap-lab\captures\save\u32x.log`); it is a lab instrument and is not built here.
+(`<lab>\captures\save\u32x.log`); it is a lab instrument and is not built here.
 
 ## Deploy
 
@@ -309,9 +309,9 @@ respectively). `LAUNCHER.ps1` shows the installed DLL's size class.
 ## Promoting a rebuild
 
 1. `u32x\build.ps1`, note the md5.
-2. `u32x\deploy-u32x.ps1 -GameDir ..\i76-uncap-lab\game -U32xDll u32x\u32x.build.dll -AllowUnverified`, read
+2. `u32x\deploy-u32x.ps1 -GameDir ..\<lab>\game -U32xDll u32x\u32x.build.dll -AllowUnverified`, read
    back `-Status`.
 3. At the physical console (not RDP): the bookmark route to DONE, the Save Bookmark screen after 10 s idle, a
-   melee entry. A/A first, record n (`..\i76-uncap-lab\autotest\option6-trip-test.ps1`, `saves\leg-b.ps1`).
+   melee entry. A/A first, record n (`..\<lab>\autotest\option6-trip-test.ps1`, `saves\leg-b.ps1`).
 4. Only then `build.ps1 -Replace`, and in the same commit: the md5 in the table above, a `$KnownGood` entry in
    `deploy-u32x.ps1`, and a CHANGELOG line with the status in brackets.

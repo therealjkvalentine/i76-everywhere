@@ -7,7 +7,7 @@ Claude session on the Mac — read top to bottom before doing anything.)*
   60abf7bc699da72476128ddce991a3d1, renders via bundled OpenGLide). Portable folder;
   config is file-based (no registry needed in practice).
 - `I76_CD1.ISO` — original CD image (373MB). REQUIRED for the 86Box path (the GOG
-  installer won't run inside Win95). Owner: James Valentine (owns GOG copy + original CD).
+  installer won't run inside Win95). Owner: the developer (owns GOG copy + original CD).
 - `KEYBOARD.MAP.mw5` — proposed MW5-style laptop bindings (drop-in replacement for the
   game's KEYBOARD.MAP; back up the original first). NOT yet play-tested.
 - `MODERN-SETUP.md`, `WHAT-THIS-IS-dgvoodoo.txt` — the Windows-side docs (reference).
@@ -30,7 +30,7 @@ On macOS there is NO verified equivalent limiter — that's the entire challenge
    (CodeWeavers' own tip page recipe + WineHQ AppDB both say Win98).
 3. Unzip `i76-stable-gog.zip` into the bottle's `drive_c/GOG Games/Interstate 76/`.
    (Alternative: download the GOG offline installer on the Mac and install into the
-   bottle — James owns the game on GOG.)
+   bottle — the developer owns the game on GOG.)
 4. Run `i76.exe -glide` (the bundled OpenGLide translates Glide→OpenGL under Wine).
    Known cosmetic jank from AppDB: garbled menu on first launch, menu bar turning black
    after missions (navigate by keyboard: arrows+Enter; ESC skips cutscenes).

@@ -1,23 +1,23 @@
-# Community release plan: i76-everywhere and i76-map
+# Community release plan: i76-everywhere and <re-archive>
 
-Written 2026-10-01 from a read-only survey of `C:\Users\james\i76-everywhere` (365 commits, tag `v1.0.0` on
-2026-07-14, remote github.com/therealjkvalentine/i76-everywhere), `C:\Users\james\i76-map` (36,522 tracked files,
-97 MB pack, **no git remote**) and `C:\Users\james\i76-uncap-lab` (no remote). Live state was read from the daily
+Written 2026-10-01 from a read-only survey of `` (365 commits, tag `v1.0.0` on
+2026-07-14, remote github.com/therealjkvalentine/i76-everywhere), `<re-archive>` (36,522 tracked files,
+97 MB pack, **no git remote**) and `<lab>` (no remote). Live state was read from the daily
 driver (`~\Downloads\Interstate76-i76-everywhere-portable-20260801\Interstate 76`) and the sandbox
-(`i76-uncap-lab\game`), never changed. Everything marked **proposed** is a suggestion, not a thing that exists.
+(`<lab>\game`), never changed. Everything marked **proposed** is a suggestion, not a thing that exists.
 
 ---
 
 ## 1. What exists today
 
-Status words: **deployed** = on the daily driver James plays; **sandbox** = on `i76-uncap-lab\game` only;
+Status words: **deployed** = on the daily driver the developer plays; **sandbox** = on `<lab>\game` only;
 **verified** = confirmed in play or by a measurement with a number; **built** = compiles/runs, never confirmed in
 play; **parked** = settled dead end; **research** = documents only.
 
 > **Changed since this table was written (added 2026-10-03).** The rows below describe 2026-10-01/02. Read them with
 > these newer facts:
 >
-> - **There is a new daily driver.** `tools\Make-Daily-Driver.ps1` built `C:\Users\james\Games\Interstate76-2026-10-03`
+> - **There is a new daily driver.** `tools\Make-Daily-Driver.ps1` built `<games>\Interstate76-2026-10-03`
 >   (golden copy `...\Interstate76-golden-2026-10-03`) on 2026-10-03: repo `Strlkup.dll`, u32x lab build `054fb411`,
 >   `dgVoodoo.daily-driver-2026-10-03.conf`, preset `best-120`, `I76PATCH.DLL` disabled. "Daily driver" in the rows
 >   below means the old folder in Downloads, which is now the rollback
@@ -43,10 +43,10 @@ play; **parked** = settled dead end; **research** = documents only.
 | In-mission music | `music-fix\Strlkup.dll` (IAT hook: virtual cdaudio over `music\N.mp3`; aux-volume device so the in-game slider works) | deployed, verified in a mission (`docs/MUSIC.md`: `MCI_PLAY -> track 13`) | daily driver `Strlkup.dll` md5 `b910850f` is **older** than the repo's `fe82a0ee` (2026-09-27, 148,480 B) |
 | Cutscene-music fix | `smack-music-fix\` (ordinal-exact SMACKW32 proxy) | Mac: verified by ear 2026-07-14. Windows: built; **not** on the daily driver (no `smackorg.dll` there) | DLL is gitignored, built from source |
 | Save-screen mouse + freeze fix | `u32x.dll` USER32 proxy; source `u32x\u32x_min.c` in this repo since 2026-10-02 (the 2026-08-16 revision + DWM ghosting fix; since 2026-10-03 also `u32x_full.c`, the full build `054fb411` the daily driver runs and the installer's default; the lab's `src\u32x.c` is the development branch) | deployed (`u32x.dll`, `i76.exe.u32xorig`, `i76shell.dll` present) | LAUNCHER treats it as required. Its verification record is spread over `docs/SAVE-FREEZE-ROOT-CAUSE.md` (v2), `READY-TO-TEST.md` (pre-test) and `tools/bisect/LAYERS.ps1`; the source, the verified binary's md5 (`a5927cea`) and its live record are now in `u32x/README.md` (corrected 2026-10-02: this said "the source is not in this repo") |
-| 60 fps proxy switches | `music-fix\Strlkup.dll`: `I76_HIRES_CLOCK`, `I76_FIXED_STEP`, `I76_FRAMERATE_FIXES` (+`I76_AI_FIRE_CACHE`), `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` (+`I76_INTERP_SMOOTH`), `I76_FPS_CAP`, `I76_FIX_HEALTH_PCT`, `I76_FIX_LABEL_TABLE`, `I76_MISSION`, `I76_SKIP_MOVIES` | sandbox; measured (music-fix/README.md "recommended switch set", i76-map capture 014); **played** in two console sessions (render-interp notes) and **console-verified by the owner 2026-10-02** with every switch on (music, F6/B at 1800 m, flamer, slider, AI, jumps, body roll); "Nothing here is deployed to the playable install" | launcher: `i76-uncap-lab\TEST-FRAMERATE.bat` (4 modes: fixed / nointerp / stock60 / stock20) |
+| 60 fps proxy switches | `music-fix\Strlkup.dll`: `I76_HIRES_CLOCK`, `I76_FIXED_STEP`, `I76_FRAMERATE_FIXES` (+`I76_AI_FIRE_CACHE`), `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` (+`I76_INTERP_SMOOTH`), `I76_FPS_CAP`, `I76_FIX_HEALTH_PCT`, `I76_FIX_LABEL_TABLE`, `I76_MISSION`, `I76_SKIP_MOVIES` | sandbox; measured (music-fix/README.md "recommended switch set", <re-archive> capture 014); **played** in two console sessions (render-interp notes) and **console-verified by the owner 2026-10-02** with every switch on (music, F6/B at 1800 m, flamer, slider, AI, jumps, body roll); "Nothing here is deployed to the playable install" | launcher: `<lab>\TEST-FRAMERATE.bat` (4 modes: fixed / nointerp / stock60 / stock20) |
 | Draw-distance patch | `patch-farclip.ps1` (uncap-lab), render pool x16 | sandbox, verified at 1800/5000 m (`docs/DRAW-DISTANCE.md`) | `i76.exe.farorig` in the sandbox only |
 | Camera-rate 60 fps constant patch | `i76.exe` `.rdata` 0x4bc528 | sandbox only (`i76.exe.camorig`); `READY-TO-TEST.md` carried a "deployed" claim and now carries the L004 correction (portable `6319abf7` = AiO + u32x rename only) — conflict resolved 2026-10-01 | superseded by `I76_FRAMERATE_FIXES` row 5 |
-| Force feedback, stock engine FFB on a wheel | T300RS, `enable-force-feedback.bat`, `docs/WHEEL-T300.md`, `tools/ffb-recon.ps1`, `tools/check-ffb.ps1` | verified in-sim (CHANGELOG "FORCE FEEDBACK WORKS") | no registry key gates FFB in the exe — device presence is `[0x52bbe4] != 0` (i76-map finding L084; corrected 2026-10-02, this said "registry gate already satisfied"); the registry check in `check-ffb.ps1` is a leftover |
+| Force feedback, stock engine FFB on a wheel | T300RS, `enable-force-feedback.bat`, `docs/WHEEL-T300.md`, `tools/ffb-recon.ps1`, `tools/check-ffb.ps1` | verified in-sim (CHANGELOG "FORCE FEEDBACK WORKS") | no registry key gates FFB in the exe — device presence is `[0x52bbe4] != 0` (<re-archive> finding L084; corrected 2026-10-02, this said "registry gate already satisfied"); the registry check in `check-ffb.ps1` is a leftover |
 | Custom FFB (slip/load synthesis) | `tools/ffb/` (FfbCore, Telemetry, FfbMixer, interposer, calibrate, LFE shaker chain) | built; output/telemetry/mixer "working", **feel tuning not started**; opt-in `-Ffb` | `tools/ffb/README.md` status table; `FfbMixer.ps1` is modified and uncommitted right now |
 | Pad rumble from the FFB stream (Mac) | `ffb-shim/` (replaces `i7_SFRCE.DLL`) | resolved 2026-10-01: `ffb-shim/README.md:42-49` now says "field-run and tuned on the Mac over 2026-07-19/20", agreeing with `docs/README.md` | still open: never run on Windows or with the wheel/shaker stack (backlog P3-18) |
 | Rumble from audio | `sound-rumble/` (dsound proxy) | built, explicitly experimental, unverified | |
@@ -56,20 +56,20 @@ play; **parked** = settled dead end; **research** = documents only.
 | Controller layer (XInput shift layer, rumble mixer) | `i76-remap.ahk`, `_ahk\` | deployed, verified on Mac/Windows | Deck "baseline tier" (`deck/setup-deck-baseline.sh`) **unverified on device** |
 | Boot straight into a mission | `I76_MISSION` via the proxy; `PLAY-i76.ps1 -Mission t01.msn` | verified: in the mission 10 s after launch (`docs/MISSION-LAUNCH.md`) | |
 | Save editor | `i76-save-editor.html` (hosted on GitHub Pages via `index.html`), `i76-save-editor.py`, `i76-save-editor.command` + `-server.py` (Mac write-back) | verified byte-identical parser; `docs/SAVE-FORMAT-GAPS.md`, `EDITOR-FIELD-TESTS.md` list open in-game checks | |
-| Trainer | `tools/trainer/i76trainer.py` (status / flags / repair / ammo / teleport; refuses non-sandbox without `--any`; every write read back) | sandbox; addresses from i76-map `cheats.md` | the older AHK tools (`tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`) are the 2026-07 generation |
+| Trainer | `tools/trainer/i76trainer.py` (status / flags / repair / ammo / teleport; refuses non-sandbox without `--any`; every write read back) | sandbox; addresses from <re-archive> `cheats.md` | the older AHK tools (`tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`) are the 2026-07 generation |
 | Shipped bookmark saves | `saves/` (scenes 2-15, `Install-Saves.ps1`) | committed `.cmp` files | user-generated data, not game assets; keep but say so |
 | Mac build | `build-launchers.sh`, `*.swift` stubs, `setup-*.sh`, `interstate-76.dxw`, `mac-install.command` (BETA) | verified (software renderer via DxWnd, 1024x768, ~19.2 fps) | 60 fps and the Strlkup proxy are **untested under Wine** |
 | Steam Deck | `deck/deck-install.sh` (innoextract + dgVoodoo 2.78.2 from archive.org), controller template, artwork | verified installed 2026-07-11 (Glide path + FFB) | QAM limiter 20 is the documented cap; proxy untested under Proton |
 | HD textures | `texture-lab/`, `tools/i76img.py`, `tools/openglide-hd/` | **retired** (night palette artefacts); M16/VQM format crack kept | |
 | Voodoo (Glide->Metal) on Mac | `docs/VOODOO-PARKED.md` | **parked** (MoltenVK pipeline persistence) | |
 | Phone ports | `docs/records/PHONE-PORTS.md` | research only | |
-| **i76-map**: subsystem specs | `subsystems/*.md` (15 files: ai, camera, cheats, damage, engine, framerate, mission, network, options, physics, renderer, simclock, sound, weapons, VOCABULARY) | static specs; 2,193/2,217 functions named (REIMPLEMENTATION.md) | every claim cites an instruction; live confirmation partial (capture 014, HealthFraction live) |
-| **i76-map**: runtime header | `types/i76_runtime.h` (1,300 lines, 42 structs, 126 static offset checks, MSVC `/W4` clean), `types/i76.h` (Ghidra) | built; 15-claim disassembly sample 14 confirmed (`i76_runtime-conflicts.md`) | |
-| **i76-map**: format parsers | `data/fmt/` (`roundtrip.py`: 6,368 files, 526 MB, 0 byte diffs), `data/FORMATS.md`, `FORMATS-tables.md` | verified byte-exact | `DATABASE.MW2`, `.pcx`, `.fnt` still typed/unknown |
-| **i76-map**: mod CLI | `data/mod/i76mod.py` (`show` / `alias` / `car` / `--zfs`; writes only under `data/out`, re-parses every output) | built; **in-game effect pending** (`data/LIVE-TESTS.md` T1..) | |
-| **i76-map**: FSM tools | `data/fmt/fsmtool.py dis|asm`, `data/FSM.md` (14 opcodes, 96 actions), `data/out/fsm/*.fsm` | all mission scripts disassembled; round trip in `roundtrip.json` | |
-| **i76-map**: reimplementation docs | `REIMPLEMENTATION.md`, `OPEN76-GAPS.md` (456 lines) | written 2026-09-27 | `ARCHITECTURE.md` written 2026-10-01 (nine diagrams, call-count module map; corrected 2026-10-02 — this said "does not exist yet") |
-| **i76-map**: Ghidra export | `ghidra/export/` (4,569 committed files: decompiled `.c`/`.pcode` of i76.exe), `ghidra/export-frozen/` | internal | **cannot be published** (section 5, legal) |
+| **<re-archive>**: subsystem specs | `subsystems/*.md` (15 files: ai, camera, cheats, damage, engine, framerate, mission, network, options, physics, renderer, simclock, sound, weapons, VOCABULARY) | static specs; 2,193/2,217 functions named (REIMPLEMENTATION.md) | every claim cites an instruction; live confirmation partial (capture 014, HealthFraction live) |
+| **<re-archive>**: runtime header | `types/i76_runtime.h` (1,300 lines, 42 structs, 126 static offset checks, MSVC `/W4` clean), `types/i76.h` (Ghidra) | built; 15-claim disassembly sample 14 confirmed (`i76_runtime-conflicts.md`) | |
+| **<re-archive>**: format parsers | `data/fmt/` (`roundtrip.py`: 6,368 files, 526 MB, 0 byte diffs), `data/FORMATS.md`, `FORMATS-tables.md` | verified byte-exact | `DATABASE.MW2`, `.pcx`, `.fnt` still typed/unknown |
+| **<re-archive>**: mod CLI | `data/mod/i76mod.py` (`show` / `alias` / `car` / `--zfs`; writes only under `data/out`, re-parses every output) | built; **in-game effect pending** (`data/LIVE-TESTS.md` T1..) | |
+| **<re-archive>**: FSM tools | `data/fmt/fsmtool.py dis|asm`, `data/FSM.md` (14 opcodes, 96 actions), `data/out/fsm/*.fsm` | all mission scripts disassembled; round trip in `roundtrip.json` | |
+| **<re-archive>**: reimplementation docs | `REIMPLEMENTATION.md`, `OPEN76-GAPS.md` (456 lines) | written 2026-09-27 | `ARCHITECTURE.md` written 2026-10-01 (nine diagrams, call-count module map; corrected 2026-10-02 — this said "does not exist yet") |
+| **<re-archive>**: Ghidra export | `ghidra/export/` (4,569 committed files: decompiled `.c`/`.pcode` of i76.exe), `ghidra/export-frozen/` | internal | **cannot be published** (section 5, legal) |
 
 ---
 
@@ -80,28 +80,28 @@ play; **parked** = settled dead end; **research** = documents only.
 **Recommendation: two public repos, and keep them two.** Arguments for the split:
 
 - Different audiences and different risk. Players need an installer and a launcher; a modder/porter needs the specs,
-  header and parsers. The i76-map repo also carries material that must never be public (decompiled game code, the
+  header and parsers. The <re-archive> repo also carries material that must never be public (decompiled game code, the
   recon archive, copies of exes, extracted ZFS, 1.5 GB of captures). A player-facing repo must be small enough to
-  audit at a glance for "no game files"; i76-map at 36 k tracked files is not.
+  audit at a glance for "no game files"; <re-archive> at 36 k tracked files is not.
 - The i76-everywhere repo is already public with a URL in `OUTREACH-DRAFT.md`, `deck-install.sh` (`$REPO_RAW` curls
-  from `main`) and the GitHub Pages save editor. Merging i76-map into it would churn those paths.
-- The data CLI (`i76mod.py`) imports `tools\i76fmt` from i76-map; keeping the dependency inside one repo is simpler
+  from `main`) and the GitHub Pages save editor. Merging <re-archive> into it would churn those paths.
+- The data CLI (`i76mod.py`) imports `tools\i76fmt` from <re-archive>; keeping the dependency inside one repo is simpler
   than vendoring it into i76-everywhere.
 
-Against the split, and how to handle it: the player repo needs three i76-map products (the `I76_*` switch table,
+Against the split, and how to handle it: the player repo needs three <re-archive> products (the `I76_*` switch table,
 the format of `savegame.dir`, and later a public pointer to the specs). Handle by **linking**, not copying: one
-"For modders" paragraph in the player README pointing at i76-map, and `docs/MODDING-GUIDE.md` stays in
+"For modders" paragraph in the player README pointing at <re-archive>, and `docs/MODDING-GUIDE.md` stays in
 i76-everywhere as the bridge (it already is).
 
 What should move between repos before release:
 
-- `i76-uncap-lab\src\u32x.c`, `u32x.def`, `build-u32x.ps1` -> **i76-everywhere** (`u32x/`). **Done 2026-10-02** for
+- `<lab>\src\u32x.c`, `u32x.def`, `build-u32x.ps1` -> **i76-everywhere** (`u32x/`). **Done 2026-10-02** for
   the build that is actually verified: `u32x_min.c` + its `.def`, the DLL (md5 `a5927cea`), `build.ps1`,
   `deploy-u32x.ps1`, README with provenance. The lab's newer `u32x.c` stays there until it passes the bookmark route.
-- `i76-uncap-lab\TEST-FRAMERATE.ps1` -> the preset logic in it becomes the player launcher's presets (below); the
+- `<lab>\TEST-FRAMERATE.ps1` -> the preset logic in it becomes the player launcher's presets (below); the
   script itself stays a lab tool.
-- `i76-uncap-lab\docs\framerate\{README,MEASUREMENTS,DEAD-ENDS}.md` -> i76-everywhere `docs/framerate/` (proposed).
-  `README.md` here already links to `../i76-uncap-lab/docs/framerate/MEASUREMENTS.md`, a path that does not exist for
+- `<lab>\docs\framerate\{README,MEASUREMENTS,DEAD-ENDS}.md` -> i76-everywhere `docs/framerate/` (proposed).
+  `README.md` here already links to `../<lab>/docs/framerate/MEASUREMENTS.md`, a path that does not exist for
   anyone else.
 
 ### Package A: `i76-everywhere` (player-facing)
@@ -122,7 +122,7 @@ i76-everywhere/
     smooth-60.ps1                            I76PATCH.DLL off, HIRES_CLOCK FIXED_STEP=24 FRAMERATE_FIXES ENGINE_DT_FIX RENDER_INTERP
     smooth-60-bugfixes.ps1                   smooth-60 + I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1
   music-fix/        Strlkup.dll proxy: source, build.ps1, README (the switch table lives here)
-  u32x/             (done 2026-10-02, from i76-uncap-lab/src) USER32 proxy: u32x_min.c, u32x.def, u32x.dll, build.ps1, deploy-u32x.ps1, README; since 2026-10-03 also the daily driver's full build: u32x_full.c, u32x_full.def, u32x_full.dll (054fb411), build-full.ps1
+  u32x/             (done 2026-10-02, from <lab>/src) USER32 proxy: u32x_min.c, u32x.def, u32x.dll, build.ps1, deploy-u32x.ps1, README; since 2026-10-03 also the daily driver's full build: u32x_full.c, u32x_full.def, u32x_full.dll (054fb411), build-full.ps1
   smack-music-fix/  ffb-shim/  sound-rumble/   (as is; DLLs built locally, gitignored)
   tools/            trainer/  ffb/  i76wheel.c  lint-input-map.py  pad-diagram.py  bisect/  (RE instruments pruned, section 5)
   mac/              (proposed, step 2) build-launchers.sh  *.swift  setup-*.sh  *.command  interstate-76.dxw  fix-arrows-for-mac.sh  slim-wrapper.sh
@@ -147,17 +147,17 @@ One-page README outline (proposed), replacing the current 94-line README:
 4. **What it fixes** (the section 4 table, short form, with links to VERIFIED-FIXES.md).
 5. **Save editor** link (hosted) and screenshot.
 6. **Mac / Deck** two lines each with the status word and the doc link.
-7. **For modders**: one line pointing at i76-map.
+7. **For modders**: one line pointing at <re-archive>.
 8. **Legal**: three lines (MIT for our code; no Activision content; see THIRD-PARTY.md).
 9. **Credits**.
 
-### Package B: `i76-map` (modder/porter-facing)
+### Package B: `<re-archive>` (modder/porter-facing)
 
 The current repo cannot be pushed as-is (section 5). Proposed: a **new public repo built from a curated export**,
 with the private repo kept as the working tree. Public layout:
 
 ```
-i76-map/                                   (public)
+<re-archive>/                                   (public)
   README.md            what this is, the status vocabulary (auto < proposed < supported < verified), how to cite a row
   ARCHITECTURE.md      (being written) engine overview for a porter
   REIMPLEMENTATION.md  OPEN76-GAPS.md
@@ -182,7 +182,7 @@ md5s and section tables, publishable). `data/out/fsm/*.fsm` are disassemblies of
 **proposed: do not ship them, ship the command that generates them** (`fsmtool.py dis`) and keep one short excerpt in
 FSM.md.
 
-One-page README outline (proposed) for public i76-map:
+One-page README outline (proposed) for public <re-archive>:
 
 1. What it is: a plain-text, cited map of `i76.exe` (GOG Gold, md5 `9a232dcc`), its data formats and runtime
    structures, built for ports and mods. Numbers: 2,193/2,217 functions named; 30 format families, 6,368 files
@@ -212,7 +212,7 @@ One-page README outline (proposed) for public i76-map:
 5. Double-click the shortcut -> `PLAY-i76.ps1`. **Automated**: AHK layers, cursor overlay, savegame.dir re-pad, music
    proxy log. 60-75 s "PLEASE STAND BY", Esc skips the intro. This is **Stock 20** (I76PATCH.DLL caps it).
 6. To get 60 fps today you must: rename `I76PATCH.DLL`, set the five `I76_*` variables in the shell, start
-   `i76.exe -glide` from that shell. **Not automated for players**: only `i76-uncap-lab\TEST-FRAMERATE.bat` does it,
+   `i76.exe -glide` from that shell. **Not automated for players**: only `<lab>\TEST-FRAMERATE.bat` does it,
    and only against the sandbox. **Missing before release**: the preset switch in `PLAY-i76.ps1`/`LAUNCHER.ps1`
    (section 2; done 2026-10-02, `PLAY-i76.ps1 -Preset`) and `u32x.dll` deployment in `setup-windows.ps1` (**coded
    2026-10-02**, step 5a3 via `u32x\deploy-u32x.ps1`, also run on the portable zip's staged copy; exercised offline on
@@ -298,8 +298,8 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | `ffb-shim/README.md` status line | `docs/README.md` row for ffb-shim | resolved 2026-10-01: the shim README now says field-run and tuned on the Mac 2026-07-19/20, matching the doc map; what remains open is "never run on Windows / with the wheel" (backlog P3-18) |
 | `docs/README.md` (doc map) | its "Current state (2026-07-11)" block | three months stale; regenerate from the section 1 table |
 | `THIRD-PARTY.md` dgVoodoo row | `install.ps1` (fetches 2.87.3 from GitHub), `deck-install.sh` (2.78.2 from archive.org), VERIFIED-FIXES (2.78.2 on Mac) | one row saying which version per platform and from where |
-| `subsystems/framerate.md` row 5 | "the portable install's patch rescales the constant" | resolved: `../i76-map/subsystems/framerate.md:37` already cites L004 and says "sandbox / lab only" (corrected 2026-10-01) |
-| `docs/records/GHIDRA-MEMORY-MAP.md` (990 lines), `STATIC-RE-FABLE.md`, `MEMORY-MAP-INDEX.md`, `MW2-I76-STRUCTS.md`, `RE-METHODOLOGY.md`, `RE-FIELD-GUIDE.md`, `FIND-WHAT-WRITES.md` | move to the private i76-map tree or an `docs/archive/` folder | 2026-07 RE logs superseded by i76-map; the public player repo does not need 3,000 lines of raw session logs, and they contain intermediate claims the i76-map `findings.md` has since contradicted |
+| `subsystems/framerate.md` row 5 | "the portable install's patch rescales the constant" | resolved: `../<re-archive>/subsystems/framerate.md:37` already cites L004 and says "sandbox / lab only" (corrected 2026-10-01) |
+| `docs/records/GHIDRA-MEMORY-MAP.md` (990 lines), `STATIC-RE-FABLE.md`, `MEMORY-MAP-INDEX.md`, `MW2-I76-STRUCTS.md`, `RE-METHODOLOGY.md`, `RE-FIELD-GUIDE.md`, `FIND-WHAT-WRITES.md` | move to the private <re-archive> tree or an `docs/archive/` folder | 2026-07 RE logs superseded by <re-archive>; the public player repo does not need 3,000 lines of raw session logs, and they contain intermediate claims the <re-archive> `findings.md` has since contradicted |
 
 ### Overlapping scripts
 
@@ -308,8 +308,8 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | `Setup-From-GOG.ps1` vs `install.ps1` | keep both but make `install.ps1` the "already installed" sub-step that `Setup-From-GOG.ps1` calls; today both re-implement game-dir discovery and tool download |
 | `tools/i76-music.ps1` (external MP3 player stopgap) vs `music-fix/` | PLAY-i76 already skips the stopgap when the proxy is deployed; retire `i76-music.ps1`, `tools/winmm-cdaudio/` (the winmm-proxy attempt that dgVoodoo's search-path hardening defeated) and `tools/cdaudio-image/` |
 | `i76-with-remap.bat` vs `PLAY-i76.ps1` | PLAY-i76 starts AHK itself; delete the .bat |
-| `tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`, `i76-worldscan.ahk`, `i76-chaindiff.ahk`, `i76-mem-*.ahk`, `i76-findval.ahk`, `tools/i76-mem-scan.py`, `find-regen-*.py`, `diffscan.sh`, `chaindiff.sh`, `findval.sh`, `exe-disasm.py`, `exe-xref.py`, `tools/i76-addresses.json` | 2026-07 generation of the trainer and RE instruments; `tools/trainer/i76trainer.py` + i76-map supersede them. Move to `tools/archive/` or the private tree |
-| `swap-renderer.ps1`, `test-drive.ps1`, `tools/grab-screen.ps1`, `tools/slow_t*.png`, `0x501918/`, `drive5.csv` (5.8 MB), `fx.csv`, `lfe-sweep.wav` (1.3 MB), `grep.exe.stackdump`, untracked `james` and `tools/rdp-to-console.cmd` | lab residue. 2026-10-03: `swap-renderer.ps1`, `test-drive.ps1`, `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav` moved to `lab-residue/`; `grep.exe.stackdump` untracked; the rest still to delete or move to the lab. **Done 2026-10-10** (`docs/CLEANUP-PLAN-2026-10-10.md` 2.1): `james` and `grep.exe.stackdump` deleted, `tools/rdp-to-console.cmd` committed (a real tool); `tools/slow_t*.png` (ignored) and `tools/grab-screen.ps1` unchanged |
+| `tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`, `i76-worldscan.ahk`, `i76-chaindiff.ahk`, `i76-mem-*.ahk`, `i76-findval.ahk`, `tools/i76-mem-scan.py`, `find-regen-*.py`, `diffscan.sh`, `chaindiff.sh`, `findval.sh`, `exe-disasm.py`, `exe-xref.py`, `tools/i76-addresses.json` | 2026-07 generation of the trainer and RE instruments; `tools/trainer/i76trainer.py` + <re-archive> supersede them. Move to `tools/archive/` or the private tree |
+| `swap-renderer.ps1`, `test-drive.ps1`, `tools/grab-screen.ps1`, `tools/slow_t*.png`, `0x501918/`, `drive5.csv` (5.8 MB), `fx.csv`, `lfe-sweep.wav` (1.3 MB), `grep.exe.stackdump`, untracked `<user>` and `tools/rdp-to-console.cmd` | lab residue. 2026-10-03: `swap-renderer.ps1`, `test-drive.ps1`, `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav` moved to `lab-residue/`; `grep.exe.stackdump` untracked; the rest still to delete or move to the lab. **Done 2026-10-10** (`docs/CLEANUP-PLAN-2026-10-10.md` 2.1): `<user>` and `grep.exe.stackdump` deleted, `tools/rdp-to-console.cmd` committed (a real tool); `tools/slow_t*.png` (ignored) and `tools/grab-screen.ps1` unchanged |
 | `tools/ffb/*.csv`, `drive2.graph.html`, `probe/`, `trace/` | gitignored patterns exist but several CSVs are still listed; verify `git ls-files tools/ffb` is scripts only |
 | `deck/build-controller-config.py` vs `build-controller-config-opt2.py`, `controller_neptune_i76.vdf` vs `_opt2.vdf` | pick one; DECK-CONTROLS.md explains the two options, the installer should ship one |
 | `i76-calibration-saves.py`, `saves/rescue-20260718/` | rescue folder is a one-off recovery; keep `saves/` only |
@@ -328,20 +328,20 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
 - **`music-fix/Strlkup.dll` is a committed binary of our own code** (148,480 B) that forwards to GOG's renamed
   `strlkup_orig.dll`. Acceptable, but publish the build command and the md5 in `CHANGELOG.md` so it is reproducible,
   and note that it contains no Activision bytes (it does not: the forwarders are by name).
-- **i76-map `ghidra/export/` (4,569 files) and `export-frozen/` are decompiled Activision code and must not be
+- **<re-archive> `ghidra/export/` (4,569 files) and `export-frozen/` are decompiled Activision code and must not be
   published.** Same for `recon-2026-09-04/` (contains sibling-build exes, extracted ZFS, MW2 database dumps even if
   gitignored locally), `captures/` and `data/out/fsm/` (mission-script disassemblies). Symbol tables
   (`symbols/*.tsv`: names, addresses, status) and specs that cite instructions are the same class as any published
   memory map and are fine. `functions/*.md` need a one-pass review for pasted decompiler bodies before export.
 - **`types/anet.h`** is derived from anet-0.10 (Activision's LGPL netcode release); **`dx5.h`** from the DirectX 5 SDK
-  headers. Public i76-map `THIRD-PARTY.md` must list both; dx5.h may need rewriting as our own boundary types.
+  headers. Public <re-archive> `THIRD-PARTY.md` must list both; dx5.h may need rewriting as our own boundary types.
 - **THIRD-PARTY.md exists but is incomplete** (9 tool rows at `THIRD-PARTY.md:24-32`; corrected 2026-10-02 — this said "missing"). Still absent: Lossless Scaling (commercial, referenced and optionally bundled by
   `Make-Portable-Zip.ps1 -IncludeFrameGen`: say "your licence, your PCs only"), opentrack (GPL, `-IncludeHeadTrack`),
   GE-Proton, Steam ROM Manager configset (Deck), immi101's i76fix and bolrog's D2DX (referenced in uncap-lab
   `refs/`, the frame-loop hook design), Roanish/i76 and That Tony (listed under credits, fine), CahootsMalone's
-  guide, Ghidra / capstone / pefile / Unicorn / Frida (i76-map tools), w64devkit (build), the Visual C++ 5.0 media
+  guide, Ghidra / capstone / pefile / Unicorn / Frida (<re-archive> tools), w64devkit (build), the Visual C++ 5.0 media
   held locally for toolchain fingerprinting (never distributed; say so), RAD Smacker (`SMACKW32.DLL` is game-shipped;
-  our proxy forwards to it; **libsmacker** is Open76's dependency only, mention it only in i76-map's OPEN76-GAPS
+  our proxy forwards to it; **libsmacker** is Open76's dependency only, mention it only in <re-archive>'s OPEN76-GAPS
   context). The dgVoodoo row must state the archive.org mirror the Deck installer uses and that dgVoodoo's readme
   permits redistribution only if that is true (check Dege's licence text before claiming it; today we only fetch).
 - **GOG copy required** everywhere: INSTALL.md, README, deck-install.sh all say it; keep the "you bring your own"
@@ -360,13 +360,13 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
   proxy. **Proposed**: `v1.1.0` = everything verified today, with the Smooth 60 presets shipped **off by default and
   labelled experimental**; `v2.0.0` = Smooth 60 becomes a default-offered preset after the console verification in
   section 7 (it changes what the game *is* at the physics level, which deserves a major).
-- **i76-map versions by date and coverage**, not SemVer (`2026.10`, with the `GOAL-COVERAGE.md` baseline line copied
+- **<re-archive> versions by date and coverage**, not SemVer (`2026.10`, with the `GOAL-COVERAGE.md` baseline line copied
   into the release notes: functions named, bytes named, round-trip count). Tag the public export commit.
 - **CHANGELOG format**: keep "Keep a Changelog" headings (`Added / Changed / Fixed / Removed`) and add one word of
   verification status in brackets on every entry: `[verified in play]`, `[measured, sandbox]`, `[built, untested]`,
   `[retracted]`. The repo's history of retractions is a feature; the convention keeps it visible.
 - **Every proxy switch change** records: the switch name, the number of patch sites, the build this was measured on
-  (md5 prefix), and the capture id (`i76-map captures/014-framerate`), as the last five commits already do.
+  (md5 prefix), and the capture id (`<re-archive> captures/014-framerate`), as the last five commits already do.
 - **Binary reproducibility**: `music-fix/README.md` lists the compiler and `build.ps1`; the release notes carry the
   md5 of the shipped `Strlkup.dll`.
 
@@ -376,9 +376,9 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
 
 Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSession` False):
 
-1. `git status` clean. (Done 2026-10-10: `FfbMixer.ps1` + `ffb-lfe-demo.ps1` committed in `560dcd2`; `james` deleted;
+1. `git status` clean. (Done 2026-10-10: `FfbMixer.ps1` + `ffb-lfe-demo.ps1` committed in `560dcd2`; `<user>` deleted;
    `tools/rdp-to-console.cmd` committed. Re-check `git status` before the release.)
-2. Diff the daily driver against pristine (`i76-map tools/which_build.py`): confirm `i76.exe` `6319abf7` = AiO + u32x,
+2. Diff the daily driver against pristine (`<re-archive> tools/which_build.py`): confirm `i76.exe` `6319abf7` = AiO + u32x,
    `Strlkup.dll` = the build being released (today it is **not**: `b910850f` vs `fe82a0ee`).
 3. Fresh-install test on a clean folder: `Setup-From-GOG.ps1 -GameDir C:\Games\I76-test` -> `PLAY-i76.ps1 -GameDir ...`
    boots, music plays in a mission (`mciproxy.log` shows `MCI_PLAY`), save works, mouse lands. This proves u32x is
@@ -398,7 +398,7 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
 Pre-release, Mac and Deck: run the existing install path once from a clean machine/prefix each and record the result;
 say "verified on <date>, <hardware>" or "untested since <date>" in the README. Do not claim 60 fps on either.
 
-Pre-release, i76-map: `python tools\gen_tables.py --verify` and `completeness.py` pass; `ARCHITECTURE.md` finished;
+Pre-release, <re-archive>: `python tools\gen_tables.py --verify` and `completeness.py` pass; `ARCHITECTURE.md` finished;
 build the public export with an explicit allowlist script (proposed `tools/export_public.py`: copies only the paths in
 section 2, refuses if any file matches `*.c`, `*.pcode`, `*.exe`, `*.dll`, `*.ZFS`, `*.fsm`); grep the export for
 `undefined4`, `FUN_`, `local_` (decompiler residue) and for the GOG install path; `THIRD-PARTY.md` lists anet-0.10
@@ -427,9 +427,9 @@ Order (proposed), each step gated on the previous one not producing a bug report
    untested in multiplayer: say so, ask for a tester).
 4. **VOGONS**: internals thread. The measured `FPSLimit` matrix, the Strlkup IAT hook (why a winmm proxy fails under
    dgVoodoo), the 15.6 ms GetTickCount jitter and the fixed-step result, u32x's 640x480 hit-test translation.
-5. **Open76 and Roanish/i76 issues**: the draft's "formats you may find useful" note, updated: link the public i76-map
+5. **Open76 and Roanish/i76 issues**: the draft's "formats you may find useful" note, updated: link the public <re-archive>
    (`REIMPLEMENTATION.md`, `OPEN76-GAPS.md` section for their project, `types/i76_runtime.h`, the byte-exact parsers).
-   This is the only post that needs the i76-map repo public first.
+   This is the only post that needs the <re-archive> repo public first.
 6. **Reddit** last (r/macgaming with the Mac screenshot, r/emulation with the save editor), once the forum threads
    have absorbed the first wave of "does it work on X" reports.
 7. Not now: GOG Preservation Program / rights-holder contact (`OUTREACH-DRAFT.md` "Background"); it needs the

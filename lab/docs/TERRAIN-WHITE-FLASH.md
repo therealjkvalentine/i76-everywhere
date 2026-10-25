@@ -71,6 +71,6 @@ fog / sky colour or the time-of-day light table, render-interp. A 150 ms screen 
 
 The flushes are real and the detail switches triple them; 4096 removes them at no measured cost, so it is a safe
 cleanup, but it is not shown to fix the white flash. If the owner wants to try it: daily driver
-`C:\Users\james\Games\Interstate76-2026-10-03\Interstate 76\dgVoodoo.wide.conf` (PLAY.bat copies it over dgVoodoo.conf at every launch), `[Glide]` key `MemorySizeOfTMU`, value `4096` (keep
+`<games>\Interstate76-2026-10-03\Interstate 76\dgVoodoo.wide.conf` (PLAY.bat copies it over dgVoodoo.conf at every launch), `[Glide]` key `MemorySizeOfTMU`, value `4096` (keep
 `NumberOfTMUs = 1`; do not go above 4096 without the ZGLIDE patch). If the flash still appears with 4096, the cache
 is excluded and the next suspect is the I76_TERRAIN_TEX level switching (A/B: best-wide minus I76_TERRAIN_TEX).

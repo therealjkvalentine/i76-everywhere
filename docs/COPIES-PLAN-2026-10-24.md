@@ -8,12 +8,12 @@ check it; its dry-run output is what the numbers in 3 come from). Proxy md5s are
 ## 0. Numbers
 
 - **PC, C:** 39 real game-copy folders (+ `Games\I76\_archive`, 1.83 GB of old packs) = **18.6 GB**; 17 more names are junctions
-  (14 already point into `D:\i76-archive\i76-uncap-lab`, `game-tick` -> release-candidate, `game-dd-20261003` -> `twin-driver` -> D:).
+  (14 already point into `<archive>\<lab>`, `game-tick` -> release-candidate, `game-dd-20261003` -> `twin-driver` -> D:).
   Two of the 39 are empty shells (`exp-mac`, `exp-rcdraw`). C: has 40 GB free of ~1 TB; D: has 925 GB free. So reclaiming is housekeeping, not an emergency.
 - **Kept as the roles (8 folders, 3.5 GB):** release-candidate, daily-driver, exp-polish2 (dev), rc-twin-20261024 (test), exp-nitro-owner, exp-nitro-polish, nitro-lan, lan (until merged).
 - **Archive to D: now (19 folders + `_archive`) = 9.96 GB** reclaimed on C:, nothing deleted (verified copy, then remove source, junction left where a tool names it).
 - **Archive after the lanes report (12 folders) = 5.1 GB more**, so **~15 GB** back on C: in total. Real deletions: none from C: (D: has room). Only exact-duplicate deletes are listed in 3 and each needs the md5 compare first.
-- **Laptop `C:\i76-bench`:** 7 game-sized folders + `scott-b.zip` = 3.0 GB, 41 GB free. Keep `rc-twin`; the rest is reproducible from the PC pack (3).
+- **Laptop `<bench>`:** 7 game-sized folders + `tester-b.zip` = 3.0 GB, 41 GB free. Keep `rc-twin`; the rest is reproducible from the PC pack (3).
 - Cruft inside the kept folders is small (mostly 0.4-0.7 MB proxy backups and 2-7 MB `mciproxy.log`): 5.5 MB in the folders that were idle at the time of the dry run, an estimated 25-40 MB over all seven once the held ones are free. The big win is the copy count, not the cruft.
 
 ## 1. Inventory
@@ -21,7 +21,7 @@ check it; its dry-run output is what the numbers in 3 come from). Proxy md5s are
 Last-mod = newest file in the folder (depth 3), not the folder time. LIVE = a game process, lock file, queue entry or a file written in the last 30 min at 21:00.
 "Refs" = hits in repo docs (D), repo tools (T), lab tools (L), lab autotest (A) for scripts/docs that spell the folder name (the name `game` also matches inside other words; read it as an upper bound).
 
-### 1a. `C:\Users\james\Games\I76`
+### 1a. `<games>\I76`
 
 | folder | game | GB | proxy | last-mod | junction | refs | live now? | role / fate |
 |---|---|---|---|---|---|---|---|---|
@@ -34,7 +34,7 @@ Last-mod = newest file in the folder (depth 3), not the folder time. LIVE = a ga
 | nitro-plus-original | Nitro + 1997 content | 0.61 | GOG stock | 10-23 08:16 | no | D7 L1 | no | reference/base for Nitro builds -> archive + junction |
 | _archive | packs | 1.83 | - | 10-18 | no | - | no | README says "delete after a month" (10-20): move to D: now, delete after 11-20 |
 
-### 1b. `C:\Users\james\i76-uncap-lab` (real folders)
+### 1b. `<lab>` (real folders)
 
 | folder | game | GB | proxy | last-mod | refs (D/T/L/A) | live now? | fate |
 |---|---|---|---|---|---|---|---|
@@ -61,8 +61,8 @@ Last-mod = newest file in the folder (depth 3), not the folder time. LIVE = a ga
 | game-sp | Gold | 0.48 | 406e4c37 | 10-20 16:39 | 14/-/14/- | no | archive + junction |
 | game | Gold (sandbox clone) | 0.92 | 9b97b622 | 10-17 17:11 | tools name it (conf-bisect, instruments/*.py, farclip-soak) | no | archive + junction (tools keep working) |
 | game-fresh-gold / -nitro | Gold / Nitro | 0.47 / 0.29 | b45643d2 | 10-23 22:08 / 22:22 | 1 / 1 (A7 for gold) | no | archive (fresh-install test copies) |
-| game-scott, -b | Gold | 0.47 each | 9bab51fe / 6208d3ad | 10-23 16:34 / 22:17 | D9 A18 / D3 A16 | **yes** (cmd.exe running `PLAY.bat --display` / `PLAY-PREVIEW.bat --display` from them) | Scott kit lane; hold |
-| game-scott-c, -motw, -uninst | Gold | 0.47 each | 6208d3ad / 6208d3ad / e5951e0f | 10-23 22:04 / 19:09 / 22:04 | 1 each | no | archive |
+| game-tester, -b | Gold | 0.47 each | 9bab51fe / 6208d3ad | 10-23 16:34 / 22:17 | D9 A18 / D3 A16 | **yes** (cmd.exe running `PLAY.bat --display` / `PLAY-PREVIEW.bat --display` from them) | The tester kit lane; hold |
+| game-tester-c, -motw, -uninst | Gold | 0.47 each | 6208d3ad / 6208d3ad / e5951e0f | 10-23 22:04 / 19:09 / 22:04 | 1 each | no | archive |
 | exp-mac, exp-rcdraw | - | 0 | - | empty (1-2 entries) | D2-3 L4-12 | no | archive (empty) |
 
 Not game copies, leave alone: `autotest`, `builds`, `docs`, `tools`, `src`, `refs`, `emu`, `staging`, `cal-staging`, `downloads`, `_stuck-fonts`, `nucleus-coop` (0 GB), `laptop-bench` (0 GB), `OWNER-TESTS-2026-10-17` (0 GB), `queue-*` (0 GB result folders).
@@ -71,28 +71,28 @@ Not game copies, leave alone: `autotest`, `builds`, `docs`, `tools`, `src`, `ref
 
 | name | target | live now? | note |
 |---|---|---|---|
-| game-mpo-c, game-mpo-d | D:\i76-archive\i76-uncap-lab\game-mpo-c / -d (0.71 / 0.68 GB) | **YES: i76.exe pids 5308 and 20420 run from them (Gold LAN fixes lane, 20:54)** | the "archived" copies are still the lane's working copies; do not move or unlink |
-| game-mpo-a, -b | D:\...\game-mpo-a / -b (proxy 8dc04f03) | no | done |
-| exp-nitro-port-gold | D:\...\exp-nitro-port-gold | log 20:11 today | recently used by the LAN lane; treat as live |
-| exp-airespawn, exp-difficulty, -difficulty-b, exp-jump, exp-nitro, exp-nitro-base, exp-p19, exp-polish, exp-rebase-trace, autotest-p19, captures (34 GB) | D:\... | no | archived 10-23 |
-| twin-driver | D:\...\twin-driver | no | target of `game-dd-20261003` (561 autotest refs: the harness control twin of the daily driver, proxy 33211f11) |
+| game-mpo-c, game-mpo-d | <archive>\<lab>\game-mpo-c / -d (0.71 / 0.68 GB) | **YES: i76.exe pids 5308 and 20420 run from them (Gold LAN fixes lane, 20:54)** | the "archived" copies are still the lane's working copies; do not move or unlink |
+| game-mpo-a, -b | <archive>\...\game-mpo-a / -b (proxy 8dc04f03) | no | done |
+| exp-nitro-port-gold | <archive>\...\exp-nitro-port-gold | log 20:11 today | recently used by the LAN lane; treat as live |
+| exp-airespawn, exp-difficulty, -difficulty-b, exp-jump, exp-nitro, exp-nitro-base, exp-p19, exp-polish, exp-rebase-trace, autotest-p19, captures (34 GB) | <archive>\... | no | archived 10-23 |
+| twin-driver | <archive>\...\twin-driver | no | target of `game-dd-20261003` (561 autotest refs: the harness control twin of the daily driver, proxy 33211f11) |
 | game-dd-20261003 | -> twin-driver | no | keep: A/B control, name used by the autotest harness |
 | game-tick | -> Games\I76\release-candidate | rc gate | keep: 130 doc / 168 tool refs |
 
-### 1d. `D:\i76-archive` (already archived)
+### 1d. `<archive>` (already archived)
 
-community-20261024 4.63 GB; dgvoodoo 0.06; **i76-uncap-lab 44.4 GB** (captures 34.3, autotest-p19 1.57, airespawn 0.96, nitro-base 0.61, twin-driver 0.67, game-mpo-a..d 0.51-0.71, exp-* about 0.5 each);
+community-20261024 4.63 GB; dgvoodoo 0.06; **<lab> 44.4 GB** (captures 34.3, autotest-p19 1.57, airespawn 0.96, nitro-base 0.61, twin-driver 0.67, game-mpo-a..d 0.51-0.71, exp-* about 0.5 each);
 rc-backup-20261024 and rc-backup-20261024-2 (0.48 each; dated 10-21, **likely identical, md5-compare then drop one**); tools-20261024 0.01.
 
-### 1e. Laptop `C:\i76-bench` (ssh read-only)
+### 1e. Laptop `<bench>` (ssh read-only)
 
 | folder | GB | note |
 |---|---|---|
 | rc-twin | 0.48 | **live**: laptop `.fps-lock` = `launcher-job t05-a pid 16300 20:55`; the laptop test twin; keep |
 | rc-twin-dgv2875 | 0.48 | dgVoodoo 2.87.5 lane (09:38) - delete at lane end (reproducible from the PC pack) |
-| scott-a, scott-b, scott-gog | 0.48, 0.48, 0.47 | Scott kit tests (10-24 11:22-18:14) - delete at lane end |
+| tester-a, tester-b, tester-gog | 0.48, 0.48, 0.47 | The tester kit tests (10-24 11:22-18:14) - delete at lane end |
 | wmr-twin, kit-a | 0.48 each | WMR / kit bench twins - delete at lane end |
-| scott-b.zip | 0.44 | a zip of scott-b; delete once scott-b is gone |
+| tester-b.zip | 0.44 | a zip of tester-b; delete once tester-b is gone |
 | runs, controls, dgv, dlls, tools, wmr, *.ps1 | < 0.1 | job scripts and results; keep, pull results to the PC first |
 
 Mac graphics: Mac only, nothing on this PC.
@@ -101,8 +101,8 @@ Mac graphics: Mac only, nothing on this PC.
 
 | role | Gold | Nitro |
 |---|---|---|
-| **dev** (the working copy lanes build into; the only long-lived writable copy) | `i76-uncap-lab\dev` (= exp-polish2 renamed; junction `exp-polish2` stays so 100+ doc/tool references resolve) | `i76-uncap-lab\nitro-dev` (= exp-nitro-owner renamed; junction left) |
-| **test** (the gate twin; the only thing a gate or the harness runs; lanes make twins from it) | `i76-uncap-lab\test` (= rc-twin-20261024; junction left) | `i76-uncap-lab\nitro-test` (= exp-nitro-polish after its lane ends; byte-twin of nitro-dev + nitro-lan proxy) |
+| **dev** (the working copy lanes build into; the only long-lived writable copy) | `<lab>\dev` (= exp-polish2 renamed; junction `exp-polish2` stays so 100+ doc/tool references resolve) | `<lab>\nitro-dev` (= exp-nitro-owner renamed; junction left) |
+| **test** (the gate twin; the only thing a gate or the harness runs; lanes make twins from it) | `<lab>\test` (= rc-twin-20261024; junction left) | `<lab>\nitro-test` (= exp-nitro-polish after its lane ends; byte-twin of nitro-dev + nitro-lan proxy) |
 | **rc** (what the owner plays before promotion) | `Games\I76\release-candidate` | `Games\I76\nitro-lan` (the family Nitro pack is the release candidate until a daily Nitro exists) |
 | **daily driver** | `Games\I76\daily-driver` | **none yet**; first promotion = nitro-lan -> `Games\I76\nitro-daily` (new folder, made from nitro-lan, not by renaming) |
 
@@ -120,19 +120,19 @@ Keep-until dates assume the lanes finish tonight and report by the morning of 20
 |---|---|
 | exp-polish2, rc-twin-20261024, exp-nitro-owner, exp-nitro-polish | **rename** (same drive, atomic), junction at old name. Held tonight (files written < 30 min). Keep-for-a-lane-until 10-25 |
 | lan | keep until the merge lane lands, then archive + junction. Keep-until 10-26 |
-| game-scott, game-scott-b | keep-for-a-lane until the Scott kit lane ends (cmd.exe PLAY processes alive at 21:00), then archive. Until 10-26 |
+| game-tester, game-tester-b | keep-for-a-lane until the the tester kit lane ends (cmd.exe PLAY processes alive at 21:00), then archive. Until 10-26 |
 | exp-nitro-mp, -mp-b, -types, -types-b | keep until the Nitro MP lane ends (a re-use of `.fps-queue`: nitro-mp-design w53-a1), then archive. Until 10-27 |
 | controls-twin, dgv2875-twin, stab-gold, stab-nitro | twins from 10-24: archive when their lane reports (the convention in 5: delete at lane end; archive here because D: has room and the logs prove the gate) |
 | exp-faredge, exp-rebase | keep until the owner rules on far-edge / rebase, then archive. Until 11-01 |
 | golden, nitro, nitro-plus-original, game | **archive to D: + junction** (tools/docs name them; the junction keeps them working) |
-| exp-debug, exp-jump2, exp-morph, exp-nitro-mp-gold, exp-nitro-port, exp-nitro-stockgl, exp-p19-twin, game-sp, game-fresh-gold, game-fresh-nitro, game-scott-c, -motw, -uninst | **archive to D: + junction** (the junction is cheap, and the repo has 1-14 doc refs each; drop a junction only when a grep shows no live tool uses it) |
+| exp-debug, exp-jump2, exp-morph, exp-nitro-mp-gold, exp-nitro-port, exp-nitro-stockgl, exp-p19-twin, game-sp, game-fresh-gold, game-fresh-nitro, game-tester-c, -motw, -uninst | **archive to D: + junction** (the junction is cheap, and the repo has 1-14 doc refs each; drop a junction only when a grep shows no live tool uses it) |
 | exp-mac, exp-rcdraw | archive (empty shells), no junction. They may also simply be deleted: `Get-ChildItem -Force -Recurse` shows 1-2 entries, no files |
 | Games\I76\_archive | move to D:, delete after 2026-11-20 |
 | game-mpo-c, game-mpo-d, exp-nitro-port-gold | **do not touch**: live. After the LAN lane ends they are already on D:; only the junction names remain |
 | D: rc-backup-20261024 vs -2 | compare `Get-FileHash` over the tree; if identical, **delete one** (the only delete I recommend, with evidence from the compare). I did not hash them in this lane |
-| Laptop rc-twin-dgv2875, scott-a/b/gog, kit-a, wmr-twin, scott-b.zip | delete at lane end (each is a copy of a pack that exists on the PC). Pull `runs\` to the PC first. No D: on the laptop |
+| Laptop rc-twin-dgv2875, tester-a/b/gog, kit-a, wmr-twin, tester-b.zip | delete at lane end (each is a copy of a pack that exists on the PC). Pull `runs\` to the PC first. No D: on the laptop |
 
-**Cruft inside the kept folders** (script, phase `Cruft`, shown per file with sizes in its dry run; files are moved into `D:\i76-archive\consolidated-20261024\cruft\<role>\`, never deleted):
+**Cruft inside the kept folders** (script, phase `Cruft`, shown per file with sizes in its dry run; files are moved into `<archive>\consolidated-20261024\cruft\<role>\`, never deleted):
 
 - `STRLKUP.DLL.<md5>-*` and `strlkup.dll.<md5>-*` backups except one whose md5 is named in the folder's `VERSION*.md` (`_rollback` is never touched). Seen: rc 8 files (about 3 MB), test 11 files (about 5 MB), dev 11+ files (STRLKUP.DLL.0c4f109c-pre-stab, .10aaf74c, .1790a308, .2eb345d1-pre-19g, .449237d6, .53750675 ...), nitro-dev `strlkup.dll.0c4f109c-pre-stab` (0.7 MB).
 - `*.pre-*`, `*.driver-*`, `*.bak*`: `PLAY-TICK*.bat.pre-tick19f-av` / `.pre-tick19g`, `PLAY-i76.ps1.driver-24e07cce`, `.pre-tick19g`, `.pre-controls24`, `dgVoodoo.conf.driver-71bd2071`, `STRLKUP.DLL.driver-b910850f`, `u32x.dll.driver-544e34bc`, `savegame.dir.pre-edit` (left alone: saves are never touched).
@@ -146,27 +146,27 @@ Keep-until dates assume the lanes finish tonight and report by the morning of 20
 
 `tools/consolidate-copies.ps1` (not run except as a dry run). Phases: `-Phase Archive|Rename|Cruft|All`; `-Only <wildcard>`; `-Execute` is required to change anything; `-Release <name>` lets a row marked `WaitFor` go once its lane reported; `-HeldOk <name>` waives only the 30-minute quiet test; `-IncludeRcLaunchers`.
 
-Lock checks, per folder and per junction target, all of which must pass: no process whose exe or command line is under the path (word-bounded, so `game` is not blocked by `game-scott`); no `.console-test.lock`; the folder is not named in `.console-owner`, `.fps-queue` or `.fps-lock`; no file written in the last `QuietMinutes` (default 30). A move is robocopy to D:, file-count-and-byte compare, a second lock check, then removal and a junction at the old path. It refuses if the destination exists. Same-drive rename for the four dev/test folders, then the junction at the old name.
+Lock checks, per folder and per junction target, all of which must pass: no process whose exe or command line is under the path (word-bounded, so `game` is not blocked by `game-tester`); no `.console-test.lock`; the folder is not named in `.console-owner`, `.fps-queue` or `.fps-lock`; no file written in the last `QuietMinutes` (default 30). A move is robocopy to D:, file-count-and-byte compare, a second lock check, then removal and a junction at the old path. It refuses if the destination exists. Same-drive rename for the four dev/test folders, then the junction at the old name.
 
 Dry-run at 21:00 (this lane): 19 ARCHIVE rows (9.96 GB), 12 WAIT rows, held: exp-polish2, rc-twin, exp-nitro-polish (written within 30 min), no row blocked wrongly. Typical commands:
 
 ```powershell
-cd C:\Users\james\i76-everywhere
+cd 
 .\tools\consolidate-copies.ps1                          # dry run, everything
 .\tools\consolidate-copies.ps1 -Execute -Phase Archive  # the 19 idle copies (junctions left)
 .\tools\consolidate-copies.ps1 -Execute -Phase Rename   # dev/test/nitro-dev/nitro-test, once nobody holds them
 .\tools\consolidate-copies.ps1 -Execute -Phase Cruft    # after the renames
-.\tools\consolidate-copies.ps1 -Execute -Release lan,game-scott*,exp-nitro-mp*,exp-nitro-types*   # after those lanes report
+.\tools\consolidate-copies.ps1 -Execute -Release lan,game-tester*,exp-nitro-mp*,exp-nitro-types*   # after those lanes report
 ```
 
 ## 5. Lab convention (text to add to `CONSOLE-LOCK.md` and the lab README)
 
 > ### Copies (2026-10-24, owner: "just have dev, test, rc, and the daily driver")
 > There are four long-lived Gold copies and their Nitro equivalents, and nothing else lives in the lab:
-> `i76-uncap-lab\dev` (the working copy lanes build into), `i76-uncap-lab\test` (the gate twin), `Games\I76\release-candidate` (rc), `Games\I76\daily-driver`;
+> `<lab>\dev` (the working copy lanes build into), `<lab>\test` (the gate twin), `Games\I76\release-candidate` (rc), `Games\I76\daily-driver`;
 > Nitro: `nitro-dev`, `nitro-test`, `Games\I76\nitro-lan` (rc), the daily when it exists.
 > - Lanes make **twins from `test`** (`<lane>-YYYYMMDD`), never new long-lived copies. Build into `dev`, gate on a twin of `test`.
-> - A twin is **deleted (or archived to `D:\i76-archive`) when its lane ends**; the lane's closing report names it and says which. A twin older than 3 days with no lane is a defect.
+> - A twin is **deleted (or archived to `<archive>`) when its lane ends**; the lane's closing report names it and says which. A twin older than 3 days with no lane is a defect.
 > - Nothing is run from `dev` for an owner test, and nothing is ever experimented on in `daily-driver` or `release-candidate`.
 > - A folder that docs or tools name by an old name keeps a **junction** from the old name; remove a junction only when `grep` finds no use.
 > - Each kept folder carries an `AGENTS.md` (template: i76-everywhere `docs\AGENTS-GAME-FOLDER.md`).
@@ -174,7 +174,7 @@ cd C:\Users\james\i76-everywhere
 
 ## 6. Recommendation: what main runs tonight, once the lanes finish
 
-1. Wait for: the Gold LAN fixes lane (game-mpo-c/d), the launcher lane (rc-twin, exp-polish2, RC), the Nitro polish lane (exp-nitro-polish), Nitro MP (exp-nitro-mp), the Scott kit lane (game-scott/-b), the FFB focus lane. Check: `Get-Process i76,nitro`, `.console-owner`, `.fps-queue`, the laptop `.fps-lock`.
+1. Wait for: the Gold LAN fixes lane (game-mpo-c/d), the launcher lane (rc-twin, exp-polish2, RC), the Nitro polish lane (exp-nitro-polish), Nitro MP (exp-nitro-mp), the the tester kit lane (game-tester/-b), the FFB focus lane. Check: `Get-Process i76,nitro`, `.console-owner`, `.fps-queue`, the laptop `.fps-lock`.
 2. `consolidate-copies.ps1` (dry run, read it), then `-Execute -Phase Archive` (19 idle copies, 9.96 GB).
 3. `-Execute -Phase Rename` (dev / test / nitro-dev / nitro-test), then `grep -rn "exp-polish2\|rc-twin-20261024" tools autotest` to confirm the junction covers them (it should: junctions resolve for every path, but a script that does `Get-Item ... .Target` or compares full paths could differ).
 4. `-Execute -Phase Cruft` (about 30 MB, moved not deleted).
@@ -193,17 +193,17 @@ a folder was touched only when no process used it, it was in no lock/queue line 
 
 | old | new | state |
 |---|---|---|
-| `Games\I76\daily-driver` (promotion 18) | `D:\i76-archive\daily-driver-pre-20261025` (the rollback) | done, no junction (only comments and the old promotion scripts name it; its desktop shortcut was moved) |
-| `Games\I76\golden` | `D:\i76-archive\consolidated-20261025\Games-I76\golden` | done, junction `golden` (lab `tools\nitro-base\inventory.py` and `stage_retail.py` read it) |
-| `Games\I76\_archive`, `nitro`, `nitro-plus-original` | `D:\i76-archive\consolidated-20261025\Games-I76\...` | copied + verified; `_archive` gone; `nitro` and `nitro-plus-original` each keep ONE locked file (deferred 2) |
-| lab `game`, `exp-jump2`, `exp-morph`, `exp-nitro-mp-gold`, `exp-nitro-stockgl`, `exp-p19-twin`, `game-sp`, `game-fresh-gold`, `game-scott-c`, `-motw`, `-uninst`, `controls-twin-20261024`, `dgv2875-twin-20261024`, `stab-gold-20261024`, `stab-nitro-20261024` | `D:\i76-archive\consolidated-20261025\lab\<name>` | done, junction at each old name |
+| `Games\I76\daily-driver` (promotion 18) | `<archive>\daily-driver-pre-20261025` (the rollback) | done, no junction (only comments and the old promotion scripts name it; its desktop shortcut was moved) |
+| `Games\I76\golden` | `<archive>\consolidated-20261025\Games-I76\golden` | done, junction `golden` (lab `tools\nitro-base\inventory.py` and `stage_retail.py` read it) |
+| `Games\I76\_archive`, `nitro`, `nitro-plus-original` | `<archive>\consolidated-20261025\Games-I76\...` | copied + verified; `_archive` gone; `nitro` and `nitro-plus-original` each keep ONE locked file (deferred 2) |
+| lab `game`, `exp-jump2`, `exp-morph`, `exp-nitro-mp-gold`, `exp-nitro-stockgl`, `exp-p19-twin`, `game-sp`, `game-fresh-gold`, `game-tester-c`, `-motw`, `-uninst`, `controls-twin-20261024`, `dgv2875-twin-20261024`, `stab-gold-20261024`, `stab-nitro-20261024` | `<archive>\consolidated-20261025\lab\<name>` | done, junction at each old name |
 | lab `exp-debug`, `exp-nitro-port`, `game-fresh-nitro`, `exp-nitro-mp-b`, `exp-nitro-types`, `-types-b`, `exp-mac`, `exp-rcdraw` | same D: pattern | copied + verified; the C: stub holds only the locked font file (deferred 2) |
-| lab `exp-polish2` | `i76-uncap-lab\dev-gold` | done, junction `exp-polish2`; STRLKUP 5D6F9828, i76.exe 6319ABF7, 649 files, 531812674 bytes identical before and after |
-| lab `exp-nitro-polish` | `i76-uncap-lab\test-nitro` | done, junction `exp-nitro-polish`; strlkup 9F220AC3, nitro.exe 28B8AE27, 563 files identical |
+| lab `exp-polish2` | `<lab>\dev-gold` | done, junction `exp-polish2`; STRLKUP 5D6F9828, i76.exe 6319ABF7, 649 files, 531812674 bytes identical before and after |
+| lab `exp-nitro-polish` | `<lab>\test-nitro` | done, junction `exp-nitro-polish`; strlkup 9F220AC3, nitro.exe 28B8AE27, 563 files identical |
 | lab `exp-nitro-owner` | `Games\I76\Interstate 76 Nitro` (main) | **copied, not moved**: 564 files, 325082770 bytes, strlkup 9E6A2378, nitro.exe 28B8AE27 all equal; the folder rename is blocked (deferred 2) |
-| (new) | `i76-uncap-lab\dev-nitro` = fresh copy of main Nitro | done, same md5s |
+| (new) | `<lab>\dev-nitro` = fresh copy of main Nitro | done, same md5s |
 
-**Cruft** (moved, never deleted, into `D:\i76-archive\cruft-20261025\<folder>\`): dev-gold 66 files 17.7 MB (stale `PLAY-OWNER-*` / `PLAY-TICK-*` launchers, 17 `STRLKUP.DLL.<md5>` backups, `.pre-*` / `.driver-*`, logs, `_ahk` pre-controls24 files), Interstate 76 Nitro 6 files 4.4 MB, dev-nitro 6 files 4.4 MB, test-nitro 4 files 2.3 MB. The md5 of STRLKUP.DLL / strlkup.dll / i76.exe / nitro.exe / strlkup_orig.dll / input.map is unchanged in all four. Saves (`savegame*`) are never touched (the dry run first listed `savegame.dir.pre-edit`; the rule was fixed before any execute); one `input.map` backup is kept (a `known-good` one if present).
+**Cruft** (moved, never deleted, into `<archive>\cruft-20261025\<folder>\`): dev-gold 66 files 17.7 MB (stale `PLAY-OWNER-*` / `PLAY-TICK-*` launchers, 17 `STRLKUP.DLL.<md5>` backups, `.pre-*` / `.driver-*`, logs, `_ahk` pre-controls24 files), Interstate 76 Nitro 6 files 4.4 MB, dev-nitro 6 files 4.4 MB, test-nitro 4 files 2.3 MB. The md5 of STRLKUP.DLL / strlkup.dll / i76.exe / nitro.exe / strlkup_orig.dll / input.map is unchanged in all four. Saves (`savegame*`) are never touched (the dry run first listed `savegame.dir.pre-edit`; the rule was fixed before any execute); one `input.map` backup is kept (a `known-good` one if present).
 **AGENTS.md** (template filled by `tools\place-agents-md.ps1`) is in `Interstate 76 Nitro`, `dev-gold`, `dev-nitro`, `test-nitro`.
 **Desktop:** `Interstate 76 Nitro` -> `Games\I76\Interstate 76 Nitro\PLAY-NITRO-ALL.bat` created. Moved to `Desktop\_i76-old-shortcuts`: I76 - daily driver, I76 Nitro - ALL (test), PLAY-LAB.bat - Shortcut, I76 OWNER TESTS 2026-10-17. `I76 - LAN (family)` and `I76 - release candidate (tick test)` stay until Gold main exists; `tools\make-desktop-shortcuts.ps1` finishes the job.
 **Space:** 13.3 GB moved off C: to D: (verified copies). C: free 38.6 GB at 21:24, 44.8 GB at 03:35 while the lanes kept writing; D: free 993 -> 912 GB. The two extra Nitro copies cost +0.6 GB on C:, so the net is about 12.7 GB. Cruft 28 MB.
@@ -212,5 +212,5 @@ a folder was touched only when no process used it, it was in no lock/queue line 
 1. **Gold main** (`release-candidate` -> `Interstate 76 Gold`) and **test-gold** (`rc-twin-20261024` -> `test-gold`): `rc-lane run-gate.ps1` and `gold-final` (twin-install, lan-pair) were still gating on the twin at 03:35 and will install into the RC afterwards. When they are done: `.\tools\consolidate-copies.ps1 -Execute -Phase Rename`, then `-Phase Cruft`, then `.\tools\make-desktop-shortcuts.ps1`, then `tools\place-agents-md.ps1` for both (Gold main: `-Role main -Game Gold`; test-gold: `-Role test -Game Gold`).
 2. **Windows Font Cache Service holds `lee_____.ttf` open** (the game's font; Restart Manager lists pid 4 / FontCache). A folder containing that file refuses delete and rename ("Access denied"). Effects: the 10 C: stubs above keep only that file (their data is verified on D:), and `exp-nitro-owner` could not be renamed to main, so main Nitro was copied and the old folder carries `MOVED-TO-Interstate-76-Nitro.txt` (stale; lanes must not write there). I did not restart the service (a system process I did not start). **Sync:** the Nitro MP lane declared proxy `3f27c797` final in `exp-nitro-owner` after my copy (docs/records/NITRO-MP-DESIGN-2026-10-21.md 0.5.22: one playable Nitro copy = `exp-nitro-owner`, to be renamed to main). I copied that one `strlkup.dll` (798720 bytes, md5 3F27C797) into `Interstate 76 Nitro` and `dev-nitro` at 03:40; a `robocopy /L` then showed no other difference (cruft aside), and both AGENTS.md say 3f27c797. If the lane writes to `exp-nitro-owner` again, re-run `consolidate-retry-locked.ps1` (dry run lists the differences). After a reboot, log off/on, or an admin `Restart-Service FontCache`, run `tools\consolidate-retry-locked.ps1` (dry run, then `-Execute`): it removes the stubs and leaves junctions to D:, and replaces `exp-nitro-owner` by a junction to main after checking that nothing was written to it.
 3. **`lan`** stays: `docs\records\LAN-FIXES-2026-10-24.md` is "staged, not deployed" and `release-candidate\PLAY-LAN.bat` still calls `Games\I76\lan`. **`nitro-lan`** stays until the Nitro MP lane says main Nitro is LAN-capable (`nitro-mp-design` was still running w55/w56). Then `-Execute -Phase Archive -Release lan,nitro-lan`.
-4. **Held for lanes / rulings:** `game-scott`, `game-scott-b` (cmd.exe PLAY alive), `exp-nitro-mp` (nitro.exe running), `exp-faredge`, `exp-rebase` (owner ruling).
-5. Not done in this pass: D: `rc-backup-*` compare, laptop `C:\i76-bench` deletions.
+4. **Held for lanes / rulings:** `game-tester`, `game-tester-b` (cmd.exe PLAY alive), `exp-nitro-mp` (nitro.exe running), `exp-faredge`, `exp-rebase` (owner ruling).
+5. Not done in this pass: D: `rc-backup-*` compare, laptop `<bench>` deletions.

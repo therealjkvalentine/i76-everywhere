@@ -7,7 +7,7 @@ Lane trainer-logger, 2026-10-17 (resumed after the owner's pause). Lab copy only
 
 ## 1. What the owner gets
 
-- **One click (lab twin):** `C:\Users\james\i76-uncap-lab\game-dd-20261003\Interstate 76\TEST-logged-play.bat`.
+- **One click (lab twin):** `<lab>\game-dd-20261003\Interstate 76\TEST-logged-play.bat`.
   It calls `tools\debug\PLAY-LOGGED.bat` (i76-everywhere), which does two things:
   - starts I76 Debug on the Trainer tab with the logger armed (`--log-auto --hotkeys`);
   - starts the twin's game through its own `PLAY-i76.ps1` (preset best-wide by default) with `I76_TELEMETRY=1`.
@@ -22,7 +22,7 @@ Lane trainer-logger, 2026-10-17 (resumed after the owner's pause). Lab copy only
   - The hotkeys are global (RegisterHotKey), so they work while the game has the focus.
 - **Per mission:** with `--log-auto`, a new `sNN` starts when the player car appears and stops 3 s after it is gone.
   A stop by hand holds until the next mission.
-- **Output:** `C:\Users\james\i76-uncap-lab\captures\trainer-log\<date-time>-<preset>\sNN\`. After each stop,
+- **Output:** `<lab>\captures\trainer-log\<date-time>-<preset>\sNN\`. After each stop,
   `summary.md` / `summary.json` are written by the lab's `owner_log.py summary`. Closing the dashboard waits up to 30 s
   for the last summary.
 

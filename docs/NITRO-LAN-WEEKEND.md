@@ -1,35 +1,35 @@
 # Nitro on the home network: the weekend how-to
 
-*For James, Michael and Andrew. Interstate '76 **Nitro** (the GOG Nitro Pack with our add-ons), PC + Macs on the home
+*For the developer, the M4 Max tester and the M2 tester. Interstate '76 **Nitro** (the GOG Nitro Pack with our add-ons), PC + Macs on the home
 network. Written 2026-10-24 early morning; how it was built and tested:
 [records/NITRO-MP-DESIGN-2026-10-21.md](records/NITRO-MP-DESIGN-2026-10-21.md) section 0.5.20. The **Gold** game night
 ([GAME-NIGHT.md](GAME-NIGHT.md)) is separate and unchanged. If Nitro gives trouble, play Gold.*
 
 ## Who hosts, and where the game is
 
-**The PC hosts** (James). The Macs join. That is the combination that was tested.
+**The PC hosts** (the developer). The Macs join. That is the combination that was tested.
 
 | machine | start it with |
 |---|---|
 | Windows PC (host) | **`PLAY-NITRO-ALL.bat`** in the one Nitro folder (`Games\I76\Interstate 76 Nitro`, the former `exp-nitro-owner`; it does single player and LAN, the IPXWrapper DLLs are in it). `nitro-lan` is retired. |
-| Michael's Mac, Andrew's Mac | **Interstate 76 Nitro** in `Games` > `Interstate76-MP` (the folder in your home folder) |
-| James's MacBook | **Interstate 76 Nitro** in `Applications` > `Sikarugir` |
+| The M4 Max tester Mac, the M2 tester Mac | **Interstate 76 Nitro** in `Games` > `Interstate76-MP` (the folder in your home folder) |
+| The developer's MacBook | **Interstate 76 Nitro** in `Applications` > `Sikarugir` |
 
 Everyone must be on the **home network** (same Wi-Fi or wired). Not Tailscale.
 
-**Update 2026-10-25 02:30:** all three Macs (James's MacBook, Michael's, Andrew's) now have the final Nitro proxy `Strlkup.dll` **3f27c797** (main 4e40261) and the patched `nitshell.dll` a32ffba6, launcher e61e4e57 and the no-3D-menus setting. **Andrew's Mac is updated** (it had proxy ad904941 and launcher 384a0f8e; backup `app-backup-20261025-020752` in `~/i76-nitro-mp-lab` there). Michael's backup is `app-backup-20261025-020751`, the MacBook's `app-backup-20261025-020736`. Michael's Mac still needs the Local Network Allow click (his join stalled again in the final check).
+**Update 2026-10-25 02:30:** all three Macs (the developer's MacBook, the M4 Max tester's, the M2 tester's) now have the final Nitro proxy `Strlkup.dll` **3f27c797** (main 4e40261) and the patched `nitshell.dll` a32ffba6, launcher e61e4e57 and the no-3D-menus setting. **The M2 tester Mac is updated** (it had proxy ad904941 and launcher 384a0f8e; backup `app-backup-20261025-020752` in `~/i76-nitro-mp-lab` there). The M4 Max tester's backup is `app-backup-20261025-020751`, the MacBook's `app-backup-20261025-020736`. The M4 Max tester Mac still needs the Local Network Allow click (his join stalled again in the final check).
 
-Tested overnight, with nobody at the Macs: the PC hosting and James's MacBook joining every game type, 2 of 2 each, no
-crashes. Michael's Mac could not join until someone clicks Allow there (next section). Andrew's Mac was asleep, and three
+Tested overnight, with nobody at the Macs: the PC hosting and the developer's MacBook joining every game type, 2 of 2 each, no
+crashes. The M4 Max tester Mac could not join until someone clicks Allow there (next section). The M2 tester Mac was asleep, and three
 players at once was not tried.
 
 ## Before the first game: say Allow (once per machine)
 
 - **Every Mac, the first time:** macOS asks whether *Interstate 76 Nitro* may **find and connect to devices on your local
   network**. Click **Allow**. Without it the PC's game shows up in the JOIN list, but JOIN GAME does nothing. (This is
-  what stopped the joins in tonight's tests on Michael's Mac.) If someone clicked *Don't Allow*: System Settings >
+  what stopped the joins in tonight's tests on the M4 Max tester Mac.) If someone clicked *Don't Allow*: System Settings >
   Privacy & Security > **Local Network** > switch *Interstate 76 Nitro* on, then quit and reopen the game.
-- **Michael's Mac, also:** macOS may ask *"Do you want the application wine to accept incoming network connections?"*
+- **The M4 Max tester Mac, also:** macOS may ask *"Do you want the application wine to accept incoming network connections?"*
   Click **Allow**. (His Mac has the firewall on.)
 - **The PC, the first time it hosts:** Windows may ask whether `nitro.exe` may use the network. Tick **Private
   networks** and click **Allow**. Do not cancel it: cancelling makes Windows block it.
@@ -65,9 +65,9 @@ Controls shows them). The Gold printable sheet does not apply to Nitro.
 |---|---|
 | The game is in the JOIN list, you click **JOIN GAME**, and nothing happens (you stay on the list) | That Mac has no Local Network permission: see "Say Allow" above. Then quit the game and open it again. |
 | The Mac's game crashes or freezes **while starting**, before the menu, or sits on a black screen | Quit it (Dock > right-click > Quit, or Cmd-Q) and open it again. A start crash is now rare (0 in 34 test starts; it was about 1 in 6 before). About 1 start in 10 can still stop before the menu; a second start works. |
-| The game is **not** in the JOIN list | Check the PC really pressed BROADCAST GAME and is in the arena. Check the Mac is on the home Wi-Fi. On Michael's Mac, see the firewall note above. |
-| *"Mission file ... not found"* on a Mac | That Mac missed the update. Tell James. |
-| A Mac game quits by itself after 2-3 minutes | That Mac missed the update (the old launcher did this). Tell James. |
+| The game is **not** in the JOIN list | Check the PC really pressed BROADCAST GAME and is in the arena. Check the Mac is on the home Wi-Fi. On the M4 Max tester Mac, see the firewall note above. |
+| *"Mission file ... not found"* on a Mac | That Mac missed the update. Tell the developer. |
+| A Mac game quits by itself after 2-3 minutes | That Mac missed the update (the old launcher did this). Tell the developer. |
 | After **Exit** in the game the screen stays black | Press Cmd-Q. |
 | Anything else | Play Gold instead ([GAME-NIGHT.md](GAME-NIGHT.md)). |
 
@@ -86,20 +86,20 @@ A copy of the old files was kept on each Mac. To go back, close the game, then i
 
 | Mac | the app | backup of the state before tonight |
 |---|---|---|
-| James's MacBook | `~/Applications/Sikarugir/Interstate 76 Nitro.app` | `app-backup-20261023-212851` |
-| Michael's | `~/Games/Interstate76-MP/Interstate 76 Nitro.app` | `app-backup-20261023-222906` |
-| Andrew's | `~/Games/Interstate76-MP/Interstate 76 Nitro.app` | his Mac was asleep all night. See below |
+| The developer's MacBook | `~/Applications/Sikarugir/Interstate 76 Nitro.app` | `app-backup-20261023-212851` |
+| The M4 Max tester's | `~/Games/Interstate76-MP/Interstate 76 Nitro.app` | `app-backup-20261023-222906` |
+| The M2 tester's | `~/Games/Interstate76-MP/Interstate 76 Nitro.app` | his Mac was asleep all night. See below |
 
-**Andrew's Mac** was asleep, so it still has the old app. That app closes the game after 2-3 minutes and does not have
-the GAME TYPE choices. With his Mac awake, run this on James's MacBook in Terminal:
-`bash ~/i76-nitro-mp-lab/update-andrew.sh`. It makes the backup itself and prints the undo line. (A watcher on the PC
+**The M2 tester Mac** was asleep, so it still has the old app. That app closes the game after 2-3 minutes and does not have
+the GAME TYPE choices. With his Mac awake, run this on the developer's MacBook in Terminal:
+`bash ~/i76-nitro-mp-lab/update-m2.sh`. It makes the backup itself and prints the undo line. (A watcher on the PC
 tries this every 10 minutes until 09:00 on 2026-10-24, once his Mac has been idle 10 minutes with no game running. Its
-log, `C:\Users\james\i76-uncap-lab\builds\nitro-weekend-20261023\andrew-poll.out`, says whether it ran.)
+log, `<lab>\builds\nitro-weekend-20261023\m2-poll.out`, says whether it ran.)
 
 The PC's `Games\I76\nitro-lan` is a new folder, and deleting it undoes it. The PC's other installs were not changed.
 
 ## Gold apps on the Macs (2026-10-25)
 
 Deployed to all Macs (untested PC<->Mac join - the morning family game is the first test; rollback = `_rollback-final-20261025` inside each
-Gold app's game folder): proxy 5d6f9828 + the six new `auto*.lvl`, `ai_hs2/4/6` removed, on the MacBook, Michael's and Andrew's Gold apps.
+Gold app's game folder): proxy 5d6f9828 + the six new `auto*.lvl`, `ai_hs2/4/6` removed, on the MacBook, the M4 Max tester's and the M2 tester's Gold apps.
 Details: [records/LAN-FIXES-2026-10-24.md](records/LAN-FIXES-2026-10-24.md) s.12.

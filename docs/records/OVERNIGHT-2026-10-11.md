@@ -1,11 +1,11 @@
 # Overnight console run 2026-10-11: results, harness fixes, reruns
 
-The first real run of the lab's unattended runner (`i76-uncap-lab\autotest\overnight\run-overnight.ps1`, all seven phases,
+The first real run of the lab's unattended runner (`<lab>\autotest\overnight\run-overnight.ps1`, all seven phases,
 started 18:29 at the physical console), then a follow-up agent the same evening: diagnosis of every FAIL, fixes in the
 lab harness, reruns of each phase. Every game boot ran on a lab copy (the twin `game-dd-20261003`, the sandbox `game`,
 the throw-away `game-dd-tel3` and `game-fresh-<ts>`); the daily driver and the golden copy were only read (P7 preset md5s).
 The owner's trainer GUI and motionlab app kept running all night (telemetry over UDP; see "Still open"). Audio muted
-throughout (`i76-uncap-lab\tools\mute.ps1 -Off` to unmute).
+throughout (`<lab>\tools\mute.ps1 -Off` to unmute).
 
 Run folders (lab, `autotest\runs\`):
 
@@ -194,7 +194,7 @@ inside an aside / md5 restore), `lib\end-shot.py` (screenshots when a drive's mi
 
 ## Follow-up 2026-10-12: the t04 "death spot" is a stock terrain rollover, not the window
 
-Lab report: `i76-uncap-lab\docs\COLL-WINDOW-DEATH-SPOT-2026-10-11.md`. Unattended console work under the lock; audio
+Lab report: `<lab>\docs\COLL-WINDOW-DEATH-SPOT-2026-10-11.md`. Unattended console work under the lock; audio
 muted; the twin restored after every job (manifest, 0 differences, `STRLKUP.DLL` still `a5b46fb8`); `music-fix\Strlkup.dll`
 read back `c11f7f7d` after the rams.
 

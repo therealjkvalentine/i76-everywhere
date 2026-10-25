@@ -33,7 +33,7 @@ inside records were not.
 
 ## Current state (2026-10-03)
 
-- **Windows.** The daily driver is `C:\Users\james\Games\Interstate76-2026-10-03`, built on 2026-10-03 by
+- **Windows.** The daily driver is `<games>\Interstate76-2026-10-03`, built on 2026-10-03 by
   `tools\Make-Daily-Driver.ps1` with preset `best-120` (120 fps, fixed physics step, render interpolation, bug
   fixes, 1800 m draw distance), a golden copy beside it, and the previous driver in Downloads kept as the rollback
   ([NEW-DAILY-DRIVER-RECIPE.md](records/NEW-DAILY-DRIVER-RECIPE.md)). 120 fps is measured and owner-played, and is the
@@ -126,7 +126,7 @@ Binding rules are in [`../AGENTS.md`](../AGENTS.md): `input.map` is the only liv
 | living | [FFB-STACKS.md](FFB-STACKS.md) | Read before running FFB: the Windows wheel / shaker stack and the Mac shim side by side, and where they fight |
 | record 2026-07-19 | [FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md) | Static RE of the game's FFB plugin interface and effect block |
 | living | [FFB-DESIGN-LIBRARY.md](FFB-DESIGN-LIBRARY.md) | Working reference for designing forces for a wheel, pad, shaker or rig |
-| record 2026-10-01 | [FFB-DATA-AUDIT.md](records/FFB-DATA-AUDIT.md) | Audit of the FFB and telemetry stack against the i76-map specs |
+| record 2026-10-01 | [FFB-DATA-AUDIT.md](records/FFB-DATA-AUDIT.md) | Audit of the FFB and telemetry stack against the <re-archive> specs |
 | record 2026-08-02 | [FFB-LAPTOP-RECON.md](records/FFB-LAPTOP-RECON.md) | Solved: FFB dies when extra or virtual joysticks are installed |
 | record 2026-07-19 | [FFB-MORNING-TEST.md](records/FFB-MORNING-TEST.md) | Pad-rumble field test and tuning sheet |
 | parked | [FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md) | Mac wheel FFB through DirectInput is a dead end (the shim route is in FFB-DEEP-DIVE); the 1024x768 software ceiling |
@@ -194,7 +194,7 @@ repo since 2026-10-03 (section 12): [`../lab/docs/ENGINE-REFERENCE.md`](../lab/d
 | living | [LEVEL-FORMAT.md](LEVEL-FORMAT.md) | Level file chunks, objects, repair spots |
 | living | [WEAPON-STATS.md](WEAPON-STATS.md) | The published weapon table, mirrored; doubles as a search oracle |
 | living | [MODDING-GUIDE.md](MODDING-GUIDE.md) | Which lever changes what (data files, proxy switches, trainer, patches) and the traps |
-| record 2026-09-04 | [FRESH-START-2026-09-04.md](records/FRESH-START-2026-09-04.md) | The from-scratch RE survey that started the i76-map work |
+| record 2026-09-04 | [FRESH-START-2026-09-04.md](records/FRESH-START-2026-09-04.md) | The from-scratch RE survey that started the <re-archive> work |
 | record 2026-09-05 | [FRESH-START-METHOD.md](records/FRESH-START-METHOD.md) | The methodology for that work, revision 2 |
 | living | [RE-METHODOLOGY.md](RE-METHODOLOGY.md) | Practical method for cracking live-memory values |
 | living | [RE-FIELD-GUIDE.md](RE-FIELD-GUIDE.md) | Cited field guide to reverse-engineering vintage games |
@@ -219,7 +219,7 @@ repo since 2026-10-03 (section 12): [`../lab/docs/ENGINE-REFERENCE.md`](../lab/d
 
 ## 12. The lab and the RE map (public snapshots, 2026-10-03)
 
-The two working repos that never had a remote, `i76-uncap-lab` (the 60 fps lab and its test harness) and `i76-map`
+The two working repos that never had a remote, `<lab>` (the 60 fps lab and its test harness) and `<re-archive>`
 (the reverse-engineering map of i76.exe), are imported here as **snapshots without history**, filtered by
 [`tools/export_public.py`](../tools/export_public.py) (allowlist [`tools/export_public.toml`](../tools/export_public.toml)).
 Only the files that pass the export gate are in; the private data (decompiler exports, game captures, extracted
@@ -229,8 +229,8 @@ commit it is and how to refresh it.
 
 | | Folder | What it is |
 |---|---|---|
-| snapshot | [`../lab/`](../lab/README.md) | i76-uncap-lab: engine reference, frame-rate work, the autotest harness, u32x/uncap sources, renderer and graphics probes. Start at [`lab/docs/README.md`](../lab/docs/README.md) and [`lab/docs/ENGINE-REFERENCE.md`](../lab/docs/ENGINE-REFERENCE.md) |
-| snapshot | [`../re/`](../re/README.md) | i76-map: architecture, re-implementation spec index, subsystem specs, per-function notes, file-format specs and parsers ([`re/data/FORMATS.md`](../re/data/FORMATS.md)), the shell DLL, and the tooling |
+| snapshot | [`../lab/`](../lab/README.md) | <lab>: engine reference, frame-rate work, the autotest harness, u32x/uncap sources, renderer and graphics probes. Start at [`lab/docs/README.md`](../lab/docs/README.md) and [`lab/docs/ENGINE-REFERENCE.md`](../lab/docs/ENGINE-REFERENCE.md) |
+| snapshot | [`../re/`](../re/README.md) | <re-archive>: architecture, re-implementation spec index, subsystem specs, per-function notes, file-format specs and parsers ([`re/data/FORMATS.md`](../re/data/FORMATS.md)), the shell DLL, and the tooling |
 
 The scripts in both still carry the lab machine's absolute paths and are Windows-specific; the path-convention
 migration (`I76_LAB_ROOT`, `I76_GAME_DIR`, `I76_MAP_ROOT`) is the next step.

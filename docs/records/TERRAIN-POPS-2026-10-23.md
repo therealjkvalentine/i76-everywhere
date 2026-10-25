@@ -293,6 +293,6 @@ Same route, preset and instruments; n 2 each, the queue run as 8-12-16-24 then 8
 ## 5. Files
 
 - Code: i76-everywhere `music-fix/terrainpops.c` (6f14a77 instruments, 1ac22b3 fix), `strlkproxy.c` (include, report, apply, frame hook, census hook).
-- Builds: `i76-uncap-lab\builds\nitro-port-20261021\tpops-1ac22b3\Strlkup.dll` b29fa468 (tpops-6f14a77 42510533 = instruments only).
-- Runners: `i76-uncap-lab\tools\terrain-pops\` (tp-run.ps1, tp-queue.ps1, tp_capture.py, tp_tab.py, results.txt).
-- Captures: `i76-uncap-lab\captures\terrain-pops-20261023\<tag>\` (cap\pair-NN-{a,b,d}.png, cap\frames.npy, cap\caps.csv, tex.csv, morph.csv, frames.csv, mciproxy-run.log, summary.txt).
+- Builds: `<lab>\builds\nitro-port-20261021\tpops-1ac22b3\Strlkup.dll` b29fa468 (tpops-6f14a77 42510533 = instruments only).
+- Runners: `<lab>\tools\terrain-pops\` (tp-run.ps1, tp-queue.ps1, tp_capture.py, tp_tab.py, results.txt).
+- Captures: `<lab>\captures\terrain-pops-20261023\<tag>\` (cap\pair-NN-{a,b,d}.png, cap\frames.npy, cap\caps.csv, tex.csv, morph.csv, frames.csv, mciproxy-run.log, summary.txt).

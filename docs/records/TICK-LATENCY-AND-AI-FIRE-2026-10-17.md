@@ -6,7 +6,7 @@ Follow-up to [WHOLE-SIM-TICK-2026-10-17.md](WHOLE-SIM-TICK-2026-10-17.md) s.4 (o
 driver, the golden copy and `music-fix/Strlkup.dll` are untouched. Harness: lab `tools\whole-sim-tick\` (wst-run /
 wst-queue; this lane's tables from `tl_analyse.py` and `tl_draw.py`), lab copy `game-wst` (headless twin, i76.exe
 6319abf7, null renderers, 120 fps display cap), every boot on a private desktop, audio muted, console lock per hold.
-Side builds `i76-uncap-lab\builds\tick-latency-20261017\Strlkup-lat1/2/3.dll` (sources from i76-everywhere git, not the
+Side builds `<lab>\builds\tick-latency-20261017\Strlkup-lat1/2/3.dll` (sources from i76-everywhere git, not the
 working tree; `make.ps1`), md5 in every boot's env record. Captures: lab `captures\whole-sim-tick-20261017`, tags
 `L<n>` (latency / physics) and `F<n>` (combat); queues `queue-ticklat\*.txt`.
 

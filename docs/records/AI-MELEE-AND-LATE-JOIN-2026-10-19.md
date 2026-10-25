@@ -6,9 +6,9 @@ progress on the network without waiting for a round to start no? ... maybe a sim
 without ui changes would be to have all the empty player slots populated by ai cars, naming them ai cars, and kicking
 them when humans join? how to handle teams though?"*
 
-Static reading only: nothing was run. Exe addresses are the 9a232dcc Ghidra export in `i76-map\ghidra\export` (same
+Static reading only: nothing was run. Exe addresses are the 9a232dcc Ghidra export in `<re-archive>\ghidra\export` (same
 addresses in the LAN copy's 6319abf7 outside the diff clusters); shell addresses are i76shell.dll at base 0x10000000
-(`i76-map\shell\ghidra\export`). "Measured" means a record in this repo measured it; everything else is read from code.
+(`<re-archive>\shell\ghidra\export`). "Measured" means a record in this repo measured it; everything else is read from code.
 
 **Short answers.**
 1. Most of the code is there, but not where the owner's idea puts it. A driver slot is an ANet player. Making a bot
@@ -29,7 +29,7 @@ addresses in the LAN copy's 6319abf7 outside the diff clusters); shell addresses
 
 ### What a driver slot is (the reason (a) is expensive)
 
-- **Player table** 0x541070, 16 x 0x48 (`i76-map\subsystems\network.md`): dp id, name, flags +0x1c (bits 16..18 =
+- **Player table** 0x541070, 16 x 0x48 (`<re-archive>\subsystems\network.md`): dp id, name, flags +0x1c (bits 16..18 =
   team), .vcf name, vehicle object +0x28, kills / deaths +0x3c / +0x3e, score +0x40. There is one local id,
   0x541028.
 - **Every other slot is a remote car.** The spawn 0x451180 flags it remote (object+0x10 0x20) and the mirror 0x464890
@@ -53,9 +53,9 @@ addresses in the LAN copy's 6319abf7 outside the diff clusters); shell addresses
 | who tells the AI to attack | new | **missing, small**: an arena without a script gives the cars nothing to do. In `ai_FrameTick` the host calls its own tick in place of `fsm_RunMachines` (the branch at 0x40a320 that tests 0x401310): for every live car in the 8 team lists 0x507da0 / counts 0x51f5d0 that is not in the player table, `ai_SetBehaviour(car, nearest live car of another team, 0 = attack)`. That is `ai_MeleeFrameTick` 0x40a130 without its two flaws (next row and the "skip humans" rule) |
 | host death ends the round | no | **avoided by not calling 0x40a130**: it sets outcome 0x51f5fc = 1 when the world root's object+0x10 has 0x200 (dead) and ends the mission 5 s later through 0x402620. Co-op's ending comes from the scripts and the chain, which key only on `coopNN.lvl`. A melee arena has neither, so a host death stays a stock melee death |
 | AI respawn | the bot's own respawn ('SR' 0x456970, run by the host for it) | **missing**: a spawned car is NOT in the label table (0x4513c0 / 0x451180 never call 0x457610), so 'AT' cannot carry a new car. Options: (1) **wave**: when every AI is dead, reload the arena in the same session with the chain's 'AM' reload (exists, measured for co-op losses n 2+). This is the network form of the stock wave (section 3). (2) **reserve pool**: the file holds 2N cars and N are parked off-field. When an active car dies, the host moves a parked one to a free spawn point (0x451030 picks one). The label set never changes |
-| scoreboard credit for AI kills | **free**: a bot victim is a player, so 0x463a80 / 0x454ff0 credit the killer | **missing**: in a network game 0x463a80 credits only player victims. Host: record the last attacker per AI car at 0x463a80, and on its death send 'AK' {killer id, mass ratio}. The killer's own proxy adds to its own slot (+0x3c, +0x40) and runs the MAX SCORE test as 0x454ff0 does. Optional chat line "AI Torque Daisy destroyed by James" through 0x453df0 |
+| scoreboard credit for AI kills | **free**: a bot victim is a player, so 0x463a80 / 0x454ff0 credit the killer | **missing**: in a network game 0x463a80 credits only player victims. Host: record the last attacker per AI car at 0x463a80, and on its death send 'AK' {killer id, mass ratio}. The killer's own proxy adds to its own slot (+0x3c, +0x40) and runs the MAX SCORE test as 0x454ff0 does. Optional chat line "AI Torque Daisy destroyed by the developer" through 0x453df0 |
 | AI names on screen | free: they are players | the scoreboard 0x451f10 lists the player table only. Fake rows there are risky (retargeting, spawning and the mirror all walk it). Use chat lines or a proxy overlay |
-| AI loadout | the bot's .vcf, sent like a player's | the ODEF label names the .vcf, loaded from each machine's own files. Use **mission cars in I76.ZFS only** (stock on every pack machine, md5 6dd57b16). The .lvl CRC does not cover an ADDON .vcf, and ADDON .vcf files already differ between machines (the Deck's and Andrew's `valepre4.vcf` 4ed297ca) |
+| AI loadout | the bot's .vcf, sent like a player's | the ODEF label names the .vcf, loaded from each machine's own files. Use **mission cars in I76.ZFS only** (stock on every pack machine, md5 6dd57b16). The .lvl CRC does not cover an ADDON .vcf, and ADDON .vcf files already differ between machines (the Deck's and the M2 tester's `valepre4.vcf` 4ed297ca) |
 | "kick when a human joins" | dpDestroyPlayer / 'd2' before ANet admits the joiner, or NO. DRIVERS must be raised to make room; tear-down on every machine | not needed: AI cars use no driver slot. If wanted: keep N + humans constant by **parking** one AI per joiner (no removal: removing an object breaks the 'AT' label index) |
 | teams | the bot's flags +0x1c bits 16..18, so team scores (0x452930) include bots | ODEF team field -> object+0x10 bits 16..18; AI team scores are not counted (no player-table row) |
 | size | **30-50 agent-hours**, mostly in protocol paths never exercised by more than one player per machine | **M1 ~8 h, everything ~20 h** (section 5) |

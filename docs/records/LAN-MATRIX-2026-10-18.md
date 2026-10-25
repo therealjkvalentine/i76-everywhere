@@ -1,6 +1,6 @@
 # LAN matrix, 2026-10-18 night: who can host, who can join
 
-Goal (owner): network game tests across the PC, James's laptop, Michael's and Andrew's Macs and the Steam Deck,
+Goal (owner): network game tests across the PC, the developer's laptop, the M4 Max tester's and the M2 tester Macs and the Steam Deck,
 every machine joining and hosting, with evidence, plus stable instructions (docs/MULTIPLAYER.md section 8). Tools:
 `tools/lan-test/` (README). Evidence standard: both cars in both position tables (`0x54E11C`, probe `pos`), the
 stationary car at the same coordinates on both ends, the far table following a car while it drives; IPXWrapper debug
@@ -10,85 +10,85 @@ logs; shell framebuffer pictures where useful. n = number of joins.
 
 Rows host, columns joiner. PASS = joined, every car in every table, each machine's driving seen on the others.
 
-| host \ joiner | PC | Andrew's Mac | Michael's Mac | laptop | Deck |
+| host \ joiner | PC | The M2 tester Mac | The M4 Max tester Mac | laptop | Deck |
 |---|---|---|---|---|---|
 | **PC** | - | **PASS n 2** (cells 2, 6) | not run: screen locked (firewall answered 09:25) | not run: laptop locked / game not frontmost | **PASS n 1** (cell 6) |
-| **Andrew's Mac** | **PASS n 1** tonight (cell 3; n 2 more earlier in the night) | - | blocked (firewall) | blocked (front) | **PASS n 1** (cell 1) |
-| **Michael's Mac** | not run: screen locked (IPX failed before the 09:25 Allow) | blocked | - | blocked | blocked |
+| **The M2 tester Mac** | **PASS n 1** tonight (cell 3; n 2 more earlier in the night) | - | blocked (firewall) | blocked (front) | **PASS n 1** (cell 1) |
+| **The M4 Max tester Mac** | not run: screen locked (IPX failed before the 09:25 Allow) | blocked | - | blocked | blocked |
 | **laptop** | blocked: no click reaches the game (cell 7) | blocked | blocked | - | blocked |
 | **Deck** | not run | **FAIL n 1** in The Crater (cell 5: mission files differ); melee not run | blocked | blocked | - |
 
-- **3 players: PASS n 1** (cell 6: PC host, Deck and Andrew's Mac join, all three drove, all three tables agree).
-- **5 players: not run** - Michael's Mac and the laptop could not join (below).
+- **3 players: PASS n 1** (cell 6: PC host, Deck and the M2 tester Mac join, all three drove, all three tables agree).
+- **5 players: not run** - the M4 Max tester Mac and the laptop could not join (below).
 - **Third attempt, 09:15-10:10: no new cells could run.** Both Macs sat at the lock screen the whole time
   (`CGSSessionScreenIsLocked` = Yes, front app loginwindow, polled every 3 s for 45 min by `tools/lan-test/wait-unlock.sh`).
   The laptop's own log: display on 09:12:59, off 09:14:30, on 09:21:23, off 09:21:44; HID idle 31 min at 09:45. So no
   screenshot exists: `screencapture -x` over SSH answered "could not create image from display" (locked), and the probe's
-  deskshot is black on these Macs. Michael's Mac was unlocked once (09:17, front app Finder) and locked again before the
+  deskshot is black on these Macs. The M4 Max tester Mac was unlocked once (09:17, front app Finder) and locked again before the
   next check. On a locked Mac no click reaches the game (section 4), so activation tricks were not tried again.
-- **Michael's firewall box is answered:** at 09:25 `socketfilterfw --listapps` lists
+- **The M4 Max tester's firewall box is answered:** at 09:25 `socketfilterfw --listapps` lists
   `.../Interstate 76.app/Contents/SharedSupport/wine/bin/wineserver` - **Allow incoming connections**, and the box is
   gone. (The box names **wineserver**, not wine.) His IPX start should work now; not yet measured.
-- **Still needed from the owner:** Michael's Mac and the laptop **unlocked and left awake** while the cells run (about
+- **Still needed from the owner:** The M4 Max tester Mac and the laptop **unlocked and left awake** while the cells run (about
   15 minutes; the test starts `caffeinate -d -i -u` so they do not lock again by themselves, but a manual lock or a
   closed lid stops it). On the laptop also click once into the I76 MP GATE window if Terminal is in front (cell 7).
-- Crashes: none (n 7 sessions). Not run, still: laptop host -> Michael / Andrew / Deck, Michael host -> laptop, PC host ->
-  laptop / Michael, 5 players. Host handover: section 4.
+- Crashes: none (n 7 sessions). Not run, still: laptop host -> the M4 Max tester / the M2 tester / Deck, the M4 Max tester host -> laptop, PC host ->
+  laptop / the M4 Max tester, 5 players. Host handover: section 4.
 
 ## 1. Builds on each machine (md5, read 2026-10-18 00:40-01:05)
 
 | machine | i76.exe | STRLKUP | i76shell | ipxwrapper | notes |
 |---|---|---|---|---|---|
 | PC LAN copy | 6319abf7 | 33211f11 | a300db63 | 06a01d0f | `PLAY-LAN.bat`, best-wide + co-op switches, u32x 06467bd2 |
-| Andrew's Mac | 6319abf7 | 33211f11 | a300db63 | 06a01d0f | the pack (rollout record), firewall off, unlocked (Minecraft holds the display awake) |
-| Michael's Mac | 6319abf7 | 33211f11 | a300db63 | 06a01d0f | the pack, firewall **on**, no wine entry in `socketfilterfw --listapps`, screen **locked** all night |
+| The M2 tester Mac | 6319abf7 | 33211f11 | a300db63 | 06a01d0f | the pack (rollout record), firewall off, unlocked (Minecraft holds the display awake) |
+| The M4 Max tester Mac | 6319abf7 | 33211f11 | a300db63 | 06a01d0f | the pack, firewall **on**, no wine entry in `socketfilterfw --listapps`, screen **locked** all night |
 | laptop gate clone | 6319abf7 | 33211f11 | a300db63 | 06a01d0f | `I76 MP GATE.app`, firewall off, screen **locked**, displays asleep |
 | Steam Deck | f92b8a7e | 8bc52939 | 8960fa16 | 06a01d0f | its own pack (not the LAN pack): GE-Proton10-12, `WINEDLLOVERRIDES` wsock32/mswsock native, `I76_CURSOR_MAP=1`, `I76_PAD_MENU=1`; own `ADDON\valepre4.vcf` 4ed297ca (not stock) |
 
-All on 192.168.1.0/24. Network both ways was proven earlier in the night (pktmon, UDP listeners, both IPXWrapper logs).
+All on <LAN subnet>. Network both ways was proven earlier in the night (pktmon, UDP listeners, both IPXWrapper logs).
 
 ## 2. Cells
 
 Times CDT. Positions are the probe's `pos` (position table 0x54E11C) unless marked "player table" (car +0x40/+0x50).
 
-**Cell 1 - Andrew's Mac hosts Suburbia (m04), the Deck joins. PASS, n 1.** Andrew: nav + BROADCAST (session renamed
+**Cell 1 - the M2 tester Mac hosts Suburbia (m04), the Deck joins. PASS, n 1.** The M2 tester: nav + BROADCAST (session renamed
 "zqxandrew"), net 1, me = host = 3. Deck: JOIN > IPX, row, JOIN GAME: net 1, me 6, host 3. At rest (01:11:3x) both
 tables: host car 4732.48, 120.94, 49317.50 on both ends (identical), Deck car 4172.52, 120.73, 49552.50 on both ends.
-Deck drove 60 s (W + steer pulses, 01:12:00-01:12:57): Andrew's table followed it 4384 -> 5032 -> 4507 (x) in step with
-the Deck's own samples. Andrew drove 40 s (01:13:53-01:14:30): the Deck's table followed 4542 -> 4008 -> 4007 (x),
-matching Andrew's own 4498 -> 4007. The Deck's car crept by +-10 m while "parked" on both ends alike (the Deck's own pad
+Deck drove 60 s (W + steer pulses, 01:12:00-01:12:57): The M2 tester's table followed it 4384 -> 5032 -> 4507 (x) in step with
+the Deck's own samples. The M2 tester drove 40 s (01:13:53-01:14:30): the Deck's table followed 4542 -> 4008 -> 4007 (x),
+matching the M2 tester's own 4498 -> 4007. The Deck's car crept by +-10 m while "parked" on both ends alike (the Deck's own pad
 layer / stick drift; not chased).
 
-**Cell 2 - the PC hosts Suburbia ("pchost"), Andrew's Mac joins. PASS, n 1.** PC LAN copy (PLAY-LAN.bat, console lock
-01:51-02:02). Andrew on JOIN > IPX: `find pchost` hit the session record (0x01f22328) before the click; `joingo` with the
+**Cell 2 - the PC hosts Suburbia ("pchost"), the M2 tester Mac joins. PASS, n 1.** PC LAN copy (PLAY-LAN.bat, console lock
+01:51-02:02). The M2 tester on JOIN > IPX: `find pchost` hit the session record (0x01f22328) before the click; `joingo` with the
 real pointer warped onto the row and JOIN GAME: net 1, me 6, host 3 on the first try. At rest (01:53:3x) the two tables
 were identical: PC car 4272.52, 120.94, 49437.50 and Mac car 4862.48, 120.94, 49542.50 on both ends (n 3 samples).
 Mac drove 60 s (01:53:49-01:54:47): the PC's table followed 4691 -> 4358 -> 4519 / 49661 in step. PC drove 40 s
-(01:55:05-01:55:40): Andrew's table followed 4395 -> 4382 / 49707. Final pair a second apart: 4380.66 / 4380.59 and
+(01:55:05-01:55:40): The M2 tester's table followed 4395 -> 4382 / 49707. Final pair a second apart: 4380.66 / 4380.59 and
 4499.04 / 4498.59 (cars still rolling).
 
-**Cell 3 - Andrew's Mac hosts Suburbia ("andrewhost"), the PC joins. PASS, n 1** (the direction proven twice earlier
+**Cell 3 - the M2 tester Mac hosts Suburbia ("andrewhost"), the PC joins. PASS, n 1** (the direction proven twice earlier
 in the night). PC: net 1, me 6, host 3; at rest both tables: host car 4272.52, 120.94, 49327.50, PC car 4172.52, 120.94,
-49437.50 on both ends. PC drove 30 s, Andrew's table followed (4351 -> 4927 -> 4830). Andrew drove 30 s: the PC's
-**position table** stopped updating Andrew's car at 02:00:16 (4399.06, 49148.96 frozen) while Andrew's car went on to
+49437.50 on both ends. PC drove 30 s, the M2 tester's table followed (4351 -> 4927 -> 4830). The M2 tester drove 30 s: the PC's
+**position table** stopped updating the M2 tester's car at 02:00:16 (4399.06, 49148.96 frozen) while the M2 tester's car went on to
 4400.4, 49054.2; the PC's **player table** had it right (4400.4, 49054.2 on both ends at 02:01). So the position table is
 not authoritative for a far car (it was ~600 m away by then) [inferred: a draw-side table]; use `state` (player table)
-for remote cars. Andrew kept receiving the PC car the whole time.
+for remote cars. The M2 tester kept receiving the PC car the whole time.
 
-**Cell 4 - the Deck (migrated host of "zqxandrew") hosts, Andrew's Mac joins. Partial.** List filled on the Mac
+**Cell 4 - the Deck (migrated host of "zqxandrew") hosts, the M2 tester Mac joins. Partial.** List filled on the Mac
 (session record and the framebuffer picture, section 3); with the real pointer on JOIN GAME the Mac sent the join
 (17 + 54 bytes) and the Deck answered (91 ... 255 bytes) at 01:27; the Deck then suspended, so arena entry was not
 measured here (it was in cell 2).
 
-**Cell 5 - the Deck hosts, Andrew's Mac joins (07:20). FAIL n 1, cause found.** The Deck's host form row at y 208
-started **The Crater (m01)**, not Suburbia (its arena list differs). Andrew joined (net 1, me 6, host 3) but his own car
-never spawned: player table `nan,nan` on both ends; Andrew's proxy log "coop-ai: role joiner ... mission m01.msn ...
+**Cell 5 - the Deck hosts, the M2 tester Mac joins (07:20). FAIL n 1, cause found.** The Deck's host form row at y 208
+started **The Crater (m01)**, not Suburbia (its arena list differs). The M2 tester joined (net 1, me 6, host 3) but his own car
+never spawned: player table `nan,nan` on both ends; the M2 tester's proxy log "coop-ai: role joiner ... mission m01.msn ...
 mission cars alive 5". The LAN pack's `miss8\M01.MSN` is the co-op T01 mission (000869bb); the Deck runs its own pack
 with the stock m01, so host and joiner loaded different missions. Fix: give the Deck the LAN pack (common part), or
 never pick The Crater when the Deck is in the game. A Deck-hosted melee was not run.
 
-**Cell 6 - 3 players: the PC hosts Suburbia ("pchost"), the Deck and Andrew's Mac join (07:22-07:27). PASS n 1.**
-Deck: net 1, me 6; Andrew: net 1, me 8; the PC's table lists ids 3, 6, 8. At rest all three player tables identical:
+**Cell 6 - 3 players: the PC hosts Suburbia ("pchost"), the Deck and the M2 tester Mac join (07:22-07:27). PASS n 1.**
+Deck: net 1, me 6; the M2 tester: net 1, me 8; the PC's table lists ids 3, 6, 8. At rest all three player tables identical:
 3 at 4272.5, 49437.5; 6 at 4862.5, 49542.5; 8 at 4172.5, 49327.5. All three drove 25 s at once; afterwards the three
 tables agreed within the motion between the sequential samples (id 6: 3981.5 / 3982.8 / 3984.3; 15 s later
 4011.8 / 4012.6 / 4012.6, cars still coasting).
@@ -96,7 +96,7 @@ tables agreed within the motion between the sequential samples (id 6: 3981.5 / 3
 **Cell 7 - the laptop (unlocked) as host.** Started, main menu reached by Esc; every click missed (main menu, n 9
 tries; calib2 read the mouse object frozen at 2,240). Front app: Terminal. Section 0, click 2.
 
-**Cell 8 - Michael's Mac (unlocked) as host.** Started 07:15 (audio muted first, restored to unmuted after), main menu,
+**Cell 8 - the M4 Max tester Mac (unlocked) as host.** Started 07:15 (audio muted first, restored to unmuted after), main menu,
 calib2 worked (map 2.364 1.4 2.041 4.1), MELEE > MULTI MELEE > HOST > IPX reached; the firewall box appeared at once
 and the game showed a Wine "Error" box (IPX could not start). Section 0, click 1.
 
@@ -104,7 +104,7 @@ and the game showed a Wine "Error" box (IPX could not start). Section 0, click 1
 
 Earlier tonight every Mac join stopped on the ENTRY ROSTER: net stayed 0 and the Mac sent no join request. Measured:
 
-1. **The join list fills on the Mac.** With the Deck hosting (session "zqxandrew"), Andrew's IPXWrapper delivered the
+1. **The join list fills on the Mac.** With the Deck hosting (session "zqxandrew"), the M2 tester's IPXWrapper delivered the
    host's 85-byte broadcast every second, the session record sat in the shell's list (`[shell+0xf21a0]`: count 1,
    record 0x01f22328 "zqxandrew", host node B7:CE:7C:20:E4:2C, players 1 of 4), and the shell's back buffer
    (`fbshot.sh`) showed "zqxandrew (1/4)" in the GAME NAME list, selected.
@@ -116,7 +116,7 @@ Earlier tonight every Mac join stopped on the ENTRY ROSTER: net stayed 0 and the
    has no Mac driver, so its SendInput moves only Wine's server cursor. CANCEL did nothing until a raw client click
    happened to put the real pointer on it.
 3. **With the real pointer on JOIN GAME, the Mac joined at the protocol level.** Warp to (735,857) = UI 300,457,
-   buttons only: Andrew's IPXWrapper log shows the join request (17 + 54 bytes to the host) at 2012946.01 and the
+   buttons only: The M2 tester's IPXWrapper log shows the join request (17 + 54 bytes to the host) at 2012946.01 and the
    host's answers (91, 105, 53, 41, 29, 18, 255 bytes), the same sequence the Deck sent as a working joiner
    (17 / 54 / 4 ... at 2710.56). The host then disappeared (the Deck suspended, section 4), so the arena entry is
    measured in the PC cell below, not here.
@@ -124,11 +124,11 @@ Earlier tonight every Mac join stopped on the ENTRY ROSTER: net stayed 0 and the
 
 So "the Mac sends only two 4-byte packets and never a join request" was a measurement artifact of remote clicking.
 A player with a real mouse is not affected (the real pointer is where they click). Not tested here: the macOS
-firewall and microphone prompts on Michael's Mac (locked screen all night).
+firewall and microphone prompts on the M4 Max tester Mac (locked screen all night).
 
 ## 4. What blocked the other cells
 
-- **Locked Macs (Michael's, the laptop):** keys reach the game (Esc opens and closes the Esc menu), clicks do not:
+- **Locked Macs (the M4 Max tester's, the laptop):** keys reach the game (Esc opens and closes the Esc menu), clicks do not:
   SendInput (n 30+ on a grid across the main menu row), posted WM_LBUTTONDOWN, a real-pointer warp plus buttons, and
   holding the mouse object at the target (rewritten every ~1 ms) all left the main menu unchanged. The game window
   is Wine's foreground window; the laptop's displays reported asleep, both screens locked (`IOConsoleLocked` true).
@@ -137,8 +137,8 @@ firewall and microphone prompts on Michael's Mac (locked screen all night).
   host migration to the Deck seen at ~01:16). Game Mode suspends on its own after a stretch without physical input;
   our input goes into Wine, not into Steam. It cannot be woken over the network.
 - **Host migration** (the "handover" seen on 2026-10-17): when the host quits, ANet hands the session to a remaining
-  player. Measured: Andrew (host 3) quit; the Deck's table then read `host 6` (itself), still in Suburbia, and kept
-  broadcasting the session (85-byte packets, name "zqxandrew" carried over). Later, after the Deck vanished, Andrew
+  player. Measured: The M2 tester (host 3) quit; the Deck's table then read `host 6` (itself), still in Suburbia, and kept
+  broadcasting the session (85-byte packets, name "zqxandrew" carried over). Later, after the Deck vanished, the M2 tester
   (by then a joiner of that session) began sending the 85-byte broadcasts himself. So a handover is ANet's normal
   host migration, triggered by the host leaving; tonight's cause was our own restart / the Deck's suspend.
 
@@ -146,18 +146,18 @@ firewall and microphone prompts on Michael's Mac (locked screen all night).
 
 - Deck: `ADDON\valepre4.vcf` swapped to stock de680a86 for the test (original 4ed297ca kept in
   `~/Games/Interstate76/lan-test-20261018/`), a debug `ipxwrapper.ini` added; both reverted at the end (section 6).
-- Andrew's Mac: game restarted 3 times (ours), probe + helper scripts in `/tmp/i76mp` only.
+- The M2 tester Mac: game restarted 3 times (ours), probe + helper scripts in `/tmp/i76mp` only.
 - Laptop: gate clone started (ours), `cur`, `wake`, helper scripts in `/tmp/i76mp`.
-- Michael's Mac: `/tmp/i76mp` (probe, scripts, `cur`) only; game never started.
+- The M4 Max tester Mac: `/tmp/i76mp` (probe, scripts, `cur`) only; game never started.
 
 ## 6. Cleanup (02:02-02:10)
 
 - PC: LAN copy stopped (our pid 5896 only); debug `ipxwrapper.ini` removed from the LAN copy (its `ipxwrapper.log`,
   3.9 MB, left beside it); console lock released 02:02 (held 01:51-02:02). PC audio stayed muted.
-- Andrew's Mac: game stopped (`wineserver -k`, his app's prefix only), debug `ipxwrapper.ini` removed, audio unmuted
+- The M2 tester Mac: game stopped (`wineserver -k`, his app's prefix only), debug `ipxwrapper.ini` removed, audio unmuted
   (`output muted` = false, as before we muted it). Our logs copied to `/tmp/i76mp` there.
 - Laptop: gate clone stopped (`wineserver -k`, gate prefix). `/tmp/i76mp` keeps the tools.
-- Michael's Mac: nothing was started; `/tmp/i76mp` only.
+- The M4 Max tester Mac: nothing was started; `/tmp/i76mp` only.
 - Deck: suspended with our game, the stock `valepre4.vcf` and the debug `ipxwrapper.ini` in place. A loop on the
   laptop (`/tmp/i76mp/deck-revert-loop.sh`, every 60 s for 14 h, log `/tmp/i76mp/deck-revert.log`) runs
   `tools/lan-test/deck-revert.sh` on the Deck as soon as it answers: stops our game, restores its own valepre4.vcf
@@ -168,25 +168,25 @@ Morning resume (07:13-07:30): the Deck revert loop had run at 07:12 (log DONE: v
 For cells 5-6 the Deck's valepre4.vcf was swapped to stock again and reverted at 07:27 with `deck-revert.sh` (game
 stopped, 4ed297ca back, test folder removed; Deck audio was muted before and stays muted). `caffeinate -d -i -u` on the
 three Macs (ours, stopped); `systemd-inhibit` on the Deck was refused (block mode needs authorisation). Games we started
-on the PC, Andrew's, Michael's and the laptop stopped (`wineserver -k` per prefix; our PC pid only); Andrew's and
-Michael's audio back to unmuted (their prior state). PC console lock 07:22-07:27, released.
+on the PC, the M2 tester's, the M4 Max tester's and the laptop stopped (`wineserver -k` per prefix; our PC pid only); the M2 tester's and
+The M4 Max tester's audio back to unmuted (their prior state). PC console lock 07:22-07:27, released.
 
-## 7. Fourth attempt (10:11-11:02): Michael's cells and the co-op pack 2026-10-18
+## 7. Fourth attempt (10:11-11:02): The M4 Max tester's cells and the co-op pack 2026-10-18
 
-**Availability, polled the whole time** (`wait-unlock.sh` on both Macs, pings to the others): Michael's Mac and the
-laptop stayed at the lock screen from 10:11 to 11:02 (Michael's HID idle 39 min at 10:11, the laptop's 57 min); Andrew's
+**Availability, polled the whole time** (`wait-unlock.sh` on both Macs, pings to the others): The M4 Max tester Mac and the
+laptop stayed at the lock screen from 10:11 to 11:02 (the M4 Max tester's HID idle 39 min at 10:11, the laptop's 57 min); the M2 tester's
 Mac stopped answering at about 10:40 (SSH and ping time out: asleep or lid closed); the Deck did not answer at all
-(asleep since our 07:27 revert). So **no cross-machine cell could run** in this window: Michael host -> laptop, laptop
-host -> Michael, PC host -> Michael, the 5-player session, and every co-op cell below are **not run**. The PC alone
+(asleep since our 07:27 revert). So **no cross-machine cell could run** in this window: The M4 Max tester host -> laptop, laptop
+host -> the M4 Max tester, PC host -> the M4 Max tester, the 5-player session, and every co-op cell below are **not run**. The PC alone
 cannot test across machines.
 
-**Michael's firewall answer is in place** (seen 09:25 and again at 10:11: `wineserver` - Allow incoming connections), so
+**The M4 Max tester's firewall answer is in place** (seen 09:25 and again at 10:11: `wineserver` - Allow incoming connections), so
 his IPX start should now work; it is not measured (his screen stayed locked: no click reaches the game).
 
 **The co-op pack (docs/records/COOP-LIST-ENTRIES-2026-10-18.md section 3.4) is built and deployed where reachable:**
 
-- Pack `C:\Users\james\Games\Interstate76-MP-pack-2026-10-18` by `tools/mp-pack.py <pack> --proxy
-  i76-uncap-lab\builds\coop-list-20261018\STRLKUP-ba2b45c1.dll` (the `--proxy` option is new; mac part copied from the
+- Pack `<games>\Interstate76-MP-pack-2026-10-18` by `tools/mp-pack.py <pack> --proxy
+  <lab>\builds\coop-list-20261018\STRLKUP-ba2b45c1.dll` (the `--proxy` option is new; mac part copied from the
   2026-10-17 pack unchanged). Against the 2026-10-17 pack, common changed only as intended: STRLKUP.DLL 33211f11 ->
   **ba2b45c1**; miss8/miss16 `M01.MSN` back to stock (f00bad90 / abb41681); the old co-op layout (M41..M57 + `.coop`,
   `M01.MSN.pre-coop`) removed (71 files); `ADDON/coop01.lvl .. coop17.lvl` + 17 `.coop` markers added, lower case
@@ -199,35 +199,35 @@ his IPX start should now work; it is not measured (his screen stayed locked: no 
   | machine | result | proxy | coopNN.lvl (lower case) | verify vs common.md5 |
   |---|---|---|---|---|
   | PC LAN copy | done 10:33 (+ new PLAY-LAN.bat 4546dcf4) | ba2b45c1 (STRLKUP.DLL = Strlkup.dll) | 17 | 3 game-written files differ (NSCR.DAT, NVCL/nvcl0.vcf, user.mel) |
-  | Michael's Mac | done 10:36 | ba2b45c1 | 17 | 0 mismatches |
+  | The M4 Max tester Mac | done 10:36 | ba2b45c1 | 17 | 0 mismatches |
   | laptop gate clone | done 10:36 | ba2b45c1 | 17 | 1 (user.mel, game-written) |
-  | Andrew's Mac | **not done**: unreachable from 10:36 | still 33211f11 (old layout) | 0 | - |
+  | The M2 tester Mac | **not done**: unreachable from 10:36 | still 33211f11 (old layout) | 0 | - |
   | Deck | **not done**: asleep | its own 8bc52939 | 0 | - (plan: add only the 34 `ADDON/coop*` files, `coopaddon` tar; the Deck's exe and proxy are its own pack) |
 
-  Until Andrew's Mac is updated it holds the OLD layout: if it hosts The Crater it runs the co-op T01, and its 33211f11
+  Until the M2 tester Mac is updated it holds the OLD layout: if it hosts The Crater it runs the co-op T01, and its 33211f11
   host crashes at a co-op reload. Do not mix it with the updated machines for co-op.
 - Co-op cells requested (lower-case files and the Co-op Scene 1-17 list on each machine, Mac host + PC joiner and the
   reverse in coop01.lvl with CRC slot e1dcaa33, a loss and a win with a cross-machine joiner, a late join after a win,
   the "You don't have mission coop01.lvl!" box on a machine without the files, stock melee incl. the Deck hosting The
   Crater): **all not run** (no second machine available). The file-level checks are done (table above).
 
-## 8. Fifth attempt (13:24-14:10, owner at the laptop and Michael's Mac): Mac-to-Mac cells, co-op across Macs
+## 8. Fifth attempt (13:24-14:10, owner at the laptop and the M4 Max tester Mac): Mac-to-Mac cells, co-op across Macs
 
 Both Macs unlocked from 13:29 (the laptop locked once at ~13:26 and was unlocked by the owner). The laptop's window was
 now on its built-in display (1728x1117). calib2 (real-pointer warp, no clicks): laptop map 2.7027 0.0 2.3256 2.3,
-Michael 2.3641 1.4 2.0408 4.1 (both = the whole client stretched, no offset).
+The M4 Max tester 2.3641 1.4 2.0408 4.1 (both = the whole client stretched, no offset).
 
 | cell | result | n | evidence |
 |---|---|---|---|
-| Michael hosts Suburbia (m04) -> laptop joins | **PASS** | 1 | at rest both player tables 4862.5, 49427.5 (host) / 4732.5, 49317.5; both drove 30 s, tables agree within 0.6 m afterwards; the laptop's car later respawned at the spawn point on both ends |
-| laptop hosts Suburbia (m04) -> Michael joins | **PASS** | 1 | at rest identical (4732.5, 49427.5 / 4172.5, 49327.5); both drove 25 s, afterwards 5022.4 / 5021.9 and 5023.1 / 5023.0 |
-| co-op list on the new pack | **PASS** | 2 machines | Michael: arena count `[shell+0x4b2f8]` = 0x20 (15 + 17), "Co-op Scene 1/2/3" strings loaded; laptop: list scrolled to top 12, row 4 = index 15 selected |
-| laptop hosts **Co-op Scene 1** -> Michael joins | **PASS** | 1 | host: mission name `coop01.lvl`, CRC slot `0x504a04` = **e1dcaa33**, host adopts `vppirna4`; Michael: net 1, me 6, `coop01.lvl`, both cars in both tables (joined on the 2nd JOIN GAME try) |
+| The M4 Max tester hosts Suburbia (m04) -> laptop joins | **PASS** | 1 | at rest both player tables 4862.5, 49427.5 (host) / 4732.5, 49317.5; both drove 30 s, tables agree within 0.6 m afterwards; the laptop's car later respawned at the spawn point on both ends |
+| laptop hosts Suburbia (m04) -> the M4 Max tester joins | **PASS** | 1 | at rest identical (4732.5, 49427.5 / 4172.5, 49327.5); both drove 25 s, afterwards 5022.4 / 5021.9 and 5023.1 / 5023.0 |
+| co-op list on the new pack | **PASS** | 2 machines | The M4 Max tester: arena count `[shell+0x4b2f8]` = 0x20 (15 + 17), "Co-op Scene 1/2/3" strings loaded; laptop: list scrolled to top 12, row 4 = index 15 selected |
+| laptop hosts **Co-op Scene 1** -> the M4 Max tester joins | **PASS** | 1 | host: mission name `coop01.lvl`, CRC slot `0x504a04` = **e1dcaa33**, host adopts `vppirna4`; the M4 Max tester: net 1, me 6, `coop01.lvl`, both cars in both tables (joined on the 2nd JOIN GAME try) |
 | co-op **loss** (sit still) with the cross-machine joiner | **PASS** | 2 reloads | host log: "coop-chain: host lost 'coop01.lvl' -> loading 'coop01.lvl' in the same session" x2 (13:34, 13:36); both processes alive, both back in coop01 with both cars, tables agree (3373.8 / 3374.4) - the ba2b45c1 fix holds across machines |
-| Michael hosts **Co-op Scene 1** -> laptop joins | **PASS** | 1 | host coop01.lvl, CRC e1dcaa33; laptop net 1 me 6 coop01.lvl; a reload with the joiner on, no crash |
+| The M4 Max tester hosts **Co-op Scene 1** -> laptop joins | **PASS** | 1 | host coop01.lvl, CRC e1dcaa33; laptop net 1 me 6 coop01.lvl; a reload with the joiner on, no crash |
 | joiner **without** coop01.lvl (laptop, file renamed for the test, put back after, md5 c6294f55) | **PASS** | 1 | Wine box "Error": *You don't have mission coop01.lvl! Check Activision's web page for additional missions!*, net stays 0 |
 | co-op **win** -> both in coop02; **late join** after a win | not run | 0 | needs the mission actually won (driving), not done remotely |
-| PC-hosted cells, 3-5 players, Deck, Andrew | not run in this window | 0 | PC console was the owner's (OWNER lock 13:24-~13:57); Andrew's Mac busy (his own game running) then offline; Deck asleep |
+| PC-hosted cells, 3-5 players, Deck, the M2 tester | not run in this window | 0 | PC console was the owner's (OWNER lock 13:24-~13:57); the M2 tester Mac busy (his own game running) then offline; Deck asleep |
 
 ### Respawn asymmetry the owner saw (host stays in the death view, the joiner respawns)
 
@@ -235,7 +235,7 @@ Cause found, by reading the logs and the source (no game touched): it is **our p
 08ba553 ("proxy co-op: the joiner respawns by itself after death") `I76_COOP_CHAIN=1` makes the **joiner** call the
 game's RAISE_DEAD request (0x451570) 5 s after its car dies, in **any** mission, melee included
 (`coop_ai_in_mission()` only checks game state 5 + a world). The host gets no such call, so it shows stock behaviour:
-the death view until the player goes to the replay / respawn. Michael's log (joiner): "coop-ai: role joiner ...
+the death view until the player goes to the replay / respawn. The M4 Max tester's log (joiner): "coop-ai: role joiner ...
 respawns 1" and "coop-chain: joiner dead - respawn requested" x2; the laptop's (host): "role host ... respawns 0".
 The old pack's proxy (33211f11) carries the same code (its strings include "joiner dead - respawn requested"), so it
 behaved the same. Both machines run the same switches (I76_COOP_AI=1, I76_COOP_CHAIN=1; logs identical in the
@@ -245,29 +245,29 @@ then: in a melee, the host respawns from the replay after a death.
 
 ### Menu pointer misalignment on the Macs
 
-Measured mapping of the shell's pointer (real macOS pointer -> UI, `calib2`): Michael 1512x978 window at x 0 and the
-laptop 1728x1117 at x 0: stretched over the whole client, **offset 0** (aligned). Andrew's Mac: window 1392x900 at
+Measured mapping of the shell's pointer (real macOS pointer -> UI, `calib2`): The M4 Max tester 1512x978 window at x 0 and the
+laptop 1728x1117 at x 0: stretched over the whole client, **offset 0** (aligned). The M2 tester Mac: window 1392x900 at
 x 24 on a 1440x900 screen, **offset +54 px** in client x (UI x = (client x - 54.3) / 2.174) - the hit point sits about
 14 UI pixels left of the drawn arrow, the "+14 px" seen at the start of the night. The pack's Mac settings were made on
-James's laptop: DxWnd `sizx0/sizy0 = 1728x1117`, `posx0/posy0 = 50,50` on every Mac, `OGL_VIEWPORT` per machine (laptop
-1728x1117, Michael 1512x977, Andrew 1392x900). Where the window fills the screen width (laptop, Michael) the map has no
-offset; on Andrew's narrower screen DxWnd keeps the 1728:1117 shape, the window is centred and the mapping is off by the
-centring. **Proposed (staged, not applied; Andrew was playing and then offline):** on Andrew's Mac set DxWnd
+The developer's laptop: DxWnd `sizx0/sizy0 = 1728x1117`, `posx0/posy0 = 50,50` on every Mac, `OGL_VIEWPORT` per machine (laptop
+1728x1117, the M4 Max tester 1512x977, the M2 tester 1392x900). Where the window fills the screen width (laptop, the M4 Max tester) the map has no
+offset; on the M2 tester's narrower screen DxWnd keeps the 1728:1117 shape, the window is centred and the mapping is off by the
+centring. **Proposed (staged, not applied; the M2 tester was playing and then offline):** on the M2 tester Mac set DxWnd
 `sizx0=1440`, `sizy0=900` and `OGL_VIEWPORT=1440x900` so the window fills the screen; then re-run `calib2` (pass =
 offset under 2 px). The Mac copies have no I76_CURSOR_MAP / u32x shell stretch / dgVoodoo involvement (no dgVoodoo on
 the Macs; DxWnd does the mapping), so the Windows cursor-fix switches (records/CURSOR-FIX-ON-18*) do not apply.
 
 ### Machine state at 14:10 (for the owner's playtest)
 
-PC: LAN copy on the 2026-10-18 pack (ba2b45c1), not running, console free. Laptop and Michael's Mac: on the 2026-10-18
+PC: LAN copy on the 2026-10-18 pack (ba2b45c1), not running, console free. Laptop and the M4 Max tester Mac: on the 2026-10-18
 pack; the game processes are the ones I started at 13:24/13:43 and the owner is now playing in them - left running
-as asked; none of my helpers (caffeinate, pollers, probe) running. Andrew's Mac: offline; pack delta copied to
+as asked; none of my helpers (caffeinate, pollers, probe) running. The M2 tester Mac: offline; pack delta copied to
 `/tmp/i76mp/delta` there (staged, not applied: his own game was running). Deck: asleep, old pack, no co-op files.
 
-## 9. Sixth attempt (14:00-14:50): Andrew updated and fixed, Deck co-op files, 4 players, respawn-fix proxy deployed
+## 9. Sixth attempt (14:00-14:50): The M2 tester updated and fixed, Deck co-op files, 4 players, respawn-fix proxy deployed
 
 **Updates in place**
-- Andrew's Mac: `apply-pack-delta.sh` -> 2026-10-18 pack (deleted 70, added 37; 4 game-written files differ:
+- The M2 tester Mac: `apply-pack-delta.sh` -> 2026-10-18 pack (deleted 70, added 37; 4 game-written files differ:
   ADDON/vehscn.vcf, ADDON/vehscn.vsf, NVCL/nvcl0.vcf, user.mel). Pointer fix: DxWnd `sizx0/sizy0` 1728x1117 ->
   1440x900 and `OGL_VIEWPORT` 1392x900 -> 1440x900 (backups in `~/Games/Interstate76-MP/pointer-fix-pre-20261018/`);
   the window is now 1440x900 at x 0 and calib2 reads `UI x = (client x - 2.2) / 2.247` - offset 54 px -> 2 px (under
@@ -276,13 +276,13 @@ as asked; none of my helpers (caffeinate, pollers, probe) running. Andrew's Mac:
   `~/Games/Interstate76/coop-files-added-20261018.txt`); exe, proxy (8bc52939) and env otherwise its own. The Deck has
   no I76_COOP_AI / I76_COOP_CHAIN in `i76-env.sh`, so in a co-op scene it joins the mission but without the AI sync /
   chain (not changed: "keep its own pack").
-- Michael's Mac firewall: both `wine` and `wineserver` listed "Allow incoming connections" (14:01).
-- **Respawn-fix proxy ac44e2c2** (`i76-uncap-lab\builds\coop-list-20261018\STRLKUP-ac44e2c2.dll`, from HEAD f2598f0):
-  short check on the PC LAN copy with Andrew's Mac as joiner: melee Hope Springs join PASS (n 1, both tables agree),
-  Co-op Scene 1 join PASS (n 1: PC host `coop01.lvl`, CRC e1dcaa33; Andrew `coop01.lvl`, both cars). **Deaths were not
+- The M4 Max tester Mac firewall: both `wine` and `wineserver` listed "Allow incoming connections" (14:01).
+- **Respawn-fix proxy ac44e2c2** (`<lab>\builds\coop-list-20261018\STRLKUP-ac44e2c2.dll`, from HEAD f2598f0):
+  short check on the PC LAN copy with the M2 tester Mac as joiner: melee Hope Springs join PASS (n 1, both tables agree),
+  Co-op Scene 1 join PASS (n 1: PC host `coop01.lvl`, CRC e1dcaa33; the M2 tester `coop01.lvl`, both cars). **Deaths were not
   triggered** (no way to kill a car remotely without memory writes on a Mac) - the death behaviour rests on the co-op
   lane's 5035857f tests (same source change). Deployed in place (temp file + rename, the running games keep the old
-  one until restarted): PC LAN copy, laptop gate clone, Michael's Mac, Andrew's Mac = **ac44e2c2**; the replaced
+  one until restarted): PC LAN copy, laptop gate clone, the M4 Max tester Mac, the M2 tester Mac = **ac44e2c2**; the replaced
   ba2b45c1 kept as `lan-pack-pre-20261018/STRLKUP.DLL.ba2b45c1` on each Mac (the PC copy: the pack folder). Deck: own
   proxy 8bc52939, not changed.
 
@@ -290,13 +290,13 @@ as asked; none of my helpers (caffeinate, pollers, probe) running. Andrew's Mac:
 
 | cell | result | n | evidence |
 |---|---|---|---|
-| Deck hosts Hope Springs (m07) -> Andrew joins | **PASS** | 1 | both tables agree at rest; both drove 25 s (Andrew's car 1394.7 / 1394.5 on both ends) |
-| **4 players**: laptop hosts Suburbia ("lapmelee", the owner's running session), Michael + Deck + Andrew in it | **PASS** | 1 | all four player tables list ids 3, 6, 12, 14 with the same positions (6 at 4732.5, 49427.5; 12 at 4862.5, 49427.5; 14 at 4862.5, 49317.5); Deck and Andrew drove 20 s, all four tables followed (id 12 4869.2 / 4868.3 / 4867.4 / 4866.7 sampled in sequence). Andrew and the Deck had joined the first list row, which was the owner's game, not the PC's - they left again |
+| Deck hosts Hope Springs (m07) -> the M2 tester joins | **PASS** | 1 | both tables agree at rest; both drove 25 s (the M2 tester's car 1394.7 / 1394.5 on both ends) |
+| **4 players**: laptop hosts Suburbia ("lapmelee", the owner's running session), the M4 Max tester + Deck + the M2 tester in it | **PASS** | 1 | all four player tables list ids 3, 6, 12, 14 with the same positions (6 at 4732.5, 49427.5; 12 at 4862.5, 49427.5; 14 at 4862.5, 49317.5); Deck and the M2 tester drove 20 s, all four tables followed (id 12 4869.2 / 4868.3 / 4867.4 / 4866.7 sampled in sequence). The M2 tester and the Deck had joined the first list row, which was the owner's game, not the PC's - they left again |
 | PC joins that 4-player session as the 5th | **FAIL (by design)** | 1 | box "Game full! - The game is full." The host's NO. DRIVERS was the default 4 |
-| PC hosts Hope Springs (ac44e2c2, NO. DRIVERS raised by 4 clicks on +, value not read back) -> Andrew joins | **PASS** | 1 | Andrew row picked by name (`macnav.sh joinname`), net 1, both tables agree |
-| PC hosts Co-op Scene 1 (ac44e2c2) -> Andrew joins | **PASS** | 1 | see above |
-| **5 players** | not run | 0 | needs a host with NO. DRIVERS >= 5 and the laptop and Michael's Mac to join it (owner's running game; no clicks / warps on those Macs while he uses them); the Deck suspended again at ~14:30 |
-| co-op win, late join, 3-human Co-op Scene 17 | not run | 0 | needs the laptop and Michael's Mac (owner) and driving to a win |
+| PC hosts Hope Springs (ac44e2c2, NO. DRIVERS raised by 4 clicks on +, value not read back) -> the M2 tester joins | **PASS** | 1 | The M2 tester row picked by name (`macnav.sh joinname`), net 1, both tables agree |
+| PC hosts Co-op Scene 1 (ac44e2c2) -> the M2 tester joins | **PASS** | 1 | see above |
+| **5 players** | not run | 0 | needs a host with NO. DRIVERS >= 5 and the laptop and the M4 Max tester Mac to join it (owner's running game; no clicks / warps on those Macs while he uses them); the Deck suspended again at ~14:30 |
+| co-op win, late join, 3-human Co-op Scene 17 | not run | 0 | needs the laptop and the M4 Max tester Mac (owner) and driving to a win |
 
 **Stock arenas for daylight + hills** (read from the 15 `miss8\Mnn.MSN` WRLD hour byte +0x93 and `Mnn.TER` heights; titles
 from i76shell's table; hour 0 = night: Night Driver is 0):

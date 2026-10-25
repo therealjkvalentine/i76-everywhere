@@ -180,7 +180,7 @@ Then say: promote yes / no.
 
 ### Cause
 
-T05's opening drives the player's car with the AI. i76-map `subsystems/ai.md` M49a describes the latch involved:
+T05's opening drives the player's car with the AI. <re-archive> `subsystems/ai.md` M49a describes the latch involved:
 - 0x5244c0 = "an AI control writer touched the player's car last frame";
 - the keys are locked while it is set;
 - the T05 opening keeps a behaviour stack on the player.

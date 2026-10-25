@@ -1,21 +1,21 @@
 # Changing how Interstate '76 works: levers and traps
 
 A practical guide for changing physics, cheats and game rules without breaking the game. Written 2026-09-27 from
-the reverse-engineering specs in i76-map (`subsystems/*.md`); every claim there cites the instruction it comes from.
-Try changes on the **sandbox** (`C:\Users\james\i76-uncap-lab\game`), never on the install you play.
+the reverse-engineering specs in <re-archive> (`subsystems/*.md`); every claim there cites the instruction it comes from.
+Try changes on the **sandbox** (`<lab>\game`), never on the install you play.
 
 ## The four levers, safest first
 
 | lever | what it changes | how | safety |
 |---|---|---|---|
-| **Data files** | car stats, weapons, missions, scripts, terrain surfaces | i76-map `data\mod\i76mod.py` (`show` / `set` / `car`, `--zfs` rebuilds the archive). It writes only under `data\out`, reads every edit back and re-parses it | safest: the game's own code reads the values |
+| **Data files** | car stats, weapons, missions, scripts, terrain surfaces | <re-archive> `data\mod\i76mod.py` (`show` / `set` / `car`, `--zfs` rebuilds the archive). It writes only under `data\out`, reads every edit back and re-parses it | safest: the game's own code reads the values |
 | **Proxy switches** | frame-rate behaviour, timing, render smoothness | `music-fix\Strlkup.dll` environment variables (`music-fix\README.md`); the sandbox launcher `TEST-FRAMERATE.bat` sets them | opt-in; every patch checks the bytes first and logs what it applied |
 | **Trainer** | live player state | `tools\trainer\i76trainer.py` (status, repair, the game's unlimited switches, ammo, teleport) | live pokes, read back; sandbox only by default |
 | **New code patches** | anything else | add a patch to the proxy, following its verify-bytes-first pattern | needs the spec for the site |
 
 ## Which data field actually does what
 
-The full table (data field -> runtime field -> the code that reads it) is in i76-map `subsystems/engine.md`
+The full table (data field -> runtime field -> the code that reads it) is in <re-archive> `subsystems/engine.md`
 ("Vehicle creation") and `subsystems/weapons.md` ("Tunables"). Traps worth knowing before editing:
 
 - **Brake strength (BRAK +4) does nothing in single player.** `physics_InitEntity` replaces every car's brake strength
@@ -35,7 +35,7 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
 - **Missile guidance is exe code, not data.** The heat missile snaps to its target every step (no turn limit). The
   radar missile's turn clamps (sin 3 / 15 / 20 deg per step by distance flown, 0x4bec2c..0x4bec38), the 70 m
   shooter immunity and the 0.5 m terrain floor are exe constants. Only speed, damage, life and gravity scale come
-  from the ORDF (i76-map `weapons.md`, Projectile types).
+  from the ORDF (<re-archive> `weapons.md`, Projectile types).
 - **Flamer damage depends on the renderer.** It is applied per rendered frame per hitting segment (at least 1 each)
   and again in the rear-mirror pass. Balance flamers with `I76_FRAMERATE_FIXES` on, which applies it 20 times a
   second from the main pass (`weapons.md`, Flamers).
@@ -52,7 +52,7 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
 ## Physics changes that stay stable
 
 - **Do not change the physics step rate** without `I76_FIXED_STEP`. Contact push-out, rest snap, the suspension
-  filter and coasting losses all follow the number of steps per second (i76-map `framerate.md`). 24 steps/s
+  filter and coasting losses all follow the number of steps per second (<re-archive> `framerate.md`). 24 steps/s
   reproduces stock play at 20 fps.
 - **Things that run once per rendered frame** (object collision, far vehicles, the AI, several effects) change with
   frame rate. The proxy's `I76_FRAMERATE_FIXES` covers the gameplay-relevant ones: clouds, free-look, zoom, throttle
@@ -70,7 +70,7 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
   are the safest cheats. Set from the menu they mark the mission as cheated: a win becomes a failure (no salvage, no
   progress). Set from the trainer, the marker is not set.
 - **Built-in codes** (Ctrl+Shift + typed): `getdown`, `flflat` / `frflat` / `blflat` / `brflat`, `wiggleburger`,
-  `freelance`, `thirdnostril` (i76-map `cheats.md`).
+  `freelance`, `thirdnostril` (<re-archive> `cheats.md`).
 - **Repair and god mode**: repair by setting the current armour, chassis and component values to their maxima (the
   trainer does this). A god-mode hook belongs in `entity_ApplyDamage` 0x465620, not in the kill roll.
 
@@ -82,5 +82,5 @@ The full table (data field -> runtime field -> the code that reads it) is in i76
 
 ## Saves
 
-Parked for now (James, 2026-09-27). The exe side is mapped in i76-map `subsystems/mission.md`: vehscn.vsf holds the car
+Parked for now (the developer, 2026-09-27). The exe side is mapped in <re-archive> `subsystems/mission.md`: vehscn.vsf holds the car
 and salvage after a trip win; I76PLYR.DEF holds only the options block.

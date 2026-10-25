@@ -7,7 +7,7 @@ without the console. **The game was not started** (console unavailable), so the 
 ## What was run
 
 - **Input**: GOG's offline installer `setup_interstate76_2.1.0.17.exe` as unpacked by innoextract into
-  `C:\Users\james\i76-map\sandbox-gog\main\app` (371 files; `i76.exe` `9a232dcc`, `i76shell.dll` `deb41008`, no
+  `<re-archive>\sandbox-gog\main\app` (371 files; `i76.exe` `9a232dcc`, `i76shell.dll` `deb41008`, no
   `I76PATCH.DLL`). Copied, unchanged, into six scratch folders under `%TEMP%\i76-fresh-install-20261010-095059\<variant>\Interstate 76`.
   The source was re-hashed afterwards: unchanged.
 - **Command**: what `INSTALL.bat` runs, `powershell -NoProfile -ExecutionPolicy Bypass -File Setup-From-GOG.ps1`, plus the switches an
@@ -168,8 +168,8 @@ Not checked: an install at the console (no RDP), where the warning must stay sil
 
 ## The boot, at the console (overnight runner P6, 2026-10-11)
 
-Gap 1 closed for best-120. `i76-uncap-lab\autotest\overnight\phases\P6-fresh-install.ps1`: the same GOG 2.1.0.17 tree and
-offline switches as above, into `i76-uncap-lab\game-fresh-<ts>`, setup at the physical console (real 3440x1440 display, no
+Gap 1 closed for best-120. `<lab>\autotest\overnight\phases\P6-fresh-install.ps1`: the same GOG 2.1.0.17 tree and
+offline switches as above, into `<lab>\game-fresh-<ts>`, setup at the physical console (real 3440x1440 display, no
 RDP warning), then `option6-trip-test.ps1 -Launcher <folder>\PLAY-i76.bat` (TRIP -> LOAD BOOKMARK -> row -> LOAD -> ACCEPT
 SALVAGE -> DONE). Lab run `autotest\runs\overnight-20261011-204548\P6`, 7/7 PASS: engine up in the mission at **120.0 fps**
 (proxy heartbeat; exe counter 120.1) on `9a232dcc` with preset best-120, u32x `06467bd2`, proxy `c11f7f7d`; mciproxy.log 38
@@ -209,7 +209,7 @@ display-dependent digits and the driver's portable layout (its launchers sit one
 
 ### Run
 
-Same input and offline switches as above (copy of `i76-map\sandbox-gog\main\app`, 371 files, `i76.exe` `9a232dcc`; zero-byte
+Same input and offline switches as above (copy of `<re-archive>\sandbox-gog\main\app`, 371 files, `i76.exe` `9a232dcc`; zero-byte
 dummy `-GogExe`; `-ToolsDir` = scratch copy of `C:\Games\_tools\dgVoodoo2_87_3` + `AutoHotkey_1.1.37.02`; `-SkipNitro -NoShortcut -Yes`),
 scratch `%TEMP%\i76-p16-parity-20261012` (deleted afterwards). Run twice: once before two summary-line edits and the
 `Make-Daily-Driver.ps1` fixes, then again on clean copies with the committed code; the numbers below are the second run.

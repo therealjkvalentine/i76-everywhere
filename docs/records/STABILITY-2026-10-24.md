@@ -73,7 +73,7 @@ next mission loads in the same session. The Esc menu's own Replay / Abort pass t
 | gold-before-replay-1 | fc6a5960 (RC) | t01, replay from gameplay x3 | 3 | **CRASH at the 3rd: Strlkup+0x3D3B1 reading 0x0EB42F84, frame 0 state 5** - the owner's signature |
 | gold-after-replay-1 | e78aedd5 (fdf07cf) | t01, replay from gameplay x5 | 5 | 0 CRASH; each load logs `sim-tick: new mission - forgot 7 moving objects` (the 7 pointers the old code would have read) |
 | gold-after-replay-5 | e78aedd5 | the same, second session | 5 | 0 CRASH, 5 x `forgot 7` |
-| laptop mc-gold-after-replay | e78aedd5 | the same on the laptop bench (C:\i76-benchc-twin-dgv2875, dgVoodoo 2.87.5; `laptop-benchench\mc-job.ps1`) | 5 | 0 CRASH, 5 x `forgot 7` |
+| laptop mc-gold-after-replay | e78aedd5 | the same on the laptop bench (<bench>c-twin-dgv2875, dgVoodoo 2.87.5; `laptop-benchench\mc-job.ps1`) | 5 | 0 CRASH, 5 x `forgot 7` |
 | laptop mc-gold-before-replay | fc6a5960 | the same | 1 | **CRASH at the 1st: Strlkup+0x3D3B1 reading 0x14E42F84, frame 0 state 5**, exit 0xC0000005 |
 | nitro-before-exit-1 | 0c4f109c | p01, exit (0xa) from gameplay | 1 | **CRASH ntdll+0x87B71 reading 0x0D1705B7, state 10, 0x433871 on the stack** - the owner's signature; the game sits in its exception box |
 | nitro-before-abort-1 | 0c4f109c | p01, abort (2) from gameplay (direct boot: the session ends) | 1 | **the same CRASH** |

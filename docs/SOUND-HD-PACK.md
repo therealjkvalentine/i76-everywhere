@@ -1,7 +1,7 @@
 # Interstate '76 HD sound pack: research and design (2026-10-10)
 
 Scope: design and research only. The game was not run and no game folder or existing code was changed. Analysis
-outputs live in `C:\Users\james\i76-uncap-lab\captures\sound-hd-research\` (script, CSV, ranking, summary).
+outputs live in `<lab>\captures\sound-hd-research\` (script, CSV, ranking, summary).
 Legend: **VERIFIED** = an instruction, a file parse or a listed install, cited; **INFERRED** = my reading of those;
 **PROPOSED** = not built; **unknown** = not established here.
 
@@ -42,14 +42,14 @@ systems (and bass transducers) can reproduce; iZotope "x11" is on the machine.
 
 | where | what | source |
 |---|---|---|
-| `I76.ZFS` (55,535,506 B, 6,116 entries) | 507 `.wav` + 123 `.gpw` = 630 sound files, 30.0 MB (54 % of the archive) | `i76-map\data\FORMATS.md` table; extracted corpus `i76-map\recon-2026-09-04\recon\formats\zfs_out` |
-| `music.wav` (loose, 634,572 B) | one 57.6 s 11,025 Hz 8-bit file beside the exe | `sandbox-gog\main\app\music.wav`; also in `i76-uncap-lab\game` |
-| `music\N.mp3` (16 files) | GOG soundtrack, MPEG-1 layer III 44.1 kHz 160 kbps (frame header `ff fb a0 04`); played by the music-fix proxy through `mpegvideo` | `i76-uncap-lab\game\music`; `docs/MUSIC.md` |
+| `I76.ZFS` (55,535,506 B, 6,116 entries) | 507 `.wav` + 123 `.gpw` = 630 sound files, 30.0 MB (54 % of the archive) | `<re-archive>\data\FORMATS.md` table; extracted corpus `<re-archive>\recon-2026-09-04\recon\formats\zfs_out` |
+| `music.wav` (loose, 634,572 B) | one 57.6 s 11,025 Hz 8-bit file beside the exe | `sandbox-gog\main\app\music.wav`; also in `<lab>\game` |
+| `music\N.mp3` (16 files) | GOG soundtrack, MPEG-1 layer III 44.1 kHz 160 kbps (frame header `ff fb a0 04`); played by the music-fix proxy through `mpegvideo` | `<lab>\game\music`; `docs/MUSIC.md` |
 | `DATABASE.MW2` items 0x48-0x52 | 11 shell (menu) WAVs, 8-bit mono 11,025 Hz (one at 22,050), read by i76shell.dll, not the exe | FORMATS.md section 11 |
 | `ADDON\` | the override folder; pristine has no sounds in it, the sandbox's carries the owner's .vcf/.lvl/.ter/.map mods and no sounds | directory listings 2026-10-10 |
 
-Lab copies: `C:\Users\james\i76-uncap-lab\game` (sandbox; its `I76.ZFS` md5 = pristine) and the pristine read-only
-`C:\Users\james\i76-map\sandbox-gog\main\app`. The daily driver (`C:\Users\james\Games\Interstate76-2026-10-03`) is
+Lab copies: `<lab>\game` (sandbox; its `I76.ZFS` md5 = pristine) and the pristine read-only
+`<re-archive>\sandbox-gog\main\app`. The daily driver (`<games>\Interstate76-2026-10-03`) is
 out of scope for anything in this document (memory: never experiment on the daily driver).
 
 ### 1.2 Format of every file (VERIFIED by parse, `stock-sound-survey.csv`)
@@ -78,7 +78,7 @@ out of scope for anything in this document (memory: never experiment on the dail
 
 ### 1.3 How a sound is loaded and played (what a replacement must satisfy)
 
-All addresses are in the pristine exe (md5 9a232dcc), read with `i76-map\tools\disasm.py 0x425130` on 2026-10-10
+All addresses are in the pristine exe (md5 9a232dcc), read with `<re-archive>\tools\disasm.py 0x425130` on 2026-10-10
 unless cited to a map document.
 
 1. **Name resolution** (VERIFIED): `_splitpath`, append `.gpw` (string 0x4ed898), `0x470340(exists)`; if absent, the
@@ -189,7 +189,7 @@ soundhd.py install   --pack pack\ --game <lab game dir> [--dry-run]       # ADDO
 soundhd.py uninstall --game <lab game dir>
 ```
 
-Stages read the extracted corpus (`recon\formats\zfs_out`) or extract from a given `I76.ZFS` with `i76-map\tools\
+Stages read the extracted corpus (`recon\formats\zfs_out`) or extract from a given `I76.ZFS` with `<re-archive>\tools\
 i76fmt\zfs.py`; they never write into a game folder except `install`.
 
 ### 3.2 Per-category recipe (defaults; every field overridable per sound)
@@ -217,7 +217,7 @@ the LFE stem = sub only (full level), written as 16-bit mono at 16,000 Hz (the r
 ### 3.3 Pack layout
 
 ```
-sound-hd\                       (lab staging, e.g. i76-uncap-lab\staging\sound-hd\v0.1)
+sound-hd\                       (lab staging, e.g. <lab>\staging\sound-hd\v0.1)
   manifest.json                 version, source archive md5, per sound: stock payload md5, replacement md5, LFE md5,
                                 recipe id + parameters, rate/bits, stock vs new loudness (LU) and true peak, RX pass used (y/n, preset md5)
   addon\*.gpw, *.wav            speaker mix, installed into <game>\ADDON  (GAS0 header copied from the stock .gpw)
@@ -241,7 +241,7 @@ sound-hd\                       (lab staging, e.g. i76-uncap-lab\staging\sound-h
 
 ### 3.5 Install / uninstall (PowerShell or the python CLI; lab only until gated)
 
-- Allowed targets are an explicit list: `C:\Users\james\i76-uncap-lab\game*` only. Any other path (the daily driver
+- Allowed targets are an explicit list: `<lab>\game*` only. Any other path (the daily driver
   especially) is refused unless a `-Gated` switch is passed together with a path listed in a future
   `docs/records/READY-TO-TEST.md` entry. Default is `--dry-run`.
 - Before writing, `install` refuses if a target name already exists in `ADDON\` with an md5 that is not in the
@@ -307,10 +307,10 @@ judge the sound itself (section 6, test 3).
 3. Round-trip: parse each `.gpw` replacement with `data\fmt\other_formats.py` GPW handler; header fields equal stock.
 4. Loop seam test and sub-cycle test on every mode-1/2 stem.
 5. Synthetic pass: a 1 kHz tone file through the pipeline gains a 35-90 Hz sub only at onsets and nothing else.
-6. Dry-run install against `i76-uncap-lab\game` prints the exact file list; a real install there, read-back md5s,
+6. Dry-run install against `<lab>\game` prints the exact file list; a real install there, read-back md5s,
    `uninstall` restores the ADDON listing to its prior state (diff of `Get-ChildItem` before/after).
 
-### 6.2 Live, on the lab copy only (console agent, with `i76-uncap-lab\tools\mute.ps1` as needed)
+### 6.2 Live, on the lab copy only (console agent, with `<lab>\tools\mute.ps1` as needed)
 
 1. **Loader proof**: install one file, `vexplode.gpw`, rendered at 22,050 Hz 16-bit with an audible marker (a short
    440 Hz blip at its start). Destroy a car; the proxy's debug ring should show the voice with `+0x48 = 22050`; the
@@ -332,11 +332,11 @@ judge the sound itself (section 6, test 3).
 ---------------------------------------------------------------------------------------------------
 ## 7. Files and sources
 
-- Analysis outputs: `C:\Users\james\i76-uncap-lab\captures\sound-hd-research\analyze_stock_sounds.py`,
+- Analysis outputs: `<lab>\captures\sound-hd-research\analyze_stock_sounds.py`,
   `stock-sound-survey.csv` (631 rows), `low-end-ranking.md`, `summary.json`.
-- Format and loader evidence: `C:\Users\james\i76-map\data\FORMATS.md` (s.6, s.8, s.11), `data\notes\terrain-text-sound.md`
+- Format and loader evidence: `<re-archive>\data\FORMATS.md` (s.6, s.8, s.11), `data\notes\terrain-text-sound.md`
   (s.2), `data\fmt\other_formats.py`, `data\mod\zfspatch.py`, `subsystems\sound.md`, `tools\disasm.py 0x425130`
-  (pristine `ghidra\i76_ref.exe`), `C:\Users\james\i76-everywhere\docs\records\SOUND-INTERPOSER-REVIEW.md`,
+  (pristine `ghidra\i76_ref.exe`), `docs\records\SOUND-INTERPOSER-REVIEW.md`,
   `docs\HD-TEXTURES-RESEARCH.md`, `docs\MUSIC.md`, `music-fix\strlkproxy.c`, `tools\ffb\LfeSynth.ps1`,
   `tools\ffb\ffb-lfe-live.ps1`, `tools\ffb\README.md`, `tools\gpw-envelopes.py`, `sound-rumble\dsndrumble.c`.
 - Installed tools: registry uninstall keys (RX 11 Audio Editor Advanced 11.2.0, Audacity 3.7.6, FFmpeg for Audacity,

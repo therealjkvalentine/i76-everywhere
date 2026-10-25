@@ -8,9 +8,9 @@ the owner saved from the keyboard with no freeze on 2026-10-02. This file is a 2
 into [VERIFIED-FIXES.md](../VERIFIED-FIXES.md); the live state table is [RELEASE-PLAN.md](../RELEASE-PLAN.md) section 1.)*
 
 > **2026-10-03:** "the portable daily-driver install" here is the old folder in Downloads. The daily driver is now
-> `C:\Users\james\Games\Interstate76-2026-10-03` ([NEW-DAILY-DRIVER-RECIPE.md](NEW-DAILY-DRIVER-RECIPE.md)).
+> `<games>\Interstate76-2026-10-03` ([NEW-DAILY-DRIVER-RECIPE.md](NEW-DAILY-DRIVER-RECIPE.md)).
 
-> **Correction 2026-10-01 (i76-map finding L004):** only the u32x fix is deployed. The camera-rate patch is
+> **Correction 2026-10-01 (<re-archive> finding L004):** only the u32x fix is deployed. The camera-rate patch is
 > **not** on the portable install: "The portable i76.exe 6319abf7 differs from pristine only by the aio clusters
 > and the u32x import rename; the .rdata constant 0x4bc528 is unchanged there
 > (binaries/diff-9a232dcc-vs-6319abf7.tsv: .rdata run list), so no camera-rate patch is deployed." The rescaled
@@ -113,7 +113,7 @@ save, so start from the nearest mission you have.
 Both fixes are reversible with backups kept beside the originals:
 
 ```bash
-# from i76-uncap-lab:
+# from <lab>:
 tools\instruments\deploy-shellfix.ps1 -GameDir "<portable>\Interstate 76" -Restore   # mouse/save fix off
 tools\framerate\patch-camera-rate.ps1 -GameDir "<portable>\Interstate 76" -Restore   # camera rate back to stock
 ```
@@ -126,9 +126,9 @@ sandbox only — no camera patch is on the portable, L004.)*
 ## A6 — Draw distance (NEW, 2026-08-16 — sandbox only, judge before deploying)
 
 **Cracked and verified unattended** — [DRAW-DISTANCE.md](../DRAW-DISTANCE.md) has the full story. The
-**sandbox** (`i76-uncap-lab\game`) is currently patched to **8000 m** (stock is 600; 12000 crashed
+**sandbox** (`<lab>\game`) is currently patched to **8000 m** (stock is 600; 12000 crashed
 even big pools) with the render pools enlarged 128× (the fix for the crash that capped it). Screenshots in
-`i76-uncap-lab\captures\farclip\` show the delta: fog-clipped mesa stubs → full mountain ranges.
+`<lab>\captures\farclip\` show the delta: fog-clipped mesa stubs → full mountain ranges.
 
 *(corrected 2026-10-02: the 8000 m / 128x sandbox crashed on the F6 hood view and B binoculars every time —
 the terrain tessellator's 16-bit vertex indices overflow between 2500 and 2750 m,
@@ -210,7 +210,7 @@ so the two do not contend for game memory.
   whole 20-vs-60 A/B and prints the hit rates:
 
   ```
-  powershell -ExecutionPolicy Bypass -File ..\i76-uncap-lab\tools\framerate\cactus-ab.ps1
+  powershell -ExecutionPolicy Bypass -File ..\<lab>\tools\framerate\cactus-ab.ps1
   ```
 
   ~15 cactus approaches per rate across 3 cold mission loads each, ~15 min unattended. I can run it

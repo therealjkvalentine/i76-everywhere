@@ -20,16 +20,16 @@ needs a live check (section 6).
 
 | tag | file | md5 |
 |---|---|---|
-| AiO (lab) | `i76-uncap-lab\game\i76.exe` | 85de44a7136979d7730800eeba8ca6cf |
-| Galaxy 2017 | `i76-uncap-lab\game\i76.exe.2017galaxy` (= `i76_pristine.exe`, = `i76-map\ghidra\i76_ref.exe`) | 9a232dcc2c164648cff20c414c1f9698 |
-| gog-extract | `i76-uncap-lab\game-gogtest\gog-extract\app\i76.exe` | 64165126c1b788a8151e9730b9091e1c |
-| ZGLIDE | `i76-uncap-lab\game\ZGLIDE.DLL` (image base 0x10000000) | 05c1dde499cd8da3248557a76ba42f31 |
+| AiO (lab) | `<lab>\game\i76.exe` | 85de44a7136979d7730800eeba8ca6cf |
+| Galaxy 2017 | `<lab>\game\i76.exe.2017galaxy` (= `i76_pristine.exe`, = `<re-archive>\ghidra\i76_ref.exe`) | 9a232dcc2c164648cff20c414c1f9698 |
+| gog-extract | `<lab>\game-gogtest\gog-extract\app\i76.exe` | 64165126c1b788a8151e9730b9091e1c |
+| ZGLIDE | `<lab>\game\ZGLIDE.DLL` (image base 0x10000000) | 05c1dde499cd8da3248557a76ba42f31 |
 
 Note: the path given for "the Galaxy exe" (gog-extract) is **not** md5 9a232dcc; `i76.exe.2017galaxy` is. Both were
 compared. Their `.text` differs from the AiO exe in the same 2,473 bytes, none of them at a site below. The
 daily driver's own exe was not compared (`game-dd-20261003` holds no `i76.exe`).
 
-Tools: capstone + pefile (scratch scripts), `i76-map\tools\i76fmt` (ZFS / pak reader) for the data tables.
+Tools: capstone + pefile (scratch scripts), `<re-archive>\tools\i76fmt` (ZFS / pak reader) for the data tables.
 
 ## 1. Mipmaps and filtering under Glide
 

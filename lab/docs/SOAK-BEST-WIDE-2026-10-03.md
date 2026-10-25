@@ -5,7 +5,7 @@ terrain x8, terrain textures x8, objects x8, bushes 300 m, shadows 200 m, road t
 clip 1800, 120 Hz). Before this soak it had only been run on t01. The far-clip soak of 2026-10-02 covered t01-t17
 without the detail switches.
 
-**Where:** `C:\Users\james\i76-uncap-lab\game` only, with `dgVoodoo.aspect-wide.conf` swapped in for each batch.
+**Where:** `<lab>\game` only, with `dgVoodoo.aspect-wide.conf` swapped in for each batch.
 `i76.exe` md5 85de44a7 (file-patched far clip 1800, pools x16). Every run used proxy `music-fix\Strlkup.dll` built
 **10-03 12:38:08, md5 0b18d77c**, installed and restored per run by proxy-run. At the end the folder's conf
 (6be07be8), STRLKUP.DLL (54f2de9d), every save*.cmp, savegame.dir, *.def, *.spc and input.map were byte-identical to

@@ -13,11 +13,11 @@ evidence; **[folklore]** = repeated claim nobody has measured.*
 > - [music-fix/README.md](../../music-fix/README.md) — the switch table with per-switch measured evidence
 >   (`I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`,
 >   `I76_FPS_CAP`);
-> - i76-map `captures/014-framerate/README.md` (`C:\Users\james\i76-map\captures\014-framerate\README.md`) — the
+> - <re-archive> `captures/014-framerate/README.md` (`<re-archive>\captures\014-framerate\README.md`) — the
 >   live captures, 2026-09-27: claim-by-claim verdicts, drop test, jump test, step-rate analysis;
-> - i76-map `subsystems/framerate.md` and `subsystems/simclock.md` — the static reading those captures tested.
+> - <re-archive> `subsystems/framerate.md` and `subsystems/simclock.md` — the static reading those captures tested.
 >
-> Status of the result: sandbox-verified, not yet console-verified by James; nothing deployed to the playable
+> Status of the result: sandbox-verified, not yet console-verified by the developer; nothing deployed to the playable
 > install. The text below is kept as the dated record of what was believed before the measurements.
 
 **The question:** can the engine's real frame rate be doubled/tripled (20 → 40–60) by
@@ -25,7 +25,7 @@ scaling the physics so it doesn't break? Frame generation (LSFG x2, see
 [Setup-FrameGen.ps1](../../Setup-FrameGen.ps1)) already fakes 40 at the display; this is
 about real frames.
 
-> **Update 2026-09-26 (static, i76-map `subsystems/simclock.md`).** The first true unknown below is answered: a
+> **Update 2026-09-26 (static, <re-archive> `subsystems/simclock.md`).** The first true unknown below is answered: a
 > dt **does** feed the integrator. `simclock_Update` 0x49c920 turns GetTickCount into dt each frame, and each
 > vehicle's physics runs in substeps of that dt (`entity_TickVehicle` 0x463800: count = floor(dt×20)+1, capped at 20,
 > step = dt/count, so at most 50 ms). The 0.047–0.063 s jitter of 0x4f2488 is GetTickCount's 15.6 ms granularity

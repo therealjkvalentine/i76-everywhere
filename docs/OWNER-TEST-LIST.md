@@ -1,7 +1,7 @@
-# Owner test list (things only James at the console can check)
+# Owner test list (things only the developer at the console can check)
 
-Kept current by the agents; newest additions at the bottom of each section. Lab copy = `C:\Users\james\i76-uncap-lab\game-dd-20261003`.
-Daily driver = `C:\Users\james\Games\Interstate76-2026-10-03`. Audio may be muted by the agents: `i76-uncap-lab\tools\mute.ps1 -Off`.
+Kept current by the agents; newest additions at the bottom of each section. Lab copy = `<lab>\game-dd-20261003`.
+Daily driver = `<games>\Interstate76-2026-10-03`. Audio may be muted by the agents: `<lab>\tools\mute.ps1 -Off`.
 **Morning summary 2026-10-16: [OWNER-MORNING-2026-10-16.md](OWNER-MORNING-2026-10-16.md)** (what is still untested, ready-to-promote
 candidates, your open decisions; ordered by value, each with its launcher and time).
 **Status marks 2026-10-16** ([BACKLOG-2026-10-16.md](BACKLOG-2026-10-16.md)): items closed or replaced carry a `[DONE ...]`,
@@ -12,11 +12,11 @@ place: new items 45-52 at the bottom, plus items 1-2 and 36; the headline on how
 ## Before bed (the overnight agent run)
 
 0. **Before bed: run `tools\rdp-to-console.cmd` (ends Remote Desktop, hands the session to the console) and tell the agent; it runs
-   `autotest\overnight\run-overnight.ps1`** (lab repo `C:\Users\james\i76-uncap-lab`, README beside it). Unattended, about 2.5 h: the
+   `autotest\overnight\run-overnight.ps1`** (lab repo `<lab>`, README beside it). Unattended, about 2.5 h: the
    automatable parts of items 3, 5, 6, 7 (step 1, the loader proof), 8 and 16 plus regression drives of the three daily-driver presets,
    all on lab copies; results in `autotest\runs\overnight-<ts>\summary.md`. Close the trainer GUI (`_tools\trainer\i76trainer_gui.py`)
    and anything else reading telemetry first: it holds the shared memory at the old size and the new proxy cannot use it. The run leaves
-   the audio muted (`i76-uncap-lab\tools\mute.ps1 -Off`).
+   the audio muted (`<lab>\tools\mute.ps1 -Off`).
    **First run 2026-10-11 + same-evening follow-up: [records/OVERNIGHT-2026-10-11.md](records/OVERNIGHT-2026-10-11.md)** (per-phase
    verdicts, the harness bugs it exposed and fixed, what is still yours). Items marked *(automated 2026-10-11)* below were covered
    by it; only the parts that need eyes, ears or hands remain.
@@ -102,7 +102,7 @@ place: new items 45-52 at the bottom, plus items 1-2 and 36; the headline on how
    (2,904 / 2,906 frames, 0 gaps), SOUND_START PLAYER + other with positions, SOUND_STOP, WEAPON_UI cycle, DAMAGE_SIDE, no CRASH.
    Left for you: the in-game half - does anything sound missing or doubled, any stutter - since the run was muted.)
 7. **HD sound pack A/B (`tools/soundhd`, pack v1, NOT installed anywhere yet).** An agent installs it into the lab copy first
-   (`soundhd.py install --game <lab copy>` dry run, then `--apply`; it refuses anything outside `i76-uncap-lab\game*`, never overwrites
+   (`soundhd.py install --game <lab copy>` dry run, then `--apply`; it refuses anything outside `<lab>\game*`, never overwrites
    your ADDON mods, and `uninstall --apply` removes exactly its 123 `.gpw`). Step 1 is the loader proof: blow up a car, and the
    explosion should play from the pack (16-bit 22 kHz). If it sounds exactly like stock, say so: that means loose ADDON `.gpw` are ignored.
    *(Step 1 automated 2026-10-11, P4: PASS, twice.* A marked `wmflame.gpw` in ADDON (header priority +7, tone at 1.5x rate): all 42
@@ -225,10 +225,10 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
     (`188e0c07`) is still open, and it is an agent gate at a free console, not a playtest.)*
     **Gate the 2026-10-10 proxy cleanup builds on the lab twin before any promotion.** Physical console, nobody playing
     (the gate takes the mouse, the keyboard and the screen for about 10 minutes). Put the side builds into the twin
-    `..\i76-uncap-lab\game-dd-20261003` only, keeping its current files beside them: `music-fix\out\Strlkup.dll`
+    `..\<lab>\game-dd-20261003` only, keeping its current files beside them: `music-fix\out\Strlkup.dll`
     (md5 `8b904e53`) over the twin's `Strlkup.dll`, and `u32x\u32x_full.build.dll` (md5 `188e0c07`) through
     `u32x\deploy-u32x.ps1 -GameDir <twin> -U32xDll u32x\u32x_full.build.dll -AllowUnverified`. Then
-    `powershell -ExecutionPolicy Bypass -File ..\i76-uncap-lab\autotest\gate-folder.ps1 -GameDir ..\i76-uncap-lab\game-dd-20261003`.
+    `powershell -ExecutionPolicy Bypass -File ..\<lab>\autotest\gate-folder.ps1 -GameDir ..\<lab>\game-dd-20261003`.
     Expected: the same 23 rows as `autotest\runs\gate\20261008-204529`, with no new FAIL. Watch row 4: the u32x
     modal-pointer arrow on the save screen's prompt now draws without the removed VPTR code. Watch row 3 too: the frame
     rate through the launcher. `mciproxy.log` should show the usual switch lines and no `glide-dir` line. Report the
@@ -239,16 +239,16 @@ holds neutral for the first 3 s. Nothing here was installed or run by an agent.
 
 Before these, look at the offline mock-up (`texture-lab\out\cockpit-mockup\index.html`, built by
 `texture-lab\cockpit_mockup.py`) and decide whether a sharper dash shell around unchanged gauges is worth a session.
-Three boots of t01 in the Piranha on `..\i76-uncap-lab\game-tex`, same conf and same `ZGLIDE` for all three (start with
+Three boots of t01 in the Piranha on `..\<lab>\game-tex`, same conf and same `ZGLIDE` for all three (start with
 the copy's normal conf; if the proxy log's `tex-census` shows NO-SLOT, repeat all three with
-`-Conf ..\i76-uncap-lab\game-tex\dgVoodoo.tmu16.conf -ZglideFix`). Build each pair from game-tex's own archive into a
+`-Conf ..\<lab>\game-tex\dgVoodoo.tmu16.conf -ZglideFix`). Build each pair from game-tex's own archive into a
 staging folder, then copy the four files (`vppirnag.pak/.pix`, `zdash106.pak/.pix`) into `game-tex\ADDON`; between
 runs delete them again (nothing else in ADDON changes; the pirana*6 paint packs already there stay for all three).
 Each run: capture the start view (F1 cockpit is the default), then press F1 once and capture the 2D dash; record the
 `tex-census` lines (downloads, NO-SLOT, flushes) and the telemetry fps.
 
 28. **control.** No dash files in ADDON. The reference capture and census.
-29. **marker2x-split.** `python texture-lab\cockpit_split.py --game ..\i76-uncap-lab\game-tex --out texture-lab\out\cockpit-split\gt-marker2x --marker`
+29. **marker2x-split.** `python texture-lab\cockpit_split.py --game ..\<lab>\game-tex --out texture-lab\out\cockpit-split\gt-marker2x --marker`
     (prints `self-check: PASS`; `preview-as-seen.png` there shows the expected panel). In the start view only the top
     edge of the dash is on screen: pass = blue and yellow frame lines along it and, left to right from the PRND plate,
     the small labels `101-11` (yellow), `102-01` (blue), `102-11` (yellow; `101-01` is further left, near the N plate),
@@ -260,7 +260,7 @@ Each run: capture the start view (F1 cockpit is the default), then press F1 once
     wrong; white, black or wrong textures elsewhere = TMU allocator (look at NO-SLOT); a crash = read the proxy `CRASH`
     line. A thin line along a quarter border is a seam: report it (the tool's `--seam clamp` build is the A/B).
     The 2D dash after F1 must look exactly like the control.
-30. **art2x-split.** `python texture-lab\cockpit_split.py --game ..\i76-uncap-lab\game-tex --out texture-lab\out\cockpit-split\gt-art2x --png-dir texture-lab\out\cockpit-mockup\tiles`
+30. **art2x-split.** `python texture-lab\cockpit_split.py --game ..\<lab>\game-tex --out texture-lab\out\cockpit-split\gt-art2x --png-dir texture-lab\out\cockpit-mockup\tiles`
     (the 2x tiles the mock-up wrote). Same captures. Judge crops of the dash strip against run 28 blind
     (`tools\upscale\ab_viewer.py`): sharper, same, or worse, and anything that changed colour. Kill criteria as run 29,
     plus colour banding on the dash (each quarter has its own 255-colour palette). If the dash only matters when you look
@@ -536,7 +536,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     fps with the tab closed vs open, n = 2 each). Offline-tested only: tools\debug\README.md "Not verified yet".
 
 33b. **Full car state store / restore + the haptics button (new 2026-10-20 evening, records/DEBUG-TOOL-2026-10-20.md).** Staged, not
-    installed: needs the proxy from `i76-uncap-lab\builds\debug-tool-20261020\stage` (the main lane installs it after its gate).
+    installed: needs the proxy from `<lab>\builds\debug-tool-20261020\stage` (the main lane installs it after its gate).
     In T05: `DEBUG.bat` (Trainer tab, "full state: proxy"). Drive up the ridge toward the canyon jump, press **Ctrl+9** just before
     the lip (or mid-air), land or crash, press **Ctrl+0**: the car must reappear where it was, facing the same way, pitched the
     same, moving at the same speed, and do the same jump again with the same throttle (n 3). Then Ctrl+9 parked on the ridge and
@@ -630,7 +630,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **ANSWERED 2026-10-17 (owner): simulation physics (Arcade Phys. off).** The gold standard is retail 1.0 with stock options; arcade runs are kept only as the arcade reference.
     Every retail 1.0 emulator run before 2026-10-16 22:42 had Arcade Phys. **on** by accident (a Gold-layout `I76PLYR.DEF` read by the
     1997 exe). The stock default is off in both exes, and the emu runs since lab 0e2f16c are already off - nothing to switch.
-    - **Read:** `C:\Users\james\i76-everywhere\docs\records\RETAIL-HANDLING-DIFF.md`, the Answer and section 5.
+    - **Read:** `docs\records\RETAIL-HANDLING-DIFF.md`, the Answer and section 5.
     - **Decide:** gold standard = retail 1.0 with stock options (arcade off), or do you remember playing 1997 with Arcade Phys. on?
     - **Feel it (optional, part of item 44):** lab twin `TEST-p166-retail-step.bat`, Esc > Options > Play Options > tick Arcade Phys.,
       fast corners and a roof landing; **untick it afterwards** (the game saves it to the twin's `I76PLYR.DEF`).
@@ -639,23 +639,23 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
     - **Owner's 1997 settings (2026-10-17):** software renderer (no 3D card), 640x480, rear-view mirror on, sound effects and music on at defaults, detail as high as the frame rate allowed. He no longer wants feel-from-memory used as evidence for the physics step; the step is decided by the study in records/PHYSICS-STEP-STUDY-DESIGN.md.
     Your own pbs-p166 machine on a logging copy of your disk; your `w95pb-hdd.img` is untouched (sha256 re-checked). The launcher
     refuses to start if the logging disk is already in use, so no pre-check is needed.
-    - Double-click `C:\Users\james\i76-uncap-lab\emu\PLAY-P166-LOGGED.bat` (disc 2 in the drive). If the game asks for disc 1 for
+    - Double-click `<lab>\emu\PLAY-P166-LOGGED.bat` (disc 2 in the drive). If the game asks for disc 1 for
       a mission, close 86Box and relaunch with `PLAY-P166-LOGGED.bat --cd disc1`.
     - Start Interstate '76 from Start > Programs; 320x200, lowest detail; Options: **Arcade Phys. off**.
     - Play T05 to the canyon jump (or any mission). Exiting and restarting the game is fine (each start = one session).
     - Exit the game, Start > Shut Down, wait for "safe to turn off", close 86Box.
-    - **Look for:** `C:\Users\james\i76-uncap-lab\emu\results\memtrace\owner-<date>-<time>\summary.md` lists your session(s): retail 1.0,
+    - **Look for:** `<lab>\emu\results\memtrace\owner-<date>-<time>\summary.md` lists your session(s): retail 1.0,
       in-mission fps around 33-38, Arcade Phys. off, a "T05 canyon descent" line, the mission's music track. Report any "Cannot find
       file" dialog, an empty summary, or a game that feels slower than `run-vm.ps1 pbs-p166`.
     - **Caveat:** the launcher copies the logger from `emu\probe\out`, which is now I76MEM 2026-10-16b (commits the file every
       64 writes), not the 2026-10-16a build the self-test ran. Saves made here stay on the logging disk.
 47. **GOG music file order by ear (medium, 5 min; new 2026-10-17; records/MUSIC-RETAIL-INTENT.md).** Any player:
-    `C:\Users\james\i76-uncap-lab\game\music\3.mp3`, `15.mp3`, `16.mp3`, `17.mp3` (the opening seconds are enough).
+    `<lab>\game\music\3.mp3`, `15.mp3`, `16.mp3`, `17.mp3` (the opening seconds are enough).
     - **Expected:** 3 = Interstate '76 Theme, 15 = Malochio Down, 16 = Skeeter Gettin' Medieval, 17 = Ovum Bisquit. Note any that differ
       (`I76_MUSIC_DISC_ORDER` rests on length matching only until you confirm).
 48. **F2 orphaned bookmark: stock control vs the F2 shell (medium, 12 min; new 2026-10-17; records/BACKLOG-AGENT-ITEMS-2026-10-16.md U-05).**
     - **DONE 2026-10-17 by agent at the console (owner handed it over): PASS.** Control (stock shell a300db63): slot reset to -1 on re-entry, new bookmark names save015.cmp which was never written = ORPHAN (bug reproduced). F2 shell (2ab4ca90) from the same restored saves: slot 15 kept on re-entry, file written, VERDICT OK. Extra check of the plain type-and-Enter save: F2 opens the Save screen at slot 0 (stock -1) but still appends a new bookmark with its file; no existing bookmark changed. n 1 per path; saves restored to the pre-test backup (md5 read back). Driver fix lab 6cb7bae.
-    Twin `C:\Users\james\i76-uncap-lab\game-dd-20261003`; saves are backed up and the shell restored automatically (md5 read back).
+    Twin `<lab>\game-dd-20261003`; saves are backed up and the shell restored automatically (md5 read back).
     1. `TEST-F2-bookmark-control.bat`: load any bookmark > garage > Options > Save Bookmark, type ORPHANA, click once on the empty
        paper right of the list (not a row or button), click the name field, type ORPHANB, SAVE, quit. Read the VERDICT.
     2. `TEST-F2-bookmark.bat`: the same with **ORPHANC / ORPHAND** - use these names even though the console text says ORPHANA / B
@@ -666,7 +666,7 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
 49. **Retail-intent music: the taste calls (medium, 15 min; new 2026-10-17; records/MUSIC-RETAIL-INTENT.md).** The gapless / pause log
     - **ANSWERED 2026-10-17 (owner): retail music across the board EXCEPT resume: `I76_MUSIC_RETAIL=1` + `I76_MUSIC_RESUME=1` (music continues where it stopped on Replay / shell entry).** The listen test is now optional (confirm the shell tracks sound right).
     checks are agent work; only your ears are needed for the choices. Unmute the PC yourself.
-    - `C:\Users\james\i76-uncap-lab\builds\music-retail-20261016\MUSIC-RETAIL-TEST.bat` (retail mode; plays lab `game\`, swaps its
+    - `<lab>\builds\music-retail-20261016\MUSIC-RETAIL-TEST.bat` (retail mode; plays lab `game\`, swaps its
       proxy for the run and puts it back). Main menu 1 min (one short track looping), Options > Credits (another short one), back.
       Start a mission, choose Replay once (retail restarts the track from 0:00).
     - Then `MUSIC-RETAIL-TEST.bat control` and the same.
@@ -674,9 +674,9 @@ dgVoodoo's presentation. The twin's proxy now counts every one of those stages p
 50. **Gold vs retail sliding at 25 m/s, in the emulator (medium, 15 min; new 2026-10-17; records/GOLD-STANDARD-FINGERPRINT.md).**
     The only behaviour where Gold misses retail: yaw while sliding +19 % at 25 m/s (n 12 vs 17), with Gold's held speed 3.9 % lower.
     Our exe has Gold's physics bytes, so this is the open handling question for our exe. Can share the sitting with item 46.
-    - `C:\Users\james\i76-uncap-lab\emu\PLAY-P166-LOGGED.bat`, Arcade Phys. off, Instant Melee: hold about 55 mph, full lock left
+    - `<lab>\emu\PLAY-P166-LOGGED.bat`, Arcade Phys. off, Instant Melee: hold about 55 mph, full lock left
       and right a few times.
-    - Again with `PLAY-P166-LOGGED.bat --cd gold`, starting `C:\I76GOLD\I76.EXE` from Start > Run (the Start menu may only list retail).
+    - Again with `PLAY-P166-LOGGED.bat --cd gold`, starting `<gold game folder>\I76.EXE` from Start > Run (the Start menu may only list retail).
     - **Look for:** does Gold visibly slide out or spin more at the same speed and lock? Does it matter to you for "stock"?
 51. **Instant Melee frame replays on the twin, first run (medium, 10 min smoke, then 20-40 min; new 2026-10-17; records/LAB-FRAME-REPLAY.md).**
     - **Ran 2026-10-17 at the console (agent, owner handed it over): FAILED before measuring.** Both Gold replays (g166-mloop-rep1, -N 2) printed "Did not reach mission (menu nav may have drifted)" and "no common frames"; the game booted, took the lock, muted, exited 0. Summary: lab tools
@@ -685,14 +685,14 @@ unsmelee-console-20261017-145313.txt. Needs agent debugging of the melee menu na
     The only clean frame-by-frame exe vs emulator comparison (same default car), but the menus do not work headless. The script has
     never run: expect to debug it, not to measure.
     - Session connected, no other game running. From a cmd window:
-      `C:\Users\james\i76-uncap-lab\tools\replay\REPLAY-MELEE.bat -Conds g166-mloop-rep1 -N 2` (2 Gold replays). It takes over mouse
+      `<lab>\tools\replay\REPLAY-MELEE.bat -Conds g166-mloop-rep1 -N 2` (2 Gold replays). It takes over mouse
       and keyboard; hands off. If it stalls at a menu, note which one and stop it (Ctrl+C in the window) instead of waiting out 240 s timeouts.
     - If both finish: run `REPLAY-MELEE.bat` with no arguments (10 replays; the 6 retail ones replay arcade traces and do not count yet).
     - **Look for:** `tools\replay\runs\melee-console-<stamp>.txt`: Gold reps with "sim_dt bit mismatches 0", "input bit mismatches 0",
       and the first frame with |dpos| over 0.1 / 1 m (late = good).
 52. **Watch one retail canyon descent (low, 5 min; new 2026-10-17; records/EMU-T05-CLEAN.md).**
     - **PASS 2026-10-17 (owner): the re-recorded canyon clip "looks perfect".** Same day: 02/03 WASD controls good but the menu automation is too slow; 08 does not teleport to the hill top (too long to get there); daily driver: the Windows mouse pointer is drawn a little right and maybe down of the game's cursor. Fixes in progress: records/OWNER-FEEDBACK-FIXES-2026-10-17.md.
-    `C:\Users\james\i76-uncap-lab\emu\results\writeup\video\retail-sim-p166-t05-clean-descent.mp4` (simulation physics, damage-free
+    `<lab>\emu\results\writeup\video\retail-sim-p166-t05-clean-descent.mp4` (simulation physics, damage-free
     crest start). Optional: `...\emu\results\par\20261016-224007-r166-t05clean-a-1\video.mp4` is 8 descents in **arcade** (25 min; skim).
     - **Look for:** no pop or jitter at the placed start; does the jump look like your memory of the 1997 game?
 53. **Rule on the base decision (decision, medium, 10 min; new 2026-10-17; records/BASE-DECISION-1.0-vs-GOG.md,
@@ -704,9 +704,9 @@ unsmelee-console-20261017-145313.txt. Needs agent debugging of the melee menu na
       data retunes: bus mass, Gas blast, armour / loadouts).
 54. **Trainer logger, one logged mission on the twin (medium, 10 min; new 2026-10-17; records/TRAINER-LOGGER.md s.7).**
     Never run on the twin's own proxy. At the physical console:
-    `C:\Users\james\i76-uncap-lab\game-dd-20261003\Interstate 76\TEST-logged-play.bat`. Play one mission, press Scroll
+    `<lab>\game-dd-20261003\Interstate 76\TEST-logged-play.bat`. Play one mission, press Scroll
     Lock twice at moments you want to remember, quit the mission, close the dashboard window.
-    - **Look for:** a new folder under `C:\Users\james\i76-uncap-lab\captures\trainer-log\` with `s01\`; `marks.csv` with
+    - **Look for:** a new folder under `<lab>\captures\trainer-log\` with `s01\`; `marks.csv` with
       2 rows; `summary.md` naming the mission, 0 missed frames, Arcade Phys. off. No stutter you can feel compared with
       `PLAY-i76.bat` (your feel is the measurement).
 55. **Which P133 cell is the hardware reference (decision, medium, 5 min; new 2026-10-17; records/HARDWARE-MATRIX.md,
@@ -724,7 +724,7 @@ unsmelee-console-20261017-145313.txt. Needs agent debugging of the melee menu na
 - **01 clip (item 52): FAILED as a test.** `retail-sim-p166-t05-clean-descent.mp4` shows no gameplay, only a single frozen frame near
   the end. The parrun `--video` capture failed on that run; check the other clips before trusting them, fix, re-record.
 - **02 retail logged 86Box (items 46 / 50): BLOCKED.** No WASD keys: the retail folder on the logging disk has the stock keypad
-  `INPUT.MAP`. Fix: write the owner's WASD map (lab `C:\I76GOLD\INPUT.MAP` / repo controls) into the retail folder of the throw-away
+  `INPUT.MAP`. Fix: write the owner's WASD map (lab `<gold game folder>\INPUT.MAP` / repo controls) into the retail folder of the throw-away
   copy (guest filehex, read back), and print the keys in the banner.
 - **SUPERSEDED the same day (owner ruling 2026-10-17, later): the baseline / default step is 33.3 ms, not 40 ms.** It is the
   developer-stated 15 fps design target as the engine runs it (2 x 33.3 ms substeps; docs/records/DEV-GAME-CLUB-I76.md). This
@@ -757,14 +757,14 @@ Everything here is read-only for the daily driver: the tick build lives in the l
 
 | # | minutes | what | where | look for |
 |---|---|---|---|---|
-| 1 | 10 | **Wheel and pad feel on the tick.** Drive one lap of the T06 strip or a melee on `PLAY-TICK.bat`, then the same on `PLAY-balanced.bat` | `C:\Users\james\i76-uncap-lab\game-dd-20261003\` (PLAY-TICK launches game-tick, proxy tick19c 6846c2d4 since 16:30; game-tick is now a copy of the daily driver plus the tick presets, retail music + resume, menu-pointer fix) | steering response with the wheel and the pad: same or better than balanced? Any lag or notchiness? (records/TICK-FINISH-2026-10-18.md s.9: measured 4.2 ms with a synthetic pad; no real wheel was attached) |
+| 1 | 10 | **Wheel and pad feel on the tick.** Drive one lap of the T06 strip or a melee on `PLAY-TICK.bat`, then the same on `PLAY-balanced.bat` | `<lab>\game-dd-20261003\` (PLAY-TICK launches game-tick, proxy tick19c 6846c2d4 since 16:30; game-tick is now a copy of the daily driver plus the tick presets, retail music + resume, menu-pointer fix) | steering response with the wheel and the pad: same or better than balanced? Any lag or notchiness? (records/TICK-FINISH-2026-10-18.md s.9: measured 4.2 ms with a synthetic pad; no real wheel was attached) |
 | 2 | 8 | **Flamers.** A fight with a flamer car (melee loadout with the Gas Launcher, or a mission with AI flamers) on PLAY-TICK and on PLAY-balanced | same | does the flame feel strong enough on a car, and do the impact sprites look right? Lab (s.11): the tick burns a T05 car dead in ~40 s (1997 timing ~25 s, promotion 18 not dead after 38 s; n 3 each). The earlier "0 hits" was the T05 road-closed bar: with `I76_BREAKABLE_BOX=4` (in the driver's and the tick presets) no loop can burn it, stock included. Decide: a per-tick flame damage factor to match 1997, and keep or patch the box switch |
 | 2b | 5 | **Your first playtest notes, re-checked on PLAY-TICK** (s.10): tracers leave the car and streak all the way (33 and 66); tyre / road / wind loops steady; menu music loops, mission music resumes after Replay / Esc; J K L ; hardpoints and O radar camera work; menu arrow sits on the pencil | same | anything still wrong, say which launcher (33 or 66) |
 | 3 | 5 | **T05 signs and barricades** on PLAY-TICK | same | signs fall as the bumper touches them (lab: 0.09 m into the post), barricades knock off about 2 in 3 rams at 20 m/s |
 | 4 | 5 | **Tracers and missiles at 120 fps** on PLAY-TICK (PLAY-16x10 style conf) | same | continuous from the muzzle, no freeze on the first frame |
 | 5 | 3 | **Controls 18 in a mission** on the daily driver | `PLAY.bat` | J K L ; fire hardpoints 1-4, O radar camera, Shift+' team scores, C cycles weapons, grey arrows orbit the chase camera |
-| 6 | 5 | **Co-op list** on the PC LAN copy | `C:\Users\james\Games\Interstate76-LAN-2026-10-17\PLAY-LAN.bat` > MULTIPLAYER > HOST > IPX | 15 stock arenas then Co-op Scene 1-17; The Crater loads the stock Crater |
-| 7 | 10 | **LAN cells still open** (records/LAN-MATRIX-2026-10-18.md s.7-9; the laptop, Michael, Andrew and Deck cells all ran on 2026-10-18): 5 players, a co-op win and a late join, a 3-human Co-op Scene 17. Needs the laptop, Michael's Mac and the Deck free of the family's game; then tell the session to resume | laptop, Michael, Andrew, Deck | every machine already carries the respawn-fixed pack (proxy ac44e2c2); restart the games on the laptop and Michael's Mac to load it; host from the PC LAN copy with NO. DRIVERS raised above 4 |
+| 6 | 5 | **Co-op list** on the PC LAN copy | `<games>\Interstate76-LAN-2026-10-17\PLAY-LAN.bat` > MULTIPLAYER > HOST > IPX | 15 stock arenas then Co-op Scene 1-17; The Crater loads the stock Crater |
+| 7 | 10 | **LAN cells still open** (records/LAN-MATRIX-2026-10-18.md s.7-9; the laptop, the M4 Max tester, the M2 tester and Deck cells all ran on 2026-10-18): 5 players, a co-op win and a late join, a 3-human Co-op Scene 17. Needs the laptop, the M4 Max tester Mac and the Deck free of the family's game; then tell the session to resume | laptop, the M4 Max tester, the M2 tester, Deck | every machine already carries the respawn-fixed pack (proxy ac44e2c2); restart the games on the laptop and the M4 Max tester Mac to load it; host from the PC LAN copy with NO. DRIVERS raised above 4 |
 
 Verdict wanted: promote 19 (tick) yes / no / after fixes; anything in 1-4 that feels worse than balanced, say which.
 
@@ -777,7 +777,7 @@ mutes only the game it started, per process, and clears the mute Windows remembe
 Lab runs can no longer touch your car: since 2026-10-19 every automated run starts its game with `I76_SHM_SUFFIX=<its folder name>` (and its own desktop), so its trainer / telemetry blocks are separate from the ones in your game (a proxy built before this ignores the key; the launch scripts then say so and do not run it beside you).
 The overnight multiplayer lane (2026-10-19 night: join / leave any time, AI bots fill open slots, co-op enemies per joiner) adds its own "Morning 2026-10-20" section below when it finishes; read that one before any LAN cell.
 
-### A. The tick candidate tick19f-av (2eb345d1) in your tick copy: `C:\Users\james\i76-uncap-lab\game-tick\PLAY-TICK.bat` (= PLAY-TICK-33), `PLAY-TICK-42.bat`, `PLAY-TICK-66.bat`
+### A. The tick candidate tick19f-av (2eb345d1) in your tick copy: `<lab>\game-tick\PLAY-TICK.bat` (= PLAY-TICK-33), `PLAY-TICK-42.bat`, `PLAY-TICK-66.bat`
 
 Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does now:
 
@@ -800,7 +800,7 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
 | A0 | 10 | **33 vs 42 vs 66, the ruling** (TWO-CLOCKS). T05 canyon jump on each; sign rams; a bounce over a ditch. The lane recommends **42 as PLAY-TICK's default** (the 1997 coupling: bounce period, jump arc and landing pitch match the stock loop; the s.14 hazard factors are exactly 1 there); 33 stays the default until you rule | the jump at 42 lands flat-ish at a sensible speed (33: low, nose down; the driver: too long / high); controls still feel right at 42; which one do you want PLAY-TICK to be? |
 | A0b | 10 | **The tick range, to pick the exact value** (TICK-FINISH s.19; proxy now tick19g adc4fd49, the old one kept as `STRLKUP.DLL.2eb345d1-pre-19g`; console gate s.19.6 PASS 2026-10-20 on every launcher, S / D PASS, 0 crashes; the twin `game-dd-20261003` carries the same proxy since 15:20, s.19.7: before that its PLAY-TICK ran the old proxy = no tick and the mouse off the buttons): `PLAY-TICK-36 / -39 / -42 / -44 / -47.bat` (1997 period PCs ran 36-47 ms; 41.667 = the 1997 car step) plus the outliers -33 and -66. Same T05 jump and ditch on each. Optional, single player: `PLAY-TICK.bat 43` (any 16.7-66.7) or a `tick-ms.txt` beside it with one number; `PLAY-TICK-CHOOSE.bat` explains and asks. In a network game every player should run the same tick | the bounce slows in step with the tick (0.25 s at 36 to 0.33 s at 47, 0.29 at 42); jumps differ by under 1 m/s at take-off inside 36-47; say the value you want as PLAY-TICK's default |
 | A0c | 8 | **The T05 jump, measured per tick (TICK-FINISH s.20, 2026-10-21).** Your "33 does not make the jump, too much nose down; 44 does": at 33.3 ms the car leaves the lip 2.5 m/s slower (47.4 vs 49.9 m/s, 4 of 7 clear), at 41.667 it jumps as retail 1.0 did at ~42 ms on the emulated P166 (49.9 vs 50.0 m/s, apex 10.0 m both, 10 of 10 vs 6 of 6). Cause: one per-substep term, the speed lost following a slope, which 30 steps/s lose 1.25x as fast as 24; 44 only lost a little less of it. Nothing broke since 10-19 (no car-physics change in tick19g). Your ruling stands: 41.667, where that term is exactly 1. A fix that makes 33 / 36 / 39 jump like 41.667 (I76_SIM_TICK_SLOPE, default on, nothing changes at 41.667) is STAGED, not installed: lab `builds\jump-fix-20261020\STRLKUP-jumpfix-ed772c2.dll`. Side finding for main: the LAN key I76_COOP_AI crashed a lab game on a trainer re-placement (s.20.7) | on PLAY-TICK-42: the canyon jump from the hill-top at full throttle clears and lands flat-ish; if the stage build is installed later, PLAY-TICK-33 should then jump the same as 42 (bounce still faster) |
-| A0c | 10 | **Draw distance and terrain change on T05** (records/RC-DRAW-FPS-2026-10-20.md; staged, NOT installed: `i76-uncap-lab\builds\rc-draw-20261020\stage\` = every tick19-*.psd1 with far clip / roads / bushes back to 1800, the x96 split out, I76_TERRAIN_LOD_B 4 + I76_TERRAIN_HYST 20 + I76_TERRAIN_FREEZE 300,40, proxy STRLKUP-rcd 65a62504; `stage-alt\` = LOD 24 as promotion 18 + FREEZE 300,40 only). Your barn: the RC's 1200 m far clip (it came from the balanced preset); the fps: the x96 split with the far distance (mean 107.7 vs 117.9 headless, T05 route); the change while driving: x96 moved it outward (beyond 300 m 1.6-2x). Main installs after your word; then drive T05 from the start over the hill toward the barn on PLAY-TICK-42 | the barn from the hill top; far hills and ridges no longer change while you drive (lab: change beyond 300 m 605 -> ~1 px/s, split / merge events 40 -> 17 per s); the ground near the car still changes (no switch removes that; geomorphing is proposed); say if the ground looks too flat (then stage-alt); and where you read the fps (the lab cannot reproduce 99; headless reads ~7 % high, gate row 9 measures it at the console) |
+| A0c | 10 | **Draw distance and terrain change on T05** (records/RC-DRAW-FPS-2026-10-20.md; staged, NOT installed: `<lab>\builds\rc-draw-20261020\stage\` = every tick19-*.psd1 with far clip / roads / bushes back to 1800, the x96 split out, I76_TERRAIN_LOD_B 4 + I76_TERRAIN_HYST 20 + I76_TERRAIN_FREEZE 300,40, proxy STRLKUP-rcd 65a62504; `stage-alt\` = LOD 24 as promotion 18 + FREEZE 300,40 only). Your barn: the RC's 1200 m far clip (it came from the balanced preset); the fps: the x96 split with the far distance (mean 107.7 vs 117.9 headless, T05 route); the change while driving: x96 moved it outward (beyond 300 m 1.6-2x). Main installs after your word; then drive T05 from the start over the hill toward the barn on PLAY-TICK-42 | the barn from the hill top; far hills and ridges no longer change while you drive (lab: change beyond 300 m 605 -> ~1 px/s, split / merge events 40 -> 17 per s); the ground near the car still changes (no switch removes that; geomorphing is proposed); say if the ground looks too flat (then stage-alt); and where you read the fps (the lab cannot reproduce 99; headless reads ~7 % high, gate row 9 measures it at the console) |
 | A1 | 8 | **Flamers** (s.12, s.18). Burn a car with the Gas Launcher on 33 and on 42; flame a T05 road-closed bar | a car dies after ~10 s of contact at every tick length (1997 timing; the driver needs 3x that; tick19g asks ~85 / s at every tick length with no preset key (the interim 3.5 line is gone, s.19)); the bar burns (about 2x the 1997 rate, decision 4) |
 | A2 | 8 | **Per-frame hazards at the 1997 rate** (s.14). Sit in an oil slick / dropper patch, stay pinned against a car or wall, stand near a burning wreck, dodge a radar missile (DrRadar / Cherub) | each costs about what it did in 1997; missiles not lazy, not too sharp (the missile turn is from code only, unmeasured) |
 | A3 | 6 | **The notes table above, re-checked in play**: sign sound on every post, W during an outside-camera cutscene, the death camera and the sky, music, instant melee into Hope Springs (4 AI) | anything still wrong, say which launcher and which row |
@@ -808,8 +808,8 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
 | A3c | 2 | **Terrain at the T05 start**: from the canyon road at the mission start look at the ridge behind the intro road (the lane's view: facing +x from x 8490, z 44520) | the ridge keeps its shape as you drive; if that is not the spot you meant, say where you see the redraw |
 | A4 | 3 | **Suburbia on 66** (s.13, not reproduced in 10 boots): start it 3 times on PLAY-TICK-66 and drive forward 10 s | houses appear = it was the dark spawn view (half the spawns face a flat plain); still flat = screenshot |
 | A5 | 2 | **66**: nothing to hunt; 66 steps everything 15 times a second so aim and steering feel coarser, tracers come in 13 m pieces | only say if 66 feels no worse |
-| A5b | 30 | **86Box retail 1.0 on the emulated P166 (the 1997 reference; items 46 / 50). Fixed 2026-10-19: the game now starts by itself, home-row keys.** (1) Double-click `C:\Users\james\i76-uncap-lab\OWNER-TESTS-2026-10-17\02-86box-retail-logged.bat` (disc 2 is mounted for you); hands off for about 1.5 min while Windows boots and the game starts itself and lands in the T05 cockpit. (2) The keys are your daily-driver home-row map: W S A D drive, Enter fire, J K L ; hardpoints 1-4, O radar camera, C or Tab cycle weapon (no Shift+' team scores: retail 1.0 has none). (3) Drive T05 to the canyon jump and compare with PLAY-TICK on the hill top. (4) To exit: Esc, then arrow keys + Enter for Abort Mission > Exit Game > Yes. Then Start > Shut Down, close 86Box when it says it's safe, and the window prints `summary.md`. (5) Your desktop shortcut `i76 x86box ref` (PLAY-P166-LOGGED.bat) now also starts the game by itself, to the main menu (same keys, saves kept). | W S A D / J / O work; the jump and the landing feel like 1997; the frames in the summary (this PC measured a 41-42 ms median in T05 today, not 33: say if it feels slow); Instant Melee clicked by hand: does ENTER AREA work for you? (it would not take the agent's injected clicks) |
-| A6 | - | **Verdict**: promote 19 yes / no / after fixes. Promotion 19 now also carries the LAN pieces (IPX files, the 27 arena files, the LAN keys) that the driver lacks. Candidate folder: `C:\Users\james\i76-uncap-lab\builds\tick-finish-20261018\promotion-19-candidate\` (README, MD5SUMS.txt; the next build folds in s.18's rate-aware flame default and whatever the overnight multiplayer lane lands) | |
+| A5b | 30 | **86Box retail 1.0 on the emulated P166 (the 1997 reference; items 46 / 50). Fixed 2026-10-19: the game now starts by itself, home-row keys.** (1) Double-click `<lab>\OWNER-TESTS-2026-10-17\02-86box-retail-logged.bat` (disc 2 is mounted for you); hands off for about 1.5 min while Windows boots and the game starts itself and lands in the T05 cockpit. (2) The keys are your daily-driver home-row map: W S A D drive, Enter fire, J K L ; hardpoints 1-4, O radar camera, C or Tab cycle weapon (no Shift+' team scores: retail 1.0 has none). (3) Drive T05 to the canyon jump and compare with PLAY-TICK on the hill top. (4) To exit: Esc, then arrow keys + Enter for Abort Mission > Exit Game > Yes. Then Start > Shut Down, close 86Box when it says it's safe, and the window prints `summary.md`. (5) Your desktop shortcut `i76 x86box ref` (PLAY-P166-LOGGED.bat) now also starts the game by itself, to the main menu (same keys, saves kept). | W S A D / J / O work; the jump and the landing feel like 1997; the frames in the summary (this PC measured a 41-42 ms median in T05 today, not 33: say if it feels slow); Instant Melee clicked by hand: does ENTER AREA work for you? (it would not take the agent's injected clicks) |
+| A6 | - | **Verdict**: promote 19 yes / no / after fixes. Promotion 19 now also carries the LAN pieces (IPX files, the 27 arena files, the LAN keys) that the driver lacks. Candidate folder: `<lab>\builds\tick-finish-20261018\promotion-19-candidate\` (README, MD5SUMS.txt; the next build folds in s.18's rate-aware flame default and whatever the overnight multiplayer lane lands) | |
 
 ### B. Network from the lab tick copy (PLAY-TICK now hosts and joins; records/MULTIPLAYER.md 2026-10-19 section; superseded by the overnight lane's "Morning 2026-10-20" section if it is there)
 
@@ -819,7 +819,7 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
 | B2 | 3 | The AREA OF PLAY list | 15 stock arenas, Hope Springs (2 / 4 / 6 AI), the 7 scenarios as "name (Scenario)" in the smaller handwriting font (only "Trailer Pk. Madn." is shortened), Scene 1..17 (Co-op) |
 | B3 | 5 | Host Hope Springs from PLAY-TICK and have one family machine join | works today with the **stock arenas only**: the family machines still run the 2026-10-18 pack, and every addon arena's checksum changed |
 
-### C. After the pack rollout (all machines at once, when the family machines are free; I do it on your word; pack `i76-uncap-lab\builds\mp-pack-20261019-final\`)
+### C. After the pack rollout (all machines at once, when the family machines are free; I do it on your word; pack `<lab>\builds\mp-pack-20261019-final\`)
 
 | # | min | what | look for |
 |---|---|---|---|
@@ -842,7 +842,7 @@ Your 2026-10-19 playtest notes, what was found (s.16-18) and what the build does
   keyboard); old Mac versions and helper folders deleted (one tarball kept per machine); no Mac daily driver to protect.
 - **Launchers:** one PLAY.bat for single player and LAN at promotion 19; `--legacy-multiplayer` flag (I76_MP_MENU=0) added.
 - **Debug tool:** DEBUG.bat (TRAINER.bat a shim), full-state teleport (pose + velocities), ships in the daily driver.
-- **AI melee (2026-10-20 night, from Andrew's Mac):** "the game restarts when I play the (6 AI) version ... and the AI players are
+- **AI melee (2026-10-20 night, from the M2 tester Mac):** "the game restarts when I play the (6 AI) version ... and the AI players are
   dead, but shouldn't they be respawned instead and the points tallied like they were players?" Ruling: no wave reload; dead
   AI respawn like humans, and AI kills / deaths / score are tallied and shown like players' (AI-MELEE-M1 decisions 4 and 5
   answered). A lane is building it (records/AI-MELEE-RESPAWN-2026-10-20.md).
@@ -895,7 +895,7 @@ Deck joins co-op / AI arenas without the AI sync (its own proxy has no pack swit
 
 ## Morning 2026-10-20 (what is left for humans after the cross-machine matrix; records/LAN-MATRIX-2026-10-20.md)
 
-The machines did the rest this morning (PC + Andrew's Mac + Michael's Mac + laptop: joins, leaves, re-joins, AI fill counts,
+The machines did the rest this morning (PC + the M2 tester Mac + the M4 Max tester Mac + laptop: joins, leaves, re-joins, AI fill counts,
 co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting; 0 crashes). Left for you:
 
 0. **Deck**: files DONE (15:10 arena files by main; 15:25 proxy cf4f81da + a new LAN launcher by the Deck lane,
@@ -926,15 +926,15 @@ co-op copies, 4 players, the host quitting in every kind of arena, a Mac hosting
    when someone joins, an AI of his team steps out first. Tell me who scored for kills - the lab could not make any.
 
 7. **Host leaves a co-op scene** (records/LAN-MATRIX-2026-10-20.md section 7.2): when the host quits Scene N, another machine
-   takes over and the scene restarts from the beginning for everyone (measured in the lab and on Andrew's Mac). Keep it, or
+   takes over and the scene restarts from the beginning for everyone (measured in the lab and on the M2 tester Mac). Keep it, or
    should the scene go on where it was? Tell me.
 
 ## Mac converge 2026-10-20 evening (records/MAC-CONVERGE-2026-10-20.md; laptop: `~/Applications/Sikarugir/Interstate 76 Gold.app`)
 
 Your laptop now has one I'76 app, `Interstate 76 Gold.app` (the family pack, with your saves; GATE and the test apps are gone; the
-old app is in `~/i76-archive-20261020/` as a tarball). Andrew's and Michael's Macs: one app each, Desktop **Interstate 76 LAN**.
+old app is in `~/i76-archive-20261020/` as a tarball). The M2 tester's and the M4 Max tester Macs: one app each, Desktop **Interstate 76 LAN**.
 
-1. **Esc menu by mouse** (the fix, proxy 0ce90a90; measured on Andrew's Mac, not on the laptop because its screen was locked):
+1. **Esc menu by mouse** (the fix, proxy 0ce90a90; measured on the M2 tester Mac, not on the laptop because its screen was locked):
    start any mission (or MULTI MELEE > HOST), press Esc. Click **Cancel** (bottom right): the menu must close. Esc again,
    click **Play Options**, then click the LOWEST rows there and **Back** / **Cancel**: each must react where you click. Then
    with the keyboard only: arrows up / down, Enter, Esc. Report any row that lights or acts somewhere other than under the
@@ -948,15 +948,15 @@ old app is in `~/i76-archive-20261020/` as a tarball). Andrew's and Michael's Ma
 
 ## AI cars respawn, score like players, and fill every arena (2026-10-20 night; records/AI-MELEE-RESPAWN-2026-10-20.md)
 
-Staged as pack `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (proxy 8f8da929 + the three "Hope Springs (N AI)" files moved
+Staged as pack `<lab>\builds\mp-pack-20261020-airespawn\` (proxy 8f8da929 + the three "Hope Springs (N AI)" files moved
 out), **on no machine yet**. Main deploys it to every machine at once when you say so (PC LAN copy, laptop, both Macs, Deck).
 
-1. **With Andrew (the test you asked for):** you host on any machine, Andrew joins. HOST > pick any stock arena (Suburbia,
-   The Crater, Hope Springs ...) with **NO. DRIVERS 8** > BROADCAST GAME: 7 computer cars when you are alone, 6 once Andrew
+1. **With the M2 tester (the test you asked for):** you host on any machine, the M2 tester joins. HOST > pick any stock arena (Suburbia,
+   The Crater, Hope Springs ...) with **NO. DRIVERS 8** > BROADCAST GAME: 7 computer cars when you are alone, 6 once the M2 tester
    is in. Kill every computer car you can. Each one must come back about 5 s later at a spawn point; the arena must never
    restart. Press **Tab** (the scoreboard) now and then: the computer cars must have their own rows (their names, kills,
-   deaths, score), Andrew's screen must show the same numbers, and "... was killed by <AI name>" must show when they get one
-   of you. When Andrew leaves, a computer car must take his place. (Lab: 21 respawns, rows identical on both screens, NO.
+   deaths, score), the M2 tester's screen must show the same numbers, and "... was killed by <AI name>" must show when they get one
+   of you. When the M2 tester leaves, a computer car must take his place. (Lab: 21 respawns, rows identical on both screens, NO.
    DRIVERS 2 / 4 / 8 in three arenas; nothing between two machines yet.)
 2. **Too easy?** (You said you were "spanking all these guys".) The skill runs 1 = best .. 5 = weakest; it was 3. Your copies'
    menu Difficulty Level is Wimp, which the new proxy maps to 4 (easier). Pick: Champ (3), Badass (1), or a fixed
@@ -985,7 +985,7 @@ presets with the two new lines, launchers with `--legacy-multiplayer`).
 
 | # | what | how to check | result |
 |---|---|---|---|
-| N1 | **Ruling: keep the Gold exe as the base, or move to nitro.exe?** The GOG Nitro Pack is the expansion only: none of the original 17 scenes, 15 arenas (by file; N51-N65 are them re-laid), 27 scene movies or 492 radio voices, and its shell has no trip / garage-salvage / bookmarks. Moving means porting the trip shell, re-addressing the whole proxy, a limiter and the netcode (record, last section) | play-check both copies at the monitor: `C:\Users\james\Games\I76\nitro\PLAY.bat` (stock GOG Nitro) and `C:\Users\james\Games\I76\nitro-plus-original\PLAY.bat` (+ original files; single player > character Groove > Original Mission 1-17; host alone > arena list for M01-M15) | headless over Remote Desktop both showed "Unhandled Exception" in GOG's OpenGLide start-up (n 1 each); the same exe with dgVoodoo reached the menu (lab, n 1). Your ruling: |
+| N1 | **Ruling: keep the Gold exe as the base, or move to nitro.exe?** The GOG Nitro Pack is the expansion only: none of the original 17 scenes, 15 arenas (by file; N51-N65 are them re-laid), 27 scene movies or 492 radio voices, and its shell has no trip / garage-salvage / bookmarks. Moving means porting the trip shell, re-addressing the whole proxy, a limiter and the netcode (record, last section) | play-check both copies at the monitor: `<games>\I76\nitro\PLAY.bat` (stock GOG Nitro) and `<games>\I76\nitro-plus-original\PLAY.bat` (+ original files; single player > character Groove > Original Mission 1-17; host alone > arena list for M01-M15) | headless over Remote Desktop both showed "Unhandled Exception" in GOG's OpenGLide start-up (n 1 each); the same exe with dgVoodoo reached the menu (lab, n 1). Your ruling: |
 
 ## Decision: the name of the new Nitro multiplayer entry (2026-10-21; records/NITRO-MP-DESIGN-2026-10-21.md)
 
@@ -1065,8 +1065,8 @@ Open items from this session:
 - JUMP: X5 has no jump tweak (same physics as PLAY-TICK, 41.667 tick; it differs only in terrain / draw distance), so the clean jump was stock 1997 behaviour
   and the earlier misses were line / timing luck. Owner: leave it. The jump logger and J2 (a switch easing the held nose-dive) stay PARKED as plans
   (TICK-FINISH s.22.5).
-- MAC JOINS: the Nitro data-path registry key ("Minimum"="0", NITRO-MP-DESIGN s.0.5.16) is now in the Nitro app on the laptop and Michael's Mac (backup
-  system.reg.pre-minimum-20261022); Andrew's Mac was asleep (ssh timed out): to do when it is on. No DLL change.
+- MAC JOINS: the Nitro data-path registry key ("Minimum"="0", NITRO-MP-DESIGN s.0.5.16) is now in the Nitro app on the laptop and the M4 Max tester Mac (backup
+  system.reg.pre-minimum-20261022); the M2 tester Mac was asleep (ssh timed out): to do when it is on. No DLL change.
 - SKY A/B (exp-polish2, proxy 449237d6): PLAY-OWNER-SKY-STOCK (the mirror pass scrolls the sky too: x2 in the Gold cockpit, as the exe has always done) vs
   PLAY-OWNER-SKY-ONEPASS (I76_SKY_MIRROR=0: the sky moves once per frame whatever the mirror). Both = X5 terrain + 2000 m.
 - MORPH LOOK: PLAY-OWNER-MORPH-STATELESS (same copy): the stateless geomorph, fps NOT measured yet; look at pops / shade on the T05 slope, hood view.
@@ -1126,30 +1126,30 @@ Open items from this session:
   game-types flip (co-op Mac n 2, then entries default) is prepared and waits on that. The gt_xlan.sh time limit now excludes queue
   wait, and the teardown keeps its DLL backup (lab 3e624f8 / 2f0bc9b).
 
-## 2026-10-23 afternoon: the patch kit, first tester Scott (records/SCOTT-BUILD-2026-10-23.md)
+## 2026-10-23 afternoon: the patch kit, the first tester (records/SCOTT-BUILD-2026-10-23.md)
 
-- **What it is:** `Interstate76-i76-everywhere-scott-20261023.zip` (2.7 MB, 83 files; lab `downloads\scott\`, and the asset of the
-  DRAFT pre-release `scott-20261023` on GitHub - not published, your call). Unzipped INTO a GOG Interstate '76 folder; nothing of
+- **What it is:** `Interstate76-i76-everywhere-tester-20261023.zip` (2.7 MB, 83 files; lab `downloads\tester\`, and the asset of the
+  DRAFT pre-release `tester-20261023` on GitHub - not published, your call). Unzipped INTO a GOG Interstate '76 folder; nothing of
   GOG's inside (our proxy 9bab51fe = clean build of main 8cb3da2, u32x 06467bd2, launchers, presets, controls, the shell patch as
   our bytes only, dgVoodoo 2.87.3 unmodified per Dege's redistribution clause, AutoHotkey GPL). The first PLAY.bat runs our own
   installer on his copy (originals kept), every PLAY.bat reads his monitor and sizes the picture. `PLAY.bat` = tick19-42 (the RC's
   stable set), `PLAY-PREVIEW.bat` = exp-polish2's OWNER-2300-FOG as it stood at 11:40 (fog 0.75), `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat`
   boot straight into mission 5. README-PATCH-KIT.md in the zip (tools/patch-kit/README.md): install, launchers, monitor, the home-row keys, what to test, troubleshooting.
-- **Gated on GOG's own exe (9a232dcc, the one he most likely has), lab game-scott:** conf accepted, bookmark route by memory 3/3,
+- **Gated on GOG's own exe (9a232dcc, the one he most likely has), lab game-tester:** conf accepted, bookmark route by memory 3/3,
   T05 route 120 fps median over 2604 m (1 % low 96.9), input.map and player state untouched; every switch of the preset applied
   (the only differences: the LAN co-op tick site and the pad / wheel early tick - no WINMM import on that exe). 16:9 settings
-  (1920x1080, 2560x1440) give a 16:9 picture, nothing stretched (captures in lab builds\scott-20261023\gate-20261023-155827).
+  (1920x1080, 2560x1440) give a 16:9 picture, nothing stretched (captures in lab builds\tester-20261023\gate-20261023-155827).
 - **Not yet shown on that exe: the menu pointer by clicks (gate rows 3-6)** - void twice: the first run was my runner's missing
   harness environment (fixed), the second the orphaned nitro.exe pid 48740 that the shared harness takes for "the game". **After
-  your reboot:** `builds\scott-20261023\run-gate.ps1 -Groups '3,7,8','4','5,6'` (one console take per group, watchdogs). If you want
-  to look yourself first: lab `game-scott\PLAY.bat` (pristine GOG + the zip) - do the menus answer where you click, save a bookmark.
-- **Your decisions:** (1) publish the draft release (`gh release edit scott-20261023 --draft=false`) or send the zip; (2) whether
+  your reboot:** `builds\tester-20261023\run-gate.ps1 -Groups '3,7,8','4','5,6'` (one console take per group, watchdogs). If you want
+  to look yourself first: lab `game-tester\PLAY.bat` (pristine GOG + the zip) - do the menus answer where you click, save a bookmark.
+- **Your decisions:** (1) publish the draft release (`gh release edit tester-20261023 --draft=false`) or send the zip; (2) whether
   the pad / wheel early-tick gap on the Galaxy exe matters enough to port the joystick watch to GOG's win32.dll shim; (3) the
   repo's shipped `saves\savegame.dir` carries 92 B of zero slack (876 vs 784 B) - harmless to the game, the gate wants it exact.
 
 ## Nitro tomorrow (2026-10-24; records/NITRO-PORT-2026-10-21.md s.11)
 
-- **Launch:** the desktop shortcut **"I76 Nitro - ALL (test)"** = `i76-uncap-lab\exp-nitro-owner\PLAY-NITRO-ALL.bat` (menus). A lab
+- **Launch:** the desktop shortcut **"I76 Nitro - ALL (test)"** = `<lab>\exp-nitro-owner\PLAY-NITRO-ALL.bat` (menus). A lab
   copy of pristine GOG Nitro (nitro.exe 28b8ae27) with dgVoodoo, the proxy built from main 6463b94 (0c4f109c), your controls
   (input.map = the daily driver's, the pad / wheel layer `_ahk`) and `presets\OWNER-NITRO-ALL.psd1`. Physical console only.
 - **What is on:** your Gold ALL set as it stood at 22:37 last night (OWNER-2300-ALL after the render-finish changes): 24 ticks/s and
@@ -1170,7 +1170,7 @@ Open items from this session:
   P05 road 1 % low 95-101); the far terrain fade and bushes fading in; the rear mirror's terrain; music in the menus and missions and
   that it resumes after Replay; anything that crashes - the proxy log is `exp-nitro-owner\Interstate 76 Nitro Pack\mciproxy.log`.
 
-## 2026-10-24 midday: owner + Michael, Gold family LAN pack on two Macs (owner's notes)
+## 2026-10-24 midday: owner + the M4 Max tester, Gold family LAN pack on two Macs (owner's notes)
 
 - "A ton of fun"; "playing the scenarios is super amazingly fun".
 - AI MELEE: after all AI cars are killed nothing respawns until every AI is dead, then the round restarts - owner wants
@@ -1205,7 +1205,7 @@ Open items from this session:
   every playing sound every 10 s. The full-level distant sounds (above) may have been it.
 - **Edge flashing - not reproduced** in 45 s of edge captures in a melee. Which edge, menus or mission, cockpit or chase view?
 
-## 2026-10-24 ~19:00: owner + Andrew, Gold family LAN (Macs), second session
+## 2026-10-24 ~19:00: owner + the M2 tester, Gold family LAN (Macs), second session
 - Still wanted: extra enemies in co-op scaled to the player count; co-op joiners spawn close to the host.
 - No flying cars this session.
 - Clicking CANCEL in the multiplayer menu pauses 5-6 s.
@@ -1225,7 +1225,7 @@ Open items from this session:
 
 ## 2026-10-25 morning (main summary; everything below is installed)
 
-**Layout now:** C:\Users\james\Games\I76\Interstate 76 Gold (main; desktop shortcut "Interstate 76 Gold"; proxy 5d6f9828; full
+**Layout now:** <games>\I76\Interstate 76 Gold (main; desktop shortcut "Interstate 76 Gold"; proxy 5d6f9828; full
 stage 65/65 md5s) and ...\Interstate 76 Nitro (main; shortcut "Interstate 76 Nitro"; proxy 3f27c797, nitshell a32ffba6, LAN
 files). dev-gold / test-gold / dev-nitro / test-nitro in the lab. daily-driver, lan, nitro-lan, golden archived on D:.
 All three Macs: Gold apps on 5d6f9828 + the six auto*.lvl (rollback _rollback-final-20261025); Nitro apps on 3f27c797.
@@ -1237,13 +1237,13 @@ All three Macs: Gold apps on 5d6f9828 + the six auto*.lvl (rollback _rollback-fi
    behind the host; CANCEL ~1.5 s; host death no crash; co-op names in the list (fix unproven live). FIRST PC<->Mac join on
    the new proxy = the mixed-tick test (PC 24-tick vs Mac fixed-step): if positions look wrong, say so.
 3. Nitro: sound balance (set all three sliders equal first); rename-variant popup (Enter works); Esc-menu pointer mid-screen;
-   wheel after Alt-Tab / Replay; MP with the boys (Michael's Mac still needs the Local Network Allow).
+   wheel after Alt-Tab / Replay; MP with the boys (the M4 Max tester Mac still needs the Local Network Allow).
 4. FFB tuning page: PLAY.bat --windowed --panel -> http://127.0.0.1:17691/ ; decide keep-active (game runs while on the page).
 5. Content decisions: top-10 maps into the pack now or after contacting authors; Great Oval vs RepoTown; Bullmark private use;
    German voices pack.
 
 **Open from the night:** the stale "PLAY-WITH-FFB felt good" question (interposer never ran until 9f6e04f); the T300 refuses one
 stock weapon effect type; Mac graphics: distances/LOD are the Mac cost - per-Mac local.psd1 recommended values in
-records/MAC-GRAPHICS-TUNE-2026-10-24.md (Michael's Mac unmeasured, Minecraft open); font-cache lock: 10 empty stubs +
+records/MAC-GRAPHICS-TUNE-2026-10-24.md (the M4 Max tester Mac unmeasured, Minecraft open); font-cache lock: 10 empty stubs +
 exp-nitro-owner need a reboot then tools\consolidate-retry-locked.ps1; the Esc-menu shimmer question; the "more terrain
 movement" note (two variants to make).

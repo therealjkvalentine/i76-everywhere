@@ -4,7 +4,7 @@
 > behaviour invariant across era configs (1 ms tick, 10-33 fps), not one 55 ms profile. The canyon "landing destruction" below is
 > the stock rollover rule: its rate grows with the physics step, and era profiles lose the car too (E13 / E25 4/5 boots).
 
-The full write-up is in lab `docs\W95-18-BASELINE-2026-10-14.md` (i76-uncap-lab), and the raw data is in
+The full write-up is in lab `docs\W95-18-BASELINE-2026-10-14.md` (<lab>), and the raw data is in
 `captures\w95-18-20261014\`. Everything was measured on the lab twin; the daily driver was not touched.
 
 **W95-18** is the unmodified game at **18.2 fps on a 55 ms GetTickCount tick**. It was the owner's box-spec guess (Windows 95

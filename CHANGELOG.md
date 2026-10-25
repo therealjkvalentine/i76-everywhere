@@ -94,7 +94,7 @@ fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD
   `[not played]`. On Mac / Deck the gear keys no longer match `input.map.reference`.
 - **Ten doc disagreements about controls resolved** against the daily driver's live configuration
   ([docs/CONTROLS.md](docs/CONTROLS.md), last section). **Mac: converge later**: the Mac map was not examined.
-- **New daily driver** built by `tools/Make-Daily-Driver.ps1` at `C:\Users\james\Games\Interstate76-2026-10-03`
+- **New daily driver** built by `tools/Make-Daily-Driver.ps1` at `<games>\Interstate76-2026-10-03`
   with a golden copy beside it; preset `best-120`, the repo's `Strlkup.dll`, u32x lab build `054fb411`,
   `dgVoodoo.daily-driver-2026-10-03.conf`. Gated on a lab twin
   ([docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md) last section).
@@ -128,7 +128,7 @@ fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD
 ### 2026-10-02 (commits `c9e2695..7c998bf` plus the release-hygiene pass)
 
 Status words are the ones [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 6 asks for: `[verified in play]`,
-`[measured, sandbox]`, `[built, untested]`, `[retracted]`. "Sandbox" is `..\i76-uncap-lab\game`; **nothing in
+`[measured, sandbox]`, `[built, untested]`, `[retracted]`. "Sandbox" is `..\<lab>\game`; **nothing in
 this block is deployed to the playable install.** Session record: [docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md),
 owner's console run: [docs/records/PLAYTEST-2026-10-02.md](docs/records/PLAYTEST-2026-10-02.md), open work:
 [docs/records/BACKLOG-2026-10-02.md](docs/records/BACKLOG-2026-10-02.md).
@@ -220,7 +220,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   "vswhere is not recognized" line. The chain is parenthesised, `-Msvc` forces the branch, `build-msvc.ps1` is
   now a wrapper for it, and the dead `$fwd` list is gone. `build-msvc.ps1` run from a captured-stderr shell:
   172,032 B, x86, exit 0 (the test build was discarded; the committed DLL is unchanged).
-- **`tools/check-ffb.ps1` names** (backlog P3-18, i76-map L083/L084) `[built, untested]`: `0x52bbcc` is printed as
+- **`tools/check-ffb.ps1` names** (backlog P3-18, <re-archive> L083/L084) `[built, untested]`: `0x52bbcc` is printed as
   the `Forcefeed` heap handle, not an "effect object"; `[0x52bbe4]` (device presence in the static map) is
   printed for information; the registry key line is informational, since no registry key gates FFB in the exe.
   The verdict logic (`0x52bbd0` and `0x52bbdc`) is unchanged. Not run against a live game.
@@ -245,7 +245,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   full mouse-only save through YES was shown with the withdrawn `037fcb3a` build, which carries the same call).
 - **18 stale or contradictory doc claims** in this repo (backlog section 2), and on 2026-10-02 the remaining
   sibling-repo ones listed in [docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md](docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md)
-  were applied in `i76-uncap-lab` and `i76-map`.
+  were applied in `<lab>` and `<re-archive>`.
 
 #### Retracted
 
@@ -281,11 +281,11 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   prior-art catalog and the folklore-vs-measured corrections in
   [docs/records/FRAMERATE-UNCAP-RESEARCH.md](docs/records/FRAMERATE-UNCAP-RESEARCH.md). Nothing
   field-tested yet.
-  - **2026-10-01 update:** superseded by measurement. The sim turned out to be dt-driven (i76-map
+  - **2026-10-01 update:** superseded by measurement. The sim turned out to be dt-driven (<re-archive>
     `subsystems/simclock.md`), the "two unknowns" were pinned (pose at object+0x18; the frame loop at
     0x4039a0..0x403f20), and the proxy now carries the opt-in switch set — `I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`,
     `I76_FRAMERATE_FIXES`, `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`, `I76_FPS_CAP` — measured live in the sandbox
-    (i76-map `captures/014-framerate`, 2026-09-27: dt exact, gravity dt-correct, 24 Hz body motion as calm as stock
+    (<re-archive> `captures/014-framerate`, 2026-09-27: dt exact, gravity dt-correct, 24 Hz body motion as calm as stock
     20, 31-33% motionless frames at 60 fps → 0% with interpolation). Per-switch evidence is the table in
     [music-fix/README.md](music-fix/README.md). Sandbox-verified, and **console-verified by the owner on
     2026-10-02** in the sandbox with every switch on (in-mission music, F6/B at `I76_FAR_CLIP=1800`, flamer,

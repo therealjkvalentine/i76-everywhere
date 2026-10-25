@@ -1,6 +1,6 @@
 # Autonomous harness — launching, menus, input, observation
 
-> **Corrections from `../i76-map/status/findings.md` (2026-09-05, propagated 2026-10-02).**
+> **Corrections from `../<re-archive>/status/findings.md` (2026-09-05, propagated 2026-10-02).**
 > - **L006** — instruction addresses inside the sim-clock cluster 0x49c7f0-0x49cbd6 do **not** transfer between
 >   builds: the AiO entry of 0x49c920 starts `51 ff 05 1c 7e 5a 00` where pristine starts `83 ec 08 ff 05 1c 7e
 >   5a 00`. The function address holds; every instruction site quoted inside it is build-shifted.

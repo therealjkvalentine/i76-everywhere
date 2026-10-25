@@ -6,20 +6,20 @@ game, so the session that owns the console runs these. Each test has a pre-built
 
 ## Protocol (applies to every test)
 
-1. **Test copy only.** Install into `C:\Users\james\i76-uncap-lab\game` (AGENTS.md: never the playable install).
+1. **Test copy only.** Install into `<lab>\game` (AGENTS.md: never the playable install).
    Each `data\out\livetests\<T>\manifest.json` lists every file, its md5, its install path and the md5 of the file it
    replaces there. Back that file up (`<name>.pre-<T>`), install, run, restore, and check the restored md5.
 2. **Build the artefacts:** `python data\mod\stage_livetests.py`. It is deterministic from the pristine sandbox, the
    archive and (T1 only) the test copy's `ADDON\valepre4.orig`, and every file is re-parsed after it is written.
 3. **Session check first** (AGENTS.md RDP section): `[System.Windows.Forms.SystemInformation]::TerminalServerSession`
    must be False. Silence the instance (dsound stub).
-4. **Read, don't watch.** Use `i76-uncap-lab\autotest\lib\memlib.ps1`. `Mem-PlayerEntity $ctx` returns the vehicle
+4. **Read, don't watch.** Use `<lab>\autotest\lib\memlib.ps1`. `Mem-PlayerEntity $ctx` returns the vehicle
    class-data block `veh` (the block the armour and mass offsets below are relative to).
 5. **A/A first** (method gate H1): run the stock condition twice and record the spread before the edited run. Report n.
 6. **Verify the write landed:** after install, compare the installed file's md5 with the manifest before launching.
 
 ```powershell
-. C:\Users\james\i76-uncap-lab\autotest\lib\memlib.ps1
+. <lab>\autotest\lib\memlib.ps1
 $ctx = Mem-Open; $v = Mem-PlayerEntity $ctx
 0..7 | % { Mem-I32 $ctx ($v + 0x138 + 4*$_) }       # armour + chassis bank 1
 Mem-F32 $ctx ($v + 0xa4)                             # total mass

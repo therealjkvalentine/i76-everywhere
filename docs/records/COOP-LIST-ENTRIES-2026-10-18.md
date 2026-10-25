@@ -6,10 +6,10 @@ online in the community we should add? Don't make a mess just like the 3-5 most 
 ones."*
 
 Why: the LAN pack put the co-op T01 in place of The Crater (`miss8\M01.MSN`, `miss16\M01.MSN`). On 2026-10-18 the
-Steam Deck (its own files, stock M01) hosted The Crater and Andrew's Mac (the pack's co-op M01) joined: different
+Steam Deck (its own files, stock M01) hosted The Crater and the M2 tester Mac (the pack's co-op M01) joined: different
 missions, the joiner's car never spawned, no message (LAN-MATRIX-2026-10-18.md cell 5).
 
-## 1. How the shell builds the arena list (static, i76shell.dll a300db63; addresses = i76-map export)
+## 1. How the shell builds the arena list (static, i76shell.dll a300db63; addresses = <re-archive> export)
 
 The game already has an add-on arena route. It is the one the 1997 builder documents (`BUILDER\BUILDER.DOC`: "Copy
 the .LVL and .TER files into the ADDON directory ... Your mission will be listed in addition to the ones included with
@@ -68,13 +68,13 @@ either mode. Not checked: which art the Deck's Proton build uses (it is not on t
 
 ## 3. Tests on the PC (2026-10-18 09:40-10:24, console lock held in three stretches)
 
-Copies: `i76-uncap-lab\game-cooplist` (A) = a copy of the LAN copy `Interstate76-LAN-2026-10-17` (i76.exe 6319abf7,
+Copies: `<lab>\game-cooplist` (A) = a copy of the LAN copy `Interstate76-LAN-2026-10-17` (i76.exe 6319abf7,
 i76shell a300db63) with `coop-install.py` run on it (old layout removed, stock M01 back, 17 add-ons);
 `game-cooplist-b` (B) = a copy of A with the instance-B `ipxwrapper.dll` (fad787e8, own mutex and registry key,
 lab MULTIPLAYER-LOCAL-TEST.md section 9). Both started directly (`i76.exe -glide`, the folder's wide dgVoodoo conf)
 with `I76_COOP_AI=1 I76_COOP_CHAIN=1 I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1`, driven by a copy of
 `tools/lan-test/pcnav.sh` (i76probe). Proxy: this branch (final build `ba2b45c1`). Evidence files:
-`i76-uncap-lab\captures\coop-list-20261018\`.
+`<lab>\captures\coop-list-20261018\`.
 
 ### 3.1 The list
 
@@ -172,7 +172,7 @@ https://inbetweennames.net/projects/interstate76anet/ , https://www.moddb.com/mo
 
 ## 5. Follow-up (14:00): auto-respawn only in co-op missions
 
-Owner's playtest (laptop host + Michael joiner, Suburbia, pack proxy ba2b45c1): after a death the joiner came back 5 s
+Owner's playtest (laptop host + the M4 Max tester joiner, Suburbia, pack proxy ba2b45c1): after a death the joiner came back 5 s
 later, the host stayed in the death view. Cause: the joiner auto-respawn (08ba553) ran in every network game with
 `I76_COOP_CHAIN`, melee included; the host never had one. Fix (commit f2598f0): the auto-respawn runs only when the
 loaded mission is a `coopNN.lvl`. Stock melee is stock for both.
@@ -194,7 +194,7 @@ PC, two lab copies, build 5035857f (/Brepro; two builds md5-identical), CTRL+ALT
 Build note: 5035857f was compiled from f2598f0's strlkproxy.c with a simtick.c that another session was editing at the
 time (its committed parent does not compile). HEAD f2598f0 (clean tree, simtick.c of 0614391, a lab experiment off by
 default) builds deterministically to **ac44e2c2**; it differs only in that file and has not been run in game. Both are
-in `i76-uncap-lab\builds\coop-list-20261018\`.
+in `<lab>\builds\coop-list-20261018\`.
 
 ## 6. Owner's questions for tonight (static, from the files and the code)
 
@@ -263,11 +263,11 @@ the stock bytes and read back):
 The default is on in the proxy itself, so every machine on the pack proxy (PC and Macs) gets it without a launcher
 change; `PLAY-LAN.bat` also sets `I76_MP_MENU=1`. The Deck runs its own proxy and keeps the stock row.
 
-**Measured** (PC, two lab copies `i76-uncap-lab\game-mpmenu` (A) and `game-mpmenu-b` (B) = copies of game-cooplist /
+**Measured** (PC, two lab copies `<lab>\game-mpmenu` (A) and `game-mpmenu-b` (B) = copies of game-cooplist /
 -b, proxy 77ad2aca = commit efa108d built with `cl /Brepro`, started `i76.exe -glide` with I76_COOP_AI=1
-I76_COOP_CHAIN=1 I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1, driven by `i76-uncap-lab\tools\mpmenu\mpnav.sh` (a copy of
+I76_COOP_CHAIN=1 I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1, driven by `<lab>\tools\mpmenu\mpnav.sh` (a copy of
 `tools/lan-test/pcnav.sh` keyed on the folder) and i76probe; console lock held 08:54-09:20 and 09:41-09:45; evidence in
-`i76-uncap-lab\captures\mp-menu-20261019\`):
+`<lab>\captures\mp-menu-20261019\`):
 
 | check | result | n |
 |---|---|---|
@@ -346,8 +346,8 @@ proxy (the Deck) draws the full titles in the big font with the overflow.
 
 ### 8.3 What a scenario needs, and the respawn rule
 
-Static read of S01-S07 (FSM scripts, `i76-map\data\out\fsm\s0N.fsm`; helpers and an edit set in
-`i76-uncap-lab\tools\mpmenu\fsmwork\`):
+Static read of S01-S07 (FSM scripts, `<re-archive>\data\out\fsm\s0N.fsm`; helpers and an edit set in
+`<lab>\tools\mpmenu\fsmwork\`):
 
 | scenario | objective (script) | AI vehicles (measured on the host: mission cars no human drives) |
 |---|---|---|
@@ -401,7 +401,7 @@ Not run: a scenario win; 3 or 4 humans in a scenario; scenarios 3, 5, 6, 7 with 
 - The co-op files change (title only, file names unchanged), so their CRCs change: every machine must get the new
   `ADDON\coop*.lvl` and `auto*.lvl` together, or joins between old and new machines stop with "Your mission file
   coop01.lvl does not match the host's".
-- Pack: `i76-uncap-lab\builds\mp-pack-20261019\`, rebuilt in place 10:20 with the tools of efa108d (so no AI melee
+- Pack: `<lab>\builds\mp-pack-20261019\`, rebuilt in place 10:20 with the tools of efa108d (so no AI melee
   `ai_*.lvl`) and `--proxy ...\builds\mp-menu-20261019\STRLKUP-3125197a.dll` (fdb1b06 built from a clean worktree, two
   builds md5-identical; it includes the AI melee lane's committed proxy code of e1f35f0, which acts only in `ai_*.lvl`);
   the mac part copied unchanged from the 2026-10-18 pack. Against the 2026-10-18 pack: common gains `ADDON\auto01..07.lvl`

@@ -1,7 +1,7 @@
 # Mac graphics keys 2026-10-24: which of the owner's PC render keys work under Wine + OpenGLide + DxWnd
 
 Question (owner): "Any minor graphics improvements that would translate to the Macs?" Test lane, scripted, n 1 per group.
-Machine: the owner's MacBook (jamesvalentine@100.66.69.126, 3456x2234 panel, unlocked, nobody at it). Times CDT, 2026-10-24 20:40-21:20.
+Machine: the owner's MacBook (the family Mac over ssh, 3456x2234 panel, unlocked, nobody at it). Times CDT, 2026-10-24 20:40-21:20.
 Evidence: lab `captures\mac-graphics-20261024\` (g*.log = the Mac clone's mciproxy.log per group, gfxrun.sh / gfxall.sh = the scripts).
 
 ## Method

@@ -82,7 +82,7 @@ the extracted media, and the paths inside them are that folder's.
 | **Nitro Pack** | 1998-02-28 (IGN via Wikipedia); US Activision store | GOG `nitro.exe` 1,070,080 B, 1998-03-27 22:14, `28b8ae27`; Arsenal-demo `Nitro.exe` 1998-02-04 `b73f852d` | as Gold | 20 missions, 30 MP maps, CTF / racing, novelty cars, new weapons; "Hack prevention: vehicles are validated" [doc: Arsenal Nitro page] | GOG installer `Downloads\setup_interstate76_nitro_pack_2.1.0.17.exe`; demo `versions\arsenal-demo-1998` |
 | **Nitro Riders** | 1998 (Europe) | not held | as Nitro | European stand-alone name of Nitro Pack; Activision's page: the store's Gold upgrade "does NOT apply to ... the 'NITRO RIDERS' version" [doc] | no |
 | **Arsenal** | Feb 1998 | = Gold 1.2 + Nitro Pack | | box asks for DirectX 5; "P133 or higher for 3-D acceleration" (WHAT-IS-STOCK, box photo) | no disc; GOG sells it |
-| **GOG** | 2010-02-18 (Wikipedia, citing 1UP) | `i76.exe` = `9a232dcc` (Gold exe, `WINMM.dll` import renamed `WIN32.dll`); `nitro.exe` `28b8ae27`; GOG adds `win32.dll` (mp3 music via audiere), OpenGLide `glide2x.dll`, `I76SHELL_1083.DLL` (the 1.081/1.083 shell, unused by default) | as Gold, Glide through OpenGLide | Galaxy build 9141 dated 2015-04-21 (GOG DB); installer unchanged in size since 2018 | yes: `Downloads\setup_interstate76_2.1.0.17.exe`, pristine extraction `i76-map\sandbox-gog\main\app` |
+| **GOG** | 2010-02-18 (Wikipedia, citing 1UP) | `i76.exe` = `9a232dcc` (Gold exe, `WINMM.dll` import renamed `WIN32.dll`); `nitro.exe` `28b8ae27`; GOG adds `win32.dll` (mp3 music via audiere), OpenGLide `glide2x.dll`, `I76SHELL_1083.DLL` (the 1.081/1.083 shell, unused by default) | as Gold, Glide through OpenGLide | Galaxy build 9141 dated 2015-04-21 (GOG DB); installer unchanged in size since 2018 | yes: `Downloads\setup_interstate76_2.1.0.17.exe`, pristine extraction `<re-archive>\sandbox-gog\main\app` |
 | **AiO (community)** | 2019-08-01..09-01 | `60abf7bc` 1,051,648 B (same 1998-02-19 link + 45 code clusters) + `I76PATCH.DLL` (2019-09-01, 20 fps limiter) | as Gold | UCyborg: 20 fps cap, buffer-overrun fixes, CPU-check skip, NT windowed mode, netcode [lore: VOGONS t=68384] | yes: driver `i76.exe.u32xorig`, portable zip |
 | **Steam** | - | - | - | none: store search for "interstate 76" returns `{"total":0}` (2026-10-17) | - |
 | **Japan** | - | - | - | none found | - |
@@ -92,7 +92,7 @@ What is not on this list:
 - a PlayStation port (Wikipedia files the game under "Cancelled PlayStation games" with no text);
 - *Interstate '82* (1999, a different game).
 
-Nitro Pack Patches I-IV are listed on the community download index (interstate76.com, captured in i76-map recon
+Nitro Pack Patches I-IV are listed on the community download index (interstate76.com, captured in <re-archive> recon
 `web-sweep\i76forum\download.txt`). Their origin was not established and they were not fetched.
 
 ## 2. Per-version notes
@@ -235,7 +235,7 @@ calls itself "v.1.0.8b". 1.081 may be its re-release under a new name; that is u
 
 ### 2.7 Nitro Pack, Nitro Riders, Arsenal
 
-- Nitro is the same engine family (Roanish's map; i76-map nitro-vs-i76). It has the difficulty branch too (section
+- Nitro is the same engine family (Roanish's map; <re-archive> nitro-vs-i76). It has the difficulty branch too (section
   4.3).
 - GOG's `nitro.exe` is linked 1998-03-27, a month after the 02-28 release date. The *Arsenal* demo's is 1998-02-04.
   So GOG ships a later Nitro build than the earliest one. Nitro's installer also carries an Activision auto-updater
@@ -425,7 +425,7 @@ GOLD-STANDARD-FINGERPRINT already suspects "car / save" for the lab's 34 % accel
 - `Downloads\I76_CD1.ISO`;
 - `emu\images\cd-rip\I76_CD2`;
 - `Downloads\setup_interstate76_2.1.0.17.exe`, `setup_interstate76_nitro_pack_2.1.0.17.exe`;
-- `i76-map\sandbox-gog\main\app`.
+- `<re-archive>\sandbox-gog\main\app`.
 
 **Downloads, 2026-10-17 (not run):**
 - https://www.localditch.com/interstate-76/downloads/ : `i76v106.exe`, `i76v1081.exe`, `i76v1083.exe`,
@@ -455,7 +455,7 @@ GOLD-STANDARD-FINGERPRINT already suspects "car / save" for the lab's 34 % accel
   `{"total":0,"items":[]}`.
 
 **Earlier records:** WHAT-IS-STOCK (period press and board quotes), RETAIL-HANDLING-DIFF, EMU-MEMTRACE,
-FIX-INVENTORY-2026-10-17, i76-map recon `pe-fingerprint`, `nitro-vs-i76`, `web-sweep`.
+FIX-INVENTORY-2026-10-17, <re-archive> recon `pe-fingerprint`, `nitro-vs-i76`, `web-sweep`.
 
 ## 7. Next steps (not done here)
 

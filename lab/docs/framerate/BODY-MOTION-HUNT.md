@@ -53,7 +53,7 @@ dt the formula divides by — or, simplest given our precedent, dt-scale the dam
 > step dependence is `physics_ResolveGroundContact` 0x437230's projection/rest cycle — the body is moved up along
 > the surface normal by the deepest wheel penetration in one go per step, roll and pitch rates are eased toward
 > fixed targets at 2/s and set to exactly 0 when the velocity-against-normal test passes — a discrete contact model
-> tuned for the stock ~42 ms step (`../i76-map/subsystems/framerate.md:73-85`, "Where the step dependence lives";
+> tuned for the stock ~42 ms step (`../<re-archive>/subsystems/framerate.md:73-85`, "Where the step dependence lives";
 > capture 014: at rest on 62 % of frames with 25 ms steps, 11-40 % with 16.7 ms, 65 % again with a fixed 25 ms step
 > at 60 fps). The fix is the fixed step (`I76_FIXED_STEP=24`) plus `I76_RENDER_INTERP`; body roll was judged good in
 > the owner's 2026-10-02 playtest. The parameter sweep and in-process logger plans below are superseded.

@@ -9,7 +9,7 @@ Your build (verified 2026-06-08):
 ## The one bug that matters
 
 *(rewritten 2026-10-02: the earlier text here taught the "above ~30 FPS the sim over-integrates" folklore as
-fact; it was measured false in the sandbox on 2026-09-27, i76-map `captures/014-framerate`, and confirmed in
+fact; it was measured false in the sandbox on 2026-09-27, <re-archive> `captures/014-framerate`, and confirmed in
 play on 2026-10-02.)*
 
 I'76's simulation is **dt-driven**, not fixed-step: physics runs in substeps of at most 50 ms derived from the
@@ -56,7 +56,7 @@ Nothing in this folder changes; fully reversible.
 Then launch the game as you do now. Verify on a jump mission.
 
 ## Option B — the dgVoodoo2 build I staged for you (best visuals + built-in cap)
-I made a ready-to-run copy at **`C:\Users\james\Downloads\I76-dgvoodoo`** with
+I made a ready-to-run copy at **`<downloads>\I76-dgvoodoo`** with
 dgVoodoo2 + `FPSLimit = 20` already configured. See `WHAT-THIS-IS.txt` there.
 - Run on the **physical console** (not RDP): right-click `PLAY-i76-dgvoodoo.bat` → Run as administrator.
 - Pick a **4:3** resolution in `dgVoodooCpl.exe` (16:9 distorts the camera).

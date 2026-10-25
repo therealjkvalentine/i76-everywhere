@@ -46,8 +46,8 @@ By name against the golden copy (`Games\I76\golden\Interstate 76`); md5 where th
 
 | folder | what | start |
 |---|---|---|
-| `C:\Users\james\Games\I76\nitro` | the GOG Nitro Pack as shipped: `nitro-full\app` copied unmodified (520 files, md5-compared to the extraction); nitro.exe 28b8ae27, GOG's OpenGLide renderer, no proxy, no patch | `PLAY.bat` = `nitro.exe -glide` (how GOG's shortcut runs it; FINDINGS-2026-07-WINDOWS-AND-TEXTURES) |
-| `C:\Users\james\Games\I76\nitro-plus-original` | the same + the original content copied beside it from the golden copy (list with md5: `NITRO-BASE-STAGED.tsv` in the folder; summary in its `VERSION.md`): 184 mission files, M01-M15 also as `.CBT` (30), 27 movies, music 12-17, 22 save / setup files, 5 ADDON files; one Nitro file changed: `addon\SCENARIO.DAT` gets a 5th character **Groove** = "Original Mission 1-17" (t01-t17; stock kept in `_nitro-originals\`) | `PLAY.bat` |
+| `<games>\I76\nitro` | the GOG Nitro Pack as shipped: `nitro-full\app` copied unmodified (520 files, md5-compared to the extraction); nitro.exe 28b8ae27, GOG's OpenGLide renderer, no proxy, no patch | `PLAY.bat` = `nitro.exe -glide` (how GOG's shortcut runs it; FINDINGS-2026-07-WINDOWS-AND-TEXTURES) |
+| `<games>\I76\nitro-plus-original` | the same + the original content copied beside it from the golden copy (list with md5: `NITRO-BASE-STAGED.tsv` in the folder; summary in its `VERSION.md`): 184 mission files, M01-M15 also as `.CBT` (30), 27 movies, music 12-17, 22 save / setup files, 5 ADDON files; one Nitro file changed: `addon\SCENARIO.DAT` gets a 5th character **Groove** = "Original Mission 1-17" (t01-t17; stock kept in `_nitro-originals\`) | `PLAY.bat` |
 
 What to click in `nitro-plus-original`: the single-player menu, character **Groove**, any "Original Mission N" (does a
 T-scene load and play?); multiplayer / host alone, the arena list (do M01-M15 appear beside N51-N65 and load?). Expect

@@ -20,11 +20,11 @@ This page follows that order.
 **Method.**
 - Static only. No game, VM or console use.
 - Exes, read-only:
-  - Gold / GOG `i76.exe`, md5 `9a232dcc` (`i76-map\sandbox-gog\main\app`);
-  - retail 1.0 `I76.EXE`, md5 `6cc509ad` (`i76-map\sandbox-cd1997`).
+  - Gold / GOG `i76.exe`, md5 `9a232dcc` (`<re-archive>\sandbox-gog\main\app`);
+  - retail 1.0 `I76.EXE`, md5 `6cc509ad` (`<re-archive>\sandbox-cd1997`).
 - Tools: capstone, plus scratch scripts that are not kept: a disassembler, a float-constant scanner, and an xref and
   import-call finder. They are easy to rebuild from this description.
-- Prior static work reused, with section names: i76-map `subsystems\simclock.md`, `framerate.md`, `physics.md`,
+- Prior static work reused, with section names: <re-archive> `subsystems\simclock.md`, `framerate.md`, `physics.md`,
   `ai.md` and `mission.md`; the decompiled scripts in `data\out\fsm\*.fsm`.
 - Addresses are the Gold exe's unless marked. Physics code is the same algorithm in retail and Gold (EXE-DIFF-MAP,
   RETAIL-HANDLING-DIFF, I76-VERSIONS s.3). `simclock_StepperBegin` / `StepperInit` are byte-identical from 1.0
@@ -169,7 +169,7 @@ period and the 0.5 m band read like hand-picked round numbers. The study must me
 
 ## 3. Content as evidence (fallback)
 
-### 3.1 Designed jumps (scripted `isAirborne` tests, `i76-map\data\out\fsm`)
+### 3.1 Designed jumps (scripted `isAirborne` tests, `<re-archive>\data\out\fsm`)
 
 | mission | machine | test | consequence | conf. |
 |---|---|---|---|---|
@@ -257,10 +257,10 @@ Already collected, 33 sources (WHAT-IS-STOCK s.Development hardware and targets;
 - **[fact]** Team: directed by Sean Vesce; produced by Scott Krager; lead design Zachary Norman; **lead programmer
   Dan Stanfill** (MobyGames credits, via Wayback).
 - **[fact, new]** Roles from the in-game credits: `DATABASE.MW2` entry 0x53, decoded at
-  `i76-map\data\out\mw2db\083_0x53_credits.txt` (Gold era), lines 16-65, checked this session:
+  `<re-archive>\data\out\mw2db\083_0x53_credits.txt` (Gold era), lines 16-65, checked this session:
   - **Vehicle Dynamics Programmer: Dan Stanfill.** The physics owner was the lead programmer.
   - 3D Programmer: Julio Jerez. He was the renderer programmer, not the physics one.
-  - Engine Programmers: Kurt Arnlund, Scott T. Etherton, Marshall Robin, Henry Yu.
+  - Engine Programmers: Kurt Arnlund, the tester T. Etherton, Marshall Robin, Henry Yu.
   - Engine Optimizations: Jean-Marc Morel.
   - AI Programmer: Karl Meissner.
 

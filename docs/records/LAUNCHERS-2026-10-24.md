@@ -44,7 +44,7 @@ presets\local.psd1 and edit"; LAN is in PLAY.bat and every machine in a LAN game
 
 ## 2. Tests
 
-### Desktop (DESKTOP-AUR3UBC, opentrack installed, T300 attached), lab twin rc-twin-20261024
+### Desktop (the desktop, opentrack installed, T300 attached), lab twin rc-twin-20261024
 
 Runner: lab `builds\rc-20261024\launchers-20261024\desk-run.ps1` (CONSOLE-LOCK.md: `.fps-lock` + `.console-owner`, queue line, no
 game running anywhere, console active / not RDP, idle 120 s) calling the same `launcher-job.ps1`; muted per pid, shm suffix
@@ -87,9 +87,9 @@ while it ran, and the launcher could not stop it or zero the wheel at exit (the 
 (`FFB-PANEL.bat`): worth asking him before tuning on that impression.
 
 
-### Laptop bench (LAPTOP-HPK11OMS, opentrack NOT installed, no wheel)
+### Laptop bench (the laptop bench, opentrack NOT installed, no wheel)
 
-Bench twin `C:\i76-bench\rc-twin` brought to the RC's runtime first: it still had dgVoodoo 2.87.3 (crashed at frame 0 in
+Bench twin `<bench>\rc-twin` brought to the RC's runtime first: it still had dgVoodoo 2.87.3 (crashed at frame 0 in
 `DDRAW.dll+0x4AB0A`, the laptop's known 2.87.3 fault, 1 boot) and proxy fc6a5960 (one boot crashed in `winmmbase.dll+0x5AB3`
 at frame 0, the fault 53944fb2's winmm heap fix is for). Both replaced with the RC's files (2.87.5 set; STRLKUP.DLL 53944fb2 via
 `laptop-run.ps1 -SyncDll`, md5 read back); the 2.87.3 set parked in `_dgvoodoo-2.87.3`, the old launchers in `_pre-launchers-20261024`.

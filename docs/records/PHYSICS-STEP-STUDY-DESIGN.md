@@ -382,7 +382,7 @@ on today's build, recorded blind.
 |---|---|---|
 | S1 | **done:** grounded probe clearance is about 0 (p50 -0.003 m, n 5,068 frames, one retail strip trace), so P6's 0.5 m band sits above the resting probe | `mem.phys.csv` clearance column |
 | S2 | trace any handler of `TOGGLE_FRAMERATE` (id 0x54) outside 0x44eb50 | capstone / Ghidra export |
-| S3 | route census: FSM paths and AI routes vs class-11 ramps, canyons and drops > 3 m, all missions | `data\out\fsm`, ODEF + TER parsers in i76-map `data` |
+| S3 | route census: FSM paths and AI routes vs class-11 ramps, canyons and drops > 3 m, all missions | `data\out\fsm`, ODEF + TER parsers in <re-archive> `data` |
 | S4 | **done:** SFX in the retail sim runs = 4 (section 0) | `SCRIPT.TXT` filehex |
 
 ### Emulator
@@ -439,6 +439,6 @@ on today's build, recorded blind.
 - **Open caveat for the design:** at a true 15 fps frame only the vehicle stepper runs twice; collision, AI and the script VM
   run once per 66.7 ms frame. A whole-sim fixed tick at 33.3 ms runs them twice as often. Add a mixed-rate arm (vehicle 33.3 ms,
   rest of the sim 66.7 ms) to the measurement plan so the difference is measured, not assumed.
-- Lab launcher for the modern port at the baseline: `i76-uncap-lab\game-dd-20261003\TEST-step-33.bat` (`I76_FIXED_STEP=30`,
+- Lab launcher for the modern port at the baseline: `<lab>\game-dd-20261003\TEST-step-33.bat` (`I76_FIXED_STEP=30`,
   120 fps render, interpolated).
 

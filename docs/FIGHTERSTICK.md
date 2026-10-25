@@ -18,7 +18,7 @@ start of a line parses as a string literal, not a command — it fails with
 `Unexpected token`, which reads exactly like "nothing happened":
 
 ```powershell
-& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "C:\Users\james\i76-everywhere\i76-ch-fighterstick.ahk" -map
+& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "i76-ch-fighterstick.ahk" -map
 ```
 
 The script also keeps its **tray icon** — unlike `i76-remap.ahk`, which sets

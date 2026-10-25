@@ -2,9 +2,9 @@
 
 Scope: `sound-rumble/` (dsndrumble.c), `music-fix/` (strlkproxy.c: the MCI music path and the per-frame
 sound gates), `smack-music-fix/`, `tools/winmm-cdaudio/`, `tools/i76-music.ps1`, `tools/gpw-envelopes.py`,
-`tools/gpw-fingerprints.py`, read against `C:\Users\james\i76-map\subsystems\sound.md`,
+`tools/gpw-fingerprints.py`, read against `<re-archive>\subsystems\sound.md`,
 `data\notes\terrain-text-sound.md`, `data\FORMATS.md` and the pristine image (md5 9a232dcc) disassembled with
-`i76-map\tools\disasm.py` and a raw capstone pass for 0x424ca0. Read-only; the game was not run.
+`<re-archive>\tools\disasm.py` and a raw capstone pass for 0x424ca0. Read-only; the game was not run.
 
 Legend. **VERIFIED** = an instruction or a logged live observation cited by address or file. **INFERRED** = my
 reading of behaviour from those. **PROPOSED** = not built, not tested. Nothing in section 5 exists yet.

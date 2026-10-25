@@ -52,7 +52,7 @@ When v0.7.4 is out, change "v0.7.3" in each text below.
 > ready-to-run build, help set it up for a recording, or talk about how it was done (most of it was measuring the 1997
 > game and working out what the frame rate changes). Thanks for keeping the game in front of people.
 >
-> James Valentine
+> the developer
 
 *(Dev Game Club variant: replace the first sentence with "I listened to your 2025 episodes on Interstate '76, including
 the interview with Sean Vesce and Zack Norman, and thought you might like this." and add, if wanted: "If Sean or Zack

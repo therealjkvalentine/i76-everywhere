@@ -5,8 +5,8 @@ melee, and the mouse and keyboard don't work on the game pause menu correctly. i
 versions on the mac: we'll converge towards one where everything works, and i don't need to protect a daily driver besides
 the windows one for now. multiplayer menu simplification looks great now though."*
 
-Machines: James's laptop (jamesvalentine@100.66.69.126), Andrew's Mac (andrewvalentine@192.168.1.205), Michael's Mac
-(michael@192.168.1.226), all through the laptop hop. Times CDT. n = launches / clicks / boots as stated per row.
+Machines: The developer's laptop (the family Mac over ssh), the M2 tester Mac (the family Mac over ssh), the M4 Max tester Mac
+(the family Mac over ssh), all through the laptop hop. Times CDT. n = launches / clicks / boots as stated per row.
 Evidence: lab `captures\mac-converge-20261020\<machine>\` (manifest-before / manifest-after: path, size, md5 of every
 STRLKUP.DLL / i76.exe / i76shell.dll / u32x.dll / launcher / user.reg / dxwnd.ini; the laptop GATE app's registry, DxWnd profile
 and proxy log as the owner left them; Esc-menu page dumps; host-form pictures), PC check `captures\mac-converge-20261020\pc*\`.
@@ -17,10 +17,10 @@ Lab tools: `tools\mac-converge\` (manifest.sh, build-final.sh, build-lab-at.sh, 
 
 | symptom | cause | fix | evidence |
 |---|---|---|---|
-| no sound in `I76 MP GATE.app` (laptop) | the gate clone was made with Wine's audio driver switched off (`[Software\Wine\Drivers] "Audio"=""` in its `user.reg`; GAME-NIGHT-ROLLOUT-2026-10-17 s.1: "Gate clone ... (null audio)"). The proxy's mute probe in that app: `mute: no default render endpoint for role 0/1 (hr 0x80070490)`, 35 / 36 times | the GATE app is gone; the pack now runs in the owner's own `Interstate 76.app`, whose prefix has CoreAudio (no `Audio` override; DirectSound "MacBook Pro Speakers" enumerated) | converged app, muted launch: `mute: session muted = 1 (... 2/2 endpoint role(s) read back muted)` (n 1); unmuted launch: coreaudiod's `BuiltInSpeakerDevice` IO assertion appears with the game (none before it), menu music `PLAY track 13` (n 1). Andrew's / Michael's: 2/2 endpoints (n 1 each) |
-| no AI cars in MULTI MELEE | the owner hosted **stock** arenas: the GATE log's last session hosted `m01.msn` (The Crater) then `m08.msn` (Creeper Canyon, `user.mel`), 1 player, `mission cars alive 0`. Stock arenas have no AI by design; the AI fill is only in **Hope Springs (2 / 4 / 6 AI)** (`ai_*.lvl`). The launch switches were present (`I76_COOP_AI=1`, `I76_COOP_CHAIN=1`, `I76_MP_MENU` default 1) | none needed; the owner's sheet says which arenas have AI (OWNER-TEST-LIST) | hosting Hope Springs (4 AI): `mpfill: ... host, ai_hs4.lvl, humans 1, tagged 4: in play 4` + `aimelee: ... 4/4 alive`, every AI targeting the host (`->0`) - laptop n 1 (converged app), Andrew's n 1 |
-| Esc menu: mouse | **measured**: under DxWnd the click position that reaches the menu's hit-test (0x4972d0) stops at about window x 800 / y 560-600. Its lParam leaves the exe's u32x `PeekMessageA` already clamped to (639, 479) and DxWnd's window layer then scales it again ((639,479) -> (354,318) on a 1440x900 window). Rows lower than UI y ~320 or right of x ~355 cannot be hit, Cancel / Back never (Andrew's Mac 0 of 61 clicks, laptop 0 of 3), and a click below the last reachable row lands on that row instead | proxy **I76_MENU_PTR** (`music-fix/escmenu.c`, ae48dd8): the two calls into 0x4972d0 take the exe's own GetCursorPos read (u32x, the read the shell's working pointer uses) instead of the lParam; on only when `dxwnd.dll` is in the game | section 3: Andrew's Mac Cancel 4 / 4, Play Options rows 4-6 where drawn, row edges exact (n 11 + 5); laptop and Michael's: `2 / 2 call sites repointed, read back OK` (n 1 each). Laptop clicks after the fix: **not measured** (screen locked) |
-| Esc menu: keyboard | not reproduced: Up / Down (plain and extended, as a real arrow key sends), Tab, Enter, Esc move and pick rows on Andrew's Mac (n 14) and the laptop (n 3, locked screen, keys reach the game). The menu ignores keys while a mouse press is "armed" on a row (0x654b1c, cleared by the button-up) and its starting row is the last one used (stock) | - | the owner's real keyboard is the open check |
+| no sound in `I76 MP GATE.app` (laptop) | the gate clone was made with Wine's audio driver switched off (`[Software\Wine\Drivers] "Audio"=""` in its `user.reg`; GAME-NIGHT-ROLLOUT-2026-10-17 s.1: "Gate clone ... (null audio)"). The proxy's mute probe in that app: `mute: no default render endpoint for role 0/1 (hr 0x80070490)`, 35 / 36 times | the GATE app is gone; the pack now runs in the owner's own `Interstate 76.app`, whose prefix has CoreAudio (no `Audio` override; DirectSound "MacBook Pro Speakers" enumerated) | converged app, muted launch: `mute: session muted = 1 (... 2/2 endpoint role(s) read back muted)` (n 1); unmuted launch: coreaudiod's `BuiltInSpeakerDevice` IO assertion appears with the game (none before it), menu music `PLAY track 13` (n 1). The M2 tester's / the M4 Max tester's: 2/2 endpoints (n 1 each) |
+| no AI cars in MULTI MELEE | the owner hosted **stock** arenas: the GATE log's last session hosted `m01.msn` (The Crater) then `m08.msn` (Creeper Canyon, `user.mel`), 1 player, `mission cars alive 0`. Stock arenas have no AI by design; the AI fill is only in **Hope Springs (2 / 4 / 6 AI)** (`ai_*.lvl`). The launch switches were present (`I76_COOP_AI=1`, `I76_COOP_CHAIN=1`, `I76_MP_MENU` default 1) | none needed; the owner's sheet says which arenas have AI (OWNER-TEST-LIST) | hosting Hope Springs (4 AI): `mpfill: ... host, ai_hs4.lvl, humans 1, tagged 4: in play 4` + `aimelee: ... 4/4 alive`, every AI targeting the host (`->0`) - laptop n 1 (converged app), the M2 tester's n 1 |
+| Esc menu: mouse | **measured**: under DxWnd the click position that reaches the menu's hit-test (0x4972d0) stops at about window x 800 / y 560-600. Its lParam leaves the exe's u32x `PeekMessageA` already clamped to (639, 479) and DxWnd's window layer then scales it again ((639,479) -> (354,318) on a 1440x900 window). Rows lower than UI y ~320 or right of x ~355 cannot be hit, Cancel / Back never (the M2 tester Mac 0 of 61 clicks, laptop 0 of 3), and a click below the last reachable row lands on that row instead | proxy **I76_MENU_PTR** (`music-fix/escmenu.c`, ae48dd8): the two calls into 0x4972d0 take the exe's own GetCursorPos read (u32x, the read the shell's working pointer uses) instead of the lParam; on only when `dxwnd.dll` is in the game | section 3: The M2 tester Mac Cancel 4 / 4, Play Options rows 4-6 where drawn, row edges exact (n 11 + 5); laptop and the M4 Max tester's: `2 / 2 call sites repointed, read back OK` (n 1 each). Laptop clicks after the fix: **not measured** (screen locked) |
+| Esc menu: keyboard | not reproduced: Up / Down (plain and extended, as a real arrow key sends), Tab, Enter, Esc move and pick rows on the M2 tester Mac (n 14) and the laptop (n 3, locked screen, keys reach the game). The menu ignores keys while a mouse press is "armed" on a row (0x654b1c, cleared by the button-up) and its starting row is the last one used (stock) | - | the owner's real keyboard is the open check |
 | one app per Mac | laptop: 7 I'76 apps (GATE, IPX TEST, SETUP TEST, TEST, Software-renderer backup, the owner's own, Nitro + DxWnd Settings launchers); the boys: 4 old game folders inside the app | section 4 | after-manifests |
 
 ## 1. Diagnosis on the laptop (17:15-17:35)
@@ -33,9 +33,9 @@ Lab tools: `tools\mac-converge\` (manifest.sh, build-final.sh, build-lab-at.sh, 
   identical (444770ce).
 - **AI.** The proxy log's mission per session: sessions 17-22 joined other hosts' `ai_hs4.lvl` / `coop05.lvl` / `auto04.lvl`
   with AI on screen; the owner's own session 24 hosted `m01.msn` and `m08.msn` alone.
-- **Esc menu, before the fix (proxy cf4f81da), Andrew's Mac** (1440x900 window = the screen, unlocked; game hosting
+- **Esc menu, before the fix (proxy cf4f81da), the M2 tester Mac** (1440x900 window = the screen, unlocked; game hosting
   Suburbia alone): page `mainmn1.map` at 172..468 x 27..452, items: four rows x 193..468 (y 111-135, 157-181, 180-204,
-  203-227) and Cancel 401..461 x 434..453 (`captures\...\andrew\escmenu-pages.txt` has all four pages). A click selects /
+  203-227) and Cancel 401..461 x 434..453 (`captures\...\m2\escmenu-pages.txt` has all four pages). A click selects /
   activates a row only in a window band x >= 436 (= UI 193, the stretched map) and y 214..250 (row 0: UI 114-133); clicks at
   x 1050..1439 still hit the rows (UI up to 640 would miss the page: the x is clamped); Play Options rows probed with a
   button-down only (no setting changed): window y 560, 650, 740, 800, 840 all selected row 4. The first build's log
@@ -58,7 +58,7 @@ Lab tools: `tools\mac-converge\` (manifest.sh, build-final.sh, build-lab-at.sh, 
 
 ## 3. The Esc-menu fix, measured
 
-| check (Andrew's Mac, test build 6760d485 = the same escmenu.c on HEAD) | result | n |
+| check (the M2 tester Mac, test build 6760d485 = the same escmenu.c on HEAD) | result | n |
 |---|---|---|
 | attach | `menu-ptr: Esc-menu clicks take the pointer from i76.exe's GetCursorPos slot (u32x.dll 79FF1270): 2 / 2 call sites repointed, read back OK` | 2 boots |
 | Cancel clicked where drawn (window 1000,840 / 950,830 / 1030,820 / 920,845) | menu closes, mode 0x10 -> 0x1 | 4 / 4 |
@@ -67,7 +67,7 @@ Lab tools: `tools\mac-converge\` (manifest.sh, build-final.sh, build-lab-at.sh, 
 | row x edges at window y 650: x 300 / 440 / 1050 / 1200 (UI 133 / 195 / 466 / 533) | miss / hit / hit / miss | 4 |
 | keys after the fix: extended Down x2, Up, Tab, Enter, Esc | rows 0-1-0-1, Enter opens Play Options, Esc closes | 6 |
 | laptop (converged app, 0ce90a90) | attach line as above; keys move the rows (screen locked: n 3); clicks not measurable while locked | 1 boot |
-| Michael's Mac (0ce90a90) | attach line as above (screen locked) | 1 boot |
+| The M4 Max tester Mac (0ce90a90) | attach line as above (screen locked) | 1 boot |
 
 ## 4. Convergence
 
@@ -86,18 +86,18 @@ I76_COOP_CHAIN, I76_MUSIC_THREAD).
 | deleted | | GATE, IPX TEST, SETUP TEST, TEST, Software-renderer backup apps; `Interstate 76.mp-20261017` and his old game folder (in the tarball); `~/i76-mp-pack-20261017`; `~/i76-overnight-20261020` except `deck-polish/` (the Deck lane's `deck-stop-loop.sh` still runs from it, pid 61885, not this lane's) |
 | kept | | `~/i76-archive-20261020/Interstate76-app-before-converge-20261020.tgz` (1.21 GB, md5 d2ea5790; the owner's app before the swap, without the stale `.mp-20261017` folder), `STRLKUP-cf4f81da.dll`; evidence copy of GATE's user.reg / dxwnd.ini / logs in lab captures |
 
-**Andrew's Mac** and **Michael's Mac** (`~/Games/Interstate76-MP/Interstate 76.app`, Desktop link `Interstate 76 LAN` -> that
+**The M2 tester Mac** and **The M4 Max tester Mac** (`~/Games/Interstate76-MP/Interstate 76.app`, Desktop link `Interstate 76 LAN` -> that
 app, unchanged): the old folders inside the app (`Interstate 76-pre-20261020` 533ab67c lineage, `-pre-teams-20261020`,
-`-pre-polish-20261020`, `lan-pack-pre-20261018`), Andrew's `~/Games/Interstate76-MP/pointer-fix-pre-20261018` and empty
+`-pre-polish-20261020`, `lan-pack-pre-20261018`), the M2 tester's `~/Games/Interstate76-MP/pointer-fix-pre-20261018` and empty
 `~/i76-everywhere`, and `~/i76-overnight-20261020` deleted; the 2026-10-17 pack tools beside the app (`common.md5`, `mac.md5`,
 `mp-mac-install.sh`) moved to `~/i76-archive-20261020/old-pack-tools/`. One tarball each: `~/i76-archive-20261020/Interstate76-app-before-converge-20261020.tgz`
-(the app without the old folders; Andrew 847 MB md5 10db8c97, Michael 846 MB md5 a08aefe9), plus `STRLKUP-cf4f81da.dll`.
+(the app without the old folders; the M2 tester 847 MB md5 10db8c97, the M4 Max tester 846 MB md5 a08aefe9), plus `STRLKUP-cf4f81da.dll`.
 
 | machine | STRLKUP before | after | i76.exe / i76shell / u32x | pack verify |
 |---|---|---|---|---|
 | laptop | GATE cf4f81da / own ae866ec5 | 0ce90a90 | 6319abf7 / a300db63 / 06467bd2 | 408 common files, 0 mismatches |
-| Andrew's Mac | cf4f81da | 0ce90a90 (attach line n 1 at 19:05; Andrew was using the Mac again, so the game was stopped after the boot) | 6319abf7 / a300db63 / 06467bd2 | 408 common files, 0 mismatches |
-| Michael's Mac | cf4f81da | 0ce90a90 | 6319abf7 / a300db63 / 06467bd2 | 408 common files, 0 mismatches |
+| The M2 tester Mac | cf4f81da | 0ce90a90 (attach line n 1 at 19:05; the M2 tester was using the Mac again, so the game was stopped after the boot) | 6319abf7 / a300db63 / 06467bd2 | 408 common files, 0 mismatches |
+| The M4 Max tester Mac | cf4f81da | 0ce90a90 | 6319abf7 / a300db63 / 06467bd2 | 408 common files, 0 mismatches |
 | PC LAN copy | cf4f81da | cf4f81da (unchanged; 0ce90a90 behaves the same without DxWnd, section 2) | | |
 
 Rollback on a Mac: `cp ~/i76-archive-20261020/STRLKUP-cf4f81da.dll "<game folder>/STRLKUP.DLL"` (proxy only), or extract
@@ -108,9 +108,9 @@ parent folder, game closed).
 
 - **The laptop's Esc menu with the owner's mouse** after the fix (the screen locked at ~18:40, so no click reached the game),
   and his keyboard there: OWNER-TEST-LIST "Mac converge" item 1.
-- **Hosting with AI on the laptop: n 1 of the 2 asked** (the second launch came after the lock); Michael's host census: not
+- **Hosting with AI on the laptop: n 1 of the 2 asked** (the second launch came after the lock); the M4 Max tester's host census: not
   measurable (locked all evening; clicks do not reach a locked Mac).
-- **Cross-machine join with the PC LAN copy hosting**: not run (Andrew's Mac asleep from ~18:58, Michael's and the laptop
+- **Cross-machine join with the PC LAN copy hosting**: not run (the M2 tester Mac asleep from ~18:58, the M4 Max tester's and the laptop
   locked; a Mac joiner needs clicks).
 - Stock arenas have no AI cars. Whether MULTI MELEE should offer AI in every arena is the owner's call.
 - The PC LAN copy keeps cf4f81da (the pack's other files are identical); it can take 0ce90a90 at the next PC rollout.

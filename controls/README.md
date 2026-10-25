@@ -2,7 +2,7 @@
 
 `input.map` here is the map `setup-windows.ps1` writes into a Windows game folder by default
 (`-Controls i76e`). It is the owner's daily-driver map, copied on 2026-10-03 from
-`C:\Users\james\Games\Interstate76-2026-10-03\Interstate 76\input.map`, plus the three keys below. It is a
+`<games>\Interstate76-2026-10-03\Interstate 76\input.map`, plus the three keys below. It is a
 WASD layout, **not** the 1997 key layout; how to keep the original keys is at the top of
 [docs/CONTROLS.md](../docs/CONTROLS.md).
 

@@ -6,11 +6,11 @@ play of nitro multiplayer is unperturbed. perhaps it's a new menu item we'd add 
 ai drop in coop something"*. Plan: [ARSENAL-PLAN-2026-10-21.md](../ARSENAL-PLAN-2026-10-21.md) section 2.
 
 **Everything here is static** (Ghidra decompilation and capstone on the pristine GOG files; no game was started). RE notes
-with every address: `C:\Users\james\i76-map\nitro-net\README.md` (new track; headless exports of nitshell, WIPX2, WINETS2;
+with every address: `<re-archive>\nitro-net\README.md` (new track; headless exports of nitshell, WIPX2, WINETS2;
 tools `callers.py`, `ndis.py`, `sitemap.py`). Hook-list skeleton: `music-fix/nitro_mp.c` (not built, not included).
 
 Files: `nitro.exe` 28b8ae27, `nitshell.dll` f804f50d, `anet2.dll` a21c2baa, `dll\WIPX2.DLL` 70f35031, `dll\WINETS2.DLL`
-b91eccee (all from `i76-map\sandbox-gog\nitro-full\app`).
+b91eccee (all from `<re-archive>\sandbox-gog\nitro-full\app`).
 
 ## Answer in six lines
 
@@ -139,7 +139,7 @@ it appends to a growable list through the shell's own append call and keeps its 
 
 **Goal:** one check box (AI DROP-IN, id 0x10) drawn, toggled and read back by the proxy, **n 3** boots, plus 1 control.
 
-Copy: `C:\Users\james\i76-uncap-lab\exp-nitro-mp` = a copy of `i76-map\sandbox-gog\nitro-full\app` + dgVoodoo (as
+Copy: `<lab>\exp-nitro-mp` = a copy of `<re-archive>\sandbox-gog\nitro-full\app` + dgVoodoo (as
 `exp-nitro-base`, which reached the shell headless) + a lab proxy build with only the PoC code behind the lab switch
 below. No IPX and no second copy: the form opens from HOST > IPX without a network session.
 
@@ -172,13 +172,13 @@ Step 2 (after the pass): the other two boxes, the join-list double enumeration, 
 **Pass, 3 of 3, and the control is clean.** The first menu change on Nitro that held: one ARENA+ / AI DROP-IN box on the
 INTERNET host form, drawn, toggled by a scripted click through the shell's own input polling, and read back.
 
-Setup: `i76-uncap-lab\exp-nitro-mp` = `sandbox-gog\nitro-full\app` unmodified + dgVoodoo files (as exp-nitro-base) + the
+Setup: `<lab>\exp-nitro-mp` = `sandbox-gog\nitro-full\app` unmodified + dgVoodoo files (as exp-nitro-base) + the
 stock strlkup.dll as `strlkorg.dll` + the lab instrument **nmpdrv** as `Strlkup.dll` (md5 aebf8d72; `tools\nitro-mp\nmpdrv`
 = the nitro-base lane's nbdrv, unchanged, + `arena_poc.c`; no proxy file of the repo, `sites_nitro.h` not used). Harness
 `tools\nitro-mp\nmprun.py` (nbrun on the new copy): private desktop, process mute watcher (persisted mute cleared after
 each run, log `<tag>.mute.txt`), `.fps-lock` and foreign-game checks before each boot, only its own process stopped. Env
 `NB_ACTIVE=1 NB_SKIP_MOVIES=1`, `-glide`, `NMP_POC=1` (PoC) or `2` (control: same navigation and readings, nothing added
-or patched). Evidence `i76-uncap-lab\captures\nitro-mp-20261021\{poc-r1,poc-r2,poc-r3,control-c1}.log`.
+or patched). Evidence `<lab>\captures\nitro-mp-20261021\{poc-r1,poc-r2,poc-r3,control-c1}.log`.
 
 What the instrument did (all signature-checked first: the `ja` bytes, six function entries, species word 0x025c; all OK
 in every boot; nitshell was mapped at 0x02FA0000, not its preferred base, so every address went through the relocation):
@@ -231,7 +231,7 @@ every cell except c2-r1, 57782eb0, which differs only in the patched joiner's en
 **IPXWrapper 0.7.2 instances L and M** (`tools\nitro-mp\ipx-instances.ps1`; mutex `ipxwrapperLsocket` / `...M...`, keys
 `HKCU\Software\IPXWrappeL` / `M`; previously used instances: B, E, F, G, H, K): UDP **port 54830** (E-H use 54800, K 54810),
 only the Hyper-V Default Switch adapter enabled (00:15:5D:71:9A:4E, 172.30.160.1/20), fixed nodes 02:4C:00:00:76:01 /
-02:4D:00:00:76:02. Checked in the IPXWrapper debug logs over all cells: every send went to 172.30.175.255:54830, every
+02:4D:00:00:76:02. Checked in the IPXWrapper debug logs over all cells: every send went to <WSL broadcast>:54830, every
 packet came from 172.30.160.1. (An `ipxwrapper.ini` in the game folder makes IPXWrapper ignore the registry: the first
 try used port 54792 that way; the ini was removed.) Driver `tools\nitro-mp\pair.py`: host boot, BROADCAST through the
 stock form by scripted clicks (HOST > IPX; box clicked first when ON), holds 75 s in its arena; 20 s later the JOIN boot
@@ -259,8 +259,8 @@ session, and a patched copy hosting a stock session is listed by a stock copy as
 
 The loader stub maps the real code **in place**: a boot of `exp-nitro-mp` with `NMP_DUMP` wrote anet2's image (loaded at
 0x020F0000; `dpReceive` 0x020FA420, `dpSend` 0x020FB1A0, `dpEnumSessions` 0x020F8A20, `dpOpen` 0x020F6BA0, all inside the
-image), turned into a loadable PE by `i76-map\nitro-net\tools\unmap_pe.py` and exported by Ghidra (343 functions,
-`i76-map\nitro-net\ghidra\export-anet2-unpacked`; addresses are for base 0x020F0000). Findings:
+image), turned into a loadable PE by `<re-archive>\nitro-net\tools\unmap_pe.py` and exported by Ghidra (343 functions,
+`<re-archive>\nitro-net\ghidra\export-anet2-unpacked`; addresses are for base 0x020F0000). Findings:
 
 - **Packet size limit: payload <= 249 bytes unreliable (flag 0), <= 244 reliable (flag 1)**: dpSend appends a 6-byte
   trailer and the transport sends refuse `len + 6 > 255` (unreliable, `0x020ff500`) / `> 250` (reliable, `0x020ff600`) with
@@ -305,7 +305,7 @@ Runs (`tools/nitro-mp/pair.py --join-role joinplay --net 1`, summary `tools/nitr
 ticks the box (or not), BROADCAST; 20 s later the joiner boots, JOIN > IPX, waits for the session in the list, clicks row 0
 and JOIN GAME, then both stay in the arena (host 110 s, joiner 60 s) writing a status line every 5 s (session species,
 role, ids, our packet counters, and every player-table row with its car position). IPX as in step 2 (instances L / M,
-port 54830, Hyper-V adapter; every packet in the logs went to / came from 172.30.160.1 or 172.30.175.255:54830).
+port 54830, Hyper-V adapter; every packet in the logs went to / came from 172.30.160.1 or <WSL broadcast>:54830).
 
 | run | session | joiner listed / joined | hello | 'AT' host -> joiner / joiner -> host | both tables, last common status line | n |
 |---|---|---|---|---|---|---|
@@ -486,7 +486,7 @@ runs, no player object adopted, no 'AT', 0 / 0 access violations. So with the bo
 ### 0.5.10 The host-form boxes in the shipped proxy (2026-10-21 evening, owner's request; `music-fix/nitro_form.c`, commit 6760b24)
 
 **First look at the console** (consoleshot.ps1: lab copy on the physical desktop, .fps-lock + .console-owner for the
-boot, a real screen capture): `i76-uncap-lab\captures\nitro-mp-20261021\arena-plus-hostform.png` is the lab
+boot, a real screen capture): `<lab>\captures\nitro-mp-20261021\arena-plus-hostform.png` is the lab
 instrument's box of s.0.5.1. **It sat on the art**: "ARENA+" over the arena list's lower arrow and "[X] AI DROP-IN" over
 the OPTIONS header. The strip under the list (s.0.3 item 5) is not free. The free parchment is the **middle of the car
 panel** (between the front view, ending at y ~172, and the side view, starting at y ~307, left of the WEAPONS / PARTS
@@ -556,7 +556,7 @@ byte is the only new content, and joiners only log it). No Mac can be put on the
 third hit-tests the real macOS pointer), so the pass runs when the owner or one of the boys is at a Mac:
 - PC host: lab copy exp-nitro-mp, `builds\nitro-mp-form\host\Strlkup.dll` (5cb92ac2; README + MD5SUMS there), IPXWrapper
   instance N on the real LAN adapter (`tools\nitro-mp\ipx-lan.ps1 -Use N`: UDP 54792, Ethernet B0:6E:BF:38:13:31 =
-  192.168.1.81 only, net 00000001, node 02:4e:00:00:76:03 - the Macs' defaults; broadcast 192.168.1.255). The firewall
+  <LAN-IP> only, net 00000001, node 02:4e:00:00:76:03 - the Macs' defaults; broadcast <LAN broadcast>). The firewall
   allows the copy's nitro.exe on the Private profile, which the Ethernet network is. Host by hand (HOST > IPX, tick
   ARENA+, BROADCAST) or by `tools\nitro-mp\xhost.sh <tag>` (the lab driver, N01, 4 drivers, 300 s).
 - Mac: open "Interstate 76 Nitro", MULTIPLAYER > MELEE > JOIN > IPX, pick "ARENA+ <name>", JOIN GAME.
@@ -566,9 +566,9 @@ third hit-tests the real macOS pointer), so the pass runs when the owner or one 
 ### 0.5.13 Cross-machine pass, first try (2026-10-22 05:21-06:01): PC host up and advertising, no Mac joined
 
 **Result: no joiner, because neither Mac was running Nitro.** The PC side worked as planned. The owner had been told the
-boys were waiting on JOIN > IPX, but a read-only process list over ssh (via the laptop, 100.66.69.126) at 05:23,
-05:35 and 05:52 showed no nitro.exe and no Wine game process on Andrew's Mac (.205: only a winedevice.exe left over
-from Oct 17) or on Michael's (.226: no Wine process at all); both were logged in at the console.
+boys were waiting on JOIN > IPX, but a read-only process list over ssh (via the laptop, the developer's MacBook) at 05:23,
+05:35 and 05:52 showed no nitro.exe and no Wine game process on the M2 tester Mac (.205: only a winedevice.exe left over
+from Oct 17) or on the M4 Max tester's (.226: no Wine process at all); both were logged in at the console.
 
 PC host (`tools\nitro-mp\xlan.sh`, two sessions of 20 min, the second a restart as the brief allowed):
 - lab copy exp-nitro-mp, the shipped host build **5cb92ac2** (= 91d2b14, `builds\nitro-mp-form\host`) as `strlkprx.dll`
@@ -576,10 +576,10 @@ PC host (`tools\nitro-mp\xlan.sh`, two sessions of 20 min, the second a restart 
   `[X] ARENA+` box (`nitro-form: click id 0x10 -> ARENA+ on, CO-OP SCENES off; species 7676`), BROADCAST GAME.
   No LAB switches; NO. DRIVERS 6; arena N01 "Evening Stroll"; mute watcher on (the game plays on the console speakers).
 - `nitro-mp: dpOpen species 7676 'Evening Stroll' -> 0 (ARENA+)` both times; the host's hello went to the group.
-- IPXWrapper instance N on Ethernet only (B0:6E:BF:38:13:31, 192.168.1.81), UDP 54792, net 00000001, node
-  02:4E:00:00:76:03: **303 session broadcasts per session to 192.168.1.255:54792** (every 4 s), each looped back
-  from 192.168.1.81 as expected.
-- **Received from the Macs: nothing.** No packet from 192.168.1.205 / .226 / .116 and no node 52:E0:94:CB:EC:D3 or
+- IPXWrapper instance N on Ethernet only (B0:6E:BF:38:13:31, <LAN-IP>), UDP 54792, net 00000001, node
+  02:4E:00:00:76:03: **303 session broadcasts per session to <LAN broadcast>:54792** (every 4 s), each looped back
+  from <LAN-IP> as expected.
+- **Received from the Macs: nothing.** No packet from <LAN-IP> / .226 / .116 and no node 52:E0:94:CB:EC:D3 or
   AF:8D:65:E0:5D:84 in either session's IPXWrapper log. The Macs answer ARP (both present on the LAN; ping is
   dropped, macOS stealth mode).
 - The game ran: humans 1 at every 5 s stamp (478 stamps), 5 AI in play throughout (NO. DRIVERS 6 - 1 human), the AI
@@ -589,7 +589,7 @@ PC host (`tools\nitro-mp\xlan.sh`, two sessions of 20 min, the second a restart 
 
 What the Macs have to see once Nitro runs there: on MULTIPLAYER > MELEE > JOIN > IPX, within a few seconds, a row
 "ARENA+ Evening Stroll" (1/6, combat). If a Mac's enumeration requests reach the PC but the row never lists there, the
-likely cause is Michael's macOS firewall (the nitro-mac lane: entries only for the Gold app's wine / wineserver, none
+likely cause is the M4 Max tester's macOS firewall (the nitro-mac lane: entries only for the Gold app's wine / wineserver, none
 for the Nitro app; macOS asks on his screen the first time the app opens UDP 54792).
 
 Next try: the same `xlan.sh` (hands at a Mac first: confirm `nitro.exe` runs there before the PC boots).
@@ -609,12 +609,12 @@ sees a 7676 session, but a patched joiner must carry the same table to show the 
 and click range, type -> list / species, joiner display, the isolation cells and item 4's cells again). The boxes
 stay as they are until the owner rules.
 
-### 0.5.14 Michael's session (2026-10-22 07:12-07:20): the PC host never came up
+### 0.5.14 the M4 Max tester's session (2026-10-22 07:12-07:20): the PC host never came up
 
-Nitro ran on Michael's Mac (.226) from 07:12:32 (`Interstate 76 Nitro.app`, `nitro.exe -glide`, ssh process list at
+Nitro ran on the M4 Max tester Mac (.226) from 07:12:32 (`Interstate 76 Nitro.app`, `nitro.exe -glide`, ssh process list at
 07:14). Its IPXWrapper bound node 00:00:00:01/AF:8D:65:E0:5D:84 (port 21156). The PC host (`xlan.sh x-lan3`, 07:14:21)
 waited for `.fps-lock`, which the terrain-geomorph lane's queue held (MORPH-BASE r1, 07:18); no PC game ran, so
-nothing was advertised and nothing from .226 reached the PC. Michael's nitro.exe was gone by 07:20; his proxy log ends
+nothing was advertised and nothing from .226 reached the PC. The M4 Max tester's nitro.exe was gone by 07:20; his proxy log ends
 at 07:14 in the shell (state 6) with no CRASH / EXCEPTION line, and the newest macOS crash report is from 05:06, so it
 reads as a quit, not a crash. x-lan3 was stopped (this lane's processes only); the copy went back to b577183c /
 instance L. Lesson for the next live pass: hold `.fps-lock` from the moment a human is waiting, not from the boot.
@@ -637,27 +637,27 @@ object before navigating. No macOS pointer, no AppleScript, no sudo.
 
 | run | Mac | listed | JOIN GAME | joiner `dpOpen` | host saw the joiner | in game |
 |---|---|---|---|---|---|---|
-| x-mac1 | laptop (node D6:FB:E1:0B:F6:6C, 192.168.1.241) | "ARENA+ Evening Stroll" 7676 1/6 | clicked | none logged | enumeration only (Mac IPX log level 0) | no |
+| x-mac1 | laptop (node D6:FB:E1:0B:F6:6C, <LAN-IP>) | "ARENA+ Evening Stroll" 7676 1/6 | clicked | none logged | enumeration only (Mac IPX log level 0) | no |
 | x-mac2 | laptop | same | clicked | `-> 0 (ARENA+)` | yes: "humans 1 -> 2", an AI parked for the joiner, then "2 -> 1" | no (shell, net 0) |
-| x-mac-a1 | Andrew (52:E0:94:CB:EC:D3, .205) | same | clicked | `-> 0 (ARENA+)` | enumeration only | no |
+| x-mac-a1 | The M2 tester (52:E0:94:CB:EC:D3, .205) | same | clicked | `-> 0 (ARENA+)` | enumeration only | no |
 
 **Why the join stops: the PC sends its unicasts through Tailscale.** The PC's Tailscale accepts subnet routes
-(`RouteAll: true`) and holds `192.168.1.0/24 via 100.100.100.100`, metric 0, ahead of the Ethernet on-link route
-(metric 256). `Find-NetRoute 192.168.1.241` answers Tailscale. Broadcasts leave on the Ethernet (the session lists on
-every Mac), but every PC -> Mac unicast goes out through Tailscale to the subnet router 192.168.1.141 (MAC 90:09:d0,
+(`RouteAll: true`) and holds `<LAN subnet> via <tailscale-ip>`, metric 0, ahead of the Ethernet on-link route
+(metric 256). `Find-NetRoute <LAN-IP>` answers Tailscale. Broadcasts leave on the Ethernet (the session lists on
+every Mac), but every PC -> Mac unicast goes out through Tailscale to the subnet router <LAN-IP> (MAC 90:09:d0,
 a Synology) and reaches the Mac with that source address: the laptop's IPXWrapper log shows the host's replies "from
-02:4E:00:00:76:03 (192.168.1.141)", and the laptop answered 18 times to 192.168.1.141:54925 and 3 times to
-192.168.1.81:54925. Andrew's Mac never got a host unicast at all and sent its 11 join packets to 192.168.1.81:61363 (the
+02:4E:00:00:76:03 (<LAN-IP>)", and the laptop answered 18 times to <LAN-IP>:54925 and 3 times to
+<LAN-IP>:54925. The M2 tester Mac never got a host unicast at all and sent its 11 join packets to <LAN-IP>:61363 (the
 host socket's source port, learned from the broadcasts), none of which the PC logged. So listing works and the
 session handshake does not. Fix (the owner's network, not this lane's: no admin here): `tailscale set
---accept-routes=false` on the PC (at home the LAN is direct anyway), or as admin a 192.168.1.0/24 route on the Ethernet
-with a lower metric. Then x-mac laptop n 2 and Andrew again. Andrew's direct 192.168.1.81:61363 packets may also need
+--accept-routes=false` on the PC (at home the LAN is direct anyway), or as admin a <LAN subnet> route on the Ethernet
+with a lower metric. Then x-mac laptop n 2 and the M2 tester again. The M2 tester's direct <LAN-IP>:61363 packets may also need
 a look at the PC firewall afterwards if they still do not arrive.
 
 ### 0.5.16 Cross-machine pass after the route fix: the Mac's missing data-path key, found and fixed; first Mac joins (2026-10-22)
 
-**Route.** Main ran `tailscale set --accept-routes=false` (owner's approval); `Find-NetRoute 192.168.1.241` now answers
-Ethernet. In x-mac3 every host packet reached the laptop from 192.168.1.81 (177 / 177, none from .141), traffic both ways.
+**Route.** Main ran `tailscale set --accept-routes=false` (owner's approval); `Find-NetRoute <LAN-IP>` now answers
+Ethernet. In x-mac3 every host packet reached the laptop from <LAN-IP> (177 / 177, none from .141), traffic both ways.
 
 **The next blocker was the Mac prefix, not the network.** The joiner's main thread sat in a USER32 modal loop called
 from NITSHELL+0x2ffab (x-mac4: `win32u / USER32 x4 / NITSHELL.DLL+2ffab`), the error box of the shell's mission-file
@@ -668,15 +668,15 @@ check 0x1002fda0 ("Mission file %s not found."). With nitshell's file opens logg
 on drive letter 0 -> "\N01.CBT" (the driver's probe on the Mac: `+0x78 -> 1 'Install\data\miss8'; +0x70 -> 0`); value "0"
 -> local `miss8`. The PC has the key through UAC's VirtualStore (`HKCU\Software\Classes\VirtualStore\MACHINE\SOFTWARE\
 WOW6432Node\Activision\Interstate '76 Nitro Pack`, Minimum = 0); no Mac prefix has any Activision key (the shipped apps on
-the laptop and Andrew's: 0 lines). A workaround answering the check for every ARENA+ mission (build 0cf952e6, x-mac7) got
+the laptop and the M2 tester's: 0 lines). A workaround answering the check for every ARENA+ mission (build 0cf952e6, x-mac7) got
 the joiner past the box and into the arena, where it faulted at **nitro+0x9785b** `mov cx, [eax + edx*2]`, eax 0 - the
 crash the owner reported (owner-mac-join-crash-1.txt; same registers as x-mac7's CRASH line; strlkprx.dll loaded and
-Darwin 25.6.0, so it was the laptop's lab clone, not Andrew's and not a shipped app). 0x497790(x, z), called from
+Darwin 25.6.0, so it was the laptop's lab clone, not the M2 tester's and not a shipped app). 0x497790(x, z), called from
 0x406cf8 for an object's +0x40 / +0x50, reads the terrain cell word from the row table **0x5fb660** (16384 row pointers
 of 128 words), which the mission's terrain load fills: with the data path on a non-existent CD the terrain never loads.
 The workaround was dropped (diff kept in `builds\nitro-mp-macjoin\crc-workaround.diff`); the cause is fixed instead:
 **`"Minimum"="0"` under `[Software\\Activision\\Interstate '76 Nitro Pack]` and its Wow6432Node twin in the prefix's
-system.reg** (`tools\nitro-mp\xmac-minimum.py`), written to the lab clones on the laptop and Andrew's Mac.
+system.reg** (`tools\nitro-mp\xmac-minimum.py`), written to the lab clones on the laptop and the M2 tester Mac.
 
 | run | session | proxy (both sides) | Mac | listed | joiner in the arena | host | rows | crashes |
 |---|---|---|---|---|---|---|---|---|
@@ -689,7 +689,7 @@ Laptop ARENA+ joins: 1 of 2 counted runs (x-mac10); x-mac11 to be explained. In 
 AI were mirrored ('AT' applied 2004) and killed the joiner twice (its row 0/2/0 on both sides), the host's shooter
 credited one kill; the joiner's LAB shooter never fired on the Mac ("fire keys read 0 times"), so kills by the joiner
 were not measured. The time-matched sync / row stamps of aisum.py do not apply across machines (two clocks); rows were
-compared by content. **Andrew's Mac (n 2) was not run**: the lock window closed (11:50). The 5 s stamp grid, the Mac
+compared by content. **The M2 tester Mac (n 2) was not run**: the lock window closed (11:50). The 5 s stamp grid, the Mac
 shooter and x-mac11 are open.
 
 **For the boys' apps** (staged, not installed: `builds\nitro-mac-update\`, README + MD5SUMS): (1) required for any join,
@@ -702,7 +702,7 @@ box without (1) - x-mac8 confirms the key alone fixes a stock join.
 Owner ruling: the ARENA+ / CO-OP SCENES boxes become two entries of Nitro's stock GAME TYPE popup, **"Arena Drop-In + AI"**
 and **"Co-Op"**. Phase 1 = host side, lab only. Code: `music-fix/nitro_form.c` behind **`I76_NITRO_GAMETYPES=1`** (unset =
 the boxes, unchanged), commits b0a2420, c8b6d33. Lab: copy **`exp-nitro-types`** (of exp-nitro-mp), tooling and builds in
-`i76-uncap-lab\builds\nitro-gametypes-20261023` (lab 1446ea5, b26e76f).
+`<lab>\builds\nitro-gametypes-20261023` (lab 1446ea5, b26e76f).
 
 **Design as built** (static RE of nitshell f804f50d; 16 sites, each byte-checked, all or nothing; header G1-G6 in the file):
 type 6 = "Arena Drop-In + AI" (form mask `1 << 5` = 0x20), type 7 = "Co-Op" (mask 0x40). The stock code sets both from the
@@ -812,27 +812,27 @@ was never drawn; the JOIN list and the roster screen carry the game name only. G
 **Mac pass** (`gt_xmac.sh`: PC host exp-nitro-mp on IPXWrapper N over the LAN with this lane's instrument + the proxy p6
 3ef77e9d as strlkprx.dll in chain mode, the GAME TYPE row chosen, 6 drivers, 300 s hold; Mac joiner = the lab clone
 `Interstate 76 Nitro MP Lab.app` with the same proxy and `I76_NITRO_GAMETYPES=1` (xmac-join.sh arg 6), 150 s hold, null
-audio, nobody at the Mac; Michael's Mac has no lab clone folder (`~/i76-nitro-mp-lab` absent) and was not used):
+audio, nobody at the Mac; the M4 Max tester Mac has no lab clone folder (`~/i76-nitro-mp-lab` absent) and was not used):
 
 | run | Mac | host chose | Mac listed / joined | after 120 s (both sides) |
 |---|---|---|---|---|
 | gt-mac-a1, a2 | laptop | Arena Drop-In + AI | 'ARENA+ Evening Stroll' 7676, joined, hello options 0601 | state 5, **players 6** (2 humans + 4 AI) |
 | gt-mac-c1 | laptop | Co-Op | joined, P01 CO-OP SCENE on the Mac | state 5, players 2 |
-| gt-and-a1, a2 | Andrew | Arena Drop-In + AI | joined | state 5, players 6 |
-| gt-and-c2 | Andrew | Co-Op | joined, P01 CO-OP SCENE on the Mac | state 5, players 2 |
-| gt-mac-c2, gt-and-c1 | laptop, Andrew | Co-Op | **void**: the Mac's game reported state 5 with an empty mission buffer 46 ms after the driver attached and never reached the shell (the x-mac9 boot flake; the host side was fine) | - |
+| gt-and-a1, a2 | The M2 tester | Arena Drop-In + AI | joined | state 5, players 6 |
+| gt-and-c2 | The M2 tester | Co-Op | joined, P01 CO-OP SCENE on the Mac | state 5, players 2 |
+| gt-mac-c2, gt-and-c1 | laptop, the M2 tester | Co-Op | **void**: the Mac's game reported state 5 with an empty mission buffer 46 ms after the driver attached and never reached the shell (the x-mac9 boot flake; the host side was fine) | - |
 | gt-mac-c3 | laptop | Co-Op | **void on the PC side**: another lane took .fps-lock seconds after this script's pre-check; pair.py waited for it until gt_xlan's 900 s timeout, and the "session open" wait ran out without a failure exit, so the Mac (which reached the shell this time) listed 0 sessions. Script fix pending: a failure exit after that wait, a longer xlan timeout | - |
-| gt-and-c3 | Andrew | Co-Op | not run (queued behind the scott-build gate run from 12:08; stopped at 13:10) | - |
+| gt-and-c3 | The M2 tester | Co-Op | not run (queued behind the tester-build gate run from 12:08; stopped at 13:10) | - |
 
 The Mac's proxy log shows `nitro-types: ON - 16/16 nitshell sites` under Wine on every run (the same nitshell). 0 exceptions
-in every counted Mac joiner log. Tally: arena join n 2 per Mac (laptop, Andrew), co-op join n 1 per Mac; the two co-op
+in every counted Mac joiner log. Tally: arena join n 2 per Mac (laptop, the M2 tester), co-op join n 1 per Mac; the two co-op
 misses are a Mac boot flake and a PC lock race, neither in the type code.
 
 **Step 4 (entries as the default, boxes behind `I76_NITRO_GAMETYPES=0` for one release): not done.** The owner's gate was
 (1)-(3) passing with n 2 per Mac; co-op stands at n 1 per Mac, so the switch stays opt-in (`I76_NITRO_GAMETYPES=1`) and
 the box code stays. The flip is a two-line change in `nf_attach` (test `v[0] == '0'` instead of `'1'`), built and
 checked as p7 8d4d50b6 but not committed. Left: one co-op join per Mac (`gt_xmac.sh gt-mac-c4 c laptop`,
-`gt_xmac.sh gt-and-c3 c andrewvalentine@192.168.1.205` after the script fix above), then the flip, then the box code can go.
+`gt_xmac.sh gt-and-c3 c the family Mac over ssh` after the script fix above), then the flip, then the box code can go.
 
 Lab copies: `exp-nitro-types` (host, IPXWrapper L) and `exp-nitro-types-b` (joiner, M), both with the instrument
 a3889d8f / 8ba38c6a (`builds\nitro-gametypes-20261023\drv`); proxies p1-p7 in that folder (p6 3ef77e9d = the code as
@@ -848,10 +848,10 @@ restoring the DLL, and keeps `Strlkup.dll.xlan-bak` unless the copy back succeed
 | run | Mac | result |
 |---|---|---|
 | gt-mac-c4 | laptop (joiner proxy p6 3ef77e9d, host instrument 8ba38c6a + p6 chain) | **void, PC side.** The Mac listed 'ARENA+ Evening Stroll' 7676 1/6, joined, and got the P01 CO-OP SCENE. Joiner t+5..45 s: state 5, players 2. Host t+20 s: players 2 (type 7, mask 40, options 03, 7676). Then the host was killed at t+49 s: gt_xlan's `timeout` (then hold + 2400 s) also counts pair.py's queue wait (14:47-15:31), so it expired at 15:32:22. The joiner then took c0000005 in nitro.exe +0x17a85 / anet2 +0x14d6 at about t+62 s, after the host vanished. Not counted. |
-| gt-and-c3 | Andrew | not run (see below) |
+| gt-and-c3 | The M2 tester | not run (see below) |
 
 **Three ways the run lost time, none in the type code:**
-- (1) The scott-build gate held .fps-lock 12:08-14:47 (its i76.exe wedged at step 4).
+- (1) The tester-build gate held .fps-lock 12:08-14:47 (its i76.exe wedged at step 4).
 - (2) pair.py takes its turn only when `.fps-queue` names `nitro-mp-design`. A queue line that names another lane holds it
   forever. This lane's line said "game-types lane" (fixed by hand at 15:31), and the same thing is a likely cause of gt-mac-c3's wait.
 - (3) The killed host, nitro.exe 48740, will not die. Stop-Process (twice) and taskkill fail, and its mute watcher is gone. It is left with 1
@@ -868,13 +868,13 @@ The restore runs as soon as the file unlocks, then `ipx-lan.ps1 -Use L`.
 
 | run | Mac | host chose | Mac listed / joined | both sides | exceptions |
 |---|---|---|---|---|---|
-| gt-and-c3 (17:35) | Andrew | Co-Op (type 7, mask 40, options 03, 7676) | 'ARENA+ Evening Stroll' 7676 1/6, joined, P01 CO-OP SCENE, the host shown as `vagrapl1` | joiner t+5..145 s state 5, players 2; host t+120 / 240 s players 2 | 0 c0000005 (host, joiner, joiner proxy) |
+| gt-and-c3 (17:35) | The M2 tester | Co-Op (type 7, mask 40, options 03, 7676) | 'ARENA+ Evening Stroll' 7676 1/6, joined, P01 CO-OP SCENE, the host shown as `vagrapl1` | joiner t+5..145 s state 5, players 2; host t+120 / 240 s players 2 | 0 c0000005 (host, joiner, joiner proxy) |
 | gt-mac-c5 (18:02) | laptop | Co-Op | the same | the same | 0 |
 
 The fixed teardown put the copy back to b577183c with no strlkprx.dll or backup left. The Mac clones ran their own proxy copy, p6 3ef77e9d
 (`proxy-3ef77e9d.dll` as strlkprx.dll, opt-in switch passed by xmac-join.sh). The PC host ran instrument 8ba38c6a with p6 chained.
 
-**Tally: arena n 2 per Mac, co-op n 2 per Mac (laptop c1 + c5, Andrew c2 + c3): step-4 gate met.**
+**Tally: arena n 2 per Mac, co-op n 2 per Mac (laptop c1 + c5, the M2 tester c2 + c3): step-4 gate met.**
 
 **Step 4 done (i76-everywhere ddceb7a):** the entries are the default, and `I76_NITRO_GAMETYPES=0` restores the boxes for one
 release. The box code (F2 / F3 sites, hit records, draw) stays so the owner can still go back. Release build:
@@ -898,11 +898,11 @@ The G6 joiner type line stays covered but unobserved.
 ### 0.5.20 The weekend pass (2026-10-23 21:00 - 10-24 04:00, nitro-mp-design lane): Mac app update, the join that never left the Mac, EIP-0
 
 Owner (2026-10-23 night): *"finish Nitro multiplayer"*; the family plays this weekend. How-to for the family:
-[NITRO-LAN-WEEKEND.md](../NITRO-LAN-WEEKEND.md). Lab: `i76-uncap-lab\builds\nitro-weekend-20261023` (scripts, A/B binaries, outputs;
+[NITRO-LAN-WEEKEND.md](../NITRO-LAN-WEEKEND.md). Lab: `<lab>\builds\nitro-weekend-20261023` (scripts, A/B binaries, outputs;
 lab commits b703f36, 4095a9b, 6d3d84f, 14e556b), captures `captures\nitro-weekend-20261023` (on disk; the lab ignores captures). Repo: 02b77e0 (stubs), 6253bf0
 (UUID). Times CDT.
 
-**Release.** Proxy **6208d3ad** = i76-everywhere 4d2e47b (build.ps1 -Ref, twice, identical; = the Scott zip's proxy per fa50460). Since
+**Release.** Proxy **6208d3ad** = i76-everywhere 4d2e47b (build.ps1 -Ref, twice, identical; = the the tester zip's proxy per fa50460). Since
 ddceb7a's 7941034a only 9fe3510 (terrain morph, unset = unchanged) touched music-fix. The Nitro-port lane's c349c82 / 314aff8 (22:15:
 the owner's Gold terrain look and polish on Nitro, also the menu draw / menu keys / font on Nitro) landed after this build and the
 Mac installs and has had no multiplayer pass, so it is **not** in the weekend release.
@@ -920,10 +920,10 @@ has the row.
 | Mac | before tonight (backup) | now (read back) |
 |---|---|---|
 | laptop | proxy ad904941, stub 016556bf (the 10-22 draft), Minimum x2 (`app-backup-20261023-212851`) | proxy 6208d3ad, stub **e61e4e57**, nitro.exe Direct3D renderer=gdi, Minimum x2 (intermediate backups 222845, 20261024-024551) |
-| Michael | proxy ad904941, stub 384a0f8e, Minimum x2 (`app-backup-20261023-222906`) | proxy 6208d3ad, stub e61e4e57, gdi, Minimum x2 (intermediate backup 20261024-024601) |
-| Andrew | not reached: ssh timed out from 21:07 to 03:30 while the Mac answered ping (asleep behind the sleep proxy); not woken | unchanged: per the 10-22 records proxy ad904941, stub 384a0f8e, Minimum written by this lane on 10-22 |
+| The M4 Max tester | proxy ad904941, stub 384a0f8e, Minimum x2 (`app-backup-20261023-222906`) | proxy 6208d3ad, stub e61e4e57, gdi, Minimum x2 (intermediate backup 20261024-024601) |
+| The M2 tester | not reached: ssh timed out from 21:07 to 03:30 while the Mac answered ping (asleep behind the sleep proxy); not woken | unchanged: per the 10-22 records proxy ad904941, stub 384a0f8e, Minimum written by this lane on 10-22 |
 
-Michael's Mac was skipped while he played Minecraft (0 s idle at 21:12) and updated at 22:29 (27 min idle, no game). His python3 is the
+The M4 Max tester Mac was skipped while he played Minecraft (0 s idle at 21:12) and updated at 22:29 (27 min idle, no game). His python3 is the
 Xcode licence stub, which stopped the first apply-update run after the proxy and stub and before the gdi key (finished with
 `--gdi-only`; the script and wk-clone.sh have no python dependency since). The Gold apps were not touched.
 
@@ -957,8 +957,8 @@ x-mac11 picture of 10-22.
 
   So the code made no difference, the binary's UUID did. This matches how Local Network privacy is understood to remember an app (by the main executable's Mach-O UUID; from memory of
   Apple's guidance, not re-read tonight); every rebuild is a new app to it, its prompt waits on a screen nobody watches, and its unicasts to 192.168.1.x are dropped
-  (broadcasts pass, so the session lists). The laptop had allowed 03B81E57 at some point (the 10-22 joins). Andrew's Mac had too
-  (gt-and-a1..c3 ran clones with 384a0f8e). **Michael's Mac has not**: wk-mA1 / mA2 with e61e4e57 listed the session and did not join (0 of 2), the same stall; his Mac needs
+  (broadcasts pass, so the session lists). The laptop had allowed 03B81E57 at some point (the 10-22 joins). The M2 tester Mac had too
+  (gt-and-a1..c3 ran clones with 384a0f8e). **The M4 Max tester Mac has not**: wk-mA1 / mA2 with e61e4e57 listed the session and did not join (0 of 2), the same stall; his Mac needs
   someone to click Allow (the doc says so). Inferred, not seen: the prompt itself (no screen access).
 - Ruled out on the way: the music thread's stuck MCI opens (in 3 failures, absent in other failures and in successes), first runs of
   fresh clones, NVCL, gdi, IPX log level, nituser.mel, the joiner instrument.
@@ -975,14 +975,14 @@ instrument 8ba38c6a; Mac joiner = a null-audio clone of the updated shipped app,
 | wk-lC2 | laptop | same | same | yes, P01 CO-OP SCENE | to t+145 s | 2 | - | 0 / 0 |
 | wk-lS1 | laptop | Combat (type 1, mask 01, 025c = stock) | 'Evening Stroll' 1/6 | yes | to t+145 s | 2 | - (stock: no AI) | 0 / 0 |
 | wk-lS2 | laptop | same | same | yes | to t+145 s | 2 | - | 0 / 0 |
-| wk-mA1, mA2 | Michael | Arena Drop-In + AI | 'ARENA+ Evening Stroll' 1/6 | **no** (the join stall of section 2; Local Network not allowed on his Mac) | - | - | - | 0 / 0 |
-| - | Andrew | not run (asleep) | | | | | | |
+| wk-mA1, mA2 | The M4 Max tester | Arena Drop-In + AI | 'ARENA+ Evening Stroll' 1/6 | **no** (the join stall of section 2; Local Network not allowed on his Mac) | - | - | - | 0 / 0 |
+| - | The M2 tester | not run (asleep) | | | | | | |
 | 3 humans (PC + 2 Macs) | - | not run: only the laptop could join | | | | | | |
 
-**Tally: laptop 6 of 6 (n 2 per GAME TYPE), Michael 0 of 2, Andrew not run.** The launcher kept the game up in every laptop cell (stub and
+**Tally: laptop 6 of 6 (n 2 per GAME TYPE), the M4 Max tester 0 of 2, the M2 tester not run.** The launcher kept the game up in every laptop cell (stub and
 nitro.exe alive at both checks, its own quit left 0 processes). AI agreement is in the game's world units as logged, the same order as
 the 10-23 Mac pass (gt-and-a2 3.0, gt-mac-a2 7.2 median). The runs that joined tonight before the matrix (wk-L1, L2, B1, B7, B12, B16)
-agree likewise (medians 6.3-11.7). One runner was stopped by this lane with its cell running (wk-lA1, while trimming Michael's cells);
+agree likewise (medians 6.3-11.7). One runner was stopped by this lane with its cell running (wk-lA1, while trimming the M4 Max tester's cells);
 its host finished on its own and the Mac joiner was collected and stopped by hand.
 
 **4. EIP-0 (the Mac boot fault: call to 0 at wined3d+0x162430, frame 0).** Reproduced headless on clones. It is the crash the Gold Mac
@@ -1003,11 +1003,11 @@ failure** (no CRASH line; state 5 with an empty mission buffer, main thread park
 start again. A stub-side retry was not built (the stub cannot tell this hang from the intro without the proxy's help).
 
 **5. Not done / for the owner.**
-- Andrew's Mac: not updated at 03:37. A watcher (`andrew-poll.sh`, log `andrew-poll.out` in the lab folder) tries every 10 min until
-  09:00 and runs the update once his Mac answers, has been idle 10 min and runs no game; its log says whether it did. `bash ~/i76-nitro-mp-lab/update-andrew.sh` on the laptop does it (backup, update, read back, undo line).
-- Michael's Mac: someone must answer the Local Network prompt (and the firewall prompt) once at his screen; until then he lists games and
+- The M2 tester Mac: not updated at 03:37. A watcher (`m2-poll.sh`, log `m2-poll.out` in the lab folder) tries every 10 min until
+  09:00 and runs the update once his Mac answers, has been idle 10 min and runs no game; its log says whether it did. `bash ~/i76-nitro-mp-lab/update-m2.sh` on the laptop does it (backup, update, read back, undo line).
+- The M4 Max tester Mac: someone must answer the Local Network prompt (and the firewall prompt) once at his screen; until then he lists games and
   cannot join.
-- Three humans at once (PC + 2 Macs): not run. Only the laptop could join tonight (Michael: Local Network; Andrew: asleep).
+- Three humans at once (PC + 2 Macs): not run. Only the laptop could join tonight (the M4 Max tester: Local Network; the M2 tester: asleep).
 - PC pack: the first host answers the Windows Firewall prompt (Private, Allow).
 - c349c82 (the Nitro port of the owner's Gold look) is not in the weekend proxy; it needs its own multiplayer pass before it rides along.
 - Gold's own Mac launcher (88934d55, the same own-process fix) was built and not installed; installing it would also need the UUID kept.
@@ -1042,13 +1042,13 @@ Positions agree in the same order as 0.5.20 (medians 2.8-4.6). The font guard fi
 
 | where | proxy | nitshell | other | kept |
 |---|---|---|---|---|
-| `i76-uncap-lab\exp-nitro-owner\Interstate 76 Nitro Pack` | 3f27c797 | a32ffba6 (the polish lane's, already there) | + ipxwrapper.dll b8464944 (instance N), mswsock.dll c18759b2, wsock32.dll 70e4a652, empty NVCL; dgVoodoo.conf / input.map / nitplyr.def stay the owner's | `strlkup.dll.9e6a2378`, `.53944fb2`, `.e78aedd5-pre-53944fb2`, `.0c4f109c-pre-stab` |
+| `<lab>\exp-nitro-owner\Interstate 76 Nitro Pack` | 3f27c797 | a32ffba6 (the polish lane's, already there) | + ipxwrapper.dll b8464944 (instance N), mswsock.dll c18759b2, wsock32.dll 70e4a652, empty NVCL; dgVoodoo.conf / input.map / nitplyr.def stay the owner's | `strlkup.dll.9e6a2378`, `.53944fb2`, `.e78aedd5-pre-53944fb2`, `.0c4f109c-pre-stab` |
 | MacBook `Applications/Sikarugir/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 (was f804f50d) | launcher e61e4e57, gdi key 1, Minimum x2 | `app-backup-20261025-020736` (was proxy 6208d3ad) |
-| Michael `Games/Interstate76-MP/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 | same | `app-backup-20261025-020751` (was 6208d3ad) |
-| Andrew `Games/Interstate76-MP/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 | launcher 384a0f8e -> e61e4e57, gdi key written, Minimum x2 | `app-backup-20261025-020752` (was proxy ad904941, stub 384a0f8e) |
+| The M4 Max tester `Games/Interstate76-MP/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 | same | `app-backup-20261025-020751` (was 6208d3ad) |
+| The M2 tester `Games/Interstate76-MP/Interstate 76 Nitro.app` | 3f27c797 | a32ffba6 | launcher 384a0f8e -> e61e4e57, gdi key written, Minimum x2 | `app-backup-20261025-020752` (was proxy ad904941, stub 384a0f8e) |
 
 Mac installs by `mac/apply-update2.sh` (= apply-update.sh with the proxy and the nitshell as payload, `PXID` / `SHID`; the nitshell is in the backup clone of the game folder and `--restore` puts it back); both boys' Macs were idle
-(Michael 4315 s, Andrew 17310 s, no game). `update-andrew.sh` was not used (it carries 0c4f109c); apply-update2 does the same three changes. The PC `Games\I76\nitro-lan` was not touched (retiring).
+(The M4 Max tester 4315 s, the M2 tester 17310 s, no game). `update-m2.sh` was not used (it carries 0c4f109c); apply-update2 does the same three changes. The PC `Games\I76\nitro-lan` was not touched (retiring).
 
 **Final check, one join per updated Mac** (w56-all: PC host, Arena Drop-In + AI, from exp-nitro-mp with nitshell a32ffba6 swapped in for the run and restored after, proxy 3f27c797; the owner's own folder was not used as the host
 because the host instrument has to replace its `strlkup.dll`; the three Macs joined at once from fresh clones of their updated apps):
@@ -1056,10 +1056,10 @@ because the host instrument has to replace its `strlkup.dll`; the three Macs joi
 | Mac | joined | players seen | CRASH | notes |
 |---|---|---|---|---|
 | MacBook | yes | 6 | 0 | |
-| Andrew | yes | 6 | 0 | first run of the final proxy on his Mac |
-| Michael | **no**: "the join form never came back" | - | 0 | the known stall (Local Network not allowed on his Mac); someone must click Allow once |
+| The M2 tester | yes | 6 | 0 | first run of the final proxy on his Mac |
+| The M4 Max tester | **no**: "the join form never came back" | - | 0 | the known stall (Local Network not allowed on his Mac); someone must click Allow once |
 
-n 1 each. PC + MacBook + Andrew held 6 players together in the same cell.
+n 1 each. PC + MacBook + the M2 tester held 6 players together in the same cell.
 
 ### 0.6 Changes to sections 3.4, 4 and 5
 
@@ -1168,12 +1168,12 @@ picks **which files** the arena list reads (`*.cbt`, `*.rac`, `*.cf2..4`, each a
 sets the session flags the exe reads: 0x10 combat, 0x20 race (`0x448810`), 0x40 CTF (`0x448800`), 0x2000 team play,
 0x100 / 0x200 / 0x400 / 0x800 / 0x1000 limit kinds. Bits 0x4000 / 0x8000 are never set and never tested (byte search of
 every reference to 0x53f228 and the bit tests of its whole-word getter's 23 callers). This closes the open item in
-`i76-map\data\notes\nitro.md` ("which setup bit the exe reads ... not traced").
+`<re-archive>\data\notes\nitro.md` ("which setup bit the exe reads ... not traced").
 
 ### 1.7 anet2.dll itself: a loader stub (read since: section 0.5.3)
 
 `anet2.dll`'s `.text` has 0xa00 file bytes for 0x15a00 in memory: an entry stub (`.dllent`) maps the real code from a
-75 KB overlay. Ghidra sees the stub only. A 32-bit LoadLibrary-and-dump tool (`i76-map\nitro-net\tools\anetdump`) gets
+75 KB overlay. Ghidra sees the stub only. A 32-bit LoadLibrary-and-dump tool (`<re-archive>\nitro-net\tools\anetdump`) gets
 error 1114 outside the game (n 3). ANet 2's internals (species filter on a game server, reliable send, its packet size
 limit) are therefore **not read**; the design takes them from the exe / shell side and from Gold's measurements (2 'AT'
 records = 208 B per packet arrive, 508 B did not). First item for the nitro-mp lane's first lab boot: dump the mapped

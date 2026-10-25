@@ -36,13 +36,13 @@ took 16384 was not read back. Section 5.
 
 | tag | file | md5 |
 |---|---|---|
-| exe | `i76-uncap-lab\game\i76.exe` (AiO, = `game-tex`) | 85de44a7136979d7730800eeba8ca6cf |
-| ZGLIDE | `i76-uncap-lab\game\ZGLIDE.DLL` (base 0x10000000, has relocations) | 05c1dde499cd8da3248557a76ba42f31 |
-| dgVoodoo Glide | `i76-uncap-lab\game\Glide2x.dll` (dgVoodoo 2.87.3) | 8af442bc7718a792c0573b34bfddca78 |
-| archive | `game-tex\I76.ZFS` (hard link of `game-alt`'s), read with `i76-map\tools\i76fmt\zfs.py` | - |
+| exe | `<lab>\game\i76.exe` (AiO, = `game-tex`) | 85de44a7136979d7730800eeba8ca6cf |
+| ZGLIDE | `<lab>\game\ZGLIDE.DLL` (base 0x10000000, has relocations) | 05c1dde499cd8da3248557a76ba42f31 |
+| dgVoodoo Glide | `<lab>\game\Glide2x.dll` (dgVoodoo 2.87.3) | 8af442bc7718a792c0573b34bfddca78 |
+| archive | `game-tex\I76.ZFS` (hard link of `game-alt`'s), read with `<re-archive>\tools\i76fmt\zfs.py` | - |
 
 Tools: pefile + capstone scratch scripts. Prior reads this builds on: `TEXTURE-AND-OBJECT-LOD.md` (mipmaps off,
-0x10001964), `CLUTTER-AND-MIRROR.md` (0x44a740, mirror texture), `i76-map\data\notes\art.md` (M16 layout,
+0x10001964), `CLUTTER-AND-MIRROR.md` (0x44a740, mirror texture), `<re-archive>\data\notes\art.md` (M16 layout,
 FULLRES.LST), `i76-everywhere\docs\HD-TEXTURES-RESEARCH.md` (July pack, ADDON override).
 
 ## 1. Size: what the Glide path accepts
@@ -185,7 +185,7 @@ Purpose: one live answer to "does a 2x M16 render, with correct UVs, at 2 MB TMU
 16 MB TMU with the allocator fix run clean?"
 
 Prepared in the lab copy `game-tex` (made with `tools\renderers\make-renderer-copy.ps1 -Source ..\..\game-alt
--Dest ..\..\game-tex -HardLinkAssets`; `game`, `game-dd-20261003` and `C:\Users\james\Games` untouched):
+-Dest ..\..\game-tex -HardLinkAssets`; `game`, `game-dd-20261003` and `<games>` untouched):
 
 - `game-tex\ADDON\pirana16/26/36/46.pak/.pix`: every tile of all four Piranha paint schemes at 2x (128x64 ->
   256x128, 8x8 -> 16x16, ...) by pixel replication, with a magenta marker drawn at the new resolution: a 1-texel
@@ -205,7 +205,7 @@ Runs, in order (about a minute each):
 |---|---|---|
 | 1 | `.\run-tex-scale-test.ps1 -Control` | stock Piranha paint (the 2x packs are moved aside for the run) |
 | 2 | `.\run-tex-scale-test.ps1` | thin magenta border + X + fine checker on every Piranha panel, art otherwise unchanged and in place |
-| 3 | `.\run-tex-scale-test.ps1 -Tag tmu16 -Conf C:\Users\james\i76-uncap-lab\game-tex\dgVoodoo.tmu16.conf -ZglideFix` | as run 2, no texture corruption |
+| 3 | `.\run-tex-scale-test.ps1 -Tag tmu16 -Conf <lab>\game-tex\dgVoodoo.tmu16.conf -ZglideFix` | as run 2, no texture corruption |
 | 4 (optional) | as 3 without `-ZglideFix` | the static read predicts corruption once uploads pass 4 MB (needs a busy scene, e.g. 60 s of driving; t01 may not get there) |
 
 **Result.** Captures `captures	exscale61003-133505-marker2x-*`, `-133532-control-*`, `-133558-tmu16-*` (start,

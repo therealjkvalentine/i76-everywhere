@@ -3,7 +3,7 @@
 The reference is the retail 1.0 exe (`I76.EXE` md5 `6cc509ad`, 1997-03-15) with its own shell DLL (`I76SHELL.DLL` md5
 `7013d6ef`) and the original Play CD (data track 1 + audio tracks 2..17).
 - **Method:** static only.
-  - Ghidra export of the retail exe: `i76-map\ghidra\export-cd1997`.
+  - Ghidra export of the retail exe: `<re-archive>\ghidra\export-cd1997`.
   - Capstone on both shell DLLs and on our AiO exe (lab `game\i76.exe`, md5 `85de44a7`).
   - WRLD fields of the 40 retail mission files: lab `emu\work\retail-data\missions`. Sizes match the CD1 listing.
   - The existing emu traces: lab `emu\results\memtrace\*\mem.music.csv`, 45 run folders (39 with music rows: 19 retail with a mission start, 18 Gold, the 2 RPLYR.DEF runs; 6 empty).
@@ -164,7 +164,7 @@ After the run come 0-60 s of silence and then 2..14 (29:54), looping.
 - The RESUME note now says why the restart happened.
 - The data-track comment ("playing it produced SILENCE") stays as written, but it is unverified.
 
-**Build:** lab `i76-uncap-lab\builds\music-retail-20261016\`.
+**Build:** lab `<lab>\builds\music-retail-20261016\`.
 - `Strlkup-mr2.dll`, md5 `1b32e557`, built from commit e025739 (MSVC x86, 0 warnings, the same 5 exports). One-click test: `MUSIC-RETAIL-TEST.bat`. (`Strlkup-mr1.dll` c271ae80 was the same hunks on 6779088.)
 - Built from HEAD + `music-retail-mr1.patch` only, not from the working tree, which carries another lane's
   uncommitted edits.

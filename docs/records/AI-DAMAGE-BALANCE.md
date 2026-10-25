@@ -10,7 +10,7 @@ Lane `ai-damage-runs` (started 2026-10-17 morning, paused when the owner took hi
 Goal: AI and damage balance on retail 1.0 (simulation physics) at the emulated P166 and P133, Gold at the P166, and
 our exe at several step lengths, with the logger from AI-DAMAGE-METRICS.md (I76AIM build 2026-10-17c).
 
-Tools and data (lab `i76-uncap-lab`):
+Tools and data (lab `<lab>`):
 - scripts: `emu\tools\memtrace\gen_aidmg.py` (lab 555429f, 8e051fd; results bdca00b), `emu\tools\par\scripts\aidmg-*.txt`;
 - emulator queue: `tools\ai-damage-runs\aidr-emu-campaign.ps1` (one VM for this lane, waits while 3 or more 86Box run
   on the host, BelowNormal priority inherited by parrun and 86Box);
@@ -52,7 +52,7 @@ weak evidence.
    retail P166** on every metric (n 8 vs 10, all p >= 0.07): damage taken 2181 vs 2314, time-to-die 42.9 vs 36.3 s
    (one of the eight survived the phase; its lower bound is used).
 5. **AI fire volume follows the frame rate, as the code says it should.** `ai_ShouldFireWeapon` rolls its random
-   gate once per frame (i76-map `subsystems/ai.md`, "Fire decisions", verified live 2026-09-27). Measured on our exe,
+   gate once per frame (<re-archive> `subsystems/ai.md`, "Fire decisions", verified live 2026-09-27). Measured on our exe,
    pooled n 7-8:
    - 8 ms steps (120 fps): 292 ± 81 AI rounds /min; 30 ms: 129 ± 39 (2.3x, p < 0.001).
    - But **damage taken does not rise** (2076 vs 2181 /min, p 0.76): damage per round falls from 17 to 7.5
@@ -219,7 +219,7 @@ running). The e8 r5 / bw r5 top-ups queued behind it did not run either.
 
 What the cells would answer, and how to run them (about 25 min of console for n 4 each):
 
-    powershell -File C:\Users\james\i76-uncap-lab\tools\ai-damage-runs\aidr-campaign.ps1 -Conds e40,f40 -N 4
+    powershell -File <lab>\tools\ai-damage-runs\aidr-campaign.ps1 -Conds e40,f40 -N 4
     python -I tools\ai-damage-runs\aidr_summary.py --phases ai "e40=captures\ai-damage-runs-20261017\t13-e40-r[0-9]" "f40=captures\ai-damage-runs-20261017\t13-f40-r[0-9]"
 
 - **e40 vs r133 / gc166** (both stepping 37-40 ms): our exe at the step study's first grid point against the original

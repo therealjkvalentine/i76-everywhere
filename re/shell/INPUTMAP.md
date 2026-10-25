@@ -58,7 +58,7 @@ throttle_up 1 (0x10045100), throttle_down 2 (0x10045158), …
   cleanly (null check after 0x1000fd47) is T7's second question.
 - **Binary option (proposed, not built):** turn Done into Esc for the file write by jumping over the call at
   0x1000efe8, the equivalent of `ControlConfig_Frame` never writing. That is one 5-byte NOP and makes the menu view-only.
-  It is a policy call for James, since some players rebind in the menu.
+  It is a policy call for the developer, since some players rebind in the menu.
 
 ## Possible crash (static, needs T7)
 

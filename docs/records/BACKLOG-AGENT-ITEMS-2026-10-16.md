@@ -14,8 +14,8 @@ Tests: `python -m pytest tests` before **241 passed, 4 skipped**; after **244 pa
 | F-21 | preset guard TERRAIN_LOD > 1 without FAR_CLIP | **already done** (`8a3f3c8`, `tests/test_presets.py` 13 presets); nothing to add | - |
 | R-15 | repo presets = driver presets | **verified**: 13 / 13 `presets/*.psd1` byte-identical to the driver's, `PLAY-i76.ps1` identical; `setup-windows.ps1` / `Make-Wide-Conf.ps1` write `CaptureMouse = false` in the wide conf (since `808f756`) | - |
 | R-01 | working-tree triage | i76-everywhere tree clean except other lanes' in-flight files (`music-fix/strlkproxy.c`, `music-fix/replay.c`), not touched. Lab: see R-16 | - |
-| H-06 | lab `memlib.ps1:48` `InFire = 0x5367D0` | **done**: `ThrottleUp` 0x5367D0 + `WeaponFire` 0x5367DB + `Hardpoint1Fire` 0x5367DE (i76-map L031); no caller used `InFire` (git grep 0); map dot-sourced and read back. Lab `ENGINE-REFERENCE.md` rows 0x5367D0 and 0x52BBD0 / 0x52BBCC (L083) and `PHYSICS-60HZ.md` corrected | l:`ab03f33` |
-| R-09 | the rest of DOC-CORRECTIONS | **done**: `src/u32x.c` 2 comments and e:`u32x/u32x_full.c` 1 comment re-pathed to `docs/records/` (same line count, binary unaffected); garage-ui `RESULTS.md` dated note; i76-map three agent briefs re-pathed; file marked closed | l:`40c4a6e`, m:`41cd310f`, e:`45df600` |
+| H-06 | lab `memlib.ps1:48` `InFire = 0x5367D0` | **done**: `ThrottleUp` 0x5367D0 + `WeaponFire` 0x5367DB + `Hardpoint1Fire` 0x5367DE (<re-archive> L031); no caller used `InFire` (git grep 0); map dot-sourced and read back. Lab `ENGINE-REFERENCE.md` rows 0x5367D0 and 0x52BBD0 / 0x52BBCC (L083) and `PHYSICS-60HZ.md` corrected | l:`ab03f33` |
+| R-09 | the rest of DOC-CORRECTIONS | **done**: `src/u32x.c` 2 comments and e:`u32x/u32x_full.c` 1 comment re-pathed to `docs/records/` (same line count, binary unaffected); garage-ui `RESULTS.md` dated note; <re-archive> three agent briefs re-pathed; file marked closed | l:`40c4a6e`, m:`41cd310f`, e:`45df600` |
 | U-05 | F2 orphaned bookmark | **built, emulated, staged on the twin** (below); live test is owner test T3 | e:`6779088`, m:`c2f76e9e` |
 | U-13 | gate row D always FAIL | **fixed** (below) | l:`41d9abe` |
 | U-12 | Click-UI free-pointer audit | **fixed in 6 scripts**, the rest listed (below) | l:`38f86a7`, verify `391c18e` |
@@ -24,18 +24,18 @@ Tests: `python -m pytest tests` before **241 passed, 4 skipped**; after **244 pa
 
 ## U-05: F2 in detail
 
-- Defect (i76-map `shell/FIXES.md` F2, `SAVE.md` s.4, static): `SaveMenu_Edit` 0x100147a0 sets the slot variable
+- Defect (<re-archive> `shell/FIXES.md` F2, `SAVE.md` s.4, static): `SaveMenu_Edit` 0x100147a0 sets the slot variable
   `[0x10057f80]` to -1 at 0x10014866 on every entry. Re-entry after the static edit record was appended skips the slot
   assignment, the save writes slot -1: `savegame.dir` names `saveNNN`, the disk gets `save-001.cmp`.
 - `tools/patch-shell-modals.py` gains F2 **opt-in** (`--with-f2`, or `--only ...,F2`). The default set stays M1..K4: the
   default output on pristine `deb41008` is `8047c949` before and after the change (n = 1 each, deterministic).
 - Patch: 10 bytes -> nop, HIGHLOW relocation at 0x10014868 neutralised; the tool fails closed when the stock relocation
   is missing; `--check` reports F2 and flags a live relocation left on it.
-- Cross-check: `--only F2` on pristine = `6cd6b51f`, byte-identical to i76-map `tools/patch_shell.py --fixes F2`.
+- Cross-check: `--only F2` on pristine = `6cd6b51f`, byte-identical to <re-archive> `tools/patch_shell.py --fixes F2`.
 - Emulation (unicorn): slot value kept for 3 preset values, no live relocation on the range, a rebase to 0x20000000
   keeps the nops: patched 5 / 5 pass, stock control 5 / 5 MISMATCH (the check discriminates). Driver lineage
   `a300db63` + F2 = **`2ab4ca90`**, full emulation 58 / 58.
-- Not done: the slot logic around the patch (the three writers of `[0x10057f80]`, the row-pick path) is the i76-map
+- Not done: the slot logic around the patch (the three writers of `[0x10057f80]`, the row-pick path) is the <re-archive>
   static trace, not re-derived or emulated end to end here.
 - Staged on the lab twin `game-dd-20261003` (not the driver): `Interstate 76\i76shell.dll.F2` (`2ab4ca90`, built from
   the twin's own `a300db63`), `_tools\test-shell-f2.ps1`, `TEST-F2-bookmark-control.bat`, `TEST-F2-bookmark.bat`,
@@ -88,7 +88,7 @@ Tests: `python -m pytest tests` before **241 passed, 4 skipped**; after **244 pa
 
 ## Owner test: F2 bookmark (about 10 minutes)
 
-1. Twin `C:\Users\james\i76-uncap-lab\game-dd-20261003`: double-click `TEST-F2-bookmark-control.bat`.
+1. Twin `<lab>\game-dd-20261003`: double-click `TEST-F2-bookmark-control.bat`.
 2. In the game: load any bookmark -> garage -> Options -> Save Bookmark; type `ORPHANA`; click once on empty paper right of
    the list (not a row, not a button); click the name field; type `ORPHANB`; click SAVE; quit the game.
 3. The console window prints a VERDICT. Predicted: **ORPHAN** (if OK, the stock trace is wrong: say so).

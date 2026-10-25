@@ -107,7 +107,7 @@ static reading, with the address given in the detail sections.
 
 ## 1. Weapons: fire rate, damage per hit, damage per second (measured)
 
-**Static.** `weapon_UpdateInstanceFiring` 0x4a6470 runs every frame, for every instance, AI included (i76-map
+**Static.** `weapon_UpdateInstanceFiring` 0x4a6470 runs every frame, for every instance, AI included (<re-archive>
 ghidra export `004a6470.c`). The cooldown (+0x24) and interval (+0x28) timers run against the frame's dt. The loop
 fires as many shots as fit in the frame, and the remainder carries to the next frame. MG and handgun rounds are
 batched into one `weapon_FireShot` call per frame, so the round count is right.

@@ -1,10 +1,10 @@
 # Far clip x camera crash: the terrain edge records index vertices with an int16
 
-**2026-10-02, sandbox only** (`C:\Users\james\i76-uncap-lab\game`, console free, one game at a time, proxy installed and
-restored per run by `i76-map\verify\run_scenario.py`, sandbox left as found: `STRLKUP.DLL` md5 54f2de9d, no lock, no
-`.pretest`). Repro: `i76-map\verify\scenarios\camera-farclip.json` (t01 direct boot, F1, F6 hood view 3 s, F1, B binoculars
+**2026-10-02, sandbox only** (`<lab>\game`, console free, one game at a time, proxy installed and
+restored per run by `<re-archive>\verify\run_scenario.py`, sandbox left as found: `STRLKUP.DLL` md5 54f2de9d, no lock, no
+`.pretest`). Repro: `<re-archive>\verify\scenarios\camera-farclip.json` (t01 direct boot, F1, F6 hood view 3 s, F1, B binoculars
 3 s, B off, idle to 45 s), run with `--exe` and the new `--env I76_FAR_CLIP=<m>` switch. Runs under
-`i76-map\verify\runs\camera-farclip\<ts>\` (actions.csv, manifest.json, mciproxy.log with the proxy's `CRASH:` lines).
+`<re-archive>\verify\runs\camera-farclip\<ts>\` (actions.csv, manifest.json, mciproxy.log with the proxy's `CRASH:` lines).
 
 **Live state first** ([check which build is live]): `patch-farclip.ps1 -Status` on the sandbox reads **far-clip PATCHED ->
 8000 m, render pools ENLARGED 128x (arena 64 MB)**, not the 5000 m / 16x that DRAW-DISTANCE.md and the brief say. The
@@ -170,8 +170,8 @@ the sibling, and its *index width*, not its size, is the limit; the pools are no
 
 ## Files
 
-- `i76-map\verify\scenarios\camera-farclip.json` (new), `i76-map\verify\run_scenario.py` (`--env KEY=VALUE`, repeatable,
+- `<re-archive>\verify\scenarios\camera-farclip.json` (new), `<re-archive>\verify\run_scenario.py` (`--env KEY=VALUE`, repeatable,
   plus a scenario-level `"env"` dict; both applied after the profile's switches; recorded in the manifest's `env`).
-- Runs: `i76-map\verify\runs\camera-farclip\20261002-14{2046,2230,2402,2516,2619,2740,3106,3324,3513,3659,4221}`.
+- Runs: `<re-archive>\verify\runs\camera-farclip\20261002-14{2046,2230,2402,2516,2619,2740,3106,3324,3513,3659,4221}`.
 - Sampler (scratch, not committed): `vertsample.py` - ReadProcessMemory of 0x6442ec / 0x59c568 / 0x4c2720 / 0x5a7e1c /
   cam+0x10 / cam+0x34 at ~1 kHz; outputs `verts-{1800,2500,3000,3700}.txt`.

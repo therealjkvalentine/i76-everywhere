@@ -33,7 +33,7 @@ frame rate, the hardware, tuning, the car model, AI, damage and versions.
 ## 1. Sources and integrity
 
 Feed: https://devgameclub.libsyn.com/rss (fetched 2026-10-17; show notes saved as
-`i76-uncap-lab\refs\devgameclub\show-notes-422-427.txt`). No transcript, captions or official show notes beyond the
+`<lab>\refs\devgameclub\show-notes-422-427.txt`). No transcript, captions or official show notes beyond the
 topic list exist (checked in the earlier session; DEV-INTENT-EVIDENCE s.5 Nulls).
 
 | ep | title, date | role | file (lab `refs\devgameclub\`) | bytes (= RSS enclosure length) | SHA-256 |
@@ -54,7 +54,7 @@ topic list exist (checked in the earlier session; DEV-INTENT-EVIDENCE s.5 Nulls)
 
 ## 2. Method
 
-- faster-whisper 1.2.1 (CTranslate2 4.8.3) in a venv, `i76-uncap-lab\tools\stt\venv` (Python 3.12.10). Model
+- faster-whisper 1.2.1 (CTranslate2 4.8.3) in a venv, `<lab>\tools\stt\venv` (Python 3.12.10). Model
   `Systran/faster-whisper-small.en`; `model.bin` SHA-256 `62b2a45b...e37a` matches the Hugging Face LFS hash.
 - CPU only, int8, `cpu_threads=2`, one episode at a time, BELOW_NORMAL priority. The earlier session's script set the
   priority with a truncated pseudo-handle and silently stayed at Normal (read back with Get-Process); fixed

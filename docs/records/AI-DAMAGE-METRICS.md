@@ -48,7 +48,7 @@ Lab commits `c3d1b44`, `6a241f8`, `2c39bf8` (I76AIM build 2026-10-17c). Code pat
    - **Melee2, player driven to the reference park position.** The retail AI attacked from 47-161 m, landed 98 hit
      events and killed the player. Gold at Champ: 38 events in twice the time, and the player survived.
    - Spawn position and route decide melee outcomes. Use T13-type missions and n >= 5 for real comparisons.
-4. **The Gold par runs were all on difficulty Wimp.** The par base's `C:\I76GOLD\I76PLYR.DEF` has difficulty byte
+4. **The Gold par runs were all on difficulty Wimp.** The par base's `<gold game folder>\I76PLYR.DEF` has difficulty byte
    +0x5c = 0. Gold multiplies player-fired bullet and flame damage by 2.0 at 0, 1.0 at 1 and 0.75 at 2:
    - bullets 0x4a76e7, flame 0x4443a8;
    - the levels are Wimp / Champ / Badass in the Gold manual;
@@ -117,7 +117,7 @@ target that has an AI block (the player has one; live).
 | ai+0xa6e4 / +0xa6e8 / +0xa6ec | who rammed / who shot / who attacked (object pointers, never cleared) | as the stamps |
 | ai+0xa6f0 | sim time of the last event | every recorded event (FSM reads never clear it) |
 
-FSM reads (isShot / isRammed / isAttacked) reset the stamps to -10 (i76-map ai.md M44a). The logger therefore uses the
+FSM reads (isShot / isRammed / isAttacked) reset the stamps to -10 (<re-archive> ai.md M44a). The logger therefore uses the
 sim time +0xa6f0 to detect new events, and the stamps only to label a new event "shot" or "ram".
 
 What the recorder does **not** see: an attacker that is not a vehicle (class 1 / 8 / 9: the attacker test 0x458a90),
@@ -263,7 +263,7 @@ n = 1 each. The whole mission, phases summed:
 Why the retail player died:
 - The retail AI hit the player from the start (settle: 7 events, 315 damage) and during the cruise (29 events, 464).
 - At ai-start the player's armour read 128 / 400 / 293 / **0** (I76DRV `ent`). With one side at 0, hits reach the
-  components, and a hit on a destroyed component can roll a kill (i76-map damage.md).
+  components, and a hit on a destroyed component can roll a kill (<re-archive> damage.md).
 - So the player died with about 2200 armour + chassis left. **Armour + chassis alone does not predict death.** The
   extrapolated time-to-die is a rate, not a forecast.
 

@@ -25,7 +25,7 @@ so it is available offline and greppable. Indexed from
 | FireRite Rocket | 120 | 1000 | 300 | 94 | 60 | 11.9 | 23.8 |
 | AIM-Nein Missile | 30 | 2000 | 900 | 169 | 15 | 22.5 | 10.67 |
 | DrRadar Missile | 12 | 3000 | 200 | 208 | 10 | 38 | 8.23 |
-| Cherub Missile | 12 | 4000 | 200 | 217 | 2 (published; the `.gdf` reads **3** — corrected 2026-10-02, i76-map L108) | — | — |
+| Cherub Missile | 12 | 4000 | 200 | 217 | 2 (published; the `.gdf` reads **3** — corrected 2026-10-02, <re-archive> L108) | — | — |
 
 ## Flamethrowers
 
@@ -59,7 +59,7 @@ so it is available offline and greppable. Indexed from
 
 | weapon | range m | speed m/s | ammo | notes |
 |---|---|---|---|---|
-| 45cal Automatic | 45 | 70 | 300 (published; the `.gdf` reads **500** — corrected 2026-10-02, i76-map L108) | five shots kill a driver (red car). Only fires while looking out of the window, using the generic weapon-fire input — not a hardpoint |
+| 45cal Automatic | 45 | 70 | 300 (published; the `.gdf` reads **500** — corrected 2026-10-02, <re-archive> L108) | five shots kill a driver (red car). Only fires while looking out of the window, using the generic weapon-fire input — not a hardpoint |
 
 ---
 
@@ -81,7 +81,7 @@ The **bold** ammo figures above were compared with the engine's own weapon defin
 
 **Eight for eight.** That is mutual corroboration: it confirms Local Ditch's numbers are taken
 from the real data, and independently confirms we are reading the right structure at
-`0x005D8800`. See [`i76-uncap-lab/docs/WEAPONS-MEMORY.md`](../lab/docs/WEAPONS-MEMORY.md)
+`0x005D8800`. See [`<lab>/docs/WEAPONS-MEMORY.md`](../lab/docs/WEAPONS-MEMORY.md)
 for the memory layout, the live ammo array, and the GDF-name ↔ weapon mapping
 (`gmlight` = 30cal MG, `gmmedium` = 50cal MG, `gcmedium` = 25mm Cannon, `gfmedium` = Gas
 Launcher, `glandmin` = Land Mines, `goilslck` = Oil Slick).

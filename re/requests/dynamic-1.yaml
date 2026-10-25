@@ -8,7 +8,7 @@
 # manifest: tools\gates\capture_gates.py --all) and budget_min.
 # Not requested (settled statically, gate S): the per-frame clock and its dt cell, the 18-name plugin export table of
 # the renderer, the plugin calling convention, the LZO identity. Address classes: bss / init (.data) / text / heap-offset.
-# Build for every capture: C:\Users\james\i76-uncap-lab\game\i76_pristine_fix.exe md5 58d9dec00c18a5383820e77e51850b74
+# Build for every capture: <lab>\game\i76_pristine_fix.exe md5 58d9dec00c18a5383820e77e51850b74
 # (pristine + the 5-B i76fix patch at 0x499b25; the only bytes that run on Win10 19045, captures\001-smoke); the
 # launcher / frida_run / i76poke / snapshot each stamp it (H0) and refuse anything else.
 

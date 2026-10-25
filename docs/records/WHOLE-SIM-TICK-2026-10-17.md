@@ -23,7 +23,7 @@ feel test (TEST-tick-33.bat); the 66.7 ms tick is the faithful 1997 design but i
 ## 1. The cut between simulation and drawing (RE)
 
 Static reading of our exe (AiO-based 6319abf7 = Galaxy 9a232dcc at these bytes), capstone over the live image, names
-from i76-map `symbols/functions.tsv`. WinMain's mission loop runs 0x40398d..0x4040c4. Offline, one iteration is:
+from <re-archive> `symbols/functions.tsv`. WinMain's mission loop runs 0x40398d..0x4040c4. Offline, one iteration is:
 
 | site | call | side | notes |
 |---|---|---|---|
@@ -104,10 +104,10 @@ class slot + StepperBegin call for counting), 14 draw-side holds, 7 cosmetic sit
 current scheme's per-frame set (FRAMERATE_FIXES' 36 + 6 + 6 sites, COLL_WINDOW's 4, COLL_DEDUPE, INPUT_LATCH's 2, the AI
 grid / clock / hold set, ENGINE_DT_FIX, REF_FPS) is off.
 
-**Lab side build** `i76-uncap-lab\builds\whole-sim-tick-20261017\Strlkup-wst2.dll` (md5 c059f270): this source plus
+**Lab side build** `<lab>\builds\whole-sim-tick-20261017\Strlkup-wst2.dll` (md5 c059f270): this source plus
 the lab-only drive keys with a latency probe (`drive-lat-block.c`), `I76_STEP_SEQ` and `I76_HEADLESS_ACTIVE`
 (`make.ps1`). Installed only in the lab copies `game-wst` (headless, null renderers) and `game-tick` (the owner's
-play copy). Harness: `i76-uncap-lab\tools\whole-sim-tick\` (`wst-run.ps1`, `wst-batch.ps1`, `wst-queue.ps1`,
+play copy). Harness: `<lab>\tools\whole-sim-tick\` (`wst-run.ps1`, `wst-batch.ps1`, `wst-queue.ps1`,
 `wst_drive.py`, `wst_probe.py`, `wst_analyse.py`, `deskrun.py`).
 
 **Harness notes.**
@@ -224,7 +224,7 @@ where no camera mode set the view.
 
 ## 5. Launchers (lab)
 
-`i76-uncap-lab\game-dd-20261003\TEST-tick-66.bat` and `TEST-tick-33.bat` run the lab copy `game-tick` (side build md5
+`<lab>\game-dd-20261003\TEST-tick-66.bat` and `TEST-tick-33.bat` run the lab copy `game-tick` (side build md5
 c059f270, presets `lab-tick-66` / `lab-tick-33`, dgVoodoo.wide.conf) after the play66 / play33 boots passed the
 correctness checks above. The daily driver, the golden copy, the Downloads portable and the committed
 `music-fix/Strlkup.dll` are untouched.

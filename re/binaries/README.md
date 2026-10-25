@@ -6,7 +6,7 @@ non-ground-truth) and `sandbox.toml` (every DLL in the sandbox with md5).
 
 Written by Task 1 (`tools\gen_binaries.py`; read back with tomllib and a fresh md5 per module):
 `i76-gog2017.toml` (reference exe, sections, 244 imports, gate A negative set, 7 non-ground-truth copies,
-the H0 allowlist) and `sandbox.toml` (52 PE modules of `C:\Users\james\i76-uncap-lab\game`, 32
+the H0 allowlist) and `sandbox.toml` (52 PE modules of `<lab>\game`, 32
 original-era / 20 modern, `in_scope` flags). `tools\completeness.py` reads the `in_scope` rows for the
 process-wide remainder.
 

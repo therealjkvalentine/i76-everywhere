@@ -1,6 +1,6 @@
 # Rebuilding the menu system: design study and recommendation
 
-*Written 2026-10-02 from the repo docs, the i76-map shell track and read-only decodes of the pristine sandbox files.
+*Written 2026-10-02 from the repo docs, the <re-archive> shell track and read-only decodes of the pristine sandbox files.
 No game was run, no existing file was edited. Every statement is tagged: **[fact: source]** = read from code, a
 binary, a log or a prior live run (with where); **[inferred]** = derived from facts, not observed; **[proposed]** =
 design, not built; **[open]** = a live test or a trace decides it. Shell addresses are VAs of the pristine
@@ -23,7 +23,7 @@ recommendation and the staged plan are in section 6; the first milestone is sect
 
 | menu | binary | anchors |
 |---|---|---|
-| title, main menu, mission grid, garage, inventory/salvage, parts catalogue, melee/net entry forms, standings, post-mission, the notepad menus (Options, Play Options, Graphic Detail, Audio, Control Configuration, Save/Load Bookmark, Exit, Credits, Modem) | `i76shell.dll`: 2 exports (`ShellMain` 0x1001e260, `ShellWindowProc` 0x1001da10), 721 Ghidra functions, 606 named | i76-map `shell\SCREENS.md`, `shell\README.md` |
+| title, main menu, mission grid, garage, inventory/salvage, parts catalogue, melee/net entry forms, standings, post-mission, the notepad menus (Options, Play Options, Graphic Detail, Audio, Control Configuration, Save/Load Bookmark, Exit, Credits, Modem) | `i76shell.dll`: 2 exports (`ShellMain` 0x1001e260, `ShellWindowProc` 0x1001da10), 721 Ghidra functions, 606 named | <re-archive> `shell\SCREENS.md`, `shell\README.md` |
 | the **in-mission** Esc menu (Abort, Load Bookmark, Play Options, Graphic Detail, Audio, Exit) and the mission-over menu (Replay / Reconfigure / Abort / Exit) | `i76.exe` | `shell_BeginInGameMenu` 0x4953e0, draw 0x496870, keys 0x496e10, mouse `shell_MenuHandleMouse` 0x4972d0, mission-over 0x497760; pages `plyopt1.map`, `grxdet1.map`, `audcon1.map`, `extgme1.map`; GDI DIB with Arial Bold blitted into the 3D frame, **no pointer sprite of its own** (uncap-lab `docs\MOUSE-ESC-MENU-AND-SAVE-SCREEN.md` §2.2) |
 
 A rebuild that only touches the DLL leaves the Esc menu as it is. Any pointer fix has to cover both binaries; today
@@ -86,7 +86,7 @@ that is what `u32x.dll` does (it is the USER32 import of both: `deploy-shellfix.
   the process.
 - **Saves are solved outside the game.** `i76-save-editor.py` / `.html` parse and write `.cmp`, `.spc` and
   `savegame.dir` byte-exact (46 files, 132 tests; re-run 2026-10-03: 133 on the repo samples, 156 with the lab folder), with the mount, cap and repair-queue rules the garage applies
-  [fact: `docs\SAVE-EDITOR-STATUS-2026-10-02.md`, `docs\MOUNT-VALIDATION.md`]. `i76-map\data` has byte-exact
+  [fact: `docs\SAVE-EDITOR-STATUS-2026-10-02.md`, `docs\MOUNT-VALIDATION.md`]. `<re-archive>\data` has byte-exact
   `.vcf` / `.vsf` codecs (`fmt\l_vcf.py`, `mod\i76mod.py`).
 
 ### 1.4 How the shell draws and presents [fact: Ghidra export `shell\ghidra\export\functions\`, `symbols\functions.tsv`]
@@ -416,7 +416,7 @@ front end that replaces the garage (C, rule drift, loses multiplayer), a clean-r
 
 ## 7. First milestone: "one pointer" on the sandbox
 
-**Goal.** In the sandbox (`C:\Users\james\i76-uncap-lab\game`, console session, owner not playing), with one u32x
+**Goal.** In the sandbox (`<lab>\game`, console session, owner not playing), with one u32x
 build: the pointer the player sees is the pointer that clicks, in the garage, the save screen and the Esc menu, and
 the bookmark route still reaches the mission. Opt-in by environment (`I76_U32X_VPTR=1`), off = today's behaviour.
 
@@ -483,10 +483,10 @@ driver.
 i76-everywhere: AGENTS.md; docs/MENU-USABILITY-PLAN.md, SAVE-FREEZE-ROOT-CAUSE.md, MOUNT-VALIDATION.md,
 SAVE-EDITOR-STATUS-2026-10-02.md, MISSION-LAUNCH.md, SAVES-LEG-A-RUN-2026-10-01.md, STATUS-2026-10-02.md,
 PLAYTEST-2026-10-02.md, BACKLOG-2026-10-02.md; music-fix/README.md, music-fix/strlkproxy.c (switch list, line 720).
-i76-map: shell/README.md, SCREENS.md, SAVE.md, FIXES.md, CALLBACKS.md, work/exe-callbacks.md, work/cmp-layout.md,
+<re-archive>: shell/README.md, SCREENS.md, SAVE.md, FIXES.md, CALLBACKS.md, work/exe-callbacks.md, work/cmp-layout.md,
 symbols/functions.tsv, symbols/globals.tsv, tools/mw2db.py, tools/mw2shape.py, tools/sdis.py (`calls`),
 ghidra/export/functions/10037a50.c, 10021d90.c, 10021c50.c, 10022400.c, 10039750.c; data/FORMATS.md, data/README.md;
 subsystems/mission.md; `sandbox-gog\main\app\DATABASE.MW2` (item list and three PCX headers decoded today,
 read-only), `shell\bin\i76shell.dll` import and export tables (pefile).
-i76-uncap-lab: docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md (§2, §5a, §7, §8), autotest/saves/leg-b.ps1, garage-ui.ps1,
+<lab>: docs/MOUSE-ESC-MENU-AND-SAVE-SCREEN.md (§2, §5a, §7, §8), autotest/saves/leg-b.ps1, garage-ui.ps1,
 autotest/README.md listing, git log of src/u32x.c.

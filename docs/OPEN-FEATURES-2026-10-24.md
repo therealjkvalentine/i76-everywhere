@@ -9,7 +9,7 @@ dated records to 2026-10-23, `tools/haptics/README.md` and `motion/README.md`, t
 
 **Status words.** **idea** = discussed, no design. **designed** = a written design or plan, no code. **partly built** =
 some of it exists. **built, not tested** = the code exists and was never run where it counts (live game, real device,
-the owner's route); "owner test pending" means only James can close it. **ruling** = blocked on an owner decision.
+the owner's route); "owner test pending" means only the developer can close it. **ruling** = blocked on an owner decision.
 
 Done items are left out of the main list. Items an older backlog still shows as open but that later evidence closes
 are in the appendix. Where a row cites "OTL" it means [OWNER-TEST-LIST.md](OWNER-TEST-LIST.md); "B-16" =
@@ -225,7 +225,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | ARENA+ description wording ("the original '76 missions" vs "the Nitro missions") | ruling | OTL 2026-10-21 ARENA+ results |
 | Replacing the boxes by game types was done; the one IPX joiner type-text path (G6) never drawn | open (unobserved) | NITRO-MP-DESIGN s.0.5.18-19 |
 | Nitro per-team spawn tables, anet2 internals, VFS sub-folder question | open (RE) | NITRO-MP-DESIGN 6 |
-| Michael's first-boot wined3d fault (n 1 of 2); EVO4 output delays Mac start ~40 s; Esc at the main menu quits on the Mac | open | NITRO-MAC s.6; OTL 2026-10-21 Mac caveats |
+| The M4 Max tester's first-boot wined3d fault (n 1 of 2); EVO4 output delays Mac start ~40 s; Esc at the main menu quits on the Mac | open | NITRO-MAC s.6; OTL 2026-10-21 Mac caveats |
 | "Get nitro working as well as gold": remaining port subsystems measured on Nitro the way Gold's were (debug tool, shell key / popup patches as NITSHELL equivalents) | partly built | ARSENAL-PLAN "Shape of the work" 1; NITRO-PORT |
 | Arsenal pack: both patched exes in one pack, one README | planned | ARSENAL-PLAN 4 |
 
@@ -249,7 +249,7 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | `PLAY-16x10.bat` old pointer regime: keep or promote the cursor lines | ruling C7 | B-16 U-02 |
 | Pad: hand test of the pad-layer fixes; Mac map convergence; native B / Y; Y view cycle + right-stick orbit never promoted | owner test pending / not promoted | B-16 C-01..C-04 |
 | Deck: menu pointer offset (cause unmeasured), pad menu v3 and TV profile re-test, TV gamma / brightness values to keep | owner test pending; ruling C12 | OTL items 39, 43; OWNER-MORNING C12 |
-| Mac Esc menu by mouse on the laptop (fixed on Andrew's Mac, laptop screen was locked) | owner test pending | OTL "Mac converge" item 1 |
+| Mac Esc menu by mouse on the laptop (fixed on the M2 tester Mac, laptop screen was locked) | owner test pending | OTL "Mac converge" item 1 |
 | Instant Melee ENTER AREA in 86Box would not take injected clicks | open | OTL 2026-10-19 A5b |
 
 ---
@@ -259,23 +259,23 @@ nondestructively, so that community play of nitro multiplayer is unperturbed." G
 | item | status | source |
 |---|---|---|
 | v1.1.0: CHANGELOG still a DRAFT block covering to 2026-10-10; extend to 10-24; the tag is the owner's | ruling / docs | CHANGELOG.md; B-16 R-03; OWNER-MORNING C13 |
-| Patch kit (first tested by Scott): release v0.7.3 is published on GitHub; whether to announce it or send the zip | ruling | OTL 2026-10-23 afternoon decision 1 |
+| Patch kit (first tested by the tester): release v0.7.3 is published on GitHub; whether to announce it or send the zip | ruling | OTL 2026-10-23 afternoon decision 1 |
 | Shipped `saves\savegame.dir` carries 92 B of zero slack | ruling (trim or leave) | OTL 2026-10-23 afternoon decision 3 |
 | Fresh install by the owner: real `INSTALL.bat` with GOG's installer and UAC, music in a mission on that exe, best-wide, a Save Bookmark | owner test pending | OTL item 16; B-16 R-04 |
 | Non-ultrawide real hardware (16:9 GPU / DPI, the menu pointer at that size); a 4:3 monitor (dry run only) | not tested | SCOTT-BUILD s.7 |
 | `Build-From-GOG.ps1 -Game Nitro`: console proof pending | built, not tested | `5cee886` |
 | Mac: no tick / 60 fps on the Macs (24 fps cap); the 60 / 120 switches untested under Wine | open | OTL 2026-10-21 Mac caveats; ENHANCEMENTS 9 |
 | Mac: clean-machine installer (`mac-install.command` "BETA"), mic prompt | open | B-16 K-02 |
-| Michael's Mac: Gold app not renamed (firewall allow entries need sudo) | blocked (owner, sudo) | NITRO-MAC s.7 |
+| The M4 Max tester Mac: Gold app not renamed (firewall allow entries need sudo) | blocked (owner, sudo) | NITRO-MAC s.7 |
 | Deck: proxy switches under Proton beyond the TV / pad set; Deck baseline tier never run on hardware | open | ENHANCEMENTS 1, 9 |
 | THIRD-PARTY.md: the dgVoodoo redistribution sentence (the patch kit relies on Dege's clause), Lossless Scaling, opentrack, GE-Proton, others | partly done | B-16 R-12; RELEASE-PLAN 5 "Legal notes" |
-| i76-map public export (allowlist script, decompiler-residue grep, THIRD-PARTY for anet-0.10 / DX5 headers) | partly built | B-16 R-11; RELEASE-PLAN 7 |
+| <re-archive> public export (allowlist script, decompiler-residue grep, THIRD-PARTY for anet-0.10 / DX5 headers) | partly built | B-16 R-11; RELEASE-PLAN 7 |
 | CI check: no file > 2 MB, no game formats, no DLL except the proxy | designed | RELEASE-PLAN 5 "Legal notes" |
 | Outreach order: PCGamingWiki, GOG forum, interstate76.com, VOGONS, Open76 / Roanish, Reddit | designed, not started | RELEASE-PLAN 8 |
 | Folder layout stages 0-4 (Games\I76 junctions done 2026-10-20; twin rename, retire / zip lab copies, VERSION.md rules) | partly done | LAYOUT-PROPOSAL-2026-10-20 s.4; memory resume 2026-10-20 |
 | Phones (Android via the Deck recipe, iPhone streaming / VM) | idea (research only) | ENHANCEMENTS 9; PHONE-PORTS |
 | Glide on the Mac (Metal): parked, one-line rebuild if shader caching ever persists | parked | VOODOO-PARKED |
-| Reimplementation in a modern engine for Michael (recommendation: Godot 4, not Unreal) | idea (paper study) | REIMPLEMENTATION-ENGINE-PROPOSAL-2026-10-17; REMAKE-RE-HANDOVER |
+| Reimplementation in a modern engine for the M4 Max tester (recommendation: Godot 4, not Unreal) | idea (paper study) | REIMPLEMENTATION-ENGINE-PROPOSAL-2026-10-17; REMAKE-RE-HANDOVER |
 
 ---
 

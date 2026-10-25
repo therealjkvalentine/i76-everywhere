@@ -176,7 +176,7 @@ engine takes its own no-sound-card path — a case it has handled since 1997. Ve
 from the game folder rather than the system:
 
 ```
-dsound : C:\Users\james\i76-bisect\game\DSOUND.dll
+dsound : <work>/i76-bisect\game\DSOUND.dll
 ```
 
 Nothing outside this folder is affected, so the daily driver and the machine's audio are

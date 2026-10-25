@@ -9,8 +9,8 @@ exactly/faithfully? What if anything would carry over to unreal if he wants to d
 This extends [REIMPLEMENTATION-ENGINE-PROPOSAL-2026-10-17.md](REIMPLEMENTATION-ENGINE-PROPOSAL-2026-10-17.md) (commit
 3486331), which already compares the engines and lists the spec documents. Not repeated here. Paper study: no game
 run, no install touched. The remake's code was read, not changed. New files this pass:
-`C:\Users\james\i76-unreal\conformance\` (the conformance pack, i76-unreal commit 7c40b07) and
-`C:\Users\james\i76-remake\docs\RE-HANDOVER.md` (pointer plus top-10 tips).
+`<work>/i76-unreal\conformance\` (the conformance pack, i76-unreal commit 7c40b07) and
+`<work>/i76-remake\docs\RE-HANDOVER.md` (pointer plus top-10 tips).
 
 ## Short answers
 
@@ -40,7 +40,7 @@ run, no install touched. The remake's code was read, not changed. New files this
 
 | | |
 |---|---|
-| where | `C:\Users\james\i76-remake`, no git remote, GPL-3.0 (`LICENSE`) |
+| where | `<work>/i76-remake`, no git remote, GPL-3.0 (`LICENSE`) |
 | history | 286 commits, first 64fc1d7 (2026-10-03, ZFS reader and LZO), last 2189102 (2026-10-07 06:05, ROADMAP milestone 58) |
 | language | GDScript only, Godot 4.7 standard build (README "not .NET"); 70 source files, 24,077 lines in `src/`; 27 test scripts, 6,164 lines in `tests/` |
 | docs | `README.md`, `docs/STATUS.md` (101 lines, owner summary), `ROADMAP.md` (3,196 lines, per milestone), `SPEC-GAPS.md` (1,401 lines, every guess), `SUBSYSTEM-MAP.md` (1,051), `MAC.md` (48) |
@@ -48,19 +48,19 @@ run, no install touched. The remake's code was read, not changed. New files this
 
 ### 1.2 What it was built from
 
-1. **i76-map's format reference** (`data\FORMATS.md`, `FORMATS-tables.md`, the `data\fmt\*.py` parsers): the loaders in
+1. **<re-archive>'s format reference** (`data\FORMATS.md`, `FORMATS-tables.md`, the `data\fmt\*.py` parsers): the loaders in
    `src/io`, `src/formats`, `src/world` (README "Asset-loading model").
-2. **i76-map's subsystem specs** (`subsystems\physics.md`, `engine.md`, `ai.md`, `damage.md`, `weapons.md`,
+2. **<re-archive>'s subsystem specs** (`subsystems\physics.md`, `engine.md`, `ai.md`, `damage.md`, `weapons.md`,
    `mission.md`, `camera.md`, `renderer.md`, `sound.md`; `data\FSM.md`). These are prose written from static reading of
    the Gold exe (md5 9a232dcc, `ghidra\i76_ref.exe`), and they cite addresses: physics.md has 538 `0x4xxxxx`
    references, ai.md 677.
-3. **"Remake gap answers"**: the remake logged each guess in `SPEC-GAPS.md`; i76-map answered in prose, 80 dated
-   "Remake gap answers" sections across 9 subsystem files (index `i76-map\status\remake-gap-answers-2026-10-04.md`:
-   "Static readings are of md5 9a232dcc"). The remake counts 31 batches by milestone 58. i76-map commit f95655b5 notes
+3. **"Remake gap answers"**: the remake logged each guess in `SPEC-GAPS.md`; <re-archive> answered in prose, 80 dated
+   "Remake gap answers" sections across 9 subsystem files (index `<re-archive>\status\remake-gap-answers-2026-10-04.md`:
+   "Static readings are of md5 9a232dcc"). The remake counts 31 batches by milestone 58. <re-archive> commit f95655b5 notes
    "physics.md scrubbed of two decompiler tokens", i.e. the specs were kept as prose on purpose.
 4. **Recordings of the original** used as test oracles, read from the owner's disk at run time:
-   `tests/ab_drive.gd` against `i76-map\verify\runs\drive\*\telemetry.csv` (T01, Jade's Piranha, our exe at the stock
-   ~20 fps cap); `tests/trace_compare.gd` against the lab's AI traces (`i76-uncap-lab\autotest\runs\ai-traces-2026-10-06`:
+   `tests/ab_drive.gd` against `<re-archive>\verify\runs\drive\*\telemetry.csv` (T01, Jade's Piranha, our exe at the stock
+   ~20 fps cap); `tests/trace_compare.gd` against the lab's AI traces (`<lab>\autotest\runs\ai-traces-2026-10-06`:
    the pristine GOG AiO exe md5 60ABF7BC, stock 20 fps). Both references are the **Gold lineage at ~20 fps**; neither is
    retail 1.0.
 5. **The player's own install** at run time (`I76.ZFS`, `miss16\`, `ADDON\`, the GOG `music\` folder), read-only. No
@@ -76,7 +76,7 @@ comments (225 distinct `0x4xxxxx` values) and 89 distinct RE function names (`ph
 - **Headless bot runs**, the main evidence. STATUS.md "Which missions win": seeds 1-4, 15 minutes each, milestone 58:
   27 of 48 runs won over T01-T12, 0 of 20 over T13-T17. T01, T02, T03, T06, T09, T12 won 4 of 4; T08 3 of 4; T04,
   T05, T07, T10, T11 0 of 4. That is the bot's skill as much as the game's fidelity; the two were never separated.
-- **Window shots.** `C:\Users\james\i76-remake-tools\shots\` holds 134 screenshots from milestones 4-43, taken by
+- **Window shots.** `<work>/i76-remake-tools\shots\` holds 134 screenshots from milestones 4-43, taken by
   `shoot-won.ps1` from the windowed game with the bot driving at `--speed=8`. Several "won" shots match their headless
   run to the second (STATUS: T12 seed 1 won at 457.9 s windowed, 458 s headless). One divergence is logged: T01 was
   not won in the window twice while the same commit wins headless in 335-399 s. A determinism test
@@ -128,7 +128,7 @@ comments (225 distinct `0x4xxxxx` values) and 89 distinct RE function names (`ph
 ## 2. The RE inventory to hand over
 
 "Remake" = what the Godot remake gets; "Unreal" = what the i76sim C++ library gets. Paths: `REC` =
-`i76-everywhere\docs\records`, `MAP` = `C:\Users\james\i76-map`, `LAB` = `C:\Users\james\i76-uncap-lab`.
+`i76-everywhere\docs\records`, `MAP` = `<re-archive>`, `LAB` = `<lab>`.
 
 | item | where | what it holds (n, status) | remake gets | Unreal gets |
 |---|---|---|---|---|
@@ -154,7 +154,7 @@ comments (225 distinct `0x4xxxxx` values) and 89 distinct RE function names (`ph
 
 ## 3. The conformance suite
 
-The first machine-readable pack is `C:\Users\james\i76-unreal\conformance\reference-rows.json` (65 rows, generated by
+The first machine-readable pack is `<work>/i76-unreal\conformance\reference-rows.json` (65 rows, generated by
 `make_reference_rows.py` from the lab reference JSONs, bands from `fingerprint.py`'s own `tolerance()`), with
 `README.md` explaining how a port runs it. Key rows (P166 gold standard; mean +- sd; n samples / boots; band = pass
 half-width for a candidate of 5 samples from 5 boots):
@@ -222,9 +222,9 @@ Two ways to share:
 | cost to start | months | done (this pass) for timing; physics rows need a CSV exporter in each port |
 
 **Recommendation: B now, with A kept possible.** The pack is the contract both ports pass; the original game is the
-judge. Keep i76sim engine-free (it is), so that if Michael's C++ sim overtakes the remake, Godot can bind it later with
+judge. Keep i76sim engine-free (it is), so that if the M4 Max tester's C++ sim overtakes the remake, Godot can bind it later with
 a thin GDExtension and the remake's tests become its regression suite. Move the pack to a neutral home when a second
-consumer appears (a small `i76-conformance` repo, or `i76-map\conformance`); for now it lives in i76-unreal and the
+consumer appears (a small `i76-conformance` repo, or `<re-archive>\conformance`); for now it lives in i76-unreal and the
 remake points at it.
 
 ## 5. What carries over to Unreal

@@ -1,7 +1,7 @@
-# FFB / telemetry data audit against the i76-map specs (2026-10-01)
+# FFB / telemetry data audit against the <re-archive> specs (2026-10-01)
 
 Read-only audit of the force-feedback and telemetry stack (`tools/ffb/`, `ffb-shim/`, `sound-rumble/`) against
-the now-complete reverse-engineering specs in `C:\Users\james\i76-map` (`types/i76.h`, `types/i76_runtime.h`,
+the now-complete reverse-engineering specs in `<re-archive>` (`types/i76.h`, `types/i76_runtime.h`,
 `subsystems/engine.md`, `physics.md`, `damage.md`, `weapons.md`, `sound.md`, `camera.md`, `framerate.md`,
 `simclock.md`, `symbols/functions.tsv`, `symbols/hookability.tsv`). Nothing was run, nothing under `tools/ffb`
 was changed; `FfbMixer.ps1` was read from the working tree (it carries 32/10 uncommitted lines from another
@@ -10,7 +10,7 @@ session).
 Evidence classes used below, per claim:
 
 - **[live]** measured in a running game by one of the two projects (the spec's captures or the FFB scanners);
-- **[static]** a cited instruction in the pristine exe (md5 9a232dcc), from the i76-map specs;
+- **[static]** a cited instruction in the pristine exe (md5 9a232dcc), from the <re-archive> specs;
 - **[inferred]** follows from static facts but no one has looked at it in game;
 - **[proposed]** a change recommendation. Everything in section 6 is proposed.
 
@@ -350,7 +350,7 @@ What to change [proposed]:
 ## 6. Prioritised improvements (all proposed)
 
 Each row: data source, file to change, how to verify. Verification is against the sandbox copy only
-(`C:\Users\james\i76-uncap-lab\game`), never the install James plays on.
+(`<lab>\game`), never the install the developer plays on.
 
 | # | change | source | file | verify |
 |---|---|---|---|---|
@@ -390,5 +390,5 @@ Sources read: `tools/ffb/{Telemetry,FfbMixer,LfeSynth,FfbCore,ffb-interposer,ffb
 ffb-find-rpm-wide,ffb-find-slip,ffb-find-fire}.ps1`, `ffb-calib.json`, `README.md`; `ffb-shim/i7ffshim.c`;
 `sound-rumble/dsndrumble.c`; `tools/trainer/i76trainer.py`; `music-fix/strlkproxy.c` (hook mechanics, fixed step,
 render interp); `docs/{FFB-DEEP-DIVE,FFB-STACKS,FORCE-FEEDBACK-AND-VISUALS,MOTION-SIM,MEMORY-MAP-INDEX,READY-TO-TEST}.md`;
-i76-map `types/i76.h`, `types/i76_runtime.h`, `subsystems/{engine,physics,damage,weapons,sound,camera,framerate,
+<re-archive> `types/i76.h`, `types/i76_runtime.h`, `subsystems/{engine,physics,damage,weapons,sound,camera,framerate,
 simclock}.md`, `symbols/functions.tsv`, `symbols/hookability.tsv`, `evidence/E43814..E43817`.

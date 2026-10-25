@@ -1,15 +1,15 @@
 # Game night: Interstate '76 on the home network
 
-*One page for James, Michael and Andrew. Built 2026-10-17; how it was built and tested:
+*One page for the developer, the M4 Max tester and the M2 tester. Built 2026-10-17; how it was built and tested:
 [records/GAME-NIGHT-ROLLOUT-2026-10-17.md](records/GAME-NIGHT-ROLLOUT-2026-10-17.md).*
 
 ## Where the game is
 
 | machine | start it with |
 |---|---|
-| Michael's Mac, Andrew's Mac | **Interstate 76 LAN** (Michael) / **Interstate 76 Gold** (Andrew, since 2026-10-22) on the Desktop (the game lives in `~/Games/Interstate76-MP`) |
-| James's Mac | **Interstate 76** in `~/Applications/Sikarugir`, after the one-line swap in the record (section 5); until then it is not the LAN pack |
-| Windows PC (optional 4th player) | `PLAY-LAN.bat` in `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76` (not the daily driver) |
+| The M4 Max tester Mac, the M2 tester Mac | **Interstate 76 LAN** (the M4 Max tester) / **Interstate 76 Gold** (the M2 tester, since 2026-10-22) on the Desktop (the game lives in `~/Games/Interstate76-MP`) |
+| The developer's Mac | **Interstate 76** in `~/Applications/Sikarugir`, after the one-line swap in the record (section 5); until then it is not the LAN pack |
+| Windows PC (optional 4th player) | `PLAY-LAN.bat` in `<games>\Interstate76-LAN-2026-10-17\Interstate 76` (not the daily driver) |
 
 Every machine has the same game files (checked by md5), the same keys, stock cars, and IPX through IPXWrapper.
 Everyone must be on the **home network** (same Wi-Fi or wired). Tailscale does not work for this.
@@ -61,19 +61,19 @@ On a Mac keyboard the F-keys (camera views F1, F3...) need `fn`.
 1. **The host must already be in its arena.** Join after the host has pressed BROADCAST GAME.
 2. **Same network.** All machines on the home Wi-Fi or wired network, not a guest network, no VPN.
 3. **A permission box is waiting.** The first time, a Mac may ask whether **"wineserver" (or "wine") may accept incoming network
-   connections**: click **Allow** (Michael's Mac has the firewall on, so it will ask). The first launch may also ask
+   connections**: click **Allow** (the M4 Max tester Mac has the firewall on, so it will ask). The first launch may also ask
    about the **microphone**: either answer is fine, but answer it, because the game waits. On the PC, the Windows
    Firewall box can open *behind* the game: Alt-Tab, tick Private networks, Allow.
 4. **Still nothing:** quit the game on every machine, start the host first, BROADCAST, then the others JOIN.
-5. **"vehicle rejected" or "hacked vehicle":** that machine's files do not match. Tell James (the md5 check in the
+5. **"vehicle rejected" or "hacked vehicle":** that machine's files do not match. Tell the developer (the md5 check in the
    record finds the file).
 
 ## Honest status
 
-- **2026-10-18 (records/LAN-MATRIX-2026-10-18.md):** PC hosts / Andrew's Mac joins, Andrew hosts / PC joins and
-  Andrew hosts / Steam Deck joins all worked (n 1 each), both cars seen and driven on both screens. Michael's Mac and
-  James's laptop were locked during every test window and are untested. 3 players (PC + Deck + Andrew) worked.
-  Michael's firewall box was answered (Allow) on 2026-10-18.
+- **2026-10-18 (records/LAN-MATRIX-2026-10-18.md):** PC hosts / the M2 tester Mac joins, the M2 tester hosts / PC joins and
+  The M2 tester hosts / Steam Deck joins all worked (n 1 each), both cars seen and driven on both screens. The M4 Max tester Mac and
+  The developer's laptop were locked during every test window and are untested. 3 players (PC + Deck + the M2 tester) worked.
+  The M4 Max tester's firewall box was answered (Allow) on 2026-10-18.
 
 - **Two players** (one PC + one Mac) were measured over IPX on 2026-10-06 with older builds. With this pack a Mac
   hosting reached its arena, but the PC-Mac join itself is still the owner's 2-minute test (the record, section 5).

@@ -6,10 +6,10 @@ engine change." Target build: `-glide` (i76.exe -> ZGLIDE.DLL -> dgVoodoo 2.87.3
 scene is already sharp because dgVoodoo rasterises the polygons at the forced resolution; the cockpit art is
 1997 bitmaps magnified by bilinear filtering.
 
-Nothing was run, patched or installed for this document. Every address is from the i76-map / lab static reads cited
+Nothing was run, patched or installed for this document. Every address is from the <re-archive> / lab static reads cited
 inline (exe md5 9a232dcc / AiO 85de44a7, ZGLIDE md5 05c1dde4). The one new measurement is an offline census of the
 cockpit geometry in the owner's extracted archive (section 1.4), done with a throwaway script against
-`C:\Users\james\i76-upscale-work\extract\` (the U1 sprint's extraction of I76.ZFS); it is reproducible from the
+`<upscale-work>\extract\` (the U1 sprint's extraction of I76.ZFS); it is reproducible from the
 layout in section 1.4 and should become a tracked tool when the plan starts.
 
 **Verdict in one paragraph.** The cockpit cannot be made sharper by shipping bigger files: every static cockpit
@@ -31,7 +31,7 @@ built offline, three boots of t01 on `game-tex`.
 ### 1.1 Two cockpits, one key
 
 F1 is the cockpit view (camera view 0xe, in-cockpit flag `0x4c2724`); pressing F1 again flips byte `0x654b88`
-"cockpit panel shown" (i76-map `subsystems/renderer.md`, "Two cockpits, one switch", 2026-10-04e). The owner's default
+"cockpit panel shown" (<re-archive> `subsystems/renderer.md`, "Two cockpits, one switch", 2026-10-04e). The owner's default
 is the 3D cockpit: music-fix README row `I76_HUD_SQUEEZE`: "The 3D cockpit (F1 default) is a mesh and was already
 right".
 
@@ -46,7 +46,7 @@ Sources: renderer.md 2026-10-04e (K1) and 2026-10-05c (K1h/K1g4); camera.md "HUD
 ### 1.2 The 3D cockpit's assets (what the LOD-4 mesh references)
 
 The cockpit mesh is the car's **LOD slot 4** part set: VGEO rows whose part names have '5' as third character
-(`xx51DASH`, `xx51SEAT`, `xx51SWHL`, `xx51MIRI`, `xx51RADR`, ...; i76-map `data/notes/vdf.md` §6 "o = 4 (inferred:
+(`xx51DASH`, `xx51SEAT`, `xx51SWHL`, `xx51MIRI`, `xx51RADR`, ...; <re-archive> `data/notes/vdf.md` §6 "o = 4 (inferred:
 cockpit set)"). The `.geo` files live in the car's geometry pack `<car>g.pak` (e.g. `vppirnag.pak` for the Piranha).
 Each face names a texture (`texture[13]`, e.g. `ZDASH101.MAP`); the engine resolves the stem through its pack
 index, and in `-glide` loads the `.M16` twin (hardware set) where one exists (FINDINGS-2026-07 §5: "in `-glide` ...
@@ -100,7 +100,7 @@ correctly, "UVs are normalised; nothing on the Glide path assumes a texture's si
 magnified about `0.6 * 3440 / 256 = 8x` horizontally; bilinear filtering turns each texel into an 8-pixel blur.
 That is what the owner sees. Doubling the texels halves it; a 4x split would quarter it.
 
-**2D dash bitmap -> screen** (`renderer_BlitBitmap` 0x45b450, decompile `i76-map\ghidra\export\functions\0045b450.c`):
+**2D dash bitmap -> screen** (`renderer_BlitBitmap` 0x45b450, decompile `<re-archive>\ghidra\export\functions\0045b450.c`):
 the region is `param_2[7..10]` (x0, y0, x1, y1 in bitmap pixels); on the hardware path (`piVar5[2] == 1`) it builds a
 4-vertex quad at `(x, y)` to `(x + regionW, y + regionH)` **in frame pixels, 1:1 with the art**, with UVs
 `x0/(w-1) .. x1/(w-1)` and `1 - y/(h-1)` (or `/w`, `/h` when `param_7 == 5`), texture = the bitmap's own pixel
@@ -295,7 +295,7 @@ wants the gauges too", this is the next project, not a texture-lab job.
 
 Everything offline runs against the owner's own extraction (`i76-upscale-work\extract` or a fresh
 `tools\zfs_extract.py` run) and writes to gitignored folders; only scripts are committed. Console steps follow
-`i76-uncap-lab\CONSOLE-LOCK.md` and target `game-tex` (never the daily driver: memory "Never experiment on the
+`<lab>\CONSOLE-LOCK.md` and target `game-tex` (never the daily driver: memory "Never experiment on the
 daily driver").
 
 **Stage 0 - decide with a picture (offline, 1-2 h).** Render a cockpit mock-up: take the start-line cockpit capture
@@ -305,7 +305,7 @@ This shows the owner what B buys and what it leaves. Also the A2 check: one cock
 `game-tex\ADDON\pirana16.pak` (CAR1). Decision point.
 
 **Stage 1 - tooling (offline).** A tracked script `tools\upscale\cockpit_split.py` (name provisional) that:
-reads `<car>g.pak/.pix` and `zdashN06.pak/.pix` from the archive (reuse `i76-map\tools\i76fmt\zfs.py` as
+reads `<car>g.pak/.pix` and `zdashN06.pak/.pix` from the archive (reuse `<re-archive>\tools\i76fmt\zfs.py` as
 `m16_scale_marker.py` does); parses the LOD-4 dash .geo with the layout in 1.4; clips each ZDASH face into UV
 quadrants; writes the new .geo, the repacked `<car>g.pak/.pix`, and `zdashN06.pak/.pix` with the quarter tiles
 (`i76img.parse_m16` / `build_m16`); `--marker` for the pixel-replicated magenta variant, `--png-dir` to accept
@@ -366,7 +366,7 @@ compute and a few sessions.
 
 ## 6. Corrections this research surfaces
 
-Applied 2026-10-11 after re-verifying against the archive: item 1 (HD-TEXTURES-RESEARCH.md) and item 3 (i76-map
+Applied 2026-10-11 after re-verifying against the archive: item 1 (HD-TEXTURES-RESEARCH.md) and item 3 (<re-archive>
 `data/FORMATS.md` 7, made explicit; its parser already used 3 bytes). Items 2 and 4 need no edit.
 
 1. HD-TEXTURES-RESEARCH.md "Cockpit/dashboard art = zdash101..601 (day, VQM ...) + zdash106..606 (night, M16)":
@@ -395,7 +395,7 @@ Applied 2026-10-11 after re-verifying against the archive: item 1 (HD-TEXTURES-R
 
 ## 8. Stages 0 and 1 done offline (2026-10-11)
 
-Built from the pristine archive (`i76-map\sandbox-gog\main\app\I76.ZFS`, ADDON ignored); nothing launched, nothing
+Built from the pristine archive (`<re-archive>\sandbox-gog\main\app\I76.ZFS`, ADDON ignored); nothing launched, nothing
 written to a game folder. Outputs are derived game data under `texture-lab\out\` (gitignored).
 
 **Stage 0, mock-up:** `texture-lab\cockpit_mockup.py` -> `texture-lab\out\cockpit-mockup\index.html`. ZDASH101/102
@@ -421,7 +421,7 @@ corners), the tiny ZDASH101 corner filler stays whole in one quarter, the sloped
 UV is affine over every face to <= 6.4e-4 (about 0.16 texel). The split is at u = v = 256/510, not 0.5, because
 ZGLIDE maps u 0..1 to texels 0..255 (s = u x 255). `zdash106.pak` keeps ZDASH101/102 byte-identical and adds
 `ZD101Q00..ZD102Q11.M16` (8.3-name, 256x128, flags 0x80). Self-checks, all PASS: both paks and .pix re-decode and
-re-encode byte-identically with the i76-map data-track parsers; 86 of 87 car-pak members byte-identical (only
+re-encode byte-identically with the <re-archive> data-track parsers; 86 of 87 car-pak members byte-identical (only
 PP51DASH.GEO changed); per-face UV and 3D area of the pieces equal the original to < 1e-7; pieces inside their
 quadrants and on the face plane; remapped texel coordinates inside 1..255 / 1..127 with `--seam overlap` (default)
 and 0..256 / 0..128 with `--seam clamp`; overlap borders equal the neighbour exactly (index builds) and within 9/255
@@ -450,12 +450,12 @@ HUD squeeze ~6167-6230, texture census ~4807), `music-fix/README.md` (`I76_HUD_S
 `docs/HD-TEXTURES-RESEARCH.md`, `docs/ENHANCEMENTS.md`, `docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md`
 §4-5, `docs/records/GRAPHICS-ENHANCEMENT.md` (R4), `docs/records/MENU-HD-ART.md`, `THIRD-PARTY.md`,
 `docs/SCOPE-AND-LEGITIMACY.md`, `dgVoodoo.windows.conf`.
-Lab (`C:\Users\james\i76-uncap-lab\docs`): `TEXTURE-DELIVERY.md`, `TEXTURE-AND-OBJECT-LOD.md`, `CLUTTER-AND-MIRROR.md`,
+Lab (`<lab>\docs`): `TEXTURE-DELIVERY.md`, `TEXTURE-AND-OBJECT-LOD.md`, `CLUTTER-AND-MIRROR.md`,
 `WIDESCREEN-2D.md`, `OPENGLIDE-HD-WINDOWS-2026-10-03.md`; `autotest\proxy-run.ps1`.
-RE (`C:\Users\james\i76-map`): `subsystems/renderer.md` (K1, K1e, K1e4, K1h, L1e), `subsystems/camera.md` "HUD
+RE (`<re-archive>`): `subsystems/renderer.md` (K1, K1e, K1e4, K1h, L1e), `subsystems/camera.md` "HUD
 drawing", `ARCHITECTURE.md` §8, `data/FORMATS.md` §6-7, `data/notes/vdf.md` §5-6,
 `ghidra/export/functions/0045b450.c`.
-Sprint data (`C:\Users\james\i76-upscale-work`): `findings/{U1,U2,U3,U5,CAR1,TERRAIN1}.md`, `extract\` (census).
+Sprint data (`<upscale-work>`): `findings/{U1,U2,U3,U5,CAR1,TERRAIN1}.md`, `extract\` (census).
 Web (2026-10-10): Glide 2 header https://raw.githubusercontent.com/voyageur/openglide/master/sdk2_glide.h ;
 dgVoodoo General readme http://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/ (no texture replacement feature; "Options
 on the General tab affects all wrapped APIs"); Glide readme 404; VOGONS t=66553 403; conf option list quoted at

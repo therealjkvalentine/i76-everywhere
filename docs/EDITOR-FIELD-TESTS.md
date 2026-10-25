@@ -11,13 +11,13 @@ truth. Report results as-is, including "nothing visible".*
 
 ```
 # build on the sandbox's own save set, write into a staging folder (never into the game folder)
-python i76-calibration-saves.py --game C:\Users\james\i76-uncap-lab\game --staging C:\Users\james\i76-uncap-lab\cal-staging
-python i76-save-editor.py --dir C:\Users\james\i76-uncap-lab\cal-staging --check     # every probe: round-trip OK, no warnings
+python i76-calibration-saves.py --game <lab>\game --staging <lab>\cal-staging
+python i76-save-editor.py --dir <lab>\cal-staging --check     # every probe: round-trip OK, no warnings
 ```
 
 Then, with no `i76*` process running: back up the sandbox set (`leg-b.ps1` does this itself into
 `save-backup-<ts>\` with md5s), copy every file from the staging folder into
-`C:\Users\james\i76-uncap-lab\game` (the probes are new slots; the staged `savegame.dir` is the
+`<lab>\game` (the probes are new slots; the staged `savegame.dir` is the
 sandbox's directory with the probe records appended, byte for byte), and load each probe with
 
 ```
@@ -41,7 +41,7 @@ daily-driver install.
 | 6 | **CAL JAMMER** (save014) | is spc01 "Radar Jammer", and does it do anything? | garage Spcl. row + Mr. Damage panel; mission: press the Special 3 key | the name the game prints; any HUD text / effect; or "ejected to Empty" | **Name CLOSED:** spc01 prints as "Radar Jammer" in the Special 3 row and the SPECIALS chooser. In-mission effect **untested**. |
 | 7 | **CAL LABEL 7** (save015) / **CAL LABEL 7+1** (save016) | the LOAD board's default label vs the dir dword and state | LOAD board; load each | labels printed for the two blank-named rows (expected "SCENE 7." for state 8, "SCENE 8." for state 1); which mission starts | **CLOSED:** scene 7 / state 8 prints "Scene 7.", scene 7 / state 1 prints "Scene 8." - label = scene + (state == 1), the same rule the editors use for "plays". Loading them to confirm the mission was not done (Leg B already loaded a state-8 scene-5 record into t05). |
 
-Captures and the full record: `C:\Users\james\i76-uncap-lab\autotest\saves\runs\garage-ui\RESULTS.md`. Also measured
+Captures and the full record: `<lab>\autotest\saves\runs\garage-ui\RESULTS.md`. Also measured
 there: the inventory dialog's columns are height-limited (ENGINES 4 rows, WEAPONS 11, WHEELS 12); only the
 WEAPONS cap of 11 is a real list cap (verified by the overflow into Field Salvage).
 

@@ -1,8 +1,8 @@
 # Cleanup plan 2026-10-10 (survey only; nothing changed, nothing launched)
 
-Written from a read-only survey of `C:\Users\james\i76-everywhere` (git, main), `C:\Users\james\i76-uncap-lab`
-(git, master, no remote) and `C:\Users\james\i76-map` (git, main, no remote). The daily driver
-`C:\Users\james\Games\Interstate76-2026-10-03` and the golden copy `C:\Users\james\Games\Interstate76-golden-2026-10-03`
+Written from a read-only survey of `` (git, main), `<lab>`
+(git, master, no remote) and `<re-archive>` (git, main, no remote). The daily driver
+`<games>\Interstate76-2026-10-03` and the golden copy `<games>\Interstate76-golden-2026-10-03`
 were listed read-only once and are **out of scope for every action below**. Game copies under the lab
 (`game`, `game-*`) are git-ignored lab state: proposals only (section 8).
 
@@ -19,12 +19,12 @@ build junk (`__pycache__`, `.obj`, `.exp`, `.stackdump`) may go; the lab twin's 
 | rank | action | tier | payoff | risk | section |
 |---|---|---|---|---|---|
 | 1 | Remove the 8 stale worktrees + their branches (all merged, all clean; they keep 9 purged `texture-lab/` blobs alive) | A | high: completes the 2026-10-03 purge, `git worktree list` honest, 120 MB of checkouts | low (reflog keeps the SHAs 90 days) | 1 |
-| 2 | Working-tree triage in i76-everywhere: delete `james`, `vehicle_sim.gd`, `grep.exe.stackdump`; commit `promote-2`, `rdp-to-console.cmd` (path comment fixed), the two new docs; ignore `waypoints.json` | A | high: `git status` clean for the first time since 2026-09 | none | 2.1 |
+| 2 | Working-tree triage in i76-everywhere: delete `<user>`, `vehicle_sim.gd`, `grep.exe.stackdump`; commit `promote-2`, `rdp-to-console.cmd` (path comment fixed), the two new docs; ignore `waypoints.json` | A | high: `git status` clean for the first time since 2026-09 | none | 2.1 |
 | 3 | `tools/ffb/FfbMixer.ps1` + `ffb-lfe-demo.ps1`: commit as one "untested on the rig" commit, or park on a branch | B (owner) | medium: the only real uncommitted code in the repo | medium: changes mixer behaviour if FFB is run | 2.1 |
 | 4 | Lab: commit `CONSOLE-LOCK.md`, `tools/framerate/sweep-suspension.ps1`, `src/*` sources, `flash-probe index.tsv`; delete `TEST-FRAMERATE.bat.pre-presets` (blob in history) | A | medium | none | 2.2 |
 | 5 | Lab run evidence: ignore `autotest/**/*.png` / `*.bmp` (1.39 GB of frame dumps stay on disk), commit the ~70 MB of text/scripts in 40 run folders | B | high: 10,381 untracked files -> 0; evidence survives a disk loss | low: repo grows ~70 MB | 2.2 |
 | 6 | Lab: 19 run scripts hard-code a Claude scratchpad path; copy `ensure-mute.ps1` + `fixtest.py` beside them and repoint (or use `tools/mute.ps1`) | A | medium: the runs become reproducible from the repo | none (parse check only) | 4.1 |
-| 7 | i76-map: `git rm --cached` the 11 tracked `.bmp` (174 MB, PNG siblings already tracked); regenerate the >5 MB ignore block; commit the 32 small untracked probes; keep both versions of `aifire_probe.json` | B | high for i76-map hygiene | low; **no history rewrite** (docs cite SHAs) | 2.3, 6 |
+| 7 | <re-archive>: `git rm --cached` the 11 tracked `.bmp` (174 MB, PNG siblings already tracked); regenerate the >5 MB ignore block; commit the 32 small untracked probes; keep both versions of `aifire_probe.json` | B | high for <re-archive> hygiene | low; **no history rewrite** (docs cite SHAs) | 2.3, 6 |
 | 8 | Docs: fold the LEGITIMACY pair; retitle the "pending" sections that were applied; update RELEASE-PLAN's residue rows after rank 2 | B | medium | low | 5 |
 | 9 | Regenerable junk: 25 `__pycache__` dirs, `.pytest_cache`, `music-fix/Strlkup.build.*`, `Strlkup.dll.pre-trainer` (blob in history), `tools/winmm-cdaudio/*.obj|.exp` | A | low (~2 MB) | none | 2.4 |
 | 10 | Proxy switches: none is provably dead *and* risk-free to remove; two candidates for the next source change (`I76_GLIDE_DIR`; u32x `I76_U32X_VPTR*`), 24 README gaps | C | low now, medium later | medium: any source change = rebuild + gate | 3 |
@@ -64,18 +64,18 @@ Other: no other local branches; `origin/main` (`07a5aad`, 2026-10-08) is **5 com
 pending, not cleanup). No stashes in any of the three repos. `.claude/worktrees/` is excluded by
 `.git/info/exclude:11`, so git status never showed them.
 
-Action (Tier A), from `C:\Users\james\i76-everywhere`:
+Action (Tier A), from ``:
 
 ```powershell
 # pre-check, per worktree: clean and merged
 git worktree list --porcelain
 foreach ($b in (git for-each-ref --format='%(refname:short)' refs/heads/worktree-*)) {
-  $wt = "C:\Users\james\i76-everywhere\.claude\worktrees\" + ($b -replace '^worktree-','')
+  $wt = ".claude\worktrees\" + ($b -replace '^worktree-','')
   "$b dirty=$((git -C $wt status --porcelain | Measure-Object).Count) cherry+=$((git cherry main $b | Select-String '^\+' | Measure-Object).Count)"
 }
 # expected: dirty=0 and cherry+=1 for all eight (the lone + is the tip, whose merge commit is in the table)
 foreach ($b in (git for-each-ref --format='%(refname:short)' refs/heads/worktree-*)) {
-  $wt = "C:\Users\james\i76-everywhere\.claude\worktrees\" + ($b -replace '^worktree-','')
+  $wt = ".claude\worktrees\" + ($b -replace '^worktree-','')
   git worktree remove $wt          # refuses if dirty
   git branch -D $b                 # -D: no merge-base with main, so -d would refuse
 }
@@ -96,7 +96,7 @@ Owner decision (Tier C) to finish the purge physically: `git reflog expire --exp
 
 | path | what it is | evidence | action | risk | verify |
 |---|---|---|---|---|---|
-| `james` (13 B, 2026-09-26) | "ECHO is on." + CRLF: a stray `echo > james` | `file`, `cat`; BACKLOG-2026-10-02 P3-01 "a stray file"; BACKLOG-2026-10-10 R-01 | **delete** | none | `git status --porcelain` no longer lists it |
+| `<user>` (13 B, 2026-09-26) | "ECHO is on." + CRLF: a stray `echo > <user>` | `file`, `cat`; BACKLOG-2026-10-02 P3-01 "a stray file"; BACKLOG-2026-10-10 R-01 | **delete** | none | `git status --porcelain` no longer lists it |
 | `vehicle_sim.gd` (0 B, 2026-10-06 21:22) | empty Godot script stub; nothing references it | `grep -r vehicle_sim` hits only the two backlogs | **delete** | none | same |
 | `grep.exe.stackdump` (1.7 KB, 2026-08-01; ignored by `*.stackdump`) | Git-for-Windows crash dump | RELEASE-PLAN.md:312 lists it as residue | **delete** | none | `Test-Path` false |
 | `tools/rdp-to-console.cmd` | real tool: `tscon` hands the RDP session to the console (needed for H10 harness runs) | referenced by `docs/records/SAVES-STATE-AND-TEST-PLAN.md:181`, `DOC-CORRECTIONS-PENDING-SIBLINGS.md:312`; line 4 names `docs\FRESH-START-METHOD.md`, which moved to `docs\records\` in `21f9757` | edit line 4 to `docs\records\FRESH-START-METHOD.md`, then **commit** | none (comment only) | `Test-Path docs\records\FRESH-START-METHOD.md`; `git ls-files tools/rdp-to-console.cmd` |
@@ -108,7 +108,7 @@ Owner decision (Tier C) to finish the purge physically: `git reflog expire --exp
 
 After these, `git status --porcelain` in i76-everywhere should be empty (plus this plan, which the owner commits).
 
-### 2.2 i76-uncap-lab (809 tracked files; 10,381 untracked; 1 modified)
+### 2.2 <lab> (809 tracked files; 10,381 untracked; 1 modified)
 
 Named items:
 
@@ -160,7 +160,7 @@ Measure-Object` = 0; `git ls-files autotest | Measure-Object` ~ 8,300.
 Open question for the owner: the `.cmp` save outputs (14.8 MB, 1,678 files) are small but numerous; fine to
 commit (recommended) or add `autotest/saves/runs/**/*.cmp` to the ignore rule.
 
-### 2.3 i76-map (37 entries: 4 modified, 33 untracked, all under `captures/014-framerate` except the status files)
+### 2.3 <re-archive> (37 entries: 4 modified, 33 untracked, all under `captures/014-framerate` except the status files)
 
 | path | what | evidence | action | verify |
 |---|---|---|---|---|
@@ -170,7 +170,7 @@ commit (recommended) or add `autotest/saves/runs/**/*.cmp` to the ignore rule.
 
 ### 2.4 Regenerable junk on disk (ignored, not in any index)
 
-25 `__pycache__` dirs (11 i76-everywhere, 5 lab, 9 i76-map), `i76-everywhere/.pytest_cache`,
+25 `__pycache__` dirs (11 i76-everywhere, 5 lab, 9 <re-archive>), `i76-everywhere/.pytest_cache`,
 `music-fix/Strlkup.build.exp`, `Strlkup.build.lib`, `build.log`, `music-fix/Strlkup.dll.pre-trainer` (157 KB,
 2026-10-02; its blob is in history at `d628160`), `tools/winmm-cdaudio/winmm.exp`, `winmm_proxy.obj`,
 `tools/slow_t{30..180}.png` (6, ignored), lab `src/*.obj|*.exp|*.lib|*.log`. About 2 MB.
@@ -183,10 +183,10 @@ and in the lab `captures/` (4.1 GB), `refs/` (1.9 GB), every `game*/`.
 # preview first
 git clean -ndX | Select-String '__pycache__|\.pytest_cache|Strlkup\.build|build\.log|\.pre-trainer|winmm\.exp|winmm_proxy\.obj|slow_t'
 # then delete exactly those
-Get-ChildItem -Recurse -Directory -Filter __pycache__ C:\Users\james\i76-everywhere, C:\Users\james\i76-uncap-lab\tools, C:\Users\james\i76-map\tools, C:\Users\james\i76-map\data, C:\Users\james\i76-map\verify, C:\Users\james\i76-map\shell, C:\Users\james\i76-map\captures\002-nav | Where-Object FullName -notmatch '\\(\.claude|game[^\\]*|refs|toolchain|external|recon-2026-09-04|sandbox-[^\\]*)\\' | Remove-Item -Recurse -Force
-Remove-Item C:\Users\james\i76-everywhere\.pytest_cache -Recurse -Force
-Remove-Item C:\Users\james\i76-everywhere\music-fix\Strlkup.build.exp, C:\Users\james\i76-everywhere\music-fix\Strlkup.build.lib, C:\Users\james\i76-everywhere\music-fix\build.log, C:\Users\james\i76-everywhere\music-fix\Strlkup.dll.pre-trainer
-Remove-Item C:\Users\james\i76-everywhere\tools\winmm-cdaudio\winmm.exp, C:\Users\james\i76-everywhere\tools\winmm-cdaudio\winmm_proxy.obj
+Get-ChildItem -Recurse -Directory -Filter __pycache__ , <lab>\tools, <re-archive>\tools, <re-archive>\data, <re-archive>\verify, <re-archive>\shell, <re-archive>\captures\002-nav | Where-Object FullName -notmatch '\\(\.claude|game[^\\]*|refs|toolchain|external|recon-2026-09-04|sandbox-[^\\]*)\\' | Remove-Item -Recurse -Force
+Remove-Item .pytest_cache -Recurse -Force
+Remove-Item music-fix\Strlkup.build.exp, music-fix\Strlkup.build.lib, music-fix\build.log, music-fix\Strlkup.dll.pre-trainer
+Remove-Item tools\winmm-cdaudio\winmm.exp, tools\winmm-cdaudio\winmm_proxy.obj
 ```
 
 Verify: `git clean -ndX | Select-String '__pycache__|Strlkup.build|pre-trainer' | Measure-Object` = 0;
@@ -231,7 +231,7 @@ of the binaries"). Any source removal must be followed by `music-fix\build-msvc.
 don't execute in this pass.
 
 Verification for a future removal: `grep -c '"I76_GLIDE_DIR"' music-fix/strlkproxy.c` = 0; the README row moves to
-History; `git grep -l I76_GLIDE_DIR -- presets ../i76-uncap-lab/autotest` stays empty (it is today).
+History; `git grep -l I76_GLIDE_DIR -- presets ../<lab>/autotest` stays empty (it is today).
 
 Duplicated helpers / dead code noted (section 7 for the refactor): 81 hand-rolled env reads with at least three
 different guard idioms (only 9 use `k && k < sizeof(v) && v[0] == '1'`; others test `v[0]` without the length
@@ -243,15 +243,15 @@ only variants.
 
 ### 4.1 Hard-coded Claude scratchpad (lab, 19 scripts, Tier A)
 
-All under `i76-uncap-lab\autotest\runs\` and all naming
-`C:\Users\james\AppData\Local\Temp\claude\C--Users-james-i76-everywhere\9efdde0c-cb16-4f2c-a58b-7b296e794ca1\scratchpad`:
+All under `<lab>\autotest\runs\` and all naming
+`<local-appdata>\Temp\claude\C--Users-<user>-i76-everywhere\9efdde0c-cb16-4f2c-a58b-7b296e794ca1\scratchpad`:
 `ai-traces-2026-10-06\ai-trace-batch.ps1:20`, `consolidated-20261004\run-cond.ps1:5,10,33`,
 `flash-probe-20261005\drive-run.ps1:27`, `flash-probe-20261005\freeze-run.ps1:4`, `music-tmu-20261004\{music-batch,
 shell-run, soak-runner, t12-probe}.ps1:3`, `music-tmu-20261004\t12sum.py:2`, `render-freeze-20261004\{ab-analyze.py:2,
 chain.ps1:1, run-ab.ps1:2, run-ab2.ps1:2}`, `t12-opening-20261004\{batch.ps1:3, probe.ps1:5}`,
 `twin-sync-20261005\drive-run.ps1:24`, `twin-sync-20261005\t12\probe.ps1:5`.
 
-That scratchpad still exists (the project's scratchpads total 1.2 GB under `Temp\claude\C--Users-james-i76-everywhere\`)
+That scratchpad still exists (the project's scratchpads total 1.2 GB under `Temp\claude\C--Users-<user>-i76-everywhere\`)
 and holds what they call: `ensure-mute.ps1` (1,683 B: reads and sets the default endpoint's mute, prints
 `was=... now=MUTED`), `fixtest.py` (11,488 B), `build\Strlkup-89a97d25.dll`, `build\Strlkup-f9b0c481.dll`, plus
 ~300 one-off helpers. `god-shm.py` and `drive_stats.py`, which the drive-run headers mention, already live beside
@@ -261,8 +261,8 @@ Action: these run-folder scripts are records of how each run was made, so change
 leave a dated comment:
 
 ```powershell
-$lab = 'C:\Users\james\i76-uncap-lab'
-$sp  = 'C:\Users\james\AppData\Local\Temp\claude\C--Users-james-i76-everywhere\9efdde0c-cb16-4f2c-a58b-7b296e794ca1\scratchpad'
+$lab = '<lab>'
+$sp  = '<local-appdata>\Temp\claude\C--Users-<user>-i76-everywhere\9efdde0c-cb16-4f2c-a58b-7b296e794ca1\scratchpad'
 Copy-Item "$sp\ensure-mute.ps1" "$lab\autotest\lib\ensure-mute.ps1"          # the read-then-set variant the runs expect ('now=MUTED')
 Copy-Item "$sp\fixtest.py"      "$lab\autotest\runs\consolidated-20261004\fixtest.py"
 Copy-Item "$sp\build\Strlkup-89a97d25.dll" "$lab\builds\consolidated-20261004\STRLKUP-89a97d25.DLL"   # ignored by *.dll, kept on disk
@@ -283,7 +283,7 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
 - `tools/rdp-to-console.cmd:4`: `docs\FRESH-START-METHOD.md` -> `docs\records\FRESH-START-METHOD.md` (section 2.1).
 - `tools/Make-Wide-Conf.ps1:13,26`, `tools/promote-3a-road-dist-hotfix.ps1:3`, `promote-15-cam-ground-fix.ps1:7,45`,
   `promote-11-tmu-and-music.ps1:49`: all name **lab** docs (`DGVOODOO-CONF-REJECTED.md`, `WIDESCREEN-2D.md`,
-  `SOAK-BEST-WIDE-2026-10-03.md`, `RENDER-FREEZE-2026-10-04.md`); all four exist in `i76-uncap-lab\docs\`. Not broken.
+  `SOAK-BEST-WIDE-2026-10-03.md`, `RENDER-FREEZE-2026-10-04.md`); all four exist in `<lab>\docs\`. Not broken.
 - Relative Markdown links in i76-everywhere (every `.md` outside `lab/`, `re/`, `.claude/`): **0 broken** (checked
   `](path.ext)` targets against disk).
 - `tools/promote-11-tmu-and-music.ps1:1` and `promote-12-all-fixes.ps1:1` still read "DRAFT 2026-10-04, NOT RUN - the
@@ -305,8 +305,8 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
 - `flash-probe-20261005\drive-run.ps1` is a declared copy of `twin-sync-20261005\drive-run.ps1` (+`-God`, `-Probe`);
   both `drive_stats.py` copies: run records, leave.
 - Public snapshots inside i76-everywhere are behind their sources: `lab/` (last refresh `c81181f` 2026-10-05) differs
-  from `i76-uncap-lab` (HEAD 2026-10-09) in 16 `autotest`, 14 `docs`, 7 `tools` files; `re/` is a snapshot of
-  i76-map `ee48d0f4`, now **36 commits** behind `bbcb580a`. Refresh: `python -I tools\export_public.py export`
+  from `<lab>` (HEAD 2026-10-09) in 16 `autotest`, 14 `docs`, 7 `tools` files; `re/` is a snapshot of
+  <re-archive> `ee48d0f4`, now **36 commits** behind `bbcb580a`. Refresh: `python -I tools\export_public.py export`
   (stages to `..\i76-public-staging`; the copy into `lab/` / `re/` was done by hand in `a6eeaa5` / `79598e5`: exact
   procedure **unknown** beyond those commits). Tier B; verify with `diff -rq --exclude=runs`.
 - Lab twin `game-dd-20261003\_tools\lint-input-map.py` differs from `tools\lint-input-map.py` (the other three
@@ -318,7 +318,7 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
 |---|---|---|---|---|
 | `docs/SCOPE-AND-LEGITIMACY.md` (4,088 B, 2026-07-18) vs `docs/LEGITIMACY-AND-SCOPE.md` (3,835 B) | two scope statements, different text, same job | `docs/README.md:218-219` ("overlaps the one above; backlog P3-08 proposes folding them"); RELEASE-PLAN s.7 item 6; BACKLOG-2026-10-10 R-06. Referrers of the shorter: `MEMORY-MAP-INDEX.md`, `RE-FIELD-GUIDE.md`, `records/MENU-REBUILD-DESIGN.md`, `RELEASE-PLAN.md`, `REPO-ORGANIZATION-PROPOSAL.md`, `docs/README.md` | fold the shorter's unique paragraphs ("What we actually do" list) into `SCOPE-AND-LEGITIMACY.md`, repoint the 6 referrers, `git rm` the shorter | `git grep -l LEGITIMACY-AND-SCOPE` empty; link check (4.2 method) still 0 broken |
 | `docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md` | title and two section headings say "Pending since 2026-10-03" though the header note says both were applied 2026-10-03 (evening); the still-open residue is itemised in BACKLOG-2026-10-10 R-09 | lines 11, 251, 271 | retitle the two headings "Applied 2026-10-03 (was: pending ...)"; add a one-line pointer to R-09 for what is still open | re-read |
-| `docs/RELEASE-PLAN.md:312, 379-380` | residue rows still list `james`, `tools/rdp-to-console.cmd`, `grep.exe.stackdump`, `ffb-lfe-demo.ps1` as to-do | this plan section 2.1 | after 2.1: strike them with "done 2026-10-10" | `Select-String -Path docs\RELEASE-PLAN.md -Pattern 'grep.exe.stackdump'` shows the struck row |
+| `docs/RELEASE-PLAN.md:312, 379-380` | residue rows still list `<user>`, `tools/rdp-to-console.cmd`, `grep.exe.stackdump`, `ffb-lfe-demo.ps1` as to-do | this plan section 2.1 | after 2.1: strike them with "done 2026-10-10" | `Select-String -Path docs\RELEASE-PLAN.md -Pattern 'grep.exe.stackdump'` shows the struck row |
 | `docs/ENHANCEMENTS.md` | stale rows (u32x "696577dc... not yet", no cursor-map / co-op / `I76_CAM_GROUND_FIX` rows) | BACKLOG-2026-10-10 R-07, G-04 | tracked there; not repeated | n/a |
 | `docs/records/READY-TO-TEST.md` | slated for retirement into VERIFIED-FIXES | BACKLOG-2026-10-10 R-06 | tracked there | n/a |
 | `music-fix/README.md` switch table | 24 switches missing (section 3) | section 3 | tracked as R-07 | n/a |
@@ -329,10 +329,10 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
 
 | repo | finding | evidence | action | verify |
 |---|---|---|---|---|
-| i76-everywhere (`.git` 43 MB; remote GitHub) | tracked > 1 MB: `lab-residue/drive5.csv` 5.97 MB (+3 older versions 4.9/1.3/0.9 MB in history), `lab-residue/lfe-sweep.wav` 1.34 MB, `docs/Interstate76-Controls-Quick-Reference.pdf` 1.21 MB (3 versions; generated by `tools/controls-sheet/build.ps1` and shipped by promotions 1/10). Binaries: `music-fix/Strlkup.dll` 275 KB x **76 versions**, `u32x/u32x_full.dll` + `deck/Strlkup.deck.dll` 7 versions | `git ls-tree -r -l HEAD`, `git rev-list --objects --all` | **no LFS** (43 MB total is fine; the DLL versions are the promotion record by md5). Optional: move `lab-residue/drive5.csv` + `lfe-sweep.wav` to `i76-uncap-lab\captures\ffb\` (ignored there, evidence kept) and `git rm` here; history keeps them, so nothing shrinks | `git ls-files lab-residue` |
-| i76-uncap-lab (`.git` 43 MB; no remote) | nothing tracked > 1 MB (two 0.6 MB PNG montages). The 1.5 GB is untracked run data (2.2) | `git ls-tree -r -l HEAD` | section 2.2 ignore rule | n/a |
-| i76-map (`.git` 133 MB; no remote) | **11 tracked `.bmp` = 174.5 MB raw**: `captures/012-armour/poke-{138,178}-*.bmp` (7 x 19.8 MB) and `captures/006-variant-a/{form,form2,form3,pre}.bmp` (4 x 11 MB); every one has a tracked `.png` sibling; the `.gitignore` already applies "bitmap ignored, png committed" to the other capture series (items 9, 11, M12) | `git ls-files | grep bmp`; `ls captures/012-armour` | `git rm --cached` the 11, append their paths to `.gitignore` under the existing "screenshot bitmap (png committed)" comment; files stay on disk (manifest policy). **No history rewrite**: i76-map docs and the sibling repos cite its commit SHAs everywhere (e.g. "i76-map cbe728d8"), so a filter-repo would break every citation | `git ls-files | Select-String '\.bmp$' | Measure-Object` = 0; `Test-Path` on all 11; `git check-ignore captures/012-armour/poke-138-after.bmp` |
-| i76-map untracked | `captures/014-framerate/liveall2_probe.json` 13.2 MB exceeds the 5 MB policy | `.gitignore` generated block header | regenerate the block (2.3) | `git check-ignore` prints it |
+| i76-everywhere (`.git` 43 MB; remote GitHub) | tracked > 1 MB: `lab-residue/drive5.csv` 5.97 MB (+3 older versions 4.9/1.3/0.9 MB in history), `lab-residue/lfe-sweep.wav` 1.34 MB, `docs/Interstate76-Controls-Quick-Reference.pdf` 1.21 MB (3 versions; generated by `tools/controls-sheet/build.ps1` and shipped by promotions 1/10). Binaries: `music-fix/Strlkup.dll` 275 KB x **76 versions**, `u32x/u32x_full.dll` + `deck/Strlkup.deck.dll` 7 versions | `git ls-tree -r -l HEAD`, `git rev-list --objects --all` | **no LFS** (43 MB total is fine; the DLL versions are the promotion record by md5). Optional: move `lab-residue/drive5.csv` + `lfe-sweep.wav` to `<lab>\captures\ffb\` (ignored there, evidence kept) and `git rm` here; history keeps them, so nothing shrinks | `git ls-files lab-residue` |
+| <lab> (`.git` 43 MB; no remote) | nothing tracked > 1 MB (two 0.6 MB PNG montages). The 1.5 GB is untracked run data (2.2) | `git ls-tree -r -l HEAD` | section 2.2 ignore rule | n/a |
+| <re-archive> (`.git` 133 MB; no remote) | **11 tracked `.bmp` = 174.5 MB raw**: `captures/012-armour/poke-{138,178}-*.bmp` (7 x 19.8 MB) and `captures/006-variant-a/{form,form2,form3,pre}.bmp` (4 x 11 MB); every one has a tracked `.png` sibling; the `.gitignore` already applies "bitmap ignored, png committed" to the other capture series (items 9, 11, M12) | `git ls-files | grep bmp`; `ls captures/012-armour` | `git rm --cached` the 11, append their paths to `.gitignore` under the existing "screenshot bitmap (png committed)" comment; files stay on disk (manifest policy). **No history rewrite**: <re-archive> docs and the sibling repos cite its commit SHAs everywhere (e.g. "<re-archive> cbe728d8"), so a filter-repo would break every citation | `git ls-files | Select-String '\.bmp$' | Measure-Object` = 0; `Test-Path` on all 11; `git check-ignore captures/012-armour/poke-138-after.bmp` |
+| <re-archive> untracked | `captures/014-framerate/liveall2_probe.json` 13.2 MB exceeds the 5 MB policy | `.gitignore` generated block header | regenerate the block (2.3) | `git check-ignore` prints it |
 
 ## 7. Refactors with a clear payoff (design; Tier C/D)
 
@@ -361,7 +361,7 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
 
 ## 8. Game folders (git-ignored lab state: PROPOSE ONLY; the owner acts)
 
-`i76-uncap-lab\game-dd-20261003` (the twin, 686 MB, newest file 2026-10-09). Driver-equal today except the items
+`<lab>\game-dd-20261003` (the twin, 686 MB, newest file 2026-10-09). Driver-equal today except the items
 below (presets and `dgVoodoo.wide.conf` are byte-identical to the driver's; STRLKUP.DLL is the test build
 `a5b46fb8` = driver `c11f7f7d` + COLL_WINDOW + SITES + COCKPIT-UNDER per `TEST-CURSOR.txt`).
 
@@ -372,12 +372,12 @@ below (presets and `dgVoodoo.wide.conf` are byte-identical to the driver's; STRL
 | `Interstate 76\presets\best-wide-cursor.psd1` | best-wide + the first cursor lines; **lacks `I76_CAM_GROUND_FIX`** (the cause of BACKLOG G-01) and has the older cursor-line wording | superseded by the promoted `best-wide.psd1` (diff shows only those lines) | delete (a copy is in `_promote16-backup-20261008\presets\`) |
 | `Interstate 76\dgVoodoo.wide-cursor.conf` | `wide.conf` with `CaptureMouse = false` | now **byte-identical** to `dgVoodoo.wide.conf` (`diff` empty) | delete |
 | `TEST-CURSOR.txt` | the twin's change log 2026-10-07..09 | keep; append "2026-10-10: cursor-test files removed (promotion 15 carries them)" when the three above go | keep |
-| `_cursor-test-backup-20261007\` (752 KB: pre-test STRLKUP.DLL `89a97d25`, `dgVoodoo.conf`, `dgVoodoo.wide.conf`, `I76*.DEF`, `input.map`, `save000..008.cmp`, MANIFEST.txt) | rollback set for the cursor test | superseded (promoted; the driver's `_rollback\15` is the real rollback) | move to `i76-uncap-lab\captures\twin-backups\` or delete; the saves are copies of the twin's own 2026-10-07 saves |
+| `_cursor-test-backup-20261007\` (752 KB: pre-test STRLKUP.DLL `89a97d25`, `dgVoodoo.conf`, `dgVoodoo.wide.conf`, `I76*.DEF`, `input.map`, `save000..008.cmp`, MANIFEST.txt) | rollback set for the cursor test | superseded (promoted; the driver's `_rollback\15` is the real rollback) | move to `<lab>\captures\twin-backups\` or delete; the saves are copies of the twin's own 2026-10-07 saves |
 | `_promote16-backup-20261008\` (352 KB: presets + confs before the promotion-16 staging) | same | superseded | same |
 | `_playtest-backup-20261004\` (244 KB: 3 confs, 2 presets, STRLKUP.DLL) | pre-playtest set | superseded (the driver has `_rollback\10..15`) | same |
-| `Interstate 76\texcensus-*-flashprobe-{lifted,drop}.bmp` (22 files x 0.9 MB = 20 MB, 2026-10-09) | frame dumps from the terrain-watch / flash-probe drives | **evidence** | move to `i76-uncap-lab\captures\flash-probe-20261009\` (ignored, kept) |
+| `Interstate 76\texcensus-*-flashprobe-{lifted,drop}.bmp` (22 files x 0.9 MB = 20 MB, 2026-10-09) | frame dumps from the terrain-watch / flash-probe drives | **evidence** | move to `<lab>\captures\flash-probe-20261009\` (ignored, kept) |
 | `Interstate 76\mciproxy.log` (1.37 MB, 2026-10-09 09:19) | the proxy log of the last run; `TEST-terrain-watch` tells the owner to read its `TERRAIN-DROP` lines | live | keep |
-| `Interstate 76\*.pre-*` (7: `STRLKUP.DLL.pre-promo3-20261003`, `.pre-roadpool`, `i76shell.dll.pre-f7-fd96f871`, `.pre-modals-9d6247a6`, `u32x.dll.pre-f7-696577dc`, `.pre-msgbox-19ab8dd1`, `.pre-promo3-20261003`) and `*.driver-*` (5) | binary backups from 2026-09-07..10-03 | the driver's `_rollback\` holds the promoted states; these are twin-only intermediate states | move to `i76-uncap-lab\builds\twin-history\` |
+| `Interstate 76\*.pre-*` (7: `STRLKUP.DLL.pre-promo3-20261003`, `.pre-roadpool`, `i76shell.dll.pre-f7-fd96f871`, `.pre-modals-9d6247a6`, `u32x.dll.pre-f7-696577dc`, `.pre-msgbox-19ab8dd1`, `.pre-promo3-20261003`) and `*.driver-*` (5) | binary backups from 2026-09-07..10-03 | the driver's `_rollback\` holds the promoted states; these are twin-only intermediate states | move to `<lab>\builds\twin-history\` |
 | `Interstate 76\dgVoodoo.aspect-{14x9,16x10,3x2,4x3,wide}.conf` (5) | `EXPERIMENT.bat` shapes | used by `EXPERIMENT.bat` (still present) | keep while `EXPERIMENT.bat` stays |
 | `_tools\lint-input-map.py` | differs from the repo's | stale copy | refresh from `tools\lint-input-map.py` |
 | `_carried-over\Interstate 76\` (4.6 MB: `i76.exe.2017galaxy`, `i76.25fps`, `DDraw.dll.old-278`, `grep.exe.stackdump`, four `dgVoodoo.conf.pre-*`, `input.map.CORRUPTED-20260802-183747`, ...) | pre-2026-10-03 residue carried over by `Make-Daily-Driver.ps1` | **unknown** whether anything still needs it; the exe copies are game binaries | owner decides; at minimum keep `i76.exe.2017galaxy` (a distinct exe build) |
@@ -399,9 +399,9 @@ Observed read-only in the daily driver and **not proposed**: `_rollback\2..15`, 
 
 ## 9. Disk outside the repos (information only)
 
-`C:\Users\james\AppData\Local\Temp\claude\C--Users-james-i76-everywhere\`: 1.2 GB of session scratchpads; the
+`<local-appdata>\Temp\claude\C--Users-<user>-i76-everywhere\`: 1.2 GB of session scratchpads; the
 `9efdde0c-...` one is the dependency of 4.1. Windows may clear `Temp` at any time, which is the reason for 4.1.
-Lab `captures\` 4.1 GB and `refs\` 1.9 GB are ignored by design (manifest policy in i76-map, `.gitignore` in the lab).
+Lab `captures\` 4.1 GB and `refs\` 1.9 GB are ignored by design (manifest policy in <re-archive>, `.gitignore` in the lab).
 
 ## 10. Execution order for the next agent
 
@@ -409,9 +409,9 @@ Lab `captures\` 4.1 GB and `refs\` 1.9 GB are ignored by design (manifest policy
    i76-everywhere: "tidy: stray files, promote-2 record, rdp-to-console path, waypoints ignored, 2026-10-10 docs".
 2. Section 2.2 named items, then the ignore rule, then the run-evidence commits (check the ~70 MB figure first).
 3. Section 4.1 (scratchpad paths) in the lab; parse-check each edited file.
-4. Section 2.3 and 6 in i76-map (`git rm --cached` the bmps, regenerate the ignore block, keep both aifire runs).
+4. Section 2.3 and 6 in <re-archive> (`git rm --cached` the bmps, regenerate the ignore block, keep both aifire runs).
 5. Section 5 doc folds.
 6. Leave sections 3, 7, 8 for the owner (3 and 7 need a proxy rebuild + gate; 8 is game-folder state).
 
-Final check in each repo: `git status --porcelain` empty (i76-everywhere, i76-map) or listing only the items the
+Final check in each repo: `git status --porcelain` empty (i76-everywhere, <re-archive>) or listing only the items the
 owner chose to keep untracked (lab); `git worktree list` one line; `git fsck --no-dangling` clean.

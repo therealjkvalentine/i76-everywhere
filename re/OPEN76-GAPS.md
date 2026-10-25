@@ -1,7 +1,7 @@
-# Open76 vs the i76-map specs: gap list
+# Open76 vs the <re-archive> specs: gap list
 
-Scope: Open76 at `C:\Users\james\i76-map\external\Open76` (commit e39db6e, "Add more FSM actions. Fix some bugs.";
-about 11.5 k lines of C#) against the static specs of i76.exe md5 9a232dcc in `C:\Users\james\i76-map`
+Scope: Open76 at `<re-archive>\external\Open76` (commit e39db6e, "Add more FSM actions. Fix some bugs.";
+about 11.5 k lines of C#) against the static specs of i76.exe md5 9a232dcc in `<re-archive>`
 (`REIMPLEMENTATION.md`, `subsystems/*.md`, `data/FORMATS.md`, `data/FSM.md`, `data/notes/fsm-actions.md`).
 Written 2026-09-27 from a read of both trees. Nothing was run and nothing was checked live.
 

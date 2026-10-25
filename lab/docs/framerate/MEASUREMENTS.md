@@ -64,8 +64,8 @@ what has changed since is where the cause can be. Status as of the 2026-08-09 me
    which get 3× the kick over the same time on the ground. Still the best candidate for the real
    canyon-jump bug — the jump never failed because the car fell short (gravity is dt-correct, §3)
    but because it leaves the ramp rotating.
-   *(2026-10-02: i76-map reads the contact model as running once per substep from `physics_StepVehicle` (0x43a104)
-   and once per frame through `physics_SnapToGround` 0x43d070 (`../i76-map/subsystems/framerate.md:75-85`), so the
+   *(2026-10-02: <re-archive> reads the contact model as running once per substep from `physics_StepVehicle` (0x43a104)
+   and once per frame through `physics_SnapToGround` 0x43d070 (`../<re-archive>/subsystems/framerate.md:75-85`), so the
    per-frame kick is the SnapToGround pass and the fixed step is the principled fix. Not yet re-measured under
    `I76_FIXED_STEP=24` — backlog P2-04: `tools/framerate/airborne-test.ps1` + `analyse-airborne.py`, stock 20 vs
    fixed 60, A/A first; angular velocity at lift-off should match 20 fps.)*
@@ -105,7 +105,7 @@ what has changed since is where the cause can be. Status as of the 2026-08-09 me
 
 > **Closed 2026-09-27 (pointer added 2026-10-02).** The cloud scroll is `u = fmod(u - 1/(1001 - s), 1)` (and `v`
 > alike) once per call with no dt, at 0x405200 and 0x405455..0x4054a9 (s = 0x504c30 = 0.0078):
-> `../i76-map/subsystems/framerate.md:36` row 4. The proxy's `I76_FRAMERATE_FIXES` puts it on the 20 Hz grid —
+> `../<re-archive>/subsystems/framerate.md:36` row 4. The proxy's `I76_FRAMERATE_FIXES` puts it on the 20 Hz grid —
 > measured 0.0300 /s at 60 fps = stock 20 fps (stock 60 fps: 0.0899) — and "sky confirmed in play"
 > (`../i76-everywhere/music-fix/README.md` switch table). No render-path anchor is needed; the section below is
 > the record of why the data-side hunt could not find it.

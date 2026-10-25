@@ -1,7 +1,7 @@
 # Tests that need a running game
 
 Static analysis stops here. Each test states what it settles, a falsifiable prediction, and the exact procedure.
-**Run order and machine rules** (AGENTS.md): only on the test copy `C:\Users\james\i76-uncap-lab\game`, never the
+**Run order and machine rules** (AGENTS.md): only on the test copy `<lab>\game`, never the
 daily driver. Physical console, not RDP (check `TerminalServerSession` first). Silent instance. The main session owns
 the console and decides when a sitting happens. Reads use the DLL base: `delta = base(i76shell.dll) − 0x10000000`.
 

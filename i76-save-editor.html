@@ -336,7 +336,7 @@ const SPECIALS=[["Radar Jammer","spc01","verified (garage name; spc%02d code)"],
  ["Cup Holders","spc09","seen"]];
 /* ---------- what each part does in game ----------
    Keyed by def code (wheels by design letter: wauto_a..d). "short" = the one-line label, "what" = the numbers,
-   each claim tagged [game data] (stock I76.ZFS via i76-map's parsers) / [RE: doc, address] / [community] / [unknown].
+   each claim tagged [game data] (stock I76.ZFS via <re-archive>'s parsers) / [RE: doc, address] / [community] / [unknown].
    Generated: python i76-save-editor.py --parts-json (the Python table is the source; tests/test_save_editor.py
    fails if the two differ). Readable version with sources: docs/PARTS-REFERENCE.md. */
 /* PARTS_INFO:BEGIN */
@@ -344,22 +344,22 @@ const PARTS_INFO={
 "eng01": {
 "name": "261ci  6 cyl",
 "short": "power 104,440 (baseline)",
-"what": "Drive power 104,440, 300 hp, 200 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.00x the 261ci's power, about 1.00x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+"what": "Drive power 104,440, 300 hp, 200 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.00x the 261ci's power, about 1.00x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: <re-archive> subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
 },
 "eng02": {
 "name": "305ci  V-8",
 "short": "power 138,010 (1.32x the 6 cyl)",
-"what": "Drive power 138,010, 300 hp, 230 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.32x the 261ci's power, about 1.30x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+"what": "Drive power 138,010, 300 hp, 230 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.32x the 261ci's power, about 1.30x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: <re-archive> subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
 },
 "eng03": {
 "name": "432ci  SHO V8",
 "short": "power 193,960 (1.86x the 6 cyl)",
-"what": "Drive power 193,960, 300 hp, 275 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.86x the 261ci's power, about 1.79x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+"what": "Drive power 193,960, 300 hp, 275 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 1.86x the 261ci's power, about 1.79x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: <re-archive> subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
 },
 "eng04": {
 "name": "595ci  V-10",
 "short": "power 290,940 (2.79x the 6 cyl)",
-"what": "Drive power 290,940, 300 hp, 340 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 2.79x the 261ci's power, about 2.59x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: i76-map subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
+"what": "Drive power 290,940, 300 hp, 340 lbs [game data: compnent.cdf ENGN]. Acceleration = power / (mass x speed) x throttle, capped by rear-tyre traction [RE: engine.md, 0x43c55e / 0x43c578]: 2.79x the 261ci's power, about 2.59x its acceleration on the Piranha once the engine's own weight is counted (Jade's 1951-unit car) [derived from game data]. Gearing is the same for every engine (fixed exe constants): the rev limiter caps 1st / 2nd / 3rd at 104 / 182 / 261 km/h and full-throttle upshifts come at 62 / 106 km/h; power peaks at 3500 rpm [RE: <re-archive> subsystems/engine.md, ratios 0x4f8640, upshift 0x46a320]. Damage scales power by hp/max with a floor of 0.4 for the player [RE: engine.md, 0x469fb0]. Your car's component hp is x4 offline [RE: engine.md, 0x4be1c0]. Top speed per engine: [unknown] (not measured)."
 },
 "sus01": {
 "name": "Stock",
@@ -459,32 +459,32 @@ const PARTS_INFO={
 "tmmedium.gdf": {
 "name": "50cal Turret",
 "short": "turret bullets, 10/s",
-"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 25 per hit [game data: tmmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 25 per hit [game data: tmmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: <re-archive> data/VEHICLES.md, GDFC sub >= 100]."
 },
 "tmheavy.gdf": {
 "name": "7.62 Turret",
 "short": "turret bullets, 20/s",
-"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 24 per hit [game data: tmheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+"what": "Straight-line bullets, 150 m/s, 3.33 s flight (= 500 m), bullet damage 24 per hit [game data: tmheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: <re-archive> data/VEHICLES.md, GDFC sub >= 100]."
 },
 "tclight.gdf": {
 "name": "20mm Turret",
 "short": "turret shells, 4/s",
-"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 45 per hit [game data: tclight.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 45 per hit [game data: tclight.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: <re-archive> data/VEHICLES.md, GDFC sub >= 100]."
 },
 "tcmedium.gdf": {
 "name": "25mm Turret",
 "short": "turret shells, 3/s",
-"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 60 per hit [game data: tcmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 60 per hit [game data: tcmedium.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: <re-archive> data/VEHICLES.md, GDFC sub >= 100]."
 },
 "tcheavy.gdf": {
 "name": "30mm Turret",
 "short": "turret shells, 2/s",
-"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 150 per hit [game data: tcheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 150 per hit [game data: tcheavy.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: <re-archive> data/VEHICLES.md, GDFC sub >= 100]."
 },
 "tchades.gdf": {
 "name": "HADES Turret",
 "short": "turret shells, 2/s, 165 a hit",
-"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 165 per hit [game data: tchades.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: i76-map data/VEHICLES.md, GDFC sub >= 100]."
+"what": "Straight-line bullets, 200 m/s, 2.5 s flight (= 500 m), bullet damage 165 per hit [game data: tchades.gdf]; flight weapon_StepBullet 0x4abe60 [RE: weapons.md]. Turret variant: mounts on the turret location [RE: <re-archive> data/VEHICLES.md, GDFC sub >= 100]."
 },
 "tmlight.gdf": {
 "name": "30cal Turret",
@@ -594,7 +594,7 @@ const PARTS_INFO={
 "gwhiteph.gdf": {
 "name": "WP Mortar",
 "short": "lobbed shell, explosive + fire, blast 145",
-"what": "Lobbed shell like the HE mortar; its 45 direct damage is split between explosive and fire (mask 6), and the blast is 145 within 25 m (xwhph1.xdf) [game data; RE: damage split over set bits, i76-map notes 0x4a774d]. Shooter immunity: 1 s [RE: weapons.md]."
+"what": "Lobbed shell like the HE mortar; its 45 direct damage is split between explosive and fire (mask 6), and the blast is 145 within 25 m (xwhph1.xdf) [game data; RE: damage split over set bits, <re-archive> notes 0x4a774d]. Shooter immunity: 1 s [RE: weapons.md]."
 },
 "gcluster.gdf": {
 "name": "Cluster-Bomb",

@@ -16,9 +16,9 @@ The DLL is a Win32 PE that Wine loads like any other game DLL, so **the Windows 
 **A. Reuse the Windows build (simplest).** On the Windows box:
 
 ```powershell
-git clone https://github.com/voyageur/openglide.git C:\Users\james\i76-uncap-lab\refs\openglide
-cd C:\Users\james\i76-uncap-lab\refs\openglide
-git am C:\Users\james\i76-everywhere\tools\openglide-hd\*.patch
+git clone https://github.com/voyageur/openglide.git <lab>\refs\openglide
+cd <lab>\refs\openglide
+git am tools\openglide-hd\*.patch
 powershell -ExecutionPolicy Bypass -File build-msvc.ps1   # VS 2019 x86 tools, /MT; needs khr-include\ (below)
 ```
 

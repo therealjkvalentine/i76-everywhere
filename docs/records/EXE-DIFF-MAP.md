@@ -90,8 +90,8 @@ Lane `cross-exe-code-diff`. Static only: no game was run and no VM was started. 
 |---|---|---|---|---|
 | **retail 1.0** | `6cc509ad` | 1,019,392 | 1997-03-16 06:30 | March 1997 CD (`I76_CD1.ISO`). Built with VC4.2, static C runtime, `.reloc` present. Software renderer only (320x240 / 480x360 / 640x480). Imports no `Strlkup`, no `ole32`, no MSVCRT. Carries Immersion `iforce.dll` force-feedback hooks. **The gold standard.** |
 | **Gold CD** | `e1dca993` | 1,050,624 | 1998-02-19 22:21 | *Interstate '76 Gold Edition*, built with VC5. Adds D3D, Glide, Rendition and PowerVR, the `i7_sfrce` force-feedback path, `Strlkup` localisation, the difficulty option, and a 96-byte DEF |
-| GOG 2017 Galaxy | `9a232dcc` | 1,050,624 | same | The Gold CD exe with the import `WINMM.dll` renamed `WIN32.dll`: **2 bytes**, at file `.rdata` VA 0x4c1683, measured today. This is i76fix's target and the i76-map reference (`ghidra\i76_ref.exe`) |
-| GOG 2019 = UCyborg AiO | `60abf7bc` | 1,051,648 | same | Galaxy + 45 `.text` clusters (2,459 B) + a 132-byte tail (FIX-INVENTORY-2026-10-17 section 2; i76-map `binaries\diff-9a232dcc-vs-60abf7bc.tsv`) |
+| GOG 2017 Galaxy | `9a232dcc` | 1,050,624 | same | The Gold CD exe with the import `WINMM.dll` renamed `WIN32.dll`: **2 bytes**, at file `.rdata` VA 0x4c1683, measured today. This is i76fix's target and the <re-archive> reference (`ghidra\i76_ref.exe`) |
+| GOG 2019 = UCyborg AiO | `60abf7bc` | 1,051,648 | same | Galaxy + 45 `.text` clusters (2,459 B) + a 132-byte tail (FIX-INVENTORY-2026-10-17 section 2; <re-archive> `binaries\diff-9a232dcc-vs-60abf7bc.tsv`) |
 | **ours** | `6319abf7` | 1,051,648 | same | AiO + `USER32.dll` -> `u32x.dll`. Daily driver, golden copy, lab `game-envrb` / `game-rh` / `game-replay` |
 | lab sandbox | `85de44a7` | 1,051,648 | same | lab `game*\i76.exe` (AiO lineage + lab file patches) |
 | pristine_fix | `58d9dec0` | 1,050,624 | same | Galaxy + i76fix patch 1: 5 bytes at 0x499b25 skip the privileged CPU-speed probe |
@@ -105,7 +105,7 @@ Lane `cross-exe-code-diff`. Static only: no game was run and no VM was started. 
   - **1.05** (CGW #156, July 1997): "more than a dozen fixes", multiplayer.
   - **1.08b**: a D3D / 3Dfx beta patch reported on the Activision board in July 1997.
   - Any "1.0x" software-only patch.
-  - A full scan of `C:\Users\james` and `D:\` turned up none of them (88 I'76-named exes, 8 distinct md5s, plus
+  - A full scan of `<home>` and `D:\` turned up none of them (88 I'76-named exes, 8 distinct md5s, plus
     `i76.25fps` and two lab backups). The patch line between March 1997 and Gold therefore cannot be diffed here.
   - **Gold is the endpoint of that line.** Whatever 1.05 / 1.08 fixed is either in Gold or was dropped.
 - **The original team's post-1.0 work:**
@@ -115,11 +115,11 @@ Lane `cross-exe-code-diff`. Static only: no game was run and no VM was started. 
 
 ## 2. Method, and how far to trust it
 
-- **Same-link exes** (Gold, GOG, AiO, ours, lab, i76fix): a byte diff mapped to i76-map's function table
+- **Same-link exes** (Gold, GOG, AiO, ours, lab, i76fix): a byte diff mapped to <re-archive>'s function table
   (`famdiff.py`). FIX-INVENTORY-2026-10-17 section 2 already classifies the AiO clusters. This lane added the retail
   column for the clusters that touch gameplay (section 9).
 - **Gold vs Nitro (same compiler).**
-  - Matching: Ghidra Version Tracking (1,705 pairs, i76-map `status\vt-nitro.json`) plus call-graph propagation,
+  - Matching: Ghidra Version Tracking (1,705 pairs, <re-archive> `status\vt-nitro.json`) plus call-graph propagation,
     1,997 pairs in all.
   - Comparison: each pair's instruction stream, with these normalised:
     - image addresses, callee identities and local branch targets;

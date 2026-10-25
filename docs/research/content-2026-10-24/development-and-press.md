@@ -21,7 +21,7 @@ magazines:
 - the few PC Gamer issues on archive.org.
 
 Hits were then extracted page by page from each scan's `_djvu.xml`. The helper scripts are
-`C:\Users\james\i76press-tools\inside.py`, `page.py`, `find.py` and `meta.py`. They sit outside the repo; copy
+`<home>\i76press-tools\inside.py`, `page.py`, `find.py` and `meta.py`. They sit outside the repo; copy
 them in if they are needed again. **US PC Gamer 1996-97 is not on archive.org as scans.** Local Ditch's April 1997
 PC Gamer image is the only PC Gamer pre-release material found.
 

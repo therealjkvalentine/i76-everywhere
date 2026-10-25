@@ -5,7 +5,7 @@ framerate-tied physics bug via dgVoodoo2 with a hard 20 FPS cap — and now LIVE
 boots, menus, and the 3D sim all verified working (2026-07-03), including over RDP
 (dgVoodoo renders through D3D11, which RDP accepts — the stock game crashes over RDP).
 
-Your original install at  C:\Users\james\Downloads\I76-stable  is UNTOUCHED.
+Your original install at  <downloads>\I76-stable  is UNTOUCHED.
 
 CURRENT TESTED CONFIGURATION (dgVoodoo.conf)
 --------------------------------------------

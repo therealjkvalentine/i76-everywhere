@@ -49,7 +49,7 @@ So the candidate splits terrain as far out as promotion 18 does, but with a heig
 x24. **R12 - R11 = `I76_TERRAIN_LOD 24` (split distance x24) and nothing else**: the env of every preset was diffed key by key (s.2). The
 sanity rung became a measurement of the one switch the ladder does not otherwise isolate.
 
-## 2. The ladder (lab copy `i76-uncap-lab\exp-rebase`)
+## 2. The ladder (lab copy `<lab>\exp-rebase`)
 
 `exp-rebase` is a copy of `exp-p19` (the candidate as applied; 94 / 94 files of its MD5SUMS verified after the copy). Proxy: the
 candidate's 8f8da929. Base preset: the candidate's `tick19-42.psd1` (f7e589ef) with the 13 graphics keys removed (= stock). Every rung
@@ -60,7 +60,7 @@ otherwise runs the candidate's tick 41.667 and keeps every non-graphics fix on, 
 - breakable box, sign sound, fade
 - LAN switches
 
-Written by `i76-uncap-lab\tools\rebaseline\rungs.py`. Each `PLAY-Rnn.bat` opens a console window titled "I'76 ladder Rnn - <what it
+Written by `<lab>\tools\rebaseline\rungs.py`. Each `PLAY-Rnn.bat` opens a console window titled "I'76 ladder Rnn - <what it
 adds>". The window stays open while the game runs and closes when it exits. Each `presets\rebase-rNN.psd1` carries the reason in a comment
 on every graphics line.
 
@@ -82,7 +82,7 @@ on every graphics line.
 
 `PLAY-i76.ps1 -DryRun` exits 0 for all 13 presets.
 
-## 3. How each rung is measured (`i76-uncap-lab\tools\rebaseline\rb-queue.ps1`, results under `captures\rebase-20261021\`)
+## 3. How each rung is measured (`<lab>\tools\rebaseline\rb-queue.ps1`, results under `captures\rebase-20261021\`)
 
 Nothing boots before `.gate-done`. Every step does the following:
 - It takes `.console-owner` and `.fps-lock` (exclusive create) and releases both after the step.
@@ -115,7 +115,7 @@ The measurements:
 - Main's console anchors for the installed candidate: PLAY-TICK 120 / 91, ALT-TERRAIN 120 / 83, P18 control 120 / 98.
 - The median is 120 on every rung (the 120 fps cap), so the 1 % low is the column that moves.
 - Churn census: R00 only (n 1: 16.9 splits + merges per s, 12.8 % of frames, on-screen change 4,088 px/s within 300 m, 36 beyond). Main dropped the rest of the census in favour of the trace (s.6).
-- Hill-top shots: `i76-uncap-lab\captures\rebase-20261021\hill\Rnn-hill-s1.png` (3440x1440, same pose).
+- Hill-top shots: `<lab>\captures\rebase-20261021\hill\Rnn-hill-s1.png` (3440x1440, same pose).
 
 | rung | launcher | what it adds | hill median / 1 % low fps | lowest 1 s | terrain verts peak | barn from the hill top | verdict | his note |
 |---|---|---|---|---|---|---|---|---|
@@ -166,7 +166,7 @@ What the table shows:
 **R07's terrain at far clip 1800**, i.e. the candidate minus `I76_TERRAIN_LOD_B`, `I76_TERRAIN_HYST` and `I76_TERRAIN_FREEZE`. That is
 promotion 18's PLAY.bat graphics (best-wide), now on the tick.
 - **Far clip:** 1800 now, **2000 after a soak**. The owner ruled 2400 "fine but not needed"; main ships 2000 once it is soaked.
-- **Staged, not installed:** `i76-uncap-lab\builds\rebaseline-20261021\stage\`. It holds the seven `tick19-NN.psd1` with the reason on
+- **Staged, not installed:** `<lab>\builds\rebaseline-20261021\stage\`. It holds the seven `tick19-NN.psd1` with the reason on
   every graphics line, plus `DIFF.txt` and `MD5SUMS.txt`.
 - **Proxy:** stays 8f8da929.
 - **ALT terrain:** `tick19alt-42` / `PLAY-TICK-ALT-TERRAIN.bat` (LOD 24 + FREEZE) are untouched. They are now nearly the same as the
@@ -283,8 +283,8 @@ d2, and the guard's refusals in that pass.
 - **Lab copies** (both retired with this record):
   - `exp-rebase`: the ladder, proxy 8f8da929; PLAY-R00..R14, and PLAY-X1..X4 by main.
   - `exp-rebase-trace`: the trace twin dfa47d12; PLAY-T07 / PLAY-TX1.
-- **Scripts:** `i76-uncap-lab\tools\rebaseline\` (rungs.py, rb-queue.ps1, rb-hill.ps1, rb-census.ps1, rb_tab.py, stage.py, trace\).
-- **Raw data:** `i76-uncap-lab\captures\rebase-20261021\` (fps\Rnn, hill, trace, census\R00, queue.log). Voided runs are under `*\void`.
+- **Scripts:** `<lab>\tools\rebaseline\` (rungs.py, rb-queue.ps1, rb-hill.ps1, rb-census.ps1, rb_tab.py, stage.py, trace\).
+- **Raw data:** `<lab>\captures\rebase-20261021\` (fps\Rnn, hill, trace, census\R00, queue.log). Voided runs are under `*\void`.
 - **Harness lessons:**
   - The committed `autotest\t05-route-fps.ps1` key sender drove only 103 m at the console. The lane uses autotest-p19's copy, and any
     hill leg under 2,000 m voids the run.

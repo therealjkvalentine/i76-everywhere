@@ -2,7 +2,7 @@
 
 Question (owner): "get as much of the graphic advantage as we can and still keep 60 fps" on EACH Mac. Test lane, scripted, n 1 per row.
 Follows MAC-GRAPHICS-2026-10-24.md. Raw data (per run: mciproxy.log + per-frame CSV) and scripts: lab
-`captures\mac-graphics-tune-20261024\` (macbook-m5pro, andrew-m2, michael-m4max-contaminated; gfx1.sh = runner, tab.py = table, ph*.sh = row lists).
+`captures\mac-graphics-tune-20261024\` (macbook-m5pro, m2-m2, m4max-m4max-contaminated; gfx1.sh = runner, tab.py = table, ph*.sh = row lists).
 
 ## Method
 
@@ -55,11 +55,11 @@ The MacBook has roughly one such step of headroom. **Recommended local.psd1 for 
 
 Alternative if the owner prefers far terrain to far roads: FAR_CLIP=1000 instead of ROAD_DIST (pB: same median, worse lows). Untried middle: x8 + road 1500 + far 900.
 
-## MacBook Pro (Mac16,6, Apple M4 Max, 36 GB; viewport 1512x977) (Michael): measured 2026-10-25 (rerun)
+## MacBook Pro (Mac16,6, Apple M4 Max, 36 GB; viewport 1512x977) (the M4 Max tester): measured 2026-10-25 (rerun)
 
 The 2026-10-24 rows were discarded (Minecraft open, mediaanalysisd). Rerun 2026-10-25 05:20-06:00 with the owner's ruling "Minecraft can be closed": Minecraft quit (osascript did not close it; its java and launcher were stopped with SIGTERM / SIGKILL, nothing else touched),
 HID idle 5430 s at the start, no i76/wine of anyone else's. Same method and proxy as the other Macs: clone `I76 GFX LAB.app` with proxy **53944fb2** (the clone still had 0ce90a90 from the first attempt; swapped in and md5 read back), t05 standing, 60 s after 5 s, n 1 (base n 3).
-Raw: lab `captures\mac-graphics-tune-20261024\michael-m4max-rerun\out` (csv + log + load.txt per row). Load per row (uptime / top) was quiet: load average 1.4-2.1 (the game itself), no Spotlight or mediaanalysisd at any row start; one NAS backup rsync (his own launchd job, ~30 % of one core) was running during the first rows and was left alone.
+Raw: lab `captures\mac-graphics-tune-20261024\m4max-m4max-rerun\out` (csv + log + load.txt per row). Load per row (uptime / top) was quiet: load average 1.4-2.1 (the game itself), no Spotlight or mediaanalysisd at any row start; one NAS backup rsync (his own launchd job, ~30 % of one core) was running during the first rows and was left alone.
 
 | row | keys added to the free base | median | mean | 1 % low | verdict |
 |---|---|---|---|---|---|
@@ -75,10 +75,10 @@ Raw: lab `captures\mac-graphics-tune-20261024\michael-m4max-rerun\out` (csv + lo
 | x8 + road 1800 + far 1000 (cD) | | 53.0 | 41.0 | 39.7 | fails |
 | cD + LOD 4 (cB) | | 41.3 | 35.8 | 32.9 | fails |
 
-Reading: the M4 Max lands where the M5 Pro did: detail x8 and road 1800 are each nearly free, far clip 1000 costs about 15, anything stacking two or three distance keys or LOD above 2 fails. **Recommended local.psd1 for Michael's Mac: the same as the M5 Pro: detail x8 + ROAD_DIST 1800, rest stock** (pA, median 75.4, 1 % low 46.5), with the mirror set allowed (free here).
-Caveat (not explained): **every row on this Mac has one multi-second freeze (5-25 s, once per run, at about 30-35 s into the 60 s window; 7 s at 7 s in b0b)**, so the means sit 10-25 below the medians and "min 1 s" is near 0. The other two Macs show no gap longer than 44 ms. The median (1 s bins) and the 1 % low (99th percentile of frame periods, one frame per freeze) are not affected by one freeze, so the table uses them; do not read the mean. The system was quiet in load.txt, so the cause is open (Michael's disk is 99 % full, 13 GB free; the NAS backup job; something of his). If he sees a hitch in play, look there first.
+Reading: the M4 Max lands where the M5 Pro did: detail x8 and road 1800 are each nearly free, far clip 1000 costs about 15, anything stacking two or three distance keys or LOD above 2 fails. **Recommended local.psd1 for the M4 Max tester Mac: the same as the M5 Pro: detail x8 + ROAD_DIST 1800, rest stock** (pA, median 75.4, 1 % low 46.5), with the mirror set allowed (free here).
+Caveat (not explained): **every row on this Mac has one multi-second freeze (5-25 s, once per run, at about 30-35 s into the 60 s window; 7 s at 7 s in b0b)**, so the means sit 10-25 below the medians and "min 1 s" is near 0. The other two Macs show no gap longer than 44 ms. The median (1 s bins) and the 1 % low (99th percentile of frame periods, one frame per freeze) are not affected by one freeze, so the table uses them; do not read the mean. The system was quiet in load.txt, so the cause is open (the M4 Max tester's disk is 99 % full, 13 GB free; the NAS backup job; something of his). If he sees a hitch in play, look there first.
 
-## MacBook Pro (Mac14,7, Apple M2, 8 GB; viewport 1440x900, MSAA 4) (Andrew)
+## MacBook Pro (Mac14,7, Apple M2, 8 GB; viewport 1440x900, MSAA 4) (the M2 tester)
 
 | row | keys | median | mean | 1 % low | verdict |
 |---|---|---|---|---|---|
@@ -104,13 +104,13 @@ No setting reaches the pass line on this M2, including the bare pack (about 52).
 - Distances stock: remove `I76_FAR_CLIP`, `I76_ROAD_DIST`, `I76_CLUTTER_DIST`, `I76_TERRAIN_LOD` (set '' in the preset).
 - Keep: `I76_TERRAIN_MORPH=0.25`, `_STATELESS=1`, `_SHADE=3`, `_NEAR=100`, `I76_SHADE_SMOOTH=1`; detail `I76_TERRAIN_TEX / OBJECT_LOD / ROAD_TEX / SHADOW_DIST = 2` (about free on both).
 - Drop from the Mac tier: the mirror set (-3 on the M2, free on the M5 Pro), bush keys (bush distance -10 on the M2), fog keys, `I76_SKY_MIRROR=0` (costs two coop-ai sites).
-- Per-machine on top: MacBook M5 Pro = x8 + road 1800 (+ mirror set); M2 = baseline as is; M4 Max (Michael) = same as the M5 Pro (x8 + road 1800).
+- Per-machine on top: MacBook M5 Pro = x8 + road 1800 (+ mirror set); M2 = baseline as is; M4 Max (the M4 Max tester) = same as the M5 Pro (x8 + road 1800).
 
 ## Caveats
 
 - n 1 per row (n 2-3 for base rows); noise about +-5 fps in the median; play the pick once by eye. No pictures.
 - Stationary at the t05 start; driving through dense terrain or the binoculars costs more, so the far-clip rows are optimistic.
-- Cleanup (2026-10-25): all three `I76 GFX LAB.app` clones were moved to the Trash (Michael's after the rerun); the scripts and out/ folders stay in each `~/i76-gfx-lab/`.
+- Cleanup (2026-10-25): all three `I76 GFX LAB.app` clones were moved to the Trash (the M4 Max tester's after the rerun); the scripts and out/ folders stay in each `~/i76-gfx-lab/`.
 
 ## Render resolution on the MacBook (M5 Pro) - 2026-10-25: the OpenGLid.INI `Resolution` key does nothing
 

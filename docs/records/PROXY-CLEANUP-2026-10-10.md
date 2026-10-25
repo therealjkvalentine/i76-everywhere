@@ -7,7 +7,7 @@ promoted binaries are unchanged: `music-fix/Strlkup.dll` is still `c11f7f7d51b1e
 started, nothing was written to a game folder, and nothing was installed.
 
 **Before either side DLL replaces a committed binary or goes to the daily driver, it needs the 23-row gate on the lab
-twin** (`..\i76-uncap-lab\autotest\gate-folder.ps1 -GameDir ..\i76-uncap-lab\game-dd-20261003`, the gate that produced
+twin** (`..\<lab>\autotest\gate-folder.ps1 -GameDir ..\<lab>\game-dd-20261003`, the gate that produced
 23 rows in `autotest\runs\gate\20261008-204529`). That is an owner/console item:
 [OWNER-TEST-LIST.md](../OWNER-TEST-LIST.md) item 27.
 
@@ -21,7 +21,7 @@ twin** (`..\i76-uncap-lab\autotest\gate-folder.ps1 -GameDir ..\i76-uncap-lab\gam
 | `9426190` | `music-fix/README.md` | **20 switch rows added** (below); `I76_GLIDE_DIR` removal noted in History |
 
 Before the removal, `I76_GLIDE_DIR` was checked against every launch path: `presets\*.psd1` (none), the lab
-(`..\i76-uncap-lab`: `.psd1 .ps1 .bat .cmd .txt .md`; only three docs name it: `TERRAIN-WHITE-FLASH.md`,
+(`..\<lab>`: `.psd1 .ps1 .bat .cmd .txt .md`; only three docs name it: `TERRAIN-WHITE-FLASH.md`,
 `TEXTURE-DELIVERY.md`, `WIDESCREEN-2D.md`), and the daily driver's `.psd1 .ps1 .bat .txt` (none; read only). It was
 documented as abandoned in ENHANCEMENTS row "Glide wrapper from a subfolder", STATUS-2026-10-02 and BACKLOG-2026-10-10
 G-02 / item 8. The `I76_U32X_VPTR` family is in no preset; the lab's `autotest\vptr-test.ps1` and its run folders
@@ -68,7 +68,7 @@ case as unset. That is a change (a fix) for over-long values, not an identity, s
 
 `grep '"I76…"'` over strlkproxy.c and cursormap.c gives 86 quoted names. 20 had no mention anywhere in
 music-fix/README.md; they now have rows: `I76_MISSION`, `I76_SKIP_MOVIES` (noted: a no-op without `I76_MISSION`,
-BACKLOG R-13), `I76_PHYS_RATE` (measured superseded experiment, i76-map `captures/014-framerate`), `I76_FPS_LOG`,
+BACKLOG R-13), `I76_PHYS_RATE` (measured superseded experiment, <re-archive> `captures/014-framerate`), `I76_FPS_LOG`,
 `I76_FPS_PROF`, `I76_GLIDE_REFRESH_CODE`, `I76_SW_RES`, `I76_JOY_MAP`, `I76_JOY_SYNTH`, and the eleven `I76_COOP_*`
 (`AI`, `CHAIN`, `DAMAGE`, `ADOPT`, `HOSTMODEL`, `CB`, `SHIMLOCK`, `HEAPGUARD`, `HEAPWATCH`, `HEAPLOCK`, `AI_DIAG`).
 After the edit every quoted name appears in the README. What each row says it does is read from the code. Its status

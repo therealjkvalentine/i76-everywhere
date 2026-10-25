@@ -57,16 +57,16 @@ Note the **sub-linear** growth (3× far → 2.6× records): the terrain LOD/deci
 job, which is why 8.3× distance costs nothing measurable on a modern machine.
 
 Soaks at 5000: mission entry, 60 s continuous driving (~730 m), 3-minute menu idle — no
-crash, `Responding=True` throughout. Screenshots: `i76-uncap-lab/captures/farclip/`
+crash, `Responding=True` throughout. Screenshots: `<lab>/captures/farclip/`
 (`stock-run1/2.png`, `far1800-run1.png`, `far5000-run1.png` — run1 vs run2 is the control
 pair; their delta is negligible, so the patched delta is real).
 
 ## Deploy / rollback
 
 ```
-i76-uncap-lab\tools\framerate\patch-farclip.ps1 -GameDir <dir> -FarMeters 1800
-i76-uncap-lab\tools\framerate\patch-farclip.ps1 -GameDir <dir> -Restore
-i76-uncap-lab\tools\framerate\patch-farclip.ps1 -GameDir <dir> -Status
+<lab>\tools\framerate\patch-farclip.ps1 -GameDir <dir> -FarMeters 1800
+<lab>\tools\framerate\patch-farclip.ps1 -GameDir <dir> -Restore
+<lab>\tools\framerate\patch-farclip.ps1 -GameDir <dir> -Status
 ```
 
 Keeps `i76.exe.farorig`. Composes with the camera-rate patch (different bytes, own backup).
@@ -109,7 +109,7 @@ experiment, see [HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md)). Deferred.
 
 ## 2026-09-27: a second ceiling at about 3.8 km (static)
 
-Found while mapping the renderer (i76-map `subsystems/renderer.md`): the software scene sorts every primitive into 1 m
+Found while mapping the renderer (<re-archive> `subsystems/renderer.md`): the software scene sorts every primitive into 1 m
 depth buckets that start at -300 m. A bucket index above 4096 is silently dropped (`cmp edi, 0x1000` at 0x48fe61), so
 nothing deeper than about 3796 m in view space is drawn, whatever the far clip says. A far-clip patch that aims past
 about 3.8 km also has to raise this limit (and the flush clamp that walks at most 4096 buckets). Not yet tested live.

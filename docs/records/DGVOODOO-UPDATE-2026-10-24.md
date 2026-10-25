@@ -8,12 +8,12 @@ This is the dgVoodoo-compatibility lane. It follows LAPTOP-BENCH-2026-10-24 s.4:
 as 2.87.3: gate rows 1, 3 and 9 PASS with the same numbers. **It does not make the laptop playable on its own.** The same Windows
 update also replaced the 32-bit `winmmbase.dll`, and with the owner's presets about 60 % of boots now die 3 s in at
 `winmmbase.dll+0x5AB3`. That is the July KB5101650 pattern. dgVoodoo cannot fix it (s.4). Nothing was rolled into the RC or the
-Scott packages. The fold-in list is in s.5.
+The tester packages. The fold-in list is in s.5.
 
 ## 1. Candidates
 
 All were downloaded from the official GitHub releases (`dege-diosg/dgVoodoo2`, `gh release download`). Each sha256 matches the
-digest GitHub lists for the asset. Each is kept in its own folder under `D:\i76-archive\dgvoodoo\<version>\` (zip, `sha256.txt`,
+digest GitHub lists for the asset. Each is kept in its own folder under `<archive>\dgvoodoo\<version>\` (zip, `sha256.txt`,
 extracted `x\`).
 
 | version | date | asset sha256 | status |
@@ -30,13 +30,13 @@ cumulative update appears to have brought the same change back to 24H2, and that
 (dccd379a) exist in 2.87.5's default conf under the same section, and `Version = 0x287` is unchanged. The new keys default to
 behaviour equal to 2.87.3, apart from the D3D12 bounds checking, which does not apply to our d3d11 output.
 
-## 2. Laptop (LAPTOP-HPK11OMS, 26100.9711)
+## 2. Laptop (the laptop bench, 26100.9711)
 
 - **Start-up probe** (`laptop-run.ps1 -Script ddraw-probe-multi-job.ps1`, run `ddprobe-multi-20261024-095459`):
   - 2.87.5 DDraw c70a0ee6: `DirectDrawCreate hr=0x00000000`.
   - The bench copy, 2.87.3 ab19386d: access violation, `exit -1073741819`, the same as before.
   - System ddraw 26100.8115: `hr=0`.
-- **Copy:** `C:\i76-bench\rc-twin-dgv2875\` is a copy of the bench twin with the 2.87.5 x86 DDraw / D3DImm / D3D8 / D3D9 /
+- **Copy:** `<bench>\rc-twin-dgv2875\` is a copy of the bench twin with the 2.87.5 x86 DDraw / D3DImm / D3D8 / D3D9 /
   Glide / Glide2x / Glide3x / Cpl. The 2.87.3 files are kept beside them as `*.dgv2873`. The bench `rc-twin` itself was not
   touched.
 - **Conf loads:** a sentinel conf (wide-1x with `dgVoodooWatermark` / `3DfxWatermark = true` and `[DirectX] Resolution = 1280x720`)
@@ -69,7 +69,7 @@ behaviour equal to 2.87.3, apart from the D3D12 bounds checking, which does not 
 
 ## 3. This PC (Windows 10 19045, not updated): the 2.87.5 twin vs the 2.87.3 control
 
-The copy is `i76-uncap-lab\dgv2875-twin-20261024`: rc-twin-20261024 with the same 2.87.5 files, the 2.87.3 ones as `*.dgv2873`.
+The copy is `<lab>\dgv2875-twin-20261024`: rc-twin-20261024 with the same 2.87.5 files, the 2.87.3 ones as `*.dgv2873`.
 The gate (rows 1, 3, 9) ran under the console lock through `tools\dgv-compat\gate-dgv.ps1`, with the RC gate's environment:
 `LAB_CURSOR_FREE=1`, `LAB_GAME_ENV` = OWNER-2300-ALL plus `I76_MUTE=1`. The control ran right after on rc-twin-20261024 (2.87.3).
 
@@ -96,7 +96,7 @@ clicks, SCOTT-BUILD s.6.1), not dgVoodoo. Its run `gate\20261024-100056` is void
   (today). The laptop has hit a crash in this winmmbase area under three builds.
 - **What I ruled out:**
   - **Our proxy's real `auxGetNumDevs` call.** I made a lab test build: 05c4db3 plus an `I76_AUX_REAL=0` switch
-    (`i76-uncap-lab\tools\dgv-compat\aux-real-switch.diff`, md5 5498f96b, not installed anywhere now). The same DLL crashed 3 of
+    (`<lab>\tools\dgv-compat\aux-real-switch.diff`, md5 5498f96b, not installed anywhere now). The same DLL crashed 3 of
     6 boots without the switch and 2 of 6 with it. With the switch the fault moved to a later winmm call, at the same offset.
   - **The in-proxy mute:** `I76_MUTE` unset crashed 8 of 8, set crashed 5 of 8.
   - **A standalone repro:** a fresh 32-bit process calling `auxGetNumDevs` right after loading winmm returned 0 in all 75 runs,
@@ -110,12 +110,12 @@ clicks, SCOTT-BUILD s.6.1), not dgVoodoo. Its run `gate\20261024-100056` is void
   - With dgVoodoo's DDraw.dll parked (the system ddraw; Glide still dgVoodoo 2.87.5 and opened at 120 Hz) the full preset was
     alive 6 of 6. That is not a usable configuration: the cursor map and the menus' scaling depend on dgVoodoo's DDraw. It is
     another sign the crash is timing-sensitive.
-- **This PC is Windows 10 19045.** KB5127647/8/690 are Windows 11 24H2 packages, so this PC will not take them. Scott and the
+- **This PC is Windows 10 19045.** KB5127647/8/690 are Windows 11 24H2 packages, so this PC will not take them. The tester and the
   boys' Windows 11 machines will.
 
 ## 5. For main to fold in (not done by this lane)
 
-**dgVoodoo 2.87.5, x86** (from `D:\i76-archive\dgvoodoo\2.87.5\x`, zip sha256 5ffde6927f7355ca3fdd5d785b581256a8e6539fa13e395a891ade6ba1040850):
+**dgVoodoo 2.87.5, x86** (from `<archive>\dgvoodoo\2.87.5\x`, zip sha256 5ffde6927f7355ca3fdd5d785b581256a8e6539fa13e395a891ade6ba1040850):
 
 | file in the game folder | from | md5 |
 |---|---|---|
@@ -145,16 +145,16 @@ clicks, SCOTT-BUILD s.6.1), not dgVoodoo. Its run `gate\20261024-100056` is void
 ## 6. Where things are
 
 - Laptop:
-  - `C:\i76-bench\dgv\2.87.5\` holds the probe copies.
-  - `C:\i76-bench\rc-twin-dgv2875\` is the game copy. Its STRLKUP.DLL is back to fc6a5960. The test build is kept as
+  - `<bench>\dgv\2.87.5\` holds the probe copies.
+  - `<bench>\rc-twin-dgv2875\` is the game copy. Its STRLKUP.DLL is back to fc6a5960. The test build is kept as
     `STRLKUP.DLL.5498f96b-auxswitch-test`.
   - `runs\dgv-*`, `raw-aux*`, `raw-mute*`, `raw-nopreset*`, `raw-only*`, `raw-bis*`, `raw-parkedDDraw*`.
   - The bench `rc-twin` is unchanged.
 - PC:
-  - `i76-uncap-lab\dgv2875-twin-20261024` (the copy).
+  - `<lab>\dgv2875-twin-20261024` (the copy).
   - `captures\dgv-compat\` (gate logs, laptop results, screenshots).
   - `autotest\runs\gate\20261024-101401` and `-102350`.
-- Lab scripts (i76-uncap-lab commit 9fe8da6, local):
+- Lab scripts (<lab> commit 9fe8da6, local):
   - `laptop-bench\bench\`: ddraw-probe-multi-job.ps1, aux-probe-job.ps1, aux-repro-job.ps1, dpi-job.ps1, and raw-boot.ps1, which
     gained `-Preset`, `-ExtraEnv`, a window-rect read-out and a screenshot.
   - `tools\dgv-compat\`: gate-dgv.ps1, bisect-keys.ps1, only-keys.ps1, dis-ret.py, auxrepro, aux-real-switch.diff.
@@ -218,19 +218,19 @@ byte-identical to the 709466d build that was tested.
 
 | configuration (laptop, 26100.9711, dgVoodoo 2.87.5) | n | winmmbase crashes | any crash |
 |---|---|---|---|
-| RC twin copy (`C:\i76-bench\wmr-twin`), OWNER-2300-ALL at 1080p, t05, in-proxy mute on | 20 | 0 | 0 |
+| RC twin copy (`<bench>\wmr-twin`), OWNER-2300-ALL at 1080p, t05, in-proxy mute on | 20 | 0 | 0 |
 | the same with `I76_MUTE` unset (the pid watcher still mutes) | 20 | 0 | 0 |
 | the same, no preset | 8 | 0 | 0 |
-| Scott's setup through **PLAY-T05.bat** (PLAY.bat's stable preset, straight into t05) | 10 | 0 | 0 |
-| Scott's setup through **PLAY-PREVIEW-T05.bat** (the preview preset) | 10 | 0 | 0 |
-| control: Scott's setup with its shipped proxy 6208d3ad, PLAY-T05 | 6 | 0 | 0 |
+| The tester's setup through **PLAY-T05.bat** (PLAY.bat's stable preset, straight into t05) | 10 | 0 | 0 |
+| The tester's setup through **PLAY-PREVIEW-T05.bat** (the preview preset) | 10 | 0 | 0 |
+| control: The tester's setup with its shipped proxy 6208d3ad, PLAY-T05 | 6 | 0 | 0 |
 
-Scott's setup is pristine GOG 2.1.0.17 (exe 9a232dcc) + zip scott-20261023b + dgVoodoo 2.87.5.
+The tester's setup is pristine GOG 2.1.0.17 (exe 9a232dcc) + zip tester-20261023b + dgVoodoo 2.87.5.
 
-**Scott's configuration did not crash without the fix either** (0 of 6). GOG's exe imports no winmm; its CD audio goes through GOG's
+**The tester's configuration did not crash without the fix either** (0 of 6). GOG's exe imports no winmm; its CD audio goes through GOG's
 win32.dll.
-- The split is still present there. In every Scott boot the fix changed slots in 11 modules at DllMain, with no ill effect.
-- The only CRASH lines in the Scott boots are the documented frame-0 PIT probe at i76.exe+0x99997, which the game handles (20 of 20).
+- The split is still present there. In every the tester boot the fix changed slots in 11 modules at DllMain, with no ill effect.
+- The only CRASH lines in the the tester boots are the documented frame-0 PIT probe at i76.exe+0x99997, which the game handles (20 of 20).
   WER logged 0 application errors over those batches.
 
 **Music, checked in the log (the game is muted).**
@@ -248,17 +248,17 @@ win32.dll.
 
 **Where things are.**
 - Lab:
-  - Bench scripts: `laptop-bench\bench\wmr-batch.ps1`, `wmr-scott.ps1`, `itask-lane.ps1` (its own task name, so lanes no longer
+  - Bench scripts: `laptop-bench\bench\wmr-batch.ps1`, `wmr-tester.ps1`, `itask-lane.ps1` (its own task name, so lanes no longer
     replace each other's `i76bench` task) and `raw-boot.ps1 -RunsDir`.
-  - PC-side runners: `laptop-bench\wmr-run.sh` and `wmr-scott-run.sh`.
+  - PC-side runners: `laptop-bench\wmr-run.sh` and `wmr-tester-run.sh`.
   - `tools\winmm-race\`: wdis.py and the laptop's winmmbase / dsound / AcGenral 9549.
   - `captures\winmm-race\`: the per-boot proxy logs of every batch.
   - `builds\nitro-port-20261021\wmr-*`.
 - Laptop:
-  - `C:\i76-bench\wmr-twin`: this lane's copy of rc-twin-dgv2875.
-  - `C:\i76-bench\scott-gog\game`: Scott's setup done, at 1920x1080.
-  - `C:\i76-bench\wmr\*.dll` and `runs\wmr\`.
+  - `<bench>\wmr-twin`: this lane's copy of rc-twin-dgv2875.
+  - `<bench>\tester-gog\game`: The tester's setup done, at 1920x1080.
+  - `<bench>\wmr\*.dll` and `runs\wmr\`.
 
-**Incident.** The first Scott batch started the .bat with its output piped, so it waited on the game and held the laptop lock from
+**Incident.** The first the tester batch started the .bat with its output piped, so it waited on the game and held the laptop lock from
 12:48 to 17:50. I stopped only my own processes: the game, its PLAY-i76.ps1, and AutoHotkey and i76wheel from that folder.
-`wmr-scott.ps1` now starts the .bat with Start-Process.
+`wmr-tester.ps1` now starts the .bat with Start-Process.

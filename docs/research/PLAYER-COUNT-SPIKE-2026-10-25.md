@@ -4,7 +4,7 @@ Owner's question: *"What would a max game size / player count look like for mult
 issues? Could we double to 16 safely?"*
 
 Design / RE spike (Fable), no implementation. Every address below was re-read in the pristine GOG binaries
-(`i76-map\sandbox-gog\main\app\i76.exe` 9a232dcc, `i76shell.dll`, `nitro-full\app\nitro.exe`, `nitshell.dll`) with
+(`<re-archive>\sandbox-gog\main\app\i76.exe` 9a232dcc, `i76shell.dll`, `nitro-full\app\nitro.exe`, `nitshell.dll`) with
 capstone this session, or comes from a cited record / RE note. Nothing was run in a game. The one measurement quoted
 for "many cars" is an existing lab capture (section 2).
 
@@ -45,7 +45,7 @@ for "many cars" is an existing lab capture (section 2).
 | Packets | 'ST' 0x60 B body, 'SH' fire mask + 3 target ids, 'SC' structure bitmask, 'SP' id + point + .vcf; ids are ANet u16; ANet 1 unreliable packet max 255 B (len+6) | per-car packets, **no field counts players** | - | **no protocol change for 16** |
 | Join-ring queue `0x541830` | 32 entries | | | fine |
 
-Census of the stock arenas (`i76-map\data\fmt\bwd2x` over `miss16\m01..m15.msn`, ODEF class-1 records by label):
+Census of the stock arenas (`<re-archive>\data\fmt\bwd2x` over `miss16\m01..m15.msn`, ODEF class-1 records by label):
 every one has **8 `spawn`** points; regen 1-3; other class-1 cars (parked scenery) 0-9. Busiest missions overall (class-1
 cars / class 8-9 vehicles): T15 27 / 16, M01 19 / 0, M15 17 / 0, T06 17 / 0, M10 16 / 0, T05 15 / 2, T11 15 / 24.
 
@@ -73,7 +73,7 @@ cars / class 8-9 vehicles): T15 27 / 16, M01 19 / 0, M15 17 / 0, T06 17 / 0, M10
 | measure | value | source |
 |---|---|---|
 | Most vehicles in one stock mission | **T15: 27 class-1 cars + 16 class 8/9 vehicles** (169 ODEF objects); T11 15 + 24 | census above |
-| 15 vehicles live, PC, 120 fps cap | **T05 (14 AI mission cars + player): 117-120 fps, work 5.4-9.0 ms avg per frame, 11-32 ms max** (n 12 ten-second windows, headless lab copy, tick 41.667) | `i76-uncap-lab\captures\airespawn-20261020\sp-crash\desc-t41.667-base-1-1.log` ("mission cars alive 14 dead 0") |
+| 15 vehicles live, PC, 120 fps cap | **T05 (14 AI mission cars + player): 117-120 fps, work 5.4-9.0 ms avg per frame, 11-32 ms max** (n 12 ten-second windows, headless lab copy, tick 41.667) | `<lab>\captures\airespawn-20261020\sp-crash\desc-t41.667-base-1-1.log` ("mission cars alive 14 dead 0") |
 | AI-fill arenas | Hope Springs (6 AI) + 2 humans, 7-car pool in every stock arena: 271 pooled boots, 30 respawns, sync median 0.00 m; fps not logged in those runs (the fps lock was held by another lane) | AI-MELEE-RESPAWN-2026-10-20 s.4, s.5.1 |
 | 4 humans + AI on the LAN | PC host + two Macs + laptop, join / leave / migrate, 0 crashes; fps on the Macs **not measured** | LAN-MATRIX-2026-10-20 |
 | Network, measured | 2 players: **~10 packets/s and ~1.0 KB/s up per player** (Gold host 1420 packets / 142 KB in 140 s; Nitro 1814 / 181 KB in 201 s), each player receives (players - 1) x that | INTERNET-RELAY-SPIKE-2026-10-25 s.4 |
@@ -146,13 +146,13 @@ Risks:
 
 - Disassembly: capstone 5.0.7 over the pristine GOG binaries, PE sections mapped by hand (`/tmp/pcs/pcsdis.py`,
   session scratch, not kept); `xref` = byte scan for the absolute address, the holding instruction decoded.
-- Shell string sites from `i76-map\shell\ghidra\export\strings_xrefs.csv` ("Game full!" 0x1002e487 / 0x1002fcd8 /
+- Shell string sites from `<re-archive>\shell\ghidra\export\strings_xrefs.csv` ("Game full!" 0x1002e487 / 0x1002fcd8 /
   0x1002e487; "Max No Players Reached" 0x10017360) and `imports_xrefs.csv` (dpOpen sites 0x1002e612, 0x1002f14e,
   0x1002f4ad; dpEnumSessions callback 0x10022d50).
-- Census: `i76-map\data\fmt\bwd2x.decode` over `sandbox-gog\main\app\miss16\*.msn`, `chunks(doc, "OBJ", "ODEF")`,
+- Census: `<re-archive>\data\fmt\bwd2x.decode` over `sandbox-gog\main\app\miss16\*.msn`, `chunks(doc, "OBJ", "ODEF")`,
   `class_id` and `label`.
 - Prior records used: `docs/records/AI-MELEE-RESPAWN-2026-10-20.md` (s.3 slot limit), `NITRO-MP-DESIGN-2026-10-21.md`,
-  `INTERNET-RELAY-SPIKE-2026-10-25.md` (traffic), `LAN-MATRIX-2026-10-20.md`, `i76-map\subsystems\network.md`,
-  `i76-map\nitro-net\README.md`, `i76-map\shell\FIXES.md`, `i76-map\functions\00454090.md`, `i76-map\ARCHITECTURE.md`.
+  `INTERNET-RELAY-SPIKE-2026-10-25.md` (traffic), `LAN-MATRIX-2026-10-20.md`, `<re-archive>\subsystems\network.md`,
+  `<re-archive>\nitro-net\README.md`, `<re-archive>\shell\FIXES.md`, `<re-archive>\functions\00454090.md`, `<re-archive>\ARCHITECTURE.md`.
 - Not done: no game was booted; no Mac / Deck fps with 8+ cars; ANet's internal cap not read (anet2 unpacked export
-  exists at `i76-map\nitro-net\ghidra\export-anet2-unpacked`, Gold's anetdll has no export).
+  exists at `<re-archive>\nitro-net\ghidra\export-anet2-unpacked`, Gold's anetdll has no export).

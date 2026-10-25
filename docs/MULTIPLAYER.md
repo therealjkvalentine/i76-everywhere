@@ -1,8 +1,8 @@
 # Multiplayer: home LAN and online
 
 *2026-10-05. Status line, measured / not measured, is in section 0. Lab records behind every claim:
-`../i76-uncap-lab/docs/MULTIPLAYER-LOCAL-TEST.md` (transport, sections 8 and 9) and
-`../i76-uncap-lab/docs/MULTIPLAYER-CAR-CHECK.md` (the anti-cheat car check).*
+`../<lab>/docs/MULTIPLAYER-LOCAL-TEST.md` (transport, sections 8 and 9) and
+`../<lab>/docs/MULTIPLAYER-CAR-CHECK.md` (the anti-cheat car check).*
 
 ## How the community plays today, and the order to try things (research 2026-10-06)
 
@@ -44,11 +44,11 @@ with the existing community, use Nitro Pack with the bz911 lobby and the Discord
 | claim | state |
 |---|---|
 | IPX between two game copies on one PC, IPXWrapper 0.7.2 | **works** (2026-10-05, n = 1): host BROADCAST GAME went into The Crater, the joiner listed "THE CRATER (1/4)", JOIN GAME, and each copy then held both cars at the same coordinates (within 0.1 m). Stock car data (Jade's Car `valepre4.vcf` de680a86) |
-| IPX between two machines on 192.168.1.0/24 | **works** (2026-10-06, n = 1): Windows 11 PC host, Mac (Wine) joiner |
+| IPX between two machines on <LAN subnet> | **works** (2026-10-06, n = 1): Windows 11 PC host, Mac (Wine) joiner |
 | The daily driver's cars pass the anti-cheat check | its `valepre4.vcf` is byte-identical to the file that passed the host and joiner checks live in row 1; the other 67 variants: static read (MULTIPLAYER-CAR-CHECK.md section 0) |
-| LAN pack (2026-10-17), measured 2026-10-18 | PC host + Andrew's Mac join **works** (n 2); Andrew host + PC join (n 1, plus n 2 earlier that night); Andrew host + Deck join (n 1); PC host + Deck join (n 1); **3 players** PC + Deck + Andrew (n 1). Deck host in The Crater failed (mission files differed; since COOP-LIST-ENTRIES-2026-10-18 the co-op missions are their own arenas and The Crater is stock again). Michael's firewall box answered (09:25), his cells and the laptop's still unrun (both screens locked during the tests); 5 players not run. [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
+| LAN pack (2026-10-17), measured 2026-10-18 | PC host + the M2 tester Mac join **works** (n 2); the M2 tester host + PC join (n 1, plus n 2 earlier that night); the M2 tester host + Deck join (n 1); PC host + Deck join (n 1); **3 players** PC + Deck + the M2 tester (n 1). Deck host in The Crater failed (mission files differed; since COOP-LIST-ENTRIES-2026-10-18 the co-op missions are their own arenas and The Crater is stock again). The M4 Max tester's firewall box answered (09:25), his cells and the laptop's still unrun (both screens locked during the tests); 5 players not run. [records/LAN-MATRIX-2026-10-18.md](records/LAN-MATRIX-2026-10-18.md) |
 | Join / leave anytime, host leaving, AI fill, co-op scaling (2026-10-20) | **works on one PC** (3 lab copies headless, n 2-3 per cell, soak in the record); not yet between machines. [records/MP-OVERNIGHT-2026-10-20.md](records/MP-OVERNIGHT-2026-10-20.md) |
-| The same between machines (2026-10-20 morning) | **works** (PC host + Andrew's, Michael's Mac and the laptop): join / hard exit / re-join in Suburbia, Hope Springs (4 AI), Pretty Bus, Scene 5 (n 2 per machine per arena), AI fill counts right on the host and the parked cars where they belong on every joiner, co-op copies 1-2-3 with the joiners, 4 players, the host quitting in melee / AI arena / co-op (a Mac takes over, AI pool and scaling move with it, n 1 each), a Mac hosting with the PC joining and leaving by the Esc menu (n 2); 0 crashes. Not measured: a joiner's kill credit, the Deck (asleep). Polish (section 7, proxy cf4f81da on every reachable machine): HOST / JOIN go straight to IPX on the Macs too (n 4 launches on Andrew's Mac + smoke), and a new host after a migration leaves no stray co-op copy and counts the parked AI right (lab n 3 + 1, smoke n 1); new: the new co-op host restarts the scene. [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md) |
+| The same between machines (2026-10-20 morning) | **works** (PC host + the M2 tester's, the M4 Max tester Mac and the laptop): join / hard exit / re-join in Suburbia, Hope Springs (4 AI), Pretty Bus, Scene 5 (n 2 per machine per arena), AI fill counts right on the host and the parked cars where they belong on every joiner, co-op copies 1-2-3 with the joiners, 4 players, the host quitting in melee / AI arena / co-op (a Mac takes over, AI pool and scaling move with it, n 1 each), a Mac hosting with the PC joining and leaving by the Esc menu (n 2); 0 crashes. Not measured: a joiner's kill credit, the Deck (asleep). Polish (section 7, proxy cf4f81da on every reachable machine): HOST / JOIN go straight to IPX on the Macs too (n 4 launches on the M2 tester Mac + smoke), and a new host after a migration leaves no stray co-op copy and counts the parked AI right (lab n 3 + 1, smoke n 1); new: the new co-op host restarts the scene. [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md) |
 | IPXWrapper DOSBox-server mode (internet without a VPN) | **fails** (2026-10-20, n 2): WIPX's start-up broadcast never comes back from a DOSBox server |
 | Mac (Wine) running IPXWrapper | **works** (2026-10-06, n = 1): the Mac joined a Windows-hosted IPX game, see the top of this page and section 6 |
 
@@ -74,7 +74,7 @@ The game's multiplayer menu offers MODEM, IPX, INTERNET, NULLMODEM. Only **IPX**
      `HKCU\Software\IPXWrapper` (harmless; `Remove-Item HKCU:\Software\IPXWrapper -Recurse` deletes it).
 3. Network profile: the home network should be **Private** (Settings > Network > properties).
 4. More than one network adapter (WSL / Hyper-V / VPN / Tailscale)? IPXWrapper uses all of them by default; on this PC
-   it broadcast on 192.168.1.255, 172.30.175.255 (WSL) and 100.113.196.47 (Tailscale). That worked. If sessions do not
+   it broadcast on <LAN broadcast>, <WSL broadcast> (WSL) and <tailscale-ip> (Tailscale). That worked. If sessions do not
    show up, run `ipxconfig.exe` (in the IPXWrapper zip) and set **Primary interface** to the 192.168.1.x adapter.
 5. Debug log when something fails: put an `ipxwrapper.ini` beside `i76.exe` with the line `logging = debug`; the log is
    `ipxwrapper.log` in the same folder.
@@ -139,7 +139,7 @@ What the survey found:
 - No IPXWrapper, no DLL overrides. `I76.ZFS` is stock (6dd57b16); ADDON has no `.vdf/.wdf/.gdf/.cdf`.
 - **ADDON `valepre4.vcf` is 4ed297ca, not the stock de680a86**: Jade's Car would be rejected on the Mac. Pick another
   car on the Mac, or put the stock `valepre4.vcf` (de680a86) in place for LAN play (section 4).
-- Two interfaces on 192.168.1.0/24: wired en7 192.168.1.241 (default route) and Wi-Fi en0 192.168.1.115. Tailscale
+- Two interfaces on <LAN subnet>: wired en7 <LAN-IP> (default route) and Wi-Fi en0 <LAN-IP>. Tailscale
   connected; NordVPN and FortiClient installed but off.
 
 Steps, on the test clone:
@@ -158,7 +158,7 @@ changes which interface the broadcast leaves on.
 
 ## 7. Two players on ONE PC
 
-See `../i76-uncap-lab/nucleus-coop/README.md` (Nucleus Co-op handler) and the lab doc section 9. That route needs two
+See `../<lab>/nucleus-coop/README.md` (Nucleus Co-op handler) and the lab doc section 9. That route needs two
 game copies, a patched second `ipxwrapper.dll` (its own mutex and registry key), `I76_MULTI_INSTANCE=1`, and for pads,
 the proxy's `I76_JOY_MAP` (each copy binds `joystick1`; the switch routes it to that copy's pad).
 
@@ -175,11 +175,11 @@ sheet for the players: [GAME-NIGHT.md](GAME-NIGHT.md). Re-run the matrix from th
 
 | machine | open this | game folder (updated in place) |
 |---|---|---|
-| Michael's Mac | Desktop: **Interstate 76 LAN** (a link to `~/Games/Interstate76-MP/Interstate 76.app`; the rename to Gold waits on his firewall, records/NITRO-MAC-2026-10-21.md s.7) | inside that app |
-| Andrew's Mac | Desktop: **Interstate 76 Gold** (a link to `~/Games/Interstate76-MP/Interstate 76 Gold.app`, renamed 2026-10-22) | inside that app |
-| James's laptop | `~/Applications/Sikarugir/Interstate 76 Gold.app` (his own app; the pack swapped in 2026-10-20 evening, [records/MAC-CONVERGE-2026-10-20.md](records/MAC-CONVERGE-2026-10-20.md); `I76 MP GATE.app` and the test apps are gone) | inside that app |
+| The M4 Max tester Mac | Desktop: **Interstate 76 LAN** (a link to `~/Games/Interstate76-MP/Interstate 76.app`; the rename to Gold waits on his firewall, records/NITRO-MAC-2026-10-21.md s.7) | inside that app |
+| The M2 tester Mac | Desktop: **Interstate 76 Gold** (a link to `~/Games/Interstate76-MP/Interstate 76 Gold.app`, renamed 2026-10-22) | inside that app |
+| The developer's laptop | `~/Applications/Sikarugir/Interstate 76 Gold.app` (his own app; the pack swapped in 2026-10-20 evening, [records/MAC-CONVERGE-2026-10-20.md](records/MAC-CONVERGE-2026-10-20.md); `I76 MP GATE.app` and the test apps are gone) | inside that app |
 | Steam Deck | Steam (Game Mode) > **Interstate 76** (non-Steam shortcut). **For LAN games since 2026-10-20** its launch options must name the new LAN launcher: `"/home/deck/Games/Interstate76/i76-deck-launch-mp.sh" %command% -glide` (proxy cf4f81da as on every machine + `I76_COOP_AI` / `I76_COOP_CHAIN` / `I76_MP_MENU` on top of the Deck's own `i76-env.sh`; the old `i76-deck-launch.sh` still works but has no LAN switches). Jade's Car is refused (the Deck's own `valepre4.vcf`): pick another car. Installed and booted (n 1), a cross-machine join on the new pack not yet measured: [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md) section 8 | `~/Games/Interstate76/game` |
-| Windows PC | `C:\Users\james\Games\Interstate76-LAN-2026-10-17\Interstate 76\PLAY-LAN.bat` (not the daily driver) | that folder |
+| Windows PC | `<games>\Interstate76-LAN-2026-10-17\Interstate 76\PLAY-LAN.bat` (not the daily driver) | that folder |
 
 Keep **one app bundle per Mac** and update only its game folder (`tools/mp-mac-install.sh update` touches
 `drive_c/GOG Games/Interstate 76` and `user.reg`, never `Contents/SharedSupport/wine`). macOS ties the firewall and
@@ -188,17 +188,17 @@ again, the same bundle never does.
 
 ### One-time approvals (a person at each machine, once)
 
-1. **Michael's Mac (firewall on):** the first time the game opens its network socket (HOST > IPX or JOIN > IPX),
+1. **The M4 Max tester Mac (firewall on):** the first time the game opens its network socket (HOST > IPX or JOIN > IPX),
    macOS asks *Do you want the application "wineserver" to accept incoming network connections?* (the record of
    2026-10-18: the allowed entry is `.../Interstate 76 Gold.app/Contents/SharedSupport/wine/bin/wineserver`). Click **Allow**. Checked
    2026-10-18: `socketfilterfw --listapps` has no wine entry yet, so this box is still to come. It cannot be clicked
-   remotely (no sudo, no Accessibility), so Michael (or James) clicks it on game night, before the first join.
-   Andrew's Mac and James's laptop have the firewall off: no box.
-   **Michael's Mac: answered 2026-10-18 (wineserver: Allow, seen 09:25).** Before that his IPX start failed with an
+   remotely (no sudo, no Accessibility), so the M4 Max tester (or the developer) clicks it on game night, before the first join.
+   The M2 tester Mac and the developer's laptop have the firewall off: no box.
+   **The M4 Max tester Mac: answered 2026-10-18 (wineserver: Allow, seen 09:25).** Before that his IPX start failed with an
    "Error" box.
 2. **Microphone (each Mac, first real-audio launch):** *"wine" would like to access the microphone*. Either answer
-   is fine; answer it, because the game waits behind it. Andrew's Mac reached the main menu in all 4 launches on
-   2026-10-18 (no box in the way); Michael's has not been launched with the screen unlocked yet.
+   is fine; answer it, because the game waits behind it. The M2 tester Mac reached the main menu in all 4 launches on
+   2026-10-18 (no box in the way); the M4 Max tester's has not been launched with the screen unlocked yet.
 3. **Windows PC:** the Windows Defender Firewall box for the LAN copy's `i76.exe` is already answered (inbound Allow
    rules exist, Private profile).
 4. **Deck:** nothing (Linux, no firewall prompt).
@@ -233,7 +233,7 @@ again, the same bundle never does.
 | symptom | cause | fix |
 |---|---|---|
 | list says "No games found" | host not in the arena yet / firewall box waiting / different network | host first; answer the box; same network |
-| the host quits and the game carries on | ANet hands the session to another player (seen 2026-10-18: Andrew left, the Deck became host 6) | normal; the new host keeps it alive |
+| the host quits and the game carries on | ANet hands the session to another player (seen 2026-10-18: The M2 tester left, the Deck became host 6) | normal; the new host keeps it alive |
 | a Mac joiner sits on ENTRY ROSTER after JOIN GAME | seen only with remote automation (2026-10-17/18): the forms act where the **real** pointer is, and the SSH probe moved only Wine's. With the pointer on the button the Mac joined (PC host, n 1). A player clicking with the mouse is not affected | click JOIN GAME again with the mouse |
 | Deck drops out mid-game | Game Mode suspends after ~10 min without touching the Deck | touch it now and then, or plug it in and raise the suspend timeout in Steam settings |
 | Deck hosts The Crater: the joiner's car never appears (2026-10-18, before the fix) | the pack's m01 was the co-op T01, the Deck's the stock one | fixed in the tools (not yet on the machines): rebuild the pack, the co-op missions are then `ADDON\coop01..17.lvl` ("Co-op Scene N"), The Crater is stock everywhere |
@@ -245,29 +245,29 @@ again, the same bundle never does.
 ### Pack status (2026-10-18 11:00)
 
 The co-op pack of 2026-10-18 (co-op missions as arenas "Co-op Scene 1..17" = `ADDON/coop01..17.lvl`, lower case; stock
-The Crater back; proxy ba2b45c1 with the co-op reload crash fixed) is on the PC LAN copy, Michael's Mac and the laptop
-gate clone (in place, verified). **Andrew's Mac and the Deck still carry the old pack** (unreachable / asleep during the
+The Crater back; proxy ba2b45c1 with the co-op reload crash fixed) is on the PC LAN copy, the M4 Max tester Mac and the laptop
+gate clone (in place, verified). **The M2 tester Mac and the Deck still carry the old pack** (unreachable / asleep during the
 update): bring them up and run `tools/lan-test/apply-pack-delta.sh` (Macs) or copy the 34 `ADDON/coop*` files (Deck)
 before a co-op night. No co-op cell has been run across machines yet (records/LAN-MATRIX-2026-10-18.md section 7).
 
 ### Update 2026-10-18 14:10
 
-- Mac to Mac works both ways (Michael <-> laptop, melee and Co-op Scene 1, n 1 each); a co-op loss reloads on both
+- Mac to Mac works both ways (the M4 Max tester <-> laptop, melee and Co-op Scene 1, n 1 each); a co-op loss reloads on both
   without a crash (n 2); a machine without `coop01.lvl` gets "You don't have mission coop01.lvl!" (n 1). Not yet: a
   co-op win / late join, the PC-hosted cells of the new pack, 5 players.
 - **After a death in melee the host stays in the death view, joiners respawn by themselves** (our co-op switch
   `I76_COOP_CHAIN` gives only joiners an automatic respawn). The host respawns from the replay. Fix pending.
-- **Menu pointer off on Andrew's Mac** (~14 px left): his window is narrower than the screen (DxWnd size made on a
+- **Menu pointer off on the M2 tester Mac** (~14 px left): his window is narrower than the screen (DxWnd size made on a
   1728x1117 laptop). Fix staged: DxWnd size and OGL_VIEWPORT = his screen, 1440x900.
 
 ### Update 2026-10-18 14:50
 
-- **4 players measured** (laptop host + Michael + Deck + Andrew, n 1). The host form's **NO. DRIVERS defaults to 4**: a
+- **4 players measured** (laptop host + the M4 Max tester + Deck + the M2 tester, n 1). The host form's **NO. DRIVERS defaults to 4**: a
   5th player gets "Game full!". For 5, the host raises NO. DRIVERS (the + beside it) before BROADCAST GAME.
 - With several games on the network, pick the row by its name (the first row is not always yours).
 - Proxy **ac44e2c2** (melee respawn stock for host and joiner; automatic respawn only in Co-op Scenes) on the PC LAN copy,
-  the laptop copy, Michael's and Andrew's Macs. The Deck keeps its own pack (+ the co-op files, no co-op switches).
-- Andrew's pointer fixed (window = his 1440x900 screen).
+  the laptop copy, the M4 Max tester's and the M2 tester Macs. The Deck keeps its own pack (+ the co-op files, no co-op switches).
+- The M2 tester's pointer fixed (window = his 1440x900 screen).
 - Daylight arenas with hills and roads: Hope Springs, Vigilantes' Paradise, Tombstone (records/LAN-MATRIX section 9).
 
 ### Update 2026-10-19 (built, not deployed)
@@ -281,7 +281,7 @@ before a co-op night. No co-op cell has been run across machines yet (records/LA
   Scene 1 (Co-op) unchanged (n 1). Records: COOP-LIST-ENTRIES-2026-10-18.md sections 7-8.
 - **Every machine needs the new ADDON files at once:** the co-op files' CRCs changed with their titles, so an old and a new
   machine refuse each other's co-op games ("does not match the host's").
-- Pack: `i76-uncap-lab\builds\mp-pack-20261019\` (proxy 3125197a). Not yet on any machine. Host melee respawn in scenarios
+- Pack: `<lab>\builds\mp-pack-20261019\` (proxy 3125197a). Not yet on any machine. Host melee respawn in scenarios
   is an owner option, not built (records/COOP-LIST-ENTRIES-2026-10-18.md 8.3).
 
 ### Update 2026-10-19: AI melee arenas (built, not deployed)
@@ -297,12 +297,12 @@ before a co-op night. No co-op cell has been run across machines yet (records/LA
   death does not end the game (n 5). **Not measured:** a joiner's kill of an AI (the scripted joiner never finished one),
   any run between two machines. The 15 stock arenas and Scene 1 (Co-op) load as before (n 1 each).
 - Every machine needs the three `ai_hs*.lvl` files (the joiner's shell checks name and CRC). Pack:
-  `i76-uncap-lab\builds\mp-pack-aimelee-20261019\` (proxy 8e262bcf = main e9d3e0b). Not on any machine.
+  `<lab>\builds\mp-pack-aimelee-20261019\` (proxy 8e262bcf = main e9d3e0b). Not on any machine.
 
 ### Update 2026-10-19 (afternoon): the lab tick copy plays LAN (lan-merge lane)
 
 Owner: *"would like to see network funcitonalities merged into the lab version"*. The owner's tick play copy
-`i76-uncap-lab\game-tick` (PLAY-TICK.bat / PLAY-TICK-66.bat, proxy tick19e a08577c4, which already holds every co-op, AI-melee
+`<lab>\game-tick` (PLAY-TICK.bat / PLAY-TICK-66.bat, proxy tick19e a08577c4, which already holds every co-op, AI-melee
 and menu commit) now hosts and joins family games from those two launchers, no PLAY-LAN.bat needed:
 
 - **Keys** (in `presets\tick19-33.psd1` / `tick19-66.psd1`, generated by lab `tools\tick-finish\make-presets.ps1 -OwnerBest`):
@@ -320,12 +320,12 @@ and menu commit) now hosts and joins family games from those two launchers, no P
 - **With the family machines today:** they run the 2026-10-18 pack (older `coop*.lvl`, no `auto*` / `ai_*`), so game-tick plays
   the 15 stock arenas with them but its co-op, scenario and AI arenas are refused ("does not match the host's"; from the CRC rule of COOP-LIST-ENTRIES 8.5, not tested here) until they get the
   next pack from `tools/mp-pack.py` on main HEAD (same coop-install.py, same files).
-- The promotion-19 candidate (`i76-uncap-lab\builds\tick-finish-20261018\promotion-19-candidate`) carries the same presets and files.
+- The promotion-19 candidate (`<lab>\builds\tick-finish-20261018\promotion-19-candidate`) carries the same presets and files.
 
 ### Update 2026-10-20 (overnight lane): join / leave anytime, AI fill, more co-op enemies per joiner
 
 Record: [records/MP-OVERNIGHT-2026-10-20.md](records/MP-OVERNIGHT-2026-10-20.md) (all measured on the PC with 3 lab copies,
-headless; nothing between machines yet). Pack `i76-uncap-lab\builds\mp-pack-20261020-overnight\` (proxy 533ab67c = e3934e3);
+headless; nothing between machines yet). Pack `<lab>\builds\mp-pack-20261020-overnight\` (proxy 533ab67c = e3934e3);
 which machines run it: the record's section 8.
 
 - **Join and leave anytime** (stock; nothing needed fixing): a late join into a running melee or co-op scene, a joiner leaving,
@@ -343,8 +343,8 @@ which machines run it: the record's section 8.
 
 ### Update 2026-10-20 morning: the overnight features between real machines
 
-Record: [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md). PC hosts, Andrew's Mac, Michael's Mac and the
-laptop join (one at a time, then all four together); also Andrew hosts and the PC joins.
+Record: [records/LAN-MATRIX-2026-10-20.md](records/LAN-MATRIX-2026-10-20.md). PC hosts, the M2 tester Mac, the M4 Max tester Mac and the
+laptop join (one at a time, then all four together); also the M2 tester hosts and the PC joins.
 
 - **Everything passed, 0 crashes**: 29 joins, 12 hard exits (the slot goes after 39-43 s), 3 host quits (the game goes on, a
   Mac becomes host; in Hope Springs (4 AI) and Scene 5 its proxy takes over the AI pool / the co-op copies).
@@ -361,7 +361,7 @@ laptop join (one at a time, then all four together); also Andrew hosts and the P
   `i76-deck-launch-mp.sh` (15:25, record section 8) installed, rollback tested; the Deck boots through it with every MP hook in
   place (n 1), then went to sleep before its join could be measured.
 - **Teams pack deployed (07:47)**: proxy **31efcf7a** (teams lane, TEAM PLAY with the AI on Men In Black, a returning AI takes the
-  leaver's team) on the PC LAN copy, the laptop, Andrew's and Michael's Macs; pack `i76-uncap-lab\builds\mp-pack-20261020-teams\`,
+  leaver's team) on the PC LAN copy, the laptop, the M2 tester's and the M4 Max tester Macs; pack `<lab>\builds\mp-pack-20261020-teams\`,
   old folders kept, rollback per machine in the record's section 6. Measured across machines: AI t7 on both screens, the
   returning AI on the leaver's team (n 2), teams off unchanged (n 1). The Deck: not reached (own proxy, 2026-10-18 files).
 
@@ -369,9 +369,9 @@ laptop join (one at a time, then all four together); also Andrew hosts and the P
 
 Record: [records/MAC-CONVERGE-2026-10-20.md](records/MAC-CONVERGE-2026-10-20.md). Every Mac now has ONE I'76 app with the pack:
 the laptop `~/Applications/Sikarugir/Interstate 76 Gold.app` (the pack in the owner's own app: CoreAudio, his saves, the Nitro and
-DxWnd Settings launchers keep working), Andrew's and Michael's `~/Games/Interstate76-MP/Interstate 76 Gold.app` (Desktop link
+DxWnd Settings launchers keep working), the M2 tester's and the M4 Max tester's `~/Games/Interstate76-MP/Interstate 76 Gold.app` (Desktop link
 **Interstate 76 LAN**). Old folders, test apps and helper folders deleted; one tarball of each app as it was before, in
-`~/i76-archive-20261020/`. Proxy **0ce90a90** on the Macs (pack `i76-uncap-lab\builds\mp-pack-20261020-macconv\`: the polish
+`~/i76-archive-20261020/`. Proxy **0ce90a90** on the Macs (pack `<lab>\builds\mp-pack-20261020-macconv\`: the polish
 pack + `I76_MENU_PTR`, which makes the in-mission **Esc menu clickable on a Mac**: its lower rows, Cancel and Back could not be
 clicked under DxWnd). The PC LAN copy keeps cf4f81da (same behaviour on Windows).
 
@@ -381,7 +381,7 @@ clicked under DxWnd). The PC LAN copy keeps cf4f81da (same behaviour on Windows)
 
 ### Update 2026-10-20 night: computer cars respawn, score like players, and fill every arena (staged, not deployed)
 
-records/AI-MELEE-RESPAWN-2026-10-20.md; pack `i76-uncap-lab\builds\mp-pack-20261020-airespawn\` (proxy only + the removal of the
+records/AI-MELEE-RESPAWN-2026-10-20.md; pack `<lab>\builds\mp-pack-20261020-airespawn\` (proxy only + the removal of the
 three Hope Springs (N AI) files; deploy / rollback scripts for the PC, the Macs and the Deck; **every machine at once**).
 
 - **Dead computer cars come back** after 5 s at a spawn point, like a human; the arena never reloads (lab: 21 respawns, both

@@ -86,12 +86,12 @@ trip; two owner copies under `Games\I76\nitro*`.
 
 | measure | value | evidence |
 |---|---|---|
-| functions (Ghidra pass 4) | retail 2,318 / Gold 2,207 / Nitro 2,200 | i76-map `ghidra\export-*\functions.csv` |
+| functions (Ghidra pass 4) | retail 2,318 / Gold 2,207 / Nitro 2,200 | <re-archive> `ghidra\export-*\functions.csv` |
 | Nitro <-> Gold matched | 1,997 (90.8 % of Nitro); 1,781 same after normalisation (addresses, stack slots, entity fields >= +0x444 shifted 4) | lab `exe_diff_map.json`, rebuilt 2026-10-20 (run.sh, byte-identical to the committed map) |
 | Nitro with no Gold counterpart | 203 functions, 24,825 instructions | below |
 | Nitro <-> retail, composed through Gold | 1,324 (60.2 % of Nitro, 57.1 % of retail's 2,318) | `m-nitro` x `m-retail` |
 | Nitro <-> retail, direct (no seeds, no Gold function pairs; 1,171 data pairs carried over) | 1,251; agreement with the composed route 1,201 / 1,226 = 98.0 %; union 1,349 (61.3 %) | `match.py nitro.json retail.json` (lab exediff, today) |
-| VT across the compiler change (control) | Gold -> retail 128 pairs (5.8 %) | i76-map `status\vt-cd1997.json` |
+| VT across the compiler change (control) | Gold -> retail 128 pairs (5.8 %) | <re-archive> `status\vt-cd1997.json` |
 
 Of the 1,324 Nitro-retail pairs:
 - 1,162 are pairs where Nitro is the same instruction stream as Gold, so whatever Gold-vs-retail says applies
@@ -222,7 +222,7 @@ applies to ordnance types 12 (Oil Slick), 14 (Caltrops) and 17 (Fire-Dropper). `
 
 ## 3. Data formats
 
-Tool: i76-map `data\fmt\nitro_corpus.py`, outputs in `data\out\nitro\`; note `data\notes\nitro.md`.
+Tool: <re-archive> `data\fmt\nitro_corpus.py`, outputs in `data\out\nitro\`; note `data\notes\nitro.md`.
 
 | format | Nitro vs base | evidence |
 |---|---|---|
@@ -407,7 +407,7 @@ AI-melee host route), with the stock M01 control first.
 
 ## Files
 
-- **i76-map:**
+- **<re-archive>:**
   - `data\fmt\nitro_corpus.py`;
   - `data\notes\nitro.md`;
   - `data\out\nitro\{survey,missions,fsm-actions,zfs-namesets}.json`;

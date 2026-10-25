@@ -5,10 +5,10 @@
 **Sources, with the versions the line numbers refer to.**
 
 - `music-fix/strlkproxy.c` at commit `a2c1fa6` (the working copy at the time of writing; identical to HEAD for that file).
-- i76-map `subsystems/framerate.md` (192 lines), `camera.md`, `renderer.md`, `ai.md`, `weapons.md`, `physics.md`,
+- <re-archive> `subsystems/framerate.md` (192 lines), `camera.md`, `renderer.md`, `ai.md`, `weapons.md`, `physics.md`,
   `simclock.md`: static readings of the Galaxy exe md5 `9a232dcc`.
-- i76-uncap-lab `docs/framerate/MEASUREMENTS.md` section 4 (lines 30-97) and `docs/FPS-120.md` (this repo).
-- Disassembly quoted below: `python tools\disasm.py <addr> --bytes` in i76-map over `ghidra/i76_ref.exe` (md5
+- <lab> `docs/framerate/MEASUREMENTS.md` section 4 (lines 30-97) and `docs/FPS-120.md` (this repo).
+- Disassembly quoted below: `python tools\disasm.py <addr> --bytes` in <re-archive> over `ghidra/i76_ref.exe` (md5
   `9a232dcc`), plus a raw `E8`-xref scan of `.text` for call counts and a `disp32` scan for data xrefs. Old bytes are
   from that pristine image. The proxy's `patch_bytes` (strlkproxy.c 676-687) checks every site at run time, and the
   only build-to-build difference known in these ranges is the AiO simclock rewrite the hires clock already handles
@@ -266,7 +266,7 @@ One site, the sole caller of `ai_CheckIncomingProjectiles` 0x41abf0: 0x41b698 `E
 after, result in eax tested at 0x41b6a0).
 
 ```c
-/* AI dodge checks (ai_TestControlCandidate 0x41b270, i76-map subsystems/ai.md 7). Each avoidance candidate (14 call
+/* AI dodge checks (ai_TestControlCandidate 0x41b270, <re-archive> subsystems/ai.md 7). Each avoidance candidate (14 call
  * sites, several per car per frame) rolls rand() % 1000 against 850 + 150 x (1 - skill) (0x41b651-0x41b692:
  * constants 0x4bc91c = 1, 0x4bca70 = -150, 0x4bca74 = 850) and, on a pass (p = 0.15 x skill per call), runs the
  * incoming-projectile check 0x41abf0. Rolled once per frame per candidate, so at 60 fps the AI looks for projectiles
@@ -388,7 +388,7 @@ static void __cdecl mirror_clouds_wrap(void *cam, DWORD colour) {
 Note the mirror pass's flamer update call 0x445968 (level 2) / 0x4458fe (level 1) stays unwrapped on purpose
 (2.7). Acceptance: `sky-motion.ps1` cloud px/s at 60 fps in the cockpit with the mirror at level 2, before and after,
 equal to the stock-20 value within the capture-014 spread; and the mirror image visibly steps at 10 Hz (a counter on
-the wrapper confirms 10 redraws/s). If James prefers a smoother mirror at high rates, `g_tick20_n` can be replaced by
+the wrapper confirms 10 redraws/s). If the developer prefers a smoother mirror at high rates, `g_tick20_n` can be replaced by
 a 60 Hz grid count at the cost of the cloud invariance (the wrapper would then need a 1/3 step) - the stock look is
 the default here, as for every other site.
 
@@ -413,7 +413,7 @@ the default here, as for every other site.
   step does not exist in the binary; the renderer cache is wall-time bound; renderer.md's "not yet fixed" is stale.
   The MW2 "tick delta / 4" item is confirmed as not an I'76 site.
 
-## Acceptance results (2026-10-02, sandbox, `i76-uncap-lab\tools\framerate\rate-ab.ps1`)
+## Acceptance results (2026-10-02, sandbox, `<lab>\tools\framerate\rate-ab.ps1`)
 
 **P2 AI dodge gate (`I76_AI_FIXES`), measure `dodge`, t01, 20 s windows, n = 2 per condition, A/A first:**
 

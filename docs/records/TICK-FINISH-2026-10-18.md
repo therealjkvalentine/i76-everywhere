@@ -225,7 +225,7 @@ keys blanked, and the proxy log confirms the tick on in every boot. `game-tick`'
   block's hardpoint byte does not fire (throttle and steer bytes work the same way) is not traced.
 - **T05's AI flamer cars** (t05cc02 Gas Launcher, t05cc03 FlameThrower), idle + god 120 s, real renderer (5 boots):
   only t05fp03 engaged (20mm, Aim-Nein); the flamer cars never fired. Dropped.
-- **What the code predicts** (i76-map `subsystems/weapons.md`: one application per flamer update of max(1, int(D x f x
+- **What the code predicts** (<re-archive> `subsystems/weapons.md`: one application per flamer update of max(1, int(D x f x
   dt))): the tick applies flamer damage once per tick from the main pass with dt = T, promotion 18 once per 20 Hz grid
   frame with dt 50 ms. For the Gas Launcher (D 30) in an AI's hands (f 1): tick33 30 x 1 = 30, tick66 15 x 2 = 30,
   promotion 18 20 x 1 = 20, stock 20 fps 20 x 1 = 20, stock ~30 fps (P166) 30 x 1 = 30 damage per second. A
@@ -238,7 +238,7 @@ keys blanked, and the proxy log confirms the tick on in every boot. `game-tick`'
 - `game-tick\PLAY-TICK.bat`, `PLAY-TICK-66.bat` (own folder) and `PLAY-P18-BALANCED.bat` (the control). game-tick's
   STRLKUP.DLL is now the candidate `3dab950b` (backup `STRLKUP.DLL.c4a505f4-pre-tickfinish`); its older TEST-tick-*
   launchers keep working (their presets need only the tick).
-- **`i76-uncap-lab\builds\tick-finish-20261018\promotion-19-candidate\`**: every file a promotion copies, md5s and the
+- **`<lab>\builds\tick-finish-20261018\promotion-19-candidate\`**: every file a promotion copies, md5s and the
   PROMOTIONS row text + rollback in its README.
 
 ## 7. Owner tests (what the lab cannot measure)
@@ -473,7 +473,7 @@ are NOT in the driver yet:
 
 ### 10.2 Tracers ("don't go out from the car, just the first moment is visible"; 66: "only the second part, not the travel")
 
-- **Cause (static, i76-map disassembly).** A tracer is not drawn from its round's pose. The engine keeps a ring of tracer
+- **Cause (static, <re-archive> disassembly).** A tracer is not drawn from its round's pose. The engine keeps a ring of tracer
   records (0x64 B, `[0x52ba48]`): +4 the round, +8 "updated since the last draw", +0xc / +0x10 the older / newer slot of a
   2-slot ring (next table 0x52ba38), +0x1c the slots' world points. weapon_StepBullet 0x4abe60 -> 0x441ef0 writes the round's
   position into the next slot and sets +8; renderer_QueueTracers 0x442480 draws older -> newer and clears +8, and a record
@@ -596,7 +596,7 @@ Lab only. The daily driver, the golden copy and the Downloads portable were not 
 Every boot is headless T05 with the player's Gas Launcher held 40 s, unless a row says otherwise. Headless boots repeat to the digit
 (e.g. e30ks n 3: 700 / 700 / 700 hits), so the same-condition spread is 0 on the barricade and small on the car.
 
-### 11.1 What a hit needs (static, i76-map disassembly of 0x443fc0 / 0x4354c0 / 0x43d770 / 0x43d9e0 / 0x434f00 / 0x43df10)
+### 11.1 What a hit needs (static, <re-archive> disassembly of 0x443fc0 / 0x4354c0 / 0x43d770 / 0x43d9e0 / 0x434f00 / 0x43df10)
 
 - weapon_UpdateFlamerStreams 0x443fc0 walks the stream's points P1..Pn, which it rebuilds on every call. For each point
   after the first it calls weapon_FlameHitTest 0x4354c0 (site 0x44449b) with these arguments:
@@ -1205,7 +1205,7 @@ process for muting instead of muting it in the kickoff script?"*
   set in `_superseded-tick19e-prelan\`. tick19e (a08577c4) unchanged.
 - Tests, PC, console lock 13:56-14:06 then the gate (joiner: lab copy `game-lanmerge-b` = game-mpmenu-b + coop-install.py, ADDON
   byte-identical to game-tick's, proxy 24bf53c5 = a547572 lab build, I76_MUTE=1; game-tick started by PLAY-TICK.bat with only
-  I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1 added; driver `i76-uncap-lab\tools\lan-merge\lmnav.sh`, i76probe):
+  I76_MULTI_INSTANCE=1 I76_NO_MINIMIZE=1 added; driver `<lab>\tools\lan-merge\lmnav.sh`, i76probe):
 
 | check | result | n |
 |---|---|---|
@@ -1225,7 +1225,7 @@ process for muting instead of muting it in the kickoff script?"*
   session through Core Audio (CoInitializeEx MTA, default render endpoint for eConsole and eMultimedia, IAudioSessionManager,
   GetSimpleAudioVolume(NULL, 0), SetMute, GetMute) and re-checks at 3 / 15 / 60 s. **It works at attach**: the session exists from
   that call on (seen 0.15-0.16 s after launch, state inactive, already muted) before the game opens any sound; no later hook needed.
-  Lab-only build `i76-uncap-lab\builds\mute-switch-20261019\STRLKUP-mute-a547572.dll` (24bf53c5; the worktree compile 83c736a5 has
+  Lab-only build `<lab>\builds\mute-switch-20261019\STRLKUP-mute-a547572.dll` (24bf53c5; the worktree compile 83c736a5 has
   the same .text); game-tick and the candidate keep tick19e.
 - Test (lab copy game-lanmerge-b, watcher stopped with tools\mute-proc.stop, `tools\lan-merge\mute-check.ps1` polling the sessions
   every 100 ms + `mute-proc.ps1 -List`): with I76_MUTE=1 the session was muted when first seen and in every sample, -List muted
@@ -2288,7 +2288,7 @@ Lab only.
 
 ### 20.3 Why: the per-substep term
 
-Sources: the code as i76-map `subsystems/physics.md` describes it ("Speed terms while grounded on the face", "M34b"), the
+Sources: the code as <re-archive> `subsystems/physics.md` describes it ("Speed terms while grounded on the face", "M34b"), the
 disassembly of 0x43a5d0 at 0x43ba3a / 0x43ba64 read this session, and each quantity the brief named.
 
 | candidate | runs per | scaled with the step? | effect on the jump across ticks |
@@ -2347,7 +2347,7 @@ disassembly of 0x43a5d0 at 0x43ba3a / 0x43ba64 read this session, and each quant
 
 - **The default-on build was not measured in game.**
   - Its boots (06:24-07:18 on 10-21) ran after the session became an RDP session at 06:13 (LocalSessionManager event 25 from
-    100.66.69.126). They stalled with rdpendp.dll on the stack, so they are void per AGENTS.md
+    the developer's MacBook). They stalled with rdpendp.dll on the stack, so they are void per AGENTS.md
     (`captures\jump-fix-20261020\_void-rdp`).
   - The same code path was measured with the switch set to `auto` on the jf1 twin (20.2).
   - The default build's log lines show that it installs at 33 / 44 and not at 41.667.
@@ -2372,7 +2372,7 @@ disassembly of 0x43a5d0 at 0x43ba3a / 0x43ba64 read this session, and each quant
 
 ## 21. Console gate on the promotion-19 candidate (2026-10-21)
 
-Lane: gate lane (owner James). Copy `i76-uncap-lab\exp-p19` (the release candidate + the promotion-19 set, `STRLKUP.DLL` 8f8da929,
+Lane: gate lane (owner the developer). Copy `<lab>\exp-p19` (the release candidate + the promotion-19 set, `STRLKUP.DLL` 8f8da929,
 i76.exe 6319abf7). `install-p19.ps1 -Target exp-p19` printed **"already applied: all 94 staged files match, the 6 removed files are
 absent"** before anything ran. Nothing was installed into `release-candidate`, `daily-driver`, `golden`, `lan` or `twin-driver`.
 Session: the physical console (`query session`: `>console Active`, no `rdp-tcp` Active) at every boot below.
@@ -2527,7 +2527,7 @@ tick 44 and promotion 18 made it. s.20.2's harness cleared 4 of 4 at 41.667 with
   - With his car, full throttle from the crest: ramp foot 57.0-57.5 m/s = **speedo 127-129 mph** ("130"); take-off 49.4-52.6 m/s =
     **speedo 111-117 mph at the take-off row**. In the air the needle falls about 5 mph per tick (105, 100, 96, 92 ... 50 after 1 s:
     the stock free-rev branch shows raw m/s), so "exited at 110" and "100 ish" are the same take-off read one or two ticks late.
-- **"Pitch down terrible" is the 1997 take-off kick, held for the whole flight** (i76-map physics.md "held below -pi/20").
+- **"Pitch down terrible" is the 1997 take-off kick, held for the whole flight** (<re-archive> physics.md "held below -pi/20").
   - On the last grounded step at the lip, a front wheel that has lost the face adds -pi x 2 dt to the pitch rate (one wheel:
     **single kick**, -15 deg/s at 41.667) or both front wheels -2 pi x 2 dt (**double kick**, -30 deg/s). Any rate at or below
     -pi/20 (-9 deg/s) is never eased in flight.
@@ -2556,7 +2556,7 @@ tick 44 and promotion 18 made it. s.20.2's harness cleared 4 of 4 at 41.667 with
   fits the luck of a few jumps (2 of 25 doubles at both, against 4 of 25 at 41.667; not distinguishable with one sweep each).
 - **Not the car, not the line in the harness's sense.** Every take-off on the road in this lane (crest starts and sweeps, n 268) left at
   49.1-54.8 m/s and every one cleared the far lip (first touch x 6685-6716 against the lip at 6745). The ramp-face loss is 5-7.5 m/s,
-  as s.20. The line matters in one way only: the ramp's road is 10 m wide (z 43905-43915, i76-map
+  as s.20. The line matters in one way only: the ramp's road is 10 m wide (z 43905-43915, <re-archive>
   physics.md; the rest is a 30-46 deg sand bank). With the line 6 m off centre (either side) the car runs up the bank, leaves it at 47.1-47.4 m/s
   with no lift (vy -0.4 m/s, roll 12 deg), lands in the channel at x 6779-6782 and was **made in 1 of 12, destroyed in 3 of 12** (rc42 / rc44).
   That is not his run 2 (a launch at 110 mph that crossed); it may be his run 1. Lines between 3 and 5 m off centre were not measured.
@@ -2565,7 +2565,7 @@ tick 44 and promotion 18 made it. s.20.2's harness cleared 4 of 4 at 41.667 with
 - **The slope probe** (41.667 with `I76_SIM_TICK_SLOPE=0.8`, the 33 ms factor forced): take-off 51.23 +- 0.55 m/s against 51.14 +- 0.90
   (n 9 each, same starts): nothing. The slope-follow term is not involved at 41.667.
 
-Lab only. Copy **`i76-uncap-lab\exp-jump2`** = robocopy of `Games\I76\release-candidate` at 18:59 (651 files, 495 MB) with
+Lab only. Copy **`<lab>\exp-jump2`** = robocopy of `Games\I76\release-candidate` at 18:59 (651 files, 495 MB) with
 `DDraw.dll` / `Glide2x.dll` = the lab null renderers (`tools\replay\nullglide`) and the proxy = the candidate's lab twin
 `Strlkup-head-lab.dll` 850e16ef (491f8db + lab drive block, the twin of 8f8da929); originals in `exp-jump2\_rollback\jump2-swap`;
 per run `ADDON\vppirna1.vcf` = his car (T05 names vppirna1; a loose ADDON file overrides the archive). Presets = the copy's own files
@@ -2652,7 +2652,7 @@ A fix is a departure from 1997 (retail kills the same way), so it is the owner's
 - Not proposed: changing the tick (no tick removes the doubles), or a factor on the kick (a smaller kick at 33 ms is still held).
 
 **Launcher for the owner next** (lab copy, nothing installed): none changes the outcome. To see the mechanism at the console:
-`C:\Users\james\i76-uncap-lab\exp-jump2` is headless-only (null renderers); its `_rollback\jump2-swap` puts the RC's renderers and proxy
+`<lab>\exp-jump2` is headless-only (null renderers); its `_rollback\jump2-swap` puts the RC's renderers and proxy
 back. A "survive the jump" build needs the switch above first.
 
 Clean-up: persisted mutes of `exp-jump2\Interstate 76\i76.exe` cleared (`tools\unmute-persisted.ps1`); no exp-jump2 process left; the

@@ -65,9 +65,9 @@ Lab only. The daily driver, the golden copy, the Downloads portable, the PC LAN 
 
 ## 1. The clocks, as the code has them
 
-Static reading of the AiO exe 6319abf7 (= Galaxy 9a232dcc at these bytes). Names are from i76-map `symbols/functions.tsv`.
+Static reading of the AiO exe 6319abf7 (= Galaxy 9a232dcc at these bytes). Names are from <re-archive> `symbols/functions.tsv`.
 Sources:
-- the i76-map `subsystems/simclock.md`, `framerate.md` and `physics.md`;
+- the <re-archive> `subsystems/simclock.md`, `framerate.md` and `physics.md`;
 - WHOLE-SIM-TICK s.1 (the sim / render cut) and FRAME-BOUND-SYSTEMS (per-system rates);
 - this lane's call scan of the exe for the stepper and clock accessors.
 

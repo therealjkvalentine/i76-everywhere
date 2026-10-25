@@ -1,21 +1,21 @@
-# Scott build 2026-10-23: the tester zip over a GOG copy
+# The tester build 2026-10-23: the tester zip over a GOG copy
 
-Lane: Scott-build (owner 2026-10-23: "a build that Scott can run ... the latest stable copy so he can give feedback. Make sure
+Lane: Tester-build (owner 2026-10-23: "a build that the tester can run ... the latest stable copy so he can give feedback. Make sure
 the repository is buildable off of the copy of the game he'll have ... which may not be ultrawide ... explain the home-row
 keyboard controls"; coordinator: the zips go on GitHub, so NOTHING of GOG's inside, a draft pre-release, a patcher for the
-user's own files). Repo commits `6bdba60`, `e85585f`, `98d96e1`, `4b28e82` (main); lab `builds\scott-20261023\`.
+user's own files). Repo commits `6bdba60`, `e85585f`, `98d96e1`, `4b28e82` (main); lab `builds\tester-20261023\`.
 
 ## 0. Deliverables
 
 | what | where |
 |---|---|
-| the zip | `C:\Users\james\i76-uncap-lab\downloads\scott\Interstate76-i76-everywhere-scott-20261023.zip` - **2,881,558 B, 83 files, md5 `41a1b508`** (repo ce8ffc5; `<zip>.MD5SUMS` beside it). The gate ran on the zip packed from 4b28e82 (md5 c62e73d4); the final zip differs from it only in README-SCOTT.md, VERSION.txt and MD5SUMS text - every binary, script, preset and conf is byte-identical (the binaries' md5s are in s.1) |
-| GitHub | **draft pre-release** `scott-20261023` on `therealjkvalentine/i76-everywhere` (public repo), asset = the zip, body = README-SCOTT.md, target main. NOT published: `gh release view scott-20261023`; publish with `gh release edit scott-20261023 --draft=false` after the owner's go. Until then the URL reads `releases/tag/untagged-...` (GitHub creates the tag on publish). |
-| packer | `tools\package-scott.ps1 -Proxy <dll> -ProxyCommit <sha> -DgVoodooDir <unpacked dgVoodoo2_87_3.zip> -AhkDir <AutoHotkeyU32.exe folder>` (stage kept in lab `builds\scott-20261023\stage`) |
-| the launcher logic | `tools\scott\i76e-prepare.ps1` (run by every PLAY*.bat before the game), `tools\scott\Apply-Shell-Keys.ps1` + `shell-keys-patch.json`, `tools\scott\README-SCOTT.md` |
+| the zip | `<lab>\downloads\tester\Interstate76-i76-everywhere-tester-20261023.zip` - **2,881,558 B, 83 files, md5 `41a1b508`** (repo ce8ffc5; `<zip>.MD5SUMS` beside it). The gate ran on the zip packed from 4b28e82 (md5 c62e73d4); the final zip differs from it only in README-TESTER.md, VERSION.txt and MD5SUMS text - every binary, script, preset and conf is byte-identical (the binaries' md5s are in s.1) |
+| GitHub | **draft pre-release** `tester-20261023` on `therealjkvalentine/i76-everywhere` (public repo), asset = the zip, body = README-TESTER.md, target main. NOT published: `gh release view tester-20261023`; publish with `gh release edit tester-20261023 --draft=false` after the owner's go. Until then the URL reads `releases/tag/untagged-...` (GitHub creates the tag on publish). |
+| packer | `tools\package-tester.ps1 -Proxy <dll> -ProxyCommit <sha> -DgVoodooDir <unpacked dgVoodoo2_87_3.zip> -AhkDir <AutoHotkeyU32.exe folder>` (stage kept in lab `builds\tester-20261023\stage`) |
+| the launcher logic | `tools\tester\i76e-prepare.ps1` (run by every PLAY*.bat before the game), `tools\tester\Apply-Shell-Keys.ps1` + `shell-keys-patch.json`, `tools\tester\README-TESTER.md` |
 | extended, not forked | `setup-windows.ps1` (a preset carrying `I76_ASPECT` counts as a wide preset; `-AllowNarrow`), `tools\Make-Wide-Conf.ps1` (`-Presets`, `-AllowNarrow`), `tools\fix-shell-textentry.ps1` (refuses only while the game from THIS folder runs) |
-| presets | `presets\tick19-42.psd1` (= the release candidate's f7e589ef, byte for byte), `presets\scott-preview.psd1` (= lab `exp-polish2\...\presets\OWNER-2300-FOG.psd1` as it stood 11:40, only `Name` changed) |
-| gate folder | lab `game-scott` = `i76-map\sandbox-gog\main\app` (GOG 2.1.0.17, i76.exe **9a232dcc**, the exe Scott most likely has) + the zip unzipped into it + its own first-run setup; `builds\scott-20261023\run-gate.ps1` |
+| presets | `presets\tick19-42.psd1` (= the release candidate's f7e589ef, byte for byte), `presets\tester-preview.psd1` (= lab `exp-polish2\...\presets\OWNER-2300-FOG.psd1` as it stood 11:40, only `Name` changed) |
+| gate folder | lab `game-tester` = `<re-archive>\sandbox-gog\main\app` (GOG 2.1.0.17, i76.exe **9a232dcc**, the exe the tester most likely has) + the zip unzipped into it + its own first-run setup; `builds\tester-20261023\run-gate.ps1` |
 
 ## 1. What is in the zip, and why each item may be shipped
 
@@ -26,15 +26,15 @@ md5 is in `_i76e\MD5SUMS` (and `<zip>.MD5SUMS` beside the zip).
 
 | item | files | why it may be shipped |
 |---|---|---|
-| our proxy | `_i76e\repo\music-fix\Strlkup.dll` **9bab51fe** (738,816 B) | ours (MIT); clean build of main `8cb3da2` by lab `builds\nitro-port-20261021\build.ps1 -Tag scott-8cb3da2 -Ref 8cb3da2` (git archive, MSVC x86 /MT /O2 /Brepro); the two music-fix commits after it (`0e01d3c` I76_GLIDE_MIPMAP, `3d89698` faredge alpha combine) are lab switches off in both shipped presets |
+| our proxy | `_i76e\repo\music-fix\Strlkup.dll` **9bab51fe** (738,816 B) | ours (MIT); clean build of main `8cb3da2` by lab `builds\nitro-port-20261021\build.ps1 -Tag tester-8cb3da2 -Ref 8cb3da2` (git archive, MSVC x86 /MT /O2 /Brepro); the two music-fix commits after it (`0e01d3c` I76_GLIDE_MIPMAP, `3d89698` faredge alpha combine) are lab switches off in both shipped presets |
 | our mouse DLL | `_i76e\repo\u32x\u32x_full.dll` 06467bd2 + `deploy-u32x.ps1` + `README.md` | ours; the daily driver's build since promotion 15 (KnownGood list in deploy-u32x.ps1) |
 | our launchers / scripts | `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `UNINSTALL-i76e.bat`, `_i76e\i76e-prepare.ps1`, `_i76e\repo\setup-windows.ps1`, `PLAY-i76.ps1` (c2194586 = the RC's), `tools\Make-Wide-Conf.ps1` + `tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf` (dccd379a), `dgVoodoo.daily-driver-2026-10-03.conf`, `dgVoodoo.windows.conf`, `tools\fix-shell-textentry.ps1`, `tools\lint-input-map.py`, `tools\i76wheel.exe` (ours, tools\i76wheel.c), the debug tool (`tools\debug|trainer|telemetry`, `tools\driver\DEBUG.bat|TRAINER.bat`) | ours (MIT) |
-| shell patch DATA | `_i76e\repo\tools\scott\shell-keys-patch.json` (4.7 KB) + `Apply-Shell-Keys.ps1` | ours: only OUR replacement bytes (offset + hex, 578 bytes in 25 runs), keyed by the md5 of the shell they fit; no original bytes (s.3) |
-| presets, controls | `presets\tick19-42 / scott-preview / best-120 / best-wide / best-wide-balanced / stock.psd1`, `controls\input.map` (a66a37f7) + `README.md`, `i76-remap.ahk`, `i76-ch-fighterstick.ahk`, `docs\CONTROLS.md`, `docs\Interstate76-Controls-Quick-Reference.pdf` | ours |
+| shell patch DATA | `_i76e\repo\tools\tester\shell-keys-patch.json` (4.7 KB) + `Apply-Shell-Keys.ps1` | ours: only OUR replacement bytes (offset + hex, 578 bytes in 25 runs), keyed by the md5 of the shell they fit; no original bytes (s.3) |
+| presets, controls | `presets\tick19-42 / tester-preview / best-120 / best-wide / best-wide-balanced / stock.psd1`, `controls\input.map` (a66a37f7) + `README.md`, `i76-remap.ahk`, `i76-ch-fighterstick.ahk`, `docs\CONTROLS.md`, `docs\Interstate76-Controls-Quick-Reference.pdf` | ours |
 | bookmark saves | `_i76e\repo\saves\save000..017.cmp` + `savegame.dir` (13 records, the repo's shipped set) | player-written save files already in the public repo (`saves\README.md`); only copied in when the user has no saves |
 | dgVoodoo 2.87.3 | `_i76e\dgVoodoo\3Dfx\x86\Glide.dll / Glide2x.dll / Glide3x.dll`, `MS\x86\DDraw.dll / D3DImm.dll`, `dgVoodooCpl.exe`, the package's `*.url` readme links, our `README-dgVoodoo.txt` | Dege's **ReadmeGeneral, section 1 "Redistribution rights"** (http://dege.freeweb.hu/dgVoodoo2/ReadmeGeneral/, read 2026-10-23): *"You can freely ship your game or game mod with unmodified individual dgVoodoo components (files) included."* (standalone hosting needs the original zip; bundling in launchers / frameworks for general use is not allowed). The packer refuses any of the six unless its md5 equals the file in `dgVoodoo2_87_3.zip` from github.com/dege-diosg/dgVoodoo2/releases/tag/v2.87.3 (downloaded with `gh release download`; all six matched the files the daily driver / RC run) |
 | AutoHotkey 1.1.37.02 | `_i76e\AutoHotkey\AutoHotkeyU32.exe` b6af97aa + `license.txt` (GPL v2) | GPL: redistributable with its licence; unmodified interpreter for the pad / wheel / stick layer |
-| text | `README-SCOTT.md`, `_i76e\VERSION.txt` (`scott-20261023 4b28e82`), `_i76e\MD5SUMS`, `LICENSE`, `THIRD-PARTY.md` | ours |
+| text | `README-TESTER.md`, `_i76e\VERSION.txt` (`tester-20261023 4b28e82`), `_i76e\MD5SUMS`, `LICENSE`, `THIRD-PARTY.md` | ours |
 
 Earlier portable builds (`Make-Portable-Zip.ps1`, `Interstate76-i76-everywhere-portable-20260801`) packed the WHOLE configured
 install, game bytes included, for the owner's own PCs ("don't redistribute it", its header). This zip replaces that model for a
@@ -53,14 +53,14 @@ trimmed repo copy inside the zip, against the user's own files.
      kept), `I76PATCH.DLL` -> `.disabled` where GOG shipped one, u32x (`i76.exe.u32xorig`, `i76shell.dll.orig`), the AHK layer,
      presets, `PLAY-i76.ps1`, the debug tool, `PLAY-i76.bat / -16x10 / -balanced / -stock.bat`; nothing outside the folder.
 3. Every run: the primary monitor's size (or `--display WxH`) and `--no-supersample` -> `_i76e\display.txt`; when it changed,
-   `Make-Wide-Conf.ps1 -Presets tick19-42,scott-preview,best-wide,best-wide-balanced [-AllowNarrow] -Scale 2|1` rewrites
+   `Make-Wide-Conf.ps1 -Presets tick19-42,tester-preview,best-wide,best-wide-balanced [-AllowNarrow] -Scale 2|1` rewrites
    `dgVoodoo.wide.conf` and the presets' `I76_ASPECT` / `I76_U32X_MENU_ASPECT`; then `dgVoodoo.wide.conf -> dgVoodoo.conf`.
    The .bat then starts `PLAY-i76.ps1 -Preset <x> -LosslessScaling none` (`-Mission t05.msn -SkipMovies` for the T05 variants).
 4. `UNINSTALL-i76e.bat` = `-Uninstall`: `deploy-u32x.ps1 -Restore`, `Apply-Shell-Keys.ps1 -Revert`, `strlkup_orig.dll` / `I76PATCH.DLL`
    back, `input.map.stock-*` back, `_openglide-backup\*` back, our files removed (`_i76e`, the root .bat files and the README are
    left for the user). Verified only as far as the setup's own backups go (not run on the gate folder: it is the gate folder).
 
-Idempotence: the setup ran twice on `game-scott` (the second after a re-unzip with a new VERSION): every step reported "already" /
+Idempotence: the setup ran twice on `game-tester` (the second after a re-unzip with a new VERSION): every step reported "already" /
 "nothing to do" and the file set was unchanged.
 
 ## 3. The shell keyboard patches as a patcher (no game bytes shipped)
@@ -69,7 +69,7 @@ GOG's 2.1.0.17 install ships `i76shell.dll` **deb41008** (the Galaxy / offline-i
 **8960fa16** (the RC's `i76shell.dll.orig`; it differs from deb41008 in 9,809 bytes, a different build, with the narrowed ToAscii
 clear). The daily driver's / RC's live shell a300db63 = 8960fa16 + F7 + M1/M2/K1-K4 + the text-entry fix + the u32x import rename.
 
-`tools\patch-shell-f7.py` and `tools\patch-shell-modals.py` were run on BOTH shells (lab `builds\scott-20261023\shellpatch`):
+`tools\patch-shell-f7.py` and `tools\patch-shell-modals.py` were run on BOTH shells (lab `builds\tester-20261023\shellpatch`):
 deb41008 -> 68be82f2 (F7, 124 B) -> **3f2fff4f** (454 B more; the numbers FRESH-INSTALL-CHECK-2026-10-10 predicted), 8960fa16 ->
 631e0793 -> **20e1cdda**. Check: 20e1cdda + the text-entry bytes (0x1B52C 0x41, 0x1B535 0x08) differs from the RC's live a300db63 in
 exactly the 10 bytes of the import name `USER32.dll` -> `u32x.dll` at 0x41228, i.e. the chain reproduces what the owner plays.
@@ -77,7 +77,7 @@ exactly the 10 bytes of the import name `USER32.dll` -> `u32x.dll` at 0x41228, i
 user's file, matches its md5, backs it up once (`i76shell.dll.pre-i76e-keys`), patches in memory, checks the image md5 against the
 expected result, writes, reads back, checks again (puts the backup back on a mismatch); an unknown shell build is left alone (exit
 2, the game works without: the popups answer to the mouse). It runs before deploy-u32x.ps1 (the rename changes the md5); an already
-patched file is recognised by the F7 hook bytes at 0xab9f. On `game-scott`: `deb41008 -> 3f2fff4f` applied, then u32x -> 64923d95.
+patched file is recognised by the F7 hook bytes at 0xab9f. On `game-tester`: `deb41008 -> 3f2fff4f` applied, then u32x -> 64923d95.
 
 ## 4. Display handling
 
@@ -96,18 +96,18 @@ map a 1080p monitor gets (the 2x target would be 3840x2160, a scale of the same 
 route by clicks (option6-trip-test reads the window rect and clicks UI coordinates; the game must answer), the 3D shape by a
 cockpit / hood capture in T05. Results in s.6.
 
-## 5. The exe Scott will have
+## 5. The exe the tester will have
 
-GOG's current install (the sandbox copy, `i76-map\sandbox-gog\main\app`) is i76.exe **9a232dcc** (2017 Galaxy / 2.1.0.17 offline
+GOG's current install (the sandbox copy, `<re-archive>\sandbox-gog\main\app`) is i76.exe **9a232dcc** (2017 Galaxy / 2.1.0.17 offline
 build): no `I76PATCH.DLL`, no WINMM import (CD audio through GOG's `win32.dll` + `audiere.dll` + `music\*.mp3`, so the proxy's
 music switches `I76_MUSIC_RETAIL / RESUME` are inert there and GOG's shim plays the music; `setup-windows.ps1` says so), a
 first-chance `CRASH ... exe+0x99997` at frame 0 (the PIT CPU-speed probe, handled by the game; FRESH-INSTALL-CHECK). The daily
 driver / RC run 6319abf7 = the 2019 AiO exe 60abf7bc + the u32x rename; the proxy knows both layouts where they differ (hires
 clock, tick-ms, mirror refresh gate) and checks the bytes at every other site (`patch: ... has UNEXPECTED bytes - not patching`
-in mciproxy.log). The gate below runs the stable preset on 9a232dcc and reads that log (s.6.2). If Scott's copy is the AiO build,
+in mciproxy.log). The gate below runs the stable preset on 9a232dcc and reads that log (s.6.2). If the tester's copy is the AiO build,
 `setup-windows.ps1` reports "the known-good GOG 2019 / AiO build" and the shell patch takes the 8960fa16 chain (s.3).
 
-## 6. Gate (console, lab game-scott, PLAY.bat = tick19-42, proxy 9bab51fe, exe 9a232dcc)
+## 6. Gate (console, lab game-tester, PLAY.bat = tick19-42, proxy 9bab51fe, exe 9a232dcc)
 
 ### 6.1 First run 12:08-12:18: VOID as a verdict, and it wedged the console (my fault)
 
@@ -124,9 +124,9 @@ rows that boot without the launcher (leg-b, proxy-run, garage-ui, enter-melee), 
 none of them, so row 2's pass was the harness's own switch set, not the shipped preset, and row 4 ran the save screen with the
 harness's launch under the wide conf but without the cursor map the conf expects (CaptureMouse = false) - its Place-Ui candidates
 never read back and the row's wait had no timeout. Nothing of this is a property of the build. Second form of the runner
-(`builds\scott-20261023\run-gate.ps1`, lab 27be9e8): tg-gate's environment, one row group per `.fps-lock` take (groups 1 / 2 / 3,7,8 /
+(`builds\tester-20261023\run-gate.ps1`, lab 27be9e8): tg-gate's environment, one row group per `.fps-lock` take (groups 1 / 2 / 3,7,8 /
 4 / 5,6 / 9, then the two display tests), the shared `.fps-queue` line while waiting, a watchdog per group (7-10 min) that stops the
-gate child tree and game-scott's i76.exe and puts the global conf back. Queued 14:54 behind the far-edge and game-types lanes.
+gate child tree and game-tester's i76.exe and puts the global conf back. Queued 14:54 behind the far-edge and game-types lanes.
 
 ### 6.2 What the shipped preset applied on 9a232dcc (mciproxy.log of the 12:08 launcher sessions)
 
@@ -138,7 +138,7 @@ picture aspect 1680:1050`, `u32x.dll 5/5 USER32 slots behind the picture adapter
 menu-draw, fade, sign-sound, font-private, mp-menu, coop-chain 7/7, coop-ai 27/27 of its other sites. The differences, all expected
 for this exe:
 - `patch: coop-ai: ai_FrameTick at 0x00403DDF has UNEXPECTED bytes - not patching` - `I76_COOP_AI`'s one layout-specific site (the
-  host's AI tick; LAN co-op only, inert in single player). The 9a232dcc layout of that call is a follow-up for the LAN pack, not Scott.
+  host's AI tick; LAN co-op only, inert in single player). The 9a232dcc layout of that call is a follow-up for the LAN pack, not the tester.
 - `joy-routing ... NOT HOOKED (no WINMM import)` -> `sim-tick: joystick watch OFF ... a wheel / pad waits for the next tick`: the early
   tick on a pad / wheel input is not available on this exe (keys still get it); at most one 41.7 ms tick of extra latency on analog
   input. New finding for the README's "what differs on the Galaxy exe".
@@ -146,7 +146,7 @@ for this exe:
 - The frame-0 `CRASH ... exe+0x99997` first-chance line, as documented for this exe.
 - tick-factors `0/3`, `0/4` etc. are the "factor 1.000, nothing to install" lines at 41.667 ms, the same on the AiO exe.
 
-### 6.3 Second run 15:58-16:34 (lab `builds\scott-20261023\gate-20261023-155827`, autotest runs 155828 / 160045 / 160526 / 160710 / 161741 / 162711)
+### 6.3 Second run 15:58-16:34 (lab `builds\tester-20261023\gate-20261023-155827`, autotest runs 155828 / 160045 / 160526 / 160710 / 161741 / 162711)
 
 One console take per row group, 30 s between takes, nothing else queued at the time. Every launch here carries the shipped preset
 (LAB_GAME_ENV for the harness boots, PLAY.bat for the launcher rows), proxy 9bab51fe, exe 9a232dcc, i76shell 64923d95, u32x 06467bd2,
@@ -181,7 +181,7 @@ bookmark route by memory and the T05 route at 120 fps PASS on it, the folder and
 display derivation gives a correct 16:9 picture. **Not yet shown on this exe: the menu pointer under the cursor map (rows 3-6).**
 The RC's gate showed exactly that on the AiO exe with the same conf / preset / u32x / cursor map, and the proxy log shows the same
 cursor-map lines here, but it is an inference until rows 3-6 are re-run after the owner's reboot:
-`builds\scott-20261023\run-gate.ps1 -Groups '3,7,8','4','5,6'` (then the two display tests), one take per group, watchdogs on.
+`builds\tester-20261023\run-gate.ps1 -Groups '3,7,8','4','5,6'` (then the two display tests), one take per group, watchdogs on.
 
 ## 7. Open risks
 
@@ -204,30 +204,30 @@ cursor-map lines here, but it is an inference until rows 3-6 are re-run after th
 - **Downloaded-file blocking (Mark of the Web)**: PowerShell is started with `-ExecutionPolicy Bypass`, dgVoodoo DLLs load; README
   says to tick Unblock on the zip. Antivirus false positives on dgVoodoo are a known thing (the README names it).
 - **The repo's shipped `saves\savegame.dir` is 876 B for 13 records (92 B of zero slack)**: the game reads it fine (count first), the
-  lab gate's row 4 insists on the exact 784 B, so the gate folder's copy was trimmed (backup in `builds\scott-20261023`). Not changed
+  lab gate's row 4 insists on the exact 784 B, so the gate folder's copy was trimmed (backup in `builds\tester-20261023`). Not changed
   in the repo (AGENTS.md: never shrink the file); a follow-up could regenerate it exact with the save editor.
-- **Music on 9a232dcc** is GOG's shim, not ours (s.5): the owner's music rulings do not reach Scott on that exe.
+- **Music on 9a232dcc** is GOG's shim, not ours (s.5): the owner's music rulings do not reach the tester on that exe.
 - **The preview preset** moved under this lane: OWNER-2300-FOG's fog start was 0.7 when the brief was written and 0.75 when copied
   (11:40); the copy is what was in the file then. The far-edge lane keeps changing it; this zip freezes one state.
-- `README-SCOTT.md` says the 1080p / 1440p tests were done as windows on this PC; it does not promise other hardware.
+- `README-TESTER.md` says the 1080p / 1440p tests were done as windows on this PC; it does not promise other hardware.
 
 ## 8. Evening 2026-10-23: the ALL preview, rebuilt on main, re-gated on GOG's exe (zip 20261023b, still a DRAFT)
 
-Lane brief (owner 18:xx: "push the ALL version to github and draft scott an email ... make sure we tested everything we ask him to do");
-coordinator: do not publish, the owner decides. Same tag `scott-20261023`, new asset name `...-scott-20261023b.zip` (the old asset deleted).
+Lane brief (owner 18:xx: "push the ALL version to github and draft tester an email ... make sure we tested everything we ask him to do");
+coordinator: do not publish, the owner decides. Same tag `tester-20261023`, new asset name `...-tester-20261023b.zip` (the old asset deleted).
 
 ### 8.1 What changed
 
 | item | value |
 |---|---|
-| proxy | `Strlkup.dll` **6208d3ad** (742,912 B), clean build of main **9fe3510** (`tools\build-proxy.ps1 -Ref 9fe3510`, new in the repo, reproduces it byte for byte; lab `builds\nitro-port-20261021\scott-9fe3510`) |
-| PLAY-PREVIEW*.bat | preset `scott-preview` = lab `exp-polish2\...\presets\OWNER-2300-ALL.psd1` as of 18:16 (md5 09dd0cd3), only `Name` changed; labelled "EXPERIMENTAL GRAPHICS PREVIEW" in the .bat header and README |
+| proxy | `Strlkup.dll` **6208d3ad** (742,912 B), clean build of main **9fe3510** (`tools\build-proxy.ps1 -Ref 9fe3510`, new in the repo, reproduces it byte for byte; lab `builds\nitro-port-20261021\tester-9fe3510`) |
+| PLAY-PREVIEW*.bat | preset `tester-preview` = lab `exp-polish2\...\presets\OWNER-2300-ALL.psd1` as of 18:16 (md5 09dd0cd3), only `Name` changed; labelled "EXPERIMENTAL GRAPHICS PREVIEW" in the .bat header and README |
 | PLAY.bat | unchanged: tick19-42 (f7e589ef) |
-| zip | `downloads\scott\Interstate76-i76-everywhere-scott-20261023b.zip` **2,886,744 B, 84 files, md5 28d99ecd6266601305bd794f68e6004e, sha256 15f82e92955b6f7e9c4a5e17fe4024d3e380e73cd8ad934665228aaf3e8e9bc8**, VERSION `scott-20261023b a8f694a`. Name guard + an independent check: 0 entries match the game-file pattern, 0 files content-identical to any of GOG's 371 |
-| GitHub | asset replaced on the **draft** pre-release `scott-20261023` (body = README-SCOTT.md); `gh release download` sha256 = the local zip. Not published (coordinator); anonymous `curl -I` therefore not possible yet |
-| fixes found by the tests | (a) **UNINSTALL-i76e.bat failed at its first step** (PS 5.1 `-File` leaves `$PSScriptRoot` empty in deploy-u32x's param default; i76e-prepare's `Stop` preference turned the child's stderr into a terminating error) - fixed 0818caa; (b) a zip extracted **without Unblock** tags 135 files and Copy-Item carries the tag to the deployed AutoHotkeyU32.exe / dgVoodoo DLLs - i76e-prepare now clears it every run (4d2e47b; lab `game-scott-motw`: setup OK while tagged, 135 -> 0); (c) **GOG's default options put the rear mirror at its middle level** (`I76PLYR.DEF` +0x4A / +0x4D / +0x4E = 1 / 1 / 0: cars on a flat sky colour, no road or terrain - seen on stable and preview alike, drives 21:21 / 21:26); at the RC's 2 / 2 / 1 the mirror shows road, terrain and clouds (drive 21:38, manual 22:16). The first-run setup now sets those three bytes only when they are GOG's defaults, keeps `I76PLYR.DEF.pre-i76e`, the uninstall puts it back (73cfd8d) |
+| zip | `downloads\tester\Interstate76-i76-everywhere-tester-20261023b.zip` **2,886,744 B, 84 files, md5 28d99ecd6266601305bd794f68e6004e, sha256 15f82e92955b6f7e9c4a5e17fe4024d3e380e73cd8ad934665228aaf3e8e9bc8**, VERSION `tester-20261023b a8f694a`. Name guard + an independent check: 0 entries match the game-file pattern, 0 files content-identical to any of GOG's 371 |
+| GitHub | asset replaced on the **draft** pre-release `tester-20261023` (body = README-TESTER.md); `gh release download` sha256 = the local zip. Not published (coordinator); anonymous `curl -I` therefore not possible yet |
+| fixes found by the tests | (a) **UNINSTALL-i76e.bat failed at its first step** (PS 5.1 `-File` leaves `$PSScriptRoot` empty in deploy-u32x's param default; i76e-prepare's `Stop` preference turned the child's stderr into a terminating error) - fixed 0818caa; (b) a zip extracted **without Unblock** tags 135 files and Copy-Item carries the tag to the deployed AutoHotkeyU32.exe / dgVoodoo DLLs - i76e-prepare now clears it every run (4d2e47b; lab `game-tester-motw`: setup OK while tagged, 135 -> 0); (c) **GOG's default options put the rear mirror at its middle level** (`I76PLYR.DEF` +0x4A / +0x4D / +0x4E = 1 / 1 / 0: cars on a flat sky colour, no road or terrain - seen on stable and preview alike, drives 21:21 / 21:26); at the RC's 2 / 2 / 1 the mirror shows road, terrain and clouds (drive 21:38, manual 22:16). The first-run setup now sets those three bytes only when they are GOG's defaults, keeps `I76PLYR.DEF.pre-i76e`, the uninstall puts it back (73cfd8d) |
 
-### 8.2 Every preview key on GOG's exe 9a232dcc (PLAY-PREVIEW-T05.bat as Scott starts it, game-scott-b, 20:2x; then n 3 drives)
+### 8.2 Every preview key on GOG's exe 9a232dcc (PLAY-PREVIEW-T05.bat as the tester starts it, game-tester-b, 20:2x; then n 3 drives)
 
 | key(s) | apply line in mciproxy.log |
 |---|---|
@@ -248,14 +248,14 @@ Preview T05 drives (row 9 route, cockpit): hill median **116.0 / 115.3 / 115.6 f
 bushes render as bushes (no black squares), the far edge fades, the mirror shows road / terrain / clouds once the options are at 2 / 2 / 1;
 one of four mirror frames had a large white block (a near object or a PAL remap edge case; not chased).
 
-### 8.3 Gate on the stable PLAY.bat (lab game-scott-b = pristine 9a232dcc + the zip + its own first run; runner `run-gate.ps1`, lab bd81811 ff.)
+### 8.3 Gate on the stable PLAY.bat (lab game-tester-b = pristine 9a232dcc + the zip + its own first run; runner `run-gate.ps1`, lab bd81811 ff.)
 
 | row | result | n |
 |---|---|---|
 | 1 conf accepted (global conf hidden) | PASS | 1 |
 | 2 bookmark route TRIP -> ... -> mission (by memory) | PASS | 3 of 3 |
 | 3 trip route through PLAY.bat by pointer clicks, 120 fps | **PASS** (the row that was void at 15:58) | 2 of 2 |
-| 4 save screen (gate-folder) | harness hang after the garage is reached (n 2; B1.7 garage each time) -> replaced by `manual-save-esc.ps1`: SAVE BOOKMARK, typed SCOTT, SAVE x2 -> `save018.cmp` + savegame.dir written, `--check` OK, files put back | manual 1 |
+| 4 save screen (gate-folder) | harness hang after the garage is reached (n 2; B1.7 garage each time) -> replaced by `manual-save-esc.ps1`: SAVE BOOKMARK, typed TESTER, SAVE x2 -> `save018.cmp` + savegame.dir written, `--check` OK, files put back | manual 1 |
 | 5 Esc-menu Exit (gate-folder) | harness hang after the menu opened (n 3; the menu capture is fine) -> manual: Esc (skips the opening), Esc (Spanner's Cafe menu up), click Exit at the drawn place -> menu closed | manual 1 |
 | 6 melee by menus | not run (README does not ask it) | - |
 | 7 input.map lint + unchanged | PASS | 1 |
@@ -263,19 +263,19 @@ one of four mirror frames had a large white block (a near object or a PAL remap 
 | 9 T05 route fps | PASS 120.0 / 1 % 88.0 (and 120.0 / 86.8 in the capture drive) | 2 |
 | launcher boots (group P: PLAY-PREVIEW-T05, PLAY-T05, PLAY-PREVIEW, PLAY-16x10, PLAY-balanced, PLAY-stock, PLAY-i76) | all 7 start, window 3440x1440, AHK layer up, 0 crash lines, 0 unapplied sites but coop-ai | 1 each |
 | display tests 1920x1080 / 2560x1440 `--no-supersample`, **both** launchers | conf `[Glide] Resolution` = the size, presets rewritten, `aspect: D 1.778, 20/20 sites`, 16:9 picture with bars; **pointer**: TRIP -> LOAD BOOKMARK -> row -> LOAD -> ACCEPT SALVAGE -> DONE all clicked through (7 step shots each) | 4 |
-| uninstall on a copy | all 371 GOG files md5-identical to pristine afterwards | 3 (each zip iteration; final on game-scott-c) |
+| uninstall on a copy | all 371 GOG files md5-identical to pristine afterwards | 3 (each zip iteration; final on game-tester-c) |
 
 The row 4 / 5 hang: my own `manual-save-esc.ps1` hung the same way when it read garage-ui.ps1 through a pipe (the game leg-b starts inherits
 the pipe's write end); with output to a file it ran. gate-folder's rows were not changed (shared harness). Run-gate's display tests passed
 `--display` without its value until 21:09 (Start-Process joins an argument array unquoted) - the two `cmd.exe ... PLAY.bat --display`
 processes from 16:31 / 16:33 are that bug's leftovers (not stopped: not started by this session); the 20:29 pair was mine and was stopped.
 
-### 8.4 README-SCOTT instruction -> run that covers it
+### 8.4 README-TESTER instruction -> run that covers it
 
 | README asks | covered by |
 |---|---|
 | unzip into the GOG folder, Unblock | every gate folder = pristine + Expand-Archive; MOTW folder with every file tagged (8.1 b) |
-| double-click PLAY.bat: one-time setup, the yellow "NOT the GOG 2019 build" line | `PLAY.bat --setup` on game-scott-b / -c (log `setup-game-scott-*.txt`), row 3 through PLAY.bat |
+| double-click PLAY.bat: one-time setup, the yellow "NOT the GOG 2019 build" line | `PLAY.bat --setup` on game-tester-b / -c (log `setup-game-tester-*.txt`), row 3 through PLAY.bat |
 | PLEASE STAND BY, Esc skips the intro | rows 2 / 3 / display tests (intro skipped by Esc, step01 shot) |
 | PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat | group P boots; row 9 on PLAY.bat and PLAY-PREVIEW.bat presets; display tests on PLAY-PREVIEW.bat |
 | PLAY-16x10 / balanced / stock / i76 | group P boots |
@@ -298,15 +298,15 @@ processes from 16:31 / 16:33 are that bug's leftovers (not stopped: not started 
 
 ## 9. 2026-10-24: both packages rebuilt with the two Windows 11 fixes, verified on the laptop (26100.9711), release still a DRAFT
 
-Packaging lane (Sonnet). Repo commit `0467282` (package-scott.ps1: new `-DgVoodooFallbackDir`; scott-preview.psd1 = current exp-polish2 OWNER-2300-ALL, md5 375425b7, only `Name` changed; README-SCOTT.md and i76e-prepare.ps1 say 2.87.5 + the swap-back line).
+Packaging lane (Sonnet). Repo commit `0467282` (package-tester.ps1: new `-DgVoodooFallbackDir`; tester-preview.psd1 = current exp-polish2 OWNER-2300-ALL, md5 375425b7, only `Name` changed; README-TESTER.md and i76e-prepare.ps1 say 2.87.5 + the swap-back line).
 
 | item | value |
 |---|---|
-| A: overlay zip | `downloads\scott\Interstate76-i76-everywhere-scott-20261024.zip` **4,187,803 B, 95 files, md5 04983fdefc577ff59c8fff8a08d22deb, sha256 4370190dffd338454826b8dcf7d61022d9e296f811f61b33dffa120c3fbb9782**, VERSION `scott-20261024 0467282`. Proxy inside = **53944fb2** (main 3ef108d), `_i76e\dgVoodoo` = 2.87.5 (six files, md5s checked by the packager; DDraw.dll c70a0ee6), `_i76e\dgVoodoo-2.87.3` = the fallback (DDraw ab19386d) with its README line, PLAY-PREVIEW preset = OWNER-2300-ALL as of 2026-10-24. Name guard passed (no GOG file; no i76.exe / i76shell / ZFS in the zip) |
-| B: private full zip | `downloads\scott-full\Interstate76-i76e-ALL-20261024b.zip` **442,940,921 B, 570 entries, md5 e34c19f6b16dde1b16a07eadc53c8417**, root folder `Interstate76-i76e-ALL-20261024` (base = last night's 20261024.zip = exp-polish2 at 23:05 + `_fit` launcher + README.txt; older zips kept). STRLKUP.DLL = 53944fb2, OWNER-2300-ALL.psd1 md5 375425b7, the eight dgVoodoo files = 2.87.5 (md5s per DGVOODOO-UPDATE s.5, all matched), the 2.87.3 files in `Interstate 76\_dgvoodoo-2.87.3`; no mciproxy.log / ipxwrapper.log / display.txt were present; README.txt got the "built 2026-10-24 ..." line. Written with Windows tar (forward-slash entries) |
-| GitHub | draft pre-release `scott-20261023` (still draft; tag untagged-98cb8fd6bc87ee730ea7), asset replaced: `...-scott-20261024.zip`, old 20261023b asset deleted, body = README-SCOTT.md; downloaded asset sha256 = the local zip |
+| A: overlay zip | `downloads\tester\Interstate76-i76-everywhere-tester-20261024.zip` **4,187,803 B, 95 files, md5 04983fdefc577ff59c8fff8a08d22deb, sha256 4370190dffd338454826b8dcf7d61022d9e296f811f61b33dffa120c3fbb9782**, VERSION `tester-20261024 0467282`. Proxy inside = **53944fb2** (main 3ef108d), `_i76e\dgVoodoo` = 2.87.5 (six files, md5s checked by the packager; DDraw.dll c70a0ee6), `_i76e\dgVoodoo-2.87.3` = the fallback (DDraw ab19386d) with its README line, PLAY-PREVIEW preset = OWNER-2300-ALL as of 2026-10-24. Name guard passed (no GOG file; no i76.exe / i76shell / ZFS in the zip) |
+| B: private full zip | `downloads\tester-full\Interstate76-i76e-ALL-20261024b.zip` **442,940,921 B, 570 entries, md5 e34c19f6b16dde1b16a07eadc53c8417**, root folder `Interstate76-i76e-ALL-20261024` (base = last night's 20261024.zip = exp-polish2 at 23:05 + `_fit` launcher + README.txt; older zips kept). STRLKUP.DLL = 53944fb2, OWNER-2300-ALL.psd1 md5 375425b7, the eight dgVoodoo files = 2.87.5 (md5s per DGVOODOO-UPDATE s.5, all matched), the 2.87.3 files in `Interstate 76\_dgvoodoo-2.87.3`; no mciproxy.log / ipxwrapper.log / display.txt were present; README.txt got the "built 2026-10-24 ..." line. Written with Windows tar (forward-slash entries) |
+| GitHub | draft pre-release `tester-20261023` (still draft; tag untagged-98cb8fd6bc87ee730ea7), asset replaced: `...-tester-20261024.zip`, old 20261023b asset deleted, body = README-TESTER.md; downloaded asset sha256 = the local zip |
 
-Laptop (LAPTOP-HPK11OMS, Windows 11 26100.9711, 1920x1080), runner `laptop-run.ps1 -Script wmr-scott.ps1`, muted, lock held per group. A = fresh copy of the pristine GOG game (`i76-map\sandbox-gog\main\app`, i76.exe 9a232dcc) at `C:\i76-bench\scott-a\game` + the zip + `PLAY-T05.bat --setup`; B = fresh Expand-Archive of the zip at `C:\i76-bench\scott-b`. Hold 20 s per boot.
+Laptop (the laptop bench, Windows 11 26100.9711, 1920x1080), runner `laptop-run.ps1 -Script wmr-tester.ps1`, muted, lock held per group. A = fresh copy of the pristine GOG game (`<re-archive>\sandbox-gog\main\app`, i76.exe 9a232dcc) at `<bench>\tester-a\game` + the zip + `PLAY-T05.bat --setup`; B = fresh Expand-Archive of the zip at `<bench>\tester-b`. Hold 20 s per boot.
 
 | launcher | n | reached t05 | alive at 20 s | CRASH lines | winmm-heapfix | dgVoodoo | aspect |
 |---|---|---|---|---|---|---|---|
@@ -314,15 +314,15 @@ Laptop (LAPTOP-HPK11OMS, Windows 11 26100.9711, 1920x1080), runner `laptop-run.p
 | A: PLAY-PREVIEW-T05.bat | 5 | 5 | 5 | same (probe only) | applied | c70a0ee6 | D 1.778; `shade-smooth: on` present (the preview preset is live) |
 | B: PLAY-T05.bat (fresh unzip, display fit run on the first start) | 3 | 3 | 3 | **0** | applied | c70a0ee6 | `_fit\display.txt` = 1920x1080 x2, aspect D 1.778, 20/20 sites |
 
-Raw logs on the laptop: `C:\i76-bench\runs\wmr\scott-{a,b}-*`. Not measured: music by ear (muted), anything past 20 s in the mission, a real 16:9 monitor beyond the laptop's panel.
+Raw logs on the laptop: `<bench>\runs\wmr\tester-{a,b}-*`. Not measured: music by ear (muted), anything past 20 s in the mission, a real 16:9 monitor beyond the laptop's panel.
 
 ## 10. Release renamed (2026-10-24 18:36, then again 18:4x: v0.7.3)
 
-The owner named the public tester release **v1.3.0-alpha.1** (not "scott"). The draft `scott-20261023` was published, then
+The owner named the public tester release **v1.3.0-alpha.1** (not "tester"). The draft `tester-20261023` was published, then
 replaced: new tag `v1.3.0-alpha.1` (gh created it at main's HEAD), release title "v1.3.0-alpha.1 - tester build (over
-your GOG copy)", body = README-SCOTT.md with the new heading, asset renamed
+your GOG copy)", body = README-TESTER.md with the new heading, asset renamed
 `Interstate76-i76-everywhere-v1.3.0-alpha.1.zip` (byte-identical to the 20261024 zip, md5 04983fde, 4,187,803 B);
-anonymous download checked (HTTP 200, same length). The `scott-20261023` release and tag were deleted.
+anonymous download checked (HTTP 200, same length). The `tester-20261023` release and tag were deleted.
 URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v1.3.0-alpha.1
 Final name (owner, 18:4x): **v0.7.3** - tag v0.7.3 at the same commit, asset Interstate76-i76-everywhere-v0.7.3.zip (same bytes), v1.3.0-alpha.1 deleted. URL: https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3
 Final (owner, 18:5x): release title "Interstate '76 Patch Kit (i76-everywhere) v0.7.3", asset Interstate76-Patch-Kit-i76-everywhere-v0.7.3-d4b765a.zip (d4b765a = the v0.7.3 tag commit; same bytes, md5 04983fde); the v1.0.0 "Vacation Build" release was deleted (its git tag kept). Only v0.7.3 is listed.
@@ -331,17 +331,17 @@ Final (owner, 18:5x): release title "Interstate '76 Patch Kit (i76-everywhere) v
 
 Owner: user-facing text names neither the first tester nor the developer. Packaging lane (Sonnet), commits `e73ec66` + `f5d5ac0`.
 
-Rename map: `tools/scott/` -> `tools/patch-kit/`; `tools/scott/README-SCOTT.md` -> `tools/patch-kit/README.md` (shipped in the zip as `README-PATCH-KIT.md`, so it cannot clobber a game-folder README); `tools/package-scott.ps1` -> `tools/package-patch-kit.ps1` (new `-Version`, default 0.7.3; zip `Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip`); preset `presets/scott-preview.psd1` -> `presets/preview.psd1` (`Name = 'preview'`); references fixed in Build-From-GOG.ps1, setup-windows.ps1, i76e-prepare.ps1, Apply-Shell-Keys.ps1, OPEN-FEATURES, OWNER-TEST-LIST, RC-20261024, research/game-files-and-cast. The README says "the developer" for James and ends feedback with "send it to whoever gave you this kit". Launcher names unchanged. Lab output dir is now `downloads\patch-kit\`.
+Rename map: `tools/scott/` -> `tools/patch-kit/`; `tools/scott/README-TESTER.md` -> `tools/patch-kit/README.md` (shipped in the zip as `README-PATCH-KIT.md`, so it cannot clobber a game-folder README); `tools/package-tester.ps1` -> `tools/package-patch-kit.ps1` (new `-Version`, default 0.7.3; zip `Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip`); preset `presets/tester-preview.psd1` -> `presets/preview.psd1` (`Name = 'preview'`); references fixed in Build-From-GOG.ps1, setup-windows.ps1, i76e-prepare.ps1, Apply-Shell-Keys.ps1, OPEN-FEATURES, OWNER-TEST-LIST, RC-20261024, research/game-files-and-cast. The README says "the developer" for the developer and ends feedback with "send it to whoever gave you this kit". Launcher names unchanged. Lab output dir is now `downloads\patch-kit\`.
 
 New zip `downloads\patch-kit\Interstate76-Patch-Kit-i76-everywhere-v0.7.3-f5d5ac0.zip`: 4,187,799 B, 95 files, md5 84b977c5e5ed69a06390d2a0af41b5be, sha256 365fdd2ab74438fc525954ef6afc3574f2998b90bb083b68a3c22e525054ee5f. Inputs as s.9 (proxy 53944fb2 from wmr-3ef108d, dgVoodoo 2.87.5 + 2.87.3 fallback, AHK 1.1.37.02; the dgVoodoo/AHK dirs were taken from the d4b765a zip, md5-checked by the packer). Versus the d4b765a zip: 95 vs 95 entries; every binary md5-identical; differing: the 4 renamed files (README, preset, Apply-Shell-Keys.ps1, shell-keys-patch.json paths), and re-texted setup-windows.ps1, i76e-prepare.ps1, the four PLAY*.bat (preset name), VERSION.txt, MD5SUMS, two README-dgVoodoo.txt (date stamp).
 
-Laptop (Windows 11 26100, 1920x1080), `wmr-scott.ps1`, fresh pristine GOG copy (371 files, i76.exe 9a232dcc) + the new zip at `C:\i76-bench\kit-a\game`, setup via `PLAY-T05.bat --setup`; hold 20 s:
+Laptop (Windows 11 26100, 1920x1080), `wmr-tester.ps1`, fresh pristine GOG copy (371 files, i76.exe 9a232dcc) + the new zip at `<bench>\kit-a\game`, setup via `PLAY-T05.bat --setup`; hold 20 s:
 
 | launcher | n | reached t05 | alive | CRASH lines | heap fix | DDraw |
 |---|---|---|---|---|---|---|
 | PLAY-T05.bat | 5 | 5 | 5 | only the frame-0 probe `exe+0x99997` (5 of 5) | applied (SHLWAPI split, 3 slots) | c70a0ee6 |
 | PLAY-PREVIEW-T05.bat | 5 | 5 | 5 | same | applied | c70a0ee6 |
 
-(i76.exe after setup 64165126, proxy 53944fb2.) Raw logs on the laptop `C:\i76-bench\runs\wmr\scott-kita-*`, `scott-kitap-*`.
+(i76.exe after setup 64165126, proxy 53944fb2.) Raw logs on the laptop `<bench>\runs\wmr\tester-kita-*`, `tester-kitap-*`.
 
 GitHub: tag v0.7.3 moved d4b765a -> f5d5ac0, asset `Interstate76-Patch-Kit-i76-everywhere-v0.7.3-f5d5ac0.zip` uploaded (anonymous download HTTP 200, sha256 = local zip), old d4b765a asset deleted, body = tools/patch-kit/README.md, title unchanged. https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3

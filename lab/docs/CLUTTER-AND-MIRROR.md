@@ -4,7 +4,7 @@ Owner requests 2026-10-03: (1) "increase the draw distance of those little bushe
 distracting"; (2) "anything we can do to increase resolution in rearview?"
 
 Everything here is read from the exe (i76.exe in this folder; the same bytes at every site in
-`i76.exe.2017galaxy`, `game-gogtest/gog-extract/app/i76.exe` and the pristine `i76-map/sandbox-gog`). Nothing
+`i76.exe.2017galaxy`, `game-gogtest/gog-extract/app/i76.exe` and the pristine `<re-archive>/sandbox-gog`). Nothing
 has been run. Switches: `I76_CLUTTER_DIST`, `I76_CLUTTER_RISE`, `I76_MIRROR_FAR` in
 `i76-everywhere/music-fix/strlkproxy.c` (code landed in i76-everywhere b7959ae, swept into a parallel commit;
 DLL, README rows and presets in 41e23ee).

@@ -1,7 +1,7 @@
 # Menu HD art pipeline (stage A3 assets, and the B-lite repack)
 
 2026-10-02. Tool: `tools\menu-hd\build_hd.py`. Design context: `docs\MENU-REBUILD-DESIGN.md` section 4 (A3 "HD
-mirror" wants true-colour assets at 3x, keyed by DATABASE.MW2 item id). Format facts: `i76-map\data\FORMATS.md`
+mirror" wants true-colour assets at 3x, keyed by DATABASE.MW2 item id). Format facts: `<re-archive>\data\FORMATS.md`
 section 11. Everything here ran offline: no game run, no download, nothing written into a game folder.
 
 Status tags: **[measured]** = produced and checked on this machine; **[by eye]** = my reading of the contact sheets,
@@ -16,7 +16,7 @@ which the owner should overrule; **[proposed]** = not done.
 | onnxruntime 1.24.4 | present, **CPU provider only** (no CUDA / DirectML) |
 | torch, torchvision, realesrgan, basicsr, ncnn (python), waifu2x, xbrz, hqx, potrace, fontTools | missing |
 | **`C:\Games\_tools\realesrgan\realesrgan-ncnn-vulkan.exe`** (2022 portable build) | present and working on the GTX 1080 Ti. Models: `realesrgan-x4plus`, `realesrgan-x4plus-anime`, `realesr-animevideov3` x2/x3/x4 |
-| ComfyUI at `C:\ComfyUI` and `C:\Users\james\ComfyUI` | present; both `models\upscale_models` folders are empty. Its own Python environment was not inspected |
+| ComfyUI at `C:\ComfyUI` and `<work>/ComfyUI` | present; both `models\upscale_models` folders are empty. Its own Python environment was not inspected |
 | Topaz Photo AI / Video AI in `C:\Program Files\Topaz Labs LLC` | present (commercial GUI tools; not used, not scripted) |
 | `.onnx` files elsewhere (`.insightface`, `.u2net`) | face / matting models, not upscalers |
 
@@ -34,7 +34,7 @@ python tools\menu-hd\build_hd.py contact --variants 3x 3x-realesrgan-x4plus 3x-r
 python tools\menu-hd\build_hd.py blite   [--source dedither | hd:<variant>] [--dither none|fs] [--all-indices]
 ```
 
-Global options go before the subcommand: `--src` (default `..\i76-map\data\out\mw2db`), `--out` (default
+Global options go before the subcommand: `--src` (default `..\<re-archive>\data\out\mw2db`), `--out` (default
 `tools\menu-hd\out`, git-ignored), `--i76-map`, `--realesrgan-exe`. `--only 01,1a,3e` limits a run to some items.
 
 Input is the untouched `mw2tool.py extract` output (palettised PNGs + `manifest.json`). Output layout follows the A3
@@ -179,7 +179,7 @@ already ships Arial, Arial Bold and Impact, so a first overlay test needs no dow
 
 `blite` rewrites each background at its stock size on its **original palette**, restricted by default to the indices
 that background already uses, then copies the extraction to `out\blite\work\` and repacks it with
-`i76-map\data\fmt\mw2tool.py` into `out\blite\DATABASE.MW2`. The repacker and this tool both refuse game folders.
+`<re-archive>\data\fmt\mw2tool.py` into `out\blite\DATABASE.MW2`. The repacker and this tool both refuse game folders.
 
 Result [measured]: 6,965,506 bytes (stock 8,204,554), md5 `fed9bbea1107525d5bfe8e2c70f717fe`. Read back through
 `mw2db`: the 32 backgrounds decode to exactly the written indices with unchanged palettes, and the 51 other members
@@ -197,7 +197,7 @@ Limits, stated plainly:
 - Its real use is as the **carrier for hand-edited art**: fix a label, redraw a panel, save the PNG in `work\`, repack.
   Sprites and fonts are left stock so every index still means what the shell expects.
 - Not installed anywhere and untested in play. Putting it in a game folder is a deliberate promotion step on the test
-  copy (`i76-uncap-lab\game`), never the daily driver.
+  copy (`<lab>\game`), never the daily driver.
 
 ## 8. Downloads awaiting approval (nothing was downloaded)
 

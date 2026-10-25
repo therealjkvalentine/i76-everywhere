@@ -1,7 +1,7 @@
 # tools/upscale - texture-upscaling experiment harness
 
 Code only. Decoded game art, model weights, runs and scores are copyrighted or third-party and live outside the
-repo, in a local work dir (default `C:\Users\james\i76-upscale-work`, override with `--work` or env
+repo, in a local work dir (default `<upscale-work>`, override with `--work` or env
 `I76_UPSCALE_WORK`). Never commit images or weights here; `.gitignore` in this folder blocks the usual suspects.
 
 Plan this serves: the owner's "Interstate 76 Texture Upscaling - Research & Experiment Plan" (2026-10-03),
@@ -24,7 +24,7 @@ spandrel_extra_arches 0.2.0, pyiqa 0.1.16, opencv-python, pillow, numpy, pyyaml.
 Quick start:
 
 ```
-PY=C:\Users\james\i76-upscale-work\.venv\Scripts\python.exe
+PY=<upscale-work>\.venv\Scripts\python.exe
 %PY% build_bench.py
 %PY% upscale_run.py --recipe recipes\smoke-anime-4to2.yaml --id my-run
 %PY% score.py my-run

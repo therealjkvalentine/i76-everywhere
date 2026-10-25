@@ -109,8 +109,8 @@ running reference (i76fix, 58d9dec0) and the sandbox's deployed `i76.exe` (4fabc
 Runtime pokes (no patch):
 - `input_self_destruct` 0x5367f9 = 1 destroys the player on the next input pass (0x44f58c).
   Measured live by the key path: CTRL+ALT+X detonates the player's car and is scripted as `Send-SelfDestruct` in
-  `../i76-uncap-lab/autotest/lib/cheatlib.ps1`, used for every death-cam run
-  (`../i76-uncap-lab/docs/framerate/MEASUREMENTS.md:151-153`). The direct byte poke of 0x5367f9 itself is still
+  `../<lab>/autotest/lib/cheatlib.ps1`, used for every death-cam run
+  (`../<lab>/docs/framerate/MEASUREMENTS.md:151-153`). The direct byte poke of 0x5367f9 itself is still
   unpoked (corrected 2026-10-02).
 - Setting `options_play_flags` bits 8 / 0x10 turns on the game's own Unlimited Armour / Chassis (offline only).
 

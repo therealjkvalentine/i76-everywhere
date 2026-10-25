@@ -2,7 +2,7 @@
 
 **Regraded 2026-10-02 12:55** from the recorded run (its observation windows, telemetry and set / reset read-backs) with the current expectations.json and grader; the game was not run again for this table.
 
-Generated 2026-10-02 12:55. Run: `C:\Users\james\i76-map\verify\runs\poke\20261002-122128` (route melee, exe i76_pristine_fix.exe md5 58d9dec0, profile stock20, proxy 9a081000). Telemetry frames 12721, events 1165. Sandbox restore: STRLKUP.DLL md5 54f2de9d after the run; quit: clean exit 0.5s after WM_CLOSE (code 3221225477); errors: []; warnings: [].
+Generated 2026-10-02 12:55. Run: `<re-archive>\verify\runs\poke\20261002-122128` (route melee, exe i76_pristine_fix.exe md5 58d9dec0, profile stock20, proxy 9a081000). Telemetry frames 12721, events 1165. Sandbox restore: STRLKUP.DLL md5 54f2de9d after the run; quit: clean exit 0.5s after WM_CLOSE (code 3221225477); errors: []; warnings: [].
 
 Each expectation: observe (A1), observe (A2) with nothing changed (the A/A control), set the tunable with i76tune (read back), observe (B), reset (pristine bytes / saved live value, read back), observe (A3). `formula` grades PASS when >= 98% of the frames that satisfy `when` are within tolerance in A1, A2 (default x), B (set x) and A3 (default x); increase / decrease / unchanged compare B with the A mean beyond max(2 x |A1 - A2|, min_delta). INCONCLUSIVE when no field can observe the change, the probe produced too few frames, the A/A pair disagrees, or the write did not read back.
 

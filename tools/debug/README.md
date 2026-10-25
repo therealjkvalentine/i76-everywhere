@@ -25,7 +25,7 @@ offline), dark theme. It serves `http://127.0.0.1:17690/` and nothing else.
 
 Options worth knowing:
 
-* `--any` - the trainer may attach to a game that is not the lab sandbox copy (`C:\Users\james\i76-uncap-lab\game`), as
+* `--any` - the trainer may attach to a game that is not the lab sandbox copy (`<lab>\game`), as
   `TRAINER.bat --any` did. The tab's "allow non-sandbox game" box does the same while running.
 * `--no-attach` - never open the game process: all the read-only panels work (they come from UDP, the log and the
   haptics host), the trainer is disabled.
@@ -44,7 +44,7 @@ those tabs say exactly that and what to do (`debug_haptics.py`):
 
 | what the tab finds | what it says / offers |
 |---|---|
-| the host is not found (a shipped folder has no `tools\haptics`; the owner's checkout `C:\Users\james\i76-everywhere` is looked for, or `I76_HAPTICS_HOST`) | where it lives; Start |
+| the host is not found (a shipped folder has no `tools\haptics`; the owner's checkout `` is looked for, or `I76_HAPTICS_HOST`) | where it lives; Start |
 | no wheel or pad (winmm joysticks - what the game reads - that answer `joyGetPosEx`, and XInput pads) | "nothing for the host to drive"; **Start anyway (dry run)** |
 | a wheel / pad (listed by name) | **Start haptics host**, and a "drive the devices (--live)" box (asks first) |
 | the host was started here | its pid, dry run or live, uptime, the last log lines while it waits for its first datagram; **Stop it** |

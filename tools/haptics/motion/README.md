@@ -130,7 +130,7 @@ Owner installs; the agents do not. No hardware, no game, nothing in the game fol
 4. **Motion** tab (motion add-on): add a generic 6DOF or 2DOF profile, open the **3D preview**, play the scenarios; the
    expectations are the same as Mover's step 6. The effect analyzer records the telemetry SimHub received.
 5. **ShakeIt** (optional): preview RPM / speed / gear-shift / wheel-slip / road effects with **no audio device** selected,
-   or the EVO 4 only when you are at the desk (audio may be muted by the agents: `i76-uncap-lab\tools\mute.ps1 -Off`).
+   or the EVO 4 only when you are at the desk (audio may be muted by the agents: `<lab>\tools\mute.ps1 -Off`).
 6. **Forza check**: switch the game to **Forza Motorsport 7**, read the UDP port SimHub shows for it (5300 assumed in
    `targets.json`; change `simhub-forza.port` if different) and run
    `tools\haptics\haptics.ps1 motion all --targets simhub-forza --send`. Gear / speed / rpm must match the scenario

@@ -1,8 +1,8 @@
 # Mount validation: what decides whether an equipped item stays mounted when a save loads
 
 Static reverse-engineering, 2026-10-02. Targets: pristine GOG `i76shell.dll` (md5 `deb41008…`, VAs at base
-0x10000000, capstone via `..\i76-map\shell\tools\sdis.py fn <va>`) and `i76.exe` (md5 `9a232dcc`, Ghidra
-decompilation `..\i76-map\ghidra\export\functions\004b58a0.c` etc.). No game was run. Closes BACKLOG P1-12 /
+0x10000000, capstone via `..\<re-archive>\shell\tools\sdis.py fn <va>`) and `i76.exe` (md5 `9a232dcc`, Ghidra
+decompilation `..\<re-archive>\ghidra\export\functions\004b58a0.c` etc.). No game was run. Closes BACKLOG P1-12 /
 SAVES-STATE H10 on the static side; section 6 is the sandbox test that settles the two field claims.
 
 Tags: **[static]** = read from an instruction or a decompiled body at the cited address; **[inferred]** = the meaning
@@ -49,7 +49,7 @@ here [static, decomp]:
 | `+0x868 + 12*i` | `{HLOC index, facing, meshType}` | HLOC +0x10/+0x14/+0x18 |
 | specials k | type 0xc + string-table name, or type 0 / "" for an empty SPEC | VCF SPEC |
 
-Stock corpus: meshType ∈ {1, 2, 4, 5}, facing ∈ {1, 2} (`..\i76-map\data\notes\vdf.md` §11), so the only slot types
+Stock corpus: meshType ∈ {1, 2, 4, 5}, facing ∈ {1, 2} (`..\<re-archive>\data\notes\vdf.md` §11), so the only slot types
 that occur in stock data are 7 and 8; types 9/10/11 are reachable in code but never produced. [static]
 
 Catalogue side (exe slot 00 `BuildPartsCatalogue` 0x4b4c10 -> weapon entry 0x4b5470): each weapon PartRec (0x54 bytes,
@@ -146,7 +146,7 @@ Checks, in the order the game applies them [static unless marked]:
 6. [inferred] If the dir entry's `+0x38` has bit 2 set, warn: the load will go through the post-mission form and the
    scene's `vppt` car can replace the loadout.
 
-Python sketch (reads the same bytes the game reads; `GDFC` offsets per `..\i76-map\data\notes\gdf-wdf-xdf-vtf.md`):
+Python sketch (reads the same bytes the game reads; `GDFC` offsets per `..\<re-archive>\data\notes\gdf-wdf-xdf-vtf.md`):
 
 ```python
 import struct
@@ -203,7 +203,7 @@ Partly [static]:
 - So the garage and the loader agree on the *turret* rule and both resolve parts by display name; the loader is simply
   more permissive in that it will accept any label and let the garage discover the mismatch.
 
-## 6. Live verification plan (sandbox `..\i76-uncap-lab\game`, console session only)
+## 6. Live verification plan (sandbox `..\<lab>\game`, console session only)
 
 Use a garage bookmark (state 8, loads straight into 0xC017) from the lab set, copied, with a `savegame.dir` entry whose
 `+0x38` flag word has bit 2 **clear**. Prepare two variants with the editor or a 20-line struct patch:
@@ -220,7 +220,7 @@ Use a garage bookmark (state 8, loads straight into 0xC017) from the lab set, co
    the turret on its row (name match, state 1). Click DONE: A must raise popup art 0x1c and stay in the garage; B must
    leave the garage. A row reading EMPTY on either variant means the name/state match failed, which is the editor-side
    bug of section 3 — fix the spelling or state and repeat before concluding anything about classes.
-3. **Diff the outputs.** For B: Save Bookmark, parse `ADDON\vehscn.vcf` (`..\i76-map\data\mod\i76mod.py show`) and expect
+3. **Diff the outputs.** For B: Save Bookmark, parse `ADDON\vehscn.vcf` (`..\<re-archive>\data\mod\i76mod.py show`) and expect
    `WEPN{2, tcmedium.gdf}`; diff the new `.cmp` against the input (names unchanged, record state 1). For A: uninstall
    the turret on the row, DONE, Save Bookmark; expect `+0x400[8] == "EMPTY"`, the record still in section A with
    state 2, and the (C) pane still listing it. Then the auto-mount check: load the same bookmark with dir `+0x38` bit 2

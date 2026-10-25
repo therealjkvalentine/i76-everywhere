@@ -13,7 +13,7 @@ bytes. PE image base `0x400000`, **no ASLR**, so every static VA below is also a
 address. A different build (e.g. the 2017 Galaxy exe, MD5 `9a232dcc…`) will have different
 addresses — re-anchor before trusting anything here.
 
-> **Corrections from `../i76-map/status/findings.md` (batch 2026-09-05, propagated 2026-10-02).**
+> **Corrections from `../<re-archive>/status/findings.md` (batch 2026-09-05, propagated 2026-10-02).**
 > - **L001** — 60abf7bc is the *same* 1998-02-19 link as the 2017 Galaxy exe 9a232dcc: `.text` differs in 2,459
 >   bytes over 45 clusters (`binaries/diff-9a232dcc-vs-60abf7bc.tsv`) and every address outside those clusters
 >   decodes identically in both files. Re-anchor only inside the listed clusters, not "everything".
@@ -351,15 +351,15 @@ Every one of these cost real time here, and none of them announce themselves:
 
 - ~~The **authoritative** position the physics integrator writes~~ — **closed**: the pose is the 0x40-byte
   transform at object+0x18 (3x3 float rotation, three position doubles), written by the physics directly; the
-  table and scene nodes are consumers (`../i76-map/status/GOAL-COVERAGE.md:25`; the proxy's render interpolation
+  table and scene nodes are consumers (`../<re-archive>/status/GOAL-COVERAGE.md:25`; the proxy's render interpolation
   swaps it in and out around the render call).
 - ~~Projectile system: fired rockets do not appear in the position table~~ — **closed**: the projectile pool is
-  specified in `../i76-map/subsystems/weapons.md:4-33`.
+  specified in `../<re-archive>/subsystems/weapons.md:4-33`.
 - ~~Exact field offsets inside the 0x90 component record~~ — **closed**: `components[24]`, health at +0x70
-  (`../i76-map/types/i76_runtime.h:302`).
+  (`../<re-archive>/types/i76_runtime.h:302`).
 - ~~Script-VM timer semantics: frames or milliseconds?~~ — **closed**: seconds on the mission clock
-  (`../i76-map/data/FSM.md:151`).
+  (`../<re-archive>/data/FSM.md:151`).
 - Whether the three render back ends share the same `[0x5DD2BC]`/`[0x5DD2C0]` pointers (expected, untested —
-  only Glide was exercised; the i76-map census never saw the D3D back ends run).
+  only Glide was exercised; the <re-archive> census never saw the D3D back ends run).
 - `I76PATCH.DLL` internals: what it hooks, and why it overshoots to ~20.66 fps (`docs/framerate/README.md:33`;
   backlog P4-06: disassemble its trampoline for the Sleep granularity).

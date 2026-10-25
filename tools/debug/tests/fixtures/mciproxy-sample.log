@@ -25,7 +25,7 @@
   StrLookup_Global_Object import repointed: slot was 67D32990, now -> 0097C030
   music-guard: on
   music: run end exclusive, disc order off (N -> N.mp3), shell as asked, resume on
-  str ok: open "C:\Users\james\i76-uncap-lab\game-dd-tel3\music\6.mp3" type mpegvideo alias i76cd
+  str ok: open "<lab>\game-dd-tel3\music\6.mp3" type mpegvideo alias i76cd
   str ok: setaudio i76cd volume to 600
   str ok: play i76cd
   PLAY track 6 (t=1242427062)

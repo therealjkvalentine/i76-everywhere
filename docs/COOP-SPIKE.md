@@ -7,7 +7,7 @@
 mission script and the AI still run separately on each machine, and the script follows a car of its own rather
 than either human.
 
-Setup: the Windows 11 PC (lab test copy `i76-uncap-lab\game`, stock car data) hosted over IPX (IPXWrapper 0.7.2), and
+Setup: the Windows 11 PC (lab test copy `<lab>\game`, stock car data) hosted over IPX (IPXWrapper 0.7.2), and
 the Mac (`I76 IPX TEST.app`, Wine, DxWnd + OpenGLide) joined, as in [MULTIPLAYER.md](MULTIPLAYER.md). Both test copies
 were restored afterwards, with every hash checked. n = 1 per row.
 
@@ -104,4 +104,4 @@ run where the gang actually engages, to watch a kill arrive on the joiner.
   3000, the tractor 800, the host's Piranha 400 / 360). Label table 0x54a178: {heap, table, count, cap}, entries of
   16 bytes = label[8], object pointer, 0.
 - Builder: `tools/coop-mission.py` (its output for T01 is byte-identical to the file tested here, miss8 and miss16).
-- Logs: PC `i76-uncap-lab\autotest\runs\mp\ipx\` (IPXWrapper), Mac session scratchpad (`coop-mac-*.log`).
+- Logs: PC `<lab>\autotest\runs\mp\ipx\` (IPXWrapper), Mac session scratchpad (`coop-mac-*.log`).

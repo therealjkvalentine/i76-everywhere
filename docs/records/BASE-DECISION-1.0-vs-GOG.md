@@ -81,7 +81,7 @@ hybrid?
 | force feedback | Immersion `iforce.dll` | `i7_sfrce` path | EXE-DIFF-MAP s.7 |
 | bug fixes after 1.0 | none (1.05 fixed MP bugs, Mission 12 save crash, landing-wreck guard) | Gold is the end of that line; AiO adds overrun fixes, `entity_Register` 256 bound | I76-VERSIONS s.2.2; FIX-INVENTORY s.2 |
 | how a user gets it | 1997 disc only | GOG, sold today | THIRD-PARTY.md, I76-VERSIONS s.1 |
-| our tooling | addrmap-retail, the emulator rig | everything: proxy, i76-map symbols, FORMATS.md parsers, trainer, tick | FIX-INVENTORY s.1; data\FORMATS.md (written for `9a232dcc`) |
+| our tooling | addrmap-retail, the emulator rig | everything: proxy, <re-archive> symbols, FORMATS.md parsers, trainer, tick | FIX-INVENTORY s.1; data\FORMATS.md (written for `9a232dcc`) |
 
 ## 2. Saves
 
@@ -96,7 +96,7 @@ hybrid?
 ## 3. Our patches and which exe they assume
 
 - **All of them assume Gold addresses.** FIX-INVENTORY s.1-5: the driver is the Gold link (1998-02-19) + AiO's 45
-  clusters + our import rename + the proxy's runtime hooks; i76-map's symbol table and `data\FORMATS.md` are for
+  clusters + our import rename + the proxy's runtime hooks; <re-archive>'s symbol table and `data\FORMATS.md` are for
   `9a232dcc`.
 - **The physics itself is untouched by any patch** (FIX-INVENTORY summary 2): we change physics only through time
   (clock, step length, dt). That is exactly the part the tick replaces.

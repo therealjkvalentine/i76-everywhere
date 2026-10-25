@@ -88,7 +88,7 @@ motion is frame interpolation on top:
 > point 4. There is now a real-frame-rate route: the proxy's switch set in
 > [music-fix/README.md](../music-fix/README.md) (`I76_HIRES_CLOCK`, `I76_FIXED_STEP=24`, `I76_FRAMERATE_FIXES`,
 > `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP`) keeps the physics on a 24 Hz step and draws interpolated frames at 60.
-> Sandbox-verified only; not yet console-verified by James. Frame-gen on a 20 fps base remains the deployed,
+> Sandbox-verified only; not yet console-verified by the developer. Frame-gen on a 20 fps base remains the deployed,
 > known-good option.
 
 - **The realistic path: [Lossless Scaling](https://store.steampowered.com/app/993090/) (LSFG),

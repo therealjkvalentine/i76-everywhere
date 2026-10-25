@@ -2,12 +2,12 @@
 
 2026-10-03. This is a static read only; the game was not launched. Inputs:
 - lab `game\i76.exe` (md5 85de44a7) and `i76shell.dll` (fd96f871);
-- the pristine control `i76-map\sandbox-gog\main\app` (exe 9a232dcc, shell deb41008);
+- the pristine control `<re-archive>\sandbox-gog\main\app` (exe 9a232dcc, shell deb41008);
 - the daily driver `Games\Interstate76-2026-10-03\Interstate 76` (exe 6319abf7, shell fd96f871), read-only.
 
 The check code is byte-identical in all three exes: 0x4b35a0..0x4b4300 and the tables 0x500050..0x500390. The shell
 call sites match the pristine shell (0x1002e69c.., 0x1002f368.., 0x10028418.., 0x1001e2f0.., 0x1002d2d0..,
-0x10008c50..). Existing notes agree: i76-map `data\VEHICLES.md` section 1/2, `data\notes\vcf-chain.md`,
+0x10008c50..). Existing notes agree: <re-archive> `data\VEHICLES.md` section 1/2, `data\notes\vcf-chain.md`,
 `shell\CALLBACKS.md` rows 25-26.
 
 ## 0. Answer
@@ -24,7 +24,7 @@ call sites match the pristine shell (0x1002e69c.., 0x1002f368.., 0x10028418.., 0
   755..788) adds up to 6156 points instead of 3200, so it trips flag 0x400. That car is the default (PICARD PIRANHA /
   JADE'S CAR). This explains the 8.6 freeze. The memory note about "modded ADDON car data" is true of the lab copies,
   not of the daily driver.
-- **How the owner and Andrew can play.** Use the daily driver as it is. Andrew's car-related game data has to match
+- **How the owner and the M2 tester can play.** Use the daily driver as it is. The M2 tester's car-related game data has to match
   byte for byte: a stock GOG `I76.ZFS` (md5 6dd57b16) and no `.vdf/.wdf/.gdf/.cdf` overrides in ADDON. Copying the
   `Interstate 76` folder does that. Nothing needs to be moved aside, and no patch is needed.
 
@@ -116,9 +116,9 @@ i76car.def variants pass: 23 stems, ADDON first.
 
 ## 5. Guidance
 
-**Owner + Andrew (recommended)**
+**Owner + the M2 tester (recommended)**
 1. Play from the daily driver as it is. Its car data passes, and every car in the multiplayer list passes too.
-2. Andrew needs byte-identical `.vdf/.wdf/.gdf/compnent.cdf`. The simplest way is a copy of the `Interstate 76`
+2. The M2 tester needs byte-identical `.vdf/.wdf/.gdf/compnent.cdf`. The simplest way is a copy of the `Interstate 76`
    folder. A GOG install of his own also works, if its `I76.ZFS` md5 is 6dd57b16 and his ADDON holds no
    vdf/wdf/gdf/cdf. A different release (CD 1.0, Nitro) may differ in gdf/cdf. The host would then drop him with
    "hacked vehicle" after he joins, rather than show the rejected box.
@@ -139,4 +139,4 @@ place, because removing `valepre4.vcf` removes the variant.
   alternative is to pick another car in the host form.
 - A proxy switch that makes slot 26 return 1 only removes the local box. The receiving exe (0x456fb0) still checks the
   rules and the CRC and drops the player, so a bypass would have to patch both the shell site and the exe check on
-  every PC. Not recommended for play with Andrew.
+  every PC. Not recommended for play with the M2 tester.

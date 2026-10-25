@@ -2,7 +2,7 @@
 
 `tools\trainer\i76tune.py` changes the game's physics, weapon, AI, camera and sound constants in a **running**
 Interstate '76 from a catalogue, `tunables.json`, whose entries come straight out of the reverse-engineering specs in
-`i76-map\subsystems\*.md`. It is the spec made pokeable: every entry names its address, type, pristine value,
+`<re-archive>\subsystems\*.md`. It is the spec made pokeable: every entry names its address, type, pristine value,
 unit, meaning and the spec section it came from.
 
 ```
@@ -20,7 +20,7 @@ python i76tune.py --offline list [group]    no game needed: image defaults + ver
 ## How it works
 
 - **Process access** is `i76trainer.py`'s: `find_game` (refuses anything but the sandbox copy at
-  `C:\Users\james\i76-uncap-lab\game` unless `--any`), `Game.rd / wr / u32 / f32` and the player lookup
+  `<lab>\game` unless `--any`), `Game.rd / wr / u32 / f32` and the player lookup
   `[[[0x54a264]]+0x70]`. Never point it at the daily-driver install.
 - **exe-scope entries** are constants in the game image: `.rdata` floats (most of them), a few `.data` tables (the
   gear ratios at `0x4f8640`, the far-clip source `0x4c271c`) and nine **instruction immediates** in `.text` (marked
@@ -43,7 +43,7 @@ python i76tune.py --offline list [group]    no game needed: image defaults + ver
   - `blown_tyre_pull`, `engine_pitch_base_hz` -> their negated twins; `pushout_speed` -> its squared threshold;
     `cluster_spread_span` -> the half-width.
 - **Ranges.** Each entry has a sane `[min, max]`; `set` refuses values outside it unless `--force`.
-- **Defaults and verification.** `--offline list` opens the pristine image `i76-map\ghidra\i76_ref.exe`
+- **Defaults and verification.** `--offline list` opens the pristine image `<re-archive>\ghidra\i76_ref.exe`
   (md5 `9a232dcc...`, or `--image <path>`), prints the catalogue with the image's value next to the catalogue
   default, and checks every exe-scope default and derived twin byte-for-byte (relative tolerance 2e-4 for the
   spec's rounded numbers such as 1.674 for the stored 1.673966). Current state: 157 of 157 exe-scope entries
@@ -172,7 +172,7 @@ Append to `entries` in `tunables.json`: `id`, `group`, `name`, `addr` (VA for ex
 (wheels) and `derived` (`addr` or `off`, `type`, `formula` in `x`, with `rd(off)` / `ri(off)` reading an f32 / i32
 at base+off - hp words are i32, so use `ri` for them - and `note`). Then run `--offline list`: an entry whose bytes do not match its default or section is
 reported as `MISMATCH` and should be fixed or dropped before use. The addresses are for md5 9a232dcc (the GOG / AiO
-link); `tools\disasm.py <function>` in i76-map shows the readers.
+link); `tools\disasm.py <function>` in <re-archive> shows the readers.
 
 ## Verified live (2026-10-01, sandbox)
 

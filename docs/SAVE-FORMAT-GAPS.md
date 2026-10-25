@@ -1,7 +1,7 @@
 # Save format: what we READ vs what the GAME writes
 
 *Reconciled 2026-10-02 against the shell's own writer (`i76shell.dll` `Cmp_Write` 0x10032980,
-`dir_WriteAndSave` 0x10032f80 - `../i76-map/shell/SAVE.md`, `shell/work/cmp-layout.md`) and 46
+`dir_WriteAndSave` 0x10032f80 - `../<re-archive>/shell/SAVE.md`, `shell/work/cmp-layout.md`) and 46
 game-written `.cmp`/`.spc` files + 5 `savegame.dir` files (byte-exact round trips in
 `tests/test_save_editor.py`). The 2026-07 version of this page was built on an inventory frame
 that started 32 bytes late and a directory frame that started 36 bytes late; everything it called
@@ -138,7 +138,7 @@ avoid; the editors never do it. The `save-01.cmp` orphan is a shell bug reproduc
    rows to watch the mission start was not done - CAL LABEL 7 / 7+1
 8. meaning of PartRec +0x42 (11 on turrets), +0x68 (0..3), GarageRec +0x864 slot classes - no probe
 
-Captures and the full record of the 2026-10-02 run: `..\..\i76-uncap-lab\autotest\saves\runs\garage-ui\RESULTS.md`.
+Captures and the full record of the 2026-10-02 run: `..\..\<lab>\autotest\saves\runs\garage-ui\RESULTS.md`.
 
 ## 4. Retired (2026-07 statements that were the frame offset)
 

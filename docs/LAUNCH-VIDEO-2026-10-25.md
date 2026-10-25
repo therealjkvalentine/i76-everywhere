@@ -38,7 +38,7 @@ west, the map edge and the barn in view; RC-DRAW-FPS s.3, the far-edge lane's `h
 | 8 | Jump with the nose-dive (0.91) | needs the jump replay harness (TICK-FINISH s.22.6: stored start + scripted run-up) wired into `record-shot.ps1` as a route; before = `I76_JUMP_NOSE` stripped | 6 s | "nose-down off the lip eased 9 %: 0 of 12 wrecks vs 1 of 12" (TICK-FINISH s.22.6) | **missing** |
 | 9 | Multiplayer menu, zoom on co-op / AI | v1: `still` zoom on the host form (lab `captures\coop-list-20261018\a-list12.png`, the 640x480 shell: Co-op Scene 1-3 in AREA OF PLAY). Next: a live capture of HOST -> AREA OF PLAY scrolling (record-shot menu route; the menus click by `Click-UI` coordinates) | 6.5 s | CO-OP SCENES / AI CARS IN EVERY ARENA / JOINERS SPAWN 27 M FROM THE HOST / CANCEL 5 S -> 1.4-2.1 S (LAN-FIXES s.1, s.3, s.4) | still only |
 | 10 | Four-player LAN, cars agreeing across screens (PC + Macs) | owner session: PC host captured by ffmpeg (record-shot with `--windowed` launch) + each Mac with `screencapture -v` / QuickTime, synced on a horn / a shot; composed as a 2x2 grid | 10 s | "4 players, 3 machines, one arena" | **missing (owner + Macs)** |
-| 11 | The same build on a Mac | Mac screen recording of the Gold app (Andrew's or the MacBook) at 1080p | 5 s | "same proxy, same fixes, macOS (Wine)" | **missing (Mac)** |
+| 11 | The same build on a Mac | Mac screen recording of the Gold app (the M2 tester's or the MacBook) at 1080p | 5 s | "same proxy, same fixes, macOS (Wine)" | **missing (Mac)** |
 | 12 | 86Box P166 reference beside ours | `PLAY-P166.bat` capture of the 86Box window (ddagrab on its rect) + `route-all` on T05, `sbs` | 8 s | "tuned to the 1997 tick: 41.667 ms, as a P166 ran it" | **missing (needs the emulator run, ~10 min boot)** |
 | 13 | 60-second Patch Kit install | screen capture of `INSTALL.bat` / Patch Kit on a clean GOG copy (laptop bench, native 1080p), sped to 10 s with a timer | 10 s | "GOG copy -> patched in 60 s" | **missing** |
 | 14 | FFB page beside the game | v1: `panel` = `route-all` at 1280x720 + the FFB page (http://127.0.0.1:17691/ layout) replayed from the panel lane's recorded DryRun drive (`ffb-panel-replay.py`, lab `captures\ffb-panel-20261025\p3.states.jsonl`, Playwright + Edge headless, values interpolated 5 Hz -> 30 Hz). Next: a simultaneous capture (PLAY.bat `--windowed 1280x720 --panel` on the owner's wheel) | 9 s | "14 channels from the engine's own state, live tuning page" (RC s.8, FFB-PANEL s.1) | yes (replayed data, not the same drive) |
@@ -69,7 +69,7 @@ west, the map edge and the barn in view; RC-DRAW-FPS s.3, the far-edge lane's `h
 .\record-batch.ps1 -Shots route-stock, route-all, fade-before, morph-before, mirror-before, mirror-after   # queues for the console
 python ffb-panel-replay.py --states <lab>\captures\ffb-panel-20261025\p3.states.jsonl --out <lab>\captures\launch-video\raw\ffb-panel --from 64 --seconds 24
 python make-music.py --out <lab>\captures\launch-video\work\groove.wav --seconds 95
-python compose.py --timeline timeline-v1.json --out <lab>\captures\launch-video\draft-v1.mp4 --music <...>\groove.wav --theme "C:\Users\james\Games\I76\Interstate 76 Gold\Interstate 76\music\2.mp3"
+python compose.py --timeline timeline-v1.json --out <lab>\captures\launch-video\draft-v1.mp4 --music <...>\groove.wav --theme "<games>\I76\Interstate 76 Gold\Interstate 76\music\2.mp3"
 ```
 
 Rules it keeps: it never touches a main copy (the theme mp3 is only read), never mutes the host (proxy `I76_MUTE` + the per-pid

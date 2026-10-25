@@ -1,8 +1,8 @@
 # Saves protocol, Leg B: sandbox run 2026-10-01
 
 *Unattended run of SAVES-STATE-AND-TEST-PLAN.md section 4.4 (Leg B: load the bookmark Leg A wrote, verify the car in
-the mission) on the lab copy `C:\Users\james\i76-uncap-lab\game`, physical console, nobody at the machine. Harness:
-`C:\Users\james\i76-uncap-lab\autotest\saves\leg-b.ps1` (leg-a.ps1's infrastructure verbatim plus the load/mission
+the mission) on the lab copy `<lab>\game`, physical console, nobody at the machine. Harness:
+`<lab>\autotest\saves\leg-b.ps1` (leg-a.ps1's infrastructure verbatim plus the load/mission
 steps), `dir_set_scene.mjs` (the browser editor's corrected `dirSetScene` applied to a copy of the directory),
 `restore_set.ps1` (puts a `save-backup-<ts>\` set back and verifies md5s). Evidence per run under
 `autotest\saves\runs\20261001-192903-b1\` and `runs\20261001-193139-b2\` (log.txt, step PNGs, snapshot JSON, parsed
@@ -32,7 +32,7 @@ pre-Leg-B set (12 files, 0 md5 mismatches, `vehscn.vsf` removed), original `STRL
 
 | item | result |
 |---|---|
-| 1. session | `TerminalServerSession = False`; `query session`: `>console james 1 Active` |
+| 1. session | `TerminalServerSession = False`; `query session`: `>console <user> 1 Active` |
 | 2. process / lock | no `i76*` process; `.console-test.lock` absent; taken per launch, removed in `finally` |
 | 3. backup | `game\save-backup-20261001-192903\` (pre-Leg-B = post-Leg-A set, 7 records) and `save-backup-20261001-193139\` (post-B1), each with `md5.txt`. Pre-Leg-B md5s: savegame.dir 04cfcfd6 424 B; save000..006.cmp 96459ac3 / 939f0463 / 34acb28c / dbd651d3 / d53e1c5c / e8e1af48 / dbd651d3; reconfig.spc 0d916ca3; trip4.spc d14f5dd4 9212 B; I76PLYR.DEF 6819935d; ADDON\vehscn.vcf 7c5befb2 309 B (the T1 edit); **user.rpr and ADDON\vehscn.vsf absent** |
 | 4. identity | `i76shell.dll` 0x1B52C = 0x41, 0x1B535 = 0x08; `deploy-shellfix -Status`: both PATCHED, u32x present; `i76.exe` md5 4FABC303...; **u32x has no `DisableProcessWindowsGhosting`** (known; Leg B never sits in a modal loop, it did not matter) |

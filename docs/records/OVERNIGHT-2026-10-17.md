@@ -51,7 +51,7 @@ touched (cursor lane verifier read the driver's md5s read-only). This synthesis 
   10.68 m/s. The cause stands.
 - **Owner tests (lane, with the verifier's wording problems):** 12-cursor-fix.bat (high, 5 min; promote yes / no on pointer feel
   and the 4:3 menu) and 08 hill start (medium, 5 min; also say if the ~14.6 s wait before the move is acceptable). Verifier notes:
-  the 08 step should name `C:\Users\james\i76-uncap-lab\OWNER-TESTS-2026-10-17\08-hill-next.bat`; the 12 step "DONE without an
+  the 08 step should name `<lab>\OWNER-TESTS-2026-10-17\08-hill-next.bat`; the 12 step "DONE without an
   engine" should say to sell the engine in the garage first; the 12 header comment points at OWNER-FEEDBACK-FIXES item 3, cosmetic.
 - **Open decision:** promote the 4 files or not. If yes, the game-night MP pack must be rebuilt (4 files change).
 
@@ -104,7 +104,7 @@ touched (cursor lane verifier read the driver's md5s read-only). This synthesis 
 - **A/A divergence and its cause:** Gold rep 1 A/A with the wall-clock wait: 63 of 1304 frames identical, first difference at frame
   709 (n 2 pairs); pre-roll alone the same (n 2 pairs, 173805 / 174548: 63); with pre-roll 150 + srand 1: **1304 of 1304 bit-identical
   (n 3)**. New opt-in switches `I76_REPLAY_PREROLL` and `I76_REPLAY_SRAND`. The exe seeds from the clock: `srand(time(NULL))`
-  confirmed statically at i76-map 004a9020 and 004ad260 (log "srand calls 4").
+  confirmed statically at <re-archive> 004a9020 and 004ad260 (log "srand calls 4").
 - **Replays:** all 8 (Gold mloop reps 1-4, retail 1.0 simulation reps 1-4, each once): sim_dt bit mismatches 0, input bit
   mismatches 0, missing 0. Lab speed within 0.01 m/s of the emulator for the first 19-47 frames of the accel phase (n 8), over 1 m/s
   after 173-500 frames; end-of-acceleration speed differences Gold +0.27..+3.50 m/s, retail -0.91..+2.06 m/s (sign mixed).

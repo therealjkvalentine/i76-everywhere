@@ -10,7 +10,7 @@
 > `verify_v3_sites.py` checks every patched site's bytes in the pristine and the lab exe.
 
 > **Verified live 2026-10-01 (sandbox, i76.exe, t01):** 1,067 of 1,067 frames decoded with the player present, frame counter monotonic, gear / rpm / ammo / weapon name matching the live tables; a 3-second burst produced SHOT events whose `ammo left` stepped 699, 698, ... in lock with the weapon instance table, one IMPACT and one EXPLOSION (`X1_BULC1`, 8 m) - see `verification-2026-10-01.txt`. The telemetry stops while the game is outside its play loop (menus, mission over); that is by design. The rest of this file is the static reading it was written from.
-> through the i76-map specs, compiled and size-checked but never run against the game. Field sources are cited so a
+> through the <re-archive> specs, compiled and size-checked but never run against the game. Field sources are cited so a
 > live check can go straight to the instruction when a value looks wrong. First checks to make: the frame counter
 > advances by 1 per datagram, `speed` matches the HUD, `gear` steps 1 -> 2 -> 3 -> 4 as `engine.md` says, one `SHOT`
 > event per trigger pull with `ammo left` falling by `count`, an `IMPACT` with `PLAYER` on a wall hit.
@@ -49,7 +49,7 @@ Test on the sandbox copy, not the daily-driver install (`docs/records/FFB-DATA-A
 **When.** At the top of the frame hook, i.e. the first instruction of frame N+1 of WinMain's loop, before
 `simclock_Update` advances the counters. At that point frame N is complete: input, every object's tick (physics
 substeps), the post-ticks (`ffb_WriteSimState` among them), the script VM, the camera, the render and the Flip
-(`i76-map subsystems/framerate.md`). So the struct describes the frame that was just shown, with the physics pose
+(`<re-archive> subsystems/framerate.md`). So the struct describes the frame that was just shown, with the physics pose
 (`I76_RENDER_INTERP` restores it after the render call), and it goes out before any `I76_FPS_CAP` wait. The audit's
 two candidate points were not used because both are conditional: `call 0x446110` at 0x445e83 runs only while
 0x52bbd0 == 1 (a wheel driver or the shim present), and `render_wrap` exists only under `I76_RENDER_INTERP`.

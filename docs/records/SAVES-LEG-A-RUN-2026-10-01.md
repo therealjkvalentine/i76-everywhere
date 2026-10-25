@@ -1,8 +1,8 @@
 # Saves protocol, Leg A: sandbox run 2026-10-01
 
 *Unattended run of SAVES-STATE-AND-TEST-PLAN.md section 4 (4.0-4.3, Leg A) on the lab copy
-`C:\Users\james\i76-uncap-lab\game`, physical console, nobody at the machine. Harness written for this run:
-`C:\Users\james\i76-uncap-lab\autotest\saves\` (`leg-a.ps1`, `parse_saves.py`, `ui_i76.py`). Per-run evidence
+`<lab>\game`, physical console, nobody at the machine. Harness written for this run:
+`<lab>\autotest\saves\` (`leg-a.ps1`, `parse_saves.py`, `ui_i76.py`). Per-run evidence
 (log, screenshots, snapshot JSON, parsed listings, proxy log slice) under `autotest\saves\runs\<ts>-<mode>\`.
 No repository source file was edited. Every claim below is from the run log or the files on disk; nothing is
 inferred from a screenshot alone.*
@@ -26,7 +26,7 @@ lock removed, no `i76*` process. The lab save set is now the post-test set (7 re
 
 | item | result |
 |---|---|
-| 1. session | `TerminalServerSession = False`; `query session` shows `>console james 1 Active` |
+| 1. session | `TerminalServerSession = False`; `query session` shows `>console <user> 1 Active` |
 | 2. process / lock | no `i76*` process; `.console-test.lock` absent; taken by `leg-a.ps1` for each launch and removed in `finally` |
 | 3. backup | `game\save-backup-<ts>\` per launch with `md5.txt`: savegame.dir 9e15bd6e... 364 B; save000..005.cmp 96459ac3 / 939f0463 / 34acb28c / f1c4d535 / d53e1c5c / e8e1af48; reconfig.spc 0d916ca3 10604 B; trip4.spc d14f5dd4 9212 B; I76PLYR.DEF 88dfbc75 96 B; ADDON\vehscn.vcf 7c5befb2 309 B; **user.rpr and ADDON\vehscn.vsf do not exist** in the lab folder |
 | 4. identity | `i76shell.dll` 0x1B52C = 0x41, 0x1B535 = 0x08 (F1 repaired); `deploy-shellfix.ps1 -Status`: i76shell.dll PATCHED, i76.exe PATCHED, u32x.dll present; `i76.exe` md5 4FABC303..., imports u32x; **`u32x.dll` does not contain `DisableProcessWindowsGhosting`** (known blocker, proceeded as instructed; outcome in section 5) |
@@ -145,7 +145,7 @@ No CD-2 prompt, no crash, both exits clean on WM_CLOSE (0.5 s).
   only blanked the state names. Restore and lock removal now come first in `finally`.
 - Row click: Load list rows drew at UI y 193/215/239/261/285/307 (23 apart), labels "SCENE 2, 3, 4, 5, 6, 6 s"
   for records scene 1,2,3 (+0x34 = 1, so +1: H11 confirmed on screen) and 5,6,6 (+0x34 = 8).
-- `ui_i76.py` is the `ui.py` copy keyed on `i76.exe` under `i76-uncap-lab`; `leg-a.ps1` takes its screenshots
+- `ui_i76.py` is the `ui.py` copy keyed on `i76.exe` under `<lab>`; `leg-a.ps1` takes its screenshots
   inline (same GDI BitBlt of the window, 960x720 PNG) to avoid a Python start inside the 6 s window.
 - `parse_saves.py` reproduces plan section 0 exactly and is what the "formula OK" claims above come from.
 

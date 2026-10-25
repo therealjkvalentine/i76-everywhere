@@ -16,7 +16,7 @@ Full write-up, sources and data: lab `docs/AI-COMBAT-PARITY-2026-10-13.md` (sect
 2. **Why 24.** It is not a 1997 number. It comes from this PC's clock.
    - On Windows 10, GetTickCount only moves in steps of 15.625 ms.
    - Capped at 20 fps (what we played under GOG's I76PATCH.DLL until 2026-10-03), each 50 ms frame reads as 46.9 or 62.5 ms.
-     The engine cuts frames into physics steps of at most 50 ms. Measured 2026-09-27 (i76-map capture 014), that comes to
+     The engine cuts frames into physics steps of at most 50 ms. Measured 2026-09-27 (<re-archive> capture 014), that comes to
      **24 physics steps a second**, averaging 41.7 ms.
    - That is why `I76_FIXED_STEP=24` matches the jumps and the chassis feel of "stock 20". The first try, 40 steps a
      second, landed jumps short.
@@ -76,7 +76,7 @@ down to that tick in place of GetTickCount.
 
 | profile | switches | what it stands for |
 |---|---|---|
-| **stock20** (the reference) | `I76_FPS_CAP=20` | stock exe, Windows 10 clock, 20 fps: GOG's I76PATCH as James played it to 2026-10-03 |
+| **stock20** (the reference) | `I76_FPS_CAP=20` | stock exe, Windows 10 clock, 20 fps: GOG's I76PATCH as the developer played it to 2026-10-03 |
 | stock24 | `I76_FPS_CAP=24` | same clock at 24 fps (lab convention 10-08..10-13) |
 | R-1997a | `I76_FPS_CAP=20` + `I76_TICK_MS=55` | Windows 95 clock (if 55 ms), ~20 fps (P166 + Voodoo 1 class) |
 | R-1997b | `I76_FPS_CAP=30` + `I76_TICK_MS=55` | Windows 95 clock, ~30 fps (faster 3D card) |
@@ -146,11 +146,11 @@ no code changes. Rule: exact quotes only where the text was read first-hand; "no
 | 6 | Kurt Arnlund blog, potm.org/.../category-i76.php | post dated 28/03/97 (written later; site (c) 1994-2012) | Kurt Arnlund (programmer; lead on the expansions) | "We worked on I'76 for about 9 months as I remember, because that was the default production schedule in those days."; nearly done by E3 1996; wrote weapons, explosions, cockpit displays, the collision blur ("wiggle-burger"). Expansion post (18/04/98): Nitro Pack added "Direct 3D support, Glide, Rendition, and force feedback". | 3D APIs arrived with the expansions; no fps/timer. |
 | 7 | MobyGames bio, mobygames.com/person/30089/kurt-arnlund/ (via Wayback) | undated | MobyGames (Arnlund-sourced) | "Along with an external contractor, Kurt made changes to allow I'76 to run on a hot new peripheral called a 3D cards which were just starting to catch on back then." | 3D support was retrofitted. |
 | 8 | gameai.com games page (Wayback 2004-04-04) | c. 1997-98 | Karl Meissner (AI programmer), e-mails to Steve Woodcock | FSM script VM: "The overhead of the virtual machine is probably less than 1/2% of the CPU time so it is efficient." | Only CPU-budget remark from a programmer; no fps. |
-| 9 | MobyGames credits, mobygames.com/game/347/interstate-76/credits/windows/ (via Wayback) | 1997 | credits | Directed by Sean Vesce; Produced by Scott Krager; Lead Designed/Written by Zachary Norman; **Lead Programmer Dan Stanfill**; programmers Kurt Arnlund, Scott T. Etherton, Patrick Griffith, Julio Jerez, Karl Meissner, Jean-Marc Morel, John Northan, Marshall Robin, David White, Henry Yu; QA lead Jason Wong, 14 testers, ~260 named external testers. | Names used for the search; the external test pool was large. |
+| 9 | MobyGames credits, mobygames.com/game/347/interstate-76/credits/windows/ (via Wayback) | 1997 | credits | Directed by Sean Vesce; Produced by Scott Krager; Lead Designed/Written by Zachary Norman; **Lead Programmer Dan Stanfill**; programmers Kurt Arnlund, the tester T. Etherton, Patrick Griffith, Julio Jerez, Karl Meissner, Jean-Marc Morel, John Northan, Marshall Robin, David White, Henry Yu; QA lead Jason Wong, 14 testers, ~260 named external testers. | Names used for the search; the external test pool was large. |
 | 10 | Dev Game Club ep. 427 show notes, devgameclub.com (2025-04-23) | 2025-04-23 | Sean Vesce, Zack Norman (audio interview) | Topics listed: "getting enough memory to run the games", "high polygon counts", "optimizing and making things up as you go along", engine development. | **Not listened to** (audio only, no transcript). Best remaining lead for first-hand hardware talk. |
 | 11 | Original CD #1, README.HLP ("Technical Help"; archive.org item interstate-76-activision-1997, read offline) | 1997-03 (file dates 1997-03-08..13) | Activision | "Minimum System Requirements for Interstate '76 ... Processor Type: Pentium 90MHz"; 640x480 colour, card with 1 MB; "4X speed CD-ROM drive (600K/second sustained transfer rate)"; "80MB ... for minimum install and 110MB for recommended install"; "Additional 40MB ... for virtual memory if you have less than 32MB RAM"; "You may experience slower performance when playing the game using a Cyrix processor. This is partially due to the fact that Interstate '76 is designed for use on a Intel Pentium processor. Try adjusting the settings in the Graphic Detail menu within the game to get better performance."; "Orchid Righteous 3D will not play in 320x 240 mode. It should work fine in 640 x 480 and higher resolutions."; Win95 only (DOS, NT, OS/2 unsupported). | Design target = Intel Pentium; performance knob = Graphic Detail; a Voodoo card is mentioned only as a 2D pass-through issue. |
 | 12 | Original CD #1, HELP.HLP and README.TXT | 1997-03 | Activision | HELP.HLP: "How can I improve performance? Close all other programs while playing."; screen savers "may loss performance"; NexGen processor workaround "will not degrade game performance". README.TXT: Matrox Millennium issue "In Full Screen mode in 320x240 or 480x360 mode". | Shipping render modes 320x240 / 480x360 / 640x480. No fps. |
-| 13 | GOG install strings.txt, C:\Users\james\i76-map\sandbox-gog\main\app\strings.txt | Gold/Nitro era | Activision | "This option enables I'76 to use Direct3D function calls to speed up the game. This option was made available when you chose to install the 3D-accelerated version of the I'76 Upgrade ... if you have a Rendition or 3Dfx based 3D-graphics card, you may be able to do even better by choosing the 3Dfx or Rendition options." Same text for PowerVR. | 3D paths are an "Upgrade"; the GOG copy carries no Technical Help file (only Customer_support.htm, Manual.pdf, BUILDER.DOC). |
+| 13 | GOG install strings.txt, <re-archive>\sandbox-gog\main\app\strings.txt | Gold/Nitro era | Activision | "This option enables I'76 to use Direct3D function calls to speed up the game. This option was made available when you chose to install the 3D-accelerated version of the I'76 Upgrade ... if you have a Rendition or 3Dfx based 3D-graphics card, you may be able to do even better by choosing the 3Dfx or Rendition options." Same text for PowerVR. | 3D paths are an "Upgrade"; the GOG copy carries no Technical Help file (only Customer_support.htm, Manual.pdf, BUILDER.DOC). |
 | 14 | Computer Gaming World #155 review (archive.org OCR, Computer_Gaming_World_Issue_155) | June 1997 | Jeff Green | Spec box: "P90, Windows 95, 16MB RAM, 80MB hard drive space, 256-color SVGA graphics, VESA Local Bus or PCI video w/1MB RAM, 4x CD-ROM"; "the forthcoming Direct 3D patch (not available as of this writing) should improve things even more"; "The 3D graphics are a generation above MechWarrior 2's"; "In the 1.0 release, gamers were randomly dropped back to Win 95 without warning. However, the game's first patch seemed to fix these crashes."; "The computer opponents, for once, seem unusually smart and agile". Designers listed: Vesce, Norman, Stanfill. | No fps, no test machine. AI praised, which matters for the 55 ms question below. |
 | 15 | CGW #156 (Computer_Gaming_World_Issue_156) | July 1997 | CGW | "Interstate 76 V1.05: More than a dozen fixes make this the hippest, baddest multi-melee around-especially since the host no longer gets double kills." | Patch 1.05 = multiplayer fixes; no timing. |
 | 16 | PC Gamer UK #44 cover-disc notes (archive.org OCR) | June 1997 | PC Gamer UK | Demo spec: "P100 (P133 recommended), 16Mb RAM (32Mb RAM recommended), Windows 95". | Only period source giving a **recommended** CPU in print: P133. |
@@ -188,7 +188,7 @@ Not found, after looking: a 3Dfx or Activision press release naming I'76 (3dfx.c
 ### Recommendation for the reference profile
 
 1. **Keep stock20 as the parity reference.** Nothing from 1997 pins a frame rate, so a measured, reproducible profile
-   beats a reconstructed one; and stock20 is what James played.
+   beats a reconstructed one; and stock20 is what the developer played.
 2. **Period bracket to emulate, if one is wanted:** Intel **Pentium 166**, 32 MB, **software renderer** (the game as
    reviewed and sold March-June 1997), Windows 95. A 3Dfx Voodoo Graphics (Monster 3D) profile is a *second* bracket
    representing the game from July 1997 (1.08 beta) and Gold onward, not the launch game.
@@ -205,7 +205,7 @@ Not found, after looking: a 3Dfx or Activision press release naming I'76 (3dfx.c
    Norman, 2025; topics include memory and polygon budgets); the Next Generation Nov 1996 preview on paper (p.147);
    the PC Gamer US June 1997 review; Google Groups for comp.sys.ibm.pc.games.action, March-July 1997.
 
-Working files for this research (BBS captures, OCR text, decoded help topics) are in `C:\Users\james\AppData\Local\Temp\i76research` on this PC (a temp folder; copy out anything worth keeping);
+Working files for this research (BBS captures, OCR text, decoded help topics) are in `<local-appdata>\Temp\i76research` on this PC (a temp folder; copy out anything worth keeping);
 the CD image itself was read from archive.org item `interstate-76-activision-1997` and was not installed or run.
 
 ## Box requirements (Arsenal box, photo from the owner, 2026-10-15)

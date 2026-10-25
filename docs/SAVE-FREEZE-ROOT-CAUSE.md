@@ -45,7 +45,7 @@ raw screen coordinates.
    confined to the **rendered UI** instead of the physical corner.
 
 A `-DU32X_LOG` build (`u32x_log.dll`) writes every translation to
-`i76-uncap-lab/captures/save/u32x.log` — use it to *verify* translation is happening rather than
+`<lab>/captures/save/u32x.log` — use it to *verify* translation is happening rather than
 assume it, which is the mistake v1 made.
 
 > **Lesson worth keeping:** v1 was declared "verified" on the strength of a synthetic repro
@@ -57,7 +57,7 @@ assume it, which is the mistake v1 made.
 
 ## The v1 fix (u32x proxy) — SUPERSEDED, retained for its diagnosis
 
-A USER32 coordinate-translation proxy (`i76-uncap-lab/src/u32x.c`, same technique as the
+A USER32 coordinate-translation proxy (`<lab>/src/u32x.c`, same technique as the
 SMACKW32 music fix) is installed beside `i76shell.dll`, and the shell's import string
 `USER32.dll` is retargeted to `u32x.dll`. 39 of the shell's 43 USER32 imports forward straight
 through; four are intercepted to translate between real screen coordinates and the shell's
@@ -66,7 +66,7 @@ always receives an in-range coordinate**, so the hit-test always resolves and th
 never hang — and it is self-calibrating, so it is correct whether or not dgVoodoo pre-maps the
 cursor, windowed or fullscreen, at any resolution.
 
-Deploy/rollback: `i76-uncap-lab/tools/instruments/deploy-shellfix.ps1 -GameDir <dir>`
+Deploy/rollback: `<lab>/tools/instruments/deploy-shellfix.ps1 -GameDir <dir>`
 (`-Restore` / `-Status`); keeps `i76shell.dll.orig`. **Deployed to the portable install
 2026-08-10.**
 
@@ -208,7 +208,7 @@ coordinates in the range the shell expects. The Windows path stretches a 640×48
   returning −1 (`sprintf("save%3.3d", -1)` → `save-01.cmp`), see
   [SAVE-FORMAT-GAPS.md](SAVE-FORMAT-GAPS.md).
 - Tools built for this, reusable on any hung process:
-  `i76-uncap-lab/tools/instruments/where-spinning.ps1` (sample EIP of a spinning 32-bit process
+  `<lab>/tools/instruments/where-spinning.ps1` (sample EIP of a spinning 32-bit process
   and attribute it to a module) and `spin-args.ps1` (read the syscall's stack arguments).
 
 ---
@@ -338,7 +338,7 @@ because synthetic keystrokes land zero characters where a human lands one.
 
 ## 2026-09-06: ROOT CAUSE FOUND - DWM window ghosting
 
-**Fixed in u32x by one call: `DisableProcessWindowsGhosting()`** (i76-uncap-lab `aff1c46`).
+**Fixed in u32x by one call: `DisableProcessWindowsGhosting()`** (<lab> `aff1c46`).
 
 ### What it actually is
 
@@ -411,7 +411,7 @@ U32X_LOG` (ship builds are unaffected) and is worth keeping:
 - **a `TextOutA` hook** (deduped against the last 16 strings) for what the shell draws;
 - **the sampling thread**, which is what makes "this counter stopped" visible at all.
 
-Build it with `build-u32x-log.ps1`; the log lands in `i76-uncap-lab\captures\save\u32x.log`.
+Build it with `build-u32x-log.ps1`; the log lands in `<lab>\captures\save\u32x.log`.
 
 ### Things ruled out along the way
 
@@ -449,7 +449,7 @@ The ghosting fix above stops the screen dying. It does not make text entry work,
 there was a **second, unrelated bug**, and this one is not the engine's - it is two bytes in
 the patched `i76shell.dll` this project ships on top of.
 
-James asked the right question - *"I'm not sure this is broken on a vanilla install; might
+The developer asked the right question - *"I'm not sure this is broken on a vanilla install; might
 have something to do with our optimizations"* - and he was right. Diffing our shell against
 the pristine GOG one is what found it.
 
@@ -514,7 +514,7 @@ narrowing is exactly that shape of change, so that is the likely origin. It is w
 plainly: **anyone running that widely recommended patch pack probably cannot type bookmark
 names either**, and would have no reason to suspect the patch rather than the game.
 
-Both installs on this machine had it (`i76-uncap-lab\game` as well as the portable build);
+Both installs on this machine had it (`<lab>\game` as well as the portable build);
 both are repaired.
 
 ### The vanilla control, and what it cost
@@ -550,7 +550,7 @@ keystroke does arrive and is consumed" was established before the cause was know
 
 ## 2026-09-07: the two bugs are INDEPENDENT - saving needs only the two-byte shell fix
 
-Field-confirmed by James, and it corrects the impression left above, where the two fixes were
+Field-confirmed by the developer, and it corrects the impression left above, where the two fixes were
 only ever verified together and so read as a pair.
 
 **The two-byte `i76shell.dll` repair alone restores saving.** Applied on its own - stock
@@ -569,7 +569,7 @@ pauses where a person does not.
 
 ### It was never a stock-game bug
 
-James called this before the evidence did - *"I think it works out of the box"* - and he was
+The developer called this before the evidence did - *"I think it works out of the box"* - and he was
 right. The two bytes are a modification, present in the portable build since it was made on
 2026-08-01, long before any of this work:
 
@@ -593,7 +593,7 @@ All real installs now hold the stock bytes:
 
 ```
 daily driver (portable)   41 08
-lab copy (i76-uncap-lab)  41 08
+lab copy (<lab>)  41 08
 pristine GOG sandbox      41 08   (stock by nature - the control)
 CD 1997 sandbox           ff 0c   (a different binary; the tool refuses it by design)
 ```

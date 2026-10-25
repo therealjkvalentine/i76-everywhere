@@ -3,7 +3,7 @@
 Design and evidence: [`docs/SOUND-HD-PACK.md`](../../docs/SOUND-HD-PACK.md). This folder is the implementation.
 It builds a pack into `tools\soundhd\out\pack-v1\`. Nothing here installs into a game folder unless you run
 `install --apply` against a lab copy yourself, and that command refuses every folder except
-`C:\Users\james\i76-uncap-lab\game*`.
+`<lab>\game*`.
 
 ## Build
 
@@ -18,8 +18,8 @@ tools\soundhd\.venv\Scripts\python -m pytest tests\test_soundhd.py -q    # offli
 
 | stage | reads | writes |
 |---|---|---|
-| `extract` | the pristine read-only `C:\Users\james\i76-map\sandbox-gog\main\app\I76.ZFS` (md5 `6dd57b16...`) plus the loose `music.wav` beside it, read through the repo's ZFS reader `re/tools/i76fmt/zfs.py`, which is byte-identical to `i76-map\tools\i76fmt\zfs.py` and passes its round-trip gate | `out\work\stock\` (631 files), `out\work\stock-wav\` (the bare RIFF of each `.gpw`, used as RX input), `out\work\stock-manifest.json` (md5 of every file and of the archive) |
-| `analyze` | `out\work\stock\` | `out\work\analysis\stock-sound-survey.csv`, `summary.json`. This is a port of `i76-uncap-lab\captures\sound-hd-research\analyze_stock_sounds.py`. `build` compares it with the research CSV, and all 631 rows match (see "GAS columns" below) |
+| `extract` | the pristine read-only `<re-archive>\sandbox-gog\main\app\I76.ZFS` (md5 `6dd57b16...`) plus the loose `music.wav` beside it, read through the repo's ZFS reader `re/tools/i76fmt/zfs.py`, which is byte-identical to `<re-archive>\tools\i76fmt\zfs.py` and passes its round-trip gate | `out\work\stock\` (631 files), `out\work\stock-wav\` (the bare RIFF of each `.gpw`, used as RX input), `out\work\stock-manifest.json` (md5 of every file and of the archive) |
+| `analyze` | `out\work\stock\` | `out\work\analysis\stock-sound-survey.csv`, `summary.json`. This is a port of `<lab>\captures\sound-hd-research\analyze_stock_sounds.py`. `build` compares it with the research CSV, and all 631 rows match (see "GAS columns" below) |
 | `recipe` | the survey and `overrides.toml` | `pack-v1\recipes\recipes.json`: one recipe per sound with its category defaults, overrides, loop flag and check rule |
 | `render` | the recipes and the stock files (or RX pre-pass files given with `--clean`) | `pack-v1\addon\*.gpw`: the speaker mix, 16-bit mono, with the stock 28-byte GAS0 header kept verbatim. `render-info.json` holds the measurements |
 | `lfe` | the render's per-sound sub band | `pack-v1\lfe\<stem>.wav` (16 kHz mono 16-bit) and `lfe-manifest.json` |
@@ -46,7 +46,7 @@ its own folder with `--pack`.
   `fmt `-then-`data` only, fmt 16 bytes PCM, mono, 16-bit, rate rule, GPW header equal to stock, loudness within
   0.5 LU, true peak at most -0.3 dBTP, E20-120 inside the recipe band, size at most 8x, md5s, loop seam (32 loops),
   integer sub cycles (8), and LFE stem format (85).
-- Independent cross-checks: all 123 `.gpw` parse with `i76-map\data\fmt\other_formats.py`'s `GPW` struct, and
+- Independent cross-checks: all 123 `.gpw` parse with `<re-archive>\data\fmt\other_formats.py`'s `GPW` struct, and
   priority, max instances, play mode, volume, random-pitch and frequency all equal stock.
 
 ## What each recipe does

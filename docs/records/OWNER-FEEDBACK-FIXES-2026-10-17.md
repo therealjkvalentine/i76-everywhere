@@ -1,7 +1,7 @@
 # Owner feedback fixes (2026-10-17, evening)
 
 Three fixes from the owner's second pass over `OWNER-TESTS-2026-10-17`. All work is in the lab. The daily driver
-(`C:\Users\james\Games\Interstate76-2026-10-03`) and the golden copy were only read. Every live game run held the lab
+(`<games>\Interstate76-2026-10-03`) and the golden copy were only read. Every live game run held the lab
 console lock, ran with host audio muted, and put back each file it changed (md5 read back).
 
 | item | owner said | cause | fix | measured (n) |
@@ -97,7 +97,7 @@ The fix is in the proxy's `I76_START_POS` block, in i76-everywhere `music-fix/st
     before `simclock_Update`. So a drop in the count means a new mission load.
   - The placement re-arms only if the loaded name (0x5049f0) is still `I76_MISSION`.
   - With `I76_MISSION` the shell is skipped (0x504c10), and every mission end except Replay exits the game
-    (i76-map `subsystems/mission.md`). The Esc menu does not reload: state 5, play mode 0x10.
+    (<re-archive> `subsystems/mission.md`). The Esc menu does not reload: state 5, play mode 0x10.
 - **Speed held at 0.** The hold now sets the speed `+0xac` / `+0xb0` to 0 as well, as the trainer's STOP does.
 - **Side build.** The lab build is `builds\hill-start-20261017\STRLKUP-hill-hs1.dll` (md5 `cb247d73`): the twin's
   33211f11 source (`box-spec src-b3`) plus this patch only.

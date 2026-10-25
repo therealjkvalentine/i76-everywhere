@@ -269,8 +269,8 @@ safe.** The remaining work is the short list of genuinely frame-coupled systems 
    216 m), which makes it a good arena once the timing is right.
 3. **Contact/suspension impulses** — the surviving suspect behind the mid-air spin and rough-ground
    roll reports (the integrator is exonerated on every axis).
-   *(2026-10-02: i76-map reads the contact model as running once per substep from `physics_StepVehicle` (0x43a104)
-   and once per frame through `physics_SnapToGround` 0x43d070 (`../i76-map/subsystems/framerate.md:75-85`), so the
+   *(2026-10-02: <re-archive> reads the contact model as running once per substep from `physics_StepVehicle` (0x43a104)
+   and once per frame through `physics_SnapToGround` 0x43d070 (`../<re-archive>/subsystems/framerate.md:75-85`), so the
    per-frame kick is the SnapToGround pass and the fixed step is the principled fix. Not yet re-measured under
    `I76_FIXED_STEP=24` — backlog P2-04: `tools/framerate/airborne-test.ps1` + `analyse-airborne.py`, stock 20 vs
    fixed 60, A/A first; angular velocity at lift-off should match 20 fps.)*

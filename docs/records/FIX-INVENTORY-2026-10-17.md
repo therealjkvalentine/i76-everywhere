@@ -1,8 +1,8 @@
 # Fix inventory: every change our port makes to stock behaviour (2026-10-17)
 
 Lane `our-fix-inventory`. Static and document work only: no game was launched, no VM was started, nothing was written
-into any game folder. The daily driver (`C:\Users\james\Games\Interstate76-2026-10-03`) and the GOG pristine copy
-(`i76-map\sandbox-gog\main\app`) were only read: file hashes, the `I76PLYR.DEF` bytes, presets, `PLAY*.bat`,
+into any game folder. The daily driver (`<games>\Interstate76-2026-10-03`) and the GOG pristine copy
+(`<re-archive>\sandbox-gog\main\app`) were only read: file hashes, the `I76PLYR.DEF` bytes, presets, `PLAY*.bat`,
 `PROMOTIONS.md`, and a few instructions of `i76.exe` disassembled with `tools/exe-disasm.py`.
 
 **What the owner asked for, from this lane.** Every change our port makes to stock behaviour. For each one: what it
@@ -15,7 +15,7 @@ emulated P166, software renderer, lowest detail).
 docs/ENHANCEMENTS.md, docs/VERIFIED-FIXES.md, CHANGELOG.md, docs/records/{EMU-MEMTRACE, EMU-T05-CLEAN,
 RETAIL-HANDLING-DIFF, GOLD-STANDARD-FINGERPRINT, ERA-ENVELOPE, WHAT-IS-STOCK, PER-FRAME-AUDIT-2026-10-03,
 FRAMERATE-COVERAGE-2026-10-02}, lab `docs/AI-COMBAT-PARITY-2026-10-13.md`, `docs/DREAM-MISSION-2026-10-12.md`,
-`emu/tools/memtrace/addrmap-gold.md`, `tools/envelope-rebase/seq/pacing-sim.md` (lab commit c3828d0), i76-map
+`emu/tools/memtrace/addrmap-gold.md`, `tools/envelope-rebase/seq/pacing-sim.md` (lab commit c3828d0), <re-archive>
 `binaries/diff-9a232dcc-vs-*.tsv`, `subsystems/{physics,renderer,weapons}.md`.
 
 ## Summary
@@ -69,7 +69,7 @@ FRAMERATE-COVERAGE-2026-10-02}, lab `docs/AI-COMBAT-PARITY-2026-10-13.md`, `docs
 6. **New finding (static): widescreen moves the near/far physics boundary for AI cars.**
    - `camera_ClassifyDistance` 0x406840 sends a car to the cheap far model (`physics_StepVehicleFar`: whole-frame,
      kinematic, no gravity or terrain) beyond 25 m + [0x4c2748].
-   - That camera field is 600 x zoom x sqrt(1 + tan^2(fov/2)) (i76-map renderer.md, physics.md). It is 849 m at
+   - That camera field is 600 x zoom x sqrt(1 + tan^2(fov/2)) (<re-archive> renderer.md, physics.md). It is 849 m at
      90 deg, so the switch sits at about 874 m.
    - `I76_ASPECT=3440x1440` widens the 90 deg fov to 121.7 deg. If the widened fov reaches that computation, the
      field becomes 600 x 2.052 = **1,231 m**. The switch would then sit at about 1,256 m, so AI cars between 874 and
@@ -79,7 +79,7 @@ FRAMERATE-COVERAGE-2026-10-02}, lab `docs/AI-COMBAT-PARITY-2026-10-13.md`, `docs
    - The far clip itself does not move this boundary (renderer.md: "independent of the far clip").
 7. **Three real code differences between our exe and the Gold CD exe touch gameplay** (AiO clusters, section 2).
    - **(a) `ai_RecordDamageEvent` 0x415815.** It tests `[pd+0x10]` where Gold tests `[pd+0x44]`. pd+0x44 is the
-     projectile's damage (i76-map weapons.md); pd+0x10 is unidentified. This decides whether a hit sets the AI
+     projectile's damage (<re-archive> weapons.md); pd+0x10 is unidentified. This decides whether a hit sets the AI
      "shot / rammed" timestamps. It is an AI-reaction difference, and retail 1.0's version is unchecked.
    - **(b) simclock.** AiO masks the tick; Galaxy stores a float uptime that snaps dt to 62.5 ms after 7 days of
      uptime.
@@ -116,7 +116,7 @@ the step **is** the frame time. At exactly 50 ms or more, the frame splits into 
 |---|---|---|---|---|---|
 | **gold standard**: retail 1.0, emulated P166, software, lowest detail | 28-37 fps by scene | 1 ms (Win95 RTM, measured) | p5 / p50 / p95: melee 24.5 / 26.8 / 33.8 ms; T05 22.1 / 31.1 / 38.3; T06 30.3 / 34.7 / 43.0 | 1 (99.5 %+) | EMU-MEMTRACE; lab `tools/envelope-rebase/seq/pacing-sim.md` |
 | Gold CD exe, same machine | 23-31 fps | 1 ms | 31-38 ms (T05 median 33.4) | 1 | EMU-MEMTRACE, EMU-T05-CLEAN |
-| **stock20** (GOG `I76PATCH.DLL`, Windows 10; played until 2026-10-03) | 20 fps | 15.625 ms | 46.9 ms (one step) or 2 x 31.25 ms (62.5 ms frames); 24 steps/s, mean 41.7 | 1 or 2 | WHAT-IS-STOCK; i76-map capture 014 |
+| **stock20** (GOG `I76PATCH.DLL`, Windows 10; played until 2026-10-03) | 20 fps | 15.625 ms | 46.9 ms (one step) or 2 x 31.25 ms (62.5 ms frames); 24 steps/s, mean 41.7 | 1 or 2 | WHAT-IS-STOCK; <re-archive> capture 014 |
 | **daily driver** `best-wide` / `best-120` | 120 fps | QPC (`I76_HIRES_CLOCK`) | fixed 41.67 ms (`I76_FIXED_STEP=24`) | 0 on 4 frames of 5, 1 on the fifth; drawn pose interpolated | presets |
 | driver `PLAY-stock.bat` | ~60 (dgVoodoo pacing; I76PATCH disabled) | 15.625 ms | 1 ms (0-tick frames) or 15.6 ms | 1 | PLAY-stock.bat text; music-fix README |
 | ERA-ENVELOPE candidate (lab twin, `TEST-envelope-candidate.bat`) | 120 | QPC | fixed 30 ms (`I76_FIXED_STEP=33.3333`) | 0-1 | ERA-ENVELOPE |
@@ -134,21 +134,21 @@ frames that run no step.
 | retail 1.0 `I76.EXE` (1997-03-15) | `6cc509ad` | the March 1997 release; a different build (addresses differ, same physics algorithm) | emulator only (gold standard) |
 | Gold CD `I76.EXE` | `e1dca993` | Galaxy `9a232dcc` with the import `WIN32.dll` -> `WINMM.dll` (2 bytes) | emulator |
 | GOG 2017 Galaxy `i76.exe` | `9a232dcc` | the pristine reference; GOG 2.1.0.17 installs still ship it | `sandbox-gog` (read-only), fresh installs |
-| GOG 2019 `i76.exe` = UCyborg AiO final | `60abf7bc` | Galaxy + 45 `.text` clusters (2,459 B) + a 132 B tail + `.rdata` (i76-map `binaries/diff-9a232dcc-vs-60abf7bc.tsv`) | the driver's `i76.exe.u32xorig` |
+| GOG 2019 `i76.exe` = UCyborg AiO final | `60abf7bc` | Galaxy + 45 `.text` clusters (2,459 B) + a 132 B tail + `.rdata` (<re-archive> `binaries/diff-9a232dcc-vs-60abf7bc.tsv`) | the driver's `i76.exe.u32xorig` |
 | **ours** | **`6319abf7`** | `60abf7bc` + the `USER32.dll` -> `u32x.dll` import rename | **daily driver**, golden copy, lab twin, `game-envrb`, `game-rh` (hashed today) |
 | `i76_pristine_fix.exe` | `58d9dec0` | Galaxy + immi101 i76fix P1: 5 bytes at 0x499b25 (skips the CPU-speed probe with privileged instructions) | lab only; imports WIN32.dll, so the proxy's music hooks cannot attach |
 | lab `game\i76.exe` | `85de44a7` | AiO lineage, lab sandbox (an older sandbox build `4fabc303` carried file patches: pools 0x402f9b-0x402fd4, far clip 0x4059de, camera rate 0x4bc528, u32x rename) | lab only |
 
 ## 2. Exe byte changes in the driver (`6319abf7` against the Gold CD / Galaxy exe)
 
-Classification from lab `emu/tools/memtrace/addrmap-gold.md` (function names) and i76-map
+Classification from lab `emu/tools/memtrace/addrmap-gold.md` (function names) and <re-archive>
 `binaries/diff-9a232dcc-vs-60abf7bc.tsv`. "Ours" means we made the change; "AiO" means UCyborg made it and GOG shipped
 it. Whether retail 1.0 matches either side is **not checked for any row**.
 
 | cluster (VA) | function | who | what changes | touches physics / AI / damage? | re-check |
 |---|---|---|---|---|---|
 | 0x49c7f0-0x49cbd6 (726 B) | `simclock_Init`, `simclock_Update` | AiO | the tick is masked, so dt no longer snaps to 62.5 ms after 7 days of uptime (UCyborg: "laggy physics ... running for several days"); same globals, same stepper | **timing**: same dt on a fresh boot; `I76_HIRES_CLOCK` replaces the read anyway | no (the stepper rule is identical) |
-| 0x415817 (1 B) | `ai_RecordDamageEvent` | AiO | `mov edx,[eax+0x10]` where Gold has `[eax+0x44]` (re-read today in both exes). With eax = arg+0x70 (the projectile data), pd+0x44 is the damage (i76-map weapons.md); pd+0x10 is not identified. The result decides whether the hit sets the AI's shot / rammed timestamps (+0xa6e4 / +0xa6e8) | **AI reaction** | **RE-CHECK (GS)**: find retail's counterpart and compare |
+| 0x415817 (1 B) | `ai_RecordDamageEvent` | AiO | `mov edx,[eax+0x10]` where Gold has `[eax+0x44]` (re-read today in both exes). With eax = arg+0x70 (the projectile data), pd+0x44 is the damage (<re-archive> weapons.md); pd+0x10 is not identified. The result decides whether the hit sets the AI's shot / rammed timestamps (+0xa6e4 / +0xa6e8) | **AI reaction** | **RE-CHECK (GS)**: find retail's counterpart and compare |
 | 0x49318f-0x493728 (33 B) | terrain sample / normal / height | AiO | unsigned instead of signed bounds checks | physics, but only off the map edge | low |
 | 0x4457b4 (5 B) | `renderer_DrawRearMirror` | AiO | the mirror's 10 Hz refresh gate is jumped over, so the mirror redraws every frame (`I76_MIRROR_RATE` restores the gate; not in a preset) | render only (cost) | no |
 | 0x423419 .. 0x4253f6 | CD audio (watchdog, open, init, pause, play, TOC, volume) | AiO | MCI handling | music only | no |
@@ -330,7 +330,7 @@ Every item names what to run. None of them was run here.
 ## 10. Not done in this lane
 
 - No live check of any claim above. Every "touches physics / AI" verdict for render switches is static, from the
-  switch's patched sites and the i76-map readers.
+  switch's patched sites and the <re-archive> readers.
 - The 45 AiO clusters were classified by function name (addrmap-gold.md). Only 0x415817 and the difficulty site were
   re-read today.
 - Whether retail 1.0 matches AiO or Galaxy at each cluster: not checked.

@@ -1,6 +1,6 @@
 # Poke report (verify/poke.py, VERIFICATION-PROGRAM.md 2.5 / 4.4)
 
-Generated 2026-10-02 14:14. Run: `C:\Users\james\i76-map\verify\runs\poke\20261002-140824` (route melee, exe i76_pristine_fix.exe md5 58d9dec0, profile stock20, proxy 9a081000). Telemetry frames 4865, events 344. Sandbox restore: STRLKUP.DLL md5 54f2de9d after the run; quit: WM_CLOSE ignored for 10 s, killed; errors: []; warnings: [].
+Generated 2026-10-02 14:14. Run: `<re-archive>\verify\runs\poke\20261002-140824` (route melee, exe i76_pristine_fix.exe md5 58d9dec0, profile stock20, proxy 9a081000). Telemetry frames 4865, events 344. Sandbox restore: STRLKUP.DLL md5 54f2de9d after the run; quit: WM_CLOSE ignored for 10 s, killed; errors: []; warnings: [].
 
 Each expectation: observe (A1), observe (A2) with nothing changed (the A/A control), set the tunable with i76tune (read back), observe (B), reset (pristine bytes / saved live value, read back), observe (A3). `formula` grades PASS when >= 98% of the frames that satisfy `when` are within tolerance in A1, A2 (default x), B (set x) and A3 (default x); increase / decrease / unchanged compare B with the A mean beyond max(2 x |A1 - A2|, min_delta). INCONCLUSIVE when no field can observe the change, the probe produced too few frames, the A/A pair disagrees, or the write did not read back.
 

@@ -19,15 +19,15 @@ A player-facing front end over the trainer pieces that already exist in this fol
 `python i76trainer_gui.py` (`--selftest` parses the headers and round-trips a request without a game;
 `--any` starts with the non-sandbox box ticked).
 
-Every address below is from `C:\Users\james\i76-map\subsystems\cheats.md` (static reading of the pristine 2017
+Every address below is from `<re-archive>\subsystems\cheats.md` (static reading of the pristine 2017
 exe, md5 9a232dcc; the ammo table is **[lab]**, measured on the AiO build and re-verified live on the sandbox for
 reads, writes and read-back). Section numbers refer to that file.
 
 ## Attaching, and the sandbox gate
 
 The window looks for a running `i76*.exe` every 2 s with `i76trainer.find_game`, which refuses any process that
-is not the sandbox copy (`C:\Users\james\i76-uncap-lab\game`) - AGENTS.md: experiments never touch the install
-James plays on. Tick **allow non-sandbox game** to override; the window then re-attaches. The path it attached
+is not the sandbox copy (`<lab>\game`) - AGENTS.md: experiments never touch the install
+The developer plays on. Tick **allow non-sandbox game** to override; the window then re-attaches. The path it attached
 to is shown at the top, with NOT THE SANDBOX in the log when the override was used. Nothing is written - not
 even the shared control block - while the gate refuses, because that block is session-global and would drive
 whichever game owns it.

@@ -112,7 +112,7 @@ This is why hardware *data* breakpoints never fire on gravity: an immediate is f
 not read as data. Searching `.rdata` for `9.8` finds unrelated copies (`0x4BC59C`), and
 watchpointing them shows zero reads.
 
-Other constants found — **corrected 2026-10-02 (i76-map finding L092): both addresses were a file-offset-as-VA
+Other constants found — **corrected 2026-10-02 (<re-archive> finding L092): both addresses were a file-offset-as-VA
 slip of the `.rdata` raw/VA delta (0xc00).** `0x4bc71c` actually holds −0.1f and `0x4bc59c` holds 0.2f. The
 values meant are at `0x4bd31c = 0.05f` (read by `fmul` at 0x444099) and `0x4bd19c = 9.8f` (read by `fmul` at
 0x43a0c9 in 0x438fd0) — both *are* read during gameplay, so "9.8 never read" is false at the corrected address.
