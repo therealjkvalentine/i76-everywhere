@@ -10239,7 +10239,13 @@ static void apply_no_minimize(void) {
  *   I76_JOY_MAP=0=4          engine id 0 -> winmm id 4 (pairs "a=b", comma-separated, ids 0..15)
  *   I76_JOY_SYNTH=1:0        TEST ONLY: (after the map) winmm id 1 reports a synthetic 2-axis, 4-button pad with
  *                            X = 0 (full left), Y centred; ":<x>" is 0..65535. Several "id:x" comma-separated.
- * Each change of a slot's result code is logged ("joy: ..."), so a run shows which ids the engine opened/polled. */
+ * Each change of a slot's result code is logged ("joy: ..."), so a run shows which ids the engine opened/polled.
+ *   I76_DRIVE_INJECT=1       HARNESS (analog-driver lane 2026-10-25, docs/records/ANALOG-DRIVER-2026-10-25.md): winmm id 0
+ *                            (=<id> for another; after the map) is a synthetic pad whose X (steer: input.map `steer` =
+ *                            joystick1 Left/Right) and Y (throttle: `throttle` = joystick1 Down/Up) come from the file mapping
+ *                            Local\I76DriveInject<I76_SHM_SUFFIX> that a test harness writes (~100 Hz; lab toolsc-draw *                            pad_inject.py). Layout drvi_t below. A block that is unset (magic) or whose heartbeat is older than
+ *                            500 ms reads as the centred pad (X = Y = 32767 = no steer, no throttle). Off by default; never in
+ *                            a launcher preset (a harness switch: it replaces a real pad on that id). */
 typedef MMRESULT (WINAPI *joyCapsFn)(UINT_PTR, LPJOYCAPSA, UINT);
 typedef MMRESULT (WINAPI *joyPosFn)(UINT, LPJOYINFOEX);
 static joyCapsFn real_joyGetDevCapsA;
@@ -10248,6 +10254,26 @@ static int  g_joy_map[16];
 static int  g_joy_synth[16];          /* -1 = real device; else synthetic X value */
 static LONG g_joy_lastrc[2][16];      /* [caps/pos][engine id], logged on change */
 static LONG g_joy_polls[16];
+/* I76_DRIVE_INJECT: the harness's pad. magic 'DRVI'; x, y 0..65535 (32767 centre); buttons = JOY_BUTTONn bits; beat_ms = the
+ * harness's GetTickCount() at its last write (same machine clock); seq bumped per write. The proxy fills polls / x_read / y_read /
+ * seq_read on every engine poll of the injected id (read-back for the harness: did the write land). 64 bytes. */
+typedef struct { DWORD magic, version; LONG x, y; DWORD buttons, seq, beat_ms, polls; LONG x_read, y_read; DWORD seq_read, stale, rsv[4]; } drvi_t;
+#define DRVI_MAGIC 0x49565244u
+static volatile drvi_t *g_drvi;
+static int  g_drvi_id = -1;           /* the winmm id the harness drives, -1 = off */
+static int  g_drvi_live = -1;         /* last logged state: 1 = harness values, 0 = centred (stale / unset) */
+static void drvi_read(LONG *x, LONG *y, DWORD *btn) {
+    int live = 0;
+    *x = *y = 32767; *btn = 0;
+    if (g_drvi && g_drvi->magic == DRVI_MAGIC && (DWORD)(GetTickCount() - g_drvi->beat_ms) <= 500u) {
+        LONG a = g_drvi->x, b = g_drvi->y;
+        *x = a < 0 ? 0 : (a > 65535 ? 65535 : a); *y = b < 0 ? 0 : (b > 65535 ? 65535 : b); *btn = g_drvi->buttons; live = 1;
+    }
+    if (g_drvi) {
+        g_drvi->polls++; g_drvi->x_read = *x; g_drvi->y_read = *y; g_drvi->seq_read = g_drvi->seq; g_drvi->stale = !live;
+        if (live != g_drvi_live) { g_drvi_live = live; mlog("  drive-inject: %s (poll #%lu, x %ld y %ld)", live ? "harness values live" : "no live harness block - pad centred", (unsigned long)g_drvi->polls, *x, *y); }
+    }
+}
 static UINT joy_route(UINT id) { return id < 16 ? (UINT)g_joy_map[id] : id; }
 static void joy_note(int kind, UINT id, UINT real, MMRESULT rc) {
     if (id >= 16) return;
@@ -10279,6 +10305,10 @@ static MMRESULT WINAPI hook_joyGetPosEx(UINT id, LPJOYINFOEX j) {
             memset(j, 0, sizeof(*j)); j->dwSize = sz; j->dwFlags = fl;
             j->dwXpos = (DWORD)g_joy_synth[real]; j->dwYpos = j->dwZpos = j->dwRpos = j->dwUpos = j->dwVpos = 32767;
             j->dwPOV = JOY_POVCENTERED;
+            if ((int)real == g_drvi_id) {
+                LONG x, y; DWORD b; drvi_read(&x, &y, &b);
+                j->dwXpos = (DWORD)x; j->dwYpos = (DWORD)y; j->dwButtons = b;
+            }
             rc = JOYERR_NOERROR;
         }
     } else rc = real_joyGetPosEx ? real_joyGetPosEx(real, j) : MMSYSERR_NODRIVER;
@@ -10301,6 +10331,20 @@ static void apply_joy_routing(HMODULE exe) {
         if (*c == ':') x = atoi(c + 1);
         if (a >= 0 && a < 16) { g_joy_synth[a] = x < 0 ? 0 : (x > 65535 ? 65535 : x); any = 1; mlog("  joy-synth: winmm id %d is a synthetic pad, X = %d (TEST ONLY)", a, g_joy_synth[a]); }
         p = strchr(p, ','); if (!p) break; p++;
+    }
+    n = env_str("I76_DRIVE_INJECT", v, sizeof(v));
+    if (n && v[0] != '0') {
+        int id = (v[0] == '1' && v[1] == 0) ? 0 : atoi(v);   /* "1" = winmm id 0 (joystick1); "id:<n>" or a number = that id */
+        char nm[96]; HANDLE m;
+        if (!strncmp(v, "id:", 3)) id = atoi(v + 3);
+        if (id >= 0 && id < 16) {
+            m = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(drvi_t), shm_name(nm, sizeof nm, "Local\\I76DriveInject"));
+            g_drvi = m ? (volatile drvi_t *)MapViewOfFile(m, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(drvi_t)) : NULL;
+            if (g_drvi) {
+                g_drvi_id = id; g_joy_synth[id] = 32767; any = 1;
+                mlog("  drive-inject: winmm id %d (joystick%d) = the harness pad, X/Y from %s (HARNESS ONLY; centred while no live block)", id, id + 1, nm);
+            } else mlog("  drive-inject: no shared memory %s - off", nm);
+        }
     }
     if (!any && !g_st_joy_on) return;                        /* the hooks also serve the whole-sim tick's joystick watch (simtick.c) */
     real_joyGetDevCapsA = (joyCapsFn)patch_iat(exe, g_exe == EXE_NITRO ? "WIN32.dll" : "WINMM.dll", "joyGetDevCapsA", hook_joyGetDevCapsA);
