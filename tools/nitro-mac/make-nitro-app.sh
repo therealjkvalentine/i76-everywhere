@@ -9,8 +9,10 @@
 #   - the Gold app's renderer (OpenGLide-HD Glide2x.dll + OpenGLid.INI) and IPXWrapper (ipxwrapper.dll, wsock32.dll,
 #     mswsock.dll) are COPIED (read) from the Gold game folder; GOG's own glide2x.dll / OpenGLid.INI go to _gog-originals\
 #   - DxWnd profile 1 -> nitro.exe -glide (same flags as the Gold profile), the Gold app's profile-2 lines dropped
-#   - prefix env: Nitro switch set (24 fps cap = the 41.7 ms step, fixes, music; NOT the sim tick: it takes nitro-ai's
-#     ai_FrameTick site, record s.3); Gold-only switches removed
+#   - prefix env: Nitro switch set (the whole-sim tick I76_SIM_TICK_MS=41.667 + I76_SIM_TICK_INPUT as PC main Nitro runs it,
+#     the Mac Gold apps' 120 fps cap, fixes, music); Gold-only switches removed. Until 2026-10-25 this was a 24 fps cap (the
+#     41.7 ms step came from the cap while the tick clashed with nitro-ai's ai_FrameTick site; fixed by 91d2b14, chained):
+#     docs/records/NITRO-MAC-UNCAP-2026-10-25.md
 #   - AppDefaults\nitro.exe: wsock32 / mswsock native,builtin, WindowsFloatWhenInactive = all (as i76.exe has)
 #   - Info.plist: own bundle id / name; Contents/MacOS/Sikarugir = STUB (i76-nitro-app-stub.swift)
 # The Gold app is only read. Refuses if NEW_APP exists or a game runs in GOLD_APP.
@@ -54,7 +56,7 @@ for k in I76_AI_ROLL_HOLD I76_COLL_DEDUPE I76_COOP_AI I76_COOP_CHAIN I76_ENGINE_
   r delete 'HKCU\Environment' /v $k /f; done
 for kv in I76_HIRES_CLOCK=1 I76_FIX_HEALTH_PCT=1 I76_FIX_LABEL_TABLE=1 \
           I76_ZGLIDE_TMUFIX=1 I76_CAM_GROUND_FIX=1 I76_TERRAIN_HULL_FIX=1 I76_MUSIC_RETAIL=1 I76_MUSIC_RESUME=1 \
-          I76_MUSIC_THREAD=1 I76_FPS_CAP=24 I76_FPS_LOG=5; do
+          I76_MUSIC_THREAD=1 I76_SIM_TICK_MS=41.667 I76_SIM_TICK_INPUT=1 I76_FPS_CAP=120 I76_FPS_LOG=5; do
   r add 'HKCU\Environment' /v "${kv%%=*}" /d "${kv#*=}" /f; done
 r add 'HKCU\Software\Wine\AppDefaults\nitro.exe' /v Version /d win98 /f
 r add 'HKCU\Software\Wine\AppDefaults\nitro.exe\Explorer' /v Desktop /d i76 /f

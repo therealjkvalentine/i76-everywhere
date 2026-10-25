@@ -19,6 +19,8 @@ Everyone must be on the **home network** (same Wi-Fi or wired). Not Tailscale.
 
 **Update 2026-10-25 02:30:** all three Macs (the developer's MacBook, the M4 Max tester's, the M2 tester's) now have the final Nitro proxy `Strlkup.dll` **3f27c797** (main 4e40261) and the patched `nitshell.dll` a32ffba6, launcher e61e4e57 and the no-3D-menus setting. **The M2 tester Mac is updated** (it had proxy ad904941 and launcher 384a0f8e; backup `app-backup-20261025-020752` in `~/i76-nitro-mp-lab` there). The M4 Max tester's backup is `app-backup-20261025-020751`, the MacBook's `app-backup-20261025-020736`. The M4 Max tester Mac still needs the Local Network Allow click (his join stalled again in the final check).
 
+**Update 2026-10-25 09:45: Nitro on the Macs is no longer held at 24 fps.** The three Mac Nitro apps had a 24 fps cap left over from 10-21. They now run the PC's simulation tick (`I76_SIM_TICK_MS=41.667`, `I76_SIM_TICK_INPUT=1`) under the Mac Gold apps' 120 fps cap. The game still steps 41.7 ms (24 per second), the same as the PC host. Measured in P01: MacBook 71.5 fps, M2 tester 55.2, M4 Max tester about 112 (before: 24.0 on each). A Mac-to-Mac LAN join at the new setting worked 2 of 2. Only the Environment values in each app's user.reg changed; the backup is `_rollback-uncap-20261025/user.reg` in each Nitro game folder. Details and undo: [records/NITRO-MAC-UNCAP-2026-10-25.md](records/NITRO-MAC-UNCAP-2026-10-25.md).
+
 Tested overnight, with nobody at the Macs: the PC hosting and the developer's MacBook joining every game type, 2 of 2 each, no
 crashes. The M4 Max tester Mac could not join until someone clicks Allow there (next section). The M2 tester Mac was asleep, and three
 players at once was not tried.
