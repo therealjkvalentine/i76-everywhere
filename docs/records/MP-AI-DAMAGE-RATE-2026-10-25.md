@@ -271,6 +271,6 @@ has to own the car's motion: skip the local vehicle step for an interpolated car
   md5 read back; VERSION.md updated. Not in main / the daily driver, not on the Macs: the next family rollout (same md5 on every
   machine).
 - Lab twins `builds\mp-ai-damage-20261025\Strlkup-lab1..9.dll`; lab9 (1edea828) = 66f0781 + the lab blocks, smoke pair pc-final-d:
-  damage applied and drawn, HUD on, interp off. 0 CRASH lines in the 62 proxy-log slices of this lane (18 runs; d4 died on a harness bug before its slices were saved).
+  damage applied and drawn, HUD on, interp off. 0 CRASH lines in the 58 proxy-log slices of this lane (18 runs; d4 died on a harness bug before its slices were saved).
 - Issues: #93 Esc menu keys (fixed, 57f17f4), #94 damage visuals (HUD fixed; the owner's report not reproduced, open for the
   owner-session log), #95 rate (measured; interpolation tried and kept off; open for the next approach).
