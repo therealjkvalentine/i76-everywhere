@@ -157,3 +157,39 @@ Owner: (1) exact sync, (2) make draw distance and popping obvious, using the T05
   - headlook: opentrack, T05;
   - jump: the T05 canyon ramp.
 - Timeline: `timeline-v2.json`. Stills list: `stills-v1.json`, written by `make-stills.py` to `captures\launch-video\stills`.
+
+### 6.1 Draft v2 rendered (2026-10-25 12:50)
+
+`captures\launch-video\draft-v2.mp4` (CC0 groove) and `draft-v2-theme.mp4` (game theme): 1920x1080, 60 fps, **83.1 s**.
+Alignment report: `draft-v2.align.txt`. Teaser: `launch-teaser-v2.gif` (640 px, 2.2 MB; the teaser default is now 640 px).
+Stills: 13 PNGs at 1080p in `captures\launch-video\stills-v2` (`stills-v2.json`).
+
+| # | segment | sources | sync (mph \|a-b\|, first 6 s) |
+|---|---|---|---|
+| 0 | title | card | |
+| 1 | T05 opening fly-in, 1997 vs ours | opening-stock43 (640x480, 20.0 fps) vs opening-all (about 105 fps), `align: sim` 0.3-7.4 s | mean 0.15. Stock shows a smooth low-detail hill, ours the cliff band and bushes, same car position |
+| 2 | same route | route-stock43 (19.9 fps) vs route-all, `align: move` | mean 0.93 (stock telemetry arrives only per 50 ms frame) |
+| 3 | smoothness, 0.5x | slalom-stock43 vs slalom-all (A / D weave) | mean 2.4 (the key weave steers differently at 20 fps) |
+| 4 | far edge | fade-before vs route-all | 0.04 (the edge is subtle in this view) |
+| 5 | morph close-up, 0.5x | morph-before vs route-all, crop | 0.19 |
+| 6 | glances | route-all (fixed view) vs glance-all (Left / Right / Down) | 0.15 |
+| 7 | mirror | mirror-before vs mirror-after, crop | 0.04 |
+| 8-12 | LAN still, FFB page (replayed), crawl, credits, end | as v1 | |
+
+Not in v2 yet: the owner's takes. Their segments are in the timeline and drop out with `--skip-missing` until the files exist:
+`THE JUMP` (owner-jump), `HEAD TRACKING` (owner-headlook, caption notes the 30 fps camera), `FIGHT` (owner-combat). The first
+combat take recorded nothing: cmd split the `0,0,1920,1080` argument. Fixed in RECORD-TAKE.bat (592d5f2); the take has to be redone.
+
+Problems found and fixed on the way:
+- Another lane's uncommitted change to record-shot.ps1 (an analog pad `-Drive` parameter) collided with the script-block
+  variable `$drive`. PowerShell names are case-insensitive. Every boot from 11:34 failed before launch until it was renamed
+  `$driveBlock`.
+- Injected arrow keys need the EXTENDED flag. Without it the game gets the numpad keys, which input.map does not bind, and
+  the first glance take never looked away. `KeyX` in record-shot.ps1 sends them extended.
+- The opening capture shows about 3 s of the desktop before the game window covers it. The cut starts after sim 0, so it is never used.
+
+**Local Ditch Gaming footage** (owner-supplied, used with permission; copied to `raw\localditch\localditch-t05-720.mp4`, 960x720,
+60 fps container, 333 s, no audio). **Not used in v2.** Their play runs at about 50-60 unique fps (mpdecimate: 590 / 485 / 423
+unique frames per 10 s). It is not the 20 fps game, and their channel logo covers the fly-in until about 0:05. Our own stock
+take is the 20 fps GOG exe at 640x480 and lines up with ours to the sim tick. If a later cut uses their footage, the credit is
+"Original footage courtesy of Local Ditch Gaming (used with permission)", on screen and in the description.

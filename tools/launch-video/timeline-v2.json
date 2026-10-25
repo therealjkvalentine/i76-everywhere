@@ -7,9 +7,9 @@
     { "type": "card", "dur": 3.0, "lines": [["INTERSTATE '76", "Title"], ["EVERYWHERE", "Big"], ["the 1997 game, fixed for 2026", "Sub"]] },
 
     { "type": "sbs", "title": "1997 vs 2026: THE T05 OPENING",
-      "caption": "Same scripted fly-in, same sim second on both sides   |   600 m: hills pop in at a hard edge   |   2300 m, morphing terrain",
-      "a": { "src": "shot:opening-stock43", "align": "sim", "in": 3.0, "out": 15.0, "label": "STOCK 1997 (640x480, 20 FPS)", "counters": true, "tag": "600\\hM" },
-      "b": { "src": "shot:opening-all",     "align": "sim", "in": 3.0, "out": 15.0, "label": "I'76 EVERYWHERE", "counters": true, "tag": "2300\\hM" } },
+      "caption": "The mission's own fly-in, locked to the same sim moment on both sides (telemetry sim_time)\\N600 m and coarse terrain   vs   2300 m, full-detail cliffs, morphing terrain",
+      "a": { "src": "shot:opening-stock43", "align": "sim", "in": 0.3, "out": 7.4, "label": "STOCK 1997 (640x480, 20 FPS)", "counters": true, "tag": "600\\hM" },
+      "b": { "src": "shot:opening-all",     "align": "sim", "in": 0.3, "out": 7.4, "label": "I'76 EVERYWHERE", "counters": true, "tag": "2300\\hM" } },
 
     { "type": "sbs", "title": "SAME ROUTE. SAME CAR. SAME 1997 TICK.",
       "caption": "Both sides start on the first moment the car moves; the MPH counters agree because the sim is the 1997 one\\N{\\fs28}counters = each recording's own telemetry (screen capture costs ~25 % of the frame rate)",
@@ -17,9 +17,9 @@
       "b": { "src": "shot:route-all",     "align": "move", "in": 1.0, "out": 11.0, "label": "I'76 EVERYWHERE (PLAY.BAT)",  "counters": true, "tag": "2300\\hM" } },
 
     { "type": "sbs", "title": "SMOOTHNESS: 20 FPS vs THE TICK, DRAWN AT DISPLAY RATE",
-      "caption": "A fast weave: same 41.667 ms physics, every frame in between interpolated",
-      "a": { "src": "shot:slalom-stock43", "align": "move", "in": 2.5, "out": 8.5, "label": "20 FPS", "counters": true, "tag": "" },
-      "b": { "src": "shot:slalom-all",     "align": "move", "in": 2.5, "out": 8.5, "label": "OURS", "counters": true, "tag": "" } },
+      "caption": "A fast weave at half speed: the same 41.667 ms physics step, every display frame in between interpolated",
+      "a": { "src": "shot:slalom-stock43", "align": "move", "in": 1.5, "out": 5.0, "speed": 0.5, "label": "20 FPS", "counters": true, "tag": "" },
+      "b": { "src": "shot:slalom-all",     "align": "move", "in": 1.5, "out": 5.0, "speed": 0.5, "label": "OURS", "counters": true, "tag": "" } },
 
     { "type": "clip", "src": "shot:owner-jump", "in": 5.0, "out": 13.0, "title": "THE JUMP, AS IN 1997",
       "caption": "Canyon ramp: take-off 49.9 vs 50.0 m/s, apex 10.0 m as retail; the nose-dive off the lip eased 9 %" },
@@ -35,11 +35,11 @@
 
     { "type": "sbs", "title": "LOOK AROUND WHILE YOU DRIVE",
       "caption": "Glance left, right and back (keys, pad or opentrack head tracking) - same drive, same moment",
-      "a": { "src": "shot:route-all",  "align": "move", "in": 3.5, "out": 10.5, "label": "FIXED VIEW" },
-      "b": { "src": "shot:glance-all", "align": "move", "in": 3.5, "out": 10.5, "label": "GLANCES" } },
+      "a": { "src": "shot:route-all",  "align": "move", "in": 2.5, "out": 10.5, "label": "FIXED VIEW" },
+      "b": { "src": "shot:glance-all", "align": "move", "in": 2.5, "out": 10.5, "label": "GLANCES" } },
 
     { "type": "clip", "src": "shot:owner-headlook", "in": 5.0, "out": 12.0, "title": "HEAD TRACKING",
-      "caption": "opentrack: look into the corner, check the mirror, glance back - the glance keys still win when held" },
+      "caption": "opentrack head look (camera at 30 fps): look into the corner, check the mirror - a held glance key still wins" },
 
     { "type": "sbs", "title": "A REAR MIRROR THAT SEES",      "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %)",
       "a": { "src": "shot:mirror-before", "align": "move", "in": 0.5, "out": 5.5, "crop": [1290, 262, 504, 168], "label": "STOCK MIRROR" },

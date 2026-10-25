@@ -33,7 +33,7 @@ ap.add_argument("--theme", default="")
 ap.add_argument("--ffmpeg", default="ffmpeg")
 ap.add_argument("--raw", default=os.path.join(LAB, "captures", "launch-video", "raw"))
 ap.add_argument("--only", default="", help="render only these segment numbers (comma list) - for previews")
-ap.add_argument("--teaser", default="", help="also write this GIF: segment --teaser-seg, 4.5 s, 720 px, 10 fps (the README clip, < 2 MB)")
+ap.add_argument("--teaser", default="", help="also write this GIF: segment --teaser-seg, 4.5 s, 640 px, 10 fps (the README clip, < 2 MB)")
 ap.add_argument("--teaser-seg", type=int, default=1)
 ap.add_argument("--skip-missing", action="store_true", help="leave out a segment whose shot has no capture yet (listed at the end)")
 a = ap.parse_args()
@@ -267,7 +267,7 @@ def seg_sbs(i, s):
         elif spec.get("sub"):
             ass.add(0, dur, "Mono", spec["sub"].replace(" ", "\\h"), pos=(cx, 858))
     if s["a"].get("speed", 1.0) != 1.0:
-        ass.add(0, dur, "Label", "%gx SPEED" % float(s["a"]["speed"]), pos=(1780, 1030), fade=(0, 0))
+        ass.add(0, dur, "Label", "%gx SPEED" % float(s["a"]["speed"]), pos=(1760, 222), fade=(0, 0))
     sub = ass.write("s%02d.ass" % i)
     fc = "[0:v]%s[a];[1:v]%s[b];[a][b]hstack=2,pad=1920:1080:0:270:color=%s,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2[v]" % (ca, cb, BG, sub, dur - 0.2)
     ff(ia + ib + ["-filter_complex", fc, "-map", "[v]", "-t", str(dur)] + ENC + ["s%02d.mp4" % i])
@@ -371,7 +371,7 @@ print("\n".join(ALIGN_LOG))
 
 if a.teaser:
     seg = "s%02d.mp4" % a.teaser_seg
-    ff(["-ss", "2", "-t", "4.5", "-i", seg, "-vf", "fps=10,scale=720:-1:flags=lanczos,palettegen=max_colors=64:stats_mode=diff", "pal.png"])
-    ff(["-ss", "2", "-t", "4.5", "-i", seg, "-i", "pal.png", "-lavfi", "fps=10,scale=720:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
+    ff(["-ss", "2", "-t", "4.5", "-i", seg, "-vf", "fps=10,scale=640:-1:flags=lanczos,palettegen=max_colors=64:stats_mode=diff", "pal.png"])
+    ff(["-ss", "2", "-t", "4.5", "-i", seg, "-i", "pal.png", "-lavfi", "fps=10,scale=640:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
         "-loop", "0", os.path.abspath(a.teaser)])
     print("teaser: %s (%d bytes)" % (a.teaser, os.path.getsize(a.teaser)))

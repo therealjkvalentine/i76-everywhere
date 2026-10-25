@@ -79,9 +79,15 @@ try {
 [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
 public struct RECT { public int L, T, R, B; }
 "@ -ErrorAction SilentlyContinue
-    $drive = {
+    $driveBlock = {   # not $drive: PowerShell names are case-insensitive and -Drive is a ValidateSet parameter
         . "$AT\lib\inputlib.ps1"; . "$AT\lib\focuslib.ps1"
         $g = Get-GamePid
+        # arrow keys must go as EXTENDED scancodes (the grey cluster); without 0x1 they arrive as the numpad keys input.map does not bind
+        function KeyX([byte]$vk, [bool]$down) {
+            $ext = if ($vk -in 0x25, 0x26, 0x27, 0x28) { 0x1 } else { 0x0 }
+            $fl = 0x8 -bor $ext -bor $(if ($down) { 0 } else { 0x2 })
+            [Inp]::keybd_event($vk, [Inp]::MapVirtualKey($vk, 0), $fl, [IntPtr]::Zero)
+        }
         $kp = Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSScriptRoot\lv-keeper.ps1`" -GamePid $($g.Id) -W $WW -H $WH" -WindowStyle Hidden -PassThru; Set-Content "$Out\keeper.pid" $kp.Id
         function Fg { try { $g.Refresh(); [void](Force-Foreground $g.MainWindowHandle) } catch {} }
         $rect = $null
@@ -113,10 +119,10 @@ public struct RECT { public int L, T, R, B; }
             foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3 -and -not ($analog -and "$($st[2])" -match '^(A|D)$')) {
                 $k = $VK[[string]$st[2]]
                 $td = $t - $S.Still
-                if ($td -ge $st[0] -and $td -lt $st[1]) { Key-Down $k } elseif ($td -ge $st[1] -and $td -lt $st[1] + 0.2) { Key-Up $k } } }
+                if ($td -ge $st[0] -and $td -lt $st[1]) { KeyX $k $true } elseif ($td -ge $st[1] -and $td -lt $st[1] + 0.2) { KeyX $k $false } } }
             Start-Sleep -Milliseconds 50
         }
-        Key-Up $VK.W; Key-Up $VK.SPACE; Key-Up $VK.S; foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3) { Key-Up $VK[[string]$st[2]] } }
+        Key-Up $VK.W; Key-Up $VK.SPACE; Key-Up $VK.S; foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3) { KeyX $VK[[string]$st[2]] $false } }
         [void]$ff.WaitForExit(15000)
         if ($pad) { [void]$pad.WaitForExit(5000) }
     }
@@ -159,7 +165,7 @@ public struct RECT { public int L, T, R, B; }
             Remove-Item $lock -Force -ErrorAction SilentlyContinue
         }
     } else {
-    $boot = & "$AT\proxy-run.ps1" -GameDir $T -KeepInstalledDll -Set stock -Mission $S.Mission -Hold 0 -BootTimeout 240 -Env ([hashtable]$E) -Run $drive *>&1 | Out-String
+    $boot = & "$AT\proxy-run.ps1" -GameDir $T -KeepInstalledDll -Set stock -Mission $S.Mission -Hold 0 -BootTimeout 240 -Env ([hashtable]$E) -Run $driveBlock *>&1 | Out-String
     $boot | Set-Content "$Out\boot.txt"
     }
     Start-Sleep -Seconds 2
@@ -180,5 +186,5 @@ $aspect = ([regex]::Match($new, '(?m)^.*aspect.*$')).Value.Trim()
 $tick = ([regex]::Match($new, 'sim-tick: ON - whole sim every [0-9.]+ ms')).Value
 $sum = & python -I "$PSScriptRoot\shot-stats.py" "$Out" 2>&1 | Out-String
 $vid = if (Test-Path "$Out\video.mp4") { & $FF.ffprobe -v error -count_frames -show_entries stream=width,height,nb_read_frames,duration -of compact "$Out\video.mp4" } else { 'NO VIDEO' }
-@("shot $Shot ($stamp) drive $(if ($analog) { 'analog pad' } else { 'keys' }) preset $($S.Preset) strip $(@($S.Strip) -join ',') keys $(if ($S.Keys) { ($S.Keys.Keys | % { "$_=$($S.Keys[$_])" }) -join ',' }) patch20 $([bool]$S.Patch20)",
+@("shot $Shot ($stamp) drive $(if ($analog) { 'analog pad' } else { 'keys' }) preset $($S.Preset) strip $(@($S.Strip) -join ',') keys $(if ($S.Keys) { ($S.Keys.Keys | % { "$_=$($S.Keys["$_"])" }) -join ',' }) patch20 $([bool]$S.Patch20)",
   "video: $vid", "pad: $(if (Test-Path "$Out\pad.out.txt") { (Get-Content "$Out\pad.out.txt" -Raw).Trim() } else { '-' })", "proxy fps windows: $($w -join ' ')", "aspect line: $aspect", "tick: $tick", $sum.Trim()) | Tee-Object -FilePath "$Out\summary.txt"

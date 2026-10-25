@@ -1,0 +1,15 @@
+[
+  {"name": "01-opening-sidebyside",    "src": "seg:work-draft-v2/s01.mp4", "t": 4.0},
+  {"name": "02a-opening-stock-1997",   "src": "shot:opening-stock43", "t": 61.4},
+  {"name": "02b-opening-ours",         "src": "shot:opening-all",     "t": 58.0},
+  {"name": "03-route-sidebyside",      "src": "seg:work-draft-v2/s02.mp4", "t": 6.0},
+  {"name": "04a-route-stock-640x480",  "src": "shot:route-stock43", "t": 7.7},
+  {"name": "04b-route-ours",           "src": "shot:route-all",     "t": 7.9},
+  {"name": "05-mirror-sidebyside",     "src": "seg:work-draft-v2/s07.mp4", "t": 3.0},
+  {"name": "06a-mirror-stock",         "src": "shot:mirror-before", "t": 6.0, "crop": [1290, 262, 504, 168]},
+  {"name": "06b-mirror-ours",          "src": "shot:mirror-after",  "t": 6.0, "crop": [1290, 262, 504, 168]},
+  {"name": "07-glances",               "src": "seg:work-draft-v2/s06.mp4", "t": 4.0},
+  {"name": "08-ffb-panel-beside-game", "src": "seg:work-draft-v2/s09.mp4", "t": 4.0},
+  {"name": "09-lan-host-coop-list",    "src": "${LAB}\\captures\\coop-list-20261018\\a-list12.png"},
+  {"name": "10-title-card",            "src": "seg:work-draft-v2/s00.mp4", "t": 2.0}
+]
