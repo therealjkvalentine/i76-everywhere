@@ -73,10 +73,10 @@ real audio driver; only that app ended afterwards). The boys' Macs: no sudo, no 
 | Mac | before (shipped, cap 24), median / 1 % low | after (shipped, uncap), median / 1 % low | ticks / s after | CRASH |
 |---|---|---|---|---|
 | MacBook (M5 Pro) | 24.0 / 24.0 (the clone, n 2) | **71.5 / 34.7** (n 1) | 24.010 | 0 |
-| M2 tester (Andrew) | 24.0 / 24.0 (n 1) | **55.2 / 47.5** (n 1); its clone 71.8 / 39.8 (n 1) | 23.996 | 0 |
-| M4 Max tester (Michael) | 24.0 / 24.0 (n 1, 125 frames: the Mac slept mid-run) | **about 112** (`fps: 112.4` / `112.8` over the 5 s it stayed awake, n 2; no 60 s window, see below) | 23.4 over the first 6-8 s (start-up included) | 0, 0 |
+| M2 tester (the M2 tester) | 24.0 / 24.0 (n 1) | **55.2 / 47.5** (n 1); its clone 71.8 / 39.8 (n 1) | 23.996 | 0 |
+| M4 Max tester (the M4 Max tester) | 24.0 / 24.0 (n 1, 125 frames: the Mac slept mid-run) | **about 112** (`fps: 112.4` / `112.8` over the 5 s it stayed awake, n 2; no 60 s window, see below) | 23.4 over the first 6-8 s (start-up included) | 0, 0 |
 
-Backups (user.reg md5): MacBook 94656262, Andrew 94383f95, Michael 48626dac.
+Backups (user.reg md5): MacBook 94656262, the M2 tester 94383f95, the M4 Max tester 48626dac.
 
 **Undo** (game closed): `cp "<game folder>/_rollback-uncap-20261025/user.reg" "<app>/Contents/SharedSupport/prefix/user.reg"`, where the
 game folder is `<app>/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76 Nitro`. To go back to a 24 fps cap only, set
