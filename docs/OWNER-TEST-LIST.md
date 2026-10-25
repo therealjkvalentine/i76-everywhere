@@ -1191,6 +1191,20 @@ Open items from this session:
 - "Rename variant to save" menu: not reachable by mouse, Enter does nothing - likely the same text-entry / pointer fix
   Gold's shell needed; port to Nitro's shell.
 
+**Answers (nitro-polish lane, 2026-10-25 night; docs/records/NITRO-POLISH-2026-10-24.md).** Installed in exp-nitro-owner
+(PLAY-NITRO-ALL.bat as before): proxy 9f220ac3, NITSHELL a32ffba6, preset with the sound keys; the old files sit beside them by md5.
+- **Sound balance - fixed, judge by ear.** Nitro had NO 3D sound (it only knew Aureal A3D): every effect played at full level from
+  any distance. Now 3D as on Gold, and the sliders work in 3D. Equal sliders should now sound equally loud (SFX -8 dB, voices -6 dB,
+  music slider on the same curve). Your saved sliders are music 7 / SFX 2 / voice 10: **set all three to the same position first**,
+  then say which category is still too loud or quiet (each is one number in the preset).
+- **Rename variant to save - fixed.** It is an OK popup: Enter (or Space) now closes it; Y / N answer the save prompts. The pencil
+  still stays where it was while a popup is up (as on Gold) - a click on OK works even though the pencil does not move there.
+- **Bus mission (P17 "Velocity") - technique.** There is no speed test: the bus stops when its health is below 65 %. Ram the same
+  side hard about 10 times, each within ~30 s of the last (the bus speeds up and explodes otherwise); no shooting, don't flip it.
+- **Repeating sound - not reproduced.** Please note the mission and the time of day when you hear it: mciproxy.log now names
+  every playing sound every 10 s. The full-level distant sounds (above) may have been it.
+- **Edge flashing - not reproduced** in 45 s of edge captures in a melee. Which edge, menus or mission, cockpit or chase view?
+
 ## 2026-10-24 ~19:00: owner + Andrew, Gold family LAN (Macs), second session
 - Still wanted: extra enemies in co-op scaled to the player count; co-op joiners spawn close to the host.
 - No flying cars this session.
