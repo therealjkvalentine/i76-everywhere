@@ -1239,18 +1239,36 @@ static void apply_ffb_off(void) {
          ? "I7_SFRCE.DLL load skipped (0x446058 -> jmp 0x4460ba, the engine's no-FFB path), read back ok" : "NOT applied - the game's force feedback stays ON");
 }
 
+/* CORRECTED 2026-10-25 (kit lane, CLEAN-INSTALL-2026-10-25.md: T05 started with the cockpit upside down, 3 of 3, with the
+ * first version; the played movie is correct). Making the OPEN fail skips more than the movie: the movie's end 0x49a9f0 (what
+ * Esc calls, WndProc 0x4048bd) also sets the play mode 0x49cdd0(1), restores the display through the renderer table
+ * ([0x5dd2e4] / [0x5dd2e0] / [0x5dd2cc] with the saved mode [0x5a7d6c] / [0x5dd2c8] with 0x5dcfa8), resumes the sounds
+ * (0x426050 0x2b11 x2), the music 0x4234e0 and the forces 0x445b40, and flushes the input. A direct boot that never plays a
+ * movie never runs that restore. So each call now goes to scs_open_then_end: the engine's own open, and when it opened, at once
+ * the engine's own end - the "played, then Esc on the first frame" path - and 0 to the caller, whose `je` then takes the
+ * no-movie branch (nothing left to play). */
+static LONG g_scs_n;
+static int __cdecl scs_open_then_end(void *hwnd, const char *name) {
+    int r = ((int (__cdecl *)(void *, const char *))(DWORD_PTR)0x0049a070)(hwnd, name);
+    if (r) ((void (__cdecl *)(void))(DWORD_PTR)0x0049a9f0)();
+    if (g_scs_n++ < 8) mlog("  skip-cutscenes: '%s' %s", name ? name : "(null)", r ? "opened and ended at once (0x49a9f0)" : "did not open (nothing to skip)");
+    return 0;
+}
 static void apply_skip_cutscenes(void) {
     static const BYTE intro_old[5] = { 0xE8, 0x4F, 0x69, 0x09, 0x00 };   /* call 0x49a070 @ 0x40371c */
     static const BYTE outro_old[5] = { 0xE8, 0x06, 0x5E, 0x09, 0x00 };   /* call 0x49a070 @ 0x404265 */
     static const BYTE queue_old[5] = { 0xE8, 0x94, 0x66, 0x09, 0x00 };   /* call 0x49a070 @ 0x4039d7 */
-    static const BYTE fail[5]      = { 0x31, 0xC0, 0x90, 0x90, 0x90 };   /* xor eax,eax: "the file did not open" */
+    BYTE w[5] = { 0xE8 };
     int lvl = env_int("I76_SKIP_CUTSCENES", 8, 0), a, b, c = 0;
     if (lvl <= 0) return;
-    a = patch_bytes(0x0040371c, intro_old, fail, 5, "mission intro movie open");
-    b = patch_bytes(0x00404265, outro_old, fail, 5, "mission outro movie open");
-    if (lvl >= 2) c = patch_bytes(0x004039d7, queue_old, fail, 5, "in-mission movie open");
-    mlog("  skip-cutscenes=%d: intro %s, outro %s, in-mission %s", lvl, a ? "skipped" : "NOT patched",
-         b ? "skipped" : "NOT patched", lvl >= 2 ? (c ? "skipped" : "NOT patched") : "plays");
+    if (g_exe == EXE_NITRO) { mlog("  skip-cutscenes=%d: Gold sites only (Nitro: not applied)", lvl); return; }
+#define SCS_CALL(site) do { LONG rel = (LONG)((DWORD_PTR)scs_open_then_end - ((site) + 5)); memcpy(w + 1, &rel, 4); } while (0)
+    SCS_CALL(0x0040371c); a = patch_bytes(0x0040371c, intro_old, w, 5, "mission intro movie open");
+    SCS_CALL(0x00404265); b = patch_bytes(0x00404265, outro_old, w, 5, "mission outro movie open");
+    if (lvl >= 2) { SCS_CALL(0x004039d7); c = patch_bytes(0x004039d7, queue_old, w, 5, "in-mission movie open"); }
+#undef SCS_CALL
+    mlog("  skip-cutscenes=%d: intro %s, outro %s, in-mission %s (opened and ended at once through the movie end 0x49a9f0, as Esc does)", lvl,
+         a ? "skipped" : "NOT patched", b ? "skipped" : "NOT patched", lvl >= 2 ? (c ? "skipped" : "NOT patched") : "plays");
 }
 
 /* ===========================================================================
