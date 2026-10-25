@@ -59,12 +59,24 @@ static void pt_bk_add(pt_bk_t *b, DWORD ra, unsigned __int64 t) {
 /* glide state calls */
 static DWORD g_pt_gs_texsrc, g_pt_gs_texchg, g_pt_gs_blend, g_pt_gs_acomb, g_pt_gs_ccomb, g_pt_gs_chroma, g_pt_gs_dl, g_pt_gs_last_tex = 0xffffffff;
 static int g_pt_poly_vl = -1, g_pt_poly_pvl = -1;
+static __inline unsigned __int64 pt_now(void) { return __rdtsc(); }
+static __inline unsigned __int64 pt_net(unsigned __int64 d) { return d > g_pt_rd_ovh ? d - g_pt_rd_ovh : 0; }
+/* I76_POLY_PROBE=1 (unit U5, lab, with I76_PASS_TIMERS): the 1-boot A/B of TERRAIN-PASS-OPT-PLAN s.4 - inside the hardware flush, odd
+ * frames hand each triangle to glide2x as grDrawPolygonVertexList(3, a copy of its three vertices in order a, b, c: ZGLIDE's GrVertex,
+ * 60 bytes, Glide 2.x GLIDE_NUM_TMU 2), even frames as the stock grDrawTriangle; the synchronous time of the two entry points per call
+ * is summed per parity (the copy counts as the hook's own time). The same three vertices either way. */
+static int g_pt_poly; static void (__stdcall *p_pt_PolyVL)(int, const void *);
+static unsigned __int64 g_pt_pp_sync[2]; static DWORD g_pt_pp_n[2]; static BYTE g_pt_pp_buf[3 * 60];
+static __inline void pt_poly_draw(const void *a, const void *b, const void *c, void (__stdcall *tri)(const void *, const void *, const void *)) {
+    unsigned __int64 t0, t1; int odd = (int)(g_frame & 1);
+    if (odd) { memcpy(g_pt_pp_buf, a, 60); memcpy(g_pt_pp_buf + 60, b, 60); memcpy(g_pt_pp_buf + 120, c, 60); t0 = pt_now(); p_pt_PolyVL(3, g_pt_pp_buf); t1 = pt_now(); }
+    else { t0 = pt_now(); tri(a, b, c); t1 = pt_now(); }
+    g_pt_pp_sync[odd] += pt_net(t1 - t0); g_pt_pp_n[odd]++;
+}
 /* pass dump */
 static FILE *g_pd_f, *g_pd_bin; static DWORD g_pd_first, g_pd_count, g_pd_tris, g_pd_recs, g_pd_hd = 2166136261u, g_pd_hc = 2166136261u;
 static __inline DWORD pd_fnv(DWORD h, const void *p, DWORD n) { const BYTE *b = (const BYTE *)p; while (n--) { h ^= *b++; h *= 16777619u; } return h; }
 
-static __inline unsigned __int64 pt_now(void) { return __rdtsc(); }
-static __inline unsigned __int64 pt_net(unsigned __int64 d) { return d > g_pt_rd_ovh ? d - g_pt_rd_ovh : 0; }
 
 /* ---- fe_DrawTri (faredge.c) ---- */
 static __inline void pt_drawtri_add(int in, unsigned __int64 own, unsigned __int64 sync) { g_pt_dt_own[in ? 0 : 1] += pt_net(own); g_pt_dt_sync[in ? 0 : 1] += pt_net(sync); g_pt_dt_n[in ? 0 : 1]++; }
@@ -255,6 +267,7 @@ static void pt_glide_attach(HMODULE z) {
     PT_GH("_grChromakeyMode@4", pt_Chroma, p_pt_Chroma)
     PT_GH("_grTexDownloadMipMap@16", pt_Download, p_pt_Download)
 #undef PT_GH
+    if (g && g_pt_poly) { *(void **)&p_pt_PolyVL = (void *)GetProcAddress(g, "_grDrawPolygonVertexList@8"); if (!p_pt_PolyVL) g_pt_poly = 0; }
     if (g) { g_pt_poly_vl = GetProcAddress(g, "_grDrawPolygonVertexList@8") != NULL; g_pt_poly_pvl = GetProcAddress(g, "_grDrawPlanarPolygonVertexList@8") != NULL; }
     mlog("  pass-timers: ZGLIDE glide state hooks: texsource %s, blend %s, acombine %s, ccombine %s, chroma %s, download %s; glide2x %p exports grDrawPolygonVertexList %s, grDrawPlanarPolygonVertexList %s, grDrawPolygon %s",
          p_pt_TexSource ? "ok" : "NOT", p_pt_Blend ? "ok" : "NOT", p_pt_ACombine ? "ok" : "NOT", p_pt_CCombine ? "ok" : "NOT", p_pt_Chroma ? "ok" : "NOT", p_pt_Download ? "ok" : "NOT",
@@ -332,6 +345,10 @@ static void pt_report(void) {
     mlog("  pass-timers: glide state calls per frame: texsource %.0f (%.0f new address), blend %.0f, acombine %.0f, ccombine %.0f, chroma %.0f, download %.2f; polygon entry points %s",
          g_pt_gs_texsrc / F, g_pt_gs_texchg / F, g_pt_gs_blend / F, g_pt_gs_acomb / F, g_pt_gs_ccomb / F, g_pt_gs_chroma / F, g_pt_gs_dl / F,
          g_pt_poly_vl == 1 ? "present" : g_pt_poly_vl == 0 ? "ABSENT" : "unknown");
+    if (g_pt_poly) mlog("  pass-timers: poly probe: even frames grDrawTriangle %.1f ns/call (%lu calls), odd frames grDrawPolygonVertexList(3) %.1f ns/call (%lu calls); per vertex %.1f vs %.1f ns",
+                        g_pt_pp_n[0] ? g_pt_pp_sync[0] * ns / g_pt_pp_n[0] : 0.0, (unsigned long)g_pt_pp_n[0], g_pt_pp_n[1] ? g_pt_pp_sync[1] * ns / g_pt_pp_n[1] : 0.0, (unsigned long)g_pt_pp_n[1],
+                        g_pt_pp_n[0] ? g_pt_pp_sync[0] * ns / g_pt_pp_n[0] / 3.0 : 0.0, g_pt_pp_n[1] ? g_pt_pp_sync[1] * ns / g_pt_pp_n[1] / 3.0 : 0.0);
+    memset(g_pt_pp_sync, 0, sizeof g_pt_pp_sync); memset(g_pt_pp_n, 0, sizeof g_pt_pp_n);
     memset(g_pt_dt_own, 0, sizeof g_pt_dt_own); memset(g_pt_dt_sync, 0, sizeof g_pt_dt_sync); memset(g_pt_dt_n, 0, sizeof g_pt_dt_n);
     g_pt_cl_draw = g_pt_cl_build = g_pt_cl_tab = 0; g_pt_cl_draw_n = 0;
     memset(g_pt_gft_t, 0, sizeof g_pt_gft_t); memset(g_pt_m16_t, 0, sizeof g_pt_m16_t); memset(g_pt_rel_t, 0, sizeof g_pt_rel_t);
@@ -359,6 +376,7 @@ static void apply_pass_timers(void) {
     }
     if (env_flag("I76_PASS_TIMERS", 4, 0) != 1) return;
     g_pt_on = 1;
+    g_pt_poly = env_flag("I76_POLY_PROBE", 4, 0) == 1;
     if (!g_qpf.QuadPart) QueryPerformanceFrequency(&g_qpf);
     {   unsigned __int64 a, b, best = ~0ull; for (i = 0; i < 64; i++) { a = __rdtsc(); b = __rdtsc(); if (b - a < best) best = b - a; } g_pt_rd_ovh = best; }
     g_pt_tsc0 = pt_now(); QueryPerformanceCounter(&g_pt_q0); g_pt_ns_per_tick = 0.0;

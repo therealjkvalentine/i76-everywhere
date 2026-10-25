@@ -396,3 +396,26 @@ equivalence. Not done from the plan's test list: the screenshot pair (no determi
 stronger form) and the hood / binocular crash checks (no harness for them on the laptop route); a mission change (shutdown -> init)
 was not exercised. Therefore **opt-in** (`I76_M16_MEMO=1`, Gold), not a default: the next step is a promotion gate with a mission
 change and the crash views.
+
+### U5 Glide batching probe (`I76_POLY_PROBE=1` with `I76_PASS_TIMERS=1`, lab; 1 boot) and U6
+
+Gate (s.4): go only if grDrawTriangle's synchronous cost is >= 150 ns per call, or the polygon path measures cheaper per vertex in a
+1-frame A/B. The probe: inside the hardware flush, odd frames hand each opaque-op triangle to glide2x as
+`grDrawPolygonVertexList(3, ...)` (the three vertices copied in order a, b, c; ZGLIDE's GrVertex is 60 bytes = Glide 2.x with two TMU
+vertex sets), even frames as the stock `grDrawTriangle`; the same vertices either way.
+
+| | per call | per vertex |
+|---|---|---|
+| grDrawTriangle sync, U1 / U2 / U3 timer boots (n 9) | 127-137 ns | - |
+| A/B boot u5p, 10 windows of ~1.4-1.9 M calls per parity: grDrawTriangle | 104.4-136.0 ns | 34.8-45.3 ns |
+| same windows, grDrawPolygonVertexList(3) | 103.0-138.8 ns | 34.3-46.3 ns (0.0-1.9 % lower in 9 of 10 windows, higher in 1) |
+
+So the per-call criterion fails (104-137 < 150 ns), and the two entry points cost the same per vertex within 2 %: dgVoodoo's cost is the
+per-triangle vertex conversion, not a per-call overhead that a polygon list would amortise. With ~5,750 state calls per frame (texsource
+~2,000, every one a new address; U1) the painter's order breaks any batch every ~1.2 triangles anyway. **U5 line:** "s.4 gate: NO-GO -
+sync 104-137 ns/call (< 150), polygon path 34-46 ns/vertex vs triangle 35-45 (equal within 2 %)."
+
+**U6 (polygon lists): not built** - its precondition (a U5 go) failed. The probe code stays in the instrument (off unless set).
+Read-out for the record: ZGLIDE's two triangle loops (ZGLIDE+0x2a58 / +0x2d8e) build three fresh GrVertex on the stack per triangle
+from 36-byte source records, so an IAT-level coalescer would have to rediscover shared vertices by content; the plan's Render-op patch
+remains the only route if a later dgVoodoo version changes the cost model.

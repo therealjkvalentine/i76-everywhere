@@ -323,6 +323,7 @@ static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) { 
             for (i = 0; i < 3; i++) *(float *)((BYTE *)v[i] + 28) = *(const float *)((const BYTE *)v[i] + 28) * g_cl_cur * (1.0f / 255.0f);
         }
         if (g_pd_on) pd_drawtri(a, b, c);                    /* I76_PASS_DUMP: what glide2x receives */
+        if (g_pt_poly) { pt_poly_draw(a, b, c, p_fe_DrawTri); return; }   /* I76_POLY_PROBE (U5): the entry-point A/B */
         if (g_pt_on) { pt1 = pt_now(); p_fe_DrawTri(a, b, c); pt_drawtri_add(1, pt1 - pt0, pt_now() - pt1); return; }
         p_fe_DrawTri(a, b, c);
         return;
