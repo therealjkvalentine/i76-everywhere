@@ -608,6 +608,8 @@ static int still_playing(void) {
     return strncmp(ret, "playing", 7) == 0;
 }
 
+#include "musicextra.c"  /* I76_MUSIC_EXTRA: the owner's own extra songs shuffled in with the game's tracks (content-installer lane 2026-10-25) */
+
 static MCIERROR play_track(int track) {
     char mp3[MAX_PATH], cmd[MAX_PATH + 64];
     int actual;
@@ -655,6 +657,7 @@ static MCIERROR play_track(int track) {
     _snprintf(mp3, sizeof(mp3), "%s\\music\\%d.mp3", g_dir, disc_file(track, g_runForce));
     if (disc_file(track, g_runForce) != track)
         mlog("  disc track %d -> file %d.mp3 (%s)", track, disc_file(track, g_runForce), g_runForce ? "shell 1997" : "disc order");
+    { const char *xf = mx_pick(track); if (xf) lstrcpynA(mp3, xf, sizeof(mp3)); }   /* I76_MUSIC_EXTRA (musicextra.c) */
     stop_track();
     _snprintf(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", mp3, g_alias); mci_str(cmd);
     g_open = 1;
@@ -7291,6 +7294,7 @@ static void tex_census_attach(HMODULE m) {
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "skymirror.c"   /* I76_SKY_MIRROR=0: the rear-view mirror's pass does not scroll the sky (opt-in; NITRO-PORT s.11) */
 #include "mirrordetail.c" /* I76_MIRROR_DUMP (lab instrument), I76_MIRROR_TERRAIN_MODE: the mirror pass's terrain draw mode (rear-mirror lane 2026-10-23) */
+#include "voices.c"      /* I76_VOICES=de|<folder>: a voice overlay folder read instead of the game's own lines, per launch (content-installer lane 2026-10-25) */
 #include "soundmix.c"    /* I76_SFX_GAIN / I76_VOICE_GAIN / I76_MUSIC_GAIN / _CURVE, I76_NITRO_3D_VOLUME, I76_SOUND_VOL_LOG (nitro-polish lane 2026-10-24; after simtick.c: st_call_site) */
 #include "jumpnose.c"    /* I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate scaled once at take-off (jump-pitch lane 2026-10-23, TICK-FINISH s.22.6) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
@@ -10059,6 +10063,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
             char v[8]; DWORD n = GetEnvironmentVariableA("I76_MUSIC_GUARD", v, sizeof(v));
             if (!(n && v[0] == '0')) { CloseHandle(CreateThread(NULL, 0, music_guard, NULL, 0, NULL)); mlog("  music-guard: on"); }
         }
+        apply_voices(exe);        /* opt-in: I76_VOICES=de|<folder> (voices.c; before WinMain's vfs_LoadZix) */
         apply_joy_routing(exe);   /* opt-in: I76_JOY_MAP=a=b / I76_JOY_SYNTH=id:x (test) */
         apply_coop_ai(exe);       /* opt-in: I76_COOP_AI=1 (host's mission cars mirrored to the joiner) */
         apply_aimelee();          /* default on with I76_COOP_AI=1 (acts only in ADDON/ai_*.lvl arenas) */

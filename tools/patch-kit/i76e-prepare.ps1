@@ -49,6 +49,7 @@ $stampFile = Join-Path $here 'installed.txt'; $dispFile = Join-Path $here 'displ
 if ($Uninstall) {
     Say "=== removing the i76-everywhere overlay ($version) from $game ===" 'Cyan'
     if (Running-Here) { Fail 'close the game first' }
+    if (Test-Path -LiteralPath (Join-Path $here 'extras-installed.txt')) { [void](Child (Join-Path $here 'i76e-extras.ps1') @('-GameDir', $game, '-Uninstall')) }   # INSTALL-EXTRAS.bat's maps / opentrack / Python / voices
     if (Test-Path -LiteralPath (Join-Path $game 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $game, '-U32xDll', (Join-Path $repo 'u32x\u32x_full.dll'), '-Restore')) }   # -U32xDll explicit: PS 5.1 -File leaves $PSScriptRoot empty in its param default
     [void](Child (Join-Path $repo 'tools\patch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $game, '-Revert'))
     foreach ($pair in @(@('strlkup_orig.dll', 'Strlkup.dll'), @('I76PATCH.DLL.disabled', 'I76PATCH.DLL'))) {
@@ -71,7 +72,7 @@ if ($Uninstall) {
     }
     foreach ($d in 'presets', '_ahk', '_tools') { Remove-Item -LiteralPath (Join-Path $game $d) -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $stampFile, $dispFile -Force -ErrorAction SilentlyContinue
-    Say "done. Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, UNINSTALL-i76e.bat, README-PATCH-KIT.md and the _i76e folder." 'Green'
+    Say "done. Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, README-PATCH-KIT.md and the _i76e folder." 'Green'
     Say "Backups kept (safe to delete): i76.exe.u32xorig, i76shell.dll.orig, i76shell.dll.pre-i76e-keys, input.map.stock-*. GOG Galaxy's 'verify / repair' also restores everything."
     exit 0
 }

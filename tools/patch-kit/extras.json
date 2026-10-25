@@ -1,0 +1,149 @@
+{
+  "about": "Manifest for tools/patch-kit/i76e-extras.ps1 (the Patch Kit's optional extras, docs/records/CONTENT-INSTALLER-2026-10-25.md). Every download is fetched from its original site and checked against the sha256 pinned here; nothing listed here is shipped in the kit. Map outputs are pinned too: the converted file must be byte-identical to what tools/content-archive/arena-pack.py produced and the lab tested.",
+  "maps": [
+    {
+      "id": "rageco", "game": "gold", "title": "Rage County", "author": "General Rage", "year": "1997",
+      "credit": "Rage County by General Rage (1997-04-20)",
+      "page": "https://www.localditch.com/interstate-76/maps/",
+      "url": "https://www.localditch.com/interstate-76/maps/rageco.zip",
+      "zip_sha256": "483b4d080755837e9e8340bf6d91f8eb8881b5ce1653fa4bff68530f9064ab36", "zip_size": 276883,
+      "files": [
+        { "member": "Rageco.LVL", "to": "ADDON/rageco.lvl", "convert": "wrev9", "sha256": "2276040cbed6ec536c9daeb0f8af5a89c3f85bdb29c387d8eeffeafe1079d4ae" },
+        { "member": "Rageco.ter", "to": "ADDON/rageco.ter", "sha256": "4a44b68984436bcf3941a19bc2ef591f82bd8b848935ab1a288aab8ebc73b2d0" },
+        { "member": "rageco.txt", "to": "ADDON/rageco.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "76prcnct", "game": "gold", "title": "76th Precinct", "author": "Stingray", "year": "1997",
+      "credit": "76th Precinct v1.2 by Stingray (1997-05-06), with thanks to SuperFreak and the officers of team Mod Squad",
+      "page": "https://www.localditch.com/interstate-76/maps/",
+      "url": "https://www.localditch.com/interstate-76/maps/76prcnct.zip",
+      "zip_sha256": "bff000da5f1fdec5e101a5741f0ecdaf47661c5774488534b4c439b28f1b6697", "zip_size": 276268,
+      "files": [
+        { "member": "76prcnct.LVL", "to": "ADDON/76prcnct.lvl", "convert": "wrev9", "sha256": "56de834a7b757667756d39f86b4ea098c57d3ecdaa27647aa9570068098a4f40" },
+        { "member": "76prcnct.ter", "to": "ADDON/76prcnct.ter", "sha256": "9bbb9820b033a5d769466fd9fc07311e5b8361d407f02b8c0e6749624582ebf5" },
+        { "member": "76prcnct.txt", "to": "ADDON/76prcnct.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "leather", "game": "gold", "title": "Leathertown", "author": "Skull N. Bones", "year": "1997",
+      "credit": "Leathertown by Skull N. Bones (Skull&bones, 1997), idea by the Leather Jackets",
+      "page": "https://www.localditch.com/interstate-76/maps/",
+      "url": "https://www.localditch.com/interstate-76/maps/leather.zip",
+      "zip_sha256": "d5ea67cecb97dffbcfdd39b0ae684ff400cdfb8afcee0d280a9e493ebaa73ef7", "zip_size": 35278,
+      "files": [
+        { "member": "Leather.LVL", "to": "ADDON/leather.lvl", "convert": "wrev9", "sha256": "0a9ad4d9275d0b706c316466a629cd1ef805207af281f41bcddc4df68c03b348" },
+        { "member": "Leather.ter", "to": "ADDON/leather.ter", "sha256": "2042f99b3ba76d8028a8d3178d95f0aef5ca3e752fa16e5187cf9906b3d8a318" },
+        { "member": "Leather.txt", "to": "ADDON/leather.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "bigville", "game": "gold", "title": "Biggsville", "author": "Lt. Stinger (TBP)", "year": "1997",
+      "credit": "Biggsville by Lt. Stinger (TBP) (1997-12-01), made for Officer Biggs (TBP), template by Debacle",
+      "page": "https://www.localditch.com/interstate-76/maps/",
+      "url": "https://www.localditch.com/interstate-76/maps/bigville.zip",
+      "zip_sha256": "b65ee9f2a20438b7e9ad6406ddc4631d08f0212264c2565740b412b6b7f1eba2", "zip_size": 281312,
+      "files": [
+        { "member": "bigville.LVL", "to": "ADDON/bigville.lvl", "convert": "wrev9", "sha256": "9130c761509ff96e04b78e1bd6f05f215e181e9232fe00c91765e4efb2f0df59" },
+        { "member": "bigville.ter", "to": "ADDON/bigville.ter", "sha256": "a395cbf3e3bb56c09c42e8c043b39c3b97d4c91703909c025710bc0add535412" },
+        { "member": "Biggsville.txt", "to": "ADDON/bigville.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "drugb", "game": "gold", "title": "Drug Bust", "author": "Captain Gram", "year": "1997",
+      "credit": "Drug Bust by Captain Gram (1997-09-17)",
+      "page": "https://www.localditch.com/interstate-76/maps/",
+      "url": "https://www.localditch.com/interstate-76/maps/drugb.zip",
+      "zip_sha256": "39ca202ee73330e8e07149c8369e298cd678e999344f25cbd23a8d01bb02009b", "zip_size": 165707,
+      "files": [
+        { "member": "drugB.LVL", "to": "ADDON/drugb.lvl", "convert": "wrev9", "sha256": "c6c75cfdfd6532f0852528450b3c026bbef687421e291700783b56ed3f284360" },
+        { "member": "drugB.ter", "to": "ADDON/drugb.ter", "sha256": "60ce725a74e8cfbeec1bc10cc1ea30f49f4509809a3c4a12f21708a566028619" },
+        { "member": "drugB.txt", "to": "ADDON/drugb.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "gumball", "game": "nitro", "title": "Gumball Rally", "author": "Stingray", "year": "1997",
+      "credit": "Gumball Rally by Stingray (1997-06-11); Nitro version 2.0 by Lightfoot (2000-03-21, converted by request)",
+      "page": "https://www.interstate76.com/lsm/",
+      "url": "https://www.interstate76.com/lsm/exclusive/gumballnitro.zip",
+      "zip_sha256": "93b1897b5d3d74f6aa3a8d251b7bcd24880e3cbf9e2ea5dcd0e1ae812c14fc6e", "zip_size": 286179,
+      "files": [
+        { "member": "miss16/gumball.cbt", "to": "miss16/gumball.cbt", "sha256": "87845d34c73dc106c93c747900f52918e26e98ac1dafa3128ee8cd137da6800b" },
+        { "member": "miss8/gumball.cbt", "to": "miss8/gumball.cbt", "sha256": "7e2a81259b7e73dc6593a61cacb30dbd681b25f383bca8c2e6a9c5ce764e2764" },
+        { "member": "miss16/gumball.ter", "to": "addon/gumball.ter", "sha256": "ca2e7f971d8dbb0b31f3b563ce41752460dee2de8a3cbfabbe1e05f04d0a6302" },
+        { "member": "GumballNitro.txt", "to": "addon/gumball.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "intercpt", "game": "nitro", "title": "Intercept and Pursuit", "author": "Debacle", "year": "1997",
+      "credit": "Intercept and Pursuit by Debacle (1997-04-17); Nitro version 2.0 by Lightfoot (2002-01-31; its readme says: converted without the author's consent)",
+      "page": "https://www.interstate76.com/lsm/",
+      "url": "https://www.interstate76.com/lsm/exclusive/intercept-nitro.zip",
+      "zip_sha256": "ac32f1a52cce0360818706bd2f02797b6c8bcd096735c86d1fcb3fe4ca1e122c", "zip_size": 112071,
+      "files": [
+        { "member": "MISS16/Intercpt.cbt", "to": "miss16/intercpt.cbt", "sha256": "e5de41e1aa1ef8975ef6fa147e65cbc071b0979687786dc0c41c17ee5f1ba8cd" },
+        { "member": "MISS8/Intercpt.cbt", "to": "miss8/intercpt.cbt", "sha256": "c66902696de3053ecb200c7dfc21dda24e904c3398523b7b4a0ff2501506c2f1" },
+        { "member": "ADDON/Intercpt.ter", "to": "addon/intercpt.ter", "sha256": "be66eae2869f7fbc5bba8cf8df0dd83e27f8246583a1b73e62626d3e2d6c6a45" },
+        { "member": "Intercpt.txt", "to": "addon/intercpt.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "tex", "game": "nitro", "title": "BorderTown, TX", "author": "Debacle", "year": "1997",
+      "credit": "BorderTown, TX by Debacle (1997-07-27); Nitro version 2.0 by Debacle (1998-03-06)",
+      "page": "https://www.interstate76.com/lsm/",
+      "url": "https://www.interstate76.com/lsm/combat1/border.zip",
+      "zip_sha256": "b4dc23a94d59f142ab3e69b83aaba68aba1486901958fdb85b325c69ee0f7299", "zip_size": 244938,
+      "files": [
+        { "member": "miss16/tex.cbt", "to": "miss16/tex.cbt", "sha256": "ab2e748359f2efd89b64dfe426621b4560ab43a57a485d886abfef334fabd1b6" },
+        { "member": "miss8/tex.cbt", "to": "miss8/tex.cbt", "sha256": "436a869f656f875aac5ff2e3ab75bff9a10a263cc9a93c0cc6ce836aa9068bdc" },
+        { "member": "miss16/tex.ter", "to": "addon/tex.ter", "sha256": "c237f34e61cbdef64dbf62d66155ed38fcdef1a1f8f50bc02a849880c56c1be3" },
+        { "member": "BorderTown2.txt", "to": "addon/tex.txt", "readme": true }
+      ]
+    },
+    {
+      "id": "offroad", "game": "nitro", "title": "Offroad Gold", "author": "General Rage", "year": "1997",
+      "credit": "Offroad Terror (Offroad Gold) by General Rage (1997-04-24); Nitro version from Lightfoot's Stolen Maps (racing group)",
+      "page": "https://www.interstate76.com/lsm/",
+      "url": "https://www.interstate76.com/lsm/racing1/OffroadGold.zip",
+      "zip_sha256": "9d1d7797433eb734d1291c00d724e8e8860b2fcf892f712ef1913a11cae42c2e", "zip_size": 599014,
+      "files": [
+        { "member": "miss16/Offroad.cbt", "to": "miss16/offroad.cbt", "sha256": "4cd51613a00d8314eb7f462c4ffdfae2986250613e22d7a4ed76b874f384e70f" },
+        { "member": "miss8/Offroad.cbt", "to": "miss8/offroad.cbt", "sha256": "b927a82615cc10459a2e14e0f85775250001b1dcc52bf0c8da55e45bf6c0fd7d" },
+        { "member": "miss16/Offroad.ter", "to": "addon/offroad.ter", "sha256": "f0e053dae1b42b4b3607eae5724100889e99313da2e1fd7aab3054dc5fdabf78" }
+      ]
+    },
+    {
+      "id": "repo", "game": "nitro", "title": "RepoTown USA", "author": "Debacle", "year": "1997",
+      "credit": "RepoTown USA v1.1 by Debacle; Nitro version by Lightfoot (1999-04-28; its readme says: modified without the author's consent)",
+      "page": "https://www.interstate76.com/lsm/",
+      "url": "https://www.interstate76.com/lsm/exclusive/reponitro.zip",
+      "zip_sha256": "682706a4cdfaadaa0a65773dcdc30459359a353dd556029fcbe02b395e0a6a74", "zip_size": 458485,
+      "files": [
+        { "member": "miss16.zip/repo.cbt", "to": "miss16/repo.cbt", "sha256": "1bd031f57f5c25f6a9d93765573d32a34329a25efa5f681cf30eab33d0622bc7" },
+        { "member": "miss8.zip/repo.cbt", "to": "miss8/repo.cbt", "sha256": "1bd031f57f5c25f6a9d93765573d32a34329a25efa5f681cf30eab33d0622bc7" },
+        { "member": "miss16.zip/repo.ter", "to": "addon/repo.ter", "sha256": "7c9ba111bc0239b18c54f0673b48f58280233120a0e41924cdf86c6880d35537" },
+        { "member": "reponitro.txt", "to": "addon/repo.txt", "readme": true }
+      ]
+    }
+  ],
+  "apps": {
+    "opentrack": {
+      "version": "2026.1.0",
+      "url": "https://github.com/opentrack/opentrack/releases/download/opentrack-2026.1.0/opentrack-2026.1.0-win32-portable.7z",
+      "sha256": "92ed738f863d5a46c0a4518bc81ceb71c778804cb66b2108eee34c9962d71813", "size": 196482178,
+      "licence": "ISC / GPL components (opentrack's own doc folder lists them)",
+      "unpacker": {
+        "name": "7zr.exe 26.04 (7-Zip's standalone .7z extractor, Igor Pavlov, LGPL)",
+        "url": "https://github.com/ip7z/7zip/releases/download/26.04/7zr.exe",
+        "sha256": "256feca8e274e5da655e2a284fabafd9f554365eb164862089dacd4e8276d282", "size": 602624
+      }
+    },
+    "python": {
+      "version": "3.12.10",
+      "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+      "sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3", "size": 11133606,
+      "md5_python_org": "fe8ef205f2e9c3ba44d0cf9954e1abd3",
+      "licence": "PSF License"
+    }
+  }
+}

@@ -28,7 +28,7 @@ param(
     [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
     [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\patch-kit',
-    [string]$Version = '0.7.3',
+    [string]$Version = '0.7.4',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''
 )
@@ -39,7 +39,7 @@ function Die([string]$m) { Write-Host "package-patch-kit: $m" -ForegroundColor R
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 i76-remap.ahk i76-ch-fighterstick.ahk)
+$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 tools/debug tools/driver i76-remap.ahk i76-ch-fighterstick.ahk i76-opentrack-headlook.ahk i76-opentrack-autostart.ahk i76-opentrack-autostart.ps1)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files (commit first so VERSION.txt names what shipped):`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not (Test-Path -LiteralPath $Proxy)) { Die "proxy not found: $Proxy" }
 $proxyMd5 = Md5 $Proxy
@@ -52,13 +52,14 @@ New-Item -ItemType Directory -Force $sr | Out-Null
 $files = @(
     'setup-windows.ps1', 'PLAY-i76.ps1', 'dgVoodoo.daily-driver-2026-10-03.conf', 'dgVoodoo.windows.conf',
     'i76-remap.ahk', 'i76-ch-fighterstick.ahk', 'LICENSE', 'THIRD-PARTY.md',
+    'i76-opentrack-headlook.ahk', 'i76-opentrack-autostart.ahk', 'i76-opentrack-autostart.ps1',   # the head-look layer (INSTALL-EXTRAS.bat's opentrack option puts it in _ahk\)
     'controls\input.map', 'controls\README.md',
     'u32x\deploy-u32x.ps1', 'u32x\u32x_full.dll', 'u32x\README.md',
     'tools\Make-Wide-Conf.ps1', 'tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf', 'tools\i76wheel.exe',
     'tools\lint-input-map.py', 'tools\fix-shell-textentry.ps1',
     'tools\patch-kit\Apply-Shell-Keys.ps1', 'tools\patch-kit\shell-keys-patch.json',
     'tools\driver\DEBUG.bat', 'tools\driver\TRAINER.bat',
-    'tools\debug\i76debug.py', 'tools\debug\debug_core.py', 'tools\debug\debug_trainer.py', 'tools\debug\README.md',
+    'tools\debug\i76debug.py', 'tools\debug\debug_core.py', 'tools\debug\debug_trainer.py', 'tools\debug\debug_logger.py', 'tools\debug\debug_haptics.py', 'tools\debug\README.md',
     'tools\debug\static\index.html', 'tools\debug\static\app.js', 'tools\debug\static\app.css', 'tools\debug\static\charts.js',
     'tools\trainer\i76trainer_gui.py', 'tools\trainer\i76trainer.py', 'tools\trainer\i76trn.h', 'tools\trainer\README-GUI.md', 'tools\trainer\waypoints.json',
     'tools\telemetry\i76tel.py', 'tools\telemetry\i76tel.h', 'tools\telemetry\i76tel_v2.h',
@@ -77,6 +78,8 @@ foreach ($rel in $files) {
 New-Item -ItemType Directory -Force (Join-Path $sr 'music-fix') | Out-Null
 Copy-Item -LiteralPath $Proxy -Destination (Join-Path $sr 'music-fix\Strlkup.dll') -Force
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
+# the optional extras (INSTALL-EXTRAS.bat; content-installer lane 2026-10-25): the script and its manifest of pinned downloads - no content
+foreach ($n in 'i76e-extras.ps1', 'extras.json') { Copy-Item -LiteralPath (Join-Path $repo "tools\patch-kit\$n") -Destination (Join-Path $i76e $n) -Force }
 
 # ---- dgVoodoo 2.87.3, unmodified x86 components only, checked against the release zip's hashes -------------------------
 function Ship-DgVoodoo([string]$srcDir, [hashtable]$hashes, [string]$ver, [string]$outDir, [string]$extraNote) {
@@ -143,16 +146,22 @@ REM Interstate '76 - i76-everywhere tester build $Stamp (repo $sha): $what
 REM Options:  --no-supersample   lighter on the GPU: the 3D is rendered at the monitor's size, not 2x
 REM           --display WxH      size the picture for this monitor size instead of the one Windows reports
 REM           --setup            run the setup / display step only, do not start the game     --resetup  run the setup again
+REM           --voices de|en     German voice lines for this launch (INSTALL-EXTRAS.bat builds them from your German disc) / English
+REM           --music-extra off  this launch without your extra music (INSTALL-EXTRAS.bat sets the folder)
 REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
 setlocal
 set "ARGS="
 set "SETUPONLY="
+REM the defaults INSTALL-EXTRAS.bat chose (German voices, extra music): KEY=VALUE lines, overridden by the options below
+if exist "%~dp0_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%~dp0_i76e\extras.env") do set "%%a=%%b"
 :args
 if "%~1"=="" goto :go
 if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & shift & goto :args)
 if /i "%~1"=="--display" (set "ARGS=%ARGS% -Display %~2" & shift & shift & goto :args)
 if /i "%~1"=="--setup" (set "SETUPONLY=1" & shift & goto :args)
 if /i "%~1"=="--resetup" (set "ARGS=%ARGS% -Resetup" & shift & goto :args)
+if /i "%~1"=="--voices" (set "I76_VOICES=%~2" & shift & shift & goto :args)
+if /i "%~1"=="--music-extra" (set "I76_MUSIC_EXTRA=%~2" & shift & shift & goto :args)
 echo unknown option: %~1
 shift
 goto :args
@@ -176,6 +185,21 @@ pause
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Uninstall
 pause
 "@ -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'INSTALL-EXTRAS.bat') @"
+@echo off
+REM Interstate '76 - i76-everywhere Patch Kit $Version: OPTIONAL extras. Each one says what it adds and asks first:
+REM   community maps (downloaded from the sites that host them), opentrack (head look), Python (for DEBUG.bat),
+REM   German voices (from your own German disc), extra music (a folder of your own songs, private).
+REM INSTALL-EXTRAS.bat --list   shows what is installed. UNINSTALL-i76e.bat removes it with the rest of the kit.
+setlocal
+if /i "%~1"=="--list" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-extras.ps1" -List
+  pause
+  exit /b 0
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-extras.ps1" %*
+pause
+"@ -Encoding ascii
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\README.md') -Destination (Join-Path $Stage 'README-PATCH-KIT.md') -Force
 
 # ---- the game-byte guard: nothing of GOG's may be in the stage --------------------------------------------------------
@@ -193,7 +217,8 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-patch-kit.ps1 from repo commit $sha",
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
-    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview)"
+    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview)",
+    "INSTALL-EXTRAS.bat = optional extras (_i76e\i76e-extras.ps1 + extras.json: pinned downloads of community maps, opentrack, Python; German voices from the user's disc; private extra music)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }
 $sums | Set-Content -LiteralPath (Join-Path $i76e 'MD5SUMS') -Encoding ascii

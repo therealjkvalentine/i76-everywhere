@@ -507,6 +507,11 @@ function Enable-OpentrackGameDetect {
         return @{ ok = $true; changed = $changed; profile = $otProfile }
     } catch { return @{ ok = $false; changed = $false; error = $_.Exception.Message } }
 }
+# The Patch Kit's optional opentrack (INSTALL-EXTRAS.bat, 2026-10-25) is a portable copy inside the game folder: use it when
+# -OpenTrack was not given and the default install path holds none.
+if (-not $PSBoundParameters.ContainsKey('OpenTrack') -and -not (Test-Path $OpenTrack) -and (Test-Path (Join-Path $GameDir '_tools\opentrack\opentrack.exe'))) {
+    $OpenTrack = Join-Path $GameDir '_tools\opentrack\opentrack.exe'
+}
 $ot = $null
 $otHelper = $null
 $track = $null

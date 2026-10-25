@@ -772,7 +772,7 @@ if (Test-Path $wheelExe) {
 # byte for byte. The tool finds the game folder from the running process, not from where it sits.
 if (-not $isNitro) {
     $dbgFiles = [ordered]@{
-        'tools\debug'     = 'i76debug.py', 'debug_core.py', 'debug_trainer.py', 'README.md', 'static\index.html', 'static\app.js', 'static\app.css', 'static\charts.js'
+        'tools\debug'     = 'i76debug.py', 'debug_core.py', 'debug_trainer.py', 'debug_logger.py', 'debug_haptics.py', 'README.md', 'static\index.html', 'static\app.js', 'static\app.css', 'static\charts.js'
         'tools\trainer'   = 'i76trainer_gui.py', 'i76trainer.py', 'i76trn.h', 'README-GUI.md', 'waypoints.json'
         'tools\telemetry' = 'i76tel.py', 'i76tel.h', 'i76tel_v2.h'
     }

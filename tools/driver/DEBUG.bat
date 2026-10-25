@@ -19,12 +19,18 @@ REM see the campaign line on the Trainer tab ('Turn off cheater options' undoes 
 setlocal
 set "DBG=%~dp0_tools\debug\i76debug.py"
 if not exist "%DBG%" (echo Missing %DBG% & pause & exit /b 1)
+REM the Patch Kit's optional Python, INSTALL-EXTRAS.bat: python.org's embeddable package inside the game folder
+if exist "%~dp0_tools\python\python.exe" (
+  "%~dp0_tools\python\python.exe" "%DBG%" --any %*
+  goto :done
+)
 where py >nul 2>&1
 if %errorlevel%==0 (
   py -3 "%DBG%" --any %*
 ) else (
   python "%DBG%" --any %*
 )
+:done
 if errorlevel 1 (
   echo.
   echo I76 Debug exited with an error - is Python 3 installed and on the PATH? Is another I76 Debug already open
