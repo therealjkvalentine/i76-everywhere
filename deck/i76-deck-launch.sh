@@ -24,8 +24,13 @@
 # launches (just without the pad layer). It must never block play.
 set -u
 
-STAGE="${I76_AHK_STAGE:-$HOME/Games/Interstate76/ahk}"
-LOG="${I76_LAUNCH_LOG:-$HOME/Games/Interstate76/deck-launch.log}"
+# The install folder is the one this script sits in (2026-10-25, Deck kit: a user may install anywhere); the
+# owner's Deck keeps ~/Games/Interstate76, which is where this script lives there, so nothing changes for it.
+I76_HOME="${I76_HOME:-$(cd "$(dirname "$(readlink -f "$0")")" && pwd)}"
+export I76_HOME
+
+STAGE="${I76_AHK_STAGE:-$I76_HOME/ahk}"
+LOG="${I76_LAUNCH_LOG:-$I76_HOME/deck-launch.log}"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
 : > "$LOG" 2>/dev/null || LOG=/dev/null
 log() { echo "[i76-launch] $*" >> "$LOG"; }
@@ -36,10 +41,18 @@ log "STEAM_COMPAT_DATA_PATH=${STEAM_COMPAT_DATA_PATH:-<unset>}"
 # --- engine switches (deck/setup-deck-wide.sh) -------------------------------
 # The Strlkup.dll proxy reads I76_* from the environment, and Wine passes the Unix
 # environment through to i76.exe. No file = stock behaviour.
-ENVF="${I76_ENV_FILE:-$HOME/Games/Interstate76/i76-env.sh}"
+ENVF="${I76_ENV_FILE:-$I76_HOME/i76-env.sh}"
 if [ -f "$ENVF" ]; then
     # shellcheck disable=SC1090
     . "$ENVF"
+    # Per-user override (2026-10-25, Deck kit): i76-env.local.sh beside this script is read LAST, so its exports replace
+    # the preset's; a kit update rewrites i76-env.sh but never this file (the same role as presets\local.psd1 on Windows).
+    LOCALF="${I76_ENV_LOCAL:-$I76_HOME/i76-env.local.sh}"
+    if [ -f "$LOCALF" ]; then
+        # shellcheck disable=SC1090
+        . "$LOCALF"
+        log "local override $LOCALF: $(grep -cE '^[[:space:]]*export ' "$LOCALF") export line(s)"
+    fi
     log "switches from $ENVF: $(env | grep -E '^I76' | sort | tr '\n' ' ')"
 else
     log "no $ENVF - no engine switches"
@@ -62,7 +75,7 @@ fi
 # Gamma lifts the 3D mission picture only (glide2x gamma ramp; higher = brighter mid-tones, no clipping);
 # dgVoodoo Brightness / Contrast / Color are linear and also reach the menus and movies.
 DISP_PROFILE="${I76_DECK_DISPLAY:-auto}"
-GAMEDIR_D="${I76_GAMEDIR:-$HOME/Games/Interstate76/game}"
+GAMEDIR_D="${I76_GAMEDIR:-$I76_HOME/game}"
 screen_size() {    # WxH of the X screen the game will run on, or nothing
     local s=""
     if command -v xrandr >/dev/null 2>&1; then
@@ -204,7 +217,7 @@ fi
 # i2ayj_13.map, two .pcx and a few .vcf/.vsf. The Deck carried the retired July HD texture pack (3,300+
 # files): its palette-indexed .map tiles were re-quantized against a day palette and come out in wrong
 # colours on night missions (docs/HD-TEXTURES-RESEARCH.md). deck/setup-deck-stock-textures.sh moves it aside.
-ADDON_DIR="${I76_GAMEDIR:-$HOME/Games/Interstate76/game}/ADDON"
+ADDON_DIR="${I76_GAMEDIR:-$I76_HOME/game}/ADDON"
 if [ -d "$ADDON_DIR" ]; then
     A_ALL="$(ls -1A "$ADDON_DIR" | wc -l | tr -d ' ')"
     A_MAP="$(ls -1A "$ADDON_DIR" | grep -ci '\.map$' || true)"
@@ -221,7 +234,7 @@ fi
 # pad layer) turns it into keys, so the shared controls/input.map is the live map. input.map is
 # the only file the engine reads, so it is copied into place on every launch. I76_PROFILE=deck
 # (launch options) brings back the old key layout's map for a v8.1 controller layout.
-GAMEDIR_W="${I76_GAMEDIR:-$HOME/Games/Interstate76/game}"
+GAMEDIR_W="${I76_GAMEDIR:-$I76_HOME/game}"
 if [ "${I76_PROFILE:-pad}" = "pad" ]; then
     export I76_DECK_AHK=1
     MAPSRC="$GAMEDIR_W/input.map.profile-pad"

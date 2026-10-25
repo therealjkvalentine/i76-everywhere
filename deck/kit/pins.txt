@@ -1,0 +1,11 @@
+# I'76 Deck Kit downloads: name  sha256  url  (fetched by i76-deck-kit.sh into ~/.cache/i76-deck-kit, refused on any other hash)
+# innoextract 1.9 (zlib licence, Daniel Scharrer): unpacks YOUR GOG offline installer; static Linux build
+innoextract-1.9-linux.tar.xz  008efe5011476ccc4aae17c3e22038b5a1bc5c7aad2b9d4d869537bf3874d21f  https://constexpr.org/innoextract/files/innoextract-1.9/innoextract-1.9-linux.tar.xz
+# dgVoodoo 2.78.2 (Dege, freeware): Glide2x / DDraw / D3DImm x86. Proton needs 2.80 or older: 2.81+ crashes at the first present
+# under Wine's DXGI (dxvk#5217, docs/DXGI-DGVOODOO-RESEARCH.md). 2.78.2 is not on Dege's GitHub; this is the archive.org copy,
+# byte-identical (Glide2x 30cd5243, DDraw 409cfb03, D3DImm a168b65d) to the files the owner's Deck has run since 2026-07.
+dgVoodoo2_78_2.zip  b75f2f2e5a08de29027b3858c68c361cf3337981de4aeaffdb37dba577bfcd95  https://archive.org/download/dgvoodoo2_78_2_202205/dgVoodoo2_78_2.zip
+# IPXWrapper 0.7.2 (GPL v2, solemnwarning): LAN games (ipxwrapper.dll 06a01d0f, wsock32.dll 70e4a652, mswsock.dll c18759b2 = every LAN machine's)
+ipxwrapper-0.7.2.zip  a32255f528533be0add8eeabb0794fcbf8b025110cb4624b79dbb82698e6a404  https://github.com/solemnwarning/ipxwrapper/releases/download/ipxwrapper-0.7.2/ipxwrapper-0.7.2.zip
+# GE-Proton 10-12 (GloriousEggroll; Proton's licences): only with --ge-proton, when it is not installed yet (the owner's Deck runs it)
+GE-Proton10-12.tar.gz  47dffcff346b35c75649a95a012ad4e9b6376087dceb43ac7b695e04f5ed3c1e  https://github.com/GloriousEggroll/proton-ge-custom/releases/download/GE-Proton10-12/GE-Proton10-12.tar.gz

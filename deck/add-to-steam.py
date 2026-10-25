@@ -27,9 +27,15 @@ USERCFG = os.path.expanduser(f"~/.steam/steam/userdata/{STEAM_USERID}/config")
 STEAMCFG = os.path.expanduser("~/.steam/steam/config")
 TEMPLATES = os.path.expanduser("~/.steam/steam/controller_base/templates")
 BUNDLE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GAMEDIR = os.path.expanduser("~/Games/Interstate76/game")
+# Deck kit (2026-10-25): the install folder, the launch options and the layout come from the environment when given;
+# unset = the original behaviour (the owner's ~/Games/Interstate76, "-glide", the v4 key layout).
+GAMEDIR = os.environ.get("I76_GAMEDIR") or os.path.expanduser("~/Games/Interstate76/game")
+LAUNCH_OPTIONS = os.environ.get("I76_LAUNCH_OPTIONS", "-glide")
+TEMPLATE = os.environ.get("I76_TEMPLATE", "controller_neptune_i76.vdf")
+TEMPLATE_SRC = os.environ.get("I76_TEMPLATE_SRC") or os.path.join(BUNDLE, "config", TEMPLATE)
+DRY_RUN = os.environ.get("I76_DRY_RUN") == "1" or "--dry-run" in sys.argv
 EXE = os.path.join(GAMEDIR, "i76.exe")
-NAME = "Interstate 76"
+NAME = os.environ.get("I76_SHORTCUT_NAME") or "Interstate 76"   # an existing entry of this name is UPDATED, not duplicated
 def _detect_compat():
     env = os.environ.get("I76_COMPAT")
     if env: return env
@@ -104,12 +110,17 @@ def main():
         (0x01,"StartDir",'"%s"'%GAMEDIR),
         (0x01,"icon",os.path.join(USERCFG,"grid","%d_icon.png"%top)),
         (0x01,"ShortcutPath",""),
-        (0x01,"LaunchOptions","-glide"),
+        (0x01,"LaunchOptions",LAUNCH_OPTIONS),
         (0x02,"IsHidden",0),(0x02,"AllowDesktopConfig",1),(0x02,"AllowOverlay",1),
         (0x02,"OpenVR",0),(0x02,"Devkit",0),(0x01,"DevkitGameID",""),
         (0x02,"DevkitOverrideAppID",0),(0x02,"LastPlayTime",0),(0x01,"FlatpakAppID",""),
         (0x00,"tags",[]),
     ]
+    if DRY_RUN:
+        print("DRY RUN - nothing written. Would %s shortcut %r: Exe %s, StartDir %s, LaunchOptions %s, appid %d, compat %s, layout %s (%s)" % (
+            "update" if existing_idx is not None else "append", NAME, EXE, GAMEDIR, LAUNCH_OPTIONS, top, COMPAT, TEMPLATE,
+            "found" if os.path.exists(TEMPLATE_SRC) else "MISSING: " + TEMPLATE_SRC))
+        return
     if existing_idx is not None:
         shortcuts[:] = [(t,k,(entry if k==existing_idx else v)) for t,k,v in shortcuts]
         print(f"updated existing shortcut idx {existing_idx}")
@@ -147,10 +158,10 @@ def main():
         print("compat mapping skipped:", e)
 
     # ---------- controller config template ----------
-    cc=os.path.join(BUNDLE,"config","controller_neptune_i76.vdf")
+    cc=TEMPLATE_SRC
     if os.path.exists(cc) and os.path.isdir(TEMPLATES):
-        shutil.copy2(cc, os.path.join(TEMPLATES,"controller_neptune_i76.vdf"))
-        print("controller template installed (selectable in-game as 'Interstate 76 (full driving+combat)')")
+        shutil.copy2(cc, os.path.join(TEMPLATES,TEMPLATE))
+        print("controller template installed: %s" % TEMPLATE)
     # ---------- ZERO-TAP controller apply (Steam ROM Manager mechanism) ----------
     # configset_controller_neptune.vdf maps lowercased app name -> template file.
     try:
@@ -159,7 +170,7 @@ def main():
         os.makedirs(csdir, exist_ok=True)
         cs = os.path.join(csdir, "configset_controller_neptune.vdf")
         key = NAME.lower()
-        entry = '\t"%s"\n\t{\n\t\t"template"\t\t"controller_neptune_i76.vdf"\n\t}\n' % key
+        entry = '\t"%s"\n\t{\n\t\t"template"\t\t"%s"\n\t}\n' % (key, TEMPLATE)
         if os.path.exists(cs):
             body = open(cs, encoding="utf-8", errors="replace").read()
             if key not in body.lower():

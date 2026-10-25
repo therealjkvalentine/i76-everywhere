@@ -1,0 +1,9 @@
+# i76-env.local.sh - YOUR switches for Interstate '76 on the Deck (copy this file to i76-env.local.sh beside i76-deck-launch.sh).
+# i76-deck-launch.sh reads it AFTER i76-env.sh (the kit preset), so an export here replaces the preset's value. A kit update
+# never touches i76-env.local.sh. Its line count shows in deck-launch.log ("local override ...").
+# Examples (remove the leading # to use one):
+# export I76_FAR_CLIP=1200          # shorter view distance if a big scene drops below 60 fps
+# export I76_TV_GAMMA=1.6           # brighter picture on a TV
+# export I76_HANDHELD_GAMMA=1.2     # darker on the Deck's own screen
+# export I76_FFB_PADS=first         # rumble only the first pad (default in the kit: every connected pad)
+# export I76_PROFILE=deck           # the old key-based Steam layout's map instead of the gamepad layout
