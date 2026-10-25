@@ -62,3 +62,6 @@
 # WndProc WM_ACTIVATEAPP 1 with the Esc menu up (polish / simtick.c I76_MENU_DRAW), read side by side: cmp [menu mode], 0x10 / jne /
 # push <cam> / call renderer_DrawFrame (Gold 0x401c90 / Nitro 0x430860) / add esp, 4 / call 0x496870 (Nitro 0x49da10) - same order
 0x404a7d  0x433bed  5   renderer_DrawFrame call on re-activation with the menu up
+# parity lane 2026-10-24 (records/NITRO-PARITY-2026-10-24.md): WndProc WM_ACTIVATEAPP 0 in a mission, call ffb_ForcesOff (Gold 0x445b60 / Nitro 0x42a920),
+# read side by side: the same cmp [state], 1 / jne / call ForcesOff / call show-pointer (0x44bcc0 / 0x443610) sequence; the ffb-focus keep-on-blur site
+0x404afb  0x433c6b  5   WndProc focus loss: call ffb_ForcesOff (keep-on-blur)

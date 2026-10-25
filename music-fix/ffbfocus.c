@@ -1,5 +1,5 @@
 /* ffbfocus.c - stock force feedback across Alt-Tab and level restarts (I76_FFB_REACQUIRE, default 1; I76_FFB_TRACE, default 0)
- * Gold only; included by strlkproxy.c. Record: docs/records/FFB-FOCUS-2026-10-24.md.
+ * Gold and Nitro (nitro-parity lane 2026-10-24: the exe reads through NA, the hook site through the site map); included by strlkproxy.c. Record: docs/records/FFB-FOCUS-2026-10-24.md.
  *
  * The owner's case (2026-10-24, RC proxy 53944fb2, T300, stock FFB): after a level restart and Alt-Tab the wheel's effects
  * came and went, then i76.exe died at I7_SFRCE.DLL+0x2505 reading 0. The sequence, from the DLL (md5 687cc35b, the
@@ -76,8 +76,9 @@ static const char *ffr_rva(void *ret) {               /* "+0x1234" for a return 
     if (base && r > base && r < base + 0x19000) wsprintfA(b, "+0x%lX", (unsigned long)(r - base)); else wsprintfA(b, "%p", ret);
     return b;
 }
-static int ffr_game_active(void) { return *(volatile DWORD *)(DWORD_PTR)0x00504c1c != 0; }
-static int ffr_forces_on(void)   { return *(volatile DWORD *)(DWORD_PTR)0x004f2330 != 0; }
+/* NA(): Nitro's addresses (0x526a6c, 0x4f2d58; site map) - Nitro runs the same ffb code and the same I7_SFRCE.DLL (nitro-parity lane 2026-10-24) */
+static int ffr_game_active(void) { return *(volatile DWORD *)(DWORD_PTR)NA(0x00504c1c) != 0; }
+static int ffr_forces_on(void)   { return *(volatile DWORD *)(DWORD_PTR)NA(0x004f2330) != 0; }
 
 static void ffr_mark_restart(const char *why) {
     int i, n = 0;
@@ -324,7 +325,7 @@ static void __cdecl ffr_tick(void) {
     if (!g_ffr_on || !act || !frc) return;
     /* [0x52bbe4] = 0: the custom interposer (tools/ffb, Tel-SetEngineFfb) holds the wheel and has switched the game's effects off -
      * never take the device back from it */
-    if (*(volatile DWORD *)(DWORD_PTR)0x0052bbe4 == 0) return;
+    if (*(volatile DWORD *)(DWORD_PTR)NA(0x0052bbe4) == 0) return;
     if (g_ffr_need_check || g_ffr_lost || (g_ffr_tick % 120) == 0) {
         g_ffr_need_check = 0;
         if (ffr_acquire(g_ffr_lost ? "lost at the last check" : "activation / periodic check")) ffr_restart_pending();
@@ -343,7 +344,7 @@ static void ffr_config(void) {
         static const BYTE call_off[5] = { 0xE8, 0x60, 0x10, 0x04, 0x00 }, nop5[5] = { 0x90, 0x90, 0x90, 0x90, 0x90 };
         g_ffr_keep_blur = patch_bytes(0x00404afb, call_off, nop5, 5, "ffb-keep-on-blur");
         mlog("  ffb-focus: keep-on-blur: WM_ACTIVATEAPP 0 no longer turns the forces off (0x404afb call 0x445b60 -> nop): %s",
-             g_ffr_keep_blur && *(const BYTE *)(DWORD_PTR)0x00404afb == 0x90 ? "read back ok" : "NOT applied");
+             g_ffr_keep_blur && *(const BYTE *)(DWORD_PTR)NA(0x00404afb) == 0x90 ? "read back ok" : "NOT applied");
     }
     mlog("  ffb-focus: armed (re-acquire %s, NULL-slot guard %s, keep-on-blur %s, trace %s); hooks go in at the first ffb_PlayEffect once I7_SFRCE.DLL is loaded",
          g_ffr_on ? "on" : "off", g_ffr_on ? "on" : "off", g_ffr_keep_blur ? "on" : "off", g_ffr_trace ? "on" : "off");

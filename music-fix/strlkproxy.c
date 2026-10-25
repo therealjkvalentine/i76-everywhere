@@ -2987,6 +2987,11 @@ static void apply_ffb_guard(void) {
     ffr_config();
     if (!g_ffb_guard_on) mlog("  ffb-guard: off (I76_FFB_GUARD=0, or not a LAN launch)");
     if (!g_ffb_guard_on && g_ffr_state == 3) return;
+    {   /* Nitro (parity lane 2026-10-24): ffb_PlayEffect is Gold's code at 0x42fb00 (`mov eax, [0x5234dc]`), the device flag 0x523248;
+         * the stub's two absolute reads are relocated (nitro.c), the 5-byte site through the site map */
+        static const DWORD ga[2] = { 0x0052bbd0, 0x0052bbe4 };
+        if (!nitro_reloc_stub((void *)ffb_guard_stub, ga, 2, 64, "ffb-guard stub")) { mlog("  ffb-guard: Nitro stub not relocated - not hooked"); return; }
+    }
     memcpy(w + 1, &r, 4);
     mlog("  ffb-guard: ffb_PlayEffect 0x446110 %s (%s%s)",
          patch_bytes(0x00446110, old, w, 5, "ffb-guard") ? "hooked" : "NOT hooked (bytes differ)",
@@ -7276,6 +7281,7 @@ static void tex_census_attach(HMODULE m) {
 }
 
 #include "cursormap.c"   /* I76_CURSOR_MAP: menu / save-screen pointer on a window bigger than 640x480 (Deck, Mac, no u32x) */
+#include "nitroparity.c" /* Nitro: u32x's non-pointer fixes in the proxy - I76_NO_GHOSTING, I76_NITRO_MSGBOX (nitro-parity lane 2026-10-24) */
 #include "padmenu.c"     /* I76_PAD_MENU: controller moves the menu pointer (shell + Esc menu only; uses cursormap) */
 #include "mpmenu.c"      /* I76_MP_MENU: MULTI MELEE HOST / JOIN straight to IPX (1, default) or IPX-only row (2) */
 #include "escmenu.c"     /* I76_MENU_PTR: Esc-menu clicks from the exe's own pointer read under DxWnd (the Macs; auto) */
@@ -7305,6 +7311,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
         mp_menu_attach(m, b);     /* I76_MP_MENU: the connection row (code bytes only, no IAT slot) */
         if (g_exe == EXE_NITRO && _stricmp(b, "nitshell.dll") == 0 && InterlockedCompareExchange(&g_nsw_shell, 1, 0) == 0)
             nmp_attach_shell(m);   /* ARENA+ (nitro_mp.c); once, here or from nitro_shell_watch */
+        if (g_exe == EXE_NITRO && _stricmp(b, "nitshell.dll") == 0) nitro_msgbox_attach(m, "NITSHELL.DLL");   /* I76_NITRO_MSGBOX (nitroparity.c; once) */
         if (_strnicmp(b, "zglide", 6) == 0 && g_zg_tmufix && InterlockedCompareExchange(&g_nsw_zglide, 1, 0) == 0) {
             /* I76_ZGLIDE_TMUFIX=1: ZGLIDE+0x1a93 `jne +0x24` (75 24) -> `jmp +0x24` (eb 24): skip the Voodoo 1 "no texture
                across 2 MB" rule. Its rewind target is the constant 2 MB, and it runs BEFORE the grTexMaxAddress check, so
@@ -9901,6 +9908,10 @@ static void nitro_dllmain(void) {
     }
     apply_glide_refresh();    /* I76_GLIDE_REFRESH / I76_ZGLIDE_TMUFIX / I76_GLIDE_GAMMA (LoadLibraryA hook; Nitro ZGLIDE offsets) */
     apply_cursor_map();       /* I76_CURSOR_MAP (nitro.exe's and NITSHELL.DLL's USER32 slots; Nitro has no u32x) */
+    apply_menu_ptr_centre();  /* default on with the cursor map: I76_MENU_PTR_CENTRE (Esc menu pointer mid-screen, not the bottom edge; parity lane) */
+    apply_ffb_guard();        /* default on: I76_FFB_REACQUIRE (ffbfocus.c: keep-on-blur, NULL-slot guard, re-acquire; Nitro ships the same I7_SFRCE.DLL 687cc35b); I76_FFB_GUARD opt-in (parity lane) */
+    nitro_no_ghosting();      /* default on: I76_NO_GHOSTING (Gold gets DisableProcessWindowsGhosting from u32x; Nitro has no u32x; nitroparity.c) */
+    nitro_msgbox_attach(NULL, "nitro.exe");   /* default on: I76_NITRO_MSGBOX (message boxes in front of the picture, as u32x on Gold; NITSHELL's at its load) */
     apply_joy_routing(exe);   /* Nitro's joyGetPosEx / joyGetDevCapsA are WIN32.dll imports */
     apply_nitro_mp();         /* I76_NITRO_MP (ARENA+: nitro_mp.c / nitro_ai.c; inert outside an ARENA+ session) */
     if (p_LoadLibraryA) {     /* the LoadLibraryA hook is in: watch for DxWnd taking the slot (nitro_shell_watch) */

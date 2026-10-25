@@ -102,9 +102,12 @@ static void apply_menu_ptr_centre(void) {
     BYTE w[5] = { 0xA1 };
     DWORD a = (DWORD)(DWORD_PTR)&g_mpc_ui_h;
     if (env_flag("I76_MENU_PTR_CENTRE", 8, 1) == 0) { mlog("  menu-ptr-centre: off (I76_MENU_PTR_CENTRE=0): stock"); return; }
-    if (!g_cm_mode || g_exe == EXE_NITRO) { mlog("  menu-ptr-centre: the cursor map is off here - stock (nothing to correct)"); return; }
+    if (!g_cm_mode) { mlog("  menu-ptr-centre: the cursor map is off here - stock (nothing to correct)"); return; }
     memcpy(w + 1, &a, 4);
-    if (!patch_bytes(0x0044bd38, o, w, 5, "show-pointer recentre height (menu-ptr-centre)") || memcmp((void *)0x0044bd38, w, 5) != 0) {
+    /* Nitro (parity lane 2026-10-24, records/NITRO-PARITY-2026-10-24.md): the same show-pointer code at 0x443688 (`mov eax, [0x653bb0]`,
+     * the client height; site map reloc, 18 bytes the same instructions) and the same cursor map on nitro.exe's SetCursorPos slot, so the
+     * same bottom-edge pointer; patch_bytes relocates the site and reads it back (nitro_patch_bytes), our operand is kept verbatim */
+    if (!patch_bytes(0x0044bd38, o, w, 5, "show-pointer recentre height (menu-ptr-centre)") || (g_exe != EXE_NITRO && memcmp((void *)0x0044bd38, w, 5) != 0)) {
         mlog("  menu-ptr-centre: 0x44bd38 did not verify - not applied"); return;
     }
     mlog("  menu-ptr-centre: on - a menu opens with the pointer at UI y 240 (the screen's middle under the cursor map), not the bottom edge");
