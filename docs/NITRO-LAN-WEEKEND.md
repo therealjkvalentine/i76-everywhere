@@ -105,3 +105,10 @@ The PC's `Games\I76\nitro-lan` is a new folder, and deleting it undoes it. The P
 Deployed to all Macs (untested PC<->Mac join - the morning family game is the first test; rollback = `_rollback-final-20261025` inside each
 Gold app's game folder): proxy 5d6f9828 + the six new `auto*.lvl`, `ai_hs2/4/6` removed, on the MacBook, the M4 Max tester's and the M2 tester's Gold apps.
 Details: [records/LAN-FIXES-2026-10-24.md](records/LAN-FIXES-2026-10-24.md) s.12.
+
+**Steam Deck (2026-10-25):** the same Gold set: proxy 5d6f9828 + the six `auto*.lvl`, `ai_hs*` removed (rollback
+`game/_rollback-final-20261025`), plus the free graphics keys (no fps loss, n 2) and the rumble shim. The LAN switches are now in
+the Deck's main `i76-env.sh`, so the existing library entry (launch options unchanged: `"/home/deck/Games/Interstate76/i76-deck-launch.sh"
+%command% -glide`) goes straight to the IPX screens. **A Deck join on this set is not yet measured** (the lab host's IPX instance is
+isolated from the LAN; the owner's console was then in use). Keep the Deck awake during a game. Record:
+[records/DECK-2026-10-25.md](records/DECK-2026-10-25.md).
