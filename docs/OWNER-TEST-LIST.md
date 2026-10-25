@@ -1190,3 +1190,11 @@ Open items from this session:
 - Bus mission: can't make the bus stop (velocity) - may be player technique; check the mission's stop condition.
 - "Rename variant to save" menu: not reachable by mouse, Enter does nothing - likely the same text-entry / pointer fix
   Gold's shell needed; port to Nitro's shell.
+
+## 2026-10-24 ~19:00: owner + Andrew, Gold family LAN (Macs), second session
+- Still wanted: extra enemies in co-op scaled to the player count; co-op joiners spawn close to the host.
+- No flying cars this session.
+- Clicking CANCEL in the multiplayer menu pauses 5-6 s.
+- Host restarts the mission: after loading it freezes "somewhere in the southwest" (camera at a map corner?) for a long time,
+  then eventually loads (maybe when the joiner left, maybe just slow) - looks like the host waiting on the joiner's
+  reconcile / handshake with the player entity not yet placed.
