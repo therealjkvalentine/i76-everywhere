@@ -1,4 +1,55 @@
-# i76-everywhere
+# i76-everywhere: Interstate '76 at 120 fps with the 1997 physics
+
+<!-- ===================== HYPE VIDEO PLACEHOLDER (video lane: replace this block) =====================
+     1. Upload the video to a GitHub issue / release and paste the user-attachments URL on its own line below;
+        GitHub renders a bare https://github.com/user-attachments/assets/<id> link as an inline player.
+        (A repo-relative .mp4 path does NOT play inline on GitHub; a <video> tag only works with that URL.)
+     2. Animated preview fallback (shows everywhere, links to YouTube):
+        [![Interstate '76 with i76-everywhere (video)](docs/media/i76e-hype.gif)](https://www.youtube.com/watch?v=VIDEO_ID)
+     3. Plain YouTube link line:
+        **[Watch the video on YouTube](https://www.youtube.com/watch?v=VIDEO_ID)** (2 min)
+     Uncomment what you use; delete this comment.
+     ===================== END HYPE VIDEO PLACEHOLDER ===================== -->
+
+**What this is:** a free patch kit for your own GOG copy of Interstate '76 (Gold / Arsenal). The 1997 game still runs;
+we fix and extend it around the original code, so saves, add-on maps and multiplayer keep working.
+Nothing of the game is in this repo or the kit, and every file the kit changes is kept and restorable.
+
+**[Download the Patch Kit v0.7.3 (Windows 10/11, 4.2 MB)](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3)**
+· [release notes](docs/release/RELEASE-NOTES-v0.7.md) · Mac and Steam Deck: [below](#play-it-on-a-modern-pc-mac-or-steam-deck)
+
+## What you get
+
+| | GOG as shipped | with the kit |
+|---|---|---|
+| frame rate | 20 fps | **120 fps**, the car still simulated 24 times a second as on a 1997 Pentium 166 (jumps and AI as tuned) |
+| draw distance | 600 m | **1.8 km**; **2.3 km** fading out at the far edge in the preview launcher |
+| terrain | hills pop as you approach | morphs in, smooth shading (preview launcher) |
+| picture | 4:3 stretched | your monitor's shape (21:9 / 16:9 / 16:10), 2x supersampled |
+| rear-view mirror | cars on a plain sky | road and terrain, 300 m (1 km in the preview) |
+| menus | pointer misses with a modern mouse | pointer lands where you click; typing on the save screen; Enter / Y / N on popups |
+| Windows 11 (build 26100.9711) | start-up crashes | dgVoodoo 2.87.5 + our winmm fix: 0 crashes in 40 boots (28 in 59 before) |
+
+Also in this repo, experimental and not yet in the kit: **LAN play with AI cars dropping into empty seats** and host
+migration, a **two-player co-op campaign**, Nitro Pack **"Arena Drop-In + AI"** and **"Co-Op"** game types, **wheel force
+feedback with a tuning page** in your browser, **head look** (opentrack), and a **Mac (Wine)** build. Details:
+[the release notes](docs/release/RELEASE-NOTES-v0.7.md#in-the-repo-not-in-the-kit-yet-experimental).
+
+## Install the Patch Kit (three steps)
+
+1. Find your GOG game folder (Galaxy: the settings icon next to PLAY > *Manage installation* > *Show folder*; the folder
+   with `i76.exe`).
+2. Download the zip above, right-click > *Properties* > tick *Unblock*, then *Extract All* **into** that folder, so
+   `PLAY.bat` sits next to `i76.exe`.
+3. Double-click **`PLAY.bat`** (first run: ten seconds of setup that lists every file it changes). `PLAY-PREVIEW.bat` is
+   the 2.3 km experimental look. `UNINSTALL-i76e.bat` undoes everything.
+
+Problems: open an [issue](https://github.com/therealjkvalentine/i76-everywhere/issues) with `mciproxy.log` from the game
+folder. The full guide is `README-PATCH-KIT.md` in the zip ([tools/patch-kit/README.md](tools/patch-kit/README.md)).
+
+---
+
+## About this repository
 
 **Interstate '76 (GOG Gold, 1997) running well on everything: Apple Silicon Macs, Steam Deck,
 and modern Windows — plus a full save editor and the reverse-engineered file formats.**
