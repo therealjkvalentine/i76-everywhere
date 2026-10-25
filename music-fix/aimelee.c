@@ -156,13 +156,13 @@ static BYTE *aim_ai_obj(int k) { int li = aim_label_of(k); return li < 0 ? NULL 
  * wire: the host and every joiner (PC or Mac, same proxy) derive the same label for the same car, and the cast changes from
  * arena to arena. Width: the player-table name is 24 bytes (0x454620 / 0x454680 copy 0x18), the scoreboard prints it with
  * "%-15s" under a 15-character "Player Name" header, so every label is at most 15 characters: names up to 10 + " (AI)".
- * Dropped as too long: DEEP THOUGHT, NEUROMANCER. A human who drops in parks an AI car (mpfill.c) and that car's row is given
+ * Dropped as too long: DEEP THOUGHT; NEUROMANCER (11) keeps its place as "NEUROMANCER(AI)" (owner: "not sure I can live without it"). A human who drops in parks an AI car (mpfill.c) and that car's row is given
  * back (aim_rows_tick), so its label leaves the list; the human's row carries his own ANet name (stock).
  * I76_AI_NAMES=0: the stock names (Gold: the shell's AUTO MELEE list; Nitro: nitro_ai.c's list), no suffix. */
 static const char *const AI_NAMES[] = {
     "HAL 9000", "MOTHER", "SKYNET", "JOSHUA", "GLaDOS", "KITT", "VIKI", "SONNY", "MARVIN", "GORT", "ROBBY", "BISHOP", "ASH",
     "TARS", "CASE", "HOLLY", "SHODAN", "EDI", "CORTANA", "COLOSSUS", "PROTEUS", "ED-209", "DAVID", "AVA", "SAMANTHA",
-    "WINTERMUTE", "DURANDAL", "MULTIVAC", "ROY" };
+    "WINTERMUTE", "DURANDAL", "MULTIVAC", "ROY", "NEUROMANCER" };
 #define AI_NAMES_N ((int)(sizeof(AI_NAMES) / sizeof(AI_NAMES[0])))
 static int g_ai_names = -1;
 static int ai_names_on(void) { if (g_ai_names < 0) g_ai_names = env_flag("I76_AI_NAMES", 8, 1) != 0; return g_ai_names; }
@@ -172,7 +172,8 @@ static unsigned ai_names_seed(const char *mission) {         /* FNV-1a of the lo
     return h;
 }
 static const char *ai_label(int k, unsigned seed, char *buf) { /* buf >= 24 bytes; k = the 0-based AI car number */
-    sprintf(buf, "%s (AI)", AI_NAMES[(unsigned)((k < 0 ? 0 : k) + seed % AI_NAMES_N) % AI_NAMES_N]);
+    const char *n = AI_NAMES[(unsigned)((k < 0 ? 0 : k) + seed % AI_NAMES_N) % AI_NAMES_N];
+    sprintf(buf, strlen(n) > 10 ? "%s(AI)" : "%s (AI)", n);           /* 11-letter NEUROMANCER keeps the 15-column fit without the space */
     return buf;
 }
 static const char *aim_name(int k, char *buf) {             /* sci-fi label (I76_AI_NAMES), else the shell's AUTO MELEE names, else "AI n" */
